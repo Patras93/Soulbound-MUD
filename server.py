@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Soulbound v0.6.41 Herbalism & Alchemy
+Soulbound v0.6.58 Resting, Regeneration & Use
 Wieloosobowy tekstowy MUD TCP/Telnet dla MUSHclienta/Mudleta.
 
 Najważniejsze zasady projektu:
@@ -26,7 +26,7 @@ import time
 from dataclasses import dataclass
 from typing import Optional
 
-VERSION = "0.6.41"
+VERSION = "0.6.58"
 
 HOST = os.getenv("SOULBOUND_HOST", "0.0.0.0")
 _RAILWAY_TCP_PORT = os.getenv("RAILWAY_TCP_APPLICATION_PORT", "").strip()
@@ -54,12 +54,14 @@ SOUL_MAX_LEVEL = 100
 TIER2_LEVEL = 25
 TIER3_LEVEL = 60
 RESPAWN_SECONDS = 35
+CORPSE_LIFETIME_SECONDS = 600
+QUEST_REPEAT_COOLDOWN_SECONDS = 30 * 60
 
 # Ekonomia:
-# 100 srebra = 1 złoto
-# 1000 złota = 1 mithril
-SILVER_PER_GOLD = 100
-GOLD_PER_MITHRIL = 1000
+# 1000 srebra = 1 złoto
+# 1 000 000 złota = 1 mithril
+SILVER_PER_GOLD = 1000
+GOLD_PER_MITHRIL = 1000000
 
 PROFESSION_MAX_LEVEL = 100
 CHARISMA_DISCOUNT_STEP = 4
@@ -248,6 +250,23 @@ def tool_tier_name(tool_type, level):
 def tool_tier_bonus_chance(level):
     return TOOL_TIER_BONUS_CHANCES[tool_tier(level) - 1]
 
+CLASS_MASTERY_MAX_LEVEL = 100
+CLASS_MASTERY_XP_BASE = 1000
+CLASS_MASTERY_XP_STEP = 250
+MULTICLASS_MAX_ACTIVE = 3
+
+def class_mastery_xp_to_next(level):
+    level = max(1, min(CLASS_MASTERY_MAX_LEVEL, int(level)))
+    if level >= CLASS_MASTERY_MAX_LEVEL:
+        return 0
+    return CLASS_MASTERY_XP_BASE + (level - 1) * CLASS_MASTERY_XP_STEP
+
+def class_type_for_name(class_name):
+    for cname, ctype, weapon, base in CLASSES:
+        if cname == class_name:
+            return ctype
+    return "physical"
+
 SKILL_MAX_LEVEL = 100
 SKILL_XP_BASE = 50
 SKILL_XP_STEP = 25
@@ -267,6 +286,8 @@ def skill_cooldown_multiplier(level):
     return 1.0 - reduction
 
 PROFESSION_COOLDOWN = 2.0
+REST_TICK_SECONDS = 5.0
+REST_REGEN_PERCENT = 10
 
 RIVER_FISHING_ROOMS = {"riverbank", "stone_bridge"}
 LAKE_FISHING_ROOMS = {"lake_shore"}
@@ -1105,8 +1126,23 @@ ROOMS = {
     },
     "old_road": {
         "zone": "Dzicz", "name": "Stary Trakt",
-        "desc": "Kamienny trakt prowadzi między zarośniętymi słupami granicznymi.",
-        "exits": {"south": "north_gate", "north": "crossroads"},
+        "desc": "Kamienny trakt prowadzi między zarośniętymi słupami granicznymi. Na wschodzie widać wartownię straży.",
+        "exits": {"south": "north_gate", "north": "crossroads", "east": "north_watchpost"},
+    },
+    "north_watchpost": {
+        "zone": "Dzicz", "name": "Wartownia Północna",
+        "desc": "Drewniana wartownia pilnuje północnego szlaku. Strażnicy obserwują ruch na Starym Trakcie.",
+        "exits": {"west": "old_road", "east": "frontier_watchpost"},
+    },
+    "frontier_watchpost": {
+        "zone": "Dzicz", "name": "Wartownia Pogranicza",
+        "desc": "Kamienno-drewniany posterunek stoi na granicy bezpiecznych ziem. Dalej zaczyna się teren bandytów.",
+        "exits": {"west": "north_watchpost", "east": "bandit_camp"},
+    },
+    "bandit_camp": {
+        "zone": "Dzicz", "name": "Obozowisko Bandytów",
+        "desc": "Brudne namioty, skrzynie z łupami i wygasające ogniska tworzą rozległy obóz bandytów.",
+        "exits": {"west": "frontier_watchpost"},
     },
     "crossroads": {
         "zone": "Dzicz", "name": "Rozdroże",
@@ -1137,6 +1173,10 @@ COMMAND_ALIASES = {
     "charyzma": "charisma", "haryzma": "charisma", "charisma": "charisma",
     "drużyna": "party", "druzyna": "party", "party": "party",
     "pc": "partychat", "dczat": "partychat", "partychat": "partychat",
+    "multiclass": "multiclass", "multiklasa": "multiclass",
+    "multiklas": "multiclass", "klasy": "multiclass",
+    "odpoczywaj": "rest", "odpocznij": "rest", "odpoczynek": "rest",
+    "rest": "rest", "regen": "rest", "regeneruj": "rest",
     "staty": "stats", "status": "stats",
     "odmiana": "declension", "przypadki": "declension", "namecases": "declension", "declension": "declension",
     "skills": "skills", "umiejętności": "skills", "umiejetnosci": "skills", "zdolności": "skills", "zdolnosci": "skills",
@@ -1147,7 +1187,7 @@ COMMAND_ALIASES = {
     "ekwipunek": "inventory", "inv": "inventory", "i": "inventory",
     "załóż": "equip", "zaloz": "equip",
     "wyposażenie": "equipment", "wyposazenie": "equipment",
-    "użyj": "use", "uzyj": "use",
+    "użyj": "use", "uzyj": "use", "use": "use",
     "sklep": "shop", "list": "shop", "lista": "shop",
     "kup": "buy",
     "mów": "say", "mow": "say", "powiedz": "say",
@@ -1155,6 +1195,10 @@ COMMAND_ALIASES = {
     "teachers": "teachers", "nauczyciele": "teachers", "trenerzy": "teachers",
     "zadania": "quests", "questy": "quests",
     "atakuj": "attack", "walcz": "attack", "zabij": "attack", "kill": "attack",
+    "ciało": "corpse", "cialo": "corpse", "zwłoki": "corpse", "zwloki": "corpse",
+    "body": "corpse", "corpse": "corpse",
+    "przeszukaj": "lootcorpse", "loot": "lootcorpse", "ograb": "lootcorpse",
+    "krypta": "cryptinfo", "crypt": "cryptinfo",
     "uciekaj": "flee",
     "odblokuj": "unlock",
     "zapisz": "save",
@@ -1180,13 +1224,20 @@ COMMAND_ALIASES = {
     "profesje": "professions",
     "rangi": "ranks", "ranks": "ranks", "rangiprofesji": "ranks", "professionranks": "ranks",
     "narzędzia": "tools", "narzedzia": "tools",
+    "wędka": "toolinfo_fishing", "wedka": "toolinfo_fishing", "rod": "toolinfo_fishing",
+    "kilof": "toolinfo_mining", "pickaxe": "toolinfo_mining",
+    "piła": "toolinfo_woodcutting", "pila": "toolinfo_woodcutting",
+    "młot": "toolinfo_crafting", "mlot": "toolinfo_crafting", "hammer": "toolinfo_crafting",
+    "nóż": "toolinfo_cooking", "noz": "toolinfo_cooking", "knife": "toolinfo_cooking",
+    "sierp": "toolinfo_herbalism", "sickle": "toolinfo_herbalism",
+    "moździerz": "toolinfo_alchemy", "mozdzierz": "toolinfo_alchemy", "mortar": "toolinfo_alchemy",
     "tiers": "tiers", "tiery": "tiers", "tiernazwy": "tiers", "nazwytierow": "tiers", "nazwytierów": "tiers",
     "wyjście": "quit", "wyjscie": "quit",
 }
 
 ITEMS = {
     "healing_potion": {
-        "name": "Mikstura leczenia", "type": "consumable", "price": 25, "currency": "silver",
+        "name": "Mikstura leczenia", "type": "consumable", "price": 24, "currency": "silver",
         "desc": "Przywraca 35 punktów życia podczas walki.", "heal": 35,
     },
     "soul_elixir": {
@@ -1195,75 +1246,75 @@ ITEMS = {
     },
     "leather_vest": {
         "name": "Skórzana kamizelka", "type": "armor", "slot": "body", "defense": 2,
-        "price": 80, "currency": "silver", "desc": "Lekki pancerz. Obrona +2.",
+        "price": 48, "currency": "silver", "desc": "Lekki pancerz. Obrona +2.",
     },
     "iron_helmet": {
         "name": "Żelazny hełm", "type": "armor", "slot": "head", "defense": 2,
-        "price": 1, "currency": "gold",
+        "price": 90, "currency": "silver",
         "desc": "Hełm kowalskiego zestawu. Slot głowa. Obrona fizyczna +2.",
     },
     "iron_guard": {
         "name": "Żelazny napierśnik", "type": "armor", "slot": "body", "defense": 4,
-        "price": 2, "currency": "gold",
+        "price": 180, "currency": "silver",
         "desc": "Główna część kowalskiego zestawu. Slot korpus. Obrona fizyczna +4.",
     },
     "iron_gauntlets": {
         "name": "Żelazne rękawice", "type": "armor", "slot": "hands", "defense": 1,
-        "price": 1, "currency": "gold",
+        "price": 70, "currency": "silver",
         "desc": "Rękawice kowalskiego zestawu. Slot dłonie. Obrona fizyczna +1.",
     },
     "iron_leggings": {
         "name": "Żelazne nogawice", "type": "armor", "slot": "legs", "defense": 3,
-        "price": 2, "currency": "gold",
+        "price": 130, "currency": "silver",
         "desc": "Osłona nóg kowalskiego zestawu. Slot nogi. Obrona fizyczna +3.",
     },
     "iron_boots": {
         "name": "Żelazne buty", "type": "armor", "slot": "feet", "defense": 1,
-        "price": 1, "currency": "gold",
+        "price": 70, "currency": "silver",
         "desc": "Buty kowalskiego zestawu. Slot stopy. Obrona fizyczna +1.",
     },
     "forge_charm": {
         "name": "Talizman Kowala", "type": "armor", "slot": "charm", "defense": 1,
-        "price": 2, "currency": "gold",
+        "price": 110, "currency": "silver",
         "desc": "Hartowany talizman ochronny. Slot talizman. Obrona fizyczna +1.",
     },
     "lucky_charm": {
         "name": "Talizman Wędrowca", "type": "armor", "slot": "charm", "defense": 1,
-        "price": 95, "currency": "silver", "desc": "Drobny talizman. Obrona +1.",
+        "price": 72, "currency": "silver", "desc": "Drobny talizman. Obrona +1.",
     },
     "fishing_rod": {
         "name": "Wędka", "type": "tool", "tool_type": "fishing",
-        "price": 1, "currency": "gold",
+        "price": 10, "currency": "silver",
         "desc": "Podstawowe narzędzie do Wędkarstwa. Ma własny level 1-100.",
     },
     "pickaxe": {
         "name": "Kilof", "type": "tool", "tool_type": "mining",
-        "price": 2, "currency": "gold",
+        "price": 10, "currency": "silver",
         "desc": "Podstawowe narzędzie do Górnictwa. Ma własny level 1-100.",
     },
     "saw": {
         "name": "Piła", "type": "tool", "tool_type": "woodcutting",
-        "price": 2, "currency": "gold",
+        "price": 10, "currency": "silver",
         "desc": "Podstawowe narzędzie do Drwalstwa. Ma własny level 1-100 i 8 Tierów.",
     },
     "crafting_hammer": {
         "name": "Młot Rzemieślniczy", "type": "tool", "tool_type": "crafting",
-        "price": 2, "currency": "gold",
+        "price": 10, "currency": "silver",
         "desc": "Narzędzie wymagane do Rzemiosła. Ma własny level 1-100, XP i 8 Tierów.",
     },
     "chef_knife": {
         "name": "Nóż Kucharski", "type": "tool", "tool_type": "cooking",
-        "price": 1, "currency": "gold",
+        "price": 10, "currency": "silver",
         "desc": "Narzędzie wymagane do Gotowania. Ma własny level 1-100, XP i 8 Tierów.",
     },
     "herbalist_sickle": {
         "name": "Sierp Zielarski", "type": "tool", "tool_type": "herbalism",
-        "price": 1, "currency": "gold",
+        "price": 10, "currency": "silver",
         "desc": "Narzędzie do Zielarstwa. Ma własny level 1-100, XP i 8 Tierów.",
     },
     "alchemy_mortar": {
         "name": "Moździerz Alchemiczny", "type": "tool", "tool_type": "alchemy",
-        "price": 2, "currency": "gold",
+        "price": 10, "currency": "silver",
         "desc": "Narzędzie do Alchemii. Ma własny level 1-100, XP i 8 Tierów.",
     },
     "nettle": {"name": "Pokrzywa", "type": "resource", "price": None, "sell_silver": 5, "desc": "Pospolite zioło lecznicze."},
@@ -1736,23 +1787,48 @@ NPCS = {
     },
     "lumberjack_bran": {
         "name": "Drwal Bran", "room": "lumberjack_camp",
-        "dialogue": "Piłę kupisz tylko tutaj. Lepsza Piła i Drwalstwo otwierają dostęp do coraz rzadszego drewna.",
-        "quest": None,
+        "dialogue": "Piłę kupisz tylko tutaj. Jeśli chcesz sprawdzić się jako drwal, przynieś mi trzydzieści sztuk dowolnego drewna.",
+        "quest": "lumberjack_30_wood",
     },
     "herbalist_liora": {
         "name": "Zielarka Liora", "room": "herbalist_hut",
-        "dialogue": "Kupisz u mnie Sierp Zielarski i Moździerz Alchemiczny. Zebrane zioła wykorzystasz w Alchemii.",
-        "quest": None,
+        "dialogue": "Kupisz u mnie Sierp Zielarski i Moździerz Alchemiczny. Przynieś mi trzydzieści dowolnych ziół, a wynagrodzę twoją pracę.",
+        "quest": "herbalist_30_herbs",
+    },
+    "miner_toren": {
+        "name": "Górnik Toren", "room": "cave_entrance",
+        "dialogue": "Dobra ruda nie wydobędzie się sama. Przynieś mi trzydzieści sztuk dowolnej rudy z kopalni.",
+        "quest": "miner_30_ore",
     },
     "priest_elor": {
         "name": "Kapłan Elor", "room": "temple",
-        "dialogue": "W piwnicy zalęgły się szczury. Zagrażają zapasom świątyni. Zabij dziesięć.",
+        "dialogue": (
+            "Świątynia prowadzi próby Broni Duszy. Tier 2 wymaga Soul Level 25 "
+            "i Próby Szkieletów, a Tier 3 Soul Level 60 i Próby Upiorów. "
+            "Jeśli nie jesteś jeszcze gotowy, w piwnicy nadal potrzebujemy pomocy ze szczurami."
+        ),
         "quest": "temple_rats",
     },
     "captain_arven": {
         "name": "Kapitan Arven", "room": "guard_hall",
         "dialogue": "Gobliny zajęły starą strażnicę. Potrzebujemy kogoś, kto oczyści szlak.",
         "quest": "goblin_problem",
+    },
+    "watch_commander_roderik": {
+        "name": "Dowódca Roderik", "room": "north_watchpost",
+        "dialogue": (
+            "Bandyci znów zbierają się w obozowisku za Wartownią Pogranicza. "
+            "Potrzebujemy regularnych patroli, które ograniczą ich napady."
+        ),
+        "quest": "bandit_patrol",
+    },
+    "frontier_guard_anna": {
+        "name": "Strażniczka Anna", "room": "frontier_watchpost",
+        "dialogue": (
+            "Za tą wartownią zaczyna się Obozowisko Bandytów. "
+            "Jeśli masz zlecenie od Dowódcy Roderika, trzymaj się na baczności."
+        ),
+        "quest": None,
     },
     "mira": {
         "name": "Zielarka Mira", "room": "whisper_grove",
@@ -1846,17 +1922,29 @@ NPC_DESCRIPTIONS = {
         "Doświadczony drwal prowadzący Obóz Drwala. "
         "Jako jedyny sprzedaje Piłę potrzebną do Drwalstwa."
     ),
+    "miner_toren": (
+        "Doświadczony górnik stojący przy wejściu do Kryształowej Jaskini. "
+        "Zleca próbę Górnictwa polegającą na dostarczeniu 30 dowolnych rud."
+    ),
     "herbalist_liora": (
         "Zielarka i alchemiczka mieszkająca w Chacie Zielarki. "
-        "Sprzedaje Sierp Zielarski i Moździerz Alchemiczny."
+        "Sprzedaje Sierp Zielarski i Moździerz Alchemiczny oraz zleca próbę Zielarstwa na 30 ziół."
     ),
     "priest_elor": (
-        "Kapłan Świątyni Odrodzenia. Pomaga nowym bohaterom i pilnuje bezpieczeństwa "
-        "świątynnych zapasów."
+        "Kapłan Świątyni Odrodzenia. Prowadzi próby odblokowania Tier 2 i Tier 3 "
+        "Broni Duszy oraz pilnuje bezpieczeństwa świątynnych zapasów."
     ),
     "captain_arven": (
         "Dowódca miejskiej straży. Zleca zadania związane z bezpieczeństwem dróg, "
         "strażnic i okolic Miasta Dusz."
+    ),
+    "watch_commander_roderik": (
+        "Dowódca Wartowni Północnej. Organizuje powtarzalne patrole przeciw bandytom "
+        "z Obozowiska Bandytów."
+    ),
+    "frontier_guard_anna": (
+        "Strażniczka z Wartowni Pogranicza. Ostrzega podróżnych przed bandytami "
+        "i wskazuje drogę do ich obozowiska."
     ),
     "mira": (
         "Zielarka mieszkająca w Gaju Szeptów. Zna dzicz i reaguje na zagrożenia "
@@ -1950,13 +2038,13 @@ SYSTEM_DESCRIPTIONS = {
     ),
     "bron duszy": "Broń Duszy ma osobny Soul Level 1-100 i trzy Tiers.",
     "soul weapon": "Broń Duszy ma osobny Soul Level 1-100 i trzy Tiers.",
-    "srebro": "Srebro jest podstawową walutą. 100 srebra można wymienić na 1 złoto.",
-    "silver": "Srebro jest podstawową walutą. 100 srebra = 1 złoto.",
-    "złoto": "Złoto jest walutą wyższego rzędu. 1000 złota można wymienić na 1 mithril.",
-    "zloto": "Złoto jest walutą wyższego rzędu. 1000 złota = 1 mithril.",
-    "gold": "Złoto jest walutą wyższego rzędu. 1000 złota = 1 mithril.",
+    "srebro": "Srebro jest podstawową walutą. 1000 srebra można wymienić na 1 złoto.",
+    "silver": "Srebro jest podstawową walutą. 1000 srebra = 1 złoto.",
+    "złoto": "Złoto jest walutą wyższego rzędu. 1000000 złota można wymienić na 1 mithril.",
+    "zloto": "Złoto jest walutą wyższego rzędu. 1000000 złota = 1 mithril.",
+    "gold": "Złoto jest walutą wyższego rzędu. 1000000 złota = 1 mithril.",
     "mithril": (
-        "Mithril jest najrzadszą walutą. 1 mithril = 1000 złota. "
+        "Mithril jest najrzadszą walutą. 1 mithril = 1000000 złota. "
         "Może być nagrodą lub bardzo rzadkim bezpośrednim wydobyciem wysokopoziomowym Kilofem."
     ),
     "siatka": "Siatka na ryby jest osobnym trwałym magazynem profesji i nie zajmuje zwykłego ekwipunku.",
@@ -1972,18 +2060,24 @@ SYSTEM_DESCRIPTIONS = {
 }
 
 
-LATEST_CHANGES_TITLE = "Soulbound v0.6.41 - Herbalism & Alchemy"
+LATEST_CHANGES_TITLE = "Soulbound v0.6.58 - Resting, Regeneration & Use"
 LATEST_CHANGES = [
-    "Dodano Zielarstwo 1-100 z własnym XP i 8 rangami.",
-    "Dodano Sierp Zielarski 1-100 z własnym XP, użyciami i 8 Tierami.",
-    "Dodano zbieraj, zbieraj on i zbieraj off; auto-Zielarstwo działa jak auto-łowienie.",
-    "Dodano Torbę Zielarską oraz 16 gatunków ziół.",
-    "Dodano Chatę Zielarki i Zielarkę Liorę.",
-    "Dodano Alchemię 1-100 z własnym XP i 8 rangami.",
-    "Dodano Moździerz Alchemiczny 1-100 z własnym XP, użyciami i 8 Tierami.",
-    "Dodano 6 receptur Alchemii pobierających zioła bezpośrednio z Torby Zielarskiej.",
-    "Wyższy Tier Sierpa może dać dodatkowe zioło, a wyższy Tier Moździerza dodatkową miksturę.",
-    "Dodano atlas ziola i zaktualizowano pełną pomoc.",
+    "Dodano odpoczywanie i regenerację postaci.",
+    "odpoczywaj / rest działa poza walką.",
+    "Co 5 sekund postać odzyskuje 10 procent maksymalnego HP.",
+    "Postać z Maną odzyskuje także 10 procent maksymalnej Many co 5 sekund.",
+    "NVDA dostaje po każdym tiku HP X z Y i Mana X z Y.",
+    "Odpoczynek kończy się automatycznie po pełnej regeneracji.",
+    "Dodano odpoczywaj status i odpoczywaj stop.",
+    "Ruch i aktywne czynności przerywają odpoczynek, komendy informacyjne nie.",
+    "Rozpoczęcie odpoczynku wyłącza auto-profesje.",
+    "Dodano pełne wsparcie use oraz użyj dla przedmiotów użytkowych.",
+    "użyj mikstura oznacza podstawową Miksturę leczenia.",
+    "użyj eliksir oznacza Eliksir Duszy.",
+    "Działają także pełne nazwy, np. użyj Wielka Mikstura Leczenia lub użyj Mikstura Many.",
+    "Jeśli skrót pasuje do kilku przedmiotów, gra podaje warianty zamiast zgadywać.",
+    "Eliksir Duszy użyty w walce również zużywa turę.",
+    "Zaktualizowano help, README, RAILWAY_PL i pełny changelog.",
 ]
 
 HELP_TOPIC_ALIASES = {
@@ -2018,13 +2112,29 @@ HELP_TOPIC_ALIASES = {
     "skills": "umiejetnosci", "abilities": "umiejetnosci",
     "skillnames": "nazwy_skilli", "nazwyskilli": "nazwy_skilli",
     "teachers": "nauczyciele", "trainers": "nauczyciele",
+    "multiclass": "multiclass", "multiklasa": "multiclass",
+    "multiklas": "multiclass", "klasy": "multiclass",
     "changes": "zmiany", "changelog": "zmiany",
+    "corpse": "zwloki", "body": "zwloki", "cialo": "zwloki", "ciało": "zwloki",
+    "loot": "zwloki", "zwloki": "zwloki", "zwłoki": "zwloki",
+    "crypt": "krypta", "krypta": "krypta",
     "atlas": "atlas", "atlasy": "atlas",
     "party": "druzyny", "parties": "druzyny", "druzyna": "druzyny", "drużyna": "druzyny",
     "charisma": "charyzma", "charyzma": "charyzma", "haryzma": "charyzma",
 }
 
 HELP_TOPICS = {
+    "odpoczynek": [
+        "odpoczywaj albo rest rozpoczyna regenerację postaci poza walką.",
+        "Co 5 sekund odzyskujesz 10 procent maksymalnego HP i 10 procent maksymalnej Many.",
+        "Regeneracja kończy się automatycznie przy pełnym HP i pełnej Manie.",
+        "odpoczywaj status pokazuje aktualne HP, Manę i stan odpoczynku.",
+        "odpoczywaj stop przerywa regenerację ręcznie.",
+        "Ruch, walka, używanie przedmiotów, zbieranie, craft i inne aktywne czynności przerywają odpoczynek.",
+        "Komendy informacyjne, np. stats, look, quests, soul i inventory, nie przerywają odpoczynku.",
+        "Rozpoczęcie odpoczynku wyłącza aktywne auto-profesje.",
+        "Odpoczynek nic nie kosztuje.",
+    ],
     "podstawy": [
         "Soulbound nie ma levelu postaci. Rozwój bohatera odbywa się przez pięć statystyk.",
         "Wszystkie klasy automatycznie rozwijają Siłę, Zręczność, Kondycję, Inteligencję i Siłę Woli.",
@@ -2033,6 +2143,8 @@ HELP_TOPICS = {
         "Użyj opis <nazwa>, aby uzyskać szczegółowy opis elementu świata.",
     ],
     "nawigacja": [
+        "Nowy szlak bandytów: Stary Trakt -> Wartownia Północna -> Wartownia Pogranicza -> Obozowisko Bandytów.",
+        "Możesz użyć prowadz Wartownia Północna, prowadz Wartownia Pogranicza albo prowadz Obozowisko Bandytów.",
         "Ruch ręczny: north, south, east, west, up, down lub n, s, e, w, u, d.",
         "where albo gdzie pokazuje aktualną lokację.",
         "location albo lokalizacja pokazuje lokację, strefę i wyjścia.",
@@ -2058,9 +2170,16 @@ HELP_TOPICS = {
         "Komenda stats pokazuje wartości podstawowe i pochodne. Charyzma handlowa jest pokazywana osobno i nie należy do pięciu statystyk bojowych.",
     ],
     "walka": [
+        "Bandyci i Bandyccy Maruderzy w Obozowisku Bandytów liczą się do questu Patrol przeciw bandytom.",
         "Walka jest turowa: gracz wykonuje jedną akcję, potem przeciwnik wykonuje jedną akcję.",
         "Akcją może być attack, ofensywny skill, leczenie, osłona, unik, wzmocnienie albo mikstura.",
         "Rozpocznij lub kontynuuj walkę: attack, atakuj, zabij albo kill <przeciwnik>.",
+        "Po zabiciu większości mobów zostaje ciało. Wpisz ciało i przeszukaj ciało, aby sprawdzić noszony ekwipunek.",
+        "W Krypcie boss na co dziesiątym piętrze blokuje zejście niżej, dopóki żyje.",
+        "Wszystkie pokojowe NPC-e z systemu NPCS są chronione i nie można ich atakować ani zabijać.",
+        "Ochrona obejmuje sprzedawców, nauczycieli klas, postacie zadaniowe i innych pomocnych NPC-ów również poza miastem.",
+        "Przykłady chronionych NPC-ów: Kowal Doran, Drwal Bran, Górnik Toren, Zielarka Liora, Zielarka Mira, Rybak Tomas i nauczyciele klas.",
+        "Ochrona działa również na ofensywne umiejętności klasowe.",
         "Jeśli przeciwnik przeżyje twoją akcję, wykonuje dokładnie jedną turę odpowiedzi.",
         "Zręczność może pozwolić uniknąć ataku w turze przeciwnika.",
         "Pancerz redukuje obrażenia fizyczne; Siła Woli redukuje obrażenia magiczne.",
@@ -2068,6 +2187,27 @@ HELP_TOPICS = {
         "Po śmierci odradzasz się w Świątyni Odrodzenia i tracisz 10 procent każdej waluty.",
     ],
     "dusza": [
+        "Od v0.6.57 Soul XP jest znacznie wyższy: zwykłe moby dają dziesiątki lub setki, a głęboka Krypta setki do ponad tysiąca.",
+        "Zwykły mob Krypty daje 100 + piętro*10 Soul XP.",
+        "Boss Krypty daje 600 + piętro*20 Soul XP.",
+        "Od v0.6.56 wszystkie moby dają więcej Soul XP, bo rozwój Broni Duszy jest wolniejszy niż rozwój klas.",
+        "Zwykłe moby świata mają podbite Soul XP, a moby Krypty skalują Soul XP z piętrem.",
+        "Bossowie Krypty dają największy skok Soul XP.",
+        "Tier 2 nie odblokowuje się już samym Soul Levelem 25: trzeba też ukończyć Próbę Broni Duszy u Kapłana Elora w Świątyni Odrodzenia.",
+        "Próba Tier 2: od Soul Level 25 pokonaj 5 Szkieletów Strażników i wróć do Elora, potem użyj unlock.",
+        "Tier 3 wymaga Soul Level 60 oraz drugiej Próby Broni Duszy u Kapłana Elora.",
+        "Próba Tier 3: pokonaj 3 Upiory Krypty, wróć do Elora, potem użyj unlock.",
+        "Postacie, które już mają Tier 2 lub Tier 3, zachowują swój aktualny Tier.",
+        "Broń Duszy daje teraz dodatkowy bonus klasowy zależny od klasy głównej i Soul Tieru.",
+        "Tier 1 / 2 / 3 daje standardowo 5 / 10 / 15 procent bonusu do specjalizacji klasy głównej.",
+        "Wojownik, Berserker i Łowca: dodatkowe obrażenia fizyczne.",
+        "Mag i Czarownik: dodatkowe obrażenia magiczne.",
+        "Mnich, Kapłan i Druid: dodatkowa moc leczenia.",
+        "Nekromanta: dodatkowe leczenie z wysysania życia.",
+        "Psionik: dodatkowa obrona magiczna.",
+        "Łotrzyk: +2 / +4 / +6 punktów procentowych uniku; nadal obowiązuje globalny cap uniku 45 procent.",
+        "Strażnik: +3 / +6 / +9 procent redukcji wszystkich obrażeń.",
+        "Przy multiclass bonus Broni Duszy zawsze należy do klasy głównej, bo dodatkowe klasy nie dostają własnej Broni Duszy.",
         "Każda klasa ma własną stałą Broń Duszy.",
         "Broń Duszy ma Soul Level 1-100 i osobny Soul XP.",
         "Soul Level rośnie znacznie wolniej niż zwykły rozwój statystyk.",
@@ -2077,14 +2217,18 @@ HELP_TOPICS = {
     ],
     "pieniadze": [
         "Waluty: srebro, złoto, mithril.",
-        "100 srebra = 1 złoto.",
-        "1000 złota = 1 mithril.",
+        "1000 srebra = 1 złoto.",
+        "1000000 złota = 1 mithril.",
         "money pokazuje stan portfela.",
         "exchange pokazuje kursy; exchange gold i exchange mithril wykonują wymianę.",
         "Mithril jest najrzadszą walutą.",
         "Charyzma handlowa daje rabaty u sklepikarzy.",
     ],
     "ekwipunek": [
+        "użyj <przedmiot> albo use <przedmiot> używa mikstury, eliksiru lub jedzenia.",
+        "Skrót użyj mikstura oznacza podstawową Miksturę leczenia.",
+        "Skrót użyj eliksir oznacza Eliksir Duszy.",
+        "Przykłady: użyj eliksir, użyj mikstura, użyj Mikstura Many, use soul elixir.",
         "inventory albo i pokazuje zwykły ekwipunek i opisy przedmiotów.",
         "equipment pokazuje założone elementy na slotach: głowa, korpus, dłonie, nogi, stopy i talizman.",
         "equip <przedmiot> zakłada wyposażenie.",
@@ -2093,6 +2237,21 @@ HELP_TOPICS = {
         "opis <przedmiot> pokazuje szczegółowe działanie oraz ceny.",
     ],
     "zadania": [
+        "Dowódca Roderik w Wartowni Północnej daje Patrol przeciw bandytom: pokonaj 10 bandytów w Obozowisku Bandytów.",
+        "Patrol przeciw bandytom jest powtarzalny co 60 minut i pokazuje live postęp X z 10.",
+        "Każdy aktywny quest pokazuje dokładny postęp X z Y.",
+        "Po zabiciu celu questa gra od razu mówi np. Próba Broni Duszy: 3 z 5.",
+        "Przy aktywnym queście zbierackim po rybie, rudzie, drewnie lub zielu gra automatycznie odczytuje aktualny stan X z 30.",
+        "Po osiągnięciu pełnego celu gra mówi, że cel jest wykonany i trzeba wrócić do NPC.",
+        "Próby Broni Duszy na Tier 2 i Tier 3 daje Kapłan Elor w Świątyni Odrodzenia po osiągnięciu odpowiedniego Soul Levelu.",
+        "Questy profesyjne: Próba Rybaka, Górnika, Drwala i Zielarki są powtarzalne co 30 minut.",
+        "Cooldown 30 minut jest zapisany w SQLite i nie resetuje się po reconnect ani restarcie serwera.",
+        "Questy profesyjne na 30 surowców pobierają materiały bezpośrednio z magazynów profesji oraz zwykłego ekwipunku.",
+        "Rybak Tomas: Próba Rybaka - przynieś 30 dowolnych ryb.",
+        "Górnik Toren: Próba Górnika - przynieś 30 dowolnych rud.",
+        "Drwal Bran: Próba Drwala - przynieś 30 sztuk dowolnego drewna.",
+        "Zielarka Liora: Próba Zielarki - przynieś 30 dowolnych ziół.",
+        "Każda z czterech prób profesyjnych daje 1000 XP odpowiedniej profesji, 1000 XP odpowiedniego narzędzia i 50 srebra.",
         "talk <NPC> rozpoczyna rozmowę i może przyjąć lub oddać zadanie.",
         "quests pokazuje dziennik zadań.",
         "Zadania mogą wymagać zabijania przeciwników albo przynoszenia przedmiotów i surowców.",
@@ -2107,11 +2266,13 @@ HELP_TOPICS = {
         "Rangi profesji: Uczeń, Adept, Czeladnik, Specjalista, Ekspert, Mistrz, Arcymistrz, Legenda.",
         "Każdy Tier Wędki, Kilofa, Piły, Młota Rzemieślniczego i Noża Kucharskiego ma własną unikalną nazwę.",
         "professions albo profesje pokazuje profesje.",
-        "tools albo narzedzia pokazuje poziomy narzędzi.",
+        "tools albo narzedzia pokazuje skrót wszystkich narzędzi. Wpisanie nazwy konkretnego narzędzia pokazuje pełne szczegóły jego progresji.",
         "tiers albo tiery pokazuje pełną listę nazw wszystkich Tierów.",
         "Rudy i drewno można wykorzystać w Rzemiośle, a ryby w Gotowaniu.",
     ],
     "wedkarstwo": [
+        "Powiązany quest dostawczy można powtarzać co 30 minut po ukończeniu.",
+        "Rybak Tomas zleca Próbę Rybaka: przynieś mu 30 dowolnych ryb.",
         "Do łowienia potrzebujesz Wędki.",
         "fish, wedkuj albo low wykonuje pojedynczy połów.",
         "low on albo fish on włącza auto-łowienie; low off albo fish off je wyłącza.",
@@ -2121,6 +2282,8 @@ HELP_TOPICS = {
         "Rzeka: Brzeg Rzeki i Kamienny Most. Jezioro: Brzeg Srebrnego Jeziora. Morze: Morskie Molo. Ocean: Oceaniczna Platforma. Wędka ma 8 Tierów i szansę na dodatkowy połów.",
     ],
     "gornictwo": [
+        "Powiązany quest dostawczy można powtarzać co 30 minut po ukończeniu.",
+        "Górnik Toren przy wejściu do Kryształowej Jaskini zleca Próbę Górnika: przynieś 30 dowolnych rud.",
         "Do kopania potrzebujesz Kilofa.",
         "mine albo kop wykonuje pojedyncze wydobycie.",
         "kop on albo mine on włącza auto-kopanie; kop off albo mine off je wyłącza.",
@@ -2131,6 +2294,8 @@ HELP_TOPICS = {
         "Bonus Tieru Kilofa nigdy nie podwaja czystego mithrilu.",
     ],
     "drwalstwo": [
+        "Powiązany quest dostawczy można powtarzać co 30 minut po ukończeniu.",
+        "Drwal Bran zleca Próbę Drwala: przynieś mu 30 sztuk dowolnego drewna.",
         "Do Drwalstwa potrzebujesz Piły. Piłę sprzedaje wyłącznie Drwal Bran w Obozie Drwala.",
         "tnij, drwal albo woodcut wykonuje pojedyncze pozyskanie drewna.",
         "tnij on albo woodcut on włącza auto-Drwalstwo; tnij off albo woodcut off je wyłącza.",
@@ -2141,6 +2306,8 @@ HELP_TOPICS = {
         "Drewno można sprzedać na Rynku albo w Kuźni Dusz. Jest teraz 24 gatunki drewna, od Suchych gałęzi do Drewna Drzewa Świata.",
     ],
     "zielarstwo": [
+        "Powiązany quest dostawczy można powtarzać co 30 minut po ukończeniu.",
+        "Zielarka Liora zleca Próbę Zielarki: przynieś jej 30 dowolnych ziół.",
         "Do Zielarstwa potrzebujesz Sierpa Zielarskiego kupowanego w Chacie Zielarki.",
         "Zielarstwo ma level 1-100, własny XP i 8 nazwanych rang.",
         "Sierp Zielarski ma level 1-100, własny XP, użycia i 8 Tierów.",
@@ -2204,6 +2371,13 @@ HELP_TOPICS = {
         "take <przedmiot> net/bag/woodpile albo wyjmij <przedmiot> siatka/sakwa/stos wyjmuje surowiec.",
     ],
     "sklepy": [
+        "Wszystkie 7 podstawowych narzędzi kosztuje po 10 srebra. Wędka, Kilof, Piła, Młot Rzemieślniczy, Nóż Kucharski, Sierp Zielarski i Moździerz Alchemiczny.",
+        "Ceny po rebalansie v0.6.46 są liczone głównie w srebrze.",
+        
+        
+        "Mikstura leczenia kosztuje 24 srebra.",
+        "Skórzana kamizelka kosztuje 48 srebra, a Talizman Wędrowca 72 srebra.",
+        "Żelazny hełm kosztuje 90 srebra, napierśnik 180, rękawice 70, nogawice 130, buty 70, a Talizman Kowala 110 srebra.",
         "shop, sklep, list albo lista pokazuje ofertę sprzedawcy w aktualnej lokacji.",
         "buy albo kup <przedmiot> kupuje rzecz.",
         "sell albo sprzedaj <ryba, ruda lub drewno> sprzedaje surowiec.",
@@ -2290,10 +2464,46 @@ HELP_TOPICS = {
         "Waluta z przeciwnika jest dzielona, a każdy wylosowany drop trafia do jednego losowego członka.",
         "Walka nadal jest turowa: po akcji konkretnego gracza przeciwnik wykonuje jeden kontratak na tego gracza.",
     ],
+    "zwloki": [
+        "Po śmierci większości mobów zostaje ciało widoczne w lokacji.",
+        "ciało / cialo / zwloki / corpse pokazuje ciała i noszony przez nie ekwipunek.",
+        "przeszukaj ciało albo loot przenosi ekwipunek z ciała do zwykłego ekwipunku.",
+        "Jeśli leży kilka ciał, użyj przeszukaj <nazwa moba>.",
+        "Ciała znikają po około 10 minutach.",
+        "Zwykłe moby Krypty zostawiają jeden element zestawu, bossowie dwa.",
+        "Dotychczasowe losowe dropy mobów nadal działają osobno.",
+    ],
+    "krypta": [
+        "Nowe wysokie Soul XP: piętro 10 zwykły mob 200, piętro 50 600, piętro 100 1100.",
+        "Boss piętra 10 daje 800, boss piętra 50 1600, boss piętra 100 2600 Soul XP.",
+        "Soul XP w Krypcie rośnie szybciej niż wcześniej: zwykły mob daje 3 + piętro/6, a boss 35 + piętro/3.",
+        "Krypta ma 100 realnych pięter połączonych up i down.",
+        "Na każdym piętrze znajduje się skalowany przeciwnik.",
+        "Bossowie są na piętrach 10, 20, 30, 40, 50, 60, 70, 80, 90 i 100.",
+        "Na piętrach 10-90 żywy boss blokuje zejście na następne piętro.",
+        "Piętro 100 ma finałowego bossa Władcę Stu Pięter.",
+        "krypta pokazuje zasady i aktualne piętro.",
+        "prowadz krypta 25 prowadzi do wybranego piętra, ale nie ominie żywego bossa.",
+        "Co 10 pięter zmienia się Tier ekwipunku znajdowanego na ciałach.",
+    ],
+    "multiclass": [
+        "Multiclass jest całkowicie opcjonalny.",
+        "Każda postać ma jedną klasę główną i może włączyć maksymalnie dwie dodatkowe klasy, czyli 3 aktywne łącznie.",
+        "multiclass pokazuje aktywne klasy i ich Biegłość.",
+        "multiclass add <klasa> włącza klasę dodatkową.",
+        "multiclass remove <klasa> wyłącza klasę dodatkową. Klasy głównej nie można wyłączyć.",
+        "Klasa główna zachowuje swoją Broń Duszy. Jej bonus klasowy także zawsze wzmacnia klasę główną; dodatkowe klasy nie dostają osobnej Broni Duszy.",
+        "Dodatkowe klasy aktywują swoje pasywy i dają dostęp do własnych nauczycieli oraz skilli.",
+        "Class XP z zabitego moba jest jedną pulą dzieloną równo między wszystkie aktywne klasy.",
+        "Każda klasa ma własną Biegłość 1-100 i własny Class XP. To nie jest level postaci.",
+        "Wyłączenie klasy nie kasuje jej Biegłości ani wcześniej nauczonych skilli, ale skilli nie można używać, gdy klasa jest nieaktywna.",
+        "Jeśli włączysz klasę magiczną jako dodatkową, postać otrzymuje pulę Many i może używać jej magicznych skilli.",
+    ],
     "opisy": [
         "Komenda opis bez argumentu opisuje aktualną lokację.",
         "opis <przedmiot> pokazuje działanie, typ i ceny.",
         "opis <NPC> pokazuje rolę, lokację i powiązane zadanie.",
+        "NPC-e pomocni, handlowi, zadaniowi i nauczyciele są pokojowi oraz chronieni przed walką.",
         "opis <przeciwnik> pokazuje HP, obrażenia, typ ataku i nagrody.",
         "opis <lokacja> pokazuje strefę, opis, wyjścia i specjalne funkcje.",
         "opis <zadanie>, opis <rasa>, opis <klasa>, opis <statystyka> i opis <waluta> także działają.",
@@ -2314,7 +2524,79 @@ QUESTS = {
         "reward_profession_xp": 1000,
         "reward_tool_type": "fishing",
         "reward_tool_xp": 1000,
-        "reward_silver": 0, "reward_gold": 200, "reward_mithril": 0,
+        "reward_silver": 50, "reward_gold": 0, "reward_mithril": 0,
+        "reward_items": {},
+        "repeatable": True,
+        "repeat_cooldown": QUEST_REPEAT_COOLDOWN_SECONDS,
+    },
+    "miner_30_ore": {
+        "name": "Próba Górnika",
+        "giver": "Górnik Toren",
+        "kind": "collect_category", "target": "ore", "needed": 30,
+        "description": "Przynieś Górnikowi Torenowi 30 dowolnych rud.",
+        "reward_profession": "Górnictwo",
+        "reward_profession_xp": 1000,
+        "reward_tool_type": "mining",
+        "reward_tool_xp": 1000,
+        "reward_silver": 50, "reward_gold": 0, "reward_mithril": 0,
+        "reward_items": {},
+        "repeatable": True,
+        "repeat_cooldown": QUEST_REPEAT_COOLDOWN_SECONDS,
+    },
+    "lumberjack_30_wood": {
+        "name": "Próba Drwala",
+        "giver": "Drwal Bran",
+        "kind": "collect_category", "target": "wood", "needed": 30,
+        "description": "Przynieś Drwalowi Branowi 30 sztuk dowolnego drewna.",
+        "reward_profession": "Drwalstwo",
+        "reward_profession_xp": 1000,
+        "reward_tool_type": "woodcutting",
+        "reward_tool_xp": 1000,
+        "reward_silver": 50, "reward_gold": 0, "reward_mithril": 0,
+        "reward_items": {},
+        "repeatable": True,
+        "repeat_cooldown": QUEST_REPEAT_COOLDOWN_SECONDS,
+    },
+    "herbalist_30_herbs": {
+        "name": "Próba Zielarki",
+        "giver": "Zielarka Liora",
+        "kind": "collect_category", "target": "herb", "needed": 30,
+        "description": "Przynieś Zielarce Liorze 30 dowolnych ziół.",
+        "reward_profession": "Zielarstwo",
+        "reward_profession_xp": 1000,
+        "reward_tool_type": "herbalism",
+        "reward_tool_xp": 1000,
+        "reward_silver": 50, "reward_gold": 0, "reward_mithril": 0,
+        "reward_items": {},
+        "repeatable": True,
+        "repeat_cooldown": QUEST_REPEAT_COOLDOWN_SECONDS,
+    },
+    "soul_tier_2_trial": {
+        "name": "Próba Broni Duszy: Tier 2",
+        "giver": "Kapłan Elor",
+        "kind": "kill", "target": "skeleton", "needed": 5,
+        "description": (
+            "Pokonaj 5 Szkieletów Strażników, wróć do Kapłana Elora "
+            "w Świątyni Odrodzenia i potwierdź gotowość Broni Duszy."
+        ),
+        "required_soul_level": 25,
+        "required_soul_tier": 1,
+        "unlocks_soul_tier": 2,
+        "reward_silver": 100, "reward_gold": 0, "reward_mithril": 0,
+        "reward_items": {},
+    },
+    "soul_tier_3_trial": {
+        "name": "Próba Broni Duszy: Tier 3",
+        "giver": "Kapłan Elor",
+        "kind": "kill", "target": "crypt_wraith", "needed": 3,
+        "description": (
+            "Pokonaj 3 Upiory Krypty, wróć do Kapłana Elora "
+            "w Świątyni Odrodzenia i potwierdź pełnię mocy Broni Duszy."
+        ),
+        "required_soul_level": 60,
+        "required_soul_tier": 2,
+        "unlocks_soul_tier": 3,
+        "reward_silver": 250, "reward_gold": 0, "reward_mithril": 0,
         "reward_items": {},
     },
     "temple_rats": {
@@ -2323,7 +2605,7 @@ QUESTS = {
         "kind": "kill", "target": "temple_rat", "needed": 10,
         "description": "Zejdź do piwnicy Świątyni Odrodzenia i zabij 10 szczurów.",
         "reward_stat_progress": 120,
-        "reward_silver": 0, "reward_gold": 2, "reward_mithril": 0,
+        "reward_silver": 75, "reward_gold": 0, "reward_mithril": 0,
         "reward_items": {"healing_potion": 1},
     },
     "goblin_problem": {
@@ -2331,15 +2613,29 @@ QUESTS = {
         "giver": "Kapitan Arven",
         "kind": "kill", "target": "goblin", "needed": 3,
         "description": "Pokonaj 3 gobliny w ruinach i obozie.",
-        "reward_silver": 120, "reward_gold": 1, "reward_mithril": 0,
+        "reward_silver": 100, "reward_gold": 0, "reward_mithril": 0,
         "reward_items": {"healing_potion": 2},
+    },
+    "bandit_patrol": {
+        "name": "Patrol przeciw bandytom",
+        "giver": "Dowódca Roderik",
+        "kind": "kill", "target": "bandit", "needed": 10,
+        "description": (
+            "Pokonaj 10 bandytów w Obozowisku Bandytów i wróć "
+            "do Dowódcy Roderika w Wartowni Północnej."
+        ),
+        "reward_stat_progress": 150,
+        "reward_silver": 250, "reward_gold": 0, "reward_mithril": 0,
+        "reward_items": {"healing_potion": 2},
+        "repeatable": True,
+        "repeat_cooldown": 60 * 60,
     },
     "shadow_wolves": {
         "name": "Cienie w gaju",
         "giver": "Zielarka Mira",
         "kind": "kill", "target": "shadow_wolf", "needed": 2,
         "description": "Pokonaj 2 Wilki Cienia w Gaju Szeptów.",
-        "reward_silver": 90, "reward_gold": 1, "reward_mithril": 0,
+        "reward_silver": 120, "reward_gold": 0, "reward_mithril": 0,
         "reward_items": {"healing_potion": 1},
     },
     "soul_shards": {
@@ -2347,7 +2643,7 @@ QUESTS = {
         "giver": "Kowal Doran",
         "kind": "collect", "target": "soul_shard", "needed": 3,
         "description": "Przynieś 3 Odłamki Duszy z krypty.",
-        "reward_silver": 0, "reward_gold": 3, "reward_mithril": 1,
+        "reward_silver": 300, "reward_gold": 0, "reward_mithril": 0,
         "reward_items": {"soul_elixir": 1},
     },
 }
@@ -2356,47 +2652,52 @@ MOB_TEMPLATES = {
     "temple_rat": {
         "name": "Szczur Świątynny", "max_hp": 28, "damage": 3, "damage_type": "physical",
         "silver": 6, "gold": 0, "mithril": 0,
-        "stat_reward": 8, "soul_reward": 1,
+        "stat_reward": 8, "soul_reward": 80,
         "drops": {}, "quest_target": "temple_rat",
     },
     "training_dummy": {
         "name": "Żywy Manekin", "max_hp": 45, "damage": 4, "damage_type": "physical",
-        "silver": 12, "gold": 0, "mithril": 0, "stat_reward": 18, "soul_reward": 4,
+        "silver": 12, "gold": 0, "mithril": 0, "stat_reward": 18, "soul_reward": 100,
         "drops": {}, "quest_target": None,
     },
     "goblin": {
         "name": "Goblin", "max_hp": 60, "damage": 7, "damage_type": "physical",
-        "silver": 28, "gold": 0, "mithril": 0, "stat_reward": 30, "soul_reward": 7,
+        "silver": 28, "gold": 0, "mithril": 0, "stat_reward": 30, "soul_reward": 140,
         "drops": {"healing_potion": 0.08}, "quest_target": "goblin",
     },
     "goblin_brute": {
         "name": "Gobliński Osiłek", "max_hp": 85, "damage": 10, "damage_type": "physical",
-        "silver": 45, "gold": 1, "mithril": 0, "stat_reward": 38, "soul_reward": 9,
+        "silver": 45, "gold": 1, "mithril": 0, "stat_reward": 38, "soul_reward": 180,
         "drops": {"healing_potion": 0.12}, "quest_target": "goblin",
     },
     "shadow_wolf": {
         "name": "Wilk Cienia", "max_hp": 70, "damage": 9, "damage_type": "physical",
-        "silver": 32, "gold": 0, "mithril": 0, "stat_reward": 34, "soul_reward": 8,
+        "silver": 32, "gold": 0, "mithril": 0, "stat_reward": 34, "soul_reward": 160,
         "drops": {"wolf_fang": 0.45}, "quest_target": "shadow_wolf",
     },
     "bandit": {
         "name": "Bandyta", "max_hp": 75, "damage": 9, "damage_type": "physical",
-        "silver": 40, "gold": 0, "mithril": 0, "stat_reward": 35, "soul_reward": 8,
-        "drops": {"healing_potion": 0.10}, "quest_target": None,
+        "silver": 40, "gold": 0, "mithril": 0, "stat_reward": 35, "soul_reward": 170,
+        "drops": {"healing_potion": 0.10}, "quest_target": "bandit",
+    },
+    "bandit_marauder": {
+        "name": "Bandycki Maruder", "max_hp": 105, "damage": 12, "damage_type": "physical",
+        "silver": 65, "gold": 0, "mithril": 0, "stat_reward": 48, "soul_reward": 220,
+        "drops": {"healing_potion": 0.14}, "quest_target": "bandit",
     },
     "skeleton": {
         "name": "Szkielet Strażnik", "max_hp": 90, "damage": 11, "damage_type": "physical",
-        "silver": 30, "gold": 1, "mithril": 0, "stat_reward": 42, "soul_reward": 11,
-        "drops": {"soul_shard": 0.55}, "quest_target": None,
+        "silver": 30, "gold": 1, "mithril": 0, "stat_reward": 42, "soul_reward": 240,
+        "drops": {"soul_shard": 0.55}, "quest_target": "skeleton",
     },
     "crypt_wraith": {
         "name": "Upiór Krypty", "max_hp": 120, "damage": 14, "damage_type": "magic",
-        "silver": 0, "gold": 2, "mithril": 1, "stat_reward": 55, "soul_reward": 15,
-        "drops": {"soul_shard": 0.85}, "quest_target": None,
+        "silver": 0, "gold": 2, "mithril": 1, "stat_reward": 55, "soul_reward": 280,
+        "drops": {"soul_shard": 0.85}, "quest_target": "crypt_wraith",
     },
     "crystal_guardian": {
         "name": "Kryształowy Strażnik", "max_hp": 140, "damage": 15, "damage_type": "magic",
-        "silver": 0, "gold": 4, "mithril": 1, "stat_reward": 60, "soul_reward": 18,
+        "silver": 0, "gold": 4, "mithril": 1, "stat_reward": 60, "soul_reward": 320,
         "drops": {"soul_elixir": 0.08}, "quest_target": None,
     },
 }
@@ -2409,6 +2710,12 @@ MOB_SPAWNS = [
     ("temple_basement", "temple_rat"),
     ("training", "training_dummy"),
     ("old_road", "bandit"),
+    ("bandit_camp", "bandit"),
+    ("bandit_camp", "bandit"),
+    ("bandit_camp", "bandit"),
+    ("bandit_camp", "bandit"),
+    ("bandit_camp", "bandit_marauder"),
+    ("bandit_camp", "bandit_marauder"),
     ("deep_grove", "shadow_wolf"),
     ("whisper_grove", "shadow_wolf"),
     ("ruined_watchtower", "goblin"),
@@ -2418,6 +2725,123 @@ MOB_SPAWNS = [
     ("crypt_depths", "crypt_wraith"),
     ("crystal_chamber", "crystal_guardian"),
 ]
+
+
+CRYPT_MAX_FLOOR = 100
+CRYPT_BOSS_FLOORS = tuple(range(10, 101, 10))
+CRYPT_BOSS_NAMES = {
+    10: "Kościany Egzekutor", 20: "Krwawy Kurator",
+    30: "Rycerz Grobowca", 40: "Wiedźma Popiołu",
+    50: "Pan Katakumb", 60: "Widmowy Tytan",
+    70: "Nekromantyczny Kolos", 80: "Arcyupiór Otchłani",
+    90: "Król Kości", 100: "Władca Stu Pięter",
+}
+CRYPT_REGULAR_NAMES = (
+    "Szkielet Krypty", "Upiór Krypty",
+    "Strażnik Sarkofagu", "Cień Katakumb",
+)
+
+def crypt_floor_id(floor):
+    return f"crypt_floor_{int(floor)}"
+
+def crypt_floor_number(room_id):
+    m = re.fullmatch(r"crypt_floor_(\d+)", str(room_id))
+    if not m: return None
+    floor=int(m.group(1))
+    return floor if 1 <= floor <= CRYPT_MAX_FLOOR else None
+
+def build_crypt_100_floors():
+    ROOMS["crypt_hall"]["exits"]["down"] = crypt_floor_id(1)
+    ROOMS["crypt_hall"]["exits"]["east"] = "crypt_depths"
+    ROOMS["crypt_depths"]["exits"] = {"west": "crypt_hall"}
+
+    for tier in range(1, 11):
+        defs=(
+            ("head","Hełm Krypty",1+tier//2),
+            ("body","Napierśnik Krypty",2+tier),
+            ("hands","Rękawice Krypty",1+tier//3),
+            ("legs","Nogawice Krypty",2+tier//2),
+            ("feet","Buty Krypty",1+tier//3),
+        )
+        for slot,label,defense in defs:
+            item_id=f"crypt_t{tier}_{slot}"
+            ITEMS[item_id]={
+                "name":f"{label} Tier {tier}","type":"armor","slot":slot,
+                "defense":defense,"price":None,
+                "desc":f"Ekwipunek z Krypty. Tier {tier}. Obrona +{defense}.",
+            }
+        charm=f"crypt_t{tier}_charm"; defense=1+tier//2
+        ITEMS[charm]={
+            "name":f"Talizman Bossa Krypty Tier {tier}","type":"armor","slot":"charm",
+            "defense":defense,"price":None,
+            "desc":f"Talizman po bossie Krypty. Tier {tier}. Obrona +{defense}.",
+        }
+
+    for floor in range(1, CRYPT_MAX_FLOOR+1):
+        room_id=crypt_floor_id(floor); exits={}
+        exits["up"]="crypt_hall" if floor==1 else crypt_floor_id(floor-1)
+        if floor<CRYPT_MAX_FLOOR: exits["down"]=crypt_floor_id(floor+1)
+        if floor in CRYPT_BOSS_FLOORS and floor<100:
+            note=" Przy zejściu czeka boss blokujący drogę niżej."
+        elif floor==100:
+            note=" To ostatnie piętro. Czeka tutaj finałowy boss Krypty."
+        else: note=""
+        ROOMS[room_id]={
+            "zone":"Krypta 1-100","name":f"Krypta, piętro {floor}",
+            "desc":f"Piętro {floor} ze 100. Kamienne korytarze stają się coraz bardziej niebezpieczne.{note}",
+            "exits":exits,
+        }
+        tier=min(10,(floor-1)//10+1)
+        gear=[f"crypt_t{tier}_{x}" for x in ("head","body","hands","legs","feet")]
+        tid=f"crypt_floor_mob_{floor}"
+        name=CRYPT_REGULAR_NAMES[(floor-1)%len(CRYPT_REGULAR_NAMES)]
+        MOB_TEMPLATES[tid]={
+            "name":f"{name}, piętro {floor}",
+            "max_hp":70+floor*9,"damage":6+floor//3,
+            "damage_type":"magic" if (floor%3==0 or floor%4==0) else "physical",
+            "silver":8+floor,"gold":0,"mithril":0,
+            "stat_reward":20+floor*2,
+            "class_xp_reward":450+floor*60,
+            "soul_reward":100+floor*10,
+            "drops":{"soul_shard":min(0.30,0.08+floor*0.002)},"quest_target":None,
+            "crypt_floor":floor,"corpse_equipment_pool":gear,"corpse_equipment_guaranteed":1,
+        }
+        MOB_SPAWNS.append((room_id,tid))
+        if floor in CRYPT_BOSS_FLOORS:
+            bid=f"crypt_boss_{floor}"; pool=gear+[f"crypt_t{tier}_charm"]
+            MOB_TEMPLATES[bid]={
+                "name":CRYPT_BOSS_NAMES[floor],"max_hp":350+floor*25,
+                "damage":16+floor//2,"damage_type":"magic" if floor%20==0 else "physical",
+                "silver":300+floor*12,"gold":0,"mithril":0,
+                "stat_reward":350+floor*6,
+                "class_xp_reward":3000+floor*160,
+                "soul_reward":600+floor*20,
+                "drops":{
+                    "soul_shard":1.0,
+                    "soul_elixir":min(0.50,0.15+floor*0.003)
+                },
+                "quest_target":None,"crypt_floor":floor,"crypt_boss":True,
+                "corpse_equipment_pool":pool,"corpse_equipment_guaranteed":3,
+            }
+            MOB_SPAWNS.append((room_id,bid))
+
+def configure_base_mob_corpse_equipment():
+    MOB_TEMPLATES["training_dummy"]["leave_corpse"] = False
+    configs={
+        "goblin":["leather_vest","lucky_charm"],
+        "goblin_brute":["leather_vest","iron_gauntlets","iron_boots"],
+        "bandit":["leather_vest","lucky_charm"],
+        "bandit_marauder":["leather_vest","iron_gauntlets","iron_boots","lucky_charm"],
+        "skeleton":["iron_helmet","iron_gauntlets","iron_boots"],
+        "crypt_wraith":["forge_charm","lucky_charm"],
+        "crystal_guardian":["iron_guard","iron_leggings","forge_charm"],
+    }
+    for tid,pool in configs.items():
+        MOB_TEMPLATES[tid]["corpse_equipment_pool"]=pool
+        MOB_TEMPLATES[tid]["corpse_equipment_guaranteed"]=1
+
+build_crypt_100_floors()
+configure_base_mob_corpse_equipment()
 
 IAC = 255
 DONT = 254
@@ -2568,6 +2992,8 @@ class Database:
                 quest_id TEXT NOT NULL,
                 status TEXT NOT NULL DEFAULT 'active',
                 progress INTEGER NOT NULL DEFAULT 0,
+                completed_at INTEGER NOT NULL DEFAULT 0,
+                completion_count INTEGER NOT NULL DEFAULT 0,
                 PRIMARY KEY(account_id, quest_id),
                 FOREIGN KEY(account_id) REFERENCES accounts(id) ON DELETE CASCADE
             );
@@ -2601,6 +3027,16 @@ class Database:
                 FOREIGN KEY(account_id) REFERENCES accounts(id) ON DELETE CASCADE
             );
 
+            CREATE TABLE IF NOT EXISTS class_progress (
+                account_id INTEGER NOT NULL,
+                class_name TEXT NOT NULL,
+                level INTEGER NOT NULL DEFAULT 1,
+                xp INTEGER NOT NULL DEFAULT 0,
+                active_slot INTEGER,
+                PRIMARY KEY(account_id, class_name),
+                FOREIGN KEY(account_id) REFERENCES accounts(id) ON DELETE CASCADE
+            );
+
             CREATE TABLE IF NOT EXISTS learned_skills (
                 account_id INTEGER NOT NULL,
                 skill_id TEXT NOT NULL,
@@ -2624,7 +3060,7 @@ class Database:
     def migrate_schema(self):
         cols = {r["name"] for r in self.conn.execute("PRAGMA table_info(characters)")}
         additions = {
-            "silver": "INTEGER NOT NULL DEFAULT 250",
+            "silver": "INTEGER NOT NULL DEFAULT 30",
             "gold": "INTEGER NOT NULL DEFAULT 2",
             "mithril": "INTEGER NOT NULL DEFAULT 0",
             "charisma": "INTEGER NOT NULL DEFAULT 0",
@@ -2651,6 +3087,19 @@ class Database:
                 f"UPDATE characters SET {column}=name "
                 f"WHERE {column} IS NULL OR TRIM({column})=''"
             )
+        quest_cols = {
+            r["name"] for r in self.conn.execute("PRAGMA table_info(quests)")
+        }
+        quest_additions = {
+            "completed_at": "INTEGER NOT NULL DEFAULT 0",
+            "completion_count": "INTEGER NOT NULL DEFAULT 0",
+        }
+        for name, decl in quest_additions.items():
+            if name not in quest_cols:
+                self.conn.execute(
+                    f"ALTER TABLE quests ADD COLUMN {name} {decl}"
+                )
+
         self.conn.commit()
 
     def account_by_name(self, username):
@@ -2688,7 +3137,7 @@ class Database:
                 race,class_name,class_type,soul_weapon,weapon_base,
                 strength,dexterity,constitution,intelligence,willpower,
                 stat_progress,soul_level,soul_xp,soul_tier,room_id,silver,gold,mithril,deaths
-            ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,0,1,0,1,'square',250,2,0,0)
+            ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,0,1,0,1,'square',30,2,0,0)
             """,
             (
                 account_id, name,
@@ -2702,6 +3151,16 @@ class Database:
         self.conn.execute(
             "INSERT OR REPLACE INTO inventory(account_id,item_id,quantity) VALUES(?,?,?)",
             (account_id, "healing_potion", 2),
+        )
+        self.conn.execute(
+            "INSERT OR IGNORE INTO class_progress(account_id,class_name,level,xp,active_slot) "
+            "VALUES(?,?,1,0,1)",
+            (account_id, cname),
+        )
+        self.conn.execute(
+            "UPDATE class_progress SET active_slot=1 "
+            "WHERE account_id=? AND class_name=?",
+            (account_id, cname),
         )
         self.conn.commit()
 
@@ -2763,6 +3222,137 @@ class Database:
             )
         self.conn.commit()
         return True
+
+    def ensure_class_progress(self, account_id, class_name):
+        self.conn.execute(
+            "INSERT OR IGNORE INTO class_progress(account_id,class_name,level,xp,active_slot) "
+            "VALUES(?,?,1,0,NULL)",
+            (account_id, class_name),
+        )
+        self.conn.commit()
+
+    def ensure_primary_class(self, account_id, class_name):
+        self.ensure_class_progress(account_id, class_name)
+        self.conn.execute(
+            "UPDATE class_progress SET active_slot=NULL "
+            "WHERE account_id=? AND active_slot=1 AND class_name<>?",
+            (account_id, class_name),
+        )
+        self.conn.execute(
+            "UPDATE class_progress SET active_slot=1 "
+            "WHERE account_id=? AND class_name=?",
+            (account_id, class_name),
+        )
+        self.conn.commit()
+
+    def class_progress_row(self, account_id, class_name):
+        self.ensure_class_progress(account_id, class_name)
+        return self.conn.execute(
+            "SELECT class_name,level,xp,active_slot FROM class_progress "
+            "WHERE account_id=? AND class_name=?",
+            (account_id, class_name),
+        ).fetchone()
+
+    def active_class_rows(self, account_id, primary_class):
+        self.ensure_primary_class(account_id, primary_class)
+        return self.conn.execute(
+            "SELECT class_name,level,xp,active_slot FROM class_progress "
+            "WHERE account_id=? AND active_slot IS NOT NULL "
+            "ORDER BY active_slot",
+            (account_id,),
+        ).fetchall()
+
+    def active_class_names(self, account_id, primary_class):
+        return [
+            row["class_name"]
+            for row in self.active_class_rows(account_id, primary_class)
+        ]
+
+    def activate_secondary_class(self, account_id, primary_class, class_name):
+        self.ensure_primary_class(account_id, primary_class)
+        rows = self.active_class_rows(account_id, primary_class)
+        active_names = [row["class_name"] for row in rows]
+
+        if class_name in active_names:
+            return False, "Ta klasa jest już aktywna."
+        if len(active_names) >= MULTICLASS_MAX_ACTIVE:
+            return False, "Masz już maksymalnie 3 aktywne klasy."
+
+        used_slots = {
+            int(row["active_slot"])
+            for row in rows
+            if row["active_slot"] is not None
+        }
+        slot = next(
+            number for number in range(2, MULTICLASS_MAX_ACTIVE + 1)
+            if number not in used_slots
+        )
+
+        self.ensure_class_progress(account_id, class_name)
+        self.conn.execute(
+            "UPDATE class_progress SET active_slot=? "
+            "WHERE account_id=? AND class_name=?",
+            (slot, account_id, class_name),
+        )
+        self.conn.commit()
+        return True, slot
+
+    def deactivate_secondary_class(self, account_id, primary_class, class_name):
+        self.ensure_primary_class(account_id, primary_class)
+        if class_name == primary_class:
+            return False, "Nie można wyłączyć klasy głównej."
+
+        row = self.conn.execute(
+            "SELECT active_slot FROM class_progress "
+            "WHERE account_id=? AND class_name=?",
+            (account_id, class_name),
+        ).fetchone()
+        if not row or row["active_slot"] is None:
+            return False, "Ta klasa nie jest aktywna."
+
+        self.conn.execute(
+            "UPDATE class_progress SET active_slot=NULL "
+            "WHERE account_id=? AND class_name=?",
+            (account_id, class_name),
+        )
+        self.conn.commit()
+        return True, None
+
+    def add_class_mastery_xp(self, account_id, class_name, amount):
+        self.ensure_class_progress(account_id, class_name)
+        row = self.class_progress_row(account_id, class_name)
+        level = int(row["level"])
+        xp = int(row["xp"])
+        gain = max(0, int(amount))
+        xp += gain
+        level_ups = 0
+
+        while level < CLASS_MASTERY_MAX_LEVEL:
+            needed = class_mastery_xp_to_next(level)
+            if needed <= 0 or xp < needed:
+                break
+            xp -= needed
+            level += 1
+            level_ups += 1
+
+        if level >= CLASS_MASTERY_MAX_LEVEL:
+            level = CLASS_MASTERY_MAX_LEVEL
+            xp = 0
+
+        self.conn.execute(
+            "UPDATE class_progress SET level=?,xp=? "
+            "WHERE account_id=? AND class_name=?",
+            (level, xp, account_id, class_name),
+        )
+        self.conn.commit()
+        return {
+            "class_name": class_name,
+            "level": level,
+            "xp": xp,
+            "level_ups": level_ups,
+            "next_xp": class_mastery_xp_to_next(level),
+            "gain": gain,
+        }
 
     def learned_skill_ids(self, account_id):
         rows = self.conn.execute(
@@ -2987,10 +3577,30 @@ class Database:
 
     def start_quest(self, account_id, quest_id):
         self.conn.execute(
-            "INSERT OR IGNORE INTO quests(account_id,quest_id,status,progress) VALUES(?,?, 'active',0)",
+            "INSERT OR IGNORE INTO quests("
+            "account_id,quest_id,status,progress,completed_at,completion_count"
+            ") VALUES(?,?, 'active',0,0,0)",
             (account_id, quest_id),
         )
         self.conn.commit()
+
+    def restart_quest(self, account_id, quest_id):
+        self.conn.execute(
+            "UPDATE quests SET status='active',progress=0 "
+            "WHERE account_id=? AND quest_id=?",
+            (account_id, quest_id),
+        )
+        self.conn.commit()
+
+    def repeat_quest_seconds_remaining(self, account_id, quest_id, cooldown):
+        row = self.quest(account_id, quest_id)
+        if not row or row["status"] != "completed":
+            return 0
+        completed_at = int(row["completed_at"] or 0)
+        if completed_at <= 0:
+            return 0
+        elapsed = max(0, int(time.time()) - completed_at)
+        return max(0, int(cooldown) - elapsed)
 
     def quest_rows(self, account_id):
         return self.conn.execute(
@@ -3019,8 +3629,10 @@ class Database:
 
     def complete_quest(self, account_id, quest_id):
         self.conn.execute(
-            "UPDATE quests SET status='completed' WHERE account_id=? AND quest_id=?",
-            (account_id, quest_id),
+            "UPDATE quests SET status='completed',completed_at=?,"
+            "completion_count=completion_count+1 "
+            "WHERE account_id=? AND quest_id=?",
+            (int(time.time()), account_id, quest_id),
         )
         self.conn.commit()
 
@@ -3110,18 +3722,33 @@ class Character:
             base + self.class_dodge_bonus() + self.racial_dodge_bonus()
         )
 
+    def active_class_names(self):
+        names = list(getattr(self, "_active_classes", []) or [])
+        if self.class_name not in names:
+            names.insert(0, self.class_name)
+        result = []
+        for name in names:
+            if name not in result:
+                result.append(name)
+        return result[:MULTICLASS_MAX_ACTIVE]
+
+    def has_active_class(self, class_name):
+        return class_name in self.active_class_names()
+
     def max_mana(self):
-        if self.class_type != "magic":
+        if not any(
+            class_type_for_name(name) == "magic"
+            for name in self.active_class_names()
+        ):
             return 0
-        # Inteligencja zwiększa pulę many.
+        # Multiclass fizyczny może korzystać z Many, jeśli ma aktywną klasę magiczną.
         base = 20 + self.intelligence * 5
         return max(0, int(round(base * self.racial_max_mana_multiplier())))
 
     def spell_power(self):
-        # Inteligencja zwiększa siłę czarów.
         return self.intelligence
 
-    def class_passive_text(self):
+    def class_passive_text_for(self, class_name):
         return {
             "Wojownik": "+10 procent obrażeń fizycznych",
             "Berserker": "+12 procent obrażeń fizycznych",
@@ -3135,28 +3762,64 @@ class Character:
             "Czarownik": "+12 procent obrażeń magicznych",
             "Druid": "+10 procent mocy klasowego leczenia",
             "Psionik": "+10 procent obrony magicznej",
-        }.get(self.class_name, "brak")
+        }.get(class_name, "brak")
+
+    def class_passive_text(self):
+        return self.class_passive_text_for(self.class_name)
 
     def class_physical_damage_multiplier(self):
-        return {"Wojownik": 1.10, "Berserker": 1.12, "Łowca": 1.08}.get(self.class_name, 1.0)
+        multiplier = 1.0
+        bonuses = {"Wojownik": 1.10, "Berserker": 1.12, "Łowca": 1.08}
+        for name in self.active_class_names():
+            multiplier *= bonuses.get(name, 1.0)
+
+        if self.class_name in ("Wojownik", "Berserker", "Łowca"):
+            multiplier *= 1.0 + self.soul_weapon_bonus_percent() / 100.0
+        return multiplier
 
     def class_magic_damage_multiplier(self):
-        return {"Mag": 1.10, "Czarownik": 1.12}.get(self.class_name, 1.0)
+        multiplier = 1.0
+        bonuses = {"Mag": 1.10, "Czarownik": 1.12}
+        for name in self.active_class_names():
+            multiplier *= bonuses.get(name, 1.0)
+
+        if self.class_name in ("Mag", "Czarownik"):
+            multiplier *= 1.0 + self.soul_weapon_bonus_percent() / 100.0
+        return multiplier
 
     def class_healing_multiplier(self):
-        return {"Mnich": 1.08, "Kapłan": 1.10, "Druid": 1.10}.get(self.class_name, 1.0)
+        multiplier = 1.0
+        bonuses = {"Mnich": 1.08, "Kapłan": 1.10, "Druid": 1.10}
+        for name in self.active_class_names():
+            multiplier *= bonuses.get(name, 1.0)
+
+        if self.class_name in ("Mnich", "Kapłan", "Druid"):
+            multiplier *= 1.0 + self.soul_weapon_bonus_percent() / 100.0
+        return multiplier
 
     def class_drain_healing_multiplier(self):
-        return 1.15 if self.class_name == "Nekromanta" else 1.0
+        multiplier = 1.15 if self.has_active_class("Nekromanta") else 1.0
+        if self.class_name == "Nekromanta":
+            multiplier *= 1.0 + self.soul_weapon_bonus_percent() / 100.0
+        return multiplier
 
     def class_dodge_bonus(self):
-        return 0.05 if self.class_name == "Łotrzyk" else 0.0
+        bonus = 0.05 if self.has_active_class("Łotrzyk") else 0.0
+        if self.class_name == "Łotrzyk":
+            bonus += self.soul_weapon_dodge_bonus()
+        return bonus
 
     def class_damage_reduction_percent(self):
-        return 10 if self.class_name == "Strażnik" else 0
+        percent = 10 if self.has_active_class("Strażnik") else 0
+        if self.class_name == "Strażnik":
+            percent += self.soul_weapon_guardian_reduction_percent()
+        return percent
 
     def class_magic_defense_multiplier(self):
-        return 1.10 if self.class_name == "Psionik" else 1.0
+        multiplier = 1.10 if self.has_active_class("Psionik") else 1.0
+        if self.class_name == "Psionik":
+            multiplier *= 1.0 + self.soul_weapon_bonus_percent() / 100.0
+        return multiplier
 
     def apply_class_damage_reduction(self, damage):
         damage = max(1, int(damage))
@@ -3283,6 +3946,56 @@ class Character:
         # Soul Level ma rozwijać się wolniej niż wcześniej.
         return 180 + (self.soul_level - 1) * 60
 
+    def soul_weapon_bonus_percent(self):
+        # Broń Duszy klasy głównej wzmacnia jej specjalizację.
+        # Tier 1 / 2 / 3: 5 / 10 / 15 procent.
+        return {1: 5, 2: 10, 3: 15}.get(self.soul_tier, 5)
+
+    def soul_weapon_dodge_bonus(self):
+        # Unik jest liczony w punktach procentowych i ma globalny cap 45%.
+        return {1: 0.02, 2: 0.04, 3: 0.06}.get(self.soul_tier, 0.02)
+
+    def soul_weapon_guardian_reduction_percent(self):
+        # Redukcja Strażnika jest celowo mniejsza niż standardowe 5/10/15.
+        return {1: 3, 2: 6, 3: 9}.get(self.soul_tier, 3)
+
+    def soul_weapon_class_bonus_text(self):
+        percent = self.soul_weapon_bonus_percent()
+        if self.class_name in ("Wojownik", "Berserker", "Łowca"):
+            return (
+                f"+{percent} procent obrażeń fizycznych z Broni Duszy "
+                f"klasy {self.class_name}"
+            )
+        if self.class_name == "Łotrzyk":
+            pp = int(round(self.soul_weapon_dodge_bonus() * 100))
+            return f"+{pp} punkty procentowe uniku z Broni Duszy Łotrzyka"
+        if self.class_name in ("Mag", "Czarownik"):
+            return (
+                f"+{percent} procent obrażeń magicznych z Broni Duszy "
+                f"klasy {self.class_name}"
+            )
+        if self.class_name in ("Mnich", "Kapłan", "Druid"):
+            return (
+                f"+{percent} procent mocy leczenia z Broni Duszy "
+                f"klasy {self.class_name}"
+            )
+        if self.class_name == "Nekromanta":
+            return (
+                f"+{percent} procent leczenia z wysysania życia "
+                "z Broni Duszy Nekromanty"
+            )
+        if self.class_name == "Strażnik":
+            return (
+                f"+{self.soul_weapon_guardian_reduction_percent()} procent "
+                "redukcji wszystkich obrażeń z Broni Duszy Strażnika"
+            )
+        if self.class_name == "Psionik":
+            return (
+                f"+{percent} procent obrony magicznej "
+                "z Broni Duszy Psionika"
+            )
+        return f"+{percent} procent do specjalizacji klasy głównej"
+
     def soul_power(self):
         return self.weapon_base + self.soul_level - 1 + {1: 0, 2: 12, 3: 30}[self.soul_tier]
 
@@ -3343,14 +4056,24 @@ class Character:
             self.soul_level += 1
             messages.append(f"Broń Duszy osiąga Soul Level {self.soul_level}.")
             if self.soul_level == TIER2_LEVEL and self.soul_tier == 1:
-                messages.append("Tier 2 jest gotowy do odblokowania. Wpisz unlock.")
+                messages.append("Osiągnięto Soul Level 25. Idź do Kapłana Elora w Świątyni Odrodzenia po Próbę Broni Duszy na Tier 2.")
             if self.soul_level == TIER3_LEVEL and self.soul_tier == 2:
-                messages.append("Tier 3 jest gotowy do odblokowania. Wpisz unlock.")
+                messages.append("Osiągnięto Soul Level 60. Idź do Kapłana Elora w Świątyni Odrodzenia po Próbę Broni Duszy na Tier 3.")
         if self.soul_level >= SOUL_MAX_LEVEL:
             self.soul_level = SOUL_MAX_LEVEL
             self.soul_xp = 0
             messages.append("Osiągnięto maksymalny Soul Level 100.")
         return messages
+
+
+@dataclass
+class CorpseState:
+    key: str
+    room_id: str
+    mob_name: str
+    items: list
+    created_at: float
+    expires_at: float
 
 
 @dataclass
@@ -3367,6 +4090,8 @@ class MobState:
 class World:
     def __init__(self):
         self.mobs = {}
+        self.corpses = {}
+        self.corpse_counter = 0
         counts = {}
         for room_id, template_id in MOB_SPAWNS:
             counts[(room_id, template_id)] = counts.get((room_id, template_id), 0) + 1
@@ -3379,11 +4104,56 @@ class World:
 
     def refresh(self):
         now = time.time()
+        for corpse_key, corpse in list(self.corpses.items()):
+            if corpse.expires_at <= now:
+                self.corpses.pop(corpse_key, None)
         for mob in self.mobs.values():
             if not mob.alive and mob.respawn_at <= now:
                 mob.alive = True
                 mob.hp = MOB_TEMPLATES[mob.template_id]["max_hp"]
                 mob.engaged_by = None
+
+    def live_crypt_boss(self, room_id):
+        self.refresh()
+        for mob in self.mobs.values():
+            if mob.alive and mob.room_id == room_id and MOB_TEMPLATES[mob.template_id].get("crypt_boss"):
+                return mob
+        return None
+
+    def crypt_descent_blocked(self, room_id, direction="down"):
+        if direction != "down": return False
+        floor=crypt_floor_number(room_id)
+        if floor is None or floor not in CRYPT_BOSS_FLOORS: return False
+        return self.live_crypt_boss(room_id) is not None
+
+    def create_corpse(self, mob):
+        template=MOB_TEMPLATES[mob.template_id]
+        if template.get("leave_corpse", True) is False: return None
+        pool=list(template.get("corpse_equipment_pool",()))
+        guaranteed=min(len(pool),max(0,int(template.get("corpse_equipment_guaranteed",0))))
+        items=random.sample(pool,guaranteed) if guaranteed else []
+        self.corpse_counter += 1; now=time.time()
+        corpse=CorpseState(
+            key=f"corpse:{self.corpse_counter}", room_id=mob.room_id,
+            mob_name=template["name"], items=items, created_at=now,
+            expires_at=now+CORPSE_LIFETIME_SECONDS,
+        )
+        self.corpses[corpse.key]=corpse
+        return corpse
+
+    def room_corpses(self, room_id):
+        self.refresh()
+        return [c for c in self.corpses.values() if c.room_id==room_id]
+
+    def find_corpse(self, room_id, query=""):
+        corpses=self.room_corpses(room_id); q=str(query).strip().lower()
+        for prefix in ("ciało ","cialo ","zwłoki ","zwloki ","body ","corpse "):
+            if q.startswith(prefix): q=q[len(prefix):].strip(); break
+        if not q: return corpses[0] if len(corpses)==1 else None
+        exact=[c for c in corpses if q==c.mob_name.lower()]
+        if exact: return exact[0]
+        partial=[c for c in corpses if q in c.mob_name.lower()]
+        return partial[0] if partial else None
 
     def room_mobs(self, room_id):
         self.refresh()
@@ -3434,6 +4204,393 @@ class Session:
         self.skill_guard = 0
         self.skill_evade = False
         self.skill_damage_boost = 1.0
+        self.resting = False
+        self.rest_task = None
+
+    def rest_status_text(self):
+        if not self.character:
+            return "Brak postaci."
+        max_hp = self.character.max_hp()
+        max_mana = self.character.max_mana()
+        if max_mana > 0:
+            return (
+                f"HP {self.current_hp} z {max_hp}. "
+                f"Mana {self.current_mana} z {max_mana}. "
+                f"Odpoczynek: {'aktywny' if self.resting else 'wyłączony'}."
+            )
+        return (
+            f"HP {self.current_hp} z {max_hp}. "
+            f"Odpoczynek: {'aktywny' if self.resting else 'wyłączony'}."
+        )
+
+    def rest_needs_regeneration(self):
+        if not self.character:
+            return False
+        if self.current_hp < self.character.max_hp():
+            return True
+        max_mana = self.character.max_mana()
+        return max_mana > 0 and self.current_mana < max_mana
+
+    async def rest_tick(self):
+        if not self.character:
+            return False
+
+        max_hp = self.character.max_hp()
+        max_mana = self.character.max_mana()
+
+        hp_gain = max(
+            1,
+            (max_hp * REST_REGEN_PERCENT + 99) // 100,
+        )
+        hp_before = self.current_hp
+        self.current_hp = min(max_hp, self.current_hp + hp_gain)
+
+        mana_before = self.current_mana
+        if max_mana > 0:
+            mana_gain = max(
+                1,
+                (max_mana * REST_REGEN_PERCENT + 99) // 100,
+            )
+            self.current_mana = min(
+                max_mana, self.current_mana + mana_gain
+            )
+        else:
+            self.current_mana = 0
+
+        if (
+            self.current_hp != hp_before
+            or self.current_mana != mana_before
+        ):
+            if max_mana > 0:
+                await self.send(
+                    f"Regeneracja: HP {self.current_hp} z {max_hp}. "
+                    f"Mana {self.current_mana} z {max_mana}."
+                )
+            else:
+                await self.send(
+                    f"Regeneracja: HP {self.current_hp} z {max_hp}."
+                )
+
+        return self.rest_needs_regeneration()
+
+    async def rest_loop(self):
+        try:
+            while self.resting and not self.closed:
+                await asyncio.sleep(REST_TICK_SECONDS)
+                if (
+                    not self.resting
+                    or self.closed
+                    or self.combat_mob_key
+                ):
+                    break
+
+                needs_more = await self.rest_tick()
+                if not needs_more:
+                    self.resting = False
+                    await self.send(
+                        "Odpoczynek zakończony. HP i Mana są pełne."
+                    )
+                    break
+        except asyncio.CancelledError:
+            pass
+        finally:
+            self.resting = False
+            if self.rest_task is asyncio.current_task():
+                self.rest_task = None
+
+    async def stop_rest(self, announce=True, reason=None):
+        was_resting = self.resting or (
+            self.rest_task is not None
+            and not self.rest_task.done()
+        )
+        self.resting = False
+        task = self.rest_task
+        self.rest_task = None
+
+        if (
+            task
+            and task is not asyncio.current_task()
+            and not task.done()
+        ):
+            task.cancel()
+            try:
+                await task
+            except asyncio.CancelledError:
+                pass
+
+        if announce and was_resting:
+            if reason:
+                await self.send(
+                    f"Odpoczynek przerwany: {reason}."
+                )
+            else:
+                await self.send("Odpoczynek przerwany.")
+        return was_resting
+
+    async def start_rest(self):
+        if self.combat_mob_key:
+            await self.send(
+                "Nie możesz odpoczywać podczas walki. "
+                "Najpierw pokonaj przeciwnika albo użyj flee."
+            )
+            return
+
+        if self.resting:
+            await self.send(self.rest_status_text())
+            return
+
+        if not self.rest_needs_regeneration():
+            await self.send(
+                "Nie musisz odpoczywać. HP i Mana są już pełne."
+            )
+            return
+
+        if self.auto_fishing or self.auto_fishing_task:
+            await self.stop_auto_fishing(announce=False)
+        if self.auto_mining or self.auto_mining_task:
+            await self.stop_auto_mining(announce=False)
+        if self.auto_woodcutting or self.auto_woodcutting_task:
+            await self.stop_auto_woodcutting(announce=False)
+        if self.auto_herbalism or self.auto_herbalism_task:
+            await self.stop_auto_herbalism(announce=False)
+
+        self.resting = True
+        self.rest_task = asyncio.create_task(self.rest_loop())
+        await self.send(
+            "Rozpoczynasz odpoczynek. Regeneracja działa co 5 sekund."
+        )
+        await self.send(self.rest_status_text())
+
+    async def handle_rest(self, raw):
+        action = raw.strip().lower()
+
+        if action in ("status", "stan"):
+            await self.send(self.rest_status_text())
+            return
+
+        if action in ("off", "stop", "koniec", "przerwij"):
+            if not await self.stop_rest(announce=True):
+                await self.send("Nie odpoczywasz.")
+            return
+
+        if action in ("", "on", "start"):
+            await self.start_rest()
+            return
+
+        await self.send(
+            "Użycie: odpoczywaj, odpoczywaj status, "
+            "odpoczywaj stop."
+        )
+
+    def refresh_active_classes(self):
+        if not self.character or not self.account_id:
+            return []
+        names = self.server.db.active_class_names(
+            self.account_id, self.character.class_name
+        )
+        self.character._active_classes = list(names)
+        return list(names)
+
+    def active_class_names(self):
+        self.refresh_active_classes()
+        return self.character.active_class_names()
+
+    def find_class_name(self, query):
+        wanted = self.normalize_description_query(query)
+        if not wanted:
+            return None
+        exact = []
+        partial = []
+        for class_name, class_type, weapon, base_power in CLASSES:
+            normalized = self.normalize_description_query(class_name)
+            if wanted == normalized:
+                exact.append(class_name)
+            elif wanted in normalized:
+                partial.append(class_name)
+        if exact:
+            return exact[0]
+        if len(partial) == 1:
+            return partial[0]
+        return None
+
+    def skill_class_name(self, skill):
+        skill_id = skill["id"] if isinstance(skill, dict) else str(skill)
+        for class_name, skills in CLASS_SKILLS.items():
+            if any(entry["id"] == skill_id for entry in skills):
+                return class_name
+        return self.character.class_name
+
+    def teacher_here_for_active_class(self):
+        active = set(self.active_class_names())
+        for npc_id, npc in NPCS.items():
+            if (
+                npc.get("room") == self.character.room_id
+                and npc.get("teacher_class") in active
+            ):
+                return npc_id, npc
+        return None, None
+
+    async def show_multiclass(self):
+        active = self.active_class_names()
+        await self.send(
+            f"MULTICLASS: {len(active)} z {MULTICLASS_MAX_ACTIVE} aktywnych klas."
+        )
+        await self.send(
+            f"Klasa główna: {self.character.class_name}. "
+            f"Broń Duszy pozostaje: {self.character.soul_weapon}."
+        )
+        rows = self.server.db.active_class_rows(
+            self.account_id, self.character.class_name
+        )
+        for row in rows:
+            level = int(row["level"])
+            xp = int(row["xp"])
+            slot = int(row["active_slot"])
+            role = "główna" if slot == 1 else f"dodatkowa, slot {slot}"
+            if level >= CLASS_MASTERY_MAX_LEVEL:
+                progress = "Biegłość 100, maksimum."
+            else:
+                needed = class_mastery_xp_to_next(level)
+                progress = (
+                    f"Biegłość {level}, XP {xp} z {needed}, "
+                    f"brakuje {max(0, needed - xp)} XP."
+                )
+            await self.send(
+                f"{row['class_name']}: {role}. {progress} "
+                f"Pasyw: {self.character.class_passive_text_for(row['class_name'])}."
+            )
+
+        await self.send(
+            "Dodanie klas jest opcjonalne. Użyj: multiclass add <klasa>. "
+            "Usunięcie: multiclass remove <klasa>."
+        )
+        await self.send(
+            "Maksymalnie 3 klasy łącznie. Class XP z każdego zabitego moba "
+            "jest dzielony równo między wszystkie aktywne klasy."
+        )
+        await self.send(
+            "Klasa główna i jej Broń Duszy nie zmieniają się. "
+            "Dodatkowe klasy dają swoje pasywy i dostęp do skilli ich nauczycieli."
+        )
+
+    async def handle_multiclass(self, raw):
+        if self.combat_mob_key:
+            await self.send("Nie możesz zmieniać multiclass podczas walki.")
+            return
+
+        parts = raw.strip().split(maxsplit=1)
+        if not parts:
+            await self.show_multiclass()
+            return
+
+        action = self.normalize_description_query(parts[0])
+        query = parts[1] if len(parts) > 1 else ""
+
+        if action in ("status", "show", "lista", "list"):
+            await self.show_multiclass()
+            return
+
+        if action in ("add", "dodaj", "wlacz", "włącz"):
+            class_name = self.find_class_name(query)
+            if not class_name:
+                await self.send(
+                    "Nie rozpoznaję klasy. Dostępne: "
+                    + ", ".join(cls[0] for cls in CLASSES) + "."
+                )
+                return
+            if class_name == self.character.class_name:
+                await self.send("To już jest twoja klasa główna.")
+                return
+
+            old_max_mana = self.character.max_mana()
+            ok, result = self.server.db.activate_secondary_class(
+                self.account_id, self.character.class_name, class_name
+            )
+            if not ok:
+                await self.send(str(result))
+                return
+
+            self.refresh_active_classes()
+            new_max_mana = self.character.max_mana()
+            if new_max_mana > old_max_mana:
+                self.current_mana = new_max_mana
+            else:
+                self.current_mana = min(self.current_mana, new_max_mana)
+
+            await self.send(
+                f"Aktywowano dodatkową klasę: {class_name}. "
+                f"Masz teraz {len(self.active_class_names())} aktywne klasy."
+            )
+            await self.send(
+                "Jej pasyw działa od razu. Skilli nauczysz się u nauczyciela "
+                f"klasy {class_name}."
+            )
+            return
+
+        if action in ("remove", "usun", "usuń", "wylacz", "wyłącz"):
+            class_name = self.find_class_name(query)
+            if not class_name:
+                await self.send("Nie rozpoznaję klasy do wyłączenia.")
+                return
+
+            old_max_mana = self.character.max_mana()
+            ok, result = self.server.db.deactivate_secondary_class(
+                self.account_id, self.character.class_name, class_name
+            )
+            if not ok:
+                await self.send(str(result))
+                return
+
+            self.refresh_active_classes()
+            new_max_mana = self.character.max_mana()
+            self.current_mana = min(self.current_mana, new_max_mana)
+
+            await self.send(
+                f"Wyłączono dodatkową klasę: {class_name}. "
+                "Jej Biegłość i nauczenie skille pozostają zapisane, "
+                "ale nie można ich używać, dopóki klasa znów nie będzie aktywna."
+            )
+            return
+
+        await self.send(
+            "Użycie: multiclass, multiclass add <klasa>, "
+            "multiclass remove <klasa>."
+        )
+
+    async def grant_class_xp(self, total_xp):
+        active = self.active_class_names()
+        if not active:
+            return
+        total_xp = max(0, int(total_xp))
+        if total_xp <= 0:
+            return
+
+        base_share, remainder = divmod(total_xp, len(active))
+        await self.send(
+            f"EXP klas: {total_xp}. Aktywne klasy: {len(active)}. "
+            "Pula jest dzielona między aktywne klasy."
+        )
+
+        for index, class_name in enumerate(active):
+            share = base_share + (1 if index < remainder else 0)
+            result = self.server.db.add_class_mastery_xp(
+                self.account_id, class_name, share
+            )
+            if result["level_ups"]:
+                await self.send(
+                    f"{class_name}: Biegłość rośnie do {result['level']}."
+                )
+            if result["level"] >= CLASS_MASTERY_MAX_LEVEL:
+                await self.send(
+                    f"{class_name}: +{share} EXP klasy. "
+                    "Biegłość 100, maksimum."
+                )
+            else:
+                await self.send(
+                    f"{class_name}: +{share} EXP klasy. "
+                    f"Biegłość {result['level']}, XP {result['xp']} z "
+                    f"{result['next_xp']}."
+                )
 
     async def send(self, text=""):
         if self.closed:
@@ -3671,6 +4828,7 @@ class Session:
         return True
 
     async def enter_world(self):
+        self.refresh_active_classes()
         self.current_hp = self.character.max_hp()
         self.current_mana = self.character.max_mana()
         await self.server.broadcast_room(
@@ -3705,6 +4863,20 @@ class Session:
             names = [MOB_TEMPLATES[m.template_id]["name"] for m in mobs]
             await self.send("Przeciwnicy: " + ", ".join(names) + ".")
 
+        corpses = self.server.world.room_corpses(self.character.room_id)
+        if corpses:
+            await self.send(
+                "Ciała: " + ", ".join(c.mob_name for c in corpses)
+                + ". Wpisz ciało, aby sprawdzić ekwipunek."
+            )
+
+        if self.server.world.crypt_descent_blocked(self.character.room_id):
+            boss=self.server.world.live_crypt_boss(self.character.room_id)
+            if boss:
+                await self.send(
+                    f"Zejście niżej blokuje boss: {MOB_TEMPLATES[boss.template_id]['name']}."
+                )
+
         others = [
             s.character.name for s in self.server.sessions
             if s is not self and s.character and s.character.room_id == self.character.room_id
@@ -3715,20 +4887,71 @@ class Session:
 
     async def show_exits(self):
         room = ROOMS[self.character.room_id]
-        exits = ", ".join(room["exits"].keys()) if room["exits"] else "brak"
-        await self.send("Wyjścia: " + exits + ".")
+        if not room["exits"]:
+            await self.send("Wyjścia: brak.")
+            return
+        exits=[]
+        for direction in room["exits"].keys():
+            if self.server.world.crypt_descent_blocked(self.character.room_id,direction):
+                exits.append(f"{direction}, zablokowane przez bossa")
+            else:
+                exits.append(direction)
+        await self.send("Wyjścia: " + ", ".join(exits) + ".")
 
     async def show_map(self):
         current = self.character.room_id
         await self.send("MAPA ODKRYTEGO ŚWIATA")
         for zone in ("Miasto Dusz", "Dzicz", "Podziemia"):
             await self.send(zone + ":")
-            entries = []
-            for room_id, room in ROOMS.items():
-                if room["zone"] == zone:
-                    marker = " [TU]" if room_id == current else ""
-                    entries.append(room["name"] + marker)
+            entries=[]
+            for room_id,room in ROOMS.items():
+                if room["zone"] != zone or room_id.startswith("crypt_floor_"): continue
+                marker=" [TU]" if room_id==current else ""
+                entries.append(room["name"]+marker)
+            if zone=="Podziemia":
+                floor=crypt_floor_number(current); marker=f" [TU: piętro {floor}]" if floor else ""
+                entries.append(f"Krypta: piętra 1-100{marker}")
             await self.send("; ".join(entries) + ".")
+
+    async def show_crypt_info(self):
+        floor=crypt_floor_number(self.character.room_id)
+        await self.send("KRYPTA: 100 pięter. Bossowie: 10, 20, 30, 40, 50, 60, 70, 80, 90 i 100.")
+        await self.send("Na piętrach 10-90 żywy boss blokuje zejście niżej. Piętro 100 ma finałowego bossa.")
+        await self.send("Zwykłe moby Krypty zostawiają jeden element ekwipunku na ciele, bossowie dwa.")
+        if floor:
+            await self.send(f"Aktualne piętro Krypty: {floor} ze 100.")
+            boss=self.server.world.live_crypt_boss(self.character.room_id)
+            if boss: await self.send(f"Boss tego piętra żyje: {MOB_TEMPLATES[boss.template_id]['name']}.")
+            elif floor in CRYPT_BOSS_FLOORS: await self.send("Boss tego piętra jest obecnie pokonany.")
+
+    async def show_corpses(self, query=""):
+        corpses=self.server.world.room_corpses(self.character.room_id)
+        if not corpses:
+            await self.send("Nie ma tutaj żadnych ciał."); return
+        if query.strip():
+            corpse=self.server.world.find_corpse(self.character.room_id,query)
+            if not corpse: await self.send("Nie widzę takiego ciała."); return
+            corpses=[corpse]
+        for number,corpse in enumerate(corpses,1):
+            names=", ".join(ITEMS[i]["name"] for i in corpse.items) if corpse.items else "brak ekwipunku"
+            await self.send(f"{number}. Ciało: {corpse.mob_name}. Ekwipunek na ciele: {names}.")
+        await self.send("Aby zabrać ekwipunek wpisz: przeszukaj ciało albo przeszukaj <nazwa moba>.")
+
+    async def loot_corpse(self, query=""):
+        corpses=self.server.world.room_corpses(self.character.room_id)
+        if not corpses:
+            await self.send("Nie ma tutaj żadnych ciał do przeszukania."); return
+        corpse=self.server.world.find_corpse(self.character.room_id,query)
+        if corpse is None:
+            if not query.strip() and len(corpses)>1:
+                await self.send("Jest tutaj kilka ciał. Wpisz ciało, potem przeszukaj <nazwa moba>.")
+            else: await self.send("Nie widzę takiego ciała.")
+            return
+        if not corpse.items:
+            await self.send(f"Przeszukujesz ciało: {corpse.mob_name}. Nie ma już na nim ekwipunku."); return
+        looted=list(corpse.items); corpse.items.clear()
+        for item_id in looted: self.server.db.add_item(self.account_id,item_id,1)
+        await self.send(f"Przeszukujesz ciało: {corpse.mob_name}. Zabierasz: " + ", ".join(ITEMS[i]["name"] for i in looted) + ".")
 
     async def show_where(self):
         room = ROOMS[self.character.room_id]
@@ -3741,7 +4964,8 @@ class Session:
             "opis [nazwa] / describe [name] - szczegółowy opis elementu świata",
             "look lub l - opis aktualnej lokacji",
             "exits - dostępne kierunki",
-            "map - lista lokacji świata",
+            "map - lista lokacji świata; Krypta 1-100 jest pokazana skrótowo",
+            "krypta / crypt - informacje o Krypcie 1-100 i bossach",
             "atlas [ryby|drewno|rudy|surowiec] - atlas pozyskiwania surowców",
             "where - aktualna lokacja",
             "location / lokalizacja - lokacja, strefa i wyjścia",
@@ -3753,6 +4977,8 @@ class Session:
             "druzyna / party - zarządzanie drużyną",
             "pc tekst - czat drużyny",
             "charyzma / charisma - rabat sklepowy i limit drużyny",
+            "multiclass / klasy - opcjonalne 1-3 aktywne klasy i Biegłość klas",
+            "multiclass add klasa / remove klasa - dodaj lub wyłącz klasę dodatkową",
             "stats - statystyki",
             "odmiana / przypadki - pokaż 7 form imienia postaci",
             "skills / umiejetnosci - lista umiejętności twojej klasy",
@@ -3765,8 +4991,9 @@ class Session:
             "exchange gold / exchange mithril - wymiana walut",
             "professions / profesje - Wędkarstwo, Górnictwo i Drwalstwo",
             "rangi / ranks - pełna lista rang trzech profesji",
-            "tools / narzedzia - poziomy wszystkich 7 narzędzi",
-            "tiers / tiery / nazwytierow - pełna lista 8 Tierów wszystkich 7 narzędzi",
+            "tools / narzedzia - skrót wszystkich 7 narzędzi",
+            "wedka / kilof / pila / mlot / noz / sierp / mozdzierz - pełne informacje o wybranym narzędziu",
+            "tiers / tiery / nazwytierow - pełna lista Tierów wszystkich 7 narzędzi",
             "fish / wedkuj / low - pojedynczy połów",
             "low on / fish on - auto-łowienie",
             "low off / fish off - wyłącz auto-łowienie",
@@ -3800,16 +5027,45 @@ class Session:
             "teachers / nauczyciele - lista nauczycieli w Sali Gildii",
             "quests - dziennik zadań",
             "attack / atakuj / zabij / kill przeciwnik - tura walki",
+            "ciało / zwloki / corpse - pokaż ciała i ich ekwipunek",
+            "przeszukaj ciało / loot - zabierz ekwipunek z ciała moba",
             "flee / uciekaj - ucieczka",
             "unlock - odblokuj gotowy Soul Tier",
             "save - zapis",
             "quit - wyjście",
         ]
 
+    def full_changelog_lines(self):
+        module_dir = os.path.dirname(os.path.abspath(__file__))
+        candidates = (
+            os.path.join(module_dir, "CHANGELOG_PL.txt"),
+            os.path.join(os.getcwd(), "CHANGELOG_PL.txt"),
+        )
+
+        for changelog_path in candidates:
+            try:
+                if not os.path.exists(changelog_path):
+                    continue
+                with open(changelog_path, "r", encoding="utf-8") as handle:
+                    lines = [line.rstrip("\r\n") for line in handle]
+                if any(line.strip() for line in lines):
+                    return lines
+            except (OSError, UnicodeError):
+                continue
+
+        lines = [LATEST_CHANGES_TITLE]
+        lines.extend("- " + line for line in LATEST_CHANGES)
+        return lines
+
     async def show_latest_changes(self):
-        await self.send(LATEST_CHANGES_TITLE)
-        for line in LATEST_CHANGES:
-            await self.send("- " + line)
+        await self.send("PEŁNA HISTORIA ZMIAN SOULBOUND")
+        await self.send(
+            "Najnowsze wersje są na górze. Poniżej znajduje się "
+            "cały dostępny CHANGELOG_PL.txt."
+        )
+        for line in self.full_changelog_lines():
+            if line.strip():
+                await self.send(line)
 
     async def show_help(self, topic=""):
         raw = topic.strip().lower()
@@ -3819,15 +5075,15 @@ class Session:
             await self.send("POMOC GŁÓWNA")
             await self.send(
                 "Użyj help <temat>. Tematy: podstawy, komendy, nawigacja, statystyki, "
-                "walka, dusza, pieniadze, ekwipunek, zadania, profesje, wedkarstwo, "
+                "walka, odpoczynek, dusza, pieniadze, ekwipunek, zadania, profesje, wedkarstwo, "
                 "gornictwo, drwalstwo, zielarstwo, alchemia, rzemioslo, gotowanie, receptury, atlas, "
-                "charyzma, druzyny, pojemniki, sklepy, gracze, smierc, rasy, klasy, "
-                "umiejetnosci, nazwy_skilli, nauczyciele, opisy."
+                "charyzma, druzyny, multiclass, krypta, zwloki, pojemniki, sklepy, gracze, smierc, rasy, klasy, "
+                "umiejetnosci, nazwy_skilli, nauczyciele, opisy, zmiany."
             )
             await self.send("help tematy - lista tematów.")
             await self.send("help wszystko - pełny przewodnik.")
             await self.send("opis <nazwa> - szczegółowy opis dowolnego elementu.")
-            await self.send("changes / zmiany - najnowsza wersja i najnowsze zmiany.")
+            await self.send("changes / zmiany / changelog - pełna historia wszystkich wersji i zmian, najnowsze na górze.")
             await self.send("Na start: look, exits, stats, inventory, quests, help podstawy.")
             return
 
@@ -4290,7 +5546,11 @@ class Session:
 
     async def show_stats(self):
         c = self.character
-        await self.send(f"{c.name}. Rasa: {c.race}. Klasa: {c.class_name}.")
+        active_classes = self.active_class_names()
+        await self.send(
+            f"{c.name}. Rasa: {c.race}. Klasa główna: {c.class_name}. "
+            f"Aktywne klasy: {', '.join(active_classes)}."
+        )
         await self.send("Poziom postaci: nie istnieje.")
         await self.send(
             f"Siła {c.strength}, Zręczność {c.dexterity}, Kondycja {c.constitution}, "
@@ -4310,8 +5570,16 @@ class Session:
         await self.send(
             f"Pasyw rasy {c.race}: {c.racial_passive_text()}."
         )
-        await self.send(f"Pasyw klasy {c.class_name}: {c.class_passive_text()}.")
-        if c.class_type == "magic":
+        for class_name in active_classes:
+            await self.send(
+                f"Pasyw klasy {class_name}: "
+                f"{c.class_passive_text_for(class_name)}."
+            )
+        await self.send(
+            f"Bonus klasowy Broni Duszy klasy głównej: "
+            f"{c.soul_weapon_class_bonus_text()}."
+        )
+        if c.max_mana() > 0:
             await self.send(
                 f"Mana: {self.current_mana} z {c.max_mana()}. "
                 f"Moc czarów: {c.spell_power()}."
@@ -4333,15 +5601,38 @@ class Session:
         if c.soul_level < SOUL_MAX_LEVEL:
             await self.send(f"Soul XP: {c.soul_xp} z {c.soul_xp_to_next()}.")
         await self.send(f"Moc Broni Duszy: {c.soul_power()}.")
+        await self.send(
+            f"Bonus klasowy Broni Duszy: {c.soul_weapon_class_bonus_text()}."
+        )
         nxt = c.can_unlock()
         if nxt:
-            await self.send(f"Tier {nxt} gotowy. Wpisz unlock.")
+            if self.soul_tier_quest_completed(nxt):
+                await self.send(
+                    f"Tier {nxt}: wymagany Soul Level i Próba Broni Duszy "
+                    "ukończone. Wpisz unlock."
+                )
+            else:
+                await self.send(
+                    f"Tier {nxt}: wymagany Soul Level osiągnięty. "
+                    "Idź do Kapłana Elora w Świątyni Odrodzenia "
+                    "i ukończ Próbę Broni Duszy."
+                )
         elif c.soul_tier == 1:
-            await self.send(f"Tier 2 wymaga Soul Level {TIER2_LEVEL}.")
+            await self.send(
+                f"Tier 2 wymaga Soul Level {TIER2_LEVEL} oraz Próby "
+                "Broni Duszy w Świątyni Odrodzenia."
+            )
         elif c.soul_tier == 2:
-            await self.send(f"Tier 3 wymaga Soul Level {TIER3_LEVEL}.")
+            await self.send(
+                f"Tier 3 wymaga Soul Level {TIER3_LEVEL} oraz Próby "
+                "Broni Duszy w Świątyni Odrodzenia."
+            )
 
     async def move(self, direction):
+        if self.resting or self.rest_task:
+            await self.stop_rest(
+                announce=True, reason="ruszasz się"
+            )
         if self.auto_fishing or self.auto_fishing_task:
             await self.stop_auto_fishing(announce=False)
             await self.send("Auto-łowienie wyłączone z powodu ruchu.")
@@ -4360,6 +5651,11 @@ class Session:
         target = ROOMS[self.character.room_id]["exits"].get(direction)
         if not target:
             await self.send("Nie możesz iść w tym kierunku.")
+            return
+        if self.server.world.crypt_descent_blocked(self.character.room_id,direction):
+            boss=self.server.world.live_crypt_boss(self.character.room_id)
+            boss_name=MOB_TEMPLATES[boss.template_id]["name"] if boss else "boss Krypty"
+            await self.send(f"Nie możesz zejść niżej. Drogę blokuje {boss_name}. Najpierw pokonaj bossa.")
             return
         old = self.character.room_id
         await self.server.broadcast_room(old, f"{self.character.name} odchodzi.", exclude=self)
@@ -5139,6 +6435,11 @@ class Session:
         if not q:
             return None
 
+        crypt_match = re.fullmatch(r"(?:krypta|crypt|piętro krypty|pietro krypty)\s*(\d+)", q)
+        if crypt_match:
+            floor=int(crypt_match.group(1))
+            return crypt_floor_id(floor) if 1 <= floor <= CRYPT_MAX_FLOOR else None
+
         # Common English aliases for important locations.
         english_aliases = {
             "fish market": "fish_market",
@@ -5340,6 +6641,11 @@ class Session:
                     break
 
                 old = self.character.room_id
+                if self.server.world.crypt_descent_blocked(old,direction):
+                    boss=self.server.world.live_crypt_boss(old)
+                    boss_name=MOB_TEMPLATES[boss.template_id]["name"] if boss else "boss Krypty"
+                    await self.send(f"Prowadzenie zatrzymane. Zejście niżej blokuje {boss_name}. Pokonaj bossa.")
+                    break
                 await self.server.broadcast_room(
                     old, f"{self.character.name} odchodzi.", exclude=self
                 )
@@ -5628,6 +6934,139 @@ class Session:
                 )
 
 
+    def tool_info_definition(self, tool_type):
+        definitions = {
+            "fishing": ("fishing_rod", "Wędka"),
+            "mining": ("pickaxe", "Kilof"),
+            "woodcutting": ("saw", "Piła"),
+            "crafting": ("crafting_hammer", "Młot Rzemieślniczy"),
+            "cooking": ("chef_knife", "Nóż Kucharski"),
+            "herbalism": ("herbalist_sickle", "Sierp Zielarski"),
+            "alchemy": ("alchemy_mortar", "Moździerz Alchemiczny"),
+        }
+        return definitions.get(tool_type)
+
+    def tool_bonus_label(self, tool_type):
+        if tool_type == "cooking":
+            return "Szansa na dodatkową potrawę"
+        if tool_type == "crafting":
+            return "Szansa na dodatkowy produkt receptury"
+        if tool_type == "alchemy":
+            return "Szansa na dodatkową miksturę"
+        if tool_type == "herbalism":
+            return "Szansa na dodatkowe zioło"
+        return "Bonus dodatkowego urobku"
+
+    def tool_xp_remaining_to_level(self, level, xp):
+        if level >= TOOL_MAX_LEVEL:
+            return 0
+        return max(0, self.tool_xp_to_next(level) - int(xp))
+
+    def tool_xp_remaining_to_next_tier(self, level, xp):
+        tier = tool_tier(level)
+        if tier >= TOOL_MAX_TIER:
+            return 0, 0
+
+        target_level = TOOL_TIER_THRESHOLDS[tier]
+        levels_remaining = max(0, target_level - level)
+
+        total_xp = self.tool_xp_remaining_to_level(level, xp)
+        for current_level in range(level + 1, target_level):
+            total_xp += self.tool_xp_to_next(current_level)
+
+        return levels_remaining, total_xp
+
+    async def show_single_tool(self, tool_type):
+        definition = self.tool_info_definition(tool_type)
+        if not definition:
+            await self.send("Nieznane narzędzie.")
+            return
+
+        item_id, name = definition
+        owned = self.server.db.item_qty(self.account_id, item_id) > 0
+        if not owned:
+            await self.send(f"{name}: nie posiadasz tego narzędzia.")
+            if tool_type == "fishing":
+                await self.send("Wędkę kupisz na Targu Rybnym.")
+            elif tool_type == "mining":
+                await self.send("Kilof kupisz u Kowala Dorana w Kuźni Dusz.")
+            elif tool_type == "woodcutting":
+                await self.send("Piłę kupisz u Drwala Brana w Obozie Drwala.")
+            elif tool_type == "crafting":
+                await self.send("Młot Rzemieślniczy kupisz u Kowala Dorana w Kuźni Dusz.")
+            elif tool_type == "cooking":
+                await self.send("Nóż Kucharski kupisz w Karczmie Pod Błękitnym Płomieniem.")
+            elif tool_type in ("herbalism", "alchemy"):
+                await self.send(
+                    f"{name} kupisz u Zielarki Liory w Chacie Zielarki."
+                )
+            return
+
+        row = self.server.db.tool(self.account_id, tool_type)
+        level = int(row["level"])
+        xp = int(row["xp"])
+        uses = int(row["uses"])
+        tier = tool_tier(level)
+        tier_name = tool_tier_name(tool_type, level)
+        bonus_percent = int(tool_tier_bonus_chance(level) * 100)
+        bonus_label = self.tool_bonus_label(tool_type)
+
+        await self.send(f"NARZĘDZIE: {name}.")
+        await self.send(
+            f"Level: {level} z {TOOL_MAX_LEVEL}. "
+            f"Użycia: {uses}."
+        )
+
+        if level >= TOOL_MAX_LEVEL:
+            await self.send("XP: maksimum. Do następnego levelu: maksimum.")
+        else:
+            needed = self.tool_xp_to_next(level)
+            remaining = self.tool_xp_remaining_to_level(level, xp)
+            await self.send(
+                f"XP obecnego levelu: {xp} z {needed}. "
+                f"Do następnego levelu brakuje {remaining} XP."
+            )
+
+        await self.send(
+            f"Obecny Tier: {tier} z {TOOL_MAX_TIER}. "
+            f"Nazwa: {tier_name}. "
+            f"{bonus_label}: {bonus_percent} procent."
+        )
+
+        if tier >= TOOL_MAX_TIER:
+            await self.send("Tier maksymalny. Nie ma następnego Tieru.")
+        else:
+            target_level = TOOL_TIER_THRESHOLDS[tier]
+            next_tier = tier + 1
+            next_name = TOOL_TIER_NAMES[tool_type][next_tier - 1]
+            levels_remaining, xp_remaining = (
+                self.tool_xp_remaining_to_next_tier(level, xp)
+            )
+            await self.send(
+                f"Następny Tier: {next_tier}, {next_name}, "
+                f"od levelu {target_level}. "
+                f"Brakuje {levels_remaining} leveli i łącznie "
+                f"{xp_remaining} XP narzędzia."
+            )
+
+        await self.send(f"TIERY NARZĘDZIA: {name}.")
+        for tier_number, minimum in enumerate(TOOL_TIER_THRESHOLDS, 1):
+            if tier_number < TOOL_MAX_TIER:
+                maximum = TOOL_TIER_THRESHOLDS[tier_number] - 1
+                level_text = f"level {minimum}-{maximum}"
+            else:
+                level_text = f"level {minimum}-100"
+
+            tier_bonus = int(
+                TOOL_TIER_BONUS_CHANCES[tier_number - 1] * 100
+            )
+            marker = " Obecny." if tier_number == tier else ""
+            await self.send(
+                f"Tier {tier_number}: "
+                f"{TOOL_TIER_NAMES[tool_type][tier_number - 1]}. "
+                f"{level_text}. Bonus {tier_bonus} procent.{marker}"
+            )
+
     async def show_tools(self):
         await self.send("NARZĘDZIA")
         tools = [
@@ -5650,16 +7089,7 @@ class Session:
             tier = tool_tier(level)
             tier_name = tool_tier_name(tool_type, level)
             bonus_percent = int(tool_tier_bonus_chance(level) * 100)
-            if tool_type == "cooking":
-                bonus_label = "Szansa na dodatkową potrawę"
-            elif tool_type == "crafting":
-                bonus_label = "Szansa na dodatkowy produkt receptury"
-            elif tool_type == "alchemy":
-                bonus_label = "Szansa na dodatkową miksturę"
-            elif tool_type == "herbalism":
-                bonus_label = "Szansa na dodatkowe zioło"
-            else:
-                bonus_label = "Bonus dodatkowego urobku"
+            bonus_label = self.tool_bonus_label(tool_type)
 
             if tier < TOOL_MAX_TIER:
                 next_level = TOOL_TIER_THRESHOLDS[tier]
@@ -5806,7 +7236,7 @@ class Session:
             return "gold_ore"
 
         # Mithril jest bezpośrednio walutą, nie rudą.
-        # 1 mithril = 1000 złota, więc szanse są bardzo małe.
+        # 1 mithril = 1 000 000 złota, więc szanse pozostają bardzo małe.
         if tool_level < 90:
             mithril_chance = 0.001      # 0,10%
         elif tool_level < 100:
@@ -5947,6 +7377,8 @@ class Session:
                 f"Bonus Tieru {current_tier} Wędki: wyciągasz dodatkowo {item['name']} x1."
             )
 
+        await self.announce_collect_category_quest_progress("fish")
+
         messages, profession_level, new_tool_level = self.grant_profession_progress(
             "Wędkarstwo",
             10 + random.randint(0, 5),
@@ -6007,6 +7439,9 @@ class Session:
                     f"Bonus Tieru {current_tier} Kilofa: wydobywasz dodatkowo {item['name']} x1."
                 )
 
+        if item_id != "__mithril_currency__":
+            await self.announce_collect_category_quest_progress("ore")
+
         messages, profession_level, new_tool_level = self.grant_profession_progress(
             "Górnictwo",
             10 + random.randint(0, 5),
@@ -6063,6 +7498,8 @@ class Session:
                 f"Bonus Tieru {current_tier} Piły: pozyskujesz dodatkowo {item['name']} x1."
             )
 
+        await self.announce_collect_category_quest_progress("wood")
+
         messages, profession_level, new_tool_level = self.grant_profession_progress(
             "Drwalstwo",
             10 + random.randint(0, 5),
@@ -6110,6 +7547,8 @@ class Session:
                 f"Bonus Tieru {tool_tier(old_level)} Sierpa Zielarskiego: "
                 f"zbierasz dodatkowo {ITEMS[item_id]['name']} x1."
             )
+
+        await self.announce_collect_category_quest_progress("herb")
 
         messages, prof_level, new_tool_level = self.grant_profession_progress(
             "Zielarstwo",
@@ -6495,18 +7934,87 @@ class Session:
         self.server.db.equip(self.account_id, item["slot"], item_id)
         await self.send(f"Zakładasz: {item['name']}. Obrona wynosi teraz {self.defense()}.")
 
+    def find_consumable_for_use(self, query):
+        q = self.normalize_description_query(query)
+        if not q:
+            return None, []
+
+        # Celowe krótkie aliasy wymagane dla szybkiej obsługi NVDA.
+        direct_aliases = {
+            "mikstura": "healing_potion",
+            "miksture": "healing_potion",
+            "miksturę": "healing_potion",
+            "potion": "healing_potion",
+            "eliksir": "soul_elixir",
+            "elixir": "soul_elixir",
+            "eliksir duszy": "soul_elixir",
+            "soul elixir": "soul_elixir",
+            "mana": "mana_potion",
+            "mikstura many": "mana_potion",
+            "mana potion": "mana_potion",
+        }
+        item_id = direct_aliases.get(q)
+        if item_id:
+            return (item_id, ITEMS[item_id]), []
+
+        consumables = {
+            item_id: item
+            for item_id, item in ITEMS.items()
+            if item.get("type") == "consumable"
+        }
+
+        exact = []
+        partial = []
+        for item_id, item in consumables.items():
+            names = (
+                item_id,
+                item.get("name", ""),
+            )
+            normalized_names = [
+                self.normalize_description_query(name)
+                for name in names
+            ]
+            if q in normalized_names:
+                exact.append((item_id, item))
+            elif any(q in name for name in normalized_names):
+                partial.append((item_id, item))
+
+        if exact:
+            return exact[0], []
+        if len(partial) == 1:
+            return partial[0], []
+        if len(partial) > 1:
+            return None, partial
+        return None, []
+
     async def use_item(self, query):
-        found = find_by_name(ITEMS, query)
+        found, ambiguous = self.find_consumable_for_use(query)
+
+        if ambiguous:
+            names = ", ".join(item["name"] for _, item in ambiguous)
+            await self.send(
+                f"Nazwa pasuje do kilku przedmiotów: {names}. "
+                "Podaj dokładniejszą nazwę."
+            )
+            return
+
         if not found:
-            await self.send("Nie rozpoznaję takiego przedmiotu.")
+            await self.send(
+                "Nie rozpoznaję takiego przedmiotu użytkowego. "
+                "Przykłady: użyj mikstura, użyj eliksir, użyj Mikstura Many."
+            )
             return
+
         item_id, item = found
+
         if self.server.db.item_qty(self.account_id, item_id) <= 0:
-            await self.send("Nie masz tego przedmiotu.")
+            await self.send(f"Nie masz przedmiotu: {item['name']}.")
             return
+
         if item.get("type") != "consumable":
             await self.send("Tego przedmiotu nie używa się w ten sposób.")
             return
+
         if "heal" in item or "mana" in item:
             max_hp = self.character.max_hp()
             max_mana = self.character.max_mana()
@@ -6514,7 +8022,10 @@ class Session:
             missing_hp = max(0, max_hp - self.current_hp)
             missing_mana = max(0, max_mana - self.current_mana)
 
-            can_restore_hp = item.get("heal", 0) > 0 and missing_hp > 0
+            can_restore_hp = (
+                item.get("heal", 0) > 0
+                and missing_hp > 0
+            )
             can_restore_mana = (
                 item.get("mana", 0) > 0
                 and max_mana > 0
@@ -6528,16 +8039,23 @@ class Session:
                     await self.send("Masz pełne życie.")
                 return
 
-            self.server.db.remove_item(self.account_id, item_id, 1)
+            self.server.db.remove_item(
+                self.account_id, item_id, 1
+            )
 
             healed = 0
             restored_mana = 0
 
             if can_restore_hp:
-                healed = min(item.get("heal", 0), missing_hp)
+                healed = min(
+                    item.get("heal", 0), missing_hp
+                )
                 self.current_hp += healed
+
             if can_restore_mana:
-                restored_mana = min(item.get("mana", 0), missing_mana)
+                restored_mana = min(
+                    item.get("mana", 0), missing_mana
+                )
                 self.current_mana += restored_mana
 
             parts = []
@@ -6551,11 +8069,11 @@ class Session:
                 + " i ".join(parts) + "."
             )
             await self.send(
-                f"Masz teraz {self.current_hp} z {max_hp} HP."
+                f"HP {self.current_hp} z {max_hp}."
             )
             if max_mana > 0:
                 await self.send(
-                    f"Mana: {self.current_mana} z {max_mana}."
+                    f"Mana {self.current_mana} z {max_mana}."
                 )
 
             if self.combat_mob_key:
@@ -6563,14 +8081,40 @@ class Session:
                     "Zużywasz swoją turę na użycie przedmiotu."
                 )
                 await self.enemy_counterattack(
-                    self.server.world.mobs.get(self.combat_mob_key)
+                    self.server.world.mobs.get(
+                        self.combat_mob_key
+                    )
                 )
             return
+
         if "soul_xp" in item:
-            self.server.db.remove_item(self.account_id, item_id, 1)
-            for msg in self.character.add_soul_xp(item["soul_xp"]):
+            self.server.db.remove_item(
+                self.account_id, item_id, 1
+            )
+            await self.send(
+                f"Używasz {item['name']}."
+            )
+            for msg in self.character.add_soul_xp(
+                item["soul_xp"]
+            ):
                 await self.send(msg)
             self.server.db.save_character(self.character)
+
+            if self.combat_mob_key:
+                await self.send(
+                    "Zużywasz swoją turę na użycie przedmiotu."
+                )
+                await self.enemy_counterattack(
+                    self.server.world.mobs.get(
+                        self.combat_mob_key
+                    )
+                )
+            return
+
+        await self.send(
+            "Ten przedmiot nie ma efektu do użycia."
+        )
+
 
     async def shop(self):
         offers = SHOPS.get(self.character.room_id)
@@ -6641,7 +8185,11 @@ class Session:
         ]
         await self.send("Nauczyciele klasowi rozmieszczeni po Gildii Dusz:")
         for number, (npc_id, npc) in enumerate(teachers, 1):
-            own = " Twoja klasa." if npc["teacher_class"] == self.character.class_name else ""
+            own = (
+                " Aktywna klasa."
+                if npc["teacher_class"] in self.active_class_names()
+                else ""
+            )
             room_name = ROOMS[npc["room"]]["name"]
             await self.send(
                 f"{number}. {npc['name']}. Klasa: {npc['teacher_class']}. "
@@ -6663,8 +8211,8 @@ class Session:
 
         for number, skill in enumerate(CLASS_SKILLS.get(class_name, []), 1):
             progress = ""
-            if class_name != self.character.class_name:
-                status = f"wymaga klasy {class_name} i Soul Level {skill['unlock']}"
+            if class_name not in self.active_class_names():
+                status = f"wymaga aktywnej klasy {class_name} i Soul Level {skill['unlock']}"
             elif skill["id"] in learned:
                 row = self.server.db.skill_progress(self.account_id, skill["id"])
                 status = "już nauczona"
@@ -6686,90 +8234,267 @@ class Session:
                 f"Cooldown bazowy {skill['cooldown']} sekund.{mana} {skill['desc']}"
             )
 
-        if class_name == self.character.class_name:
+        if class_name in self.active_class_names():
+            role = (
+                "głównej" if class_name == self.character.class_name
+                else "dodatkowej aktywnej"
+            )
             await self.send(
-                f"To jest nauczyciel twojej klasy. Aktualny Soul Level: {self.character.soul_level}."
+                f"To jest nauczyciel twojej {role} klasy {class_name}. "
+                f"Aktualny Soul Level: {self.character.soul_level}."
             )
             await self.send(
                 "Nauka: learn <numer> albo naucz <nazwa umiejętności>. "
-                "Każdy nauczony skill rozwija potem własny Skill Level 1-100 przez używanie."
+                "Każdy nauczony skill rozwija własny Skill Level 1-100."
             )
         else:
             await self.send(
-                f"Twoja obecna klasa to {self.character.class_name}. "
-                "Ten nauczyciel nie może nauczyć cię umiejętności innej klasy."
+                f"Klasa {class_name} nie jest teraz aktywna. "
+                "Dodaj ją przez multiclass add <klasa>, aby móc się uczyć."
             )
 
 
+    def quest_collect_category_info(self, target):
+        mapping = {
+            "fish": (FISH_RESOURCE_IDS, "net", "ryb"),
+            "ore": (ORE_RESOURCE_IDS, "bag", "rud"),
+            "wood": (WOOD_RESOURCE_IDS, "woodpile", "sztuk drewna"),
+            "herb": (HERB_RESOURCE_IDS, "herbbag", "ziół"),
+        }
+        return mapping.get(target)
+
+    def quest_progress_value(self, quest_id):
+        q = QUESTS.get(quest_id)
+        if not q:
+            return None
+
+        row = self.server.db.quest(self.account_id, quest_id)
+        if not row or row["status"] != "active":
+            return None
+
+        if q["kind"] == "kill":
+            return min(int(row["progress"]), int(q["needed"]))
+
+        if q["kind"] == "collect":
+            return min(
+                self.server.db.item_qty(self.account_id, q["target"]),
+                int(q["needed"]),
+            )
+
+        if q["kind"] == "collect_category":
+            category = self.quest_collect_category_info(q["target"])
+            if not category:
+                return None
+            ids, container, label = category
+            return min(
+                self.server.db.total_items_across_storage_and_inventory(
+                    self.account_id, ids, container
+                ),
+                int(q["needed"]),
+            )
+
+        return None
+
+    async def announce_active_quest_progress(self, quest_id):
+        q = QUESTS.get(quest_id)
+        if not q:
+            return
+
+        progress = self.quest_progress_value(quest_id)
+        if progress is None:
+            return
+
+        needed = int(q["needed"])
+        if progress >= needed:
+            await self.send(
+                f"Quest aktywny: {q['name']}. "
+                f"Postęp {progress} z {needed}. Cel wykonany, wróć do NPC."
+            )
+        else:
+            await self.send(
+                f"Quest aktywny: {q['name']}. "
+                f"Postęp {progress} z {needed}."
+            )
+
+    async def announce_collect_category_quest_progress(self, target):
+        for row in self.server.db.quest_rows(self.account_id):
+            if row["status"] != "active":
+                continue
+            q = QUESTS.get(row["quest_id"])
+            if (
+                not q
+                or q.get("kind") != "collect_category"
+                or q.get("target") != target
+            ):
+                continue
+            await self.announce_active_quest_progress(row["quest_id"])
+
+    def format_duration_short(self, seconds):
+        seconds = max(0, int(seconds))
+        minutes, sec = divmod(seconds, 60)
+        if minutes and sec:
+            return f"{minutes} min {sec} sek"
+        if minutes:
+            return f"{minutes} min"
+        return f"{sec} sek"
+
+    def soul_tier_quest_for_current_state(self):
+        if self.character.soul_tier == 1 and self.character.soul_level >= TIER2_LEVEL:
+            return "soul_tier_2_trial"
+        if self.character.soul_tier == 2 and self.character.soul_level >= TIER3_LEVEL:
+            return "soul_tier_3_trial"
+        return None
+
+    def soul_tier_quest_completed(self, tier):
+        quest_id = {
+            2: "soul_tier_2_trial",
+            3: "soul_tier_3_trial",
+        }.get(int(tier))
+        if not quest_id:
+            return False
+        row = self.server.db.quest(self.account_id, quest_id)
+        return bool(row and row["status"] == "completed")
+
+    async def handle_quest_interaction(self, quest_id):
+        q = QUESTS[quest_id]
+        row = self.server.db.quest(self.account_id, quest_id)
+
+        if not row:
+            self.server.db.start_quest(self.account_id, quest_id)
+            await self.send(f"Nowe zadanie: {q['name']}. {q['description']}")
+            await self.announce_active_quest_progress(quest_id)
+            return
+
+        if row["status"] == "completed":
+            if q.get("repeatable"):
+                cooldown = int(
+                    q.get(
+                        "repeat_cooldown",
+                        QUEST_REPEAT_COOLDOWN_SECONDS,
+                    )
+                )
+                remaining = self.server.db.repeat_quest_seconds_remaining(
+                    self.account_id, quest_id, cooldown
+                )
+                if remaining > 0:
+                    await self.send(
+                        f"Zadanie {q['name']} jest na odnowieniu. "
+                        f"Możesz powtórzyć je za "
+                        f"{self.format_duration_short(remaining)}."
+                    )
+                    return
+
+                self.server.db.restart_quest(self.account_id, quest_id)
+                cooldown_minutes = max(1, int(cooldown) // 60)
+                await self.send(
+                    f"Zadanie ponownie dostępne po {cooldown_minutes} minutach: "
+                    f"{q['name']}. {q['description']}"
+                )
+                await self.announce_active_quest_progress(quest_id)
+                return
+
+            if q.get("unlocks_soul_tier"):
+                await self.send(
+                    f"Próba ukończona: {q['name']}. "
+                    f"Możesz użyć unlock, aby odblokować Tier "
+                    f"{q['unlocks_soul_tier']} Broni Duszy."
+                )
+                return
+
+            await self.send(f"Zadanie {q['name']} jest już ukończone.")
+            return
+
+        if q["kind"] == "kill":
+            progress = int(row["progress"])
+            if progress < q["needed"]:
+                await self.send(
+                    f"Quest aktywny: {q['name']}. "
+                    f"Postęp {progress} z {q['needed']}. "
+                    f"{q['description']}"
+                )
+                return
+
+        elif q["kind"] == "collect":
+            progress = self.server.db.item_qty(
+                self.account_id, q["target"]
+            )
+            if progress < q["needed"]:
+                await self.send(
+                    f"Quest aktywny: {q['name']}. "
+                    f"Postęp {progress} z {q['needed']}."
+                )
+                return
+            self.server.db.remove_item(
+                self.account_id, q["target"], q["needed"]
+            )
+
+        elif q["kind"] == "collect_category":
+            category = self.quest_collect_category_info(q["target"])
+            if not category:
+                await self.send("Błąd konfiguracji zadania.")
+                return
+
+            ids, container, label = category
+            progress = (
+                self.server.db.total_items_across_storage_and_inventory(
+                    self.account_id, ids, container
+                )
+            )
+            if progress < q["needed"]:
+                await self.send(
+                    f"Quest aktywny: {q['name']}. "
+                    f"Postęp {progress} z {q['needed']} wymaganych {label}."
+                )
+                return
+
+            ok = (
+                self.server.db.consume_items_across_storage_and_inventory(
+                    self.account_id, ids, q["needed"], container
+                )
+            )
+            if not ok:
+                await self.send(
+                    "Nie udało się pobrać wymaganych surowców."
+                )
+                return
+
+        await self.complete_quest(quest_id)
+
     async def talk(self, query):
         candidates = {
-            key: npc for key, npc in NPCS.items() if npc["room"] == self.character.room_id
+            key: npc
+            for key, npc in NPCS.items()
+            if npc["room"] == self.character.room_id
         }
         found = find_by_name(candidates, query)
         if not found:
             if candidates:
                 await self.send("Nie rozpoznaję tego NPC.")
             else:
-                await self.send("Nie ma tutaj nikogo, z kim można rozpocząć rozmowę.")
+                await self.send(
+                    "Nie ma tutaj nikogo, z kim można rozpocząć rozmowę."
+                )
             return
+
         npc_id, npc = found
         await self.send(f"{npc['name']}: {npc['dialogue']}")
+
         if npc.get("teacher_class"):
             await self.teacher_lesson(npc)
             return
+
+        # Kapłan Elor najpierw obsługuje aktualną próbę Broni Duszy.
+        if npc_id == "priest_elor":
+            tier_quest_id = self.soul_tier_quest_for_current_state()
+            if tier_quest_id:
+                await self.handle_quest_interaction(tier_quest_id)
+                return
+
         quest_id = npc.get("quest")
         if not quest_id:
             return
-        q = QUESTS[quest_id]
-        row = self.server.db.quest(self.account_id, quest_id)
-        if not row:
-            self.server.db.start_quest(self.account_id, quest_id)
-            await self.send(f"Nowe zadanie: {q['name']}. {q['description']}")
-            return
-        if row["status"] == "completed":
-            await self.send(f"Zadanie {q['name']} jest już ukończone.")
-            return
+        await self.handle_quest_interaction(quest_id)
 
-        if q["kind"] == "kill":
-            progress = row["progress"]
-            if progress < q["needed"]:
-                await self.send(f"Postęp zadania: {progress} z {q['needed']}.")
-                return
-        elif q["kind"] == "collect":
-            progress = self.server.db.item_qty(self.account_id, q["target"])
-            if progress < q["needed"]:
-                await self.send(f"Masz {progress} z {q['needed']} wymaganych przedmiotów.")
-                return
-            self.server.db.remove_item(self.account_id, q["target"], q["needed"])
-
-        elif q["kind"] == "collect_category":
-            if q["target"] == "fish":
-                ids = FISH_RESOURCE_IDS
-                container = "net"
-                label = "ryb"
-            elif q["target"] == "ore":
-                ids = ORE_RESOURCE_IDS
-                container = "bag"
-                label = "rud"
-            else:
-                await self.send("Błąd konfiguracji zadania.")
-                return
-
-            progress = self.server.db.total_items_across_storage_and_inventory(
-                self.account_id, ids, container
-            )
-            if progress < q["needed"]:
-                await self.send(f"Masz {progress} z {q['needed']} wymaganych {label}.")
-                return
-
-            ok = self.server.db.consume_items_across_storage_and_inventory(
-                self.account_id, ids, q["needed"], container
-            )
-            if not ok:
-                await self.send("Nie udało się pobrać wymaganych surowców.")
-                return
-
-        await self.complete_quest(quest_id)
 
     async def complete_quest(self, quest_id):
         q = QUESTS[quest_id]
@@ -6797,6 +8522,20 @@ class Session:
             self.server.db.add_item(self.account_id, item_id, qty)
         self.server.db.save_character(self.character)
         await self.send(f"Zadanie ukończone: {q['name']}.")
+        if q.get("unlocks_soul_tier"):
+            await self.send(
+                f"Próba Broni Duszy zakończona. Tier "
+                f"{q['unlocks_soul_tier']} jest gotowy do odblokowania "
+                "komendą unlock."
+            )
+        if q.get("repeatable"):
+            cooldown = int(
+                q.get("repeat_cooldown", QUEST_REPEAT_COOLDOWN_SECONDS)
+            )
+            await self.send(
+                "To zadanie jest powtarzalne. Będzie ponownie dostępne "
+                f"za {max(1, cooldown // 60)} minut."
+            )
         if q.get("reward_stat_progress", 0):
             await self.send(
                 f"Nagroda EXP rozwoju: {q['reward_stat_progress']}."
@@ -6821,28 +8560,55 @@ class Session:
             if not q:
                 continue
             if row["status"] == "completed":
-                await self.send(f"{q['name']}: ukończone.")
+                if q.get("repeatable"):
+                    remaining = (
+                        self.server.db.repeat_quest_seconds_remaining(
+                            self.account_id,
+                            row["quest_id"],
+                            int(
+                                q.get(
+                                    "repeat_cooldown",
+                                    QUEST_REPEAT_COOLDOWN_SECONDS,
+                                )
+                            ),
+                        )
+                    )
+                    if remaining > 0:
+                        await self.send(
+                            f"{q['name']}: ukończone. Powtórka za "
+                            f"{self.format_duration_short(remaining)}."
+                        )
+                    else:
+                        await self.send(
+                            f"{q['name']}: gotowe do ponownego przyjęcia."
+                        )
+                elif q.get("unlocks_soul_tier"):
+                    await self.send(
+                        f"{q['name']}: ukończone. Tier "
+                        f"{q['unlocks_soul_tier']} gotowy. Użyj unlock."
+                    )
+                else:
+                    await self.send(f"{q['name']}: ukończone.")
             elif q["kind"] == "kill":
                 await self.send(
-                    f"{q['name']}: aktywne. {row['progress']} z {q['needed']}. {q['description']}"
+                    f"{q['name']}: aktywne. Postęp {row['progress']} z {q['needed']}. {q['description']}"
                 )
             elif q["kind"] == "collect":
                 have = self.server.db.item_qty(self.account_id, q["target"])
                 await self.send(
-                    f"{q['name']}: aktywne. Masz {have} z {q['needed']}. {q['description']}"
+                    f"{q['name']}: aktywne. Postęp {have} z {q['needed']}. {q['description']}"
                 )
             elif q["kind"] == "collect_category":
-                if q["target"] == "fish":
-                    ids = FISH_RESOURCE_IDS
-                    container = "net"
-                else:
-                    ids = ORE_RESOURCE_IDS
-                    container = "bag"
+                category = self.quest_collect_category_info(q["target"])
+                if not category:
+                    continue
+                ids, container, label = category
                 have = self.server.db.total_items_across_storage_and_inventory(
                     self.account_id, ids, container
                 )
                 await self.send(
-                    f"{q['name']}: aktywne. Masz {have} z {q['needed']}. {q['description']}"
+                    f"{q['name']}: aktywne. Postęp {have} z {q['needed']} wymaganych {label}. "
+                    f"{q['description']}"
                 )
 
     async def unlock(self):
@@ -6851,16 +8617,47 @@ class Session:
             if self.character.soul_tier >= 3:
                 await self.send("Broń Duszy ma już Tier 3.")
             elif self.character.soul_tier == 1:
-                await self.send(f"Tier 2 wymaga Soul Level {TIER2_LEVEL}.")
+                await self.send(
+                    f"Tier 2 wymaga Soul Level {TIER2_LEVEL}, a następnie "
+                    "ukończenia Próby Broni Duszy u Kapłana Elora "
+                    "w Świątyni Odrodzenia."
+                )
             else:
-                await self.send(f"Tier 3 wymaga Soul Level {TIER3_LEVEL}.")
+                await self.send(
+                    f"Tier 3 wymaga Soul Level {TIER3_LEVEL}, a następnie "
+                    "ukończenia Próby Broni Duszy u Kapłana Elora "
+                    "w Świątyni Odrodzenia."
+                )
             return
+
+        required_quest = {
+            2: "soul_tier_2_trial",
+            3: "soul_tier_3_trial",
+        }[nxt]
+        if not self.soul_tier_quest_completed(nxt):
+            await self.send(
+                f"Masz wymagany Soul Level, ale Tier {nxt} wymaga jeszcze "
+                f"zadania {QUESTS[required_quest]['name']}. "
+                "Idź do Kapłana Elora w Świątyni Odrodzenia."
+            )
+            return
+
         self.character.soul_tier = nxt
         self.server.db.save_character(self.character)
-        await self.send(f"Odblokowano Tier {nxt}. Moc Broni Duszy: {self.character.soul_power()}.")
+        await self.send(
+            f"Odblokowano Tier {nxt}. Moc Broni Duszy: "
+            f"{self.character.soul_power()}."
+        )
+        await self.send(
+            f"Nowy bonus klasowy Broni Duszy: "
+            f"{self.character.soul_weapon_class_bonus_text()}."
+        )
 
     def class_skills(self):
-        return CLASS_SKILLS.get(self.character.class_name, [])
+        skills = []
+        for class_name in self.active_class_names():
+            skills.extend(CLASS_SKILLS.get(class_name, []))
+        return skills
 
     def class_teacher(self, class_name=None):
         wanted = class_name or self.character.class_name
@@ -6914,57 +8711,111 @@ class Session:
         )
 
     async def show_skills(self):
-        skills = self.class_skills()
+        active = self.active_class_names()
         learned = self.server.db.learned_skill_ids(self.account_id)
-        teacher_id, teacher = self.class_teacher()
-        teacher_room = ROOMS[teacher["room"]]["name"] if teacher else "nieznana lokacja"
-
         await self.send(
-            f"Umiejętności klasy {self.character.class_name}. Soul Level: {self.character.soul_level}."
+            f"UMIEJĘTNOŚCI AKTYWNYCH KLAS. Klasy: {', '.join(active)}. "
+            f"Soul Level: {self.character.soul_level}."
         )
-        for number, skill in enumerate(skills, 1):
-            progress_text = ""
-            skill_level = 1
 
-            if skill["id"] in learned:
-                row = self.server.db.skill_progress(self.account_id, skill["id"])
-                skill_level = int(row["level"])
-                if skill_level >= SKILL_MAX_LEVEL:
-                    progress_text = f" Skill Level {skill_level}, maksymalny."
-                else:
-                    progress_text = (
-                        f" Skill Level {skill_level}, XP {row['xp']} z "
-                        f"{skill_xp_to_next(skill_level)}, użycia {row['uses']}."
+        global_number = 0
+        for class_name in active:
+            teacher_id, teacher = self.class_teacher(class_name)
+            teacher_room = (
+                ROOMS[teacher["room"]]["name"] if teacher else "nieznana lokacja"
+            )
+            await self.send(f"Klasa {class_name}:")
+            for skill in CLASS_SKILLS.get(class_name, []):
+                global_number += 1
+                progress_text = ""
+                skill_level = 1
+
+                if skill["id"] in learned:
+                    row = self.server.db.skill_progress(
+                        self.account_id, skill["id"]
                     )
-                status = "nauczona"
-            elif self.character.soul_level >= skill["unlock"]:
-                status = f"gotowa do nauki u {teacher['name']} w lokacji {teacher_room}"
-            else:
-                status = f"zablokowana: wymaga Soul Level {skill['unlock']}"
+                    skill_level = int(row["level"])
+                    if skill_level >= SKILL_MAX_LEVEL:
+                        progress_text = (
+                            f" Skill Level {skill_level}, maksymalny."
+                        )
+                    else:
+                        progress_text = (
+                            f" Skill Level {skill_level}, XP {row['xp']} z "
+                            f"{skill_xp_to_next(skill_level)}, użycia {row['uses']}."
+                        )
+                    status = "nauczona"
+                elif self.character.soul_level >= skill["unlock"]:
+                    status = (
+                        f"gotowa do nauki u {teacher['name']} "
+                        f"w lokacji {teacher_room}"
+                    )
+                else:
+                    status = (
+                        f"zablokowana: wymaga Soul Level {skill['unlock']}"
+                    )
 
-            mana = f", Mana {skill.get('mana', 0)}" if skill.get("mana", 0) else ""
-            effective_cd = self.effective_skill_cooldown(skill, skill_level)
-            remaining = max(
-                0,
-                int(self.skill_cooldowns.get(skill["id"], 0) - time.time() + 0.999)
-            )
-            cd = f", pozostały cooldown {remaining} sekund" if remaining else ""
+                mana = (
+                    f", Mana {skill.get('mana', 0)}"
+                    if skill.get("mana", 0) else ""
+                )
+                effective_cd = self.effective_skill_cooldown(
+                    skill, skill_level
+                )
+                remaining = max(
+                    0,
+                    int(
+                        self.skill_cooldowns.get(skill["id"], 0)
+                        - time.time() + 0.999
+                    ),
+                )
+                cd = (
+                    f", pozostały cooldown {remaining} sekund"
+                    if remaining else ""
+                )
 
-            await self.send(
-                f"{number}. {skill['name']}. {status}.{progress_text} "
-                f"Cooldown bazowy {skill['cooldown']} sekund, aktualny {effective_cd} sekund"
-                f"{mana}{cd}. {skill['desc']}"
-            )
+                await self.send(
+                    f"{global_number}. {skill['name']}. {status}."
+                    f"{progress_text} Cooldown bazowy {skill['cooldown']} sekund, "
+                    f"aktualny {effective_cd} sekund{mana}{cd}. "
+                    f"{skill['desc']}"
+                )
 
         await self.send(
-            "Każdy nauczony skill ma własny Skill Level 1-100 i własny XP. "
-            "Używanie skilla rozwija właśnie ten konkretny skill."
+            "Numery dotyczą wspólnej listy aktywnych klas. "
+            "Przy nauczycielu komenda learn <numer> używa lokalnej listy jego klasy."
         )
         await self.send(
-            "Aby nauczyć się gotowej umiejętności, idź do nauczyciela swojej klasy "
-            "i użyj learn <numer lub nazwa> albo naucz <numer lub nazwa>."
+            "Każdy nauczony skill zachowuje własny Skill Level 1-100 i XP."
         )
 
+
+    def protected_friendly_npc(self, query):
+        room_id = self.character.room_id
+        candidates = {
+            npc_id: npc
+            for npc_id, npc in NPCS.items()
+            if npc.get("room") == room_id
+        }
+        if not candidates:
+            return None
+
+        found = find_by_name(candidates, query)
+        if not found:
+            return None
+        return found[1]
+
+    async def reject_friendly_npc_attack(self, query):
+        npc = self.protected_friendly_npc(query)
+        if not npc:
+            return False
+
+        await self.send(
+            f"{npc['name']} jest pokojowym i chronionym NPC-em. "
+            "Sprzedawców, nauczycieli, postaci zadaniowych i innych "
+            "pomocnych NPC-ów nie można atakować ani zabijać."
+        )
+        return True
 
     def skill_progress_data(self, skill):
         if not self.server.db.knows_skill(self.account_id, skill["id"]):
@@ -7021,6 +8872,8 @@ class Session:
         if mob is None:
             if not query.strip():
                 await self.send("Ta umiejętność wymaga celu. Podaj nazwę przeciwnika.")
+                return None
+            if await self.reject_friendly_npc_attack(query):
                 return None
             mob = self.server.world.find_mob(self.character.room_id, query)
             if not mob:
@@ -7129,29 +8982,44 @@ class Session:
             await self.send("Nie możesz uczyć się umiejętności podczas walki.")
             return
 
-        value = raw.strip()
-        normalized = self.normalize_description_query(value)
-        if normalized.startswith("sie "):
-            value = value.split(maxsplit=1)[1] if len(value.split(maxsplit=1)) > 1 else ""
-        elif normalized.startswith("się "):
-            value = value.split(maxsplit=1)[1] if len(value.split(maxsplit=1)) > 1 else ""
-
-        teacher_id, teacher = self.class_teacher()
+        teacher_id, teacher = self.teacher_here_for_active_class()
         if not teacher:
-            await self.send("Nie znaleziono nauczyciela twojej klasy.")
-            return
-
-        if self.character.room_id != teacher["room"]:
             await self.send(
-                f"Musisz być przy nauczycielu swojej klasy: {teacher['name']}. "
-                f"Znajdziesz go w lokacji {ROOMS[teacher['room']]['name']}."
+                "Musisz być przy nauczycielu jednej ze swoich aktywnych klas. "
+                "Wpisz teachers, aby sprawdzić lokacje."
             )
             return
 
-        skill, unused = self.find_skill_from_input(value)
+        class_name = teacher["teacher_class"]
+        class_skills = CLASS_SKILLS.get(class_name, [])
+        value = raw.strip()
+        normalized = self.normalize_description_query(value)
+        if normalized.startswith("sie ") or normalized.startswith("się "):
+            split = value.split(maxsplit=1)
+            value = split[1] if len(split) > 1 else ""
+
+        skill = None
+        if value.strip().isdigit():
+            number = int(value.strip())
+            if 1 <= number <= len(class_skills):
+                skill = class_skills[number - 1]
+        else:
+            wanted = self.normalize_description_query(value)
+            for candidate in class_skills:
+                names = [
+                    candidate["name"], candidate["id"]
+                ] + candidate.get("aliases", [])
+                if any(
+                    wanted == self.normalize_description_query(name)
+                    for name in names
+                ):
+                    skill = candidate
+                    break
+
         if not skill:
             await self.send(
-                "Nie rozpoznaję tej umiejętności. Wpisz talk <nauczyciel> albo skills."
+                f"Nie rozpoznaję umiejętności klasy {class_name}. "
+                f"Wpisz talk {teacher['name']}."
             )
             return
 
@@ -7161,19 +9029,20 @@ class Session:
 
         if self.character.soul_level < skill["unlock"]:
             await self.send(
-                f"Nie jesteś jeszcze gotowy. {skill['name']} wymaga Soul Level {skill['unlock']}, "
+                f"{skill['name']} wymaga Soul Level {skill['unlock']}, "
                 f"a masz {self.character.soul_level}."
             )
             return
 
         self.server.db.learn_skill(self.account_id, skill["id"])
         await self.send(
-            f"{teacher['name']} uczy cię umiejętności: {skill['name']}."
+            f"{teacher['name']} uczy cię umiejętności klasy "
+            f"{class_name}: {skill['name']}."
         )
         await self.send(
-            f"Nauczono. {skill['name']} zaczyna na Skill Level 1. "
-            f"Możesz teraz używać: skill {skill['name']}."
+            f"Nauczono. {skill['name']} zaczyna na Skill Level 1."
         )
+
 
     async def use_class_skill(self, raw):
         skill, target_text = self.find_skill_from_input(raw)
@@ -7188,11 +9057,12 @@ class Session:
             return
 
         if not self.server.db.knows_skill(self.account_id, skill["id"]):
-            teacher_id, teacher = self.class_teacher()
+            skill_class = self.skill_class_name(skill)
+            teacher_id, teacher = self.class_teacher(skill_class)
             await self.send(
-                f"Nie znasz jeszcze umiejętności {skill['name']}. "
-                f"Musisz nauczyć się jej u {teacher['name']} w lokacji "
-                f"{ROOMS[teacher['room']]['name']}."
+                f"Nie znasz jeszcze umiejętności {skill['name']} klasy "
+                f"{skill_class}. Musisz nauczyć się jej u {teacher['name']} "
+                f"w lokacji {ROOMS[teacher['room']]['name']}."
             )
             return
 
@@ -7297,10 +9167,13 @@ class Session:
                     f"Bonus rasy {self.character.race}: "
                     f"+{self.character.racial_healing_bonus_percent()} procent mocy leczenia."
                 )
-            class_heal_bonus = int(round((self.character.class_healing_multiplier() - 1.0) * 100))
+            class_heal_bonus = int(
+                round((self.character.class_healing_multiplier() - 1.0) * 100)
+            )
             if class_heal_bonus > 0:
                 await self.send(
-                    f"Bonus klasy {self.character.class_name}: +{class_heal_bonus} procent mocy leczenia."
+                    f"Bonus aktywnych klas: +{class_heal_bonus} procent "
+                    "mocy leczenia."
                 )
             await self.grant_skill_use_xp(skill)
             if mana_cost:
@@ -7312,7 +9185,9 @@ class Session:
         template = MOB_TEMPLATES[mob.template_id]
         scale = self.skill_scale_value(skill.get("scale", "strength"))
         multiplier = skill.get("mult", 1.0) * skill_power
-        if self.character.class_type == "physical":
+        skill_class = self.skill_class_name(skill)
+        skill_class_type = class_type_for_name(skill_class)
+        if skill_class_type == "physical":
             multiplier *= self.character.class_physical_damage_multiplier()
             multiplier *= self.character.racial_physical_damage_multiplier()
         else:
@@ -7442,6 +9317,8 @@ class Session:
                 mob = None
 
         if mob is None:
+            if await self.reject_friendly_npc_attack(query):
+                return
             mob = self.server.world.find_mob(self.character.room_id, query)
             if not mob:
                 await self.send("Nie widzę tutaj takiego przeciwnika.")
@@ -7483,6 +9360,12 @@ class Session:
         mob.alive = False
         mob.respawn_at = time.time() + RESPAWN_SECONDS
         mob.engaged_by = None
+        corpse=self.server.world.create_corpse(mob)
+        if corpse:
+            if corpse.items:
+                await self.send(f"Pozostaje ciało: {corpse.mob_name}. Ma na sobie {len(corpse.items)} elementów ekwipunku. Wpisz ciało albo przeszukaj ciało.")
+            else:
+                await self.send(f"Pozostaje ciało: {corpse.mob_name}. Nie widać na nim ekwipunku.")
 
         for session in list(self.server.sessions):
             if session.combat_mob_key == mob.key:
@@ -7541,6 +9424,14 @@ class Session:
             ):
                 await session.send(msg)
 
+            class_xp_reward = int(
+                template.get(
+                    "class_xp_reward",
+                    max(50, int(template["stat_reward"]) * 10),
+                )
+            )
+            await session.grant_class_xp(class_xp_reward)
+
             target = template.get("quest_target")
             if target:
                 changed = self.server.db.increment_quest(
@@ -7548,10 +9439,17 @@ class Session:
                 )
                 for quest_id, progress in changed:
                     q = QUESTS[quest_id]
-                    await session.send(
-                        f"Postęp zadania {q['name']}: "
-                        f"{progress} z {q['needed']}."
-                    )
+                    if progress >= q["needed"]:
+                        await session.send(
+                            f"Quest aktywny: {q['name']}. "
+                            f"Postęp {progress} z {q['needed']}. "
+                            "Cel wykonany, wróć do NPC."
+                        )
+                    else:
+                        await session.send(
+                            f"Quest aktywny: {q['name']}. "
+                            f"Postęp {progress} z {q['needed']}."
+                        )
 
             self.server.db.save_character(session.character)
 
@@ -7599,6 +9497,8 @@ class Session:
         await self.send("Wycofujesz się z walki.")
 
     async def die(self, killer):
+        if self.resting or self.rest_task:
+            await self.stop_rest(announce=False)
         if self.combat_mob_key:
             mob = self.server.world.mobs.get(self.combat_mob_key)
             if mob:
@@ -7642,6 +9542,30 @@ class Session:
             command = COMMAND_ALIASES.get(command, command)
             direction = DIRECTION_ALIASES.get(command)
 
+            rest_safe_commands = {
+                "rest", "help", "describe", "changes", "look",
+                "corpse", "cryptinfo", "exits", "map", "atlas",
+                "where", "who", "stats", "declension", "skills",
+                "skillnames", "soul", "money", "net", "bag",
+                "woodpile", "herbbag", "professions", "ranks",
+                "tools", "toolinfo_fishing", "toolinfo_mining",
+                "toolinfo_woodcutting", "toolinfo_crafting",
+                "toolinfo_cooking", "toolinfo_herbalism",
+                "toolinfo_alchemy", "tiers", "location",
+                "recipes", "inventory", "equipment", "shop",
+                "teachers", "quests", "charisma", "multiclass",
+            }
+
+            if (
+                self.resting
+                and not direction
+                and command not in rest_safe_commands
+            ):
+                await self.stop_rest(
+                    announce=True,
+                    reason="wykonujesz inną akcję",
+                )
+
             if direction:
                 await self.move(direction)
             elif command == "help":
@@ -7652,6 +9576,12 @@ class Session:
                 await self.show_latest_changes()
             elif command == "look":
                 await self.look()
+            elif command == "corpse":
+                await self.show_corpses(args)
+            elif command == "lootcorpse":
+                await self.loot_corpse(args)
+            elif command == "cryptinfo":
+                await self.show_crypt_info()
             elif command == "exits":
                 await self.show_exits()
             elif command == "map":
@@ -7672,6 +9602,10 @@ class Session:
                 await self.party_chat(args)
             elif command == "charisma":
                 await self.show_charisma()
+            elif command == "multiclass":
+                await self.handle_multiclass(args)
+            elif command == "rest":
+                await self.handle_rest(args)
             elif command == "stats":
                 await self.show_stats()
             elif command == "declension":
@@ -7708,6 +9642,20 @@ class Session:
                 await self.show_profession_ranks()
             elif command == "tools":
                 await self.show_tools()
+            elif command == "toolinfo_fishing":
+                await self.show_single_tool("fishing")
+            elif command == "toolinfo_mining":
+                await self.show_single_tool("mining")
+            elif command == "toolinfo_woodcutting":
+                await self.show_single_tool("woodcutting")
+            elif command == "toolinfo_crafting":
+                await self.show_single_tool("crafting")
+            elif command == "toolinfo_cooking":
+                await self.show_single_tool("cooking")
+            elif command == "toolinfo_herbalism":
+                await self.show_single_tool("herbalism")
+            elif command == "toolinfo_alchemy":
+                await self.show_single_tool("alchemy")
             elif command == "tiers":
                 await self.show_tool_tiers()
             elif command == "fish":
@@ -7818,6 +9766,8 @@ class Session:
     async def close(self):
         if self.closed:
             return
+        if self.resting or self.rest_task:
+            await self.stop_rest(announce=False)
         if self.auto_fishing or self.auto_fishing_task:
             await self.stop_auto_fishing(announce=False)
         if self.auto_mining or self.auto_mining_task:

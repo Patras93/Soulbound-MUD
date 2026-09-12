@@ -1,3 +1,383 @@
+SOULBOUND v0.6.58 RESTING, REGENERATION & USE
+==============================================
+- Dodano odpoczywaj.
+- Dodano odpocznij.
+- Dodano odpoczynek.
+- Dodano rest.
+- Dodano regen.
+- Regeneracja działa co 5 sekund.
+- Tik przywraca 10 procent maksymalnego HP.
+- Tik przywraca 10 procent maksymalnej Many.
+- NVDA odczytuje HP X z Y i Mana X z Y.
+- Pełne zasoby automatycznie kończą odpoczynek.
+- Dodano odpoczywaj status.
+- Dodano odpoczywaj stop.
+- Ruch i aktywne akcje przerywają odpoczynek.
+- Komendy informacyjne nie przerywają odpoczynku.
+- Odpoczynek wyłącza auto-profesje.
+- Dodano pełne use / użyj.
+- użyj mikstura używa podstawowej Mikstury leczenia.
+- użyj eliksir używa Eliksiru Duszy.
+- użyj mana używa Mikstury Many.
+- Pełne nazwy mikstur, eliksirów i jedzenia nadal działają.
+- Eliksir Duszy użyty podczas walki zużywa turę.
+- Zaktualizowano help i README.
+- changes / zmiany nadal pokazuje pełną historię.
+
+SOULBOUND v0.6.57 HIGH SOUL XP
+===============================
+- Mocno zwiększono Soul XP.
+- Szczur Świątynny: 80.
+- Żywy Manekin: 100.
+- Goblin: 140.
+- Gobliński Osiłek: 180.
+- Wilk Cienia: 160.
+- Bandyta: 170.
+- Bandycki Maruder: 220.
+- Szkielet Strażnik: 240.
+- Upiór Krypty: 280.
+- Kryształowy Strażnik: 320.
+- Zwykły mob Krypty: 100 + piętro*10 Soul XP.
+- Piętro 10: 200 Soul XP.
+- Piętro 50: 600 Soul XP.
+- Piętro 100: 1100 Soul XP.
+- Boss Krypty: 600 + piętro*20 Soul XP.
+- Boss 10: 800 Soul XP.
+- Boss 50: 1600 Soul XP.
+- Boss 100: 2600 Soul XP.
+- Im niżej w Krypcie, tym więcej Soul XP.
+- Zaktualizowano help i README.
+- changes / zmiany nadal pokazuje pełną historię.
+
+SOULBOUND v0.6.56 MORE SOUL XP FROM MOBS
+=========================================
+- Zwiększono Soul XP ze wszystkich podstawowych mobów.
+- Szczur Świątynny: 2 Soul XP.
+- Żywy Manekin: 6 Soul XP.
+- Goblin: 10 Soul XP.
+- Gobliński Osiłek: 13 Soul XP.
+- Wilk Cienia: 12 Soul XP.
+- Bandyta: 12 Soul XP.
+- Bandycki Maruder: 15 Soul XP.
+- Szkielet Strażnik: 16 Soul XP.
+- Upiór Krypty: 22 Soul XP.
+- Kryształowy Strażnik: 26 Soul XP.
+- Zwykły mob Krypty: 3 + piętro/6 Soul XP.
+- Boss Krypty: 35 + piętro/3 Soul XP.
+- Im niżej w Krypcie, tym więcej Soul XP.
+- Bossowie są najlepszym źródłem Soul XP.
+- Class XP nadal rośnie szybciej niż Soul XP.
+- Nie zmieniono istniejących Soul Level ani Soul Tier.
+- Zaktualizowano help dusza i help krypta.
+- changes / zmiany nadal pokazuje pełną historię.
+
+SOULBOUND v0.6.55 WATCHPOSTS & BANDIT CAMP
+===========================================
+- Dodano Wartownię Północną.
+- Dodano Wartownię Pogranicza.
+- Dodano Obozowisko Bandytów.
+- Stary Trakt ma nowe wyjście east do Wartowni Północnej.
+- Wartownia Północna prowadzi east do Wartowni Pogranicza.
+- Wartownia Pogranicza prowadzi east do Obozowiska Bandytów.
+- Dodano Dowódcę Roderika.
+- Dodano Strażniczkę Annę.
+- Obaj NPC są chronieni przed walką.
+- Dodano Patrol przeciw bandytom.
+- Quest wymaga 10 bandytów.
+- Quest jest powtarzalny co godzinę.
+- Cooldown wynosi 60 minut.
+- Nagroda: 250 srebra.
+- Nagroda: 150 EXP rozwoju.
+- Nagroda: 2 Mikstury leczenia.
+- Postęp live pokazuje X z 10.
+- Dodano Bandyckiego Marudera.
+- Maruder liczy się do questa.
+- Dodano 6 spawnów przeciwników w obozowisku.
+- Ciała bandytów mogą zawierać ekwipunek.
+- Uogólniono komunikaty cooldownu powtarzalnych questów.
+- Zaktualizowano help i README.
+- changes / zmiany nadal pokazuje pełną historię.
+
+SOULBOUND v0.6.54 LIVE QUEST PROGRESS
+======================================
+- Aktywne questy pokazują dokładny postęp X z Y.
+- Po przyjęciu questa odczytywany jest stan początkowy.
+- Quest kill aktualizuje postęp po każdym zabiciu celu.
+- Tier 2 Broni Duszy mówi np. 3 z 5 Szkieletów.
+- Tier 3 Broni Duszy mówi np. 2 z 3 Upiorów.
+- Quest Rybaka aktualizuje stan po połowie.
+- Quest Górnika aktualizuje stan po wydobyciu rudy.
+- Quest Drwala aktualizuje stan po drewnie.
+- Quest Zielarki aktualizuje stan po ziole.
+- Bonusowe sztuki surowca liczą się do aktualnego odczytu.
+- Czysty mithril nie jest liczony jako zwykła ruda.
+- Przy pełnym celu gra mówi, aby wrócić do NPC.
+- quests / zadania używa formatu Postęp X z Y.
+- Powtórnie przyjęte questy również od razu podają stan.
+- Zaktualizowano help zadania.
+- changes / zmiany nadal pokazuje pełną historię.
+
+SOULBOUND v0.6.53 SOUL TIER QUESTS & REPEATABLE PROFESSION QUESTS
+==================================================================
+- Tier 2 wymaga Soul Level 25 i questa w Świątyni Odrodzenia.
+- Kapłan Elor daje Próbę Broni Duszy: Tier 2.
+- Tier 2: pokonaj 5 Szkieletów Strażników.
+- Po oddaniu próby Tier 2 użyj unlock.
+- Tier 3 wymaga Soul Level 60 i drugiego questa w Świątyni.
+- Kapłan Elor daje Próbę Broni Duszy: Tier 3.
+- Tier 3: pokonaj 3 Upiory Krypty.
+- Po oddaniu próby Tier 3 użyj unlock.
+- Stare postacie z Tier 2/3 nie tracą aktualnego Tiera.
+- Szkielet Strażnik liczy się do próby Tier 2.
+- Upiór Krypty liczy się do próby Tier 3.
+- Próba Rybaka jest powtarzalna co 30 minut.
+- Próba Górnika jest powtarzalna co 30 minut.
+- Próba Drwala jest powtarzalna co 30 minut.
+- Próba Zielarki jest powtarzalna co 30 minut.
+- Cooldown liczy się od chwili ukończenia.
+- Cooldown jest zapisany w SQLite.
+- Dodano quests.completed_at.
+- Dodano quests.completion_count.
+- Stare bazy są migrowane automatycznie.
+- quests / zadania pokazuje czas do powtórki.
+- soul pokazuje wymaganie próby Tier 2/3.
+- Zaktualizowano help dusza i help zadania.
+- changes / zmiany nadal pokazuje pełną historię.
+
+SOULBOUND v0.6.52 SOUL WEAPON CLASS BONUSES & BOSS REWARDS
+============================================================
+- Broń Duszy daje bonus klasowy.
+- Bonus dotyczy klasy głównej.
+- Tier 1 daje standardowo +5 procent specjalizacji.
+- Tier 2 daje standardowo +10 procent specjalizacji.
+- Tier 3 daje standardowo +15 procent specjalizacji.
+- Wojownik: bonus obrażeń fizycznych.
+- Berserker: bonus obrażeń fizycznych.
+- Łowca: bonus obrażeń fizycznych.
+- Mag: bonus obrażeń magicznych.
+- Czarownik: bonus obrażeń magicznych.
+- Mnich: bonus leczenia.
+- Kapłan: bonus leczenia.
+- Druid: bonus leczenia.
+- Nekromanta: bonus leczenia z wysysania życia.
+- Psionik: bonus obrony magicznej.
+- Łotrzyk: +2/+4/+6 punktów procentowych uniku.
+- Strażnik: +3/+6/+9 procent redukcji wszystkich obrażeń.
+- Multiclass nie daje dodatkowych Broni Duszy.
+- Bossowie Krypty dają więcej Class XP.
+- Bossowie Krypty dają więcej EXP rozwoju.
+- Bossowie Krypty dają więcej Soul XP.
+- Bossowie Krypty dają więcej srebra.
+- Bossowie zostawiają 3 elementy ekwipunku zamiast 2.
+- Boss zawsze daje Odłamek Duszy.
+- Zwiększono szansę bossa na Eliksir Duszy.
+- Zaktualizowano soul.
+- Zaktualizowano stats.
+- Zaktualizowano help dusza i help krypta.
+- changes / zmiany nadal pokazuje pełną historię zmian.
+
+SOULBOUND v0.6.51 FULL CHANGELOG HISTORY
+=======================================
+- changes pokazuje pełną historię zmian.
+- zmiany pokazuje pełną historię zmian.
+- changelog pokazuje pełną historię zmian.
+- Komenda czyta cały CHANGELOG_PL.txt.
+- Najnowsza wersja pozostaje na górze.
+- Wszystkie starsze wersje pozostają dostępne niżej.
+- Historia jest wysyłana linia po linii dla NVDA.
+- Dodano fallback do LATEST_CHANGES, gdy plik changelogu jest niedostępny.
+- Zaktualizowano help zmiany.
+- Zaktualizowano README i RAILWAY_PL.
+
+SOULBOUND v0.6.50 STARTING ECONOMY
+==================================
+- Nowa postać zaczyna z 30 srebra.
+- Nadal zaczyna z 2 złota.
+- Nadal zaczyna z 0 mithrilu.
+- Nadal dostaje 2 Mikstury leczenia.
+- Istniejące postacie zachowują aktualny portfel.
+- Nie wykonywano automatycznej konwersji starych zapisów.
+- Zaktualizowano README i RAILWAY_PL.
+- changes / zmiany pokazuje v0.6.50.
+
+SOULBOUND v0.6.49 OPTIONAL MULTICLASS & CLASS XP
+=================================================
+- Dodano opcjonalny multiclass.
+- 1 klasa główna + maksymalnie 2 dodatkowe.
+- Maksymalnie 3 aktywne klasy.
+- Dodano tabelę class_progress.
+- Stare postacie automatycznie zachowują klasę główną.
+- Dodano Biegłość klasy 1-100.
+- Dodano osobny Class XP.
+- Class XP jest dzielony między aktywne klasy.
+- Dodano multiclass / klasy.
+- Dodano multiclass add <klasa>.
+- Dodano multiclass remove <klasa>.
+- Wyłączenie klasy nie kasuje jej Biegłości ani skilli.
+- Dodatkowe klasy włączają swoje pasywy.
+- Dodatkowe klasy dają dostęp do własnych nauczycieli.
+- Dodatkowe klasy dają dostęp do własnych nauczonych skilli.
+- Dodatkowa klasa magiczna daje Manę fizycznej klasie głównej.
+- skills pokazuje skille wszystkich aktywnych klas.
+- teachers oznacza wszystkie aktywne klasy.
+- stats pokazuje wszystkie aktywne klasy i ich pasywy.
+- Piętro 10 Krypty: 1050 Class XP przed podziałem.
+- Piętro 50 Krypty: 3450 Class XP przed podziałem.
+- Piętro 100 Krypty: 6450 Class XP przed podziałem.
+- Boss piętra 100: 11800 Class XP.
+- Soul XP Krypty został spowolniony.
+- Wszystkie 7 narzędzi kosztuje po 10 srebra.
+- Nie dodano levelu postaci.
+- Zaktualizowano pomoc.
+- Zaktualizowano README i RAILWAY_PL.
+- changes / zmiany pokazuje v0.6.49.
+
+SOULBOUND v0.6.48 CRYPT DIFFICULTY & XP SCALING
+=================================================
+- HP mobów Krypty rośnie mocniej z każdym piętrem.
+- Obrażenia mobów Krypty rosną z każdym piętrem.
+- EXP rozwoju rośnie wyraźnie z głębokością.
+- Soul XP rośnie z głębokością.
+- Srebro z Krypty rośnie z głębokością.
+- Bossowie co 10 pięter mają większy skok trudności.
+- Bossowie dają znacznie więcej EXP rozwoju.
+- Bossowie dają znacznie więcej Soul XP.
+- Bossowie dają więcej srebra na głębszych piętrach.
+- Nie dodano levelu postaci.
+- Zaktualizowano help krypta.
+- Zaktualizowano README i RAILWAY_PL.
+- changes / zmiany pokazuje v0.6.48.
+
+SOULBOUND v0.6.47 CRYPT 100 FLOORS, CORPSES & QUEST REWARDS
+=============================================================
+- Questy profesyjne: 50 srebra.
+- Szczury: 75 srebra; Gobliny: 100; Wilki Cienia: 120; Odłamki dla kowala: 300.
+- Dodano ciała mobów i przeszukiwanie ekwipunku.
+- Dodano 10 Tierów ekwipunku Krypty.
+- Dodano 100 pięter Krypty.
+- Dodano bossów co 10 pięter.
+- Boss blokuje zejście niżej do czasu pokonania.
+- Dodano finałowego Władcę Stu Pięter.
+- Mapa Krypty jest skrótowa dla NVDA.
+- Zaktualizowano pomoc i dokumentację.
+
+SOULBOUND v0.6.46 SHOP & ITEM REBALANCE
+========================================
+- Wędka: 5 srebra.
+- Kilof: 24 srebra.
+- Piła: 24 srebra.
+- Młot Rzemieślniczy: 24 srebra.
+- Nóż Kucharski: 24 srebra.
+- Sierp Zielarski: 24 srebra.
+- Moździerz Alchemiczny: 24 srebra.
+- Mikstura leczenia: 24 srebra.
+- Skórzana kamizelka: 48 srebra.
+- Talizman Wędrowca: 72 srebra.
+- Żelazne rękawice: 70 srebra.
+- Żelazne buty: 70 srebra.
+- Żelazny hełm: 90 srebra.
+- Talizman Kowala: 110 srebra.
+- Żelazne nogawice: 130 srebra.
+- Żelazny napierśnik: 180 srebra.
+- Wszystkie podstawowe oferty sklepowe są teraz w srebrze.
+- Rabat Charyzmy działa z nowymi cenami.
+- Nie zmieniono dropów, surowców ani crafted itemów.
+- Zaktualizowano help sklepy.
+- Zaktualizowano README i RAILWAY_PL.
+- changes / zmiany pokazuje v0.6.46.
+
+SOULBOUND v0.6.45 CURRENCY REBALANCE
+====================================
+- 1000 srebra = 1 złoto.
+- 1000000 złota = 1 mithril.
+- 1 mithril = 1000000000 srebra.
+- Zaktualizowano SILVER_PER_GOLD do 1000.
+- Zaktualizowano GOLD_PER_MITHRIL do 1000000.
+- exchange gold wymaga teraz 1000 srebra.
+- exchange mithril wymaga teraz 1000000 złota.
+- exchange pokazuje nowe kursy.
+- Rabat Charyzmy używa nowych przeliczników.
+- Towar za 1 złoto odpowiada 1000 srebra w kalkulacji rabatu.
+- Towar za 1 mithril odpowiada 1000000000 srebra w kalkulacji rabatu.
+- Rzadkość czystego mithrilu z Górnictwa pozostaje bez zmian.
+- Istniejące portfele graczy nie są automatycznie przeliczane.
+- Zaktualizowano opisy Srebra, Złota i Mithrilu.
+- Zaktualizowano help pieniadze.
+- Zaktualizowano README i RAILWAY_PL.
+- changes / zmiany pokazuje v0.6.45.
+
+SOULBOUND v0.6.44 PROFESSION DELIVERY QUESTS
+=============================================
+- Dodano Górnika Torena.
+- Górnik Toren stoi przy wejściu do Kryształowej Jaskini.
+- Dodano Próbę Górnika: 30 dowolnych rud.
+- Dodano Próbę Drwala: 30 sztuk dowolnego drewna.
+- Dodano Próbę Zielarki: 30 dowolnych ziół.
+- Zachowano i ujednolicono Próbę Rybaka: 30 dowolnych ryb.
+- Próba Rybaka daje 1000 XP Wędkarstwa, 1000 XP Wędki i 200 złota.
+- Próba Górnika daje 1000 XP Górnictwa, 1000 XP Kilofa i 200 złota.
+- Próba Drwala daje 1000 XP Drwalstwa, 1000 XP Piły i 200 złota.
+- Próba Zielarki daje 1000 XP Zielarstwa, 1000 XP Sierpa i 200 złota.
+- Quest ryb pobiera surowce z Siatki.
+- Quest rud pobiera surowce z Sakwy.
+- Quest drewna pobiera surowce ze Stosu.
+- Quest ziół pobiera surowce z Torby Zielarskiej.
+- Każdy quest może uzupełnić brakującą liczbę surowcami ze zwykłego ekwipunku.
+- Dziennik zadań pokazuje poprawny stan wszystkich czterech kategorii.
+- Zaktualizowano help zadania.
+- Zaktualizowano help wedkarstwo.
+- Zaktualizowano help gornictwo.
+- Zaktualizowano help drwalstwo.
+- Zaktualizowano help zielarstwo.
+- changes / zmiany pokazuje v0.6.44.
+
+SOULBOUND v0.6.43 PROTECTED FRIENDLY NPCS
+==========================================
+- Wszystkie postacie w NPCS są chronione przed walką.
+- Ochrona działa także poza Miastem Dusz.
+- Drwal Bran jest chroniony.
+- Zielarka Liora jest chroniona.
+- Zielarka Mira jest chroniona.
+- Rybak Tomas jest chroniony.
+- Kowal Doran jest chroniony.
+- Kapłan Elor jest chroniony.
+- Kapitan Arven jest chroniony.
+- Karczmarka Elia jest chroniona.
+- Archiwista Sol jest chroniony.
+- Wszyscy nauczyciele klas są chronieni.
+- Sprzedawców nie można atakować ani zabijać.
+- Questgiverów nie można atakować ani zabijać.
+- Nauczycieli nie można atakować ani zabijać.
+- Innych pomocnych NPC-ów nie można atakować ani zabijać.
+- Ochrona działa na attack / atakuj / zabij / kill.
+- Ochrona działa na ofensywne umiejętności klasowe.
+- Zwykłe moby i potwory pozostają bez zmian.
+- Zaktualizowano pomoc.
+- changes / zmiany pokazuje v0.6.43.
+
+SOULBOUND v0.6.42 DIRECT TOOL INFO
+==================================
+- Dodano komendę wedka / wędka.
+- Dodano komendę kilof.
+- Dodano komendę pila / piła.
+- Dodano komendę mlot / młot.
+- Dodano komendę noz / nóż.
+- Dodano komendę sierp.
+- Dodano komendę mozdzierz / moździerz.
+- Każda komenda pokazuje obecny level narzędzia.
+- Każda komenda pokazuje liczbę użyć.
+- Każda komenda pokazuje obecne XP i wymagane XP.
+- Dodano dokładne brakujące XP do następnego levelu.
+- Dodano obecny Tier i nazwę Tieru.
+- Dodano następny Tier i jego nazwę.
+- Dodano wymagany level następnego Tieru.
+- Dodano brakującą liczbę leveli do następnego Tieru.
+- Dodano łączne XP potrzebne do następnego Tieru.
+- Każda komenda pokazuje pełne 8 Tierów swojego narzędzia.
+- Zaktualizowano help narzedzia.
+- Zaktualizowano help komendy.
+- changes / zmiany pokazuje v0.6.42.
+
 SOULBOUND v0.6.41 HERBALISM & ALCHEMY
 ======================================
 - Dodano Zielarstwo 1-100 i 8 rang.

@@ -1,4 +1,4 @@
-SOULBOUND v0.6.41 THREE CURRENCIES
+SOULBOUND v0.6.58 THREE CURRENCIES
 ==========================
 
 Duży build rozbudowujący działający serwer online do pierwszej właściwej wersji świata MUD.
@@ -1488,3 +1488,714 @@ Eliksir Witalności
 Eliksir Duszy
 
 Udana receptura rozwija Alchemię i Moździerz.
+
+
+BEZPOŚREDNIE INFORMACJE O NARZĘDZIACH v0.6.42
+---------------------------------------------
+Możesz teraz wpisać bezpośrednio nazwę narzędzia:
+
+wedka
+kilof
+pila
+mlot
+noz
+sierp
+mozdzierz
+
+Obsługiwane są również polskie znaki:
+wędka
+piła
+młot
+nóż
+moździerz
+
+Każda z tych komend pokazuje:
+- obecny level 1-100,
+- liczbę użyć,
+- obecne XP,
+- wymagane XP do następnego levelu,
+- dokładnie ile XP brakuje do następnego levelu,
+- obecny Tier 1-8,
+- nazwę obecnego Tieru,
+- bonus obecnego Tieru,
+- nazwę następnego Tieru,
+- level wymagany do następnego Tieru,
+- ile leveli brakuje do następnego Tieru,
+- łączne XP potrzebne do następnego Tieru,
+- pełną listę wszystkich 8 Tierów tego narzędzia.
+
+Komenda:
+tools
+narzedzia
+
+nadal pokazuje skrót wszystkich narzędzi.
+
+Komenda:
+tiers
+tiery
+nazwytierow
+
+nadal pokazuje wszystkie Tiery wszystkich narzędzi.
+
+
+OCHRONA POMOCNYCH NPC v0.6.43
+-----------------------------
+Wszystkie postacie znajdujące się w systemie NPCS są pokojowe i chronione.
+
+Nie można ich atakować ani zabijać przez:
+attack
+atakuj
+zabij
+kill
+
+Nie można ich również obrać jako celu ofensywnej umiejętności klasowej.
+
+Ochrona NIE ogranicza się do miasta.
+
+Chronieni są między innymi:
+- Kowal Doran,
+- Drwal Bran,
+- Zielarka Liora,
+- Zielarka Mira,
+- Rybak Tomas,
+- Kapłan Elor,
+- Kapitan Arven,
+- Karczmarka Elia,
+- Archiwista Sol,
+- wszyscy nauczyciele klas.
+
+Zasada:
+sprzedawca, nauczyciel, questgiver lub inny pomocny NPC = brak możliwości walki.
+
+Moby i potwory przeznaczone do walki nadal można normalnie atakować.
+
+
+QUESTY PROFESYJNE v0.6.44
+-------------------------
+Dodano komplet prób dla czterech profesji zbierackich.
+
+PRÓBA RYBAKA
+NPC: Rybak Tomas.
+Cel: przynieś 30 dowolnych ryb.
+Surowce pobierane są z Siatki na ryby i zwykłego ekwipunku.
+Nagroda: 1000 XP Wędkarstwa, 1000 XP Wędki, 50 srebra.
+
+PRÓBA GÓRNIKA
+NPC: Górnik Toren.
+Lokacja: Wejście do Kryształowej Jaskini.
+Cel: przynieś 30 dowolnych rud.
+Surowce pobierane są z Sakwy górniczej i zwykłego ekwipunku.
+Nagroda: 1000 XP Górnictwa, 1000 XP Kilofa, 50 srebra.
+
+PRÓBA DRWALA
+NPC: Drwal Bran.
+Cel: przynieś 30 sztuk dowolnego drewna.
+Surowce pobierane są ze Stosu drewna i zwykłego ekwipunku.
+Nagroda: 1000 XP Drwalstwa, 1000 XP Piły, 50 srebra.
+
+PRÓBA ZIELARKI
+NPC: Zielarka Liora.
+Cel: przynieś 30 dowolnych ziół.
+Surowce pobierane są z Torby Zielarskiej i zwykłego ekwipunku.
+Nagroda: 1000 XP Zielarstwa, 1000 XP Sierpa Zielarskiego, 50 srebra.
+
+Aby rozpocząć lub oddać zadanie:
+talk <NPC>
+rozmawiaj <NPC>
+
+Postęp:
+quests
+zadania
+
+
+NOWE KURSY WALUT v0.6.45
+------------------------
+1000 srebra = 1 złoto.
+
+1000000 złota = 1 mithril.
+
+Czyli:
+1 złoto = 1000 srebra.
+1 mithril = 1000000000 srebra.
+
+Komendy:
+exchange
+exchange gold
+exchange mithril
+
+exchange gold:
+wymienia 1000 srebra na 1 złoto.
+
+exchange mithril:
+wymienia 1000000 złota na 1 mithril.
+
+Rabat Charyzmy korzysta z tych samych nowych przeliczników.
+Przykład:
+przedmiot za 1 złoto ma wartość bazową 1000 srebra przy obliczaniu rabatu.
+
+Ważne:
+aktualizacja nie przelicza automatycznie istniejących portfeli graczy.
+Liczba posiadanych srebrnych, złotych i mithrilowych monet pozostaje taka sama.
+Rzadkość czystego mithrilu z Górnictwa nie została zmieniona.
+
+
+REBALANS CEN SKLEPOWYCH v0.6.46
+-------------------------------
+Po kursie 1000 srebra = 1 złoto podstawowe przedmioty sklepowe
+zostały przeliczone na srebro.
+
+NARZĘDZIA
+Wędka: 10 srebra.
+Kilof: 10 srebra.
+Piła: 10 srebra.
+Młot Rzemieślniczy: 10 srebra.
+Nóż Kucharski: 10 srebra.
+Sierp Zielarski: 10 srebra.
+Moździerz Alchemiczny: 10 srebra.
+
+MIKSTURY
+Mikstura leczenia: 24 srebra.
+
+PODSTAWOWY EKWIPUNEK
+Skórzana kamizelka: 48 srebra.
+Talizman Wędrowca: 72 srebra.
+
+ŻELAZNY EKWIPUNEK
+Żelazne rękawice: 70 srebra.
+Żelazne buty: 70 srebra.
+Żelazny hełm: 90 srebra.
+Talizman Kowala: 110 srebra.
+Żelazne nogawice: 130 srebra.
+Żelazny napierśnik: 180 srebra.
+
+Rabat Charyzmy nadal obniża efektywny koszt tych cen.
+Craftowane przedmioty, surowce, dropy i już posiadany ekwipunek
+nie są zmieniane przez ten rebalans.
+
+
+QUESTY - REBALANS NAGRÓD v0.6.47
+--------------------------------
+Próby Rybaka, Górnika, Drwala i Zielarki: po 50 srebra.
+Szczury pod świątynią: 75 srebra.
+Problem goblinów: 100 srebra.
+Cienie w gaju: 120 srebra.
+Odłamki dla kowala: 300 srebra.
+Nagrody pieniężne tych zadań nie używają już złota ani mithrilu.
+
+CIAŁA I EKWIPUNEK MOBÓW v0.6.47
+-------------------------------
+Po śmierci większości mobów zostaje ciało przez około 10 minut.
+Komendy: ciało, zwloki, corpse, przeszukaj ciało, loot.
+Ekwipunek zabrany z ciała trafia do zwykłego inventory.
+Dotychczasowe losowe dropy działają niezależnie.
+
+KRYPTA 1-100 v0.6.47
+--------------------
+Krypta ma 100 prawdziwych pięter.
+Bossowie: 10 Kościany Egzekutor; 20 Krwawy Kurator; 30 Rycerz Grobowca;
+40 Wiedźma Popiołu; 50 Pan Katakumb; 60 Widmowy Tytan;
+70 Nekromantyczny Kolos; 80 Arcyupiór Otchłani; 90 Król Kości;
+100 Władca Stu Pięter.
+Na piętrach 10-90 boss blokuje zejście down, dopóki żyje.
+Prowadzenie automatyczne nie omija bossów.
+Co 10 pięter zmienia się Tier ekwipunku z ciał: Tier 1 na 1-10, ... Tier 10 na 91-100.
+Zwykły mob Krypty zostawia 1 element, boss 2 elementy.
+Komendy: krypta, crypt, prowadz krypta 25.
+Mapa pokazuje Kryptę skrótowo dla NVDA.
+
+
+SKALOWANIE KRYPTY v0.6.48
+-------------------------
+Im niższe piętro, tym trudniejsi przeciwnicy i lepsze nagrody.
+
+ZWYKŁE MOBY
+HP = 70 + piętro * 9.
+Obrażenia = 6 + piętro / 3.
+EXP rozwoju = 20 + piętro * 2.
+Soul XP = 2 + piętro / 4.
+Srebro = 8 + numer piętra.
+
+Przykłady:
+Piętro 1: 79 HP, 6 obrażeń bazowych, 22 EXP rozwoju, 2 Soul XP, 9 srebra.
+Piętro 50: 520 HP, 22 obrażenia bazowe, 120 EXP rozwoju, 14 Soul XP, 58 srebra.
+Piętro 100: 970 HP, 39 obrażeń bazowych, 220 EXP rozwoju, 27 Soul XP, 108 srebra.
+
+BOSSOWIE
+HP = 350 + piętro * 25.
+Obrażenia = 16 + piętro / 2.
+EXP rozwoju = 180 + piętro * 4.
+Soul XP = 35 + numer piętra.
+Srebro = 150 + piętro * 8.
+
+Boss piętra 10: 600 HP, 21 obrażeń, 220 EXP rozwoju, 45 Soul XP, 230 srebra.
+Boss piętra 50: 1600 HP, 41 obrażeń, 380 EXP rozwoju, 85 Soul XP, 550 srebra.
+Boss piętra 100: 2850 HP, 66 obrażeń, 580 EXP rozwoju, 135 Soul XP, 950 srebra.
+
+Nie ma levelu postaci.
+EXP rozwoju automatycznie zwiększa pięć statystyk.
+Soul XP rozwija Broń Duszy.
+
+
+MULTICLASS v0.6.49
+------------------
+Multiclass jest opcjonalny.
+
+Każda postać:
+- zawsze ma jedną klasę główną,
+- może dodać maksymalnie 2 klasy dodatkowe,
+- może mieć maksymalnie 3 aktywne klasy.
+
+Przykład:
+Strażnik + Mag + Druid.
+
+Komendy:
+multiclass
+klasy
+multiclass add Mag
+multiclass add Druid
+multiclass remove Mag
+
+Klasy głównej nie można wyłączyć.
+Broń Duszy zawsze pozostaje Bronią Duszy klasy głównej.
+
+Aktywne dodatkowe klasy:
+- włączają swoje pasywy,
+- udostępniają swoich nauczycieli,
+- pozwalają uczyć się i używać ich skilli,
+- klasa magiczna daje pulę Many także fizycznej klasie głównej.
+
+BIEGŁOŚĆ KLAS
+Każda klasa ma własną Biegłość 1-100.
+Nie jest to level postaci.
+
+Class XP do następnej Biegłości:
+1000 + (Biegłość - 1) * 250.
+
+Mob daje jedną pulę Class XP.
+Pula jest dzielona równo pomiędzy wszystkie aktywne klasy.
+
+Przykład:
+mob daje 1050 Class XP.
+1 aktywna klasa: 1050 XP dla niej.
+2 aktywne klasy: po 525 XP.
+3 aktywne klasy: po 350 XP.
+
+Wyłączenie klasy zachowuje jej Biegłość, XP i nauczone skille.
+
+KRYPTA - CLASS XP I SOUL XP v0.6.49
+-----------------------------------
+Zwykły mob Krypty:
+Class XP = 450 + piętro * 60.
+
+Piętro 10:
+1050 Class XP.
+
+Piętro 50:
+3450 Class XP.
+
+Piętro 100:
+6450 Class XP.
+
+Boss:
+Class XP = 1800 + piętro * 100.
+
+Boss piętra 10:
+2800 Class XP.
+
+Boss piętra 50:
+6800 Class XP.
+
+Boss piętra 100:
+11800 Class XP.
+
+Soul XP rozwija się wolniej:
+zwykły mob = 1 + piętro / 10.
+Boss = 10 + piętro / 5.
+
+EXP rozwoju statystyk pozostaje osobnym systemem i nadal automatycznie
+zwiększa pięć statystyk. Nie istnieje level postaci.
+
+CENY NARZĘDZI v0.6.49
+----------------------
+Wszystkie podstawowe narzędzia kosztują po 10 srebra:
+Wędka,
+Kilof,
+Piła,
+Młot Rzemieślniczy,
+Nóż Kucharski,
+Sierp Zielarski,
+Moździerz Alchemiczny.
+
+
+STARTOWA EKONOMIA v0.6.50
+-------------------------
+Nowa postać zaczyna z:
+30 srebra,
+2 złota,
+0 mithrilu,
+2 Miksturami leczenia.
+
+Aktualizacja nie zmienia portfeli istniejących postaci.
+
+
+PEŁNA HISTORIA ZMIAN v0.6.51
+----------------------------
+Komendy:
+changes
+zmiany
+changelog
+
+Pokazują cały CHANGELOG_PL.txt, a nie tylko ostatnią wersję.
+Najnowsza wersja jest na górze, wszystkie starsze niżej.
+Każda linia jest wysyłana osobno dla NVDA.
+
+Jeśli plik CHANGELOG_PL.txt jest niedostępny, gra pokazuje awaryjnie
+zmiany bieżącej wersji.
+
+
+BONUS KLASOWY BRONI DUSZY v0.6.52
+---------------------------------
+Broń Duszy klasy głównej daje teraz dodatkowy bonus klasowy.
+
+Standardowa skala:
+Tier 1: 5 procent.
+Tier 2: 10 procent.
+Tier 3: 15 procent.
+
+Wojownik:
+obrażenia fizyczne +5 / +10 / +15 procent.
+
+Berserker:
+obrażenia fizyczne +5 / +10 / +15 procent.
+
+Łowca:
+obrażenia fizyczne +5 / +10 / +15 procent.
+
+Mag:
+obrażenia magiczne +5 / +10 / +15 procent.
+
+Czarownik:
+obrażenia magiczne +5 / +10 / +15 procent.
+
+Mnich:
+moc leczenia +5 / +10 / +15 procent.
+
+Kapłan:
+moc leczenia +5 / +10 / +15 procent.
+
+Druid:
+moc leczenia +5 / +10 / +15 procent.
+
+Nekromanta:
+leczenie z wysysania życia +5 / +10 / +15 procent.
+
+Psionik:
+obrona magiczna +5 / +10 / +15 procent.
+
+Łotrzyk:
+unik +2 / +4 / +6 punktów procentowych.
+Globalny limit uniku nadal wynosi 45 procent.
+
+Strażnik:
+redukcja wszystkich otrzymywanych obrażeń +3 / +6 / +9 procent.
+
+Multiclass:
+Broń Duszy i jej bonus należą zawsze do klasy głównej.
+Dodatkowe klasy zachowują swoje pasywy, skille i Biegłość,
+ale nie otrzymują osobnej Broni Duszy.
+
+WIĘKSZE NAGRODY BOSSÓW KRYPTY v0.6.52
+-------------------------------------
+Bossowie zostali wyraźnie odróżnieni od zwykłych mobów.
+
+Class XP bossa:
+3000 + piętro * 160.
+
+Boss piętra 10:
+4600 Class XP.
+
+Boss piętra 50:
+11000 Class XP.
+
+Boss piętra 100:
+19000 Class XP.
+
+EXP rozwoju bossa:
+350 + piętro * 6.
+Piętro 10: 410.
+Piętro 50: 650.
+Piętro 100: 950.
+
+Soul XP bossa:
+20 + piętro / 4.
+Piętro 10: 22.
+Piętro 50: 32.
+Piętro 100: 45.
+
+Srebro bossa:
+300 + piętro * 12.
+Piętro 10: 420 srebra.
+Piętro 50: 900 srebra.
+Piętro 100: 1500 srebra.
+
+Loot bossa:
+- 3 elementy ekwipunku z aktualnego Tieru na ciele,
+- Odłamek Duszy zawsze,
+- większa szansa na Eliksir Duszy.
+
+
+PRÓBY BRONI DUSZY v0.6.53
+-------------------------
+Tier 2:
+1. Osiągnij Soul Level 25.
+2. Idź do Kapłana Elora w Świątyni Odrodzenia.
+3. Przyjmij zadanie Próba Broni Duszy: Tier 2.
+4. Pokonaj 5 Szkieletów Strażników.
+5. Wróć do Kapłana Elora.
+6. Po ukończeniu próby wpisz unlock.
+7. Broń Duszy przechodzi na Tier 2.
+
+Tier 3:
+1. Miej Tier 2.
+2. Osiągnij Soul Level 60.
+3. Idź do Kapłana Elora w Świątyni Odrodzenia.
+4. Przyjmij zadanie Próba Broni Duszy: Tier 3.
+5. Pokonaj 3 Upiory Krypty.
+6. Wróć do Kapłana Elora.
+7. Po ukończeniu próby wpisz unlock.
+8. Broń Duszy przechodzi na Tier 3.
+
+Stare postacie:
+jeśli postać już posiada Tier 2 lub Tier 3, aktualizacja nie obniża Tiera
+i nie wymusza ponownego wykonywania starego odblokowania.
+
+POWTARZALNE QUESTY PROFESYJNE v0.6.53
+-------------------------------------
+Co 30 minut można ponownie wykonać:
+Próbę Rybaka,
+Próbę Górnika,
+Próbę Drwala,
+Próbę Zielarki.
+
+30 minut liczy się od ukończenia zadania.
+Cooldown jest zapisany w SQLite.
+Reconnect, restart serwera i redeploy nie zerują czasu oczekiwania.
+
+Po rozmowie z właściwym NPC:
+- jeśli cooldown jeszcze trwa, gra podaje dokładny pozostały czas,
+- jeśli minęło 30 minut, quest można ponownie przyjąć,
+- dziennik quests / zadania również pokazuje stan odnowienia.
+
+
+POSTĘP AKTYWNYCH QUESTÓW v0.6.54
+--------------------------------
+Każdy aktywny quest mówi dokładnie ile wykonano i ile potrzeba.
+
+Przykłady:
+Próba Broni Duszy Tier 2:
+Quest aktywny: Próba Broni Duszy: Tier 2. Postęp 3 z 5.
+
+Próba Górnika:
+Quest aktywny: Próba Górnika. Postęp 17 z 30.
+
+Po osiągnięciu celu:
+Quest aktywny: Próba Górnika. Postęp 30 z 30. Cel wykonany, wróć do NPC.
+
+Postęp jest odczytywany:
+- zaraz po przyjęciu questa,
+- po każdym zabiciu celu questa,
+- po złowieniu ryby,
+- po wydobyciu zwykłej rudy,
+- po pozyskaniu drewna,
+- po zebraniu zioła,
+- przy rozmowie z NPC,
+- w dzienniku quests / zadania.
+
+Bonusowy surowiec z Tieru narzędzia jest uwzględniany w stanie.
+Czysty mithril trafiający bezpośrednio do portfela nie liczy się jako
+zwykła ruda w Próbie Górnika.
+
+
+WARTOWNIE I OBOZOWISKO BANDYTÓW v0.6.55
+---------------------------------------
+Nowe lokacje:
+Wartownia Północna.
+Wartownia Pogranicza.
+Obozowisko Bandytów.
+
+Trasa:
+Stary Trakt
+-> east
+Wartownia Północna
+-> east
+Wartownia Pogranicza
+-> east
+Obozowisko Bandytów.
+
+Powrót prowadzi kierunkiem west.
+
+NPC:
+Dowódca Roderik - Wartownia Północna.
+Strażniczka Anna - Wartownia Pogranicza.
+
+PATROL PRZECIW BANDYTOM
+-----------------------
+Giver:
+Dowódca Roderik.
+
+Cel:
+pokonaj 10 bandytów w Obozowisku Bandytów.
+
+Do celu liczą się:
+Bandyta,
+Bandycki Maruder.
+
+Nagroda:
+250 srebra,
+150 EXP rozwoju statystyk,
+2 Mikstury leczenia.
+
+Quest jest powtarzalny co 60 minut.
+Cooldown zaczyna się po ukończeniu i jest zapisany w SQLite.
+
+Live progress:
+po każdym zabiciu gra mówi np.
+Quest aktywny: Patrol przeciw bandytom. Postęp 4 z 10.
+
+Po 10 z 10:
+Cel wykonany, wróć do NPC.
+
+W obozowisku spawnuje się:
+4 Bandytów,
+2 Bandyckich Maruderów.
+
+Komendy prowadzenia:
+prowadz Wartownia Północna
+prowadz Wartownia Pogranicza
+prowadz Obozowisko Bandytów
+
+
+WIĘCEJ SOUL XP Z MOBÓW v0.6.56
+------------------------------
+Rozwój Broni Duszy jest teraz szybszy.
+
+Podstawowe moby:
+Szczur Świątynny: 2 Soul XP.
+Żywy Manekin: 6 Soul XP.
+Goblin: 10 Soul XP.
+Gobliński Osiłek: 13 Soul XP.
+Wilk Cienia: 12 Soul XP.
+Bandyta: 12 Soul XP.
+Bandycki Maruder: 15 Soul XP.
+Szkielet Strażnik: 16 Soul XP.
+Upiór Krypty: 22 Soul XP.
+Kryształowy Strażnik: 26 Soul XP.
+
+Krypta, zwykły mob:
+Soul XP = 3 + piętro / 6.
+
+Przykłady:
+Piętro 10: 4 Soul XP.
+Piętro 50: 11 Soul XP.
+Piętro 100: 19 Soul XP.
+
+Boss Krypty:
+Soul XP = 35 + piętro / 3.
+
+Przykłady:
+Boss piętra 10: 38 Soul XP.
+Boss piętra 50: 51 Soul XP.
+Boss piętra 100: 68 Soul XP.
+
+Bossowie są najlepszym źródłem Soul XP.
+Class XP nadal jest znacznie większe liczbowo, więc Soul XP pozostaje
+osobnym i wolniejszym systemem rozwoju Broni Duszy.
+
+
+WYSOKIE SOUL XP v0.6.57
+-----------------------
+Rozwój Broni Duszy został mocno przyspieszony.
+
+Podstawowe moby:
+Szczur Świątynny: 80 Soul XP.
+Żywy Manekin: 100.
+Goblin: 140.
+Gobliński Osiłek: 180.
+Wilk Cienia: 160.
+Bandyta: 170.
+Bandycki Maruder: 220.
+Szkielet Strażnik: 240.
+Upiór Krypty: 280.
+Kryształowy Strażnik: 320.
+
+Krypta, zwykły mob:
+Soul XP = 100 + piętro * 10.
+
+Przykłady:
+Piętro 10: 200 Soul XP.
+Piętro 50: 600 Soul XP.
+Piętro 100: 1100 Soul XP.
+
+Boss Krypty:
+Soul XP = 600 + piętro * 20.
+
+Przykłady:
+Boss piętra 10: 800 Soul XP.
+Boss piętra 50: 1600 Soul XP.
+Boss piętra 100: 2600 Soul XP.
+
+Dzięki temu nawet przy rosnących wymaganiach Soul Level rozwija się dużo szybciej.
+
+
+ODPOCZYNEK I REGENERACJA v0.6.58
+--------------------------------
+Komendy:
+odpoczywaj
+odpocznij
+odpoczynek
+rest
+regen
+
+Odpoczynek działa tylko poza walką.
+
+Co 5 sekund:
+- odzyskujesz 10 procent maksymalnego HP,
+- jeśli masz Manę, odzyskujesz 10 procent maksymalnej Many.
+
+NVDA przykładowo usłyszy:
+Regeneracja: HP 145 z 200. Mana 90 z 150.
+
+Dodatkowe:
+odpoczywaj status
+odpoczywaj stop
+
+Ruch, walka i inne aktywne czynności przerywają odpoczynek.
+Komendy informacyjne, np. stats, look, quests, soul i inventory,
+nie przerywają regeneracji.
+
+UŻYWANIE PRZEDMIOTÓW v0.6.58
+----------------------------
+Komendy:
+użyj <przedmiot>
+uzyj <przedmiot>
+use <przedmiot>
+
+Szybkie skróty:
+użyj mikstura
+= Mikstura leczenia.
+
+użyj eliksir
+= Eliksir Duszy.
+
+użyj mana
+= Mikstura Many.
+
+Pełne nazwy również działają:
+użyj Wielka Mikstura Leczenia
+użyj Wielka Mikstura Many
+użyj Eliksir Witalności
+use soul elixir
+
+Mikstury HP/Many i jedzenie odnawiają zasoby.
+Eliksir Duszy daje Soul XP.
+W walce użycie przedmiotu zużywa turę i przeciwnik odpowiada.

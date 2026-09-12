@@ -1,4 +1,4 @@
-SOULBOUND v0.6.41 — AKTUALIZACJA RAILWAY
+SOULBOUND v0.6.58 — AKTUALIZACJA RAILWAY
 =====================================
 
 Jeżeli v0.5.1 już działa na Railway:
@@ -43,7 +43,7 @@ Baza:
 
 MIGRACJA WALUT
 --------------
-v0.6.41 automatycznie dodaje do starej bazy:
+v0.6.58 automatycznie dodaje do starej bazy:
 - silver,
 - mithril.
 
@@ -51,7 +51,7 @@ Istniejące konta i postacie zostają zachowane.
 Nie usuwaj Railway Volume.
 
 
-AKTUALIZACJA v0.6.41
+AKTUALIZACJA v0.6.58
 -------------------
 Nie zmieniaj Volume ani TCP Proxy.
 Wystarczy podmienić kod na GitHubie i zrobić commit.
@@ -60,7 +60,7 @@ Nowe lokacje, quest i przeciwnicy nie wymagają kasowania bazy.
 
 AKTUALIZACJA PROFESJI
 ---------------------
-v0.6.41 dodaje nowe tabele SQLite:
+v0.6.58 dodaje nowe tabele SQLite:
 - professions,
 - tools.
 
@@ -69,14 +69,14 @@ Nie kasuj Railway Volume.
 Nie zmieniaj TCP Proxy.
 
 
-MIGRACJA v0.6.41
+MIGRACJA v0.6.58
 ----------------
 Dodawana jest tabela profession_storage.
 Siatka i Sakwa nie wymagają kasowania ani resetowania postaci.
 Nie usuwaj Railway Volume.
 
 
-AKTUALIZACJA v0.6.41
+AKTUALIZACJA v0.6.58
 -------------------
 Nie zmieniaj Railway Volume.
 Nie zmieniaj TCP Proxy.
@@ -84,195 +84,310 @@ Nowa lokacja i quest są częścią kodu.
 Stare levele Wędki, Kilofa i profesji zostają zachowane.
 
 
-AKTUALIZACJA v0.6.41
+AKTUALIZACJA v0.6.58
 -------------------
 Nie wymaga migracji nowych kolumn.
 Nowe ryby są wpisami w tabeli przedmiotów i działają na istniejącej bazie.
 Nie usuwaj Railway Volume.
 
-AKTUALIZACJA v0.6.41
+AKTUALIZACJA v0.6.58
 -------------------
 Zmienia tabele połowów i ceny. Nie wymaga zmian bazy ani Volume.
 
-AKTUALIZACJA v0.6.41
+AKTUALIZACJA v0.6.58
 -------------------
 Nie wymaga zmian schematu bazy.
 Czysty mithril trafia bezpośrednio do kolumny waluty mithril.
 Nie usuwaj Railway Volume.
 
-AKTUALIZACJA v0.6.41
+AKTUALIZACJA v0.6.58
 --------------------
 Dodaje nowe lokacje i ryby. Nie wymaga zmian schematu bazy.
 Nie usuwaj Railway Volume ani TCP Proxy.
 
-AKTUALIZACJA v0.6.41
+AKTUALIZACJA v0.6.58
 --------------------
 Auto-łowienie i nawigacja nie wymagają zmian schematu SQLite.
 Nie usuwaj Railway Volume ani TCP Proxy.
 
-AKTUALIZACJA v0.6.41
+AKTUALIZACJA v0.6.58
 --------------------
 Dodaje tylko nowe aliasy komendy walki. Nie wymaga zmian bazy ani TCP Proxy.
 
-AKTUALIZACJA v0.6.41
+AKTUALIZACJA v0.6.58
 --------------------
 Dodaje aliasy list i lista do przeglądania oferty sklepu.
 Nie wymaga zmian bazy ani TCP Proxy.
 
-AKTUALIZACJA v0.6.41
+AKTUALIZACJA v0.6.58
 --------------------
 Zmiana komunikatu po wypiciu mikstury.
 Nie wymaga zmian bazy ani TCP Proxy.
 
-AKTUALIZACJA v0.6.41
+AKTUALIZACJA v0.6.58
 --------------------
 Zmienia wzory walki i role statystyk.
 Nie wymaga zmian schematu bazy ani TCP Proxy.
 
-AKTUALIZACJA v0.6.41
+AKTUALIZACJA v0.6.58
 --------------------
 Rozbudowuje tylko kreator postaci i opisy ras/klas.
 Nie wymaga zmian bazy, Volume ani TCP Proxy.
 
-AKTUALIZACJA v0.6.41
+AKTUALIZACJA v0.6.58
 --------------------
 Zmienia wyłącznie sposób automatycznego rozwoju statystyk.
 Nie wymaga migracji bazy ani zmian TCP Proxy.
 
-AKTUALIZACJA v0.6.41
+AKTUALIZACJA v0.6.58
 --------------------
 Dodaje auto-kopanie. Nie wymaga zmian schematu bazy, Volume ani TCP Proxy.
 
-AKTUALIZACJA v0.6.41
+AKTUALIZACJA v0.6.58
 --------------------
 Dodaje rozbudowany system pomocy i opisów.
 Nie zmienia schematu SQLite.
 Nie usuwaj Railway Volume i nie zmieniaj TCP Proxy.
 
-AKTUALIZACJA v0.6.41
+AKTUALIZACJA v0.6.58
 --------------------
 Dodaje komendy changes / zmiany / changelog.
 Nie wymaga zmian bazy, Railway Volume ani TCP Proxy.
 
-AKTUALIZACJA v0.6.41
+AKTUALIZACJA v0.6.58
 --------------------
 Dodaje pełny zestaw wyposażenia u Kowala.
 Nie wymaga zmian schematu SQLite, Railway Volume ani TCP Proxy.
 
-AKTUALIZACJA v0.6.41
+AKTUALIZACJA v0.6.58
 --------------------
 Dodaje 36 aktywnych umiejętności klasowych.
 Nie wymaga migracji SQLite ani zmian TCP Proxy.
 
-AKTUALIZACJA v0.6.41
+AKTUALIZACJA v0.6.58
 --------------------
 Dodaje nauczycieli klasowych i dopina walkę turową.
 Nie wymaga migracji SQLite ani zmian TCP Proxy.
 
-AKTUALIZACJA v0.6.41
+AKTUALIZACJA v0.6.58
 --------------------
 Dodaje nowe pomieszczenia Gildii oraz trwałą naukę umiejętności.
 Tabela learned_skills tworzy się automatycznie.
 Nie usuwaj Railway Volume i nie zmieniaj TCP Proxy.
 
-AKTUALIZACJA v0.6.41
+AKTUALIZACJA v0.6.58
 --------------------
 Dodaje komendę z pełną listą nazw skilli.
 Nie wymaga migracji SQLite ani zmian TCP Proxy.
 
-AKTUALIZACJA v0.6.41
+AKTUALIZACJA v0.6.58
 --------------------
 Dodaje skill_progress oraz Małe Leczenie Kapłana.
 Tabela skill_progress tworzy się automatycznie.
 Istniejące learned_skills pozostają zgodne i dostają Skill Level 1 przy pierwszym odczycie/użyciu.
 Nie usuwaj Railway Volume i nie zmieniaj TCP Proxy.
 
-AKTUALIZACJA v0.6.41
+AKTUALIZACJA v0.6.58
 --------------------
 Dodaje 8 Tierów Wędki i Kilofa.
 Nie wymaga migracji bazy ani zmian TCP Proxy.
 Istniejące levele narzędzi automatycznie otrzymują odpowiedni Tier.
 
-AKTUALIZACJA v0.6.41
+AKTUALIZACJA v0.6.58
 --------------------
 Dodaje pełne nazwy wszystkich Tierów Wędki i Kilofa.
 Nie wymaga migracji SQLite ani zmian TCP Proxy.
 
-AKTUALIZACJA v0.6.41
+AKTUALIZACJA v0.6.58
 --------------------
 Dodaje nazwane rangi Wędkarstwa i Górnictwa oraz wzmacnia regułę magazynów profesji.
 Nie wymaga migracji SQLite ani zmian TCP Proxy.
 Istniejące levele profesji automatycznie otrzymują odpowiednią rangę.
 
-AKTUALIZACJA v0.6.41
+AKTUALIZACJA v0.6.58
 --------------------
 Dodaje 7 trwałych form odmiany imienia do characters.
 Migracja wykonuje się automatycznie i zachowuje stare postacie.
 Nie usuwaj Railway Volume i nie zmieniaj TCP Proxy.
 
-AKTUALIZACJA v0.6.41
+AKTUALIZACJA v0.6.58
 --------------------
 Dodaje Driadę jako 13. rasę.
 Nie wymaga migracji SQLite ani zmian TCP Proxy.
 Stare postacie pozostają bez zmian.
 
-AKTUALIZACJA v0.6.41
+AKTUALIZACJA v0.6.58
 --------------------
 Dodaje rasową redukcję obrażeń Krasnoluda.
 Nie wymaga migracji SQLite ani zmian TCP Proxy.
 Stare postacie Krasnoludów automatycznie korzystają z pasywu.
 
-AKTUALIZACJA v0.6.41
+AKTUALIZACJA v0.6.58
 --------------------
 Dodaje stałe pasywy do wszystkich 12 klas.
 Nie wymaga migracji SQLite ani zmian TCP Proxy.
 
-AKTUALIZACJA v0.6.41
+AKTUALIZACJA v0.6.58
 --------------------
 Dodaje pasywy do wszystkich 13 ras.
 Nie wymaga migracji SQLite ani zmian TCP Proxy.
 Istniejące postacie automatycznie korzystają z pasywu swojej rasy.
 
-AKTUALIZACJA v0.6.41
+AKTUALIZACJA v0.6.58
 --------------------
 Dodaje Drwalstwo, Piłę i Stos drewna.
 Nie wymaga nowych tabel SQLite; istniejące tabele profesji, narzędzi i magazynów obsługują nowy system.
 Nie zmieniaj TCP Proxy ani Railway Volume.
 
-AKTUALIZACJA v0.6.41
+AKTUALIZACJA v0.6.58
 --------------------
 Dodaje Obóz Drwala, jezioro, Oceaniczną Platformę, nowe ryby i nowe drewna.
 Nie wymaga migracji SQLite.
 Nie zmieniaj TCP Proxy ani Railway Volume.
 
-AKTUALIZACJA v0.6.41
+AKTUALIZACJA v0.6.58
 --------------------
 Dodaje kolejne ryby i gatunki drewna.
 Nie wymaga migracji SQLite.
 Nie zmieniaj TCP Proxy ani Railway Volume.
 
-AKTUALIZACJA v0.6.41
+AKTUALIZACJA v0.6.58
 --------------------
 Dodaje Rzemiosło i Gotowanie.
 Nie dodaje nowych tabel SQLite.
 Nie usuwaj Railway Volume i nie zmieniaj TCP Proxy.
 
-AKTUALIZACJA v0.6.41
+AKTUALIZACJA v0.6.58
 --------------------
 Dodaje kolumnę charisma do characters.
 Migracja jest automatyczna; stare postacie zaczynają z Charyzmą 0.
 Drużyny są stanem online i nie wymagają osobnych tabel.
 Nie usuwaj Railway Volume i nie zmieniaj TCP Proxy.
 
-AKTUALIZACJA v0.6.41
+AKTUALIZACJA v0.6.58
 --------------------
 Dodaje Młot Rzemieślniczy i Nóż Kucharski.
 Nie wymaga nowych tabel ani kolumn SQLite.
 Istniejąca tabela tools obsługuje oba nowe narzędzia.
 Nie usuwaj Railway Volume i nie zmieniaj TCP Proxy.
 
-AKTUALIZACJA v0.6.41
+AKTUALIZACJA v0.6.58
 --------------------
 Dodaje Zielarstwo, Alchemię, Torbę Zielarską i nowe narzędzia.
 Nie wymaga nowych tabel SQLite.
 Istniejące professions, tools i profession_storage obsługują nowe systemy.
+
+AKTUALIZACJA v0.6.58
+--------------------
+Dodaje wyłącznie informacje i komendy progresji narzędzi.
+Nie wymaga żadnej migracji SQLite.
+Nie zmieniaj Railway Volume ani TCP Proxy.
+
+AKTUALIZACJA v0.6.58
+--------------------
+Dodaje ochronę wszystkich pokojowych i pomocnych NPC-ów.
+Nie wymaga migracji SQLite.
+Nie zmieniaj Railway Volume ani TCP Proxy.
+
+AKTUALIZACJA v0.6.58
+--------------------
+Dodaje nowe wpisy QUESTS i nowego Górnika Torena.
+Nie wymaga migracji SQLite.
+Istniejąca tabela quests obsługuje nowe zadania automatycznie.
+Nie usuwaj Railway Volume i nie zmieniaj TCP Proxy.
+
+AKTUALIZACJA v0.6.58
+--------------------
+Zmienia wyłącznie kursy walut i zależne od nich przeliczenia.
+Nie wymaga migracji SQLite.
+Nie modyfikuje zapisanych portfeli graczy.
+Nie usuwaj Railway Volume i nie zmieniaj TCP Proxy.
+
+AKTUALIZACJA v0.6.58
+--------------------
+Zmienia ceny przedmiotów sprzedawanych przez sklepy.
+Nie wymaga migracji SQLite.
+Nie modyfikuje istniejących portfeli, ekwipunku ani magazynów.
+
+AKTUALIZACJA v0.6.58
+--------------------
+Dodaje dynamiczne 100 pięter Krypty i runtime'owe ciała mobów.
+Nie wymaga nowych tabel SQLite. Ekwipunek zabrany z ciała używa istniejącej inventory.
+
+AKTUALIZACJA v0.6.58
+--------------------
+Zmienia skalowanie trudności i nagród Krypty.
+Nie wymaga migracji SQLite.
+Nie zmienia zapisanych postaci.
+
+AKTUALIZACJA v0.6.58
+--------------------
+Dodaje tabelę class_progress dla opcjonalnego multiclass i Biegłości klas.
+Migracja jest automatyczna.
+Stare postacie automatycznie otrzymują swoją dotychczasową klasę jako główną
+w slocie 1 z Biegłością 1.
+Nie usuwa ani nie zmienia istniejącej klasy, Broni Duszy, skill progress,
+profesji, narzędzi ani ekwipunku.
+Nie usuwaj Railway Volume i nie zmieniaj TCP Proxy.
+
+AKTUALIZACJA v0.6.58
+--------------------
+Zmienia startową ilość srebra nowych postaci z 250 na 30.
+Nie wymaga resetu bazy.
+Istniejące postacie zachowują aktualne portfele.
+Nie usuwaj Railway Volume i nie zmieniaj TCP Proxy.
+
+AKTUALIZACJA v0.6.58
+--------------------
+changes / zmiany / changelog czyta cały CHANGELOG_PL.txt.
+CHANGELOG_PL.txt pozostaw obok server.py.
+Nie wymaga migracji SQLite.
+
+AKTUALIZACJA v0.6.58
+--------------------
+Dodaje bonus klasowy Broni Duszy i zwiększa nagrody bossów Krypty.
+Nie wymaga nowych tabel ani migracji SQLite.
+Istniejące Soul Level i Soul Tier automatycznie korzystają z nowych bonusów.
+Nie zmienia klas głównych, multiclass ani zapisanych przedmiotów.
+
+AKTUALIZACJA v0.6.58
+--------------------
+Dodaje do tabeli quests:
+completed_at INTEGER,
+completion_count INTEGER.
+
+Migracja jest automatyczna przez ALTER TABLE.
+Nie usuwaj ani nie resetuj bazy.
+Cooldown questów profesyjnych jest przechowywany w SQLite i działa przez redeploy.
+Istniejące Tier 2 i Tier 3 Broni Duszy nie są cofane.
+
+AKTUALIZACJA v0.6.58
+--------------------
+Dodaje odczyt postępu X z Y dla aktywnych questów.
+Nie wymaga nowych tabel ani migracji SQLite.
+Stan questów pozostaje w istniejącej tabeli quests.
+
+AKTUALIZACJA v0.6.58
+--------------------
+Dodaje trzy lokacje, dwóch pokojowych NPC i powtarzalny quest bandytów.
+Nie wymaga nowych tabel SQLite.
+Korzysta z istniejących completed_at i completion_count w tabeli quests.
+Cooldown 60 minut przeżywa restart/redeploy.
+
+AKTUALIZACJA v0.6.58
+--------------------
+Zmienia wyłącznie nagrody Soul XP z mobów i bossów.
+Nie wymaga migracji SQLite.
+Istniejące Soul Level, Soul XP i Soul Tier pozostają bez zmian.
+
+AKTUALIZACJA v0.6.58
+--------------------
+Mocno zwiększa Soul XP ze wszystkich mobów.
+Nie wymaga migracji SQLite.
+Nie zmienia istniejącego Soul Level, Soul XP ani Soul Tier.
+
+AKTUALIZACJA v0.6.58
+--------------------
+Dodaje runtime odpoczynek/regenerację oraz rozszerzone use/użyj.
+Nie wymaga migracji SQLite.
+Stan odpoczynku jest sesyjny i nie zmienia struktury bazy.
