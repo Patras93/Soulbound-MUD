@@ -1,4 +1,4 @@
-SOULBOUND v0.6.58 THREE CURRENCIES
+SOULBOUND v0.6.72 THREE CURRENCIES
 ==========================
 
 Duży build rozbudowujący działający serwer online do pierwszej właściwej wersji świata MUD.
@@ -6,13 +6,10 @@ Duży build rozbudowujący działający serwer online do pierwszej właściwej w
 NAJWAŻNIEJSZE ZASADY
 --------------------
 - Postać NIE ma levelu.
-- Postać NIE ma XP postaci.
 - Nie rozdaje się ręcznie punktów statystyk.
 - Statystyki rosną automatycznie podczas gry.
-- Klasy fizyczne rozwijają Siłę, Zręczność i Kondycję.
-- Inteligencja i Siła Woli klas fizycznych nie rosną.
-- Klasy magiczne rozwijają Inteligencję i Siłę Woli.
-- Broń Duszy ma osobny Soul Level 1-100.
+- Wszystkie klasy rozwijają wszystkie pięć statystyk automatycznie.
+- Broń Duszy ma osobny Soul Level 1-200.
 - Broń Duszy ma Soul Tier 1-3.
 
 WORLD CORE
@@ -2199,3 +2196,644 @@ use soul elixir
 Mikstury HP/Many i jedzenie odnawiają zasoby.
 Eliksir Duszy daje Soul XP.
 W walce użycie przedmiotu zużywa turę i przeciwnik odpowiada.
+
+
+PROWADZENIE DO WSZYSTKICH LOKACJI v0.6.59
+-----------------------------------------
+Komendy:
+prowadz <lokacja>
+prowadź <lokacja>
+guide <lokacja>
+walk to <lokacja>
+
+Każda lokacja z ROOMS jest automatycznie celem prowadzenia.
+
+Aktualna liczba celów:
+148 lokacji,
+w tym wszystkie 100 pięter Krypty.
+
+Lista:
+prowadz lista
+guide list
+
+Przykłady:
+prowadz Plac Dusz
+prowadz targ rybny
+prowadz Targ Rybny
+prowadz fish market
+prowadz wartownia polnocna
+prowadz Obozowisko Bandytow
+prowadz Gildia Dusz
+prowadz krypta 1
+prowadz krypta 37
+prowadz pietro 50
+guide crypt floor 100
+
+Resolver:
+- ignoruje wielkość liter,
+- obsługuje polskie znaki i warianty bez polskich znaków,
+- rozumie room_id zapisany ze spacjami zamiast podkreśleń,
+- obsługuje nazwy wyświetlane w mapie,
+- jeśli nazwa jest niejednoznaczna, podaje listę pasujących lokacji.
+
+Mapa:
+map pokazuje dynamicznie wszystkie strefy zwykłego świata.
+Krypta pozostaje skrócona do pięter 1-100, żeby nie spamować NVDA.
+
+Nowe lokacje dodane w przyszłości do ROOMS automatycznie będą działały
+z prowadz bez dopisywania ich do osobnej tabeli aliasów.
+
+
+CHECKPOINTY KRYPTY I NAPRAWA BOSS GATE v0.6.60
+-----------------------------------------------
+Bossowie pozostają na piętrach:
+10, 20, 30, 40, 50, 60, 70, 80, 90 i 100.
+
+NOWA ZASADA BLOKADY:
+Boss blokuje zejście tylko dopóki twoja postać nie zaliczy tego bossa.
+
+Po pokonaniu:
+- zaliczenie zapisuje się w SQLite,
+- odblokowuje się checkpoint tego piętra,
+- boss tego piętra już nigdy nie blokuje twojego zejścia,
+- nie ma znaczenia, że później boss odrodzi się dla innych graczy.
+
+W drużynie:
+wszyscy obecni członkowie drużyny, którzy dostają nagrody za bossa,
+dostają także zaliczenie bossa i checkpoint.
+
+CHECKPOINTY
+-----------
+checkpoint
+pokazuje najwyższy i wszystkie odblokowane checkpointy.
+
+checkpoint 10
+checkpoint 20
+...
+checkpoint 100
+
+Checkpointu można użyć:
+- w Sali Krypty,
+- w Przedsionku Krypty,
+- na dowolnym piętrze Krypty.
+
+Nie można używać checkpointu podczas walki.
+
+Stare postacie:
+jeśli stara postać stoi np. na piętrze 73, gra bezpiecznie uzna,
+że wcześniej przeszła bossy do 70 i zapisze checkpoint 70.
+Jeżeli stoi dokładnie na piętrze bossa, np. 50, nie dostaje automatycznie
+zaliczenia bossa 50 — tylko poprzednich bossów do 40.
+
+MOBY
+----
+Moby NIE są agresywne.
+Nie atakują gracza same po wejściu do lokacji.
+Walka zaczyna się dopiero po:
+attack / atakuj / zabij / kill
+albo po świadomym użyciu ofensywnego skilla.
+
+LOOT KRYPTY
+------------
+Zwykły mob: 1 element ekwipunku na ciele.
+Boss: 3 elementy ekwipunku na ciele.
+
+
+BOSS ZAWSZE BLOKUJE, GDY ŻYJE v0.6.61
+-------------------------------------
+Poprawiona zasada Krypty:
+
+1. Wchodzisz na piętro bossa.
+2. Jeśli boss żyje, zejście down jest zablokowane.
+3. Zabijasz bossa.
+4. Zejście otwiera się.
+5. Boss po 35 sekundach odradza się.
+6. Po respawnie ponownie blokuje zejście.
+
+Dotyczy to także postaci, która wcześniej pokonała tego bossa.
+
+CHECKPOINT
+----------
+Checkpoint nadal zapisuje się trwale.
+Pozwala wrócić np. na piętro 50 bez przechodzenia ponownie pięter 1-49.
+
+Ale:
+jeżeli boss piętra 50 po respawnie żyje,
+checkpoint 50 przeniesie cię na piętro 50,
+lecz zejście na 51 będzie zablokowane do ponownego pokonania bossa.
+
+MOBY
+----
+Moby nadal NIE są agresywne.
+Nie rozpoczynają walki same.
+
+
+PORTALE KRYPTY v0.6.62
+----------------------
+Po pokonaniu bossów na piętrach:
+10, 20, 30, 40, 50, 60, 70, 80, 90 i 100
+odblokowuje się trwały Portal Krypty do danego piętra.
+
+Komendy:
+portal
+portal 10
+portal 20
+portal 30
+...
+portal 100
+
+Portal można uruchomić tylko w:
+- Sali Krypty,
+- Przedsionku Krypty.
+
+Przykład:
+pokonujesz bossa piętra 50.
+Gra mówi:
+Odblokowano Portal Krypty do piętra 50.
+
+Wracasz później do Sali Krypty i wpisujesz:
+portal 50
+
+Portal przenosi bezpośrednio na piętro 50.
+
+WAŻNE:
+Portal nie wyłącza żywego bossa.
+Jeżeli boss piętra 50 żyje, nadal blokuje zejście na 51.
+Po zabiciu przejście jest otwarte do respawnu.
+Po respawnie boss ponownie blokuje.
+
+Moby nadal NIE są agresywne.
+
+ZGODNOŚĆ:
+stare komendy checkpoint nadal działają jako alias portalu.
+Dane pozostają w istniejącej kolumnie crypt_checkpoint,
+żeby stare zapisy nie wymagały konwersji.
+
+
+LOOT KRYPTY: RARITY, AFFIXY I SETY v0.6.63
+------------------------------------------
+Nowe dropy wyposażenia z Krypty losują rzadkość:
+
+1. Zwykły.
+2. Rzadki.
+3. Epicki.
+4. Legendarny.
+5. Mityczny.
+
+Wyższa rzadkość daje:
+- większą obronę,
+- mocniejszy losowy bonus statystyki.
+
+Możliwe losowe bonusy:
+- Siła,
+- Zręczność,
+- Kondycja,
+- Inteligencja,
+- Siła Woli,
+- HP,
+- Mana.
+
+Bossowie mają znacznie większą szansę na najlepsze rarity
+niż zwykłe moby Krypty.
+
+PRZYKŁADOWA NAZWA:
+Napierśnik Krypty Tier 5 [Epicki, Siła +4]
+
+Bonus Siły realnie zwiększa obrażenia fizyczne.
+Zręczność zwiększa szybkość i unik.
+Kondycja zwiększa maksymalne HP.
+Inteligencja zwiększa moc magiczną i Manę.
+Siła Woli zwiększa obronę magiczną.
+HP i Mana dają bezpośrednie dodatkowe zasoby.
+
+SETY KRYPTY
+-----------
+Każdy Tier 1-10 ma własny Zestaw Krypty.
+
+Sloty:
+głowa,
+korpus,
+dłonie,
+nogi,
+stopy,
+talizman.
+
+Bonusy:
+2 części: +10 procent maksymalnego HP i Many.
+4 części: dodatkowo +10 procent wszystkich obrażeń.
+6 części: dodatkowo +15 procent obrony fizycznej i magicznej.
+
+Set liczony jest według Tieru.
+Jeśli masz części różnych Tierów, aktywny jest Tier z największą liczbą
+założonych części; przy remisie wybierany jest wyższy Tier.
+
+KOMENDY:
+equipment
+pokazuje rarity, affix i bonus setu.
+
+stats
+pokazuje bazowe statystyki oraz wartości po bonusach sprzętu.
+
+help loot_krypty
+pokazuje zasady w grze.
+
+ZGODNOŚĆ
+--------
+Stare przedmioty Krypty nadal działają.
+Są traktowane jako Zwykłe, bez affixu, ale liczą się do setu Tieru.
+Nie wymaga to nowej tabeli SQLite ani resetu postaci.
+
+
+UNIKALNE MECHANIKI BOSSÓW v0.6.64
+---------------------------------
+Walka pozostaje turowa:
+akcja gracza -> dokładnie jedna odpowiedź przeciwnika.
+
+Bossowie i zwykłe moby nadal NIE są agresywne.
+
+KRYPTA
+------
+10 Kościany Egzekutor:
+co trzeci kontratak Kościane Miażdżenie, +60% mocy.
+
+20 Krwawy Kurator:
+co trzeci kontratak Krwawy Drenaż, +25% mocy,
+leczy się o 50% rzeczywiście zadanych obrażeń.
+
+30 Rycerz Grobowca:
+co trzecie trafienie gracza jest redukowane o połowę Tarczą Grobowca.
+
+40 Wiedźma Popiołu:
+co trzeci kontratak Klątwa Popiołu,
++25% mocy i tylko połowa obrony magicznej gracza.
+
+50 Pan Katakumb:
+co czwarty kontratak Echo Katakumb, +70% mocy.
+
+60 Widmowy Tytan:
+zmienia typ kontrataku magiczny/fizyczny co turę.
+
+70 Nekromantyczny Kolos:
+co czwarty kontratak odzyskuje 7% maksymalnego HP.
+
+80 Arcyupiór Otchłani:
+25% szansy na całkowity Eteryczny Unik trafienia gracza.
+
+90 Król Kości:
+poniżej połowy HP +50% obrażeń.
+
+100 Władca Stu Pięter:
+druga faza poniżej połowy HP,
+co trzeci kontratak Załamanie Duszy,
+co czwarte trafienie gracza Pieczęć Stu Pięter.
+
+Każdy boss ma własny unikalny relikt.
+Bossowie 10-90: 45% szansy.
+Boss 100: 100% szansy.
+
+HERSZT BANDYTÓW
+---------------
+Nowy boss w Obozowisku Bandytów:
+Herszt Bandytów.
+
+320 HP.
+24 bazowe obrażenia fizyczne.
+420 srebra.
+180 Postępu Rozwoju.
+2200 Class XP.
+650 Soul XP.
+
+Co trzeci kontratak:
+Brutalna Kombinacja, +40% obrażeń.
+
+Herszt liczy się jako bandyta do Patrolu przeciw bandytom.
+Może upuścić Sygnet Herszta Bandytów:
+Obrona +3, Zręczność +3, 45% szansy.
+
+
+KRYTYCZNE TRAFIENIA v0.6.65
+---------------------------
+Krytyki zależą od efektywnej Zręczności.
+
+Zręczność 10 = 5%.
+Każdy punkt ponad 10 = +0,5 punktu procentowego.
+Każdy punkt poniżej 10 = -0,5 punktu procentowego.
+
+Minimum: 1%.
+Maksimum: 35%.
+Krytyk zadaje 150% normalnych obrażeń.
+
+Krytyki działają dla:
+- zwykłych ataków,
+- ofensywnych skilli klasowych.
+
+Bonus Zręczności z ekwipunku również zwiększa szansę.
+
+Przykłady:
+Dex 10 = 5%.
+Dex 20 = 10%.
+Dex 30 = 15%.
+Dex 50 = 25%.
+Dex 70+ = 35%.
+
+stats pokazuje aktualny krytyk.
+
+WOLNIEJSZY RESPAWN v0.6.65
+--------------------------
+Poprzednio globalny respawn wynosił 35 sekund.
+
+Teraz:
+- zwykłe moby: 120 sekund,
+- bossowie Krypty: 300 sekund,
+- Herszt Bandytów: 300 sekund,
+- Żywy Manekin: 60 sekund.
+
+Po respawnie boss Krypty ponownie blokuje zejście.
+Moby nadal nie są agresywne.
+
+
+
+WIĘCEJ BOSSÓW ŚWIATA v0.6.66
+----------------------------
+1. Król Goblinów.
+Lokacja: Obóz Goblinów.
+360 HP.
+720 Soul XP.
+2600 Class XP.
+2600 XP postaci.
+Mechanika: co trzeci kontratak Królewska Szarża.
+Unikalny drop: Korona Króla Goblinów, Zręczność +3.
+
+2. Alfa Wilków Cienia.
+Lokacja: Głębia Gaju.
+390 HP.
+780 Soul XP.
+2900 Class XP.
+2900 XP postaci.
+Mechanika: poniżej połowy HP Szał Cienia, +40% obrażeń.
+Unikalny drop: Kieł Alfy Cienia, Siła +4.
+
+3. Strażnik Ruin.
+Lokacja: Zrujnowana Wieża.
+430 HP.
+860 Soul XP.
+3300 Class XP.
+3300 XP postaci.
+Mechanika: co czwarty kontratak Runiczny Wybuch.
+Unikalny drop: Płyta Strażnika Ruin, Siła Woli +4.
+
+4. Kryształowy Władca.
+Lokacja: Kryształowa Komnata.
+500 HP.
+1000 Soul XP.
+4000 Class XP.
+4000 XP postaci.
+Mechaniki: Kryształowy Promień co trzeci kontratak oraz
+Kryształowa Bariera co czwarte trafienie gracza.
+Unikalny drop: Rdzeń Kryształowego Władcy, Inteligencja +5.
+
+Każdy z tych bossów:
+- jest nieagresywny,
+- odradza się po 300 sekundach,
+- ma 45% szansy na własny unikalny przedmiot.
+
+
+KOREKTA PROGRESJI v0.6.67
+-------------------------
+Soulbound NIE ma levelu postaci.
+
+Zmiana v0.6.66 z Level 1-200 postaci została wycofana.
+Jeśli baza SQLite była już uruchomiona na v0.6.66,
+kolumny character_level i character_xp mogą fizycznie pozostać w tabeli.
+Są jednak ignorowane przez grę i nie tworzą żadnej progresji postaci.
+
+STATYSTYKI
+----------
+Siła, Zręczność, Kondycja, Inteligencja i Siła Woli
+pozostają dokładnie na dotychczasowym systemie.
+
+Każdy pełny próg Postępu Rozwoju:
+Siła +1.
+Zręczność +1.
+Kondycja +1.
+Inteligencja +1.
+Siła Woli +1.
+
+Nie ma ręcznego rozdawania punktów.
+
+SOUL LEVEL 1-200
+----------------
+Broń Duszy rozwija się teraz od Soul Level 1 do 200.
+
+Wzór Soul XP pozostaje:
+180 + (Soul Level - 1) * 60.
+
+Tier 2:
+Soul Level 25 + Próba Broni Duszy u Kapłana Elora.
+
+Tier 3:
+Soul Level 60 + Próba Broni Duszy u Kapłana Elora.
+
+Po Soul Level 100 rozwój nie zatrzymuje się.
+Broń Duszy może rosnąć dalej do Soul Level 200.
+
+Soul Level nadal zwiększa bazową moc Broni Duszy.
+
+RZEMIOSŁO 1-200
+----------------
+Młot Rzemieślniczy i system Rzemiosła mają teraz level 1-200.
+
+Inne narzędzia pozostają na levelu 1-100:
+Wędka,
+Kilof,
+Piła,
+Nóż Kucharski,
+Sierp Zielarski,
+Moździerz Alchemiczny.
+
+Młot Rzemieślniczy:
+level 1-200.
+
+Tier 8 zaczyna się na levelu 100 i obejmuje cały zakres 100-200.
+Po levelu 100 Młot nadal zdobywa XP za craftowanie.
+Szansa bonusowego produktu Tieru 8 działa aż do levelu 200.
+
+Komendy:
+mlot
+tools
+craft
+receptury
+
+BOSSOWIE v0.6.66
+----------------
+Król Goblinów, Alfa Wilków Cienia, Strażnik Ruin i
+Kryształowy Władca pozostają w grze wraz z mechanikami,
+unikalnymi dropami i respawnem 300 sekund.
+
+
+WSZYSTKIE NARZĘDZIA 1-200 v0.6.68
+---------------------------------
+Wszystkie 7 narzędzi rozwija się od levelu 1 do 200:
+
+Wędka.
+Kilof.
+Piła.
+Młot Rzemieślniczy.
+Nóż Kucharski.
+Sierp Zielarski.
+Moździerz Alchemiczny.
+
+Tier 8 zaczyna się na levelu 100 i trwa do levelu 200.
+Po levelu 100 każde narzędzie nadal zdobywa XP.
+Bonus Tieru 8 pozostaje aktywny aż do 200.
+
+UŻYWANIE UMIEJĘTNOŚCI v0.6.68
+-----------------------------
+Dotychczas nadal działa:
+skill <nazwa lub numer> [cel]
+umiejętność <nazwa lub numer> [cel]
+zdolność <nazwa lub numer> [cel]
+
+Nowe warianty:
+cast <nazwa lub numer> [cel]
+użyj umiejętność <nazwa> [cel]
+use skill <name> [target]
+
+Komenda use/użyj próbuje najpierw rozpoznać przedmiot.
+Jeżeli nie jest to przedmiot, ale rozpoznaje skill,
+uruchamia istniejący system umiejętności.
+
+Przykład:
+użyj umiejętność <nazwa skilla> goblin
+use skill <skill name> goblin
+
+Nie zmienia to zasad walki:
+moby nadal nie atakują same.
+Ofensywny skill rozpoczyna walkę dopiero po akcji gracza.
+Cooldown, Mana, Skill Level oraz Skill XP pozostają aktywne.
+
+Soul Level nadal 1-200.
+Soulbound nadal nie ma levelu postaci.
+
+
+13 TIERÓW NARZĘDZI v0.6.69
+--------------------------
+Wszystkie 7 narzędzi nadal ma level 1-200,
+ale progres 100-200 został podzielony na dodatkowe Tiery.
+
+PROGI:
+Tier 1: level 1-14, bonus 0%.
+Tier 2: level 15-29, bonus 2%.
+Tier 3: level 30-44, bonus 4%.
+Tier 4: level 45-59, bonus 6%.
+Tier 5: level 60-74, bonus 8%.
+Tier 6: level 75-89, bonus 10%.
+Tier 7: level 90-99, bonus 12%.
+Tier 8: level 100-119, bonus 15%.
+Tier 9: level 120-139, bonus 18%.
+Tier 10: level 140-159, bonus 21%.
+Tier 11: level 160-179, bonus 24%.
+Tier 12: level 180-199, bonus 27%.
+Tier 13: level 200, bonus 30%.
+
+Bonus oznacza odpowiednio:
+Wędka: szansa na dodatkowy połów.
+Kilof: szansa na dodatkowy urobek.
+Piła: szansa na dodatkowe drewno.
+Młot Rzemieślniczy: szansa na dodatkowy produkt.
+Nóż Kucharski: szansa na dodatkową potrawę.
+Sierp Zielarski: szansa na dodatkowe zioło.
+Moździerz Alchemiczny: szansa na dodatkową miksturę.
+
+Każde narzędzie ma własne nazwy Tierów 9-13.
+
+Przykładowo Młot Rzemieślniczy:
+Tier 9: Młot Arcyrzemieślnika.
+Tier 10: Młot Smoczej Kuźni.
+Tier 11: Młot Astralnego Twórcy.
+Tier 12: Młot Pradawnej Kuźni.
+Tier 13: Młot Wiecznego Kowadła.
+
+Komendy:
+tools
+tiers
+wedka
+kilof
+pila
+mlot
+noz
+sierp
+mozdzierz
+
+Soul Level pozostaje 1-200.
+Levelu postaci nadal nie ma.
+
+
+SZYBSZY WZROST STATYSTYK v0.6.70
+--------------------------------
+Statystyki rosną teraz dwa razy szybciej.
+
+Stary próg:
+100 Postępu Rozwoju.
+
+Nowy próg:
+50 Postępu Rozwoju.
+
+Każde pełne 50 Postępu Rozwoju daje jednocześnie:
+Siła +1.
+Zręczność +1.
+Kondycja +1.
+Inteligencja +1.
+Siła Woli +1.
+
+Nie zmieniono sposobu działania statystyk.
+Nadal nie ma ręcznego rozdawania punktów.
+Nadal wszystkie pięć statystyk rośnie razem.
+
+Bonus rasy Człowiek do zdobywanego Postępu Rozwoju nadal działa.
+
+Soulbound nadal nie ma levelu postaci.
+Soul Level pozostaje 1-200.
+Narzędzia pozostają 1-200 z 13 Tierami.
+
+
+PEŁNE HP PO SOUL LEVEL v0.6.71
+------------------------------
+Każdy awans Soul Level Broni Duszy odnawia teraz postać
+do 100 procent maksymalnego HP.
+
+Przykład:
+masz 42 z 300 HP.
+Zdobywasz Soul XP i wbijasz kolejny Soul Level.
+Po awansie masz 300 z 300 HP.
+
+Działa dla Soul XP z:
+- pokonanych przeciwników,
+- Eliksiru Duszy,
+- każdego miejsca korzystającego z głównego systemu przyznawania Soul XP.
+
+Jeżeli otrzymujesz Soul XP, ale nie awansujesz na nowy Soul Level,
+HP pozostaje bez zmian.
+
+Mana nie jest odnawiana.
+
+Soul Level nadal ma zakres 1-200.
+
+
+START PO ZALOGOWANIU v0.6.72
+----------------------------
+Po każdym zalogowaniu postać rozpoczyna sesję w:
+
+Świątynia Odrodzenia.
+
+Nie ma znaczenia, gdzie postać zakończyła poprzednią sesję.
+
+Przykład:
+wylogowujesz się na 73 piętrze Krypty.
+Przy następnym logowaniu pojawiasz się w Świątyni Odrodzenia.
+
+Portale Krypty i ich odblokowanie pozostają zapisane.
+Questy, ekwipunek, waluty, Soul Level, klasy, profesje,
+narzędzia i pozostała progresja nie są resetowane.
+
+Nowe postacie również rozpoczynają wejście do świata w Świątyni Odrodzenia.

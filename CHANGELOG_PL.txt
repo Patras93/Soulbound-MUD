@@ -1,3 +1,388 @@
+SOULBOUND v0.6.72 TEMPLE LOGIN SPAWN
+=====================================
+- Po każdym zalogowaniu startujemy w Świątyni Odrodzenia.
+- Miejsce poprzedniego wylogowania nie jest miejscem startowym.
+- Nowe postacie również wchodzą do świata w Świątyni.
+- room_id po wejściu jest zapisywany jako temple.
+- Synchronizacja starych Portali Krypty odbywa się przed przeniesieniem.
+- Questy pozostają bez zmian.
+- Ekwipunek pozostaje bez zmian.
+- Waluty pozostają bez zmian.
+- Soul Level 1-200 pozostaje.
+- Pełne HP przy Soul Level pozostaje.
+- Stat threshold 50 pozostaje.
+- Narzędzia 1-200 i 13 Tierów pozostają.
+- Nadal brak levelu postaci.
+- Brak migracji SQLite.
+- Zaktualizowano help, README i RAILWAY_PL.
+- changes / zmiany nadal pokazuje pełną historię.
+
+SOULBOUND v0.6.71 SOUL LEVEL FULL HP
+====================================
+- Każdy awans Soul Level odnawia HP do 100%.
+- Działa dla Soul XP z walki.
+- Działa dla Soul XP z Eliksiru Duszy.
+- Bez awansu Soul Level nie ma automatycznego leczenia.
+- Mana nie jest odnawiana przez Soul Level.
+- Soul Level 1-200 pozostaje.
+- Szybszy rozwój statystyk pozostaje.
+- Narzędzia 1-200 i 13 Tierów pozostają.
+- Używanie umiejętności pozostaje.
+- Nadal brak levelu postaci.
+- Brak migracji SQLite.
+- Zaktualizowano help, README i RAILWAY_PL.
+- changes / zmiany nadal pokazuje pełną historię.
+
+SOULBOUND v0.6.70 FASTER STAT GROWTH
+====================================
+- Przyspieszono wzrost statystyk 2x.
+- Próg Postępu Rozwoju zmniejszono ze 100 do 50.
+- Każde 50 Postępu Rozwoju daje +1 Siły.
+- Każde 50 Postępu Rozwoju daje +1 Zręczności.
+- Każde 50 Postępu Rozwoju daje +1 Kondycji.
+- Każde 50 Postępu Rozwoju daje +1 Inteligencji.
+- Każde 50 Postępu Rozwoju daje +1 Siły Woli.
+- Wszystkie pięć statystyk nadal rośnie jednocześnie.
+- Nie dodano ręcznego przydzielania punktów.
+- Bonus Człowieka do Postępu Rozwoju pozostaje.
+- Soul Level 1-200 pozostaje.
+- Narzędzia 1-200 i 13 Tierów pozostają.
+- Używanie umiejętności pozostaje.
+- Bossowie pozostają.
+- Nadal brak levelu postaci.
+- Brak migracji SQLite.
+- Zaktualizowano help, README i RAILWAY_PL.
+- changes / zmiany nadal pokazuje pełną historię.
+
+SOULBOUND v0.6.69 TOOL TIERS 13
+================================
+- Zwiększono liczbę Tierów narzędzi z 8 do 13.
+- Tier 8: level 100-119, bonus 15%.
+- Tier 9: level 120-139, bonus 18%.
+- Tier 10: level 140-159, bonus 21%.
+- Tier 11: level 160-179, bonus 24%.
+- Tier 12: level 180-199, bonus 27%.
+- Tier 13: level 200, bonus 30%.
+- Dodano 5 nowych Tierów Wędki.
+- Dodano 5 nowych Tierów Kilofa.
+- Dodano 5 nowych Tierów Piły.
+- Dodano 5 nowych Tierów Młota Rzemieślniczego.
+- Dodano 5 nowych Tierów Noża Kucharskiego.
+- Dodano 5 nowych Tierów Sierpa Zielarskiego.
+- Dodano 5 nowych Tierów Moździerza Alchemicznego.
+- Każdy nowy Tier ma własną nazwę dla każdego narzędzia.
+- tools pokazuje nowe Tiery.
+- tiers pokazuje wszystkie 13 Tierów.
+- Informacja pojedynczego narzędzia pokazuje następny Tier i wymagany XP.
+- Wszystkie narzędzia nadal mają cap 200.
+- Soul Level nadal ma cap 200.
+- Używanie umiejętności z v0.6.68 pozostaje zachowane.
+- Nadal brak levelu postaci.
+- Statystyki pozostają bez zmian.
+- Brak migracji SQLite.
+- Zaktualizowano help, README i RAILWAY_PL.
+- changes / zmiany nadal pokazuje pełną historię.
+
+SOULBOUND v0.6.68 ALL TOOLS 200 & SKILL USE
+============================================
+- Wędka ma level 1-200.
+- Kilof ma level 1-200.
+- Piła ma level 1-200.
+- Młot Rzemieślniczy ma level 1-200.
+- Nóż Kucharski ma level 1-200.
+- Sierp Zielarski ma level 1-200.
+- Moździerz Alchemiczny ma level 1-200.
+- Tier 8 każdego narzędzia obejmuje level 100-200.
+- Każde narzędzie zdobywa XP po levelu 100.
+- Bonus Tieru 8 działa do levelu 200.
+- Dodano użyj umiejętność <nazwa> [cel].
+- Dodano use skill <name> [target].
+- Dodano cast jako alias skill.
+- use/użyj może automatycznie rozpoznać nazwę skilla.
+- Dotychczasowe skill i umiejętność nadal działają.
+- Cooldowny umiejętności zachowane.
+- Mana umiejętności zachowana.
+- Skill Level i Skill XP zachowane.
+- Walka nadal jest turowa.
+- Moby nadal są nieagresywne.
+- Soul Level nadal 1-200.
+- Nadal brak levelu postaci.
+- Statystyki pozostają bez zmian.
+- Brak migracji SQLite.
+- Zaktualizowano help, README i RAILWAY_PL.
+- changes / zmiany nadal pokazuje pełną historię.
+
+SOULBOUND v0.6.67 SOUL 200 & CRAFTING 200
+==========================================
+- Wycofano Level postaci dodany w v0.6.66.
+- Soulbound ponownie NIE ma levelu postaci.
+- Usunięto aktywne XP postaci.
+- Usunięto komendy level, poziom, lvl i xp.
+- Nowe bazy nie tworzą character_level ani character_xp.
+- Stare bazy z v0.6.66 mogą zachować te kolumny, ale są ignorowane.
+- Pięć statystyk pozostaje bez zmian.
+- Każdy próg Postępu Rozwoju nadal daje +1 do wszystkich pięciu statystyk.
+- Soul Level zwiększono z 100 do 200.
+- Soul XP formula pozostaje bez zmian.
+- Tier 2 nadal od Soul Level 25 + quest.
+- Tier 3 nadal od Soul Level 60 + quest.
+- Soul Level 101-200 zwiększa dalej moc Broni Duszy.
+- Rzemiosło zwiększono z 100 do 200.
+- Młot Rzemieślniczy ma teraz level 1-200.
+- Pozostałe narzędzia nadal mają cap 100.
+- Tier 8 Młota obejmuje level 100-200.
+- Rzemiosło po levelu 100 nadal zdobywa XP.
+- Bonus dodatkowego produktu Tieru 8 pozostaje aktywny do 200.
+- Król Goblinów pozostaje w grze.
+- Alfa Wilków Cienia pozostaje w grze.
+- Strażnik Ruin pozostaje w grze.
+- Kryształowy Władca pozostaje w grze.
+- Moby i bossowie nadal są nieagresywni.
+- Zaktualizowano help, README i RAILWAY_PL.
+- changes / zmiany nadal pokazuje pełną historię.
+
+SOULBOUND v0.6.66 LEVEL 200 & MORE WORLD BOSSES
+================================================
+- Dodano Level postaci 1-200.
+- Dodano XP postaci.
+- Level postaci jest całkowicie osobny od pięciu statystyk.
+- Statystyki pozostają na dotychczasowym automatycznym systemie.
+- Level up nie dodaje punktów statystyk.
+- Dodano character_level do SQLite.
+- Dodano character_xp do SQLite.
+- Dodano bezpieczną migrację starych baz.
+- Nowe postacie startują Level 1 / 0 XP.
+- Stare postacie dostają Level 1 / 0 XP bez utraty danych.
+- Dodano wzór XP: 500 + (Level-1)*100.
+- Przeciwnicy dają XP postaci.
+- Drużyna dostaje pełne XP postaci na każdego obecnego członka.
+- Żywy Manekin nie daje XP postaci.
+- Dodano komendę level.
+- Dodano alias poziom.
+- Dodano alias lvl.
+- Dodano alias xp.
+- stats pokazuje Level postaci.
+- Dodano Króla Goblinów.
+- Dodano Alfę Wilków Cienia.
+- Dodano Strażnika Ruin.
+- Dodano Kryształowego Władcę.
+- Dodano Królewską Szarżę.
+- Dodano Szał Cienia.
+- Dodano Runiczny Wybuch.
+- Dodano Kryształowy Promień.
+- Dodano Kryształową Barierę.
+- Dodano Koronę Króla Goblinów.
+- Dodano Kieł Alfy Cienia.
+- Dodano Płytę Strażnika Ruin.
+- Dodano Rdzeń Kryształowego Władcy.
+- Nowi bossowie mają respawn 300 sekund.
+- Nowi bossowie nie są agresywni.
+- Soul Level pozostaje 1-100.
+- Biegłość klas pozostaje 1-100.
+- Zaktualizowano help, README i RAILWAY_PL.
+- changes / zmiany nadal pokazuje pełną historię.
+
+SOULBOUND v0.6.65 CRITICAL HITS & SLOWER RESPAWNS
+==================================================
+- Dodano trafienia krytyczne.
+- Krytyk zależy od efektywnej Zręczności.
+- Dex 10 daje 5% krytyka.
+- Każdy punkt Dex ponad 10 daje +0,5 pp.
+- Każdy punkt Dex poniżej 10 odejmuje 0,5 pp.
+- Minimum krytyka: 1%.
+- Maksimum krytyka: 35%.
+- Krytyk zadaje 150% obrażeń.
+- Krytyki działają na zwykłych atakach.
+- Krytyki działają na ofensywnych skillach.
+- Zręczność z gearu zwiększa krytyk.
+- stats pokazuje krytyk.
+- Zwykłe moby: respawn 120 sekund.
+- Bossowie Krypty: respawn 300 sekund.
+- Herszt Bandytów: respawn 300 sekund.
+- Żywy Manekin: respawn 60 sekund.
+- Usunięto globalny respawn 35 sekund.
+- Po respawnie boss znowu blokuje zejście.
+- Moby pozostają nieagresywne.
+- Brak migracji SQLite.
+- Brak levelu postaci.
+- Zaktualizowano help i README.
+- changes / zmiany nadal pokazuje pełną historię.
+
+SOULBOUND v0.6.64 UNIQUE BOSS MECHANICS & LOOT
+===============================================
+- Dodano 10 różnych mechanik bossów Krypty.
+- Dodano Kościane Miażdżenie.
+- Dodano Krwawy Drenaż.
+- Dodano Tarczę Grobowca.
+- Dodano Klątwę Popiołu.
+- Dodano Echo Katakumb.
+- Dodano Widmową Fazę.
+- Dodano Nekroregenerację.
+- Dodano Eteryczny Unik.
+- Dodano Furię Króla Kości.
+- Dodano drugą fazę Władcy Stu Pięter.
+- Dodano Załamanie Duszy.
+- Dodano Pieczęć Stu Pięter.
+- Dodano 10 unikalnych reliktów bossów Krypty.
+- Boss 100 gwarantuje relikt.
+- Bossowie 10-90 mają 45% szansy na relikt.
+- Dodano Herszta Bandytów.
+- Dodano Brutalną Kombinację Herszta.
+- Herszt daje 650 Soul XP.
+- Herszt daje 2200 Class XP.
+- Herszt daje 420 srebra.
+- Herszt liczy się do Patrolu przeciw bandytom.
+- Dodano Sygnet Herszta Bandytów.
+- Zachowano dokładnie jedną odpowiedź po akcji gracza.
+- Moby i bossowie nadal są nieagresywni.
+- Brak migracji SQLite.
+- Brak levelu postaci.
+- Zaktualizowano help i README.
+- changes / zmiany nadal pokazuje pełną historię.
+
+SOULBOUND v0.6.63 CRYPT LOOT RARITY & SETS
+===========================================
+- Dodano rarity Zwykły.
+- Dodano rarity Rzadki.
+- Dodano rarity Epicki.
+- Dodano rarity Legendarny.
+- Dodano rarity Mityczny.
+- Nowy gear Krypty losuje rarity.
+- Nowy gear Krypty losuje jeden affix.
+- Affix Siła.
+- Affix Zręczność.
+- Affix Kondycja.
+- Affix Inteligencja.
+- Affix Siła Woli.
+- Affix HP.
+- Affix Mana.
+- Wyższa rarity daje większą obronę.
+- Wyższa rarity daje mocniejszy affix.
+- Bossowie mają lepsze szanse rarity.
+- Bonusy sprzętu wpływają na realne formuły walki.
+- Siła ze sprzętu zwiększa atak fizyczny.
+- Zręczność ze sprzętu zwiększa szybkość i unik.
+- Kondycja ze sprzętu zwiększa maksymalne HP.
+- Inteligencja ze sprzętu zwiększa magię i Manę.
+- Siła Woli ze sprzętu zwiększa obronę magiczną.
+- Dodano flat HP i flat Mana.
+- Dodano sety Krypty Tier 1-10.
+- 2 części: +10% HP i Many.
+- 4 części: +10% wszystkich obrażeń.
+- 6 części: +15% obrony fizycznej i magicznej.
+- equipment pokazuje rarity i affix.
+- equipment pokazuje aktywny set.
+- stats pokazuje bazowe i efektywne statystyki.
+- Stary gear pozostaje kompatybilny.
+- Nie dodano levelu postaci.
+- Nie wymaga migracji SQLite.
+- Poprawiono komunikat startowy 250 srebra na 30 srebra.
+- Zaktualizowano help i README.
+- changes / zmiany nadal pokazuje pełną historię.
+
+SOULBOUND v0.6.62 CRYPT PORTALS
+===============================
+- Checkpointy Krypty zostały zastąpione Portalami Krypty.
+- Boss 10 odblokowuje Portal 10.
+- Boss 20 odblokowuje Portal 20.
+- Boss 30 odblokowuje Portal 30.
+- Boss 40 odblokowuje Portal 40.
+- Boss 50 odblokowuje Portal 50.
+- Boss 60 odblokowuje Portal 60.
+- Boss 70 odblokowuje Portal 70.
+- Boss 80 odblokowuje Portal 80.
+- Boss 90 odblokowuje Portal 90.
+- Boss 100 odblokowuje Portal 100.
+- portal pokazuje odblokowane cele.
+- portal <piętro> uruchamia portal.
+- Portal działa z Sali Krypty i Przedsionka Krypty.
+- Portal nie działa podczas walki.
+- Portal nie omija żywego bossa.
+- Żywy boss zawsze blokuje zejście.
+- Po respawnie boss ponownie blokuje zejście.
+- Stare komendy checkpoint działają jako alias.
+- Dane portali są trwałe w SQLite.
+- Moby nadal są nieagresywne.
+- Zaktualizowano help i README.
+- changes / zmiany nadal pokazuje pełną historię.
+
+SOULBOUND v0.6.61 LIVE BOSS ALWAYS BLOCKS
+==========================================
+- Żywy boss zawsze blokuje zejście.
+- Dotyczy to także wcześniej pokonanego bossa po respawnie.
+- Po zabiciu przejście jest otwarte.
+- Po respawnie przejście ponownie jest zablokowane.
+- Checkpoint nie wyłącza blokady żywego bossa.
+- Checkpointy pozostają trwałe.
+- Checkpoint nadal pozwala szybko wrócić na odblokowane piętro.
+- Po checkpoint travel trzeba pokonać żywego bossa, aby zejść dalej.
+- prowadz zatrzymuje się na żywym bossie.
+- Ręczny down zatrzymuje się na żywym bossie.
+- Moby nadal są nieagresywne.
+- Moby nadal nie atakują gracza same.
+- Zaktualizowano help krypta i checkpointy.
+- Zaktualizowano README i RAILWAY_PL.
+- changes / zmiany nadal pokazuje pełną historię.
+
+SOULBOUND v0.6.60 CRYPT CHECKPOINTS & BOSS GATE FIX
+====================================================
+- Naprawiono problem: boss po pokonaniu nie puszczał gracza niżej.
+- Blokada bossa jest teraz osobista dla postaci.
+- Pokonanie bossa zapisuje trwałe zaliczenie w SQLite.
+- Respawn bossa nie zamyka ponownie przejścia postaci, która już go zaliczyła.
+- Drużyna obecna przy zabiciu bossa także dostaje zaliczenie.
+- Dodano characters.crypt_checkpoint.
+- Dodano automatyczną migrację starej bazy.
+- Dodano checkpoint piętra 10.
+- Dodano checkpoint piętra 20.
+- Dodano checkpoint piętra 30.
+- Dodano checkpoint piętra 40.
+- Dodano checkpoint piętra 50.
+- Dodano checkpoint piętra 60.
+- Dodano checkpoint piętra 70.
+- Dodano checkpoint piętra 80.
+- Dodano checkpoint piętra 90.
+- Dodano checkpoint piętra 100.
+- checkpoint pokazuje stan.
+- checkpoint <piętro> przenosi do odblokowanego punktu.
+- Checkpoint działa z obszaru Krypty i nie działa w walce.
+- Stare postacie w głębokiej Krypcie dostają bezpieczny checkpoint za minięte bossy.
+- Ręczny ruch respektuje osobiste zaliczenie bossa.
+- prowadz respektuje osobiste zaliczenie bossa.
+- Moby pozostają nieagresywne.
+- Moby nie zaczynają walki po wejściu do lokacji.
+- Walka zaczyna się dopiero po ataku gracza lub ofensywnym skillu.
+- Poprawiono help krypta.
+- Dodano help checkpointy.
+- Poprawiono informację o 3 przedmiotach z bossów Krypty.
+- Poprawiono stare informacje o Soul XP.
+- Poprawiono help zmiany: changes pokazuje pełną historię.
+- Zaktualizowano README i RAILWAY_PL.
+
+SOULBOUND v0.6.59 GUIDE ALL LOCATIONS
+======================================
+- prowadz działa dla wszystkich lokacji z ROOMS.
+- prowadź działa dla wszystkich lokacji z ROOMS.
+- guide działa dla wszystkich lokacji z ROOMS.
+- walk to działa dla wszystkich lokacji z ROOMS.
+- Aktualnie jest 148 celów prowadzenia.
+- Wszystkie 100 pięter Krypty działa jako cel.
+- Dodano prowadz lista.
+- Dodano guide list.
+- Dodano naturalne rozpoznawanie nazw bez polskich znaków.
+- Room ID można podawać ze spacjami zamiast podkreśleń.
+- Obsługiwane są wielkie i małe litery.
+- Interpunkcja nie blokuje rozpoznawania nazw.
+- Niejednoznaczne skróty pokazują pasujące lokacje.
+- map pokazuje wszystkie zwykłe strefy dynamicznie.
+- Gildia Dusz jest uwzględniona w mapie.
+- Wybrzeże jest uwzględnione w mapie.
+- Krypta nadal jest zwinięta do zakresu 1-100 dla NVDA.
+- Przyszłe lokacje z ROOMS automatycznie trafiają do prowadz.
+- Zweryfikowano osiągalność wszystkich 148 lokacji.
+- Zaktualizowano help i README.
+- changes / zmiany nadal pokazuje pełną historię.
+
 SOULBOUND v0.6.58 RESTING, REGENERATION & USE
 ==============================================
 - Dodano odpoczywaj.
