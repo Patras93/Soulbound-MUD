@@ -1,0 +1,68 @@
+SOULBOUND v0.5 — RAILWAY READY
+================================
+
+Ta wersja jest przygotowana do wdrożenia z GitHuba na Railway.
+
+1. GITHUB
+---------
+Utwórz repozytorium, np. Soulbound-MUD.
+Wgraj wszystkie pliki z tego katalogu do głównego katalogu repozytorium.
+Plik Dockerfile musi pozostać w katalogu głównym i mieć dokładnie nazwę Dockerfile.
+
+2. RAILWAY
+----------
+Utwórz projekt z repozytorium GitHub.
+Railway powinien automatycznie wykryć Dockerfile i zbudować usługę.
+
+3. TRWAŁA BAZA POSTACI
+----------------------
+Dodaj do usługi Railway Volume i ustaw Mount Path:
+/data
+
+Soulbound automatycznie wykrywa zmienną RAILWAY_VOLUME_MOUNT_PATH i zapisuje bazę:
+ /data/soulbound.db
+
+Nie ustawiaj ręcznie SOULBOUND_DB, jeśli używasz powyższego Volume.
+
+Bez Volume dane zapisane wewnątrz deploymentu nie są traktowane jako trwałe.
+
+4. TCP PROXY DLA MUSHCLIENTA
+----------------------------
+Service -> Settings -> Networking -> TCP Proxy.
+Jako wewnętrzny port aplikacji wpisz:
+4000
+
+Railway wygeneruje publiczną domenę i zewnętrzny port, np.:
+roundhouse.proxy.rlwy.net
+15140
+
+Do MUSHclienta gracz wpisuje WŁAŚNIE tę domenę i wygenerowany port.
+Port 4000 jest portem wewnętrznym Soulbounda i publiczny port Railway może być inny.
+
+5. TEST
+-------
+Po połączeniu MUSHclient powinien otrzymać:
+SOULBOUND ONLINE v0.5
+Tekstowy MUD. Połączono z serwerem.
+Wpisz: login albo new
+
+6. AKTUALIZACJE
+---------------
+Kod aktualizujesz w repozytorium GitHub.
+Railway buduje nowy deployment, ale baza na Volume pozostaje oddzielona od kodu.
+Nie usuwaj Volume podczas aktualizacji.
+
+7. USTAWIENIA
+-------------
+Domyślny limit klientów: 100.
+Opcjonalna zmienna:
+SOULBOUND_MAX_CLIENTS
+
+Domyślny wewnętrzny port: 4000.
+Soulbound obsługuje także zmienną PORT dostarczoną przez hosting.
+
+8. HASŁA
+--------
+Hasła w bazie są hashowane PBKDF2-SHA256 z losową solą.
+Klasyczny surowy Telnet/TCP nie szyfruje jednak transmisji pomiędzy klientem a serwerem.
+Przed większą publiczną premierą warto dodać TLS.

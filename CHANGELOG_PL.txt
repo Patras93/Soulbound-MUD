@@ -1,0 +1,47 @@
+SOULBOUND v0.5 RAILWAY READY
+============================
+- Dodano Dockerfile gotowy dla Railway.
+- Dodano konfigurację przyjazną GitHub deployment.
+- Dodano automatyczne wykrywanie Railway Volume.
+- Baza SQLite może być trwale zapisywana na /data.
+- Zachowano lokalny tryb zapisu soulbound.db poza Railway.
+- Zachowano TCP/Telnet dla MUSHclienta i Mudleta.
+- Wewnętrzny port gry: 4000.
+- Obsługa zmiennej PORT hostingu.
+- Dodano instrukcję TCP Proxy Railway.
+- Zewnętrzna domena i port są pobierane z TCP Proxy Railway.
+- Zachowano limit konfiguracji 100 jednoczesnych klientów.
+- Zachowano brak levelu postaci.
+- Zachowano automatyczny rozwój statystyk.
+- Zachowano Soul Level 1-100 oraz Tier 1-3.
+
+SOULBOUND v0.4 ONLINE
+=====================
+- Pierwsza architektura klient-serwer.
+- TCP/Telnet na porcie 4000.
+- Zgodność z MUSHclientem i podobnymi klientami MUD.
+- Wielu graczy jednocześnie.
+- Konta z hasłami.
+- Hasła przechowywane jako PBKDF2-SHA256 z losową solą.
+- SQLite po stronie serwera.
+- Kreator 12 ras.
+- Kreator 12 klas.
+- Każda klasa zachowuje własną Broń Duszy.
+- Brak poziomu postaci.
+- Brak XP postaci.
+- Automatyczny rozwój statystyk.
+- Soul Level 1-100.
+- Soul Tier 1-3.
+- Tier 2 od Soul Level 25.
+- Tier 3 od Soul Level 60.
+- Ręczne odblokowanie Tieru komendą unlock.
+- Wspólne lokacje.
+- Widoczność innych graczy w pokoju.
+- Komenda who.
+- Rozmowa lokalna say.
+- Wiadomości prywatne tell.
+- Ruch north/south/east/west oraz n/s/e/w.
+- Pierwsza walka treningowa.
+- Osobny zapis postaci po stronie serwera.
+- Przykładowa usługa systemd dla hostingu Linux/Oracle Cloud.
+- Konfiguracja limitu klientów przez SOULBOUND_MAX_CLIENTS.

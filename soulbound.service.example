@@ -1,0 +1,18 @@
+[Unit]
+Description=Soulbound Online MUD Server
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/home/ubuntu/Soulbound_v0.4_Online_Server
+ExecStart=/usr/bin/python3 /home/ubuntu/Soulbound_v0.4_Online_Server/server.py
+Restart=on-failure
+RestartSec=3
+Environment=SOULBOUND_PORT=4000
+Environment=SOULBOUND_DB=/home/ubuntu/Soulbound_v0.4_Online_Server/soulbound.db
+Environment=SOULBOUND_MAX_CLIENTS=100
+
+[Install]
+WantedBy=multi-user.target
