@@ -1,3 +1,255 @@
+SOULBOUND v0.6.41 HERBALISM & ALCHEMY
+======================================
+- Dodano Zielarstwo 1-100 i 8 rang.
+- Dodano Sierp Zielarski 1-100 i 8 Tierów.
+- Dodano auto-Zielarstwo: zbieraj on/off.
+- Dodano Torbę Zielarską.
+- Dodano 16 gatunków ziół.
+- Dodano Chatę Zielarki i Zielarkę Liorę.
+- Dodano Alchemię 1-100 i 8 rang.
+- Dodano Moździerz Alchemiczny 1-100 i 8 Tierów.
+- Dodano 6 receptur Alchemii.
+- Alchemia pobiera zioła bezpośrednio z Torby Zielarskiej.
+- Dodano atlas ziola.
+- Zaktualizowano pełną pomoc.
+- changes / zmiany pokazuje v0.6.41.
+
+SOULBOUND v0.6.40 CRAFTING & COOKING TOOLS
+===========================================
+- Dodano Młot Rzemieślniczy.
+- Młot kupuje się u Kowala Dorana.
+- Młot jest wymagany do Rzemiosła.
+- Młot ma level 1-100, XP, użycia i 8 Tierów.
+- Udany craft daje Młotowi 8-12 XP.
+- Wyższy Tier Młota może dać dodatkowy produkt receptury.
+- Dodano Nóż Kucharski.
+- Nóż kupuje się w Karczmie.
+- Nóż jest wymagany do Gotowania.
+- Nóż ma level 1-100, XP, użycia i 8 Tierów.
+- Udane gotowanie daje Nożowi 8-12 XP.
+- Wyższy Tier Noża może dać dodatkową potrawę.
+- tools / narzedzia pokazuje wszystkie pięć narzędzi.
+- tiers / tiery pokazuje wszystkie pięć drabin Tierów.
+- Zaktualizowano help rzemioslo.
+- Zaktualizowano help gotowanie.
+- Zaktualizowano help receptury.
+- Zaktualizowano pomoc Narzędzi i Tierów.
+- changes / zmiany pokazuje v0.6.40.
+
+SOULBOUND v0.6.39 ATLAS, PARTIES & CHARISMA
+============================================
+- Dodano Atlas ryb, drewna i rud.
+- Dodano atlas konkretnego surowca.
+- Dodano drużyny online.
+- Dodano zaproszenia, akceptację, odrzucenie, opuszczenie, kick i rozwiązanie.
+- Dodano czat drużyny pc.
+- Startowy limit drużyny wynosi 8 osób.
+- Co 25 Charyzmy lidera daje +1 miejsce.
+- Drużyna może wspólnie walczyć z tym samym mobem.
+- Obecni członkowie dostają pełny EXP rozwoju.
+- Obecni członkowie dostają pełny Soul XP.
+- Obecni członkowie dostają wspólny postęp questów zabijania.
+- Waluta z moba jest dzielona.
+- Drop trafia do jednego losowego obecnego członka.
+- Zachowano turową odpowiedź moba po każdej akcji gracza.
+- Dodano trwałą Charyzmę handlową.
+- Każda udana sprzedaż daje +1 Charyzmy.
+- Co 4 Charyzmy daje +1% rabatu, maksymalnie 25%.
+- Rabat sklepowy jest zwracany w srebrze po zakupie.
+- Dodano charyzma / charisma.
+- stats pokazuje Charyzmę, rabat i limit drużyny.
+- Dodano help atlas.
+- Dodano help charyzma.
+- Dodano help druzyny.
+- Zaktualizowano help komendy i help wszystko.
+- changes / zmiany pokazuje v0.6.39.
+
+SOULBOUND v0.6.38 CRAFTING & COOKING
+====================================
+- Dodano system Rzemiosła.
+- Dodano system Gotowania.
+- Dodano receptury / przepisy / recipes.
+- Dodano craft / stworz / wytworz.
+- Dodano cook / gotuj.
+- Rudy są pobierane bezpośrednio z Sakwy.
+- Drewno jest pobierane bezpośrednio ze Stosu.
+- Ryby są pobierane bezpośrednio z Siatki.
+- Dodano 3 sztabki.
+- Dodano 5 rodzajów desek.
+- Dodano 3 wytwarzane talizmany: obrona +2, +3 i +5.
+- Dodano 6 potraw.
+- Potrawy mogą odnawiać HP i Manę.
+- Jedzenie podczas walki zużywa jedną turę.
+- Dodano help rzemioslo.
+- Dodano help gotowanie.
+- Dodano help receptury.
+- Zaktualizowano help komendy.
+- Zaktualizowano help wszystko.
+- Zaktualizowano główną listę tematów pomocy.
+- Poprawiono pomoc: Piłę sprzedaje Drwal Bran, nie Kowal.
+- changes / zmiany pokazuje v0.6.38.
+
+SOULBOUND v0.6.37 MORE FISH & WOODS
+===================================
+- Dodano 26 nowych gatunków ryb.
+- Rozszerzono pule rzeki, jeziora, morza i oceanu.
+- Dodano Jelca.
+- Dodano Klenia.
+- Dodano Świnkę.
+- Dodano Jazia.
+- Dodano Bolenia.
+- Dodano Lipienia.
+- Dodano Miętusa.
+- Dodano Wzdręgę.
+- Dodano Karasia.
+- Dodano Sielawę.
+- Dodano Sieję.
+- Dodano Palię jeziorową.
+- Dodano Szprota.
+- Dodano Witlinka.
+- Dodano Morszczuka.
+- Dodano Barwenę.
+- Dodano Solę.
+- Dodano Żabnicę.
+- Dodano Albakorę.
+- Dodano Tuńczyka wielkookiego.
+- Dodano Barakudę.
+- Dodano Kobię.
+- Dodano Seriolę.
+- Dodano Rekina mako.
+- Dodano Rekina tygrysiego.
+- Rozszerzono drewno z 16 do 24 gatunków.
+- Dodano olchę.
+- Dodano topolę.
+- Dodano lipę.
+- Dodano kasztan.
+- Dodano orzech.
+- Dodano mahoń.
+- Dodano tek.
+- Dodano sekwoję.
+- Wszystkie nowe surowce są rzeczywiście losowane w odpowiednich obszarach.
+- changes / zmiany pokazuje v0.6.37.
+
+SOULBOUND v0.6.36 LUMBERJACK, WATERS & WOODS
+=============================================
+- Piła została usunięta z oferty Kowala.
+- Dodano Drwala Brana.
+- Dodano Obóz Drwala.
+- Piłę kupuje się wyłącznie u Drwala Brana.
+- Dodano Brzeg Srebrnego Jeziora.
+- Dodano Oceaniczną Platformę.
+- Wędkarstwo podzielono na rzekę, jezioro, morze i ocean.
+- Dodano nowe ryby rzeczne.
+- Dodano nowe ryby jeziorowe.
+- Dodano nowe ryby morskie.
+- Dodano nowe ryby oceaniczne.
+- Rozszerzono drewno z 8 do 16 gatunków.
+- Dodano brzozę, wierzbę, buk, klon, cedr, heban, srebrne drzewo i Drewno Drzewa Świata.
+- Loot Drwalstwa zależy teraz od obszaru.
+- Ryby nadal trafiają do Siatki.
+- Drewno nadal trafia na Stos.
+- changes / zmiany pokazuje v0.6.36.
+
+SOULBOUND v0.6.35 WOODCUTTING
+==============================
+- Dodano Drwalstwo.
+- Dodano Piłę.
+- Drwalstwo ma level 1-100 i własny XP.
+- Piła ma level 1-100 i własny XP.
+- Dodano 8 rang Drwalstwa.
+- Dodano 8 nazwanych Tierów Piły.
+- Dodano tnij / drwal / woodcut.
+- Dodano tnij on / woodcut on.
+- Dodano tnij off / woodcut off.
+- Dodano Stos drewna.
+- Dodano drewno / stos / woodpile.
+- Dodano 8 rodzajów drewna.
+- Drewno trafia automatycznie na Stos.
+- Bonus Tieru Piły może dać dodatkowe drewno.
+- Niziołek otrzymuje bonus profesji również do Drwalstwa.
+- Drwalstwo działa w czterech obszarach dziczy.
+- Piłę sprzedaje Kuźnia Dusz.
+- Drewno można sprzedać na Rynku i w Kuźni Dusz.
+- Auto-Wędkarstwo, Auto-Górnictwo i Auto-Drwalstwo są wzajemnie wykluczające.
+- changes / zmiany pokazuje v0.6.35.
+
+SOULBOUND v0.6.34 RACIAL PASSIVES
+=================================
+- Dodano pasywy do wszystkich 13 ras.
+- Człowiek: +10% Postępu Rozwoju statystyk.
+- Ogr: +12% obrażeń fizycznych.
+- Elf: +5 punktów procentowych uniku.
+- Krasnolud: 10% redukcji wszystkich obrażeń.
+- Ork: +10% maksymalnego HP.
+- Niziołek: +3 punkty procentowe szansy na bonusowy połów lub rudę.
+- Mroczny Elf: +10% obrażeń magicznych.
+- Gnom: +15% maksymalnej Many.
+- Smoczy: +8% wszystkich zadawanych obrażeń.
+- Troll: 12% redukcji obrażeń fizycznych.
+- Diablę: +10% Soul XP.
+- Aasimar: +12% obrony magicznej.
+- Driada: +15% mocy klasowego leczenia.
+- Bonusy rasowe łączą się z odpowiednimi pasywami klasowymi.
+- stats pokazuje pasyw rasy.
+- Opisy wszystkich ras zawierają pasyw.
+- Stare postacie automatycznie dostają bonus swojej rasy.
+- changes / zmiany pokazuje v0.6.34.
+
+SOULBOUND v0.6.33 CLASS PASSIVES
+================================
+- Dodano pasyw do każdej z 12 klas.
+- Wojownik: +10% obrażeń fizycznych.
+- Berserker: +12% obrażeń fizycznych.
+- Łotrzyk: +5 punktów procentowych uniku.
+- Łowca: +8% obrażeń fizycznych.
+- Mnich: +8% mocy leczenia klasowego.
+- Strażnik: 10% redukcji wszystkich otrzymywanych obrażeń.
+- Mag: +10% obrażeń magicznych.
+- Nekromanta: +15% leczenia z wysysania życia.
+- Kapłan: +10% mocy leczenia klasowego.
+- Czarownik: +12% obrażeń magicznych.
+- Druid: +10% mocy leczenia klasowego.
+- Psionik: +10% obrony magicznej.
+- Bonusy klasowe mogą łączyć się z rasowymi.
+- stats i opisy klas pokazują pasywy.
+- changes / zmiany pokazuje v0.6.33.
+
+SOULBOUND v0.6.32 DWARF DAMAGE REDUCTION
+=========================================
+- Dodano pasyw rasowy Krasnoluda.
+- Krasnolud redukuje wszystkie otrzymywane obrażenia o 10 procent.
+- Pasyw działa na obrażenia fizyczne.
+- Pasyw działa na obrażenia magiczne.
+- Redukcja jest liczona po zwykłej obronie.
+- Redukcja jest liczona po aktywnej osłonie skilla.
+- Normalne trafienie nadal zadaje minimum 1 obrażenie.
+- stats pokazuje rasową redukcję Krasnoluda.
+- Kreator postaci opisuje pasyw Krasnoluda.
+- opis Krasnolud opisuje pasyw Krasnoluda.
+- Stare postacie Krasnoludów dostają bonus automatycznie.
+- changes / zmiany pokazuje v0.6.32.
+
+SOULBOUND v0.6.31 DRYAD HEALING RACE
+=====================================
+- Dodano Driadę jako 13. rasę.
+- Driada: Siła 7.
+- Driada: Zręczność 10.
+- Driada: Kondycja 11.
+- Driada: Inteligencja 15.
+- Driada: Siła Woli 15.
+- Dodano +15 procent rasowej mocy leczenia.
+- Bonus działa na wszystkie klasowe skille typu heal.
+- Bonus działa na Małe Leczenie.
+- Bonus działa na Wielkie Leczenie.
+- Bonus działa na Medytację.
+- Bonus działa na Uzdrowienie Natury.
+- Bonus skaluje się ze Skill Level.
+- stats pokazuje bonus Driady.
+- Kreator postaci pokazuje Driadę i jej bonus.
+- opis Driada pokazuje dokładne statystyki i przeznaczenie.
+- Driada szczególnie dobrze pasuje do Kapłana i Druida.
+- changes / zmiany pokazuje v0.6.31.
+
 SOULBOUND v0.6.30 CHARACTER NAME DECLENSION
 ============================================
 - Dodano etap odmiany imienia po wyborze rasy i klasy.

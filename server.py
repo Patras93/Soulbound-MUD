@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Soulbound v0.6.30 Character Name Declension
+Soulbound v0.6.41 Herbalism & Alchemy
 Wieloosobowy tekstowy MUD TCP/Telnet dla MUSHclienta/Mudleta.
 
 Najważniejsze zasady projektu:
@@ -26,7 +26,7 @@ import time
 from dataclasses import dataclass
 from typing import Optional
 
-VERSION = "0.6.30"
+VERSION = "0.6.41"
 
 HOST = os.getenv("SOULBOUND_HOST", "0.0.0.0")
 _RAILWAY_TCP_PORT = os.getenv("RAILWAY_TCP_APPLICATION_PORT", "").strip()
@@ -62,6 +62,11 @@ SILVER_PER_GOLD = 100
 GOLD_PER_MITHRIL = 1000
 
 PROFESSION_MAX_LEVEL = 100
+CHARISMA_DISCOUNT_STEP = 4
+CHARISMA_MAX_DISCOUNT = 25
+PARTY_BASE_CAPACITY = 8
+PARTY_CHARISMA_STEP = 25
+
 PROFESSION_MAX_RANK = 8
 PROFESSION_RANK_THRESHOLDS = (1, 15, 30, 45, 60, 75, 90, 100)
 
@@ -86,6 +91,36 @@ PROFESSION_RANK_NAMES = {
         "Arcymistrz Górnictwa",
         "Legenda Górnictwa",
     ),
+    "Drwalstwo": (
+        "Uczeń Drwalstwa",
+        "Adept Drwalstwa",
+        "Czeladnik Drwalstwa",
+        "Specjalista Drwalstwa",
+        "Ekspert Drwalstwa",
+        "Mistrz Drwalstwa",
+        "Arcymistrz Drwalstwa",
+        "Legenda Drwalstwa",
+    ),
+    "Zielarstwo": (
+        "Uczeń Zielarstwa",
+        "Adept Zielarstwa",
+        "Czeladnik Zielarstwa",
+        "Specjalista Zielarstwa",
+        "Ekspert Zielarstwa",
+        "Mistrz Zielarstwa",
+        "Arcymistrz Zielarstwa",
+        "Legenda Zielarstwa",
+    ),
+    "Alchemia": (
+        "Uczeń Alchemii",
+        "Adept Alchemii",
+        "Czeladnik Alchemii",
+        "Specjalista Alchemii",
+        "Ekspert Alchemii",
+        "Mistrz Alchemii",
+        "Arcymistrz Alchemii",
+        "Legenda Alchemii",
+    ),
 }
 
 def normalize_profession_name(profession):
@@ -94,6 +129,12 @@ def normalize_profession_name(profession):
         return "Wędkarstwo"
     if value in ("mining", "gornictwo", "górnictwo"):
         return "Górnictwo"
+    if value in ("woodcutting", "drwalstwo", "drwal"):
+        return "Drwalstwo"
+    if value in ("herbalism", "zielarstwo", "zielarz"):
+        return "Zielarstwo"
+    if value in ("alchemy", "alchemia"):
+        return "Alchemia"
     return str(profession)
 
 def profession_rank(level):
@@ -137,6 +178,56 @@ TOOL_TIER_NAMES = {
         "Kilof Legendarnych Złóż",
         "Kilof Mitycznego Rdzenia",
     ),
+    "woodcutting": (
+        "Piła Ucznia",
+        "Piła Leśna",
+        "Piła Stalowych Zębów",
+        "Piła Hartowanego Ostrza",
+        "Piła Żelaznego Dębu",
+        "Piła Mistrza Drwali",
+        "Piła Legendarnych Pni",
+        "Piła Mitycznego Gaju",
+    ),
+    "crafting": (
+        "Młot Rzemieślnika Ucznia",
+        "Młot Żelaznego Kowadła",
+        "Młot Stalowego Rzemiosła",
+        "Młot Hartowanego Rdzenia",
+        "Młot Runicznego Kowadła",
+        "Młot Mistrza Rzemiosła",
+        "Młot Legendarnego Twórcy",
+        "Młot Mitycznego Kowadła",
+    ),
+    "cooking": (
+        "Nóż Kucharski Ucznia",
+        "Nóż Karczemnej Kuchni",
+        "Nóż Stalowego Ostrza",
+        "Nóż Szefa Kuchni",
+        "Nóż Mistrza Smaku",
+        "Nóż Wielkiego Kucharza",
+        "Nóż Legendarnej Uczty",
+        "Nóż Mitycznego Szefa",
+    ),
+    "herbalism": (
+        "Sierp Zielarski Ucznia",
+        "Sierp Łąkowy",
+        "Sierp Leśnych Ziół",
+        "Sierp Srebrnego Ostrza",
+        "Sierp Głębokiego Gaju",
+        "Sierp Mistrza Zielarstwa",
+        "Sierp Legendarnych Ziół",
+        "Sierp Mitycznego Ogrodu",
+    ),
+    "alchemy": (
+        "Moździerz Alchemika Ucznia",
+        "Moździerz Kamienny",
+        "Moździerz Srebrnego Pyłu",
+        "Moździerz Runiczny",
+        "Moździerz Mistycznej Esencji",
+        "Moździerz Mistrza Alchemii",
+        "Moździerz Legendarnego Eliksiru",
+        "Moździerz Mitycznej Transmutacji",
+    ),
 }
 
 def tool_tier(level):
@@ -177,64 +268,164 @@ def skill_cooldown_multiplier(level):
 
 PROFESSION_COOLDOWN = 2.0
 
-FRESHWATER_FISHING_ROOMS = {"riverbank", "stone_bridge", "meadow"}
-MARINE_FISHING_ROOMS = {"sea_pier"}
+RIVER_FISHING_ROOMS = {"riverbank", "stone_bridge"}
+LAKE_FISHING_ROOMS = {"lake_shore"}
+SEA_FISHING_ROOMS = {"sea_pier"}
+OCEAN_FISHING_ROOMS = {"ocean_platform"}
+FRESHWATER_FISHING_ROOMS = RIVER_FISHING_ROOMS | LAKE_FISHING_ROOMS
+MARINE_FISHING_ROOMS = SEA_FISHING_ROOMS | OCEAN_FISHING_ROOMS
 FISHING_ROOMS = FRESHWATER_FISHING_ROOMS | MARINE_FISHING_ROOMS
 MINING_ROOMS = {"cave_entrance", "cave_tunnel", "crystal_chamber"}
+WOODCUTTING_ROOMS = {"lumberjack_camp", "meadow", "whisper_grove", "deep_grove", "old_road"}
+HERBALISM_ROOMS = {
+    "herbalist_hut", "meadow", "whisper_grove", "deep_grove",
+    "riverbank", "lake_shore", "old_road"
+}
 
 FISH_RESOURCE_IDS = {
-    "small_fish", "river_carp", "silver_trout",
-    "golden_trout", "ancient_sturgeon", "moon_eel",
-    "herring", "mackerel", "salmon", "tuna", "swordfish",
-    "bluefin_tuna", "reef_shark", "hammerhead_shark",
-    "great_white_shark", "ghost_marlin",
-    "sardine", "anchovy", "cod", "sea_bass", "haddock",
-    "pollock", "flounder", "halibut",
+    # Rzeka
+    "small_fish", "river_carp", "river_perch", "dace", "chub", "common_nase",
+    "barbel", "ide", "asp", "grayling", "burbot", "pike", "zander",
+    "silver_trout", "golden_trout", "salmon", "river_catfish",
+    "ancient_sturgeon", "moon_eel",
+    # Jezioro
+    "lake_roach", "rudd", "crucian_carp", "bream", "tench", "lake_perch",
+    "vendace", "whitefish", "lake_char", "lake_trout", "pike", "zander",
+    "giant_pike", "freshwater_eel",
+    # Morze
+    "sprat", "sardine", "anchovy", "herring", "mackerel", "whiting",
+    "cod", "hake", "sea_bass", "red_mullet", "haddock", "pollock",
+    "flounder", "sole", "halibut", "turbot", "monkfish",
+    # Ocean
+    "tuna", "albacore", "bigeye_tuna", "mahi_mahi", "wahoo",
+    "barracuda", "cobia", "amberjack", "sailfish", "swordfish",
+    "bluefin_tuna", "ocean_sunfish", "reef_shark", "mako_shark",
+    "tiger_shark", "hammerhead_shark", "great_white_shark", "ghost_marlin",
 }
 ORE_RESOURCE_IDS = {
     "stone_chunk", "copper_ore", "iron_ore",
     "silver_ore", "gold_ore",
 }
+WOOD_RESOURCE_IDS = {
+    "fallen_branch", "birch_log", "alder_log", "pine_log", "poplar_log",
+    "willow_log", "linden_log", "oak_log", "beech_log", "maple_log",
+    "ash_log", "chestnut_log", "walnut_log", "cedar_log", "yew_log",
+    "mahogany_log", "teak_log", "redwood_log", "ironwood_log", "ebony_log",
+    "silverwood_log", "spiritwood_log", "ancient_heartwood", "worldtree_wood",
+}
+
+HERB_RESOURCE_IDS = {
+    "nettle", "chamomile", "mint", "sage", "lavender", "yarrow",
+    "lemon_balm", "valerian", "ginseng", "nightshade", "mandrake",
+    "moonflower", "soulroot", "phoenix_leaf", "star_moss", "astral_lotus",
+}
+HERB_MEADOW_ATLAS = {"nettle", "chamomile", "mint", "yarrow", "lemon_balm", "lavender"}
+HERB_FOREST_ATLAS = {"sage", "valerian", "ginseng", "nightshade", "mandrake", "moonflower", "soulroot"}
+HERB_WATER_ATLAS = {"mint", "lemon_balm", "star_moss", "moonflower"}
+HERB_DEEP_ATLAS = {"mandrake", "moonflower", "soulroot", "phoenix_leaf", "star_moss", "astral_lotus"}
+
+RIVER_FISH_ATLAS = {
+    "small_fish", "dace", "river_perch", "chub", "common_nase",
+    "river_carp", "barbel", "ide", "asp", "grayling", "burbot",
+    "silver_trout", "golden_trout", "pike", "zander", "salmon",
+    "river_catfish", "ancient_sturgeon", "moon_eel",
+}
+LAKE_FISH_ATLAS = {
+    "lake_roach", "rudd", "crucian_carp", "bream", "tench",
+    "lake_perch", "vendace", "whitefish", "lake_char", "lake_trout",
+    "pike", "zander", "giant_pike", "freshwater_eel",
+}
+SEA_FISH_ATLAS = {
+    "sprat", "sardine", "anchovy", "herring", "mackerel", "whiting",
+    "cod", "hake", "sea_bass", "red_mullet", "haddock", "pollock",
+    "flounder", "sole", "halibut", "turbot", "monkfish",
+}
+OCEAN_FISH_ATLAS = {
+    "mackerel", "mahi_mahi", "albacore", "wahoo", "barracuda", "tuna",
+    "sailfish", "bigeye_tuna", "cobia", "amberjack", "swordfish",
+    "bluefin_tuna", "ocean_sunfish", "reef_shark", "mako_shark",
+    "tiger_shark", "hammerhead_shark", "great_white_shark", "ghost_marlin",
+}
+
+WOOD_BEGINNER_ATLAS = {
+    "fallen_branch", "birch_log", "alder_log", "pine_log", "poplar_log",
+    "willow_log", "linden_log", "oak_log", "beech_log", "maple_log",
+}
+WOOD_FOREST_ATLAS = {
+    "linden_log", "oak_log", "beech_log", "maple_log", "ash_log",
+    "chestnut_log", "walnut_log", "cedar_log", "yew_log",
+    "mahogany_log", "teak_log", "redwood_log", "ironwood_log",
+}
+WOOD_DEEP_ATLAS = {
+    "ash_log", "chestnut_log", "walnut_log", "cedar_log", "yew_log",
+    "mahogany_log", "teak_log", "redwood_log", "ironwood_log",
+    "ebony_log", "silverwood_log", "spiritwood_log",
+    "ancient_heartwood", "worldtree_wood",
+}
+
+ORE_ATLAS_LEVELS = {
+    "stone_chunk": 1,
+    "copper_ore": 1,
+    "iron_ore": 1,
+    "silver_ore": 10,
+    "gold_ore": 25,
+}
 
 RACES = [
     ("Człowiek",
-     "Wszechstronny. Wszystkie statystyki startują na równym poziomie. Dobry wybór do każdej klasy.",
+     "Wszechstronny. Wszystkie statystyki startują na równym poziomie. "
+     "Pasyw rasowy: +10 procent do zdobywanego Postępu Rozwoju statystyk.",
      10, 10, 10, 10, 10),
     ("Ogr",
-     "Bardzo silny i wytrzymały. Wysoka Siła zwiększa atak fizyczny, a wysoka Kondycja maksymalne HP. Słaba Inteligencja utrudnia grę klasami magicznymi.",
+     "Bardzo silny i wytrzymały. Wysoka Siła i Kondycja wspierają walkę wręcz. "
+     "Pasyw rasowy: +12 procent obrażeń fizycznych.",
      14, 8, 14, 6, 8),
     ("Elf",
-     "Bardzo zręczny i inteligentny. Wysoka Zręczność daje większą szybkość i unik, a Inteligencja zwiększa Manę i moc czarów. Ma niższą Siłę i Kondycję.",
+     "Bardzo zręczny i inteligentny. Dobrze łączy szybkość z magią. "
+     "Pasyw rasowy: +5 punktów procentowych do szansy uniku.",
      8, 14, 9, 13, 11),
     ("Krasnolud",
-     "Silny i bardzo odporny. Wysoka Kondycja daje dużo HP, Siła poprawia atak fizyczny, a Siła Woli obronę magiczną. Jest mniej zręczny.",
+     "Silny i bardzo odporny. Wysoka Kondycja daje dużo HP, a Siła Woli dobrą obronę magiczną. "
+     "Pasyw rasowy: 10 procent redukcji wszystkich otrzymywanych obrażeń.",
      12, 9, 14, 9, 12),
     ("Ork",
-     "Urodzony wojownik. Wysoka Siła i Kondycja dają mocne ciosy i dużo HP. Inteligencja i Siła Woli są niższe, więc gorzej sprawdza się w magii.",
+     "Urodzony wojownik. Wysoka Siła i Kondycja dają mocne ciosy i dużo HP. "
+     "Pasyw rasowy: +10 procent maksymalnego HP.",
      13, 10, 13, 7, 9),
     ("Niziołek",
-     "Bardzo zręczny. Wysoka Zręczność oznacza dużą szybkość i lepszy unik. Ma niską Siłę, więc zadaje słabsze obrażenia fizyczne.",
+     "Zręczny i szczęśliwy poszukiwacz. "
+     "Pasyw rasowy: +3 punkty procentowe do szansy na bonusowy połów, dodatkową rudę lub dodatkowe drewno.",
      7, 14, 10, 10, 11),
     ("Mroczny Elf",
-     "Zręczny i bardzo inteligentny. Dobrze łączy szybkość z magią. Wysoka Inteligencja zwiększa Manę i moc czarów, ale Kondycja jest niższa.",
+     "Zręczny i bardzo inteligentny. Dobrze łączy szybkość z magią. "
+     "Pasyw rasowy: +10 procent obrażeń magicznych.",
      9, 13, 9, 14, 10),
     ("Gnom",
-     "Bardzo inteligentny i odporny magicznie. Inteligencja zwiększa Manę i moc czarów, a Siła Woli obronę magiczną. Ma niską Siłę.",
+     "Bardzo inteligentny i odporny magicznie. "
+     "Pasyw rasowy: +15 procent maksymalnej Many dla klas magicznych.",
      7, 12, 9, 14, 13),
     ("Smoczy",
-     "Silny i wytrzymały, ale bardziej zrównoważony niż Ogr. Dobra Siła i Kondycja wspierają walkę fizyczną i przeżywalność.",
+     "Silny, wytrzymały i wszechstronny w walce. "
+     "Pasyw rasowy: +8 procent wszystkich zadawanych obrażeń, fizycznych i magicznych.",
      13, 9, 13, 10, 10),
     ("Troll",
-     "Największa surowa Siła i Kondycja. Zadaje bardzo mocne obrażenia fizyczne i ma dużo HP. Jest bardzo wolny i słaby magicznie.",
+     "Największa surowa Siła i Kondycja. Jest wolny, ale bardzo trudny do powalenia. "
+     "Pasyw rasowy: 12 procent redukcji otrzymywanych obrażeń fizycznych.",
      15, 7, 15, 5, 8),
     ("Diablę",
-     "Dobre predyspozycje magiczne. Inteligencja zwiększa Manę i moc czarów, a Siła Woli obronę magiczną. Statystyki fizyczne są przeciętne.",
+     "Dobre predyspozycje magiczne i silna więź z energią dusz. "
+     "Pasyw rasowy: +10 procent zdobywanego Soul XP Broni Duszy.",
      9, 11, 9, 13, 13),
     ("Aasimar",
-     "Bardzo silna Siła Woli i dobra Inteligencja. Ma wysoką obronę magiczną, dobrą Manę i moc czarów. Dobrze pasuje do klas magicznych.",
+     "Bardzo silna Siła Woli i dobra Inteligencja. "
+     "Pasyw rasowy: +12 procent obrony magicznej.",
      10, 10, 11, 12, 14),
+    ("Driada",
+     "Rasa natury nastawiona na życie i odnowę. "
+     "Pasyw rasowy: +15 procent mocy wszystkich klasowych umiejętności leczących. "
+     "Szczególnie dobrze pasuje do Kapłana i Druida.",
+     7, 10, 11, 15, 15),
 ]
-
 
 CLASSES = [
     ("Wojownik", "physical", "Miecz Przysięgi", 7),
@@ -257,60 +448,72 @@ CLASS_DESCRIPTIONS = {
         "Klasa fizyczna. Stabilny wojownik do walki wręcz. "
         "Automatycznie rozwija wszystkie pięć statystyk. "
         "Dobra dla graczy chcących mocnych ciosów, szybkości i dużej ilości HP."
+        "Pasyw klasowy: +10 procent obrażeń fizycznych."
     ),
     "Berserker": (
         "Klasa fizyczna nastawiona na bardzo wysokie obrażenia. "
         "Automatycznie rozwija wszystkie pięć statystyk. "
         "Broń Duszy ma wysoki bazowy potencjał ofensywny."
+        "Pasyw klasowy: +12 procent obrażeń fizycznych."
     ),
     "Łotrzyk": (
         "Klasa fizyczna nastawiona na szybkość i zwinność. "
         "Automatycznie rozwija wszystkie pięć statystyk. "
         "Dobrze korzysta z wysokiej Zręczności i uników."
+        "Pasyw klasowy: +5 punktów procentowych do szansy uniku."
     ),
     "Łowca": (
         "Klasa fizyczna walcząca z dystansu. "
         "Automatycznie rozwija wszystkie pięć statystyk. "
         "Najlepiej współpracuje z rasami o wysokiej Zręczności."
+        "Pasyw klasowy: +8 procent obrażeń fizycznych."
     ),
     "Mnich": (
         "Klasa fizyczna oparta na szybkości i kontroli ciała. "
         "Automatycznie rozwija wszystkie pięć statystyk. "
         "Dobrze skaluje się ze Zręcznością oraz Kondycją."
+        "Pasyw klasowy: +8 procent mocy klasowych umiejętności leczących."
     ),
     "Strażnik": (
         "Klasa fizyczna nastawiona na przetrwanie. "
         "Automatycznie rozwija wszystkie pięć statystyk. "
         "Dobrze wykorzystuje wysoką Kondycję i cięższy pancerz."
+        "Pasyw klasowy: 10 procent redukcji wszystkich otrzymywanych obrażeń."
     ),
     "Mag": (
         "Klasa magiczna. Inteligencja zwiększa Manę i moc czarów, "
         "a Siła Woli obronę magiczną. Automatycznie rozwija wszystkie pięć statystyk."
+        "Pasyw klasowy: +10 procent obrażeń magicznych."
     ),
     "Nekromanta": (
         "Klasa magiczna oparta na mrocznej energii i silnych czarach. "
         "Automatycznie rozwija wszystkie pięć statystyk. "
         "Dobrze korzysta z wysokiej Inteligencji."
+        "Pasyw klasowy: +15 procent leczenia z umiejętności wysysających życie."
     ),
     "Kapłan": (
         "Klasa magiczna o defensywnym charakterze. "
         "Automatycznie rozwija wszystkie pięć statystyk. "
         "Wysoka Siła Woli wzmacnia obronę magiczną."
+        "Pasyw klasowy: +10 procent mocy klasowych umiejętności leczących."
     ),
     "Czarownik": (
         "Ofensywna klasa magiczna z mocną Bronią Duszy. "
         "Automatycznie rozwija wszystkie pięć statystyk. "
         "Dobrze skaluje się z Inteligencją i dużą pulą Many."
+        "Pasyw klasowy: +12 procent obrażeń magicznych."
     ),
     "Druid": (
         "Wszechstronna klasa magiczna związana z naturą. "
         "Automatycznie rozwija wszystkie pięć statystyk. "
         "Łączy dobrą moc czarów z obroną magiczną."
+        "Pasyw klasowy: +10 procent mocy klasowych umiejętności leczących."
     ),
     "Psionik": (
         "Klasa magiczna oparta na mocy umysłu. "
         "Automatycznie rozwija wszystkie pięć statystyk. "
         "Najlepiej wykorzystuje wysoką Inteligencję i Siłę Woli."
+        "Pasyw klasowy: +10 procent obrony magicznej."
     ),
 }
 
@@ -777,8 +980,13 @@ ROOMS = {
     },
     "sea_pier": {
         "zone": "Wybrzeże", "name": "Morskie Molo",
-        "desc": "Długie molo wychodzi daleko nad słoną wodę. To główne łowisko ryb morskich.",
-        "exits": {"west": "harbor"},
+        "desc": "Długie molo wychodzi nad morze. To łowisko typowych ryb morskich.",
+        "exits": {"west": "harbor", "east": "ocean_platform"},
+    },
+    "ocean_platform": {
+        "zone": "Wybrzeże", "name": "Oceaniczna Platforma",
+        "desc": "Daleka platforma nad otwartym oceanem. Trafiają się tu wielkie ryby oceaniczne i rekiny.",
+        "exits": {"west": "sea_pier"},
     },
     "forge": {
         "zone": "Miasto Dusz", "name": "Kuźnia Dusz",
@@ -802,13 +1010,28 @@ ROOMS = {
     },
     "meadow": {
         "zone": "Dzicz", "name": "Srebrna Łąka",
-        "desc": "Trawa porusza się falami. Na zachodzie widać ciemny gaj.",
-        "exits": {"north": "south_gate", "west": "whisper_grove", "east": "riverbank"},
+        "desc": "Trawa porusza się falami. Na zachodzie widać ciemny gaj, a na południu ścieżkę do jeziora.",
+        "exits": {"north": "south_gate", "west": "whisper_grove", "east": "riverbank", "south": "lake_shore"},
+    },
+    "lake_shore": {
+        "zone": "Dzicz", "name": "Brzeg Srebrnego Jeziora",
+        "desc": "Spokojne jezioro jest osobnym łowiskiem dla ryb jeziorowych.",
+        "exits": {"north": "meadow"},
     },
     "whisper_grove": {
         "zone": "Dzicz", "name": "Gaj Szeptów",
         "desc": "Stare drzewa szepczą pod wpływem magicznego wiatru.",
-        "exits": {"east": "meadow", "south": "deep_grove"},
+        "exits": {"east": "meadow", "south": "deep_grove", "west": "lumberjack_camp", "north": "herbalist_hut"},
+    },
+    "herbalist_hut": {
+        "zone": "Dzicz", "name": "Chata Zielarki",
+        "desc": "Półki są pełne suszonych ziół, fiolek i alchemicznych naczyń.",
+        "exits": {"south": "whisper_grove"},
+    },
+    "lumberjack_camp": {
+        "zone": "Dzicz", "name": "Obóz Drwala",
+        "desc": "Przy stosach drewna stoi warsztat Drwala Brana. Tutaj kupuje się Piłę.",
+        "exits": {"east": "whisper_grove"},
     },
     "deep_grove": {
         "zone": "Dzicz", "name": "Głębia Gaju",
@@ -910,6 +1133,10 @@ COMMAND_ALIASES = {
     "mapa": "map",
     "gdzie": "where",
     "kto": "who",
+    "atlas": "atlas", "atlasy": "atlas",
+    "charyzma": "charisma", "haryzma": "charisma", "charisma": "charisma",
+    "drużyna": "party", "druzyna": "party", "party": "party",
+    "pc": "partychat", "dczat": "partychat", "partychat": "partychat",
     "staty": "stats", "status": "stats",
     "odmiana": "declension", "przypadki": "declension", "namecases": "declension", "declension": "declension",
     "skills": "skills", "umiejętności": "skills", "umiejetnosci": "skills", "zdolności": "skills", "zdolnosci": "skills",
@@ -940,7 +1167,16 @@ COMMAND_ALIASES = {
     "walkto": "guide",
     "lokalizacja": "location", "lokacja": "location", "location": "location",
     "kop": "mine", "wydobywaj": "mine",
+    "tnij": "woodcut", "drwal": "woodcut", "woodcut": "woodcut", "saw": "woodcut",
+    "drewno": "woodpile", "stos": "woodpile", "woodpile": "woodpile",
+    "zbieraj": "herb", "zbierz": "herb", "zielarstwo": "herb", "herbalism": "herb",
+    "zioła": "herbbag", "ziola": "herbbag", "herbs": "herbbag", "herbbag": "herbbag",
+    "alchemia": "alchemy", "alchemy": "alchemy", "warz": "alchemy", "warzenie": "alchemy",
     "sprzedaj": "sell",
+    "receptury": "recipes", "przepisy": "recipes", "recipes": "recipes",
+    "rzemiosło": "recipes", "rzemioslo": "recipes",
+    "stwórz": "craft", "stworz": "craft", "wytwórz": "craft", "wytworz": "craft", "craft": "craft",
+    "gotuj": "cook", "ugotuj": "cook", "cook": "cook",
     "profesje": "professions",
     "rangi": "ranks", "ranks": "ranks", "rangiprofesji": "ranks", "professionranks": "ranks",
     "narzędzia": "tools", "narzedzia": "tools",
@@ -1005,6 +1241,145 @@ ITEMS = {
         "price": 2, "currency": "gold",
         "desc": "Podstawowe narzędzie do Górnictwa. Ma własny level 1-100.",
     },
+    "saw": {
+        "name": "Piła", "type": "tool", "tool_type": "woodcutting",
+        "price": 2, "currency": "gold",
+        "desc": "Podstawowe narzędzie do Drwalstwa. Ma własny level 1-100 i 8 Tierów.",
+    },
+    "crafting_hammer": {
+        "name": "Młot Rzemieślniczy", "type": "tool", "tool_type": "crafting",
+        "price": 2, "currency": "gold",
+        "desc": "Narzędzie wymagane do Rzemiosła. Ma własny level 1-100, XP i 8 Tierów.",
+    },
+    "chef_knife": {
+        "name": "Nóż Kucharski", "type": "tool", "tool_type": "cooking",
+        "price": 1, "currency": "gold",
+        "desc": "Narzędzie wymagane do Gotowania. Ma własny level 1-100, XP i 8 Tierów.",
+    },
+    "herbalist_sickle": {
+        "name": "Sierp Zielarski", "type": "tool", "tool_type": "herbalism",
+        "price": 1, "currency": "gold",
+        "desc": "Narzędzie do Zielarstwa. Ma własny level 1-100, XP i 8 Tierów.",
+    },
+    "alchemy_mortar": {
+        "name": "Moździerz Alchemiczny", "type": "tool", "tool_type": "alchemy",
+        "price": 2, "currency": "gold",
+        "desc": "Narzędzie do Alchemii. Ma własny level 1-100, XP i 8 Tierów.",
+    },
+    "nettle": {"name": "Pokrzywa", "type": "resource", "price": None, "sell_silver": 5, "desc": "Pospolite zioło lecznicze."},
+    "chamomile": {"name": "Rumianek", "type": "resource", "price": None, "sell_silver": 7, "desc": "Łagodne zioło lecznicze."},
+    "mint": {"name": "Mięta", "type": "resource", "price": None, "sell_silver": 8, "desc": "Aromatyczne zioło."},
+    "sage": {"name": "Szałwia", "type": "resource", "price": None, "sell_silver": 12, "desc": "Silne zioło alchemiczne."},
+    "lavender": {"name": "Lawenda", "type": "resource", "price": None, "sell_silver": 14, "desc": "Pachnące zioło."},
+    "yarrow": {"name": "Krwawnik", "type": "resource", "price": None, "sell_silver": 16, "desc": "Zioło lecznicze."},
+    "lemon_balm": {"name": "Melisa", "type": "resource", "price": None, "sell_silver": 18, "desc": "Zioło przydatne w miksturach Many."},
+    "valerian": {"name": "Kozłek", "type": "resource", "price": None, "sell_silver": 25, "desc": "Leśne zioło."},
+    "ginseng": {"name": "Żeń-szeń", "type": "resource", "price": None, "sell_silver": 40, "desc": "Cenny korzeń alchemiczny."},
+    "nightshade": {"name": "Wilcza jagoda", "type": "resource", "price": None, "sell_silver": 55, "desc": "Rzadkie zioło alchemiczne."},
+    "mandrake": {"name": "Mandragora", "type": "resource", "price": None, "sell_gold": 1, "desc": "Rzadki magiczny korzeń."},
+    "moonflower": {"name": "Kwiat księżycowy", "type": "resource", "price": None, "sell_gold": 2, "desc": "Magiczny kwiat."},
+    "soulroot": {"name": "Korzeń duszy", "type": "resource", "price": None, "sell_gold": 3, "desc": "Korzeń nasycony energią dusz."},
+    "phoenix_leaf": {"name": "Liść feniksa", "type": "resource", "price": None, "sell_gold": 5, "desc": "Bardzo rzadki liść."},
+    "star_moss": {"name": "Gwiezdny mech", "type": "resource", "price": None, "sell_gold": 8, "desc": "Rzadki magiczny mech."},
+    "astral_lotus": {"name": "Astralny lotos", "type": "resource", "price": None, "sell_gold": 15, "desc": "Mityczne zioło."},
+    "mana_potion": {"name": "Mikstura Many", "type": "consumable", "price": None, "mana": 35, "desc": "Przywraca do 35 Many."},
+    "greater_healing_potion": {"name": "Wielka Mikstura Leczenia", "type": "consumable", "price": None, "heal": 70, "desc": "Przywraca do 70 HP."},
+    "greater_mana_potion": {"name": "Wielka Mikstura Many", "type": "consumable", "price": None, "mana": 70, "desc": "Przywraca do 70 Many."},
+    "vitality_elixir": {"name": "Eliksir Witalności", "type": "consumable", "price": None, "heal": 55, "mana": 30, "desc": "Przywraca do 55 HP i 30 Many."},
+    "fallen_branch": {"name": "Suche gałęzie", "type": "resource", "price": None, "sell_silver": 6, "desc": "Najprostszy materiał drwala."},
+    "birch_log": {"name": "Pień brzozy", "type": "resource", "price": None, "sell_silver": 10, "desc": "Lekkie drewno brzozowe."},
+    "pine_log": {"name": "Pień sosny", "type": "resource", "price": None, "sell_silver": 15, "desc": "Pospolite drewno sosnowe."},
+    "willow_log": {"name": "Pień wierzby", "type": "resource", "price": None, "sell_silver": 22, "desc": "Miękkie drewno wierzby."},
+    "oak_log": {"name": "Pień dębu", "type": "resource", "price": None, "sell_silver": 40, "desc": "Twarde drewno dębowe."},
+    "beech_log": {"name": "Pień buku", "type": "resource", "price": None, "sell_silver": 55, "desc": "Mocne drewno bukowe."},
+    "maple_log": {"name": "Pień klonu", "type": "resource", "price": None, "sell_silver": 70, "desc": "Cenne drewno klonowe."},
+    "ash_log": {"name": "Pień jesionu", "type": "resource", "price": None, "sell_silver": 90, "desc": "Sprężyste drewno jesionowe."},
+    "cedar_log": {"name": "Pień cedru", "type": "resource", "price": None, "sell_silver": 130, "desc": "Aromatyczne drewno cedrowe."},
+    "yew_log": {"name": "Pień cisu", "type": "resource", "price": None, "sell_gold": 2, "desc": "Rzadkie drewno cisu."},
+    "ironwood_log": {"name": "Pień żelaznego drzewa", "type": "resource", "price": None, "sell_gold": 5, "desc": "Niezwykle twarde drewno."},
+    "ebony_log": {"name": "Pień hebanu", "type": "resource", "price": None, "sell_gold": 8, "desc": "Ciężkie i bardzo cenne drewno."},
+    "silverwood_log": {"name": "Pień srebrnego drzewa", "type": "resource", "price": None, "sell_gold": 10, "desc": "Magiczne srebrzyste drewno."},
+    "spiritwood_log": {"name": "Pień drzewa duchów", "type": "resource", "price": None, "sell_gold": 15, "desc": "Drewno nasycone energią dusz."},
+    "ancient_heartwood": {"name": "Pradawna twardziel", "type": "resource", "price": None, "sell_gold": 30, "desc": "Rdzeń bardzo starego drzewa."},
+    "worldtree_wood": {"name": "Drewno Drzewa Świata", "type": "resource", "price": None, "sell_gold": 75, "desc": "Mityczny materiał dla najlepszych drwali."},
+    "iron_ingot": {
+        "name": "Żelazna sztabka", "type": "craft_material", "price": None,
+        "desc": "Przetopione żelazo używane w recepturach rzemieślniczych.",
+    },
+    "silver_ingot": {
+        "name": "Srebrna sztabka", "type": "craft_material", "price": None,
+        "desc": "Przetopione srebro używane w lepszych recepturach.",
+    },
+    "gold_ingot": {
+        "name": "Złota sztabka", "type": "craft_material", "price": None,
+        "desc": "Przetopione złoto używane w zaawansowanych recepturach.",
+    },
+    "oak_plank": {
+        "name": "Deska dębowa", "type": "craft_material", "price": None,
+        "desc": "Obrobiona deska z drewna dębowego.",
+    },
+    "ash_plank": {
+        "name": "Deska jesionowa", "type": "craft_material", "price": None,
+        "desc": "Sprężysta deska jesionowa.",
+    },
+    "yew_plank": {
+        "name": "Deska cisowa", "type": "craft_material", "price": None,
+        "desc": "Rzadka deska z drewna cisu.",
+    },
+    "ironwood_plank": {
+        "name": "Deska żelaznego drzewa", "type": "craft_material", "price": None,
+        "desc": "Bardzo twarda deska z żelaznego drzewa.",
+    },
+    "spiritwood_plank": {
+        "name": "Deska drzewa duchów", "type": "craft_material", "price": None,
+        "desc": "Magiczna deska nasycona energią dusz.",
+    },
+    "oak_iron_charm": {
+        "name": "Talizman Dębu i Żelaza", "type": "armor", "slot": "charm",
+        "defense": 2, "price": None,
+        "desc": "Wytwarzany talizman. Slot talizman. Obrona fizyczna +2.",
+    },
+    "yew_silver_charm": {
+        "name": "Talizman Cisu i Srebra", "type": "armor", "slot": "charm",
+        "defense": 3, "price": None,
+        "desc": "Rzadki wytwarzany talizman. Slot talizman. Obrona fizyczna +3.",
+    },
+    "spiritwood_gold_charm": {
+        "name": "Talizman Drzewa Dusz", "type": "armor", "slot": "charm",
+        "defense": 5, "price": None,
+        "desc": "Zaawansowany talizman z magicznego drewna i złota. Obrona fizyczna +5.",
+    },
+    "grilled_river_fish": {
+        "name": "Pieczona ryba rzeczna", "type": "consumable", "price": None,
+        "heal": 30,
+        "desc": "Prosta potrawa. Przywraca do 30 HP.",
+    },
+    "river_fish_stew": {
+        "name": "Gulasz rzeczny", "type": "consumable", "price": None,
+        "heal": 45,
+        "desc": "Syta potrawa z ryb rzecznych. Przywraca do 45 HP.",
+    },
+    "lake_fish_stew": {
+        "name": "Potrawka jeziorowa", "type": "consumable", "price": None,
+        "heal": 50, "mana": 10,
+        "desc": "Potrawa z ryb jeziorowych. Przywraca do 50 HP i 10 Many.",
+    },
+    "sea_chowder": {
+        "name": "Zupa morska", "type": "consumable", "price": None,
+        "heal": 60, "mana": 15,
+        "desc": "Gęsta zupa morska. Przywraca do 60 HP i 15 Many.",
+    },
+    "ocean_steak": {
+        "name": "Stek oceaniczny", "type": "consumable", "price": None,
+        "heal": 75, "mana": 25,
+        "desc": "Potężna potrawa z ryb oceanu. Przywraca do 75 HP i 25 Many.",
+    },
+    "master_fisher_feast": {
+        "name": "Uczta Mistrza Rybaka", "type": "consumable", "price": None,
+        "heal": 100, "mana": 40,
+        "desc": "Wielka uczta z czterech środowisk. Przywraca do 100 HP i 40 Many.",
+    },
+
     "small_fish": {
         "name": "Mała ryba", "type": "resource", "price": None,
         "desc": "Pospolity połów z płytkiej wody.", "sell_silver": 8,
@@ -1101,6 +1476,66 @@ ITEMS = {
         "name": "Halibut", "type": "resource", "price": None,
         "desc": "Duża i droga ryba denna.", "sell_gold": 20,
     },
+    "river_perch": {"name": "Okoń rzeczny", "type": "resource", "price": None, "sell_silver": 14, "desc": "Pospolity drapieżnik rzeczny."},
+    "barbel": {"name": "Brzana", "type": "resource", "price": None, "sell_silver": 25, "desc": "Silna ryba nurtu rzecznego."},
+    "pike": {"name": "Szczupak", "type": "resource", "price": None, "sell_silver": 60, "desc": "Duży słodkowodny drapieżnik."},
+    "zander": {"name": "Sandacz", "type": "resource", "price": None, "sell_silver": 85, "desc": "Cenny drapieżnik słodkowodny."},
+    "river_catfish": {"name": "Sum rzeczny", "type": "resource", "price": None, "sell_gold": 3, "desc": "Wielki mieszkaniec głębokiej rzeki."},
+    "lake_roach": {"name": "Płoć jeziorowa", "type": "resource", "price": None, "sell_silver": 10, "desc": "Pospolita ryba jeziorowa."},
+    "bream": {"name": "Leszcz", "type": "resource", "price": None, "sell_silver": 20, "desc": "Popularna ryba jezior."},
+    "tench": {"name": "Lin", "type": "resource", "price": None, "sell_silver": 35, "desc": "Ryba spokojnych, zarośniętych jezior."},
+    "lake_perch": {"name": "Okoń jeziorowy", "type": "resource", "price": None, "sell_silver": 45, "desc": "Drapieżnik jeziorowy."},
+    "lake_trout": {"name": "Troć jeziorowa", "type": "resource", "price": None, "sell_gold": 2, "desc": "Rzadka duża ryba chłodnych jezior."},
+    "giant_pike": {"name": "Olbrzymi szczupak", "type": "resource", "price": None, "sell_gold": 6, "desc": "Bardzo stary szczupak."},
+    "freshwater_eel": {"name": "Węgorz jeziorowy", "type": "resource", "price": None, "sell_gold": 8, "desc": "Rzadki węgorz z głębin jeziora."},
+    "turbot": {"name": "Turbot", "type": "resource", "price": None, "sell_gold": 6, "desc": "Cenna ryba denna morza."},
+    "mahi_mahi": {"name": "Mahi-mahi", "type": "resource", "price": None, "sell_gold": 10, "desc": "Szybka ryba oceaniczna."},
+    "wahoo": {"name": "Wahoo", "type": "resource", "price": None, "sell_gold": 15, "desc": "Bardzo szybki drapieżnik oceanu."},
+    "sailfish": {"name": "Żaglica", "type": "resource", "price": None, "sell_gold": 25, "desc": "Ekstremalnie szybka ryba oceaniczna."},
+    "ocean_sunfish": {"name": "Samogłów oceaniczny", "type": "resource", "price": None, "sell_gold": 40, "desc": "Ogromna ryba otwartego oceanu."},
+    # Dodatkowe ryby rzeczne
+    "dace": {"name": "Jelec", "type": "resource", "price": None, "sell_silver": 12, "desc": "Mała szybka ryba rzeczna."},
+    "chub": {"name": "Kleń", "type": "resource", "price": None, "sell_silver": 18, "desc": "Pospolita, silna ryba rzeczna."},
+    "common_nase": {"name": "Świnka", "type": "resource", "price": None, "sell_silver": 22, "desc": "Ryba czystych, płynących wód."},
+    "ide": {"name": "Jaź", "type": "resource", "price": None, "sell_silver": 32, "desc": "Cenna ryba większych rzek."},
+    "asp": {"name": "Boleń", "type": "resource", "price": None, "sell_silver": 70, "desc": "Szybki drapieżnik rzeczny."},
+    "grayling": {"name": "Lipień", "type": "resource", "price": None, "sell_silver": 90, "desc": "Cenna ryba chłodnych rzek."},
+    "burbot": {"name": "Miętus", "type": "resource", "price": None, "sell_gold": 2, "desc": "Rzadki denny drapieżnik rzeczny."},
+
+    # Dodatkowe ryby jeziorowe
+    "rudd": {"name": "Wzdręga", "type": "resource", "price": None, "sell_silver": 14, "desc": "Kolorowa ryba spokojnych jezior."},
+    "crucian_carp": {"name": "Karaś", "type": "resource", "price": None, "sell_silver": 18, "desc": "Wytrzymała ryba jeziorowa."},
+    "vendace": {"name": "Sielawa", "type": "resource", "price": None, "sell_silver": 55, "desc": "Ryba chłodnych, czystych jezior."},
+    "whitefish": {"name": "Sieja", "type": "resource", "price": None, "sell_gold": 1, "desc": "Cenna ryba głębokich jezior."},
+    "lake_char": {"name": "Palia jeziorowa", "type": "resource", "price": None, "sell_gold": 3, "desc": "Rzadki drapieżnik zimnych jezior."},
+
+    # Dodatkowe ryby morskie
+    "sprat": {"name": "Szprot", "type": "resource", "price": None, "sell_silver": 8, "desc": "Mała ryba morska żyjąca w ławicach."},
+    "whiting": {"name": "Witlinek", "type": "resource", "price": None, "sell_silver": 32, "desc": "Pospolita ryba morska."},
+    "hake": {"name": "Morszczuk", "type": "resource", "price": None, "sell_silver": 85, "desc": "Drapieżna ryba morska."},
+    "red_mullet": {"name": "Barwena", "type": "resource", "price": None, "sell_gold": 2, "desc": "Cenna morska ryba przydenna."},
+    "sole": {"name": "Sola", "type": "resource", "price": None, "sell_gold": 4, "desc": "Cenna płaska ryba morska."},
+    "monkfish": {"name": "Żabnica", "type": "resource", "price": None, "sell_gold": 9, "desc": "Duży morski drapieżnik głębinowy."},
+
+    # Dodatkowe ryby oceaniczne
+    "albacore": {"name": "Albakora", "type": "resource", "price": None, "sell_gold": 12, "desc": "Oceaniczny gatunek tuńczyka."},
+    "bigeye_tuna": {"name": "Tuńczyk wielkooki", "type": "resource", "price": None, "sell_gold": 20, "desc": "Cenny tuńczyk głębokiego oceanu."},
+    "barracuda": {"name": "Barakuda", "type": "resource", "price": None, "sell_gold": 18, "desc": "Szybki oceaniczny drapieżnik."},
+    "cobia": {"name": "Kobia", "type": "resource", "price": None, "sell_gold": 22, "desc": "Duża ryba otwartego morza i oceanu."},
+    "amberjack": {"name": "Seriola", "type": "resource", "price": None, "sell_gold": 28, "desc": "Silna oceaniczna ryba sportowa."},
+    "mako_shark": {"name": "Rekin mako", "type": "resource", "price": None, "sell_gold": 180, "desc": "Bardzo szybki i rzadki rekin oceaniczny."},
+    "tiger_shark": {"name": "Rekin tygrysi", "type": "resource", "price": None, "sell_gold": 300, "desc": "Wielki, bardzo rzadki drapieżnik oceaniczny."},
+
+    # Dodatkowe gatunki drewna
+    "alder_log": {"name": "Pień olchy", "type": "resource", "price": None, "sell_silver": 12, "desc": "Drewno lubiące wilgotne tereny."},
+    "poplar_log": {"name": "Pień topoli", "type": "resource", "price": None, "sell_silver": 18, "desc": "Lekkie i łatwe w obróbce drewno."},
+    "linden_log": {"name": "Pień lipy", "type": "resource", "price": None, "sell_silver": 28, "desc": "Miękkie drewno cenione przez rzemieślników."},
+    "chestnut_log": {"name": "Pień kasztana", "type": "resource", "price": None, "sell_silver": 110, "desc": "Twarde, trwałe drewno."},
+    "walnut_log": {"name": "Pień orzecha", "type": "resource", "price": None, "sell_gold": 2, "desc": "Cenne ciemne drewno orzechowe."},
+    "mahogany_log": {"name": "Pień mahoniu", "type": "resource", "price": None, "sell_gold": 6, "desc": "Szlachetne, ciemnoczerwone drewno."},
+    "teak_log": {"name": "Pień teku", "type": "resource", "price": None, "sell_gold": 9, "desc": "Bardzo trwałe i odporne drewno."},
+    "redwood_log": {"name": "Pień sekwoi", "type": "resource", "price": None, "sell_gold": 18, "desc": "Ogromne i rzadkie drewno ze starych drzew."},
+
     "stone_chunk": {
         "name": "Odłamek skały", "type": "resource", "price": None,
         "desc": "Pospolity urobek.", "sell_silver": 3,
@@ -1139,7 +1574,7 @@ ITEMS = {
 SHOPS = {
     "fish_market": ["fishing_rod"],
     "market": ["healing_potion", "leather_vest", "lucky_charm"],
-    "inn": ["healing_potion"],
+    "inn": ["healing_potion", "chef_knife"],
     "forge": [
         "iron_helmet",
         "iron_guard",
@@ -1148,7 +1583,149 @@ SHOPS = {
         "iron_boots",
         "forge_charm",
         "pickaxe",
+        "crafting_hammer",
     ],
+    "lumberjack_camp": ["saw"],
+    "herbalist_hut": ["herbalist_sickle", "alchemy_mortar"],
+}
+
+CRAFT_RECIPES = {
+    "iron_ingot": {
+        "name": "Żelazna sztabka", "stations": ("forge",),
+        "ingredients": {"iron_ore": 2}, "output": "iron_ingot", "quantity": 1,
+        "desc": "Przetop 2 Rudy żelaza w 1 Żelazną sztabkę.",
+    },
+    "silver_ingot": {
+        "name": "Srebrna sztabka", "stations": ("forge",),
+        "ingredients": {"silver_ore": 2}, "output": "silver_ingot", "quantity": 1,
+        "desc": "Przetop 2 Rudy srebra w 1 Srebrną sztabkę.",
+    },
+    "gold_ingot": {
+        "name": "Złota sztabka", "stations": ("forge",),
+        "ingredients": {"gold_ore": 2}, "output": "gold_ingot", "quantity": 1,
+        "desc": "Przetop 2 Rudy złota w 1 Złotą sztabkę.",
+    },
+    "oak_plank": {
+        "name": "Deska dębowa", "stations": ("lumberjack_camp",),
+        "ingredients": {"oak_log": 2}, "output": "oak_plank", "quantity": 1,
+        "desc": "Obrób 2 Pnie dębu w 1 Deskę dębową.",
+    },
+    "ash_plank": {
+        "name": "Deska jesionowa", "stations": ("lumberjack_camp",),
+        "ingredients": {"ash_log": 2}, "output": "ash_plank", "quantity": 1,
+        "desc": "Obrób 2 Pnie jesionu w 1 Deskę jesionową.",
+    },
+    "yew_plank": {
+        "name": "Deska cisowa", "stations": ("lumberjack_camp",),
+        "ingredients": {"yew_log": 2}, "output": "yew_plank", "quantity": 1,
+        "desc": "Obrób 2 Pnie cisu w 1 Deskę cisową.",
+    },
+    "ironwood_plank": {
+        "name": "Deska żelaznego drzewa", "stations": ("lumberjack_camp",),
+        "ingredients": {"ironwood_log": 2}, "output": "ironwood_plank", "quantity": 1,
+        "desc": "Obrób 2 Pnie żelaznego drzewa w 1 Deskę.",
+    },
+    "spiritwood_plank": {
+        "name": "Deska drzewa duchów", "stations": ("lumberjack_camp",),
+        "ingredients": {"spiritwood_log": 2}, "output": "spiritwood_plank", "quantity": 1,
+        "desc": "Obrób 2 Pnie drzewa duchów w 1 magiczną Deskę.",
+    },
+    "oak_iron_charm": {
+        "name": "Talizman Dębu i Żelaza", "stations": ("forge",),
+        "ingredients": {"oak_plank": 2, "iron_ingot": 1},
+        "output": "oak_iron_charm", "quantity": 1,
+        "desc": "Talizman obronny +2 z drewna dębowego i żelaza.",
+    },
+    "yew_silver_charm": {
+        "name": "Talizman Cisu i Srebra", "stations": ("forge",),
+        "ingredients": {"yew_plank": 2, "silver_ingot": 1},
+        "output": "yew_silver_charm", "quantity": 1,
+        "desc": "Rzadki talizman obronny +3.",
+    },
+    "spiritwood_gold_charm": {
+        "name": "Talizman Drzewa Dusz", "stations": ("forge",),
+        "ingredients": {"spiritwood_plank": 2, "gold_ingot": 1},
+        "output": "spiritwood_gold_charm", "quantity": 1,
+        "desc": "Zaawansowany talizman obronny +5.",
+    },
+}
+
+ALCHEMY_RECIPES = {
+    "healing_potion": {
+        "name": "Mikstura leczenia", "stations": ("herbalist_hut",),
+        "ingredients": {"nettle": 1, "chamomile": 1},
+        "output": "healing_potion", "quantity": 1,
+        "desc": "Pokrzywa + Rumianek. Przywraca 35 HP.",
+    },
+    "mana_potion": {
+        "name": "Mikstura Many", "stations": ("herbalist_hut",),
+        "ingredients": {"mint": 1, "lemon_balm": 1},
+        "output": "mana_potion", "quantity": 1,
+        "desc": "Mięta + Melisa. Przywraca 35 Many.",
+    },
+    "greater_healing_potion": {
+        "name": "Wielka Mikstura Leczenia", "stations": ("herbalist_hut",),
+        "ingredients": {"yarrow": 1, "ginseng": 1, "mandrake": 1},
+        "output": "greater_healing_potion", "quantity": 1,
+        "desc": "Krwawnik + Żeń-szeń + Mandragora. Przywraca 70 HP.",
+    },
+    "greater_mana_potion": {
+        "name": "Wielka Mikstura Many", "stations": ("herbalist_hut",),
+        "ingredients": {"sage": 1, "moonflower": 1, "star_moss": 1},
+        "output": "greater_mana_potion", "quantity": 1,
+        "desc": "Szałwia + Kwiat księżycowy + Gwiezdny mech. Przywraca 70 Many.",
+    },
+    "vitality_elixir": {
+        "name": "Eliksir Witalności", "stations": ("herbalist_hut",),
+        "ingredients": {"ginseng": 1, "soulroot": 1, "phoenix_leaf": 1},
+        "output": "vitality_elixir", "quantity": 1,
+        "desc": "Przywraca 55 HP i 30 Many.",
+    },
+    "soul_elixir": {
+        "name": "Eliksir Duszy", "stations": ("herbalist_hut",),
+        "ingredients": {"soulroot": 2, "astral_lotus": 1},
+        "output": "soul_elixir", "quantity": 1,
+        "desc": "Daje 80 Soul XP.",
+    },
+}
+
+COOK_RECIPES = {
+    "grilled_river_fish": {
+        "name": "Pieczona ryba rzeczna", "stations": ("inn", "fish_market"),
+        "ingredients": {"small_fish": 2},
+        "output": "grilled_river_fish", "quantity": 1,
+        "desc": "2 Małe ryby. Przywraca do 30 HP.",
+    },
+    "river_fish_stew": {
+        "name": "Gulasz rzeczny", "stations": ("inn", "fish_market"),
+        "ingredients": {"river_carp": 1, "chub": 1},
+        "output": "river_fish_stew", "quantity": 1,
+        "desc": "Karp rzeczny + Kleń. Przywraca do 45 HP.",
+    },
+    "lake_fish_stew": {
+        "name": "Potrawka jeziorowa", "stations": ("inn", "fish_market"),
+        "ingredients": {"bream": 1, "tench": 1},
+        "output": "lake_fish_stew", "quantity": 1,
+        "desc": "Leszcz + Lin. Przywraca do 50 HP i 10 Many.",
+    },
+    "sea_chowder": {
+        "name": "Zupa morska", "stations": ("inn", "fish_market"),
+        "ingredients": {"cod": 1, "herring": 1},
+        "output": "sea_chowder", "quantity": 1,
+        "desc": "Dorsz + Śledź. Przywraca do 60 HP i 15 Many.",
+    },
+    "ocean_steak": {
+        "name": "Stek oceaniczny", "stations": ("inn", "fish_market"),
+        "ingredients": {"tuna": 1, "mahi_mahi": 1},
+        "output": "ocean_steak", "quantity": 1,
+        "desc": "Tuńczyk + Mahi-mahi. Przywraca do 75 HP i 25 Many.",
+    },
+    "master_fisher_feast": {
+        "name": "Uczta Mistrza Rybaka", "stations": ("inn", "fish_market"),
+        "ingredients": {"salmon": 1, "lake_trout": 1, "turbot": 1, "albacore": 1},
+        "output": "master_fisher_feast", "quantity": 1,
+        "desc": "Łosoś + Troć jeziorowa + Turbot + Albakora. Przywraca do 100 HP i 40 Many.",
+    },
 }
 
 NPCS = {
@@ -1156,6 +1733,16 @@ NPCS = {
         "name": "Rybak Tomas", "room": "fish_market",
         "dialogue": "Jeśli naprawdę chcesz zostać wędkarzem, przynieś mi trzydzieści ryb.",
         "quest": "fisher_30_fish",
+    },
+    "lumberjack_bran": {
+        "name": "Drwal Bran", "room": "lumberjack_camp",
+        "dialogue": "Piłę kupisz tylko tutaj. Lepsza Piła i Drwalstwo otwierają dostęp do coraz rzadszego drewna.",
+        "quest": None,
+    },
+    "herbalist_liora": {
+        "name": "Zielarka Liora", "room": "herbalist_hut",
+        "dialogue": "Kupisz u mnie Sierp Zielarski i Moździerz Alchemiczny. Zebrane zioła wykorzystasz w Alchemii.",
+        "quest": None,
     },
     "priest_elor": {
         "name": "Kapłan Elor", "room": "temple",
@@ -1254,6 +1841,14 @@ NPC_DESCRIPTIONS = {
     "fisher_tomas": (
         "Doświadczony rybak z Targu Rybnego. Uczy podstaw Wędkarstwa i nagradza "
         "graczy, którzy udowodnią cierpliwość przy połowie."
+    ),
+    "lumberjack_bran": (
+        "Doświadczony drwal prowadzący Obóz Drwala. "
+        "Jako jedyny sprzedaje Piłę potrzebną do Drwalstwa."
+    ),
+    "herbalist_liora": (
+        "Zielarka i alchemiczka mieszkająca w Chacie Zielarki. "
+        "Sprzedaje Sierp Zielarski i Moździerz Alchemiczny."
     ),
     "priest_elor": (
         "Kapłan Świątyni Odrodzenia. Pomaga nowym bohaterom i pilnuje bezpieczeństwa "
@@ -1377,16 +1972,18 @@ SYSTEM_DESCRIPTIONS = {
 }
 
 
-LATEST_CHANGES_TITLE = "Soulbound v0.6.30 - Character Name Declension"
+LATEST_CHANGES_TITLE = "Soulbound v0.6.41 - Herbalism & Alchemy"
 LATEST_CHANGES = [
-    "Dodano odmianę imienia postaci przez 7 polskich przypadków.",
-    "Etap odmiany pojawia się po wyborze rasy i klasy.",
-    "Mianownik jest nazwą postaci, a gracz podaje pozostałe sześć form.",
-    "Zapisywane są Mianownik, Dopełniacz, Celownik, Biernik, Narzędnik, Miejscownik i Wołacz.",
-    "Dodano trwałe kolumny odmiany imienia w SQLite.",
-    "Stare postacie automatycznie dostają dotychczasowe imię we wszystkich przypadkach.",
-    "Dodano odmiana / przypadki / namecases do podglądu zapisanych form.",
-    "Powitanie po wejściu do świata używa Wołacza.",
+    "Dodano Zielarstwo 1-100 z własnym XP i 8 rangami.",
+    "Dodano Sierp Zielarski 1-100 z własnym XP, użyciami i 8 Tierami.",
+    "Dodano zbieraj, zbieraj on i zbieraj off; auto-Zielarstwo działa jak auto-łowienie.",
+    "Dodano Torbę Zielarską oraz 16 gatunków ziół.",
+    "Dodano Chatę Zielarki i Zielarkę Liorę.",
+    "Dodano Alchemię 1-100 z własnym XP i 8 rangami.",
+    "Dodano Moździerz Alchemiczny 1-100 z własnym XP, użyciami i 8 Tierami.",
+    "Dodano 6 receptur Alchemii pobierających zioła bezpośrednio z Torby Zielarskiej.",
+    "Wyższy Tier Sierpa może dać dodatkowe zioło, a wyższy Tier Moździerza dodatkową miksturę.",
+    "Dodano atlas ziola i zaktualizowano pełną pomoc.",
 ]
 
 HELP_TOPIC_ALIASES = {
@@ -1405,6 +2002,12 @@ HELP_TOPIC_ALIASES = {
     "professions": "profesje",
     "fishing": "wedkarstwo", "fish": "wedkarstwo",
     "mining": "gornictwo", "mine": "gornictwo",
+    "woodcutting": "drwalstwo", "drwal": "drwalstwo",
+    "crafting": "rzemioslo", "craft": "rzemioslo", "rzemiosło": "rzemioslo",
+    "cooking": "gotowanie", "cook": "gotowanie",
+    "herbalism": "zielarstwo", "zielarstwo": "zielarstwo",
+    "alchemy": "alchemia", "alchemia": "alchemia",
+    "recipes": "receptury", "recipe": "receptury", "przepisy": "receptury",
     "containers": "pojemniki",
     "shops": "sklepy", "shop": "sklepy",
     "multiplayer": "gracze", "players": "gracze",
@@ -1416,6 +2019,9 @@ HELP_TOPIC_ALIASES = {
     "skillnames": "nazwy_skilli", "nazwyskilli": "nazwy_skilli",
     "teachers": "nauczyciele", "trainers": "nauczyciele",
     "changes": "zmiany", "changelog": "zmiany",
+    "atlas": "atlas", "atlasy": "atlas",
+    "party": "druzyny", "parties": "druzyny", "druzyna": "druzyny", "drużyna": "druzyny",
+    "charisma": "charyzma", "charyzma": "charyzma", "haryzma": "charyzma",
 }
 
 HELP_TOPICS = {
@@ -1423,7 +2029,7 @@ HELP_TOPICS = {
         "Soulbound nie ma levelu postaci. Rozwój bohatera odbywa się przez pięć statystyk.",
         "Wszystkie klasy automatycznie rozwijają Siłę, Zręczność, Kondycję, Inteligencję i Siłę Woli.",
         "Broń Duszy ma osobny Soul Level 1-100.",
-        "Najważniejsze na start: look, exits, stats, inventory, quests, help komendy.",
+        "Najważniejsze na start: look, exits, stats, inventory, quests, atlas, druzyna, help komendy.",
         "Użyj opis <nazwa>, aby uzyskać szczegółowy opis elementu świata.",
     ],
     "nawigacja": [
@@ -1432,7 +2038,7 @@ HELP_TOPICS = {
         "location albo lokalizacja pokazuje lokację, strefę i wyjścia.",
         "map albo mapa pokazuje listę lokacji.",
         "prowadz <lokacja> albo walk to <location> automatycznie znajduje najkrótszą trasę.",
-        "Ruch zatrzymuje auto-łowienie i auto-kopanie.",
+        "Ruch zatrzymuje auto-łowienie, auto-kopanie, auto-Drwalstwo i auto-Zielarstwo.",
     ],
     "odmiana_imienia": [
         "Po wyborze rasy i klasy kreator zapisuje odmianę imienia przez 7 polskich przypadków.",
@@ -1449,7 +2055,7 @@ HELP_TOPICS = {
         "Inteligencja: Mana i Moc czarów klas magicznych.",
         "Siła Woli: obrona magiczna.",
         "Każdy pełny próg Rozwoju statystyk zwiększa wszystkie pięć statystyk o 1.",
-        "Komenda stats pokazuje wartości podstawowe i pochodne.",
+        "Komenda stats pokazuje wartości podstawowe i pochodne. Charyzma handlowa jest pokazywana osobno i nie należy do pięciu statystyk bojowych.",
     ],
     "walka": [
         "Walka jest turowa: gracz wykonuje jedną akcję, potem przeciwnik wykonuje jedną akcję.",
@@ -1476,6 +2082,7 @@ HELP_TOPICS = {
         "money pokazuje stan portfela.",
         "exchange pokazuje kursy; exchange gold i exchange mithril wykonują wymianę.",
         "Mithril jest najrzadszą walutą.",
+        "Charyzma handlowa daje rabaty u sklepikarzy.",
     ],
     "ekwipunek": [
         "inventory albo i pokazuje zwykły ekwipunek i opisy przedmiotów.",
@@ -1493,15 +2100,16 @@ HELP_TOPICS = {
     ],
     "profesje": [
         "Profesje mają własne poziomy 1-100 i własny XP.",
-        "Wędkarstwo i Górnictwo rozwijają się niezależnie.",
-        "Wędka i Kilof mają osobne od profesji poziomy 1-100 oraz osobny XP.",
-        "Wędka i Kilof mają po 8 Tierów: progi level 1, 15, 30, 45, 60, 75, 90 i 100.",
-        "Wędkarstwo i Górnictwo mają po 8 nazwanych rang na progach 1, 15, 30, 45, 60, 75, 90 i 100.",
+        "Wędkarstwo, Górnictwo, Drwalstwo, Zielarstwo i Alchemia rozwijają się niezależnie.",
+        "Wędka, Kilof, Piła, Młot Rzemieślniczy, Nóż Kucharski, Sierp Zielarski i Moździerz Alchemiczny mają własne poziomy 1-100 oraz osobny XP.",
+        "Wszystkie siedem narzędzi ma po 8 Tierów: progi level 1, 15, 30, 45, 60, 75, 90 i 100.",
+        "Wędkarstwo, Górnictwo, Drwalstwo, Zielarstwo i Alchemia mają po 8 nazwanych rang.",
         "Rangi profesji: Uczeń, Adept, Czeladnik, Specjalista, Ekspert, Mistrz, Arcymistrz, Legenda.",
-        "Każdy Tier Wędki i Kilofa ma własną unikalną nazwę.",
+        "Każdy Tier Wędki, Kilofa, Piły, Młota Rzemieślniczego i Noża Kucharskiego ma własną unikalną nazwę.",
         "professions albo profesje pokazuje profesje.",
         "tools albo narzedzia pokazuje poziomy narzędzi.",
         "tiers albo tiery pokazuje pełną listę nazw wszystkich Tierów.",
+        "Rudy i drewno można wykorzystać w Rzemiośle, a ryby w Gotowaniu.",
     ],
     "wedkarstwo": [
         "Do łowienia potrzebujesz Wędki.",
@@ -1509,8 +2117,8 @@ HELP_TOPICS = {
         "low on albo fish on włącza auto-łowienie; low off albo fish off je wyłącza.",
         "Każda złowiona ryba trafia automatycznie do Siatki na ryby, nigdy do zwykłego ekwipunku.",
         "Łowiska słodkowodne i morskie mają osobne tabele połowów.",
-        "Morskie Molo służy do połowów morskich. Śledź wymaga minimum levelu 30 Wędki.",
-        "Wędka ma 8 Tierów. Wyższy Tier daje rosnącą szansę na drugi egzemplarz złowionej ryby.",
+        "Wędkarstwo ma cztery środowiska: rzeka, jezioro, morze i ocean. Każde ma własne gatunki ryb.",
+        "Rzeka: Brzeg Rzeki i Kamienny Most. Jezioro: Brzeg Srebrnego Jeziora. Morze: Morskie Molo. Ocean: Oceaniczna Platforma. Wędka ma 8 Tierów i szansę na dodatkowy połów.",
     ],
     "gornictwo": [
         "Do kopania potrzebujesz Kilofa.",
@@ -1522,20 +2130,85 @@ HELP_TOPICS = {
         "Kilof ma 8 Tierów. Wyższy Tier daje rosnącą szansę na dodatkową zwykłą rudę.",
         "Bonus Tieru Kilofa nigdy nie podwaja czystego mithrilu.",
     ],
+    "drwalstwo": [
+        "Do Drwalstwa potrzebujesz Piły. Piłę sprzedaje wyłącznie Drwal Bran w Obozie Drwala.",
+        "tnij, drwal albo woodcut wykonuje pojedyncze pozyskanie drewna.",
+        "tnij on albo woodcut on włącza auto-Drwalstwo; tnij off albo woodcut off je wyłącza.",
+        "Drwalstwo działa w Obozie Drwala, na Łące, w Gaju Szeptów, Głębi Gaju i na Starym Trakcie. Różne obszary mają różne gatunki drewna.",
+        "Każde pozyskane drewno trafia automatycznie na Stos drewna.",
+        "Piła ma własny level 1-100, XP i 8 nazwanych Tierów.",
+        "Wyższy Tier Piły zwiększa szansę na dodatkową sztukę drewna.",
+        "Drewno można sprzedać na Rynku albo w Kuźni Dusz. Jest teraz 24 gatunki drewna, od Suchych gałęzi do Drewna Drzewa Świata.",
+    ],
+    "zielarstwo": [
+        "Do Zielarstwa potrzebujesz Sierpa Zielarskiego kupowanego w Chacie Zielarki.",
+        "Zielarstwo ma level 1-100, własny XP i 8 nazwanych rang.",
+        "Sierp Zielarski ma level 1-100, własny XP, użycia i 8 Tierów.",
+        "zbieraj wykonuje pojedynczy zbiór; zbieraj on i zbieraj off sterują auto-Zielarstwem.",
+        "Auto-Zielarstwo działa jak auto-łowienie i wyklucza się z pozostałymi auto-profesjami zbierackimi.",
+        "Zebrane zioła trafiają automatycznie do Torby Zielarskiej.",
+        "Wyższy Tier Sierpa zwiększa szansę na dodatkowe zioło.",
+        "atlas ziola pokazuje występowanie ziół.",
+    ],
+    "alchemia": [
+        "Do Alchemii potrzebujesz Moździerza Alchemicznego kupowanego w Chacie Zielarki.",
+        "Alchemia ma level 1-100, własny XP i 8 nazwanych rang.",
+        "Moździerz ma level 1-100, własny XP, użycia i 8 Tierów.",
+        "alchemia <mikstura> albo warz <mikstura> wykonuje recepturę.",
+        "receptury alchemia pokazuje receptury Alchemii.",
+        "Zioła są pobierane bezpośrednio z Torby Zielarskiej.",
+        "Udana receptura rozwija Alchemię i Moździerz.",
+        "Wyższy Tier Moździerza może dać dodatkową miksturę bez dodatkowych składników.",
+    ],
+    "rzemioslo": [
+        "Do Rzemiosła wymagany jest Młot Rzemieślniczy kupowany u Kowala Dorana w Kuźni Dusz.",
+        "Młot Rzemieślniczy ma własny level 1-100, XP i 8 nazwanych Tierów.",
+        "Każdy udany craft rozwija Młot. Wyższy Tier daje rosnącą szansę na dodatkowy produkt receptury.",
+        "Rzemiosło wykorzystuje rudy z Sakwy górniczej i drewno ze Stosu drewna bez ręcznego wyjmowania surowców.",
+        "W Kuźni Dusz przetapiasz Rudy żelaza, srebra i złota na sztabki.",
+        "W Obozie Drwala obrabiasz dąb, jesion, cis, żelazne drzewo i drzewo duchów na deski.",
+        "W Kuźni można następnie wytworzyć trzy talizmany: +2, +3 i +5 obrony fizycznej.",
+        "receptury albo recipes pokazuje pełną listę receptur.",
+        "craft <nazwa receptury> albo stworz <nazwa> wykonuje recepturę w odpowiedniej lokacji.",
+        "Gotowe sztabki, deski i talizmany trafiają do zwykłego ekwipunku.",
+    ],
+    "gotowanie": [
+        "Do Gotowania wymagany jest Nóż Kucharski kupowany w Karczmie Pod Błękitnym Płomieniem.",
+        "Nóż Kucharski ma własny level 1-100, XP i 8 nazwanych Tierów.",
+        "Każde udane gotowanie rozwija Nóż. Wyższy Tier daje rosnącą szansę na dodatkową potrawę.",
+        "Gotowanie wykorzystuje ryby bezpośrednio z Siatki na ryby.",
+        "Gotować można w Karczmie Pod Błękitnym Płomieniem oraz na Targu Rybnym.",
+        "cook <potrawa> albo gotuj <potrawa> przygotowuje potrawę.",
+        "Potrawy trafiają do zwykłego ekwipunku i używa się ich komendą use albo uzyj.",
+        "Potrawy przywracają HP, a lepsze potrawy również Manę.",
+        "Użycie jedzenia w aktywnej walce zużywa jedną turę, tak jak Mikstura leczenia.",
+    ],
+    "receptury": [
+        "receptury albo recipes pokazuje receptury Rzemiosła, Gotowania i Alchemii.",
+        "receptury craft pokazuje tylko rzemiosło.",
+        "receptury cook pokazuje tylko Gotowanie.",
+        "receptury alchemia pokazuje tylko Alchemię.",
+        "Każda receptura podaje składniki, wynik i miejsce wykonania.",
+        "Rzemiosło wymaga Młota Rzemieślniczego, Gotowanie Noża Kucharskiego, a Alchemia Moździerza Alchemicznego.",
+        "Surowce profesji są pobierane najpierw z Siatki, Sakwy lub Stosu, a dopiero potem ze zwykłego ekwipunku.",
+    ],
     "pojemniki": [
-        "Siatka na ryby i Sakwa górnicza są osobnymi trwałymi magazynami.",
+        "Siatka na ryby, Sakwa górnicza, Stos drewna i Torba Zielarska są osobnymi trwałymi magazynami.",
         "net albo siatka pokazuje ryby.",
         "bag albo sakwa pokazuje rudy.",
+        "drewno, stos albo woodpile pokazuje drewno.",
+        "ziola, herbs albo herbbag pokazuje Torbę Zielarską.",
         "put fish net lub wloz ryba siatka przenosi ryby ze zwykłego ekwipunku.",
         "put ore bag lub wloz ruda sakwa przenosi rudy.",
-        "take <przedmiot> net/bag albo wyjmij <przedmiot> siatka/sakwa wyjmuje surowiec.",
+        "put wood woodpile lub wloz drewno stos przenosi drewno.",
+        "take <przedmiot> net/bag/woodpile albo wyjmij <przedmiot> siatka/sakwa/stos wyjmuje surowiec.",
     ],
     "sklepy": [
         "shop, sklep, list albo lista pokazuje ofertę sprzedawcy w aktualnej lokacji.",
         "buy albo kup <przedmiot> kupuje rzecz.",
-        "sell albo sprzedaj <ryba lub ruda> sprzedaje surowiec.",
+        "sell albo sprzedaj <ryba, ruda lub drewno> sprzedaje surowiec.",
         "opis <przedmiot> pozwala sprawdzić działanie, cenę kupna i wartość sprzedaży.",
-        "Kowal Doran w Kuźni Dusz sprzedaje pełny żelazny zestaw ochronny na sześć slotów oraz Kilof.",
+        "Kowal Doran sprzedaje pełny żelazny zestaw ochronny i Kilof. Piłę sprzedaje wyłącznie Drwal Bran w Obozie Drwala.",
     ],
     "gracze": [
         "who pokazuje graczy online.",
@@ -1549,14 +2222,19 @@ HELP_TOPICS = {
         "Licznik śmierci jest widoczny w stats.",
     ],
     "rasy": [
-        "W grze jest 12 ras. Rasa ustala statystyki startowe.",
-        "Wpisz opis <nazwa rasy>, np. opis Elf albo opis Troll, aby poznać dokładne wartości i zalety.",
+        "W grze jest 13 ras. Rasa ustala statystyki startowe.",
+        "Każda z 13 ras ma własny stały pasyw rasowy.",
+        "stats pokazuje aktywny pasyw twojej rasy.",
+        "Wpisz opis <nazwa rasy>, np. opis Elf albo opis Troll, aby poznać dokładne wartości i pasyw.",
+        "Bonusy rasowe mogą łączyć się z pasywami klasowymi.",
         "Wszystkie rasy mogą wybrać każdą klasę.",
     ],
     "klasy": [
         "W grze jest 12 klas: 6 fizycznych i 6 magicznych.",
         "Każda klasa rozwija wszystkie pięć statystyk.",
         "Klasa określa typ walki i przypisaną Broń Duszy.",
+        "Każda klasa ma własny stały pasyw klasowy.",
+        "stats pokazuje aktywny pasyw twojej klasy.",
         "Wpisz opis <nazwa klasy>, np. opis Mag albo opis Wojownik.",
     ],
     "umiejetnosci": [
@@ -1580,6 +2258,37 @@ HELP_TOPICS = {
         "talk <nauczyciel> uruchamia lekcję o klasie i jej umiejętnościach.",
         "Nauczyciel twojej klasy faktycznie uczy skilli po spełnieniu wymaganego Soul Level.",
         "Nauczyciele nie zmieniają klasy postaci. Nauczone skille są zapisywane w SQLite.",
+    ],
+    "atlas": [
+        "atlas pokazuje działy: ryby, drewno i rudy.",
+        "atlas ryby pokazuje cztery środowiska: rzeka, jezioro, morze i ocean.",
+        "atlas drewno pokazuje, gdzie występują gatunki drewna.",
+        "atlas rudy pokazuje miejsca wydobycia i orientacyjny wymagany level Kilofa.",
+        "atlas <nazwa surowca> wyszukuje konkretną rybę, drewno albo rudę.",
+        "Do podróży nadal używaj prowadz <lokacja>.",
+    ],
+    "charyzma": [
+        "Charyzma handlowa jest osobnym rozwojem społecznym. Nie jest szóstą statystyką bojową i nie tworzy levelu postaci.",
+        "Każda udana sprzedaż surowca zwiększa Charyzmę o 1.",
+        "Co 4 Charyzmy zwiększają rabat sklepowy o 1 procent, maksymalnie do 25 procent.",
+        "W sklepie płacisz bazową walutą, a rabat jest zwracany w srebrze, więc działa także na towary kosztujące złoto.",
+        "Startowy limit drużyny lidera wynosi 8 osób łącznie z liderem.",
+        "Co 25 Charyzmy lider otrzymuje jedno dodatkowe miejsce w drużynie.",
+        "charyzma albo charisma pokazuje Charyzmę, rabat i limit drużyny.",
+    ],
+    "druzyny": [
+        "Drużyny działają dla graczy online.",
+        "druzyna pokazuje skład, lidera, lokacje członków i limit.",
+        "druzyna zapros <gracz> wysyła zaproszenie. Jeśli nie masz drużyny, zostajesz liderem.",
+        "druzyna dolacz przyjmuje zaproszenie; druzyna odrzuc je odrzuca.",
+        "druzyna opusc opuszcza drużynę. Jeśli odchodzi lider, liderem zostaje kolejny członek.",
+        "druzyna wyrzuc <gracz> oraz druzyna rozwiaz są komendami lidera.",
+        "pc <tekst> wysyła wiadomość na czat drużyny.",
+        "Startowy limit wynosi 8 osób. Co 25 Charyzmy lidera daje +1 miejsce.",
+        "Członkowie w tym samym pomieszczeniu mogą wspólnie atakować tego samego przeciwnika.",
+        "Po zwycięstwie obecni członkowie dostają pełny EXP rozwoju, Soul XP i postęp zadań.",
+        "Waluta z przeciwnika jest dzielona, a każdy wylosowany drop trafia do jednego losowego członka.",
+        "Walka nadal jest turowa: po akcji konkretnego gracza przeciwnik wykonuje jeden kontratak na tego gracza.",
     ],
     "opisy": [
         "Komenda opis bez argumentu opisuje aktualną lokację.",
@@ -1833,6 +2542,7 @@ class Database:
                 silver INTEGER NOT NULL DEFAULT 250,
                 gold INTEGER NOT NULL DEFAULT 2,
                 mithril INTEGER NOT NULL DEFAULT 0,
+                charisma INTEGER NOT NULL DEFAULT 0,
                 deaths INTEGER NOT NULL DEFAULT 0,
                 FOREIGN KEY(account_id) REFERENCES accounts(id) ON DELETE CASCADE
             );
@@ -1917,6 +2627,7 @@ class Database:
             "silver": "INTEGER NOT NULL DEFAULT 250",
             "gold": "INTEGER NOT NULL DEFAULT 2",
             "mithril": "INTEGER NOT NULL DEFAULT 0",
+            "charisma": "INTEGER NOT NULL DEFAULT 0",
             "deaths": "INTEGER NOT NULL DEFAULT 0",
             "name_nom": "TEXT NOT NULL DEFAULT ''",
             "name_gen": "TEXT NOT NULL DEFAULT ''",
@@ -2000,13 +2711,13 @@ class Database:
             UPDATE characters SET
                 strength=?, dexterity=?, constitution=?, intelligence=?, willpower=?,
                 stat_progress=?, soul_level=?, soul_xp=?, soul_tier=?, room_id=?,
-                silver=?, gold=?, mithril=?, deaths=?
+                silver=?, gold=?, mithril=?, charisma=?, deaths=?
             WHERE account_id=?
             """,
             (
                 c.strength, c.dexterity, c.constitution, c.intelligence, c.willpower,
                 c.stat_progress, c.soul_level, c.soul_xp, c.soul_tier, c.room_id,
-                c.silver, c.gold, c.mithril, c.deaths, c.account_id,
+                c.silver, c.gold, c.mithril, c.charisma, c.deaths, c.account_id,
             ),
         )
         self.conn.commit()
@@ -2343,6 +3054,7 @@ class Character:
     silver: int
     gold: int
     mithril: int
+    charisma: int
     deaths: int
 
     @classmethod
@@ -2361,7 +3073,7 @@ class Character:
             soul_level=row["soul_level"], soul_xp=row["soul_xp"],
             soul_tier=row["soul_tier"], room_id=row["room_id"],
             silver=row["silver"], gold=row["gold"], mithril=row["mithril"],
-            deaths=row["deaths"],
+            charisma=row["charisma"], deaths=row["deaths"],
         )
 
     def name_case(self, case):
@@ -2378,7 +3090,8 @@ class Character:
 
     def max_hp(self):
         # Kondycja bezpośrednio zwiększa maksymalne HP.
-        return 40 + self.constitution * 5
+        base = 40 + self.constitution * 5
+        return max(1, int(round(base * self.racial_max_hp_multiplier())))
 
     def physical_power(self):
         # Siła odpowiada za obrażenia fizyczne.
@@ -2390,22 +3103,179 @@ class Character:
 
     def dodge_chance(self):
         # Szybkość przekłada się na szansę uniknięcia kontrataku.
-        # Limit 35%, żeby Zręczność nie dawała pełnej nietykalności.
-        return min(0.35, max(0.0, (self.speed() - 20) / 300.0))
+        # Bonusy klasy i rasy mogą się łączyć.
+        base = max(0.0, (self.speed() - 20) / 300.0)
+        return min(
+            0.45,
+            base + self.class_dodge_bonus() + self.racial_dodge_bonus()
+        )
 
     def max_mana(self):
         if self.class_type != "magic":
             return 0
         # Inteligencja zwiększa pulę many.
-        return 20 + self.intelligence * 5
+        base = 20 + self.intelligence * 5
+        return max(0, int(round(base * self.racial_max_mana_multiplier())))
 
     def spell_power(self):
         # Inteligencja zwiększa siłę czarów.
         return self.intelligence
 
+    def class_passive_text(self):
+        return {
+            "Wojownik": "+10 procent obrażeń fizycznych",
+            "Berserker": "+12 procent obrażeń fizycznych",
+            "Łotrzyk": "+5 punktów procentowych do uniku",
+            "Łowca": "+8 procent obrażeń fizycznych",
+            "Mnich": "+8 procent mocy klasowego leczenia",
+            "Strażnik": "10 procent redukcji wszystkich otrzymywanych obrażeń",
+            "Mag": "+10 procent obrażeń magicznych",
+            "Nekromanta": "+15 procent leczenia z wysysania życia",
+            "Kapłan": "+10 procent mocy klasowego leczenia",
+            "Czarownik": "+12 procent obrażeń magicznych",
+            "Druid": "+10 procent mocy klasowego leczenia",
+            "Psionik": "+10 procent obrony magicznej",
+        }.get(self.class_name, "brak")
+
+    def class_physical_damage_multiplier(self):
+        return {"Wojownik": 1.10, "Berserker": 1.12, "Łowca": 1.08}.get(self.class_name, 1.0)
+
+    def class_magic_damage_multiplier(self):
+        return {"Mag": 1.10, "Czarownik": 1.12}.get(self.class_name, 1.0)
+
+    def class_healing_multiplier(self):
+        return {"Mnich": 1.08, "Kapłan": 1.10, "Druid": 1.10}.get(self.class_name, 1.0)
+
+    def class_drain_healing_multiplier(self):
+        return 1.15 if self.class_name == "Nekromanta" else 1.0
+
+    def class_dodge_bonus(self):
+        return 0.05 if self.class_name == "Łotrzyk" else 0.0
+
+    def class_damage_reduction_percent(self):
+        return 10 if self.class_name == "Strażnik" else 0
+
+    def class_magic_defense_multiplier(self):
+        return 1.10 if self.class_name == "Psionik" else 1.0
+
+    def apply_class_damage_reduction(self, damage):
+        damage = max(1, int(damage))
+        percent = self.class_damage_reduction_percent()
+        if percent <= 0:
+            return damage, 0
+        reduced = max(1, int(round(damage * (1.0 - percent / 100.0))))
+        return reduced, max(0, damage - reduced)
+
+    def racial_passive_text(self):
+        return {
+            "Człowiek": "+10 procent Postępu Rozwoju statystyk",
+            "Ogr": "+12 procent obrażeń fizycznych",
+            "Elf": "+5 punktów procentowych do uniku",
+            "Krasnolud": "10 procent redukcji wszystkich otrzymywanych obrażeń",
+            "Ork": "+10 procent maksymalnego HP",
+            "Niziołek": "+3 punkty procentowe szansy na bonusowy połów, rudę lub drewno",
+            "Mroczny Elf": "+10 procent obrażeń magicznych",
+            "Gnom": "+15 procent maksymalnej Many",
+            "Smoczy": "+8 procent wszystkich zadawanych obrażeń",
+            "Troll": "12 procent redukcji otrzymywanych obrażeń fizycznych",
+            "Diablę": "+10 procent zdobywanego Soul XP",
+            "Aasimar": "+12 procent obrony magicznej",
+            "Driada": "+15 procent mocy klasowego leczenia",
+        }.get(self.race, "brak")
+
+    def racial_stat_progress_multiplier(self):
+        return 1.10 if self.race == "Człowiek" else 1.0
+
+    def racial_physical_damage_multiplier(self):
+        return 1.12 if self.race == "Ogr" else 1.0
+
+    def racial_dodge_bonus(self):
+        return 0.05 if self.race == "Elf" else 0.0
+
+    def racial_max_hp_multiplier(self):
+        return 1.10 if self.race == "Ork" else 1.0
+
+    def racial_profession_bonus_chance(self):
+        return 0.03 if self.race == "Niziołek" else 0.0
+
+    def racial_magic_damage_multiplier(self):
+        return 1.10 if self.race == "Mroczny Elf" else 1.0
+
+    def racial_max_mana_multiplier(self):
+        return 1.15 if self.race == "Gnom" else 1.0
+
+    def racial_all_damage_multiplier(self):
+        return 1.08 if self.race == "Smoczy" else 1.0
+
+    def racial_physical_damage_reduction_percent(self):
+        return 12 if self.race == "Troll" else 0
+
+    def racial_soul_xp_multiplier(self):
+        return 1.10 if self.race == "Diablę" else 1.0
+
+    def racial_magic_defense_multiplier(self):
+        return 1.12 if self.race == "Aasimar" else 1.0
+
+    def racial_healing_multiplier(self):
+        # Driada jest rasą specjalizującą się w leczeniu.
+        if self.race == "Driada":
+            return 1.15
+        return 1.0
+
+    def racial_healing_bonus_percent(self):
+        return int(round((self.racial_healing_multiplier() - 1.0) * 100))
+
+    def racial_damage_reduction_percent(self):
+        # Krasnolud ma stałą rasową odporność na każde otrzymane trafienie.
+        if self.race == "Krasnolud":
+            return 10
+        return 0
+
+    def apply_racial_damage_reduction(self, damage):
+        damage = max(1, int(damage))
+        percent = self.racial_damage_reduction_percent()
+        if percent <= 0:
+            return damage, 0
+        reduced = max(1, int(round(damage * (1.0 - percent / 100.0))))
+        prevented = max(0, damage - reduced)
+        return reduced, prevented
+
     def magic_defense(self):
         # Siła Woli odpowiada wyłącznie za obronę magiczną.
-        return max(0, self.willpower // 2)
+        base = max(0, self.willpower // 2)
+        return max(
+            0,
+            int(
+                round(
+                    base
+                    * self.class_magic_defense_multiplier()
+                    * self.racial_magic_defense_multiplier()
+                )
+            )
+        )
+
+    def shop_discount_percent(self):
+        return min(
+            CHARISMA_MAX_DISCOUNT,
+            max(0, self.charisma // CHARISMA_DISCOUNT_STEP),
+        )
+
+    def party_capacity(self):
+        # Startowo 8 osób łącznie z liderem.
+        # Co 25 Charyzmy lider otrzymuje jedno kolejne miejsce.
+        return PARTY_BASE_CAPACITY + max(0, self.charisma // PARTY_CHARISMA_STEP)
+
+    def charisma_to_next_discount(self):
+        if self.shop_discount_percent() >= CHARISMA_MAX_DISCOUNT:
+            return 0
+        next_value = (self.shop_discount_percent() + 1) * CHARISMA_DISCOUNT_STEP
+        return max(0, next_value - self.charisma)
+
+    def charisma_to_next_party_slot(self):
+        next_value = (
+            (max(0, self.charisma) // PARTY_CHARISMA_STEP) + 1
+        ) * PARTY_CHARISMA_STEP
+        return max(0, next_value - self.charisma)
 
     def soul_xp_to_next(self):
         if self.soul_level >= SOUL_MAX_LEVEL:
@@ -2424,7 +3294,16 @@ class Character:
         return None
 
     def add_stat_progress(self, amount):
+        base_amount = max(0, int(amount))
+        amount = max(
+            0,
+            int(round(base_amount * self.racial_stat_progress_multiplier()))
+        )
         messages = [f"Postęp rozwoju statystyk +{amount}."]
+        if amount > base_amount:
+            messages.append(
+                f"Bonus rasy {self.race}: +{amount - base_amount} Postępu Rozwoju."
+            )
         self.stat_progress += amount
         while self.stat_progress >= STAT_GROWTH_THRESHOLD:
             self.stat_progress -= STAT_GROWTH_THRESHOLD
@@ -2445,7 +3324,16 @@ class Character:
     def add_soul_xp(self, amount):
         if self.soul_level >= SOUL_MAX_LEVEL:
             return ["Broń Duszy ma już Soul Level 100."]
+        base_amount = max(0, int(amount))
+        amount = max(
+            0,
+            int(round(base_amount * self.racial_soul_xp_multiplier()))
+        )
         messages = [f"Broń Duszy otrzymuje {amount} Soul XP."]
+        if amount > base_amount:
+            messages.append(
+                f"Bonus rasy {self.race}: +{amount - base_amount} Soul XP."
+            )
         self.soul_xp += amount
         while self.soul_level < SOUL_MAX_LEVEL:
             needed = self.soul_xp_to_next()
@@ -2537,6 +3425,10 @@ class Session:
         self.auto_fishing_task = None
         self.auto_mining = False
         self.auto_mining_task = None
+        self.auto_woodcutting = False
+        self.auto_woodcutting_task = None
+        self.auto_herbalism = False
+        self.auto_herbalism_task = None
         self.guiding = False
         self.skill_cooldowns = {}
         self.skill_guard = 0
@@ -2850,6 +3742,7 @@ class Session:
             "look lub l - opis aktualnej lokacji",
             "exits - dostępne kierunki",
             "map - lista lokacji świata",
+            "atlas [ryby|drewno|rudy|surowiec] - atlas pozyskiwania surowców",
             "where - aktualna lokacja",
             "location / lokalizacja - lokacja, strefa i wyjścia",
             "north/south/east/west/up/down lub n/s/e/w/u/d - ruch",
@@ -2857,6 +3750,9 @@ class Session:
             "who - gracze online",
             "say tekst - rozmowa lokalna",
             "tell gracz tekst - wiadomość prywatna",
+            "druzyna / party - zarządzanie drużyną",
+            "pc tekst - czat drużyny",
+            "charyzma / charisma - rabat sklepowy i limit drużyny",
             "stats - statystyki",
             "odmiana / przypadki - pokaż 7 form imienia postaci",
             "skills / umiejetnosci - lista umiejętności twojej klasy",
@@ -2867,22 +3763,33 @@ class Session:
             "money - srebro, złoto i mithril",
             "exchange - kurs wymiany",
             "exchange gold / exchange mithril - wymiana walut",
-            "professions / profesje - Wędkarstwo i Górnictwo",
-            "rangi / ranks - pełna lista nazw rang Wędkarstwa i Górnictwa",
-            "tools / narzedzia - level Wędki i Kilofa",
-            "tiers / tiery / nazwytierow - pełna lista nazw 8 Tierów Wędki i Kilofa",
+            "professions / profesje - Wędkarstwo, Górnictwo i Drwalstwo",
+            "rangi / ranks - pełna lista rang trzech profesji",
+            "tools / narzedzia - poziomy wszystkich 7 narzędzi",
+            "tiers / tiery / nazwytierow - pełna lista 8 Tierów wszystkich 7 narzędzi",
             "fish / wedkuj / low - pojedynczy połów",
             "low on / fish on - auto-łowienie",
             "low off / fish off - wyłącz auto-łowienie",
             "mine / kop - pojedyncze wydobycie",
             "kop on / mine on - auto-kopanie",
             "kop off / mine off - wyłącz auto-kopanie",
+            "tnij / drwal / woodcut - pojedyncze pozyskanie drewna",
+            "tnij on / woodcut on - auto-Drwalstwo",
+            "tnij off / woodcut off - wyłącz auto-Drwalstwo",
+            "zbieraj / zielarstwo - pojedynczy zbiór ziół",
+            "zbieraj on / zbieraj off - auto-Zielarstwo",
+            "ziola / herbs - Torba Zielarska",
+            "alchemia / warz receptura - warzenie mikstur",
             "net / siatka - Siatka na ryby",
             "bag / sakwa - Sakwa górnicza",
+            "drewno / stos / woodpile - Stos drewna",
             "put fish net / wloz ryba siatka - przenieś ryby do Siatki",
             "put ore bag / wloz ruda sakwa - przenieś rudy do Sakwy",
             "take przedmiot net/bag / wyjmij przedmiot siatka/sakwa - wyjmij surowiec",
-            "sell / sprzedaj przedmiot - sprzedaj rybę lub rudę",
+            "sell / sprzedaj przedmiot - sprzedaj rybę, rudę lub drewno",
+            "receptury / przepisy / recipes [craft|cook] - lista receptur",
+            "craft / stworz / wytworz receptura - rzemiosło z rud i drewna",
+            "cook / gotuj receptura - przygotuj potrawę z ryb",
             "inventory / i - zwykły ekwipunek",
             "equipment - założone wyposażenie",
             "equip przedmiot - załóż pancerz lub talizman",
@@ -2913,7 +3820,9 @@ class Session:
             await self.send(
                 "Użyj help <temat>. Tematy: podstawy, komendy, nawigacja, statystyki, "
                 "walka, dusza, pieniadze, ekwipunek, zadania, profesje, wedkarstwo, "
-                "gornictwo, pojemniki, sklepy, gracze, smierc, rasy, klasy, umiejetnosci, nazwy_skilli, nauczyciele, opisy."
+                "gornictwo, drwalstwo, zielarstwo, alchemia, rzemioslo, gotowanie, receptury, atlas, "
+                "charyzma, druzyny, pojemniki, sklepy, gracze, smierc, rasy, klasy, "
+                "umiejetnosci, nazwy_skilli, nauczyciele, opisy."
             )
             await self.send("help tematy - lista tematów.")
             await self.send("help wszystko - pełny przewodnik.")
@@ -2989,10 +3898,14 @@ class Session:
 
     def room_special_features(self, room_id):
         features = []
-        if room_id in FRESHWATER_FISHING_ROOMS:
-            features.append("łowisko słodkowodne")
-        if room_id in MARINE_FISHING_ROOMS:
+        if room_id in RIVER_FISHING_ROOMS:
+            features.append("łowisko rzeczne")
+        if room_id in LAKE_FISHING_ROOMS:
+            features.append("łowisko jeziorowe")
+        if room_id in SEA_FISHING_ROOMS:
             features.append("łowisko morskie")
+        if room_id in OCEAN_FISHING_ROOMS:
+            features.append("łowisko oceaniczne")
         if room_id in MINING_ROOMS:
             features.append("miejsce wydobycia")
         if room_id in SHOPS:
@@ -3029,6 +3942,179 @@ class Session:
         if len(partial) == 1:
             return partial[0]
         return None
+
+    def atlas_item_locations(self, item_id):
+        locations = []
+
+        if item_id in RIVER_FISH_ATLAS:
+            locations.extend(ROOMS[r]["name"] for r in sorted(RIVER_FISHING_ROOMS))
+        if item_id in LAKE_FISH_ATLAS:
+            locations.extend(ROOMS[r]["name"] for r in sorted(LAKE_FISHING_ROOMS))
+        if item_id in SEA_FISH_ATLAS:
+            locations.extend(ROOMS[r]["name"] for r in sorted(SEA_FISHING_ROOMS))
+        if item_id in OCEAN_FISH_ATLAS:
+            locations.extend(ROOMS[r]["name"] for r in sorted(OCEAN_FISHING_ROOMS))
+
+        if item_id in WOOD_BEGINNER_ATLAS:
+            locations.extend(
+                ROOMS[r]["name"] for r in ("lumberjack_camp", "meadow")
+            )
+        if item_id in WOOD_FOREST_ATLAS:
+            locations.extend(
+                ROOMS[r]["name"] for r in ("whisper_grove", "old_road")
+            )
+        if item_id in WOOD_DEEP_ATLAS:
+            locations.append(ROOMS["deep_grove"]["name"])
+
+        if item_id in ORE_RESOURCE_IDS:
+            locations.extend(ROOMS[r]["name"] for r in sorted(MINING_ROOMS))
+        if item_id in HERB_MEADOW_ATLAS:
+            locations.extend(ROOMS[r]["name"] for r in ("herbalist_hut", "meadow"))
+        if item_id in HERB_FOREST_ATLAS:
+            locations.extend(ROOMS[r]["name"] for r in ("whisper_grove", "old_road"))
+        if item_id in HERB_WATER_ATLAS:
+            locations.extend(ROOMS[r]["name"] for r in ("riverbank", "lake_shore"))
+        if item_id in HERB_DEEP_ATLAS:
+            locations.append(ROOMS["deep_grove"]["name"])
+
+        result = []
+        seen = set()
+        for value in locations:
+            if value not in seen:
+                seen.add(value)
+                result.append(value)
+        return result
+
+    def atlas_names(self, item_ids):
+        return ", ".join(
+            sorted(
+                (ITEMS[item_id]["name"] for item_id in item_ids),
+                key=str.lower,
+            )
+        )
+
+    async def show_atlas(self, query=""):
+        q = self.normalize_description_query(query)
+
+        if not q:
+            await self.send("ATLAS SUROWCÓW")
+            await self.send("Działy: ryby, drewno, rudy, zioła.")
+            await self.send(
+                "Użycie: atlas ryby, atlas drewno, atlas rudy "
+                "albo atlas <nazwa surowca>."
+            )
+            return
+
+        if q in ("ryby", "fish", "wedkarstwo"):
+            await self.send("ATLAS RYB")
+            groups = (
+                ("Rzeka", RIVER_FISHING_ROOMS, RIVER_FISH_ATLAS),
+                ("Jezioro", LAKE_FISHING_ROOMS, LAKE_FISH_ATLAS),
+                ("Morze", SEA_FISHING_ROOMS, SEA_FISH_ATLAS),
+                ("Ocean", OCEAN_FISHING_ROOMS, OCEAN_FISH_ATLAS),
+            )
+            for title, rooms, items in groups:
+                places = ", ".join(ROOMS[r]["name"] for r in sorted(rooms))
+                await self.send(f"{title}. Łowiska: {places}.")
+                await self.send("Gatunki: " + self.atlas_names(items) + ".")
+            return
+
+        fish_groups = {
+            "rzeka": ("Rzeka", RIVER_FISHING_ROOMS, RIVER_FISH_ATLAS),
+            "river": ("Rzeka", RIVER_FISHING_ROOMS, RIVER_FISH_ATLAS),
+            "jezioro": ("Jezioro", LAKE_FISHING_ROOMS, LAKE_FISH_ATLAS),
+            "lake": ("Jezioro", LAKE_FISHING_ROOMS, LAKE_FISH_ATLAS),
+            "morze": ("Morze", SEA_FISHING_ROOMS, SEA_FISH_ATLAS),
+            "sea": ("Morze", SEA_FISHING_ROOMS, SEA_FISH_ATLAS),
+            "ocean": ("Ocean", OCEAN_FISHING_ROOMS, OCEAN_FISH_ATLAS),
+        }
+        if q in fish_groups:
+            title, rooms, items = fish_groups[q]
+            await self.send(f"ATLAS: {title.upper()}")
+            await self.send(
+                "Łowiska: "
+                + ", ".join(ROOMS[r]["name"] for r in sorted(rooms))
+                + "."
+            )
+            await self.send("Gatunki: " + self.atlas_names(items) + ".")
+            return
+
+        if q in ("drewno", "wood", "drwalstwo"):
+            await self.send("ATLAS DREWNA")
+            await self.send(
+                "Obóz Drwala i Srebrna Łąka: "
+                + self.atlas_names(WOOD_BEGINNER_ATLAS) + "."
+            )
+            await self.send(
+                "Gaj Szeptów i Stary Trakt: "
+                + self.atlas_names(WOOD_FOREST_ATLAS) + "."
+            )
+            await self.send(
+                "Głębia Gaju: "
+                + self.atlas_names(WOOD_DEEP_ATLAS) + "."
+            )
+            return
+
+        if q in ("rudy", "ruda", "ore", "gornictwo"):
+            await self.send("ATLAS RUD")
+            await self.send(
+                "Miejsca wydobycia: "
+                + ", ".join(ROOMS[r]["name"] for r in sorted(MINING_ROOMS))
+                + "."
+            )
+            for item_id, minimum in ORE_ATLAS_LEVELS.items():
+                await self.send(
+                    f"{ITEMS[item_id]['name']}: możliwa od około levelu "
+                    f"{minimum} Kilofa."
+                )
+            await self.send(
+                "Czysty mithril: możliwy od levelu 80 Kilofa. "
+                "Trafia bezpośrednio do portfela."
+            )
+            return
+
+        if q in ("ziola", "zioła", "herbs", "herb", "zielarstwo"):
+            await self.send("ATLAS ZIÓŁ")
+            await self.send("Chata Zielarki i Srebrna Łąka: " + self.atlas_names(HERB_MEADOW_ATLAS) + ".")
+            await self.send("Gaj Szeptów i Stary Trakt: " + self.atlas_names(HERB_FOREST_ATLAS) + ".")
+            await self.send("Brzeg Rzeki i Brzeg Srebrnego Jeziora: " + self.atlas_names(HERB_WATER_ATLAS) + ".")
+            await self.send("Głębia Gaju: " + self.atlas_names(HERB_DEEP_ATLAS) + ".")
+            return
+
+        resources = {
+            item_id: ITEMS[item_id]
+            for item_id in (
+                FISH_RESOURCE_IDS | ORE_RESOURCE_IDS | WOOD_RESOURCE_IDS | HERB_RESOURCE_IDS
+            )
+        }
+        found = find_by_name(resources, query)
+        if not found:
+            await self.send(
+                "Atlas nie rozpoznaje tego surowca. "
+                "Wpisz atlas ryby, atlas drewno albo atlas rudy."
+            )
+            return
+
+        item_id, item = found
+        await self.send(f"ATLAS: {item['name']}.")
+        if item_id in FISH_RESOURCE_IDS:
+            await self.send("Typ: ryba. Trafia do Siatki na ryby.")
+        elif item_id in WOOD_RESOURCE_IDS:
+            await self.send("Typ: drewno. Trafia na Stos drewna.")
+        elif item_id in HERB_RESOURCE_IDS:
+            await self.send("Typ: zioło. Trafia do Torby Zielarskiej.")
+        else:
+            await self.send("Typ: ruda. Trafia do Sakwy górniczej.")
+
+        places = self.atlas_item_locations(item_id)
+        if places:
+            await self.send("Występowanie: " + ", ".join(places) + ".")
+
+        if item_id in ORE_ATLAS_LEVELS:
+            await self.send(
+                f"Orientacyjny minimalny level Kilofa: "
+                f"{ORE_ATLAS_LEVELS[item_id]}."
+            )
 
     async def describe_target(self, query):
         q = query.strip()
@@ -3221,6 +4307,10 @@ class Session:
             f"Szybkość: {c.speed()}. "
             f"Unik: {int(c.dodge_chance() * 100)} procent."
         )
+        await self.send(
+            f"Pasyw rasy {c.race}: {c.racial_passive_text()}."
+        )
+        await self.send(f"Pasyw klasy {c.class_name}: {c.class_passive_text()}.")
         if c.class_type == "magic":
             await self.send(
                 f"Mana: {self.current_mana} z {c.max_mana()}. "
@@ -3229,6 +4319,11 @@ class Session:
         await self.send(
             f"Waluta: {c.silver} srebra, {c.gold} złota, {c.mithril} mithrilu. "
             f"Śmierci: {c.deaths}."
+        )
+        await self.send(
+            f"Charyzma handlowa: {c.charisma}. "
+            f"Rabat: {c.shop_discount_percent()} procent. "
+            f"Limit drużyny jako lider: {c.party_capacity()}."
         )
 
     async def show_soul(self):
@@ -3253,6 +4348,12 @@ class Session:
         if self.auto_mining or self.auto_mining_task:
             await self.stop_auto_mining(announce=False)
             await self.send("Auto-kopanie wyłączone z powodu ruchu.")
+        if self.auto_woodcutting or self.auto_woodcutting_task:
+            await self.stop_auto_woodcutting(announce=False)
+            await self.send("Auto-Drwalstwo wyłączone z powodu ruchu.")
+        if self.auto_herbalism or self.auto_herbalism_task:
+            await self.stop_auto_herbalism(announce=False)
+            await self.send("Auto-Zielarstwo wyłączone z powodu ruchu.")
         if self.combat_mob_key:
             await self.send("Jesteś w walce. Najpierw użyj flee albo pokonaj przeciwnika.")
             return
@@ -3266,6 +4367,271 @@ class Session:
         self.server.db.save_character(self.character)
         await self.server.broadcast_room(target, f"{self.character.name} przychodzi.", exclude=self)
         await self.look()
+
+    def party_key(self):
+        return self.server.party_key_for_account(self.account_id)
+
+    async def show_party(self):
+        key = self.party_key()
+        if key is None:
+            await self.send("Nie należysz do drużyny.")
+            await self.send(
+                f"Twój limit jako przyszłego lidera: "
+                f"{self.character.party_capacity()} osób."
+            )
+            return
+
+        leader = self.server.session_by_account(key)
+        leader_name = leader.character.name if leader else f"konto {key}"
+        capacity = (
+            leader.character.party_capacity()
+            if leader else PARTY_BASE_CAPACITY
+        )
+        members = sorted(
+            self.server.party_sessions(self.account_id),
+            key=lambda s: s.character.name.lower(),
+        )
+        await self.send(
+            f"DRUŻYNA. Lider: {leader_name}. "
+            f"Członkowie: {len(members)} z {capacity}."
+        )
+        for number, session in enumerate(members, 1):
+            marker = " Lider." if session.account_id == key else ""
+            await self.send(
+                f"{number}. {session.character.name}. "
+                f"Lokacja: {ROOMS[session.character.room_id]['name']}.{marker}"
+            )
+
+    async def leave_party(self, announce=True):
+        key = self.party_key()
+        if key is None:
+            if announce:
+                await self.send("Nie należysz do drużyny.")
+            return False
+
+        members = self.server.parties.get(key, set())
+        members.discard(self.account_id)
+
+        if self.account_id == key:
+            if members:
+                candidates = [
+                    self.server.session_by_account(member_id)
+                    for member_id in members
+                ]
+                candidates = [s for s in candidates if s]
+                if candidates:
+                    new_leader = sorted(
+                        candidates,
+                        key=lambda s: s.character.name.lower(),
+                    )[0]
+                    self.server.parties[new_leader.account_id] = set(members)
+                    self.server.parties.pop(key, None)
+                    await self.server.party_broadcast(
+                        new_leader.account_id,
+                        f"{new_leader.character.name} zostaje nowym liderem drużyny."
+                    )
+                else:
+                    self.server.parties.pop(key, None)
+            else:
+                self.server.parties.pop(key, None)
+        else:
+            self.server.parties[key] = members
+            await self.server.party_broadcast(
+                key,
+                f"{self.character.name} opuszcza drużynę.",
+                exclude=self,
+            )
+
+        for target_id, leader_id in list(self.server.party_invites.items()):
+            if target_id == self.account_id or leader_id == self.account_id:
+                self.server.party_invites.pop(target_id, None)
+
+        if announce:
+            await self.send("Opuszczasz drużynę.")
+        return True
+
+    async def disband_party(self):
+        key = self.party_key()
+        if key is None:
+            await self.send("Nie należysz do drużyny.")
+            return
+        if key != self.account_id:
+            await self.send("Tylko lider może rozwiązać drużynę.")
+            return
+
+        members = list(self.server.parties.get(key, set()))
+        for member_id in members:
+            session = self.server.session_by_account(member_id)
+            if session:
+                await session.send(
+                    "Drużyna została rozwiązana przez lidera."
+                )
+        self.server.parties.pop(key, None)
+        for target_id, leader_id in list(self.server.party_invites.items()):
+            if leader_id == key:
+                self.server.party_invites.pop(target_id, None)
+
+    async def party_invite(self, name):
+        target = self.server.find_character_session(name.strip())
+        if not target:
+            await self.send("Ten gracz nie jest online.")
+            return
+        if target is self:
+            await self.send("Nie możesz zaprosić samego siebie.")
+            return
+        if self.server.party_key_for_account(target.account_id) is not None:
+            await self.send("Ten gracz już należy do drużyny.")
+            return
+
+        key = self.party_key()
+        if key is None:
+            key = self.account_id
+            self.server.parties[key] = {self.account_id}
+        elif key != self.account_id:
+            await self.send("Tylko lider drużyny może zapraszać.")
+            return
+
+        capacity = self.character.party_capacity()
+        if len(self.server.parties[key]) >= capacity:
+            await self.send(
+                f"Drużyna jest pełna. Limit lidera: {capacity} osób."
+            )
+            return
+
+        self.server.party_invites[target.account_id] = key
+        await target.send(
+            f"{self.character.name} zaprasza cię do drużyny. "
+            f"Wpisz druzyna dolacz albo druzyna odrzuc."
+        )
+        await self.send(
+            f"Zapraszasz {target.character.name} do drużyny."
+        )
+
+    async def party_accept(self):
+        leader_id = self.server.party_invites.get(self.account_id)
+        if leader_id is None:
+            await self.send("Nie masz aktywnego zaproszenia do drużyny.")
+            return
+
+        leader = self.server.session_by_account(leader_id)
+        members = self.server.parties.get(leader_id)
+        if not leader or members is None:
+            self.server.party_invites.pop(self.account_id, None)
+            await self.send("Ta drużyna nie jest już dostępna.")
+            return
+        if self.party_key() is not None:
+            self.server.party_invites.pop(self.account_id, None)
+            await self.send("Już należysz do drużyny.")
+            return
+
+        capacity = leader.character.party_capacity()
+        if len(members) >= capacity:
+            self.server.party_invites.pop(self.account_id, None)
+            await self.send("Drużyna osiągnęła limit lidera.")
+            return
+
+        members.add(self.account_id)
+        self.server.party_invites.pop(self.account_id, None)
+        await self.server.party_broadcast(
+            leader_id,
+            f"{self.character.name} dołącza do drużyny."
+        )
+
+    async def party_decline(self):
+        leader_id = self.server.party_invites.pop(self.account_id, None)
+        if leader_id is None:
+            await self.send("Nie masz aktywnego zaproszenia.")
+            return
+        leader = self.server.session_by_account(leader_id)
+        if leader:
+            await leader.send(
+                f"{self.character.name} odrzuca zaproszenie do drużyny."
+            )
+        await self.send("Odrzucasz zaproszenie do drużyny.")
+
+    async def party_kick(self, name):
+        key = self.party_key()
+        if key is None:
+            await self.send("Nie należysz do drużyny.")
+            return
+        if key != self.account_id:
+            await self.send("Tylko lider może wyrzucać członków.")
+            return
+
+        target = self.server.find_character_session(name.strip())
+        if not target or target.account_id not in self.server.parties[key]:
+            await self.send("Nie ma takiego członka w twojej drużynie.")
+            return
+        if target is self:
+            await self.send(
+                "Lider używa druzyna opusc albo druzyna rozwiaz."
+            )
+            return
+
+        self.server.parties[key].discard(target.account_id)
+        await target.send(
+            f"{self.character.name} usuwa cię z drużyny."
+        )
+        await self.server.party_broadcast(
+            key,
+            f"{target.character.name} zostaje usunięty z drużyny.",
+            exclude=target,
+        )
+
+    async def party_chat(self, message):
+        if not message.strip():
+            await self.send("Użycie: pc <tekst>.")
+            return
+        if self.party_key() is None:
+            await self.send("Nie należysz do drużyny.")
+            return
+        await self.server.party_broadcast(
+            self.account_id,
+            f"[Drużyna] {self.character.name}: {message.strip()}"
+        )
+
+    async def handle_party(self, args):
+        parts = args.strip().split(maxsplit=1)
+        if not parts:
+            await self.show_party()
+            return
+
+        action = self.normalize_description_query(parts[0])
+        value = parts[1] if len(parts) > 1 else ""
+
+        if action in ("status", "lista", "list", "sklad"):
+            await self.show_party()
+        elif action in ("zapros", "invite"):
+            if not value:
+                await self.send("Użycie: druzyna zapros <gracz>.")
+            else:
+                await self.party_invite(value)
+        elif action in ("dolacz", "accept"):
+            await self.party_accept()
+        elif action in ("odrzuc", "decline"):
+            await self.party_decline()
+        elif action in ("opusc", "leave"):
+            await self.leave_party(announce=True)
+        elif action in ("wyrzuc", "kick"):
+            if not value:
+                await self.send("Użycie: druzyna wyrzuc <gracz>.")
+            else:
+                await self.party_kick(value)
+        elif action in ("rozwiaz", "disband"):
+            await self.disband_party()
+        elif action in ("limit", "capacity"):
+            key = self.party_key()
+            leader = self.server.session_by_account(key) if key else self
+            leader = leader or self
+            await self.send(
+                f"Limit drużyny: {leader.character.party_capacity()} osób. "
+                f"Startowo 8; +1 miejsce co 25 Charyzmy lidera."
+            )
+        else:
+            await self.send(
+                "Drużyna: status, zapros <gracz>, dolacz, odrzuc, "
+                "opusc, wyrzuc <gracz>, rozwiaz, limit. Czat: pc <tekst>."
+            )
 
     async def who(self):
         players = sorted(
@@ -3295,6 +4661,64 @@ class Session:
             return
         await target.send(f"{self.character.name} mówi ci prywatnie: {parts[1]}")
         await self.send(f"Do {target.character.name}: {parts[1]}")
+
+    def shop_item_base_value_silver(self, item):
+        price = int(item.get("price") or 0)
+        currency = item.get("currency", "gold")
+        if currency == "silver":
+            return price
+        if currency == "gold":
+            return price * SILVER_PER_GOLD
+        if currency == "mithril":
+            return price * GOLD_PER_MITHRIL * SILVER_PER_GOLD
+        return 0
+
+    def shop_cashback_silver(self, item):
+        base = self.shop_item_base_value_silver(item)
+        return (base * self.character.shop_discount_percent()) // 100
+
+    async def show_charisma(self):
+        c = self.character
+        await self.send(f"Charyzma handlowa: {c.charisma}.")
+        await self.send(
+            f"Rabat sklepowy: {c.shop_discount_percent()} procent "
+            f"z maksymalnych {CHARISMA_MAX_DISCOUNT} procent."
+        )
+        if c.shop_discount_percent() < CHARISMA_MAX_DISCOUNT:
+            await self.send(
+                f"Do następnego 1 procent rabatu: "
+                f"{c.charisma_to_next_discount()} Charyzmy."
+            )
+        else:
+            await self.send("Rabat sklepowy osiągnął maksimum.")
+        await self.send(
+            f"Limit drużyny jako lider: {c.party_capacity()} osób."
+        )
+        await self.send(
+            f"Do następnego miejsca w drużynie: "
+            f"{c.charisma_to_next_party_slot()} Charyzmy."
+        )
+        await self.send(
+            "Każda udana sprzedaż surowca zwiększa Charyzmę o 1."
+        )
+
+    async def gain_charisma_from_sale(self):
+        old_discount = self.character.shop_discount_percent()
+        old_capacity = self.character.party_capacity()
+        self.character.charisma += 1
+        await self.send(
+            f"Charyzma handlowa +1. Masz teraz {self.character.charisma}."
+        )
+        new_discount = self.character.shop_discount_percent()
+        new_capacity = self.character.party_capacity()
+        if new_discount > old_discount:
+            await self.send(
+                f"Nowy rabat sklepowy: {new_discount} procent."
+            )
+        if new_capacity > old_capacity:
+            await self.send(
+                f"Nowy limit drużyny jako lider: {new_capacity} osób."
+            )
 
     async def show_money(self):
         c = self.character
@@ -3383,7 +4807,15 @@ class Session:
         old_tool_tier = tool_tier(tlevel)
         txp = int(trow["xp"]) + tool_xp
         uses = int(trow["uses"]) + 1
-        tool_name = "Wędka" if tool_type == "fishing" else "Kilof"
+        tool_name = {
+            "fishing": "Wędka",
+            "mining": "Kilof",
+            "woodcutting": "Piła",
+            "crafting": "Młot Rzemieślniczy",
+            "cooking": "Nóż Kucharski",
+            "herbalism": "Sierp Zielarski",
+            "alchemy": "Moździerz Alchemiczny",
+        }.get(tool_type, tool_type)
         messages.append(f"{tool_name}: +{tool_xp} XP narzędzia.")
 
         while tlevel < TOOL_MAX_LEVEL:
@@ -3411,6 +4843,58 @@ class Session:
 
         return messages, plevel, tlevel
 
+    def grant_tool_progress(self, tool_type, tool_xp):
+        row = self.server.db.tool(self.account_id, tool_type)
+        level = int(row["level"])
+        old_tier = tool_tier(level)
+        xp = int(row["xp"]) + max(0, int(tool_xp))
+        uses = int(row["uses"]) + 1
+
+        tool_name = {
+            "fishing": "Wędka",
+            "mining": "Kilof",
+            "woodcutting": "Piła",
+            "crafting": "Młot Rzemieślniczy",
+            "cooking": "Nóż Kucharski",
+            "herbalism": "Sierp Zielarski",
+            "alchemy": "Moździerz Alchemiczny",
+        }.get(tool_type, tool_type)
+
+        messages = [f"{tool_name}: +{tool_xp} XP narzędzia."]
+
+        while level < TOOL_MAX_LEVEL:
+            needed = self.tool_xp_to_next(level)
+            if xp < needed:
+                break
+            xp -= needed
+            level += 1
+            messages.append(f"{tool_name} osiąga level {level}.")
+
+        if level >= TOOL_MAX_LEVEL:
+            level = TOOL_MAX_LEVEL
+            xp = 0
+
+        self.server.db.save_tool(
+            self.account_id, tool_type, level, xp, uses
+        )
+
+        new_tier = tool_tier(level)
+        if new_tier > old_tier:
+            if tool_type == "cooking":
+                bonus_name = "dodatkową potrawę"
+            elif tool_type == "crafting":
+                bonus_name = "dodatkowy produkt receptury"
+            else:
+                bonus_name = "dodatkowy urobek"
+            messages.append(
+                f"{tool_name} awansuje na Tier {new_tier} z {TOOL_MAX_TIER}: "
+                f"{tool_tier_name(tool_type, level)}. "
+                f"Szansa na {bonus_name}: "
+                f"{int(tool_tier_bonus_chance(level) * 100)} procent."
+            )
+
+        return messages, level
+
     def store_profession_resource(self, item_id, quantity=1):
         quantity = max(1, int(quantity))
         if item_id in FISH_RESOURCE_IDS:
@@ -3423,12 +4907,27 @@ class Session:
                 self.account_id, "bag", item_id, quantity
             )
             return "bag"
+        if item_id in WOOD_RESOURCE_IDS:
+            self.server.db.add_storage_item(
+                self.account_id, "woodpile", item_id, quantity
+            )
+            return "woodpile"
+        if item_id in HERB_RESOURCE_IDS:
+            self.server.db.add_storage_item(
+                self.account_id, "herbbag", item_id, quantity
+            )
+            return "herbbag"
         raise ValueError(
-            f"Przedmiot {item_id} nie jest rybą ani zwykłą rudą profesji."
+            f"Przedmiot {item_id} nie jest surowcem obsługiwanej profesji."
         )
 
     def container_label(self, container):
-        return "Siatka na ryby" if container == "net" else "Sakwa górnicza"
+        return {
+            "net": "Siatka na ryby",
+            "bag": "Sakwa górnicza",
+            "woodpile": "Stos drewna",
+            "herbbag": "Torba Zielarska",
+        }.get(container, container)
 
     def normalize_container(self, token):
         t = token.strip().lower()
@@ -3436,6 +4935,10 @@ class Session:
             return "net"
         if t in ("bag", "sakwa", "sakwe", "sakwę", "worek"):
             return "bag"
+        if t in ("woodpile", "stos", "drewno", "sterta"):
+            return "woodpile"
+        if t in ("herbbag", "ziola", "zioła", "herbs", "torba"):
+            return "herbbag"
         return None
 
     def category_ids(self, query, container=None):
@@ -3444,12 +4947,20 @@ class Session:
             return set(FISH_RESOURCE_IDS)
         if q in ("ore", "ruda", "rudy"):
             return set(ORE_RESOURCE_IDS)
+        if q in ("wood", "drewno", "pnie", "pień", "pien"):
+            return set(WOOD_RESOURCE_IDS)
+        if q in ("herb", "herbs", "ziolo", "zioło", "ziola", "zioła"):
+            return set(HERB_RESOURCE_IDS)
         if container == "net":
             allowed = FISH_RESOURCE_IDS
         elif container == "bag":
             allowed = ORE_RESOURCE_IDS
+        elif container == "woodpile":
+            allowed = WOOD_RESOURCE_IDS
+        elif container == "herbbag":
+            allowed = HERB_RESOURCE_IDS
         else:
-            allowed = FISH_RESOURCE_IDS | ORE_RESOURCE_IDS
+            allowed = FISH_RESOURCE_IDS | ORE_RESOURCE_IDS | WOOD_RESOURCE_IDS | HERB_RESOURCE_IDS
 
         found = find_by_name(
             {item_id: ITEMS[item_id] for item_id in allowed},
@@ -3483,7 +4994,7 @@ class Session:
 
         container = self.normalize_container(parts[-1])
         if not container:
-            await self.send("Podaj na końcu: siatka/net albo sakwa/bag.")
+            await self.send("Podaj na końcu: siatka/net, sakwa/bag, stos/woodpile albo ziola/herbbag.")
             return
 
         query = " ".join(parts[:-1])
@@ -3492,11 +5003,16 @@ class Session:
             await self.send("Nie rozpoznaję takiego surowca.")
             return
 
-        expected = FISH_RESOURCE_IDS if container == "net" else ORE_RESOURCE_IDS
+        expected = {
+            "net": FISH_RESOURCE_IDS,
+            "bag": ORE_RESOURCE_IDS,
+            "woodpile": WOOD_RESOURCE_IDS,
+            "herbbag": HERB_RESOURCE_IDS,
+        }[container]
         ids &= expected
         if not ids:
             await self.send(
-                "Do Siatki wkłada się ryby, a do Sakwy górniczej rudy."
+                "Do Siatki wkłada się ryby, do Sakwy rudy, na Stos drewno, a do Torby Zielarskiej zioła."
             )
             return
 
@@ -3525,13 +5041,13 @@ class Session:
         parts = args.split()
         if len(parts) < 2:
             await self.send(
-                "Użycie: wyjmij przedmiot siatka/sakwa albo take item net/bag."
+                "Użycie: wyjmij przedmiot siatka/sakwa/stos albo take item net/bag/woodpile."
             )
             return
 
         container = self.normalize_container(parts[-1])
         if not container:
-            await self.send("Podaj na końcu: siatka/net albo sakwa/bag.")
+            await self.send("Podaj na końcu: siatka/net, sakwa/bag, stos/woodpile albo ziola/herbbag.")
             return
 
         query = " ".join(parts[:-1])
@@ -3744,6 +5260,12 @@ class Session:
             if self.auto_mining or self.auto_mining_task:
                 await self.stop_auto_mining(announce=False)
                 await self.send("Auto-kopanie wyłączone.")
+            if self.auto_woodcutting or self.auto_woodcutting_task:
+                await self.stop_auto_woodcutting(announce=False)
+                await self.send("Auto-Drwalstwo wyłączone.")
+            if self.auto_herbalism or self.auto_herbalism_task:
+                await self.stop_auto_herbalism(announce=False)
+                await self.send("Auto-Zielarstwo wyłączone.")
 
             self.auto_fishing = True
             self.auto_fishing_task = asyncio.create_task(
@@ -3796,6 +5318,12 @@ class Session:
         if self.auto_mining or self.auto_mining_task:
             await self.stop_auto_mining(announce=False)
             await self.send("Auto-kopanie wyłączone z powodu rozpoczęcia podróży.")
+        if self.auto_woodcutting or self.auto_woodcutting_task:
+            await self.stop_auto_woodcutting(announce=False)
+            await self.send("Auto-Drwalstwo wyłączone z powodu rozpoczęcia podróży.")
+        if self.auto_herbalism or self.auto_herbalism_task:
+            await self.stop_auto_herbalism(announce=False)
+            await self.send("Auto-Zielarstwo wyłączone z powodu rozpoczęcia podróży.")
 
         self.guiding = True
         await self.send(
@@ -3893,6 +5421,12 @@ class Session:
             if self.auto_fishing or self.auto_fishing_task:
                 await self.stop_auto_fishing(announce=False)
                 await self.send("Auto-łowienie wyłączone.")
+            if self.auto_woodcutting or self.auto_woodcutting_task:
+                await self.stop_auto_woodcutting(announce=False)
+                await self.send("Auto-Drwalstwo wyłączone.")
+            if self.auto_herbalism or self.auto_herbalism_task:
+                await self.stop_auto_herbalism(announce=False)
+                await self.send("Auto-Zielarstwo wyłączone.")
 
             self.auto_mining = True
             self.auto_mining_task = asyncio.create_task(
@@ -3909,96 +5443,201 @@ class Session:
 
         await self.stop_auto_mining(announce=True)
 
-    async def show_profession_ranks(self):
-        await self.send("RANGI WĘDKARSTWA")
-        for rank, minimum in enumerate(PROFESSION_RANK_THRESHOLDS, 1):
-            if rank < PROFESSION_MAX_RANK:
-                maximum = PROFESSION_RANK_THRESHOLDS[rank] - 1
-                level_text = f"level {minimum}-{maximum}"
-            else:
-                level_text = f"level {minimum}"
-            await self.send(
-                f"Ranga {rank}: {PROFESSION_RANK_NAMES['Wędkarstwo'][rank - 1]}. "
-                f"{level_text}."
-            )
+    async def stop_auto_woodcutting(self, announce=True):
+        self.auto_woodcutting = False
+        task = self.auto_woodcutting_task
+        self.auto_woodcutting_task = None
+        if task and task is not asyncio.current_task() and not task.done():
+            task.cancel()
+            try:
+                await task
+            except asyncio.CancelledError:
+                pass
+        if announce:
+            await self.send("Auto-Drwalstwo wyłączone.")
 
-        await self.send("RANGI GÓRNICTWA")
-        for rank, minimum in enumerate(PROFESSION_RANK_THRESHOLDS, 1):
-            if rank < PROFESSION_MAX_RANK:
-                maximum = PROFESSION_RANK_THRESHOLDS[rank] - 1
-                level_text = f"level {minimum}-{maximum}"
-            else:
-                level_text = f"level {minimum}"
-            await self.send(
-                f"Ranga {rank}: {PROFESSION_RANK_NAMES['Górnictwo'][rank - 1]}. "
-                f"{level_text}."
-            )
+    async def auto_woodcutting_loop(self):
+        try:
+            while self.auto_woodcutting and not self.closed:
+                if self.combat_mob_key:
+                    await self.send("Auto-Drwalstwo zatrzymane: rozpoczęła się walka.")
+                    break
+                if self.character.room_id not in WOODCUTTING_ROOMS:
+                    await self.send("Auto-Drwalstwo zatrzymane: opuściłeś obszar drzew.")
+                    break
+                if self.server.db.item_qty(self.account_id, "saw") <= 0:
+                    await self.send("Auto-Drwalstwo zatrzymane: nie masz Piły.")
+                    break
+                await self.woodcut(from_auto=True)
+                await asyncio.sleep(PROFESSION_COOLDOWN + 0.35)
+        except asyncio.CancelledError:
+            pass
+        finally:
+            self.auto_woodcutting = False
+            if self.auto_woodcutting_task is asyncio.current_task():
+                self.auto_woodcutting_task = None
+
+    async def set_auto_woodcutting(self, enabled):
+        if enabled:
+            if self.auto_woodcutting:
+                await self.send("Auto-Drwalstwo jest już włączone.")
+                return
+            if self.combat_mob_key:
+                await self.send("Nie możesz rozpocząć auto-Drwalstwa podczas walki.")
+                return
+            if self.character.room_id not in WOODCUTTING_ROOMS:
+                await self.send("Tutaj nie ma odpowiednich drzew.")
+                return
+            if self.server.db.item_qty(self.account_id, "saw") <= 0:
+                await self.send("Do auto-Drwalstwa potrzebujesz Piły od Drwala Brana.")
+                return
+            if self.auto_fishing or self.auto_fishing_task:
+                await self.stop_auto_fishing(announce=False)
+            if self.auto_mining or self.auto_mining_task:
+                await self.stop_auto_mining(announce=False)
+            if self.auto_herbalism or self.auto_herbalism_task:
+                await self.stop_auto_herbalism(announce=False)
+            self.auto_woodcutting = True
+            self.auto_woodcutting_task = asyncio.create_task(self.auto_woodcutting_loop())
+            await self.send("Auto-Drwalstwo włączone. Wpisz tnij off albo woodcut off, aby je zatrzymać.")
+            return
+
+        if not self.auto_woodcutting and not self.auto_woodcutting_task:
+            await self.send("Auto-Drwalstwo jest już wyłączone.")
+            return
+        await self.stop_auto_woodcutting(announce=True)
+
+    async def stop_auto_herbalism(self, announce=True):
+        self.auto_herbalism = False
+        task = self.auto_herbalism_task
+        self.auto_herbalism_task = None
+        if task and task is not asyncio.current_task() and not task.done():
+            task.cancel()
+            try:
+                await task
+            except asyncio.CancelledError:
+                pass
+        if announce:
+            await self.send("Auto-Zielarstwo wyłączone.")
+
+    async def auto_herbalism_loop(self):
+        try:
+            while self.auto_herbalism and not self.closed:
+                if self.combat_mob_key:
+                    await self.send("Auto-Zielarstwo zatrzymane: rozpoczęła się walka.")
+                    break
+                if self.character.room_id not in HERBALISM_ROOMS:
+                    await self.send("Auto-Zielarstwo zatrzymane: opuściłeś obszar ziół.")
+                    break
+                if self.server.db.item_qty(self.account_id, "herbalist_sickle") <= 0:
+                    await self.send("Auto-Zielarstwo zatrzymane: nie masz Sierpa Zielarskiego.")
+                    break
+                await self.gather_herb(from_auto=True)
+                await asyncio.sleep(PROFESSION_COOLDOWN + 0.35)
+        except asyncio.CancelledError:
+            pass
+        finally:
+            self.auto_herbalism = False
+            if self.auto_herbalism_task is asyncio.current_task():
+                self.auto_herbalism_task = None
+
+    async def set_auto_herbalism(self, enabled):
+        if enabled:
+            if self.auto_herbalism:
+                await self.send("Auto-Zielarstwo jest już włączone.")
+                return
+            if self.combat_mob_key:
+                await self.send("Nie możesz rozpocząć auto-Zielarstwa podczas walki.")
+                return
+            if self.character.room_id not in HERBALISM_ROOMS:
+                await self.send("Tutaj nie ma odpowiednich ziół.")
+                return
+            if self.server.db.item_qty(self.account_id, "herbalist_sickle") <= 0:
+                await self.send("Do auto-Zielarstwa potrzebujesz Sierpa Zielarskiego.")
+                return
+            if self.auto_fishing or self.auto_fishing_task:
+                await self.stop_auto_fishing(announce=False)
+            if self.auto_mining or self.auto_mining_task:
+                await self.stop_auto_mining(announce=False)
+            if self.auto_woodcutting or self.auto_woodcutting_task:
+                await self.stop_auto_woodcutting(announce=False)
+            self.auto_herbalism = True
+            self.auto_herbalism_task = asyncio.create_task(self.auto_herbalism_loop())
+            await self.send("Auto-Zielarstwo włączone. Wpisz zbieraj off, aby je zatrzymać.")
+            return
+        if not self.auto_herbalism and not self.auto_herbalism_task:
+            await self.send("Auto-Zielarstwo jest już wyłączone.")
+            return
+        await self.stop_auto_herbalism(announce=True)
+
+    async def show_profession_ranks(self):
+        for profession in ("Wędkarstwo", "Górnictwo", "Drwalstwo", "Zielarstwo", "Alchemia"):
+            await self.send(f"RANGI: {profession.upper()}")
+            for rank, minimum in enumerate(PROFESSION_RANK_THRESHOLDS, 1):
+                if rank < PROFESSION_MAX_RANK:
+                    maximum = PROFESSION_RANK_THRESHOLDS[rank] - 1
+                    level_text = f"level {minimum}-{maximum}"
+                else:
+                    level_text = f"level {minimum}"
+                await self.send(
+                    f"Ranga {rank}: {PROFESSION_RANK_NAMES[profession][rank - 1]}. "
+                    f"{level_text}."
+                )
+
 
     async def show_professions(self):
-        fishing = self.server.db.profession(self.account_id, "Wędkarstwo")
-        mining = self.server.db.profession(self.account_id, "Górnictwo")
         await self.send("PROFESJE")
-
-        for name, row in (("Wędkarstwo", fishing), ("Górnictwo", mining)):
+        for name in ("Wędkarstwo", "Górnictwo", "Drwalstwo", "Zielarstwo", "Alchemia"):
+            row = self.server.db.profession(self.account_id, name)
             level = int(row["level"])
             rank = profession_rank(level)
             rank_name = profession_rank_name(name, level)
-
             if rank < PROFESSION_MAX_RANK:
-                next_rank_level = PROFESSION_RANK_THRESHOLDS[rank]
-                next_text = (
-                    f"Następna ranga {rank + 1} od levelu {next_rank_level}."
-                )
+                next_text = f"Następna ranga {rank + 1} od levelu {PROFESSION_RANK_THRESHOLDS[rank]}."
             else:
                 next_text = "Ranga maksymalna."
-
-            if level >= PROFESSION_MAX_LEVEL:
-                await self.send(
-                    f"{name}: level {level} z {PROFESSION_MAX_LEVEL}. "
-                    f"Ranga {rank} z {PROFESSION_MAX_RANK}: {rank_name}. "
-                    f"XP: maksimum. Akcje: {row['actions']}. {next_text}"
-                )
-            else:
-                await self.send(
-                    f"{name}: level {level} z {PROFESSION_MAX_LEVEL}. "
-                    f"Ranga {rank} z {PROFESSION_MAX_RANK}: {rank_name}. "
-                    f"XP: {row['xp']} z {self.profession_xp_to_next(level)}. "
-                    f"Akcje: {row['actions']}. {next_text}"
-                )
+            xp_text = "maksimum" if level >= PROFESSION_MAX_LEVEL else f"{row['xp']} z {self.profession_xp_to_next(level)}"
+            await self.send(
+                f"{name}: level {level} z {PROFESSION_MAX_LEVEL}. "
+                f"Ranga {rank} z {PROFESSION_MAX_RANK}: {rank_name}. "
+                f"XP: {xp_text}. Akcje: {row['actions']}. {next_text}"
+            )
 
 
     async def show_tool_tiers(self):
-        await self.send("NAZWY TIERÓW WĘDKI")
-        for tier, minimum in enumerate(TOOL_TIER_THRESHOLDS, 1):
-            if tier < TOOL_MAX_TIER:
-                maximum = TOOL_TIER_THRESHOLDS[tier] - 1
-                level_text = f"level {minimum}-{maximum}"
-            else:
-                level_text = f"level {minimum}"
-            bonus = int(TOOL_TIER_BONUS_CHANCES[tier - 1] * 100)
-            await self.send(
-                f"Tier {tier}: {TOOL_TIER_NAMES['fishing'][tier - 1]}. "
-                f"{level_text}. Bonus {bonus} procent."
-            )
+        for tool_type, title in (
+            ("fishing", "WĘDKI"),
+            ("mining", "KILOFA"),
+            ("woodcutting", "PIŁY"),
+            ("crafting", "MŁOTA RZEMIEŚLNICZEGO"),
+            ("cooking", "NOŻA KUCHARSKIEGO"),
+            ("herbalism", "SIERPA ZIELARSKIEGO"),
+            ("alchemy", "MOŹDZIERZA ALCHEMICZNEGO"),
+        ):
+            await self.send(f"NAZWY TIERÓW {title}")
+            for tier, minimum in enumerate(TOOL_TIER_THRESHOLDS, 1):
+                if tier < TOOL_MAX_TIER:
+                    maximum = TOOL_TIER_THRESHOLDS[tier] - 1
+                    level_text = f"level {minimum}-{maximum}"
+                else:
+                    level_text = f"level {minimum}"
+                bonus = int(TOOL_TIER_BONUS_CHANCES[tier - 1] * 100)
+                await self.send(
+                    f"Tier {tier}: {TOOL_TIER_NAMES[tool_type][tier - 1]}. "
+                    f"{level_text}. Bonus {bonus} procent."
+                )
 
-        await self.send("NAZWY TIERÓW KILOFA")
-        for tier, minimum in enumerate(TOOL_TIER_THRESHOLDS, 1):
-            if tier < TOOL_MAX_TIER:
-                maximum = TOOL_TIER_THRESHOLDS[tier] - 1
-                level_text = f"level {minimum}-{maximum}"
-            else:
-                level_text = f"level {minimum}"
-            bonus = int(TOOL_TIER_BONUS_CHANCES[tier - 1] * 100)
-            await self.send(
-                f"Tier {tier}: {TOOL_TIER_NAMES['mining'][tier - 1]}. "
-                f"{level_text}. Bonus {bonus} procent."
-            )
 
     async def show_tools(self):
         await self.send("NARZĘDZIA")
         tools = [
             ("fishing", "fishing_rod", "Wędka"),
             ("mining", "pickaxe", "Kilof"),
+            ("woodcutting", "saw", "Piła"),
+            ("crafting", "crafting_hammer", "Młot Rzemieślniczy"),
+            ("cooking", "chef_knife", "Nóż Kucharski"),
+            ("herbalism", "herbalist_sickle", "Sierp Zielarski"),
+            ("alchemy", "alchemy_mortar", "Moździerz Alchemiczny"),
         ]
         for tool_type, item_id, name in tools:
             owned = self.server.db.item_qty(self.account_id, item_id) > 0
@@ -4011,6 +5650,16 @@ class Session:
             tier = tool_tier(level)
             tier_name = tool_tier_name(tool_type, level)
             bonus_percent = int(tool_tier_bonus_chance(level) * 100)
+            if tool_type == "cooking":
+                bonus_label = "Szansa na dodatkową potrawę"
+            elif tool_type == "crafting":
+                bonus_label = "Szansa na dodatkowy produkt receptury"
+            elif tool_type == "alchemy":
+                bonus_label = "Szansa na dodatkową miksturę"
+            elif tool_type == "herbalism":
+                bonus_label = "Szansa na dodatkowe zioło"
+            else:
+                bonus_label = "Bonus dodatkowego urobku"
 
             if tier < TOOL_MAX_TIER:
                 next_level = TOOL_TIER_THRESHOLDS[tier]
@@ -4023,7 +5672,7 @@ class Session:
                     f"{name}: level {level} z {TOOL_MAX_LEVEL}. "
                     f"Tier {tier} z {TOOL_MAX_TIER}: {tier_name}. "
                     f"XP: maksimum. Użycia: {row['uses']}. "
-                    f"Bonus dodatkowego urobku: {bonus_percent} procent. {next_text}"
+                    f"{bonus_label}: {bonus_percent} procent. {next_text}"
                 )
             else:
                 await self.send(
@@ -4031,162 +5680,98 @@ class Session:
                     f"Tier {tier} z {TOOL_MAX_TIER}: {tier_name}. "
                     f"XP: {row['xp']} z {self.tool_xp_to_next(level)}. "
                     f"Użycia: {row['uses']}. "
-                    f"Bonus dodatkowego urobku: {bonus_percent} procent. {next_text}"
+                    f"{bonus_label}: {bonus_percent} procent. {next_text}"
                 )
 
 
-    def fishing_loot(self, tool_level, marine=False):
+    def fishing_habitat(self, room_id=None):
+        room_id = room_id or self.character.room_id
+        if room_id in RIVER_FISHING_ROOMS: return "river"
+        if room_id in LAKE_FISHING_ROOMS: return "lake"
+        if room_id in SEA_FISHING_ROOMS: return "sea"
+        if room_id in OCEAN_FISHING_ROOMS: return "ocean"
+        return None
+
+    def fishing_loot(self, tool_level, habitat="river"):
         r = random.random()
 
-        if not marine:
-            # Łowiska słodkowodne.
+        if habitat == "river":
             if tool_level < 10:
-                return "small_fish" if r < 0.72 else "river_carp"
-
+                return random.choice(("small_fish", "dace", "river_perch"))
             if tool_level < 25:
-                if r < 0.52:
-                    return "small_fish"
-                if r < 0.90:
-                    return "river_carp"
-                return "silver_trout"
+                pool = ("dace", "chub", "common_nase", "river_perch", "river_carp", "barbel")
+                return random.choice(pool)
+            if tool_level < 45:
+                pool = ("chub", "common_nase", "barbel", "ide", "silver_trout", "pike", "zander")
+                return random.choice(pool)
+            if tool_level < 70:
+                pool = ("ide", "asp", "grayling", "silver_trout", "golden_trout", "pike", "zander", "salmon", "burbot")
+                return random.choice(pool)
+            pool = (
+                "asp", "grayling", "burbot", "golden_trout", "salmon",
+                "river_catfish", "ancient_sturgeon", "moon_eel", "zander"
+            )
+            return random.choice(pool)
 
-            if tool_level < 40:
-                if r < 0.32:
-                    return "river_carp"
-                if r < 0.72:
-                    return "silver_trout"
-                if r < 0.92:
-                    return "golden_trout"
-                return "salmon"
+        if habitat == "lake":
+            if tool_level < 10:
+                return random.choice(("lake_roach", "rudd", "crucian_carp", "bream"))
+            if tool_level < 25:
+                pool = ("lake_roach", "rudd", "crucian_carp", "bream", "tench", "lake_perch")
+                return random.choice(pool)
+            if tool_level < 45:
+                pool = ("bream", "tench", "lake_perch", "vendace", "pike", "zander")
+                return random.choice(pool)
+            if tool_level < 70:
+                pool = ("tench", "vendace", "whitefish", "pike", "zander", "lake_trout", "giant_pike")
+                return random.choice(pool)
+            pool = (
+                "whitefish", "lake_char", "lake_trout", "giant_pike",
+                "freshwater_eel", "pike", "zander"
+            )
+            return random.choice(pool)
 
-            if tool_level < 60:
-                if r < 0.30:
-                    return "silver_trout"
-                if r < 0.65:
-                    return "golden_trout"
-                if r < 0.90:
-                    return "salmon"
-                return "ancient_sturgeon"
+        if habitat == "sea":
+            if tool_level < 10:
+                return random.choice(("sprat", "sardine", "anchovy"))
+            if tool_level < 20:
+                return random.choice(("sprat", "sardine", "anchovy", "whiting", "cod"))
+            if tool_level < 30:
+                return random.choice(("anchovy", "whiting", "cod", "mackerel", "flounder"))
+            if tool_level < 50:
+                pool = ("herring", "mackerel", "whiting", "cod", "hake", "sea_bass", "haddock", "pollock")
+                return random.choice(pool)
+            if tool_level < 75:
+                pool = ("herring", "hake", "sea_bass", "red_mullet", "haddock", "pollock", "flounder", "sole", "halibut")
+                return random.choice(pool)
+            pool = (
+                "cod", "hake", "red_mullet", "sole", "halibut",
+                "turbot", "monkfish", "sea_bass", "haddock", "pollock"
+            )
+            return random.choice(pool)
 
-            if tool_level < 80:
-                if r < 0.38:
-                    return "golden_trout"
-                if r < 0.72:
-                    return "salmon"
-                if r < 0.94:
-                    return "ancient_sturgeon"
-                return "moon_eel"
-
-            if r < 0.35:
-                return "golden_trout"
-            if r < 0.68:
-                return "ancient_sturgeon"
-            if r < 0.94:
-                return "moon_eel"
-            return "salmon"
-
-        # Łowiska morskie.
-        # Śledź zachowuje wymaganie minimum level 30 Wędki.
-        if tool_level < 10:
-            return "sardine" if r < 0.62 else "anchovy"
-
+        # Ocean
         if tool_level < 20:
-            if r < 0.38:
-                return "sardine"
-            if r < 0.72:
-                return "anchovy"
-            return "cod"
-
-        if tool_level < 30:
-            if r < 0.25:
-                return "sardine"
-            if r < 0.48:
-                return "anchovy"
-            if r < 0.78:
-                return "cod"
-            return "mackerel"
-
+            return random.choice(("mackerel", "mahi_mahi", "albacore"))
         if tool_level < 40:
-            if r < 0.20:
-                return "cod"
-            if r < 0.42:
-                return "mackerel"
-            if r < 0.62:
-                return "herring"
-            if r < 0.82:
-                return "sea_bass"
-            return "haddock"
-
-        if tool_level < 50:
-            if r < 0.18:
-                return "herring"
-            if r < 0.38:
-                return "sea_bass"
-            if r < 0.58:
-                return "haddock"
-            if r < 0.78:
-                return "pollock"
-            return "flounder"
-
+            pool = ("mahi_mahi", "albacore", "wahoo", "barracuda", "tuna", "sailfish")
+            return random.choice(pool)
         if tool_level < 60:
-            if r < 0.16:
-                return "haddock"
-            if r < 0.34:
-                return "pollock"
-            if r < 0.54:
-                return "flounder"
-            if r < 0.78:
-                return "halibut"
-            return "tuna"
-
-        if tool_level < 75:
-            if r < 0.16:
-                return "halibut"
-            if r < 0.42:
-                return "tuna"
-            if r < 0.64:
-                return "swordfish"
-            if r < 0.82:
-                return "bluefin_tuna"
-            if r < 0.94:
-                return "ancient_sturgeon"
-            if r < 0.995:
-                return "reef_shark"
-            return "moon_eel"
-
-        if tool_level < 90:
-            if r < 0.18:
-                return "tuna"
-            if r < 0.38:
-                return "swordfish"
-            if r < 0.58:
-                return "bluefin_tuna"
-            if r < 0.74:
-                return "halibut"
-            if r < 0.86:
-                return "reef_shark"
-            if r < 0.95:
-                return "hammerhead_shark"
-            if r < 0.995:
-                return "great_white_shark"
-            return "moon_eel"
-
-        # Level 90-100: morski end-game.
-        if r < 0.15:
-            return "bluefin_tuna"
-        if r < 0.30:
-            return "halibut"
-        if r < 0.46:
-            return "reef_shark"
-        if r < 0.63:
-            return "hammerhead_shark"
-        if r < 0.79:
-            return "great_white_shark"
-        if r < 0.90:
-            return "moon_eel"
-        if r < 0.995:
-            return "swordfish"
-        return "ghost_marlin"
+            pool = ("tuna", "albacore", "bigeye_tuna", "wahoo", "barracuda", "cobia", "sailfish", "swordfish", "reef_shark")
+            return random.choice(pool)
+        if tool_level < 80:
+            pool = (
+                "tuna", "bigeye_tuna", "cobia", "amberjack", "swordfish",
+                "bluefin_tuna", "reef_shark", "mako_shark", "hammerhead_shark",
+                "ocean_sunfish"
+            )
+            return random.choice(pool)
+        pool = (
+            "bluefin_tuna", "bigeye_tuna", "amberjack", "ocean_sunfish",
+            "mako_shark", "tiger_shark", "hammerhead_shark",
+            "great_white_shark", "ghost_marlin", "swordfish"
+        )
+        return random.choice(pool)
 
 
     def mining_loot(self, tool_level):
@@ -4247,6 +5832,75 @@ class Session:
         return "gold_ore"
 
 
+    def woodcutting_loot(self, tool_level, room_id=None):
+        room_id = room_id or self.character.room_id
+
+        # Obóz Drwala i Łąka: gatunki lekkie i pospolite.
+        if room_id in {"lumberjack_camp", "meadow"}:
+            if tool_level < 15:
+                return random.choice(("fallen_branch", "birch_log", "alder_log", "pine_log"))
+            if tool_level < 35:
+                return random.choice(("birch_log", "alder_log", "pine_log", "poplar_log", "willow_log", "linden_log"))
+            return random.choice(("pine_log", "poplar_log", "willow_log", "linden_log", "oak_log", "beech_log", "maple_log"))
+
+        # Gaj Szeptów i Stary Trakt: drewna użytkowe i szlachetne.
+        if room_id in {"whisper_grove", "old_road"}:
+            if tool_level < 25:
+                return random.choice(("oak_log", "beech_log", "maple_log", "linden_log"))
+            if tool_level < 50:
+                return random.choice(("oak_log", "beech_log", "maple_log", "ash_log", "chestnut_log", "walnut_log"))
+            if tool_level < 75:
+                return random.choice(("maple_log", "ash_log", "chestnut_log", "walnut_log", "cedar_log", "yew_log", "mahogany_log"))
+            return random.choice(("ash_log", "walnut_log", "cedar_log", "yew_log", "mahogany_log", "teak_log", "redwood_log", "ironwood_log"))
+
+        # Głębia Gaju: najrzadsze drewna naturalne i magiczne.
+        if tool_level < 40:
+            return random.choice(("ash_log", "chestnut_log", "cedar_log", "walnut_log"))
+        if tool_level < 60:
+            return random.choice(("cedar_log", "yew_log", "mahogany_log", "teak_log", "ironwood_log", "ebony_log"))
+        if tool_level < 80:
+            return random.choice(("yew_log", "mahogany_log", "teak_log", "redwood_log", "ironwood_log", "ebony_log", "silverwood_log"))
+        if tool_level < 100:
+            return random.choice((
+                "redwood_log", "ironwood_log", "ebony_log", "silverwood_log",
+                "spiritwood_log", "ancient_heartwood", "worldtree_wood"
+            ))
+        return random.choice((
+            "teak_log", "redwood_log", "silverwood_log", "spiritwood_log",
+            "ancient_heartwood", "worldtree_wood"
+        ))
+
+
+    def herbalism_loot(self, tool_level, room_id=None):
+        room_id = room_id or self.character.room_id
+        if room_id in {"herbalist_hut", "meadow"}:
+            if tool_level < 15:
+                return random.choice(("nettle", "chamomile", "mint"))
+            if tool_level < 35:
+                return random.choice(("nettle", "chamomile", "mint", "yarrow", "lemon_balm", "lavender"))
+            return random.choice(("mint", "yarrow", "lemon_balm", "lavender", "sage", "valerian"))
+        if room_id in {"riverbank", "lake_shore"}:
+            if tool_level < 25:
+                return random.choice(("mint", "lemon_balm", "chamomile"))
+            if tool_level < 55:
+                return random.choice(("mint", "lemon_balm", "star_moss", "sage", "yarrow"))
+            return random.choice(("star_moss", "moonflower", "sage", "valerian", "ginseng"))
+        if room_id in {"whisper_grove", "old_road"}:
+            if tool_level < 25:
+                return random.choice(("sage", "valerian", "lavender"))
+            if tool_level < 50:
+                return random.choice(("sage", "valerian", "ginseng", "nightshade"))
+            if tool_level < 75:
+                return random.choice(("ginseng", "nightshade", "mandrake", "moonflower", "soulroot"))
+            return random.choice(("mandrake", "moonflower", "soulroot", "phoenix_leaf", "star_moss"))
+        if tool_level < 40:
+            return random.choice(("ginseng", "nightshade", "mandrake"))
+        if tool_level < 70:
+            return random.choice(("nightshade", "mandrake", "moonflower", "soulroot", "star_moss"))
+        if tool_level < 90:
+            return random.choice(("mandrake", "moonflower", "soulroot", "phoenix_leaf", "star_moss"))
+        return random.choice(("moonflower", "soulroot", "phoenix_leaf", "star_moss", "astral_lotus"))
+
     def profession_ready(self):
         now = time.time()
         remaining = PROFESSION_COOLDOWN - (now - self.last_profession_action)
@@ -4273,8 +5927,8 @@ class Session:
 
         tool = self.server.db.tool(self.account_id, "fishing")
         tool_level = int(tool["level"])
-        marine = self.character.room_id in MARINE_FISHING_ROOMS
-        item_id = self.fishing_loot(tool_level, marine=marine)
+        habitat = self.fishing_habitat()
+        item_id = self.fishing_loot(tool_level, habitat=habitat)
         self.store_profession_resource(item_id, 1)
         item = ITEMS[item_id]
         await self.send(
@@ -4282,7 +5936,11 @@ class Session:
         )
 
         current_tier = tool_tier(tool_level)
-        bonus_chance = tool_tier_bonus_chance(tool_level)
+        bonus_chance = min(
+            0.50,
+            tool_tier_bonus_chance(tool_level)
+            + self.character.racial_profession_bonus_chance()
+        )
         if bonus_chance > 0 and random.random() < bonus_chance:
             self.store_profession_resource(item_id, 1)
             await self.send(
@@ -4338,7 +5996,11 @@ class Session:
             )
 
             current_tier = tool_tier(tool_level)
-            bonus_chance = tool_tier_bonus_chance(tool_level)
+            bonus_chance = min(
+            0.50,
+            tool_tier_bonus_chance(tool_level)
+            + self.character.racial_profession_bonus_chance()
+        )
             if bonus_chance > 0 and random.random() < bonus_chance:
                 self.store_profession_resource(item_id, 1)
                 await self.send(
@@ -4364,6 +6026,105 @@ class Session:
                 "Twój Kilof osiągnął level 80. Od teraz masz minimalną szansę wydobyć czysty mithril."
             )
 
+    async def woodcut(self, from_auto=False):
+        if self.combat_mob_key:
+            await self.send("Nie możesz ścinać drzew podczas walki.")
+            return
+        if self.character.room_id not in WOODCUTTING_ROOMS:
+            await self.send("Tutaj nie ma odpowiednich drzew do Drwalstwa.")
+            return
+        if self.server.db.item_qty(self.account_id, "saw") <= 0:
+            await self.send("Do Drwalstwa potrzebujesz Piły. Kup ją u Drwala Brana w Obozie Drwala.")
+            return
+        ready, remaining = self.profession_ready()
+        if not ready:
+            if not from_auto:
+                await self.send("Musisz chwilę odczekać przed kolejnym cięciem.")
+            return
+
+        tool = self.server.db.tool(self.account_id, "woodcutting")
+        tool_level = int(tool["level"])
+        item_id = self.woodcutting_loot(tool_level, self.character.room_id)
+        self.store_profession_resource(item_id, 1)
+        item = ITEMS[item_id]
+        await self.send(
+            f"Pozyskujesz: {item['name']}. Drewno trafia na Stos drewna."
+        )
+
+        current_tier = tool_tier(tool_level)
+        bonus_chance = min(
+            0.50,
+            tool_tier_bonus_chance(tool_level)
+            + self.character.racial_profession_bonus_chance()
+        )
+        if bonus_chance > 0 and random.random() < bonus_chance:
+            self.store_profession_resource(item_id, 1)
+            await self.send(
+                f"Bonus Tieru {current_tier} Piły: pozyskujesz dodatkowo {item['name']} x1."
+            )
+
+        messages, profession_level, new_tool_level = self.grant_profession_progress(
+            "Drwalstwo",
+            10 + random.randint(0, 5),
+            "woodcutting",
+            8 + random.randint(0, 4),
+        )
+        for msg in messages:
+            await self.send(msg)
+        if new_tool_level != tool_level:
+            await self.send(
+                f"Piła ma teraz level {new_tool_level}, Tier "
+                f"{tool_tier(new_tool_level)}: "
+                f"{tool_tier_name('woodcutting', new_tool_level)}."
+            )
+
+    async def gather_herb(self, from_auto=False):
+        if self.combat_mob_key:
+            await self.send("Nie możesz zbierać ziół podczas walki.")
+            return
+        if self.character.room_id not in HERBALISM_ROOMS:
+            await self.send("Tutaj nie ma odpowiednich ziół.")
+            return
+        if self.server.db.item_qty(self.account_id, "herbalist_sickle") <= 0:
+            await self.send("Do Zielarstwa potrzebujesz Sierpa Zielarskiego. Kup go w Chacie Zielarki.")
+            return
+        ready, remaining = self.profession_ready()
+        if not ready:
+            if not from_auto:
+                await self.send("Musisz chwilę odczekać przed kolejnym zbiorem.")
+            return
+
+        tool = self.server.db.tool(self.account_id, "herbalism")
+        old_level = int(tool["level"])
+        item_id = self.herbalism_loot(old_level, self.character.room_id)
+        self.store_profession_resource(item_id, 1)
+        await self.send(f"Zbierasz: {ITEMS[item_id]['name']}. Zioło trafia do Torby Zielarskiej.")
+
+        bonus_chance = min(
+            0.50,
+            tool_tier_bonus_chance(old_level) + self.character.racial_profession_bonus_chance()
+        )
+        if bonus_chance > 0 and random.random() < bonus_chance:
+            self.store_profession_resource(item_id, 1)
+            await self.send(
+                f"Bonus Tieru {tool_tier(old_level)} Sierpa Zielarskiego: "
+                f"zbierasz dodatkowo {ITEMS[item_id]['name']} x1."
+            )
+
+        messages, prof_level, new_tool_level = self.grant_profession_progress(
+            "Zielarstwo",
+            10 + random.randint(0, 5),
+            "herbalism",
+            8 + random.randint(0, 4),
+        )
+        for msg in messages:
+            await self.send(msg)
+        if new_tool_level != old_level:
+            await self.send(
+                f"Sierp Zielarski ma teraz level {new_tool_level}, Tier "
+                f"{tool_tier(new_tool_level)}: {tool_tier_name('herbalism', new_tool_level)}."
+            )
+
     async def sell_resource(self, query):
         found = find_by_name(ITEMS, query)
         if not found:
@@ -4376,11 +6137,17 @@ class Session:
 
         fish_items = FISH_RESOURCE_IDS
         ore_items = ORE_RESOURCE_IDS
+        wood_items = WOOD_RESOURCE_IDS
+        herb_items = HERB_RESOURCE_IDS
 
         if item_id in fish_items:
             source_container = "net"
         elif item_id in ore_items:
             source_container = "bag"
+        elif item_id in wood_items:
+            source_container = "woodpile"
+        elif item_id in herb_items:
+            source_container = "herbbag"
         else:
             source_container = None
 
@@ -4398,6 +6165,12 @@ class Session:
             return
         if item_id in ore_items and self.character.room_id != "forge":
             await self.send("Rudy możesz sprzedać w Kuźni Dusz.")
+            return
+        if item_id in wood_items and self.character.room_id not in {"market", "forge"}:
+            await self.send("Drewno możesz sprzedać na Rynku albo w Kuźni Dusz.")
+            return
+        if item_id in herb_items and self.character.room_id not in {"market", "herbalist_hut"}:
+            await self.send("Zioła możesz sprzedać na Rynku albo w Chacie Zielarki.")
             return
 
         removed = False
@@ -4422,6 +6195,7 @@ class Session:
         self.character.silver += silver
         self.character.gold += gold
         self.character.mithril += mithril
+        await self.gain_charisma_from_sale()
         self.server.db.save_character(self.character)
 
         rewards = []
@@ -4433,6 +6207,233 @@ class Session:
             rewards.append(f"{mithril} mithrilu")
         await self.send(f"Sprzedajesz {item['name']} za " + ", ".join(rewards) + ".")
 
+    def recipe_container_for_item(self, item_id):
+        if item_id in FISH_RESOURCE_IDS:
+            return "net"
+        if item_id in ORE_RESOURCE_IDS:
+            return "bag"
+        if item_id in WOOD_RESOURCE_IDS:
+            return "woodpile"
+        if item_id in HERB_RESOURCE_IDS:
+            return "herbbag"
+        return None
+
+    def available_recipe_item(self, item_id):
+        container = self.recipe_container_for_item(item_id)
+        storage = (
+            self.server.db.storage_qty(self.account_id, container, item_id)
+            if container else 0
+        )
+        return storage + self.server.db.item_qty(self.account_id, item_id)
+
+    def consume_recipe_item(self, item_id, quantity):
+        remaining = max(0, int(quantity))
+        container = self.recipe_container_for_item(item_id)
+
+        if container and remaining > 0:
+            stored = self.server.db.storage_qty(
+                self.account_id, container, item_id
+            )
+            take = min(stored, remaining)
+            if take > 0:
+                if not self.server.db.remove_storage_item(
+                    self.account_id, container, item_id, take
+                ):
+                    return False
+                remaining -= take
+
+        if remaining > 0:
+            if not self.server.db.remove_item(
+                self.account_id, item_id, remaining
+            ):
+                return False
+            remaining = 0
+
+        return True
+
+    def recipe_station_text(self, stations):
+        return " lub ".join(ROOMS[room_id]["name"] for room_id in stations)
+
+    def recipe_ingredients_text(self, recipe):
+        return ", ".join(
+            f"{ITEMS[item_id]['name']} x{quantity}"
+            for item_id, quantity in recipe["ingredients"].items()
+        )
+
+    async def show_recipes(self, mode=""):
+        mode = mode.strip().lower()
+        show_craft = mode not in ("cook", "gotuj", "gotowanie", "alchemy", "alchemia")
+        show_cook = mode not in ("craft", "stworz", "stwórz", "rzemioslo", "rzemiosło", "alchemy", "alchemia")
+        show_alchemy = mode not in ("craft", "stworz", "stwórz", "rzemioslo", "rzemiosło", "cook", "gotuj", "gotowanie")
+
+        if show_craft:
+            await self.send("RECEPTURY RZEMIOSŁA")
+            for recipe in CRAFT_RECIPES.values():
+                await self.send(
+                    f"{recipe['name']}. Składniki: "
+                    f"{self.recipe_ingredients_text(recipe)}. "
+                    f"Miejsce: {self.recipe_station_text(recipe['stations'])}. "
+                    f"{recipe['desc']}"
+                )
+
+        if show_cook:
+            await self.send("RECEPTURY GOTOWANIA")
+            for recipe in COOK_RECIPES.values():
+                await self.send(
+                    f"{recipe['name']}. Składniki: "
+                    f"{self.recipe_ingredients_text(recipe)}. "
+                    f"Miejsce: {self.recipe_station_text(recipe['stations'])}. "
+                    f"{recipe['desc']}"
+                )
+
+        if show_alchemy:
+            await self.send("RECEPTURY ALCHEMII")
+            for recipe in ALCHEMY_RECIPES.values():
+                await self.send(
+                    f"{recipe['name']}. Składniki: "
+                    f"{self.recipe_ingredients_text(recipe)}. "
+                    f"Miejsce: {self.recipe_station_text(recipe['stations'])}. "
+                    f"{recipe['desc']}"
+                )
+
+    def recipe_tool_info(self, recipes):
+        if recipes is CRAFT_RECIPES:
+            return "crafting", "crafting_hammer", "Młot Rzemieślniczy"
+        if recipes is ALCHEMY_RECIPES:
+            return "alchemy", "alchemy_mortar", "Moździerz Alchemiczny"
+        return "cooking", "chef_knife", "Nóż Kucharski"
+
+    async def perform_recipe(self, query, recipes, action_name):
+        if self.combat_mob_key:
+            await self.send(
+                f"Nie możesz wykonywać akcji {action_name} podczas walki."
+            )
+            return False
+
+        tool_type, tool_item_id, tool_name = self.recipe_tool_info(recipes)
+        if self.server.db.item_qty(self.account_id, tool_item_id) <= 0:
+            if tool_type == "crafting":
+                await self.send(
+                    "Do Rzemiosła potrzebujesz Młota Rzemieślniczego. "
+                    "Kup go u Kowala Dorana w Kuźni Dusz."
+                )
+            elif tool_type == "alchemy":
+                await self.send(
+                    "Do Alchemii potrzebujesz Moździerza Alchemicznego. "
+                    "Kup go w Chacie Zielarki."
+                )
+            else:
+                await self.send(
+                    "Do Gotowania potrzebujesz Noża Kucharskiego. "
+                    "Kup go w Karczmie Pod Błękitnym Płomieniem."
+                )
+            return False
+
+        found = find_by_name(recipes, query)
+        if not found:
+            await self.send("Nie rozpoznaję tej receptury. Wpisz receptury.")
+            return False
+
+        recipe_id, recipe = found
+
+        if self.character.room_id not in recipe["stations"]:
+            await self.send(
+                f"Tę recepturę wykonasz w: "
+                f"{self.recipe_station_text(recipe['stations'])}."
+            )
+            return False
+
+        missing = []
+        for item_id, quantity in recipe["ingredients"].items():
+            have = self.available_recipe_item(item_id)
+            if have < quantity:
+                missing.append(
+                    f"{ITEMS[item_id]['name']}: masz {have}, potrzeba {quantity}"
+                )
+
+        if missing:
+            await self.send("Brakuje składników:")
+            for line in missing:
+                await self.send(line + ".")
+            return False
+
+        for item_id, quantity in recipe["ingredients"].items():
+            if not self.consume_recipe_item(item_id, quantity):
+                await self.send(
+                    "Nie udało się pobrać składników. Receptura przerwana."
+                )
+                return False
+
+        output_id = recipe["output"]
+        quantity = int(recipe.get("quantity", 1))
+
+        tool_row = self.server.db.tool(self.account_id, tool_type)
+        old_tool_level = int(tool_row["level"])
+        tier = tool_tier(old_tool_level)
+        bonus_chance = tool_tier_bonus_chance(old_tool_level)
+
+        bonus_quantity = 0
+        if bonus_chance > 0 and random.random() < bonus_chance:
+            bonus_quantity = quantity
+
+        total_quantity = quantity + bonus_quantity
+        self.server.db.add_item(
+            self.account_id, output_id, total_quantity
+        )
+
+        await self.send(
+            f"{action_name.capitalize()}: {ITEMS[output_id]['name']} "
+            f"x{quantity}. Przedmiot trafia do zwykłego ekwipunku."
+        )
+
+        if bonus_quantity > 0:
+            if tool_type == "cooking":
+                await self.send(
+                    f"Bonus Tieru {tier} Noża Kucharskiego: "
+                    f"przygotowujesz dodatkowo {ITEMS[output_id]['name']} "
+                    f"x{bonus_quantity}."
+                )
+            elif tool_type == "alchemy":
+                await self.send(
+                    f"Bonus Tieru {tier} Moździerza Alchemicznego: "
+                    f"warzysz dodatkowo {ITEMS[output_id]['name']} "
+                    f"x{bonus_quantity}."
+                )
+            else:
+                await self.send(
+                    f"Bonus Tieru {tier} Młota Rzemieślniczego: "
+                    f"wytwarzasz dodatkowo {ITEMS[output_id]['name']} "
+                    f"x{bonus_quantity}."
+                )
+
+        tool_xp = 8 + random.randint(0, 4)
+        if tool_type == "alchemy":
+            messages, alchemy_level, new_tool_level = self.grant_profession_progress(
+                "Alchemia", 10 + random.randint(0, 5), "alchemy", tool_xp
+            )
+        else:
+            messages, new_tool_level = self.grant_tool_progress(tool_type, tool_xp)
+        for message in messages:
+            await self.send(message)
+
+        if new_tool_level != old_tool_level:
+            await self.send(
+                f"{tool_name} ma teraz level {new_tool_level}, "
+                f"Tier {tool_tier(new_tool_level)}: "
+                f"{tool_tier_name(tool_type, new_tool_level)}."
+            )
+
+        return True
+
+    async def craft_item(self, query):
+        return await self.perform_recipe(query, CRAFT_RECIPES, "rzemiosło")
+
+    async def cook_item(self, query):
+        return await self.perform_recipe(query, COOK_RECIPES, "gotowanie")
+
+    async def alchemy_item(self, query):
+        return await self.perform_recipe(query, ALCHEMY_RECIPES, "alchemia")
+
     async def inventory(self):
         rows = self.server.db.inventory(self.account_id)
         await self.send(
@@ -4440,8 +6441,9 @@ class Session:
             f"{self.character.gold} złota, {self.character.mithril} mithrilu."
         )
         await self.send(
-            "Siatka na ryby i Sakwa górnicza są osobnymi magazynami; "
-            "użyj komend siatka/net oraz sakwa/bag."
+            "Siatka na ryby, Sakwa górnicza, Stos drewna i Torba Zielarska "
+            "są osobnymi magazynami; użyj siatka/net, sakwa/bag, drewno/stos "
+            "oraz ziola/herbs."
         )
         if not rows:
             await self.send("Ekwipunek jest pusty.")
@@ -4505,20 +6507,64 @@ class Session:
         if item.get("type") != "consumable":
             await self.send("Tego przedmiotu nie używa się w ten sposób.")
             return
-        if "heal" in item:
-            if self.current_hp >= self.character.max_hp():
-                await self.send("Masz pełne życie.")
-                return
-            self.server.db.remove_item(self.account_id, item_id, 1)
-            amount = min(item["heal"], self.character.max_hp() - self.current_hp)
-            self.current_hp += amount
-            await self.send(f"Używasz {item['name']}. Odzyskujesz {amount} życia.")
-            await self.send(
-                f"Masz teraz {self.current_hp} z {self.character.max_hp()} HP."
+        if "heal" in item or "mana" in item:
+            max_hp = self.character.max_hp()
+            max_mana = self.character.max_mana()
+
+            missing_hp = max(0, max_hp - self.current_hp)
+            missing_mana = max(0, max_mana - self.current_mana)
+
+            can_restore_hp = item.get("heal", 0) > 0 and missing_hp > 0
+            can_restore_mana = (
+                item.get("mana", 0) > 0
+                and max_mana > 0
+                and missing_mana > 0
             )
+
+            if not can_restore_hp and not can_restore_mana:
+                if max_mana > 0:
+                    await self.send("Masz pełne HP i Manę.")
+                else:
+                    await self.send("Masz pełne życie.")
+                return
+
+            self.server.db.remove_item(self.account_id, item_id, 1)
+
+            healed = 0
+            restored_mana = 0
+
+            if can_restore_hp:
+                healed = min(item.get("heal", 0), missing_hp)
+                self.current_hp += healed
+            if can_restore_mana:
+                restored_mana = min(item.get("mana", 0), missing_mana)
+                self.current_mana += restored_mana
+
+            parts = []
+            if healed:
+                parts.append(f"{healed} HP")
+            if restored_mana:
+                parts.append(f"{restored_mana} Many")
+
+            await self.send(
+                f"Używasz {item['name']}. Odzyskujesz "
+                + " i ".join(parts) + "."
+            )
+            await self.send(
+                f"Masz teraz {self.current_hp} z {max_hp} HP."
+            )
+            if max_mana > 0:
+                await self.send(
+                    f"Mana: {self.current_mana} z {max_mana}."
+                )
+
             if self.combat_mob_key:
-                await self.send("Zużywasz swoją turę na użycie mikstury.")
-                await self.enemy_counterattack(self.server.world.mobs.get(self.combat_mob_key))
+                await self.send(
+                    "Zużywasz swoją turę na użycie przedmiotu."
+                )
+                await self.enemy_counterattack(
+                    self.server.world.mobs.get(self.combat_mob_key)
+                )
             return
         if "soul_xp" in item:
             self.server.db.remove_item(self.account_id, item_id, 1)
@@ -4531,7 +6577,10 @@ class Session:
         if not offers:
             await self.send("W tej lokacji nie ma sklepu.")
             return
-        await self.send("Oferta sklepu:")
+        await self.send(
+            f"Oferta sklepu. Rabat Charyzmy: "
+            f"{self.character.shop_discount_percent()} procent."
+        )
         for number, item_id in enumerate(offers, 1):
             item = ITEMS[item_id]
             currency = item.get("currency", "gold")
@@ -4542,8 +6591,14 @@ class Session:
                     f" Slot: {item.get('slot', 'brak')}. "
                     f"Obrona +{item.get('defense', 0)}."
                 )
+            cashback = self.shop_cashback_silver(item)
+            discount_text = (
+                f" Zwrot z rabatu: {cashback} srebra."
+                if cashback > 0 else ""
+            )
             await self.send(
-                f"{number}. {item['name']}: {item['price']} {currency_pl}.{extra} {item['desc']}"
+                f"{number}. {item['name']}: {item['price']} {currency_pl}."
+                f"{discount_text}{extra} {item['desc']}"
             )
 
     async def buy(self, query):
@@ -4565,11 +6620,19 @@ class Session:
             await self.send(f"Masz za mało waluty: {currency_pl}.")
             return
         setattr(self.character, currency, current - price)
+        cashback = self.shop_cashback_silver(item)
+        if cashback > 0:
+            self.character.silver += cashback
         self.server.db.add_item(self.account_id, item_id, 1)
         if item.get("type") == "tool":
             self.server.db.ensure_tool(self.account_id, item["tool_type"])
         self.server.db.save_character(self.character)
         await self.send(f"Kupujesz {item['name']} za {price} {currency_pl}.")
+        if cashback > 0:
+            await self.send(
+                f"Rabat Charyzmy: sprzedawca zwraca ci "
+                f"{cashback} srebra."
+            )
 
     async def show_teachers(self):
         teachers = [
@@ -4963,12 +7026,14 @@ class Session:
             if not mob:
                 await self.send("Nie widzę tutaj takiego przeciwnika.")
                 return None
-            if mob.engaged_by and mob.engaged_by != self.character.name:
+            if not self.server.engagement_allowed(self, mob):
                 await self.send(
-                    f"{MOB_TEMPLATES[mob.template_id]['name']} walczy już z innym graczem."
+                    f"{MOB_TEMPLATES[mob.template_id]['name']} walczy już "
+                    f"z graczem spoza twojej drużyny."
                 )
                 return None
-            mob.engaged_by = self.character.name
+            if not mob.engaged_by:
+                mob.engaged_by = self.character.name
             self.combat_mob_key = mob.key
             await self.server.broadcast_room(
                 self.character.room_id,
@@ -5015,6 +7080,38 @@ class Session:
             incoming = max(1, incoming - guard)
             await self.send(
                 f"Aktywna osłona redukuje trafienie dodatkowo o {before - incoming} obrażeń."
+            )
+
+        if damage_type == "physical":
+            physical_race_percent = self.character.racial_physical_damage_reduction_percent()
+            if physical_race_percent > 0:
+                before_physical_race = incoming
+                incoming = max(
+                    1,
+                    int(round(incoming * (1.0 - physical_race_percent / 100.0)))
+                )
+                physical_race_prevented = max(0, before_physical_race - incoming)
+                if physical_race_prevented > 0:
+                    await self.send(
+                        f"Rasowa odporność Trolla redukuje obrażenia fizyczne o "
+                        f"{physical_race_percent} procent, czyli o "
+                        f"{physical_race_prevented} obrażeń."
+                    )
+
+        incoming, racial_prevented = self.character.apply_racial_damage_reduction(incoming)
+        if racial_prevented > 0:
+            await self.send(
+                f"Rasowa odporność Krasnoluda redukuje trafienie o "
+                f"{self.character.racial_damage_reduction_percent()} procent, "
+                f"czyli o {racial_prevented} obrażeń."
+            )
+
+        incoming, class_prevented = self.character.apply_class_damage_reduction(incoming)
+        if class_prevented > 0:
+            await self.send(
+                f"Pasyw klasy {self.character.class_name} redukuje trafienie o "
+                f"{self.character.class_damage_reduction_percent()} procent, "
+                f"czyli o {class_prevented} obrażeń."
             )
 
         self.current_hp -= incoming
@@ -5129,6 +7226,9 @@ class Session:
             if self.auto_mining or self.auto_mining_task:
                 await self.stop_auto_mining(announce=False)
                 await self.send("Auto-kopanie wyłączone z powodu walki.")
+            if self.auto_woodcutting or self.auto_woodcutting_task:
+                await self.stop_auto_woodcutting(announce=False)
+                await self.send("Auto-Drwalstwo wyłączone z powodu walki.")
             mob = await self.skill_combat_target(target_text)
             if not mob:
                 return
@@ -5176,7 +7276,13 @@ class Session:
 
         if kind == "heal":
             max_hp = self.character.max_hp()
-            heal_pct = min(0.75, skill.get("heal_pct", 0.25) * skill_power)
+            heal_pct = min(
+                0.75,
+                skill.get("heal_pct", 0.25)
+                * skill_power
+                * self.character.racial_healing_multiplier()
+                * self.character.class_healing_multiplier()
+            )
             heal = max(1, int(max_hp * heal_pct))
             before = self.current_hp
             self.current_hp = min(max_hp, self.current_hp + heal)
@@ -5186,6 +7292,16 @@ class Session:
                 f"Odzyskujesz {actual} HP. "
                 f"Masz teraz {self.current_hp} z {max_hp} HP."
             )
+            if self.character.racial_healing_bonus_percent() > 0:
+                await self.send(
+                    f"Bonus rasy {self.character.race}: "
+                    f"+{self.character.racial_healing_bonus_percent()} procent mocy leczenia."
+                )
+            class_heal_bonus = int(round((self.character.class_healing_multiplier() - 1.0) * 100))
+            if class_heal_bonus > 0:
+                await self.send(
+                    f"Bonus klasy {self.character.class_name}: +{class_heal_bonus} procent mocy leczenia."
+                )
             await self.grant_skill_use_xp(skill)
             if mana_cost:
                 await self.send(f"Mana: {self.current_mana} z {self.character.max_mana()}.")
@@ -5196,6 +7312,13 @@ class Session:
         template = MOB_TEMPLATES[mob.template_id]
         scale = self.skill_scale_value(skill.get("scale", "strength"))
         multiplier = skill.get("mult", 1.0) * skill_power
+        if self.character.class_type == "physical":
+            multiplier *= self.character.class_physical_damage_multiplier()
+            multiplier *= self.character.racial_physical_damage_multiplier()
+        else:
+            multiplier *= self.character.class_magic_damage_multiplier()
+            multiplier *= self.character.racial_magic_damage_multiplier()
+        multiplier *= self.character.racial_all_damage_multiplier()
 
         if kind == "execute":
             hp_ratio = mob.hp / max(1, template["max_hp"])
@@ -5216,7 +7339,10 @@ class Session:
         )
 
         if kind == "drain":
-            heal = max(1, int(damage * skill.get("drain_pct", 0.4)))
+            heal = max(
+                1,
+                int(damage * skill.get("drain_pct", 0.4) * self.character.class_drain_healing_multiplier())
+            )
             before = self.current_hp
             self.current_hp = min(self.character.max_hp(), self.current_hp + heal)
             actual = self.current_hp - before
@@ -5253,30 +7379,48 @@ class Session:
 
         if c.class_type == "physical":
             # Siła odpowiada za atak fizyczny.
+            base_damage = c.soul_power() + c.physical_power() + random.randint(-3, 4)
             return max(
                 1,
-                c.soul_power()
-                + c.physical_power()
-                + random.randint(-3, 4)
+                int(
+                    round(
+                        base_damage
+                        * c.class_physical_damage_multiplier()
+                        * c.racial_physical_damage_multiplier()
+                        * c.racial_all_damage_multiplier()
+                    )
+                )
             )
 
         # Inteligencja odpowiada za moc czarów i mana.
         if self.current_mana >= 4:
             self.current_mana -= 4
+            base_damage = c.soul_power() + c.spell_power() + random.randint(-3, 4)
             return max(
                 1,
-                c.soul_power()
-                + c.spell_power()
-                + random.randint(-3, 4)
+                int(
+                    round(
+                        base_damage
+                        * c.class_magic_damage_multiplier()
+                        * c.racial_magic_damage_multiplier()
+                        * c.racial_all_damage_multiplier()
+                    )
+                )
             )
 
         # Bez many mag nadal może uderzyć Bronią Duszy, ale dużo słabiej.
+        base_damage = c.soul_power() + c.spell_power() // 3 + random.randint(-2, 2)
         return max(
-            1,
-            c.soul_power()
-            + c.spell_power() // 3
-            + random.randint(-2, 2)
-        )
+                1,
+                int(
+                    round(
+                        base_damage
+                        * c.class_magic_damage_multiplier()
+                        * c.racial_magic_damage_multiplier()
+                        * c.racial_all_damage_multiplier()
+                    )
+                )
+            )
 
     async def attack(self, query):
         if self.auto_fishing or self.auto_fishing_task:
@@ -5285,6 +7429,9 @@ class Session:
         if self.auto_mining or self.auto_mining_task:
             await self.stop_auto_mining(announce=False)
             await self.send("Auto-kopanie wyłączone z powodu walki.")
+        if self.auto_woodcutting or self.auto_woodcutting_task:
+            await self.stop_auto_woodcutting(announce=False)
+            await self.send("Auto-Drwalstwo wyłączone z powodu walki.")
         self.server.world.refresh()
         mob = None
 
@@ -5299,10 +7446,14 @@ class Session:
             if not mob:
                 await self.send("Nie widzę tutaj takiego przeciwnika.")
                 return
-            if mob.engaged_by and mob.engaged_by != self.character.name:
-                await self.send(f"{MOB_TEMPLATES[mob.template_id]['name']} walczy już z innym graczem.")
+            if not self.server.engagement_allowed(self, mob):
+                await self.send(
+                    f"{MOB_TEMPLATES[mob.template_id]['name']} walczy już "
+                    f"z graczem spoza twojej drużyny."
+                )
                 return
-            mob.engaged_by = self.character.name
+            if not mob.engaged_by:
+                mob.engaged_by = self.character.name
             self.combat_mob_key = mob.key
             await self.server.broadcast_room(
                 self.character.room_id,
@@ -5332,53 +7483,115 @@ class Session:
         mob.alive = False
         mob.respawn_at = time.time() + RESPAWN_SECONDS
         mob.engaged_by = None
-        self.combat_mob_key = None
 
-        silver = template.get("silver", 0)
-        gold = template.get("gold", 0)
-        mithril = template.get("mithril", 0)
-        self.character.silver += silver
-        self.character.gold += gold
-        self.character.mithril += mithril
-        await self.send(f"Pokonujesz: {template['name']}.")
-        if silver:
-            await self.send(f"Zdobywasz {silver} srebra.")
-        if gold:
-            await self.send(f"Zdobywasz {gold} złota.")
-        if mithril:
-            await self.send(f"Zdobywasz {mithril} mithrilu.")
+        for session in list(self.server.sessions):
+            if session.combat_mob_key == mob.key:
+                session.combat_mob_key = None
 
-        for msg in self.character.add_stat_progress(template["stat_reward"]):
-            await self.send(msg)
-        for msg in self.character.add_soul_xp(template["soul_reward"]):
-            await self.send(msg)
+        recipients = self.server.party_sessions(
+            self.account_id, same_room=self.character.room_id
+        )
+        if not recipients:
+            recipients = [self]
+        recipients = sorted(
+            recipients, key=lambda s: s.character.name.lower()
+        )
+        count = len(recipients)
+
+        for session in recipients:
+            if count > 1:
+                await session.send(
+                    f"Drużyna pokonuje: {template['name']}. "
+                    f"Nagrody obejmują {count} obecnych członków."
+                )
+            else:
+                await session.send(f"Pokonujesz: {template['name']}.")
+
+        currency_rewards = {}
+        for currency in ("silver", "gold", "mithril"):
+            total = int(template.get(currency, 0))
+            shares = {s.account_id: 0 for s in recipients}
+            if total > 0:
+                base_share, remainder = divmod(total, count)
+                for session in recipients:
+                    shares[session.account_id] = base_share
+                shares[self.account_id] += remainder
+            currency_rewards[currency] = shares
+
+        for session in recipients:
+            silver = currency_rewards["silver"][session.account_id]
+            gold = currency_rewards["gold"][session.account_id]
+            mithril = currency_rewards["mithril"][session.account_id]
+            session.character.silver += silver
+            session.character.gold += gold
+            session.character.mithril += mithril
+
+            if silver or gold or mithril:
+                await session.send(
+                    f"Twój udział waluty: {silver} srebra, "
+                    f"{gold} złota, {mithril} mithrilu."
+                )
+
+            for msg in session.character.add_stat_progress(
+                template["stat_reward"]
+            ):
+                await session.send(msg)
+            for msg in session.character.add_soul_xp(
+                template["soul_reward"]
+            ):
+                await session.send(msg)
+
+            target = template.get("quest_target")
+            if target:
+                changed = self.server.db.increment_quest(
+                    session.account_id, target
+                )
+                for quest_id, progress in changed:
+                    q = QUESTS[quest_id]
+                    await session.send(
+                        f"Postęp zadania {q['name']}: "
+                        f"{progress} z {q['needed']}."
+                    )
+
+            self.server.db.save_character(session.character)
 
         for item_id, chance in template["drops"].items():
             if random.random() <= chance:
-                self.server.db.add_item(self.account_id, item_id, 1)
-                await self.send(f"Zdobywasz przedmiot: {ITEMS[item_id]['name']}.")
+                winner = random.choice(recipients)
+                self.server.db.add_item(
+                    winner.account_id, item_id, 1
+                )
+                await winner.send(
+                    f"Drop drużyny trafia do ciebie: "
+                    f"{ITEMS[item_id]['name']}."
+                )
+                if count > 1:
+                    await self.server.party_broadcast(
+                        self.account_id,
+                        f"Drop: {ITEMS[item_id]['name']} otrzymuje "
+                        f"{winner.character.name}.",
+                        exclude=winner,
+                    )
 
-        target = template.get("quest_target")
-        if target:
-            changed = self.server.db.increment_quest(self.account_id, target)
-            for quest_id, progress in changed:
-                q = QUESTS[quest_id]
-                await self.send(f"Postęp zadania {q['name']}: {progress} z {q['needed']}.")
-
-        self.server.db.save_character(self.character)
         await self.server.broadcast_room(
             self.character.room_id,
-            f"{self.character.name} pokonuje {template['name']}.",
+            (
+                f"{self.character.name} i drużyna pokonują "
+                f"{template['name']}."
+                if count > 1
+                else f"{self.character.name} pokonuje {template['name']}."
+            ),
             exclude=self,
         )
+
 
     async def flee(self):
         if not self.combat_mob_key:
             await self.send("Nie jesteś w walce.")
             return
         mob = self.server.world.mobs.get(self.combat_mob_key)
-        if mob and mob.engaged_by == self.character.name:
-            mob.engaged_by = None
+        if mob:
+            self.server.reassign_mob_engagement(mob, self)
         self.combat_mob_key = None
         self.skill_guard = 0
         self.skill_evade = False
@@ -5388,8 +7601,8 @@ class Session:
     async def die(self, killer):
         if self.combat_mob_key:
             mob = self.server.world.mobs.get(self.combat_mob_key)
-            if mob and mob.engaged_by == self.character.name:
-                mob.engaged_by = None
+            if mob:
+                self.server.reassign_mob_engagement(mob, self)
         self.combat_mob_key = None
         self.skill_guard = 0
         self.skill_evade = False
@@ -5443,6 +7656,8 @@ class Session:
                 await self.show_exits()
             elif command == "map":
                 await self.show_map()
+            elif command == "atlas":
+                await self.show_atlas(args)
             elif command == "where":
                 await self.show_where()
             elif command == "who":
@@ -5451,6 +7666,12 @@ class Session:
                 await self.say(args)
             elif command == "tell":
                 await self.tell(args)
+            elif command == "party":
+                await self.handle_party(args)
+            elif command == "partychat":
+                await self.party_chat(args)
+            elif command == "charisma":
+                await self.show_charisma()
             elif command == "stats":
                 await self.show_stats()
             elif command == "declension":
@@ -5473,6 +7694,10 @@ class Session:
                 await self.show_container("net")
             elif command == "bag":
                 await self.show_container("bag")
+            elif command == "woodpile":
+                await self.show_container("woodpile")
+            elif command == "herbbag":
+                await self.show_container("herbbag")
             elif command == "put":
                 await self.put_in_container(args)
             elif command == "take":
@@ -5518,8 +7743,45 @@ class Session:
                     )
                 else:
                     await self.mine()
+            elif command == "woodcut":
+                mode = args.strip().lower()
+                if mode in ("on", "start", "1"):
+                    await self.set_auto_woodcutting(True)
+                elif mode in ("off", "stop", "0"):
+                    await self.set_auto_woodcutting(False)
+                elif mode:
+                    await self.send("Użycie: tnij, tnij on, tnij off, woodcut on albo woodcut off.")
+                else:
+                    await self.woodcut()
+            elif command == "herb":
+                mode = args.strip().lower()
+                if mode in ("on", "start", "1"):
+                    await self.set_auto_herbalism(True)
+                elif mode in ("off", "stop", "0"):
+                    await self.set_auto_herbalism(False)
+                elif mode:
+                    await self.send("Użycie: zbieraj, zbieraj on albo zbieraj off.")
+                else:
+                    await self.gather_herb()
             elif command == "sell":
                 await self.sell_resource(args)
+            elif command == "recipes":
+                await self.show_recipes(args)
+            elif command == "craft":
+                if not args.strip():
+                    await self.send("Użycie: craft <receptura>. Wpisz receptury.")
+                else:
+                    await self.craft_item(args)
+            elif command == "cook":
+                if not args.strip():
+                    await self.send("Użycie: cook <potrawa>. Wpisz receptury cook.")
+                else:
+                    await self.cook_item(args)
+            elif command == "alchemy":
+                if not args.strip():
+                    await self.send("Użycie: alchemia <mikstura>. Wpisz receptury alchemia.")
+                else:
+                    await self.alchemy_item(args)
             elif command == "inventory":
                 await self.inventory()
             elif command == "equipment":
@@ -5560,11 +7822,17 @@ class Session:
             await self.stop_auto_fishing(announce=False)
         if self.auto_mining or self.auto_mining_task:
             await self.stop_auto_mining(announce=False)
+        if self.auto_woodcutting or self.auto_woodcutting_task:
+            await self.stop_auto_woodcutting(announce=False)
+        if self.auto_herbalism or self.auto_herbalism_task:
+            await self.stop_auto_herbalism(announce=False)
+        if self.character:
+            await self.leave_party(announce=False)
         self.closed = True
         if self.combat_mob_key:
             mob = self.server.world.mobs.get(self.combat_mob_key)
-            if mob and self.character and mob.engaged_by == self.character.name:
-                mob.engaged_by = None
+            if mob and self.character:
+                self.server.reassign_mob_engagement(mob, self)
         if self.character:
             self.server.db.save_character(self.character)
             await self.server.broadcast_room(
@@ -5582,6 +7850,8 @@ class MudServer:
         self.db = Database(DB_PATH)
         self.world = World()
         self.sessions = set()
+        self.parties = {}
+        self.party_invites = {}
 
     def account_online(self, account_id):
         return any(s.account_id == account_id and s.character for s in self.sessions)
@@ -5591,6 +7861,83 @@ class MudServer:
             if s.character and s.character.name.lower() == name.lower():
                 return s
         return None
+
+    def session_by_account(self, account_id):
+        for session in self.sessions:
+            if session.account_id == account_id and session.character:
+                return session
+        return None
+
+    def party_key_for_account(self, account_id):
+        for leader_id, members in self.parties.items():
+            if account_id in members:
+                return leader_id
+        return None
+
+    def same_party(self, account_a, account_b):
+        key_a = self.party_key_for_account(account_a)
+        key_b = self.party_key_for_account(account_b)
+        return key_a is not None and key_a == key_b
+
+    def party_sessions(self, account_id, same_room=None):
+        key = self.party_key_for_account(account_id)
+        if key is None:
+            session = self.session_by_account(account_id)
+            if (
+                session
+                and (
+                    same_room is None
+                    or session.character.room_id == same_room
+                )
+            ):
+                return [session]
+            return []
+
+        result = []
+        for member_id in self.parties.get(key, set()):
+            session = self.session_by_account(member_id)
+            if not session:
+                continue
+            if (
+                same_room is not None
+                and session.character.room_id != same_room
+            ):
+                continue
+            result.append(session)
+        return result
+
+    async def party_broadcast(self, account_id, message, exclude=None):
+        for session in self.party_sessions(account_id):
+            if session is not exclude:
+                await session.send(message)
+
+    def engagement_allowed(self, session, mob):
+        if not mob.engaged_by or mob.engaged_by == session.character.name:
+            return True
+        owner = self.find_character_session(mob.engaged_by)
+        return bool(
+            owner
+            and self.same_party(session.account_id, owner.account_id)
+        )
+
+    def reassign_mob_engagement(self, mob, leaving_session):
+        if not mob or not mob.alive:
+            return
+        if mob.engaged_by != leaving_session.character.name:
+            return
+        candidates = [
+            session
+            for session in self.party_sessions(
+                leaving_session.account_id, same_room=mob.room_id
+            )
+            if (
+                session is not leaving_session
+                and session.combat_mob_key == mob.key
+            )
+        ]
+        mob.engaged_by = (
+            candidates[0].character.name if candidates else None
+        )
 
     async def broadcast_room(self, room_id, text, exclude=None):
         for s in list(self.sessions):

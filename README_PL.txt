@@ -1,4 +1,4 @@
-SOULBOUND v0.6.30 THREE CURRENCIES
+SOULBOUND v0.6.41 THREE CURRENCIES
 ==========================
 
 Duży build rozbudowujący działający serwer online do pierwszej właściwej wersji świata MUD.
@@ -1041,3 +1041,450 @@ Stare postacie są zachowane: jeśli nie mają jeszcze form,
 migracja wpisuje ich dotychczasowe imię we wszystkie przypadki.
 
 Powitanie po wejściu do świata używa Wołacza.
+
+
+DRIADA — RASA POD LECZENIE v0.6.31
+---------------------------------
+Dodano 13. rasę: Driada.
+
+Statystyki początkowe:
+Siła: 7
+Zręczność: 10
+Kondycja: 11
+Inteligencja: 15
+Siła Woli: 15
+
+Bonus rasowy:
++15 procent mocy wszystkich klasowych umiejętności typu heal.
+
+Bonus działa obecnie między innymi na:
+- Małe Leczenie Kapłana,
+- Wielkie Leczenie Kapłana,
+- Medytację Mnicha,
+- Uzdrowienie Natury Druida.
+
+Bonus działa również na przyszłe umiejętności oznaczone jako heal.
+Skaluje się razem ze Skill Level danego skilla.
+
+Driada jest szczególnie dobrym wyborem dla:
+- Kapłana,
+- Druida.
+
+Komendy:
+opis Driada
+stats
+
+stats pokazuje aktywny bonus rasowy do leczenia.
+
+
+KRASNOLUD — RASOWA REDUKCJA OBRAŻEŃ v0.6.32
+-------------------------------------------
+Krasnolud ma teraz stały rasowy pasyw:
+
+10 procent redukcji wszystkich otrzymywanych obrażeń.
+
+Działa na:
+- obrażenia fizyczne,
+- obrażenia magiczne.
+
+Kolejność obliczeń:
+1. zwykła obrona fizyczna albo magiczna,
+2. aktywna osłona umiejętności, jeśli działa,
+3. rasowa redukcja Krasnoluda 10 procent,
+4. pozostałe obrażenia odejmują HP.
+
+Redukcja nie może zmniejszyć normalnego trafienia poniżej 1 obrażenia.
+
+Komendy:
+opis Krasnolud
+stats
+
+pokazują informację o pasywie.
+
+
+PASYWY KLASOWE v0.6.33
+----------------------
+Wojownik — +10% obrażeń fizycznych.
+Berserker — +12% obrażeń fizycznych.
+Łotrzyk — +5 punktów procentowych uniku.
+Łowca — +8% obrażeń fizycznych.
+Mnich — +8% mocy leczenia klasowego.
+Strażnik — 10% redukcji wszystkich otrzymywanych obrażeń.
+Mag — +10% obrażeń magicznych.
+Nekromanta — +15% leczenia z wysysania życia.
+Kapłan — +10% mocy leczenia klasowego.
+Czarownik — +12% obrażeń magicznych.
+Druid — +10% mocy leczenia klasowego.
+Psionik — +10% obrony magicznej.
+
+Pasywy są stałe i nie trzeba ich uczyć.
+Driada-Kapłan i Driada-Druid łączą bonus rasowy z klasowym leczeniem.
+Krasnolud-Strażnik łączy rasową i klasową redukcję obrażeń.
+Postać nadal nie ma levelu.
+
+
+PASYWY WSZYSTKICH RAS v0.6.34
+-----------------------------
+Każda z 13 ras ma własny stały bonus.
+
+Człowiek
++10% zdobywanego Postępu Rozwoju statystyk.
+
+Ogr
++12% obrażeń fizycznych.
+
+Elf
++5 punktów procentowych do szansy uniku.
+
+Krasnolud
+10% redukcji wszystkich otrzymywanych obrażeń.
+
+Ork
++10% maksymalnego HP.
+
+Niziołek
++3 punkty procentowe do szansy na bonusowy połów lub dodatkową zwykłą rudę.
+Bonus łączy się z bonusem Tieru Wędki lub Kilofa.
+
+Mroczny Elf
++10% obrażeń magicznych.
+
+Gnom
++15% maksymalnej Many dla klas magicznych.
+
+Smoczy
++8% wszystkich zadawanych obrażeń, fizycznych i magicznych.
+
+Troll
+12% redukcji otrzymywanych obrażeń fizycznych.
+
+Diablę
++10% zdobywanego Soul XP Broni Duszy.
+
+Aasimar
++12% obrony magicznej.
+
+Driada
++15% mocy klasowych umiejętności leczących.
+
+Pasywy rasowe i klasowe mogą się łączyć.
+Przykłady:
+- Ogr Wojownik łączy rasowy i klasowy bonus obrażeń fizycznych.
+- Elf Łotrzyk łączy rasowy i klasowy bonus uniku.
+- Krasnolud Strażnik łączy dwie redukcje obrażeń.
+- Driada Kapłan łączy dwa bonusy leczenia.
+- Aasimar Psionik łączy dwa bonusy obrony magicznej.
+
+Komendy:
+stats
+opis <rasa>
+
+pokazują pasyw rasy.
+
+
+DRWALSTWO v0.6.35
+-----------------
+Dodano trzecią profesję: Drwalstwo.
+
+Profesja:
+- level 1-100,
+- własny XP,
+- 8 rang: Uczeń, Adept, Czeladnik, Specjalista, Ekspert, Mistrz, Arcymistrz, Legenda.
+
+Narzędzie: Piła
+- własny level 1-100,
+- własny XP,
+- 8 Tierów,
+- bonus do szansy na dodatkowe drewno.
+
+Komendy:
+tnij
+drwal
+woodcut
+tnij on
+tnij off
+woodcut on
+woodcut off
+drewno
+stos
+woodpile
+
+Obszary:
+Łąka, Gaj Szeptów, Głębia Gaju, Stary Trakt.
+
+Drewno:
+Suche gałęzie, Pień sosny, Pień dębu, Pień jesionu, Pień cisu,
+Pień żelaznego drzewa, Pień drzewa duchów, Pradawna twardziel.
+
+Każde drewno trafia automatycznie na Stos drewna.
+Piłę kupuje się w Kuźni Dusz za 2 złota.
+Drewno można sprzedawać na Rynku albo w Kuźni Dusz.
+
+
+DRWAL BRAN I PIŁA v0.6.36
+-------------------------
+Piła nie jest już sprzedawana w Kuźni Dusz.
+Piłę sprzedaje wyłącznie Drwal Bran w Obozie Drwala.
+
+Trasa:
+Gaj Szeptów -> zachód -> Obóz Drwala.
+
+W obozie:
+list
+kup Piła
+
+DREWNO
+------
+Drwalstwo ma 16 gatunków drewna:
+Suche gałęzie, brzoza, sosna, wierzba, dąb, buk, klon, jesion,
+cedr, cis, żelazne drzewo, heban, srebrne drzewo, drzewo duchów,
+Pradawna twardziel i Drewno Drzewa Świata.
+
+Obóz Drwala i Łąka dają głównie drewna początkujące.
+Gaj Szeptów i Stary Trakt dają średnie i rzadkie drewna.
+Głębia Gaju daje najrzadsze drewna magiczne i mityczne.
+
+WĘDKARSTWO: 4 ŚRODOWISKA
+------------------------
+Rzeka:
+Brzeg Rzeki i Kamienny Most.
+Ryby m.in. karp, okoń rzeczny, brzana, szczupak, sandacz, pstrągi, łosoś, sum, jesiotr.
+
+Jezioro:
+Brzeg Srebrnego Jeziora.
+Ryby m.in. płoć, leszcz, lin, okoń jeziorowy, szczupak, sandacz, troć jeziorowa, olbrzymi szczupak i węgorz.
+
+Morze:
+Morskie Molo.
+Ryby m.in. sardynka, sardela, śledź, makrela, dorsz, okoń morski, plamiak, mintaj, flądra, halibut i turbot.
+
+Ocean:
+Oceaniczna Platforma.
+Ryby m.in. tuńczyk, mahi-mahi, wahoo, żaglica, miecznik, tuńczyk błękitnopłetwy, samogłów oraz rekiny.
+
+Każdy typ wody ma własną pulę połowu.
+Ryby nadal trafiają automatycznie do Siatki na ryby.
+Drewno nadal trafia automatycznie na Stos drewna.
+
+
+WIĘCEJ RYB I DREWNA v0.6.37
+---------------------------
+Dodano 26 nowych gatunków ryb.
+
+RZEKA:
+Jelec, Kleń, Świnka, Jaź, Boleń, Lipień, Miętus
+oraz wcześniejsze gatunki rzeczne.
+
+JEZIORO:
+Wzdręga, Karaś, Sielawa, Sieja, Palia jeziorowa
+oraz wcześniejsze gatunki jeziorowe.
+
+MORZE:
+Szprot, Witlinek, Morszczuk, Barwena, Sola, Żabnica
+oraz wcześniejsze gatunki morskie.
+
+OCEAN:
+Albakora, Tuńczyk wielkooki, Barakuda, Kobia, Seriola,
+Rekin mako, Rekin tygrysi
+oraz wcześniejsze gatunki oceaniczne.
+
+DRWALSTWO:
+Liczba gatunków drewna wzrosła z 16 do 24.
+
+Nowe drewna:
+Pień olchy,
+Pień topoli,
+Pień lipy,
+Pień kasztana,
+Pień orzecha,
+Pień mahoniu,
+Pień teku,
+Pień sekwoi.
+
+Nowe gatunki są przypisane do odpowiednich obszarów i leveli Piły.
+Ryby nadal trafiają do Siatki, a drewno na Stos drewna.
+
+
+RZEMIOSŁO v0.6.38
+-----------------
+Rzemiosło automatycznie pobiera rudy z Sakwy i drewno ze Stosu.
+
+Komendy:
+receptury
+receptury craft
+craft <nazwa>
+stworz <nazwa>
+wytworz <nazwa>
+
+Kuźnia:
+2 Rudy żelaza -> Żelazna sztabka.
+2 Rudy srebra -> Srebrna sztabka.
+2 Rudy złota -> Złota sztabka.
+
+Obóz Drwala:
+2 Pnie dębu -> Deska dębowa.
+2 Pnie jesionu -> Deska jesionowa.
+2 Pnie cisu -> Deska cisowa.
+2 Pnie żelaznego drzewa -> Deska żelaznego drzewa.
+2 Pnie drzewa duchów -> Deska drzewa duchów.
+
+Talizmany:
+Talizman Dębu i Żelaza: obrona +2.
+Talizman Cisu i Srebra: obrona +3.
+Talizman Drzewa Dusz: obrona +5.
+
+GOTOWANIE v0.6.38
+-----------------
+Gotować można w Karczmie oraz na Targu Rybnym.
+Ryby są pobierane bezpośrednio z Siatki.
+
+Komendy:
+receptury cook
+cook <potrawa>
+gotuj <potrawa>
+
+Potrawy:
+Pieczona ryba rzeczna: do 30 HP.
+Gulasz rzeczny: do 45 HP.
+Potrawka jeziorowa: do 50 HP i 10 Many.
+Zupa morska: do 60 HP i 15 Many.
+Stek oceaniczny: do 75 HP i 25 Many.
+Uczta Mistrza Rybaka: do 100 HP i 40 Many.
+
+Potraw używa się przez use/uzyj.
+W walce użycie jedzenia zużywa jedną turę.
+
+
+ATLASY v0.6.39
+--------------
+atlas
+atlas ryby
+atlas rzeka
+atlas jezioro
+atlas morze
+atlas ocean
+atlas drewno
+atlas rudy
+atlas <nazwa surowca>
+
+Atlas pokazuje występowanie ryb, drewna i rud.
+
+DRUŻYNY v0.6.39
+---------------
+druzyna
+druzyna zapros <gracz>
+druzyna dolacz
+druzyna odrzuc
+druzyna opusc
+druzyna wyrzuc <gracz>
+druzyna rozwiaz
+druzyna limit
+pc <tekst>
+
+Startowy limit: 8 osób łącznie z liderem.
+Co 25 Charyzmy lidera: +1 miejsce.
+
+Członkowie w tym samym pomieszczeniu mogą wspólnie walczyć
+z tym samym przeciwnikiem.
+
+Po zwycięstwie obecni członkowie otrzymują pełny EXP rozwoju,
+pełny Soul XP oraz postęp zadań zabijania.
+Waluta jest dzielona.
+Każdy wylosowany drop trafia do jednego losowego członka.
+
+CHARYZMA HANDLOWA v0.6.39
+-------------------------
+Charyzma jest osobnym rozwojem handlowym.
+Nie jest szóstą statystyką bojową i nie daje levelu postaci.
+
+Każda udana sprzedaż surowca: Charyzma +1.
+Co 4 Charyzmy: +1% rabatu.
+Maksymalny rabat: 25%.
+
+W sklepie płacisz bazową walutą, a wartość rabatu jest zwracana
+w srebrze. Dzięki temu rabat działa także na przedmioty kosztujące złoto.
+
+Charyzma wpływa też na wielkość drużyny:
+start 8 osób, potem +1 miejsce co 25 Charyzmy lidera.
+
+Komendy:
+charyzma
+charisma
+stats
+
+
+NARZĘDZIA RZEMIOSŁA I GOTOWANIA v0.6.40
+---------------------------------------
+Wędkarstwo: Wędka 1-100, 8 Tierów.
+Górnictwo: Kilof 1-100, 8 Tierów.
+Drwalstwo: Piła 1-100, 8 Tierów.
+
+Rzemiosło:
+Młot Rzemieślniczy 1-100, własny XP, użycia i 8 Tierów.
+Kupuje się u Kowala Dorana w Kuźni Dusz za 2 złota.
+Bez Młota craft / stworz / wytworz nie działa.
+Udana receptura daje 8-12 XP Młota.
+Wyższy Tier może dać dodatkowy produkt bez dodatkowych składników.
+
+Gotowanie:
+Nóż Kucharski 1-100, własny XP, użycia i 8 Tierów.
+Kupuje się w Karczmie Pod Błękitnym Płomieniem za 1 złoto.
+Bez Noża cook / gotuj nie działa.
+Udana receptura daje 8-12 XP Noża.
+Wyższy Tier może dać dodatkową potrawę bez dodatkowych składników.
+
+Progi Tierów:
+1, 15, 30, 45, 60, 75, 90, 100.
+
+Bonus Tierów:
+0%, 2%, 4%, 6%, 8%, 10%, 12%, 15%.
+
+Komendy:
+tools
+narzedzia
+tiers
+tiery
+nazwytierow
+help rzemioslo
+help gotowanie
+help receptury
+
+
+ZIELARSTWO v0.6.41
+------------------
+Profesja 1-100, 8 rang.
+Narzędzie: Sierp Zielarski 1-100, 8 Tierów.
+Kupisz go w Chacie Zielarki.
+
+Komendy:
+zbieraj
+zbieraj on
+zbieraj off
+zielarstwo
+ziola
+herbs
+atlas ziola
+
+Auto-Zielarstwo działa jak auto-łowienie i wykonuje kolejne zbiory co około 2 sekundy.
+Zioła automatycznie trafiają do Torby Zielarskiej.
+
+ALCHEMIA v0.6.41
+----------------
+Profesja 1-100, 8 rang.
+Narzędzie: Moździerz Alchemiczny 1-100, 8 Tierów.
+Kupisz go w Chacie Zielarki.
+
+Komendy:
+receptury alchemia
+alchemia <mikstura>
+warz <mikstura>
+
+Receptury:
+Mikstura leczenia
+Mikstura Many
+Wielka Mikstura Leczenia
+Wielka Mikstura Many
+Eliksir Witalności
+Eliksir Duszy
+
+Udana receptura rozwija Alchemię i Moździerz.
