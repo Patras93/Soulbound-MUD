@@ -1,3 +1,126 @@
+SOULBOUND v0.7.04 COMPLETE RESOURCE ATLAS
+===========================================
+- Pełny Atlas Ryb.
+- Pełny Atlas Drewna.
+- Pełny Atlas Rud.
+- Pełny Atlas Ziół.
+- 100 procent RESOURCE_IDS każdej kategorii.
+- Liczba zasobów w atlasie.
+- Długie listy dzielone dla NVDA.
+- Rudy pokazują level Kilofa i głębokość kopalni.
+- Dotychczasowe grupy występowania zachowane.
+- Pojedyncze wyszukiwanie atlas <surowiec> zachowane.
+- Brak migracji SQLite.
+
+SOULBOUND v0.7.03 MINE 1-200 & AUTO WALK
+==========================================
+- Kopalnia Głębinowa 1-200.
+- 200 prawdziwych lokacji.
+- 5 uderzeń przebija ścianę niżej.
+- Postęp zapisany w SQLite.
+- Im głębiej, tym lepsze rudy.
+- Level Kilofa nadal obowiązuje.
+- kop on samo schodzi po przebiciu.
+- kop on samo idzie do kopalni.
+- low on samo chodzi i łowi.
+- zbieraj on samo chodzi i zbiera.
+- tnij on samo chodzi i ścina.
+- off nadal dokańcza bieżącą akcję.
+- Brak resetu bazy.
+
+SOULBOUND v0.7.02 MEADOWS
+===========================
+- Dodano Łąkę Mięty.
+- Dodano Łąkę Kwiatów.
+- Dodano Łąkę Nadjeziorną.
+- Srebrna Łąka pozostaje.
+- Łącznie 4 lokacje łąk.
+- Zielarstwo działa na wszystkich.
+- Każda nowa łąka ma własną pulę ziół.
+- Atlas ziół zaktualizowany.
+- Prowadzenie zaktualizowane.
+- Brak migracji SQLite.
+
+SOULBOUND v0.7.01 GRACEFUL AUTO STOP
+======================================
+- low/fish off dokańcza połów.
+- kop/mine off dokańcza wydobycie.
+- tnij/woodcut off dokańcza cięcie.
+- zbieraj off dokańcza zbiór.
+- Surowiec i XP nie przepadają.
+- Następna auto-akcja nie startuje.
+- Wymuszone stop nadal działa natychmiast.
+- Brak migracji SQLite.
+
+SOULBOUND v0.7.00 CURRENCY CORRECTION
+=======================================
+- 1000 srebrnych monet = 1 złota moneta.
+- 1 000 000 złotych monet = 1 mithrilowa moneta.
+- exchange gold poprawiony do 1000 srebrnych monet.
+- exchange mithril używa 1 000 000 złotych monet.
+- Pełne nazwy monet w komunikatach.
+- Brak resetu sald.
+- Brak migracji SQLite.
+
+SOULBOUND v0.6.99 100 SILVER PER GOLD
+=======================================
+- 100 srebra = 1 złoto.
+- exchange gold używa nowego kursu.
+- 1 000 000 złota = 1 mithril bez zmian.
+- Istniejące waluty bez resetu i bez przeliczania.
+- Bank Dusz bez resetu.
+- Brak migracji SQLite.
+
+SOULBOUND v0.6.98 MORE FISH
+=============================
+- 40 nowych gatunków ryb.
+- 10 nowych ryb rzecznych.
+- 10 nowych ryb jeziorowych.
+- 10 nowych ryb morskich.
+- 10 nowych ryb oceanicznych.
+- Progi Wędki 1-200.
+- Nowe gatunki endgame.
+- woda pokazuje nowe ryby.
+- fish korzysta z tego samego poola.
+- Atlas zaktualizowany.
+- Siatka i sprzedaż obsługują nowe ryby.
+- Brak migracji SQLite.
+
+SOULBOUND v0.6.97 QUEST TURN-IN & WATER INFO
+==============================================
+- oddaj zadanie.
+- oddaj questa.
+- oddaj <nazwa>.
+- zdaj / turnin.
+- talk to <NPC>.
+- GOTOWE DO ODDANIA w dzienniku.
+- Bez zgadywania przy kilku questach.
+- Dodano woda.
+- Typ łowiska.
+- Aktualny level Wędki.
+- Liczba dostępnych gatunków ryb.
+- Lista nazw dostępnych ryb.
+- Następny endgame unlock.
+- fish i woda używają wspólnego poola.
+- Brak skończonej populacji ryb.
+- Brak migracji SQLite.
+
+SOULBOUND v0.6.96 EXPANDED COOKING
+====================================
+- Rozbudowano Gotowanie.
+- Pełna ścieżka Noża Kucharskiego 1-200.
+- Dodano gotowanie / kuchnia.
+- Dodano gotuj lista.
+- Dodano 6 nowych potraw.
+- Dodano nowe progi receptur 20,40,60,70,90 i 99.
+- Uporządkowano progi starych receptur.
+- Stałe XP Noża dla receptur 1-99.
+- Realny czas Gotowania zachowany.
+- Bonus dodatkowej porcji z Tieru Noża zachowany.
+- Marcel i jego questy zachowane.
+- Brak Character Level / XP.
+- Brak migracji SQLite.
+
 SOULBOUND v0.6.95 DUNGEON BOSS HP SCALING
 ===========================================
 - Krypta: boss HP = piętro * 1000.

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Soulbound v0.6.95 Dungeon Boss HP Scaling
+Soulbound v0.7.04 Complete Resource Atlas
 Wieloosobowy tekstowy MUD TCP/Telnet dla MUSHclienta/Mudleta.
 
 Najważniejsze zasady projektu:
@@ -28,7 +28,7 @@ import unicodedata
 from dataclasses import dataclass
 from typing import Optional
 
-VERSION = "0.6.95"
+VERSION = "0.7.04"
 
 HOST = os.getenv("SOULBOUND_HOST", "0.0.0.0")
 _RAILWAY_TCP_PORT = os.getenv("RAILWAY_TCP_APPLICATION_PORT", "").strip()
@@ -66,8 +66,8 @@ GLOBAL_MOB_HP_MULTIPLIER = 2.0
 QUEST_REPEAT_COOLDOWN_SECONDS = 30 * 60
 
 # Ekonomia:
-# 1000 srebra = 1 złoto
-# 1 000 000 złota = 1 mithril
+# 1000 srebrnych monet = 1 złota moneta
+# 1 000 000 złotych monet = 1 mithrilowa moneta
 SILVER_PER_GOLD = 1000
 GOLD_PER_MITHRIL = 1000000
 
@@ -381,10 +381,50 @@ OCEAN_FISHING_ROOMS = {"ocean_platform"}
 FRESHWATER_FISHING_ROOMS = RIVER_FISHING_ROOMS | LAKE_FISHING_ROOMS
 MARINE_FISHING_ROOMS = SEA_FISHING_ROOMS | OCEAN_FISHING_ROOMS
 FISHING_ROOMS = FRESHWATER_FISHING_ROOMS | MARINE_FISHING_ROOMS
-MINING_ROOMS = {"cave_entrance", "cave_tunnel", "crystal_chamber"}
+MINE_MIN_FLOOR = 1
+MINE_MAX_FLOOR = 200
+MINE_WALL_HITS_REQUIRED = 5
+
+def mine_floor_id(floor):
+    return f"mine_floor_{int(floor)}"
+
+def mine_floor_number(room_id):
+    match = re.fullmatch(r"mine_floor_(\d+)", str(room_id or ""))
+    if not match:
+        return None
+    floor = int(match.group(1))
+    if MINE_MIN_FLOOR <= floor <= MINE_MAX_FLOOR:
+        return floor
+    return None
+
+MINING_DEPTH_ROOMS = {
+    mine_floor_id(floor)
+    for floor in range(MINE_MIN_FLOOR, MINE_MAX_FLOOR + 1)
+}
+MINING_ROOMS = {
+    "cave_entrance", "cave_tunnel", "crystal_chamber"
+} | MINING_DEPTH_ROOMS
+
+AUTO_FISHING_ROUTE = (
+    "riverbank", "lake_shore", "sea_pier", "ocean_platform",
+)
+AUTO_WOODCUTTING_ROUTE = (
+    "lumberjack_camp", "whisper_grove", "meadow",
+    "old_road", "deep_grove",
+)
+AUTO_HERBALISM_ROUTE = (
+    "meadow", "mint_meadow", "flower_meadow", "lakeside_meadow",
+    "riverbank", "lake_shore", "whisper_grove",
+    "herbalist_hut", "old_road", "deep_grove",
+)
+
 WOODCUTTING_ROOMS = {"lumberjack_camp", "meadow", "whisper_grove", "deep_grove", "old_road"}
+MEADOW_HERBALISM_ROOMS = {
+    "meadow", "mint_meadow", "flower_meadow", "lakeside_meadow"
+}
 HERBALISM_ROOMS = {
-    "herbalist_hut", "meadow", "whisper_grove", "deep_grove",
+    "herbalist_hut", "meadow", "mint_meadow", "flower_meadow",
+    "lakeside_meadow", "whisper_grove", "deep_grove",
     "riverbank", "lake_shore", "old_road"
 }
 
@@ -414,6 +454,57 @@ ENDGAME_FISH_UNLOCKS = {
         (160, "storm_marlin"),
         (180, "moon_leviathan"),
         (200, "eternal_coelacanth"),
+    ),
+}
+
+MORE_FISH_UNLOCKS = {
+    "river": (
+        (1, "river_bleak"),
+        (5, "stone_loach"),
+        (15, "river_bream"),
+        (30, "brown_trout"),
+        (50, "river_taimen"),
+        (75, "emerald_barbel"),
+        (110, "spirit_grayling"),
+        (150, "bloodfin_salmon"),
+        (175, "star_river_eel"),
+        (200, "eternal_river_dragon"),
+    ),
+    "lake": (
+        (1, "lake_gudgeon"),
+        (8, "lake_smelt"),
+        (20, "blue_bream"),
+        (35, "golden_tench"),
+        (55, "deepwater_pike"),
+        (80, "crystal_whitefish"),
+        (110, "moon_carp"),
+        (150, "astral_pike"),
+        (175, "mirror_sturgeon"),
+        (200, "eternal_lake_serpent"),
+    ),
+    "sea": (
+        (1, "sand_eel"),
+        (10, "garfish"),
+        (20, "sea_bream"),
+        (35, "bluefish"),
+        (55, "conger_eel"),
+        (80, "red_snapper"),
+        (110, "storm_herring"),
+        (150, "abyss_conger"),
+        (175, "void_sole"),
+        (200, "eternal_sea_drake"),
+    ),
+    "ocean": (
+        (1, "flying_fish"),
+        (15, "bonito"),
+        (30, "yellowfin_tuna"),
+        (50, "king_mackerel"),
+        (70, "marlin_black"),
+        (90, "opah"),
+        (120, "celestial_swordfish"),
+        (150, "astral_sunfish"),
+        (180, "void_marlin"),
+        (200, "world_leviathan"),
     ),
 }
 
@@ -451,6 +542,13 @@ def unlocked_resource_pool(base_pool, unlocks, tool_level):
             pool.append(item_id)
     return tuple(pool)
 
+def add_more_fish_to_pool(pool, habitat, tool_level):
+    result = list(pool)
+    for required_level, item_id in MORE_FISH_UNLOCKS.get(habitat, ()):
+        if int(tool_level) >= int(required_level) and item_id not in result:
+            result.append(item_id)
+    return tuple(result)
+
 FISH_RESOURCE_IDS = {
     # Rzeka
     "small_fish", "river_carp", "river_perch", "dace", "chub", "common_nase",
@@ -476,6 +574,19 @@ FISH_RESOURCE_IDS = {
     "storm_cod", "abyss_halibut", "void_turbot", "crown_monkfish",
     "celestial_tuna", "dragon_mahi", "abyss_tuna", "storm_marlin",
     "moon_leviathan", "eternal_coelacanth",
+    # v0.6.98
+    "river_bleak", "stone_loach", "river_bream", "brown_trout",
+    "river_taimen", "emerald_barbel", "spirit_grayling",
+    "bloodfin_salmon", "star_river_eel", "eternal_river_dragon",
+    "lake_gudgeon", "lake_smelt", "blue_bream", "golden_tench",
+    "deepwater_pike", "crystal_whitefish", "moon_carp",
+    "astral_pike", "mirror_sturgeon", "eternal_lake_serpent",
+    "sand_eel", "garfish", "sea_bream", "bluefish", "conger_eel",
+    "red_snapper", "storm_herring", "abyss_conger", "void_sole",
+    "eternal_sea_drake",
+    "flying_fish", "bonito", "yellowfin_tuna", "king_mackerel",
+    "marlin_black", "opah", "celestial_swordfish", "astral_sunfish",
+    "void_marlin", "world_leviathan",
 }
 ORE_RESOURCE_IDS = {
     "stone_chunk", "copper_ore", "iron_ore",
@@ -516,18 +627,27 @@ RIVER_FISH_ATLAS = {
     "silver_trout", "golden_trout", "pike", "zander", "salmon",
     "river_catfish", "ancient_sturgeon", "moon_eel",
     "soulfin_trout", "runic_sturgeon", "chrono_eel", "eternal_salmon",
+    "river_bleak", "stone_loach", "river_bream", "brown_trout",
+    "river_taimen", "emerald_barbel", "spirit_grayling",
+    "bloodfin_salmon", "star_river_eel", "eternal_river_dragon",
 }
 LAKE_FISH_ATLAS = {
     "lake_roach", "rudd", "crucian_carp", "bream", "tench",
     "lake_perch", "vendace", "whitefish", "lake_char", "lake_trout",
     "pike", "zander", "giant_pike", "freshwater_eel",
     "crystal_carp", "moon_pike", "starfin_char", "mirror_leviathan",
+    "lake_gudgeon", "lake_smelt", "blue_bream", "golden_tench",
+    "deepwater_pike", "crystal_whitefish", "moon_carp",
+    "astral_pike", "mirror_sturgeon", "eternal_lake_serpent",
 }
 SEA_FISH_ATLAS = {
     "sprat", "sardine", "anchovy", "herring", "mackerel", "whiting",
     "cod", "hake", "sea_bass", "red_mullet", "haddock", "pollock",
     "flounder", "sole", "halibut", "turbot", "monkfish",
     "storm_cod", "abyss_halibut", "void_turbot", "crown_monkfish",
+    "sand_eel", "garfish", "sea_bream", "bluefish", "conger_eel",
+    "red_snapper", "storm_herring", "abyss_conger",
+    "void_sole", "eternal_sea_drake",
 }
 OCEAN_FISH_ATLAS = {
     "mackerel", "mahi_mahi", "albacore", "wahoo", "barracuda", "tuna",
@@ -536,6 +656,9 @@ OCEAN_FISH_ATLAS = {
     "tiger_shark", "hammerhead_shark", "great_white_shark", "ghost_marlin",
     "celestial_tuna", "dragon_mahi", "abyss_tuna",
     "storm_marlin", "moon_leviathan", "eternal_coelacanth",
+    "flying_fish", "bonito", "yellowfin_tuna", "king_mackerel",
+    "marlin_black", "opah", "celestial_swordfish",
+    "astral_sunfish", "void_marlin", "world_leviathan",
 }
 
 WOOD_BEGINNER_ATLAS = {
@@ -556,12 +679,52 @@ WOOD_DEEP_ATLAS = {
     "voidwood_log", "starheart_log", "eternal_worldwood_log",
 }
 
+# Pełne atlasy zasobów.
+# Te zbiory są bezpośrednio oparte na aktywnych RESOURCE_IDS,
+# dzięki czemu każda istniejąca ryba, ruda, sztuka drewna i zioło
+# zawsze trafia do pełnego widoku atlasu.
+FISH_ATLAS_ALL = set(FISH_RESOURCE_IDS)
+ORE_ATLAS_ALL = set(ORE_RESOURCE_IDS)
+WOOD_ATLAS_ALL = set(WOOD_RESOURCE_IDS)
+HERB_ATLAS_ALL = set(HERB_RESOURCE_IDS)
+
+def validate_complete_resource_atlases():
+    checks = (
+        ("ryby", FISH_RESOURCE_IDS, FISH_ATLAS_ALL),
+        ("rudy", ORE_RESOURCE_IDS, ORE_ATLAS_ALL),
+        ("drewno", WOOD_RESOURCE_IDS, WOOD_ATLAS_ALL),
+        ("zioła", HERB_RESOURCE_IDS, HERB_ATLAS_ALL),
+    )
+    for label, source_ids, atlas_ids in checks:
+        missing = set(source_ids) - set(atlas_ids)
+        if missing:
+            raise RuntimeError(
+                f"Atlas {label} nie zawiera: "
+                + ", ".join(sorted(missing))
+            )
+
+validate_complete_resource_atlases()
+
 ORE_ATLAS_LEVELS = {
     "stone_chunk": 1,
     "copper_ore": 1,
     "iron_ore": 1,
     "silver_ore": 10,
     "gold_ore": 25,
+    "cobalt_ore": 100,
+    "runestone_ore": 120,
+    "dragonsteel_ore": 140,
+    "astral_ore": 160,
+    "void_ore": 180,
+    "eternium_ore": 200,
+}
+
+ORE_MINE_FLOOR_MINIMUMS = {
+    "stone_chunk": 1,
+    "copper_ore": 1,
+    "iron_ore": 10,
+    "silver_ore": 25,
+    "gold_ore": 50,
     "cobalt_ore": 100,
     "runestone_ore": 120,
     "dragonsteel_ore": 140,
@@ -1709,19 +1872,53 @@ ROOMS = {
         "exits": {"north": "south_street", "south": "meadow"},
     },
     "meadow": {
-        "zone": "Dzicz", "name": "Srebrna Łąka",
-        "desc": "Trawa porusza się falami. Na zachodzie widać ciemny gaj, a na południu ścieżkę do jeziora.",
-        "exits": {"north": "south_gate", "west": "whisper_grove", "east": "riverbank", "south": "lake_shore"},
+        "zone": "Łąki", "name": "Srebrna Łąka",
+        "desc": (
+            "Centralna część rozległych łąk. W trawie rosną Pokrzywa, "
+            "Rumianek, Mięta, Krwawnik, Melisa i Lawenda. "
+            "Na zachodzie leży Łąka Kwiatów, na wschodzie Łąka Mięty, "
+            "a na południu Łąka Nadjeziorna."
+        ),
+        "exits": {
+            "north": "south_gate",
+            "west": "flower_meadow",
+            "east": "mint_meadow",
+            "south": "lakeside_meadow",
+        },
+    },
+    "mint_meadow": {
+        "zone": "Łąki", "name": "Łąka Mięty",
+        "desc": (
+            "Wilgotniejsza łąka pachnąca Miętą i Melisą. "
+            "To dobre miejsce do Zielarstwa, szczególnie dla początkujących."
+        ),
+        "exits": {"west": "meadow", "east": "riverbank"},
+    },
+    "flower_meadow": {
+        "zone": "Łąki", "name": "Łąka Kwiatów",
+        "desc": (
+            "Kolorowa łąka pełna Rumianku, Lawendy i Krwawnika. "
+            "Dalej na zachodzie zaczyna się Gaj Szeptów."
+        ),
+        "exits": {"east": "meadow", "west": "whisper_grove"},
+    },
+    "lakeside_meadow": {
+        "zone": "Łąki", "name": "Łąka Nadjeziorna",
+        "desc": (
+            "Łąka schodząca ku Srebrnemu Jezioru. "
+            "Rosną tu Mięta, Melisa, Rumianek i inne zioła lubiące wilgoć."
+        ),
+        "exits": {"north": "meadow", "south": "lake_shore"},
     },
     "lake_shore": {
         "zone": "Dzicz", "name": "Brzeg Srebrnego Jeziora",
         "desc": "Spokojne jezioro jest osobnym łowiskiem dla ryb jeziorowych.",
-        "exits": {"north": "meadow"},
+        "exits": {"north": "lakeside_meadow"},
     },
     "whisper_grove": {
         "zone": "Dzicz", "name": "Gaj Szeptów",
         "desc": "Stare drzewa szepczą pod wpływem magicznego wiatru.",
-        "exits": {"east": "meadow", "south": "deep_grove", "west": "lumberjack_camp", "north": "herbalist_hut"},
+        "exits": {"east": "flower_meadow", "south": "deep_grove", "west": "lumberjack_camp", "north": "herbalist_hut"},
     },
     "herbalist_hut": {
         "zone": "Dzicz", "name": "Chata Zielarki",
@@ -1751,7 +1948,7 @@ ROOMS = {
     "riverbank": {
         "zone": "Dzicz", "name": "Brzeg Rzeki",
         "desc": "Szybka rzeka oddziela łąki od ruin starego pogranicza.",
-        "exits": {"west": "meadow", "east": "stone_bridge"},
+        "exits": {"west": "mint_meadow", "east": "stone_bridge"},
     },
     "stone_bridge": {
         "zone": "Dzicz", "name": "Kamienny Most",
@@ -1829,6 +2026,58 @@ ROOMS = {
         "exits": {"south": "old_road", "west": "deep_grove", "east": "ruined_watchtower"},
     },
 }
+
+def build_mine_depth_rooms():
+    ROOMS["crystal_chamber"]["exits"]["down"] = mine_floor_id(1)
+
+    for floor in range(MINE_MIN_FLOOR, MINE_MAX_FLOOR + 1):
+        exits = {
+            "up": (
+                "crystal_chamber"
+                if floor == MINE_MIN_FLOOR
+                else mine_floor_id(floor - 1)
+            )
+        }
+        if floor < MINE_MAX_FLOOR:
+            exits["down"] = mine_floor_id(floor + 1)
+
+        if floor < 10:
+            band = "kamień i miedź"
+        elif floor < 25:
+            band = "miedź i żelazo"
+        elif floor < 50:
+            band = "żelazo i srebro"
+        elif floor < 100:
+            band = "srebro i złoto"
+        elif floor < 120:
+            band = "złoto i kobalt"
+        elif floor < 140:
+            band = "kobalt i Kamień Runiczny"
+        elif floor < 160:
+            band = "Kamień Runiczny i Smocza Stal"
+        elif floor < 180:
+            band = "Smocza Stal i Ruda Astralna"
+        elif floor < 200:
+            band = "Ruda Astralna i Ruda Pustki"
+        else:
+            band = "Ruda Pustki i Eternium"
+
+        wall_text = (
+            " Niżej znajduje się ściana do przebicia Kilofem."
+            if floor < MINE_MAX_FLOOR
+            else " To najgłębszy poziom kopalni."
+        )
+        ROOMS[mine_floor_id(floor)] = {
+            "zone": "Kopalnia Głębinowa",
+            "name": f"Kopalnia - poziom {floor}",
+            "desc": (
+                f"Poziom {floor} z {MINE_MAX_FLOOR}. "
+                f"Najczęstsze złoża: {band}." + wall_text
+            ),
+            "exits": exits,
+        }
+
+build_mine_depth_rooms()
 
 DIRECTION_ALIASES = {
     "n": "north", "north": "north", "północ": "north", "polnoc": "north",
@@ -1934,7 +2183,14 @@ GUIDE_DESTINATION_ALIASES = {
 
     # Dzicz i okolice
     "laka": "meadow",
+    "laki": "meadow",
     "srebrna laka": "meadow",
+    "laka miety": "mint_meadow",
+    "mietowa laka": "mint_meadow",
+    "laka kwiatow": "flower_meadow",
+    "kwiatowa laka": "flower_meadow",
+    "laka nadjeziorna": "lakeside_meadow",
+    "nadjeziorna laka": "lakeside_meadow",
     "jezioro": "lake_shore",
     "brzeg jeziora": "lake_shore",
     "gaj": "whisper_grove",
@@ -1969,6 +2225,7 @@ GUIDE_DESTINATION_ALIASES = {
     "oboz goblinow": "goblin_camp",
     "jaskinia": "cave_entrance",
     "wejscie do jaskini": "cave_entrance",
+    "kopalnia glebinowa": "mine_floor_1",
     "toren": "cave_entrance",
     "gornik toren": "cave_entrance",
     "mistrz gornictwa": "cave_entrance",
@@ -2121,6 +2378,8 @@ COMMAND_ALIASES = {
     "kup": "buy",
     "mów": "say", "mow": "say", "powiedz": "say",
     "rozmawiaj": "talk",
+    "oddaj": "turnin", "zdaj": "turnin",
+    "turnin": "turnin", "turn-in": "turnin",
     "teachers": "teachers", "nauczyciele": "teachers", "trenerzy": "teachers",
     "zadania": "quests", "questy": "quests",
     "atakuj": "attack", "walcz": "attack", "zabij": "attack", "kill": "attack",
@@ -2150,6 +2409,8 @@ COMMAND_ALIASES = {
     "włóż": "put", "wloz": "put", "put": "put",
     "wyjmij": "take", "wyciągnij": "take", "wyciagnij": "take", "take": "take",
     "siatka": "net", "net": "net",
+    "woda": "waterinfo", "water": "waterinfo",
+    "lowisko": "waterinfo", "łowisko": "waterinfo",
     "sakwa": "bag", "worek": "bag", "bag": "bag",
     "wędkuj": "fish", "wedkuj": "fish", "łów": "fish", "low": "fish",
     "prowadź": "guide", "prowadz": "guide", "guide": "guide",
@@ -2157,6 +2418,8 @@ COMMAND_ALIASES = {
     "idź": "guide", "idz": "guide",
     "lokalizacja": "location", "lokacja": "location", "location": "location",
     "kop": "mine", "wydobywaj": "mine",
+    "kopalnia": "mineinfo", "mineinfo": "mineinfo",
+    "glebokosc": "mineinfo", "głębokość": "mineinfo",
     "tnij": "woodcut", "drwal": "woodcut", "woodcut": "woodcut", "saw": "woodcut",
     "drewno": "woodpile", "stos": "woodpile", "woodpile": "woodpile",
     "zbieraj": "herb", "zbierz": "herb", "zielarstwo": "herb", "herbalism": "herb",
@@ -2167,6 +2430,8 @@ COMMAND_ALIASES = {
     "rzemiosło": "recipes", "rzemioslo": "recipes",
     "stwórz": "craft", "stworz": "craft", "wytwórz": "craft", "wytworz": "craft", "craft": "craft",
     "gotuj": "cook", "ugotuj": "cook", "cook": "cook",
+    "gotowanie": "cookinginfo", "kuchnia": "cookinginfo",
+    "cooking": "cookinginfo",
     "profesje": "professions",
     "rangi": "ranks", "ranks": "ranks", "rangiprofesji": "ranks", "professionranks": "ranks",
     "narzędzia": "tools", "narzedzia": "tools",
@@ -2376,6 +2641,103 @@ ITEMS = {
         "heal": 100, "mana": 40,
         "desc": "Wielka uczta z czterech środowisk. Przywraca do 100 HP i 40 Many.",
     },
+
+    "herb_crusted_perch": {
+        "name": "Okoń w Ziołowej Skorupce",
+        "type": "consumable",
+        "price": None,
+        "heal": 42,
+        "mana": 5,
+        "desc": "Lekka potrawa rybna z Miętą. Przywraca do 42 HP i 5 Many.",
+    },
+    "silver_trout_soup": {
+        "name": "Zupa ze Srebrnego Pstrąga",
+        "type": "consumable",
+        "price": None,
+        "heal": 52,
+        "mana": 12,
+        "desc": "Gorąca zupa z pstrąga i Szałwii. Przywraca do 52 HP i 12 Many.",
+    },
+    "lake_fisher_pie": {
+        "name": "Zapiekanka Jeziornego Rybaka",
+        "type": "consumable",
+        "price": None,
+        "heal": 62,
+        "mana": 18,
+        "desc": "Treściwa zapiekanka z ryb jeziorowych. Przywraca do 62 HP i 18 Many.",
+    },
+    "spiced_mackerel": {
+        "name": "Makrela Korzenna",
+        "type": "consumable",
+        "price": None,
+        "heal": 72,
+        "mana": 22,
+        "desc": "Makrela doprawiona Szałwią. Przywraca do 72 HP i 22 Many.",
+    },
+    "salmon_herb_plate": {
+        "name": "Łosoś z Ziołami",
+        "type": "consumable",
+        "price": None,
+        "heal": 88,
+        "mana": 30,
+        "desc": "Łosoś z Lawendą. Przywraca do 88 HP i 30 Many.",
+    },
+    "moon_eel_broth": {
+        "name": "Rosół z Księżycowego Węgorza",
+        "type": "consumable",
+        "price": None,
+        "heal": 112,
+        "mana": 48,
+        "desc": "Rzadka potrawa z Księżycowego Węgorza i Kwiatu księżycowego. Przywraca do 112 HP i 48 Many.",
+    },
+
+    # Nowe ryby v0.6.98 - rzeka
+    "river_bleak": {"name": "Ukleja Rzeczna", "type": "resource", "price": None, "sell_silver": 4, "desc": "Mała rzeczna ryba. Wędka level 1+."},
+    "stone_loach": {"name": "Śliz Kamienny", "type": "resource", "price": None, "sell_silver": 6, "desc": "Niewielka ryba denna rzeki. Wędka level 5+."},
+    "river_bream": {"name": "Krąp Rzeczny", "type": "resource", "price": None, "sell_silver": 10, "desc": "Pospolita ryba rzeczna. Wędka level 15+."},
+    "brown_trout": {"name": "Pstrąg Potokowy", "type": "resource", "price": None, "sell_silver": 18, "desc": "Szybka ryba czystych rzek. Wędka level 30+."},
+    "river_taimen": {"name": "Tajmień Rzeczny", "type": "resource", "price": None, "sell_silver": 34, "desc": "Duży drapieżnik rzeczny. Wędka level 50+."},
+    "emerald_barbel": {"name": "Szmaragdowa Brzana", "type": "resource", "price": None, "sell_silver": 60, "desc": "Rzadka brzana o zielonym połysku. Wędka level 75+."},
+    "spirit_grayling": {"name": "Lipień Duchów", "type": "resource", "price": None, "sell_gold": 2, "desc": "Magiczny lipień. Wędka level 110+."},
+    "bloodfin_salmon": {"name": "Krwawopłetwy Łosoś", "type": "resource", "price": None, "sell_gold": 5, "desc": "Rzadki łosoś endgame. Wędka level 150+."},
+    "star_river_eel": {"name": "Gwiezdny Węgorz Rzeczny", "type": "resource", "price": None, "sell_gold": 12, "desc": "Węgorz nasycony energią gwiazd. Wędka level 175+."},
+    "eternal_river_dragon": {"name": "Wieczny Smok Rzeczny", "type": "resource", "price": None, "sell_gold": 35, "desc": "Legendarny drapieżnik rzeki. Wędka level 200."},
+
+    # Nowe ryby v0.6.98 - jezioro
+    "lake_gudgeon": {"name": "Kiełb Jeziorowy", "type": "resource", "price": None, "sell_silver": 5, "desc": "Mała ryba przybrzeżna jeziora. Wędka level 1+."},
+    "lake_smelt": {"name": "Stynka Jeziorowa", "type": "resource", "price": None, "sell_silver": 7, "desc": "Drobna srebrzysta ryba jeziorowa. Wędka level 8+."},
+    "blue_bream": {"name": "Niebieski Leszcz", "type": "resource", "price": None, "sell_silver": 12, "desc": "Rzadziej spotykany leszcz. Wędka level 20+."},
+    "golden_tench": {"name": "Złoty Lin", "type": "resource", "price": None, "sell_silver": 22, "desc": "Cenny lin jeziorowy. Wędka level 35+."},
+    "deepwater_pike": {"name": "Szczupak Głębinowy", "type": "resource", "price": None, "sell_silver": 40, "desc": "Duży szczupak z głębokich partii jeziora. Wędka level 55+."},
+    "crystal_whitefish": {"name": "Kryształowa Sieja", "type": "resource", "price": None, "sell_silver": 70, "desc": "Jasna magiczna sieja. Wędka level 80+."},
+    "moon_carp": {"name": "Karp Księżycowy", "type": "resource", "price": None, "sell_gold": 2, "desc": "Karp aktywny przy blasku księżyca. Wędka level 110+."},
+    "astral_pike": {"name": "Astralny Szczupak", "type": "resource", "price": None, "sell_gold": 6, "desc": "Endgame drapieżnik jeziorowy. Wędka level 150+."},
+    "mirror_sturgeon": {"name": "Lustrzany Jesiotr", "type": "resource", "price": None, "sell_gold": 14, "desc": "Rzadki jesiotr z lustrzanymi łuskami. Wędka level 175+."},
+    "eternal_lake_serpent": {"name": "Wieczny Wąż Jeziora", "type": "resource", "price": None, "sell_gold": 38, "desc": "Legendarny mieszkaniec najgłębszej toni. Wędka level 200."},
+
+    # Nowe ryby v0.6.98 - morze
+    "sand_eel": {"name": "Dobijak Piaskowy", "type": "resource", "price": None, "sell_silver": 5, "desc": "Mała ryba przybrzeżna morza. Wędka level 1+."},
+    "garfish": {"name": "Belona", "type": "resource", "price": None, "sell_silver": 8, "desc": "Długa ryba morska. Wędka level 10+."},
+    "sea_bream": {"name": "Prażma Morska", "type": "resource", "price": None, "sell_silver": 14, "desc": "Smaczna ryba morska. Wędka level 20+."},
+    "bluefish": {"name": "Lufar", "type": "resource", "price": None, "sell_silver": 25, "desc": "Waleczny morski drapieżnik. Wędka level 35+."},
+    "conger_eel": {"name": "Konger", "type": "resource", "price": None, "sell_silver": 45, "desc": "Duży węgorz morski. Wędka level 55+."},
+    "red_snapper": {"name": "Lucjan Czerwony", "type": "resource", "price": None, "sell_silver": 80, "desc": "Cenna ryba morska. Wędka level 80+."},
+    "storm_herring": {"name": "Śledź Burzy", "type": "resource", "price": None, "sell_gold": 2, "desc": "Ryba pojawiająca się przy wzburzonym morzu. Wędka level 110+."},
+    "abyss_conger": {"name": "Konger Otchłani", "type": "resource", "price": None, "sell_gold": 7, "desc": "Mroczny endgame węgorz morski. Wędka level 150+."},
+    "void_sole": {"name": "Sola Pustki", "type": "resource", "price": None, "sell_gold": 15, "desc": "Rzadka płastuga nasycona Pustką. Wędka level 175+."},
+    "eternal_sea_drake": {"name": "Wieczny Smok Morza", "type": "resource", "price": None, "sell_gold": 40, "desc": "Legendarny morski drapieżnik. Wędka level 200."},
+
+    # Nowe ryby v0.6.98 - ocean
+    "flying_fish": {"name": "Ryba Latająca", "type": "resource", "price": None, "sell_silver": 8, "desc": "Szybka ryba otwartego oceanu. Wędka level 1+."},
+    "bonito": {"name": "Bonito", "type": "resource", "price": None, "sell_silver": 12, "desc": "Mały krewniak tuńczyka. Wędka level 15+."},
+    "yellowfin_tuna": {"name": "Tuńczyk Żółtopłetwy", "type": "resource", "price": None, "sell_silver": 24, "desc": "Popularny oceaniczny tuńczyk. Wędka level 30+."},
+    "king_mackerel": {"name": "Makrela Królewska", "type": "resource", "price": None, "sell_silver": 42, "desc": "Duża makrela otwartego oceanu. Wędka level 50+."},
+    "marlin_black": {"name": "Marlin Czarny", "type": "resource", "price": None, "sell_silver": 78, "desc": "Potężny oceaniczny drapieżnik. Wędka level 70+."},
+    "opah": {"name": "Strojnik Oceaniczny", "type": "resource", "price": None, "sell_gold": 1, "desc": "Rzadka głębinowa ryba oceanu. Wędka level 90+."},
+    "celestial_swordfish": {"name": "Niebiański Miecznik", "type": "resource", "price": None, "sell_gold": 4, "desc": "Magiczny miecznik endgame. Wędka level 120+."},
+    "astral_sunfish": {"name": "Astralny Samogłów", "type": "resource", "price": None, "sell_gold": 9, "desc": "Ogromny samogłów nasycony Astralem. Wędka level 150+."},
+    "void_marlin": {"name": "Marlin Pustki", "type": "resource", "price": None, "sell_gold": 18, "desc": "Skrajnie rzadka ryba oceaniczna. Wędka level 180+."},
+    "world_leviathan": {"name": "Lewiatan Świata", "type": "resource", "price": None, "sell_gold": 50, "desc": "Legendarny szczyt oceanicznego połowu. Wędka level 200."},
 
     "small_fish": {
         "name": "Mała ryba", "type": "resource", "price": None,
@@ -2852,37 +3214,85 @@ COOK_RECIPES = {
         "name": "Pieczona ryba rzeczna", "stations": ("inn", "fish_market"),
         "ingredients": {"small_fish": 2},
         "output": "grilled_river_fish", "quantity": 1,
-        "desc": "2 Małe ryby. Przywraca do 30 HP.",
+        "min_tool_level": 1, "tool_xp": 8,
+        "desc": "Gotowanie level 1. 2 Małe ryby. Przywraca do 30 HP.",
     },
     "river_fish_stew": {
         "name": "Gulasz rzeczny", "stations": ("inn", "fish_market"),
         "ingredients": {"river_carp": 1, "chub": 1},
         "output": "river_fish_stew", "quantity": 1,
-        "desc": "Karp rzeczny + Kleń. Przywraca do 45 HP.",
+        "min_tool_level": 10, "tool_xp": 10,
+        "desc": "Gotowanie level 10. Karp rzeczny + Kleń. Przywraca do 45 HP.",
+    },
+    "herb_crusted_perch": {
+        "name": "Okoń w Ziołowej Skorupce", "stations": ("inn", "fish_market"),
+        "ingredients": {"river_perch": 1, "mint": 1},
+        "output": "herb_crusted_perch", "quantity": 1,
+        "min_tool_level": 20, "tool_xp": 12,
+        "desc": "Gotowanie level 20. Okoń rzeczny + Mięta. Przywraca do 42 HP i 5 Many.",
     },
     "lake_fish_stew": {
         "name": "Potrawka jeziorowa", "stations": ("inn", "fish_market"),
         "ingredients": {"bream": 1, "tench": 1},
         "output": "lake_fish_stew", "quantity": 1,
-        "desc": "Leszcz + Lin. Przywraca do 50 HP i 10 Many.",
+        "min_tool_level": 30, "tool_xp": 13,
+        "desc": "Gotowanie level 30. Leszcz + Lin. Przywraca do 50 HP i 10 Many.",
+    },
+    "silver_trout_soup": {
+        "name": "Zupa ze Srebrnego Pstrąga", "stations": ("inn", "fish_market"),
+        "ingredients": {"silver_trout": 1, "sage": 1},
+        "output": "silver_trout_soup", "quantity": 1,
+        "min_tool_level": 40, "tool_xp": 14,
+        "desc": "Gotowanie level 40. Srebrny pstrąg + Szałwia. Przywraca do 52 HP i 12 Many.",
     },
     "sea_chowder": {
         "name": "Zupa morska", "stations": ("inn", "fish_market"),
         "ingredients": {"cod": 1, "herring": 1},
         "output": "sea_chowder", "quantity": 1,
-        "desc": "Dorsz + Śledź. Przywraca do 60 HP i 15 Many.",
+        "min_tool_level": 50, "tool_xp": 15,
+        "desc": "Gotowanie level 50. Dorsz + Śledź. Przywraca do 60 HP i 15 Many.",
+    },
+    "lake_fisher_pie": {
+        "name": "Zapiekanka Jeziornego Rybaka", "stations": ("inn", "fish_market"),
+        "ingredients": {"lake_perch": 1, "bream": 1},
+        "output": "lake_fisher_pie", "quantity": 1,
+        "min_tool_level": 60, "tool_xp": 17,
+        "desc": "Gotowanie level 60. Okoń jeziorowy + Leszcz. Przywraca do 62 HP i 18 Many.",
+    },
+    "spiced_mackerel": {
+        "name": "Makrela Korzenna", "stations": ("inn", "fish_market"),
+        "ingredients": {"mackerel": 1, "sage": 1},
+        "output": "spiced_mackerel", "quantity": 1,
+        "min_tool_level": 70, "tool_xp": 19,
+        "desc": "Gotowanie level 70. Makrela + Szałwia. Przywraca do 72 HP i 22 Many.",
     },
     "ocean_steak": {
         "name": "Stek oceaniczny", "stations": ("inn", "fish_market"),
         "ingredients": {"tuna": 1, "mahi_mahi": 1},
         "output": "ocean_steak", "quantity": 1,
-        "desc": "Tuńczyk + Mahi-mahi. Przywraca do 75 HP i 25 Many.",
+        "min_tool_level": 80, "tool_xp": 21,
+        "desc": "Gotowanie level 80. Tuńczyk + Mahi-mahi. Przywraca do 75 HP i 25 Many.",
+    },
+    "salmon_herb_plate": {
+        "name": "Łosoś z Ziołami", "stations": ("inn", "fish_market"),
+        "ingredients": {"salmon": 1, "lavender": 1},
+        "output": "salmon_herb_plate", "quantity": 1,
+        "min_tool_level": 90, "tool_xp": 23,
+        "desc": "Gotowanie level 90. Łosoś + Lawenda. Przywraca do 88 HP i 30 Many.",
     },
     "master_fisher_feast": {
         "name": "Uczta Mistrza Rybaka", "stations": ("inn", "fish_market"),
         "ingredients": {"salmon": 1, "lake_trout": 1, "turbot": 1, "albacore": 1},
         "output": "master_fisher_feast", "quantity": 1,
-        "desc": "Łosoś + Troć jeziorowa + Turbot + Albakora. Przywraca do 100 HP i 40 Many.",
+        "min_tool_level": 95, "tool_xp": 24,
+        "desc": "Gotowanie level 95. Łosoś + Troć jeziorowa + Turbot + Albakora. Przywraca do 100 HP i 40 Many.",
+    },
+    "moon_eel_broth": {
+        "name": "Rosół z Księżycowego Węgorza", "stations": ("inn", "fish_market"),
+        "ingredients": {"moon_eel": 1, "moonflower": 1},
+        "output": "moon_eel_broth", "quantity": 1,
+        "min_tool_level": 99, "tool_xp": 25,
+        "desc": "Gotowanie level 99. Księżycowy węgorz + Kwiat księżycowy. Przywraca do 112 HP i 48 Many.",
     },
     "runic_fish_plate": {
         "name": "Runiczny Półmisek Rybny", "stations": ("inn", "fish_market"),
@@ -3314,13 +3724,13 @@ SYSTEM_DESCRIPTIONS = {
     ),
     "bron duszy": "Broń Duszy ma osobny Soul Level 1-200 i pięć Tierów.",
     "soul weapon": "Broń Duszy ma osobny Soul Level 1-200 i pięć Tierów.",
-    "srebro": "Srebro jest podstawową walutą. 1000 srebra można wymienić na 1 złoto.",
-    "silver": "Srebro jest podstawową walutą. 1000 srebra = 1 złoto.",
-    "złoto": "Złoto jest walutą wyższego rzędu. 1000000 złota można wymienić na 1 mithril.",
-    "zloto": "Złoto jest walutą wyższego rzędu. 1000000 złota = 1 mithril.",
-    "gold": "Złoto jest walutą wyższego rzędu. 1000000 złota = 1 mithril.",
+    "srebro": "Srebro jest podstawową walutą. 1000 srebrnych monet można wymienić na 1 złotą monetę.",
+    "silver": "Srebro jest podstawową walutą. 1000 srebrnych monet = 1 złota moneta.",
+    "złoto": "Złoto jest walutą wyższego rzędu. 1000000 złotych monet można wymienić na 1 mithrilową monetę.",
+    "zloto": "Złoto jest walutą wyższego rzędu. 1000000 złotych monet = 1 mithrilowa moneta.",
+    "gold": "Złoto jest walutą wyższego rzędu. 1000000 złotych monet = 1 mithrilowa moneta.",
     "mithril": (
-        "Mithril jest najrzadszą walutą. 1 mithril = 1000000 złota. "
+        "Mithril jest najrzadszą walutą. 1 mithrilowa moneta = 1000000 złotych monet. "
         "Może być nagrodą lub bardzo rzadkim bezpośrednim wydobyciem wysokopoziomowym Kilofem."
     ),
     "siatka": "Siatka na ryby jest osobnym trwałym magazynem profesji. Komenda siatka/net pokazuje też łączną liczbę ryb, liczbę gatunków i szacowany zarobek ze sprzedaży całej zawartości.",
@@ -3336,23 +3746,24 @@ SYSTEM_DESCRIPTIONS = {
 }
 
 
-LATEST_CHANGES_TITLE = "Soulbound v0.6.95 - Dungeon Boss HP Scaling"
+LATEST_CHANGES_TITLE = "Soulbound v0.7.04 - Complete Resource Atlas"
 LATEST_CHANGES = [
-    "Bossowie Krypty mają teraz dokładne HP według wzoru piętro razy 1000.",
-    "Boss piętra 10 ma 10000 HP.",
-    "Boss piętra 20 ma 20000 HP.",
-    "Boss piętra 100 ma 100000 HP.",
-    "Boss piętra 200 ma 200000 HP.",
-    "Bossowie Wieży Astralnej używają tego samego wzoru.",
-    "Astralny boss poziomu 100 ma 100000 HP.",
-    "Astralny boss poziomu 150 ma 150000 HP.",
-    "Astralny boss poziomu 200 ma 200000 HP.",
-    "Zwykłe moby zachowują globalne 2 razy HP z v0.6.94.",
-    "Bossowie świata poza lochami zachowują swoje obecne 2 razy HP.",
-    "Damage bossów pozostaje bez zmian.",
-    "Soul XP, Class XP, stat_progress, waluta i loot pozostają bez zmian.",
-    "Respawn przywraca pełne HP zgodnie z nowym wzorem.",
-    "consider automatycznie uwzględnia nowe HP.",
+    "Przebudowano Atlas Zasobów na kompletny spis.",
+    "atlas ryby pokazuje wszystkie ryby istniejące w grze.",
+    "Pełny Atlas Ryb obejmuje 100 procent FISH_RESOURCE_IDS.",
+    "Zachowano podział ryb na rzekę, jezioro, morze i ocean.",
+    "atlas drewno pokazuje wszystkie rodzaje drewna istniejące w grze.",
+    "Pełny Atlas Drewna obejmuje 100 procent WOOD_RESOURCE_IDS.",
+    "atlas rudy pokazuje wszystkie rudy istniejące w grze.",
+    "Pełny Atlas Rud obejmuje 100 procent ORE_RESOURCE_IDS.",
+    "Każda ruda pokazuje level Kilofa oraz minimalną głębokość Kopalni Głębinowej.",
+    "atlas zioła pokazuje wszystkie zioła istniejące w grze.",
+    "Pełny Atlas Ziół obejmuje 100 procent HERB_RESOURCE_IDS.",
+    "Zachowano podział ziół według miejsc występowania.",
+    "Długie pełne listy są dzielone na krótsze części przyjazne dla NVDA.",
+    "atlas <nazwa surowca> nadal pokazuje pojedynczy zasób i jego występowanie.",
+    "Dodano wewnętrzną walidację kompletności czterech atlasów.",
+    "Kopalnia 1-200, auto-profesje, łąki, kurs walut, questy, gotowanie i endgame pozostają.",
     "Brak migracji SQLite.",
 ]
 
@@ -3382,16 +3793,27 @@ HELP_TOPIC_ALIASES = {
     "soulxp": "soul_xp_bloki", "duszaexp": "soul_xp_bloki",
     "duszaexp": "soul_xp_bloki", "expsoul": "soul_xp_bloki",
     "money": "pieniadze", "economy": "pieniadze",
+    "kurs": "kurs_walut", "waluty": "kurs_walut", "currency": "kurs_walut",
     "wartoscsatki": "wartosc_siatki", "wartoscsiatki": "wartosc_siatki", "netvalue": "wartosc_siatki",
     "equipment": "ekwipunek", "items": "ekwipunek",
     "rarity": "loot_krypty", "rzadkosc": "loot_krypty", "rzadkość": "loot_krypty", "set": "loot_krypty", "sety": "loot_krypty", "lootkrypty": "loot_krypty",
     "quests": "zadania", "quest": "zadania",
     "professions": "profesje",
     "fishing": "wedkarstwo", "fish": "wedkarstwo",
+    "laki": "laki", "laka": "laki", "meadows": "laki", "meadow": "laki",
+    "atlas": "atlas_kompletny", "atlasy": "atlas_kompletny",
+    "atlaszasobow": "atlas_kompletny", "atlaszasobów": "atlas_kompletny",
+    "autooff": "auto_off", "off": "auto_off",
+    "autochodzenie": "auto_chodzenie", "automove": "auto_chodzenie",
+    "kopalnia": "kopalnia_200", "mine200": "kopalnia_200",
+    "water": "woda", "woda": "woda", "lowisko": "woda", "łowisko": "woda",
+    "wiecejryb": "wiecej_ryb", "moreryb": "wiecej_ryb", "morefish": "wiecej_ryb",
+    "turnin": "oddawanie_zadan", "oddaj": "oddawanie_zadan",
     "mining": "gornictwo", "mine": "gornictwo",
     "woodcutting": "drwalstwo", "drwal": "drwalstwo",
     "crafting": "rzemioslo", "craft": "rzemioslo", "rzemiosło": "rzemioslo",
-    "cooking": "gotowanie", "cook": "gotowanie",
+    "cooking": "gotowanie_rozbudowane", "cook": "gotowanie_rozbudowane",
+    "gotowanie": "gotowanie_rozbudowane", "kuchnia": "gotowanie_rozbudowane",
     "herbalism": "zielarstwo", "zielarstwo": "zielarstwo",
     "alchemy": "alchemia", "alchemia": "alchemia",
     "recipes": "receptury", "recipe": "receptury", "przepisy": "receptury",
@@ -3421,6 +3843,125 @@ HELP_TOPIC_ALIASES = {
 }
 
 HELP_TOPICS = {
+    "atlas_kompletny": [
+        "Atlas zasobów jest teraz kompletny.",
+        "atlas ryby pokazuje wszystkie istniejące ryby w grze, a następnie podział na rzekę, jezioro, morze i ocean.",
+        "atlas drewno pokazuje wszystkie istniejące rodzaje drewna oraz podział według terenów.",
+        "atlas rudy pokazuje wszystkie istniejące rudy, wymagany level Kilofa i minimalną głębokość Kopalni Głębinowej.",
+        "atlas zioła pokazuje wszystkie istniejące zioła oraz grupy występowania.",
+        "Długie listy są dzielone na krótsze części, żeby NVDA czytał je wygodniej.",
+        "Można nadal wpisać atlas <nazwa surowca>, aby usłyszeć informacje o jednym konkretnym zasobie.",
+        "Pełne atlasy są bezpośrednio oparte na aktywnych listach RESOURCE_IDS, więc nowy zasób nie powinien wypaść z pełnego spisu.",
+    ],
+    "kopalnia_200": [
+        "Kopalnia Głębinowa ma 200 prawdziwych poziomów.",
+        "Kryształowa Komnata prowadzi przez down na poziom 1.",
+        "Każde udane kopanie na najgłębszym odblokowanym poziomie daje 1 z 5 uderzeń w ścianę w dół.",
+        "Po 5 uderzeniach kolejny poziom zostaje trwale odblokowany w SQLite.",
+        "Im głębiej, tym lepsza pula rud.",
+        "Level Kilofa nadal ogranicza jakość wydobycia.",
+        "1-9: Kamień i Miedź.",
+        "10-24: Miedź i Żelazo.",
+        "25-49: Żelazo i Srebro.",
+        "50-99: Srebro i Złoto.",
+        "100-119: Złoto i Kobalt.",
+        "120-139: Kobalt i Kamień Runiczny.",
+        "140-159: Kamień Runiczny i Smocza Stal.",
+        "160-179: Smocza Stal i Ruda Astralna.",
+        "180-199: Ruda Astralna i Ruda Pustki.",
+        "200: Ruda Pustki i Eternium.",
+        "kopalnia pokazuje najgłębszy poziom i postęp ściany.",
+        "kop on samo idzie, kopie, przebija ściany i schodzi aż do 200.",
+    ],
+    "auto_chodzenie": [
+        "Auto-profesje potrafią same chodzić.",
+        "low on samo idzie do łowiska, łowi i przechodzi między łowiskami.",
+        "zbieraj on samo idzie do ziół, zbiera i przechodzi między terenami Zielarstwa.",
+        "tnij on samo idzie do drzew, ścina i przechodzi między terenami Drwalstwa.",
+        "kop on samo idzie do najgłębszego odblokowanego poziomu kopalni.",
+        "Manualny ruch gracza nadal wyłącza aktywne auto.",
+        "off nadal dokańcza bieżącą akcję i dopiero potem zatrzymuje automat.",
+    ],
+    "laki": [
+        "Strefa Łąk składa się teraz z czterech lokacji.",
+        "Srebrna Łąka jest centralnym punktem strefy.",
+        "Łąka Mięty leży na wschód od Srebrnej Łąki i prowadzi dalej do Brzegu Rzeki.",
+        "Łąka Kwiatów leży na zachód od Srebrnej Łąki i prowadzi dalej do Gaju Szeptów.",
+        "Łąka Nadjeziorna leży na południe od Srebrnej Łąki i prowadzi dalej do Srebrnego Jeziora.",
+        "Na wszystkich łąkach działa zbieraj i zbieraj on.",
+        "Łąka Mięty częściej daje Miętę i Melisę.",
+        "Łąka Kwiatów częściej daje Rumianek, Lawendę i Krwawnik.",
+        "Łąka Nadjeziorna ma zioła wilgotnych terenów, a na wyższych poziomach Sierpa może pojawić się Gwiezdny mech.",
+        "Użyj prowadz srebrna laka, prowadz laka miety, prowadz laka kwiatow albo prowadz laka nadjeziorna.",
+    ],
+    "auto_off": [
+        "low off, fish off, kop off, mine off, tnij off, woodcut off i zbieraj off zatrzymują automat po dokończeniu bieżącej akcji.",
+        "Jeśli akcja już trwa, nie jest anulowana.",
+        "Po zakończeniu dostajesz normalnie surowiec, XP profesji i XP używanego narzędzia.",
+        "Następna automatyczna akcja już się nie rozpoczyna.",
+        "Wymuszone zatrzymanie, na przykład wyjście z gry, podróż albo przełączenie na inną auto-aktywność, nadal może przerwać akcję natychmiast.",
+    ],
+    "kurs_walut": [
+        "Aktualny kurs: 1000 srebrnych monet = 1 złota moneta.",
+        "exchange gold wymienia dokładnie 1000 srebrnych monet na 1 złotą monetę.",
+        "1 000 000 złotych monet = 1 mithrilowa moneta.",
+        "Zmiana kursu nie usuwa ani nie przelicza istniejącego srebra, złota ani mithrilu.",
+        "Bank Dusz przechowuje każdą walutę osobno i nie wykonuje automatycznej konwersji.",
+    ],
+    "wiecej_ryb": [
+        "Dodano 40 nowych gatunków ryb: po 10 do rzeki, jeziora, morza i oceanu.",
+        "Nowe ryby mają progi Wędki od levelu 1 aż do 200.",
+        "Rzeka otrzymała między innymi Ukleję Rzeczną, Pstrąga Potokowego, Tajmienia Rzecznego, Lipienia Duchów i Wiecznego Smoka Rzecznego.",
+        "Jezioro otrzymało między innymi Kiełbia Jeziorowego, Złotego Lina, Kryształową Sieję, Astralnego Szczupaka i Wiecznego Węża Jeziora.",
+        "Morze otrzymało między innymi Belonę, Prażmę Morską, Kongera, Śledzia Burzy i Wiecznego Smoka Morza.",
+        "Ocean otrzymał między innymi Rybę Latającą, Tuńczyka Żółtopłetwego, Marlina Czarnego, Marlina Pustki i Lewiatana Świata.",
+        "Komenda woda automatycznie pokazuje nowe ryby po osiągnięciu wymaganego levelu Wędki.",
+        "fish losuje z dokładnie tej samej listy, którą pokazuje woda.",
+        "Nowe ryby są widoczne w atlasie odpowiedniego łowiska.",
+        "Nowe ryby można normalnie przechowywać w Siatce i sprzedawać.",
+    ],
+    "oddawanie_zadan": [
+        "Po wykonaniu celu zadania dziennik pokazuje GOTOWE DO ODDANIA.",
+        "Wróć do NPC, który dał zadanie.",
+        "oddaj zadanie i oddaj questa automatycznie oddają jedyne gotowe zadanie u NPC w tej lokacji.",
+        "oddaj <nazwa zadania> pozwala wybrać konkretne zadanie.",
+        "zdaj zadanie oraz turnin są aliasami.",
+        "Jeśli kilka zadań jest gotowych u NPC w tej samej lokacji, gra nie zgaduje i prosi o pełną nazwę.",
+        "Jeśli zadanie nie jest ukończone, oddaj podaje aktualny postęp.",
+        "talk to <NPC> działa tak samo jak talk <NPC>.",
+        "Dotychczasowa rozmowa z NPC nadal może przyjąć albo oddać jego zadanie.",
+        "Oddawanie collect nadal zabiera wymagane przedmioty dopiero przy rozliczeniu zadania.",
+        "Oddawanie collect_category nadal korzysta z właściwego magazynu profesji i inventory.",
+    ],
+    "woda": [
+        "Komenda woda działa w każdym łowisku: rzeka, jezioro, morze i ocean.",
+        "Pokazuje typ aktualnego łowiska.",
+        "Pokazuje aktualny level Wędki.",
+        "Pokazuje dokładną liczbę gatunków, które mogą zostać wylosowane przez fish przy obecnym levelu Wędki.",
+        "Czyta również nazwy wszystkich aktualnie dostępnych gatunków.",
+        "Jeśli kolejna ryba endgame jest jeszcze zablokowana, woda podaje wymagany level Wędki.",
+        "Lista pochodzi z dokładnie tego samego poola co rzeczywiste łowienie.",
+        "Liczba oznacza gatunki dostępne do złowienia, a nie skończoną populację sztuk.",
+        "Łowiska nie wyczerpują się od łowienia.",
+    ],
+    "gotowanie_rozbudowane": [
+        "Gotowanie korzysta z Noża Kucharskiego level 1-200.",
+        "Nie jest osobnym levelem postaci i nie dodaje Character XP.",
+        "Gotowanie nie jest osobną profesją; rozwija wyłącznie Nóż Kucharski.",
+        "Potrawy przygotowuje się w Karczmie Pod Błękitnym Płomieniem albo na Targu Rybnym.",
+        "gotowanie pokazuje stan systemu i aktualny Nóż Kucharski.",
+        "gotuj lista pokazuje wszystkie receptury Gotowania.",
+        "gotuj <potrawa> przygotowuje wybraną potrawę.",
+        "receptury cook nadal działa.",
+        "Receptury mają progi Noża: 1,10,20,30,40,50,60,70,80,90,95,99,100,120,140,160,180 i 200.",
+        "Dodano Okoń w Ziołowej Skorupce, Zupę ze Srebrnego Pstrąga, Zapiekankę Jeziornego Rybaka, Makrelę Korzenną, Łososia z Ziołami i Rosół z Księżycowego Węgorza.",
+        "Każda akcja Gotowania wykorzystuje rzeczywisty czas Noża Kucharskiego.",
+        "Na levelu 1 Nóż potrzebuje 12 sekund, a na levelu 200 4 sekundy.",
+        "Tier Noża daje szansę na dodatkową porcję.",
+        "Gotowanie zużywa składniki z właściwych magazynów profesji oraz inventory.",
+        "Potrawy przywracają HP, a część również Manę.",
+        "Questy Kucharza Marcela pozostają i nadal wykorzystują Gotowanie.",
+    ],
     "hp_bossow_lochow": [
         "Bossowie Krypty i Wieży Astralnej mają teraz HP według numeru piętra.",
         "Wzór: numer piętra razy 1000 HP.",
@@ -5443,6 +5984,13 @@ class Database:
                 FOREIGN KEY(account_id) REFERENCES accounts(id) ON DELETE CASCADE
             );
 
+            CREATE TABLE IF NOT EXISTS mine_progress (
+                account_id INTEGER PRIMARY KEY,
+                max_floor_unlocked INTEGER NOT NULL DEFAULT 1,
+                wall_hits INTEGER NOT NULL DEFAULT 0,
+                FOREIGN KEY(account_id) REFERENCES accounts(id) ON DELETE CASCADE
+            );
+
             CREATE TABLE IF NOT EXISTS class_progress (
                 account_id INTEGER NOT NULL,
                 class_name TEXT NOT NULL,
@@ -5671,6 +6219,70 @@ class Database:
 
     def unlock_astral_portal(self, account_id, floor):
         return self.unlock_astral_checkpoint(account_id, floor)
+
+    def ensure_mine_progress(self, account_id):
+        self.conn.execute(
+            """
+            INSERT OR IGNORE INTO mine_progress(
+                account_id,max_floor_unlocked,wall_hits
+            ) VALUES(?,1,0)
+            """,
+            (account_id,),
+        )
+        self.conn.commit()
+
+    def mine_progress(self, account_id):
+        self.ensure_mine_progress(account_id)
+        row = self.conn.execute(
+            """
+            SELECT max_floor_unlocked,wall_hits
+            FROM mine_progress
+            WHERE account_id=?
+            """,
+            (account_id,),
+        ).fetchone()
+        return {
+            "max_floor_unlocked": max(
+                MINE_MIN_FLOOR,
+                min(MINE_MAX_FLOOR, int(row["max_floor_unlocked"])),
+            ),
+            "wall_hits": max(0, int(row["wall_hits"])),
+        }
+
+    def add_mine_wall_hit(self, account_id, floor):
+        floor = int(floor)
+        progress = self.mine_progress(account_id)
+        highest = progress["max_floor_unlocked"]
+        hits = progress["wall_hits"]
+
+        if floor != highest or floor >= MINE_MAX_FLOOR:
+            return {
+                "max_floor_unlocked": highest,
+                "wall_hits": hits,
+                "unlocked_floor": None,
+            }
+
+        hits += 1
+        unlocked_floor = None
+        if hits >= MINE_WALL_HITS_REQUIRED:
+            highest = min(MINE_MAX_FLOOR, highest + 1)
+            hits = 0
+            unlocked_floor = highest
+
+        self.conn.execute(
+            """
+            UPDATE mine_progress
+            SET max_floor_unlocked=?, wall_hits=?
+            WHERE account_id=?
+            """,
+            (highest, hits, account_id),
+        )
+        self.conn.commit()
+        return {
+            "max_floor_unlocked": highest,
+            "wall_hits": hits,
+            "unlocked_floor": unlocked_floor,
+        }
 
     def ensure_bank(self, account_id):
         self.conn.execute(
@@ -6850,6 +7462,133 @@ class Session:
         self.skill_damage_boost = 1.0
         self.resting = False
         self.rest_task = None
+
+    def mine_progress(self):
+        return self.server.db.mine_progress(self.account_id)
+
+    def mine_descent_blocked_for_player(self, room_id, direction="down"):
+        if direction != "down":
+            return False
+        floor = mine_floor_number(room_id)
+        if floor is None or floor >= MINE_MAX_FLOOR:
+            return False
+        return (
+            floor + 1
+            > self.mine_progress()["max_floor_unlocked"]
+        )
+
+    def nearest_auto_target(self, route):
+        best = None
+        best_len = None
+        for room_id in route:
+            path = self.shortest_path(
+                self.character.room_id, room_id
+            )
+            if path is None:
+                continue
+            if best is None or len(path) < best_len:
+                best = room_id
+                best_len = len(path)
+        return best
+
+    def next_auto_target(self, route):
+        current = self.character.room_id
+        if current not in route:
+            return self.nearest_auto_target(route)
+        index = route.index(current)
+        return route[(index + 1) % len(route)]
+
+    async def auto_walk_to_target(self, target, label, flag_attr):
+        path = self.shortest_path(
+            self.character.room_id, target
+        )
+        if path is None:
+            await self.send(
+                f"{label}: nie udało się znaleźć drogi."
+            )
+            return False
+
+        for direction, next_room in path:
+            if self.closed or not getattr(self, flag_attr, False):
+                return False
+            if self.combat_mob_key:
+                await self.send(
+                    f"{label} zatrzymane: rozpoczęła się walka."
+                )
+                return False
+            if self.astral_entry_blocked(next_room):
+                return False
+            if self.crypt_descent_blocked_for_player(
+                self.character.room_id, direction
+            ):
+                return False
+            if self.astral_ascent_blocked_for_player(
+                self.character.room_id, direction
+            ):
+                return False
+            if self.mine_descent_blocked_for_player(
+                self.character.room_id, direction
+            ):
+                await self.send(
+                    f"{label}: ściana kopalni blokuje zejście."
+                )
+                return False
+
+            old = self.character.room_id
+            await self.server.broadcast_room(
+                old,
+                f"{self.character.name} odchodzi.",
+                exclude=self,
+            )
+            self.character.room_id = next_room
+            self.server.db.save_character(self.character)
+            await self.server.broadcast_room(
+                next_room,
+                f"{self.character.name} przychodzi.",
+                exclude=self,
+            )
+            await self.send(
+                f"{label}: {direction} -> "
+                f"{ROOMS[next_room]['name']}."
+            )
+            await asyncio.sleep(0.12)
+
+        return self.character.room_id == target
+
+    async def show_mine_info(self):
+        progress = self.mine_progress()
+        floor = mine_floor_number(self.character.room_id)
+        await self.send("KOPALNIA GŁĘBINOWA")
+        await self.send(
+            f"Odblokowane poziomy: 1-"
+            f"{progress['max_floor_unlocked']} z {MINE_MAX_FLOOR}."
+        )
+        if floor is not None:
+            await self.send(
+                f"Aktualny poziom kopalni: {floor}."
+            )
+            if floor < MINE_MAX_FLOOR:
+                if floor == progress["max_floor_unlocked"]:
+                    await self.send(
+                        f"Ściana w dół: {progress['wall_hits']} z "
+                        f"{MINE_WALL_HITS_REQUIRED} uderzeń."
+                    )
+                else:
+                    await self.send(
+                        "Zejście niżej z tego poziomu jest już przebite."
+                    )
+            else:
+                await self.send(
+                    "Jesteś na najgłębszym poziomie 200."
+                )
+        await self.send(
+            "Im głębiej, tym lepsze złoża. "
+            "Kilof nadal musi mieć odpowiedni level."
+        )
+        await self.send(
+            "kop on samo idzie do najgłębszego poziomu, "
+            "kopie, przebija ścianę i schodzi niżej."
+        )
 
     def crypt_portal(self):
         return self.server.db.crypt_portal(self.account_id)
@@ -8110,6 +8849,7 @@ class Session:
             if (
                 room_id.startswith("crypt_floor_")
                 or room_id.startswith("astral_floor_")
+                or room_id.startswith("mine_floor_")
             ):
                 continue
             zones.setdefault(room["zone"], []).append(
@@ -8549,6 +9289,12 @@ class Session:
             features.append("łowisko oceaniczne")
         if room_id in MINING_ROOMS:
             features.append("miejsce wydobycia")
+            floor = mine_floor_number(room_id)
+            if floor is not None:
+                features.append(
+                    f"Kopalnia Głębinowa poziom {floor} z "
+                    f"{MINE_MAX_FLOOR}"
+                )
         if room_id in SHOPS:
             features.append("sklep")
         if any(npc["room"] == room_id for npc in NPCS.values()):
@@ -8608,13 +9354,32 @@ class Session:
             locations.append(ROOMS["deep_grove"]["name"])
 
         if item_id in ORE_RESOURCE_IDS:
-            locations.extend(ROOMS[r]["name"] for r in sorted(MINING_ROOMS))
+            locations.extend((
+                ROOMS["cave_entrance"]["name"],
+                ROOMS["cave_tunnel"]["name"],
+                ROOMS["crystal_chamber"]["name"],
+            ))
+            minimum_floor = ORE_MINE_FLOOR_MINIMUMS.get(
+                item_id, 1
+            )
+            locations.append(
+                f"Kopalnia Głębinowa od poziomu {minimum_floor}"
+            )
         if item_id in HERB_MEADOW_ATLAS:
-            locations.extend(ROOMS[r]["name"] for r in ("herbalist_hut", "meadow"))
+            locations.extend(
+                ROOMS[r]["name"]
+                for r in (
+                    "herbalist_hut", "meadow", "mint_meadow",
+                    "flower_meadow", "lakeside_meadow",
+                )
+            )
         if item_id in HERB_FOREST_ATLAS:
             locations.extend(ROOMS[r]["name"] for r in ("whisper_grove", "old_road"))
         if item_id in HERB_WATER_ATLAS:
-            locations.extend(ROOMS[r]["name"] for r in ("riverbank", "lake_shore"))
+            locations.extend(
+                ROOMS[r]["name"]
+                for r in ("riverbank", "lake_shore", "lakeside_meadow")
+            )
         if item_id in HERB_DEEP_ATLAS:
             locations.append(ROOMS["deep_grove"]["name"])
 
@@ -8634,6 +9399,34 @@ class Session:
             )
         )
 
+    async def send_complete_atlas_list(
+        self, title, item_ids, chunk_size=20
+    ):
+        names = sorted(
+            (ITEMS[item_id]["name"] for item_id in item_ids),
+            key=self.normalize_description_query,
+        )
+        await self.send(
+            f"{title}. Łącznie pozycji: {len(names)}."
+        )
+        if not names:
+            await self.send("Brak pozycji.")
+            return
+
+        chunk_size = max(1, int(chunk_size))
+        total_parts = (
+            len(names) + chunk_size - 1
+        ) // chunk_size
+
+        for index in range(0, len(names), chunk_size):
+            part = index // chunk_size + 1
+            chunk = names[index:index + chunk_size]
+            await self.send(
+                f"Część {part} z {total_parts}: "
+                + ", ".join(chunk)
+                + "."
+            )
+
     async def show_atlas(self, query=""):
         q = self.normalize_description_query(query)
 
@@ -8641,13 +9434,22 @@ class Session:
             await self.send("ATLAS SUROWCÓW")
             await self.send("Działy: ryby, drewno, rudy, zioła.")
             await self.send(
-                "Użycie: atlas ryby, atlas drewno, atlas rudy "
-                "albo atlas <nazwa surowca>."
+                "Użycie: atlas ryby, atlas drewno, atlas rudy, "
+                "atlas zioła albo atlas <nazwa surowca>."
+            )
+            await self.send(
+                "Każdy dział pokazuje teraz pełny spis wszystkich "
+                "zasobów istniejących w tej kategorii."
             )
             return
 
         if q in ("ryby", "fish", "wedkarstwo"):
             await self.send("ATLAS RYB")
+            await self.send_complete_atlas_list(
+                "WSZYSTKIE RYBY",
+                FISH_ATLAS_ALL,
+                chunk_size=20,
+            )
             groups = (
                 ("Rzeka", RIVER_FISHING_ROOMS, RIVER_FISH_ATLAS),
                 ("Jezioro", LAKE_FISHING_ROOMS, LAKE_FISH_ATLAS),
@@ -8655,9 +9457,18 @@ class Session:
                 ("Ocean", OCEAN_FISHING_ROOMS, OCEAN_FISH_ATLAS),
             )
             for title, rooms, items in groups:
-                places = ", ".join(ROOMS[r]["name"] for r in sorted(rooms))
-                await self.send(f"{title}. Łowiska: {places}.")
-                await self.send("Gatunki: " + self.atlas_names(items) + ".")
+                places = ", ".join(
+                    ROOMS[r]["name"] for r in sorted(rooms)
+                )
+                await self.send(
+                    f"{title}. Łowiska: {places}. "
+                    f"Liczba gatunków w tej grupie: {len(items)}."
+                )
+                await self.send(
+                    "Gatunki: "
+                    + self.atlas_names(items)
+                    + "."
+                )
             return
 
         fish_groups = {
@@ -8682,44 +9493,93 @@ class Session:
 
         if q in ("drewno", "wood", "drwalstwo"):
             await self.send("ATLAS DREWNA")
+            await self.send_complete_atlas_list(
+                "WSZYSTKIE DREWNA",
+                WOOD_ATLAS_ALL,
+                chunk_size=15,
+            )
             await self.send(
                 "Obóz Drwala i Srebrna Łąka: "
-                + self.atlas_names(WOOD_BEGINNER_ATLAS) + "."
+                + self.atlas_names(WOOD_BEGINNER_ATLAS)
+                + "."
             )
             await self.send(
                 "Gaj Szeptów i Stary Trakt: "
-                + self.atlas_names(WOOD_FOREST_ATLAS) + "."
+                + self.atlas_names(WOOD_FOREST_ATLAS)
+                + "."
             )
             await self.send(
                 "Głębia Gaju: "
-                + self.atlas_names(WOOD_DEEP_ATLAS) + "."
+                + self.atlas_names(WOOD_DEEP_ATLAS)
+                + "."
             )
             return
 
         if q in ("rudy", "ruda", "ore", "gornictwo"):
             await self.send("ATLAS RUD")
-            await self.send(
-                "Miejsca wydobycia: "
-                + ", ".join(ROOMS[r]["name"] for r in sorted(MINING_ROOMS))
-                + "."
+            await self.send_complete_atlas_list(
+                "WSZYSTKIE RUDY",
+                ORE_ATLAS_ALL,
+                chunk_size=20,
             )
-            for item_id, minimum in ORE_ATLAS_LEVELS.items():
+            await self.send(
+                "Miejsca wydobycia: Kryształowa Jaskinia oraz "
+                f"Kopalnia Głębinowa poziomy 1-{MINE_MAX_FLOOR}."
+            )
+            for item_id in sorted(
+                ORE_ATLAS_ALL,
+                key=lambda value: (
+                    ORE_MINE_FLOOR_MINIMUMS.get(value, 1),
+                    self.normalize_description_query(
+                        ITEMS[value]["name"]
+                    ),
+                ),
+            ):
+                minimum = ORE_ATLAS_LEVELS.get(item_id, 1)
+                floor_min = ORE_MINE_FLOOR_MINIMUMS.get(
+                    item_id, 1
+                )
                 await self.send(
-                    f"{ITEMS[item_id]['name']}: możliwa od około levelu "
-                    f"{minimum} Kilofa."
+                    f"{ITEMS[item_id]['name']}: około levelu "
+                    f"{minimum} Kilofa; w Kopalni Głębinowej od "
+                    f"poziomu {floor_min}."
                 )
             await self.send(
-                "Czysty mithril: możliwy od levelu 80 Kilofa. "
-                "Trafia bezpośrednio do portfela."
+                "Czysty mithril nie jest rudą w Sakwie. "
+                "To bardzo rzadka waluta trafiająca bezpośrednio "
+                "do portfela, możliwa od efektywnej głębokości "
+                "i levelu Kilofa 80."
             )
             return
 
         if q in ("ziola", "zioła", "herbs", "herb", "zielarstwo"):
             await self.send("ATLAS ZIÓŁ")
-            await self.send("Chata Zielarki i Srebrna Łąka: " + self.atlas_names(HERB_MEADOW_ATLAS) + ".")
-            await self.send("Gaj Szeptów i Stary Trakt: " + self.atlas_names(HERB_FOREST_ATLAS) + ".")
-            await self.send("Brzeg Rzeki i Brzeg Srebrnego Jeziora: " + self.atlas_names(HERB_WATER_ATLAS) + ".")
-            await self.send("Głębia Gaju: " + self.atlas_names(HERB_DEEP_ATLAS) + ".")
+            await self.send_complete_atlas_list(
+                "WSZYSTKIE ZIOŁA",
+                HERB_ATLAS_ALL,
+                chunk_size=15,
+            )
+            await self.send(
+                "Łąki i Chata Zielarki: "
+                + self.atlas_names(HERB_MEADOW_ATLAS)
+                + "."
+            )
+            await self.send(
+                "Gaj Szeptów i Stary Trakt: "
+                + self.atlas_names(HERB_FOREST_ATLAS)
+                + "."
+            )
+            await self.send(
+                "Brzeg Rzeki, Brzeg Srebrnego Jeziora i "
+                "Łąka Nadjeziorna: "
+                + self.atlas_names(HERB_WATER_ATLAS)
+                + "."
+            )
+            await self.send(
+                "Głębia Gaju i zioła endgame: "
+                + self.atlas_names(HERB_DEEP_ATLAS)
+                + "."
+            )
             return
 
         resources = {
@@ -9082,6 +9942,16 @@ class Session:
                 f"Wieża Astralna wymaga Soul Level "
                 f"{ASTRAL_MIN_SOUL_LEVEL}. "
                 f"Masz Soul Level {self.character.soul_level}."
+            )
+            return
+        if self.mine_descent_blocked_for_player(
+            self.character.room_id, direction
+        ):
+            progress = self.mine_progress()
+            await self.send(
+                f"Nie możesz zejść niżej. Ściana kopalni nie jest "
+                f"przebita. Postęp: {progress['wall_hits']} z "
+                f"{MINE_WALL_HITS_REQUIRED}. Użyj kop albo kop on."
             )
             return
         if self.crypt_descent_blocked_for_player(
@@ -9907,25 +10777,25 @@ class Session:
 
         if target in ("gold", "złoto", "zloto"):
             if self.character.silver < SILVER_PER_GOLD:
-                await self.send(f"Potrzebujesz {SILVER_PER_GOLD} srebra na 1 złoto.")
+                await self.send(f"Potrzebujesz {SILVER_PER_GOLD} srebrnych monet na 1 złotą monetę.")
                 return
             self.character.silver -= SILVER_PER_GOLD
             self.character.gold += 1
             self.server.db.save_character(self.character)
             await self.send(
-                f"Wymieniasz {SILVER_PER_GOLD} srebra na 1 złoto."
+                f"Wymieniasz {SILVER_PER_GOLD} srebrnych monet na 1 złotą monetę."
             )
             return
 
         if target in ("mithril", "mithryl"):
             if self.character.gold < GOLD_PER_MITHRIL:
-                await self.send(f"Potrzebujesz {GOLD_PER_MITHRIL} złota na 1 mithril.")
+                await self.send(f"Potrzebujesz {GOLD_PER_MITHRIL} złotych monet na 1 mithrilową monetę.")
                 return
             self.character.gold -= GOLD_PER_MITHRIL
             self.character.mithril += 1
             self.server.db.save_character(self.character)
             await self.send(
-                f"Wymieniasz {GOLD_PER_MITHRIL} złota na 1 mithril."
+                f"Wymieniasz {GOLD_PER_MITHRIL} złotych monet na 1 mithrilową monetę."
             )
             return
 
@@ -10660,6 +11530,16 @@ class Session:
                 return [astral_floor_id(floor)]
             return []
 
+        mine_match = re.fullmatch(
+            r"(?:kopalnia|mine|poziom kopalni|kopalnia poziom|mine floor)\s*(\d+)",
+            q,
+        )
+        if mine_match:
+            floor = int(mine_match.group(1))
+            if MINE_MIN_FLOOR <= floor <= MINE_MAX_FLOOR:
+                return [mine_floor_id(floor)]
+            return []
+
         exact = []
         partial = []
 
@@ -10718,6 +11598,12 @@ class Session:
             f"prowadz wieza {ASTRAL_MAX_FLOOR}."
         )
         await self.send(
+            f"Kopalnia Głębinowa: poziomy {MINE_MIN_FLOOR}-{MINE_MAX_FLOOR}. "
+            "Przykłady: prowadz kopalnia 1, prowadz kopalnia 80, "
+            f"prowadz kopalnia {MINE_MAX_FLOOR}. "
+            "Prowadzenie zatrzyma się na nieprzebitej ścianie."
+        )
+        await self.send(
             "Możesz używać pełnej nazwy, identyfikatora lokacji ze spacjami "
             "albo wersji bez polskich znaków."
         )
@@ -10747,18 +11633,31 @@ class Session:
                 queue.append((next_room, new_path))
         return None
 
-    async def stop_auto_fishing(self, announce=True):
+    async def stop_auto_fishing(self, announce=True, immediate=True):
         self.auto_fishing = False
         task = self.auto_fishing_task
+
+        if immediate:
+            self.auto_fishing_task = None
+            if task and task is not asyncio.current_task() and not task.done():
+                task.cancel()
+                try:
+                    await task
+                except asyncio.CancelledError:
+                    pass
+            if announce:
+                await self.send("Auto-łowienie wyłączone.")
+            return
+
+        if task and not task.done():
+            if announce:
+                await self.send(
+                    "Auto-łowienie wyłączone. "
+                    "Trwający połów zostanie dokończony, ale następny już się nie rozpocznie."
+                )
+            return
+
         self.auto_fishing_task = None
-
-        if task and task is not asyncio.current_task() and not task.done():
-            task.cancel()
-            try:
-                await task
-            except asyncio.CancelledError:
-                pass
-
         if announce:
             await self.send("Auto-łowienie wyłączone.")
 
@@ -10766,24 +11665,44 @@ class Session:
         try:
             while self.auto_fishing and not self.closed:
                 if self.combat_mob_key:
-                    await self.send("Auto-łowienie zatrzymane: rozpoczęła się walka.")
-                    self.auto_fishing = False
+                    await self.send(
+                        "Auto-łowienie zatrzymane: rozpoczęła się walka."
+                    )
+                    break
+                if self.server.db.item_qty(
+                    self.account_id, "fishing_rod"
+                ) <= 0:
+                    await self.send(
+                        "Auto-łowienie zatrzymane: nie masz Wędki."
+                    )
                     break
 
                 if self.character.room_id not in FISHING_ROOMS:
-                    await self.send("Auto-łowienie zatrzymane: opuściłeś łowisko.")
-                    self.auto_fishing = False
-                    break
-
-                if self.server.db.item_qty(self.account_id, "fishing_rod") <= 0:
-                    await self.send("Auto-łowienie zatrzymane: nie masz Wędki.")
-                    self.auto_fishing = False
-                    break
+                    target = self.nearest_auto_target(
+                        AUTO_FISHING_ROUTE
+                    )
+                    if target is None or not await self.auto_walk_to_target(
+                        target,
+                        "Auto-łowienie idzie do łowiska",
+                        "auto_fishing",
+                    ):
+                        break
+                    continue
 
                 await self.fish(from_auto=True)
+                if not self.auto_fishing or self.closed:
+                    break
 
-                # Sama akcja ma już realny czas zależny od levelu Wędki.
-
+                target = self.next_auto_target(
+                    AUTO_FISHING_ROUTE
+                )
+                if target != self.character.room_id:
+                    if not await self.auto_walk_to_target(
+                        target,
+                        "Auto-łowienie zmienia łowisko",
+                        "auto_fishing",
+                    ):
+                        break
         except asyncio.CancelledError:
             pass
         finally:
@@ -10797,38 +11716,42 @@ class Session:
                 await self.send("Auto-łowienie jest już włączone.")
                 return
             if self.combat_mob_key:
-                await self.send("Nie możesz rozpocząć auto-łowienia podczas walki.")
+                await self.send(
+                    "Nie możesz rozpocząć auto-łowienia podczas walki."
+                )
                 return
-            if self.character.room_id not in FISHING_ROOMS:
-                await self.send("Tutaj nie ma odpowiedniego łowiska.")
-                return
-            if self.server.db.item_qty(self.account_id, "fishing_rod") <= 0:
-                await self.send("Do auto-łowienia potrzebujesz Wędki.")
+            if self.server.db.item_qty(
+                self.account_id, "fishing_rod"
+            ) <= 0:
+                await self.send(
+                    "Do auto-łowienia potrzebujesz Wędki."
+                )
                 return
 
             if self.auto_mining or self.auto_mining_task:
                 await self.stop_auto_mining(announce=False)
-                await self.send("Auto-kopanie wyłączone.")
             if self.auto_woodcutting or self.auto_woodcutting_task:
                 await self.stop_auto_woodcutting(announce=False)
-                await self.send("Auto-Drwalstwo wyłączone.")
             if self.auto_herbalism or self.auto_herbalism_task:
                 await self.stop_auto_herbalism(announce=False)
-                await self.send("Auto-Zielarstwo wyłączone.")
 
             self.auto_fishing = True
             self.auto_fishing_task = asyncio.create_task(
                 self.auto_fishing_loop()
             )
             await self.send(
-                "Auto-łowienie włączone. Wpisz low off albo fish off, aby je zatrzymać."
+                "Auto-łowienie włączone. Samo idzie do łowiska, "
+                "chodzi między łowiskami i łowi. "
+                "Wpisz low off albo fish off, aby je zatrzymać."
             )
             return
 
         if not self.auto_fishing and not self.auto_fishing_task:
             await self.send("Auto-łowienie jest już wyłączone.")
             return
-        await self.stop_auto_fishing(announce=True)
+        await self.stop_auto_fishing(
+            announce=True, immediate=False
+        )
 
     async def guide_to(self, query):
         q = query.strip()
@@ -10917,6 +11840,15 @@ class Session:
                         f"Soul Level {ASTRAL_MIN_SOUL_LEVEL}."
                     )
                     break
+                if self.mine_descent_blocked_for_player(old, direction):
+                    progress = self.mine_progress()
+                    await self.send(
+                        f"Prowadzenie zatrzymane. Ściana kopalni "
+                        f"blokuje zejście. Postęp "
+                        f"{progress['wall_hits']} z "
+                        f"{MINE_WALL_HITS_REQUIRED}."
+                    )
+                    break
                 if self.crypt_descent_blocked_for_player(old, direction):
                     boss = self.server.world.live_crypt_boss(old)
                     boss_name = (
@@ -10958,18 +11890,31 @@ class Session:
         finally:
             self.guiding = False
 
-    async def stop_auto_mining(self, announce=True):
+    async def stop_auto_mining(self, announce=True, immediate=True):
         self.auto_mining = False
         task = self.auto_mining_task
+
+        if immediate:
+            self.auto_mining_task = None
+            if task and task is not asyncio.current_task() and not task.done():
+                task.cancel()
+                try:
+                    await task
+                except asyncio.CancelledError:
+                    pass
+            if announce:
+                await self.send("Auto-kopanie wyłączone.")
+            return
+
+        if task and not task.done():
+            if announce:
+                await self.send(
+                    "Auto-kopanie wyłączone. "
+                    "Trwające wydobycie zostanie dokończone, ale następne już się nie rozpocznie."
+                )
+            return
+
         self.auto_mining_task = None
-
-        if task and task is not asyncio.current_task() and not task.done():
-            task.cancel()
-            try:
-                await task
-            except asyncio.CancelledError:
-                pass
-
         if announce:
             await self.send("Auto-kopanie wyłączone.")
 
@@ -10977,22 +11922,48 @@ class Session:
         try:
             while self.auto_mining and not self.closed:
                 if self.combat_mob_key:
-                    await self.send("Auto-kopanie zatrzymane: rozpoczęła się walka.")
-                    self.auto_mining = False
+                    await self.send(
+                        "Auto-kopanie zatrzymane: rozpoczęła się walka."
+                    )
+                    break
+                if self.server.db.item_qty(
+                    self.account_id, "pickaxe"
+                ) <= 0:
+                    await self.send(
+                        "Auto-kopanie zatrzymane: nie masz Kilofa."
+                    )
                     break
 
-                if self.character.room_id not in MINING_ROOMS:
-                    await self.send("Auto-kopanie zatrzymane: opuściłeś kopalnię.")
-                    self.auto_mining = False
-                    break
+                progress = self.mine_progress()
+                floor = mine_floor_number(
+                    self.character.room_id
+                )
 
-                if self.server.db.item_qty(self.account_id, "pickaxe") <= 0:
-                    await self.send("Auto-kopanie zatrzymane: nie masz Kilofa.")
-                    self.auto_mining = False
-                    break
+                if floor is None:
+                    target = mine_floor_id(
+                        progress["max_floor_unlocked"]
+                    )
+                    if not await self.auto_walk_to_target(
+                        target,
+                        "Auto-kopanie idzie w głąb kopalni",
+                        "auto_mining",
+                    ):
+                        break
+                    continue
+
+                if floor < progress["max_floor_unlocked"]:
+                    target = mine_floor_id(
+                        progress["max_floor_unlocked"]
+                    )
+                    if not await self.auto_walk_to_target(
+                        target,
+                        "Auto-kopanie schodzi do odblokowanego poziomu",
+                        "auto_mining",
+                    ):
+                        break
+                    continue
 
                 await self.mine(from_auto=True)
-
         except asyncio.CancelledError:
             pass
         finally:
@@ -11006,51 +11977,69 @@ class Session:
                 await self.send("Auto-kopanie jest już włączone.")
                 return
             if self.combat_mob_key:
-                await self.send("Nie możesz rozpocząć auto-kopania podczas walki.")
+                await self.send(
+                    "Nie możesz rozpocząć auto-kopania podczas walki."
+                )
                 return
-            if self.character.room_id not in MINING_ROOMS:
-                await self.send("Tutaj nie ma odpowiedniego złoża.")
-                return
-            if self.server.db.item_qty(self.account_id, "pickaxe") <= 0:
-                await self.send("Do auto-kopania potrzebujesz Kilofa.")
+            if self.server.db.item_qty(
+                self.account_id, "pickaxe"
+            ) <= 0:
+                await self.send(
+                    "Do auto-kopania potrzebujesz Kilofa."
+                )
                 return
 
-            # Auto fishing i auto mining nie mogą działać jednocześnie.
             if self.auto_fishing or self.auto_fishing_task:
                 await self.stop_auto_fishing(announce=False)
-                await self.send("Auto-łowienie wyłączone.")
             if self.auto_woodcutting or self.auto_woodcutting_task:
                 await self.stop_auto_woodcutting(announce=False)
-                await self.send("Auto-Drwalstwo wyłączone.")
             if self.auto_herbalism or self.auto_herbalism_task:
                 await self.stop_auto_herbalism(announce=False)
-                await self.send("Auto-Zielarstwo wyłączone.")
 
             self.auto_mining = True
             self.auto_mining_task = asyncio.create_task(
                 self.auto_mining_loop()
             )
             await self.send(
-                "Auto-kopanie włączone. Wpisz kop off albo mine off, aby je zatrzymać."
+                "Auto-kopanie włączone. Samo idzie do najgłębszego "
+                "odblokowanego poziomu, kopie, przebija ściany i "
+                "schodzi aż do poziomu 200. "
+                "Wpisz kop off albo mine off, aby je zatrzymać."
             )
             return
 
         if not self.auto_mining and not self.auto_mining_task:
             await self.send("Auto-kopanie jest już wyłączone.")
             return
+        await self.stop_auto_mining(
+            announce=True, immediate=False
+        )
 
-        await self.stop_auto_mining(announce=True)
-
-    async def stop_auto_woodcutting(self, announce=True):
+    async def stop_auto_woodcutting(self, announce=True, immediate=True):
         self.auto_woodcutting = False
         task = self.auto_woodcutting_task
+
+        if immediate:
+            self.auto_woodcutting_task = None
+            if task and task is not asyncio.current_task() and not task.done():
+                task.cancel()
+                try:
+                    await task
+                except asyncio.CancelledError:
+                    pass
+            if announce:
+                await self.send("Auto-Drwalstwo wyłączone.")
+            return
+
+        if task and not task.done():
+            if announce:
+                await self.send(
+                    "Auto-Drwalstwo wyłączone. "
+                    "Trwające cięcie zostanie dokończone, ale następne już się nie rozpocznie."
+                )
+            return
+
         self.auto_woodcutting_task = None
-        if task and task is not asyncio.current_task() and not task.done():
-            task.cancel()
-            try:
-                await task
-            except asyncio.CancelledError:
-                pass
         if announce:
             await self.send("Auto-Drwalstwo wyłączone.")
 
@@ -11058,15 +12047,44 @@ class Session:
         try:
             while self.auto_woodcutting and not self.closed:
                 if self.combat_mob_key:
-                    await self.send("Auto-Drwalstwo zatrzymane: rozpoczęła się walka.")
+                    await self.send(
+                        "Auto-Drwalstwo zatrzymane: rozpoczęła się walka."
+                    )
                     break
+                if self.server.db.item_qty(
+                    self.account_id, "saw"
+                ) <= 0:
+                    await self.send(
+                        "Auto-Drwalstwo zatrzymane: nie masz Piły."
+                    )
+                    break
+
                 if self.character.room_id not in WOODCUTTING_ROOMS:
-                    await self.send("Auto-Drwalstwo zatrzymane: opuściłeś obszar drzew.")
-                    break
-                if self.server.db.item_qty(self.account_id, "saw") <= 0:
-                    await self.send("Auto-Drwalstwo zatrzymane: nie masz Piły.")
-                    break
+                    target = self.nearest_auto_target(
+                        AUTO_WOODCUTTING_ROUTE
+                    )
+                    if target is None or not await self.auto_walk_to_target(
+                        target,
+                        "Auto-Drwalstwo idzie do drzew",
+                        "auto_woodcutting",
+                    ):
+                        break
+                    continue
+
                 await self.woodcut(from_auto=True)
+                if not self.auto_woodcutting or self.closed:
+                    break
+
+                target = self.next_auto_target(
+                    AUTO_WOODCUTTING_ROUTE
+                )
+                if target != self.character.room_id:
+                    if not await self.auto_walk_to_target(
+                        target,
+                        "Auto-Drwalstwo zmienia miejsce",
+                        "auto_woodcutting",
+                    ):
+                        break
         except asyncio.CancelledError:
             pass
         finally:
@@ -11077,43 +12095,75 @@ class Session:
     async def set_auto_woodcutting(self, enabled):
         if enabled:
             if self.auto_woodcutting:
-                await self.send("Auto-Drwalstwo jest już włączone.")
+                await self.send(
+                    "Auto-Drwalstwo jest już włączone."
+                )
                 return
             if self.combat_mob_key:
-                await self.send("Nie możesz rozpocząć auto-Drwalstwa podczas walki.")
+                await self.send(
+                    "Nie możesz rozpocząć auto-Drwalstwa podczas walki."
+                )
                 return
-            if self.character.room_id not in WOODCUTTING_ROOMS:
-                await self.send("Tutaj nie ma odpowiednich drzew.")
+            if self.server.db.item_qty(
+                self.account_id, "saw"
+            ) <= 0:
+                await self.send(
+                    "Do auto-Drwalstwa potrzebujesz Piły."
+                )
                 return
-            if self.server.db.item_qty(self.account_id, "saw") <= 0:
-                await self.send("Do auto-Drwalstwa potrzebujesz Piły od Drwala Brana.")
-                return
+
             if self.auto_fishing or self.auto_fishing_task:
                 await self.stop_auto_fishing(announce=False)
             if self.auto_mining or self.auto_mining_task:
                 await self.stop_auto_mining(announce=False)
             if self.auto_herbalism or self.auto_herbalism_task:
                 await self.stop_auto_herbalism(announce=False)
+
             self.auto_woodcutting = True
-            self.auto_woodcutting_task = asyncio.create_task(self.auto_woodcutting_loop())
-            await self.send("Auto-Drwalstwo włączone. Wpisz tnij off albo woodcut off, aby je zatrzymać.")
+            self.auto_woodcutting_task = asyncio.create_task(
+                self.auto_woodcutting_loop()
+            )
+            await self.send(
+                "Auto-Drwalstwo włączone. Samo idzie do drzew, "
+                "chodzi między terenami Drwalstwa i ścina. "
+                "Wpisz tnij off albo woodcut off, aby je zatrzymać."
+            )
             return
 
         if not self.auto_woodcutting and not self.auto_woodcutting_task:
-            await self.send("Auto-Drwalstwo jest już wyłączone.")
+            await self.send(
+                "Auto-Drwalstwo jest już wyłączone."
+            )
             return
-        await self.stop_auto_woodcutting(announce=True)
+        await self.stop_auto_woodcutting(
+            announce=True, immediate=False
+        )
 
-    async def stop_auto_herbalism(self, announce=True):
+    async def stop_auto_herbalism(self, announce=True, immediate=True):
         self.auto_herbalism = False
         task = self.auto_herbalism_task
+
+        if immediate:
+            self.auto_herbalism_task = None
+            if task and task is not asyncio.current_task() and not task.done():
+                task.cancel()
+                try:
+                    await task
+                except asyncio.CancelledError:
+                    pass
+            if announce:
+                await self.send("Auto-Zielarstwo wyłączone.")
+            return
+
+        if task and not task.done():
+            if announce:
+                await self.send(
+                    "Auto-Zielarstwo wyłączone. "
+                    "Trwający zbiór zostanie dokończony, ale następny już się nie rozpocznie."
+                )
+            return
+
         self.auto_herbalism_task = None
-        if task and task is not asyncio.current_task() and not task.done():
-            task.cancel()
-            try:
-                await task
-            except asyncio.CancelledError:
-                pass
         if announce:
             await self.send("Auto-Zielarstwo wyłączone.")
 
@@ -11121,15 +12171,44 @@ class Session:
         try:
             while self.auto_herbalism and not self.closed:
                 if self.combat_mob_key:
-                    await self.send("Auto-Zielarstwo zatrzymane: rozpoczęła się walka.")
+                    await self.send(
+                        "Auto-Zielarstwo zatrzymane: rozpoczęła się walka."
+                    )
                     break
+                if self.server.db.item_qty(
+                    self.account_id, "herbalist_sickle"
+                ) <= 0:
+                    await self.send(
+                        "Auto-Zielarstwo zatrzymane: nie masz Sierpa Zielarskiego."
+                    )
+                    break
+
                 if self.character.room_id not in HERBALISM_ROOMS:
-                    await self.send("Auto-Zielarstwo zatrzymane: opuściłeś obszar ziół.")
-                    break
-                if self.server.db.item_qty(self.account_id, "herbalist_sickle") <= 0:
-                    await self.send("Auto-Zielarstwo zatrzymane: nie masz Sierpa Zielarskiego.")
-                    break
+                    target = self.nearest_auto_target(
+                        AUTO_HERBALISM_ROUTE
+                    )
+                    if target is None or not await self.auto_walk_to_target(
+                        target,
+                        "Auto-Zielarstwo idzie do ziół",
+                        "auto_herbalism",
+                    ):
+                        break
+                    continue
+
                 await self.gather_herb(from_auto=True)
+                if not self.auto_herbalism or self.closed:
+                    break
+
+                target = self.next_auto_target(
+                    AUTO_HERBALISM_ROUTE
+                )
+                if target != self.character.room_id:
+                    if not await self.auto_walk_to_target(
+                        target,
+                        "Auto-Zielarstwo zmienia teren",
+                        "auto_herbalism",
+                    ):
+                        break
         except asyncio.CancelledError:
             pass
         finally:
@@ -11140,31 +12219,49 @@ class Session:
     async def set_auto_herbalism(self, enabled):
         if enabled:
             if self.auto_herbalism:
-                await self.send("Auto-Zielarstwo jest już włączone.")
+                await self.send(
+                    "Auto-Zielarstwo jest już włączone."
+                )
                 return
             if self.combat_mob_key:
-                await self.send("Nie możesz rozpocząć auto-Zielarstwa podczas walki.")
+                await self.send(
+                    "Nie możesz rozpocząć auto-Zielarstwa podczas walki."
+                )
                 return
-            if self.character.room_id not in HERBALISM_ROOMS:
-                await self.send("Tutaj nie ma odpowiednich ziół.")
+            if self.server.db.item_qty(
+                self.account_id, "herbalist_sickle"
+            ) <= 0:
+                await self.send(
+                    "Do auto-Zielarstwa potrzebujesz Sierpa Zielarskiego."
+                )
                 return
-            if self.server.db.item_qty(self.account_id, "herbalist_sickle") <= 0:
-                await self.send("Do auto-Zielarstwa potrzebujesz Sierpa Zielarskiego.")
-                return
+
             if self.auto_fishing or self.auto_fishing_task:
                 await self.stop_auto_fishing(announce=False)
             if self.auto_mining or self.auto_mining_task:
                 await self.stop_auto_mining(announce=False)
             if self.auto_woodcutting or self.auto_woodcutting_task:
                 await self.stop_auto_woodcutting(announce=False)
+
             self.auto_herbalism = True
-            self.auto_herbalism_task = asyncio.create_task(self.auto_herbalism_loop())
-            await self.send("Auto-Zielarstwo włączone. Wpisz zbieraj off, aby je zatrzymać.")
+            self.auto_herbalism_task = asyncio.create_task(
+                self.auto_herbalism_loop()
+            )
+            await self.send(
+                "Auto-Zielarstwo włączone. Samo idzie do ziół, "
+                "chodzi między terenami i zbiera. "
+                "Wpisz zbieraj off, aby je zatrzymać."
+            )
             return
+
         if not self.auto_herbalism and not self.auto_herbalism_task:
-            await self.send("Auto-Zielarstwo jest już wyłączone.")
+            await self.send(
+                "Auto-Zielarstwo jest już wyłączone."
+            )
             return
-        await self.stop_auto_herbalism(announce=True)
+        await self.stop_auto_herbalism(
+            announce=True, immediate=False
+        )
 
     async def show_profession_ranks(self):
         for profession in ("Wędkarstwo", "Górnictwo", "Drwalstwo", "Zielarstwo", "Alchemia"):
@@ -11473,164 +12570,315 @@ class Session:
         if room_id in OCEAN_FISHING_ROOMS: return "ocean"
         return None
 
-    def fishing_loot(self, tool_level, habitat="river"):
-        r = random.random()
+    def fishing_available_pool(self, tool_level, habitat=None):
+        habitat = habitat or self.fishing_habitat()
+        tool_level = max(1, int(tool_level))
 
         if habitat == "river":
             if tool_level < 10:
-                return random.choice(("small_fish", "dace", "river_perch"))
-            if tool_level < 25:
-                pool = ("dace", "chub", "common_nase", "river_perch", "river_carp", "barbel")
-                return random.choice(pool)
-            if tool_level < 45:
-                pool = ("chub", "common_nase", "barbel", "ide", "silver_trout", "pike", "zander")
-                return random.choice(pool)
-            if tool_level < 70:
-                pool = ("ide", "asp", "grayling", "silver_trout", "golden_trout", "pike", "zander", "salmon", "burbot")
-                return random.choice(pool)
-            pool = (
-                "asp", "grayling", "burbot", "golden_trout", "salmon",
-                "river_catfish", "ancient_sturgeon", "moon_eel", "zander"
+                base_pool = ("small_fish", "dace", "river_perch")
+            elif tool_level < 25:
+                base_pool = (
+                    "dace", "chub", "common_nase",
+                    "river_perch", "river_carp", "barbel",
+                )
+            elif tool_level < 45:
+                base_pool = (
+                    "chub", "common_nase", "barbel", "ide",
+                    "silver_trout", "pike", "zander",
+                )
+            elif tool_level < 70:
+                base_pool = (
+                    "ide", "asp", "grayling", "silver_trout",
+                    "golden_trout", "pike", "zander",
+                    "salmon", "burbot",
+                )
+            else:
+                base_pool = unlocked_resource_pool(
+                    (
+                        "asp", "grayling", "burbot", "golden_trout",
+                        "salmon", "river_catfish", "ancient_sturgeon",
+                        "moon_eel", "zander",
+                    ),
+                    ENDGAME_FISH_UNLOCKS["river"],
+                    tool_level,
+                )
+            return add_more_fish_to_pool(
+                base_pool, "river", tool_level
             )
-            pool = unlocked_resource_pool(
-                pool, ENDGAME_FISH_UNLOCKS["river"], tool_level
-            )
-            return random.choice(pool)
 
         if habitat == "lake":
             if tool_level < 10:
-                return random.choice(("lake_roach", "rudd", "crucian_carp", "bream"))
-            if tool_level < 25:
-                pool = ("lake_roach", "rudd", "crucian_carp", "bream", "tench", "lake_perch")
-                return random.choice(pool)
-            if tool_level < 45:
-                pool = ("bream", "tench", "lake_perch", "vendace", "pike", "zander")
-                return random.choice(pool)
-            if tool_level < 70:
-                pool = ("tench", "vendace", "whitefish", "pike", "zander", "lake_trout", "giant_pike")
-                return random.choice(pool)
-            pool = (
-                "whitefish", "lake_char", "lake_trout", "giant_pike",
-                "freshwater_eel", "pike", "zander"
+                base_pool = (
+                    "lake_roach", "rudd", "crucian_carp", "bream",
+                )
+            elif tool_level < 25:
+                base_pool = (
+                    "lake_roach", "rudd", "crucian_carp",
+                    "bream", "tench", "lake_perch",
+                )
+            elif tool_level < 45:
+                base_pool = (
+                    "bream", "tench", "lake_perch",
+                    "vendace", "pike", "zander",
+                )
+            elif tool_level < 70:
+                base_pool = (
+                    "tench", "vendace", "whitefish", "pike",
+                    "zander", "lake_trout", "giant_pike",
+                )
+            else:
+                base_pool = unlocked_resource_pool(
+                    (
+                        "whitefish", "lake_char", "lake_trout",
+                        "giant_pike", "freshwater_eel", "pike", "zander",
+                    ),
+                    ENDGAME_FISH_UNLOCKS["lake"],
+                    tool_level,
+                )
+            return add_more_fish_to_pool(
+                base_pool, "lake", tool_level
             )
-            pool = unlocked_resource_pool(
-                pool, ENDGAME_FISH_UNLOCKS["lake"], tool_level
-            )
-            return random.choice(pool)
 
         if habitat == "sea":
             if tool_level < 10:
-                return random.choice(("sprat", "sardine", "anchovy"))
-            if tool_level < 20:
-                return random.choice(("sprat", "sardine", "anchovy", "whiting", "cod"))
-            if tool_level < 30:
-                return random.choice(("anchovy", "whiting", "cod", "mackerel", "flounder"))
-            if tool_level < 50:
-                pool = ("herring", "mackerel", "whiting", "cod", "hake", "sea_bass", "haddock", "pollock")
-                return random.choice(pool)
-            if tool_level < 75:
-                pool = ("herring", "hake", "sea_bass", "red_mullet", "haddock", "pollock", "flounder", "sole", "halibut")
-                return random.choice(pool)
-            pool = (
-                "cod", "hake", "red_mullet", "sole", "halibut",
-                "turbot", "monkfish", "sea_bass", "haddock", "pollock"
+                base_pool = ("sprat", "sardine", "anchovy")
+            elif tool_level < 20:
+                base_pool = (
+                    "sprat", "sardine", "anchovy", "whiting", "cod",
+                )
+            elif tool_level < 30:
+                base_pool = (
+                    "anchovy", "whiting", "cod", "mackerel", "flounder",
+                )
+            elif tool_level < 50:
+                base_pool = (
+                    "herring", "mackerel", "whiting", "cod",
+                    "hake", "sea_bass", "haddock", "pollock",
+                )
+            elif tool_level < 75:
+                base_pool = (
+                    "herring", "hake", "sea_bass", "red_mullet",
+                    "haddock", "pollock", "flounder", "sole", "halibut",
+                )
+            else:
+                base_pool = unlocked_resource_pool(
+                    (
+                        "cod", "hake", "red_mullet", "sole", "halibut",
+                        "turbot", "monkfish", "sea_bass",
+                        "haddock", "pollock",
+                    ),
+                    ENDGAME_FISH_UNLOCKS["sea"],
+                    tool_level,
+                )
+            return add_more_fish_to_pool(
+                base_pool, "sea", tool_level
             )
-            pool = unlocked_resource_pool(
-                pool, ENDGAME_FISH_UNLOCKS["sea"], tool_level
-            )
-            return random.choice(pool)
 
-        # Ocean
-        if tool_level < 20:
-            return random.choice(("mackerel", "mahi_mahi", "albacore"))
-        if tool_level < 40:
-            pool = ("mahi_mahi", "albacore", "wahoo", "barracuda", "tuna", "sailfish")
-            return random.choice(pool)
-        if tool_level < 60:
-            pool = ("tuna", "albacore", "bigeye_tuna", "wahoo", "barracuda", "cobia", "sailfish", "swordfish", "reef_shark")
-            return random.choice(pool)
-        if tool_level < 80:
-            pool = (
-                "tuna", "bigeye_tuna", "cobia", "amberjack", "swordfish",
-                "bluefin_tuna", "reef_shark", "mako_shark", "hammerhead_shark",
-                "ocean_sunfish"
+        if habitat == "ocean":
+            if tool_level < 20:
+                base_pool = ("mackerel", "mahi_mahi", "albacore")
+            elif tool_level < 40:
+                base_pool = (
+                    "mahi_mahi", "albacore", "wahoo",
+                    "barracuda", "tuna", "sailfish",
+                )
+            elif tool_level < 60:
+                base_pool = (
+                    "tuna", "albacore", "bigeye_tuna", "wahoo",
+                    "barracuda", "cobia", "sailfish",
+                    "swordfish", "reef_shark",
+                )
+            elif tool_level < 80:
+                base_pool = (
+                    "tuna", "bigeye_tuna", "cobia", "amberjack",
+                    "swordfish", "bluefin_tuna", "reef_shark",
+                    "mako_shark", "hammerhead_shark", "ocean_sunfish",
+                )
+            else:
+                base_pool = unlocked_resource_pool(
+                    (
+                        "bluefin_tuna", "bigeye_tuna", "amberjack",
+                        "ocean_sunfish", "mako_shark", "tiger_shark",
+                        "hammerhead_shark", "great_white_shark",
+                        "ghost_marlin", "swordfish",
+                    ),
+                    ENDGAME_FISH_UNLOCKS["ocean"],
+                    tool_level,
+                )
+            return add_more_fish_to_pool(
+                base_pool, "ocean", tool_level
             )
-            return random.choice(pool)
-        pool = (
-            "bluefin_tuna", "bigeye_tuna", "amberjack", "ocean_sunfish",
-            "mako_shark", "tiger_shark", "hammerhead_shark",
-            "great_white_shark", "ghost_marlin", "swordfish"
-        )
-        pool = unlocked_resource_pool(
-            pool, ENDGAME_FISH_UNLOCKS["ocean"], tool_level
-        )
+
+        return ()
+
+
+    def fishing_loot(self, tool_level, habitat="river"):
+        pool = self.fishing_available_pool(tool_level, habitat)
+        if not pool:
+            return None
         return random.choice(pool)
 
-
-    def mining_loot(self, tool_level):
-        r = random.random()
-
-        if tool_level < 10:
-            if r < 0.30:
-                return "stone_chunk"
-            if r < 0.95:
-                return "copper_ore"
-            return "iron_ore"
-
-        if tool_level < 25:
-            if r < 0.45:
-                return "copper_ore"
-            if r < 0.95:
-                return "iron_ore"
-            return "silver_ore"
-
-        if tool_level < 50:
-            if r < 0.55:
-                return "iron_ore"
-            if r < 0.90:
-                return "silver_ore"
-            return "gold_ore"
-
-        if tool_level < 80:
-            if r < 0.42:
-                return "iron_ore"
-            if r < 0.82:
-                return "silver_ore"
-            return "gold_ore"
-
-        # Mithril jest bezpośrednio walutą, nie rudą.
-        # 1 mithril = 1 000 000 złota, więc szanse pozostają bardzo małe.
-        if tool_level < 90:
-            mithril_chance = 0.001      # 0,10%
-        elif tool_level < 100:
-            mithril_chance = 0.0025     # 0,25%
-        else:
-            mithril_chance = 0.005      # 0,50% na levelu 100
-
-        if r < mithril_chance:
-            return "__mithril_currency__"
-
-        if tool_level >= 100:
-            pool = unlocked_resource_pool(
-                ("silver_ore", "gold_ore"),
-                ENDGAME_ORE_UNLOCKS,
-                tool_level,
+    async def show_water_info(self):
+        habitat = self.fishing_habitat()
+        if not habitat:
+            await self.send(
+                "Tutaj nie ma łowiska. Komenda woda działa przy rzece, "
+                "jeziorze, morzu albo oceanie."
             )
-            return random.choice(pool)
+            return
 
-        rr = (r - mithril_chance) / (1.0 - mithril_chance)
-        if tool_level < 90:
-            if rr < 0.30:
+        tool = self.server.db.tool(self.account_id, "fishing")
+        tool_level = int(tool["level"])
+        pool = self.fishing_available_pool(tool_level, habitat)
+
+        habitat_name = {
+            "river": "rzeka",
+            "lake": "jezioro",
+            "sea": "morze",
+            "ocean": "ocean",
+        }[habitat]
+
+        await self.send(
+            f"WODA: {habitat_name}. "
+            f"Wędka level {tool_level}. "
+            f"Dostępnych gatunków ryb dla twojej Wędki: {len(pool)}."
+        )
+
+        if pool:
+            names = sorted(
+                (ITEMS[item_id]["name"] for item_id in pool),
+                key=normalize_lookup_text,
+            )
+            await self.send(
+                "Ryby możliwe do złowienia: "
+                + ", ".join(names)
+                + "."
+            )
+
+        locked = [
+            (required, item_id)
+            for required, item_id in (
+                tuple(ENDGAME_FISH_UNLOCKS.get(habitat, ()))
+                + tuple(MORE_FISH_UNLOCKS.get(habitat, ()))
+            )
+            if int(required) > tool_level
+        ]
+        locked.sort(key=lambda entry: (int(entry[0]), ITEMS[entry[1]]["name"]))
+        if locked:
+            next_level, next_item = locked[0]
+            await self.send(
+                f"Następna ryba endgame od Wędki level {next_level}: "
+                f"{ITEMS[next_item]['name']}."
+            )
+        else:
+            await self.send(
+                "Masz odblokowane wszystkie ryby endgame tego łowiska."
+            )
+
+        await self.send(
+            "To liczba dostępnych gatunków, nie skończona liczba sztuk. "
+            "Łowisko nie wyczerpuje się od łowienia."
+        )
+
+
+    def mining_loot(self, tool_level, room_id=None):
+        tool_level = max(1, int(tool_level))
+        room_id = room_id or self.character.room_id
+        floor = mine_floor_number(room_id)
+
+        if floor is None:
+            r = random.random()
+            if tool_level < 10:
+                if r < 0.30:
+                    return "stone_chunk"
+                if r < 0.95:
+                    return "copper_ore"
                 return "iron_ore"
-            if rr < 0.68:
+            if tool_level < 25:
+                if r < 0.45:
+                    return "copper_ore"
+                if r < 0.95:
+                    return "iron_ore"
+                return "silver_ore"
+            if tool_level < 50:
+                if r < 0.55:
+                    return "iron_ore"
+                if r < 0.90:
+                    return "silver_ore"
+                return "gold_ore"
+            if tool_level < 80:
+                if r < 0.42:
+                    return "iron_ore"
+                if r < 0.82:
+                    return "silver_ore"
+                return "gold_ore"
+
+            if tool_level < 90:
+                mithril_chance = 0.001
+            elif tool_level < 100:
+                mithril_chance = 0.0025
+            else:
+                mithril_chance = 0.005
+
+            if r < mithril_chance:
+                return "__mithril_currency__"
+
+            if tool_level >= 100:
+                pool = unlocked_resource_pool(
+                    ("silver_ore", "gold_ore"),
+                    ENDGAME_ORE_UNLOCKS,
+                    tool_level,
+                )
+                return random.choice(pool)
+
+            rr = (r - mithril_chance) / (1.0 - mithril_chance)
+            if tool_level < 90:
+                if rr < 0.30:
+                    return "iron_ore"
+                if rr < 0.68:
+                    return "silver_ore"
+                return "gold_ore"
+            if rr < 0.18:
+                return "iron_ore"
+            if rr < 0.52:
                 return "silver_ore"
             return "gold_ore"
 
-        if rr < 0.18:
-            return "iron_ore"
-        if rr < 0.52:
-            return "silver_ore"
-        return "gold_ore"
+        effective_depth = min(floor, tool_level)
+
+        if effective_depth >= 80:
+            if effective_depth < 90:
+                mithril_chance = 0.001
+            elif effective_depth < 100:
+                mithril_chance = 0.0025
+            else:
+                mithril_chance = 0.005
+            if random.random() < mithril_chance:
+                return "__mithril_currency__"
+
+        if effective_depth < 10:
+            pool = ("stone_chunk", "copper_ore")
+        elif effective_depth < 25:
+            pool = ("copper_ore", "iron_ore")
+        elif effective_depth < 50:
+            pool = ("iron_ore", "silver_ore")
+        elif effective_depth < 100:
+            pool = ("silver_ore", "gold_ore")
+        elif effective_depth < 120:
+            pool = ("gold_ore", "cobalt_ore")
+        elif effective_depth < 140:
+            pool = ("cobalt_ore", "runestone_ore")
+        elif effective_depth < 160:
+            pool = ("runestone_ore", "dragonsteel_ore")
+        elif effective_depth < 180:
+            pool = ("dragonsteel_ore", "astral_ore")
+        elif effective_depth < 200:
+            pool = ("astral_ore", "void_ore")
+        else:
+            pool = ("void_ore", "eternium_ore")
+
+        return random.choice(pool)
 
 
     def woodcutting_loot(self, tool_level, room_id=None):
@@ -11682,8 +12930,59 @@ class Session:
             if tool_level < 15:
                 return random.choice(("nettle", "chamomile", "mint"))
             if tool_level < 35:
-                return random.choice(("nettle", "chamomile", "mint", "yarrow", "lemon_balm", "lavender"))
-            return random.choice(("mint", "yarrow", "lemon_balm", "lavender", "sage", "valerian"))
+                return random.choice((
+                    "nettle", "chamomile", "mint",
+                    "yarrow", "lemon_balm", "lavender",
+                ))
+            return random.choice((
+                "mint", "yarrow", "lemon_balm",
+                "lavender", "sage", "valerian",
+            ))
+
+        if room_id == "mint_meadow":
+            if tool_level < 15:
+                return random.choice((
+                    "mint", "mint", "lemon_balm", "chamomile",
+                ))
+            if tool_level < 35:
+                return random.choice((
+                    "mint", "mint", "lemon_balm",
+                    "chamomile", "yarrow", "lavender",
+                ))
+            return random.choice((
+                "mint", "lemon_balm", "lavender",
+                "sage", "valerian", "yarrow",
+            ))
+
+        if room_id == "flower_meadow":
+            if tool_level < 15:
+                return random.choice((
+                    "chamomile", "chamomile", "lavender", "nettle",
+                ))
+            if tool_level < 35:
+                return random.choice((
+                    "chamomile", "lavender", "yarrow",
+                    "nettle", "lemon_balm",
+                ))
+            return random.choice((
+                "lavender", "yarrow", "chamomile",
+                "sage", "valerian", "lemon_balm",
+            ))
+
+        if room_id == "lakeside_meadow":
+            if tool_level < 15:
+                return random.choice((
+                    "mint", "lemon_balm", "chamomile",
+                ))
+            if tool_level < 35:
+                return random.choice((
+                    "mint", "lemon_balm", "chamomile",
+                    "yarrow", "lavender",
+                ))
+            return random.choice((
+                "mint", "lemon_balm", "lavender",
+                "sage", "yarrow", "star_moss",
+            ))
         if room_id in {"riverbank", "lake_shore"}:
             if tool_level < 25:
                 return random.choice(("mint", "lemon_balm", "chamomile"))
@@ -11812,7 +13111,9 @@ class Session:
         )
         await asyncio.sleep(action_seconds)
 
-        item_id = self.mining_loot(tool_level)
+        item_id = self.mining_loot(
+            tool_level, self.character.room_id
+        )
 
         if item_id == "__mithril_currency__":
             self.character.mithril += 1
@@ -11860,6 +13161,29 @@ class Session:
             await self.send(
                 "Twój Kilof osiągnął level 80. Od teraz masz minimalną szansę wydobyć czysty mithril."
             )
+
+        floor = mine_floor_number(self.character.room_id)
+        if floor is not None and floor < MINE_MAX_FLOOR:
+            wall = self.server.db.add_mine_wall_hit(
+                self.account_id, floor
+            )
+            if wall["unlocked_floor"] is not None:
+                unlocked = wall["unlocked_floor"]
+                await self.send(
+                    f"Przebijasz ścianę w dół! "
+                    f"Odblokowano Kopalnię - poziom {unlocked}."
+                )
+                if from_auto and self.auto_mining:
+                    await self.auto_walk_to_target(
+                        mine_floor_id(unlocked),
+                        "Auto-kopanie schodzi niżej",
+                        "auto_mining",
+                    )
+            elif floor == wall["max_floor_unlocked"]:
+                await self.send(
+                    f"Ściana w dół: {wall['wall_hits']} z "
+                    f"{MINE_WALL_HITS_REQUIRED} uderzeń."
+                )
 
     async def woodcut(self, from_auto=False):
         if self.combat_mob_key:
@@ -12623,6 +13947,29 @@ class Session:
 
         return True
 
+    async def show_cooking_info(self):
+        await self.send("GOTOWANIE")
+        await self.show_single_tool("cooking")
+        await self.send(
+            "Gotowanie jest systemem opartym na Nożu Kucharskim level 1-200. "
+            "Nie tworzy osobnego levelu postaci ani osobnej profesji."
+        )
+        await self.send(
+            "Gotować możesz w Karczmie Pod Błękitnym Płomieniem "
+            "albo na Targu Rybnym."
+        )
+        await self.send(
+            "Komendy: gotuj <potrawa>, receptury cook, gotowanie."
+        )
+        await self.send(
+            "Niższe receptury prowadzą przez levele Noża 1-99, "
+            "a endgame zaczyna się od levelu 100 i kończy na 200."
+        )
+        await self.send(
+            "Wyższy Tier Noża może przygotować dodatkową porcję. "
+            "Gotowanie daje XP wyłącznie Nożowi Kucharskiemu."
+        )
+
     async def craft_item(self, query):
         return await self.perform_recipe(query, CRAFT_RECIPES, "rzemiosło")
 
@@ -13307,6 +14654,190 @@ class Session:
         row = self.server.db.quest(self.account_id, quest_id)
         return bool(row and row["status"] == "completed")
 
+    def quest_progress_for_turnin(self, quest_id):
+        q = QUESTS.get(quest_id)
+        row = self.server.db.quest(self.account_id, quest_id)
+        if not q or not row or row["status"] != "active":
+            return 0, False
+
+        needed = int(q.get("needed", 0))
+        if q["kind"] == "kill":
+            progress = int(row["progress"])
+            return progress, progress >= needed
+
+        if q["kind"] == "collect":
+            progress = self.server.db.item_qty(
+                self.account_id, q["target"]
+            )
+            return progress, progress >= needed
+
+        if q["kind"] == "collect_category":
+            category = self.quest_collect_category_info(q["target"])
+            if not category:
+                return 0, False
+            ids, container, _label = category
+            progress = (
+                self.server.db.total_items_across_storage_and_inventory(
+                    self.account_id, ids, container
+                )
+            )
+            return progress, progress >= needed
+
+        return int(row["progress"]), int(row["progress"]) >= needed
+
+    def local_quest_ids(self):
+        local_npcs = [
+            npc
+            for npc in NPCS.values()
+            if npc["room"] == self.character.room_id
+        ]
+        giver_names = {
+            self.normalize_description_query(npc["name"])
+            for npc in local_npcs
+        }
+
+        result = []
+        for quest_id, quest in QUESTS.items():
+            giver = self.normalize_description_query(
+                quest.get("giver", "")
+            )
+            if giver and giver in giver_names:
+                result.append(quest_id)
+        return result
+
+    def normalize_turnin_query(self, query):
+        value = self.normalize_description_query(query)
+        generic = {
+            "", "quest", "questa", "questy",
+            "zadanie", "zadania", "zlecenie", "zlecenia",
+        }
+        if value in generic:
+            return ""
+
+        for prefix in (
+            "quest ",
+            "questa ",
+            "zadanie ",
+            "zadania ",
+            "zlecenie ",
+        ):
+            if value.startswith(prefix):
+                return value[len(prefix):].strip()
+
+        return value
+
+    def match_local_active_quest(self, query):
+        wanted = self.normalize_turnin_query(query)
+        candidates = []
+
+        for quest_id in self.local_quest_ids():
+            row = self.server.db.quest(self.account_id, quest_id)
+            if not row or row["status"] != "active":
+                continue
+            quest = QUESTS[quest_id]
+            candidates.append((quest_id, quest))
+
+        if not wanted:
+            return candidates
+
+        exact = []
+        partial = []
+        for quest_id, quest in candidates:
+            qid = self.normalize_description_query(quest_id)
+            name = self.normalize_description_query(quest["name"])
+            if wanted in (qid, name):
+                exact.append((quest_id, quest))
+            elif wanted in qid or wanted in name:
+                partial.append((quest_id, quest))
+
+        if exact:
+            return exact
+        return partial
+
+    async def turn_in_quest(self, query):
+        if self.combat_mob_key:
+            await self.send(
+                "Nie możesz oddawać zadania podczas walki."
+            )
+            return
+
+        local_npcs = [
+            npc
+            for npc in NPCS.values()
+            if npc["room"] == self.character.room_id
+        ]
+        if not local_npcs:
+            await self.send(
+                "Nie ma tutaj NPC, któremu można oddać zadanie."
+            )
+            return
+
+        matches = self.match_local_active_quest(query)
+        wanted = self.normalize_turnin_query(query)
+
+        if wanted:
+            if not matches:
+                await self.send(
+                    "Nie masz tutaj aktywnego zadania pasującego do tej nazwy."
+                )
+                return
+            if len(matches) > 1:
+                await self.send(
+                    "Pasuje kilka zadań. Podaj pełną nazwę: "
+                    + ", ".join(q["name"] for _qid, q in matches)
+                    + "."
+                )
+                return
+
+            quest_id, quest = matches[0]
+            progress, ready = self.quest_progress_for_turnin(quest_id)
+            if not ready:
+                await self.send(
+                    f"Zadanie nie jest jeszcze gotowe do oddania: "
+                    f"{quest['name']}. Postęp {progress} z "
+                    f"{quest['needed']}."
+                )
+                return
+
+            await self.handle_quest_interaction(quest_id)
+            return
+
+        ready = []
+        active = []
+        for quest_id, quest in matches:
+            progress, is_ready = self.quest_progress_for_turnin(quest_id)
+            active.append((quest_id, quest, progress, is_ready))
+            if is_ready:
+                ready.append((quest_id, quest))
+
+        if len(ready) == 1:
+            await self.handle_quest_interaction(ready[0][0])
+            return
+
+        if len(ready) > 1:
+            await self.send(
+                "Masz tutaj kilka zadań gotowych do oddania. "
+                "Wpisz oddaj <nazwa zadania>: "
+                + ", ".join(q["name"] for _qid, q in ready)
+                + "."
+            )
+            return
+
+        if active:
+            await self.send(
+                "Masz tutaj aktywne zadania, ale żadne nie jest jeszcze "
+                "gotowe do oddania."
+            )
+            for _quest_id, quest, progress, _is_ready in active:
+                await self.send(
+                    f"{quest['name']}: {progress} z {quest['needed']}."
+                )
+            return
+
+        await self.send(
+            "Nie masz tutaj aktywnego zadania do oddania."
+        )
+
     async def handle_quest_interaction(self, quest_id):
         q = QUESTS[quest_id]
         row = self.server.db.quest(self.account_id, quest_id)
@@ -13559,12 +15090,19 @@ class Session:
             )
 
     async def talk(self, query):
+        raw_query = str(query or "").strip()
+        normalized = self.normalize_description_query(raw_query)
+        if normalized.startswith("to "):
+            raw_query = raw_query.split(None, 1)[1].strip()
+        elif normalized.startswith("z "):
+            raw_query = raw_query.split(None, 1)[1].strip()
+
         candidates = {
             key: npc
             for key, npc in NPCS.items()
             if npc["room"] == self.character.room_id
         }
-        found = find_by_name(candidates, query)
+        found = find_by_name(candidates, raw_query)
         if not found:
             if candidates:
                 await self.send("Nie rozpoznaję tego NPC.")
@@ -13726,27 +15264,30 @@ class Session:
                     )
                 else:
                     await self.send(f"{q['name']}: ukończone.")
-            elif q["kind"] == "kill":
-                await self.send(
-                    f"{q['name']}: aktywne. Postęp {row['progress']} z {q['needed']}. {q['description']}"
+            elif row["status"] == "active":
+                progress, ready = self.quest_progress_for_turnin(
+                    row["quest_id"]
                 )
-            elif q["kind"] == "collect":
-                have = self.server.db.item_qty(self.account_id, q["target"])
-                await self.send(
-                    f"{q['name']}: aktywne. Postęp {have} z {q['needed']}. {q['description']}"
-                )
-            elif q["kind"] == "collect_category":
-                category = self.quest_collect_category_info(q["target"])
-                if not category:
-                    continue
-                ids, container, label = category
-                have = self.server.db.total_items_across_storage_and_inventory(
-                    self.account_id, ids, container
-                )
-                await self.send(
-                    f"{q['name']}: aktywne. Postęp {have} z {q['needed']} wymaganych {label}. "
-                    f"{q['description']}"
-                )
+                if ready:
+                    await self.send(
+                        f"{q['name']}: GOTOWE DO ODDANIA. "
+                        f"Postęp {progress} z {q['needed']}. "
+                        f"Wróć do {q['giver']} i wpisz oddaj zadanie "
+                        f"albo talk to {q['giver']}."
+                    )
+                elif q["kind"] == "collect_category":
+                    category = self.quest_collect_category_info(q["target"])
+                    label = category[2] if category else "surowców"
+                    await self.send(
+                        f"{q['name']}: aktywne. Postęp {progress} z "
+                        f"{q['needed']} wymaganych {label}. "
+                        f"{q['description']}"
+                    )
+                else:
+                    await self.send(
+                        f"{q['name']}: aktywne. Postęp {progress} z "
+                        f"{q['needed']}. {q['description']}"
+                    )
 
     async def unlock(self):
         nxt = self.character.can_unlock()
@@ -15694,7 +17235,7 @@ class Session:
             rest_safe_commands = {
                 "rest", "help", "describe", "changes", "look",
                 "corpse", "cryptinfo", "astralinfo", "consider",
-                "exits", "map", "atlas",
+                "waterinfo", "exits", "map", "atlas",
                 "where", "who", "stats", "mana", "declension", "skills",
                 "skillnames", "soul", "money", "net", "bag",
                 "woodpile", "herbbag", "professions", "ranks",
@@ -15834,6 +17375,8 @@ class Session:
                 await self.guide_to(args)
             elif command == "location":
                 await self.show_location()
+            elif command == "mineinfo":
+                await self.show_mine_info()
             elif command == "mine":
                 mode = args.strip().lower()
                 if mode in ("on", "start", "1"):
@@ -15875,9 +17418,17 @@ class Session:
                     await self.send("Użycie: craft <receptura>. Wpisz receptury.")
                 else:
                     await self.craft_item(args)
+            elif command == "cookinginfo":
+                await self.show_cooking_info()
             elif command == "cook":
-                if not args.strip():
-                    await self.send("Użycie: cook <potrawa>. Wpisz receptury cook.")
+                cook_mode = args.strip().lower()
+                if cook_mode in ("lista", "list", "receptury", "przepisy"):
+                    await self.show_recipes("cook")
+                elif not cook_mode:
+                    await self.send(
+                        "Użycie: gotuj <potrawa>. "
+                        "Wpisz gotuj lista albo receptury cook."
+                    )
                 else:
                     await self.cook_item(args)
             elif command == "alchemy":
@@ -15899,6 +17450,10 @@ class Session:
                 await self.buy(args)
             elif command == "talk":
                 await self.talk(args)
+            elif command == "turnin":
+                await self.turn_in_quest(args)
+            elif command == "waterinfo":
+                await self.show_water_info()
             elif command == "teachers":
                 await self.show_teachers()
             elif command == "quests":

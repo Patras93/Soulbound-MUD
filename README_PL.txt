@@ -1,4 +1,4 @@
-SOULBOUND v0.6.95 THREE CURRENCIES
+SOULBOUND v0.7.04 THREE CURRENCIES
 ==========================
 
 Duży build rozbudowujący działający serwer online do pierwszej właściwej wersji świata MUD.
@@ -1607,7 +1607,7 @@ zadania
 
 NOWE KURSY WALUT v0.6.45
 ------------------------
-1000 srebra = 1 złoto.
+100 srebra = 1 złoto.
 
 1000000 złota = 1 mithril.
 
@@ -1638,7 +1638,7 @@ Rzadkość czystego mithrilu z Górnictwa nie została zmieniona.
 
 REBALANS CEN SKLEPOWYCH v0.6.46
 -------------------------------
-Po kursie 1000 srebra = 1 złoto podstawowe przedmioty sklepowe
+Po kursie 100 srebra = 1 złoto podstawowe przedmioty sklepowe
 zostały przeliczone na srebro.
 
 NARZĘDZIA
@@ -3936,3 +3936,297 @@ Zwykłe moby nadal korzystają z globalnego 2x HP.
 Bossowie świata poza tymi dwoma lochami także pozostają na obecnym 2x HP.
 
 Damage i nagrody nie zostały zmienione.
+
+
+ROZBUDOWANE GOTOWANIE v0.6.96
+==============================
+Gotowanie korzysta z Noża Kucharskiego level 1-200.
+
+Komendy:
+gotowanie
+kuchnia
+gotuj lista
+gotuj <nazwa potrawy>
+receptury cook
+
+Miejsca:
+- Karczma Pod Błękitnym Płomieniem
+- Targ Rybny
+
+Ścieżka 1-99:
+1 Pieczona ryba rzeczna
+10 Gulasz rzeczny
+20 Okoń w Ziołowej Skorupce
+30 Potrawka jeziorowa
+40 Zupa ze Srebrnego Pstrąga
+50 Zupa morska
+60 Zapiekanka Jeziornego Rybaka
+70 Makrela Korzenna
+80 Stek oceaniczny
+90 Łosoś z Ziołami
+95 Uczta Mistrza Rybaka
+99 Rosół z Księżycowego Węgorza
+
+Endgame:
+100 Runiczny Półmisek Rybny
+120 Smocza Potrawka Oceaniczna
+140 Stek Rybny Otchłani
+160 Uczta Marlina Burzy
+180 Uczta Lewiatana
+200 Wieczna Uczta Oceanu
+
+Gotowanie:
+- zużywa prawdziwe składniki,
+- korzysta z magazynów profesji i inventory,
+- daje XP wyłącznie Nożowi Kucharskiemu,
+- ma realny czas akcji 12 -> 4 sekundy,
+- korzysta z bonusu Tieru Noża do dodatkowej porcji,
+- tworzy potrawy odnawiające HP i czasem Manę.
+
+Gotowanie nie jest levelem postaci ani Character XP.
+
+
+ODDAWANIE ZADAŃ v0.6.97
+=======================
+Po wykonaniu celu:
+zadania
+pokazuje status GOTOWE DO ODDANIA.
+
+Przy właściwym NPC:
+oddaj zadanie
+oddaj questa
+zdaj zadanie
+turnin
+
+Konkretny quest:
+oddaj <nazwa zadania>
+
+Rozmowa:
+talk Elor
+talk to Elor
+
+Jeśli kilka questów jest gotowych w tej samej lokacji,
+gra prosi o pełną nazwę i niczego nie zgaduje.
+
+WODA
+====
+Komenda:
+woda
+
+Działa przy:
+- rzece,
+- jeziorze,
+- morzu,
+- oceanie.
+
+Podaje:
+- typ łowiska,
+- level Wędki,
+- liczbę aktualnie dostępnych gatunków,
+- nazwy ryb, które fish może teraz wylosować,
+- następny endgame unlock ryby.
+
+woda i fish używają dokładnie tego samego poola.
+Podawana liczba oznacza liczbę gatunków, nie skończoną liczbę sztuk.
+Łowiska nie wyczerpują się.
+
+
+WIĘCEJ RYB v0.6.98
+==================
+Dodano 40 nowych gatunków.
+
+RZEKA:
+Ukleja Rzeczna
+Śliz Kamienny
+Krąp Rzeczny
+Pstrąg Potokowy
+Tajmień Rzeczny
+Szmaragdowa Brzana
+Lipień Duchów
+Krwawopłetwy Łosoś
+Gwiezdny Węgorz Rzeczny
+Wieczny Smok Rzeczny
+
+JEZIORO:
+Kiełb Jeziorowy
+Stynka Jeziorowa
+Niebieski Leszcz
+Złoty Lin
+Szczupak Głębinowy
+Kryształowa Sieja
+Karp Księżycowy
+Astralny Szczupak
+Lustrzany Jesiotr
+Wieczny Wąż Jeziora
+
+MORZE:
+Dobijak Piaskowy
+Belona
+Prażma Morska
+Lufar
+Konger
+Lucjan Czerwony
+Śledź Burzy
+Konger Otchłani
+Sola Pustki
+Wieczny Smok Morza
+
+OCEAN:
+Ryba Latająca
+Bonito
+Tuńczyk Żółtopłetwy
+Makrela Królewska
+Marlin Czarny
+Strojnik Oceaniczny
+Niebiański Miecznik
+Astralny Samogłów
+Marlin Pustki
+Lewiatan Świata
+
+Nowe gatunki odblokowują się stopniowo od Wędki level 1 do 200.
+woda pokazuje dokładnie te ryby, które fish może w danym momencie wylosować.
+
+
+KURS WALUT v0.6.99
+==================
+100 srebra = 1 złoto.
+1 000 000 złota = 1 mithril.
+
+exchange gold
+wymienia 100 srebra na 1 złoto.
+
+Zmiana nie resetuje istniejących walut.
+Portfel i Bank Dusz zachowują zapisane wartości.
+
+
+POPRAWIONY KURS WALUT v0.7.00
+=============================
+1000 srebrnych monet = 1 złota moneta.
+1 000 000 złotych monet = 1 mithrilowa moneta.
+
+exchange gold
+wymienia 1000 srebrnych monet na 1 złotą monetę.
+
+exchange mithril
+wymienia 1 000 000 złotych monet na 1 mithrilową monetę.
+
+Istniejące salda nie są resetowane ani przeliczane.
+
+
+AUTO OFF v0.7.01
+================
+low off / fish off
+kop off / mine off
+tnij off / woodcut off
+zbieraj off
+
+Jeśli bieżąca akcja już trwa, zostanie dokończona.
+Dostajesz normalnie surowiec i XP.
+Po niej automat się zatrzyma i nie rozpocznie kolejnej akcji.
+
+Wymuszone przerwania, np. wyjście z gry, podróż albo przełączenie
+na inną auto-aktywność, nadal mogą anulować akcję natychmiast.
+
+
+ŁĄKI v0.7.02
+============
+Strefa ma teraz cztery lokacje:
+
+1. Srebrna Łąka
+   centralny punkt.
+
+2. Łąka Mięty
+   więcej Mięty i Melisy.
+   Dalej prowadzi do Brzegu Rzeki.
+
+3. Łąka Kwiatów
+   więcej Rumianku, Lawendy i Krwawnika.
+   Dalej prowadzi do Gaju Szeptów.
+
+4. Łąka Nadjeziorna
+   zioła terenów wilgotnych.
+   Na wyższym levelu Sierpa może pojawić się Gwiezdny mech.
+   Dalej prowadzi do Srebrnego Jeziora.
+
+Na wszystkich działa:
+zbieraj
+zbieraj on
+zbieraj off
+
+Prowadzenie:
+prowadz srebrna laka
+prowadz laka miety
+prowadz laka kwiatow
+prowadz laka nadjeziorna
+
+Atlas ziół uwzględnia nowe lokacje.
+
+
+KOPALNIA GŁĘBINOWA 1-200 v0.7.03
+================================
+Kryształowa Komnata -> down -> poziom 1.
+Kopalnia ma poziomy 1-200.
+
+Na najgłębszym odblokowanym poziomie każde udane kopanie:
+- daje normalny urobek,
+- daje XP,
+- uderza także w ścianę prowadzącą w dół.
+
+Po 5 uderzeniach ściana pęka i kolejny poziom jest zapisany na stałe.
+kop on po przebiciu ściany samo schodzi niżej.
+
+Głębsze poziomy:
+1-9 Kamień / Miedź
+10-24 Miedź / Żelazo
+25-49 Żelazo / Srebro
+50-99 Srebro / Złoto
+100-119 Złoto / Kobalt
+120-139 Kobalt / Kamień Runiczny
+140-159 Kamień Runiczny / Smocza Stal
+160-179 Smocza Stal / Ruda Astralna
+180-199 Ruda Astralna / Ruda Pustki
+200 Ruda Pustki / Eternium
+
+Level Kilofa nadal obowiązuje.
+
+AUTO CHODZI SAMO
+================
+low on - samo chodzi między łowiskami i łowi.
+zbieraj on - samo chodzi między terenami i zbiera.
+tnij on - samo chodzi między terenami Drwalstwa i ścina.
+kop on - samo idzie w głąb kopalni, przebija ściany i schodzi do 200.
+
+off nadal dokańcza bieżącą akcję.
+
+
+KOMPLETNY ATLAS ZASOBÓW v0.7.04
+===============================
+atlas ryby
+- pokazuje wszystkie ryby w grze,
+- podaje łączną liczbę,
+- dzieli długą listę na części,
+- zachowuje podział: rzeka, jezioro, morze, ocean.
+
+atlas drewno
+- pokazuje wszystkie rodzaje drewna,
+- zachowuje grupy terenów Drwalstwa.
+
+atlas rudy
+- pokazuje wszystkie rudy,
+- podaje wymagany level Kilofa,
+- podaje minimalny poziom Kopalni Głębinowej.
+
+atlas zioła
+- pokazuje wszystkie zioła,
+- zachowuje grupy występowania.
+
+atlas <nazwa surowca>
+nadal pokazuje dokładne informacje o jednym zasobie.
+
+Pełne atlasy korzystają bezpośrednio z:
+FISH_RESOURCE_IDS
+ORE_RESOURCE_IDS
+WOOD_RESOURCE_IDS
+HERB_RESOURCE_IDS
+
+Dzięki temu każdy istniejący zasób trafia do właściwego pełnego atlasu.
