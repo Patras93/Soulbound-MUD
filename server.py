@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Soulbound v0.6.76 Guide Bridge
+Soulbound v0.6.81 All Profession Storage Count & Value
 Wieloosobowy tekstowy MUD TCP/Telnet dla MUSHclienta/Mudleta.
 
 Najważniejsze zasady projektu:
@@ -27,7 +27,7 @@ import unicodedata
 from dataclasses import dataclass
 from typing import Optional
 
-VERSION = "0.6.76"
+VERSION = "0.6.81"
 
 HOST = os.getenv("SOULBOUND_HOST", "0.0.0.0")
 _RAILWAY_TCP_PORT = os.getenv("RAILWAY_TCP_APPLICATION_PORT", "").strip()
@@ -67,6 +67,14 @@ SILVER_PER_GOLD = 1000
 GOLD_PER_MITHRIL = 1000000
 
 PROFESSION_MAX_LEVEL = 100
+
+# v0.6.79:
+# Profesje pokazują i otrzymują 2x więcej XP,
+# ale koszt każdego levelu jest 4x większy.
+# Efektywnie levelowanie profesji jest około 2x wolniejsze.
+PROFESSION_XP_GAIN_MULTIPLIER = 2
+PROFESSION_XP_REQUIREMENT_MULTIPLIER = 4
+
 CHARISMA_DISCOUNT_STEP = 4
 CHARISMA_MAX_DISCOUNT = 25
 PARTY_BASE_CAPACITY = 8
@@ -314,7 +322,7 @@ def class_type_for_name(class_name):
             return ctype
     return "physical"
 
-SKILL_MAX_LEVEL = 100
+SKILL_MAX_LEVEL = 200
 SKILL_XP_BASE = 50
 SKILL_XP_STEP = 25
 
@@ -324,11 +332,11 @@ def skill_xp_to_next(level):
     return SKILL_XP_BASE + (level - 1) * SKILL_XP_STEP
 
 def skill_power_multiplier(level):
-    # L1 = 1.0, L100 ~= 1.7425
+    # L1 = 1.0, L100 ~= 1.7425, L200 ~= 2.4925.
     return 1.0 + max(0, level - 1) * 0.0075
 
 def skill_cooldown_multiplier(level):
-    # Do 30% krótszego cooldownu na L100.
+    # Maksymalnie 30% krótszego cooldownu; dalsze levele zwiększają moc.
     reduction = min(0.30, max(0, level - 1) * 0.003)
     return 1.0 - reduction
 
@@ -1040,6 +1048,507 @@ CLASS_SKILLS = {'Wojownik': [{'id': 'warrior_power_slash',
               'guard': 28}]}
 
 
+ENDGAME_CLASS_SKILLS = {
+    "Wojownik": [
+        {
+            "id": "warrior_soul_rend",
+            "name": "Rozdarcie Duszy",
+            "aliases": ["rozdarcie duszy", "soul rend"],
+            "natural_tags": ["ciecie", "slash", "dusza"],
+            "unlock": 100, "kind": "damage", "cooldown": 8, "mana": 0,
+            "desc": "Silne cięcie końcowego etapu Wojownika.",
+            "scale": "strength", "mult": 2.10,
+        },
+        {
+            "id": "warrior_iron_wall",
+            "name": "Żelazny Mur",
+            "aliases": ["zelazny mur", "żelazny mur", "iron wall"],
+            "natural_tags": ["tarcza", "oslona", "guard", "obrona"],
+            "unlock": 140, "kind": "guard", "cooldown": 13, "mana": 0,
+            "desc": "Potężna osłona Wojownika redukująca następne trafienie.",
+            "guard": 58,
+        },
+        {
+            "id": "warrior_hero_charge",
+            "name": "Szarża Bohatera",
+            "aliases": ["szarza bohatera", "szarża bohatera", "hero charge"],
+            "natural_tags": ["szarza", "charge", "atak"],
+            "unlock": 180, "kind": "damage", "cooldown": 11, "mana": 0,
+            "desc": "Mocna szarża skalowana Siłą.",
+            "scale": "strength", "mult": 2.55,
+        },
+        {
+            "id": "warrior_final_slash",
+            "name": "Ostateczne Cięcie",
+            "aliases": ["ostateczne ciecie", "ostateczne cięcie", "final slash"],
+            "natural_tags": ["ciecie", "slash", "dobij", "egzekucja"],
+            "unlock": 200, "kind": "execute", "cooldown": 16, "mana": 0,
+            "desc": "Najsilniejsze cięcie Wojownika, szczególnie groźne na osłabionym celu.",
+            "scale": "strength", "mult": 2.55, "execute_mult": 1.90,
+        },
+    ],
+    "Berserker": [
+        {
+            "id": "berserker_butcher_swing",
+            "name": "Rzeźniczy Zamach",
+            "aliases": ["rzezniczy zamach", "rzeźniczy zamach", "butcher swing"],
+            "natural_tags": ["zamach", "ciecie", "atak"],
+            "unlock": 100, "kind": "damage", "cooldown": 8, "mana": 0,
+            "desc": "Brutalny zamach Berserkera skalowany Siłą.",
+            "scale": "strength", "mult": 2.20,
+        },
+        {
+            "id": "berserker_titan_rage",
+            "name": "Szał Tytana",
+            "aliases": ["szal tytana", "szał tytana", "titan rage"],
+            "natural_tags": ["szal", "rage", "buff", "wzmocnienie"],
+            "unlock": 140, "kind": "boost", "cooldown": 15, "mana": 0,
+            "desc": "Znacznie wzmacnia następną ofensywną umiejętność.",
+            "boost": 1.65,
+        },
+        {
+            "id": "berserker_blood_whirl",
+            "name": "Krwawy Wir",
+            "aliases": ["krwawy wir", "blood whirl"],
+            "natural_tags": ["krew", "wir", "drain", "wysysanie"],
+            "unlock": 180, "kind": "drain", "cooldown": 12, "mana": 0,
+            "desc": "Krwawy atak, który przywraca część zadanych obrażeń jako HP.",
+            "scale": "strength", "mult": 2.45, "drain_pct": 0.35,
+        },
+        {
+            "id": "berserker_blood_apocalypse",
+            "name": "Apokalipsa Krwi",
+            "aliases": ["apokalipsa krwi", "blood apocalypse"],
+            "natural_tags": ["krew", "apokalipsa", "dobij", "egzekucja"],
+            "unlock": 200, "kind": "execute", "cooldown": 17, "mana": 0,
+            "desc": "Ostateczny atak Berserkera, jeszcze silniejszy na osłabionym przeciwniku.",
+            "scale": "strength", "mult": 2.65, "execute_mult": 1.95,
+        },
+    ],
+    "Łotrzyk": [
+        {
+            "id": "rogue_spectral_cut",
+            "name": "Cięcie Widma",
+            "aliases": ["ciecie widma", "cięcie widma", "spectral cut"],
+            "natural_tags": ["ciecie", "slash", "widmo"],
+            "unlock": 100, "kind": "damage", "cooldown": 6, "mana": 0,
+            "desc": "Błyskawiczne cięcie skalowane Zręcznością.",
+            "scale": "dexterity", "mult": 2.05,
+        },
+        {
+            "id": "rogue_shadow_step",
+            "name": "Krok Cienia",
+            "aliases": ["krok cienia", "shadow step"],
+            "natural_tags": ["unik", "evade", "cien"],
+            "unlock": 140, "kind": "evade", "cooldown": 11, "mana": 0,
+            "desc": "Gwarantuje unik następnego kontrataku.",
+        },
+        {
+            "id": "rogue_blade_dance",
+            "name": "Taniec Ostrzy",
+            "aliases": ["taniec ostrzy", "blade dance"],
+            "natural_tags": ["ostrza", "taniec", "atak"],
+            "unlock": 180, "kind": "damage", "cooldown": 10, "mana": 0,
+            "desc": "Seria szybkich cięć skalowana Zręcznością.",
+            "scale": "dexterity", "mult": 2.55,
+        },
+        {
+            "id": "rogue_shadow_execution",
+            "name": "Egzekucja Cienia",
+            "aliases": ["egzekucja cienia", "shadow execution"],
+            "natural_tags": ["egzekucja", "execute", "dobij", "cien"],
+            "unlock": 200, "kind": "execute", "cooldown": 15, "mana": 0,
+            "desc": "Kończący cios Łotrzyka na osłabionego przeciwnika.",
+            "scale": "dexterity", "mult": 2.50, "execute_mult": 2.00,
+        },
+    ],
+    "Łowca": [
+        {
+            "id": "hunter_soul_arrow",
+            "name": "Strzała Duszy",
+            "aliases": ["strzala duszy", "strzała duszy", "soul arrow"],
+            "natural_tags": ["strzala", "arrow", "strzal"],
+            "unlock": 100, "kind": "damage", "cooldown": 7, "mana": 0,
+            "desc": "Silny strzał skalowany Zręcznością.",
+            "scale": "dexterity", "mult": 2.10,
+        },
+        {
+            "id": "hunter_predator_camouflage",
+            "name": "Kamuflaż Drapieżcy",
+            "aliases": ["kamuflaz drapieznika", "kamuflaż drapieżcy", "predator camouflage"],
+            "natural_tags": ["unik", "evade", "kamuflaz"],
+            "unlock": 140, "kind": "evade", "cooldown": 12, "mana": 0,
+            "desc": "Pozwala uniknąć następnego kontrataku.",
+        },
+        {
+            "id": "hunter_echo_rain",
+            "name": "Deszcz Echa",
+            "aliases": ["deszcz echa", "echo rain"],
+            "natural_tags": ["deszcz", "strzaly", "arrow", "atak"],
+            "unlock": 180, "kind": "damage", "cooldown": 11, "mana": 0,
+            "desc": "Potężna salwa skalowana Zręcznością.",
+            "scale": "dexterity", "mult": 2.60,
+        },
+        {
+            "id": "hunter_final_shot",
+            "name": "Strzał Końca",
+            "aliases": ["strzal konca", "strzał końca", "final shot"],
+            "natural_tags": ["strzal", "shot", "dobij", "egzekucja"],
+            "unlock": 200, "kind": "execute", "cooldown": 16, "mana": 0,
+            "desc": "Ostateczny strzał Łowcy, wyjątkowo mocny na osłabionym celu.",
+            "scale": "dexterity", "mult": 2.55, "execute_mult": 1.90,
+        },
+    ],
+    "Mnich": [
+        {
+            "id": "monk_soul_fist",
+            "name": "Pięść Duszy",
+            "aliases": ["piesc duszy", "pięść duszy", "soul fist"],
+            "natural_tags": ["piesc", "fist", "atak"],
+            "unlock": 100, "kind": "damage", "cooldown": 6, "mana": 0,
+            "desc": "Skoncentrowane uderzenie skalowane Siłą.",
+            "scale": "strength", "mult": 2.05,
+        },
+        {
+            "id": "monk_master_meditation",
+            "name": "Medytacja Mistrza",
+            "aliases": ["medytacja mistrza", "master meditation"],
+            "natural_tags": ["heal", "leczenie", "medytacja", "odnowa"],
+            "unlock": 140, "kind": "heal", "cooldown": 12, "mana": 0,
+            "desc": "Zaawansowana medytacja przywracająca dużą część HP.",
+            "heal_pct": 0.38,
+        },
+        {
+            "id": "monk_dragon_combo",
+            "name": "Smocza Seria",
+            "aliases": ["smocza seria", "dragon combo"],
+            "natural_tags": ["seria", "combo", "smok", "atak"],
+            "unlock": 180, "kind": "damage", "cooldown": 10, "mana": 0,
+            "desc": "Szybka seria ciosów o wysokiej sile.",
+            "scale": "strength", "mult": 2.50,
+        },
+        {
+            "id": "monk_enlightened_strike",
+            "name": "Cios Oświecenia",
+            "aliases": ["cios oswiecenia", "cios oświecenia", "enlightened strike"],
+            "natural_tags": ["cios", "oswiecenie", "dobij", "egzekucja"],
+            "unlock": 200, "kind": "execute", "cooldown": 15, "mana": 0,
+            "desc": "Ostateczny cios Mnicha, silniejszy na osłabionym przeciwniku.",
+            "scale": "strength", "mult": 2.45, "execute_mult": 1.90,
+        },
+    ],
+    "Strażnik": [
+        {
+            "id": "guardian_fortress_strike",
+            "name": "Uderzenie Fortecy",
+            "aliases": ["uderzenie fortecy", "fortress strike"],
+            "natural_tags": ["uderzenie", "mlot", "hammer", "atak"],
+            "unlock": 100, "kind": "damage", "cooldown": 7, "mana": 0,
+            "desc": "Ciężkie uderzenie skalowane Siłą.",
+            "scale": "strength", "mult": 2.00,
+        },
+        {
+            "id": "guardian_eternal_bastion",
+            "name": "Wieczny Bastion",
+            "aliases": ["wieczny bastion", "eternal bastion"],
+            "natural_tags": ["tarcza", "bastion", "guard", "obrona"],
+            "unlock": 140, "kind": "guard", "cooldown": 14, "mana": 0,
+            "desc": "Najpotężniejsza osłona Strażnika.",
+            "guard": 72,
+        },
+        {
+            "id": "guardian_bastion_wrath",
+            "name": "Gniew Bastionu",
+            "aliases": ["gniew bastionu", "bastion wrath"],
+            "natural_tags": ["gniew", "mlot", "hammer", "atak"],
+            "unlock": 180, "kind": "damage", "cooldown": 11, "mana": 0,
+            "desc": "Potężny atak Strażnika.",
+            "scale": "strength", "mult": 2.45,
+        },
+        {
+            "id": "guardian_final_hammer",
+            "name": "Młot Końca",
+            "aliases": ["mlot konca", "młot końca", "final hammer"],
+            "natural_tags": ["mlot", "hammer", "dobij", "egzekucja"],
+            "unlock": 200, "kind": "execute", "cooldown": 17, "mana": 0,
+            "desc": "Ostateczne uderzenie Strażnika.",
+            "scale": "strength", "mult": 2.60, "execute_mult": 1.85,
+        },
+    ],
+    "Mag": [
+        {
+            "id": "mage_arcane_lance",
+            "name": "Lanca Arkanów",
+            "aliases": ["lanca arkanow", "lanca arkanów", "arcane lance"],
+            "natural_tags": ["pocisk", "bolt", "lanca", "arkany"],
+            "unlock": 100, "kind": "damage", "cooldown": 6, "mana": 18,
+            "desc": "Skoncentrowany czar ofensywny skalowany Inteligencją.",
+            "scale": "intelligence", "mult": 2.20,
+        },
+        {
+            "id": "mage_arcane_aegis",
+            "name": "Aegis Arkanów",
+            "aliases": ["aegis arkanow", "aegis arkanów", "arcane aegis"],
+            "natural_tags": ["tarcza", "oslona", "guard", "arkany"],
+            "unlock": 140, "kind": "guard", "cooldown": 13, "mana": 16,
+            "desc": "Silna magiczna osłona.",
+            "guard": 62,
+        },
+        {
+            "id": "mage_mana_tempest",
+            "name": "Burza Many",
+            "aliases": ["burza many", "mana tempest"],
+            "natural_tags": ["burza", "storm", "mana", "atak"],
+            "unlock": 180, "kind": "damage", "cooldown": 10, "mana": 26,
+            "desc": "Potężny wybuch Many skalowany Inteligencją.",
+            "scale": "intelligence", "mult": 2.75,
+        },
+        {
+            "id": "mage_arcane_cataclysm",
+            "name": "Kataklizm Arkanów",
+            "aliases": ["kataklizm arkanow", "kataklizm arkanów", "arcane cataclysm"],
+            "natural_tags": ["kataklizm", "arkany", "czar", "atak"],
+            "unlock": 200, "kind": "damage", "cooldown": 16, "mana": 35,
+            "desc": "Najsilniejszy czar Maga.",
+            "scale": "intelligence", "mult": 3.25,
+        },
+    ],
+    "Nekromanta": [
+        {
+            "id": "necromancer_bone_curse",
+            "name": "Klątwa Kości",
+            "aliases": ["klatwa kosci", "klątwa kości", "bone curse"],
+            "natural_tags": ["klatwa", "kosci", "czar", "atak"],
+            "unlock": 100, "kind": "damage", "cooldown": 7, "mana": 17,
+            "desc": "Nekromantyczna klątwa skalowana Inteligencją.",
+            "scale": "intelligence", "mult": 2.15,
+        },
+        {
+            "id": "necromancer_greater_drain",
+            "name": "Wielkie Wysysanie",
+            "aliases": ["wielkie wysysanie", "greater drain"],
+            "natural_tags": ["drain", "wysysanie", "leech"],
+            "unlock": 140, "kind": "drain", "cooldown": 10, "mana": 20,
+            "desc": "Silny drenaż życia.",
+            "scale": "intelligence", "mult": 2.25, "drain_pct": 0.50,
+        },
+        {
+            "id": "necromancer_dead_reaping",
+            "name": "Żniwo Umarłych",
+            "aliases": ["zniwo umarlych", "żniwo umarłych", "reaping of the dead"],
+            "natural_tags": ["zniwo", "drain", "wysysanie"],
+            "unlock": 180, "kind": "drain", "cooldown": 12, "mana": 28,
+            "desc": "Potężne żniwo dusz przywracające część HP.",
+            "scale": "intelligence", "mult": 2.70, "drain_pct": 0.55,
+        },
+        {
+            "id": "necromancer_death_sentence",
+            "name": "Wyrok Śmierci",
+            "aliases": ["wyrok smierci", "wyrok śmierci", "death sentence"],
+            "natural_tags": ["smierc", "wyrok", "dobij", "egzekucja"],
+            "unlock": 200, "kind": "execute", "cooldown": 17, "mana": 34,
+            "desc": "Ostateczny nekromantyczny wyrok na osłabionym celu.",
+            "scale": "intelligence", "mult": 2.80, "execute_mult": 2.00,
+        },
+    ],
+    "Kapłan": [
+        {
+            "id": "priest_light_beam",
+            "name": "Promień Światła",
+            "aliases": ["promien swiatla", "promień światła", "light beam"],
+            "natural_tags": ["swiatlo", "promien", "czar", "atak"],
+            "unlock": 100, "kind": "damage", "cooldown": 6, "mana": 17,
+            "desc": "Silny święty atak skalowany Inteligencją.",
+            "scale": "intelligence", "mult": 2.10,
+        },
+        {
+            "id": "priest_greater_restoration",
+            "name": "Wielkie Uzdrowienie",
+            "aliases": ["wielkie uzdrowienie", "greater restoration"],
+            "natural_tags": ["heal", "leczenie", "uzdrowienie", "odnowa"],
+            "unlock": 140, "kind": "heal", "cooldown": 10, "mana": 20,
+            "desc": "Potężne leczenie Kapłana.",
+            "heal_pct": 0.48,
+        },
+        {
+            "id": "priest_aegis_of_light",
+            "name": "Aegis Światła",
+            "aliases": ["aegis swiatla", "aegis światła", "aegis of light"],
+            "natural_tags": ["tarcza", "oslona", "guard", "swiatlo"],
+            "unlock": 180, "kind": "guard", "cooldown": 13, "mana": 24,
+            "desc": "Święta osłona redukująca następne trafienie.",
+            "guard": 68,
+        },
+        {
+            "id": "priest_miracle_rebirth",
+            "name": "Cud Odrodzenia",
+            "aliases": ["cud odrodzenia", "miracle of rebirth"],
+            "natural_tags": ["heal", "leczenie", "cud", "odrodzenie"],
+            "unlock": 200, "kind": "heal", "cooldown": 17, "mana": 32,
+            "desc": "Najsilniejsze leczenie Kapłana.",
+            "heal_pct": 0.68,
+        },
+    ],
+    "Czarownik": [
+        {
+            "id": "warlock_void_fire",
+            "name": "Ogień Pustki",
+            "aliases": ["ogien pustki", "ogień pustki", "void fire"],
+            "natural_tags": ["ogien", "plomien", "fire", "pustka"],
+            "unlock": 100, "kind": "damage", "cooldown": 7, "mana": 18,
+            "desc": "Silny ognisty czar Otchłani.",
+            "scale": "intelligence", "mult": 2.25,
+        },
+        {
+            "id": "warlock_void_shield",
+            "name": "Tarcza Otchłani",
+            "aliases": ["tarcza otchlani", "tarcza otchłani", "void shield"],
+            "natural_tags": ["tarcza", "oslona", "guard", "pustka"],
+            "unlock": 140, "kind": "guard", "cooldown": 13, "mana": 18,
+            "desc": "Mroczna osłona Czarownika.",
+            "guard": 58,
+        },
+        {
+            "id": "warlock_abyss_inferno",
+            "name": "Inferno Otchłani",
+            "aliases": ["inferno otchlani", "inferno otchłani", "abyss inferno"],
+            "natural_tags": ["ogien", "plomien", "fire", "inferno"],
+            "unlock": 180, "kind": "damage", "cooldown": 11, "mana": 29,
+            "desc": "Potężne inferno skalowane Inteligencją.",
+            "scale": "intelligence", "mult": 2.85,
+        },
+        {
+            "id": "warlock_hell_judgment",
+            "name": "Piekielny Wyrok",
+            "aliases": ["piekielny wyrok", "hell judgment"],
+            "natural_tags": ["ogien", "wyrok", "dobij", "egzekucja"],
+            "unlock": 200, "kind": "execute", "cooldown": 17, "mana": 35,
+            "desc": "Ostateczny czar Czarownika, szczególnie silny na osłabionym celu.",
+            "scale": "intelligence", "mult": 2.80, "execute_mult": 1.95,
+        },
+    ],
+    "Druid": [
+        {
+            "id": "druid_ancient_roots",
+            "name": "Pradawne Korzenie",
+            "aliases": ["pradawne korzenie", "ancient roots"],
+            "natural_tags": ["korzenie", "natura", "atak"],
+            "unlock": 100, "kind": "damage", "cooldown": 7, "mana": 17,
+            "desc": "Pradawna magia natury skalowana Inteligencją.",
+            "scale": "intelligence", "mult": 2.10,
+        },
+        {
+            "id": "druid_grove_restoration",
+            "name": "Odnowa Gaju",
+            "aliases": ["odnowa gaju", "grove restoration"],
+            "natural_tags": ["heal", "leczenie", "odnowa", "natura"],
+            "unlock": 140, "kind": "heal", "cooldown": 11, "mana": 18,
+            "desc": "Silna regeneracja Druida.",
+            "heal_pct": 0.42,
+        },
+        {
+            "id": "druid_elemental_storm",
+            "name": "Burza Żywiołów",
+            "aliases": ["burza zywiolow", "burza żywiołów", "elemental storm"],
+            "natural_tags": ["burza", "storm", "zywioly", "atak"],
+            "unlock": 180, "kind": "damage", "cooldown": 11, "mana": 28,
+            "desc": "Potężna burza żywiołów.",
+            "scale": "intelligence", "mult": 2.70,
+        },
+        {
+            "id": "druid_worldtree_wrath",
+            "name": "Gniew Drzewa Świata",
+            "aliases": ["gniew drzewa swiata", "gniew drzewa świata", "worldtree wrath"],
+            "natural_tags": ["gniew", "drzewo", "natura", "atak"],
+            "unlock": 200, "kind": "damage", "cooldown": 16, "mana": 34,
+            "desc": "Najsilniejszy ofensywny czar Druida.",
+            "scale": "intelligence", "mult": 3.10,
+        },
+    ],
+    "Psionik": [
+        {
+            "id": "psion_mind_blade",
+            "name": "Ostrze Umysłu",
+            "aliases": ["ostrze umyslu", "ostrze umysłu", "mind blade"],
+            "natural_tags": ["ostrze", "umysl", "atak"],
+            "unlock": 100, "kind": "damage", "cooldown": 6, "mana": 17,
+            "desc": "Psioniczne ostrze skalowane Inteligencją.",
+            "scale": "intelligence", "mult": 2.20,
+        },
+        {
+            "id": "psion_mind_fortress",
+            "name": "Forteca Umysłu",
+            "aliases": ["forteca umyslu", "forteca umysłu", "mind fortress"],
+            "natural_tags": ["tarcza", "oslona", "guard", "umysl"],
+            "unlock": 140, "kind": "guard", "cooldown": 13, "mana": 18,
+            "desc": "Potężna psioniczna osłona.",
+            "guard": 64,
+        },
+        {
+            "id": "psion_psyche_rend",
+            "name": "Rozdarcie Jaźni",
+            "aliases": ["rozdarcie jazni", "rozdarcie jaźni", "psyche rend"],
+            "natural_tags": ["rozdarcie", "umysl", "atak"],
+            "unlock": 180, "kind": "damage", "cooldown": 10, "mana": 28,
+            "desc": "Potężny atak psioniczny.",
+            "scale": "intelligence", "mult": 2.75,
+        },
+        {
+            "id": "psion_end_of_thought",
+            "name": "Koniec Myśli",
+            "aliases": ["koniec mysli", "koniec myśli", "end of thought"],
+            "natural_tags": ["mysl", "umysl", "dobij", "egzekucja"],
+            "unlock": 200, "kind": "execute", "cooldown": 17, "mana": 35,
+            "desc": "Ostateczny psioniczny cios na osłabionego przeciwnika.",
+            "scale": "intelligence", "mult": 2.75, "execute_mult": 1.95,
+        },
+    ],
+}
+
+for _class_name, _skills in ENDGAME_CLASS_SKILLS.items():
+    CLASS_SKILLS.setdefault(_class_name, []).extend(_skills)
+
+
+NATURAL_SKILL_INTENTS = {
+    "heal": {"kinds": {"heal"}},
+    "healing": {"kinds": {"heal"}},
+    "lecz": {"kinds": {"heal"}},
+    "leczenie": {"kinds": {"heal"}},
+    "uzdrow": {"kinds": {"heal"}},
+    "uzdrowienie": {"kinds": {"heal"}},
+    "tarcza": {"kinds": {"guard"}},
+    "oslona": {"kinds": {"guard"}},
+    "guard": {"kinds": {"guard"}},
+    "obrona": {"kinds": {"guard"}},
+    "unik": {"kinds": {"evade"}},
+    "evade": {"kinds": {"evade"}},
+    "buff": {"kinds": {"boost"}},
+    "boost": {"kinds": {"boost"}},
+    "wzmocnij": {"kinds": {"boost"}},
+    "wzmocnienie": {"kinds": {"boost"}},
+    "drain": {"kinds": {"drain"}},
+    "wysysanie": {"kinds": {"drain"}},
+    "wysysaj": {"kinds": {"drain"}},
+    "egzekucja": {"kinds": {"execute"}},
+    "execute": {"kinds": {"execute"}},
+    "dobij": {"kinds": {"execute"}},
+    "ciecie": {"tags": {"ciecie", "slash"}},
+    "slash": {"tags": {"ciecie", "slash"}},
+    "pocisk": {"tags": {"pocisk", "bolt", "lanca"}},
+    "bolt": {"tags": {"pocisk", "bolt", "lanca"}},
+    "ogien": {"tags": {"ogien", "plomien", "fire", "inferno"}},
+    "plomien": {"tags": {"ogien", "plomien", "fire", "inferno"}},
+    "fire": {"tags": {"ogien", "plomien", "fire", "inferno"}},
+    "burza": {"tags": {"burza", "storm"}},
+    "storm": {"tags": {"burza", "storm"}},
+    "mlot": {"tags": {"mlot", "hammer"}},
+    "hammer": {"tags": {"mlot", "hammer"}},
+    "strzal": {"tags": {"strzal", "strzala", "shot", "arrow"}},
+    "strzala": {"tags": {"strzal", "strzala", "shot", "arrow"}},
+    "arrow": {"tags": {"strzal", "strzala", "shot", "arrow"}},
+}
+
+
 # 28 trwałych lokacji. Opisy są krótkie i przyjazne czytnikom ekranu.
 ROOMS = {
     "square": {
@@ -1472,6 +1981,53 @@ TOOL_SHOP_ROOMS = {
     "chef_knife": "inn",
     "herbalist_sickle": "herbalist_hut",
     "alchemy_mortar": "herbalist_hut",
+}
+
+EQUIPMENT_SLOT_ALIASES = {
+    "helm": "head",
+    "helmet": "head",
+    "helmik": "head",
+    "hełm": "head",
+    "glowa": "head",
+    "głowa": "head",
+
+    "zbroja": "body",
+    "pancerz": "body",
+    "napierśnik": "body",
+    "napiersnik": "body",
+    "korpus": "body",
+    "armor": "body",
+    "body": "body",
+
+    "rekawice": "hands",
+    "rękawice": "hands",
+    "dlonie": "hands",
+    "dłonie": "hands",
+    "gloves": "hands",
+    "hands": "hands",
+
+    "nogi": "legs",
+    "nogawice": "legs",
+    "spodnie": "legs",
+    "legs": "legs",
+
+    "buty": "feet",
+    "stopy": "feet",
+    "boots": "feet",
+    "feet": "feet",
+
+    "talizman": "charm",
+    "amulet": "charm",
+    "charm": "charm",
+}
+
+EQUIPMENT_SLOT_NAMES = {
+    "head": "głowa",
+    "body": "korpus",
+    "hands": "dłonie",
+    "legs": "nogi",
+    "feet": "stopy",
+    "charm": "talizman",
 }
 
 COMMAND_ALIASES = {
@@ -2572,10 +3128,10 @@ SYSTEM_DESCRIPTIONS = {
         "Mithril jest najrzadszą walutą. 1 mithril = 1000000 złota. "
         "Może być nagrodą lub bardzo rzadkim bezpośrednim wydobyciem wysokopoziomowym Kilofem."
     ),
-    "siatka": "Siatka na ryby jest osobnym trwałym magazynem profesji i nie zajmuje zwykłego ekwipunku.",
-    "net": "Siatka na ryby jest osobnym magazynem wszystkich złowionych ryb.",
-    "sakwa": "Sakwa górnicza jest osobnym trwałym magazynem profesji i przechowuje zwykłe rudy.",
-    "bag": "Sakwa górnicza jest osobnym magazynem wydobytych rud.",
+    "siatka": "Siatka na ryby jest osobnym trwałym magazynem profesji. Komenda siatka/net pokazuje też łączną liczbę ryb, liczbę gatunków i szacowany zarobek ze sprzedaży całej zawartości.",
+    "net": "Siatka na ryby przechowuje wszystkie złowione ryby i pokazuje łączną liczbę ryb oraz wartość sprzedaży całej siatki.",
+    "sakwa": "Sakwa górnicza przechowuje rudy i pokazuje łączną ilość, liczbę rodzajów oraz szacowany zarobek ze sprzedaży całej zawartości.",
+    "bag": "Sakwa górnicza jest magazynem rud; komenda sakwa/bag pokazuje też ilość i wartość sprzedaży.",
     "śmierć": (
         "Po śmierci postać odradza się w Świątyni Odrodzenia i traci 10 procent "
         "każdej posiadanej waluty osobno."
@@ -2585,15 +3141,22 @@ SYSTEM_DESCRIPTIONS = {
 }
 
 
-LATEST_CHANGES_TITLE = "Soulbound v0.6.76 - Guide Bridge"
+LATEST_CHANGES_TITLE = "Soulbound v0.6.81 - All Profession Storage Count & Value"
 LATEST_CHANGES = [
-    "Dodano jawny skrót prowadz most do lokacji Kamienny Most.",
-    "Działa też prowadz kamienny most.",
-    "walk most, idz most i go most korzystają z tego samego celu.",
-    "Pozostałe skróty prowadzenia z v0.6.73-v0.6.75 pozostają bez zmian.",
-    "Używanie skilli, kupowanie narzędzi i izolowany XP narzędzi pozostają bez zmian.",
-    "Endgame profesji 100-200 pozostaje bez zmian.",
+    "Rozszerzono podsumowanie wartości z Siatki na wszystkie magazyny profesji.",
+    "Sakwa górnicza pokazuje łączną liczbę rud, liczbę rodzajów i szacowany zarobek.",
+    "Stos drewna pokazuje łączną liczbę sztuk drewna, liczbę rodzajów i szacowany zarobek.",
+    "Torba Zielarska pokazuje łączną liczbę ziół, liczbę rodzajów i szacowany zarobek.",
+    "Siatka na ryby zachowuje podsumowanie z v0.6.80.",
+    "Srebro, złoto i mithril są sumowane osobno.",
+    "Ceny są mnożone przez faktyczną ilość każdego surowca.",
+    "Podsumowanie obejmuje tylko zawartość danego magazynu.",
+    "Zwykły inventory nie jest doliczany.",
+    "Podgląd nie sprzedaje ani nie usuwa żadnych surowców.",
+    "Puste magazyny pokazują ilość 0 i wartość 0 srebra.",
+    "Profesje v0.6.79, Skill Level 1-200, narzędzia 1-200 i zakładanie lootu pozostają bez zmian.",
     "Nie wymaga migracji SQLite.",
+    "Zaktualizowano help, README, RAILWAY_PL i pełny changelog.",
 ]
 
 HELP_TOPIC_ALIASES = {
@@ -2618,6 +3181,7 @@ HELP_TOPIC_ALIASES = {
     "bosses": "bossowie", "boss": "bossowie", "bossowie": "bossowie", "herszt": "bossowie",
     "soul": "dusza", "soulweapon": "dusza",
     "money": "pieniadze", "economy": "pieniadze",
+    "wartoscsatki": "wartosc_siatki", "wartoscsiatki": "wartosc_siatki", "netvalue": "wartosc_siatki",
     "equipment": "ekwipunek", "items": "ekwipunek",
     "rarity": "loot_krypty", "rzadkosc": "loot_krypty", "rzadkość": "loot_krypty", "set": "loot_krypty", "sety": "loot_krypty", "lootkrypty": "loot_krypty",
     "quests": "zadania", "quest": "zadania",
@@ -2656,6 +3220,77 @@ HELP_TOPIC_ALIASES = {
 }
 
 HELP_TOPICS = {
+    "wartosc_magazynow": [
+        "Wszystkie cztery magazyny profesji pokazują teraz podsumowanie ilości i wartości.",
+        "siatka/net: łączna liczba ryb, liczba gatunków i wartość sprzedaży.",
+        "sakwa/bag: łączna liczba rud, liczba rodzajów i wartość sprzedaży.",
+        "drewno/stos/woodpile: łączna liczba sztuk drewna, liczba rodzajów i wartość sprzedaży.",
+        "ziola/herbs: łączna liczba ziół, liczba rodzajów i wartość sprzedaży.",
+        "Srebro, złoto i mithril są liczone osobno.",
+        "Podsumowania obejmują tylko zawartość danego magazynu, nie zwykły inventory.",
+        "Sprawdzenie magazynu niczego nie sprzedaje ani nie usuwa.",
+    ],
+    "wartosc_siatki": [
+        "Komenda siatka albo net pokazuje każdą rybę i jej ilość.",
+        "Na końcu podaje łączną liczbę wszystkich ryb w siatce.",
+        "Podaje też liczbę różnych gatunków ryb.",
+        "Szacowany zarobek jest liczony z aktualnych cen sprzedaży każdej ryby pomnożonych przez jej ilość.",
+        "Srebro, złoto i mithril są podawane osobno, bez automatycznej wymiany między walutami.",
+        "Wartość obejmuje tylko ryby aktualnie znajdujące się w Siatce, nie ryby w zwykłym inventory.",
+        "Podsumowanie nie sprzedaje ryb. To tylko informacja przed sprzedażą.",
+    ],
+    "tempo_profesji": [
+        "Wędkarstwo, Górnictwo, Drwalstwo, Zielarstwo i Alchemia levelują teraz wolniej.",
+        "Każda akcja i nagroda daje 2 razy więcej XP profesji niż wcześniej.",
+        "Jednocześnie każdy kolejny level profesji wymaga 4 razy więcej XP niż wcześniej.",
+        "Efektywnie profesje rozwijają się około 2 razy wolniej.",
+        "Przykład level 1: dawniej potrzeba było 80 XP, teraz potrzeba 320 XP.",
+        "Typowa akcja dawała wcześniej 10-15 XP, teraz daje 20-30 XP.",
+        "Quest profesyjny dający dawniej 1000 XP daje teraz 2000 XP.",
+        "Maksymalny level profesji pozostaje 100.",
+        "XP narzędzi nie jest tu zmieniane; narzędzia zachowują tempo z v0.6.78.",
+    ],
+    "zakladanie_lootu": [
+        "Ekwipunek zabrany z ciał mobów i bossów można zakładać bez wpisywania pełnej długiej nazwy.",
+        "Skróty: załóż hełm, załóż zbroja, załóż rękawice, załóż nogi, załóż buty, załóż talizman.",
+        "Działają też warianty bez polskich znaków, np. zaloz helm, zaloz rekawice.",
+        "Jeśli masz kilka przedmiotów w tym samym slocie, skrót wybiera najlepszy według obrony, potem rzadkości i bonusu.",
+        "Pełna nazwa konkretnego dropu nadal działa i pozwala wymusić dokładnie wybrany przedmiot.",
+        "Po przeszukaniu ciała gra podaje skróty zakładania dla zdobytych slotów.",
+        "Zmiana ekwipunku podczas aktywnej walki nadal jest zablokowana.",
+    ],
+    "skill200": [
+        "Wszystkie umiejętności mają teraz Skill Level od 1 do 200.",
+        "Skill XP zdobywasz nadal przez używanie nauczonej umiejętności.",
+        "Wymagany Skill XP pozostaje według tej samej rosnącej formuły i działa dalej powyżej levelu 100.",
+        "Moc skilla rośnie również od levelu 101 do 200.",
+        "Maksymalna redukcja cooldownu pozostaje ograniczona do 30 procent.",
+        "Na Skill Level 200 XP zostaje wyzerowane i skill osiąga maksymalny poziom.",
+    ],
+    "wolniejszy_xp_narzedzi": [
+        "Narzędzia nadal mają level 1-200 i 13 Tierów.",
+        "Od v0.6.78 każdy kolejny level narzędzia wymaga 2 razy więcej XP niż wcześniej.",
+        "XP przyznawane za łowienie, kopanie, Drwalstwo, crafting, gotowanie, Zielarstwo, Alchemię i nagrody pozostaje bez zmian.",
+        "Przykład: dawniej przejście z levelu 1 wymagało 60 XP, teraz wymaga 120 XP.",
+        "Nieużywane narzędzia nadal nie zdobywają XP ani użyć.",
+    ],
+    "skille100_200": [
+        "Każda z 12 klas dostała 4 nowe umiejętności endgame.",
+        "Nowe progi odblokowania to Soul Level 100, 140, 180 i 200.",
+        "Łącznie dodano 48 nowych skilli.",
+        "Nowe skille trzeba nauczyć się u właściwego nauczyciela klasy, tak jak wcześniejsze.",
+        "Skill Level każdego skilla rozwija się teraz osobno od 1 do 200.",
+        "Cooldown, Mana, Skill XP, krytyki i walka turowa pozostają zgodne z istniejącym systemem.",
+        "Wpisz skills, skillnames albo porozmawiaj z nauczycielem klasy.",
+    ],
+    "naturalne_uzyj": [
+        "Komenda użyj obsługuje naturalne intencje skilli.",
+        "Przykłady: użyj heal, użyj tarcza, użyj unik, użyj drain, użyj dobij goblin.",
+        "Ofensywne skróty: użyj ciecie goblin, użyj pocisk goblin, użyj ogien goblin, użyj burza goblin, użyj strzal goblin.",
+        "Gra wybiera najwyżej odblokowany i nauczony skill pasujący do intencji.",
+        "Jeśli dwa skille mają taki sam najlepszy wynik w multiclassie, gra nie wybierze losowo. Użyj pełnej nazwy.",
+        "Pełne komendy skill, cast, użyj umiejętność oraz użyj czar nadal działają.",
+    ],
     "prowadz_most": [
         "Komenda prowadz most prowadzi bezpośrednio do lokacji Kamienny Most.",
         "Działa też walk most, idz most, go most oraz prowadz kamienny most.",
@@ -6199,8 +6834,37 @@ class Session:
         if not corpse.items:
             await self.send(f"Przeszukujesz ciało: {corpse.mob_name}. Nie ma już na nim ekwipunku."); return
         looted=list(corpse.items); corpse.items.clear()
-        for item_id in looted: self.server.db.add_item(self.account_id,item_id,1)
-        await self.send(f"Przeszukujesz ciało: {corpse.mob_name}. Zabierasz: " + ", ".join(ITEMS[i]["name"] for i in looted) + ".")
+        for item_id in looted:
+            self.server.db.add_item(self.account_id,item_id,1)
+
+        await self.send(
+            f"Przeszukujesz ciało: {corpse.mob_name}. Zabierasz: "
+            + ", ".join(ITEMS[i]["name"] for i in looted) + "."
+        )
+
+        armor_slots = sorted({
+            ITEMS[item_id].get("slot")
+            for item_id in looted
+            if ITEMS.get(item_id, {}).get("type") == "armor"
+        })
+        if armor_slots:
+            commands = {
+                "head": "załóż hełm",
+                "body": "załóż zbroja",
+                "hands": "załóż rękawice",
+                "legs": "załóż nogi",
+                "feet": "załóż buty",
+                "charm": "załóż talizman",
+            }
+            quick = [
+                commands[slot]
+                for slot in armor_slots
+                if slot in commands
+            ]
+            await self.send(
+                "Zdobyty pancerz możesz założyć. Skróty: "
+                + ", ".join(quick) + "."
+            )
 
     async def show_where(self):
         room = ROOMS[self.character.room_id]
@@ -6257,11 +6921,11 @@ class Session:
             "tnij off / woodcut off - wyłącz auto-Drwalstwo",
             "zbieraj / zielarstwo - pojedynczy zbiór ziół",
             "zbieraj on / zbieraj off - auto-Zielarstwo",
-            "ziola / herbs - Torba Zielarska",
+            "ziola / herbs - Torba Zielarska; pokazuje ilość ziół i szacowany zarobek",
             "alchemia / warz receptura - warzenie mikstur",
-            "net / siatka - Siatka na ryby",
-            "bag / sakwa - Sakwa górnicza",
-            "drewno / stos / woodpile - Stos drewna",
+            "net / siatka - Siatka na ryby; pokazuje liczbę ryb i szacowany zarobek ze sprzedaży",
+            "bag / sakwa - Sakwa górnicza; pokazuje ilość rud i szacowany zarobek",
+            "drewno / stos / woodpile - Stos drewna; pokazuje ilość drewna i szacowany zarobek",
             "put fish net / wloz ryba siatka - przenieś ryby do Siatki",
             "put ore bag / wloz ruda sakwa - przenieś rudy do Sakwy",
             "take przedmiot net/bag / wyjmij przedmiot siatka/sakwa - wyjmij surowiec",
@@ -6272,7 +6936,7 @@ class Session:
             "inventory / i - zwykły ekwipunek",
             "equipment - założone wyposażenie, rarity, affix i bonus setu",
             "help loot_krypty - rarity, losowe statystyki i sety Krypty",
-            "equip przedmiot - załóż pancerz lub talizman",
+            "equip / załóż przedmiot albo slot - np. załóż buty, hełm, zbroja, rękawice, nogi, talizman",
             "use / użyj - przedmioty, skille i czary; np. użyj ciecie goblin albo użyj pocisk goblin",
             "shop / sklep / list / lista - oferta sprzedawcy",
             "buy / kup przedmiot - kup przedmiot",
@@ -7367,13 +8031,18 @@ class Session:
     def profession_xp_to_next(self, level):
         if level >= PROFESSION_MAX_LEVEL:
             return 0
-        return 80 + (level - 1) * 35
+        base_requirement = 80 + (level - 1) * 35
+        return base_requirement * PROFESSION_XP_REQUIREMENT_MULTIPLIER
 
     def tool_xp_to_next(self, level, tool_type=None):
         max_level = tool_max_level(tool_type)
         if level >= max_level:
             return 0
-        return 60 + (level - 1) * 30
+
+        # v0.6.78: narzędzia rozwijają się 2x wolniej.
+        # Nagrody XP z akcji pozostają bez zmian; podwajamy koszt levelu.
+        base_requirement = 60 + (level - 1) * 30
+        return base_requirement * 2
 
     def valid_tool_type(self, tool_type):
         return tool_type in (
@@ -7408,12 +8077,18 @@ class Session:
     def grant_profession_progress(self, profession, prof_xp, tool_type, tool_xp):
         if not self.valid_tool_type(tool_type):
             raise ValueError(f"Nieznany typ narzędzia: {tool_type}")
+
+        actual_prof_xp = (
+            max(0, int(prof_xp))
+            * PROFESSION_XP_GAIN_MULTIPLIER
+        )
+
         prow = self.server.db.profession(self.account_id, profession)
         plevel = int(prow["level"])
         old_profession_rank = profession_rank(plevel)
-        pxp = int(prow["xp"]) + prof_xp
+        pxp = int(prow["xp"]) + actual_prof_xp
         actions = int(prow["actions"]) + 1
-        messages = [f"{profession}: +{prof_xp} XP."]
+        messages = [f"{profession}: +{actual_prof_xp} XP."]
 
         while plevel < PROFESSION_MAX_LEVEL:
             needed = self.profession_xp_to_next(plevel)
@@ -7607,16 +8282,170 @@ class Session:
         )
         return {found[0]} if found else set()
 
+    def profession_storage_definition(self, container):
+        definitions = {
+            "net": {
+                "ids": FISH_RESOURCE_IDS,
+                "count_label": "ryb",
+                "type_label": "gatunków",
+                "value_label": "całej siatki",
+            },
+            "bag": {
+                "ids": ORE_RESOURCE_IDS,
+                "count_label": "rud",
+                "type_label": "rodzajów",
+                "value_label": "całej sakwy",
+            },
+            "woodpile": {
+                "ids": WOOD_RESOURCE_IDS,
+                "count_label": "sztuk drewna",
+                "type_label": "rodzajów",
+                "value_label": "całego stosu drewna",
+            },
+            "herbbag": {
+                "ids": HERB_RESOURCE_IDS,
+                "count_label": "ziół",
+                "type_label": "rodzajów",
+                "value_label": "całej torby zielarskiej",
+            },
+        }
+        return definitions.get(container)
+
+    def profession_storage_summary(self, container, rows=None):
+        definition = self.profession_storage_definition(container)
+        if not definition:
+            return {
+                "count": 0,
+                "types": 0,
+                "silver": 0,
+                "gold": 0,
+                "mithril": 0,
+            }
+
+        if rows is None:
+            rows = self.server.db.storage_rows(
+                self.account_id, container
+            )
+
+        total_count = 0
+        total_silver = 0
+        total_gold = 0
+        total_mithril = 0
+        type_count = 0
+
+        allowed_ids = definition["ids"]
+
+        for row in rows:
+            item_id = row["item_id"]
+            if item_id not in allowed_ids:
+                continue
+
+            quantity = max(0, int(row["quantity"]))
+            if quantity <= 0:
+                continue
+
+            type_count += 1
+            total_count += quantity
+
+            item = ITEMS.get(item_id, {})
+            total_silver += (
+                int(item.get("sell_silver", 0))
+                * quantity
+            )
+            total_gold += (
+                int(item.get("sell_gold", 0))
+                * quantity
+            )
+            total_mithril += (
+                int(item.get("sell_mithril", 0))
+                * quantity
+            )
+
+        return {
+            "count": total_count,
+            "types": type_count,
+            "silver": total_silver,
+            "gold": total_gold,
+            "mithril": total_mithril,
+        }
+
+    # Zachowane dla kompatybilności z v0.6.80.
+    def fish_net_summary(self, rows=None):
+        generic = self.profession_storage_summary(
+            "net", rows
+        )
+        return {
+            "fish": generic["count"],
+            "species": generic["types"],
+            "silver": generic["silver"],
+            "gold": generic["gold"],
+            "mithril": generic["mithril"],
+        }
+
+    def profession_storage_value_text(self, summary):
+        parts = []
+        if summary["silver"]:
+            parts.append(f"{summary['silver']} srebra")
+        if summary["gold"]:
+            parts.append(f"{summary['gold']} złota")
+        if summary["mithril"]:
+            parts.append(f"{summary['mithril']} mithrilu")
+
+        if not parts:
+            return "0 srebra"
+
+        return ", ".join(parts)
+
+    # Zachowane dla kompatybilności z v0.6.80.
+    def fish_net_value_text(self, summary):
+        return self.profession_storage_value_text(summary)
+
     async def show_container(self, container):
         label = self.container_label(container)
-        rows = self.server.db.storage_rows(self.account_id, container)
+        rows = self.server.db.storage_rows(
+            self.account_id, container
+        )
         await self.send(label + ":")
+
+        definition = self.profession_storage_definition(container)
+
         if not rows:
             await self.send("Pusto.")
+            if definition:
+                await self.send(
+                    f"Łącznie {definition['count_label']}: 0. "
+                    f"{definition['type_label'].capitalize()}: 0."
+                )
+                await self.send(
+                    "Szacowany zarobek ze sprzedaży "
+                    f"{definition['value_label']}: 0 srebra."
+                )
             return
+
         for row in rows:
-            item = ITEMS.get(row["item_id"], {"name": row["item_id"]})
-            await self.send(f"{item['name']} x{row['quantity']}.")
+            item = ITEMS.get(
+                row["item_id"],
+                {"name": row["item_id"]},
+            )
+            await self.send(
+                f"{item['name']} x{row['quantity']}."
+            )
+
+        if definition:
+            summary = self.profession_storage_summary(
+                container, rows
+            )
+            await self.send(
+                f"Łącznie {definition['count_label']}: "
+                f"{summary['count']}. "
+                f"{definition['type_label'].capitalize()}: "
+                f"{summary['types']}."
+            )
+            await self.send(
+                "Szacowany zarobek ze sprzedaży "
+                f"{definition['value_label']}: "
+                f"{self.profession_storage_value_text(summary)}."
+            )
 
     async def put_in_container(self, args):
         # Przykłady:
@@ -7721,12 +8550,20 @@ class Session:
     async def grant_profession_reward_xp(self, profession, profession_xp, tool_type, tool_xp):
         if not self.valid_tool_type(tool_type):
             raise ValueError(f"Nieznany typ narzędzia: {tool_type}")
+
+        actual_profession_xp = (
+            max(0, int(profession_xp))
+            * PROFESSION_XP_GAIN_MULTIPLIER
+        )
+
         prow = self.server.db.profession(self.account_id, profession)
         plevel = int(prow["level"])
-        pxp = int(prow["xp"]) + profession_xp
+        pxp = int(prow["xp"]) + actual_profession_xp
         actions = int(prow["actions"])
 
-        await self.send(f"{profession}: nagroda +{profession_xp} XP.")
+        await self.send(
+            f"{profession}: nagroda +{actual_profession_xp} XP."
+        )
 
         while plevel < PROFESSION_MAX_LEVEL:
             needed = self.profession_xp_to_next(plevel)
@@ -9450,6 +10287,63 @@ class Session:
             )
         await self.send(self.crypt_set_bonus_text())
 
+    def owned_armor_for_slot(self, slot):
+        candidates = []
+        for item_id, item in ITEMS.items():
+            if item.get("type") != "armor":
+                continue
+            if item.get("slot") != slot:
+                continue
+            quantity = self.server.db.item_qty(
+                self.account_id, item_id
+            )
+            if quantity <= 0:
+                continue
+
+            rarity_order = {
+                "common": 0,
+                "crafted": 1,
+                "rare": 2,
+                "epic": 3,
+                "legendary": 4,
+                "mythic": 5,
+            }
+            score = (
+                int(item.get("defense", 0)),
+                rarity_order.get(item.get("rarity"), 0),
+                int(item.get("affix_amount", 0)),
+                normalize_lookup_text(item.get("name", item_id)),
+            )
+            candidates.append((score, item_id, item))
+
+        candidates.sort(key=lambda entry: entry[0], reverse=True)
+        return candidates
+
+    def resolve_equipment_for_equip(self, query):
+        normalized = normalize_lookup_text(query)
+        slot = EQUIPMENT_SLOT_ALIASES.get(normalized)
+
+        if slot:
+            candidates = self.owned_armor_for_slot(slot)
+            if not candidates:
+                return None, slot, []
+            _score, item_id, item = candidates[0]
+            return (item_id, item), slot, candidates
+
+        # Pełna lub jednoznaczna nazwa konkretnego pancerza/dropu.
+        owned_armor = {
+            item_id: item
+            for item_id, item in ITEMS.items()
+            if (
+                item.get("type") == "armor"
+                and self.server.db.item_qty(
+                    self.account_id, item_id
+                ) > 0
+            )
+        }
+        found = find_by_name(owned_armor, query)
+        return found, None, []
+
     async def equip_item(self, query):
         if self.combat_mob_key:
             await self.send(
@@ -9457,17 +10351,35 @@ class Session:
                 "Najpierw użyj flee albo zakończ walkę."
             )
             return
-        found = find_by_name(ITEMS, query)
+
+        found, requested_slot, slot_candidates = (
+            self.resolve_equipment_for_equip(query)
+        )
+
         if not found:
-            await self.send("Nie rozpoznaję takiego przedmiotu.")
+            if requested_slot:
+                await self.send(
+                    f"Nie masz żadnego pancerza w slocie "
+                    f"{EQUIPMENT_SLOT_NAMES[requested_slot]}."
+                )
+                return
+            await self.send(
+                "Nie rozpoznaję posiadanego pancerza. "
+                "Możesz wpisać: załóż hełm, załóż zbroja, "
+                "załóż rękawice, załóż nogi, załóż buty "
+                "albo załóż talizman."
+            )
             return
+
         item_id, item = found
         if item.get("type") != "armor":
             await self.send("Tego przedmiotu nie można założyć.")
             return
+
         if self.server.db.item_qty(self.account_id, item_id) <= 0:
             await self.send("Nie masz tego przedmiotu.")
             return
+
         self.server.db.equip(
             self.account_id, item["slot"], item_id
         )
@@ -9475,8 +10387,36 @@ class Session:
         self.current_mana = min(
             self.current_mana, self.max_mana()
         )
+
+        extra = ""
+        if requested_slot and len(slot_candidates) > 1:
+            extra = (
+                f" Wybrano najlepszy posiadany przedmiot dla slotu "
+                f"{EQUIPMENT_SLOT_NAMES[item['slot']]}."
+            )
+
+        rarity = (
+            f" Rzadkość: {item['rarity_name']}."
+            if item.get("rarity_name")
+            else ""
+        )
+        affix = ""
+        if item.get("affix"):
+            affix_name = CRYPT_AFFIXES.get(
+                item["affix"], item["affix"]
+            )
+            affix = (
+                f" Bonus: {affix_name} "
+                f"+{item.get('affix_amount', 0)}."
+            )
+
         await self.send(
             f"Zakładasz: {item['name']}. "
+            f"Slot: {EQUIPMENT_SLOT_NAMES.get(item['slot'], item['slot'])}. "
+            f"Obrona przedmiotu +{item.get('defense', 0)}."
+            f"{rarity}{affix}{extra}"
+        )
+        await self.send(
             f"Obrona fizyczna wynosi teraz {self.defense()}."
         )
         await self.send(self.crypt_set_bonus_text())
@@ -9822,7 +10762,7 @@ class Session:
                 row = self.server.db.skill_progress(self.account_id, skill["id"])
                 status = "już nauczona"
                 if int(row["level"]) >= SKILL_MAX_LEVEL:
-                    progress = " Skill Level 100, maksymalny."
+                    progress = f" Skill Level {SKILL_MAX_LEVEL}, maksymalny."
                 else:
                     progress = (
                         f" Skill Level {row['level']}, XP {row['xp']} z "
@@ -9850,7 +10790,7 @@ class Session:
             )
             await self.send(
                 "Nauka: learn <numer> albo naucz <nazwa umiejętności>. "
-                "Każdy nauczony skill rozwija własny Skill Level 1-100."
+                f"Każdy nauczony skill rozwija własny Skill Level 1-{SKILL_MAX_LEVEL}."
             )
         else:
             await self.send(
@@ -10274,6 +11214,81 @@ class Session:
     def normalized_skill_text(self, value):
         return self.normalize_description_query(value)
 
+    def skill_natural_tokens(self, skill):
+        tokens = set()
+        names = [skill["name"], skill["id"]] + skill.get("aliases", [])
+        names += skill.get("natural_tags", [])
+
+        for value in names:
+            normalized = self.normalized_skill_text(value)
+            if not normalized:
+                continue
+            tokens.add(normalized)
+            tokens.update(normalized.split())
+
+        return tokens
+
+    def natural_skill_from_input(self, raw):
+        raw = str(raw or "").strip()
+        normalized = self.normalized_skill_text(raw)
+        if not normalized:
+            return None, ""
+
+        words = normalized.split()
+        raw_words = raw.split()
+
+        # Naturalny intent jest pierwszym słowem.
+        intent = words[0]
+        spec = NATURAL_SKILL_INTENTS.get(intent)
+        if not spec:
+            return None, ""
+
+        known = self.server.db.learned_skill_ids(self.account_id)
+        candidates = []
+
+        for skill in self.class_skills():
+            if skill["id"] not in known:
+                continue
+            if self.character.soul_level < int(skill["unlock"]):
+                continue
+
+            kinds = spec.get("kinds")
+            if kinds and skill.get("kind") not in kinds:
+                continue
+
+            wanted_tags = spec.get("tags")
+            if wanted_tags:
+                tokens = self.skill_natural_tokens(skill)
+                if not tokens.intersection(wanted_tags):
+                    continue
+
+            progress = self.server.db.skill_progress(
+                self.account_id, skill["id"]
+            )
+            score = (
+                int(skill["unlock"]),
+                int(progress["level"]),
+            )
+            candidates.append((score, skill))
+
+        if not candidates:
+            return None, ""
+
+        candidates.sort(key=lambda entry: entry[0], reverse=True)
+        best_score = candidates[0][0]
+        best = [
+            skill
+            for score, skill in candidates
+            if score == best_score
+        ]
+
+        # Przy remisie nie wybieramy losowo pomiędzy multiclassami.
+        if len(best) != 1:
+            return None, ""
+
+        target = " ".join(raw_words[1:]) if len(raw_words) > 1 else ""
+        return best[0], target
+
     def find_skill_from_input(self, raw):
         skills = self.class_skills()
         raw = raw.strip()
@@ -10307,10 +11322,13 @@ class Session:
             matches.sort(key=lambda x: x[0], reverse=True)
             return matches[0][1], matches[0][2]
 
-        # Drugi etap: naturalne krótkie nazwy.
-        # Przykład: "ciecie goblin" -> "Potężne Cięcie".
-        # Skrót działa tylko wtedy, gdy wskazuje dokładnie jeden skill
-        # wśród obecnie aktywnych klas.
+        # Naturalne intencje, np. heal, tarcza, ogien, ciecie, pocisk.
+        natural_skill, natural_target = self.natural_skill_from_input(raw)
+        if natural_skill:
+            return natural_skill, natural_target
+
+        # Fallback: krótka nazwa po fragmencie pełnej nazwy/aliasu,
+        # ale tylko jeśli wskazuje dokładnie jeden skill.
         shortcut_matches = {}
         raw_words = raw.split()
 
@@ -10323,19 +11341,16 @@ class Session:
                 if not words:
                     continue
 
-                # Pojedyncze charakterystyczne słowa.
                 shortcuts.update(words)
 
-                # Wszystkie prefiksy i sufiksy wielowyrazowe.
                 for count in range(1, len(words)):
                     shortcuts.add(" ".join(words[:count]))
                     shortcuts.add(" ".join(words[count:]))
 
-            # Bardzo ogólne słowa nie powinny same uruchamiać skilla.
             shortcuts.difference_update({
                 "maly", "male", "wielki", "wielkie", "cios",
-                "uderzenie", "bariera", "tarcza", "duszy",
-                "krwi", "umyslu", "energii",
+                "uderzenie", "bariera", "duszy", "krwi",
+                "umyslu", "energii",
             })
 
             for shortcut in shortcuts:
@@ -10505,7 +11520,7 @@ class Session:
             )
         if result["level"] >= SKILL_MAX_LEVEL:
             await self.send(
-                f"{skill['name']}: Skill Level 100. Maksymalny poziom."
+                f"{skill['name']}: Skill Level {SKILL_MAX_LEVEL}. Maksymalny poziom."
             )
         else:
             await self.send(
@@ -10906,7 +11921,7 @@ class Session:
     async def use_class_skill(self, raw):
         skill, target_text = self.find_skill_from_input(raw)
         if not skill:
-            await self.send("Nie rozpoznaję tej umiejętności. Wpisz skills albo umiejetnosci.")
+            await self.send("Nie rozpoznaję tej umiejętności albo naturalny skrót jest niejednoznaczny. Wpisz skills albo umiejetnosci i użyj pełnej nazwy.")
             return
 
         if self.character.soul_level < skill["unlock"]:

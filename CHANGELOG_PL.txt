@@ -1,3 +1,127 @@
+SOULBOUND v0.6.81 ALL PROFESSION STORAGE COUNT & VALUE
+========================================================
+- Siatka nadal pokazuje liczbę ryb i wartość.
+- Sakwa pokazuje liczbę rud.
+- Sakwa pokazuje liczbę rodzajów rud.
+- Sakwa pokazuje szacowany zarobek całej zawartości.
+- Stos drewna pokazuje liczbę sztuk drewna.
+- Stos drewna pokazuje liczbę rodzajów.
+- Stos drewna pokazuje szacowany zarobek.
+- Torba Zielarska pokazuje liczbę ziół.
+- Torba Zielarska pokazuje liczbę rodzajów ziół.
+- Torba Zielarska pokazuje szacowany zarobek.
+- Srebro, złoto i mithril liczone osobno.
+- Inventory nie jest doliczane.
+- Podgląd niczego nie sprzedaje.
+- Brak migracji SQLite.
+- Zaktualizowano help, README i RAILWAY_PL.
+- changes / zmiany nadal pokazuje pełną historię.
+
+SOULBOUND v0.6.80 NET FISH COUNT & VALUE
+=========================================
+- siatka/net pokazuje łączną liczbę ryb.
+- siatka/net pokazuje liczbę gatunków.
+- Dodano szacowany zarobek całej Siatki.
+- Każda cena jest mnożona przez ilość danego gatunku.
+- Srebro jest sumowane osobno.
+- Złoto jest sumowane osobno.
+- Mithril jest sumowany osobno.
+- Ryby za mithril są uwzględniane.
+- Inventory nie jest doliczane do wartości Siatki.
+- Pusta Siatka pokazuje 0 ryb i 0 srebra.
+- Podgląd nie sprzedaje zawartości.
+- Sakwa, Stos drewna i Torba Zielarska bez zmian.
+- Brak migracji SQLite.
+- Zaktualizowano help, README i RAILWAY_PL.
+- changes / zmiany nadal pokazuje pełną historię.
+
+SOULBOUND v0.6.79 SLOWER PROFESSIONS & MOB LOOT EQUIP
+=======================================================
+- XP profesji x2.
+- Wymagany XP profesji x4.
+- Efektywne tempo profesji około 2x wolniejsze.
+- Profesje nadal mają max 100.
+- XP narzędzi bez zmian względem v0.6.78.
+- Dodano załóż hełm.
+- Dodano załóż zbroja.
+- Dodano załóż rękawice.
+- Dodano załóż nogi.
+- Dodano załóż buty.
+- Dodano załóż talizman.
+- Działają warianty bez polskich znaków.
+- Skrót slotu wybiera najlepszy posiadany przedmiot.
+- Priorytet: obrona, rzadkość, affix.
+- Pełna nazwa konkretnego dropu nadal działa.
+- Loot z mobów trafia do inventory jak wcześniej.
+- Po przeszukaniu ciała gra podaje skróty zakładania.
+- Loot Krypty rarity/affix/set jest obsługiwany.
+- Zmiana wyposażenia w walce nadal zablokowana.
+- Skill Level pozostaje 1-200.
+- Narzędzia pozostają 1-200 i 13 Tierów.
+- Brak migracji SQLite.
+- Zaktualizowano help, README i RAILWAY_PL.
+- changes / zmiany nadal pokazuje pełną historię.
+
+SOULBOUND v0.6.78 SKILLS 200 & SLOWER TOOL XP
+================================================
+- Skill Level ma teraz zakres 1-200.
+- Dawny cap 100 został usunięty.
+- Skille będące już na levelu 100 mogą dalej rosnąć.
+- Skill XP formula nadal wynosi 50 + (level - 1) * 25.
+- Skill Level 100 -> 101 wymaga 2525 XP.
+- Skill Level 199 -> 200 wymaga 5000 XP.
+- Moc skilli dalej rośnie do levelu 200.
+- Redukcja cooldownu pozostaje ograniczona do 30%.
+- Na Skill Level 200 XP jest zerowane.
+- Narzędzia levelują 2 razy wolniej.
+- Wymagany XP narzędzi został podwojony centralnie.
+- level 1 -> 2 narzędzia wymaga teraz 120 XP zamiast 60.
+- level 100 -> 101 wymaga teraz 6060 XP zamiast 3030.
+- level 199 -> 200 wymaga teraz 12000 XP zamiast 6000.
+- Nagrody XP narzędzi nie zostały zmienione.
+- Nieużywane narzędzia nadal nie levelują.
+- Narzędzia pozostają 1-200 i mają 13 Tierów.
+- Soul Level pozostaje 1-200.
+- Stat threshold pozostaje 50.
+- 48 skilli endgame pozostaje.
+- Naturalne use/użyj pozostaje.
+- Endgame profesji pozostaje.
+- Brak migracji SQLite.
+- Zaktualizowano help, README i RAILWAY_PL.
+- changes / zmiany nadal pokazuje pełną historię.
+
+SOULBOUND v0.6.77 ENDGAME CLASS SKILLS & NATURAL USE
+======================================================
+- Dodano 48 nowych skilli.
+- Każda z 12 klas dostała 4 nowe umiejętności.
+- Progi: Soul 100, 140, 180, 200.
+- Wojownik: Rozdarcie Duszy, Żelazny Mur, Szarża Bohatera, Ostateczne Cięcie.
+- Berserker: Rzeźniczy Zamach, Szał Tytana, Krwawy Wir, Apokalipsa Krwi.
+- Łotrzyk: Cięcie Widma, Krok Cienia, Taniec Ostrzy, Egzekucja Cienia.
+- Łowca: Strzała Duszy, Kamuflaż Drapieżcy, Deszcz Echa, Strzał Końca.
+- Mnich: Pięść Duszy, Medytacja Mistrza, Smocza Seria, Cios Oświecenia.
+- Strażnik: Uderzenie Fortecy, Wieczny Bastion, Gniew Bastionu, Młot Końca.
+- Mag: Lanca Arkanów, Aegis Arkanów, Burza Many, Kataklizm Arkanów.
+- Nekromanta: Klątwa Kości, Wielkie Wysysanie, Żniwo Umarłych, Wyrok Śmierci.
+- Kapłan: Promień Światła, Wielkie Uzdrowienie, Aegis Światła, Cud Odrodzenia.
+- Czarownik: Ogień Pustki, Tarcza Otchłani, Inferno Otchłani, Piekielny Wyrok.
+- Druid: Pradawne Korzenie, Odnowa Gaju, Burza Żywiołów, Gniew Drzewa Świata.
+- Psionik: Ostrze Umysłu, Forteca Umysłu, Rozdarcie Jaźni, Koniec Myśli.
+- Dodano naturalne use/użyj.
+- użyj heal wybiera najlepsze nauczone leczenie.
+- użyj tarcza wybiera najlepszą nauczoną osłonę.
+- użyj unik wybiera najlepszy nauczony unik.
+- użyj drain wybiera najlepszy nauczony drain.
+- użyj dobij wybiera najlepszy nauczony execute.
+- użyj ciecie/pocisk/ogien/burza/mlot/strzal wybiera pasujący skill.
+- Przy remisie naturalny resolver nie wybiera losowo.
+- Nauczyciele automatycznie obsługują nowe skille.
+- Skill Level nowych skilli pozostaje 1-100.
+- Walka turowa i brak auto-aggro pozostają.
+- Brak migracji SQLite.
+- Zaktualizowano help, README i RAILWAY_PL.
+- changes / zmiany nadal pokazuje pełną historię.
+
 SOULBOUND v0.6.76 GUIDE BRIDGE
 ===============================
 - Dodano prowadz most.

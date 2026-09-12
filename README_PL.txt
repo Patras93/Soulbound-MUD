@@ -1,4 +1,4 @@
-SOULBOUND v0.6.76 THREE CURRENCIES
+SOULBOUND v0.6.81 THREE CURRENCIES
 ==========================
 
 Duży build rozbudowujący działający serwer online do pierwszej właściwej wersji świata MUD.
@@ -3043,3 +3043,313 @@ go most
 
 Wszystkie prowadzą do lokacji:
 Kamienny Most.
+
+
+NOWE SKILLE KLASOWE 100-200 v0.6.77
+-----------------------------------
+Każda z 12 klas otrzymała 4 nowe skille:
+Soul Level 100.
+Soul Level 140.
+Soul Level 180.
+Soul Level 200.
+
+Łącznie: 48 nowych umiejętności.
+
+WOJOWNIK
+100 Rozdarcie Duszy.
+140 Żelazny Mur.
+180 Szarża Bohatera.
+200 Ostateczne Cięcie.
+
+BERSERKER
+100 Rzeźniczy Zamach.
+140 Szał Tytana.
+180 Krwawy Wir.
+200 Apokalipsa Krwi.
+
+ŁOTRZYK
+100 Cięcie Widma.
+140 Krok Cienia.
+180 Taniec Ostrzy.
+200 Egzekucja Cienia.
+
+ŁOWCA
+100 Strzała Duszy.
+140 Kamuflaż Drapieżcy.
+180 Deszcz Echa.
+200 Strzał Końca.
+
+MNICH
+100 Pięść Duszy.
+140 Medytacja Mistrza.
+180 Smocza Seria.
+200 Cios Oświecenia.
+
+STRAŻNIK
+100 Uderzenie Fortecy.
+140 Wieczny Bastion.
+180 Gniew Bastionu.
+200 Młot Końca.
+
+MAG
+100 Lanca Arkanów.
+140 Aegis Arkanów.
+180 Burza Many.
+200 Kataklizm Arkanów.
+
+NEKROMANTA
+100 Klątwa Kości.
+140 Wielkie Wysysanie.
+180 Żniwo Umarłych.
+200 Wyrok Śmierci.
+
+KAPŁAN
+100 Promień Światła.
+140 Wielkie Uzdrowienie.
+180 Aegis Światła.
+200 Cud Odrodzenia.
+
+CZAROWNIK
+100 Ogień Pustki.
+140 Tarcza Otchłani.
+180 Inferno Otchłani.
+200 Piekielny Wyrok.
+
+DRUID
+100 Pradawne Korzenie.
+140 Odnowa Gaju.
+180 Burza Żywiołów.
+200 Gniew Drzewa Świata.
+
+PSIONIK
+100 Ostrze Umysłu.
+140 Forteca Umysłu.
+180 Rozdarcie Jaźni.
+200 Koniec Myśli.
+
+Nowe skille uczysz się u dotychczasowych nauczycieli klasowych.
+Każdy ma osobny Skill Level 1-100.
+
+NATURALNE UŻYJ
+--------------
+Przykłady:
+użyj heal
+użyj tarcza
+użyj unik
+użyj drain goblin
+użyj dobij goblin
+użyj ciecie goblin
+użyj pocisk goblin
+użyj ogien goblin
+użyj burza goblin
+użyj mlot goblin
+użyj strzal goblin
+
+System wybiera najwyżej odblokowaną i nauczoną umiejętność
+pasującą do naturalnego skrótu.
+
+Przy remisie w multiclassie nie wybiera losowo.
+Wtedy użyj pełnej nazwy skilla.
+
+
+SKILL LEVEL 1-200 v0.6.78
+-------------------------
+Wszystkie umiejętności mogą rozwijać własny Skill Level aż do 200.
+
+Dawny limit:
+Skill Level 100.
+
+Nowy limit:
+Skill Level 200.
+
+Skill XP nadal zdobywa się przez używanie nauczonego skilla.
+Formuła wymaganego XP pozostaje:
+50 + (Skill Level - 1) * 25.
+
+Przykłady:
+Skill Level 100 -> 101 wymaga 2525 XP.
+Skill Level 140 -> 141 wymaga 3525 XP.
+Skill Level 180 -> 181 wymaga 4525 XP.
+Skill Level 199 -> 200 wymaga 5000 XP.
+
+Moc skilla nadal rośnie wraz ze Skill Level aż do 200.
+Redukcja cooldownu ma dotychczasowy maksymalny limit 30%.
+
+WOLNIEJSZY ROZWÓJ NARZĘDZI
+---------------------------
+Narzędzia nadal mają:
+level 1-200,
+13 Tierów.
+
+Od v0.6.78 wymagany XP narzędzia jest 2 razy większy.
+
+Stara formuła:
+60 + (level - 1) * 30.
+
+Nowa formuła:
+2 * (60 + (level - 1) * 30).
+
+Przykłady:
+level 1 -> 2: było 60 XP, jest 120 XP.
+level 100 -> 101: było 3030 XP, jest 6060 XP.
+level 199 -> 200: było 6000 XP, jest 12000 XP.
+
+Ilość XP otrzymywanego z używania narzędzia, receptur i nagród
+nie została zmniejszona.
+
+Nieużywane narzędzia nadal nie zdobywają XP.
+
+
+WOLNIEJSZE PROFESJE + WIĘKSZY XP v0.6.79
+-----------------------------------------
+Dotyczy pięciu profesji:
+Wędkarstwo, Górnictwo, Drwalstwo, Zielarstwo, Alchemia.
+
+Otrzymywany XP profesji:
+2 razy większy.
+
+Wymagany XP na level:
+4 razy większy.
+
+Efekt:
+profesje levelują około 2 razy wolniej.
+
+Level 1 -> 2:
+było 80 XP,
+jest 320 XP.
+
+Level 50 -> 51:
+było 1795 XP,
+jest 7180 XP.
+
+Level 99 -> 100:
+było 3510 XP,
+jest 14040 XP.
+
+Typowa akcja:
+było około 10-15 XP,
+jest około 20-30 XP.
+
+Quest dający wcześniej 1000 XP profesji:
+teraz daje 2000 XP profesji.
+
+Narzędzia nie są zmienione w tym buildzie.
+Pozostają 1-200, 13 Tierów i wolniejszy XP z v0.6.78.
+
+ZAKŁADANIE LOOTU Z MOBÓW
+-------------------------
+Po:
+przeszukaj ciało
+
+ekwipunek trafia do zwykłego inventory.
+
+Możesz potem wpisać:
+załóż hełm
+załóż zbroja
+załóż rękawice
+załóż nogi
+załóż buty
+załóż talizman
+
+Działają również:
+zaloz helm
+zaloz zbroja
+zaloz rekawice
+zaloz nogi
+zaloz buty
+zaloz talizman
+
+Jeżeli masz kilka przedmiotów w jednym slocie,
+skrót wybiera najlepszy według:
+1. obrony,
+2. rzadkości,
+3. wartości affixu.
+
+Możesz też podać pełną nazwę konkretnego dropu,
+jeżeli chcesz założyć dokładnie ten przedmiot.
+
+System działa również dla:
+zwykłego lootu mobów,
+world bossów,
+Krypty,
+rarity Krypty,
+affixów Krypty,
+setów Krypty.
+
+W czasie walki zmiana ekwipunku nadal jest zablokowana.
+
+
+SIATKA: ILOŚĆ RYB I WARTOŚĆ v0.6.80
+------------------------------------
+Wpisz:
+siatka
+
+albo:
+net
+
+Gra nadal czyta wszystkie gatunki i ich ilości.
+
+Na końcu podaje:
+łączną liczbę wszystkich ryb,
+liczbę różnych gatunków,
+szacowany zarobek ze sprzedaży całej Siatki.
+
+Przykład:
+Mała ryba x10.
+Złoty pstrąg x3.
+Widmowy marlin x1.
+Łącznie ryb: 14. Gatunków: 3.
+Szacowany zarobek ze sprzedaży całej siatki:
+80 srebra, 3 złota, 1 mithrilu.
+
+Waluty są liczone osobno.
+Gra nie przelicza automatycznie srebra na złoto ani złota na mithril.
+
+Podsumowanie obejmuje tylko ryby w Siatce.
+Ryby w zwykłym inventory nie są doliczane.
+
+Samo sprawdzenie siatki niczego nie sprzedaje.
+
+
+WARTOŚĆ WSZYSTKICH MAGAZYNÓW PROFESJI v0.6.81
+----------------------------------------------
+SIATKA
+siatka
+net
+
+Pokazuje:
+łączną liczbę ryb,
+liczbę gatunków,
+wartość sprzedaży całej siatki.
+
+SAKWA GÓRNICZA
+sakwa
+bag
+
+Pokazuje:
+łączną liczbę rud,
+liczbę rodzajów rud,
+wartość sprzedaży całej sakwy.
+
+STOS DREWNA
+drewno
+stos
+woodpile
+
+Pokazuje:
+łączną liczbę sztuk drewna,
+liczbę rodzajów drewna,
+wartość sprzedaży całego stosu.
+
+TORBA ZIELARSKA
+ziola
+herbs
+
+Pokazuje:
+łączną liczbę ziół,
+liczbę rodzajów ziół,
+wartość sprzedaży całej torby.
+
+W każdej sekcji srebro, złoto i mithril są liczone osobno.
+Inventory nie jest doliczane.
+Sprawdzenie magazynu niczego nie sprzedaje.
