@@ -1,4 +1,4 @@
-SOULBOUND v0.6.81 THREE CURRENCIES
+SOULBOUND v0.6.95 THREE CURRENCIES
 ==========================
 
 Duży build rozbudowujący działający serwer online do pierwszej właściwej wersji świata MUD.
@@ -3353,3 +3353,586 @@ wartość sprzedaży całej torby.
 W każdej sekcji srebro, złoto i mithril są liczone osobno.
 Inventory nie jest doliczane.
 Sprawdzenie magazynu niczego nie sprzedaje.
+
+
+MANA W STATS v0.6.82
+--------------------
+stats zawsze pokazuje:
+Mana: aktualna z maksymalnej.
+
+Dla klasy bez Many:
+Mana: 0 z 0.
+
+EQ
+--
+eq działa tak samo jak equipment.
+
+SPRZEDAŻ HURTOWA
+-----------------
+sprzedaj ryby siatka
+sprzedaj siatka
+
+sprzedaj rudy sakwa
+sprzedaj sakwa
+
+sprzedaj drewno stos
+sprzedaj stos
+
+sprzedaj ziola torba
+sprzedaj ziola
+
+sprzedaj przedmioty
+
+Każdy magazyn nadal trzeba sprzedawać we właściwym miejscu:
+ryby: Targ Rybny, Rynek albo Karczma,
+rudy: Kuźnia Dusz,
+drewno: Rynek albo Kuźnia Dusz,
+zioła: Rynek albo Chata Zielarki.
+
+sprzedaj przedmioty działa na inventory i sprzedaje tylko rzeczy,
+które mają jawną cenę sprzedaży oraz są akceptowane w aktualnej lokacji.
+
+Nie sprzedaje automatycznie:
+narzędzi,
+mikstur,
+założonego wyposażenia,
+przedmiotów bez ceny sprzedaży.
+
+
+REGEN MANA v0.6.83
+------------------
+Nowe komendy:
+
+regen mana
+mana regen
+
+Uruchamiają osobną regenerację tylko Many.
+
+Tempo:
+co 5 sekund,
+10 procent maksymalnej Many na tick.
+
+Ten tryb:
+nie leczy HP,
+nie działa podczas walki,
+kończy się automatycznie przy pełnej Manie,
+jest przerywany przez ruch i aktywne akcje.
+
+Status:
+mana
+
+Zatrzymanie:
+mana stop
+
+Zwykłe:
+odpoczywaj
+
+nadal regeneruje jednocześnie HP i Manę.
+
+
+ODPOCZYNEK REGENERUJE WSZYSTKO v0.6.84
+--------------------------------------
+odpoczywaj
+rest
+regen
+regen mana
+mana regen
+
+Wszystkie te warianty uruchamiają pełny odpoczynek.
+
+Co 5 sekund:
++10 procent maksymalnego HP,
++10 procent maksymalnej Many.
+
+Nie ma już osobnego trybu tylko na Manę.
+
+SPECJALIŚCI PROFESJI I RZEMIOSŁ
+-------------------------------
+Mistrz Wędkarstwa Neris
+Lokacja: Targ Rybny.
+Narzędzie: Wędka.
+
+Mistrz Górnictwa Kordan
+Lokacja: Wejście do Kryształowej Jaskini.
+Narzędzie: Kilof.
+
+Mistrz Drwalstwa Oren
+Lokacja: Obóz Drwala.
+Narzędzie: Piła.
+
+Mistrz Rzemiosła Haldor
+Lokacja: Kuźnia Dusz.
+Narzędzie: Młot Rzemieślniczy.
+Podpowiada receptury craft.
+
+Kucharz Marcel
+Lokacja: Karczma Pod Błękitnym Płomieniem.
+Narzędzie: Nóż Kucharski.
+Podpowiada receptury cook.
+
+Mistrzyni Zielarstwa Sena
+Lokacja: Chata Zielarki.
+Narzędzie: Sierp Zielarski.
+
+Mistrz Alchemii Orin
+Lokacja: Chata Zielarki.
+Narzędzie: Moździerz Alchemiczny.
+Podpowiada receptury alchemia.
+
+Po rozmowie specjalista podaje:
+level narzędzia,
+XP,
+XP do następnego levelu,
+Tier,
+nazwę Tieru,
+bonus Tieru.
+
+Przykłady prowadzenia:
+prowadz kucharz
+prowadz mistrz rzemiosla
+prowadz mistrz wedkarstwa
+prowadz mistrz gornictwa
+prowadz mistrz drwalstwa
+prowadz mistrzyni zielarstwa
+prowadz mistrz alchemii
+
+
+AKTUALNA NAZWA NARZĘDZIA v0.6.85
+---------------------------------
+Po wpisaniu:
+
+wedka
+kilof
+pila
+mlot
+noz
+sierp
+mozdzierz
+
+gra najpierw podaje podstawowy typ narzędzia,
+a potem jego aktualną pełną nazwę wynikającą z Tieru.
+
+Przykład:
+NARZĘDZIE: Wędka.
+Aktualna nazwa narzędzia: Wędka Ucznia.
+
+Po awansie Tieru może być np.:
+Wędka Rzeczna,
+Wędka Srebrnego Haczyka,
+Wędka Wiecznego Oceanu.
+
+To samo działa dla wszystkich 7 narzędzi.
+
+
+CZASY CZYNNOŚCI NARZĘDZI v0.6.86
+--------------------------------
+Level 1:
+Wędka: 15 sekund.
+Kilof: 30 sekund.
+Piła: 24 sekundy.
+Młot Rzemieślniczy: 20 sekund.
+Nóż Kucharski: 12 sekund.
+Sierp Zielarski: 10 sekund.
+Moździerz Alchemiczny: 18 sekund.
+
+Level 100:
+Wędka: około 10 sekund.
+Kilof: około 20 sekund.
+Piła: około 16 sekund.
+Młot: około 14 sekund.
+Nóż: około 8 sekund.
+Sierp: około 7 sekund.
+Moździerz: około 12 sekund.
+
+Level 200:
+Wędka: 5 sekund.
+Kilof: 10 sekund.
+Piła: 8 sekund.
+Młot: 7 sekund.
+Nóż: 4 sekundy.
+Sierp: 3 sekundy.
+Moździerz: 6 sekund.
+
+Czas maleje płynnie wraz z levelem narzędzia.
+
+Przed wykonaniem akcji NVDA podaje czas, np.:
+Zarzucasz Wędkę. Czas połowu: 15 sekund.
+
+Po wpisaniu nazwy narzędzia gra także podaje
+aktualny czas czynności dla twojego levelu.
+
+
+SPRZEDAJ WSZYSTKO v0.6.87
+-------------------------
+sprzedaj wszystko siatka
+sprzedaj wszystko sakwa
+sprzedaj wszystko stos
+sprzedaj wszystko torba
+
+Działają też:
+sprzedaj wszystko ryby
+sprzedaj wszystko rudy
+sprzedaj wszystko drewno
+sprzedaj wszystko ziola
+sprzedaj wszystko przedmioty
+
+NATURALNE NAUCZ
+---------------
+U właściwego nauczyciela klasy możesz wpisać np.:
+
+naucz leczenie
+naucz tarcza
+naucz unik
+naucz drain
+naucz wysysanie
+naucz dobij
+naucz ciecie
+naucz pocisk
+naucz ogien
+naucz burza
+naucz mlot
+naucz strzal
+
+Gra wybiera najwyżej odblokowany pasujący skill tej klasy,
+którego jeszcze nie znasz.
+
+Pełne nazwy oraz:
+naucz 1
+naucz 2
+itd. nadal działają.
+
+
+QUESTY SPECJALISTÓW v0.6.88
+---------------------------
+Mistrz Rzemiosła Haldor:
+3 Żelazne sztabki.
+Nagroda: 500 XP Młota Rzemieślniczego + 120 srebra.
+
+Kucharz Marcel:
+3 Pieczone ryby rzeczne.
+Nagroda: 450 XP Noża Kucharskiego + 100 srebra.
+
+Mistrz Alchemii Orin:
+3 Mikstury Many.
+Nagroda: XP Alchemii + 500 XP Moździerza + 120 srebra.
+
+Każde zlecenie jest powtarzalne co 30 minut.
+
+BANK DUSZ
+---------
+Bankier Aldren znajduje się na Rynku.
+
+Prowadzenie:
+prowadz bank
+
+Stan banku:
+bank
+
+Waluta:
+bank wplac 100 srebra
+bank wplac 5 zlota
+bank wplac 1 mithril
+bank wyplac 100 srebra
+bank wplac wszystko
+bank wyplac wszystko
+
+Przedmioty:
+bank wloz mikstura 2
+bank wyjmij mikstura 1
+
+Skrytka i saldo są trwałe w SQLite.
+Bank nie pobiera opłat.
+Założonego elementu ekwipunku nie można schować w banku.
+
+
+ŁAŃCUCHY QUESTÓW SPECJALISTÓW v0.6.89
+--------------------------------------
+Każdy z trzech specjalistów ma teraz 3 etapy.
+
+HALDOR
+Etap 1: 3 Żelazne sztabki.
+Etap 2, Młot level 100: Runiczny Talizman Straży.
+Etap 3, Młot level 200: Talizman Wiecznej Duszy.
+
+MARCEL
+Etap 1: 3 Pieczone ryby rzeczne.
+Etap 2, Nóż level 100: Runiczny Półmisek Rybny.
+Etap 3, Nóż level 200: Wieczna Uczta Oceanu.
+
+ORIN
+Etap 1: 3 Mikstury Many.
+Etap 2, Moździerz level 100: 2 Najwyższe Mikstury Leczenia.
+Etap 3, Moździerz level 200: Eliksir Wiecznej Duszy.
+
+Wyższy etap wymaga ukończenia poprzedniego.
+Rozmowa z NPC czyta stan wszystkich etapów.
+Każdy etap jest powtarzalny co 30 minut.
+
+
+SOUL TIER 4 I 5
+---------------
+Tier 4:
+Soul Level 120.
+Wymagany Tier 3.
+Kapłan Elor daje Próbę Tier 4.
+Cel: Królowa Otchłannej Krypty, piętro 120.
+Po ukończeniu: unlock.
+
+Tier 5:
+Soul Level 180.
+Wymagany Tier 4.
+Kapłan Elor daje ostatnią Próbę.
+Cel: Cesarz Upiorów, piętro 180.
+Po ukończeniu: unlock.
+
+Standardowy bonus specjalizacji:
+Tier 1: 5%.
+Tier 2: 10%.
+Tier 3: 15%.
+Tier 4: 20%.
+Tier 5: 25%.
+
+Łotrzyk:
+2 / 4 / 6 / 8 / 10 punktów procentowych uniku.
+
+Strażnik:
+3 / 6 / 9 / 12 / 15 procent redukcji.
+
+KRYPTA 1-200
+-------------
+Krypta ma 200 pięter.
+Boss występuje co 10 pięter.
+Łącznie jest 20 bossów.
+
+Nowi bossowie:
+110 Strażnik Pękniętej Duszy
+120 Królowa Otchłannej Krypty
+130 Tytan Żelaznych Kości
+140 Prorok Czarnego Płomienia
+150 Władca Bezdennych Katakumb
+160 Astralny Żniwiarz
+170 Kolos Pustki
+180 Cesarz Upiorów
+190 Strażnik Końca
+200 Władca Dwustu Pięter
+
+Każdy nowy boss ma własną mechanikę i unikalny relikt.
+Boss piętra 200 gwarantuje swój relikt.
+
+Loot:
+co 10 pięter rośnie Tier setu.
+Dostępne są teraz Tiers 1-20.
+
+Portale:
+portal pokazuje odblokowane checkpointy.
+portal 120, portal 180 i portal 200 działają po pokonaniu odpowiednich bossów.
+Portal nie omija żywego bossa.
+
+
+WIEŻA ASTRALNA
+==============
+Drugi loch endgame obok Krypty.
+
+Wejście:
+prowadz wieza astralna
+
+Lokacja wejścia:
+Astralna Brama przy Zapomnianej Kapliczce.
+
+Wymaganie:
+Soul Level 100.
+
+Poziomy:
+100-200, czyli 101 poziomów.
+
+Bossowie:
+100 Strażnik Gwiezdnej Bramy
+110 Rycerz Konstelacji
+120 Tkaczka Nebuli
+130 Strażnik Komety
+140 Arcykapłan Gwiezdnego Ognia
+150 Tytan Orbitalny
+160 Władca Konstelacji
+170 Serafin Pustki
+180 Imperator Gwiezdnej Burzy
+190 Strażnik Firmamentu
+200 Astralny Suweren
+
+Boss blokuje przejście w górę do czasu pokonania.
+
+ASTRALNY PORTAL
+---------------
+astralportal
+astralportal 100
+astralportal 150
+astralportal 200
+
+Każdy pokonany boss co 10 poziomów odblokowuje checkpoint.
+Checkpoint Wieży jest niezależny od Portalu Krypty.
+
+LOOT
+----
+11 kręgów Astralnego wyposażenia.
+Zwykły mob: 1 element gearu.
+Boss: 3 elementy gearu.
+Każdy boss posiada własny unikalny relikt.
+Astralny Suweren gwarantuje finałowy relikt.
+
+NAWIGACJA
+---------
+prowadz wieza 100
+prowadz wieza 150
+prowadz astral 180
+prowadz wieza 200
+
+Moby nie są agresywne.
+Walka pozostaje turowa.
+
+
+CONSIDER
+========
+Bezpieczna ocena przeciwnika bez rozpoczynania walki.
+
+Komendy:
+consider <mob>
+con <mob>
+ocen <mob>
+oceń <mob>
+
+Jeśli w pokoju jest tylko jeden przeciwnik:
+consider
+
+Ocena:
+bardzo słaby
+słaby
+korzystny
+porównywalny
+niebezpieczny
+bardzo niebezpieczny
+śmiertelnie groźny
+
+Consider pokazuje:
+- HP moba,
+- bazowy atak,
+- fizyczny/magiczny typ obrażeń,
+- orientacyjny normalny cios gracza,
+- orientacyjne obrażenia przeciwnika po redukcjach,
+- przybliżoną liczbę trafień obu stron,
+- mechanikę bossa, jeśli istnieje.
+
+Consider nie atakuje, nie angażuje przeciwnika,
+nie zużywa Many i nie zajmuje tury.
+
+WOLNIEJSZY ROZWÓJ STATYSTYK
+===========================
+Próg automatycznego wzrostu zmieniono:
+stary: 50 Postępu Rozwoju
+nowy: 100 Postępu Rozwoju
+
+Po każdym progu:
+Siła +1
+Zręczność +1
+Kondycja +1
+Inteligencja +1
+Siła Woli +1
+
+Statystyki nie mają limitu.
+Nie ma levelu postaci.
+Nie ma Character XP.
+Istniejący stat_progress nie jest resetowany.
+
+
+SOUL XP - PODWAJANIE CO 10 LEVELI
+=================================
+Wymagane XP na kolejny Soul Level ma teraz mnożnik blokowy.
+
+Soul 1-10: x1
+Soul 11-20: x2
+Soul 21-30: x4
+Soul 31-40: x8
+Soul 41-50: x16
+Soul 51-60: x32
+
+Dalej mnożnik nadal podwaja się co 10 leveli aż do Soul 200.
+
+Bazowe wymaganie:
+180 + (Soul Level - 1) * 60
+
+Końcowe wymaganie:
+bazowe wymaganie * mnożnik bloku
+
+Przykłady:
+Soul 1 -> 2: 180 XP
+Soul 10 -> 11: 720 XP
+Soul 11 -> 12: 1560 XP
+Soul 20 -> 21: 2640 XP
+Soul 21 -> 22: 5520 XP
+Soul 50 -> 51: 49920 XP
+Soul 51 -> 52: 101760 XP
+
+Komenda:
+soul
+pokazuje aktualne XP, wymagane XP oraz mnożnik.
+
+Nagrody Soul XP nie zostały zwiększone.
+Istniejące Soul Level i Soul XP nie są resetowane.
+
+
+GLOBALNE HP MOBÓW v0.6.94
+=========================
+Wszystkie moby i bossowie mają teraz 2 razy więcej maksymalnego HP.
+
+Przykłady:
+Szczur Świątynny: 28 -> 56 HP
+Żywy Manekin: 45 -> 90 HP
+Goblin: 60 -> 120 HP
+Herszt Bandytów: 320 -> 640 HP
+Król Goblinów: 360 -> 720 HP
+Kryształowy Władca: 500 -> 1000 HP
+
+Krypta:
+każdy zwykły mob i każdy boss na piętrach 1-200 ma 2x HP.
+
+Wieża Astralna:
+każdy zwykły mob i każdy boss na poziomach 100-200 ma 2x HP.
+
+Bez zmian:
+- obrażenia mobów,
+- Soul XP,
+- Class XP,
+- Postęp Rozwoju statystyk,
+- waluta,
+- dropy,
+- respawn,
+- nieagresywność,
+- walka turowa.
+
+consider automatycznie używa nowych wartości HP.
+
+
+BOSS HP - KRYPTA I WIEŻA ASTRALNA
+=================================
+Bossowie lochów mają teraz dokładnie:
+
+HP = numer piętra * 1000
+
+Krypta:
+10 = 10000 HP
+20 = 20000 HP
+30 = 30000 HP
+...
+100 = 100000 HP
+...
+200 = 200000 HP
+
+Wieża Astralna:
+100 = 100000 HP
+110 = 110000 HP
+120 = 120000 HP
+...
+200 = 200000 HP
+
+Zwykłe moby nadal korzystają z globalnego 2x HP.
+Bossowie świata poza tymi dwoma lochami także pozostają na obecnym 2x HP.
+
+Damage i nagrody nie zostały zmienione.

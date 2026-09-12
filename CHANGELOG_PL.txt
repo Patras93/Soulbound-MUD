@@ -1,3 +1,265 @@
+SOULBOUND v0.6.95 DUNGEON BOSS HP SCALING
+===========================================
+- Krypta: boss HP = piętro * 1000.
+- Piętro 10: 10000 HP.
+- Piętro 20: 20000 HP.
+- Piętro 100: 100000 HP.
+- Piętro 200: 200000 HP.
+- Wieża Astralna używa tego samego wzoru.
+- Poziom 100: 100000 HP.
+- Poziom 150: 150000 HP.
+- Poziom 200: 200000 HP.
+- Zwykłe moby nadal mają 2x HP.
+- Bossowie świata poza lochami nadal mają 2x HP.
+- Damage i nagrody bez zmian.
+- consider uwzględnia nowe HP.
+- Brak migracji SQLite.
+
+SOULBOUND v0.6.94 DOUBLE MOB HP
+=================================
+- Wszystkie moby: 2x maksymalne HP.
+- Wszyscy bossowie: 2x maksymalne HP.
+- Krypta 1-200: 2x HP wszystkich przeciwników.
+- Wieża Astralna 100-200: 2x HP wszystkich przeciwników.
+- Żywy Manekin: 2x HP.
+- Damage mobów bez zmian.
+- Nagrody bez zmian.
+- Loot bez zmian.
+- Soul XP bez zmian.
+- Class XP bez zmian.
+- stat_progress bez zmian.
+- Respawn przywraca nowe pełne HP.
+- consider uwzględnia nowe HP.
+- Brak migracji SQLite.
+
+SOULBOUND v0.6.93 DOUBLING SOUL XP
+====================================
+- Soul XP wymagane na level rośnie blokowo.
+- Soul 1-10: x1.
+- Soul 11-20: x2.
+- Soul 21-30: x4.
+- Soul 31-40: x8.
+- Każdy kolejny blok 10 leveli ponownie podwaja mnożnik.
+- Bazowy wzór pozostaje 180 + (Soul Level - 1) * 60.
+- soul pokazuje aktualny mnożnik.
+- Dodano help soulxp.
+- Nagrody Soul XP pozostają bez zmian.
+- Istniejący Soul Level i Soul XP są zachowane.
+- Soul Level nadal 1-200.
+- Soul Tier nadal 1-5.
+- Brak migracji SQLite.
+
+SOULBOUND v0.6.92 CONSIDER & SLOWER STATS
+===========================================
+- Dodano consider <mob>.
+- Dodano con <mob>.
+- Dodano ocen / oceń <mob>.
+- Consider nie zaczyna walki.
+- Consider nie zajmuje tury.
+- Consider nie zużywa Many.
+- Ocena zagrożenia w 7 stopniach.
+- HP, atak i typ obrażeń moba.
+- Szacowanie obrażeń gracza i przeciwnika.
+- Szacowanie liczby trafień obu stron.
+- Ostrzeżenia o mechanikach bossów.
+- Próg wzrostu statystyk zwiększony z 50 do 100.
+- Wszystkie pięć statystyk nadal rośnie razem o +1.
+- Statystyki nadal bez limitu.
+- Brak Character Level i Character XP.
+- stat_progress nie jest resetowany.
+- Brak migracji SQLite.
+
+SOULBOUND v0.6.91 ASTRAL TOWER
+================================
+- Dodano Wieżę Astralną 100-200.
+- 101 poziomów nowego endgame.
+- Wejście od Soul Level 100.
+- Astralna Brama przy Zapomnianej Kapliczce.
+- 11 nowych bossów.
+- Boss co 10 poziomów.
+- Własne mechaniki bossów.
+- Własny Astralny Portal.
+- Niezależne checkpointy Wieży.
+- Nowa trwała tabela astral_progress.
+- 11 kręgów Astralnego ekwipunku.
+- 11 unikalnych reliktów.
+- Finałowy boss: Astralny Suweren.
+- Prowadzenie NVDA-friendly do poziomów 100-200.
+- Mapa pokazuje Wieżę skrótowo.
+- Krypta 1-200 pozostaje bez zmian.
+- Brak resetu SQLite.
+
+SOULBOUND v0.6.90 SOUL TIER 5 & CRYPT 200
+===========================================
+- Dodano Soul Tier 4 od Soul Level 120.
+- Dodano Próbę Elora Tier 4.
+- Tier 4 wymaga pokonania bossa piętra 120 Krypty.
+- Dodano Soul Tier 5 od Soul Level 180.
+- Dodano Próbę Elora Tier 5.
+- Tier 5 wymaga pokonania bossa piętra 180 Krypty.
+- Bonus specjalizacji Tier 4: 20%.
+- Bonus specjalizacji Tier 5: 25%.
+- Łotrzyk Tier 4/5: +8/+10 pp uniku.
+- Strażnik Tier 4/5: +12/+15% redukcji.
+- Rozszerzono Kryptę do 200 pięter.
+- Dodano bossów pięter 110-200.
+- Dodano nowe mechaniki bossów 110-200.
+- Dodano 10 nowych reliktów bossów.
+- Dodano sety Krypty Tier 11-20.
+- Portale Krypty działają aż do piętra 200.
+- Boss piętra 200 jest nowym finałowym bossem.
+- Żywy boss nadal blokuje zejście.
+- Moby pozostają nieagresywne.
+- Walka nadal jest ściśle turowa.
+- Brak resetu SQLite.
+
+SOULBOUND v0.6.89 SPECIALIST QUEST CHAINS
+===========================================
+- Haldor: 3 etapy zleceń.
+- Marcel: 3 etapy zleceń.
+- Orin: 3 etapy zleceń.
+- Etap 2: level narzędzia 100 + ukończony etap 1.
+- Etap 3: level narzędzia 200 + ukończony etap 2.
+- Specjalista czyta stan całego łańcucha.
+- Automatycznie proponowany jest najwyższy odblokowany etap.
+- Wszystkie etapy są powtarzalne co 30 minut.
+- Bank Dusz pozostaje bez zmian.
+- Brak migracji schematu SQLite.
+
+SOULBOUND v0.6.88 SPECIALIST QUESTS & BANK
+============================================
+- Quest Haldora: 3 Żelazne sztabki.
+- Quest Marcela: 3 Pieczone ryby rzeczne.
+- Quest Orina: 3 Mikstury Many.
+- Questy specjalistów powtarzalne co 30 minut.
+- Nagrody dają odpowiedni XP narzędzi.
+- Orin dodatkowo daje XP profesji Alchemia.
+- Dodano Bankiera Aldrena.
+- Dodano trwały Bank Dusz.
+- Bank przechowuje srebro, złoto i mithril.
+- Dodano bank wplac.
+- Dodano bank wyplac.
+- Dodano bank wplac wszystko.
+- Dodano bank wyplac wszystko.
+- Dodano trwałą skrytkę przedmiotów.
+- Dodano bank wloz.
+- Dodano bank wyjmij.
+- Założony gear nie może trafić do banku.
+- Dodano prowadz bank.
+- Nowe tabele SQLite są tworzone bez kasowania danych.
+- Brak destrukcyjnej migracji.
+
+SOULBOUND v0.6.87 SELL ALL & NATURAL LEARN
+============================================
+- Dodano sprzedaj wszystko siatka.
+- Dodano sprzedaj wszystko sakwa.
+- Dodano sprzedaj wszystko stos.
+- Dodano sprzedaj wszystko torba.
+- Dodano sprzedaj wszystko ryby/rudy/drewno/ziola.
+- Dodano sprzedaj wszystko przedmioty.
+- Dodano naucz leczenie.
+- Dodano naucz tarcza.
+- Dodano naucz unik.
+- Dodano naucz drain / wysysanie.
+- Dodano naucz dobij.
+- Dodano naucz ciecie/pocisk/ogien/burza/mlot/strzal.
+- Naturalna nauka wybiera najwyżej odblokowany nieznany skill klasy nauczyciela.
+- Pełne nazwy i numery skilli nadal działają.
+- Brak migracji SQLite.
+
+SOULBOUND v0.6.86 TOOL ACTION TIMES
+====================================
+- Wędka L1: 15 s, L200: 5 s.
+- Kilof L1: 30 s, L200: 10 s.
+- Piła L1: 24 s, L200: 8 s.
+- Młot L1: 20 s, L200: 7 s.
+- Nóż L1: 12 s, L200: 4 s.
+- Sierp L1: 10 s, L200: 3 s.
+- Moździerz L1: 18 s, L200: 6 s.
+- Czasy maleją stopniowo wraz z levelem 1-200.
+- Pojedyncze akcje naprawdę czekają podaną liczbę sekund.
+- Auto-profesje używają tego samego czasu.
+- Receptury craft/cook/alchemia mają realny czas wykonania.
+- Komendy narzędzi pokazują aktualny czas.
+- Brak migracji SQLite.
+
+SOULBOUND v0.6.85 TOOL CURRENT NAMES
+=====================================
+- wedka podaje aktualną pełną nazwę narzędzia.
+- kilof podaje aktualną pełną nazwę narzędzia.
+- pila podaje aktualną pełną nazwę narzędzia.
+- mlot podaje aktualną pełną nazwę narzędzia.
+- noz podaje aktualną pełną nazwę narzędzia.
+- sierp podaje aktualną pełną nazwę narzędzia.
+- mozdzierz podaje aktualną pełną nazwę narzędzia.
+- Nazwa jest nazwą aktualnego Tieru.
+- narzedzia pokazuje aktualne nazwy wszystkich posiadanych narzędzi.
+- Level, XP, użycia, Tier i bonus bez zmian.
+- Brak migracji SQLite.
+
+SOULBOUND v0.6.84 FULL REST & PROFESSION SPECIALISTS
+======================================================
+- Odpoczynek zawsze regeneruje HP i Manę.
+- regen mana uruchamia pełny odpoczynek.
+- mana regen uruchamia pełny odpoczynek.
+- Usunięto zachowanie trybu Mana-only.
+- Regeneracja: 10% HP i 10% Many co 5 sekund.
+- Dodano Mistrza Wędkarstwa Nerisa.
+- Dodano Mistrza Górnictwa Kordana.
+- Dodano Mistrza Drwalstwa Orena.
+- Dodano Mistrza Rzemiosła Haldora.
+- Dodano Kucharza Marcela.
+- Dodano Mistrzynię Zielarstwa Senę.
+- Dodano Mistrza Alchemii Orina.
+- Każdy specjalista pokazuje stan odpowiedniego narzędzia.
+- Pokazuje level, XP, Tier i bonus.
+- Kucharz przypomina receptury cook.
+- Rzemieślnik przypomina receptury craft.
+- Alchemik przypomina receptury alchemia.
+- Dodano skróty prowadzenia do specjalistów.
+- Specjaliści są chronionymi NPC.
+- Brak migracji SQLite.
+- Zaktualizowano help, README i RAILWAY_PL.
+- changes / zmiany nadal pokazuje pełną historię.
+
+SOULBOUND v0.6.83 MANA REGEN
+==============================
+- Dodano regen mana.
+- Dodano mana regen.
+- Dodano mana status.
+- Dodano mana stop.
+- Mana odnawia się co 5 sekund.
+- Tick odnawia 10 procent maksymalnej Many.
+- Mana regen nie leczy HP.
+- Mana regen nie działa w walce.
+- Pełna Mana automatycznie kończy regenerację.
+- Ruch i aktywne akcje przerywają Mana regen.
+- Zwykły odpoczynek nadal regeneruje HP i Manę.
+- Brak migracji SQLite.
+- Zaktualizowano help, README i RAILWAY_PL.
+- changes / zmiany nadal pokazuje pełną historię.
+
+SOULBOUND v0.6.82 MANA, BULK SELL & EQ
+=======================================
+- Mana zawsze widoczna w stats.
+- Dodano eq jako skrót equipment.
+- Dodano sprzedaj ryby siatka.
+- Dodano sprzedaj rudy sakwa.
+- Dodano sprzedaj drewno stos.
+- Dodano sprzedaj ziola torba.
+- Dodano sprzedaj przedmioty.
+- Hurtowa sprzedaż zachowuje właściwe punkty skupu.
+- Hurtowa sprzedaż sumuje srebro, złoto i mithril.
+- Hurtowa sprzedaż podaje sztuki i rodzaje.
+- Charyzma rośnie zgodnie z liczbą sprzedanych sztuk.
+- sprzedaj przedmioty pomija założony gear.
+- sprzedaj przedmioty pomija narzędzia i mikstury.
+- sprzedaj przedmioty pomija rzeczy bez ceny sprzedaży.
+- Pojedyncza sprzedaż nadal działa.
+- Brak migracji SQLite.
+- Zaktualizowano help, README i RAILWAY_PL.
+- changes / zmiany nadal pokazuje pełną historię.
+
 SOULBOUND v0.6.81 ALL PROFESSION STORAGE COUNT & VALUE
 ========================================================
 - Siatka nadal pokazuje liczbę ryb i wartość.
