@@ -1,3 +1,9 @@
+SOULBOUND v0.5.1 RAILWAY HOTFIX
+=================================
+- RAILWAY_TCP_APPLICATION_PORT ma najwyższy priorytet.
+- Dodano jednoznaczne logi HOST/PORT.
+- Zachowano wewnętrzny port 4000 i zgodność z MUSHclientem.
+
 SOULBOUND v0.5 RAILWAY READY
 ============================
 - Dodano Dockerfile gotowy dla Railway.

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Soulbound v0.5 Railway Ready
+Soulbound v0.5.1 Railway Hotfix
 Lekki wieloosobowy MUD TCP/Telnet, zgodny z MUSHclientem/Mudletem.
 
 Założenia:
@@ -26,7 +26,17 @@ from dataclasses import dataclass
 from typing import Optional
 
 HOST = os.getenv("SOULBOUND_HOST", "0.0.0.0")
-PORT = int(os.getenv("PORT", os.getenv("SOULBOUND_PORT", "4000")))
+_RAILWAY_TCP_PORT = os.getenv("RAILWAY_TCP_APPLICATION_PORT", "").strip()
+_SOULBOUND_PORT = os.getenv("SOULBOUND_PORT", "").strip()
+_GENERIC_PORT = os.getenv("PORT", "").strip()
+if _RAILWAY_TCP_PORT:
+    PORT = int(_RAILWAY_TCP_PORT)
+elif _SOULBOUND_PORT:
+    PORT = int(_SOULBOUND_PORT)
+elif _GENERIC_PORT:
+    PORT = int(_GENERIC_PORT)
+else:
+    PORT = 4000
 
 # Railway Volume: po zamontowaniu trwałego dysku baza automatycznie
 # trafia do katalogu wskazanego przez RAILWAY_VOLUME_MOUNT_PATH.
@@ -439,7 +449,7 @@ class Session:
         return await self.read_line()
 
     async def login_flow(self) -> bool:
-        await self.send("SOULBOUND ONLINE v0.5")
+        await self.send("SOULBOUND ONLINE v0.5.1")
         await self.send("Tekstowy MUD. Połączono z serwerem.")
         await self.send("Wpisz: login albo new")
         while True:
@@ -877,9 +887,12 @@ class MudServer:
     async def run(self):
         server = await asyncio.start_server(self.handle_client, HOST, PORT)
         addresses = ", ".join(str(sock.getsockname()) for sock in server.sockets or [])
-        print(f"Soulbound v0.5 Online nasłuchuje: {addresses}")
-        print(f"Baza danych: {DB_PATH}")
-        print(f"Limit jednoczesnych klientów: {MAX_CLIENTS}")
+        print(f"Soulbound v0.5.1 Online nasłuchuje: {addresses}", flush=True)
+        print(f"HOST={HOST}", flush=True)
+        print(f"PORT={PORT}", flush=True)
+        print("Railway TCP application port=" + (os.getenv("RAILWAY_TCP_APPLICATION_PORT") or "brak"), flush=True)
+        print(f"Baza danych: {DB_PATH}", flush=True)
+        print(f"Limit jednoczesnych klientów: {MAX_CLIENTS}", flush=True)
         async with server:
             await server.serve_forever()
 
