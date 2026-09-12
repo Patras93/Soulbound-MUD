@@ -1,4 +1,4 @@
-SOULBOUND v0.7.11 THREE CURRENCIES
+SOULBOUND v0.7.37 THREE CURRENCIES
 ==========================
 
 Duży build rozbudowujący działający serwer online do pierwszej właściwej wersji świata MUD.
@@ -4496,3 +4496,952 @@ Przed levelem 80 zwykły Tuńczyk nie występuje w puli połowu.
 Od levelu 80 może być łowiony w Oceanie.
 
 Komenda woda pokazuje ten sam próg odblokowania.
+
+
+QUESTY PROFESYJNO-RZEMIEŚLNICZE CO GODZINĘ v0.7.12
+===================================================
+Każdy powtarzalny quest profesyjny/rzemieślniczy
+odnawia się dokładnie po 60 minutach od ukończenia.
+
+Wędkarstwo:
+Próba Rybaka - 60 minut.
+
+Górnictwo:
+Próba Górnika - 60 minut.
+
+Drwalstwo:
+Próba Drwala - 60 minut.
+
+Zielarstwo:
+Próba Zielarki - 60 minut.
+
+Kowalstwo / Rzemiosło:
+Haldor x3 - po 60 minut.
+
+Gotowanie:
+Marcel x3 - po 60 minut.
+
+Alchemia:
+Orin x3 - po 60 minut.
+
+Łącznie: 13 questów.
+Questy fabularne nie zostały zmienione.
+
+
+WIOSKA GÓRSKA I JASKINIA TROLLI v0.7.13
+========================================
+Nowy szlak:
+Wzgórze Kamiennych Znaków
+-> Górska Przełęcz
+-> Wioska Górska
+-> Szlak Trolli
+-> Jaskinia Trolli
+
+Wioska zawiera:
+Plac Wioski Górskiej
+Dom Straży Górskiej
+Górską Gospodę
+
+NPC:
+Strażnik Górski Eryk
+
+Quest:
+Plaga Trolli
+Zabij 12 trolli w Jaskini Trolli i wróć do Eryka.
+
+Jaskinia Trolli:
+Wejście
+Kamienna Sala
+Wilgotny Tunel
+Sala Głazów
+Legowisko Króla Trolli
+
+Przeciwnicy:
+Górski Troll
+Troll Osiłek
+Troll Szaman
+Król Trolli Grum
+
+Boss pozostaje nieagresywny.
+
+OSOBNE ŁĄKI ZIELARSKIE
+======================
+Wejście:
+Łąka Kwiatów -> północ -> Rozdroże Łąk Zielarskich.
+
+Osobne miejsca:
+Łąka Mięty -> Mięta
+Łąka Rumianku -> Rumianek
+Łąka Pokrzywy -> Pokrzywa
+Łąka Melisy -> Melisa
+Łąka Lawendy -> Lawenda
+Łąka Krwawnika -> Krwawnik
+Łąka Szałwii -> Szałwia
+Łąka Waleriany -> Waleriana
+Łąka Żeń-szenia -> Żeń-szeń
+Łąka Księżycowego Kwiatu -> Księżycowy Kwiat
+
+Na każdej działa zbieraj i zbieraj on.
+Auto-Zielarstwo nie przemieszcza postaci.
+
+
+POSTĘP QUESTÓW Z MIKSTURAMI v0.7.14
+===================================
+Zlecenia Alchemii Orina śledzą teraz faktyczne warzenie.
+
+Przykład:
+Wykonałeś: Mikstura Many. Postęp 1 z 3.
+Wykonałeś: Mikstura Many. Postęp 2 z 3.
+Wykonałeś: Mikstura Many. Postęp 3 z 3.
+
+Licznik zaczyna się od zera przy przyjęciu questa.
+Stare mikstury z ekwipunku nie liczą się jako wykonane.
+
+Bonus Tieru Moździerza:
+jeżeli warzenie da dodatkową miksturę, dodatkowa sztuka
+także zwiększa postęp.
+
+Oddanie questa:
+musisz jednocześnie:
+1. wykonać wymaganą liczbę mikstur,
+2. nadal posiadać wymaganą liczbę mikstur do oddania Orinowi.
+
+Jeśli mikstury zużyjesz, licznik wykonania pozostaje,
+ale trzeba ponownie zdobyć brakujące sztuki do oddania.
+
+Dotyczy:
+Zlecenie Orina: Mikstury Many
+Zlecenie Orina II: Najwyższa Mikstura
+Zlecenie Orina III: Eliksir Wiecznej Duszy
+
+
+WIĘCEJ QUESTÓW Z MIKSTURAMI v0.7.15
+===================================
+Mistrz Alchemii Orin ma teraz 11 etapów.
+
+1. Moździerz 1
+3 Mikstury Many.
+
+2. Moździerz 20
+4 Mikstury Leczenia.
+
+3. Moździerz 40
+3 Wielkie Mikstury Leczenia.
+
+4. Moździerz 60
+3 Wielkie Mikstury Many.
+
+5. Moździerz 80
+2 Eliksiry Witalności.
+
+6. Moździerz 100
+2 Najwyższe Mikstury Leczenia.
+
+7. Moździerz 120
+2 Najwyższe Mikstury Many.
+
+8. Moździerz 140
+2 Wielkie Eliksiry Witalności.
+
+9. Moździerz 160
+2 Toniki Duszy.
+
+10. Moździerz 180
+1 Astralny Eliksir Odnowy.
+
+11. Moździerz 200
+1 Eliksir Wiecznej Duszy.
+
+Każdy etap:
+- wymaga ukończenia poprzedniego,
+- wymaga odpowiedniego levelu Moździerza,
+- pokazuje postęp przy warzeniu,
+- odnawia się po 60 minutach,
+- wymaga posiadania gotowych mikstur przy oddawaniu.
+
+
+ZMIANA ORINA II v0.7.16
+=======================
+Quest:
+Zlecenie Orina II: Mikstury Leczenia
+
+Nowe wymaganie:
+Moździerz Alchemiczny level 15.
+
+Cel:
+Uwarz 4 Mikstury Leczenia.
+
+Postęp:
+1 z 4
+2 z 4
+3 z 4
+4 z 4
+
+Cooldown:
+60 minut.
+
+
+MOUNTAIN & CRAFTING EXPANSION v0.7.17
+=====================================
+
+WIOSKA GÓRSKA
+-------------
+Nowe miejsca:
+Górska Kuźnia
+Chata Łowcy Potworów
+Górski Targ Minerałów
+Chata Zielarki Alpejskiej
+
+Nowi NPC:
+Kowal Górski Brok
+Zielarka Alpejska Ira
+Handlarka Minerałów Dagna
+Łowca Potworów Ragna
+
+NOWE GÓRSKIE QUESTY
+-------------------
+Patrol Górskiego Szlaku.
+Polowanie na 5 Trolli Szamanów.
+Polowanie na Króla Trolli Gruma.
+Odzyskanie 6 Skradzionych Skrzyń Rudy.
+
+TWIERDZA GIGANTÓW 1-50
+-----------------------
+50 prawdziwych poziomów.
+Ogrzy Miotacze Głazów.
+Cyklopi Strażnicy.
+Górskie Giganty.
+
+Bossowie:
+10 Kamienny Herszt Grakk
+20 Jednooki Tyran Morok
+30 Władca Głazów Bront
+40 Cyklop Burzy Arges
+50 Król Gigantów Tharos
+
+Żywy boss blokuje wejście na kolejny poziom.
+
+KOWALSTWO QUESTY 1-200
+----------------------
+13 etapów u Kowala Górskiego Broka.
+Postęp wykonania jest czytany przy każdym przedmiocie.
+Finał level 200:
+pełny Zestaw Eternium, wszystkie 6 elementów.
+
+GOTOWANIE QUESTY 1-200
+----------------------
+Marcel ma 13 etapów.
+Każdy cel to konkretna potrawa.
+Postęp wykonania działa jak przy miksturach Orina.
+
+ZIELARSTWO
+----------
+10 Lawendy.
+8 Żeń-szenia.
+5 Księżycowych Kwiatów.
+Zbierane na osobnych Łąkach Zielarskich.
+
+GÓRNICTWO
+---------
+Dagna ma zadania na konkretne rudy:
+Miedź
+Żelazo
+Srebro
+Złoto
+Kobalt
+Kamień Runiczny
+Smocza Stal
+Astral
+Pustka
+Eternium
+
+WĘDKARSTWO
+----------
+Neris ma zadania na konkretne ryby i rare variants.
+Wśród nich:
+Złoty Pstrąg
+Tuńczyk
+3 Złote Okazy Pstrąga
+Tuńczyk Otchłani
+Księżycowy Lewiatan
+1 Pradawny Tuńczyk
+
+RZADKIE TROLLE
+---------------
+Albinos Troll
+Kryształowy Troll
+Pradawny Troll
+Troll Runiczny
+
+ELITE AFFIXY
+------------
+Opancerzony
+Wampiryczny
+Regenerujący
+Lodowy
+Ognisty
+Astralny
+
+Affixy mają realny wpływ na walkę.
+Nie dodają dodatkowych odpowiedzi przeciwnika.
+
+
+POLSKIE KODOWANIE v0.7.18
+==========================
+Domyślnie Soulbound używa UTF-8.
+
+Test polskich znaków:
+Zażółć gęślą jaźń.
+Ą Ć Ę Ł Ń Ó Ś Ź Ż.
+
+Komendy:
+kodowanie
+kodowanie utf8
+kodowanie cp1250
+
+Nowoczesne klienty:
+używaj UTF-8.
+
+Starsze klienty MUD/Telnet, które pokazują krzaki:
+użyj:
+kodowanie cp1250
+
+Serwer przy połączeniu wysyła negocjację TELNET CHARSET.
+
+Wejście obsługuje:
+UTF-8
+Windows-1250
+
+Docker/Railway:
+PYTHONUTF8=1
+PYTHONIOENCODING=utf-8
+LANG=C.UTF-8
+LC_ALL=C.UTF-8
+
+
+MIKSTURA LECZENIA OD MOŹDZIERZA 5 v0.7.19
+=========================================
+Mikstura Leczenia ma teraz rzeczywisty próg:
+Moździerz Alchemiczny level 5.
+
+Przed levelem 5 nie można jej uwarzyć.
+
+Receptura:
+Pokrzywa x1
+Rumianek x1
+
+Quest:
+Zlecenie Orina II: Mikstury Leczenia
+
+Wymaganie:
+Moździerz level 5
+
+Cel:
+4 Mikstury Leczenia
+
+Cooldown:
+60 minut.
+
+
+KOMENDA SAY v0.7.20
+===================
+Lokalny czat z graczami w tej samej lokacji.
+
+Użycie:
+say Cześć wszystkim
+
+Ty:
+Mówisz: Cześć wszystkim
+
+Inni gracze w tej samej lokacji:
+NazwaGracza mówi: Cześć wszystkim
+
+Aliasy:
+powiedz
+mow
+mów
+
+Limit:
+500 znaków.
+
+Puste wiadomości i same spacje nie są wysyłane.
+say nie przerywa odpoczynku.
+
+
+APOSTROF JAK SAY v0.7.21
+========================
+Nie musisz już pisać:
+say Cześć
+
+Możesz wpisać:
+'Cześć
+
+Apostrof na początku linii automatycznie uruchamia say.
+
+Przykład:
+'Hej wszystkim
+
+Ty:
+Mówisz: Hej wszystkim
+
+Inni gracze w tej samej lokacji:
+NazwaGracza mówi: Hej wszystkim
+
+
+LOOK NA CELE v0.7.22
+====================
+look
+opisuje lokację.
+
+look Asia
+opisuje gracza Asia, jeśli stoi tutaj.
+
+look Strażnik Górski Eryk
+opisuje NPC w tej lokacji.
+
+look Górski Troll
+pokazuje bieżące HP i dane przeciwnika.
+
+look Mikstura Leczenia
+look hełm
+pokazuje opis przedmiotu z ekwipunku,
+założonego sprzętu albo lokalnego sklepu.
+
+
+SKRÓT L DLA LOOK v0.7.23
+========================
+l
+to samo co:
+look
+
+Przykłady:
+
+l
+opisuje lokację.
+
+l Asia
+opisuje gracza Asia.
+
+l Strażnik Górski Eryk
+opisuje NPC.
+
+l Górski Troll
+opisuje przeciwnika.
+
+l Mikstura Leczenia
+opisuje przedmiot.
+
+l hełm
+opisuje pasujący przedmiot.
+
+
+ROZBUDOWANE WHO v0.7.24
+=======================
+Komendy:
+who
+kto
+
+Najpierw gra podaje liczbę graczy online.
+
+Potem dla każdego gracza osobna linia:
+Nazwa.
+Klasa lub aktywne klasy.
+Soul Level.
+Aktualna lokacja.
+Strefa.
+
+Przykład:
+Asia. Klasa: Mag. Soul Level 42. Lokalizacja: Rynek. Strefa: Miasto.
+
+
+SKALOWANE ŚCIANY KOPALNI v0.7.25
+================================
+Poziomy Kopalni 1-9:
+5 uderzeń Kilofa na ścianę.
+
+Od poziomu 10:
+liczba wymaganych uderzeń jest równa
+numerowi aktualnego poziomu.
+
+Przykłady:
+poziom 10 = 10 uderzeń
+poziom 11 = 11 uderzeń
+poziom 20 = 20 uderzeń
+poziom 50 = 50 uderzeń
+poziom 100 = 100 uderzeń
+poziom 199 = 199 uderzeń,
+aby odblokować poziom 200.
+
+Istniejący postęp uderzeń nie jest resetowany.
+
+WAŻNE:
+kop on kopie tylko w aktualnym miejscu.
+Nie chodzi i nie schodzi sam.
+Po przebiciu ściany użyj ręcznie:
+down
+
+
+AUTO-KOPANIE I ZEJŚCIE DOWN v0.7.26
+===================================
+kop on może automatycznie zejść na następny
+poziom Kopalni Głębinowej.
+
+Warunki:
+1. Musisz być na prawdziwym poziomie Kopalni.
+2. Musi istnieć wyjście down.
+3. down musi prowadzić dokładnie na następny poziom.
+4. Następny poziom musi być już odblokowany.
+5. Ściana nie może blokować zejścia.
+6. Nie możesz być w walce.
+
+Po przebiciu ściany:
+auto-kopanie schodzi o jeden poziom w dół
+i kontynuuje kopanie.
+
+Jeżeli włączysz kop on później na poziomie,
+którego ściana jest już przebita,
+automat również może zejść na następny
+odblokowany poziom.
+
+Automat NIE chodzi po świecie.
+Automat NIE wybiera east/west/north/south/up.
+Automat może użyć wyłącznie bezpiecznego down
+wewnątrz Kopalni Głębinowej.
+
+
+EXPOWISKA v0.7.27
+=================
+Komenda:
+expowiska
+
+Pokazuje pełną listę terenów do expienia
+wraz z opisem każdego terenu.
+
+Każda pozycja zawiera:
+nazwę,
+orientacyjny Soul Level,
+trudność,
+krótki opis.
+
+Szczegóły:
+expowiska trening
+expowiska podziemia
+expowiska dzicz
+expowiska trolle
+expowiska giganci
+expowiska krypta
+expowiska astral
+expowiska mityczna krypta
+expowiska mityczna wieza astralna
+
+Szczegóły zawierają także:
+typowych przeciwników,
+uwagi o bossach/mechanikach,
+komendę prowadz.
+
+Polecane dla aktualnego Soul Level:
+expowiska polecane
+
+WAŻNE:
+Soulbound nie ma levelu postaci ani Character XP.
+Zakres Soul Level przy expowisku to rekomendacja,
+nie twardy próg. Liczą się także staty, klasa,
+ekwipunek i umiejętności.
+
+
+MITYCZNE LOCHY OD SOUL LEVEL 100 v0.7.28
+=========================================
+Mityczna Krypta:
+wymaga Soul Level 100.
+
+Mityczna Wieża Astralna:
+wymaga Soul Level 100.
+
+Nie trzeba już ukończyć:
+zwykłej Krypty do piętra 200,
+zwykłej Wieży Astralnej do poziomu 200.
+
+Mityczna Krypta nadal ma:
+poziomy 1-200,
+bossa co 10 pięter.
+
+Mityczna Wieża Astralna nadal ma:
+poziomy 1-200,
+bossa co 10 poziomów.
+
+Soul Level 99 i mniej:
+wejście zablokowane.
+
+Soul Level 100 i więcej:
+wejście dozwolone.
+
+
+PRZETOP v0.7.29
+===============
+Nowa komenda:
+przetop <metal albo ruda>
+
+Przykłady:
+przetop żelazo
+przetop srebro
+przetop złoto
+przetop kobalt
+przetop runa
+przetop smocza stal
+przetop astral
+przetop pustka
+przetop Eternium
+
+Komenda korzysta z normalnych receptur sztabek.
+Nie omija wymagań Młota, Kowalstwa, składników ani stacji.
+
+
+WSPARCIE DRUŻYNY v0.7.29
+========================
+Komendy:
+wspieraj <gracz>
+assist <gracz>
+
+Także:
+druzyna wspieraj <gracz>
+druzyna assist <gracz>
+
+Warunki:
+gracz musi być online,
+musi być w twojej drużynie,
+musi być w tej samej lokacji,
+musi aktualnie walczyć z żywym przeciwnikiem.
+
+Assist dołącza do dokładnie tego samego moba.
+Pierwsze dołączenie wykonuje normalną akcję ataku.
+Przeciwnik odpowiada jedną turą.
+
+Jeśli walczysz już z innym przeciwnikiem,
+assist nie zmieni celu.
+
+
+AUTOMATYCZNA WALUTA v0.7.30
+===========================
+1000 srebrnych monet = 1 złota moneta.
+1 000 000 złotych monet = 1 mithrilowa moneta.
+
+Przeliczanie jest automatyczne.
+
+Przykład:
+2500 srebrnych monet
+staje się:
+500 srebrnych monet i 2 złote monety.
+
+Przykład:
+1 000 001 złotych monet
+staje się:
+1 złota moneta i 1 mithrilowa moneta.
+
+Portfel i Bank Dusz używają tego samego systemu.
+
+Stara ręczna komenda exchange została usunięta.
+
+Istniejący majątek graczy nie jest kasowany.
+Stare salda są zachowywane wartościowo i normalizowane.
+Brak resetu SQLite.
+
+
+SKLEPY KLASOWE v0.7.31
+======================
+Dodano wyposażenie dla wszystkich 12 klas.
+
+Każda klasa ma:
+hełm,
+pancerz,
+rękawice,
+nogawice,
+buty,
+talizman.
+
+Wojownik i Berserker:
+Sala Oręża Gildii.
+
+Łotrzyk i Łowca:
+Galeria Cieni Gildii.
+
+Mnich i Strażnik:
+Sala Dyscypliny Gildii.
+
+Mag i Psionik:
+Komnata Arkanów Gildii.
+
+Nekromanta i Czarownik:
+Komnata Mrocznych Sztuk.
+
+Kapłan i Druid:
+Sanktuarium Gildii.
+
+Na miejscu:
+shop
+albo:
+list
+
+Możesz też użyć:
+prowadz sklep <klasa>
+
+Sprzęt klasowy wymaga aktywnej odpowiedniej klasy.
+Aktywna klasa dodatkowa z multiclass również działa.
+
+
+KILOF v0.7.31
+=============
+Kilof nie jest już sprzedawany w:
+Kuźni Dusz,
+Górskiej Kuźni.
+
+Kilof sprzedaje wyłącznie:
+Górnik Toren.
+
+Lokacja:
+Wejście do Kryształowej Jaskini.
+
+Prowadzenie:
+prowadz jaskinia
+albo:
+prowadz sklep kilofa
+
+Zakup:
+kup kilof
+
+
+BIŻUTERIA KLASOWA v0.7.32
+=========================
+Każda z 12 klas otrzymała:
+1 Pierścień klasowy,
+1 Naszyjnik klasowy.
+
+Łącznie:
+24 nowe elementy EQ.
+
+Każdy klasowy zestaw ma teraz 8 części:
+hełm,
+pancerz,
+rękawice,
+nogawice,
+buty,
+talizman,
+pierścień,
+naszyjnik.
+
+Pierścień:
+osobny slot ring,
+klasowy bonus +2 do głównej cechy.
+
+Naszyjnik:
+osobny slot necklace,
+klasowy bonus +3 do głównej cechy.
+
+Kupujesz je w istniejących sklepach klasowych.
+
+Szybkie zakładanie:
+załóż pierścień
+załóż naszyjnik
+
+Kupno i zakładanie wymaga aktywnej właściwej klasy.
+Multiclass jest obsługiwany.
+
+
+DŁUŻSZY RESPAWN MOBÓW v0.7.33
+==============================
+Globalny mnożnik respawnu:
+x2.
+
+Zwykłe moby:
+120 sekund -> 240 sekund.
+
+Bossowie:
+300 sekund -> 600 sekund.
+
+Manekin treningowy:
+60 sekund -> 120 sekund.
+
+Jeżeli konkretny mob ma własny
+respawn_seconds, również jest on
+mnożony x2.
+
+Nie zmieniono:
+HP,
+obrażeń,
+Soul XP,
+waluty,
+lootu,
+mechanik bossów,
+zasady jednej odpowiedzi przeciwnika na turę.
+
+
+NUMEROWANY WYBÓR PROWADZENIA v0.7.34
+====================================
+Jeśli komenda:
+prowadz <nazwa>
+
+pasuje do kilku lokacji,
+MUD pokazuje listę z numerami.
+
+Przykład:
+prowadz kopalnia
+
+Możliwy wybór:
+1. Kopalnia Głębinowa, poziomy 1-200.
+2. Kopalnia Kryształów, poziomy 1-20.
+
+Wpisujesz:
+1
+
+Następnie MUD pyta o poziom.
+Wpisujesz samą cyfrę, na przykład:
+80
+
+i prowadzenie rusza do:
+Kopalnia Głębinowa, poziom 80.
+
+Nadal działa bezpośrednio:
+prowadz kopalnia 80
+
+Mechanizm działa również dla innych
+niejednoznacznych lokacji i wielopoziomowych lochów.
+
+Anulowanie:
+anuluj
+
+
+PROWADZENIE - TYLKO JEDNA CYFRA v0.7.35
+=======================================
+Przykład:
+
+prowadz kopalnia
+
+MUD podaje:
+1. Kopalnia Głębinowa, poziomy 1-200.
+2. Kopalnia Kryształów, poziomy 1-20.
+
+Wpisujesz tylko:
+1
+
+i prowadzenie od razu rusza.
+
+Nie ma drugiego pytania o poziom.
+
+Wybranie Kopalni Głębinowej prowadzi
+do jej pierwszego poziomu.
+
+Wybranie Kopalni Kryształów prowadzi
+do jej pierwszego poziomu.
+
+Jeżeli chcesz od razu konkretny poziom:
+prowadz kopalnia 80
+
+nadal działa normalnie.
+
+
+WYBÓR CYFRĄ DLA WSZYSTKICH TERENÓW v0.7.36
+===========================================
+Ten sam system działa teraz dla wszystkich terenów.
+
+Przykłady:
+prowadz kopalnia
+prowadz dzicz
+prowadz góry
+prowadz podziemia
+prowadz gildia
+prowadz jaskinia trolli
+prowadz krypta
+prowadz wieża
+prowadz twierdza
+prowadz miasto
+prowadz łąki
+
+Jeżeli pasuje kilka lokacji:
+MUD podaje numerowaną listę.
+
+Wpisujesz tylko numer:
+1
+2
+3
+
+Nie ma drugiego pytania.
+
+Duże lochy nie wypisują setek pięter.
+Są zwijane do czytelnej pozycji.
+
+Naprawiono również Twierdzę Gigantów,
+aby nie wypisywała wszystkich 50 poziomów osobno.
+
+Konkretny poziom nadal można podać bezpośrednio,
+na przykład:
+prowadz kopalnia 80
+
+
+JUBILERSTWO v0.7.37
+===================
+Nowa profesja:
+Jubilerstwo 1-200.
+
+Narzędzie:
+Szczypce Jubilerskie 1-200.
+13 Tierów.
+Brak durability.
+Brak napraw.
+Narzędzie nie zużywa się.
+
+Sprzedawca i specjalistka:
+Jubilerka Mirella.
+
+Lokacja:
+Pracownia Jubilerska.
+Znajduje się nad Rynkiem.
+
+Prowadzenie:
+prowadz jubilerka
+prowadz mirella
+prowadz pracownia jubilerska
+
+Zakup:
+shop
+kup szczypce
+
+Komendy:
+jubilerstwo
+szczypce
+receptury jubilerstwo
+jub <receptura>
+
+Receptury:
+18 receptur.
+9 pierścieni.
+9 naszyjników.
+
+Materiały:
+Żelazo,
+Srebro,
+Złoto,
+Kobalt,
+Runa,
+Smocza Stal,
+Astral,
+Pustka,
+Eternium.
+
+ZLECENIA MIRELLI
+=================
+9 etapów:
+1. Żelazne Pierścienie.
+2. Srebrny Naszyjnik.
+3. Złoty Pierścień.
+4. Kobaltowy Naszyjnik.
+5. Runiczny Pierścień.
+6. Naszyjnik Smoczej Stali.
+7. Astralny Pierścień.
+8. Naszyjnik Pustki.
+9. Wieczny Klejnot z Eternium.
+
+Każdy etap rozwija:
+Jubilerstwo,
+Szczypce Jubilerskie,
+oraz daje walutę.
+
+Ostatni etap daje także mithrilową monetę.

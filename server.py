@@ -1,7 +1,8 @@
+# -*- coding: utf-8 -*-
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Soulbound v0.7.11 Tuna Later
+Soulbound v0.7.37 Jewelcrafting
 Wieloosobowy tekstowy MUD TCP/Telnet dla MUSHclienta/Mudleta.
 
 Najważniejsze zasady projektu:
@@ -28,7 +29,7 @@ import unicodedata
 from dataclasses import dataclass
 from typing import Optional
 
-VERSION = "0.7.11"
+VERSION = "0.7.37"
 
 HOST = os.getenv("SOULBOUND_HOST", "0.0.0.0")
 _RAILWAY_TCP_PORT = os.getenv("RAILWAY_TCP_APPLICATION_PORT", "").strip()
@@ -61,9 +62,10 @@ SOUL_MAX_TIER = 5
 REGULAR_MOB_RESPAWN_SECONDS = 120
 BOSS_RESPAWN_SECONDS = 300
 TRAINING_DUMMY_RESPAWN_SECONDS = 60
+GLOBAL_MOB_RESPAWN_MULTIPLIER = 2.0
 CORPSE_LIFETIME_SECONDS = 600
 GLOBAL_MOB_HP_MULTIPLIER = 2.0
-QUEST_REPEAT_COOLDOWN_SECONDS = 30 * 60
+QUEST_REPEAT_COOLDOWN_SECONDS = 60 * 60
 BLACKSMITH_QUEST_COOLDOWN_SECONDS = 60 * 60
 
 # Ekonomia:
@@ -72,8 +74,27 @@ BLACKSMITH_QUEST_COOLDOWN_SECONDS = 60 * 60
 SILVER_PER_GOLD = 1000
 GOLD_PER_MITHRIL = 1000000
 
+def normalize_currency_values(silver, gold, mithril):
+    silver = max(0, int(silver))
+    gold = max(0, int(gold))
+    mithril = max(0, int(mithril))
+
+    gold_from_silver, silver = divmod(
+        silver, SILVER_PER_GOLD
+    )
+    gold += gold_from_silver
+
+    mithril_from_gold, gold = divmod(
+        gold, GOLD_PER_MITHRIL
+    )
+    mithril += mithril_from_gold
+
+    return silver, gold, mithril
+
+
 PROFESSION_MAX_LEVEL = 100
 BLACKSMITHING_MAX_LEVEL = 200
+JEWELCRAFTING_MAX_LEVEL = 200
 
 # v0.6.79:
 # Profesje pokazują i otrzymują 2x więcej XP,
@@ -161,6 +182,21 @@ PROFESSION_RANK_NAMES = {
         "Kowal Pustki",
         "Wieczny Mistrz Kowalstwa",
     ),
+    "Jubilerstwo": (
+        "Uczeń Jubilerstwa",
+        "Adept Jubilerstwa",
+        "Czeladnik Jubilerstwa",
+        "Specjalista Jubilerstwa",
+        "Ekspert Jubilerstwa",
+        "Mistrz Jubilerstwa",
+        "Arcymistrz Jubilerstwa",
+        "Legenda Jubilerstwa",
+        "Jubiler Runiczny",
+        "Jubiler Smoczej Stali",
+        "Jubiler Astralny",
+        "Jubiler Pustki",
+        "Wieczny Mistrz Jubilerstwa",
+    ),
 }
 
 def normalize_profession_name(profession):
@@ -180,23 +216,30 @@ def normalize_profession_name(profession):
         "kowal", "rzemioslo", "rzemiosło",
     ):
         return "Kowalstwo"
+    if value in (
+        "jewelcrafting", "jewelry", "jubilerstwo",
+        "jubiler", "bizuteria", "biżuteria",
+    ):
+        return "Jubilerstwo"
     return str(profession)
 
 def profession_max_level(profession):
     profession = normalize_profession_name(profession)
     if profession == "Kowalstwo":
         return BLACKSMITHING_MAX_LEVEL
+    if profession == "Jubilerstwo":
+        return JEWELCRAFTING_MAX_LEVEL
     return PROFESSION_MAX_LEVEL
 
 def profession_rank_thresholds(profession):
     profession = normalize_profession_name(profession)
-    if profession == "Kowalstwo":
+    if profession in ("Kowalstwo", "Jubilerstwo"):
         return BLACKSMITHING_RANK_THRESHOLDS
     return PROFESSION_RANK_THRESHOLDS
 
 def profession_max_rank(profession):
     profession = normalize_profession_name(profession)
-    if profession == "Kowalstwo":
+    if profession in ("Kowalstwo", "Jubilerstwo"):
         return BLACKSMITHING_MAX_RANK
     return PROFESSION_MAX_RANK
 
@@ -343,6 +386,21 @@ TOOL_TIER_NAMES = {
         "Moździerz Pradawnego Eliksiru",
         "Moździerz Wiecznej Alchemii",
     ),
+    "jewelcrafting": (
+        "Szczypce Jubilerskie Ucznia",
+        "Szczypce Srebrnego Drutu",
+        "Szczypce Złotego Splotu",
+        "Szczypce Precyzyjnego Szlifu",
+        "Szczypce Kryształowej Oprawy",
+        "Szczypce Mistrza Jubilerstwa",
+        "Szczypce Legendarnej Oprawy",
+        "Szczypce Mitycznego Klejnotu",
+        "Szczypce Runicznej Oprawy",
+        "Szczypce Smoczej Stali",
+        "Szczypce Astralnego Splotu",
+        "Szczypce Pustki",
+        "Szczypce Wiecznego Klejnotu",
+    ),
 }
 
 def tool_tier(level):
@@ -412,6 +470,7 @@ TOOL_ACTION_BASE_SECONDS = {
     "cooking": 12,
     "herbalism": 10,
     "alchemy": 18,
+    "jewelcrafting": 20,
 }
 
 TOOL_ACTION_MIN_SECONDS = {
@@ -422,6 +481,7 @@ TOOL_ACTION_MIN_SECONDS = {
     "cooking": 4,
     "herbalism": 3,
     "alchemy": 6,
+    "jewelcrafting": 7,
 }
 
 REST_TICK_SECONDS = 5.0
@@ -437,6 +497,16 @@ FISHING_ROOMS = FRESHWATER_FISHING_ROOMS | MARINE_FISHING_ROOMS
 MINE_MIN_FLOOR = 1
 MINE_MAX_FLOOR = 200
 MINE_WALL_HITS_REQUIRED = 5
+MINE_WALL_SCALING_START_FLOOR = 10
+
+def mine_wall_hits_required(floor):
+    floor = max(
+        MINE_MIN_FLOOR,
+        min(MINE_MAX_FLOOR, int(floor)),
+    )
+    if floor < MINE_WALL_SCALING_START_FLOOR:
+        return MINE_WALL_HITS_REQUIRED
+    return floor
 
 def mine_floor_id(floor):
     return f"mine_floor_{int(floor)}"
@@ -2667,6 +2737,18 @@ def build_mine_depth_rooms():
 
 build_mine_depth_rooms()
 
+ROOMS["jeweler_workshop"] = {
+    "zone": "Miasto Dusz",
+    "name": "Pracownia Jubilerska",
+    "desc": (
+        "Jasna pracownia pełna drobnych narzędzi, metalowych opraw "
+        "i stołów do wykonywania pierścieni oraz naszyjników. "
+        "Pracuje tutaj Jubilerka Mirella."
+    ),
+    "exits": {"down": "market"},
+}
+ROOMS["market"]["exits"]["up"] = "jeweler_workshop"
+
 DIRECTION_ALIASES = {
     "n": "north", "north": "north", "północ": "north", "polnoc": "north",
     "s": "south", "south": "south", "południe": "south", "poludnie": "south",
@@ -2739,6 +2821,12 @@ GUIDE_DESTINATION_ALIASES = {
     "bankier": "market",
     "bankier aldren": "market",
     "aldren": "market",
+    "jubiler": "jeweler_workshop",
+    "jubilerka": "jeweler_workshop",
+    "mirella": "jeweler_workshop",
+    "jubilerka mirella": "jeweler_workshop",
+    "pracownia jubilerska": "jeweler_workshop",
+    "jubilerstwo": "jeweler_workshop",
     "targ rybny": "fish_market",
     "ryby": "fish_market",
     "tomas": "fish_market",
@@ -2882,16 +2970,21 @@ TOOL_BUY_ALIASES = {
     "mozdzierz": "alchemy_mortar",
     "mozdzierz alchemiczny": "alchemy_mortar",
     "mortar": "alchemy_mortar",
+    "szczypce": "jeweler_pliers",
+    "szczypce jubilerskie": "jeweler_pliers",
+    "pliers": "jeweler_pliers",
+    "jeweler pliers": "jeweler_pliers",
 }
 
 TOOL_SHOP_ROOMS = {
     "fishing_rod": "fish_market",
-    "pickaxe": "forge",
+    "pickaxe": "cave_entrance",
     "saw": "lumberjack_camp",
     "crafting_hammer": "forge",
     "chef_knife": "inn",
     "herbalist_sickle": "herbalist_hut",
     "alchemy_mortar": "herbalist_hut",
+    "jeweler_pliers": "jeweler_workshop",
 }
 
 EQUIPMENT_SLOT_ALIASES = {
@@ -2930,6 +3023,17 @@ EQUIPMENT_SLOT_ALIASES = {
     "talizman": "charm",
     "amulet": "charm",
     "charm": "charm",
+
+    "pierścień": "ring",
+    "pierscien": "ring",
+    "pierścien": "ring",
+    "pierscien": "ring",
+    "ring": "ring",
+
+    "naszyjnik": "necklace",
+    "naszyjnika": "necklace",
+    "necklace": "necklace",
+
 }
 
 EQUIPMENT_SLOT_NAMES = {
@@ -2939,10 +3043,233 @@ EQUIPMENT_SLOT_NAMES = {
     "legs": "nogi",
     "feet": "stopy",
     "charm": "talizman",
+    "ring": "pierścień",
+    "necklace": "naszyjnik",
 }
+
+EXP_AREAS = (
+    {
+        "id": "trening",
+        "name": "Plac Treningowy",
+        "aliases": (
+            "trening", "plac treningowy", "manekin", "manekiny",
+        ),
+        "soul_min": 1,
+        "soul_max": 10,
+        "difficulty": "bardzo łatwa",
+        "guide": "manekiny",
+        "enemies": "Żywy Manekin",
+        "description": (
+            "Najbezpieczniejsze miejsce do sprawdzania obrażeń, "
+            "umiejętności i podstaw walki. Dobre na sam początek."
+        ),
+        "note": (
+            "Manekin jest przeznaczony głównie do treningu, "
+            "więc szybko warto przenieść się do Podziemi lub Dziczy."
+        ),
+    },
+    {
+        "id": "podziemia",
+        "name": "Podziemia i Kryształowa Jaskinia",
+        "aliases": (
+            "podziemia", "krysztalowa jaskinia", "jaskinia",
+            "piwnica swiatyni", "krysztalowa komnata",
+        ),
+        "soul_min": 1,
+        "soul_max": 25,
+        "difficulty": "łatwa",
+        "guide": "jaskinia",
+        "enemies": (
+            "Szczur Świątynny, Szkielet Strażnik, Upiór Krypty, "
+            "Kryształowy Strażnik i Kryształowy Władca"
+        ),
+        "description": (
+            "Wczesne podziemia z rosnącą trudnością. "
+            "Dobre miejsce na pierwsze regularne walki i oswojenie się "
+            "z silniejszymi przeciwnikami."
+        ),
+        "note": (
+            "Kryształowy Władca jest bossem i jest znacznie mocniejszy "
+            "od zwykłych mobów tego regionu."
+        ),
+    },
+    {
+        "id": "dzicz",
+        "name": "Dzicz",
+        "aliases": (
+            "dzicz", "ruiny", "gobliny", "bandyci", "wilki",
+            "stary cmentarz", "oboz bandytow",
+        ),
+        "soul_min": 10,
+        "soul_max": 45,
+        "difficulty": "łatwa do średniej",
+        "guide": "ruiny",
+        "enemies": (
+            "Bandyci, Bandyccy Maruderzy, Gobliny, Goblińskie Osiłki "
+            "i Wilki Cienia"
+        ),
+        "description": (
+            "Rozległy teren świata z kilkoma grupami przeciwników. "
+            "Dobry do zwykłego expienia, questów i zdobywania sprzętu."
+        ),
+        "note": (
+            "W Dziczy występują także bossowie świata, między innymi "
+            "Herszt Bandytów i Król Goblinów."
+        ),
+    },
+    {
+        "id": "trolle",
+        "name": "Góry i Jaskinia Trolli",
+        "aliases": (
+            "trolle", "jaskinia trolli", "gory", "góry",
+            "gorski szlak", "krol trolli",
+        ),
+        "soul_min": 25,
+        "soul_max": 70,
+        "difficulty": "średnia",
+        "guide": "jaskinia trolli",
+        "enemies": (
+            "Górskie Trolle, Trolle Osiłki, Trolle Szamani "
+            "oraz rzadkie i elitarne warianty trolli"
+        ),
+        "description": (
+            "Mocniejsze expowisko powiązane z Wioską Górską. "
+            "Przeciwnicy mają więcej HP, a rzadkie trolle i elite affixy "
+            "mogą wyraźnie zwiększyć trudność."
+        ),
+        "note": (
+            "Na końcu jaskini czeka Król Trolli Grum. "
+            "Trolle mogą też zostawiać Skradzione Skrzynie Rudy."
+        ),
+    },
+    {
+        "id": "giganci",
+        "name": "Twierdza Gigantów 1-50",
+        "aliases": (
+            "giganci", "twierdza gigantow", "twierdza gigantów",
+            "twierdza", "cyklopy", "ogry",
+        ),
+        "soul_min": 45,
+        "soul_max": 130,
+        "difficulty": "średnia do bardzo trudnej",
+        "guide": "twierdza gigantow",
+        "enemies": (
+            "Ogrzy Miotacze Głazów, Cyklopi Strażnicy i Górskie Giganty"
+        ),
+        "description": (
+            "Pięćdziesięciopoziomowy górski dungeon. "
+            "Z każdym poziomem rośnie HP, obrażenie i nagroda Soul XP. "
+            "Nadaje się do dłuższego expienia bez zmiany regionu."
+        ),
+        "note": (
+            "Boss stoi na poziomach 10, 20, 30, 40 i 50 "
+            "i musi zostać pokonany, aby wejść wyżej."
+        ),
+    },
+    {
+        "id": "krypta",
+        "name": "Krypta 1-200",
+        "aliases": (
+            "krypta", "krypta 1 200", "crypt", "krypta 200",
+        ),
+        "soul_min": 30,
+        "soul_max": 200,
+        "difficulty": "skalowana od średniej do endgame",
+        "guide": "wejscie do krypty",
+        "enemies": (
+            "Szkielety Krypty, Upiory Krypty, Strażnicy Sarkofagu, "
+            "Cienie Katakumb i Zjawiska Pustki"
+        ),
+        "description": (
+            "Główne wielopoziomowe expowisko 1-200. "
+            "Trudność i nagrody rosną z piętrem, więc możesz dobierać "
+            "głębokość do aktualnej siły postaci."
+        ),
+        "note": (
+            "Boss stoi co 10 pięter. Boss blokuje zejście niżej. "
+            "Pokonani bossowie odblokowują checkpointy portalu."
+        ),
+    },
+    {
+        "id": "astral",
+        "name": "Wieża Astralna 100-200",
+        "aliases": (
+            "astral", "wieza astralna", "wieża astralna",
+            "astralna wieza", "astralna wieża",
+        ),
+        "soul_min": 100,
+        "soul_max": 200,
+        "difficulty": "trudna i endgame",
+        "guide": "wieza astralna",
+        "enemies": (
+            "Astralni Strażnicy, Widma Konstelacji, Rycerze Gwiezdnego Pyłu, "
+            "Tkacze Nebuli, Heroldzi Komety i Strażnicy Firmamentu"
+        ),
+        "description": (
+            "Drugie główne expowisko endgame. "
+            "Wieża zaczyna się na poziomie 100 i wymaga Soul Level 100. "
+            "Daje wysokie Soul XP oraz Astralny ekwipunek."
+        ),
+        "note": (
+            "Boss stoi co 10 poziomów od 100 do 200 "
+            "i blokuje drogę w górę."
+        ),
+    },
+    {
+        "id": "mythic_crypt",
+        "name": "Mityczna Krypta 1-200",
+        "aliases": (
+            "mityczna krypta", "mythic crypt", "mythic krypta",
+        ),
+        "soul_min": 100,
+        "soul_max": 200,
+        "difficulty": "bardzo trudny endgame",
+        "guide": "mityczna krypta",
+        "enemies": (
+            "Mityczni Kościani Rycerze, Mityczne Upiory, "
+            "Mityczni Żniwiarze Grobowca i Strażnicy Otchłani"
+        ),
+        "description": (
+            "Mityczna wersja Krypty dostępna od Soul Level 100. "
+            "To bardzo trudne expowisko z wysokimi nagrodami Soul XP."
+        ),
+        "note": (
+            "Wejście wymaga Soul Level 100. "
+            "Nie wymaga ukończenia zwykłej Krypty do piętra 200. "
+            "Mityczny boss występuje co 10 pięter."
+        ),
+    },
+    {
+        "id": "mythic_astral",
+        "name": "Mityczna Wieża Astralna 1-200",
+        "aliases": (
+            "mityczna wieza astralna", "mityczna wieża astralna",
+            "mythic astral", "mythic astral tower",
+        ),
+        "soul_min": 100,
+        "soul_max": 200,
+        "difficulty": "najtrudniejszy endgame",
+        "guide": "mityczna wieza astralna",
+        "enemies": (
+            "Mityczni Astralni Strażnicy, Mityczni Rycerze Konstelacji, "
+            "Mityczne Widma Nebuli i Heroldzi Gwiezdnej Burzy"
+        ),
+        "description": (
+            "Mityczna Wieża Astralna jest dostępna od Soul Level 100. "
+            "To ekstremalnie trudne expowisko z bardzo wysokimi nagrodami Soul XP."
+        ),
+        "note": (
+            "Wejście wymaga Soul Level 100. "
+            "Nie wymaga ukończenia zwykłej Wieży Astralnej do poziomu 200. "
+            "Mityczny boss występuje co 10 poziomów."
+        ),
+    },
+)
 
 COMMAND_ALIASES = {
     "pomoc": "help", "pomoce": "help",
+    "kodowanie": "encoding", "encoding": "encoding",
+    "charset": "encoding", "znaki": "encoding",
     "opis": "describe", "opisz": "describe", "describe": "describe", "description": "describe",
     "changes": "changes", "zmiany": "changes", "changelog": "changes",
     "spójrz": "look", "spojrz": "look", "l": "look",
@@ -2950,11 +3277,16 @@ COMMAND_ALIASES = {
     "mapa": "map",
     "gdzie": "where",
     "kto": "who",
+    "expowiska": "expareas", "expowisko": "expareas",
+    "terenyexp": "expareas", "terenydoexpienia": "expareas",
+    "expienie": "expareas",
+    "say": "say", "powiedz": "say", "mow": "say", "mów": "say",
     "atlas": "atlas", "atlasy": "atlas",
     "codex": "codex", "kodeks": "codex",
     "encyklopedia": "codex", "encyclopedia": "codex",
     "charyzma": "charisma", "haryzma": "charisma", "charisma": "charisma",
     "drużyna": "party", "druzyna": "party", "party": "party",
+    "wspieraj": "assist", "assist": "assist", "pomagaj": "assist",
     "pc": "partychat", "dczat": "partychat", "partychat": "partychat",
     "multiclass": "multiclass", "multiklasa": "multiclass",
     "multiklas": "multiclass", "klasy": "multiclass",
@@ -3024,9 +3356,13 @@ COMMAND_ALIASES = {
     "zbieraj": "herb", "zbierz": "herb", "zielarstwo": "herb", "herbalism": "herb",
     "zioła": "herbbag", "ziola": "herbbag", "herbs": "herbbag", "herbbag": "herbbag",
     "alchemia": "alchemy", "alchemy": "alchemy", "warz": "alchemy", "warzenie": "alchemy",
+    "jubilerstwo": "jewelcraftinginfo", "jewelcrafting": "jewelcraftinginfo",
+    "jub": "jewelcraft", "jubcraft": "jewelcraft",
+    "bizuteria": "jewelcraftinginfo", "biżuteria": "jewelcraftinginfo",
     "sprzedaj": "sell",
     "receptury": "recipes", "przepisy": "recipes", "recipes": "recipes",
     "rzemiosło": "recipes", "rzemioslo": "recipes",
+    "przetop": "smelt", "przetapiaj": "smelt", "smelt": "smelt",
     "kowalstwo": "blacksmithinginfo",
     "blacksmithing": "blacksmithinginfo",
     "smithing": "blacksmithinginfo",
@@ -3045,6 +3381,9 @@ COMMAND_ALIASES = {
     "nóż": "toolinfo_cooking", "noz": "toolinfo_cooking", "knife": "toolinfo_cooking",
     "sierp": "toolinfo_herbalism", "sickle": "toolinfo_herbalism",
     "moździerz": "toolinfo_alchemy", "mozdzierz": "toolinfo_alchemy", "mortar": "toolinfo_alchemy",
+    "szczypce": "toolinfo_jewelcrafting",
+    "szczypcejubilerskie": "toolinfo_jewelcrafting",
+    "pliers": "toolinfo_jewelcrafting",
     "tiers": "tiers", "tiery": "tiers", "tiernazwy": "tiers", "nazwytierow": "tiers", "nazwytierów": "tiers",
     "wyjście": "quit", "wyjscie": "quit",
 }
@@ -4040,6 +4379,177 @@ def roll_mining_vein(tool_level):
     result["key"] = key
     return result
 
+
+CLASS_EQUIPMENT_SETS = {
+    "Wojownik": {
+        "prefix": "warrior_oath",
+        "set_name": "Przysięgi",
+        "affix": "strength",
+        "base_defense": 2,
+        "room": "guild_martial_hall",
+    },
+    "Berserker": {
+        "prefix": "berserker_fury",
+        "set_name": "Krwawej Furii",
+        "affix": "strength",
+        "base_defense": 2,
+        "room": "guild_martial_hall",
+    },
+    "Łotrzyk": {
+        "prefix": "rogue_shadow",
+        "set_name": "Cienia",
+        "affix": "dexterity",
+        "base_defense": 1,
+        "room": "guild_shadow_gallery",
+    },
+    "Łowca": {
+        "prefix": "hunter_echo",
+        "set_name": "Echa",
+        "affix": "dexterity",
+        "base_defense": 1,
+        "room": "guild_shadow_gallery",
+    },
+    "Mnich": {
+        "prefix": "monk_spirit",
+        "set_name": "Ducha",
+        "affix": "willpower",
+        "base_defense": 1,
+        "room": "guild_body_hall",
+    },
+    "Strażnik": {
+        "prefix": "guardian_bastion",
+        "set_name": "Bastionu",
+        "affix": "constitution",
+        "base_defense": 3,
+        "room": "guild_body_hall",
+    },
+    "Mag": {
+        "prefix": "mage_arcane",
+        "set_name": "Arkanów",
+        "affix": "intelligence",
+        "base_defense": 1,
+        "room": "guild_arcane_chamber",
+    },
+    "Nekromanta": {
+        "prefix": "necromancer_souls",
+        "set_name": "Dusz",
+        "affix": "intelligence",
+        "base_defense": 1,
+        "room": "guild_dark_chamber",
+    },
+    "Kapłan": {
+        "prefix": "priest_light",
+        "set_name": "Światła",
+        "affix": "willpower",
+        "base_defense": 2,
+        "room": "guild_sanctuary",
+    },
+    "Czarownik": {
+        "prefix": "warlock_abyss",
+        "set_name": "Otchłani",
+        "affix": "intelligence",
+        "base_defense": 1,
+        "room": "guild_dark_chamber",
+    },
+    "Druid": {
+        "prefix": "druid_roots",
+        "set_name": "Korzeni",
+        "affix": "willpower",
+        "base_defense": 1,
+        "room": "guild_sanctuary",
+    },
+    "Psionik": {
+        "prefix": "psion_mind",
+        "set_name": "Umysłu",
+        "affix": "willpower",
+        "base_defense": 1,
+        "room": "guild_arcane_chamber",
+    },
+}
+
+CLASS_EQUIPMENT_SLOT_DEFS = {
+    "head": ("Hełm", 1, 90),
+    "body": ("Pancerz", 3, 160),
+    "hands": ("Rękawice", 0, 80),
+    "legs": ("Nogawice", 2, 130),
+    "feet": ("Buty", 0, 80),
+    "charm": ("Talizman", 0, 120),
+    "ring": ("Pierścień", 0, 140),
+    "necklace": ("Naszyjnik", 1, 180),
+}
+
+CLASS_SHOP_ITEMS_BY_ROOM = {
+    "guild_martial_hall": [],
+    "guild_shadow_gallery": [],
+    "guild_body_hall": [],
+    "guild_arcane_chamber": [],
+    "guild_dark_chamber": [],
+    "guild_sanctuary": [],
+}
+
+CLASS_EQUIPMENT_ITEM_IDS = set()
+
+def _register_class_equipment_shops():
+    for class_name, definition in CLASS_EQUIPMENT_SETS.items():
+        for slot, (
+            slot_name,
+            defense_delta,
+            price,
+        ) in CLASS_EQUIPMENT_SLOT_DEFS.items():
+            item_id = f"class_{definition['prefix']}_{slot}"
+            if slot == "necklace":
+                affix_amount = 3
+            elif slot in ("ring", "charm"):
+                affix_amount = 2
+            else:
+                affix_amount = 1
+
+            defense = max(
+                1,
+                int(definition["base_defense"])
+                + int(defense_delta),
+            )
+
+            ITEMS[item_id] = {
+                "name": f"{slot_name} {definition['set_name']}",
+                "type": "armor",
+                "slot": slot,
+                "defense": defense,
+                "price": price,
+                "currency": "silver",
+                "rarity": "crafted",
+                "rarity_name": "Klasowy",
+                "affix": definition["affix"],
+                "affix_amount": affix_amount,
+                "required_class": class_name,
+                "class_shop_item": True,
+                "class_set_name": definition["set_name"],
+                "desc": (
+                    f"Wyposażenie klasowe dla {class_name}. "
+                    f"Wymaga aktywnej klasy {class_name}. "
+                    f"Obrona +{defense}."
+                ),
+            }
+            CLASS_EQUIPMENT_ITEM_IDS.add(item_id)
+            CLASS_SHOP_ITEMS_BY_ROOM[
+                definition["room"]
+            ].append(item_id)
+
+_register_class_equipment_shops()
+
+ITEMS["jeweler_pliers"] = {
+    "name": "Szczypce Jubilerskie",
+    "type": "tool",
+    "tool_type": "jewelcrafting",
+    "price": 10,
+    "currency": "silver",
+    "desc": (
+        "Podstawowe narzędzie Jubilerstwa. "
+        "Ma własny level 1-200, XP i 13 Tierów. "
+        "Nie ma trwałości i nie zużywa się."
+    ),
+}
+
 SHOPS = {
     "fish_market": ["fishing_rod"],
     "market": ["healing_potion", "leather_vest", "lucky_charm"],
@@ -4051,12 +4561,61 @@ SHOPS = {
         "iron_leggings",
         "iron_boots",
         "forge_charm",
-        "pickaxe",
         "crafting_hammer",
     ],
+    "cave_entrance": ["pickaxe"],
     "lumberjack_camp": ["saw"],
     "herbalist_hut": ["herbalist_sickle", "alchemy_mortar"],
+    "jeweler_workshop": ["jeweler_pliers"],
 }
+for _room_id, _items in CLASS_SHOP_ITEMS_BY_ROOM.items():
+    SHOPS[_room_id] = list(_items)
+
+
+
+SHOP_SELLERS = {
+    "fish_market": "specialist_fishing",
+    "inn": "innkeeper",
+    "forge": "doran",
+    "cave_entrance": "miner_toren",
+    "lumberjack_camp": "specialist_woodcutting",
+    "herbalist_hut": "herbalist_liora",
+    "jeweler_workshop": "jeweler_mirella",
+    "guild_martial_hall": "guild_quartermaster_martial",
+    "guild_shadow_gallery": "guild_quartermaster_shadow",
+    "guild_body_hall": "guild_quartermaster_body",
+    "guild_arcane_chamber": "guild_quartermaster_arcane",
+    "guild_dark_chamber": "guild_quartermaster_dark",
+    "guild_sanctuary": "guild_quartermaster_sanctuary",
+}
+
+GUIDE_DESTINATION_ALIASES.update({
+    "sklep wojownika": "guild_martial_hall",
+    "sklep berserkera": "guild_martial_hall",
+    "sklep lotrzyka": "guild_shadow_gallery",
+    "sklep łotrzyka": "guild_shadow_gallery",
+    "sklep lowcy": "guild_shadow_gallery",
+    "sklep łowcy": "guild_shadow_gallery",
+    "sklep mnicha": "guild_body_hall",
+    "sklep straznika": "guild_body_hall",
+    "sklep strażnika": "guild_body_hall",
+    "sklep maga": "guild_arcane_chamber",
+    "sklep psionika": "guild_arcane_chamber",
+    "sklep nekromanty": "guild_dark_chamber",
+    "sklep czarownika": "guild_dark_chamber",
+    "sklep kaplana": "guild_sanctuary",
+    "sklep kapłana": "guild_sanctuary",
+    "sklep druida": "guild_sanctuary",
+    "sklep kilof": "cave_entrance",
+    "sklep kilofa": "cave_entrance",
+})
+
+for _room_id in CLASS_SHOP_ITEMS_BY_ROOM:
+    ROOMS[_room_id]["desc"] += (
+        " W tej sali działa także klasowy sklep "
+        "z pełnym ośmioczęściowym wyposażeniem."
+    )
+
 
 CRAFT_RECIPES = {
     "iron_ingot": {
@@ -4256,7 +4815,8 @@ ALCHEMY_RECIPES = {
         "name": "Mikstura leczenia", "stations": ("herbalist_hut",),
         "ingredients": {"nettle": 1, "chamomile": 1},
         "output": "healing_potion", "quantity": 1,
-        "desc": "Pokrzywa + Rumianek. Przywraca 35 HP.",
+        "min_tool_level": 5,
+        "desc": "Moździerz level 5. Pokrzywa + Rumianek. Przywraca 35 HP.",
     },
     "mana_potion": {
         "name": "Mikstura Many", "stations": ("herbalist_hut",),
@@ -4331,6 +4891,139 @@ ALCHEMY_RECIPES = {
         "desc": "Alchemia level 200. Daje 400 Soul XP.",
     },
 }
+
+
+JEWELCRAFTING_TIERS = (
+    {
+        "key": "iron", "material": "iron_ore",
+        "level": 1, "label": "Żelazny",
+        "affix": "constitution", "affix_amount": 1,
+        "defense": 1,
+    },
+    {
+        "key": "silver", "material": "silver_ore",
+        "level": 20, "label": "Srebrny",
+        "affix": "willpower", "affix_amount": 1,
+        "defense": 2,
+    },
+    {
+        "key": "gold", "material": "gold_ore",
+        "level": 40, "label": "Złoty",
+        "affix": "intelligence", "affix_amount": 2,
+        "defense": 3,
+    },
+    {
+        "key": "cobalt", "material": "cobalt_ore",
+        "level": 100, "label": "Kobaltowy",
+        "affix": "strength", "affix_amount": 3,
+        "defense": 4,
+    },
+    {
+        "key": "runic", "material": "runestone_ore",
+        "level": 120, "label": "Runiczny",
+        "affix": "dexterity", "affix_amount": 3,
+        "defense": 5,
+    },
+    {
+        "key": "dragonsteel", "material": "dragonsteel_ore",
+        "level": 140, "label": "Smoczej Stali",
+        "affix": "constitution", "affix_amount": 4,
+        "defense": 6,
+    },
+    {
+        "key": "astral", "material": "astral_ore",
+        "level": 160, "label": "Astralny",
+        "affix": "intelligence", "affix_amount": 5,
+        "defense": 7,
+    },
+    {
+        "key": "void", "material": "void_ore",
+        "level": 180, "label": "Pustki",
+        "affix": "willpower", "affix_amount": 5,
+        "defense": 8,
+    },
+    {
+        "key": "eternium", "material": "eternium_ore",
+        "level": 200, "label": "Eternium",
+        "affix": "strength", "affix_amount": 6,
+        "defense": 10,
+    },
+)
+
+JEWELCRAFT_RECIPES = {}
+
+def _register_jewelcrafting_recipes():
+    for tier in JEWELCRAFTING_TIERS:
+        ring_id = f"jewel_{tier['key']}_ring"
+        necklace_id = f"jewel_{tier['key']}_necklace"
+
+        ITEMS[ring_id] = {
+            "name": f"{tier['label']} Pierścień Jubilerski",
+            "type": "armor",
+            "slot": "ring",
+            "defense": tier["defense"],
+            "price": None,
+            "rarity": "crafted",
+            "rarity_name": "Jubilerski",
+            "affix": tier["affix"],
+            "affix_amount": tier["affix_amount"],
+            "desc": (
+                f"Pierścień wykonany przez Jubilerstwo. "
+                f"Wymaga Jubilerstwa level {tier['level']}. "
+                f"Obrona +{tier['defense']}."
+            ),
+        }
+        ITEMS[necklace_id] = {
+            "name": f"{tier['label']} Naszyjnik Jubilerski",
+            "type": "armor",
+            "slot": "necklace",
+            "defense": tier["defense"] + 1,
+            "price": None,
+            "rarity": "crafted",
+            "rarity_name": "Jubilerski",
+            "affix": tier["affix"],
+            "affix_amount": tier["affix_amount"] + 1,
+            "desc": (
+                f"Naszyjnik wykonany przez Jubilerstwo. "
+                f"Wymaga Jubilerstwa level {tier['level']}. "
+                f"Obrona +{tier['defense'] + 1}."
+            ),
+        }
+
+        base_xp = 12 + tier["level"] // 8
+
+        JEWELCRAFT_RECIPES[ring_id] = {
+            "name": ITEMS[ring_id]["name"],
+            "stations": ("jeweler_workshop",),
+            "ingredients": {tier["material"]: 2},
+            "output": ring_id,
+            "quantity": 1,
+            "min_tool_level": tier["level"],
+            "min_profession_level": tier["level"],
+            "profession_xp": base_xp,
+            "tool_xp": max(8, base_xp - 2),
+            "desc": (
+                f"Jubilerstwo level {tier['level']}. "
+                f"Wykonuje pierścień z 2 sztuk materiału."
+            ),
+        }
+        JEWELCRAFT_RECIPES[necklace_id] = {
+            "name": ITEMS[necklace_id]["name"],
+            "stations": ("jeweler_workshop",),
+            "ingredients": {tier["material"]: 3},
+            "output": necklace_id,
+            "quantity": 1,
+            "min_tool_level": tier["level"],
+            "min_profession_level": tier["level"],
+            "profession_xp": base_xp + 3,
+            "tool_xp": max(9, base_xp),
+            "desc": (
+                f"Jubilerstwo level {tier['level']}. "
+                f"Wykonuje naszyjnik z 3 sztuk materiału."
+            ),
+        }
+
+_register_jewelcrafting_recipes()
 
 COOK_RECIPES = {
     "grilled_river_fish": {
@@ -4479,8 +5172,14 @@ NPCS = {
     },
     "miner_toren": {
         "name": "Górnik Toren", "room": "cave_entrance",
-        "dialogue": "Dobra ruda nie wydobędzie się sama. Przynieś mi trzydzieści sztuk dowolnej rudy z kopalni.",
+        "dialogue": (
+            "Dobra ruda nie wydobędzie się sama. "
+            "Tylko u mnie kupisz podstawowy Kilof. "
+            "Wpisz list albo shop, aby zobaczyć ofertę. "
+            "Przynieś mi trzydzieści sztuk dowolnej rudy z kopalni."
+        ),
         "quest": "miner_30_ore",
+        "shopkeeper": True,
     },
     "specialist_fishing": {
         "name": "Mistrz Wędkarstwa Neris", "room": "fish_market",
@@ -4555,7 +5254,8 @@ NPCS = {
         "name": "Mistrz Alchemii Orin", "room": "herbalist_hut",
         "dialogue": (
             "Specjalizuję się w Alchemii i Moździerzu Alchemicznym. "
-            "Pomogę ci śledzić rozwój narzędzia i korzystać z receptur Alchemii."
+            "Mam jedenaście poziomów zleceń na mikstury i eliksiry, "
+            "od podstawowej Many aż do Eliksiru Wiecznej Duszy."
         ),
         "specialist_tool_type": "alchemy",
         "specialist_topic": "alchemia",
@@ -4563,7 +5263,15 @@ NPCS = {
         "quest": "orin_alchemy_order",
         "specialist_quests": (
             "orin_alchemy_order",
+            "orin_alchemy_order_healing",
+            "orin_alchemy_order_greater_healing",
+            "orin_alchemy_order_greater_mana",
+            "orin_alchemy_order_vitality",
             "orin_alchemy_order_advanced",
+            "orin_alchemy_order_supreme_mana",
+            "orin_alchemy_order_grand_vitality",
+            "orin_alchemy_order_soul_tonic",
+            "orin_alchemy_order_astral_restoration",
             "orin_alchemy_order_master",
         ),
     },
@@ -4689,6 +5397,90 @@ NPCS = {
         "teacher_class": "Psionik",
     },
 }
+
+
+NPCS["jeweler_mirella"] = {
+    "name": "Jubilerka Mirella",
+    "room": "jeweler_workshop",
+    "dialogue": (
+        "W mojej pracowni kupisz Szczypce Jubilerskie. "
+        "Uczę Jubilerstwa od levelu 1 do 200 i prowadzę "
+        "dziewięć etapów zleceń na pierścienie oraz naszyjniki."
+    ),
+    "shopkeeper": True,
+    "specialist_tool_type": "jewelcrafting",
+    "specialist_topic": "jubilerstwo",
+    "specialist_recipes": "receptury jubilerstwo",
+    "quest": "mirella_jewel_iron",
+    "specialist_quests": (
+        "mirella_jewel_iron",
+        "mirella_jewel_silver",
+        "mirella_jewel_gold",
+        "mirella_jewel_cobalt",
+        "mirella_jewel_runic",
+        "mirella_jewel_dragonsteel",
+        "mirella_jewel_astral",
+        "mirella_jewel_void",
+        "mirella_jewel_eternium",
+    ),
+}
+
+NPCS.update({
+    "guild_quartermaster_martial": {
+        "name": "Kwatermistrz Varek",
+        "room": "guild_martial_hall",
+        "dialogue": (
+            "Prowadzę skład wyposażenia Wojowników i Berserkerów. "
+            "Wpisz list albo shop, aby przejrzeć klasowy ekwipunek."
+        ),
+        "shopkeeper": True,
+    },
+    "guild_quartermaster_shadow": {
+        "name": "Kwatermistrzyni Lysa",
+        "room": "guild_shadow_gallery",
+        "dialogue": (
+            "Prowadzę skład wyposażenia Łotrzyków i Łowców. "
+            "Wpisz list albo shop, aby przejrzeć klasowy ekwipunek."
+        ),
+        "shopkeeper": True,
+    },
+    "guild_quartermaster_body": {
+        "name": "Kwatermistrz Omir",
+        "room": "guild_body_hall",
+        "dialogue": (
+            "Prowadzę skład wyposażenia Mnichów i Strażników. "
+            "Wpisz list albo shop, aby przejrzeć klasowy ekwipunek."
+        ),
+        "shopkeeper": True,
+    },
+    "guild_quartermaster_arcane": {
+        "name": "Kwatermistrzyni Selene",
+        "room": "guild_arcane_chamber",
+        "dialogue": (
+            "Prowadzę skład wyposażenia Magów i Psioników. "
+            "Wpisz list albo shop, aby przejrzeć klasowy ekwipunek."
+        ),
+        "shopkeeper": True,
+    },
+    "guild_quartermaster_dark": {
+        "name": "Kwatermistrz Veyran",
+        "room": "guild_dark_chamber",
+        "dialogue": (
+            "Prowadzę skład wyposażenia Nekromantów i Czarowników. "
+            "Wpisz list albo shop, aby przejrzeć klasowy ekwipunek."
+        ),
+        "shopkeeper": True,
+    },
+    "guild_quartermaster_sanctuary": {
+        "name": "Kwatermistrz Elandor",
+        "room": "guild_sanctuary",
+        "dialogue": (
+            "Prowadzę skład wyposażenia Kapłanów i Druidów. "
+            "Wpisz list albo shop, aby przejrzeć klasowy ekwipunek."
+        ),
+        "shopkeeper": True,
+    },
+})
 
 
 NPC_DESCRIPTIONS = {
@@ -4842,6 +5634,15 @@ SYSTEM_DESCRIPTIONS = {
         "Czysty mithril może zostać wydobyty bezpośrednio dopiero od levelu 80 Kilofa."
     ),
     "mining": "Górnictwo ma własny poziom 1-100, a Kilof własny niezależny level 1-100.",
+    "jubilerstwo": (
+        "Jubilerstwo ma własny level 1-200. "
+        "Szczypce Jubilerskie mają niezależny level 1-200 i 13 Tierów. "
+        "Biżuterię wykonujesz w Pracowni Jubilerskiej u Mirelli."
+    ),
+    "jewelcrafting": (
+        "Jubilerstwo 1-200. Narzędzie: Szczypce Jubilerskie 1-200. "
+        "Receptury tworzą pierścienie i naszyjniki."
+    ),
     "broń duszy": (
         "Broń Duszy jest na stałe związana z klasą. Ma osobny Soul Level 1-200 i Soul XP. "
         "Tier 2: Soul 25, Tier 3: Soul 60, Tier 4: Soul 120, Tier 5: Soul 180. Każdy wymaga Próby Elora."
@@ -4870,17 +5671,24 @@ SYSTEM_DESCRIPTIONS = {
 }
 
 
-LATEST_CHANGES_TITLE = "Soulbound v0.7.11 - Tuna Later"
+LATEST_CHANGES_TITLE = "Soulbound v0.7.37 - Jewelcrafting"
 LATEST_CHANGES = [
-    "Zwykły Tuńczyk został przesunięty na Wędkę level 80.",
-    "Tuńczyk nie może już wypaść przed levelem 80.",
-    "Usunięto zwykłego Tuńczyka z oceanicznych pul level 20-79.",
-    "Od levelu 80 zwykły Tuńczyk wraca do prawidłowej puli oceanu.",
-    "Opis Tuńczyka pokazuje teraz wymaganie Wędka level 80+.",
-    "Komenda woda uwzględnia próg Tuńczyka jako następne odblokowanie.",
-    "Ręczne i auto-łowienie nadal korzystają z tej samej puli ryb.",
-    "Kowalstwo 1-200, questy Haldora co godzinę i wszystkie wcześniejsze systemy pozostają.",
-    "Brak migracji SQLite.",
+    "Dodano nową profesję Jubilerstwo level 1-200.",
+    "Jubilerstwo ma 13 rang od Ucznia do Wiecznego Mistrza Jubilerstwa.",
+    "Dodano Szczypce Jubilerskie level 1-200 z 13 Tierami.",
+    "Szczypce Jubilerskie nie mają trwałości ani zużycia.",
+    "Dodano nową lokację Pracownia Jubilerska nad Rynkiem.",
+    "Dodano NPC Jubilerka Mirella.",
+    "Szczypce Jubilerskie kupuje się wyłącznie u Mirelli.",
+    "Dodano 18 receptur Jubilerstwa: 9 pierścieni i 9 naszyjników.",
+    "Receptury wykorzystują rudy od Żelaza przez Kobalt, Runę, Smoczą Stal, Astral i Pustkę aż po Eternium.",
+    "Dodano 9-etapowy łańcuch zleceń Mirelli od levelu 1 do 200.",
+    "Wytwarzanie biżuterii rozwija jednocześnie Jubilerstwo i Szczypce Jubilerskie.",
+    "Tier Szczypiec może dać dodatkowy produkt receptury.",
+    "Dodano komendy jubilerstwo, szczypce, receptury jubilerstwo oraz jub <receptura>.",
+    "Poprawiono podpowiedź Kilofa: nadal kupuje się go wyłącznie u Górnika Torena.",
+    "Numerowany wybór terenów z v0.7.36 pozostaje.",
+    "Brak resetu i brak migracji SQLite.",
 ]
 
 HELP_TOPIC_ALIASES = {
@@ -4963,6 +5771,301 @@ HELP_TOPIC_ALIASES = {
 }
 
 HELP_TOPICS = {
+    "jubilerstwo": [
+        "Jubilerstwo jest profesją 1-200 z 13 rangami.",
+        "Narzędzie: Szczypce Jubilerskie, level 1-200 i 13 Tierów.",
+        "Szczypce nie mają trwałości i nie zużywają się.",
+        "Kupisz je wyłącznie u Jubilerki Mirelli w Pracowni Jubilerskiej nad Rynkiem.",
+        "Użyj prowadz jubilerka albo prowadz pracownia jubilerska.",
+        "Komenda jubilerstwo pokazuje stan profesji.",
+        "Komenda szczypce pokazuje stan narzędzia.",
+        "Komenda receptury jubilerstwo pokazuje wszystkie receptury.",
+        "Komenda jub <receptura> wykonuje biżuterię.",
+        "Dodano 18 receptur: 9 pierścieni i 9 naszyjników od Żelaza do Eternium.",
+        "Jubilerka Mirella prowadzi 9-etapowy łańcuch zleceń profesyjnych.",
+    ],
+    "prowadz_wybor": [
+        "Gdy prowadz pasuje do kilku lokacji, MUD pokazuje numerowaną listę zamiast zgadywać.",
+        "Działa to teraz dla wszystkich terenów, nie tylko dla kopalni.",
+        "Po liście wpisujesz tylko sam numer, na przykład 1 albo 2.",
+        "Nie ma drugiego pytania ani drugiego wyboru.",
+        "Przykłady: prowadz kopalnia, prowadz dzicz, prowadz góry, prowadz podziemia, prowadz gildia, prowadz jaskinia trolli, prowadz krypta, prowadz wieża i prowadz twierdza.",
+        "Duże wielopoziomowe lochy są zwijane do czytelnej pozycji zamiast wypisywania dziesiątek lub setek pięter.",
+        "Jeżeli chcesz konkretny poziom, nadal działa bezpośrednia nazwa, na przykład prowadz kopalnia 80.",
+        "Wpisz anuluj, jeśli chcesz zamknąć oczekujący wybór bez wybierania.",
+    ],
+    "respawn_mobow": [
+        "Czas odradzania mobów został globalnie zwiększony 2 razy.",
+        "Zwykłe moby: bazowo 120 sekund, teraz 240 sekund.",
+        "Bossowie: bazowo 300 sekund, teraz 600 sekund.",
+        "Manekin treningowy: bazowo 60 sekund, teraz 120 sekund.",
+        "Jeżeli konkretny mob ma własny respawn_seconds, jego indywidualny czas również jest mnożony razy 2.",
+        "HP, obrażenia, Soul XP, nagrody, loot i mechaniki walki nie zostały zmienione.",
+    ],
+    "bizuteria_klasowa": [
+        "Każda z 12 klas ma własny Pierścień i Naszyjnik.",
+        "Pierścień zajmuje osobny slot pierścień.",
+        "Naszyjnik zajmuje osobny slot naszyjnik.",
+        "Biżuteria jest dostępna w tym samym sklepie klasowym co pozostałe części zestawu.",
+        "Pierścień daje klasowy bonus +2 do głównej cechy zestawu.",
+        "Naszyjnik daje klasowy bonus +3 do głównej cechy zestawu.",
+        "Kupno i założenie wymaga aktywnej odpowiedniej klasy.",
+        "Multiclass działa także dla pierścieni i naszyjników.",
+        "Szybkie komendy: załóż pierścień oraz załóż naszyjnik.",
+    ],
+    "sklepy_klasowe": [
+        "Dodano klasowe sklepy wyposażenia dla wszystkich 12 klas.",
+        "Każda klasa ma pełny zestaw 8 części: hełm, pancerz, rękawice, nogawice, buty, talizman, pierścień i naszyjnik.",
+        "Wojownik i Berserker kupują wyposażenie w Sali Oręża Gildii.",
+        "Łotrzyk i Łowca kupują wyposażenie w Galerii Cieni Gildii.",
+        "Mnich i Strażnik kupują wyposażenie w Sali Dyscypliny Gildii.",
+        "Mag i Psionik kupują wyposażenie w Komnacie Arkanów Gildii.",
+        "Nekromanta i Czarownik kupują wyposażenie w Komnacie Mrocznych Sztuk.",
+        "Kapłan i Druid kupują wyposażenie w Sanktuarium Gildii.",
+        "Wpisz shop albo list w odpowiedniej sali.",
+        "Przedmiot klasowy można kupić i założyć tylko wtedy, gdy wymagana klasa jest aktywna.",
+        "Multiclass działa: aktywna klasa dodatkowa również pozwala korzystać z jej wyposażenia.",
+        "Możesz użyć prowadz sklep <klasa>, na przykład prowadz sklep maga.",
+    ],
+    "kilof_u_gornika": [
+        "Kilof nie jest już sprzedawany przez Kowala Dorana ani w Górskiej Kuźni.",
+        "Podstawowy Kilof sprzedaje wyłącznie Górnik Toren przy Wejściu do Kryształowej Jaskini.",
+        "Użyj prowadz jaskinia albo prowadz sklep kilofa.",
+        "Na miejscu wpisz shop albo list, a potem kup kilof.",
+    ],
+    "waluta_auto": [
+        "Waluta działa automatycznie bez komendy wymiany.",
+        "1000 srebrnych monet = 1 złota moneta.",
+        "1 000 000 złotych monet = 1 mithrilowa moneta.",
+        "Portfel i Bank Dusz normalizują nominały automatycznie.",
+        "Stara ręczna wymiana została usunięta z MUD-a.",
+        "Stare salda są zachowywane wartościowo i nie są kasowane.",
+    ],
+    "przetop": [
+        "przetop <metal albo ruda> przetapia rudę na właściwą sztabkę.",
+        "Komenda korzysta z istniejących receptur Kowalstwa i nie omija wymagań.",
+        "Nadal musisz mieć Młot Rzemieślniczy, odpowiedni level narzędzia, level Kowalstwa, składniki i stać przy właściwej kuźni.",
+        "Przykłady: przetop żelazo, przetop srebro, przetop złoto, przetop kobalt.",
+        "Obsługiwane są także: runa, smocza stal, astral, pustka i Eternium.",
+        "Przetapianie daje XP Kowalstwa i Młota tak samo jak dotychczasowe receptury sztabek.",
+    ],
+    "assist": [
+        "wspieraj <gracz> i assist <gracz> pomagają członkowi drużyny w jego aktualnej walce.",
+        "Obaj gracze muszą należeć do tej samej drużyny.",
+        "Obaj gracze muszą stać w tej samej lokacji.",
+        "Wskazany członek drużyny musi aktualnie walczyć z żywym przeciwnikiem.",
+        "Po dołączeniu wykonujesz normalny atak i przeciwnik odpowiada jedną turą.",
+        "Jeśli walczysz już z innym mobem, assist nie przełączy celu; najpierw zakończ walkę albo użyj flee.",
+        "Działa także jako: druzyna wspieraj <gracz> oraz druzyna assist <gracz>.",
+    ],
+    "mityczne_od_100": [
+        "Mityczna Krypta jest dostępna od Soul Level 100.",
+        "Mityczna Wieża Astralna jest dostępna od Soul Level 100.",
+        "Oba lochy nie wymagają już ukończenia ich zwykłych wersji do poziomu 200.",
+        "Mityczna Krypta nadal ma poziomy 1-200 i bossa co 10 pięter.",
+        "Mityczna Wieża Astralna nadal ma poziomy 1-200 i bossa co 10 poziomów.",
+        "Soul Level 99 i niższy nie może wejść do żadnego z tych dwóch lochów.",
+    ],
+    "expowiska": [
+        "Komenda expowiska pokazuje listę terenów przeznaczonych do expienia.",
+        "Każdy teren ma opis, orientacyjny Soul Level i poziom trudności.",
+        "Soul Level jest tylko wskazówką; realna trudność zależy także od statów, klasy i wyposażenia.",
+        "expowiska polecane pokazuje tereny pasujące do aktualnego Soul Levelu.",
+        "expowiska krypta pokazuje szczegółowy opis Krypty.",
+        "expowiska trolle pokazuje szczegółowy opis Jaskini Trolli.",
+        "expowiska giganci pokazuje szczegółowy opis Twierdzy Gigantów.",
+        "expowiska astral pokazuje szczegółowy opis Wieży Astralnej.",
+        "Szczegóły zawierają przeciwników, trudność, opis, uwagi i komendę prowadzenia.",
+        "Soulbound nadal nie ma levelu postaci ani Character XP.",
+    ],
+    "auto_kopalnia_down": [
+        "kop on może teraz automatycznie zejść w dół po przebiciu ściany Kopalni Głębinowej.",
+        "Automat schodzi tylko przez kierunek down.",
+        "Automat schodzi tylko wtedy, gdy następny poziom jest już odblokowany w mine_progress.",
+        "Automat sprawdza, czy wyjście down prowadzi dokładnie na następny poziom Kopalni.",
+        "Nie przejdzie przez nieprzebitą ścianę.",
+        "Nie chodzi po świecie i nie wybiera innych kierunków.",
+        "Jeśli włączysz kop on na poziomie z wcześniej przebitą ścianą, zejdzie na odblokowany następny poziom.",
+        "Po zejściu kontynuuje kopanie na nowym poziomie.",
+    ],
+    "sciany_kopalni": [
+        "Ściany Kopalni Głębinowej skalują liczbę wymaganych uderzeń Kilofa wraz z głębokością.",
+        "Poziomy 1-9 zachowują stary próg 5 uderzeń.",
+        "Od poziomu 10 liczba uderzeń jest równa numerowi aktualnego poziomu.",
+        "Poziom 10: 10 uderzeń.",
+        "Poziom 11: 11 uderzeń.",
+        "Poziom 20: 20 uderzeń.",
+        "Poziom 50: 50 uderzeń.",
+        "Poziom 100: 100 uderzeń.",
+        "Poziom 199: 199 uderzeń, aby odblokować poziom 200.",
+        "Istniejący zapis wall_hits nie jest resetowany po aktualizacji.",
+        "kop on nie chodzi i nie schodzi samodzielnie.",
+        "Po przebiciu ściany użyj ręcznie down.",
+    ],
+    "who": [
+        "who pokazuje wszystkich aktualnie zalogowanych graczy.",
+        "Dla każdego gracza podaje nazwę, aktywną klasę lub klasy, Soul Level, aktualną lokację i strefę.",
+        "Alias po polsku: kto.",
+        "Przykładowa linia: Asia. Klasa: Mag. Soul Level 42. Lokalizacja: Rynek. Strefa: Miasto.",
+    ],
+    "look_skrot": [
+        "Skrót l działa dokładnie tak samo jak look.",
+        "l bez argumentu opisuje aktualną lokację.",
+        "l Asia działa jak look Asia.",
+        "l Górski Troll działa jak look Górski Troll.",
+        "l Mikstura Leczenia działa jak look Mikstura Leczenia.",
+        "l hełm działa jak look hełm.",
+        "Skrót obsługuje graczy, NPC, przeciwników i przedmioty.",
+    ],
+    "look_cel": [
+        "look bez argumentu opisuje aktualną lokację jak wcześniej.",
+        "look gracz pokazuje gracza w tej samej lokacji.",
+        "Przykład: look Asia.",
+        "look NPC pokazuje opis NPC stojącego w tej samej lokacji.",
+        "look przeciwnik pokazuje aktualne HP, bazowe obrażenia, typ obrażeń i specjalne mechaniki.",
+        "look przedmiot pokazuje opis przedmiotu z ekwipunku, założonego sprzętu albo lokalnego sklepu.",
+        "Przykład: look Mikstura Leczenia albo look hełm.",
+        "Przy częściowej nazwie cel musi być jednoznaczny.",
+        "look nie pokazuje graczy, NPC ani mobów z innych lokacji.",
+    ],
+    "apostrof_say": [
+        "Apostrof na początku linii działa jak komenda say.",
+        "Przykład: 'Cześć wszystkim",
+        "To samo co: say Cześć wszystkim",
+        "Nie trzeba wpisywać słowa say.",
+        "Sam apostrof bez tekstu pokazuje użycie say.",
+        "Wiadomość nadal trafia tylko do graczy w tej samej lokacji.",
+    ],
+    "say": [
+        "say tekst lub apostrof przed tekstem wysyła wiadomość do wszystkich graczy w tej samej lokacji.",
+        "Ty otrzymujesz: Mówisz: tekst.",
+        "Inni gracze w pokoju otrzymują: nazwa gracza mówi: tekst.",
+        "Wiadomość nie jest słyszana w innych lokacjach.",
+        "Puste wiadomości i same spacje są odrzucane.",
+        "Maksymalna długość jednej wiadomości to 500 znaków.",
+        "Aliasy: powiedz, mow, mów.",
+        "say nie przerywa odpoczynku.",
+    ],
+    "kodowanie": [
+        "Soulbound domyślnie używa UTF-8 dla całej komunikacji tekstowej.",
+        "Serwer wysyła klientowi Telnet negocjację CHARSET z preferowanym UTF-8.",
+        "Komenda kodowanie pokazuje bieżący tryb.",
+        "kodowanie utf8 przełącza wejście i wyjście sesji na UTF-8.",
+        "kodowanie cp1250 przełącza wejście i wyjście sesji na Windows-1250 dla starszych klientów.",
+        "Obsługiwane polskie znaki: ą ć ę ł ń ó ś ź ż oraz wielkie odpowiedniki.",
+        "Wejście nie używa już errors ignore, więc polskie bajty nie są po cichu usuwane.",
+        "Zmiana dotyczy tylko aktualnej sesji i nie zmienia bazy danych.",
+    ],
+    "mountain_expansion": [
+        "Wioska Górska została rozbudowana o Górską Kuźnię, Chatę Łowcy Potworów, Górski Targ Minerałów i Chatę Zielarki Alpejskiej.",
+        "Eryk ma dodatkowy Patrol Górskiego Szlaku.",
+        "Łowca Potworów Ragna zleca polowanie na Trolli Szamanów i Króla Trolli.",
+        "Dagna zleca odzyskanie Skradzionych Skrzyń Rudy oraz serię zadań na konkretne rudy.",
+        "Twierdza Gigantów ma 50 prawdziwych poziomów.",
+        "Bossowie Twierdzy stoją na poziomach 10, 20, 30, 40 i 50.",
+        "Żywy boss blokuje wejście na kolejny poziom.",
+        "W Twierdzy występują Ogrzy Miotacze Głazów, Cyklopi Strażnicy i Górskie Giganty.",
+        "Prowadzenie: prowadz twierdza gigantow.",
+    ],
+    "questy_kowalstwa_1_200": [
+        "Kowal Górski Brok ma 13-etapowy łańcuch Kowalstwa od levelu 1 do 200.",
+        "Questy wymagają jednocześnie odpowiedniego levelu Młota Rzemieślniczego i Kowalstwa.",
+        "Po każdym wykutym przedmiocie gra czyta postęp np. 1 z 3.",
+        "Finał level 200 wymaga wykucia pełnego sześcioczęściowego Zestawu Eternium.",
+        "Każdy etap odnawia się po 60 minutach.",
+    ],
+    "questy_gotowania_1_200": [
+        "Marcel ma 13 etapów z konkretnymi potrawami od levelu 1 do 200.",
+        "Wykonanie potraw jest liczone tak samo jak mikstury Orina.",
+        "Po każdym gotowaniu słyszysz dokładny postęp.",
+        "Każdy etap odnawia się po 60 minutach.",
+    ],
+    "questy_konkretne_zasoby": [
+        "Zielarka Alpejska Ira zleca 10 Lawendy, 8 Żeń-szenia i 5 Księżycowych Kwiatów z osobnych łąk.",
+        "Handlarka Dagna ma zadania na konkretne rudy od Miedzi do Eternium.",
+        "Mistrz Wędkarstwa Neris ma zadania na konkretne gatunki i rzadkie warianty ryb.",
+        "Wśród zleceń Neris są trzy Złote Okazy Pstrąga i jeden Pradawny Tuńczyk.",
+        "Stare zapasy nie nabijają licznika zdobywania. Zasób musi zostać pozyskany po przyjęciu questa.",
+        "Do oddania nadal trzeba posiadać wymaganą liczbę sztuk.",
+        "Każdy quest profesyjny odnawia się co 60 minut.",
+    ],
+    "rare_trolls_elites": [
+        "Górski Troll może przy spawnie zostać zastąpiony rzadkim wariantem.",
+        "Rzadkie trolle: Albinos Troll, Kryształowy Troll, Pradawny Troll i Troll Runiczny.",
+        "Zwykłe trolle, rzadkie trolle i mieszkańcy Twierdzy mogą pojawić się jako elity.",
+        "Affixy elit: Opancerzony, Wampiryczny, Regenerujący, Lodowy, Ognisty i Astralny.",
+        "Opancerzony redukuje otrzymywane obrażenia.",
+        "Wampiryczny wysysa życie.",
+        "Regenerujący odnawia HP.",
+        "Lodowy i Ognisty wzmacniają magię.",
+        "Astralny zmienia typ obrażeń i częściowo omija obronę.",
+        "consider pokazuje affix oraz informację o rzadkim trollu.",
+    ],
+    "questy_mikstur_orina": [
+        "Orin ma teraz 11-etapowy łańcuch zleceń Alchemii od Moździerza level 1 do 200.",
+        "Etap I level 1: 3 Mikstury Many.",
+        "Etap II level 5: 4 Mikstury Leczenia.",
+        "Etap III level 40: 3 Wielkie Mikstury Leczenia.",
+        "Etap IV level 60: 3 Wielkie Mikstury Many.",
+        "Etap V level 80: 2 Eliksiry Witalności.",
+        "Etap VI level 100: 2 Najwyższe Mikstury Leczenia.",
+        "Etap VII level 120: 2 Najwyższe Mikstury Many.",
+        "Etap VIII level 140: 2 Wielkie Eliksiry Witalności.",
+        "Etap IX level 160: 2 Toniki Duszy.",
+        "Etap X level 180: 1 Astralny Eliksir Odnowy.",
+        "Etap XI level 200: 1 Eliksir Wiecznej Duszy.",
+        "Każdy etap śledzi faktycznie uwarzone sztuki i czyta postęp po każdym warzeniu.",
+        "Każde zlecenie jest powtarzalne po 60 minutach.",
+        "Kolejny etap wymaga ukończenia poprzedniego oraz odpowiedniego levelu Moździerza.",
+    ],
+    "postep_mikstur": [
+        "Questy Alchemii Orina śledzą teraz faktycznie uwarzone mikstury od momentu przyjęcia zadania.",
+        "Po każdym warzeniu otrzymujesz komunikat np. Wykonałeś: Mikstura Many. Postęp 1 z 3.",
+        "Kolejne warzenie pokazuje 2 z 3, a trzecie 3 z 3.",
+        "Bonusowa mikstura z Tieru Moździerza także liczy się jako wykonana, ponieważ rzeczywiście została wytworzona.",
+        "Mikstury posiadane przed przyjęciem questa nie zwiększają licznika wykonania.",
+        "Po wykonaniu wymaganej liczby nadal musisz posiadać odpowiednią liczbę mikstur, aby oddać je Orinowi.",
+        "Jeśli zużyjesz lub sprzedasz miksturę, dziennik pokaże, że wykonanie jest zakończone, ale brakuje sztuk do oddania.",
+        "Po ponownym przyjęciu questa po godzinnym cooldownie licznik wykonania wraca do 0.",
+        "Dotyczy wszystkich jedenastu zleceń Alchemii Orina.",
+    ],
+    "wioska_gorska": [
+        "Dodano Wioskę Górską w nowym regionie Gór.",
+        "Ze Wzgórza Kamiennych Znaków idź na wschód przez Górską Przełęcz.",
+        "Na placu Wioski Górskiej są drogi do Domu Straży, Górskiej Gospody i Szlaku Trolli.",
+        "Strażnik Górski Eryk w Domu Straży daje zadanie Plaga Trolli.",
+        "Zadanie wymaga zabicia 12 trolli w Jaskini Trolli.",
+        "Jaskinia Trolli ma wejście, trzy komory i Legowisko Króla Trolli.",
+        "W jaskini występują Górskie Trolle, Trolle Osiłki i Trolle Szamani.",
+        "Boss: Król Trolli Grum. Jest nieagresywny i walka zaczyna się dopiero po jawnej komendzie ataku.",
+        "Prowadzenie: prowadz wioska gorska, prowadz jaskinia trolli, prowadz eryk.",
+    ],
+    "laki_zielarskie": [
+        "Dodano osobne Łąki Zielarskie dla konkretnych ziół.",
+        "Łąka Mięty daje Miętę.",
+        "Łąka Rumianku daje Rumianek.",
+        "Łąka Pokrzywy daje Pokrzywę.",
+        "Łąka Melisy daje Melisę.",
+        "Łąka Lawendy daje Lawendę.",
+        "Łąka Krwawnika daje Krwawnik.",
+        "Łąka Szałwii daje Szałwię.",
+        "Łąka Waleriany daje Walerianę.",
+        "Łąka Żeń-szenia daje Żeń-szeń.",
+        "Łąka Księżycowego Kwiatu daje Księżycowy Kwiat.",
+        "Wejście do kompleksu Łąk Zielarskich prowadzi na północ z Łąki Kwiatów.",
+        "zbieraj i zbieraj on działają na każdej z tych łąk.",
+        "Auto-Zielarstwo nie chodzi między łąkami; zbiera tylko tam, gdzie stoisz.",
+        "Rzadkie warianty roślin nadal mogą pojawić się przy zbieraniu.",
+    ],
+    "questy_rzemieslnicze_godzina": [
+        "Wszystkie powtarzalne questy profesyjne i rzemieślnicze odnawiają się dokładnie co 60 minut od ukończenia.",
+        "Próba Rybaka, Próba Górnika, Próba Drwala i Próba Zielarki: 60 minut.",
+        "Trzy zlecenia Haldora: każde 60 minut.",
+        "Trzy zlecenia Marcela: każde 60 minut.",
+        "Trzy zlecenia Orina: każde 60 minut.",
+        "Łącznie 13 questów profesyjno-rzemieślniczych.",
+        "Zwykłe questy fabularne nie zostały zmienione.",
+    ],
     "kowalstwo": [
         "Kowalstwo jest pełną profesją level 1-200.",
         "Kowalstwo korzysta z istniejącego Młota Rzemieślniczego level 1-200 i nie dodaje nowego narzędzia.",
@@ -5014,10 +6117,12 @@ HELP_TOPICS = {
         "stats i equipment czytają aktywny Zestaw Astralny.",
     ],
     "mythic_endgame": [
-        "Mityczna Krypta odblokowuje się dopiero po pokonaniu bossa zwykłej Krypty na piętrze 200.",
+        "Mityczna Krypta odblokowuje się od Soul Level 100.",
+        "Nie wymaga ukończenia zwykłej Krypty do piętra 200.",
         "Wejście do Mitycznej Krypty znajduje się w Głębi Krypty.",
         "Mityczna Krypta ma 200 poziomów i bossa co 10 pięter.",
-        "Mityczna Wieża Astralna odblokowuje się dopiero po pokonaniu Astralnego Suwerena na zwykłym poziomie 200.",
+        "Mityczna Wieża Astralna odblokowuje się od Soul Level 100.",
+        "Nie wymaga ukończenia zwykłej Wieży Astralnej do poziomu 200.",
         "Wejście do Mitycznej Wieży znajduje się przy Astralnej Bramie.",
         "Mityczna Wieża Astralna ma 200 poziomów i bossa co 10 poziomów.",
         "Mityczni bossowie mają znacznie więcej HP, wyższe obrażenia i lepsze nagrody.",
@@ -5078,7 +6183,7 @@ HELP_TOPICS = {
         "180-199: Ruda Astralna i Ruda Pustki.",
         "200: Ruda Pustki i Eternium.",
         "kopalnia pokazuje najgłębszy poziom i postęp ściany.",
-        "kop on samo idzie, kopie, przebija ściany i schodzi aż do 200.",
+        "kop on kopie tylko w aktualnym miejscu i nie schodzi sam po przebiciu ściany.",
     ],
     "auto_chodzenie": [
         "Auto-profesje nie chodzą samodzielnie.",
@@ -5109,11 +6214,13 @@ HELP_TOPICS = {
         "Wymuszone zatrzymanie, na przykład wyjście z gry, podróż albo przełączenie na inną auto-aktywność, nadal może przerwać akcję natychmiast.",
     ],
     "kurs_walut": [
-        "Aktualny kurs: 1000 srebrnych monet = 1 złota moneta.",
-        "exchange gold wymienia dokładnie 1000 srebrnych monet na 1 złotą monetę.",
+        "Waluta przelicza się automatycznie.",
+        "1000 srebrnych monet = 1 złota moneta.",
         "1 000 000 złotych monet = 1 mithrilowa moneta.",
-        "Zmiana kursu nie usuwa ani nie przelicza istniejącego srebra, złota ani mithrilu.",
-        "Bank Dusz przechowuje każdą walutę osobno i nie wykonuje automatycznej konwersji.",
+        "Po osiągnięciu progu monety są automatycznie przenoszone do wyższego nominału.",
+        "Automatyczne przeliczanie działa w portfelu oraz Banku Dusz.",
+        "Stara ręczna komenda wymiany została usunięta.",
+        "Istniejący majątek nie jest zerowany; zachowuje pełną wartość.",
     ],
     "wiecej_ryb": [
         "Dodano 40 nowych gatunków ryb: po 10 do rzeki, jeziora, morza i oceanu.",
@@ -5689,6 +6796,209 @@ HELP_TOPICS = {
 }
 
 QUESTS = {
+    "mirella_jewel_iron": {
+        "name": "Zlecenie Mirelli I: Żelazne Pierścienie",
+        "giver": "Jubilerka Mirella",
+        "kind": "collect",
+        "track_craft_progress": True,
+        "target": "jewel_iron_ring",
+        "needed": 2,
+        "description": (
+            "Wykonaj 2 Żelazne Pierścienie Jubilerskie "
+            "i przynieś je Mirelli."
+        ),
+        "specialist_tool_type": "jewelcrafting",
+        "min_tool_level": 1,
+        "reward_profession": "Jubilerstwo",
+        "reward_profession_xp": 600,
+        "reward_tool_type": "jewelcrafting",
+        "reward_tool_xp": 500,
+        "reward_silver": 120,
+        "reward_gold": 0,
+        "reward_mithril": 0,
+        "reward_items": {},
+        "repeatable": True,
+        "repeat_cooldown": QUEST_REPEAT_COOLDOWN_SECONDS,
+    },
+    "mirella_jewel_silver": {
+        "name": "Zlecenie Mirelli II: Srebrny Naszyjnik",
+        "giver": "Jubilerka Mirella",
+        "kind": "collect",
+        "track_craft_progress": True,
+        "target": "jewel_silver_necklace",
+        "needed": 1,
+        "description": "Wykonaj Srebrny Naszyjnik Jubilerski.",
+        "specialist_tool_type": "jewelcrafting",
+        "min_tool_level": 20,
+        "requires_quest": "mirella_jewel_iron",
+        "reward_profession": "Jubilerstwo",
+        "reward_profession_xp": 900,
+        "reward_tool_type": "jewelcrafting",
+        "reward_tool_xp": 750,
+        "reward_silver": 180,
+        "reward_gold": 0,
+        "reward_mithril": 0,
+        "reward_items": {},
+        "repeatable": True,
+        "repeat_cooldown": QUEST_REPEAT_COOLDOWN_SECONDS,
+    },
+    "mirella_jewel_gold": {
+        "name": "Zlecenie Mirelli III: Złoty Pierścień",
+        "giver": "Jubilerka Mirella",
+        "kind": "collect",
+        "track_craft_progress": True,
+        "target": "jewel_gold_ring",
+        "needed": 1,
+        "description": "Wykonaj Złoty Pierścień Jubilerski.",
+        "specialist_tool_type": "jewelcrafting",
+        "min_tool_level": 40,
+        "requires_quest": "mirella_jewel_silver",
+        "reward_profession": "Jubilerstwo",
+        "reward_profession_xp": 1200,
+        "reward_tool_type": "jewelcrafting",
+        "reward_tool_xp": 1000,
+        "reward_silver": 240,
+        "reward_gold": 1,
+        "reward_mithril": 0,
+        "reward_items": {},
+        "repeatable": True,
+        "repeat_cooldown": QUEST_REPEAT_COOLDOWN_SECONDS,
+    },
+    "mirella_jewel_cobalt": {
+        "name": "Zlecenie Mirelli IV: Kobaltowy Naszyjnik",
+        "giver": "Jubilerka Mirella",
+        "kind": "collect",
+        "track_craft_progress": True,
+        "target": "jewel_cobalt_necklace",
+        "needed": 1,
+        "description": "Wykonaj Kobaltowy Naszyjnik Jubilerski.",
+        "specialist_tool_type": "jewelcrafting",
+        "min_tool_level": 100,
+        "requires_quest": "mirella_jewel_gold",
+        "reward_profession": "Jubilerstwo",
+        "reward_profession_xp": 1800,
+        "reward_tool_type": "jewelcrafting",
+        "reward_tool_xp": 1700,
+        "reward_silver": 350,
+        "reward_gold": 1,
+        "reward_mithril": 0,
+        "reward_items": {},
+        "repeatable": True,
+        "repeat_cooldown": QUEST_REPEAT_COOLDOWN_SECONDS,
+    },
+    "mirella_jewel_runic": {
+        "name": "Zlecenie Mirelli V: Runiczny Pierścień",
+        "giver": "Jubilerka Mirella",
+        "kind": "collect",
+        "track_craft_progress": True,
+        "target": "jewel_runic_ring",
+        "needed": 1,
+        "description": "Wykonaj Runiczny Pierścień Jubilerski.",
+        "specialist_tool_type": "jewelcrafting",
+        "min_tool_level": 120,
+        "requires_quest": "mirella_jewel_cobalt",
+        "reward_profession": "Jubilerstwo",
+        "reward_profession_xp": 2300,
+        "reward_tool_type": "jewelcrafting",
+        "reward_tool_xp": 2200,
+        "reward_silver": 450,
+        "reward_gold": 2,
+        "reward_mithril": 0,
+        "reward_items": {},
+        "repeatable": True,
+        "repeat_cooldown": QUEST_REPEAT_COOLDOWN_SECONDS,
+    },
+    "mirella_jewel_dragonsteel": {
+        "name": "Zlecenie Mirelli VI: Naszyjnik Smoczej Stali",
+        "giver": "Jubilerka Mirella",
+        "kind": "collect",
+        "track_craft_progress": True,
+        "target": "jewel_dragonsteel_necklace",
+        "needed": 1,
+        "description": "Wykonaj Naszyjnik Jubilerski Smoczej Stali.",
+        "specialist_tool_type": "jewelcrafting",
+        "min_tool_level": 140,
+        "requires_quest": "mirella_jewel_runic",
+        "reward_profession": "Jubilerstwo",
+        "reward_profession_xp": 2800,
+        "reward_tool_type": "jewelcrafting",
+        "reward_tool_xp": 2700,
+        "reward_silver": 550,
+        "reward_gold": 2,
+        "reward_mithril": 0,
+        "reward_items": {},
+        "repeatable": True,
+        "repeat_cooldown": QUEST_REPEAT_COOLDOWN_SECONDS,
+    },
+    "mirella_jewel_astral": {
+        "name": "Zlecenie Mirelli VII: Astralny Pierścień",
+        "giver": "Jubilerka Mirella",
+        "kind": "collect",
+        "track_craft_progress": True,
+        "target": "jewel_astral_ring",
+        "needed": 1,
+        "description": "Wykonaj Astralny Pierścień Jubilerski.",
+        "specialist_tool_type": "jewelcrafting",
+        "min_tool_level": 160,
+        "requires_quest": "mirella_jewel_dragonsteel",
+        "reward_profession": "Jubilerstwo",
+        "reward_profession_xp": 3400,
+        "reward_tool_type": "jewelcrafting",
+        "reward_tool_xp": 3300,
+        "reward_silver": 650,
+        "reward_gold": 3,
+        "reward_mithril": 0,
+        "reward_items": {},
+        "repeatable": True,
+        "repeat_cooldown": QUEST_REPEAT_COOLDOWN_SECONDS,
+    },
+    "mirella_jewel_void": {
+        "name": "Zlecenie Mirelli VIII: Naszyjnik Pustki",
+        "giver": "Jubilerka Mirella",
+        "kind": "collect",
+        "track_craft_progress": True,
+        "target": "jewel_void_necklace",
+        "needed": 1,
+        "description": "Wykonaj Naszyjnik Jubilerski Pustki.",
+        "specialist_tool_type": "jewelcrafting",
+        "min_tool_level": 180,
+        "requires_quest": "mirella_jewel_astral",
+        "reward_profession": "Jubilerstwo",
+        "reward_profession_xp": 4100,
+        "reward_tool_type": "jewelcrafting",
+        "reward_tool_xp": 4000,
+        "reward_silver": 800,
+        "reward_gold": 4,
+        "reward_mithril": 0,
+        "reward_items": {},
+        "repeatable": True,
+        "repeat_cooldown": QUEST_REPEAT_COOLDOWN_SECONDS,
+    },
+    "mirella_jewel_eternium": {
+        "name": "Zlecenie Mirelli IX: Wieczny Klejnot",
+        "giver": "Jubilerka Mirella",
+        "kind": "collect",
+        "track_craft_progress": True,
+        "target": "jewel_eternium_necklace",
+        "needed": 1,
+        "description": (
+            "Wykonaj Naszyjnik Jubilerski Eternium "
+            "jako próbę mistrzowskiego Jubilerstwa."
+        ),
+        "specialist_tool_type": "jewelcrafting",
+        "min_tool_level": 200,
+        "requires_quest": "mirella_jewel_void",
+        "reward_profession": "Jubilerstwo",
+        "reward_profession_xp": 5000,
+        "reward_tool_type": "jewelcrafting",
+        "reward_tool_xp": 5000,
+        "reward_silver": 1000,
+        "reward_gold": 5,
+        "reward_mithril": 1,
+        "reward_items": {},
+        "repeatable": True,
+        "repeat_cooldown": QUEST_REPEAT_COOLDOWN_SECONDS,
+    },
     "haldor_crafting_order": {
         "name": "Zlecenie Haldora: Żelazne Sztabki",
         "giver": "Mistrz Rzemiosła Haldor",
@@ -5814,11 +7124,12 @@ QUESTS = {
         "repeat_cooldown": QUEST_REPEAT_COOLDOWN_SECONDS,
     },
     "orin_alchemy_order": {
-        "name": "Zlecenie Orina: Mikstury Many",
+        "name": "Zlecenie Orina I: Mikstury Many",
         "giver": "Mistrz Alchemii Orin",
         "specialist_tool_type": "alchemy",
         "min_tool_level": 1,
-        "kind": "collect", "target": "mana_potion", "needed": 3,
+        "kind": "collect",
+        "track_craft_progress": True, "target": "mana_potion", "needed": 3,
         "description": (
             "Uwarz 3 Mikstury Many i przynieś je "
             "Mistrzowi Alchemii Orinowi w Chacie Zielarki."
@@ -5834,17 +7145,115 @@ QUESTS = {
         "repeatable": True,
         "repeat_cooldown": QUEST_REPEAT_COOLDOWN_SECONDS,
     },
-    "orin_alchemy_order_advanced": {
-        "name": "Zlecenie Orina II: Najwyższa Mikstura",
+    "orin_alchemy_order_healing": {
+        "name": "Zlecenie Orina II: Mikstury Leczenia",
         "giver": "Mistrz Alchemii Orin",
-        "kind": "collect", "target": "supreme_healing_potion", "needed": 2,
+        "kind": "collect",
+        "track_craft_progress": True,
+        "target": "healing_potion",
+        "needed": 4,
+        "description": (
+            "Uwarz 4 Mikstury Leczenia i przynieś je "
+            "Mistrzowi Alchemii Orinowi."
+        ),
+        "specialist_tool_type": "alchemy",
+        "min_tool_level": 5,
+        "requires_quest": "orin_alchemy_order",
+        "reward_profession": "Alchemia",
+        "reward_profession_xp": 900,
+        "reward_tool_type": "alchemy",
+        "reward_tool_xp": 750,
+        "reward_silver": 180,
+        "reward_gold": 0,
+        "reward_mithril": 0,
+        "reward_items": {},
+        "repeatable": True,
+        "repeat_cooldown": QUEST_REPEAT_COOLDOWN_SECONDS,
+    },
+    "orin_alchemy_order_greater_healing": {
+        "name": "Zlecenie Orina III: Wielkie Mikstury Leczenia",
+        "giver": "Mistrz Alchemii Orin",
+        "kind": "collect",
+        "track_craft_progress": True,
+        "target": "greater_healing_potion",
+        "needed": 3,
+        "description": (
+            "Uwarz 3 Wielkie Mikstury Leczenia i przynieś je Orinowi."
+        ),
+        "specialist_tool_type": "alchemy",
+        "min_tool_level": 40,
+        "requires_quest": "orin_alchemy_order_healing",
+        "reward_profession": "Alchemia",
+        "reward_profession_xp": 1200,
+        "reward_tool_type": "alchemy",
+        "reward_tool_xp": 1000,
+        "reward_silver": 240,
+        "reward_gold": 0,
+        "reward_mithril": 0,
+        "reward_items": {},
+        "repeatable": True,
+        "repeat_cooldown": QUEST_REPEAT_COOLDOWN_SECONDS,
+    },
+    "orin_alchemy_order_greater_mana": {
+        "name": "Zlecenie Orina IV: Wielkie Mikstury Many",
+        "giver": "Mistrz Alchemii Orin",
+        "kind": "collect",
+        "track_craft_progress": True,
+        "target": "greater_mana_potion",
+        "needed": 3,
+        "description": (
+            "Uwarz 3 Wielkie Mikstury Many i przynieś je Orinowi."
+        ),
+        "specialist_tool_type": "alchemy",
+        "min_tool_level": 60,
+        "requires_quest": "orin_alchemy_order_greater_healing",
+        "reward_profession": "Alchemia",
+        "reward_profession_xp": 1500,
+        "reward_tool_type": "alchemy",
+        "reward_tool_xp": 1300,
+        "reward_silver": 300,
+        "reward_gold": 1,
+        "reward_mithril": 0,
+        "reward_items": {},
+        "repeatable": True,
+        "repeat_cooldown": QUEST_REPEAT_COOLDOWN_SECONDS,
+    },
+    "orin_alchemy_order_vitality": {
+        "name": "Zlecenie Orina V: Eliksiry Witalności",
+        "giver": "Mistrz Alchemii Orin",
+        "kind": "collect",
+        "track_craft_progress": True,
+        "target": "vitality_elixir",
+        "needed": 2,
+        "description": (
+            "Uwarz 2 Eliksiry Witalności i przynieś je Orinowi."
+        ),
+        "specialist_tool_type": "alchemy",
+        "min_tool_level": 80,
+        "requires_quest": "orin_alchemy_order_greater_mana",
+        "reward_profession": "Alchemia",
+        "reward_profession_xp": 1800,
+        "reward_tool_type": "alchemy",
+        "reward_tool_xp": 1600,
+        "reward_silver": 360,
+        "reward_gold": 1,
+        "reward_mithril": 0,
+        "reward_items": {},
+        "repeatable": True,
+        "repeat_cooldown": QUEST_REPEAT_COOLDOWN_SECONDS,
+    },
+    "orin_alchemy_order_advanced": {
+        "name": "Zlecenie Orina VI: Najwyższa Mikstura Leczenia",
+        "giver": "Mistrz Alchemii Orin",
+        "kind": "collect",
+        "track_craft_progress": True, "target": "supreme_healing_potion", "needed": 2,
         "description": (
             "Uwarz 2 Najwyższe Mikstury Leczenia i przynieś je "
             "Mistrzowi Alchemii Orinowi."
         ),
         "specialist_tool_type": "alchemy",
         "min_tool_level": 100,
-        "requires_quest": "orin_alchemy_order",
+        "requires_quest": "orin_alchemy_order_vitality",
         "reward_profession": "Alchemia",
         "reward_profession_xp": 1800,
         "reward_tool_type": "alchemy",
@@ -5856,17 +7265,114 @@ QUESTS = {
         "repeatable": True,
         "repeat_cooldown": QUEST_REPEAT_COOLDOWN_SECONDS,
     },
-    "orin_alchemy_order_master": {
-        "name": "Zlecenie Orina III: Eliksir Wiecznej Duszy",
+    "orin_alchemy_order_supreme_mana": {
+        "name": "Zlecenie Orina VII: Najwyższe Mikstury Many",
         "giver": "Mistrz Alchemii Orin",
-        "kind": "collect", "target": "eternal_soul_elixir", "needed": 1,
+        "kind": "collect",
+        "track_craft_progress": True,
+        "target": "supreme_mana_potion",
+        "needed": 2,
+        "description": (
+            "Uwarz 2 Najwyższe Mikstury Many i przynieś je Orinowi."
+        ),
+        "specialist_tool_type": "alchemy",
+        "min_tool_level": 120,
+        "requires_quest": "orin_alchemy_order_advanced",
+        "reward_profession": "Alchemia",
+        "reward_profession_xp": 2300,
+        "reward_tool_type": "alchemy",
+        "reward_tool_xp": 2200,
+        "reward_silver": 450,
+        "reward_gold": 2,
+        "reward_mithril": 0,
+        "reward_items": {},
+        "repeatable": True,
+        "repeat_cooldown": QUEST_REPEAT_COOLDOWN_SECONDS,
+    },
+    "orin_alchemy_order_grand_vitality": {
+        "name": "Zlecenie Orina VIII: Wielkie Eliksiry Witalności",
+        "giver": "Mistrz Alchemii Orin",
+        "kind": "collect",
+        "track_craft_progress": True,
+        "target": "grand_vitality_elixir",
+        "needed": 2,
+        "description": (
+            "Uwarz 2 Wielkie Eliksiry Witalności i przynieś je Orinowi."
+        ),
+        "specialist_tool_type": "alchemy",
+        "min_tool_level": 140,
+        "requires_quest": "orin_alchemy_order_supreme_mana",
+        "reward_profession": "Alchemia",
+        "reward_profession_xp": 2800,
+        "reward_tool_type": "alchemy",
+        "reward_tool_xp": 2700,
+        "reward_silver": 550,
+        "reward_gold": 2,
+        "reward_mithril": 0,
+        "reward_items": {},
+        "repeatable": True,
+        "repeat_cooldown": QUEST_REPEAT_COOLDOWN_SECONDS,
+    },
+    "orin_alchemy_order_soul_tonic": {
+        "name": "Zlecenie Orina IX: Toniki Duszy",
+        "giver": "Mistrz Alchemii Orin",
+        "kind": "collect",
+        "track_craft_progress": True,
+        "target": "soul_tonic",
+        "needed": 2,
+        "description": (
+            "Uwarz 2 Toniki Duszy i przynieś je Orinowi."
+        ),
+        "specialist_tool_type": "alchemy",
+        "min_tool_level": 160,
+        "requires_quest": "orin_alchemy_order_grand_vitality",
+        "reward_profession": "Alchemia",
+        "reward_profession_xp": 3400,
+        "reward_tool_type": "alchemy",
+        "reward_tool_xp": 3300,
+        "reward_silver": 650,
+        "reward_gold": 3,
+        "reward_mithril": 0,
+        "reward_items": {},
+        "repeatable": True,
+        "repeat_cooldown": QUEST_REPEAT_COOLDOWN_SECONDS,
+    },
+    "orin_alchemy_order_astral_restoration": {
+        "name": "Zlecenie Orina X: Astralne Eliksiry Odnowy",
+        "giver": "Mistrz Alchemii Orin",
+        "kind": "collect",
+        "track_craft_progress": True,
+        "target": "astral_restoration_elixir",
+        "needed": 1,
+        "description": (
+            "Uwarz Astralny Eliksir Odnowy i przynieś go Orinowi."
+        ),
+        "specialist_tool_type": "alchemy",
+        "min_tool_level": 180,
+        "requires_quest": "orin_alchemy_order_soul_tonic",
+        "reward_profession": "Alchemia",
+        "reward_profession_xp": 4100,
+        "reward_tool_type": "alchemy",
+        "reward_tool_xp": 4000,
+        "reward_silver": 800,
+        "reward_gold": 4,
+        "reward_mithril": 0,
+        "reward_items": {},
+        "repeatable": True,
+        "repeat_cooldown": QUEST_REPEAT_COOLDOWN_SECONDS,
+    },
+    "orin_alchemy_order_master": {
+        "name": "Zlecenie Orina XI: Eliksir Wiecznej Duszy",
+        "giver": "Mistrz Alchemii Orin",
+        "kind": "collect",
+        "track_craft_progress": True, "target": "eternal_soul_elixir", "needed": 1,
         "description": (
             "Uwarz Eliksir Wiecznej Duszy i przynieś go "
             "Orinowi jako próbę mistrzowskiej Alchemii."
         ),
         "specialist_tool_type": "alchemy",
         "min_tool_level": 200,
-        "requires_quest": "orin_alchemy_order_advanced",
+        "requires_quest": "orin_alchemy_order_astral_restoration",
         "reward_profession": "Alchemia",
         "reward_profession_xp": 5000,
         "reward_tool_type": "alchemy",
@@ -6689,6 +8195,8 @@ for _floor, (_item_id, _name, _defense, _affix, _amount) in ASTRAL_BOSS_RELICS.i
 
 MYTHIC_MIN_FLOOR = 1
 MYTHIC_MAX_FLOOR = 200
+MYTHIC_CRYPT_MIN_SOUL_LEVEL = 100
+MYTHIC_ASTRAL_MIN_SOUL_LEVEL = 100
 MYTHIC_BOSS_FLOORS = set(range(10, MYTHIC_MAX_FLOOR + 1, 10))
 PROF_DUNGEON_MAX_FLOOR = 20
 
@@ -6998,8 +8506,8 @@ def build_mythic_endgame():
         "zone": "Mityczna Krypta",
         "name": "Brama Mitycznej Krypty",
         "desc": (
-            "Czarna brama rezonuje energią finałowego bossa Krypty. "
-            "Wejście wymaga ukończenia zwykłej Krypty do piętra 200."
+            "Czarna brama rezonuje mityczną energią Krypty. "
+            "Wejście wymaga Soul Level 100."
         ),
         "exits": {
             "west": "crypt_depths",
@@ -7014,7 +8522,7 @@ def build_mythic_endgame():
         "name": "Brama Mitycznej Wieży Astralnej",
         "desc": (
             "Pęknięcie gwiezdnej przestrzeni prowadzi do trudniejszej "
-            "wersji Wieży. Wejście wymaga ukończenia zwykłego poziomu 200."
+            "wersji Wieży. Wejście wymaga Soul Level 100."
         ),
         "exits": {
             "west": "astral_gate",
@@ -7363,6 +8871,1539 @@ def build_profession_dungeons():
         HERBALISM_ROOMS.add(rid)
 
 
+HERB_SPECIFIC_MEADOWS = {
+    "mint_meadow": "mint",
+    "chamomile_meadow": "chamomile",
+    "nettle_meadow": "nettle",
+    "lemon_balm_meadow": "lemon_balm",
+    "lavender_meadow": "lavender",
+    "yarrow_meadow": "yarrow",
+    "sage_meadow": "sage",
+    "valerian_meadow": "valerian",
+    "ginseng_meadow": "ginseng",
+    "moonflower_meadow": "moonflower",
+}
+
+HERB_SPECIFIC_MEADOW_NAMES = {
+    "mint_meadow": "Łąka Mięty",
+    "chamomile_meadow": "Łąka Rumianku",
+    "nettle_meadow": "Łąka Pokrzywy",
+    "lemon_balm_meadow": "Łąka Melisy",
+    "lavender_meadow": "Łąka Lawendy",
+    "yarrow_meadow": "Łąka Krwawnika",
+    "sage_meadow": "Łąka Szałwii",
+    "valerian_meadow": "Łąka Waleriany",
+    "ginseng_meadow": "Łąka Żeń-szenia",
+    "moonflower_meadow": "Łąka Księżycowego Kwiatu",
+}
+
+def build_mountain_region_and_herb_meadows():
+    # -----------------------------
+    # Wioska Górska i góry
+    # -----------------------------
+    ROOMS["hill"]["exits"]["east"] = "mountain_pass"
+
+    ROOMS["mountain_pass"] = {
+        "zone": "Góry",
+        "name": "Górska Przełęcz",
+        "desc": (
+            "Wąska kamienna przełęcz pnie się między wysokimi skałami. "
+            "Na wschodzie widać dym z kominów Wioski Górskiej."
+        ),
+        "exits": {
+            "west": "hill",
+            "east": "mountain_village",
+        },
+    }
+
+    ROOMS["mountain_village"] = {
+        "zone": "Wioska Górska",
+        "name": "Plac Wioski Górskiej",
+        "desc": (
+            "Kamienne domy stoją wokół niewielkiego placu. "
+            "Mieszkańcy mówią o trollach wychodzących z jaskini "
+            "na południowym stoku."
+        ),
+        "exits": {
+            "west": "mountain_pass",
+            "north": "mountain_guard_house",
+            "east": "mountain_inn",
+            "south": "mountain_troll_trail",
+        },
+    }
+
+    ROOMS["mountain_guard_house"] = {
+        "zone": "Wioska Górska",
+        "name": "Dom Straży Górskiej",
+        "desc": (
+            "Prosty kamienny budynek służy strażnikom wioski. "
+            "Na stole leżą mapy szlaków prowadzących do Jaskini Trolli."
+        ),
+        "exits": {"south": "mountain_village"},
+    }
+
+    ROOMS["mountain_inn"] = {
+        "zone": "Wioska Górska",
+        "name": "Górska Gospoda",
+        "desc": (
+            "Ciepła gospoda daje schronienie przed górskim wiatrem. "
+            "Podróżnicy opowiadają o potężnym Królu Trolli."
+        ),
+        "exits": {"west": "mountain_village"},
+    }
+
+    ROOMS["mountain_troll_trail"] = {
+        "zone": "Góry",
+        "name": "Szlak Trolli",
+        "desc": (
+            "Ścieżka prowadzi między głazami pełnymi wielkich śladów. "
+            "Na południu czernieje wejście do Jaskini Trolli."
+        ),
+        "exits": {
+            "north": "mountain_village",
+            "south": "troll_cave_entrance",
+        },
+    }
+
+    ROOMS["troll_cave_entrance"] = {
+        "zone": "Jaskinia Trolli",
+        "name": "Wejście do Jaskini Trolli",
+        "desc": (
+            "Szerokie wejście prowadzi w głąb góry. "
+            "W powietrzu czuć wilgoć i dym z prymitywnych palenisk."
+        ),
+        "exits": {
+            "north": "mountain_troll_trail",
+            "down": "troll_cave_1",
+        },
+    }
+
+    ROOMS["troll_cave_1"] = {
+        "zone": "Jaskinia Trolli",
+        "name": "Jaskinia Trolli - Kamienna Sala",
+        "desc": (
+            "Wielka komora jest zasłana połamanymi kośćmi i głazami. "
+            "Trolle urządziły tu pierwszy posterunek."
+        ),
+        "exits": {
+            "up": "troll_cave_entrance",
+            "east": "troll_cave_2",
+        },
+    }
+
+    ROOMS["troll_cave_2"] = {
+        "zone": "Jaskinia Trolli",
+        "name": "Jaskinia Trolli - Wilgotny Tunel",
+        "desc": (
+            "Woda ścieka po ścianach, a ciężkie kroki odbijają się echem."
+        ),
+        "exits": {
+            "west": "troll_cave_1",
+            "east": "troll_cave_3",
+        },
+    }
+
+    ROOMS["troll_cave_3"] = {
+        "zone": "Jaskinia Trolli",
+        "name": "Jaskinia Trolli - Sala Głazów",
+        "desc": (
+            "Ogromne głazy służą trollom za stoły i broń. "
+            "Na wschodzie znajduje się legowisko ich przywódcy."
+        ),
+        "exits": {
+            "west": "troll_cave_2",
+            "east": "troll_king_den",
+        },
+    }
+
+    ROOMS["troll_king_den"] = {
+        "zone": "Jaskinia Trolli",
+        "name": "Legowisko Króla Trolli",
+        "desc": (
+            "Największa komora jaskini. Pośrodku stoi kamienny tron "
+            "otoczony stosami kości i zdobytego żelaza."
+        ),
+        "exits": {"west": "troll_cave_3"},
+    }
+
+    # -----------------------------
+    # NPC + quest na trolle
+    # -----------------------------
+    QUESTS["mountain_troll_hunt"] = {
+        "name": "Plaga Trolli",
+        "giver": "Strażnik Górski Eryk",
+        "kind": "kill",
+        "target": "mountain_troll",
+        "needed": 12,
+        "description": (
+            "Pokonaj 12 trolli w Jaskini Trolli i wróć do "
+            "Strażnika Górskiego Eryka w Wiosce Górskiej."
+        ),
+        "reward_stat_progress": 280,
+        "reward_silver": 750,
+        "reward_gold": 2,
+        "reward_mithril": 0,
+        "reward_items": {
+            "healing_potion": 3,
+            "soul_shard": 1,
+        },
+        "repeatable": False,
+    }
+
+    NPCS["mountain_guard_eryk"] = {
+        "name": "Strażnik Górski Eryk",
+        "room": "mountain_guard_house",
+        "dialogue": (
+            "Trolle z południowej jaskini coraz częściej schodzą "
+            "pod samą wioskę. Potrzebujemy kogoś, kto przerzedzi ich szeregi."
+        ),
+        "quest": "mountain_troll_hunt",
+    }
+
+    # -----------------------------
+    # Trolle i boss
+    # Wartości bazowe są potem mnożone przez globalne x2 HP.
+    # -----------------------------
+    ITEMS["troll_king_tusk"] = {
+        "name": "Kieł Króla Trolli",
+        "type": "armor",
+        "slot": "charm",
+        "defense": 7,
+        "price": None,
+        "desc": (
+            "Unikalne trofeum Króla Trolli. Obrona +7. "
+            "Bonus: Kondycja +6."
+        ),
+        "rarity": "unique",
+        "rarity_name": "Unikalny",
+        "affix": "constitution",
+        "affix_amount": 6,
+    }
+
+    MOB_TEMPLATES["mountain_troll"] = {
+        "name": "Górski Troll",
+        "max_hp": 300,
+        "damage": 24,
+        "damage_type": "physical",
+        "silver": 90,
+        "gold": 1,
+        "mithril": 0,
+        "stat_reward": 85,
+        "class_xp_reward": 1400,
+        "soul_reward": 360,
+        "drops": {
+            "healing_potion": 0.08,
+            "iron_ore": 0.12,
+        },
+        "quest_target": "mountain_troll",
+        "corpse_equipment_pool": [
+            "iron_guard", "iron_gauntlets", "iron_boots"
+        ],
+        "corpse_equipment_guaranteed": 1,
+    }
+
+    MOB_TEMPLATES["troll_brute"] = {
+        "name": "Troll Osiłek",
+        "max_hp": 420,
+        "damage": 31,
+        "damage_type": "physical",
+        "silver": 130,
+        "gold": 1,
+        "mithril": 0,
+        "stat_reward": 115,
+        "class_xp_reward": 1900,
+        "soul_reward": 470,
+        "drops": {
+            "healing_potion": 0.12,
+            "silver_ore": 0.10,
+        },
+        "quest_target": "mountain_troll",
+        "corpse_equipment_pool": [
+            "iron_guard", "iron_leggings",
+            "iron_gauntlets", "iron_boots"
+        ],
+        "corpse_equipment_guaranteed": 1,
+    }
+
+    MOB_TEMPLATES["troll_shaman"] = {
+        "name": "Troll Szaman",
+        "max_hp": 360,
+        "damage": 29,
+        "damage_type": "magic",
+        "silver": 120,
+        "gold": 2,
+        "mithril": 0,
+        "stat_reward": 110,
+        "class_xp_reward": 2000,
+        "soul_reward": 500,
+        "drops": {
+            "mana_potion": 0.15,
+            "soul_shard": 0.15,
+        },
+        "quest_target": "mountain_troll",
+        "corpse_equipment_pool": [
+            "forge_charm", "lucky_charm"
+        ],
+        "corpse_equipment_guaranteed": 1,
+    }
+
+    MOB_TEMPLATES["troll_king"] = {
+        "name": "Król Trolli Grum",
+        "max_hp": 900,
+        "damage": 48,
+        "damage_type": "physical",
+        "silver": 1200,
+        "gold": 6,
+        "mithril": 0,
+        "stat_reward": 420,
+        "class_xp_reward": 6500,
+        "soul_reward": 1500,
+        "drops": {
+            "soul_elixir": 0.25,
+            "troll_king_tusk": 0.45,
+        },
+        "quest_target": "mountain_troll",
+        "boss_mechanic": "troll_king",
+        "boss_mechanic_text": (
+            "Król Trolli używa ciężkich fizycznych uderzeń. "
+            "Poniżej połowy HP staje się wyraźnie groźniejszy."
+        ),
+        "world_boss": True,
+        "corpse_equipment_pool": [
+            "iron_helmet", "iron_guard", "iron_gauntlets",
+            "iron_leggings", "iron_boots", "forge_charm"
+        ],
+        "corpse_equipment_guaranteed": 2,
+    }
+
+    MOB_SPAWNS.extend([
+        ("mountain_troll_trail", "mountain_troll"),
+        ("troll_cave_1", "mountain_troll"),
+        ("troll_cave_1", "mountain_troll"),
+        ("troll_cave_2", "mountain_troll"),
+        ("troll_cave_2", "troll_brute"),
+        ("troll_cave_3", "mountain_troll"),
+        ("troll_cave_3", "troll_brute"),
+        ("troll_cave_3", "troll_shaman"),
+        ("troll_king_den", "troll_king"),
+    ])
+
+    # -----------------------------
+    # Osobne łąki pod konkretne zioła
+    # -----------------------------
+    ROOMS["flower_meadow"]["exits"]["north"] = "herb_meadow_hub"
+
+    ROOMS["herb_meadow_hub"] = {
+        "zone": "Łąki Zielarskie",
+        "name": "Rozdroże Łąk Zielarskich",
+        "desc": (
+            "Kilka wyraźnie oddzielonych łąk ciągnie się w różnych "
+            "kierunkach. Każda jest znana z jednego dominującego zioła."
+        ),
+        "exits": {
+            "south": "flower_meadow",
+            "north": "chamomile_meadow",
+            "east": "lavender_meadow",
+            "west": "yarrow_meadow",
+        },
+    }
+
+    ROOMS["chamomile_meadow"] = {
+        "zone": "Łąki Zielarskie",
+        "name": "Łąka Rumianku",
+        "desc": "Białe kwiaty rumianku pokrywają niemal całą łąkę.",
+        "exits": {
+            "south": "herb_meadow_hub",
+            "north": "nettle_meadow",
+        },
+    }
+    ROOMS["nettle_meadow"] = {
+        "zone": "Łąki Zielarskie",
+        "name": "Łąka Pokrzywy",
+        "desc": "Gęste kępy pokrzywy rosną między niskimi kamieniami.",
+        "exits": {
+            "south": "chamomile_meadow",
+            "north": "lemon_balm_meadow",
+        },
+    }
+    ROOMS["lemon_balm_meadow"] = {
+        "zone": "Łąki Zielarskie",
+        "name": "Łąka Melisy",
+        "desc": "Powietrze wypełnia łagodny cytrynowy zapach melisy.",
+        "exits": {"south": "nettle_meadow"},
+    }
+
+    ROOMS["lavender_meadow"] = {
+        "zone": "Łąki Zielarskie",
+        "name": "Łąka Lawendy",
+        "desc": "Fioletowe pasy lawendy ciągną się po łagodnym zboczu.",
+        "exits": {
+            "west": "herb_meadow_hub",
+            "east": "sage_meadow",
+        },
+    }
+    ROOMS["sage_meadow"] = {
+        "zone": "Łąki Zielarskie",
+        "name": "Łąka Szałwii",
+        "desc": "Srebrzystozielone liście szałwii rosną w suchszej części łąk.",
+        "exits": {
+            "west": "lavender_meadow",
+            "east": "valerian_meadow",
+        },
+    }
+    ROOMS["valerian_meadow"] = {
+        "zone": "Łąki Zielarskie",
+        "name": "Łąka Waleriany",
+        "desc": "Wysokie łodygi waleriany rosną w spokojnej kotlinie.",
+        "exits": {"west": "sage_meadow"},
+    }
+
+    ROOMS["yarrow_meadow"] = {
+        "zone": "Łąki Zielarskie",
+        "name": "Łąka Krwawnika",
+        "desc": "Drobne białe kwiaty krwawnika tworzą szerokie skupiska.",
+        "exits": {
+            "east": "herb_meadow_hub",
+            "west": "ginseng_meadow",
+        },
+    }
+    ROOMS["ginseng_meadow"] = {
+        "zone": "Łąki Zielarskie",
+        "name": "Łąka Żeń-szenia",
+        "desc": "W zacienionych zagłębieniach rośnie dziki żeń-szeń.",
+        "exits": {
+            "east": "yarrow_meadow",
+            "west": "moonflower_meadow",
+        },
+    }
+    ROOMS["moonflower_meadow"] = {
+        "zone": "Łąki Zielarskie",
+        "name": "Łąka Księżycowego Kwiatu",
+        "desc": (
+            "Blade kwiaty rosną na chłodnej łące, a ich płatki "
+            "lekko połyskują nawet w cieniu."
+        ),
+        "exits": {"east": "ginseng_meadow"},
+    }
+
+    # Istniejąca Łąka Mięty jest także pełną łąką tematyczną.
+    ROOMS["mint_meadow"]["zone"] = "Łąki Zielarskie"
+    ROOMS["mint_meadow"]["desc"] = (
+        "Mięta dominuje na tej łące. Zbieranie tutaj daje Miętę "
+        "jako podstawowy plon."
+    )
+
+    for room_id in HERB_SPECIFIC_MEADOWS:
+        HERBALISM_ROOMS.add(room_id)
+        MEADOW_HERBALISM_ROOMS.add(room_id)
+
+    # Prowadzenie do nowej zawartości.
+    GUIDE_DESTINATION_ALIASES.update({
+        "gory": "mountain_pass",
+        "gorska przelecz": "mountain_pass",
+        "wioska gorska": "mountain_village",
+        "wioska w gorach": "mountain_village",
+        "straznik eryk": "mountain_guard_house",
+        "eryk": "mountain_guard_house",
+        "jaskinia trolli": "troll_cave_entrance",
+        "trolle": "troll_cave_entrance",
+        "krol trolli": "troll_king_den",
+        "lak zielarskich": "herb_meadow_hub",
+        "laki zielarskie": "herb_meadow_hub",
+        "laka rumianku": "chamomile_meadow",
+        "laka pokrzywy": "nettle_meadow",
+        "laka melisy": "lemon_balm_meadow",
+        "laka lawendy": "lavender_meadow",
+        "laka krwawnika": "yarrow_meadow",
+        "laka szalwii": "sage_meadow",
+        "laka waleriany": "valerian_meadow",
+        "laka zen szenia": "ginseng_meadow",
+        "laka zenszenia": "ginseng_meadow",
+        "laka ksiezycowego kwiatu": "moonflower_meadow",
+    })
+
+
+GIANT_FORTRESS_MAX_FLOOR = 50
+GIANT_FORTRESS_BOSS_FLOORS = (10, 20, 30, 40, 50)
+GIANT_FORTRESS_BOSS_NAMES = {
+    10: "Kamienny Herszt Grakk",
+    20: "Jednooki Tyran Morok",
+    30: "Władca Głazów Bront",
+    40: "Cyklop Burzy Arges",
+    50: "Król Gigantów Tharos",
+}
+GIANT_FORTRESS_BOSS_MECHANICS = {
+    10: "giant_crush",
+    20: "cyclops_beam",
+    30: "boulder_storm",
+    40: "giant_thunder",
+    50: "giant_king",
+}
+
+ELITE_AFFIXES = {
+    "armored": {
+        "label": "Opancerzony",
+        "text": "Opancerzony: otrzymuje 30 procent mniej normalnych obrażeń.",
+    },
+    "vampiric": {
+        "label": "Wampiryczny",
+        "text": "Wampiryczny: leczy się za 35 procent skutecznego trafienia.",
+    },
+    "regenerating": {
+        "label": "Regenerujący",
+        "text": "Regenerujący: co trzecią odpowiedź odnawia 4 procent maksymalnego HP.",
+    },
+    "ice": {
+        "label": "Lodowy",
+        "text": "Lodowy: ataki stają się magiczne i zadają 15 procent więcej obrażeń.",
+    },
+    "fire": {
+        "label": "Ognisty",
+        "text": "Ognisty: ataki stają się magiczne i zadają 25 procent więcej obrażeń.",
+    },
+    "astral": {
+        "label": "Astralny",
+        "text": "Astralny: zmienia typ obrażeń, wzmacnia je o 30 procent i częściowo omija obronę.",
+    },
+}
+
+RARE_TROLL_VARIANTS = (
+    "albino_troll",
+    "crystal_troll",
+    "ancient_troll",
+    "runic_troll",
+)
+
+def giant_fortress_floor_id(floor):
+    return f"giant_fortress_{int(floor)}"
+
+def giant_fortress_floor_number(room_id):
+    match = re.fullmatch(
+        r"giant_fortress_(\d+)",
+        str(room_id),
+    )
+    if not match:
+        return None
+    floor = int(match.group(1))
+    if 1 <= floor <= GIANT_FORTRESS_MAX_FLOOR:
+        return floor
+    return None
+
+def _register_elite_variants(base_ids):
+    for base_id in tuple(base_ids):
+        base_template = MOB_TEMPLATES.get(base_id)
+        if not base_template:
+            continue
+        for affix_id, definition in ELITE_AFFIXES.items():
+            elite_id = f"{base_id}__elite_{affix_id}"
+            elite = dict(base_template)
+            elite["name"] = (
+                f"{definition['label']} "
+                f"{base_template['name']}"
+            )
+            elite["elite_affix"] = affix_id
+            elite["elite_affix_text"] = definition["text"]
+            elite["elite_base_template"] = base_id
+            elite["max_hp"] = max(
+                1,
+                int(round(
+                    int(base_template["max_hp"])
+                    * (1.20 if affix_id == "armored" else 1.10)
+                )),
+            )
+            elite["damage"] = max(
+                1,
+                int(round(
+                    int(base_template["damage"])
+                    * (
+                        1.15
+                        if affix_id in {
+                            "fire", "astral"
+                        }
+                        else 1.05
+                    )
+                )),
+            )
+            elite["silver"] = int(
+                round(
+                    int(base_template.get("silver", 0))
+                    * 1.50
+                )
+            )
+            elite["gold"] = int(
+                base_template.get("gold", 0)
+            ) + 1
+            elite["soul_reward"] = int(
+                round(
+                    int(
+                        base_template.get(
+                            "soul_reward", 0
+                        )
+                    )
+                    * 1.40
+                )
+            )
+            MOB_TEMPLATES[elite_id] = elite
+
+def resolve_world_spawn_template(template_id):
+    resolved = template_id
+
+    if (
+        resolved == "mountain_troll"
+        and random.random() < 0.18
+    ):
+        resolved = random.choices(
+            RARE_TROLL_VARIANTS,
+            weights=(45, 30, 7, 18),
+            k=1,
+        )[0]
+
+    template = MOB_TEMPLATES.get(resolved, {})
+    if (
+        template.get("elite_eligible")
+        and random.random() < 0.22
+    ):
+        affix = random.choice(
+            tuple(ELITE_AFFIXES)
+        )
+        candidate = (
+            f"{resolved}__elite_{affix}"
+        )
+        if candidate in MOB_TEMPLATES:
+            resolved = candidate
+
+    return resolved
+
+def build_mountain_crafting_expansion():
+    # ========================================================
+    # ROOMS AND NPC HUBS
+    # ========================================================
+    ROOMS["mountain_guard_house"]["exits"].update({
+        "east": "mountain_forge",
+        "west": "hunter_lodge",
+    })
+    ROOMS["mountain_inn"]["exits"].update({
+        "north": "mountain_market",
+        "east": "alpine_herbalist_hut",
+    })
+    ROOMS["mountain_village"]["exits"]["up"] = (
+        "giant_fortress_gate"
+    )
+
+    ROOMS["mountain_forge"] = {
+        "zone": "Wioska Górska",
+        "name": "Górska Kuźnia",
+        "desc": (
+            "Ciężki młot uderza o kowadło, a półki "
+            "wypełniają sztabki metalu i pancerze."
+        ),
+        "exits": {
+            "west": "mountain_guard_house",
+        },
+    }
+    ROOMS["hunter_lodge"] = {
+        "zone": "Wioska Górska",
+        "name": "Chata Łowcy Potworów",
+        "desc": (
+            "Na ścianach wiszą trofea z trolli i bestii "
+            "zamieszkujących wysokie góry."
+        ),
+        "exits": {
+            "east": "mountain_guard_house",
+        },
+    }
+    ROOMS["mountain_market"] = {
+        "zone": "Wioska Górska",
+        "name": "Górski Targ Minerałów",
+        "desc": (
+            "Handlarze skupują rudy przynoszone z kopalń "
+            "i przełęczy."
+        ),
+        "exits": {
+            "south": "mountain_inn",
+        },
+    }
+    ROOMS["alpine_herbalist_hut"] = {
+        "zone": "Wioska Górska",
+        "name": "Chata Zielarki Alpejskiej",
+        "desc": (
+            "Suszone zioła wiszą pod sufitem. Zielarka "
+            "prowadzi badania nad roślinami z osobnych łąk."
+        ),
+        "exits": {
+            "west": "mountain_inn",
+        },
+    }
+
+    # ========================================================
+    # GIANT FORTRESS 1-50
+    # ========================================================
+    ROOMS["giant_fortress_gate"] = {
+        "zone": "Twierdza Gigantów",
+        "name": "Brama Twierdzy Gigantów",
+        "desc": (
+            "Monumentalna kamienna brama prowadzi do "
+            "pięćdziesięciopoziomowej twierdzy."
+        ),
+        "exits": {
+            "down": "mountain_village",
+            "up": giant_fortress_floor_id(1),
+        },
+    }
+
+    boss_text = {
+        10: "Co trzecią odpowiedź używa Miażdżenia Giganta.",
+        20: "Co trzecią odpowiedź wyzwala magiczny Promień Cyklopa.",
+        30: "Co czwartą odpowiedź rozpoczyna Burzę Głazów.",
+        40: "Zmienia typ obrażeń i co trzecią odpowiedź przywołuje Grom Gigantów.",
+        50: "Poniżej połowy HP wchodzi w królewską furię; co trzecią odpowiedź używa Królewskiego Trzęsienia.",
+    }
+
+    fortress_regular_ids = []
+    for floor in range(
+        1, GIANT_FORTRESS_MAX_FLOOR + 1
+    ):
+        room_id = giant_fortress_floor_id(floor)
+        exits = {}
+        if floor == 1:
+            exits["down"] = "giant_fortress_gate"
+        else:
+            exits["down"] = giant_fortress_floor_id(
+                floor - 1
+            )
+        if floor < GIANT_FORTRESS_MAX_FLOOR:
+            exits["up"] = giant_fortress_floor_id(
+                floor + 1
+            )
+
+        ROOMS[room_id] = {
+            "zone": "Twierdza Gigantów",
+            "name": (
+                f"Twierdza Gigantów - poziom {floor}"
+            ),
+            "desc": (
+                "Kamienny poziom twierdzy jest zbudowany "
+                "dla istot kilkukrotnie większych od człowieka."
+            ),
+            "exits": exits,
+        }
+
+        mob_id = f"giant_fortress_mob_{floor}"
+        if floor % 3 == 1:
+            mob_name = "Ogr Miotacz Głazów"
+        elif floor % 3 == 2:
+            mob_name = "Cyklop Strażnik"
+        else:
+            mob_name = "Górski Gigant"
+
+        MOB_TEMPLATES[mob_id] = {
+            "name": f"{mob_name}, poziom {floor}",
+            "max_hp": 450 + floor * 55,
+            "damage": 18 + floor * 2,
+            "damage_type": (
+                "magic"
+                if floor % 5 == 0
+                else "physical"
+            ),
+            "silver": 80 + floor * 12,
+            "gold": max(0, floor // 10),
+            "mithril": 0,
+            "stat_reward": 70 + floor * 5,
+            "class_xp_reward": 1200 + floor * 140,
+            "soul_reward": 300 + floor * 45,
+            "drops": {
+                "iron_ore": 0.08,
+                "silver_ore": (
+                    0.08 if floor >= 15 else 0.0
+                ),
+                "gold_ore": (
+                    0.06 if floor >= 30 else 0.0
+                ),
+            },
+            "quest_target": None,
+            "elite_eligible": True,
+            "giant_fortress_floor": floor,
+            "corpse_equipment_pool": [
+                "iron_guard",
+                "iron_gauntlets",
+                "iron_leggings",
+                "iron_boots",
+            ],
+            "corpse_equipment_guaranteed": 1,
+        }
+        fortress_regular_ids.append(mob_id)
+
+        MOB_SPAWNS.extend([
+            (room_id, mob_id),
+            (room_id, mob_id),
+        ])
+
+        if floor in GIANT_FORTRESS_BOSS_FLOORS:
+            boss_id = (
+                f"giant_fortress_boss_{floor}"
+            )
+            MOB_TEMPLATES[boss_id] = {
+                "name": GIANT_FORTRESS_BOSS_NAMES[
+                    floor
+                ],
+                "max_hp": 5000 + floor * 300,
+                "damage": 45 + floor * 3,
+                "damage_type": "physical",
+                "silver": 1000 + floor * 40,
+                "gold": 3 + floor // 10,
+                "mithril": 0,
+                "stat_reward": 350 + floor * 8,
+                "class_xp_reward": (
+                    6000 + floor * 400
+                ),
+                "soul_reward": (
+                    1400 + floor * 100
+                ),
+                "drops": {
+                    "soul_elixir": 0.20,
+                    "soul_shard": 0.60,
+                },
+                "quest_target": None,
+                "world_boss": True,
+                "giant_fortress_boss": True,
+                "giant_fortress_floor": floor,
+                "boss_mechanic": (
+                    GIANT_FORTRESS_BOSS_MECHANICS[
+                        floor
+                    ]
+                ),
+                "boss_mechanic_text": boss_text[
+                    floor
+                ],
+                "corpse_equipment_pool": [
+                    "iron_helmet",
+                    "iron_guard",
+                    "iron_gauntlets",
+                    "iron_leggings",
+                    "iron_boots",
+                    "forge_charm",
+                ],
+                "corpse_equipment_guaranteed": 2,
+            }
+            MOB_SPAWNS.append(
+                (room_id, boss_id)
+            )
+
+    # ========================================================
+    # RARE TROLLS + ELITE ELIGIBILITY
+    # ========================================================
+    ITEMS["stolen_mountain_ore"] = {
+        "name": "Skradziona Skrzynia Rudy",
+        "type": "quest",
+        "price": None,
+        "desc": (
+            "Skrzynia rudy skradziona mieszkańcom "
+            "Wioski Górskiej przez trolle."
+        ),
+    }
+
+    base_troll_specs = {
+        "albino_troll": (
+            "Albinos Troll", 360, 26, "physical",
+        ),
+        "crystal_troll": (
+            "Kryształowy Troll", 410, 30, "magic",
+        ),
+        "ancient_troll": (
+            "Pradawny Troll", 560, 36, "physical",
+        ),
+        "runic_troll": (
+            "Troll Runiczny", 470, 34, "magic",
+        ),
+    }
+    for troll_id, (
+        name, hp, damage, damage_type
+    ) in base_troll_specs.items():
+        MOB_TEMPLATES[troll_id] = {
+            "name": name,
+            "max_hp": hp,
+            "damage": damage,
+            "damage_type": damage_type,
+            "silver": 180,
+            "gold": 2,
+            "mithril": 0,
+            "stat_reward": 140,
+            "class_xp_reward": 2400,
+            "soul_reward": 600,
+            "drops": {
+                "stolen_mountain_ore": 0.35,
+                "soul_shard": 0.12,
+            },
+            "quest_target": "mountain_troll",
+            "quest_targets": (
+                "mountain_patrol_threat",
+            ),
+            "rare_troll": True,
+            "elite_eligible": True,
+            "corpse_equipment_pool": [
+                "iron_guard",
+                "iron_gauntlets",
+                "iron_boots",
+            ],
+            "corpse_equipment_guaranteed": 1,
+        }
+
+    for troll_id in (
+        "mountain_troll",
+        "troll_brute",
+        "troll_shaman",
+    ):
+        template = MOB_TEMPLATES[troll_id]
+        template["elite_eligible"] = True
+        template.setdefault(
+            "drops", {}
+        )["stolen_mountain_ore"] = 0.30
+        targets = list(
+            template.get("quest_targets") or ()
+        )
+        if "mountain_patrol_threat" not in targets:
+            targets.append(
+                "mountain_patrol_threat"
+            )
+        if troll_id == "troll_shaman":
+            targets.append("troll_shaman")
+        template["quest_targets"] = tuple(
+            dict.fromkeys(targets)
+        )
+
+    MOB_TEMPLATES["troll_king"].setdefault(
+        "drops", {}
+    )["stolen_mountain_ore"] = 1.0
+    MOB_TEMPLATES["troll_king"][
+        "quest_targets"
+    ] = ("troll_king",)
+
+    elite_bases = list(
+        fortress_regular_ids
+    ) + [
+        "mountain_troll",
+        "troll_brute",
+        "troll_shaman",
+        *RARE_TROLL_VARIANTS,
+    ]
+    _register_elite_variants(elite_bases)
+
+    # ========================================================
+    # MOUNTAIN COMBAT QUESTS
+    # ========================================================
+    QUESTS["mountain_trail_patrol"] = {
+        "name": "Patrol Górskiego Szlaku",
+        "giver": "Strażnik Górski Eryk",
+        "kind": "kill",
+        "target": "mountain_patrol_threat",
+        "needed": 8,
+        "description": (
+            "Pokonaj 8 trolli lub innych trollowych "
+            "zagrożeń na szlaku i w jaskini."
+        ),
+        "requires_quest": "mountain_troll_hunt",
+        "reward_stat_progress": 180,
+        "reward_silver": 420,
+        "reward_gold": 1,
+        "reward_mithril": 0,
+        "reward_items": {},
+        "repeatable": True,
+        "repeat_cooldown": 60 * 60,
+    }
+    QUESTS["troll_shaman_hunt"] = {
+        "name": "Polowanie na Trolli Szamanów",
+        "giver": "Łowca Potworów Ragna",
+        "kind": "kill",
+        "target": "troll_shaman",
+        "needed": 5,
+        "description": (
+            "Pokonaj 5 Trolli Szamanów w Jaskini Trolli."
+        ),
+        "reward_stat_progress": 220,
+        "reward_silver": 550,
+        "reward_gold": 2,
+        "reward_mithril": 0,
+        "reward_items": {
+            "healing_potion": 2,
+        },
+        "repeatable": True,
+        "repeat_cooldown": 60 * 60,
+    }
+    QUESTS["troll_king_hunt"] = {
+        "name": "Polowanie na Króla Trolli",
+        "giver": "Łowca Potworów Ragna",
+        "kind": "kill",
+        "target": "troll_king",
+        "needed": 1,
+        "description": (
+            "Pokonaj Króla Trolli Gruma w najgłębszej "
+            "komorze Jaskini Trolli."
+        ),
+        "requires_quest": "troll_shaman_hunt",
+        "reward_stat_progress": 400,
+        "reward_silver": 1000,
+        "reward_gold": 5,
+        "reward_mithril": 0,
+        "reward_items": {
+            "soul_elixir": 1,
+        },
+        "repeatable": True,
+        "repeat_cooldown": 60 * 60,
+    }
+    QUESTS["stolen_mountain_ores"] = {
+        "name": "Odzyskaj Skradzione Rudy",
+        "giver": "Handlarka Minerałów Dagna",
+        "kind": "collect",
+        "target": "stolen_mountain_ore",
+        "needed": 6,
+        "description": (
+            "Odzyskaj 6 Skradzionych Skrzyń Rudy "
+            "z trolli i przynieś je Dagnie."
+        ),
+        "specialist_tool_type": "mining",
+        "min_tool_level": 1,
+        "reward_profession": "Górnictwo",
+        "reward_profession_xp": 700,
+        "reward_tool_type": "mining",
+        "reward_tool_xp": 600,
+        "reward_silver": 300,
+        "reward_gold": 1,
+        "reward_mithril": 0,
+        "reward_items": {},
+        "repeatable": True,
+        "repeat_cooldown": QUEST_REPEAT_COOLDOWN_SECONDS,
+    }
+
+    NPCS["mountain_guard_eryk"][
+        "quest_chain"
+    ] = (
+        "mountain_troll_hunt",
+        "mountain_trail_patrol",
+    )
+    NPCS["mountain_monster_hunter"] = {
+        "name": "Łowca Potworów Ragna",
+        "room": "hunter_lodge",
+        "dialogue": (
+            "Poluję na najgroźniejsze trolle. "
+            "Najpierw szamani, potem ich król."
+        ),
+        "quest_chain": (
+            "troll_shaman_hunt",
+            "troll_king_hunt",
+        ),
+    }
+
+    # ========================================================
+    # BLACKSMITH QUESTS 1-200
+    # ========================================================
+    smith_specs = (
+        (1, "smith_iron_head", 3, "Żelazne Hełmy"),
+        (15, "smith_iron_body", 2, "Żelazne Pancerze"),
+        (30, "smith_silver_head", 3, "Srebrne Hełmy"),
+        (45, "smith_gold_hands", 3, "Złote Rękawice"),
+        (60, "smith_gold_legs", 2, "Złote Nogawice"),
+        (75, "smith_gold_charm", 2, "Złote Talizmany"),
+        (90, "smith_gold_body", 2, "Złote Pancerze"),
+        (100, "smith_cobalt_head", 3, "Kobaltowe Hełmy"),
+        (120, "smith_runic_body", 2, "Runiczne Pancerze"),
+        (140, "smith_dragonsteel_hands", 2, "Rękawice Smoczej Stali"),
+        (160, "smith_astral_legs", 2, "Astralne Nogawice"),
+        (180, "smith_void_body", 2, "Pancerze Pustki"),
+    )
+    smith_chain = []
+    previous = None
+    for number, (
+        level, target, needed, label
+    ) in enumerate(smith_specs, 1):
+        qid = f"mountain_smith_{level}"
+        quest = {
+            "name": (
+                f"Zlecenie Górskiego Kowala {number}: "
+                f"{label}"
+            ),
+            "giver": "Kowal Górski Brok",
+            "kind": "collect",
+            "track_craft_progress": True,
+            "target": target,
+            "needed": needed,
+            "description": (
+                f"Wykuj {needed} sztuk: "
+                f"{ITEMS[target]['name']}."
+            ),
+            "specialist_tool_type": "crafting",
+            "min_tool_level": level,
+            "required_profession": "Kowalstwo",
+            "min_profession_level": level,
+            "reward_profession": "Kowalstwo",
+            "reward_profession_xp": (
+                500 + number * 350
+            ),
+            "reward_tool_type": "crafting",
+            "reward_tool_xp": (
+                450 + number * 320
+            ),
+            "reward_silver": (
+                150 + number * 70
+            ),
+            "reward_gold": max(
+                0, number // 3
+            ),
+            "reward_mithril": 0,
+            "reward_items": {},
+            "repeatable": True,
+            "repeat_cooldown": (
+                QUEST_REPEAT_COOLDOWN_SECONDS
+            ),
+        }
+        if previous:
+            quest["requires_quest"] = previous
+        QUESTS[qid] = quest
+        smith_chain.append(qid)
+        previous = qid
+
+    eternium_targets = tuple(
+        f"smith_eternium_{slot}"
+        for slot in (
+            "head", "body", "hands",
+            "legs", "feet", "charm",
+        )
+    )
+    QUESTS["mountain_smith_200"] = {
+        "name": (
+            "Zlecenie Górskiego Kowala 13: "
+            "Pełny Zestaw Eternium"
+        ),
+        "giver": "Kowal Górski Brok",
+        "kind": "craft_set",
+        "track_craft_progress": True,
+        "targets": eternium_targets,
+        "needed": len(eternium_targets),
+        "description": (
+            "Wykuj po jednym z sześciu elementów "
+            "pełnego Zestawu Eternium."
+        ),
+        "specialist_tool_type": "crafting",
+        "min_tool_level": 200,
+        "required_profession": "Kowalstwo",
+        "min_profession_level": 200,
+        "requires_quest": previous,
+        "reward_profession": "Kowalstwo",
+        "reward_profession_xp": 9000,
+        "reward_tool_type": "crafting",
+        "reward_tool_xp": 8500,
+        "reward_silver": 1800,
+        "reward_gold": 8,
+        "reward_mithril": 1,
+        "reward_items": {},
+        "repeatable": True,
+        "repeat_cooldown": (
+            QUEST_REPEAT_COOLDOWN_SECONDS
+        ),
+    }
+    smith_chain.append("mountain_smith_200")
+
+    NPCS["mountain_blacksmith_brok"] = {
+        "name": "Kowal Górski Brok",
+        "room": "mountain_forge",
+        "dialogue": (
+            "Kowalstwo poznaje się po pracy. "
+            "Mam trzynaście zleceń od levelu 1 do 200."
+        ),
+        "specialist_tool_type": "crafting",
+        "specialist_topic": "kowalstwo",
+        "specialist_recipes": "receptury kowalstwo",
+        "specialist_quests": tuple(
+            smith_chain
+        ),
+    }
+
+    # ========================================================
+    # COOKING QUESTS 1-200
+    # ========================================================
+    marcel_base = QUESTS["marcel_cooking_order"]
+    marcel_base.update({
+        "name": "Zlecenie Marcela I: Pieczone Ryby",
+        "track_craft_progress": True,
+        "requires_quest": None,
+    })
+
+    cooking_specs = (
+        ("marcel_cook_15", 15, "river_fish_stew", 3, "Gulasze Rzeczne"),
+        ("marcel_cook_30", 30, "lake_fish_stew", 3, "Potrawki Jeziorowe"),
+        ("marcel_cook_45", 45, "silver_trout_soup", 3, "Zupy ze Srebrnego Pstrąga"),
+        ("marcel_cook_60", 60, "lake_fisher_pie", 3, "Zapiekanki Jeziornego Rybaka"),
+        ("marcel_cook_75", 75, "spiced_mackerel", 3, "Makrele Korzenne"),
+        ("marcel_cook_90", 90, "salmon_herb_plate", 3, "Łososie z Ziołami"),
+    )
+    cooking_chain = ["marcel_cooking_order"]
+    previous = "marcel_cooking_order"
+    for index, (
+        qid, level, target, needed, label
+    ) in enumerate(cooking_specs, 2):
+        QUESTS[qid] = {
+            "name": (
+                f"Zlecenie Marcela {index}: {label}"
+            ),
+            "giver": "Kucharz Marcel",
+            "kind": "collect",
+            "track_craft_progress": True,
+            "target": target,
+            "needed": needed,
+            "description": (
+                f"Przygotuj {needed} sztuk: "
+                f"{ITEMS[target]['name']}."
+            ),
+            "specialist_tool_type": "cooking",
+            "min_tool_level": level,
+            "requires_quest": previous,
+            "reward_tool_type": "cooking",
+            "reward_tool_xp": (
+                500 + index * 250
+            ),
+            "reward_silver": (
+                120 + index * 60
+            ),
+            "reward_gold": max(
+                0, index // 4
+            ),
+            "reward_mithril": 0,
+            "reward_items": {},
+            "repeatable": True,
+            "repeat_cooldown": (
+                QUEST_REPEAT_COOLDOWN_SECONDS
+            ),
+        }
+        cooking_chain.append(qid)
+        previous = qid
+
+    advanced = QUESTS[
+        "marcel_cooking_order_advanced"
+    ]
+    advanced.update({
+        "name": "Zlecenie Marcela VIII: Runiczny Półmisek",
+        "track_craft_progress": True,
+        "requires_quest": previous,
+        "needed": 2,
+    })
+    cooking_chain.append(
+        "marcel_cooking_order_advanced"
+    )
+    previous = "marcel_cooking_order_advanced"
+
+    high_cooking = (
+        ("marcel_cook_120", 120, "dragon_ocean_stew", 2, "Smocze Potrawki"),
+        ("marcel_cook_140", 140, "abyss_fish_steak", 2, "Steki Otchłani"),
+        ("marcel_cook_160", 160, "storm_marlin_feast", 2, "Uczty Marlina Burzy"),
+        ("marcel_cook_180", 180, "leviathan_banquet", 1, "Uczta Lewiatana"),
+    )
+    for index, (
+        qid, level, target, needed, label
+    ) in enumerate(high_cooking, 9):
+        QUESTS[qid] = {
+            "name": (
+                f"Zlecenie Marcela {index}: {label}"
+            ),
+            "giver": "Kucharz Marcel",
+            "kind": "collect",
+            "track_craft_progress": True,
+            "target": target,
+            "needed": needed,
+            "description": (
+                f"Przygotuj {needed} sztuk: "
+                f"{ITEMS[target]['name']}."
+            ),
+            "specialist_tool_type": "cooking",
+            "min_tool_level": level,
+            "requires_quest": previous,
+            "reward_tool_type": "cooking",
+            "reward_tool_xp": (
+                2200 + index * 300
+            ),
+            "reward_silver": (
+                400 + index * 70
+            ),
+            "reward_gold": max(
+                1, index // 3
+            ),
+            "reward_mithril": 0,
+            "reward_items": {},
+            "repeatable": True,
+            "repeat_cooldown": (
+                QUEST_REPEAT_COOLDOWN_SECONDS
+            ),
+        }
+        cooking_chain.append(qid)
+        previous = qid
+
+    master = QUESTS[
+        "marcel_cooking_order_master"
+    ]
+    master.update({
+        "name": "Zlecenie Marcela XIII: Wieczna Uczta",
+        "track_craft_progress": True,
+        "requires_quest": previous,
+    })
+    cooking_chain.append(
+        "marcel_cooking_order_master"
+    )
+    NPCS["specialist_cooking"][
+        "specialist_quests"
+    ] = tuple(cooking_chain)
+
+    # ========================================================
+    # HERBALISM SPECIFIC MEADOW QUESTS
+    # ========================================================
+    herb_specs = (
+        (
+            "alpine_lavender",
+            35,
+            "lavender",
+            10,
+            "Lawenda dla Gór",
+        ),
+        (
+            "alpine_ginseng",
+            50,
+            "ginseng",
+            8,
+            "Korzeń Żeń-szenia",
+        ),
+        (
+            "alpine_moonflower",
+            70,
+            "moonflower",
+            5,
+            "Księżycowe Kwiaty",
+        ),
+    )
+    herb_chain = []
+    previous = None
+    for qid, level, target, needed, label in herb_specs:
+        quest = {
+            "name": label,
+            "giver": "Zielarka Alpejska Ira",
+            "kind": "collect_resource",
+            "track_resource_progress": True,
+            "target": target,
+            "needed": needed,
+            "description": (
+                f"Zbierz na osobnej łące {needed} sztuk: "
+                f"{ITEMS[target]['name']}."
+            ),
+            "specialist_tool_type": "herbalism",
+            "min_tool_level": level,
+            "reward_profession": "Zielarstwo",
+            "reward_profession_xp": 900 + level * 8,
+            "reward_tool_type": "herbalism",
+            "reward_tool_xp": 800 + level * 7,
+            "reward_silver": 250 + level * 3,
+            "reward_gold": max(0, level // 50),
+            "reward_mithril": 0,
+            "reward_items": {},
+            "repeatable": True,
+            "repeat_cooldown": (
+                QUEST_REPEAT_COOLDOWN_SECONDS
+            ),
+        }
+        if previous:
+            quest["requires_quest"] = previous
+        QUESTS[qid] = quest
+        herb_chain.append(qid)
+        previous = qid
+
+    NPCS["alpine_herbalist_ira"] = {
+        "name": "Zielarka Alpejska Ira",
+        "room": "alpine_herbalist_hut",
+        "dialogue": (
+            "Każda łąka ma własne zioło. "
+            "Przynoś mi konkretne rośliny, nie losową mieszankę."
+        ),
+        "specialist_tool_type": "herbalism",
+        "specialist_topic": "zielarstwo",
+        "specialist_quests": tuple(
+            herb_chain
+        ),
+    }
+
+    # ========================================================
+    # MINING SPECIFIC ORE QUESTS
+    # ========================================================
+    ore_specs = (
+        (1, "copper_ore", 20),
+        (15, "iron_ore", 15),
+        (30, "silver_ore", 12),
+        (45, "gold_ore", 10),
+        (100, "cobalt_ore", 8),
+        (120, "runestone_ore", 7),
+        (140, "dragonsteel_ore", 6),
+        (160, "astral_ore", 5),
+        (180, "void_ore", 4),
+        (200, "eternium_ore", 3),
+    )
+    mining_chain = ["stolen_mountain_ores"]
+    previous = "stolen_mountain_ores"
+    for level, target, needed in ore_specs:
+        qid = f"dagna_ore_{level}"
+        QUESTS[qid] = {
+            "name": (
+                f"Zlecenie Dagny: "
+                f"{ITEMS[target]['name']}"
+            ),
+            "giver": "Handlarka Minerałów Dagna",
+            "kind": "collect_resource",
+            "track_resource_progress": True,
+            "target": target,
+            "needed": needed,
+            "description": (
+                f"Wydobądź {needed} sztuk: "
+                f"{ITEMS[target]['name']}."
+            ),
+            "specialist_tool_type": "mining",
+            "min_tool_level": level,
+            "requires_quest": previous,
+            "reward_profession": "Górnictwo",
+            "reward_profession_xp": (
+                600 + level * 12
+            ),
+            "reward_tool_type": "mining",
+            "reward_tool_xp": (
+                550 + level * 10
+            ),
+            "reward_silver": (
+                160 + level * 5
+            ),
+            "reward_gold": max(
+                0, level // 50
+            ),
+            "reward_mithril": (
+                1 if level == 200 else 0
+            ),
+            "reward_items": {},
+            "repeatable": True,
+            "repeat_cooldown": (
+                QUEST_REPEAT_COOLDOWN_SECONDS
+            ),
+        }
+        mining_chain.append(qid)
+        previous = qid
+
+    NPCS["mountain_mineral_trader_dagna"] = {
+        "name": "Handlarka Minerałów Dagna",
+        "room": "mountain_market",
+        "dialogue": (
+            "Trolle kradną nasze skrzynie, a ja płacę "
+            "za konkretne rudy od miedzi aż po Eternium."
+        ),
+        "specialist_tool_type": "mining",
+        "specialist_topic": "gornictwo",
+        "specialist_quests": tuple(
+            mining_chain
+        ),
+    }
+
+    # ========================================================
+    # FISHING SPECIFIC + RARE VARIANT QUESTS
+    # ========================================================
+    fishing_specs = (
+        (1, "river_carp", 5, "Karp Rzeczny"),
+        (30, "silver_trout", 4, "Srebrny Pstrąg"),
+        (60, "golden_trout", 3, "Złoty Pstrąg"),
+        (80, "tuna", 3, "Tuńczyk"),
+        (
+            100,
+            "rare_fish_golden__silver_trout",
+            3,
+            "Złoty Okaz Pstrąga",
+        ),
+        (140, "abyss_tuna", 2, "Tuńczyk Otchłani"),
+        (180, "moon_leviathan", 1, "Księżycowy Lewiatan"),
+        (
+            200,
+            "rare_fish_ancient__tuna",
+            1,
+            "Pradawny Tuńczyk",
+        ),
+    )
+    fishing_chain = []
+    previous = None
+    for index, (
+        level, target, needed, label
+    ) in enumerate(fishing_specs, 1):
+        qid = f"neris_fish_{level}"
+        quest = {
+            "name": (
+                f"Zlecenie Neris {index}: {label}"
+            ),
+            "giver": "Mistrz Wędkarstwa Neris",
+            "kind": "collect_resource",
+            "track_resource_progress": True,
+            "target": target,
+            "needed": needed,
+            "description": (
+                f"Złów {needed} sztuk: "
+                f"{ITEMS[target]['name']}."
+            ),
+            "specialist_tool_type": "fishing",
+            "min_tool_level": level,
+            "reward_profession": "Wędkarstwo",
+            "reward_profession_xp": (
+                650 + level * 10
+            ),
+            "reward_tool_type": "fishing",
+            "reward_tool_xp": (
+                600 + level * 9
+            ),
+            "reward_silver": (
+                150 + level * 4
+            ),
+            "reward_gold": max(
+                0, level // 50
+            ),
+            "reward_mithril": (
+                1 if level == 200 else 0
+            ),
+            "reward_items": {},
+            "repeatable": True,
+            "repeat_cooldown": (
+                QUEST_REPEAT_COOLDOWN_SECONDS
+            ),
+        }
+        if previous:
+            quest["requires_quest"] = previous
+        QUESTS[qid] = quest
+        fishing_chain.append(qid)
+        previous = qid
+
+    NPCS["specialist_fishing"][
+        "specialist_quests"
+    ] = tuple(fishing_chain)
+
+    # ========================================================
+    # SHOPS / SALES / GUIDE
+    # ========================================================
+    SHOPS["mountain_forge"] = [
+        "crafting_hammer",
+    ]
+    SHOPS["alpine_herbalist_hut"] = [
+        "herbalist_sickle",
+        "alchemy_mortar",
+    ]
+
+    GUIDE_DESTINATION_ALIASES.update({
+        "gorska kuznia": "mountain_forge",
+        "kowal gorski": "mountain_forge",
+        "brok": "mountain_forge",
+        "chata lowcy": "hunter_lodge",
+        "lowca potworow": "hunter_lodge",
+        "ragna": "hunter_lodge",
+        "gorski targ mineralow": "mountain_market",
+        "dagna": "mountain_market",
+        "zielarka alpejska": "alpine_herbalist_hut",
+        "ira": "alpine_herbalist_hut",
+        "twierdza gigantow": "giant_fortress_gate",
+        "brama twierdzy gigantow": "giant_fortress_gate",
+    })
+
 def configure_base_mob_corpse_equipment():
     MOB_TEMPLATES["training_dummy"]["leave_corpse"] = False
     configs={
@@ -7383,6 +10424,8 @@ build_crypt_loot_variants()
 build_astral_tower()
 build_mythic_endgame()
 build_profession_dungeons()
+build_mountain_region_and_herb_meadows()
+build_mountain_crafting_expansion()
 configure_base_mob_corpse_equipment()
 
 def apply_global_mob_hp_multiplier():
@@ -7439,43 +10482,148 @@ SB = 250
 SE = 240
 
 
-def clean_telnet(data: bytes) -> str:
+TELNET_CHARSET = 42
+TELNET_CHARSET_REQUEST = 1
+TELNET_CHARSET_ACCEPTED = 2
+TELNET_CHARSET_REJECTED = 3
+
+DEFAULT_TEXT_ENCODING = "utf-8"
+POLISH_LEGACY_ENCODING = "cp1250"
+SUPPORTED_TEXT_ENCODINGS = (
+    DEFAULT_TEXT_ENCODING,
+    POLISH_LEGACY_ENCODING,
+)
+
+
+def telnet_charset_offer_bytes():
+    # RFC 2066: TELNET CHARSET option 42.
+    # UTF-8 jest preferowane, Windows-1250 jest fallbackiem.
+    return (
+        bytes((
+            IAC, WILL, TELNET_CHARSET,
+            IAC, SB, TELNET_CHARSET,
+            TELNET_CHARSET_REQUEST,
+            ord(";"),
+        ))
+        + b"UTF-8;WINDOWS-1250"
+        + bytes((IAC, SE))
+    )
+
+
+def strip_telnet_commands(data: bytes) -> bytes:
     out = bytearray()
     i = 0
+
     while i < len(data):
-        b = data[i]
-        if b != IAC:
-            out.append(b)
+        byte = data[i]
+
+        if byte != IAC:
+            out.append(byte)
             i += 1
             continue
+
         i += 1
         if i >= len(data):
             break
-        cmd = data[i]
+
+        command = data[i]
         i += 1
-        if cmd in (DO, DONT, WILL, WONT):
+
+        if command in (DO, DONT, WILL, WONT):
             if i < len(data):
                 i += 1
-        elif cmd == SB:
+            continue
+
+        if command == SB:
             while i < len(data):
-                if data[i] == IAC and i + 1 < len(data) and data[i + 1] == SE:
+                if (
+                    data[i] == IAC
+                    and i + 1 < len(data)
+                    and data[i + 1] == SE
+                ):
                     i += 2
                     break
                 i += 1
-        elif cmd == IAC:
+            continue
+
+        if command == IAC:
             out.append(IAC)
-    return out.decode("utf-8", errors="ignore")
+
+    return bytes(out)
+
+
+def decode_polish_telnet_text(
+    data: bytes,
+    preferred_encoding=DEFAULT_TEXT_ENCODING,
+) -> str:
+    payload = strip_telnet_commands(data)
+
+    preferred = str(
+        preferred_encoding or DEFAULT_TEXT_ENCODING
+    ).lower()
+
+    attempts = []
+    for encoding in (
+        preferred,
+        DEFAULT_TEXT_ENCODING,
+        POLISH_LEGACY_ENCODING,
+    ):
+        if encoding not in attempts:
+            attempts.append(encoding)
+
+    for encoding in attempts:
+        try:
+            return payload.decode(
+                encoding,
+                errors="strict",
+            )
+        except UnicodeDecodeError:
+            pass
+
+    # Nie gubimy bajtów po cichu.
+    return payload.decode(
+        DEFAULT_TEXT_ENCODING,
+        errors="replace",
+    )
+
+
+def clean_telnet(
+    data: bytes,
+    preferred_encoding=DEFAULT_TEXT_ENCODING,
+) -> str:
+    return decode_polish_telnet_text(
+        data,
+        preferred_encoding,
+    )
 
 
 
 def mob_respawn_seconds(template):
     if template.get("respawn_seconds") is not None:
-        return max(1, int(template["respawn_seconds"]))
-    if (template.get("crypt_boss") or template.get("world_boss") or template.get("mythic_crypt_boss") or template.get("mythic_astral_boss")):
-        return BOSS_RESPAWN_SECONDS
-    if template.get("training_dummy"):
-        return TRAINING_DUMMY_RESPAWN_SECONDS
-    return REGULAR_MOB_RESPAWN_SECONDS
+        base_seconds = max(
+            1,
+            int(template["respawn_seconds"]),
+        )
+    elif (
+        template.get("crypt_boss")
+        or template.get("world_boss")
+        or template.get("mythic_crypt_boss")
+        or template.get("mythic_astral_boss")
+        or template.get("giant_fortress_boss")
+    ):
+        base_seconds = BOSS_RESPAWN_SECONDS
+    elif template.get("training_dummy"):
+        base_seconds = TRAINING_DUMMY_RESPAWN_SECONDS
+    else:
+        base_seconds = REGULAR_MOB_RESPAWN_SECONDS
+
+    return max(
+        1,
+        int(round(
+            base_seconds
+            * GLOBAL_MOB_RESPAWN_MULTIPLIER
+        )),
+    )
 
 def safe_name(name: str) -> bool:
     return bool(re.fullmatch(r"[A-Za-zĄĆĘŁŃÓŚŹŻąćęłńóśźż0-9_-]{3,20}", name))
@@ -7807,6 +10955,16 @@ class Database:
         self.conn.commit()
 
     def save_character(self, c):
+        (
+            c.silver,
+            c.gold,
+            c.mithril,
+        ) = normalize_currency_values(
+            c.silver,
+            c.gold,
+            c.mithril,
+        )
+
         self.conn.execute(
             """
             UPDATE characters SET
@@ -7940,8 +11098,9 @@ class Database:
             }
 
         hits += 1
+        required_hits = mine_wall_hits_required(floor)
         unlocked_floor = None
-        if hits >= MINE_WALL_HITS_REQUIRED:
+        if hits >= required_hits:
             highest = min(MINE_MAX_FLOOR, highest + 1)
             hits = 0
             unlocked_floor = highest
@@ -7972,26 +11131,64 @@ class Database:
 
     def bank_balance(self, account_id):
         self.ensure_bank(account_id)
-        return self.conn.execute(
+        row = self.conn.execute(
             "SELECT silver,gold,mithril FROM bank_balances "
             "WHERE account_id=?",
             (account_id,),
         ).fetchone()
 
+        silver, gold, mithril = normalize_currency_values(
+            row["silver"],
+            row["gold"],
+            row["mithril"],
+        )
+
+        if (
+            silver != int(row["silver"])
+            or gold != int(row["gold"])
+            or mithril != int(row["mithril"])
+        ):
+            self.conn.execute(
+                "UPDATE bank_balances "
+                "SET silver=?, gold=?, mithril=? "
+                "WHERE account_id=?",
+                (silver, gold, mithril, account_id),
+            )
+            self.conn.commit()
+            row = self.conn.execute(
+                "SELECT silver,gold,mithril FROM bank_balances "
+                "WHERE account_id=?",
+                (account_id,),
+            ).fetchone()
+
+        return row
+
     def change_bank_currency(self, account_id, currency, amount):
         if currency not in ("silver", "gold", "mithril"):
             raise ValueError("Nieznana waluta bankowa.")
-        self.ensure_bank(account_id)
-        amount = int(amount)
+
         row = self.bank_balance(account_id)
-        current = int(row[currency])
-        new_value = current + amount
-        if new_value < 0:
+        values = {
+            "silver": int(row["silver"]),
+            "gold": int(row["gold"]),
+            "mithril": int(row["mithril"]),
+        }
+        values[currency] += int(amount)
+
+        if values[currency] < 0:
             return False
+
+        silver, gold, mithril = normalize_currency_values(
+            values["silver"],
+            values["gold"],
+            values["mithril"],
+        )
+
         self.conn.execute(
-            f"UPDATE bank_balances SET {currency}=? "
+            "UPDATE bank_balances "
+            "SET silver=?, gold=?, mithril=? "
             "WHERE account_id=?",
-            (new_value, account_id),
+            (silver, gold, mithril, account_id),
         )
         self.conn.commit()
         return True
@@ -8488,6 +11685,141 @@ class Database:
                 (new_progress, account_id, row["quest_id"]),
             )
             changed.append((row["quest_id"], new_progress))
+        self.conn.commit()
+        return changed
+
+    def increment_craft_quest(
+        self, account_id, item_id, amount=1
+    ):
+        amount = max(0, int(amount))
+        if amount <= 0:
+            return []
+
+        rows = self.conn.execute(
+            "SELECT * FROM quests "
+            "WHERE account_id=? AND status='active'",
+            (account_id,),
+        ).fetchall()
+
+        changed = []
+        for row in rows:
+            quest = QUESTS.get(row["quest_id"])
+            if not quest or not quest.get(
+                "track_craft_progress"
+            ):
+                continue
+
+            if quest.get("kind") == "collect":
+                if quest.get("target") != item_id:
+                    continue
+                needed = max(
+                    1, int(quest.get("needed", 1))
+                )
+                old_progress = int(row["progress"])
+                new_progress = min(
+                    needed,
+                    old_progress + amount,
+                )
+                self.conn.execute(
+                    "UPDATE quests SET progress=? "
+                    "WHERE account_id=? AND quest_id=?",
+                    (
+                        new_progress,
+                        account_id,
+                        row["quest_id"],
+                    ),
+                )
+                changed.append(
+                    (
+                        row["quest_id"],
+                        new_progress,
+                        needed,
+                    )
+                )
+                continue
+
+            if quest.get("kind") == "craft_set":
+                targets = tuple(
+                    quest.get("targets") or ()
+                )
+                if item_id not in targets:
+                    continue
+
+                index = targets.index(item_id)
+                old_mask = int(row["progress"])
+                new_mask = old_mask | (1 << index)
+                if new_mask == old_mask:
+                    continue
+
+                self.conn.execute(
+                    "UPDATE quests SET progress=? "
+                    "WHERE account_id=? AND quest_id=?",
+                    (
+                        new_mask,
+                        account_id,
+                        row["quest_id"],
+                    ),
+                )
+                changed.append(
+                    (
+                        row["quest_id"],
+                        int(new_mask).bit_count(),
+                        len(targets),
+                    )
+                )
+
+        self.conn.commit()
+        return changed
+
+    def increment_resource_quest(
+        self, account_id, item_id, amount=1
+    ):
+        amount = max(0, int(amount))
+        if amount <= 0:
+            return []
+
+        rows = self.conn.execute(
+            "SELECT * FROM quests "
+            "WHERE account_id=? AND status='active'",
+            (account_id,),
+        ).fetchall()
+
+        changed = []
+        for row in rows:
+            quest = QUESTS.get(row["quest_id"])
+            if (
+                not quest
+                or quest.get("kind") != "collect_resource"
+                or not quest.get("track_resource_progress")
+                or quest.get("target") != item_id
+            ):
+                continue
+
+            needed = max(
+                1, int(quest.get("needed", 1))
+            )
+            old_progress = int(row["progress"])
+            new_progress = min(
+                needed,
+                old_progress + amount,
+            )
+            self.conn.execute(
+                "UPDATE quests SET progress=? "
+                "WHERE account_id=? AND quest_id=?",
+                (
+                    new_progress,
+                    account_id,
+                    row["quest_id"],
+                ),
+            )
+            changed.append(
+                (
+                    row["quest_id"],
+                    new_progress,
+                    needed,
+                )
+            )
+
         self.conn.commit()
         return changed
 
@@ -8998,6 +12330,9 @@ class World:
         self.corpse_counter = 0
         counts = {}
         for room_id, template_id in MOB_SPAWNS:
+            template_id = resolve_world_spawn_template(
+                template_id
+            )
             counts[(room_id, template_id)] = counts.get((room_id, template_id), 0) + 1
             n = counts[(room_id, template_id)]
             key = f"{room_id}:{template_id}:{n}"
@@ -9097,6 +12432,39 @@ class World:
             return False
         return self.live_mythic_astral_boss(room_id) is not None
 
+    def live_giant_fortress_boss(self, room_id):
+        self.refresh()
+        for mob in self.mobs.values():
+            if (
+                mob.alive
+                and mob.room_id == room_id
+                and MOB_TEMPLATES[
+                    mob.template_id
+                ].get("giant_fortress_boss")
+            ):
+                return mob
+        return None
+
+    def giant_fortress_ascent_blocked(
+        self, room_id, direction="up"
+    ):
+        if direction != "up":
+            return False
+        floor = giant_fortress_floor_number(
+            room_id
+        )
+        if (
+            floor is None
+            or floor not in GIANT_FORTRESS_BOSS_FLOORS
+        ):
+            return False
+        return (
+            self.live_giant_fortress_boss(
+                room_id
+            )
+            is not None
+        )
+
     def create_corpse(self, mob):
         template=MOB_TEMPLATES[mob.template_id]
         if template.get("leave_corpse", True) is False: return None
@@ -9166,6 +12534,8 @@ class Session:
         self.server = server
         self.reader = reader
         self.writer = writer
+        self.input_encoding = DEFAULT_TEXT_ENCODING
+        self.output_encoding = DEFAULT_TEXT_ENCODING
         self.account_id = None
         self.character = None
         self.closed = False
@@ -9182,6 +12552,7 @@ class Session:
         self.auto_herbalism = False
         self.auto_herbalism_task = None
         self.guiding = False
+        self.guide_choice_state = None
         self.skill_cooldowns = {}
         self.skill_guard = 0
         self.skill_evade = False
@@ -9202,6 +12573,58 @@ class Session:
             floor + 1
             > self.mine_progress()["max_floor_unlocked"]
         )
+
+    async def auto_mine_descend_if_unlocked(self):
+        if not self.auto_mining or self.closed:
+            return False
+        if self.combat_mob_key:
+            return False
+
+        current_room = self.character.room_id
+        floor = mine_floor_number(current_room)
+
+        if floor is None or floor >= MINE_MAX_FLOOR:
+            return False
+
+        target = ROOMS[current_room]["exits"].get("down")
+        expected_target = mine_floor_id(floor + 1)
+
+        if target != expected_target:
+            return False
+
+        progress = self.mine_progress()
+        if progress["max_floor_unlocked"] < floor + 1:
+            return False
+
+        if self.mine_descent_blocked_for_player(
+            current_room,
+            "down",
+        ):
+            return False
+
+        old = current_room
+        await self.server.broadcast_room(
+            old,
+            f"{self.character.name} odchodzi.",
+            exclude=self,
+        )
+
+        self.character.room_id = target
+        self.server.db.save_character(
+            self.character
+        )
+
+        await self.server.broadcast_room(
+            target,
+            f"{self.character.name} przychodzi.",
+            exclude=self,
+        )
+
+        await self.send(
+            f"Ściana w dół jest przebita. "
+            f"Auto-kopanie schodzi na poziom {floor + 1}."
+        )
+        return True
 
     def nearest_auto_target(self, route):
         best = None
@@ -9261,6 +12684,10 @@ class Session:
                 self.character.room_id, direction
             ):
                 return False
+            if self.giant_fortress_ascent_blocked_for_player(
+                self.character.room_id, direction
+            ):
+                return False
             if self.crypt_descent_blocked_for_player(
                 self.character.room_id, direction
             ):
@@ -9312,9 +12739,10 @@ class Session:
             )
             if floor < MINE_MAX_FLOOR:
                 if floor == progress["max_floor_unlocked"]:
+                    required_hits = mine_wall_hits_required(floor)
                     await self.send(
                         f"Ściana w dół: {progress['wall_hits']} z "
-                        f"{MINE_WALL_HITS_REQUIRED} uderzeń."
+                        f"{required_hits} uderzeń."
                     )
                 else:
                     await self.send(
@@ -9329,34 +12757,28 @@ class Session:
             "Kilof nadal musi mieć odpowiedni level."
         )
         await self.send(
-            "kop on samo idzie do najgłębszego poziomu, "
-            "kopie, przebija ścianę i schodzi niżej."
+            "kop on nie chodzi po świecie. "
+            "Może zejść tylko o jeden poziom przez wyjście down, "
+            "jeśli ściana do następnego poziomu jest już przebita."
         )
 
     def mythic_entry_error(self, target_room):
         if target_room == "mythic_crypt_gate":
-            checkpoint = self.server.db.crypt_portal(
-                self.account_id
-            )
-            if checkpoint < CRYPT_MAX_FLOOR:
+            if self.character.soul_level < MYTHIC_CRYPT_MIN_SOUL_LEVEL:
                 return (
                     "Mityczna Krypta jest zablokowana. "
-                    f"Najpierw ukończ zwykłą Kryptę i pokonaj bossa "
-                    f"piętra {CRYPT_MAX_FLOOR}. "
-                    f"Twój checkpoint: {checkpoint}."
+                    f"Wymaga Soul Level {MYTHIC_CRYPT_MIN_SOUL_LEVEL}. "
+                    f"Masz Soul Level {self.character.soul_level}."
                 )
 
         if target_room == "mythic_astral_gate":
-            checkpoint = self.server.db.astral_portal(
-                self.account_id
-            )
-            if checkpoint < ASTRAL_MAX_FLOOR:
+            if self.character.soul_level < MYTHIC_ASTRAL_MIN_SOUL_LEVEL:
                 return (
                     "Mityczna Wieża Astralna jest zablokowana. "
-                    f"Najpierw ukończ zwykłą Wieżę i pokonaj bossa "
-                    f"poziomu {ASTRAL_MAX_FLOOR}. "
-                    f"Twój checkpoint: {checkpoint}."
+                    f"Wymaga Soul Level {MYTHIC_ASTRAL_MIN_SOUL_LEVEL}. "
+                    f"Masz Soul Level {self.character.soul_level}."
                 )
+
         return None
 
     def profession_dungeon_access_error(self, target_room):
@@ -9379,6 +12801,15 @@ class Session:
                 f"{tool_name} level {required}. Masz level {level}."
             )
         return None
+
+    def giant_fortress_ascent_blocked_for_player(
+        self, room_id, direction="up"
+    ):
+        return (
+            self.server.world.giant_fortress_ascent_blocked(
+                room_id, direction
+            )
+        )
 
     def mythic_crypt_descent_blocked_for_player(
         self, room_id, direction="down"
@@ -10112,11 +13543,87 @@ class Session:
                     f"{result['next_xp']}."
                 )
 
+    def encode_session_text(self, value):
+        value = str(value)
+        try:
+            return value.encode(
+                self.output_encoding,
+                errors="strict",
+            )
+        except UnicodeEncodeError:
+            return value.encode(
+                self.output_encoding,
+                errors="replace",
+            )
+
+    async def negotiate_polish_charset(self):
+        if self.closed:
+            return
+        try:
+            self.writer.write(
+                telnet_charset_offer_bytes()
+            )
+            await self.writer.drain()
+        except (ConnectionError, BrokenPipeError):
+            self.closed = True
+
+    async def show_encoding(self):
+        label = (
+            "UTF-8"
+            if self.output_encoding == "utf-8"
+            else "Windows-1250"
+        )
+        await self.send(
+            f"Kodowanie sesji: {label}."
+        )
+        await self.send(
+            "Zmiana: kodowanie utf8 albo kodowanie cp1250."
+        )
+
+    async def set_encoding(self, raw):
+        value = normalize_lookup_text(raw)
+
+        if not value:
+            await self.show_encoding()
+            return
+
+        if value in {"utf8", "utf 8", "unicode"}:
+            self.input_encoding = "utf-8"
+            self.output_encoding = "utf-8"
+            await self.send(
+                "Kodowanie przełączone na UTF-8. "
+                "Test: ą ć ę ł ń ó ś ź ż."
+            )
+            return
+
+        if value in {
+            "cp1250",
+            "windows1250",
+            "windows 1250",
+            "win1250",
+        }:
+            self.input_encoding = "cp1250"
+            self.output_encoding = "cp1250"
+            await self.send(
+                "Kodowanie przełączone na Windows-1250. "
+                "Test: ą ć ę ł ń ó ś ź ż."
+            )
+            return
+
+        await self.send(
+            "Nieznane kodowanie. Użyj: "
+            "kodowanie utf8 albo kodowanie cp1250."
+        )
+
     async def send(self, text=""):
         if self.closed:
             return
         try:
-            self.writer.write((text + "\r\n").encode("utf-8"))
+            self.writer.write(
+                self.encode_session_text(
+                    str(text) + "\r\n"
+                )
+            )
             await self.writer.drain()
         except (ConnectionError, BrokenPipeError):
             self.closed = True
@@ -10125,7 +13632,9 @@ class Session:
         if self.closed:
             return
         try:
-            self.writer.write(text.encode("utf-8"))
+            self.writer.write(
+                self.encode_session_text(text)
+            )
             await self.writer.drain()
         except (ConnectionError, BrokenPipeError):
             self.closed = True
@@ -10136,10 +13645,21 @@ class Session:
                 data = await self.reader.readline()
                 if not data:
                     return None
-                text = clean_telnet(data).replace("\r", "").replace("\n", "").strip()
+                text = clean_telnet(
+                    data,
+                    self.input_encoding,
+                )
+                text = (
+                    text.replace("\r", "")
+                    .replace("\n", "")
+                    .strip()
+                )
                 if text:
                     return text
-        except (ConnectionError, asyncio.IncompleteReadError):
+        except (
+            ConnectionError,
+            asyncio.IncompleteReadError,
+        ):
             return None
 
     async def ask(self, text):
@@ -10147,7 +13667,13 @@ class Session:
         return await self.read_line()
 
     async def login_flow(self):
+        await self.negotiate_polish_charset()
         await self.send(f"SOULBOUND ONLINE v{VERSION}")
+        await self.send("ENCODING: UTF-8")
+        await self.send(
+            "Jeśli polskie znaki są błędne, wpisz: "
+            "kodowanie cp1250"
+        )
         await self.send("Wpisz: login albo new")
         while True:
             cmd = await self.ask("> ")
@@ -10662,29 +14188,328 @@ class Session:
             int(round(total * self.total_set_defense_multiplier()))
         )
 
-    async def look(self):
+    def visible_player_for_look(self, query):
+        wanted = self.normalize_description_query(query)
+        if not wanted:
+            return None
+
+        exact = []
+        partial = []
+        for session in self.server.sessions:
+            if (
+                not session.character
+                or session.character.room_id != self.character.room_id
+            ):
+                continue
+            normalized = self.normalize_description_query(
+                session.character.name
+            )
+            if wanted == normalized:
+                exact.append(session)
+            elif wanted in normalized:
+                partial.append(session)
+
+        if exact:
+            return exact[0]
+        if len(partial) == 1:
+            return partial[0]
+        return None
+
+    def visible_npc_for_look(self, query):
+        current = {
+            npc_id: npc
+            for npc_id, npc in NPCS.items()
+            if npc.get("room") == self.character.room_id
+        }
+        return self.find_description_entry(current, query)
+
+    def visible_mob_for_look(self, query):
+        wanted = self.normalize_description_query(query)
+        if not wanted:
+            return None
+
+        exact = []
+        partial = []
+        for mob in self.server.world.room_mobs(
+            self.character.room_id
+        ):
+            template = MOB_TEMPLATES[mob.template_id]
+            name = self.normalize_description_query(
+                template["name"]
+            )
+            template_id = self.normalize_description_query(
+                mob.template_id
+            )
+            entry = (mob, template)
+            if wanted in {name, template_id}:
+                exact.append(entry)
+            elif wanted in name or wanted in template_id:
+                partial.append(entry)
+
+        if exact:
+            return exact[0]
+        if len(partial) == 1:
+            return partial[0]
+        return None
+
+    def visible_item_for_look(self, query):
+        wanted = self.normalize_description_query(query)
+        if not wanted:
+            return None
+
+        candidates = {}
+
+        for row in self.server.db.inventory(self.account_id):
+            item_id = row["item_id"]
+            item = ITEMS.get(item_id)
+            if not item:
+                continue
+            entry = candidates.setdefault(
+                item_id,
+                {
+                    "item": item,
+                    "quantity": 0,
+                    "equipped": [],
+                    "shop": False,
+                },
+            )
+            entry["quantity"] += int(row["quantity"])
+
+        for row in self.server.db.equipment(self.account_id):
+            item_id = row["item_id"]
+            item = ITEMS.get(item_id)
+            if not item:
+                continue
+            entry = candidates.setdefault(
+                item_id,
+                {
+                    "item": item,
+                    "quantity": 0,
+                    "equipped": [],
+                    "shop": False,
+                },
+            )
+            entry["equipped"].append(row["slot"])
+
+        for item_id in SHOPS.get(self.character.room_id, ()):
+            item = ITEMS.get(item_id)
+            if not item:
+                continue
+            entry = candidates.setdefault(
+                item_id,
+                {
+                    "item": item,
+                    "quantity": 0,
+                    "equipped": [],
+                    "shop": False,
+                },
+            )
+            entry["shop"] = True
+
+        exact = []
+        partial = []
+        for item_id, entry in candidates.items():
+            item = entry["item"]
+            normalized_id = self.normalize_description_query(item_id)
+            normalized_name = self.normalize_description_query(
+                item.get("name", item_id)
+            )
+            result = (item_id, entry)
+
+            if wanted in {normalized_id, normalized_name}:
+                exact.append(result)
+            elif (
+                wanted in normalized_id
+                or wanted in normalized_name
+            ):
+                partial.append(result)
+
+        if exact:
+            return exact[0]
+        if len(partial) == 1:
+            return partial[0]
+        return None
+
+    async def look_at_player(self, session):
+        character = session.character
+        classes = character.active_class_names()
+        await self.send(f"{character.name}. Gracz.")
+        await self.send(
+            f"Rasa: {character.race}. "
+            f"Klasa: {', '.join(classes)}. "
+            f"Soul Level {character.soul_level}. "
+            f"Soul Tier {character.soul_tier}."
+        )
+        await self.send(
+            f"Broń Duszy: {character.soul_weapon}."
+        )
+
+    async def look_at_npc(self, npc_id, npc):
+        await self.send(f"{npc['name']}. NPC.")
+        desc = NPC_DESCRIPTIONS.get(
+            npc_id,
+            npc.get("dialogue", ""),
+        )
+        if desc:
+            await self.send(desc)
+
+        quest_ids = []
+        if npc.get("quest"):
+            quest_ids.append(npc["quest"])
+        quest_ids.extend(npc.get("quest_chain") or ())
+        quest_ids.extend(npc.get("specialist_quests") or ())
+        quest_ids = list(dict.fromkeys(quest_ids))
+
+        if quest_ids:
+            names = [
+                QUESTS[qid]["name"]
+                for qid in quest_ids
+                if qid in QUESTS
+            ]
+            if names:
+                await self.send(
+                    "Powiązane zadania: "
+                    + ", ".join(names)
+                    + "."
+                )
+
+    async def look_at_mob(self, mob, template):
+        dtype = (
+            "magiczne"
+            if template.get("damage_type") == "magic"
+            else "fizyczne"
+        )
+        await self.send(
+            f"{template['name']}. Przeciwnik."
+        )
+        await self.send(
+            f"HP: {mob.hp} z {template['max_hp']}. "
+            f"Bazowe obrażenia: {template.get('damage', 0)}. "
+            f"Typ obrażeń: {dtype}."
+        )
+
+        if template.get("rare_troll"):
+            await self.send("Rzadki wariant trolla.")
+
+        if template.get("elite_affix_text"):
+            await self.send(
+                "Elitarny affix: "
+                + template["elite_affix_text"]
+            )
+
+        if template.get("boss_mechanic_text"):
+            await self.send(
+                "Mechanika: "
+                + template["boss_mechanic_text"]
+            )
+
+    async def look_at_item(self, item_id, entry):
+        item = entry["item"]
+        await self.send(
+            self.format_item_description(item_id, item)
+        )
+
+        context = []
+        quantity = int(entry.get("quantity", 0))
+        if quantity > 0:
+            context.append(f"Masz {quantity} szt.")
+
+        for slot in entry.get("equipped", ()):
+            context.append(
+                "Założony: "
+                + EQUIPMENT_SLOT_NAMES.get(slot, slot)
+            )
+
+        if entry.get("shop"):
+            context.append(
+                "Dostępny w sklepie tej lokacji"
+            )
+
+        if context:
+            await self.send(". ".join(context) + ".")
+
+    async def look(self, query=""):
+        query = str(query or "").strip()
+
+        if query:
+            player = self.visible_player_for_look(query)
+            if player:
+                await self.look_at_player(player)
+                return
+
+            npc = self.visible_npc_for_look(query)
+            if npc:
+                npc_id, npc_data = npc
+                await self.look_at_npc(npc_id, npc_data)
+                return
+
+            mob = self.visible_mob_for_look(query)
+            if mob:
+                mob_state, template = mob
+                await self.look_at_mob(mob_state, template)
+                return
+
+            item = self.visible_item_for_look(query)
+            if item:
+                item_id, entry = item
+                await self.look_at_item(item_id, entry)
+                return
+
+            await self.send(
+                "Nie widzisz tutaj takiego gracza, "
+                "NPC, przeciwnika ani przedmiotu."
+            )
+            return
+
         room = ROOMS[self.character.room_id]
-        await self.send(f"{room['name']}. Strefa: {room['zone']}.")
+        await self.send(
+            f"{room['name']}. Strefa: {room['zone']}."
+        )
         await self.send(room["desc"])
 
-        npcs = [v["name"] for v in NPCS.values() if v["room"] == self.character.room_id]
+        npcs = [
+            value["name"]
+            for value in NPCS.values()
+            if value["room"] == self.character.room_id
+        ]
         if npcs:
-            await self.send("NPC: " + ", ".join(npcs) + ".")
+            await self.send(
+                "NPC: " + ", ".join(npcs) + "."
+            )
 
-        mobs = self.server.world.room_mobs(self.character.room_id)
+        mobs = self.server.world.room_mobs(
+            self.character.room_id
+        )
         if mobs:
-            names = [MOB_TEMPLATES[m.template_id]["name"] for m in mobs]
-            await self.send("Przeciwnicy: " + ", ".join(names) + ".")
+            names = [
+                MOB_TEMPLATES[mob.template_id]["name"]
+                for mob in mobs
+            ]
+            await self.send(
+                "Przeciwnicy: "
+                + ", ".join(names)
+                + "."
+            )
 
-        corpses = self.server.world.room_corpses(self.character.room_id)
+        corpses = self.server.world.room_corpses(
+            self.character.room_id
+        )
         if corpses:
             await self.send(
-                "Ciała: " + ", ".join(c.mob_name for c in corpses)
+                "Ciała: "
+                + ", ".join(
+                    corpse.mob_name
+                    for corpse in corpses
+                )
                 + ". Wpisz ciało, aby sprawdzić ekwipunek."
             )
 
-        if self.crypt_descent_blocked_for_player(self.character.room_id):
-            boss = self.server.world.live_crypt_boss(self.character.room_id)
+        if self.crypt_descent_blocked_for_player(
+            self.character.room_id
+        ):
+            boss = self.server.world.live_crypt_boss(
+                self.character.room_id
+            )
             if boss:
                 await self.send(
                     f"Zejście niżej blokuje boss: "
@@ -10692,11 +14517,24 @@ class Session:
                 )
 
         others = [
-            s.character.name for s in self.server.sessions
-            if s is not self and s.character and s.character.room_id == self.character.room_id
+            session.character.name
+            for session in self.server.sessions
+            if (
+                session is not self
+                and session.character
+                and session.character.room_id
+                == self.character.room_id
+            )
         ]
         if others:
-            await self.send("Gracze tutaj: " + ", ".join(sorted(others, key=str.lower)) + ".")
+            await self.send(
+                "Gracze tutaj: "
+                + ", ".join(
+                    sorted(others, key=str.lower)
+                )
+                + "."
+            )
+
         await self.show_exits()
 
     async def show_exits(self):
@@ -10706,7 +14544,13 @@ class Session:
             return
         exits=[]
         for direction in room["exits"].keys():
-            if self.crypt_descent_blocked_for_player(
+            if self.giant_fortress_ascent_blocked_for_player(
+                self.character.room_id, direction
+            ):
+                exits.append(
+                    f"{direction}, zablokowane przez bossa Twierdzy Gigantów"
+                )
+            elif self.crypt_descent_blocked_for_player(
                 self.character.room_id, direction
             ):
                 exits.append(f"{direction}, zablokowane przez bossa Krypty")
@@ -10974,8 +14818,7 @@ class Session:
             "soul - Broń Duszy, Soul Level 1-200",
             "money - srebro, złoto i mithril",
             "bank - Bank Dusz na Rynku; waluta i trwała skrytka przedmiotów",
-            "exchange - kurs wymiany",
-            "exchange gold / exchange mithril - wymiana walut",
+            "money - automatyczne nominały waluty i kurs",
             "professions / profesje - Wędkarstwo, Górnictwo i Drwalstwo",
             "rangi / ranks - pełna lista rang trzech profesji",
             "tools / narzedzia - skrót wszystkich 7 narzędzi",
@@ -11116,12 +14959,17 @@ class Session:
 
         if item.get("type") == "armor":
             parts.append(
-                f"Slot: {item.get('slot', 'brak')}. "
+                f"Slot: {EQUIPMENT_SLOT_NAMES.get(item.get('slot'), item.get('slot', 'brak'))}. "
                 f"Obrona fizyczna: +{item.get('defense', 0)}."
             )
             if item.get("rarity_name"):
                 parts.append(
                     f"Rzadkość: {item['rarity_name']}."
+                )
+            if item.get("required_class"):
+                parts.append(
+                    f"Wymagana aktywna klasa: "
+                    f"{item['required_class']}."
                 )
             if item.get("affix"):
                 affix_name = CRYPT_AFFIXES.get(
@@ -12027,7 +15875,7 @@ class Session:
         await self.send(self.crypt_set_bonus_text())
         await self.send(self.astral_set_bonus_text())
         await self.send(
-            f"Waluta: {c.silver} srebra, {c.gold} złota, {c.mithril} mithrilu. "
+            f"Waluta: {c.silver} srebrnych monet, {c.gold} złotych monet, {c.mithril} mithrilowych monet. "
             f"Śmierci: {c.deaths}."
         )
         await self.send(
@@ -12134,10 +15982,16 @@ class Session:
             self.character.room_id, direction
         ):
             progress = self.mine_progress()
+            floor = mine_floor_number(
+                self.character.room_id
+            )
+            required_hits = mine_wall_hits_required(
+                floor if floor is not None else MINE_MIN_FLOOR
+            )
             await self.send(
                 f"Nie możesz zejść niżej. Ściana kopalni nie jest "
                 f"przebita. Postęp: {progress['wall_hits']} z "
-                f"{MINE_WALL_HITS_REQUIRED}. Użyj kop albo kop on."
+                f"{required_hits}. Użyj kop albo kop on."
             )
             return
         if self.mythic_crypt_descent_blocked_for_player(
@@ -12169,6 +16023,23 @@ class Session:
             await self.send(
                 f"Nie możesz wejść wyżej. Drogę blokuje "
                 f"{boss_name}."
+            )
+            return
+
+        if self.giant_fortress_ascent_blocked_for_player(
+            self.character.room_id, direction
+        ):
+            boss = self.server.world.live_giant_fortress_boss(
+                self.character.room_id
+            )
+            boss_name = (
+                MOB_TEMPLATES[boss.template_id]["name"]
+                if boss
+                else "boss Twierdzy Gigantów"
+            )
+            await self.send(
+                f"Nie możesz wejść wyżej. Drogę blokuje "
+                f"{boss_name}. Najpierw pokonaj bossa."
             )
             return
 
@@ -12431,6 +16302,127 @@ class Session:
             f"[Drużyna] {self.character.name}: {message.strip()}"
         )
 
+    async def assist_party_member(self, name):
+        name = str(name or "").strip()
+
+        if not name:
+            await self.send(
+                "Użycie: wspieraj <gracz> albo assist <gracz>."
+            )
+            return False
+
+        if self.party_key() is None:
+            await self.send(
+                "Nie należysz do drużyny."
+            )
+            return False
+
+        target = self.server.find_character_session(name)
+        if not target:
+            await self.send(
+                "Ten gracz nie jest online."
+            )
+            return False
+
+        if target is self:
+            await self.send(
+                "Nie możesz wspierać samego siebie."
+            )
+            return False
+
+        if not self.server.same_party(
+            self.account_id,
+            target.account_id,
+        ):
+            await self.send(
+                f"{target.character.name} nie należy do twojej drużyny."
+            )
+            return False
+
+        if (
+            target.character.room_id
+            != self.character.room_id
+        ):
+            await self.send(
+                f"{target.character.name} nie jest w tej samej lokacji."
+            )
+            return False
+
+        target_mob_key = target.combat_mob_key
+        if not target_mob_key:
+            await self.send(
+                f"{target.character.name} z nikim teraz nie walczy."
+            )
+            return False
+
+        mob = self.server.world.mobs.get(
+            target_mob_key
+        )
+        if (
+            not mob
+            or not mob.alive
+            or mob.room_id != self.character.room_id
+        ):
+            await self.send(
+                "Cel walki tego gracza nie jest już dostępny."
+            )
+            return False
+
+        if (
+            self.combat_mob_key
+            and self.combat_mob_key != mob.key
+        ):
+            current = self.server.world.mobs.get(
+                self.combat_mob_key
+            )
+            current_name = (
+                MOB_TEMPLATES[current.template_id]["name"]
+                if current and current.alive
+                else "inny przeciwnik"
+            )
+            await self.send(
+                f"Już walczysz z: {current_name}. "
+                "Najpierw zakończ tę walkę albo użyj flee."
+            )
+            return False
+
+        if self.combat_mob_key == mob.key:
+            await self.send(
+                f"Już wspierasz {target.character.name} "
+                f"przeciw {MOB_TEMPLATES[mob.template_id]['name']}."
+            )
+            return False
+
+        if not self.server.engagement_allowed(
+            self,
+            mob,
+        ):
+            await self.send(
+                "Nie możesz dołączyć do tej walki."
+            )
+            return False
+
+        self.combat_mob_key = mob.key
+
+        mob_name = MOB_TEMPLATES[
+            mob.template_id
+        ]["name"]
+
+        await self.send(
+            f"Wspierasz {target.character.name} "
+            f"przeciw {mob_name}."
+        )
+
+        await self.server.broadcast_room(
+            self.character.room_id,
+            f"{self.character.name} wspiera "
+            f"{target.character.name} przeciw {mob_name}.",
+            exclude=self,
+        )
+
+        await self.attack("")
+        return True
+
     async def handle_party(self, args):
         parts = args.strip().split(maxsplit=1)
         if not parts:
@@ -12460,6 +16452,13 @@ class Session:
                 await self.party_kick(value)
         elif action in ("rozwiaz", "disband"):
             await self.disband_party()
+        elif action in ("wspieraj", "assist", "pomagaj"):
+            if not value:
+                await self.send(
+                    "Użycie: druzyna wspieraj <gracz>."
+                )
+            else:
+                await self.assist_party_member(value)
         elif action in ("limit", "capacity"):
             key = self.party_key()
             leader = self.server.session_by_account(key) if key else self
@@ -12471,24 +16470,229 @@ class Session:
         else:
             await self.send(
                 "Drużyna: status, zapros <gracz>, dolacz, odrzuc, "
-                "opusc, wyrzuc <gracz>, rozwiaz, limit. Czat: pc <tekst>."
+                "opusc, wyrzuc <gracz>, rozwiaz, wspieraj <gracz>, "
+                "limit. Czat: pc <tekst>."
             )
 
-    async def who(self):
-        players = sorted(
-            [s.character.name for s in self.server.sessions if s.character], key=str.lower
+    def exp_area_recommended(self, area):
+        soul_level = int(self.character.soul_level)
+        return (
+            int(area["soul_min"])
+            <= soul_level
+            <= int(area["soul_max"])
         )
-        await self.send(f"Gracze online: {len(players)}.")
-        if players:
-            await self.send(", ".join(players) + ".")
+
+    def find_exp_area(self, query):
+        wanted = self.normalize_description_query(query)
+        if not wanted:
+            return None
+
+        exact = []
+        partial = []
+
+        for area in EXP_AREAS:
+            names = (
+                area["id"],
+                area["name"],
+                *area.get("aliases", ()),
+            )
+            normalized = {
+                self.normalize_description_query(name)
+                for name in names
+            }
+
+            if wanted in normalized:
+                exact.append(area)
+            elif any(
+                wanted in name
+                for name in normalized
+            ):
+                partial.append(area)
+
+        if exact:
+            return exact[0]
+        if len(partial) == 1:
+            return partial[0]
+        return None
+
+    def exp_area_soul_text(self, area):
+        minimum = int(area["soul_min"])
+        maximum = int(area["soul_max"])
+
+        if minimum == maximum:
+            return f"orientacyjnie Soul Level {minimum}"
+        return (
+            f"orientacyjnie Soul Level "
+            f"{minimum}-{maximum}"
+        )
+
+    async def show_exp_area_details(self, area):
+        recommended = (
+            " Polecane dla ciebie."
+            if self.exp_area_recommended(area)
+            else ""
+        )
+
+        await self.send(
+            f"{area['name']}. "
+            f"{self.exp_area_soul_text(area)}. "
+            f"Trudność: {area['difficulty']}."
+            f"{recommended}"
+        )
+        await self.send(
+            f"Opis: {area['description']}"
+        )
+        await self.send(
+            f"Przeciwnicy: {area['enemies']}."
+        )
+        await self.send(
+            f"Uwagi: {area['note']}"
+        )
+        await self.send(
+            f"Prowadzenie: prowadz {area['guide']}."
+        )
+
+    async def show_exp_areas(self, query=""):
+        query = str(query or "").strip()
+        normalized = (
+            self.normalize_description_query(query)
+            if query
+            else ""
+        )
+
+        if normalized in {
+            "polecane", "recommended", "dla mnie",
+        }:
+            areas = [
+                area
+                for area in EXP_AREAS
+                if self.exp_area_recommended(area)
+            ]
+            await self.send(
+                f"POLECANE EXPOWISKA. "
+                f"Twój Soul Level: "
+                f"{self.character.soul_level}."
+            )
+            if not areas:
+                await self.send(
+                    "Brak terenu dokładnie w twoim "
+                    "orientacyjnym zakresie. "
+                    "Wpisz expowiska, aby zobaczyć wszystko."
+                )
+                return
+            for area in areas:
+                await self.send(
+                    f"{area['name']}. "
+                    f"{self.exp_area_soul_text(area)}. "
+                    f"{area['description']}"
+                )
+            return
+
+        if query:
+            area = self.find_exp_area(query)
+            if not area:
+                await self.send(
+                    "Nie rozpoznaję expowiska. "
+                    "Wpisz expowiska, aby usłyszeć pełną listę."
+                )
+                return
+            await self.show_exp_area_details(area)
+            return
+
+        await self.send(
+            f"EXPOWISKA. Twój Soul Level: "
+            f"{self.character.soul_level}."
+        )
+        await self.send(
+            "Zakres Soul Level jest wskazówką, "
+            "nie wymaganiem. Trudność zależy też "
+            "od statów, klasy i wyposażenia."
+        )
+
+        for number, area in enumerate(
+            EXP_AREAS,
+            1,
+        ):
+            marker = (
+                " Polecane dla ciebie."
+                if self.exp_area_recommended(area)
+                else ""
+            )
+            await self.send(
+                f"{number}. {area['name']}. "
+                f"{self.exp_area_soul_text(area)}. "
+                f"Trudność: {area['difficulty']}. "
+                f"{area['description']}"
+                f"{marker}"
+            )
+
+        await self.send(
+            "Szczegóły: expowiska nazwa. "
+            "Tylko polecane: expowiska polecane."
+        )
+
+    async def who(self):
+        online = [
+            session
+            for session in self.server.sessions
+            if session.character
+        ]
+        online.sort(
+            key=lambda session: session.character.name.lower()
+        )
+
+        await self.send(
+            f"Gracze online: {len(online)}."
+        )
+
+        if not online:
+            return
+
+        for session in online:
+            character = session.character
+            room = ROOMS.get(
+                character.room_id,
+                {
+                    "name": character.room_id,
+                    "zone": "Nieznana strefa",
+                },
+            )
+
+            classes = character.active_class_names()
+            class_text = (
+                ", ".join(classes)
+                if classes
+                else character.class_name
+            )
+
+            await self.send(
+                f"{character.name}. "
+                f"Klasa: {class_text}. "
+                f"Soul Level {character.soul_level}. "
+                f"Lokalizacja: {room['name']}. "
+                f"Strefa: {room['zone']}."
+            )
 
     async def say(self, text):
-        if not text:
+        message = str(text or "").strip()
+
+        if not message:
             await self.send("Użycie: say tekst")
             return
-        await self.send(f"Mówisz: {text}")
+
+        if len(message) > 500:
+            message = message[:500]
+            await self.send(
+                "Wiadomość skrócono do 500 znaków."
+            )
+
+        await self.send(
+            f"Mówisz: {message}"
+        )
         await self.server.broadcast_room(
-            self.character.room_id, f"{self.character.name} mówi: {text}", exclude=self
+            self.character.room_id,
+            f"{self.character.name} mówi: {message}",
+            exclude=self,
         )
 
     async def tell(self, args):
@@ -12599,9 +16803,9 @@ class Session:
         )
         await self.send("BANK DUSZ")
         await self.send(
-            f"Saldo: {row['silver']} srebra, "
-            f"{row['gold']} złota, "
-            f"{row['mithril']} mithrilu."
+            f"Saldo: {row['silver']} srebrnych monet, "
+            f"{row['gold']} złotych monet, "
+            f"{row['mithril']} mithrilowych monet."
         )
 
         items = self.server.db.bank_items(
@@ -12978,46 +17182,20 @@ class Session:
         )
 
     async def show_money(self):
+        self.server.db.save_character(self.character)
         c = self.character
         await self.send(
-            f"Masz {c.silver} srebra, {c.gold} złota i {c.mithril} mithrilu."
+            f"Masz {c.silver} srebrnych monet, "
+            f"{c.gold} złotych monet i "
+            f"{c.mithril} mithrilowych monet."
+        )
+        await self.send(
+            f"Automatyczny kurs: {SILVER_PER_GOLD} srebrnych monet "
+            f"= 1 złota moneta; "
+            f"{GOLD_PER_MITHRIL} złotych monet "
+            f"= 1 mithrilowa moneta."
         )
 
-    async def exchange(self, target):
-        target = target.strip().lower()
-        if not target:
-            await self.send(
-                f"Kurs: {SILVER_PER_GOLD} srebra = 1 złoto; "
-                f"{GOLD_PER_MITHRIL} złota = 1 mithril."
-            )
-            await self.send("Użycie: exchange gold albo exchange mithril.")
-            return
-
-        if target in ("gold", "złoto", "zloto"):
-            if self.character.silver < SILVER_PER_GOLD:
-                await self.send(f"Potrzebujesz {SILVER_PER_GOLD} srebrnych monet na 1 złotą monetę.")
-                return
-            self.character.silver -= SILVER_PER_GOLD
-            self.character.gold += 1
-            self.server.db.save_character(self.character)
-            await self.send(
-                f"Wymieniasz {SILVER_PER_GOLD} srebrnych monet na 1 złotą monetę."
-            )
-            return
-
-        if target in ("mithril", "mithryl"):
-            if self.character.gold < GOLD_PER_MITHRIL:
-                await self.send(f"Potrzebujesz {GOLD_PER_MITHRIL} złotych monet na 1 mithrilową monetę.")
-                return
-            self.character.gold -= GOLD_PER_MITHRIL
-            self.character.mithril += 1
-            self.server.db.save_character(self.character)
-            await self.send(
-                f"Wymieniasz {GOLD_PER_MITHRIL} złotych monet na 1 mithrilową monetę."
-            )
-            return
-
-        await self.send("Możesz wymieniać na: gold albo mithril.")
 
     def profession_xp_to_next(self, level, profession=None):
         max_level = (
@@ -13052,6 +17230,7 @@ class Session:
             "cooking",
             "herbalism",
             "alchemy",
+            "jewelcrafting",
         )
 
     def tool_progress_state(self):
@@ -13064,6 +17243,7 @@ class Session:
             "cooking",
             "herbalism",
             "alchemy",
+            "jewelcrafting",
         ):
             row = self.server.db.tool(self.account_id, tool_type)
             result[tool_type] = (
@@ -13136,6 +17316,7 @@ class Session:
             "cooking": "Nóż Kucharski",
             "herbalism": "Sierp Zielarski",
             "alchemy": "Moździerz Alchemiczny",
+            "jewelcrafting": "Szczypce Jubilerskie",
         }.get(tool_type, tool_type)
         messages.append(f"{tool_name}: +{tool_xp} XP narzędzia.")
 
@@ -13182,6 +17363,7 @@ class Session:
             "cooking": "Nóż Kucharski",
             "herbalism": "Sierp Zielarski",
             "alchemy": "Moździerz Alchemiczny",
+            "jewelcrafting": "Szczypce Jubilerskie",
         }.get(tool_type, tool_type)
 
         messages = [f"{tool_name}: +{tool_xp} XP narzędzia."]
@@ -13580,6 +17762,7 @@ class Session:
             "cooking": "Nóż Kucharski",
             "herbalism": "Sierp Zielarski",
             "alchemy": "Moździerz Alchemiczny",
+            "jewelcrafting": "Szczypce Jubilerskie",
         }[tool_type]
 
         await self.send(
@@ -13662,6 +17845,7 @@ class Session:
             "cooking": "Nóż Kucharski",
             "herbalism": "Sierp Zielarski",
             "alchemy": "Moździerz Alchemiczny",
+            "jewelcrafting": "Szczypce Jubilerskie",
         }[tool_type]
 
         await self.send(f"{tool_name}: nagroda +{tool_xp} XP.")
@@ -13743,10 +17927,82 @@ class Session:
 
         return {alias for alias in aliases if alias}
 
+    def guide_zone_query_name(self, query):
+        q = self.normalize_room_query(query)
+        aliases = {
+            "miasto": "miasto dusz",
+            "gildia": "gildia dusz",
+            "gory": "gory",
+            "wioska": "wioska gorska",
+            "wioska gorska": "wioska gorska",
+            "laki": "laki zielarskie",
+            "laka": "laki zielarskie",
+            "podziemia": "podziemia",
+            "trolle": "jaskinia trolli",
+            "jaskinia trolli": "jaskinia trolli",
+            "wieza astralna": "wieza astralna",
+            "mityczna wieza astralna": "mityczna wieza astralna",
+            "mityczna krypta": "mityczna krypta",
+            "twierdza gigantow": "twierdza gigantow",
+            "kopalnia glebinowa": "kopalnia glebinowa",
+            "lasy": "loch profesyjny pradawny las",
+            "pradawny las": "loch profesyjny pradawny las",
+            "ogrod alchemika": "loch profesyjny ogrod alchemika",
+            "zatopiona grota": "loch profesyjny zatopiona grota",
+        }
+        return aliases.get(q, q)
+
+    def rooms_in_exact_zone(self, query):
+        zone_query = self.guide_zone_query_name(query)
+        matches = [
+            room_id
+            for room_id, room in ROOMS.items()
+            if self.normalize_room_query(
+                room.get("zone", "")
+            ) == zone_query
+        ]
+        return sorted(
+            matches,
+            key=lambda rid: self.normalize_room_query(
+                ROOMS[rid]["name"]
+            ),
+        )
+
     def find_room_matches(self, query):
         q = self.normalize_room_query(query)
         if not q:
             return []
+
+        zone_matches = self.rooms_in_exact_zone(q)
+        if zone_matches:
+            return zone_matches
+
+        # "wieza" jest celowo szerokim terenem:
+        # zwykła i Mityczna Wieża Astralna.
+        if q in ("wieza", "tower"):
+            matches = []
+            for zone_name in (
+                "Wieża Astralna",
+                "Mityczna Wieża Astralna",
+            ):
+                matches.extend(
+                    self.rooms_in_exact_zone(zone_name)
+                )
+            if matches:
+                return list(dict.fromkeys(matches))
+
+        # "jaskinia" jako szeroki teren pokazuje zarówno
+        # Kryształową Jaskinię, jak i Jaskinię Trolli.
+        if q in ("jaskinia", "cave"):
+            matches = []
+            for room_id in (
+                "cave_entrance",
+                "troll_cave_entrance",
+            ):
+                if room_id in ROOMS:
+                    matches.append(room_id)
+            if matches:
+                return matches
 
         shortcut = GUIDE_DESTINATION_ALIASES.get(q)
         if shortcut and shortcut in ROOMS:
@@ -13849,6 +18105,14 @@ class Session:
         await self.send(
             "Możesz używać pełnej nazwy, identyfikatora lokacji ze spacjami "
             "albo wersji bez polskich znaków."
+        )
+        await self.send(
+            "Jeśli teren albo nazwa pasuje do kilku miejsc, "
+            "dostaniesz numerowaną listę. "
+            "Wpisz tylko samą cyfrę wyboru. "
+            "Działa to dla wszystkich terenów, między innymi "
+            "Dziczy, Gór, Podziemi, Gildii, Jaskini Trolli, "
+            "Krypt, Wież, Kopalń i Twierdzy Gigantów."
         )
         await self.send(
             "Działają też krótkie skróty. Przykłady: walk targ, walk kuznia, "
@@ -13985,7 +18249,225 @@ class Session:
             announce=True, immediate=False
         )
 
+    def guide_floor_family_specs(self):
+        return (
+            {
+                "prefix": "mine_floor_",
+                "label": (
+                    f"Kopalnia Głębinowa, poziomy "
+                    f"{MINE_MIN_FLOOR}-{MINE_MAX_FLOOR}"
+                ),
+                "minimum": MINE_MIN_FLOOR,
+                "maximum": MINE_MAX_FLOOR,
+                "target_room": mine_floor_id(MINE_MIN_FLOOR),
+            },
+            {
+                "prefix": "prof_crystal_mine_",
+                "label": (
+                    f"Kopalnia Kryształów, poziomy "
+                    f"1-{PROF_DUNGEON_MAX_FLOOR}"
+                ),
+                "minimum": 1,
+                "maximum": PROF_DUNGEON_MAX_FLOOR,
+                "target_room": profession_dungeon_room_id(
+                    "crystal_mine", 1
+                ),
+            },
+            {
+                "prefix": "crypt_floor_",
+                "label": (
+                    f"Krypta, piętra 1-{CRYPT_MAX_FLOOR}"
+                ),
+                "minimum": 1,
+                "maximum": CRYPT_MAX_FLOOR,
+                "target_room": crypt_floor_id(1),
+            },
+            {
+                "prefix": "mythic_crypt_floor_",
+                "label": (
+                    f"Mityczna Krypta, piętra "
+                    f"{MYTHIC_MIN_FLOOR}-{MYTHIC_MAX_FLOOR}"
+                ),
+                "minimum": MYTHIC_MIN_FLOOR,
+                "maximum": MYTHIC_MAX_FLOOR,
+                "target_room": mythic_crypt_floor_id(
+                    MYTHIC_MIN_FLOOR
+                ),
+            },
+            {
+                "prefix": "astral_floor_",
+                "label": (
+                    f"Wieża Astralna, poziomy "
+                    f"{ASTRAL_MIN_FLOOR}-{ASTRAL_MAX_FLOOR}"
+                ),
+                "minimum": ASTRAL_MIN_FLOOR,
+                "maximum": ASTRAL_MAX_FLOOR,
+                "target_room": astral_floor_id(ASTRAL_MIN_FLOOR),
+            },
+            {
+                "prefix": "mythic_astral_floor_",
+                "label": (
+                    f"Mityczna Wieża Astralna, poziomy "
+                    f"{MYTHIC_MIN_FLOOR}-{MYTHIC_MAX_FLOOR}"
+                ),
+                "minimum": MYTHIC_MIN_FLOOR,
+                "maximum": MYTHIC_MAX_FLOOR,
+                "target_room": mythic_astral_floor_id(
+                    MYTHIC_MIN_FLOOR
+                ),
+            },
+            {
+                "prefix": "giant_fortress_",
+                "label": (
+                    f"Twierdza Gigantów, poziomy "
+                    f"1-{GIANT_FORTRESS_MAX_FLOOR}"
+                ),
+                "minimum": 1,
+                "maximum": GIANT_FORTRESS_MAX_FLOOR,
+                "target_room": giant_fortress_floor_id(1),
+            },
+            {
+                "prefix": "prof_sunken_grotto_",
+                "label": (
+                    f"Zatopiona Grota, poziomy "
+                    f"1-{PROF_DUNGEON_MAX_FLOOR}"
+                ),
+                "minimum": 1,
+                "maximum": PROF_DUNGEON_MAX_FLOOR,
+                "target_room": profession_dungeon_room_id(
+                    "sunken_grotto", 1
+                ),
+            },
+            {
+                "prefix": "prof_ancient_forest_",
+                "label": (
+                    f"Pradawny Las, poziomy "
+                    f"1-{PROF_DUNGEON_MAX_FLOOR}"
+                ),
+                "minimum": 1,
+                "maximum": PROF_DUNGEON_MAX_FLOOR,
+                "target_room": profession_dungeon_room_id(
+                    "ancient_forest", 1
+                ),
+            },
+            {
+                "prefix": "prof_alchemy_garden_",
+                "label": (
+                    f"Ogród Alchemika, poziomy "
+                    f"1-{PROF_DUNGEON_MAX_FLOOR}"
+                ),
+                "minimum": 1,
+                "maximum": PROF_DUNGEON_MAX_FLOOR,
+                "target_room": profession_dungeon_room_id(
+                    "alchemy_garden", 1
+                ),
+            },
+        )
+
+    def compact_guide_matches(self, matches):
+        matches = list(dict.fromkeys(matches))
+        matched = set()
+        options = []
+
+        for spec in self.guide_floor_family_specs():
+            family_rooms = [
+                room_id
+                for room_id in matches
+                if room_id.startswith(spec["prefix"])
+            ]
+            if not family_rooms:
+                continue
+
+            matched.update(family_rooms)
+            options.append({
+                "kind": "room",
+                "label": spec["label"],
+                "room_id": spec["target_room"],
+            })
+
+        for room_id in matches:
+            if room_id in matched:
+                continue
+            options.append({
+                "kind": "room",
+                "label": (
+                    f"{ROOMS[room_id]['name']}. "
+                    f"Strefa: {ROOMS[room_id]['zone']}"
+                ),
+                "room_id": room_id,
+            })
+
+        return options
+
+    async def ask_guide_choice(self, matches, query):
+        options = self.compact_guide_matches(matches)
+
+        if not options:
+            return False
+
+        self.guide_choice_state = {
+            "mode": "destination",
+            "query": str(query or ""),
+            "options": options,
+        }
+
+        await self.send(
+            f"Znaleziono kilka pasujących celów dla: {query}."
+        )
+        await self.send(
+            "Wybierz cyfrę:"
+        )
+
+        for number, option in enumerate(options, 1):
+            await self.send(
+                f"{number}. {option['label']}."
+            )
+
+        await self.send(
+            "Wpisz tylko samą cyfrę wyboru."
+        )
+        return True
+
+    async def handle_guide_choice_number(self, raw):
+        state = self.guide_choice_state
+        if not state:
+            return False
+
+        value = str(raw or "").strip()
+
+        if self.normalize_room_query(value) in (
+            "anuluj", "cancel", "stop",
+        ):
+            self.guide_choice_state = None
+            await self.send(
+                "Anulowano wybór celu prowadzenia."
+            )
+            return True
+
+        if not value.isdigit():
+            return False
+
+        number = int(value)
+
+        if state["mode"] == "destination":
+            options = state["options"]
+            if not 1 <= number <= len(options):
+                await self.send(
+                    f"Nieprawidłowy numer. Wybierz od 1 do "
+                    f"{len(options)} albo wpisz anuluj."
+                )
+                return True
+
+            option = options[number - 1]
+            self.guide_choice_state = None
+            await self.guide_to(option["room_id"])
+            return True
+
+        self.guide_choice_state = None
+        return False
+
     async def guide_to(self, query):
+        self.guide_choice_state = None
         q = query.strip()
         if q.lower().startswith("to "):
             q = q[3:].strip()
@@ -14016,14 +18498,9 @@ class Session:
             return
 
         if len(matches) > 1:
-            names = "; ".join(ROOMS[rid]["name"] for rid in matches[:12])
-            extra = (
-                f" oraz jeszcze {len(matches) - 12}"
-                if len(matches) > 12 else ""
-            )
-            await self.send(
-                f"Nazwa pasuje do kilku lokacji: {names}{extra}. "
-                "Podaj pełniejszą nazwę."
+            await self.ask_guide_choice(
+                matches,
+                q,
             )
             return
 
@@ -14091,11 +18568,15 @@ class Session:
                     break
                 if self.mine_descent_blocked_for_player(old, direction):
                     progress = self.mine_progress()
+                    floor = mine_floor_number(old)
+                    required_hits = mine_wall_hits_required(
+                        floor if floor is not None else MINE_MIN_FLOOR
+                    )
                     await self.send(
                         f"Prowadzenie zatrzymane. Ściana kopalni "
                         f"blokuje zejście. Postęp "
                         f"{progress['wall_hits']} z "
-                        f"{MINE_WALL_HITS_REQUIRED}."
+                        f"{required_hits}."
                     )
                     break
                 if self.mythic_crypt_descent_blocked_for_player(
@@ -14112,6 +18593,26 @@ class Session:
                     await self.send(
                         "Prowadzenie zatrzymane. "
                         "Mityczny boss Wieży blokuje drogę w górę."
+                    )
+                    break
+                if self.giant_fortress_ascent_blocked_for_player(
+                    old, direction
+                ):
+                    boss = (
+                        self.server.world.live_giant_fortress_boss(
+                            old
+                        )
+                    )
+                    boss_name = (
+                        MOB_TEMPLATES[
+                            boss.template_id
+                        ]["name"]
+                        if boss
+                        else "boss Twierdzy Gigantów"
+                    )
+                    await self.send(
+                        f"Prowadzenie zatrzymane. Drogę wyżej "
+                        f"blokuje {boss_name}."
                     )
                     break
                 if self.crypt_descent_blocked_for_player(old, direction):
@@ -14204,6 +18705,9 @@ class Session:
                     )
                     break
 
+                if await self.auto_mine_descend_if_unlocked():
+                    continue
+
                 await self.mine(from_auto=True)
 
         except asyncio.CancelledError:
@@ -14251,8 +18755,9 @@ class Session:
                 self.auto_mining_loop()
             )
             await self.send(
-                "Auto-kopanie włączone. Kopie tylko w aktualnym miejscu "
-                "i nie chodzi ani nie schodzi samodzielnie. "
+                "Auto-kopanie włączone. Kopie tylko w Kopalni Głębinowej. "
+                "Po przebiciu ściany może zejść wyłącznie przez odblokowane "
+                "wyjście down na następny poziom. Nie chodzi w innych kierunkach. "
                 "Wpisz kop off albo mine off, aby je zatrzymać."
             )
             return
@@ -14491,21 +18996,26 @@ class Session:
         )
 
     async def show_profession_ranks(self):
-        for profession in ("Wędkarstwo", "Górnictwo", "Drwalstwo", "Zielarstwo", "Alchemia", "Kowalstwo"):
+        for profession in (
+            "Wędkarstwo", "Górnictwo", "Drwalstwo",
+            "Zielarstwo", "Alchemia", "Kowalstwo",
+            "Jubilerstwo",
+        ):
             await self.send(f"RANGI: {profession.upper()}")
-            for rank, minimum in enumerate(PROFESSION_RANK_THRESHOLDS, 1):
-                if rank < PROFESSION_MAX_RANK:
-                    maximum = PROFESSION_RANK_THRESHOLDS[rank] - 1
+            thresholds = profession_rank_thresholds(profession)
+            max_rank = profession_max_rank(profession)
+            max_level = profession_max_level(profession)
+
+            for rank, minimum in enumerate(thresholds, 1):
+                if rank < max_rank:
+                    maximum = thresholds[rank] - 1
                     level_text = f"level {minimum}-{maximum}"
                 else:
-                    if tool_type == "crafting":
-                        level_text = (
-                            f"level {minimum}-{TOOL_MAX_LEVEL}"
-                        )
-                    else:
-                        level_text = f"level {minimum}-{TOOL_MAX_LEVEL}"
+                    level_text = f"level {minimum}-{max_level}"
+
                 await self.send(
-                    f"Ranga {rank}: {PROFESSION_RANK_NAMES[profession][rank - 1]}. "
+                    f"Ranga {rank}: "
+                    f"{PROFESSION_RANK_NAMES[profession][rank - 1]}. "
                     f"{level_text}."
                 )
 
@@ -14515,6 +19025,7 @@ class Session:
         for name in (
             "Wędkarstwo", "Górnictwo", "Drwalstwo",
             "Zielarstwo", "Alchemia", "Kowalstwo",
+            "Jubilerstwo",
         ):
             row = self.server.db.profession(
                 self.account_id, name
@@ -14559,6 +19070,7 @@ class Session:
             ("cooking", "NOŻA KUCHARSKIEGO"),
             ("herbalism", "SIERPA ZIELARSKIEGO"),
             ("alchemy", "MOŹDZIERZA ALCHEMICZNEGO"),
+            ("jewelcrafting", "SZCZYPIEC JUBILERSKICH"),
         ):
             await self.send(f"NAZWY TIERÓW {title}")
             for tier, minimum in enumerate(TOOL_TIER_THRESHOLDS, 1):
@@ -14583,6 +19095,7 @@ class Session:
             "cooking": ("chef_knife", "Nóż Kucharski"),
             "herbalism": ("herbalist_sickle", "Sierp Zielarski"),
             "alchemy": ("alchemy_mortar", "Moździerz Alchemiczny"),
+            "jewelcrafting": ("jeweler_pliers", "Szczypce Jubilerskie"),
         }
         return definitions.get(tool_type)
 
@@ -14595,6 +19108,8 @@ class Session:
             return "Szansa na dodatkową miksturę"
         if tool_type == "herbalism":
             return "Szansa na dodatkowe zioło"
+        if tool_type == "jewelcrafting":
+            return "Szansa na dodatkową biżuterię"
         return "Bonus dodatkowego urobku"
 
     def tool_action_seconds(self, tool_type, level):
@@ -14625,6 +19140,7 @@ class Session:
             "cooking": "Czas gotowania",
             "herbalism": "Czas zbioru",
             "alchemy": "Czas warzenia",
+            "jewelcrafting": "Czas wykonania biżuterii",
         }.get(tool_type, "Czas akcji")
 
     def tool_xp_remaining_to_level(self, level, xp, tool_type=None):
@@ -14663,7 +19179,7 @@ class Session:
             if tool_type == "fishing":
                 await self.send("Wędkę kupisz na Targu Rybnym.")
             elif tool_type == "mining":
-                await self.send("Kilof kupisz u Kowala Dorana w Kuźni Dusz.")
+                await self.send("Kilof kupisz u Górnika Torena przy Wejściu do Kryształowej Jaskini.")
             elif tool_type == "woodcutting":
                 await self.send("Piłę kupisz u Drwala Brana w Obozie Drwala.")
             elif tool_type == "crafting":
@@ -14673,6 +19189,11 @@ class Session:
             elif tool_type in ("herbalism", "alchemy"):
                 await self.send(
                     f"{name} kupisz u Zielarki Liory w Chacie Zielarki."
+                )
+            elif tool_type == "jewelcrafting":
+                await self.send(
+                    "Szczypce Jubilerskie kupisz u Jubilerki Mirelli "
+                    "w Pracowni Jubilerskiej."
                 )
             return
 
@@ -14766,6 +19287,7 @@ class Session:
             ("cooking", "chef_knife", "Nóż Kucharski"),
             ("herbalism", "herbalist_sickle", "Sierp Zielarski"),
             ("alchemy", "alchemy_mortar", "Moździerz Alchemiczny"),
+            ("jewelcrafting", "jeweler_pliers", "Szczypce Jubilerskie"),
         ]
         for tool_type, item_id, name in tools:
             owned = self.server.db.item_qty(self.account_id, item_id) > 0
@@ -15209,6 +19731,11 @@ class Session:
     def herbalism_loot(self, tool_level, room_id=None):
         room_id = room_id or self.character.room_id
         tool_level = max(1, int(tool_level))
+
+        dedicated_herb = HERB_SPECIFIC_MEADOWS.get(room_id)
+        if dedicated_herb:
+            return dedicated_herb
+
         dungeon, dungeon_floor = profession_dungeon_floor(room_id)
         if dungeon == "alchemy_garden":
             tool_level = min(tool_level, dungeon_floor * 10)
@@ -15363,6 +19890,7 @@ class Session:
         )
         self.store_profession_resource(item_id, 1)
         item = ITEMS[item_id]
+        resource_quest_quantity = 1
         if item_id != base_item_id:
             await self.send(
                 f"RZADKI WARIANT RYBY: "
@@ -15381,10 +19909,14 @@ class Session:
         )
         if bonus_chance > 0 and random.random() < bonus_chance:
             self.store_profession_resource(item_id, 1)
+            resource_quest_quantity += 1
             await self.send(
                 f"Bonus Tieru {current_tier} Wędki: wyciągasz dodatkowo {item['name']} x1."
             )
 
+        await self.announce_resource_quest_progress(
+            item_id, resource_quest_quantity
+        )
         await self.announce_collect_category_quest_progress("fish")
 
         messages, profession_level, new_tool_level = self.grant_profession_progress(
@@ -15410,7 +19942,7 @@ class Session:
             await self.send("Tutaj nie ma odpowiedniego złoża.")
             return
         if self.server.db.item_qty(self.account_id, "pickaxe") <= 0:
-            await self.send("Do Górnictwa potrzebujesz Kilofa. Kup go w Kuźni Dusz.")
+            await self.send("Do Górnictwa potrzebujesz Kilofa. Kup go u Górnika Torena przy Wejściu do Kryształowej Jaskini.")
             return
         ready, remaining = self.profession_ready()
         if not ready:
@@ -15433,6 +19965,7 @@ class Session:
             tool_level, self.character.room_id
         )
 
+        mined_resource_quantity = 0
         if item_id == "__mithril_currency__":
             self.character.mithril += 1
             self.server.db.save_character(self.character)
@@ -15445,6 +19978,7 @@ class Session:
             self.store_profession_resource(
                 item_id, vein_quantity
             )
+            mined_resource_quantity = vein_quantity
             item = ITEMS[item_id]
             await self.send(
                 f"ŻYŁA: {vein['name']}. "
@@ -15460,11 +19994,15 @@ class Session:
         )
             if bonus_chance > 0 and random.random() < bonus_chance:
                 self.store_profession_resource(item_id, 1)
+                mined_resource_quantity += 1
                 await self.send(
                     f"Bonus Tieru {current_tier} Kilofa: wydobywasz dodatkowo {item['name']} x1."
                 )
 
         if item_id != "__mithril_currency__":
+            await self.announce_resource_quest_progress(
+                item_id, mined_resource_quantity
+            )
             await self.announce_collect_category_quest_progress("ore")
 
         messages, profession_level, new_tool_level = self.grant_profession_progress(
@@ -15498,14 +20036,17 @@ class Session:
                     f"Odblokowano Kopalnię - poziom {unlocked}."
                 )
                 if from_auto and self.auto_mining:
-                    await self.send(
-                        "Ściana jest przebita. Auto-kopanie pozostaje "
-                        "na tym poziomie. Zejdź ręcznie komendą down."
-                    )
+                    descended = await self.auto_mine_descend_if_unlocked()
+                    if not descended:
+                        await self.send(
+                            "Ściana jest przebita, ale auto-kopanie "
+                            "nie może bezpiecznie zejść w dół."
+                        )
             elif floor == wall["max_floor_unlocked"]:
+                required_hits = mine_wall_hits_required(floor)
                 await self.send(
                     f"Ściana w dół: {wall['wall_hits']} z "
-                    f"{MINE_WALL_HITS_REQUIRED} uderzeń."
+                    f"{required_hits} uderzeń."
                 )
 
     async def woodcut(self, from_auto=False):
@@ -15616,6 +20157,7 @@ class Session:
             base_item_id, old_level
         )
         self.store_profession_resource(item_id, 1)
+        resource_quest_quantity = 1
         if item_id != base_item_id:
             await self.send(
                 f"RZADKI WARIANT ROŚLINY: "
@@ -15632,11 +20174,15 @@ class Session:
         )
         if bonus_chance > 0 and random.random() < bonus_chance:
             self.store_profession_resource(item_id, 1)
+            resource_quest_quantity += 1
             await self.send(
                 f"Bonus Tieru {tool_tier(old_level)} Sierpa Zielarskiego: "
                 f"zbierasz dodatkowo {ITEMS[item_id]['name']} x1."
             )
 
+        await self.announce_resource_quest_progress(
+            item_id, resource_quest_quantity
+        )
         await self.announce_collect_category_quest_progress("herb")
 
         messages, prof_level, new_tool_level = self.grant_profession_progress(
@@ -15658,7 +20204,9 @@ class Session:
         if item_id in FISH_STORAGE_IDS:
             return room_id in {"market", "inn", "fish_market"}
         if item_id in ORE_STORAGE_IDS:
-            return room_id == "forge"
+            return room_id in {
+                "forge", "mountain_market"
+            }
         if item_id in WOOD_STORAGE_IDS:
             return room_id in {"market", "forge"}
         if item_id in HERB_STORAGE_IDS:
@@ -15668,7 +20216,7 @@ class Session:
     def resource_sale_location_text(self, container):
         return {
             "net": "Targ Rybny, Rynek albo Karczma",
-            "bag": "Kuźnia Dusz",
+            "bag": "Kuźnia Dusz albo Górski Targ Minerałów",
             "woodpile": "Rynek albo Kuźnia Dusz",
             "herbbag": "Rynek albo Chata Zielarki",
         }.get(container, "właściwy punkt skupu")
@@ -16109,23 +20657,35 @@ class Session:
         alchemy_modes = {
             "alchemy", "alchemia",
         }
+        jewel_modes = {
+            "jubilerstwo", "jewelcrafting", "jewelry",
+            "bizuteria", "biżuteria", "jub",
+        }
 
         if not mode:
-            show_craft = show_cook = show_alchemy = True
+            show_craft = show_cook = show_alchemy = show_jewel = True
         elif mode in craft_modes:
             show_craft = True
             show_cook = False
             show_alchemy = False
+            show_jewel = False
         elif mode in cook_modes:
             show_craft = False
             show_cook = True
             show_alchemy = False
+            show_jewel = False
         elif mode in alchemy_modes:
             show_craft = False
             show_cook = False
             show_alchemy = True
+            show_jewel = False
+        elif mode in jewel_modes:
+            show_craft = False
+            show_cook = False
+            show_alchemy = False
+            show_jewel = True
         else:
-            show_craft = show_cook = show_alchemy = True
+            show_craft = show_cook = show_alchemy = show_jewel = True
 
         if show_craft:
             await self.send("RECEPTURY RZEMIOSŁA I KOWALSTWA")
@@ -16160,6 +20720,17 @@ class Session:
                     f"{recipe['desc']}"
                 )
 
+        if show_jewel:
+            await self.send("RECEPTURY JUBILERSTWA")
+            for recipe in JEWELCRAFT_RECIPES.values():
+                await self.send(
+                    f"{recipe['name']}. Składniki: "
+                    f"{self.recipe_ingredients_text(recipe)}. "
+                    f"Miejsce: {self.recipe_station_text(recipe['stations'])}. "
+                    f"{self.recipe_level_requirement_text(JEWELCRAFT_RECIPES, recipe)} "
+                    f"{recipe['desc']}"
+                )
+
     def recipe_level_requirement_text(self, recipes, recipe):
         tool_type, _item_id, tool_name = self.recipe_tool_info(recipes)
         required = max(
@@ -16176,6 +20747,14 @@ class Session:
                 "Kowalstwo level "
                 f"{max(1, int(recipe.get('min_profession_level', 1)))}"
             )
+        if (
+            recipes is JEWELCRAFT_RECIPES
+            and "min_profession_level" in recipe
+        ):
+            parts.append(
+                "Jubilerstwo level "
+                f"{max(1, int(recipe.get('min_profession_level', 1)))}"
+            )
         return "Wymaga: " + ", ".join(parts) + "."
 
     def recipe_tool_info(self, recipes):
@@ -16183,6 +20762,8 @@ class Session:
             return "crafting", "crafting_hammer", "Młot Rzemieślniczy"
         if recipes is ALCHEMY_RECIPES:
             return "alchemy", "alchemy_mortar", "Moździerz Alchemiczny"
+        if recipes is JEWELCRAFT_RECIPES:
+            return "jewelcrafting", "jeweler_pliers", "Szczypce Jubilerskie"
         return "cooking", "chef_knife", "Nóż Kucharski"
 
     async def perform_recipe(self, query, recipes, action_name):
@@ -16203,6 +20784,11 @@ class Session:
                 await self.send(
                     "Do Alchemii potrzebujesz Moździerza Alchemicznego. "
                     "Kup go w Chacie Zielarki."
+                )
+            elif tool_type == "jewelcrafting":
+                await self.send(
+                    "Do Jubilerstwa potrzebujesz Szczypiec Jubilerskich. "
+                    "Kup je u Jubilerki Mirelli w Pracowni Jubilerskiej."
                 )
             else:
                 await self.send(
@@ -16253,6 +20839,26 @@ class Session:
                     f"{recipe['name']} wymaga Kowalstwa level "
                     f"{required_profession}, a masz "
                     f"{blacksmith_level}."
+                )
+                return False
+
+        if (
+            recipes is JEWELCRAFT_RECIPES
+            and "min_profession_level" in recipe
+        ):
+            jewel_row = self.server.db.profession(
+                self.account_id, "Jubilerstwo"
+            )
+            jewel_level = int(jewel_row["level"])
+            required_profession = max(
+                1,
+                int(recipe.get("min_profession_level", 1)),
+            )
+            if jewel_level < required_profession:
+                await self.send(
+                    f"{recipe['name']} wymaga Jubilerstwa level "
+                    f"{required_profession}, a masz "
+                    f"{jewel_level}."
                 )
                 return False
 
@@ -16318,21 +20924,40 @@ class Session:
             if tool_type == "cooking":
                 await self.send(
                     f"Bonus Tieru {tier} Noża Kucharskiego: "
-                    f"przygotowujesz dodatkowo {ITEMS[output_id]['name']} "
+                    f"przygotowujesz dodatkowo "
+                    f"{ITEMS[output_id]['name']} "
                     f"x{bonus_quantity}."
                 )
             elif tool_type == "alchemy":
                 await self.send(
                     f"Bonus Tieru {tier} Moździerza Alchemicznego: "
-                    f"warzysz dodatkowo {ITEMS[output_id]['name']} "
+                    f"warzysz dodatkowo "
+                    f"{ITEMS[output_id]['name']} "
+                    f"x{bonus_quantity}."
+                )
+            elif tool_type == "jewelcrafting":
+                await self.send(
+                    f"Bonus Tieru {tier} Szczypiec Jubilerskich: "
+                    f"wykonujesz dodatkowo "
+                    f"{ITEMS[output_id]['name']} "
                     f"x{bonus_quantity}."
                 )
             else:
                 await self.send(
                     f"Bonus Tieru {tier} Młota Rzemieślniczego: "
-                    f"wytwarzasz dodatkowo {ITEMS[output_id]['name']} "
+                    f"wytwarzasz dodatkowo "
+                    f"{ITEMS[output_id]['name']} "
                     f"x{bonus_quantity}."
                 )
+
+        if tool_type in (
+            "alchemy", "cooking", "crafting",
+            "jewelcrafting",
+        ):
+            await self.announce_craft_quest_progress(
+                output_id,
+                total_quantity,
+            )
 
         tool_xp = int(
             recipe.get("tool_xp", 8 + random.randint(0, 4))
@@ -16343,6 +20968,21 @@ class Session:
                     "Alchemia",
                     10 + random.randint(0, 5),
                     "alchemy",
+                    tool_xp,
+                )
+            )
+        elif tool_type == "jewelcrafting":
+            profession_xp = int(
+                recipe.get(
+                    "profession_xp",
+                    10 + random.randint(0, 5),
+                )
+            )
+            messages, jewel_level, new_tool_level = (
+                self.grant_profession_progress(
+                    "Jubilerstwo",
+                    profession_xp,
+                    "jewelcrafting",
                     tool_xp,
                 )
             )
@@ -16382,6 +21022,41 @@ class Session:
 
         return True
 
+    async def show_jewelcrafting_info(self):
+        await self.send("JUBILERSTWO")
+        row = self.server.db.profession(
+            self.account_id, "Jubilerstwo"
+        )
+        level = int(row["level"])
+        max_level = profession_max_level("Jubilerstwo")
+        rank = profession_rank(level, "Jubilerstwo")
+        xp_text = (
+            "maksimum"
+            if level >= max_level
+            else (
+                f"{row['xp']} z "
+                f"{self.profession_xp_to_next(level, 'Jubilerstwo')}"
+            )
+        )
+        await self.send(
+            f"Level {level} z {max_level}. "
+            f"Ranga {rank} z {profession_max_rank('Jubilerstwo')}: "
+            f"{profession_rank_name('Jubilerstwo', level)}. "
+            f"XP: {xp_text}. Akcje: {row['actions']}."
+        )
+        await self.send(
+            "Narzędzie: Szczypce Jubilerskie, level 1-200 i 13 Tierów. "
+            "Kupisz je wyłącznie u Jubilerki Mirelli w Pracowni Jubilerskiej."
+        )
+        await self.send(
+            "Receptury: wpisz receptury jubilerstwo. "
+            "Wykonywanie: jub <nazwa receptury>."
+        )
+        await self.send(
+            "Jubilerka Mirella prowadzi 9-etapowy łańcuch zleceń "
+            "od Żelaza do Eternium."
+        )
+
     async def show_blacksmithing_info(self):
         await self.send("KOWALSTWO")
         row = self.server.db.profession(
@@ -16412,8 +21087,9 @@ class Session:
             "i kucia przedmiotów w Kuźni Dusz."
         )
         await self.send(
-            "Komendy: kowalstwo, kuj <receptura>, "
-            "craft <receptura>, receptury kowalstwo."
+            "Komendy: kowalstwo, przetop <metal>, "
+            "kuj <receptura>, craft <receptura>, "
+            "receptury kowalstwo."
         )
         await self.send(
             "Materiały przechodzą od Żelaza, Srebra i Złota "
@@ -16449,8 +21125,120 @@ class Session:
             "Gotowanie daje XP wyłącznie Nożowi Kucharskiemu."
         )
 
+    def resolve_smelt_recipe(self, query):
+        wanted = self.normalize_description_query(query)
+        if not wanted:
+            return None
+
+        extra_aliases = {
+            "iron": (
+                "zelazo", "żelazo", "zelazna", "żelazna",
+                "ruda zelaza", "ruda żelaza", "iron",
+            ),
+            "silver": (
+                "srebro", "srebrna", "ruda srebra", "silver",
+            ),
+            "gold": (
+                "zloto", "złoto", "zlota", "złota",
+                "ruda zlota", "ruda złota", "gold",
+            ),
+            "cobalt": (
+                "kobalt", "kobaltowa", "ruda kobaltu", "cobalt",
+            ),
+            "runic": (
+                "runa", "runiczna", "runiczny", "kamien runiczny",
+                "kamień runiczny", "runestone", "runic",
+            ),
+            "dragonsteel": (
+                "smocza stal", "smoczej stali", "dragonsteel",
+            ),
+            "astral": (
+                "astral", "astralna", "astralny",
+            ),
+            "void": (
+                "pustka", "pustki", "void",
+            ),
+            "eternium": (
+                "eternium",
+            ),
+        }
+
+        exact = []
+        partial = []
+
+        for tier in BLACKSMITH_TIERS:
+            recipe_id = tier["ingot"]
+            recipe = CRAFT_RECIPES.get(recipe_id)
+            if not recipe:
+                continue
+
+            names = [
+                recipe_id,
+                recipe.get("name", ""),
+                tier["key"],
+                tier.get("name", ""),
+                tier["ore"],
+                ITEMS.get(tier["ore"], {}).get("name", ""),
+                ITEMS.get(recipe_id, {}).get("name", ""),
+            ]
+            names.extend(extra_aliases.get(tier["key"], ()))
+
+            normalized = {
+                self.normalize_description_query(name)
+                for name in names
+                if name
+            }
+
+            if wanted in normalized:
+                exact.append((recipe_id, recipe))
+            elif any(
+                wanted in name
+                for name in normalized
+            ):
+                partial.append((recipe_id, recipe))
+
+        if exact:
+            return exact[0]
+        if len(partial) == 1:
+            return partial[0]
+        return None
+
+    async def smelt_item(self, query):
+        query = str(query or "").strip()
+
+        if not query:
+            await self.send(
+                "Użycie: przetop <metal albo ruda>. "
+                "Przykłady: przetop żelazo, przetop srebro, "
+                "przetop kobalt, przetop Eternium."
+            )
+            return False
+
+        found = self.resolve_smelt_recipe(query)
+        if not found:
+            await self.send(
+                "Nie rozpoznaję metalu do przetopienia. "
+                "Dostępne: żelazo, srebro, złoto, kobalt, "
+                "runa, smocza stal, astral, pustka, Eternium."
+            )
+            return False
+
+        recipe_id, recipe = found
+        return await self.perform_recipe(
+            recipe["name"],
+            CRAFT_RECIPES,
+            "przetapianie",
+        )
+
     async def craft_item(self, query):
         return await self.perform_recipe(query, CRAFT_RECIPES, "rzemiosło")
+
+    async def jewelcraft_item(self, query):
+        return await self.perform_recipe(
+            query,
+            JEWELCRAFT_RECIPES,
+            "jubilerstwo",
+        )
 
     async def cook_item(self, query):
         return await self.perform_recipe(query, COOK_RECIPES, "gotowanie")
@@ -16461,8 +21249,9 @@ class Session:
     async def inventory(self):
         rows = self.server.db.inventory(self.account_id)
         await self.send(
-            f"Waluta: {self.character.silver} srebra, "
-            f"{self.character.gold} złota, {self.character.mithril} mithrilu."
+            f"Waluta: {self.character.silver} srebrnych monet, "
+            f"{self.character.gold} złotych monet, "
+            f"{self.character.mithril} mithrilowych monet."
         )
         await self.send(
             "Siatka na ryby, Sakwa górnicza, Stos drewna i Torba Zielarska "
@@ -16494,6 +21283,8 @@ class Session:
                 "legs": "Nogi",
                 "feet": "Stopy",
                 "charm": "Talizman",
+                "ring": "Pierścień",
+                "necklace": "Naszyjnik",
             }
             slot_name = slot_names.get(row["slot"], row["slot"])
             extra = ""
@@ -16519,6 +21310,13 @@ class Session:
             if item.get("type") != "armor":
                 continue
             if item.get("slot") != slot:
+                continue
+            required_class = item.get("required_class")
+            if (
+                required_class
+                and required_class
+                not in self.active_class_names()
+            ):
                 continue
             quantity = self.server.db.item_qty(
                 self.account_id, item_id
@@ -16592,14 +21390,27 @@ class Session:
             await self.send(
                 "Nie rozpoznaję posiadanego pancerza. "
                 "Możesz wpisać: załóż hełm, załóż zbroja, "
-                "załóż rękawice, załóż nogi, załóż buty "
-                "albo załóż talizman."
+                "załóż rękawice, załóż nogi, załóż buty, "
+                "załóż talizman, załóż pierścień "
+                "albo załóż naszyjnik."
             )
             return
 
         item_id, item = found
         if item.get("type") != "armor":
             await self.send("Tego przedmiotu nie można założyć.")
+            return
+
+        required_class = item.get("required_class")
+        if (
+            required_class
+            and required_class
+            not in self.active_class_names()
+        ):
+            await self.send(
+                f"{item['name']} wymaga aktywnej klasy "
+                f"{required_class}."
+            )
             return
 
         if self.server.db.item_qty(self.account_id, item_id) <= 0:
@@ -16867,9 +21678,19 @@ class Session:
         if not offers:
             await self.send("W tej lokacji nie ma sklepu.")
             return
+        seller_id = SHOP_SELLERS.get(
+            self.character.room_id
+        )
+        seller = NPCS.get(seller_id) if seller_id else None
+        seller_text = (
+            f" Sprzedawca: {seller['name']}."
+            if seller
+            else ""
+        )
         await self.send(
             f"Oferta sklepu. Rabat Charyzmy: "
             f"{self.character.shop_discount_percent()} procent."
+            f"{seller_text}"
         )
         for number, item_id in enumerate(offers, 1):
             item = ITEMS[item_id]
@@ -16881,6 +21702,18 @@ class Session:
                     f" Slot: {item.get('slot', 'brak')}. "
                     f"Obrona +{item.get('defense', 0)}."
                 )
+                if item.get("required_class"):
+                    required_class = item["required_class"]
+                    availability = (
+                        "aktywna"
+                        if required_class
+                        in self.active_class_names()
+                        else "nieaktywna"
+                    )
+                    extra += (
+                        f" Klasa: {required_class}; "
+                        f"{availability}."
+                    )
             cashback = self.shop_cashback_silver(item)
             discount_text = (
                 f" Zwrot z rabatu: {cashback} srebra."
@@ -16928,6 +21761,20 @@ class Session:
             return
 
         item_id, item = found
+
+        required_class = item.get("required_class")
+        if (
+            required_class
+            and required_class
+            not in self.active_class_names()
+        ):
+            await self.send(
+                f"{item['name']} jest wyposażeniem klasy "
+                f"{required_class}. Aktywuj tę klasę, aby kupić "
+                "ten przedmiot."
+            )
+            return
+
         price = item["price"]
         currency = item.get("currency", "gold")
         currency_pl = {"silver": "srebra", "gold": "złota", "mithril": "mithrilu"}[currency]
@@ -17037,6 +21884,65 @@ class Session:
         }
         return mapping.get(target)
 
+    def resource_quest_container(self, item_id):
+        if item_id in FISH_STORAGE_IDS:
+            return "net"
+        if item_id in ORE_STORAGE_IDS:
+            return "bag"
+        if item_id in WOOD_STORAGE_IDS:
+            return "woodpile"
+        if item_id in HERB_STORAGE_IDS:
+            return "herbbag"
+        return None
+
+    def resource_quest_have(self, item_id):
+        container = self.resource_quest_container(item_id)
+        if not container:
+            return self.server.db.item_qty(
+                self.account_id, item_id
+            )
+        return (
+            self.server.db.total_items_across_storage_and_inventory(
+                self.account_id,
+                {item_id},
+                container,
+            )
+        )
+
+    async def announce_resource_quest_progress(
+        self, item_id, amount=1
+    ):
+        changed = self.server.db.increment_resource_quest(
+            self.account_id,
+            item_id,
+            amount,
+        )
+        for quest_id, progress, needed in changed:
+            quest = QUESTS[quest_id]
+            name = ITEMS[item_id]["name"]
+            if progress >= needed:
+                await self.send(
+                    f"Postęp questa: {quest['name']}. "
+                    f"Zdobyłeś: {name}. "
+                    f"Postęp {progress} z {needed}. "
+                    "Cel wykonany."
+                )
+            else:
+                await self.send(
+                    f"Postęp questa: {quest['name']}. "
+                    f"Zdobyłeś: {name}. "
+                    f"Postęp {progress} z {needed}."
+                )
+
+    def craft_set_progress(self, row, quest):
+        targets = tuple(quest.get("targets") or ())
+        mask = int(row["progress"])
+        return sum(
+            1
+            for index in range(len(targets))
+            if mask & (1 << index)
+        )
+
     def quest_progress_value(self, quest_id):
         q = QUESTS.get(quest_id)
         if not q:
@@ -17050,8 +21956,15 @@ class Session:
             return min(int(row["progress"]), int(q["needed"]))
 
         if q["kind"] == "collect":
+            if q.get("track_craft_progress"):
+                return min(
+                    int(row["progress"]),
+                    int(q["needed"]),
+                )
             return min(
-                self.server.db.item_qty(self.account_id, q["target"]),
+                self.server.db.item_qty(
+                    self.account_id, q["target"]
+                ),
                 int(q["needed"]),
             )
 
@@ -17067,6 +21980,15 @@ class Session:
                 int(q["needed"]),
             )
 
+        if q["kind"] == "collect_resource":
+            return min(
+                int(row["progress"]),
+                int(q["needed"]),
+            )
+
+        if q["kind"] == "craft_set":
+            return self.craft_set_progress(row, q)
+
         return None
 
     async def announce_active_quest_progress(self, quest_id):
@@ -17079,10 +22001,90 @@ class Session:
             return
 
         needed = int(q["needed"])
+
+        if (
+            q.get("kind") == "collect"
+            and q.get("track_craft_progress")
+        ):
+            have = self.server.db.item_qty(
+                self.account_id,
+                q["target"],
+            )
+            item_name = ITEMS[q["target"]]["name"]
+            if progress >= needed and have >= needed:
+                await self.send(
+                    f"Quest aktywny: {q['name']}. "
+                    f"Wykonano {progress} z {needed}: "
+                    f"{item_name}. Masz {have} sztuk. "
+                    "Quest gotowy do oddania."
+                )
+            elif progress >= needed:
+                await self.send(
+                    f"Quest aktywny: {q['name']}. "
+                    f"Wykonano {progress} z {needed}: "
+                    f"{item_name}. "
+                    f"Do oddania masz {have} z {needed}. "
+                    "Wykonanie jest zakończone, ale musisz "
+                    "posiadać wymagane mikstury."
+                )
+            else:
+                await self.send(
+                    f"Quest aktywny: {q['name']}. "
+                    f"Wykonano {progress} z {needed}: "
+                    f"{item_name}."
+                )
+            return
+
+        if q.get("kind") == "collect_resource":
+            have = self.resource_quest_have(q["target"])
+            name = ITEMS[q["target"]]["name"]
+            if progress >= needed and have >= needed:
+                await self.send(
+                    f"Quest aktywny: {q['name']}. "
+                    f"Zdobyto {progress} z {needed}: {name}. "
+                    f"Masz {have}. Quest gotowy do oddania."
+                )
+            elif progress >= needed:
+                await self.send(
+                    f"Quest aktywny: {q['name']}. "
+                    f"Zdobyto {progress} z {needed}: {name}. "
+                    f"Do oddania masz {have} z {needed}."
+                )
+            else:
+                await self.send(
+                    f"Quest aktywny: {q['name']}. "
+                    f"Zdobyto {progress} z {needed}: {name}."
+                )
+            return
+
+        if q.get("kind") == "craft_set":
+            targets = tuple(q.get("targets") or ())
+            have = sum(
+                1
+                for item_id in targets
+                if self.server.db.item_qty(
+                    self.account_id, item_id
+                ) > 0
+            )
+            if progress >= needed and have >= needed:
+                await self.send(
+                    f"Quest aktywny: {q['name']}. "
+                    f"Elementy zestawu wykonane {progress} z {needed}. "
+                    "Pełny zestaw gotowy do oddania."
+                )
+            else:
+                await self.send(
+                    f"Quest aktywny: {q['name']}. "
+                    f"Elementy zestawu wykonane {progress} z {needed}. "
+                    f"Posiadasz {have} z {needed}."
+                )
+            return
+
         if progress >= needed:
             await self.send(
                 f"Quest aktywny: {q['name']}. "
-                f"Postęp {progress} z {needed}. Cel wykonany, wróć do NPC."
+                f"Postęp {progress} z {needed}. "
+                "Cel wykonany, wróć do NPC."
             )
         else:
             await self.send(
@@ -17102,6 +22104,51 @@ class Session:
             ):
                 continue
             await self.announce_active_quest_progress(row["quest_id"])
+
+    async def announce_craft_quest_progress(
+        self, item_id, amount=1
+    ):
+        changed = self.server.db.increment_craft_quest(
+            self.account_id,
+            item_id,
+            amount,
+        )
+
+        for quest_id, progress, needed in changed:
+            quest = QUESTS[quest_id]
+            item_name = ITEMS[item_id]["name"]
+
+            if quest.get("kind") == "craft_set":
+                if progress >= needed:
+                    await self.send(
+                        f"Postęp questa: {quest['name']}. "
+                        f"Wykonałeś element: {item_name}. "
+                        f"Elementy zestawu {progress} z {needed}. "
+                        "Pełny zestaw wykonany 1 z 1."
+                    )
+                else:
+                    await self.send(
+                        f"Postęp questa: {quest['name']}. "
+                        f"Wykonałeś element: {item_name}. "
+                        f"Elementy zestawu {progress} z {needed}."
+                    )
+                continue
+
+            if progress >= needed:
+                await self.send(
+                    f"Postęp questa: {quest['name']}. "
+                    f"Wykonałeś: {item_name}. "
+                    f"Postęp {progress} z {needed}. "
+                    "Wymagana liczba została wykonana. "
+                    f"Zachowaj {needed} sztuk do oddania "
+                    f"{quest['giver']}."
+                )
+            else:
+                await self.send(
+                    f"Postęp questa: {quest['name']}. "
+                    f"Wykonałeś: {item_name}. "
+                    f"Postęp {progress} z {needed}."
+                )
 
     def format_duration_short(self, seconds):
         seconds = max(0, int(seconds))
@@ -17147,8 +22194,24 @@ class Session:
             return progress, progress >= needed
 
         if q["kind"] == "collect":
+            if q.get("track_craft_progress"):
+                crafted = min(
+                    int(row["progress"]),
+                    needed,
+                )
+                have = self.server.db.item_qty(
+                    self.account_id,
+                    q["target"],
+                )
+                return (
+                    crafted,
+                    crafted >= needed
+                    and have >= needed,
+                )
+
             progress = self.server.db.item_qty(
-                self.account_id, q["target"]
+                self.account_id,
+                q["target"],
             )
             return progress, progress >= needed
 
@@ -17163,6 +22226,32 @@ class Session:
                 )
             )
             return progress, progress >= needed
+
+        if q["kind"] == "collect_resource":
+            gathered = min(
+                int(row["progress"]), needed
+            )
+            have = self.resource_quest_have(
+                q["target"]
+            )
+            return (
+                gathered,
+                gathered >= needed and have >= needed,
+            )
+
+        if q["kind"] == "craft_set":
+            progress = self.craft_set_progress(row, q)
+            targets = tuple(q.get("targets") or ())
+            have_all = all(
+                self.server.db.item_qty(
+                    self.account_id, item_id
+                ) > 0
+                for item_id in targets
+            )
+            return (
+                progress,
+                progress >= needed and have_all,
+            )
 
         return int(row["progress"]), int(row["progress"]) >= needed
 
@@ -17379,18 +22468,121 @@ class Session:
                 return
 
         elif q["kind"] == "collect":
+            if q.get("track_craft_progress"):
+                crafted = min(
+                    int(row["progress"]),
+                    int(q["needed"]),
+                )
+                if crafted < int(q["needed"]):
+                    await self.send(
+                        f"Quest aktywny: {q['name']}. "
+                        f"Wykonano {crafted} z {q['needed']}: "
+                        f"{ITEMS[q['target']]['name']}."
+                    )
+                    return
+
             progress = self.server.db.item_qty(
                 self.account_id, q["target"]
             )
             if progress < q["needed"]:
+                if q.get("track_craft_progress"):
+                    await self.send(
+                        f"Quest aktywny: {q['name']}. "
+                        f"Wykonanie zakończone, ale do oddania "
+                        f"masz {progress} z {q['needed']}: "
+                        f"{ITEMS[q['target']]['name']}."
+                    )
+                else:
+                    await self.send(
+                        f"Quest aktywny: {q['name']}. "
+                        f"Postęp {progress} z {q['needed']}."
+                    )
+                return
+
+            self.server.db.remove_item(
+                self.account_id,
+                q["target"],
+                q["needed"],
+            )
+
+        elif q["kind"] == "collect_resource":
+            gathered = min(
+                int(row["progress"]),
+                int(q["needed"]),
+            )
+            if gathered < int(q["needed"]):
                 await self.send(
                     f"Quest aktywny: {q['name']}. "
-                    f"Postęp {progress} z {q['needed']}."
+                    f"Zdobyto {gathered} z {q['needed']}: "
+                    f"{ITEMS[q['target']]['name']}."
                 )
                 return
-            self.server.db.remove_item(
-                self.account_id, q["target"], q["needed"]
+
+            container = self.resource_quest_container(
+                q["target"]
             )
+            have = self.resource_quest_have(
+                q["target"]
+            )
+            if have < int(q["needed"]):
+                await self.send(
+                    f"Cel zdobywania wykonany, ale do oddania "
+                    f"masz {have} z {q['needed']}: "
+                    f"{ITEMS[q['target']]['name']}."
+                )
+                return
+
+            ok = (
+                self.server.db.consume_items_across_storage_and_inventory(
+                    self.account_id,
+                    {q["target"]},
+                    int(q["needed"]),
+                    container,
+                )
+            )
+            if not ok:
+                await self.send(
+                    "Nie udało się pobrać wymaganych surowców."
+                )
+                return
+
+        elif q["kind"] == "craft_set":
+            targets = tuple(q.get("targets") or ())
+            crafted = self.craft_set_progress(
+                row, q
+            )
+            if crafted < len(targets):
+                await self.send(
+                    f"Quest aktywny: {q['name']}. "
+                    f"Elementy zestawu {crafted} z {len(targets)}."
+                )
+                return
+
+            missing = [
+                item_id
+                for item_id in targets
+                if self.server.db.item_qty(
+                    self.account_id, item_id
+                ) <= 0
+            ]
+            if missing:
+                await self.send(
+                    "Pełny zestaw został już wykuty, ale brakuje "
+                    "elementów do oddania: "
+                    + ", ".join(
+                        ITEMS[item_id]["name"]
+                        for item_id in missing
+                    )
+                    + "."
+                )
+                return
+
+            for item_id in targets:
+                self.server.db.remove_item(
+                    self.account_id,
+                    item_id,
+                    1,
+                )
 
         elif q["kind"] == "collect_category":
             category = self.quest_collect_category_info(q["target"])
@@ -17432,6 +22624,58 @@ class Session:
             row and row["status"] == "completed"
         )
 
+    def npc_chain_quest_available(self, quest_id):
+        quest = QUESTS.get(quest_id)
+        if not quest:
+            return False
+        required = quest.get("requires_quest")
+        if required and not self.quest_completed(required):
+            return False
+        return True
+
+    def npc_chain_current_quest(self, npc):
+        chain = tuple(npc.get("quest_chain") or ())
+        if not chain:
+            return npc.get("quest")
+
+        for quest_id in chain:
+            row = self.server.db.quest(
+                self.account_id, quest_id
+            )
+            if row and row["status"] == "active":
+                return quest_id
+
+        available = [
+            quest_id
+            for quest_id in chain
+            if self.npc_chain_quest_available(quest_id)
+        ]
+        return available[-1] if available else chain[0]
+
+    async def show_npc_quest_chain(self, npc):
+        chain = tuple(npc.get("quest_chain") or ())
+        if not chain:
+            return
+        await self.send(
+            f"Łańcuch zadań: {len(chain)} etapy."
+        )
+        for number, quest_id in enumerate(chain, 1):
+            quest = QUESTS[quest_id]
+            row = self.server.db.quest(
+                self.account_id, quest_id
+            )
+            if row and row["status"] == "active":
+                state = "aktywne"
+            elif row and row["status"] == "completed":
+                state = "ukończone"
+            elif self.npc_chain_quest_available(quest_id):
+                state = "dostępne"
+            else:
+                state = "zablokowane"
+            await self.send(
+                f"Etap {number}: {quest['name']}. {state}."
+            )
+
     def specialist_quest_available(self, quest_id):
         quest = QUESTS.get(quest_id)
         if not quest:
@@ -17451,6 +22695,24 @@ class Session:
                 self.account_id, tool_type
             )
             if int(row["level"]) < minimum:
+                return False
+
+        profession = quest.get(
+            "required_profession"
+        )
+        if profession:
+            prow = self.server.db.profession(
+                self.account_id, profession
+            )
+            required_profession_level = int(
+                quest.get(
+                    "min_profession_level", 1
+                )
+            )
+            if (
+                int(prow["level"])
+                < required_profession_level
+            ):
                 return False
 
         return True
@@ -17541,6 +22803,24 @@ class Session:
                     reasons.append(
                         "wymaga ukończenia poprzedniego etapu"
                     )
+                profession = quest.get(
+                    "required_profession"
+                )
+                if profession:
+                    prow = self.server.db.profession(
+                        self.account_id,
+                        profession,
+                    )
+                    minimum_prof = int(
+                        quest.get(
+                            "min_profession_level", 1
+                        )
+                    )
+                    if int(prow["level"]) < minimum_prof:
+                        reasons.append(
+                            f"wymaga {profession} level "
+                            f"{minimum_prof}"
+                        )
                 state = "zablokowane: " + ", ".join(reasons)
             else:
                 state = "dostępne"
@@ -17624,6 +22904,15 @@ class Session:
                         f"Odblokuje się od levelu narzędzia "
                         f"{next_level}, po ukończeniu poprzedniego etapu."
                     )
+            return
+
+        if npc.get("quest_chain"):
+            await self.show_npc_quest_chain(npc)
+            quest_id = self.npc_chain_current_quest(npc)
+            if quest_id:
+                await self.handle_quest_interaction(
+                    quest_id
+                )
             return
 
         # Kapłan Elor najpierw obsługuje aktualną próbę Broni Duszy.
@@ -18210,11 +23499,24 @@ class Session:
 
         template = MOB_TEMPLATES[mob.template_id]
         mechanic = template.get("boss_mechanic")
+        damage = max(0, int(damage))
+
+        elite_affix = template.get("elite_affix")
+        if elite_affix == "armored" and damage > 0:
+            reduced = max(
+                1,
+                int(round(damage * 0.70)),
+            )
+            await self.send(
+                f"Affix Opancerzony redukuje obrażenia "
+                f"z {damage} do {reduced}."
+            )
+            damage = reduced
+
         if not mechanic:
-            return max(0, int(damage))
+            return damage
 
         mob.player_hits += 1
-        damage = max(0, int(damage))
 
         if mechanic == "grave_shield" and mob.player_hits % 3 == 0:
             reduced = max(1, damage // 2) if damage > 0 else 0
@@ -18618,6 +23920,83 @@ class Session:
             profile["damage_multiplier"] = 1.40
             await self.send(
                 f"{template['name']} wykonuje Brutalną Kombinację."
+            )
+
+        elif mechanic == "giant_crush" and turn % 3 == 0:
+            profile["damage_multiplier"] *= 1.60
+            await self.send(
+                f"{template['name']} wykonuje Miażdżenie Giganta."
+            )
+
+        elif mechanic == "cyclops_beam" and turn % 3 == 0:
+            profile["damage_type"] = "magic"
+            profile["damage_multiplier"] *= 1.55
+            profile["defense_factor"] = min(
+                profile["defense_factor"], 0.70
+            )
+            await self.send(
+                f"{template['name']} wyzwala Promień Cyklopa."
+            )
+
+        elif mechanic == "boulder_storm" and turn % 4 == 0:
+            profile["damage_multiplier"] *= 1.85
+            await self.send(
+                f"{template['name']} wywołuje Burzę Głazów."
+            )
+
+        elif mechanic == "giant_thunder":
+            if turn % 2:
+                profile["damage_type"] = "magic"
+            if turn % 3 == 0:
+                profile["damage_multiplier"] *= 1.65
+                await self.send(
+                    f"{template['name']} przywołuje Grom Gigantów."
+                )
+
+        elif mechanic == "giant_king":
+            if mob.hp <= template["max_hp"] // 2:
+                profile["damage_multiplier"] *= 1.40
+            if turn % 3 == 0:
+                profile["damage_multiplier"] *= 1.70
+                await self.send(
+                    f"{template['name']} używa Królewskiego Trzęsienia."
+                )
+
+        elite_affix = template.get("elite_affix")
+        if elite_affix == "vampiric":
+            profile["drain_pct"] = max(
+                profile["drain_pct"], 0.35
+            )
+        elif elite_affix == "regenerating":
+            if turn % 3 == 0:
+                heal = max(
+                    1,
+                    int(round(template["max_hp"] * 0.04)),
+                )
+                before = mob.hp
+                mob.hp = min(
+                    template["max_hp"],
+                    mob.hp + heal,
+                )
+                actual = mob.hp - before
+                if actual > 0:
+                    await self.send(
+                        f"Affix Regenerujący odnawia "
+                        f"{actual} HP przeciwnika."
+                    )
+        elif elite_affix == "ice":
+            profile["damage_type"] = "magic"
+            profile["damage_multiplier"] *= 1.15
+        elif elite_affix == "fire":
+            profile["damage_type"] = "magic"
+            profile["damage_multiplier"] *= 1.25
+        elif elite_affix == "astral":
+            profile["damage_type"] = (
+                "magic" if turn % 2 else "physical"
+            )
+            profile["damage_multiplier"] *= 1.30
+            profile["defense_factor"] = min(
+                profile["defense_factor"], 0.75
             )
 
         return profile
@@ -19378,6 +24757,19 @@ class Session:
             f"do pokonania ciebie przy obecnym HP."
         )
 
+        elite_text = template.get(
+            "elite_affix_text"
+        )
+        if elite_text:
+            await self.send(
+                f"Elitarny affix: {elite_text}"
+            )
+
+        if template.get("rare_troll"):
+            await self.send(
+                "Rzadki wariant trolla."
+            )
+
         mechanic = template.get("boss_mechanic_text")
         if mechanic:
             await self.send(
@@ -19608,8 +25000,15 @@ class Session:
 
             await session.grant_class_xp(class_xp_reward)
 
-            target = template.get("quest_target")
-            if target:
+            quest_targets = []
+            primary_target = template.get("quest_target")
+            if primary_target:
+                quest_targets.append(primary_target)
+            quest_targets.extend(
+                template.get("quest_targets") or ()
+            )
+
+            for target in dict.fromkeys(quest_targets):
                 changed = self.server.db.increment_quest(
                     session.account_id, target
                 )
@@ -19712,6 +25111,26 @@ class Session:
             raw = await self.ask("> ")
             if raw is None:
                 break
+            if raw.startswith("'"):
+                await self.say(raw[1:])
+                continue
+
+            if self.guide_choice_state:
+                normalized_raw = self.normalize_room_query(raw)
+                if (
+                    raw.strip().isdigit()
+                    or normalized_raw in (
+                        "anuluj", "cancel", "stop",
+                    )
+                ):
+                    handled = await self.handle_guide_choice_number(
+                        raw
+                    )
+                    if handled:
+                        continue
+                else:
+                    self.guide_choice_state = None
+
             parts = raw.split(maxsplit=1)
             command = parts[0].lower()
             args = parts[1] if len(parts) > 1 else ""
@@ -19719,16 +25138,17 @@ class Session:
             direction = DIRECTION_ALIASES.get(command)
 
             rest_safe_commands = {
-                "rest", "help", "describe", "changes", "look",
+                "rest", "help", "encoding", "describe", "changes", "look",
                 "corpse", "cryptinfo", "astralinfo", "consider",
                 "waterinfo", "exits", "map", "atlas", "codex",
-                "where", "who", "stats", "mana", "declension", "skills",
+                "where", "who", "expareas", "say", "stats", "mana", "declension", "skills",
                 "skillnames", "soul", "money", "net", "bag",
                 "woodpile", "herbbag", "professions", "ranks",
                 "tools", "toolinfo_fishing", "toolinfo_mining",
                 "toolinfo_woodcutting", "toolinfo_crafting",
                 "toolinfo_cooking", "toolinfo_herbalism",
-                "toolinfo_alchemy", "tiers", "location",
+                "toolinfo_alchemy", "toolinfo_jewelcrafting",
+                "jewelcraftinginfo", "tiers", "location",
                 "recipes", "inventory", "equipment", "shop",
                 "teachers", "quests", "charisma", "multiclass",
             }
@@ -19747,12 +25167,14 @@ class Session:
                 await self.move(direction)
             elif command == "help":
                 await self.show_help(args)
+            elif command == "encoding":
+                await self.set_encoding(args)
             elif command == "describe":
                 await self.describe_target(args)
             elif command == "changes":
                 await self.show_latest_changes()
             elif command == "look":
-                await self.look()
+                await self.look(args)
             elif command == "corpse":
                 await self.show_corpses(args)
             elif command == "lootcorpse":
@@ -19775,6 +25197,8 @@ class Session:
                 await self.show_world_codex(args)
             elif command == "where":
                 await self.show_where()
+            elif command == "expareas":
+                await self.show_exp_areas(args)
             elif command == "who":
                 await self.who()
             elif command == "say":
@@ -19785,6 +25209,8 @@ class Session:
                 await self.handle_party(args)
             elif command == "partychat":
                 await self.party_chat(args)
+            elif command == "assist":
+                await self.assist_party_member(args)
             elif command == "charisma":
                 await self.show_charisma()
             elif command == "multiclass":
@@ -19811,8 +25237,6 @@ class Session:
                 await self.show_money()
             elif command == "bank":
                 await self.handle_bank(args)
-            elif command == "exchange":
-                await self.exchange(args)
             elif command == "net":
                 await self.show_container("net")
             elif command == "bag":
@@ -19845,6 +25269,8 @@ class Session:
                 await self.show_single_tool("herbalism")
             elif command == "toolinfo_alchemy":
                 await self.show_single_tool("alchemy")
+            elif command == "toolinfo_jewelcrafting":
+                await self.show_single_tool("jewelcrafting")
             elif command == "tiers":
                 await self.show_tool_tiers()
             elif command == "fish":
@@ -19906,8 +25332,20 @@ class Session:
                     await self.send("Użycie: craft <receptura>. Wpisz receptury.")
                 else:
                     await self.craft_item(args)
+            elif command == "smelt":
+                await self.smelt_item(args)
             elif command == "blacksmithinginfo":
                 await self.show_blacksmithing_info()
+            elif command == "jewelcraftinginfo":
+                await self.show_jewelcrafting_info()
+            elif command == "jewelcraft":
+                if not args.strip():
+                    await self.send(
+                        "Użycie: jub <receptura>. "
+                        "Wpisz receptury jubilerstwo."
+                    )
+                else:
+                    await self.jewelcraft_item(args)
             elif command == "cookinginfo":
                 await self.show_cooking_info()
             elif command == "cook":
@@ -20098,7 +25536,12 @@ class MudServer:
 
     async def handle_client(self, reader, writer):
         if len(self.sessions) >= MAX_CLIENTS:
-            writer.write(b"Serwer jest pelny.\r\n")
+            writer.write(
+                telnet_charset_offer_bytes()
+                + "Serwer jest pełny.\r\n".encode(
+                    DEFAULT_TEXT_ENCODING
+                )
+            )
             await writer.drain()
             writer.close()
             await writer.wait_closed()

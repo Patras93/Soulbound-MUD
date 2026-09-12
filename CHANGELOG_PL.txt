@@ -1,3 +1,330 @@
+SOULBOUND v0.7.37 JEWELCRAFTING
+=================================
+- Jubilerstwo 1-200.
+- 13 rang Jubilerstwa.
+- Szczypce Jubilerskie 1-200.
+- 13 Tierów Szczypiec.
+- Brak durability.
+- Nowa Pracownia Jubilerska.
+- Nowy NPC: Jubilerka Mirella.
+- Szczypce kupowane wyłącznie u Mirelli.
+- 18 receptur: 9 pierścieni + 9 naszyjników.
+- Materiały od Żelaza do Eternium.
+- 9-etapowy łańcuch zleceń Mirelli.
+- Craft daje XP Jubilerstwa i Szczypiec.
+- Bonus Tieru może dać dodatkową biżuterię.
+- Brak resetu bazy.
+
+SOULBOUND v0.7.36 ALL TERRAIN NUMBER CHOICES
+==============================================
+- Wybór cyfrą dla wszystkich terenów.
+- Dzicz, Góry, Podziemia, Gildia, Łąki, Jaskinia Trolli itd.
+- Tylko jeden wybór numerem.
+- Bez drugiego pytania.
+- Wieże zwykła/mityczna mogą być wybrane numerem.
+- Jaskinie mogą być wybrane numerem.
+- Naprawione grupowanie Twierdzy Gigantów.
+- Duże lochy nie zalewają NVDA setkami pozycji.
+- Brak resetu bazy.
+
+SOULBOUND v0.7.35 ONE DIGIT GUIDE CHOICE
+==========================================
+- prowadz przy wielu celach: jeden wybór.
+- Wpisujesz tylko samą cyfrę.
+- Brak drugiego pytania o poziom.
+- Cyfra od razu uruchamia prowadzenie.
+- Wielopoziomowe lochy prowadzą do pierwszego poziomu/wejścia.
+- prowadz kopalnia 80 nadal działa.
+- Brak resetu bazy.
+
+SOULBOUND v0.7.34 NUMBERED GUIDE CHOICES
+=========================================
+- Numerowany wybór przy wielu celach prowadz.
+- Wybór celu samą cyfrą.
+- Dwustopniowy wybór dużych lochów.
+- prowadz kopalnia grupuje rodzaje kopalni.
+- Następnie wybór poziomu cyfrą.
+- Bezpośrednie prowadz kopalnia 80 nadal działa.
+- anuluj zamyka wybór.
+- Brak resetu bazy.
+
+SOULBOUND v0.7.33 LONGER MOB RESPAWN
+=====================================
+- Globalny respawn mobów x2.
+- Zwykłe moby: 240 sekund.
+- Bossowie: 600 sekund.
+- Manekin treningowy: 120 sekund.
+- Indywidualne respawn_seconds również x2.
+- HP i damage bez zmian.
+- Nagrody i loot bez zmian.
+- Brak resetu bazy.
+
+SOULBOUND v0.7.32 CLASS JEWELRY
+================================
+- 12 klasowych Pierścieni.
+- 12 klasowych Naszyjników.
+- 24 nowe elementy EQ.
+- Zestaw klasowy: 8 części.
+- Nowy slot pierścień.
+- Nowy slot naszyjnik.
+- załóż pierścień.
+- załóż naszyjnik.
+- Pierścień: klasowy bonus +2.
+- Naszyjnik: klasowy bonus +3.
+- Multiclass obsługiwany.
+- Brak resetu bazy.
+
+SOULBOUND v0.7.31 CLASS EQUIPMENT SHOPS
+========================================
+- Sklepy EQ dla wszystkich 12 klas.
+- 6 części sprzętu na klasę.
+- 72 nowe elementy klasowego EQ.
+- 6 sklepów w Gildii Dusz.
+- Wymagana aktywna klasa przy zakupie i zakładaniu.
+- Multiclass obsługiwany.
+- 6 nowych kwatermistrzów.
+- Kilof usunięty z Kuźni Dusz.
+- Kilof usunięty z Górskiej Kuźni.
+- Kilof sprzedaje wyłącznie Górnik Toren.
+- Brak resetu bazy.
+
+SOULBOUND v0.7.30 AUTOMATIC CURRENCY
+=====================================
+- 1000 srebrnych monet = 1 złota moneta.
+- 1 000 000 złotych monet = 1 mithrilowa moneta.
+- Automatyczne przeliczanie portfela.
+- Automatyczne przeliczanie Banku Dusz.
+- Stare salda zachowane wartościowo.
+- Usunięto ręczne exchange.
+- Brak resetu majątku.
+- Brak resetu bazy.
+
+SOULBOUND v0.7.29 SMELT AND PARTY ASSIST
+==========================================
+- Dodano przetop <metal/ruda>.
+- Rozpoznawanie metali od Żelaza do Eternium.
+- Zachowane wymagania Kowalstwa i Młota.
+- Dodano wspieraj <gracz>.
+- Dodano assist <gracz>.
+- Dodano druzyna wspieraj/assist <gracz>.
+- Tylko ta sama drużyna i lokacja.
+- Dołączenie do dokładnie tego samego moba.
+- Brak przełączania z innej aktywnej walki.
+- Jedna akcja gracza = jedna odpowiedź przeciwnika.
+- Brak resetu bazy.
+
+SOULBOUND v0.7.28 MYTHIC DUNGEONS SOUL 100
+============================================
+- Mityczna Krypta od Soul Level 100.
+- Mityczna Wieża Astralna od Soul Level 100.
+- Usunięto wymóg zwykłej Krypty 200.
+- Usunięto wymóg zwykłej Wieży 200.
+- Soul 99 i mniej: obie bramy zablokowane.
+- Soul 100+: obie bramy dostępne.
+- Oba mityczne lochy nadal 1-200.
+- Bossowie co 10 poziomów.
+- Expowiska i opisy zaktualizowane.
+- Brak resetu bazy.
+
+SOULBOUND v0.7.27 EXP AREAS
+============================
+- Dodano expowiska.
+- Pełna lista terenów do expienia.
+- Opis każdego terenu.
+- Orientacyjny Soul Level.
+- Trudność.
+- Typowi przeciwnicy.
+- Informacje o bossach.
+- Komenda prowadzenia.
+- expowiska polecane.
+- expowiska nazwa.
+- Bez levelu postaci i Character XP.
+- Brak resetu bazy.
+
+SOULBOUND v0.7.26 AUTO MINE DESCEND
+====================================
+- kop on może zejść po przebiciu ściany.
+- Tylko kierunek down.
+- Tylko na dokładnie następny poziom Kopalni.
+- Tylko jeśli następny poziom jest odblokowany.
+- Nie przechodzi przez nieprzebitą ścianę.
+- Nie chodzi po świecie.
+- Po zejściu kontynuuje kopanie.
+- Skalowane ściany z v0.7.25 zachowane.
+- Brak resetu bazy.
+
+SOULBOUND v0.7.25 SCALING MINE WALLS
+=====================================
+- Poziomy 1-9: 5 uderzeń Kilofa.
+- Od poziomu 10 próg = numer poziomu.
+- L10 = 10 uderzeń.
+- L20 = 20 uderzeń.
+- L50 = 50 uderzeń.
+- L100 = 100 uderzeń.
+- L199 = 199 uderzeń do poziomu 200.
+- Dynamiczny próg czytany w komunikatach.
+- Istniejące wall_hits zachowane.
+- Auto-kopanie nadal bez chodzenia i schodzenia.
+- Brak resetu bazy.
+
+SOULBOUND v0.7.24 EXPANDED WHO
+===============================
+- who pokazuje wszystkich online.
+- Nazwa gracza.
+- Aktywna klasa lub klasy.
+- Soul Level.
+- Aktualna lokacja.
+- Aktualna strefa.
+- Alias kto zachowany.
+- Brak resetu bazy.
+
+SOULBOUND v0.7.23 LOOK SHORTCUT
+================================
+- Dodano l = look.
+- l bez argumentu opisuje lokację.
+- l gracz.
+- l NPC.
+- l przeciwnik.
+- l przedmiot.
+- Pełne look nadal działa.
+- Brak resetu bazy.
+
+SOULBOUND v0.7.22 LOOK TARGETS
+===============================
+- look Asia / look gracz.
+- look NPC.
+- look przeciwnik.
+- look przedmiot.
+- Bieżące HP moba.
+- Elite affixy i rare troll info.
+- Przedmioty z inventory/equipment/shop.
+- Zwykłe look lokacji zachowane.
+- Brak resetu bazy.
+
+SOULBOUND v0.7.21 APOSTROPHE SAY
+=================================
+- Apostrof na początku linii działa jak say.
+- Przykład: 'Cześć
+- Nie trzeba wpisywać słowa say.
+- Standardowe say nadal działa.
+- Brak resetu bazy.
+
+SOULBOUND v0.7.20 SAY COMMAND
+===============================
+- Dopracowano say tekst.
+- Wiadomość tylko w aktualnej lokacji.
+- Nadawca: Mówisz: tekst.
+- Inni: Nazwa mówi: tekst.
+- Aliasy: powiedz, mow, mów.
+- Puste wiadomości odrzucane.
+- Limit 500 znaków.
+- Brak resetu bazy.
+
+SOULBOUND v0.7.19 HEALING POTION LEVEL 5
+==========================================
+- Mikstura Leczenia: Moździerz level 5.
+- Orin II: Moździerz level 5.
+- Cel Orina II nadal 4 sztuki.
+- Progress i cooldown 60 minut zachowane.
+- Polskie kodowanie zachowane.
+- Brak resetu bazy.
+
+SOULBOUND v0.7.18 POLISH ENCODING
+==================================
+- UTF-8 jako domyślne kodowanie.
+- TELNET CHARSET negotiation.
+- Windows-1250 fallback.
+- Komenda kodowanie.
+- kodowanie utf8.
+- kodowanie cp1250.
+- Wejście bez errors=ignore.
+- UTF-8 w server.py i Docker/Railway.
+- Brak resetu bazy.
+
+SOULBOUND v0.7.17 MOUNTAIN & CRAFTING EXPANSION
+=================================================
+- 4 nowe NPC w Wiosce Górskiej.
+- 4 nowe grupy górskich questów.
+- Twierdza Gigantów 1-50.
+- Boss co 10 poziomów.
+- Boss blokuje dalszą drogę.
+- 13 questów Kowalstwa 1-200.
+- Pełny set Eternium jako finał Kowalstwa.
+- 13 questów Gotowania 1-200.
+- Konkretne questy Zielarstwa.
+- Konkretne questy Górnictwa.
+- Konkretne i rare questy Wędkarstwa.
+- Rare trolle x4.
+- Elite affixy x6 z realnymi mechanikami.
+- Wszystkie nowe questy profesyjne co 60 minut.
+- Brak resetu bazy.
+
+SOULBOUND v0.7.16 HEALING POTIONS LEVEL 15
+============================================
+- Orin II: Mikstury Leczenia od levelu 15.
+- Poprzednio level 20.
+- Cel nadal 4 Mikstury Leczenia.
+- Progress i cooldown 60 minut zachowane.
+- Brak resetu bazy.
+
+SOULBOUND v0.7.15 MORE ALCHEMY QUESTS
+=======================================
+- Orin ma 11 etapów zamiast 3.
+- Nowe questy na Mikstury Leczenia.
+- Nowe questy na Wielkie Mikstury Leczenia.
+- Nowe questy na Wielkie Mikstury Many.
+- Nowe questy na Eliksiry Witalności.
+- Nowe questy na Najwyższe Mikstury Many.
+- Nowe questy na Wielkie Eliksiry Witalności.
+- Nowe questy na Toniki Duszy.
+- Nowy quest na Astralny Eliksir Odnowy.
+- Wszystkie etapy pokazują postęp wykonania.
+- Wszystkie odnawiają się co 60 minut.
+- Brak resetu bazy.
+
+SOULBOUND v0.7.14 ALCHEMY QUEST PROGRESS
+==========================================
+- Questy Orina śledzą faktycznie uwarzone mikstury.
+- Komunikaty 1/3, 2/3, 3/3 itd.
+- Pre-existing inventory nie zalicza wykonania.
+- Bonus Tieru Moździerza zwiększa postęp o dodatkowe sztuki.
+- Do oddania nadal trzeba posiadać wymagane mikstury.
+- Zużycie mikstur nie kasuje postępu wykonania, ale blokuje oddanie do czasu uzupełnienia zapasu.
+- Restart questa po cooldownie zeruje licznik.
+- Brak migracji SQLite.
+- Poprzednie systemy zachowane.
+
+SOULBOUND v0.7.13 MOUNTAIN VILLAGE, TROLL CAVE & HERB MEADOWS
+===============================================================
+- Nowy region Góry.
+- Wioska Górska.
+- Strażnik Górski Eryk.
+- Quest Plaga Trolli: 12 zabitych trolli.
+- Szlak Trolli i Jaskinia Trolli.
+- 3 typy trolli + boss Król Trolli Grum.
+- Unikalny Kieł Króla Trolli.
+- 9 nowych tematycznych łąk ziołowych.
+- Łąka Mięty także działa jako łąka jednego zioła.
+- Każda łąka daje przypisane zioło.
+- Rare plant variants zachowane.
+- Auto-Zielarstwo bez chodzenia zachowane.
+- Questy profesyjne co 60 minut zachowane.
+- Brak resetu bazy.
+
+SOULBOUND v0.7.12 HOURLY PROFESSION QUESTS
+============================================
+- Wszystkie questy profesyjno-rzemieślnicze: 60 minut.
+- Wędkarstwo: 60 minut.
+- Górnictwo: 60 minut.
+- Drwalstwo: 60 minut.
+- Zielarstwo: 60 minut.
+- Haldor x3: 60 minut.
+- Marcel x3: 60 minut.
+- Orin x3: 60 minut.
+- Łącznie 13 questów.
+- Questy fabularne bez zmian.
+- Brak resetu bazy.
+
 SOULBOUND v0.7.11 TUNA LATER
 ==============================
 - Zwykły Tuńczyk wymaga Wędki level 80.
