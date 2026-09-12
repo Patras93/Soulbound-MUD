@@ -1,4 +1,4 @@
-SOULBOUND v0.6.72 THREE CURRENCIES
+SOULBOUND v0.6.76 THREE CURRENCIES
 ==========================
 
 Duży build rozbudowujący działający serwer online do pierwszej właściwej wersji świata MUD.
@@ -2837,3 +2837,209 @@ Questy, ekwipunek, waluty, Soul Level, klasy, profesje,
 narzędzia i pozostała progresja nie są resetowane.
 
 Nowe postacie również rozpoczynają wejście do świata w Świątyni Odrodzenia.
+
+
+WALK I KRÓTKIE CELE v0.6.73
+---------------------------
+Nie trzeba już wpisywać:
+walk to <lokacja>
+
+Można od razu:
+walk targ
+walk kuznia
+walk swiatynia
+walk port
+walk karczma
+walk jaskinia
+walk cmentarz
+walk bandyci
+walk gobliny
+walk ruiny
+walk jezioro
+walk rzeka
+
+Działają również:
+prowadz targ
+idz targ
+go targ
+
+Starsze:
+walk to targ
+guide targ
+
+także pozostają działające.
+
+PRZYKŁADOWE SKRÓTY NPC
+----------------------
+walk elor -> Świątynia Odrodzenia.
+walk doran -> Kuźnia Dusz.
+walk tomas -> Targ Rybny.
+walk bran -> Obóz Drwala.
+walk liora -> Chata Zielarki.
+walk toren -> Wejście do Kryształowej Jaskini.
+walk arven -> Strażnica.
+walk roderik -> Wartownia Północna.
+walk anna -> Wartownia Pogranicza.
+
+KRYPTA
+------
+walk krypta 1
+walk krypta 50
+walk krypta 100
+
+nadal działa dla wszystkich pięter.
+
+Prowadzenie nie omija żywego bossa Krypty.
+
+
+ENDGAME PROFESJI 100-200 v0.6.74
+--------------------------------
+Nowe progi zawartości:
+100, 120, 140, 160, 180 i 200.
+
+NOWE RUDY
+---------
+100: Ruda Kobaltu.
+120: Ruda Kamienia Runicznego.
+140: Ruda Smoczej Stali.
+160: Ruda Astralna.
+180: Ruda Pustki.
+200: Ruda Eternium.
+
+Czysty mithril nadal ma osobną, bardzo małą szansę:
+level 100-200: 0,50%.
+
+NOWE DREWNO
+-----------
+Dostępne w Głębi Gaju:
+100: Pień Runicznego Drzewa.
+120: Pień Smoczego Drzewa.
+140: Pień Astralnego Drzewa.
+160: Pień Drzewa Pustki.
+180: Pień Gwiezdnego Serca.
+200: Pień Wiecznego Drzewa Świata.
+
+NOWE ZIOŁA
+----------
+Dostępne w Głębi Gaju:
+100: Kwiat Słonecznego Ognia.
+120: Smocza Szałwia.
+140: Astralna Orchidea.
+160: Lotos Pustki.
+180: Korona Feniksa.
+200: Wieczny Kwiat.
+
+NOWE RYBY
+---------
+Każdy typ łowiska dostał nowe połowy high-level.
+Ocean ma dodatkowo osobny nowy połów na każdym progu:
+100 Niebiański Tuńczyk.
+120 Smocze Mahi-mahi.
+140 Tuńczyk Otchłani.
+160 Marlin Burzy.
+180 Księżycowy Lewiatan.
+200 Wieczna Latimeria.
+
+Rzeka, jezioro i morze także mają własne nowe gatunki od 100 do 200.
+
+RECEPTURY RZEMIOSŁA
+-------------------
+100 Runiczny Talizman Straży.
+120 Talizman Smoczej Kuźni.
+140 Astralny Talizman Kuźni.
+160 Talizman Straży Pustki.
+180 Talizman Serca Świata.
+200 Talizman Wiecznej Duszy.
+
+RECEPTURY GOTOWANIA
+-------------------
+100 Runiczny Półmisek Rybny.
+120 Smocza Potrawka Oceaniczna.
+140 Stek Rybny Otchłani.
+160 Uczta Marlina Burzy.
+180 Uczta Lewiatana.
+200 Wieczna Uczta Oceanu.
+
+RECEPTURY ALCHEMII
+------------------
+100 Najwyższa Mikstura Leczenia.
+120 Najwyższa Mikstura Many.
+140 Wielki Eliksir Witalności.
+160 Tonik Duszy.
+180 Astralny Eliksir Odnowy.
+200 Eliksir Wiecznej Duszy.
+
+Każda receptura jest naprawdę zablokowana wymaganym levelem
+Młota Rzemieślniczego, Noża Kucharskiego albo Moździerza Alchemicznego.
+Lista receptur podaje wymagany level.
+
+
+UŻYJ SKILLA / CZARU v0.6.75
+----------------------------
+Komenda użyj rozpoznaje teraz naturalne skróty skilli.
+
+Przykłady:
+użyj ciecie goblin
+uzyj ciecie goblin
+użyj pocisk goblin
+użyj plomien goblin
+użyj czar pocisk goblin
+use spell arcane bolt goblin
+
+Jeżeli skrót jest jednoznaczny wśród aktywnych klas,
+gra uruchamia właściwą nauczoną umiejętność.
+
+Pełne nazwy nadal działają:
+skill Potężne Cięcie goblin
+cast Pocisk Arkanów goblin
+umiejętność Płomień Otchłani goblin
+
+KUP NARZĘDZIE
+-------------
+Nazwy przy kupowaniu są teraz odporne na brak polskich znaków.
+
+Przykłady:
+kup wedka
+kup kilof
+kup pila
+kup mlot
+kup noz
+kup sierp
+kup mozdzierz
+
+Narzędzia nadal są sprzedawane u właściwych sprzedawców.
+Jeśli próbujesz kupić narzędzie w złym miejscu,
+gra poda lokację właściwego sklepu.
+
+IZOLOWANY XP NARZĘDZI
+---------------------
+Tylko używane narzędzie zdobywa XP i użycia.
+
+Łowienie -> tylko Wędka.
+Kopanie -> tylko Kilof.
+Drwalstwo -> tylko Piła.
+Rzemiosło -> tylko Młot Rzemieślniczy.
+Gotowanie -> tylko Nóż Kucharski.
+Zielarstwo -> tylko Sierp Zielarski.
+Alchemia -> tylko Moździerz Alchemiczny.
+
+Pozostałe sześć narzędzi nie zmienia:
+levelu,
+XP,
+liczby użyć.
+
+Samo kupienie narzędzia również nie daje XP.
+
+
+PROWADZ MOST v0.6.76
+--------------------
+Nowe jawne skróty:
+
+prowadz most
+prowadz kamienny most
+walk most
+idz most
+go most
+
+Wszystkie prowadzą do lokacji:
+Kamienny Most.

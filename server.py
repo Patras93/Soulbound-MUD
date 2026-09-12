@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Soulbound v0.6.72 Temple Login Spawn
+Soulbound v0.6.76 Guide Bridge
 Wieloosobowy tekstowy MUD TCP/Telnet dla MUSHclienta/Mudleta.
 
 Najważniejsze zasady projektu:
@@ -27,7 +27,7 @@ import unicodedata
 from dataclasses import dataclass
 from typing import Optional
 
-VERSION = "0.6.72"
+VERSION = "0.6.76"
 
 HOST = os.getenv("SOULBOUND_HOST", "0.0.0.0")
 _RAILWAY_TCP_PORT = os.getenv("RAILWAY_TCP_APPLICATION_PORT", "").strip()
@@ -350,6 +350,69 @@ HERBALISM_ROOMS = {
     "riverbank", "lake_shore", "old_road"
 }
 
+ENDGAME_FISH_UNLOCKS = {
+    "river": (
+        (100, "soulfin_trout"),
+        (140, "runic_sturgeon"),
+        (180, "chrono_eel"),
+        (200, "eternal_salmon"),
+    ),
+    "lake": (
+        (100, "crystal_carp"),
+        (140, "moon_pike"),
+        (180, "starfin_char"),
+        (200, "mirror_leviathan"),
+    ),
+    "sea": (
+        (100, "storm_cod"),
+        (140, "abyss_halibut"),
+        (180, "void_turbot"),
+        (200, "crown_monkfish"),
+    ),
+    "ocean": (
+        (100, "celestial_tuna"),
+        (120, "dragon_mahi"),
+        (140, "abyss_tuna"),
+        (160, "storm_marlin"),
+        (180, "moon_leviathan"),
+        (200, "eternal_coelacanth"),
+    ),
+}
+
+ENDGAME_ORE_UNLOCKS = (
+    (100, "cobalt_ore"),
+    (120, "runestone_ore"),
+    (140, "dragonsteel_ore"),
+    (160, "astral_ore"),
+    (180, "void_ore"),
+    (200, "eternium_ore"),
+)
+
+ENDGAME_WOOD_UNLOCKS = (
+    (100, "runewood_log"),
+    (120, "dragonwood_log"),
+    (140, "astralwood_log"),
+    (160, "voidwood_log"),
+    (180, "starheart_log"),
+    (200, "eternal_worldwood_log"),
+)
+
+ENDGAME_HERB_UNLOCKS = (
+    (100, "sunfire_bloom"),
+    (120, "dragon_sage"),
+    (140, "astral_orchid"),
+    (160, "void_lotus"),
+    (180, "phoenix_crown"),
+    (200, "eternal_blossom"),
+)
+
+def unlocked_resource_pool(base_pool, unlocks, tool_level):
+    pool = list(base_pool)
+    for required_level, item_id in unlocks:
+        if int(tool_level) >= int(required_level):
+            pool.append(item_id)
+    return tuple(pool)
+
 FISH_RESOURCE_IDS = {
     # Rzeka
     "small_fish", "river_carp", "river_perch", "dace", "chub", "common_nase",
@@ -369,10 +432,18 @@ FISH_RESOURCE_IDS = {
     "barracuda", "cobia", "amberjack", "sailfish", "swordfish",
     "bluefin_tuna", "ocean_sunfish", "reef_shark", "mako_shark",
     "tiger_shark", "hammerhead_shark", "great_white_shark", "ghost_marlin",
+    # Endgame 100-200
+    "soulfin_trout", "runic_sturgeon", "chrono_eel", "eternal_salmon",
+    "crystal_carp", "moon_pike", "starfin_char", "mirror_leviathan",
+    "storm_cod", "abyss_halibut", "void_turbot", "crown_monkfish",
+    "celestial_tuna", "dragon_mahi", "abyss_tuna", "storm_marlin",
+    "moon_leviathan", "eternal_coelacanth",
 }
 ORE_RESOURCE_IDS = {
     "stone_chunk", "copper_ore", "iron_ore",
     "silver_ore", "gold_ore",
+    "cobalt_ore", "runestone_ore", "dragonsteel_ore",
+    "astral_ore", "void_ore", "eternium_ore",
 }
 WOOD_RESOURCE_IDS = {
     "fallen_branch", "birch_log", "alder_log", "pine_log", "poplar_log",
@@ -380,39 +451,53 @@ WOOD_RESOURCE_IDS = {
     "ash_log", "chestnut_log", "walnut_log", "cedar_log", "yew_log",
     "mahogany_log", "teak_log", "redwood_log", "ironwood_log", "ebony_log",
     "silverwood_log", "spiritwood_log", "ancient_heartwood", "worldtree_wood",
+    "runewood_log", "dragonwood_log", "astralwood_log",
+    "voidwood_log", "starheart_log", "eternal_worldwood_log",
 }
 
 HERB_RESOURCE_IDS = {
     "nettle", "chamomile", "mint", "sage", "lavender", "yarrow",
     "lemon_balm", "valerian", "ginseng", "nightshade", "mandrake",
     "moonflower", "soulroot", "phoenix_leaf", "star_moss", "astral_lotus",
+    "sunfire_bloom", "dragon_sage", "astral_orchid",
+    "void_lotus", "phoenix_crown", "eternal_blossom",
 }
 HERB_MEADOW_ATLAS = {"nettle", "chamomile", "mint", "yarrow", "lemon_balm", "lavender"}
 HERB_FOREST_ATLAS = {"sage", "valerian", "ginseng", "nightshade", "mandrake", "moonflower", "soulroot"}
 HERB_WATER_ATLAS = {"mint", "lemon_balm", "star_moss", "moonflower"}
-HERB_DEEP_ATLAS = {"mandrake", "moonflower", "soulroot", "phoenix_leaf", "star_moss", "astral_lotus"}
+HERB_DEEP_ATLAS = {
+    "mandrake", "moonflower", "soulroot", "phoenix_leaf",
+    "star_moss", "astral_lotus",
+    "sunfire_bloom", "dragon_sage", "astral_orchid",
+    "void_lotus", "phoenix_crown", "eternal_blossom",
+}
 
 RIVER_FISH_ATLAS = {
     "small_fish", "dace", "river_perch", "chub", "common_nase",
     "river_carp", "barbel", "ide", "asp", "grayling", "burbot",
     "silver_trout", "golden_trout", "pike", "zander", "salmon",
     "river_catfish", "ancient_sturgeon", "moon_eel",
+    "soulfin_trout", "runic_sturgeon", "chrono_eel", "eternal_salmon",
 }
 LAKE_FISH_ATLAS = {
     "lake_roach", "rudd", "crucian_carp", "bream", "tench",
     "lake_perch", "vendace", "whitefish", "lake_char", "lake_trout",
     "pike", "zander", "giant_pike", "freshwater_eel",
+    "crystal_carp", "moon_pike", "starfin_char", "mirror_leviathan",
 }
 SEA_FISH_ATLAS = {
     "sprat", "sardine", "anchovy", "herring", "mackerel", "whiting",
     "cod", "hake", "sea_bass", "red_mullet", "haddock", "pollock",
     "flounder", "sole", "halibut", "turbot", "monkfish",
+    "storm_cod", "abyss_halibut", "void_turbot", "crown_monkfish",
 }
 OCEAN_FISH_ATLAS = {
     "mackerel", "mahi_mahi", "albacore", "wahoo", "barracuda", "tuna",
     "sailfish", "bigeye_tuna", "cobia", "amberjack", "swordfish",
     "bluefin_tuna", "ocean_sunfish", "reef_shark", "mako_shark",
     "tiger_shark", "hammerhead_shark", "great_white_shark", "ghost_marlin",
+    "celestial_tuna", "dragon_mahi", "abyss_tuna",
+    "storm_marlin", "moon_leviathan", "eternal_coelacanth",
 }
 
 WOOD_BEGINNER_ATLAS = {
@@ -429,6 +514,8 @@ WOOD_DEEP_ATLAS = {
     "mahogany_log", "teak_log", "redwood_log", "ironwood_log",
     "ebony_log", "silverwood_log", "spiritwood_log",
     "ancient_heartwood", "worldtree_wood",
+    "runewood_log", "dragonwood_log", "astralwood_log",
+    "voidwood_log", "starheart_log", "eternal_worldwood_log",
 }
 
 ORE_ATLAS_LEVELS = {
@@ -437,6 +524,12 @@ ORE_ATLAS_LEVELS = {
     "iron_ore": 1,
     "silver_ore": 10,
     "gold_ore": 25,
+    "cobalt_ore": 100,
+    "runestone_ore": 120,
+    "dragonsteel_ore": 140,
+    "astral_ore": 160,
+    "void_ore": 180,
+    "eternium_ore": 200,
 }
 
 RACES = [
@@ -1207,6 +1300,180 @@ DIRECTION_ALIASES = {
     "d": "down", "down": "down", "dół": "down", "dol": "down",
 }
 
+GUIDE_DESTINATION_ALIASES = {
+    # Miasto Dusz
+    "plac": "square",
+    "centrum": "square",
+    "plac dusz": "square",
+    "swiatynia": "temple",
+    "swiatynia odrodzenia": "temple",
+    "elor": "temple",
+    "kaplan elor": "temple",
+    "piwnica": "temple_basement",
+    "piwnica swiatyni": "temple_basement",
+    "biblioteka": "library",
+    "archiwum": "library",
+    "sol": "library",
+    "archiwista sol": "library",
+    "gildia": "guild_hall",
+    "sala gildii": "guild_hall",
+    "wojownicy": "guild_martial_hall",
+    "berserkerzy": "guild_martial_hall",
+    "sala oreza": "guild_martial_hall",
+    "garran": "guild_martial_hall",
+    "brynja": "guild_martial_hall",
+    "mnisi": "guild_body_hall",
+    "straznicy": "guild_body_hall",
+    "sala dyscypliny": "guild_body_hall",
+    "shen": "guild_body_hall",
+    "borin": "guild_body_hall",
+    "magowie": "guild_arcane_chamber",
+    "psionicy": "guild_arcane_chamber",
+    "arkany": "guild_arcane_chamber",
+    "vaelis": "guild_arcane_chamber",
+    "ilyra": "guild_arcane_chamber",
+    "nekromanci": "guild_dark_chamber",
+    "czarownicy": "guild_dark_chamber",
+    "mroczne sztuki": "guild_dark_chamber",
+    "morwen": "guild_dark_chamber",
+    "nyra": "guild_dark_chamber",
+    "lotrzycy": "guild_shadow_gallery",
+    "lowcy": "guild_shadow_gallery",
+    "galeria cieni": "guild_shadow_gallery",
+    "kael": "guild_shadow_gallery",
+    "eira": "guild_shadow_gallery",
+    "kaplani": "guild_sanctuary",
+    "druidzi": "guild_sanctuary",
+    "sanktuarium": "guild_sanctuary",
+    "aureon": "guild_sanctuary",
+    "thalen": "guild_sanctuary",
+    "straznica": "guard_hall",
+    "arven": "guard_hall",
+    "kapitan arven": "guard_hall",
+    "trening": "training",
+    "manekiny": "training",
+    "dziedziniec": "training",
+    "brama polnocna": "north_gate",
+    "polnocna brama": "north_gate",
+    "rynek": "market",
+    "targ": "market",
+    "market": "market",
+    "targ rybny": "fish_market",
+    "ryby": "fish_market",
+    "tomas": "fish_market",
+    "rybak tomas": "fish_market",
+    "port": "harbor",
+    "port dusz": "harbor",
+    "harbor": "harbor",
+    "molo": "sea_pier",
+    "morskie molo": "sea_pier",
+    "ocean": "ocean_platform",
+    "platforma": "ocean_platform",
+    "platforma oceaniczna": "ocean_platform",
+    "kuznia": "forge",
+    "kowal": "forge",
+    "doran": "forge",
+    "kowal doran": "forge",
+    "karczma": "inn",
+    "gospoda": "inn",
+    "elia": "inn",
+    "karczmarka elia": "inn",
+    "brama poludniowa": "south_gate",
+    "poludniowa brama": "south_gate",
+
+    # Dzicz i okolice
+    "laka": "meadow",
+    "srebrna laka": "meadow",
+    "jezioro": "lake_shore",
+    "brzeg jeziora": "lake_shore",
+    "gaj": "whisper_grove",
+    "gaj szeptow": "whisper_grove",
+    "mira": "whisper_grove",
+    "zielarka mira": "whisper_grove",
+    "liora": "herbalist_hut",
+    "zielarka liora": "herbalist_hut",
+    "chata zielarki": "herbalist_hut",
+    "drwal": "lumberjack_camp",
+    "bran": "lumberjack_camp",
+    "drwal bran": "lumberjack_camp",
+    "glebia gaju": "deep_grove",
+    "wzgorze": "hill",
+    "kamienne znaki": "hill",
+    "kapliczka": "shrine",
+    "zapomniana kapliczka": "shrine",
+    "rzeka": "riverbank",
+    "brzeg rzeki": "riverbank",
+    "most": "stone_bridge",
+    "kamienny most": "stone_bridge",
+    "ruiny": "ruined_watchtower",
+    "ruiny straznicy": "ruined_watchtower",
+    "gobliny": "goblin_camp",
+    "oboz goblinow": "goblin_camp",
+    "jaskinia": "cave_entrance",
+    "wejscie do jaskini": "cave_entrance",
+    "toren": "cave_entrance",
+    "gornik toren": "cave_entrance",
+    "tunel": "cave_tunnel",
+    "krysztalowy tunel": "cave_tunnel",
+    "krysztal": "crystal_chamber",
+    "komnata krysztalowa": "crystal_chamber",
+    "krysztalowa komnata": "crystal_chamber",
+    "cmentarz": "graveyard",
+    "stary cmentarz": "graveyard",
+
+    # Krypta i szlak bandytów
+    "wejscie do krypty": "crypt_entrance",
+    "przedsionek krypty": "crypt_entrance",
+    "sala krypty": "crypt_hall",
+    "glebia krypty": "crypt_depths",
+    "trakt": "old_road",
+    "stary trakt": "old_road",
+    "wartownia polnocna": "north_watchpost",
+    "roderik": "north_watchpost",
+    "dowodca roderik": "north_watchpost",
+    "wartownia pogranicza": "frontier_watchpost",
+    "anna": "frontier_watchpost",
+    "strazniczka anna": "frontier_watchpost",
+    "bandyci": "bandit_camp",
+    "oboz bandytow": "bandit_camp",
+    "obozowisko bandytow": "bandit_camp",
+    "herszt": "bandit_camp",
+    "rozdroze": "crossroads",
+}
+
+TOOL_BUY_ALIASES = {
+    "wedka": "fishing_rod",
+    "wedke": "fishing_rod",
+    "rod": "fishing_rod",
+    "kilof": "pickaxe",
+    "pickaxe": "pickaxe",
+    "pila": "saw",
+    "pile": "saw",
+    "saw": "saw",
+    "mlot": "crafting_hammer",
+    "mlot rzemieslniczy": "crafting_hammer",
+    "hammer": "crafting_hammer",
+    "noz": "chef_knife",
+    "noz kucharski": "chef_knife",
+    "knife": "chef_knife",
+    "sierp": "herbalist_sickle",
+    "sierp zielarski": "herbalist_sickle",
+    "sickle": "herbalist_sickle",
+    "mozdzierz": "alchemy_mortar",
+    "mozdzierz alchemiczny": "alchemy_mortar",
+    "mortar": "alchemy_mortar",
+}
+
+TOOL_SHOP_ROOMS = {
+    "fishing_rod": "fish_market",
+    "pickaxe": "forge",
+    "saw": "lumberjack_camp",
+    "crafting_hammer": "forge",
+    "chef_knife": "inn",
+    "herbalist_sickle": "herbalist_hut",
+    "alchemy_mortar": "herbalist_hut",
+}
+
 COMMAND_ALIASES = {
     "pomoc": "help", "pomoce": "help",
     "opis": "describe", "opisz": "describe", "describe": "describe", "description": "describe",
@@ -1262,7 +1529,8 @@ COMMAND_ALIASES = {
     "sakwa": "bag", "worek": "bag", "bag": "bag",
     "wędkuj": "fish", "wedkuj": "fish", "łów": "fish", "low": "fish",
     "prowadź": "guide", "prowadz": "guide", "guide": "guide",
-    "walkto": "guide",
+    "walk": "guide", "walkto": "guide", "go": "guide",
+    "idź": "guide", "idz": "guide",
     "lokalizacja": "location", "lokacja": "location", "location": "location",
     "kop": "mine", "wydobywaj": "mine",
     "tnij": "woodcut", "drwal": "woodcut", "woodcut": "woodcut", "saw": "woodcut",
@@ -1339,37 +1607,37 @@ ITEMS = {
     "fishing_rod": {
         "name": "Wędka", "type": "tool", "tool_type": "fishing",
         "price": 10, "currency": "silver",
-        "desc": "Podstawowe narzędzie do Wędkarstwa. Ma własny level 1-100.",
+        "desc": "Podstawowe narzędzie do Wędkarstwa. Ma własny level 1-200 i 13 Tierów.",
     },
     "pickaxe": {
         "name": "Kilof", "type": "tool", "tool_type": "mining",
         "price": 10, "currency": "silver",
-        "desc": "Podstawowe narzędzie do Górnictwa. Ma własny level 1-100.",
+        "desc": "Podstawowe narzędzie do Górnictwa. Ma własny level 1-200 i 13 Tierów.",
     },
     "saw": {
         "name": "Piła", "type": "tool", "tool_type": "woodcutting",
         "price": 10, "currency": "silver",
-        "desc": "Podstawowe narzędzie do Drwalstwa. Ma własny level 1-100 i 8 Tierów.",
+        "desc": "Podstawowe narzędzie do Drwalstwa. Ma własny level 1-200 i 13 Tierów.",
     },
     "crafting_hammer": {
         "name": "Młot Rzemieślniczy", "type": "tool", "tool_type": "crafting",
         "price": 10, "currency": "silver",
-        "desc": "Narzędzie wymagane do Rzemiosła. Ma własny level 1-100, XP i 8 Tierów.",
+        "desc": "Narzędzie wymagane do Rzemiosła. Ma własny level 1-200, XP i 13 Tierów.",
     },
     "chef_knife": {
         "name": "Nóż Kucharski", "type": "tool", "tool_type": "cooking",
         "price": 10, "currency": "silver",
-        "desc": "Narzędzie wymagane do Gotowania. Ma własny level 1-100, XP i 8 Tierów.",
+        "desc": "Narzędzie wymagane do Gotowania. Ma własny level 1-200, XP i 13 Tierów.",
     },
     "herbalist_sickle": {
         "name": "Sierp Zielarski", "type": "tool", "tool_type": "herbalism",
         "price": 10, "currency": "silver",
-        "desc": "Narzędzie do Zielarstwa. Ma własny level 1-100, XP i 8 Tierów.",
+        "desc": "Narzędzie do Zielarstwa. Ma własny level 1-200, XP i 13 Tierów.",
     },
     "alchemy_mortar": {
         "name": "Moździerz Alchemiczny", "type": "tool", "tool_type": "alchemy",
         "price": 10, "currency": "silver",
-        "desc": "Narzędzie do Alchemii. Ma własny level 1-100, XP i 8 Tierów.",
+        "desc": "Narzędzie do Alchemii. Ma własny level 1-200, XP i 13 Tierów.",
     },
     "nettle": {"name": "Pokrzywa", "type": "resource", "price": None, "sell_silver": 5, "desc": "Pospolite zioło lecznicze."},
     "chamomile": {"name": "Rumianek", "type": "resource", "price": None, "sell_silver": 7, "desc": "Łagodne zioło lecznicze."},
@@ -1676,6 +1944,83 @@ ITEMS = {
     },
 }
 
+ENDGAME_PROFESSION_ITEMS = {
+    # Ryby endgame - Rzeka
+    "soulfin_trout": {"name": "Pstrąg Duszopłetwy", "type": "resource", "price": None, "sell_gold": 25, "desc": "Rzadka ryba rzeczna. Wędka level 100+."},
+    "runic_sturgeon": {"name": "Jesiotr Runiczny", "type": "resource", "price": None, "sell_gold": 45, "desc": "Runiczny jesiotr. Wędka level 140+."},
+    "chrono_eel": {"name": "Węgorz Czasu", "type": "resource", "price": None, "sell_gold": 80, "desc": "Niezwykły węgorz. Wędka level 180+."},
+    "eternal_salmon": {"name": "Wieczny Łosoś", "type": "resource", "price": None, "sell_gold": 140, "desc": "Mityczny rzeczny połów. Wędka level 200."},
+
+    # Jezioro
+    "crystal_carp": {"name": "Kryształowy Karp", "type": "resource", "price": None, "sell_gold": 25, "desc": "Karp o kryształowych łuskach. Wędka level 100+."},
+    "moon_pike": {"name": "Księżycowy Szczupak", "type": "resource", "price": None, "sell_gold": 45, "desc": "Rzadka jeziorowa ryba. Wędka level 140+."},
+    "starfin_char": {"name": "Gwiezdnopłetwy Golec", "type": "resource", "price": None, "sell_gold": 80, "desc": "Magiczna ryba jeziorowa. Wędka level 180+."},
+    "mirror_leviathan": {"name": "Lustrzany Lewiatan", "type": "resource", "price": None, "sell_gold": 150, "desc": "Legendarny mieszkaniec jeziora. Wędka level 200."},
+
+    # Morze
+    "storm_cod": {"name": "Sztormowy Dorsz", "type": "resource", "price": None, "sell_gold": 28, "desc": "Ryba nasycona energią sztormu. Wędka level 100+."},
+    "abyss_halibut": {"name": "Halibut Otchłani", "type": "resource", "price": None, "sell_gold": 50, "desc": "Głębinowa ryba morska. Wędka level 140+."},
+    "void_turbot": {"name": "Turbot Pustki", "type": "resource", "price": None, "sell_gold": 90, "desc": "Mroczny połów morski. Wędka level 180+."},
+    "crown_monkfish": {"name": "Koronna Żabnica", "type": "resource", "price": None, "sell_gold": 160, "desc": "Mityczna żabnica. Wędka level 200."},
+
+    # Ocean - po jednym odblokowaniu na każdy próg 100-200
+    "celestial_tuna": {"name": "Niebiański Tuńczyk", "type": "resource", "price": None, "sell_gold": 30, "desc": "Oceaniczny połów. Wędka level 100+."},
+    "dragon_mahi": {"name": "Smocze Mahi-mahi", "type": "resource", "price": None, "sell_gold": 40, "desc": "Rzadka ryba oceaniczna. Wędka level 120+."},
+    "abyss_tuna": {"name": "Tuńczyk Otchłani", "type": "resource", "price": None, "sell_gold": 55, "desc": "Głębinowy tuńczyk. Wędka level 140+."},
+    "storm_marlin": {"name": "Marlin Burzy", "type": "resource", "price": None, "sell_gold": 75, "desc": "Potężny marlin. Wędka level 160+."},
+    "moon_leviathan": {"name": "Księżycowy Lewiatan", "type": "resource", "price": None, "sell_gold": 110, "desc": "Olbrzymi oceaniczny połów. Wędka level 180+."},
+    "eternal_coelacanth": {"name": "Wieczna Latimeria", "type": "resource", "price": None, "sell_gold": 200, "desc": "Najrzadsza ryba oceanu. Wędka level 200."},
+
+    # Rudy 100-200
+    "cobalt_ore": {"name": "Ruda Kobaltu", "type": "resource", "price": None, "sell_gold": 18, "desc": "Ruda dostępna od Kilofa level 100."},
+    "runestone_ore": {"name": "Ruda Kamienia Runicznego", "type": "resource", "price": None, "sell_gold": 28, "desc": "Ruda dostępna od Kilofa level 120."},
+    "dragonsteel_ore": {"name": "Ruda Smoczej Stali", "type": "resource", "price": None, "sell_gold": 42, "desc": "Ruda dostępna od Kilofa level 140."},
+    "astral_ore": {"name": "Ruda Astralna", "type": "resource", "price": None, "sell_gold": 65, "desc": "Ruda dostępna od Kilofa level 160."},
+    "void_ore": {"name": "Ruda Pustki", "type": "resource", "price": None, "sell_gold": 100, "desc": "Ruda dostępna od Kilofa level 180."},
+    "eternium_ore": {"name": "Ruda Eternium", "type": "resource", "price": None, "sell_gold": 180, "desc": "Najrzadsza ruda. Kilof level 200."},
+
+    # Drewno 100-200
+    "runewood_log": {"name": "Pień Runicznego Drzewa", "type": "resource", "price": None, "sell_gold": 18, "desc": "Drewno Głębi Gaju. Piła level 100+."},
+    "dragonwood_log": {"name": "Pień Smoczego Drzewa", "type": "resource", "price": None, "sell_gold": 28, "desc": "Drewno Głębi Gaju. Piła level 120+."},
+    "astralwood_log": {"name": "Pień Astralnego Drzewa", "type": "resource", "price": None, "sell_gold": 42, "desc": "Drewno Głębi Gaju. Piła level 140+."},
+    "voidwood_log": {"name": "Pień Drzewa Pustki", "type": "resource", "price": None, "sell_gold": 65, "desc": "Drewno Głębi Gaju. Piła level 160+."},
+    "starheart_log": {"name": "Pień Gwiezdnego Serca", "type": "resource", "price": None, "sell_gold": 100, "desc": "Drewno Głębi Gaju. Piła level 180+."},
+    "eternal_worldwood_log": {"name": "Pień Wiecznego Drzewa Świata", "type": "resource", "price": None, "sell_gold": 180, "desc": "Najrzadsze drewno. Piła level 200."},
+
+    # Zioła 100-200
+    "sunfire_bloom": {"name": "Kwiat Słonecznego Ognia", "type": "resource", "price": None, "sell_gold": 18, "desc": "Zioło Głębi Gaju. Sierp level 100+."},
+    "dragon_sage": {"name": "Smocza Szałwia", "type": "resource", "price": None, "sell_gold": 28, "desc": "Zioło Głębi Gaju. Sierp level 120+."},
+    "astral_orchid": {"name": "Astralna Orchidea", "type": "resource", "price": None, "sell_gold": 42, "desc": "Zioło Głębi Gaju. Sierp level 140+."},
+    "void_lotus": {"name": "Lotos Pustki", "type": "resource", "price": None, "sell_gold": 65, "desc": "Zioło Głębi Gaju. Sierp level 160+."},
+    "phoenix_crown": {"name": "Korona Feniksa", "type": "resource", "price": None, "sell_gold": 100, "desc": "Zioło Głębi Gaju. Sierp level 180+."},
+    "eternal_blossom": {"name": "Wieczny Kwiat", "type": "resource", "price": None, "sell_gold": 180, "desc": "Najrzadsze zioło. Sierp level 200."},
+
+    # Rzemiosło 100-200
+    "runic_guard_charm": {"name": "Runiczny Talizman Straży", "type": "armor", "slot": "charm", "defense": 6, "price": None, "rarity": "crafted", "rarity_name": "Rzemieślniczy", "affix": "constitution", "affix_amount": 2, "desc": "Endgame Rzemiosło level 100. Obrona +6, Kondycja +2."},
+    "dragonforge_charm": {"name": "Talizman Smoczej Kuźni", "type": "armor", "slot": "charm", "defense": 7, "price": None, "rarity": "crafted", "rarity_name": "Rzemieślniczy", "affix": "strength", "affix_amount": 3, "desc": "Endgame Rzemiosło level 120. Obrona +7, Siła +3."},
+    "astral_forge_charm": {"name": "Astralny Talizman Kuźni", "type": "armor", "slot": "charm", "defense": 8, "price": None, "rarity": "crafted", "rarity_name": "Rzemieślniczy", "affix": "intelligence", "affix_amount": 3, "desc": "Endgame Rzemiosło level 140. Obrona +8, Inteligencja +3."},
+    "void_guard_charm": {"name": "Talizman Straży Pustki", "type": "armor", "slot": "charm", "defense": 9, "price": None, "rarity": "crafted", "rarity_name": "Rzemieślniczy", "affix": "willpower", "affix_amount": 4, "desc": "Endgame Rzemiosło level 160. Obrona +9, Siła Woli +4."},
+    "worldheart_charm": {"name": "Talizman Serca Świata", "type": "armor", "slot": "charm", "defense": 10, "price": None, "rarity": "crafted", "rarity_name": "Rzemieślniczy", "affix": "hp", "affix_amount": 60, "desc": "Endgame Rzemiosło level 180. Obrona +10, HP +60."},
+    "eternal_soul_charm": {"name": "Talizman Wiecznej Duszy", "type": "armor", "slot": "charm", "defense": 12, "price": None, "rarity": "crafted", "rarity_name": "Rzemieślniczy", "affix": "dexterity", "affix_amount": 5, "desc": "Endgame Rzemiosło level 200. Obrona +12, Zręczność +5."},
+
+    # Gotowanie 100-200
+    "runic_fish_plate": {"name": "Runiczny Półmisek Rybny", "type": "consumable", "price": None, "heal": 120, "mana": 40, "desc": "Gotowanie level 100. Przywraca do 120 HP i 40 Many."},
+    "dragon_ocean_stew": {"name": "Smocza Potrawka Oceaniczna", "type": "consumable", "price": None, "heal": 135, "mana": 55, "desc": "Gotowanie level 120. Przywraca do 135 HP i 55 Many."},
+    "abyss_fish_steak": {"name": "Stek Rybny Otchłani", "type": "consumable", "price": None, "heal": 155, "mana": 75, "desc": "Gotowanie level 140. Przywraca do 155 HP i 75 Many."},
+    "storm_marlin_feast": {"name": "Uczta Marlina Burzy", "type": "consumable", "price": None, "heal": 180, "mana": 95, "desc": "Gotowanie level 160. Przywraca do 180 HP i 95 Many."},
+    "leviathan_banquet": {"name": "Uczta Lewiatana", "type": "consumable", "price": None, "heal": 210, "mana": 120, "desc": "Gotowanie level 180. Przywraca do 210 HP i 120 Many."},
+    "eternal_ocean_banquet": {"name": "Wieczna Uczta Oceanu", "type": "consumable", "price": None, "heal": 260, "mana": 160, "desc": "Gotowanie level 200. Przywraca do 260 HP i 160 Many."},
+
+    # Alchemia 100-200
+    "supreme_healing_potion": {"name": "Najwyższa Mikstura Leczenia", "type": "consumable", "price": None, "heal": 130, "desc": "Alchemia level 100. Przywraca do 130 HP."},
+    "supreme_mana_potion": {"name": "Najwyższa Mikstura Many", "type": "consumable", "price": None, "mana": 130, "desc": "Alchemia level 120. Przywraca do 130 Many."},
+    "grand_vitality_elixir": {"name": "Wielki Eliksir Witalności", "type": "consumable", "price": None, "heal": 120, "mana": 80, "desc": "Alchemia level 140. Przywraca do 120 HP i 80 Many."},
+    "soul_tonic": {"name": "Tonik Duszy", "type": "consumable", "price": None, "soul_xp": 180, "desc": "Alchemia level 160. Daje 180 Soul XP."},
+    "astral_restoration_elixir": {"name": "Astralny Eliksir Odnowy", "type": "consumable", "price": None, "heal": 180, "mana": 120, "desc": "Alchemia level 180. Przywraca do 180 HP i 120 Many."},
+    "eternal_soul_elixir": {"name": "Eliksir Wiecznej Duszy", "type": "consumable", "price": None, "soul_xp": 400, "desc": "Alchemia level 200. Daje 400 Soul XP."},
+}
+ITEMS.update(ENDGAME_PROFESSION_ITEMS)
+
 SHOPS = {
     "fish_market": ["fishing_rod"],
     "market": ["healing_potion", "leather_vest", "lucky_charm"],
@@ -1753,6 +2098,48 @@ CRAFT_RECIPES = {
         "output": "spiritwood_gold_charm", "quantity": 1,
         "desc": "Zaawansowany talizman obronny +5.",
     },
+    "runic_guard_charm": {
+        "name": "Runiczny Talizman Straży", "stations": ("forge",),
+        "ingredients": {"cobalt_ore": 2, "runewood_log": 2},
+        "output": "runic_guard_charm", "quantity": 1,
+        "min_tool_level": 100, "tool_xp": 24,
+        "desc": "Rzemiosło level 100. Obrona +6, Kondycja +2.",
+    },
+    "dragonforge_charm": {
+        "name": "Talizman Smoczej Kuźni", "stations": ("forge",),
+        "ingredients": {"runestone_ore": 2, "dragonwood_log": 2},
+        "output": "dragonforge_charm", "quantity": 1,
+        "min_tool_level": 120, "tool_xp": 28,
+        "desc": "Rzemiosło level 120. Obrona +7, Siła +3.",
+    },
+    "astral_forge_charm": {
+        "name": "Astralny Talizman Kuźni", "stations": ("forge",),
+        "ingredients": {"dragonsteel_ore": 2, "astralwood_log": 2},
+        "output": "astral_forge_charm", "quantity": 1,
+        "min_tool_level": 140, "tool_xp": 32,
+        "desc": "Rzemiosło level 140. Obrona +8, Inteligencja +3.",
+    },
+    "void_guard_charm": {
+        "name": "Talizman Straży Pustki", "stations": ("forge",),
+        "ingredients": {"astral_ore": 2, "voidwood_log": 2},
+        "output": "void_guard_charm", "quantity": 1,
+        "min_tool_level": 160, "tool_xp": 36,
+        "desc": "Rzemiosło level 160. Obrona +9, Siła Woli +4.",
+    },
+    "worldheart_charm": {
+        "name": "Talizman Serca Świata", "stations": ("forge",),
+        "ingredients": {"void_ore": 2, "starheart_log": 2},
+        "output": "worldheart_charm", "quantity": 1,
+        "min_tool_level": 180, "tool_xp": 40,
+        "desc": "Rzemiosło level 180. Obrona +10, HP +60.",
+    },
+    "eternal_soul_charm": {
+        "name": "Talizman Wiecznej Duszy", "stations": ("forge",),
+        "ingredients": {"eternium_ore": 2, "eternal_worldwood_log": 2},
+        "output": "eternal_soul_charm", "quantity": 1,
+        "min_tool_level": 200, "tool_xp": 50,
+        "desc": "Rzemiosło level 200. Obrona +12, Zręczność +5.",
+    },
 }
 
 ALCHEMY_RECIPES = {
@@ -1792,6 +2179,48 @@ ALCHEMY_RECIPES = {
         "output": "soul_elixir", "quantity": 1,
         "desc": "Daje 80 Soul XP.",
     },
+    "supreme_healing_potion": {
+        "name": "Najwyższa Mikstura Leczenia", "stations": ("herbalist_hut",),
+        "ingredients": {"sunfire_bloom": 2, "phoenix_leaf": 1},
+        "output": "supreme_healing_potion", "quantity": 1,
+        "min_tool_level": 100, "tool_xp": 24,
+        "desc": "Alchemia level 100. Przywraca do 130 HP.",
+    },
+    "supreme_mana_potion": {
+        "name": "Najwyższa Mikstura Many", "stations": ("herbalist_hut",),
+        "ingredients": {"dragon_sage": 2, "star_moss": 1},
+        "output": "supreme_mana_potion", "quantity": 1,
+        "min_tool_level": 120, "tool_xp": 28,
+        "desc": "Alchemia level 120. Przywraca do 130 Many.",
+    },
+    "grand_vitality_elixir": {
+        "name": "Wielki Eliksir Witalności", "stations": ("herbalist_hut",),
+        "ingredients": {"astral_orchid": 2, "soulroot": 1},
+        "output": "grand_vitality_elixir", "quantity": 1,
+        "min_tool_level": 140, "tool_xp": 32,
+        "desc": "Alchemia level 140. Przywraca do 120 HP i 80 Many.",
+    },
+    "soul_tonic": {
+        "name": "Tonik Duszy", "stations": ("herbalist_hut",),
+        "ingredients": {"void_lotus": 2, "astral_lotus": 1},
+        "output": "soul_tonic", "quantity": 1,
+        "min_tool_level": 160, "tool_xp": 36,
+        "desc": "Alchemia level 160. Daje 180 Soul XP.",
+    },
+    "astral_restoration_elixir": {
+        "name": "Astralny Eliksir Odnowy", "stations": ("herbalist_hut",),
+        "ingredients": {"phoenix_crown": 2, "sunfire_bloom": 1},
+        "output": "astral_restoration_elixir", "quantity": 1,
+        "min_tool_level": 180, "tool_xp": 40,
+        "desc": "Alchemia level 180. Przywraca do 180 HP i 120 Many.",
+    },
+    "eternal_soul_elixir": {
+        "name": "Eliksir Wiecznej Duszy", "stations": ("herbalist_hut",),
+        "ingredients": {"eternal_blossom": 2, "void_lotus": 1},
+        "output": "eternal_soul_elixir", "quantity": 1,
+        "min_tool_level": 200, "tool_xp": 50,
+        "desc": "Alchemia level 200. Daje 400 Soul XP.",
+    },
 }
 
 COOK_RECIPES = {
@@ -1830,6 +2259,48 @@ COOK_RECIPES = {
         "ingredients": {"salmon": 1, "lake_trout": 1, "turbot": 1, "albacore": 1},
         "output": "master_fisher_feast", "quantity": 1,
         "desc": "Łosoś + Troć jeziorowa + Turbot + Albakora. Przywraca do 100 HP i 40 Many.",
+    },
+    "runic_fish_plate": {
+        "name": "Runiczny Półmisek Rybny", "stations": ("inn", "fish_market"),
+        "ingredients": {"celestial_tuna": 1, "crystal_carp": 1},
+        "output": "runic_fish_plate", "quantity": 1,
+        "min_tool_level": 100, "tool_xp": 24,
+        "desc": "Gotowanie level 100. Przywraca do 120 HP i 40 Many.",
+    },
+    "dragon_ocean_stew": {
+        "name": "Smocza Potrawka Oceaniczna", "stations": ("inn", "fish_market"),
+        "ingredients": {"dragon_mahi": 1, "soulfin_trout": 1},
+        "output": "dragon_ocean_stew", "quantity": 1,
+        "min_tool_level": 120, "tool_xp": 28,
+        "desc": "Gotowanie level 120. Przywraca do 135 HP i 55 Many.",
+    },
+    "abyss_fish_steak": {
+        "name": "Stek Rybny Otchłani", "stations": ("inn", "fish_market"),
+        "ingredients": {"abyss_tuna": 1, "abyss_halibut": 1},
+        "output": "abyss_fish_steak", "quantity": 1,
+        "min_tool_level": 140, "tool_xp": 32,
+        "desc": "Gotowanie level 140. Przywraca do 155 HP i 75 Many.",
+    },
+    "storm_marlin_feast": {
+        "name": "Uczta Marlina Burzy", "stations": ("inn", "fish_market"),
+        "ingredients": {"storm_marlin": 1, "moon_pike": 1},
+        "output": "storm_marlin_feast", "quantity": 1,
+        "min_tool_level": 160, "tool_xp": 36,
+        "desc": "Gotowanie level 160. Przywraca do 180 HP i 95 Many.",
+    },
+    "leviathan_banquet": {
+        "name": "Uczta Lewiatana", "stations": ("inn", "fish_market"),
+        "ingredients": {"moon_leviathan": 1, "void_turbot": 1},
+        "output": "leviathan_banquet", "quantity": 1,
+        "min_tool_level": 180, "tool_xp": 40,
+        "desc": "Gotowanie level 180. Przywraca do 210 HP i 120 Many.",
+    },
+    "eternal_ocean_banquet": {
+        "name": "Wieczna Uczta Oceanu", "stations": ("inn", "fish_market"),
+        "ingredients": {"eternal_coelacanth": 1, "mirror_leviathan": 1, "crown_monkfish": 1},
+        "output": "eternal_ocean_banquet", "quantity": 1,
+        "min_tool_level": 200, "tool_xp": 50,
+        "desc": "Gotowanie level 200. Przywraca do 260 HP i 160 Many.",
     },
 }
 
@@ -2114,21 +2585,15 @@ SYSTEM_DESCRIPTIONS = {
 }
 
 
-LATEST_CHANGES_TITLE = "Soulbound v0.6.72 - Temple Login Spawn"
+LATEST_CHANGES_TITLE = "Soulbound v0.6.76 - Guide Bridge"
 LATEST_CHANGES = [
-    "Po każdym zalogowaniu postać rozpoczyna sesję w Świątyni Odrodzenia.",
-    "Miejsce wylogowania nie jest już miejscem startowym kolejnej sesji.",
-    "Nowe postacie również wchodzą do świata w Świątyni Odrodzenia.",
-    "Przy logowaniu zapisywana lokacja postaci zostaje ustawiona na Świątynię Odrodzenia.",
-    "Zachowano synchronizację starych Portali Krypty przed przeniesieniem do Świątyni.",
-    "Questy, ekwipunek, waluty, Soul Level i pozostała progresja pozostają bez zmian.",
-    "Pełne HP po awansie Soul Level pozostaje bez zmian.",
-    "Soul Level 1-200 pozostaje bez zmian.",
-    "Próg statystyk 50 pozostaje bez zmian.",
-    "Narzędzia 1-200 i 13 Tierów pozostają bez zmian.",
-    "Soulbound nadal nie ma levelu postaci.",
+    "Dodano jawny skrót prowadz most do lokacji Kamienny Most.",
+    "Działa też prowadz kamienny most.",
+    "walk most, idz most i go most korzystają z tego samego celu.",
+    "Pozostałe skróty prowadzenia z v0.6.73-v0.6.75 pozostają bez zmian.",
+    "Używanie skilli, kupowanie narzędzi i izolowany XP narzędzi pozostają bez zmian.",
+    "Endgame profesji 100-200 pozostaje bez zmian.",
     "Nie wymaga migracji SQLite.",
-    "Zaktualizowano help logowanie, README, RAILWAY_PL i pełny changelog.",
 ]
 
 HELP_TOPIC_ALIASES = {
@@ -2140,6 +2605,8 @@ HELP_TOPIC_ALIASES = {
     "stats": "statystyki", "stat": "statystyki",
     "odmiana": "odmiana_imienia", "przypadki": "odmiana_imienia", "namecases": "odmiana_imienia", "declension": "odmiana_imienia",
     "combat": "walka", "fight": "walka",
+    "walk": "walk", "prowadzenie": "walk", "autowalk": "walk",
+    "endgameprof": "endgame_profesje", "profesje200": "endgame_profesje", "receptury200": "endgame_profesje",
     "login": "logowanie", "logowanie": "logowanie", "spawn": "logowanie", "start": "logowanie",
     "critical": "krytyki", "crit": "krytyki",
     "statgrowth": "rozwoj_statystyk", "rozwojstatystyk": "rozwoj_statystyk", "rozwoj": "rozwoj_statystyk",
@@ -2189,6 +2656,56 @@ HELP_TOPIC_ALIASES = {
 }
 
 HELP_TOPICS = {
+    "prowadz_most": [
+        "Komenda prowadz most prowadzi bezpośrednio do lokacji Kamienny Most.",
+        "Działa też walk most, idz most, go most oraz prowadz kamienny most.",
+        "Prowadzenie wykorzystuje ten sam bezpieczny system wyznaczania trasy co pozostałe cele.",
+    ],
+    "uzyj_skilla": [
+        "Komenda użyj może uruchamiać nauczone umiejętności i czary.",
+        "Przykład Wojownika: użyj ciecie goblin uruchamia Potężne Cięcie, jeśli skrót jest jednoznaczny i skill jest nauczony.",
+        "Przykład Maga: użyj pocisk goblin może uruchomić Pocisk Arkanów.",
+        "Przykład Czarownika: użyj plomien goblin może uruchomić Płomień Otchłani.",
+        "Działa też użyj czar <nazwa> [cel], use spell <name> [target], skill <nazwa> [cel] i cast <nazwa> [cel].",
+        "Jeżeli krótka nazwa pasuje do kilku aktywnych skilli, użyj pełnej nazwy.",
+        "Cooldown, Mana, Skill Level i Skill XP pozostają bez zmian.",
+    ],
+    "kup_narzedzia": [
+        "Narzędzia można kupować krótkimi nazwami bez polskich znaków.",
+        "Przykłady: kup wedka, kup kilof, kup pila, kup mlot, kup noz, kup sierp, kup mozdzierz.",
+        "Narzędzie nadal trzeba kupić u właściwego sprzedawcy. Gra poda właściwą lokację, jeśli jesteś w złym miejscu.",
+        "Kupienie narzędzia nie daje mu XP ani levelu.",
+    ],
+    "xp_narzedzi": [
+        "XP dostaje wyłącznie narzędzie faktycznie użyte w danej akcji.",
+        "Łowienie rozwija tylko Wędkę.",
+        "Kopanie rozwija tylko Kilof.",
+        "Drwalstwo rozwija tylko Piłę.",
+        "Crafting rozwija tylko Młot Rzemieślniczy.",
+        "Gotowanie rozwija tylko Nóż Kucharski.",
+        "Zielarstwo rozwija tylko Sierp Zielarski.",
+        "Alchemia rozwija tylko Moździerz Alchemiczny.",
+        "Pozostałe narzędzia nie dostają XP, użyć ani leveli od tej akcji.",
+    ],
+    "endgame_profesje": [
+        "Dodano progresję surowców i receptur dla leveli narzędzi 100, 120, 140, 160, 180 i 200.",
+        "Wędka odblokowuje nowe ryby endgame; część zależy od typu łowiska: rzeka, jezioro, morze albo ocean.",
+        "Kilof odblokowuje: Ruda Kobaltu 100, Kamień Runiczny 120, Smocza Stal 140, Ruda Astralna 160, Ruda Pustki 180 i Eternium 200.",
+        "Piła w Głębi Gaju odblokowuje nowe drewna na levelach 100, 120, 140, 160, 180 i 200.",
+        "Sierp w Głębi Gaju odblokowuje nowe zioła na levelach 100, 120, 140, 160, 180 i 200.",
+        "Rzemiosło, Gotowanie i Alchemia mają po 6 nowych receptur wymagających odpowiednio levelu 100, 120, 140, 160, 180 i 200 narzędzia.",
+        "Receptury są twardo zablokowane levelem narzędzia. Samo posiadanie składników nie wystarcza.",
+        "Wpisz receptury, receptury craft, receptury cook albo receptury alchemia, aby usłyszeć wymagany level.",
+    ],
+    "walk": [
+        "Prowadzenie obsługuje teraz krótką składnię walk <cel> bez słowa to.",
+        "Przykłady: walk targ, walk kuznia, walk swiatynia, walk port, walk karczma, walk jaskinia, walk bandyci.",
+        "Polskie warianty: prowadz <cel> oraz idz <cel>.",
+        "Działa też starsza składnia walk to <location>.",
+        "Można podawać krótkie nazwy NPC, np. walk doran, walk elor, walk roderik, walk liora, walk tomas.",
+        "Krypta zachowuje skróty pięter, np. walk krypta 50.",
+        "Prowadzenie nadal zatrzyma się przed żywym bossem Krypty blokującym zejście.",
+    ],
     "logowanie": [
         "Po każdym zalogowaniu postać rozpoczyna sesję w Świątyni Odrodzenia.",
         "Nie ma znaczenia, gdzie postać wylogowała się poprzednio.",
@@ -3152,17 +3669,31 @@ def verify_password(password: str, salt_hex: str, hash_hex: str) -> bool:
     return hmac.compare_digest(candidate, hash_hex)
 
 
+def normalize_lookup_text(value):
+    text = str(value or "").strip().lower()
+    text = text.replace("ł", "l")
+    text = unicodedata.normalize("NFKD", text)
+    text = "".join(
+        ch for ch in text
+        if not unicodedata.combining(ch)
+    )
+    text = text.replace("_", " ").replace("-", " ")
+    text = re.sub(r"[^a-z0-9 ]+", " ", text)
+    return " ".join(text.split())
+
+
 def find_by_name(mapping, query, name_field="name"):
-    q = query.strip().lower()
+    q = normalize_lookup_text(query)
     if not q:
         return None
     exact = []
     partial = []
     for key, value in mapping.items():
-        name = value[name_field].lower()
-        if q == key.lower() or q == name:
+        key_name = normalize_lookup_text(key)
+        name = normalize_lookup_text(value[name_field])
+        if q == key_name or q == name:
             exact.append((key, value))
-        elif q in name or q in key.lower():
+        elif q in name or q in key_name:
             partial.append((key, value))
     if exact:
         return exact[0]
@@ -5689,7 +6220,7 @@ class Session:
             "where - aktualna lokacja",
             "location / lokalizacja - lokacja, strefa i wyjścia",
             "north/south/east/west/up/down lub n/s/e/w/u/d - ruch",
-            "prowadz lokacja / walk to location - automatyczne prowadzenie do każdej lokacji świata",
+            "prowadz lokacja / walk lokacja / walk to location - automatyczne prowadzenie; np. walk targ, walk kuznia, walk port",
             "prowadz lista - wszystkie dostępne cele prowadzenia",
             "who - gracze online",
             "say tekst - rozmowa lokalna",
@@ -5742,7 +6273,7 @@ class Session:
             "equipment - założone wyposażenie, rarity, affix i bonus setu",
             "help loot_krypty - rarity, losowe statystyki i sety Krypty",
             "equip przedmiot - załóż pancerz lub talizman",
-            "use / użyj przedmiot - użyj przedmiotu; komenda obsługuje też umiejętności",
+            "use / użyj - przedmioty, skille i czary; np. użyj ciecie goblin albo użyj pocisk goblin",
             "shop / sklep / list / lista - oferta sprzedawcy",
             "buy / kup przedmiot - kup przedmiot",
             "talk npc - rozmowa, zadania i lekcje nauczycieli klasowych",
@@ -6844,7 +7375,39 @@ class Session:
             return 0
         return 60 + (level - 1) * 30
 
+    def valid_tool_type(self, tool_type):
+        return tool_type in (
+            "fishing",
+            "mining",
+            "woodcutting",
+            "crafting",
+            "cooking",
+            "herbalism",
+            "alchemy",
+        )
+
+    def tool_progress_state(self):
+        result = {}
+        for tool_type in (
+            "fishing",
+            "mining",
+            "woodcutting",
+            "crafting",
+            "cooking",
+            "herbalism",
+            "alchemy",
+        ):
+            row = self.server.db.tool(self.account_id, tool_type)
+            result[tool_type] = (
+                int(row["level"]),
+                int(row["xp"]),
+                int(row["uses"]),
+            )
+        return result
+
     def grant_profession_progress(self, profession, prof_xp, tool_type, tool_xp):
+        if not self.valid_tool_type(tool_type):
+            raise ValueError(f"Nieznany typ narzędzia: {tool_type}")
         prow = self.server.db.profession(self.account_id, profession)
         plevel = int(prow["level"])
         old_profession_rank = profession_rank(plevel)
@@ -6917,6 +7480,8 @@ class Session:
         return messages, plevel, tlevel
 
     def grant_tool_progress(self, tool_type, tool_xp):
+        if not self.valid_tool_type(tool_type):
+            raise ValueError(f"Nieznany typ narzędzia: {tool_type}")
         row = self.server.db.tool(self.account_id, tool_type)
         level = int(row["level"])
         old_tier = tool_tier(level)
@@ -7154,6 +7719,8 @@ class Session:
             )
 
     async def grant_profession_reward_xp(self, profession, profession_xp, tool_type, tool_xp):
+        if not self.valid_tool_type(tool_type):
+            raise ValueError(f"Nieznany typ narzędzia: {tool_type}")
         prow = self.server.db.profession(self.account_id, profession)
         plevel = int(prow["level"])
         pxp = int(prow["xp"]) + profession_xp
@@ -7181,7 +7748,15 @@ class Session:
         tlevel = int(trow["level"])
         txp = int(trow["xp"]) + tool_xp
         uses = int(trow["uses"])
-        tool_name = "Wędka" if tool_type == "fishing" else "Kilof"
+        tool_name = {
+            "fishing": "Wędka",
+            "mining": "Kilof",
+            "woodcutting": "Piła",
+            "crafting": "Młot Rzemieślniczy",
+            "cooking": "Nóż Kucharski",
+            "herbalism": "Sierp Zielarski",
+            "alchemy": "Moździerz Alchemiczny",
+        }[tool_type]
 
         await self.send(f"{tool_name}: nagroda +{tool_xp} XP.")
 
@@ -7256,6 +7831,10 @@ class Session:
         if not q:
             return []
 
+        shortcut = GUIDE_DESTINATION_ALIASES.get(q)
+        if shortcut and shortcut in ROOMS:
+            return [shortcut]
+
         # Krypta 1-100 ma specjalne naturalne skróty.
         crypt_match = re.fullmatch(
             r"(?:krypta|crypt|pietro|pietro krypty|krypta pietro|crypt floor)\s*(\d+)",
@@ -7319,6 +7898,11 @@ class Session:
         await self.send(
             "Możesz używać pełnej nazwy, identyfikatora lokacji ze spacjami "
             "albo wersji bez polskich znaków."
+        )
+        await self.send(
+            "Działają też krótkie skróty. Przykłady: walk targ, walk kuznia, "
+            "walk swiatynia, walk port, walk karczma, walk jaskinia, "
+            "walk bandyci, prowadz roderik."
         )
 
 
@@ -8031,6 +8615,9 @@ class Session:
                 "asp", "grayling", "burbot", "golden_trout", "salmon",
                 "river_catfish", "ancient_sturgeon", "moon_eel", "zander"
             )
+            pool = unlocked_resource_pool(
+                pool, ENDGAME_FISH_UNLOCKS["river"], tool_level
+            )
             return random.choice(pool)
 
         if habitat == "lake":
@@ -8048,6 +8635,9 @@ class Session:
             pool = (
                 "whitefish", "lake_char", "lake_trout", "giant_pike",
                 "freshwater_eel", "pike", "zander"
+            )
+            pool = unlocked_resource_pool(
+                pool, ENDGAME_FISH_UNLOCKS["lake"], tool_level
             )
             return random.choice(pool)
 
@@ -8067,6 +8657,9 @@ class Session:
             pool = (
                 "cod", "hake", "red_mullet", "sole", "halibut",
                 "turbot", "monkfish", "sea_bass", "haddock", "pollock"
+            )
+            pool = unlocked_resource_pool(
+                pool, ENDGAME_FISH_UNLOCKS["sea"], tool_level
             )
             return random.choice(pool)
 
@@ -8090,6 +8683,9 @@ class Session:
             "bluefin_tuna", "bigeye_tuna", "amberjack", "ocean_sunfish",
             "mako_shark", "tiger_shark", "hammerhead_shark",
             "great_white_shark", "ghost_marlin", "swordfish"
+        )
+        pool = unlocked_resource_pool(
+            pool, ENDGAME_FISH_UNLOCKS["ocean"], tool_level
         )
         return random.choice(pool)
 
@@ -8136,6 +8732,14 @@ class Session:
 
         if r < mithril_chance:
             return "__mithril_currency__"
+
+        if tool_level >= 100:
+            pool = unlocked_resource_pool(
+                ("silver_ore", "gold_ore"),
+                ENDGAME_ORE_UNLOCKS,
+                tool_level,
+            )
+            return random.choice(pool)
 
         rr = (r - mithril_chance) / (1.0 - mithril_chance)
         if tool_level < 90:
@@ -8185,10 +8789,14 @@ class Session:
                 "redwood_log", "ironwood_log", "ebony_log", "silverwood_log",
                 "spiritwood_log", "ancient_heartwood", "worldtree_wood"
             ))
-        return random.choice((
+        pool = (
             "teak_log", "redwood_log", "silverwood_log", "spiritwood_log",
             "ancient_heartwood", "worldtree_wood"
-        ))
+        )
+        pool = unlocked_resource_pool(
+            pool, ENDGAME_WOOD_UNLOCKS, tool_level
+        )
+        return random.choice(pool)
 
 
     def herbalism_loot(self, tool_level, room_id=None):
@@ -8219,7 +8827,14 @@ class Session:
             return random.choice(("nightshade", "mandrake", "moonflower", "soulroot", "star_moss"))
         if tool_level < 90:
             return random.choice(("mandrake", "moonflower", "soulroot", "phoenix_leaf", "star_moss"))
-        return random.choice(("moonflower", "soulroot", "phoenix_leaf", "star_moss", "astral_lotus"))
+        pool = (
+            "moonflower", "soulroot", "phoenix_leaf",
+            "star_moss", "astral_lotus"
+        )
+        pool = unlocked_resource_pool(
+            pool, ENDGAME_HERB_UNLOCKS, tool_level
+        )
+        return random.choice(pool)
 
     def profession_ready(self):
         now = time.time()
@@ -8602,6 +9217,7 @@ class Session:
                     f"{recipe['name']}. Składniki: "
                     f"{self.recipe_ingredients_text(recipe)}. "
                     f"Miejsce: {self.recipe_station_text(recipe['stations'])}. "
+                    f"{self.recipe_level_requirement_text(CRAFT_RECIPES, recipe)} "
                     f"{recipe['desc']}"
                 )
 
@@ -8612,6 +9228,7 @@ class Session:
                     f"{recipe['name']}. Składniki: "
                     f"{self.recipe_ingredients_text(recipe)}. "
                     f"Miejsce: {self.recipe_station_text(recipe['stations'])}. "
+                    f"{self.recipe_level_requirement_text(COOK_RECIPES, recipe)} "
                     f"{recipe['desc']}"
                 )
 
@@ -8622,8 +9239,14 @@ class Session:
                     f"{recipe['name']}. Składniki: "
                     f"{self.recipe_ingredients_text(recipe)}. "
                     f"Miejsce: {self.recipe_station_text(recipe['stations'])}. "
+                    f"{self.recipe_level_requirement_text(ALCHEMY_RECIPES, recipe)} "
                     f"{recipe['desc']}"
                 )
+
+    def recipe_level_requirement_text(self, recipes, recipe):
+        tool_type, _item_id, tool_name = self.recipe_tool_info(recipes)
+        required = max(1, int(recipe.get("min_tool_level", 1)))
+        return f"Wymaga: {tool_name} level {required}."
 
     def recipe_tool_info(self, recipes):
         if recipes is CRAFT_RECIPES:
@@ -8665,6 +9288,16 @@ class Session:
 
         recipe_id, recipe = found
 
+        tool_row = self.server.db.tool(self.account_id, tool_type)
+        old_tool_level = int(tool_row["level"])
+        required_level = max(1, int(recipe.get("min_tool_level", 1)))
+        if old_tool_level < required_level:
+            await self.send(
+                f"{recipe['name']} wymaga {tool_name} level "
+                f"{required_level}, a masz {old_tool_level}."
+            )
+            return False
+
         if self.character.room_id not in recipe["stations"]:
             await self.send(
                 f"Tę recepturę wykonasz w: "
@@ -8696,8 +9329,6 @@ class Session:
         output_id = recipe["output"]
         quantity = int(recipe.get("quantity", 1))
 
-        tool_row = self.server.db.tool(self.account_id, tool_type)
-        old_tool_level = int(tool_row["level"])
         tier = tool_tier(old_tool_level)
         bonus_chance = tool_tier_bonus_chance(old_tool_level)
 
@@ -8735,7 +9366,9 @@ class Session:
                     f"x{bonus_quantity}."
                 )
 
-        tool_xp = 8 + random.randint(0, 4)
+        tool_xp = int(
+            recipe.get("tool_xp", 8 + random.randint(0, 4))
+        )
         if tool_type == "alchemy":
             messages, alchemy_level, new_tool_level = self.grant_profession_progress(
                 "Alchemia", 10 + random.randint(0, 5), "alchemy", tool_xp
@@ -8914,6 +9547,8 @@ class Session:
             "umiejetnosc ",
             "zdolność ",
             "zdolnosc ",
+            "czar ",
+            "spell ",
         )
         for prefix in skill_prefixes:
             if lowered.startswith(prefix):
@@ -9090,15 +9725,41 @@ class Session:
             )
 
     async def buy(self, query):
+        normalized_query = normalize_lookup_text(query)
+        requested_tool = TOOL_BUY_ALIASES.get(normalized_query)
+
         offers = SHOPS.get(self.character.room_id)
         if not offers:
+            if requested_tool:
+                target_room = TOOL_SHOP_ROOMS[requested_tool]
+                await self.send(
+                    f"{ITEMS[requested_tool]['name']} kupisz w lokacji "
+                    f"{ROOMS[target_room]['name']}. "
+                    f"Możesz użyć walk {target_room.replace('_', ' ')}."
+                )
+                return
             await self.send("W tej lokacji nie ma sklepu.")
             return
+
         possible = {item_id: ITEMS[item_id] for item_id in offers}
-        found = find_by_name(possible, query)
+
+        found = None
+        if requested_tool and requested_tool in possible:
+            found = (requested_tool, possible[requested_tool])
         if not found:
+            found = find_by_name(possible, query)
+
+        if not found:
+            if requested_tool:
+                target_room = TOOL_SHOP_ROOMS[requested_tool]
+                await self.send(
+                    f"{ITEMS[requested_tool]['name']} nie jest sprzedawana tutaj. "
+                    f"Kupisz ją w lokacji {ROOMS[target_room]['name']}."
+                )
+                return
             await self.send("Tego przedmiotu nie ma w ofercie.")
             return
+
         item_id, item = found
         price = item["price"]
         currency = item.get("currency", "gold")
@@ -9623,10 +10284,15 @@ class Session:
         if first[0].isdigit():
             number = int(first[0])
             if 1 <= number <= len(skills):
-                return skills[number - 1], first[1] if len(first) > 1 else ""
+                return (
+                    skills[number - 1],
+                    first[1] if len(first) > 1 else "",
+                )
 
         normalized = self.normalized_skill_text(raw)
         matches = []
+
+        # Najpierw pełne nazwy, ID i oficjalne aliasy.
         for skill in skills:
             for name in [skill["name"], skill["id"]] + skill.get("aliases", []):
                 n = self.normalized_skill_text(name)
@@ -9636,10 +10302,61 @@ class Session:
                     word_count = len(name.split())
                     target = " ".join(raw.split()[word_count:])
                     matches.append((len(n), skill, target))
-        if not matches:
+
+        if matches:
+            matches.sort(key=lambda x: x[0], reverse=True)
+            return matches[0][1], matches[0][2]
+
+        # Drugi etap: naturalne krótkie nazwy.
+        # Przykład: "ciecie goblin" -> "Potężne Cięcie".
+        # Skrót działa tylko wtedy, gdy wskazuje dokładnie jeden skill
+        # wśród obecnie aktywnych klas.
+        shortcut_matches = {}
+        raw_words = raw.split()
+
+        for skill in skills:
+            shortcuts = set()
+            names = [skill["name"]] + skill.get("aliases", [])
+            for name in names:
+                n = self.normalized_skill_text(name)
+                words = n.split()
+                if not words:
+                    continue
+
+                # Pojedyncze charakterystyczne słowa.
+                shortcuts.update(words)
+
+                # Wszystkie prefiksy i sufiksy wielowyrazowe.
+                for count in range(1, len(words)):
+                    shortcuts.add(" ".join(words[:count]))
+                    shortcuts.add(" ".join(words[count:]))
+
+            # Bardzo ogólne słowa nie powinny same uruchamiać skilla.
+            shortcuts.difference_update({
+                "maly", "male", "wielki", "wielkie", "cios",
+                "uderzenie", "bariera", "tarcza", "duszy",
+                "krwi", "umyslu", "energii",
+            })
+
+            for shortcut in shortcuts:
+                if normalized == shortcut:
+                    target = ""
+                elif normalized.startswith(shortcut + " "):
+                    word_count = len(shortcut.split())
+                    target = " ".join(raw_words[word_count:])
+                else:
+                    continue
+
+                shortcut_matches.setdefault(skill["id"], []).append(
+                    (len(shortcut), skill, target)
+                )
+
+        if len(shortcut_matches) != 1:
             return None, ""
-        matches.sort(key=lambda x: x[0], reverse=True)
-        return matches[0][1], matches[0][2]
+
+        only_matches = next(iter(shortcut_matches.values()))
+        only_matches.sort(key=lambda x: x[0], reverse=True)
+        return only_matches[0][1], only_matches[0][2]
 
     async def show_all_skill_names(self):
         await self.send("NAZWY SKILLI WSZYSTKICH KLAS")
@@ -10878,11 +11595,6 @@ class Session:
                     await self.fish()
             elif command == "guide":
                 await self.guide_to(args)
-            elif command == "walk":
-                if args.strip().lower().startswith("to "):
-                    await self.guide_to(args)
-                else:
-                    await self.send("Użycie: walk to <location>.")
             elif command == "location":
                 await self.show_location()
             elif command == "mine":

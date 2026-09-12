@@ -1,3 +1,106 @@
+SOULBOUND v0.6.76 GUIDE BRIDGE
+===============================
+- Dodano prowadz most.
+- Dodano prowadz kamienny most.
+- walk most działa.
+- idz most działa.
+- go most działa.
+- Wszystkie prowadzą do Kamiennego Mostu.
+- Brak migracji SQLite.
+- Zaktualizowano help, README i RAILWAY_PL.
+- changes / zmiany nadal pokazuje pełną historię.
+
+SOULBOUND v0.6.75 SKILL USE, TOOL BUY & ISOLATED TOOL XP
+==========================================================
+- Dodano użyj ciecie.
+- Dodano użyj ciecie <cel>.
+- Dodano krótkie jednoznaczne nazwy innych skilli.
+- Dodano użyj pocisk <cel>.
+- Dodano użyj plomien <cel>.
+- Dodano użyj czar <nazwa> [cel].
+- Dodano use spell <name> [target].
+- Pełne nazwy skilli nadal działają.
+- Cooldown, Mana, Skill Level i Skill XP pozostają.
+- Dodano kup wedka.
+- Dodano kup pila.
+- Dodano kup mlot.
+- Dodano kup noz.
+- Dodano kup sierp.
+- Dodano kup mozdzierz.
+- Kupowanie ignoruje różnicę polskich znaków.
+- Zły sklep podaje właściwą lokację narzędzia.
+- Kupienie narzędzia nie daje XP.
+- Dodano walidację tool_type przy każdym grantowaniu XP narzędzia.
+- Łowienie rozwija tylko Wędkę.
+- Kopanie rozwija tylko Kilof.
+- Drwalstwo rozwija tylko Piłę.
+- Rzemiosło rozwija tylko Młot Rzemieślniczy.
+- Gotowanie rozwija tylko Nóż Kucharski.
+- Zielarstwo rozwija tylko Sierp Zielarski.
+- Alchemia rozwija tylko Moździerz Alchemiczny.
+- Nieużywane narzędzia nie dostają XP, levelu ani użyć.
+- Endgame profesji v0.6.74 pozostaje.
+- Soul Level 1-200 pozostaje.
+- Stat threshold 50 pozostaje.
+- Narzędzia 1-200 i 13 Tierów pozostają.
+- Nadal brak levelu postaci.
+- Brak migracji SQLite.
+- Zaktualizowano help, README i RAILWAY_PL.
+- changes / zmiany nadal pokazuje pełną historię.
+
+SOULBOUND v0.6.74 ENDGAME PROFESSIONS 100-200
+==============================================
+- Dodano nowe ryby high-level.
+- Dodano nowe rudy 100/120/140/160/180/200.
+- Dodano nowe drewno 100/120/140/160/180/200.
+- Dodano nowe zioła 100/120/140/160/180/200.
+- Surowce są naprawdę blokowane levelem narzędzia.
+- Dodano 6 receptur Rzemiosła 100-200.
+- Dodano 6 receptur Gotowania 100-200.
+- Dodano 6 receptur Alchemii 100-200.
+- Dodano twarde wymagania levelu narzędzia dla receptur.
+- receptury pokazują wymagany level.
+- Receptury endgame dają zwiększone XP narzędzia.
+- Dodano 6 nowych talizmanów craftowanych.
+- Dodano 6 nowych potraw endgame.
+- Dodano 6 nowych mikstur i eliksirów endgame.
+- Czysty mithril zachowuje 0,50% szansy na Kilofie 100+.
+- Narzędzia pozostają 1-200 i mają 13 Tierów.
+- Soul Level pozostaje 1-200.
+- Stat threshold pozostaje 50.
+- Nadal brak levelu postaci.
+- Walk shortcuts pozostają.
+- Brak migracji SQLite.
+- Zaktualizowano help, README i RAILWAY_PL.
+- changes / zmiany nadal pokazuje pełną historię.
+
+SOULBOUND v0.6.73 WALK SHORTCUTS
+================================
+- Dodano walk <cel>.
+- walk nie wymaga już słowa to.
+- Dodano walk targ.
+- Dodano walk kuznia.
+- Dodano walk swiatynia.
+- Dodano walk port.
+- Dodano walk karczma.
+- Dodano walk jaskinia.
+- Dodano walk bandyci.
+- Dodano walk gobliny.
+- Dodano walk ruiny.
+- Dodano walk jezioro.
+- Dodano walk rzeka.
+- Dodano idz <cel>.
+- Dodano go <cel>.
+- prowadz <cel> pozostaje.
+- walk to <cel> pozostaje.
+- Dodano skróty nazw wielu NPC jako cele prowadzenia.
+- Dodano jednoznaczne aliasy głównych lokacji.
+- Krypta 1-100 nadal działa w prowadzeniu.
+- Boss Krypty nadal może zatrzymać prowadzenie.
+- Brak migracji SQLite.
+- Zaktualizowano help, README i RAILWAY_PL.
+- changes / zmiany nadal pokazuje pełną historię.
+
 SOULBOUND v0.6.72 TEMPLE LOGIN SPAWN
 =====================================
 - Po każdym zalogowaniu startujemy w Świątyni Odrodzenia.
