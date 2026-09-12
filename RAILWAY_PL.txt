@@ -1,68 +1,84 @@
-SOULBOUND v0.5 — RAILWAY READY
-================================
+SOULBOUND v0.6.6 — AKTUALIZACJA RAILWAY
+=====================================
 
-Ta wersja jest przygotowana do wdrożenia z GitHuba na Railway.
+Jeżeli v0.5.1 już działa na Railway:
 
-1. GITHUB
----------
-Utwórz repozytorium, np. Soulbound-MUD.
-Wgraj wszystkie pliki z tego katalogu do głównego katalogu repozytorium.
-Plik Dockerfile musi pozostać w katalogu głównym i mieć dokładnie nazwę Dockerfile.
+1. NIE usuwaj Volume.
+2. NIE zmieniaj TCP Proxy.
+3. Publiczny adres MUSHclienta pozostaje taki sam.
+4. Internal/application port pozostaje 4000.
 
-2. RAILWAY
-----------
-Utwórz projekt z repozytorium GitHub.
-Railway powinien automatycznie wykryć Dockerfile i zbudować usługę.
+Na GitHub podmień:
+- server.py
+- Dockerfile
+- README_PL.txt
+- CHANGELOG_PL.txt
+- RAILWAY_PL.txt
 
-3. TRWAŁA BAZA POSTACI
-----------------------
-Dodaj do usługi Railway Volume i ustaw Mount Path:
+Po Commit Changes Railway powinien wykonać redeploy.
+
+W logach po uruchomieniu powinno być m.in.:
+Soulbound v0.6 World Core nasłuchuje...
+PORT=4000
+Lokacje: 31
+
+BAZA DANYCH
+-----------
+v0.6 automatycznie migruje bazę z v0.5.1.
+Stare konta, hasła, rasy, klasy, statystyki, Soul Level i Tier pozostają.
+
+Nowe dane:
+- gold,
+- deaths,
+- inventory,
+- equipment,
+- quests.
+
+Railway Volume nadal montuj jako:
 /data
 
-Soulbound automatycznie wykrywa zmienną RAILWAY_VOLUME_MOUNT_PATH i zapisuje bazę:
+Baza:
  /data/soulbound.db
 
-Nie ustawiaj ręcznie SOULBOUND_DB, jeśli używasz powyższego Volume.
 
-Bez Volume dane zapisane wewnątrz deploymentu nie są traktowane jako trwałe.
+MIGRACJA WALUT
+--------------
+v0.6.6 automatycznie dodaje do starej bazy:
+- silver,
+- mithril.
 
-4. TCP PROXY DLA MUSHCLIENTA
-----------------------------
-Service -> Settings -> Networking -> TCP Proxy.
-Jako wewnętrzny port aplikacji wpisz:
-4000
+Istniejące konta i postacie zostają zachowane.
+Nie usuwaj Railway Volume.
 
-Railway wygeneruje publiczną domenę i zewnętrzny port, np.:
-roundhouse.proxy.rlwy.net
-15140
 
-Do MUSHclienta gracz wpisuje WŁAŚNIE tę domenę i wygenerowany port.
-Port 4000 jest portem wewnętrznym Soulbounda i publiczny port Railway może być inny.
+AKTUALIZACJA v0.6.6
+-------------------
+Nie zmieniaj Volume ani TCP Proxy.
+Wystarczy podmienić kod na GitHubie i zrobić commit.
+Nowe lokacje, quest i przeciwnicy nie wymagają kasowania bazy.
 
-5. TEST
--------
-Po połączeniu MUSHclient powinien otrzymać:
-SOULBOUND ONLINE v0.5
-Tekstowy MUD. Połączono z serwerem.
-Wpisz: login albo new
 
-6. AKTUALIZACJE
----------------
-Kod aktualizujesz w repozytorium GitHub.
-Railway buduje nowy deployment, ale baza na Volume pozostaje oddzielona od kodu.
-Nie usuwaj Volume podczas aktualizacji.
+AKTUALIZACJA PROFESJI
+---------------------
+v0.6.6 dodaje nowe tabele SQLite:
+- professions,
+- tools.
 
-7. USTAWIENIA
--------------
-Domyślny limit klientów: 100.
-Opcjonalna zmienna:
-SOULBOUND_MAX_CLIENTS
+Migracja jest automatyczna.
+Nie kasuj Railway Volume.
+Nie zmieniaj TCP Proxy.
 
-Domyślny wewnętrzny port: 4000.
-Soulbound obsługuje także zmienną PORT dostarczoną przez hosting.
 
-8. HASŁA
---------
-Hasła w bazie są hashowane PBKDF2-SHA256 z losową solą.
-Klasyczny surowy Telnet/TCP nie szyfruje jednak transmisji pomiędzy klientem a serwerem.
-Przed większą publiczną premierą warto dodać TLS.
+MIGRACJA v0.6.6
+----------------
+Dodawana jest tabela profession_storage.
+Siatka i Sakwa nie wymagają kasowania ani resetowania postaci.
+Nie usuwaj Railway Volume.
+
+
+AKTUALIZACJA v0.6.6
+-------------------
+Nie zmieniaj Railway Volume.
+Nie zmieniaj TCP Proxy.
+Nowa lokacja i quest są częścią kodu.
+Stare levele Wędki, Kilofa i profesji zostają zachowane.

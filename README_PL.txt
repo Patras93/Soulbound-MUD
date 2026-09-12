@@ -1,170 +1,277 @@
-WDROŻENIE RAILWAY: przeczytaj RAILWAY_PL.txt.
+SOULBOUND v0.6.6 THREE CURRENCIES
+==========================
 
-SOULBOUND v0.5 RAILWAY READY
-=============================
+Duży build rozbudowujący działający serwer online do pierwszej właściwej wersji świata MUD.
 
-To jest pierwsza prawdziwa wieloosobowa wersja Soulbound.
+NAJWAŻNIEJSZE ZASADY
+--------------------
+- Postać NIE ma levelu.
+- Postać NIE ma XP postaci.
+- Nie rozdaje się ręcznie punktów statystyk.
+- Statystyki rosną automatycznie podczas gry.
+- Klasy fizyczne rozwijają Siłę, Zręczność i Kondycję.
+- Inteligencja i Siła Woli klas fizycznych nie rosną.
+- Klasy magiczne rozwijają Inteligencję i Siłę Woli.
+- Broń Duszy ma osobny Soul Level 1-100.
+- Broń Duszy ma Soul Tier 1-3.
 
-NAJWAŻNIEJSZE
---------------
-- Serwer TCP/Telnet.
-- Domyślny port: 4000.
-- Działa z MUSHclientem, Mudletem i podobnymi klientami MUD.
-- Wielu graczy może być online jednocześnie.
-- Domyślny limit programu: 100 jednoczesnych połączeń.
-- Konta i postacie są przechowywane po stronie serwera w SQLite.
-- Hasła nie są zapisywane jako zwykły tekst. Są hashowane PBKDF2-SHA256.
-- Nie potrzeba żadnej zewnętrznej biblioteki Pythona.
+WORLD CORE
+----------
+- 31 lokacji połączonych kierunkami.
+- Miasto Dusz.
+- Dzicz.
+- Podziemia.
+- NPC.
+- Zadania.
+- Potwory widoczne dla wszystkich graczy.
+- Turowa walka komendą attack.
+- Ucieczka komendą flee.
+- Śmierć i odrodzenie w świątyni.
+- Utrata 10% posiadanego złota przy śmierci.
+- Złoto.
+- Sklepy.
+- Przedmioty.
+- Mikstury.
+- Podstawowe pancerze i talizmany.
+- Inventory i equipment.
+- Drop z przeciwników.
+- Automatyczne zapisy postaci.
+- Zapis questów i wyposażenia do SQLite.
+- Migracja starej bazy v0.5.1 bez kasowania kont i postaci.
 
-WAŻNE O HASŁACH
+PIERWSZE QUESTY
 ---------------
-Klasyczne połączenie Telnet nie szyfruje ruchu sieciowego.
-Serwer bezpiecznie hashuje hasła w bazie, ale przy zwykłym Telnecie samo wpisanie
-hasła może przechodzić przez sieć bez szyfrowania. Na publiczny duży serwer
-docelowo dodamy TLS lub bezpieczną bramę.
+1. Problem goblinów — Kapitan Arven.
+2. Cienie w gaju — Zielarka Mira.
+3. Odłamki dla kowala — Kowal Doran.
 
-SYSTEM POSTACI
---------------
-Postać NIE ma levelu i NIE ma XP postaci.
+WAŻNE
+-----
+Po aktualizacji NIE usuwaj Railway Volume.
+Stary /data/soulbound.db zostanie automatycznie rozszerzony o nowe dane.
 
-Klasy fizyczne automatycznie rozwijają:
-- Siłę,
-- Zręczność,
-- Kondycję.
 
-Inteligencja i Siła Woli klasom fizycznym nie rosną.
+EKONOMIA v0.6.2
+---------------
+Soulbound ma teraz trzy trwałe waluty:
+- srebro,
+- złoto,
+- mithril.
 
-Klasy magiczne automatycznie rozwijają:
-- Inteligencję,
-- Siłę Woli.
+Domyślny kurs:
+- 100 srebra = 1 złoto,
+- 1000 złota = 1 mithril.
 
+Komendy:
+money
+exchange
+exchange gold
+exchange mithril
+
+Sklepy mogą wyceniać przedmioty w różnych walutach.
+Questy i potwory mogą nagradzać srebrem, złotem i mithrilem.
+Mithril jest najrzadszą walutą.
+
+
+QUEST STARTOWY v0.6.3
+---------------------
+W Świątyni Odrodzenia stoi Kapłan Elor.
+Komenda:
+talk elor
+
+Zadanie:
+Szczury pod świątynią
+
+Cel:
+- zejść z Temple komendą down,
+- zabić 10 Szczurów Świątynnych w piwnicy,
+- wrócić do Kapłana Elora,
+- ponownie użyć talk elor.
+
+Nagroda:
+- 120 EXP rozwoju,
+- 2 złota,
+- 1 Mikstura leczenia.
+
+EXP ROZWOJU
+-----------
+Postać nadal NIE ma levelu.
+EXP rozwoju zasila automatyczny wzrost statystyk.
 Nie ma ręcznego rozdawania punktów.
 
-BROŃ DUSZY
+SOUL LEVEL
 ----------
-Broń Duszy ma własny, niezależny system:
-- Soul Level 1-100,
-- osobne Soul XP,
-- Tier 1 od początku,
-- Tier 2 do odblokowania od Soul Level 25,
-- Tier 3 do odblokowania od Soul Level 60.
+Tempo Soul Level zostało wyraźnie spowolnione:
+- próg Soul XP na poziomy jest około 3 razy większy,
+- Soul XP z potworów został obniżony.
 
-Tier nie odblokowuje się sam. Używa się komendy:
-unlock
 
-URUCHOMIENIE NA WINDOWS
------------------------
-W katalogu gry:
-python server.py
+PROFESJE v0.6.4
+---------------
+Dodano dwie pierwsze profesje:
+- Wędkarstwo,
+- Górnictwo.
 
-Następnie MUSHclient:
-adres: 127.0.0.1
-port: 4000
+Obie profesje mają automatyczny poziom 1-100 oraz własne XP.
 
-URUCHOMIENIE NA LINUX / ORACLE CLOUD
-------------------------------------
-1. Zainstaluj Python 3:
-sudo apt update
-sudo apt install -y python3
+WĘDKARSTWO
+----------
+Wymaga Wędki.
+Wędkę kupisz na Rynku.
 
-2. Skopiuj katalog Soulbound na serwer.
+Komenda:
+fish
 
-3. Wejdź do katalogu:
-cd Soulbound_v0.4_Online_Server
+Łowiska:
+- Srebrna Łąka,
+- Brzeg Rzeki,
+- Kamienny Most.
 
-4. Uruchom:
-python3 server.py
+Wędka ma własny level 1-100 i własne XP.
+Im wyższy level Wędki, tym lepsze ryby można wyłowić.
 
-Serwer nasłuchuje na:
-0.0.0.0:4000
+Przykładowe połowy:
+- Mała ryba,
+- Karp rzeczny,
+- Srebrny pstrąg,
+- Złoty pstrąg,
+- Pradawny jesiotr,
+- Księżycowy węgorz.
 
-5. W Oracle Cloud trzeba zezwolić na ruch przychodzący TCP 4000
-w regułach sieciowych instancji.
+GÓRNICTWO
+---------
+Wymaga Kilofa.
+Kilof kupisz w Kuźni Dusz.
 
-6. Jeżeli Ubuntu ma aktywny UFW:
-sudo ufw allow 4000/tcp
+Komenda:
+mine
 
-7. Gracze wpisują w MUSHclient:
-adres: publiczny adres IP instancji
-port: 4000
+Złoża:
+- Wejście do Kryształowej Jaskini,
+- Kryształowy Tunel,
+- Kryształowa Komnata.
 
-PRACA 24/7 PRZEZ SYSTEMD
-------------------------
-W paczce jest plik:
-soulbound.service.example
+Kilof ma własny level 1-100 i własne XP.
+Im wyższy level Kilofa, tym lepsze rudy można wydobywać.
 
-Skopiuj go do:
-/etc/systemd/system/soulbound.service
+Rudy:
+- Odłamek skały,
+- Ruda miedzi,
+- Ruda żelaza,
+- Ruda srebra,
+- Ruda złota,
+- Ruda mithrilu.
 
-Przed użyciem popraw ścieżki User, WorkingDirectory i ExecStart.
+MITHRIL
+-------
+Ruda mithrilu jest niezwykle rzadka.
+Nie może wypaść przy niskim levelu Kilofa.
 
-Następnie:
-sudo systemctl daemon-reload
-sudo systemctl enable --now soulbound
-sudo systemctl status soulbound
+Minimalny level Kilofa dla Rudy mithrilu:
+60.
 
-Logi:
-journalctl -u soulbound -f
+Szansa:
+- level 60-79: 0,25%,
+- level 80-94: 0,5%,
+- level 95-100: 1%.
 
-AKTUALIZACJE GRY
-----------------
-Baza danych soulbound.db jest oddzielona od kodu.
-Przy przyszłych aktualizacjach nie usuwaj pliku soulbound.db.
+To jest Ruda mithrilu jako surowiec, a nie waluta mithril.
 
-Typowa aktualizacja:
-1. Zatrzymaj serwer:
-sudo systemctl stop soulbound
+KOMENDY
+-------
+professions
+tools
+fish
+mine
+sell <przedmiot>
 
-2. Zrób kopię:
-cp soulbound.db soulbound.db.backup
+Ryby sprzedaje się na Rynku lub w Karczmie.
+Rudy sprzedaje się w Kuźni Dusz.
 
-3. Wgraj nowe pliki kodu.
 
-4. Uruchom:
-sudo systemctl start soulbound
+POJEMNIKI PROFESJI v0.6.5
+-------------------------
+Dodano dwa trwałe, osobne magazyny:
+- Siatka na ryby,
+- Sakwa górnicza.
 
-KOMENDY W GRZE
---------------
-help
-look
-north / south / east / west
-n / s / e / w
-who
-say tekst
-tell gracz tekst
-stats
-soul
-fight
-unlock
-save
-quit
+Nie są przedmiotami w zwykłym inventory.
 
-PIERWSZY ŚWIAT
---------------
-- Plac Dusz
-- Dziedziniec Treningowy
-- Kuźnia Dusz
-- Gaj Szeptów
-- Północna Brama
+Nowo złowione ryby trafiają automatycznie do Siatki.
+Nowo wydobyte rudy trafiają automatycznie do Sakwy.
 
-Walka treningowa jest dostępna na Dziedzińcu Treningowym.
+Komendy polskie i angielskie:
+siatka
+net
 
-PLIKI
------
-server.py
-  Główny serwer MUD.
+sakwa
+bag
 
-soulbound.service.example
-  Przykładowa usługa systemd dla Linux/Oracle Cloud.
+wloz ryba siatka
+włóż ryba siatka
+put fish net
 
-start_linux.sh
-  Prosty start na Linux.
+wloz ruda sakwa
+włóż ruda sakwa
+put ore bag
 
-start_windows.bat
-  Prosty start na Windows.
+wyjmij ryba siatka
+take fish net
 
-README_PL.txt
-  Ten dokument.
+wyjmij ruda sakwa
+take ore bag
 
-CHANGELOG_PL.txt
-  Historia wersji.
+Można też podawać konkretną nazwę surowca.
+
+Sprzedaż ryb i rud automatycznie sprawdza najpierw odpowiedni pojemnik,
+a dopiero potem zwykły ekwipunek.
+
+JĘZYK KOMEND
+------------
+Serwer respektuje zarówno komendy polskie, jak i angielskie.
+Polskie aliasy działają również w wielu przypadkach bez polskich znaków,
+np.:
+wedkuj
+kop
+profesje
+narzedzia
+wloz ryba siatka
+sprzedaj ruda
+
+
+TARG RYBNY I PRÓBA RYBAKA v0.6.6
+--------------------------------
+Nowa lokacja:
+Targ Rybny.
+
+Z głównego Rynku idź:
+north
+
+Wędka została przeniesiona na Targ Rybny.
+Nie kupuje się jej już na zwykłym Rynku.
+
+RYBAK TOMAS
+-----------
+Na Targu Rybnym:
+talk tomas
+
+Quest:
+Próba Rybaka
+
+Cel:
+przynieś 30 dowolnych ryb.
+
+Quest liczy ryby z:
+- Siatki na ryby,
+- zwykłego inventory.
+
+Przy oddaniu najpierw pobiera ryby z Siatki, a potem z inventory.
+
+Nagroda:
+- 1000 XP Wędkarstwa,
+- 1000 XP Wędki,
+- 200 złota.
+
+Wędkarstwo i Wędka mają osobne levele.
+Górnictwo i Kilof mają osobne levele.
+Wędka i Kilof nigdy nie współdzielą XP ani levelu.
