@@ -1,3 +1,92 @@
+SOULBOUND v0.7.11 TUNA LATER
+==============================
+- Zwykły Tuńczyk wymaga Wędki level 80.
+- Brak Tuńczyka w pulach level 1-79.
+- Od levelu 80 Tuńczyk jest dostępny w Oceanie.
+- woda pokazuje właściwy próg.
+- Brak resetu bazy.
+
+SOULBOUND v0.7.10 BLACKSMITHING 1-200
+=======================================
+- Kowalstwo 1-200.
+- Pozostałe profesje 1-100.
+- 13 rang Kowalstwa.
+- Receptury do Kowalstwa 200.
+- Eternium: Kowalstwo 200 + Młot 200.
+- Questy Haldora co 60 minut zachowane.
+- Auto-profesje bez chodzenia zachowane.
+- Brak resetu bazy.
+
+SOULBOUND v0.7.09 AUTO STAY IN PLACE
+=====================================
+- Auto-profesje nie chodzą samodzielnie.
+- low on: tylko aktualne łowisko.
+- kop on: tylko aktualne złoże.
+- tnij on: tylko aktualny teren drzew.
+- zbieraj on: tylko aktualny teren ziół.
+- kop on nie schodzi już sam po przebiciu ściany.
+- Po przebiciu ściany użyj ręcznie down.
+- Graceful off zachowane.
+- Brak resetu bazy.
+
+SOULBOUND v0.7.08 BLACKSMITHING
+================================
+- Nowa profesja Kowalstwo 1-100.
+- 8 rang Kowalstwa.
+- Młot Rzemieślniczy pozostaje narzędziem Kowalstwa.
+- Przetapianie i kucie daje XP profesji + XP Młota.
+- Sztabki endgame od Kobaltu do Eternium.
+- 9 poziomów materiałowych wyposażenia.
+- 54 nowe kute elementy wyposażenia.
+- Wymagania Kowalstwa + Młota.
+- Komendy kowalstwo, kuj, wykuj.
+- Questy Haldora dają XP Kowalstwa.
+- Questy Haldora odnawiają się dokładnie co godzinę.
+- Brak trwałości narzędzi.
+- Brak resetu bazy.
+
+SOULBOUND v0.7.07 RARE RESOURCES & WORLD CODEX
+================================================
+- Rare fish: Albinos, Złoty, Olbrzymi, Pradawny.
+- Mining veins: Zwykła, Bogata, Kryształowa, Legendarna.
+- Rare tree/wood variants.
+- Rare plant variants.
+- Lepszy level narzędzia zwiększa szanse rare.
+- Rare resources działają z magazynami i sprzedażą.
+- Questy kategorii liczą rare resources.
+- Dodano Codex Świata.
+- Codex: ryby, rośliny, drewno, rudy, moby, bossowie, relikty.
+- Wyszukiwanie codex <nazwa>.
+- Brak migracji SQLite.
+
+SOULBOUND v0.7.06 ENDGAME EXPANSION
+====================================
+- Astralne sety 2/4/6.
+- Astralny Talizman jako 6. część każdego Kręgu.
+- Mythic Crypt 1-200.
+- Mythic Astral Tower 1-200.
+- 20 bossów w każdym Mythic dungeonie.
+- Wejście Mythic dopiero po ukończeniu zwykłego poziomu 200.
+- Kopalnia Kryształów 1-20.
+- Zatopiona Grota 1-20.
+- Pradawny Las 1-20.
+- Ogród Alchemika 1-20.
+- Rosnące wymagania narzędzi aż do levelu 200.
+- Auto-profesje działają w lochach profesyjnych.
+- Brak resetu bazy.
+
+SOULBOUND v0.7.05 WORLD RESOURCES
+===================================
+- +160 ryb świata.
+- +80 roślin, ziół i przypraw.
+- +50 rodzajów drewna.
+- +40 rud i minerałów.
+- Łącznie +330 zasobów.
+- Wszystkie nowe zasoby są faktycznie zdobywalne.
+- Wszystkie atlasy zaktualizowane automatycznie.
+- Atlas Ziół rozszerzony na Atlas Ziół i Roślin.
+- Brak resetu bazy.
+
 SOULBOUND v0.7.04 COMPLETE RESOURCE ATLAS
 ===========================================
 - Pełny Atlas Ryb.

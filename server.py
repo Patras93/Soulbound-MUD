@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Soulbound v0.7.04 Complete Resource Atlas
+Soulbound v0.7.11 Tuna Later
 Wieloosobowy tekstowy MUD TCP/Telnet dla MUSHclienta/Mudleta.
 
 Najważniejsze zasady projektu:
@@ -28,7 +28,7 @@ import unicodedata
 from dataclasses import dataclass
 from typing import Optional
 
-VERSION = "0.7.04"
+VERSION = "0.7.11"
 
 HOST = os.getenv("SOULBOUND_HOST", "0.0.0.0")
 _RAILWAY_TCP_PORT = os.getenv("RAILWAY_TCP_APPLICATION_PORT", "").strip()
@@ -64,6 +64,7 @@ TRAINING_DUMMY_RESPAWN_SECONDS = 60
 CORPSE_LIFETIME_SECONDS = 600
 GLOBAL_MOB_HP_MULTIPLIER = 2.0
 QUEST_REPEAT_COOLDOWN_SECONDS = 30 * 60
+BLACKSMITH_QUEST_COOLDOWN_SECONDS = 60 * 60
 
 # Ekonomia:
 # 1000 srebrnych monet = 1 złota moneta
@@ -72,6 +73,7 @@ SILVER_PER_GOLD = 1000
 GOLD_PER_MITHRIL = 1000000
 
 PROFESSION_MAX_LEVEL = 100
+BLACKSMITHING_MAX_LEVEL = 200
 
 # v0.6.79:
 # Profesje pokazują i otrzymują 2x więcej XP,
@@ -87,6 +89,11 @@ PARTY_CHARISMA_STEP = 25
 
 PROFESSION_MAX_RANK = 8
 PROFESSION_RANK_THRESHOLDS = (1, 15, 30, 45, 60, 75, 90, 100)
+BLACKSMITHING_MAX_RANK = 13
+BLACKSMITHING_RANK_THRESHOLDS = (
+    1, 15, 30, 45, 60, 75, 90,
+    100, 120, 140, 160, 180, 200,
+)
 
 PROFESSION_RANK_NAMES = {
     "Wędkarstwo": (
@@ -139,6 +146,21 @@ PROFESSION_RANK_NAMES = {
         "Arcymistrz Alchemii",
         "Legenda Alchemii",
     ),
+    "Kowalstwo": (
+        "Uczeń Kowalstwa",
+        "Adept Kowalstwa",
+        "Czeladnik Kowalstwa",
+        "Specjalista Kowalstwa",
+        "Ekspert Kowalstwa",
+        "Mistrz Kowalstwa",
+        "Arcymistrz Kowalstwa",
+        "Legenda Kowalstwa",
+        "Kowal Runiczny",
+        "Kowal Smoczej Stali",
+        "Kowal Astralny",
+        "Kowal Pustki",
+        "Wieczny Mistrz Kowalstwa",
+    ),
 }
 
 def normalize_profession_name(profession):
@@ -153,12 +175,43 @@ def normalize_profession_name(profession):
         return "Zielarstwo"
     if value in ("alchemy", "alchemia"):
         return "Alchemia"
+    if value in (
+        "blacksmithing", "smithing", "kowalstwo",
+        "kowal", "rzemioslo", "rzemiosło",
+    ):
+        return "Kowalstwo"
     return str(profession)
 
-def profession_rank(level):
-    level = max(1, min(PROFESSION_MAX_LEVEL, int(level)))
+def profession_max_level(profession):
+    profession = normalize_profession_name(profession)
+    if profession == "Kowalstwo":
+        return BLACKSMITHING_MAX_LEVEL
+    return PROFESSION_MAX_LEVEL
+
+def profession_rank_thresholds(profession):
+    profession = normalize_profession_name(profession)
+    if profession == "Kowalstwo":
+        return BLACKSMITHING_RANK_THRESHOLDS
+    return PROFESSION_RANK_THRESHOLDS
+
+def profession_max_rank(profession):
+    profession = normalize_profession_name(profession)
+    if profession == "Kowalstwo":
+        return BLACKSMITHING_MAX_RANK
+    return PROFESSION_MAX_RANK
+
+def profession_rank(level, profession=None):
+    if profession is None:
+        max_level = PROFESSION_MAX_LEVEL
+        thresholds = PROFESSION_RANK_THRESHOLDS
+    else:
+        profession = normalize_profession_name(profession)
+        max_level = profession_max_level(profession)
+        thresholds = profession_rank_thresholds(profession)
+
+    level = max(1, min(max_level, int(level)))
     rank = 1
-    for number, minimum in enumerate(PROFESSION_RANK_THRESHOLDS, 1):
+    for number, minimum in enumerate(thresholds, 1):
         if level >= minimum:
             rank = number
         else:
@@ -167,7 +220,7 @@ def profession_rank(level):
 
 def profession_rank_name(profession, level):
     profession = normalize_profession_name(profession)
-    rank = profession_rank(level)
+    rank = profession_rank(level, profession)
     return PROFESSION_RANK_NAMES[profession][rank - 1]
 
 TOOL_MAX_LEVEL = 200
@@ -457,6 +510,12 @@ ENDGAME_FISH_UNLOCKS = {
     ),
 }
 
+BASE_FISH_MIN_TOOL_LEVELS = {
+    # Zwykły Tuńczyk jest dużym oceanicznym połowem
+    # i nie powinien pojawiać się na niskich levelach Wędki.
+    "tuna": 80,
+}
+
 MORE_FISH_UNLOCKS = {
     "river": (
         (1, "river_bleak"),
@@ -535,19 +594,483 @@ ENDGAME_HERB_UNLOCKS = (
     (200, "eternal_blossom"),
 )
 
-def unlocked_resource_pool(base_pool, unlocks, tool_level):
-    pool = list(base_pool)
+def unlocked_resource_pool(
+    base_items,
+    unlocks,
+    tool_level,
+):
+    result = []
+    tool_level = int(tool_level)
+
+    for item_id in base_items:
+        minimum = int(
+            BASE_FISH_MIN_TOOL_LEVELS.get(item_id, 1)
+        )
+        if tool_level >= minimum and item_id not in result:
+            result.append(item_id)
+
     for required_level, item_id in unlocks:
-        if int(tool_level) >= int(required_level):
-            pool.append(item_id)
-    return tuple(pool)
+        if (
+            tool_level >= int(required_level)
+            and item_id not in result
+        ):
+            result.append(item_id)
+
+    return tuple(result)
+
 
 def add_more_fish_to_pool(pool, habitat, tool_level):
     result = list(pool)
     for required_level, item_id in MORE_FISH_UNLOCKS.get(habitat, ()):
         if int(tool_level) >= int(required_level) and item_id not in result:
             result.append(item_id)
+    for required_level, item_id, _name in WORLD_FISH_UNLOCKS.get(habitat, ()):
+        if int(tool_level) >= int(required_level) and item_id not in result:
+            result.append(item_id)
     return tuple(result)
+
+WORLD_FISH_UNLOCKS = {
+    "river": (
+        (1, 'world_arapaima', 'Arapaima'),
+        (5, 'world_red_bellied_piranha', 'Pirania czerwonobrzucha'),
+        (10, 'world_black_piranha', 'Pirania czarna'),
+        (15, 'world_pacu', 'Pacu'),
+        (20, 'world_tambaqui', 'Tambaqui'),
+        (25, 'world_golden_dorado', 'Dorado złociste'),
+        (30, 'world_peacock_bass', 'Bass pawiooki'),
+        (35, 'world_nile_perch', 'Okoń nilowy'),
+        (40, 'world_goliath_tigerfish', 'Tygrysica goliat'),
+        (45, 'world_mahseer', 'Mahseer'),
+        (50, 'world_rohu', 'Rohu'),
+        (55, 'world_catla', 'Katla'),
+        (60, 'world_giant_snakehead', 'Wężogłów olbrzymi'),
+        (65, 'world_giant_gourami', 'Gurami olbrzymi'),
+        (70, 'world_clown_knifefish', 'Nożowiec chitala'),
+        (75, 'world_electric_eel', 'Węgorz elektryczny'),
+        (80, 'world_alligator_gar', 'Niszczuka krokodyla'),
+        (85, 'world_american_paddlefish', 'Wiosłonos amerykański'),
+        (90, 'world_bowfin', 'Amia'),
+        (95, 'world_muskellunge', 'Muskellunge'),
+        (100, 'world_brook_trout', 'Pstrąg źródlany'),
+        (105, 'world_rainbow_trout', 'Pstrąg tęczowy'),
+        (110, 'world_chinook_salmon', 'Łosoś królewski'),
+        (115, 'world_sockeye_salmon', 'Łosoś nerka'),
+        (120, 'world_coho_salmon', 'Łosoś kiżucz'),
+        (125, 'world_chum_salmon', 'Łosoś keta'),
+        (130, 'world_pink_salmon', 'Łosoś różowy'),
+        (135, 'world_cutthroat_trout', 'Pstrąg łososiowy'),
+        (140, 'world_freshwater_drum', 'Kulbak słodkowodny'),
+        (145, 'world_blue_catfish', 'Sum błękitny'),
+        (150, 'world_channel_catfish', 'Sum kanałowy'),
+        (155, 'world_flathead_catfish', 'Sum płaskogłowy'),
+        (160, 'world_grass_carp', 'Amur biały'),
+        (165, 'world_bighead_carp', 'Tołpyga pstra'),
+        (170, 'world_silver_carp', 'Tołpyga biała'),
+        (175, 'world_black_carp', 'Amur czarny'),
+        (180, 'world_wels_catfish', 'Sum europejski'),
+        (185, 'world_freshwater_stingray', 'Płaszczka słodkowodna'),
+        (195, 'world_giant_barb', 'Brzana olbrzymia'),
+        (200, 'world_mekong_giant_catfish', 'Sum mekongski'),
+    ),
+    "lake": (
+        (1, 'world_largemouth_bass', 'Bass wielkogębowy'),
+        (5, 'world_smallmouth_bass', 'Bass małogębowy'),
+        (10, 'world_black_crappie', 'Pomoxis czarny'),
+        (15, 'world_white_crappie', 'Pomoxis biały'),
+        (20, 'world_bluegill', 'Bass słoneczny'),
+        (25, 'world_pumpkinseed', 'Bass dyniowy'),
+        (30, 'world_yellow_perch', 'Okoń żółty'),
+        (35, 'world_walleye', 'Sandacz amerykański'),
+        (40, 'world_sauger', 'Sandacz kanadyjski'),
+        (45, 'world_kokanee_salmon', 'Kokanee'),
+        (50, 'world_cisco', 'Sielawa amerykańska'),
+        (55, 'world_lake_sturgeon', 'Jesiotr jeziorowy'),
+        (60, 'world_brown_bullhead', 'Sumik brunatny'),
+        (65, 'world_black_bullhead', 'Sumik czarny'),
+        (70, 'world_yellow_bullhead', 'Sumik żółty'),
+        (75, 'world_nile_tilapia', 'Tilapia nilowa'),
+        (80, 'world_mozambique_tilapia', 'Tilapia mozambicka'),
+        (85, 'world_blue_tilapia', 'Tilapia niebieska'),
+        (90, 'world_oscar_cichlid', 'Pielęgnica pawiooka'),
+        (95, 'world_discus', 'Paletka'),
+        (100, 'world_freshwater_angelfish', 'Skalar'),
+        (105, 'world_silver_arowana', 'Arowana srebrna'),
+        (110, 'world_asian_arowana', 'Arowana azjatycka'),
+        (115, 'world_giant_barbel_siam', 'Brzana syjamska'),
+        (120, 'world_giant_freshwater_whipray', 'Płaszczka rzeczna olbrzymia'),
+        (125, 'world_pangas_catfish', 'Panga'),
+        (130, 'world_redtail_catfish', 'Sum czerwonoogonowy'),
+        (135, 'world_ripsaw_catfish', 'Sum kolczasty'),
+        (140, 'world_payara', 'Payara'),
+        (145, 'world_wolf_fish', 'Trahira'),
+        (150, 'world_arctic_grayling', 'Lipień arktyczny'),
+        (155, 'world_lake_chub', 'Jelec jeziorowy'),
+        (160, 'world_round_whitefish', 'Sieja okrągła'),
+        (165, 'world_inconnu', 'Nelma'),
+        (170, 'world_huchen', 'Głowacica'),
+        (175, 'world_ide_world', 'Jaź syberyjski'),
+        (180, 'world_golden_mahseer', 'Mahseer złoty'),
+        (185, 'world_marble_trout', 'Pstrąg marmurkowy'),
+        (195, 'world_taimen', 'Tajmień syberyjski'),
+        (200, 'world_chinese_perch', 'Okoń chiński'),
+    ),
+    "sea": (
+        (1, 'world_atlantic_tarpon', 'Tarpon atlantycki'),
+        (5, 'world_bonefish', 'Albula'),
+        (10, 'world_permit_fish', 'Permit'),
+        (15, 'world_common_snook', 'Snook'),
+        (20, 'world_red_drum', 'Kulbin czerwony'),
+        (25, 'world_black_drum', 'Kulbin czarny'),
+        (30, 'world_striped_bass', 'Moron prążkowany'),
+        (35, 'world_atlantic_croaker', 'Kulbin atlantycki'),
+        (40, 'world_sheepshead', 'Sargus owczy'),
+        (45, 'world_pompano', 'Pompan'),
+        (50, 'world_greater_amberjack', 'Seriola olbrzymia'),
+        (55, 'world_yellowtail_snapper', 'Lucjan żółtoogonowy'),
+        (60, 'world_mangrove_snapper', 'Lucjan namorzynowy'),
+        (65, 'world_lane_snapper', 'Lucjan pręgowany'),
+        (70, 'world_red_grouper', 'Strzępiel czerwony'),
+        (75, 'world_goliath_grouper', 'Strzępiel goliat'),
+        (80, 'world_nassau_grouper', 'Strzępiel nassauski'),
+        (85, 'world_european_conger', 'Konger europejski'),
+        (90, 'world_mediterranean_moray', 'Murena śródziemnomorska'),
+        (95, 'world_giant_moray', 'Murena olbrzymia'),
+        (100, 'world_red_lionfish', 'Skrzydlica ognista'),
+        (105, 'world_stonefish', 'Szkaradnica'),
+        (110, 'world_scorpionfish', 'Skorpena'),
+        (115, 'world_queen_triggerfish', 'Rogatnica królewska'),
+        (120, 'world_clown_triggerfish', 'Rogatnica klaun'),
+        (125, 'world_bumphead_parrotfish', 'Papugoryba garbogłowa'),
+        (130, 'world_napoleon_wrasse', 'Wargacz garbogłowy'),
+        (135, 'world_corkwing_wrasse', 'Wargacz korkowy'),
+        (140, 'world_atlantic_bonito', 'Bonito atlantyckie'),
+        (145, 'world_spanish_mackerel', 'Makrela hiszpańska'),
+        (150, 'world_atlantic_mackerel', 'Makrela atlantycka'),
+        (155, 'world_horse_mackerel', 'Ostrobok'),
+        (160, 'world_capelin', 'Gromadnik'),
+        (165, 'world_atlantic_saury', 'Sajra atlantycka'),
+        (170, 'world_john_dory', 'Piotrosz'),
+        (175, 'world_tub_gurnard', 'Kurek czerwony'),
+        (180, 'world_wolffish', 'Zębacz pasiasty'),
+        (185, 'world_lumpsucker', 'Tasza'),
+        (195, 'world_atlantic_anglerfish', 'Żabnica atlantycka'),
+        (200, 'world_atlantic_halibut_world', 'Halibut atlantycki'),
+    ),
+    "ocean": (
+        (1, 'world_blue_marlin', 'Marlin błękitny'),
+        (5, 'world_white_marlin', 'Marlin biały'),
+        (10, 'world_striped_marlin', 'Marlin pasiasty'),
+        (15, 'world_longbill_spearfish', 'Włócznik długodzioby'),
+        (20, 'world_shortbill_spearfish', 'Włócznik krótkodzioby'),
+        (25, 'world_atlantic_bluefin_tuna_world', 'Tuńczyk błękitnopłetwy atlantycki'),
+        (30, 'world_southern_bluefin_tuna', 'Tuńczyk błękitnopłetwy południowy'),
+        (35, 'world_skipjack_tuna', 'Bonito pasiaste'),
+        (40, 'world_blackfin_tuna', 'Tuńczyk czarnopłetwy'),
+        (45, 'world_longtail_tuna', 'Tuńczyk długogonowy'),
+        (50, 'world_escolar', 'Eskolar'),
+        (55, 'world_oilfish', 'Kostropak'),
+        (60, 'world_oarfish', 'Wstęgor królewski'),
+        (65, 'world_lancetfish', 'Lancetnik długonosy'),
+        (70, 'world_pomfret', 'Pomfret'),
+        (75, 'world_remora', 'Podnawka'),
+        (80, 'world_pilot_fish', 'Pilot'),
+        (85, 'world_blue_shark', 'Żarłacz błękitny'),
+        (90, 'world_oceanic_whitetip_shark', 'Żarłacz białopłetwy oceaniczny'),
+        (95, 'world_common_thresher', 'Kosogon pospolity'),
+        (100, 'world_bigeye_thresher', 'Kosogon wielkooki'),
+        (105, 'world_porbeagle', 'Żarłacz śledziowy'),
+        (110, 'world_greenland_shark', 'Rekin polarny'),
+        (115, 'world_salmon_shark', 'Rekin łososiowy'),
+        (120, 'world_goblin_shark', 'Rekin chochlik'),
+        (125, 'world_megamouth_shark', 'Rekin wielkogębowy'),
+        (130, 'world_cookiecutter_shark', 'Rekin foremkowy'),
+        (135, 'world_bluntnose_sixgill', 'Sześcioszpar szary'),
+        (140, 'world_frilled_shark', 'Chlamida'),
+        (145, 'world_whale_shark', 'Rekin wielorybi'),
+        (150, 'world_manta_ray', 'Manta oceaniczna'),
+        (155, 'world_spotted_eagle_ray', 'Orleń cętkowany'),
+        (160, 'world_devil_ray', 'Diabeł morski'),
+        (165, 'world_sunfish_sharptail', 'Samogłów ostroogonowy'),
+        (170, 'world_slender_sunfish', 'Samogłów smukły'),
+        (175, 'world_antarctic_toothfish', 'Antarktyczny kłykacz'),
+        (180, 'world_patagonian_toothfish', 'Kłykacz patagoński'),
+        (185, 'world_orange_roughy', 'Gardłosz atlantycki'),
+        (195, 'world_grenadier', 'Buławik'),
+        (200, 'world_coelacanth_world', 'Latimeria'),
+    ),
+}
+
+WORLD_HERB_UNLOCKS = {
+    "meadow": (
+        (1, 'world_rosemary', 'Rozmaryn'),
+        (10, 'world_thyme', 'Tymianek'),
+        (20, 'world_basil', 'Bazylia'),
+        (30, 'world_oregano', 'Oregano'),
+        (40, 'world_parsley', 'Pietruszka'),
+        (50, 'world_dill', 'Koper'),
+        (60, 'world_coriander', 'Kolendra'),
+        (70, 'world_fennel', 'Koper włoski'),
+        (80, 'world_tarragon', 'Estragon'),
+        (90, 'world_marjoram', 'Majeranek'),
+        (100, 'world_savory', 'Cząber'),
+        (110, 'world_chives', 'Szczypiorek'),
+        (120, 'world_garlic', 'Czosnek'),
+        (130, 'world_ginger', 'Imbir'),
+        (140, 'world_turmeric', 'Kurkuma'),
+        (150, 'world_galangal', 'Galangal'),
+        (160, 'world_cardamom', 'Kardamon'),
+        (170, 'world_clove', 'Goździk'),
+        (190, 'world_vanilla', 'Wanilia'),
+        (200, 'world_saffron', 'Szafran'),
+    ),
+    "water": (
+        (1, 'world_lemongrass', 'Trawa cytrynowa'),
+        (10, 'world_aloe_vera', 'Aloes'),
+        (20, 'world_calendula', 'Nagietek'),
+        (30, 'world_echinacea', 'Jeżówka'),
+        (40, 'world_st_johns_wort', 'Dziurawiec'),
+        (50, 'world_ribwort_plantain', 'Babka lancetowata'),
+        (60, 'world_dandelion', 'Mniszek lekarski'),
+        (70, 'world_burdock', 'Łopian'),
+        (80, 'world_horsetail', 'Skrzyp polny'),
+        (90, 'world_elderflower', 'Kwiat bzu czarnego'),
+        (100, 'world_hawthorn', 'Głóg'),
+        (110, 'world_rosehip', 'Dzika róża'),
+        (120, 'world_hibiscus', 'Hibiskus'),
+        (130, 'world_jasmine', 'Jaśmin'),
+        (140, 'world_arnica', 'Arnika'),
+        (150, 'world_comfrey', 'Żywokost'),
+        (160, 'world_mugwort', 'Bylica pospolita'),
+        (170, 'world_wormwood', 'Piołun'),
+        (190, 'world_skullcap', 'Tarczyca bajkalska'),
+        (200, 'world_passionflower', 'Męczennica'),
+    ),
+    "forest": (
+        (1, 'world_hops', 'Chmiel'),
+        (10, 'world_licorice_root', 'Lukrecja'),
+        (20, 'world_marshmallow_root', 'Prawoślaz'),
+        (30, 'world_fenugreek', 'Kozieradka'),
+        (40, 'world_cumin', 'Kmin rzymski'),
+        (50, 'world_anise', 'Anyż'),
+        (60, 'world_star_anise', 'Anyż gwiazdkowy'),
+        (70, 'world_black_cumin', 'Czarnuszka'),
+        (80, 'world_sesame', 'Sezam'),
+        (90, 'world_flax', 'Len'),
+        (100, 'world_chia', 'Chia'),
+        (110, 'world_amaranth', 'Amarantus'),
+        (120, 'world_quinoa', 'Komosa ryżowa'),
+        (130, 'world_maca', 'Maca'),
+        (140, 'world_guarana', 'Guarana'),
+        (150, 'world_yerba_mate', 'Yerba mate'),
+        (160, 'world_tea_leaf', 'Liść herbaty'),
+        (170, 'world_coffee_berry', 'Owoc kawowca'),
+        (190, 'world_cocoa_pod', 'Owoc kakaowca'),
+        (200, 'world_kola_nut', 'Orzech kola'),
+    ),
+    "deep": (
+        (1, 'world_holy_basil', 'Tulsi'),
+        (10, 'world_ashwagandha', 'Ashwagandha'),
+        (20, 'world_moringa', 'Moringa'),
+        (30, 'world_neem', 'Neem'),
+        (40, 'world_gotu_kola', 'Gotu kola'),
+        (50, 'world_bacopa', 'Bakopa'),
+        (60, 'world_shatavari', 'Shatavari'),
+        (70, 'world_rhodiola', 'Różeniec górski'),
+        (80, 'world_eleuthero', 'Eleuterokok'),
+        (90, 'world_astragalus', 'Traganek'),
+        (100, 'world_milk_thistle', 'Ostropest plamisty'),
+        (110, 'world_artichoke_leaf', 'Liść karczocha'),
+        (120, 'world_gentian', 'Goryczka'),
+        (130, 'world_angelica', 'Arcydzięgiel'),
+        (140, 'world_juniper_berry', 'Jagoda jałowca'),
+        (150, 'world_bay_leaf', 'Liść laurowy'),
+        (160, 'world_olive_leaf', 'Liść oliwny'),
+        (170, 'world_eucalyptus_leaf', 'Liść eukaliptusa'),
+        (190, 'world_myrrh', 'Mirra'),
+        (200, 'world_frankincense', 'Olibanum'),
+    ),
+}
+
+WORLD_WOOD_UNLOCKS = {
+    "beginner": (
+        (1, 'world_norway_spruce', 'Pień świerku pospolitego'),
+        (7, 'world_silver_fir', 'Pień jodły pospolitej'),
+        (13, 'world_european_larch', 'Pień modrzewia europejskiego'),
+        (19, 'world_douglas_fir', 'Pień daglezji'),
+        (25, 'world_western_hemlock', 'Pień choiny zachodniej'),
+        (31, 'world_mediterranean_cypress', 'Pień cyprysa'),
+        (37, 'world_juniper_wood', 'Pień jałowca'),
+        (43, 'world_black_locust', 'Pień robinii akacjowej'),
+        (49, 'world_acacia_wood', 'Pień akacji'),
+        (55, 'world_american_sycamore', 'Pień platana amerykańskiego'),
+        (61, 'world_elm_wood', 'Pień wiązu'),
+        (67, 'world_hornbeam_wood', 'Pień grabu'),
+        (73, 'world_basswood', 'Pień lipy amerykańskiej'),
+        (79, 'world_aspen_wood', 'Pień osiki'),
+        (85, 'world_cottonwood', 'Pień topoli bawełnianej'),
+    ),
+    "forest": (
+        (20, 'world_cherry_wood', 'Pień wiśni'),
+        (26, 'world_apple_wood', 'Pień jabłoni'),
+        (32, 'world_pear_wood', 'Pień gruszy'),
+        (38, 'world_plum_wood', 'Pień śliwy'),
+        (44, 'world_olive_wood', 'Pień oliwki'),
+        (50, 'world_eucalyptus_wood', 'Pień eukaliptusa'),
+        (56, 'world_rubberwood', 'Pień kauczukowca'),
+        (62, 'world_cork_oak', 'Pień dębu korkowego'),
+        (68, 'world_white_oak', 'Pień dębu białego'),
+        (74, 'world_red_oak', 'Pień dębu czerwonego'),
+        (80, 'world_sugar_maple', 'Pień klonu cukrowego'),
+        (86, 'world_red_maple', 'Pień klonu czerwonego'),
+        (92, 'world_hickory', 'Pień hikory'),
+        (98, 'world_pecan_wood', 'Pień pekana'),
+        (104, 'world_rosewood', 'Pień palisandru'),
+    ),
+    "deep": (
+        (60, 'world_padauk', 'Pień padouku'),
+        (67, 'world_wenge', 'Pień wenge'),
+        (74, 'world_iroko', 'Pień iroko'),
+        (81, 'world_sapele', 'Pień sapeli'),
+        (88, 'world_merbau', 'Pień merbau'),
+        (95, 'world_bubinga', 'Pień bubingi'),
+        (102, 'world_zebrawood', 'Pień zebrano'),
+        (109, 'world_jatoba', 'Pień jatoby'),
+        (116, 'world_purpleheart', 'Pień amarantowca'),
+        (123, 'world_greenheart', 'Pień greenheart'),
+        (130, 'world_lignum_vitae', 'Pień gwajakowca'),
+        (137, 'world_sandalwood', 'Pień sandałowca'),
+        (144, 'world_agarwood', 'Drewno agarowe'),
+        (151, 'world_koa', 'Pień koa'),
+        (158, 'world_paulownia', 'Pień paulowni'),
+        (165, 'world_balsa', 'Pień balsy'),
+        (172, 'world_baobab', 'Pień baobabu'),
+        (179, 'world_kauri', 'Pień kauri'),
+        (186, 'world_jarrah', 'Pień jarrah'),
+        (193, 'world_tasmanian_blackwood', 'Pień akacji czarnej tasmańskiej'),
+    ),
+}
+
+WORLD_ORE_UNLOCKS = (
+    (5, 5, 'world_cassiterite', 'Ruda cyny - kasyteryt'),
+    (10, 10, 'world_galena', 'Ruda ołowiu - galena'),
+    (15, 15, 'world_sphalerite', 'Ruda cynku - sfaleryt'),
+    (20, 20, 'world_pentlandite', 'Ruda niklu - pentlandyt'),
+    (25, 25, 'world_chromite', 'Ruda chromu - chromit'),
+    (30, 30, 'world_pyrolusite', 'Ruda manganu - piroluzyt'),
+    (35, 35, 'world_bauxite', 'Boksyt'),
+    (40, 40, 'world_ilmenite', 'Ruda tytanu - ilmenit'),
+    (45, 45, 'world_rutile', 'Ruda tytanu - rutyl'),
+    (50, 50, 'world_wolframite', 'Ruda wolframu - wolframit'),
+    (55, 55, 'world_scheelite', 'Ruda wolframu - scheelit'),
+    (60, 60, 'world_molybdenite', 'Ruda molibdenu - molibdenit'),
+    (65, 65, 'world_cinnabar', 'Ruda rtęci - cynober'),
+    (70, 70, 'world_stibnite', 'Ruda antymonu - antymonit'),
+    (75, 75, 'world_arsenopyrite', 'Arsenopiryt'),
+    (80, 80, 'world_cobaltite', 'Kobaltyn'),
+    (85, 85, 'world_spodumene', 'Ruda litu - spodumen'),
+    (90, 90, 'world_lepidolite', 'Ruda litu - lepidolit'),
+    (95, 95, 'world_coltan', 'Kolumbit-tantalit'),
+    (100, 100, 'world_pyrochlore', 'Ruda niobu - pirochlor'),
+    (105, 105, 'world_monazite', 'Monacyt'),
+    (110, 110, 'world_bastnasite', 'Bastnazyt'),
+    (115, 115, 'world_uraninite', 'Uraninit'),
+    (120, 120, 'world_thorite', 'Toryt'),
+    (125, 125, 'world_platinum_ore', 'Ruda platyny'),
+    (130, 130, 'world_palladium_ore', 'Ruda palladu'),
+    (135, 135, 'world_rhodium_ore', 'Ruda rodu'),
+    (140, 140, 'world_iridium_ore', 'Ruda irydu'),
+    (145, 145, 'world_osmium_ore', 'Ruda osmu'),
+    (150, 150, 'world_vanadinite', 'Ruda wanadu - wanadynit'),
+    (155, 155, 'world_magnesite', 'Magnezyt'),
+    (160, 160, 'world_celestite', 'Celestyn'),
+    (165, 165, 'world_barite', 'Baryt'),
+    (170, 170, 'world_apatite', 'Apatyt fosforanowy'),
+    (175, 175, 'world_native_sulfur', 'Siarka rodzima'),
+    (180, 180, 'world_halite', 'Halit'),
+    (185, 185, 'world_sylvite', 'Sylwin'),
+    (190, 190, 'world_kimberlite', 'Kimberlit diamentonośny'),
+    (195, 195, 'world_graphite', 'Grafit'),
+    (200, 200, 'world_magnetite_world', 'Magnetyt'),
+)
+
+
+def _world_resource_sell_fields(level):
+    level = max(1, min(200, int(level)))
+    if level < 100:
+        return {"sell_silver": max(5, 5 + level * 2)}
+    return {"sell_gold": max(1, (level - 80) // 8)}
+
+def _register_world_resource_items():
+    for habitat, rows in WORLD_FISH_UNLOCKS.items():
+        for level, item_id, name in rows:
+            item = {
+                "name": name,
+                "type": "resource",
+                "price": None,
+                "desc": (
+                    f"Ryba świata. Łowisko: {habitat}. "
+                    f"Wędka level {level}+."
+                ),
+            }
+            item.update(_world_resource_sell_fields(level))
+            ITEMS[item_id] = item
+
+    for group, rows in WORLD_HERB_UNLOCKS.items():
+        for level, item_id, name in rows:
+            item = {
+                "name": name,
+                "type": "resource",
+                "price": None,
+                "desc": (
+                    f"Roślina świata. Grupa występowania: {group}. "
+                    f"Sierp level {level}+."
+                ),
+            }
+            item.update(_world_resource_sell_fields(level))
+            ITEMS[item_id] = item
+
+    for group, rows in WORLD_WOOD_UNLOCKS.items():
+        for level, item_id, name in rows:
+            item = {
+                "name": name,
+                "type": "resource",
+                "price": None,
+                "desc": (
+                    f"Drewno świata. Grupa występowania: {group}. "
+                    f"Piła level {level}+."
+                ),
+            }
+            item.update(_world_resource_sell_fields(level))
+            ITEMS[item_id] = item
+
+    for level, floor, item_id, name in WORLD_ORE_UNLOCKS:
+        item = {
+            "name": name,
+            "type": "resource",
+            "price": None,
+            "desc": (
+                f"Ruda lub minerał świata. Kilof level {level}+, "
+                f"Kopalnia Głębinowa poziom {floor}+."
+            ),
+        }
+        item.update(_world_resource_sell_fields(level))
+        ITEMS[item_id] = item
+
+def unlocked_world_ids(rows, tool_level):
+    return tuple(
+        item_id
+        for required, item_id, _name in rows
+        if int(tool_level) >= int(required)
+    )
+
+def unlocked_world_ore_ids(tool_level, floor):
+    return tuple(
+        item_id
+        for required_level, required_floor, item_id, _name
+        in WORLD_ORE_UNLOCKS
+        if int(tool_level) >= int(required_level)
+        and int(floor) >= int(required_floor)
+    )
 
 FISH_RESOURCE_IDS = {
     # Rzeka
@@ -679,6 +1202,67 @@ WOOD_DEEP_ATLAS = {
     "voidwood_log", "starheart_log", "eternal_worldwood_log",
 }
 
+WORLD_FISH_IDS = {
+    item_id
+    for rows in WORLD_FISH_UNLOCKS.values()
+    for _level, item_id, _name in rows
+}
+WORLD_HERB_IDS = {
+    item_id
+    for rows in WORLD_HERB_UNLOCKS.values()
+    for _level, item_id, _name in rows
+}
+WORLD_WOOD_IDS = {
+    item_id
+    for rows in WORLD_WOOD_UNLOCKS.values()
+    for _level, item_id, _name in rows
+}
+WORLD_ORE_IDS = {
+    item_id
+    for _level, _floor, item_id, _name in WORLD_ORE_UNLOCKS
+}
+
+FISH_RESOURCE_IDS.update(WORLD_FISH_IDS)
+HERB_RESOURCE_IDS.update(WORLD_HERB_IDS)
+WOOD_RESOURCE_IDS.update(WORLD_WOOD_IDS)
+ORE_RESOURCE_IDS.update(WORLD_ORE_IDS)
+
+RIVER_FISH_ATLAS.update(
+    item_id for _level, item_id, _name in WORLD_FISH_UNLOCKS["river"]
+)
+LAKE_FISH_ATLAS.update(
+    item_id for _level, item_id, _name in WORLD_FISH_UNLOCKS["lake"]
+)
+SEA_FISH_ATLAS.update(
+    item_id for _level, item_id, _name in WORLD_FISH_UNLOCKS["sea"]
+)
+OCEAN_FISH_ATLAS.update(
+    item_id for _level, item_id, _name in WORLD_FISH_UNLOCKS["ocean"]
+)
+
+HERB_MEADOW_ATLAS.update(
+    item_id for _level, item_id, _name in WORLD_HERB_UNLOCKS["meadow"]
+)
+HERB_WATER_ATLAS.update(
+    item_id for _level, item_id, _name in WORLD_HERB_UNLOCKS["water"]
+)
+HERB_FOREST_ATLAS.update(
+    item_id for _level, item_id, _name in WORLD_HERB_UNLOCKS["forest"]
+)
+HERB_DEEP_ATLAS.update(
+    item_id for _level, item_id, _name in WORLD_HERB_UNLOCKS["deep"]
+)
+
+WOOD_BEGINNER_ATLAS.update(
+    item_id for _level, item_id, _name in WORLD_WOOD_UNLOCKS["beginner"]
+)
+WOOD_FOREST_ATLAS.update(
+    item_id for _level, item_id, _name in WORLD_WOOD_UNLOCKS["forest"]
+)
+WOOD_DEEP_ATLAS.update(
+    item_id for _level, item_id, _name in WORLD_WOOD_UNLOCKS["deep"]
+)
+
 # Pełne atlasy zasobów.
 # Te zbiory są bezpośrednio oparte na aktywnych RESOURCE_IDS,
 # dzięki czemu każda istniejąca ryba, ruda, sztuka drewna i zioło
@@ -732,6 +1316,10 @@ ORE_MINE_FLOOR_MINIMUMS = {
     "void_ore": 180,
     "eternium_ore": 200,
 }
+
+for _level, _floor, _item_id, _name in WORLD_ORE_UNLOCKS:
+    ORE_ATLAS_LEVELS[_item_id] = _level
+    ORE_MINE_FLOOR_MINIMUMS[_item_id] = _floor
 
 RACES = [
     ("Człowiek",
@@ -2215,6 +2803,15 @@ GUIDE_DESTINATION_ALIASES = {
     "wieza": "astral_gate",
     "wieża": "astral_gate",
     "astral": "astral_gate",
+    "mityczna krypta": "mythic_crypt_gate",
+    "mythic crypt": "mythic_crypt_gate",
+    "mityczna wieza astralna": "mythic_astral_gate",
+    "mythic astral tower": "mythic_astral_gate",
+    "kopalnia krysztalow": "prof_crystal_mine_1",
+    "krysztalowa kopalnia": "prof_crystal_mine_1",
+    "zatopiona grota": "prof_sunken_grotto_1",
+    "pradawny las": "prof_ancient_forest_1",
+    "ogrod alchemika": "prof_alchemy_garden_1",
     "rzeka": "riverbank",
     "brzeg rzeki": "riverbank",
     "most": "stone_bridge",
@@ -2354,6 +2951,8 @@ COMMAND_ALIASES = {
     "gdzie": "where",
     "kto": "who",
     "atlas": "atlas", "atlasy": "atlas",
+    "codex": "codex", "kodeks": "codex",
+    "encyklopedia": "codex", "encyclopedia": "codex",
     "charyzma": "charisma", "haryzma": "charisma", "charisma": "charisma",
     "drużyna": "party", "druzyna": "party", "party": "party",
     "pc": "partychat", "dczat": "partychat", "partychat": "partychat",
@@ -2428,6 +3027,10 @@ COMMAND_ALIASES = {
     "sprzedaj": "sell",
     "receptury": "recipes", "przepisy": "recipes", "recipes": "recipes",
     "rzemiosło": "recipes", "rzemioslo": "recipes",
+    "kowalstwo": "blacksmithinginfo",
+    "blacksmithing": "blacksmithinginfo",
+    "smithing": "blacksmithinginfo",
+    "kuj": "craft", "wykuj": "craft",
     "stwórz": "craft", "stworz": "craft", "wytwórz": "craft", "wytworz": "craft", "craft": "craft",
     "gotuj": "cook", "ugotuj": "cook", "cook": "cook",
     "gotowanie": "cookinginfo", "kuchnia": "cookinginfo",
@@ -2777,7 +3380,8 @@ ITEMS = {
     },
     "tuna": {
         "name": "Tuńczyk", "type": "resource", "price": None,
-        "desc": "Duży i cenny połów dla wysokiego levelu Wędki.", "sell_gold": 15,
+        "desc": "Duży i cenny połów oceaniczny. Wędka level 80+.",
+        "sell_gold": 15,
     },
     "swordfish": {
         "name": "Miecznik", "type": "resource", "price": None,
@@ -3006,6 +3610,435 @@ ENDGAME_PROFESSION_ITEMS = {
     "eternal_soul_elixir": {"name": "Eliksir Wiecznej Duszy", "type": "consumable", "price": None, "soul_xp": 400, "desc": "Alchemia level 200. Daje 400 Soul XP."},
 }
 ITEMS.update(ENDGAME_PROFESSION_ITEMS)
+_register_world_resource_items()
+
+BLACKSMITH_TIERS = (
+    {
+        "key": "iron",
+        "name": "Żelazny",
+        "ore": "iron_ore",
+        "ingot": "iron_ingot",
+        "tool_level": 1,
+        "profession_level": 1,
+        "base_defense": 2,
+    },
+    {
+        "key": "silver",
+        "name": "Srebrny",
+        "ore": "silver_ore",
+        "ingot": "silver_ingot",
+        "tool_level": 20,
+        "profession_level": 20,
+        "base_defense": 3,
+    },
+    {
+        "key": "gold",
+        "name": "Złoty",
+        "ore": "gold_ore",
+        "ingot": "gold_ingot",
+        "tool_level": 40,
+        "profession_level": 40,
+        "base_defense": 4,
+    },
+    {
+        "key": "cobalt",
+        "name": "Kobaltowy",
+        "ore": "cobalt_ore",
+        "ingot": "cobalt_ingot",
+        "tool_level": 100,
+        "profession_level": 100,
+        "base_defense": 6,
+    },
+    {
+        "key": "runic",
+        "name": "Runiczny",
+        "ore": "runestone_ore",
+        "ingot": "runestone_ingot",
+        "tool_level": 120,
+        "profession_level": 120,
+        "base_defense": 7,
+    },
+    {
+        "key": "dragonsteel",
+        "name": "Smoczej Stali",
+        "ore": "dragonsteel_ore",
+        "ingot": "dragonsteel_ingot",
+        "tool_level": 140,
+        "profession_level": 140,
+        "base_defense": 8,
+    },
+    {
+        "key": "astral",
+        "name": "Astralny",
+        "ore": "astral_ore",
+        "ingot": "astral_ingot",
+        "tool_level": 160,
+        "profession_level": 160,
+        "base_defense": 9,
+    },
+    {
+        "key": "void",
+        "name": "Pustki",
+        "ore": "void_ore",
+        "ingot": "void_ingot",
+        "tool_level": 180,
+        "profession_level": 180,
+        "base_defense": 10,
+    },
+    {
+        "key": "eternium",
+        "name": "Eternium",
+        "ore": "eternium_ore",
+        "ingot": "eternium_ingot",
+        "tool_level": 200,
+        "profession_level": 200,
+        "base_defense": 12,
+    },
+)
+
+BLACKSMITH_SLOT_DEFS = {
+    "head": ("Hełm", 0, 3),
+    "body": ("Pancerz", 3, 5),
+    "hands": ("Rękawice", -1, 2),
+    "legs": ("Nogawice", 1, 4),
+    "feet": ("Buty", -1, 2),
+    "charm": ("Talizman", -2, 2),
+}
+
+def _register_blacksmith_items():
+    extra_ingots = (
+        ("cobalt_ingot", "Kobaltowa sztabka"),
+        ("runestone_ingot", "Runiczna sztabka"),
+        ("dragonsteel_ingot", "Sztabka Smoczej Stali"),
+        ("astral_ingot", "Astralna sztabka"),
+        ("void_ingot", "Sztabka Pustki"),
+        ("eternium_ingot", "Sztabka Eternium"),
+    )
+    for item_id, name in extra_ingots:
+        ITEMS[item_id] = {
+            "name": name,
+            "type": "craft_material",
+            "price": None,
+            "desc": (
+                "Przetopiony metal używany w zaawansowanym "
+                "Kowalstwie."
+            ),
+        }
+
+    for tier_number, tier in enumerate(BLACKSMITH_TIERS, 1):
+        for slot, (
+            slot_name, defense_delta, _ingot_cost
+        ) in BLACKSMITH_SLOT_DEFS.items():
+            item_id = (
+                f"smith_{tier['key']}_{slot}"
+            )
+            defense = max(
+                1,
+                int(tier["base_defense"])
+                + int(defense_delta),
+            )
+            ITEMS[item_id] = {
+                "name": (
+                    f"{slot_name} - {tier['name']} "
+                    f"[Kowalstwo Tier {tier_number}]"
+                ),
+                "type": "armor",
+                "slot": slot,
+                "defense": defense,
+                "price": None,
+                "desc": (
+                    f"Wyposażenie wykute przez Kowala. "
+                    f"Kowalstwo level {tier['profession_level']}+, "
+                    f"Młot Rzemieślniczy level "
+                    f"{tier['tool_level']}+. "
+                    f"Obrona +{defense}."
+                ),
+                "blacksmith_tier": tier_number,
+                "blacksmith_material": tier["key"],
+            }
+
+_register_blacksmith_items()
+
+FISH_RARE_VARIANTS = {
+    "albino": {
+        "label": "Albinos",
+        "name_prefix": "Albinos - ",
+        "value_mult": 2,
+        "weight": 50,
+        "desc": "Rzadki albinos danego gatunku.",
+    },
+    "golden": {
+        "label": "Złoty",
+        "name_prefix": "Złoty okaz - ",
+        "value_mult": 4,
+        "weight": 25,
+        "desc": "Bardzo rzadki złoty wariant.",
+    },
+    "giant": {
+        "label": "Olbrzymi",
+        "name_prefix": "Olbrzymi okaz - ",
+        "value_mult": 3,
+        "weight": 18,
+        "desc": "Nienaturalnie duży okaz gatunku.",
+    },
+    "ancient": {
+        "label": "Pradawny",
+        "name_prefix": "Pradawny okaz - ",
+        "value_mult": 8,
+        "weight": 7,
+        "desc": "Ekstremalnie rzadki pradawny okaz.",
+    },
+}
+
+WOOD_RARE_VARIANTS = {
+    "lush": {
+        "label": "Bujne",
+        "name_prefix": "Bujne drewno - ",
+        "value_mult": 2,
+        "weight": 50,
+        "desc": "Wyjątkowo zdrowe i gęste drewno.",
+    },
+    "ancient": {
+        "label": "Pradawne",
+        "name_prefix": "Pradawne drewno - ",
+        "value_mult": 4,
+        "weight": 30,
+        "desc": "Drewno pochodzące z bardzo starego drzewa.",
+    },
+    "crystal": {
+        "label": "Kryształowe",
+        "name_prefix": "Kryształowe drewno - ",
+        "value_mult": 6,
+        "weight": 15,
+        "desc": "Rzadkie drewno przesiąknięte kryształową energią.",
+    },
+    "legendary": {
+        "label": "Legendarne",
+        "name_prefix": "Legendarne drewno - ",
+        "value_mult": 10,
+        "weight": 5,
+        "desc": "Najrzadszy wariant drewna.",
+    },
+}
+
+HERB_RARE_VARIANTS = {
+    "lush": {
+        "label": "Bujna",
+        "name_prefix": "Bujna roślina - ",
+        "value_mult": 2,
+        "weight": 50,
+        "desc": "Wyjątkowo dorodny okaz rośliny.",
+    },
+    "glowing": {
+        "label": "Lśniąca",
+        "name_prefix": "Lśniąca roślina - ",
+        "value_mult": 4,
+        "weight": 25,
+        "desc": "Rzadki okaz emanujący delikatnym blaskiem.",
+    },
+    "ancient": {
+        "label": "Pradawna",
+        "name_prefix": "Pradawna roślina - ",
+        "value_mult": 6,
+        "weight": 18,
+        "desc": "Bardzo stary i wyjątkowo silny okaz.",
+    },
+    "legendary": {
+        "label": "Legendarna",
+        "name_prefix": "Legendarna roślina - ",
+        "value_mult": 10,
+        "weight": 7,
+        "desc": "Najrzadszy wariant rośliny.",
+    },
+}
+
+MINING_VEINS = {
+    "common": {
+        "name": "Zwykła żyła",
+        "quantity": 1,
+    },
+    "rich": {
+        "name": "Bogata żyła",
+        "quantity": 2,
+    },
+    "crystal": {
+        "name": "Kryształowa żyła",
+        "quantity": 3,
+    },
+    "legendary": {
+        "name": "Legendarna żyła",
+        "quantity": 5,
+    },
+}
+
+def rare_resource_variant_id(category, key, base_item_id):
+    return f"rare_{category}_{key}__{base_item_id}"
+
+def _scaled_resource_sale_fields(base_item, multiplier):
+    result = {}
+    for currency in ("silver", "gold", "mithril"):
+        key = f"sell_{currency}"
+        value = int(base_item.get(key, 0))
+        if value > 0:
+            result[key] = max(1, value * int(multiplier))
+    return result
+
+def _register_rare_resource_variants():
+    groups = (
+        (
+            "fish",
+            tuple(FISH_RESOURCE_IDS),
+            FISH_RARE_VARIANTS,
+        ),
+        (
+            "wood",
+            tuple(WOOD_RESOURCE_IDS),
+            WOOD_RARE_VARIANTS,
+        ),
+        (
+            "herb",
+            tuple(HERB_RESOURCE_IDS),
+            HERB_RARE_VARIANTS,
+        ),
+    )
+
+    for category, base_ids, variants in groups:
+        for base_item_id in base_ids:
+            base_item = ITEMS.get(base_item_id)
+            if not base_item:
+                continue
+
+            for key, definition in variants.items():
+                variant_id = rare_resource_variant_id(
+                    category, key, base_item_id
+                )
+                value_mult = int(definition["value_mult"])
+                item = {
+                    "name": (
+                        definition["name_prefix"]
+                        + base_item["name"]
+                    ),
+                    "type": "resource",
+                    "price": None,
+                    "desc": (
+                        f"{definition['desc']} "
+                        f"Bazowy zasób: {base_item['name']}. "
+                        f"Wartość sprzedaży x{value_mult}."
+                    ),
+                    "resource_category": category,
+                    "base_resource_id": base_item_id,
+                    "rare_resource_variant": key,
+                    "rare_resource_label": definition["label"],
+                    "rare_value_multiplier": value_mult,
+                }
+                item.update(
+                    _scaled_resource_sale_fields(
+                        base_item, value_mult
+                    )
+                )
+                ITEMS[variant_id] = item
+
+_register_rare_resource_variants()
+
+RARE_FISH_VARIANT_IDS = {
+    item_id
+    for item_id, item in ITEMS.items()
+    if item.get("resource_category") == "fish"
+    and item.get("rare_resource_variant")
+}
+RARE_WOOD_VARIANT_IDS = {
+    item_id
+    for item_id, item in ITEMS.items()
+    if item.get("resource_category") == "wood"
+    and item.get("rare_resource_variant")
+}
+RARE_HERB_VARIANT_IDS = {
+    item_id
+    for item_id, item in ITEMS.items()
+    if item.get("resource_category") == "herb"
+    and item.get("rare_resource_variant")
+}
+
+FISH_STORAGE_IDS = set(FISH_RESOURCE_IDS) | RARE_FISH_VARIANT_IDS
+ORE_STORAGE_IDS = set(ORE_RESOURCE_IDS)
+WOOD_STORAGE_IDS = set(WOOD_RESOURCE_IDS) | RARE_WOOD_VARIANT_IDS
+HERB_STORAGE_IDS = set(HERB_RESOURCE_IDS) | RARE_HERB_VARIANT_IDS
+
+def _rare_variant_roll(
+    base_item_id,
+    category,
+    definitions,
+    tool_level,
+    base_chance,
+    max_extra_chance,
+):
+    tool_level = max(1, min(200, int(tool_level)))
+    chance = min(
+        0.25,
+        float(base_chance)
+        + (tool_level / 200.0) * float(max_extra_chance),
+    )
+    if random.random() >= chance:
+        return base_item_id
+
+    keys = list(definitions)
+    weights = [
+        int(definitions[key]["weight"])
+        for key in keys
+    ]
+    key = random.choices(keys, weights=weights, k=1)[0]
+    variant_id = rare_resource_variant_id(
+        category, key, base_item_id
+    )
+    return variant_id if variant_id in ITEMS else base_item_id
+
+def roll_fish_variant(base_item_id, tool_level):
+    return _rare_variant_roll(
+        base_item_id,
+        "fish",
+        FISH_RARE_VARIANTS,
+        tool_level,
+        0.08,
+        0.04,
+    )
+
+def roll_wood_variant(base_item_id, tool_level):
+    return _rare_variant_roll(
+        base_item_id,
+        "wood",
+        WOOD_RARE_VARIANTS,
+        tool_level,
+        0.06,
+        0.06,
+    )
+
+def roll_herb_variant(base_item_id, tool_level):
+    return _rare_variant_roll(
+        base_item_id,
+        "herb",
+        HERB_RARE_VARIANTS,
+        tool_level,
+        0.08,
+        0.04,
+    )
+
+def roll_mining_vein(tool_level):
+    tool_level = max(1, min(200, int(tool_level)))
+    weights = {
+        "common": max(55.0, 82.0 - tool_level * 0.10),
+        "rich": 14.0 + tool_level * 0.04,
+        "crystal": 3.0 + tool_level * 0.04,
+        "legendary": 1.0 + tool_level * 0.02,
+    }
+    keys = tuple(weights)
+    key = random.choices(
+        keys,
+        weights=[weights[k] for k in keys],
+        k=1,
+    )[0]
+    result = dict(MINING_VEINS[key])
+    result["key"] = key
+    return result
 
 SHOPS = {
     "fish_market": ["fishing_rod"],
@@ -3127,6 +4160,96 @@ CRAFT_RECIPES = {
         "desc": "Rzemiosło level 200. Obrona +12, Zręczność +5.",
     },
 }
+
+def _register_blacksmith_recipes():
+    # Existing first three ingot recipes become proper
+    # Kowalstwo recipes without changing their output IDs.
+    basic_requirements = {
+        "iron_ingot": (1, 1, 10),
+        "silver_ingot": (20, 20, 14),
+        "gold_ingot": (40, 40, 18),
+    }
+    for recipe_id, (
+        tool_level, profession_level, profession_xp
+    ) in basic_requirements.items():
+        recipe = CRAFT_RECIPES[recipe_id]
+        recipe["category"] = "smithing"
+        recipe["min_tool_level"] = tool_level
+        recipe["min_profession_level"] = profession_level
+        recipe["profession_xp"] = profession_xp
+        recipe["tool_xp"] = max(
+            8, int(profession_xp * 0.8)
+        )
+
+    for tier_number, tier in enumerate(BLACKSMITH_TIERS, 1):
+        ingot_id = tier["ingot"]
+
+        if ingot_id not in {
+            "iron_ingot", "silver_ingot", "gold_ingot"
+        }:
+            CRAFT_RECIPES[ingot_id] = {
+                "name": ITEMS[ingot_id]["name"],
+                "stations": ("forge",),
+                "ingredients": {
+                    tier["ore"]: 2,
+                },
+                "output": ingot_id,
+                "quantity": 1,
+                "min_tool_level": tier["tool_level"],
+                "min_profession_level": tier[
+                    "profession_level"
+                ],
+                "profession_xp": (
+                    16 + tier_number * 4
+                ),
+                "tool_xp": (
+                    12 + tier_number * 4
+                ),
+                "category": "smithing",
+                "desc": (
+                    f"Przetop 2 sztuki surowca "
+                    f"{ITEMS[tier['ore']]['name']} "
+                    f"w 1 sztabkę."
+                ),
+            }
+
+        for slot, (
+            slot_name, _def_delta, ingot_cost
+        ) in BLACKSMITH_SLOT_DEFS.items():
+            output_id = (
+                f"smith_{tier['key']}_{slot}"
+            )
+            recipe_id = (
+                f"forge_{tier['key']}_{slot}"
+            )
+            CRAFT_RECIPES[recipe_id] = {
+                "name": ITEMS[output_id]["name"],
+                "stations": ("forge",),
+                "ingredients": {
+                    ingot_id: ingot_cost,
+                },
+                "output": output_id,
+                "quantity": 1,
+                "min_tool_level": tier["tool_level"],
+                "min_profession_level": tier[
+                    "profession_level"
+                ],
+                "profession_xp": (
+                    20 + tier_number * 6
+                ),
+                "tool_xp": (
+                    15 + tier_number * 5
+                ),
+                "category": "smithing",
+                "desc": (
+                    f"Wykuj {slot_name.lower()} z materiału "
+                    f"{tier['name']}. "
+                    f"Wymaga Kowalstwa level "
+                    f"{tier['profession_level']}."
+                ),
+            }
+
+_register_blacksmith_recipes()
 
 ALCHEMY_RECIPES = {
     "healing_potion": {
@@ -3389,12 +4512,13 @@ NPCS = {
     "specialist_crafting": {
         "name": "Mistrz Rzemiosła Haldor", "room": "forge",
         "dialogue": (
-            "Specjalizuję się w Rzemiośle i Młocie Rzemieślniczym. "
-            "W Kuźni możesz tworzyć przedmioty z odblokowanych receptur."
+            "Specjalizuję się w Kowalstwie, Rzemiośle i Młocie Rzemieślniczym. "
+            "W Kuźni możesz przetapiać rudy, kuć pancerze i wykonywać "
+            "powtarzalne zlecenia odnawiane co godzinę."
         ),
         "specialist_tool_type": "crafting",
-        "specialist_topic": "rzemioslo",
-        "specialist_recipes": "receptury craft",
+        "specialist_topic": "kowalstwo",
+        "specialist_recipes": "receptury kowalstwo",
         "quest": "haldor_crafting_order",
         "specialist_quests": (
             "haldor_crafting_order",
@@ -3746,24 +4870,16 @@ SYSTEM_DESCRIPTIONS = {
 }
 
 
-LATEST_CHANGES_TITLE = "Soulbound v0.7.04 - Complete Resource Atlas"
+LATEST_CHANGES_TITLE = "Soulbound v0.7.11 - Tuna Later"
 LATEST_CHANGES = [
-    "Przebudowano Atlas Zasobów na kompletny spis.",
-    "atlas ryby pokazuje wszystkie ryby istniejące w grze.",
-    "Pełny Atlas Ryb obejmuje 100 procent FISH_RESOURCE_IDS.",
-    "Zachowano podział ryb na rzekę, jezioro, morze i ocean.",
-    "atlas drewno pokazuje wszystkie rodzaje drewna istniejące w grze.",
-    "Pełny Atlas Drewna obejmuje 100 procent WOOD_RESOURCE_IDS.",
-    "atlas rudy pokazuje wszystkie rudy istniejące w grze.",
-    "Pełny Atlas Rud obejmuje 100 procent ORE_RESOURCE_IDS.",
-    "Każda ruda pokazuje level Kilofa oraz minimalną głębokość Kopalni Głębinowej.",
-    "atlas zioła pokazuje wszystkie zioła istniejące w grze.",
-    "Pełny Atlas Ziół obejmuje 100 procent HERB_RESOURCE_IDS.",
-    "Zachowano podział ziół według miejsc występowania.",
-    "Długie pełne listy są dzielone na krótsze części przyjazne dla NVDA.",
-    "atlas <nazwa surowca> nadal pokazuje pojedynczy zasób i jego występowanie.",
-    "Dodano wewnętrzną walidację kompletności czterech atlasów.",
-    "Kopalnia 1-200, auto-profesje, łąki, kurs walut, questy, gotowanie i endgame pozostają.",
+    "Zwykły Tuńczyk został przesunięty na Wędkę level 80.",
+    "Tuńczyk nie może już wypaść przed levelem 80.",
+    "Usunięto zwykłego Tuńczyka z oceanicznych pul level 20-79.",
+    "Od levelu 80 zwykły Tuńczyk wraca do prawidłowej puli oceanu.",
+    "Opis Tuńczyka pokazuje teraz wymaganie Wędka level 80+.",
+    "Komenda woda uwzględnia próg Tuńczyka jako następne odblokowanie.",
+    "Ręczne i auto-łowienie nadal korzystają z tej samej puli ryb.",
+    "Kowalstwo 1-200, questy Haldora co godzinę i wszystkie wcześniejsze systemy pozostają.",
     "Brak migracji SQLite.",
 ]
 
@@ -3802,7 +4918,11 @@ HELP_TOPIC_ALIASES = {
     "fishing": "wedkarstwo", "fish": "wedkarstwo",
     "laki": "laki", "laka": "laki", "meadows": "laki", "meadow": "laki",
     "atlas": "atlas_kompletny", "atlasy": "atlas_kompletny",
+    "codex": "codex_swiata", "kodeks": "codex_swiata",
+    "rarezasoby": "rare_resources", "rzadkiezasoby": "rare_resources",
     "atlaszasobow": "atlas_kompletny", "atlaszasobów": "atlas_kompletny",
+    "zasobyswiata": "zasoby_swiata", "worldresources": "zasoby_swiata",
+    "roslinyswiata": "zasoby_swiata", "rybyswiata": "zasoby_swiata",
     "autooff": "auto_off", "off": "auto_off",
     "autochodzenie": "auto_chodzenie", "automove": "auto_chodzenie",
     "kopalnia": "kopalnia_200", "mine200": "kopalnia_200",
@@ -3843,12 +4963,99 @@ HELP_TOPIC_ALIASES = {
 }
 
 HELP_TOPICS = {
+    "kowalstwo": [
+        "Kowalstwo jest pełną profesją level 1-200.",
+        "Kowalstwo korzysta z istniejącego Młota Rzemieślniczego level 1-200 i nie dodaje nowego narzędzia.",
+        "Przetapianie metali i kucie w Kuźni Dusz daje XP Kowalstwa oraz XP Młota Rzemieślniczego.",
+        "Receptury przechodzą od Żelaza, Srebra i Złota do Kobaltu, Run, Smoczej Stali, Astralu, Pustki i Eternium.",
+        "Każdy metal ma sztabkę oraz sześć elementów wyposażenia: hełm, pancerz, rękawice, nogawice, buty i talizman.",
+        "Wyższe receptury wymagają jednocześnie odpowiedniego levelu Kowalstwa i Młota.",
+        "Komendy: kowalstwo, kuj <receptura>, craft <receptura>, receptury kowalstwo.",
+        "Haldor w Kuźni daje trzy poziomy zleceń Rzemiosła/Kowalstwa.",
+        "Zlecenia Haldora są powtarzalne i każde odnawia się dokładnie co 60 minut.",
+        "Questy Haldora dają XP Kowalstwa, XP Młota oraz walutę.",
+        "Kowalstwo nie ma trwałości, zużycia ani napraw narzędzi.",
+    ],
+    "rare_resources": [
+        "Dodano rzadkie warianty zasobów profesyjnych.",
+        "Ryby mogą wypaść jako Albinos, Złoty okaz, Olbrzymi okaz albo Pradawny okaz.",
+        "Rzadkie ryby mają większą wartość sprzedaży i są przechowywane jako osobne okazy w Siatce.",
+        "Górnictwo losuje jakość żyły przy każdym udanym wydobyciu.",
+        "Zwykła żyła daje x1, Bogata x2, Kryształowa x3, a Legendarna x5 tej samej rudy.",
+        "Czysty mithril pozostaje osobną bardzo rzadką walutą i nie jest mnożony przez żyłę.",
+        "Drewno może być Bujne, Pradawne, Kryształowe albo Legendarne.",
+        "Rośliny mogą być Bujne, Lśniące, Pradawne albo Legendarne.",
+        "Rzadkie drewno i rośliny są osobnymi cenniejszymi okazami w magazynach profesji.",
+        "Szanse na rzadkie warianty poprawiają się wraz z levelem używanego narzędzia.",
+        "Questy zbierania kategorii liczą również rzadkie warianty.",
+        "Sprzedaj wszystko działa również na rzadkie warianty.",
+    ],
+    "codex_swiata": [
+        "Codex Świata łączy wiedzę o zasobach, mobach, bossach i reliktach.",
+        "codex pokazuje podsumowanie wszystkich działów.",
+        "codex ryby pokazuje wszystkie bazowe gatunki i zasady rzadkich wariantów.",
+        "codex rośliny pokazuje rośliny i warianty.",
+        "codex drewno pokazuje drewno i warianty drzew.",
+        "codex rudy pokazuje wszystkie rudy i cztery rodzaje żył.",
+        "codex moby pokazuje zwykłych przeciwników.",
+        "codex bossowie pokazuje bossów świata, Krypty, Wieży oraz Mythic.",
+        "codex relikty pokazuje relikty i unikalne trofea.",
+        "codex warianty opisuje wszystkie rzadkie warianty profesyjne.",
+        "codex <nazwa> wyszukuje konkretny zasób, mob, bossa lub relikt.",
+        "Długie listy są dzielone na części przyjazne NVDA.",
+    ],
+    "astralne_sety": [
+        "Astralne zestawy mają teraz pełne bonusy 2/4/6 części.",
+        "Każdy Krąg Astralny ma teraz 6 elementów: głowa, korpus, dłonie, nogi, stopy i talizman.",
+        "2 części jednego Kręgu: +12 procent maksymalnego HP i Many.",
+        "4 części jednego Kręgu: dodatkowo +15 procent wszystkich zadawanych obrażeń.",
+        "6 części jednego Kręgu: dodatkowo +20 procent obrony fizycznej i magicznej.",
+        "Bonusy Astralne mogą współistnieć z aktywnymi bonusami Zestawu Krypty.",
+        "stats i equipment czytają aktywny Zestaw Astralny.",
+    ],
+    "mythic_endgame": [
+        "Mityczna Krypta odblokowuje się dopiero po pokonaniu bossa zwykłej Krypty na piętrze 200.",
+        "Wejście do Mitycznej Krypty znajduje się w Głębi Krypty.",
+        "Mityczna Krypta ma 200 poziomów i bossa co 10 pięter.",
+        "Mityczna Wieża Astralna odblokowuje się dopiero po pokonaniu Astralnego Suwerena na zwykłym poziomie 200.",
+        "Wejście do Mitycznej Wieży znajduje się przy Astralnej Bramie.",
+        "Mityczna Wieża Astralna ma 200 poziomów i bossa co 10 poziomów.",
+        "Mityczni bossowie mają znacznie więcej HP, wyższe obrażenia i lepsze nagrody.",
+        "Boss Mitycznej Krypty blokuje zejście, a boss Mitycznej Wieży blokuje wejście wyżej.",
+        "Mityczna Krypta używa końcowego ekwipunku Krypty, a Mityczna Wieża końcowego Astralnego Kręgu.",
+    ],
+    "lochy_profesyjne": [
+        "Dodano cztery lochy profesyjne po 20 poziomów.",
+        "Kopalnia Kryształów zaczyna się w Kryształowej Komnacie i rozwija Górnictwo.",
+        "Zatopiona Grota zaczyna się przy Morskim Molo i rozwija Wędkarstwo.",
+        "Pradawny Las zaczyna się w Głębi Gaju i rozwija Drwalstwo.",
+        "Ogród Alchemika zaczyna się w Chacie Zielarki i rozwija Zielarstwo.",
+        "Poziom 1 wymaga podstawowego narzędzia, a kolejne poziomy wymagają coraz wyższego levelu narzędzia.",
+        "Poziom 20 wymaga narzędzia level 200.",
+        "Im głębiej w lochu profesyjnym, tym wyższy poziom zasobów może wypaść.",
+        "Auto-profesja uruchomiona wewnątrz lochu pozostaje w aktualnej komorze i dalej zbiera zasoby.",
+        "Prowadzenie: prowadz kopalnia krysztalow, prowadz zatopiona grota, prowadz pradawny las, prowadz ogrod alchemika.",
+    ],
+    "zasoby_swiata": [
+        "World Resources Pack dodaje szeroki przekrój realnych zasobów z całego świata.",
+        "Dodano 160 nowych realnych ryb: po 40 do rzeki, jeziora, morza i oceanu.",
+        "Dodano 80 nowych roślin, ziół i przypraw.",
+        "Dodano 50 nowych rodzajów drewna.",
+        "Dodano 40 nowych realnych rud i minerałów.",
+        "Nowe ryby są faktycznie łowione przez low i low on.",
+        "Nowe rośliny są faktycznie zbierane przez zbieraj i zbieraj on.",
+        "Nowe drewna są faktycznie pozyskiwane przez tnij i tnij on.",
+        "Nowe rudy są faktycznie wydobywane w Kopalni Głębinowej przez kop i kop on.",
+        "Zasoby odblokowują się wraz z levelem narzędzia, a rudy także z głębokością.",
+        "atlas ryby, atlas zioła, atlas rośliny, atlas drewno i atlas rudy automatycznie obejmują nowy pakiet.",
+        "To duży grywalny przekrój zasobów świata, a nie literalna lista każdej naukowo opisanej species na Ziemi.",
+    ],
     "atlas_kompletny": [
         "Atlas zasobów jest teraz kompletny.",
         "atlas ryby pokazuje wszystkie istniejące ryby w grze, a następnie podział na rzekę, jezioro, morze i ocean.",
         "atlas drewno pokazuje wszystkie istniejące rodzaje drewna oraz podział według terenów.",
         "atlas rudy pokazuje wszystkie istniejące rudy, wymagany level Kilofa i minimalną głębokość Kopalni Głębinowej.",
-        "atlas zioła pokazuje wszystkie istniejące zioła oraz grupy występowania.",
+        "atlas zioła i atlas rośliny pokazują wszystkie istniejące zioła i rośliny oraz grupy występowania.",
         "Długie listy są dzielone na krótsze części, żeby NVDA czytał je wygodniej.",
         "Można nadal wpisać atlas <nazwa surowca>, aby usłyszeć informacje o jednym konkretnym zasobie.",
         "Pełne atlasy są bezpośrednio oparte na aktywnych listach RESOURCE_IDS, więc nowy zasób nie powinien wypaść z pełnego spisu.",
@@ -3874,11 +5081,11 @@ HELP_TOPICS = {
         "kop on samo idzie, kopie, przebija ściany i schodzi aż do 200.",
     ],
     "auto_chodzenie": [
-        "Auto-profesje potrafią same chodzić.",
-        "low on samo idzie do łowiska, łowi i przechodzi między łowiskami.",
-        "zbieraj on samo idzie do ziół, zbiera i przechodzi między terenami Zielarstwa.",
-        "tnij on samo idzie do drzew, ścina i przechodzi między terenami Drwalstwa.",
-        "kop on samo idzie do najgłębszego odblokowanego poziomu kopalni.",
+        "Auto-profesje nie chodzą samodzielnie.",
+        "low on łowi tylko w aktualnym łowisku i nie przemieszcza postaci.",
+        "zbieraj on zbiera tylko w aktualnym miejscu i nie przemieszcza postaci.",
+        "tnij on ścina tylko w aktualnym miejscu i nie przemieszcza postaci.",
+        "kop on kopie tylko w aktualnym miejscu; po przebiciu ściany trzeba zejść ręcznie.",
         "Manualny ruch gracza nadal wyłącza aktywne auto.",
         "off nadal dokańcza bieżącą akcję i dopiero potem zatrzymuje automat.",
     ],
@@ -4492,6 +5699,8 @@ QUESTS = {
             "Wytwórz 3 Żelazne sztabki i przynieś je "
             "Mistrzowi Rzemiosła Haldorowi w Kuźni Dusz."
         ),
+        "reward_profession": "Kowalstwo",
+        "reward_profession_xp": 600,
         "reward_tool_type": "crafting",
         "reward_tool_xp": 500,
         "reward_silver": 120,
@@ -4499,7 +5708,7 @@ QUESTS = {
         "reward_mithril": 0,
         "reward_items": {},
         "repeatable": True,
-        "repeat_cooldown": QUEST_REPEAT_COOLDOWN_SECONDS,
+        "repeat_cooldown": BLACKSMITH_QUEST_COOLDOWN_SECONDS,
     },
     "haldor_crafting_order_advanced": {
         "name": "Zlecenie Haldora II: Runiczna Straż",
@@ -4512,6 +5721,8 @@ QUESTS = {
         "specialist_tool_type": "crafting",
         "min_tool_level": 100,
         "requires_quest": "haldor_crafting_order",
+        "reward_profession": "Kowalstwo",
+        "reward_profession_xp": 1800,
         "reward_tool_type": "crafting",
         "reward_tool_xp": 1800,
         "reward_silver": 350,
@@ -4519,7 +5730,7 @@ QUESTS = {
         "reward_mithril": 0,
         "reward_items": {},
         "repeatable": True,
-        "repeat_cooldown": QUEST_REPEAT_COOLDOWN_SECONDS,
+        "repeat_cooldown": BLACKSMITH_QUEST_COOLDOWN_SECONDS,
     },
     "haldor_crafting_order_master": {
         "name": "Zlecenie Haldora III: Wieczna Dusza",
@@ -4532,6 +5743,8 @@ QUESTS = {
         "specialist_tool_type": "crafting",
         "min_tool_level": 200,
         "requires_quest": "haldor_crafting_order_advanced",
+        "reward_profession": "Kowalstwo",
+        "reward_profession_xp": 5000,
         "reward_tool_type": "crafting",
         "reward_tool_xp": 5000,
         "reward_silver": 1000,
@@ -4539,7 +5752,7 @@ QUESTS = {
         "reward_mithril": 0,
         "reward_items": {},
         "repeatable": True,
-        "repeat_cooldown": QUEST_REPEAT_COOLDOWN_SECONDS,
+        "repeat_cooldown": BLACKSMITH_QUEST_COOLDOWN_SECONDS,
     },
     "marcel_cooking_order": {
         "name": "Zlecenie Marcela: Pieczone Ryby",
@@ -5474,6 +6687,76 @@ for _floor, (_item_id, _name, _defense, _affix, _amount) in ASTRAL_BOSS_RELICS.i
         "astral_relic_floor": _floor,
     }
 
+MYTHIC_MIN_FLOOR = 1
+MYTHIC_MAX_FLOOR = 200
+MYTHIC_BOSS_FLOORS = set(range(10, MYTHIC_MAX_FLOOR + 1, 10))
+PROF_DUNGEON_MAX_FLOOR = 20
+
+def mythic_crypt_floor_id(floor):
+    return f"mythic_crypt_floor_{int(floor)}"
+
+def mythic_crypt_floor_number(room_id):
+    match = re.fullmatch(
+        r"mythic_crypt_floor_(\d+)", str(room_id or "")
+    )
+    if not match:
+        return None
+    floor = int(match.group(1))
+    if MYTHIC_MIN_FLOOR <= floor <= MYTHIC_MAX_FLOOR:
+        return floor
+    return None
+
+def mythic_astral_floor_id(floor):
+    return f"mythic_astral_floor_{int(floor)}"
+
+def mythic_astral_floor_number(room_id):
+    match = re.fullmatch(
+        r"mythic_astral_floor_(\d+)", str(room_id or "")
+    )
+    if not match:
+        return None
+    floor = int(match.group(1))
+    if MYTHIC_MIN_FLOOR <= floor <= MYTHIC_MAX_FLOOR:
+        return floor
+    return None
+
+PROF_DUNGEON_PREFIXES = {
+    "crystal_mine": "prof_crystal_mine_",
+    "sunken_grotto": "prof_sunken_grotto_",
+    "ancient_forest": "prof_ancient_forest_",
+    "alchemy_garden": "prof_alchemy_garden_",
+}
+
+PROF_DUNGEON_TOOL = {
+    "crystal_mine": ("mining", "pickaxe", "Kilof"),
+    "sunken_grotto": ("fishing", "fishing_rod", "Wędka"),
+    "ancient_forest": ("woodcutting", "saw", "Piła"),
+    "alchemy_garden": (
+        "herbalism", "herbalist_sickle", "Sierp Zielarski"
+    ),
+}
+
+def profession_dungeon_floor(room_id):
+    room_id = str(room_id or "")
+    for dungeon, prefix in PROF_DUNGEON_PREFIXES.items():
+        if not room_id.startswith(prefix):
+            continue
+        raw = room_id[len(prefix):]
+        if raw.isdigit():
+            floor = int(raw)
+            if 1 <= floor <= PROF_DUNGEON_MAX_FLOOR:
+                return dungeon, floor
+    return None, None
+
+def profession_dungeon_room_id(dungeon, floor):
+    return f"{PROF_DUNGEON_PREFIXES[dungeon]}{int(floor)}"
+
+def profession_dungeon_required_tool_level(floor):
+    floor = max(1, min(PROF_DUNGEON_MAX_FLOOR, int(floor)))
+    if floor == 1:
+        return 1
+    return min(200, floor * 10)
+
 def build_astral_tower():
     ROOMS["shrine"]["exits"]["east"] = "astral_gate"
     ROOMS["astral_gate"] = {
@@ -5503,6 +6786,7 @@ def build_astral_tower():
             ("hands", "Astralne Rękawice", 5 + tier_index // 2),
             ("legs", "Astralne Nogawice", 7 + tier_index // 2),
             ("feet", "Astralne Buty", 5 + tier_index // 2),
+            ("charm", "Astralny Talizman", 4 + tier_index // 2),
         )
         affix = stat_cycle[(tier_index - 1) % len(stat_cycle)]
         affix_amount = 5 + tier_index // 2
@@ -5559,7 +6843,9 @@ def build_astral_tower():
         )
         gear = [
             f"astral_t{tier_index}_{slot}"
-            for slot in ("head", "body", "hands", "legs", "feet")
+            for slot in (
+                "head", "body", "hands", "legs", "feet", "charm"
+            )
         ]
 
         regular_id = f"astral_floor_mob_{floor}"
@@ -5705,6 +6991,378 @@ def build_crypt_200_floors():
             }
             MOB_SPAWNS.append((room_id,bid))
 
+def build_mythic_endgame():
+    # Mythic Crypt opens from the old Crypt depths after floor 200 completion.
+    ROOMS["crypt_depths"]["exits"]["east"] = "mythic_crypt_gate"
+    ROOMS["mythic_crypt_gate"] = {
+        "zone": "Mityczna Krypta",
+        "name": "Brama Mitycznej Krypty",
+        "desc": (
+            "Czarna brama rezonuje energią finałowego bossa Krypty. "
+            "Wejście wymaga ukończenia zwykłej Krypty do piętra 200."
+        ),
+        "exits": {
+            "west": "crypt_depths",
+            "down": mythic_crypt_floor_id(1),
+        },
+    }
+
+    # Mythic Astral opens from the ordinary Astral Gate.
+    ROOMS["astral_gate"]["exits"]["east"] = "mythic_astral_gate"
+    ROOMS["mythic_astral_gate"] = {
+        "zone": "Mityczna Wieża Astralna",
+        "name": "Brama Mitycznej Wieży Astralnej",
+        "desc": (
+            "Pęknięcie gwiezdnej przestrzeni prowadzi do trudniejszej "
+            "wersji Wieży. Wejście wymaga ukończenia zwykłego poziomu 200."
+        ),
+        "exits": {
+            "west": "astral_gate",
+            "up": mythic_astral_floor_id(1),
+        },
+    }
+
+    crypt_names = (
+        "Mityczny Kościany Rycerz",
+        "Mityczny Upiór",
+        "Mityczny Żniwiarz Grobowca",
+        "Mityczny Strażnik Otchłani",
+    )
+    astral_names = (
+        "Mityczny Astralny Strażnik",
+        "Mityczny Rycerz Konstelacji",
+        "Mityczne Widmo Nebuli",
+        "Mityczny Herold Gwiezdnej Burzy",
+    )
+
+    for floor in range(MYTHIC_MIN_FLOOR, MYTHIC_MAX_FLOOR + 1):
+        # Mythic Crypt
+        c_room = mythic_crypt_floor_id(floor)
+        c_exits = {
+            "up": (
+                "mythic_crypt_gate"
+                if floor == 1
+                else mythic_crypt_floor_id(floor - 1)
+            )
+        }
+        if floor < MYTHIC_MAX_FLOOR:
+            c_exits["down"] = mythic_crypt_floor_id(floor + 1)
+        c_note = (
+            " Mityczny boss blokuje zejście niżej."
+            if floor in MYTHIC_BOSS_FLOORS
+            and floor < MYTHIC_MAX_FLOOR
+            else (
+                " To finał Mitycznej Krypty."
+                if floor == MYTHIC_MAX_FLOOR
+                else ""
+            )
+        )
+        ROOMS[c_room] = {
+            "zone": "Mityczna Krypta",
+            "name": f"Mityczna Krypta, piętro {floor}",
+            "desc": (
+                f"Mityczne piętro {floor} z {MYTHIC_MAX_FLOOR}. "
+                f"Ściany są przesycone ciemną energią.{c_note}"
+            ),
+            "exits": c_exits,
+        }
+
+        c_regular = f"mythic_crypt_mob_{floor}"
+        MOB_TEMPLATES[c_regular] = {
+            "name": (
+                f"{crypt_names[(floor - 1) % len(crypt_names)]}, "
+                f"piętro {floor}"
+            ),
+            "max_hp": 4000 + floor * 100,
+            "damage": 120 + floor,
+            "damage_type": "magic" if floor % 2 else "physical",
+            "silver": 800 + floor * 8,
+            "gold": 5 + floor // 20,
+            "mithril": 0,
+            "stat_reward": 800 + floor * 5,
+            "class_xp_reward": 20000 + floor * 300,
+            "soul_reward": 4000 + floor * 25,
+            "drops": {"soul_shard": 0.55},
+            "quest_target": None,
+            "mythic_crypt_floor": floor,
+            "corpse_equipment_pool": [
+                f"crypt_t20_{slot}"
+                for slot in (
+                    "head", "body", "hands", "legs", "feet", "charm"
+                )
+            ],
+            "corpse_equipment_guaranteed": 1,
+        }
+        MOB_SPAWNS.append((c_room, c_regular))
+
+        if floor in MYTHIC_BOSS_FLOORS:
+            c_boss = f"mythic_crypt_boss_{floor}"
+            MOB_TEMPLATES[c_boss] = {
+                "name": f"Mityczny Władca Krypty, piętro {floor}",
+                "max_hp": 100000,
+                "damage": 240 + floor * 2,
+                "damage_type": "magic" if floor % 20 else "physical",
+                "silver": 8000 + floor * 40,
+                "gold": 60 + floor // 5,
+                "mithril": 1 if floor >= 100 else 0,
+                "stat_reward": 3000 + floor * 12,
+                "class_xp_reward": 60000 + floor * 700,
+                "soul_reward": 9000 + floor * 50,
+                "drops": {
+                    "soul_shard": 1.0,
+                    "soul_elixir": 0.70,
+                },
+                "quest_target": None,
+                "mythic_crypt_floor": floor,
+                "mythic_crypt_boss": True,
+                "boss_mechanic": "two_hundred_lord",
+                "boss_mechanic_text": (
+                    "Mityczna Bariera, druga faza i silny "
+                    "magiczny kontratak co trzecią odpowiedź."
+                ),
+                "corpse_equipment_pool": [
+                    f"crypt_t20_{slot}"
+                    for slot in (
+                        "head", "body", "hands",
+                        "legs", "feet", "charm"
+                    )
+                ],
+                "corpse_equipment_guaranteed": 3,
+            }
+            MOB_SPAWNS.append((c_room, c_boss))
+
+        # Mythic Astral Tower
+        a_room = mythic_astral_floor_id(floor)
+        a_exits = {
+            "down": (
+                "mythic_astral_gate"
+                if floor == 1
+                else mythic_astral_floor_id(floor - 1)
+            )
+        }
+        if floor < MYTHIC_MAX_FLOOR:
+            a_exits["up"] = mythic_astral_floor_id(floor + 1)
+        a_note = (
+            " Mityczny boss blokuje drogę w górę."
+            if floor in MYTHIC_BOSS_FLOORS
+            and floor < MYTHIC_MAX_FLOOR
+            else (
+                " To szczyt Mitycznej Wieży Astralnej."
+                if floor == MYTHIC_MAX_FLOOR
+                else ""
+            )
+        )
+        ROOMS[a_room] = {
+            "zone": "Mityczna Wieża Astralna",
+            "name": f"Mityczna Wieża Astralna, poziom {floor}",
+            "desc": (
+                f"Mityczny poziom {floor} z {MYTHIC_MAX_FLOOR}. "
+                f"Gwiazdy wydają się nienaturalnie blisko.{a_note}"
+            ),
+            "exits": a_exits,
+        }
+
+        a_regular = f"mythic_astral_mob_{floor}"
+        MOB_TEMPLATES[a_regular] = {
+            "name": (
+                f"{astral_names[(floor - 1) % len(astral_names)]}, "
+                f"poziom {floor}"
+            ),
+            "max_hp": 5000 + floor * 120,
+            "damage": 145 + floor,
+            "damage_type": "magic" if floor % 2 else "physical",
+            "silver": 1000 + floor * 10,
+            "gold": 7 + floor // 18,
+            "mithril": 0,
+            "stat_reward": 950 + floor * 6,
+            "class_xp_reward": 25000 + floor * 350,
+            "soul_reward": 5000 + floor * 30,
+            "drops": {"soul_shard": 0.65},
+            "quest_target": None,
+            "mythic_astral_floor": floor,
+            "corpse_equipment_pool": [
+                f"astral_t11_{slot}"
+                for slot in (
+                    "head", "body", "hands",
+                    "legs", "feet", "charm"
+                )
+            ],
+            "corpse_equipment_guaranteed": 1,
+        }
+        MOB_SPAWNS.append((a_room, a_regular))
+
+        if floor in MYTHIC_BOSS_FLOORS:
+            a_boss = f"mythic_astral_boss_{floor}"
+            MOB_TEMPLATES[a_boss] = {
+                "name": f"Mityczny Suweren Astralny, poziom {floor}",
+                "max_hp": 120000,
+                "damage": 280 + floor * 2,
+                "damage_type": "magic",
+                "silver": 10000 + floor * 45,
+                "gold": 80 + floor // 4,
+                "mithril": 1 if floor >= 80 else 0,
+                "stat_reward": 3500 + floor * 14,
+                "class_xp_reward": 75000 + floor * 800,
+                "soul_reward": 11000 + floor * 55,
+                "drops": {
+                    "soul_shard": 1.0,
+                    "soul_elixir": 0.80,
+                },
+                "quest_target": None,
+                "mythic_astral_floor": floor,
+                "mythic_astral_boss": True,
+                "boss_mechanic": "astral_sovereign",
+                "boss_mechanic_text": (
+                    "Mityczna Bariera Suwerena, druga faza i "
+                    "Astralne Załamanie."
+                ),
+                "corpse_equipment_pool": [
+                    f"astral_t11_{slot}"
+                    for slot in (
+                        "head", "body", "hands",
+                        "legs", "feet", "charm"
+                    )
+                ],
+                "corpse_equipment_guaranteed": 3,
+            }
+            MOB_SPAWNS.append((a_room, a_boss))
+
+
+def build_profession_dungeons():
+    # 1. Kopalnia Kryształów - mining
+    ROOMS["crystal_chamber"]["exits"]["east"] = (
+        profession_dungeon_room_id("crystal_mine", 1)
+    )
+    # 2. Zatopiona Grota - fishing
+    ROOMS["sea_pier"]["exits"]["down"] = (
+        profession_dungeon_room_id("sunken_grotto", 1)
+    )
+    # 3. Pradawny Las - woodcutting
+    ROOMS["deep_grove"]["exits"]["south"] = (
+        profession_dungeon_room_id("ancient_forest", 1)
+    )
+    # 4. Ogród Alchemika - herbalism
+    ROOMS["herbalist_hut"]["exits"]["east"] = (
+        profession_dungeon_room_id("alchemy_garden", 1)
+    )
+
+    for floor in range(1, PROF_DUNGEON_MAX_FLOOR + 1):
+        required = profession_dungeon_required_tool_level(floor)
+
+        # Crystal Mine, down = deeper.
+        rid = profession_dungeon_room_id("crystal_mine", floor)
+        exits = {
+            "up": (
+                "crystal_chamber"
+                if floor == 1
+                else profession_dungeon_room_id(
+                    "crystal_mine", floor - 1
+                )
+            )
+        }
+        if floor < PROF_DUNGEON_MAX_FLOOR:
+            exits["down"] = profession_dungeon_room_id(
+                "crystal_mine", floor + 1
+            )
+        ROOMS[rid] = {
+            "zone": "Loch Profesyjny - Kopalnia Kryształów",
+            "name": f"Kopalnia Kryształów, poziom {floor}",
+            "desc": (
+                f"Profesyjny poziom górniczy {floor} z 20. "
+                f"Zalecany Kilof level {required}. "
+                "Im głębiej, tym lepsze rudy i minerały."
+            ),
+            "exits": exits,
+        }
+        MINING_ROOMS.add(rid)
+
+        # Sunken Grotto, down = deeper.
+        rid = profession_dungeon_room_id("sunken_grotto", floor)
+        exits = {
+            "up": (
+                "sea_pier"
+                if floor == 1
+                else profession_dungeon_room_id(
+                    "sunken_grotto", floor - 1
+                )
+            )
+        }
+        if floor < PROF_DUNGEON_MAX_FLOOR:
+            exits["down"] = profession_dungeon_room_id(
+                "sunken_grotto", floor + 1
+            )
+        ROOMS[rid] = {
+            "zone": "Loch Profesyjny - Zatopiona Grota",
+            "name": f"Zatopiona Grota, głębokość {floor}",
+            "desc": (
+                f"Podwodne łowisko {floor} z 20. "
+                f"Zalecana Wędka level {required}. "
+                "Niższe komory prowadzą do coraz rzadszych ryb."
+            ),
+            "exits": exits,
+        }
+        if floor <= 10:
+            SEA_FISHING_ROOMS.add(rid)
+        else:
+            OCEAN_FISHING_ROOMS.add(rid)
+        FISHING_ROOMS.add(rid)
+        MARINE_FISHING_ROOMS.add(rid)
+
+        # Ancient Forest, south = deeper.
+        rid = profession_dungeon_room_id("ancient_forest", floor)
+        exits = {
+            "north": (
+                "deep_grove"
+                if floor == 1
+                else profession_dungeon_room_id(
+                    "ancient_forest", floor - 1
+                )
+            )
+        }
+        if floor < PROF_DUNGEON_MAX_FLOOR:
+            exits["south"] = profession_dungeon_room_id(
+                "ancient_forest", floor + 1
+            )
+        ROOMS[rid] = {
+            "zone": "Loch Profesyjny - Pradawny Las",
+            "name": f"Pradawny Las, ostęp {floor}",
+            "desc": (
+                f"Pradawny ostęp {floor} z 20. "
+                f"Zalecana Piła level {required}. "
+                "Głębsze ostępy dają dostęp do rzadszego drewna."
+            ),
+            "exits": exits,
+        }
+        WOODCUTTING_ROOMS.add(rid)
+
+        # Alchemy Garden, east = deeper.
+        rid = profession_dungeon_room_id("alchemy_garden", floor)
+        exits = {
+            "west": (
+                "herbalist_hut"
+                if floor == 1
+                else profession_dungeon_room_id(
+                    "alchemy_garden", floor - 1
+                )
+            )
+        }
+        if floor < PROF_DUNGEON_MAX_FLOOR:
+            exits["east"] = profession_dungeon_room_id(
+                "alchemy_garden", floor + 1
+            )
+        ROOMS[rid] = {
+            "zone": "Loch Profesyjny - Ogród Alchemika",
+            "name": f"Ogród Alchemika, sektor {floor}",
+            "desc": (
+                f"Alchemiczny sektor {floor} z 20. "
+                f"Zalecany Sierp level {required}. "
+                "Głębsze sektory zawierają coraz rzadsze rośliny."
+            ),
+            "exits": exits,
+        }
+        HERBALISM_ROOMS.add(rid)
+
+
 def configure_base_mob_corpse_equipment():
     MOB_TEMPLATES["training_dummy"]["leave_corpse"] = False
     configs={
@@ -5723,6 +7381,8 @@ def configure_base_mob_corpse_equipment():
 build_crypt_200_floors()
 build_crypt_loot_variants()
 build_astral_tower()
+build_mythic_endgame()
+build_profession_dungeons()
 configure_base_mob_corpse_equipment()
 
 def apply_global_mob_hp_multiplier():
@@ -5749,6 +7409,23 @@ def apply_dungeon_boss_floor_hp():
         template = MOB_TEMPLATES[f"astral_boss_{floor}"]
         template["max_hp"] = floor * 1000
         template["scaled_boss_hp_rule"] = "floor_x_1000"
+
+    for floor in MYTHIC_BOSS_FLOORS:
+        crypt_template = MOB_TEMPLATES[
+            f"mythic_crypt_boss_{floor}"
+        ]
+        crypt_template["max_hp"] = 300000 + floor * 5000
+        crypt_template["scaled_boss_hp_rule"] = (
+            "mythic_300k_plus_floor_x_5000"
+        )
+
+        astral_template = MOB_TEMPLATES[
+            f"mythic_astral_boss_{floor}"
+        ]
+        astral_template["max_hp"] = 400000 + floor * 6000
+        astral_template["scaled_boss_hp_rule"] = (
+            "mythic_400k_plus_floor_x_6000"
+        )
 
 apply_global_mob_hp_multiplier()
 apply_dungeon_boss_floor_hp()
@@ -5794,7 +7471,7 @@ def clean_telnet(data: bytes) -> str:
 def mob_respawn_seconds(template):
     if template.get("respawn_seconds") is not None:
         return max(1, int(template["respawn_seconds"]))
-    if template.get("crypt_boss") or template.get("world_boss"):
+    if (template.get("crypt_boss") or template.get("world_boss") or template.get("mythic_crypt_boss") or template.get("mythic_astral_boss")):
         return BOSS_RESPAWN_SECONDS
     if template.get("training_dummy"):
         return TRAINING_DUMMY_RESPAWN_SECONDS
@@ -7374,6 +9051,52 @@ class World:
             return False
         return self.live_astral_boss(room_id) is not None
 
+    def live_mythic_crypt_boss(self, room_id):
+        self.refresh()
+        for mob in self.mobs.values():
+            if (
+                mob.alive
+                and mob.room_id == room_id
+                and MOB_TEMPLATES[mob.template_id].get(
+                    "mythic_crypt_boss"
+                )
+            ):
+                return mob
+        return None
+
+    def mythic_crypt_descent_blocked(
+        self, room_id, direction="down"
+    ):
+        if direction != "down":
+            return False
+        floor = mythic_crypt_floor_number(room_id)
+        if floor is None or floor not in MYTHIC_BOSS_FLOORS:
+            return False
+        return self.live_mythic_crypt_boss(room_id) is not None
+
+    def live_mythic_astral_boss(self, room_id):
+        self.refresh()
+        for mob in self.mobs.values():
+            if (
+                mob.alive
+                and mob.room_id == room_id
+                and MOB_TEMPLATES[mob.template_id].get(
+                    "mythic_astral_boss"
+                )
+            ):
+                return mob
+        return None
+
+    def mythic_astral_ascent_blocked(
+        self, room_id, direction="up"
+    ):
+        if direction != "up":
+            return False
+        floor = mythic_astral_floor_number(room_id)
+        if floor is None or floor not in MYTHIC_BOSS_FLOORS:
+            return False
+        return self.live_mythic_astral_boss(room_id) is not None
+
     def create_corpse(self, mob):
         template=MOB_TEMPLATES[mob.template_id]
         if template.get("leave_corpse", True) is False: return None
@@ -7381,7 +9104,10 @@ class World:
         guaranteed=min(len(pool),max(0,int(template.get("corpse_equipment_guaranteed",0))))
         items=random.sample(pool,guaranteed) if guaranteed else []
         if items:
-            is_crypt_boss = bool(template.get("crypt_boss"))
+            is_crypt_boss = bool(
+                template.get("crypt_boss")
+                or template.get("mythic_crypt_boss")
+            )
             items = [
                 roll_crypt_loot_item(
                     item_id, is_boss=is_crypt_boss
@@ -7493,6 +9219,11 @@ class Session:
 
     def next_auto_target(self, route):
         current = self.character.room_id
+        dungeon, _floor = profession_dungeon_floor(current)
+        if dungeon in {
+            "sunken_grotto", "ancient_forest", "alchemy_garden"
+        }:
+            return current
         if current not in route:
             return self.nearest_auto_target(route)
         index = route.index(current)
@@ -7516,7 +9247,19 @@ class Session:
                     f"{label} zatrzymane: rozpoczęła się walka."
                 )
                 return False
+            if self.mythic_entry_error(next_room):
+                return False
+            if self.profession_dungeon_access_error(next_room):
+                return False
             if self.astral_entry_blocked(next_room):
+                return False
+            if self.mythic_crypt_descent_blocked_for_player(
+                self.character.room_id, direction
+            ):
+                return False
+            if self.mythic_astral_ascent_blocked_for_player(
+                self.character.room_id, direction
+            ):
                 return False
             if self.crypt_descent_blocked_for_player(
                 self.character.room_id, direction
@@ -7588,6 +9331,67 @@ class Session:
         await self.send(
             "kop on samo idzie do najgłębszego poziomu, "
             "kopie, przebija ścianę i schodzi niżej."
+        )
+
+    def mythic_entry_error(self, target_room):
+        if target_room == "mythic_crypt_gate":
+            checkpoint = self.server.db.crypt_portal(
+                self.account_id
+            )
+            if checkpoint < CRYPT_MAX_FLOOR:
+                return (
+                    "Mityczna Krypta jest zablokowana. "
+                    f"Najpierw ukończ zwykłą Kryptę i pokonaj bossa "
+                    f"piętra {CRYPT_MAX_FLOOR}. "
+                    f"Twój checkpoint: {checkpoint}."
+                )
+
+        if target_room == "mythic_astral_gate":
+            checkpoint = self.server.db.astral_portal(
+                self.account_id
+            )
+            if checkpoint < ASTRAL_MAX_FLOOR:
+                return (
+                    "Mityczna Wieża Astralna jest zablokowana. "
+                    f"Najpierw ukończ zwykłą Wieżę i pokonaj bossa "
+                    f"poziomu {ASTRAL_MAX_FLOOR}. "
+                    f"Twój checkpoint: {checkpoint}."
+                )
+        return None
+
+    def profession_dungeon_access_error(self, target_room):
+        dungeon, floor = profession_dungeon_floor(target_room)
+        if not dungeon:
+            return None
+
+        tool_type, item_id, tool_name = PROF_DUNGEON_TOOL[dungeon]
+        if self.server.db.item_qty(self.account_id, item_id) <= 0:
+            return (
+                f"Ten loch profesyjny wymaga narzędzia: {tool_name}."
+            )
+
+        tool = self.server.db.tool(self.account_id, tool_type)
+        level = int(tool["level"])
+        required = profession_dungeon_required_tool_level(floor)
+        if level < required:
+            return (
+                f"Ten poziom lochu profesyjnego wymaga "
+                f"{tool_name} level {required}. Masz level {level}."
+            )
+        return None
+
+    def mythic_crypt_descent_blocked_for_player(
+        self, room_id, direction="down"
+    ):
+        return self.server.world.mythic_crypt_descent_blocked(
+            room_id, direction
+        )
+
+    def mythic_astral_ascent_blocked_for_player(
+        self, room_id, direction="up"
+    ):
+        return self.server.world.mythic_astral_ascent_blocked(
+            room_id, direction
         )
 
     def crypt_portal(self):
@@ -8653,6 +10457,86 @@ class Session:
             f"{active_text}."
         )
 
+    def dominant_astral_set(self):
+        counts = {}
+        for row in self.equipped_item_rows():
+            item = ITEMS.get(row["item_id"])
+            if not item:
+                continue
+            tier = item.get("astral_set_tier")
+            if tier:
+                tier = int(tier)
+                counts[tier] = counts.get(tier, 0) + 1
+
+        if not counts:
+            return 0, 0
+
+        tier, count = sorted(
+            counts.items(),
+            key=lambda entry: (entry[1], entry[0]),
+            reverse=True,
+        )[0]
+        return tier, count
+
+    def astral_set_hp_mana_multiplier(self):
+        _tier, count = self.dominant_astral_set()
+        return 1.12 if count >= 2 else 1.0
+
+    def astral_set_damage_multiplier(self):
+        _tier, count = self.dominant_astral_set()
+        return 1.15 if count >= 4 else 1.0
+
+    def astral_set_defense_multiplier(self):
+        _tier, count = self.dominant_astral_set()
+        return 1.20 if count >= 6 else 1.0
+
+    def total_set_hp_mana_multiplier(self):
+        return (
+            self.crypt_set_hp_mana_multiplier()
+            * self.astral_set_hp_mana_multiplier()
+        )
+
+    def total_set_damage_multiplier(self):
+        return (
+            self.crypt_set_damage_multiplier()
+            * self.astral_set_damage_multiplier()
+        )
+
+    def total_set_defense_multiplier(self):
+        return (
+            self.crypt_set_defense_multiplier()
+            * self.astral_set_defense_multiplier()
+        )
+
+    def astral_set_bonus_text(self):
+        tier, count = self.dominant_astral_set()
+        if not tier:
+            return "Brak aktywnego Zestawu Astralnego."
+
+        active = []
+        if count >= 2:
+            active.append(
+                "2 części: +12 procent maksymalnego HP i Many"
+            )
+        if count >= 4:
+            active.append(
+                "4 części: +15 procent wszystkich obrażeń"
+            )
+        if count >= 6:
+            active.append(
+                "6 części: +20 procent obrony fizycznej i magicznej"
+            )
+
+        if not active:
+            active_text = "brak aktywnego progu; potrzeba 2 części"
+        else:
+            active_text = "; ".join(active)
+
+        return (
+            f"Zestaw Astralny Krąg {tier}: {count} z 6 części. "
+            f"{active_text}."
+        )
+
     def effective_strength(self):
         return (
             self.character.strength
@@ -8714,7 +10598,7 @@ class Session:
             round(
                 (base + bonuses["hp"])
                 * self.character.racial_max_hp_multiplier()
-                * self.crypt_set_hp_mana_multiplier()
+                * self.total_set_hp_mana_multiplier()
             )
         )
         return max(1, value)
@@ -8732,7 +10616,7 @@ class Session:
             round(
                 (base + bonuses["mana"])
                 * self.character.racial_max_mana_multiplier()
-                * self.crypt_set_hp_mana_multiplier()
+                * self.total_set_hp_mana_multiplier()
             )
         )
         return max(0, value)
@@ -8762,7 +10646,7 @@ class Session:
                 base
                 * self.character.class_magic_defense_multiplier()
                 * self.character.racial_magic_defense_multiplier()
-                * self.crypt_set_defense_multiplier()
+                * self.total_set_defense_multiplier()
             )
         )
         return max(0, value)
@@ -8775,7 +10659,7 @@ class Session:
                 total += int(item.get("defense", 0))
         return max(
             0,
-            int(round(total * self.crypt_set_defense_multiplier()))
+            int(round(total * self.total_set_defense_multiplier()))
         )
 
     async def look(self):
@@ -9331,6 +11215,8 @@ class Session:
         return None
 
     def atlas_item_locations(self, item_id):
+        item = ITEMS.get(item_id, {})
+        item_id = item.get("base_resource_id", item_id)
         locations = []
 
         if item_id in RIVER_FISH_ATLAS:
@@ -9353,7 +11239,7 @@ class Session:
         if item_id in WOOD_DEEP_ATLAS:
             locations.append(ROOMS["deep_grove"]["name"])
 
-        if item_id in ORE_RESOURCE_IDS:
+        if item_id in ORE_STORAGE_IDS:
             locations.extend((
                 ROOMS["cave_entrance"]["name"],
                 ROOMS["cave_tunnel"]["name"],
@@ -9435,7 +11321,7 @@ class Session:
             await self.send("Działy: ryby, drewno, rudy, zioła.")
             await self.send(
                 "Użycie: atlas ryby, atlas drewno, atlas rudy, "
-                "atlas zioła albo atlas <nazwa surowca>."
+                "atlas zioła, atlas rośliny albo atlas <nazwa surowca>."
             )
             await self.send(
                 "Każdy dział pokazuje teraz pełny spis wszystkich "
@@ -9552,10 +11438,10 @@ class Session:
             )
             return
 
-        if q in ("ziola", "zioła", "herbs", "herb", "zielarstwo"):
-            await self.send("ATLAS ZIÓŁ")
+        if q in ("ziola", "zioła", "herbs", "herb", "zielarstwo", "rosliny", "rośliny", "plants"):
+            await self.send("ATLAS ZIÓŁ I ROŚLIN")
             await self.send_complete_atlas_list(
-                "WSZYSTKIE ZIOŁA",
+                "WSZYSTKIE ZIOŁA I ROŚLINY",
                 HERB_ATLAS_ALL,
                 chunk_size=15,
             )
@@ -9585,7 +11471,10 @@ class Session:
         resources = {
             item_id: ITEMS[item_id]
             for item_id in (
-                FISH_RESOURCE_IDS | ORE_RESOURCE_IDS | WOOD_RESOURCE_IDS | HERB_RESOURCE_IDS
+                FISH_STORAGE_IDS
+                | ORE_STORAGE_IDS
+                | WOOD_STORAGE_IDS
+                | HERB_STORAGE_IDS
             )
         }
         found = find_by_name(resources, query)
@@ -9598,7 +11487,7 @@ class Session:
 
         item_id, item = found
         await self.send(f"ATLAS: {item['name']}.")
-        if item_id in FISH_RESOURCE_IDS:
+        if item_id in FISH_STORAGE_IDS:
             await self.send("Typ: ryba. Trafia do Siatki na ryby.")
         elif item_id in WOOD_RESOURCE_IDS:
             await self.send("Typ: drewno. Trafia na Stos drewna.")
@@ -9616,6 +11505,290 @@ class Session:
                 f"Orientacyjny minimalny level Kilofa: "
                 f"{ORE_ATLAS_LEVELS[item_id]}."
             )
+
+    def codex_boss_ids(self):
+        result = set()
+        for mob_id, mob in MOB_TEMPLATES.items():
+            if (
+                mob_id.startswith("crypt_boss_")
+                or mob_id.startswith("astral_boss_")
+                or mob_id.startswith("mythic_crypt_boss_")
+                or mob_id.startswith("mythic_astral_boss_")
+                or mob.get("world_boss")
+                or mob.get("boss_mechanic")
+            ):
+                result.add(mob_id)
+        return result
+
+    def codex_relic_ids(self):
+        result = set()
+        for item_id, item in ITEMS.items():
+            if (
+                item.get("boss_relic_floor") is not None
+                or item_id.startswith("astral_relic_")
+                or item.get("rarity") == "unique"
+            ):
+                result.add(item_id)
+        return result
+
+    async def send_codex_name_list(
+        self, title, names, chunk_size=20
+    ):
+        names = sorted(
+            set(names),
+            key=self.normalize_description_query,
+        )
+        await self.send(
+            f"{title}. Łącznie: {len(names)}."
+        )
+        if not names:
+            await self.send("Brak wpisów.")
+            return
+
+        chunk_size = max(1, int(chunk_size))
+        total = (
+            len(names) + chunk_size - 1
+        ) // chunk_size
+        for index in range(0, len(names), chunk_size):
+            part = index // chunk_size + 1
+            await self.send(
+                f"Część {part} z {total}: "
+                + ", ".join(
+                    names[index:index + chunk_size]
+                )
+                + "."
+            )
+
+    async def show_world_codex(self, query=""):
+        q = self.normalize_description_query(query)
+        bosses = self.codex_boss_ids()
+        normal_mobs = set(MOB_TEMPLATES) - bosses
+        relics = self.codex_relic_ids()
+
+        if not q:
+            await self.send("CODEX ŚWIATA")
+            await self.send(
+                f"Ryby: {len(FISH_RESOURCE_IDS)} gatunków bazowych. "
+                f"Rzadkie warianty ryb: "
+                f"{len(RARE_FISH_VARIANT_IDS)}."
+            )
+            await self.send(
+                f"Rośliny i zioła: {len(HERB_RESOURCE_IDS)} bazowych. "
+                f"Rzadkie warianty roślin: "
+                f"{len(RARE_HERB_VARIANT_IDS)}."
+            )
+            await self.send(
+                f"Drewno: {len(WOOD_RESOURCE_IDS)} bazowych rodzajów. "
+                f"Rzadkie warianty drewna: "
+                f"{len(RARE_WOOD_VARIANT_IDS)}."
+            )
+            await self.send(
+                f"Rudy i minerały: {len(ORE_RESOURCE_IDS)}. "
+                f"Rodzaje żył: {len(MINING_VEINS)}."
+            )
+            await self.send(
+                f"Zwykłe moby: {len(normal_mobs)}. "
+                f"Bossowie: {len(bosses)}. "
+                f"Relikty i unikalne trofea: {len(relics)}."
+            )
+            await self.send(
+                "Działy: codex ryby, codex rośliny, codex drewno, "
+                "codex rudy, codex warianty, codex moby, "
+                "codex bossowie, codex relikty."
+            )
+            await self.send(
+                "Możesz też wpisać codex <nazwa>, aby wyszukać "
+                "konkretny zasób, mob, bossa albo relikt."
+            )
+            return
+
+        if q in ("ryby", "ryba", "fish"):
+            await self.send_complete_atlas_list(
+                "CODEX RYB - GATUNKI BAZOWE",
+                FISH_RESOURCE_IDS,
+                chunk_size=20,
+            )
+            await self.send(
+                "Rzadkie warianty każdego gatunku: "
+                "Albinos x2 wartości, Złoty okaz x4, "
+                "Olbrzymi okaz x3, Pradawny okaz x8."
+            )
+            await self.send(
+                "Szansa na rzadki wariant rośnie wraz z levelem "
+                "Wędki: około 8 do 12 procent."
+            )
+            return
+
+        if q in (
+            "rosliny", "rośliny", "ziola", "zioła",
+            "herbs", "plants",
+        ):
+            await self.send_complete_atlas_list(
+                "CODEX ROŚLIN I ZIÓŁ - BAZOWE",
+                HERB_RESOURCE_IDS,
+                chunk_size=20,
+            )
+            await self.send(
+                "Rzadkie warianty: Bujna x2 wartości, "
+                "Lśniąca x4, Pradawna x6, Legendarna x10."
+            )
+            await self.send(
+                "Szansa na wariant rośnie z levelem Sierpa."
+            )
+            return
+
+        if q in ("drewno", "wood", "drzewa", "drzewo"):
+            await self.send_complete_atlas_list(
+                "CODEX DREWNA - BAZOWE",
+                WOOD_RESOURCE_IDS,
+                chunk_size=20,
+            )
+            await self.send(
+                "Rzadkie warianty drzew: Bujne x2 wartości, "
+                "Pradawne x4, Kryształowe x6, Legendarne x10."
+            )
+            await self.send(
+                "Szansa na wariant rośnie z levelem Piły."
+            )
+            return
+
+        if q in ("rudy", "ruda", "ore", "mineral", "mineraly"):
+            await self.send_complete_atlas_list(
+                "CODEX RUD I MINERAŁÓW",
+                ORE_RESOURCE_IDS,
+                chunk_size=20,
+            )
+            await self.send(
+                "Rodzaje żył: Zwykła x1, Bogata x2, "
+                "Kryształowa x3, Legendarna x5 urobku."
+            )
+            await self.send(
+                "Im wyższy level Kilofa, tym większa szansa na "
+                "Bogate, Kryształowe i Legendarne żyły."
+            )
+            return
+
+        if q in ("warianty", "rare", "rzadkie"):
+            await self.send("CODEX RZADKICH WARIANTÓW")
+            await self.send(
+                "Ryby: Albinos, Złoty okaz, Olbrzymi okaz, "
+                "Pradawny okaz."
+            )
+            await self.send(
+                "Drzewa i drewno: Bujne, Pradawne, "
+                "Kryształowe, Legendarne."
+            )
+            await self.send(
+                "Rośliny: Bujna, Lśniąca, Pradawna, Legendarna."
+            )
+            await self.send(
+                "Górnictwo: Zwykła, Bogata, Kryształowa "
+                "i Legendarna żyła."
+            )
+            return
+
+        if q in ("moby", "mob", "potwory", "przeciwnicy"):
+            await self.send_codex_name_list(
+                "CODEX MOBÓW",
+                (
+                    MOB_TEMPLATES[mob_id]["name"]
+                    for mob_id in normal_mobs
+                ),
+                chunk_size=20,
+            )
+            return
+
+        if q in ("bossowie", "boss", "bosses"):
+            await self.send_codex_name_list(
+                "CODEX BOSSÓW",
+                (
+                    MOB_TEMPLATES[mob_id]["name"]
+                    for mob_id in bosses
+                ),
+                chunk_size=20,
+            )
+            return
+
+        if q in ("relikty", "relikt", "relic", "relics"):
+            await self.send_codex_name_list(
+                "CODEX RELIKTÓW I TROFEÓW",
+                (
+                    ITEMS[item_id]["name"]
+                    for item_id in relics
+                ),
+                chunk_size=20,
+            )
+            return
+
+        searchable_items = {
+            item_id: item
+            for item_id, item in ITEMS.items()
+            if (
+                item_id in FISH_STORAGE_IDS
+                or item_id in ORE_STORAGE_IDS
+                or item_id in WOOD_STORAGE_IDS
+                or item_id in HERB_STORAGE_IDS
+                or item_id in relics
+            )
+        }
+        found = find_by_name(searchable_items, query)
+        if found:
+            item_id, item = found
+            await self.send(f"CODEX: {item['name']}.")
+            await self.send(item.get("desc", "Brak opisu."))
+            if item.get("rare_resource_variant"):
+                base_id = item.get("base_resource_id")
+                base_name = ITEMS.get(
+                    base_id, {"name": base_id}
+                )["name"]
+                await self.send(
+                    f"Rzadki wariant: "
+                    f"{item.get('rare_resource_label')}. "
+                    f"Bazowy zasób: {base_name}. "
+                    f"Mnożnik wartości: x"
+                    f"{item.get('rare_value_multiplier', 1)}."
+                )
+            places = self.atlas_item_locations(item_id)
+            if places:
+                await self.send(
+                    "Występowanie: "
+                    + ", ".join(places)
+                    + "."
+                )
+            return
+
+        found_mob = find_by_name(MOB_TEMPLATES, query)
+        if found_mob:
+            mob_id, mob = found_mob
+            kind = (
+                "boss"
+                if mob_id in bosses
+                else "zwykły mob"
+            )
+            dtype = (
+                "magiczne"
+                if mob.get("damage_type") == "magic"
+                else "fizyczne"
+            )
+            await self.send(
+                f"CODEX: {mob['name']}. Typ: {kind}."
+            )
+            await self.send(
+                f"HP: {mob.get('max_hp', 0)}. "
+                f"Bazowe obrażenia: {mob.get('damage', 0)}. "
+                f"Typ obrażeń: {dtype}."
+            )
+            if mob.get("boss_mechanic_text"):
+                await self.send(
+                    "Mechanika: "
+                    + mob["boss_mechanic_text"]
+                )
+            return
+
+        await self.send(
+            "Codex nie znalazł takiego wpisu. "
+            "Wpisz codex bez argumentu, aby usłyszeć działy."
+        )
 
     async def describe_target(self, query):
         q = query.strip()
@@ -9852,6 +12025,7 @@ class Session:
                 f"Moc czarów: {self.spell_power()}."
             )
         await self.send(self.crypt_set_bonus_text())
+        await self.send(self.astral_set_bonus_text())
         await self.send(
             f"Waluta: {c.silver} srebra, {c.gold} złota, {c.mithril} mithrilu. "
             f"Śmierci: {c.deaths}."
@@ -9937,6 +12111,18 @@ class Session:
         if not target:
             await self.send("Nie możesz iść w tym kierunku.")
             return
+        mythic_error = self.mythic_entry_error(target)
+        if mythic_error:
+            await self.send(mythic_error)
+            return
+
+        profession_error = self.profession_dungeon_access_error(
+            target
+        )
+        if profession_error:
+            await self.send(profession_error)
+            return
+
         if self.astral_entry_blocked(target):
             await self.send(
                 f"Wieża Astralna wymaga Soul Level "
@@ -9954,6 +12140,38 @@ class Session:
                 f"{MINE_WALL_HITS_REQUIRED}. Użyj kop albo kop on."
             )
             return
+        if self.mythic_crypt_descent_blocked_for_player(
+            self.character.room_id, direction
+        ):
+            boss = self.server.world.live_mythic_crypt_boss(
+                self.character.room_id
+            )
+            boss_name = (
+                MOB_TEMPLATES[boss.template_id]["name"]
+                if boss else "mityczny boss Krypty"
+            )
+            await self.send(
+                f"Nie możesz zejść niżej. Drogę blokuje "
+                f"{boss_name}."
+            )
+            return
+
+        if self.mythic_astral_ascent_blocked_for_player(
+            self.character.room_id, direction
+        ):
+            boss = self.server.world.live_mythic_astral_boss(
+                self.character.room_id
+            )
+            boss_name = (
+                MOB_TEMPLATES[boss.template_id]["name"]
+                if boss else "mityczny boss Wieży Astralnej"
+            )
+            await self.send(
+                f"Nie możesz wejść wyżej. Drogę blokuje "
+                f"{boss_name}."
+            )
+            return
+
         if self.crypt_descent_blocked_for_player(
             self.character.room_id, direction
         ):
@@ -10801,11 +13019,19 @@ class Session:
 
         await self.send("Możesz wymieniać na: gold albo mithril.")
 
-    def profession_xp_to_next(self, level):
-        if level >= PROFESSION_MAX_LEVEL:
+    def profession_xp_to_next(self, level, profession=None):
+        max_level = (
+            profession_max_level(profession)
+            if profession is not None
+            else PROFESSION_MAX_LEVEL
+        )
+        if level >= max_level:
             return 0
         base_requirement = 80 + (level - 1) * 35
-        return base_requirement * PROFESSION_XP_REQUIREMENT_MULTIPLIER
+        return (
+            base_requirement
+            * PROFESSION_XP_REQUIREMENT_MULTIPLIER
+        )
 
     def tool_xp_to_next(self, level, tool_type=None):
         max_level = tool_max_level(tool_type)
@@ -10856,32 +13082,44 @@ class Session:
             * PROFESSION_XP_GAIN_MULTIPLIER
         )
 
-        prow = self.server.db.profession(self.account_id, profession)
+        prow = self.server.db.profession(
+            self.account_id, profession
+        )
+        profession_cap = profession_max_level(profession)
         plevel = int(prow["level"])
-        old_profession_rank = profession_rank(plevel)
+        old_profession_rank = profession_rank(
+            plevel, profession
+        )
         pxp = int(prow["xp"]) + actual_prof_xp
         actions = int(prow["actions"]) + 1
         messages = [f"{profession}: +{actual_prof_xp} XP."]
 
-        while plevel < PROFESSION_MAX_LEVEL:
-            needed = self.profession_xp_to_next(plevel)
+        while plevel < profession_cap:
+            needed = self.profession_xp_to_next(
+                plevel, profession
+            )
             if pxp < needed:
                 break
             pxp -= needed
             plevel += 1
             messages.append(f"{profession} osiąga poziom {plevel}.")
-        if plevel >= PROFESSION_MAX_LEVEL:
-            plevel = PROFESSION_MAX_LEVEL
+        if plevel >= profession_cap:
+            plevel = profession_cap
             pxp = 0
         self.server.db.save_profession(
             self.account_id, profession, plevel, pxp, actions
         )
 
-        new_profession_rank = profession_rank(plevel)
+        new_profession_rank = profession_rank(
+            plevel, profession
+        )
+        max_profession_rank = profession_max_rank(
+            profession
+        )
         if new_profession_rank > old_profession_rank:
             messages.append(
                 f"{profession}: awansujesz na Rangę {new_profession_rank} "
-                f"z {PROFESSION_MAX_RANK}: "
+                f"z {max_profession_rank}: "
                 f"{profession_rank_name(profession, plevel)}."
             )
 
@@ -10984,22 +13222,22 @@ class Session:
 
     def store_profession_resource(self, item_id, quantity=1):
         quantity = max(1, int(quantity))
-        if item_id in FISH_RESOURCE_IDS:
+        if item_id in FISH_STORAGE_IDS:
             self.server.db.add_storage_item(
                 self.account_id, "net", item_id, quantity
             )
             return "net"
-        if item_id in ORE_RESOURCE_IDS:
+        if item_id in ORE_STORAGE_IDS:
             self.server.db.add_storage_item(
                 self.account_id, "bag", item_id, quantity
             )
             return "bag"
-        if item_id in WOOD_RESOURCE_IDS:
+        if item_id in WOOD_STORAGE_IDS:
             self.server.db.add_storage_item(
                 self.account_id, "woodpile", item_id, quantity
             )
             return "woodpile"
-        if item_id in HERB_RESOURCE_IDS:
+        if item_id in HERB_STORAGE_IDS:
             self.server.db.add_storage_item(
                 self.account_id, "herbbag", item_id, quantity
             )
@@ -11031,23 +13269,23 @@ class Session:
     def category_ids(self, query, container=None):
         q = query.strip().lower()
         if q in ("fish", "ryba", "ryby"):
-            return set(FISH_RESOURCE_IDS)
+            return set(FISH_STORAGE_IDS)
         if q in ("ore", "ruda", "rudy"):
-            return set(ORE_RESOURCE_IDS)
+            return set(ORE_STORAGE_IDS)
         if q in ("wood", "drewno", "pnie", "pień", "pien"):
-            return set(WOOD_RESOURCE_IDS)
+            return set(WOOD_STORAGE_IDS)
         if q in ("herb", "herbs", "ziolo", "zioło", "ziola", "zioła"):
-            return set(HERB_RESOURCE_IDS)
+            return set(HERB_STORAGE_IDS)
         if container == "net":
-            allowed = FISH_RESOURCE_IDS
+            allowed = FISH_STORAGE_IDS
         elif container == "bag":
-            allowed = ORE_RESOURCE_IDS
+            allowed = ORE_STORAGE_IDS
         elif container == "woodpile":
-            allowed = WOOD_RESOURCE_IDS
+            allowed = WOOD_STORAGE_IDS
         elif container == "herbbag":
-            allowed = HERB_RESOURCE_IDS
+            allowed = HERB_STORAGE_IDS
         else:
-            allowed = FISH_RESOURCE_IDS | ORE_RESOURCE_IDS | WOOD_RESOURCE_IDS | HERB_RESOURCE_IDS
+            allowed = FISH_STORAGE_IDS | ORE_RESOURCE_IDS | WOOD_RESOURCE_IDS | HERB_RESOURCE_IDS
 
         found = find_by_name(
             {item_id: ITEMS[item_id] for item_id in allowed},
@@ -11058,25 +13296,25 @@ class Session:
     def profession_storage_definition(self, container):
         definitions = {
             "net": {
-                "ids": FISH_RESOURCE_IDS,
+                "ids": FISH_STORAGE_IDS,
                 "count_label": "ryb",
                 "type_label": "gatunków",
                 "value_label": "całej siatki",
             },
             "bag": {
-                "ids": ORE_RESOURCE_IDS,
+                "ids": ORE_STORAGE_IDS,
                 "count_label": "rud",
                 "type_label": "rodzajów",
                 "value_label": "całej sakwy",
             },
             "woodpile": {
-                "ids": WOOD_RESOURCE_IDS,
+                "ids": WOOD_STORAGE_IDS,
                 "count_label": "sztuk drewna",
                 "type_label": "rodzajów",
                 "value_label": "całego stosu drewna",
             },
             "herbbag": {
-                "ids": HERB_RESOURCE_IDS,
+                "ids": HERB_STORAGE_IDS,
                 "count_label": "ziół",
                 "type_label": "rodzajów",
                 "value_label": "całej torby zielarskiej",
@@ -11382,7 +13620,10 @@ class Session:
             * PROFESSION_XP_GAIN_MULTIPLIER
         )
 
-        prow = self.server.db.profession(self.account_id, profession)
+        prow = self.server.db.profession(
+            self.account_id, profession
+        )
+        profession_cap = profession_max_level(profession)
         plevel = int(prow["level"])
         pxp = int(prow["xp"]) + actual_profession_xp
         actions = int(prow["actions"])
@@ -11391,16 +13632,18 @@ class Session:
             f"{profession}: nagroda +{actual_profession_xp} XP."
         )
 
-        while plevel < PROFESSION_MAX_LEVEL:
-            needed = self.profession_xp_to_next(plevel)
+        while plevel < profession_cap:
+            needed = self.profession_xp_to_next(
+                plevel, profession
+            )
             if pxp < needed:
                 break
             pxp -= needed
             plevel += 1
             await self.send(f"{profession} osiąga poziom {plevel}.")
 
-        if plevel >= PROFESSION_MAX_LEVEL:
-            plevel = PROFESSION_MAX_LEVEL
+        if plevel >= profession_cap:
+            plevel = profession_cap
             pxp = 0
 
         self.server.db.save_profession(
@@ -11676,39 +13919,21 @@ class Session:
                         "Auto-łowienie zatrzymane: nie masz Wędki."
                     )
                     break
-
                 if self.character.room_id not in FISHING_ROOMS:
-                    target = self.nearest_auto_target(
-                        AUTO_FISHING_ROUTE
+                    await self.send(
+                        "Auto-łowienie zatrzymane: nie stoisz przy łowisku."
                     )
-                    if target is None or not await self.auto_walk_to_target(
-                        target,
-                        "Auto-łowienie idzie do łowiska",
-                        "auto_fishing",
-                    ):
-                        break
-                    continue
-
-                await self.fish(from_auto=True)
-                if not self.auto_fishing or self.closed:
                     break
 
-                target = self.next_auto_target(
-                    AUTO_FISHING_ROUTE
-                )
-                if target != self.character.room_id:
-                    if not await self.auto_walk_to_target(
-                        target,
-                        "Auto-łowienie zmienia łowisko",
-                        "auto_fishing",
-                    ):
-                        break
+                await self.fish(from_auto=True)
+
         except asyncio.CancelledError:
             pass
         finally:
             self.auto_fishing = False
             if self.auto_fishing_task is asyncio.current_task():
                 self.auto_fishing_task = None
+
 
     async def set_auto_fishing(self, enabled):
         if enabled:
@@ -11728,6 +13953,13 @@ class Session:
                 )
                 return
 
+            if self.character.room_id not in FISHING_ROOMS:
+                await self.send(
+                    "Auto-łowienie możesz włączyć tylko przy łowisku. "
+                    "Automat nie chodzi sam."
+                )
+                return
+
             if self.auto_mining or self.auto_mining_task:
                 await self.stop_auto_mining(announce=False)
             if self.auto_woodcutting or self.auto_woodcutting_task:
@@ -11740,8 +13972,8 @@ class Session:
                 self.auto_fishing_loop()
             )
             await self.send(
-                "Auto-łowienie włączone. Samo idzie do łowiska, "
-                "chodzi między łowiskami i łowi. "
+                "Auto-łowienie włączone. Łowi tylko w aktualnym miejscu "
+                "i nie chodzi samodzielnie. "
                 "Wpisz low off albo fish off, aby je zatrzymać."
             )
             return
@@ -11834,6 +14066,23 @@ class Session:
                     break
 
                 old = self.character.room_id
+                mythic_error = self.mythic_entry_error(next_room)
+                if mythic_error:
+                    await self.send(
+                        "Prowadzenie zatrzymane. " + mythic_error
+                    )
+                    break
+
+                profession_error = (
+                    self.profession_dungeon_access_error(next_room)
+                )
+                if profession_error:
+                    await self.send(
+                        "Prowadzenie zatrzymane. "
+                        + profession_error
+                    )
+                    break
+
                 if self.astral_entry_blocked(next_room):
                     await self.send(
                         f"Prowadzenie zatrzymane. Wieża Astralna wymaga "
@@ -11847,6 +14096,22 @@ class Session:
                         f"blokuje zejście. Postęp "
                         f"{progress['wall_hits']} z "
                         f"{MINE_WALL_HITS_REQUIRED}."
+                    )
+                    break
+                if self.mythic_crypt_descent_blocked_for_player(
+                    old, direction
+                ):
+                    await self.send(
+                        "Prowadzenie zatrzymane. "
+                        "Mityczny boss Krypty blokuje zejście."
+                    )
+                    break
+                if self.mythic_astral_ascent_blocked_for_player(
+                    old, direction
+                ):
+                    await self.send(
+                        "Prowadzenie zatrzymane. "
+                        "Mityczny boss Wieży blokuje drogę w górę."
                     )
                     break
                 if self.crypt_descent_blocked_for_player(old, direction):
@@ -11933,43 +14198,21 @@ class Session:
                         "Auto-kopanie zatrzymane: nie masz Kilofa."
                     )
                     break
-
-                progress = self.mine_progress()
-                floor = mine_floor_number(
-                    self.character.room_id
-                )
-
-                if floor is None:
-                    target = mine_floor_id(
-                        progress["max_floor_unlocked"]
+                if self.character.room_id not in MINING_ROOMS:
+                    await self.send(
+                        "Auto-kopanie zatrzymane: nie stoisz w miejscu wydobycia."
                     )
-                    if not await self.auto_walk_to_target(
-                        target,
-                        "Auto-kopanie idzie w głąb kopalni",
-                        "auto_mining",
-                    ):
-                        break
-                    continue
-
-                if floor < progress["max_floor_unlocked"]:
-                    target = mine_floor_id(
-                        progress["max_floor_unlocked"]
-                    )
-                    if not await self.auto_walk_to_target(
-                        target,
-                        "Auto-kopanie schodzi do odblokowanego poziomu",
-                        "auto_mining",
-                    ):
-                        break
-                    continue
+                    break
 
                 await self.mine(from_auto=True)
+
         except asyncio.CancelledError:
             pass
         finally:
             self.auto_mining = False
             if self.auto_mining_task is asyncio.current_task():
                 self.auto_mining_task = None
+
 
     async def set_auto_mining(self, enabled):
         if enabled:
@@ -11989,6 +14232,13 @@ class Session:
                 )
                 return
 
+            if self.character.room_id not in MINING_ROOMS:
+                await self.send(
+                    "Auto-kopanie możesz włączyć tylko w miejscu wydobycia. "
+                    "Automat nie chodzi sam."
+                )
+                return
+
             if self.auto_fishing or self.auto_fishing_task:
                 await self.stop_auto_fishing(announce=False)
             if self.auto_woodcutting or self.auto_woodcutting_task:
@@ -12001,9 +14251,8 @@ class Session:
                 self.auto_mining_loop()
             )
             await self.send(
-                "Auto-kopanie włączone. Samo idzie do najgłębszego "
-                "odblokowanego poziomu, kopie, przebija ściany i "
-                "schodzi aż do poziomu 200. "
+                "Auto-kopanie włączone. Kopie tylko w aktualnym miejscu "
+                "i nie chodzi ani nie schodzi samodzielnie. "
                 "Wpisz kop off albo mine off, aby je zatrzymać."
             )
             return
@@ -12058,39 +14307,21 @@ class Session:
                         "Auto-Drwalstwo zatrzymane: nie masz Piły."
                     )
                     break
-
                 if self.character.room_id not in WOODCUTTING_ROOMS:
-                    target = self.nearest_auto_target(
-                        AUTO_WOODCUTTING_ROUTE
+                    await self.send(
+                        "Auto-Drwalstwo zatrzymane: nie stoisz przy drzewach."
                     )
-                    if target is None or not await self.auto_walk_to_target(
-                        target,
-                        "Auto-Drwalstwo idzie do drzew",
-                        "auto_woodcutting",
-                    ):
-                        break
-                    continue
-
-                await self.woodcut(from_auto=True)
-                if not self.auto_woodcutting or self.closed:
                     break
 
-                target = self.next_auto_target(
-                    AUTO_WOODCUTTING_ROUTE
-                )
-                if target != self.character.room_id:
-                    if not await self.auto_walk_to_target(
-                        target,
-                        "Auto-Drwalstwo zmienia miejsce",
-                        "auto_woodcutting",
-                    ):
-                        break
+                await self.woodcut(from_auto=True)
+
         except asyncio.CancelledError:
             pass
         finally:
             self.auto_woodcutting = False
             if self.auto_woodcutting_task is asyncio.current_task():
                 self.auto_woodcutting_task = None
+
 
     async def set_auto_woodcutting(self, enabled):
         if enabled:
@@ -12112,6 +14343,13 @@ class Session:
                 )
                 return
 
+            if self.character.room_id not in WOODCUTTING_ROOMS:
+                await self.send(
+                    "Auto-Drwalstwo możesz włączyć tylko przy drzewach. "
+                    "Automat nie chodzi sam."
+                )
+                return
+
             if self.auto_fishing or self.auto_fishing_task:
                 await self.stop_auto_fishing(announce=False)
             if self.auto_mining or self.auto_mining_task:
@@ -12124,8 +14362,8 @@ class Session:
                 self.auto_woodcutting_loop()
             )
             await self.send(
-                "Auto-Drwalstwo włączone. Samo idzie do drzew, "
-                "chodzi między terenami Drwalstwa i ścina. "
+                "Auto-Drwalstwo włączone. Ścina tylko w aktualnym miejscu "
+                "i nie chodzi samodzielnie. "
                 "Wpisz tnij off albo woodcut off, aby je zatrzymać."
             )
             return
@@ -12182,39 +14420,21 @@ class Session:
                         "Auto-Zielarstwo zatrzymane: nie masz Sierpa Zielarskiego."
                     )
                     break
-
                 if self.character.room_id not in HERBALISM_ROOMS:
-                    target = self.nearest_auto_target(
-                        AUTO_HERBALISM_ROUTE
+                    await self.send(
+                        "Auto-Zielarstwo zatrzymane: nie stoisz w miejscu z ziołami."
                     )
-                    if target is None or not await self.auto_walk_to_target(
-                        target,
-                        "Auto-Zielarstwo idzie do ziół",
-                        "auto_herbalism",
-                    ):
-                        break
-                    continue
-
-                await self.gather_herb(from_auto=True)
-                if not self.auto_herbalism or self.closed:
                     break
 
-                target = self.next_auto_target(
-                    AUTO_HERBALISM_ROUTE
-                )
-                if target != self.character.room_id:
-                    if not await self.auto_walk_to_target(
-                        target,
-                        "Auto-Zielarstwo zmienia teren",
-                        "auto_herbalism",
-                    ):
-                        break
+                await self.gather_herb(from_auto=True)
+
         except asyncio.CancelledError:
             pass
         finally:
             self.auto_herbalism = False
             if self.auto_herbalism_task is asyncio.current_task():
                 self.auto_herbalism_task = None
+
 
     async def set_auto_herbalism(self, enabled):
         if enabled:
@@ -12236,6 +14456,13 @@ class Session:
                 )
                 return
 
+            if self.character.room_id not in HERBALISM_ROOMS:
+                await self.send(
+                    "Auto-Zielarstwo możesz włączyć tylko w miejscu z ziołami. "
+                    "Automat nie chodzi sam."
+                )
+                return
+
             if self.auto_fishing or self.auto_fishing_task:
                 await self.stop_auto_fishing(announce=False)
             if self.auto_mining or self.auto_mining_task:
@@ -12248,8 +14475,8 @@ class Session:
                 self.auto_herbalism_loop()
             )
             await self.send(
-                "Auto-Zielarstwo włączone. Samo idzie do ziół, "
-                "chodzi między terenami i zbiera. "
+                "Auto-Zielarstwo włączone. Zbiera tylko w aktualnym miejscu "
+                "i nie chodzi samodzielnie. "
                 "Wpisz zbieraj off, aby je zatrzymać."
             )
             return
@@ -12264,7 +14491,7 @@ class Session:
         )
 
     async def show_profession_ranks(self):
-        for profession in ("Wędkarstwo", "Górnictwo", "Drwalstwo", "Zielarstwo", "Alchemia"):
+        for profession in ("Wędkarstwo", "Górnictwo", "Drwalstwo", "Zielarstwo", "Alchemia", "Kowalstwo"):
             await self.send(f"RANGI: {profession.upper()}")
             for rank, minimum in enumerate(PROFESSION_RANK_THRESHOLDS, 1):
                 if rank < PROFESSION_MAX_RANK:
@@ -12285,20 +14512,41 @@ class Session:
 
     async def show_professions(self):
         await self.send("PROFESJE")
-        for name in ("Wędkarstwo", "Górnictwo", "Drwalstwo", "Zielarstwo", "Alchemia"):
-            row = self.server.db.profession(self.account_id, name)
+        for name in (
+            "Wędkarstwo", "Górnictwo", "Drwalstwo",
+            "Zielarstwo", "Alchemia", "Kowalstwo",
+        ):
+            row = self.server.db.profession(
+                self.account_id, name
+            )
             level = int(row["level"])
-            rank = profession_rank(level)
+            max_level = profession_max_level(name)
+            thresholds = profession_rank_thresholds(name)
+            max_rank = profession_max_rank(name)
+            rank = profession_rank(level, name)
             rank_name = profession_rank_name(name, level)
-            if rank < PROFESSION_MAX_RANK:
-                next_text = f"Następna ranga {rank + 1} od levelu {PROFESSION_RANK_THRESHOLDS[rank]}."
+
+            if rank < max_rank:
+                next_text = (
+                    f"Następna ranga {rank + 1} od levelu "
+                    f"{thresholds[rank]}."
+                )
             else:
                 next_text = "Ranga maksymalna."
-            xp_text = "maksimum" if level >= PROFESSION_MAX_LEVEL else f"{row['xp']} z {self.profession_xp_to_next(level)}"
+
+            xp_text = (
+                "maksimum"
+                if level >= max_level
+                else (
+                    f"{row['xp']} z "
+                    f"{self.profession_xp_to_next(level, name)}"
+                )
+            )
             await self.send(
-                f"{name}: level {level} z {PROFESSION_MAX_LEVEL}. "
-                f"Ranga {rank} z {PROFESSION_MAX_RANK}: {rank_name}. "
-                f"XP: {xp_text}. Akcje: {row['actions']}. {next_text}"
+                f"{name}: level {level} z {max_level}. "
+                f"Ranga {rank} z {max_rank}: {rank_name}. "
+                f"XP: {xp_text}. Akcje: {row['actions']}. "
+                f"{next_text}"
             )
 
 
@@ -12681,24 +14929,24 @@ class Session:
             elif tool_level < 40:
                 base_pool = (
                     "mahi_mahi", "albacore", "wahoo",
-                    "barracuda", "tuna", "sailfish",
+                    "barracuda", "sailfish",
                 )
             elif tool_level < 60:
                 base_pool = (
-                    "tuna", "albacore", "bigeye_tuna", "wahoo",
+                    "albacore", "bigeye_tuna", "wahoo",
                     "barracuda", "cobia", "sailfish",
                     "swordfish", "reef_shark",
                 )
             elif tool_level < 80:
                 base_pool = (
-                    "tuna", "bigeye_tuna", "cobia", "amberjack",
+                    "bigeye_tuna", "cobia", "amberjack",
                     "swordfish", "bluefin_tuna", "reef_shark",
                     "mako_shark", "hammerhead_shark", "ocean_sunfish",
                 )
             else:
                 base_pool = unlocked_resource_pool(
                     (
-                        "bluefin_tuna", "bigeye_tuna", "amberjack",
+                        "tuna", "bluefin_tuna", "bigeye_tuna", "amberjack",
                         "ocean_sunfish", "mako_shark", "tiger_shark",
                         "hammerhead_shark", "great_white_shark",
                         "ghost_marlin", "swordfish",
@@ -12714,6 +14962,13 @@ class Session:
 
 
     def fishing_loot(self, tool_level, habitat="river"):
+        dungeon, dungeon_floor = profession_dungeon_floor(
+            self.character.room_id
+        )
+        if dungeon == "sunken_grotto":
+            tool_level = min(
+                int(tool_level), dungeon_floor * 10
+            )
         pool = self.fishing_available_pool(tool_level, habitat)
         if not pool:
             return None
@@ -12786,6 +15041,9 @@ class Session:
         tool_level = max(1, int(tool_level))
         room_id = room_id or self.character.room_id
         floor = mine_floor_number(room_id)
+        dungeon, dungeon_floor = profession_dungeon_floor(room_id)
+        if dungeon == "crystal_mine":
+            floor = min(200, dungeon_floor * 10)
 
         if floor is None:
             r = random.random()
@@ -12857,6 +15115,12 @@ class Session:
             if random.random() < mithril_chance:
                 return "__mithril_currency__"
 
+        world_ore_pool = unlocked_world_ore_ids(
+            tool_level, floor
+        )
+        if world_ore_pool and random.random() < 0.45:
+            return random.choice(world_ore_pool)
+
         if effective_depth < 10:
             pool = ("stone_chunk", "copper_ore")
         elif effective_depth < 25:
@@ -12883,6 +15147,24 @@ class Session:
 
     def woodcutting_loot(self, tool_level, room_id=None):
         room_id = room_id or self.character.room_id
+        tool_level = max(1, int(tool_level))
+        dungeon, dungeon_floor = profession_dungeon_floor(room_id)
+        if dungeon == "ancient_forest":
+            tool_level = min(tool_level, dungeon_floor * 10)
+
+        if room_id in {"lumberjack_camp", "meadow"}:
+            world_group = "beginner"
+        elif room_id in {"whisper_grove", "old_road"}:
+            world_group = "forest"
+        else:
+            world_group = "deep"
+
+        world_pool = unlocked_world_ids(
+            WORLD_WOOD_UNLOCKS[world_group],
+            tool_level,
+        )
+        if world_pool and random.random() < 0.45:
+            return random.choice(world_pool)
 
         # Obóz Drwala i Łąka: gatunki lekkie i pospolite.
         if room_id in {"lumberjack_camp", "meadow"}:
@@ -12926,6 +15208,31 @@ class Session:
 
     def herbalism_loot(self, tool_level, room_id=None):
         room_id = room_id or self.character.room_id
+        tool_level = max(1, int(tool_level))
+        dungeon, dungeon_floor = profession_dungeon_floor(room_id)
+        if dungeon == "alchemy_garden":
+            tool_level = min(tool_level, dungeon_floor * 10)
+
+        if room_id in {
+            "herbalist_hut", "meadow",
+            "mint_meadow", "flower_meadow",
+        }:
+            world_group = "meadow"
+        elif room_id in {
+            "riverbank", "lake_shore", "lakeside_meadow",
+        }:
+            world_group = "water"
+        elif room_id in {"whisper_grove", "old_road"}:
+            world_group = "forest"
+        else:
+            world_group = "deep"
+
+        world_pool = unlocked_world_ids(
+            WORLD_HERB_UNLOCKS[world_group],
+            tool_level,
+        )
+        if world_pool and random.random() < 0.45:
+            return random.choice(world_pool)
         if room_id in {"herbalist_hut", "meadow"}:
             if tool_level < 15:
                 return random.choice(("nettle", "chamomile", "mint"))
@@ -13048,11 +15355,22 @@ class Session:
         await asyncio.sleep(action_seconds)
 
         habitat = self.fishing_habitat()
-        item_id = self.fishing_loot(tool_level, habitat=habitat)
+        base_item_id = self.fishing_loot(
+            tool_level, habitat=habitat
+        )
+        item_id = roll_fish_variant(
+            base_item_id, tool_level
+        )
         self.store_profession_resource(item_id, 1)
         item = ITEMS[item_id]
+        if item_id != base_item_id:
+            await self.send(
+                f"RZADKI WARIANT RYBY: "
+                f"{item.get('rare_resource_label', 'rzadki')}."
+            )
         await self.send(
-            f"Łowisz: {item['name']}. Połów trafia do Siatki na ryby."
+            f"Łowisz: {item['name']}. "
+            "Połów trafia do Siatki na ryby."
         )
 
         current_tier = tool_tier(tool_level)
@@ -13122,10 +15440,16 @@ class Session:
                 "Trafiasz na żyłę czystego mithrilu! Wydobywasz 1 mithril bezpośrednio do portfela."
             )
         else:
-            self.store_profession_resource(item_id, 1)
+            vein = roll_mining_vein(tool_level)
+            vein_quantity = int(vein["quantity"])
+            self.store_profession_resource(
+                item_id, vein_quantity
+            )
             item = ITEMS[item_id]
             await self.send(
-                f"Wydobywasz: {item['name']}. Urobek trafia do Sakwy górniczej."
+                f"ŻYŁA: {vein['name']}. "
+                f"Wydobywasz: {item['name']} x{vein_quantity}. "
+                "Urobek trafia do Sakwy górniczej."
             )
 
             current_tier = tool_tier(tool_level)
@@ -13174,10 +15498,9 @@ class Session:
                     f"Odblokowano Kopalnię - poziom {unlocked}."
                 )
                 if from_auto and self.auto_mining:
-                    await self.auto_walk_to_target(
-                        mine_floor_id(unlocked),
-                        "Auto-kopanie schodzi niżej",
-                        "auto_mining",
+                    await self.send(
+                        "Ściana jest przebita. Auto-kopanie pozostaje "
+                        "na tym poziomie. Zejdź ręcznie komendą down."
                     )
             elif floor == wall["max_floor_unlocked"]:
                 await self.send(
@@ -13212,13 +15535,22 @@ class Session:
         )
         await asyncio.sleep(action_seconds)
 
-        item_id = self.woodcutting_loot(
+        base_item_id = self.woodcutting_loot(
             tool_level, self.character.room_id
+        )
+        item_id = roll_wood_variant(
+            base_item_id, tool_level
         )
         self.store_profession_resource(item_id, 1)
         item = ITEMS[item_id]
+        if item_id != base_item_id:
+            await self.send(
+                f"RZADKI WARIANT DRZEWA: "
+                f"{item.get('rare_resource_label', 'rzadki')}."
+            )
         await self.send(
-            f"Pozyskujesz: {item['name']}. Drewno trafia na Stos drewna."
+            f"Pozyskujesz: {item['name']}. "
+            "Drewno trafia na Stos drewna."
         )
 
         current_tier = tool_tier(tool_level)
@@ -13277,11 +15609,22 @@ class Session:
         )
         await asyncio.sleep(action_seconds)
 
-        item_id = self.herbalism_loot(
+        base_item_id = self.herbalism_loot(
             old_level, self.character.room_id
         )
+        item_id = roll_herb_variant(
+            base_item_id, old_level
+        )
         self.store_profession_resource(item_id, 1)
-        await self.send(f"Zbierasz: {ITEMS[item_id]['name']}. Zioło trafia do Torby Zielarskiej.")
+        if item_id != base_item_id:
+            await self.send(
+                f"RZADKI WARIANT ROŚLINY: "
+                f"{ITEMS[item_id].get('rare_resource_label', 'rzadki')}."
+            )
+        await self.send(
+            f"Zbierasz: {ITEMS[item_id]['name']}. "
+            "Roślina trafia do Torby Zielarskiej."
+        )
 
         bonus_chance = min(
             0.50,
@@ -13312,13 +15655,13 @@ class Session:
 
     def resource_sale_allowed_here(self, item_id):
         room_id = self.character.room_id
-        if item_id in FISH_RESOURCE_IDS:
+        if item_id in FISH_STORAGE_IDS:
             return room_id in {"market", "inn", "fish_market"}
-        if item_id in ORE_RESOURCE_IDS:
+        if item_id in ORE_STORAGE_IDS:
             return room_id == "forge"
-        if item_id in WOOD_RESOURCE_IDS:
+        if item_id in WOOD_STORAGE_IDS:
             return room_id in {"market", "forge"}
-        if item_id in HERB_RESOURCE_IDS:
+        if item_id in HERB_STORAGE_IDS:
             return room_id in {"market", "herbalist_hut"}
         return False
 
@@ -13629,10 +15972,10 @@ class Session:
             await self.send("Tego przedmiotu nie sprzedaje się tutaj jako surowca.")
             return
 
-        fish_items = FISH_RESOURCE_IDS
-        ore_items = ORE_RESOURCE_IDS
-        wood_items = WOOD_RESOURCE_IDS
-        herb_items = HERB_RESOURCE_IDS
+        fish_items = FISH_STORAGE_IDS
+        ore_items = ORE_STORAGE_IDS
+        wood_items = WOOD_STORAGE_IDS
+        herb_items = HERB_STORAGE_IDS
 
         if item_id in fish_items:
             source_container = "net"
@@ -13702,13 +16045,13 @@ class Session:
         await self.send(f"Sprzedajesz {item['name']} za " + ", ".join(rewards) + ".")
 
     def recipe_container_for_item(self, item_id):
-        if item_id in FISH_RESOURCE_IDS:
+        if item_id in FISH_STORAGE_IDS:
             return "net"
-        if item_id in ORE_RESOURCE_IDS:
+        if item_id in ORE_STORAGE_IDS:
             return "bag"
-        if item_id in WOOD_RESOURCE_IDS:
+        if item_id in WOOD_STORAGE_IDS:
             return "woodpile"
-        if item_id in HERB_RESOURCE_IDS:
+        if item_id in HERB_STORAGE_IDS:
             return "herbbag"
         return None
 
@@ -13755,13 +16098,37 @@ class Session:
         )
 
     async def show_recipes(self, mode=""):
-        mode = mode.strip().lower()
-        show_craft = mode not in ("cook", "gotuj", "gotowanie", "alchemy", "alchemia")
-        show_cook = mode not in ("craft", "stworz", "stwórz", "rzemioslo", "rzemiosło", "alchemy", "alchemia")
-        show_alchemy = mode not in ("craft", "stworz", "stwórz", "rzemioslo", "rzemiosło", "cook", "gotuj", "gotowanie")
+        mode = self.normalize_description_query(mode)
+        craft_modes = {
+            "craft", "stworz", "rzemioslo", "kowalstwo",
+            "smithing", "blacksmithing", "kuj",
+        }
+        cook_modes = {
+            "cook", "gotuj", "gotowanie",
+        }
+        alchemy_modes = {
+            "alchemy", "alchemia",
+        }
+
+        if not mode:
+            show_craft = show_cook = show_alchemy = True
+        elif mode in craft_modes:
+            show_craft = True
+            show_cook = False
+            show_alchemy = False
+        elif mode in cook_modes:
+            show_craft = False
+            show_cook = True
+            show_alchemy = False
+        elif mode in alchemy_modes:
+            show_craft = False
+            show_cook = False
+            show_alchemy = True
+        else:
+            show_craft = show_cook = show_alchemy = True
 
         if show_craft:
-            await self.send("RECEPTURY RZEMIOSŁA")
+            await self.send("RECEPTURY RZEMIOSŁA I KOWALSTWA")
             for recipe in CRAFT_RECIPES.values():
                 await self.send(
                     f"{recipe['name']}. Składniki: "
@@ -13795,8 +16162,21 @@ class Session:
 
     def recipe_level_requirement_text(self, recipes, recipe):
         tool_type, _item_id, tool_name = self.recipe_tool_info(recipes)
-        required = max(1, int(recipe.get("min_tool_level", 1)))
-        return f"Wymaga: {tool_name} level {required}."
+        required = max(
+            1, int(recipe.get("min_tool_level", 1))
+        )
+        parts = [
+            f"{tool_name} level {required}"
+        ]
+        if (
+            recipes is CRAFT_RECIPES
+            and "min_profession_level" in recipe
+        ):
+            parts.append(
+                "Kowalstwo level "
+                f"{max(1, int(recipe.get('min_profession_level', 1)))}"
+            )
+        return "Wymaga: " + ", ".join(parts) + "."
 
     def recipe_tool_info(self, recipes):
         if recipes is CRAFT_RECIPES:
@@ -13840,13 +16220,41 @@ class Session:
 
         tool_row = self.server.db.tool(self.account_id, tool_type)
         old_tool_level = int(tool_row["level"])
-        required_level = max(1, int(recipe.get("min_tool_level", 1)))
+        required_level = max(
+            1, int(recipe.get("min_tool_level", 1))
+        )
         if old_tool_level < required_level:
             await self.send(
                 f"{recipe['name']} wymaga {tool_name} level "
                 f"{required_level}, a masz {old_tool_level}."
             )
             return False
+
+        if (
+            recipes is CRAFT_RECIPES
+            and "min_profession_level" in recipe
+        ):
+            blacksmith_row = self.server.db.profession(
+                self.account_id, "Kowalstwo"
+            )
+            blacksmith_level = int(
+                blacksmith_row["level"]
+            )
+            required_profession = max(
+                1,
+                int(
+                    recipe.get(
+                        "min_profession_level", 1
+                    )
+                ),
+            )
+            if blacksmith_level < required_profession:
+                await self.send(
+                    f"{recipe['name']} wymaga Kowalstwa level "
+                    f"{required_profession}, a masz "
+                    f"{blacksmith_level}."
+                )
+                return False
 
         if self.character.room_id not in recipe["stations"]:
             await self.send(
@@ -13930,11 +16338,38 @@ class Session:
             recipe.get("tool_xp", 8 + random.randint(0, 4))
         )
         if tool_type == "alchemy":
-            messages, alchemy_level, new_tool_level = self.grant_profession_progress(
-                "Alchemia", 10 + random.randint(0, 5), "alchemy", tool_xp
+            messages, alchemy_level, new_tool_level = (
+                self.grant_profession_progress(
+                    "Alchemia",
+                    10 + random.randint(0, 5),
+                    "alchemy",
+                    tool_xp,
+                )
+            )
+        elif (
+            tool_type == "crafting"
+            and self.character.room_id == "forge"
+        ):
+            profession_xp = int(
+                recipe.get(
+                    "profession_xp",
+                    10 + random.randint(0, 5),
+                )
+            )
+            messages, blacksmith_level, new_tool_level = (
+                self.grant_profession_progress(
+                    "Kowalstwo",
+                    profession_xp,
+                    "crafting",
+                    tool_xp,
+                )
             )
         else:
-            messages, new_tool_level = self.grant_tool_progress(tool_type, tool_xp)
+            messages, new_tool_level = (
+                self.grant_tool_progress(
+                    tool_type, tool_xp
+                )
+            )
         for message in messages:
             await self.send(message)
 
@@ -13946,6 +16381,50 @@ class Session:
             )
 
         return True
+
+    async def show_blacksmithing_info(self):
+        await self.send("KOWALSTWO")
+        row = self.server.db.profession(
+            self.account_id, "Kowalstwo"
+        )
+        level = int(row["level"])
+        max_level = profession_max_level("Kowalstwo")
+        rank = profession_rank(level, "Kowalstwo")
+        xp_text = (
+            "maksimum"
+            if level >= max_level
+            else (
+                f"{row['xp']} z "
+                f"{self.profession_xp_to_next(level, 'Kowalstwo')}"
+            )
+        )
+        await self.send(
+            f"Kowalstwo: level {level} z "
+            f"{max_level}. "
+            f"Ranga {rank} z "
+            f"{profession_max_rank('Kowalstwo')}: "
+            f"{profession_rank_name('Kowalstwo', level)}. "
+            f"XP: {xp_text}."
+        )
+        await self.show_single_tool("crafting")
+        await self.send(
+            "Kowalstwo rozwija się podczas przetapiania metalu "
+            "i kucia przedmiotów w Kuźni Dusz."
+        )
+        await self.send(
+            "Komendy: kowalstwo, kuj <receptura>, "
+            "craft <receptura>, receptury kowalstwo."
+        )
+        await self.send(
+            "Materiały przechodzą od Żelaza, Srebra i Złota "
+            "aż do Kobaltu, Run, Smoczej Stali, Astralu, "
+            "Pustki i Eternium."
+        )
+        await self.send(
+            "Mistrz Rzemiosła Haldor daje powtarzalne "
+            "zlecenia Kowalstwa/Rzemiosła. "
+            "Każde odnawia się dokładnie co 60 minut."
+        )
 
     async def show_cooking_info(self):
         await self.send("GOTOWANIE")
@@ -14032,6 +16511,7 @@ class Session:
                 f"{slot_name}: {name}. Obrona +{defense}.{extra}"
             )
         await self.send(self.crypt_set_bonus_text())
+        await self.send(self.astral_set_bonus_text())
 
     def owned_armor_for_slot(self, slot):
         candidates = []
@@ -14166,6 +16646,7 @@ class Session:
             f"Obrona fizyczna wynosi teraz {self.defense()}."
         )
         await self.send(self.crypt_set_bonus_text())
+        await self.send(self.astral_set_bonus_text())
 
     def find_consumable_for_use(self, query):
         q = self.normalize_description_query(query)
@@ -14549,10 +17030,10 @@ class Session:
 
     def quest_collect_category_info(self, target):
         mapping = {
-            "fish": (FISH_RESOURCE_IDS, "net", "ryb"),
-            "ore": (ORE_RESOURCE_IDS, "bag", "rud"),
-            "wood": (WOOD_RESOURCE_IDS, "woodpile", "sztuk drewna"),
-            "herb": (HERB_RESOURCE_IDS, "herbbag", "ziół"),
+            "fish": (FISH_STORAGE_IDS, "net", "ryb"),
+            "ore": (ORE_STORAGE_IDS, "bag", "rud"),
+            "wood": (WOOD_STORAGE_IDS, "woodpile", "sztuk drewna"),
+            "herb": (HERB_STORAGE_IDS, "herbbag", "ziół"),
         }
         return mapping.get(target)
 
@@ -16552,7 +19033,7 @@ class Session:
             multiplier *= self.character.class_magic_damage_multiplier()
             multiplier *= self.character.racial_magic_damage_multiplier()
         multiplier *= self.character.racial_all_damage_multiplier()
-        multiplier *= self.crypt_set_damage_multiplier()
+        multiplier *= self.total_set_damage_multiplier()
 
         if kind == "execute":
             hp_ratio = mob.hp / max(1, template["max_hp"])
@@ -16637,7 +19118,7 @@ class Session:
                         * c.class_physical_damage_multiplier()
                         * c.racial_physical_damage_multiplier()
                         * c.racial_all_damage_multiplier()
-                        * self.crypt_set_damage_multiplier()
+                        * self.total_set_damage_multiplier()
                     )
                 )
             )
@@ -16654,7 +19135,7 @@ class Session:
                         * c.class_magic_damage_multiplier()
                         * c.racial_magic_damage_multiplier()
                         * c.racial_all_damage_multiplier()
-                        * self.crypt_set_damage_multiplier()
+                        * self.total_set_damage_multiplier()
                     )
                 )
             )
@@ -16669,7 +19150,7 @@ class Session:
                         * c.class_magic_damage_multiplier()
                         * c.racial_magic_damage_multiplier()
                         * c.racial_all_damage_multiplier()
-                        * self.crypt_set_damage_multiplier()
+                        * self.total_set_damage_multiplier()
                     )
                 )
             )
@@ -16689,7 +19170,7 @@ class Session:
                 * c.class_physical_damage_multiplier()
                 * c.racial_physical_damage_multiplier()
                 * c.racial_all_damage_multiplier()
-                * self.crypt_set_damage_multiplier()
+                * self.total_set_damage_multiplier()
             )
         elif self.current_mana >= 4:
             base_damage = (
@@ -16702,7 +19183,7 @@ class Session:
                 * c.class_magic_damage_multiplier()
                 * c.racial_magic_damage_multiplier()
                 * c.racial_all_damage_multiplier()
-                * self.crypt_set_damage_multiplier()
+                * self.total_set_damage_multiplier()
             )
         else:
             base_damage = (
@@ -16714,7 +19195,7 @@ class Session:
                 * c.class_magic_damage_multiplier()
                 * c.racial_magic_damage_multiplier()
                 * c.racial_all_damage_multiplier()
-                * self.crypt_set_damage_multiplier()
+                * self.total_set_damage_multiplier()
             )
 
         # Średnia wartość uwzględnia prawdopodobieństwo krytyka,
@@ -16784,7 +19265,12 @@ class Session:
         # Boss mechanics are deliberately treated as extra danger.
         if template.get("boss_mechanic"):
             ratio *= 0.82
-        if template.get("crypt_boss") or template.get("astral_boss"):
+        if (
+            template.get("crypt_boss")
+            or template.get("astral_boss")
+            or template.get("mythic_crypt_boss")
+            or template.get("mythic_astral_boss")
+        ):
             ratio *= 0.90
         if template.get("world_boss"):
             ratio *= 0.90
@@ -17235,7 +19721,7 @@ class Session:
             rest_safe_commands = {
                 "rest", "help", "describe", "changes", "look",
                 "corpse", "cryptinfo", "astralinfo", "consider",
-                "waterinfo", "exits", "map", "atlas",
+                "waterinfo", "exits", "map", "atlas", "codex",
                 "where", "who", "stats", "mana", "declension", "skills",
                 "skillnames", "soul", "money", "net", "bag",
                 "woodpile", "herbbag", "professions", "ranks",
@@ -17285,6 +19771,8 @@ class Session:
                 await self.show_map()
             elif command == "atlas":
                 await self.show_atlas(args)
+            elif command == "codex":
+                await self.show_world_codex(args)
             elif command == "where":
                 await self.show_where()
             elif command == "who":
@@ -17418,6 +19906,8 @@ class Session:
                     await self.send("Użycie: craft <receptura>. Wpisz receptury.")
                 else:
                     await self.craft_item(args)
+            elif command == "blacksmithinginfo":
+                await self.show_blacksmithing_info()
             elif command == "cookinginfo":
                 await self.show_cooking_info()
             elif command == "cook":

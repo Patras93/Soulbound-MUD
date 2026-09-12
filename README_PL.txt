@@ -1,4 +1,4 @@
-SOULBOUND v0.7.04 THREE CURRENCIES
+SOULBOUND v0.7.11 THREE CURRENCIES
 ==========================
 
 Duży build rozbudowujący działający serwer online do pierwszej właściwej wersji świata MUD.
@@ -4230,3 +4230,269 @@ WOOD_RESOURCE_IDS
 HERB_RESOURCE_IDS
 
 Dzięki temu każdy istniejący zasób trafia do właściwego pełnego atlasu.
+
+
+WORLD RESOURCES PACK v0.7.05
+============================
+Dodano 330 nowych zasobów:
+- 160 ryb świata,
+- 80 roślin, ziół i przypraw,
+- 50 rodzajów drewna,
+- 40 rud i minerałów.
+
+Po aktualizacji:
+- Atlas Ryb: 284 ryby,
+- Atlas Ziół i Roślin: 102 zasoby,
+- Atlas Drewna: 80 rodzajów,
+- Atlas Rud: 51 rud i minerałów.
+
+Nowe zasoby są faktycznie zdobywalne przez:
+low / low on
+zbieraj / zbieraj on
+tnij / tnij on
+kop / kop on
+
+Atlasy:
+atlas ryby
+atlas zioła
+atlas rośliny
+atlas drewno
+atlas rudy
+
+Pakiet jest szerokim grywalnym przekrojem realnych zasobów świata.
+Nie jest literalnym katalogiem każdej naukowo opisanej species na Ziemi.
+
+
+ENDGAME EXPANSION v0.7.06
+=========================
+
+ASTRALNE SETY 2/4/6
+-------------------
+Każdy Krąg ma teraz:
+hełm
+pancerz
+rękawice
+nogawice
+buty
+talizman
+
+2 części: +12% maksymalnego HP i Many.
+4 części: +15% wszystkich obrażeń.
+6 części: +20% obrony fizycznej i magicznej.
+
+MYTHIC CRYPT
+------------
+Odblokowanie: zwykła Krypta ukończona do piętra 200.
+Poziomy: 1-200.
+Boss co 10 pięter.
+Bossowie blokują zejście.
+Finałowy boss Mythic Crypt ma ponad milion HP.
+
+MYTHIC ASTRAL TOWER
+-------------------
+Odblokowanie: zwykła Wieża Astralna ukończona do poziomu 200.
+Poziomy: 1-200.
+Boss co 10 poziomów.
+Bossowie blokują wejście wyżej.
+Finałowy boss ma ponad półtora miliona HP.
+
+LOCHY PROFESYJNE
+----------------
+Kopalnia Kryształów - Górnictwo - 20 poziomów.
+Wejście: Kryształowa Komnata.
+
+Zatopiona Grota - Wędkarstwo - 20 poziomów.
+Wejście: Morskie Molo.
+
+Pradawny Las - Drwalstwo - 20 poziomów.
+Wejście: Głębia Gaju.
+
+Ogród Alchemika - Zielarstwo - 20 poziomów.
+Wejście: Chata Zielarki.
+
+Poziom 20 każdego lochu wymaga odpowiedniego narzędzia level 200.
+Im głębiej, tym lepsza pula zasobów.
+
+Prowadzenie:
+prowadz mityczna krypta
+prowadz mityczna wieza astralna
+prowadz kopalnia krysztalow
+prowadz zatopiona grota
+prowadz pradawny las
+prowadz ogrod alchemika
+
+
+RARE RESOURCES & WORLD CODEX v0.7.07
+====================================
+
+RZADKIE RYBY
+------------
+Każdy bazowy gatunek może trafić się jako:
+Albinos - wartość x2
+Złoty okaz - wartość x4
+Olbrzymi okaz - wartość x3
+Pradawny okaz - wartość x8
+
+Rzadki okaz trafia osobno do Siatki na ryby.
+
+ŻYŁY GÓRNICZE
+-------------
+Zwykła żyła - x1 rudy
+Bogata żyła - x2 rudy
+Kryształowa żyła - x3 rudy
+Legendarna żyła - x5 rudy
+
+Wyższy level Kilofa poprawia szanse na lepsze żyły.
+Czysty mithril nie jest mnożony przez system żył.
+
+RZADKIE DRZEWA
+--------------
+Bujne drewno - wartość x2
+Pradawne drewno - x4
+Kryształowe drewno - x6
+Legendarne drewno - x10
+
+RZADKIE ROŚLINY
+---------------
+Bujna roślina - wartość x2
+Lśniąca roślina - x4
+Pradawna roślina - x6
+Legendarna roślina - x10
+
+CODEX ŚWIATA
+------------
+codex
+codex ryby
+codex rośliny
+codex drewno
+codex rudy
+codex warianty
+codex moby
+codex bossowie
+codex relikty
+codex <nazwa>
+
+Codex scala zasoby, przeciwników, bossów i relikty
+w jeden system informacji przyjazny NVDA.
+
+
+KOWALSTWO v0.7.08
+=================
+Kowalstwo jest profesją level 1-100.
+
+Narzędzie:
+Młot Rzemieślniczy level 1-200.
+Kowalstwo NIE dodaje trwałości ani zużycia narzędzia.
+
+Komendy:
+kowalstwo
+kuj <receptura>
+wykuj <receptura>
+craft <receptura>
+receptury kowalstwo
+
+Kowalstwo rozwija się w Kuźni Dusz.
+
+Materiały:
+Żelazo
+Srebro
+Złoto
+Kobalt
+Runy
+Smocza Stal
+Astral
+Pustka
+Eternium
+
+Każdy poziom materiałowy ma:
+hełm
+pancerz
+rękawice
+nogawice
+buty
+talizman
+
+Wyższe receptury wymagają:
+- odpowiedniego levelu Kowalstwa,
+- odpowiedniego levelu Młota Rzemieślniczego.
+
+QUESTY HALDORA
+--------------
+Haldor ma 3 poziomy zleceń Rzemiosła/Kowalstwa.
+Każde jest powtarzalne.
+Każde odnawia się dokładnie po 60 minutach od ukończenia.
+Nagrody rozwijają Kowalstwo oraz Młot Rzemieślniczy.
+
+
+AUTO PROFESJE - BEZ CHODZENIA v0.7.09
+=====================================
+Auto-profesje nie poruszają postaci.
+
+low on
+- działa tylko przy aktualnym łowisku,
+- nie przechodzi do innych łowisk.
+
+kop on
+- działa tylko w aktualnym miejscu wydobycia,
+- nie idzie do kopalni,
+- po przebiciu ściany nie schodzi sam niżej,
+- po przebiciu użyj ręcznie: down.
+
+tnij on
+- działa tylko w aktualnym miejscu z drzewami,
+- nie chodzi między terenami.
+
+zbieraj on
+- działa tylko w aktualnym miejscu z ziołami,
+- nie chodzi między łąkami ani innymi terenami.
+
+Komendy off nadal kończą rozpoczętą akcję i dopiero potem zatrzymują auto.
+
+
+KOWALSTWO 1-200 v0.7.10
+=======================
+Kowalstwo ma pełny zakres level 1-200.
+Młot Rzemieślniczy również ma level 1-200.
+
+Pozostałe profesje pozostają 1-100.
+
+Rangi:
+1 Uczeń
+15 Adept
+30 Czeladnik
+45 Specjalista
+60 Ekspert
+75 Mistrz
+90 Arcymistrz
+100 Legenda
+120 Kowal Runiczny
+140 Kowal Smoczej Stali
+160 Kowal Astralny
+180 Kowal Pustki
+200 Wieczny Mistrz Kowalstwa
+
+Materiały / wymagany level Kowalstwa:
+Żelazo 1
+Srebro 20
+Złoto 40
+Kobalt 100
+Runy 120
+Smocza Stal 140
+Astral 160
+Pustka 180
+Eternium 200
+
+Questy Haldora nadal odnawiają się co 60 minut.
+
+
+ZMIANA TUŃCZYKA v0.7.11
+=======================
+Zwykły Tuńczyk jest teraz późniejszym połowem oceanicznym.
+
+Wymaganie:
+Wędka level 80+
+
+Przed levelem 80 zwykły Tuńczyk nie występuje w puli połowu.
+Od levelu 80 może być łowiony w Oceanie.
+
+Komenda woda pokazuje ten sam próg odblokowania.
