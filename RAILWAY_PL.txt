@@ -1,4 +1,4 @@
-SOULBOUND v0.6.6 — AKTUALIZACJA RAILWAY
+SOULBOUND v0.6.30 — AKTUALIZACJA RAILWAY
 =====================================
 
 Jeżeli v0.5.1 już działa na Railway:
@@ -43,7 +43,7 @@ Baza:
 
 MIGRACJA WALUT
 --------------
-v0.6.6 automatycznie dodaje do starej bazy:
+v0.6.30 automatycznie dodaje do starej bazy:
 - silver,
 - mithril.
 
@@ -51,7 +51,7 @@ Istniejące konta i postacie zostają zachowane.
 Nie usuwaj Railway Volume.
 
 
-AKTUALIZACJA v0.6.6
+AKTUALIZACJA v0.6.30
 -------------------
 Nie zmieniaj Volume ani TCP Proxy.
 Wystarczy podmienić kod na GitHubie i zrobić commit.
@@ -60,7 +60,7 @@ Nowe lokacje, quest i przeciwnicy nie wymagają kasowania bazy.
 
 AKTUALIZACJA PROFESJI
 ---------------------
-v0.6.6 dodaje nowe tabele SQLite:
+v0.6.30 dodaje nowe tabele SQLite:
 - professions,
 - tools.
 
@@ -69,16 +69,143 @@ Nie kasuj Railway Volume.
 Nie zmieniaj TCP Proxy.
 
 
-MIGRACJA v0.6.6
+MIGRACJA v0.6.30
 ----------------
 Dodawana jest tabela profession_storage.
 Siatka i Sakwa nie wymagają kasowania ani resetowania postaci.
 Nie usuwaj Railway Volume.
 
 
-AKTUALIZACJA v0.6.6
+AKTUALIZACJA v0.6.30
 -------------------
 Nie zmieniaj Railway Volume.
 Nie zmieniaj TCP Proxy.
 Nowa lokacja i quest są częścią kodu.
 Stare levele Wędki, Kilofa i profesji zostają zachowane.
+
+
+AKTUALIZACJA v0.6.30
+-------------------
+Nie wymaga migracji nowych kolumn.
+Nowe ryby są wpisami w tabeli przedmiotów i działają na istniejącej bazie.
+Nie usuwaj Railway Volume.
+
+AKTUALIZACJA v0.6.30
+-------------------
+Zmienia tabele połowów i ceny. Nie wymaga zmian bazy ani Volume.
+
+AKTUALIZACJA v0.6.30
+-------------------
+Nie wymaga zmian schematu bazy.
+Czysty mithril trafia bezpośrednio do kolumny waluty mithril.
+Nie usuwaj Railway Volume.
+
+AKTUALIZACJA v0.6.30
+--------------------
+Dodaje nowe lokacje i ryby. Nie wymaga zmian schematu bazy.
+Nie usuwaj Railway Volume ani TCP Proxy.
+
+AKTUALIZACJA v0.6.30
+--------------------
+Auto-łowienie i nawigacja nie wymagają zmian schematu SQLite.
+Nie usuwaj Railway Volume ani TCP Proxy.
+
+AKTUALIZACJA v0.6.30
+--------------------
+Dodaje tylko nowe aliasy komendy walki. Nie wymaga zmian bazy ani TCP Proxy.
+
+AKTUALIZACJA v0.6.30
+--------------------
+Dodaje aliasy list i lista do przeglądania oferty sklepu.
+Nie wymaga zmian bazy ani TCP Proxy.
+
+AKTUALIZACJA v0.6.30
+--------------------
+Zmiana komunikatu po wypiciu mikstury.
+Nie wymaga zmian bazy ani TCP Proxy.
+
+AKTUALIZACJA v0.6.30
+--------------------
+Zmienia wzory walki i role statystyk.
+Nie wymaga zmian schematu bazy ani TCP Proxy.
+
+AKTUALIZACJA v0.6.30
+--------------------
+Rozbudowuje tylko kreator postaci i opisy ras/klas.
+Nie wymaga zmian bazy, Volume ani TCP Proxy.
+
+AKTUALIZACJA v0.6.30
+--------------------
+Zmienia wyłącznie sposób automatycznego rozwoju statystyk.
+Nie wymaga migracji bazy ani zmian TCP Proxy.
+
+AKTUALIZACJA v0.6.30
+--------------------
+Dodaje auto-kopanie. Nie wymaga zmian schematu bazy, Volume ani TCP Proxy.
+
+AKTUALIZACJA v0.6.30
+--------------------
+Dodaje rozbudowany system pomocy i opisów.
+Nie zmienia schematu SQLite.
+Nie usuwaj Railway Volume i nie zmieniaj TCP Proxy.
+
+AKTUALIZACJA v0.6.30
+--------------------
+Dodaje komendy changes / zmiany / changelog.
+Nie wymaga zmian bazy, Railway Volume ani TCP Proxy.
+
+AKTUALIZACJA v0.6.30
+--------------------
+Dodaje pełny zestaw wyposażenia u Kowala.
+Nie wymaga zmian schematu SQLite, Railway Volume ani TCP Proxy.
+
+AKTUALIZACJA v0.6.30
+--------------------
+Dodaje 36 aktywnych umiejętności klasowych.
+Nie wymaga migracji SQLite ani zmian TCP Proxy.
+
+AKTUALIZACJA v0.6.30
+--------------------
+Dodaje nauczycieli klasowych i dopina walkę turową.
+Nie wymaga migracji SQLite ani zmian TCP Proxy.
+
+AKTUALIZACJA v0.6.30
+--------------------
+Dodaje nowe pomieszczenia Gildii oraz trwałą naukę umiejętności.
+Tabela learned_skills tworzy się automatycznie.
+Nie usuwaj Railway Volume i nie zmieniaj TCP Proxy.
+
+AKTUALIZACJA v0.6.30
+--------------------
+Dodaje komendę z pełną listą nazw skilli.
+Nie wymaga migracji SQLite ani zmian TCP Proxy.
+
+AKTUALIZACJA v0.6.30
+--------------------
+Dodaje skill_progress oraz Małe Leczenie Kapłana.
+Tabela skill_progress tworzy się automatycznie.
+Istniejące learned_skills pozostają zgodne i dostają Skill Level 1 przy pierwszym odczycie/użyciu.
+Nie usuwaj Railway Volume i nie zmieniaj TCP Proxy.
+
+AKTUALIZACJA v0.6.30
+--------------------
+Dodaje 8 Tierów Wędki i Kilofa.
+Nie wymaga migracji bazy ani zmian TCP Proxy.
+Istniejące levele narzędzi automatycznie otrzymują odpowiedni Tier.
+
+AKTUALIZACJA v0.6.30
+--------------------
+Dodaje pełne nazwy wszystkich Tierów Wędki i Kilofa.
+Nie wymaga migracji SQLite ani zmian TCP Proxy.
+
+AKTUALIZACJA v0.6.30
+--------------------
+Dodaje nazwane rangi Wędkarstwa i Górnictwa oraz wzmacnia regułę magazynów profesji.
+Nie wymaga migracji SQLite ani zmian TCP Proxy.
+Istniejące levele profesji automatycznie otrzymują odpowiednią rangę.
+
+AKTUALIZACJA v0.6.30
+--------------------
+Dodaje 7 trwałych form odmiany imienia do characters.
+Migracja wykonuje się automatycznie i zachowuje stare postacie.
+Nie usuwaj Railway Volume i nie zmieniaj TCP Proxy.

@@ -1,3 +1,404 @@
+SOULBOUND v0.6.30 CHARACTER NAME DECLENSION
+============================================
+- Dodano etap odmiany imienia po wyborze rasy i klasy.
+- Mianownik jest równy wybranej nazwie postaci.
+- Kreator pyta o Dopełniacz.
+- Kreator pyta o Celownik.
+- Kreator pyta o Biernik.
+- Kreator pyta o Narzędnik.
+- Kreator pyta o Miejscownik.
+- Kreator pyta o Wołacz.
+- Dodano name_nom.
+- Dodano name_gen.
+- Dodano name_dat.
+- Dodano name_acc.
+- Dodano name_ins.
+- Dodano name_loc.
+- Dodano name_voc.
+- Formy są trwale zapisywane w SQLite.
+- Stare postacie zachowują zgodność i dostają dotychczasowe imię we wszystkich przypadkach.
+- Dodano Character.name_case() do poprawnego używania form w komunikatach.
+- Dodano odmiana.
+- Dodano przypadki.
+- Dodano namecases.
+- Powitanie po wejściu używa Wołacza.
+- changes / zmiany pokazuje v0.6.30.
+
+SOULBOUND v0.6.29 PROFESSION RANKS & CONTAINERS
+================================================
+- Dodano 8 nazwanych rang Wędkarstwa.
+- Dodano 8 nazwanych rang Górnictwa.
+- Ranga 1: Uczeń.
+- Ranga 2: Adept.
+- Ranga 3: Czeladnik.
+- Ranga 4: Specjalista.
+- Ranga 5: Ekspert.
+- Ranga 6: Mistrz.
+- Ranga 7: Arcymistrz.
+- Ranga 8: Legenda.
+- Progi rang: 1, 15, 30, 45, 60, 75, 90 i 100.
+- professions / profesje pokazuje aktualną rangę.
+- professions / profesje pokazuje próg następnej rangi.
+- Dodano rangi / ranks / rangiprofesji / professionranks.
+- Awans na nową rangę profesji jest ogłaszany.
+- Każda ryba z normalnego i auto-łowienia trafia do Siatki na ryby.
+- Bonusowy drugi połów z Tieru Wędki także trafia do Siatki.
+- Każda zwykła ruda z normalnego i auto-kopania trafia do Sakwy górniczej.
+- Bonusowa ruda z Tieru Kilofa także trafia do Sakwy.
+- Czysty mithril nadal trafia bezpośrednio do portfela.
+- Poprawiono sprzedaż surowców przechowywanych wyłącznie w Siatce lub Sakwie.
+- Sprzedaż pobiera ryby najpierw z Siatki, a rudy najpierw z Sakwy.
+- changes / zmiany pokazuje v0.6.29.
+
+SOULBOUND v0.6.28 NAMED TOOL TIERS
+===================================
+- Dodano pełne nazwy 8 Tierów Wędki.
+- Dodano pełne nazwy 8 Tierów Kilofa.
+- Dodano tiers.
+- Dodano tiery.
+- Dodano tiernazwy.
+- Dodano nazwytierow / nazwytierów.
+- Komenda pokazuje nazwę Tieru.
+- Komenda pokazuje zakres leveli Tieru.
+- Komenda pokazuje bonus procentowy Tieru.
+- tools / narzedzia nadal pokazuje aktualny Tier i jego nazwę.
+- changes / zmiany pokazuje v0.6.28.
+
+SOULBOUND v0.6.27 TOOL TIERS
+=============================
+- Dodano 8 Tierów Wędki.
+- Dodano 8 Tierów Kilofa.
+- Progi: 1, 15, 30, 45, 60, 75, 90, 100.
+- Tier 8 jest dostępny wyłącznie na levelu 100 narzędzia.
+- Dodano nazwy wszystkich Tierów Wędki.
+- Dodano nazwy wszystkich Tierów Kilofa.
+- tools / narzedzia pokazuje Tier, nazwę, bonus i następny próg.
+- Tier Wędki daje szansę na dodatkowy połów.
+- Tier Kilofa daje szansę na dodatkową zwykłą rudę.
+- Bonusy: 0%, 2%, 4%, 6%, 8%, 10%, 12%, 15%.
+- Czysty mithril nie może zostać podwojony przez bonus Tieru.
+- Awans na nowy Tier jest ogłaszany.
+- changes / zmiany pokazuje v0.6.27.
+
+SOULBOUND v0.6.26 SKILL LEVELS & SMALL HEAL
+============================================
+- Dodano Małe Leczenie dla początkujących Kapłanów.
+- Małe Leczenie można nauczyć się od Soul Level 1.
+- Koszt Małego Leczenia: 3 Many.
+- Bazowy cooldown Małego Leczenia: 6 sekund.
+- Bazowe leczenie Małego Leczenia: 12 procent maksymalnego HP.
+- Kapłan ma teraz 4 skille.
+- Łączna liczba skilli wzrosła z 36 do 37.
+- Dodano Skill Level 1-100 dla każdej nauczonej umiejętności.
+- Dodano osobny Skill XP dla każdego skilla.
+- Dodano trwały licznik użyć każdego skilla.
+- Dodano tabelę SQLite skill_progress.
+- Stare nauczone skille automatycznie zaczynają od Skill Level 1.
+- Udane użycie daje 8-12 Skill XP.
+- Wymagany XP: 50 + 25 za każdy poprzedni Skill Level.
+- Obrażenia skilli rosną z ich levelem.
+- Leczenie skilli rośnie z ich levelem.
+- Osłony rosną z ich levelem.
+- Buff ofensywny rośnie z levelem.
+- Cooldown wszystkich skilli skraca się wraz z levelem, maksymalnie około 30 procent.
+- Gwarantowane uniki rozwijają się przez skracanie cooldownu.
+- skills pokazuje Skill Level, XP, użycia i aktualny cooldown.
+- Nauczyciele pokazują progres nauczonych skilli.
+- Postać nadal nie ma levelu.
+- Walka pozostaje turowa.
+- changes / zmiany pokazuje v0.6.26.
+
+SOULBOUND v0.6.25 SKILL NAMES
+==============================
+- Dodano skillnames.
+- Dodano nazwyskilli.
+- Dodano nazwyumiejetnosci.
+- Komenda pokazuje wszystkie 36 nazw skilli.
+- Skille są pogrupowane według 12 klas.
+- Każda klasa pokazuje 3 skille w kolejności 1, 2, 3.
+- Nazwy można używać w skill <nazwa>.
+- Nazwy można używać w naucz <nazwa>.
+- skills nadal pokazuje status nauki skilli własnej klasy.
+- changes / zmiany pokazuje v0.6.25.
+
+SOULBOUND v0.6.24 GUILD WINGS & SKILL LEARNING
+===============================================
+- Rozbudowano Gildię Dusz o 6 osobnych sal szkoleniowych.
+- Nauczyciele są rozmieszczeni po różnych częściach Gildii.
+- Wojownik i Berserker: Sala Oręża Gildii.
+- Łotrzyk i Łowca: Galeria Cieni Gildii.
+- Mnich i Strażnik: Sala Dyscypliny Gildii.
+- Mag i Psionik: Komnata Arkanów Gildii.
+- Nekromanta i Czarownik: Komnata Mrocznych Sztuk.
+- Kapłan i Druid: Sanktuarium Gildii.
+- teachers / nauczyciele podaje dokładną lokację nauczyciela.
+- Umiejętności nie są już automatycznie dostępne przez Soul Level.
+- Soul Level 1, 25 i 60 jest teraz wymaganiem do nauki u nauczyciela.
+- Dodano trwałą tabelę learned_skills w SQLite.
+- Dodano learn.
+- Dodano naucz.
+- Dodano ucz.
+- Nauka wymaga obecności przy nauczycielu własnej klasy.
+- Nauczyciel innej klasy nie może nauczyć obcych umiejętności.
+- Nauczone umiejętności pozostają zapisane po ponownym wejściu.
+- skills pokazuje: nauczona / gotowa do nauki / zablokowana.
+- Użycie nienauczonego skilla jest blokowane i wskazuje nauczyciela.
+- Walka pozostaje turowa.
+- changes / zmiany pokazuje v0.6.24.
+
+SOULBOUND v0.6.23 GUILD TEACHERS & TURN BASED COMBAT
+=====================================================
+- Dodano 12 nauczycieli klasowych w Sali Gildii.
+- Każda klasa ma własnego nauczyciela.
+- Dodano teachers / nauczyciele / trenerzy.
+- talk <nauczyciel> pokazuje lekcję klasy i 3 umiejętności.
+- Nauczyciel własnej klasy podaje odblokowane skille według Soul Level.
+- Dodano help nauczyciele.
+- Walka jest jawnie turowa: jedna akcja gracza, potem jedna akcja przeciwnika.
+- Attack i ofensywne skille zużywają turę.
+- Leczenie klasowe w walce zużywa turę.
+- Osłona w walce zużywa turę.
+- Gwarantowany unik w walce zużywa turę.
+- Wzmocnienie w walce zużywa turę.
+- Mikstura leczenia w walce zużywa turę.
+- Zmiana ekwipunku podczas walki jest zablokowana.
+- changes / zmiany pokazuje v0.6.23.
+
+SOULBOUND v0.6.22 CLASS SKILLS
+==============================
+- Dodano 36 aktywnych umiejętności: po 3 dla każdej z 12 klas.
+- Odblokowanie umiejętności: Soul Level 1, 25 i 60.
+- Dodano skills / umiejetnosci / umiejętności.
+- Dodano skill / umiejetnosc / umiejętność.
+- Obsługiwane są numery skill 1, 2, 3 i pełne nazwy.
+- Fizyczne umiejętności skalują się Siłą lub Zręcznością.
+- Magiczne umiejętności skalują się Inteligencją i wydają Manę.
+- Wszystkie aktywne umiejętności mają cooldown.
+- Dodano leczenie, osłony, gwarantowane uniki, wysysanie życia, egzekucje i wzmocnienia.
+- Kontrataki respektują efekty klasowych osłon i uników.
+- Ucieczka i śmierć czyszczą tymczasowe efekty.
+- Kreator postaci pokazuje trzy umiejętności każdej klasy.
+- opis <klasa> pokazuje trzy umiejętności.
+- Dodano help umiejetnosci.
+- changes / zmiany pokazuje teraz v0.6.22.
+- Postać nadal nie posiada levelu.
+
+SOULBOUND v0.6.21 BLACKSMITH FULL EQUIPMENT
+============================================
+- Kowal Doran sprzedaje teraz pełny żelazny zestaw ochronny.
+- Dodano Żelazny hełm: slot głowa, Obrona +2.
+- Zachowano Żelazny napierśnik: slot korpus, Obrona +4.
+- Dodano Żelazne rękawice: slot dłonie, Obrona +1.
+- Dodano Żelazne nogawice: slot nogi, Obrona +3.
+- Dodano Żelazne buty: slot stopy, Obrona +1.
+- Dodano Talizman Kowala: slot talizman, Obrona +1.
+- Pełny komplet daje 12 punktów obrony fizycznej.
+- Pełny komplet kosztuje łącznie 9 złota.
+- Kilof nadal jest dostępny u Kowala.
+- list / lista / shop / sklep pokazuje slot i obronę elementów pancerza.
+- equipment pokazuje polskie nazwy slotów.
+- Zwykłej broni nie dodano; główną bronią pozostaje Broń Duszy.
+- changes / zmiany pokazuje teraz zmiany v0.6.21.
+
+SOULBOUND v0.6.20 LATEST CHANGES COMMAND
+========================================
+- Dodano komendę changes.
+- Dodano polską komendę zmiany.
+- Dodano alias changelog.
+- Komenda pokazuje tylko najnowszą wersję i najnowszy zestaw zmian.
+- Dodano help changes.
+- Dodano help zmiany.
+- Pełna historia pozostaje w CHANGELOG_PL.txt.
+
+SOULBOUND v0.6.19 FULL HELP & DESCRIPTIONS
+==========================================
+- Przebudowano główny system pomocy.
+- Dodano help <temat>.
+- Dodano help tematy, help komendy i help wszystko.
+- Dodano 18 działów pomocy.
+- Dodano komendę opis / opisz.
+- Dodano angielskie describe / description.
+- opis bez argumentu opisuje bieżącą lokację.
+- opis działa dla wszystkich przedmiotów i surowców.
+- opis działa dla NPC.
+- opis działa dla przeciwników i podaje HP, obrażenia, typ i nagrody.
+- opis działa dla wszystkich lokacji.
+- opis działa dla zadań i ich nagród.
+- opis działa dla wszystkich ras.
+- opis działa dla wszystkich klas.
+- opis działa dla wszystkich pięciu statystyk.
+- opis działa dla walut, profesji, Broni Duszy i magazynów.
+- Dodano pełne opisy siedmiu NPC.
+- Dodano pełne opisy dziewięciu typów przeciwników.
+- Lokacje podają specjalne funkcje: sklep, łowisko, kopalnia, NPC, przeciwnicy.
+- Wyszukiwanie opisów toleruje brak polskich znaków.
+- Zaktualizowano nieaktualny komentarz źródłowy o rozwoju statystyk.
+
+SOULBOUND v0.6.18 AUTO MINING
+==============================
+- Dodano auto-kopanie.
+- kop on / mine on włącza auto-kopanie.
+- kop off / mine off wyłącza auto-kopanie.
+- Auto-kopanie respektuje cooldown Górnictwa.
+- Auto-kopanie rozwija Górnictwo i Kilof.
+- Auto-kopanie może wydobywać czysty mithril zgodnie z levelem Kilofa.
+- Auto-kopanie zatrzymuje się przy ruchu.
+- Auto-kopanie zatrzymuje się przy walce.
+- Auto-kopanie zatrzymuje się po opuszczeniu kopalni.
+- Auto-kopanie zatrzymuje się przy rozłączeniu.
+- Auto-kopanie i auto-łowienie wzajemnie się wykluczają.
+
+SOULBOUND v0.6.17 ALL STATS GROWTH
+=================================
+- Wszystkie klasy rozwijają teraz wszystkie pięć statystyk.
+- Klasy fizyczne rozwijają także Inteligencję i Siłę Woli.
+- Klasy magiczne rozwijają także Siłę, Zręczność i Kondycję.
+- Każdy pełny próg rozwoju daje +1 do wszystkich pięciu statystyk.
+- Zaktualizowano opisy klas w kreatorze postaci.
+- Postać nadal nie ma levelu.
+- Zachowano automatyczny rozwój bez ręcznego rozdawania punktów.
+
+SOULBOUND v0.6.16 CHARACTER CREATOR DESCRIPTIONS
+================================================
+- Rozbudowano opisy wszystkich 12 ras.
+- Każda rasa opisuje teraz swoje mocne i słabe strony.
+- Kreator wyjaśnia znaczenie Siły, Zręczności, Kondycji, Inteligencji i Siły Woli.
+- Dodano szczegółowe opisy wszystkich 12 klas.
+- Każda klasa opisuje swój styl gry.
+- Każda klasa podaje automatycznie rozwijane statystyki.
+- Każda klasa podaje nazwę swojej Broni Duszy.
+- Opisy są tekstowe i przyjazne dla NVDA.
+- Nie zmieniono istniejących wartości startowych ras ani klas.
+
+SOULBOUND v0.6.15 STAT COMBAT SYSTEM
+====================================
+- Kondycja zwiększa maksymalne HP.
+- Siła zwiększa atak fizyczny.
+- Zręczność zwiększa szybkość.
+- Szybkość daje szansę uniknięcia kontrataku.
+- Limit uniku wynosi 35%.
+- Inteligencja zwiększa maksymalną Manę.
+- Inteligencja zwiększa Moc czarów.
+- Siła Woli zwiększa obronę magiczną.
+- Siła Woli nie zwiększa już obrażeń magicznych.
+- Pancerz odpowiada za obronę fizyczną.
+- Dodano fizyczne i magiczne typy obrażeń przeciwników.
+- Upiór Krypty zadaje obrażenia magiczne.
+- Kryształowy Strażnik zadaje obrażenia magiczne.
+- Komenda stats pokazuje wartości pochodne walki.
+
+SOULBOUND v0.6.14 POTION HP STATUS
+==================================
+- Po wypiciu Mikstury leczenia podawane jest aktualne HP.
+- Komunikat zawiera aktualne i maksymalne HP.
+- Przykład: Masz teraz 72 z 95 HP.
+
+SOULBOUND v0.6.13 LIST COMMAND
+===============================
+- Dodano komendę list.
+- Dodano polską komendę lista.
+- list i lista pokazują ofertę sprzedawcy w aktualnej lokacji.
+- Zachowano shop i sklep.
+- Oferta pokazuje przedmioty, ceny i opisy.
+
+SOULBOUND v0.6.12 KILL COMMAND
+===============================
+- Dodano polską komendę zabij <przeciwnik>.
+- Dodano angielską komendę kill <przeciwnik>.
+- Obie działają tak samo jak attack i atakuj.
+- Zachowano dotychczasowe komendy walki.
+
+SOULBOUND v0.6.11 AUTO FISHING & NAVIGATION
+============================================
+- Dodano auto-łowienie.
+- low on / łów on / fish on włącza auto-łowienie.
+- low off / łów off / fish off wyłącza auto-łowienie.
+- Auto-łowienie respektuje cooldown Wędkarstwa.
+- Auto-łowienie zatrzymuje się przy ruchu.
+- Auto-łowienie zatrzymuje się przy walce.
+- Auto-łowienie zatrzymuje się po opuszczeniu łowiska.
+- Auto-łowienie zatrzymuje się przy rozłączeniu.
+- Dodano automatyczne prowadzenie po świecie.
+- prowadz <lokacja> i prowadź <lokacja>.
+- walk to <location>.
+- Trasa jest wyznaczana jako najkrótsza dostępna droga.
+- Dodano lokalizacja / location.
+- Prowadzenie podaje kolejne lokacje i końcowe dotarcie.
+- Zachowano polskie i angielskie komendy.
+
+SOULBOUND v0.6.10 MARINE FISHING
+================================
+- Dodano Port Dusz.
+- Dodano Morskie Molo.
+- Dodano osobną tabelę połowów morskich.
+- Dodano Sardynkę.
+- Dodano Sardelę.
+- Dodano Dorsza.
+- Dodano Labraksa.
+- Dodano Plamiaka.
+- Dodano Mintaja.
+- Dodano Flądrę.
+- Dodano Halibuta.
+- Zachowano Śledzia od levelu 30 Wędki.
+- Morskie ryby nie wypadają z tabeli słodkowodnej.
+- Tuńczyki, Mieczniki i Rekiny pozostają wysokopoziomowymi rybami morskimi.
+- Widmowy marlin pozostaje legendarnym morskim połowem.
+- Zachowano Siatkę na ryby.
+- Zachowano osobny level Wędki 1-100.
+
+SOULBOUND v0.6.9 DIRECT MITHRIL MINING
+======================================
+- Mithril można teraz wydobyć bezpośrednio w kopalni.
+- Nie wydobywa się już aktywnie Rudy mithrilu.
+- Czysty mithril trafia bezpośrednio do portfela walut.
+- Minimalny level Kilofa dla mithrilu: 80.
+- Kilof 80-89: 0,10% szansy.
+- Kilof 90-99: 0,25% szansy.
+- Kilof 100: 0,50% szansy.
+- 1 znalezienie daje 1 mithril.
+- 1 mithril nadal odpowiada 1000 złota.
+- Stary przedmiot Ruda mithrilu pozostawiono wyłącznie dla zgodności baz.
+- Kilof zachowuje własny level 1-100 i własne XP.
+
+SOULBOUND v0.6.8 EXPENSIVE RARE FISH
+====================================
+- Śledź jest dostępny dopiero od levelu 30 Wędki.
+- Śledź: 1 złoto.
+- Makrela: 2 złota.
+- Łosoś: 5 złota.
+- Tuńczyk: 15 złota.
+- Miecznik: 30 złota.
+- Tuńczyk błękitnopłetwy: 75 złota.
+- Rekin rafowy: 125 złota.
+- Rekin młot: 250 złota.
+- Żarłacz biały: 500 złota.
+- Widmowy marlin: 1 mithril.
+- Zachowano kurs 1000 złota = 1 mithril.
+- Zachowano osobny level Wędki i Kilofa.
+
+SOULBOUND v0.6.7 RARE FISH
+==========================
+- Rozszerzono Wędkarstwo o wysokopoziomowe ryby.
+- Dodano Śledzia.
+- Dodano Makrelę.
+- Dodano Łososia.
+- Dodano Tuńczyka.
+- Dodano Miecznika.
+- Dodano Tuńczyka błękitnopłetwego.
+- Dodano Rekina rafowego.
+- Dodano Rekina młota.
+- Dodano Żarłacza białego.
+- Dodano legendarnego Widmowego marlina.
+- Śledź pojawia się od levelu 10 Wędki.
+- Makrela i Łosoś od levelu 25.
+- Tuńczyk i Miecznik od levelu 40.
+- Tuńczyk błękitnopłetwy i Rekin rafowy od levelu 60.
+- Rekin młot i Żarłacz biały od levelu 75.
+- Najlepsza tabela połowów od levelu 90.
+- Widmowy marlin jest ekstremalnie rzadki.
+- Zachowano osobny level Wędki 1-100.
+- Zachowano osobny level Kilofa 1-100.
+
 SOULBOUND v0.6.6 FISH MARKET QUEST
 ==================================
 - Dodano Targ Rybny w Mieście Dusz.
