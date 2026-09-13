@@ -2,13 +2,13 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Soulbound v0.8.34 Realtime Combat & Auto Queue
+Soulbound v0.8.46 Race Class Recommendations
 Wieloosobowy tekstowy MUD TCP/Telnet dla MUSHclienta/Mudleta.
 
 Najważniejsze zasady projektu:
 - postać NIE ma levelu ani XP postaci,
 - statystyki rosną automatycznie,
-- każda klasa rozwija automatycznie wszystkie pięć statystyk,
+- każda klasa rozwija automatycznie wszystkie sześć statystyk,
 - Broń Duszy ma osobny Soul Level 1-200,
 - Soul Tier 1-20 odblokowuje się osobno,
 - wszystkie trwałe dane gracza są zapisywane w SQLite.
@@ -30,7 +30,7 @@ import unicodedata
 from dataclasses import dataclass
 from typing import Optional
 
-VERSION = "0.8.34"
+VERSION = "0.8.47"
 MAX_CHARACTERS_PER_ACCOUNT = 12
 
 HOST = os.getenv("SOULBOUND_HOST", "0.0.0.0")
@@ -542,7 +542,7 @@ def tool_tier_name(tool_type, level):
 def tool_tier_bonus_chance(level):
     return TOOL_TIER_BONUS_CHANCES[tool_tier(level) - 1]
 
-CLASS_MASTERY_MAX_LEVEL = 100
+CLASS_MASTERY_MAX_LEVEL = 200
 CLASS_MASTERY_XP_BASE = 1000
 CLASS_MASTERY_XP_STEP = 250
 MULTICLASS_MAX_ACTIVE = 3
@@ -2005,6 +2005,69 @@ RACES = [
      7, 10, 11, 15, 15),
 ]
 
+# v0.8.46: rekomendacje klas są wskazówką dla nowych graczy, nie ograniczeniem.
+# Każda rasa nadal może wybrać każdą z 12 klas.
+RACE_CLASS_RECOMMENDATIONS = {
+    "Człowiek": {
+        "classes": ["Wojownik", "Łotrzyk", "Mag", "Kapłan", "Druid", "Psionik"],
+        "reason": "jest wszechstronny i rozwija statystyki szybciej, więc dobrze sprawdza się praktycznie w każdej roli",
+    },
+    "Ogr": {
+        "classes": ["Wojownik", "Berserker", "Strażnik", "Mnich"],
+        "reason": "bardzo wysoka Siła i Kondycja oraz bonus do obrażeń fizycznych najlepiej wspierają klasy walczące fizycznie",
+    },
+    "Elf": {
+        "classes": ["Łotrzyk", "Łowca", "Mag", "Druid", "Psionik"],
+        "reason": "wysoka Zręczność i Inteligencja łączą szybkie klasy fizyczne z klasami magicznymi",
+    },
+    "Krasnolud": {
+        "classes": ["Strażnik", "Wojownik", "Kapłan", "Psionik"],
+        "reason": "wysoka Kondycja i Siła Woli wzmacniają przetrwanie, gardy i odporność magiczną",
+    },
+    "Ork": {
+        "classes": ["Wojownik", "Berserker", "Strażnik", "Mnich"],
+        "reason": "wysoka Siła, Kondycja i dodatkowe maksymalne HP sprzyjają bezpośredniej walce",
+    },
+    "Niziołek": {
+        "classes": ["Łotrzyk", "Łowca", "Mnich"],
+        "reason": "bardzo wysoka Zręczność dobrze współpracuje z unikami, szybkością i precyzyjnymi atakami",
+    },
+    "Mroczny Elf": {
+        "classes": ["Mag", "Czarownik", "Nekromanta", "Łotrzyk", "Psionik"],
+        "reason": "wysoka Inteligencja i Zręczność oraz bonus do obrażeń magicznych wspierają ofensywną magię i szybkie buildy",
+    },
+    "Gnom": {
+        "classes": ["Mag", "Psionik", "Nekromanta", "Kapłan", "Czarownik"],
+        "reason": "wysoka Inteligencja i Siła Woli oraz większa maksymalna Mana mocno wspierają klasy magiczne",
+    },
+    "Smoczy": {
+        "classes": ["Wojownik", "Berserker", "Strażnik", "Czarownik", "Mag"],
+        "reason": "bonus do wszystkich obrażeń pozwala skutecznie grać zarówno fizycznie, jak i magicznie",
+    },
+    "Troll": {
+        "classes": ["Berserker", "Strażnik", "Wojownik", "Mnich"],
+        "reason": "najwyższa Siła i Kondycja oraz redukcja obrażeń fizycznych czynią go bardzo mocnym wojownikiem wręcz",
+    },
+    "Diablę": {
+        "classes": ["Czarownik", "Nekromanta", "Mag", "Psionik"],
+        "reason": "dobra Inteligencja i Siła Woli sprzyjają magii, a bonus Soul XP wspiera szybki rozwój Broni Duszy",
+    },
+    "Aasimar": {
+        "classes": ["Kapłan", "Psionik", "Druid", "Strażnik"],
+        "reason": "bardzo wysoka Siła Woli i dobra Inteligencja wspierają leczenie, obronę magiczną i klasy defensywne",
+    },
+    "Driada": {
+        "classes": ["Druid", "Kapłan", "Psionik", "Mag"],
+        "reason": "wysoka Inteligencja i Siła Woli oraz rasowy bonus do leczenia szczególnie wspierają klasy magiczne i lecznicze",
+    },
+}
+
+def race_class_recommendation_text(race_name):
+    data = RACE_CLASS_RECOMMENDATIONS.get(race_name)
+    if not data:
+        return ""
+    return f"Polecane klasy: {', '.join(data['classes'])}. Dlaczego: {data['reason']}."
+
 CLASSES = [
     ("Wojownik", "physical", "Miecz Przysięgi", 7),
     ("Berserker", "physical", "Topór Krwi", 9),
@@ -2024,72 +2087,72 @@ CLASSES = [
 CLASS_DESCRIPTIONS = {
     "Wojownik": (
         "Klasa fizyczna. Stabilny wojownik do walki wręcz. "
-        "Automatycznie rozwija wszystkie pięć statystyk. "
+        "Automatycznie rozwija wszystkie sześć statystyk. "
         "Dobra dla graczy chcących mocnych ciosów, szybkości i dużej ilości HP."
         "Pasyw klasowy: +10 procent obrażeń fizycznych."
     ),
     "Berserker": (
         "Klasa fizyczna nastawiona na bardzo wysokie obrażenia. "
-        "Automatycznie rozwija wszystkie pięć statystyk. "
+        "Automatycznie rozwija wszystkie sześć statystyk. "
         "Broń Duszy ma wysoki bazowy potencjał ofensywny."
         "Pasyw klasowy: +12 procent obrażeń fizycznych."
     ),
     "Łotrzyk": (
         "Klasa fizyczna nastawiona na szybkość i zwinność. "
-        "Automatycznie rozwija wszystkie pięć statystyk. "
+        "Automatycznie rozwija wszystkie sześć statystyk. "
         "Dobrze korzysta z wysokiej Zręczności i uników."
         "Pasyw klasowy: +5 punktów procentowych do szansy uniku."
     ),
     "Łowca": (
         "Klasa fizyczna walcząca z dystansu. "
-        "Automatycznie rozwija wszystkie pięć statystyk. "
+        "Automatycznie rozwija wszystkie sześć statystyk. "
         "Najlepiej współpracuje z rasami o wysokiej Zręczności."
         "Pasyw klasowy: +8 procent obrażeń fizycznych."
     ),
     "Mnich": (
         "Klasa fizyczna oparta na szybkości i kontroli ciała. "
-        "Automatycznie rozwija wszystkie pięć statystyk. "
+        "Automatycznie rozwija wszystkie sześć statystyk. "
         "Dobrze skaluje się ze Zręcznością oraz Kondycją."
         "Pasyw klasowy: +8 procent mocy klasowych umiejętności leczących."
     ),
     "Strażnik": (
         "Klasa fizyczna nastawiona na przetrwanie. "
-        "Automatycznie rozwija wszystkie pięć statystyk. "
+        "Automatycznie rozwija wszystkie sześć statystyk. "
         "Dobrze wykorzystuje wysoką Kondycję i cięższy pancerz."
         "Pasyw klasowy: 10 procent redukcji wszystkich otrzymywanych obrażeń."
     ),
     "Mag": (
         "Klasa magiczna. Inteligencja zwiększa Manę i moc czarów, "
-        "a Siła Woli obronę magiczną. Automatycznie rozwija wszystkie pięć statystyk."
+        "a Siła Woli obronę magiczną. Automatycznie rozwija wszystkie sześć statystyk."
         "Pasyw klasowy: +10 procent obrażeń magicznych."
     ),
     "Nekromanta": (
         "Klasa magiczna oparta na mrocznej energii i silnych czarach. "
-        "Automatycznie rozwija wszystkie pięć statystyk. "
+        "Automatycznie rozwija wszystkie sześć statystyk. "
         "Dobrze korzysta z wysokiej Inteligencji."
         "Pasyw klasowy: +15 procent leczenia z umiejętności wysysających życie."
     ),
     "Kapłan": (
         "Klasa magiczna o defensywnym charakterze. "
-        "Automatycznie rozwija wszystkie pięć statystyk. "
+        "Automatycznie rozwija wszystkie sześć statystyk. "
         "Wysoka Siła Woli wzmacnia obronę magiczną."
         "Pasyw klasowy: +10 procent mocy klasowych umiejętności leczących."
     ),
     "Czarownik": (
         "Ofensywna klasa magiczna z mocną Bronią Duszy. "
-        "Automatycznie rozwija wszystkie pięć statystyk. "
+        "Automatycznie rozwija wszystkie sześć statystyk. "
         "Dobrze skaluje się z Inteligencją i dużą pulą Many."
         "Pasyw klasowy: +12 procent obrażeń magicznych."
     ),
     "Druid": (
         "Wszechstronna klasa magiczna związana z naturą. "
-        "Automatycznie rozwija wszystkie pięć statystyk. "
+        "Automatycznie rozwija wszystkie sześć statystyk. "
         "Łączy dobrą moc czarów z obroną magiczną."
         "Pasyw klasowy: +10 procent mocy klasowych umiejętności leczących."
     ),
     "Psionik": (
         "Klasa magiczna oparta na mocy umysłu. "
-        "Automatycznie rozwija wszystkie pięć statystyk. "
+        "Automatycznie rozwija wszystkie sześć statystyk. "
         "Najlepiej wykorzystuje wysoką Inteligencję i Siłę Woli."
         "Pasyw klasowy: +10 procent obrony magicznej."
     ),
@@ -2113,8 +2176,9 @@ CLASS_SKILLS = {'Wojownik': [{'id': 'warrior_power_slash',
                'kind': 'boost',
                'cooldown': 12,
                'mana': 0,
-               'desc': 'Wzmacnia następną ofensywną umiejętność o 35 procent.',
-               'boost': 1.35},
+               'desc': 'Przez 12 sekund wzmacnia wszystkie skille i spelle o 35 procent.',
+               'boost': 1.35,
+               'duration': 12},
               {'id': 'warrior_unbreakable',
                'name': 'Niezłomność',
                'aliases': ['niezlomnosc', 'niezłomność', 'unbreakable'],
@@ -2142,7 +2206,7 @@ CLASS_SKILLS = {'Wojownik': [{'id': 'warrior_power_slash',
                 'kind': 'boost',
                 'cooldown': 13,
                 'mana': 0,
-                'desc': 'Wzmacnia następną ofensywną umiejętność o 55 procent.',
+                'desc': 'Czasowo wzmacnia wszystkie skille i spelle o 55 procent.',
                 'boost': 1.55},
                {'id': 'berserker_execution',
                 'name': 'Egzekucja',
@@ -2512,7 +2576,7 @@ ENDGAME_CLASS_SKILLS = {
             "aliases": ["szal tytana", "szał tytana", "titan rage"],
             "natural_tags": ["szal", "rage", "buff", "wzmocnienie"],
             "unlock": 140, "kind": "boost", "cooldown": 15, "mana": 0,
-            "desc": "Znacznie wzmacnia następną ofensywną umiejętność.",
+            "desc": "Czasowo wzmacnia wszystkie skille i spelle.",
             "boost": 1.65,
         },
         {
@@ -2948,10 +3012,10 @@ for _class_name, _skills in AREA_MAGIC_AND_GROUP_HEALING_SKILLS.items():
     CLASS_SKILLS.setdefault(_class_name, []).extend(_skills)
 
 
-# v0.8.25: regularna progresja umiejętności według Soul Level Broni Duszy.
-# Postać nadal NIE ma levelu. Biegłość klasy / Class XP nie odblokowuje skilli.
-# Każda z 12 klas ma co najmniej jedną umiejętność na Soul 1, 10, 20,
-# 30 i dalej co 10 poziomów aż do Soul Level 200.
+# v0.8.25 utworzyło pełną siatkę skilli w dawnych progach Soul 1-200.
+# v0.8.41 przeniosło odblokowanie na Biegłość klasy.
+# v0.8.42 rozszerza Biegłość każdej klasy do 200 i zachowuje progi 1-200
+# bez dzielenia ich przez dwa. Postać nadal NIE ma levelu postaci.
 SOUL_SKILL_UNLOCK_LEVELS = tuple([1] + list(range(10, SOUL_MAX_LEVEL + 1, 10)))
 
 _SOUL_GRID_CLASS_PROFILES = {
@@ -3116,6 +3180,10 @@ def _make_soul_grid_skill(class_name, soul_level, name, kind):
     elif kind == "boost":
         skill["boost"] = round(min(1.70, 1.20 + int(soul_level) / 400.0), 2)
         skill["cooldown"] = min(16, 10 + int(soul_level) // 45)
+        skill["duration"] = skill["cooldown"]
+        skill["desc"] = (
+            f"Czasowo wzmacnia wszystkie skille i spelle. Wymaga Biegłości klasy {int(soul_level)}."
+        )
     elif kind == "guard":
         skill["guard"] = 10 + int(soul_level) // 3
         skill["cooldown"] = min(18, 10 + int(soul_level) // 35)
@@ -3142,6 +3210,27 @@ for _class_name, _specs in SOUL_LEVEL_SKILL_EXPANSION.items():
             _make_soul_grid_skill(_class_name, _soul_level, _name, _kind)
         )
         _existing_levels.add(int(_soul_level))
+
+
+# v0.8.42: progi dostępu do skilli są progami Biegłości klasy 1-200.
+# Zachowujemy numer dawnego progu Soul jako identyczny próg Biegłości,
+# np. dawny 100 -> Biegłość 100, dawny 200 -> Biegłość 200.
+def _legacy_skill_unlock_to_mastery(value):
+    value = max(1, int(value or 1))
+    return min(CLASS_MASTERY_MAX_LEVEL, value)
+
+
+for _class_name, _skills in CLASS_SKILLS.items():
+    for _skill in _skills:
+        _legacy_unlock = max(1, int(_skill.get("unlock", 1)))
+        _skill["legacy_soul_unlock"] = _legacy_unlock
+        _skill["unlock"] = _legacy_skill_unlock_to_mastery(_legacy_unlock)
+        _desc = str(_skill.get("desc", ""))
+        if "Soul Level" in _desc and "Broni Duszy" in _desc:
+            _skill["desc"] = (
+                f"Umiejętność klasy {_class_name} odblokowywana przez "
+                f"Biegłość klasy {_skill['unlock']}."
+            )
 
 # Czytelna kolejność dla skills, nauczycieli i Kodeksu Klasowego.
 for _class_name in CLASS_SKILLS:
@@ -4626,6 +4715,7 @@ COMMAND_ALIASES = {
     "kolejkaskilli": "skillqueue", "kolejkaumiejetnosci": "skillqueue", "kolejkaumiejętności": "skillqueue",
     "learn": "learn", "naucz": "learn", "ucz": "learn", "uczsię": "learn", "uczsie": "learn",
     "dusza": "soul", "soul": "soul",
+    "portfel": "money", "wallet": "money", "saldo": "money", "pieniadze": "money", "pieniądze": "money",
     "ekwipunek": "inventory", "inv": "inventory", "i": "inventory",
     "załóż": "equip", "zaloz": "equip",
     "wyposażenie": "equipment", "wyposazenie": "equipment", "eq": "equipment",
@@ -4639,6 +4729,7 @@ COMMAND_ALIASES = {
     "teachers": "teachers", "training": "teachers", "trainers": "teachers", "nauczyciele": "teachers", "trenerzy": "teachers",
     "zadania": "quests", "questy": "quests", "quest": "quests",
     "atakuj": "attack", "walcz": "attack", "zabij": "attack", "kill": "attack", "k": "attack",
+    "combat": "combatlog", "combatlog": "combatlog", "logwalki": "combatlog", "logwalka": "combatlog",
     "consider": "consider", "con": "consider",
     "ocen": "consider", "oceń": "consider",
     "ocenmob": "consider", "oceńmob": "consider",
@@ -5325,6 +5416,30 @@ ENDGAME_PROFESSION_ITEMS = {
 }
 ITEMS.update(ENDGAME_PROFESSION_ITEMS)
 _register_world_resource_items()
+
+# v0.8.43: jednorazowe przedmioty z samouczka Archiwisty Sola.
+ITEMS.update({
+    "sol_smith_package": {
+        "name": "Paczka Archiwisty dla Kowala",
+        "type": "quest", "price": None,
+        "desc": "Zapieczętowana paczka Archiwisty Sola. Dostarcz ją Kowalowi Doranowi.",
+    },
+    "sol_inn_letter": {
+        "name": "List Archiwisty do Karczmarki",
+        "type": "quest", "price": None,
+        "desc": "Krótki list Archiwisty Sola. Dostarcz go Karczmarce Elii.",
+    },
+    "sol_guard_report": {
+        "name": "Meldunek Archiwisty dla Straży",
+        "type": "quest", "price": None,
+        "desc": "Zapieczętowany meldunek. Dostarcz go Dowódcy Roderikowi.",
+    },
+    "sol_herbal_notes": {
+        "name": "Notatki Archiwisty dla Zielarki",
+        "type": "quest", "price": None,
+        "desc": "Notatki o florze Gaju Szeptów. Dostarcz je Zielarce Mirze.",
+    },
+})
 
 BLACKSMITH_TIERS = (
     {
@@ -7380,6 +7495,21 @@ STAT_DESCRIPTIONS = {
     "siła woli": "Siła Woli zwiększa obronę magiczną.",
     "sila woli": "Siła Woli zwiększa obronę magiczną.",
     "willpower": "Siła Woli zwiększa obronę magiczną.",
+    "charyzma": (
+        "Charyzma zwiększa rabat sklepowy i limit drużyny lidera. "
+        "Jest normalną statystyką i rośnie razem z pozostałymi statystykami; "
+        "udana sprzedaż surowców może dodatkowo ją zwiększać."
+    ),
+    "haryzma": (
+        "Charyzma zwiększa rabat sklepowy i limit drużyny lidera. "
+        "Jest normalną statystyką i rośnie razem z pozostałymi statystykami; "
+        "udana sprzedaż surowców może dodatkowo ją zwiększać."
+    ),
+    "charisma": (
+        "Charyzma zwiększa rabat sklepowy i limit drużyny lidera. "
+        "Jest normalną statystyką i rośnie razem z pozostałymi statystykami; "
+        "udana sprzedaż surowców może dodatkowo ją zwiększać."
+    ),
 }
 
 SYSTEM_DESCRIPTIONS = {
@@ -7439,19 +7569,48 @@ SYSTEM_DESCRIPTIONS = {
 }
 
 
-LATEST_CHANGES_TITLE = "Soulbound v0.8.34 - Realtime Combat & Auto Queue"
+LATEST_CHANGES_TITLE = "Soulbound v0.8.47 - Numeric Shop Purchases"
 LATEST_CHANGES = [
-    "Usunięto walkę turową. Walka działa w czasie rzeczywistym z niezależnym timerem gracza i przeciwnika.",
-    "atakuj <mob> oraz k <mob> rozpoczynają walkę automatyczną; nie trzeba wpisywać ataku po każdej rundzie.",
-    "Auto kolejka sama używa gotowych skilli i spelli. Gdy nic nie jest gotowe, postać wykonuje zwykły automatyczny atak.",
-    "Dodanie skilla lub spella komendą kolejka dodaj automatycznie włącza auto kolejkę.",
-    "Nie trzeba wpisywać kolejka on po dodaniu pierwszego ani kolejnego skilla.",
-    "Mikstury i ręczne skille nie wywołują już sztucznego kontrataku za turę; przeciwnik działa według własnego timera.",
-    "flee natychmiast zatrzymuje pętlę walki czasu rzeczywistego.",
-    "Zachowano fizyczne i magiczne sloty kolejki oraz skalowanie pojemności według Biegłości klasy.",
-    "Aktualizacja nie wymaga resetu soulbound.db ani Railway Volume.",
-]
+    "Sklepy obsługują teraz zakup po numerze pozycji z aktualnej listy, np. kup 9.",
+    "Można kupić kilka sztuk jednym poleceniem, np. kup 9 3; druga liczba oznacza ilość.",
+    "Numery zawsze odnoszą się do oferty sklepu w aktualnej lokacji, więc po zmianie sklepu użyj ponownie shop/list.",
+    "Przedmioty przypisane do postaci i narzędzia z limitem jednej sztuki nadal respektują swoje ograniczenia.",
+    "Kupowanie po nazwie nadal działa bez zmian.",
+    "Bez zmian schematu SQLite; nie resetuj soulbound.db ani Railway Volume.",
 
+    "Przy wyborze każdej z 13 ras gra czyta teraz polecane klasy oraz krótkie uzasadnienie wynikające ze statystyk i pasywu rasy.",
+    "Rekomendacje nie blokują wyboru: każda rasa nadal może wybrać dowolną z 12 klas.",
+    "Po zatwierdzeniu rasy rekomendacja jest powtarzana przed ekranem wyboru klasy, co ułatwia decyzję użytkownikom NVDA.",
+    "Komenda opis <rasa> pokazuje teraz także polecane klasy i wyjaśnia, dlaczego dana rasa do nich pasuje.",
+    "Bez zmian schematu SQLite; nie resetuj soulbound.db ani Railway Volume.",
+
+    "Wszystkie skille typu boost są teraz czasowymi buffami działającymi na wszystkie skille i spelle, także przy multiclassie.",
+    "Aktywne buffy wzmacniają obrażenia fizyczne i magiczne, leczenie oraz siłę guardów przez cały czas działania, a nie tylko następny skill.",
+    "Różne buffy mogą działać równocześnie; bonusy sumują się addytywnie, a łączne wzmocnienie jest ograniczone do +200 procent (x3).",
+    "Auto Skill Queue nie ponawia tego samego buffa przed jego wygaśnięciem; po wygaśnięciu może go automatycznie odświeżyć.",
+    "Okrzyk Wojenny korzysta z tego samego uniwersalnego systemu buffów i zachowuje 12 sekund działania.",
+    "Komenda con <mob> działa na każdego żywego moba w aktualnej lokacji, którego normalnie da się zabić.",
+    "con korzysta z tego samego uniwersalnego resolvera celu co k <mob>: pełna nazwa, fragment, nazwa bez polskich znaków i numer wystąpienia, np. con 2 goblin.",
+    "con nie rozpoczyna walki; tylko ocenia HP, obrażenia, typ obrażeń i orientacyjne zagrożenie celu.",
+    "Pokojowi NPC nie są celami con i dostają czytelny komunikat, że nie można ich zabić.",
+    "Bez zmian schematu SQLite i bez resetu soulbound.db ani Railway Volume.",
+
+    "Archiwista Sol oferuje 5 jednorazowych questów startowych uczących nowych graczy poruszania się po świecie i rozmów z ważnymi NPC.",
+    "Dodano prawdziwe przedmioty questowe: paczkę dla Kowala Dorana, list dla Karczmarki Elii, meldunek dla Dowódcy Roderika i notatki dla Zielarki Miry.",
+    "Piąty quest prowadzi gracza do nauczyciela jego podstawowej klasy i kończy się przy rozmowie z właściwym nauczycielem.",
+    "Questy startowe nie są powtarzalne i nie mają cooldownu; po ukończeniu nigdy się nie odnawiają.",
+    "Porzucenie zadania dostawczego usuwa jego paczkę/list, a ponowne przyjęcie wydaje nowy egzemplarz bez duplikowania przedmiotów.",
+    "Biegłość każdej z 12 klas pozostaje w zakresie 1-200 i nadal odblokowuje skille klasowe.",
+    "Skille klasowe nadal odblokowuje Biegłość właściwej klasy; Soul Level nie blokuje skilli.",
+    "Pełna siatka 253 skilli zachowuje progi 1-200 bez przeliczania przez dwa: dawny próg 100 = Biegłość 100, próg 200 = Biegłość 200.",
+    "Class XP zdobywany po zabiciu mobów rozwija aktywne klasy dalej po Biegłości 100 aż do 200.",
+    "Auto kolejka rośnie dalej z Biegłością: 3 sloty na początku, 13 przy 100 i 23 przy 200, osobno dla fizycznej i magicznej.",
+    "Istniejące poziomy Biegłości, Class XP i nauczone skille pozostają zapisane; nie ma levelu postaci.",
+    "Bez resetu soulbound.db ani Railway Volume.",
+
+    "Zdobycie przedmiotu wymaganego przez aktywny quest collect od razu czyta jego postęp przez NVDA.",
+    "Skradzione Skrzynie Rudy czytają licznik, np. 4 z 10 skrzyń rudy.",
+]
 
 HELP_TOPIC_ALIASES = {
     "temat": "tematy", "topics": "tematy",
@@ -7461,7 +7620,7 @@ HELP_TOPIC_ALIASES = {
     "movement": "nawigacja", "navigation": "nawigacja",
     "stats": "statystyki", "stat": "statystyki",
     "odmiana": "odmiana_imienia", "przypadki": "odmiana_imienia", "namecases": "odmiana_imienia", "declension": "odmiana_imienia",
-    "combat": "walka", "fight": "walka",
+    "combat": "walka", "fight": "walka", "combatlog": "walka", "logwalki": "walka",
     "walk": "nawigacja", "guide": "nawigacja", "prowadzenie": "nawigacja", "autowalk": "nawigacja", "navigation": "nawigacja",
     "endgameprof": "endgame_profesje", "profesje200": "endgame_profesje", "receptury200": "endgame_profesje",
     "login": "logowanie", "logowanie": "logowanie", "spawn": "logowanie", "start": "logowanie",
@@ -7537,6 +7696,15 @@ HELP_TOPIC_ALIASES = {
 }
 
 HELP_TOPICS = {
+    "walka": [
+        "Walka działa w czasie rzeczywistym. atakuj <mob> i k <mob> rozpoczynają starcie z wybranym zabijalnym mobem.",
+        "combat — pokazuje aktualny filtr logu walki.",
+        "combat concise — minimalny log pod NVDA: kluczowe wydarzenia, mechaniki bossa, ostrzeżenia HP, zwycięstwo, śmierć i najważniejsze nagrody.",
+        "combat normal — domyślny tryb: czyta zwykłe trafienia i używane skille, ale ogranicza techniczne szczegóły redukcji oraz Skill XP podczas walki.",
+        "combat full — pełny log walki z detalami obrażeń, redukcji, Skill XP i mechanik.",
+        "Ustawienie combat jest trwałe i zapisuje się osobno dla każdej postaci.",
+        "flee / uciekaj — przerywa aktywną walkę realtime.",
+    ],
     "questy": [
         "HELP QUEST — pełna pomoc systemu zadań. Questy nie wymagają levelu postaci.",
         "quest / quest aktywne — numerowana lista wszystkich aktualnie aktywnych questów.",
@@ -7546,6 +7714,7 @@ HELP_TOPICS = {
         "quest accept <numer> / quest przyjmij <numer> — przyjmuje wskazany numer z ostatnio pokazanej listy questów NPC.",
         "quest info <numer> — działa po quest, quest ukończone i quest list <NPC>; pokazuje NPC, opis, cel, aktualny postęp, wymagania, nagrody, powtarzalność i cooldown.",
         "quest oddaj <numer> — oddaje wybrany quest z ostatniej listy NPC, jeżeli wszystkie cele są wykonane.",
+        "quest porzuć <numer> / quest abandon <numer> — porzuca aktywny quest z ostatniej listy. Bieżący postęp przepada, ale wcześniejsze ukończenia pozostają w historii; quest można później przyjąć ponownie.",
         "Kilka questów jednego NPC może być aktywnych równocześnie. Zlecenia profesyjne są niezależne, np. Mikstury Many i Mikstury Leczenia u Orina.",
         "Questy powtarzalne zachowują osobny czas odnowienia. Problem goblinów, Plaga Trolli i Cienie w Gaju odnawiają się co 60 minut.",
         "Jeśli numer nie pasuje, najpierw ponownie wpisz quest, quest ukończone albo quest list <NPC>, aby ustawić właściwą listę kontekstową.",
@@ -7570,8 +7739,8 @@ HELP_TOPICS = {
         "kodeksklasowy moje / classcodex mine - Codex wszystkich aktywnych klas.",
         "kodeksklasowy wszystkie / classcodex all - wszystkie 12 klas.",
         "Możesz też użyć: codex klasy <klasa> albo codex class <class>.",
-        "Każdy skill pokazuje wymagany Soul Level, nauczyciela, jego salę, koszt nauki po aktualnym rabacie Gildii oraz status odblokowania.",
-        "Status rozróżnia: nauczona, dostępna do nauki, zablokowana przez Soul albo zablokowana przez nieaktywną klasę.",
+        "Każdy skill pokazuje wymaganą Biegłość klasy, nauczyciela, jego salę, koszt nauki po aktualnym rabacie Gildii oraz status odblokowania.",
+        "Status rozróżnia: nauczona, dostępna do nauki, zablokowana przez Biegłość albo zablokowana przez nieaktywną klasę.",
     ],
     "gildia": [
         "gildia / guild — pokazuje reputację aktywnych klas, rangę i zniżkę na naukę.",
@@ -8217,7 +8386,7 @@ HELP_TOPICS = {
         "Rozwój pięciu statystyk został spowolniony dwukrotnie.",
         "Wcześniej wszystkie statystyki rosły o +1 po 50 punktach Postępu Rozwoju.",
         "Teraz potrzeba 100 punktów Postępu Rozwoju.",
-        "Po osiągnięciu 100 nadal rosną jednocześnie: Siła +1, Zręczność +1, Kondycja +1, Inteligencja +1 i Siła Woli +1.",
+        "Po osiągnięciu progu nadal rosną jednocześnie: Siła +1, Zręczność +1, Kondycja +1, Inteligencja +1, Siła Woli +1 i Charyzma +1.",
         "Statystyki nadal nie mają maksymalnego limitu.",
         "Nie dodano levelu postaci ani Character XP.",
         "Istniejący zapisany Postęp Rozwoju nie jest zerowany ani przeliczany.",
@@ -8429,7 +8598,7 @@ HELP_TOPICS = {
     ],
     "skille100_200": [
         "Każda z 12 klas dostała 4 nowe umiejętności endgame.",
-        "Nowe progi odblokowania to Soul Level 100, 140, 180 i 200.",
+        "Historyczne progi endgame są teraz Biegłością klasy 100, 140, 180 i 200.",
         "Łącznie dodano 48 nowych skilli.",
         "Nowe skille trzeba nauczyć się u właściwego nauczyciela klasy, tak jak wcześniejsze.",
         "Skill Level każdego skilla rozwija się teraz osobno od 1 do 200.",
@@ -8502,7 +8671,7 @@ HELP_TOPICS = {
     "rozwoj_statystyk": [
         "Statystyki rosną automatycznie przez Postęp Rozwoju.",
         "Próg wzrostu został zmniejszony do 50 Postępu Rozwoju.",
-        "Każde pełne 50 Postępu Rozwoju daje jednocześnie: Siła +1, Zręczność +1, Kondycja +1, Inteligencja +1 i Siła Woli +1.",
+        "Każdy pełny próg Postępu Rozwoju daje jednocześnie: Siła +1, Zręczność +1, Kondycja +1, Inteligencja +1, Siła Woli +1 i Charyzma +1.",
         "To oznacza dwa razy szybszy wzrost statystyk niż przy starym progu 100.",
         "Nie ma ręcznego rozdawania punktów.",
         "Levelu postaci nadal nie ma.",
@@ -8644,7 +8813,7 @@ HELP_TOPICS = {
         "Klasa główna zachowuje swoją Broń Duszy. Jej bonus klasowy także zawsze wzmacnia klasę główną; dodatkowe klasy nie dostają osobnej Broni Duszy.",
         "Dodatkowe klasy aktywują swoje pasywy i dają dostęp do własnych nauczycieli oraz skilli.",
         "Class XP z zabitego moba jest jedną pulą dzieloną równo między wszystkie aktywne klasy.",
-        "Każda klasa ma własną Biegłość 1-100 i własny Class XP. To nie jest level postaci.",
+        "Każda klasa ma własną Biegłość 1-200 i własny Class XP. To nie jest level postaci.",
         "Wyłączenie klasy nie kasuje jej Biegłości ani wcześniej nauczonych skilli, ale skilli nie można używać, gdy klasa jest nieaktywna.",
         "Jeśli włączysz klasę magiczną jako dodatkową, postać otrzymuje pulę Many i może używać jej magicznych skilli.",
     ],
@@ -9413,6 +9582,98 @@ QUESTS = {
         "reward_items": {"soul_elixir": 1},
     },
 }
+
+# v0.8.43: jednorazowe questy startowe Archiwisty Sola.
+# Nie mają cooldownu i po ukończeniu nigdy się nie odnawiają.
+QUESTS.update({
+    "sol_starter_blacksmith_delivery": {
+        "name": "Pierwsze kroki: Paczka dla Kowala",
+        "giver": "Archiwista Sol",
+        "kind": "deliver_npc",
+        "target_npc": "doran",
+        "quest_item": "sol_smith_package",
+        "accept_items": {"sol_smith_package": 1},
+        "needed": 1,
+        "description": (
+            "Archiwista Sol prosi, abyś zaniósł zapieczętowaną paczkę "
+            "Kowalowi Doranowi w Kuźni. Porozmawiaj z Doranem, aby ją przekazać."
+        ),
+        "reward_stat_progress": 30,
+        "reward_silver": 50, "reward_gold": 0, "reward_mithril": 0,
+        "reward_items": {"healing_potion": 1},
+        "repeatable": False,
+        "starter_quest": True,
+    },
+    "sol_starter_inn_delivery": {
+        "name": "Pierwsze kroki: Wiadomość do Karczmy",
+        "giver": "Archiwista Sol",
+        "kind": "deliver_npc",
+        "target_npc": "innkeeper",
+        "quest_item": "sol_inn_letter",
+        "accept_items": {"sol_inn_letter": 1},
+        "needed": 1,
+        "description": (
+            "Zanieś list Archiwisty Sola Karczmarce Elii w Karczmie Błękitny Płomień. "
+            "Porozmawiaj z Elią, aby oddać wiadomość."
+        ),
+        "reward_stat_progress": 35,
+        "reward_silver": 60, "reward_gold": 0, "reward_mithril": 0,
+        "reward_items": {"mana_potion": 1},
+        "repeatable": False,
+        "starter_quest": True,
+    },
+    "sol_starter_guard_delivery": {
+        "name": "Pierwsze kroki: Meldunek dla Straży",
+        "giver": "Archiwista Sol",
+        "kind": "deliver_npc",
+        "target_npc": "watch_commander_roderik",
+        "quest_item": "sol_guard_report",
+        "accept_items": {"sol_guard_report": 1},
+        "needed": 1,
+        "description": (
+            "Dostarcz meldunek Archiwisty Sola Dowódcy Roderikowi w Wartowni Północnej. "
+            "Porozmawiaj z Roderikiem, aby przekazać dokument."
+        ),
+        "reward_stat_progress": 45,
+        "reward_silver": 90, "reward_gold": 0, "reward_mithril": 0,
+        "reward_items": {"healing_potion": 1},
+        "repeatable": False,
+        "starter_quest": True,
+    },
+    "sol_starter_herbalist_delivery": {
+        "name": "Pierwsze kroki: Notatki dla Zielarki",
+        "giver": "Archiwista Sol",
+        "kind": "deliver_npc",
+        "target_npc": "mira",
+        "quest_item": "sol_herbal_notes",
+        "accept_items": {"sol_herbal_notes": 1},
+        "needed": 1,
+        "description": (
+            "Zanieś notatki Archiwisty Sola Zielarce Mirze w Gaju Szeptów. "
+            "Porozmawiaj z Mirą, aby przekazać notatki."
+        ),
+        "reward_stat_progress": 55,
+        "reward_silver": 110, "reward_gold": 0, "reward_mithril": 0,
+        "reward_items": {"healing_potion": 2},
+        "repeatable": False,
+        "starter_quest": True,
+    },
+    "sol_starter_class_teacher": {
+        "name": "Pierwsze kroki: Poznaj swojego nauczyciela",
+        "giver": "Archiwista Sol",
+        "kind": "talk_class_teacher",
+        "needed": 1,
+        "description": (
+            "Odszukaj nauczyciela swojej podstawowej klasy i porozmawiaj z nim. "
+            "Zadanie zaliczy się przy rozmowie z właściwym nauczycielem."
+        ),
+        "reward_stat_progress": 70,
+        "reward_silver": 150, "reward_gold": 1, "reward_mithril": 0,
+        "reward_items": {"healing_potion": 1, "mana_potion": 1},
+        "repeatable": False,
+        "starter_quest": True,
+    },
+})
 
 MOB_TEMPLATES = {
     "temple_rat": {
@@ -11955,6 +12216,7 @@ def build_mountain_crafting_expansion():
         "kind": "collect",
         "target": "stolen_mountain_ore",
         "needed": 10,
+        "progress_label": "skrzyń rudy",
         "description": (
             "Odzyskaj 10 Skradzionych Skrzyń Rudy z trolli na Górskim Szlaku "
             "i w Jaskini Trolli, a następnie wróć do Magazyniera Borina "
@@ -14578,17 +14840,17 @@ def build_paid_training_guild_expansion():
         }
         NPCS[teacher_id]["room"] = room_id
         NPCS[teacher_id]["dialogue"] += (
-            " Nauka umiejętności jest płatna. Cena rośnie wraz z wymaganym Soul Level skilla."
+            " Nauka umiejętności jest płatna. Cena rośnie wraz z wymaganą Biegłością klasy skilla."
         )
 
     
     HELP_TOPICS["nauka"] = [
         "Nauka umiejętności klasowych u nauczycieli Gildii Dusz jest płatna.",
-        "Cena zależy od Soul Level wymaganego przez konkretną umiejętność.",
+        "Cena zależy od Biegłości klasy wymaganej przez konkretną umiejętność.",
         "Niskopoziomowe skille kosztują srebro; późniejsze skille kosztują coraz więcej złota.",
         "Nauczyciel zawsze podaje cenę przed nauką.",
         "Komendy: learn <numer>, learn <skill>, naucz <numer>, naucz <umiejętność>.",
-        "Pieniądze są pobierane dopiero po sprawdzeniu aktywnej klasy, wymaganego Soul Level i tego, czy skill nie jest już znany.",
+        "Pieniądze są pobierane dopiero po sprawdzeniu aktywnej klasy, wymaganej Biegłości i tego, czy skill nie jest już znany.",
         "Każda z 12 klas ma teraz własną salę i własnego nauczyciela.",
         "Wpisz teachers albo nauczyciele, aby usłyszeć dokładne lokacje.",
     ]
@@ -15654,7 +15916,7 @@ class Database:
                 silver INTEGER NOT NULL DEFAULT 250,
                 gold INTEGER NOT NULL DEFAULT 2,
                 mithril INTEGER NOT NULL DEFAULT 0,
-                charisma INTEGER NOT NULL DEFAULT 0,
+                charisma INTEGER NOT NULL DEFAULT 10,
                 deaths INTEGER NOT NULL DEFAULT 0,
                 crypt_checkpoint INTEGER NOT NULL DEFAULT 0,
                 guild_reputation_json TEXT NOT NULL DEFAULT '{}',
@@ -15803,6 +16065,12 @@ class Database:
                 FOREIGN KEY(account_id) REFERENCES accounts(id) ON DELETE CASCADE
             );
 
+            CREATE TABLE IF NOT EXISTS combat_log_settings (
+                account_id INTEGER PRIMARY KEY,
+                mode TEXT NOT NULL DEFAULT 'normal',
+                FOREIGN KEY(account_id) REFERENCES accounts(id) ON DELETE CASCADE
+            );
+
             CREATE TABLE IF NOT EXISTS exploration_rooms (
                 account_id INTEGER NOT NULL,
                 room_id TEXT NOT NULL,
@@ -15884,7 +16152,7 @@ class Database:
             "silver": "INTEGER NOT NULL DEFAULT 30",
             "gold": "INTEGER NOT NULL DEFAULT 2",
             "mithril": "INTEGER NOT NULL DEFAULT 0",
-            "charisma": "INTEGER NOT NULL DEFAULT 0",
+            "charisma": "INTEGER NOT NULL DEFAULT 10",
             "deaths": "INTEGER NOT NULL DEFAULT 0",
             "crypt_checkpoint": "INTEGER NOT NULL DEFAULT 0",
             "name_nom": "TEXT NOT NULL DEFAULT ''",
@@ -15915,6 +16183,14 @@ class Database:
                 f"UPDATE characters SET {column}=name "
                 f"WHERE {column} IS NULL OR TRIM({column})=''"
             )
+        # v0.8.38: Charyzma jest szóstą normalną statystyką.
+        # Stare postacie zachowują wypracowaną Charyzmę; wartości 0/brakujące
+        # otrzymują bezpieczną wartość startową 10.
+        self.conn.execute(
+            "UPDATE characters SET charisma=10 "
+            "WHERE charisma IS NULL OR charisma < 1"
+        )
+
         # v0.8.6: dwa sloty pierścieni. Stary slot ring jest
         # bezpiecznie migrowany do ring1 bez kasowania przedmiotów.
         old_ring = self.conn.execute(
@@ -16373,9 +16649,9 @@ class Database:
                 account_id,name,
                 name_nom,name_gen,name_dat,name_acc,name_ins,name_loc,name_voc,
                 race,class_name,class_type,soul_weapon,weapon_base,
-                strength,dexterity,constitution,intelligence,willpower,
+                strength,dexterity,constitution,intelligence,willpower,charisma,
                 stat_progress,soul_level,soul_xp,soul_tier,room_id,silver,gold,mithril,deaths
-            ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,0,1,0,1,'square',30,2,0,0)
+            ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,0,1,0,1,'square',30,2,0,0)
             """,
             (
                 account_id, name,
@@ -16383,7 +16659,7 @@ class Database:
                 name_cases["acc"], name_cases["ins"], name_cases["loc"],
                 name_cases["voc"],
                 rname, cname, ctype, soul_weapon, weapon_base,
-                strength, dexterity, constitution, intelligence, willpower,
+                strength, dexterity, constitution, intelligence, willpower, 10,
             ),
         )
         self.conn.execute(
@@ -17065,6 +17341,31 @@ class Database:
         )
         self.conn.commit()
 
+    def combat_log_mode(self, account_id):
+        self.conn.execute(
+            "INSERT OR IGNORE INTO combat_log_settings(account_id,mode) VALUES(?, 'normal')",
+            (account_id,),
+        )
+        self.conn.commit()
+        row = self.conn.execute(
+            "SELECT mode FROM combat_log_settings WHERE account_id=?",
+            (account_id,),
+        ).fetchone()
+        mode = str(row["mode"] if row else "normal").lower()
+        return mode if mode in ("concise", "normal", "full") else "normal"
+
+    def set_combat_log_mode(self, account_id, mode):
+        mode = str(mode or "normal").lower()
+        if mode not in ("concise", "normal", "full"):
+            mode = "normal"
+        self.conn.execute(
+            "INSERT INTO combat_log_settings(account_id,mode) VALUES(?,?) "
+            "ON CONFLICT(account_id) DO UPDATE SET mode=excluded.mode",
+            (account_id, mode),
+        )
+        self.conn.commit()
+        return mode
+
     def replace_skill_queue(self, account_id, queue_type, skill_ids):
         queue_type = str(queue_type)
         skill_ids = list(skill_ids)
@@ -17429,6 +17730,27 @@ class Database:
             (account_id, quest_id),
         )
         self.conn.commit()
+
+    def set_quest_progress(self, account_id, quest_id, progress):
+        self.conn.execute(
+            "UPDATE quests SET progress=? WHERE account_id=? AND quest_id=?",
+            (max(0, int(progress)), account_id, quest_id),
+        )
+        self.conn.commit()
+
+    def abandon_quest(self, account_id, quest_id):
+        row = self.quest(account_id, quest_id)
+        if not row or row["status"] != "active":
+            return False
+        # Nie kasujemy completion_count ani completed_at: historia wcześniejszych
+        # ukończeń ma pozostać. Porzucenie kasuje tylko bieżące podejście/postęp.
+        self.conn.execute(
+            "UPDATE quests SET status='abandoned',progress=0 "
+            "WHERE account_id=? AND quest_id=?",
+            (account_id, quest_id),
+        )
+        self.conn.commit()
+        return True
 
     def repeat_quest_seconds_remaining(self, account_id, quest_id, cooldown):
         row = self.quest(account_id, quest_id)
@@ -18044,16 +18366,17 @@ class Character:
         while self.stat_progress >= STAT_GROWTH_THRESHOLD:
             self.stat_progress -= STAT_GROWTH_THRESHOLD
 
-            # Każda klasa rozwija wszystkie pięć statystyk.
+            # Każda klasa rozwija wszystkie sześć statystyk.
             self.strength += 1
             self.dexterity += 1
             self.constitution += 1
             self.intelligence += 1
             self.willpower += 1
+            self.charisma += 1
 
             messages.append(
                 "Statystyki wzrosły: Siła +1, Zręczność +1, Kondycja +1, "
-                "Inteligencja +1, Siła Woli +1."
+                "Inteligencja +1, Siła Woli +1, Charyzma +1."
             )
         return messages
 
@@ -18399,22 +18722,68 @@ class World:
         return [m for m in self.mobs.values() if m.room_id == room_id and m.alive]
 
     def find_mob(self, room_id, query):
+        """Znajdź dowolnego żywego moba możliwego do walki w pokoju.
+
+        v0.8.35: resolver jest celowo bardziej tolerancyjny dla komendy
+        ``k <mob>`` / ``atakuj <mob>``. Obsługuje polskie znaki i ich brak,
+        pełną nazwę, id szablonu, początek/fragment nazwy oraz numer wystąpienia
+        (np. ``k 2 goblin``). Jeżeli kilka żywych mobów pasuje do zwykłego
+        zapytania, wybierane jest najlepsze dostępne dopasowanie zamiast
+        odrzucania celu jako niejednoznacznego.
+        """
         mobs = self.room_mobs(room_id)
-        q = query.strip().lower()
-        if not q and len(mobs) == 1:
-            return mobs[0]
-        exact = []
-        partial = []
-        for mob in mobs:
-            name = MOB_TEMPLATES[mob.template_id]["name"].lower()
-            if q == name or q == mob.template_id:
-                exact.append(mob)
-            elif q and (q in name or q in mob.template_id):
-                partial.append(mob)
-        if exact:
-            return exact[0]
-        if len(partial) == 1:
-            return partial[0]
+        raw = str(query or "").strip()
+        if not raw:
+            return mobs[0] if len(mobs) == 1 else None
+
+        requested_index = 1
+        index_match = re.match(r"^(\d+)\s+(.+)$", raw)
+        if index_match:
+            requested_index = max(1, int(index_match.group(1)))
+            raw = index_match.group(2).strip()
+
+        q = normalize_lookup_text(raw)
+        if not q:
+            return None
+
+        ranked = []
+        for order, mob in enumerate(mobs):
+            template = MOB_TEMPLATES.get(mob.template_id, {})
+            # World.room_mobs zwraca tylko żywe moby. max_hp > 0 jest
+            # dodatkowym zabezpieczeniem, że cel rzeczywiście należy do walki.
+            if int(template.get("max_hp", 0) or 0) <= 0:
+                continue
+
+            name = normalize_lookup_text(template.get("name", ""))
+            template_id = normalize_lookup_text(mob.template_id)
+            aliases = [
+                normalize_lookup_text(alias)
+                for alias in template.get("mob_aliases", ())
+                if str(alias).strip()
+            ]
+            texts = [name, template_id] + aliases
+
+            score = None
+            if any(q == text for text in texts if text):
+                score = 0
+            elif any(text.startswith(q) for text in texts if text):
+                score = 1
+            elif any(q in text.split() for text in texts if text):
+                score = 2
+            elif any(q in text for text in texts if text):
+                score = 3
+
+            if score is not None:
+                ranked.append((score, order, mob))
+
+        if not ranked:
+            return None
+
+        ranked.sort(key=lambda item: (item[0], item[1]))
+        best_score = ranked[0][0]
+        best = [item[2] for item in ranked if item[0] == best_score]
+        if requested_index <= len(best):
+            return best[requested_index - 1]
         return None
 
 
@@ -18439,6 +18808,9 @@ class Session:
         self.combat_task = None
         self.combat_player_interval = 1.35
         self.combat_enemy_interval = 1.85
+        # v0.8.36: w trybie concise ostrzegamy tylko przy przekraczaniu
+        # ważnych progów HP, zamiast czytać każde zwykłe trafienie.
+        self.combat_hp_warn_level = 0
         self.last_profession_action = 0.0
         self.auto_fishing = False
         self.auto_fishing_task = None
@@ -18456,11 +18828,15 @@ class Session:
         self.skill_cooldowns = {}
         self.skill_guard = 0
         self.skill_evade = False
-        self.skill_damage_boost = 1.0
+        # v0.8.45: każdy skill typu boost jest czasowym, uniwersalnym buffem.
+        # Aktywne buffy wzmacniają wszystkie skille i spelle o mierzalnej sile
+        # (obrażenia, leczenie i guard), także przy multiclassie.
+        self.active_skill_buffs = {}
         # v0.8.26: automatyczna rotacja dwóch kolejek skilli.
         # Konfiguracja kolejki jest trwała w SQLite, a kursory rotacji są sesyjne.
         self.skill_queue_cursors = {"physical": 0, "magic": 0}
         self.skill_queue_next_type = "physical"
+        self.auto_queue_casting = False
         self.resting = False
         self.rest_task = None
         # Ostatnia zwykła lokacja do komendy cofnij/back.
@@ -19280,8 +19656,19 @@ class Session:
                 return class_name
         return self.character.class_name
 
+    def class_mastery_level(self, class_name):
+        row = self.server.db.class_progress_row(self.account_id, class_name)
+        return int(row["level"]) if row else 1
+
+    def skill_required_mastery(self, skill):
+        return max(1, int(skill.get("unlock", 1)))
+
+    def skill_mastery_unlocked(self, skill):
+        class_name = self.skill_class_name(skill)
+        return self.class_mastery_level(class_name) >= self.skill_required_mastery(skill)
+
     def skill_training_cost_silver(self, skill):
-        """Cena nauki w przeliczeniu na srebro; rośnie z wymaganym Soul Level."""
+        """Cena nauki w przeliczeniu na srebro; rośnie z wymaganą Biegłością klasy."""
         unlock = max(1, int(skill.get("unlock", 1)))
         if unlock <= 20:
             return 200 + unlock * 40
@@ -19350,7 +19737,7 @@ class Session:
             slot = int(row["active_slot"])
             role = "główna" if slot == 1 else f"dodatkowa, slot {slot}"
             if level >= CLASS_MASTERY_MAX_LEVEL:
-                progress = "Biegłość 100, maksimum."
+                progress = f"Biegłość {CLASS_MASTERY_MAX_LEVEL}, maksimum."
             else:
                 needed = class_mastery_xp_to_next(level)
                 progress = (
@@ -19485,7 +19872,7 @@ class Session:
             if result["level"] >= CLASS_MASTERY_MAX_LEVEL:
                 await self.send(
                     f"{class_name}: +{share} EXP klasy. "
-                    "Biegłość 100, maksimum."
+                    f"Biegłość {CLASS_MASTERY_MAX_LEVEL}, maksimum."
                 )
             else:
                 await self.send(
@@ -19566,9 +19953,23 @@ class Session:
             "kodowanie utf8 albo kodowanie cp1250."
         )
 
-    async def send(self, text=""):
+    async def send(self, text="", combat_detail=None):
         if self.closed:
             return
+        if (
+            combat_detail is None
+            and self.auto_queue_casting
+            and self.combat_mob_key
+        ):
+            combat_detail = "normal"
+        if combat_detail and self.account_id is not None:
+            mode = self.server.db.combat_log_mode(self.account_id)
+            rank = {"concise": 0, "normal": 1, "full": 2}
+            needed = {"essential": 0, "normal": 1, "full": 2}.get(
+                str(combat_detail).lower(), 1
+            )
+            if rank.get(mode, 1) < needed:
+                return
         try:
             self.writer.write(
                 self.encode_session_text(
@@ -19578,6 +19979,62 @@ class Session:
             await self.writer.drain()
         except (ConnectionError, BrokenPipeError):
             self.closed = True
+
+    async def send_combat(self, text, detail="essential"):
+        await self.send(text, combat_detail=detail)
+
+    async def set_combat_log(self, args=""):
+        raw = self.normalize_description_query(str(args or "").strip())
+        aliases = {
+            "concise": "concise", "krotki": "concise", "krótki": "concise",
+            "minimal": "concise", "cichy": "concise",
+            "normal": "normal", "normalny": "normal",
+            "full": "full", "pelny": "full", "pełny": "full",
+        }
+        if not raw:
+            mode = self.server.db.combat_log_mode(self.account_id)
+            await self.send(
+                f"Combat Log: {mode}. Dostępne: combat concise, combat normal, combat full."
+            )
+            return
+        mode = aliases.get(raw)
+        if not mode:
+            await self.send(
+                "Użycie: combat concise, combat normal albo combat full."
+            )
+            return
+        self.server.db.set_combat_log_mode(self.account_id, mode)
+        labels = {
+            "concise": "zwięzły — tylko ważne wydarzenia i ostrzeżenia",
+            "normal": "normalny — trafienia i skille bez najbardziej technicznych detali",
+            "full": "pełny — wszystkie szczegóły walki",
+        }
+        await self.send(f"Combat Log ustawiony: {labels[mode]}.")
+
+    async def combat_hp_warning(self):
+        if not self.character or self.current_hp <= 0:
+            return
+        max_hp = max(1, self.max_hp())
+        ratio = self.current_hp / max_hp
+        level = 0
+        label = ""
+        if ratio <= 0.10:
+            level, label = 3, "KRYTYCZNE HP"
+        elif ratio <= 0.25:
+            level, label = 2, "NISKIE HP"
+        elif ratio <= 0.50:
+            level, label = 1, "HP poniżej połowy"
+        if level < self.combat_hp_warn_level:
+            # Po leczeniu ponownie uzbrój progi, żeby kolejne zejście HP
+            # znów dało zwięzłe ostrzeżenie.
+            self.combat_hp_warn_level = level
+            return
+        if level > self.combat_hp_warn_level:
+            self.combat_hp_warn_level = level
+            await self.send_combat(
+                f"{label}: {max(0, self.current_hp)} z {max_hp}.",
+                "essential",
+            )
 
     async def prompt(self, text):
         if self.closed:
@@ -19896,17 +20353,24 @@ class Session:
             "Znaczenie statystyk: Siła zwiększa atak fizyczny; "
             "Zręczność zwiększa szybkość i unik; Kondycja zwiększa HP; "
             "Inteligencja zwiększa Manę i moc czarów; "
-            "Siła Woli zwiększa obronę magiczną."
+            "Siła Woli zwiększa obronę magiczną; "
+            "Charyzma zwiększa rabat sklepowy i limit drużyny."
         )
         for i, race in enumerate(RACES, 1):
             rname, desc, s, d, c, inte, w = race
+            advice = race_class_recommendation_text(rname)
             await self.send(
                 f"{i}. {rname}. {desc} Siła {s}, Zręczność {d}, Kondycja {c}, "
-                f"Inteligencja {inte}, Siła Woli {w}."
+                f"Inteligencja {inte}, Siła Woli {w}, Charyzma 10. {advice}"
             )
         race = await self.choose_number(RACES, "Numer rasy: ")
         if race is None:
             return False
+        selected_race_name = race[0]
+        await self.send(
+            f"Wybrana rasa: {selected_race_name}. {race_class_recommendation_text(selected_race_name)} "
+            "To tylko rekomendacja. Możesz wybrać dowolną z 12 klas."
+        )
         await self.send("Wybierz klasę:")
         for i, cls in enumerate(CLASSES, 1):
             cname, ctype, weapon, _ = cls
@@ -19914,11 +20378,11 @@ class Session:
             desc = CLASS_DESCRIPTIONS.get(cname, "")
             growth = (
                 "Rozwój: wszystkie statystyki automatycznie: Siła, Zręczność, "
-                "Kondycja, Inteligencja i Siła Woli."
+                "Kondycja, Inteligencja, Siła Woli i Charyzma."
             )
             skills = CLASS_SKILLS.get(cname, [])
             skill_text = "; ".join(
-                f"{s['name']} do nauki od Soul Level {s['unlock']}" for s in skills
+                f"{s['name']} do nauki od Biegłości klasy {s['unlock']}" for s in skills
             )
             await self.send(
                 f"{i}. {cname}. Typ {kind}. {desc} "
@@ -19953,7 +20417,7 @@ class Session:
             f"{MAX_CHARACTERS_PER_ACCOUNT}."
         )
         await self.send(
-            "Postać nie posiada levelu. Wszystkie pięć statystyk rośnie automatycznie."
+            "Postać nie posiada levelu. Wszystkie sześć statystyk rośnie automatycznie."
         )
         if slot == 1:
             await self.send(
@@ -21086,6 +21550,43 @@ class Session:
                 "achievement:all_minibosses", "Pogromca Mini-Bossów"
             )
 
+    async def announce_item_collect_quest_progress(self, item_id):
+        """Read progress for active collect quests fed by a newly gained item."""
+        rows = self.server.db.quest_rows(self.account_id)
+        for row in rows:
+            if row["status"] != "active":
+                continue
+            quest = QUESTS.get(row["quest_id"])
+            if not quest or quest.get("kind") != "collect":
+                continue
+            if quest.get("track_craft_progress"):
+                continue
+            if quest.get("target") != item_id:
+                continue
+
+            needed = int(quest.get("needed", 0))
+            if needed <= 0:
+                continue
+            progress = min(
+                self.server.db.item_qty(self.account_id, item_id),
+                needed,
+            )
+            label = str(
+                quest.get("progress_label")
+                or ITEMS.get(item_id, {}).get("name", "przedmiotów")
+            )
+            if progress >= needed:
+                await self.send(
+                    f"Postęp questa: {quest['name']}. "
+                    f"{progress} z {needed} {label}. "
+                    f"Cel wykonany. Wróć do NPC: {quest.get('giver', 'NPC')}."
+                )
+            else:
+                await self.send(
+                    f"Postęp questa: {quest['name']}. "
+                    f"{progress} z {needed} {label}."
+                )
+
     async def record_item_collection(
         self, item_id, source="", announce=True, record_history=True
     ):
@@ -21123,6 +21624,12 @@ class Session:
                 await self.send(
                     f"Nowy wpis Codexu: {SET_COLLECTION_CATALOG[set_entry]['name']}, Set."
                 )
+
+        # v0.8.40: quest item progress is spoken immediately after loot.
+        # This deliberately ignores the loot speech filter: quest progress is
+        # gameplay-critical information for screen-reader users.
+        if announce:
+            await self.announce_item_collect_quest_progress(item_id)
 
     async def sync_collection_from_inventory(self):
         owned = {row["item_id"] for row in self.server.db.inventory(self.account_id)}
@@ -21648,22 +22155,22 @@ class Session:
             "tell gracz tekst - wiadomość prywatna",
             "druzyna / party - zarządzanie drużyną",
             "pc tekst - czat drużyny",
-            "charyzma / charisma - rabat sklepowy i limit drużyny",
+            "charyzma / charisma - szósta statystyka; rabat sklepowy i limit drużyny",
             "multiclass / klasy - opcjonalne 1-3 aktywne klasy i Biegłość klas",
             "multiclass add klasa / remove klasa - dodaj lub wyłącz klasę dodatkową",
             "stats / staty - szybkie statystyki; staty info - pełny opis mechaniki i bonusów",
             "odmiana / przypadki - pokaż 7 form imienia postaci",
             "skills / umiejetnosci - lista umiejętności twojej klasy",
-            "kodeksklasowy <klasa> / classcodex <class> - wszystkie skille, wymagany Soul, nauczyciel, koszt i status odblokowania",
+            "kodeksklasowy <klasa> / classcodex <class> - wszystkie skille, wymagana Biegłość, nauczyciel, koszt i status odblokowania",
             "skillnames / nazwyskilli - wszystkie nazwy skilli wszystkich klas",
             "skill / umiejetnosc / cast <nazwa lub numer> [cel] - użyj umiejętności",
-            "kolejka / kolejka lista - pokaż zapisane skille i czary; kolejka dodaj automatycznie włącza rotację; osobne sloty fizyczne i magiczne rosną z Biegłością klasy",
+            "kolejka / kolejka lista - pokaż zapisane skille i czary; sloty są numerowane zwyczajnie jako Slot 1, Slot 2 itd. osobno dla fizycznych i magicznych; kolejka dodaj automatycznie włącza rotację",
             "użyj umiejętność <nazwa> [cel] / use skill <name> [target] - alternatywne użycie skilla",
             "learn / naucz / ucz <nazwa, numer lub naturalna kategoria> - np. naucz leczenie, tarcza, ciecie, pocisk, ogien",
             "soul / dusza - szybki stan Duszy; dusza info - Soul XP, Tiery, Próby i następny cel",
-            "money - mithril, złoto i srebro",
+            "portfel / money / saldo - wspólny portfel konta: mithril, złoto i srebro",
             "bank - Bank Dusz na Rynku; waluta i trwała skrytka przedmiotów",
-            "money - automatyczne nominały waluty i kurs",
+            "portfel - pokazuje wspólną walutę wszystkich postaci na koncie oraz kurs nominałów",
             "professions / profesje - szybki stan profesji; profesje info - XP, rangi i zasady",
             "narzedzia / tools - szybki stan narzędzi; narzedzia info - XP, Tiery, bonusy i sprzedawcy",
             "professions / profesje - 7 profesji: Wędkarstwo, Górnictwo, Drwalstwo, Zielarstwo, Alchemia, Kowalstwo, Jubilerstwo",
@@ -21701,11 +22208,11 @@ class Session:
             "equip / załóż przedmiot albo slot - np. załóż buty, hełm, zbroja, rękawice, nogi, talizman",
             "use / użyj - przedmioty, skille i czary; np. użyj ciecie goblin albo użyj pocisk goblin",
             "shop / sklep / list / lista - oferta sprzedawcy",
-            "buy / kup przedmiot - kup przedmiot",
+            "buy / kup przedmiot - kup po nazwie lub numerze z listy; np. kup 9 albo kup 9 3",
             "talk npc - rozmowa, zadania i lekcje nauczycieli klasowych",
             "teachers / nauczyciele - lista nauczycieli w Sali Gildii",
-            "help quest - pełna pomoc dziennika; quest - aktywne; quest ukończone; quest list <NPC>; quest accept/info/oddaj <numer>",
-            "consider / con / ocen <mob> - oceń siłę przeciwnika bez rozpoczynania walki",
+            "help quest - pełna pomoc dziennika; quest - aktywne; quest ukończone; quest list <NPC>; quest accept/info/oddaj/porzuć <numer>",
+            "consider / con / ocen <mob> - oceń dowolnego zabijalnego moba bez rozpoczynania walki; działa też np. con 2 goblin",
             "k <mob> / attack / atakuj / zabij / kill <mob> - szybki atak na wskazanego przeciwnika",
             "ciało / zwloki / corpse - pokaż ciała i ich ekwipunek",
             "przeszukaj ciało / loot - zabierz ekwipunek z ciała moba",
@@ -22753,7 +23260,7 @@ class Session:
                 "name": race[0], "desc": race[1],
                 "strength": race[2], "dexterity": race[3],
                 "constitution": race[4], "intelligence": race[5],
-                "willpower": race[6],
+                "willpower": race[6], "charisma": 10,
             }
             for race in RACES
         }
@@ -22764,7 +23271,12 @@ class Session:
             await self.send(
                 f"Startowe statystyki: Siła {race['strength']}, "
                 f"Zręczność {race['dexterity']}, Kondycja {race['constitution']}, "
-                f"Inteligencja {race['intelligence']}, Siła Woli {race['willpower']}."
+                f"Inteligencja {race['intelligence']}, Siła Woli {race['willpower']}, "
+                f"Charyzma {race['charisma']}."
+            )
+            await self.send(
+                race_class_recommendation_text(race['name']) +
+                " To rekomendacja, nie ograniczenie wyboru klasy."
             )
             return
 
@@ -22782,12 +23294,12 @@ class Session:
             await self.send(
                 f"Broń Duszy: {cls['weapon']}. Bazowa moc Broni Duszy: {cls['base']}."
             )
-            await self.send("Rozwój klasy: wszystkie pięć statystyk rośnie automatycznie.")
+            await self.send("Rozwój klasy: wszystkie sześć statystyk rośnie automatycznie.")
             skills = CLASS_SKILLS.get(cls["name"], [])
             if skills:
                 await self.send(
                     "Umiejętności: " + "; ".join(
-                        f"{s['name']} do nauki od Soul Level {s['unlock']}" for s in skills
+                        f"{s['name']} do nauki od Biegłości klasy {s['unlock']}" for s in skills
                     ) + "."
                 )
             return
@@ -22833,7 +23345,8 @@ class Session:
                 f"Zręczność {self.effective_dexterity()}, "
                 f"Kondycja {self.effective_constitution()}, "
                 f"Inteligencja {self.effective_intelligence()}, "
-                f"Siła Woli {self.effective_willpower()}."
+                f"Siła Woli {self.effective_willpower()}, "
+                f"Charyzma {c.charisma}."
             )
             await self.send(
                 f"HP {self.current_hp} z {self.max_hp()}. "
@@ -22865,14 +23378,15 @@ class Session:
         await self.send(
             f"Bazowe: Siła {c.strength}, Zręczność {c.dexterity}, "
             f"Kondycja {c.constitution}, Inteligencja {c.intelligence}, "
-            f"Siła Woli {c.willpower}."
+            f"Siła Woli {c.willpower}, Charyzma {c.charisma}."
         )
         await self.send(
             f"Efektywne z EQ i klejnotami: Siła {self.effective_strength()}, "
             f"Zręczność {self.effective_dexterity()}, "
             f"Kondycja {self.effective_constitution()}, "
             f"Inteligencja {self.effective_intelligence()}, "
-            f"Siła Woli {self.effective_willpower()}."
+            f"Siła Woli {self.effective_willpower()}, "
+            f"Charyzma {c.charisma}."
         )
         await self.send(
             "Bonusy wyposażenia i socketów: "
@@ -22882,7 +23396,7 @@ class Session:
         )
         await self.send(
             f"Rozwój Statystyk: {c.stat_progress} z {STAT_GROWTH_THRESHOLD}. "
-            "Po osiągnięciu progu wszystkie pięć bazowych statystyk rośnie o 1, "
+            "Po osiągnięciu progu wszystkie sześć bazowych statystyk rośnie o 1, "
             "a nadmiar postępu zostaje zachowany."
         )
         await self.send(
@@ -22908,7 +23422,7 @@ class Session:
         for line in self.class_set_status_lines():
             await self.send(line)
         await self.send(
-            f"Charyzma {c.charisma}. Rabat sklepowy {c.shop_discount_percent()} procent. "
+            f"Efekt Charyzmy: rabat sklepowy {c.shop_discount_percent()} procent. "
             f"Limit drużyny jako lider {c.party_capacity()}."
         )
 
@@ -24342,7 +24856,7 @@ class Session:
 
     async def show_charisma(self):
         c = self.character
-        await self.send(f"Charyzma handlowa: {c.charisma}.")
+        await self.send(f"Charyzma: {c.charisma}.")
         await self.send(
             f"Rabat sklepowy: {c.shop_discount_percent()} procent "
             f"z maksymalnych {CHARISMA_MAX_DISCOUNT} procent."
@@ -24362,7 +24876,8 @@ class Session:
             f"{c.charisma_to_next_party_slot()} Charyzmy."
         )
         await self.send(
-            "Każda udana sprzedaż surowca zwiększa Charyzmę o 1."
+            "Charyzma jest szóstą normalną statystyką i rośnie razem z pozostałymi "
+            "przez Postęp Rozwoju. Udana sprzedaż surowca może dodatkowo zwiększyć Charyzmę."
         )
 
     async def gain_charisma_from_sale(self):
@@ -24370,7 +24885,7 @@ class Session:
         old_capacity = self.character.party_capacity()
         self.character.charisma += 1
         await self.send(
-            f"Charyzma handlowa +1. Masz teraz {self.character.charisma}."
+            f"Charyzma +1. Masz teraz {self.character.charisma}."
         )
         new_discount = self.character.shop_discount_percent()
         new_capacity = self.character.party_capacity()
@@ -28179,7 +28694,7 @@ class Session:
         self.character.charisma += units
 
         await self.send(
-            f"Charyzma handlowa +{units}. "
+            f"Charyzma +{units}. "
             f"Masz teraz {self.character.charisma}."
         )
 
@@ -30063,7 +30578,8 @@ class Session:
             )
 
     async def buy(self, query):
-        normalized_query = normalize_lookup_text(query)
+        raw_query = (query or "").strip()
+        normalized_query = normalize_lookup_text(raw_query)
         requested_tool = TOOL_BUY_ALIASES.get(normalized_query)
 
         offers = SHOPS.get(self.character.room_id)
@@ -30080,12 +30596,32 @@ class Session:
             return
 
         possible = {item_id: ITEMS[item_id] for item_id in offers}
-
+        quantity = 1
         found = None
-        if requested_tool and requested_tool in possible:
+
+        # Zakup numerem z aktualnej, ponumerowanej listy sklepu.
+        # Przykłady: kup 9, kup 9 3.
+        numeric_match = re.fullmatch(r"\s*(\d+)(?:\s+(\d+))?\s*", raw_query)
+        if numeric_match:
+            offer_number = int(numeric_match.group(1))
+            if numeric_match.group(2):
+                quantity = int(numeric_match.group(2))
+            if quantity < 1:
+                await self.send("Liczba sztuk musi być większa od zera.")
+                return
+            if offer_number < 1 or offer_number > len(offers):
+                await self.send(
+                    f"Nie ma pozycji {offer_number} w tym sklepie. "
+                    f"Wpisz shop albo list, aby usłyszeć ofertę od 1 do {len(offers)}."
+                )
+                return
+            item_id = offers[offer_number - 1]
+            found = (item_id, ITEMS[item_id])
+
+        if not found and requested_tool and requested_tool in possible:
             found = (requested_tool, possible[requested_tool])
         if not found:
-            found = find_by_name(possible, query)
+            found = find_by_name(possible, raw_query)
 
         if not found:
             if requested_tool:
@@ -30095,12 +30631,20 @@ class Session:
                     f"Kupisz ją w lokacji {ROOMS[target_room]['name']}."
                 )
                 return
-            await self.send("Tego przedmiotu nie ma w ofercie.")
+            await self.send(
+                "Tego przedmiotu nie ma w ofercie. "
+                "Możesz też kupować numerem, na przykład kup 9."
+            )
             return
 
         item_id, item = found
 
         if is_character_bound_item(item_id):
+            if quantity != 1:
+                await self.send(
+                    f"{item['name']} jest przypisany do postaci i można kupić tylko jedną sztukę."
+                )
+                return
             owned_quantity = self.server.db.item_qty(
                 self.account_id, item_id
             )
@@ -30124,22 +30668,31 @@ class Session:
             )
             return
 
-        price = item["price"]
+        unit_price = item["price"]
+        total_price = unit_price * quantity
         currency = item.get("currency", "gold")
         currency_pl = {"silver": "srebra", "gold": "złota", "mithril": "mithrilu"}[currency]
         current = getattr(self.character, currency)
-        if current < price:
-            await self.send(f"Masz za mało waluty: {currency_pl}.")
+        if current < total_price:
+            await self.send(
+                f"Masz za mało waluty: {currency_pl}. "
+                f"Potrzeba {total_price} {currency_pl} za {quantity} szt."
+            )
             return
-        setattr(self.character, currency, current - price)
-        cashback = self.shop_cashback_silver(item)
+        setattr(self.character, currency, current - total_price)
+        cashback = self.shop_cashback_silver(item) * quantity
         if cashback > 0:
             self.character.silver += cashback
-        self.server.db.add_item(self.account_id, item_id, 1)
+        self.server.db.add_item(self.account_id, item_id, quantity)
         if item.get("type") == "tool":
             self.server.db.ensure_tool(self.account_id, item["tool_type"])
         self.server.db.save_character(self.character)
-        await self.send(f"Kupujesz {item['name']} za {price} {currency_pl}.")
+        if quantity == 1:
+            await self.send(f"Kupujesz {item['name']} za {total_price} {currency_pl}.")
+        else:
+            await self.send(
+                f"Kupujesz {quantity} szt. {item['name']} za {total_price} {currency_pl}."
+            )
         if cashback > 0:
             await self.send(
                 f"Rabat Charyzmy: sprzedawca zwraca ci "
@@ -30180,7 +30733,7 @@ class Session:
         for number, skill in enumerate(CLASS_SKILLS.get(class_name, []), 1):
             progress = ""
             if class_name not in self.active_class_names():
-                status = f"wymaga aktywnej klasy {class_name} i Soul Level {skill['unlock']}"
+                status = f"wymaga aktywnej klasy {class_name} i Biegłości {skill['unlock']}"
             elif skill["id"] in learned:
                 row = self.server.db.skill_progress(self.account_id, skill["id"])
                 status = "już nauczona"
@@ -30191,10 +30744,10 @@ class Session:
                         f" Skill Level {row['level']}, XP {row['xp']} z "
                         f"{skill_xp_to_next(int(row['level']))}."
                     )
-            elif self.character.soul_level >= skill["unlock"]:
+            elif self.class_mastery_level(class_name) >= int(skill["unlock"]):
                 status = "możesz nauczyć się teraz"
             else:
-                status = f"zablokowana do Soul Level {skill['unlock']}"
+                status = f"zablokowana do Biegłości klasy {skill['unlock']}"
 
             mana = f" Mana {skill.get('mana', 0)}." if skill.get("mana", 0) else ""
             training_cost = self.skill_training_cost_silver(skill)
@@ -30218,7 +30771,7 @@ class Session:
             )
             await self.send(
                 f"To jest nauczyciel twojej {role} klasy {class_name}. "
-                f"Aktualny Soul Level: {self.character.soul_level}."
+                f"Aktualna Biegłość klasy {class_name}: {self.class_mastery_level(class_name)}."
             )
             await self.send(
                 "Nauka: learn <numer>, naucz <pełna nazwa> albo "
@@ -30347,6 +30900,9 @@ class Session:
 
         if q["kind"] == "craft_set":
             return self.craft_set_progress(row, q)
+
+        if q["kind"] in ("deliver_npc", "talk_npc", "talk_class_teacher"):
+            return min(int(row["progress"]), int(q.get("needed", 1)))
 
         return None
 
@@ -30678,6 +31234,12 @@ class Session:
                 return f"aktywne, GOTOWE DO ODDANIA, {progress} z {quest['needed']}"
             return f"aktywne, {progress} z {quest['needed']}"
 
+        if row and row["status"] == "abandoned":
+            reasons = self.quest_lock_reasons(quest_id)
+            if reasons:
+                return "porzucone, zablokowane: " + ", ".join(reasons)
+            return "porzucone, dostępne ponownie"
+
         if row and row["status"] == "completed":
             if quest.get("repeatable"):
                 cooldown = int(
@@ -30836,12 +31398,24 @@ class Session:
             )
             return
 
-        if row and row["status"] == "completed":
+        if row and row["status"] in ("completed", "abandoned"):
             self.server.db.restart_quest(self.account_id, quest_id)
             await self.send(f"Quest przyjęty ponownie: {quest['name']}.")
         else:
             self.server.db.start_quest(self.account_id, quest_id)
             await self.send(f"Quest przyjęty: {quest['name']}.")
+
+        # v0.8.43: przedmioty potrzebne do jednorazowych dostaw Sola.
+        for item_id, qty in (quest.get("accept_items") or {}).items():
+            wanted_qty = max(1, int(qty))
+            have_qty = self.server.db.item_qty(self.account_id, item_id)
+            missing = max(0, wanted_qty - have_qty)
+            if missing:
+                self.server.db.add_item(self.account_id, item_id, missing)
+                await self.send(
+                    f"Otrzymujesz przedmiot questowy: {ITEMS[item_id]['name']} x{missing}."
+                )
+
         await self.send(quest["description"])
         await self.announce_active_quest_progress(quest_id)
 
@@ -30883,6 +31457,19 @@ class Session:
         await self.send(
             "Opis: " + description.rstrip(".?!") + "."
         )
+        if quest.get("kind") == "deliver_npc":
+            target = NPCS.get(quest.get("target_npc"), {})
+            item_id = quest.get("quest_item")
+            item_name = ITEMS.get(item_id, {}).get("name", "przesyłka")
+            await self.send(
+                f"Cel: dostarcz {item_name} do NPC: {target.get('name', 'nieznany')}."
+            )
+        elif quest.get("kind") == "talk_class_teacher":
+            _teacher_id, teacher = self.class_teacher(self.character.class_name)
+            teacher_name = teacher.get("name", "nauczyciel klasy") if teacher else "nauczyciel klasy"
+            await self.send(
+                f"Cel: porozmawiaj z {teacher_name}. Klasa: {self.character.class_name}."
+            )
 
         if row and row["status"] == "active":
             progress, ready = self.quest_progress_for_turnin(quest_id)
@@ -30950,6 +31537,58 @@ class Session:
             )
         else:
             await self.send("Powtarzalność: nie.")
+
+    async def abandon_quest_from_context(self, value):
+        if self.combat_mob_key:
+            await self.send("Nie możesz porzucać questa podczas walki.")
+            return
+        text = str(value or "").strip()
+        quest_id = None
+        error = None
+        if text.isdigit():
+            quest_id, error = self.quest_from_context(text)
+        else:
+            wanted = self.normalize_description_query(text)
+            active = [
+                row for row in self.server.db.quest_rows(self.account_id)
+                if row["status"] == "active" and row["quest_id"] in QUESTS
+            ]
+            matches = []
+            for row in active:
+                quest = QUESTS[row["quest_id"]]
+                names = (quest.get("name", ""), row["quest_id"])
+                normalized = [self.normalize_description_query(name) for name in names]
+                if wanted and any(wanted == name or wanted in name for name in normalized):
+                    matches.append(row["quest_id"])
+            if len(matches) == 1:
+                quest_id = matches[0]
+            elif len(matches) > 1:
+                error = "Nazwa pasuje do kilku aktywnych questów. Wpisz quest, a potem quest porzuć <numer>."
+            else:
+                error = "Nie znaleziono takiego aktywnego questa. Wpisz quest, aby zobaczyć numery."
+        if error:
+            await self.send(error)
+            return
+        quest = QUESTS.get(quest_id)
+        row = self.server.db.quest(self.account_id, quest_id)
+        if not quest or not row or row["status"] != "active":
+            await self.send("Ten quest nie jest obecnie aktywny.")
+            return
+        if not self.server.db.abandon_quest(self.account_id, quest_id):
+            await self.send("Nie udało się porzucić tego questa.")
+            return
+        for item_id, qty in (quest.get("accept_items") or {}).items():
+            have_qty = self.server.db.item_qty(self.account_id, item_id)
+            if have_qty > 0:
+                self.server.db.remove_item(
+                    self.account_id, item_id, min(have_qty, max(1, int(qty)))
+                )
+        await self.send(
+            f"Quest porzucony: {quest['name']}. Bieżący postęp został wyzerowany. "
+            "Możesz później przyjąć to zadanie ponownie od właściwego NPC."
+        )
+        # Odśwież kontekst do listy aktywnych, aby numery po porzuceniu były czytelne.
+        await self.show_active_quests()
 
     async def show_active_quests(self):
         rows = [
@@ -31348,6 +31987,24 @@ class Session:
                     1,
                 )
 
+        elif q["kind"] in ("deliver_npc", "talk_npc", "talk_class_teacher"):
+            progress = int(row["progress"])
+            if progress < int(q.get("needed", 1)):
+                if q["kind"] == "deliver_npc":
+                    target = NPCS.get(q.get("target_npc"), {})
+                    target_name = target.get("name", "właściwego NPC")
+                    await self.send(
+                        f"Quest aktywny: {q['name']}. Dostarcz przesyłkę do: {target_name}."
+                    )
+                elif q["kind"] == "talk_class_teacher":
+                    await self.send(
+                        f"Quest aktywny: {q['name']}. Porozmawiaj z nauczycielem swojej klasy: "
+                        f"{self.character.class_name}."
+                    )
+                else:
+                    await self.send(f"Quest aktywny: {q['name']}. Cel nie został jeszcze wykonany.")
+                return
+
         elif q["kind"] == "collect_category":
             category = self.quest_collect_category_info(q["target"])
             if not category:
@@ -31621,6 +32278,53 @@ class Session:
                 f"Receptury tej specjalizacji: wpisz {recipes}."
             )
 
+    async def process_starter_talk_quests(self, npc_id, npc):
+        """Kończy aktywne jednorazowe dostawy/rozmowy startowe u właściwego NPC."""
+        completed_any = False
+        for row in list(self.server.db.quest_rows(self.account_id)):
+            if row["status"] != "active":
+                continue
+            quest_id = row["quest_id"]
+            quest = QUESTS.get(quest_id)
+            if not quest or not quest.get("starter_quest"):
+                continue
+
+            kind = quest.get("kind")
+            matches = False
+            if kind in ("deliver_npc", "talk_npc"):
+                matches = quest.get("target_npc") == npc_id
+            elif kind == "talk_class_teacher":
+                matches = (
+                    bool(npc.get("teacher_class"))
+                    and npc.get("teacher_class") == self.character.class_name
+                )
+
+            if not matches:
+                continue
+
+            if kind == "deliver_npc":
+                item_id = quest.get("quest_item")
+                needed = max(1, int(quest.get("needed", 1)))
+                if not item_id or self.server.db.item_qty(self.account_id, item_id) < needed:
+                    item_name = ITEMS.get(item_id, {}).get("name", "przedmiot questowy")
+                    await self.send(
+                        f"Nie masz wymaganej przesyłki: {item_name}. "
+                        "Porzuć i przyjmij quest ponownie u Archiwisty Sola, jeśli przedmiot zaginął."
+                    )
+                    continue
+                self.server.db.remove_item(self.account_id, item_id, needed)
+                await self.send(
+                    f"Przekazujesz: {ITEMS[item_id]['name']}."
+                )
+
+            self.server.db.set_quest_progress(
+                self.account_id, quest_id, int(quest.get("needed", 1))
+            )
+            await self.complete_quest(quest_id)
+            completed_any = True
+
+        return completed_any
+
     async def talk(self, query):
         raw_query = str(query or "").strip()
         normalized = self.normalize_description_query(raw_query)
@@ -31646,6 +32350,8 @@ class Session:
 
         npc_id, npc = found
         await self.send(f"{npc['name']}: {npc['dialogue']}")
+
+        await self.process_starter_talk_quests(npc_id, npc)
 
         if npc.get("teacher_class"):
             await self.teacher_lesson(npc)
@@ -31773,6 +32479,12 @@ class Session:
                 await self.quest_info_from_context(value)
                 return
 
+        for prefix in ("porzuc ", "porzuć ", "abandon ", "drop "):
+            if norm.startswith(prefix):
+                value = raw.split(maxsplit=1)[1] if " " in raw else ""
+                await self.abandon_quest_from_context(value)
+                return
+
         for prefix in ("oddaj ", "turnin ", "zdaj "):
             if norm.startswith(prefix):
                 value = raw.split(maxsplit=1)[1] if " " in raw else ""
@@ -31786,7 +32498,8 @@ class Session:
         await self.send(
             "Questy: quest — aktywne; quest ukończone — historia; "
             "quest list <NPC> — numerowana oferta; quest accept <numer> — przyjmij; "
-            "quest info <numer> — szczegóły; quest oddaj <numer> — oddaj z ostatniej listy."
+            "quest info <numer> — szczegóły; quest oddaj <numer> — oddaj z ostatniej listy; "
+            "quest porzuć <numer> — porzuć aktywne zadanie."
         )
 
 
@@ -31883,7 +32596,7 @@ class Session:
         for skill in self.class_skills():
             if skill["id"] not in known:
                 continue
-            if self.character.soul_level < int(skill["unlock"]):
+            if not self.skill_mastery_unlocked(skill):
                 continue
 
             kinds = spec.get("kinds")
@@ -32102,14 +32815,14 @@ class Session:
                     level = int(row["level"])
                     status = f"ODBLOCKOWANA I NAUCZONA, Skill Level {level}"
                 elif class_name not in active:
-                    if self.character.soul_level < int(skill["unlock"]):
+                    if self.class_mastery_level(class_name) < int(skill["unlock"]):
                         status = (
-                            f"ZABLOKOWANA: klasa nieaktywna i wymaga Soul {skill['unlock']}"
+                            f"ZABLOKOWANA: klasa nieaktywna i wymaga Biegłości {skill['unlock']}"
                         )
                     else:
                         status = "ZABLOKOWANA: klasa nieaktywna"
-                elif self.character.soul_level < int(skill["unlock"]):
-                    status = f"ZABLOKOWANA: wymaga Soul {skill['unlock']}"
+                elif self.class_mastery_level(class_name) < int(skill["unlock"]):
+                    status = f"ZABLOKOWANA: wymaga Biegłości {skill['unlock']}"
                 else:
                     status = "ODBLOKOWANA: dostępna do nauki"
 
@@ -32124,7 +32837,7 @@ class Session:
                 mana = int(skill.get("mana", 0) or 0)
                 mana_text = f" Mana {mana}." if mana else ""
                 await self.send(
-                    f"{number}. {skill['name']}. Soul {skill['unlock']}. "
+                    f"{number}. {skill['name']}. Biegłość {skill['unlock']}. "
                     f"Nauczyciel: {teacher_name}, {teacher_room}. "
                     f"Koszt: {cost}. Status: {status}."
                     f"{mana_text} Cooldown {skill.get('cooldown', 0)} sekund. "
@@ -32179,14 +32892,14 @@ class Session:
                             f"{skill_xp_to_next(skill_level)}, użycia {row['uses']}."
                         )
                     status = "nauczona"
-                elif self.character.soul_level >= skill["unlock"]:
+                elif self.class_mastery_level(class_name) >= int(skill["unlock"]):
                     status = (
                         f"gotowa do nauki u {teacher['name']} "
                         f"w lokacji {teacher_room}"
                     )
                 else:
                     status = (
-                        f"zablokowana: wymaga Soul Level {skill['unlock']}"
+                        f"zablokowana: wymaga Biegłości klasy {skill['unlock']}"
                     )
 
                 mana = (
@@ -32274,16 +32987,19 @@ class Session:
         )
         if result["level_ups"]:
             await self.send(
-                f"{skill['name']} awansuje na Skill Level {result['level']}."
+                f"{skill['name']} awansuje na Skill Level {result['level']}.",
+                combat_detail="essential" if self.combat_mob_key else None,
             )
         if result["level"] >= SKILL_MAX_LEVEL:
             await self.send(
-                f"{skill['name']}: Skill Level {SKILL_MAX_LEVEL}. Maksymalny poziom."
+                f"{skill['name']}: Skill Level {SKILL_MAX_LEVEL}. Maksymalny poziom.",
+                combat_detail="full" if self.combat_mob_key else None,
             )
         else:
             await self.send(
                 f"{skill['name']}: Skill XP +{gain}. "
-                f"Level {result['level']}, XP {result['xp']} z {result['next_xp']}."
+                f"Level {result['level']}, XP {result['xp']} z {result['next_xp']}.",
+                combat_detail="full" if self.combat_mob_key else None,
             )
         return result
 
@@ -32348,7 +33064,7 @@ class Session:
                 1,
                 int(round(damage * 0.70)),
             )
-            await self.send(
+            await self.send_combat(
                 f"Affix Opancerzony redukuje obrażenia "
                 f"z {damage} do {reduced}."
             )
@@ -32361,21 +33077,21 @@ class Session:
 
         if mechanic == "grave_shield" and mob.player_hits % 3 == 0:
             reduced = max(1, damage // 2) if damage > 0 else 0
-            await self.send(
+            await self.send_combat(
                 f"{template['name']} aktywuje Tarczę Grobowca. "
                 f"Twoje obrażenia spadają z {damage} do {reduced}."
             )
             return reduced
 
         if mechanic == "ethereal_evade" and random.random() < 0.25:
-            await self.send(
+            await self.send_combat(
                 f"{template['name']} rozpływa się w eterze i całkowicie unika trafienia."
             )
             return 0
 
         if mechanic == "hundred_lord" and mob.player_hits % 4 == 0:
             reduced = max(1, int(round(damage * 0.60))) if damage > 0 else 0
-            await self.send(
+            await self.send_combat(
                 f"{template['name']} tworzy Pieczęć Stu Pięter. "
                 f"Obrażenia zostają zredukowane z {damage} do {reduced}."
             )
@@ -32383,21 +33099,21 @@ class Session:
 
         if mechanic == "iron_bones" and mob.player_hits % 3 == 0:
             reduced = max(1, int(round(damage * 0.55))) if damage > 0 else 0
-            await self.send(
+            await self.send_combat(
                 f"{template['name']} wzmacnia Żelazne Kości. "
                 f"Obrażenia spadają z {damage} do {reduced}."
             )
             return reduced
 
         if mechanic == "phantom_emperor" and random.random() < 0.30:
-            await self.send(
+            await self.send_combat(
                 f"{template['name']} wykonuje Widmowy Unik i znika przed trafieniem."
             )
             return 0
 
         if mechanic == "final_guardian" and mob.player_hits % 4 == 0:
             reduced = max(1, damage // 2) if damage > 0 else 0
-            await self.send(
+            await self.send_combat(
                 f"{template['name']} aktywuje Straż Końca. "
                 f"Obrażenia spadają z {damage} do {reduced}."
             )
@@ -32405,7 +33121,7 @@ class Session:
 
         if mechanic == "two_hundred_lord" and mob.player_hits % 5 == 0:
             reduced = max(1, damage // 2) if damage > 0 else 0
-            await self.send(
+            await self.send_combat(
                 f"{template['name']} aktywuje Barierę Końca. "
                 f"Obrażenia spadają z {damage} do {reduced}."
             )
@@ -32413,21 +33129,21 @@ class Session:
 
         if mechanic == "stellar_barrier" and mob.player_hits % 3 == 0:
             reduced = max(1, damage // 2) if damage > 0 else 0
-            await self.send(
+            await self.send_combat(
                 f"{template['name']} aktywuje Gwiezdną Barierę. "
                 f"Obrażenia spadają z {damage} do {reduced}."
             )
             return reduced
 
         if mechanic == "comet_evade" and random.random() < 0.25:
-            await self.send(
+            await self.send_combat(
                 f"{template['name']} wykonuje Unik Komety i znika przed trafieniem."
             )
             return 0
 
         if mechanic == "firmament_guard" and mob.player_hits % 4 == 0:
             reduced = max(1, damage // 2) if damage > 0 else 0
-            await self.send(
+            await self.send_combat(
                 f"{template['name']} aktywuje Straż Firmamentu. "
                 f"Obrażenia spadają z {damage} do {reduced}."
             )
@@ -32435,7 +33151,7 @@ class Session:
 
         if mechanic == "astral_sovereign" and mob.player_hits % 5 == 0:
             reduced = max(1, damage // 2) if damage > 0 else 0
-            await self.send(
+            await self.send_combat(
                 f"{template['name']} aktywuje Barierę Suwerena. "
                 f"Obrażenia spadają z {damage} do {reduced}."
             )
@@ -32443,7 +33159,7 @@ class Session:
 
         if mechanic == "crystal_lord" and mob.player_hits % 4 == 0:
             reduced = max(1, damage // 2) if damage > 0 else 0
-            await self.send(
+            await self.send_combat(
                 f"{template['name']} aktywuje Kryształową Barierę. "
                 f"Obrażenia spadają z {damage} do {reduced}."
             )
@@ -32892,14 +33608,16 @@ class Session:
 
         if self.skill_evade:
             self.skill_evade = False
-            await self.send(
-                f"{template['name']} atakuje, ale aktywna umiejętność gwarantuje unik."
+            await self.send_combat(
+                f"{template['name']} atakuje, ale aktywna umiejętność gwarantuje unik.",
+                "normal",
             )
             return
 
         if random.random() < self.dodge_chance():
-            await self.send(
-                f"{template['name']} atakuje, ale unikasz ciosu dzięki szybkości."
+            await self.send_combat(
+                f"{template['name']} atakuje, ale unikasz ciosu dzięki szybkości.",
+                "normal",
             )
             return
 
@@ -32928,9 +33646,10 @@ class Session:
             self.skill_guard = 0
             before = incoming
             incoming = max(1, incoming - guard)
-            await self.send(
+            await self.send_combat(
                 f"Aktywna osłona redukuje trafienie dodatkowo o "
-                f"{before - incoming} obrażeń."
+                f"{before - incoming} obrażeń.",
+                "full",
             )
 
         if damage_type == "physical":
@@ -32950,39 +33669,44 @@ class Session:
                     0, before_physical_race - incoming
                 )
                 if prevented > 0:
-                    await self.send(
+                    await self.send_combat(
                         f"Rasowa odporność Trolla redukuje obrażenia "
                         f"fizyczne o {physical_race_percent} procent, "
-                        f"czyli o {prevented} obrażeń."
+                        f"czyli o {prevented} obrażeń.",
+                        "full",
                     )
 
         incoming, racial_prevented = (
             self.character.apply_racial_damage_reduction(incoming)
         )
         if racial_prevented > 0:
-            await self.send(
+            await self.send_combat(
                 f"Rasowa odporność Krasnoluda redukuje trafienie o "
                 f"{self.character.racial_damage_reduction_percent()} procent, "
-                f"czyli o {racial_prevented} obrażeń."
+                f"czyli o {racial_prevented} obrażeń.",
+                "full",
             )
 
         incoming, class_prevented = (
             self.character.apply_class_damage_reduction(incoming)
         )
         if class_prevented > 0:
-            await self.send(
+            await self.send_combat(
                 f"Pasyw klasy {self.character.class_name} redukuje trafienie o "
                 f"{self.character.class_damage_reduction_percent()} procent, "
-                f"czyli o {class_prevented} obrażeń."
+                f"czyli o {class_prevented} obrażeń.",
+                "full",
             )
 
         self.current_hp -= incoming
-        await self.send(
+        await self.send_combat(
             f"{template['name']} atakuje. Typ obrażeń: "
             f"{'magiczne' if damage_type == 'magic' else 'fizyczne'}. "
             f"Otrzymujesz {incoming} obrażeń po redukcji przez {defense_name}. "
-            f"Twoje życie: {max(0, self.current_hp)} z {self.max_hp()}."
+            f"Twoje życie: {max(0, self.current_hp)} z {self.max_hp()}.",
+            "normal",
         )
+        await self.combat_hp_warning()
 
         drain_pct = float(profile.get("drain_pct", 0.0))
         if drain_pct > 0 and mob.alive:
@@ -32991,10 +33715,11 @@ class Session:
             mob.hp = min(template["max_hp"], mob.hp + heal)
             actual = mob.hp - before
             if actual > 0:
-                await self.send(
+                await self.send_combat(
                     f"{template['name']} wysysa życie i odzyskuje "
                     f"{actual} HP. Boss: {mob.hp} z "
-                    f"{template['max_hp']} HP."
+                    f"{template['max_hp']} HP.",
+                    "normal",
                 )
 
         if self.current_hp <= 0:
@@ -33022,7 +33747,7 @@ class Session:
         )
 
         for skill in class_skills:
-            if self.character.soul_level < int(skill["unlock"]):
+            if not self.skill_mastery_unlocked(skill):
                 continue
 
             kinds = spec.get("kinds")
@@ -33128,10 +33853,11 @@ class Session:
             await self.send(f"Już znasz umiejętność {skill['name']}.")
             return
 
-        if self.character.soul_level < skill["unlock"]:
+        mastery = self.class_mastery_level(class_name)
+        if mastery < int(skill["unlock"]):
             await self.send(
-                f"{skill['name']} wymaga Soul Level {skill['unlock']}, "
-                f"a masz {self.character.soul_level}."
+                f"{skill['name']} wymaga Biegłości klasy {skill['unlock']}, "
+                f"a masz {mastery}."
             )
             return
 
@@ -33186,8 +33912,8 @@ class Session:
         mastery = self.skill_queue_active_mastery(queue_type)
         if mastery <= 0:
             return 0
-        # Biegłość 1-9 = 3 sloty, 10-19 = 4, ... 100 = 13.
-        return min(13, 3 + mastery // 10)
+        # Biegłość 1-9 = 3 sloty, 10-19 = 4, ... 100 = 13, ... 200 = 23.
+        return min(23, 3 + mastery // 10)
 
     def skill_queue_entries(self, queue_type, active_only=False):
         rows = list(self.server.db.skill_queue_rows(self.account_id, queue_type))
@@ -33201,21 +33927,37 @@ class Session:
         if not raw:
             return None, None, None
 
+        # v0.8.36: publiczna składnia używa zwykłych numerów slotów,
+        # np. `fizyczna 1`, `magiczna 2`, `slot 1 fizyczna`.
+        # Dawne F1/M1 pozostają akceptowane wyłącznie dla kompatybilności.
         short = normalized.replace(" ", "")
         match = re.fullmatch(r"([fm])(\d+)", short)
         if match:
             queue_type = "physical" if match.group(1) == "f" else "magic"
             return queue_type, int(match.group(2)), None
 
-        parts = raw.split(maxsplit=1)
-        first = self.normalize_description_query(parts[0]) if parts else ""
         type_map = {
             "f": "physical", "fiz": "physical", "fizyczna": "physical",
-            "physical": "physical", "m": "magic", "mag": "magic",
-            "magiczna": "magic", "magic": "magic",
+            "fizyczne": "physical", "physical": "physical",
+            "m": "magic", "mag": "magic", "magiczna": "magic",
+            "magiczne": "magic", "magic": "magic",
         }
-        if first in type_map and len(parts) > 1 and parts[1].strip().isdigit():
-            return type_map[first], int(parts[1].strip()), None
+
+        tokens = raw.split()
+        norm_tokens = [self.normalize_description_query(token) for token in tokens]
+
+        # fizyczna 1 / magiczna 2
+        if len(tokens) >= 2 and norm_tokens[0] in type_map and tokens[1].isdigit():
+            return type_map[norm_tokens[0]], int(tokens[1]), None
+
+        # slot 1 fizyczna / slot 2 magiczna
+        if len(tokens) >= 3 and norm_tokens[0] in ("slot", "miejsce") and tokens[1].isdigit():
+            if norm_tokens[2] in type_map:
+                return type_map[norm_tokens[2]], int(tokens[1]), None
+
+        # fizyczna slot 1 / magiczna slot 2
+        if len(tokens) >= 3 and norm_tokens[0] in type_map and norm_tokens[1] in ("slot", "miejsce") and tokens[2].isdigit():
+            return type_map[norm_tokens[0]], int(tokens[2]), None
 
         # Nazwa skilla: szukamy także w nieaktywnych wpisach, aby można było
         # usunąć skill z kolejki po wyłączeniu klasy multiclass.
@@ -33266,14 +34008,14 @@ class Session:
                     active_text = "aktywny"
                 else:
                     active_text = "uśpiony ponad limitem"
-                prefix = "F" if current_type == "physical" else "M"
                 await self.send(
-                    f"{prefix}{position}. {name}. Klasa {class_name}. {active_text}."
+                    f"Slot {position}. {name}. Typ {label.lower()}. Klasa {class_name}. {active_text}."
                 )
         await self.send(
-            "Komendy: kolejka lista [fizyczna|magiczna], kolejka dodaj <skill>, kolejka usuń <skill/F1/M1>, "
-            "kolejka wyczyść [fizyczna|magiczna], kolejka góra <F1/M1>, "
-            "kolejka dół <F1/M1>, kolejka on, kolejka off. Dodanie skilla automatycznie włącza kolejkę."
+            "Komendy: kolejka lista [fizyczna|magiczna], kolejka dodaj <skill>, "
+            "kolejka usuń fizyczna <slot> / kolejka usuń magiczna <slot>, "
+            "kolejka wyczyść [fizyczna|magiczna], kolejka góra fizyczna <slot>, "
+            "kolejka dół magiczna <slot>, kolejka on, kolejka off. Dodanie skilla automatycznie włącza kolejkę."
         )
 
     async def handle_skill_queue(self, raw):
@@ -33327,9 +34069,12 @@ class Session:
             if not self.server.db.knows_skill(self.account_id, skill["id"]):
                 await self.send(f"Najpierw musisz nauczyć się umiejętności {skill['name']}.")
                 return
-            if self.character.soul_level < int(skill["unlock"]):
+            skill_class = self.skill_class_name(skill)
+            mastery = self.class_mastery_level(skill_class)
+            if mastery < int(skill["unlock"]):
                 await self.send(
-                    f"{skill['name']} wymaga Soul Level {skill['unlock']}."
+                    f"{skill['name']} wymaga Biegłości klasy {skill['unlock']}. "
+                    f"Aktualna Biegłość {skill_class}: {mastery}."
                 )
                 return
             queue_type = self.skill_queue_type(skill)
@@ -33368,8 +34113,8 @@ class Session:
             queue_type, position, skill = self.skill_queue_find_position(value)
             if not queue_type or not position:
                 await self.send(
-                    "Nie znajduję takiego wpisu. Użyj np. kolejka usuń F1, "
-                    "kolejka usuń M2 albo kolejka usuń <nazwa skilla>."
+                    "Nie znajduję takiego wpisu. Użyj np. kolejka usuń fizyczna 1, "
+                    "kolejka usuń magiczna 2 albo kolejka usuń <nazwa skilla>."
                 )
                 return
             if skill is None:
@@ -33409,7 +34154,7 @@ class Session:
         if action in ("gora", "góra", "up", "dol", "dół", "down"):
             queue_type, position, _skill = self.skill_queue_find_position(value)
             if not queue_type or not position:
-                await self.send("Użycie: kolejka góra F2 albo kolejka dół M1.")
+                await self.send("Użycie: kolejka góra fizyczna 2 albo kolejka dół magiczna 1.")
                 return
             delta = -1 if action in ("gora", "góra", "up") else 1
             if not self.server.db.move_skill_queue_entry(
@@ -33422,9 +34167,42 @@ class Session:
             return
 
         await self.send(
-            "Użycie: kolejka, kolejka lista [fizyczna|magiczna], kolejka dodaj <skill>, kolejka usuń <skill/F1/M1>, "
+            "Użycie: kolejka, kolejka lista [fizyczna|magiczna], kolejka dodaj <skill>, "
+            "kolejka usuń fizyczna <slot> / kolejka usuń magiczna <slot>, "
             "kolejka wyczyść, kolejka fizyczna, kolejka magiczna, kolejka on/off."
         )
+
+    def cleanup_skill_buffs(self):
+        """Usuń wygasłe czasowe buffy skilli."""
+        now = time.time()
+        buffs = getattr(self, "active_skill_buffs", {})
+        for skill_id, data in list(buffs.items()):
+            if now >= float(data.get("until", 0.0) or 0.0):
+                buffs.pop(skill_id, None)
+
+    def skill_buff_active(self, skill_id):
+        self.cleanup_skill_buffs()
+        return skill_id in getattr(self, "active_skill_buffs", {})
+
+    def skill_buff_multiplier(self, exclude_skill_id=None):
+        """Łączny mnożnik wszystkich aktywnych buffów.
+
+        Bonusy sumują się addytywnie (+35% i +55% = +90%), co zapobiega
+        wykładniczemu mnożeniu przy multiclassie. Łączny bonus jest ograniczony
+        do +200% (mnożnik x3), żeby kilka rotujących buffów nie łamało balansu.
+        `exclude_skill_id` pozwala buffowi korzystać z innych aktywnych buffów
+        bez wzmacniania samego siebie przy ręcznym odświeżeniu.
+        """
+        self.cleanup_skill_buffs()
+        total_bonus = 0.0
+        for skill_id, data in getattr(self, "active_skill_buffs", {}).items():
+            if exclude_skill_id and skill_id == exclude_skill_id:
+                continue
+            total_bonus += max(0.0, float(data.get("boost", 1.0) or 1.0) - 1.0)
+        return min(3.0, 1.0 + total_bonus)
+
+    def clear_skill_buffs(self):
+        getattr(self, "active_skill_buffs", {}).clear()
 
     def auto_queue_skill_usable(self, skill, mob):
         if not skill:
@@ -33434,7 +34212,7 @@ class Session:
             return False
         if not self.server.db.knows_skill(self.account_id, skill["id"]):
             return False
-        if self.character.soul_level < int(skill["unlock"]):
+        if not self.skill_mastery_unlocked(skill):
             return False
         if self.skill_cooldowns.get(skill["id"], 0) > time.time():
             return False
@@ -33458,8 +34236,11 @@ class Session:
             return False
         elif kind == "evade" and self.skill_evade:
             return False
-        elif kind == "boost" and self.skill_damage_boost > 1.0:
-            return False
+        elif kind == "boost":
+            # Nie ponawiaj tego samego buffa, dopóki jeszcze działa. Inne buffy
+            # mogą być aktywowane równocześnie i składają się addytywnie.
+            if self.skill_buff_active(skill.get("id")):
+                return False
         return True
 
     async def try_auto_skill_queue(self, mob):
@@ -33486,7 +34267,11 @@ class Session:
                 )
                 # combat_mob_key jest już ustawiony przez attack(), więc skille
                 # ofensywne automatycznie trafiają bieżący cel.
-                await self.use_class_skill(skill["name"])
+                self.auto_queue_casting = True
+                try:
+                    await self.use_class_skill(skill["name"])
+                finally:
+                    self.auto_queue_casting = False
                 return True
         return False
 
@@ -33496,9 +34281,12 @@ class Session:
             await self.send("Nie rozpoznaję tej umiejętności albo naturalny skrót jest niejednoznaczny. Wpisz skills albo umiejetnosci i użyj pełnej nazwy.")
             return
 
-        if self.character.soul_level < skill["unlock"]:
+        skill_class = self.skill_class_name(skill)
+        mastery = self.class_mastery_level(skill_class)
+        if mastery < int(skill["unlock"]):
             await self.send(
-                f"{skill['name']} wymaga Soul Level {skill['unlock']}."
+                f"{skill['name']} wymaga Biegłości klasy {skill['unlock']}. "
+                f"Aktualna Biegłość {skill_class}: {mastery}."
             )
             return
 
@@ -33576,12 +34364,29 @@ class Session:
         self.skill_cooldowns[skill["id"]] = now + effective_cooldown
 
         if kind == "boost":
-            base_boost = skill.get("boost", 1.0)
+            base_boost = float(skill.get("boost", 1.0) or 1.0)
             scaled_boost = 1.0 + (base_boost - 1.0) * skill_power
-            self.skill_damage_boost = max(self.skill_damage_boost, scaled_boost)
+            # Buffy wzmacniają także inne buffujące skille/spelle. Nie wzmacniamy
+            # jednak buffa nim samym podczas ręcznego odświeżenia.
+            existing_buff_mult = self.skill_buff_multiplier(exclude_skill_id=skill["id"])
+            if existing_buff_mult > 1.0:
+                scaled_boost = 1.0 + (scaled_boost - 1.0) * existing_buff_mult
+            # Domyślnie buff trwa tyle, ile efektywny cooldown skilla. Dzięki temu
+            # auto-kolejka może go odświeżyć dopiero po wygaśnięciu. Okrzyk Wojenny
+            # zachowuje własne 12 sekund z definicji.
+            duration = max(1, int(round(float(skill.get("duration", effective_cooldown) or effective_cooldown))))
+            self.active_skill_buffs[skill["id"]] = {
+                "name": skill["name"],
+                "boost": max(1.0, scaled_boost),
+                "until": now + duration,
+            }
+            bonus_pct = int(round((max(1.0, scaled_boost) - 1.0) * 100))
+            total_pct = int(round((self.skill_buff_multiplier() - 1.0) * 100))
             await self.send(
                 f"Używasz {skill['name']} na Skill Level {skill_level}. "
-                f"Następna ofensywna umiejętność zostaje wzmocniona."
+                f"Przez {duration} sekund wszystkie skille i spelle są "
+                f"wzmocnione o {bonus_pct} procent. "
+                f"Łączne aktywne wzmocnienie: {total_pct} procent."
             )
             await self.grant_skill_use_xp(skill)
             if self.combat_mob_key:
@@ -33589,7 +34394,11 @@ class Session:
             return
 
         if kind == "guard":
-            scaled_guard = max(1, int(round(skill.get("guard", 0) * skill_power)))
+            buff_mult = self.skill_buff_multiplier()
+            scaled_guard = max(
+                1,
+                int(round(skill.get("guard", 0) * skill_power * buff_mult)),
+            )
             self.skill_guard = max(self.skill_guard, scaled_guard)
             await self.send(
                 f"Używasz {skill['name']} na Skill Level {skill_level}. "
@@ -33618,6 +34427,7 @@ class Session:
             if not recipients:
                 recipients = [self]
             heal_pct = min(0.70, skill.get("heal_pct", 0.20) * skill_power * self.character.racial_healing_multiplier() * self.character.class_healing_multiplier())
+            heal_pct = min(0.95, heal_pct * self.skill_buff_multiplier())
             total_healed = 0
             for session in sorted(recipients, key=lambda target: target.character.name.lower()):
                 target_max = session.max_hp()
@@ -33647,6 +34457,7 @@ class Session:
                 * self.character.racial_healing_multiplier()
                 * self.character.class_healing_multiplier()
             )
+            heal_pct = min(0.95, heal_pct * self.skill_buff_multiplier())
             heal = max(1, int(max_hp * heal_pct))
             before = self.current_hp
             self.current_hp = min(max_hp, self.current_hp + heal)
@@ -33683,10 +34494,7 @@ class Session:
             multiplier *= self.character.racial_magic_damage_multiplier()
             multiplier *= self.character.racial_all_damage_multiplier()
             multiplier *= self.total_set_damage_multiplier()
-            if self.skill_damage_boost > 1.0:
-                multiplier *= self.skill_damage_boost
-                self.skill_damage_boost = 1.0
-                await self.send("Wzmocnienie ofensywne zwiększa siłę czaru obszarowego.")
+            multiplier *= self.skill_buff_multiplier()
             await self.send(f"Używasz {skill['name']} na Skill Level {skill_level}. Cele w lokacji: {len(aoe_mobs)}.")
             defeated, survivors = [], []
             total_damage = 0
@@ -33727,17 +34535,13 @@ class Session:
             multiplier *= self.character.racial_magic_damage_multiplier()
         multiplier *= self.character.racial_all_damage_multiplier()
         multiplier *= self.total_set_damage_multiplier()
+        multiplier *= self.skill_buff_multiplier()
 
         if kind == "execute":
             hp_ratio = mob.hp / max(1, template["max_hp"])
             if hp_ratio <= 0.35:
                 multiplier *= skill.get("execute_mult", 1.5)
                 await self.send("Egzekucyjny próg aktywny: przeciwnik jest osłabiony.")
-
-        if self.skill_damage_boost > 1.0:
-            multiplier *= self.skill_damage_boost
-            self.skill_damage_boost = 1.0
-            await self.send("Wzmocnienie ofensywne zwiększa siłę tej umiejętności.")
 
         damage = max(
             1,
@@ -34027,15 +34831,25 @@ class Session:
                 )
                 return
         else:
+            # v0.8.44: CON używa dokładnie tego samego uniwersalnego
+            # resolvera żywych/zabijalnych mobów co k <mob>. Dzięki temu
+            # działają fragmenty nazw, brak polskich znaków i numer wystąpienia.
             mob = self.server.world.find_mob(
                 self.character.room_id,
                 raw,
             )
             if not mob:
-                await self.send(
-                    "Nie rozpoznaję jednoznacznie takiego przeciwnika. "
-                    "Użyj jego pełnej nazwy."
-                )
+                npc = self.protected_friendly_npc(raw)
+                if npc:
+                    await self.send(
+                        f"{npc['name']} jest pokojowym i chronionym NPC-em. "
+                        "Komenda con działa tylko na przeciwników, których da się zabić."
+                    )
+                else:
+                    await self.send(
+                        "Nie widzę tutaj takiego żywego przeciwnika do oceny. "
+                        "Użyj con <mob>, np. con goblin albo con 2 goblin."
+                    )
                 return
 
         template = MOB_TEMPLATES[mob.template_id]
@@ -34140,15 +34954,17 @@ class Session:
         damage = self.player_damage()
         damage, critical = self.roll_critical_hit(damage)
         if critical:
-            await self.send(
+            await self.send_combat(
                 f"TRAFIENIE KRYTYCZNE! Zręczność {self.effective_dexterity()}. "
-                f"Szansa: {int(round(self.critical_chance() * 100))} procent."
+                f"Szansa: {int(round(self.critical_chance() * 100))} procent.",
+                "normal",
             )
         damage = await self.apply_boss_defense(mob, damage)
         mob.hp -= damage
-        await self.send(
+        await self.send_combat(
             f"Automatyczny atak: {template['name']}. Zadajesz {damage} obrażeń. "
-            f"Przeciwnik: {max(0, mob.hp)} z {template['max_hp']} życia."
+            f"Przeciwnik: {max(0, mob.hp)} z {template['max_hp']} życia.",
+            "normal",
         )
         if mob.hp <= 0:
             await self.mob_defeated(mob)
@@ -34233,7 +35049,12 @@ class Session:
         wanted = (query or "").strip()
         if current and wanted:
             requested = self.server.world.find_mob(self.character.room_id, wanted)
-            if requested and requested.key != current.key:
+            if not requested:
+                if await self.reject_friendly_npc_attack(wanted):
+                    return
+                await self.send("Nie widzę tutaj takiego przeciwnika do zabicia.")
+                return
+            if requested.key != current.key:
                 if not self.server.engagement_allowed(self, requested):
                     await self.send(
                         f"{MOB_TEMPLATES[requested.template_id]['name']} walczy już "
@@ -34250,11 +35071,14 @@ class Session:
         elif current:
             mob = current
         else:
-            if await self.reject_friendly_npc_attack(wanted):
-                return
+            # v0.8.35: najpierw próbujemy znaleźć prawdziwego, żywego moba.
+            # Dzięki temu pokojowy NPC o podobnej nazwie nie blokuje komendy
+            # k <mob>, jeżeli w tym samym pokoju istnieje zabijalny przeciwnik.
             mob = self.server.world.find_mob(self.character.room_id, wanted)
             if not mob:
-                await self.send("Nie widzę tutaj takiego przeciwnika.")
+                if await self.reject_friendly_npc_attack(wanted):
+                    return
+                await self.send("Nie widzę tutaj takiego przeciwnika do zabicia.")
                 return
             if not self.server.engagement_allowed(self, mob):
                 await self.send(
@@ -34271,6 +35095,7 @@ class Session:
         self.combat_mob_key = mob.key
 
         if new_fight:
+            self.combat_hp_warn_level = 0
             await self.server.broadcast_room(
                 self.character.room_id,
                 f"{self.character.name} atakuje {MOB_TEMPLATES[mob.template_id]['name']}.",
@@ -34287,6 +35112,9 @@ class Session:
         await self.ensure_realtime_combat()
 
     async def mob_defeated(self, mob):
+        # Zwycięstwo, loot, questy i nagrody są zawsze ważne nawet w trybie
+        # combat concise. Nie dziedziczą wyciszenia rutynowej auto kolejki.
+        self.auto_queue_casting = False
         template = MOB_TEMPLATES[mob.template_id]
         mob.alive = False
         respawn_seconds = mob_respawn_seconds(template)
@@ -34539,7 +35367,7 @@ class Session:
         await self.stop_realtime_combat()
         self.skill_guard = 0
         self.skill_evade = False
-        self.skill_damage_boost = 1.0
+        self.clear_skill_buffs()
         await self.send("Wycofujesz się z walki.")
 
     async def die(self, killer):
@@ -34553,7 +35381,7 @@ class Session:
         await self.stop_realtime_combat()
         self.skill_guard = 0
         self.skill_evade = False
-        self.skill_damage_boost = 1.0
+        self.clear_skill_buffs()
         loss_silver = self.character.silver // 10
         loss_gold = self.character.gold // 10
         loss_mithril = self.character.mithril // 10
@@ -34630,7 +35458,7 @@ class Session:
                 "teachers", "quests", "charisma", "multiclass",
                 "back", "dungeonexit", "progress", "exploration",
                 "achievements", "titles", "title", "collection",
-                "drophistory", "lootfilter", "regionprogress",
+                "drophistory", "lootfilter", "regionprogress", "combatlog",
             }
 
             if (
@@ -34679,6 +35507,8 @@ class Session:
                 await self.show_drop_history()
             elif command == "lootfilter":
                 await self.set_loot_filter(args)
+            elif command == "combatlog":
+                await self.set_combat_log(args)
             elif command == "look":
                 await self.look(args)
             elif command == "corpse":
