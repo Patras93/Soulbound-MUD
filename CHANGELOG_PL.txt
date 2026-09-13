@@ -1,3 +1,80 @@
+Soulbound v0.8.60 - Unified Currency Denominations
+====================================================
+- Poprawiono model wspólnej waluty: srebro, złoto i mithril są trzema nominałami JEDNEGO salda, a nie osobnymi portfelami.
+- Kurs: 1000 srebra = 1 złoto.
+- Kurs: 1 000 000 złota = 1 mithril.
+- Zatem 1 mithril = 1 000 000 000 srebra.
+- Wewnętrznie saldo jest przechowywane jako łączna liczba srebra dla zgodności starego schematu SQLite.
+- Portfel i Bank Dusz automatycznie odczytują saldo w najwyższych nominałach, np. 2 000 003 007 srebra = 2 mithrile, 3 złota i 7 srebra.
+- `bank wplac 5 zlota` i `bank wyplac 1 mithril` operują na tym samym saldzie i automatycznie przeliczają nominał.
+- Sklepy, sprzedaż, nagrody, trening skilli, egzaminy i wydobycie mithrilu korzystają z tego samego przelicznika.
+- Bez zmian schematu SQLite. Nie kasuj soulbound.db ani Railway Volume.
+- Uwaga: jeśli błędna v0.8.59 została już uruchomiona na istniejącej bazie zawierającej stare mithrile, ich pierwotna liczba została wyzerowana przez tamtą migrację i nie da się jej pewnie odtworzyć bez kopii bazy lub znanej starej wartości.
+
+Soulbound v0.8.59 - Unified Currency
+===================================
+- Połączono srebro, złoto i mithril w jedną walutę: monety.
+- Jednorazowa migracja starych zapisów: 1 srebro = 1 moneta, 1 złoto = 1000 monet, 1 mithril = 1000000 monet.
+- Migracja obejmuje wspólny portfel konta, wszystkie sloty postaci oraz saldo Banku Dusz.
+- Po migracji legacy kolumny gold i mithril są zerowane; saldo monet jest przechowywane zgodnie ze starym schematem w polu silver dla pełnej kompatybilności SQLite.
+- Sklepy przeliczają stare ceny silver/gold/mithril na monety i pobierają je z jednego salda.
+- Sprzedaż surowców i przedmiotów, nagrody, nauka skilli oraz egzaminy klasowe korzystają z jednej wartości monet.
+- Bank Dusz przyjmuje `bank wplac <ile>` i `bank wyplac <ile>`; stare nazwy srebro/złoto/mithril działają jako aliasy kompatybilności.
+- Czysty mithril z Górnictwa daje 1000000 monet bez tworzenia osobnego salda mithrilu.
+- `portfel`, inventory, opisy cen i komunikaty NVDA pokazują jedną walutę.
+- Migracja ma flagę `unified_currency_v0859`, więc restart/deploy nie przelicza środków ponownie.
+- Nie resetuj soulbound.db ani Railway Volume.
+
+Soulbound v0.8.58 - Random Material Corpse Equipment
+=======================================================
+- Rozbudowano ekwipunek znajdowany na ciałach mobów o 10 materiałowych poziomów: Żelazo, Stal, Mithril, Adamantyt, Kobalt, Runiczny metal, Smocza Stal, Astral, Pustka i Eternium.
+- Materiał określa poziom mocy i dostępny zakres bonusów, ale NIE przypisuje przedmiotu do klasy ani konkretnej statystyki.
+- Każdy materiał i każdy z 6 slotów ma 24 trwałe warianty losowego profilu; przy dropie gra losuje jeden z nich.
+- Losowy profil może zawierać Siłę, Zręczność, Kondycję, Inteligencję i Siłę Woli w różnych kombinacjach. Wyższe materiały mogą mieć jednocześnie więcej statystyk.
+- Właściwości także są losowe: obrażenia fizyczne, obrażenia magiczne, obrona fizyczna, obrona magiczna, unik, maksymalne HP i maksymalna Mana.
+- Dzięki temu ten sam materiał może wypaść jako część dobra dla dowolnej klasy lub builda; nie istnieje sztywny „mithril dla Łotrzyka” ani „runiczny dla Maga”.
+- Zręczność z EQ wchodzi do efektywnej Zręczności i zwiększa krytyk: 10 = 5%, każdy punkt ponad 10 = +0,5 p.p., limit 35%.
+- Każdy wariant ma stabilny item_id, więc po restarcie Railway zachowuje te same statystyki i właściwości.
+- Materiał ciała jest dobierany z siły moba (HP + obrażenia), więc łatwe moby zaczynają od żelaza/stali, a endgame dochodzi do Pustki i Eternium.
+- Zwykłe moby zostawiają 1 część materiałową; elity, rzadkie moby i bossowie mogą zostawić 2.
+- Nie usunięto dotychczasowego corpse loot: unikalne przedmioty bossów, sety regionalne, Krypta, Astral i istniejące pule są zachowane.
+- inspect/opis przedmiotu czyta wylosowane statystyki i właściwości materiałowe.
+- Zaktualizowano help ekwipunek oraz help zwloki.
+- Bez zmian schematu SQLite; nie resetuj soulbound.db ani Railway Volume.
+
+Soulbound v0.8.57 - Accessible Route Control & Navigation Preview
+=======================================================================
+- Dodano `trasa <cel>` / `route <cel>` / `droga <cel>`: planowanie drogi bez poruszania postacią.
+- Trasa podaje liczbę przejść, pierwszy krok, skrócony ciąg kierunków, strefy po drodze i szacowany czas automatycznego prowadzenia.
+- `trasa pełna <cel>` czyta każdy krok wraz z nazwą kolejnej lokacji.
+- `trasa krok` powtarza najbliższy kierunek do ostatnio zaplanowanego celu i przelicza go od bieżącej lokacji.
+- Dodano `exits info`: oprócz kierunku czyta nazwę sąsiedniej lokacji i jej strefę.
+- `prowadz` / `walk` działa teraz jako zadanie asyncio w tle, dzięki czemu podczas marszu można używać bezpiecznych komend informacyjnych.
+- Dodano `prowadz status` / `walk status`: bieżąca lokacja, cel, liczba pozostałych przejść i następny krok.
+- Dodano `prowadz stop` / `walk stop`: natychmiastowe przerwanie prowadzenia również w trakcie opóźnienia pojedynczego kroku. Niedokończony krok nie zmienia room_id.
+- Ręczny kierunek albo rozpoczęcie innej aktywności automatycznie przerywa prowadzenie, aby uniknąć wyścigu dwóch ruchów.
+- Gdy cel `trasa` jest niejednoznaczny, gra nie zgaduje: czyta pasujące lokacje i prosi o dokładniejszą nazwę.
+- `help nawigacja` i główny `help` opisują planowanie trasy, pełny odczyt kroków, status i zatrzymanie prowadzenia.
+- Zachowano zasadę bezpieczeństwa: prowadzenie do zwykłej lokacji zatrzymuje się jeden krok przed celem; do NPC może dojść dokładnie.
+- Bez zmian schematu SQLite i bez resetu soulbound.db ani Railway Volume.
+
+Soulbound v0.8.56 - Walking, HP, Score, Help & Soul Info Refresh
+===================================================================
+- Ruch kierunkowy nie przenosi już postaci natychmiast. Gra najpierw czyta „Idziesz ...”, wykonuje krótki marsz, a dopiero potem ustawia nową lokację i czyta „Docierasz do ...”.
+- `north/south/east/west/up/down`, skróty `n/s/e/w/u/d` oraz polskie nazwy kierunków korzystają z nowego chodzenia.
+- `prowadz <cel>` / `walk <cel>` również wykonuje kolejne przejścia jako marsz krok po kroku zamiast błyskawicznych zmian room_id.
+- Dodano i zaktualizowano `help nawigacja` / `help chodzenie`; główny help opisuje teraz krokowy ruch.
+- Rybak Tomas na Targu Rybnym jest sprzedawcą podstawowej Wędki. Mistrz Wędkarstwa Neris pozostaje nauczycielem rozwoju Wędki i Wędkarstwa.
+- Dodano `hp` / `zdrowie`: HP i Mana są czytane w osobnych komunikatach wraz z wartościami bieżącymi i maksymalnymi.
+- Dodano `score` / `wynik`: podsumowanie postaci obejmuje rasę, klasy, Biegłości 1-200, Soul Level/Tier, HP, Manę, sześć statystyk, wspólny portfel, lokację i dynamiczną ocenę terenu.
+- `staty` nie czyta już wszystkich statystyk jednym ciągiem. Siła, Zręczność, Kondycja, Inteligencja, Siła Woli i Charyzma mają osobne komunikaty NVDA.
+- `staty info` również rozdziela każdą statystykę i podaje bazę, wartość efektywną oraz bonus EQ/klejnotów.
+- Dodano pełne `help staty`, `help hp`, `help score`, odświeżone `help dusza` oraz zaktualizowano pozostałe tematy reklamowane przez główny `help`.
+- Wszystkie tematy reklamowane przez główne `help` zostały zweryfikowane i prowadzą do istniejącej pomocy.
+- Aktywna pomoc nie podaje już starej zasady Soul Level dla skilli: skille/spelle odblokowuje Biegłość właściwej klasy 1-200.
+- `dusza info` pokazuje wszystkie progi Tierów 1-20, obowiązkowe Próby Tierów 2-20, ich bieżący stan/postęp i następny cel.
+- Bez zmian schematu SQLite i bez resetu soulbound.db ani Railway Volume.
+
 Soulbound v0.8.55 - World Stability Audit & Topology Hotfix
 =================================================================
 - Przeprowadzono pełny automatyczny audyt wszystkich 1272 lokacji świata.

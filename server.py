@@ -2,7 +2,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Soulbound v0.8.54 Dynamic Terrain Difficulty & EXP Scaling
+Soulbound v0.8.60 Unified Currency Denominations
 Wieloosobowy tekstowy MUD TCP/Telnet dla MUSHclienta/Mudleta.
 
 Najważniejsze zasady projektu:
@@ -30,7 +30,7 @@ import unicodedata
 from dataclasses import dataclass
 from typing import Optional
 
-VERSION = "0.8.55"
+VERSION = "0.8.60"
 MAX_CHARACTERS_PER_ACCOUNT = 12
 
 HOST = os.getenv("SOULBOUND_HOST", "0.0.0.0")
@@ -127,56 +127,61 @@ GLOBAL_MOB_HP_MULTIPLIER = 2.0
 QUEST_REPEAT_COOLDOWN_SECONDS = 60 * 60
 BLACKSMITH_QUEST_COOLDOWN_SECONDS = 60 * 60
 
-# Ekonomia:
-# 1000 srebrnych monet = 1 złota moneta
-# 1 000 000 złotych monet = 1 mithrilowa moneta
+# Ekonomia v0.8.60: jedno wspólne saldo z trzema nominałami.
+# Wewnętrznie saldo jest przechowywane jako łączna liczba srebra.
+# 1000 srebra = 1 złoto.
+# 1 000 000 złota = 1 mithril.
+# Zatem 1 mithril = 1 000 000 000 srebra.
 SILVER_PER_GOLD = 1000
-GOLD_PER_MITHRIL = 1000000
+GOLD_PER_MITHRIL = 1_000_000
+SILVER_PER_MITHRIL = SILVER_PER_GOLD * GOLD_PER_MITHRIL
+COINS_PER_OLD_GOLD = SILVER_PER_GOLD
+COINS_PER_OLD_MITHRIL = SILVER_PER_MITHRIL
+
+def legacy_currency_to_coins(silver=0, gold=0, mithril=0):
+    """Zwraca jedno wspólne saldo w najmniejszym nominale: srebrze."""
+    return (
+        max(0, int(silver))
+        + max(0, int(gold)) * SILVER_PER_GOLD
+        + max(0, int(mithril)) * SILVER_PER_MITHRIL
+    )
 
 def normalize_currency_values(silver, gold, mithril):
-    silver = max(0, int(silver))
-    gold = max(0, int(gold))
-    mithril = max(0, int(mithril))
+    """Normalizuje trzy nominały do jednego salda przechowywanego w silver."""
+    return legacy_currency_to_coins(silver, gold, mithril), 0, 0
 
-    gold_from_silver, silver = divmod(
-        silver, SILVER_PER_GOLD
-    )
-    gold += gold_from_silver
+def currency_denominations(total_silver):
+    """Rozkłada wspólne saldo na mithril, złoto i srebro tylko do prezentacji."""
+    total_silver = max(0, int(total_silver))
+    mithril, remainder = divmod(total_silver, SILVER_PER_MITHRIL)
+    gold, silver = divmod(remainder, SILVER_PER_GOLD)
+    return mithril, gold, silver
 
-    mithril_from_gold, gold = divmod(
-        gold, GOLD_PER_MITHRIL
-    )
-    mithril += mithril_from_gold
-
-    return silver, gold, mithril
-
+def currency_unit_multiplier(raw):
+    """Mnożnik nominału dla komend. Wszystkie trafiają do jednego salda."""
+    value = normalize_lookup_text(raw) if 'normalize_lookup_text' in globals() else str(raw or '').strip().lower()
+    if value in ('silver','srebro','srebra','srebrnych','s'):
+        return 1
+    if value in ('gold','zloto','złoto','zlota','złota','g'):
+        return SILVER_PER_GOLD
+    if value in ('mithril','mithrilu','m'):
+        return SILVER_PER_MITHRIL
+    if value in ('moneta','monety','monet','coin','coins'):
+        return 1
+    return None
 
 def currency_reading_text(silver=0, gold=0, mithril=0, *, full_names=False, include_zero=False):
-    """Czytelny dla NVDA zapis waluty: zawsze mithril -> złoto -> srebro."""
-    silver = max(0, int(silver))
-    gold = max(0, int(gold))
-    mithril = max(0, int(mithril))
-
-    if full_names:
-        entries = [
-            (mithril, "mithrilowych monet"),
-            (gold, "złotych monet"),
-            (silver, "srebrnych monet"),
-        ]
-    else:
-        entries = [
-            (mithril, "mithrilu"),
-            (gold, "złota"),
-            (silver, "srebra"),
-        ]
-
-    if include_zero:
-        chosen = entries
-    else:
-        chosen = [entry for entry in entries if entry[0] > 0]
-    if not chosen:
-        chosen = [(0, "srebrnych monet" if full_names else "srebra")]
-    return ", ".join(f"{amount} {name}" for amount, name in chosen)
+    """Czytelny dla NVDA zapis jednego salda w nominałach mithril/złoto/srebro."""
+    total = legacy_currency_to_coins(silver, gold, mithril)
+    mithril_count, gold_count, silver_count = currency_denominations(total)
+    parts = []
+    if mithril_count or include_zero:
+        parts.append(f"{mithril_count} mithril")
+    if gold_count or include_zero:
+        parts.append(f"{gold_count} złota")
+    if silver_count or include_zero or not parts:
+        parts.append(f"{silver_count} srebra")
+    return ", ".join(parts)
 
 
 PROFESSION_MAX_LEVEL = 100
@@ -3959,6 +3964,20 @@ DIRECTION_ALIASES = {
     "d": "down", "down": "down", "dół": "down", "dol": "down",
 }
 
+# v0.8.56: ruch między lokacjami jest krótkim marszem zamiast natychmiastowego
+# przestawienia room_id. Opóźnienie jest celowo niewielkie, żeby NVDA zdążył
+# przeczytać kierunek, ale nawigacja po dużym świecie nadal była wygodna.
+DIRECTION_WALK_LABELS = {
+    "north": "na północ",
+    "south": "na południe",
+    "east": "na wschód",
+    "west": "na zachód",
+    "up": "w górę",
+    "down": "w dół",
+}
+WALK_STEP_DELAY = float(os.getenv("SOULBOUND_WALK_STEP_DELAY", "0.70"))
+GUIDE_STEP_DELAY = float(os.getenv("SOULBOUND_GUIDE_STEP_DELAY", "0.35"))
+
 GUIDE_DESTINATION_ALIASES = {
     # MIASTO, NPC I POZOSTALE CELE
     'ira': 'alpine_herbalist_hut',
@@ -4838,6 +4857,7 @@ COMMAND_ALIASES = {
     "wyjścia": "exits", "wyjscia": "exits",
     "mapa": "map",
     "gdzie": "where",
+    "trasa": "route", "route": "route", "droga": "route", "sciezka": "route", "ścieżka": "route",
     "kto": "who",
     "expowiska": "expareas", "expowisko": "expareas",
     "terenyexp": "expareas", "terenydoexpienia": "expareas",
@@ -4863,6 +4883,8 @@ COMMAND_ALIASES = {
     "odpoczywaj": "rest", "odpocznij": "rest", "odpoczynek": "rest",
     "rest": "rest", "regen": "rest", "regeneruj": "rest",
     "staty": "stats", "status": "stats",
+    "hp": "hp", "health": "hp", "zdrowie": "hp", "zycie": "hp", "życie": "hp",
+    "score": "score", "wynik": "score", "postac": "score", "postać": "score",
     "mana": "mana", "manaregen": "mana",
     "odmiana": "declension", "przypadki": "declension", "namecases": "declension", "declension": "declension",
     "skills": "skills", "umiejętności": "skills", "umiejetnosci": "skills", "zdolności": "skills", "zdolnosci": "skills",
@@ -5746,6 +5768,318 @@ def _register_blacksmith_items():
             }
 
 _register_blacksmith_items()
+
+# ============================================================
+# v0.8.58: materiałowe EQ znajdowane na ciałach mobów.
+# To osobna linia dropu od Kowalstwa: nie nadpisuje przedmiotów
+# crafted ani unikalnych setów/boss lootów.
+# ============================================================
+CORPSE_MATERIAL_TIERS = (
+    {
+        "key": "iron", "label": "Żelazny", "min_score": 0,
+        "base_defense": 2, "stat_power": 1,
+        "primary": "constitution", "secondary": "strength",
+        "physical_damage_pct": 0, "magic_damage_pct": 0,
+        "physical_defense_pct": 1, "magic_defense_pct": 0,
+        "dodge_pct": 0, "max_hp_pct": 1, "max_mana_pct": 0,
+        "rarity": "common", "rarity_name": "Pospolity",
+        "identity": "wytrzymałość i podstawowa ochrona fizyczna",
+    },
+    {
+        "key": "steel", "label": "Stalowy", "min_score": 250,
+        "base_defense": 3, "stat_power": 1,
+        "primary": "strength", "secondary": "constitution",
+        "physical_damage_pct": 1, "magic_damage_pct": 0,
+        "physical_defense_pct": 1, "magic_defense_pct": 0,
+        "dodge_pct": 0, "max_hp_pct": 1, "max_mana_pct": 0,
+        "rarity": "uncommon", "rarity_name": "Niepospolity",
+        "identity": "Siła, Kondycja i walka fizyczna",
+    },
+    {
+        "key": "mithril", "label": "Mithrilowy", "min_score": 450,
+        "base_defense": 4, "stat_power": 2,
+        "primary": "dexterity", "secondary": "intelligence",
+        "physical_damage_pct": 1, "magic_damage_pct": 1,
+        "physical_defense_pct": 0, "magic_defense_pct": 1,
+        "dodge_pct": 1, "max_hp_pct": 0, "max_mana_pct": 1,
+        "rarity": "rare", "rarity_name": "Rzadki",
+        "identity": "Zręczność, szybkość, krytyki, unik i lekka magia",
+    },
+    {
+        "key": "adamantite", "label": "Adamantytowy", "min_score": 800,
+        "base_defense": 5, "stat_power": 2,
+        "primary": "constitution", "secondary": "willpower",
+        "physical_damage_pct": 0, "magic_damage_pct": 0,
+        "physical_defense_pct": 2, "magic_defense_pct": 2,
+        "dodge_pct": 0, "max_hp_pct": 2, "max_mana_pct": 0,
+        "rarity": "rare", "rarity_name": "Rzadki",
+        "identity": "Kondycja, Siła Woli, HP i ciężka obrona",
+    },
+    {
+        "key": "cobalt", "label": "Kobaltowy", "min_score": 1300,
+        "base_defense": 6, "stat_power": 3,
+        "primary": "strength", "secondary": "dexterity",
+        "physical_damage_pct": 2, "magic_damage_pct": 0,
+        "physical_defense_pct": 1, "magic_defense_pct": 0,
+        "dodge_pct": 1, "max_hp_pct": 0, "max_mana_pct": 0,
+        "rarity": "epic", "rarity_name": "Epicki",
+        "identity": "Siła, Zręczność i agresywna walka fizyczna",
+    },
+    {
+        "key": "runic", "label": "Runiczny", "min_score": 2500,
+        "base_defense": 7, "stat_power": 3,
+        "primary": "intelligence", "secondary": "willpower",
+        "physical_damage_pct": 0, "magic_damage_pct": 2,
+        "physical_defense_pct": 0, "magic_defense_pct": 2,
+        "dodge_pct": 0, "max_hp_pct": 0, "max_mana_pct": 2,
+        "rarity": "epic", "rarity_name": "Epicki",
+        "identity": "Inteligencja, Siła Woli, Mana i magia",
+    },
+    {
+        "key": "dragonsteel", "label": "Smoczej Stali", "min_score": 5000,
+        "base_defense": 8, "stat_power": 4,
+        "primary": "strength", "secondary": "constitution",
+        "physical_damage_pct": 3, "magic_damage_pct": 1,
+        "physical_defense_pct": 2, "magic_defense_pct": 1,
+        "dodge_pct": 0, "max_hp_pct": 2, "max_mana_pct": 0,
+        "rarity": "legendary", "rarity_name": "Legendarny",
+        "identity": "Siła, Kondycja, obrażenia i twardość Smoczej Stali",
+    },
+    {
+        "key": "astral", "label": "Astralny", "min_score": 10000,
+        "base_defense": 9, "stat_power": 4,
+        "primary": "intelligence", "secondary": "dexterity",
+        "physical_damage_pct": 1, "magic_damage_pct": 3,
+        "physical_defense_pct": 1, "magic_defense_pct": 2,
+        "dodge_pct": 1, "max_hp_pct": 0, "max_mana_pct": 3,
+        "rarity": "legendary", "rarity_name": "Legendarny",
+        "identity": "Inteligencja, Zręczność, Mana i astralna ofensywa",
+    },
+    {
+        "key": "void", "label": "Pustki", "min_score": 25000,
+        "base_defense": 10, "stat_power": 5,
+        "primary": "willpower", "secondary": "dexterity",
+        "physical_damage_pct": 2, "magic_damage_pct": 3,
+        "physical_defense_pct": 1, "magic_defense_pct": 3,
+        "dodge_pct": 1, "max_hp_pct": 1, "max_mana_pct": 2,
+        "rarity": "mythic", "rarity_name": "Mityczny",
+        "identity": "Siła Woli, Zręczność, odporność magiczna i obrażenia Pustki",
+    },
+    {
+        "key": "eternium", "label": "Eternium", "min_score": 60000,
+        "base_defense": 12, "stat_power": 6,
+        "primary": "strength", "secondary": "willpower",
+        "physical_damage_pct": 3, "magic_damage_pct": 3,
+        "physical_defense_pct": 3, "magic_defense_pct": 3,
+        "dodge_pct": 1, "max_hp_pct": 3, "max_mana_pct": 3,
+        "rarity": "eternal", "rarity_name": "Wieczny",
+        "identity": "końcowy balans ofensywy, obrony, HP i Many",
+    },
+)
+
+CORPSE_MATERIAL_SLOT_DEFS = {
+    "head": ("Hełm", 0),
+    "body": ("Pancerz", 3),
+    "hands": ("Rękawice", -1),
+    "legs": ("Nogawice", 1),
+    "feet": ("Buty", -1),
+    "charm": ("Talizman", -2),
+}
+
+MATERIAL_STAT_NAMES = {
+    "strength": "Siła",
+    "dexterity": "Zręczność",
+    "constitution": "Kondycja",
+    "intelligence": "Inteligencja",
+    "willpower": "Siła Woli",
+    "hp": "HP",
+    "mana": "Mana",
+}
+
+MATERIAL_PROPERTY_NAMES = {
+    "physical_damage_pct": "obrażenia fizyczne",
+    "magic_damage_pct": "obrażenia magiczne",
+    "all_damage_pct": "wszystkie obrażenia",
+    "physical_defense_pct": "obrona fizyczna",
+    "magic_defense_pct": "obrona magiczna",
+    "dodge_pct": "unik",
+    "max_hp_pct": "maksymalne HP",
+    "max_mana_pct": "maksymalna Mana",
+}
+
+CORPSE_MATERIAL_ITEM_IDS = {}
+CORPSE_MATERIAL_TIER_BY_KEY = {tier["key"]: tier for tier in CORPSE_MATERIAL_TIERS}
+
+
+CORPSE_RANDOM_VARIANTS_PER_SLOT = 24
+
+MATERIAL_RANDOM_STAT_POOL = (
+    "strength",
+    "dexterity",
+    "constitution",
+    "intelligence",
+    "willpower",
+)
+
+MATERIAL_RANDOM_PROPERTY_POOL = (
+    "physical_damage_pct",
+    "magic_damage_pct",
+    "physical_defense_pct",
+    "magic_defense_pct",
+    "dodge_pct",
+    "max_hp_pct",
+    "max_mana_pct",
+)
+
+MATERIAL_STAT_EPITHETS = {
+    "strength": "Siły",
+    "dexterity": "Zręczności",
+    "constitution": "Kondycji",
+    "intelligence": "Inteligencji",
+    "willpower": "Woli",
+}
+
+MATERIAL_SLOT_NAME_FOR_TITLE = {
+    "head": "Hełm",
+    "body": "Pancerz",
+    "hands": "Rękawice",
+    "legs": "Nogawice",
+    "feet": "Buty",
+    "charm": "Talizman",
+}
+
+
+def _material_random_profile(tier, slot, variant_index):
+    """Deterministyczna pula wariantów; konkretny wariant jest losowany przy dropie.
+
+    Ekwipunek w bazie nadal zapisuje się jako zwykły item_id, dlatego nie
+    zapisujemy losowych statystyk wyłącznie w RAM. Zamiast tego na starcie
+    rejestrujemy stałą pulę 24 wariantów dla każdego materiału i slotu.
+    Losowanie ciała wybiera jeden z tych wariantów. Dzięki temu EQ zachowuje
+    identyczne statystyki także po restarcie serwera/Railway.
+    """
+    tier_index = 1 + next(
+        i for i, row in enumerate(CORPSE_MATERIAL_TIERS)
+        if row["key"] == tier["key"]
+    )
+    rng = random.Random(
+        f"soulbound-v0.8.58:{tier['key']}:{slot}:{int(variant_index)}"
+    )
+
+    # Materiał wyznacza tylko moc. Statystyki nie są przypisane do klasy ani
+    # do materiału - każdy wariant losuje z pięciu bojowych statystyk.
+    max_stat_count = min(5, 1 + (tier_index - 1) // 2)
+    min_stat_count = 1 if tier_index <= 2 else min(2, max_stat_count)
+    stat_count = rng.randint(min_stat_count, max_stat_count)
+    chosen_stats = rng.sample(list(MATERIAL_RANDOM_STAT_POOL), stat_count)
+
+    base_power = max(1, int(tier["stat_power"]))
+    stats = {}
+    for stat in chosen_stats:
+        low = max(1, base_power - 1)
+        high = base_power + (1 if tier_index >= 4 else 0)
+        stats[stat] = rng.randint(low, high)
+
+    # Każda część ma co najmniej jedną realną właściwość. Wyższe materiały
+    # mogą wylosować ich więcej, ale nadal bez blokady na klasę/build.
+    max_property_count = min(4, 1 + tier_index // 3)
+    property_count = rng.randint(1, max_property_count)
+    chosen_properties = rng.sample(
+        list(MATERIAL_RANDOM_PROPERTY_POOL),
+        property_count,
+    )
+    property_base = max(1, (tier_index + 1) // 2)
+    properties = {
+        prop: rng.randint(
+            max(1, property_base - 1),
+            property_base + (1 if tier_index >= 6 else 0),
+        )
+        for prop in chosen_properties
+    }
+
+    # Niewielki losowy rozrzut obrony sprawia, że dwa warianty tego samego
+    # materiału nie muszą być identyczne nawet przy podobnych statystykach.
+    _slot_label, defense_delta = CORPSE_MATERIAL_SLOT_DEFS[slot]
+    defense = max(
+        1,
+        int(tier["base_defense"])
+        + int(defense_delta)
+        + rng.choice((-1, 0, 0, 0, 1)),
+    )
+    return defense, stats, properties
+
+
+def _material_variant_title(tier, slot, stats, variant_index):
+    ordered = [
+        stat for stat in MATERIAL_RANDOM_STAT_POOL
+        if stat in stats
+    ]
+    if ordered:
+        # Dwie pierwsze statystyki ułatwiają rozróżnianie losowych wariantów
+        # komendami NVDA, bez konieczności pamiętania wewnętrznego item_id.
+        epithets = [MATERIAL_STAT_EPITHETS[s] for s in ordered[:2]]
+        stat_part = " i ".join(epithets)
+    else:
+        stat_part = "Losu"
+    slot_name = MATERIAL_SLOT_NAME_FOR_TITLE[slot]
+    return (
+        f"{slot_name} {tier['label']} {stat_part} "
+        f"[wariant {int(variant_index):02d}]"
+    )
+
+
+def _register_corpse_material_items():
+    for tier_index, tier in enumerate(CORPSE_MATERIAL_TIERS, 1):
+        ids = []
+        for slot in CORPSE_MATERIAL_SLOT_DEFS:
+            for variant_index in range(1, CORPSE_RANDOM_VARIANTS_PER_SLOT + 1):
+                item_id = (
+                    f"corpse_{tier['key']}_{slot}_v{variant_index:02d}"
+                )
+                defense, stats, properties = _material_random_profile(
+                    tier, slot, variant_index
+                )
+                stat_text = ", ".join(
+                    f"{MATERIAL_STAT_NAMES.get(stat, stat)} +{amount}"
+                    for stat, amount in stats.items()
+                )
+                prop_text = ", ".join(
+                    f"{MATERIAL_PROPERTY_NAMES.get(prop, prop)} +{amount}%"
+                    for prop, amount in properties.items()
+                )
+                crit_note = (
+                    " Zręczność z tej części zwiększa także szansę "
+                    "na trafienie krytyczne."
+                    if stats.get("dexterity", 0) > 0 else ""
+                )
+                ITEMS[item_id] = {
+                    "name": _material_variant_title(
+                        tier, slot, stats, variant_index
+                    ),
+                    "type": "armor",
+                    "slot": slot,
+                    "defense": defense,
+                    "price": None,
+                    "rarity": tier["rarity"],
+                    "rarity_name": tier["rarity_name"],
+                    "stats": stats,
+                    "properties": properties,
+                    "corpse_material": tier["key"],
+                    "corpse_material_tier": tier_index,
+                    "corpse_random_variant": variant_index,
+                    "desc": (
+                        f"Losowe materiałowe EQ z ciała przeciwnika. "
+                        f"Materiał wyznacza poziom mocy, ale statystyki nie "
+                        f"są przypisane do klasy. Obrona +{defense}. "
+                        f"Statystyki: {stat_text}. "
+                        f"Właściwości: {prop_text}.{crit_note}"
+                    ),
+                }
+                ids.append(item_id)
+        CORPSE_MATERIAL_ITEM_IDS[tier["key"]] = tuple(ids)
+
+
+_register_corpse_material_items()
 
 FISH_RARE_VARIANTS = {
     "albino": {
@@ -7705,7 +8039,7 @@ STAT_DESCRIPTIONS = {
         "kontrataku. Aktualny limit uniku wynosi 35 procent."
     ),
     "dexterity": (
-        "Zręczność zwiększa Szybkość. Wyższa Szybkość zwiększa szansę uniknięcia ataku przeciwnika."
+        "Zręczność zwiększa Szybkość, unik i szansę na trafienie krytyczne. Przy 10 Zręczności krytyk ma 5 procent; każdy punkt ponad 10 daje +0,5 punktu procentowego do limitu 35 procent."
     ),
     "kondycja": "Kondycja zwiększa maksymalne HP. Każdy punkt Kondycji daje 5 maksymalnego HP.",
     "constitution": "Kondycja zwiększa maksymalne HP. Każdy punkt Kondycji daje 5 maksymalnego HP.",
@@ -7733,14 +8067,16 @@ STAT_DESCRIPTIONS = {
 
 SYSTEM_DESCRIPTIONS = {
     "wędkarstwo": (
-        "Wędkarstwo ma własny poziom 1-100. Do połowu potrzebna jest Wędka, która ma "
-        "osobny level i osobny XP. Użyj fish albo low. Auto-łowienie: low on i low off."
+        "Wędkarstwo ma własny poziom profesji. Do połowu potrzebna jest Wędka, która ma "
+        "osobny level 1-200 i osobny XP. Podstawową Wędkę kupisz u Rybaka Tomasa na Targu Rybnym. "
+        "Użyj fish albo low. Auto-łowienie: low on i low off."
     ),
     "wedkarstwo": (
-        "Wędkarstwo ma własny poziom 1-100. Do połowu potrzebna jest Wędka, która ma "
-        "osobny level i osobny XP. Użyj fish albo low. Auto-łowienie: low on i low off."
+        "Wędkarstwo ma własny poziom profesji. Do połowu potrzebna jest Wędka, która ma "
+        "osobny level 1-200 i osobny XP. Podstawową Wędkę kupisz u Rybaka Tomasa na Targu Rybnym. "
+        "Użyj fish albo low. Auto-łowienie: low on i low off."
     ),
-    "fishing": "Wędkarstwo ma własny poziom 1-100, a Wędka własny niezależny level 1-100.",
+    "fishing": "Wędkarstwo ma własny poziom profesji, a Wędka własny niezależny level 1-200. Podstawową Wędkę sprzedaje Rybak Tomas.",
     "górnictwo": (
         "Górnictwo ma własny poziom 1-100. Kilof ma osobny level 1-100. "
         "Użyj mine albo kop. Auto-kopanie: kop on i kop off. "
@@ -7766,13 +8102,14 @@ SYSTEM_DESCRIPTIONS = {
     ),
     "bron duszy": "Broń Duszy ma osobny Soul Level 1-200 i 20 Tierów.",
     "soul weapon": "Broń Duszy ma osobny Soul Level 1-200 i 20 Tierów.",
-    "srebro": "Srebro jest podstawową walutą. 1000 srebrnych monet można wymienić na 1 złotą monetę.",
-    "silver": "Srebro jest podstawową walutą. 1000 srebrnych monet = 1 złota moneta.",
-    "złoto": "Złoto jest walutą wyższego rzędu. 1000000 złotych monet można wymienić na 1 mithrilową monetę.",
-    "zloto": "Złoto jest walutą wyższego rzędu. 1000000 złotych monet = 1 mithrilowa moneta.",
-    "gold": "Złoto jest walutą wyższego rzędu. 1000000 złotych monet = 1 mithrilowa moneta.",
+    "srebro": "Srebro jest najmniejszym nominałem wspólnej waluty. 1000 srebra = 1 złoto.",
+    "silver": "Srebro jest najmniejszym nominałem wspólnej waluty. 1000 srebra = 1 złoto.",
+    "złoto": "Złoto jest wyższym nominałem tego samego salda. 1 złoto = 1000 srebra.",
+    "zloto": "Złoto jest wyższym nominałem tego samego salda. 1 złoto = 1000 srebra.",
+    "gold": "Złoto jest wyższym nominałem tego samego salda. 1 złoto = 1000 srebra.",
     "mithril": (
-        "Mithril jest najrzadszą walutą. 1 mithrilowa moneta = 1000000 złotych monet. "
+        "Mithril jest najwyższym nominałem tego samego wspólnego salda. "
+        "1 mithril = 1000000 złota = 1000000000 srebra. "
         "Może być nagrodą lub bardzo rzadkim bezpośrednim wydobyciem wysokopoziomowym Kilofem."
     ),
     "siatka": "Siatka na ryby jest osobnym trwałym magazynem profesji. Komenda siatka/net pokazuje też łączną liczbę ryb, liczbę gatunków i szacowany zarobek ze sprzedaży całej zawartości.",
@@ -7781,15 +8118,59 @@ SYSTEM_DESCRIPTIONS = {
     "bag": "Sakwa górnicza jest magazynem rud; komenda sakwa/bag pokazuje też ilość i wartość sprzedaży.",
     "śmierć": (
         "Po śmierci postać odradza się w Świątyni Odrodzenia i traci 10 procent "
-        "każdej posiadanej waluty osobno."
+        "wartości wspólnego salda."
     ),
-    "smierc": "Po śmierci postać odradza się w Świątyni Odrodzenia i traci 10 procent każdej waluty.",
+    "smierc": "Po śmierci postać odradza się w Świątyni Odrodzenia i traci 10 procent wartości wspólnego salda.",
     "death": "Po śmierci postać odradza się w Świątyni Odrodzenia i traci część waluty.",
 }
 
 
-LATEST_CHANGES_TITLE = "Soulbound v0.8.53 - Full Soul Unlock Trials & Quality of Life"
+LATEST_CHANGES_TITLE = "Soulbound v0.8.60 - Unified Currency Denominations"
 LATEST_CHANGES = [
+    "Srebro, złoto i mithril tworzą jedno wspólne saldo; nie są trzema osobnymi portfelami.",
+    "Nominały: 1000 srebra = 1 złoto; 1000000 złota = 1 mithril; 1 mithril = 1000000000 srebra.",
+    "Portfel i Bank Dusz przechowują jedną wartość, a NVDA odczytuje ją automatycznie jako mithril, złoto i srebro.",
+    "Komendy bank wplac/wyplac przyjmują nominał, np. bank wplac 5 zlota albo bank wyplac 1 mithril, lecz operują na tym samym saldzie.",
+    "Sklepy, sprzedaż, nagrody, nauka skilli i egzaminy korzystają z tego samego wspólnego salda i automatycznie przeliczają nominały.",
+    "Czysty mithril z Górnictwa dodaje równowartość 1 mithrilu do wspólnego salda.",
+    "Migracja jest oznaczana flagą i nie wykonuje się drugi raz po restarcie/deployu; nie kasuj soulbound.db ani Railway Volume.",
+
+    "Ciała mobów otrzymują materiałowe EQ dobrane do siły przeciwnika: żelazo, stal, mithril, adamantyt, kobalt, runiczny metal, smocza stal, astral, Pustka i eternium.",
+    "Statystyki nie są przypisane do materiału ani klasy: konkretny drop losuje wariant z Siłą, Zręcznością, Kondycją, Inteligencją i Siłą Woli w różnych kombinacjach.",
+    "Każdy materiał i slot ma 24 trwałe warianty losowego profilu, dzięki czemu statystyki przedmiotu nie zmieniają się po restarcie serwera.",
+    "Zręczność z nowego EQ korzysta z istniejącej mechaniki krytyków: 10 Zręczności = 5 procent, każdy punkt ponad 10 = +0,5 punktu procentowego, do limitu 35 procent.",
+    "Wyższe materiały mogą losować więcej statystyk i właściwości jednocześnie, ale nadal nie mają blokady na klasę.",
+    "Losowane właściwości realnie wpływają na obrażenia fizyczne/magiczne, obronę fizyczną/magiczną, unik oraz maksymalne HP i Manę.",
+    "Zwykły mob zostawia jedną materiałową część EQ; elity, rzadkie moby i bossowie mogą zostawić dwie, obok dotychczasowych unikalnych nagród.",
+    "Unikalny loot bossów, zestawy Krypty, Wieży Astralnej, regionalne sety i stare dropy nie zostały usunięte ani nadpisane.",
+    "Dodano czytelny opis statystyk i właściwości materiałowych w inspect/opisie przedmiotu oraz help zwloki/ekwipunek.",
+    "Bez zmian schematu SQLite; nie resetuj soulbound.db ani Railway Volume.",
+
+    "Dodano trasa/route/droga <cel>: planowanie drogi bez poruszania postacią.",
+    "Trasa podaje dokładną liczbę przejść, pierwszy krok, skrócony ciąg kierunków, strefy po drodze i szacowany czas prowadzenia.",
+    "Dodano exits info: każdy kierunek może przeczytać nazwę sąsiedniej lokacji i jej strefę bez wykonywania kroku.",
+    "trasa pełna <cel> czyta każdy krok wraz z nazwą kolejnej lokacji; trasa krok powtarza tylko najbliższy kierunek do ostatnio zaplanowanego celu.",
+    "Prowadzenie działa teraz jako zadanie w tle, więc podczas marszu można używać bezpiecznych komend informacyjnych i natychmiast je przerwać.",
+    "prowadz stop / walk stop zatrzymuje prowadzenie także w trakcie opóźnienia pojedynczego kroku; postać pozostaje w ostatniej osiągniętej lokacji.",
+    "prowadz status / walk status podaje bieżącą lokację, cel, liczbę pozostałych przejść i następny krok.",
+    "Ręczny kierunek albo rozpoczęcie innej aktywności automatycznie przerywa aktywne prowadzenie, aby dwa ruchy nie ścigały się ze sobą.",
+    "Wieloznaczny cel trasy nie jest zgadywany: gra czyta pasujące lokacje i prosi o dokładniejszą nazwę.",
+    "Help nawigacja i główny help opisują nowe sterowanie trasą i przerwaniem prowadzenia.",
+    "Bez zmian schematu SQLite; nie resetuj soulbound.db ani Railway Volume.",
+
+    "Ruch kierunkowy nie teleportuje już natychmiast: NVDA najpierw czyta kierunek marszu, po krótkim czasie postać dociera do sąsiedniej lokacji.",
+    "prowadz/walk również przechodzi trasę krok po kroku jako marsz zamiast błyskawicznego przeskakiwania po room_id.",
+    "Rybak Tomas na Targu Rybnym sprzedaje teraz podstawową Wędkę; Mistrz Neris pozostaje nauczycielem rozwoju Wędkarstwa.",
+    "Zaktualizowano help nawigacja/chodzenie oraz główny help pod nowy system ruchu.",
+    "Dodano komendę hp: osobno czyta bieżące i maksymalne HP oraz Manę.",
+    "Dodano komendę score: czytelne podsumowanie postaci w osobnych liniach pod NVDA.",
+    "Komenda staty nie czyta już sześciu statystyk jednym ciągiem; każda statystyka jest osobnym komunikatem.",
+    "staty info również rozdziela bazę, wartość efektywną i bonus EQ dla każdej statystyki.",
+    "Dodano i zaktualizowano help staty, help hp, help score oraz help dusza.",
+    "Zaktualizowano główną pomoc i stare wpisy help: skille odblokowuje Biegłość klasy 1-200, a nie Soul Level.",
+    "dusza info pokazuje aktualny system: każda Próba Tieru 2-20 jest obowiązkowa, jej stan oraz następny cel.",
+    "Bez zmian schematu SQLite; nie resetuj soulbound.db ani Railway Volume.",
+
     "Każdy Soul Tier od 2 do 20 wymaga teraz własnej jednorazowej Próby Broni Duszy u Kapłana Elora.",
     "Po osiągnięciu progu Soul Level wpisz quest list Kapłan Elor, przyjmij właściwą próbę, wykonaj cel i użyj unlock.",
     "Zachowano cztery stare quest_id Prób Tierów 4, 7, 13 i 19, więc wcześniejsze ukończenia pozostają ważne.",
@@ -8120,9 +8501,9 @@ HELP_TOPICS = {
         "Na miejscu wpisz shop albo list, a potem kup kilof.",
     ],
     "waluta_auto": [
-        "Waluta działa automatycznie bez komendy wymiany.",
-        "1000 srebrnych monet = 1 złota moneta.",
-        "1 000 000 złotych monet = 1 mithrilowa moneta.",
+        "Wspólne saldo działa automatycznie bez komendy wymiany.",
+        "Jedno wspólne saldo z nominałami: srebro, złoto i mithril.",
+        "Nominały: 1000 srebra = 1 złoto; 1000000 złota = 1 mithril.",
         "Portfel i Bank Dusz normalizują nominały automatycznie.",
         "Stara ręczna wymiana została usunięta z MUD-a.",
         "Stare salda są zachowywane wartościowo i nie są kasowane.",
@@ -8499,10 +8880,10 @@ HELP_TOPICS = {
         "Wymuszone zatrzymanie, na przykład wyjście z gry, podróż albo przełączenie na inną auto-aktywność, nadal może przerwać akcję natychmiast.",
     ],
     "kurs_walut": [
-        "Waluta przelicza się automatycznie.",
-        "1000 srebrnych monet = 1 złota moneta.",
-        "1 000 000 złotych monet = 1 mithrilowa moneta.",
-        "Po osiągnięciu progu monety są automatycznie przenoszone do wyższego nominału.",
+        "Nominały wspólnego salda przeliczają się automatycznie.",
+        "Jedno wspólne saldo z nominałami: srebro, złoto i mithril.",
+        "Nominały: 1000 srebra = 1 złoto; 1000000 złota = 1 mithril.",
+        "Saldo jest automatycznie przedstawiane w najwyższych możliwych nominałach.",
         "Automatyczne przeliczanie działa w portfelu oraz Banku Dusz.",
         "Stara ręczna komenda wymiany została usunięta.",
         "Istniejący majątek nie jest zerowany; zachowuje pełną wartość.",
@@ -8670,11 +9051,11 @@ HELP_TOPICS = {
         "Bank Dusz znajduje się na Rynku u Bankiera Aldrena.",
         "prowadz bank prowadzi bezpośrednio na Rynek.",
         "bank pokazuje saldo bankowe oraz przedmioty w skrytce.",
-        "bank wplac 100 srebra wpłaca srebro.",
-        "bank wplac 5 zlota oraz bank wplac 1 mithril działają analogicznie.",
-        "bank wyplac <ile> <waluta> wypłaca walutę.",
-        "bank wplac wszystko wpłaca całe srebro, złoto i mithril z portfela.",
-        "bank wyplac wszystko wypłaca wszystkie trzy waluty z banku.",
+        "bank wplac 100 wpłaca 100 srebra do wspólnego salda.",
+        "bank wplac 5 zlota wpłaca 5000 srebra wartości; bank wplac 1 mithril wpłaca 1000000000 srebra wartości.",
+        "bank wyplac <ile> <nominał> wypłaca wskazaną wartość z tego samego salda.",
+        "bank wplac wszystko wpłaca całe wspólne saldo z portfela.",
+        "bank wyplac wszystko wypłaca całe wspólne saldo z banku.",
         "bank wloz <przedmiot> [ile] przenosi zwykły przedmiot z inventory do trwałej skrytki.",
         "bank wyjmij <przedmiot> [ile] przenosi przedmiot ze skrytki do inventory.",
         "Założonego elementu wyposażenia nie można schować w banku.",
@@ -8783,7 +9164,7 @@ HELP_TOPICS = {
         "sakwa/bag: łączna liczba rud, liczba rodzajów i wartość sprzedaży.",
         "drewno/stos/woodpile: łączna liczba sztuk drewna, liczba rodzajów i wartość sprzedaży.",
         "ziola/herbs: łączna liczba ziół, liczba rodzajów i wartość sprzedaży.",
-        "Srebro, złoto i mithril są liczone osobno.",
+        "Srebro, złoto i mithril są nominałami jednego wspólnego salda.",
         "Podsumowania obejmują tylko zawartość danego magazynu, nie zwykły inventory.",
         "Sprawdzenie magazynu niczego nie sprzedaje ani nie usuwa.",
     ],
@@ -8792,7 +9173,7 @@ HELP_TOPICS = {
         "Na końcu podaje łączną liczbę wszystkich ryb w siatce.",
         "Podaje też liczbę różnych gatunków ryb.",
         "Szacowany zarobek jest liczony z aktualnych cen sprzedaży każdej ryby pomnożonych przez jej ilość.",
-        "Srebro, złoto i mithril są podawane osobno, bez automatycznej wymiany między walutami.",
+        "Portfel podaje jedno saldo rozbite na mithril, złoto i srebro.",
         "Wartość obejmuje tylko ryby aktualnie znajdujące się w Siatce, nie ryby w zwykłym inventory.",
         "Podsumowanie nie sprzedaje ryb. To tylko informacja przed sprzedażą.",
     ],
@@ -14954,7 +15335,7 @@ def configure_profession_tool_sellers():
     NPCS["specialist_cooking"]["room"] = "blue_flame_kitchen"
 
     profession_tools = {
-        "fishing_rod": ("fishing_school", "specialist_fishing"),
+        "fishing_rod": ("fish_market", "fisher_tomas"),
         "pickaxe": ("cave_entrance", "miner_toren"),
         "saw": ("forester_lodge", "specialist_woodcutting"),
         "crafting_hammer": (
@@ -15008,9 +15389,15 @@ def configure_profession_tool_sellers():
     SHOP_SELLERS["forge"] = "doran"
 
     # Przejrzyste opisy NPC.
+    NPCS["fisher_tomas"]["shopkeeper"] = True
+    NPCS["fisher_tomas"]["dialogue"] = (
+        "Jeśli chcesz zacząć Wędkarstwo, kupisz u mnie podstawową Wędkę. "
+        "Przynieś mi także trzydzieści dowolnych ryb, a wynagrodzę twoją pracę. "
+        "Wpisz list albo shop, aby zobaczyć ofertę."
+    )
     NPCS["specialist_fishing"]["dialogue"] = (
-        "Jestem Mistrzem Wędkarstwa. Tylko u mnie kupisz Wędkę. "
-        "Uczę rozwoju Wędki, Tierów i łowisk wysokiego levelu."
+        "Jestem Mistrzem Wędkarstwa Neris. Uczę rozwoju Wędki, Tierów "
+        "i łowisk wysokiego levelu. Podstawową Wędkę kupisz u Rybaka Tomasa na Targu Rybnym."
     )
     NPCS["miner_toren"]["dialogue"] = (
         "Dobra ruda nie wydobędzie się sama. "
@@ -15071,7 +15458,7 @@ def configure_v0800_help_info():
         "narzedzia info - XP, Tier, bonus, czas akcji i właściwy sprzedawca.",
         "eq - szybka lista założonego wyposażenia.",
         "eq info - pełne bonusy, obrona, sety, sockety i efektywne statystyki.",
-        "kodeksklasowy <klasa> - skille, Soul, nauczyciel, cena i status odblokowania.",
+        "kodeksklasowy <klasa> - skille, wymagana Biegłość, nauczyciel, cena i status odblokowania.",
         "help informacje - ten przewodnik.",
     ]
     HELP_TOPIC_ALIASES.update({
@@ -15254,7 +15641,7 @@ def build_paid_training_guild_expansion():
     HELP_TOPICS["nauka"] = [
         "Nauka umiejętności klasowych u nauczycieli Gildii Dusz jest płatna.",
         "Cena zależy od Biegłości klasy wymaganej przez konkretną umiejętność.",
-        "Niskopoziomowe skille kosztują srebro; późniejsze skille kosztują coraz więcej złota.",
+        "Skille kosztują wspólną walutę; późniejsze skille kosztują coraz więcej.",
         "Nauczyciel zawsze podaje cenę przed nauką.",
         "Komendy: learn <numer>, learn <skill>, naucz <numer>, naucz <umiejętność>.",
         "Pieniądze są pobierane dopiero po sprawdzeniu aktywnej klasy, wymaganej Biegłości i tego, czy skill nie jest już znany.",
@@ -15647,6 +16034,45 @@ def configure_base_mob_corpse_equipment():
         MOB_TEMPLATES[tid]["corpse_equipment_pool"]=pool
         MOB_TEMPLATES[tid]["corpse_equipment_guaranteed"]=1
 
+
+def corpse_material_tier_for_template(template):
+    """Dobiera materiał po faktycznej sile moba, nie po levelu postaci."""
+    score = int(template.get("max_hp", 1)) + int(template.get("damage", 1)) * 8
+    selected = CORPSE_MATERIAL_TIERS[0]
+    for tier in CORPSE_MATERIAL_TIERS:
+        if score >= int(tier["min_score"]):
+            selected = tier
+        else:
+            break
+    return selected
+
+
+def configure_material_corpse_equipment():
+    for template_id, template in MOB_TEMPLATES.items():
+        if template.get("leave_corpse", True) is False:
+            continue
+        tier = corpse_material_tier_for_template(template)
+        template["corpse_material_tier"] = tier["key"]
+        template["corpse_material_pool"] = list(
+            CORPSE_MATERIAL_ITEM_IDS[tier["key"]]
+        )
+
+        # Zwykły przeciwnik: 1 część. Elita/rzadki/boss: 2 części.
+        # Zachowujemy osobno stare guaranteed z unikalnych pul.
+        special = bool(
+            template.get("elite_affix")
+            or template.get("rare_variant")
+            or template.get("rare_troll")
+            or template.get("world_boss")
+            or template.get("mini_boss")
+            or template.get("crypt_boss")
+            or template.get("astral_boss")
+            or template.get("mythic_crypt_boss")
+            or template.get("mythic_astral_boss")
+            or template.get("boss_mechanic")
+        )
+        template["corpse_material_guaranteed"] = 2 if special else 1
+
 build_crypt_200_floors()
 build_crypt_loot_variants()
 build_astral_tower()
@@ -15662,8 +16088,288 @@ build_elite_rare_named_loot_expansion()
 configure_profession_tool_sellers()
 configure_v0800_help_info()
 configure_v081_help_info()
+def configure_v0856_help_refresh():
+    """Aktualizuje podstawowe pomoce do rzeczywistego stanu v0.8.56."""
+    HELP_TOPIC_ALIASES.update({
+        "staty": "statystyki", "status": "statystyki", "stats": "statystyki", "stat": "statystyki",
+        "hp": "hp", "health": "hp", "zdrowie": "hp", "zycie": "hp", "życie": "hp",
+        "score": "score", "wynik": "score", "postac": "score", "postać": "score",
+        "dusza": "dusza", "soul": "dusza", "soul info": "dusza",
+        "quest": "questy", "quests": "questy", "zadania": "questy",
+    })
+
+    HELP_TOPICS["podstawy"] = [
+        "Soulbound nie ma levelu postaci. Rozwój odbywa się przez statystyki, Biegłość klas, Soul Level Broni Duszy, EQ i profesje.",
+        "Najważniejsze komendy startowe: look, exits, hp, score, staty, dusza, eq, quest, portfel i help.",
+        "k <mob> rozpoczyna walkę realtime z dowolnym zabijalnym mobem; con <mob> ocenia go bez walki.",
+        "quit zapisuje bieżącą postać i wraca do menu wyboru postaci na tym samym koncie.",
+        "help staty, help hp, help score, help dusza i help quest opisują najważniejsze systemy.",
+    ]
+    HELP_TOPICS["statystyki"] = [
+        "staty pokazuje każdą statystykę w osobnym komunikacie NVDA, a potem HP, Manę, obronę i ofensywę.",
+        "staty info pokazuje osobno bazę, wartość efektywną oraz bonus EQ/klejnotów dla każdej statystyki.",
+        "Sześć statystyk: Siła, Zręczność, Kondycja, Inteligencja, Siła Woli i Charyzma.",
+        f"Postęp Rozwoju ma próg {STAT_GROWTH_THRESHOLD}; pełny próg zwiększa wszystkie sześć bazowych statystyk o 1.",
+        "Kondycja zwiększa HP każdej klasy. Inteligencja zwiększa Manę każdej klasy.",
+        "Zręczność wpływa na szybkość, unik i krytyki. Siła zwiększa fizyczne obrażenia i częściowo skaluje magiczne skille/spelle.",
+        "Nie ma ręcznego rozdawania punktów i nie ma levelu postaci.",
+    ]
+    HELP_TOPICS["hp"] = [
+        "hp / zdrowie pokazuje bieżące HP, maksymalne HP, bieżącą Manę i maksymalną Manę.",
+        "Wartości są czytane osobno, żeby NVDA nie łączył całego stanu w jeden długi komunikat.",
+        "Maksymalne HP wynika głównie z Kondycji, rasy, klasy, EQ i bonusów. Maksymalna Mana wynika głównie z Inteligencji oraz bonusów.",
+    ]
+    HELP_TOPICS["score"] = [
+        "score / wynik to zwarte podsumowanie aktualnej postaci.",
+        "Pokazuje rasę, główną i aktywne klasy, Biegłość każdej klasy, Soul Level/Tier, HP, Manę i sześć statystyk.",
+        "Pokazuje też wspólny portfel konta, aktualną lokację/strefę oraz dynamiczną ocenę terenu.",
+        "Orientacyjna siła progresji 1-200 używana przez score i expowiska nie jest levelem postaci.",
+    ]
+    HELP_TOPICS["dusza"] = [
+        "dusza pokazuje krótki stan Broni Duszy: Soul Level, Tier, Soul XP, moc i następny cel.",
+        "dusza info pokazuje pełne progi Tierów 1-20 oraz stan każdej Próby Broni Duszy od Tieru 2 do 20.",
+        "Każdy Tier 2-20 wymaga odpowiedniego Soul Levelu, ukończenia jednorazowej Próby u Kapłana Elora i potem komendy unlock.",
+        "Soul Level ma zakres 1-200 i rozwija Broń Duszy; nie jest levelem postaci.",
+        "Skille/spelle klasowe odblokowuje Biegłość właściwej klasy 1-200, nie Soul Level.",
+        "Po osiągnięciu progu wpisz quest list Kapłan Elor, przyjmij właściwą Próbę, wykonaj cel, oddaj quest i użyj unlock.",
+    ]
+
+    HELP_TOPICS["aoe"] = [
+        "Czary i skille obszarowe trafiają wszystkie dostępne cele zgodnie z opisem konkretnej umiejętności.",
+        "Historyczne progi Soul zostały zastąpione Biegłością klasy: np. umiejętność z progu 40 wymaga Biegłości 40 danej klasy.",
+        "Skille 1, 10, 20, 30 i dalej co 10 aż do 200 odblokowuje Biegłość właściwej klasy.",
+        "Pełne szczegóły konkretnego AoE: help <nazwa skilla> albo skill info <nazwa>.",
+        "Akcja obszarowa działa w walce realtime i nie tworzy osobnej tury przeciwnika.",
+    ]
+    HELP_TOPICS["naturalne_naucz"] = [
+        "U nauczyciela aktywnej klasy możesz uczyć się skilli naturalną nazwą kategorii.",
+        "naucz leczenie, naucz tarcza, naucz unik, naucz drain i naucz dobij wybierają pasujący dostępny skill.",
+        "Ofensywne przykłady: naucz ciecie, naucz pocisk, naucz ogien, naucz burza, naucz mlot, naucz strzal.",
+        "System bierze pod uwagę tylko skille klasy nauczyciela, przy którym aktualnie stoisz.",
+        "Najpierw preferuje skill, którego jeszcze nie znasz, a potem najwyższy dostępny próg Biegłości klasy.",
+        "Pełne nazwy i numery skilli nadal działają.",
+    ]
+    HELP_TOPICS["rozwoj_statystyk"] = list(HELP_TOPICS["statystyki"])
+    HELP_TOPICS["soul200"] = [
+        "Broń Duszy ma Soul Level 1-200 i 20 Tierów.",
+        "Każdy Tier 2-20 ma własną jednorazową Próbę u Kapłana Elora.",
+        "Po osiągnięciu wymaganego Soul Levelu wykonaj Próbę, oddaj ją i wpisz unlock.",
+        "Soul Level zwiększa moc Broni Duszy i nie odblokowuje skilli klasowych.",
+        "Skille klasowe odblokowuje Biegłość klasy 1-200.",
+        "Nie ma levelu postaci.",
+    ]
+    HELP_TOPICS["soul_tier45_krypta200"] = [
+        "Broń Duszy ma 20 Tierów na Soul Levelach: 1, 10, 20, 25, 35, 45, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160, 170, 180 i 200.",
+        "Każdy Tier 2-20 wymaga własnej jednorazowej Próby Broni Duszy u Kapłana Elora.",
+        "Po progu użyj quest list Kapłan Elor, wykonaj Próbę, oddaj zadanie i wpisz unlock.",
+        "dusza info pokazuje stan wszystkich 19 Prób oraz następny cel.",
+        "Nie ma resetu Soul Levelu, Soul XP ani historycznie ukończonych prób.",
+    ]
+
+    if "informacje" in HELP_TOPICS:
+        HELP_TOPICS["informacje"] = [
+            "Najważniejsze komendy informacyjne są rozdzielone na krótkie i pełne wersje pod NVDA.",
+            "hp - bieżące i maksymalne HP oraz Mana, osobno.",
+            "score - ogólne podsumowanie postaci i progresji.",
+            "staty - każda statystyka osobno; staty info - baza, wartość efektywna, EQ i mechanika.",
+            "dusza - szybki stan Broni Duszy; dusza info - wszystkie Tiery 1-20, Próby 2-20 i następny cel.",
+            "profesje / profesje info - stan i pełne informacje profesji.",
+            "narzedzia / narzedzia info - stan i pełne informacje narzędzi.",
+            "eq / eq info - założone EQ oraz pełne bonusy, sockety i sety.",
+            "kodeksklasowy <klasa> - skille odblokowywane Biegłością klasy, nauczyciel, cena i status.",
+            "help informacje - ten przewodnik.",
+        ]
+
+configure_v0856_help_refresh()
+
+
+def configure_v0856_help_categories():
+    """Przywraca ogólne tematy reklamowane przez główny help."""
+    HELP_TOPIC_ALIASES.update({
+        "professions": "profesje", "profession": "profesje",
+        "inventory": "ekwipunek", "equipment": "ekwipunek", "eq": "ekwipunek",
+        "mining": "gornictwo", "mine": "gornictwo",
+        "woodcutting": "drwalstwo", "wood": "drwalstwo",
+        "herbalism": "zielarstwo", "herbs": "zielarstwo",
+        "alchemy": "alchemia", "crafting": "rzemioslo", "craft": "rzemioslo",
+        "recipes": "receptury", "recipe": "receptury",
+        "charisma": "charyzma", "haryzma": "charyzma",
+        "party": "druzyny", "druzyna": "druzyny", "drużyna": "druzyny",
+        "corpse": "zwloki", "zwloki": "zwloki", "zwłoki": "zwloki",
+        "containers": "pojemniki", "container": "pojemniki",
+        "shops": "sklepy", "shop": "sklepy",
+        "players": "gracze", "player": "gracze",
+        "death": "smierc", "smierc": "smierc", "śmierć": "smierc",
+        "races": "rasy", "race": "rasy",
+        "abilities": "umiejetnosci", "skills": "umiejetnosci", "umiejętności": "umiejetnosci",
+        "skillnames": "nazwy_skilli", "nazwyskilli": "nazwy_skilli",
+        "teachers": "nauczyciele", "trainers": "nauczyciele",
+        "atlas": "atlas",
+    })
+    HELP_TOPICS["profesje"] = [
+        "Soulbound ma 7 głównych profesji: Wędkarstwo, Górnictwo, Drwalstwo, Zielarstwo, Alchemia, Kowalstwo i Jubilerstwo.",
+        "Rzemiosło i Gotowanie mają własne narzędzia i progresję pomocniczą.",
+        "profesje pokazuje szybki stan; profesje info pokazuje XP, rangi i dalszy rozwój.",
+        "Narzędzia profesji rozwijają się do 200 i nie mają trwałości.",
+    ]
+    HELP_TOPICS["ekwipunek"] = [
+        "inventory / i pokazuje przedmioty w ekwipunku. eq / equipment pokazuje założone wyposażenie.",
+        "eq info pokazuje pełne bonusy, sety i sockety.",
+        "Materiałowe EQ z ciał występuje jako żelazo, stal, mithril, adamantyt, kobalt, runiczne, smocza stal, astral, Pustka i eternium; konkretne statystyki i właściwości są losowane niezależnie od klasy.",
+        "Zręczność z EQ realnie zwiększa szansę na krytyk; inne właściwości mogą wzmacniać obrażenia, obronę, unik, HP albo Manę.",
+        "Klasowe EQ ma progi Biegłości 1, 10, 20 i dalej co 10 aż do 200.",
+        "Postać może nosić dwa pierścienie i dwa talizmany.",
+        "Sprzedawalne nieprzypisane duplikaty można wskazać numerem, np. sprzedaj 2.talizman korzeni.",
+    ]
+    HELP_TOPICS["atlas"] = [
+        "atlas pokazuje gdzie i od jakiego levelu narzędzia zdobywa się ryby, drewno, zioła, rudy i inne surowce.",
+        "Przykłady: atlas ryby, atlas drewno, atlas rudy, atlas <nazwa surowca>.",
+        "Wpis konkretnego zasobu podaje region/lokację, wymagane narzędzie i minimalny level.",
+    ]
+    HELP_TOPICS["gornictwo"] = [
+        "Górnictwo korzysta z Kilofa i ma progresję do 200.",
+        "kop wykonuje pojedyncze wydobycie; kop on i kop off sterują auto-kopaniem.",
+        "Kopalnia Głębinowa ma 200 poziomów; ściany mają losową liczbę uderzeń zapisywaną dla postaci.",
+        "atlas rudy pokazuje wymagany level Kilofa i miejsca występowania rud.",
+    ]
+    HELP_TOPICS["drwalstwo"] = [
+        "Drwalstwo korzysta z Piły i ma progresję do 200.",
+        "tnij wykonuje pojedynczą akcję; tnij on i tnij off sterują automatem.",
+        "atlas drewno pokazuje wymagany level Piły i miejsca występowania drewna.",
+    ]
+    HELP_TOPICS["zielarstwo"] = [
+        "Zielarstwo korzysta z Sierpa i ma progresję do 200.",
+        "zbieraj wykonuje pojedynczy zbiór; zbieraj on i zbieraj off sterują automatem.",
+        "atlas zioła pokazuje wymagany level Sierpa i miejsca występowania ziół.",
+    ]
+    HELP_TOPICS["alchemia"] = [
+        "Alchemia korzysta z Moździerza Alchemicznego i rozwija się do 200.",
+        "alchemia / warz <receptura> tworzy mikstury, jeśli masz wymagany poziom i składniki.",
+        "Questy Alchemii u Orina są niezależne; np. Mikstury Many i Mikstury Leczenia mogą być aktywne równocześnie.",
+    ]
+    HELP_TOPICS["rzemioslo"] = [
+        "Rzemiosło korzysta z Młota Rzemieślniczego i ma rozwój do 200.",
+        "craft / stworz / wytworz <receptura> tworzy przedmiot.",
+        "Nie ma trwałości ani zużywania narzędzi.",
+    ]
+    HELP_TOPICS["receptury"] = [
+        "receptury pokazuje dostępne przepisy.",
+        "receptury craft, receptury cook, receptury alchemia i receptury jubilerstwo filtrują listę.",
+        "Wymagania receptur wynikają z odpowiedniej profesji/narzędzia i są pokazywane na liście.",
+    ]
+    HELP_TOPICS["charyzma"] = [
+        "Charyzma jest szóstą normalną statystyką postaci.",
+        "Rośnie automatycznie razem z pozostałymi statystykami; sprzedaż może ją dodatkowo rozwijać.",
+        "Wpływa na rabat sklepowy i limit drużyny lidera.",
+        "Komendy: charyzma, haryzma, charisma oraz staty info.",
+    ]
+    HELP_TOPICS["druzyny"] = [
+        "druzyna / party pokazuje i zarządza drużyną.",
+        "pc <tekst> to czat drużynowy. wspieraj / assist pomaga członkowi drużyny w walce.",
+        "Limit drużyny rośnie z Charyzmą lidera.",
+    ]
+    HELP_TOPICS["zwloki"] = [
+        "ciało / zwloki / corpse pokazuje ciała mobów w aktualnej lokacji.",
+        "przeszukaj ciało / loot zabiera dostępny ekwipunek z ciała.",
+        "Każde ciało przeciwnika może mieć materiałowe EQ dobrane poziomem do siły moba: od żelaza i stali przez mithril i adamantyt aż po eternium. Konkretne statystyki i właściwości części są losowe.",
+        "Elity, rzadkie moby i bossowie mogą zostawić dwie części materiałowego EQ, a ich dotychczasowy unikalny loot pozostaje osobno.",
+    ]
+    HELP_TOPICS["pojemniki"] = [
+        "Siatka przechowuje ryby, Sakwa rudy, Stos drewna drewno, a Torba Zielarska zioła.",
+        "put / wloz przenosi zasób do pojemnika; take / wyjmij wyciąga zasób.",
+        "Bank Dusz jest osobnym trwałym magazynem konta.",
+    ]
+    HELP_TOPICS["sklepy"] = [
+        "shop / sklep / list / lista pokazuje ofertę aktualnego sprzedawcy.",
+        "kup <nazwa> albo kup <numer> kupuje przedmiot; np. kup 9 lub kup 9 3.",
+        "sprzedaj <przedmiot> sprzedaje wolny, nieprzypisany przedmiot. Założone i Character-Bound są chronione.",
+        "Charyzma wpływa na rabat zakupowy.",
+    ]
+    HELP_TOPICS["gracze"] = [
+        "who pokazuje graczy online.",
+        "say <tekst> mówi do osób w tej samej lokacji; tell <gracz> <tekst> wysyła wiadomość prywatną.",
+        "pc <tekst> wysyła wiadomość do drużyny.",
+    ]
+    HELP_TOPICS["smierc"] = [
+        "Po śmierci postać odradza się w Świątyni Odrodzenia.",
+        "Traci 10 procent każdego nominału wspólnego portfela zgodnie z obecną mechaniką śmierci.",
+        "Postęp postaci, EQ, questy, Biegłość, Soul i profesje pozostają zapisane.",
+    ]
+    HELP_TOPICS["rasy"] = [
+        "Gra ma 13 ras. Każda ma własne statystyki startowe i pasyw rasowy.",
+        "Kreator podaje polecane klasy dla każdej rasy, ale żadna kombinacja rasa-klasa nie jest blokowana.",
+        "opis <rasa> pokazuje opis rasy oraz polecane klasy.",
+    ]
+    HELP_TOPICS["umiejetnosci"] = [
+        "Każda z 12 klas ma skille/spelle rozwijane przez Biegłość klasy 1-200.",
+        "Progi umiejętności: 1, 10, 20, 30 i dalej co 10 aż do 200; Kapłan zachowuje dodatkowy skill startowy.",
+        "skills pokazuje umiejętności aktywnej klasy; kodeksklasowy <klasa> pokazuje pełną progresję.",
+        "help <nazwa skilla> albo skill info <nazwa> pokazuje pełną pomoc konkretnej umiejętności.",
+        "Soul Level nie odblokowuje skilli klasowych.",
+    ]
+    HELP_TOPICS["nazwy_skilli"] = [
+        "skillnames / nazwyskilli pokazuje nazwy wszystkich skilli/spelli.",
+        "help <nazwa skilla> działa dla wszystkich 253 obecnych skilli, także klas nieaktywnych.",
+    ]
+    HELP_TOPICS["nauczyciele"] = [
+        "teachers / nauczyciele pokazuje nauczycieli klasowych.",
+        "Skilla można nauczyć się u nauczyciela właściwej aktywnej klasy po osiągnięciu wymaganej Biegłości.",
+        "Koszt nauki może być obniżany przez reputację Gildii klasowej.",
+    ]
+
+configure_v0856_help_categories()
+
+
+def configure_v0856_walking_help():
+    """v0.8.56: aktualna pomoc ruchu/chodzenia i sprzedawcy Wędki."""
+    HELP_TOPIC_ALIASES.update({
+        "chodzenie": "nawigacja", "ruch": "nawigacja", "walk movement": "nawigacja",
+        "wedka sprzedawca": "wedkarstwo", "wędka sprzedawca": "wedkarstwo",
+    })
+    HELP_TOPICS["nawigacja"] = [
+        "Ruch nie jest natychmiastowym teleportem. Po komendzie kierunku NVDA najpierw mówi, że idziesz, a po krótkim marszu dopiero docierasz do sąsiedniej lokacji.",
+        "Kierunki: north/south/east/west/up/down albo skróty n/s/e/w/u/d; działają też polskie nazwy kierunków.",
+        "look / l opisuje aktualną lokację; exits mówi dostępne wyjścia; where podaje lokację i strefę.",
+        "prowadz <cel> / walk <cel> wykonuje trasę krok po kroku. Do NPC dochodzi dokładnie, a przy zwykłej lokacji ostatni krok wykonujesz sam.",
+        "prowadz lista / walk list pokazuje kategorie celów nawigacji.",
+        "Nie możesz rozpocząć zwykłego marszu podczas walki realtime; najpierw pokonaj moba albo użyj flee.",
+        "Ruch wyłącza aktywne auto-łowienie, auto-kopanie, auto-Drwalstwo i auto-Zielarstwo.",
+    ]
+    if "podstawy" in HELP_TOPICS:
+        HELP_TOPICS["podstawy"].append(
+            "Poruszanie jest krokowe: wpisz n/s/e/w/u/d, usłyszysz rozpoczęcie marszu, a potem dotarcie do lokacji. help nawigacja podaje szczegóły."
+        )
+    if "wedkarstwo" in HELP_TOPICS:
+        HELP_TOPICS["wedkarstwo"].append(
+            "Podstawową Wędkę kupisz bezpośrednio u Rybaka Tomasa na Targu Rybnym; Mistrz Neris uczy dalszego rozwoju Wędkarstwa."
+        )
+
+configure_v0856_walking_help()
+
+def configure_v0857_navigation_help():
+    """v0.8.57: planowanie trasy i przerywalne prowadzenie pod NVDA."""
+    HELP_TOPIC_ALIASES.update({
+        "trasa": "nawigacja", "route": "nawigacja", "droga": "nawigacja",
+        "prowadz stop": "nawigacja", "prowadz status": "nawigacja",
+    })
+    HELP_TOPICS["nawigacja"] = [
+        "Ruch kierunkowy jest krokowy: NVDA najpierw czyta rozpoczęcie marszu, a po krótkim czasie dotarcie do sąsiedniej lokacji.",
+        "Kierunki: north/south/east/west/up/down albo n/s/e/w/u/d; działają też polskie nazwy kierunków.",
+        "look / l opisuje bieżącą lokację; exits mówi dostępne wyjścia; exits info dodaje nazwę i strefę za każdym wyjściem; where podaje lokację i strefę.",
+        "trasa <cel> / route <cel> planuje drogę bez poruszania postacią. Podaje liczbę przejść, pierwszy krok, skróconą trasę, strefy i szacowany czas.",
+        "trasa pełna <cel> czyta każdy krok; trasa krok powtarza najbliższy kierunek do ostatnio zaplanowanego celu.",
+        "prowadz <cel> / walk <cel> uruchamia prowadzenie w tle. Do NPC dochodzi dokładnie; przy zwykłej lokacji ostatni krok wykonujesz sam.",
+        "prowadz status / walk status podaje cel, pozostałe przejścia i następny krok podczas marszu.",
+        "prowadz stop / walk stop natychmiast przerywa automatyczny marsz i zostawia postać w ostatniej osiągniętej lokacji.",
+        "Ręczny kierunek lub rozpoczęcie innej aktywności przerywa prowadzenie, aby uniknąć jednoczesnych ruchów.",
+        "prowadz lista / walk list pokazuje kategorie celów nawigacji.",
+        "Nie możesz rozpocząć ruchu podczas walki realtime; najpierw pokonaj przeciwnika albo użyj flee.",
+    ]
+
+configure_v0857_navigation_help()
 build_paid_training_guild_expansion()
 configure_base_mob_corpse_equipment()
+configure_material_corpse_equipment()
 
 
 def build_independent_specialist_quest_offers():
@@ -16897,6 +17603,65 @@ class Database:
                 ("class_starting_stats_v0851",),
             )
 
+        # v0.8.60: jedno wspólne saldo, trzy nominały.
+        # Konwersja jest wykonywana dokładnie raz i zachowuje pełną wartość:
+        # silver 1:1, gold 1:1000, mithril 1:1_000_000_000 srebra.
+        unified_currency_migrated = self.conn.execute(
+            "SELECT 1 FROM migration_flags WHERE flag=?",
+            ("unified_currency_v0859",),
+        ).fetchone()
+        if not unified_currency_migrated:
+            wallet_rows = self.conn.execute(
+                "SELECT master_account_id,silver,gold,mithril FROM account_wallet"
+            ).fetchall()
+            for row in wallet_rows:
+                coins = legacy_currency_to_coins(
+                    row["silver"], row["gold"], row["mithril"]
+                )
+                master_id = int(row["master_account_id"])
+                self.conn.execute(
+                    "UPDATE account_wallet SET silver=?,gold=0,mithril=0,"
+                    "updated_at=CURRENT_TIMESTAMP WHERE master_account_id=?",
+                    (coins, master_id),
+                )
+                self.conn.execute(
+                    "UPDATE characters SET silver=?,gold=0,mithril=0 "
+                    "WHERE account_id IN (SELECT character_account_id "
+                    "FROM account_characters WHERE master_account_id=?)",
+                    (coins, master_id),
+                )
+
+            # Nietypowe stare save'y bez account_wallet też nie tracą środków.
+            orphan_rows = self.conn.execute(
+                "SELECT account_id,silver,gold,mithril FROM characters "
+                "WHERE account_id NOT IN (SELECT character_account_id FROM account_characters)"
+            ).fetchall()
+            for row in orphan_rows:
+                coins = legacy_currency_to_coins(
+                    row["silver"], row["gold"], row["mithril"]
+                )
+                self.conn.execute(
+                    "UPDATE characters SET silver=?,gold=0,mithril=0 WHERE account_id=?",
+                    (coins, int(row["account_id"])),
+                )
+
+            bank_rows = self.conn.execute(
+                "SELECT account_id,silver,gold,mithril FROM bank_balances"
+            ).fetchall()
+            for row in bank_rows:
+                coins = legacy_currency_to_coins(
+                    row["silver"], row["gold"], row["mithril"]
+                )
+                self.conn.execute(
+                    "UPDATE bank_balances SET silver=?,gold=0,mithril=0 WHERE account_id=?",
+                    (coins, int(row["account_id"])),
+                )
+
+            self.conn.execute(
+                "INSERT INTO migration_flags(flag) VALUES(?)",
+                ("unified_currency_v0859",),
+            )
+
         self.conn.commit()
 
     def account_by_name(self, username):
@@ -16939,7 +17704,14 @@ class Database:
             (master_account_id,),
         ).fetchone()
         if row:
-            return (int(row["silver"]), int(row["gold"]), int(row["mithril"]))
+            silver, gold, mithril = normalize_currency_values(
+                row["silver"], row["gold"], row["mithril"]
+            )
+            if gold or mithril or silver != int(row["silver"]):
+                self.set_shared_wallet_for_master(
+                    master_account_id, silver, gold, mithril
+                )
+            return (silver, gold, mithril)
 
         # Bezpieczny fallback dla świeżego konta albo nietypowego starego save'a.
         sums = self.conn.execute(
@@ -19160,6 +19932,19 @@ class World:
                 )
                 for item_id in items
             ]
+
+        material_pool = list(template.get("corpse_material_pool", ()))
+        material_count = min(
+            len(material_pool),
+            max(0, int(template.get("corpse_material_guaranteed", 0))),
+        )
+        if material_count:
+            material_items = random.sample(material_pool, material_count)
+            # Nie dodawaj tego samego ID dwa razy, jeśli jakaś przyszła
+            # ręczna pula moba zacznie zawierać część materiałową.
+            for item_id in material_items:
+                if item_id not in items:
+                    items.append(item_id)
         self.corpse_counter += 1; now=time.time()
         corpse=CorpseState(
             key=f"corpse:{self.corpse_counter}", room_id=mob.room_id,
@@ -19317,6 +20102,19 @@ class Session:
         self.auto_herbalism_task = None
         self.guiding = False
         self.guide_choice_state = None
+        # v0.8.57: prowadzenie jest osobnym zadaniem asyncio. Dzięki temu
+        # gracz może odpytać status, zaplanować trasę lub przerwać marsz
+        # bez czekania na zakończenie całej automatycznej podróży.
+        self.guide_task = None
+        self.guide_target_room = None
+        self.guide_target_label = ""
+        self.guide_target_is_npc = False
+        self.guide_final_direction = None
+        self.route_target_room = None
+        self.route_target_label = ""
+        self.route_target_is_npc = False
+        # v0.8.56: normalny ruch ma zauważalny etap chodzenia.
+        self.moving = False
         # v0.8.32: ostatnia numerowana lista questów: aktywne, ukończone lub NPC.
         # Dzięki temu quest info <numer> działa po każdej z tych list.
         self.quest_list_context = None
@@ -20163,7 +20961,7 @@ class Session:
         return self.class_mastery_level(class_name) >= self.skill_required_mastery(skill)
 
     def skill_training_cost_silver(self, skill):
-        """Cena nauki w przeliczeniu na srebro; rośnie z wymaganą Biegłością klasy."""
+        """Cena nauki we wspólnej walucie; rośnie z wymaganą Biegłością klasy."""
         unlock = max(1, int(skill.get("unlock", 1)))
         if unlock <= 20:
             return 200 + unlock * 40
@@ -20176,17 +20974,11 @@ class Session:
         return 82000 + (unlock - 160) * 3000
 
     def training_cost_text(self, silver_cost):
-        value = max(0, int(silver_cost))
-        mithril_value = SILVER_PER_GOLD * GOLD_PER_MITHRIL
-        mithril, value = divmod(value, mithril_value)
-        gold, silver = divmod(value, SILVER_PER_GOLD)
-        return currency_reading_text(silver, gold, mithril)
+        return currency_reading_text(max(0, int(silver_cost)), 0, 0)
 
     def character_wallet_silver_value(self):
-        return (
-            int(self.character.silver)
-            + int(self.character.gold) * SILVER_PER_GOLD
-            + int(self.character.mithril) * SILVER_PER_GOLD * GOLD_PER_MITHRIL
+        return legacy_currency_to_coins(
+            self.character.silver, self.character.gold, self.character.mithril
         )
 
     def pay_training_cost(self, silver_cost):
@@ -20194,13 +20986,9 @@ class Session:
         total = self.character_wallet_silver_value()
         if total < silver_cost:
             return False
-        remaining = total - silver_cost
-        mithril_value = SILVER_PER_GOLD * GOLD_PER_MITHRIL
-        mithril, remaining = divmod(remaining, mithril_value)
-        gold, silver = divmod(remaining, SILVER_PER_GOLD)
-        self.character.mithril = mithril
-        self.character.gold = gold
-        self.character.silver = silver
+        self.character.silver = total - silver_cost
+        self.character.gold = 0
+        self.character.mithril = 0
         self.server.db.save_character(self.character)
         return True
 
@@ -20927,7 +21715,7 @@ class Session:
         )
         if slot == 1:
             await self.send(
-                "Pierwsza postać zakłada wspólny portfel konta: 2 złota i 30 srebra. "
+                "Pierwsza postać zakłada wspólny portfel konta: 2 złota, 30 srebra. "
                 "Otrzymujesz też 2 Mikstury leczenia."
             )
         else:
@@ -20995,6 +21783,10 @@ class Session:
             if affix in totals:
                 totals[affix] += int(item.get("affix_amount", 0))
 
+            for stat, amount in item.get("stats", {}).items():
+                if stat in totals:
+                    totals[stat] += int(amount)
+
             if item.get("slot") in ("ring", "necklace"):
                 socket_slot = (
                     row["slot"]
@@ -21018,6 +21810,35 @@ class Session:
         for stat, amount in class_stats.items():
             totals[stat] += int(amount)
         return totals
+
+    def equipment_property_totals(self):
+        totals = {
+            "physical_damage_pct": 0,
+            "magic_damage_pct": 0,
+            "all_damage_pct": 0,
+            "physical_defense_pct": 0,
+            "magic_defense_pct": 0,
+            "dodge_pct": 0,
+            "max_hp_pct": 0,
+            "max_mana_pct": 0,
+        }
+        for row in self.equipped_item_rows():
+            item = ITEMS.get(row["item_id"])
+            if not item:
+                continue
+            for prop, amount in item.get("properties", {}).items():
+                if prop in totals:
+                    totals[prop] += float(amount)
+        return totals
+
+    def equipment_damage_multiplier(self, damage_type):
+        props = self.equipment_property_totals()
+        bonus = float(props.get("all_damage_pct", 0.0))
+        if damage_type == "magic":
+            bonus += float(props.get("magic_damage_pct", 0.0))
+        else:
+            bonus += float(props.get("physical_damage_pct", 0.0))
+        return max(0.0, 1.0 + bonus / 100.0)
 
     def class_set_counts(self):
         active = set(self.active_class_names())
@@ -21394,6 +22215,7 @@ class Session:
                 (base + bonuses["hp"])
                 * self.character.racial_max_hp_multiplier()
                 * self.total_set_hp_mana_multiplier()
+                * (1.0 + self.equipment_property_totals()["max_hp_pct"] / 100.0)
             )
         )
         return max(1, value)
@@ -21408,6 +22230,7 @@ class Session:
                 (base + bonuses["mana"])
                 * self.character.racial_max_mana_multiplier()
                 * self.total_set_hp_mana_multiplier()
+                * (1.0 + self.equipment_property_totals()["max_mana_pct"] / 100.0)
             )
         )
         return max(0, value)
@@ -21424,7 +22247,8 @@ class Session:
             0.45,
             base
             + self.character.class_dodge_bonus()
-            + self.character.racial_dodge_bonus(),
+            + self.character.racial_dodge_bonus()
+            + self.equipment_property_totals()["dodge_pct"] / 100.0,
         )
 
     def spell_power(self):
@@ -21438,6 +22262,7 @@ class Session:
                 * self.character.class_magic_defense_multiplier()
                 * self.character.racial_magic_defense_multiplier()
                 * self.total_set_defense_multiplier()
+                * (1.0 + self.equipment_property_totals()["magic_defense_pct"] / 100.0)
             )
         )
         return max(0, value)
@@ -21450,7 +22275,11 @@ class Session:
                 total += int(item.get("defense", 0))
         return max(
             0,
-            int(round(total * self.total_set_defense_multiplier()))
+            int(round(
+                total
+                * self.total_set_defense_multiplier()
+                * (1.0 + self.equipment_property_totals()["physical_defense_pct"] / 100.0)
+            ))
         )
 
     def visible_player_for_look(self, query):
@@ -21815,11 +22644,13 @@ class Session:
 
         await self.show_exits()
 
-    async def show_exits(self):
+    async def show_exits(self, args=""):
         room = ROOMS[self.character.room_id]
         if not room["exits"]:
             await self.send("Wyjścia: brak.")
             return
+        normalized = self.normalize_room_query(args) if args else ""
+        detailed = normalized in ("info", "pelne", "pełne", "full", "cele", "targets")
         exits=[]
         for direction in room["exits"].keys():
             if self.giant_fortress_ascent_blocked_for_player(
@@ -21843,7 +22674,17 @@ class Session:
                     f"{direction}, wymaga Soul Level {ASTRAL_MIN_SOUL_LEVEL}"
                 )
             else:
-                exits.append(direction)
+                if detailed:
+                    target_id = room["exits"].get(direction)
+                    target = ROOMS.get(target_id, {})
+                    target_name = target.get("name", str(target_id))
+                    target_zone = target.get("zone", "")
+                    zone_text = f", strefa {target_zone}" if target_zone else ""
+                    exits.append(
+                        f"{direction} -> {target_name}{zone_text}"
+                    )
+                else:
+                    exits.append(direction)
         await self.send("Wyjścia: " + ", ".join(exits) + ".")
 
     async def show_map(self):
@@ -22642,7 +23483,7 @@ class Session:
             "loot rare+ / epic+ / legendary / all / off - filtr komunikatów lootu pod NVDA",
             "opis [nazwa] / describe [name] - szczegółowy opis elementu świata",
             "look lub l - opis aktualnej lokacji",
-            "exits - dostępne kierunki",
+            "exits - dostępne kierunki; exits info - kierunek, nazwa następnej lokacji i jej strefa",
             "map - lista lokacji świata; Krypta 1-200 jest pokazana skrótowo",
             "krypta / crypt - informacje o Krypcie 1-200, bossach i checkpointach",
             "wieza / astral - informacje o Wieży Astralnej 100-200",
@@ -22652,8 +23493,10 @@ class Session:
             "where - aktualna lokacja",
             "teren info <nazwa> - Soul, NPC, questy, bossowie, profesje i dojście w regionie",
             "location / lokalizacja - lokacja, strefa i wyjścia",
-            "north/south/east/west/up/down lub n/s/e/w/u/d - ruch",
+            "north/south/east/west/up/down lub n/s/e/w/u/d - chodzenie; każdy krok najpierw rozpoczyna marsz, potem dopiero przenosi do sąsiedniej lokacji",
             "prowadz <cel> / walk <cel> - prowadzi przed lokalizację; do NPC dochodzi dokładnie; działa też walk to <cel>",
+            "prowadz status - bieżący cel, pozostała droga i następny krok; prowadz stop - natychmiast przerwij prowadzenie",
+            "trasa <cel> / route <cel> - zaplanuj drogę bez ruchu; trasa pełna <cel> - wszystkie kroki; trasa krok - następny kierunek",
             "prowadz lista / walk list - kategorie: miasto, gildia, profesje, tereny, lochy, npc, wszystko",
             "who - gracze online",
             "say tekst - rozmowa lokalna",
@@ -22663,7 +23506,9 @@ class Session:
             "charyzma / charisma - szósta statystyka; rabat sklepowy i limit drużyny",
             "multiclass / klasy - opcjonalne 1-3 aktywne klasy i Biegłość klas",
             "multiclass add klasa / remove klasa - dodaj lub wyłącz klasę dodatkową",
-            "stats / staty - szybkie statystyki; staty info - pełny opis mechaniki i bonusów",
+            "stats / staty - statystyki czytane osobno; staty info - baza, efektywne wartości, EQ i mechanika",
+            "hp / zdrowie - szybkie bieżące i maksymalne HP oraz Mana",
+            "score / wynik - podsumowanie postaci, klas, Biegłości, Duszy, statystyk, portfela i terenu",
             "odmiana / przypadki - pokaż 7 form imienia postaci",
             "skills / umiejetnosci - lista umiejętności twojej klasy",
             "kodeksklasowy <klasa> / classcodex <class> - wszystkie skille, wymagana Biegłość, nauczyciel, koszt i status odblokowania",
@@ -22674,7 +23519,7 @@ class Session:
             "użyj umiejętność <nazwa> [cel] / use skill <name> [target] - alternatywne użycie skilla",
             "learn / naucz / ucz <nazwa, numer lub naturalna kategoria> - np. naucz leczenie, tarcza, ciecie, pocisk, ogien",
             "soul / dusza - szybki stan Duszy; dusza info - Soul XP, Tiery, Próby i następny cel",
-            "portfel / money / saldo - wspólny portfel konta: mithril, złoto i srebro",
+            "portfel / money / saldo - jedno wspólne saldo automatycznie pokazane jako mithril, złoto i srebro",
             "bank - Bank Dusz na Rynku; waluta i trwała skrytka przedmiotów",
             "portfel - pokazuje wspólną walutę wszystkich postaci na koncie oraz kurs nominałów",
             "professions / profesje - szybki stan profesji; profesje info - XP, rangi i zasady",
@@ -22978,8 +23823,8 @@ class Session:
         if not key:
             await self.send("POMOC GŁÓWNA")
             await self.send(
-                "Użyj help <temat>. Tematy: podstawy, informacje, komendy, nawigacja, statystyki, "
-                "walka, krytyki, bossowie, respawn, odpoczynek, dusza, pieniadze, ekwipunek, sety_klasowe, teren_info, loot_krypty, zadania, profesje, wedkarstwo, "
+                "Użyj help <temat>. Najważniejsze: podstawy, informacje, komendy, nawigacja, statystyki, hp, score, "
+                "walka, dusza, questy, profesje, ekwipunek, sety_klasowe, teren_info, loot_krypty, atlas, "
                 "gornictwo, drwalstwo, zielarstwo, alchemia, rzemioslo, gotowanie, receptury, atlas, "
                 "charyzma, druzyny, multiclass, krypta, portale, zwloki, pojemniki, sklepy, gracze, smierc, rasy, klasy, "
                 "umiejetnosci, nazwy_skilli, nauczyciele, opisy, zmiany."
@@ -22989,8 +23834,8 @@ class Session:
             await self.send("opis <nazwa> - szczegółowy opis dowolnego elementu.")
             await self.send("help skill <nazwa> albo help <nazwa skilla> - pełna pomoc konkretnej umiejętności/spella, dla wszystkich klas.")
             await self.send("changes / zmiany / changelog - pełna historia wszystkich wersji i zmian, najnowsze na górze.")
-            await self.send("Na start: look, exits, staty, dusza, eq, quest, help quest, help podstawy.")
-            await self.send("Nowość v0.8.1: sety 2/4/6/8 dla wszystkich 12 klas oraz teren info <nazwa>. Tryby info z v0.8.0 pozostają.")
+            await self.send("Na start: look, exits, n/s/e/w, hp, score, staty, dusza, eq, quest, help nawigacja, help quest, help staty, help dusza.")
+            await self.send("Pomoc jest zsynchronizowana z v0.8.60. Pełna lista aktualnych tematów: help tematy.")
             return
 
         if key == "tematy":
@@ -23066,6 +23911,28 @@ class Session:
                     f"Losowy bonus: {affix_name} "
                     f"+{item.get('affix_amount', 0)}."
                 )
+            if item.get("stats"):
+                stats_text = ", ".join(
+                    f"{CLASS_SET_STAT_NAMES.get(stat, stat)} +{amount}"
+                    for stat, amount in item["stats"].items()
+                )
+                parts.append(f"Statystyki materiałowe: {stats_text}.")
+                if int(item["stats"].get("dexterity", 0)) > 0:
+                    parts.append(
+                        "Zręczność zwiększa szansę na trafienie krytyczne: "
+                        "przy 10 wynosi ona 5 procent, a każdy punkt ponad 10 "
+                        "dodaje 0,5 punktu procentowego, do limitu 35 procent."
+                    )
+            if item.get("properties"):
+                properties_text = ", ".join(
+                    f"{MATERIAL_PROPERTY_NAMES.get(prop, prop)} +{amount:g}%"
+                    for prop, amount in item["properties"].items()
+                )
+                parts.append(f"Właściwości materiałowe: {properties_text}.")
+            if item.get("corpse_material"):
+                parts.append(
+                    f"Materiał łupu: {item.get('corpse_material')}."
+                )
             if item.get("crypt_set_tier"):
                 parts.append(
                     f"Zestaw Krypty Tier "
@@ -23080,9 +23947,8 @@ class Session:
             parts.append(f"Po użyciu daje {item['soul_xp']} Soul XP.")
 
         if item.get("price") is not None:
-            currency = item.get("currency", "gold")
-            names = {"silver": "srebra", "gold": "złota", "mithril": "mithrilu"}
-            parts.append(f"Cena kupna: {item['price']} {names.get(currency, currency)}.")
+            price_coins = self.shop_item_base_value_silver(item)
+            parts.append("Cena kupna: " + currency_reading_text(price_coins, 0, 0) + ".")
 
         if item.get("sell_silver") or item.get("sell_gold") or item.get("sell_mithril"):
             parts.append(
@@ -24043,6 +24909,60 @@ class Session:
         await self.send(f"Miejscownik: {self.character.name_loc}.")
         await self.send(f"Wołacz: {self.character.name_voc}.")
 
+    async def show_hp(self):
+        """Krótki stan zasobów, celowo w osobnych komunikatach pod NVDA."""
+        await self.send("HP")
+        await self.send(f"HP: {self.current_hp} z {self.max_hp()}.")
+        await self.send(f"Mana: {self.current_mana} z {self.max_mana()}.")
+
+    async def show_score(self):
+        """Czytelne podsumowanie postaci bez Character Levelu."""
+        c = self.character
+        active_classes = self.active_class_names()
+        room = ROOMS.get(c.room_id, {})
+
+        await self.send("SCORE")
+        await self.send(f"Postać: {c.name}.")
+        await self.send(f"Rasa: {c.race}.")
+        await self.send(f"Klasa główna: {c.class_name}.")
+        for class_name in active_classes:
+            await self.send(
+                f"Biegłość {class_name}: {self.class_mastery_level(class_name)}/200."
+            )
+        await self.send(f"Broń Duszy: {c.soul_weapon}.")
+        await self.send(f"Soul Level: {c.soul_level}/{SOUL_MAX_LEVEL}.")
+        await self.send(f"Soul Tier: {c.soul_tier}/{SOUL_MAX_TIER}.")
+        await self.send(f"HP: {self.current_hp} z {self.max_hp()}.")
+        await self.send(f"Mana: {self.current_mana} z {self.max_mana()}.")
+        await self.send(f"Siła: {self.effective_strength()}.")
+        await self.send(f"Zręczność: {self.effective_dexterity()}.")
+        await self.send(f"Kondycja: {self.effective_constitution()}.")
+        await self.send(f"Inteligencja: {self.effective_intelligence()}.")
+        await self.send(f"Siła Woli: {self.effective_willpower()}.")
+        await self.send(f"Charyzma: {c.charisma}.")
+        await self.send(
+            "Portfel: "
+            + currency_reading_text(
+                c.silver, c.gold, c.mithril,
+                full_names=True, include_zero=True,
+            )
+            + "."
+        )
+        await self.send(f"Lokacja: {room.get('name', c.room_id)}.")
+        await self.send(f"Strefa: {room.get('zone', 'brak')}.")
+        area = self.exp_area_for_room(c.room_id)
+        if area:
+            label, target, power = self.exp_area_dynamic_threat(area, room_id=c.room_id)
+            await self.send(f"Ocena terenu dla tej postaci: {label}.")
+            await self.send(
+                f"Orientacyjna siła progresji: {power}/200. Próg terenu: {target}/200."
+            )
+        else:
+            await self.send(
+                f"Orientacyjna siła progresji: {self.character_progression_power()}/200."
+            )
+        await self.send("Soulbound nie ma levelu postaci.")
+
     async def show_stats(self, mode=""):
         mode = self.normalize_description_query(mode)
         detailed = mode in (
@@ -24055,101 +24975,71 @@ class Session:
 
         if not detailed:
             await self.send("STATY")
-            await self.send(
-                f"{c.name}. {c.race}. Klasa główna: {c.class_name}. "
-                f"Aktywne klasy: {', '.join(active_classes)}."
-            )
-            await self.send(
-                f"Siła {self.effective_strength()}, "
-                f"Zręczność {self.effective_dexterity()}, "
-                f"Kondycja {self.effective_constitution()}, "
-                f"Inteligencja {self.effective_intelligence()}, "
-                f"Siła Woli {self.effective_willpower()}, "
-                f"Charyzma {c.charisma}."
-            )
-            await self.send(
-                f"HP {self.current_hp} z {self.max_hp()}. "
-                f"Mana {self.current_mana} z {self.max_mana()}. "
-                f"Obrona fizyczna {self.defense()}. "
-                f"Obrona magiczna {self.magic_defense()}."
-            )
-            await self.send(
-                f"Atak fizyczny {self.physical_power()}. "
-                f"Moc czarów {self.spell_power() if self.max_mana() > 0 else 0}. "
-                f"Unik {int(self.dodge_chance() * 100)} procent. "
-                f"Krytyk {int(round(self.critical_chance() * 100))} procent."
-            )
-            await self.send(
-                f"Rozwój statystyk: {c.stat_progress} z {STAT_GROWTH_THRESHOLD}. "
-                "Wpisz staty info po pełne szczegóły."
-            )
+            await self.send(f"Postać: {c.name}.")
+            await self.send(f"Rasa: {c.race}.")
+            await self.send(f"Klasa główna: {c.class_name}.")
+            await self.send(f"Aktywne klasy: {', '.join(active_classes)}.")
+            await self.send(f"Siła: {self.effective_strength()}.")
+            await self.send(f"Zręczność: {self.effective_dexterity()}.")
+            await self.send(f"Kondycja: {self.effective_constitution()}.")
+            await self.send(f"Inteligencja: {self.effective_intelligence()}.")
+            await self.send(f"Siła Woli: {self.effective_willpower()}.")
+            await self.send(f"Charyzma: {c.charisma}.")
+            await self.send(f"HP: {self.current_hp} z {self.max_hp()}.")
+            await self.send(f"Mana: {self.current_mana} z {self.max_mana()}.")
+            await self.send(f"Obrona fizyczna: {self.defense()}.")
+            await self.send(f"Obrona magiczna: {self.magic_defense()}.")
+            await self.send(f"Atak fizyczny: {self.physical_power()}.")
+            await self.send(f"Moc czarów: {self.spell_power() if self.max_mana() > 0 else 0}.")
+            await self.send(f"Unik: {int(self.dodge_chance() * 100)} procent.")
+            await self.send(f"Krytyk: {int(round(self.critical_chance() * 100))} procent.")
+            await self.send(f"Rozwój statystyk: {c.stat_progress} z {STAT_GROWTH_THRESHOLD}.")
+            await self.send("Wpisz staty info po pełne szczegóły albo help staty po pomoc.")
             return
 
         await self.send("STATY INFO")
+        await self.send("Soulbound nie ma levelu ani XP postaci.")
         await self.send(
-            "Soulbound nie ma levelu ani XP postaci. Statystyki rozwijają się "
-            "przez wspólny pasek Rozwoju Statystyk."
+            f"Postęp Rozwoju: {c.stat_progress} z {STAT_GROWTH_THRESHOLD}. "
+            "Pełny próg zwiększa wszystkie sześć bazowych statystyk o 1."
         )
-        await self.send(
-            f"Postać: {c.name}. Rasa: {c.race}. Klasa główna: {c.class_name}. "
-            f"Aktywne klasy: {', '.join(active_classes)}."
+        stat_rows = (
+            ("Siła", c.strength, self.effective_strength(), bonuses["strength"]),
+            ("Zręczność", c.dexterity, self.effective_dexterity(), bonuses["dexterity"]),
+            ("Kondycja", c.constitution, self.effective_constitution(), bonuses["constitution"]),
+            ("Inteligencja", c.intelligence, self.effective_intelligence(), bonuses["intelligence"]),
+            ("Siła Woli", c.willpower, self.effective_willpower(), bonuses["willpower"]),
         )
+        for label, base, effective, gear_bonus in stat_rows:
+            await self.send(
+                f"{label}: baza {base}. Efektywna {effective}. Bonus EQ i klejnotów +{gear_bonus}."
+            )
+        await self.send(f"Charyzma: baza {c.charisma}. Efektywna {c.charisma}.")
+        await self.send(f"HP: {self.current_hp} z {self.max_hp()}. Bonus EQ +{bonuses['hp']}.")
+        await self.send(f"Mana: {self.current_mana} z {self.max_mana()}. Bonus EQ +{bonuses['mana']}.")
+        await self.send(f"Obrona fizyczna: {self.defense()}.")
+        await self.send(f"Obrona magiczna: {self.magic_defense()}.")
+        await self.send(f"Szybkość: {self.speed()}.")
+        await self.send(f"Krytyk: {int(round(self.critical_chance() * 100))} procent.")
+        await self.send(f"Mnożnik krytyka: {int(self.critical_multiplier() * 100)} procent.")
+        await self.send(f"Unik: {int(self.dodge_chance() * 100)} procent.")
+        await self.send("Kondycja zwiększa maksymalne HP każdej klasy.")
+        await self.send("Inteligencja zwiększa maksymalną Manę każdej klasy.")
+        await self.send("Zręczność zwiększa szybkość, unik i krytyki każdej klasy.")
         await self.send(
-            f"Bazowe: Siła {c.strength}, Zręczność {c.dexterity}, "
-            f"Kondycja {c.constitution}, Inteligencja {c.intelligence}, "
-            f"Siła Woli {c.willpower}, Charyzma {c.charisma}."
-        )
-        await self.send(
-            f"Efektywne z EQ i klejnotami: Siła {self.effective_strength()}, "
-            f"Zręczność {self.effective_dexterity()}, "
-            f"Kondycja {self.effective_constitution()}, "
-            f"Inteligencja {self.effective_intelligence()}, "
-            f"Siła Woli {self.effective_willpower()}, "
-            f"Charyzma {c.charisma}."
-        )
-        await self.send(
-            "Bonusy wyposażenia i socketów: "
-            f"Siła +{bonuses['strength']}, Zręczność +{bonuses['dexterity']}, "
-            f"Kondycja +{bonuses['constitution']}, Inteligencja +{bonuses['intelligence']}, "
-            f"Siła Woli +{bonuses['willpower']}, HP +{bonuses['hp']}, Mana +{bonuses['mana']}."
-        )
-        await self.send(
-            f"Rozwój Statystyk: {c.stat_progress} z {STAT_GROWTH_THRESHOLD}. "
-            "Po osiągnięciu progu wszystkie sześć bazowych statystyk rośnie o 1, "
-            "a nadmiar postępu zostaje zachowany."
-        )
-        await self.send(
-            f"HP {self.current_hp}/{self.max_hp()}, Mana {self.current_mana}/{self.max_mana()}, "
-            f"Obrona fizyczna {self.defense()}, Obrona magiczna {self.magic_defense()}, "
-            f"Szybkość {self.speed()}."
-        )
-        await self.send(
-            f"Krytyk {int(round(self.critical_chance() * 100))} procent, "
-            f"mnożnik {int(self.critical_multiplier() * 100)} procent, "
-            f"unik {int(self.dodge_chance() * 100)} procent."
-        )
-        await self.send(
-            "Wpływ statystyk jest uniwersalny dla wszystkich klas: Kondycja zwiększa HP; "
-            "Inteligencja zwiększa Manę; Zręczność zwiększa szybkość, unik i krytyki; "
-            "Siła zwiększa ataki fizyczne i daje 25 procent swojego wpływu jako wtórne "
-            "skalowanie magicznych skilli i spelli."
+            "Siła zwiększa obrażenia fizyczne i daje 25 procent swojego wpływu "
+            "jako wtórne skalowanie magicznych skilli i spelli."
         )
         await self.send(f"Pasyw rasy {c.race}: {c.racial_passive_text()}.")
         for class_name in active_classes:
-            await self.send(
-                f"Pasyw klasy {class_name}: {c.class_passive_text_for(class_name)}."
-            )
-        await self.send(
-            f"Bonus Broni Duszy klasy głównej: {c.soul_weapon_class_bonus_text()}."
-        )
+            await self.send(f"Pasyw klasy {class_name}: {c.class_passive_text_for(class_name)}.")
+        await self.send(f"Bonus Broni Duszy klasy głównej: {c.soul_weapon_class_bonus_text()}.")
         await self.send(self.crypt_set_bonus_text())
         await self.send(self.astral_set_bonus_text())
         for line in self.class_set_status_lines():
             await self.send(line)
-        await self.send(
-            f"Efekt Charyzmy: rabat sklepowy {c.shop_discount_percent()} procent. "
-            f"Limit drużyny jako lider {c.party_capacity()}."
-        )
+        await self.send(f"Rabat sklepowy z Charyzmy: {c.shop_discount_percent()} procent.")
+        await self.send(f"Limit drużyny jako lider: {c.party_capacity()}.")
 
     def soul_milestone_text(self, tier):
         tier = int(tier)
@@ -24271,7 +25161,7 @@ class Session:
         self.server.db.save_character(self.character)
         await self.send(
             f"Ukończono zadanie klasowe: {data[0]}. "
-            f"Reputacja {cls} +{data[2]}, srebro +{data[3]}. "
+            f"Reputacja {cls} +{data[2]}, waluta +" + currency_reading_text(data[3], 0, 0) + ". "
             f"Reputacja teraz {new_rep}/{GUILD_REPUTATION_MAX}."
         )
 
@@ -24333,7 +25223,7 @@ class Session:
         gold_cost = {50: 1, 100: 3, 150: 8, 200: 20}[threshold]
         total_silver_cost = gold_cost * SILVER_PER_GOLD
         if not self.pay_training_cost(total_silver_cost):
-            await self.send(f"Egzamin Soul {threshold} kosztuje {gold_cost} złota. Nie masz wystarczającej ilości pieniędzy.")
+            await self.send(f"Egzamin Soul {threshold} kosztuje " + currency_reading_text(total_silver_cost, 0, 0) + ". Nie masz wystarczającej ilości pieniędzy.")
             return
 
         self.character.mark_guild_exam_done(cls, threshold)
@@ -24342,7 +25232,7 @@ class Session:
         self.server.db.save_character(self.character)
         await self.send(
             f"Zdano egzamin {cls} Soul {threshold}. "
-            f"Koszt {gold_cost} złota. Reputacja +{reward_rep}. "
+            "Koszt " + currency_reading_text(total_silver_cost, 0, 0) + f". Reputacja +{reward_rep}. "
             f"Reputacja teraz {rep}/{GUILD_REPUTATION_MAX}."
         )
 
@@ -24357,13 +25247,13 @@ class Session:
                 if target:
                     await self.send(
                         f"Aktywne zlecenie: {target[1]}. "
-                        f"Nagroda: reputacja +{target[2]}, srebro +{target[3]}. "
+                        f"Nagroda: reputacja +{target[2]}, waluta +" + currency_reading_text(target[3], 0, 0) + ". "
                         f"Po zabiciu celu użyj: bounty odbierz."
                     )
                     return
             lines = ["Tablica zleceń Gildii:"]
             for i, row in enumerate(GUILD_BOUNTY_TARGETS, 1):
-                lines.append(f"{i}. {row[1]} — reputacja +{row[2]}, srebro +{row[3]}.")
+                lines.append(f"{i}. {row[1]} — reputacja +{row[2]}, waluta +" + currency_reading_text(row[3], 0, 0) + ".")
             lines.append("Użyj: bounty <numer>.")
             await self.send("\n".join(lines))
             return
@@ -24391,7 +25281,7 @@ class Session:
             self.server.db.save_character(self.character)
             await self.send(
                 f"Odebrano nagrodę za {target[1]}. "
-                f"Reputacja {cls} +{target[2]}, srebro +{target[3]}. "
+                f"Reputacja {cls} +{target[2]}, waluta +" + currency_reading_text(target[3], 0, 0) + ". "
                 f"Reputacja teraz {rep}/{GUILD_REPUTATION_MAX}."
             )
             return
@@ -24412,7 +25302,7 @@ class Session:
         self.server.db.save_character(self.character)
         await self.send(
             f"Przyjęto zlecenie: {target[1]}. "
-            f"Nagroda: reputacja +{target[2]}, srebro +{target[3]}."
+            f"Nagroda: reputacja +{target[2]}, waluta +" + currency_reading_text(target[3], 0, 0) + "."
         )
     async def show_soul(self, mode=""):
         mode = self.normalize_description_query(mode)
@@ -24424,77 +25314,75 @@ class Session:
 
         if not detailed:
             await self.send("DUSZA")
-            await self.send(
-                f"Broń Duszy: {c.soul_weapon}. Soul {c.soul_level}/{SOUL_MAX_LEVEL}. "
-                f"Tier {c.soul_tier}/{SOUL_MAX_TIER}. Moc {c.soul_power()}."
-            )
+            await self.send(f"Broń Duszy: {c.soul_weapon}.")
+            await self.send(f"Soul Level: {c.soul_level}/{SOUL_MAX_LEVEL}.")
+            await self.send(f"Soul Tier: {c.soul_tier}/{SOUL_MAX_TIER}.")
+            await self.send(f"Moc Broni Duszy: {c.soul_power()}.")
             if c.soul_level < SOUL_MAX_LEVEL:
-                await self.send(
-                    f"Soul XP: {c.soul_xp} z {c.soul_xp_to_next()}. "
-                    f"Mnożnik wymaganego XP: x{c.soul_xp_multiplier()}."
-                )
+                await self.send(f"Soul XP: {c.soul_xp} z {c.soul_xp_to_next()}.")
+                await self.send(f"Mnożnik wymaganego Soul XP: x{c.soul_xp_multiplier()}.")
             else:
                 await self.send("Soul XP: maksimum.")
             await self.send(f"Bonus klasowy: {c.soul_weapon_class_bonus_text()}.")
             await self.send(self.soul_next_goal_text())
-            await self.send("Wpisz dusza info albo soul info po pełne informacje.")
+            await self.send("Wpisz dusza info po wszystkie progi, Próby i status następnego odblokowania.")
             return
 
         await self.send("DUSZA INFO")
-        await self.send(
-            "Soul Level jest oddzielnym systemem 1-200. Nie jest levelem postaci "
-            "i Soul XP nie jest XP postaci."
-        )
-        await self.send(
-            f"Broń Duszy: {c.soul_weapon}. Aktualny Soul Level {c.soul_level}/{SOUL_MAX_LEVEL}. "
-            f"Tier {c.soul_tier}/{SOUL_MAX_TIER}. Moc {c.soul_power()}."
-        )
+        await self.send("Soul Level jest osobnym rozwojem Broni Duszy 1-200. Nie jest levelem postaci.")
+        await self.send("Skille i spelle klasowe odblokuje Biegłość właściwej klasy 1-200, nie Soul Level.")
+        await self.send(f"Broń Duszy: {c.soul_weapon}.")
+        await self.send(f"Soul Level: {c.soul_level}/{SOUL_MAX_LEVEL}.")
+        await self.send(f"Soul Tier: {c.soul_tier}/{SOUL_MAX_TIER}.")
+        await self.send(f"Moc Broni Duszy: {c.soul_power()}.")
         if c.soul_level < SOUL_MAX_LEVEL:
-            await self.send(
-                f"Soul XP: {c.soul_xp} z {c.soul_xp_to_next()}. "
-                f"Aktualny mnożnik wymaganego XP: x{c.soul_xp_multiplier()}."
-            )
+            await self.send(f"Soul XP: {c.soul_xp} z {c.soul_xp_to_next()}.")
+            await self.send(f"Mnożnik wymaganego Soul XP: x{c.soul_xp_multiplier()}.")
         else:
-            await self.send("Soul XP: maksimum, Soul Level 200.")
+            await self.send("Soul XP: maksimum. Soul Level 200.")
         await self.send(f"Bonus klasowy Broni Duszy: {c.soul_weapon_class_bonus_text()}.")
         await self.send(
-            "Tiery 1-10: T1 Soul 1, T2 10, T3 20, T4 25, T5 35, "
-            "T6 45, T7 60, T8 70, T9 80, T10 90."
+            "Progi Tierów 1-10: T1 Soul 1; T2 10; T3 20; T4 25; T5 35; "
+            "T6 45; T7 60; T8 70; T9 80; T10 90."
         )
         await self.send(
-            "Tiery 11-20: T11 Soul 100, T12 110, T13 120, T14 130, "
-            "T15 140, T16 150, T17 160, T18 170, T19 180, T20 200."
+            "Progi Tierów 11-20: T11 Soul 100; T12 110; T13 120; T14 130; "
+            "T15 140; T16 150; T17 160; T18 170; T19 180; T20 200."
         )
-        trial_texts = {
-            4: "Próba T4 przy Soul 25: 5 Szkieletowych Strażników.",
-            7: "Próba T7 przy Soul 60: 3 Widma Krypty.",
-            13: "Próba T13 przy Soul 120: boss Próby na piętrze 120 Krypty.",
-            19: "Próba T19 przy Soul 180: boss Próby na piętrze 180 Krypty.",
-        }
-        for tier in (4, 7, 13, 19):
-            done = self.soul_tier_quest_completed(tier)
-            await self.send(
-                f"{trial_texts[tier]} Stan: {'ukończona' if done else 'nieukończona'}."
-            )
-        await self.send(
-            "Pozostałe Tiery wymagają tylko odpowiedniego Soul Levelu i komendy unlock. "
-            "Tier 20 wymaga Soul 200 oraz finałowej Próby na bossie piętra 200 Krypty."
-        )
+        await self.send("Każdy Tier od 2 do 20 wymaga własnej jednorazowej Próby Broni Duszy u Kapłana Elora.")
+        await self.send("Po ukończeniu Próby wpisz unlock, aby odblokować przygotowany Tier.")
+
+        for tier in range(2, SOUL_MAX_TIER + 1):
+            quest_id = SOUL_TRIAL_QUEST_IDS.get(tier)
+            quest = QUESTS.get(quest_id, {}) if quest_id else {}
+            required_soul = SOUL_TIER_THRESHOLDS[tier - 1]
+            row = self.server.db.quest(self.account_id, quest_id) if quest_id else None
+            if c.soul_tier >= tier:
+                state = "Tier odblokowany"
+            elif row and row["status"] == "completed":
+                state = "Próba ukończona; wpisz unlock"
+            elif row and row["status"] == "active":
+                needed = int(quest.get("needed", 1))
+                progress = int(row["progress"])
+                state = f"Próba aktywna; postęp {progress} z {needed}"
+            elif c.soul_level < required_soul:
+                state = f"zablokowana do Soul {required_soul}"
+            elif c.soul_tier < tier - 1:
+                state = f"najpierw odblokuj Tier {tier - 1}"
+            else:
+                state = "dostępna u Kapłana Elora"
+            await self.send(f"Tier {tier}. Wymaga Soul {required_soul}. {state}.")
+
         await self.send("KAMIENIE MILOWE BRONI DUSZY")
         for milestone_tier in SOUL_MILESTONE_TIERS:
             state = "aktywne" if c.soul_tier >= milestone_tier else "zablokowane"
-            await self.send(
-                f"T{milestone_tier}: {self.soul_milestone_text(milestone_tier)} "
-                f"Stan: {state}."
-            )
+            await self.send(f"T{milestone_tier}: {self.soul_milestone_text(milestone_tier)} Stan: {state}.")
         await self.send(self.soul_next_goal_text())
         await self.send(
             "Od Soul 100 dostępne są Mityczna Krypta i Mityczna Wieża Astralna. "
             "Nie wymagają ukończenia zwykłej Krypty ani zwykłej Wieży."
         )
-        await self.send(
-            "Wysokopoziomowe elity i bossowie mogą dawać setki tysięcy lub miliony Soul XP."
-        )
+        await self.send("Wysokopoziomowe elity i bossowie mogą dawać bardzo duże ilości Soul XP.")
 
     def dungeon_exit_destination(self, room_id=None):
         """Zwraca bezpieczny punkt wyjścia z rozpoznanego lochu."""
@@ -24591,6 +25479,45 @@ class Session:
         await self.look()
         return True
 
+
+    def movement_delay(self, direction, guided=False):
+        base = GUIDE_STEP_DELAY if guided else WALK_STEP_DELAY
+        if direction in ("up", "down"):
+            base *= 1.15
+        return max(0.05, float(base))
+
+    async def walk_room_transition(self, direction, target, guided=False, show_room=False):
+        """Wykonuje pojedynczy krok z krótkim czasem marszu zamiast teleportu."""
+        if self.closed or not self.character:
+            return False
+        old = self.character.room_id
+        if old == target:
+            return True
+        label = DIRECTION_WALK_LABELS.get(direction, str(direction))
+        target_name = ROOMS.get(target, {}).get("name", str(target))
+
+        self.moving = True
+        try:
+            await self.send(f"Idziesz {label}. Cel: {target_name}.")
+            await self.server.broadcast_room(
+                old, f"{self.character.name} rusza {label}.", exclude=self
+            )
+            await asyncio.sleep(self.movement_delay(direction, guided=guided))
+            if self.closed:
+                return False
+
+            self.previous_room_id = old
+            self.character.room_id = target
+            self.server.db.save_character(self.character)
+            await self.server.broadcast_room(
+                target, f"{self.character.name} przychodzi.", exclude=self
+            )
+            await self.send(f"Docierasz do: {target_name}.")
+            if show_room:
+                await self.look()
+            return True
+        finally:
+            self.moving = False
 
     async def move(self, direction):
         if self.resting or self.rest_task:
@@ -24728,13 +25655,9 @@ class Session:
                 "Najpierw pokonaj bossa."
             )
             return
-        old = self.character.room_id
-        self.previous_room_id = old
-        await self.server.broadcast_room(old, f"{self.character.name} odchodzi.", exclude=self)
-        self.character.room_id = target
-        self.server.db.save_character(self.character)
-        await self.server.broadcast_room(target, f"{self.character.name} przychodzi.", exclude=self)
-        await self.look()
+        await self.walk_room_transition(
+            direction, target, guided=False, show_room=True
+        )
 
     def party_key(self):
         return self.server.party_key_for_account(self.account_id)
@@ -25801,26 +26724,31 @@ class Session:
         return self.character.room_id == BANK_ROOM
 
     def bank_currency_name(self, currency):
-        return {
-            "silver": "srebra",
-            "gold": "złota",
-            "mithril": "mithrilu",
-        }[currency]
+        if currency == "mithril":
+            return "mithril"
+        if currency == "gold":
+            return "złota"
+        return "srebra"
 
     def normalize_bank_currency(self, raw):
         value = normalize_lookup_text(raw)
-        mapping = {
-            "silver": "silver",
-            "srebro": "silver",
-            "srebra": "silver",
-            "srebrnych": "silver",
-            "gold": "gold",
-            "zloto": "gold",
-            "zlota": "gold",
-            "mithril": "mithril",
-            "mithrilu": "mithril",
-        }
-        return mapping.get(value)
+        if value in ("silver", "srebro", "srebra", "srebrnych", "s"):
+            return "silver"
+        if value in ("gold", "zloto", "złoto", "zlota", "złota", "g"):
+            return "gold"
+        if value in ("mithril", "mithrilu", "m"):
+            return "mithril"
+        if value in ("moneta", "monety", "monet", "coins", "coin"):
+            return "silver"
+        return None
+
+    def bank_amount_to_silver(self, amount, currency):
+        amount = max(0, int(amount))
+        if currency == "gold":
+            return amount * SILVER_PER_GOLD
+        if currency == "mithril":
+            return amount * SILVER_PER_MITHRIL
+        return amount
 
     async def show_bank(self):
         if not self.bank_here():
@@ -25863,8 +26791,8 @@ class Session:
                 )
 
         await self.send(
-            "Komendy: bank wplac <ile> <waluta>, "
-            "bank wyplac <ile> <waluta>, "
+            "Komendy: bank wplac <ile> [srebra|zlota|mithril], "
+            "bank wyplac <ile> [srebra|zlota|mithril], "
             "bank wplac wszystko, bank wyplac wszystko, "
             "bank wloz <przedmiot> [ile], "
             "bank wyjmij <przedmiot> [ile]."
@@ -25878,11 +26806,11 @@ class Session:
             )
             return False
 
-        wallet = int(getattr(self.character, currency))
+        wallet = self.character_wallet_silver_value()
         if wallet < amount:
             await self.send(
-                f"Nie masz tyle {self.bank_currency_name(currency)}. "
-                f"Masz {wallet}."
+                "Nie masz takiej wartości. Masz "
+                + currency_reading_text(wallet, 0, 0) + "."
             )
             return False
 
@@ -25892,15 +26820,13 @@ class Session:
             await self.send("Nie udało się wykonać wpłaty.")
             return False
 
-        setattr(
-            self.character,
-            currency,
-            wallet - amount,
-        )
+        self.character.silver = wallet - amount
+        self.character.gold = 0
+        self.character.mithril = 0
         self.server.db.save_character(self.character)
         await self.send(
-            f"Wpłacasz {amount} "
-            f"{self.bank_currency_name(currency)} do Banku Dusz."
+            "Wpłacasz " + currency_reading_text(amount, 0, 0)
+            + " do Banku Dusz."
         )
         return True
 
@@ -25915,12 +26841,13 @@ class Session:
         balance = self.server.db.bank_balance(
             self.account_id
         )
-        available = int(balance[currency])
+        available = legacy_currency_to_coins(
+            balance["silver"], balance["gold"], balance["mithril"]
+        )
         if available < amount:
             await self.send(
-                f"Na koncie nie ma tyle "
-                f"{self.bank_currency_name(currency)}. "
-                f"Saldo: {available}."
+                "Na koncie nie ma takiej wartości. Saldo: "
+                + currency_reading_text(available, 0, 0) + "."
             )
             return False
 
@@ -25930,15 +26857,13 @@ class Session:
             await self.send("Nie udało się wykonać wypłaty.")
             return False
 
-        setattr(
-            self.character,
-            currency,
-            int(getattr(self.character, currency)) + amount,
-        )
+        self.character.silver = self.character_wallet_silver_value() + amount
+        self.character.gold = 0
+        self.character.mithril = 0
         self.server.db.save_character(self.character)
         await self.send(
-            f"Wypłacasz {amount} "
-            f"{self.bank_currency_name(currency)} z Banku Dusz."
+            "Wypłacasz " + currency_reading_text(amount, 0, 0)
+            + " z Banku Dusz."
         )
         return True
 
@@ -26115,19 +27040,13 @@ class Session:
         if action in ("wplac", "deposit"):
             if normalized_rest == "wszystko":
                 deposited_any = False
-                for currency in (
-                    "silver",
-                    "gold",
-                    "mithril",
-                ):
-                    amount = int(
-                        getattr(self.character, currency)
-                    )
-                    if amount > 0:
-                        await self.bank_deposit_currency(
-                            amount, currency
-                        )
-                        deposited_any = True
+                amount = self.character_wallet_silver_value()
+                if amount > 0:
+                    self.character.silver = amount
+                    self.character.gold = 0
+                    self.character.mithril = 0
+                    await self.bank_deposit_currency(amount, "silver")
+                    deposited_any = True
                 if not deposited_any:
                     await self.send(
                         "Nie masz waluty do wpłacenia."
@@ -26135,24 +27054,15 @@ class Session:
                 return
 
             tokens = rest.split()
-            if len(tokens) != 2 or not tokens[0].isdigit():
-                await self.send(
-                    "Użycie: bank wplac <ile> "
-                    "<srebro|zloto|mithril>."
-                )
+            if len(tokens) not in (1, 2) or not tokens[0].isdigit():
+                await self.send("Użycie: bank wplac <ile> [srebra|zlota|mithril].")
                 return
-
-            currency = self.normalize_bank_currency(
-                tokens[1]
-            )
+            currency = self.normalize_bank_currency(tokens[1]) if len(tokens) == 2 else "silver"
             if not currency:
-                await self.send(
-                    "Nieznana waluta. Użyj srebro, zloto albo mithril."
-                )
+                await self.send("Nieznany nominał. Użyj: srebra, zlota albo mithril.")
                 return
-            await self.bank_deposit_currency(
-                int(tokens[0]), currency
-            )
+            amount = self.bank_amount_to_silver(int(tokens[0]), currency)
+            await self.bank_deposit_currency(amount, "silver")
             return
 
         if action in ("wyplac", "withdraw"):
@@ -26161,17 +27071,12 @@ class Session:
                     self.account_id
                 )
                 withdrew_any = False
-                for currency in (
-                    "silver",
-                    "gold",
-                    "mithril",
-                ):
-                    amount = int(balance[currency])
-                    if amount > 0:
-                        await self.bank_withdraw_currency(
-                            amount, currency
-                        )
-                        withdrew_any = True
+                amount = legacy_currency_to_coins(
+                    balance["silver"], balance["gold"], balance["mithril"]
+                )
+                if amount > 0:
+                    await self.bank_withdraw_currency(amount, "silver")
+                    withdrew_any = True
                 if not withdrew_any:
                     await self.send(
                         "Konto bankowe nie ma waluty do wypłacenia."
@@ -26179,24 +27084,15 @@ class Session:
                 return
 
             tokens = rest.split()
-            if len(tokens) != 2 or not tokens[0].isdigit():
-                await self.send(
-                    "Użycie: bank wyplac <ile> "
-                    "<srebro|zloto|mithril>."
-                )
+            if len(tokens) not in (1, 2) or not tokens[0].isdigit():
+                await self.send("Użycie: bank wyplac <ile> [srebra|zlota|mithril].")
                 return
-
-            currency = self.normalize_bank_currency(
-                tokens[1]
-            )
+            currency = self.normalize_bank_currency(tokens[1]) if len(tokens) == 2 else "silver"
             if not currency:
-                await self.send(
-                    "Nieznana waluta. Użyj srebro, zloto albo mithril."
-                )
+                await self.send("Nieznany nominał. Użyj: srebra, zlota albo mithril.")
                 return
-            await self.bank_withdraw_currency(
-                int(tokens[0]), currency
-            )
+            amount = self.bank_amount_to_silver(int(tokens[0]), currency)
+            await self.bank_withdraw_currency(amount, "silver")
             return
 
         if action in (
@@ -26218,7 +27114,7 @@ class Session:
             return
 
         await self.send(
-            "Użycie: bank; bank wplac 100 srebra; "
+            "Użycie: bank; bank wplac 100 srebra; bank wplac 5 zlota; bank wplac 1 mithril; "
             "bank wyplac 100 srebra; bank wplac wszystko; "
             "bank wyplac wszystko; bank wloz <przedmiot> [ile]; "
             "bank wyjmij <przedmiot> [ile]."
@@ -26236,10 +27132,7 @@ class Session:
             + "."
         )
         await self.send(
-            f"Automatyczny kurs: {SILVER_PER_GOLD} srebrnych monet "
-            f"= 1 złota moneta; "
-            f"{GOLD_PER_MITHRIL} złotych monet "
-            f"= 1 mithrilowa moneta."
+            "To jedno wspólne saldo. 1000 srebra = 1 złoto, a 1000000 złota = 1 mithril."
         )
 
 
@@ -27217,6 +28110,271 @@ class Session:
         await self.send("Jeśli cel pasuje do kilku miejsc, wybierasz tylko jeden numer z jednej listy.")
 
 
+    def guide_task_active(self):
+        return bool(self.guide_task and not self.guide_task.done())
+
+    def route_direction_name(self, direction):
+        labels = {
+            "north": "północ",
+            "south": "południe",
+            "east": "wschód",
+            "west": "zachód",
+            "up": "góra",
+            "down": "dół",
+        }
+        return labels.get(direction, str(direction))
+
+    def compact_route_directions(self, path):
+        if not path:
+            return "jesteś już na miejscu"
+        runs = []
+        last = None
+        count = 0
+        for direction, _next_room in path:
+            if direction == last:
+                count += 1
+                continue
+            if last is not None:
+                label = self.route_direction_name(last)
+                runs.append(f"{label} x{count}" if count > 1 else label)
+            last = direction
+            count = 1
+        if last is not None:
+            label = self.route_direction_name(last)
+            runs.append(f"{label} x{count}" if count > 1 else label)
+        return ", ".join(runs)
+
+    def route_zone_sequence(self, start_room, path):
+        room_ids = [start_room] + [next_room for _direction, next_room in path]
+        zones = []
+        for room_id in room_ids:
+            zone = ROOMS.get(room_id, {}).get("zone", "")
+            if zone and (not zones or zones[-1] != zone):
+                zones.append(zone)
+        return zones
+
+    def estimated_guide_seconds(self, path):
+        return sum(self.movement_delay(direction, guided=True) for direction, _ in path)
+
+    async def cancel_guide(self, announce=True, reason="Prowadzenie zatrzymane."):
+        task = self.guide_task
+        was_active = bool(task and not task.done())
+        self.guide_choice_state = None
+        if was_active and task is not asyncio.current_task():
+            task.cancel()
+            try:
+                await task
+            except asyncio.CancelledError:
+                pass
+        if self.guide_task is task:
+            self.guide_task = None
+        self.guiding = False
+        self.guide_target_room = None
+        self.guide_target_label = ""
+        self.guide_target_is_npc = False
+        self.guide_final_direction = None
+        if announce:
+            if was_active:
+                await self.send(reason)
+            else:
+                await self.send("Prowadzenie nie jest aktywne.")
+        return was_active
+
+    async def show_guide_status(self):
+        if not self.guide_task_active() or not self.guide_target_room:
+            await self.send("Prowadzenie nie jest aktywne.")
+            return
+        target = self.guide_target_room
+        path = self.shortest_path(self.character.room_id, target)
+        if path is None:
+            await self.send(
+                f"Prowadzenie aktywne do: {self.guide_target_label}, ale aktualnie nie da się wyliczyć pozostałej drogi."
+            )
+            return
+        next_text = "brak, cel osiągnięty"
+        if path:
+            direction, next_room = path[0]
+            next_text = (
+                f"{self.route_direction_name(direction)} do {ROOMS[next_room]['name']}"
+            )
+        await self.send(
+            f"Prowadzenie aktywne. Teraz: {ROOMS[self.character.room_id]['name']}. "
+            f"Cel: {self.guide_target_label}. Pozostało przejść do celu: {len(path)}. "
+            f"Następny krok: {next_text}."
+        )
+        if (not self.guide_target_is_npc) and self.guide_final_direction:
+            await self.send(
+                f"Dla zwykłej lokacji prowadzenie zatrzyma się przed celem; końcowy kierunek wykonasz ręcznie: {self.guide_final_direction}."
+            )
+
+    def _guide_task_finished(self, task):
+        if self.guide_task is task:
+            self.guide_task = None
+        try:
+            task.result()
+        except asyncio.CancelledError:
+            pass
+        except Exception as exc:
+            print(
+                f"[GUIDE ERROR] {type(exc).__name__}: {exc}",
+                file=sys.stderr,
+                flush=True,
+            )
+            if not self.closed:
+                try:
+                    asyncio.get_running_loop().create_task(
+                        self.send("Prowadzenie zostało zatrzymane przez błąd nawigacji.")
+                    )
+                except RuntimeError:
+                    pass
+
+    async def start_guide_task(self, args):
+        normalized = self.normalize_room_query(args)
+        if normalized in ("stop", "anuluj", "cancel", "przerwij", "zatrzymaj"):
+            await self.cancel_guide(announce=True)
+            return
+        if normalized in ("status", "stan", "gdzie", "info"):
+            await self.show_guide_status()
+            return
+        if self.guide_task_active():
+            await self.send(
+                "Prowadzenie już trwa. Użyj prowadz status albo prowadz stop."
+            )
+            return
+        task = asyncio.create_task(self.guide_to(args))
+        self.guide_task = task
+        task.add_done_callback(self._guide_task_finished)
+        # Oddaj sterowanie pętli wejścia, ale pozwól zadaniu wypisać pierwszy
+        # komunikat jeszcze przed następnym promptem.
+        await asyncio.sleep(0)
+
+    async def show_route_next_step(self):
+        target = self.route_target_room
+        if not target or target not in ROOMS:
+            await self.send("Najpierw zaplanuj trasę: trasa <cel>.")
+            return
+        path = self.shortest_path(self.character.room_id, target)
+        if path is None:
+            await self.send("Nie udało się znaleźć drogi do zapamiętanego celu.")
+            return
+        if not path:
+            await self.send(f"Jesteś już w celu trasy: {ROOMS[target]['name']}.")
+            return
+        direction, next_room = path[0]
+        await self.send(
+            f"Następny krok: {self.route_direction_name(direction)}. "
+            f"Następna lokacja: {ROOMS[next_room]['name']}. "
+            f"Do celu pozostaje {len(path)} przejść."
+        )
+
+    async def show_route(self, query):
+        raw = str(query or "").strip()
+        normalized = self.normalize_room_query(raw)
+        if normalized in ("krok", "next", "nastepny", "następny", "dalej"):
+            await self.show_route_next_step()
+            return
+
+        full = False
+        for prefix in ("pelna ", "pełna ", "full ", "dokladna ", "dokładna "):
+            if normalized.startswith(self.normalize_room_query(prefix)):
+                # Odetnij pierwsze słowo z oryginalnego tekstu, aby zachować
+                # polskie znaki w nazwie celu.
+                raw = raw.split(maxsplit=1)[1] if " " in raw else ""
+                normalized = self.normalize_room_query(raw)
+                full = True
+                break
+
+        if not raw:
+            if self.route_target_room:
+                target = self.route_target_room
+                target_is_npc = self.route_target_is_npc
+                target_label = self.route_target_label or ROOMS[target]["name"]
+            else:
+                await self.send(
+                    "Użycie: trasa <cel>, trasa pełna <cel> albo trasa krok."
+                )
+                return
+        else:
+            if normalized.startswith("to "):
+                raw = raw[3:].strip()
+            npc_match = self.find_guide_npc(raw)
+            target_is_npc = npc_match is not None
+            target_npc = npc_match[1] if npc_match else None
+            if target_is_npc:
+                matches = [target_npc["room"]]
+                target_label = target_npc["name"]
+            else:
+                matches = self.find_room_matches(raw)
+                matches = list(dict.fromkeys(
+                    self.guide_exploration_safe_target(room_id)
+                    for room_id in matches
+                ))
+                target_label = ""
+
+            if not matches:
+                await self.send(
+                    "Nie rozpoznaję celu trasy. Użyj prowadz lista, aby sprawdzić dostępne cele."
+                )
+                return
+            if len(matches) > 1:
+                options = self.compact_guide_matches(matches)
+                await self.send(f"Cel trasy jest niejednoznaczny: {raw}.")
+                for option in options[:20]:
+                    await self.send(option["label"] + ".")
+                await self.send(
+                    "Podaj dokładniejszą nazwę po komendzie trasa; niczego nie wybieram automatycznie."
+                )
+                return
+            target = matches[0]
+            if not target_label:
+                target_label = ROOMS[target]["name"]
+            self.route_target_room = target
+            self.route_target_label = target_label
+            self.route_target_is_npc = target_is_npc
+
+        path = self.shortest_path(self.character.room_id, target)
+        if path is None:
+            await self.send("Nie udało się znaleźć drogi do tej lokacji.")
+            return
+
+        await self.send(
+            f"TRASA: {ROOMS[self.character.room_id]['name']} -> {target_label}."
+        )
+        if not path:
+            await self.send("Jesteś już w celu. Liczba przejść: 0.")
+            return
+
+        direction, next_room = path[0]
+        await self.send(
+            f"Liczba przejść: {len(path)}. Pierwszy krok: "
+            f"{self.route_direction_name(direction)} do {ROOMS[next_room]['name']}."
+        )
+        await self.send(
+            "Skrócona droga: " + self.compact_route_directions(path) + "."
+        )
+        zones = self.route_zone_sequence(self.character.room_id, path)
+        if zones:
+            await self.send("Strefy po drodze: " + " -> ".join(zones) + ".")
+        estimate = self.estimated_guide_seconds(path)
+        await self.send(f"Szacowany czas automatycznego prowadzenia: {estimate:.1f} sekundy.")
+        if target_is_npc:
+            await self.send("Do NPC prowadzenie może dojść dokładnie do jego lokacji.")
+        else:
+            await self.send(
+                f"Prowadzenie do zwykłej lokacji zatrzyma się jeden krok wcześniej. "
+                f"Końcowy kierunek do celu: {path[-1][0]}."
+            )
+        if full:
+            await self.send("PEŁNA TRASA:")
+            for index, (step_direction, step_room) in enumerate(path, 1):
+                await self.send(
+                    f"Krok {index} z {len(path)}: {self.route_direction_name(step_direction)} -> {ROOMS[step_room]['name']}."
+                )
+        else:
+            await self.send(
+                "Pełny krok-po-kroku odczyt: trasa pełna <cel>. Następny krok później: trasa krok."
+            )
+
     def shortest_path(self, start_room, target_room):
         if start_room == target_room:
             return []
@@ -27582,7 +28740,7 @@ class Session:
 
             option = options[number - 1]
             self.guide_choice_state = None
-            await self.guide_to(option["room_id"])
+            await self.start_guide_task(option["room_id"])
             return True
 
         self.guide_choice_state = None
@@ -27705,6 +28863,12 @@ class Session:
             await self.send("Nie udało się znaleźć drogi do tej lokacji.")
             return
 
+        self.guide_target_room = target
+        self.guide_target_label = (
+            target_npc["name"] if target_is_npc else ROOMS[target]["name"]
+        )
+        self.guide_target_is_npc = target_is_npc
+
         # Accessibility rule: for locations, guide stops one room before
         # the destination. The player performs the final move manually.
         # NPCs are the exception and are reached exactly.
@@ -27712,8 +28876,10 @@ class Session:
             path = full_path
             stop_room = target
             final_direction = None
+            self.guide_final_direction = None
         else:
             final_direction = full_path[-1][0]
+            self.guide_final_direction = final_direction
             path = full_path[:-1]
             stop_room = (
                 self.character.room_id
@@ -27857,18 +29023,11 @@ class Session:
                         f"{boss_name}. Pokonaj bossa."
                     )
                     break
-                await self.server.broadcast_room(
-                    old, f"{self.character.name} odchodzi.", exclude=self
+                moved = await self.walk_room_transition(
+                    direction, next_room, guided=True, show_room=False
                 )
-                self.character.room_id = next_room
-                self.server.db.save_character(self.character)
-                await self.server.broadcast_room(
-                    next_room, f"{self.character.name} przychodzi.", exclude=self
-                )
-                await self.send(
-                    f"{direction}: {ROOMS[next_room]['name']}."
-                )
-                await asyncio.sleep(0.12)
+                if not moved:
+                    break
 
             if target_is_npc and self.character.room_id == target:
                 await self.send(
@@ -27884,6 +29043,10 @@ class Session:
                 await self.look()
         finally:
             self.guiding = False
+            self.guide_target_room = None
+            self.guide_target_label = ""
+            self.guide_target_is_npc = False
+            self.guide_final_direction = None
 
     async def stop_auto_mining(self, announce=True, immediate=True):
         self.auto_mining = False
@@ -29275,10 +30438,10 @@ class Session:
 
         mined_resource_quantity = 0
         if item_id == "__mithril_currency__":
-            self.character.mithril += 1
+            self.character.silver += COINS_PER_OLD_MITHRIL
             self.server.db.save_character(self.character)
             await self.send(
-                "Trafiasz na żyłę czystego mithrilu! Wydobywasz 1 mithril bezpośrednio do portfela."
+                "Trafiasz na żyłę czystego mithrilu! Otrzymujesz 1 mithril do wspólnego salda."
             )
         else:
             vein = roll_mining_vein(tool_level)
@@ -30022,14 +31185,8 @@ class Session:
         await self.gain_charisma_from_sale()
         self.server.db.save_character(self.character)
 
-        rewards = []
-        if silver:
-            rewards.append(f"{silver} srebra")
-        if gold:
-            rewards.append(f"{gold} złota")
-        if mithril:
-            rewards.append(f"{mithril} mithrilu")
-        await self.send(f"Sprzedajesz {item['name']} za " + ", ".join(rewards) + ".")
+        reward_coins = legacy_currency_to_coins(silver, gold, mithril)
+        await self.send(f"Sprzedajesz {item['name']} za " + currency_reading_text(reward_coins, 0, 0) + ".")
 
     def recipe_container_for_item(self, item_id):
         if item_id in FISH_STORAGE_IDS:
@@ -31624,8 +32781,7 @@ class Session:
         )
         for number, item_id in enumerate(offers, 1):
             item = ITEMS[item_id]
-            currency = item.get("currency", "gold")
-            currency_pl = {"silver": "srebra", "gold": "złota", "mithril": "mithrilu"}[currency]
+            price_coins = self.shop_item_base_value_silver(item)
             extra = ""
             if item.get("type") == "armor":
                 extra = (
@@ -31652,7 +32808,7 @@ class Session:
                     )
             cashback = self.shop_cashback_silver(item)
             discount_text = (
-                f" Zwrot z rabatu: {cashback} srebra."
+                " Zwrot z rabatu: " + currency_reading_text(cashback, 0, 0) + "."
                 if cashback > 0 else ""
             )
             bound_text = ""
@@ -31662,7 +32818,7 @@ class Session:
                 else:
                     bound_text = " Przypisany do postaci. Można kupić tylko raz."
             await self.send(
-                f"{number}. {item['name']}: {item['price']} {currency_pl}."
+                f"{number}. {item['name']}: " + currency_reading_text(price_coins, 0, 0) + "."
                 f"{discount_text}{extra} {item['desc']}{bound_text}"
             )
 
@@ -31766,18 +32922,20 @@ class Session:
             )
             return
 
-        unit_price = item["price"]
+        unit_price = self.shop_item_base_value_silver(item)
         total_price = unit_price * quantity
-        currency = item.get("currency", "gold")
-        currency_pl = {"silver": "srebra", "gold": "złota", "mithril": "mithrilu"}[currency]
-        current = getattr(self.character, currency)
+        current = self.character_wallet_silver_value()
         if current < total_price:
             await self.send(
-                f"Masz za mało waluty: {currency_pl}. "
-                f"Potrzeba {total_price} {currency_pl} za {quantity} szt."
+                "Masz za mało pieniędzy. Potrzeba "
+                + currency_reading_text(total_price, 0, 0)
+                + f" za {quantity} szt. Masz "
+                + currency_reading_text(current, 0, 0) + "."
             )
             return
-        setattr(self.character, currency, current - total_price)
+        self.character.silver = current - total_price
+        self.character.gold = 0
+        self.character.mithril = 0
         cashback = self.shop_cashback_silver(item) * quantity
         if cashback > 0:
             self.character.silver += cashback
@@ -31786,15 +32944,16 @@ class Session:
             self.server.db.ensure_tool(self.account_id, item["tool_type"])
         self.server.db.save_character(self.character)
         if quantity == 1:
-            await self.send(f"Kupujesz {item['name']} za {total_price} {currency_pl}.")
+            await self.send(f"Kupujesz {item['name']} za " + currency_reading_text(total_price, 0, 0) + ".")
         else:
             await self.send(
-                f"Kupujesz {quantity} szt. {item['name']} za {total_price} {currency_pl}."
+                f"Kupujesz {quantity} szt. {item['name']} za "
+                + currency_reading_text(total_price, 0, 0) + "."
             )
         if cashback > 0:
             await self.send(
-                f"Rabat Charyzmy: sprzedawca zwraca ci "
-                f"{cashback} srebra."
+                "Rabat Charyzmy: sprzedawca zwraca ci "
+                + currency_reading_text(cashback, 0, 0) + "."
             )
 
     async def show_teachers(self):
@@ -35665,6 +36824,7 @@ class Session:
             multiplier *= self.character.racial_magic_damage_multiplier()
             multiplier *= self.character.racial_all_damage_multiplier()
             multiplier *= self.total_set_damage_multiplier()
+            multiplier *= self.equipment_damage_multiplier("magic")
             multiplier *= self.skill_buff_multiplier()
             await self.send(f"Używasz {skill['name']} na Skill Level {skill_level}. Cele w lokacji: {len(aoe_mobs)}.")
             defeated, survivors = [], []
@@ -35706,6 +36866,9 @@ class Session:
             multiplier *= self.character.racial_magic_damage_multiplier()
         multiplier *= self.character.racial_all_damage_multiplier()
         multiplier *= self.total_set_damage_multiplier()
+        multiplier *= self.equipment_damage_multiplier(
+            "physical" if skill_class_type == "physical" else "magic"
+        )
         multiplier *= self.skill_buff_multiplier()
 
         if kind == "execute":
@@ -35787,6 +36950,7 @@ class Session:
                         * c.racial_physical_damage_multiplier()
                         * c.racial_all_damage_multiplier()
                         * self.total_set_damage_multiplier()
+                        * self.equipment_damage_multiplier("physical")
                     )
                 )
             )
@@ -35810,6 +36974,7 @@ class Session:
                         * c.racial_magic_damage_multiplier()
                         * c.racial_all_damage_multiplier()
                         * self.total_set_damage_multiplier()
+                        * self.equipment_damage_multiplier("magic")
                     )
                 )
             )
@@ -35851,6 +37016,7 @@ class Session:
                 * c.racial_physical_damage_multiplier()
                 * c.racial_all_damage_multiplier()
                 * self.total_set_damage_multiplier()
+                * self.equipment_damage_multiplier("physical")
             )
         elif self.current_mana >= 4:
             base_damage = (
@@ -35865,6 +37031,7 @@ class Session:
                 * c.racial_magic_damage_multiplier()
                 * c.racial_all_damage_multiplier()
                 * self.total_set_damage_multiplier()
+                * self.equipment_damage_multiplier("magic")
             )
         else:
             base_damage = (
@@ -35878,6 +37045,7 @@ class Session:
                 * c.racial_magic_damage_multiplier()
                 * c.racial_all_damage_multiplier()
                 * self.total_set_damage_multiplier()
+                * self.equipment_damage_multiplier("magic")
             )
 
         # Średnia wartość uwzględnia prawdopodobieństwo krytyka,
@@ -36655,7 +37823,7 @@ class Session:
                 "rest", "help", "encoding", "describe", "changes", "look",
                 "corpse", "cryptinfo", "astralinfo", "consider",
                 "waterinfo", "exits", "map", "atlas", "codex",
-                "where", "who", "expareas", "terraininfo", "classsets", "say", "stats", "mana", "declension", "skills",
+                "where", "who", "expareas", "terraininfo", "classsets", "say", "stats", "hp", "score", "mana", "declension", "skills",
                 "skillnames", "skillqueue", "soul", "money", "net", "bag",
                 "woodpile", "herbbag", "professions", "ranks",
                 "tools", "toolinfo_fishing", "toolinfo_mining",
@@ -36663,7 +37831,7 @@ class Session:
                 "toolinfo_cooking", "toolinfo_herbalism",
                 "toolinfo_alchemy", "toolinfo_jewelcrafting",
                 "jewelcraftinginfo", "gems", "gemsockets",
-                "tiers", "location",
+                "tiers", "location", "route", "guide",
                 "recipes", "inventory", "equipment", "shop",
                 "teachers", "quests", "charisma", "multiclass",
                 "back", "dungeonexit", "progress", "exploration",
@@ -36679,6 +37847,23 @@ class Session:
                 await self.stop_rest(
                     announce=True,
                     reason="wykonujesz inną akcję",
+                )
+
+            guide_safe_commands = {
+                "guide", "route", "help", "encoding", "describe", "changes",
+                "look", "exits", "map", "atlas", "codex", "where", "who",
+                "terraininfo", "location", "stats", "hp", "score", "money",
+                "soul", "skills", "skillnames", "inventory", "equipment",
+                "quests", "progress", "exploration", "achievements", "titles",
+                "collection", "drophistory", "combatlog", "say", "tell",
+                "partychat",
+            }
+            if self.guide_task_active() and (
+                direction or command not in guide_safe_commands
+            ):
+                await self.cancel_guide(
+                    announce=True,
+                    reason="Prowadzenie przerwane: wykonujesz ręczny ruch albo inną aktywność.",
                 )
 
             if direction:
@@ -36734,7 +37919,7 @@ class Session:
             elif command == "portal":
                 await self.use_crypt_portal(args)
             elif command == "exits":
-                await self.show_exits()
+                await self.show_exits(args)
             elif command == "map":
                 await self.show_map()
             elif command == "atlas":
@@ -36784,6 +37969,10 @@ class Session:
                 await self.handle_rest(args)
             elif command == "stats":
                 await self.show_stats(args)
+            elif command == "hp":
+                await self.show_hp()
+            elif command == "score":
+                await self.show_score()
             elif command == "mana":
                 await self.handle_mana_command(args)
             elif command == "declension":
@@ -36865,7 +38054,9 @@ class Session:
                 else:
                     await self.fish()
             elif command == "guide":
-                await self.guide_to(args)
+                await self.start_guide_task(args)
+            elif command == "route":
+                await self.show_route(args)
             elif command == "location":
                 await self.show_location()
             elif command == "mineinfo":
@@ -37019,6 +38210,8 @@ class Session:
             return
 
         # Zatrzymaj wszystkie aktywności przypisane do bieżącej postaci.
+        if self.guide_task_active():
+            await self.cancel_guide(announce=False)
         if self.resting or self.rest_task:
             await self.stop_rest(announce=False)
         if self.auto_fishing or self.auto_fishing_task:
