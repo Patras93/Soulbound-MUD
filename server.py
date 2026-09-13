@@ -2,7 +2,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Soulbound v0.8.46 Race Class Recommendations
+Soulbound v0.8.51 Class Starting Resources & Item Selling
 Wieloosobowy tekstowy MUD TCP/Telnet dla MUSHclienta/Mudleta.
 
 Najważniejsze zasady projektu:
@@ -30,7 +30,7 @@ import unicodedata
 from dataclasses import dataclass
 from typing import Optional
 
-VERSION = "0.8.47"
+VERSION = "0.8.51"
 MAX_CHARACTERS_PER_ACCOUNT = 12
 
 HOST = os.getenv("SOULBOUND_HOST", "0.0.0.0")
@@ -2083,6 +2083,51 @@ CLASSES = [
     ("Psionik", "magic", "Kryształ Umysłu", 7),
 ]
 
+# v0.8.51: klasa nadaje własny profil startowych statystyk.
+# Maksymalne HP i Mana nie są wpisane na sztywno dla klasy: wynikają potem
+# bezpośrednio z Kondycji i Inteligencji oraz bonusów rasy/ekwipunku.
+CLASS_STARTING_STAT_BONUSES = {
+    "Wojownik":   {"strength": 3, "dexterity": 1, "constitution": 3, "intelligence": 0, "willpower": 1, "charisma": 0},
+    "Berserker":  {"strength": 4, "dexterity": 1, "constitution": 3, "intelligence": 0, "willpower": 0, "charisma": 0},
+    "Łotrzyk":    {"strength": 1, "dexterity": 4, "constitution": 1, "intelligence": 1, "willpower": 0, "charisma": 1},
+    "Łowca":      {"strength": 2, "dexterity": 4, "constitution": 2, "intelligence": 0, "willpower": 0, "charisma": 0},
+    "Mnich":      {"strength": 1, "dexterity": 3, "constitution": 2, "intelligence": 1, "willpower": 2, "charisma": 0},
+    "Strażnik":   {"strength": 2, "dexterity": 0, "constitution": 4, "intelligence": 0, "willpower": 2, "charisma": 0},
+    "Mag":        {"strength": 0, "dexterity": 2, "constitution": 1, "intelligence": 4, "willpower": 2, "charisma": 0},
+    "Nekromanta": {"strength": 0, "dexterity": 1, "constitution": 2, "intelligence": 3, "willpower": 3, "charisma": 0},
+    "Kapłan":     {"strength": 0, "dexterity": 0, "constitution": 3, "intelligence": 2, "willpower": 4, "charisma": 0},
+    "Czarownik":  {"strength": 1, "dexterity": 2, "constitution": 1, "intelligence": 4, "willpower": 1, "charisma": 0},
+    "Druid":      {"strength": 0, "dexterity": 1, "constitution": 3, "intelligence": 3, "willpower": 3, "charisma": 0},
+    "Psionik":    {"strength": 0, "dexterity": 2, "constitution": 1, "intelligence": 3, "willpower": 4, "charisma": 0},
+}
+
+def class_starting_stat_bonus(class_name, stat_name):
+    return int(CLASS_STARTING_STAT_BONUSES.get(class_name, {}).get(stat_name, 0))
+
+def class_starting_stats_for(race, cls):
+    rname, _desc, strength, dexterity, constitution, intelligence, willpower = race
+    cname = cls[0]
+    b = CLASS_STARTING_STAT_BONUSES.get(cname, {})
+    return {
+        "strength": int(strength) + int(b.get("strength", 0)),
+        "dexterity": int(dexterity) + int(b.get("dexterity", 0)),
+        "constitution": int(constitution) + int(b.get("constitution", 0)),
+        "intelligence": int(intelligence) + int(b.get("intelligence", 0)),
+        "willpower": int(willpower) + int(b.get("willpower", 0)),
+        "charisma": 10 + int(b.get("charisma", 0)),
+    }
+
+def starting_hp_mana_for(race, cls):
+    stats = class_starting_stats_for(race, cls)
+    hp = 40 + stats["constitution"] * 5
+    mana = 20 + stats["intelligence"] * 5
+    race_name = race[0]
+    if race_name == "Ork":
+        hp = int(round(hp * 1.10))
+    if race_name == "Gnom":
+        mana = int(round(mana * 1.15))
+    return max(1, hp), max(0, mana)
+
 
 CLASS_DESCRIPTIONS = {
     "Wojownik": (
@@ -2122,8 +2167,9 @@ CLASS_DESCRIPTIONS = {
         "Pasyw klasowy: 10 procent redukcji wszystkich otrzymywanych obrażeń."
     ),
     "Mag": (
-        "Klasa magiczna. Inteligencja zwiększa Manę i moc czarów, "
-        "a Siła Woli obronę magiczną. Automatycznie rozwija wszystkie sześć statystyk."
+        "Klasa magiczna. Inteligencja zwiększa Manę i moc czarów, Siła wzmacnia też magiczne ataki wtórnie, "
+        "Zręczność daje szybkość, unik i krytyki, Kondycja zwiększa HP, a Siła Woli obronę magiczną. "
+        "Automatycznie rozwija wszystkie sześć statystyk."
         "Pasyw klasowy: +10 procent obrażeń magicznych."
     ),
     "Nekromanta": (
@@ -4728,6 +4774,7 @@ COMMAND_ALIASES = {
     "turnin": "turnin", "turn-in": "turnin",
     "teachers": "teachers", "training": "teachers", "trainers": "teachers", "nauczyciele": "teachers", "trenerzy": "teachers",
     "zadania": "quests", "questy": "quests", "quest": "quests",
+    "accept": "questaccept", "akceptuj": "questaccept", "przyjmij": "questaccept",
     "atakuj": "attack", "walcz": "attack", "zabij": "attack", "kill": "attack", "k": "attack",
     "combat": "combatlog", "combatlog": "combatlog", "logwalki": "combatlog", "logwalka": "combatlog",
     "consider": "consider", "con": "consider",
@@ -4780,7 +4827,7 @@ COMMAND_ALIASES = {
     "osadz": "socketgem", "osadź": "socketgem", "socket": "socketgem",
     "gniazda": "gemsockets", "sockety": "gemsockets", "sockets": "gemsockets",
     "bizuteria": "jewelcraftinginfo", "biżuteria": "jewelcraftinginfo",
-    "sprzedaj": "sell",
+    "sprzedaj": "sell", "sell": "sell",
     "receptury": "recipes", "przepisy": "recipes", "recipes": "recipes",
     "rzemiosło": "recipes", "rzemioslo": "recipes",
     "przetop": "smelt", "przetapiaj": "smelt", "smelt": "smelt",
@@ -5968,6 +6015,12 @@ CLASS_EQUIPMENT_SLOT_DEFS = {
     "necklace": ("Naszyjnik", 1, 180),
 }
 
+# Pełna progresja klasowego EQ oparta na Biegłości klasy.
+# Biegłość 1 zachowuje historyczne ID przedmiotów z v0.8.47,
+# dzięki czemu już kupione/założone wyposażenie pozostaje zgodne z save'em.
+CLASS_EQUIPMENT_MASTERY_LEVELS = (1,) + tuple(range(10, 201, 10))
+CLASS_EQUIPMENT_ITEMS_BY_CLASS_TIER = {}
+CLASS_SHOP_CLASSES_BY_ROOM = {}
 CLASS_SHOP_ITEMS_BY_ROOM = {
     "guild_martial_hall": [],
     "guild_shadow_gallery": [],
@@ -5979,51 +6032,105 @@ CLASS_SHOP_ITEMS_BY_ROOM = {
 
 CLASS_EQUIPMENT_ITEM_IDS = set()
 
+
+def _class_equipment_tier_label(required_mastery):
+    if required_mastery <= 1:
+        return "Biegłość 1"
+    return f"Biegłość {required_mastery}"
+
+
+def _class_equipment_rarity_name(required_mastery):
+    if required_mastery >= 200:
+        return "Klasowy Mistrzowski"
+    if required_mastery >= 150:
+        return "Klasowy Legendarny"
+    if required_mastery >= 100:
+        return "Klasowy Epicki"
+    if required_mastery >= 50:
+        return "Klasowy Rzadki"
+    return "Klasowy"
+
+
+def class_equipment_unlocked_tier(mastery_level):
+    mastery_level = max(1, min(CLASS_MASTERY_MAX_LEVEL, int(mastery_level)))
+    unlocked = 1
+    for threshold in CLASS_EQUIPMENT_MASTERY_LEVELS:
+        if threshold <= mastery_level:
+            unlocked = threshold
+        else:
+            break
+    return unlocked
+
+
 def _register_class_equipment_shops():
     for class_name, definition in CLASS_EQUIPMENT_SETS.items():
-        for slot, (
-            slot_name,
-            defense_delta,
-            price,
-        ) in CLASS_EQUIPMENT_SLOT_DEFS.items():
-            item_id = f"class_{definition['prefix']}_{slot}"
-            if slot == "necklace":
-                affix_amount = 3
-            elif slot in ("ring", "charm"):
-                affix_amount = 2
-            else:
-                affix_amount = 1
+        CLASS_SHOP_CLASSES_BY_ROOM.setdefault(definition["room"], []).append(class_name)
+        per_tier = CLASS_EQUIPMENT_ITEMS_BY_CLASS_TIER.setdefault(class_name, {})
 
-            defense = max(
-                1,
-                int(definition["base_defense"])
-                + int(defense_delta),
-            )
+        for tier_index, required_mastery in enumerate(CLASS_EQUIPMENT_MASTERY_LEVELS):
+            tier_items = []
+            # Statystyki rosną spokojnie: +1 punkt skali co dwa progi (co ~20 Biegłości).
+            scale_step = tier_index // 2
+            # Ceny rosną wyraźnie wraz z Biegłością, ale pozostają w istniejącej ekonomii srebra.
+            price_multiplier = 1 + tier_index + (tier_index * tier_index) // 4
 
-            ITEMS[item_id] = {
-                "name": f"{slot_name} {definition['set_name']}",
-                "type": "armor",
-                "slot": slot,
-                "defense": defense,
-                "price": price,
-                "currency": "silver",
-                "rarity": "crafted",
-                "rarity_name": "Klasowy",
-                "affix": definition["affix"],
-                "affix_amount": affix_amount,
-                "required_class": class_name,
-                "class_shop_item": True,
-                "class_set_name": definition["set_name"],
-                "desc": (
-                    f"Wyposażenie klasowe dla {class_name}. "
-                    f"Wymaga aktywnej klasy {class_name}. "
-                    f"Obrona +{defense}."
-                ),
-            }
-            CLASS_EQUIPMENT_ITEM_IDS.add(item_id)
-            CLASS_SHOP_ITEMS_BY_ROOM[
-                definition["room"]
-            ].append(item_id)
+            for slot, (slot_name, defense_delta, base_price) in CLASS_EQUIPMENT_SLOT_DEFS.items():
+                if required_mastery == 1:
+                    item_id = f"class_{definition['prefix']}_{slot}"
+                else:
+                    item_id = f"class_{definition['prefix']}_m{required_mastery}_{slot}"
+
+                if slot == "necklace":
+                    base_affix = 3
+                elif slot in ("ring", "charm"):
+                    base_affix = 2
+                else:
+                    base_affix = 1
+
+                affix_amount = base_affix + scale_step
+                defense = max(
+                    1,
+                    int(definition["base_defense"]) + int(defense_delta) + scale_step,
+                )
+                price = max(1, int(base_price) * int(price_multiplier))
+                tier_label = _class_equipment_tier_label(required_mastery)
+
+                ITEMS[item_id] = {
+                    "name": (
+                        f"{slot_name} {definition['set_name']}"
+                        if required_mastery == 1
+                        else f"{slot_name} {definition['set_name']} +{required_mastery}"
+                    ),
+                    "type": "armor",
+                    "slot": slot,
+                    "defense": defense,
+                    "price": price,
+                    "currency": "silver",
+                    "rarity": "crafted",
+                    "rarity_name": _class_equipment_rarity_name(required_mastery),
+                    "affix": definition["affix"],
+                    "affix_amount": affix_amount,
+                    "required_class": class_name,
+                    "required_mastery": required_mastery,
+                    "class_shop_item": True,
+                    "class_set_name": definition["set_name"],
+                    "class_set_piece": slot,
+                    "class_equipment_tier": tier_index + 1,
+                    "desc": (
+                        f"Wyposażenie klasowe dla {class_name}. "
+                        f"Wymaga aktywnej klasy {class_name} i Biegłości {required_mastery}. "
+                        f"Tier: {tier_label}. Obrona +{defense}."
+                    ),
+                }
+                CLASS_EQUIPMENT_ITEM_IDS.add(item_id)
+                tier_items.append(item_id)
+
+            per_tier[required_mastery] = tuple(tier_items)
+
+        # Statyczna lista zachowuje Tier 1 dla zgodności starych miejsc kodu.
+        # Interfejs sklepu dynamicznie pokazuje najlepszy odblokowany Tier.
+        CLASS_SHOP_ITEMS_BY_ROOM[definition["room"]].extend(per_tier[1])
+
 
 _register_class_equipment_shops()
 
@@ -7708,12 +7815,12 @@ HELP_TOPICS = {
     "questy": [
         "HELP QUEST — pełna pomoc systemu zadań. Questy nie wymagają levelu postaci.",
         "quest / quest aktywne — numerowana lista wszystkich aktualnie aktywnych questów.",
-        "quest ukończone — osobna historia ukończonych questów, liczba ukończeń oraz pozostały cooldown zadań powtarzalnych.",
+        "quest ukończone / questy ukończone — osobna historia ukończonych questów, liczba ukończeń oraz pozostały cooldown zadań powtarzalnych.",
         "quest list <NPC> — numerowana oferta questów konkretnego NPC w twojej bieżącej lokacji, np. quest list Orin albo quest list Arven.",
         "talk <NPC> — rozmowa pokazuje ofertę tego NPC, ale nie przyjmuje zadania automatycznie.",
-        "quest accept <numer> / quest przyjmij <numer> — przyjmuje wskazany numer z ostatnio pokazanej listy questów NPC.",
+        "quest accept <numer> / accept quest <numer> / quest przyjmij <numer> — przyjmuje wskazany numer z ostatnio pokazanej listy questów NPC.",
         "quest info <numer> — działa po quest, quest ukończone i quest list <NPC>; pokazuje NPC, opis, cel, aktualny postęp, wymagania, nagrody, powtarzalność i cooldown.",
-        "quest oddaj <numer> — oddaje wybrany quest z ostatniej listy NPC, jeżeli wszystkie cele są wykonane.",
+        "quest oddaj <numer> / oddaj quest <numer> — oddaje wskazany aktywny quest, jeżeli cele są wykonane i jesteś u właściwego NPC.",
         "quest porzuć <numer> / quest abandon <numer> — porzuca aktywny quest z ostatniej listy. Bieżący postęp przepada, ale wcześniejsze ukończenia pozostają w historii; quest można później przyjąć ponownie.",
         "Kilka questów jednego NPC może być aktywnych równocześnie. Zlecenia profesyjne są niezależne, np. Mikstury Many i Mikstury Leczenia u Orina.",
         "Questy powtarzalne zachowują osobny czas odnowienia. Problem goblinów, Plaga Trolli i Cienie w Gaju odnawiają się co 60 minut.",
@@ -14679,6 +14786,8 @@ def configure_v0800_help_info():
 def configure_v081_help_info():
     HELP_TOPICS["sety_klasowe"] = [
         "Każda z 12 klas ma pełny zestaw 8 części: głowa, korpus, dłonie, nogi, stopy, talizman, pierścień i naszyjnik.",
+        "Klasowe EQ ma Tiery Biegłości 1, 10, 20, 30 i dalej co 10 aż do 200; każdy próg daje mocniejszy pełny zestaw.",
+        "Sklep klasowy pokazuje najlepszy Tier odblokowany przez Biegłość danej klasy; wyższy Tier wymaga tej Biegłości także przy zakładaniu.",
         "Próg 2 części daje klasowy bonus do statystyk.",
         "Próg 4 części zwiększa wszystkie obrażenia.",
         "Próg 6 części zwiększa obronę fizyczną i magiczną.",
@@ -15465,6 +15574,8 @@ def _build_set_catalog():
             req = str(item.get("required_class") or set_name)
             entry_id = f"class:{req}"
             entry_name = f"Zestaw {set_name} ({req})"
+            # Wszystkie tiery Biegłości liczą się jako te same 8 logicznych części setu.
+            piece_key = str(item.get("class_set_piece") or item.get("slot") or item_id)
         elif item.get("crypt_set_tier"):
             tier = int(item["crypt_set_tier"])
             entry_id = f"crypt:{tier}"
@@ -16405,6 +16516,38 @@ class Database:
                 ("shared_account_wallet_v0832",),
             )
 
+        # v0.8.51: nadaj istniejącym postaciom taki sam bazowy profil klasy,
+        # jaki od tej wersji dostają nowe postacie. Jednorazowa flaga zapobiega
+        # ponownemu dodawaniu bonusów po restarcie/deployu.
+        class_stats_migrated = self.conn.execute(
+            "SELECT 1 FROM migration_flags WHERE flag=?",
+            ("class_starting_stats_v0851",),
+        ).fetchone()
+        if not class_stats_migrated:
+            rows = self.conn.execute(
+                "SELECT account_id,class_name FROM characters"
+            ).fetchall()
+            for row in rows:
+                bonuses = CLASS_STARTING_STAT_BONUSES.get(row["class_name"], {})
+                self.conn.execute(
+                    "UPDATE characters SET strength=strength+?, dexterity=dexterity+?, "
+                    "constitution=constitution+?, intelligence=intelligence+?, "
+                    "willpower=willpower+?, charisma=charisma+? WHERE account_id=?",
+                    (
+                        int(bonuses.get("strength", 0)),
+                        int(bonuses.get("dexterity", 0)),
+                        int(bonuses.get("constitution", 0)),
+                        int(bonuses.get("intelligence", 0)),
+                        int(bonuses.get("willpower", 0)),
+                        int(bonuses.get("charisma", 0)),
+                        int(row["account_id"]),
+                    ),
+                )
+            self.conn.execute(
+                "INSERT INTO migration_flags(flag) VALUES(?)",
+                ("class_starting_stats_v0851",),
+            )
+
         self.conn.commit()
 
     def account_by_name(self, username):
@@ -16641,8 +16784,15 @@ class Database:
         ).fetchone() is not None
 
     def create_character(self, account_id, name, race, cls, name_cases):
-        rname, _, strength, dexterity, constitution, intelligence, willpower = race
+        rname, _, _race_strength, _race_dexterity, _race_constitution, _race_intelligence, _race_willpower = race
         cname, ctype, soul_weapon, weapon_base = cls
+        starting_stats = class_starting_stats_for(race, cls)
+        strength = starting_stats["strength"]
+        dexterity = starting_stats["dexterity"]
+        constitution = starting_stats["constitution"]
+        intelligence = starting_stats["intelligence"]
+        willpower = starting_stats["willpower"]
+        charisma = starting_stats["charisma"]
         self.conn.execute(
             """
             INSERT INTO characters(
@@ -16659,7 +16809,7 @@ class Database:
                 name_cases["acc"], name_cases["ins"], name_cases["loc"],
                 name_cases["voc"],
                 rname, cname, ctype, soul_weapon, weapon_base,
-                strength, dexterity, constitution, intelligence, willpower, 10,
+                strength, dexterity, constitution, intelligence, willpower, charisma,
             ),
         )
         self.conn.execute(
@@ -18043,12 +18193,8 @@ class Character:
         return class_name in self.active_class_names()
 
     def max_mana(self):
-        if not any(
-            class_type_for_name(name) == "magic"
-            for name in self.active_class_names()
-        ):
-            return 0
-        # Multiclass fizyczny może korzystać z Many, jeśli ma aktywną klasę magiczną.
+        # v0.8.50: każda klasa posiada Manę. Inteligencja zwiększa pulę Many
+        # niezależnie od tego, czy klasa główna jest fizyczna czy magiczna.
         base = 20 + self.intelligence * 5
         return max(0, int(round(base * self.racial_max_mana_multiplier())))
 
@@ -20378,7 +20524,8 @@ class Session:
             desc = CLASS_DESCRIPTIONS.get(cname, "")
             growth = (
                 "Rozwój: wszystkie statystyki automatycznie: Siła, Zręczność, "
-                "Kondycja, Inteligencja, Siła Woli i Charyzma."
+                "Kondycja, Inteligencja, Siła Woli i Charyzma. Każda klasa ma HP i Manę; "
+                "Inteligencja zwiększa Manę także klasom fizycznym."
             )
             skills = CLASS_SKILLS.get(cname, [])
             skill_text = "; ".join(
@@ -20391,6 +20538,16 @@ class Session:
         cls = await self.choose_number(CLASSES, "Numer klasy: ")
         if cls is None:
             return False
+
+        preview_stats = class_starting_stats_for(race, cls)
+        preview_hp, preview_mana = starting_hp_mana_for(race, cls)
+        await self.send(
+            f"Start {race[0]} / {cls[0]}. "
+            f"Siła {preview_stats['strength']}, Zręczność {preview_stats['dexterity']}, "
+            f"Kondycja {preview_stats['constitution']}, Inteligencja {preview_stats['intelligence']}, "
+            f"Siła Woli {preview_stats['willpower']}, Charyzma {preview_stats['charisma']}. "
+            f"Startowe HP {preview_hp}. Startowa Mana {preview_mana}."
+        )
 
         name_cases = await self.ask_name_declension(name)
         if name_cases is None:
@@ -20890,12 +21047,8 @@ class Session:
         return max(1, value)
 
     def max_mana(self):
-        if not any(
-            class_type_for_name(name) == "magic"
-            for name in self.active_class_names()
-        ):
-            return 0
-
+        # v0.8.50: Mana jest statystyką uniwersalną. Także klasy fizyczne
+        # korzystają z Inteligencji do zwiększania maksymalnej Many.
         bonuses = self.equipment_bonus_totals()
         base = 20 + self.effective_intelligence() * 5
         value = int(
@@ -21051,7 +21204,7 @@ class Session:
             )
             entry["equipped"].append(row["slot"])
 
-        for item_id in SHOPS.get(self.character.room_id, ()):
+        for item_id in self.current_shop_offers():
             item = ITEMS.get(item_id)
             if not item:
                 continue
@@ -22211,7 +22364,7 @@ class Session:
             "buy / kup przedmiot - kup po nazwie lub numerze z listy; np. kup 9 albo kup 9 3",
             "talk npc - rozmowa, zadania i lekcje nauczycieli klasowych",
             "teachers / nauczyciele - lista nauczycieli w Sali Gildii",
-            "help quest - pełna pomoc dziennika; quest - aktywne; quest ukończone; quest list <NPC>; quest accept/info/oddaj/porzuć <numer>",
+            "help quest - pełna pomoc dziennika; quest - aktywne; questy ukończone; quest list <NPC>; accept quest <numer>; oddaj quest <numer>; quest info/porzuć <numer>",
             "consider / con / ocen <mob> - oceń dowolnego zabijalnego moba bez rozpoczynania walki; działa też np. con 2 goblin",
             "k <mob> / attack / atakuj / zabij / kill <mob> - szybki atak na wskazanego przeciwnika",
             "ciało / zwloki / corpse - pokaż ciała i ich ekwipunek",
@@ -22328,9 +22481,10 @@ class Session:
                     f"Rzadkość: {item['rarity_name']}."
                 )
             if item.get("required_class"):
+                req_mastery = max(1, int(item.get("required_mastery", 1)))
                 parts.append(
-                    f"Wymagana aktywna klasa: "
-                    f"{item['required_class']}."
+                    f"Wymagana aktywna klasa: {item['required_class']}. "
+                    f"Wymagana Biegłość klasy: {req_mastery}."
                 )
             if item.get("class_shop_item") and item.get("required_class"):
                 class_name = item["required_class"]
@@ -23408,6 +23562,12 @@ class Session:
             f"Krytyk {int(round(self.critical_chance() * 100))} procent, "
             f"mnożnik {int(self.critical_multiplier() * 100)} procent, "
             f"unik {int(self.dodge_chance() * 100)} procent."
+        )
+        await self.send(
+            "Wpływ statystyk jest uniwersalny dla wszystkich klas: Kondycja zwiększa HP; "
+            "Inteligencja zwiększa Manę; Zręczność zwiększa szybkość, unik i krytyki; "
+            "Siła zwiększa ataki fizyczne i daje 25 procent swojego wpływu jako wtórne "
+            "skalowanie magicznych skilli i spelli."
         )
         await self.send(f"Pasyw rasy {c.race}: {c.racial_passive_text()}.")
         for class_name in active_classes:
@@ -28624,6 +28784,53 @@ class Session:
                 f"{tool_tier(new_tool_level)}: {tool_tier_name('herbalism', new_tool_level)}."
             )
 
+    def generic_item_sale_allowed_here(self):
+        # Zwykłe przedmioty można odsprzedawać w każdej lokacji z normalnym sklepem.
+        return self.character.room_id in SHOPS
+
+    def generic_item_sale_value(self, item_id, item):
+        # Jawna cena sprzedaży ma pierwszeństwo.
+        explicit = {
+            "silver": int(item.get("sell_silver", 0) or 0),
+            "gold": int(item.get("sell_gold", 0) or 0),
+            "mithril": int(item.get("sell_mithril", 0) or 0),
+        }
+        if any(explicit.values()):
+            return explicit
+
+        # Przedmiot kupny: sklep odkupuje za 50% ceny bazowej.
+        price = item.get("price")
+        currency = item.get("currency", "silver")
+        if isinstance(price, (int, float)) and price > 0 and currency in explicit:
+            value = max(1, int(price) // 2)
+            result = {"silver": 0, "gold": 0, "mithril": 0}
+            result[currency] = value
+            return result
+
+        # Wytwarzany / zdobyty ekwipunek bez ceny sklepowej otrzymuje cenę
+        # na podstawie obrony, affiksu, gniazd i wymagań Biegłości.
+        if item.get("type") == "armor":
+            defense = max(0, int(item.get("defense", 0) or 0))
+            affix = max(0, abs(int(item.get("affix_amount", 0) or 0)))
+            sockets = max(0, int(item.get("sockets", 0) or 0))
+            mastery = max(0, int(item.get("required_mastery", 0) or 0))
+            craft_level = max(
+                int(item.get("jewelcraft_level", 0) or 0),
+                int(item.get("blacksmith_tier", 0) or 0) * 10,
+            )
+            silver = max(10, defense * 18 + affix * 12 + sockets * 20 + mastery * 2 + craft_level)
+            return {"silver": silver, "gold": 0, "mithril": 0}
+
+        return {"silver": 0, "gold": 0, "mithril": 0}
+
+    def generic_item_is_sellable(self, item_id, item):
+        if not item or item.get("type") == "quest":
+            return False
+        if is_character_bound_item(item_id):
+            return False
+        values = self.generic_item_sale_value(item_id, item)
+        return any(values.values())
+
     def resource_sale_allowed_here(self, item_id):
         room_id = self.character.room_id
         if item_id in FISH_STORAGE_IDS:
@@ -28659,9 +28866,10 @@ class Session:
             if quantity <= 0:
                 continue
 
-            silver = int(item.get("sell_silver", 0))
-            gold = int(item.get("sell_gold", 0))
-            mithril = int(item.get("sell_mithril", 0))
+            values = self.generic_item_sale_value(item_id, item)
+            silver = int(values["silver"])
+            gold = int(values["gold"])
+            mithril = int(values["mithril"])
             if not (silver or gold or mithril):
                 continue
 
@@ -28862,19 +29070,27 @@ class Session:
                 skipped += qty
                 continue
 
-            # Sprzedaj tylko rzeczy z jawną ceną sprzedaży.
-            # Dzięki temu narzędzia, mikstury i gear bez ceny nie znikają.
-            if not (
-                item.get("sell_silver", 0)
-                or item.get("sell_gold", 0)
-                or item.get("sell_mithril", 0)
-            ):
+            if item.get("type") == "resource":
+                if not (
+                    item.get("sell_silver", 0)
+                    or item.get("sell_gold", 0)
+                    or item.get("sell_mithril", 0)
+                ):
+                    continue
+                if not self.resource_sale_allowed_here(item_id):
+                    skipped += qty
+                    continue
+                sell_rows.append((item_id, qty))
                 continue
 
-            if not self.resource_sale_allowed_here(item_id):
+            if is_character_bound_item(item_id) or item.get("type") == "quest":
                 skipped += qty
                 continue
-
+            if not self.generic_item_sale_allowed_here():
+                skipped += qty
+                continue
+            if not self.generic_item_is_sellable(item_id, item):
+                continue
             sell_rows.append((item_id, qty))
 
         if not sell_rows:
@@ -28936,8 +29152,41 @@ class Session:
             await self.send("Nie rozpoznaję takiego przedmiotu.")
             return
         item_id, item = found
+
+        # v0.8.51: zwykłe przedmioty (np. talizmany, pierścienie, pancerze)
+        # można sprzedać w dowolnym normalnym sklepie.
         if item.get("type") != "resource":
-            await self.send("Tego przedmiotu nie sprzedaje się tutaj jako surowca.")
+            if not self.generic_item_is_sellable(item_id, item):
+                await self.send("Tego przedmiotu nie można sprzedać.")
+                return
+            if not self.generic_item_sale_allowed_here():
+                await self.send(
+                    "Zwykłe przedmioty sprzedasz w lokacji z normalnym sklepem. "
+                    "Przejdź do sklepu i użyj: sprzedaj <nazwa przedmiotu>."
+                )
+                return
+            if self.server.db.item_qty(self.account_id, item_id) <= 0:
+                await self.send("Nie masz tego przedmiotu.")
+                return
+            equipped_ids = {row["item_id"] for row in self.server.db.equipment(self.account_id)}
+            if item_id in equipped_ids:
+                await self.send(
+                    f"{item['name']} jest założony. Najpierw zdejmij przedmiot, aby go sprzedać."
+                )
+                return
+            values = self.generic_item_sale_value(item_id, item)
+            if not self.server.db.remove_item(self.account_id, item_id, 1):
+                await self.send("Nie udało się sprzedać przedmiotu.")
+                return
+            self.character.silver += values["silver"]
+            self.character.gold += values["gold"]
+            self.character.mithril += values["mithril"]
+            await self.gain_charisma_from_sale()
+            self.server.db.save_character(self.character)
+            await self.send(
+                f"Sprzedajesz {item['name']} za "
+                f"{currency_reading_text(values['silver'], values['gold'], values['mithril'])}."
+            )
             return
 
         fish_items = FISH_STORAGE_IDS
@@ -30235,6 +30484,15 @@ class Session:
             )
             return
 
+        required_mastery = max(1, int(item.get("required_mastery", 1)))
+        if required_class and self.class_mastery_level(required_class) < required_mastery:
+            await self.send(
+                f"{item['name']} wymaga Biegłości {required_class} "
+                f"na poziomie {required_mastery}. Masz "
+                f"{self.class_mastery_level(required_class)}."
+            )
+            return
+
         if self.server.db.item_qty(self.account_id, item_id) <= 0:
             await self.send("Nie masz tego przedmiotu.")
             return
@@ -30520,8 +30778,25 @@ class Session:
         )
 
 
+    def current_shop_offers(self):
+        room_id = self.character.room_id
+        class_names = CLASS_SHOP_CLASSES_BY_ROOM.get(room_id)
+        if not class_names:
+            return list(SHOPS.get(room_id, ()))
+
+        offers = []
+        for class_name in class_names:
+            mastery = self.class_mastery_level(class_name)
+            unlocked_tier = class_equipment_unlocked_tier(mastery)
+            offers.extend(
+                CLASS_EQUIPMENT_ITEMS_BY_CLASS_TIER
+                .get(class_name, {})
+                .get(unlocked_tier, ())
+            )
+        return offers
+
     async def shop(self):
-        offers = SHOPS.get(self.character.room_id)
+        offers = self.current_shop_offers()
         if not offers:
             await self.send("W tej lokacji nie ma sklepu.")
             return
@@ -30557,9 +30832,15 @@ class Session:
                         in self.active_class_names()
                         else "nieaktywna"
                     )
+                    required_mastery = max(1, int(item.get("required_mastery", 1)))
+                    mastery_now = self.class_mastery_level(required_class)
+                    mastery_state = (
+                        "odblokowane" if mastery_now >= required_mastery else "zablokowane"
+                    )
                     extra += (
-                        f" Klasa: {required_class}; "
-                        f"{availability}."
+                        f" Klasa: {required_class}; {availability}. "
+                        f"Wymagana Biegłość: {required_mastery}; "
+                        f"masz {mastery_now}; {mastery_state}."
                     )
             cashback = self.shop_cashback_silver(item)
             discount_text = (
@@ -30582,7 +30863,7 @@ class Session:
         normalized_query = normalize_lookup_text(raw_query)
         requested_tool = TOOL_BUY_ALIASES.get(normalized_query)
 
-        offers = SHOPS.get(self.character.room_id)
+        offers = self.current_shop_offers()
         if not offers:
             if requested_tool:
                 target_room = TOOL_SHOP_ROOMS[requested_tool]
@@ -30665,6 +30946,15 @@ class Session:
                 f"{item['name']} jest wyposażeniem klasy "
                 f"{required_class}. Aktywuj tę klasę, aby kupić "
                 "ten przedmiot."
+            )
+            return
+
+        required_mastery = max(1, int(item.get("required_mastery", 1)))
+        if required_class and self.class_mastery_level(required_class) < required_mastery:
+            await self.send(
+                f"{item['name']} wymaga Biegłości {required_class} "
+                f"na poziomie {required_mastery}. Masz "
+                f"{self.class_mastery_level(required_class)}."
             )
             return
 
@@ -32442,6 +32732,59 @@ class Session:
         for item_id, qty in q["reward_items"].items():
             await self.send(f"Nagroda: {ITEMS[item_id]['name']} x{qty}.")
 
+    def active_quest_id_by_number(self, raw_number):
+        """Numer z listy `quest` / `questy` zawsze oznacza aktywny quest."""
+        value = str(raw_number or "").strip()
+        if not value.isdigit():
+            return None, "Podaj numer aktywnego questa, np. oddaj quest 2."
+        rows = [
+            row for row in self.server.db.quest_rows(self.account_id)
+            if row["status"] == "active" and row["quest_id"] in QUESTS
+        ]
+        index = int(value) - 1
+        if index < 0 or index >= len(rows):
+            return None, f"Nie masz aktywnego questa numer {value}. Wpisz questy, aby zobaczyć listę."
+        return rows[index]["quest_id"], None
+
+    def strip_optional_quest_word(self, text):
+        """Obsługuje naturalne formy: accept quest 2 / oddaj quest 2."""
+        raw = str(text or "").strip()
+        norm = self.normalize_description_query(raw)
+        prefixes = (
+            "quest ", "questa ", "questy ", "zadanie ", "zadania ",
+            "zlecenie ", "zlecenia ",
+        )
+        for prefix in prefixes:
+            if norm.startswith(prefix):
+                return raw.split(maxsplit=1)[1].strip() if " " in raw else ""
+        return raw
+
+    async def accept_quest_command(self, args):
+        """Top-level: accept quest <numer> / przyjmij quest <numer>."""
+        value = self.strip_optional_quest_word(args)
+        if not value:
+            await self.send(
+                "Użycie: accept quest <numer>. Najpierw wpisz quest list <NPC>."
+            )
+            return
+        await self.accept_quest_from_context(value)
+
+    async def turn_in_quest_command(self, args):
+        """Top-level: oddaj quest <numer>, z zachowaniem starego oddaj <nazwa>."""
+        raw = str(args or "").strip()
+        value = self.strip_optional_quest_word(raw)
+        # Naturalna forma numeryczna odwołuje się zawsze do listy aktywnych questów,
+        # a nie do przypadkowego/starego kontekstu NPC lub historii.
+        if value.isdigit():
+            quest_id, error = self.active_quest_id_by_number(value)
+            if error:
+                await self.send(error)
+                return
+            await self.turn_in_quest(QUESTS[quest_id]["name"])
+            return
+        # Stare formy nadal działają: oddaj, oddaj <nazwa questa>, oddaj zadanie.
+        await self.turn_in_quest(raw)
+
     async def quests(self, args=""):
         raw = str(args or "").strip()
         norm = self.normalize_description_query(raw)
@@ -32470,6 +32813,7 @@ class Session:
         for prefix in ("accept ", "przyjmij ", "przyjm "):
             if norm.startswith(prefix):
                 value = raw.split(maxsplit=1)[1] if " " in raw else ""
+                value = self.strip_optional_quest_word(value)
                 await self.accept_quest_from_context(value)
                 return
 
@@ -32488,7 +32832,11 @@ class Session:
         for prefix in ("oddaj ", "turnin ", "zdaj "):
             if norm.startswith(prefix):
                 value = raw.split(maxsplit=1)[1] if " " in raw else ""
-                quest_id, error = self.quest_from_context(value)
+                value = self.strip_optional_quest_word(value)
+                if value.isdigit():
+                    quest_id, error = self.active_quest_id_by_number(value)
+                else:
+                    quest_id, error = self.quest_from_context(value)
                 if error:
                     await self.send(error)
                     return
@@ -32496,9 +32844,9 @@ class Session:
                 return
 
         await self.send(
-            "Questy: quest — aktywne; quest ukończone — historia; "
-            "quest list <NPC> — numerowana oferta; quest accept <numer> — przyjmij; "
-            "quest info <numer> — szczegóły; quest oddaj <numer> — oddaj z ostatniej listy; "
+            "Questy: quest/questy — aktywne; quest ukończone/questy ukończone — historia; "
+            "quest list <NPC> — numerowana oferta; quest accept <numer> lub accept quest <numer> — przyjmij; "
+            "quest info <numer> — szczegóły; quest oddaj <numer> lub oddaj quest <numer> — oddaj aktywny quest; "
             "quest porzuć <numer> — porzuć aktywne zadanie."
         )
 
@@ -33007,7 +33355,10 @@ class Session:
         if scale == "dexterity":
             return self.effective_dexterity()
         if scale == "intelligence":
-            return self.effective_intelligence()
+            # Inteligencja pozostaje główną statystyką czarów, ale od v0.8.50
+            # Siła jest wtórnym skalowaniem magicznych skilli/spelli. Dzięki temu
+            # Siła rozwijana przez klasę magiczną ma realny wpływ na jej walkę.
+            return self.effective_intelligence() + self.effective_strength() // 4
         return self.effective_strength()
 
     async def skill_combat_target(self, query):
@@ -34620,10 +34971,16 @@ class Session:
                 )
             )
 
-        # Inteligencja odpowiada za moc czarów i mana.
+        # Inteligencja odpowiada za główną moc czarów i Manę. Siła jest
+        # dodatkowym, wtórnym skalowaniem magicznego ataku Bronią Duszy.
         if self.current_mana >= 4:
             self.current_mana -= 4
-            base_damage = c.soul_power() + self.spell_power() + random.randint(-3, 4)
+            base_damage = (
+                c.soul_power()
+                + self.spell_power()
+                + self.physical_power() // 4
+                + random.randint(-3, 4)
+            )
             return max(
                 1,
                 int(
@@ -34637,8 +34994,14 @@ class Session:
                 )
             )
 
-        # Bez many mag nadal może uderzyć Bronią Duszy, ale dużo słabiej.
-        base_damage = c.soul_power() + self.spell_power() // 3 + random.randint(-2, 2)
+        # Bez Many klasa magiczna nadal może uderzyć Bronią Duszy.
+        # Inteligencja działa słabiej, a Siła mocniej niż przy pełnym czarowaniu.
+        base_damage = (
+            c.soul_power()
+            + self.spell_power() // 3
+            + self.physical_power() // 2
+            + random.randint(-2, 2)
+        )
         return max(
                 1,
                 int(
@@ -34673,6 +35036,7 @@ class Session:
             base_damage = (
                 c.soul_power()
                 + self.spell_power()
+                + self.physical_power() / 4.0
                 + 0.5
             )
             value = (
@@ -34686,6 +35050,7 @@ class Session:
             base_damage = (
                 c.soul_power()
                 + self.spell_power() / 3.0
+                + self.physical_power() / 2.0
             )
             value = (
                 base_damage
@@ -35745,8 +36110,10 @@ class Session:
                 await self.buy(args)
             elif command == "talk":
                 await self.talk(args)
+            elif command == "questaccept":
+                await self.accept_quest_command(args)
             elif command == "turnin":
-                await self.turn_in_quest(args)
+                await self.turn_in_quest_command(args)
             elif command == "waterinfo":
                 await self.show_water_info()
             elif command == "teachers":

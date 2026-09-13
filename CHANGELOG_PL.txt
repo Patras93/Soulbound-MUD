@@ -1,3 +1,54 @@
+Soulbound v0.8.51 - Class Starting Resources & Item Selling
+===============================================================
+- Dodano profile startowych statystyk dla wszystkich 12 klas.
+- Startowe HP nadal wynika bezpośrednio z Kondycji; klasa wpływa na HP przez swój bonus do statystyk, bez sztywnego HP przypisanego do klasy.
+- Startowa Mana nadal wynika bezpośrednio z Inteligencji; klasa wpływa na Manę przez swój bonus do statystyk.
+- Kreator postaci po wyborze rasy i klasy czyta końcową Siłę, Zręczność, Kondycję, Inteligencję, Siłę Woli, Charyzmę oraz przewidywane startowe HP i Manę.
+- Istniejące postacie dostają jednorazowo bazowe bonusy swojej głównej klasy przez bezpieczną flagę migracji; restart nie nalicza ich ponownie.
+- `sprzedaj <przedmiot>` obsługuje teraz zwykłe przedmioty z inventory w lokacjach posiadających sklep.
+- Można sprzedawać m.in. talizmany, pierścienie, naszyjniki i niezałożone pancerze.
+- Przedmioty kupione w sklepie są odkupywane za 50% ceny bazowej.
+- Wytwarzane EQ bez ceny sklepowej otrzymuje cenę sprzedaży wyliczaną z obrony, affiksów, gniazd i poziomu/tieru wykonania.
+- Założone przedmioty trzeba najpierw zdjąć. Quest itemów ani narzędzi Character-Bound nie da się sprzedać.
+- Waluta ze sprzedaży trafia do wspólnego portfela konta w kolejności odczytu mithril, złoto, srebro.
+- Nie resetuj soulbound.db ani Railway Volume.
+
+Soulbound v0.8.50 - Universal HP Mana Cross-Stats
+===================================================
+- Każda z 12 klas ma teraz maksymalne HP i maksymalną Manę.
+- Usunięto ograniczenie, które dawało 0 Many postaciom bez aktywnej klasy magicznej.
+- Inteligencja zwiększa maksymalną Manę także Wojownikowi, Berserkerowi, Łotrzykowi, Łowcy, Mnichowi i Strażnikowi.
+- Kondycja nadal zwiększa maksymalne HP wszystkich klas, w tym Maga, Nekromanty, Kapłana, Czarownika, Druida i Psionika.
+- Zręczność działa globalnie: zwiększa szybkość, unik oraz szansę krytyczną również klas magicznych.
+- Siła działa globalnie: pełny wpływ na ataki fizyczne, a dodatkowo 25% jej wartości jest wtórnym skalowaniem magicznych skilli/spelli i podstawowego magicznego ataku Bronią Duszy.
+- Magiczny atak bez Many także korzysta częściowo z Siły, dzięki czemu statystyka nie jest martwa dla klas magicznych.
+- Staty/info wyjaśnia teraz uniwersalny wpływ Siły, Zręczności, Kondycji i Inteligencji.
+- Wszystkie sześć bazowych statystyk nadal rośnie automatycznie przez Postęp Rozwoju; nie ma levelu postaci.
+- Bez zmian schematu SQLite; nie resetuj soulbound.db ani Railway Volume.
+
+Soulbound v0.8.49 - Quest Command Aliases
+=========================================
+- Dodano komendę `questy ukończone` jako pełny alias historii ukończonych questów.
+- Dodano naturalną formę `accept quest <numer>` do przyjmowania pozycji z ostatniej listy `quest list <NPC>`.
+- Dodano naturalną formę `oddaj quest <numer>` do oddawania zadania po numerze z listy aktywnych questów.
+- `oddaj quest <numer>` nie zależy od starego kontekstu listy NPC ani listy ukończonych; numer zawsze odnosi się do aktualnej listy aktywnych questów.
+- Nadal działają wcześniejsze formy: `quest accept <numer>`, `quest oddaj <numer>`, `quest przyjmij <numer>` oraz oddawanie po nazwie.
+- Rozszerzono `help quest` o nowe formy komend.
+- Bez zmian schematu SQLite; nie resetuj soulbound.db ani Railway Volume.
+
+Soulbound v0.8.48 - Class Equipment Mastery Progression
+========================================================
+- Rozszerzono klasowy ekwipunek wszystkich 12 klas do pełnej progresji Biegłości 1-200.
+- Każda klasa ma pełny zestaw 8 części na progach Biegłości: 1, 10, 20, 30 ... 200.
+- Łącznie system generuje 2016 klasowych przedmiotów: 12 klas x 21 progów x 8 części.
+- Wyższy próg Biegłości daje mocniejszą obronę, większy klasowy affix i wyższą cenę.
+- Sklepy klasowe pokazują tylko najlepszy aktualnie odblokowany Tier dla każdej klasy w danej sali, żeby NVDA nie czytał setek starych pozycji.
+- Zakup i założenie przedmiotu sprawdzają aktywną klasę oraz wymaganą Biegłość tej konkretnej klasy.
+- Biegłość 1 zachowuje historyczne ID przedmiotów, więc istniejące klasowe EQ ze starszych save'ów nie znika.
+- Set 2/4/6/8 pozostaje wspólny między Tierami; można mieszać starsze i nowsze części tej samej klasy.
+- Collection Codex nadal liczy 8 logicznych części zestawu klasowego zamiast 168 wariantów Tierów.
+- Bez zmian schematu SQLite; nie resetuj soulbound.db ani Railway Volume.
+
 Soulbound v0.8.47 - Numeric Shop Purchases
 ===============================================
 - `shop`, `sklep`, `list` i `lista` nadal pokazują numerowaną ofertę aktualnego sprzedawcy.
