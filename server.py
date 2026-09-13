@@ -2,7 +2,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Soulbound v0.8.51 Class Starting Resources & Item Selling
+Soulbound v0.8.54 Dynamic Terrain Difficulty & EXP Scaling
 Wieloosobowy tekstowy MUD TCP/Telnet dla MUSHclienta/Mudleta.
 
 Najważniejsze zasady projektu:
@@ -30,7 +30,7 @@ import unicodedata
 from dataclasses import dataclass
 from typing import Optional
 
-VERSION = "0.8.51"
+VERSION = "0.8.55"
 MAX_CHARACTERS_PER_ACCOUNT = 12
 
 HOST = os.getenv("SOULBOUND_HOST", "0.0.0.0")
@@ -68,13 +68,29 @@ TIER3_LEVEL = SOUL_TIER_THRESHOLDS[2]
 TIER4_LEVEL = SOUL_TIER_THRESHOLDS[3]
 TIER5_LEVEL = SOUL_TIER_THRESHOLDS[4]
 
-# Cztery istniejące Próby Elora pozostają i stają się dużymi
-# kamieniami milowymi nowego systemu 20 Tierów.
+# v0.8.53: każdy awans Soul Tier od 2 do 20 wymaga jednorazowej
+# Próby Broni Duszy u Kapłana Elora. Cztery stare quest_id pozostają
+# bez zmian, aby istniejące save'y zachowały ukończone Próby.
 SOUL_TRIAL_QUEST_IDS = {
+    2: "soul_tier_02_trial",
+    3: "soul_tier_03_trial",
     4: "soul_tier_2_trial",
+    5: "soul_tier_05_trial",
+    6: "soul_tier_06_trial",
     7: "soul_tier_3_trial",
+    8: "soul_tier_08_trial",
+    9: "soul_tier_09_trial",
+    10: "soul_tier_10_trial",
+    11: "soul_tier_11_trial",
+    12: "soul_tier_12_trial",
     13: "soul_tier_4_trial",
+    14: "soul_tier_14_trial",
+    15: "soul_tier_15_trial",
+    16: "soul_tier_16_trial",
+    17: "soul_tier_17_trial",
+    18: "soul_tier_18_trial",
     19: "soul_tier_5_trial",
+    20: "soul_tier_20_trial",
 }
 SOUL_TIER_POWER_BONUSES = (
     0, 4, 8, 12, 18, 24, 30, 34, 38, 42,
@@ -4400,6 +4416,10 @@ EQUIPMENT_SLOT_ALIASES = {
     "talizman": "charm",
     "amulet": "charm",
     "charm": "charm",
+    "talizman 1": "charm1", "talizman1": "charm1",
+    "amulet 1": "charm1", "charm 1": "charm1", "charm1": "charm1",
+    "talizman 2": "charm2", "talizman2": "charm2",
+    "amulet 2": "charm2", "charm 2": "charm2", "charm2": "charm2",
 
     "pierścień": "ring",
     "pierscien": "ring",
@@ -4423,6 +4443,8 @@ EQUIPMENT_SLOT_NAMES = {
     "legs": "nogi",
     "feet": "stopy",
     "charm": "talizman",
+    "charm1": "talizman 1",
+    "charm2": "talizman 2",
     "ring": "pierścień",
     "ring1": "pierścień 1",
     "ring2": "pierścień 2",
@@ -4715,6 +4737,96 @@ EXP_AREAS = (
         ),
     },
 )
+
+# v0.8.54 - dynamiczne kategorie terenów i skalowanie EXP.
+# Kategoria bazowa opisuje naturalne przeznaczenie obszaru. Ocena "dla ciebie"
+# jest liczona na bieżąco z faktycznego rozwoju postaci, bo Soulbound nie ma
+# ogólnego levelu postaci.
+EXP_AREA_BASE_CATEGORY = {
+    "trening": "Początkujący",
+    "podziemia": "Początkujący",
+    "bandit_camps": "Początkujący",
+    "goblin_caves": "Początkujący",
+    "ruiny_straznicy": "Początkujący",
+    "dzicz": "Początkujący",
+    "kanaly": "Początkujący",
+    "cmentarz": "Początkujący",
+    "whisper_forest": "Początkujący",
+    "trolle": "Umiarkowany",
+    "legowisko_bestii": "Umiarkowany",
+    "ruiny_kultystow": "Umiarkowany",
+    "bagna": "Umiarkowany",
+    "giganci": "Trudny",
+    "lodowe_jaskinie": "Trudny",
+    "pustynia": "Trudny",
+    "nekropolia": "Trudny",
+    "krypta": "Trudny skalowany",
+    "astral": "Śmiertelny",
+    "mythic_crypt": "Śmiertelny",
+    "mythic_astral": "Ekstremalny Endgame",
+}
+
+# Orientacyjna siła wejściowa obszaru w skali 1-200. Dla wielopiętrowych
+# lochów faktyczny próg jest dodatkowo liczony z aktualnego piętra.
+EXP_AREA_TARGET_POWER = {
+    "trening": 1,
+    "podziemia": 5,
+    "bandit_camps": 10,
+    "goblin_caves": 10,
+    "ruiny_straznicy": 18,
+    "dzicz": 14,
+    "kanaly": 12,
+    "cmentarz": 15,
+    "whisper_forest": 12,
+    "trolle": 30,
+    "legowisko_bestii": 35,
+    "ruiny_kultystow": 45,
+    "bagna": 45,
+    "giganci": 50,
+    "lodowe_jaskinie": 65,
+    "pustynia": 75,
+    "nekropolia": 80,
+    "krypta": 30,
+    "astral": 110,
+    "mythic_crypt": 130,
+    "mythic_astral": 150,
+}
+
+EXP_ZONE_AREA_ID = {
+    "Podziemia": "podziemia",
+    "Obozowiska Bandytów": "bandit_camps",
+    "Jaskinie Goblinów": "goblin_caves",
+    "Ruiny Strażnicy": "ruiny_straznicy",
+    "Dzicz": "dzicz",
+    "Góry": "trolle",
+    "Jaskinia Trolli": "trolle",
+    "Twierdza Gigantów": "giganci",
+    "Krypta 1-200": "krypta",
+    "Wieża Astralna": "astral",
+    "Mityczna Krypta": "mythic_crypt",
+    "Mityczna Wieża Astralna": "mythic_astral",
+    "Bagna": "bagna",
+    "Pustynia": "pustynia",
+    "Stary Cmentarz": "cmentarz",
+    "Ruiny Kultystów": "ruiny_kultystow",
+    "Legowisko Bestii": "legowisko_bestii",
+    "Nekropolia": "nekropolia",
+    "Kanały Pod Miastem": "kanaly",
+    "Lodowe Jaskinie": "lodowe_jaskinie",
+    "Las Szeptów": "whisper_forest",
+}
+
+# Mnożniki dotyczą wyłącznie EXP za zabijane moby: Soul XP oraz Class XP.
+# Stat Progress, waluta i loot pozostają bez zmian.
+DYNAMIC_KILL_XP_MULTIPLIERS = {
+    "trywialny": 0.30,
+    "łatwy": 0.60,
+    "korzystny": 0.85,
+    "odpowiedni": 1.00,
+    "trudny": 1.25,
+    "śmiertelny": 1.55,
+    "ekstremalny": 1.90,
+}
 
 COMMAND_ALIASES = {
     "pomoc": "help", "pomoce": "help",
@@ -7199,10 +7311,10 @@ NPCS = {
     "priest_elor": {
         "name": "Kapłan Elor", "room": "temple",
         "dialogue": (
-            "Świątynia prowadzi próby Broni Duszy. Tier 4 wymaga Soul Level 25 "
-            "i Próby Szkieletów, Tier 7 Soul Level 60 i Próby Upiorów, "
-            "Tier 13 Soul Level 120 i pokonania bossa piętra 120 Krypty, "
-            "a Tier 19 Soul Level 180 i pokonania bossa piętra 180. "
+            "Świątynia prowadzi Próby Broni Duszy dla każdego odblokowania Soul Tieru 2-20. "
+            "Po osiągnięciu wymaganego Soul Levelu sprawdź quest list Kapłan Elor, "
+            "przyjmij właściwą Próbę i wykonaj jej cel. Po ukończeniu użyj unlock. "
+            "Stare wielkie Próby Tierów 4, 7, 13 i 19 pozostają częścią tej serii. "
             "Jeśli nie jesteś jeszcze gotowy, w piwnicy nadal potrzebujemy pomocy ze szczurami."
         ),
         "quest": "temple_rats",
@@ -7650,7 +7762,7 @@ SYSTEM_DESCRIPTIONS = {
     ),
     "broń duszy": (
         "Broń Duszy jest na stałe związana z klasą. Ma osobny Soul Level 1-200, Soul XP i 20 Tierów. "
-        "Wielkie Próby Elora przypadają na Tiery 4, 7, 13 i 19."
+        "Każdy awans Soul Tieru 2-20 wymaga jednorazowej Próby Broni Duszy u Kapłana Elora."
     ),
     "bron duszy": "Broń Duszy ma osobny Soul Level 1-200 i 20 Tierów.",
     "soul weapon": "Broń Duszy ma osobny Soul Level 1-200 i 20 Tierów.",
@@ -7676,8 +7788,19 @@ SYSTEM_DESCRIPTIONS = {
 }
 
 
-LATEST_CHANGES_TITLE = "Soulbound v0.8.47 - Numeric Shop Purchases"
+LATEST_CHANGES_TITLE = "Soulbound v0.8.53 - Full Soul Unlock Trials & Quality of Life"
 LATEST_CHANGES = [
+    "Każdy Soul Tier od 2 do 20 wymaga teraz własnej jednorazowej Próby Broni Duszy u Kapłana Elora.",
+    "Po osiągnięciu progu Soul Level wpisz quest list Kapłan Elor, przyjmij właściwą próbę, wykonaj cel i użyj unlock.",
+    "Zachowano cztery stare quest_id Prób Tierów 4, 7, 13 i 19, więc wcześniejsze ukończenia pozostają ważne.",
+    "Finałowa Próba Tieru 20 wymaga Soul Level 200 i pokonania Władcy Dwustu Pięter na piętrze 200 Krypty.",
+    "Questy zabójstw mogą teraz wskazywać dowolnego konkretnego zabijalnego moba lub bossa przez jego template_id.",
+    "Dwa sloty talizmanów: Talizman 1 i Talizman 2; można nosić dwa talizmany jednocześnie.",
+    "Sprzedaż duplikatów działa dla wszystkich nieprzypisanych przedmiotów przez numer, np. sprzedaj 2.talizman korzeni.",
+    "quit zapisuje bieżącą postać i wraca do MENU POSTACI na tym samym koncie.",
+    "Dodano pełny help wszystkich 253 skilli/spelli: help <nazwa skilla>, help skill <nazwa>, skill info <nazwa>.",
+    "Bez resetu soulbound.db ani Railway Volume.",
+
     "Sklepy obsługują teraz zakup po numerze pozycji z aktualnej listy, np. kup 9.",
     "Można kupić kilka sztuk jednym poleceniem, np. kup 9 3; druga liczba oznacza ilość.",
     "Numery zawsze odnoszą się do oferty sklepu w aktualnej lokacji, więc po zmianie sklepu użyj ponownie shop/list.",
@@ -7911,7 +8034,7 @@ HELP_TOPICS = {
         "Prowadzenie nie prowadzi na konkretne piętra ani w głąb lochów. Użyj np. prowadz krypta albo walk kopalnia; system zatrzyma się przed wejściem.",
         "cofnij, wyjście, back, exit, wstecz, return i escape prowadzą bezpośrednio do bezpiecznego wyjścia z rozpoznanego lochu.",
         "Nawigacja automatyczna zatrzymuje się na blokadach progresji, żywym bossie, zamkniętej ścianie kopalni albo rozpoczęciu walki.",
-        "Wylogowanie: quit, logout, wyloguj albo koniec.",
+        "Zmiana postaci: quit. Komenda zapisuje obecną postać i wraca do MENU POSTACI bez rozłączania.",
     ],
     "dungeon_exit": [
         "Dostępność lochów: cofnij, wyjście, back, exit, wstecz, return i escape prowadzą bezpośrednio do bezpiecznego wyjścia z lochu.",
@@ -8031,9 +8154,12 @@ HELP_TOPICS = {
     ],
     "expowiska": [
         "Komenda expowiska pokazuje listę terenów przeznaczonych do expienia.",
-        "Każdy teren ma opis, orientacyjny Soul Level i poziom trudności.",
-        "Soul Level jest tylko wskazówką; realna trudność zależy także od statów, klasy i wyposażenia.",
-        "expowiska polecane pokazuje tereny pasujące do aktualnego Soul Levelu.",
+        "Każdy teren ma kategorię bazową: Początkujący, Umiarkowany, Trudny, Śmiertelny albo Endgame.",
+        "Ocena dla ciebie zmienia się automatycznie wraz z Biegłością aktywnych klas, Soul Levelem, statystykami i wyposażeniem.",
+        "Gobliny, Bandyci, Las Szeptów, Kanały i podobne wczesne strefy należą do kategorii Początkujący.",
+        "expowiska polecane pokazuje obszary, które są teraz Odpowiednie albo Trudne dla twojej postaci.",
+        "EXP za zabicie jest dynamiczne: słabe moby dają mniej Soul/Class XP, a trudne i śmiertelne więcej.",
+        "con <mob> pokazuje także aktualny mnożnik EXP dla danego przeciwnika.",
         "expowiska krypta pokazuje szczegółowy opis Krypty.",
         "expowiska trolle pokazuje szczegółowy opis Jaskini Trolli.",
         "expowiska giganci pokazuje szczegółowy opis Twierdzy Gigantów.",
@@ -8518,12 +8644,13 @@ HELP_TOPICS = {
     "soul_tier45_krypta200": [
         "Broń Duszy ma teraz 20 Tierów rozłożonych na Soul Level 1-200.",
         "Progi: 1, 10, 20, 25, 35, 45, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160, 170, 180, 200.",
-        "Próby Elora są przy Tierach 4, 7, 13 i 19.",
+        "Każdy Tier 2-20 ma własną jednorazową Próbę Broni Duszy u Kapłana Elora.",
+        "Po osiągnięciu progu użyj quest list Kapłan Elor, wykonaj właściwą Próbę, a następnie wpisz unlock.",
         "Tier 4: Soul 25 i 5 Szkieletowych Strażników.",
         "Tier 7: Soul 60 i 3 Widma Krypty.",
         "Tier 13: Soul 120 i boss Próby na piętrze 120 Krypty.",
         "Tier 19: Soul 180 i boss Próby na piętrze 180 Krypty.",
-        "Tier 20 wymaga Soul 200 i nie ma dodatkowej Próby.",
+        "Tier 20 wymaga Soul 200 oraz finałowej Próby na bossie piętra 200 Krypty.",
         "Stare postacie są automatycznie migrowane: dawny Tier 2->4, 3->7, 4->13, 5->19.",
         "Nie ma resetu Soul Levelu, Soul XP ani ukończonych prób.",
     ],
@@ -8641,6 +8768,7 @@ HELP_TOPICS = {
         "Hurtowa sprzedaż podaje liczbę sztuk, liczbę rodzajów i łączny zarobek.",
         "Charyzma wzrasta o liczbę sprzedanych sztuk, jak przy sprzedaży ręcznej.",
         "sprzedaj przedmioty sprzedaje z inventory tylko rzeczy z jawną ceną sprzedaży i dozwolone w aktualnej lokacji.",
+        "Duplikat możesz wskazać numerem, np. sprzedaj 2.talizman korzeni; założone egzemplarze nie są sprzedawane.",
         "sprzedaj przedmioty nie sprzedaje narzędzi, mikstur, założonego wyposażenia ani rzeczy bez ceny.",
     ],
     "mana_stats_eq": [
@@ -8681,7 +8809,7 @@ HELP_TOPICS = {
     ],
     "zakladanie_lootu": [
         "Ekwipunek zabrany z ciał mobów i bossów można zakładać bez wpisywania pełnej długiej nazwy.",
-        "Skróty: załóż hełm, załóż zbroja, załóż rękawice, załóż nogi, załóż buty, załóż talizman.",
+        "Skróty: załóż hełm, załóż zbroja, załóż rękawice, załóż nogi, załóż buty, załóż talizman 1, załóż talizman 2.",
         "Działają też warianty bez polskich znaków, np. zaloz helm, zaloz rekawice.",
         "Jeśli masz kilka przedmiotów w tym samym slocie, skrót wybiera najlepszy według obrony, potem rzadkości i bonusu.",
         "Pełna nazwa konkretnego dropu nadal działa i pozwala wymusić dokładnie wybrany przedmiot.",
@@ -9779,6 +9907,176 @@ QUESTS.update({
         "reward_items": {"healing_potion": 1, "mana_potion": 1},
         "repeatable": False,
         "starter_quest": True,
+    },
+})
+
+
+# v0.8.53 — brakujące jednorazowe Próby Broni Duszy.
+# Cztery historyczne Próby (Tiery 4, 7, 13 i 19) są zdefiniowane
+# wyżej i zachowują stare quest_id dla pełnej zgodności save'ów.
+QUESTS.update({
+    "soul_tier_02_trial": {
+        "name": "Próba Broni Duszy: Tier 2",
+        "giver": "Kapłan Elor",
+        "kind": "kill", "target": "crypt_boss_10", "needed": 1,
+        "description": (
+            "Pokonaj Kościanego Egzekutora na piętrze 10 Krypty, a następnie "
+            "wróć do Kapłana Elora w Świątyni Odrodzenia."
+        ),
+        "required_soul_level": 10, "required_soul_tier": 1,
+        "unlocks_soul_tier": 2,
+        "reward_silver": 50, "reward_gold": 0, "reward_mithril": 0,
+        "reward_items": {},
+    },
+    "soul_tier_03_trial": {
+        "name": "Próba Broni Duszy: Tier 3",
+        "giver": "Kapłan Elor",
+        "kind": "kill", "target": "crypt_boss_20", "needed": 1,
+        "description": (
+            "Pokonaj Krwawego Kuratora na piętrze 20 Krypty, a następnie "
+            "wróć do Kapłana Elora."
+        ),
+        "required_soul_level": 20, "required_soul_tier": 2,
+        "unlocks_soul_tier": 3,
+        "reward_silver": 75, "reward_gold": 0, "reward_mithril": 0,
+        "reward_items": {},
+    },
+    "soul_tier_05_trial": {
+        "name": "Próba Broni Duszy: Tier 5",
+        "giver": "Kapłan Elor",
+        "kind": "kill", "target": "crypt_floor_mob_35", "needed": 4,
+        "description": (
+            "Pokonaj 4 Strażników Sarkofagu na piętrze 35 Krypty i wróć do Kapłana Elora."
+        ),
+        "required_soul_level": 35, "required_soul_tier": 4,
+        "unlocks_soul_tier": 5,
+        "reward_silver": 150, "reward_gold": 0, "reward_mithril": 0,
+        "reward_items": {},
+    },
+    "soul_tier_06_trial": {
+        "name": "Próba Broni Duszy: Tier 6",
+        "giver": "Kapłan Elor",
+        "kind": "kill", "target": "crypt_floor_mob_45", "needed": 4,
+        "description": (
+            "Pokonaj 4 Zjawiska Pustki na piętrze 45 Krypty i wróć do Kapłana Elora."
+        ),
+        "required_soul_level": 45, "required_soul_tier": 5,
+        "unlocks_soul_tier": 6,
+        "reward_silver": 200, "reward_gold": 0, "reward_mithril": 0,
+        "reward_items": {},
+    },
+    "soul_tier_08_trial": {
+        "name": "Próba Broni Duszy: Tier 8",
+        "giver": "Kapłan Elor",
+        "kind": "kill", "target": "crypt_boss_70", "needed": 1,
+        "description": "Pokonaj Nekromantycznego Kolosa na piętrze 70 Krypty i wróć do Kapłana Elora.",
+        "required_soul_level": 70, "required_soul_tier": 7,
+        "unlocks_soul_tier": 8,
+        "reward_silver": 300, "reward_gold": 0, "reward_mithril": 0,
+        "reward_items": {},
+    },
+    "soul_tier_09_trial": {
+        "name": "Próba Broni Duszy: Tier 9",
+        "giver": "Kapłan Elor",
+        "kind": "kill", "target": "crypt_boss_80", "needed": 1,
+        "description": "Pokonaj Arcyupiora Otchłani na piętrze 80 Krypty i wróć do Kapłana Elora.",
+        "required_soul_level": 80, "required_soul_tier": 8,
+        "unlocks_soul_tier": 9,
+        "reward_silver": 350, "reward_gold": 0, "reward_mithril": 0,
+        "reward_items": {},
+    },
+    "soul_tier_10_trial": {
+        "name": "Próba Broni Duszy: Tier 10",
+        "giver": "Kapłan Elor",
+        "kind": "kill", "target": "crypt_boss_90", "needed": 1,
+        "description": "Pokonaj Króla Kości na piętrze 90 Krypty i wróć do Kapłana Elora.",
+        "required_soul_level": 90, "required_soul_tier": 9,
+        "unlocks_soul_tier": 10,
+        "reward_silver": 400, "reward_gold": 0, "reward_mithril": 0,
+        "reward_items": {},
+    },
+    "soul_tier_11_trial": {
+        "name": "Próba Broni Duszy: Tier 11",
+        "giver": "Kapłan Elor",
+        "kind": "kill", "target": "crypt_boss_100", "needed": 1,
+        "description": "Pokonaj Władcę Stu Pięter na piętrze 100 Krypty i wróć do Kapłana Elora.",
+        "required_soul_level": 100, "required_soul_tier": 10,
+        "unlocks_soul_tier": 11,
+        "reward_silver": 500, "reward_gold": 1, "reward_mithril": 0,
+        "reward_items": {},
+    },
+    "soul_tier_12_trial": {
+        "name": "Próba Broni Duszy: Tier 12",
+        "giver": "Kapłan Elor",
+        "kind": "kill", "target": "crypt_boss_110", "needed": 1,
+        "description": "Pokonaj Strażnika Pękniętej Duszy na piętrze 110 Krypty i wróć do Kapłana Elora.",
+        "required_soul_level": 110, "required_soul_tier": 11,
+        "unlocks_soul_tier": 12,
+        "reward_silver": 550, "reward_gold": 1, "reward_mithril": 0,
+        "reward_items": {},
+    },
+    "soul_tier_14_trial": {
+        "name": "Próba Broni Duszy: Tier 14",
+        "giver": "Kapłan Elor",
+        "kind": "kill", "target": "crypt_boss_130", "needed": 1,
+        "description": "Pokonaj Tytana Żelaznych Kości na piętrze 130 Krypty i wróć do Kapłana Elora.",
+        "required_soul_level": 130, "required_soul_tier": 13,
+        "unlocks_soul_tier": 14,
+        "reward_silver": 700, "reward_gold": 2, "reward_mithril": 0,
+        "reward_items": {},
+    },
+    "soul_tier_15_trial": {
+        "name": "Próba Broni Duszy: Tier 15",
+        "giver": "Kapłan Elor",
+        "kind": "kill", "target": "crypt_boss_140", "needed": 1,
+        "description": "Pokonaj Proroka Czarnego Płomienia na piętrze 140 Krypty i wróć do Kapłana Elora.",
+        "required_soul_level": 140, "required_soul_tier": 14,
+        "unlocks_soul_tier": 15,
+        "reward_silver": 800, "reward_gold": 2, "reward_mithril": 0,
+        "reward_items": {},
+    },
+    "soul_tier_16_trial": {
+        "name": "Próba Broni Duszy: Tier 16",
+        "giver": "Kapłan Elor",
+        "kind": "kill", "target": "crypt_boss_150", "needed": 1,
+        "description": "Pokonaj Władcę Bezdennych Katakumb na piętrze 150 Krypty i wróć do Kapłana Elora.",
+        "required_soul_level": 150, "required_soul_tier": 15,
+        "unlocks_soul_tier": 16,
+        "reward_silver": 900, "reward_gold": 3, "reward_mithril": 0,
+        "reward_items": {},
+    },
+    "soul_tier_17_trial": {
+        "name": "Próba Broni Duszy: Tier 17",
+        "giver": "Kapłan Elor",
+        "kind": "kill", "target": "crypt_boss_160", "needed": 1,
+        "description": "Pokonaj Astralnego Żniwiarza na piętrze 160 Krypty i wróć do Kapłana Elora.",
+        "required_soul_level": 160, "required_soul_tier": 16,
+        "unlocks_soul_tier": 17,
+        "reward_silver": 1000, "reward_gold": 3, "reward_mithril": 0,
+        "reward_items": {},
+    },
+    "soul_tier_18_trial": {
+        "name": "Próba Broni Duszy: Tier 18",
+        "giver": "Kapłan Elor",
+        "kind": "kill", "target": "crypt_boss_170", "needed": 1,
+        "description": "Pokonaj Kolosa Pustki na piętrze 170 Krypty i wróć do Kapłana Elora.",
+        "required_soul_level": 170, "required_soul_tier": 17,
+        "unlocks_soul_tier": 18,
+        "reward_silver": 1100, "reward_gold": 4, "reward_mithril": 0,
+        "reward_items": {},
+    },
+    "soul_tier_20_trial": {
+        "name": "Próba Broni Duszy: Tier 20",
+        "giver": "Kapłan Elor",
+        "kind": "kill", "target": "crypt_boss_200", "needed": 1,
+        "description": (
+            "Pokonaj Władcę Dwustu Pięter na finałowym piętrze 200 Krypty i wróć do Kapłana Elora. "
+            "To ostatnia Próba Broni Duszy."
+        ),
+        "required_soul_level": 200, "required_soul_tier": 19,
+        "unlocks_soul_tier": 20,
+        "reward_silver": 2000, "reward_gold": 10, "reward_mithril": 1,
+        "reward_items": {},
     },
 })
 
@@ -15390,6 +15688,47 @@ def build_independent_specialist_quest_offers():
 INDEPENDENT_SPECIALIST_QUESTS = build_independent_specialist_quest_offers()
 
 
+# ============================================================
+# v0.8.55 - World Stability / topology repairs
+# ============================================================
+def repair_world_topology_v0855():
+    """Naprawia połączenia świata nadpisane przez późniejsze rozszerzenia.
+
+    Kilka builderów poprawnie tworzyło wejścia do nowych terenów, ale kolejne
+    rozszerzenia ponownie definiowały słowniki ``exits`` tych samych pokoi.
+    W efekcie część świata była odcięta, a Jaskinia Trolli miała jedno wyjście
+    prowadzące do nieistniejącej lokacji. Naprawa jest wyłącznie topologiczna
+    i nie zmienia danych postaci ani bazy SQLite.
+    """
+    # Stary, nigdy niezdefiniowany cel mógł spowodować wyjątek przy ruchu.
+    if ROOMS.get("troll_cave_3", {}).get("exits", {}).get("south") == "troll_war_camp":
+        ROOMS["troll_cave_3"]["exits"].pop("south", None)
+
+    # Pradawny Las: pierwotne wejście ``south`` z Deep Grove zostało zajęte
+    # przez Bagna. Zachowujemy oba tereny i dodajemy niezależne zejście.
+    if "deep_grove" in ROOMS and profession_dungeon_room_id("ancient_forest", 1) in ROOMS:
+        ROOMS["deep_grove"]["exits"]["down"] = profession_dungeon_room_id("ancient_forest", 1)
+        if "Wejście do Pradawnego Lasu" not in ROOMS["deep_grove"]["desc"]:
+            ROOMS["deep_grove"]["desc"] += " Wejście do Pradawnego Lasu prowadzi w dół, w najgęstszy ostęp."
+
+    # Ogród Alchemika: wschodnie wyjście Zielarki zajęło później laboratorium.
+    # Dodajemy osobne północne wejście, nie usuwając laboratorium ani ogrodu ziół.
+    if "herbalist_hut" in ROOMS and profession_dungeon_room_id("alchemy_garden", 1) in ROOMS:
+        ROOMS["herbalist_hut"]["exits"]["north"] = profession_dungeon_room_id("alchemy_garden", 1)
+        if "Ogród Alchemika" not in ROOMS["herbalist_hut"]["desc"]:
+            ROOMS["herbalist_hut"]["desc"] += " Na północy znajduje się wejście do Ogrodu Alchemika."
+
+    # Pustynia: północ Ruin Strażnicy została później zajęta przez Ruiny
+    # Kultystów. Pustynia pozostaje podłączona osobnym podejściem w górę.
+    if "ruined_watchtower" in ROOMS and "dry_canyon" in ROOMS:
+        ROOMS["ruined_watchtower"]["exits"]["up"] = "dry_canyon"
+        if "Suchy Kanion" not in ROOMS["ruined_watchtower"]["desc"]:
+            ROOMS["ruined_watchtower"]["desc"] += " Stroma droga w górę prowadzi do Suchego Kanionu i dalej ku Pustyni."
+
+
+repair_world_topology_v0855()
+
+
 def apply_global_mob_hp_multiplier():
     """Zwiększa HP wszystkich mobów i bossów po zbudowaniu całego świata."""
     for template in MOB_TEMPLATES.values():
@@ -16321,6 +16660,16 @@ class Database:
             # Nie niszczymy nietypowych danych; pozostawiony stary wpis
             # zostanie zignorowany do ręcznej korekty zamiast nadpisania ring1.
             pass
+
+        # v0.8.52: dwa sloty talizmanów. Stary slot charm zostaje
+        # niedestrukcyjnie przeniesiony do charm1.
+        self.conn.execute(
+            "UPDATE equipment SET slot='charm1' "
+            "WHERE slot='charm' AND NOT EXISTS ("
+            "SELECT 1 FROM equipment e2 "
+            "WHERE e2.account_id=equipment.account_id AND e2.slot='charm1'"
+            ")"
+        )
 
         quest_cols = {
             r["name"] for r in self.conn.execute("PRAGMA table_info(quests)")
@@ -20672,7 +21021,7 @@ class Session:
 
     def class_set_counts(self):
         active = set(self.active_class_names())
-        unique_items = {}
+        logical_slots = {}
         for row in self.equipped_item_rows():
             item = ITEMS.get(row["item_id"])
             if not item or not item.get("class_shop_item"):
@@ -20680,10 +21029,12 @@ class Session:
             class_name = item.get("required_class")
             if class_name not in active:
                 continue
-            unique_items.setdefault(class_name, set()).add(row["item_id"])
+            # ring1/ring2 i charm1/charm2 są dwiema pozycjami użytkowymi,
+            # ale dla progu setu nadal liczą się jako jedna logiczna część.
+            logical_slots.setdefault(class_name, set()).add(item.get("slot"))
         return {
-            class_name: len(item_ids)
-            for class_name, item_ids in unique_items.items()
+            class_name: len(slots)
+            for class_name, slots in logical_slots.items()
         }
 
     def class_set_stat_bonus_totals(self):
@@ -20793,15 +21144,14 @@ class Session:
         return lines
 
     def regional_set_counts(self):
-        counts = {}
         seen = {}
         for row in self.equipped_item_rows():
             item = ITEMS.get(row["item_id"])
             if not item or not item.get("regional_set"):
                 continue
             set_id = item["regional_set"]
-            seen.setdefault(set_id, set()).add(row["item_id"])
-        return {set_id: len(ids) for set_id, ids in seen.items()}
+            seen.setdefault(set_id, set()).add(item.get("slot"))
+        return {set_id: len(slots) for set_id, slots in seen.items()}
 
     def regional_set_hp_mana_multiplier(self):
         mult=1.0
@@ -20839,7 +21189,7 @@ class Session:
         return lines or ["Brak aktywnego regionalnego zestawu."]
 
     def dominant_crypt_set(self):
-        counts = {}
+        slots_by_tier = {}
         for row in self.equipped_item_rows():
             item = ITEMS.get(row["item_id"])
             if not item:
@@ -20847,8 +21197,9 @@ class Session:
             tier = item.get("crypt_set_tier")
             if tier:
                 tier = int(tier)
-                counts[tier] = counts.get(tier, 0) + 1
+                slots_by_tier.setdefault(tier, set()).add(item.get("slot"))
 
+        counts = {tier: len(slots) for tier, slots in slots_by_tier.items()}
         if not counts:
             return 0, 0
 
@@ -20895,7 +21246,7 @@ class Session:
         )
 
     def dominant_astral_set(self):
-        counts = {}
+        slots_by_tier = {}
         for row in self.equipped_item_rows():
             item = ITEMS.get(row["item_id"])
             if not item:
@@ -20903,8 +21254,9 @@ class Session:
             tier = item.get("astral_set_tier")
             if tier:
                 tier = int(tier)
-                counts[tier] = counts.get(tier, 0) + 1
+                slots_by_tier.setdefault(tier, set()).add(item.get("slot"))
 
+        counts = {tier: len(slots) for tier, slots in slots_by_tier.items()}
         if not counts:
             return 0, 0
 
@@ -22317,6 +22669,7 @@ class Session:
             "kodeksklasowy <klasa> / classcodex <class> - wszystkie skille, wymagana Biegłość, nauczyciel, koszt i status odblokowania",
             "skillnames / nazwyskilli - wszystkie nazwy skilli wszystkich klas",
             "skill / umiejetnosc / cast <nazwa lub numer> [cel] - użyj umiejętności",
+            "help skill <nazwa> / help <nazwa skilla> / skill info <nazwa> - pełny help każdej umiejętności/spella w grze",
             "kolejka / kolejka lista - pokaż zapisane skille i czary; sloty są numerowane zwyczajnie jako Slot 1, Slot 2 itd. osobno dla fizycznych i magicznych; kolejka dodaj automatycznie włącza rotację",
             "użyj umiejętność <nazwa> [cel] / use skill <name> [target] - alternatywne użycie skilla",
             "learn / naucz / ucz <nazwa, numer lub naturalna kategoria> - np. naucz leczenie, tarcza, ciecie, pocisk, ogien",
@@ -22372,7 +22725,7 @@ class Session:
             "flee / uciekaj - ucieczka",
             "unlock - odblokuj gotowy Soul Tier",
             "save - zapis",
-            "quit - wyjście",
+            "quit - zapisz bieżącą postać i wróć do MENU POSTACI",
         ]
 
     def full_changelog_lines(self):
@@ -22407,9 +22760,220 @@ class Session:
             if line.strip():
                 await self.send(line)
 
+    def all_skill_help_entries(self):
+        entries = []
+        for class_name, skills in CLASS_SKILLS.items():
+            for skill in skills:
+                entries.append((class_name, skill))
+        return entries
+
+    def skill_help_query_text(self, query):
+        normalized = normalize_lookup_text(query)
+        prefixes = (
+            "skill ", "spell ", "czar ", "umiejetnosc ", "zdolnosc ",
+            "info ", "opis ", "help ", "pomoc ",
+        )
+        changed = True
+        while normalized and changed:
+            changed = False
+            for prefix in prefixes:
+                if normalized.startswith(prefix):
+                    normalized = normalized[len(prefix):].strip()
+                    changed = True
+                    break
+        return normalized
+
+    def find_global_skill_help_matches(self, query):
+        wanted = self.skill_help_query_text(query)
+        if not wanted:
+            return []
+
+        exact = []
+        partial = []
+        for class_name, skill in self.all_skill_help_entries():
+            names = [skill.get("name", ""), skill.get("id", "")]
+            names.extend(skill.get("aliases", []))
+            normalized_names = {
+                normalize_lookup_text(value)
+                for value in names
+                if normalize_lookup_text(value)
+            }
+            if wanted in normalized_names:
+                exact.append((class_name, skill))
+                continue
+            if any(wanted in value for value in normalized_names):
+                partial.append((class_name, skill))
+
+        # Pełna nazwa/alias ma zawsze pierwszeństwo. Przy niejednoznacznym
+        # fragmencie nie zgadujemy skilla za gracza.
+        if exact:
+            unique = {}
+            for class_name, skill in exact:
+                unique[skill["id"]] = (class_name, skill)
+            return list(unique.values())
+        unique = {}
+        for class_name, skill in partial:
+            unique[skill["id"]] = (class_name, skill)
+        return list(unique.values())
+
+    def skill_help_kind_label(self, kind):
+        return {
+            "damage": "obrażenia pojedynczego celu",
+            "aoe_damage": "obrażenia obszarowe",
+            "execute": "finisher / egzekucja",
+            "drain": "obrażenia i wysysanie życia",
+            "boost": "buff / wzmocnienie",
+            "guard": "obrona / guard",
+            "evade": "unik",
+            "heal": "leczenie",
+            "group_heal": "leczenie drużynowe",
+        }.get(kind, str(kind or "nieznany"))
+
+    def skill_help_scale_label(self, scale):
+        return {
+            "strength": "Siła",
+            "dexterity": "Zręczność",
+            "intelligence": "Inteligencja",
+        }.get(scale, "brak bezpośredniego skalowania statystyką")
+
+    def skill_help_effect_details(self, skill):
+        parts = []
+        kind = skill.get("kind")
+        if skill.get("scale"):
+            parts.append("Skalowanie: " + self.skill_help_scale_label(skill.get("scale")))
+        if "mult" in skill:
+            parts.append(f"Mnożnik mocy: x{float(skill['mult']):.2f}")
+        if kind == "execute" and "execute_mult" in skill:
+            parts.append(f"Mnożnik egzekucji: x{float(skill['execute_mult']):.2f}")
+        if kind == "boost" and "boost" in skill:
+            pct = int(round((float(skill.get("boost", 1.0)) - 1.0) * 100))
+            duration = skill.get("duration")
+            if duration:
+                parts.append(f"Bazowe wzmocnienie: +{pct} procent przez {int(duration)} sekund")
+            else:
+                parts.append(f"Bazowe wzmocnienie: +{pct} procent; czas działania odpowiada efektywnemu cooldownowi")
+        if kind == "guard" and "guard" in skill:
+            parts.append(f"Bazowa redukcja następnego trafienia: {int(skill['guard'])}")
+        if kind in ("heal", "group_heal") and "heal_pct" in skill:
+            parts.append(f"Bazowe leczenie: {int(round(float(skill['heal_pct']) * 100))} procent maksymalnego HP")
+        if kind == "drain" and "drain_pct" in skill:
+            parts.append(f"Wysysanie życia: {int(round(float(skill['drain_pct']) * 100))} procent zadanych obrażeń")
+        if skill.get("self_damage"):
+            parts.append(f"Koszt własnego HP: {int(skill['self_damage'])}")
+        if skill.get("self_damage_pct"):
+            parts.append(f"Koszt własnego HP: {int(round(float(skill['self_damage_pct']) * 100))} procent")
+        return parts
+
+    async def show_skill_help(self, query):
+        wanted = self.skill_help_query_text(query)
+        if not wanted:
+            await self.send(
+                "Użycie: help skill <nazwa>, help <nazwa skilla> albo skill info <nazwa>. "
+                "Wpisz skillnames, aby usłyszeć wszystkie nazwy."
+            )
+            return True
+
+        matches = self.find_global_skill_help_matches(wanted)
+        if not matches:
+            return False
+        if len(matches) > 1:
+            await self.send(
+                "Nazwa jest niejednoznaczna. Pasujące umiejętności: "
+                + "; ".join(
+                    f"{skill['name']} ({class_name})"
+                    for class_name, skill in matches[:20]
+                )
+                + ". Podaj pełniejszą nazwę."
+            )
+            return True
+
+        class_name, skill = matches[0]
+        kind = skill.get("kind")
+        queue_type = self.skill_queue_type(skill)
+        mastery_needed = self.skill_required_mastery(skill)
+        mastery_current = self.class_mastery_level(class_name)
+        learned = self.server.db.knows_skill(self.account_id, skill["id"])
+        active = class_name in self.active_class_names()
+        mana = int(skill.get("mana", 0) or 0)
+        base_cd = int(skill.get("cooldown", 0) or 0)
+
+        await self.send(f"HELP SKILL: {skill['name']}.")
+        await self.send(
+            f"Klasa: {class_name}. Typ: {self.skill_help_kind_label(kind)}. "
+            f"Wymagana Biegłość klasy: {mastery_needed}. "
+            f"Kolejka: {self.skill_queue_type_label(queue_type)}."
+        )
+        await self.send(
+            f"Mana: {mana}. Bazowy cooldown: {base_cd} sekund. "
+            f"Opis: {skill.get('desc', 'Brak opisu.')}"
+        )
+        effect_parts = self.skill_help_effect_details(skill)
+        if effect_parts:
+            await self.send("Mechanika: " + ". ".join(effect_parts) + ".")
+
+        teacher_id, teacher = self.class_teacher(class_name)
+        if teacher:
+            room_name = ROOMS.get(teacher.get("room"), {}).get("name", "nieznana lokacja")
+            base_cost, final_cost, discount = self.class_codex_training_cost(class_name, skill)
+            cost_text = self.training_cost_text(final_cost)
+            await self.send(
+                f"Nauczyciel: {teacher['name']}, {room_name}. "
+                f"Aktualny koszt nauki: {cost_text}."
+            )
+
+        if learned:
+            progress = self.skill_progress_data(skill)
+            level = max(1, int(progress.get("level", 1)))
+            effective_cd = self.effective_skill_cooldown(skill, level)
+            if level >= SKILL_MAX_LEVEL:
+                progress_text = f"Skill Level {level}, maksymalny"
+            else:
+                progress_text = (
+                    f"Skill Level {level}, XP {progress.get('xp', 0)} z "
+                    f"{skill_xp_to_next(level)}, użycia {progress.get('uses', 0)}"
+                )
+            await self.send(
+                f"Status: nauczona. {progress_text}. "
+                f"Aktualny cooldown przy tym Skill Level: {effective_cd} sekund."
+            )
+        elif not active:
+            await self.send(
+                f"Status: klasa {class_name} nie jest aktywna. Twoja Biegłość tej klasy: {mastery_current}."
+            )
+        elif mastery_current < mastery_needed:
+            await self.send(
+                f"Status: jeszcze zablokowana. Biegłość {class_name}: {mastery_current} z wymaganych {mastery_needed}."
+            )
+        else:
+            await self.send(
+                f"Status: odblokowana do nauki. Biegłość {class_name}: {mastery_current}."
+            )
+
+        await self.send(
+            f"Komendy: skill {skill['name']} [cel]; kolejka dodaj {skill['name']}."
+        )
+        return True
+
     async def show_help(self, topic=""):
         raw = topic.strip().lower()
         key = HELP_TOPIC_ALIASES.get(raw, raw)
+
+        # v0.8.52: pełny help dla wszystkich 253 skilli/spelli, także klas
+        # nieaktywnych. Działa `help skill <nazwa>` oraz bezpośrednio
+        # `help <nazwa skilla>`. Zwykłe tematy help zachowują pierwszeństwo.
+        raw_normalized = normalize_lookup_text(raw)
+        explicit_skill_help = any(
+            raw_normalized.startswith(prefix)
+            for prefix in (
+                "skill ", "spell ", "czar ", "umiejetnosc ", "zdolnosc "
+            )
+        )
+        if explicit_skill_help:
+            if await self.show_skill_help(raw):
+                return
+        elif key not in HELP_TOPICS and key not in ("tematy", "komendy", "wszystko"):
+            if await self.show_skill_help(raw):
+                return
 
         if not key:
             await self.send("POMOC GŁÓWNA")
@@ -22423,6 +22987,7 @@ class Session:
             await self.send("help tematy - lista tematów.")
             await self.send("help wszystko - pełny przewodnik.")
             await self.send("opis <nazwa> - szczegółowy opis dowolnego elementu.")
+            await self.send("help skill <nazwa> albo help <nazwa skilla> - pełna pomoc konkretnej umiejętności/spella, dla wszystkich klas.")
             await self.send("changes / zmiany / changelog - pełna historia wszystkich wersji i zmian, najnowsze na górze.")
             await self.send("Na start: look, exits, staty, dusza, eq, quest, help quest, help podstawy.")
             await self.send("Nowość v0.8.1: sety 2/4/6/8 dla wszystkich 12 klas oraz teren info <nazwa>. Tryby info z v0.8.0 pozostają.")
@@ -23913,7 +24478,7 @@ class Session:
             )
         await self.send(
             "Pozostałe Tiery wymagają tylko odpowiedniego Soul Levelu i komendy unlock. "
-            "Tier 20 wymaga Soul 200 i nie ma dodatkowej Próby."
+            "Tier 20 wymaga Soul 200 oraz finałowej Próby na bossie piętra 200 Krypty."
         )
         await self.send("KAMIENIE MILOWE BRONI DUSZY")
         for milestone_tier in SOUL_MILESTONE_TIERS:
@@ -24565,13 +25130,175 @@ class Session:
                 "limit. Czat: pc <tekst>."
             )
 
-    def exp_area_recommended(self, area):
-        soul_level = int(self.character.soul_level)
-        return (
-            int(area["soul_min"])
-            <= soul_level
-            <= int(area["soul_max"])
+    def character_progression_power(self):
+        """Orientacyjna siła 1-200 bez wprowadzania Character Levelu."""
+        active = self.active_class_names()
+        masteries = [self.class_mastery_level(name) for name in active] or [1]
+        highest_mastery = max(masteries)
+        average_mastery = sum(masteries) / len(masteries)
+
+        combat_stats = (
+            self.effective_strength(),
+            self.effective_dexterity(),
+            self.effective_constitution(),
+            self.effective_intelligence(),
+            self.effective_willpower(),
         )
+        average_stats = min(200.0, sum(combat_stats) / len(combat_stats))
+
+        gear_tiers = []
+        for row in self.server.db.equipment(self.account_id):
+            item = ITEMS.get(row["item_id"], {})
+            required = int(item.get("required_mastery", 0) or 0)
+            if required > 0:
+                gear_tiers.append(required)
+        gear_power = (
+            sum(gear_tiers) / len(gear_tiers)
+            if gear_tiers else 1.0
+        )
+
+        # Startowa postać wypada w okolicach 10 punktów. Wraz z Biegłością,
+        # Soul Levelem, statami i klasowym EQ wynik płynnie rośnie do endgame.
+        score = (
+            7.0
+            + highest_mastery * 0.40
+            + average_mastery * 0.10
+            + int(self.character.soul_level) * 0.20
+            + average_stats * 0.20
+            + min(200.0, gear_power) * 0.10
+        )
+        return max(1, min(200, int(round(score))))
+
+    def exp_area_target_power(self, area, room_id=None):
+        target = int(
+            EXP_AREA_TARGET_POWER.get(
+                area.get("id"),
+                max(1, int(area.get("soul_min", 1))),
+            )
+        )
+        room_id = room_id or ""
+
+        # Wielopiętrowe dungeony naprawdę skalują się wraz z głębokością.
+        floor = crypt_floor_number(room_id)
+        if area.get("id") == "krypta" and floor is not None:
+            return max(target, min(200, int(floor)))
+
+        floor = astral_floor_number(room_id)
+        if area.get("id") == "astral" and floor is not None:
+            return max(target, min(200, int(floor)))
+
+        floor = mythic_crypt_floor_number(room_id)
+        if area.get("id") == "mythic_crypt" and floor is not None:
+            return min(200, max(target, 100 + int(floor) // 2))
+
+        floor = mythic_astral_floor_number(room_id)
+        if area.get("id") == "mythic_astral" and floor is not None:
+            return min(200, max(target, 120 + int(floor) * 2 // 5))
+
+        floor = giant_fortress_floor_number(room_id)
+        if area.get("id") == "giganci" and floor is not None:
+            return min(200, max(target, 45 + int(floor) * 3 // 2))
+
+        return target
+
+    def exp_area_dynamic_threat(self, area, room_id=None):
+        power = self.character_progression_power()
+        target = self.exp_area_target_power(area, room_id=room_id)
+        delta = target - power
+        if delta <= -40:
+            label = "Trywialny"
+        elif delta <= -15:
+            label = "Łatwy"
+        elif delta <= 10:
+            label = "Odpowiedni"
+        elif delta <= 30:
+            label = "Trudny"
+        elif delta <= 60:
+            label = "Śmiertelny"
+        else:
+            label = "Ekstremalny"
+        return label, target, power
+
+    def exp_area_recommended(self, area):
+        label, _, _ = self.exp_area_dynamic_threat(area)
+        return label in ("Odpowiedni", "Trudny")
+
+    def exp_area_for_room(self, room_id=None):
+        room_id = room_id or (self.character.room_id if self.character else "")
+        if room_id == "training_ground":
+            area_id = "trening"
+        else:
+            zone = ROOMS.get(room_id, {}).get("zone")
+            area_id = EXP_ZONE_AREA_ID.get(zone)
+        if not area_id:
+            return None
+        return next((a for a in EXP_AREAS if a.get("id") == area_id), None)
+
+    def dynamic_kill_xp_profile(self, template, room_id=None):
+        """Skaluje mob EXP do aktualnej siły postaci bez Character XP/levelu."""
+        area = self.exp_area_for_room(room_id)
+        if area:
+            dynamic, target, power = self.exp_area_dynamic_threat(
+                area, room_id=room_id or self.character.room_id
+            )
+            key = dynamic.lower()
+            multiplier = {
+                "trywialny": 0.30,
+                "łatwy": 0.60,
+                "odpowiedni": 1.00,
+                "trudny": 1.25,
+                "śmiertelny": 1.55,
+                "ekstremalny": 1.90,
+            }[key]
+            return {
+                "label": key,
+                "multiplier": multiplier,
+                "area": area.get("name"),
+                "target": target,
+                "power": power,
+            }
+
+        player_hit = max(1.0, self.consider_player_expected_hit())
+        enemy_hit = max(1.0, self.consider_enemy_expected_hit(template))
+        mob_hp = max(1.0, float(template.get("max_hp", 1)))
+        player_hp = max(1.0, float(self.max_hp()))
+        turns_to_kill = mob_hp / player_hit
+        turns_to_die = player_hp / enemy_hit
+        ratio = turns_to_die / max(0.01, turns_to_kill)
+
+        if template.get("boss_mechanic"):
+            ratio *= 0.82
+        if (
+            template.get("crypt_boss")
+            or template.get("astral_boss")
+            or template.get("mythic_crypt_boss")
+            or template.get("mythic_astral_boss")
+        ):
+            ratio *= 0.90
+        if template.get("world_boss"):
+            ratio *= 0.90
+
+        if ratio >= 3.0:
+            key = "trywialny"
+        elif ratio >= 1.9:
+            key = "łatwy"
+        elif ratio >= 1.25:
+            key = "korzystny"
+        elif ratio >= 0.80:
+            key = "odpowiedni"
+        elif ratio >= 0.50:
+            key = "trudny"
+        elif ratio >= 0.28:
+            key = "śmiertelny"
+        else:
+            key = "ekstremalny"
+        return {
+            "label": key,
+            "multiplier": float(DYNAMIC_KILL_XP_MULTIPLIERS[key]),
+            "area": None,
+            "target": None,
+            "power": self.character_progression_power(),
+        }
 
     def find_exp_area(self, query):
         wanted = self.normalize_description_query(query)
@@ -24615,6 +25342,15 @@ class Session:
         return (
             f"orientacyjnie Soul Level "
             f"{minimum}-{maximum}"
+        )
+
+    def exp_area_category_text(self, area, room_id=None):
+        base = EXP_AREA_BASE_CATEGORY.get(area.get("id"), "Umiarkowany")
+        dynamic, target, power = self.exp_area_dynamic_threat(area, room_id=room_id)
+        return (
+            f"Kategoria bazowa: {base}. "
+            f"Dla twojej obecnej postaci: {dynamic}. "
+            f"Siła postaci {power}/200, próg terenu około {target}/200"
         )
 
     def resolve_terrain_zone(self, query):
@@ -24781,9 +25517,13 @@ class Session:
             soul_min = min(int(area["soul_min"]) for area in areas)
             soul_max = max(int(area["soul_max"]) for area in areas)
             difficulty = ", ".join(dict.fromkeys(area["difficulty"] for area in areas))
+            # v0.8.54: bazowa kategoria + dynamiczna ocena względem bieżącej postaci.
+            dynamic_labels = [self.exp_area_category_text(area) for area in areas]
             await self.send(
-                f"Orientacyjny Soul: {soul_min}-{soul_max}. Trudność: {difficulty}."
+                f"Orientacyjny Soul: {soul_min}-{soul_max}. Dawna trudność: {difficulty}."
             )
+            for text in dict.fromkeys(dynamic_labels):
+                await self.send(text + ".")
             descriptions = list(dict.fromkeys(area["description"] for area in areas))
             await self.send("Opis: " + " ".join(descriptions))
         else:
@@ -24823,7 +25563,7 @@ class Session:
         await self.send(
             f"{area['name']}. "
             f"{self.exp_area_soul_text(area)}. "
-            f"Trudność: {area['difficulty']}."
+            f"{self.exp_area_category_text(area)}."
             f"{recommended}"
         )
         await self.send(
@@ -24857,8 +25597,8 @@ class Session:
             ]
             await self.send(
                 f"POLECANE EXPOWISKA. "
-                f"Twój Soul Level: "
-                f"{self.character.soul_level}."
+                f"Soul Level: {self.character.soul_level}. "
+                f"Orientacyjna siła postaci: {self.character_progression_power()}/200."
             )
             if not areas:
                 await self.send(
@@ -24870,7 +25610,7 @@ class Session:
             for area in areas:
                 await self.send(
                     f"{area['name']}. "
-                    f"{self.exp_area_soul_text(area)}. "
+                    f"{self.exp_area_category_text(area)}. "
                     f"{area['description']}"
                 )
             return
@@ -24887,13 +25627,13 @@ class Session:
             return
 
         await self.send(
-            f"EXPOWISKA. Twój Soul Level: "
-            f"{self.character.soul_level}."
+            f"EXPOWISKA. Soul Level: {self.character.soul_level}. "
+            f"Orientacyjna siła postaci: {self.character_progression_power()}/200."
         )
         await self.send(
-            "Zakres Soul Level jest wskazówką, "
-            "nie wymaganiem. Trudność zależy też "
-            "od statów, klasy i wyposażenia."
+            "Tereny mają kategorię bazową: Początkujący, Umiarkowany, Trudny, "
+            "Śmiertelny lub Endgame. Ocena 'dla ciebie' zmienia się automatycznie "
+            "wraz z Biegłością klas, Soul Levelem, statystykami i wyposażeniem."
         )
 
         for number, area in enumerate(
@@ -24907,8 +25647,7 @@ class Session:
             )
             await self.send(
                 f"{number}. {area['name']}. "
-                f"{self.exp_area_soul_text(area)}. "
-                f"Trudność: {area['difficulty']}. "
+                f"{self.exp_area_category_text(area)}. "
                 f"{area['description']}"
                 f"{marker}"
             )
@@ -29053,10 +29792,10 @@ class Session:
 
     async def bulk_sell_inventory_items(self):
         rows = self.server.db.inventory(self.account_id)
-        equipped_ids = {
-            row["item_id"]
-            for row in self.server.db.equipment(self.account_id)
-        }
+        equipped_counts = {}
+        for equipped in self.server.db.equipment(self.account_id):
+            item_id = equipped["item_id"]
+            equipped_counts[item_id] = equipped_counts.get(item_id, 0) + 1
 
         sell_rows = []
         skipped = 0
@@ -29065,10 +29804,15 @@ class Session:
             item_id = row["item_id"]
             qty = int(row["quantity"])
             item = ITEMS.get(item_id, {})
+            equipped_count = min(qty, int(equipped_counts.get(item_id, 0)))
+            sellable_qty = max(0, qty - equipped_count)
 
-            if item_id in equipped_ids:
+            if sellable_qty <= 0:
                 skipped += qty
                 continue
+
+            if equipped_count:
+                skipped += equipped_count
 
             if item.get("type") == "resource":
                 if not (
@@ -29080,7 +29824,7 @@ class Session:
                 if not self.resource_sale_allowed_here(item_id):
                     skipped += qty
                     continue
-                sell_rows.append((item_id, qty))
+                sell_rows.append((item_id, sellable_qty))
                 continue
 
             if is_character_bound_item(item_id) or item.get("type") == "quest":
@@ -29091,7 +29835,7 @@ class Session:
                 continue
             if not self.generic_item_is_sellable(item_id, item):
                 continue
-            sell_rows.append((item_id, qty))
+            sell_rows.append((item_id, sellable_qty))
 
         if not sell_rows:
             await self.send(
@@ -29146,8 +29890,16 @@ class Session:
 
         await self.sell_resource(query)
 
+    def parse_numbered_inventory_query(self, query):
+        raw = str(query or "").strip()
+        match = re.match(r"^\s*(\d+)\s*[\.\)]\s*(.+?)\s*$", raw)
+        if not match:
+            return None, raw
+        return max(1, int(match.group(1))), match.group(2).strip()
+
     async def sell_resource(self, query):
-        found = find_by_name(ITEMS, query)
+        copy_number, item_query = self.parse_numbered_inventory_query(query)
+        found = find_by_name(ITEMS, item_query)
         if not found:
             await self.send("Nie rozpoznaję takiego przedmiotu.")
             return
@@ -29165,13 +29917,30 @@ class Session:
                     "Przejdź do sklepu i użyj: sprzedaj <nazwa przedmiotu>."
                 )
                 return
-            if self.server.db.item_qty(self.account_id, item_id) <= 0:
+            owned_qty = self.server.db.item_qty(self.account_id, item_id)
+            if owned_qty <= 0:
                 await self.send("Nie masz tego przedmiotu.")
                 return
-            equipped_ids = {row["item_id"] for row in self.server.db.equipment(self.account_id)}
-            if item_id in equipped_ids:
+            equipped_count = sum(
+                1 for row in self.server.db.equipment(self.account_id)
+                if row["item_id"] == item_id
+            )
+            if copy_number is not None:
+                if copy_number > owned_qty:
+                    await self.send(
+                        f"Masz tylko {owned_qty} sztuk: {item['name']}."
+                    )
+                    return
+                if copy_number <= equipped_count:
+                    await self.send(
+                        f"Egzemplarz {copy_number}: {item['name']} jest założony. "
+                        f"Sprzedaj egzemplarz od {equipped_count + 1} wzwyż albo zdejmij talizman/EQ."
+                    )
+                    return
+            elif owned_qty <= equipped_count:
                 await self.send(
-                    f"{item['name']} jest założony. Najpierw zdejmij przedmiot, aby go sprzedać."
+                    f"Wszystkie posiadane sztuki {item['name']} są założone. "
+                    "Najpierw zdejmij jedną albo wskaż wolny egzemplarz numerem."
                 )
                 return
             values = self.generic_item_sale_value(item_id, item)
@@ -29183,8 +29952,9 @@ class Session:
             self.character.mithril += values["mithril"]
             await self.gain_charisma_from_sale()
             self.server.db.save_character(self.character)
+            copy_text = f" egzemplarz {copy_number}" if copy_number is not None else ""
             await self.send(
-                f"Sprzedajesz {item['name']} za "
+                f"Sprzedajesz{copy_text}: {item['name']} za "
                 f"{currency_reading_text(values['silver'], values['gold'], values['mithril'])}."
             )
             return
@@ -29960,6 +30730,7 @@ class Session:
         slot_names = {
             "head": "Głowa", "body": "Korpus", "hands": "Dłonie",
             "legs": "Nogi", "feet": "Stopy", "charm": "Talizman",
+            "charm1": "Talizman 1", "charm2": "Talizman 2",
             "ring": "Pierścień", "ring1": "Pierścień 1",
             "ring2": "Pierścień 2", "necklace": "Naszyjnik",
         }
@@ -30069,12 +30840,17 @@ class Session:
         await self.send(self.class_set_threshold_text(found) + ".")
         await self.send(
             "Osiem unikalnych części to: głowa, korpus, dłonie, nogi, stopy, "
-            "talizman, pierścień i naszyjnik. Drugi taki sam pierścień nie zwiększa licznika setu."
+            "talizman, pierścień i naszyjnik. Drugi taki sam talizman ani pierścień nie zwiększa licznika setu."
         )
 
     def owned_armor_for_slot(self, slot):
         candidates = []
-        logical_slot = "ring" if slot in ("ring1", "ring2") else slot
+        if slot in ("ring1", "ring2"):
+            logical_slot = "ring"
+        elif slot in ("charm1", "charm2"):
+            logical_slot = "charm"
+        else:
+            logical_slot = slot
         for item_id, item in ITEMS.items():
             if item.get("type") != "armor":
                 continue
@@ -30117,7 +30893,12 @@ class Session:
         slot = EQUIPMENT_SLOT_ALIASES.get(normalized)
 
         if slot:
-            lookup_slot = "ring1" if slot == "ring" else slot
+            if slot == "ring":
+                lookup_slot = "ring1"
+            elif slot == "charm":
+                lookup_slot = "charm1"
+            else:
+                lookup_slot = slot
             candidates = self.owned_armor_for_slot(lookup_slot)
             if not candidates:
                 return None, slot, []
@@ -30146,6 +30927,15 @@ class Session:
         if not self.server.db.equipped_item(self.account_id, "ring2"):
             return "ring2"
         return "ring1"
+
+    def charm_target_slot(self, requested_slot=None):
+        if requested_slot in ("charm1", "charm2"):
+            return requested_slot
+        if not self.server.db.equipped_item(self.account_id, "charm1"):
+            return "charm1"
+        if not self.server.db.equipped_item(self.account_id, "charm2"):
+            return "charm2"
+        return "charm1"
 
     def equipped_jewelry(self, slot):
         if slot == "ring":
@@ -30462,7 +31252,8 @@ class Session:
                 "Nie rozpoznaję posiadanego pancerza. "
                 "Możesz wpisać: załóż hełm, załóż zbroja, "
                 "załóż rękawice, załóż nogi, załóż buty, "
-                "załóż talizman, załóż pierścień 1, załóż pierścień 2 "
+                "załóż talizman 1, załóż talizman 2, "
+                "załóż pierścień 1, załóż pierścień 2 "
                 "albo załóż naszyjnik. English: equip ring1 / equip ring2."
             )
             return
@@ -30515,6 +31306,23 @@ class Session:
             if self.server.db.item_qty(self.account_id, item_id) <= already_equipped:
                 await self.send(
                     "Do drugiego slotu potrzebujesz drugiej sztuki tego pierścienia."
+                )
+                return
+
+        if item["slot"] == "charm":
+            actual_slot = self.charm_target_slot(
+                requested_slot if requested_slot in ("charm1", "charm2") else None
+            )
+            already_equipped = sum(
+                1
+                for row in self.equipped_item_rows()
+                if row["slot"] in ("charm1", "charm2")
+                and row["item_id"] == item_id
+                and row["slot"] != actual_slot
+            )
+            if self.server.db.item_qty(self.account_id, item_id) <= already_equipped:
+                await self.send(
+                    "Do drugiego slotu potrzebujesz drugiej sztuki tego talizmanu."
                 )
                 return
 
@@ -31474,6 +32282,18 @@ class Session:
                 == giver_name
             ):
                 add(quest_id)
+
+        # v0.8.53: u Elora Próby są zawsze czytane w naturalnej kolejności
+        # Tier 2 -> Tier 20, niezależnie od historycznej kolejności definicji
+        # quest_id w pliku. Zwykły quest Szczury pod świątynią zostaje pierwszy.
+        if npc_id == "priest_elor":
+            trial_ids = set(SOUL_TRIAL_QUEST_IDS.values())
+            regular = [qid for qid in result if qid not in trial_ids]
+            trials = sorted(
+                (qid for qid in result if qid in trial_ids),
+                key=lambda qid: int(QUESTS[qid].get("unlocks_soul_tier", 999)),
+            )
+            result = regular + trials
         return result
 
     def quest_lock_reasons(self, quest_id):
@@ -35274,6 +36094,11 @@ class Session:
                 "Ocena consider jest orientacyjna."
             )
 
+        xp_profile = self.dynamic_kill_xp_profile(template, room_id=self.character.room_id)
+        await self.send(
+            f"EXP przy obecnej sile postaci: {xp_profile['label']}, "
+            f"mnożnik x{xp_profile['multiplier']:.2f} dla Soul XP i Class XP."
+        )
         await self.send(rating["advice"])
         await self.send(
             "Consider jest tylko oceną: nie rozpoczyna walki "
@@ -35608,18 +36433,34 @@ class Session:
                 template["stat_reward"]
             ):
                 await session.send(msg)
-            await session.grant_soul_xp(
-                template["soul_reward"]
-            )
 
-            class_xp_reward = int(
+            # v0.8.54: mob EXP skaluje się względem realnej siły postaci.
+            # Słabe moby z czasem dają mniej EXP, a trudne/śmiertelne więcej.
+            xp_profile = session.dynamic_kill_xp_profile(template, room_id=session.character.room_id)
+            xp_mult = float(xp_profile["multiplier"])
+            base_soul_xp = int(template.get("soul_reward", 0))
+            soul_xp_reward = (
+                max(1, int(round(base_soul_xp * xp_mult)))
+                if base_soul_xp > 0 else 0
+            )
+            await session.grant_soul_xp(soul_xp_reward)
+
+            base_class_xp = int(
                 template.get(
                     "class_xp_reward",
                     max(50, int(template["stat_reward"]) * 10),
                 )
             )
-
-
+            class_xp_reward = (
+                max(1, int(round(base_class_xp * xp_mult)))
+                if base_class_xp > 0 else 0
+            )
+            await session.send_combat(
+                f"Skalowanie EXP: {xp_profile['label']}, x{xp_mult:.2f}. "
+                f"Soul XP {base_soul_xp} -> {soul_xp_reward}; "
+                f"Class XP {base_class_xp} -> {class_xp_reward}.",
+                detail="full",
+            )
             await session.grant_class_xp(class_xp_reward)
             await session.record_mob_progress(mob)
 
@@ -35657,7 +36498,11 @@ class Session:
             except Exception:
                 pass
 
-            quest_targets = []
+            # v0.8.53: każdy zabijalny mob może być bezpośrednim celem questa
+            # przez własny template_id. Zachowujemy również historyczne aliasy
+            # quest_target/quest_targets, więc stare questy nadal zaliczają całe
+            # rodziny mobów (np. wszystkie odmiany goblinów).
+            quest_targets = [mob.template_id]
             primary_target = template.get("quest_target")
             if primary_target:
                 quest_targets.append(primary_target)
@@ -35948,7 +36793,19 @@ class Session:
             elif command == "skillnames":
                 await self.show_all_skill_names()
             elif command == "skill":
-                await self.use_class_skill(args)
+                skill_args = str(args or "").strip()
+                skill_args_norm = normalize_lookup_text(skill_args)
+                if skill_args_norm in ("info", "help", "opis"):
+                    await self.show_skill_help("")
+                elif any(
+                    skill_args_norm.startswith(prefix)
+                    for prefix in ("info ", "help ", "opis ")
+                ):
+                    query = skill_args.split(maxsplit=1)[1] if " " in skill_args else ""
+                    if not await self.show_skill_help(query):
+                        await self.send("Nie znam takiej umiejętności ani spella. Wpisz skillnames.")
+                else:
+                    await self.use_class_skill(args)
             elif command == "skillqueue":
                 await self.handle_skill_queue(args)
             elif command == "learn":
@@ -36132,10 +36989,79 @@ class Session:
                 self.server.db.save_character(self.character)
                 await self.send("Postać zapisana.")
             elif command == "quit":
-                await self.send("Do zobaczenia.")
+                # v0.8.52: quit kończy tylko grę bieżącą postacią.
+                # Połączenie i konto pozostają aktywne; wracamy do MENU POSTACI.
+                await self.send("Zapisuję postać i wracam do wyboru postaci.")
+                await self.leave_current_character_for_selection()
+
+                selected = await self.character_selection_flow()
+                if selected is True:
+                    await self.enter_world()
+                    continue
+
+                # Opcja 4 w MENU POSTACI wylogowuje konto. Zachowujemy wtedy
+                # normalny ekran logowania bez rozłączania klienta.
+                if not self.closed and self.master_account_id is None:
+                    if await self.login_flow():
+                        await self.enter_world()
+                        continue
+
+                # Brak danych oznacza zwykle rozłączenie klienta.
+                self.closed = True
                 break
             else:
                 await self.send("Nieznana komenda. Wpisz help.")
+
+    async def leave_current_character_for_selection(self):
+        """Zapisz i wyprowadź aktywną postać ze świata bez zamykania połączenia."""
+        if not self.character:
+            self.account_id = None
+            return
+
+        # Zatrzymaj wszystkie aktywności przypisane do bieżącej postaci.
+        if self.resting or self.rest_task:
+            await self.stop_rest(announce=False)
+        if self.auto_fishing or self.auto_fishing_task:
+            await self.stop_auto_fishing(announce=False)
+        if self.auto_mining or self.auto_mining_task:
+            await self.stop_auto_mining(announce=False)
+        if self.auto_woodcutting or self.auto_woodcutting_task:
+            await self.stop_auto_woodcutting(announce=False)
+        if self.auto_herbalism or self.auto_herbalism_task:
+            await self.stop_auto_herbalism(announce=False)
+
+        await self.leave_party(announce=False)
+        old_room = self.character.room_id
+        old_name = self.character.name
+
+        await self.stop_realtime_combat()
+        if self.combat_mob_key:
+            mob = self.server.world.mobs.get(self.combat_mob_key)
+            if mob:
+                self.server.reassign_mob_engagement(mob, self)
+        self.combat_mob_key = None
+
+        self.server.db.save_character(self.character)
+        await self.server.broadcast_room(
+            old_room, f"{old_name} opuszcza grę.", exclude=self
+        )
+
+        # Wyczyść tylko stan sesyjny postaci. Konto główne zostaje zalogowane.
+        self.account_id = None
+        self.character = None
+        self.current_hp = 0
+        self.current_mana = 0
+        self.combat_hp_warn_level = 0
+        self.skill_cooldowns = {}
+        self.skill_guard = 0
+        self.skill_evade = False
+        self.active_skill_buffs = {}
+        self.skill_queue_cursors = {"physical": 0, "magic": 0}
+        self.skill_queue_next_type = "physical"
+        self.auto_queue_casting = False
+        self.guide_choice_state = None
+        self.quest_list_context = None
+        self.previous_room_id = None
 
     async def close(self):
         if self.closed:

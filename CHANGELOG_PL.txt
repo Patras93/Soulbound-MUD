@@ -1,3 +1,59 @@
+Soulbound v0.8.55 - World Stability Audit & Topology Hotfix
+=================================================================
+- Przeprowadzono pełny automatyczny audyt wszystkich 1272 lokacji świata.
+- Naprawiono błędne wyjście w Jaskini Trolli: troll_cave_3 prowadziło do nieistniejącego troll_war_camp i mogło zakończyć sesję wyjątkiem.
+- Przywrócono dostęp do Lochu Profesyjnego - Pradawny Las. Późniejsza rozbudowa Bagien nadpisała jego pierwotne wejście; nowe wejście prowadzi w dół z Głębokiego Gaju.
+- Przywrócono dostęp do Lochu Profesyjnego - Ogród Alchemika. Laboratorium Alchemiczne nadpisało stare wejście; nowe prowadzi na północ z Chaty Zielarki.
+- Przywrócono dostęp do całej Pustyni. Rozbudowa Ruin Strażnicy/Ruin Kultystów zajęła wcześniejsze wyjście na Suchy Kanion; teraz osobne przejście `up` prowadzi do Pustyni.
+- Po poprawkach wszystkie 1272/1272 lokacje są osiągalne z głównego świata.
+- Sprawdzono 2592/2592 przejścia, `look` w 1272/1272 lokacjach, wszystkie 32 strefy `teren info`, pełną mapę, 1109 spawnów mobów i loot skrzyń.
+- 0 błędnych wyjść, 0 odciętych lokacji, 0 wyjątków w runtime traversal.
+- Bez resetu soulbound.db ani Railway Volume.
+
+Soulbound v0.8.54 - Dynamic Terrain Difficulty & EXP Scaling
+=================================================================
+- Podzielono expowiska na kategorie bazowe: Początkujący, Umiarkowany, Trudny, Śmiertelny oraz Endgame.
+- Obozowiska Bandytów, Jaskinie Goblinów, Las Szeptów, Kanały, Stary Cmentarz, Ruiny Strażnicy i wczesna Dzicz są terenami dla początkujących.
+- Kategoria bazowa nie jest sztywną oceną postaci: gra liczy osobno dynamiczne zagrożenie "dla ciebie".
+- Dynamiczna ocena bierze pod uwagę Biegłość aktywnych klas, Soul Level, pięć statystyk bojowych i aktualnie założone klasowe EQ. Nie dodano levelu postaci.
+- Wraz z rozwojem postaci ten sam teren zmienia ocenę: Odpowiedni -> Łatwy -> Trywialny. Mocniejsze strefy mogą przejść z Ekstremalnych/Śmiertelnych do Trudnych lub Odpowiednich.
+- Wielopiętrowe strefy skalują próg z głębokością: Krypta 1-200, Twierdza Gigantów, Wieża Astralna oraz oba mityczne lochy.
+- Zmieniono EXP za zabijane moby. Dynamiczny mnożnik Soul XP i Class XP wynosi: Trywialny x0.30, Łatwy x0.60, Odpowiedni x1.00, Trudny x1.25, Śmiertelny x1.55, Ekstremalny x1.90.
+- Dzięki temu Gobliny i Bandyci dają normalne EXP początkującej postaci, ale po ich przerośnięciu przestają być opłacalnym miejscem do farmienia.
+- `con <mob>` pokazuje aktualny mnożnik EXP dla wskazanego przeciwnika.
+- `expowiska` pokazuje orientacyjną siłę postaci 1-200, kategorię bazową i dynamiczną ocenę każdego terenu.
+- `expowiska polecane` wybiera obecnie tereny Odpowiednie lub Trudne dla postaci.
+- Waluta, loot oraz Postęp Rozwoju statystyk nie zostały zmienione.
+- Bez resetu soulbound.db ani Railway Volume.
+
+Soulbound v0.8.53 - Full Soul Unlock Trials & Quality of Life
+=================================================================
+- Każdy Soul Tier od 2 do 20 wymaga teraz własnej jednorazowej Próby Broni Duszy u Kapłana Elora.
+- Progi pozostają bez zmian: Soul Level 10, 20, 25, 35, 45, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160, 170, 180 i 200 dla Tierów 2-20.
+- Po osiągnięciu wymaganego Soul Levelu użyj `quest list Kapłan Elor`, przyjmij właściwą Próbę przez `quest accept <numer>` / `accept quest <numer>`, wykonaj cel, oddaj quest i wpisz `unlock`.
+- Stare Próby Tierów 4, 7, 13 i 19 zachowują swoje historyczne quest_id, więc ukończenia ze starszych save'ów pozostają ważne.
+- Dodano brakujące Próby Tierów 2, 3, 5, 6, 8-12, 14-18 i 20.
+- Finałowa Próba Tieru 20 wymaga Soul Level 200 i pokonania Władcy Dwustu Pięter na piętrze 200 Krypty.
+- Questy typu kill mogą teraz wskazywać bezpośrednio dowolnego konkretnego zabijalnego moba/bossa przez jego template_id, przy zachowaniu starych aliasów quest_target.
+- Dwa sloty talizmanów: Talizman 1 i Talizman 2. `załóż talizman` wybiera wolny slot, a można też wskazać slot ręcznie.
+- Numerowana sprzedaż duplikatów działa dla wszystkich sprzedawalnych przedmiotów nieprzypisanych do postaci, np. `sprzedaj 2.talizman korzeni`, `sprzedaj 3.pierscien` albo `sprzedaj 2.helm`. Założone egzemplarze są chronione.
+- `quit` zapisuje bieżącą postać i wraca do MENU POSTACI na tym samym koncie.
+- Dodano pełny help wszystkich 253 skilli i spelli: `help <nazwa skilla>`, `help skill <nazwa>` i `skill info <nazwa>`.
+- Bez resetu soulbound.db ani Railway Volume.
+
+Soulbound v0.8.52 - Dual Talismans, Numbered Selling & Quit Fix
+================================================================
+- Dodano dwa niezależne sloty talizmanów: Talizman 1 i Talizman 2.
+- `załóż talizman` wybiera pierwszy wolny slot; można też użyć `załóż talizman 1` i `załóż talizman 2`.
+- Do założenia dwóch identycznych talizmanów potrzebne są dwie sztuki przedmiotu w inventory.
+- Stary slot `charm` jest bezpiecznie migrowany do `charm1`; istniejące talizmany nie znikają.
+- Drugi talizman daje normalnie własną obronę i affix, ale dwa talizmany nie liczą się jako dwie różne części tego samego setu.
+- Sprzedaż duplikatów rozpoznaje numer egzemplarza, np. `sprzedaj 2.talizman wędrowca`.
+- Jeśli jedna z dwóch identycznych sztuk jest założona, wolną sztukę można sprzedać bez zdejmowania noszonej.
+- `sprzedaj przedmioty` sprzedaje tylko wolne kopie i zachowuje egzemplarze aktualnie założone.
+- `quit` zapisuje bieżącą postać i wraca do MENU POSTACI na tym samym koncie; nie rozłącza klienta.
+- Bez resetu soulbound.db ani Railway Volume.
+
 Soulbound v0.8.51 - Class Starting Resources & Item Selling
 ===============================================================
 - Dodano profile startowych statystyk dla wszystkich 12 klas.
