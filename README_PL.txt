@@ -1,3 +1,52 @@
+SOULBOUND v0.8.34 - REALTIME COMBAT & AUTO QUEUE
+=================================================
+
+Walka nie jest już turowa.
+
+- `atakuj <mob>` albo `k <mob>` rozpoczyna walkę czasu rzeczywistego.
+- Postać automatycznie atakuje bez ponownego wpisywania komendy.
+- Jeśli auto kolejka jest aktywna, najpierw próbuje gotowego skilla/spella.
+- Jeśli nic z kolejki nie jest gotowe, wykonuje zwykły atak.
+- Przeciwnik atakuje niezależnie według własnego timera.
+- `kolejka dodaj <skill>` od razu aktywuje kolejkę; `kolejka on` nie jest wymagane.
+- `kolejka off` pozostaje ręcznym wyłączeniem.
+- `flee` kończy aktywną walkę.
+- Mikstury i ręczne umiejętności nie wywołują już osobnej „tury przeciwnika”.
+
+SOULBOUND v0.8.34 - AUTO QUEUE IMMEDIATE ACTIVATION
+===================================================
+- `kolejka dodaj <skill>` automatycznie uruchamia auto kolejkę.
+- Nie trzeba wpisywać `kolejka on` po dodaniu skilla lub spella.
+- `kolejka off` nadal ręcznie zatrzymuje rotację. Dodanie nowego wpisu po wyłączeniu ponownie aktywuje kolejkę.
+- `atakuj` i `k <mob>` korzystają z kolejki od następnej akcji bojowej.
+- Sloty fizyczne/magiczne i skalowanie z Biegłością klasy pozostają bez zmian.
+
+SOULBOUND v0.8.29 - RUINED WATCHTOWER & QUEUE LIST
+=====================================================
+Ta wersja rozwija v0.8.28 i nie wymaga kasowania soulbound.db ani Railway Volume.
+
+KOLEJKA LISTA
+- kolejka lista - pokazuje wszystkie zapisane skille i zaklęcia w kolejce fizycznej i magicznej.
+- kolejka lista fizyczna - pokazuje tylko fizyczne skille.
+- kolejka lista magiczna - pokazuje tylko magiczne czary/skille.
+- Każdy wpis podaje slot F1/M1, nazwę, klasę i stan: aktywny, uśpiony przez nieaktywną klasę albo ponad aktualnym limitem.
+- Dotychczasowe kolejka, kolejka fizyczna i kolejka magiczna nadal działają.
+
+ROZBUDOWANE RUINY STRAŻNICY
+- Ruiny Strażnicy są teraz osobnym regionem eksploracji i mają 11 lokacji łącznie z wejściem.
+- Z wejścia komenda down prowadzi do Zawalonej Bramy Strażnicy.
+- Nowe miejsca: Zawalona Brama, Wewnętrzny Dziedziniec, Opuszczone Koszary, Zbrojownia Starej Straży, Chodnik na Murze, Archiwum Runiczne, Piwnice, Podziemia Garnizonu, Sala Pieczęci i Komnata Dowódcy.
+- Dodano 8 nowych zwykłych typów przeciwników: Ożywiony Wartownik, Włócznik Starej Straży, Kusznik Starej Straży, Tarczownik Starej Straży, Runiczny Strażnik, Widmo Strażnicy, Kamienny Obserwator i Gobliński Łupieżca Ruin.
+- Dodano mini-bossa Kapitan Starej Straży.
+- Strażnik Ruin został przeniesiony do finałowej Komnaty Dowódcy Strażnicy.
+- W regionie jest 27 spawnów przeciwników łącznie z bossem.
+- Zwykli nowi przeciwnicy korzystają z istniejącego systemu Elite/Rare.
+- Gobliński Łupieżca Ruin liczy się jako goblin do zadań wymagających zabijania goblinów.
+- W Zbrojowni znajduje się odnawialna Skrzynia Starej Zbrojowni.
+- 100% odkrycia regionu współpracuje z systemem eksploracji v0.8.18 i daje osobną nagrodę oraz tytuł Pogromca Ruin Strażnicy.
+
+--- DOKUMENTACJA v0.8.28 I WCZEŚNIEJSZYCH SYSTEMÓW ---
+
 SOULBOUND v0.8.28 - CURRENCY READING ORDER
 ===========================================
 Ta wersja rozwija v0.8.27 i nie wymaga kasowania soulbound.db ani Railway Volume.
@@ -30,17 +79,17 @@ KOMENDY
 - kolejka - status obu kolejek i ich slotów.
 - kolejka fizyczna - tylko kolejka fizyczna.
 - kolejka magiczna - tylko kolejka magiczna.
-- kolejka dodaj <skill> - dodaje nauczony i odblokowany skill do właściwego typu.
+- kolejka dodaj <skill> - dodaje nauczony i odblokowany skill do właściwego typu i OD RAZU włącza auto kolejkę.
 - kolejka usuń <nazwa skilla> - usuwa skill po nazwie.
 - kolejka usuń F1 / M1 - usuwa konkretny slot fizyczny lub magiczny.
 - kolejka wyczyść - czyści obie kolejki.
 - kolejka wyczyść fizyczna / magiczna - czyści tylko wybrany typ.
 - kolejka góra F2 / kolejka dół M1 - zmienia kolejność rotacji.
-- kolejka on - włącza automatyczne używanie.
+- kolejka on - ręcznie włącza automatyczne używanie; po `kolejka dodaj` nie jest już wymagana.
 - kolejka off - wyłącza automatyczne używanie.
 
 DZIAŁANIE W WALCE
-- Przy włączonej kolejce każda komenda atakuj najpierw próbuje użyć gotowego skilla.
+- Po dodaniu pierwszego lub kolejnego skilla kolejka włącza się automatycznie; każda komenda atakuj lub k <mob> najpierw próbuje użyć gotowego skilla.
 - Rotacja przechodzi pomiędzy kolejką fizyczną i magiczną, jeśli obie mają gotowe wpisy.
 - Skill na cooldownie jest pomijany bez marnowania tury.
 - Skill wymagający więcej Many niż aktualnie posiadasz jest pomijany.
@@ -6450,3 +6499,50 @@ ELITE, RARE & NAMED LOOT v0.8.17
 - 11 odnawialnych skrzyń skarbów.
 - Komendy: skrzynia / chest / treasure / open chest.
 - Brak resetu SQLite.
+
+
+=== SKRZYNIE SKARBÓW v0.8.30 ===
+Gdy w lokacji znajduje się gotowa skrzynia, wpisz: otwórz skrzynię
+Działają też: skrzynia, chest, treasure.
+Po otwarciu NVDA czyta rzadkość, walutę i przedmioty zgodne z aktywnym Loot Filter.
+Każda postać ma własny cooldown każdej skrzyni, zapisywany w bazie danych.
+
+
+=== QUEST JOURNAL v0.8.31 ===
+Quest — pokazuje aktywne questy.
+Quest ukończone — pokazuje historię ukończonych questów i liczbę ukończeń.
+Quest list <NPC> — pokazuje numerowaną listę questów NPC w bieżącej lokacji.
+Przykład: quest list Orin
+Działa też: quest list u Orin
+Quest accept <numer> / quest przyjmij <numer> — przyjmuje wybraną pozycję z ostatniej listy.
+Quest info <numer> — czyta opis, stan i wymagania.
+Quest oddaj <numer> — oddaje wybrany quest z ostatniej listy, jeśli jest gotowy.
+
+Rozmowa z NPC nie przyjmuje już questa automatycznie. Talk / rozmawiaj pokazuje dialog oraz numerowaną ofertę.
+Można przyjąć kilka questów tego samego NPC równocześnie.
+Zlecenia profesyjne specjalistów są niezależne od wcześniejszych zleceń; nadal obowiązują wymagania poziomu narzędzia lub profesji.
+Przykład: Mistrz Alchemii Orin pozwala wykonywać osobno i jednocześnie Mikstury Many oraz Mikstury Leczenia, jeśli spełniasz ich wymagania.
+Fabularne questy, które są prawdziwym łańcuchem, i Próby Broni Duszy nadal zachowują swoje wymagania.
+
+
+=== WSPÓLNY PORTFEL KONTA + QUEST INFO v0.8.32 ===
+Waluta mithril, złoto i srebro jest wspólna dla wszystkich postaci na jednym koncie.
+Nie ma przelewów między własnymi postaciami, bo każda korzysta z tego samego portfela.
+Pierwsza postać zakłada portfel startowy. Druga i każda kolejna postać nie dostaje nowego pakietu monet.
+Przy aktualizacji starszego konta pieniądze wszystkich istniejących postaci są sumowane do wspólnego salda.
+Waluta w Banku Dusz również jest wspólna między slotami postaci. Przedmioty bankowe pozostają przypisane do postaci.
+
+Quest info działa z ostatnią numerowaną listą:
+- quest / quest aktywne, potem quest info <numer>
+- quest ukończone, potem quest info <numer>
+- quest list <NPC>, potem quest info <numer>
+Quest info czyta: nazwę, NPC, stan, opis, postęp, wymagania, nagrody, powtarzalność i czas odnowienia.
+
+=== v0.8.33: STRAŻNICA I HELP QUEST ===
+- help quest / help quests: pełna instrukcja systemu zadań.
+- k <mob>: szybki skrót ataku na wskazanego przeciwnika, np. k goblin.
+- Północna i Południowa Brama mają po dwóch pokojowych strażników NPC.
+- Strażnica Główna została rozbudowana do 9 połączonych lokacji.
+- Nowi NPC: Kwatermistrz Harek, Archiwistka Nela, Dozorca Torvik.
+- Brak zmian schematu SQLite; aktualizacja zachowuje zapis v0.8.32.
+

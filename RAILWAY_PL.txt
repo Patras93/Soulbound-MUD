@@ -1,3 +1,16 @@
+SOULBOUND v0.8.29 — RUINED WATCHTOWER & QUEUE LIST — AKTUALIZACJA RAILWAY
+
+1. Wgraj pliki v0.8.29 w miejsce kodu v0.8.28.
+2. NIE kasuj Railway Volume.
+3. NIE kasuj /data/soulbound.db.
+4. Nie ma nowych tabel ani kolumn SQLite.
+5. Stare postacie, kolejki skilli, ekwipunek, questy, eksploracja i cały postęp pozostają bez zmian.
+6. W grze sprawdź kolejkę komendą: kolejka lista.
+7. Do wnętrza rozbudowanych Ruin Strażnicy wejdź z Ruin Strażnicy kierunkiem down.
+8. Railway może wykonać zwykły redeploy bez ręcznego SQL.
+
+--- STARSZE INSTRUKCJE ---
+
 SOULBOUND v0.8.26 — AUTO SKILL QUEUE — AKTUALIZACJA RAILWAY
 
 1. Wgraj pliki v0.8.26 w miejsce kodu v0.8.25.
@@ -1194,3 +1207,7 @@ AKTUALIZACJA v0.8.17
 ---------------------
 Elity, rare moby, mini-bossy, named loot, regionalne sety i odnawialne skrzynie.
 Brak resetu SQLite i brak zmian ścieżki /data/soulbound.db.
+
+
+AKTUALIZACJA v0.8.32
+Nie kasuj soulbound.db ani Railway Volume. Przy pierwszym uruchomieniu v0.8.32 waluta z istniejących postaci na jednym koncie zostanie zsumowana do wspólnego portfela. Waluta zdeponowana w Banku Dusz również zostanie zsumowana do wspólnego salda bankowego konta.

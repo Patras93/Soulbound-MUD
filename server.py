@@ -2,7 +2,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Soulbound v0.8.26 Auto Skill Queue
+Soulbound v0.8.34 Realtime Combat & Auto Queue
 Wieloosobowy tekstowy MUD TCP/Telnet dla MUSHclienta/Mudleta.
 
 Najważniejsze zasady projektu:
@@ -30,7 +30,7 @@ import unicodedata
 from dataclasses import dataclass
 from typing import Optional
 
-VERSION = "0.8.28"
+VERSION = "0.8.34"
 MAX_CHARACTERS_PER_ACCOUNT = 12
 
 HOST = os.getenv("SOULBOUND_HOST", "0.0.0.0")
@@ -2182,7 +2182,7 @@ CLASS_SKILLS = {'Wojownik': [{'id': 'warrior_power_slash',
               'kind': 'evade',
               'cooldown': 12,
               'mana': 0,
-              'desc': 'Gwarantuje unik następnego kontrataku.'}],
+              'desc': 'Gwarantuje unik następnego ataku przeciwnika.'}],
  'Łowca': [{'id': 'hunter_precise_shot',
             'name': 'Celny Strzał',
             'aliases': ['celny strzal', 'celny strzał', 'precise shot'],
@@ -2210,7 +2210,7 @@ CLASS_SKILLS = {'Wojownik': [{'id': 'warrior_power_slash',
             'kind': 'evade',
             'cooldown': 10,
             'mana': 0,
-            'desc': 'Gwarantuje unik następnego kontrataku.'}],
+            'desc': 'Gwarantuje unik następnego ataku przeciwnika.'}],
  'Mnich': [{'id': 'monk_spirit_punch',
             'name': 'Uderzenie Ducha',
             'aliases': ['uderzenie ducha', 'spirit punch'],
@@ -2550,7 +2550,7 @@ ENDGAME_CLASS_SKILLS = {
             "aliases": ["krok cienia", "shadow step"],
             "natural_tags": ["unik", "evade", "cien"],
             "unlock": 140, "kind": "evade", "cooldown": 11, "mana": 0,
-            "desc": "Gwarantuje unik następnego kontrataku.",
+            "desc": "Gwarantuje unik następnego ataku przeciwnika.",
         },
         {
             "id": "rogue_blade_dance",
@@ -2587,7 +2587,7 @@ ENDGAME_CLASS_SKILLS = {
             "aliases": ["kamuflaz drapieznika", "kamuflaż drapieżcy", "predator camouflage"],
             "natural_tags": ["unik", "evade", "kamuflaz"],
             "unlock": 140, "kind": "evade", "cooldown": 12, "mana": 0,
-            "desc": "Pozwala uniknąć następnego kontrataku.",
+            "desc": "Pozwala uniknąć następnego ataku przeciwnika.",
         },
         {
             "id": "hunter_echo_rain",
@@ -3260,9 +3260,81 @@ ROOMS = {
         "exits": {"south": "square", "north": "training", "east": "guard_hall", "west": "guild_hall"},
     },
     "guard_hall": {
-        "zone": "Miasto Dusz", "name": "Strażnica",
-        "desc": "Siedziba miejskiej straży. Na ścianach wiszą mapy okolicznych szlaków.",
-        "exits": {"west": "north_street"},
+        "zone": "Miasto Dusz", "name": "Strażnica Główna",
+        "desc": (
+            "Główna sala miejskiej straży. Na ścianach wiszą mapy szlaków, "
+            "tablice patroli i meldunki z obu bram. Stąd można przejść do koszar, "
+            "zbrojowni, komnaty dowódcy, wieży obserwacyjnej i cel strażnicy."
+        ),
+        "exits": {
+            "west": "north_street", "east": "guard_barracks",
+            "south": "guard_armory", "north": "guard_command",
+            "up": "guard_watchtower", "down": "guard_cells",
+        },
+    },
+    "guard_barracks": {
+        "zone": "Miasto Dusz", "name": "Koszary Straży",
+        "desc": (
+            "Rzędy prycz, stojaki na płaszcze i tablice zmian wypełniają koszary. "
+            "Strażnicy odpoczywają tutaj między patrolami północnej i południowej bramy."
+        ),
+        "exits": {"west": "guard_hall", "east": "guard_mess"},
+    },
+    "guard_mess": {
+        "zone": "Miasto Dusz", "name": "Jadalnia Straży",
+        "desc": (
+            "Długi stół, kocioł i beczki z wodą zajmują niewielką jadalnię. "
+            "Na ścianie wisi plan godzinnych zmian patroli miejskich."
+        ),
+        "exits": {"west": "guard_barracks"},
+    },
+    "guard_armory": {
+        "zone": "Miasto Dusz", "name": "Zbrojownia Straży",
+        "desc": (
+            "Zamknięte stojaki przechowują włócznie, tarcze, kusze i zapasowe pancerze. "
+            "Kwatermistrz prowadzi tu ewidencję wyposażenia miejskiej straży."
+        ),
+        "exits": {"north": "guard_hall"},
+    },
+    "guard_command": {
+        "zone": "Miasto Dusz", "name": "Komnata Dowódcy Straży",
+        "desc": (
+            "Duży stół mapowy pokazuje Miasto Dusz, Stary Trakt, Gaj Szeptów i pogranicze. "
+            "Tutaj planowane są patrole i akcje przeciw goblinom oraz bandytom."
+        ),
+        "exits": {"south": "guard_hall", "east": "guard_archive"},
+    },
+    "guard_archive": {
+        "zone": "Miasto Dusz", "name": "Archiwum Straży",
+        "desc": (
+            "Regały są pełne raportów z patroli, listów gończych i starych map. "
+            "Archiwistka straży porządkuje meldunki z obu bram."
+        ),
+        "exits": {"west": "guard_command"},
+    },
+    "guard_watchtower": {
+        "zone": "Miasto Dusz", "name": "Wieża Obserwacyjna Straży",
+        "desc": (
+            "Z kamiennej wieży widać północną bramę, Stary Trakt i dachy miasta. "
+            "Wartownicy przekazują stąd sygnały do posterunków przy bramach."
+        ),
+        "exits": {"down": "guard_hall"},
+    },
+    "guard_cells": {
+        "zone": "Miasto Dusz", "name": "Cele Strażnicy",
+        "desc": (
+            "Kilka żelaznych cel służy do przetrzymywania schwytanych bandytów i szabrowników. "
+            "Korytarz prowadzi do małego pokoju przesłuchań."
+        ),
+        "exits": {"up": "guard_hall", "east": "guard_interrogation"},
+    },
+    "guard_interrogation": {
+        "zone": "Miasto Dusz", "name": "Pokój Przesłuchań",
+        "desc": (
+            "Surowy stół, dwa krzesła i półka z raportami tworzą niewielki pokój przesłuchań. "
+            "Straż zbiera tu informacje o napadach, goblinach i ruchach bandytów."
+        ),
+        "exits": {"west": "guard_cells"},
     },
     "training": {
         "zone": "Miasto Dusz", "name": "Dziedziniec Treningowy",
@@ -3271,7 +3343,10 @@ ROOMS = {
     },
     "north_gate": {
         "zone": "Miasto Dusz", "name": "Północna Brama",
-        "desc": "Za ciężką bramą zaczyna się Stary Trakt.",
+        "desc": (
+            "Ciężka brama otwiera się na Stary Trakt. Dwóch miejskich strażników "
+            "pełni tu stałą wartę i kontroluje podróżnych wracających z pogranicza."
+        ),
         "exits": {"south": "training", "north": "old_road"},
     },
     "market": {
@@ -3316,7 +3391,10 @@ ROOMS = {
     },
     "south_gate": {
         "zone": "Miasto Dusz", "name": "Południowa Brama",
-        "desc": "Brama otwiera się na łąki i Gaj Szeptów.",
+        "desc": (
+            "Brama otwiera się na łąki i Gaj Szeptów. Miejska straż utrzymuje tu "
+            "stały posterunek i ostrzega podróżnych o wilkach oraz zagrożeniach w dziczy."
+        ),
         "exits": {"north": "south_street", "south": "meadow"},
     },
     "meadow": {
@@ -3404,9 +3482,100 @@ ROOMS = {
         "exits": {"west": "riverbank", "east": "ruined_watchtower"},
     },
     "ruined_watchtower": {
-        "zone": "Dzicz", "name": "Ruiny Strażnicy",
-        "desc": "Zawalona wieża obserwacyjna została opanowana przez gobliny.",
-        "exits": {"west": "stone_bridge", "south": "goblin_camp", "east": "graveyard"},
+        "zone": "Ruiny Strażnicy", "name": "Ruiny Strażnicy",
+        "desc": (
+            "Zawalona wieża obserwacyjna góruje nad starym pograniczem. "
+            "Gobliny plądrują wejście, lecz spod gruzów prowadzą schody do zachowanych części dawnego garnizonu."
+        ),
+        "exits": {
+            "west": "stone_bridge", "south": "goblin_camp", "east": "graveyard",
+            "down": "ruin_gatehouse",
+        },
+    },
+    "ruin_gatehouse": {
+        "zone": "Ruiny Strażnicy", "name": "Zawalona Brama Strażnicy",
+        "desc": (
+            "Kamienny korytarz pod wieżą wciąż nosi ślady dawnej obrony. "
+            "Połamane kraty i tarcze tworzą wąskie przejście do wnętrza ruin."
+        ),
+        "exits": {"up": "ruined_watchtower", "east": "ruin_courtyard"},
+    },
+    "ruin_courtyard": {
+        "zone": "Ruiny Strażnicy", "name": "Wewnętrzny Dziedziniec",
+        "desc": (
+            "Popękane płyty dziedzińca otaczają resztki studni. "
+            "Wokół zachowały się wejścia do koszar, murów i piwnic dawnej straży."
+        ),
+        "exits": {
+            "west": "ruin_gatehouse", "north": "ruin_barracks",
+            "east": "ruin_wall_walk", "south": "ruin_cellar",
+        },
+    },
+    "ruin_barracks": {
+        "zone": "Ruiny Strażnicy", "name": "Opuszczone Koszary",
+        "desc": (
+            "Spróchniałe prycze stoją między zardzewiałymi stojakami na broń. "
+            "Niektórzy dawni strażnicy najwyraźniej nigdy nie opuścili posterunku."
+        ),
+        "exits": {"south": "ruin_courtyard", "east": "ruin_armory"},
+    },
+    "ruin_armory": {
+        "zone": "Ruiny Strażnicy", "name": "Zbrojownia Starej Straży",
+        "desc": (
+            "Ciężkie szafy i skrzynie z resztkami uzbrojenia wypełniają kamienną salę. "
+            "Na ścianach wiszą pęknięte herby dawnego garnizonu."
+        ),
+        "exits": {"west": "ruin_barracks", "east": "ruin_command_chamber"},
+    },
+    "ruin_wall_walk": {
+        "zone": "Ruiny Strażnicy", "name": "Chodnik na Murze",
+        "desc": (
+            "Wąski chodnik biegnie po ocalałym fragmencie muru. "
+            "Dawne stanowiska kuszników nadal spoglądają na drogę i dolinę."
+        ),
+        "exits": {"west": "ruin_courtyard", "north": "ruin_archive"},
+    },
+    "ruin_archive": {
+        "zone": "Ruiny Strażnicy", "name": "Archiwum Runiczne",
+        "desc": (
+            "Kamienne tablice i metalowe pieczęcie pokrywają resztki archiwum. "
+            "W powietrzu utrzymuje się słaba, lecz wciąż aktywna magia ochronna."
+        ),
+        "exits": {"south": "ruin_wall_walk", "down": "ruin_undercroft"},
+    },
+    "ruin_cellar": {
+        "zone": "Ruiny Strażnicy", "name": "Piwnice Strażnicy",
+        "desc": (
+            "Wilgotne piwnice pełne są rozbitych beczek, kości i śladów szabrowników. "
+            "Niżej prowadzi stary tunel służbowy."
+        ),
+        "exits": {"north": "ruin_courtyard", "down": "ruin_undercroft"},
+    },
+    "ruin_undercroft": {
+        "zone": "Ruiny Strażnicy", "name": "Podziemia Garnizonu",
+        "desc": (
+            "Niskie sklepienia podtrzymują filary pokryte znakami wartowników. "
+            "Stąd prowadzi droga do zapieczętowanej sali wewnętrznej."
+        ),
+        "exits": {
+            "up": "ruin_cellar", "west": "ruin_archive", "east": "ruin_sealed_hall",
+        },
+    },
+    "ruin_sealed_hall": {
+        "zone": "Ruiny Strażnicy", "name": "Sala Pieczęci",
+        "desc": (
+            "Pęknięte pieczęcie na posadzce wciąż pulsują bladym światłem. "
+            "Za nimi znajduje się dawna komnata dowódcy strażnicy."
+        ),
+        "exits": {"west": "ruin_undercroft", "north": "ruin_command_chamber"},
+    },
+    "ruin_command_chamber": {
+        "zone": "Ruiny Strażnicy", "name": "Komnata Dowódcy Strażnicy",
+        "desc": (
+            "Ocalały stół dowódcy stoi pod poszarpanym sztandarem. "
+            "Najpotężniejszy z dawnych obrońców strzeże tej komnaty nawet po upadku garnizonu."
+        ),
+        "exits": {"south": "ruin_sealed_hall", "west": "ruin_armory"},
     },
     "goblin_camp": {
         "zone": "Dzicz", "name": "Obóz Goblinów",
@@ -3744,6 +3913,9 @@ GUIDE_DESTINATION_ALIASES = {
     'rzeka': 'riverbank',
     'ruiny': 'ruined_watchtower',
     'ruiny straznicy': 'ruined_watchtower',
+    'ruiny strażnicy': 'ruined_watchtower',
+    'stara straznica': 'ruined_watchtower',
+    'stara strażnica': 'ruined_watchtower',
     'laka szalwii': 'sage_meadow',
     'amina': 'sandstone_ruins',
     'badaczka amina': 'sandstone_ruins',
@@ -4213,6 +4385,30 @@ EXP_AREAS = (
         ),
     },
     {
+        "id": "ruiny_straznicy",
+        "name": "Ruiny Strażnicy",
+        "aliases": (
+            "ruiny straznicy", "ruiny strażnicy", "stara straznica", "stara strażnica", "ruined watchtower",
+        ),
+        "soul_min": 15,
+        "soul_max": 55,
+        "difficulty": "łatwa do średniej",
+        "guide": "ruiny straznicy",
+        "enemies": (
+            "Ożywieni Wartownicy, Włócznicy, Kusznicy i Tarczownicy Starej Straży, "
+            "Runiczni Strażnicy, Widma Strażnicy, Kamienni Obserwatorzy, Goblińscy Łupieżcy, "
+            "Kapitan Starej Straży i Strażnik Ruin"
+        ),
+        "description": (
+            "Rozbudowane ruiny dawnego garnizonu: brama, dziedziniec, koszary, zbrojownia, mur, "
+            "archiwum runiczne, piwnice, podziemia, sala pieczęci i komnata dowódcy."
+        ),
+        "note": (
+            "Wejście do wnętrza prowadzi w dół z głównej lokacji Ruiny Strażnicy. "
+            "Strażnik Ruin znajduje się teraz w najgłębszej komnacie dowódcy."
+        ),
+    },
+    {
         "id": "dzicz",
         "name": "Dzicz",
         "aliases": (
@@ -4441,8 +4637,8 @@ COMMAND_ALIASES = {
     "oddaj": "turnin", "zdaj": "turnin",
     "turnin": "turnin", "turn-in": "turnin",
     "teachers": "teachers", "training": "teachers", "trainers": "teachers", "nauczyciele": "teachers", "trenerzy": "teachers",
-    "zadania": "quests", "questy": "quests",
-    "atakuj": "attack", "walcz": "attack", "zabij": "attack", "kill": "attack",
+    "zadania": "quests", "questy": "quests", "quest": "quests",
+    "atakuj": "attack", "walcz": "attack", "zabij": "attack", "kill": "attack", "k": "attack",
     "consider": "consider", "con": "consider",
     "ocen": "consider", "oceń": "consider",
     "ocenmob": "consider", "oceńmob": "consider",
@@ -4562,6 +4758,8 @@ COMMAND_ALIASES = {
     "otworz": "chest",
     "otwórz": "chest",
     "open": "chest",
+    "otworzskrzynie": "chest",
+    "otwórzskrzynię": "chest",
 
 }
 
@@ -6792,6 +6990,59 @@ NPCS = {
         "dialogue": "Gobliny zajęły starą strażnicę. Potrzebujemy kogoś, kto oczyści szlak.",
         "quest": "goblin_problem",
     },
+    "north_gate_guard_oskar": {
+        "name": "Strażnik Oskar", "room": "north_gate",
+        "dialogue": (
+            "Północna brama jest pod stałą ochroną. Za murami zaczyna się Stary Trakt, "
+            "więc przed wyjściem sprawdź ekwipunek i aktywne questy."
+        ),
+        "quest": None,
+    },
+    "north_gate_guard_marta": {
+        "name": "Strażniczka Marta", "room": "north_gate",
+        "dialogue": (
+            "Wracających ze Starego Traktu sprawdzamy po każdym alarmie. "
+            "Jeżeli szukasz zleceń straży, Kapitan Arven czeka w Strażnicy Głównej."
+        ),
+        "quest": None,
+    },
+    "south_gate_guard_lena": {
+        "name": "Strażniczka Lena", "room": "south_gate",
+        "dialogue": (
+            "Na południu zaczynają się łąki i Gaj Szeptów. Wilki potrafią podejść blisko traktu, "
+            "więc nie ignoruj ostrzeżeń z dziczy."
+        ),
+        "quest": None,
+    },
+    "south_gate_guard_branek": {
+        "name": "Strażnik Branek", "room": "south_gate",
+        "dialogue": (
+            "Pilnujemy tej bramy całą dobę. Jeśli wracasz ranny, Świątynia Odrodzenia jest w centrum miasta."
+        ),
+        "quest": None,
+    },
+    "guard_quartermaster_harek": {
+        "name": "Kwatermistrz Harek", "room": "guard_armory",
+        "dialogue": (
+            "Każda tarcza i włócznia ma swój numer. Zbrojownia zaopatruje obie bramy i patrole miejskie."
+        ),
+        "quest": None,
+    },
+    "guard_archivist_nela": {
+        "name": "Archiwistka Nela", "room": "guard_archive",
+        "dialogue": (
+            "Przechowuję raporty o goblinach, bandytach i ruinach pogranicza. "
+            "Kapitan Arven korzysta z nich przy planowaniu patroli."
+        ),
+        "quest": None,
+    },
+    "guard_jailer_torvik": {
+        "name": "Dozorca Torvik", "room": "guard_cells",
+        "dialogue": (
+            "Cele są dla tych, których patrole sprowadzą żywych. Najczęściej trafiają tu bandyci i szabrownicy."
+        ),
+        "quest": None,
+    },
     "watch_commander_roderik": {
         "name": "Dowódca Roderik", "room": "north_watchpost",
         "dialogue": (
@@ -7096,6 +7347,15 @@ MOB_DESCRIPTIONS = {
     "skeleton": "Nieumarły strażnik krypty. Wytrzymały przeciwnik walczący fizycznie.",
     "crypt_wraith": "Magiczny nieumarły z głębi krypty. Jego ataki sprawdzają obronę magiczną.",
     "crystal_guardian": "Potężny magiczny strażnik Kryształowej Komnaty. Zadaje obrażenia magiczne.",
+    "ruin_watchman": "Ożywiony wartownik dawnej strażnicy. Walczy mieczem i nadal pilnuje wyznaczonego posterunku.",
+    "ruin_spearman": "Nieumarły włócznik Starej Straży, groźniejszy i bardziej wytrzymały od zwykłego wartownika.",
+    "ruin_crossbowman": "Dawny kusznik garnizonu. Jego fizyczne ataki są silniejsze od ataków zwykłych wartowników.",
+    "ruin_shieldbearer": "Ciężko opancerzony tarczownik dawnego garnizonu, przeznaczony do obrony wąskich przejść.",
+    "ruin_runekeeper": "Runiczny strażnik podtrzymywany starą magią ochronną Strażnicy.",
+    "ruin_wraith": "Widmo poległego wartownika. Atakuje magią i nawiedza podziemne części garnizonu.",
+    "ruin_gargoyle": "Kamienny obserwator ożywiony przez dawne pieczęcie obronne.",
+    "ruin_goblin_looter": "Gobliński szabrownik przeszukujący opuszczone koszary i piwnice w poszukiwaniu metalu oraz kosztowności.",
+    "ruin_captain": "Kapitan Starej Straży. Mini-boss dowodzący pozostałymi obrońcami wewnętrznych ruin.",
 }
 
 STAT_DESCRIPTIONS = {
@@ -7111,7 +7371,7 @@ STAT_DESCRIPTIONS = {
         "kontrataku. Aktualny limit uniku wynosi 35 procent."
     ),
     "dexterity": (
-        "Zręczność zwiększa Szybkość. Wyższa Szybkość zwiększa szansę uniknięcia kontrataku."
+        "Zręczność zwiększa Szybkość. Wyższa Szybkość zwiększa szansę uniknięcia ataku przeciwnika."
     ),
     "kondycja": "Kondycja zwiększa maksymalne HP. Każdy punkt Kondycji daje 5 maksymalnego HP.",
     "constitution": "Kondycja zwiększa maksymalne HP. Każdy punkt Kondycji daje 5 maksymalnego HP.",
@@ -7179,14 +7439,17 @@ SYSTEM_DESCRIPTIONS = {
 }
 
 
-LATEST_CHANGES_TITLE = "Soulbound v0.8.28 - Currency Reading Order"
+LATEST_CHANGES_TITLE = "Soulbound v0.8.34 - Realtime Combat & Auto Queue"
 LATEST_CHANGES = [
-    "Zmieniono globalną kolejność czytania waluty przez NVDA: najpierw mithril, potem złoto, na końcu srebro.",
-    "Nowa kolejność działa w komendzie money, ekwipunku, Banku Dusz, nagrodach, dropach, skrzyniach i sprzedaży zasobów.",
-    "Portfel i saldo bankowe zawsze podają wszystkie trzy nominały w kolejności mithril -> złoto -> srebro.",
-    "Nagrody i wartości sprzedaży pomijają zerowe nominały, ale zachowują tę samą kolejność od najwyższej waluty.",
-    "Nie zmieniono kursów, wartości monet ani ekonomii; jest to wyłącznie poprawa sposobu odczytu.",
-    "System auto kolejki z v0.8.27 pozostaje bez zmian.",
+    "Usunięto walkę turową. Walka działa w czasie rzeczywistym z niezależnym timerem gracza i przeciwnika.",
+    "atakuj <mob> oraz k <mob> rozpoczynają walkę automatyczną; nie trzeba wpisywać ataku po każdej rundzie.",
+    "Auto kolejka sama używa gotowych skilli i spelli. Gdy nic nie jest gotowe, postać wykonuje zwykły automatyczny atak.",
+    "Dodanie skilla lub spella komendą kolejka dodaj automatycznie włącza auto kolejkę.",
+    "Nie trzeba wpisywać kolejka on po dodaniu pierwszego ani kolejnego skilla.",
+    "Mikstury i ręczne skille nie wywołują już sztucznego kontrataku za turę; przeciwnik działa według własnego timera.",
+    "flee natychmiast zatrzymuje pętlę walki czasu rzeczywistego.",
+    "Zachowano fizyczne i magiczne sloty kolejki oraz skalowanie pojemności według Biegłości klasy.",
+    "Aktualizacja nie wymaga resetu soulbound.db ani Railway Volume.",
 ]
 
 
@@ -7260,6 +7523,7 @@ HELP_TOPIC_ALIASES = {
     "multiclass": "multiclass", "multiklasa": "multiclass",
     "multiklas": "multiclass", "klasy": "multiclass",
     "changes": "zmiany", "changelog": "zmiany",
+    "quest": "questy", "quests": "questy", "questy": "questy", "zadania": "questy",
     "corpse": "zwloki", "body": "zwloki", "cialo": "zwloki", "ciało": "zwloki",
     "loot": "zwloki", "zwloki": "zwloki", "zwłoki": "zwloki",
     "crypt": "krypta", "krypta": "krypta",
@@ -7273,17 +7537,30 @@ HELP_TOPIC_ALIASES = {
 }
 
 HELP_TOPICS = {
+    "questy": [
+        "HELP QUEST — pełna pomoc systemu zadań. Questy nie wymagają levelu postaci.",
+        "quest / quest aktywne — numerowana lista wszystkich aktualnie aktywnych questów.",
+        "quest ukończone — osobna historia ukończonych questów, liczba ukończeń oraz pozostały cooldown zadań powtarzalnych.",
+        "quest list <NPC> — numerowana oferta questów konkretnego NPC w twojej bieżącej lokacji, np. quest list Orin albo quest list Arven.",
+        "talk <NPC> — rozmowa pokazuje ofertę tego NPC, ale nie przyjmuje zadania automatycznie.",
+        "quest accept <numer> / quest przyjmij <numer> — przyjmuje wskazany numer z ostatnio pokazanej listy questów NPC.",
+        "quest info <numer> — działa po quest, quest ukończone i quest list <NPC>; pokazuje NPC, opis, cel, aktualny postęp, wymagania, nagrody, powtarzalność i cooldown.",
+        "quest oddaj <numer> — oddaje wybrany quest z ostatniej listy NPC, jeżeli wszystkie cele są wykonane.",
+        "Kilka questów jednego NPC może być aktywnych równocześnie. Zlecenia profesyjne są niezależne, np. Mikstury Many i Mikstury Leczenia u Orina.",
+        "Questy powtarzalne zachowują osobny czas odnowienia. Problem goblinów, Plaga Trolli i Cienie w Gaju odnawiają się co 60 minut.",
+        "Jeśli numer nie pasuje, najpierw ponownie wpisz quest, quest ukończone albo quest list <NPC>, aby ustawić właściwą listę kontekstową.",
+    ],
     "elity": [
         "Elity pojawiają się losowo zamiast zwykłych mobów. Prefixy obejmują Opancerzony, Wściekły, Astralny, Przeklęty, Regenerujący i inne.",
         "Elity mają wyższe nagrody Soul XP i Class XP oraz lepszy loot.",
         "Rzadkie moby pojawiają się znacznie rzadziej i mają jeszcze większe HP, obrażenia i nagrody.",
         "Mini-bossy mają własny respawn i są mocniejsze od zwykłych mobów danego expowiska.",
         "Regionalne sety: Kultystów Pustki, Umarłego Króla i Wiecznego Lodu. Progi 2/4/6.",
-        "Skrzynie: skrzynia / chest / open chest. Odnawiają się po czasie i losują rzadkość.",
+        "Skrzynie: wpisz otwórz skrzynię, skrzynia albo chest. Każda postać otwiera je osobno; odnawiają się po czasie i losują rzadkość.",
     ],
     "skrzynie": [
         "Skrzynie skarbów znajdują się w wybranych expowiskach i odnawiają się po czasie.",
-        "Komendy: skrzynia, chest, treasure, open chest.",
+        "Komendy: otwórz skrzynię, skrzynia, chest, treasure. Skrzynie mają osobny cooldown dla każdej postaci.",
         "Rzadkości: Zwykła, Rzadka, Epicka, Legendarna.",
         "Wyższa rzadkość daje więcej waluty i większą szansę na regionalne części setów.",
     ],
@@ -7326,7 +7603,7 @@ HELP_TOPICS = {
         "Psionik: Burza Umysłów Soul 40, Psychiczne Załamanie Soul 160.",
         "Kapłan: Modlitwa Odnowy Soul 40 i Masowe Uzdrowienie Soul 160 leczą całą drużynę w tej samej lokacji.",
         "Działają też angielskie nazwy, np. arcane explosion, meteor storm, soul plague, void nova, hurricane, mind storm, group heal, mass heal.",
-        "Jedna akcja obszarowa wywołuje najwyżej jeden kontratak.",
+        "Akcja obszarowa nie wywołuje osobnego kontrataku; przeciwnik atakuje według własnego timera.",
     ],
     "bestiariusz": [
         "Komendy: bestiariusz <mob>, bestiary <mob>, codex <mob>.",
@@ -7906,7 +8183,7 @@ HELP_TOPICS = {
         "Respawn pozostaje bez zmian i przywraca pełne nowe maksymalne HP.",
         "consider automatycznie pokazuje i ocenia nowe wartości HP.",
         "Moby i bossowie nadal nie są agresywni.",
-        "Walka nadal działa turowo: jedna akcja gracza, jedna odpowiedź przeciwnika.",
+        "Walka działa w czasie rzeczywistym: gracz i przeciwnik mają niezależne timery akcji.",
     ],
     "soul_xp_bloki": [
         "Wymagane Soul XP podwaja się po każdym pełnym bloku 10 Soul Leveli.",
@@ -7934,7 +8211,7 @@ HELP_TOPICS = {
         "Uwzględnia obronę fizyczną lub magiczną, unik, redukcje rasowe i klasowe oraz krytyki w średnim wyniku.",
         "Bossowie są oceniani ostrożniej, ponieważ specjalne mechaniki zwiększają ryzyko.",
         "Jeśli boss ma opis mechaniki, consider go przeczyta.",
-        "Consider nie angażuje moba, nie wykonuje ataku, nie zużywa Many i nie zajmuje tury.",
+        "Consider nie angażuje moba, nie wykonuje ataku, nie zużywa Many i nie uruchamia walki.",
     ],
     "wolniejsze_staty": [
         "Rozwój pięciu statystyk został spowolniony dwukrotnie.",
@@ -7960,7 +8237,7 @@ HELP_TOPICS = {
         "Każdy z 11 bossów ma unikalny relikt; boss 200 gwarantuje swój relikt.",
         "Wieża ma własne moby, bossów, mechaniki i klimat gwiezdny, niezależny od Krypty.",
         "Moby i bossowie nie atakują automatycznie.",
-        "Walka nadal jest turowa: jedna akcja gracza, jedna odpowiedź przeciwnika.",
+        "Walka działa w czasie rzeczywistym: zwykłe ataki i auto kolejka wykonują się automatycznie.",
     ],
     "soul_tier45_krypta200": [
         "Broń Duszy ma teraz 20 Tierów rozłożonych na Soul Level 1-200.",
@@ -8156,7 +8433,7 @@ HELP_TOPICS = {
         "Łącznie dodano 48 nowych skilli.",
         "Nowe skille trzeba nauczyć się u właściwego nauczyciela klasy, tak jak wcześniejsze.",
         "Skill Level każdego skilla rozwija się teraz osobno od 1 do 200.",
-        "Cooldown, Mana, Skill XP, krytyki i walka turowa pozostają zgodne z istniejącym systemem.",
+        "Cooldown, Mana, Skill XP i krytyki pozostają zgodne z istniejącym systemem; walka działa teraz w czasie rzeczywistym.",
         "Wpisz skills, skillnames albo porozmawiaj z nauczycielem klasy.",
     ],
     "naturalne_uzyj": [
@@ -8281,7 +8558,7 @@ HELP_TOPICS = {
         "Po respawnie boss Krypty ponownie blokuje zejście na następne piętro.",
     ],
     "bossowie": [
-        "Bossowie nadal działają w walce turowej: jedna akcja gracza, potem jedna odpowiedź przeciwnika.",
+        "Bossowie działają w walce czasu rzeczywistego i wykonują ataki według własnego timera.",
         "Bossowie i zwykłe moby nie są agresywne; nie zaczynają walki sami.",
         "Kościany Egzekutor: co trzeci kontratak używa Kościanego Miażdżenia.",
         "Krwawy Kurator: co trzeci kontratak używa Krwawego Drenażu i leczy się częścią zadanych obrażeń.",
@@ -8299,7 +8576,7 @@ HELP_TOPICS = {
         "Prorok Czarnego Płomienia, piętro 140: co trzeci kontratak omija połowę obrony magicznej.",
         "Władca Bezdennych Katakumb, piętro 150: co czwarty kontratak używa Bezdennego Echa.",
         "Astralny Żniwiarz, piętro 160: zmienia fizyczną i magiczną fazę.",
-        "Kolos Pustki, piętro 170: regeneruje 8 procent HP co czwartą turę.",
+        "Kolos Pustki, piętro 170: regeneruje 8 procent HP co czwarty własny atak.",
         "Cesarz Upiorów, piętro 180: ma Widmowy Unik i jest celem Próby Tier 5.",
         "Strażnik Końca, piętro 190: poniżej połowy HP zadaje 60 procent więcej obrażeń.",
         "Władca Dwustu Pięter, piętro 200: finałowa druga faza, Bariera Końca i Załamanie Wieczności.",
@@ -9357,6 +9634,56 @@ MOB_TEMPLATES = {
         ],
         "corpse_equipment_guaranteed": 2,
     },
+    "ruin_watchman": {
+        "name": "Ożywiony Wartownik", "max_hp": 105, "damage": 12, "damage_type": "physical",
+        "silver": 54, "gold": 0, "mithril": 0, "stat_reward": 44, "soul_reward": 220,
+        "drops": {"healing_potion": 0.10}, "quest_target": None,
+    },
+    "ruin_spearman": {
+        "name": "Włócznik Starej Straży", "max_hp": 125, "damage": 14, "damage_type": "physical",
+        "silver": 64, "gold": 0, "mithril": 0, "stat_reward": 50, "soul_reward": 255,
+        "drops": {"healing_potion": 0.10, "soul_shard": 0.06}, "quest_target": None,
+    },
+    "ruin_crossbowman": {
+        "name": "Kusznik Starej Straży", "max_hp": 112, "damage": 15, "damage_type": "physical",
+        "silver": 68, "gold": 0, "mithril": 0, "stat_reward": 51, "soul_reward": 265,
+        "drops": {"healing_potion": 0.08}, "quest_target": None,
+    },
+    "ruin_shieldbearer": {
+        "name": "Tarczownik Starej Straży", "max_hp": 155, "damage": 15, "damage_type": "physical",
+        "silver": 82, "gold": 1, "mithril": 0, "stat_reward": 60, "soul_reward": 310,
+        "drops": {"healing_potion": 0.14, "soul_shard": 0.08}, "quest_target": None,
+    },
+    "ruin_runekeeper": {
+        "name": "Runiczny Strażnik", "max_hp": 138, "damage": 17, "damage_type": "magic",
+        "silver": 88, "gold": 1, "mithril": 0, "stat_reward": 62, "soul_reward": 330,
+        "drops": {"mana_potion": 0.14, "soul_shard": 0.12}, "quest_target": None,
+    },
+    "ruin_wraith": {
+        "name": "Widmo Strażnicy", "max_hp": 145, "damage": 18, "damage_type": "magic",
+        "silver": 0, "gold": 2, "mithril": 0, "stat_reward": 65, "soul_reward": 350,
+        "drops": {"soul_shard": 0.28}, "quest_target": None,
+    },
+    "ruin_gargoyle": {
+        "name": "Kamienny Obserwator", "max_hp": 175, "damage": 18, "damage_type": "physical",
+        "silver": 96, "gold": 1, "mithril": 0, "stat_reward": 70, "soul_reward": 380,
+        "drops": {"soul_shard": 0.18}, "quest_target": None,
+    },
+    "ruin_goblin_looter": {
+        "name": "Gobliński Łupieżca Ruin", "max_hp": 98, "damage": 12, "damage_type": "physical",
+        "silver": 60, "gold": 0, "mithril": 0, "stat_reward": 43, "soul_reward": 220,
+        "drops": {"healing_potion": 0.10}, "quest_target": "goblin",
+    },
+    "ruin_captain": {
+        "name": "Kapitan Starej Straży", "max_hp": 330, "damage": 23, "damage_type": "physical",
+        "silver": 300, "gold": 2, "mithril": 0, "stat_reward": 135,
+        "class_xp_reward": 1800, "soul_reward": 560,
+        "drops": {"healing_potion": 0.40, "soul_shard": 0.35},
+        "quest_target": None, "mini_boss": True, "respawn_seconds": 180,
+        "boss_mechanic_text": "Mini-boss. Dowódca wewnętrznej straży ruin.",
+        "corpse_equipment_pool": ["iron_helmet", "iron_guard", "iron_gauntlets", "iron_boots"],
+        "corpse_equipment_guaranteed": 1,
+    },
     "crystal_lord": {
         "name": "Kryształowy Władca",
         "max_hp": 500,
@@ -9451,11 +9778,36 @@ MOB_SPAWNS = [
     ("goblin_throne_cave", "goblin_warrior"),
     ("goblin_throne_cave", "goblin_king"),
     ("deep_grove", "shadow_alpha"),
-    ("ruined_watchtower", "ruin_warden"),
+    ("ruin_command_chamber", "ruin_warden"),
     ("crystal_chamber", "crystal_lord"),
     ("deep_grove", "shadow_wolf"),
     ("whisper_grove", "shadow_wolf"),
     ("ruined_watchtower", "goblin"),
+    ("ruined_watchtower", "ruin_goblin_looter"),
+    ("ruin_gatehouse", "ruin_watchman"),
+    ("ruin_gatehouse", "ruin_spearman"),
+    ("ruin_courtyard", "ruin_watchman"),
+    ("ruin_courtyard", "ruin_goblin_looter"),
+    ("ruin_courtyard", "ruin_shieldbearer"),
+    ("ruin_barracks", "ruin_watchman"),
+    ("ruin_barracks", "ruin_spearman"),
+    ("ruin_barracks", "ruin_shieldbearer"),
+    ("ruin_armory", "ruin_shieldbearer"),
+    ("ruin_armory", "ruin_runekeeper"),
+    ("ruin_wall_walk", "ruin_crossbowman"),
+    ("ruin_wall_walk", "ruin_crossbowman"),
+    ("ruin_wall_walk", "ruin_gargoyle"),
+    ("ruin_archive", "ruin_runekeeper"),
+    ("ruin_archive", "ruin_wraith"),
+    ("ruin_cellar", "ruin_goblin_looter"),
+    ("ruin_cellar", "ruin_watchman"),
+    ("ruin_undercroft", "ruin_wraith"),
+    ("ruin_undercroft", "ruin_gargoyle"),
+    ("ruin_sealed_hall", "ruin_shieldbearer"),
+    ("ruin_sealed_hall", "ruin_runekeeper"),
+    ("ruin_sealed_hall", "ruin_captain"),
+    ("ruin_command_chamber", "ruin_wraith"),
+    ("ruin_command_chamber", "ruin_gargoyle"),
     ("goblin_camp", "goblin_brute"),
     ("goblin_fungus_gallery", "goblin_brute"),
     ("crypt_hall", "skeleton"),
@@ -9513,7 +9865,7 @@ CRYPT_BOSS_MECHANIC_TEXT = {
     30: "Co trzecie trafienie gracza: Tarcza Grobowca redukuje obrażenia o połowę.",
     40: "Co trzeci kontratak: Klątwa Popiołu, magiczny atak ignorujący połowę obrony magicznej.",
     50: "Co czwarty kontratak: Echo Katakumb, jedna potężna seria liczona jako pojedyncza odpowiedź bossa.",
-    60: "Widmowy Tytan zmienia typ obrażeń między fizycznym i magicznym co turę.",
+    60: "Widmowy Tytan zmienia typ obrażeń między fizycznym i magicznym przy każdym własnym ataku.",
     70: "Co czwarty kontratak: Nekroregeneracja odnawia 7 procent maksymalnego HP bossa.",
     80: "Arcyupiór ma 25 procent szansy na eteryczny unik przeciw trafieniu gracza.",
     90: "Poniżej połowy HP Król Kości wpada w furię i zadaje 50 procent więcej obrażeń.",
@@ -9523,7 +9875,7 @@ CRYPT_BOSS_MECHANIC_TEXT = {
     130: "Co trzecie trafienie gracza rozbija się o Żelazne Kości i zostaje mocno zredukowane.",
     140: "Co trzeci kontratak: Czarny Płomień, silny atak magiczny ignorujący połowę obrony.",
     150: "Co czwarty kontratak: Bezdenne Echo, jedna bardzo silna odpowiedź bossa.",
-    160: "Astralny Żniwiarz zmienia typ obrażeń co turę i co piątą turę wzmacnia atak.",
+    160: "Astralny Żniwiarz zmienia typ obrażeń przy każdym własnym ataku i co piąty atak wzmacnia cios.",
     170: "Co czwarty kontratak Kolos Pustki regeneruje 8 procent maksymalnego HP.",
     180: "Cesarz Upiorów ma 30 procent szansy na Widmowy Unik i co trzeci kontratak wzmacnia magię.",
     190: "Co czwarte trafienie gracza osłabia Straż Końca; poniżej połowy HP boss zadaje 60 procent więcej obrażeń.",
@@ -14593,6 +14945,7 @@ def build_elite_rare_named_loot_expansion():
     chest_rows = {
         "bandit_loot_depot": ("Skrzynia Łupów Bandytów",900,["healing_potion","soul_shard"],[]),
         "goblin_treasure_burrow": ("Goblińska Skrzynia Skarbów",900,["healing_potion","mana_potion","soul_shard"],[]),
+        "ruin_armory": ("Skrzynia Starej Zbrojowni",1200,["healing_potion","mana_potion","soul_shard"],[]),
         "cemetery_bone_field": ("Zapieczętowana Skrzynia Cmentarna",1200,["soul_shard","soul_elixir"],[]),
         "cult_ruins_library": ("Skrzynia Zakazanej Wiedzy",1200,["soul_shard","soul_elixir"],regional_items["cultist"]),
         "cult_ruins_ritual_hall": ("Rytualna Skrzynia Kultystów",1500,["soul_elixir"],regional_items["cultist"]),
@@ -14642,6 +14995,29 @@ configure_v0800_help_info()
 configure_v081_help_info()
 build_paid_training_guild_expansion()
 configure_base_mob_corpse_equipment()
+
+
+def build_independent_specialist_quest_offers():
+    """
+    v0.8.31: zlecenia profesyjne u jednego specjalisty są niezależne.
+    Wymagania poziomu narzędzia/profesji zostają, ale ukończenie poprzedniego
+    zlecenia nie jest potrzebne do przyjęcia kolejnego. Fabularne quest_chain
+    pozostają nietknięte.
+    """
+    changed = 0
+    for npc in NPCS.values():
+        for quest_id in tuple(npc.get("specialist_quests") or ()):
+            quest = QUESTS.get(quest_id)
+            if not quest:
+                continue
+            if "requires_quest" in quest:
+                quest.pop("requires_quest", None)
+                changed += 1
+    return changed
+
+
+INDEPENDENT_SPECIALIST_QUESTS = build_independent_specialist_quest_offers()
+
 
 def apply_global_mob_hp_multiplier():
     """Zwiększa HP wszystkich mobów i bossów po zbudowaniu całego świata."""
@@ -14770,6 +15146,7 @@ def _zone_title(zone):
         "Jaskinie Goblinów": "Kartograf Jaskiń Goblinów",
         "Obozowiska Bandytów": "Pogromca Obozowisk Bandytów",
         "Las Szeptów": "Strażnik Lasu Szeptów",
+        "Ruiny Strażnicy": "Pogromca Ruin Strażnicy",
     }
     return special.get(zone, f"Odkrywca: {zone}")
 
@@ -15240,6 +15617,15 @@ class Database:
                 FOREIGN KEY(character_account_id) REFERENCES accounts(id) ON DELETE CASCADE
             );
 
+            CREATE TABLE IF NOT EXISTS account_wallet (
+                master_account_id INTEGER PRIMARY KEY,
+                silver INTEGER NOT NULL DEFAULT 0,
+                gold INTEGER NOT NULL DEFAULT 0,
+                mithril INTEGER NOT NULL DEFAULT 0,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY(master_account_id) REFERENCES accounts(id) ON DELETE CASCADE
+            );
+
             CREATE TABLE IF NOT EXISTS characters (
                 account_id INTEGER PRIMARY KEY,
                 name TEXT NOT NULL UNIQUE COLLATE NOCASE,
@@ -15480,6 +15866,14 @@ class Database:
                 created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY(account_id) REFERENCES accounts(id) ON DELETE CASCADE
             );
+
+            CREATE TABLE IF NOT EXISTS treasure_chest_cooldowns (
+                account_id INTEGER NOT NULL,
+                room_id TEXT NOT NULL,
+                opened_at INTEGER NOT NULL DEFAULT 0,
+                PRIMARY KEY(account_id, room_id),
+                FOREIGN KEY(account_id) REFERENCES accounts(id) ON DELETE CASCADE
+            );
             """
         )
         self.conn.commit()
@@ -15649,6 +16043,92 @@ class Database:
             """
         )
 
+        # v0.8.32: jeden wspólny portfel dla wszystkich postaci na koncie.
+        # Pierwsza migracja SUMUJE walutę wszystkich istniejących slotów,
+        # dzięki czemu aktualizacja nie kasuje pieniędzy żadnej postaci.
+        wallet_migrated = self.conn.execute(
+            "SELECT 1 FROM migration_flags WHERE flag=?",
+            ("shared_account_wallet_v0832",),
+        ).fetchone()
+        if not wallet_migrated:
+            masters = self.conn.execute(
+                "SELECT DISTINCT master_account_id FROM account_characters "
+                "ORDER BY master_account_id"
+            ).fetchall()
+            for master_row in masters:
+                master_id = int(master_row["master_account_id"])
+                sums = self.conn.execute(
+                    """
+                    SELECT COALESCE(SUM(c.silver),0) AS silver,
+                           COALESCE(SUM(c.gold),0) AS gold,
+                           COALESCE(SUM(c.mithril),0) AS mithril
+                    FROM account_characters ac
+                    JOIN characters c ON c.account_id=ac.character_account_id
+                    WHERE ac.master_account_id=?
+                    """,
+                    (master_id,),
+                ).fetchone()
+                silver, gold, mithril = normalize_currency_values(
+                    int(sums["silver"] or 0),
+                    int(sums["gold"] or 0),
+                    int(sums["mithril"] or 0),
+                )
+                self.conn.execute(
+                    "INSERT OR REPLACE INTO account_wallet("
+                    "master_account_id,silver,gold,mithril,updated_at"
+                    ") VALUES(?,?,?,?,CURRENT_TIMESTAMP)",
+                    (master_id, silver, gold, mithril),
+                )
+                self.conn.execute(
+                    """
+                    UPDATE characters SET silver=?,gold=?,mithril=?
+                    WHERE account_id IN (
+                        SELECT character_account_id FROM account_characters
+                        WHERE master_account_id=?
+                    )
+                    """,
+                    (silver, gold, mithril, master_id),
+                )
+
+                # Waluta zdeponowana w Banku Dusz również jest wspólna.
+                bank_sums = self.conn.execute(
+                    """
+                    SELECT COALESCE(SUM(b.silver),0) AS silver,
+                           COALESCE(SUM(b.gold),0) AS gold,
+                           COALESCE(SUM(b.mithril),0) AS mithril
+                    FROM account_characters ac
+                    LEFT JOIN bank_balances b ON b.account_id=ac.character_account_id
+                    WHERE ac.master_account_id=?
+                    """,
+                    (master_id,),
+                ).fetchone()
+                bank_silver, bank_gold, bank_mithril = normalize_currency_values(
+                    int(bank_sums["silver"] or 0),
+                    int(bank_sums["gold"] or 0),
+                    int(bank_sums["mithril"] or 0),
+                )
+                self.conn.execute(
+                    "INSERT INTO bank_balances(account_id,silver,gold,mithril) "
+                    "VALUES(?,?,?,?) "
+                    "ON CONFLICT(account_id) DO UPDATE SET "
+                    "silver=excluded.silver,gold=excluded.gold,mithril=excluded.mithril",
+                    (master_id, bank_silver, bank_gold, bank_mithril),
+                )
+                self.conn.execute(
+                    """
+                    DELETE FROM bank_balances
+                    WHERE account_id<>? AND account_id IN (
+                        SELECT character_account_id FROM account_characters
+                        WHERE master_account_id=?
+                    )
+                    """,
+                    (master_id, master_id),
+                )
+            self.conn.execute(
+                "INSERT INTO migration_flags(flag) VALUES(?)",
+                ("shared_account_wallet_v0832",),
+            )
+
         self.conn.commit()
 
     def account_by_name(self, username):
@@ -15672,6 +16152,99 @@ class Database:
             (account_id,),
         ).fetchone()
         return row is not None
+
+    def master_account_for_character(self, character_account_id):
+        row = self.conn.execute(
+            "SELECT master_account_id FROM account_characters "
+            "WHERE character_account_id=?",
+            (character_account_id,),
+        ).fetchone()
+        if row:
+            return int(row["master_account_id"])
+        return int(character_account_id)
+
+    def shared_wallet_for_master(self, master_account_id):
+        master_account_id = int(master_account_id)
+        row = self.conn.execute(
+            "SELECT silver,gold,mithril FROM account_wallet "
+            "WHERE master_account_id=?",
+            (master_account_id,),
+        ).fetchone()
+        if row:
+            return (int(row["silver"]), int(row["gold"]), int(row["mithril"]))
+
+        # Bezpieczny fallback dla świeżego konta albo nietypowego starego save'a.
+        sums = self.conn.execute(
+            """
+            SELECT COALESCE(SUM(c.silver),0) AS silver,
+                   COALESCE(SUM(c.gold),0) AS gold,
+                   COALESCE(SUM(c.mithril),0) AS mithril
+            FROM account_characters ac
+            JOIN characters c ON c.account_id=ac.character_account_id
+            WHERE ac.master_account_id=?
+            """,
+            (master_account_id,),
+        ).fetchone()
+        silver, gold, mithril = normalize_currency_values(
+            int(sums["silver"] or 0), int(sums["gold"] or 0), int(sums["mithril"] or 0)
+        )
+        self.conn.execute(
+            "INSERT OR REPLACE INTO account_wallet("
+            "master_account_id,silver,gold,mithril,updated_at"
+            ") VALUES(?,?,?,?,CURRENT_TIMESTAMP)",
+            (master_account_id, silver, gold, mithril),
+        )
+        self.conn.commit()
+        return silver, gold, mithril
+
+    def shared_wallet_for_character(self, character_account_id):
+        return self.shared_wallet_for_master(
+            self.master_account_for_character(character_account_id)
+        )
+
+    def set_shared_wallet_for_master(self, master_account_id, silver, gold, mithril, *, commit=True):
+        master_account_id = int(master_account_id)
+        silver, gold, mithril = normalize_currency_values(silver, gold, mithril)
+        self.conn.execute(
+            """
+            INSERT INTO account_wallet(master_account_id,silver,gold,mithril,updated_at)
+            VALUES(?,?,?,?,CURRENT_TIMESTAMP)
+            ON CONFLICT(master_account_id) DO UPDATE SET
+                silver=excluded.silver,
+                gold=excluded.gold,
+                mithril=excluded.mithril,
+                updated_at=CURRENT_TIMESTAMP
+            """,
+            (master_account_id, silver, gold, mithril),
+        )
+        # Trzymamy kolumny legacy zsynchronizowane, żeby wszystkie starsze
+        # fragmenty gry i narzędzia administracyjne widziały to samo saldo.
+        self.conn.execute(
+            """
+            UPDATE characters SET silver=?,gold=?,mithril=?
+            WHERE account_id IN (
+                SELECT character_account_id FROM account_characters
+                WHERE master_account_id=?
+            )
+            """,
+            (silver, gold, mithril, master_account_id),
+        )
+        if commit:
+            self.conn.commit()
+        return silver, gold, mithril
+
+    def set_shared_wallet_for_character(self, character_account_id, silver, gold, mithril, *, commit=True):
+        return self.set_shared_wallet_for_master(
+            self.master_account_for_character(character_account_id),
+            silver, gold, mithril, commit=commit,
+        )
+
+    def apply_shared_wallet_to_character(self, character):
+        silver, gold, mithril = self.shared_wallet_for_character(character.account_id)
+        character.silver = silver
+        character.gold = gold
+        character.mithril = mithril
+        return character
 
     def character_for_account(self, account_id):
         return self.conn.execute(
@@ -15754,6 +16327,25 @@ class Database:
             self.create_character(
                 character_account_id, name, race, cls, name_cases
             )
+            wallet_row = self.conn.execute(
+                "SELECT silver,gold,mithril FROM account_wallet "
+                "WHERE master_account_id=?",
+                (master_account_id,),
+            ).fetchone()
+            if wallet_row is None:
+                # Pierwsza postać zakłada wspólny portfel z pakietem startowym.
+                created = self.character_for_account(character_account_id)
+                self.set_shared_wallet_for_master(
+                    master_account_id,
+                    created["silver"], created["gold"], created["mithril"],
+                )
+            else:
+                # Każda następna postać dostaje dokładnie saldo konta,
+                # bez ponownego przyznawania startowych monet.
+                self.set_shared_wallet_for_master(
+                    master_account_id,
+                    wallet_row["silver"], wallet_row["gold"], wallet_row["mithril"],
+                )
         except Exception:
             self.conn.execute(
                 "DELETE FROM account_characters WHERE master_account_id=? AND slot=?",
@@ -15819,6 +16411,11 @@ class Database:
             c.silver,
             c.gold,
             c.mithril,
+        )
+
+        # v0.8.32: waluta należy do konta głównego, nie do slotu postaci.
+        self.set_shared_wallet_for_character(
+            c.account_id, c.silver, c.gold, c.mithril, commit=False
         )
 
         self.conn.execute(
@@ -16013,20 +16610,23 @@ class Database:
         }
 
     def ensure_bank(self, account_id):
+        # v0.8.32: waluta Banku Dusz jest również wspólna dla całego konta.
+        currency_account_id = self.master_account_for_character(account_id)
         self.conn.execute(
             "INSERT OR IGNORE INTO bank_balances("
             "account_id,silver,gold,mithril"
             ") VALUES(?,0,0,0)",
-            (account_id,),
+            (currency_account_id,),
         )
         self.conn.commit()
+        return currency_account_id
 
     def bank_balance(self, account_id):
-        self.ensure_bank(account_id)
+        currency_account_id = self.ensure_bank(account_id)
         row = self.conn.execute(
             "SELECT silver,gold,mithril FROM bank_balances "
             "WHERE account_id=?",
-            (account_id,),
+            (currency_account_id,),
         ).fetchone()
 
         silver, gold, mithril = normalize_currency_values(
@@ -16044,13 +16644,13 @@ class Database:
                 "UPDATE bank_balances "
                 "SET silver=?, gold=?, mithril=? "
                 "WHERE account_id=?",
-                (silver, gold, mithril, account_id),
+                (silver, gold, mithril, currency_account_id),
             )
             self.conn.commit()
             row = self.conn.execute(
                 "SELECT silver,gold,mithril FROM bank_balances "
                 "WHERE account_id=?",
-                (account_id,),
+                (currency_account_id,),
             ).fetchone()
 
         return row
@@ -16059,6 +16659,7 @@ class Database:
         if currency not in ("silver", "gold", "mithril"):
             raise ValueError("Nieznana waluta bankowa.")
 
+        currency_account_id = self.master_account_for_character(account_id)
         row = self.bank_balance(account_id)
         values = {
             "silver": int(row["silver"]),
@@ -16080,7 +16681,7 @@ class Database:
             "UPDATE bank_balances "
             "SET silver=?, gold=?, mithril=? "
             "WHERE account_id=?",
-            (silver, gold, mithril, account_id),
+            (silver, gold, mithril, currency_account_id),
         )
         self.conn.commit()
         return True
@@ -16195,6 +16796,23 @@ class Database:
             (account_id, category),
         ).fetchall()
         return {str(row["entry_id"]) for row in rows}
+
+    def treasure_chest_opened_at(self, account_id, room_id):
+        row = self.conn.execute(
+            "SELECT opened_at FROM treasure_chest_cooldowns WHERE account_id=? AND room_id=?",
+            (account_id, room_id),
+        ).fetchone()
+        return int(row["opened_at"]) if row else 0
+
+    def mark_treasure_chest_opened(self, account_id, room_id, opened_at=None):
+        stamp = int(time.time() if opened_at is None else opened_at)
+        self.conn.execute(
+            "INSERT INTO treasure_chest_cooldowns(account_id,room_id,opened_at) VALUES(?,?,?) "
+            "ON CONFLICT(account_id,room_id) DO UPDATE SET opened_at=excluded.opened_at",
+            (account_id, room_id, stamp),
+        )
+        self.conn.commit()
+        return stamp
 
     def achievement_metric(self, account_id, metric):
         row = self.conn.execute(
@@ -17733,19 +18351,18 @@ class World:
         self.corpses[corpse.key]=corpse
         return corpse
 
-    def treasure_chest_status(self, room_id):
+    def treasure_chest_status(self, room_id, opened_at=0):
         cfg=TREASURE_CHESTS.get(room_id)
         if not cfg:
             return None, 0
-        opened=float(self.treasure_chest_opened_at.get(room_id,0.0) or 0.0)
+        opened=float(opened_at or 0.0)
         remaining=max(0,int(round(opened + int(cfg["respawn"]) - time.time())))
         return cfg, remaining
 
     def open_treasure_chest(self, room_id):
-        cfg,remaining=self.treasure_chest_status(room_id)
-        if not cfg or remaining > 0:
+        cfg=TREASURE_CHESTS.get(room_id)
+        if not cfg:
             return None
-        self.treasure_chest_opened_at[room_id]=time.time()
         keys=list(TREASURE_CHEST_RARITIES)
         weights=[TREASURE_CHEST_RARITIES[k][1] for k in keys]
         rarity=random.choices(keys,weights=weights,k=1)[0]
@@ -17817,6 +18434,11 @@ class Session:
         self.current_hp = 0
         self.current_mana = 0
         self.combat_mob_key = None
+        # v0.8.34: walka działa w czasie rzeczywistym. Jedno zadanie asyncio
+        # prowadzi niezależne timery akcji gracza i przeciwnika.
+        self.combat_task = None
+        self.combat_player_interval = 1.35
+        self.combat_enemy_interval = 1.85
         self.last_profession_action = 0.0
         self.auto_fishing = False
         self.auto_fishing_task = None
@@ -17828,6 +18450,9 @@ class Session:
         self.auto_herbalism_task = None
         self.guiding = False
         self.guide_choice_state = None
+        # v0.8.32: ostatnia numerowana lista questów: aktywne, ukończone lub NPC.
+        # Dzięki temu quest info <numer> działa po każdej z tych list.
+        self.quest_list_context = None
         self.skill_cooldowns = {}
         self.skill_guard = 0
         self.skill_evade = False
@@ -19103,6 +19728,7 @@ class Session:
 
             self.account_id = int(selected["character_account_id"])
             self.character = Character.from_row(selected)
+            self.server.db.apply_shared_wallet_to_character(self.character)
             if self.character.room_id not in ROOMS:
                 self.character.room_id = "square"
             await self.send(
@@ -19321,6 +19947,7 @@ class Session:
         self.character = Character.from_row(
             self.server.db.character_for_account(self.account_id)
         )
+        self.server.db.apply_shared_wallet_to_character(self.character)
         await self.send(
             f"Utworzono postać {self.character.name} w slocie {slot} z "
             f"{MAX_CHARACTERS_PER_ACCOUNT}."
@@ -19328,7 +19955,21 @@ class Session:
         await self.send(
             "Postać nie posiada levelu. Wszystkie pięć statystyk rośnie automatycznie."
         )
-        await self.send("Na start otrzymujesz 2 złota, 30 srebra i 2 Mikstury leczenia.")
+        if slot == 1:
+            await self.send(
+                "Pierwsza postać zakłada wspólny portfel konta: 2 złota i 30 srebra. "
+                "Otrzymujesz też 2 Mikstury leczenia."
+            )
+        else:
+            await self.send(
+                "Waluta jest wspólna dla wszystkich postaci na tym koncie. "
+                "Ta postać korzysta z istniejącego salda: "
+                + currency_reading_text(
+                    self.character.silver, self.character.gold, self.character.mithril,
+                    full_names=True, include_zero=True,
+                )
+                + ". Otrzymujesz 2 Mikstury leczenia."
+            )
         return True
 
     async def enter_world(self):
@@ -20151,7 +20792,8 @@ class Session:
                 + "."
             )
 
-        _chest_cfg, _chest_remaining = self.server.world.treasure_chest_status(self.character.room_id)
+        _chest_opened = self.server.db.treasure_chest_opened_at(self.account_id, self.character.room_id)
+        _chest_cfg, _chest_remaining = self.server.world.treasure_chest_status(self.character.room_id, _chest_opened)
         if _chest_cfg:
             if _chest_remaining <= 0:
                 await self.send(f"Skrzynia skarbów: {_chest_cfg['name']}. Gotowa. Wpisz skrzynia albo chest.")
@@ -20919,17 +21561,25 @@ class Session:
             )
 
     async def open_treasure_chest(self, args=""):
-        cfg,remaining=self.server.world.treasure_chest_status(self.character.room_id)
+        opened_at = self.server.db.treasure_chest_opened_at(
+            self.account_id, self.character.room_id
+        )
+        cfg,remaining=self.server.world.treasure_chest_status(
+            self.character.room_id, opened_at
+        )
         if not cfg:
-            await self.send("Nie ma tutaj odnawialnej skrzyni skarbów.")
+            await self.send("Nie ma tutaj skrzyni skarbów do otwarcia.")
             return
         if remaining > 0:
-            await self.send(f"{cfg['name']} jest pusta. Odnowi się za około {remaining} sekund.")
+            await self.send(f"{cfg['name']} jest już otwarta i pusta. Odnowi się za około {remaining} sekund.")
             return
         result=self.server.world.open_treasure_chest(self.character.room_id)
         if not result:
-            await self.send("Skrzynia nie jest jeszcze gotowa.")
+            await self.send("Nie udało się otworzyć skrzyni.")
             return
+        self.server.db.mark_treasure_chest_opened(
+            self.account_id, self.character.room_id
+        )
         self.character.silver += int(result["silver"])
         self.character.gold += int(result["gold"])
         for item_id in result["items"]:
@@ -21007,11 +21657,11 @@ class Session:
             "kodeksklasowy <klasa> / classcodex <class> - wszystkie skille, wymagany Soul, nauczyciel, koszt i status odblokowania",
             "skillnames / nazwyskilli - wszystkie nazwy skilli wszystkich klas",
             "skill / umiejetnosc / cast <nazwa lub numer> [cel] - użyj umiejętności",
-            "kolejka - auto kolejka skilli; dodaj/usuń/wyczyść/on/off; osobne sloty fizyczne i magiczne rosną z Biegłością klasy",
+            "kolejka / kolejka lista - pokaż zapisane skille i czary; kolejka dodaj automatycznie włącza rotację; osobne sloty fizyczne i magiczne rosną z Biegłością klasy",
             "użyj umiejętność <nazwa> [cel] / use skill <name> [target] - alternatywne użycie skilla",
             "learn / naucz / ucz <nazwa, numer lub naturalna kategoria> - np. naucz leczenie, tarcza, ciecie, pocisk, ogien",
             "soul / dusza - szybki stan Duszy; dusza info - Soul XP, Tiery, Próby i następny cel",
-            "money - srebro, złoto i mithril",
+            "money - mithril, złoto i srebro",
             "bank - Bank Dusz na Rynku; waluta i trwała skrytka przedmiotów",
             "money - automatyczne nominały waluty i kurs",
             "professions / profesje - szybki stan profesji; profesje info - XP, rangi i zasady",
@@ -21054,9 +21704,9 @@ class Session:
             "buy / kup przedmiot - kup przedmiot",
             "talk npc - rozmowa, zadania i lekcje nauczycieli klasowych",
             "teachers / nauczyciele - lista nauczycieli w Sali Gildii",
-            "quests - dziennik zadań",
+            "help quest - pełna pomoc dziennika; quest - aktywne; quest ukończone; quest list <NPC>; quest accept/info/oddaj <numer>",
             "consider / con / ocen <mob> - oceń siłę przeciwnika bez rozpoczynania walki",
-            "attack / atakuj / zabij / kill przeciwnik - tura walki",
+            "k <mob> / attack / atakuj / zabij / kill <mob> - szybki atak na wskazanego przeciwnika",
             "ciało / zwloki / corpse - pokaż ciała i ich ekwipunek",
             "przeszukaj ciało / loot - zabierz ekwipunek z ciała moba",
             "flee / uciekaj - ucieczka",
@@ -21114,7 +21764,7 @@ class Session:
             await self.send("help wszystko - pełny przewodnik.")
             await self.send("opis <nazwa> - szczegółowy opis dowolnego elementu.")
             await self.send("changes / zmiany / changelog - pełna historia wszystkich wersji i zmian, najnowsze na górze.")
-            await self.send("Na start: look, exits, staty, dusza, eq, quests, help podstawy.")
+            await self.send("Na start: look, exits, staty, dusza, eq, quest, help quest, help podstawy.")
             await self.send("Nowość v0.8.1: sety 2/4/6/8 dla wszystkich 12 klas oraz teren info <nazwa>. Tryby info z v0.8.0 pozostają.")
             return
 
@@ -29028,7 +29678,7 @@ class Session:
     async def equip_item(self, query):
         if self.combat_mob_key:
             await self.send(
-                "Nie możesz zmieniać ekwipunku podczas walki turowej. "
+                "Nie możesz zmieniać ekwipunku podczas aktywnej walki. "
                 "Najpierw użyj flee albo zakończ walkę."
             )
             return
@@ -29331,14 +29981,7 @@ class Session:
                 )
 
             if self.combat_mob_key:
-                await self.send(
-                    "Zużywasz swoją turę na użycie przedmiotu."
-                )
-                await self.enemy_counterattack(
-                    self.server.world.mobs.get(
-                        self.combat_mob_key
-                    )
-                )
+                await self.ensure_realtime_combat()
             return
 
         if "soul_xp" in item:
@@ -29354,14 +29997,7 @@ class Session:
             self.server.db.save_character(self.character)
 
             if self.combat_mob_key:
-                await self.send(
-                    "Zużywasz swoją turę na użycie przedmiotu."
-                )
-                await self.enemy_counterattack(
-                    self.server.world.mobs.get(
-                        self.combat_mob_key
-                    )
-                )
+                await self.ensure_realtime_combat()
             return
 
         await self.send(
@@ -29968,6 +30604,421 @@ class Session:
 
         return int(row["progress"]), int(row["progress"]) >= needed
 
+    def quest_ids_for_npc(self, npc_id, npc):
+        """Zwraca stabilną, numerowaną ofertę questów jednego NPC."""
+        result = []
+
+        def add(quest_id):
+            if quest_id and quest_id in QUESTS and quest_id not in result:
+                result.append(quest_id)
+
+        add(npc.get("quest"))
+        for quest_id in tuple(npc.get("quest_chain") or ()):
+            add(quest_id)
+        for quest_id in tuple(npc.get("specialist_quests") or ()):
+            add(quest_id)
+
+        # Giver jest dodatkowym źródłem. Dzięki temu np. Kapłan Elor
+        # pokazuje również wszystkie Próby Broni Duszy.
+        giver_name = self.normalize_description_query(npc.get("name", ""))
+        for quest_id, quest in QUESTS.items():
+            if (
+                giver_name
+                and self.normalize_description_query(quest.get("giver", ""))
+                == giver_name
+            ):
+                add(quest_id)
+        return result
+
+    def quest_lock_reasons(self, quest_id):
+        """Powody, dla których quest nie może jeszcze zostać przyjęty."""
+        quest = QUESTS.get(quest_id)
+        if not quest:
+            return ["brak definicji zadania"]
+
+        reasons = []
+        required_quest = quest.get("requires_quest")
+        if required_quest and not self.quest_completed(required_quest):
+            previous = QUESTS.get(required_quest, {})
+            reasons.append(
+                "wymaga ukończenia: "
+                + previous.get("name", required_quest)
+            )
+
+        required_soul_level = int(quest.get("required_soul_level", 0) or 0)
+        if required_soul_level and self.character.soul_level < required_soul_level:
+            reasons.append(f"wymaga Soul Level {required_soul_level}")
+
+        required_soul_tier = int(quest.get("required_soul_tier", 0) or 0)
+        if required_soul_tier and self.character.soul_tier < required_soul_tier:
+            reasons.append(f"wymaga Soul Tier {required_soul_tier}")
+
+        tool_type = quest.get("specialist_tool_type")
+        min_tool = int(quest.get("min_tool_level", 0) or 0)
+        if tool_type and min_tool:
+            row = self.server.db.tool(self.account_id, tool_type)
+            if int(row["level"]) < min_tool:
+                reasons.append(f"wymaga levelu narzędzia {min_tool}")
+
+        profession = quest.get("required_profession")
+        min_prof = int(quest.get("min_profession_level", 0) or 0)
+        if profession and min_prof:
+            prow = self.server.db.profession(self.account_id, profession)
+            if int(prow["level"]) < min_prof:
+                reasons.append(f"wymaga {profession} level {min_prof}")
+
+        return reasons
+
+    def quest_offer_state(self, quest_id):
+        quest = QUESTS[quest_id]
+        row = self.server.db.quest(self.account_id, quest_id)
+        if row and row["status"] == "active":
+            progress, ready = self.quest_progress_for_turnin(quest_id)
+            if ready:
+                return f"aktywne, GOTOWE DO ODDANIA, {progress} z {quest['needed']}"
+            return f"aktywne, {progress} z {quest['needed']}"
+
+        if row and row["status"] == "completed":
+            if quest.get("repeatable"):
+                cooldown = int(
+                    quest.get("repeat_cooldown", QUEST_REPEAT_COOLDOWN_SECONDS)
+                )
+                remaining = self.server.db.repeat_quest_seconds_remaining(
+                    self.account_id, quest_id, cooldown
+                )
+                if remaining > 0:
+                    return (
+                        "ukończone, odnowienie za "
+                        + self.format_duration_short(remaining)
+                    )
+                return "dostępne ponownie"
+            return "ukończone"
+
+        reasons = self.quest_lock_reasons(quest_id)
+        if reasons:
+            return "zablokowane: " + ", ".join(reasons)
+        return "dostępne"
+
+    def local_quest_npcs(self):
+        result = {}
+        for npc_id, npc in NPCS.items():
+            if npc.get("room") != self.character.room_id:
+                continue
+            if self.quest_ids_for_npc(npc_id, npc):
+                result[npc_id] = npc
+        return result
+
+    async def show_npc_quest_offers(self, npc_id, npc, remember=True):
+        quest_ids = self.quest_ids_for_npc(npc_id, npc)
+        if not quest_ids:
+            await self.send(f"{npc['name']} nie ma teraz żadnych questów.")
+            return []
+
+        if remember:
+            self.quest_list_context = {
+                "source": "npc",
+                "room_id": self.character.room_id,
+                "npc_id": npc_id,
+                "quest_ids": list(quest_ids),
+            }
+
+        await self.send(f"QUEST LIST: {npc['name']}. {len(quest_ids)} zadań.")
+        for number, quest_id in enumerate(quest_ids, 1):
+            quest = QUESTS[quest_id]
+            state = self.quest_offer_state(quest_id)
+            await self.send(f"{number}. {quest['name']}. {state}.")
+        await self.send(
+            "Przyjmowanie: quest accept <numer> albo quest przyjmij <numer>. "
+            "Szczegóły: quest info <numer>."
+        )
+        return quest_ids
+
+    async def show_quest_npc_list(self, npc_query=""):
+        candidates = self.local_quest_npcs()
+        if not candidates:
+            await self.send("W tej lokacji żaden NPC nie oferuje questów.")
+            self.quest_list_context = None
+            return
+
+        query = str(npc_query or "").strip()
+        normalized = self.normalize_description_query(query)
+        for prefix in ("u ", "od ", "npc "):
+            if normalized.startswith(prefix):
+                query = query.split(None, 1)[1].strip() if " " in query else ""
+                break
+
+        if query:
+            found = find_by_name(candidates, query)
+            if not found:
+                await self.send(
+                    "Nie rozpoznaję tutaj tego NPC z questami. Dostępni: "
+                    + ", ".join(npc["name"] for npc in candidates.values())
+                    + "."
+                )
+                return
+            npc_id, npc = found
+            await self.show_npc_quest_offers(npc_id, npc)
+            return
+
+        if len(candidates) == 1:
+            npc_id, npc = next(iter(candidates.items()))
+            await self.show_npc_quest_offers(npc_id, npc)
+            return
+
+        await self.send("NPC z questami w tej lokacji:")
+        for number, npc in enumerate(candidates.values(), 1):
+            await self.send(f"{number}. {npc['name']}.")
+        await self.send("Wpisz quest list <NPC>, np. quest list Orin.")
+        self.quest_list_context = None
+
+    def quest_from_context(self, raw_number):
+        value = str(raw_number or "").strip()
+        if not value.isdigit():
+            return None, "Podaj numer questa z ostatniej listy NPC."
+        context = self.quest_list_context
+        if not context:
+            return None, (
+                "Najpierw wyświetl listę: quest, quest ukończone albo quest list <NPC>."
+            )
+        if (
+            context.get("source") == "npc"
+            and context.get("room_id") != self.character.room_id
+        ):
+            return None, "Lista NPC jest nieaktualna. Ponownie wpisz quest list <NPC>."
+        quest_ids = list(context.get("quest_ids") or ())
+        index = int(value) - 1
+        if index < 0 or index >= len(quest_ids):
+            return None, f"Nie ma questa numer {value} na ostatniej liście."
+        return quest_ids[index], None
+
+    async def accept_quest_id(self, quest_id):
+        if self.combat_mob_key:
+            await self.send("Nie możesz przyjmować questa podczas walki.")
+            return
+        quest = QUESTS.get(quest_id)
+        if not quest:
+            await self.send("Nie znaleziono tego questa.")
+            return
+
+        row = self.server.db.quest(self.account_id, quest_id)
+        if row and row["status"] == "active":
+            progress, ready = self.quest_progress_for_turnin(quest_id)
+            suffix = " Cel wykonany." if ready else ""
+            await self.send(
+                f"Quest już aktywny: {quest['name']}. "
+                f"Postęp {progress} z {quest['needed']}.{suffix}"
+            )
+            return
+
+        if row and row["status"] == "completed":
+            if not quest.get("repeatable"):
+                await self.send(f"Quest {quest['name']} jest już ukończony.")
+                return
+            cooldown = int(
+                quest.get("repeat_cooldown", QUEST_REPEAT_COOLDOWN_SECONDS)
+            )
+            remaining = self.server.db.repeat_quest_seconds_remaining(
+                self.account_id, quest_id, cooldown
+            )
+            if remaining > 0:
+                await self.send(
+                    f"Quest {quest['name']} odnawia się za "
+                    f"{self.format_duration_short(remaining)}."
+                )
+                return
+
+        reasons = self.quest_lock_reasons(quest_id)
+        if reasons:
+            await self.send(
+                f"Nie możesz jeszcze przyjąć questa {quest['name']}: "
+                + ", ".join(reasons)
+                + "."
+            )
+            return
+
+        if row and row["status"] == "completed":
+            self.server.db.restart_quest(self.account_id, quest_id)
+            await self.send(f"Quest przyjęty ponownie: {quest['name']}.")
+        else:
+            self.server.db.start_quest(self.account_id, quest_id)
+            await self.send(f"Quest przyjęty: {quest['name']}.")
+        await self.send(quest["description"])
+        await self.announce_active_quest_progress(quest_id)
+
+    async def accept_quest_from_context(self, args):
+        text = str(args or "").strip()
+        # Wygodny wariant bez kontekstu: quest accept Orin 2.
+        match = re.match(r"^(.*?)(\d+)$", text)
+        if match and match.group(1).strip():
+            npc_query = match.group(1).strip()
+            number = match.group(2)
+            candidates = self.local_quest_npcs()
+            found = find_by_name(candidates, npc_query)
+            if not found:
+                await self.send("Nie rozpoznaję tutaj tego NPC z questami.")
+                return
+            npc_id, npc = found
+            await self.show_npc_quest_offers(npc_id, npc, remember=True)
+            quest_id, error = self.quest_from_context(number)
+        else:
+            quest_id, error = self.quest_from_context(text)
+
+        if error:
+            await self.send(error)
+            return
+        await self.accept_quest_id(quest_id)
+
+    async def quest_info_from_context(self, number):
+        quest_id, error = self.quest_from_context(number)
+        if error:
+            await self.send(error)
+            return
+        quest = QUESTS[quest_id]
+        row = self.server.db.quest(self.account_id, quest_id)
+
+        await self.send(f"QUEST INFO: {quest['name']}.")
+        await self.send(f"NPC: {quest.get('giver', 'brak')}.")
+        await self.send(f"Stan: {self.quest_offer_state(quest_id)}.")
+        description = str(quest.get("description", "Brak opisu")).strip()
+        await self.send(
+            "Opis: " + description.rstrip(".?!") + "."
+        )
+
+        if row and row["status"] == "active":
+            progress, ready = self.quest_progress_for_turnin(quest_id)
+            ready_text = " Cel wykonany, można oddać." if ready else ""
+            await self.send(
+                f"Postęp: {progress} z {int(quest.get('needed', 1))}.{ready_text}"
+            )
+        elif row and int(row["completion_count"] or 0) > 0:
+            await self.send(
+                f"Historia: ukończono {int(row['completion_count'] or 0)} razy."
+            )
+
+        requirements = []
+        required_quest = quest.get("requires_quest")
+        if required_quest:
+            requirements.append(
+                "ukończ quest " + QUESTS.get(required_quest, {}).get("name", required_quest)
+            )
+        if quest.get("min_tool_level"):
+            requirements.append(f"level narzędzia {quest['min_tool_level']}")
+        if quest.get("min_profession_level") and quest.get("required_profession"):
+            requirements.append(
+                f"{quest['required_profession']} level {quest['min_profession_level']}"
+            )
+        if quest.get("required_soul_level"):
+            requirements.append(f"Soul Level {quest['required_soul_level']}")
+        if quest.get("required_soul_tier"):
+            requirements.append(f"Soul Tier {quest['required_soul_tier']}")
+        if requirements:
+            await self.send("Wymagania: " + ", ".join(requirements) + ".")
+        else:
+            await self.send("Wymagania: brak dodatkowych wymagań.")
+
+        reward_parts = []
+        rs = int(quest.get("reward_silver", 0) or 0)
+        rg = int(quest.get("reward_gold", 0) or 0)
+        rm = int(quest.get("reward_mithril", 0) or 0)
+        if rs or rg or rm:
+            reward_parts.append(currency_reading_text(rs, rg, rm))
+        for item_id, qty in (quest.get("reward_items") or {}).items():
+            item_name = ITEMS.get(item_id, {}).get("name", item_id)
+            reward_parts.append(f"{item_name} x{qty}")
+        if quest.get("reward_profession_xp"):
+            reward_parts.append(
+                f"{quest.get('reward_profession', 'profesja')} XP {quest['reward_profession_xp']}"
+            )
+        if quest.get("reward_tool_xp"):
+            reward_parts.append(f"XP narzędzia {quest['reward_tool_xp']}")
+        if quest.get("reward_stat_progress"):
+            reward_parts.append(f"EXP rozwoju {quest['reward_stat_progress']}")
+        if quest.get("unlocks_soul_tier"):
+            reward_parts.append(f"odblokowanie Próby Soul Tier {quest['unlocks_soul_tier']}")
+        await self.send(
+            "Nagrody: " + (", ".join(reward_parts) if reward_parts else "brak dodatkowych nagród") + "."
+        )
+
+        if quest.get("repeatable"):
+            cooldown = int(
+                quest.get("repeat_cooldown", QUEST_REPEAT_COOLDOWN_SECONDS)
+            )
+            await self.send(
+                "Powtarzalność: tak. Odnowienie po ukończeniu: "
+                + self.format_duration_short(cooldown)
+                + "."
+            )
+        else:
+            await self.send("Powtarzalność: nie.")
+
+    async def show_active_quests(self):
+        rows = [
+            row for row in self.server.db.quest_rows(self.account_id)
+            if row["status"] == "active" and row["quest_id"] in QUESTS
+        ]
+        if not rows:
+            self.quest_list_context = None
+            await self.send("Nie masz aktywnych questów.")
+            return
+        self.quest_list_context = {
+            "source": "active",
+            "quest_ids": [row["quest_id"] for row in rows],
+        }
+        await self.send(f"AKTYWNE QUESTY: {len(rows)}.")
+        for number, row in enumerate(rows, 1):
+            quest = QUESTS[row["quest_id"]]
+            progress, ready = self.quest_progress_for_turnin(row["quest_id"])
+            state = "GOTOWE DO ODDANIA" if ready else "aktywne"
+            await self.send(
+                f"{number}. {quest['name']}. {state}. "
+                f"Postęp {progress} z {quest['needed']}. NPC: {quest['giver']}."
+            )
+        await self.send("Szczegóły: quest info <numer>.")
+
+    async def show_completed_quests(self):
+        rows = [
+            row for row in self.server.db.quest_rows(self.account_id)
+            if int(row["completion_count"] or 0) > 0 and row["quest_id"] in QUESTS
+        ]
+        if not rows:
+            self.quest_list_context = None
+            await self.send("Nie masz jeszcze ukończonych questów.")
+            return
+        rows.sort(
+            key=lambda row: (int(row["completed_at"] or 0), row["quest_id"]),
+            reverse=True,
+        )
+        self.quest_list_context = {
+            "source": "completed",
+            "quest_ids": [row["quest_id"] for row in rows],
+        }
+        await self.send(f"UKOŃCZONE QUESTY: {len(rows)}.")
+        for number, row in enumerate(rows, 1):
+            quest = QUESTS[row["quest_id"]]
+            count = int(row["completion_count"] or 0)
+            extra = ""
+            if row["status"] == "active":
+                extra = " Obecnie ponownie aktywny."
+            elif quest.get("repeatable"):
+                cooldown = int(
+                    quest.get("repeat_cooldown", QUEST_REPEAT_COOLDOWN_SECONDS)
+                )
+                remaining = self.server.db.repeat_quest_seconds_remaining(
+                    self.account_id, row["quest_id"], cooldown
+                )
+                if remaining > 0:
+                    extra = (
+                        " Powtórka za "
+                        + self.format_duration_short(remaining)
+                        + "."
+                    )
+                else:
+                    extra = " Dostępny do ponownego przyjęcia."
+            await self.send(
+                f"{number}. {quest['name']}. Ukończono {count} razy.{extra}"
+            )
+        await self.send("Szczegóły: quest info <numer>.")
+
     def local_quest_ids(self):
         local_npcs = [
             npc
@@ -30333,8 +31384,15 @@ class Session:
         row = self.server.db.quest(
             self.account_id, quest_id
         )
+        # v0.8.31: ukończenie jest historią, nie tylko bieżącym statusem.
+        # Powtórne przyjęcie questa nie może zablokować kolejnego etapu,
+        # który wymaga, aby poprzedni był kiedykolwiek ukończony.
         return bool(
-            row and row["status"] == "completed"
+            row
+            and (
+                row["status"] == "completed"
+                or int(row["completion_count"] or 0) > 0
+            )
         )
 
     def npc_chain_quest_available(self, quest_id):
@@ -30595,50 +31653,13 @@ class Session:
 
         if npc.get("specialist_tool_type"):
             await self.show_profession_specialist(npc)
-            await self.show_specialist_quest_progression(npc)
 
-            specialist_quest, next_info = (
-                self.specialist_current_quest(npc)
-            )
-            if specialist_quest:
-                await self.handle_quest_interaction(
-                    specialist_quest
-                )
+        quest_ids = self.quest_ids_for_npc(npc_id, npc)
+        if quest_ids:
+            # v0.8.31: rozmowa pokazuje ofertę, ale niczego nie przyjmuje
+            # automatycznie. Gracz wybiera konkretny numer.
+            await self.show_npc_quest_offers(npc_id, npc)
 
-            if next_info:
-                next_name, next_level = next_info
-                current_tool = self.server.db.tool(
-                    self.account_id,
-                    npc["specialist_tool_type"],
-                )
-                if int(current_tool["level"]) < next_level:
-                    await self.send(
-                        f"Następny etap: {next_name}. "
-                        f"Odblokuje się od levelu narzędzia "
-                        f"{next_level}, po ukończeniu poprzedniego etapu."
-                    )
-            return
-
-        if npc.get("quest_chain"):
-            await self.show_npc_quest_chain(npc)
-            quest_id = self.npc_chain_current_quest(npc)
-            if quest_id:
-                await self.handle_quest_interaction(
-                    quest_id
-                )
-            return
-
-        # Kapłan Elor najpierw obsługuje aktualną próbę Broni Duszy.
-        if npc_id == "priest_elor":
-            tier_quest_id = self.soul_tier_quest_for_current_state()
-            if tier_quest_id:
-                await self.handle_quest_interaction(tier_quest_id)
-                return
-
-        quest_id = npc.get("quest")
-        if not quest_id:
-            return
-        await self.handle_quest_interaction(quest_id)
 
 
     async def complete_quest(self, quest_id):
@@ -30715,70 +31736,59 @@ class Session:
         for item_id, qty in q["reward_items"].items():
             await self.send(f"Nagroda: {ITEMS[item_id]['name']} x{qty}.")
 
-    async def quests(self):
-        rows = self.server.db.quest_rows(self.account_id)
-        if not rows:
-            await self.send("Nie masz jeszcze żadnych zadań. Porozmawiaj z NPC.")
+    async def quests(self, args=""):
+        raw = str(args or "").strip()
+        norm = self.normalize_description_query(raw)
+
+        if not norm or norm in ("aktywne", "active", "aktywny", "current"):
+            await self.show_active_quests()
             return
-        await self.send("DZIENNIK ZADAŃ")
-        for row in rows:
-            q = QUESTS.get(row["quest_id"])
-            if not q:
-                continue
-            if row["status"] == "completed":
-                if q.get("repeatable"):
-                    remaining = (
-                        self.server.db.repeat_quest_seconds_remaining(
-                            self.account_id,
-                            row["quest_id"],
-                            int(
-                                q.get(
-                                    "repeat_cooldown",
-                                    QUEST_REPEAT_COOLDOWN_SECONDS,
-                                )
-                            ),
-                        )
-                    )
-                    if remaining > 0:
-                        await self.send(
-                            f"{q['name']}: ukończone. Powtórka za "
-                            f"{self.format_duration_short(remaining)}."
-                        )
-                    else:
-                        await self.send(
-                            f"{q['name']}: gotowe do ponownego przyjęcia."
-                        )
-                elif q.get("unlocks_soul_tier"):
-                    await self.send(
-                        f"{q['name']}: ukończone. Tier "
-                        f"{q['unlocks_soul_tier']} gotowy. Użyj unlock."
-                    )
-                else:
-                    await self.send(f"{q['name']}: ukończone.")
-            elif row["status"] == "active":
-                progress, ready = self.quest_progress_for_turnin(
-                    row["quest_id"]
-                )
-                if ready:
-                    await self.send(
-                        f"{q['name']}: GOTOWE DO ODDANIA. "
-                        f"Postęp {progress} z {q['needed']}. "
-                        f"Wróć do {q['giver']} i wpisz oddaj zadanie "
-                        f"albo talk to {q['giver']}."
-                    )
-                elif q["kind"] == "collect_category":
-                    category = self.quest_collect_category_info(q["target"])
-                    label = category[2] if category else "surowców"
-                    await self.send(
-                        f"{q['name']}: aktywne. Postęp {progress} z "
-                        f"{q['needed']} wymaganych {label}. "
-                        f"{q['description']}"
-                    )
-                else:
-                    await self.send(
-                        f"{q['name']}: aktywne. Postęp {progress} z "
-                        f"{q['needed']}. {q['description']}"
-                    )
+
+        if norm in (
+            "ukonczone", "ukończone", "completed", "done", "historia", "history"
+        ):
+            await self.show_completed_quests()
+            return
+
+        if norm == "list" or norm == "lista":
+            await self.show_quest_npc_list("")
+            return
+
+        for prefix in ("list ", "lista "):
+            if norm.startswith(prefix):
+                # Używamy surowego tekstu, żeby zachować nazwę NPC.
+                npc_query = raw.split(maxsplit=1)[1] if " " in raw else ""
+                await self.show_quest_npc_list(npc_query)
+                return
+
+        for prefix in ("accept ", "przyjmij ", "przyjm "):
+            if norm.startswith(prefix):
+                value = raw.split(maxsplit=1)[1] if " " in raw else ""
+                await self.accept_quest_from_context(value)
+                return
+
+        for prefix in ("info ", "opis "):
+            if norm.startswith(prefix):
+                value = raw.split(maxsplit=1)[1] if " " in raw else ""
+                await self.quest_info_from_context(value)
+                return
+
+        for prefix in ("oddaj ", "turnin ", "zdaj "):
+            if norm.startswith(prefix):
+                value = raw.split(maxsplit=1)[1] if " " in raw else ""
+                quest_id, error = self.quest_from_context(value)
+                if error:
+                    await self.send(error)
+                    return
+                await self.turn_in_quest(QUESTS[quest_id]["name"])
+                return
+
+        await self.send(
+            "Questy: quest — aktywne; quest ukończone — historia; "
+            "quest list <NPC> — numerowana oferta; quest accept <numer> — przyjmij; "
+            "quest info <numer> — szczegóły; quest oddaj <numer> — oddaj z ostatniej listy."
+        )
+
 
     async def unlock(self):
         if self.character.soul_tier >= SOUL_MAX_TIER:
@@ -31320,7 +32330,7 @@ class Session:
                 exclude=self,
             )
             await self.send(
-                "Rozpoczyna się walka turowa. Po każdej twojej akcji przeciwnik wykonuje jedną turę."
+                "Rozpoczyna się walka w czasie rzeczywistym. Cel został ustawiony; ataki i auto kolejka działają automatycznie."
             )
         return mob
 
@@ -31883,13 +32893,13 @@ class Session:
         if self.skill_evade:
             self.skill_evade = False
             await self.send(
-                f"{template['name']} kontratakuje, ale aktywna umiejętność gwarantuje unik."
+                f"{template['name']} atakuje, ale aktywna umiejętność gwarantuje unik."
             )
             return
 
         if random.random() < self.dodge_chance():
             await self.send(
-                f"{template['name']} kontratakuje, ale unikasz ciosu dzięki szybkości."
+                f"{template['name']} atakuje, ale unikasz ciosu dzięki szybkości."
             )
             return
 
@@ -31968,7 +32978,7 @@ class Session:
 
         self.current_hp -= incoming
         await self.send(
-            f"{template['name']} odpowiada. Typ obrażeń: "
+            f"{template['name']} atakuje. Typ obrażeń: "
             f"{'magiczne' if damage_type == 'magic' else 'fizyczne'}. "
             f"Otrzymujesz {incoming} obrażeń po redukcji przez {defense_name}. "
             f"Twoje życie: {max(0, self.current_hp)} z {self.max_hp()}."
@@ -32261,9 +33271,9 @@ class Session:
                     f"{prefix}{position}. {name}. Klasa {class_name}. {active_text}."
                 )
         await self.send(
-            "Komendy: kolejka dodaj <skill>, kolejka usuń <skill/F1/M1>, "
+            "Komendy: kolejka lista [fizyczna|magiczna], kolejka dodaj <skill>, kolejka usuń <skill/F1/M1>, "
             "kolejka wyczyść [fizyczna|magiczna], kolejka góra <F1/M1>, "
-            "kolejka dół <F1/M1>, kolejka on, kolejka off."
+            "kolejka dół <F1/M1>, kolejka on, kolejka off. Dodanie skilla automatycznie włącza kolejkę."
         )
 
     async def handle_skill_queue(self, raw):
@@ -32289,7 +33299,13 @@ class Session:
             await self.send("Auto kolejka skilli wyłączona.")
             return
         if action in ("status", "lista", "list", "show"):
-            await self.show_skill_queue()
+            list_type = self.normalize_description_query(value)
+            if list_type in ("f", "fiz", "fizyczna", "fizyczne", "physical"):
+                await self.show_skill_queue("physical")
+            elif list_type in ("m", "mag", "magiczna", "magiczne", "magic"):
+                await self.show_skill_queue("magic")
+            else:
+                await self.show_skill_queue()
             return
         if action in ("fizyczna", "fizyczne", "physical"):
             await self.show_skill_queue("physical")
@@ -32338,9 +33354,13 @@ class Session:
             if not ok:
                 await self.send(str(result))
                 return
+            # v0.8.34: kolejka ma działać natychmiast po dodaniu skilla/spella.
+            # Użytkownik nie musi już wykonywać osobnego `kolejka on`.
+            self.server.db.set_skill_queue_enabled(self.account_id, True)
             await self.send(
                 f"Dodano do kolejki {self.skill_queue_type_label(queue_type)}: "
-                f"{skill['name']}. Slot {result} z {capacity}."
+                f"{skill['name']}. Slot {result} z {capacity}. "
+                "Auto kolejka została włączona. Jeśli walka już trwa, wpis może zostać użyty od najbliższej automatycznej akcji."
             )
             return
 
@@ -32402,7 +33422,7 @@ class Session:
             return
 
         await self.send(
-            "Użycie: kolejka, kolejka dodaj <skill>, kolejka usuń <skill/F1/M1>, "
+            "Użycie: kolejka, kolejka lista [fizyczna|magiczna], kolejka dodaj <skill>, kolejka usuń <skill/F1/M1>, "
             "kolejka wyczyść, kolejka fizyczna, kolejka magiczna, kolejka on/off."
         )
 
@@ -32565,7 +33585,7 @@ class Session:
             )
             await self.grant_skill_use_xp(skill)
             if self.combat_mob_key:
-                await self.enemy_counterattack(self.server.world.mobs.get(self.combat_mob_key))
+                await self.ensure_realtime_combat()
             return
 
         if kind == "guard":
@@ -32579,18 +33599,18 @@ class Session:
             if mana_cost:
                 await self.send(f"Mana: {self.current_mana} z {self.max_mana()}.")
             if self.combat_mob_key:
-                await self.enemy_counterattack(self.server.world.mobs.get(self.combat_mob_key))
+                await self.ensure_realtime_combat()
             return
 
         if kind == "evade":
             self.skill_evade = True
             await self.send(
                 f"Używasz {skill['name']} na Skill Level {skill_level}. "
-                f"Następny kontratak zostanie uniknięty."
+                f"Następny atak przeciwnika zostanie uniknięty."
             )
             await self.grant_skill_use_xp(skill)
             if self.combat_mob_key:
-                await self.enemy_counterattack(self.server.world.mobs.get(self.combat_mob_key))
+                await self.ensure_realtime_combat()
             return
 
         if kind == "group_heal":
@@ -32615,9 +33635,7 @@ class Session:
             if mana_cost:
                 await self.send(f"Mana: {self.current_mana} z {self.max_mana()}.")
             if self.combat_mob_key:
-                counter = self.server.world.mobs.get(self.combat_mob_key)
-                if counter and counter.alive:
-                    await self.enemy_counterattack(counter)
+                await self.ensure_realtime_combat()
             return
 
         if kind == "heal":
@@ -32655,7 +33673,7 @@ class Session:
             if mana_cost:
                 await self.send(f"Mana: {self.current_mana} z {self.max_mana()}.")
             if self.combat_mob_key:
-                await self.enemy_counterattack(self.server.world.mobs.get(self.combat_mob_key))
+                await self.ensure_realtime_combat()
             return
 
         if kind == "aoe_damage":
@@ -32693,7 +33711,7 @@ class Session:
             counter = next((target for target in survivors if target.alive), None)
             if counter:
                 self.combat_mob_key = counter.key
-                await self.enemy_counterattack(counter)
+                await self.ensure_realtime_combat()
             return
 
         template = MOB_TEMPLATES[mob.template_id]
@@ -32777,7 +33795,7 @@ class Session:
             await self.mob_defeated(mob)
             return
 
-        await self.enemy_counterattack(mob)
+        await self.ensure_realtime_combat()
 
     def player_damage(self):
         c = self.character
@@ -33080,9 +34098,110 @@ class Session:
         await self.send(rating["advice"])
         await self.send(
             "Consider jest tylko oceną: nie rozpoczyna walki "
-            "i nie zajmuje tury."
+            "i nie uruchamia automatycznej pętli walki."
         )
 
+
+    async def stop_realtime_combat(self):
+        """Zatrzymaj pętlę walki bez pozostawiania zadania w tle."""
+        task = self.combat_task
+        self.combat_task = None
+        if task and task is not asyncio.current_task() and not task.done():
+            task.cancel()
+            try:
+                await task
+            except asyncio.CancelledError:
+                pass
+
+    async def ensure_realtime_combat(self):
+        if self.closed or not self.combat_mob_key:
+            return
+        mob = self.server.world.mobs.get(self.combat_mob_key)
+        if (
+            not mob
+            or not mob.alive
+            or mob.room_id != self.character.room_id
+        ):
+            self.combat_mob_key = None
+            return
+        if self.combat_task and not self.combat_task.done():
+            return
+        self.combat_task = asyncio.create_task(self.realtime_combat_loop())
+
+    async def realtime_player_action(self, mob):
+        if not mob or not mob.alive:
+            return
+        # Kolejka ma pierwszeństwo. Jeśli żaden zapisany skill/spell nie jest
+        # obecnie gotowy, wykonujemy zwykły automatyczny atak Bronią Duszy.
+        if await self.try_auto_skill_queue(mob):
+            return
+
+        template = MOB_TEMPLATES[mob.template_id]
+        damage = self.player_damage()
+        damage, critical = self.roll_critical_hit(damage)
+        if critical:
+            await self.send(
+                f"TRAFIENIE KRYTYCZNE! Zręczność {self.effective_dexterity()}. "
+                f"Szansa: {int(round(self.critical_chance() * 100))} procent."
+            )
+        damage = await self.apply_boss_defense(mob, damage)
+        mob.hp -= damage
+        await self.send(
+            f"Automatyczny atak: {template['name']}. Zadajesz {damage} obrażeń. "
+            f"Przeciwnik: {max(0, mob.hp)} z {template['max_hp']} życia."
+        )
+        if mob.hp <= 0:
+            await self.mob_defeated(mob)
+
+    async def realtime_combat_loop(self):
+        """Niezależne timery gracza i moba; brak tur i ręcznego klikania rund."""
+        this_task = asyncio.current_task()
+        next_player = time.monotonic()
+        # Krótki margines na pierwszą akcję gracza, aby rozpoczęcie walki było
+        # czytelne dla NVDA i nie powodowało natychmiastowego ciosu w tej samej ms.
+        next_enemy = time.monotonic() + 0.75
+        try:
+            while not self.closed and self.combat_mob_key:
+                mob = self.server.world.mobs.get(self.combat_mob_key)
+                if (
+                    not mob
+                    or not mob.alive
+                    or mob.room_id != self.character.room_id
+                ):
+                    self.combat_mob_key = None
+                    break
+
+                now = time.monotonic()
+                if now >= next_player:
+                    await self.realtime_player_action(mob)
+                    next_player = time.monotonic() + self.combat_player_interval
+                    if not self.combat_mob_key or self.current_hp <= 0:
+                        break
+                    mob = self.server.world.mobs.get(self.combat_mob_key)
+                    if not mob or not mob.alive:
+                        break
+
+                now = time.monotonic()
+                if now >= next_enemy:
+                    await self.enemy_counterattack(mob)
+                    next_enemy = time.monotonic() + self.combat_enemy_interval
+                    if not self.combat_mob_key or self.current_hp <= 0:
+                        break
+
+                wait_for = min(next_player, next_enemy) - time.monotonic()
+                await asyncio.sleep(max(0.05, min(0.20, wait_for)))
+        except asyncio.CancelledError:
+            pass
+        except Exception as exc:
+            # Nie zabijaj sesji przez błąd zadania w tle; gracz może ponownie
+            # rozpocząć walkę komendą atakuj/k.
+            try:
+                await self.send(f"Pętla walki została zatrzymana: {exc}")
+            except Exception:
+                pass
+        finally:
+            if self.combat_task is this_task:
+                self.combat_task = None
 
     async def attack(self, query):
         if self.auto_fishing or self.auto_fishing_task:
@@ -33094,19 +34213,46 @@ class Session:
         if self.auto_woodcutting or self.auto_woodcutting_task:
             await self.stop_auto_woodcutting(announce=False)
             await self.send("Auto-Drwalstwo wyłączone z powodu walki.")
+        if self.auto_herbalism or self.auto_herbalism_task:
+            await self.stop_auto_herbalism(announce=False)
+            await self.send("Auto-Zielarstwo wyłączone z powodu walki.")
+
         self.server.world.refresh()
         mob = None
-
+        current = None
         if self.combat_mob_key:
-            mob = self.server.world.mobs.get(self.combat_mob_key)
-            if not mob or not mob.alive or mob.room_id != self.character.room_id:
+            current = self.server.world.mobs.get(self.combat_mob_key)
+            if (
+                not current
+                or not current.alive
+                or current.room_id != self.character.room_id
+            ):
                 self.combat_mob_key = None
-                mob = None
+                current = None
 
-        if mob is None:
-            if await self.reject_friendly_npc_attack(query):
+        wanted = (query or "").strip()
+        if current and wanted:
+            requested = self.server.world.find_mob(self.character.room_id, wanted)
+            if requested and requested.key != current.key:
+                if not self.server.engagement_allowed(self, requested):
+                    await self.send(
+                        f"{MOB_TEMPLATES[requested.template_id]['name']} walczy już "
+                        f"z graczem spoza twojej drużyny."
+                    )
+                    return
+                self.server.reassign_mob_engagement(current, self)
+                mob = requested
+                await self.send(
+                    f"Zmieniasz cel na {MOB_TEMPLATES[mob.template_id]['name']}."
+                )
+            else:
+                mob = current
+        elif current:
+            mob = current
+        else:
+            if await self.reject_friendly_npc_attack(wanted):
                 return
-            mob = self.server.world.find_mob(self.character.room_id, query)
+            mob = self.server.world.find_mob(self.character.room_id, wanted)
             if not mob:
                 await self.send("Nie widzę tutaj takiego przeciwnika.")
                 return
@@ -33116,50 +34262,29 @@ class Session:
                     f"z graczem spoza twojej drużyny."
                 )
                 return
-            if not mob.engaged_by:
-                mob.engaged_by = self.character.name
-                mob.combat_turn = 0
-                mob.player_hits = 0
-            self.combat_mob_key = mob.key
+
+        new_fight = self.combat_mob_key != mob.key
+        if not mob.engaged_by:
+            mob.engaged_by = self.character.name
+            mob.combat_turn = 0
+            mob.player_hits = 0
+        self.combat_mob_key = mob.key
+
+        if new_fight:
             await self.server.broadcast_room(
                 self.character.room_id,
                 f"{self.character.name} atakuje {MOB_TEMPLATES[mob.template_id]['name']}.",
                 exclude=self,
             )
             await self.send(
-                "Rozpoczyna się walka turowa. Po każdej twojej akcji przeciwnik wykonuje jedną turę."
+                "Walka w czasie rzeczywistym rozpoczęta. "
+                "Auto kolejka i zwykłe ataki działają automatycznie; użyj flee, aby się wycofać."
             )
-
-        template = MOB_TEMPLATES[mob.template_id]
-
-        # v0.8.26: jeśli auto kolejka jest włączona, jedna gotowa
-        # umiejętność zastępuje zwykły atak w tej turze.
-        # Gdy żaden wpis nie jest gotowy (cooldown/mana/warunek),
-        # walka przechodzi normalnie do zwykłego ataku.
-        if await self.try_auto_skill_queue(mob):
-            return
-
-        damage = self.player_damage()
-        damage, critical = self.roll_critical_hit(damage)
-        if critical:
+        else:
             await self.send(
-                f"TRAFIENIE KRYTYCZNE! Zręczność "
-                f"{self.effective_dexterity()}. "
-                f"Szansa: "
-                f"{int(round(self.critical_chance() * 100))} procent."
+                f"Walka trwa. Cel: {MOB_TEMPLATES[mob.template_id]['name']}."
             )
-        damage = await self.apply_boss_defense(mob, damage)
-        mob.hp -= damage
-        await self.send(
-            f"Atakujesz {template['name']}. Zadajesz {damage} obrażeń. "
-            f"Przeciwnik: {max(0, mob.hp)} z {template['max_hp']} życia."
-        )
-
-        if mob.hp <= 0:
-            await self.mob_defeated(mob)
-            return
-
-        await self.enemy_counterattack(mob)
+        await self.ensure_realtime_combat()
 
     async def mob_defeated(self, mob):
         template = MOB_TEMPLATES[mob.template_id]
@@ -33411,6 +34536,7 @@ class Session:
         if mob:
             self.server.reassign_mob_engagement(mob, self)
         self.combat_mob_key = None
+        await self.stop_realtime_combat()
         self.skill_guard = 0
         self.skill_evade = False
         self.skill_damage_boost = 1.0
@@ -33424,6 +34550,7 @@ class Session:
             if mob:
                 self.server.reassign_mob_engagement(mob, self)
         self.combat_mob_key = None
+        await self.stop_realtime_combat()
         self.skill_guard = 0
         self.skill_evade = False
         self.skill_damage_boost = 1.0
@@ -33795,7 +34922,7 @@ class Session:
             elif command == "teachers":
                 await self.show_teachers()
             elif command == "quests":
-                await self.quests()
+                await self.quests(args)
             elif command == "consider":
                 await self.consider_mob(args)
             elif command == "attack":
@@ -33828,6 +34955,7 @@ class Session:
             await self.stop_auto_herbalism(announce=False)
         if self.character:
             await self.leave_party(announce=False)
+        await self.stop_realtime_combat()
         self.closed = True
         if self.combat_mob_key:
             mob = self.server.world.mobs.get(self.combat_mob_key)

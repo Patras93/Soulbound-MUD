@@ -1,3 +1,86 @@
+Soulbound v0.8.34 - Realtime Combat & Auto Queue
+
+- Usunięto walkę turową. Walka działa w czasie rzeczywistym.
+- atakuj <mob> i skrót k <mob> rozpoczynają automatyczną walkę z wybranym celem.
+- Gracz wykonuje automatyczną akcję mniej więcej co 1,35 sekundy.
+- Przeciwnik ma niezależny timer ataku około 1,85 sekundy; pierwszy atak ma krótki margines startowy.
+- Auto kolejka ma pierwszeństwo przed zwykłym atakiem: używa następnego gotowego skilla/spella, a przy cooldownie, braku Many lub niespełnionym warunku przechodzi dalej.
+- Jeśli żaden skill/spell z kolejki nie jest gotowy, postać wykonuje zwykły automatyczny atak.
+- kolejka dodaj <skill> automatycznie włącza auto kolejkę. Nie trzeba używać kolejka on.
+- kolejka off nadal zatrzymuje automatyczne używanie skilli; dodanie nowego wpisu ponownie ją aktywuje.
+- Użycie mikstury, leczenia, guardu, evasion albo ręcznego skilla nie daje przeciwnikowi sztucznego „dodatkowego kontrataku za turę”.
+- flee zatrzymuje pętlę walki i zwalnia cel.
+- Śmierć, rozłączenie i zakończenie walki czyszczą zadanie walki w tle.
+- Komunikaty o turach/kontratakach zostały dostosowane do systemu czasu rzeczywistego.
+- Fizyczne i magiczne sloty kolejki oraz ich skalowanie z Biegłością klasy pozostają bez zmian.
+- Brak zmian schematu SQLite i brak resetu soulbound.db.
+
+Soulbound v0.8.33 - Guardhouse Expansion & Quest Help
+- Dodano pełne help quest / help quests z opisem całego Quest Journal v2.
+- Dodano komendę k <mob> jako szybki skrót ataku, np. k goblin, k wilk, k strażnik.
+- Północna Brama: Strażnik Oskar i Strażniczka Marta.
+- Południowa Brama: Strażniczka Lena i Strażnik Branek.
+- Miejska Strażnica ma teraz 9 pomieszczeń zamiast jednej sali.
+- Nowe wnętrza: Koszary Straży, Jadalnia Straży, Zbrojownia Straży, Komnata Dowódcy Straży, Archiwum Straży, Wieża Obserwacyjna Straży, Cele Strażnicy i Pokój Przesłuchań.
+- Dodano Kwatermistrza Harka, Archiwistkę Nelę i Dozorcę Torvika.
+- Zachowano Kapitana Arvena i jego quest Problem goblinów.
+- Aktualizacja nie wymaga resetu bazy danych.
+
+Soulbound v0.8.32 - Shared Account Wallet & Quest Info
+
+- Waluta w portfelu jest wspólna dla wszystkich postaci na jednym koncie: mithril, złoto i srebro.
+- Nie trzeba przelewać pieniędzy między własnymi postaciami; każdy slot korzysta z tego samego salda.
+- Pierwsza postać zakłada wspólny portfel z pakietem startowym. Kolejne postacie nie generują dodatkowych monet.
+- Migracja z v0.8.31 i starszych sumuje salda wszystkich istniejących postaci do jednego wspólnego portfela, bez utraty waluty.
+- Waluta zdeponowana w Banku Dusz również jest wspólna między postaciami na koncie; stare salda bankowe są sumowane przy migracji.
+- Przedmioty, questy, profesje, Soul Weapon i pozostały postęp nadal są osobne dla każdej postaci.
+- Rozbudowano quest info <numer>: pokazuje NPC, stan, opis, postęp, wymagania, nagrody, powtarzalność i cooldown.
+- quest info <numer> działa po trzech listach: quest / quest aktywne, quest ukończone oraz quest list <NPC>.
+- Lista aktywnych i ukończonych questów przypomina o komendzie quest info <numer>.
+- Aktualizacja nie wymaga resetu soulbound.db ani Railway Volume.
+
+Soulbound v0.8.31 - Quest Journal v2 & Independent NPC Quests
+
+- Rozdzielono dziennik: quest / quest aktywne pokazuje tylko aktywne zadania.
+- Dodano quest ukończone / questy ukończone z historią ukończeń, liczbą powtórek i stanem cooldownu.
+- Dodano quest list <NPC> oraz quest list u <NPC>; lista jest numerowana i pokazuje stan każdego zadania.
+- Dodano quest accept <numer> i quest przyjmij <numer>. Numer odnosi się do ostatniej listy danego NPC.
+- Dodano quest info <numer> oraz quest oddaj <numer>.
+- Rozmowa z NPC nie przyjmuje już zadania automatycznie. NPC czyta swoją listę questów i czeka na wybór gracza.
+- Można mieć jednocześnie wiele aktywnych questów od tego samego NPC.
+- Zlecenia profesyjne/specjalistów są niezależne od poprzednich etapów, jeśli spełniasz wymagania levelu narzędzia/profesji.
+- Przykład: u Orina Mikstury Many i Mikstury Leczenia można przyjąć i wykonywać równocześnie.
+- Fabularne łańcuchy oraz Próby Broni Duszy zachowują wymagania fabularne/Soul.
+- Ukończenie powtarzalnego questa jest zapamiętywane historycznie; ponowne przyjęcie nie blokuje późniejszych etapów, które wymagają wcześniejszego ukończenia.
+- Brak zmian schematu SQLite; aktualizacja nie wymaga resetu soulbound.db ani Railway Volume.
+
+Soulbound v0.8.30 - Interactive Treasure Chests
+
+- Dodano pełne otwieranie skrzyń skarbów komendami: otwórz skrzynię, skrzynia, chest.
+- Skrzynie mają stan gotowa / otwarta i pusta oraz komunikat czasu do odnowienia.
+- Cooldown skrzyń jest teraz zapisywany w SQLite osobno dla każdej postaci.
+- Otwarcie skrzyni jedną z 12 postaci nie blokuje skrzyni pozostałym postaciom.
+- Restart serwera nie resetuje czasu odnowienia skrzyni.
+- Otwieranie nadal zapisuje Collection Codex, achievementy i historię wartościowego lootu oraz respektuje Loot Filter NVDA.
+- Bez resetu soulbound.db.
+
+SOULBOUND v0.8.29 RUINED WATCHTOWER & QUEUE LIST
+====================================================
+- Dodano komendę kolejka lista do sprawdzania wszystkich skilli i zaklęć zapisanych w auto kolejce.
+- Dodano kolejka lista fizyczna oraz kolejka lista magiczna.
+- Lista podaje slot, nazwę, klasę i stan aktywności każdego wpisu.
+- Ruiny Strażnicy rozbudowano z pojedynczej lokacji do osobnego regionu z 11 lokacjami łącznie z wejściem.
+- Dodano Zawaloną Bramę, Wewnętrzny Dziedziniec, Opuszczone Koszary, Zbrojownię, Chodnik na Murze, Archiwum Runiczne, Piwnice, Podziemia Garnizonu, Salę Pieczęci i Komnatę Dowódcy.
+- Dodano 8 nowych zwykłych typów mobów Ruin Strażnicy.
+- Dodano mini-bossa Kapitan Starej Straży.
+- Strażnik Ruin został przeniesiony do Komnaty Dowódcy i pozostaje finałowym world bossem tego obszaru.
+- Region ma 27 spawnów przeciwników łącznie z bossem.
+- Nowe zwykłe moby automatycznie korzystają z wariantów Elite/Rare.
+- Gobliński Łupieżca Ruin ma quest_target goblin i zalicza godzinny quest goblinów.
+- Dodano odnawialną Skrzynię Starej Zbrojowni.
+- Ruiny Strażnicy są osobną strefą eksploracji i mają własną nagrodę za 100% oraz tytuł Pogromca Ruin Strażnicy.
+- Brak zmian schematu SQLite; aktualizacja nie wymaga resetu soulbound.db ani Railway Volume.
+
 SOULBOUND v0.8.28 CURRENCY READING ORDER
 =======================================
 - Globalna kolejność czytania waluty jest teraz zawsze: mithril, złoto, srebro.
