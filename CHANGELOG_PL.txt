@@ -1,3 +1,153 @@
+Soulbound v0.8.47 - Numeric Shop Purchases
+===============================================
+- `shop`, `sklep`, `list` i `lista` nadal pokazują numerowaną ofertę aktualnego sprzedawcy.
+- Dodano zakup po numerze: np. `kup 9` kupuje pozycję 9 z aktualnego sklepu.
+- Dodano zakup wielu sztuk: np. `kup 9 3` kupuje trzy sztuki pozycji 9.
+- Druga liczba jest ilością; cena i zwrot z rabatu Charyzmy są liczone dla całej liczby sztuk.
+- Przedmioty przypisane do postaci i narzędzia z limitem jednej sztuki nadal można kupić tylko raz.
+- Numer spoza zakresu nie pobiera waluty i podpowiada ponowne użycie `shop`/`list`.
+- Kupowanie po nazwie działa bez zmian.
+- Bez zmian schematu SQLite; nie resetuj soulbound.db ani Railway Volume.
+
+Soulbound v0.8.46 - Race Class Recommendations
+===============================================
+- Przy wyborze każdej z 13 ras gra czyta polecane klasy oraz krótkie uzasadnienie oparte na statystykach i pasywie rasy.
+- Rekomendacje są tylko wskazówką: każda rasa nadal może wybrać dowolną z 12 klas.
+- Po zatwierdzeniu rasy rekomendacja jest powtarzana przed wyborem klasy, co ułatwia obsługę NVDA.
+- `opis <rasa>` pokazuje teraz także polecane klasy i wyjaśnienie dopasowania.
+- Bez zmian schematu SQLite; nie resetuj soulbound.db ani Railway Volume.
+
+Soulbound v0.8.45 - Universal Skill Buffs
+===========================================
+- Wszystkie 26 aktualnych skilli typu boost zostało przeniesionych na wspólny system czasowych buffów.
+- Buff nie znika po pierwszej ofensywnej umiejętności. Działa przez cały swój czas na kolejne skille i spelle.
+- Buffy są uniwersalne między aktywnymi klasami multiclass: fizyczny buff może wzmacniać spell, a magiczny buff może wzmacniać skill fizyczny.
+- Wzmocnienie obejmuje obrażenia single-target, AoE, execute i drain, a także leczenie single/group oraz siłę guardów.
+- Buffy wzmacniają również kolejne skille typu boost; przy odświeżeniu buff nie wzmacnia sam siebie.
+- Różne buffy mogą działać równocześnie. Ich bonusy sumują się addytywnie, np. +35% i +55% daje +90%.
+- Łączne wzmocnienie z aktywnych buffów ma bezpieczny limit +200% (mnożnik x3).
+- Auto Skill Queue nie próbuje ponawiać konkretnego buffa, dopóki ten buff nadal działa.
+- Domyślny czas buffa jest równy jego efektywnemu cooldownowi; Okrzyk Wojenny zachowuje własne 12 sekund.
+- Flee i śmierć usuwają aktywne buffy.
+- Okrzyk Wojenny nie jest już wyjątkiem tylko dla skilli Wojownika: jako skill typu boost korzysta z globalnej zasady i wzmacnia wszystkie skille/spelle.
+- Brak zmian schematu SQLite; nie resetuj soulbound.db ani Railway Volume.
+
+Soulbound v0.8.44 - Universal CON Targeting
+=============================================
+- `con <mob>` działa teraz jako oficjalna uniwersalna komenda oceny każdego żywego moba w aktualnej lokacji, którego da się zabić.
+- CON korzysta z tego samego resolvera celu co `k <mob>` / `atakuj <mob>`.
+- Obsługiwane są pełne nazwy, fragmenty nazw, nazwy bez polskich znaków oraz numer wystąpienia, np. `con 2 goblin`.
+- `con <mob>` tylko ocenia przeciwnika i nigdy nie uruchamia walki realtime.
+- Pokojowi NPC są odrzucani czytelnym komunikatem; CON działa wyłącznie na zabijalne moby.
+- Brak zmian schematu SQLite; nie resetuj soulbound.db ani Railway Volume.
+
+Soulbound v0.8.43 - Questy startowe Archiwisty Sola
+=======================================================
+- Archiwista Sol w Bibliotece oferuje 5 jednorazowych questów startowych dla nowych postaci.
+- Dodano „Pierwsze kroki: Paczka dla Kowala” — Sol wydaje prawdziwą paczkę questową, którą przekazuje się Kowalowi Doranowi przez rozmowę.
+- Dodano „Pierwsze kroki: Wiadomość do Karczmy” — list należy zanieść Karczmarce Elii.
+- Dodano „Pierwsze kroki: Meldunek dla Straży” — meldunek należy przekazać Dowódcy Roderikowi w Wartowni Północnej.
+- Dodano „Pierwsze kroki: Notatki dla Zielarki” — notatki należy dostarczyć Zielarce Mirze w Gaju Szeptów.
+- Dodano „Pierwsze kroki: Poznaj swojego nauczyciela” — gra rozpoznaje podstawową klasę postaci i zalicza zadanie przy rozmowie z właściwym nauczycielem.
+- Wszystkie 5 zadań ma repeatable=false: brak cooldownu, brak godzinnego odnowienia i brak możliwości ponownego przyjęcia po ukończeniu.
+- Zadania dostawcze wydają przedmiot przy przyjęciu. Porzucenie usuwa przesyłkę; ponowne przyjęcie po porzuceniu wydaje dokładnie jeden nowy egzemplarz.
+- Quest info pokazuje cel dostawy albo właściwego nauczyciela klasy.
+- Zachowano Quest Journal v2: quest list Sol, quest accept <numer>, quest info <numer>, quest porzuć <numer>.
+- Brak zmian schematu SQLite; nie resetuj soulbound.db ani Railway Volume.
+
+Soulbound v0.8.42 - Biegłość klas do 200
+============================================
+- Biegłość wszystkich 12 klas została rozszerzona z poziomu 1-100 do 1-200.
+- Class XP rozwija Biegłość dalej po poziomie 100 aż do 200.
+- Skille nadal odblokowuje Biegłość właściwej klasy, nie Soul Level.
+- Pełne 253 skille zachowują progi 1-200: próg 100 = Biegłość 100, próg 200 = Biegłość 200.
+- Nie ma już przelicznika dawny próg / 2 używanego w v0.8.41.
+- Każda klasa w multiclassie ma nadal własną niezależną Biegłość i Class XP.
+- Auto kolejka rośnie dalej: 3 sloty przy Biegłości 1-9, 13 przy 100 i 23 przy 200.
+- Fizyczna i magiczna kolejka nadal mają osobne limity.
+- Istniejące poziomy Biegłości, Class XP, nauczone skille, Skill Level i Skill XP pozostają zapisane.
+- Soul Level pozostaje osobnym rozwojem Broni Duszy i nie odblokowuje skilli klasowych.
+- Nadal nie ma levelu postaci.
+- Bez resetu soulbound.db ani Railway Volume.
+
+Soulbound v0.8.41 - Skille odblokowywane przez Biegłość klasy
+=================================================================
+- Skille wszystkich 12 klas są teraz odblokowywane przez Biegłość danej klasy, nie przez Soul Level Broni Duszy.
+- Zachowano wszystkie 253 istniejące skille, ich ID, Skill Level i Skill XP.
+- Dawna siatka Soul 1, 10, 20 ... 200 została zmapowana na Biegłość 1, 5, 10 ... 100.
+- Przykłady: dawny Soul 20 = Biegłość 10; Soul 100 = Biegłość 50; Soul 200 = Biegłość 100.
+- Nauka u nauczyciela, ręczne użycie skilla i Auto Skill Queue sprawdzają teraz Biegłość właściwej klasy.
+- Multiclass korzysta z osobnej Biegłości każdej aktywnej klasy; Biegłość Wojownika nie odblokowuje skilli Maga i odwrotnie.
+- Soul Level nadal rozwija Broń Duszy, Soul Tiery, Próby i zawartość wymagającą Soul, ale nie blokuje umiejętności klasowych.
+- Nie dodano levelu postaci.
+- Bez zmian schematu SQLite i bez resetu soulbound.db / Railway Volume.
+
+Soulbound v0.8.40 - Czytanie postępu skrzyń questa
+=====================================================
+- Zdobycie przedmiotu potrzebnego przez aktywny quest typu collect natychmiast czyta postęp przez NVDA.
+- Quest Skradzione Skrzynie Rudy czyta np.: „Postęp questa: Skradzione Skrzynie Rudy. 4 z 10 skrzyń rudy.”
+- Przy 10 z 10 gra informuje, że cel jest wykonany i każe wrócić do Magazyniera Borina.
+- Czytanie postępu questa działa niezależnie od Loot Filter, więc ważny licznik nie jest ukrywany przez `loot rare+`, `loot epic+`, `loot legendary` ani `loot off`.
+- Mechanizm jest ogólny dla aktywnych questów typu „zbierz X przedmiotów”, więc można go wykorzystać w kolejnych zadaniach.
+- Synchronizacja Codexu przy logowaniu nie odtwarza komunikatów postępu.
+- Bez zmian schematu SQLite i bez resetu soulbound.db / Railway Volume.
+
+Soulbound v0.8.39 - Okrzyk Wojenny na wszystkie skille Wojownika
+==================================================================
+- Okrzyk Wojenny został zmieniony z jednorazowego wzmocnienia następnego skilla na czasowy buff klasy Wojownik.
+- Buff działa przez 12 sekund i nie znika po pierwszym użytym skillu.
+- Wszystkie aktualne skille obrażeniowe i execute Wojownika otrzymują mnożnik Okrzyku podczas jego działania.
+- Skille guard Wojownika również otrzymują wzmocniony efekt obronny.
+- Inne boosty Wojownika użyte podczas Okrzyku mają wzmacniany własny efekt.
+- Skille innych klas w multiclassie nie korzystają z Okrzyku Wojennego.
+- Auto-kolejka nie próbuje ponownie używać Okrzyku, gdy buff nadal działa.
+- Flee i śmierć zerują aktywny buff.
+- Brak zmian schematu SQLite i brak resetu soulbound.db / Railway Volume.
+
+Soulbound v0.8.38 - Charyzma jako normalna statystyka
+====================================================
+- Charyzma jest teraz szóstą pełnoprawną statystyką postaci obok Siły, Zręczności, Kondycji, Inteligencji i Siły Woli.
+- Komenda `staty` oraz `staty info` pokazuje Charyzmę razem z pozostałymi statystykami.
+- Charyzma rośnie automatycznie o +1 przy każdym pełnym progu Postępu Rozwoju, razem z pozostałymi pięcioma statystykami.
+- Nowe postacie startują z Charyzmą 10.
+- Stare postacie zachowują dotychczasową Charyzmę; stare wartości 0 są bezpiecznie migrowane do 10.
+- Dotychczasowe działanie Charyzmy pozostaje: zwiększa rabat sklepowy i limit drużyny lidera.
+- Sprzedaż surowców nadal może dodatkowo rozwijać Charyzmę, jak wcześniej.
+- `charyzma`, `haryzma` i `charisma` nadal pokazują szczegółowe efekty tej statystyki.
+- Nie dodano levelu postaci. Soul Level, Biegłość klas i pozostałe systemy pozostają bez zmian.
+- Aktualizacja nie wymaga resetu soulbound.db ani Railway Volume.
+
+Soulbound v0.8.37 - Portfel Command
+====================================
+- Dodano komendę `portfel` do szybkiego odczytu wspólnego portfela konta.
+- Waluta jest czytana w kolejności: mithril, złoto, srebro.
+- Dodano aliasy: wallet, saldo, pieniadze i pieniądze.
+- Wszystkie postacie na jednym koncie nadal korzystają z tego samego wspólnego salda.
+- Bez resetu soulbound.db ani Railway Volume.
+
+Soulbound v0.8.36 - Combat Log, Quest Abandon & Queue Slots
+================================================================
+- Dodano combat concise, combat normal i combat full do sterowania ilością komunikatów walki NVDA.
+- Combat normal jest domyślny, concise ogranicza rutynowy spam, a full pokazuje pełne detale.
+- Tryb logu walki jest zapisany osobno dla każdej postaci.
+- Dodano quest porzuć <numer> / quest abandon <numer>. Bieżący postęp przepada, lecz historia ukończeń pozostaje.
+- Porzucony quest można później ponownie przyjąć od właściwego NPC.
+- Auto kolejka nadal ma osobne limity fizyczne i magiczne, ale wpisy są czytane jako zwykłe Slot 1, Slot 2 itd.
+- Nowa składnia zarządzania slotami: kolejka usuń fizyczna 1 / magiczna 1 oraz kolejka góra/dół fizyczna|magiczna <numer>.
+- Stare skróty F1/M1 są nadal akceptowane tylko dla kompatybilności.
+- Bez resetu soulbound.db ani Railway Volume.
+
+Soulbound v0.8.35 - Universal K Targeting
+=============================================
+- `k <mob>` działa teraz na każdego żywego moba w bieżącej lokacji, którego można normalnie zabić.
+- Wyszukiwanie celu ignoruje różnice polskich znaków, np. `k straznik` może znaleźć `Strażnika`.
+- Pełna nazwa, id i fragment nazwy moba są obsługiwane.
+- Przy wielu podobnych mobach wybierane jest najlepsze dopasowanie; `k 2 goblin` wybiera drugie pasujące wystąpienie.
+- Zabijalny mob ma pierwszeństwo przed pokojowym NPC-em o podobnej nazwie.
+- Pokojowych NPC nadal nie da się zabić.
+- `k` uruchamia normalną walkę realtime i korzysta z auto kolejki.
+- Bez resetu bazy danych.
+
 Soulbound v0.8.34 - Realtime Combat & Auto Queue
 
 - Usunięto walkę turową. Walka działa w czasie rzeczywistym.
