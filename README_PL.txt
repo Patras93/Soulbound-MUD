@@ -1,7 +1,237 @@
-SOULBOUND v0.7.37 THREE CURRENCIES
-==========================
+SOULBOUND v0.8.28 - CURRENCY READING ORDER
+===========================================
+Ta wersja rozwija v0.8.27 i nie wymaga kasowania soulbound.db ani Railway Volume.
+
+CZYTANIE WALUTY DLA NVDA
+- Wszystkie zbiorcze komunikaty waluty czytają nominały od najwyższego: mithril, złoto, srebro.
+- Przykład portfela: Masz 2 mithrilowych monet, 350 złotych monet, 72 srebrnych monet.
+- Portfel, ekwipunek i Bank Dusz zawsze pokazują trzy nominały, także gdy któryś wynosi zero.
+- Nagrody, dropy i wyceny pomijają nominały równe zero, ale zawsze zachowują kolejność mithril -> złoto -> srebro.
+- Kurs monet i ich wartość nie zostały zmienione.
+
+--- DOKUMENTACJA v0.8.27 I WCZEŚNIEJSZYCH SYSTEMÓW ---
+
+SOULBOUND v0.8.27 - EXPANDED AUTO SKILL QUEUE SLOTS
+====================================
+Ta wersja rozwija v0.8.26 i nie wymaga kasowania soulbound.db ani Railway Volume.
+
+AUTO KOLEJKA UMIEJĘTNOŚCI
+- Dodano trwałą kolejkę automatycznego używania skilli. Ustawienia są osobne dla każdej postaci.
+- Kolejka jest podzielona na dwa niezależne typy: FIZYCZNA i MAGICZNA.
+- Typ wpisu wynika z klasy skilla: Wojownik/Berserker/Łotrzyk/Łowca/Mnich/Strażnik trafiają do fizycznej; Mag/Nekromanta/Kapłan/Czarownik/Druid/Psionik do magicznej.
+- Biegłość klasy NIE odblokowuje skilli. Skille nadal odblokuje wyłącznie Soul Level Broni Duszy.
+- Biegłość wpływa tylko na pojemność auto kolejki.
+- Biegłość 1-9: 3 sloty. 10-19: 4 sloty. 20-29: 5 slotów. Dalej +1 slot co 10 poziomów aż do 13 slotów przy Biegłości 100.
+- Przy multiclassie fizyczny i magiczny limit są liczone osobno według najwyższej aktywnej Biegłości klasy danego typu.
+- Wyłączenie klasy multiclass nie kasuje wpisów. Jej skille stają się uśpione i wracają po ponownym aktywowaniu klasy.
+- Jeśli po zmianie aktywnych klas limit spadnie, wpisy ponad limitem pozostają zapisane jako uśpione.
+
+KOMENDY
+- kolejka - status obu kolejek i ich slotów.
+- kolejka fizyczna - tylko kolejka fizyczna.
+- kolejka magiczna - tylko kolejka magiczna.
+- kolejka dodaj <skill> - dodaje nauczony i odblokowany skill do właściwego typu.
+- kolejka usuń <nazwa skilla> - usuwa skill po nazwie.
+- kolejka usuń F1 / M1 - usuwa konkretny slot fizyczny lub magiczny.
+- kolejka wyczyść - czyści obie kolejki.
+- kolejka wyczyść fizyczna / magiczna - czyści tylko wybrany typ.
+- kolejka góra F2 / kolejka dół M1 - zmienia kolejność rotacji.
+- kolejka on - włącza automatyczne używanie.
+- kolejka off - wyłącza automatyczne używanie.
+
+DZIAŁANIE W WALCE
+- Przy włączonej kolejce każda komenda atakuj najpierw próbuje użyć gotowego skilla.
+- Rotacja przechodzi pomiędzy kolejką fizyczną i magiczną, jeśli obie mają gotowe wpisy.
+- Skill na cooldownie jest pomijany bez marnowania tury.
+- Skill wymagający więcej Many niż aktualnie posiadasz jest pomijany.
+- Leczenie jest pomijane przy pełnym HP; leczenie grupowe, gdy nikt w drużynie w lokacji nie potrzebuje leczenia.
+- Guard, evade i boost są pomijane, jeśli ich odpowiedni efekt już oczekuje na wykorzystanie.
+- Jeśli żaden skill z aktywnych slotów nie jest gotowy, atakuj wykonuje normalny atak.
+- Użycie skilla z kolejki jest normalnym użyciem: zużywa Manę, uruchamia cooldown i daje Skill XP.
+
+--- DOKUMENTACJA v0.8.25 I WCZEŚNIEJSZYCH SYSTEMÓW ---
+
+SOULBOUND v0.8.25 - SOUL LEVEL SKILL PROGRESSION
+=================================================
+Ta wersja rozwija v0.8.24 i nie wymaga kasowania soulbound.db ani Railway Volume.
+
+REGULARNE ODBLOKOWYWANIE UMIEJĘTNOŚCI
+- Postać nadal NIE ma levelu ani XP postaci.
+- Umiejętności klasowe odblokowuje wyłącznie Soul Level Broni Duszy.
+- Każda z 12 klas ma teraz umiejętność na progach: 1, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160, 170, 180, 190 i 200 Soul Level.
+- Istniejące skille z progu Soul 25 zostały przesunięte na Soul 20. Ich ID, nauczony status, Skill Level i Skill XP pozostają zachowane.
+- Biegłość klasy / Class XP NIE odblokowuje skilli. Jest osobnym systemem rozwoju klasy.
+- Skill po osiągnięciu wymaganego Soul Level nadal trzeba kupić/nauczyć się u nauczyciela aktywnej klasy.
+- Każda nauczona umiejętność nadal rozwija własny Skill Level 1-200 przez używanie.
+- Listy skills i Kodeks Klasowy są uporządkowane rosnąco według wymaganego Soul Level.
+- Łącznie w grze jest teraz 253 skille klasowe. Większość klas ma po 21; Kapłan ma 22, ponieważ zachowuje dwa istniejące skille startowe na Soul 1.
+
+--- DOKUMENTACJA v0.8.24 I WCZEŚNIEJSZYCH SYSTEMÓW ---
+
+SOULBOUND v0.8.24 - RANDOM MINE WALLS EXPANSION
+=================================================
+Ta wersja rozwija v0.8.23 i nie wymaga kasowania soulbound.db.
+
+LOSOWE ŚCIANY KOPALNI GŁĘBINOWEJ
+- Każda ściana prowadząca na kolejny poziom ma własną losową wytrzymałość.
+- Poziomy 1-9: 3-8 udanych uderzeń Kilofem.
+- Od poziomu 10: losowo około 70-130% numeru aktualnego piętra.
+- Przykład: na poziomie 100 ściana może wymagać od 70 do 130 uderzeń.
+- Wylosowana liczba jest zapisywana w SQLite i pozostaje taka sama do przebicia ściany.
+- Po przebiciu kolejnego przejścia nowa ściana losuje nową liczbę.
+- Komenda kopalnia pokazuje aktualny postęp, np. Ściana w dół: 24 z 83 uderzeń.
+- Aktualizacja zachowuje wcześniejsze uderzenia w ścianę.
+
+--- DOKUMENTACJA v0.8.23 I WCZEŚNIEJSZYCH SYSTEMÓW ---
+
+SOULBOUND v0.8.23 - STOLEN ORE CHESTS QUEST EXPANSION
+=======================================================
+Nowy quest Wioski Górskiej: Skradzione Skrzynie Rudy.
+
+Jak zacząć:
+- Udaj się na plac Wioski Górskiej.
+- Porozmawiaj z Magazynierem Borinem.
+- Odzyskaj 10 Skradzionych Skrzyń Rudy z trolli na Górskim Szlaku i w Jaskini Trolli.
+- Wróć do Borina i oddaj zadanie.
+- Po ukończeniu quest jest ponownie dostępny po 60 minutach.
+
+Ważne:
+- Quest nie wymaga Górnictwa ani Kilofa.
+- Zwykłe, rzadkie i elitarne trolle mogą upuszczać skrzynie; Król Trolli daje ją gwarantowanie.
+- Zadanie jest niezależne od profesjonalnego łańcucha zleceń Dagny.
+- Nie usuwaj soulbound.db ani Railway Volume.
+
+
+SOULBOUND v0.8.22 - RESOURCE ATLAS EXPANSION
+============================================
+Nowe atlasy zasobów pokazują nie tylko nazwę surowca, ale też minimalny level narzędzia i miejsce pozyskania.
+
+Najważniejsze komendy:
+- atlas ryby - wszystkie łowiska z levelami Wędki przy gatunkach,
+- atlas rzeka / jezioro / morze / ocean - konkretny typ łowiska,
+- atlas drewno - drewna z wymaganym levelem Piły i regionem,
+- atlas zioła - zioła z wymaganym levelem Sierpa i regionem,
+- atlas rudy - rudy z levelem Kilofa i minimalnym piętrem Kopalni Głębinowej,
+- atlas <nazwa surowca> - dokładny wpis: minimalny level oraz wszystkie lokacje.
+
+Przykład: atlas Arapaima podaje minimalny level Wędki oraz łowiska rzeczne.
+Rzadki wariant zasobu korzysta z wymagań bazowego surowca.
+
+SOULBOUND v0.8.21 NUMERIC CHARACTER MENU
+
+Ta wersja rozwija Soulbound v0.8.20. Nie wymaga kasowania soulbound.db.
+
+NOWOŚCI v0.8.21
+- Ekran startowy jest numerowany:
+  1. Zaloguj się
+  2. Utwórz nowe konto
+  3. Wyjdź
+- Po zalogowaniu pojawia się osobne MENU POSTACI:
+  1. Wybierz postać
+  2. Stwórz nową postać
+  3. Pokaż listę postaci
+  4. Wyloguj
+- Dopiero opcja 1 czyta listę slotów, dzięki czemu NVDA nie dostaje całej listy postaci przy każdym logowaniu.
+- W ekranie wyboru postaci wpisz numer slotu albo nazwę. 0 wraca do menu postaci.
+- Opcja 2 uruchamia kreator kolejnej postaci, o ile konto nie ma już 12 postaci.
+- Opcja 3 czyta pełną listę postaci i wraca do menu.
+- Stare komendy tekstowe nadal działają jako aliasy.
+- Wszystkie zapisy postaci z v0.8.20 pozostają bez zmian.
+
+--- DOKUMENTACJA v0.8.20 I WCZEŚNIEJSZYCH SYSTEMÓW ---
+
+SOULBOUND v0.8.20 MULTI-CHARACTER ACCOUNTS
+
+Ta wersja rozwija Soulbound v0.8.19. Nie wymaga kasowania soulbound.db.
+
+NOWOŚCI v0.8.20
+- Jedno konto może mieć maksymalnie 12 postaci.
+- Po zalogowaniu pojawia się lista slotów postaci.
+- Postać można wybrać numerem slotu albo nazwą.
+- W ekranie wyboru wpisz new / nowa / nowa postac, aby utworzyć kolejną postać.
+- Stara postać z v0.8.19 i wcześniejszych jest automatycznie przypisywana do slotu 1.
+- Każda postać ma całkowicie osobny zapis: ekwipunek, wyposażenie, questy, profesje, narzędzia, Soul Weapon, Class XP, skille, eksplorację, Codex, achievementy, tytuły, Drop History i waluty.
+- Limit 12 jest egzekwowany przez SQLite; trzynastej postaci nie da się utworzyć.
+- Nazwy postaci nadal są unikalne globalnie.
+- Jedno konto może mieć tylko jedną aktywną sesję jednocześnie; zmiana postaci odbywa się po ponownym zalogowaniu.
+- Nie usuwaj Railway Volume ani soulbound.db.
+
+LOGOWANIE v0.8.20
+1. Wpisz login i podaj nazwę konta oraz hasło.
+2. Serwer odczyta listę postaci, np. POSTACIE NA KONCIE: 3/12.
+3. Wpisz numer slotu lub nazwę postaci, aby wejść do gry.
+4. Wpisz new, aby uruchomić kreator kolejnej postaci.
+5. Po utworzeniu nowej postaci od razu wchodzisz nią do świata.
+
+--- DOKUMENTACJA v0.8.19 I WCZEŚNIEJSZYCH SYSTEMÓW ---
+
+SOULBOUND v0.8.19 FOREST, WOLVES & QUEST BALANCE EXPANSION
+
+Ta wersja rozwija Soulbound v0.8.18. Nie wymaga kasowania soulbound.db.
+
+NOWOŚCI v0.8.19
+- Las Szeptów: 10 nowych pomieszczeń za Głębią Gaju.
+- 25 spawnów wilków w nowym lesie.
+- Nowe wilki: Tropiciel Cienia i Wyjący Wilk Cienia.
+- Mini-boss: Przywódca Watahy Cienia.
+- Prowadzenie: prowadz las / prowadz las szeptow.
+- Expowiska: Las Szeptów jest osobnym expowiskiem.
+- Problem goblinów: 20 zabitych goblinów zamiast 3 i powtarzalny co godzinę.
+- Plaga Trolli: powtarzalna co godzinę.
+- Cienie w Gaju: powtarzalne co godzinę.
+- Exploration/Achievements/Collection/Drop History/Loot Filter z v0.8.18 pozostają aktywne.
+
+SOULBOUND v0.8.18 EXPLORATION, ACHIEVEMENTS & COLLECTION EXPANSION
+=====================================================================
 
 Duży build rozbudowujący działający serwer online do pierwszej właściwej wersji świata MUD.
+
+
+
+NOWOŚCI v0.8.18
+----------------
+Ta wersja rozwija Soulbound_v0.8.17_Elite_Rare_Named_Loot_Expansion.
+Nie usuwa ani nie resetuje istniejących kont, postaci, lootu ani postępu.
+
+EKSPLORACJA
+- Każda odwiedzona lokacja jest zapisywana per postać.
+- Komenda: eksploracja / exploration.
+- Komenda: eksploracja all pokazuje większe strefy.
+- Komenda: progress pokazuje skrócone podsumowanie.
+- Komenda: progress region pokazuje bieżący region.
+- Pełne 100% większej strefy daje Soul XP, pieniądze, unikalną pamiątkę i tytuł.
+
+ACHIEVEMENTY I TYTUŁY
+- Komenda: osiagniecia / achievements.
+- Progi: Bronze, Silver, Gold, Platinum.
+- Śledzone są m.in. zabójstwa goblinów, rare mobów i bossów oraz otwieranie skrzyń.
+- Pokonanie wszystkich mini-bossów ma osobny achievement Platinum.
+- Komenda: tytuly / titles.
+- Komenda: tytul <numer lub nazwa> ustawia aktywny tytuł.
+- Komenda: tytul off wyłącza aktywny tytuł.
+
+COLLECTION CODEX
+- Komenda: kolekcja / collection.
+- Kategorie: named, sety, bossowie, rare, skrzynie.
+- Nieodkryte wpisy nie pokazują nazwy.
+- Duże kategorie mają strony po 40 pozycji, np. kolekcja rare 2.
+- Loot i sety posiadane już przez postać są synchronizowane z Codexem przy jego otwarciu.
+
+DROP HISTORY I LOOT FILTER
+- Komenda: historiadropow / drophistory.
+- Historia zapisuje wartościowe dropy, źródło i strefę.
+- loot all - czytaj każdy loot.
+- loot rare+ - czytaj Rare i lepszy.
+- loot epic+ - czytaj Epic i lepszy.
+- loot legendary - czytaj Legendary, Unique i Mythic.
+- loot off - wycisz komunikaty o przedmiotach.
+- Loot Filter nie usuwa ani nie pomija zdobywania przedmiotów; ogranicza tylko komunikaty dla NVDA.
+
+SQLITE v0.8.18
+- Automatycznie dodawane są tabele eksploracji, nagród 100%, Collection Codex,
+  achievementów, tytułów i Drop History.
+- Do postaci dochodzą ustawienie Loot Filter oraz aktywny tytuł.
+- NIE usuwaj Railway Volume ani pliku soulbound.db.
 
 NAJWAŻNIEJSZE ZASADY
 --------------------
@@ -10,11 +240,11 @@ NAJWAŻNIEJSZE ZASADY
 - Statystyki rosną automatycznie podczas gry.
 - Wszystkie klasy rozwijają wszystkie pięć statystyk automatycznie.
 - Broń Duszy ma osobny Soul Level 1-200.
-- Broń Duszy ma Soul Tier 1-3.
+- Broń Duszy ma Soul Tier 1-20.
 
 WORLD CORE
 ----------
-- 31 lokacji połączonych kierunkami.
+- Ponad 1200 lokacji i poziomów połączonych kierunkami.
 - Miasto Dusz.
 - Dzicz.
 - Podziemia.
@@ -2734,7 +2964,7 @@ Tier 9: level 120-139, bonus 18%.
 Tier 10: level 140-159, bonus 21%.
 Tier 11: level 160-179, bonus 24%.
 Tier 12: level 180-199, bonus 27%.
-Tier 13: level 200, bonus 30%.
+Tier 20: level 200, bonus 30%.
 
 Bonus oznacza odpowiednio:
 Wędka: szansa na dodatkowy połów.
@@ -2752,7 +2982,7 @@ Tier 9: Młot Arcyrzemieślnika.
 Tier 10: Młot Smoczej Kuźni.
 Tier 11: Młot Astralnego Twórcy.
 Tier 12: Młot Pradawnej Kuźni.
-Tier 13: Młot Wiecznego Kowadła.
+Tier 20: Młot Wiecznego Kowadła.
 
 Komendy:
 tools
@@ -3179,7 +3409,7 @@ WOLNIEJSZY ROZWÓJ NARZĘDZI
 ---------------------------
 Narzędzia nadal mają:
 level 1-200,
-13 Tierów.
+20 Tierów.
 
 Od v0.6.78 wymagany XP narzędzia jest 2 razy większy.
 
@@ -3234,7 +3464,7 @@ Quest dający wcześniej 1000 XP profesji:
 teraz daje 2000 XP profesji.
 
 Narzędzia nie są zmienione w tym buildzie.
-Pozostają 1-200, 13 Tierów i wolniejszy XP z v0.6.78.
+Pozostają 1-200, 20 Tierów i wolniejszy XP z v0.6.78.
 
 ZAKŁADANIE LOOTU Z MOBÓW
 -------------------------
@@ -4703,7 +4933,7 @@ NOWE GÓRSKIE QUESTY
 Patrol Górskiego Szlaku.
 Polowanie na 5 Trolli Szamanów.
 Polowanie na Króla Trolli Gruma.
-Odzyskanie 6 Skradzionych Skrzyń Rudy.
+Odzyskanie 10 Skradzionych Skrzyń Rudy.
 
 TWIERDZA GIGANTÓW 1-50
 -----------------------
@@ -5383,7 +5613,7 @@ Jubilerstwo 1-200.
 
 Narzędzie:
 Szczypce Jubilerskie 1-200.
-13 Tierów.
+20 Tierów.
 Brak durability.
 Brak napraw.
 Narzędzie nie zużywa się.
@@ -5445,3 +5675,778 @@ Szczypce Jubilerskie,
 oraz daje walutę.
 
 Ostatni etap daje także mithrilową monetę.
+
+
+GEM SYSTEM v0.7.38
+==================
+Dodano kamienie szlachetne do Jubilerstwa.
+
+ZDOBYWANIE
+==========
+Surowe klejnoty mogą wypaść dodatkowo podczas kopania.
+Nie zastępują normalnej rudy.
+
+Kamienie:
+Rubin,
+Szafir,
+Szmaragd,
+Ametyst,
+Diament,
+Topaz Duszy,
+Opal Many,
+Granat Smoczej Stali,
+Kryształ Astralny,
+Onyks Pustki,
+Pryzmat Eternium.
+
+SZLIFOWANIE
+===========
+W Pracowni Jubilerskiej:
+szlifuj rubin
+szlifuj szafir
+itd.
+
+Wymagane są:
+Szczypce Jubilerskie,
+odpowiedni level Szczypiec,
+odpowiedni level Jubilerstwa.
+
+Szlifowanie daje XP Jubilerstwa i narzędzia.
+
+GNIAZDA
+=======
+Biżuteria Jubilerska:
+1 gniazdo na niskich tierach,
+2 od levelu 100,
+3 od levelu 180.
+
+Klasowy pierścień:
+1 gniazdo.
+
+Klasowy naszyjnik:
+2 gniazda.
+
+Osadzanie:
+osadz rubin pierścień
+osadz szafir naszyjnik
+
+Podgląd:
+gniazda
+
+Po zmianie pierścienia lub naszyjnika wszystkie klejnoty
+z poprzedniego przedmiotu wracają do ekwipunku.
+
+Bonusy klejnotów są aktywne tylko wtedy,
+gdy biżuteria z nimi jest założona.
+
+Dane gniazd są zapisywane w SQLite.
+Nie ma resetu bazy.
+
+
+WORLD EXPANSION I v0.7.39
+=========================
+Rozbudowano świat zamiast dokładania kolejnych systemów bez terenu.
+
+NOWE / ROZBUDOWANE REGIONY
+==========================
+Północna Dzicz:
+Skraj Północnej Dziczy,
+Polana Łowców,
+Cierniste Zarośla,
+Opuszczona Farma,
+Spalone Pola,
+Kamienny Wąwóz,
+Pęknięta Kapliczka,
+Legowisko Rogatego Króla.
+
+Wysokie Góry:
+Niższe Stoki,
+Szlak Kozic,
+Stara Kopalnia Krasnoludów,
+Opuszczona Hala Krasnoludów,
+Wietrzna Półka,
+Lodowa Przełęcz,
+Obóz Szczytowy,
+Szczelina Lawowa,
+Szczyt Burzy.
+
+Jaskinia Trolli:
+Grota Grzybów,
+Podziemna Rzeka Trolli,
+Galeria Szamanów,
+Gniazdo Trolli,
+Zagrody Jeńców,
+Skarbiec Trolli,
+Dół Kości,
+Głęboki Obóz Wojenny,
+Pradawny Ołtarz Trolli.
+
+Czarne Bagna:
+pełny nowy teren z posterunkiem,
+chatą zielarki,
+mokradłami,
+ruinami i Hydrą Czarnego Bagna.
+
+Wielka Pustynia:
+kanion,
+brama,
+obóz karawan,
+oaza,
+wydmy,
+kotlina skorpionów,
+szklane równiny,
+ruiny,
+zasypana świątynia
+i Świątynia Płonącego Słońca.
+
+LOGICZNY PODZIAŁ NPC
+====================
+Neris:
+Szkoła Wędkarstwa.
+
+Kordan:
+Gildia Górników.
+
+Oren:
+Leśniczówka.
+
+Sena:
+Ogród Zielarski.
+
+Orin:
+Laboratorium Alchemiczne.
+
+Haldor:
+Warsztat Rzemieślniczy.
+
+Sprzedawcy podstawowych narzędzi pozostają przy sklepach.
+Toren nadal jako jedyny sprzedaje Kilof.
+
+NOWI NPC
+========
+Łowczyni Elda.
+Kartograf Ivo.
+Zwiadowca Harek.
+Badaczka Trolli Yorna.
+Łowca Bagien Varg.
+Bagienna Zielarka Nela.
+Mistrz Karawan Samir.
+Badaczka Amina.
+
+Nowe tereny mają własne questy, moby i bossów świata.
+
+Prowadzenie:
+prowadz północna dzicz
+prowadz obóz szczytowy
+prowadz bagna
+prowadz pustynia
+prowadz samir
+prowadz varg
+prowadz yorna
+
+Exp:
+expowiska
+expowiska bagna
+expowiska pustynia
+
+Brak resetu bazy SQLite.
+
+
+HIGH-END MOB PACK v0.7.40
+=========================
+Dodano 15 bardzo trudnych mobów i bossów.
+
+WAŻNE:
+Soulbound nadal NIE ma levelu postaci ani XP postaci.
+
+Duże nagrody to:
+Soul XP,
+Class Mastery XP.
+
+ZAKRES NAGRÓD
+=============
+Elity:
+100 000 do 1 800 000 Soul XP.
+150 000 do 2 200 000 Class XP.
+
+Bossowie:
+1 000 000 do 8 000 000 Soul XP.
+1 500 000 do 10 000 000 Class XP.
+
+TRUDNOŚĆ
+========
+Nie są to łatwe moby do farmienia.
+
+Po globalnym mnożniku HP:
+najlżejsza elita ma około 120 000 HP,
+mocniejsze elity dochodzą do około 950 000 HP,
+bossowie mają od 500 000 do 3 000 000 HP.
+
+Obrażenia bazowe nowych przeciwników:
+210 do 1200 na odpowiedź przeciwnika.
+
+Walka nadal jest turowa:
+jedna akcja gracza,
+jedna odpowiedź żyjącego przeciwnika.
+
+Dlatego rozwój:
+statystyk,
+Soul,
+Class Mastery,
+EQ,
+socketów,
+klejnotów,
+leczenia
+i skilli
+ma realne znaczenie.
+
+ODNOGI ENDGAME
+==============
+Dzicz:
+Pradawny Szlak Bestii,
+Pradawna Kotlina Dziczy.
+
+Góry:
+Ścieżka Wiecznej Burzy,
+Sanktuarium Wiecznej Burzy.
+
+Jaskinia Trolli:
+Otchłań Trolli,
+Tron Pierwszego Wodza.
+
+Bagna:
+Gnijące Głębie Bagna,
+Pradawne Rozlewisko.
+
+Pustynia:
+Grobowiec Słońca,
+Sanktuarium Wiecznego Słońca.
+
+Najtrudniejszy boss:
+Awatar Wiecznego Słońca.
+3 000 000 HP po globalnym skalowaniu.
+8 000 000 Soul XP.
+10 000 000 Class Mastery XP.
+
+Użyj:
+consider <mob>
+
+przed atakiem, jeśli nie wiesz czy postać jest gotowa.
+
+
+SPRZEDAWCY NARZĘDZI v0.7.41
+============================
+Każde narzędzie sprzedaje wyłącznie NPC odpowiedniej profesji.
+
+Wędka:
+Mistrz Wędkarstwa Neris,
+Szkoła Wędkarstwa.
+
+Kilof:
+Górnik Toren,
+Wejście do Kryształowej Jaskini.
+
+Piła:
+Mistrz Drwalstwa Oren,
+Leśniczówka.
+
+Młot Rzemieślniczy:
+Mistrz Rzemiosła Haldor,
+Warsztat Rzemieślniczy.
+
+Nóż Kucharski:
+Kucharz Marcel,
+Kuchnia Błękitnego Płomienia.
+
+Sierp Zielarski:
+Mistrzyni Zielarstwa Sena,
+Ogród Zielarski.
+
+Moździerz Alchemiczny:
+Mistrz Alchemii Orin,
+Laboratorium Alchemiczne.
+
+Szczypce Jubilerskie:
+Jubilerka Mirella,
+Pracownia Jubilerska.
+
+Narzędzia nie występują już w zwykłych sklepach innej profesji.
+Brak resetu SQLite.
+
+
+HELP & INFO OVERHAUL v0.8.0
+===========================
+Od tej wersji numeracja przechodzi na serię v0.8.x.
+
+Zasada komend informacyjnych:
+bez info = szybki stan,
+z info = pełne szczegóły i mechanika.
+
+Przykłady:
+dusza
+dusza info
+
+staty
+staty info
+
+profesje
+profesje info
+
+narzedzia
+narzedzia info
+
+eq
+eq info
+
+help informacje
+
+DUSZA INFO
+===========
+Pokazuje:
+Soul Level i Soul XP,
+Tier 1-5,
+progi 25, 60, 120 i 180,
+stan Prób Broni Duszy,
+następny cel,
+Moc Broni Duszy,
+bonus klasowy,
+dostęp do Mitycznej Krypty i Mitycznej Wieży od Soul 100.
+
+Soulbound nadal nie ma levelu ani XP postaci.
+Brak resetu SQLite.
+
+
+CLASS SETS & TERRAIN INFO v0.8.1
+================================
+
+SETY KLASOWE
+=============
+Wszystkie 12 klas ma pełne zestawy 8 części.
+Łącznie istnieje 96 klasowych elementów EQ.
+
+Progi:
+2 części - bonus do klasowych statystyk.
+4 części - bonus do wszystkich obrażeń.
+6 części - bonus do obrony fizycznej i magicznej.
+8 części - bonus do maksymalnego HP; klasy magiczne otrzymują też bonus do Many.
+
+Każda klasa ma inne wartości.
+Berserker i Czarownik są bardziej ofensywni.
+Strażnik i Kapłan mają mocniejsze profile defensywne.
+Pozostałe klasy mają własne zbalansowane profile.
+
+Komendy:
+sety
+sety info
+sety wojownik
+sety mag
+eq info
+staty info
+
+TEREN INFO
+==========
+teren info <nazwa>
+
+Przykłady:
+teren info bagna
+teren info góry
+teren info pustynia
+teren info jaskinia trolli
+
+Pokazuje:
+liczbę lokacji,
+orientacyjny Soul,
+trudność,
+NPC,
+questy,
+bossów,
+przeciwników,
+profesje i aktywności,
+dojście przez prowadz.
+
+POMOC
+=====
+help sety
+help sety_klasowe
+help teren
+help teren_info
+help informacje
+
+Pomoc została uaktualniona do aktualnego stanu: 8 narzędzi, 7 profesji, Jubilerstwo, Gem System, nowe regiony i High-End Mob Pack.
+
+Brak resetu SQLite.
+
+
+V0.8.2 - STRAŻNIK TANK I BEZPIECZNE WYJŚCIA
+=============================================
+
+STRAŻNIK
+========
+Set Strażnika jest teraz pełnym setem tanka.
+
+2/8:
+Kondycja +8.
+Siła Woli +4.
+
+4/8:
++5 procent wszystkich obrażeń.
+
+6/8:
++35 procent obrony fizycznej i magicznej.
+
+8/8:
++40 procent maksymalnego HP.
+
+NAWIGACJA W LOCHACH
+====================
+cofnij
+back
+
+Wraca o jedną bezpośrednią lokację, jeśli gra zna poprzedni krok.
+
+wyjście
+exit
+
+Awaryjnie opuszcza rozpoznany loch i przenosi do jego bezpiecznego wejścia.
+Nie działa podczas walki i nie daje żadnych nagród.
+
+Obsługiwane:
+Kopalnia Głębinowa,
+Krypta,
+Wieża Astralna,
+Mityczna Krypta,
+Mityczna Wieża Astralna,
+Twierdza Gigantów,
+Kopalnia Kryształów,
+Zatopiona Grota,
+Pradawny Las,
+Ogród Alchemika,
+Jaskinia Trolli,
+endgame odnogi Dziczy, Gór, Trolli, Bagien i Pustyni.
+
+WYLOGOWANIE
+============
+quit
+logout
+wyloguj
+koniec
+
+Słowo wyjście nie zamyka już gry.
+
+ANGIELSKIE KOMENDY
+===================
+Nowe i starsze systemy mają uzupełnione popularne angielskie aliasy.
+Przykłady:
+areas, terraininfo, regioninfo, sets, classsets, professions, tools, questlog, trainers, woodcutting, gather, jewelry, back, exit.
+
+Pomoc:
+help nawigacja
+help dungeon_exit
+
+
+DUNGEON EXIT FIX v0.8.3
+=======================
+Komendy:
+cofnij
+wyjście
+back
+exit
+wstecz
+return
+escape
+
+Wszystkie cztery robią teraz dokładnie to samo:
+prowadzą bezpośrednio do bezpiecznego wyjścia z aktualnego lochu.
+
+Nie cofają o jedną lokację.
+
+Obsługiwane są między innymi:
+Krypta,
+Wieża Astralna,
+Mityczna Krypta,
+Mityczna Wieża Astralna,
+Kopalnia Głębinowa,
+Twierdza Gigantów,
+Kopalnia Kryształów,
+Zatopiona Grota,
+Pradawny Las,
+Ogród Alchemiczny,
+Jaskinia Trolli,
+odnogi high-end Dziczy,
+Gór,
+Bagien
+i Pustyni.
+
+Podczas walki komenda nie działa.
+Najpierw zakończ walkę lub użyj flee.
+
+
+TOOL TIER 20 v0.8.4
+====================
+Wszystkie narzędzia mają teraz 20 Tierów.
+
+Progi:
+Tier 1: level 1
+Tier 2: level 10
+Tier 3: level 20
+Tier 4: level 30
+Tier 5: level 40
+Tier 6: level 50
+Tier 7: level 60
+Tier 8: level 70
+Tier 9: level 80
+Tier 10: level 90
+Tier 11: level 100
+Tier 12: level 110
+Tier 13: level 120
+Tier 14: level 130
+Tier 15: level 140
+Tier 16: level 150
+Tier 17: level 160
+Tier 18: level 170
+Tier 19: level 180
+Tier 20: level 200
+
+Każde narzędzie ma 20 własnych nazw Tierów.
+Bonus Tieru rośnie płynnie od 0 do 40 procent.
+Narzędzia nadal nie mają trwałości i nie zużywają się.
+
+
+SOUL TIER 20 v0.8.7
+=====================
+Broń Duszy ma teraz 20 Tierów.
+
+Progi Soul Level:
+T1 1, T2 10, T3 20, T4 25, T5 35, T6 45, T7 60, T8 70, T9 80, T10 90,
+T11 100, T12 110, T13 120, T14 130, T15 140, T16 150, T17 160, T18 170, T19 180, T20 200.
+
+Próby Elora:
+Tier 4 przy Soul 25.
+Tier 7 przy Soul 60.
+Tier 13 przy Soul 120.
+Tier 19 przy Soul 180.
+
+Tier 20 wymaga Soul 200 i nie ma dodatkowej Próby.
+
+Migracja starych postaci:
+dawny Tier 2 -> nowy Tier 4,
+dawny Tier 3 -> nowy Tier 7,
+dawny Tier 4 -> nowy Tier 13,
+dawny Tier 5 -> nowy Tier 19.
+
+Soul Level, Soul XP i ukończone Próby nie są resetowane.
+Komendy: dusza, dusza info, soul, soul info, unlock.
+
+
+SOUL PROGRESSION & SECOND RING v0.8.7
+=====================================
+Kamienie milowe Broni Duszy:
+T5, T10, T15, T20.
+
+Każdy kamień milowy wzmacnia klasową specjalizację Broni Duszy.
+Łotrzyk otrzymuje dodatkowy unik.
+Strażnik otrzymuje dodatkową redukcję obrażeń.
+
+Bossowie mają teraz fazy przy 75, 50 i 25 procent HP.
+Zmiana fazy jest czytana krótkim komunikatem NVDA.
+
+Bestiariusz:
+bestiariusz <mob>
+bestiary <mob>
+codex <mob>
+
+Pokazuje HP, obrażenia, Soul XP, Class XP, miejsce i drop.
+
+DWA PIERŚCIENIE
+================
+Postać może nosić dwa pierścienie jednocześnie.
+
+Polskie:
+załóż pierścień 1
+załóż pierścień 2
+
+Angielskie:
+equip ring1
+equip ring2
+
+Sockety:
+osadz rubin pierścień 1
+osadz rubin pierścień 2
+socket ruby ring1
+socket ruby ring2
+
+Do dwóch identycznych pierścieni trzeba mieć dwie sztuki.
+Set klasowy nadal ma osiem unikalnych części; drugi identyczny pierścień nie liczy się podwójnie.
+Stare postacie są migrowane z ring do ring1 bez resetu bazy.
+
+
+AREA MAGIC & GROUP HEALING v0.8.7
+=================================
+Czary obszarowe: Mag, Nekromanta, Czarownik, Druid i Psionik.
+Każda z tych klas ma czar na Soul 40 i mocniejszy na Soul 160.
+Kapłan ma Modlitwę Odnowy na Soul 40 i Masowe Uzdrowienie na Soul 160.
+Leczenie Kapłana obejmuje całą drużynę w tej samej lokacji.
+Działają polskie i angielskie nazwy czarów.
+Jedna akcja powoduje najwyżej jeden kontratak.
+
+
+CHARACTER-BOUND TOOLS & SOUL v0.8.8
+===================================
+Broń Duszy i progresja Duszy są przypisane do postaci.
+Nie są zwykłym przedmiotem i nie można ich oddać ani wyrzucić.
+
+Wszystkie 8 narzędzi profesji jest przypisanych do postaci:
+Wędka, Kilof, Piła, Młot Rzemieślniczy, Nóż Kucharski,
+Sierp Zielarski, Moździerz Alchemiczny i Szczypce Jubilerskie.
+
+Zasady:
+- każde narzędzie można kupić tylko raz na postać,
+- nie można go oddać, wyrzucić ani sprzedać,
+- nie można go schować w Banku Dusz,
+- level, XP, użycia i Tier zostają przy postaci,
+- stary tool w banku wraca do inventory,
+- stare duplikaty są redukowane do jednej sztuki.
+
+Pomoc:
+help przypisane
+
+English:
+Profession tools and Soul progression are character-bound.
+Each profession tool can be purchased once per character.
+
+
+PAID TRAINING & GUILD EXPANSION v0.8.17
+=======================================
+Nauka umiejętności klasowych jest teraz płatna.
+
+Cena zależy od Soul Level wymaganego przez skill.
+Niskie skille kosztują srebro.
+Późniejsze skille kosztują coraz więcej złota.
+Nauczyciel zawsze podaje cenę przed nauką.
+
+Komendy:
+nauczyciele
+teachers
+trainers
+training
+
+Każda z 12 klas ma osobną salę:
+Wojownik - Sala Wojownika.
+Berserker - Sala Berserkera.
+Łotrzyk - Sala Łotrzyka.
+Łowca - Sala Łowcy.
+Mnich - Sala Mnicha.
+Strażnik - Bastion Strażnika.
+Mag - Komnata Maga.
+Nekromanta - Komnata Nekromanty.
+Kapłan - Kaplica Kapłana.
+Czarownik - Komnata Czarownika.
+Druid - Gaj Druida.
+Psionik - Komnata Psionika.
+
+Stare wspólne sale Gildii zostały jako korytarze i huby.
+Brak resetu SQLite.
+
+
+GUILD PROGRESSION & ECONOMY v0.8.17
+====================================
+12 osobnych reputacji klasowych.
+Rangi reputacji dają do 25% zniżki na naukę.
+Klasowe zadania Gildii.
+Egzaminy Soul 50/100/150/200.
+Tablica zleceń bounty.
+Komendy PL/EN: gildia/guild, zadanieklasowe/classquest, egzamin/exam, bounty/contracts.
+Brak resetu SQLite.
+
+Wymagana reputacja egzaminów: 100 / 250 / 450 / 700. Soul 50 wymaga też ukończenia zadania klasowego.
+
+
+CLASS CODEX v0.8.17
+===================
+Nowe komendy:
+kodeksklasowy <klasa>
+kodeksklasowy moje
+kodeksklasowy wszystkie
+classcodex <class>
+classcodex mine
+classcodex all
+codex klasy <klasa>
+codex class <class>
+
+Codex każdej klasy pokazuje wszystkie jej skille, wymagany Soul Level, nauczyciela, salę nauczyciela, aktualny koszt nauki po rabacie Gildii oraz status odblokowania.
+Status mówi wprost: nauczona, dostępna do nauki, zablokowana przez Soul albo zablokowana przez nieaktywną klasę.
+Brak resetu SQLite.
+
+
+NAVIGATION CLEANUP v0.8.17
+==========================
+prowadz <cel> i walk <cel> korzystają z jednego silnika.
+prowadz lista / walk list pokazuje kategorie: miasto, gildia, profesje, tereny, lochy, npc, wszystko.
+Przykłady: prowadz lista gildia, walk list dungeons, prowadz krypta 50, walk kopalnia 80.
+Przy niejednoznacznym celu jest tylko jedna numerowana lista; wpisujesz jedną cyfrę.
+Pełna lista świata: prowadz lista wszystko / walk list all.
+cofnij/back/wyjście/exit prowadzą bezpośrednio do wyjścia z rozpoznanego lochu.
+Brak resetu SQLite.
+
+
+NAWIGACJA v0.8.17 — ZATRZYMANIE PRZED CELEM
+=============================================
+prowadz / guide / walk do zwykłej lokalizacji zatrzymuje się jeden krok przed celem.
+Ostatni kierunek wejścia gracz wykonuje sam.
+Jeśli celem jest NPC, prowadzenie dochodzi dokładnie do pokoju NPC.
+Przykład: prowadz Toren prowadzi do Górnika Torena.
+Przykład: prowadz krypta 50 zatrzymuje się przed piętrem 50 i podaje ostatni kierunek.
+Brak resetu SQLite.
+
+
+EXPLORATION FIRST GUIDE v0.8.17
+================================
+Prowadz / guide / walk nie prowadzi na piętra ani w głąb lochów.
+Dla lochów i expowisk prowadzenie kończy się przed wejściem.
+Eksplorację wnętrza wykonuje gracz sam.
+Wyjątek: NPC — do NPC prowadzenie dochodzi dokładnie do pokoju.
+Brak resetu SQLite.
+
+
+BANDIT & GOBLIN EXPANSION v0.8.17
+=================================
+- Obozowiska Bandytów: 9 lokacji, nowe typy bandytów, Kapitan i Herszt w głębi.
+- Jaskinie Goblinów: 9 lokacji, nowe typy goblinów, Wódz Wojenny i Król w najgłębszej grocie.
+- Prowadzenie zatrzymuje przed wejściem do expowisk.
+- Questy na bandytów/gobliny liczą nowe warianty.
+- Nowe wpisy expowisk i bestiariusza.
+- Brak resetu SQLite.
+
+
+WORLD EXPANSION II & PROFESSION FIELD QUESTS v0.8.17
+====================================================
+Nowe expowiska:
+- Stary Cmentarz
+- Ruiny Kultystów
+- Legowisko Bestii
+- Nekropolia
+- Kanały Pod Miastem
+- Lodowe Jaskinie
+
+Każdy obszar ma kilka lokacji, własne moby, elity i bossa.
+Prowadzenie kończy się przed wejściem; wnętrza eksploruje się ręcznie.
+
+Terenowe questy profesyjne:
+- Zielarstwo: Mech Nagrobny — tylko Stary Cmentarz.
+- Zielarstwo: Cierń Pustki — tylko Ruiny Kultystów.
+- Drwalstwo: Korzeń Żelaznokory — tylko Legowisko Bestii.
+- Górnictwo: Srebro Grobowe — tylko Nekropolia.
+- Wędkarstwo: Ślepy Węgorz Kanałowy — tylko Kanały Pod Miastem.
+- Górnictwo: Ruda Lodowego Kryształu — tylko Lodowe Jaskinie.
+
+
+ELITE, RARE & NAMED LOOT v0.8.17
+================================
+- Losowe elity: Opancerzony, Wściekły, Astralny, Przeklęty, Regenerujący i inne.
+- Rzadkie moby z większymi nagrodami.
+- 16 mini-bossów w 8 expowiskach.
+- Named loot z głównych bossów.
+- Regionalne sety Kultystów, Nekropolii i Lodowych Jaskiń z progami 2/4/6.
+- 11 odnawialnych skrzyń skarbów.
+- Komendy: skrzynia / chest / treasure / open chest.
+- Brak resetu SQLite.

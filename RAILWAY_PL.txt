@@ -1,4 +1,56 @@
-SOULBOUND v0.7.37 — AKTUALIZACJA RAILWAY
+SOULBOUND v0.8.26 — AUTO SKILL QUEUE — AKTUALIZACJA RAILWAY
+
+1. Wgraj pliki v0.8.26 w miejsce kodu v0.8.25.
+2. NIE kasuj Railway Volume.
+3. NIE kasuj /data/soulbound.db.
+4. Przy starcie SQLite automatycznie utworzy tabele skill_queue i skill_queue_settings.
+5. Wszystkie stare postacie, skille, Class XP, Soul Level i ekwipunek pozostają bez zmian.
+6. Kolejka jest początkowo wyłączona; w grze wpisz kolejka on.
+7. Sprawdź kolejkę komendą kolejka.
+8. Nie jest wymagany żaden ręczny SQL ani reset bazy.
+
+--- STARSZE INSTRUKCJE ---
+
+SOULBOUND v0.8.20 — MULTI-CHARACTER ACCOUNTS — AKTUALIZACJA RAILWAY
+
+1. Wgraj pliki v0.8.20 w miejsce kodu v0.8.19.
+2. NIE kasuj Railway Volume.
+3. NIE kasuj /data/soulbound.db.
+4. Po restarcie serwera SQLite automatycznie doda tabelę slotów postaci.
+5. Dotychczasowa postać zostanie automatycznie przypisana do slotu 1.
+6. Po zalogowaniu wybierz postać numerem/nazwą albo wpisz new, aby utworzyć kolejną.
+7. Limit wynosi 12 postaci na jedno konto.
+8. Każda postać zachowuje osobny pełny postęp i ekwipunek.
+
+--- STARSZE INSTRUKCJE ---
+
+SOULBOUND v0.8.18 — AKTUALIZACJA RAILWAY
+
+
+AKTUALIZACJA v0.8.18 — EKSPLORACJA, ACHIEVEMENTY I COLLECTION CODEX
+---------------------------------------------------------------------
+1. Wgraj pliki v0.8.18 w miejsce kodu v0.8.17.
+2. NIE usuwaj Railway Volume i NIE kasuj /data/soulbound.db.
+3. Przy starcie serwera migracja SQLite automatycznie doda nowe tabele i kolumny.
+4. Stare konta, postacie, Soul Level, profesje, ekwipunek i v0.8.17 loot zostają zachowane.
+5. Nowa eksploracja zaczyna zapisywać odwiedzone lokacje od uruchomienia v0.8.18.
+6. Nowe komendy: progress, progress region, eksploracja, osiagniecia, tytuly,
+   tytul, kolekcja, historiadropow oraz loot rare+/epic+/legendary/all/off.
+
+Nowe tabele SQLite:
+- exploration_rooms
+- exploration_rewards
+- collection_codex
+- achievement_progress
+- achievements
+- unlocked_titles
+- drop_history
+
+Nowe kolumny characters:
+- loot_filter
+- active_title
+
+Brak resetu SQLite.
 =====================================
 
 Jeżeli v0.5.1 już działa na Railway:
@@ -43,7 +95,7 @@ Baza:
 
 MIGRACJA WALUT
 --------------
-v0.7.37 automatycznie dodaje do starej bazy:
+v0.8.17 automatycznie dodaje do starej bazy:
 - silver,
 - mithril.
 
@@ -51,7 +103,7 @@ Istniejące konta i postacie zostają zachowane.
 Nie usuwaj Railway Volume.
 
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 -------------------
 Nie zmieniaj Volume ani TCP Proxy.
 Wystarczy podmienić kod na GitHubie i zrobić commit.
@@ -60,7 +112,7 @@ Nowe lokacje, quest i przeciwnicy nie wymagają kasowania bazy.
 
 AKTUALIZACJA PROFESJI
 ---------------------
-v0.7.37 dodaje nowe tabele SQLite:
+v0.8.17 dodaje nowe tabele SQLite:
 - professions,
 - tools.
 
@@ -69,14 +121,14 @@ Nie kasuj Railway Volume.
 Nie zmieniaj TCP Proxy.
 
 
-MIGRACJA v0.7.37
+MIGRACJA v0.8.17
 ----------------
 Dodawana jest tabela profession_storage.
 Siatka i Sakwa nie wymagają kasowania ani resetowania postaci.
 Nie usuwaj Railway Volume.
 
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 -------------------
 Nie zmieniaj Railway Volume.
 Nie zmieniaj TCP Proxy.
@@ -84,243 +136,243 @@ Nowa lokacja i quest są częścią kodu.
 Stare levele Wędki, Kilofa i profesji zostają zachowane.
 
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 -------------------
 Nie wymaga migracji nowych kolumn.
 Nowe ryby są wpisami w tabeli przedmiotów i działają na istniejącej bazie.
 Nie usuwaj Railway Volume.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 -------------------
 Zmienia tabele połowów i ceny. Nie wymaga zmian bazy ani Volume.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 -------------------
 Nie wymaga zmian schematu bazy.
 Czysty mithril trafia bezpośrednio do kolumny waluty mithril.
 Nie usuwaj Railway Volume.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Dodaje nowe lokacje i ryby. Nie wymaga zmian schematu bazy.
 Nie usuwaj Railway Volume ani TCP Proxy.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Auto-łowienie i nawigacja nie wymagają zmian schematu SQLite.
 Nie usuwaj Railway Volume ani TCP Proxy.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Dodaje tylko nowe aliasy komendy walki. Nie wymaga zmian bazy ani TCP Proxy.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Dodaje aliasy list i lista do przeglądania oferty sklepu.
 Nie wymaga zmian bazy ani TCP Proxy.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Zmiana komunikatu po wypiciu mikstury.
 Nie wymaga zmian bazy ani TCP Proxy.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Zmienia wzory walki i role statystyk.
 Nie wymaga zmian schematu bazy ani TCP Proxy.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Rozbudowuje tylko kreator postaci i opisy ras/klas.
 Nie wymaga zmian bazy, Volume ani TCP Proxy.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Zmienia wyłącznie sposób automatycznego rozwoju statystyk.
 Nie wymaga migracji bazy ani zmian TCP Proxy.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Dodaje auto-kopanie. Nie wymaga zmian schematu bazy, Volume ani TCP Proxy.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Dodaje rozbudowany system pomocy i opisów.
 Nie zmienia schematu SQLite.
 Nie usuwaj Railway Volume i nie zmieniaj TCP Proxy.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Dodaje komendy changes / zmiany / changelog.
 Nie wymaga zmian bazy, Railway Volume ani TCP Proxy.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Dodaje pełny zestaw wyposażenia u Kowala.
 Nie wymaga zmian schematu SQLite, Railway Volume ani TCP Proxy.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Dodaje 36 aktywnych umiejętności klasowych.
 Nie wymaga migracji SQLite ani zmian TCP Proxy.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Dodaje nauczycieli klasowych i dopina walkę turową.
 Nie wymaga migracji SQLite ani zmian TCP Proxy.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Dodaje nowe pomieszczenia Gildii oraz trwałą naukę umiejętności.
 Tabela learned_skills tworzy się automatycznie.
 Nie usuwaj Railway Volume i nie zmieniaj TCP Proxy.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Dodaje komendę z pełną listą nazw skilli.
 Nie wymaga migracji SQLite ani zmian TCP Proxy.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Dodaje skill_progress oraz Małe Leczenie Kapłana.
 Tabela skill_progress tworzy się automatycznie.
 Istniejące learned_skills pozostają zgodne i dostają Skill Level 1 przy pierwszym odczycie/użyciu.
 Nie usuwaj Railway Volume i nie zmieniaj TCP Proxy.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Dodaje 8 Tierów Wędki i Kilofa.
 Nie wymaga migracji bazy ani zmian TCP Proxy.
 Istniejące levele narzędzi automatycznie otrzymują odpowiedni Tier.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Dodaje pełne nazwy wszystkich Tierów Wędki i Kilofa.
 Nie wymaga migracji SQLite ani zmian TCP Proxy.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Dodaje nazwane rangi Wędkarstwa i Górnictwa oraz wzmacnia regułę magazynów profesji.
 Nie wymaga migracji SQLite ani zmian TCP Proxy.
 Istniejące levele profesji automatycznie otrzymują odpowiednią rangę.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Dodaje 7 trwałych form odmiany imienia do characters.
 Migracja wykonuje się automatycznie i zachowuje stare postacie.
 Nie usuwaj Railway Volume i nie zmieniaj TCP Proxy.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Dodaje Driadę jako 13. rasę.
 Nie wymaga migracji SQLite ani zmian TCP Proxy.
 Stare postacie pozostają bez zmian.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Dodaje rasową redukcję obrażeń Krasnoluda.
 Nie wymaga migracji SQLite ani zmian TCP Proxy.
 Stare postacie Krasnoludów automatycznie korzystają z pasywu.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Dodaje stałe pasywy do wszystkich 12 klas.
 Nie wymaga migracji SQLite ani zmian TCP Proxy.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Dodaje pasywy do wszystkich 13 ras.
 Nie wymaga migracji SQLite ani zmian TCP Proxy.
 Istniejące postacie automatycznie korzystają z pasywu swojej rasy.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Dodaje Drwalstwo, Piłę i Stos drewna.
 Nie wymaga nowych tabel SQLite; istniejące tabele profesji, narzędzi i magazynów obsługują nowy system.
 Nie zmieniaj TCP Proxy ani Railway Volume.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Dodaje Obóz Drwala, jezioro, Oceaniczną Platformę, nowe ryby i nowe drewna.
 Nie wymaga migracji SQLite.
 Nie zmieniaj TCP Proxy ani Railway Volume.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Dodaje kolejne ryby i gatunki drewna.
 Nie wymaga migracji SQLite.
 Nie zmieniaj TCP Proxy ani Railway Volume.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Dodaje Rzemiosło i Gotowanie.
 Nie dodaje nowych tabel SQLite.
 Nie usuwaj Railway Volume i nie zmieniaj TCP Proxy.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Dodaje kolumnę charisma do characters.
 Migracja jest automatyczna; stare postacie zaczynają z Charyzmą 0.
 Drużyny są stanem online i nie wymagają osobnych tabel.
 Nie usuwaj Railway Volume i nie zmieniaj TCP Proxy.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Dodaje Młot Rzemieślniczy i Nóż Kucharski.
 Nie wymaga nowych tabel ani kolumn SQLite.
 Istniejąca tabela tools obsługuje oba nowe narzędzia.
 Nie usuwaj Railway Volume i nie zmieniaj TCP Proxy.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Dodaje Zielarstwo, Alchemię, Torbę Zielarską i nowe narzędzia.
 Nie wymaga nowych tabel SQLite.
 Istniejące professions, tools i profession_storage obsługują nowe systemy.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Dodaje wyłącznie informacje i komendy progresji narzędzi.
 Nie wymaga żadnej migracji SQLite.
 Nie zmieniaj Railway Volume ani TCP Proxy.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Dodaje ochronę wszystkich pokojowych i pomocnych NPC-ów.
 Nie wymaga migracji SQLite.
 Nie zmieniaj Railway Volume ani TCP Proxy.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Dodaje nowe wpisy QUESTS i nowego Górnika Torena.
 Nie wymaga migracji SQLite.
 Istniejąca tabela quests obsługuje nowe zadania automatycznie.
 Nie usuwaj Railway Volume i nie zmieniaj TCP Proxy.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Zmienia wyłącznie kursy walut i zależne od nich przeliczenia.
 Nie wymaga migracji SQLite.
 Nie modyfikuje zapisanych portfeli graczy.
 Nie usuwaj Railway Volume i nie zmieniaj TCP Proxy.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Zmienia ceny przedmiotów sprzedawanych przez sklepy.
 Nie wymaga migracji SQLite.
 Nie modyfikuje istniejących portfeli, ekwipunku ani magazynów.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Dodaje dynamiczne 100 pięter Krypty i runtime'owe ciała mobów.
 Nie wymaga nowych tabel SQLite. Ekwipunek zabrany z ciała używa istniejącej inventory.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Zmienia skalowanie trudności i nagród Krypty.
 Nie wymaga migracji SQLite.
 Nie zmienia zapisanych postaci.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Dodaje tabelę class_progress dla opcjonalnego multiclass i Biegłości klas.
 Migracja jest automatyczna.
@@ -330,27 +382,27 @@ Nie usuwa ani nie zmienia istniejącej klasy, Broni Duszy, skill progress,
 profesji, narzędzi ani ekwipunku.
 Nie usuwaj Railway Volume i nie zmieniaj TCP Proxy.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Zmienia startową ilość srebra nowych postaci z 250 na 30.
 Nie wymaga resetu bazy.
 Istniejące postacie zachowują aktualne portfele.
 Nie usuwaj Railway Volume i nie zmieniaj TCP Proxy.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 changes / zmiany / changelog czyta cały CHANGELOG_PL.txt.
 CHANGELOG_PL.txt pozostaw obok server.py.
 Nie wymaga migracji SQLite.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Dodaje bonus klasowy Broni Duszy i zwiększa nagrody bossów Krypty.
 Nie wymaga nowych tabel ani migracji SQLite.
 Istniejące Soul Level i Soul Tier automatycznie korzystają z nowych bonusów.
 Nie zmienia klas głównych, multiclass ani zapisanych przedmiotów.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Dodaje do tabeli quests:
 completed_at INTEGER,
@@ -361,65 +413,65 @@ Nie usuwaj ani nie resetuj bazy.
 Cooldown questów profesyjnych jest przechowywany w SQLite i działa przez redeploy.
 Istniejące Tier 2 i Tier 3 Broni Duszy nie są cofane.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Dodaje odczyt postępu X z Y dla aktywnych questów.
 Nie wymaga nowych tabel ani migracji SQLite.
 Stan questów pozostaje w istniejącej tabeli quests.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Dodaje trzy lokacje, dwóch pokojowych NPC i powtarzalny quest bandytów.
 Nie wymaga nowych tabel SQLite.
 Korzysta z istniejących completed_at i completion_count w tabeli quests.
 Cooldown 60 minut przeżywa restart/redeploy.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Zmienia wyłącznie nagrody Soul XP z mobów i bossów.
 Nie wymaga migracji SQLite.
 Istniejące Soul Level, Soul XP i Soul Tier pozostają bez zmian.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Mocno zwiększa Soul XP ze wszystkich mobów.
 Nie wymaga migracji SQLite.
 Nie zmienia istniejącego Soul Level, Soul XP ani Soul Tier.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Dodaje runtime odpoczynek/regenerację oraz rozszerzone use/użyj.
 Nie wymaga migracji SQLite.
 Stan odpoczynku jest sesyjny i nie zmienia struktury bazy.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Rozszerza wyłącznie resolver lokacji, mapę i prowadzenie.
 Nie wymaga migracji SQLite.
 Nie zmienia zapisów postaci ani świata w bazie.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Dodaje kolumnę characters.crypt_checkpoint INTEGER DEFAULT 0.
 Migracja wykonuje się automatycznie przez ALTER TABLE.
 Nie resetuj bazy i nie usuwaj Railway Volume.
 Zaliczenia bossów i checkpointy są trwałe przez restart/redeploy.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Nie wymaga migracji bazy.
 Kolumna crypt_checkpoint z v0.6.60 pozostaje bez zmian.
 Zmienia wyłącznie logikę blokady żywego bossa:
 żywy boss zawsze blokuje down.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Zmienia checkpointy na Portale Krypty.
 Nie wymaga nowej migracji SQLite.
 Dane portali korzystają z istniejącej kolumny crypt_checkpoint
 dla pełnej zgodności ze starszymi zapisami.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Dodaje rarity, affixy i sety ekwipunku Krypty.
 Nie wymaga migracji SQLite.
@@ -427,20 +479,20 @@ Warianty lootowe są stabilnymi item_id przechowywanymi w istniejących
 inventory i equipment, więc przetrwają restart/redeploy.
 Stary gear pozostaje kompatybilny.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Dodaje mechaniki bossów, unikalne relikty i Herszta Bandytów.
 Nie wymaga migracji SQLite.
 Relikty korzystają z istniejącego inventory/equipment.
 Liczniki mechanik bossów są runtime i resetują się przy respawnie.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Dodaje krytyczne trafienia i nowe czasy respawnu.
 Nie wymaga migracji SQLite.
 Timery respawnu są stanem runtime świata.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Dodaje dwie kolumny do characters:
 character_level INTEGER NOT NULL DEFAULT 1
@@ -453,14 +505,14 @@ Soul Level, klasy, questy i waluty; otrzymują Level 1 i 0 XP postaci.
 
 Dodano także czterech bossów świata bez nowych tabel SQLite.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Wycofuje aktywny Level postaci z v0.6.66.
 Nie wykonuje DROP COLUMN i nie kasuje danych.
 
 Jeżeli /data/soulbound.db był już uruchomiony na v0.6.66,
 kolumny character_level i character_xp mogą pozostać w SQLite.
-Są nieszkodliwe i od v0.7.37 nie są odczytywane ani zapisywane.
+Są nieszkodliwe i od v0.8.17 nie są odczytywane ani zapisywane.
 
 Soul Level korzysta z istniejących soul_level i soul_xp,
 więc rozszerzenie do 200 nie wymaga migracji.
@@ -471,7 +523,7 @@ Pozostałe narzędzia nadal mają cap 100.
 
 Nie usuwaj Railway Volume.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Wszystkie narzędzia mają cap 200.
 Dodano dodatkowe składnie używania umiejętności.
@@ -479,7 +531,7 @@ Nie wymaga migracji SQLite.
 Tabela tools już obsługuje wartości level powyżej 100.
 Nie usuwaj Railway Volume.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Rozszerza system Tierów narzędzi z 8 do 13.
 Nie wymaga migracji SQLite.
@@ -487,7 +539,7 @@ Level narzędzi pozostaje zapisany w istniejącej tabeli tools.
 Istniejący level automatycznie mapuje się na odpowiedni nowy Tier.
 Nie usuwaj Railway Volume.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Zmienia tylko próg Postępu Rozwoju z 100 na 50.
 Nie wymaga migracji SQLite.
@@ -495,13 +547,13 @@ Istniejący zapis stat_progress jest zachowany.
 Przykład: postać mająca 40/100 po aktualizacji ma 40/50.
 Nie usuwaj Railway Volume.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Dodaje pełne leczenie HP przy awansie Soul Level.
 Nie zmienia schematu SQLite.
 Nie usuwaj Railway Volume.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Każde logowanie ustawia room_id postaci na temple,
 czyli Świątynię Odrodzenia.
@@ -509,20 +561,20 @@ czyli Świątynię Odrodzenia.
 Nie wymaga migracji SQLite.
 Nie usuwaj Railway Volume.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Dodaje wyłącznie nowe aliasy i skróty systemu prowadzenia.
 Nie wymaga migracji SQLite.
 Nie usuwaj Railway Volume.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Dodaje nowe przedmioty, surowce i receptury w kodzie.
 Nie dodaje tabel ani kolumn SQLite.
 Istniejąca tabela inventory, tools i profession_storage obsługuje nowe ID.
 Nie usuwaj Railway Volume.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Dodaje skróty używania skilli/czarów, łatwiejsze kupowanie narzędzi
 oraz walidację izolowanego XP narzędzi.
@@ -530,20 +582,20 @@ oraz walidację izolowanego XP narzędzi.
 Nie zmienia schematu SQLite.
 Nie usuwaj Railway Volume.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Dodaje jawny alias prowadzenia do Kamiennego Mostu.
 Nie wymaga migracji SQLite.
 Nie usuwaj Railway Volume.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Dodaje 48 nowych definicji skilli i naturalny resolver komendy użyj.
 Nie zmienia schematu SQLite.
 learned_skills i skill_progress obsługują nowe ID bez migracji.
 Nie usuwaj Railway Volume.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Podnosi SKILL_MAX_LEVEL do 200 i podwaja wymagany XP narzędzi.
 
@@ -552,7 +604,7 @@ Istniejące rekordy skill_progress i tools są zachowane.
 Skill będący już na 100 może dalej zdobywać levele do 200.
 Nie usuwaj Railway Volume.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Profesje:
 gain XP x2,
@@ -564,7 +616,7 @@ Nie zmienia schematu SQLite.
 Istniejące levele, XP, inventory i equipment są zachowane.
 Nie usuwaj Railway Volume.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Dodaje wyłącznie podsumowanie ilości i wartości ryb w Siatce.
 
@@ -572,7 +624,7 @@ Nie zmienia schematu SQLite.
 Nie usuwa ani nie przelicza istniejących ryb.
 Nie usuwaj Railway Volume.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Dodaje podsumowanie ilości i wartości dla:
 Siatki,
@@ -584,13 +636,13 @@ Nie zmienia schematu SQLite.
 Nie usuwa istniejących surowców.
 Nie usuwaj Railway Volume.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Dodaje Mana w stats, eq oraz hurtową sprzedaż magazynów i inventory.
 Brak migracji SQLite.
 Nie usuwaj Railway Volume.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Dodaje osobną regenerację Many:
 regen mana
@@ -600,32 +652,32 @@ mana stop
 Brak migracji SQLite.
 Nie usuwaj Railway Volume.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Odpoczynek zawsze regeneruje HP i Manę razem.
 Dodaje 7 nowych specjalistów profesji i rzemiosł.
 Nie zmienia schematu SQLite.
 Nie usuwaj Railway Volume.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Dodaje jawne podawanie aktualnej nazwy Tieru narzędzia.
 Brak migracji SQLite.
 Nie usuwaj Railway Volume.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Dodaje realny czas czynności zależny od levelu każdego narzędzia.
 Nie zmienia schematu SQLite.
 Nie usuwaj Railway Volume.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Dodaje sprzedaj wszystko dla magazynów profesji oraz naturalne naucz dla skilli.
 Brak migracji SQLite.
 Nie usuwaj Railway Volume.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Dodaje questy Haldora, Marcela i Orina oraz Bank Dusz.
 
@@ -636,13 +688,13 @@ CREATE TABLE IF NOT EXISTS bank_items
 Migracja jest niedestrukcyjna.
 Nie usuwaj Railway Volume.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Rozbudowuje questy Haldora, Marcela i Orina do 3 etapów.
 Nie zmienia schematu SQLite.
 Nie usuwaj Railway Volume.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Dodaje Soul Tier 4 i 5 oraz rozszerza Kryptę do 200 pięter.
 Nie wymaga nowej kolumny checkpointu.
@@ -650,7 +702,7 @@ Istniejący crypt_checkpoint obsługuje wartości do 200.
 Nie usuwaj Railway Volume.
 Nie resetuj bazy SQLite.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Dodaje Wieżę Astralną 100-200.
 
@@ -661,7 +713,7 @@ Nie usuwaj Railway Volume.
 Nie resetuj soulbound.db.
 Krypta i jej crypt_checkpoint pozostają bez zmian.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Dodaje consider <mob>.
 Spowalnia rozwój statystyk z progu 50 do 100.
@@ -670,7 +722,7 @@ Nie wymaga migracji SQLite.
 Nie usuwaj Railway Volume.
 Nie resetuj soulbound.db.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Zmienia wyłącznie krzywą wymaganego Soul XP.
 Co 10 Soul Leveli mnożnik wymaganego XP podwaja się.
@@ -678,7 +730,7 @@ Co 10 Soul Leveli mnożnik wymaganego XP podwaja się.
 Nie wymaga migracji SQLite.
 Nie resetuj soulbound.db ani Railway Volume.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Globalnie zwiększa HP wszystkich mobów i bossów 2 razy.
 
@@ -686,7 +738,7 @@ Nie wymaga migracji SQLite.
 Nie resetuj soulbound.db.
 Nie usuwaj Railway Volume.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Bossowie Krypty i Wieży Astralnej:
 HP = numer piętra * 1000.
@@ -694,25 +746,25 @@ HP = numer piętra * 1000.
 Brak migracji SQLite.
 Nie resetuj soulbound.db ani Railway Volume.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Rozbudowuje Gotowanie i receptury Noża Kucharskiego 1-200.
 Nie wymaga migracji SQLite.
 Nie resetuj soulbound.db ani Railway Volume.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Dodaje wygodne oddawanie questów oraz komendę woda.
 Nie wymaga migracji SQLite.
 Nie resetuj soulbound.db ani Railway Volume.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Dodaje 40 nowych gatunków ryb.
 Brak migracji SQLite.
 Nie resetuj soulbound.db ani Railway Volume.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Aktualny kurs:
 100 srebra = 1 złoto.
@@ -720,7 +772,7 @@ Aktualny kurs:
 Nie wymaga migracji SQLite.
 Nie resetuj soulbound.db ani Railway Volume.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Poprawny kurs:
 1000 srebrnych monet = 1 złota moneta.
@@ -729,49 +781,49 @@ Poprawny kurs:
 Nie wymaga migracji SQLite.
 Nie resetuj soulbound.db ani Railway Volume.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Manualne komendy auto off dokańczają rozpoczętą akcję przed zatrzymaniem.
 Bez migracji SQLite.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Dodaje trzy nowe łąki i rozszerza strefę Zielarstwa.
 Nie wymaga migracji SQLite.
 Nie resetuj soulbound.db ani Railway Volume.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Dodaje Kopalnię Głębinową 1-200, tabelę mine_progress
 oraz automatyczne chodzenie profesji.
 Nie resetuj soulbound.db ani Railway Volume.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Dodaje kompletne widoki Atlasu Ryb, Drewna, Rud i Ziół.
 Brak migracji SQLite.
 Nie resetuj soulbound.db ani Railway Volume.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Dodaje 330 nowych zasobów świata i aktualizuje wszystkie atlasy.
 Nie resetuj soulbound.db ani Railway Volume.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Dodaje Astralne sety 2/4/6, Mythic Crypt 1-200,
 Mythic Astral Tower 1-200 oraz cztery lochy profesyjne.
 Brak destrukcyjnej migracji SQLite.
 Nie resetuj soulbound.db ani Railway Volume.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Dodaje rare fish/tree/plant variants, cztery typy żył górniczych
 oraz Codex Świata.
 Brak migracji SQLite.
 Nie resetuj soulbound.db ani Railway Volume.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Dodaje profesję Kowalstwo 1-100 i rozbudowane kucie.
 Zlecenia Haldora odnawiają się co 60 minut.
@@ -779,56 +831,56 @@ Tabela professions już obsługuje Kowalstwo, więc nie ma
 destrukcyjnej migracji ani resetu bazy.
 Nie resetuj soulbound.db ani Railway Volume.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Auto-profesje nie chodzą już samodzielnie.
 Nie wymaga migracji SQLite.
 Nie resetuj soulbound.db ani Railway Volume.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Kowalstwo ma teraz level 1-200.
 Pozostałe profesje pozostają 1-100.
 Nie wymaga migracji SQLite ani resetu bazy.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Przesuwa zwykłego Tuńczyka na Wędkę level 80.
 Brak migracji SQLite.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Wszystkie 13 questów profesyjno-rzemieślniczych
 odnawia się dokładnie co 60 minut.
 Brak migracji SQLite.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Dodaje Wioskę Górską, Jaskinię Trolli, quest Eryka
 oraz osobne Łąki Zielarskie dla konkretnych ziół.
 Brak migracji SQLite.
 Nie resetuj soulbound.db ani Railway Volume.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Dodaje trwały licznik uwarzonych mikstur do questów Orina.
 Korzysta z istniejącego pola progress tabeli quests.
 Brak migracji SQLite.
 Nie resetuj soulbound.db ani Railway Volume.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Rozbudowuje łańcuch Orina do 11 questów z miksturami.
 Wszystkie używają istniejącego trwałego pola progress.
 Brak migracji SQLite.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Quest Orina II na Mikstury Leczenia wymaga teraz
 Moździerza level 15 zamiast 20.
 Brak migracji SQLite.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Duży build: Twierdza Gigantów 1-50, nowe górskie questy,
 NPC, questy Kowalstwa/Gotowania/Zielarstwa/Górnictwa/Wędkarstwa,
@@ -836,65 +888,65 @@ rare trolle i elite affixy.
 Brak migracji SQLite.
 Nie resetuj soulbound.db ani Railway Volume.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Pełna obsługa polskich znaków UTF-8.
 Dostępny fallback Windows-1250 przez komendę:
 kodowanie cp1250
 Brak migracji SQLite.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Mikstura Leczenia oraz Orin II wymagają
 Moździerza Alchemicznego level 5.
 Brak migracji SQLite.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Dopracowano lokalny czat:
 say tekst
 Aliasy: powiedz, mow, mów.
 Brak migracji SQLite.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Dodano apostrof jako szybki skrót say:
 'Cześć
 Brak migracji SQLite.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 look obsługuje teraz gracza, NPC,
 przeciwnika i przedmiot.
 Brak migracji SQLite.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Dodano skrót:
 l = look
 Brak migracji SQLite.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Rozbudowano who/kto:
 nazwa, klasa, Soul Level, lokacja i strefa.
 Brak migracji SQLite.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Od poziomu Kopalni 10 próg ściany skaluje się
 numerem aktualnego poziomu.
 Poziom 10 = 10 uderzeń, 20 = 20 itd.
 Brak migracji SQLite.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 kop on może zejść automatycznie przez down,
 ale tylko po odblokowaniu następnego poziomu.
 Nie chodzi w innych kierunkach.
 Brak migracji SQLite.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Dodano:
 expowiska
@@ -903,14 +955,14 @@ expowiska nazwa
 Lista zawiera opisy terenów.
 Brak migracji SQLite.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Mityczna Krypta od Soul Level 100.
 Mityczna Wieża Astralna od Soul Level 100.
 Bez wymogu ukończenia zwykłych wersji do 200.
 Brak migracji SQLite.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Dodano:
 przetop <metal>
@@ -919,7 +971,7 @@ assist <gracz>
 druzyna wspieraj <gracz>
 Brak migracji SQLite.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Automatyczna waluta:
 1000 srebrnych = 1 złota.
@@ -928,7 +980,7 @@ Usunięto ręczne exchange.
 Stare salda zachowane wartościowo.
 Brak resetu SQLite.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Dodano 72 elementy klasowego EQ dla 12 klas.
 Sześć sklepów klasowych działa w Gildii Dusz.
@@ -936,7 +988,7 @@ Kilof usunięto z obu kuźni.
 Kilof sprzedaje tylko Górnik Toren przy jaskini.
 Brak migracji SQLite.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Dodano 24 elementy biżuterii klasowej:
 12 pierścieni i 12 naszyjników.
@@ -944,7 +996,7 @@ Każdy zestaw klasowy ma teraz 8 części.
 Dodano sloty ring i necklace.
 Brak migracji SQLite.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Respawn mobów globalnie x2.
 Zwykłe: 240 sekund.
@@ -953,32 +1005,192 @@ Manekin: 120 sekund.
 Indywidualne respawny także x2.
 Brak migracji SQLite.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 prowadz przy wielu celach pokazuje wybór cyframi.
 Duże lochy grupowane są według rodzaju.
 Po wyborze lochu cyfrą wybierasz poziom.
 Brak migracji SQLite.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Numerowany wybór prowadz jest teraz jednokrokowy.
 Po liście wpisujesz tylko jedną cyfrę.
 Nie ma drugiego wyboru poziomu.
 Brak migracji SQLite.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Numerowany wybór prowadz działa dla wszystkich terenów.
 Wpisujesz tylko numer.
 Naprawiono grupowanie Twierdzy Gigantów.
 Brak migracji SQLite.
 
-AKTUALIZACJA v0.7.37
+AKTUALIZACJA v0.8.17
 --------------------
 Jubilerstwo 1-200.
-Szczypce Jubilerskie 1-200, 13 Tierów.
+Szczypce Jubilerskie 1-200, 20 Tierów.
 Pracownia Jubilerska + Jubilerka Mirella.
 18 receptur biżuterii.
 9-etapowy łańcuch questów.
 Brak migracji SQLite.
+
+AKTUALIZACJA v0.8.17
+--------------------
+Gem System:
+11 surowych + 11 szlifowanych klejnotów.
+Drop z Górnictwa.
+Szlifowanie w Jubilerstwie.
+Gniazda w pierścieniach i naszyjnikach.
+Persistent equipment_gems w SQLite.
+Brak resetu istniejących danych.
+
+AKTUALIZACJA v0.8.17
+--------------------
+World Expansion I.
+Dzicz, Góry i Jaskinia Trolli rozbudowane.
+Dodano Czarne Bagna i Wielką Pustynię.
+NPC profesji rozdzieleni do logicznych pomieszczeń.
+Nowe moby, bossowie i questy.
+Bez resetu SQLite.
+
+AKTUALIZACJA v0.8.17
+--------------------
+High-End Mob Pack.
+15 trudnych mobów/bossów.
+Nagrody do 8 milionów Soul XP i 10 milionów Class XP.
+Osobne odnogi endgame nie blokują zwykłych regionów.
+Brak XP postaci.
+Brak resetu SQLite.
+
+AKTUALIZACJA v0.8.17
+--------------------
+Narzędzia są sprzedawane tylko przez NPC własnej profesji.
+Dodano osobną Kuchnię Błękitnego Płomienia dla Kucharza Marcela.
+Brak resetu SQLite.
+
+AKTUALIZACJA v0.8.17
+-------------------
+Nowa seria wersji v0.8.x.
+Help & Info Overhaul.
+Komendy dusza/staty/profesje/narzedzia/eq mają szybki tryb oraz tryb info.
+Brak resetu SQLite.
+
+AKTUALIZACJA v0.8.17
+--------------------
+Sety klasowe 2/4/6/8 dla 12 klas.
+teren info <nazwa>.
+Pełna aktualizacja pomocy.
+Bez resetu SQLite.
+
+AKTUALIZACJA v0.8.17
+--------------------
+Guardian Tank + Dungeon Escape + English aliases.
+Brak resetu SQLite.
+
+AKTUALIZACJA v0.8.17
+--------------------
+cofnij / wyjście / back / exit / wstecz / return / escape:
+wszystkie prowadzą teraz bezpośrednio do wyjścia z lochu.
+Nie cofają o jedną lokację.
+Brak resetu SQLite.
+
+AKTUALIZACJA v0.8.17
+--------------------
+Wszystkie narzędzia rozszerzone do 20 Tierów.
+Progi rozłożone od levelu 1 do 200.
+Bonus Tieru rośnie do 40 procent.
+Brak trwałości.
+Brak resetu SQLite.
+
+AKTUALIZACJA v0.8.17
+--------------------
+Broń Duszy rozszerzona do 20 Tierów.
+Jednorazowa bezpieczna migracja starych Tierów 1-5.
+Soul Level, Soul XP i questy nie są resetowane.
+
+AKTUALIZACJA v0.8.17
+--------------------
+Soul milestones T5/T10/T15/T20.
+Boss phases 75/50/25%.
+Bestiariusz / bestiary.
+Dwa niezależne sloty pierścieni ring1/ring2.
+Bezpieczna migracja starego ring -> ring1.
+Brak resetu SQLite.
+
+AKTUALIZACJA v0.8.17
+--------------------
+Czary obszarowe i grupowe leczenie Kapłana.
+Brak resetu SQLite.
+
+AKTUALIZACJA v0.8.17
+--------------------
+Narzędzia profesji i progresja Duszy są Character-Bound.
+Każde narzędzie można kupić tylko raz na postać.
+Migracja odzyskuje stare narzędzia z Banku Dusz i nie resetuje XP/Tierów.
+Brak resetu SQLite.
+
+AKTUALIZACJA v0.8.17
+--------------------
+Płatna nauka umiejętności klasowych.
+12 osobnych sal nauczycieli w Gildii Dusz.
+Brak resetu SQLite.
+
+
+GUILD PROGRESSION & ECONOMY v0.8.17
+====================================
+12 osobnych reputacji klasowych.
+Rangi reputacji dają do 25% zniżki na naukę.
+Klasowe zadania Gildii.
+Egzaminy Soul 50/100/150/200.
+Tablica zleceń bounty.
+Komendy PL/EN: gildia/guild, zadanieklasowe/classquest, egzamin/exam, bounty/contracts.
+Brak resetu SQLite.
+
+Wymagana reputacja egzaminów: 100 / 250 / 450 / 700. Soul 50 wymaga też ukończenia zadania klasowego.
+
+AKTUALIZACJA v0.8.17
+---------------------
+Dodano Codex klasowy dla 12 klas.
+Brak nowych kolumn bazy danych i brak resetu SQLite.
+
+AKTUALIZACJA v0.8.17
+---------------------
+Uporządkowano prowadz/guide/walk i indeks celów.
+Brak zmian schematu bazy i brak resetu SQLite.
+
+
+NAWIGACJA v0.8.17 — ZATRZYMANIE PRZED CELEM
+=============================================
+prowadz / guide / walk do zwykłej lokalizacji zatrzymuje się jeden krok przed celem.
+Ostatni kierunek wejścia gracz wykonuje sam.
+Jeśli celem jest NPC, prowadzenie dochodzi dokładnie do pokoju NPC.
+Przykład: prowadz Toren prowadzi do Górnika Torena.
+Przykład: prowadz krypta 50 zatrzymuje się przed piętrem 50 i podaje ostatni kierunek.
+Brak resetu SQLite.
+
+
+EXPLORATION FIRST GUIDE v0.8.17
+================================
+Prowadz / guide / walk nie prowadzi na piętra ani w głąb lochów.
+Dla lochów i expowisk prowadzenie kończy się przed wejściem.
+Eksplorację wnętrza wykonuje gracz sam.
+Wyjątek: NPC — do NPC prowadzenie dochodzi dokładnie do pokoju.
+Brak resetu SQLite.
+
+
+BANDIT & GOBLIN EXPANSION v0.8.17
+=================================
+- Obozowiska Bandytów: 9 lokacji, nowe typy bandytów, Kapitan i Herszt w głębi.
+- Jaskinie Goblinów: 9 lokacji, nowe typy goblinów, Wódz Wojenny i Król w najgłębszej grocie.
+- Prowadzenie zatrzymuje przed wejściem do expowisk.
+- Questy na bandytów/gobliny liczą nowe warianty.
+- Nowe wpisy expowisk i bestiariusza.
+- Brak resetu SQLite.
+
+AKTUALIZACJA v0.8.17: World Expansion II. Brak resetu bazy SQLite.
+
+AKTUALIZACJA v0.8.17
+---------------------
+Elity, rare moby, mini-bossy, named loot, regionalne sety i odnawialne skrzynie.
+Brak resetu SQLite i brak zmian ścieżki /data/soulbound.db.

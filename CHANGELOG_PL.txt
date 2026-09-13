@@ -1,3 +1,457 @@
+SOULBOUND v0.8.28 CURRENCY READING ORDER
+=======================================
+- Globalna kolejność czytania waluty jest teraz zawsze: mithril, złoto, srebro.
+- Komenda money podaje pełny portfel jako: X mithrilowych monet, Y złotych monet, Z srebrnych monet.
+- Ekwipunek pokazuje walutę w tej samej kolejności.
+- Bank Dusz pokazuje saldo w tej samej kolejności.
+- Nagrody questów, eksploracji, skrzyń i walki czytają walutę od najwyższego nominału do najniższego.
+- Wartość sprzedaży przedmiotów i magazynów profesji również używa kolejności mithril -> złoto -> srebro.
+- Kara walutowa po śmierci jest czytana w tej samej kolejności.
+- Zerowe nominały są pomijane w nagrodach i wycenach, ale portfel i Bank pokazują wszystkie trzy wartości.
+- Nie zmieniono kursu monet ani ekonomii gry.
+- Brak zmian schematu SQLite; aktualizacja nie wymaga resetu soulbound.db ani Railway Volume.
+
+SOULBOUND v0.8.27 EXPANDED AUTO SKILL QUEUE SLOTS
+====================================================
+- Zwiększono bazową pojemność auto kolejki: Biegłość 1-9 daje teraz 3 sloty zamiast 1.
+- Pojemność nadal rośnie stopniowo o 1 slot co 10 poziomów Biegłości.
+- Nowa skala: 1-9 = 3, 10-19 = 4, 20-29 = 5, 30-39 = 6, 40-49 = 7, 50-59 = 8, 60-69 = 9, 70-79 = 10, 80-89 = 11, 90-99 = 12, 100 = 13 slotów.
+- Fizyczna i magiczna kolejka nadal mają osobne limity.
+- Soul Level nadal odblokowuje skille; Biegłość klasy wpływa wyłącznie na pojemność kolejki.
+- Brak zmian schematu SQLite; aktualizacja nie wymaga resetu soulbound.db ani Railway Volume.
+
+SOULBOUND v0.8.26 AUTO SKILL QUEUE
+=====================================
+- Dodano trwałą auto kolejkę umiejętności zapisywaną osobno dla każdej postaci.
+- Dodano osobne kolejki fizyczne i magiczne.
+- Pojemność kolejki rośnie z Biegłością aktywnej klasy danego typu: 1 slot na Biegłości 1-9, +1 co 10 poziomów, maksymalnie 11 slotów przy 100.
+- Przy multiclassie fizyczny i magiczny limit są obliczane niezależnie według najwyższej aktywnej Biegłości danego typu.
+- Dodano: kolejka, kolejka dodaj, usuń, wyczyść, fizyczna, magiczna, góra, dół, on i off.
+- Sloty można wskazywać skrótami F1, F2... oraz M1, M2....
+- Po włączeniu auto kolejki komenda atakuj próbuje użyć następnego gotowego skilla zamiast zwykłego ataku.
+- Cooldown, brak Many oraz niepotrzebne leczenie/guard/evade/boost są inteligentnie pomijane.
+- Gdy żaden skill nie może zostać użyty, wykonywany jest zwykły atak.
+- Dezaktywacja klasy multiclass nie usuwa jej wpisów; wpisy są uśpione do ponownej aktywacji.
+- Soul Level nadal jest jedynym systemem odblokowującym skille. Biegłość klasy zwiększa wyłącznie pojemność kolejki.
+- Auto użycie skilla zachowuje normalny cooldown, koszt Many, Skill XP i kontratak przeciwnika.
+- Migracja z v0.8.25 tworzy nowe tabele automatycznie; brak resetu soulbound.db i Railway Volume.
+
+SOULBOUND v0.8.25 SOUL LEVEL SKILL PROGRESSION
+===================================================
+- Postać nadal nie ma levelu ani XP postaci.
+- Wszystkie skille klasowe są odblokowywane wyłącznie przez Soul Level Broni Duszy.
+- Każda z 12 klas ma pełną siatkę progów Soul: 1, 10, 20, 30 i dalej co 10 aż do 200.
+- Dodano brakujące skille na wszystkich pustych progach.
+- Istniejące skille wymagające Soul 25 przesunięto na Soul 20 bez zmiany ich ID.
+- Zachowano wszystkie wcześniejsze skille endgame, czary obszarowe, leczenie grupowe i ich zapis Skill XP.
+- Łącznie dostępne są 253 skille klasowe.
+- Biegłość klasy / Class XP pozostaje osobnym systemem i nie jest warunkiem odblokowania umiejętności.
+- Nauka nadal odbywa się u nauczyciela aktywnej klasy i kosztuje walutę zgodnie z wymaganym Soul Level.
+- Każdy nauczony skill nadal rozwija własny Skill Level 1-200.
+- Skills i Kodeks Klasowy sortują umiejętności według Soul Level.
+- Brak zmian schematu SQLite; nie ma potrzeby resetowania bazy ani Railway Volume.
+
+SOULBOUND v0.8.24 RANDOM MINE WALLS EXPANSION
+================================================
+- Ściany Kopalni Głębinowej mają teraz losową liczbę uderzeń potrzebnych do przebicia.
+- Poziomy 1-9 losują od 3 do 8 uderzeń.
+- Od poziomu 10 próg losuje się w zakresie około 70-130% numeru piętra.
+- Każda ściana losuje próg tylko raz; wartość jest zapisywana w SQLite.
+- Wylogowanie, restart serwera i ponowne wejście nie zmieniają wylosowanego progu.
+- Po przebiciu ściany kolejna ściana otrzymuje nowy niezależny losowy próg.
+- Migracja z v0.8.23 zachowuje istniejące wall_hits i nie odbiera wykonanych uderzeń.
+- Jeśli stary zapis ma już dużo uderzeń, nowy próg zawsze będzie większy od aktualnego postępu, więc nic nie zostaje zaliczone ani utracone bez kolejnego uderzenia.
+- Komenda kopalnia, ręczne zejście, prowadzenie i kop on korzystają z tego samego zapisanego progu.
+- Brak resetu soulbound.db i Railway Volume.
+
+SOULBOUND v0.8.23 STOLEN ORE CHESTS QUEST EXPANSION
+=====================================================
+- Dodano pełnoprawne godzinne zadanie Wioski Górskiej: Skradzione Skrzynie Rudy.
+- Zadanie daje Magazynier Borin stojący na placu Wioski Górskiej.
+- Cel: odzyskaj 10 Skradzionych Skrzyń Rudy z trolli na Górskim Szlaku i w Jaskini Trolli.
+- Zwykłe trolle mają 30% szansy na skrzynię, rzadkie trolle 35%, a Król Trolli gwarantuje skrzynię.
+- Skrzynie mogą również wypadać z elitarnych wariantów trolli.
+- Po oddaniu 10 skrzyń zadanie odnawia się dokładnie po 60 minutach.
+- Quest nie wymaga levelu Górnictwa ani Kilofa i jest dostępny niezależnie od łańcucha zleceń Dagny.
+- Istniejący zapis ukończenia starego quest_id jest zachowany, więc aktualizacja nie resetuje postępu ani cooldownu.
+- Łańcuch zleceń rud Dagny zaczyna się teraz bezpośrednio od Miedzi i pozostaje osobnym systemem Górnictwa.
+- Brak resetu SQLite i Railway Volume.
+
+SOULBOUND v0.8.22 RESOURCE ATLAS EXPANSION
+==============================================
+- Atlasy pokazują teraz minimalny wymagany level narzędzia dla ryb, drewna, ziół i rud.
+- Atlas ryb pokazuje level Wędki osobno dla rzeki, jeziora, morza i oceanu.
+- Atlas drewna pokazuje level Piły oraz prawdziwe lokacje występowania każdego rodzaju drewna.
+- Atlas ziół pokazuje level Sierpa oraz lokacje, w tym osobne Łąki Zielarskie.
+- Atlas rud pokazuje dokładny level Kilofa i minimalny poziom Kopalni Głębinowej.
+- Atlasy uwzględniają również lochy profesyjne: Zatopioną Grotę, Pradawny Las, Ogród Alchemika i Kopalnię Kryształów.
+- Poprawiono błędną informację o minerałach WORLD_ORE: nie są już przypisywane do zwykłej Kryształowej Jaskini.
+- Komenda atlas <nazwa surowca> podaje dokładne wymagania dla każdej lokacji.
+- Rzadkie warianty zasobów dziedziczą informacje o poziomie i miejscu z bazowego surowca.
+- Codex zasobów pokazuje również minimalny wymagany level narzędzia i odsyła do dokładnego Atlasu.
+- Bez zmian w drop rate, ekonomii, bazie danych i zapisach postaci.
+- Brak resetu SQLite i Railway Volume.
+
+SOULBOUND v0.8.21 NUMERIC CHARACTER MENU
+=============================================
+- Dodano numerowane menu główne: 1. Zaloguj się, 2. Utwórz nowe konto, 3. Wyjdź.
+- Dodano osobne numerowane menu zarządzania postaciami po zalogowaniu.
+- Menu postaci: 1. Wybierz postać, 2. Stwórz nową postać, 3. Pokaż listę postaci, 4. Wyloguj.
+- Opcja 1 pokazuje sloty dopiero wtedy, gdy gracz chce wybrać postać.
+- Postać nadal można wybrać numerem slotu albo nazwą.
+- W wyborze postaci 0 wraca do menu postaci.
+- Konto bez postaci nie jest już automatycznie wciskane w kreator; gracz świadomie wybiera opcję 2.
+- Po utworzeniu nowego konta otwiera się menu postaci.
+- Zachowano tekstowe aliasy login/new/logout oraz wybór nazwą.
+- Limit pozostaje 12 postaci na konto.
+- Brak resetu SQLite i Railway Volume.
+
+SOULBOUND v0.8.20 MULTI-CHARACTER ACCOUNTS
+================================================
+- Dodano do 12 postaci na jednym koncie.
+- Dodano ekran wyboru postaci po poprawnym logowaniu.
+- Postać można wybrać numerem slotu lub nazwą.
+- Dodano tworzenie kolejnej postaci z ekranu wyboru komendą new / nowa / nowa postac.
+- Stare konto z jedną postacią jest automatycznie migrowane do slotu 1.
+- Każdy slot ma osobny pełny zapis wszystkich istniejących systemów gry.
+- Ekwipunek, questy, profesje, Soul Weapon, Class XP, skille, eksploracja, Collection Codex, achievementy, tytuły i Drop History nie mieszają się między postaciami.
+- Limit 12 postaci jest egzekwowany po stronie bazy danych.
+- Ukryte techniczne profile postaci nie mogą być używane jako osobne konta logowania.
+- Zachowano globalną unikalność nazw postaci.
+- Nie jest wymagany reset SQLite ani Railway Volume.
+
+SOULBOUND v0.8.19 FOREST, WOLVES & QUEST BALANCE EXPANSION
+
+- Rozbudowano Las Szeptów o 10 nowych pomieszczeń i podpięto go do systemu eksploracji procentowej.
+- Dodano 25 stałych spawnów wilków w nowej części lasu.
+- Dodano Tropiciela Cienia i Wyjącego Wilka Cienia.
+- Dodano mini-bossa Przywódca Watahy Cienia.
+- Nowe zwykłe wilki mogą otrzymywać systemy Elite/Rare z v0.8.17.
+- Quest Problem goblinów wymaga teraz zabicia 20 goblinów zamiast 3 i jest powtarzalny co 60 minut.
+- Główny quest trolli Plaga Trolli jest teraz powtarzalny co 60 minut.
+- Quest Cienie w Gaju jest teraz powtarzalny co 60 minut.
+- Dodano prowadzenie i wpis expowiska dla Lasu Szeptów.
+- Zachowano wszystkie systemy v0.8.18 bez resetu SQLite.
+
+SOULBOUND v0.8.18 EXPLORATION, ACHIEVEMENTS & COLLECTION EXPANSION
+=====================================================================
+- Procent eksploracji zapisywany osobno dla każdej postaci.
+- Procent bieżącej strefy oraz globalny procent odkrycia całego świata.
+- 29 większych stref objętych nagrodami za 100% eksploracji.
+- Nagroda 100%: Soul XP, srebro, złoto, unikalna pamiątka i tytuł.
+- Specjalne tytuły m.in. Pogromca Nekropolii i Mistrz Wiecznego Lodu.
+- Achievementy Bronze / Silver / Gold / Platinum.
+- Achievementy za gobliny, otwieranie skrzyń, rare moby, bossów i wszystkie mini-bossy.
+- System trwałych tytułów z jednym aktywnym tytułem.
+- Collection Codex: Named Loot, Sety, Bossowie, Rare Moby i Skrzynie.
+- Nieodkryte wpisy Codexu nie zdradzają nazw.
+- Duże działy Codexu są stronicowane po 40 wpisów dla wygody NVDA.
+- Drop History zapisuje ostatnie wartościowe dropy wraz ze źródłem i strefą.
+- Loot Filter: loot all, loot rare+, loot epic+, loot legendary, loot off.
+- Filtr nie usuwa przedmiotów; ogranicza wyłącznie komunikaty lootu.
+- progress pokazuje ogólny postęp, progress region szczegóły bieżącej strefy.
+- Nowe dane są zapisane w SQLite bez kasowania starych kont i postaci.
+- v0.8.17 Elite/Rare/Named Loot pozostaje bazą i jest automatycznie podpięte do Codexu.
+- Brak resetu SQLite.
+
+SOULBOUND v0.8.17 ELITE, RARE & NAMED LOOT EXPANSION
+=====================================================
+- Losowe elity dla zwykłych mobów.
+- Prefixy m.in. Opancerzony, Wściekły, Astralny, Przeklęty, Regenerujący.
+- Rare moby z większym HP, damage, Soul XP, Class XP i lootem.
+- 16 mini-bossów w 8 expowiskach.
+- 6 nowych named lootów głównych bossów.
+- 3 regionalne sety 2/4/6, łącznie 18 części.
+- 11 odnawialnych skrzyń z 4 poziomami rzadkości.
+- Pomoc PL/EN zaktualizowana.
+- Brak resetu SQLite.
+
+SOULBOUND v0.8.16 WORLD EXPANSION II & PROFESSION FIELD QUESTS
+================================================================
+- 6 nowych rozbudowanych expowisk.
+- Ponad 40 nowych lokacji.
+- 30 nowych typów mobów i bossów.
+- 6 terenowych questów profesyjnych.
+- Unikalne zasoby można zdobyć tylko w konkretnych nowych miejscach.
+- Prowadzenie nie omija eksploracji.
+- Pomoc i expowiska zaktualizowane.
+- Brak resetu SQLite.
+
+SOULBOUND v0.8.15 BANDIT & GOBLIN EXPANSION
+=============================================
+- Obozowiska Bandytów rozbudowane do 9 lokacji.
+- Jaskinie Goblinów rozbudowane do 9 lokacji.
+- 7 nowych zwykłych wariantów bandytów + Kapitan Bandytów.
+- 7 nowych zwykłych wariantów goblinów + Gobliński Wódz Wojenny.
+- Herszt i Król Goblinów przeniesieni w głąb obszarów.
+- Nowe expowiska i wpisy bestiariusza.
+- Guide nadal kończy przed wejściem.
+- Brak resetu SQLite.
+
+SOULBOUND v0.8.14 EXPLORATION FIRST GUIDE
+==========================================
+- Prowadzenie na konkretne piętra usunięte.
+- Lochy i expowiska: prowadzenie tylko przed wejście.
+- Numery pięter są sprowadzane do wejścia.
+- Pełne nazwy pokoi pięter nie obchodzą tej zasady.
+- NPC pozostają wyjątkiem i są osiągane dokładnie.
+- Pomoc zaktualizowana.
+- Brak resetu SQLite.
+
+SOULBOUND v0.8.13 GUIDE STOPS BEFORE TARGET
+=============================================
+- prowadz / guide / walk zatrzymuje się jeden krok przed zwykłą lokalizacją.
+- Ostatni krok do lokalizacji wykonuje gracz ręcznie.
+- Wyjątek: prowadzenie do NPC dochodzi dokładnie do pokoju NPC.
+- Rozpoznawane są pełne nazwy NPC, ID i unikalne fragmenty nazw.
+- Końcowy komunikat podaje ostatni kierunek.
+- Zachowano jednopoziomowy wybór cyfrą i kategorie nawigacji.
+- Pomoc zaktualizowana.
+- Brak resetu SQLite.
+
+SOULBOUND v0.8.12 NAVIGATION CLEANUP
+====================================
+- prowadz/guide i walk używają jednego silnika.
+- Jedna centralna tabela aliasów celów zamiast wielu rozrzuconych update().
+- prowadz lista / walk list: krótki indeks kategorii pod NVDA.
+- Kategorie: miasto, gildia, profesje, tereny, lochy, npc, wszystko.
+- Pełna lista: prowadz lista wszystko / walk list all.
+- Jeden etap wyboru numerem przy wielu wynikach.
+- Bezpośrednie piętra zachowane.
+- cofnij/back nadal prowadzi do wyjścia z lochu; usunięto martwy kod cofania o jedną lokację.
+- Pomoc PL/EN ujednolicona.
+- Brak resetu SQLite.
+
+SOULBOUND v0.8.11 CLASS CODEX
+=============================
+- Codex klasowy wszystkich 12 klas.
+- Wszystkie skille z wymaganym Soul Level.
+- Nauczyciel i jego sala przy każdym skillu.
+- Aktualny koszt nauki po rabacie Gildii.
+- Status: nauczona, dostępna albo zablokowana.
+- Komendy PL/EN oraz codex klasy / codex class.
+- Pomoc zaktualizowana.
+- Brak resetu SQLite.
+
+SOULBOUND v0.8.10 GUILD PROGRESSION & ECONOMY
+=================================================
+- Osobna reputacja dla 12 klas.
+- 6 rang reputacji.
+- Do 25% zniżki na płatną naukę.
+- 12 klasowych zadań Gildii.
+- Egzaminy Soul 50/100/150/200.
+- Płatne egzaminy jako sink waluty.
+- Tablica bounty na bossów i elity.
+- Nagrody: reputacja i srebro.
+- Komendy polskie i angielskie.
+- Pomoc zaktualizowana.
+- Brak resetu SQLite.
+
+SOULBOUND v0.8.9 PAID TRAINING & GUILD EXPANSION
+=================================================
+- Nauka u nauczycieli jest płatna.
+- Cena zależy od wymaganego Soul Level skilla.
+- Koszt widoczny przed nauką.
+- 12 osobnych sal klasowych.
+- 12 nauczycieli rozdzielonych po Gildii.
+- Stare sale zachowane jako huby.
+- Polskie i angielskie aliasy prowadzenia.
+- Pomoc zaktualizowana.
+- Brak resetu SQLite.
+
+SOULBOUND v0.8.8 CHARACTER-BOUND TOOLS & SOUL
+==============================================
+- 8 narzędzi profesji przypisanych do postaci.
+- Każde narzędzie można kupić tylko raz.
+- Narzędzi nie można schować w Banku Dusz.
+- Narzędzia nie mogą być oddawane, wyrzucane ani sprzedawane.
+- Broń Duszy i Soul Progression pozostają Character-Bound.
+- Migracja zwraca legacy tools z banku do postaci.
+- Duplikaty narzędzi redukowane do jednej sztuki.
+- XP, level, użycia i Tier narzędzi zachowane.
+- Pomoc zaktualizowana.
+- Brak resetu SQLite.
+
+SOULBOUND v0.8.7 AREA MAGIC & GROUP HEALING
+=============================================
+- 10 nowych czarów obszarowych.
+- 2 grupowe leczenia Kapłana.
+- Polskie i angielskie nazwy.
+- Jedna akcja = najwyżej jeden kontratak.
+- Help aoe.
+- Brak resetu SQLite.
+
+SOULBOUND v0.8.6 SOUL PROGRESSION & SECOND RING
+=================================================
+- Kamienie milowe Soul Tier 5, 10, 15 i 20.
+- Klasowe bonusy kamieni milowych.
+- Fazy bossów 75/50/25 procent HP.
+- Krótkie komunikaty faz dla NVDA.
+- Bestiariusz / bestiary jako rozbudowany Codex mobów.
+- Dwa sloty pierścieni: ring1 i ring2.
+- Osobne sockety dla obu pierścieni.
+- Wymagana druga sztuka dla dwóch identycznych pierścieni.
+- Set 2/4/6/8 liczy unikalne części, nie duplikaty.
+- Bezpieczna migracja ring -> ring1.
+- Pomoc zaktualizowana.
+- Brak resetu SQLite.
+
+SOULBOUND v0.8.5 SOUL TIER 20
+=============================
+- Broń Duszy: 20 Tierów.
+- Progi rozłożone na Soul Level 1-200.
+- Próby Elora: T4, T7, T13, T19.
+- T20: Soul 200.
+- Skalowanie mocy i bonusów klasowych przez 20 Tierów.
+- Bezpieczna migracja starych T2/T3/T4/T5 do T4/T7/T13/T19.
+- Soul Level i Soul XP bez resetu.
+- Pomoc dusza info zaktualizowana.
+- Brak resetu SQLite.
+
+SOULBOUND v0.8.4 TOOL TIER 20
+==============================
+- Wszystkie 8 narzędzi ma teraz 20 Tierów.
+- Progi: 1,10,20,30,40,50,60,70,80,90,100,110,120,130,140,150,160,170,180,200.
+- Każde narzędzie ma 20 własnych nazw Tierów.
+- Bonus Tieru: 0 do 40 procent.
+- Max level narzędzi nadal 200.
+- Brak durability.
+- Pomoc zaktualizowana.
+- Brak resetu SQLite.
+
+SOULBOUND v0.8.3 DUNGEON EXIT FIX
+==================================
+- cofnij = bezpośrednio do wyjścia z lochu.
+- wyjście = bezpośrednio do wyjścia z lochu.
+- back = bezpośrednio do wyjścia z lochu.
+- exit = bezpośrednio do wyjścia z lochu.
+- Usunięto zachowanie cofania o jedną lokację.
+- Obsługa głównych lochów, profession dungeonów, Jaskini Trolli i odnóg high-end.
+- Pomoc zaktualizowana.
+- Brak resetu SQLite.
+
+SOULBOUND v0.8.2 GUARDIAN TANK & DUNGEON ESCAPE
+=================================================
+- Strażnik przebudowany na pełny profil tanka.
+- 2/8: Kondycja +8, Siła Woli +4.
+- 4/8: obrażenia +5%.
+- 6/8: obrona fizyczna i magiczna +35%.
+- 8/8: maksymalne HP +40%.
+- Dodano cofnij / back.
+- Dodano wyjście / exit dla lochów.
+- Obsługa głównych, mitycznych, profesyjnych i high-end lochów.
+- Wyjście awaryjne blokowane podczas walki.
+- wyjście nie kończy już gry.
+- Wylogowanie: quit / logout / wyloguj / koniec.
+- Uzupełniono angielskie aliasy nowych i starszych systemów.
+- Zaktualizowano pomoc.
+- Brak resetu SQLite.
+
+SOULBOUND v0.8.1 CLASS SETS & TERRAIN INFO
+===========================================
+- 12 aktywnych zestawów klasowych.
+- 96 istniejących itemów klasowych wykorzystanych przez sety.
+- Progi 2/4/6/8.
+- 2: statystyki klasowe.
+- 4: wszystkie obrażenia.
+- 6: obrona fizyczna i magiczna.
+- 8: HP, a dla magii także Mana.
+- Różne profile bonusów dla wszystkich klas.
+- sety / sety info / sety <klasa>.
+- eq info i staty info pokazują aktywne sety.
+- teren info <nazwa>.
+- Region info: lokacje, Soul, trudność, NPC, questy, bossowie, moby, profesje i dojście.
+- Zaktualizowana pomoc główna.
+- Help poprawiony do 8 narzędzi i 7 profesji.
+- Nowe help sety_klasowe i help teren_info.
+- Brak resetu SQLite.
+
+SOULBOUND v0.8.0 HELP & INFO OVERHAUL
+======================================
+- Nowa linia wersji v0.8.x.
+- dusza: szybki stan.
+- dusza info: pełny Soul, XP, Tiery, Próby i następny cel.
+- staty: szybki stan.
+- staty info: pełne statystyki i mechanika rozwoju.
+- profesje / profesje info.
+- narzedzia / narzedzia info.
+- eq / eq info.
+- help informacje.
+- Pomoc dostosowana do krótszego odczytu NVDA.
+- Brak XP i levelu postaci.
+- Brak resetu SQLite.
+
+SOULBOUND v0.7.41 PROFESSION TOOL SELLERS
+===========================================
+- Wędka tylko u Nerisa.
+- Kilof tylko u Torena.
+- Piła tylko u Orena.
+- Młot Rzemieślniczy tylko u Haldora.
+- Nóż Kucharski tylko u Marcela.
+- Sierp Zielarski tylko u Seny.
+- Moździerz Alchemiczny tylko u Orina.
+- Szczypce Jubilerskie tylko u Mirelli.
+- Nowa Kuchnia Błękitnego Płomienia.
+- Narzędzia usunięte ze zwykłych sklepów innych profesji.
+- Brak resetu SQLite.
+
+SOULBOUND v0.7.40 HIGH-END MOB PACK
+=====================================
+- 15 bardzo trudnych mobów endgame.
+- 10 elit i 5 bossów.
+- Osobne odnogi endgame w 5 regionach.
+- Elity: 100k-1.8m Soul XP.
+- Bossowie: 1m-8m Soul XP.
+- Class XP: do 10 milionów.
+- Bossowie: 500k-3m HP po globalnym x2.
+- Elity: do około 950k HP.
+- Mocne obrażenia i normalne kontrataki turowe.
+- Rozwój postaci/EQ/Soul/socketów realnie potrzebny.
+- Brak levelu i XP postaci.
+- World Expansion I zachowany.
+- Gem System zachowany.
+- Brak resetu SQLite.
+
+SOULBOUND v0.7.39 WORLD EXPANSION I
+====================================
+- Rozbudowana Północna Dzicz.
+- Rozbudowane wysokie Góry.
+- 9 nowych komór Jaskini Trolli.
+- Nowy region: Czarne Bagna.
+- Nowy region: Wielka Pustynia.
+- Nowe huby terenowe.
+- 8 nowych NPC terenowych.
+- 5 nowych questów terenowych.
+- Nowe zwykłe moby i 5 bossów świata.
+- Rozdzieleni mistrzowie profesji:
+  Neris, Kordan, Oren, Sena, Orin i Haldor.
+- Sprzedawcy narzędzi zostają przy sklepach.
+- Kilof nadal wyłącznie u Torena.
+- Bagna obsługują ręczne Zielarstwo.
+- expowiska rozszerzone o Bagna i Pustynię.
+- prowadz obejmuje nowe regiony i NPC.
+- Gem System zachowany.
+- Brak resetu SQLite.
+
+SOULBOUND v0.7.38 GEM SYSTEM
+==============================
+- 11 surowych klejnotów.
+- 11 oszlifowanych klejnotów.
+- Klejnoty jako dodatkowy drop z Górnictwa.
+- Progi Górnictwa i głębokości 1-200.
+- Szlifowanie u Mirelli.
+- 11 nowych receptur Jubilerstwa.
+- XP Jubilerstwa i Szczypiec za szlifowanie.
+- Gniazda w pierścieniach i naszyjnikach.
+- 1-3 gniazda zależnie od tieru.
+- Klasowy pierścień: 1 gniazdo.
+- Klasowy naszyjnik: 2 gniazda.
+- Osadzanie klejnotów.
+- Realne bonusy statystyk, HP i Many.
+- Zmiana biżuterii zwraca klejnoty.
+- Persistent equipment_gems.
+- Brak resetu bazy.
+
 SOULBOUND v0.7.37 JEWELCRAFTING
 =================================
 - Jubilerstwo 1-200.
