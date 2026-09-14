@@ -2,7 +2,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Soulbound v0.8.72 Boss Chests + Owner Admin + Gathering RNG + Atlas Sync
+Soulbound v0.9.6 Collections + Boss Codex + Fishing Rebalance
 Wieloosobowy tekstowy MUD TCP/Telnet dla MUSHclienta/Mudleta.
 
 Najważniejsze zasady projektu:
@@ -30,7 +30,7 @@ import unicodedata
 from dataclasses import dataclass
 from typing import Optional
 
-VERSION = "0.9.0"
+VERSION = "0.9.6"
 
 # v0.8.72: właścicielskie komendy administracyjne. Nazwy kont podaje się
 # po stronie serwera, np. SOULBOUND_ADMIN_ACCOUNTS=Patryk. Nigdy nie są
@@ -630,7 +630,8 @@ PROFESSION_COOLDOWN = 2.0
 # v0.8.66 - realny czas czynności wynika z poziomu UMIEJĘTNOŚCI/PROFESJI.
 # Narzędzie nie skraca czasu; jego level odblokowuje lepszy surowiec/jakość/bonus.
 TOOL_ACTION_BASE_SECONDS = {
-    "fishing": 15,
+    # v0.9.6: Wędkarstwo zaczyna od 16 s i schodzi płynnie do 3 s przy 200.
+    "fishing": 16,
     "mining": 30,
     "woodcutting": 24,
     "crafting": 20,
@@ -641,7 +642,7 @@ TOOL_ACTION_BASE_SECONDS = {
 }
 
 TOOL_ACTION_MIN_SECONDS = {
-    "fishing": 5,
+    "fishing": 3,
     "mining": 10,
     "woodcutting": 8,
     "crafting": 7,
@@ -654,6 +655,41 @@ TOOL_ACTION_MIN_SECONDS = {
 REST_TICK_SECONDS = 5.0
 REST_REGEN_PERCENT = 10
 
+# v0.9.6: wartości referencyjne z v0.9.5 służą tylko do rebalansu
+# XP/cen/zleceń po zmianie czasu 15->5 na 16->3.
+V095_FISHING_BASE_SECONDS = 15
+V095_FISHING_MIN_SECONDS = 5
+
+def _linear_profession_seconds(level, base_seconds, minimum_seconds):
+    level = max(1, min(PROFESSION_MAX_LEVEL, int(level)))
+    progress = (level - 1) / max(1, PROFESSION_MAX_LEVEL - 1)
+    seconds = round(base_seconds - (base_seconds - minimum_seconds) * progress)
+    return max(int(minimum_seconds), int(seconds))
+
+def v095_fishing_action_seconds(level):
+    return _linear_profession_seconds(level, V095_FISHING_BASE_SECONDS, V095_FISHING_MIN_SECONDS)
+
+def v096_fishing_action_seconds(level):
+    return _linear_profession_seconds(
+        level, TOOL_ACTION_BASE_SECONDS["fishing"], TOOL_ACTION_MIN_SECONDS["fishing"]
+    )
+
+def v096_fishing_reward_scale(level):
+    """Skaluje nagrody per połów, aby XP/h nie eksplodował przy 3 s endgame.
+
+    Używa ciągłej krzywej zamiast zaokrąglonych sekund, żeby współczynnik
+    malał płynnie i nigdy nie skakał w górę przez zaokrąglenie timera.
+    """
+    level = max(1, min(PROFESSION_MAX_LEVEL, int(level)))
+    progress = (level - 1) / max(1, PROFESSION_MAX_LEVEL - 1)
+    old_seconds = V095_FISHING_BASE_SECONDS - (V095_FISHING_BASE_SECONDS - V095_FISHING_MIN_SECONDS) * progress
+    new_seconds = TOOL_ACTION_BASE_SECONDS["fishing"] - (TOOL_ACTION_BASE_SECONDS["fishing"] - TOOL_ACTION_MIN_SECONDS["fishing"]) * progress
+    return max(0.55, min(1.10, new_seconds / old_seconds))
+
+def v096_fishing_workload_scale(level):
+    """Ile sztuk potrzeba dla podobnego czasu kontraktu jak w v0.9.5."""
+    return max(1.0, min(1.75, 1.0 / v096_fishing_reward_scale(level)))
+
 RIVER_FISHING_ROOMS = {"riverbank", "stone_bridge"}
 LAKE_FISHING_ROOMS = {"lake_shore"}
 SEA_FISHING_ROOMS = {"sea_pier"}
@@ -661,6 +697,53 @@ OCEAN_FISHING_ROOMS = {"ocean_platform"}
 FRESHWATER_FISHING_ROOMS = RIVER_FISHING_ROOMS | LAKE_FISHING_ROOMS
 MARINE_FISHING_ROOMS = SEA_FISHING_ROOMS | OCEAN_FISHING_ROOMS
 FISHING_ROOMS = FRESHWATER_FISHING_ROOMS | MARINE_FISHING_ROOMS
+
+# v0.9.5: opis ekologiczny łowiska jest oddzielony od technicznej puli
+# river/lake/sea/ocean. Dzięki temu np. Czarny Kanał może mówić graczowi
+# "Łowisko: Kanał", a nadal korzystać z rzecznej progresji ryb.
+FISHING_WATER_TYPE_OVERRIDES = {
+    "riverbank": "Rzeka",
+    "stone_bridge": "Rzeka",
+    "lake_shore": "Jezioro",
+    "sea_pier": "Morze",
+    "ocean_platform": "Ocean",
+    "sewer_black_channel": "Kanał",
+    "forest_stream": "Strumień",
+    "blackwater_pool": "Bagienne rozlewisko",
+    "troll_underground_river": "Podziemna rzeka",
+    "ice_cave_frozen_lake": "Zamarznięte jezioro",
+}
+
+FISHING_HABITAT_LABELS = {
+    "river": "rzeka",
+    "lake": "jezioro",
+    "sea": "morze",
+    "ocean": "ocean",
+}
+
+# Preferowane pule ekologiczne dla wybranych istniejących wód świata.
+# Filtr działa wyłącznie na gatunkach już odblokowanych przez Wędkę;
+# gdy na bardzo niskim levelu przecięcie byłoby puste, zachowujemy pulę bazową.
+FISHING_ECOLOGY_PREFERRED_IDS = {
+    "forest_stream": {
+        "small_fish", "dace", "river_perch", "chub", "stone_loach",
+        "brown_trout", "grayling", "silver_trout", "golden_trout",
+        "salmon", "river_taimen", "spirit_grayling",
+    },
+    "blackwater_pool": {
+        "lake_roach", "crucian_carp", "bream", "tench", "lake_perch",
+        "pike", "zander", "freshwater_eel", "golden_tench",
+        "deepwater_pike", "moon_carp", "astral_pike",
+    },
+    "troll_underground_river": {
+        "small_fish", "dace", "stone_loach", "burbot", "river_catfish",
+        "moon_eel", "ancient_sturgeon", "runic_sturgeon", "chrono_eel",
+    },
+    "ice_cave_frozen_lake": {
+        "lake_roach", "lake_smelt", "vendace", "whitefish", "lake_char",
+        "lake_trout", "crystal_whitefish", "starfin_char", "mirror_sturgeon",
+    },
+}
 MINE_MIN_FLOOR = 1
 MINE_MAX_FLOOR = 200
 MINE_WALL_SCALING_START_FLOOR = 10
@@ -4294,6 +4377,9 @@ GUIDE_DESTINATION_ALIASES = {
     'mlot rzemieslniczy sklep': 'crafting_workshop',
     'sklep mlota': 'crafting_workshop',
     'warsztat rzemieslniczy': 'crafting_workshop',
+    'rybak borys': 'fish_market',
+    'borys': 'fish_market',
+    # Stare aliasy Tomasa pozostają tylko dla zgodności zapisanych skrótów/makr.
     'rybak tomas': 'fish_market',
     'ryby': 'fish_market',
     'targ rybny': 'fish_market',
@@ -5093,6 +5179,8 @@ COMMAND_ALIASES = {
     "charset": "encoding", "znaki": "encoding",
     "opis": "describe", "opisz": "describe", "describe": "describe", "description": "describe",
     "changes": "changes", "zmiany": "changes", "changelog": "changes",
+    "historia": "lifetime", "history": "lifetime", "lifetime": "lifetime",
+    "statystykizycia": "lifetime", "lifestats": "lifetime",
     "spójrz": "look", "spojrz": "look", "l": "look",
     "wyjścia": "exits", "wyjscia": "exits",
     "mapa": "map",
@@ -5189,6 +5277,8 @@ COMMAND_ALIASES = {
     "siatka": "net", "net": "net",
     "woda": "waterinfo", "water": "waterinfo",
     "lowisko": "waterinfo", "łowisko": "waterinfo",
+    "dziennikryb": "fishjournal", "dziennik_ryb": "fishjournal",
+    "fishjournal": "fishjournal", "fishlog": "fishjournal",
     "sakwa": "bag", "worek": "bag", "bag": "bag",
     "wędkuj": "fish", "wedkuj": "fish", "łów": "fish", "low": "fish",
     # Jedna nawigacja: polskie i angielskie nazwy trafiają do guide.
@@ -5271,10 +5361,17 @@ COMMAND_ALIASES = {
     "classquest": "guildquest",
     "egzamin": "guildexam",
     "exam": "guildexam",
-    "bounty": "guildbounty",
-    "zlecenie": "guildbounty",
-    "zlecenia": "guildbounty",
-    "contracts": "guildbounty",
+    "bounty": "bounty",
+    "zlecenie": "bounty",
+    "zlecenia": "bounty",
+    "contracts": "bounty",
+    "kontrakty": "bounty",
+    "contract": "bounty",
+    "tablicazlecen": "bounty",
+    "tablica_zlecen": "bounty",
+    "guildbounty": "guildbounty",
+    "zleceniagildii": "guildbounty",
+    "zleceniegildii": "guildbounty",
     "skrzynia": "chest",
     "skarb": "chest",
     "chest": "chest",
@@ -6551,6 +6648,126 @@ FISH_STORAGE_IDS = set(FISH_RESOURCE_IDS) | RARE_FISH_VARIANT_IDS
 ORE_STORAGE_IDS = set(ORE_RESOURCE_IDS)
 WOOD_STORAGE_IDS = set(WOOD_RESOURCE_IDS) | RARE_WOOD_VARIANT_IDS
 HERB_STORAGE_IDS = set(HERB_RESOURCE_IDS) | RARE_HERB_VARIANT_IDS
+
+
+# v0.9.5: kolekcjonerska rzadkość gatunku. Nie zmienia ceny ani balansu.
+FISH_RARITY_LABELS_PL = {
+    "common": "pospolita",
+    "uncommon": "niepospolita",
+    "rare": "rzadka",
+    "epic": "epicka",
+    "legendary": "legendarna",
+}
+
+def base_fish_species_id(item_id):
+    item = ITEMS.get(item_id, {})
+    return str(item.get("base_resource_id") or item_id)
+
+def fish_unlock_level(item_id):
+    item_id = base_fish_species_id(item_id)
+    levels = []
+    if item_id in BASE_FISH_MIN_TOOL_LEVELS:
+        levels.append(int(BASE_FISH_MIN_TOOL_LEVELS[item_id]))
+    for table in (ENDGAME_FISH_UNLOCKS, MORE_FISH_UNLOCKS, WORLD_FISH_UNLOCKS):
+        for rows in table.values():
+            for row in rows:
+                if len(row) >= 2 and str(row[1]) == item_id:
+                    levels.append(int(row[0]))
+    return min(levels) if levels else 1
+
+def v096_fish_price_scale(item_id):
+    """Cena sprzedaży ryby skaluje się wg poziomu odblokowania gatunku.
+
+    Początek nie jest buffowany cenowo mimo 16 s zamiast 15 s. Endgame jest
+    obniżany do ok. 60% ceny/szt., co kompensuje zejście 5 s -> 3 s.
+    """
+    level = fish_unlock_level(item_id)
+    return max(0.60, min(1.0, v096_fishing_reward_scale(level)))
+
+def fish_species_rarity(item_id):
+    level = fish_unlock_level(item_id)
+    if level >= 200:
+        return "legendary"
+    if level >= 150:
+        return "epic"
+    if level >= 80:
+        return "rare"
+    if level >= 30:
+        return "uncommon"
+    return "common"
+
+def fish_rarity_label(item_id):
+    return FISH_RARITY_LABELS_PL[fish_species_rarity(item_id)]
+
+def fish_species_habitats(item_id):
+    item_id = base_fish_species_id(item_id)
+    labels = []
+    if item_id in RIVER_FISH_ATLAS:
+        labels.append("rzeka")
+    if item_id in LAKE_FISH_ATLAS:
+        labels.append("jezioro")
+    if item_id in SEA_FISH_ATLAS:
+        labels.append("morze")
+    if item_id in OCEAN_FISH_ATLAS:
+        labels.append("ocean")
+    if item_id == "field_blind_sewer_eel":
+        labels.append("kanał")
+    return tuple(dict.fromkeys(labels))
+
+def roll_fish_measurement(item_id):
+    """Losowy rozmiar okazu do rekordów v0.9.5; bez wpływu na balans."""
+    item = ITEMS.get(item_id, {})
+    base_id = base_fish_species_id(item_id)
+    name = normalize_lookup_text(ITEMS.get(base_id, item).get("name", base_id))
+    rarity = fish_species_rarity(base_id)
+    tiny_words = ("szprot", "sardyn", "sardine", "anchovy", "sardela", "stynk", "uklej", "gudgeon", "kiełb", "kielb")
+    eel_words = ("węgorz", "wegorz", "eel")
+    shark_words = ("rekin", "shark")
+    monster_words = ("lewiatan", "leviathan", "serpent", "smok", "drake")
+    large_words = ("tuńczyk", "tunczyk", "tuna", "marlin", "miecznik", "swordfish", "samogłów", "samoglow", "sunfish", "jesiotr", "sturgeon", "catfish", "halibut")
+    if any(word in name for word in monster_words):
+        length_mm = random.randint(1800, 8000)
+        weight_g = random.randint(80000, 1500000)
+    elif any(word in name for word in shark_words):
+        length_mm = random.randint(700, 5200)
+        weight_g = random.randint(8000, 750000)
+    elif any(word in name for word in eel_words):
+        length_mm = random.randint(250, 2200)
+        weight_g = random.randint(150, 30000)
+    elif any(word in name for word in tiny_words):
+        length_mm = random.randint(60, 360)
+        weight_g = random.randint(20, 1200)
+    elif any(word in name for word in large_words):
+        length_mm = random.randint(350, 2600)
+        weight_g = random.randint(1500, 220000)
+    else:
+        ranges = {
+            "common": ((90, 650), (60, 7000)),
+            "uncommon": ((120, 900), (100, 14000)),
+            "rare": ((160, 1300), (200, 30000)),
+            "epic": ((220, 1900), (500, 70000)),
+            "legendary": ((400, 3200), (1500, 220000)),
+        }
+        (lmin, lmax), (wmin, wmax) = ranges[rarity]
+        length_mm = random.randint(lmin, lmax)
+        weight_g = random.randint(wmin, wmax)
+    variant = str(item.get("rare_resource_variant") or "")
+    if variant == "giant":
+        length_mm = int(round(length_mm * 1.30))
+        weight_g = int(round(weight_g * 1.80))
+    elif variant == "ancient":
+        length_mm = int(round(length_mm * 1.10))
+        weight_g = int(round(weight_g * 1.20))
+    return max(1, length_mm), max(1, weight_g)
+
+def format_fish_length(length_mm):
+    return f"{int(length_mm) / 10.0:.1f} cm"
+
+def format_fish_weight(weight_g):
+    weight_g = int(weight_g)
+    if weight_g >= 1000:
+        return f"{weight_g / 1000.0:.2f} kg"
+    return f"{weight_g} g"
 
 def _rare_variant_roll(
     base_item_id,
@@ -7966,7 +8183,7 @@ normalize_recipe_requirements_v0866()
 
 NPCS = {
     "fisher_tomas": {
-        "name": "Rybak Tomas", "room": "fish_market",
+        "name": "Rybak Borys", "room": "fish_market",
         "dialogue": "Jeśli naprawdę chcesz zostać wędkarzem, przynieś mi trzydzieści ryb.",
         "quest": "fisher_30_fish",
     },
@@ -8520,15 +8737,17 @@ STAT_DESCRIPTIONS = {
 SYSTEM_DESCRIPTIONS = {
     "wędkarstwo": (
         "Wędkarstwo ma własny poziom profesji. Do połowu potrzebna jest Wędka, która ma "
-        "osobny level 1-200 i osobny XP. Podstawową Wędkę kupisz u Rybaka Tomasa na Targu Rybnym. "
-        "Użyj fish albo low. Auto-łowienie: low on i low off."
+        "osobny level 1-200 i osobny XP. Podstawową Wędkę kupisz u Rybaka Borysa na Targu Rybnym. "
+        "Użyj fish albo low. Auto-łowienie: low on i low off. "
+        "Czas połowu zależy od Wędkarstwa: 16 sekund na poziomie 1 i minimum 3 sekundy na poziomie 200."
     ),
     "wedkarstwo": (
         "Wędkarstwo ma własny poziom profesji. Do połowu potrzebna jest Wędka, która ma "
-        "osobny level 1-200 i osobny XP. Podstawową Wędkę kupisz u Rybaka Tomasa na Targu Rybnym. "
-        "Użyj fish albo low. Auto-łowienie: low on i low off."
+        "osobny level 1-200 i osobny XP. Podstawową Wędkę kupisz u Rybaka Borysa na Targu Rybnym. "
+        "Użyj fish albo low. Auto-łowienie: low on i low off. "
+        "Czas połowu zależy od Wędkarstwa: 16 sekund na poziomie 1 i minimum 3 sekundy na poziomie 200."
     ),
-    "fishing": "Wędkarstwo ma własny poziom profesji, a Wędka własny niezależny level 1-200. Podstawową Wędkę sprzedaje Rybak Tomas.",
+    "fishing": "Wędkarstwo ma własny poziom profesji, a Wędka własny niezależny level 1-200. Podstawową Wędkę sprzedaje Rybak Borys. Czas połowu spada z 16 do minimum 3 sekund wraz z poziomem Wędkarstwa.",
     "górnictwo": (
         "Górnictwo ma własny poziom 1-200. Kilof ma osobny level 1-200. "
         "Użyj mine albo kop. Auto-kopanie: kop on i kop off. "
@@ -8580,8 +8799,34 @@ SYSTEM_DESCRIPTIONS = {
 }
 
 
-LATEST_CHANGES_TITLE = "Soulbound v0.9.0 - Full Character & Soul Weapon Balance Pass"
+LATEST_CHANGES_TITLE = "Soulbound v0.9.6 - Collections + Boss Codex + Wędkarstwo 16→3 s"
 LATEST_CHANGES = [
+    "v0.9.6: Kolekcje mają osobne główne kategorie: Ryby, Minerały, Zioła, Klejnoty, Bossowie, Rare Moby, Materiały i Wyjątkowe przedmioty; NVDA czyta odkryte/łącznie.",
+    "v0.9.6: Boss Codex pokazuje pokonania, pierwszy i ostatni kill, rekord czasu, solo/grupa oraz odkryte dropy; stare dane Bestiariusza są zachowane.",
+    "v0.9.6: Wędkarstwo zaczyna od 16 sekund i stopniowo schodzi do minimum 3 sekund przy poziomie 200; Wędka nie skraca timera.",
+    "v0.9.6: XP połowu, XP ze sprzedaży, ceny ryb i rybackie Bounty są kompensowane względem dawnej krzywej 15→5 s, aby szybszy endgame nie powodował skoku progresji ani ekonomii.",
+    "v0.9.6: ryby nadal są bez limitu populacji, bez przełowienia i bez trwałości Wędki.",
+    "v0.9.5: komenda woda/łowisko zaczyna od jasnego typu bieżącego łowiska, np. Rzeka, Jezioro, Morze, Ocean, Kanał lub Zatopiona Grota.",
+    "v0.9.5: dodano trwały Dziennik ryb per postać: odkryte gatunki, liczba połowów, rzadkość oraz rekord długości i masy.",
+    "v0.9.5: NVDA natychmiast czyta odkrycie nowego gatunku i pobicie rekordu; woda pokazuje liczbę znanych oraz nieodkrytych gatunków dostępnych dla bieżącej Wędki.",
+    "v0.9.5: gatunki mają kolekcjonerskie rzadkości od pospolitej do legendarnej; warstwa nie zmienia bazowych statystyk walki ani ceny ryby.",
+    "v0.9.5: ryby nadal nie mają twardego limitu i łowiska nie wyczerpują się; brak systemu przełowienia i durability Wędki.",
+    "v0.9.4: dodano trwałą Historię postaci / Lifetime Statistics per postać; komendy historia, history i lifetime czytają ją w krótkich sekcjach NVDA.",
+    "v0.9.4: historia obejmuje zwycięstwa, zabite moby, bossów, rare moby, śmierci, questy, kontrakty, akcje profesji, craftingi, eksplorację i Bestiariusz.",
+    "v0.9.4: od tej wersji dokładnie liczone są sztuki ryb, rud/minerałów, drewna, ziół, klejnotów oraz wytworzonych przedmiotów.",
+    "v0.9.4: migracja starszych postaci odtwarza tylko pewne dane istniejące w SQLite i jest idempotentna; nie wymyśla brakującej historii ilościowej.",
+    "v0.9.4: Historia jest per postać i jest usuwana razem z wybraną postacią; konto oraz wspólny portfel pozostają zgodne z v0.9.1.",
+    "v0.9.3: rozbudowano Osiągnięcia i prestiżowe Tytuły o eksplorację świata, Bestiariusz, profesje 200, rzadkie ryby, klejnoty, multiclass, Soul Level 200 oraz ukończone kontrakty.",
+    "v0.9.3: Tytuły pozostają wyłącznie prestiżowe i nie zwiększają statystyk, obrażeń, dropu ani ekonomii.",
+    "v0.9.3: nowa Tablica Zleceń losuje trzy kontrakty; można przyjąć jeden aktywny kontrakt na zabijanie, Górnictwo, Wędkarstwo, Drwalstwo lub Zielarstwo.",
+    "v0.9.3: każdy kontrakt startuje od 0/x, postęp jest zapisywany per postać, NVDA czyta każdą zmianę n/x natychmiast, a bounty pokazuje aktualny stan bez cache.",
+    "v0.9.3: ukończone kontrakty dają umiarkowany Soul XP i złoto; stary system zleceń Gildii pozostaje dostępny przez guildbounty / zleceniagildii.",
+    "v0.9.2: NVDA czyta bieżący postęp każdego obsługiwanego celu questa natychmiast po zdarzeniu; kill korzysta teraz z tego samego formatera stanu co dziennik.",
+    "v0.9.2: rozmowy i dostawy NPC czytają finalne 1/x przed ukończeniem, a przedmioty z nagród questowych mogą od razu nabić aktywny collect.",
+    "v0.9.2: quest/quest aktywne nadal odczytuje progres bezpośrednio z SQLite przy każdym otwarciu, więc dziennik nie przechowuje starej wartości.",
+    "v0.9.2: wszystkie cztery ścieżki craftu mają losowy XP na każdej akcji; stałe XP receptury dostają symetryczny rzut ±15% bez zmiany długoterminowej średniej.",
+    "v0.9.1: MENU POSTACI ma opcję 4 Usuń postać; wylogowanie przesunięto na opcję 5.",
+    "v0.9.1: usuwanie jednej postaci wymaga wskazania slotu/nazwy i potwierdzenia USUN <nazwa> lub DELETE <nazwa>; login, hasło i wspólny portfel konta pozostają.",
     "v0.9.0: wszystkie 13 ras mają teraz identyczny budżet 50 bazowych punktów w pięciu głównych statystykach; różni je rozkład i pasyw, nie ukryte 50-58 punktów.",
     "v0.9.0: wszystkie 12 klas dokłada dokładnie 9 punktów startowych zamiast dawnego zakresu 8-10; wraz z bazową Charyzmą każda kombinacja rasa-klasa ma identyczny budżet 69 punktów.",
     "v0.9.0: bazowa Moc Broni Duszy została zwężona z 6-9 do 7-8, żeby early game nie zależał nadmiernie od ukrytej różnicy weapon_base.",
@@ -8645,7 +8890,7 @@ LATEST_CHANGES = [
 
     "Ruch kierunkowy nie teleportuje już natychmiast: NVDA najpierw czyta kierunek marszu, po krótkim czasie postać dociera do sąsiedniej lokacji.",
     "prowadz/walk również przechodzi trasę krok po kroku jako marsz zamiast błyskawicznego przeskakiwania po room_id.",
-    "Rybak Tomas na Targu Rybnym sprzedaje teraz podstawową Wędkę; Mistrz Neris pozostaje nauczycielem rozwoju Wędkarstwa.",
+    "Rybak Borys na Targu Rybnym sprzedaje teraz podstawową Wędkę; Mistrz Neris pozostaje nauczycielem rozwoju Wędkarstwa.",
     "Zaktualizowano help nawigacja/chodzenie oraz główny help pod nowy system ruchu.",
     "Dodano komendę hp: osobno czyta bieżące i maksymalne HP oraz Manę.",
     "Dodano komendę score: czytelne podsumowanie postaci w osobnych liniach pod NVDA.",
@@ -8756,6 +9001,7 @@ HELP_TOPIC_ALIASES = {
     "autochodzenie": "auto_chodzenie", "automove": "auto_chodzenie",
     "kopalnia": "kopalnia_200", "mine200": "kopalnia_200",
     "water": "woda", "woda": "woda", "lowisko": "woda", "łowisko": "woda",
+    "dziennikryb": "dziennik_ryb", "fishjournal": "dziennik_ryb", "fishlog": "dziennik_ryb",
     "wiecejryb": "wiecej_ryb", "moreryb": "wiecej_ryb", "morefish": "wiecej_ryb",
     "turnin": "oddawanie_zadan", "oddaj": "oddawanie_zadan",
     "mining": "gornictwo", "mine": "gornictwo",
@@ -8792,9 +9038,20 @@ HELP_TOPIC_ALIASES = {
     "zaslon": "druzyny", "zasłoń": "druzyny", "oslon": "druzyny", "osłoń": "druzyny",
     "zaproś": "druzyny", "zapros": "druzyny", "opusc": "druzyny", "opuść": "druzyny",
     "charisma": "charyzma", "charyzma": "charyzma", "haryzma": "charyzma",
+    "historia": "historia", "history": "historia", "lifetime": "historia", "lifestats": "historia",
 }
 
 HELP_TOPICS = {
+    "historia": [
+        "historia / history / lifetime - trwała Historia postaci zapisywana osobno dla każdego slotu postaci.",
+        "Walka: zwycięstwa, wszystkie zabite moby, bossowie, rare moby i śmierci.",
+        "Zadania: łączna liczba ukończonych questów i odebranych kontraktów z Tablicy Zleceń.",
+        "Profesje: wszystkie akcje profesji, liczba craftingów oraz liczba wytworzonych przedmiotów.",
+        "Zbiory: od v0.9.4 dokładne ilości złowionych ryb, wydobytych rud/minerałów, drewna, ziół i znalezionych klejnotów.",
+        "Świat: liczba odkrytych lokacji, wpisów Bestiariusza i rzadkich ryb.",
+        "Migracja starych postaci odtwarza tylko dane rzeczywiście zapisane wcześniej: Bestiariusz, boss/rare, śmierci, questy, kontrakty, akcje profesji i eksplorację. Nie zgaduje dawnych ilości sprzedanych lub zużytych surowców.",
+        "Usunięcie pojedynczej postaci usuwa również jej Historię; login i wspólny portfel konta pozostają bez zmian.",
+    ],
     "walka": [
         "Walka działa w czasie rzeczywistym. atakuj <mob> i k <mob> rozpoczynają starcie z wybranym zabijalnym mobem.",
         "combat — pokazuje aktualny filtr logu walki.",
@@ -8812,6 +9069,7 @@ HELP_TOPICS = {
         "talk <NPC> — rozmowa pokazuje ofertę tego NPC, ale nie przyjmuje zadania automatycznie.",
         "quest accept <numer> / accept quest <numer> / quest przyjmij <numer> — przyjmuje wskazany numer z ostatnio pokazanej listy questów NPC.",
         "Każdy quest po przyjęciu zaczyna od 0/x. Liczą się wyłącznie wymagane akcje wykonane po przyjęciu: nowe zabicia, połowy, zbiory, wydobycie, ścinanie, craft, rozmowy i inne zdarzenia celu. Stary zapas ani wcześniejsze zabicia nie naliczają postępu.",
+        "Po każdym zdarzeniu zwiększającym licznik NVDA od razu czyta bieżący postęp. Ponowne quest / quest aktywne zawsze pobiera aktualny stan z bazy, bez starego cache.",
         "quest info <numer> — działa po quest, quest ukończone i quest list <NPC>; pokazuje NPC, opis, cel, aktualny postęp, wymagania, nagrody, powtarzalność i cooldown.",
         "quest oddaj <numer> / oddaj quest <numer> — oddaje wskazany aktywny quest, jeżeli cele są wykonane i jesteś u właściwego NPC.",
         "quest porzuć <numer> / quest abandon <numer> — porzuca aktywny quest z ostatniej listy. Bieżący postęp przepada, ale wcześniejsze ukończenia pozostają w historii; quest można później przyjąć ponownie.",
@@ -8849,9 +9107,8 @@ HELP_TOPICS = {
         "egzamin / exam — stan egzaminów Soul 50, 100, 150 i 200.",
         "Egzaminy wymagają Soul, rosnącej reputacji Gildii oraz opłaty; Soul 50 wymaga też ukończenia zadania klasowego.",
         "egzamin <50|100|150|200> — podejście do egzaminu.",
-        "bounty / zlecenia / contracts — tablica zleceń Gildii.",
-        "bounty <numer> — przyjęcie zlecenia.",
-        "bounty odbierz / bounty claim — odbiór nagrody.",
+        "guildbounty / zleceniagildii — dawna tablica celów Gildii i nagrody reputacji.",
+        "Nowa losowana Tablica Zleceń działa przez bounty / zlecenia / contracts i ma osobny trwały postęp 0/x.",
         "Reputacja obniża ceny nauki u nauczycieli maksymalnie o 25 procent.",
     ],
     "przypisane": [
@@ -9127,6 +9384,7 @@ HELP_TOPICS = {
         "Kowal Górski Brok ma 13-etapowy łańcuch Kowalstwa od levelu 1 do 200.",
         "Questy wymagają jednocześnie odpowiedniego levelu Kowalstwa.",
         "Po każdym wykutym przedmiocie gra czyta postęp np. 1 z 3.",
+        "Każda akcja Kowalstwa/Rzemiosła, Gotowania, Alchemii i Jubilerstwa ma losowy przyrost XP; receptury ze stałym XP losują wokół wartości bazowej bez zwiększania średniej.",
         "Finał level 200 wymaga wykucia pełnego sześcioczęściowego Zestawu Eternium.",
         "Każdy etap odnawia się po 60 minutach.",
     ],
@@ -9404,15 +9662,24 @@ HELP_TOPICS = {
         "Oddawanie collect_category nadal korzysta z właściwego magazynu profesji i inventory.",
     ],
     "woda": [
-        "Komenda woda działa w każdym łowisku: rzeka, jezioro, morze i ocean.",
-        "Pokazuje typ aktualnego łowiska.",
-        "Pokazuje aktualny level Wędki.",
-        "Pokazuje dokładną liczbę gatunków, które mogą zostać wylosowane przez fish przy obecnym levelu Wędki.",
-        "Czyta również nazwy wszystkich aktualnie dostępnych gatunków.",
-        "Jeśli kolejna ryba endgame jest jeszcze zablokowana, woda podaje wymagany level Wędki.",
-        "Lista pochodzi z dokładnie tego samego poola co rzeczywiste łowienie.",
-        "Liczba oznacza gatunki dostępne do złowienia, a nie skończoną populację sztuk.",
-        "Łowiska nie wyczerpują się od łowienia.",
+        "Komenda woda / łowisko zaczyna od jasnej informacji o typie bieżącego łowiska, np. Rzeka, Jezioro, Morze, Ocean, Kanał albo Zatopiona Grota.",
+        "Dla specjalnych miejsc nazwa łowiska jest oddzielona od technicznego ekosystemu ryb; Czarny Kanał mówi Kanał, a nadal korzysta z rzecznej progresji gatunków.",
+        "Pokazuje aktualny level Wędki i dokładną liczbę gatunków, które rzeczywiście mogą zostać wylosowane w tym miejscu.",
+        "Pokazuje ile z obecnej puli już odkryto w Dzienniku ryb oraz ile pozostaje nieodkrytych.",
+        "Nazwy czytane przez woda dotyczą tylko gatunków już odkrytych przez tę postać; nieodkryte pozostają jako licznik.",
+        "Czarny Kanał od Wędki 30 ma własną rzeczywistą pulę Ślepego Węgorza Kanałowego, a Zatopiona Grota ogranicza pulę zgodnie z głębokością.",
+        "Jeśli kolejny próg zwykłego ekosystemu jest zablokowany, woda podaje wymagany level Wędki.",
+        "Ryby nie mają twardego limitu sztuk, nie ma przełowienia i łowiska nie wyczerpują się od łowienia.",
+    ],
+    "dziennik_ryb": [
+        "dziennikryb / fishjournal - trwały Dziennik ryb zapisany osobno dla każdej postaci.",
+        "Pokazuje liczbę odkrytych gatunków, zarejestrowanych połowów i odkrytych gatunków legendarnych.",
+        "dziennikryb lista czyta wszystkie odkryte gatunki, ich kolekcjonerską rzadkość, liczbę połowów oraz rekord długości i masy.",
+        "dziennikryb <nazwa ryby> pokazuje szczegóły konkretnego odkrytego gatunku i typy wód, w których występuje.",
+        "Pierwszy połów nowego gatunku jest natychmiast czytany przez NVDA jako NOWY GATUNEK W DZIENNIKU RYB.",
+        "Pobicie rekordu długości lub masy jest natychmiast czytane przez NVDA.",
+        "Rzadkości gatunków: pospolita, niepospolita, rzadka, epicka i legendarna. Rzadkość jest kolekcjonerska i nie daje bonusów bojowych.",
+        "Starszy save może odtworzyć gatunki nadal obecne w Siatce. Dokładne rekordy długości/masy i pełne nowe wpisy są liczone od v0.9.5.",
     ],
     "gotowanie_rozbudowane": [
         "Gotowanie korzysta z Noża Kucharskiego level 1-200.",
@@ -9582,9 +9849,9 @@ HELP_TOPICS = {
     ],
     "czas_narzedzi": [
         "Każda czynność narzędzia ma teraz realny czas wykonania.",
-        "Przy profesji level 1: Wędkarstwo 15 sekund, Górnictwo 30, Drwalstwo 24, Kowalstwo 20, Gotowanie 12, Zielarstwo 10, Alchemia 18, Jubilerstwo 20 sekund.",
+        "Przy profesji level 1: Wędkarstwo 16 sekund, Górnictwo 30, Drwalstwo 24, Kowalstwo 20, Gotowanie 12, Zielarstwo 10, Alchemia 18, Jubilerstwo 20 sekund.",
         "Czas skraca się stopniowo wraz z levelem właściwej profesji; level narzędzia nie skraca czasu.",
-        "Przy profesji level 200: Wędkarstwo 5 sekund, Górnictwo 10, Drwalstwo 8, Kowalstwo 7, Gotowanie 4, Zielarstwo 3, Alchemia 6, Jubilerstwo 7 sekund.",
+        "Przy profesji level 200: Wędkarstwo 3 sekundy, Górnictwo 10, Drwalstwo 8, Kowalstwo 7, Gotowanie 4, Zielarstwo 3, Alchemia 6, Jubilerstwo 7 sekund.",
         "Po wpisaniu wedka, kilof, pila, mlot, noz, sierp, mozdzierz albo szczypce gra podaje aktualny czas akcji wynikający z levelu profesji.",
         "Auto-łowienie, auto-kopanie, auto-Drwalstwo i auto-Zielarstwo używają tego samego realnego czasu.",
         "Crafting, Gotowanie i Alchemia także czekają rzeczywistą liczbę sekund przed ukończeniem receptury.",
@@ -10517,9 +10784,9 @@ QUESTS = {
     },
     "fisher_30_fish": {
         "name": "Próba Rybaka",
-        "giver": "Rybak Tomas",
+        "giver": "Rybak Borys",
         "kind": "collect_category", "target": "fish", "needed": 30,
-        "description": "Przynieś Rybakowi Tomasowi 30 dowolnych ryb.",
+        "description": "Przynieś Rybakowi Borysowi 30 dowolnych ryb.",
         "reward_profession": "Wędkarstwo",
         "reward_profession_xp": 1000,
         "reward_tool_type": "fishing",
@@ -15926,7 +16193,7 @@ def configure_profession_tool_sellers():
     )
     NPCS["specialist_fishing"]["dialogue"] = (
         "Jestem Mistrzem Wędkarstwa Neris. Uczę rozwoju Wędki, Tierów "
-        "i łowisk wysokiego levelu. Podstawową Wędkę kupisz u Rybaka Tomasa na Targu Rybnym."
+        "i łowisk wysokiego levelu. Podstawową Wędkę kupisz u Rybaka Borysa na Targu Rybnym."
     )
     NPCS["miner_toren"]["dialogue"] = (
         "Dobra ruda nie wydobędzie się sama. "
@@ -16615,6 +16882,19 @@ build_world_expansion_ii()
 validate_complete_resource_atlases()
 build_forest_wolves_and_quest_balance()
 build_elite_rare_named_loot_expansion()
+
+# v0.9.5: dodatkowe istniejące wody stają się prawdziwymi łowiskami.
+# Nie tworzymy nowych lokacji ani twardych limitów ryb.
+for _rid in ("forest_stream", "troll_underground_river"):
+    if _rid in ROOMS:
+        RIVER_FISHING_ROOMS.add(_rid)
+        FRESHWATER_FISHING_ROOMS.add(_rid)
+        FISHING_ROOMS.add(_rid)
+for _rid in ("blackwater_pool", "ice_cave_frozen_lake"):
+    if _rid in ROOMS:
+        LAKE_FISHING_ROOMS.add(_rid)
+        FRESHWATER_FISHING_ROOMS.add(_rid)
+        FISHING_ROOMS.add(_rid)
 configure_profession_tool_sellers()
 configure_v0800_help_info()
 configure_v081_help_info()
@@ -16881,7 +17161,7 @@ def configure_v0856_walking_help():
         )
     if "wedkarstwo" in HELP_TOPICS:
         HELP_TOPICS["wedkarstwo"].append(
-            "Podstawową Wędkę kupisz bezpośrednio u Rybaka Tomasa na Targu Rybnym; Mistrz Neris uczy dalszego rozwoju Wędkarstwa."
+            "Podstawową Wędkę kupisz bezpośrednio u Rybaka Borysa na Targu Rybnym; Mistrz Neris uczy dalszego rozwoju Wędkarstwa."
         )
 
 configure_v0856_walking_help()
@@ -17659,7 +17939,7 @@ def configure_v0866_balance_help():
         "Level narzędzia odblokowuje lepsze pule surowców i wpływa na jakość, rzadkie warianty oraz dodatkowy urobek. Narzędzia nadal nie mają trwałości.",
         "Ocena zagrożenia terenu korzysta z realnych spawnów w konkretnym pokoju; wejścia z dużym skokiem trudności są ostrzegane przed przejściem.",
         "Losowe materiałowe EQ ma stały budżet mocy dla materiału i slotu: RNG zmienia rozkład statystyk/właściwości, ale nie tworzy kilku-krotnie silniejszego przedmiotu tego samego tieru.",
-        "Wędkarstwo zachowuje czas 15 do 5 sekund zależny od levelu Wędkarstwa. Historyczne cenowe outliery ryb mid-game zostały znormalizowane bez obniżania wartości endgame.",
+        "Wędkarstwo ma czas 16 do 3 sekund zależny od levelu Wędkarstwa. Historyczne cenowe outliery ryb mid-game zostały znormalizowane bez obniżania wartości endgame.",
         "help profesje, help receptury, help statystyki, help atlas i help balans 0866 opisują aktualne zasady.",
     ]
     HELP_TOPICS["questy 0"] = [
@@ -17823,6 +18103,11 @@ def configure_v0874_balance_help():
 
 configure_v0874_balance_help()
 
+# v0.9.6: Fishing 16->3 s + Collections + Boss Codex.
+HELP_TOPICS.setdefault("wedkarstwo", []).append(
+    "v0.9.6: czas pojedynczego połowu zaczyna się od 16 sekund i stopniowo schodzi do minimum 3 sekund przy Wędkarstwie 200. XP i ekonomia wysokich poziomów są kompensowane względem v0.9.5."
+)
+
 # ============================================================
 # v0.8.18 - Exploration, Achievements & Collection Expansion
 # ============================================================
@@ -17845,13 +18130,26 @@ LOOT_FILTER_INPUTS = {
 }
 
 COLLECTION_CATEGORY_LABELS = {
-    "named": "Named Loot",
-    "sets": "Sety",
+    "fish": "Ryby",
+    "minerals": "Minerały",
+    "herbs": "Zioła",
+    "gems": "Klejnoty",
     "bosses": "Bossowie",
     "rare": "Rare Moby",
+    "materials": "Materiały",
+    "unique": "Wyjątkowe przedmioty",
+    # Starsze kategorie pozostają jako dodatkowe widoki kompatybilności.
+    "named": "Named Loot",
+    "sets": "Sety",
     "chests": "Skrzynie",
 }
 COLLECTION_CATEGORY_ALIASES = {
+    "fish": "fish", "ryby": "fish", "ryba": "fish",
+    "minerals": "minerals", "mineral": "minerals", "mineraly": "minerals", "minerały": "minerals", "rudy": "minerals",
+    "herbs": "herbs", "herb": "herbs", "ziola": "herbs", "zioła": "herbs",
+    "gems": "gems", "gem": "gems", "klejnoty": "gems", "klejnot": "gems",
+    "materials": "materials", "material": "materials", "materialy": "materials", "materiały": "materials",
+    "unique": "unique", "unikalne": "unique", "wyjatkowe": "unique", "wyjątkowe": "unique",
     "named": "named", "namedloot": "named", "loot": "named",
     "set": "sets", "sets": "sets", "sety": "sets",
     "boss": "bosses", "bosses": "bosses", "bossowie": "bosses",
@@ -17876,6 +18174,38 @@ ACHIEVEMENT_TRACKS = {
         "name": "Pogromca Bossów",
         "tiers": ((5, "Bronze"), (15, "Silver"), (30, "Gold"), (60, "Platinum")),
     },
+    "exploration_rooms": {
+        "name": "Kartograf Świata",
+        "tiers": ((100, "Bronze"), (500, "Silver"), (1000, "Gold"), (1272, "Platinum")),
+    },
+    "profession_masters": {
+        "name": "Mistrz Profesji",
+        "tiers": ((1, "Bronze"), (3, "Silver"), (5, "Gold"), (8, "Platinum")),
+    },
+    "bestiary_unique": {
+        "name": "Kronikarz Bestiariusza",
+        "tiers": ((50, "Bronze"), (250, "Silver"), (500, "Gold"), (953, "Platinum")),
+    },
+    "rare_fish_caught": {
+        "name": "Łowca Rzadkich Ryb",
+        "tiers": ((1, "Bronze"), (10, "Silver"), (50, "Gold"), (200, "Platinum")),
+    },
+    "gems_found": {
+        "name": "Poszukiwacz Klejnotów",
+        "tiers": ((1, "Bronze"), (25, "Silver"), (100, "Gold"), (500, "Platinum")),
+    },
+    "multiclass_classes": {
+        "name": "Droga Wielu Klas",
+        "tiers": ((2, "Silver"), (3, "Platinum")),
+    },
+    "soul_level": {
+        "name": "Mistrz Broni Duszy",
+        "tiers": ((50, "Bronze"), (100, "Silver"), (150, "Gold"), (200, "Platinum")),
+    },
+    "bounties_completed": {
+        "name": "Łowca Kontraktów",
+        "tiers": ((5, "Bronze"), (25, "Silver"), (100, "Gold"), (250, "Platinum")),
+    },
 }
 
 ACHIEVEMENT_TITLE_REWARDS = {
@@ -17883,7 +18213,45 @@ ACHIEVEMENT_TITLE_REWARDS = {
     ("boss_kills", "Gold"): "Pogromca Bossów",
     ("chests_opened", "Gold"): "Mistrz Skrzyń",
     ("goblin_kills", "Gold"): "Goblinobójca",
+    ("exploration_rooms", "Gold"): "Kartograf Świata",
+    ("exploration_rooms", "Platinum"): "Odkrywca Całego Świata",
+    ("profession_masters", "Gold"): "Mistrz Profesji",
+    ("profession_masters", "Platinum"): "Arcymistrz Ośmiu Profesji",
+    ("bestiary_unique", "Gold"): "Kronikarz Bestiariusza",
+    ("bestiary_unique", "Platinum"): "Mistrz Bestiariusza",
+    ("rare_fish_caught", "Gold"): "Łowca Rzadkich Ryb",
+    ("gems_found", "Gold"): "Poszukiwacz Klejnotów",
+    ("multiclass_classes", "Platinum"): "Mistrz Wielu Dróg",
+    ("soul_level", "Gold"): "Władca Broni Duszy",
+    ("soul_level", "Platinum"): "Dusza Doskonała",
+    ("bounties_completed", "Gold"): "Łowca Kontraktów",
 }
+
+# v0.9.3 - losowana Tablica Zleceń. Nagrody są umiarkowane i nie zmieniają
+# istniejących mnożników walki ani ekonomii. Jedna postać może mieć jeden
+# aktywny kontrakt, a jego licznik jest trwały w SQLite.
+BOUNTY_OFFER_COUNT = 3
+BOUNTY_KINDS = ("kill", "mine", "fish", "wood", "herb")
+BOUNTY_RESOURCE_LABELS = {
+    "mine": "Wydobycie rud",
+    "fish": "Połów ryb",
+    "wood": "Pozyskanie drewna",
+    "herb": "Zbiór ziół",
+}
+BOUNTY_RESOURCE_NEEDS = {
+    "mine": (6, 8, 10, 12),
+    "fish": (5, 6, 8, 10),
+    "wood": (6, 8, 10, 12),
+    "herb": (6, 8, 10, 12),
+}
+
+def bounty_reward_values(kind, needed):
+    needed = max(1, int(needed))
+    base = {"kill": 180, "mine": 140, "fish": 120, "wood": 130, "herb": 130}.get(kind, 120)
+    per = {"kill": 28, "mine": 22, "fish": 20, "wood": 20, "herb": 20}.get(kind, 20)
+    soul_xp = base + needed * per
+    gold = max(1, min(5, 1 + needed // 6))
+    return soul_xp, gold
 
 
 def _collection_slug(value):
@@ -18020,11 +18388,47 @@ CHEST_COLLECTION_CATALOG = {
     for room_id, cfg in TREASURE_CHESTS.items()
 }
 
+FISH_COLLECTION_CATALOG = {
+    item_id: ITEMS[item_id]["name"] for item_id in sorted(FISH_RESOURCE_IDS) if item_id in ITEMS
+}
+MINERAL_COLLECTION_CATALOG = {
+    item_id: ITEMS[item_id]["name"] for item_id in sorted(ORE_RESOURCE_IDS) if item_id in ITEMS
+}
+HERB_COLLECTION_CATALOG = {
+    item_id: ITEMS[item_id]["name"] for item_id in sorted(HERB_RESOURCE_IDS) if item_id in ITEMS
+}
+GEM_COLLECTION_CATALOG = {
+    item_id: ITEMS[item_id]["name"]
+    for item_id in sorted(set(RAW_GEM_IDS) | set(CUT_GEM_IDS)) if item_id in ITEMS
+}
+MATERIAL_COLLECTION_CATALOG = {
+    item_id: ITEMS[item_id]["name"]
+    for item_id in sorted(
+        set(WOOD_RESOURCE_IDS) | {iid for iid, data in ITEMS.items() if data.get("type") == "craft_material"}
+    ) if item_id in ITEMS
+}
+UNIQUE_ITEM_COLLECTION_CATALOG = {
+    item_id: data["name"]
+    for item_id, data in ITEMS.items()
+    if (
+        data.get("type") == "collectible"
+        or item_id in NAMED_LOOT_CATALOG
+        or (str(data.get("rarity", "")).lower() == "unique" and not item_id.startswith("corpse_"))
+    )
+}
+
 COLLECTION_CATALOGS = {
-    "named": NAMED_LOOT_CATALOG,
-    "sets": {key: value["name"] for key, value in SET_COLLECTION_CATALOG.items()},
+    "fish": FISH_COLLECTION_CATALOG,
+    "minerals": MINERAL_COLLECTION_CATALOG,
+    "herbs": HERB_COLLECTION_CATALOG,
+    "gems": GEM_COLLECTION_CATALOG,
     "bosses": BOSS_COLLECTION_CATALOG,
     "rare": RARE_MOB_COLLECTION_CATALOG,
+    "materials": MATERIAL_COLLECTION_CATALOG,
+    "unique": UNIQUE_ITEM_COLLECTION_CATALOG,
+    # Widoki dodatkowe z wcześniejszych wersji.
+    "named": NAMED_LOOT_CATALOG,
+    "sets": {key: value["name"] for key, value in SET_COLLECTION_CATALOG.items()},
     "chests": CHEST_COLLECTION_CATALOG,
 }
 
@@ -18057,6 +18461,16 @@ for _bestiary_room_id, _bestiary_template_id in MOB_SPAWNS:
         continue
     BESTIARY_CATALOG[_bestiary_id] = MOB_TEMPLATES[_bestiary_id]["name"]
     BESTIARY_SPAWN_ROOMS.setdefault(_bestiary_id, set()).add(_bestiary_room_id)
+
+# Platinum zawsze oznacza faktyczne 100% aktualnej wersji świata / Bestiariusza.
+ACHIEVEMENT_TRACKS["exploration_rooms"]["tiers"] = (
+    (100, "Bronze"), (500, "Silver"), (1000, "Gold"),
+    (len(ALL_EXPLORATION_ROOMS), "Platinum"),
+)
+ACHIEVEMENT_TRACKS["bestiary_unique"]["tiers"] = (
+    (50, "Bronze"), (250, "Silver"), (500, "Gold"),
+    (len(BESTIARY_CATALOG), "Platinum"),
+)
 
 def bestiary_resistance_text(template):
     """Describe only resistance data that really exists in combat data."""
@@ -18173,7 +18587,14 @@ COMMAND_ALIASES.update({
     "regionprogress": "regionprogress", "postepregionu": "regionprogress",
 })
 
+COMMAND_ALIASES.update({
+    "bosskodex": "bosscodex", "bosscodex": "bosscodex",
+    "kodeksbossow": "bosscodex", "kodeksbossów": "bosscodex",
+})
+
 HELP_TOPIC_ALIASES.update({
+    "bosskodex": "boss_codex", "bosscodex": "boss_codex",
+    "kodeksbossow": "boss_codex", "kodeksbossów": "boss_codex",
     "exploration": "eksploracja", "postep": "eksploracja", "postęp": "eksploracja",
     "bestiary": "bestiariusz", "bestia": "bestiariusz",
     "achievements": "osiagniecia", "achievement": "osiagniecia",
@@ -18194,18 +18615,42 @@ HELP_TOPICS["eksploracja"] = [
     "100 procent większej strefy daje Soul XP, walutę, unikalną Pamiątkę Odkrywcy, tytuł i osiągnięcie.",
 ]
 HELP_TOPICS["osiagniecia"] = [
-    "Achievementy mają progi Bronze, Silver, Gold i Platinum.",
-    "osiagniecia / achievements - pokaż postęp i odblokowane osiągnięcia.",
-    "Śledzone są m.in. gobliny, skrzynie, rare moby, bossowie i komplet mini-bossów.",
+    "Achievementy mają progi Bronze, Silver, Gold i Platinum; nie dają bezpośredniej przewagi bojowej.",
+    "osiagniecia / achievements - pokaż bieżący postęp i odblokowane osiągnięcia.",
+    "Śledzone są gobliny, skrzynie, rare moby, bossowie, eksploracja świata, profesje 200, Bestiariusz, rzadkie ryby, klejnoty, multiclass, Soul Level oraz kontrakty.",
+    "Metryki możliwe do odtworzenia są synchronizowane z trwałym stanem postaci; nowe połowy rzadkich ryb i nowe klejnoty są liczone na bieżąco.",
 ]
 HELP_TOPICS["tytuly"] = [
     "tytuly / titles - lista odblokowanych tytułów.",
     "tytul <numer lub nazwa> / title <number or name> - ustaw aktywny tytuł.",
     "tytul off - wyłącz aktywny tytuł.",
+    "Tytuły są wyłącznie prestiżowe: nie zwiększają statystyk, obrażeń, obrony, dropu, XP ani waluty.",
 ]
+HELP_TOPICS["bounty_contracts"] = [
+    "bounty / zlecenia / contracts - pokaż losowaną Tablicę Zleceń i bieżący kontrakt.",
+    "bounty accept <1-3> / bounty <1-3> - przyjmij jeden kontrakt. Każdy zaczyna od 0/x.",
+    "bounty aktywne - przeczytaj aktualny postęp bez cache.",
+    "bounty odbierz / bounty claim - odbierz Soul XP i złoto po wykonaniu celu.",
+    "bounty odśwież - ponownie losuje trzy oferty, ale tylko gdy nie masz aktywnego kontraktu.",
+    "Postęp kontraktu jest zapisywany per postać i po każdym właściwym zabiciu, wydobyciu, połowie, ścięciu albo zbiorze NVDA od razu czyta n/x.",
+    "Stare zlecenia Gildii są nadal dostępne: guildbounty / zleceniagildii.",
+]
+HELP_TOPIC_ALIASES.update({
+    "bounty": "bounty_contracts", "contracts": "bounty_contracts",
+    "kontrakty": "bounty_contracts", "zlecenia": "bounty_contracts",
+    "zlecenie": "bounty_contracts", "tablicazlecen": "bounty_contracts",
+})
+HELP_TOPICS["boss_codex"] = [
+    "bosskodex / bosscodex - podsumowanie odkrytych bossów.",
+    "bosskodex lista - odkryte bossy stronicowane po 30 wpisów.",
+    "bosskodex <nazwa> - liczba pokonań, pierwszy i ostatni kill, solo/grupa, rekord czasu i odkryte dropy.",
+    "Dane pierwszego/ostatniego killa i rekordu są odzyskiwane z Bestiariusza. Rozdział solo/grupa oraz lista dropów są dokładne od v0.9.6; starszych danych gra nie zgaduje.",
+]
+
 HELP_TOPICS["collection_codex"] = [
     "kolekcja / collection - podsumowanie Collection Codex.",
-    "kolekcja named|sety|bossowie|rare|skrzynie - wybrana kategoria.",
+    "kolekcja ryby|minerały|zioła|klejnoty|bossowie|rare|materiały|wyjątkowe - główne kategorie v0.9.6.",
+    "Starsze widoki named|sety|skrzynie pozostają dostępne dla zgodności.",
     "Nieodkryte wpisy nie zdradzają nazw.",
 ]
 HELP_TOPIC_ALIASES.update({
@@ -18502,6 +18947,22 @@ def roll_profession_gather_quantity(tool_level, profession_level, kind):
     if roll < triple_chance + double_chance:
         return 2
     return 1
+
+def roll_crafting_xp(base_value, variance=0.15):
+    """Losowy XP craftu wokół bazowej wartości bez zmiany średniego balansu.
+
+    v0.9.2: każda akcja Kowalstwa/Rzemiosła, Gotowania, Alchemii i
+    Jubilerstwa ma odczuwalny rzut XP także wtedy, gdy receptura definiuje
+    stały tool_xp/profession_xp. Zakres jest symetryczny, więc długoterminowa
+    średnia pozostaje równa wartości bazowej.
+    """
+    base = max(1, int(base_value))
+    if base <= 1:
+        return base
+    spread = max(1, int(round(base * float(variance))))
+    spread = min(spread, base - 1)
+    return random.randint(base - spread, base + spread)
+
 
 def boss_chest_reward_roll(kind, floor, power):
     power = max(1, min(200, int(power)))
@@ -18858,6 +19319,24 @@ class Database:
                 FOREIGN KEY(account_id) REFERENCES accounts(id) ON DELETE CASCADE
             );
 
+            CREATE TABLE IF NOT EXISTS boss_codex_stats (
+                account_id INTEGER NOT NULL,
+                boss_id TEXT NOT NULL,
+                solo_kills INTEGER NOT NULL DEFAULT 0,
+                group_kills INTEGER NOT NULL DEFAULT 0,
+                PRIMARY KEY(account_id, boss_id),
+                FOREIGN KEY(account_id) REFERENCES accounts(id) ON DELETE CASCADE
+            );
+
+            CREATE TABLE IF NOT EXISTS boss_codex_drops (
+                account_id INTEGER NOT NULL,
+                boss_id TEXT NOT NULL,
+                item_id TEXT NOT NULL,
+                discovered_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY(account_id, boss_id, item_id),
+                FOREIGN KEY(account_id) REFERENCES accounts(id) ON DELETE CASCADE
+            );
+
             CREATE TABLE IF NOT EXISTS achievement_progress (
                 account_id INTEGER NOT NULL,
                 metric TEXT NOT NULL,
@@ -18882,6 +19361,38 @@ class Database:
                 title_name TEXT NOT NULL,
                 unlocked_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 PRIMARY KEY(account_id, title_id),
+                FOREIGN KEY(account_id) REFERENCES accounts(id) ON DELETE CASCADE
+            );
+
+            CREATE TABLE IF NOT EXISTS bounty_boards (
+                account_id INTEGER PRIMARY KEY,
+                offers_json TEXT NOT NULL DEFAULT '[]',
+                active_json TEXT NOT NULL DEFAULT '{}',
+                completed_count INTEGER NOT NULL DEFAULT 0,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY(account_id) REFERENCES accounts(id) ON DELETE CASCADE
+            );
+
+            CREATE TABLE IF NOT EXISTS lifetime_statistics (
+                account_id INTEGER NOT NULL,
+                stat_key TEXT NOT NULL,
+                value INTEGER NOT NULL DEFAULT 0,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY(account_id, stat_key),
+                FOREIGN KEY(account_id) REFERENCES accounts(id) ON DELETE CASCADE
+            );
+
+            CREATE TABLE IF NOT EXISTS fish_journal (
+                account_id INTEGER NOT NULL,
+                fish_id TEXT NOT NULL,
+                caught_count INTEGER NOT NULL DEFAULT 0,
+                best_length_mm INTEGER NOT NULL DEFAULT 0,
+                best_weight_g INTEGER NOT NULL DEFAULT 0,
+                first_room_id TEXT NOT NULL DEFAULT '',
+                last_room_id TEXT NOT NULL DEFAULT '',
+                first_caught_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                last_caught_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY(account_id, fish_id),
                 FOREIGN KEY(account_id) REFERENCES accounts(id) ON DELETE CASCADE
             );
 
@@ -19353,6 +19864,206 @@ class Database:
                 ("unified_currency_v0859",),
             )
 
+        # v0.9.4: Historia postaci / Lifetime Statistics.
+        # Odtwarzamy wyłącznie dane, które starsze wersje faktycznie zapisywały.
+        # Dokładne ilości ryb/rud/drewna/ziół oraz crafted_items zaczynają się
+        # od v0.9.4, ponieważ starsze save'y nie przechowywały pełnej historii sztuk.
+        lifetime_migrated = self.conn.execute(
+            "SELECT 1 FROM migration_flags WHERE flag=?",
+            ("lifetime_statistics_v094",),
+        ).fetchone()
+        if not lifetime_migrated:
+            character_ids = [
+                int(row["account_id"])
+                for row in self.conn.execute("SELECT account_id FROM characters").fetchall()
+            ]
+            production_professions = {"Kowalstwo", "Gotowanie", "Alchemia", "Jubilerstwo"}
+            for account_id in character_ids:
+                def set_max(key, value):
+                    value = max(0, int(value or 0))
+                    self.conn.execute(
+                        "INSERT INTO lifetime_statistics(account_id,stat_key,value) VALUES(?,?,?) "
+                        "ON CONFLICT(account_id,stat_key) DO UPDATE SET "
+                        "value=MAX(lifetime_statistics.value,excluded.value), "
+                        "updated_at=CURRENT_TIMESTAMP",
+                        (account_id, key, value),
+                    )
+
+                bestiary_rows = self.conn.execute(
+                    "SELECT mob_template_id,kills FROM bestiary_stats WHERE account_id=?",
+                    (account_id,),
+                ).fetchall()
+                total_kills = sum(max(0, int(row["kills"] or 0)) for row in bestiary_rows)
+                boss_kills = 0
+                rare_kills = 0
+                for row in bestiary_rows:
+                    mob_id = str(row["mob_template_id"])
+                    kills = max(0, int(row["kills"] or 0))
+                    template = MOB_TEMPLATES.get(mob_id, {})
+                    if mob_id in BOSS_COLLECTION_CATALOG:
+                        boss_kills += kills
+                    if template.get("rare_mob"):
+                        rare_kills += kills
+
+                metrics = {
+                    str(row["metric"]): max(0, int(row["value"] or 0))
+                    for row in self.conn.execute(
+                        "SELECT metric,value FROM achievement_progress WHERE account_id=?",
+                        (account_id,),
+                    ).fetchall()
+                }
+                set_max("kills_total", total_kills)
+                set_max("combat_victories", total_kills)
+                set_max("boss_kills", max(boss_kills, metrics.get("boss_kills", 0)))
+                set_max("rare_kills", max(rare_kills, metrics.get("rare_kills", 0)))
+                set_max("rare_fish_caught", metrics.get("rare_fish_caught", 0))
+                set_max("gems_found", metrics.get("gems_found", 0))
+
+                char_row = self.conn.execute(
+                    "SELECT deaths FROM characters WHERE account_id=?", (account_id,)
+                ).fetchone()
+                set_max("deaths", int(char_row["deaths"] or 0) if char_row else 0)
+
+                quest_row = self.conn.execute(
+                    "SELECT COALESCE(SUM(completion_count),0) AS total FROM quests WHERE account_id=?",
+                    (account_id,),
+                ).fetchone()
+                set_max("quests_completed", int(quest_row["total"] or 0) if quest_row else 0)
+
+                bounty_row = self.conn.execute(
+                    "SELECT completed_count FROM bounty_boards WHERE account_id=?", (account_id,)
+                ).fetchone()
+                set_max("bounties_completed", int(bounty_row["completed_count"] or 0) if bounty_row else 0)
+
+                profession_rows = self.conn.execute(
+                    "SELECT profession,actions FROM professions WHERE account_id=?", (account_id,)
+                ).fetchall()
+                profession_actions = sum(max(0, int(row["actions"] or 0)) for row in profession_rows)
+                craft_actions = sum(
+                    max(0, int(row["actions"] or 0))
+                    for row in profession_rows if str(row["profession"]) in production_professions
+                )
+                set_max("profession_actions", profession_actions)
+                set_max("craft_actions", craft_actions)
+
+                explored = self.conn.execute(
+                    "SELECT COUNT(*) AS total FROM exploration_rooms WHERE account_id=?", (account_id,)
+                ).fetchone()
+                set_max("rooms_discovered", int(explored["total"] or 0) if explored else 0)
+                unique_bestiary = len({str(row["mob_template_id"]) for row in bestiary_rows})
+                set_max("bestiary_unique", unique_bestiary)
+
+            self.conn.execute(
+                "INSERT INTO migration_flags(flag) VALUES(?)",
+                ("lifetime_statistics_v094",),
+            )
+
+        # v0.9.5: Dziennik ryb. Starszy zapis potrafi pewnie potwierdzić tylko
+        # gatunki nadal obecne w Siatce. Seedujemy je raz; rekordy rozmiaru i
+        # pełny licznik połowów są dokładne od v0.9.5.
+        fish_journal_migrated = self.conn.execute(
+            "SELECT 1 FROM migration_flags WHERE flag=?",
+            ("fish_journal_v095",),
+        ).fetchone()
+        if not fish_journal_migrated:
+            character_ids = [
+                int(row["account_id"])
+                for row in self.conn.execute("SELECT account_id FROM characters").fetchall()
+            ]
+            for account_id in character_ids:
+                rows = self.conn.execute(
+                    "SELECT item_id,quantity FROM profession_storage "
+                    "WHERE account_id=? AND container='net' AND quantity>0",
+                    (account_id,),
+                ).fetchall()
+                seeded_counts = {}
+                for row in rows:
+                    item_id = str(row["item_id"])
+                    base_id = base_fish_species_id(item_id)
+                    if base_id not in FISH_RESOURCE_IDS:
+                        continue
+                    qty = max(1, int(row["quantity"] or 0))
+                    seeded_counts[base_id] = seeded_counts.get(base_id, 0) + qty
+                for base_id, qty in seeded_counts.items():
+                    self.conn.execute(
+                        "INSERT OR IGNORE INTO fish_journal("
+                        "account_id,fish_id,caught_count,best_length_mm,best_weight_g,first_room_id,last_room_id"
+                        ") VALUES(?,?,?,0,0,'','')",
+                        (account_id, base_id, qty),
+                    )
+                self.conn.execute(
+                    "INSERT INTO lifetime_statistics(account_id,stat_key,value) VALUES(?,?,?) "
+                    "ON CONFLICT(account_id,stat_key) DO UPDATE SET "
+                    "value=MAX(lifetime_statistics.value,excluded.value),updated_at=CURRENT_TIMESTAMP",
+                    (account_id, "fish_species_discovered", len(seeded_counts)),
+                )
+            self.conn.execute(
+                "INSERT INTO migration_flags(flag) VALUES(?)",
+                ("fish_journal_v095",),
+            )
+
+        # v0.9.6: rozszerzony Collection Codex. Seedujemy tylko dane, które
+        # poprzednie wersje potrafią pewnie potwierdzić: Dziennik ryb,
+        # bossów z Bestiariusza, istniejący Rare Codex oraz przedmioty nadal
+        # posiadane w inventory/storage.
+        collection_v096 = self.conn.execute(
+            "SELECT 1 FROM migration_flags WHERE flag=?",
+            ("collections_v096",),
+        ).fetchone()
+        if not collection_v096:
+            character_ids = [
+                int(row["account_id"])
+                for row in self.conn.execute("SELECT account_id FROM characters").fetchall()
+            ]
+            for account_id in character_ids:
+                for row in self.conn.execute(
+                    "SELECT fish_id FROM fish_journal WHERE account_id=?", (account_id,)
+                ).fetchall():
+                    fish_id = str(row["fish_id"])
+                    if fish_id in FISH_COLLECTION_CATALOG:
+                        self.conn.execute(
+                            "INSERT OR IGNORE INTO collection_codex(account_id,category,entry_id) VALUES(?,?,?)",
+                            (account_id, "fish", fish_id),
+                        )
+
+                for row in self.conn.execute(
+                    "SELECT mob_template_id FROM bestiary_stats WHERE account_id=? AND kills>0",
+                    (account_id,),
+                ).fetchall():
+                    mob_id = canonical_bestiary_template_id(row["mob_template_id"])
+                    if mob_id in BOSS_COLLECTION_CATALOG:
+                        self.conn.execute(
+                            "INSERT OR IGNORE INTO collection_codex(account_id,category,entry_id) VALUES(?,?,?)",
+                            (account_id, "bosses", mob_id),
+                        )
+
+                owned_ids = set()
+                for row in self.conn.execute(
+                    "SELECT item_id FROM inventory WHERE account_id=? AND quantity>0", (account_id,)
+                ).fetchall():
+                    owned_ids.add(str(row["item_id"]))
+                for row in self.conn.execute(
+                    "SELECT item_id FROM profession_storage WHERE account_id=? AND quantity>0", (account_id,)
+                ).fetchall():
+                    owned_ids.add(str(row["item_id"]))
+                for item_id in owned_ids:
+                    base_id = canonical_profession_resource_id(item_id)
+                    categories = []
+                    if base_id in MINERAL_COLLECTION_CATALOG: categories.append(("minerals", base_id))
+                    if base_id in HERB_COLLECTION_CATALOG: categories.append(("herbs", base_id))
+                    if base_id in MATERIAL_COLLECTION_CATALOG: categories.append(("materials", base_id))
+                    if item_id in GEM_COLLECTION_CATALOG: categories.append(("gems", item_id))
+                    if item_id in UNIQUE_ITEM_COLLECTION_CATALOG: categories.append(("unique", item_id))
+                    for category, entry_id in categories:
+                        self.conn.execute(
+                            "INSERT OR IGNORE INTO collection_codex(account_id,category,entry_id) VALUES(?,?,?)",
+                            (account_id, category, entry_id),
+                        )
+            self.conn.execute(
+                "INSERT INTO migration_flags(flag) VALUES(?)",
+                ("collections_v096",),
+            )
+
         self.conn.commit()
 
     def account_name(self, account_id):
@@ -19408,6 +20119,66 @@ class Database:
         )
         self.conn.commit()
         return len(char_ids)
+
+    def delete_character_for_master(self, master_account_id, character_account_id):
+        """v0.9.1: usuń dokładnie jedną postać bez kasowania konta ani wspólnego portfela.
+
+        Pierwsza postać może używać ID konta głównego, dlatego nie wolno wtedy
+        usuwać rekordu z accounts. Dodatkowe postacie mają ukryte konta techniczne
+        i ich usunięcie przez FK CASCADE czyści cały własny progres postaci.
+        """
+        master_account_id = int(master_account_id)
+        character_account_id = int(character_account_id)
+        row = self.conn.execute(
+            """
+            SELECT ac.slot, ac.character_account_id, c.name
+            FROM account_characters ac
+            JOIN characters c ON c.account_id=ac.character_account_id
+            WHERE ac.master_account_id=? AND ac.character_account_id=?
+            """,
+            (master_account_id, character_account_id),
+        ).fetchone()
+        if not row:
+            return None
+
+        slot = int(row["slot"])
+        name = str(row["name"])
+
+        if character_account_id != master_account_id:
+            # Ukryty profil postaci. Usunięcie konta technicznego uruchamia
+            # ON DELETE CASCADE dla całego progresu i samego powiązania slotu.
+            self.conn.execute(
+                "DELETE FROM accounts WHERE id=?", (character_account_id,)
+            )
+        else:
+            # Slot oparty na koncie głównym: zachowujemy login, hasło i
+            # account_wallet, a czyścimy wyłącznie dane tej postaci.
+            tables = self.conn.execute(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'"
+            ).fetchall()
+            protected = {"accounts", "account_characters", "account_wallet"}
+            for table_row in tables:
+                table = str(table_row["name"])
+                if table in protected:
+                    continue
+                columns = {
+                    str(col["name"])
+                    for col in self.conn.execute(
+                        f'PRAGMA table_info("{table}")'
+                    ).fetchall()
+                }
+                if "account_id" in columns:
+                    self.conn.execute(
+                        f'DELETE FROM "{table}" WHERE account_id=?',
+                        (master_account_id,),
+                    )
+            self.conn.execute(
+                "DELETE FROM account_characters WHERE master_account_id=? AND character_account_id=?",
+                (master_account_id, character_account_id),
+            )
+
+        self.conn.commit()
+        return {"slot": slot, "name": name}
 
     def wipe_all_characters_preserve_accounts(self):
         masters = [
@@ -20158,6 +20929,50 @@ class Database:
             (account_id,),
         ).fetchall()
 
+    def record_boss_codex_kill(self, account_id, boss_id, grouped=False):
+        boss_id = canonical_bestiary_template_id(boss_id)
+        if boss_id not in BOSS_COLLECTION_CATALOG:
+            return None
+        solo_inc = 0 if grouped else 1
+        group_inc = 1 if grouped else 0
+        self.conn.execute(
+            "INSERT INTO boss_codex_stats(account_id,boss_id,solo_kills,group_kills) VALUES(?,?,?,?) "
+            "ON CONFLICT(account_id,boss_id) DO UPDATE SET "
+            "solo_kills=boss_codex_stats.solo_kills+excluded.solo_kills, "
+            "group_kills=boss_codex_stats.group_kills+excluded.group_kills",
+            (account_id, boss_id, solo_inc, group_inc),
+        )
+        self.conn.commit()
+        return self.boss_codex_stats(account_id, boss_id)
+
+    def boss_codex_stats(self, account_id, boss_id):
+        boss_id = canonical_bestiary_template_id(boss_id)
+        return self.conn.execute(
+            "SELECT boss_id,solo_kills,group_kills FROM boss_codex_stats "
+            "WHERE account_id=? AND boss_id=?",
+            (account_id, boss_id),
+        ).fetchone()
+
+    def add_boss_codex_drop(self, account_id, boss_id, item_id):
+        boss_id = canonical_bestiary_template_id(boss_id)
+        if boss_id not in BOSS_COLLECTION_CATALOG or item_id not in ITEMS:
+            return False
+        cur = self.conn.execute(
+            "INSERT OR IGNORE INTO boss_codex_drops(account_id,boss_id,item_id) VALUES(?,?,?)",
+            (account_id, boss_id, item_id),
+        )
+        self.conn.commit()
+        return cur.rowcount > 0
+
+    def boss_codex_drops(self, account_id, boss_id):
+        boss_id = canonical_bestiary_template_id(boss_id)
+        rows = self.conn.execute(
+            "SELECT item_id,discovered_at FROM boss_codex_drops "
+            "WHERE account_id=? AND boss_id=? ORDER BY discovered_at,item_id",
+            (account_id, boss_id),
+        ).fetchall()
+        return rows
+
     def add_collection_entry(self, account_id, category, entry_id):
         cur = self.conn.execute(
             "INSERT OR IGNORE INTO collection_codex(account_id,category,entry_id) VALUES(?,?,?)",
@@ -20209,6 +21024,19 @@ class Database:
         self.conn.commit()
         return self.achievement_metric(account_id, metric)
 
+    def set_achievement_metric_max(self, account_id, metric, value):
+        value = max(0, int(value))
+        self.conn.execute(
+            """
+            INSERT INTO achievement_progress(account_id,metric,value) VALUES(?,?,?)
+            ON CONFLICT(account_id,metric) DO UPDATE SET
+                value=MAX(achievement_progress.value, excluded.value)
+            """,
+            (account_id, metric, value),
+        )
+        self.conn.commit()
+        return self.achievement_metric(account_id, metric)
+
     def unlock_achievement(self, account_id, achievement_id, name, tier):
         cur = self.conn.execute(
             "INSERT OR IGNORE INTO achievements(account_id,achievement_id,name,tier) VALUES(?,?,?,?)",
@@ -20238,6 +21066,149 @@ class Database:
             "WHERE account_id=? ORDER BY title_name COLLATE NOCASE",
             (account_id,),
         ).fetchall()
+
+    def bounty_board_state(self, account_id):
+        row = self.conn.execute(
+            "SELECT offers_json,active_json,completed_count FROM bounty_boards WHERE account_id=?",
+            (account_id,),
+        ).fetchone()
+        if not row:
+            return {"offers": [], "active": {}, "completed_count": 0}
+        try:
+            offers = json.loads(row["offers_json"] or "[]")
+        except Exception:
+            offers = []
+        try:
+            active = json.loads(row["active_json"] or "{}")
+        except Exception:
+            active = {}
+        if not isinstance(offers, list):
+            offers = []
+        if not isinstance(active, dict):
+            active = {}
+        return {
+            "offers": offers,
+            "active": active,
+            "completed_count": max(0, int(row["completed_count"] or 0)),
+        }
+
+    def save_bounty_board_state(self, account_id, offers=None, active=None, completed_count=None):
+        current = self.bounty_board_state(account_id)
+        if offers is None:
+            offers = current["offers"]
+        if active is None:
+            active = current["active"]
+        if completed_count is None:
+            completed_count = current["completed_count"]
+        self.conn.execute(
+            """
+            INSERT INTO bounty_boards(account_id,offers_json,active_json,completed_count,updated_at)
+            VALUES(?,?,?,?,CURRENT_TIMESTAMP)
+            ON CONFLICT(account_id) DO UPDATE SET
+                offers_json=excluded.offers_json,
+                active_json=excluded.active_json,
+                completed_count=excluded.completed_count,
+                updated_at=CURRENT_TIMESTAMP
+            """,
+            (
+                account_id,
+                json.dumps(list(offers or []), ensure_ascii=False, separators=(",", ":")),
+                json.dumps(dict(active or {}), ensure_ascii=False, separators=(",", ":")),
+                max(0, int(completed_count or 0)),
+            ),
+        )
+        self.conn.commit()
+
+    def lifetime_stat(self, account_id, stat_key):
+        row = self.conn.execute(
+            "SELECT value FROM lifetime_statistics WHERE account_id=? AND stat_key=?",
+            (account_id, str(stat_key)),
+        ).fetchone()
+        return max(0, int(row["value"] or 0)) if row else 0
+
+    def add_lifetime_stat(self, account_id, stat_key, amount=1):
+        amount = int(amount or 0)
+        if amount <= 0:
+            return self.lifetime_stat(account_id, stat_key)
+        self.conn.execute(
+            "INSERT INTO lifetime_statistics(account_id,stat_key,value) VALUES(?,?,?) "
+            "ON CONFLICT(account_id,stat_key) DO UPDATE SET "
+            "value=lifetime_statistics.value+excluded.value,updated_at=CURRENT_TIMESTAMP",
+            (account_id, str(stat_key), amount),
+        )
+        self.conn.commit()
+        return self.lifetime_stat(account_id, stat_key)
+
+    def set_lifetime_stat_max(self, account_id, stat_key, value):
+        value = max(0, int(value or 0))
+        self.conn.execute(
+            "INSERT INTO lifetime_statistics(account_id,stat_key,value) VALUES(?,?,?) "
+            "ON CONFLICT(account_id,stat_key) DO UPDATE SET "
+            "value=MAX(lifetime_statistics.value,excluded.value),updated_at=CURRENT_TIMESTAMP",
+            (account_id, str(stat_key), value),
+        )
+        self.conn.commit()
+        return self.lifetime_stat(account_id, stat_key)
+
+    def lifetime_stats(self, account_id):
+        rows = self.conn.execute(
+            "SELECT stat_key,value FROM lifetime_statistics WHERE account_id=?",
+            (account_id,),
+        ).fetchall()
+        return {str(row["stat_key"]): max(0, int(row["value"] or 0)) for row in rows}
+
+    def fish_journal_entry(self, account_id, fish_id):
+        return self.conn.execute(
+            "SELECT * FROM fish_journal WHERE account_id=? AND fish_id=?",
+            (account_id, base_fish_species_id(fish_id)),
+        ).fetchone()
+
+    def fish_journal_rows(self, account_id):
+        return self.conn.execute(
+            "SELECT * FROM fish_journal WHERE account_id=? ORDER BY caught_count DESC, fish_id",
+            (account_id,),
+        ).fetchall()
+
+    def fish_journal_ids(self, account_id):
+        return {str(row["fish_id"]) for row in self.fish_journal_rows(account_id)}
+
+    def record_fish_catch(self, account_id, fish_id, quantity, length_mm, weight_g, room_id):
+        fish_id = base_fish_species_id(fish_id)
+        quantity = max(1, int(quantity or 1))
+        length_mm = max(0, int(length_mm or 0))
+        weight_g = max(0, int(weight_g or 0))
+        room_id = str(room_id or "")
+        old = self.fish_journal_entry(account_id, fish_id)
+        old_length = int(old["best_length_mm"] or 0) if old else 0
+        old_weight = int(old["best_weight_g"] or 0) if old else 0
+        result = {
+            "new_species": old is None,
+            "new_length_record": length_mm > old_length,
+            "new_weight_record": weight_g > old_weight,
+        }
+        self.conn.execute(
+            """
+            INSERT INTO fish_journal(
+                account_id,fish_id,caught_count,best_length_mm,best_weight_g,
+                first_room_id,last_room_id,first_caught_at,last_caught_at
+            ) VALUES(?,?,?,?,?,?,?,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)
+            ON CONFLICT(account_id,fish_id) DO UPDATE SET
+                caught_count=fish_journal.caught_count+excluded.caught_count,
+                best_length_mm=MAX(fish_journal.best_length_mm,excluded.best_length_mm),
+                best_weight_g=MAX(fish_journal.best_weight_g,excluded.best_weight_g),
+                last_room_id=excluded.last_room_id,
+                last_caught_at=CURRENT_TIMESTAMP
+            """,
+            (account_id, fish_id, quantity, length_mm, weight_g, room_id, room_id),
+        )
+        self.conn.commit()
+        row = self.fish_journal_entry(account_id, fish_id)
+        result.update({
+            "caught_count": int(row["caught_count"] or 0),
+            "best_length_mm": int(row["best_length_mm"] or 0),
+            "best_weight_g": int(row["best_weight_g"] or 0),
+        })
+        return result
 
     def add_drop_history(self, account_id, item_id, item_name, rarity, source, zone):
         self.conn.execute(
@@ -21705,6 +22676,7 @@ class CorpseState:
     key: str
     room_id: str
     mob_name: str
+    mob_template_id: str
     items: list
     created_at: float
     expires_at: float
@@ -21908,7 +22880,8 @@ class World:
         self.corpse_counter += 1; now=time.time()
         corpse=CorpseState(
             key=f"corpse:{self.corpse_counter}", room_id=mob.room_id,
-            mob_name=template["name"], items=items, created_at=now,
+            mob_name=template["name"], mob_template_id=mob.template_id,
+            items=items, created_at=now,
             expires_at=now+CORPSE_LIFETIME_SECONDS,
         )
         self.corpses[corpse.key]=corpse
@@ -22412,6 +23385,8 @@ class Session:
         messages = self.character.add_soul_xp(amount)
         for message in messages:
             await self.send(message)
+
+        await self.set_achievement_progress("soul_level", self.character.soul_level)
 
         if self.character.soul_level > old_level:
             self.current_hp = self.max_hp()
@@ -23077,6 +24052,9 @@ class Session:
                 "Jej pasyw działa od razu. Skilli nauczysz się u nauczyciela "
                 f"klasy {class_name}."
             )
+            await self.set_achievement_progress(
+                "multiclass_classes", len(self.active_class_names())
+            )
             return
 
         if action in ("remove", "usun", "usuń", "wylacz", "wyłącz"):
@@ -23457,6 +24435,77 @@ class Session:
             )
             return True
 
+    async def delete_character_flow(self):
+        rows = await self.send_character_list()
+        if not rows:
+            await self.send("Nie masz postaci do usunięcia.")
+            return True
+
+        await self.send(
+            "Wpisz numer slotu albo nazwę postaci do usunięcia. "
+            "Wpisz 0, aby anulować."
+        )
+        raw = await self.ask("Usuń postać: " )
+        if raw is None:
+            return False
+        choice = raw.strip()
+        normalized = normalize_lookup_text(choice)
+        if normalized in ("0", "back", "wroc", "powrot", "anuluj", "cancel"):
+            await self.send("Usuwanie anulowane.")
+            return True
+
+        selected = None
+        try:
+            slot = int(choice)
+        except ValueError:
+            slot = None
+        if slot is not None:
+            selected = next((r for r in rows if int(r["slot"]) == slot), None)
+        else:
+            selected = next(
+                (r for r in rows if normalize_lookup_text(r["name"]) == normalized),
+                None,
+            )
+        if not selected:
+            await self.send("Nie ma takiej postaci ani slotu.")
+            return True
+
+        name = str(selected["name"])
+        slot = int(selected["slot"])
+        await self.send(
+            f"UWAGA. Wybrano do trwałego usunięcia: {name}, slot {slot}."
+        )
+        await self.send(
+            "Login, hasło i wspólny portfel konta pozostaną. "
+            "Zniknie ta postać oraz jej własny progres, EQ, questy, profesje, "
+            "eksploracja i Bestiariusz."
+        )
+        await self.send(f"Aby potwierdzić wpisz: USUN {name}")
+        confirm = await self.ask("Potwierdzenie: " )
+        if confirm is None:
+            return False
+        confirmation = normalize_lookup_text(confirm)
+        accepted = {
+            normalize_lookup_text(f"usun {name}"),
+            normalize_lookup_text(f"usun postac {name}"),
+            normalize_lookup_text(f"delete {name}"),
+            normalize_lookup_text(f"delete character {name}"),
+        }
+        if confirmation not in accepted:
+            await self.send("Nie potwierdzono. Postać nie została usunięta.")
+            return True
+
+        deleted = self.server.db.delete_character_for_master(
+            self.master_account_id, int(selected["character_account_id"])
+        )
+        if not deleted:
+            await self.send("Nie udało się znaleźć tej postaci. Niczego nie usunięto.")
+            return True
+        await self.send(
+            f"Usunięto postać {deleted['name']} ze slotu {deleted['slot']}."
+        )
+        return True
+
     async def character_selection_flow(self):
         while True:
             rows = list(
@@ -23468,7 +24517,8 @@ class Session:
             await self.send("1. Wybierz postać")
             await self.send("2. Stwórz nową postać")
             await self.send("3. Pokaż listę postaci")
-            await self.send("4. Wyloguj")
+            await self.send("4. Usuń postać")
+            await self.send("5. Wyloguj")
             await self.send(
                 f"Postacie na koncie: {count}/{MAX_CHARACTERS_PER_ACCOUNT}."
             )
@@ -23498,14 +24548,23 @@ class Session:
                 await self.send_character_list()
                 continue
 
-            if choice in ("4", "logout", "wyloguj", "wylogowanie", "back", "wroc"):
+            if choice in (
+                "4", "delete", "delete character", "usun", "usun postac",
+                "usuń", "usuń postać", "kasuj", "skasuj postac", "skasuj postać"
+            ):
+                keep_session = await self.delete_character_flow()
+                if not keep_session:
+                    return False
+                continue
+
+            if choice in ("5", "logout", "wyloguj", "wylogowanie", "back", "wroc"):
                 self.master_account_id = None
                 self.account_id = None
                 self.character = None
                 await self.send("Wylogowano z konta.")
                 return False
 
-            await self.send("Nieprawidłowa opcja. Wybierz 1, 2, 3 albo 4.")
+            await self.send("Nieprawidłowa opcja. Wybierz 1, 2, 3, 4 albo 5.")
 
     async def do_new_account(self):
         await self.send("Tworzenie nowego konta.")
@@ -23741,6 +24800,7 @@ class Session:
         await self.send(
             "Rozpoczynasz sesję w Świątyni Odrodzenia."
         )
+        await self.sync_extended_achievements()
         if moved_gems:
             await self.send(
                 f"Sakwa Górnika: przeniesiono {moved_gems} surowych klejnotów "
@@ -24892,15 +25952,13 @@ class Session:
             await self.send(f"Nowy tytuł: {title_name}.")
         return is_new
 
-    async def advance_achievement(self, metric, amount=1):
+    async def check_achievement_tiers(self, metric, value):
         definition = ACHIEVEMENT_TRACKS.get(metric)
         if not definition:
             return
-        value = self.server.db.add_achievement_metric(
-            self.account_id, metric, amount
-        )
+        value = max(0, int(value))
         for threshold, tier in definition["tiers"]:
-            if value < threshold:
+            if value < int(threshold):
                 continue
             achievement_id = f"{metric}:{tier.lower()}"
             if self.server.db.unlock_achievement(
@@ -24917,6 +25975,325 @@ class Session:
                     await self.unlock_title(
                         f"achievement:{achievement_id}", reward_title
                     )
+
+    async def advance_achievement(self, metric, amount=1):
+        if metric not in ACHIEVEMENT_TRACKS:
+            return
+        value = self.server.db.add_achievement_metric(
+            self.account_id, metric, amount
+        )
+        await self.check_achievement_tiers(metric, value)
+
+    async def set_achievement_progress(self, metric, value):
+        if metric not in ACHIEVEMENT_TRACKS:
+            return
+        value = self.server.db.set_achievement_metric_max(
+            self.account_id, metric, value
+        )
+        await self.check_achievement_tiers(metric, value)
+
+    def current_rare_fish_stock(self):
+        return sum(
+            int(row["quantity"])
+            for row in self.server.db.storage_rows(self.account_id, "net")
+            if str(row["item_id"]) in RARE_FISH_VARIANT_IDS
+        )
+
+    def current_gem_stock(self):
+        total = sum(
+            int(row["quantity"])
+            for row in self.server.db.storage_rows(self.account_id, "bag")
+            if str(row["item_id"]) in RAW_GEM_IDS
+        )
+        total += sum(
+            int(row["quantity"])
+            for row in self.server.db.inventory(self.account_id)
+            if str(row["item_id"]) in RAW_GEM_IDS or str(row["item_id"]) in CUT_GEM_IDS
+        )
+        return total
+
+    async def sync_extended_achievements(self):
+        # Rekonstruowalne metryki są synchronizowane z rzeczywistym trwałym stanem.
+        await self.set_achievement_progress(
+            "exploration_rooms",
+            len(self.server.db.discovered_room_ids(self.account_id).intersection(ALL_EXPLORATION_ROOMS)),
+        )
+        masters = 0
+        for profession in dict.fromkeys(TOOL_PROFESSION_MAP.values()):
+            row = self.server.db.profession(self.account_id, profession)
+            if int(row["level"]) >= profession_max_level(profession):
+                masters += 1
+        await self.set_achievement_progress("profession_masters", masters)
+        bestiary_ids = {str(row["mob_template_id"]) for row in self.server.db.bestiary_rows(self.account_id)}
+        await self.set_achievement_progress(
+            "bestiary_unique", len(bestiary_ids.intersection(BESTIARY_CATALOG))
+        )
+        await self.set_achievement_progress(
+            "multiclass_classes", len(self.active_class_names())
+        )
+        await self.set_achievement_progress("soul_level", self.character.soul_level)
+        await self.set_achievement_progress("rare_fish_caught", self.current_rare_fish_stock())
+        await self.set_achievement_progress("gems_found", self.current_gem_stock())
+        bounty_state = self.server.db.bounty_board_state(self.account_id)
+        await self.set_achievement_progress(
+            "bounties_completed", bounty_state.get("completed_count", 0)
+        )
+
+    def bounty_kill_candidates(self):
+        result = []
+        for mob_id in sorted(BESTIARY_CATALOG):
+            template = MOB_TEMPLATES.get(mob_id, {})
+            if not BESTIARY_SPAWN_ROOMS.get(mob_id):
+                continue
+            if mob_id in BOSS_COLLECTION_CATALOG or template.get("mini_boss"):
+                continue
+            if template.get("rare_mob") or template.get("rare_base_template") or template.get("elite_base_template"):
+                continue
+            if v0863_is_boss_template(template):
+                continue
+            result.append((mob_id, template.get("name", mob_id)))
+        return result
+
+    def generate_bounty_offers(self):
+        offers = []
+        kinds = list(BOUNTY_KINDS)
+        random.shuffle(kinds)
+        # Trzy różne typy na planszy zwiększają szansę, że gracz może wykonać
+        # kontrakt bez zmiany aktualnej aktywności/profesji.
+        for kind in kinds[:BOUNTY_OFFER_COUNT]:
+            if kind == "kill":
+                candidates = self.bounty_kill_candidates()
+                if not candidates:
+                    continue
+                target, name = random.choice(candidates)
+                needed = random.choice((8, 10, 12, 15))
+                label = f"Pokonaj {needed} razy: {name}"
+            else:
+                target = kind
+                base_needed = random.choice(BOUNTY_RESOURCE_NEEDS[kind])
+                needed = base_needed
+                if kind == "fish":
+                    fish_level = self.profession_level_for_tool("fishing")
+                    needed = max(
+                        base_needed,
+                        int(math.ceil(base_needed * v096_fishing_workload_scale(fish_level))),
+                    )
+                label = f"{BOUNTY_RESOURCE_LABELS[kind]}: {needed} sztuk"
+            reward_needed = base_needed if kind != "kill" else needed
+            soul_xp, gold = bounty_reward_values(kind, reward_needed)
+            offers.append({
+                "kind": kind,
+                "target": target,
+                "label": label,
+                "needed": int(needed),
+                "reward_soul_xp": int(soul_xp),
+                "reward_gold": int(gold),
+            })
+        while len(offers) < BOUNTY_OFFER_COUNT:
+            kind = random.choice(("mine", "fish", "wood", "herb"))
+            target = kind
+            base_needed = random.choice(BOUNTY_RESOURCE_NEEDS[kind])
+            needed = base_needed
+            if kind == "fish":
+                fish_level = self.profession_level_for_tool("fishing")
+                needed = max(
+                    base_needed,
+                    int(math.ceil(base_needed * v096_fishing_workload_scale(fish_level))),
+                )
+            soul_xp, gold = bounty_reward_values(kind, base_needed)
+            offers.append({
+                "kind": kind,
+                "target": target,
+                "label": f"{BOUNTY_RESOURCE_LABELS[kind]}: {needed} sztuk",
+                "needed": int(needed),
+                "reward_soul_xp": int(soul_xp),
+                "reward_gold": int(gold),
+            })
+        return offers[:BOUNTY_OFFER_COUNT]
+
+    def ensure_bounty_board(self):
+        state = self.server.db.bounty_board_state(self.account_id)
+        if not state.get("offers"):
+            state["offers"] = self.generate_bounty_offers()
+            self.server.db.save_bounty_board_state(
+                self.account_id,
+                offers=state["offers"],
+                active=state.get("active", {}),
+                completed_count=state.get("completed_count", 0),
+            )
+        return state
+
+    async def show_bounty_board(self):
+        state = self.ensure_bounty_board()
+        active = state.get("active") or {}
+        await self.send(
+            f"TABLICA ZLECEŃ. Ukończone kontrakty: {int(state.get('completed_count', 0))}."
+        )
+        if active:
+            progress = max(0, int(active.get("progress", 0)))
+            needed = max(1, int(active.get("needed", 1)))
+            status = "cel wykonany" if progress >= needed else "w toku"
+            await self.send(
+                f"Aktywny kontrakt: {active.get('label', 'Kontrakt')}. "
+                f"Postęp {progress} z {needed}, {status}. "
+                f"Nagroda: {int(active.get('reward_soul_xp', 0))} Soul XP i "
+                f"{int(active.get('reward_gold', 0))} złota."
+            )
+        else:
+            await self.send("Aktywny kontrakt: brak.")
+        await self.send("DOSTĘPNE KONTRAKTY:")
+        for index, offer in enumerate(state.get("offers") or [], 1):
+            await self.send(
+                f"{index}. {offer.get('label', 'Kontrakt')}. "
+                f"Start 0 z {int(offer.get('needed', 1))}. "
+                f"Nagroda: {int(offer.get('reward_soul_xp', 0))} Soul XP i "
+                f"{int(offer.get('reward_gold', 0))} złota."
+            )
+        await self.send(
+            "Komendy: bounty accept <1-3>, bounty aktywne, bounty odbierz; "
+            "bounty odśwież losuje nową tablicę tylko bez aktywnego kontraktu."
+        )
+
+    async def handle_bounty(self, args=""):
+        raw = str(args or "").strip()
+        norm = normalize_lookup_text(raw)
+        if not norm or norm in ("lista", "list", "status", "info"):
+            await self.show_bounty_board()
+            return
+        state = self.ensure_bounty_board()
+        active = state.get("active") or {}
+
+        if norm in ("aktywne", "aktywny", "active", "progress", "postep", "postęp"):
+            if not active:
+                await self.send("Nie masz aktywnego kontraktu. Wpisz bounty.")
+                return
+            progress = max(0, int(active.get("progress", 0)))
+            needed = max(1, int(active.get("needed", 1)))
+            await self.send(
+                f"Kontrakt: {active.get('label', 'Kontrakt')}. Postęp {progress} z {needed}."
+            )
+            return
+
+        if norm in ("odbierz", "claim"):
+            if not active:
+                await self.send("Nie masz aktywnego kontraktu do odebrania.")
+                return
+            progress = max(0, int(active.get("progress", 0)))
+            needed = max(1, int(active.get("needed", 1)))
+            if progress < needed:
+                await self.send(
+                    f"Kontrakt nie jest ukończony. Postęp {progress} z {needed}."
+                )
+                return
+            soul_xp = max(0, int(active.get("reward_soul_xp", 0)))
+            gold = max(0, int(active.get("reward_gold", 0)))
+            label = str(active.get("label", "Kontrakt"))
+            if soul_xp:
+                await self.grant_soul_xp(soul_xp)
+            self.character.gold += gold
+            self.server.db.save_character(self.character)
+            completed = int(state.get("completed_count", 0)) + 1
+            self.server.db.add_lifetime_stat(self.account_id, "bounties_completed", 1)
+            offers = self.generate_bounty_offers()
+            self.server.db.save_bounty_board_state(
+                self.account_id, offers=offers, active={}, completed_count=completed
+            )
+            await self.set_achievement_progress("bounties_completed", completed)
+            await self.send(
+                f"Kontrakt odebrany: {label}. Nagroda: {soul_xp} Soul XP i {gold} złota. "
+                f"Ukończone kontrakty: {completed}. Tablica wylosowała nowe oferty."
+            )
+            return
+
+        if norm in ("odswiez", "odśwież", "refresh", "new", "nowe"):
+            if active:
+                await self.send(
+                    "Nie można odświeżyć Tablicy Zleceń przy aktywnym kontrakcie."
+                )
+                return
+            offers = self.generate_bounty_offers()
+            self.server.db.save_bounty_board_state(
+                self.account_id, offers=offers, active={},
+                completed_count=state.get("completed_count", 0),
+            )
+            await self.send("Tablica Zleceń została ponownie wylosowana.")
+            await self.show_bounty_board()
+            return
+
+        accept_text = norm
+        for prefix in ("accept ", "przyjmij ", "wez ", "weź "):
+            if accept_text.startswith(prefix):
+                accept_text = accept_text[len(prefix):].strip()
+                break
+        if accept_text.isdigit():
+            if active:
+                progress = int(active.get("progress", 0))
+                needed = int(active.get("needed", 1))
+                await self.send(
+                    f"Masz już aktywny kontrakt. Postęp {progress} z {needed}."
+                )
+                return
+            index = int(accept_text) - 1
+            offers = list(state.get("offers") or [])
+            if not (0 <= index < len(offers)):
+                await self.send("Nie ma takiego numeru kontraktu. Wpisz bounty.")
+                return
+            active = dict(offers[index])
+            active["progress"] = 0
+            active["completed"] = False
+            self.server.db.save_bounty_board_state(
+                self.account_id, offers=offers, active=active,
+                completed_count=state.get("completed_count", 0),
+            )
+            await self.send(
+                f"Przyjęto kontrakt: {active['label']}. Postęp 0 z {int(active['needed'])}. "
+                f"Nagroda: {int(active['reward_soul_xp'])} Soul XP i {int(active['reward_gold'])} złota."
+            )
+            return
+
+        await self.send(
+            "Użycie: bounty; bounty accept <1-3>; bounty aktywne; "
+            "bounty odbierz; bounty odśwież."
+        )
+
+    async def advance_bounty(self, kind, target=None, amount=1):
+        state = self.server.db.bounty_board_state(self.account_id)
+        active = state.get("active") or {}
+        if not active:
+            return False
+        kind = str(kind or "")
+        if str(active.get("kind")) != kind:
+            return False
+        if kind == "kill":
+            wanted = canonical_bestiary_template_id(active.get("target"))
+            actual = canonical_bestiary_template_id(target)
+            if wanted != actual:
+                return False
+        old = max(0, int(active.get("progress", 0)))
+        needed = max(1, int(active.get("needed", 1)))
+        if old >= needed:
+            return False
+        new = min(needed, old + max(0, int(amount)))
+        if new <= old:
+            return False
+        active["progress"] = new
+        active["completed"] = new >= needed
+        self.server.db.save_bounty_board_state(
+            self.account_id,
+            offers=state.get("offers", []),
+            active=active,
+            completed_count=state.get("completed_count", 0),
+        )
+        if new >= needed:
+            await self.send(
+                f"Kontrakt: {active.get('label', 'Kontrakt')}. Postęp {new} z {needed}. "
+                "Cel wykonany. Użyj bounty odbierz."
+            )
+        else:
+            await self.send(
+                f"Kontrakt: {active.get('label', 'Kontrakt')}. Postęp {new} z {needed}."
+            )
+        return True
 
     async def check_all_minibosses_achievement(self):
         if not MINI_BOSS_IDS:
@@ -24962,7 +26339,7 @@ class Session:
                 )
 
     async def record_item_collection(
-        self, item_id, source="", announce=True, record_history=True
+        self, item_id, source="", announce=True, record_history=True, amount=1
     ):
         item = ITEMS.get(item_id)
         if not item:
@@ -24979,6 +26356,31 @@ class Session:
                 source,
                 zone,
             )
+
+        base_resource_id = canonical_profession_resource_id(item_id)
+        collection_candidates = []
+        if base_resource_id in FISH_COLLECTION_CATALOG:
+            collection_candidates.append(("fish", base_resource_id))
+        if base_resource_id in MINERAL_COLLECTION_CATALOG:
+            collection_candidates.append(("minerals", base_resource_id))
+        if base_resource_id in HERB_COLLECTION_CATALOG:
+            collection_candidates.append(("herbs", base_resource_id))
+        if base_resource_id in MATERIAL_COLLECTION_CATALOG:
+            collection_candidates.append(("materials", base_resource_id))
+        if item_id in GEM_COLLECTION_CATALOG:
+            collection_candidates.append(("gems", item_id))
+        if item_id in UNIQUE_ITEM_COLLECTION_CATALOG:
+            collection_candidates.append(("unique", item_id))
+
+        for category, entry_id in collection_candidates:
+            is_new = self.server.db.add_collection_entry(
+                self.account_id, category, entry_id
+            )
+            if is_new and announce:
+                await self.send(
+                    f"Nowa kolekcja: {COLLECTION_CATEGORY_LABELS[category]} — "
+                    f"{COLLECTION_CATALOGS[category][entry_id]}."
+                )
 
         if item_id in NAMED_LOOT_CATALOG:
             is_new = self.server.db.add_collection_entry(
@@ -25003,19 +26405,30 @@ class Session:
         # This deliberately ignores the loot speech filter: quest progress is
         # gameplay-critical information for screen-reader users.
         if announce:
-            await self.announce_item_collect_quest_progress(item_id)
+            await self.announce_item_collect_quest_progress(
+                item_id, max(1, int(amount))
+            )
 
     async def sync_collection_from_inventory(self):
         owned = {row["item_id"] for row in self.server.db.inventory(self.account_id)}
         owned.update(row["item_id"] for row in self.server.db.equipment(self.account_id))
+        for container in ("net", "bag", "woodpile", "herbbag"):
+            owned.update(
+                row["item_id"] for row in self.server.db.storage_rows(self.account_id, container)
+            )
         for item_id in owned:
             await self.record_item_collection(
                 item_id, source="posiadany przedmiot",
                 announce=False, record_history=False
             )
+        for fish_id in self.server.db.fish_journal_ids(self.account_id):
+            if fish_id in FISH_COLLECTION_CATALOG:
+                self.server.db.add_collection_entry(self.account_id, "fish", fish_id)
 
     async def record_mob_progress(self, mob):
         template = MOB_TEMPLATES[mob.template_id]
+        self.server.db.add_lifetime_stat(self.account_id, "kills_total", 1)
+        self.server.db.add_lifetime_stat(self.account_id, "combat_victories", 1)
         base_id = (
             template.get("rare_base_template")
             or template.get("elite_base_template")
@@ -25035,6 +26448,7 @@ class Session:
                     f"Nowy wpis Codexu: {template['name']}, Rare Mob."
                 )
             await self.advance_achievement("rare_kills", 1)
+            self.server.db.add_lifetime_stat(self.account_id, "rare_kills", 1)
 
         if mob.template_id in BOSS_COLLECTION_CATALOG:
             is_new = self.server.db.add_collection_entry(
@@ -25045,6 +26459,7 @@ class Session:
                     f"Nowy wpis Codexu: {template['name']}, Boss."
                 )
             await self.advance_achievement("boss_kills", 1)
+            self.server.db.add_lifetime_stat(self.account_id, "boss_kills", 1)
             if template.get("mini_boss"):
                 await self.check_all_minibosses_achievement()
 
@@ -25057,6 +26472,7 @@ class Session:
         if not is_new:
             return False
 
+        self.server.db.add_lifetime_stat(self.account_id, "rooms_discovered", 1)
         zone = ROOMS[room_id]["zone"]
         zone_rooms = EXPLORATION_ZONE_ROOMS.get(zone, ())
         discovered = self.server.db.discovered_room_ids(self.account_id)
@@ -25073,6 +26489,11 @@ class Session:
                 await self.send(
                     f"Eksploracja: {zone} {pct}% odkryta."
                 )
+
+        await self.set_achievement_progress(
+            "exploration_rooms",
+            len(discovered.intersection(ALL_EXPLORATION_ROOMS)),
+        )
 
         if (
             zone in TRACKED_EXPLORATION_ZONES
@@ -25201,6 +26622,7 @@ class Session:
             await self.send(f"Aktywny tytuł: {self.character.active_title}.")
 
     async def show_achievements(self):
+        await self.sync_extended_achievements()
         rows = self.server.db.achievement_rows(self.account_id)
         await self.send(f"ACHIEVEMENTY. Odblokowane: {len(rows)}.")
         for metric, definition in ACHIEVEMENT_TRACKS.items():
@@ -25284,7 +26706,8 @@ class Session:
             pct = int(discovered_total * 100 / max(1, catalog_total))
             await self.send(f"Cały Collection Codex: {pct}%.")
             await self.send(
-                "Szczegóły: kolekcja named, sety, bossowie, rare albo skrzynie. "
+                "Szczegóły: kolekcja ryby, minerały, zioła, klejnoty, bossowie, rare, "
+                "materiały albo wyjątkowe. Starsze: named, sety, skrzynie. "
                 "Duże kategorie są stronicowane po 40 wpisów."
             )
             return
@@ -25296,7 +26719,10 @@ class Session:
             joined = norm.replace(" ", "")
             category = COLLECTION_CATEGORY_ALIASES.get(joined)
         if not category:
-            await self.send("Kategorie: named, sety, bossowie, rare, skrzynie.")
+            await self.send(
+                "Kategorie: ryby, minerały, zioła, klejnoty, bossowie, rare, "
+                "materiały, wyjątkowe; dodatkowo named, sety, skrzynie."
+            )
             return
 
         page = 1
@@ -25327,6 +26753,88 @@ class Session:
             await self.send(
                 f"Następna strona: kolekcja {category} {page + 1}."
             )
+
+    async def show_boss_codex(self, args=""):
+        raw = str(args or "").strip()
+        norm = normalize_lookup_text(raw)
+        discovered = self.server.db.collection_entry_ids(self.account_id, "bosses")
+        discovered = set(BOSS_COLLECTION_CATALOG).intersection(discovered)
+        total = len(BOSS_COLLECTION_CATALOG)
+
+        if not norm:
+            await self.send(
+                f"BOSS CODEX: odkryto {len(discovered)} z {total} bossów."
+            )
+            await self.send(
+                "Wpisz bosskodex lista albo bosskodex <nazwa bossa>. "
+                "Codex pokazuje kille, pierwszy/ostatni kill, solo/grupa, rekord i odkryte dropy."
+            )
+            return
+
+        if norm.startswith("lista") or norm == "list":
+            parts = raw.split()
+            page = 1
+            if parts and parts[-1].isdigit():
+                page = max(1, int(parts[-1]))
+            rows = sorted(
+                ((boss_id, BOSS_COLLECTION_CATALOG[boss_id]) for boss_id in discovered),
+                key=lambda row: normalize_lookup_text(row[1]),
+            )
+            page_size = 30
+            pages = max(1, math.ceil(len(rows) / page_size))
+            page = min(page, pages)
+            await self.send(
+                f"BOSS CODEX. Odkryto {len(discovered)} z {total}. Strona {page} z {pages}."
+            )
+            start = (page - 1) * page_size
+            for number, (boss_id, name) in enumerate(rows[start:start + page_size], start + 1):
+                entry = self.server.db.bestiary_entry(self.account_id, boss_id)
+                kills = int(entry["kills"] or 0) if entry else 0
+                await self.send(f"{number}. {name}. Pokonany {kills} razy.")
+            if page < pages:
+                await self.send(f"Następna strona: bosskodex lista {page + 1}.")
+            return
+
+        candidates = {boss_id: {"name": name} for boss_id, name in BOSS_COLLECTION_CATALOG.items()}
+        found = find_by_name(candidates, raw)
+        if not found:
+            await self.send("Nie rozpoznaję takiego bossa.")
+            return
+        boss_id, data = found
+        if boss_id not in discovered:
+            await self.send("Ten boss nie został jeszcze odkryty w twoim Boss Codexie.")
+            return
+
+        entry = self.server.db.bestiary_entry(self.account_id, boss_id)
+        if not entry:
+            await self.send("Brak zapisanej historii tego bossa.")
+            return
+        extra = self.server.db.boss_codex_stats(self.account_id, boss_id)
+        solo = int(extra["solo_kills"] or 0) if extra else 0
+        group = int(extra["group_kills"] or 0) if extra else 0
+        total_kills = max(0, int(entry["kills"] or 0))
+        legacy_unknown = max(0, total_kills - solo - group)
+        fastest = entry["fastest_kill_ms"]
+        fastest_text = (
+            f"{int(fastest) / 1000.0:.2f} sekundy" if fastest is not None else "brak rekordu czasu"
+        )
+        await self.send(
+            f"BOSS CODEX: {data['name']}. Pokonania {total_kills}. "
+            f"Solo {solo}. Grupa {group}."
+            + (f" Starsze nierozdzielone {legacy_unknown}." if legacy_unknown else "")
+        )
+        await self.send(
+            f"Pierwszy kill: {entry['first_killed_at']}. Ostatni kill: {entry['last_killed_at']}. "
+            f"Najlepszy czas: {fastest_text}."
+        )
+        drops = self.server.db.boss_codex_drops(self.account_id, boss_id)
+        if drops:
+            names = [ITEMS[row["item_id"]]["name"] for row in drops if row["item_id"] in ITEMS]
+            await self.send(
+                f"Odkryte dropy: {len(names)}. " + ", ".join(names) + "."
+            )
+        else:
+            await self.send("Odkryte dropy: brak zapisanych od v0.9.6.")
 
     async def show_drop_history(self):
         rows = self.server.db.drop_history_rows(self.account_id, 20)
@@ -25401,6 +26909,13 @@ class Session:
             await self.record_item_collection(
                 item_id, source=corpse.mob_name, announce=True
             )
+            boss_id = canonical_bestiary_template_id(corpse.mob_template_id)
+            if boss_id in BOSS_COLLECTION_CATALOG:
+                if self.server.db.add_boss_codex_drop(self.account_id, boss_id, item_id):
+                    await self.send(
+                        f"Boss Codex: odkryty drop {ITEMS[item_id]['name']} z "
+                        f"{BOSS_COLLECTION_CATALOG[boss_id]}."
+                    )
 
         spoken_loot = [
             ITEMS[i]["name"] for i in looted
@@ -25498,6 +27013,56 @@ class Session:
         elif result["items"]:
             await self.send("Przedmioty ze skrzyni ukrywa aktywny loot filter.")
 
+    async def show_lifetime_statistics(self):
+        stats = self.server.db.lifetime_stats(self.account_id)
+        # Pola, które mają już starsze trwałe źródło, są synchronizowane w górę
+        # przy odczycie. Chroni to save'y po ręcznych migracjach i nie dubluje danych.
+        deaths = max(stats.get("deaths", 0), int(self.character.deaths or 0))
+        self.server.db.set_lifetime_stat_max(self.account_id, "deaths", deaths)
+        explored = len(self.server.db.discovered_room_ids(self.account_id))
+        self.server.db.set_lifetime_stat_max(self.account_id, "rooms_discovered", explored)
+        bestiary_rows = self.server.db.bestiary_rows(self.account_id)
+        unique_bestiary = len({str(row["mob_template_id"]) for row in bestiary_rows})
+        self.server.db.set_lifetime_stat_max(self.account_id, "bestiary_unique", unique_bestiary)
+        stats = self.server.db.lifetime_stats(self.account_id)
+
+        await self.send(f"HISTORIA POSTACI: {self.character.name}.")
+        await self.send(
+            "Walka: zwycięstwa "
+            f"{stats.get('combat_victories', 0)}, zabite moby {stats.get('kills_total', 0)}, "
+            f"bossowie {stats.get('boss_kills', 0)}, rare moby {stats.get('rare_kills', 0)}, "
+            f"śmierci {stats.get('deaths', 0)}."
+        )
+        await self.send(
+            "Zadania: ukończone questy "
+            f"{stats.get('quests_completed', 0)}, ukończone kontrakty {stats.get('bounties_completed', 0)}."
+        )
+        await self.send(
+            "Profesje: akcje łącznie "
+            f"{stats.get('profession_actions', 0)}, craftingi {stats.get('craft_actions', 0)}, "
+            f"wytworzone przedmioty {stats.get('crafted_items', 0)}."
+        )
+        await self.send(
+            "Zbiory od v0.9.4: ryby "
+            f"{stats.get('fish_caught', 0)}, rudy i minerały {stats.get('ore_mined', 0)}, "
+            f"drewno {stats.get('wood_gathered', 0)}, zioła {stats.get('herbs_gathered', 0)}, "
+            f"klejnoty {stats.get('gems_found', 0)}."
+        )
+        await self.send(
+            f"Świat: odkryte lokacje {stats.get('rooms_discovered', 0)} z {len(ROOMS)}, "
+            f"Bestiariusz {stats.get('bestiary_unique', 0)} z {len(BESTIARY_CATALOG)}, "
+            f"rzadkie ryby {stats.get('rare_fish_caught', 0)}."
+        )
+        await self.send(
+            f"Wędkarstwo v0.9.5: odkryte gatunki {stats.get('fish_species_discovered', 0)} z {len(FISH_RESOURCE_IDS)}, "
+            f"legendarne połowy {stats.get('legendary_fish_caught', 0)}, "
+            f"nowe rekordy {stats.get('fish_record_updates', 0)}."
+        )
+        await self.send(
+            "Starsze pewne dane zostały odtworzone z zapisów gry. Dokładne ilości sztuk "
+            "ryb, rud, drewna, ziół i wytworzonych przedmiotów są liczone od v0.9.4."
+        )
+
     async def show_where(self):
         room = ROOMS[self.character.room_id]
         await self.send(f"Jesteś tutaj: {room['name']}. Strefa: {room['zone']}.")
@@ -25507,10 +27072,13 @@ class Session:
             "help / pomoc - kategorie pomocy; help [temat] / pomoc [temat] - wybrany temat; help tematy / topics - pełna lista",
             "changes / zmiany / changelog - pokaż najnowsze zmiany",
             "progress / postep - ogólny postęp; progress region - bieżący region",
+            "historia / history / lifetime - trwała Historia postaci: walki, questy, kontrakty, profesje, zbiory, eksploracja i Bestiariusz",
             "eksploracja / exploration [all] - procent odkrycia stref i świata",
             "osiagniecia / achievements - Bronze, Silver, Gold i Platinum",
-            "tytuly / titles; tytul <nazwa> - lista i aktywny tytuł",
-            "kolekcja / collection [named|sety|bossowie|rare|skrzynie] - Collection Codex",
+            "tytuly / titles; tytul <nazwa> - lista i aktywny tytuł; tytuły są prestiżowe i nie dają statystyk",
+            "bounty / zlecenia / contracts - losowana Tablica Zleceń; kontrakty startują od 0/x i czytają postęp na żywo",
+            "kolekcja / collection [ryby|minerały|zioła|klejnoty|bossowie|rare|materiały|wyjątkowe] - Collection Codex",
+            "bosskodex / bosscodex [lista|nazwa] - szczegółowy Boss Codex",
             "historiadropow / drophistory - ostatnie wartościowe dropy",
             "loot rare+ / epic+ / legendary / all / off - filtr komunikatów lootu pod NVDA",
             "opis [nazwa] / describe [name] - szczegółowy opis elementu świata",
@@ -25523,6 +27091,8 @@ class Session:
             "astralportal [poziom] - checkpointy Wieży Astralnej",
             "portal [piętro] - pokaż lub uruchom odblokowany Portal Krypty",
             "atlas [ryby|drewno|rudy|zioła|surowiec] - pełny atlas pozyskiwania surowców i klejnotów",
+            "woda / łowisko - mówi typ bieżącego łowiska, np. rzeka, jezioro, morze, ocean, kanał lub Zatopiona Grota; pokazuje też znane i nieodkryte gatunki",
+            "dziennikryb / fishjournal [lista|nazwa] - odkryte gatunki, rzadkość, liczba połowów oraz rekord długości i masy",
             "geody / geodes - geody w Sakwie Górnika; open geode / otwórz geodę - otwórz jedną geodę",
             "unlock / odklucz / odblokuj - otwórz skrzynię bossową właściwym kluczem; poza skrzynią odblokuj kolejny Tier Broni Duszy",
             "where - aktualna lokacja",
@@ -27501,7 +29071,7 @@ class Session:
         if current_rep < required_rep:
             await self.send(
                 f"Egzamin Soul {threshold} wymaga reputacji {required_rep} w klasie {cls}. "
-                f"Masz {current_rep}. Wykonuj bounty i zadania Gildii."
+                f"Masz {current_rep}. Wykonuj guildbounty i zadania Gildii."
             )
             return
 
@@ -27544,13 +29114,13 @@ class Session:
                     await self.send(
                         f"Aktywne zlecenie: {target[1]}. "
                         f"Nagroda: reputacja +{target[2]}, waluta +" + currency_reading_text(target[3], 0, 0) + ". "
-                        f"Po zabiciu celu użyj: bounty odbierz."
+                        f"Po zabiciu celu użyj: guildbounty odbierz."
                     )
                     return
             lines = ["Tablica zleceń Gildii:"]
             for i, row in enumerate(GUILD_BOUNTY_TARGETS, 1):
                 lines.append(f"{i}. {row[1]} — reputacja +{row[2]}, waluta +" + currency_reading_text(row[3], 0, 0) + ".")
-            lines.append("Użyj: bounty <numer>.")
+            lines.append("Użyj: guildbounty <numer>.")
             await self.send("\n".join(lines))
             return
 
@@ -27585,7 +29155,7 @@ class Session:
         try:
             idx = int(arg) - 1
         except Exception:
-            await self.send("Użycie: bounty, bounty <numer>, bounty odbierz.")
+            await self.send("Użycie: guildbounty, guildbounty <numer>, guildbounty odbierz.")
             return
         if idx < 0 or idx >= len(GUILD_BOUNTY_TARGETS):
             await self.send("Nie ma takiego numeru zlecenia.")
@@ -32313,6 +33883,25 @@ class Session:
         else:
             await self.send("Wpisz narzedzia info po XP, bonusy, czas akcji i sprzedawców.")
 
+    def fishing_water_type(self, room_id=None):
+        room_id = room_id or self.character.room_id
+        if room_id not in FISHING_ROOMS:
+            return None
+        if room_id in FISHING_WATER_TYPE_OVERRIDES:
+            return FISHING_WATER_TYPE_OVERRIDES[room_id]
+        dungeon, _floor = profession_dungeon_floor(room_id)
+        if dungeon == "sunken_grotto":
+            return "Zatopiona grota"
+        if room_id in RIVER_FISHING_ROOMS:
+            return "Rzeka"
+        if room_id in LAKE_FISHING_ROOMS:
+            return "Jezioro"
+        if room_id in SEA_FISHING_ROOMS:
+            return "Morze"
+        if room_id in OCEAN_FISHING_ROOMS:
+            return "Ocean"
+        return "Łowisko"
+
     def fishing_habitat(self, room_id=None):
         room_id = room_id or self.character.room_id
         if room_id in RIVER_FISHING_ROOMS: return "river"
@@ -32467,82 +34056,183 @@ class Session:
         return ()
 
 
-    def fishing_loot(self, tool_level, habitat="river"):
-        if self.character.room_id == "sewer_black_channel" and int(tool_level) >= 30:
-            return "field_blind_sewer_eel"
-        dungeon, dungeon_floor = profession_dungeon_floor(
-            self.character.room_id
-        )
+    def fishing_ecology_pool(self, tool_level, habitat=None, room_id=None):
+        room_id = room_id or self.character.room_id
+        habitat = habitat or self.fishing_habitat(room_id)
+        tool_level = max(1, int(tool_level))
+        if not habitat:
+            return ()
+
+        # Czarny Kanał ma własny gatunek terenowy od Wędki 30. Przed tym
+        # progiem zachowuje zwykłą, rzeczną pulę, tak jak w starszych save'ach.
+        if room_id == "sewer_black_channel" and tool_level >= 30:
+            return ("field_blind_sewer_eel",)
+
+        # Zatopiona Grota nadal ogranicza efektywny poziom puli głębokością.
+        dungeon, dungeon_floor = profession_dungeon_floor(room_id)
+        effective_level = tool_level
         if dungeon == "sunken_grotto":
-            tool_level = min(
-                int(tool_level), dungeon_floor * 10
-            )
-        pool = self.fishing_available_pool(tool_level, habitat)
+            effective_level = min(tool_level, dungeon_floor * 10)
+
+        pool = tuple(self.fishing_available_pool(effective_level, habitat))
+        preferred = FISHING_ECOLOGY_PREFERRED_IDS.get(room_id)
+        if preferred:
+            filtered = tuple(item_id for item_id in pool if item_id in preferred)
+            if filtered:
+                return filtered
+        return pool
+
+    def fishing_loot(self, tool_level, habitat="river"):
+        pool = self.fishing_ecology_pool(
+            tool_level, habitat=habitat, room_id=self.character.room_id
+        )
         if not pool:
             return None
         return random.choice(pool)
 
     async def show_water_info(self):
         habitat = self.fishing_habitat()
-        if not habitat:
+        water_type = self.fishing_water_type()
+        if not habitat or not water_type:
             await self.send(
-                "Tutaj nie ma łowiska. Komenda woda działa przy rzece, "
-                "jeziorze, morzu albo oceanie."
+                "Tutaj nie ma łowiska. Komenda woda działa tylko w miejscu, "
+                "w którym można łowić."
             )
             return
 
         tool = self.server.db.tool(self.account_id, "fishing")
         tool_level = int(tool["level"])
-        pool = self.fishing_available_pool(tool_level, habitat)
-
-        habitat_name = {
-            "river": "rzeka",
-            "lake": "jezioro",
-            "sea": "morze",
-            "ocean": "ocean",
-        }[habitat]
-
+        pool = tuple(self.fishing_ecology_pool(tool_level, habitat=habitat, room_id=self.character.room_id))
+        room = ROOMS.get(self.character.room_id, {})
         await self.send(
-            f"WODA: {habitat_name}. "
-            f"Wędka level {tool_level}. "
-            f"Dostępnych gatunków ryb dla twojej Wędki: {len(pool)}."
+            f"ŁOWISKO: {water_type}. Lokacja: {room.get('name', self.character.room_id)}."
+        )
+        await self.send(
+            f"Ekosystem ryb: {FISHING_HABITAT_LABELS.get(habitat, habitat)}. "
+            f"Wędka level {tool_level}. Dostępnych teraz gatunków: {len(pool)}."
         )
 
-        if pool:
-            names = sorted(
-                (ITEMS[item_id]["name"] for item_id in pool),
-                key=normalize_lookup_text,
-            )
+        known = self.server.db.fish_journal_ids(self.account_id)
+        pool_species = {base_fish_species_id(item_id) for item_id in pool}
+        known_here = sorted(
+            pool_species & known,
+            key=lambda item_id: normalize_lookup_text(ITEMS[item_id]["name"]),
+        )
+        unknown_count = max(0, len(pool_species) - len(known_here))
+        await self.send(
+            f"Dziennik ryb w tym łowisku: odkryte {len(known_here)}, "
+            f"nieodkryte {unknown_count}."
+        )
+        if known_here:
             await self.send(
-                "Ryby możliwe do złowienia: "
-                + ", ".join(names)
+                "Znane gatunki tutaj: "
+                + ", ".join(ITEMS[item_id]["name"] for item_id in known_here)
                 + "."
             )
 
-        locked = [
-            (required, item_id)
-            for required, item_id in (
-                tuple(ENDGAME_FISH_UNLOCKS.get(habitat, ()))
-                + tuple(MORE_FISH_UNLOCKS.get(habitat, ()))
-            )
-            if int(required) > tool_level
-        ]
-        locked.sort(key=lambda entry: (int(entry[0]), ITEMS[entry[1]]["name"]))
+        locked = []
+        for row in tuple(ENDGAME_FISH_UNLOCKS.get(habitat, ())) + tuple(MORE_FISH_UNLOCKS.get(habitat, ())):
+            required, item_id = int(row[0]), str(row[1])
+            if required > tool_level:
+                locked.append((required, item_id))
+        locked.sort(key=lambda entry: (entry[0], ITEMS[entry[1]]["name"]))
         if locked:
             next_level, next_item = locked[0]
             await self.send(
-                f"Następna ryba endgame od Wędki level {next_level}: "
-                f"{ITEMS[next_item]['name']}."
+                f"Następny próg Wędki: level {next_level}. "
+                f"Odblokowuje nowy gatunek: {ITEMS[next_item]['name']}."
+            )
+        else:
+            await self.send("Masz odblokowane wszystkie ryby endgame tego ekosystemu.")
+
+        await self.send(
+            "Ryby nie mają twardego limitu sztuk. Łowisko nie wyczerpuje się od łowienia."
+        )
+
+    async def show_fish_journal(self, args=""):
+        rows = self.server.db.fish_journal_rows(self.account_id)
+        query = self.normalize_description_query(args)
+        if not query:
+            discovered = len(rows)
+            legendary = sum(
+                1 for row in rows
+                if fish_species_rarity(str(row["fish_id"])) == "legendary"
+            )
+            total_caught = sum(max(0, int(row["caught_count"] or 0)) for row in rows)
+            await self.send(
+                f"DZIENNIK RYB: odkryte gatunki {discovered} z {len(FISH_RESOURCE_IDS)}. "
+                f"Zarejestrowane połowy {total_caught}. Legendarne gatunki {legendary}."
+            )
+            await self.send(
+                "Wpisz dziennikryb lista, aby przeczytać odkryte gatunki, "
+                "albo dziennikryb <nazwa ryby>, aby sprawdzić rekordy."
+            )
+            return
+
+        if query in ("lista", "list", "all", "wszystkie"):
+            if not rows:
+                await self.send("Dziennik ryb jest pusty. Złów pierwszy gatunek.")
+                return
+            ordered = sorted(
+                rows,
+                key=lambda row: normalize_lookup_text(
+                    ITEMS.get(str(row["fish_id"]), {}).get("name", str(row["fish_id"]))
+                ),
+            )
+            await self.send(f"ODKRYTE GATUNKI RYB: {len(ordered)}.")
+            for row in ordered:
+                fish_id = str(row["fish_id"])
+                name = ITEMS.get(fish_id, {}).get("name", fish_id)
+                rarity = fish_rarity_label(fish_id)
+                count = max(0, int(row["caught_count"] or 0))
+                best_l = max(0, int(row["best_length_mm"] or 0))
+                best_w = max(0, int(row["best_weight_g"] or 0))
+                if best_l > 0 and best_w > 0:
+                    record = (
+                        f" Rekord: {format_fish_length(best_l)}, "
+                        f"{format_fish_weight(best_w)}."
+                    )
+                else:
+                    record = " Rekord rozmiaru od v0.9.5 jeszcze nie zapisany."
+                await self.send(
+                    f"{name}. Rzadkość: {rarity}. Złowiono {count}.{record}"
+                )
+            return
+
+        candidates = {
+            fish_id: {"name": ITEMS.get(fish_id, {}).get("name", fish_id)}
+            for fish_id in FISH_RESOURCE_IDS
+            if fish_id in ITEMS
+        }
+        found = find_by_name(candidates, args)
+        if not found:
+            await self.send("Nie znam takiego gatunku ryby.")
+            return
+        fish_id, fish = found
+        row = self.server.db.fish_journal_entry(self.account_id, fish_id)
+        if not row:
+            await self.send(
+                f"{fish['name']}: gatunek jeszcze nieodkryty w Dzienniku ryb."
+            )
+            return
+        habitats = fish_species_habitats(fish_id)
+        habitat_text = ", ".join(habitats) if habitats else "specjalne łowisko"
+        best_l = max(0, int(row["best_length_mm"] or 0))
+        best_w = max(0, int(row["best_weight_g"] or 0))
+        await self.send(
+            f"{fish['name']}. Rzadkość: {fish_rarity_label(fish_id)}. "
+            f"Złowiono {int(row['caught_count'] or 0)}. Wody: {habitat_text}."
+        )
+        if best_l > 0 or best_w > 0:
+            await self.send(
+                f"Rekord długości: {format_fish_length(best_l)}. "
+                f"Rekord masy: {format_fish_weight(best_w)}."
             )
         else:
             await self.send(
-                "Masz odblokowane wszystkie ryby endgame tego łowiska."
+                "Gatunek pochodzi ze starszego zapisu; rekord długości i masy "
+                "zacznie się od pierwszego połowu w v0.9.5."
             )
-
-        await self.send(
-            "To liczba dostępnych gatunków, nie skończona liczba sztuk. "
-            "Łowisko nie wyczerpuje się od łowienia."
-        )
 
 
     def mining_loot(self, tool_level, room_id=None):
@@ -33147,19 +34837,74 @@ class Session:
                 f"Bonus Tieru {current_tier} Wędki: wyciągasz dodatkowo {item['name']} x1."
             )
 
+        species_id = base_fish_species_id(item_id)
+        measurements = [
+            roll_fish_measurement(item_id)
+            for _ in range(max(1, resource_quest_quantity))
+        ]
+        best_length = max(length for length, _weight in measurements)
+        best_weight = max(weight for _length, weight in measurements)
+        journal_result = self.server.db.record_fish_catch(
+            self.account_id, species_id, resource_quest_quantity,
+            best_length, best_weight, self.character.room_id,
+        )
+        await self.record_item_collection(
+            species_id, source=self.fishing_water_type() or "łowisko",
+            announce=True, record_history=False, amount=resource_quest_quantity
+        )
+        await self.send(
+            f"Okaz: {format_fish_length(best_length)}, {format_fish_weight(best_weight)}. "
+            f"Rzadkość gatunku: {fish_rarity_label(species_id)}."
+        )
+        if journal_result["new_species"]:
+            await self.send(
+                f"NOWY GATUNEK W DZIENNIKU RYB: {ITEMS[species_id]['name']}."
+            )
+            self.server.db.add_lifetime_stat(
+                self.account_id, "fish_species_discovered", 1
+            )
+        elif journal_result["new_length_record"] or journal_result["new_weight_record"]:
+            parts = []
+            if journal_result["new_length_record"]:
+                parts.append(
+                    f"długość {format_fish_length(journal_result['best_length_mm'])}"
+                )
+            if journal_result["new_weight_record"]:
+                parts.append(
+                    f"masa {format_fish_weight(journal_result['best_weight_g'])}"
+                )
+            await self.send(
+                f"NOWY REKORD {ITEMS[species_id]['name']}: "
+                + ", ".join(parts) + "."
+            )
+            self.server.db.add_lifetime_stat(
+                self.account_id, "fish_record_updates", 1
+            )
+        if fish_species_rarity(species_id) == "legendary":
+            self.server.db.add_lifetime_stat(
+                self.account_id, "legendary_fish_caught", resource_quest_quantity
+            )
+
         await self.announce_resource_quest_progress(
             item_id, resource_quest_quantity
         )
         await self.announce_collect_category_quest_progress("fish", resource_quest_quantity)
+        await self.advance_bounty("fish", item_id, resource_quest_quantity)
+        self.server.db.add_lifetime_stat(self.account_id, "fish_caught", resource_quest_quantity)
+        self.server.db.add_lifetime_stat(self.account_id, "profession_actions", 1)
+        if item_id in RARE_FISH_VARIANT_IDS:
+            await self.advance_achievement("rare_fish_caught", resource_quest_quantity)
+            self.server.db.add_lifetime_stat(self.account_id, "rare_fish_caught", resource_quest_quantity)
 
+        fish_xp_scale = v096_fishing_reward_scale(profession_level)
+        profession_xp = max(1, int(round((10 + random.randint(0, 5)) * fish_xp_scale)))
+        tool_xp = max(1, int(round((8 + random.randint(0, 4)) * fish_xp_scale)))
         messages, profession_level, new_tool_level = self.grant_profession_progress(
-            "Wędkarstwo",
-            10 + random.randint(0, 5),
-            "fishing",
-            8 + random.randint(0, 4),
+            "Wędkarstwo", profession_xp, "fishing", tool_xp,
         )
         for msg in messages:
             await self.send(msg)
+        await self.sync_extended_achievements()
         if new_tool_level != tool_level:
             await self.send(
                 f"Wędka ma teraz level {new_tool_level}, Tier "
@@ -33214,6 +34959,9 @@ class Session:
             )
             mined_resource_quantity = vein_quantity
             item = ITEMS[item_id]
+            await self.record_item_collection(
+                item_id, source="Górnictwo", announce=True, record_history=False, amount=vein_quantity
+            )
             await self.send(
                 f"ŻYŁA: {vein['name']}. "
                 f"Wydobywasz: {item['name']} x{vein_quantity}. "
@@ -33244,6 +34992,11 @@ class Session:
                 f"KLEJNOT {quality_text.upper()}: znajdujesz {ITEMS[gem_id]['name']} x1. "
                 "Kamień trafia do Sakwy Górnika."
             )
+            await self.record_item_collection(
+                gem_id, source="Górnictwo: klejnot", announce=True, record_history=False
+            )
+            await self.advance_achievement("gems_found", 1)
+            self.server.db.add_lifetime_stat(self.account_id, "gems_found", 1)
 
         floor_for_geode = mine_floor_number(self.character.room_id)
         dungeon_name, dungeon_floor = profession_dungeon_floor(self.character.room_id)
@@ -33264,7 +35017,10 @@ class Session:
                 item_id, mined_resource_quantity
             )
             await self.announce_collect_category_quest_progress("ore", mined_resource_quantity)
+            await self.advance_bounty("mine", item_id, mined_resource_quantity)
+            self.server.db.add_lifetime_stat(self.account_id, "ore_mined", mined_resource_quantity)
 
+        self.server.db.add_lifetime_stat(self.account_id, "profession_actions", 1)
         messages, profession_level, new_tool_level = self.grant_profession_progress(
             "Górnictwo",
             10 + random.randint(0, 5),
@@ -33273,6 +35029,7 @@ class Session:
         )
         for msg in messages:
             await self.send(msg)
+        await self.sync_extended_achievements()
         if new_tool_level != tool_level:
             await self.send(
                 f"Kilof ma teraz level {new_tool_level}, Tier "
@@ -33370,8 +35127,14 @@ class Session:
                 f"Bonus Tieru {current_tier} Piły: pozyskujesz dodatkowo {item['name']} x1."
             )
 
+        await self.record_item_collection(
+            item_id, source="Drwalstwo", announce=True, record_history=False, amount=resource_quest_quantity
+        )
         await self.announce_resource_quest_progress(item_id, resource_quest_quantity)
         await self.announce_collect_category_quest_progress("wood", resource_quest_quantity)
+        await self.advance_bounty("wood", item_id, resource_quest_quantity)
+        self.server.db.add_lifetime_stat(self.account_id, "wood_gathered", resource_quest_quantity)
+        self.server.db.add_lifetime_stat(self.account_id, "profession_actions", 1)
 
         messages, profession_level, new_tool_level = self.grant_profession_progress(
             "Drwalstwo",
@@ -33381,6 +35144,7 @@ class Session:
         )
         for msg in messages:
             await self.send(msg)
+        await self.sync_extended_achievements()
         if new_tool_level != tool_level:
             await self.send(
                 f"Piła ma teraz level {new_tool_level}, Tier "
@@ -33447,12 +35211,18 @@ class Session:
                 f"zbierasz dodatkowo {ITEMS[item_id]['name']} x1."
             )
 
+        await self.record_item_collection(
+            item_id, source="Zielarstwo", announce=True, record_history=False, amount=resource_quest_quantity
+        )
         await self.announce_resource_quest_progress(
             item_id, resource_quest_quantity
         )
         await self.announce_collect_category_quest_progress("herb", resource_quest_quantity)
+        await self.advance_bounty("herb", item_id, resource_quest_quantity)
+        self.server.db.add_lifetime_stat(self.account_id, "herbs_gathered", resource_quest_quantity)
+        self.server.db.add_lifetime_stat(self.account_id, "profession_actions", 1)
 
-        messages, prof_level, new_tool_level = self.grant_profession_progress(
+        messages, profession_level, new_tool_level = self.grant_profession_progress(
             "Zielarstwo",
             10 + random.randint(0, 5),
             "herbalism",
@@ -33460,6 +35230,7 @@ class Session:
         )
         for msg in messages:
             await self.send(msg)
+        await self.sync_extended_achievements()
         if new_tool_level != old_level:
             await self.send(
                 f"Sierp Zielarski ma teraz level {new_tool_level}, Tier "
@@ -33478,6 +35249,12 @@ class Session:
             "mithril": int(item.get("sell_mithril", 0) or 0),
         }
         if any(explicit.values()):
+            if item_id in FISH_STORAGE_IDS:
+                total = legacy_currency_to_coins(
+                    explicit["silver"], explicit["gold"], explicit["mithril"]
+                )
+                total = max(1, int(round(total * v096_fish_price_scale(item_id))))
+                return {"silver": total, "gold": 0, "mithril": 0}
             return explicit
 
         # Przedmiot kupny: sklep odkupuje za 50% ceny bazowej.
@@ -33544,7 +35321,7 @@ class Session:
 
     def resource_sale_location_text(self, container):
         return {
-            "net": "Targ Rybny — Rybak Tomas i rybacy",
+            "net": "Targ Rybny — Rybak Borys i rybacy",
             "bag": "Górski Targ Minerałów — Handlarka Minerałów Dagna",
             "woodpile": "Obóz Drwala — Drwal Bran",
             "herbbag": "Chata Zielarki — Zielarka Liora",
@@ -33575,10 +35352,11 @@ class Session:
             return []
 
         profession, _tool_type = definition
-        # 1 bazowy XP za sztukę; respektuje globalny mnożnik EXP profesji.
-        actual_xp = units * PROFESSION_XP_GAIN_MULTIPLIER
         prow = self.server.db.profession(self.account_id, profession)
         level = int(prow["level"])
+        # 1 bazowy XP za sztukę; Wędkarstwo v0.9.6 kompensuje szybszy endgame.
+        xp_scale = v096_fishing_reward_scale(level) if container == "net" else 1.0
+        actual_xp = max(1, int(round(units * PROFESSION_XP_GAIN_MULTIPLIER * xp_scale)))
         xp = int(prow["xp"]) + actual_xp
         actions = int(prow["actions"])
         cap = profession_max_level(profession)
@@ -34331,6 +36109,13 @@ class Session:
         self.server.db.add_item(
             self.account_id, output_id, total_quantity
         )
+        await self.record_item_collection(
+            output_id, source="Rzemiosło", announce=True,
+            record_history=False, amount=total_quantity
+        )
+        self.server.db.add_lifetime_stat(self.account_id, "craft_actions", 1)
+        self.server.db.add_lifetime_stat(self.account_id, "crafted_items", total_quantity)
+        self.server.db.add_lifetime_stat(self.account_id, "profession_actions", 1)
 
         await self.send(
             f"{action_name.capitalize()}: {ITEMS[output_id]['name']} "
@@ -34376,24 +36161,29 @@ class Session:
                 total_quantity,
             )
 
-        tool_xp = int(
-            recipe.get("tool_xp", 8 + random.randint(0, 4))
-        )
+        if "tool_xp" in recipe:
+            tool_xp = roll_crafting_xp(recipe["tool_xp"])
+        else:
+            tool_xp = 8 + random.randint(0, 4)
         if tool_type == "alchemy":
+            profession_xp = (
+                roll_crafting_xp(recipe["profession_xp"])
+                if "profession_xp" in recipe
+                else 10 + random.randint(0, 5)
+            )
             messages, alchemy_level, new_tool_level = (
                 self.grant_profession_progress(
                     "Alchemia",
-                    10 + random.randint(0, 5),
+                    profession_xp,
                     "alchemy",
                     tool_xp,
                 )
             )
         elif tool_type == "jewelcrafting":
-            profession_xp = int(
-                recipe.get(
-                    "profession_xp",
-                    10 + random.randint(0, 5),
-                )
+            profession_xp = (
+                roll_crafting_xp(recipe["profession_xp"])
+                if "profession_xp" in recipe
+                else 10 + random.randint(0, 5)
             )
             messages, jewel_level, new_tool_level = (
                 self.grant_profession_progress(
@@ -34404,11 +36194,10 @@ class Session:
                 )
             )
         elif tool_type == "crafting":
-            profession_xp = int(
-                recipe.get(
-                    "profession_xp",
-                    10 + random.randint(0, 5),
-                )
+            profession_xp = (
+                roll_crafting_xp(recipe["profession_xp"])
+                if "profession_xp" in recipe
+                else 10 + random.randint(0, 5)
             )
             messages, blacksmith_level, new_tool_level = (
                 self.grant_profession_progress(
@@ -34419,8 +36208,10 @@ class Session:
                 )
             )
         elif tool_type == "cooking":
-            profession_xp = int(
-                recipe.get("profession_xp", 10 + random.randint(0, 5))
+            profession_xp = (
+                roll_crafting_xp(recipe["profession_xp"])
+                if "profession_xp" in recipe
+                else 10 + random.randint(0, 5)
             )
             messages, cooking_level, new_tool_level = (
                 self.grant_profession_progress(
@@ -34434,6 +36225,7 @@ class Session:
         for message in messages:
             await self.send(message)
 
+        await self.sync_extended_achievements()
         if new_tool_level != old_tool_level:
             await self.send(
                 f"{tool_name} ma teraz level {new_tool_level}, "
@@ -35062,6 +36854,9 @@ class Session:
             quality = random.choices(GEM_QUALITY_ORDER, weights=cfg["quality_weights"], k=1)[0]
             gem_id = gem_quality_item_id("raw", definition["key"], quality)
             self.store_profession_resource(gem_id, 1)
+            await self.record_item_collection(
+                gem_id, source=cfg["name"], announce=True, record_history=False
+            )
             rewards.append(ITEMS[gem_id]["name"])
         gold_low, gold_high = cfg["gold"]
         gold = random.randint(int(gold_low), int(gold_high))
@@ -37446,6 +39241,7 @@ class Session:
             self.server.db.set_quest_progress(
                 self.account_id, quest_id, int(quest.get("needed", 1))
             )
+            await self.announce_active_quest_progress(quest_id)
             await self.complete_quest(quest_id)
             completed_any = True
 
@@ -37497,6 +39293,7 @@ class Session:
     async def complete_quest(self, quest_id):
         q = QUESTS[quest_id]
         self.server.db.complete_quest(self.account_id, quest_id)
+        self.server.db.add_lifetime_stat(self.account_id, "quests_completed", 1)
 
         reward_prof_xp = int(
             q.get("reward_profession_xp", 0)
@@ -37550,6 +39347,12 @@ class Session:
         self.character.mithril += q.get("reward_mithril", 0)
         for item_id, qty in q["reward_items"].items():
             self.server.db.add_item(self.account_id, item_id, qty)
+            await self.record_item_collection(
+                item_id,
+                source=f"Nagroda questa: {q['name']}",
+                announce=True,
+                amount=qty,
+            )
         self.server.db.save_character(self.character)
         await self.send(f"Zadanie ukończone: {q['name']}.")
         if q.get("unlocks_soul_tier"):
@@ -40621,6 +42424,18 @@ class Session:
                 session.account_id, mob.template_id, fight_duration_ms
             )
             bestiary_id = canonical_bestiary_template_id(mob.template_id)
+            if bestiary_id in BOSS_COLLECTION_CATALOG:
+                self.server.db.record_boss_codex_kill(
+                    session.account_id, bestiary_id, grouped=(count > 1)
+                )
+            await session.advance_bounty("kill", bestiary_id, 1)
+            bestiary_ids_now = {
+                str(row["mob_template_id"])
+                for row in self.server.db.bestiary_rows(session.account_id)
+            }
+            await session.set_achievement_progress(
+                "bestiary_unique", len(bestiary_ids_now.intersection(BESTIARY_CATALOG))
+            )
             bestiary_name = MOB_TEMPLATES.get(bestiary_id, template).get("name", template["name"])
             if bestiary_new:
                 await session.send(
@@ -40663,7 +42478,7 @@ class Session:
                 if bounty_state.get("target") == mob.template_id and not bounty_state.get("completed"):
                     bounty_state["completed"] = True
                     session.character.set_guild_bounty_state(bounty_state)
-                    await session.send("Cel zlecenia Gildii pokonany. Użyj: bounty odbierz.")
+                    await session.send("Cel zlecenia Gildii pokonany. Użyj: guildbounty odbierz.")
             except Exception:
                 pass
 
@@ -40683,19 +42498,8 @@ class Session:
                 changed = self.server.db.increment_quest(
                     session.account_id, target
                 )
-                for quest_id, progress in changed:
-                    q = QUESTS[quest_id]
-                    if progress >= q["needed"]:
-                        await session.send(
-                            f"Quest aktywny: {q['name']}. "
-                            f"Postęp {progress} z {q['needed']}. "
-                            "Cel wykonany, wróć do NPC."
-                        )
-                    else:
-                        await session.send(
-                            f"Quest aktywny: {q['name']}. "
-                            f"Postęp {progress} z {q['needed']}."
-                        )
+                for quest_id, _progress in changed:
+                    await session.announce_active_quest_progress(quest_id)
 
             self.server.db.save_character(session.character)
 
@@ -40708,6 +42512,17 @@ class Session:
                 await winner.record_item_collection(
                     item_id, source=template["name"], announce=True
                 )
+                boss_id_for_drop = canonical_bestiary_template_id(mob.template_id)
+                if boss_id_for_drop in BOSS_COLLECTION_CATALOG:
+                    for party_session in recipients:
+                        new_drop = self.server.db.add_boss_codex_drop(
+                            party_session.account_id, boss_id_for_drop, item_id
+                        )
+                        if new_drop:
+                            await party_session.send(
+                                f"Boss Codex: odkryty drop {ITEMS[item_id]['name']} z "
+                                f"{BOSS_COLLECTION_CATALOG[boss_id_for_drop]}."
+                            )
                 if winner.loot_message_allowed(item_id):
                     await winner.send(
                         f"Drop drużyny trafia do ciebie: "
@@ -40780,6 +42595,7 @@ class Session:
         self.character.gold -= loss_gold
         self.character.mithril -= loss_mithril
         self.character.deaths += 1
+        self.server.db.add_lifetime_stat(self.account_id, "deaths", 1)
         old_room = self.character.room_id
         self.character.room_id = "temple"
         self.current_hp = self.max_hp()
@@ -40835,7 +42651,7 @@ class Session:
             rest_safe_commands = {
                 "rest", "help", "encoding", "describe", "changes", "look",
                 "corpse", "cryptinfo", "astralinfo", "consider",
-                "waterinfo", "exits", "map", "atlas", "codex", "bestiary",
+                "waterinfo", "fishjournal", "exits", "map", "atlas", "codex", "bestiary",
                 "where", "who", "expareas", "terraininfo", "classsets", "say", "stats", "hp", "score", "mana", "declension", "skills",
                 "skillnames", "skillqueue", "soul", "money", "net", "bag",
                 "woodpile", "herbbag", "professions", "ranks",
@@ -40848,8 +42664,8 @@ class Session:
                 "recipes", "inventory", "equipment", "shop",
                 "teachers", "quests", "charisma", "multiclass",
                 "back", "dungeonexit", "progress", "exploration",
-                "achievements", "titles", "title", "collection",
-                "drophistory", "lootfilter", "regionprogress", "combatlog",
+                "achievements", "titles", "title", "collection", "bosscodex", "bounty",
+                "drophistory", "lootfilter", "regionprogress", "combatlog", "lifetime",
             }
 
             if (
@@ -40868,7 +42684,7 @@ class Session:
                 "terraininfo", "location", "stats", "hp", "score", "money",
                 "soul", "skills", "skillnames", "inventory", "equipment",
                 "quests", "progress", "exploration", "achievements", "titles",
-                "collection", "drophistory", "combatlog", "say", "tell",
+                "collection", "bosscodex", "bounty", "drophistory", "combatlog", "lifetime", "fishjournal", "say", "tell",
                 "partychat",
             }
             if self.guide_task_active() and (
@@ -40889,6 +42705,8 @@ class Session:
                 await self.guild_exam(args)
             elif command == "guildbounty":
                 await self.guild_bounty(args)
+            elif command == "bounty":
+                await self.handle_bounty(args)
             elif command == "help":
                 await self.show_help(args)
             elif command == "encoding":
@@ -40899,6 +42717,8 @@ class Session:
                 await self.show_latest_changes()
             elif command == "progress":
                 await self.show_progress(args)
+            elif command == "lifetime":
+                await self.show_lifetime_statistics()
             elif command == "regionprogress":
                 await self.show_region_progress()
             elif command == "exploration":
@@ -40911,6 +42731,8 @@ class Session:
                 await self.set_title(args)
             elif command == "collection":
                 await self.show_collection(args)
+            elif command == "bosscodex":
+                await self.show_boss_codex(args)
             elif command == "drophistory":
                 await self.show_drop_history()
             elif command == "lootfilter":
@@ -41203,6 +43025,8 @@ class Session:
                 await self.turn_in_quest_command(args)
             elif command == "waterinfo":
                 await self.show_water_info()
+            elif command == "fishjournal":
+                await self.show_fish_journal(args)
             elif command == "teachers":
                 await self.show_teachers()
             elif command == "quests":

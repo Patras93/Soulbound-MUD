@@ -1,3 +1,95 @@
+v0.9.6 — Collections + Boss Codex + Wędkarstwo 16→3 s
+=============================================================
+- Rybak z Targu Rybnego ma teraz na imię Borys. Wewnętrzny identyfikator NPC i stare aliasy pozostają dla zgodności zapisów/makr, ale gra i NVDA pokazują „Rybak Borys”.
+- Rozszerzono Collection Codex o 8 głównych kategorii: Ryby, Minerały, Zioła, Klejnoty, Bossowie, Rare Moby, Materiały i Wyjątkowe przedmioty.
+- Kategorie pokazują bieżący stan `odkryte z wszystkich` i są odczytywane przez wspólny kanał NVDA.
+- Aktualne katalogi: 285 ryb, 53 minerały, 104 zioła, 88 klejnotów, 118 bossów, 834 rare moby, 95 materiałów i 74 wyjątkowe przedmioty.
+- Starsze Named Loot/Sety/Skrzynie pozostają jako dodatkowe widoki kompatybilności.
+- Dodano `bosskodex` / `bosscodex`: łączna liczba killi, pierwszy/ostatni kill, rekord czasu, solo/grupa i odkryte dropy każdego odkrytego bossa.
+- Historyczne kille/daty/rekordy biorą się z istniejącego Bestiariusza; solo/grupa i dropy są dokładne od v0.9.6 i starsze dane nie są zgadywane.
+- Boss Codex rejestruje bezpośrednie dropy oraz ekwipunek/klucze faktycznie zabrane z ciała bossa.
+- Wędkarstwo zmienia krzywą czasu z 15→5 s na 16→3 s: start jest odrobinę wolniejszy, endgame szybszy, minimum to dokładnie 3 sekundy przy levelu 200.
+- XP za połów i sprzedaż ryb jest skalowany względem starego czasu, a wymagania rybackich Bounty Contracts rosną na wysokich poziomach bez zwiększania bazowej nagrody kontraktu.
+- Sprzedaż wysokopoziomowych ryb ma kompensację ceny wg poziomu odblokowania gatunku; celem jest brak darmowego skoku zarobku/h przy 3 sekundach.
+- Ryby pozostają bez limitu populacji; brak przełowienia i brak trwałości Wędki.
+- Migracja `collections_v096` jest jednorazowa i idempotentna.
+- HELP i lista komend zsynchronizowane z v0.9.6.
+
+v0.9.5 — Fishing Ecology / Ekologia Wód
+============================================
+- Rozbudowano Wędkarstwo bez zmiany bazowego balansu walki, cen ryb ani krzywej Wędki 1-200.
+- Komenda `woda` / `lowisko` / `łowisko` mówi NVDA przede wszystkim, jakim typem łowiska jest bieżąca lokacja, np. Rzeka, Jezioro, Morze, Ocean, Kanał, Strumień, Podziemna rzeka, Bagienne rozlewisko, Zamarznięte jezioro albo Zatopiona grota.
+- Typ widoczny dla gracza został oddzielony od technicznego ekosystemu losowania. Dzięki temu Kanał może korzystać z rodziny rzecznej, ale NVDA mówi „Łowisko: Kanał”, a nie „Rzeka”.
+- `woda` pokazuje dokładnie tę samą aktualną pulę gatunków, z której naprawdę losuje połów przy bieżącym poziomie Wędki i w danej lokacji.
+- Naprawiono zgodność Czarny Kanał / Zatopiona Grota: odczyt dostępnych gatunków respektuje specjalnego Ślepego Węgorza oraz ograniczenie puli przez głębokość groty.
+- Cztery istniejące miejsca wodne otrzymały własne profile regionalne bez dodawania sztucznych pomieszczeń: Leśny Strumień, Podziemna Rzeka Trolli, Bagienne Rozlewisko i Zamarznięte Jezioro.
+- Łącznie 30 istniejących lokacji jest teraz oznaczonych jako łowiska; cały świat nadal ma 1272 lokacje.
+- Dodano trwały `Dziennik ryb` per postać: `dziennikryb` / `fishjournal`, `dziennikryb lista`, `dziennikryb <gatunek>`.
+- Dziennik agreguje rzadkie warianty do bazowego gatunku, przechowuje liczbę złowionych sztuk, pierwsze/ostatnie łowisko oraz najlepszą długość i masę.
+- Pierwsze złowienie gatunku daje natychmiastowy komunikat NVDA `NOWY GATUNEK W DZIENNIKU RYB`; późniejsze lepsze okazy mogą dać `NOWY REKORD`.
+- Każdy połów losuje prestiżową długość i masę. Rekordy są kolekcjonerskie i nie zwiększają obrażeń, statystyk ani ceny przedmiotu.
+- 285 bazowych zasobów rybnych ma kolekcjonerską rzadkość: 95 pospolitych, 50 niepospolitych, 75 rzadkich, 52 epickie i 13 legendarnych.
+- Rzadkość nie zmienia dotychczasowych wartości ekonomicznych ani siły postaci; opisuje trudność/progresję odkrycia gatunku.
+- Migracja starszego zapisu zakłada `fish_journal` bez resetu bazy. Gatunki nadal znajdujące się w Siatce na ryby są bezpiecznie agregowane do dziennika; dla starych połowów nie są wymyślane historyczne rekordy rozmiaru.
+- Migracja ma flagę `fish_journal_v095`, więc kolejny restart niczego nie dubluje.
+- Lifetime Statistics rozszerzono o odkryte gatunki ryb, legendarne połowy i aktualizacje rekordów.
+- Ryby pozostają bez twardego limitu sztuk. Nie dodano zasobności, przełowienia, respawnu populacji ani trwałości Wędki.
+- HELP i lista komend zostały zsynchronizowane z `woda` i `dziennikryb`.
+
+v0.9.4 — Historia postaci / Lifetime Statistics
+===============================================
+- Dodano trwałą tabelę `lifetime_statistics` per postać.
+- Komendy `historia`, `history`, `lifetime` i `lifestats` pokazują statystyki w krótkich komunikatach dla NVDA.
+- Walka: zwycięstwa, zabite moby, bossowie, rare moby i śmierci.
+- Zadania: ukończone questy oraz odebrane Bounty Contracts.
+- Profesje: łączna liczba akcji 8 profesji, liczba craftingów oraz wytworzonych przedmiotów.
+- Dokładne ilości od v0.9.4: ryby, rudy/minerały, drewno, zioła, klejnoty i crafted items.
+- Świat: odkryte lokacje, wpisy Bestiariusza i rzadkie ryby.
+- Jednorazowa migracja v0.9.3 odtwarza tylko pewne dane istniejące wcześniej; nie rekonstruuje zmyślonych ilości zużytych/sprzedanych surowców.
+- Migracja ma flagę `lifetime_statistics_v094`, więc kolejne restarty niczego nie dublują.
+- Historia jest per postać i podlega usunięciu razem z wybranym slotem postaci. Konto i wspólny portfel pozostają.
+- Brak zmian w startowym wyposażeniu/walucie i brak globalnego rebalance.
+
+v0.9.3 — Achievements + Titles + Bounty Contracts
+====================================================
+- Rozszerzono system osiągnięć z 4 do 12 torów bez kasowania istniejącego postępu.
+- Nowe tory obejmują eksplorację, profesje 200, Bestiariusz, rzadkie ryby, klejnoty, multiclass, Soul Level i ukończone kontrakty; stare gobliny/skrzynie/rare/bossowie pozostają.
+- Progi kompletności są powiązane z realną zawartością: 1272 lokacje świata, 953 logiczne gatunki Bestiariusza i 8 profesji.
+- Tytuły pozostają czysto prestiżowe: brak wpływu na sześć statystyk, HP, Manę, Soul Power, obrażenia, obronę, drop, XP i ekonomię.
+- Dodano trwałą tabelę `bounty_boards` przez `CREATE TABLE IF NOT EXISTS`; migracja z v0.9.2 zachowuje stare osiągnięcia i tytuły.
+- `bounty` / `zlecenia` / `contracts` generuje 3 losowe oferty. Można mieć jeden aktywny kontrakt.
+- Typy kontraktów: zabicie konkretnego zwykłego moba, wydobywanie rud, łowienie ryb, ścinanie drewna i zbieranie ziół.
+- Każdy przyjęty kontrakt zaczyna od `0/x`. Każde właściwe zdarzenie zapisuje postęp natychmiast i wysyła NVDA bieżące `n/x`; licznik jest ograniczony do celu.
+- `bounty aktywne` pobiera bieżący stan z SQLite; wylogowanie/reconnect nie resetuje kontraktu.
+- `bounty odbierz` wypłaca umiarkowane Soul XP + złoto, zwiększa trwały licznik ukończonych kontraktów i odświeża trzy oferty.
+- Warianty elite/rare celu zabójstwa są kanonizowane do gatunku bazowego, więc prawidłowo liczą się do kontraktu.
+- Stary system reputacyjnych zleceń Gildii nie został usunięty; jest dostępny przez `guildbounty` / `zleceniagildii`.
+- HELP i aliasy PL/EN zsynchronizowano z nowym systemem.
+- Brak globalnego rebalance walki, questów, craftu, dropu i ekonomii.
+
+v0.9.2 — Live Quest Progress + Craft RNG Audit
+===============================================
+- NVDA czyta bieżący postęp aktywnego questa natychmiast po każdym zdarzeniu zwiększającym licznik: kill, collect, collect_resource, collect_category, craft/craft_set oraz rozmowy/dostawy NPC.
+- Kill questy korzystają z tego samego formatera aktualnego stanu co dziennik, zamiast osobnej kopii komunikatu.
+- Rozmowy i dostawy NPC czytają finalny postęp przed automatycznym ukończeniem zadania.
+- Przedmioty otrzymane jako nagroda questa są traktowane jako nowo zdobyte i mogą natychmiast zwiększyć inny aktywny quest collect.
+- `quest` / `quest aktywne` odczytuje wartości bezpośrednio z SQLite przy każdym otwarciu; dziennik nie ma cache postępu.
+- Wszystkie cztery ścieżki wytwarzania: Kowalstwo/Rzemiosło, Gotowanie, Alchemia i Jubilerstwo mają losowość XP na każdej akcji.
+- Receptury ze stałym Tool XP/Profession XP dostają symetryczny rzut ±15% wokół wartości bazowej; długoterminowa średnia pozostaje bez zmian.
+- Bonus dodatkowego produktu nadal zależy od Tieru narzędzia i nie został globalnie podniesiony, więc ekonomia produktu pozostaje na balansie v0.9.1/v0.9.0.
+- HELP zsynchronizowano z natychmiastowym odczytem postępu i losowością craftu.
+
+v0.9.1 — Character Delete Menu
+================================
+- Po zalogowaniu MENU POSTACI ma nową opcję 4. Usuń postać; Wyloguj jest teraz opcją 5.
+- Usuwanie działa dla każdego zwykłego konta i nie wymaga uprawnień administratora.
+- Postać można wskazać numerem slotu albo nazwą.
+- Operacja wymaga jawnego potwierdzenia `USUN <nazwa postaci>` albo `DELETE <nazwa postaci>`.
+- Usuwana jest wyłącznie wybrana postać i jej własny progres: statystyki, Class/Soul progress, inventory/EQ, questy, profesje, eksploracja, Bestiariusz i pozostałe dane per postać.
+- Login, hasło konta oraz wspólny portfel konta pozostają bez zmian.
+- Adminowe `wipe moje postacie` i `wipe wszystkie postacie` pozostają osobnymi funkcjami i nie zmieniają działania.
+- Brak zmian balansu v0.9.0.
+
 v0.9.0 — Full Character & Soul Weapon Balance Pass
 =====================================================
 - Wszystkie 13 ras mają identyczny budżet 50 bazowych punktów w pięciu głównych statystykach; usunięto wcześniejszy rozjazd 50-58 punktów.
@@ -57,7 +149,7 @@ v0.8.73 — Questy: 20 Odłamków Duszy i 20 Karpi Rzecznych
 - Nagroda: 7500 srebra i 2 Eliksiry Duszy.
 - „Zlecenie Neris 1: Karp Rzeczny” wymaga teraz 20 Karpi Rzecznych zamiast 5.
 - Nagroda pierwszego zlecenia Neris: 1200 EXP Wędkarstwa, 1000 EXP Wędki i 300 srebra.
-- „Próba Rybaka” od Rybaka Tomasa pozostaje bez zmian: 30 dowolnych ryb.
+- „Próba Rybaka” od Rybaka Borysa pozostaje bez zmian: 30 dowolnych ryb.
 - Wszystkie trzy questy zachowują event-progress-only; przyjęcie zaczyna od 0/x i stary zapas nie daje postępu.
 - Poprawiono dokumentację starej nagrody „Odłamków dla kowala”, aby odpowiadała aktywnym danym.
 
@@ -355,7 +447,7 @@ Soulbound v0.8.56 - Walking, HP, Score, Help & Soul Info Refresh
 - `north/south/east/west/up/down`, skróty `n/s/e/w/u/d` oraz polskie nazwy kierunków korzystają z nowego chodzenia.
 - `prowadz <cel>` / `walk <cel>` również wykonuje kolejne przejścia jako marsz krok po kroku zamiast błyskawicznych zmian room_id.
 - Dodano i zaktualizowano `help nawigacja` / `help chodzenie`; główny help opisuje teraz krokowy ruch.
-- Rybak Tomas na Targu Rybnym jest sprzedawcą podstawowej Wędki. Mistrz Wędkarstwa Neris pozostaje nauczycielem rozwoju Wędki i Wędkarstwa.
+- Rybak Borys na Targu Rybnym jest sprzedawcą podstawowej Wędki. Mistrz Wędkarstwa Neris pozostaje nauczycielem rozwoju Wędki i Wędkarstwa.
 - Dodano `hp` / `zdrowie`: HP i Mana są czytane w osobnych komunikatach wraz z wartościami bieżącymi i maksymalnymi.
 - Dodano `score` / `wynik`: podsumowanie postaci obejmuje rasę, klasy, Biegłości 1-200, Soul Level/Tier, HP, Manę, sześć statystyk, wspólny portfel, lokację i dynamiczną ocenę terenu.
 - `staty` nie czyta już wszystkich statystyk jednym ciągiem. Siła, Zręczność, Kondycja, Inteligencja, Siła Woli i Charyzma mają osobne komunikaty NVDA.
@@ -2913,7 +3005,7 @@ SOULBOUND v0.6.43 PROTECTED FRIENDLY NPCS
 - Drwal Bran jest chroniony.
 - Zielarka Liora jest chroniona.
 - Zielarka Mira jest chroniona.
-- Rybak Tomas jest chroniony.
+- Rybak Borys jest chroniony.
 - Kowal Doran jest chroniony.
 - Kapłan Elor jest chroniony.
 - Kapitan Arven jest chroniony.
@@ -3612,7 +3704,7 @@ SOULBOUND v0.6.6 FISH MARKET QUEST
 - Targ Rybny znajduje się na północ od Rynku.
 - Wędka została usunięta z ogólnego Rynku.
 - Wędka jest sprzedawana na Targu Rybnym.
-- Dodano NPC Rybak Tomas.
+- Dodano NPC Rybak Borys.
 - Dodano quest Próba Rybaka.
 - Cel: przynieś 30 dowolnych ryb.
 - Quest liczy ryby z Siatki oraz zwykłego inventory.
