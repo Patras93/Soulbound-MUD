@@ -1,3 +1,157 @@
+v0.9.16 — Ręczny wybór EQ
+============================
+- Usunięto automatyczny wybór „najlepszego” EQ przy komendach slotowych. Gracz sam wybiera konkretny przedmiot.
+- `załóż hełm/zbroja/rękawice/nogi/buty/...` nie podmienia już automatycznie zajętego slotu. Jeśli jest kilka możliwości, gra tylko je odczytuje.
+- Podanie pełnej nazwy konkretnego przedmiotu jest świadomą decyzją gracza o założeniu go; dopiero wtedy może zastąpić obecny przedmiot w pojedynczym slocie.
+- Pierścienie i talizmany nigdy nie wybierają już automatycznie słabszego z dwóch slotów. Gracz musi wskazać `pierścień 1/2` albo `talizman 1/2` oraz wybrany przedmiot.
+- Dodano ręczne zdejmowanie EQ: `zdejmij <slot>` / `unequip <slot>`. Założone EQ pozostaje niesprzedawalne; po ręcznym zdjęciu może być sprzedane, jeśli jego kategoria jest skupowana.
+- Zmiana EQ podczas aktywnej walki nadal jest zablokowana.
+- Zachowano wszystkie systemy v0.9.15: unikalne nazwy EQ, skup na Rynku, Szkatułkę Rzemieślniczą, jubilerstwo w Szkatułce i gęstsze Krypty/Wieże/Lochy z wyłączeniem kopalni.
+
+v0.9.15 — EQ, skup na Rynku, Szkatułka i gęstsze lochy
+==============================================================
+- Każdy element EQ ma globalnie unikalną nazwę. Audyt v0.9.15 potwierdza 22 194/22 194 unikalnych nazw przedmiotów typu armor.
+- Zakładanie nowego EQ na zajęty slot zdejmuje poprzedni przedmiot. Przy dwóch pierścieniach i dwóch talizmanach automatyczny wybór zastępuje słabszy z dwóch założonych slotów.
+- System działa dla wszystkich 12 klas i zachowuje wymagania klasy/Biegłości. Stare przedmioty pozostają zgodne z save'ami.
+- Założone EQ jest twardo chronione przed `sell` i `sell all`. Jeżeli gracz ma dwie identyczne sztuki, z których jedna jest założona, zbiorcza sprzedaż może sprzedać tylko wolną sztukę.
+- Niezałożone EQ oraz zwykłe łupy z mobów, w tym kły i trofea, mają wartość skupu i mogą być sprzedawane przez `sell` / `sell all`.
+- Na Rynku działa osobny Handlarz Skupu Radan. Nie skupuje ryb, rud, minerałów, surowych klejnotów, drewna, ziół, materiałów rzemieślniczych, narzędzi ani przedmiotów questowych.
+- `sell all` u handlarza na Rynku automatycznie pomija wszystko chronione i profesyjne. Surowce profesji nadal sprzedaje się wyłącznie właściwym fachowcom.
+- Dodano Szkatułkę Rzemieślniczą (`szkatułka` / `craftbox`). Sztabki, deski i inne półprodukty craftu trafiają do niej automatycznie zamiast do zwykłego inventory.
+- Materiały jubilerskie po obróbce również trafiają do Szkatułki: wszystkie oszlifowane klejnoty są przechowywane w niej automatycznie. Surowe klejnoty pozostają w Sakwie Górnika do czasu oszlifowania.
+- Receptury automatycznie pobierają odpowiednie materiały ze Szkatułki. Osadzanie klejnotów w pierścieniach/naszyjnikach również pobiera oszlifowany klejnot bezpośrednio ze Szkatułki.
+- Przy zdjęciu/podmianie biżuterii osadzone klejnoty wracają do Szkatułki, a nie do zwykłego plecaka.
+- Migracja v0.9.15 przenosi stare sztabki/deski/materiały craftu oraz stare oszlifowane klejnoty z inventory do Szkatułki bez ich utraty.
+- Krypty, Wieża Astralna, Mityczna Wieża, Twierdza Gigantów oraz zwykłe lochy mają gęstszą obsadę: pomieszczenia bojowe nie kończą się na pojedynczym zwykłym mobie.
+- W statycznych lochach objętych systemem każdy pokój ze zwykłymi przeciwnikami ma minimum trzy różne archetypy/nazwy przeciwników.
+- Zatopiona Grota, Pradawny Las i Ogród Alchemika mają po trzy różne moby na poziom również w części proceduralnej. Kopalnia Kryształów i Kopalnia Głębinowa są świadomie wyłączone z tej zmiany.
+- Proceduralne piętra zwykłej i Mitycznej Krypty, obu Wież oraz Twierdzy również generują kilka różnych zwykłych przeciwników. Bossowie nadal zachowują własne piętra i mechaniki.
+- Zachowano 1272 bazowe lokacje, 219 questów, 289 receptur, progresję 1-400, Soul Tier 1-40 oraz zasady v0.9.14.
+- Testy: `V0915_ALL_TESTS_OK`, regresja v0.9.14 `V0914_ALL_TESTS_OK` oraz regresja v0.9.13 `INFINITE_DUNGEONS_TOWERS_OK`.
+
+v0.9.14 — Dungeon/Tower Content + Combat Quest Stat XP + Soul Tier Gates
+===============================================================================
+- Domknięto brakującą zawartość proceduralnych części Wieży Astralnej, Mitycznej Wieży Astralnej i Twierdzy Gigantów bez zmiany ręcznie przygotowanych pięter.
+- Proceduralne piętra bojowe mają teraz deterministyczne motywy zmieniające profil HP/obrażeń/XP i opis piętra, zamiast być wyłącznie powtarzalnym ciągiem tych samych pomieszczeń.
+- Co 5. proceduralne piętro, które nie jest głównym piętrem bossa, pojawia się dodatkowy Czempion Próby / mini-boss z podwyższonym HP, obrażeniami i nagrodami.
+- Główny boss co 10 pięter pozostaje bez zmian jako najważniejsze wydarzenie danego odcinka; nie jest dublowany dodatkowym Czempionem.
+- Kopalnia Głębinowa oraz cztery nieskończone lochy profesyjne dostały specjalne sektory po końcu ręcznie przygotowanej części: rezonansowe, bogate i mistrzowskie.
+- Sektory zbieractwa dają stałe bonusy: rezonans +10% XP profesji/narzędzia; bogaty +1 bazowego zbioru i +15% XP; mistrzowski +2 bazowego zbioru i +25% XP.
+- Bonusy sektorów nie podnoszą capu mocy ponad 400. Czysty mithril jako waluta nie otrzymuje dodatkowej ilości z bonusu sektora.
+- KAŻDY zwykły quest walki typu kill daje teraz gwarantowany EXP statystyk i Soul XP ponad dotychczasowe nagrody. Audyt objął 52/52 istniejące questy kill.
+- EXP z questa walki trafia osobno do wszystkich sześciu niezależnych statystyk: Siła, Zręczność, Kondycja, Inteligencja, Siła Woli i Charyzma. Nie dodano levelu postaci.
+- Te same zasady EXP statystyk/Soul XP rozszerzono na bojowe questy klasowe Gildii, bojowe bounty Gildii i losowe kontrakty Bounty Board typu kill.
+- Soul Level jest teraz twardo ograniczony przez aktualnie odblokowany Soul Tier. Tier 1 pozwala dojść do progu Tieru 2, Tier 2 do progu Tieru 3 itd.; Tier 40 pozwala dojść do Soul Level 400.
+- Po osiągnięciu progu następnego nieodblokowanego Tieru dalszy Soul XP jest blokowany ze WSZYSTKICH źródeł do wykonania właściwej Próby i użycia `unlock`.
+- Nadmiar Soul XP ponad zablokowany próg nie jest bankowany, więc odblokowanie Tieru nie powoduje nagłego przeskoczenia kolejnych Soul Leveli.
+- Istniejące save'y z Soul Level ponad bieżącą bramką Tieru nie są cofane; po aktualizacji po prostu nie zdobywają dalszego Soul XP, dopóki nie nadrobią Tierów.
+- HELP zaktualizowano o `help lochy`, `help wieże`, `help questy walki`, `help xp statystyk`, nowe zasady Duszy i progresji 1-400.
+- Regresja zachowuje 1272 bazowe lokacje, 219 questów, 289 receptur i dotychczasowe ręcznie zaprojektowane końce. Stary test v0.9.13 przechodzi po zmianie oczekiwanej wersji.
+- Test v0.9.14: `V0914_ALL_TESTS_OK`, 52 questy kill, bramki Soul T1->10, T2->20, T21->220, T40->400 oraz motywy/czempioni/sektory zbieractwa.
+
+v0.9.13 — Infinite Dungeons & Towers
+==========================================
+- Rozszerzono system lazy-generated infinite floors z obu Krypt na Wieżę Astralną, Mityczną Wieżę Astralną, Twierdzę Gigantów, Kopalnię Głębinową i cztery lochy profesyjne.
+- Dawne końce 20/50/200 są teraz końcem ręcznie przygotowanej części, a nie końcem lochu. Kolejne piętra tworzą się dopiero przy wejściu.
+- Ręcznie przygotowane moby, bossowie, nagrody i parametry dawnych pięter pozostają bez zmian.
+- Wieża Astralna, Mityczna Wieża i Twierdza Gigantów generują kolejnych bossów co 10 pięter bez końca. Co 10 pięter rośnie dodatkowy próg HP, obrażeń, Class XP i Soul XP.
+- Kopalnia Głębinowa może być przebijana poniżej dawnego poziomu 200. Ściany zachowują trwały losowy próg uderzeń, a moc zasobów ma cap 400.
+- Kopalnia Kryształów, Zatopiona Grota, Pradawny Las i Ogród Alchemika nie kończą się na 20. poziomie. Wymóg profesji rośnie do 400 i potem pozostaje na 400.
+- Ekonomia, EQ i zasoby nie skalują mocy powyżej progresji 400; nieskończone piętra rozwijają dalej trudność/prestiż/XP zamiast nieskończonego power creepu.
+- Atlas zasobów pokazuje lochy profesyjne bez starego limitu 20, a geody uwzględniają głębokość do capu 400.
+- Migracja realnego save'a v0.9.12 zachowuje Soul, Biegłość, inventory, checkpoint Wieży i progres Kopalni. Ponowny start niczego nie dubluje.
+- Testy potwierdziły generowanie pięter 201, 401, 1000, 5000 i 10000 oraz zachowanie 1272 bazowych lokacji, 219 questów, 289 receptur i 958 wpisów Bestiariusza.
+
+v0.9.12 — Infinite Crypts + Progression 400
+================================================
+- Biegłość wszystkich 12 klas, Soul Level Broni Duszy, Skill Level, wszystkie 8 profesji i wszystkie 8 narzędzi mają zakres 1-400. Nadal NIE ma levelu postaci.
+- Stare progi i cała zawartość 1-200 pozostają bez zmian. Zakres 201-400 jest dalszą progresją, a nie przeliczeniem starych odblokowań x2.
+- Dodano 10 dalszych progów profesji 220-400; łącznie każda profesja ma 23 rangi od Ucznia do nowych rang prestiżowych kończących się na 400.
+- Dodano realną zawartość 201-400: nowe zasoby Wędkarstwa/Górnictwa/Drwalstwa/Zielarstwa, nowe receptury, nowe questy profesyjne oraz dalsze skille klasowe.
+- Liczba questów rośnie z 119 do 219, a receptur produkcyjnych z 169 do 289. Stare 119 questów i 169 receptur są 1:1 zachowane.
+- Każda z 12 klas ma nową linię skilli na progach 220, 240 ... 400; łączna pula skilli/spelli rośnie do 373.
+- Broń Duszy ma Soul Tier 1-40. Tiery 21-40 odpowiadają Soul Level 210-400 i wymagają kolejnych Prób Krypty.
+- Klasowe EQ i EQ Krypty rozwija się do progresji 400 / Tieru 40. Powyżej tego progu moc EQ nie rośnie dalej.
+- Zwykła Krypta i Mityczna Krypta mają nieskończoną liczbę pięter. Piętra powyżej 200 są generowane na żądanie, więc serwer nie tworzy tysięcy pustych pokoi przy starcie.
+- Co 10 pięter jest boss oraz dodatkowy próg trudności. HP, obrażenia, Class XP, Soul XP i Postęp Rozwoju rosną razem z głębokością.
+- Mityczna Krypta nie wymaga już Soul Level 100 do wejścia. Jest dostępna wcześniej, ale pozostaje bardzo trudna już od pierwszych pięter.
+- Bossy i checkpointy działają bez końca co 10 pięter. Testy potwierdziły generowanie m.in. pięter 201, 401 i 1000.
+- Ekonomia nieskończonych Krypt ma zabezpieczenie: waluta i moc EQ nie rosną bez końca; dalsza głębokość zwiększa przede wszystkim ryzyko i XP.
+- Minimalny czas Wędkarstwa nadal wynosi 3 sekundy od levelu 200. Poziomy 201-400 nie skracają czynności poniżej dotychczasowych minimów.
+- Migracja realnego save'a v0.9.11 zachowuje Soul 200/Tier 20, Biegłość 200, profesje i narzędzia 200, stare skille, inventory oraz wspólny portfel. Migracja jest bezpieczna przy ponownym starcie.
+- Regresja: 1272 bazowe lokacje, 958 wpisów Bestiariusza. `BACKCOMPAT_1_200_OK`, `PHASE2_TESTS_OK`, `MIGRATION_V0911_TO_V0912_OK`, `INFINITE_CRYPTS_OK`, `PROGRESSION_400_OK`.
+
+v0.9.11 — Class Gear Diversity + Automatic Party Assist
+==========================================================
+- Usunięto darmowe startowe EQ klasowe z v0.9.10. Nowa postać zaczyna bez klasowego pancerza; zachowuje dotychczasowe mikstury, Broń Duszy, statystyki i walutę startową.
+- Jednorazowa migracja usuwa wyłącznie stare przedmioty `starter_*` z inventory/equipment postaci utworzonych w v0.9.10. Kupione, znalezione, wykute i zwykłe EQ pozostaje nietknięte.
+- Każda z 12 klas ma teraz 3 różne linie klasowego EQ na każdym progu Biegłości 1, 10, 20 ... 200. Każda linia ma 8 slotów: hełm, pancerz, rękawice, nogawice, buty, talizman, pierścień i naszyjnik.
+- Alternatywne linie tej samej klasy i tego samego progu mają identyczny budżet obrony, affixu i ceny. Różnorodność nie zwiększa mocy względem dotychczasowej linii.
+- Sklepy Gildii mogą filtrować ofertę przez `shop <klasa>`, np. `shop wojownik`, dzięki czemu NVDA nie musi czytać katalogu drugiej klasy w tej samej sali.
+- Klasowe EQ może teraz losowo wypaść z ciała moba. Tier jest dobierany do siły przeciwnika/material tieru; klasa, linia i slot są losowane.
+- Szansa dodatkowego klasowego dropu: zwykły mob 7%, Elite/Rare 18%, boss/mini-boss 35%. Materiałowe i unikalne dropy pozostają osobnym systemem.
+- Drużyna ma automatyczne asystowanie: rozpoczęcie walki automatycznie podpina wolnych, żywych członków tej samej drużyny znajdujących się w tej samej lokacji.
+- Auto-assist nie przełącza osoby walczącej już z innym żywym celem, nie działa z innej lokacji i nie dołącza martwych członków.
+- Automatyczne dołączenie nie daje darmowego dodatkowego ciosu; uruchamia normalną istniejącą walkę realtime. Ręczne `assist` / `wspieraj` pozostaje jako opcja awaryjna.
+- Zachowano 1272/1272 osiągalne lokacje, 119 questów, 169 receptur i 958 wpisów Bestiariusza.
+
+v0.9.10 — World Mob Population + Multi-Corpse Commands + Class Starter EQ
+===============================================================================
+- Dodano przeciwników do otwartego świata poza miastami: wszystkie 3 zwykłe Łąki, wszystkie 11 Łąk Zielarskich, brakujące naturalne lokacje Gór, wybrane szlaki Dziczy, Bagien, Pustyni i Wybrzeża.
+- Miasto Dusz, Gildia Dusz i Wioska Górska pozostają bez wrogich spawnów. Dziedziniec Treningowy zachowuje wyłącznie Żywy Manekin.
+- Dodano 5 bazowych gatunków/typów przeciwników otwartego świata: Wilk Łąkowy, Dziki Knur Łąkowy, Wielka Osa Łąkowa, Krab Skalny i Morski Rozbójnik.
+- Liczba wpisów Bestiariusza rośnie z 953 do 958; wszystkie nowe moby korzystają z istniejącego systemu ciał, losowego materiałowego EQ, Elite/Rare i Lifetime Statistics.
+- Ciała w jednej lokacji mają wspólną numerację i selektory `1.cialo`, `2.cialo`, `3.cialo` oraz `1.corpse`, `2.corpse`, `3.corpse`.
+- `ciało` / `corpse` czyta przez NVDA numer, nazwę moba, selektor i zawartość każdego ciała.
+- Dodano MUD-owe podglądanie bez zabierania: `l in corpse`, `look in 2.corpse`, `l w 2.cialo`.
+- `przeszukaj 2.cialo` / `loot 2.corpse` zabiera całą zawartość wskazanego ciała.
+- Dodano pobieranie pojedynczego przedmiotu: `get <przedmiot> from 2.corpse` oraz `wez/weź <przedmiot> z 2.cialo`; `get all from 2.corpse` zabiera wszystko.
+- Resolver obsługuje również `corpse 2`, `2. ciało` oraz numerowane nazwy typu `2.goblin`.
+- Każda z 12 klas dostaje przy utworzeniu własne czteroczęściowe lekkie EQ startowe w slotach body/hands/legs/feet.
+- Zestawy startowe są różne nazwą i klimatem dla Wojownika, Berserkera, Łotrzyka, Łowcy, Mnicha, Strażnika, Maga, Nekromanty, Kapłana, Czarownika, Druida i Psionika.
+- Startowe EQ jest czysto tożsamościowe: 0 dodatkowej obrony i 0 bonusów statystyk. Nie zmienia balansu walki, a mocniejsze klasowe EQ nadal odblokowuje się przez Biegłość 1-200 i sklepy Gildii.
+- 1272/1272 lokacji pozostaje osiągalnych. Zachowano 119 questów i 169 receptur produkcyjnych.
+
+v0.9.9 — Quest Acceptance + Context NPC Reactions
+======================================================
+- NPC z questami sam informuje podczas rozmowy, że ma dostępne zadanie lub kilka dostępnych zadań.
+- Gdy gracz wraca z aktywnym zadaniem, NPC rozpoznaje powrót i podaje bieżący postęp n/x.
+- Gdy cel jest gotowy, NPC mówi wprost, że zadanie jest gotowe do oddania i można je teraz rozliczyć.
+- Jeśli NPC ma jednocześnie zadanie gotowe do oddania oraz nowe dostępne zadania, informuje o obu stanach.
+- Zadania powtarzalne w cooldownie mogą dostać komentarz o najbliższym czasie ponownej dostępności.
+- Przy pierwszym przyjęciu każdego questa NPC najpierw wypowiada krótką kwestię dopasowaną do celu/profesji, a dopiero potem quest zostaje zapisany i NVDA czyta opis oraz start 0/x.
+- Ponowne przyjęcie po porzuceniu lub odnowieniu ma osobną reakcję „kolejne zlecenie”, zamiast identycznego tekstu jak za pierwszym razem.
+- Reakcje profesyjne obejmują wszystkie 8 profesji; zwykłe questy rozróżniają kill, collect, collect_resource, collect_category, craft_set, dostawy i rozmowy.
+- Odbiorca dostawy/rozmowy może rozpoznać aktywny quest nawet wtedy, gdy nie był pierwotnym zleceniodawcą.
+- 119/119 questów ma reakcję pierwszego i ponownego przyjęcia. Wszystkie 119 nadal zachowują dokładnie te same cele, nagrody, XP, cooldowny i wymagania co v0.9.8.
+- Zachowane pozostają reakcje przy oddaniu i nazwane wręczanie nagród z v0.9.8.
+- Brak migracji SQLite i brak zmian balansu walki, ekonomii, profesji lub dropu.
+
+v0.9.8 — Quest Turn-in Reactions + Profession Currency
+=========================================================
+- Przy każdym ukończonym queście NPC, który faktycznie odbiera zadanie, komentuje wykonanie przed wypłatą nagrody.
+- NVDA czyta najpierw reakcję NPC, a następnie nazwany komunikat `NPC wręcza ci nagrodę: ...` dla waluty i przedmiotów.
+- Reakcje zależą od rodzaju celu: kill, collect, collect_resource, collect_category, craft_set, dostawa oraz rozmowa z NPC/nauczycielem.
+- Questy profesyjne mają dodatkowo fachowe reakcje dla Wędkarstwa, Górnictwa, Drwalstwa, Zielarstwa, Gotowania, Alchemii, Kowalstwa i Jubilerstwa.
+- Borys komentuje oddawane zlecenia Wędkarstwa jako Rybak Borys; starterowe dostawy komentuje rzeczywisty odbiorca, np. Kowal Doran, a nie Archiwista Sol.
+- Audyt wykazał 80/80 obecnych questów profesyjnych/rzemieślniczych z niezerową nagrodą pieniężną. Ich dotychczasowe wypłaty pozostają bez zmian.
+- Dodano zabezpieczenie definicji: przyszły quest profesyjny/rzemieślniczy z zerową walutą otrzyma automatycznie zbalansowaną wypłatę wg istniejącej krzywej v0.8.62.
+- 119/119 istniejących questów zachowuje te same wartości nagród pieniężnych, XP profesji, XP narzędzi i Postępu Rozwoju co w v0.9.7.
+- HELP oddawania zadań opisuje komentarze NPC oraz gwarancję waluty dla questów profesyjnych/rzemieślniczych.
+- Brak migracji bazy i brak globalnego rebalance walki, dropu, sklepów lub profesji.
+
+v0.9.7 — Dynamic NPC Rank Reactions / Reakcje NPC na rangę profesji
+======================================================================
+- NPC związani z profesjami rozpoznają bieżący level i dokładną nazwę rangi profesji gracza podczas rozmowy.
+- Borys reaguje inaczej na Ucznia, Adepta/Czeladnika, Specjalistę/Eksperta, Mistrza/Arcymistrza, Legendę i rangi endgame oraz Wiecznego Mistrza Wędkarstwa.
+- Analogiczne reakcje dodano dla Górnictwa, Drwalstwa, Zielarstwa, Gotowania, Alchemii, Kowalstwa i Jubilerstwa.
+- Rank-aware NPC: Rybak Borys, Górnik Toren, Drwal Bran, Zielarka Liora, Mistrz Wędkarstwa Neris, Mistrz Górnictwa Kordan, Mistrz Drwalstwa Oren, Mistrzyni Zielarstwa Sena, Kucharz Marcel, Mistrz Alchemii Orin, Mistrz Rzemiosła Haldor i Jubilerka Mirella.
+- NVDA dostaje reakcję w tej samej wypowiedzi NPC: najpierw normalny dialog, następnie `Twoja ranga: <nazwa>, level <n>`, a potem właściwy komentarz.
+- System korzysta z istniejącej tabeli profesji i nie wymaga migracji save'a ani nowej tabeli SQLite.
+- Reakcje są wyłącznie fabularne/prestiżowe: nie zmieniają cen, rabatów, XP, nagród, dropu, statystyk ani czasów profesji.
+- Zwykli NPC niezwiązani z profesją zachowują dotychczasowe dialogi bez dodatkowego tekstu.
+- HELP profesji został zsynchronizowany z nowym zachowaniem.
+
 v0.9.6 — Collections + Boss Codex + Wędkarstwo 16→3 s
 =============================================================
 - Rybak z Targu Rybnego ma teraz na imię Borys. Wewnętrzny identyfikator NPC i stare aliasy pozostają dla zgodności zapisów/makr, ale gra i NVDA pokazują „Rybak Borys”.
