@@ -2,7 +2,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Soulbound v0.9.15 EQ Diversity + Market Buyer + Craft Casket + Dense Dungeons
+Soulbound v0.9.19 Full EQ Progression 10-400 + Final Rebalance
 Wieloosobowy tekstowy MUD TCP/Telnet dla MUSHclienta/Mudleta.
 
 Najważniejsze zasady projektu:
@@ -30,7 +30,7 @@ import unicodedata
 from dataclasses import dataclass
 from typing import Optional
 
-VERSION = "0.9.16"
+VERSION = "0.9.19"
 
 # v0.8.72: właścicielskie komendy administracyjne. Nazwy kont podaje się
 # po stronie serwera, np. SOULBOUND_ADMIN_ACCOUNTS=Patryk. Nigdy nie są
@@ -5473,6 +5473,7 @@ COMMAND_ALIASES = {
     "załóż": "equip", "zaloz": "equip",
     "zdejmij": "unequip", "zdejm": "unequip", "ściągnij": "unequip", "sciagnij": "unequip", "unequip": "unequip",
     "wyposażenie": "equipment", "wyposazenie": "equipment", "eq": "equipment",
+    "przekaż": "giveeq", "przekaz": "giveeq", "daj": "giveeq", "give": "giveeq", "giveeq": "giveeq",
     "użyj": "use", "uzyj": "use", "use": "use",
     "sklep": "shop", "list": "shop", "lista": "shop",
     "kup": "buy",
@@ -6529,6 +6530,35 @@ CORPSE_MATERIAL_TIERS = (
     },
 )
 
+# v0.9.18: materiałowe EQ jest bramkowane Biegłością aktywnej klasy,
+# a nie Soul Levelem. Skala obejmuje pełną progresję 1-400 i uniemożliwia
+# założenie endgame EQ przez świeżą postać po samym transferze od innego gracza.
+# v0.9.19: materiał nie jest już pojedynczym skokiem mocy. Każdy materiał
+# ma warianty EQ co 10 Biegłości. Materiał określa rodzinę/epokę sprzętu,
+# a konkretna sztuka ma własny próg 1/10/20/.../400.
+CORPSE_MATERIAL_MASTERY_BANDS = {
+    "iron": (1, 10, 20, 30),
+    "steel": (40, 50, 60, 70),
+    "mithril": (80, 90, 100, 110),
+    "adamantite": (120, 130, 140, 150),
+    "cobalt": (160, 170, 180, 190),
+    "runic": (200, 210, 220, 230),
+    "dragonsteel": (240, 250, 260, 270),
+    "astral": (280, 290, 300, 310),
+    "void": (320, 330, 340, 350),
+    "eternium": (360, 370, 380, 390, 400),
+}
+CORPSE_MATERIAL_REQUIRED_MASTERY = {
+    key: levels[0] for key, levels in CORPSE_MATERIAL_MASTERY_BANDS.items()
+}
+
+
+def corpse_material_variant_mastery(material_key, variant_index):
+    levels = CORPSE_MATERIAL_MASTERY_BANDS[str(material_key)]
+    idx = max(0, min(CORPSE_RANDOM_VARIANTS_PER_SLOT - 1, int(variant_index) - 1))
+    band_index = min(len(levels) - 1, (idx * len(levels)) // CORPSE_RANDOM_VARIANTS_PER_SLOT)
+    return int(levels[band_index])
+
 CORPSE_MATERIAL_SLOT_DEFS = {
     "head": ("Hełm", 0),
     "body": ("Pancerz", 3),
@@ -6627,7 +6657,12 @@ def _material_random_profile(tier, slot, variant_index):
 
     stat_budgets = (1, 2, 4, 5, 7, 9, 12, 13, 16, 20)
     property_budgets = (1, 1, 2, 3, 4, 5, 7, 8, 10, 12)
-    stat_budget = stat_budgets[tier_index - 1]
+    required_mastery = corpse_material_variant_mastery(tier["key"], variant_index)
+    band_levels = CORPSE_MATERIAL_MASTERY_BANDS[tier["key"]]
+    substep = band_levels.index(required_mastery)
+    # Każde +10 Biegłości w obrębie materiału daje +1 budżetu statystyk.
+    # To jest mały, ale realny wzrost mocy bez gwałtownego power creepu.
+    stat_budget = stat_budgets[tier_index - 1] + substep
     property_budget = property_budgets[tier_index - 1]
 
     if tier_index <= 2:
@@ -6671,11 +6706,14 @@ def _material_random_profile(tier, slot, variant_index):
     # Obrona zależy od materiału i slotu, nie od szczęścia. Random pozostaje
     # w rozkładzie statów/właściwości, więc dwa dropy nadal budują inaczej.
     _slot_label, defense_delta = CORPSE_MATERIAL_SLOT_DEFS[slot]
-    defense = max(1, int(tier["base_defense"]) + int(defense_delta))
+    defense = max(
+        1,
+        int(tier["base_defense"]) + int(defense_delta) + substep // 2,
+    )
     return defense, stats, properties
 
 
-def _material_variant_title(tier, slot, stats, variant_index):
+def _material_variant_title(tier, slot, stats, variant_index, required_mastery):
     ordered = [
         stat for stat in MATERIAL_RANDOM_STAT_POOL
         if stat in stats
@@ -6690,7 +6728,7 @@ def _material_variant_title(tier, slot, stats, variant_index):
     slot_name = MATERIAL_SLOT_NAME_FOR_TITLE[slot]
     return (
         f"{slot_name} {tier['label']} {stat_part} "
-        f"[wariant {int(variant_index):02d}]"
+        f"[Biegłość {int(required_mastery)}, wariant {int(variant_index):02d}]"
     )
 
 
@@ -6718,9 +6756,12 @@ def _register_corpse_material_items():
                     "na trafienie krytyczne."
                     if stats.get("dexterity", 0) > 0 else ""
                 )
+                required_mastery = corpse_material_variant_mastery(
+                    tier["key"], variant_index
+                )
                 ITEMS[item_id] = {
                     "name": _material_variant_title(
-                        tier, slot, stats, variant_index
+                        tier, slot, stats, variant_index, required_mastery
                     ),
                     "type": "armor",
                     "slot": slot,
@@ -6733,10 +6774,13 @@ def _register_corpse_material_items():
                     "corpse_material": tier["key"],
                     "corpse_material_tier": tier_index,
                     "corpse_random_variant": variant_index,
+                    "required_mastery": required_mastery,
+                    "mastery_requirement_scope": "active_class",
                     "desc": (
                         f"Losowe materiałowe EQ z ciała przeciwnika. "
                         f"Materiał wyznacza poziom mocy, ale statystyki nie "
-                        f"są przypisane do klasy. Obrona +{defense}. "
+                        f"są przypisane do klasy. Wymaga Biegłości aktywnej klasy "
+                        f"{required_mastery}. Obrona +{defense}. "
                         f"Statystyki: {stat_text}. "
                         f"Właściwości: {prop_text}.{crit_note}"
                     ),
@@ -7334,13 +7378,13 @@ def _register_class_equipment_shops():
 
         for tier_index, required_mastery in enumerate(CLASS_EQUIPMENT_MASTERY_LEVELS):
             tier_items = []
-            # 1-200 zachowuje stary budżet: +1 co dwa progi. Po 200
-            # wzrost zwalnia do +1 co cztery progi, aby EQ 400 było mocniejsze,
-            # ale nie podwajało całego budżetu statystyk.
-            if tier_index <= 20:
-                scale_step = tier_index // 2
-            else:
-                scale_step = 10 + (tier_index - 20) // 4
+            # v0.9.19: KAŻDY próg Biegłości co 10 daje realnie lepsze EQ.
+            # Do 200 zachowujemy ten sam łączny budżet mocy co wcześniej,
+            # ale rozkładamy go naprzemiennie: raz rośnie obrona, raz affix.
+            # Po 200 kontynuujemy tę samą czytelną zasadę aż do 400.
+            # Dzięki temu nie ma "pustych" progów 10/30/50..., a wzrost pozostaje łagodny.
+            defense_step = (tier_index + 1) // 2
+            affix_step = tier_index // 2
             # Ceny rosną wyraźnie wraz z Biegłością, ale pozostają w istniejącej ekonomii srebra.
             price_multiplier = 1 + tier_index + (tier_index * tier_index) // 4
 
@@ -7360,10 +7404,10 @@ def _register_class_equipment_shops():
                     else:
                         base_affix = 1
 
-                    affix_amount = base_affix + scale_step
+                    affix_amount = base_affix + affix_step
                     defense = max(
                         1,
-                        int(definition["base_defense"]) + int(defense_delta) + scale_step,
+                        int(definition["base_defense"]) + int(defense_delta) + defense_step,
                     )
                     # Alternatywne linie nie są droższe ani tańsze od bazowej.
                     price = max(1, int(base_price) * int(price_multiplier))
@@ -9267,8 +9311,18 @@ SYSTEM_DESCRIPTIONS = {
 }
 
 
-LATEST_CHANGES_TITLE = "Soulbound v0.9.15 - EQ + Market Buyer + Craft Casket + Dense Dungeons"
+LATEST_CHANGES_TITLE = "Soulbound v0.9.19 - Full EQ Progression 10-400 + Final Rebalance"
 LATEST_CHANGES = [
+    "v0.9.19: pełna progresja EQ używa Biegłości 1, 10, 20...400; na każdym kolejnym progu co 10 istnieje mocniejszy sprzęt dla każdego slotu.",
+    "v0.9.19: klasowe EQ zwiększa moc na każdym progu +10, a materiałowe EQ ma podtiery +10 wewnątrz Żelaza, Stali, Mithrilu, Adamantytu, Kobaltu, Runicznego, Smoczej Stali, Astralu, Pustki i Eternium.",
+    "v0.9.19: drop materiałowego EQ jest ograniczony głębokością/progresem instancji; boss daje następny krok +10 zamiast omijać kilka progów Biegłości.",
+    "v0.9.18: Full Game Balance Audit 1-400 sprawdza walkę, progresję, ekonomię, questy, gęste lochy, handel EQ i endgame po zmianach v0.9.14-v0.9.17.",
+    "v0.9.18: przekazane wysokotierowe EQ może pozostać w plecaku, ale nie da się go założyć przed wymaganym progiem Biegłości; handel nie omija progresji.",
+    "v0.9.17: wysokie materiały EQ są skupione w Kryptach, Wieżach, Twierdzy i bojowych Lochach; zwykły świat ma ograniczony tier materiału.",
+    "v0.9.17: niezałożone EQ można przekazać graczowi online w tej samej lokacji; założone EQ pozostaje chronione.",
+    "v0.9.16: gracz sam wybiera konkretny element EQ i slot; gra nie podmienia automatycznie słabszego sprzętu.",
+    "v0.9.15: Radan na Rynku skupuje zwykłe łupy i niezałożone EQ, ale nie zasoby profesyjne ani materiały rzemieślnicze; craft/jubilerstwo korzysta ze Szkatułki.",
+    "v0.9.15: Krypta, Wieże i Lochy poza kopalniami mają większą różnorodność i liczbę przeciwników.",
     "v0.9.14: każdy quest walki typu kill daje EXP osobno do Siły, Zręczności, Kondycji, Inteligencji, Siły Woli i Charyzmy oraz dodatkowy Soul XP; nadal nie ma levelu postaci.",
     "v0.9.14: Soul XP jest globalnie blokowany na progu następnego nieodblokowanego Soul Tieru; nadmiar nie jest bankowany i progres rusza ponownie dopiero po Próbie oraz unlock.",
     "v0.9.14: proceduralne części Wieży Astralnej, Mitycznej Wieży i Twierdzy Gigantów mają cykliczne motywy oraz dodatkowego Czempiona Próby co 5 pięter bez głównego bossa.",
@@ -10194,7 +10248,7 @@ HELP_TOPICS = {
     "gotowanie_rozbudowane": [
         "Gotowanie korzysta z Noża Kucharskiego level 1-200.",
         "Nie jest osobnym levelem postaci i nie dodaje Character XP.",
-        "Gotowanie jest osobną profesją 1-200; jej poziom skraca czas i odblokowuje receptury. Nóż rozwija się osobno i daje bonus produktu.",
+        "Gotowanie jest osobną profesją 1-400; jej poziom skraca czas i odblokowuje receptury. Nóż rozwija się osobno 1-400 i daje bonus produktu.",
         "Potrawy przygotowuje się w Karczmie Pod Błękitnym Płomieniem albo na Targu Rybnym.",
         "gotowanie pokazuje stan systemu i aktualny Nóż Kucharski.",
         "gotuj lista pokazuje wszystkie receptury Gotowania.",
@@ -10442,16 +10496,17 @@ HELP_TOPICS = {
         "Podsumowanie nie sprzedaje ryb. To tylko informacja przed sprzedażą.",
     ],
     "tempo_profesji": [
-        "v0.8.66 utrzymuje wszystkie osiem profesji w zakresie 1-200 i rozdziela tempo pracy od jakości narzędzia.",
-        "Każda akcja i nagroda profesji korzysta z mnożnika XP x4; wymagania levelu używają wspólnej, osiągalnej krzywej 1-200.",
+        "Aktualnie wszystkie osiem profesji ma zakres 1-400; tempo pracy zależy od profesji, a jakość/odblokowania zasobów od osobnego narzędzia.",
+        "Każda profesja korzysta z osiągalnej krzywej 1-400; stare progi 1-200 pozostają zachowane, a 201-400 jest dalszą progresją.",
         "Level profesji skraca czas pracy i spełnia wymagania receptur/zleceń; level narzędzia odblokowuje lepsze surowce oraz zwiększa jakość/bonus urobku.",
-        "Wszystkie osiem profesji rozwija się od 1 do 200 według wspólnej zasady progresji.",
-        "Narzędzia mają osobną nową krzywą XP 1-200 opisaną w help narzedzia200.",
+        "Wszystkie osiem profesji rozwija się od 1 do 400 według aktualnej progresji.",
+        "Narzędzia mają osobną progresję XP 1-400; wpisz help narzedzia200 albo help progresja400 po szczegóły.",
         "Nie ma trwałości ani zużywania narzędzi.",
     ],
     "zakladanie_lootu": [
         "Gracz sam decyduje, jaki konkretny element EQ zakłada. Gra nigdy nie wybiera najlepszego przedmiotu ani słabszego slotu automatycznie.",
         "Gdy masz kilka przedmiotów dla jednego slotu, załóż <slot> pokazuje dostępne opcje i niczego nie zmienia. Aby założyć wybrany przedmiot, wpisz jego pełną nazwę.",
+        "Całe EQ ma wymaganie Biegłości, nie Soul Levelu. Poziom startowy to 1, a kolejne progi są co 10 aż do 400. Materiałowe EQ ma kilka wariantów Biegłości w ramach tego samego materiału. Dla nieklasowego EQ liczy się najwyższa Biegłość aktywnej klasy.",
         "Jeśli zwykły slot jest zajęty, samo załóż hełm / zbroja / rękawice / nogi / buty niczego nie podmienia. Dokładna nazwa nowego przedmiotu jest świadomą decyzją o zastąpieniu starego.",
         "Dwa pierścienie i dwa talizmany wymagają wskazania konkretnego slotu: załóż pierścień 1 <pełna nazwa>, załóż pierścień 2 <pełna nazwa>, załóż talizman 1 <pełna nazwa> lub talizman 2.",
         "Zdejmowanie jest ręczne: zdejmij hełm, zdejmij zbroja, zdejmij pierścień 1, zdejmij talizman 2, zdejmij naszyjnik itd.",
@@ -10521,7 +10576,7 @@ HELP_TOPICS = {
         "Pozostałe narzędzia nie dostają XP, użyć ani leveli od tej akcji.",
     ],
     "endgame_profesje": [
-        "Narzędzia 1-200 odblokowują coraz lepsze surowce i zwiększają rare/quality oraz bonus urobku; profesje 1-200 skracają czas i blokują receptury/zlecenia.",
+        "Narzędzia 1-400 odblokowują coraz lepsze surowce i zwiększają rare/quality oraz bonus urobku; profesje 1-400 skracają czas i blokują receptury/zlecenia.",
         "Wędka odblokowuje nowe ryby endgame; część zależy od typu łowiska: rzeka, jezioro, morze albo ocean.",
         "Kilof odblokowuje: Ruda Kobaltu 100, Kamień Runiczny 120, Smocza Stal 140, Ruda Astralna 160, Ruda Pustki 180 i Eternium 200.",
         "Piła w Głębi Gaju odblokowuje nowe drewna na levelach 100, 120, 140, 160, 180 i 200.",
@@ -17505,29 +17560,80 @@ def configure_base_mob_corpse_equipment():
         MOB_TEMPLATES[tid]["corpse_equipment_guaranteed"]=1
 
 
+def _corpse_material_tier_by_index(index):
+    return CORPSE_MATERIAL_TIERS[max(0, min(len(CORPSE_MATERIAL_TIERS) - 1, int(index)))]
+
+
+def _dungeon_material_tier_index(template):
+    """v0.9.17: wysokie materiały są przede wszystkim nagrodą za lochy/wieże.
+
+    v0.9.19 rozciąga zwykłą Kryptę przez pełne 1-400: materiał zmienia się
+    wraz z pasmami Biegłości, a konkretne warianty EQ dochodzą co 10.
+    Mityczne warianty zaczynają od wyższego pułapu. Wieża Astralna,
+    Twierdza Gigantów i bojowe lochy profesyjne mają własne pasma.
+    """
+    idx = None
+
+    mythic_crypt = int(template.get("mythic_crypt_floor", 0) or 0)
+    if mythic_crypt > 0:
+        # 1-20 Runiczny, 21-40 Smocza Stal, 41-60 Astral, 61-80 Pustka, 81+ Eternium.
+        idx = 5 + (mythic_crypt - 1) // 20
+
+    mythic_astral = int(template.get("mythic_astral_floor", 0) or 0)
+    if mythic_astral > 0:
+        idx = max(idx if idx is not None else 0, 5 + (mythic_astral - 1) // 20)
+
+    crypt_floor = int(template.get("crypt_floor", 0) or 0)
+    if crypt_floor > 0:
+        # v0.9.19: pełna drabinka materiałów jest rozciągnięta przez progresję 1-400.
+        # Żelazo 1-39, Stal 40-79, Mithril 80-119, ... Eternium 360+.
+        idx = max(idx if idx is not None else 0, crypt_floor // 40)
+
+    astral_floor = int(template.get("astral_floor", 0) or 0)
+    if astral_floor > 0:
+        # Wieża startuje na 100, więc zaczyna już od Kobaltu i kończy na Eternium.
+        idx = max(idx if idx is not None else 0, 4 + max(0, astral_floor - 100) // 20)
+
+    giant_floor = int(template.get("giant_fortress_floor", 0) or 0)
+    if giant_floor > 0:
+        # Twierdza rozwija materiały szybciej niż zwykły świat.
+        idx = max(idx if idx is not None else 0, 1 + (giant_floor - 1) // 10)
+
+    prof_floor = int(template.get("profession_dungeon_floor", 0) or 0)
+    prof_name = str(template.get("profession_dungeon") or "")
+    if prof_floor > 0 and prof_name and prof_name != "crystal_mine":
+        # Bojowe lochy profesyjne: co 4 poziomy następny materiał.
+        idx = max(idx if idx is not None else 0, (prof_floor - 1) // 4)
+
+    if idx is None:
+        return None
+
+    return max(0, min(len(CORPSE_MATERIAL_TIERS) - 1, idx))
+
+
 def corpse_material_tier_for_template(template):
-    """Dobiera materiał po faktycznej sile moba, nie po levelu postaci."""
+    """Dobiera materiał z pierwszeństwem progresji lochu, potem siły moba."""
+    dungeon_idx = _dungeon_material_tier_index(template)
+    if dungeon_idx is not None:
+        return _corpse_material_tier_by_index(dungeon_idx)
+
     score = int(template.get("max_hp", 1)) + int(template.get("damage", 1)) * 8
-    selected = CORPSE_MATERIAL_TIERS[0]
-    for tier in CORPSE_MATERIAL_TIERS:
+    selected_idx = 0
+    for idx, tier in enumerate(CORPSE_MATERIAL_TIERS):
         if score >= int(tier["min_score"]):
-            selected = tier
+            selected_idx = idx
         else:
             break
-    return selected
+
+    # Zwykły świat daje głównie niższe materiały. Wysokie materiały mają
+    # być kojarzone z Kryptami, Wieżami i Lochami; boss świata może dojść
+    # maksymalnie do Runicznego, zwykły mob do Kobaltu.
+    world_cap = 5 if bool(template.get("world_boss") or template.get("mini_boss")) else 4
+    return _corpse_material_tier_by_index(min(selected_idx, world_cap))
 
 
 CLASS_DROP_MASTERY_BY_MATERIAL = {
-    "iron": 1,
-    "steel": 20,
-    "mithril": 40,
-    "adamantite": 60,
-    "cobalt": 80,
-    "runic": 100,
-    "dragonsteel": 120,
-    "astral": 140,
-    "void": 170,
-    "eternium": 200,
+    key: levels[0] for key, levels in CORPSE_MATERIAL_MASTERY_BANDS.items()
 }
 
 
@@ -17581,29 +17687,98 @@ def class_equipment_drop_pool(template):
     return tuple(pool)
 
 
+def _is_equipment_progression_boss(template):
+    return bool(
+        template.get("world_boss")
+        or template.get("mini_boss")
+        or template.get("crypt_boss")
+        or template.get("astral_boss")
+        or template.get("mythic_crypt_boss")
+        or template.get("mythic_astral_boss")
+        or template.get("giant_fortress_boss")
+        or template.get("boss_mechanic")
+    )
+
+
+def corpse_material_tier_for_mastery_v0919(mastery):
+    mastery = max(1, min(400, int(mastery or 1)))
+    selected = CORPSE_MATERIAL_TIERS[0]
+    for tier in CORPSE_MATERIAL_TIERS:
+        levels = CORPSE_MATERIAL_MASTERY_BANDS[tier["key"]]
+        if int(levels[0]) <= mastery:
+            selected = tier
+        else:
+            break
+    return selected
+
+
+def equipment_progression_mastery_for_template_v0919(template):
+    """Maksymalny próg Biegłości EQ sensowny dla źródła dropu."""
+    mastery = None
+    crypt_floor = int(template.get("crypt_floor", 0) or 0)
+    mythic_crypt = int(template.get("mythic_crypt_floor", 0) or 0)
+    astral_floor = int(template.get("astral_floor", 0) or 0)
+    mythic_astral = int(template.get("mythic_astral_floor", 0) or 0)
+    giant_floor = int(template.get("giant_fortress_floor", 0) or 0)
+    prof_floor = int(template.get("profession_dungeon_floor", 0) or 0)
+    prof_name = str(template.get("profession_dungeon") or "")
+
+    if crypt_floor > 0:
+        mastery = min(400, max(1, crypt_floor))
+    elif mythic_crypt > 0:
+        mastery = min(400, 200 + max(0, mythic_crypt - 1) * 2)
+    elif mythic_astral > 0:
+        mastery = min(400, 200 + max(0, mythic_astral - 1) * 2)
+    elif astral_floor > 0:
+        mastery = min(400, 160 + max(0, astral_floor - 100) * 2)
+    elif giant_floor > 0:
+        mastery = min(400, 40 + max(0, giant_floor - 1) * 4)
+    elif prof_floor > 0 and prof_name and prof_name != "crystal_mine":
+        mastery = min(400, 1 if prof_floor <= 1 else (prof_floor - 1) * 10)
+
+    if mastery is None:
+        material = corpse_material_tier_for_template(template)["key"]
+        mastery = CORPSE_MATERIAL_REQUIRED_MASTERY.get(material, 1)
+
+    # Boss daje dostęp do następnego progu +10, a nie skok o cały materiał.
+    if _is_equipment_progression_boss(template):
+        mastery = min(400, mastery + 10)
+    return class_equipment_unlocked_tier(mastery)
+
+
 def configure_material_corpse_equipment():
     for template_id, template in MOB_TEMPLATES.items():
         if template.get("leave_corpse", True) is False:
             continue
-        tier = corpse_material_tier_for_template(template)
+        base_tier = corpse_material_tier_for_template(template)
+        target_mastery = equipment_progression_mastery_for_template_v0919(template)
+        tier = corpse_material_tier_for_mastery_v0919(target_mastery)
+        # Nigdy nie obniżamy materiału wyliczonego z siły/typu źródła.
+        if list(CORPSE_MATERIAL_TIER_BY_KEY).index(base_tier["key"]) > list(CORPSE_MATERIAL_TIER_BY_KEY).index(tier["key"]):
+            tier = base_tier
+        candidates = [
+            item_id
+            for item_id in CORPSE_MATERIAL_ITEM_IDS[tier["key"]]
+            if int(ITEMS[item_id].get("required_mastery", 1) or 1) <= target_mastery
+        ]
+        if not candidates:
+            # Aspiracyjny materiał nigdy nie może wyzerować dropu. Wybieramy
+            # najniższy wariant tej rodziny, który gracz będzie mógł zachować.
+            candidates = [
+                min(
+                    CORPSE_MATERIAL_ITEM_IDS[tier["key"]],
+                    key=lambda item_id: int(ITEMS[item_id].get("required_mastery", 1) or 1),
+                )
+            ]
         template["corpse_material_tier"] = tier["key"]
-        template["corpse_material_pool"] = list(
-            CORPSE_MATERIAL_ITEM_IDS[tier["key"]]
-        )
+        template["corpse_material_pool"] = list(candidates)
+        template["corpse_material_mastery_cap"] = target_mastery
 
-        # Zwykły przeciwnik: 1 część. Elita/rzadki/boss: 2 części.
-        # Zachowujemy osobno stare guaranteed z unikalnych pul.
         special = bool(
             template.get("elite_affix")
             or template.get("rare_variant")
             or template.get("rare_troll")
-            or template.get("world_boss")
-            or template.get("mini_boss")
-            or template.get("crypt_boss")
-            or template.get("astral_boss")
-            or template.get("mythic_crypt_boss")
-            or template.get("mythic_astral_boss")
-            or template.get("boss_mechanic")
+            or _is_equipment_progression_boss(template)
         )
         template["corpse_material_guaranteed"] = 2 if special else 1
 
@@ -17637,6 +17812,165 @@ build_world_expansion_ii()
 validate_complete_resource_atlases()
 build_forest_wolves_and_quest_balance()
 build_elite_rare_named_loot_expansion()
+
+# v0.9.18: każde EQ ma próg Biegłości. Mocne, przekazywalne przedmioty nie
+# mogą omijać progresji tylko dlatego, że nie są przypisane do konkretnej klasy.
+def configure_equipment_mastery_requirements_v0918():
+    blacksmith_mastery = {
+        str(tier["key"]): max(1, min(CLASS_MASTERY_MAX_LEVEL, int(tier["profession_level"])))
+        for tier in BLACKSMITH_TIERS
+    }
+
+    # Regionalne zestawy i unikatowe dropy bossów istniały przed globalnym
+    # systemem wymagań EQ. W v0.9.18 dostają realne progi Biegłości, aby
+    # przekazanie przedmiotu nowej postaci nie omijało progresji.
+    regional_mastery = {
+        "cultist": 40,
+        "necropolis": 70,
+        "ice_caves": 60,
+    }
+    named_mastery = {
+        "bandit_chief_signet": 10,
+        "goblin_king_crown": 20,
+        "shadow_alpha_fang": 20,
+        "ruin_warden_plate": 30,
+        "crystal_lord_core": 40,
+        "cemetery_keeper_lantern": 15,
+        "void_archon_ring": 40,
+        "primal_alpha_necklace": 35,
+        "dead_king_seal": 70,
+        "cistern_king_chain": 10,
+        "eternal_ice_heart": 60,
+        "troll_king_tusk": 40,
+    }
+
+    recipe_mastery = {}
+    for recipe_table in (CRAFT_RECIPES, JEWELCRAFT_RECIPES):
+        for recipe in recipe_table.values():
+            output = recipe.get("output")
+            if not output or ITEMS.get(output, {}).get("type") != "armor":
+                continue
+            req = max(
+                1,
+                int(recipe.get("min_profession_level", 0) or 0),
+                int(recipe.get("min_tool_level", 0) or 0),
+            )
+            recipe_mastery[output] = max(recipe_mastery.get(output, 1), req)
+
+    configured = 0
+    for item_id, item in ITEMS.items():
+        if item.get("type") != "armor":
+            continue
+        required_class = item.get("required_class")
+        if required_class:
+            item["required_mastery"] = max(1, int(item.get("required_mastery", 1) or 1))
+            configured += 1
+            continue
+
+        requirement = max(1, int(item.get("required_mastery", 1) or 1))
+
+        material = item.get("corpse_material")
+        if material in CORPSE_MATERIAL_REQUIRED_MASTERY:
+            requirement = max(requirement, CORPSE_MATERIAL_REQUIRED_MASTERY[material])
+
+        crypt_tier = int(item.get("crypt_set_tier", 0) or 0)
+        if crypt_tier > 0:
+            requirement = max(requirement, min(400, crypt_tier * 10))
+
+        astral_tier = int(item.get("astral_set_tier", 0) or 0)
+        if astral_tier > 0:
+            requirement = max(requirement, min(400, 90 + astral_tier * 10))
+
+        astral_floor = int(item.get("astral_relic_floor", 0) or 0)
+        if astral_floor > 0:
+            requirement = max(requirement, min(400, astral_floor))
+
+        crypt_boss_floor = int(item.get("boss_relic_floor", 0) or 0)
+        if crypt_boss_floor > 0:
+            requirement = max(requirement, min(400, crypt_boss_floor))
+
+        regional_set = str(item.get("regional_set") or "")
+        if regional_set in regional_mastery:
+            requirement = max(requirement, regional_mastery[regional_set])
+
+        if item_id in named_mastery:
+            requirement = max(requirement, named_mastery[item_id])
+
+        blacksmith_material = str(item.get("blacksmith_material") or "")
+        if blacksmith_material in blacksmith_mastery:
+            requirement = max(requirement, blacksmith_mastery[blacksmith_material])
+
+        jewel_level = int(item.get("jewelcraft_level", 0) or 0)
+        if jewel_level > 0:
+            requirement = max(requirement, min(400, jewel_level))
+
+        if item_id in recipe_mastery:
+            requirement = max(requirement, min(400, recipe_mastery[item_id]))
+
+        item["required_mastery"] = max(1, min(CLASS_MASTERY_MAX_LEVEL, requirement))
+        item["mastery_requirement_scope"] = "active_class"
+        marker = f"Wymaga Biegłości aktywnej klasy {item['required_mastery']}."
+        desc = str(item.get("desc") or "").strip()
+        if "Wymaga Biegłości aktywnej klasy" not in desc:
+            item["desc"] = (desc + " " + marker).strip()
+        configured += 1
+    return configured
+
+V0918_EQUIPMENT_MASTERY_CONFIGURED = configure_equipment_mastery_requirements_v0918()
+
+
+# v0.9.19: globalna siatka wymagań EQ. Poziom 1 pozostaje startowy dla
+# zgodności save'ów, a wszystkie dalsze progi są dokładnie co 10 Biegłości.
+EQUIPMENT_MASTERY_LEVELS_V0919 = (1,) + tuple(range(10, 401, 10))
+
+
+def normalize_equipment_mastery_v0919(value):
+    value = max(1, min(400, int(value or 1)))
+    if value <= 1:
+        return 1
+    return min(400, ((value + 9) // 10) * 10)
+
+
+def normalize_all_equipment_mastery_v0919():
+    changed = 0
+    for item in ITEMS.values():
+        if item.get("type") != "armor":
+            continue
+        before = int(item.get("required_mastery", 1) or 1)
+        after = normalize_equipment_mastery_v0919(before)
+        if after != before:
+            changed += 1
+        item["required_mastery"] = after
+        if not item.get("required_class"):
+            item["mastery_requirement_scope"] = "active_class"
+        # Usuń stary tekst z nietypowym progiem 15/35 itd. i dopisz prawdę.
+        desc = str(item.get("desc") or "")
+        desc = re.sub(r"\s*Wymaga Biegłości aktywnej klasy \d+\.?", "", desc).strip()
+        if not item.get("required_class"):
+            item["desc"] = (desc + f" Wymaga Biegłości aktywnej klasy {after}.").strip()
+    return changed
+
+
+V0919_NORMALIZED_EQUIPMENT_REQUIREMENTS = normalize_all_equipment_mastery_v0919()
+
+
+def v0919_equipment_progression_audit():
+    by_level = {level: {slot: 0 for slot in CLASS_EQUIPMENT_SLOT_DEFS} for level in EQUIPMENT_MASTERY_LEVELS_V0919}
+    invalid = []
+    for item_id, item in ITEMS.items():
+        if item.get("type") != "armor":
+            continue
+        req = int(item.get("required_mastery", 1) or 1)
+        if req not in EQUIPMENT_MASTERY_LEVELS_V0919:
+            invalid.append((item_id, req))
+            continue
+        slot = str(item.get("slot") or "")
+        if slot in by_level[req]:
+            by_level[req][slot] += 1
+    return by_level, invalid
+
+
+V0919_EQUIPMENT_BY_LEVEL_SLOT, V0919_INVALID_EQUIPMENT_THRESHOLDS = v0919_equipment_progression_audit()
 
 # v0.9.15: minimum trzy zwykłe moby w pokojach głównych lochów/wież.
 # Kopalnie są wykluczone. Bossów nie kopiujemy.
@@ -18134,6 +18468,37 @@ def configure_v0856_help_categories():
     ]
 
 configure_v0856_help_categories()
+
+
+def configure_v0917_help():
+    HELP_TOPIC_ALIASES.update({
+        "przekaz": "przekazywanie_eq", "przekaż": "przekazywanie_eq",
+        "daj": "przekazywanie_eq", "give": "przekazywanie_eq",
+        "materialy eq": "materialy_eq", "materiały eq": "materialy_eq",
+    })
+    HELP_TOPICS["przekazywanie_eq"] = [
+        "przekaż <gracz> <pełna nazwa EQ> / daj <gracz> <pełna nazwa EQ> przekazuje jedną sztukę wyposażenia.",
+        "Odbiorca musi być online i stać w tej samej lokacji.",
+        "Założonego EQ nie można przekazać. Najpierw użyj zdejmij <slot>.",
+        "Jeśli masz dwie identyczne sztuki, z których jedna jest założona, możesz przekazać tylko wolną sztukę.",
+        "Przekazany przedmiot zachowuje dokładnie swoją nazwę, materiał, statystyki, klasę i wymagania. Odbiorca sam decyduje, czy go założyć.",
+    ]
+    HELP_TOPICS["materialy_eq"] = [
+        "Materiałowe EQ występuje jako: Żelazne, Stalowe, Mithrilowe, Adamantytowe, Kobaltowe, Runiczne, ze Smoczej Stali, Astralne, Pustki i Eternium.",
+        "Najwyższe materiały po v0.9.17 zdobywa się przede wszystkim w Kryptach, Wieżach, Twierdzy i bojowych Lochach, a nie z przypadkowych zwykłych mobów świata.",
+        "Od v0.9.19 zwykła Krypta rozciąga materiały przez pełną progresję 1-400: Żelazo na początku, potem Stal, Mithril, Adamantyt, Kobalt, Runiczny, Smocza Stal, Astral, Pustka i Eternium.",
+        "W obrębie jednego materiału istnieją kolejne warianty co 10 Biegłości. Boss daje następny krok +10, zamiast przeskakiwać od razu o cały materiał.",
+        "Mityczne Krypty/Wieże zaczynają od wyższych materiałów. Wieża Astralna i Twierdza również mają progresję materiału wraz z piętrem.",
+        "Kopalnie pozostają systemem surowców i nie dostały bojowych mobów tylko po to, aby generować EQ.",
+    ]
+    if "ekwipunek" in HELP_TOPICS:
+        HELP_TOPICS["ekwipunek"].extend([
+            "Gracz sam wybiera EQ; gra nie zakłada ani nie podmienia najlepszego przedmiotu automatycznie.",
+            "przekaż <gracz> <pełna nazwa EQ> pozwala oddać innemu graczowi wolną, niezałożoną sztukę EQ w tej samej lokacji.",
+            "Wysokie materiały EQ są głównie nagrodą za Krypty, Wieże, Twierdzę i Lochy; help materiały eq pokazuje progresję.",
+        ])
+
+configure_v0917_help()
 
 
 def configure_v0856_walking_help():
@@ -18731,9 +19096,26 @@ def _infinite_crypt_economy_floor(floor):
     return min(CRYPT_PREGENERATED_MAX_FLOOR, max(1, int(floor)))
 
 def _configure_dynamic_corpse_material(template):
-    tier = corpse_material_tier_for_template(template)
+    base_tier = corpse_material_tier_for_template(template)
+    target_mastery = equipment_progression_mastery_for_template_v0919(template)
+    tier = corpse_material_tier_for_mastery_v0919(target_mastery)
+    if list(CORPSE_MATERIAL_TIER_BY_KEY).index(base_tier["key"]) > list(CORPSE_MATERIAL_TIER_BY_KEY).index(tier["key"]):
+        tier = base_tier
+    candidates = [
+        item_id
+        for item_id in CORPSE_MATERIAL_ITEM_IDS[tier["key"]]
+        if int(ITEMS[item_id].get("required_mastery", 1) or 1) <= target_mastery
+    ]
+    if not candidates:
+        candidates = [
+            min(
+                CORPSE_MATERIAL_ITEM_IDS[tier["key"]],
+                key=lambda item_id: int(ITEMS[item_id].get("required_mastery", 1) or 1),
+            )
+        ]
     template["corpse_material_tier"] = tier["key"]
-    template["corpse_material_pool"] = list(CORPSE_MATERIAL_ITEM_IDS[tier["key"]])
+    template["corpse_material_pool"] = list(candidates)
+    template["corpse_material_mastery_cap"] = target_mastery
     special = bool(template.get("crypt_boss") or template.get("mythic_crypt_boss"))
     template["corpse_material_guaranteed"] = 2 if special else 1
 
@@ -19739,7 +20121,7 @@ def configure_v0865_balance_help():
         "EXP każdej statystyki z pojedynczego killa jest ograniczony rangą przeciwnika; sześć liczników działa niezależnie i jest czytanych osobno.",
         "Próby Rybaka, Górnika, Drwala i Zielarki startują od 0 i liczą tylko zasoby zdobyte po przyjęciu questa.",
         "Czysty mithril z Górnictwa ma maksymalnie 0,01 procent szansy na akcję. Widmowy marlin odblokowuje się od Wędki 190.",
-        "Czas Wędkarstwa 15 do 5 sekund zależy od poziomu Wędkarstwa; profesja 191-200 ma minimum 5 sekund. Level Wędki nie skraca czasu.",
+        "Czas Wędkarstwa zależy od poziomu Wędkarstwa; od poziomu 200 do 400 obowiązuje końcowe minimum 3 sekundy. Level Wędki nie skraca czasu.",
     ]
 
 configure_v0865_balance_help()
@@ -20427,7 +20809,7 @@ HELP_TOPICS["geody"] = [
 if "gornictwo" in HELP_TOPICS:
     HELP_TOPICS["gornictwo"].append("Kilof 20+ może znajdować geody; wpisz geody albo open geode / otwórz geodę.")
 if "profesje" in HELP_TOPICS:
-    HELP_TOPICS["profesje"].append("v0.8.75: Wędka/Kilof/Piła/Sierp 1-200 mają wygładzoną krzywą XP; około 36% mniej XP łącznie bez skracania progów 1-200.")
+    HELP_TOPICS["profesje"].append("Wędka/Kilof/Piła/Sierp rozwijają się obecnie 1-400; dawna wygładzona część krzywej 1-200 pozostaje zachowana, a 201-400 jest jej dalszą progresją.")
 
 COMMAND_ALIASES.update({
     "bestiariusz": "bestiary", "bestiary": "bestiary",
@@ -23251,6 +23633,41 @@ class Database:
             )
         self.conn.commit()
         return True
+
+    def transfer_inventory_item(self, from_account_id, to_account_id, item_id, qty=1):
+        """Atomowo przenosi zwykły item inventory między dwiema postaciami."""
+        qty = max(1, int(qty))
+        if from_account_id == to_account_id:
+            return False
+        current = self.item_qty(from_account_id, item_id)
+        if current < qty:
+            return False
+        try:
+            self.conn.execute("BEGIN")
+            new_qty = current - qty
+            if new_qty <= 0:
+                self.conn.execute(
+                    "DELETE FROM inventory WHERE account_id=? AND item_id=?",
+                    (from_account_id, item_id),
+                )
+            else:
+                self.conn.execute(
+                    "UPDATE inventory SET quantity=? WHERE account_id=? AND item_id=?",
+                    (new_qty, from_account_id, item_id),
+                )
+            self.conn.execute(
+                """
+                INSERT INTO inventory(account_id,item_id,quantity) VALUES(?,?,?)
+                ON CONFLICT(account_id,item_id)
+                DO UPDATE SET quantity=quantity+excluded.quantity
+                """,
+                (to_account_id, item_id, qty),
+            )
+            self.conn.commit()
+            return True
+        except Exception:
+            self.conn.rollback()
+            raise
 
     def ensure_class_progress(self, account_id, class_name):
         self.conn.execute(
@@ -26114,6 +26531,36 @@ class Session:
     def class_mastery_level(self, class_name):
         row = self.server.db.class_progress_row(self.account_id, class_name)
         return int(row["level"]) if row else 1
+
+    def highest_active_class_mastery(self):
+        active = self.active_class_names()
+        if not active:
+            return 1
+        return max(self.class_mastery_level(class_name) for class_name in active)
+
+    def equipment_mastery_requirement_met(self, item):
+        required_mastery = max(1, int(item.get("required_mastery", 1) or 1))
+        required_class = item.get("required_class")
+        if required_class:
+            return self.class_mastery_level(required_class) >= required_mastery
+        if item.get("mastery_requirement_scope") == "active_class":
+            return self.highest_active_class_mastery() >= required_mastery
+        return True
+
+    def equipment_mastery_requirement_text(self, item):
+        required_mastery = max(1, int(item.get("required_mastery", 1) or 1))
+        required_class = item.get("required_class")
+        if required_class:
+            return (
+                f"Wymaga Biegłości {required_class} {required_mastery}. "
+                f"Masz {self.class_mastery_level(required_class)}."
+            )
+        if item.get("mastery_requirement_scope") == "active_class":
+            return (
+                f"Wymaga Biegłości aktywnej klasy {required_mastery}. "
+                f"Najwyższa Biegłość twoich aktywnych klas: {self.highest_active_class_mastery()}."
+            )
+        return ""
 
     def skill_required_mastery(self, skill):
         return max(1, int(skill.get("unlock", 1)))
@@ -38978,6 +39425,99 @@ class Session:
     async def alchemy_item(self, query):
         return await self.perform_recipe(query, ALCHEMY_RECIPES, "alchemia")
 
+    def equipped_quantity_of_item(self, item_id):
+        return sum(
+            1 for row in self.server.db.equipment(self.account_id)
+            if row["item_id"] == item_id
+        )
+
+    def free_equipment_quantity(self, item_id):
+        return max(
+            0,
+            self.server.db.item_qty(self.account_id, item_id)
+            - self.equipped_quantity_of_item(item_id),
+        )
+
+    def resolve_transferable_equipment(self, query):
+        transferable = {
+            item_id: item
+            for item_id, item in ITEMS.items()
+            if (
+                item.get("type") == "armor"
+                and not is_character_bound_item(item_id)
+                and self.free_equipment_quantity(item_id) > 0
+            )
+        }
+        return find_by_name(transferable, query)
+
+    async def give_equipment(self, raw):
+        """Przekazuje jedną wolną sztukę EQ graczowi stojącemu obok."""
+        text = str(raw or "").strip()
+        parts = text.split(maxsplit=1)
+        if len(parts) < 2:
+            await self.send(
+                "Użycie: przekaż <gracz> <pełna nazwa EQ>, np. "
+                "przekaż Arven Mithrilowy Hełm Woli 3."
+            )
+            return
+
+        target_name, item_query = parts[0], parts[1].strip()
+        target = self.server.find_character_session(target_name)
+        if target is None or target.closed or not target.character:
+            await self.send(f"Gracz {target_name} nie jest teraz online.")
+            return
+        if target is self or target.account_id == self.account_id:
+            await self.send("Nie możesz przekazać EQ samemu sobie.")
+            return
+        if target.character.room_id != self.character.room_id:
+            await self.send(
+                f"{target.character.name} nie znajduje się w tej samej lokacji. "
+                "EQ można przekazać tylko graczowi stojącemu obok."
+            )
+            return
+
+        found = self.resolve_transferable_equipment(item_query)
+        if not found:
+            # Rozróżnij brak przedmiotu od sytuacji, gdy jedyna sztuka jest założona.
+            owned = {
+                item_id: item
+                for item_id, item in ITEMS.items()
+                if item.get("type") == "armor" and self.server.db.item_qty(self.account_id, item_id) > 0
+            }
+            owned_found = find_by_name(owned, item_query)
+            if owned_found and self.free_equipment_quantity(owned_found[0]) <= 0:
+                await self.send(
+                    f"{owned_found[1]['name']} jest aktualnie założony. "
+                    "Najpierw zdejmij EQ; założonego przedmiotu nie można przekazać."
+                )
+            else:
+                await self.send(
+                    "Nie rozpoznaję wolnego EQ o tej nazwie. Podaj pełną nazwę "
+                    "niezałożonego przedmiotu z inventory."
+                )
+            return
+
+        item_id, item = found
+        if self.free_equipment_quantity(item_id) <= 0:
+            await self.send(
+                f"{item['name']} jest założony. Najpierw go zdejmij."
+            )
+            return
+
+        if not self.server.db.transfer_inventory_item(
+            self.account_id, target.account_id, item_id, 1
+        ):
+            await self.send("Nie udało się przekazać przedmiotu. Nic nie zostało zmienione.")
+            return
+
+        await self.send(
+            f"Przekazujesz graczowi {target.character.name}: {item['name']}."
+        )
+        await target.send(
+            f"{self.character.name} przekazuje ci: {item['name']}. "
+            "Przedmiot trafia do twojego inventory; gra nie zakłada go automatycznie."
+        )
+
     async def inventory(self):
         rows = self.server.db.inventory(self.account_id)
         await self.send(
@@ -39183,16 +39723,11 @@ class Session:
                 continue
             if item.get("slot") != logical_slot:
                 continue
-            required_class = item.get("required_class")
-            if (
-                required_class
-                and required_class
-                not in self.active_class_names()
-            ):
-                continue
-            required_mastery = max(1, int(item.get("required_mastery", 1) or 1))
-            if required_class and self.class_mastery_level(required_class) < required_mastery:
-                continue
+            # Lista wyboru pokazuje wszystkie posiadane części tego slotu,
+            # również te jeszcze zablokowane Biegłością/klasą. Dzięki temu
+            # komenda slotowa nigdy nie "wybiera za gracza" tylko dlatego,
+            # że część posiadanych opcji jest chwilowo niedostępna. Walidacja
+            # klasy i Biegłości następuje dopiero po podaniu konkretnej nazwy.
             quantity = self.server.db.item_qty(
                 self.account_id, item_id
             )
@@ -39734,10 +40269,9 @@ class Session:
             return
 
         required_mastery = max(1, int(item.get("required_mastery", 1)))
-        if required_class and self.class_mastery_level(required_class) < required_mastery:
+        if not self.equipment_mastery_requirement_met(item):
             await self.send(
-                f"{item['name']} wymaga Biegłości {required_class} "
-                f"na poziomie {required_mastery}. Masz {self.class_mastery_level(required_class)}."
+                f"{item['name']}: {self.equipment_mastery_requirement_text(item)}"
             )
             return
 
@@ -40259,11 +40793,9 @@ class Session:
             return
 
         required_mastery = max(1, int(item.get("required_mastery", 1)))
-        if required_class and self.class_mastery_level(required_class) < required_mastery:
+        if not self.equipment_mastery_requirement_met(item):
             await self.send(
-                f"{item['name']} wymaga Biegłości {required_class} "
-                f"na poziomie {required_mastery}. Masz "
-                f"{self.class_mastery_level(required_class)}."
+                f"{item['name']}: {self.equipment_mastery_requirement_text(item)}"
             )
             return
 
@@ -45947,6 +46479,8 @@ class Session:
                     await self.equip_item(args)
             elif command == "unequip":
                 await self.unequip_item(args)
+            elif command == "giveeq":
+                await self.give_equipment(args)
             elif command == "use":
                 await self.use_item(args)
             elif command == "shop":

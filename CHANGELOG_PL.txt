@@ -1,3 +1,45 @@
+v0.9.19 — Full EQ Progression 10–400 + Final Rebalans
+========================================================
+- Całe EQ jest bramkowane Biegłością, nigdy Soul Levelem. Dozwolone progi to wyłącznie 1 oraz 10, 20, 30...400.
+- Klasowe EQ wszystkich 12 klas ma realny wzrost mocy na KAŻDYM progu +10. Do Biegłości 200 zachowano dotychczasowy łączny budżet mocy, tylko rozłożono go bez pustych progów; 201-400 rośnie dalej łagodnie.
+- Materiałowe EQ ma podtiery co 10 Biegłości wewnątrz rodzin Żelazo, Stal, Mithril, Adamantyt, Kobalt, Runiczny, Smocza Stal, Astral, Pustka i Eternium.
+- Zwykła Krypta rozciąga progresję materiałów przez pełne 1-400: wysokie materiały nie kończą się już około piętra 181.
+- Drop materiałowego EQ jest filtrowany przez bieżący próg instancji. Zwykły mob nie może wylosować wariantu wymagającego przyszłej Biegłości z tej samej rodziny materiału.
+- Boss daje następny krok progresji +10 zamiast automatycznego przeskoku o cały materiał, co usuwa skoki 30-40 poziomów Biegłości.
+- Dwa historyczne nietypowe wymagania 15 i 35 zostały znormalizowane do 20 i 40. Audyt potwierdza 0 progów spoza siatki 1/10/20/.../400.
+- Zachowano ręczne zakładanie/zdejmowanie EQ, ochronę założonych sztuk przed sell/transferem, przekazywanie EQ, Radan/sell all, Szkatułkę, questowe EXP statystyk/Soul oraz Soul Tier gates.
+- Test główny: `V0919_FULL_EQ_PROGRESSION_OK`.
+
+v0.9.18 — Full Game Balance Audit 1–400 + EQ od Biegłości
+================================================================
+- Wykonano pełny audyt integracyjny po zmianach v0.9.14-v0.9.17: walka, EXP statystyk/Soul, gęstość mobów, drop materiałowego EQ, ekonomia sprzedaży, przekazywanie EQ i progresja endgame 1-400.
+- Zamknięto exploit handlu: mocne przekazane EQ może pozostać w inventory odbiorcy, ale nie można go założyć przed osiągnięciem wymaganej Biegłości. Soul Level nie jest wymaganiem EQ.
+- Materiałowe EQ ma progi Biegłości: Żelazo 1, Stal 40, Mithril 80, Adamantyt 120, Kobalt 160, Runiczne 200, Smocza Stal 240, Astral 280, Pustka 340, Eternium 400.
+- Globalny system Biegłości obejmuje całe progresyjne EQ: klasowe, Kryptę (Tier 40 = 400), relikty bossów Krypty wg piętra, Astralne, Kowalskie, Jubilerskie, regionalne zestawy i stare unikatowe dropy bossów.
+- Nieklasowe EQ korzysta z najwyższej Biegłości spośród aktywnych klas; klasowe EQ nadal wymaga właściwej klasy i jej własnej Biegłości.
+- Zachowano ręczny wybór z v0.9.16. Listy slotów nie ukrywają posiadanych opcji tylko dlatego, że są jeszcze zablokowane; konkretna nazwa uruchamia dopiero walidację klasy/Biegłości.
+- 52/52 questów typu kill nadal daje EXP każdej z sześciu statystyk i Soul XP. Limit questowego EXP statystyk oraz globalna bramka Soul Tier pozostają aktywne.
+- Audyt gęstych lochów objął 1557 wariantów mobów; nagroda na punkt HP nie przekracza przyjętego marginesu względem bazy. Kopalnie nadal nie są zagęszczane mobami.
+- `sell all` zachowuje założone EQ, sprzedaje tylko wolne sztuki i zwykły loot oraz nie narusza Szkatułki. Radan nadal odrzuca surowce profesyjne i materiały rzemieślnicze.
+- Poprawiono aktualną pomoc profesji/narzędzi, aby wszędzie opisywała progresję 1-400 zamiast starych informacji 1-200.
+- Test główny: `V0918_FULL_BALANCE_AUDIT_OK`; regresje: `INFINITE_DUNGEONS_TOWERS_OK`, `V0914_ALL_TESTS_OK`, `V0916_MANUAL_EQ_CHOICE_OK`, `V0917_DUNGEON_MATERIALS_EQ_TRANSFER_OK`.
+
+v0.9.17 — Progresja materiałów EQ + przekazywanie EQ graczom
+================================================================
+- Materiałowe EQ zachowuje 10 realnych poziomów: Żelazne, Stalowe, Mithrilowe, Adamantytowe, Kobaltowe, Runiczne, Smoczej Stali, Astralne, Pustki i Eternium.
+- Wysokie materiały są od tej wersji przede wszystkim nagrodą z Krypt, Wież, Twierdzy Gigantów i bojowych Lochów, a nie przypadkowym łupem ze zwykłego świata.
+- Zwykła Krypta ma czytelną progresję materiału co 20 pięter: 1-20 Żelazo, 21-40 Stal, 41-60 Mithril, 61-80 Adamantyt, 81-100 Kobalt, 101-120 Runiczny, 121-140 Smocza Stal, 141-160 Astral, 161-180 Pustka, 181+ Eternium.
+- Boss lochu może wypaść o jeden poziom materiału wyżej niż zwykłe moby z tego samego pasma, bez przekraczania Eternium.
+- Mityczna Krypta i Mityczna Wieża startują od Runicznego EQ i szybciej prowadzą przez Smoczą Stal, Astral, Pustkę do Eternium.
+- Wieża Astralna startuje od Kobaltu na poziomie 100 i wraz z wysokością prowadzi do Eternium. Twierdza Gigantów oraz bojowe lochy profesyjne mają własne pasma progresji materiałów.
+- Zwykłe moby świata mają materiałowy cap Kobalt; bossowie świata mogą dojść do Runicznego. Najwyższe tiery są więc kojarzone z endgameowymi lochami/wieżami.
+- Dodano przekazywanie EQ innemu graczowi: `przekaż <gracz> <pełna nazwa EQ>` / `daj <gracz> <pełna nazwa EQ>` / `give <gracz> <pełna nazwa EQ>`.
+- Odbiorca musi być online i znajdować się w tej samej lokacji. Przedmiot trafia do jego inventory i nigdy nie zakłada się automatycznie.
+- Założonego EQ nie da się przekazać. Jeśli gracz ma dwie identyczne sztuki, z których jedna jest założona, można przekazać wyłącznie wolny egzemplarz.
+- Transfer jest wykonywany atomowo w SQLite: przedmiot nie może zniknąć po drodze ani zostać zdublowany przy błędzie.
+- Zachowano ręczne zarządzanie EQ z v0.9.16, skup na Rynku, Szkatułkę Rzemieślniczą, gęstsze Krypty/Wieże/Lochy oraz blokady Soul Tier.
+- Testy: `V0917_DUNGEON_MATERIALS_EQ_TRANSFER_OK`, regresja `V0916_MANUAL_EQ_CHOICE_OK`, `V0914_ALL_TESTS_OK` i `INFINITE_DUNGEONS_TOWERS_OK`.
+
 v0.9.16 — Ręczny wybór EQ
 ============================
 - Usunięto automatyczny wybór „najlepszego” EQ przy komendach slotowych. Gracz sam wybiera konkretny przedmiot.
