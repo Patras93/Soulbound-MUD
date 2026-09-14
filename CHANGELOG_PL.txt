@@ -1,3 +1,294 @@
+v0.9.0 — Full Character & Soul Weapon Balance Pass
+=====================================================
+- Wszystkie 13 ras mają identyczny budżet 50 bazowych punktów w pięciu głównych statystykach; usunięto wcześniejszy rozjazd 50-58 punktów.
+- Profile rasowe nadal są różne: specjalizację tworzy rozkład punktów i pasyw, a nie darmowy większy budżet.
+- Wszystkie 12 klas dodaje dokładnie 9 punktów startowych zamiast wcześniejszego zakresu 8-10.
+- Z bazową Charyzmą 10 każda kombinacja rasa-klasa ma łącznie dokładnie 69 punktów startowych.
+- Bazowa Moc Broni Duszy została zwężona z 6-9 do 7-8; różnice klas wynikają dalej ze skilli, pasywów i specjalizacji Soul Tier.
+- Łotrzyk: Broń Duszy daje maksymalnie +5 pp uniku i dodatkowo część specjalizacji jako bonus obrażeń fizycznych, więc Tier progression nie jest marnowany przez globalny limit 35% dodge.
+- Soul Level 1-200, Soul XP, progi 20 Tierów, Próby Broni Duszy i Power Tierów pozostają bez zmian.
+- Dodano jednorazową, idempotentną migrację istniejących postaci. Koryguje tylko różnicę starego/nowego startu i weapon_base; zdobyty rozwój, EXP statów, Class/Soul progress, EQ, questy, profesje, eksploracja i Bestiariusz są zachowane.
+- HELP/opisy Broni Duszy i ras zostały zsynchronizowane z nowym balansem.
+- Walka mobów, bossowie, questy, ekonomia, loot, EQ, profesje, narzędzia, geody, mapa i Bestiariusz zachowują dane v0.8.76.
+
+v0.8.76 — Exploration Map + Persistent Bestiary
+===================================================
+- `mapa` / `map` pokazuje teraz rzeczywiście odkryty świat: procent bieżącego regionu, liczbę odkrytych lokacji i wyłącznie nazwy miejsc już odwiedzonych. Nazwy nieodkrytych lokacji pozostają ukryte.
+- `mapa all` / `map all` pokazuje procent wszystkich 32 regionów oraz status nagrody eksploracyjnej; cały świat nadal ma 1272 lokacje.
+- Istniejący zapis eksploracji działa per postać i zachowuje nagrodę za 100% większej strefy: Soul XP, walutę, unikalną Pamiątkę Odkrywcy, tytuł i osiągnięcie.
+- Dodano trwały `bestiariusz` / `bestiary`. Pierwsze zabicie przeciwnika odblokowuje jego wpis, a każde kolejne zwiększa licznik zabójstw.
+- Bestiariusz ma 953 logiczne gatunki wynikające z realnych spawnów. Proceduralne warianty elite/rare liczą się do gatunku bazowego, więc kolekcja nie wymaga osobnego wpisu dla tysięcy affixów technicznych.
+- `bestiariusz lista` / `bestiary list` pokazuje odblokowane wpisy i liczbę zabójstw; `bestiariusz rekordy` / `bestiary records` pokazuje najlepsze czasy.
+- `bestiariusz <mob>` / `bestiary <mob>` pokazuje liczbę zabójstw, rekord czasu, HP, obrażenia, typ ataku, realne lokacje spawnu, realne dropy z procentami oraz zdefiniowane odporności/słabości. Jeśli przeciwnik nie ma specjalnej odporności w danych walki, Bestiariusz mówi to wprost zamiast ją wymyślać.
+- Rekord czasu jest liczony od pierwszego realnego zaangażowania przeciwnika do śmierci i zapisuje najlepszy wynik per postać. Zabicie drużynowe zalicza wpis każdemu członkowi, który normalnie otrzymuje nagrodę za tego przeciwnika.
+- Dodano tabelę `bestiary_stats` przez bezpieczne `CREATE TABLE IF NOT EXISTS`; stare bazy nie są resetowane, a istniejąca eksploracja pozostaje zachowana.
+- HELP, lista komend i aliasy PL/EN zostały zsynchronizowane: `help eksploracja`, `help bestiariusz`, `mapa/map`, `bestiariusz/bestiary`.
+- Brak zmian balansu walki, Class/Soul/stat XP, questów, EQ, profesji, narzędzi, geod i ekonomii z v0.8.75.
+
+v0.8.75 — Fun Balance: tempo narzędzi, jakość klejnotów i geody
+=================================================================
+- Skrócono potwierdzony grind Wędki/Kilofa/Piły/Sierpa: pełna krzywa 1-200 spada z 169 548 do 108 455 Tool XP (~36% mniej), bez robienia levelu 200 gratisem.
+- Narzędzia produkcyjne zachowują starą krzywą, ponieważ wysokie receptury już dają znacznie więcej Tool XP za wykonanie.
+- Dodano cztery jakości wszystkich 11 klejnotów Górnictwa: Surowy, Czysty, Doskonały i Perfekcyjny. Lepszy Kilof + Górnictwo zwiększają szansę jakości; przy 200/200 Perfekcyjny to ~2% samych trafień klejnotów.
+- Jakość zwiększa wartość oraz bonus osadzonego klejnotu, ale nie dodaje slotów i nie omija istniejących limitów socketów/EQ.
+- Dodano Geodę Kamienną (20/10), Kryształową (80/60) i Astralną (160/150). Geody są dodatkowym rzutem Górnictwa i nie zastępują rudy/żyły/klejnotu.
+- Geody trafiają do Sakwy Górnika; można sprzedać je Dagnie albo otworzyć przez `open geode` / `otwórz geodę` / `otworz geode`.
+- Drop geod rośnie łagodnie od ~1.45% do ~4.2% akcji. Ich wpływ ekonomiczny pozostaje dodatkiem, a nie głównym źródłem złota.
+- `help geody`, `atlas geody`, `atlas rudy` i wyszukiwanie pojedynczych klejnotów są zaktualizowane; `atlas diament` działa także po dodaniu wielu jakości.
+- Walka, moby, questy, Class/Soul/stat XP, EQ, świat, istniejące ceny i schemat SQLite pozostają bez zmian względem v0.8.74.
+
+v0.8.74 — Full Game Mob, Stat XP & Help Balance Pass
+======================================================
+- Pełny audit 8495 template'ów mobów i 1109 spawnów; 742 zbyt papierowe template'y (łącznie z wariantami elite/rare) dostały tylko brakującą trwałość, bez globalnego buffowania całej gry.
+- Mediana wzrostu HP zmienionej grupy to około x1,29, maksymalna korekta pozostaje poniżej x2.
+- Bossowie piętrowi Krypty/Astralu/Mityczni/Twierdzy Gigantów nie dostali dodatkowego HP; ich walki już były wystarczająco długie.
+- Class XP i Soul XP rosną proporcjonalnie tylko tam, gdzie podniesiono HP. 33 stare template'y z Class XP = 0 otrzymały prawidłowy Class XP.
+- `stat_reward` wszystkich 8495 mobów pozostaje identyczny jak w v0.8.73. Limity per kill: normal 20%, elite/rare 35%, mini 50%, boss 75%, world/mythic 100% progu każdej statystyki.
+- Audyt tempa Postępu Rozwoju na wartościach 8/14/25/50/100/150/200 potwierdził około 5 zwykłych mobów odpowiedniego etapu na pełny próg statystyki — progres nie został spowolniony.
+- Questowy Postęp Rozwoju ma dynamiczny cap: repeatable do 85% bieżącego progu, jednorazowy do 90% przed bonusem rasy. Zapobiega to +kilku statom z jednego oddania bez robienia wolnego grindu.
+- Dodano słowne oceny statystyk: bardzo słabo, słabo, poniżej przeciętnej, przeciętnie, dobrze, bardzo dobrze, świetnie, wybitnie, mistrzowsko, nadludzko, legendarnie, maksimum.
+- `staty` / `staty info` oraz komunikat wzrostu czytają ocenę, np. „Siła 14 — przeciętnie”.
+- `help` / `pomoc` otwiera teraz indeks kategorii; `help kategorie` / `help categories` daje ten sam widok.
+- EQ, ITEMS, QUESTS, ROOMS i schemat SQLite nie zostały zmienione przez pass. Questy nadal 119/119 event-progress-only i 0/x.
+
+v0.8.73 — Questy: 20 Odłamków Duszy i 20 Karpi Rzecznych
+==========================================================
+- „Odłamki dla kowala” wymaga teraz 20 Odłamków Duszy zamiast 3.
+- Nagroda: 7500 srebra i 2 Eliksiry Duszy.
+- „Zlecenie Neris 1: Karp Rzeczny” wymaga teraz 20 Karpi Rzecznych zamiast 5.
+- Nagroda pierwszego zlecenia Neris: 1200 EXP Wędkarstwa, 1000 EXP Wędki i 300 srebra.
+- „Próba Rybaka” od Rybaka Tomasa pozostaje bez zmian: 30 dowolnych ryb.
+- Wszystkie trzy questy zachowują event-progress-only; przyjęcie zaczyna od 0/x i stary zapas nie daje postępu.
+- Poprawiono dokumentację starej nagrody „Odłamków dla kowala”, aby odpowiadała aktywnym danym.
+
+SOULBOUND v0.8.72 — BOSS CHESTS + OWNER ADMIN + GATHERING RNG + ATLAS SYNC
+=============================================================================
+- Dodano 76 Skrzyń Bossów na wszystkich istniejących piętrach bossów co 10 w pięciu wielopiętrowych lochach: Twierdzy Gigantów, Krypcie, Wieży Astralnej, Mitycznej Krypcie i Mitycznej Wieży Astralnej.
+- Każdy właściwy boss piętra zostawia w swoim ciele gwarantowany, jednorazowy klucz do skrzyni tego konkretnego piętra. Klucz trzeba zabrać z ciała normalnym systemem lootu.
+- Bez właściwego klucza skrzynia pozostaje zamknięta i nie przyznaje żadnej nagrody.
+- `unlock` / `odklucz` / `odblokuj` otwiera skrzynię bossową w bieżącej lokacji, zużywa dokładnie jeden właściwy klucz i przyznaje gwarantowane złoto oraz losowe przydatne nagrody: Odłamki Duszy, mikstury/eliksiry i zależne od poziomu surowe klejnoty. `unlock soul` / `odklucz dusza` zachowuje dotychczasowe odblokowanie Soul Tieru.
+- `look` oraz informacje o lochach informują o skrzyni, stanie klucza i właściwej komendzie otwarcia.
+- Dodano właścicielskie komendy administracyjne. Uprawnienie jest przypisane do nazwy KONTA logowania przez zmienną serwera `SOULBOUND_ADMIN_ACCOUNTS`, nigdy do nazwy postaci.
+- Zwykłe konta nie widzą tematów admina ani komend wipe w HELP i nie mogą ich wykonać.
+- `admin help` / `administrator pomoc` pokazuje opcje właściciela; dostępne są m.in. status, heal/ulecz, goto/teleport i give/daj.
+- `wipe moje postacie POTWIERDZAM` / `wipe my characters CONFIRM` usuwa wszystkie postacie i ich progres z Twojego konta, ale zachowuje login, hasło i rekord konta.
+- `wipe wszystkie postacie POTWIERDZAM` / `wipe all characters CONFIRM` wykonuje serwerowy wipe postaci wszystkich kont, nadal bez usuwania loginów i haseł. Polskie aliasy komendy to także `wyczyść` / `wyczysc` / `wymaz`.
+- Wipe czyści dane postaci, EQ, inventory, bank/portfel gry, questy, profesje, narzędzia i pozostały progres postaci; po wipe można od razu utworzyć nową postać na tym samym koncie.
+- Dodano umiarkowaną losowość ilości bazowego urobku w Wędkarstwie, Drwalstwie i Zielarstwie: zawsze wpada co najmniej 1 sztuka, a wraz z poziomem profesji i narzędzia rośnie szansa na 2 lub 3 sztuki.
+- Górnictwo zachowuje istniejący, mocniejszy system losowych żył x1/x2/x3/x5 oraz bonusy Tieru; nie dodano drugiego nakładającego się rzutu ilości.
+- Questy zbierackie dostają dokładnie tyle postępu, ile sztuk faktycznie pozyskano po przyjęciu. Stary zapas nadal nie liczy się i każdy quest nadal startuje od 0/x.
+- Zsynchronizowano pełne atlasy ryb, rud/minerałów, drewna oraz ziół/roślin z aktywnymi tabelami pozyskiwania.
+- Do atlasów terenowych dodano: Mech Nagrobny, Cierń Pustki, Korzeń Żelaznokory, Srebro Grobowe, Ślepy Węgorz Kanałowy i Rudę Lodowego Kryształu wraz z prawdziwymi wymaganiami narzędzia i miejscami.
+- Atlas Górnictwa pokazuje także wszystkie surowe klejnoty. Surowy Diament jest potwierdzony jako realny dodatkowy drop Górnictwa: Kilof 80+, efektywna głębokość 60+; trafia do Sakwy Górnika.
+- Zasada projektowa komend: nowe funkcje dostają wariant angielski, polski oraz — gdy ma to sens — polski alias bez znaków diakrytycznych.
+- Brak zmian schematu SQLite. Dotychczasowe klasy, rasy, 119 questów, 1272 lokacje, 253 skille/spelle, moby, ceny i istniejące przedmioty pozostają bez zmian; dodano wyłącznie 76 niesprzedawalnych kluczy bossowych.
+
+SOULBOUND v0.8.71 — KOMENDY DRUŻYNOWE + ZASŁOŃ TANKA
+========================================================
+- Dodano bezpośrednie komendy drużynowe z polskimi znakami i bez: załóż/zaloz drużynę, zaproś/zapros <gracz>, dołącz/dolacz, odrzuć/odrzuc, opuść/opusc, wyrzuć/wyrzuc <gracz>, rozwiąż/rozwiaz oraz lider <gracz>.
+- Naturalna forma `zaproś <gracz> do drużyny` i `wyrzuć <gracz> z drużyny` jest rozpoznawana bez traktowania końcówki jako części imienia.
+- Stare komendy `druzyna ...` / `party ...` pozostają w pełni zgodne.
+- `załóż drużynę` tworzy jednoosobową drużynę z graczem jako liderem; zapraszanie nadal może automatycznie utworzyć drużynę jak wcześniej.
+- `lider <gracz>` przekazuje dowodzenie wskazanemu członkowi i zachowuje poprawnie aktywne zaproszenia oraz tanka.
+- Dodano `zasłoń` / `zaslon` / `zasłoń drużynę` dla aktywnej klasy Strażnik. Tank przejmuje aggro wspólnego przeciwnika całej drużyny w tej samej lokacji.
+- Aktywna osłona automatycznie dołącza wolnego tanka do wspólnego celu; istniejące guardy, pancerz, redukcja Strażnika i Broń Duszy działają na przejęte trafienia normalnie.
+- Dla zachowania balansu Strażnik osłania jeden wspólny cel walki naraz; osłona nie działa z innej lokacji i nie teleportuje tanka z równoległej walki.
+- `zasłoń off` / `zaslon off` wyłącza osłonę. Śmierć, opuszczenie drużyny lub wyrzucenie aktywnego tanka także bezpiecznie ją usuwa i pozwala przekazać aggro innemu walczącemu członkowi.
+- `druzyna` / `party` pokazuje teraz także status osłony i nazwę aktywnego tanka.
+- HELP i README zaktualizowano razem z mechaniką.
+- Brak zmian balansu klas, skilli, mobów, questów, przedmiotów, ekonomii, profesji i schematu SQLite.
+
+SOULBOUND v0.8.70 — GRAVE MOSS QUEST PROGRESS
+=================================================
+- Quest „Terenowe Zielarstwo: Mech Nagrobny” ma jawnie zabezpieczony postęp 0/8 -> 1/8 -> ... -> 8/8.
+- Mech Nagrobny posiadany przed przyjęciem questa nie nalicza postępu.
+- Każda nowa sztuka zebrana po przyjęciu zwiększa zapisany licznik; bonusowy dodatkowy zbiór może zwiększyć go o 2 w jednej akcji.
+- Postęp questów na konkretny surowiec kanonizuje rzadkie warianty do bazowego zasobu, więc lepsza jakość nie gubi zaliczenia.
+- Przy oddawaniu questa równoważne warianty tego samego bazowego surowca mogą zostać policzone i zużyte razem z wersją zwykłą.
+- Komunikat postępu pod NVDA podaje teraz bezpośrednio „Postęp X z Y: <cel>”.
+- HELP QUEST i HELP QUESTY 0 zostały uzupełnione o aktualną zasadę Mchu Nagrobnego i wariantów surowców.
+- Zachowano 119 questów, 1272 lokacje, 253 skille/spelle, 12 klas i 13 ras.
+- Brak zmian nagród, cen, drop rate, czasów profesji, EXP sprzedażowego, EXP narzędzi i schematu SQLite.
+
+SOULBOUND v0.8.69 — FINAL SALE XP BALANCE + SOUL WEAPON IN EQ
+================================================================
+- Wykonano końcowy audyt EXP profesji przyznawanego za sprzedaż surowców u właściwych skupujących.
+- Pozostawiono +1 bazowy EXP profesji za sprzedaną sztukę (przy globalnym mnożniku x4 = +4 realnego EXP), ponieważ audyt nie wykazał potrzeby nerfa.
+- Typowa sprzedaż po jednej akcji daje około 8-11,2% dodatkowego EXP względem średniego EXP z samej pracy profesją; Górnictwo z wielosztukowymi żyłami daje około 9,9-17,8% w skrajnym endgame z klejnotami.
+- Samą sprzedażą potrzeba około 176 364 sztuk surowców, aby pokryć pełny koszt profesji 1-200 (705 455 EXP bazowego przed mnożnikiem), więc handel pozostaje dodatkiem, a nie zamiennikiem pracy.
+- Surowców profesyjnych nie można kupić w sklepach i odsprzedawać dla darmowego EXP; skup nadal usuwa faktycznie sprzedane sztuki.
+- Komenda equipment / eq zawsze pokazuje teraz Broń Duszy, nawet gdy postać nie ma założonego dodatkowego EQ.
+- Szybkie eq pokazuje nazwę Broni Duszy, Soul Level, Soul Tier i Moc.
+- eq info dodatkowo pokazuje Soul XP oraz bonus klasowy Broni Duszy.
+- Broń Duszy pozostaje przypisana do postaci i nie zajmuje slotu pancerza ani biżuterii.
+- Wszystkie questy nadal zaczynają od 0/x i liczą wyłącznie wymagane zdarzenia wykonane po przyjęciu.
+- Brak zmian cen, drop rate, nagród questów, czasów profesji, schematu SQLite i EXP narzędzi.
+
+SOULBOUND v0.8.68 — PROFESSION SALE XP
+========================================
+- Sprzedaż ryb właściwym rybakom daje dodatkowy EXP Wędkarstwa.
+- Sprzedaż rud, minerałów i surowych klejnotów Dagnie daje dodatkowy EXP Górnictwa.
+- Sprzedaż drewna Drwalowi Branowi daje dodatkowy EXP Drwalstwa.
+- Sprzedaż ziół Zielarce Liorze daje dodatkowy EXP Zielarstwa.
+- EXP sprzedażowy: 1 bazowy EXP profesji za faktycznie sprzedaną sztukę; przy globalnym mnożniku x4 = +4 rzeczywistego EXP profesji za sztukę.
+- Sprzedaż nie daje EXP narzędzia, nie zwiększa jego uses i nie zastępuje normalnej pracy profesją.
+- Obsłużono sprzedaż pojedynczą, całe magazyny profesji i zgodne zasoby z legacy inventory.
+- Sprzedaż nie uruchamia postępu questów; wszystkie questy nadal zaczynają od 0/x i liczą wyłącznie zdarzenia po przyjęciu.
+- Naprawiono brakujące helpery profession_rank/profession_rank_name używane przez istniejący system awansów profesji.
+- Brak zmian cen skupu, quest rewards, drop rate, czasów profesji i schematu SQLite.
+
+SOULBOUND v0.8.67 — PROFESSION BUYERS + MINING BAG GEMS
+========================================================
+
+NAJWAŻNIEJSZE ZMIANY
+- Skup surowców jest teraz ściśle profesyjny. Nie można już sprzedawać surowców zbierackich przypadkowym sklepom.
+- Handlarka Minerałów Dagna na Górskim Targu Minerałów jako jedyna skupuje cały urobek z Sakwy Górnika: rudy, minerały i surowe klejnoty.
+- Rybacy na Targu Rybnym jako jedyni skupują ryby z Siatki. Rynek i Karczma nie skupują już ryb.
+- Drwal Bran w Obozie Drwala jako jedyny skupuje drewno ze Stosu.
+- Zielarka Liora w Chacie Zielarki jako jedyna skupuje zioła z Torby Zielarskiej.
+- Surowe klejnoty znajdowane podczas Górnictwa trafiają od teraz do Sakwy Górnika zamiast do zwykłego inventory. Dotyczy m.in. rubinów, szafirów, szmaragdów, ametystów, diamentów i klejnotów endgame.
+- Stare surowe klejnoty zapisane w inventory są automatycznie przenoszone do Sakwy Górnika przy wejściu do świata.
+- Surowe klejnoty mają wartość skupu u Dagny. Szlifowane klejnoty pozostają systemem Jubilerstwa i nie są traktowane jak rudy.
+- Questy na rudy NIE liczą klejnotów jako rud. Każdy quest nadal zaczyna od 0/x i liczy wyłącznie zdarzenia wykonane po przyjęciu.
+- HELP i README zaktualizowano pod nowe punkty skupu i zawartość Sakwy Górnika.
+
+ZACHOWANE BEZ ZMIAN
+- Balans v0.8.66, nagrody questów, ceny pozostałych przedmiotów, walka, klasy, rasy, profesje 1-200 i brak trwałości narzędzi.
+- Wszystkie questy zachowują event-progress-only i start 0/x.
+
+SOULBOUND v0.8.66 — COMPLETE GAME + TERRAIN + RNG BALANCE
+===========================================================
+
+NAJWAŻNIEJSZE ZMIANY
+- Pełny pass balansu całej gry 1-200: walka, klasy, rasy, tereny, moby, bossowie, RNG, EQ, questy, progresja, profesje, crafting i ekonomia.
+- 1272 lokacje są oceniane na podstawie rzeczywistych spawnów w konkretnym pokoju, a nie wyłącznie nazwy biomu. Duży skok zagrożenia jest czytany przed przejściem.
+- Każdy quest po przyjęciu zaczyna od 0/x. Postęp naliczają wyłącznie zdarzenia wykonane po przyjęciu; stary zapas, wcześniejsze zabicia i wcześniejszy crafting nie dają darmowego postępu.
+- Sześć statystyk ma osobne liczniki EXP i osobne progi: Siła, Zręczność, Kondycja, Inteligencja, Siła Woli i Charyzma. NVDA czyta każdą osobno.
+- Stary wspólny stat_progress jest automatycznie i bezstratnie migrowany do sześciu liczników przy pierwszym uruchomieniu.
+- Limit EXP statystyk z moba jest liczony osobno dla każdej statystyki według jej własnego progu.
+- Level profesji skraca czas pracy i jest wymaganiem receptur, zleceń oraz poziomów lochów profesyjnych.
+- Level narzędzia NIE skraca czasu i NIE blokuje receptur/questów. Narzędzie odblokowuje lepsze surowce, jakość/rare oraz bonus urobku/produktu.
+- Wszystkie 8 profesji i wszystkie narzędzia mają zakres 1-200. Narzędzia nadal nie mają trwałości.
+- Losowe materiałowe EQ ma stały budżet mocy w obrębie materiału+slotu; RNG zmienia build, a nie tworzy kilku razy mocniejszego przedmiotu tego samego tieru.
+- Rare mob 4%, elite 15%, rare troll 12%; wartości zostały sprawdzone wraz z nagrodami i siłą wariantów.
+- Wędkarstwo zachowuje czas 15→5 s zależny od poziomu Wędkarstwa. Historyczne cenowe outliery ryb mid-game zostały znormalizowane; endgame nadal pozostaje wartościowy.
+- Czysty mithril pozostaje bardzo rzadkim jackpotem; jego expected value nie dominuje już progresji.
+- Charyzma nie rośnie bezpośrednio +1 od każdej sprzedaży. Sprzedaż daje EXP Charyzmy zależny od wartości transakcji.
+- Zaktualizowano HELP pod wszystkie powyższe zasady, w tym profesje, receptury, atlas, statystyki i questy 0/x.
+
+CZASY PROFESJI 1→200
+- Wędkarstwo: 15→5 s.
+- Górnictwo: 30→10 s.
+- Drwalstwo: 24→8 s.
+- Zielarstwo: 10→3 s.
+- Kowalstwo/Rzemiosło: 20→7 s bazowo; receptura endgame 200 = 10 s.
+- Gotowanie: 12→4 s bazowo; receptura endgame 200 = 7 s.
+- Alchemia: 18→6 s bazowo; receptura endgame 200 = 9 s.
+- Jubilerstwo: 20→7 s bazowo; receptura endgame 200 = 10 s.
+
+BALANS WĘDKARSTWA MID-GAME
+Znormalizowano historyczne wartości m.in. Albakory, Tuńczyka wielkookiego, Kobii, Halibuta, Seriolii, Barakudy, Wahoo, Tuńczyka błękitnopłetwego i Samogłowa. Rare warianty zawsze dziedziczą nową bazę razy właściwy mnożnik. Symulacja oceanu po zmianie: około 6.7 złota/h na 20, 316/h na 50, 4.9k/h na 100, 28.5k/h na 150 i 258.6k/h na 200 przy sprzedaży całego połowu, neutralnej rasie i równym levelu Wędkarstwa/Wędki.
+
+ZACHOWANE Z v0.8.64/v0.8.65
+- Soul XP 1-200 z łagodną krzywą +25% na pełny blok 10 leveli.
+- Skill Power L200 ok. x1.745 i cooldown L200 ok. -24.9%.
+- Buffy multiclass mogą działać równocześnie, bez buff→buff; łączny cap x2.25.
+- Heal single max80%, group max60%, drain max25%.
+- Crit max35%, x1.5; execute 35/25/20/15% zależnie od rangi.
+- Pasywny dodge max35%; gwarantowane evade mają wspólny lockout 4 s.
+- Jeden aktywny cel aggro w walce drużynowej.
+- Klasy magiczne odzyskują część Many po awaryjnym ataku przy braku Many.
+
+NIE ZMIENIONO
+- Zakres progresji pozostaje 1-200.
+- 119 nagród pieniężnych questów: 0 zmian względem v0.8.65.
+- 2033 ceny sklepowe: 0 zmian względem v0.8.65.
+- Brak systemu durability.
+
+Soulbound v0.8.65 - Full Game Balance Simulation Pass
+============================================================
+- v0.8.64 był audytem statycznym/systemowym; v0.8.65 dodaje praktyczny przebieg symulacyjny łączący systemy na etapach 20/50/100/150/200.
+- Pasywny dodge ze Zręczności ma malejące skalowanie: DEX10=0%, 40=9%, 80=17%, 130=22%, cap DEX25%, total passive cap35%.
+- Walka drużynowa: mob/boss ma jeden aktywny cel `engaged_by`. Pozostali członkowie drużyny mogą atakować, ale nie uruchamiają osobnych pełnych timerów kontrataku; aggro przechodzi po śmierci/ucieczce celu.
+- Klasy magiczne: po faktycznym wyczerpaniu Many i fallback attack działa Skupienie Broni Duszy, odzyskujące 5% max Many, minimum 4, maksimum 40.
+- Postęp Rozwoju z jednego zabicia ograniczono do 20% progu dla zwykłego moba, 35% elite/rare, 50% mini-bossa, 75% bossa, 100% world/mythic bossa.
+- Próby zbierackie Rybaka, Górnika, Drwala i Zielarki startują od 0/x i liczą wyłącznie zasoby zdobyte po przyjęciu; oddanie nadal wymaga fizycznego posiadania wymaganej liczby.
+- Oceaniczne Wędkarstwo: najdroższe ryby są przesunięte na endgame: reef120, mako140, hammerhead160, tiger180, ghost marlin190, great white200. Widmowy marlin ma skup 5000 złota.
+- Czysty mithril z Górnictwa: 0,002% od 80, 0,005% od 90, 0,01% od 100+. Pełny mithril pozostaje bardzo rzadkim jackpotem.
+- Drwalstwo: wartość skupu drewna x2; crafting, receptury i drop rate bez zmian.
+- Symulacja profesji 20/50/100/150/200 potwierdza, że na 200 główne profesje mieszczą się w podobnym rzędzie wielkości zamiast różnić się wielokrotnie.
+- Normalizowana efektywność ofensywnych skilli 12 klas na Skill L200 mieści się w zakresie średnich 0,554-0,721 (max/min około 1,30x); nie spłaszczano świadomych różnic ról.
+- Czas Wędkarstwa pozostaje 15 s na początku i 5 s od około Wędki 191; nie schodzi niżej.
+- Zachowano 119/119 questów bez zmian nagród, 2033 ceny kupna bez zmian, 253/253 skille/spelle, 12 klas, 13 ras, 1440 wariantów materiałowego EQ i 1272/1272 osiągalnych lokacji.
+- Brak zmian schematu SQLite. Nie kasuj soulbound.db ani Railway Volume.
+
+Soulbound v0.8.64 - Full Game Balance Audit
+===============================================
+- Wykonano pełny audit systemowy całej gry: 13 ras, 12 klas, 253 skille/spelle, 119 questów, 1272 lokacje, 1109 spawnów, 8495 szablonów mobów, 2033 kupowalne pozycje oraz 1440 wariantów materiałowego EQ.
+- Soul Weapon 1-200: usunięto wykładnicze podwajanie wymaganego Soul XP co 10 leveli. Nowa krzywa zwiększa mnożnik o 25% na każdy pełny blok 10 Soul Leveli. Łączny koszt 1-200 spada z ponad 111,6 mld do około 32,0 mln Soul XP.
+- Pojedyncze zabicie ma limit Soul XP zależny od rangi: zwykły mob do około 1 bieżącego paska, elite/rare 1,5, mini-boss 2, boss 3, world/mythic boss 5. Chroni to przed carry przeskakującym dziesiątki Soul Leveli jednym killem.
+- Biegłość klas 1-200 zachowuje dotychczasową krzywą 5 124 250 XP na klasę, która po audycie jest zdrowa. Dodano jednak analogiczny limit Class XP z pojedynczego moba zależny od rangi i liczby aktywnych klas.
+- Postęp Rozwoju: próg zaczyna od 100, a po średniej 25 bazowych statystyk rośnie o 10 za każdy kolejny punkt średniej. Jeden mob ma osobny limit Postępu Rozwoju zależny od rangi; boss nie może już podnieść wszystkich sześciu statystyk dziesiątki/setki razy naraz.
+- Skill Level 1-200: SKILL_XP_STEP zmniejszono z 25 do 8, a XP za użycie skilla podniesiono z 8-12 do 25-35. Łączny koszt jednego skilla 1-200 spada z 502 475 do 167 558 XP.
+- Skalowanie mocy skilli jest malejące: x1.0 na L1, około x1.495 na L100 i x1.745 na L200 zamiast około x2.49 na L200.
+- Cooldown rozwija się przez całe 1-200: około -12,4% na L100 i około -24,9% na L200; nie dobija już do starego limitu -30% około levelu 101.
+- Buffy multiclass nadal mogą działać równocześnie i uniwersalnie wzmacniają wszystkie skille/spelle. Buff nie wzmacnia jednak siły kolejnego buffa; pojedynczy buff ma limit +90%, a łączny aktywny bonus +125% (x2.25).
+- Leczenie: pojedynczy heal po wszystkich mnożnikach ma limit 80% maksymalnego HP na cast; group heal 60% na cel. Drain zachowuje limit 25% maksymalnego HP z v0.8.63.
+- Evade: po zużyciu gwarantowanego uniku działa wspólny 4-sekundowy lockout dla wszystkich skilli evade. Naturalny unik ze Zręczności nadal działa niezależnie.
+- Profesje: mnożnik przyznawanego XP zwiększono do x4, a mnożnik wymaganego XP ustawiono na x2. Profesje pozostają długą ścieżką, ale nie wymagają już absurdalnej liczby akcji.
+- Narzędzia 1-200: nowa krzywa 60 + 8*(level-1). Łączny koszt 1-200 to 169 548 Tool XP zamiast ponad 1,2 mln. Brak trwałości/zużycia narzędzi pozostaje bez zmian.
+- Górnictwo: czysty mithril nadal daje pełny 1 mithril wspólnego salda, ale jego szansa została obniżona 10x: 0,01% od 80, 0,025% od 90 i 0,05% od 100+ efektywnego poziomu.
+- Corpse EQ: materiał jest ponownie wyliczany z FINALNEGO HP po globalnym skalowaniu. Podniesiono progi Stal→Eternium, aby Astral/Pustka/Eternium nie dominowały zwykłych ciał. Wśród 953 unikalnych spawnionych template'ów Eternium jest maksymalnym tierem tylko dla 49 najmocniejszych.
+- Wartości sprzedaży materiałowego EQ są ciaśniejsze: bazowo Żelazo 150 srebra, Stal 500, Mithril 1500, Adamantyt 4000, Kobalt 10000, Runiczny 30000, Smocza Stal 75000, Astral 200000, Pustka 1 000 000, Eternium 8 000 000 srebra; statystyki/właściwości nadal zwiększają wartość konkretnego rolla.
+- AoE vs single-target przeszło audit bez nerfa: najlepsze AoE ma wyraźnie niższy damage/cooldown na pojedynczy cel, więc przewagę uzyskuje dopiero na grupie.
+- Mana, fazy bossów, krytyk v0.8.63, execute v0.8.63, obrona v0.8.63, quest rewards v0.8.62 i cenniki sklepowe v0.8.61 przeszły audit bez dodatkowych zmian.
+- 0 różnic w pieniężnych nagrodach wszystkich 119 questów względem v0.8.63 i 0 różnic w polach cen sklepowych.
+- Nie znaleziono prostego arbitrażu kup składniki -> craft -> natychmiast sprzedaj z zyskiem; żaden recipe nie ma pełnego zestawu składników kupowalnych w sklepach.
+- Test świata: 1272/1272 lokacji osiągalnych, 0 błędnych wyjść. Start serwera na świeżej SQLite PASS.
+- Brak zmian schematu SQLite. Nie kasuj soulbound.db ani Railway Volume.
+
+Soulbound v0.8.63 - Combat & Loot Balance Pass
+=================================================
+- Przeliczono nagrody walutowe wszystkich 8494 zabijalnych szablonów mobów według finalnego HP, bazowych obrażeń i rangi przeciwnika. Training Dummy nadal nie daje pieniędzy.
+- Nagroda z moba jest od teraz zawsze zapisywana w jednym saldzie srebra; złoto i mithril pozostają wyłącznie nominałami odczytu.
+- Usunięto stare anomalie, w których słabe moby z kilkuset HP potrafiły wypłacać setki złota. Przykładowo Goblin daje 82 srebra, Bandyta 105, Szkielet 128, Upiór Krypty 164, a Górski Troll 300 srebra.
+- Elity, rzadkie moby, mini-bossowie, bossowie i world/mythic bossowie mają osobne mnożniki nagrody. Boss Krypty piętro 200 daje około 105 złota, a najwyższe world bossy kilka tysięcy złota za samą walkę.
+- Zbalansowano wartość sprzedaży materiałowego EQ z ciał. Zachowano wyraźny wzrost od Żelaza do Eternium, ale ograniczono farmienie jednego endgame dropu jako głównego źródła całej ekonomii.
+- Zręczność nadal zwiększa krytyk. 10 DEX = 5%, 40 = 20%, 80 = 30%, powyżej 80 przyrost wynosi +0,10 pp na punkt, a twardy limit pozostaje 35%.
+- Płaska obrona może zatrzymać maksymalnie 75% bazowego trafienia zwykłego moba i 60% trafienia bossa. Guardy oraz redukcje rasowe/klasowe działają potem osobno.
+- Execute ma teraz próg zależny od przeciwnika: 35% HP zwykły mob, 25% elita/rare/mini-boss, 20% boss, 15% world/mythic boss. Mnożnik execute nadal maksymalnie x2.0.
+- Drain nadal skaluje się z realnie zadanymi obrażeniami, ale pojedynczy cast może uleczyć najwyżej 25% maksymalnego HP gracza.
+- Nie zmieniono żadnej z 119 nagród questowych v0.8.62. Zachowano 253/253 skille/spelle, 1440 wariantów materiałowego EQ oraz 1272/1272 osiągalnych lokacji.
+- Brak zmian schematu SQLite. Nie kasuj soulbound.db ani Railway Volume.
+
+Soulbound v0.8.62 - Quest Reward Rebalance
+=============================================
+- Przeliczono nagrody pieniężne wszystkich 119/119 questów. Żaden quest nie korzysta już z przypadkowej starej skali srebro/złoto/mithril.
+- Nagrody questów są od teraz zapisywane wyłącznie jako wartość jednego wspólnego salda w srebrze; reward_gold i reward_mithril są zerowane, a złoto/mithril służą tylko jako nominały odczytu.
+- Zachowano kurs: 1000 srebra = 1 złoto; 1 000 000 złota = 1 mithril.
+- Questy startowe i pierwsze walki nadal dają głównie srebro, aby nie zniszczyć początku ekonomii.
+- Powtarzalne zlecenia profesji skaluje teraz wymagany level narzędzia 1-200. Przy wysokich levelach nagrody rosną do dziesiątek i setek tysięcy złota zamiast przeskakiwać od kilku złota bezpośrednio do 1 mithrilu.
+- Questy collect, collect_resource, collect_category i craft_set mają łagodne mnożniki za wymagany nakład pracy; duża liczba wymaganych sztuk zwiększa nagrodę umiarkowanie.
+- Wszystkie Próby Broni Duszy Tier 2-20 mają nową jednorazową progresję pieniężną. Tier 20 daje 500 000 złota.
+- Przykłady: Problem goblinów 300 srebra; Plaga Trolli 15 złota; Zlecenie Mirelli IV 275 złota; Wieczny Klejnot 110 000 złota; Pełny Zestaw Eternium 275 000 złota; Próba Tier 20 500 000 złota.
+- Zachowano bez zmian wszystkie nagrody przedmiotowe, EXP rozwoju, XP profesji, XP narzędzia, wymagania, cooldowny, postęp oraz ukończone questy.
+- Brak zmian schematu SQLite. Nie kasuj soulbound.db ani Railway Volume.
+
+Soulbound v0.8.61 - Global Economy & Price Rebalance
+====================================================
+- Zaktualizowano cenniki pod jedno wspólne saldo: 1000 srebra = 1 złoto, 1 000 000 złota = 1 mithril.
+- Wszystkie 2033 kupowalne pozycje mają teraz cenę zapisaną w jednej wartości srebra i automatycznie czytaną jako mithril / złoto / srebro.
+- Trwałe narzędzia profesji kosztują 500 srebra; Mikstura Leczenia 100 srebra; podstawowe i żelazne EQ zostało przeliczone do nowej skali.
+- Pełne 21 progów klasowego EQ dla 12 klas dostało nową progresję cen 1-200. Najdroższe części Biegłości 200 wchodzą już w pełny nominał mithrilu.
+- Nauka 253 skilli/spelli ma nową progresję kosztu zależną od wymaganej Biegłości 1-200.
+- Egzaminy Gildii kosztują teraz odpowiednio 100 złota, 2000 złota, 50 000 złota i 250 000 złota.
+- Bounty Gildii zostały przeliczone od 1000 złota do 500 000 złota zależnie od celu.
+- Skup surowców i ryb został przeliczony. Dawne sprzedawalne przedmioty za 1 mithril nie dają już automatycznie 1 000 000 złota za sztukę; Widmowy marlin bazowo jest wart 100 000 złota.
+- Losowe EQ z ciał ma wartość sprzedaży zależną od materiału, obrony, statystyk, właściwości, affiksów, gniazd i wymagań. Eternium jest wielokrotnie cenniejsze od żelaza.
+- Usunięto stary absurd ekonomiczny, w którym słabe moby z kilkuset HP mogły wypłacać pełny mithril. Pełny mithril pozostaje dla realnego endgame oraz ekstremalnie rzadkiego czystego mithrilu z Górnictwa.
+- Rabat Charyzmy, shop/list, opis przedmiotu, sprzedaż, Bank Dusz, nagrody, nauka i egzaminy nadal operują na tym samym jednym saldzie.
+- Brak zmian schematu SQLite. Nie kasuj soulbound.db ani Railway Volume.
+
 Soulbound v0.8.60 - Unified Currency Denominations
 ====================================================
 - Poprawiono model wspólnej waluty: srebro, złoto i mithril są trzema nominałami JEDNEGO salda, a nie osobnymi portfelami.

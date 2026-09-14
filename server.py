@@ -2,13 +2,13 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Soulbound v0.8.60 Unified Currency Denominations
+Soulbound v0.8.72 Boss Chests + Owner Admin + Gathering RNG + Atlas Sync
 Wieloosobowy tekstowy MUD TCP/Telnet dla MUSHclienta/Mudleta.
 
 Najważniejsze zasady projektu:
 - postać NIE ma levelu ani XP postaci,
-- statystyki rosną automatycznie,
-- każda klasa rozwija automatycznie wszystkie sześć statystyk,
+- każda z sześciu statystyk ma własny automatyczny EXP i własny próg,
+- klasy nie używają levelu postaci; rozwój statystyk jest niezależny,
 - Broń Duszy ma osobny Soul Level 1-200,
 - Soul Tier 1-20 odblokowuje się osobno,
 - wszystkie trwałe dane gracza są zapisywane w SQLite.
@@ -30,7 +30,16 @@ import unicodedata
 from dataclasses import dataclass
 from typing import Optional
 
-VERSION = "0.8.60"
+VERSION = "0.9.0"
+
+# v0.8.72: właścicielskie komendy administracyjne. Nazwy kont podaje się
+# po stronie serwera, np. SOULBOUND_ADMIN_ACCOUNTS=Patryk. Nigdy nie są
+# przyznawane na podstawie nazwy postaci.
+ADMIN_ACCOUNT_NAMES = {
+    name.strip().casefold()
+    for name in os.environ.get("SOULBOUND_ADMIN_ACCOUNTS", "").split(",")
+    if name.strip()
+}
 MAX_CHARACTERS_PER_ACCOUNT = 12
 
 HOST = os.getenv("SOULBOUND_HOST", "0.0.0.0")
@@ -55,6 +64,34 @@ MAX_CLIENTS = int(os.getenv("SOULBOUND_MAX_CLIENTS", "100"))
 PBKDF2_ROUNDS = 210_000
 
 STAT_GROWTH_THRESHOLD = 100
+
+def stat_quality_label(value):
+    """Czytelna słowna ocena bazowej statystyki 1-200 pod NVDA."""
+    value = max(0, int(value))
+    if value <= 5:
+        return "bardzo słabo"
+    if value <= 9:
+        return "słabo"
+    if value <= 13:
+        return "poniżej przeciętnej"
+    if value <= 19:
+        return "przeciętnie"
+    if value <= 29:
+        return "dobrze"
+    if value <= 44:
+        return "bardzo dobrze"
+    if value <= 64:
+        return "świetnie"
+    if value <= 89:
+        return "wybitnie"
+    if value <= 119:
+        return "mistrzowsko"
+    if value <= 159:
+        return "nadludzko"
+    if value <= 199:
+        return "legendarnie"
+    return "maksimum"
+
 SOUL_MAX_LEVEL = 200
 SOUL_TIER_THRESHOLDS = (
     1, 10, 20, 25, 35, 45, 60, 70, 80, 90,
@@ -100,9 +137,12 @@ SOUL_TIER_CLASS_BONUS_PERCENT = (
     5, 7, 8, 10, 12, 13, 15, 16, 17, 18,
     19, 19, 20, 21, 22, 23, 24, 24, 25, 30,
 )
+# v0.9.0: specjalizacja Łotrzyka nie może marnować progresji na hard capie
+# 35% uniku. Sam Soul Weapon daje teraz maks. +5 pp uniku; pozostała część
+# jego budżetu specjalizacji przechodzi w umiarkowane obrażenia fizyczne.
 SOUL_TIER_DODGE_BONUS = (
-    0.02, 0.03, 0.03, 0.04, 0.05, 0.05, 0.06, 0.06, 0.07, 0.07,
-    0.07, 0.08, 0.08, 0.08, 0.09, 0.09, 0.09, 0.10, 0.10, 0.12,
+    0.01, 0.01, 0.015, 0.015, 0.02, 0.02, 0.025, 0.025, 0.03, 0.03,
+    0.03, 0.035, 0.035, 0.04, 0.04, 0.04, 0.045, 0.045, 0.05, 0.05,
 )
 SOUL_TIER_GUARDIAN_REDUCTION = (
     3, 4, 5, 6, 7, 8, 9, 9, 10, 10,
@@ -116,7 +156,7 @@ SOUL_MILESTONE_NAMES = {
     20: "Apoteoza Broni Duszy",
 }
 SOUL_MILESTONE_SPECIALIZATION_BONUS = {5: 2, 10: 4, 15: 7, 20: 10}
-SOUL_MILESTONE_DODGE_BONUS = {5: 0.01, 10: 0.02, 15: 0.03, 20: 0.04}
+SOUL_MILESTONE_DODGE_BONUS = {5: 0.0, 10: 0.0, 15: 0.0, 20: 0.0}
 SOUL_MILESTONE_GUARDIAN_REDUCTION = {5: 2, 10: 4, 15: 6, 20: 8}
 REGULAR_MOB_RESPAWN_SECONDS = 120
 BOSS_RESPAWN_SECONDS = 300
@@ -184,112 +224,102 @@ def currency_reading_text(silver=0, gold=0, mithril=0, *, full_names=False, incl
     return ", ".join(parts)
 
 
-PROFESSION_MAX_LEVEL = 100
+PROFESSION_MAX_LEVEL = 200
 BLACKSMITHING_MAX_LEVEL = 200
 JEWELCRAFTING_MAX_LEVEL = 200
 
-# v0.6.79:
-# Profesje pokazują i otrzymują 2x więcej XP,
-# ale koszt każdego levelu jest 4x większy.
-# Efektywnie levelowanie profesji jest około 2x wolniejsze.
-PROFESSION_XP_GAIN_MULTIPLIER = 2
-PROFESSION_XP_REQUIREMENT_MULTIPLIER = 4
+# v0.8.66: wszystkie umiejętności profesyjne rozwijają się 1-200.
+# Poziom PROFESJI odpowiada za tempo pracy i wymagania receptur/zleceń.
+# Poziom NARZĘDZIA nie skraca czasu: odblokowuje lepsze surowce oraz
+# zwiększa jakość/rare roll i szansę dodatkowego urobku/produktu.
+PROFESSION_XP_GAIN_MULTIPLIER = 4
+PROFESSION_XP_REQUIREMENT_MULTIPLIER = 1
 
 CHARISMA_DISCOUNT_STEP = 4
 CHARISMA_MAX_DISCOUNT = 25
 PARTY_BASE_CAPACITY = 8
 PARTY_CHARISMA_STEP = 25
 
-PROFESSION_MAX_RANK = 8
-PROFESSION_RANK_THRESHOLDS = (1, 15, 30, 45, 60, 75, 90, 100)
-BLACKSMITHING_MAX_RANK = 13
-BLACKSMITHING_RANK_THRESHOLDS = (
+PROFESSION_MAX_RANK = 13
+PROFESSION_RANK_THRESHOLDS = (
     1, 15, 30, 45, 60, 75, 90,
     100, 120, 140, 160, 180, 200,
 )
+BLACKSMITHING_MAX_RANK = PROFESSION_MAX_RANK
+BLACKSMITHING_RANK_THRESHOLDS = PROFESSION_RANK_THRESHOLDS
 
 PROFESSION_RANK_NAMES = {
     "Wędkarstwo": (
-        "Uczeń Wędkarstwa",
-        "Adept Wędkarstwa",
-        "Czeladnik Wędkarstwa",
-        "Specjalista Wędkarstwa",
-        "Ekspert Wędkarstwa",
-        "Mistrz Wędkarstwa",
-        "Arcymistrz Wędkarstwa",
-        "Legenda Wędkarstwa",
+        "Uczeń Wędkarstwa", "Adept Wędkarstwa", "Czeladnik Wędkarstwa",
+        "Specjalista Wędkarstwa", "Ekspert Wędkarstwa", "Mistrz Wędkarstwa",
+        "Arcymistrz Wędkarstwa", "Legenda Wędkarstwa", "Runiczny Wędkarz",
+        "Wędkarz Smoczych Głębin", "Astralny Wędkarz", "Wędkarz Pustki",
+        "Wieczny Mistrz Wędkarstwa",
     ),
     "Górnictwo": (
-        "Uczeń Górnictwa",
-        "Adept Górnictwa",
-        "Czeladnik Górnictwa",
-        "Specjalista Górnictwa",
-        "Ekspert Górnictwa",
-        "Mistrz Górnictwa",
-        "Arcymistrz Górnictwa",
-        "Legenda Górnictwa",
+        "Uczeń Górnictwa", "Adept Górnictwa", "Czeladnik Górnictwa",
+        "Specjalista Górnictwa", "Ekspert Górnictwa", "Mistrz Górnictwa",
+        "Arcymistrz Górnictwa", "Legenda Górnictwa", "Górnik Runiczny",
+        "Górnik Smoczej Stali", "Górnik Astralny", "Górnik Pustki",
+        "Wieczny Mistrz Górnictwa",
     ),
     "Drwalstwo": (
-        "Uczeń Drwalstwa",
-        "Adept Drwalstwa",
-        "Czeladnik Drwalstwa",
-        "Specjalista Drwalstwa",
-        "Ekspert Drwalstwa",
-        "Mistrz Drwalstwa",
-        "Arcymistrz Drwalstwa",
-        "Legenda Drwalstwa",
+        "Uczeń Drwalstwa", "Adept Drwalstwa", "Czeladnik Drwalstwa",
+        "Specjalista Drwalstwa", "Ekspert Drwalstwa", "Mistrz Drwalstwa",
+        "Arcymistrz Drwalstwa", "Legenda Drwalstwa", "Runiczny Drwal",
+        "Drwal Smoczego Drewna", "Astralny Drwal", "Drwal Pustki",
+        "Wieczny Mistrz Drwalstwa",
     ),
     "Zielarstwo": (
-        "Uczeń Zielarstwa",
-        "Adept Zielarstwa",
-        "Czeladnik Zielarstwa",
-        "Specjalista Zielarstwa",
-        "Ekspert Zielarstwa",
-        "Mistrz Zielarstwa",
-        "Arcymistrz Zielarstwa",
-        "Legenda Zielarstwa",
+        "Uczeń Zielarstwa", "Adept Zielarstwa", "Czeladnik Zielarstwa",
+        "Specjalista Zielarstwa", "Ekspert Zielarstwa", "Mistrz Zielarstwa",
+        "Arcymistrz Zielarstwa", "Legenda Zielarstwa", "Runiczny Zielarz",
+        "Zielarz Smoczego Szałwii", "Astralny Zielarz", "Zielarz Pustki",
+        "Wieczny Mistrz Zielarstwa",
+    ),
+    "Gotowanie": (
+        "Uczeń Gotowania", "Adept Gotowania", "Czeladnik Gotowania",
+        "Specjalista Gotowania", "Ekspert Gotowania", "Mistrz Gotowania",
+        "Arcymistrz Gotowania", "Legenda Gotowania", "Runiczny Kuchmistrz",
+        "Kuchmistrz Smoczego Ognia", "Astralny Kuchmistrz", "Kuchmistrz Pustki",
+        "Wieczny Mistrz Gotowania",
     ),
     "Alchemia": (
-        "Uczeń Alchemii",
-        "Adept Alchemii",
-        "Czeladnik Alchemii",
-        "Specjalista Alchemii",
-        "Ekspert Alchemii",
-        "Mistrz Alchemii",
-        "Arcymistrz Alchemii",
-        "Legenda Alchemii",
+        "Uczeń Alchemii", "Adept Alchemii", "Czeladnik Alchemii",
+        "Specjalista Alchemii", "Ekspert Alchemii", "Mistrz Alchemii",
+        "Arcymistrz Alchemii", "Legenda Alchemii", "Alchemik Runiczny",
+        "Alchemik Smoczej Stali", "Alchemik Astralny", "Alchemik Pustki",
+        "Wieczny Mistrz Alchemii",
     ),
     "Kowalstwo": (
-        "Uczeń Kowalstwa",
-        "Adept Kowalstwa",
-        "Czeladnik Kowalstwa",
-        "Specjalista Kowalstwa",
-        "Ekspert Kowalstwa",
-        "Mistrz Kowalstwa",
-        "Arcymistrz Kowalstwa",
-        "Legenda Kowalstwa",
-        "Kowal Runiczny",
-        "Kowal Smoczej Stali",
-        "Kowal Astralny",
-        "Kowal Pustki",
+        "Uczeń Kowalstwa", "Adept Kowalstwa", "Czeladnik Kowalstwa",
+        "Specjalista Kowalstwa", "Ekspert Kowalstwa", "Mistrz Kowalstwa",
+        "Arcymistrz Kowalstwa", "Legenda Kowalstwa", "Kowal Runiczny",
+        "Kowal Smoczej Stali", "Kowal Astralny", "Kowal Pustki",
         "Wieczny Mistrz Kowalstwa",
     ),
     "Jubilerstwo": (
-        "Uczeń Jubilerstwa",
-        "Adept Jubilerstwa",
-        "Czeladnik Jubilerstwa",
-        "Specjalista Jubilerstwa",
-        "Ekspert Jubilerstwa",
-        "Mistrz Jubilerstwa",
-        "Arcymistrz Jubilerstwa",
-        "Legenda Jubilerstwa",
-        "Jubiler Runiczny",
-        "Jubiler Smoczej Stali",
-        "Jubiler Astralny",
-        "Jubiler Pustki",
+        "Uczeń Jubilerstwa", "Adept Jubilerstwa", "Czeladnik Jubilerstwa",
+        "Specjalista Jubilerstwa", "Ekspert Jubilerstwa", "Mistrz Jubilerstwa",
+        "Arcymistrz Jubilerstwa", "Legenda Jubilerstwa", "Jubiler Runiczny",
+        "Jubiler Smoczej Stali", "Jubiler Astralny", "Jubiler Pustki",
         "Wieczny Mistrz Jubilerstwa",
     ),
 }
+
+TOOL_PROFESSION_MAP = {
+    "fishing": "Wędkarstwo",
+    "mining": "Górnictwo",
+    "woodcutting": "Drwalstwo",
+    "crafting": "Kowalstwo",
+    "cooking": "Gotowanie",
+    "herbalism": "Zielarstwo",
+    "alchemy": "Alchemia",
+    "jewelcrafting": "Jubilerstwo",
+}
+
+def profession_for_tool_type(tool_type):
+    return TOOL_PROFESSION_MAP.get(str(tool_type or ""))
 
 def normalize_profession_name(profession):
     value = str(profession).strip().lower()
@@ -301,6 +331,8 @@ def normalize_profession_name(profession):
         return "Drwalstwo"
     if value in ("herbalism", "zielarstwo", "zielarz"):
         return "Zielarstwo"
+    if value in ("cooking", "gotowanie", "kucharz"):
+        return "Gotowanie"
     if value in ("alchemy", "alchemia"):
         return "Alchemia"
     if value in (
@@ -316,47 +348,32 @@ def normalize_profession_name(profession):
     return str(profession)
 
 def profession_max_level(profession):
-    profession = normalize_profession_name(profession)
-    if profession == "Kowalstwo":
-        return BLACKSMITHING_MAX_LEVEL
-    if profession == "Jubilerstwo":
-        return JEWELCRAFTING_MAX_LEVEL
     return PROFESSION_MAX_LEVEL
 
 def profession_rank_thresholds(profession):
-    profession = normalize_profession_name(profession)
-    if profession in ("Kowalstwo", "Jubilerstwo"):
-        return BLACKSMITHING_RANK_THRESHOLDS
     return PROFESSION_RANK_THRESHOLDS
 
 def profession_max_rank(profession):
-    profession = normalize_profession_name(profession)
-    if profession in ("Kowalstwo", "Jubilerstwo"):
-        return BLACKSMITHING_MAX_RANK
     return PROFESSION_MAX_RANK
 
 def profession_rank(level, profession=None):
-    if profession is None:
-        max_level = PROFESSION_MAX_LEVEL
-        thresholds = PROFESSION_RANK_THRESHOLDS
-    else:
-        profession = normalize_profession_name(profession)
-        max_level = profession_max_level(profession)
-        thresholds = profession_rank_thresholds(profession)
-
-    level = max(1, min(max_level, int(level)))
+    thresholds = profession_rank_thresholds(profession)
+    level = max(1, int(level or 1))
     rank = 1
-    for number, minimum in enumerate(thresholds, 1):
-        if level >= minimum:
-            rank = number
+    for index, threshold in enumerate(thresholds, start=1):
+        if level >= int(threshold):
+            rank = index
         else:
             break
-    return rank
+    return min(rank, profession_max_rank(profession))
 
 def profession_rank_name(profession, level):
     profession = normalize_profession_name(profession)
+    names = PROFESSION_RANK_NAMES.get(profession)
+    if not names:
+        return f"Ranga {profession_rank(level, profession)}"
     rank = profession_rank(level, profession)
-    return PROFESSION_RANK_NAMES[profession][rank - 1]
+    return names[min(rank - 1, len(names) - 1)]
 
 TOOL_MAX_LEVEL = 200
 TOOL_MAX_TIER = 20
@@ -582,7 +599,10 @@ def class_type_for_name(class_name):
 
 SKILL_MAX_LEVEL = 200
 SKILL_XP_BASE = 50
-SKILL_XP_STEP = 25
+# v0.8.64: stara wartość 25 dawała około 50 tysięcy użyć na jeden
+# skill 1-200. Mniejszy krok + większe XP za użycie utrzymują długą,
+# ale osiągalną progresję.
+SKILL_XP_STEP = 8
 
 def skill_xp_to_next(level):
     if level >= SKILL_MAX_LEVEL:
@@ -590,20 +610,25 @@ def skill_xp_to_next(level):
     return SKILL_XP_BASE + (level - 1) * SKILL_XP_STEP
 
 def skill_power_multiplier(level):
-    # L1 = 1.0, L100 ~= 1.7425, L200 ~= 2.4925.
-    return 1.0 + max(0, level - 1) * 0.0075
+    # v0.8.64: malejący przyrost mocy. L1=1.0, L100~=1.495,
+    # L200~=1.745. Skill Level pozostaje ważny bez mnożenia endgame x2.5.
+    progress = max(0, min(SKILL_MAX_LEVEL, int(level)) - 1)
+    first_hundred = min(progress, 99)
+    endgame = max(0, progress - 99)
+    return 1.0 + first_hundred * 0.005 + endgame * 0.0025
 
 def skill_cooldown_multiplier(level):
-    # Maksymalnie 30% krótszego cooldownu; dalsze levele zwiększają moc.
-    reduction = min(0.30, max(0, level - 1) * 0.003)
+    # v0.8.64: cooldown skraca się przez całe 1-200, zamiast dobijać do
+    # limitu już około levelu 101. L100 ~= -12.4%, L200 ~= -24.9%.
+    reduction = min(0.25, max(0, min(SKILL_MAX_LEVEL, int(level)) - 1) * 0.00125)
     return 1.0 - reduction
 
 BANK_ROOM = "market"
 
 PROFESSION_COOLDOWN = 2.0
 
-# v0.6.86 - realny czas wykonywania czynności narzędziem.
-# Czas maleje płynnie wraz z levelem narzędzia 1 -> 200.
+# v0.8.66 - realny czas czynności wynika z poziomu UMIEJĘTNOŚCI/PROFESJI.
+# Narzędzie nie skraca czasu; jego level odblokowuje lepszy surowiec/jakość/bonus.
 TOOL_ACTION_BASE_SECONDS = {
     "fishing": 15,
     "mining": 30,
@@ -729,9 +754,15 @@ ENDGAME_FISH_UNLOCKS = {
     "ocean": (
         (100, "celestial_tuna"),
         (120, "dragon_mahi"),
+        (120, "reef_shark"),
         (140, "abyss_tuna"),
+        (140, "mako_shark"),
         (160, "storm_marlin"),
+        (160, "hammerhead_shark"),
         (180, "moon_leviathan"),
+        (180, "tiger_shark"),
+        (190, "ghost_marlin"),
+        (200, "great_white_shark"),
         (200, "eternal_coelacanth"),
     ),
 }
@@ -1970,9 +2001,30 @@ HERB_ATLAS_ROOM_MIN_LEVELS = {'chamomile_meadow': {'chamomile': 1},
  'yarrow_meadow': {'yarrow': 1}}
 
 
+# Profil bazowy v0.8.76 jest zachowany wyłącznie do bezpiecznej migracji
+# istniejących postaci. Nie jest używany przy tworzeniu nowych postaci.
+V0876_RACE_BASE_STATS = {
+    "Człowiek": {"strength": 10, "dexterity": 10, "constitution": 10, "intelligence": 10, "willpower": 10},
+    "Ogr": {"strength": 14, "dexterity": 8, "constitution": 14, "intelligence": 6, "willpower": 8},
+    "Elf": {"strength": 8, "dexterity": 14, "constitution": 9, "intelligence": 13, "willpower": 11},
+    "Krasnolud": {"strength": 12, "dexterity": 9, "constitution": 14, "intelligence": 9, "willpower": 12},
+    "Ork": {"strength": 13, "dexterity": 10, "constitution": 13, "intelligence": 7, "willpower": 9},
+    "Niziołek": {"strength": 7, "dexterity": 14, "constitution": 10, "intelligence": 10, "willpower": 11},
+    "Mroczny Elf": {"strength": 9, "dexterity": 13, "constitution": 9, "intelligence": 14, "willpower": 10},
+    "Gnom": {"strength": 7, "dexterity": 12, "constitution": 9, "intelligence": 14, "willpower": 13},
+    "Smoczy": {"strength": 13, "dexterity": 9, "constitution": 13, "intelligence": 10, "willpower": 10},
+    "Troll": {"strength": 15, "dexterity": 7, "constitution": 15, "intelligence": 5, "willpower": 8},
+    "Diablę": {"strength": 9, "dexterity": 11, "constitution": 9, "intelligence": 13, "willpower": 13},
+    "Aasimar": {"strength": 10, "dexterity": 10, "constitution": 11, "intelligence": 12, "willpower": 14},
+    "Driada": {"strength": 7, "dexterity": 10, "constitution": 11, "intelligence": 15, "willpower": 15},
+}
+
+# v0.9.0: każda rasa ma dokładnie ten sam budżet 50 bazowych punktów
+# w pięciu głównych statystykach. Różni się WYŁĄCZNIE rozkładem oraz
+# pasywem rasowym. Usuwa to dawną ukrytą przewagę 50-58 punktów.
 RACES = [
     ("Człowiek",
-     "Wszechstronny. Wszystkie statystyki startują na równym poziomie. "
+     "Wszechstronny. Wszystkie pięć głównych statystyk startuje na równym poziomie. "
      "Pasyw rasowy: +10 procent do zdobywanego Postępu Rozwoju statystyk.",
      10, 10, 10, 10, 10),
     ("Ogr",
@@ -1980,50 +2032,50 @@ RACES = [
      "Pasyw rasowy: +12 procent obrażeń fizycznych.",
      14, 8, 14, 6, 8),
     ("Elf",
-     "Bardzo zręczny i inteligentny. Dobrze łączy szybkość z magią. "
+     "Bardzo zręczny, z wyraźnym talentem magicznym. "
      "Pasyw rasowy: +5 punktów procentowych do szansy uniku.",
-     8, 14, 9, 13, 11),
+     8, 14, 8, 12, 8),
     ("Krasnolud",
-     "Silny i bardzo odporny. Wysoka Kondycja daje dużo HP, a Siła Woli dobrą obronę magiczną. "
+     "Bardzo odporny. Wysoka Kondycja i Siła Woli wspierają przetrwanie. "
      "Pasyw rasowy: 10 procent redukcji wszystkich otrzymywanych obrażeń.",
-     12, 9, 14, 9, 12),
+     11, 7, 14, 6, 12),
     ("Ork",
      "Urodzony wojownik. Wysoka Siła i Kondycja dają mocne ciosy i dużo HP. "
      "Pasyw rasowy: +10 procent maksymalnego HP.",
-     13, 10, 13, 7, 9),
+     13, 9, 13, 7, 8),
     ("Niziołek",
      "Zręczny i szczęśliwy poszukiwacz. "
      "Pasyw rasowy: +3 punkty procentowe do szansy na bonusowy połów, dodatkową rudę lub dodatkowe drewno.",
-     7, 14, 10, 10, 11),
+     7, 14, 9, 10, 10),
     ("Mroczny Elf",
-     "Zręczny i bardzo inteligentny. Dobrze łączy szybkość z magią. "
+     "Zręczny i utalentowany magicznie. Dobrze łączy szybkość z ofensywną magią. "
      "Pasyw rasowy: +10 procent obrażeń magicznych.",
-     9, 13, 9, 14, 10),
+     8, 13, 8, 13, 8),
     ("Gnom",
-     "Bardzo inteligentny i odporny magicznie. "
-     "Pasyw rasowy: +15 procent maksymalnej Many dla klas magicznych.",
-     7, 12, 9, 14, 13),
+     "Bardzo inteligentny, z dobrym zapasem Siły Woli. "
+     "Pasyw rasowy: +15 procent maksymalnej Many.",
+     7, 10, 8, 14, 11),
     ("Smoczy",
      "Silny, wytrzymały i wszechstronny w walce. "
      "Pasyw rasowy: +8 procent wszystkich zadawanych obrażeń, fizycznych i magicznych.",
-     13, 9, 13, 10, 10),
+     12, 9, 12, 9, 8),
     ("Troll",
-     "Największa surowa Siła i Kondycja. Jest wolny, ale bardzo trudny do powalenia. "
+     "Największa surowa Siła i Kondycja. Jest wolny i słaby magicznie, ale bardzo trudny do powalenia. "
      "Pasyw rasowy: 12 procent redukcji otrzymywanych obrażeń fizycznych.",
      15, 7, 15, 5, 8),
     ("Diablę",
      "Dobre predyspozycje magiczne i silna więź z energią dusz. "
      "Pasyw rasowy: +10 procent zdobywanego Soul XP Broni Duszy.",
-     9, 11, 9, 13, 13),
+     8, 10, 8, 13, 11),
     ("Aasimar",
-     "Bardzo silna Siła Woli i dobra Inteligencja. "
+     "Silna Siła Woli i dobre predyspozycje obronne. "
      "Pasyw rasowy: +12 procent obrony magicznej.",
-     10, 10, 11, 12, 14),
+     9, 9, 10, 10, 12),
     ("Driada",
-     "Rasa natury nastawiona na życie i odnowę. "
+     "Rasa natury nastawiona na życie, magię i odnowę. "
      "Pasyw rasowy: +15 procent mocy wszystkich klasowych umiejętności leczących. "
      "Szczególnie dobrze pasuje do Kapłana i Druida.",
-     7, 10, 11, 15, 15),
+     7, 9, 10, 12, 12),
 ]
 
 # v0.8.46: rekomendacje klas są wskazówką dla nowych graczy, nie ograniczeniem.
@@ -2059,7 +2111,7 @@ RACE_CLASS_RECOMMENDATIONS = {
     },
     "Gnom": {
         "classes": ["Mag", "Psionik", "Nekromanta", "Kapłan", "Czarownik"],
-        "reason": "wysoka Inteligencja i Siła Woli oraz większa maksymalna Mana mocno wspierają klasy magiczne",
+        "reason": "najwyższa startowa Inteligencja wśród ras i większa maksymalna Mana mocno wspierają klasy magiczne",
     },
     "Smoczy": {
         "classes": ["Wojownik", "Berserker", "Strażnik", "Czarownik", "Mag"],
@@ -2075,11 +2127,11 @@ RACE_CLASS_RECOMMENDATIONS = {
     },
     "Aasimar": {
         "classes": ["Kapłan", "Psionik", "Druid", "Strażnik"],
-        "reason": "bardzo wysoka Siła Woli i dobra Inteligencja wspierają leczenie, obronę magiczną i klasy defensywne",
+        "reason": "wysoka Siła Woli i rasowa obrona magiczna wspierają leczenie, obronę magiczną i klasy defensywne",
     },
     "Driada": {
         "classes": ["Druid", "Kapłan", "Psionik", "Mag"],
-        "reason": "wysoka Inteligencja i Siła Woli oraz rasowy bonus do leczenia szczególnie wspierają klasy magiczne i lecznicze",
+        "reason": "profil Inteligencji i Siły Woli oraz rasowy bonus do leczenia szczególnie wspierają klasy magiczne i lecznicze",
     },
 }
 
@@ -2089,25 +2141,29 @@ def race_class_recommendation_text(race_name):
         return ""
     return f"Polecane klasy: {', '.join(data['classes'])}. Dlaczego: {data['reason']}."
 
+# v0.9.0: bazowa Moc Broni Duszy ma wąski zakres 7-8 zamiast 6-9.
+# Różnice klas nadal wynikają ze skilli, pasywów i specjalizacji Soul Tier,
+# ale żaden archetyp nie zaczyna z ukrytą karą/bonusem 50% w weapon_base.
 CLASSES = [
     ("Wojownik", "physical", "Miecz Przysięgi", 7),
-    ("Berserker", "physical", "Topór Krwi", 9),
-    ("Łotrzyk", "physical", "Sztylety Cienia", 6),
+    ("Berserker", "physical", "Topór Krwi", 8),
+    ("Łotrzyk", "physical", "Sztylety Cienia", 7),
     ("Łowca", "physical", "Łuk Echa", 7),
-    ("Mnich", "physical", "Rękawice Ducha", 6),
+    ("Mnich", "physical", "Rękawice Ducha", 7),
     ("Strażnik", "physical", "Młot Bastionu", 7),
     ("Mag", "magic", "Kostur Arkanów", 7),
     ("Nekromanta", "magic", "Kosa Dusz", 8),
-    ("Kapłan", "magic", "Młot Światła", 6),
+    ("Kapłan", "magic", "Młot Światła", 7),
     ("Czarownik", "magic", "Ostrze Otchłani", 8),
-    ("Druid", "magic", "Kostur Korzeni", 6),
+    ("Druid", "magic", "Kostur Korzeni", 7),
     ("Psionik", "magic", "Kryształ Umysłu", 7),
 ]
 
 # v0.8.51: klasa nadaje własny profil startowych statystyk.
 # Maksymalne HP i Mana nie są wpisane na sztywno dla klasy: wynikają potem
 # bezpośrednio z Kondycji i Inteligencji oraz bonusów rasy/ekwipunku.
-CLASS_STARTING_STAT_BONUSES = {
+# Profil klasowy v0.8.76 pozostaje dostępny tylko dla migracji starych save'ów.
+V0876_CLASS_STARTING_STAT_BONUSES = {
     "Wojownik":   {"strength": 3, "dexterity": 1, "constitution": 3, "intelligence": 0, "willpower": 1, "charisma": 0},
     "Berserker":  {"strength": 4, "dexterity": 1, "constitution": 3, "intelligence": 0, "willpower": 0, "charisma": 0},
     "Łotrzyk":    {"strength": 1, "dexterity": 4, "constitution": 1, "intelligence": 1, "willpower": 0, "charisma": 1},
@@ -2120,6 +2176,24 @@ CLASS_STARTING_STAT_BONUSES = {
     "Czarownik":  {"strength": 1, "dexterity": 2, "constitution": 1, "intelligence": 4, "willpower": 1, "charisma": 0},
     "Druid":      {"strength": 0, "dexterity": 1, "constitution": 3, "intelligence": 3, "willpower": 3, "charisma": 0},
     "Psionik":    {"strength": 0, "dexterity": 2, "constitution": 1, "intelligence": 3, "willpower": 4, "charisma": 0},
+}
+
+# v0.9.0: każda klasa dokłada dokładnie 9 punktów startowych.
+# Dzięki temu o sile startu nie decyduje ukryty budżet 8-10, tylko profil
+# klasy, pasyw, skille i Broń Duszy.
+CLASS_STARTING_STAT_BONUSES = {
+    "Wojownik":   {"strength": 4, "dexterity": 1, "constitution": 3, "intelligence": 0, "willpower": 1, "charisma": 0},
+    "Berserker":  {"strength": 4, "dexterity": 2, "constitution": 3, "intelligence": 0, "willpower": 0, "charisma": 0},
+    "Łotrzyk":    {"strength": 1, "dexterity": 4, "constitution": 1, "intelligence": 1, "willpower": 1, "charisma": 1},
+    "Łowca":      {"strength": 2, "dexterity": 4, "constitution": 2, "intelligence": 0, "willpower": 1, "charisma": 0},
+    "Mnich":      {"strength": 1, "dexterity": 4, "constitution": 2, "intelligence": 1, "willpower": 1, "charisma": 0},
+    "Strażnik":   {"strength": 2, "dexterity": 0, "constitution": 4, "intelligence": 0, "willpower": 3, "charisma": 0},
+    "Mag":        {"strength": 0, "dexterity": 2, "constitution": 1, "intelligence": 4, "willpower": 2, "charisma": 0},
+    "Nekromanta": {"strength": 0, "dexterity": 1, "constitution": 2, "intelligence": 4, "willpower": 2, "charisma": 0},
+    "Kapłan":     {"strength": 0, "dexterity": 0, "constitution": 3, "intelligence": 2, "willpower": 4, "charisma": 0},
+    "Czarownik":  {"strength": 1, "dexterity": 2, "constitution": 1, "intelligence": 4, "willpower": 1, "charisma": 0},
+    "Druid":      {"strength": 0, "dexterity": 1, "constitution": 2, "intelligence": 4, "willpower": 2, "charisma": 0},
+    "Psionik":    {"strength": 0, "dexterity": 1, "constitution": 1, "intelligence": 3, "willpower": 4, "charisma": 0},
 }
 
 def class_starting_stat_bonus(class_name, stat_name):
@@ -2153,73 +2227,73 @@ def starting_hp_mana_for(race, cls):
 CLASS_DESCRIPTIONS = {
     "Wojownik": (
         "Klasa fizyczna. Stabilny wojownik do walki wręcz. "
-        "Automatycznie rozwija wszystkie sześć statystyk. "
+        "Każda z sześciu statystyk ma własny automatyczny EXP. "
         "Dobra dla graczy chcących mocnych ciosów, szybkości i dużej ilości HP."
         "Pasyw klasowy: +10 procent obrażeń fizycznych."
     ),
     "Berserker": (
         "Klasa fizyczna nastawiona na bardzo wysokie obrażenia. "
-        "Automatycznie rozwija wszystkie sześć statystyk. "
+        "Każda z sześciu statystyk ma własny automatyczny EXP. "
         "Broń Duszy ma wysoki bazowy potencjał ofensywny."
         "Pasyw klasowy: +12 procent obrażeń fizycznych."
     ),
     "Łotrzyk": (
         "Klasa fizyczna nastawiona na szybkość i zwinność. "
-        "Automatycznie rozwija wszystkie sześć statystyk. "
+        "Każda z sześciu statystyk ma własny automatyczny EXP. "
         "Dobrze korzysta z wysokiej Zręczności i uników."
         "Pasyw klasowy: +5 punktów procentowych do szansy uniku."
     ),
     "Łowca": (
         "Klasa fizyczna walcząca z dystansu. "
-        "Automatycznie rozwija wszystkie sześć statystyk. "
+        "Każda z sześciu statystyk ma własny automatyczny EXP. "
         "Najlepiej współpracuje z rasami o wysokiej Zręczności."
         "Pasyw klasowy: +8 procent obrażeń fizycznych."
     ),
     "Mnich": (
         "Klasa fizyczna oparta na szybkości i kontroli ciała. "
-        "Automatycznie rozwija wszystkie sześć statystyk. "
+        "Każda z sześciu statystyk ma własny automatyczny EXP. "
         "Dobrze skaluje się ze Zręcznością oraz Kondycją."
         "Pasyw klasowy: +8 procent mocy klasowych umiejętności leczących."
     ),
     "Strażnik": (
         "Klasa fizyczna nastawiona na przetrwanie. "
-        "Automatycznie rozwija wszystkie sześć statystyk. "
+        "Każda z sześciu statystyk ma własny automatyczny EXP. "
         "Dobrze wykorzystuje wysoką Kondycję i cięższy pancerz."
         "Pasyw klasowy: 10 procent redukcji wszystkich otrzymywanych obrażeń."
     ),
     "Mag": (
         "Klasa magiczna. Inteligencja zwiększa Manę i moc czarów, Siła wzmacnia też magiczne ataki wtórnie, "
         "Zręczność daje szybkość, unik i krytyki, Kondycja zwiększa HP, a Siła Woli obronę magiczną. "
-        "Automatycznie rozwija wszystkie sześć statystyk."
+        "Każda z sześciu statystyk ma własny automatyczny EXP."
         "Pasyw klasowy: +10 procent obrażeń magicznych."
     ),
     "Nekromanta": (
         "Klasa magiczna oparta na mrocznej energii i silnych czarach. "
-        "Automatycznie rozwija wszystkie sześć statystyk. "
+        "Każda z sześciu statystyk ma własny automatyczny EXP. "
         "Dobrze korzysta z wysokiej Inteligencji."
         "Pasyw klasowy: +15 procent leczenia z umiejętności wysysających życie."
     ),
     "Kapłan": (
         "Klasa magiczna o defensywnym charakterze. "
-        "Automatycznie rozwija wszystkie sześć statystyk. "
+        "Każda z sześciu statystyk ma własny automatyczny EXP. "
         "Wysoka Siła Woli wzmacnia obronę magiczną."
         "Pasyw klasowy: +10 procent mocy klasowych umiejętności leczących."
     ),
     "Czarownik": (
         "Ofensywna klasa magiczna z mocną Bronią Duszy. "
-        "Automatycznie rozwija wszystkie sześć statystyk. "
+        "Każda z sześciu statystyk ma własny automatyczny EXP. "
         "Dobrze skaluje się z Inteligencją i dużą pulą Many."
         "Pasyw klasowy: +12 procent obrażeń magicznych."
     ),
     "Druid": (
         "Wszechstronna klasa magiczna związana z naturą. "
-        "Automatycznie rozwija wszystkie sześć statystyk. "
+        "Każda z sześciu statystyk ma własny automatyczny EXP. "
         "Łączy dobrą moc czarów z obroną magiczną."
         "Pasyw klasowy: +10 procent mocy klasowych umiejętności leczących."
     ),
     "Psionik": (
         "Klasa magiczna oparta na mocy umysłu. "
-        "Automatycznie rozwija wszystkie sześć statystyk. "
+        "Każda z sześciu statystyk ma własny automatyczny EXP. "
         "Najlepiej wykorzystuje wysoką Inteligencję i Siłę Woli."
         "Pasyw klasowy: +10 procent obrony magicznej."
     ),
@@ -4847,6 +4921,172 @@ DYNAMIC_KILL_XP_MULTIPLIERS = {
     "ekstremalny": 1.90,
 }
 
+# v0.8.66 - teren i EXP są oceniane z faktycznej siły spawnów, a nie tylko
+# z ręcznej etykiety biomu. Kalibracja bazuje na krzywej Krypty 1-200:
+# zwykły mob około floor 100 ma ~1940 HP i ~39 dmg, floor 200 ~3740/72.
+_ROOM_THREAT_CACHE = {}
+_ZONE_THREAT_CACHE = {}
+
+def v0866_is_boss_template(template):
+    return bool(
+        template.get("world_boss")
+        or template.get("mini_boss")
+        or template.get("crypt_boss")
+        or template.get("astral_boss")
+        or template.get("mythic_crypt_boss")
+        or template.get("mythic_astral_boss")
+        or template.get("giant_fortress_boss")
+        or template.get("boss_mechanic")
+    )
+
+def v0866_is_random_variant_template(template):
+    return bool(
+        template.get("rare_mob")
+        or template.get("elite_affix")
+        or template.get("rare_troll")
+    )
+
+def v0866_template_explicit_floor_power(template):
+    for field in ("crypt_floor", "astral_floor"):
+        value = template.get(field)
+        if value is not None:
+            return max(1, min(200, int(value)))
+    value = template.get("mythic_crypt_floor")
+    if value is not None:
+        return max(130, min(200, 120 + int(value) * 2 // 5))
+    value = template.get("mythic_astral_floor")
+    if value is not None:
+        return max(150, min(200, 140 + int(value) * 3 // 10))
+    value = template.get("giant_fortress_floor")
+    if value is not None:
+        return max(45, min(200, 45 + int(value) * 3 // 2))
+    return None
+
+def v0866_mob_progression_power(template):
+    """Orientacyjna siła pojedynczego moba 1-200.
+
+    Zwykłe moby korzystają z HP i damage. Bossowie mają większy nacisk na
+    damage, żeby duży zapas HP grupowego bossa nie udawał wymaganego levelu 200.
+    Wygenerowane lochy używają swoich prawdziwych numerów pięter.
+    """
+    explicit = v0866_template_explicit_floor_power(template)
+    if explicit is not None:
+        base = float(explicit)
+    else:
+        hp = max(1.0, float(template.get("max_hp", 1) or 1))
+        damage = max(1.0, float(template.get("damage", 1) or 1))
+        hp_power = (hp - 140.0) / 18.0
+        damage_power = (damage - 5.0) / 0.335
+        if v0866_is_boss_template(template):
+            # HP bossa oznacza też długość grupowej walki, nie tylko wymagany poziom.
+            hp_component = min(hp_power, damage_power + 35.0)
+            base = hp_component * 0.30 + damage_power * 0.70
+        else:
+            base = hp_power * 0.55 + damage_power * 0.45
+    if template.get("elite_affix") or template.get("rare_mob") or template.get("rare_troll"):
+        base += 6.0
+    if template.get("mini_boss"):
+        base += 8.0
+    if template.get("world_boss") and v0866_template_explicit_floor_power(template) is None:
+        base += 10.0
+    return max(1, min(200, int(round(base))))
+
+def v0866_percentile(values, fraction):
+    values = sorted(int(v) for v in values)
+    if not values:
+        return None
+    if len(values) == 1:
+        return values[0]
+    index = max(0, min(len(values) - 1, int(round((len(values) - 1) * fraction))))
+    return values[index]
+
+def v0866_room_threat_profile(room_id, fallback=1):
+    cache_key = str(room_id or "")
+    cached = _ROOM_THREAT_CACHE.get(cache_key)
+    if cached is not None:
+        return cached
+    normal = []
+    bosses = []
+    variants = []
+    for spawn_room, template_id in MOB_SPAWNS:
+        if spawn_room != room_id:
+            continue
+        template = MOB_TEMPLATES.get(template_id)
+        if not template or template.get("training_dummy"):
+            continue
+        power = v0866_mob_progression_power(template)
+        if v0866_is_random_variant_template(template):
+            variants.append(power)
+        elif v0866_is_boss_template(template):
+            bosses.append(power)
+        else:
+            normal.append(power)
+    # 60 percentyl zwykłych spawnów lepiej opisuje realny grind niż maksimum.
+    # Endgame odnogi z dwoma silnymi mobami nadal dostają pełny wysoki target.
+    target = v0866_percentile(normal, 0.60)
+    if target is None:
+        target = v0866_percentile(variants, 0.50)
+    if target is None:
+        target = v0866_percentile(bosses, 0.35)
+    if target is None:
+        target = max(1, min(200, int(fallback or 1)))
+    profile = {
+        "target": int(target),
+        "normal_min": min(normal) if normal else None,
+        "normal_max": max(normal) if normal else None,
+        "boss_min": min(bosses) if bosses else None,
+        "boss_max": max(bosses) if bosses else None,
+        "variant_min": min(variants) if variants else None,
+        "variant_max": max(variants) if variants else None,
+        "normal_count": len(normal),
+        "boss_count": len(bosses),
+        "variant_count": len(variants),
+    }
+    _ROOM_THREAT_CACHE[cache_key] = profile
+    return profile
+
+def v0866_threat_label(target, power):
+    delta = int(target) - int(power)
+    if delta <= -40:
+        return "Trywialny"
+    if delta <= -15:
+        return "Łatwy"
+    if delta <= 10:
+        return "Odpowiedni"
+    if delta <= 30:
+        return "Trudny"
+    if delta <= 60:
+        return "Śmiertelny"
+    return "Ekstremalny"
+
+
+def v0866_zone_threat_profile(zone):
+    cache_key = str(zone or "")
+    cached = _ZONE_THREAT_CACHE.get(cache_key)
+    if cached is not None:
+        return cached
+    room_targets = []
+    boss_targets = []
+    for room_id, room in ROOMS.items():
+        if room.get("zone") != zone:
+            continue
+        profile = v0866_room_threat_profile(room_id, fallback=1)
+        if profile["normal_count"] or profile["variant_count"]:
+            room_targets.append(profile["target"])
+        if profile["boss_max"] is not None:
+            boss_targets.append(profile["boss_max"])
+    result = {
+        "min": min(room_targets) if room_targets else None,
+        "median": v0866_percentile(room_targets, 0.50),
+        "p80": v0866_percentile(room_targets, 0.80),
+        "max": max(room_targets) if room_targets else None,
+        "boss_min": min(boss_targets) if boss_targets else None,
+        "boss_max": max(boss_targets) if boss_targets else None,
+        "rooms": len(room_targets),
+    }
+    _ZONE_THREAT_CACHE[cache_key] = result
+    return result
+
 COMMAND_ALIASES = {
     "pomoc": "help", "pomoce": "help",
     "kodowanie": "encoding", "encoding": "encoding",
@@ -4872,10 +5112,18 @@ COMMAND_ALIASES = {
     "codexklasowy": "classcodex", "klasowycodex": "classcodex",
     "classcodex": "classcodex", "class_codex": "classcodex",
     "skillcodex": "classcodex", "skill_codex": "classcodex",
-    "bestiariusz": "codex", "bestiary": "codex",
+    "bestiariusz": "bestiary", "bestiary": "bestiary",
     "encyklopedia": "codex", "encyclopedia": "codex",
     "charyzma": "charisma", "haryzma": "charisma", "charisma": "charisma",
     "drużyna": "party", "druzyna": "party", "party": "party",
+    "zaproś": "partyinvite", "zapros": "partyinvite", "invite": "partyinvite",
+    "dołącz": "partyaccept", "dolacz": "partyaccept",
+    "odrzuć": "partydecline", "odrzuc": "partydecline", "decline": "partydecline",
+    "opuść": "partyleave", "opusc": "partyleave", "leave": "partyleave",
+    "wyrzuć": "partykick", "wyrzuc": "partykick", "kick": "partykick",
+    "rozwiąż": "partydisband", "rozwiaz": "partydisband", "disband": "partydisband",
+    "lider": "partyleader", "leader": "partyleader",
+    "zasłoń": "partyprotect", "zaslon": "partyprotect", "osłoń": "partyprotect", "oslon": "partyprotect", "protect": "partyprotect",
     "wspieraj": "assist", "assist": "assist", "pomagaj": "assist",
     "pc": "partychat", "dczat": "partychat", "partychat": "partychat",
     "multiclass": "multiclass", "multiklasa": "multiclass",
@@ -4932,8 +5180,10 @@ COMMAND_ALIASES = {
     "checkpointkrypty": "portal", "punktkrypty": "portal",
     "punktykrypty": "portal", "cryptcheckpoint": "portal",
     "uciekaj": "flee",
-    "odblokuj": "unlock",
-    "zapisz": "save",
+    "odblokuj": "unlock", "odklucz": "unlock", "unlock": "unlock",
+    "zapisz": "save", "save": "save",
+    "admin": "admin", "administrator": "admin",
+    "wipe": "wipe", "wyczysc": "wipe", "wyczyść": "wipe", "wymaz": "wipe",
     "włóż": "put", "wloz": "put", "put": "put",
     "wyjmij": "take", "wyciągnij": "take", "wyciagnij": "take", "take": "take",
     "siatka": "net", "net": "net",
@@ -4957,6 +5207,8 @@ COMMAND_ALIASES = {
     "jubilerstwo": "jewelcraftinginfo", "jewelcrafting": "jewelcraftinginfo",
     "jub": "jewelcraft", "jubcraft": "jewelcraft",
     "kamienie": "gems", "klejnoty": "gems", "gems": "gems",
+    "geody": "geodes", "geodes": "geodes", "geoda": "geodes", "geode": "geodes",
+    "opengeode": "geodeopen", "otworzgeode": "geodeopen", "otwórzgeodę": "geodeopen",
     "szlifuj": "cutgem", "oszlifuj": "cutgem", "cutgem": "cutgem",
     "osadz": "socketgem", "osadź": "socketgem", "socket": "socketgem",
     "gniazda": "gemsockets", "sockety": "gemsockets", "sockets": "gemsockets",
@@ -5758,9 +6010,9 @@ def _register_blacksmith_items():
                 "price": None,
                 "desc": (
                     f"Wyposażenie wykute przez Kowala. "
-                    f"Kowalstwo level {tier['profession_level']}+, "
-                    f"Młot Rzemieślniczy level "
-                    f"{tier['tool_level']}+. "
+                    f"Kowalstwo level {tier['profession_level']}+. "
+                    "Młot Rzemieślniczy wpływa na dostęp do lepszych materiałów "
+                    "i bonus produktu, ale nie blokuje receptury ani nie skraca czasu. "
                     f"Obrona +{defense}."
                 ),
                 "blacksmith_tier": tier_number,
@@ -5786,7 +6038,7 @@ CORPSE_MATERIAL_TIERS = (
         "identity": "wytrzymałość i podstawowa ochrona fizyczna",
     },
     {
-        "key": "steel", "label": "Stalowy", "min_score": 250,
+        "key": "steel", "label": "Stalowy", "min_score": 1100,
         "base_defense": 3, "stat_power": 1,
         "primary": "strength", "secondary": "constitution",
         "physical_damage_pct": 1, "magic_damage_pct": 0,
@@ -5796,7 +6048,7 @@ CORPSE_MATERIAL_TIERS = (
         "identity": "Siła, Kondycja i walka fizyczna",
     },
     {
-        "key": "mithril", "label": "Mithrilowy", "min_score": 450,
+        "key": "mithril", "label": "Mithrilowy", "min_score": 2200,
         "base_defense": 4, "stat_power": 2,
         "primary": "dexterity", "secondary": "intelligence",
         "physical_damage_pct": 1, "magic_damage_pct": 1,
@@ -5806,7 +6058,7 @@ CORPSE_MATERIAL_TIERS = (
         "identity": "Zręczność, szybkość, krytyki, unik i lekka magia",
     },
     {
-        "key": "adamantite", "label": "Adamantytowy", "min_score": 800,
+        "key": "adamantite", "label": "Adamantytowy", "min_score": 3200,
         "base_defense": 5, "stat_power": 2,
         "primary": "constitution", "secondary": "willpower",
         "physical_damage_pct": 0, "magic_damage_pct": 0,
@@ -5816,7 +6068,7 @@ CORPSE_MATERIAL_TIERS = (
         "identity": "Kondycja, Siła Woli, HP i ciężka obrona",
     },
     {
-        "key": "cobalt", "label": "Kobaltowy", "min_score": 1300,
+        "key": "cobalt", "label": "Kobaltowy", "min_score": 4200,
         "base_defense": 6, "stat_power": 3,
         "primary": "strength", "secondary": "dexterity",
         "physical_damage_pct": 2, "magic_damage_pct": 0,
@@ -5826,7 +6078,7 @@ CORPSE_MATERIAL_TIERS = (
         "identity": "Siła, Zręczność i agresywna walka fizyczna",
     },
     {
-        "key": "runic", "label": "Runiczny", "min_score": 2500,
+        "key": "runic", "label": "Runiczny", "min_score": 12000,
         "base_defense": 7, "stat_power": 3,
         "primary": "intelligence", "secondary": "willpower",
         "physical_damage_pct": 0, "magic_damage_pct": 2,
@@ -5836,7 +6088,7 @@ CORPSE_MATERIAL_TIERS = (
         "identity": "Inteligencja, Siła Woli, Mana i magia",
     },
     {
-        "key": "dragonsteel", "label": "Smoczej Stali", "min_score": 5000,
+        "key": "dragonsteel", "label": "Smoczej Stali", "min_score": 22000,
         "base_defense": 8, "stat_power": 4,
         "primary": "strength", "secondary": "constitution",
         "physical_damage_pct": 3, "magic_damage_pct": 1,
@@ -5846,7 +6098,7 @@ CORPSE_MATERIAL_TIERS = (
         "identity": "Siła, Kondycja, obrażenia i twardość Smoczej Stali",
     },
     {
-        "key": "astral", "label": "Astralny", "min_score": 10000,
+        "key": "astral", "label": "Astralny", "min_score": 33000,
         "base_defense": 9, "stat_power": 4,
         "primary": "intelligence", "secondary": "dexterity",
         "physical_damage_pct": 1, "magic_damage_pct": 3,
@@ -5856,7 +6108,7 @@ CORPSE_MATERIAL_TIERS = (
         "identity": "Inteligencja, Zręczność, Mana i astralna ofensywa",
     },
     {
-        "key": "void", "label": "Pustki", "min_score": 25000,
+        "key": "void", "label": "Pustki", "min_score": 57000,
         "base_defense": 10, "stat_power": 5,
         "primary": "willpower", "secondary": "dexterity",
         "physical_damage_pct": 2, "magic_damage_pct": 3,
@@ -5866,7 +6118,7 @@ CORPSE_MATERIAL_TIERS = (
         "identity": "Siła Woli, Zręczność, odporność magiczna i obrażenia Pustki",
     },
     {
-        "key": "eternium", "label": "Eternium", "min_score": 60000,
+        "key": "eternium", "label": "Eternium", "min_score": 400000,
         "base_defense": 12, "stat_power": 6,
         "primary": "strength", "secondary": "willpower",
         "physical_damage_pct": 3, "magic_damage_pct": 3,
@@ -5949,63 +6201,77 @@ MATERIAL_SLOT_NAME_FOR_TITLE = {
 }
 
 
-def _material_random_profile(tier, slot, variant_index):
-    """Deterministyczna pula wariantów; konkretny wariant jest losowany przy dropie.
+def _material_budget_split(rng, budget, count):
+    budget = max(count, int(budget))
+    values = [1] * count
+    for _ in range(budget - count):
+        values[rng.randrange(count)] += 1
+    rng.shuffle(values)
+    return values
 
-    Ekwipunek w bazie nadal zapisuje się jako zwykły item_id, dlatego nie
-    zapisujemy losowych statystyk wyłącznie w RAM. Zamiast tego na starcie
-    rejestrujemy stałą pulę 24 wariantów dla każdego materiału i slotu.
-    Losowanie ciała wybiera jeden z tych wariantów. Dzięki temu EQ zachowuje
-    identyczne statystyki także po restarcie serwera/Railway.
+
+def _material_random_profile(tier, slot, variant_index):
+    """Deterministyczny random o stałym budżecie mocy dla danego tieru.
+
+    v0.8.66: RNG wybiera *jakie* statystyki/właściwości dostaje przedmiot,
+    ale nie losuje już ogromnej różnicy całkowitej siły między dwoma
+    egzemplarzami tego samego materiału i slotu.
     """
     tier_index = 1 + next(
         i for i, row in enumerate(CORPSE_MATERIAL_TIERS)
         if row["key"] == tier["key"]
     )
     rng = random.Random(
-        f"soulbound-v0.8.58:{tier['key']}:{slot}:{int(variant_index)}"
+        f"soulbound-v0.8.66:{tier['key']}:{slot}:{int(variant_index)}"
     )
 
-    # Materiał wyznacza tylko moc. Statystyki nie są przypisane do klasy ani
-    # do materiału - każdy wariant losuje z pięciu bojowych statystyk.
-    max_stat_count = min(5, 1 + (tier_index - 1) // 2)
-    min_stat_count = 1 if tier_index <= 2 else min(2, max_stat_count)
-    stat_count = rng.randint(min_stat_count, max_stat_count)
+    stat_budgets = (1, 2, 4, 5, 7, 9, 12, 13, 16, 20)
+    property_budgets = (1, 1, 2, 3, 4, 5, 7, 8, 10, 12)
+    stat_budget = stat_budgets[tier_index - 1]
+    property_budget = property_budgets[tier_index - 1]
+
+    if tier_index <= 2:
+        stat_count = 1
+    elif tier_index <= 4:
+        stat_count = 2
+    elif tier_index <= 6:
+        stat_count = rng.choice((2, 3))
+    elif tier_index <= 8:
+        stat_count = 3
+    elif tier_index == 9:
+        stat_count = rng.choice((3, 4))
+    else:
+        stat_count = 4
+    stat_count = min(stat_count, len(MATERIAL_RANDOM_STAT_POOL), stat_budget)
     chosen_stats = rng.sample(list(MATERIAL_RANDOM_STAT_POOL), stat_count)
+    stat_values = _material_budget_split(rng, stat_budget, stat_count)
+    stats = dict(zip(chosen_stats, stat_values))
 
-    base_power = max(1, int(tier["stat_power"]))
-    stats = {}
-    for stat in chosen_stats:
-        low = max(1, base_power - 1)
-        high = base_power + (1 if tier_index >= 4 else 0)
-        stats[stat] = rng.randint(low, high)
-
-    # Każda część ma co najmniej jedną realną właściwość. Wyższe materiały
-    # mogą wylosować ich więcej, ale nadal bez blokady na klasę/build.
-    max_property_count = min(4, 1 + tier_index // 3)
-    property_count = rng.randint(1, max_property_count)
-    chosen_properties = rng.sample(
-        list(MATERIAL_RANDOM_PROPERTY_POOL),
+    if tier_index <= 2:
+        property_count = 1
+    elif tier_index <= 5:
+        property_count = 2
+    elif tier_index <= 8:
+        property_count = 3
+    else:
+        property_count = 4
+    property_count = min(
         property_count,
+        len(MATERIAL_RANDOM_PROPERTY_POOL),
+        property_budget,
     )
-    property_base = max(1, (tier_index + 1) // 2)
-    properties = {
-        prop: rng.randint(
-            max(1, property_base - 1),
-            property_base + (1 if tier_index >= 6 else 0),
-        )
-        for prop in chosen_properties
-    }
+    chosen_properties = rng.sample(
+        list(MATERIAL_RANDOM_PROPERTY_POOL), property_count
+    )
+    property_values = _material_budget_split(
+        rng, property_budget, property_count
+    )
+    properties = dict(zip(chosen_properties, property_values))
 
-    # Niewielki losowy rozrzut obrony sprawia, że dwa warianty tego samego
-    # materiału nie muszą być identyczne nawet przy podobnych statystykach.
+    # Obrona zależy od materiału i slotu, nie od szczęścia. Random pozostaje
+    # w rozkładzie statów/właściwości, więc dwa dropy nadal budują inaczej.
     _slot_label, defense_delta = CORPSE_MATERIAL_SLOT_DEFS[slot]
-    defense = max(
-        1,
-        int(tier["base_defense"])
-        + int(defense_delta)
-        + rng.choice((-1, 0, 0, 0, 1)),
-    )
+    defense = max(1, int(tier["base_defense"]) + int(defense_delta))
     return defense, stats, properties
 
 
@@ -6609,16 +6875,18 @@ GUILD_CLASS_QUESTS = {
 }
 
 GUILD_BOUNTY_TARGETS = (
-    ("wild_horned_king", "Rogaty Król Dziczy", 120, 1200),
-    ("mountain_storm_eagle", "Orzeł Burzy", 140, 1500),
-    ("deep_troll_warlord", "Głęboki Wódz Trolli", 160, 1800),
-    ("swamp_hydra", "Hydra Bagienna", 180, 2200),
-    ("sun_guardian", "Strażnik Słońca", 200, 2600),
-    ("end_wild_primal_avatar", "Pierwotny Avatar Dziczy", 220, 3200),
-    ("end_mountain_tempest_titan", "Tytan Wiecznej Burzy", 260, 4000),
-    ("end_troll_first_warlord", "Pierwszy Wódz Trolli Grommar", 300, 5000),
-    ("end_swamp_primordial_hydra", "Pierwotna Hydra Bagna", 360, 6500),
-    ("end_desert_eternal_sun", "Awatar Wiecznego Słońca", 450, 9000),
+    # v0.8.61: nagrody są wartościami jednego wspólnego salda w srebrze.
+    # 1000 srebra = 1 złoto; 1 000 000 złota = 1 mithril.
+    ("wild_horned_king", "Rogaty Król Dziczy", 120, 1_000_000),       # 1 000 złota
+    ("mountain_storm_eagle", "Orzeł Burzy", 140, 2_500_000),         # 2 500 złota
+    ("deep_troll_warlord", "Głęboki Wódz Trolli", 160, 5_000_000),   # 5 000 złota
+    ("swamp_hydra", "Hydra Bagienna", 180, 10_000_000),              # 10 000 złota
+    ("sun_guardian", "Strażnik Słońca", 200, 20_000_000),            # 20 000 złota
+    ("end_wild_primal_avatar", "Pierwotny Avatar Dziczy", 220, 50_000_000),
+    ("end_mountain_tempest_titan", "Tytan Wiecznej Burzy", 260, 100_000_000),
+    ("end_troll_first_warlord", "Pierwszy Wódz Trolli Grommar", 300, 150_000_000),
+    ("end_swamp_primordial_hydra", "Pierwotna Hydra Bagna", 360, 250_000_000),
+    ("end_desert_eternal_sun", "Awatar Wiecznego Słońca", 450, 500_000_000),
 )
 
 CLASS_SET_BONUSES = {
@@ -6941,7 +7209,7 @@ ALCHEMY_RECIPES = {
         "ingredients": {"nettle": 1, "chamomile": 1},
         "output": "healing_potion", "quantity": 1,
         "min_tool_level": 5,
-        "desc": "Moździerz level 5. Pokrzywa + Rumianek. Przywraca 35 HP.",
+        "desc": "Alchemia level 5. Pokrzywa + Rumianek. Przywraca 35 HP.",
     },
     "mana_potion": {
         "name": "Mikstura Many", "stations": ("herbalist_hut",),
@@ -7296,14 +7564,32 @@ def _register_gem_system():
         RAW_GEM_IDS.add(raw_id)
         CUT_GEM_IDS.add(cut_id)
 
+        # v0.8.67: surowe klejnoty są częścią urobku Górnictwa.
+        # Trafiają do Sakwy Górnika i mogą zostać sprzedane wyłącznie Dagnie.
+        raw_gem_sell_gold = {
+            "ruby": 1,
+            "sapphire": 3,
+            "emerald": 6,
+            "amethyst": 12,
+            "diamond": 25,
+            "soul_topaz": 45,
+            "mana_opal": 75,
+            "dragon_garnet": 120,
+            "astral_crystal": 180,
+            "void_onyx": 280,
+            "eternium_prism": 450,
+        }
         ITEMS[raw_id] = {
             "name": definition["raw_name"],
             "type": "gem_raw",
             "price": None,
+            "sell_gold": raw_gem_sell_gold[definition["key"]],
             "gem_key": definition["key"],
             "gem_level": definition["level"],
+            "mining_bag_resource": True,
             "desc": (
-                f"Surowy kamień szlachetny. "
+                f"Surowy kamień szlachetny z Górnictwa. "
+                f"Trafia do Sakwy Górnika. Dagna skupuje go na Górskim Targu Minerałów. "
                 f"Szlifowanie wymaga Jubilerstwa i Szczypiec "
                 f"Jubilerskich level {definition['level']}."
             ),
@@ -7346,6 +7632,148 @@ def _register_gem_system():
         }
 
 _register_gem_system()
+
+# v0.8.75 - jakość klejnotów + geody.
+# Nie zmieniamy schematu SQLite: każda jakość jest zwykłym item_id.
+GEM_QUALITY_ORDER = ("raw", "pure", "excellent", "perfect")
+GEM_QUALITY_INFO = {
+    "raw": {"label": "Surowy", "cut_label": "Szlifowany", "sell_mult": 1.0, "power_mult": 1.0},
+    "pure": {"label": "Czysty", "cut_label": "Szlifowany Czysty", "sell_mult": 1.6, "power_mult": 1.25},
+    "excellent": {"label": "Doskonały", "cut_label": "Szlifowany Doskonały", "sell_mult": 2.5, "power_mult": 1.50},
+    "perfect": {"label": "Perfekcyjny", "cut_label": "Szlifowany Perfekcyjny", "sell_mult": 4.0, "power_mult": 1.75},
+}
+
+def gem_quality_item_id(kind, gem_key, quality):
+    if quality == "raw":
+        return f"{kind}_gem_{gem_key}"
+    return f"{kind}_gem_{gem_key}_{quality}"
+
+def gem_quality_amount(base_amount, quality):
+    base_amount = max(1, int(base_amount))
+    index = GEM_QUALITY_ORDER.index(quality)
+    scaled = int(round(base_amount * GEM_QUALITY_INFO[quality]["power_mult"]))
+    # Każdy wyższy stopień jakości musi być odczuwalny także przy bonusie +1.
+    return max(base_amount + index, scaled)
+
+def roll_mined_gem_quality(tool_level, profession_level):
+    tool_level = max(1, min(200, int(tool_level)))
+    profession_level = max(1, min(200, int(profession_level)))
+    power = (tool_level + profession_level) / 2.0
+    # Perfekcyjne kamienie pozostają jackpotem nawet przy 200/200.
+    perfect = 0.0 if power < 120 else min(0.020, (power - 120) * 0.00025)
+    excellent = 0.0 if power < 70 else min(0.100, (power - 70) * 0.00077)
+    pure = 0.0 if power < 30 else min(0.180, (power - 30) * 0.00106)
+    roll = random.random()
+    if roll < perfect:
+        return "perfect"
+    if roll < perfect + excellent:
+        return "excellent"
+    if roll < perfect + excellent + pure:
+        return "pure"
+    return "raw"
+
+def _register_gem_quality_variants():
+    for definition in GEM_DEFINITIONS:
+        key = definition["key"]
+        base_raw_id = f"raw_gem_{key}"
+        base_sell = int(ITEMS[base_raw_id].get("sell_gold", 0) or 0)
+        base_name = definition["raw_name"].replace("Surowy ", "", 1)
+        cut_base_name = definition["cut_name"].replace("Szlifowany ", "", 1)
+        for quality in GEM_QUALITY_ORDER[1:]:
+            info = GEM_QUALITY_INFO[quality]
+            raw_id = gem_quality_item_id("raw", key, quality)
+            cut_id = gem_quality_item_id("cut", key, quality)
+            raw_name = f"{info['label']} {base_name}"
+            cut_name = f"{info['cut_label']} {cut_base_name}"
+            RAW_GEM_IDS.add(raw_id)
+            CUT_GEM_IDS.add(cut_id)
+            ITEMS[raw_id] = {
+                "name": raw_name, "type": "gem_raw", "price": None,
+                "sell_gold": max(1, int(round(base_sell * info["sell_mult"]))),
+                "gem_key": key, "gem_level": definition["level"],
+                "gem_quality": quality, "mining_bag_resource": True,
+                "desc": (
+                    f"{info['label']} wariant kamienia z Górnictwa. Trafia do Sakwy Górnika. "
+                    f"Szlifowanie wymaga Jubilerstwa level {definition['level']}."
+                ),
+            }
+            amount = gem_quality_amount(definition["amount"], quality)
+            ITEMS[cut_id] = {
+                "name": cut_name, "type": "gem", "price": None,
+                "gem_key": key, "gem_level": definition["level"],
+                "gem_quality": quality, "affix": definition["affix"],
+                "affix_amount": amount,
+                "desc": (
+                    f"Klejnot jakości {info['label'].lower()}. Bonus po osadzeniu: "
+                    f"{GEM_AFFIX_NAMES.get(definition['affix'], definition['affix'])} +{amount}."
+                ),
+            }
+            recipe_id = f"cut_{key}_{quality}"
+            JEWELCRAFT_RECIPES[recipe_id] = {
+                "name": cut_name,
+                "aliases": (raw_name, cut_name, f"{quality} {key}"),
+                "stations": ("jeweler_workshop",),
+                "ingredients": {raw_id: 1},
+                "output": cut_id, "quantity": 1,
+                "min_tool_level": definition["level"],
+                "min_profession_level": definition["level"],
+                "profession_xp": 12 + definition["level"] // 5 + GEM_QUALITY_ORDER.index(quality) * 3,
+                "tool_xp": 10 + definition["level"] // 6 + GEM_QUALITY_ORDER.index(quality) * 2,
+                "gem_cut_recipe": True,
+                "desc": f"Szlifowanie jakości {info['label'].lower()}. Jubilerstwo level {definition['level']}.",
+            }
+
+_register_gem_quality_variants()
+
+GEODE_DEFINITIONS = {
+    "stone_geode": {
+        "name": "Geoda Kamienna", "min_tool": 20, "min_floor": 10, "max_gem_level": 60,
+        "sell_gold": 3, "quality_weights": (85, 15, 0, 0), "gold": (0, 1), "gem_qty": (1, 1),
+    },
+    "crystal_geode": {
+        "name": "Geoda Kryształowa", "min_tool": 80, "min_floor": 60, "max_gem_level": 140,
+        "sell_gold": 15, "quality_weights": (65, 28, 7, 0), "gold": (1, 3), "gem_qty": (1, 2),
+    },
+    "astral_geode": {
+        "name": "Geoda Astralna", "min_tool": 160, "min_floor": 150, "max_gem_level": 200,
+        "sell_gold": 60, "quality_weights": (45, 35, 17, 3), "gold": (3, 10), "gem_qty": (1, 3),
+    },
+}
+GEODE_IDS = set(GEODE_DEFINITIONS)
+for _geode_id, _geode in GEODE_DEFINITIONS.items():
+    ITEMS[_geode_id] = {
+        "name": _geode["name"], "type": "geode", "price": None,
+        "sell_gold": _geode["sell_gold"], "mining_bag_resource": True,
+        "desc": (
+            f"Rzadkie znalezisko Górnictwa. Kilof {_geode['min_tool']}+, "
+            f"głębokość {_geode['min_floor']}+. Możesz sprzedać Dagnie albo otworzyć: "
+            "open geode / otwórz geodę."
+        ),
+    }
+
+def roll_mining_geode(tool_level, profession_level, floor):
+    tool_level = max(1, min(200, int(tool_level)))
+    profession_level = max(1, min(200, int(profession_level)))
+    floor = max(1, min(200, int(floor or 1)))
+    eligible = [
+        geode_id for geode_id, cfg in GEODE_DEFINITIONS.items()
+        if tool_level >= cfg["min_tool"] and floor >= cfg["min_floor"]
+    ]
+    if not eligible:
+        return None
+    chance = min(0.045, 0.012 + (tool_level + profession_level) / 20000.0 + floor / 20000.0)
+    if random.random() >= chance:
+        return None
+    if "astral_geode" in eligible:
+        return random.choices(["stone_geode", "crystal_geode", "astral_geode"], weights=[4, 5, 3], k=1)[0]
+    if "crystal_geode" in eligible:
+        return random.choices(["stone_geode", "crystal_geode"], weights=[6, 4], k=1)[0]
+    return "stone_geode"
+
+# v0.8.67: osobny zestaw zawartości Sakwy Górnika. ORE_STORAGE_IDS pozostaje
+# zestawem prawdziwych rud/minerałów używanym przez questy typu "dowolna ruda",
+# więc znalezienie rubinu nie podbija postępu questa na rudy.
+MINING_STORAGE_IDS = set(ORE_STORAGE_IDS) | set(RAW_GEM_IDS) | set(GEODE_IDS)
 
 def gem_definition_by_raw_id(item_id):
     if not item_id.startswith("raw_gem_"):
@@ -7511,6 +7939,30 @@ COOK_RECIPES = {
         "desc": "Gotowanie level 200. Przywraca do 260 HP i 160 Many.",
     },
 }
+
+def normalize_recipe_requirements_v0866():
+    """v0.8.66: receptury blokuje profesja, nigdy level narzędzia."""
+    alchemy_defaults = {
+        "mana_potion": 1,
+        "healing_potion": 5,
+        "greater_healing_potion": 40,
+        "greater_mana_potion": 60,
+        "vitality_elixir": 80,
+        "soul_elixir": 90,
+    }
+    for recipes in (CRAFT_RECIPES, COOK_RECIPES, ALCHEMY_RECIPES, JEWELCRAFT_RECIPES):
+        for recipe_id, recipe in recipes.items():
+            fallback = recipe.get("min_tool_level")
+            if recipes is ALCHEMY_RECIPES:
+                fallback = alchemy_defaults.get(recipe_id, fallback)
+            if not recipe.get("min_profession_level"):
+                recipe["min_profession_level"] = max(1, int(fallback or 1))
+            # Od v0.8.66 receptura nie ma już wymogu levelu narzędzia.
+            # Narzędzie musi istnieć, ale jego level służy zasobom/jakości.
+            recipe.pop("min_tool_level", None)
+
+
+normalize_recipe_requirements_v0866()
 
 NPCS = {
     "fisher_tomas": {
@@ -8039,29 +8491,29 @@ STAT_DESCRIPTIONS = {
         "kontrataku. Aktualny limit uniku wynosi 35 procent."
     ),
     "dexterity": (
-        "Zręczność zwiększa Szybkość, unik i szansę na trafienie krytyczne. Przy 10 Zręczności krytyk ma 5 procent; każdy punkt ponad 10 daje +0,5 punktu procentowego do limitu 35 procent."
+        "Zręczność zwiększa Szybkość, unik i szansę na trafienie krytyczne. Przy 10 Zręczności krytyk ma 5 procent; do 40 Zręczności każdy punkt daje +0,5 punktu procentowego, od 41 do 80 +0,25, a powyżej 80 +0,10, do limitu 35 procent."
     ),
     "kondycja": "Kondycja zwiększa maksymalne HP. Każdy punkt Kondycji daje 5 maksymalnego HP.",
     "constitution": "Kondycja zwiększa maksymalne HP. Każdy punkt Kondycji daje 5 maksymalnego HP.",
-    "inteligencja": "Inteligencja zwiększa maksymalną Manę klas magicznych oraz ich Moc czarów.",
-    "intelligence": "Inteligencja zwiększa maksymalną Manę klas magicznych oraz ich Moc czarów.",
+    "inteligencja": "Inteligencja zwiększa maksymalną Manę każdej klasy; w klasach magicznych zwiększa też główną Moc czarów.",
+    "intelligence": "Inteligencja zwiększa maksymalną Manę każdej klasy; w klasach magicznych zwiększa też główną Moc czarów.",
     "siła woli": "Siła Woli zwiększa obronę magiczną.",
     "sila woli": "Siła Woli zwiększa obronę magiczną.",
     "willpower": "Siła Woli zwiększa obronę magiczną.",
     "charyzma": (
         "Charyzma zwiększa rabat sklepowy i limit drużyny lidera. "
-        "Jest normalną statystyką i rośnie razem z pozostałymi statystykami; "
-        "udana sprzedaż surowców może dodatkowo ją zwiększać."
+        "Ma własny niezależny EXP i własny próg jak pozostałe statystyki; "
+        "sprzedaż przyznaje EXP Charyzmy zależny od wartości transakcji."
     ),
     "haryzma": (
         "Charyzma zwiększa rabat sklepowy i limit drużyny lidera. "
-        "Jest normalną statystyką i rośnie razem z pozostałymi statystykami; "
-        "udana sprzedaż surowców może dodatkowo ją zwiększać."
+        "Ma własny niezależny EXP i własny próg jak pozostałe statystyki; "
+        "sprzedaż przyznaje EXP Charyzmy zależny od wartości transakcji."
     ),
     "charisma": (
         "Charyzma zwiększa rabat sklepowy i limit drużyny lidera. "
-        "Jest normalną statystyką i rośnie razem z pozostałymi statystykami; "
-        "udana sprzedaż surowców może dodatkowo ją zwiększać."
+        "Ma własny niezależny EXP i własny próg jak pozostałe statystyki; "
+        "sprzedaż przyznaje EXP Charyzmy zależny od wartości transakcji."
     ),
 }
 
@@ -8078,15 +8530,16 @@ SYSTEM_DESCRIPTIONS = {
     ),
     "fishing": "Wędkarstwo ma własny poziom profesji, a Wędka własny niezależny level 1-200. Podstawową Wędkę sprzedaje Rybak Tomas.",
     "górnictwo": (
-        "Górnictwo ma własny poziom 1-100. Kilof ma osobny level 1-100. "
+        "Górnictwo ma własny poziom 1-200. Kilof ma osobny level 1-200. "
         "Użyj mine albo kop. Auto-kopanie: kop on i kop off. "
-        "Czysty mithril może zostać wydobyty bezpośrednio dopiero od levelu 80 Kilofa."
+        "Czysty mithril może zostać wydobyty bezpośrednio dopiero od levelu 80 Kilofa. "
+        "Od Kilofa 20 mogą wypadać geody; open geode / otwórz geodę otwiera je na klejnoty."
     ),
     "gornictwo": (
-        "Górnictwo ma własny poziom 1-100. Kilof ma osobny level 1-100. "
+        "Górnictwo ma własny poziom 1-200. Kilof ma osobny level 1-200. "
         "Czysty mithril może zostać wydobyty bezpośrednio dopiero od levelu 80 Kilofa."
     ),
-    "mining": "Górnictwo ma własny poziom 1-100, a Kilof własny niezależny level 1-100.",
+    "mining": "Górnictwo ma własny poziom 1-200 i skraca czas wydobycia; Kilof ma niezależny level 1-200 i odblokowuje lepsze rudy/żyły.",
     "jubilerstwo": (
         "Jubilerstwo ma własny level 1-200. "
         "Szczypce Jubilerskie mają niezależny level 1-200 i 20 Tierów. "
@@ -8098,10 +8551,12 @@ SYSTEM_DESCRIPTIONS = {
     ),
     "broń duszy": (
         "Broń Duszy jest na stałe związana z klasą. Ma osobny Soul Level 1-200, Soul XP i 20 Tierów. "
+        "Od v0.9.0 bazowa Moc startowa klas mieści się w zakresie 7-8, a dalsza przewaga wynika z Soul Levelu, Tieru i specjalizacji klasy. "
+        "Łotrzyk otrzymuje z Broni Duszy mieszany bonus: umiarkowany unik oraz obrażenia fizyczne, żeby progres nie był marnowany na limicie 35 procent uniku. "
         "Każdy awans Soul Tieru 2-20 wymaga jednorazowej Próby Broni Duszy u Kapłana Elora."
     ),
-    "bron duszy": "Broń Duszy ma osobny Soul Level 1-200 i 20 Tierów.",
-    "soul weapon": "Broń Duszy ma osobny Soul Level 1-200 i 20 Tierów.",
+    "bron duszy": "Broń Duszy ma Soul Level 1-200, 20 Tierów i zbalansowaną bazową Moc startową 7-8.",
+    "soul weapon": "Broń Duszy ma Soul Level 1-200, 20 Tierów i zbalansowaną bazową Moc startową 7-8.",
     "srebro": "Srebro jest najmniejszym nominałem wspólnej waluty. 1000 srebra = 1 złoto.",
     "silver": "Srebro jest najmniejszym nominałem wspólnej waluty. 1000 srebra = 1 złoto.",
     "złoto": "Złoto jest wyższym nominałem tego samego salda. 1 złoto = 1000 srebra.",
@@ -8112,10 +8567,10 @@ SYSTEM_DESCRIPTIONS = {
         "1 mithril = 1000000 złota = 1000000000 srebra. "
         "Może być nagrodą lub bardzo rzadkim bezpośrednim wydobyciem wysokopoziomowym Kilofem."
     ),
-    "siatka": "Siatka na ryby jest osobnym trwałym magazynem profesji. Komenda siatka/net pokazuje też łączną liczbę ryb, liczbę gatunków i szacowany zarobek ze sprzedaży całej zawartości.",
+    "siatka": "Siatka na ryby jest osobnym trwałym magazynem profesji. Komenda siatka/net pokazuje też łączną liczbę ryb, liczbę gatunków i szacowany zarobek ze sprzedaży całej zawartości. Sprzedaż ryb właściwym rybakom daje dodatkowy EXP Wędkarstwa.",
     "net": "Siatka na ryby przechowuje wszystkie złowione ryby i pokazuje łączną liczbę ryb oraz wartość sprzedaży całej siatki.",
-    "sakwa": "Sakwa górnicza przechowuje rudy i pokazuje łączną ilość, liczbę rodzajów oraz szacowany zarobek ze sprzedaży całej zawartości.",
-    "bag": "Sakwa górnicza jest magazynem rud; komenda sakwa/bag pokazuje też ilość i wartość sprzedaży.",
+    "sakwa": "Sakwa Górnika przechowuje cały urobek Górnictwa: rudy, minerały, klejnoty wszystkich jakości oraz geody. Całą zawartość skupuje wyłącznie Dagna na Górskim Targu Minerałów. Sprzedaż Dagnie daje dodatkowy EXP Górnictwa; geody możesz zamiast tego otwierać.",
+    "bag": "Sakwa Górnika przechowuje rudy, minerały, surowe klejnoty i geody. Dagna jest jedynym skupującym zawartość sakwy; geody otwierasz przez open geode / otwórz geodę.",
     "śmierć": (
         "Po śmierci postać odradza się w Świątyni Odrodzenia i traci 10 procent "
         "wartości wspólnego salda."
@@ -8125,8 +8580,38 @@ SYSTEM_DESCRIPTIONS = {
 }
 
 
-LATEST_CHANGES_TITLE = "Soulbound v0.8.60 - Unified Currency Denominations"
+LATEST_CHANGES_TITLE = "Soulbound v0.9.0 - Full Character & Soul Weapon Balance Pass"
 LATEST_CHANGES = [
+    "v0.9.0: wszystkie 13 ras mają teraz identyczny budżet 50 bazowych punktów w pięciu głównych statystykach; różni je rozkład i pasyw, nie ukryte 50-58 punktów.",
+    "v0.9.0: wszystkie 12 klas dokłada dokładnie 9 punktów startowych zamiast dawnego zakresu 8-10; wraz z bazową Charyzmą każda kombinacja rasa-klasa ma identyczny budżet 69 punktów.",
+    "v0.9.0: bazowa Moc Broni Duszy została zwężona z 6-9 do 7-8, żeby early game nie zależał nadmiernie od ukrytej różnicy weapon_base.",
+    "v0.9.0: Łotrzyk ma z Broni Duszy maksymalnie +5 pp uniku oraz umiarkowany bonus obrażeń fizycznych; żaden Soul Tier nie jest już marnowany po dojściu do capu 35 procent uniku.",
+    "v0.9.0: istniejące postacie są migrowane różnicą starego i nowego profilu startowego; cały zdobyty później EXP/progres statystyk, Soul, klasy, EQ, questy i eksploracja pozostają zachowane.",
+    "v0.8.76: mapa/map pokazuje teraz rzeczywiście odkryty świat: procent bieżącego regionu, odkryte nazwy lokacji i ukrywa nazwy miejsc jeszcze nieodkrytych.",
+    "v0.8.76: mapa all/map all pokazuje procent wszystkich regionów i status nagrody za pełne 100%; istniejące nagrody eksploracyjne pozostają Soul XP + waluta + Pamiątka Odkrywcy + tytuł + osiągnięcie.",
+    "v0.8.76: bestiariusz/bestiary jest trwałym dziennikiem pokonanych gatunków z liczbą zabójstw, lokacjami, dropami, odpornościami i rekordem czasu zabicia.",
+    "v0.8.76: proceduralne elite/rare liczą się do bazowego gatunku Bestiariusza, więc gracz nie musi odblokowywać tysięcy kopii affixów.",
+    "v0.8.76: Bestiariusz jest zapisywany per postać w bezpiecznej nowej tabeli SQLite; stare zapisy są migrowane przez CREATE TABLE IF NOT EXISTS bez resetu postaci.",
+    "v0.8.75: Wędka, Kilof, Piła i Sierp mają wygładzoną krzywą Tool XP: 1->200 wymaga około 108,5k zamiast 169,5k XP (-36%); questy narzędziowe nadal dodatkowo przyspieszają progres.",
+    "v0.8.75: narzędzia produkcyjne zachowują dotychczasową krzywą, bo wysokie receptury już dają znacznie więcej Tool XP na akcję.",
+    "v0.8.75: Górnictwo może znaleźć klejnot jakości Surowy, Czysty, Doskonały lub Perfekcyjny; szansa jakości rośnie z Kilofem i Górnictwem, ale Perfekcyjny pozostaje jackpotem.",
+    "v0.8.75: dodano Geody Kamienne, Kryształowe i Astralne do Sakwy Górnika. open geode / otwórz geodę otwiera geodę na klejnoty, niewielkie złoto i rzadko Odłamek Duszy.",
+    "v0.8.75: Jubilerstwo szlifuje wszystkie jakości klejnotów; wyższa jakość daje mocniejszy bonus, ale nie dodaje nowego slotu ani nie omija limitów socketów.",
+    "v0.8.75: ponowny fun-balance audit zachowuje walkę, Class/Soul/stat XP, questy, EQ, bossy i schemat SQLite z v0.8.74 bez dalszego nerfienia progresji.",
+
+    "v0.8.74: Pełny audit 8495 szablonów mobów: tylko przeciwnicy z za małym HP względem własnych obrażeń dostali podniesioną trwałość; bossowie piętrowi Krypty/Astralu/Mityczni/Twierdzy zachowują własne HP.",
+    "v0.8.74: Class XP i Soul XP rosną razem z faktycznie zwiększoną trudnością; Postęp Rozwoju sześciu statystyk z mobów pozostaje bez zwiększenia i zachowuje limity rangowe.",
+    "v0.8.74: 33 starsze template'y z Class XP = 0 otrzymują prawidłową nagrodę klasową zamiast pustego progresu.",
+    "v0.8.74: Questowy EXP statystyk nadal jest szybki, ale pojedyncze oddanie nie może przeskoczyć kilku punktów: repeatable do 85% progu, one-shot do 90% przed bonusem rasy.",
+    "v0.8.74: staty pokazują ocenę jakości bazowej wartości, np. 8 — słabo, 14 — przeciętnie; komunikat awansu czyta nową ocenę.",
+    "v0.8.74: samo help / pomoc otwiera indeks kategorii; help kategorie / help categories pokazuje ten sam ekran.",
+    "v0.8.74: EQ, questy 0/x, ekonomia, przedmioty, lokacje i schemat SQLite pozostają bez zmian.",
+    "v0.8.72: Skrzynie Bossów pojawiają się na każdym piętrze bossa co 10 w pięciu wielopiętrowych lochach; właściwy klucz jest gwarantowany w ciele bossa.",
+    "v0.8.72: unlock / odklucz / odblokuj otwiera skrzynię tylko z właściwym kluczem; klucz jest jednorazowy, a skrzynia daje złoto i losowe użyteczne nagrody.",
+    "v0.8.72: Dodano owner-only admin przez SOULBOUND_ADMIN_ACCOUNTS oraz wipe postaci zachowujący loginy i hasła kont.",
+    "v0.8.72: Dodano umiarkowaną losowość ilości połowu, drewna i ziół; Górnictwo zachowuje własne losowe żyły x1/x2/x3/x5.",
+    "v0.8.72: Questy dostają dokładnie tyle postępu, ile sztuk faktycznie pozyskano po przyjęciu.",
+    "v0.8.72: Atlasy ryb, rud/minerałów, drewna i roślin zsynchronizowano z terenowymi zasobami oraz surowymi klejnotami Górnictwa, w tym Diamentem.",
     "Srebro, złoto i mithril tworzą jedno wspólne saldo; nie są trzema osobnymi portfelami.",
     "Nominały: 1000 srebra = 1 złoto; 1000000 złota = 1 mithril; 1 mithril = 1000000000 srebra.",
     "Portfel i Bank Dusz przechowują jedną wartość, a NVDA odczytuje ją automatycznie jako mithril, złoto i srebro.",
@@ -8138,7 +8623,7 @@ LATEST_CHANGES = [
     "Ciała mobów otrzymują materiałowe EQ dobrane do siły przeciwnika: żelazo, stal, mithril, adamantyt, kobalt, runiczny metal, smocza stal, astral, Pustka i eternium.",
     "Statystyki nie są przypisane do materiału ani klasy: konkretny drop losuje wariant z Siłą, Zręcznością, Kondycją, Inteligencją i Siłą Woli w różnych kombinacjach.",
     "Każdy materiał i slot ma 24 trwałe warianty losowego profilu, dzięki czemu statystyki przedmiotu nie zmieniają się po restarcie serwera.",
-    "Zręczność z nowego EQ korzysta z istniejącej mechaniki krytyków: 10 Zręczności = 5 procent, każdy punkt ponad 10 = +0,5 punktu procentowego, do limitu 35 procent.",
+    "Zręczność z EQ korzysta z malejącego skalowania krytyków: 10 Zręczności = 5 procent, 40 = 20 procent, 80 = 30 procent, a twardy limit wynosi 35 procent.",
     "Wyższe materiały mogą losować więcej statystyk i właściwości jednocześnie, ale nadal nie mają blokady na klasę.",
     "Losowane właściwości realnie wpływają na obrażenia fizyczne/magiczne, obronę fizyczną/magiczną, unik oraz maksymalne HP i Manę.",
     "Zwykły mob zostawia jedną materiałową część EQ; elity, rzadkie moby i bossowie mogą zostawić dwie, obok dotychczasowych unikalnych nagród.",
@@ -8197,7 +8682,7 @@ LATEST_CHANGES = [
 
     "Wszystkie skille typu boost są teraz czasowymi buffami działającymi na wszystkie skille i spelle, także przy multiclassie.",
     "Aktywne buffy wzmacniają obrażenia fizyczne i magiczne, leczenie oraz siłę guardów przez cały czas działania, a nie tylko następny skill.",
-    "Różne buffy mogą działać równocześnie; bonusy sumują się addytywnie, a łączne wzmocnienie jest ograniczone do +200 procent (x3).",
+    "Różne buffy mogą działać równocześnie; bonusy sumują się addytywnie, buff nie wzmacnia kolejnego buffa, a łączne wzmocnienie jest ograniczone do +125 procent (x2,25).",
     "Auto Skill Queue nie ponawia tego samego buffa przed jego wygaśnięciem; po wygaśnięciu może go automatycznie odświeżyć.",
     "Okrzyk Wojenny korzysta z tego samego uniwersalnego systemu buffów i zachowuje 12 sekund działania.",
     "Komenda con <mob> działa na każdego żywego moba w aktualnej lokacji, którego normalnie da się zabić.",
@@ -8225,6 +8710,7 @@ LATEST_CHANGES = [
 
 HELP_TOPIC_ALIASES = {
     "temat": "tematy", "topics": "tematy",
+    "kategorie": "kategorie", "categories": "kategorie", "category": "kategorie",
     "all": "wszystko",
     "commands": "komendy", "command": "komendy",
     "basics": "podstawy", "start": "podstawy",
@@ -8303,6 +8789,8 @@ HELP_TOPIC_ALIASES = {
     "punktkrypty": "portale", "punktykrypty": "portale",
     "atlas": "atlas", "atlasy": "atlas",
     "party": "druzyny", "parties": "druzyny", "druzyna": "druzyny", "drużyna": "druzyny",
+    "zaslon": "druzyny", "zasłoń": "druzyny", "oslon": "druzyny", "osłoń": "druzyny",
+    "zaproś": "druzyny", "zapros": "druzyny", "opusc": "druzyny", "opuść": "druzyny",
     "charisma": "charyzma", "charyzma": "charyzma", "haryzma": "charyzma",
 }
 
@@ -8323,6 +8811,7 @@ HELP_TOPICS = {
         "quest list <NPC> — numerowana oferta questów konkretnego NPC w twojej bieżącej lokacji, np. quest list Orin albo quest list Arven.",
         "talk <NPC> — rozmowa pokazuje ofertę tego NPC, ale nie przyjmuje zadania automatycznie.",
         "quest accept <numer> / accept quest <numer> / quest przyjmij <numer> — przyjmuje wskazany numer z ostatnio pokazanej listy questów NPC.",
+        "Każdy quest po przyjęciu zaczyna od 0/x. Liczą się wyłącznie wymagane akcje wykonane po przyjęciu: nowe zabicia, połowy, zbiory, wydobycie, ścinanie, craft, rozmowy i inne zdarzenia celu. Stary zapas ani wcześniejsze zabicia nie naliczają postępu.",
         "quest info <numer> — działa po quest, quest ukończone i quest list <NPC>; pokazuje NPC, opis, cel, aktualny postęp, wymagania, nagrody, powtarzalność i cooldown.",
         "quest oddaj <numer> / oddaj quest <numer> — oddaje wskazany aktywny quest, jeżeli cele są wykonane i jesteś u właściwego NPC.",
         "quest porzuć <numer> / quest abandon <numer> — porzuca aktywny quest z ostatniej listy. Bieżący postęp przepada, ale wcześniejsze ukończenia pozostają w historii; quest można później przyjąć ponownie.",
@@ -8386,11 +8875,12 @@ HELP_TOPICS = {
         "Akcja obszarowa nie wywołuje osobnego kontrataku; przeciwnik atakuje według własnego timera.",
     ],
     "bestiariusz": [
-        "Komendy: bestiariusz <mob>, bestiary <mob>, codex <mob>.",
-        "Pokazuje HP, obrażenia, Soul XP, Class XP, miejsca występowania i możliwy drop.",
-        "Bossowie mają fazy przy 75, 50 i 25 procent HP z krótkimi komunikatami NVDA.",
-    ],
-    "dwa_pierscienie": [
+        "bestiariusz / bestiary - podsumowanie odblokowanych gatunków i wszystkich zabójstw.",
+        "bestiariusz lista / bestiary list - wszystkie odkryte wpisy wraz z liczbą zabójstw.",
+        "bestiariusz <mob> / bestiary <mob> - liczba zabójstw, rekord czasu, HP, obrażenia, lokacje, realne dropy i zdefiniowane odporności.",
+        "Pierwsze zabicie odblokowuje wpis. Proceduralne warianty elite/rare są przypisane do bazowego gatunku.",
+        "bestiariusz rekordy / bestiary records - najlepsze zapisane czasy zabicia.",
+    ],    "dwa_pierscienie": [
         "Postać może nosić dwa pierścienie jednocześnie: ring1 i ring2.",
         "Komendy: załóż pierścień 1, załóż pierścień 2, equip ring1, equip ring2.",
         "Sockety są osobne dla obu pierścieni: osadz rubin pierścień 1 albo socket ruby ring2.",
@@ -8511,7 +9001,7 @@ HELP_TOPICS = {
     "przetop": [
         "przetop <metal albo ruda> przetapia rudę na właściwą sztabkę.",
         "Komenda korzysta z istniejących receptur Kowalstwa i nie omija wymagań.",
-        "Nadal musisz mieć Młot Rzemieślniczy, odpowiedni level narzędzia, level Kowalstwa, składniki i stać przy właściwej kuźni.",
+        "Musisz mieć Młot Rzemieślniczy, odpowiedni level Kowalstwa, składniki i stać przy właściwej kuźni. Level Młota nie blokuje receptury.",
         "Przykłady: przetop żelazo, przetop srebro, przetop złoto, przetop kobalt.",
         "Obsługiwane są także: runa, smocza stal, astral, pustka i Eternium.",
         "Przetapianie daje XP Kowalstwa i Młota tak samo jak dotychczasowe receptury sztabek.",
@@ -8635,7 +9125,7 @@ HELP_TOPICS = {
     ],
     "questy_kowalstwa_1_200": [
         "Kowal Górski Brok ma 13-etapowy łańcuch Kowalstwa od levelu 1 do 200.",
-        "Questy wymagają jednocześnie odpowiedniego levelu Młota Rzemieślniczego i Kowalstwa.",
+        "Questy wymagają jednocześnie odpowiedniego levelu Kowalstwa.",
         "Po każdym wykutym przedmiocie gra czyta postęp np. 1 z 3.",
         "Finał level 200 wymaga wykucia pełnego sześcioczęściowego Zestawu Eternium.",
         "Każdy etap odnawia się po 60 minutach.",
@@ -8668,7 +9158,7 @@ HELP_TOPICS = {
         "consider pokazuje affix oraz informację o rzadkim trollu.",
     ],
     "questy_mikstur_orina": [
-        "Orin ma teraz 11-etapowy łańcuch zleceń Alchemii od Moździerza level 1 do 200.",
+        "Orin ma 11-etapowy łańcuch zleceń Alchemii od levelu Alchemii 1 do 200.",
         "Etap I level 1: 3 Mikstury Many.",
         "Etap II level 5: 4 Mikstury Leczenia.",
         "Etap III level 40: 3 Wielkie Mikstury Leczenia.",
@@ -8682,7 +9172,7 @@ HELP_TOPICS = {
         "Etap XI level 200: 1 Eliksir Wiecznej Duszy.",
         "Każdy etap śledzi faktycznie uwarzone sztuki i czyta postęp po każdym warzeniu.",
         "Każde zlecenie jest powtarzalne po 60 minutach.",
-        "Kolejny etap wymaga ukończenia poprzedniego oraz odpowiedniego levelu Moździerza.",
+        "Kolejny etap wymaga ukończenia poprzedniego oraz odpowiedniego levelu Alchemii.",
     ],
     "postep_mikstur": [
         "Questy Alchemii Orina śledzą teraz faktycznie uwarzone mikstury od momentu przyjęcia zadania.",
@@ -8734,11 +9224,11 @@ HELP_TOPICS = {
     ],
     "kowalstwo": [
         "Kowalstwo jest pełną profesją level 1-200.",
-        "Kowalstwo korzysta z istniejącego Młota Rzemieślniczego level 1-200 i nie dodaje nowego narzędzia.",
+        "Kowalstwo ma level 1-200 i skraca czas wytwarzania oraz blokuje receptury/zlecenia. Młot Rzemieślniczy ma osobny level 1-200 i odpowiada za Tier/bonus produktu.",
         "Przetapianie metali i kucie w Kuźni Dusz daje XP Kowalstwa oraz XP Młota Rzemieślniczego.",
         "Receptury przechodzą od Żelaza, Srebra i Złota do Kobaltu, Run, Smoczej Stali, Astralu, Pustki i Eternium.",
         "Każdy metal ma sztabkę oraz sześć elementów wyposażenia: hełm, pancerz, rękawice, nogawice, buty i talizman.",
-        "Wyższe receptury wymagają jednocześnie odpowiedniego levelu Kowalstwa i Młota.",
+        "Wyższe receptury wymagają jednocześnie odpowiedniego levelu Kowalstwa.",
         "Komendy: kowalstwo, kuj <receptura>, craft <receptura>, receptury kowalstwo.",
         "Haldor w Kuźni daje trzy poziomy zleceń Rzemiosła/Kowalstwa.",
         "Zlecenia Haldora są powtarzalne i każde odnawia się dokładnie co 60 minut.",
@@ -8801,8 +9291,8 @@ HELP_TOPICS = {
         "Zatopiona Grota zaczyna się przy Morskim Molo i rozwija Wędkarstwo.",
         "Pradawny Las zaczyna się w Głębi Gaju i rozwija Drwalstwo.",
         "Ogród Alchemika zaczyna się w Chacie Zielarki i rozwija Zielarstwo.",
-        "Poziom 1 wymaga podstawowego narzędzia, a kolejne poziomy wymagają coraz wyższego levelu narzędzia.",
-        "Poziom 20 wymaga narzędzia level 200.",
+        "Dostęp do etapów zleceń i receptur wynika z levelu właściwej profesji; level narzędzia odpowiada za dostęp do lepszych surowców oraz bonus jakości/urobku.",
+        "Poziom 20 wymaga levelu 200 właściwej profesji. Narzędzie trzeba posiadać, ale jego level odblokowuje surowce, nie piętra.",
         "Im głębiej w lochu profesyjnym, tym wyższy poziom zasobów może wypaść.",
         "Auto-profesja uruchomiona wewnątrz lochu pozostaje w aktualnej komorze i dalej zbiera zasoby.",
         "Prowadzenie: prowadz kopalnia krysztalow, prowadz zatopiona grota, prowadz pradawny las, prowadz ogrod alchemika.",
@@ -8927,16 +9417,16 @@ HELP_TOPICS = {
     "gotowanie_rozbudowane": [
         "Gotowanie korzysta z Noża Kucharskiego level 1-200.",
         "Nie jest osobnym levelem postaci i nie dodaje Character XP.",
-        "Gotowanie nie jest osobną profesją; rozwija wyłącznie Nóż Kucharski.",
+        "Gotowanie jest osobną profesją 1-200; jej poziom skraca czas i odblokowuje receptury. Nóż rozwija się osobno i daje bonus produktu.",
         "Potrawy przygotowuje się w Karczmie Pod Błękitnym Płomieniem albo na Targu Rybnym.",
         "gotowanie pokazuje stan systemu i aktualny Nóż Kucharski.",
         "gotuj lista pokazuje wszystkie receptury Gotowania.",
         "gotuj <potrawa> przygotowuje wybraną potrawę.",
         "receptury cook nadal działa.",
-        "Receptury mają progi Noża: 1,10,20,30,40,50,60,70,80,90,95,99,100,120,140,160,180 i 200.",
+        "Receptury mają progi Gotowania: 1,10,20,30,40,50,60,70,80,90,95,99,100,120,140,160,180 i 200.",
         "Dodano Okoń w Ziołowej Skorupce, Zupę ze Srebrnego Pstrąga, Zapiekankę Jeziornego Rybaka, Makrelę Korzenną, Łososia z Ziołami i Rosół z Księżycowego Węgorza.",
-        "Każda akcja Gotowania wykorzystuje rzeczywisty czas Noża Kucharskiego.",
-        "Na levelu 1 Nóż potrzebuje 12 sekund, a na levelu 200 4 sekundy.",
+        "Każda akcja Gotowania wykorzystuje czas wynikający z poziomu profesji Gotowanie; Nóż Kucharski nie skraca czasu.",
+        "Gotowanie level 1 daje 12 sekund bazowego czasu, a Gotowanie level 200 daje 4 sekundy; level Noża nie skraca czasu.",
         "Tier Noża daje szansę na dodatkową porcję.",
         "Gotowanie zużywa składniki z właściwych magazynów profesji oraz inventory.",
         "Potrawy przywracają HP, a część również Manę.",
@@ -8961,7 +9451,7 @@ HELP_TOPICS = {
         "Wszystkie moby i bossowie mają teraz globalnie 2 razy więcej maksymalnego HP.",
         "Zmiana obejmuje zwykłych przeciwników, bossów świata, manekina treningowego, Kryptę 1-200 i Wieżę Astralną 100-200.",
         "Obrażenia mobów nie zostały zwiększone.",
-        "Nagrody za zabicie, Soul XP, Class XP, stat_progress, waluta i loot pozostają bez zmian.",
+        "Samo podwojenie HP nie daje automatycznie większej waluty ani lootu; późniejsze wersje balansu liczą EXP z realnej siły konkretnego przeciwnika.",
         "Mechaniki bossów nadal korzystają z ich aktualnego podwojonego maksymalnego HP.",
         "Respawn pozostaje bez zmian i przywraca pełne nowe maksymalne HP.",
         "consider automatycznie pokazuje i ocenia nowe wartości HP.",
@@ -8969,18 +9459,14 @@ HELP_TOPICS = {
         "Walka działa w czasie rzeczywistym: gracz i przeciwnik mają niezależne timery akcji.",
     ],
     "soul_xp_bloki": [
-        "Wymagane Soul XP podwaja się po każdym pełnym bloku 10 Soul Leveli.",
-        "Soul Level 1-10 używa mnożnika x1.",
-        "Soul Level 11-20 używa mnożnika x2.",
-        "Soul Level 21-30 używa mnożnika x4.",
-        "Soul Level 31-40 używa mnożnika x8.",
-        "Dalej mnożnik podwaja się analogicznie co 10 leveli aż do Soul Level 200.",
-        "Bazowy wzór nadal wynosi 180 + 60 razy Soul Level minus 1, a następnie jest mnożony przez mnożnik bloku.",
+        "Wymagane Soul XP rośnie płynnie przez Soul Level 1-200.",
+        "Soul Level 1-10 używa mnożnika x1. Każdy kolejny pełny blok 10 leveli podnosi mnożnik o 25 procent.",
+        "Bazowy wzór wynosi 180 + 60 razy Soul Level minus 1, a następnie jest mnożony przez 1,25 do potęgi liczby ukończonych bloków 10 leveli.",
         "Przykład: z Soul Level 10 na 11 potrzeba 720 XP.",
-        "Przykład: z Soul Level 11 na 12 potrzeba 1560 XP.",
-        "Przykład: z Soul Level 21 na 22 potrzeba 5520 XP.",
-        "Przykład: z Soul Level 51 na 52 potrzeba 101760 XP.",
-        "Nagrody Soul XP z mobów, bossów, drużyny i przedmiotów nie zostały zwiększone.",
+        "Przykład: z Soul Level 11 na 12 potrzeba 975 XP.",
+        "Przykład: z Soul Level 21 na 22 potrzeba około 2156 XP.",
+        "Przykład: z Soul Level 51 na 52 potrzeba około 9705 XP.",
+        "Od v0.8.64 pojedynczy kill ma też limit Soul XP zależny od rangi przeciwnika, więc carry nie przeskakuje dziesiątek Soul Leveli naraz.",
         "Już zdobyty Soul XP pozostaje zapisany i nie jest resetowany.",
         "Soul Level nadal ma zakres 1-200.",
     ],
@@ -8997,13 +9483,11 @@ HELP_TOPICS = {
         "Consider nie angażuje moba, nie wykonuje ataku, nie zużywa Many i nie uruchamia walki.",
     ],
     "wolniejsze_staty": [
-        "Rozwój pięciu statystyk został spowolniony dwukrotnie.",
-        "Wcześniej wszystkie statystyki rosły o +1 po 50 punktach Postępu Rozwoju.",
-        "Teraz potrzeba 100 punktów Postępu Rozwoju.",
-        "Po osiągnięciu progu nadal rosną jednocześnie: Siła +1, Zręczność +1, Kondycja +1, Inteligencja +1, Siła Woli +1 i Charyzma +1.",
-        "Statystyki nadal nie mają maksymalnego limitu.",
-        "Nie dodano levelu postaci ani Character XP.",
-        "Istniejący zapisany Postęp Rozwoju nie jest zerowany ani przeliczany.",
+        "Każda z sześciu statystyk ma własny licznik EXP i własny próg.",
+        "Próg startuje od 100 EXP i rośnie osobno wraz z wartością danej statystyki.",
+        "Po osiągnięciu progu rośnie tylko wskazana statystyka; pozostałe zachowują własny postęp.",
+        "Statystyki nadal nie mają ręcznego rozdawania punktów ani levelu postaci.",
+        "Stary wspólny Postęp Rozwoju jest jednorazowo migrowany do sześciu osobnych liczników bez utraty zapisanego postępu.",
     ],
     "wieza_astralna": [
         "Wieża Astralna jest drugim lochowym endgame obok Krypty.",
@@ -9037,9 +9521,9 @@ HELP_TOPICS = {
     ],
     "lancuchy_specjalistow": [
         "Haldor, Marcel i Orin mają teraz po 3 osobne etapy zleceń.",
-        "Etap 1 jest dostępny od levelu narzędzia 1.",
-        "Etap 2 wymaga ukończenia etapu 1 i levelu narzędzia 100.",
-        "Etap 3 wymaga ukończenia etapu 2 i levelu narzędzia 200.",
+        "Etap 1 jest dostępny od levelu właściwej profesji 1.",
+        "Etap 2 wymaga ukończenia etapu 1 i levelu właściwej profesji 100.",
+        "Etap 3 wymaga ukończenia etapu 2 i levelu właściwej profesji 200.",
         "Haldor: Żelazne sztabki, Runiczny Talizman Straży, Talizman Wiecznej Duszy.",
         "Marcel: Pieczone ryby rzeczne, Runiczny Półmisek Rybny, Wieczna Uczta Oceanu.",
         "Orin: Mikstury Many, Najwyższe Mikstury Leczenia, Eliksir Wiecznej Duszy.",
@@ -9073,13 +9557,15 @@ HELP_TOPICS = {
         "Rozmowa ze specjalistą nadal najpierw podaje informacje o jego narzędziu i recepturach.",
     ],
     "sprzedaj_wszystko": [
-        "sprzedaj wszystko siatka sprzedaje wszystkie ryby z Siatki.",
-        "sprzedaj wszystko sakwa sprzedaje wszystkie rudy z Sakwy.",
-        "sprzedaj wszystko stos sprzedaje całe drewno ze Stosu.",
-        "sprzedaj wszystko torba sprzedaje wszystkie zioła z Torby Zielarskiej.",
+        "sprzedaj wszystko siatka sprzedaje wszystkie ryby z Siatki wyłącznie rybakom na Targu Rybnym.",
+        "sprzedaj wszystko sakwa sprzedaje Dagnie cały urobek Górnictwa: rudy, minerały i surowe klejnoty.",
+        "sprzedaj wszystko stos sprzedaje całe drewno wyłącznie Drwalowi Branowi w Obozie Drwala.",
+        "sprzedaj wszystko torba sprzedaje wszystkie zioła wyłącznie Zielarce Liorze w Chacie Zielarki.",
         "Działają też: sprzedaj wszystko ryby, rudy, drewno i ziola.",
         "sprzedaj wszystko przedmioty działa jak sprzedaj przedmioty.",
         "Każda kategoria nadal wymaga właściwego punktu skupu.",
+        "Sprzedaż surowców profesji daje dodatkowy EXP właściwej specjalizacji: ryby -> Wędkarstwo, urobek Dagny -> Górnictwo, drewno -> Drwalstwo, zioła -> Zielarstwo.",
+        "EXP sprzedażowy wynosi 1 bazowy EXP za sztukę i korzysta z globalnego mnożnika EXP profesji; nie daje EXP narzędzia.",
         "Po sprzedaży gra podaje liczbę sztuk, rodzajów i zarobek.",
     ],
     "naturalne_naucz": [
@@ -9096,10 +9582,10 @@ HELP_TOPICS = {
     ],
     "czas_narzedzi": [
         "Każda czynność narzędzia ma teraz realny czas wykonania.",
-        "Na levelu 1: Wędka 15 sekund, Kilof 30 sekund, Piła 24 sekundy, Młot Rzemieślniczy 20 sekund, Nóż Kucharski 12 sekund, Sierp Zielarski 10 sekund, Moździerz Alchemiczny 18 sekund.",
-        "Czas skraca się stopniowo wraz z levelem narzędzia.",
-        "Na levelu 200: Wędka 5 sekund, Kilof 10 sekund, Piła 8 sekund, Młot 7 sekund, Nóż 4 sekundy, Sierp 3 sekundy, Moździerz 6 sekund.",
-        "Po wpisaniu wedka, kilof, pila, mlot, noz, sierp albo mozdzierz gra podaje aktualny czas akcji.",
+        "Przy profesji level 1: Wędkarstwo 15 sekund, Górnictwo 30, Drwalstwo 24, Kowalstwo 20, Gotowanie 12, Zielarstwo 10, Alchemia 18, Jubilerstwo 20 sekund.",
+        "Czas skraca się stopniowo wraz z levelem właściwej profesji; level narzędzia nie skraca czasu.",
+        "Przy profesji level 200: Wędkarstwo 5 sekund, Górnictwo 10, Drwalstwo 8, Kowalstwo 7, Gotowanie 4, Zielarstwo 3, Alchemia 6, Jubilerstwo 7 sekund.",
+        "Po wpisaniu wedka, kilof, pila, mlot, noz, sierp, mozdzierz albo szczypce gra podaje aktualny czas akcji wynikający z levelu profesji.",
         "Auto-łowienie, auto-kopanie, auto-Drwalstwo i auto-Zielarstwo używają tego samego realnego czasu.",
         "Crafting, Gotowanie i Alchemia także czekają rzeczywistą liczbę sekund przed ukończeniem receptury.",
     ],
@@ -9107,7 +9593,7 @@ HELP_TOPICS = {
         "Po wpisaniu nazwy narzędzia gra od razu podaje jego aktualną pełną nazwę Tieru.",
         "Przykład: wedka może powiedzieć Aktualna nazwa narzędzia: Wędka Ucznia.",
         "Po awansie Tieru nazwa zmienia się automatycznie, np. na Wędka Rzeczna albo Wędka Srebrnego Haczyka.",
-        "Działa dla: wedka, kilof, pila, mlot, noz, sierp i mozdzierz.",
+        "Działa dla: wedka, kilof, pila, mlot, noz, sierp, mozdzierz i szczypce.",
         "Potem gra nadal podaje level, XP, użycia, Tier, bonus i następny Tier.",
         "Komenda narzedzia pokazuje aktualne nazwy wszystkich posiadanych narzędzi.",
     ],
@@ -9121,7 +9607,7 @@ HELP_TOPICS = {
         "Ruch albo aktywna akcja przerywa odpoczynek.",
     ],
     "specjalisci_profesji": [
-        "Dodano siedmiu specjalistów odpowiadających wszystkim istniejącym narzędziom i systemom profesji.",
+        "Soulbound ma ośmiu głównych specjalistów profesji odpowiadających wszystkim ośmiu profesjom i narzędziom.",
         "Mistrz Wędkarstwa Neris: Targ Rybny.",
         "Mistrz Górnictwa Kordan: Wejście do Kryształowej Jaskini.",
         "Mistrz Drwalstwa Oren: Obóz Drwala.",
@@ -9129,7 +9615,8 @@ HELP_TOPICS = {
         "Kucharz Marcel: Karczma Pod Błękitnym Płomieniem.",
         "Mistrzyni Zielarstwa Sena: Chata Zielarki.",
         "Mistrz Alchemii Orin: Chata Zielarki.",
-        "Rozmowa ze specjalistą pokazuje twój level narzędzia, XP, Tier i bonus.",
+        "Jubilerka Mirella: Pracownia Jubilerska.",
+        "Rozmowa ze specjalistą pokazuje level profesji oraz odpowiadającego narzędzia, XP, Tier, bonus i tempo pracy.",
         "Kucharz, Rzemieślnik i Alchemik przypominają również odpowiednią komendę receptur.",
         "Specjaliści są przyjaznymi NPC i nie można ich atakować.",
     ],
@@ -9141,13 +9628,13 @@ HELP_TOPICS = {
         "mana stop zatrzymuje aktywny odpoczynek.",
     ],
     "sprzedaz_hurtowa": [
-        "sprzedaj ryby siatka sprzedaje wszystkie ryby z Siatki.",
-        "sprzedaj rudy sakwa sprzedaje wszystkie rudy z Sakwy.",
-        "sprzedaj drewno stos sprzedaje całe drewno ze Stosu.",
-        "sprzedaj ziola torba sprzedaje wszystkie zioła z Torby Zielarskiej.",
-        "Każda kategoria nadal wymaga właściwej lokacji skupu.",
+        "sprzedaj ryby siatka sprzedaje wszystkie ryby wyłącznie rybakom na Targu Rybnym.",
+        "sprzedaj rudy sakwa sprzedaje Dagnie cały urobek Górnictwa z Sakwy, w tym rudy, minerały i surowe klejnoty.",
+        "sprzedaj drewno stos sprzedaje całe drewno wyłącznie Drwalowi Branowi w Obozie Drwala.",
+        "sprzedaj ziola torba sprzedaje wszystkie zioła wyłącznie Zielarce Liorze w Chacie Zielarki.",
+        "Skup jest profesyjny: ryby tylko Targ Rybny; rudy, minerały i surowe klejnoty tylko Dagna; drewno tylko Drwal Bran; zioła tylko Zielarka Liora.",
         "Hurtowa sprzedaż podaje liczbę sztuk, liczbę rodzajów i łączny zarobek.",
-        "Charyzma wzrasta o liczbę sprzedanych sztuk, jak przy sprzedaży ręcznej.",
+        "Sprzedaż daje EXP Charyzmy zależny od wartości transakcji; hurtowa sprzedaż nie pompuje Charyzmy liniowo liczbą tanich sztuk.",
         "sprzedaj przedmioty sprzedaje z inventory tylko rzeczy z jawną ceną sprzedaży i dozwolone w aktualnej lokacji.",
         "Duplikat możesz wskazać numerem, np. sprzedaj 2.talizman korzeni; założone egzemplarze nie są sprzedawane.",
         "sprzedaj przedmioty nie sprzedaje narzędzi, mikstur, założonego wyposażenia ani rzeczy bez ceny.",
@@ -9161,7 +9648,7 @@ HELP_TOPICS = {
     "wartosc_magazynow": [
         "Wszystkie cztery magazyny profesji pokazują teraz podsumowanie ilości i wartości.",
         "siatka/net: łączna liczba ryb, liczba gatunków i wartość sprzedaży.",
-        "sakwa/bag: łączna liczba rud, liczba rodzajów i wartość sprzedaży.",
+        "sakwa/bag: cały urobek Górnictwa — rudy, minerały i surowe klejnoty; pokazuje liczbę sztuk, rodzajów i wartość sprzedaży u Dagny.",
         "drewno/stos/woodpile: łączna liczba sztuk drewna, liczba rodzajów i wartość sprzedaży.",
         "ziola/herbs: łączna liczba ziół, liczba rodzajów i wartość sprzedaży.",
         "Srebro, złoto i mithril są nominałami jednego wspólnego salda.",
@@ -9178,15 +9665,12 @@ HELP_TOPICS = {
         "Podsumowanie nie sprzedaje ryb. To tylko informacja przed sprzedażą.",
     ],
     "tempo_profesji": [
-        "Wędkarstwo, Górnictwo, Drwalstwo, Zielarstwo i Alchemia levelują teraz wolniej.",
-        "Każda akcja i nagroda daje 2 razy więcej XP profesji niż wcześniej.",
-        "Jednocześnie każdy kolejny level profesji wymaga 4 razy więcej XP niż wcześniej.",
-        "Efektywnie profesje rozwijają się około 2 razy wolniej.",
-        "Przykład level 1: dawniej potrzeba było 80 XP, teraz potrzeba 320 XP.",
-        "Typowa akcja dawała wcześniej 10-15 XP, teraz daje 20-30 XP.",
-        "Quest profesyjny dający dawniej 1000 XP daje teraz 2000 XP.",
-        "Maksymalny level profesji pozostaje 100.",
-        "XP narzędzi nie jest tu zmieniane; narzędzia zachowują tempo z v0.6.78.",
+        "v0.8.66 utrzymuje wszystkie osiem profesji w zakresie 1-200 i rozdziela tempo pracy od jakości narzędzia.",
+        "Każda akcja i nagroda profesji korzysta z mnożnika XP x4; wymagania levelu używają wspólnej, osiągalnej krzywej 1-200.",
+        "Level profesji skraca czas pracy i spełnia wymagania receptur/zleceń; level narzędzia odblokowuje lepsze surowce oraz zwiększa jakość/bonus urobku.",
+        "Wszystkie osiem profesji rozwija się od 1 do 200 według wspólnej zasady progresji.",
+        "Narzędzia mają osobną nową krzywą XP 1-200 opisaną w help narzedzia200.",
+        "Nie ma trwałości ani zużywania narzędzi.",
     ],
     "zakladanie_lootu": [
         "Ekwipunek zabrany z ciał mobów i bossów można zakładać bez wpisywania pełnej długiej nazwy.",
@@ -9198,19 +9682,18 @@ HELP_TOPICS = {
         "Zmiana ekwipunku podczas aktywnej walki nadal jest zablokowana.",
     ],
     "skill200": [
-        "Wszystkie umiejętności mają teraz Skill Level od 1 do 200.",
-        "Skill XP zdobywasz nadal przez używanie nauczonej umiejętności.",
-        "Wymagany Skill XP pozostaje według tej samej rosnącej formuły i działa dalej powyżej levelu 100.",
-        "Moc skilla rośnie również od levelu 101 do 200.",
-        "Maksymalna redukcja cooldownu pozostaje ograniczona do 30 procent.",
+        "Wszystkie umiejętności mają Skill Level od 1 do 200 i rozwijają się wyłącznie przez używanie konkretnego skilla/spella.",
+        "v0.8.64 zmniejsza przyrost wymaganego Skill XP z +25 do +8 na level i podnosi typową nagrodę za użycie do 25-35 XP.",
+        "Moc rośnie malejąco: około x1,495 przy Skill Level 100 i około x1,745 przy 200, zamiast starego x2,49.",
+        "Cooldown skraca się przez całe 1-200: około 12,4 procent przy 100 i maksymalnie około 24,9 procent przy 200.",
         "Na Skill Level 200 XP zostaje wyzerowane i skill osiąga maksymalny poziom.",
     ],
     "wolniejszy_xp_narzedzi": [
-        "Narzędzia nadal mają level 1-200 i 20 Tierów.",
-        "Od v0.6.78 każdy kolejny level narzędzia wymaga 2 razy więcej XP niż wcześniej.",
-        "XP przyznawane za łowienie, kopanie, Drwalstwo, crafting, gotowanie, Zielarstwo, Alchemię i nagrody pozostaje bez zmian.",
-        "Przykład: dawniej przejście z levelu 1 wymagało 60 XP, teraz wymaga 120 XP.",
-        "Nieużywane narzędzia nadal nie zdobywają XP ani użyć.",
+        "Narzędzia nadal mają level 1-200 i 20 Tierów, bez trwałości i bez psucia.",
+        "v0.8.64 używa krzywej: 60 + 8 razy level minus 1 XP do następnego poziomu narzędzia.",
+        "Level 1->2 wymaga 60 XP; level 100->101 852 XP; level 199->200 1644 XP.",
+        "XP przyznawane przez konkretne akcje pozostaje zależne od aktywności i bonusów narzędzia.",
+        "Nieużywane narzędzia nie zdobywają XP ani użyć.",
     ],
     "skille100_200": [
         "Każda z 12 klas dostała 4 nowe umiejętności endgame.",
@@ -9255,19 +9738,19 @@ HELP_TOPICS = {
         "Kopanie rozwija tylko Kilof.",
         "Drwalstwo rozwija tylko Piłę.",
         "Crafting rozwija tylko Młot Rzemieślniczy.",
-        "Gotowanie rozwija tylko Nóż Kucharski.",
+        "Gotowanie rozwija profesję Gotowanie oraz używany Nóż Kucharski; level Gotowania skraca czas, a Nóż odblokowuje wyższe pule/bonus produktu.",
         "Zielarstwo rozwija tylko Sierp Zielarski.",
-        "Alchemia rozwija tylko Moździerz Alchemiczny.",
+        "Alchemia rozwija profesję Alchemia oraz używany Moździerz Alchemiczny; level Alchemii skraca czas, a Moździerz odpowiada za Tier/bonus produktu.",
         "Pozostałe narzędzia nie dostają XP, użyć ani leveli od tej akcji.",
     ],
     "endgame_profesje": [
-        "Dodano progresję surowców i receptur dla leveli narzędzi 100, 120, 140, 160, 180 i 200.",
+        "Narzędzia 1-200 odblokowują coraz lepsze surowce i zwiększają rare/quality oraz bonus urobku; profesje 1-200 skracają czas i blokują receptury/zlecenia.",
         "Wędka odblokowuje nowe ryby endgame; część zależy od typu łowiska: rzeka, jezioro, morze albo ocean.",
         "Kilof odblokowuje: Ruda Kobaltu 100, Kamień Runiczny 120, Smocza Stal 140, Ruda Astralna 160, Ruda Pustki 180 i Eternium 200.",
         "Piła w Głębi Gaju odblokowuje nowe drewna na levelach 100, 120, 140, 160, 180 i 200.",
         "Sierp w Głębi Gaju odblokowuje nowe zioła na levelach 100, 120, 140, 160, 180 i 200.",
-        "Rzemiosło, Gotowanie i Alchemia mają po 6 nowych receptur wymagających odpowiednio levelu 100, 120, 140, 160, 180 i 200 narzędzia.",
-        "Receptury są twardo zablokowane levelem narzędzia. Samo posiadanie składników nie wystarcza.",
+        "Rzemiosło, Gotowanie i Alchemia mają receptury 100, 120, 140, 160, 180 i 200 wymagające odpowiedniego levelu profesji.",
+        "Receptury są twardo zablokowane levelem odpowiedniej profesji. Samo posiadanie składników i wysokiego narzędzia nie wystarcza.",
         "Wpisz receptury, receptury craft, receptury cook albo receptury alchemia, aby usłyszeć wymagany level.",
     ],
     "logowanie": [
@@ -9285,12 +9768,10 @@ HELP_TOPICS = {
         "Soul Level nadal ma zakres 1-200.",
     ],
     "rozwoj_statystyk": [
-        "Statystyki rosną automatycznie przez Postęp Rozwoju.",
-        "Próg wzrostu został zmniejszony do 50 Postępu Rozwoju.",
-        "Każdy pełny próg Postępu Rozwoju daje jednocześnie: Siła +1, Zręczność +1, Kondycja +1, Inteligencja +1, Siła Woli +1 i Charyzma +1.",
-        "To oznacza dwa razy szybszy wzrost statystyk niż przy starym progu 100.",
-        "Nie ma ręcznego rozdawania punktów.",
-        "Levelu postaci nadal nie ma.",
+        "Statystyki rosną automatycznie przez sześć niezależnych liczników EXP; nie ma ręcznego rozdawania punktów ani levelu postaci.",
+        "Każda statystyka zaczyna od progu 100 EXP. Po przekroczeniu wartości bazowej 25 jej własny próg rośnie o 10 za każdy kolejny punkt tej statystyki.",
+        "Pełny próg zwiększa tylko tę konkretną statystykę o 1; pozostałe zachowują własny EXP i własne progi.",
+        "Pojedynczy mob ma limit EXP każdej statystyki zależny od rangi, więc boss nie przeskakuje całej progresji jednym zabiciem.",
         "Bonus rasy Człowiek do Postępu Rozwoju nadal działa.",
     ],
     "uzywanie_umiejetnosci": [
@@ -9304,7 +9785,7 @@ HELP_TOPICS = {
     ],
     "soul200": [
         "Broń Duszy ma teraz Soul Level 1-200.",
-        "Wymagane Soul XP podwaja się po każdym pełnym bloku 10 leveli; wpisz help soulxp.",
+        "Soul XP używa od v0.8.64 płynnej krzywej +25 procent mnożnika co pełny blok 10 leveli; wpisz help soulxp.",
         "Tier 4 wymaga próby od Soul Level 25.",
         "Tier 7 wymaga próby od Soul Level 60.",
         "Tier 13 odblokowuje się od Soul Level 120 po Próbie Elora na bossie piętra 120 Krypty.",
@@ -9314,19 +9795,15 @@ HELP_TOPICS = {
         "Nie ma levelu postaci.",
     ],
     "narzedzia200": [
-        "Wszystkie 7 narzędzi ma level 1-200 i 20 Tierów.",
-        "Wędka, Kilof, Piła, Młot Rzemieślniczy, Nóż Kucharski, Sierp Zielarski i Moździerz Alchemiczny rozwijają się do 200.",
-        "Tier 8: level 100-119, bonus 15 procent.",
-        "Tier 9: level 120-139, bonus 18 procent.",
-        "Tier 10: level 140-159, bonus 21 procent.",
-        "Tier 11: level 160-179, bonus 24 procent.",
-        "Tier 12: level 180-199, bonus 27 procent.",
-        "Tier 20: level 200, bonus 30 procent.",
-        "Każdy Tier 9-13 ma osobną nazwę dla każdego rodzaju narzędzia.",
+        "Wszystkie 8 narzędzi ma level 1-200 i 20 Tierów.",
+        "Wędka, Kilof, Piła, Młot Rzemieślniczy, Nóż Kucharski, Sierp Zielarski, Moździerz Alchemiczny i Szczypce Jubilerskie rozwijają się do 200.",
+        "Tier 1 obejmuje level 1-9; kolejne Tiery zaczynają się na 10, 20, 30 i dalej co 10 aż do 180; Tier 20 jest na levelu 200.",
+        "Przykłady bonusu: Tier 1 = 0 procent, Tier 10 od levelu 90 = 18 procent, Tier 11 od 100 = 20 procent, Tier 19 od 180 = 37 procent, Tier 20 na 200 = 40 procent.",
+        "Każdy Tier ma osobną nazwę dla każdego rodzaju narzędzia.",
         "tools, tiers oraz bezpośrednie komendy narzędzi pokazują aktualny Tier i następny próg.",
     ],
     "krytyki": [
-        "Trafienia krytyczne zależą od efektywnej Zręczności, czyli także od bonusów ekwipunku.",
+        "Trafienia krytyczne zależą od efektywnej Zręczności, czyli także od bonusów ekwipunku. Od v0.8.63 wysokie wartości mają malejący przyrost, a limit pozostaje 35 procent.",
         "Przy Zręczności 10 bazowa szansa na krytyk wynosi 5 procent.",
         "Każdy punkt Zręczności ponad 10 dodaje 0,5 punktu procentowego szansy.",
         "Zręczność poniżej 10 obniża szansę o 0,5 punktu procentowego za punkt.",
@@ -10192,10 +10669,10 @@ QUESTS = {
     "soul_shards": {
         "name": "Odłamki dla kowala",
         "giver": "Kowal Doran",
-        "kind": "collect", "target": "soul_shard", "needed": 3,
-        "description": "Przynieś 3 Odłamki Duszy z krypty.",
-        "reward_silver": 300, "reward_gold": 0, "reward_mithril": 0,
-        "reward_items": {"soul_elixir": 1},
+        "kind": "collect", "target": "soul_shard", "needed": 20,
+        "description": "Przynieś 20 Odłamków Duszy z krypty.",
+        "reward_silver": 7500, "reward_gold": 0, "reward_mithril": 0,
+        "reward_items": {"soul_elixir": 2},
     },
 }
 
@@ -11893,7 +12370,8 @@ def build_profession_dungeons():
             "name": f"Kopalnia Kryształów, poziom {floor}",
             "desc": (
                 f"Profesyjny poziom górniczy {floor} z 20. "
-                f"Zalecany Kilof level {required}. "
+                f"Wymagane Górnictwo level {required}. "
+                "Lepszy Kilof odblokowuje lepsze rudy i bonusy jakości. "
                 "Im głębiej, tym lepsze rudy i minerały."
             ),
             "exits": exits,
@@ -11920,7 +12398,8 @@ def build_profession_dungeons():
             "name": f"Zatopiona Grota, głębokość {floor}",
             "desc": (
                 f"Podwodne łowisko {floor} z 20. "
-                f"Zalecana Wędka level {required}. "
+                f"Wymagane Wędkarstwo level {required}. "
+                "Lepsza Wędka odblokowuje lepsze ryby i bonusy jakości. "
                 "Niższe komory prowadzą do coraz rzadszych ryb."
             ),
             "exits": exits,
@@ -11952,7 +12431,8 @@ def build_profession_dungeons():
             "name": f"Pradawny Las, ostęp {floor}",
             "desc": (
                 f"Pradawny ostęp {floor} z 20. "
-                f"Zalecana Piła level {required}. "
+                f"Wymagane Drwalstwo level {required}. "
+                "Lepsza Piła odblokowuje lepsze drewno i bonusy jakości. "
                 "Głębsze ostępy dają dostęp do rzadszego drewna."
             ),
             "exits": exits,
@@ -11979,7 +12459,8 @@ def build_profession_dungeons():
             "name": f"Ogród Alchemika, sektor {floor}",
             "desc": (
                 f"Alchemiczny sektor {floor} z 20. "
-                f"Zalecany Sierp level {required}. "
+                f"Wymagane Zielarstwo level {required}. "
+                "Lepszy Sierp odblokowuje lepsze zioła i bonusy jakości. "
                 "Głębsze sektory zawierają coraz rzadsze rośliny."
             ),
             "exits": exits,
@@ -12012,6 +12493,36 @@ HERB_SPECIFIC_MEADOW_NAMES = {
     "ginseng_meadow": "Łąka Żeń-szenia",
     "moonflower_meadow": "Łąka Księżycowego Kwiatu",
 }
+
+# v0.8.66: level narzędzia odblokowuje jakość surowca, a profesja tempo.
+# Tematyczne łąki nie mogą omijać progresji Sierpa samą podróżą.
+HERB_SPECIFIC_MEADOW_MIN_TOOL_LEVEL = {
+    "mint_meadow": 1,
+    "chamomile_meadow": 1,
+    "nettle_meadow": 1,
+    "lemon_balm_meadow": 10,
+    "lavender_meadow": 20,
+    "yarrow_meadow": 30,
+    "sage_meadow": 40,
+    "valerian_meadow": 45,
+    "ginseng_meadow": 50,
+    "moonflower_meadow": 70,
+}
+
+FIELD_RESOURCE_MIN_TOOL_LEVEL = {
+    "sewer_black_channel": ("fishing", 30, "Wędka"),
+    "necropolis_quarry": ("mining", 80, "Kilof"),
+    "ice_cave_crystal_chamber": ("mining", 100, "Kilof"),
+    "beast_lair_root_cavern": ("woodcutting", 40, "Piła"),
+    "cemetery_moon_garden": ("herbalism", 20, "Sierp Zielarski"),
+    "cult_ruins_overgrown_garden": ("herbalism", 60, "Sierp Zielarski"),
+}
+
+# Atlas ma pokazywać te same progi, które naprawdę egzekwuje zbieranie.
+for _room_id, _required in HERB_SPECIFIC_MEADOW_MIN_TOOL_LEVEL.items():
+    _herb_id = HERB_SPECIFIC_MEADOWS.get(_room_id)
+    if _herb_id and _room_id in HERB_ATLAS_ROOM_MIN_LEVELS:
+        HERB_ATLAS_ROOM_MIN_LEVELS[_room_id][_herb_id] = int(_required)
 
 def build_mountain_region_and_herb_meadows():
     # -----------------------------
@@ -12583,12 +13094,17 @@ def _register_rare_variants(base_ids):
         ) if rare.get("corpse_equipment_pool") else 0
         MOB_TEMPLATES[rare_id] = rare
 
+V0866_RARE_TROLL_SPAWN_CHANCE = 0.12
+V0866_RARE_MOB_SPAWN_CHANCE = 0.04
+V0866_ELITE_MOB_SPAWN_CHANCE = 0.15
+
+
 def resolve_world_spawn_template(template_id):
     resolved = template_id
 
     if (
         resolved == "mountain_troll"
-        and random.random() < 0.18
+        and random.random() < V0866_RARE_TROLL_SPAWN_CHANCE
     ):
         resolved = random.choices(
             RARE_TROLL_VARIANTS,
@@ -12599,7 +13115,7 @@ def resolve_world_spawn_template(template_id):
     template = MOB_TEMPLATES.get(resolved, {})
     if (
         template.get("rare_eligible")
-        and random.random() < 0.06
+        and random.random() < V0866_RARE_MOB_SPAWN_CHANCE
     ):
         candidate = f"{resolved}__rare"
         if candidate in MOB_TEMPLATES:
@@ -12607,7 +13123,7 @@ def resolve_world_spawn_template(template_id):
 
     if (
         template.get("elite_eligible")
-        and random.random() < 0.22
+        and random.random() < V0866_ELITE_MOB_SPAWN_CHANCE
     ):
         affix = random.choice(
             tuple(ELITE_AFFIXES)
@@ -13459,7 +13975,7 @@ def build_mountain_crafting_expansion():
     # FISHING SPECIFIC + RARE VARIANT QUESTS
     # ========================================================
     fishing_specs = (
-        (1, "river_carp", 5, "Karp Rzeczny"),
+        (1, "river_carp", 20, "Karp Rzeczny"),
         (30, "silver_trout", 4, "Srebrny Pstrąg"),
         (60, "golden_trout", 3, "Złoty Pstrąg"),
         (80, "tuna", 3, "Tuńczyk"),
@@ -14732,7 +15248,20 @@ def build_world_expansion_ii():
     HERB_STORAGE_IDS.update({"field_grave_moss", "field_void_thorn"})
     WOOD_STORAGE_IDS.add("field_ironbark_root")
     ORE_STORAGE_IDS.update({"field_tomb_silver", "field_frost_crystal_ore"})
+    MINING_STORAGE_IDS.update({"field_tomb_silver", "field_frost_crystal_ore"})
     FISH_STORAGE_IDS.add("field_blind_sewer_eel")
+    # v0.8.72: terenowe zasoby są pełnoprawną częścią atlasów/codexu,
+    # nie tylko specjalistycznych sakw.
+    HERB_RESOURCE_IDS.update({"field_grave_moss", "field_void_thorn"})
+    WOOD_RESOURCE_IDS.add("field_ironbark_root")
+    ORE_RESOURCE_IDS.update({"field_tomb_silver", "field_frost_crystal_ore"})
+    FISH_RESOURCE_IDS.add("field_blind_sewer_eel")
+    HERB_ATLAS_ALL.update({"field_grave_moss", "field_void_thorn"})
+    WOOD_ATLAS_ALL.add("field_ironbark_root")
+    ORE_ATLAS_ALL.update({"field_tomb_silver", "field_frost_crystal_ore"})
+    FISH_ATLAS_ALL.add("field_blind_sewer_eel")
+    # Minimalne wymagania narzędzia zgodne ze specjalistycznymi questami.
+    ORE_ATLAS_LEVELS.update({"field_tomb_silver": 50, "field_frost_crystal_ore": 90})
 
     # ========================================================
     # 1. STARY CMENTARZ — expansion of the existing Graveyard
@@ -14878,7 +15407,7 @@ def build_world_expansion_ii():
     # FIELD PROFESSION QUESTS
     # ========================================================
     QUESTS.update({
-        "field_grave_moss": {"name":"Terenowe Zielarstwo: Mech Nagrobny","giver":"Mistrzyni Zielarstwa Sena","kind":"collect_resource","target":"field_grave_moss","needed":8,"description":"Zbierz 8 sztuk Mchu Nagrobnego wyłącznie w Ogrodzie Księżycowego Mchu na Starym Cmentarzu.","specialist_tool_type":"herbalism","min_tool_level":20,"reward_profession":"Zielarstwo","reward_profession_xp":1400,"reward_tool_type":"herbalism","reward_tool_xp":1100,"reward_silver":260,"reward_gold":1,"reward_mithril":0,"reward_items":{},"repeatable":True,"repeat_cooldown":QUEST_REPEAT_COOLDOWN_SECONDS},
+        "field_grave_moss": {"name":"Terenowe Zielarstwo: Mech Nagrobny","giver":"Mistrzyni Zielarstwa Sena","kind":"collect_resource","target":"field_grave_moss","needed":8,"description":"Zbierz 8 sztuk Mchu Nagrobnego wyłącznie w Ogrodzie Księżycowego Mchu na Starym Cmentarzu. Postęp zaczyna od 0/8 i rośnie przy każdym nowym zbiorze po przyjęciu questa.","progress_label":"Mech Nagrobny","specialist_tool_type":"herbalism","min_tool_level":20,"reward_profession":"Zielarstwo","reward_profession_xp":1400,"reward_tool_type":"herbalism","reward_tool_xp":1100,"reward_silver":260,"reward_gold":1,"reward_mithril":0,"reward_items":{},"repeatable":True,"repeat_cooldown":QUEST_REPEAT_COOLDOWN_SECONDS},
         "field_void_thorn": {"name":"Terenowe Zielarstwo: Cierń Pustki","giver":"Mistrzyni Zielarstwa Sena","kind":"collect_resource","target":"field_void_thorn","needed":8,"description":"Zbierz 8 Cierni Pustki wyłącznie w Ogrodzie Cierni Pustki w Ruinach Kultystów.","specialist_tool_type":"herbalism","min_tool_level":60,"reward_profession":"Zielarstwo","reward_profession_xp":2400,"reward_tool_type":"herbalism","reward_tool_xp":1900,"reward_silver":420,"reward_gold":2,"reward_mithril":0,"reward_items":{},"repeatable":True,"repeat_cooldown":QUEST_REPEAT_COOLDOWN_SECONDS},
         "field_ironbark_root": {"name":"Terenowe Drwalstwo: Korzeń Żelaznokory","giver":"Mistrz Drwalstwa Oren","kind":"collect_resource","target":"field_ironbark_root","needed":8,"description":"Pozyskaj 8 Korzeni Żelaznokory wyłącznie w Grocie Żelaznokory w Legowisku Bestii.","specialist_tool_type":"woodcutting","min_tool_level":40,"reward_profession":"Drwalstwo","reward_profession_xp":1900,"reward_tool_type":"woodcutting","reward_tool_xp":1500,"reward_silver":330,"reward_gold":1,"reward_mithril":0,"reward_items":{},"repeatable":True,"repeat_cooldown":QUEST_REPEAT_COOLDOWN_SECONDS},
         "field_tomb_silver": {"name":"Terenowe Górnictwo: Srebro Grobowe","giver":"Mistrz Górnictwa Kordan","kind":"collect_resource","target":"field_tomb_silver","needed":10,"description":"Wydobądź 10 Srebra Grobowego wyłącznie w Grobowym Kamieniołomie Nekropolii.","specialist_tool_type":"mining","min_tool_level":80,"reward_profession":"Górnictwo","reward_profession_xp":3200,"reward_tool_type":"mining","reward_tool_xp":2600,"reward_silver":600,"reward_gold":3,"reward_mithril":0,"reward_items":{},"repeatable":True,"repeat_cooldown":QUEST_REPEAT_COOLDOWN_SECONDS},
@@ -15511,7 +16040,7 @@ def configure_v081_help_info():
     # Uaktualnienie starszych opisów po rozwoju profesji i narzędzi.
     if "profesje" in HELP_TOPICS:
         HELP_TOPICS["profesje"].append(
-            "Aktualne profesje: Wędkarstwo, Górnictwo, Drwalstwo, Zielarstwo, Alchemia, Kowalstwo i Jubilerstwo. Gotowanie i Rzemiosło mają osobne narzędzia."
+            "Aktualne profesje 1-200: Wędkarstwo, Górnictwo, Drwalstwo, Zielarstwo, Gotowanie, Alchemia, Kowalstwo i Jubilerstwo. Każda ma własny poziom; odpowiadające narzędzie rozwija się osobno."
         )
     if "ekwipunek" in HELP_TOPICS:
         HELP_TOPICS["ekwipunek"].append(
@@ -16083,6 +16612,7 @@ build_mountain_crafting_expansion()
 build_world_expansion_i()
 build_high_end_mob_pack()
 build_world_expansion_ii()
+validate_complete_resource_atlases()
 build_forest_wolves_and_quest_balance()
 build_elite_rare_named_loot_expansion()
 configure_profession_tool_sellers()
@@ -16109,7 +16639,7 @@ def configure_v0856_help_refresh():
         "staty pokazuje każdą statystykę w osobnym komunikacie NVDA, a potem HP, Manę, obronę i ofensywę.",
         "staty info pokazuje osobno bazę, wartość efektywną oraz bonus EQ/klejnotów dla każdej statystyki.",
         "Sześć statystyk: Siła, Zręczność, Kondycja, Inteligencja, Siła Woli i Charyzma.",
-        f"Postęp Rozwoju ma próg {STAT_GROWTH_THRESHOLD}; pełny próg zwiększa wszystkie sześć bazowych statystyk o 1.",
+        "Każda z sześciu statystyk ma własny licznik EXP i własny próg. Próg zaczyna od 100 i rośnie po przekroczeniu wartości 25 danej statystyki. Zdobycie pełnego progu zwiększa tylko tę konkretną statystykę o 1.",
         "Kondycja zwiększa HP każdej klasy. Inteligencja zwiększa Manę każdej klasy.",
         "Zręczność wpływa na szybkość, unik i krytyki. Siła zwiększa fizyczne obrażenia i częściowo skaluje magiczne skille/spelle.",
         "Nie ma ręcznego rozdawania punktów i nie ma levelu postaci.",
@@ -16207,10 +16737,11 @@ def configure_v0856_help_categories():
         "atlas": "atlas",
     })
     HELP_TOPICS["profesje"] = [
-        "Soulbound ma 7 głównych profesji: Wędkarstwo, Górnictwo, Drwalstwo, Zielarstwo, Alchemia, Kowalstwo i Jubilerstwo.",
-        "Rzemiosło i Gotowanie mają własne narzędzia i progresję pomocniczą.",
+        "Soulbound ma 8 profesji 1-200: Wędkarstwo, Górnictwo, Drwalstwo, Zielarstwo, Gotowanie, Alchemia, Kowalstwo i Jubilerstwo.",
+        "Każda profesja ma własny level 1-200. Odpowiadające narzędzie ma osobną progresję 1-200 i służy do odblokowania lepszych surowców oraz bonusów jakości/urobku.",
         "profesje pokazuje szybki stan; profesje info pokazuje XP, rangi i dalszy rozwój.",
         "Narzędzia profesji rozwijają się do 200 i nie mają trwałości.",
+        "Zasada v0.8.66: level profesji skraca czas pracy i blokuje receptury/zlecenia/poziomy lochów; level narzędzia odblokowuje lepsze zasoby i zwiększa bonus jakości/urobku.",
     ]
     HELP_TOPICS["ekwipunek"] = [
         "inventory / i pokazuje przedmioty w ekwipunku. eq / equipment pokazuje założone wyposażenie.",
@@ -16222,50 +16753,57 @@ def configure_v0856_help_categories():
         "Sprzedawalne nieprzypisane duplikaty można wskazać numerem, np. sprzedaj 2.talizman korzeni.",
     ]
     HELP_TOPICS["atlas"] = [
-        "atlas pokazuje gdzie i od jakiego levelu narzędzia zdobywa się ryby, drewno, zioła, rudy i inne surowce.",
+        "atlas pokazuje gdzie i od jakiego levelu narzędzia odblokowują się ryby, drewno, zioła, rudy i inne surowce.",
         "Przykłady: atlas ryby, atlas drewno, atlas rudy, atlas <nazwa surowca>.",
-        "Wpis konkretnego zasobu podaje region/lokację, wymagane narzędzie i minimalny level.",
+        "Wpis konkretnego zasobu podaje region/lokację, wymagane narzędzie i minimalny level narzędzia. Szybkość pracy zależy od levelu właściwej profesji.",
     ]
     HELP_TOPICS["gornictwo"] = [
-        "Górnictwo korzysta z Kilofa i ma progresję do 200.",
+        "Górnictwo ma progresję 1-200; jego level skraca czas kopania. Kilof rozwija się osobno i odblokowuje lepsze rudy/żyły oraz bonus urobku.",
         "kop wykonuje pojedyncze wydobycie; kop on i kop off sterują auto-kopaniem.",
         "Kopalnia Głębinowa ma 200 poziomów; ściany mają losową liczbę uderzeń zapisywaną dla postaci.",
         "atlas rudy pokazuje wymagany level Kilofa i miejsca występowania rud.",
     ]
     HELP_TOPICS["drwalstwo"] = [
-        "Drwalstwo korzysta z Piły i ma progresję do 200.",
+        "Drwalstwo ma progresję 1-200; jego level skraca czas cięcia. Piła rozwija się osobno i odblokowuje lepsze drewno oraz bonus urobku.",
         "tnij wykonuje pojedynczą akcję; tnij on i tnij off sterują automatem.",
         "atlas drewno pokazuje wymagany level Piły i miejsca występowania drewna.",
     ]
     HELP_TOPICS["zielarstwo"] = [
-        "Zielarstwo korzysta z Sierpa i ma progresję do 200.",
+        "Zielarstwo ma progresję 1-200; jego level skraca czas zbioru. Sierp rozwija się osobno i odblokowuje lepsze zioła oraz bonus urobku.",
         "zbieraj wykonuje pojedynczy zbiór; zbieraj on i zbieraj off sterują automatem.",
         "atlas zioła pokazuje wymagany level Sierpa i miejsca występowania ziół.",
     ]
     HELP_TOPICS["alchemia"] = [
-        "Alchemia korzysta z Moździerza Alchemicznego i rozwija się do 200.",
+        "Alchemia rozwija się 1-200; jej level skraca czas warzenia i blokuje receptury/zlecenia. Moździerz rozwija się osobno i zwiększa Tier/bonus produktu.",
         "alchemia / warz <receptura> tworzy mikstury, jeśli masz wymagany poziom i składniki.",
         "Questy Alchemii u Orina są niezależne; np. Mikstury Many i Mikstury Leczenia mogą być aktywne równocześnie.",
     ]
     HELP_TOPICS["rzemioslo"] = [
-        "Rzemiosło korzysta z Młota Rzemieślniczego i ma rozwój do 200.",
+        "Crafting metalowy korzysta z Młota Rzemieślniczego, a jego wymagania i tempo wynikają z profesji Kowalstwo 1-200.",
         "craft / stworz / wytworz <receptura> tworzy przedmiot.",
         "Nie ma trwałości ani zużywania narzędzi.",
     ]
     HELP_TOPICS["receptury"] = [
         "receptury pokazuje dostępne przepisy.",
         "receptury craft, receptury cook, receptury alchemia i receptury jubilerstwo filtrują listę.",
-        "Wymagania receptur wynikają z odpowiedniej profesji/narzędzia i są pokazywane na liście.",
+        "Wymagania receptur wynikają z levelu odpowiedniej profesji i są pokazywane na liście. Level narzędzia nie blokuje receptury.",
     ]
     HELP_TOPICS["charyzma"] = [
         "Charyzma jest szóstą normalną statystyką postaci.",
-        "Rośnie automatycznie razem z pozostałymi statystykami; sprzedaż może ją dodatkowo rozwijać.",
+        "Ma własny niezależny EXP i próg; sprzedaż przyznaje dodatkowy EXP Charyzmy zależny od wartości transakcji.",
         "Wpływa na rabat sklepowy i limit drużyny lidera.",
         "Komendy: charyzma, haryzma, charisma oraz staty info.",
     ]
     HELP_TOPICS["druzyny"] = [
-        "druzyna / party pokazuje i zarządza drużyną.",
-        "pc <tekst> to czat drużynowy. wspieraj / assist pomaga członkowi drużyny w walce.",
+        "załóż drużynę / zaloz druzyne tworzy drużynę. Samo druzyna / party pokazuje jej skład i status osłony.",
+        "zaproś <gracz> / zapros <gracz> zaprasza gracza; działa też forma zaproś <gracz> do drużyny oraz druzyna zapros <gracz>.",
+        "dołącz / dolacz przyjmuje zaproszenie, odrzuć / odrzuc je odrzuca, a opuść / opusc opuszcza drużynę.",
+        "wyrzuć <gracz> / wyrzuc <gracz> usuwa członka. rozwiąż / rozwiaz rozwiązuje drużynę. Te dwie operacje wymagają lidera.",
+        "lider <gracz> przekazuje wskazanemu członkowi dowodzenie drużyną.",
+        "pc <tekst> to czat drużynowy. wspieraj / assist pomaga członkowi drużyny w jego aktualnej walce.",
+        "zasłoń / zaslon albo zasłoń drużynę / zaslon druzyne włącza drużynową osłonę Strażnika. Aktywna klasa Strażnik przejmuje aggro wspólnego przeciwnika od całej drużyny w tej samej lokacji.",
+        "zasłoń off / zaslon off wyłącza osłonę. Tank może chronić jeden wspólny cel walki naraz; nie przejmuje zdalnie obrażeń z innych lokacji ani innego równoległego moba.",
+        "Guardy, pancerz, redukcja klasowa i Broń Duszy Strażnika działają normalnie na trafienia przejęte przez tankowanie.",
         "Limit drużyny rośnie z Charyzmą lidera.",
     ]
     HELP_TOPICS["zwloki"] = [
@@ -16296,7 +16834,9 @@ def configure_v0856_help_categories():
         "Postęp postaci, EQ, questy, Biegłość, Soul i profesje pozostają zapisane.",
     ]
     HELP_TOPICS["rasy"] = [
-        "Gra ma 13 ras. Każda ma własne statystyki startowe i pasyw rasowy.",
+        "Gra ma 13 ras. Od v0.9.0 każda rasa ma dokładnie 50 bazowych punktów rozdzielonych między Siłę, Zręczność, Kondycję, Inteligencję i Siłę Woli; nie ma rasy z ukrytym większym budżetem startowym.",
+        "Rasy różnią się rozkładem tych 50 punktów oraz własnym pasywem, więc nadal mają wyraźne specjalizacje.",
+        "Każda z 12 klas dokłada dokładnie 9 własnych punktów startowych; startowa Charyzma bazowa wynosi 10 przed bonusem klasy.",
         "Kreator podaje polecane klasy dla każdej rasy, ale żadna kombinacja rasa-klasa nie jest blokowana.",
         "opis <rasa> pokazuje opis rasy oraz polecane klasy.",
     ]
@@ -16370,6 +16910,357 @@ configure_v0857_navigation_help()
 build_paid_training_guild_expansion()
 configure_base_mob_corpse_equipment()
 configure_material_corpse_equipment()
+
+
+# ============================================================
+# v0.8.61 - GLOBALNY REBALANS CEN I EKONOMII
+# ============================================================
+V0861_BASE_SHOP_PRICES_SILVER = {
+    "healing_potion": 100,
+    "leather_vest": 600,
+    "lucky_charm": 750,
+    "iron_gauntlets": 900,
+    "iron_boots": 900,
+    "iron_helmet": 1_200,
+    "forge_charm": 1_500,
+    "iron_leggings": 1_800,
+    "iron_guard": 2_800,
+    "fishing_rod": 500,
+    "pickaxe": 500,
+    "saw": 500,
+    "crafting_hammer": 500,
+    "chef_knife": 500,
+    "herbalist_sickle": 500,
+    "alchemy_mortar": 500,
+    "jeweler_pliers": 500,
+}
+
+V0861_CLASS_TIER_BASE_SILVER = {
+    1: 1_000,
+    10: 2_500,
+    20: 5_000,
+    30: 10_000,
+    40: 20_000,
+    50: 40_000,
+    60: 80_000,
+    70: 160_000,
+    80: 320_000,
+    90: 640_000,
+    100: 1_250_000,
+    110: 2_500_000,
+    120: 5_000_000,
+    130: 10_000_000,
+    140: 20_000_000,
+    150: 40_000_000,
+    160: 80_000_000,
+    170: 160_000_000,
+    180: 320_000_000,
+    190: 600_000_000,
+    200: 900_000_000,
+}
+
+V0861_CLASS_SLOT_PRICE_FACTOR = {
+    "head": 1.00,
+    "body": 1.60,
+    "hands": 0.85,
+    "legs": 1.30,
+    "feet": 0.85,
+    "charm": 1.10,
+    "ring": 1.20,
+    "necklace": 1.40,
+}
+
+def rebalance_economy_v0861():
+    """Ujednolica wszystkie cenniki pod wspólne saldo i nowe nominały."""
+    # 1. Podstawowe sklepy i trwałe narzędzia profesji.
+    for item_id, price_silver in V0861_BASE_SHOP_PRICES_SILVER.items():
+        item = ITEMS.get(item_id)
+        if not item:
+            continue
+        item["price"] = int(price_silver)
+        item["currency"] = "silver"
+
+    # 2. Pełne 21 progów klasowego EQ: ceny rosną aż do poziomu mithrilowego.
+    for item_id in CLASS_EQUIPMENT_ITEM_IDS:
+        item = ITEMS.get(item_id)
+        if not item:
+            continue
+        mastery = max(1, int(item.get("required_mastery", 1) or 1))
+        base = V0861_CLASS_TIER_BASE_SILVER.get(mastery)
+        if base is None:
+            nearest = min(V0861_CLASS_TIER_BASE_SILVER, key=lambda key: abs(key - mastery))
+            base = V0861_CLASS_TIER_BASE_SILVER[nearest]
+        factor = V0861_CLASS_SLOT_PRICE_FACTOR.get(item.get("slot"), 1.0)
+        item["price"] = max(1, int(round(base * factor)))
+        item["currency"] = "silver"
+
+    # 3. Skup surowców. Zwykłe srebrne ceny pozostają czytelne,
+    #    a drogie surowce w złocie rosną łagodnie. Stary sprzedawalny
+    #    mithril nie może dawać 1 000 000 złota za pojedynczy surowiec.
+    for item in ITEMS.values():
+        old_mithril = int(item.get("sell_mithril", 0) or 0)
+        old_gold = int(item.get("sell_gold", 0) or 0)
+        if old_mithril > 0:
+            # Sprzedawalny przedmiot za dawny 1 mithril daje 100 000 złota,
+            # a nie pełny nowy mithril wart 1 000 000 złota.
+            item["sell_gold"] = old_gold + old_mithril * 100_000
+            item["sell_mithril"] = 0
+            continue
+        if old_gold > 10:
+            if old_gold <= 50:
+                new_gold = old_gold * 2
+            elif old_gold <= 100:
+                new_gold = old_gold * 3
+            elif old_gold <= 250:
+                new_gold = old_gold * 4
+            else:
+                new_gold = old_gold * 5
+            item["sell_gold"] = int(new_gold)
+
+    # 4. Stare słabe moby nie mogą wypłacać pełnego mithrilu.
+    #    Prawdziwy mithril pozostaje u endgame bossów z co najmniej 500k HP.
+    for mob_id, mob in MOB_TEMPLATES.items():
+        mithril = int(mob.get("mithril", 0) or 0)
+        if mithril <= 0:
+            continue
+        hp = max(1, int(mob.get("max_hp", 1) or 1))
+        if hp >= 500_000 or mob_id.startswith("end_") or mob_id.startswith("mythic_"):
+            continue
+        if hp < 5_000:
+            gold_per_legacy_mithril = 250
+        elif hp < 25_000:
+            gold_per_legacy_mithril = 1_000
+        elif hp < 100_000:
+            gold_per_legacy_mithril = 5_000
+        else:
+            gold_per_legacy_mithril = 20_000
+        mob["gold"] = int(mob.get("gold", 0) or 0) + mithril * gold_per_legacy_mithril
+        mob["mithril"] = 0
+
+
+rebalance_economy_v0861()
+
+
+# ============================================================
+# v0.8.62 - GLOBALNY REBALANS NAGRÓD QUESTOWYCH
+# ============================================================
+# Wszystkie nagrody pieniężne są od tej wersji zapisywane wyłącznie jako
+# wartość wspólnego salda w najmniejszym nominale (srebro). Złoto i mithril
+# pozostają nominałami prezentacji: 1000 srebra = 1 złoto,
+# 1 000 000 złota = 1 mithril.
+V0862_PROFESSION_QUEST_BASE_SILVER = {
+    1: 250,
+    5: 400,
+    15: 750,
+    20: 1_250,
+    30: 2_500,
+    35: 3_500,
+    40: 5_000,
+    45: 7_500,
+    50: 10_000,
+    60: 20_000,
+    70: 35_000,
+    75: 45_000,
+    80: 60_000,
+    90: 100_000,
+    100: 250_000,
+    110: 400_000,
+    120: 750_000,
+    130: 1_250_000,
+    140: 2_000_000,
+    150: 3_500_000,
+    160: 7_500_000,
+    170: 12_500_000,
+    180: 25_000_000,
+    190: 50_000_000,
+    200: 100_000_000,
+}
+
+V0862_SOUL_TRIAL_REWARD_SILVER = {
+    10: 250,
+    20: 750,
+    25: 1_500,
+    35: 3_000,
+    45: 6_000,
+    60: 15_000,
+    70: 30_000,
+    80: 50_000,
+    90: 80_000,
+    100: 150_000,
+    110: 300_000,
+    120: 600_000,
+    130: 1_200_000,
+    140: 2_500_000,
+    150: 5_000_000,
+    160: 10_000_000,
+    170: 20_000_000,
+    180: 75_000_000,
+    200: 500_000_000,
+}
+
+V0862_FIXED_QUEST_REWARDS_SILVER = {
+    # v0.8.73: większa Próba Karpia Rzecznego, 20 sztuk.
+    "neris_fish_1": 300,
+    # Start i pierwsze okolice.
+    "sol_starter_blacksmith_delivery": 75,
+    "sol_starter_inn_delivery": 100,
+    "sol_starter_guard_delivery": 150,
+    "sol_starter_herbalist_delivery": 200,
+    "sol_starter_class_teacher": 1_500,
+    "temple_rats": 200,
+    "goblin_problem": 300,
+    "shadow_wolves": 450,
+    "bandit_patrol": 1_500,
+    "soul_shards": 7_500,
+    # Próby profesji wymagające zebrania 30 zasobów.
+    "fisher_30_fish": 2_500,
+    "herbalist_30_herbs": 2_500,
+    "lumberjack_30_wood": 2_500,
+    "miner_30_ore": 2_500,
+    # Otwarte questy świata bez jawnego poziomu narzędzia/Soul Level.
+    "mountain_trail_patrol": 5_000,
+    "stolen_mountain_ores": 6_000,
+    "troll_shaman_hunt": 12_000,
+    "mountain_troll_hunt": 15_000,
+    "wild_frontier_hunt": 20_000,
+    "high_mountain_patrol": 30_000,
+    "deep_troll_clearance": 50_000,
+    "troll_king_hunt": 75_000,
+    "swamp_purge": 100_000,
+    "desert_patrol": 150_000,
+}
+
+
+def v0862_nearest_progression_reward(level):
+    level = max(1, int(level or 1))
+    keys = sorted(V0862_PROFESSION_QUEST_BASE_SILVER)
+    eligible = [key for key in keys if key <= level]
+    key = eligible[-1] if eligible else keys[0]
+    return V0862_PROFESSION_QUEST_BASE_SILVER[key]
+
+
+def rebalance_quest_rewards_v0862():
+    """Przelicza wszystkie 119 questów na płynną skalę wspólnego salda."""
+    for quest_id, quest in QUESTS.items():
+        reward = None
+
+        if quest_id in V0862_FIXED_QUEST_REWARDS_SILVER:
+            reward = V0862_FIXED_QUEST_REWARDS_SILVER[quest_id]
+
+        soul_level = int(quest.get("required_soul_level", 0) or 0)
+        if soul_level:
+            reward = V0862_SOUL_TRIAL_REWARD_SILVER.get(
+                soul_level,
+                v0862_nearest_progression_reward(soul_level),
+            )
+
+        tool_level = int(quest.get("min_tool_level", 0) or 0)
+        if tool_level:
+            reward = v0862_nearest_progression_reward(tool_level)
+            kind = quest.get("kind")
+            needed = max(1, int(quest.get("needed", 1) or 1))
+
+            # Trudniejsze formy zadania płacą trochę więcej, ale nie tworzą
+            # skoków o całe nominały. Liczba wymaganych przedmiotów ma tylko
+            # łagodny wpływ, aby powtarzalnych questów nie dało się nadużywać.
+            if kind == "craft_set":
+                reward = int(reward * 2.5)
+            elif kind == "collect_category":
+                reward = int(reward * 1.25)
+            elif kind == "collect":
+                reward = int(reward * 1.10)
+            elif kind == "collect_resource":
+                reward = int(reward * 1.00)
+            elif kind == "kill":
+                reward = int(reward * 1.20)
+
+            if needed >= 10:
+                reward = int(reward * 1.20)
+            elif needed >= 5:
+                reward = int(reward * 1.10)
+
+        # Awaryjnie każdy quest, którego nie opisuje jedna z powyższych grup,
+        # zachowuje dotychczasową wartość, ale zostaje znormalizowany do
+        # jednego salda. W praktyce v0.8.62 obejmuje wprost wszystkie 119.
+        if reward is None:
+            reward = legacy_currency_to_coins(
+                quest.get("reward_silver", 0),
+                quest.get("reward_gold", 0),
+                quest.get("reward_mithril", 0),
+            )
+
+        quest["reward_silver"] = max(0, int(reward))
+        quest["reward_gold"] = 0
+        quest["reward_mithril"] = 0
+
+
+rebalance_quest_rewards_v0862()
+
+
+# v0.8.73: dwa większe questy zbierackie z podniesionymi nagrodami.
+if "soul_shards" in QUESTS:
+    QUESTS["soul_shards"]["reward_items"] = {"soul_elixir": 2}
+if "neris_fish_1" in QUESTS:
+    QUESTS["neris_fish_1"]["reward_profession_xp"] = 1200
+    QUESTS["neris_fish_1"]["reward_tool_xp"] = 1000
+
+
+def normalize_profession_requirements_v0866():
+    """v0.8.66: bezpośrednie progi questów profesyjnych należą do profesji.
+
+    Historyczne min_tool_level służy wyłącznie do migracji wartości progu.
+    Po skopiowaniu próg zostaje usunięty z aktywnych danych questa. Narzędzie
+    nadal jest wymagane do wykonania danej akcji i jego level odblokowuje pule
+    surowców, ale nie blokuje przyjęcia questa.
+    """
+    for quest in QUESTS.values():
+        tool_type = quest.get("specialist_tool_type")
+        profession = (
+            quest.get("required_profession")
+            or quest.get("reward_profession")
+            or profession_for_tool_type(tool_type)
+        )
+        old_level = int(quest.get("min_tool_level", 0) or 0)
+        if profession and old_level:
+            quest.setdefault("required_profession", profession)
+            quest.setdefault("min_profession_level", old_level)
+        if profession:
+            quest.pop("min_tool_level", None)
+
+
+normalize_profession_requirements_v0866()
+
+
+def normalize_quest_progress_tracking_v0866():
+    """v0.8.66: każdy quest zaczyna 0/x i liczy tylko zdarzenia po przyjęciu.
+
+    Zwykłe questy collect, których celem jest wynik receptury, są śledzone
+    jako wykonanie craftu. Pozostałe collect rosną dopiero przy nowym
+    zdobyciu przedmiotu. Stary zapas nigdy nie daje darmowego postępu.
+    """
+    crafted_outputs = {
+        recipe.get("output")
+        for recipes in (CRAFT_RECIPES, ALCHEMY_RECIPES, JEWELCRAFT_RECIPES, COOK_RECIPES)
+        for recipe in recipes.values()
+        if recipe.get("output")
+    }
+    for quest in QUESTS.values():
+        kind = quest.get("kind")
+        if kind == "collect":
+            if quest.get("target") in crafted_outputs:
+                quest["track_craft_progress"] = True
+            quest["event_progress_only"] = True
+        elif kind == "collect_resource":
+            # Każdy surowcowy quest, także terenowe wyjątki, używa licznika
+            # zdarzeń od 0/x zamiast stanu magazynu sprzed przyjęcia.
+            quest["track_resource_progress"] = True
+            quest["event_progress_only"] = True
+        elif kind in ("collect_category", "kill", "craft_set",
+                      "deliver_npc", "talk_npc", "talk_class_teacher"):
+            quest["event_progress_only"] = True
+
+
+normalize_quest_progress_tracking_v0866()
 
 
 def build_independent_specialist_quest_offers():
@@ -16479,6 +17370,458 @@ def apply_dungeon_boss_floor_hp():
 
 apply_global_mob_hp_multiplier()
 apply_dungeon_boss_floor_hp()
+# v0.8.64: materiał ciała musi być liczony z FINALNEGO HP po globalnym
+# skalowaniu i regułach bossów, nie z wcześniejszej wartości template.
+configure_material_corpse_equipment()
+
+# ============================================================
+# v0.8.63 - COMBAT & LOOT BALANCE PASS
+# ============================================================
+# Jedno saldo pozostaje bez zmian. Ten etap wyrównuje nagrody z mobów,
+# sprzedaż materiałowego EQ oraz kilka mechanik walki endgame.
+V0863_MATERIAL_SALE_BASE_SILVER = {
+    # v0.8.64: sprzedaż wysokich materiałów pozostaje cenna, ale pojedynczy
+    # corpse drop nie może przebić całej ekonomii questa/bounty.
+    "iron": 150,
+    "steel": 500,
+    "mithril": 1_500,
+    "adamantite": 4_000,
+    "cobalt": 10_000,
+    "runic": 30_000,
+    "dragonsteel": 75_000,
+    "astral": 200_000,
+    "void": 1_000_000,
+    "eternium": 8_000_000,
+}
+
+def v0863_is_boss_template(template):
+    return bool(
+        template.get("world_boss")
+        or template.get("crypt_boss")
+        or template.get("astral_boss")
+        or template.get("mythic_crypt_boss")
+        or template.get("mythic_astral_boss")
+        or template.get("boss_mechanic")
+    )
+
+def v0863_critical_chance_from_dexterity(dexterity):
+    """Zręczność nadal zwiększa krytyk, ale z malejącym przyrostem endgame."""
+    dexterity = max(0, int(dexterity))
+    if dexterity <= 40:
+        chance = 0.05 + (dexterity - 10) * 0.005
+    elif dexterity <= 80:
+        # 40 DEX = 20%, potem +0,25 pp za punkt.
+        chance = 0.20 + (dexterity - 40) * 0.0025
+    else:
+        # 80 DEX = 30%, potem +0,10 pp za punkt do twardego limitu 35%.
+        chance = 0.30 + (dexterity - 80) * 0.001
+    return max(0.01, min(0.35, chance))
+
+def v0865_dodge_chance_from_dexterity(dexterity):
+    """Pasywny unik ze Zręczności z malejącym przyrostem.
+
+    DEX 10 = 0%, DEX 40 ~= 9%, DEX 80 ~= 17%, DEX 130 ~= 22%.
+    Sama Zręczność daje maksymalnie 25%, a cały pasywny dodge po rasie,
+    klasie, Soul Weapon i EQ ma limit 35%. Gwarantowane skille evade są
+    osobną mechaniką z własnym lockoutem.
+    """
+    dexterity = max(0, int(dexterity))
+    if dexterity <= 10:
+        chance = 0.0
+    elif dexterity <= 40:
+        chance = (dexterity - 10) * 0.003
+    elif dexterity <= 80:
+        chance = 0.09 + (dexterity - 40) * 0.002
+    else:
+        chance = 0.17 + (dexterity - 80) * 0.001
+    return max(0.0, min(0.25, chance))
+
+def v0863_execute_threshold(template):
+    """Bossowie wymagają większego osłabienia przed pełną egzekucją."""
+    if template.get("world_boss") or template.get("mythic_crypt_boss") or template.get("mythic_astral_boss"):
+        return 0.15
+    if v0863_is_boss_template(template):
+        return 0.20
+    if template.get("mini_boss") or template.get("rare_mob") or template.get("rare_variant") or template.get("rare_troll") or template.get("elite_affix"):
+        return 0.25
+    return 0.35
+
+def v0863_mob_coin_reward(template):
+    """Stała nagroda pieniężna wynikająca z realnej siły przeciwnika."""
+    hp = max(1, int(template.get("max_hp", 1) or 1))
+    damage = max(1, int(template.get("damage", 1) or 1))
+    base = max(10, hp // 10 + damage * 10)
+
+    if template.get("world_boss") or template.get("mythic_crypt_boss") or template.get("mythic_astral_boss"):
+        multiplier = 8.0
+    elif v0863_is_boss_template(template):
+        multiplier = 5.0
+    elif template.get("mini_boss"):
+        multiplier = 3.0
+    elif template.get("rare_mob") or template.get("rare_variant") or template.get("rare_troll"):
+        multiplier = 2.5
+    elif template.get("elite_affix"):
+        multiplier = 1.75
+    else:
+        multiplier = 1.0
+
+    # Bez pojedynczych przypadkowych wypłat pełnego mithrilu. Wielki zarobek
+    # endgame pochodzi z questów, bounty, unikalnego lootu i sprzedaży EQ.
+    return max(1, int(round(base * multiplier)))
+
+def rebalance_mob_currency_v0863():
+    changed = 0
+    for template in MOB_TEMPLATES.values():
+        if template.get("training_dummy"):
+            template["silver"] = 0
+            template["gold"] = 0
+            template["mithril"] = 0
+            continue
+        reward = v0863_mob_coin_reward(template)
+        template["silver"] = reward
+        template["gold"] = 0
+        template["mithril"] = 0
+        template["v0863_balanced_currency"] = True
+        changed += 1
+    return changed
+
+V0863_REBALANCED_MOBS = rebalance_mob_currency_v0863()
+
+# ============================================================
+# v0.8.64 - FULL GAME BALANCE AUDIT
+# ============================================================
+def v0864_progression_rank_factor(template):
+    """Ile pasków progresji może maksymalnie dać jedno zabicie.
+
+    Chroni stare konto i nową postać przed przeskoczeniem dziesiątek/setek
+    leveli po zabiciu jednego potwora przez silną drużynę, ale boss nadal
+    daje wyraźnie większy skok niż zwykły mob.
+    """
+    if template.get("world_boss") or template.get("mythic_crypt_boss") or template.get("mythic_astral_boss"):
+        return 5.0
+    if v0863_is_boss_template(template):
+        return 3.0
+    if template.get("mini_boss"):
+        return 2.0
+    if template.get("rare_mob") or template.get("rare_variant") or template.get("rare_troll") or template.get("elite_affix"):
+        return 1.5
+    return 1.0
+
+def v0864_stat_progress_rank_factor(template):
+    # v0.8.65: wszystkie sześć statystyk rośnie jednocześnie, więc zwykły
+    # mob nie może dawać prawie całego paska niezależnie od progu endgame.
+    # Bossowie nadal są wyraźnie lepszym źródłem Postępu Rozwoju.
+    if template.get("world_boss") or template.get("mythic_crypt_boss") or template.get("mythic_astral_boss"):
+        return 1.00
+    if v0863_is_boss_template(template):
+        return 0.75
+    if template.get("mini_boss"):
+        return 0.50
+    if template.get("rare_mob") or template.get("rare_variant") or template.get("rare_troll") or template.get("elite_affix"):
+        return 0.35
+    return 0.20
+
+def configure_v0863_balance_help():
+    HELP_TOPICS["krytyki"] = [
+        "Trafienia krytyczne zależą od efektywnej Zręczności, także z EQ.",
+        "Przy Zręczności 10 szansa wynosi 5 procent. Do 40 każdy punkt daje +0,5 punktu procentowego.",
+        "Od 41 do 80 każdy punkt daje +0,25 punktu procentowego; powyżej 80 +0,10 punktu procentowego.",
+        "Minimalna szansa wynosi 1 procent, maksymalna 35 procent. Przy około 130 Zręczności osiągasz limit 35 procent.",
+        "Trafienie krytyczne zadaje 150 procent normalnych obrażeń i działa dla zwykłego ataku oraz ofensywnych skilli/spelli.",
+        "stats pokazuje aktualną szansę na krytyk i mnożnik.",
+    ]
+    combat_key = "walka" if "walka" in HELP_TOPICS else None
+    if combat_key:
+        additions = [
+            "Od v0.8.63 płaska obrona może zatrzymać maksymalnie 75 procent bazowego trafienia zwykłego moba i 60 procent trafienia bossa; guardy oraz pasywy rasowe/klasowe działają potem osobno.",
+            "Execute aktywuje pełny mnożnik przy 35 procent HP zwykłego moba, 25 procent elity/mini-bossa, 20 procent bossa i 15 procent world/mythic bossa.",
+            "Drain nadal skaluje się z zadanymi obrażeniami, ale pojedynczy cast może uleczyć najwyżej 25 procent maksymalnego HP gracza.",
+        ]
+        for line in additions:
+            if line not in HELP_TOPICS[combat_key]:
+                HELP_TOPICS[combat_key].append(line)
+
+configure_v0863_balance_help()
+
+def configure_v0864_balance_help():
+    HELP_TOPICS["balans"] = [
+        "v0.8.64 wykonuje pełny audit balansu walki, progresji, profesji, lootu i multiclass.",
+        "Soul XP nie podwaja się już co 10 leveli; każdy pełny blok 10 Soul Leveli zwiększa wymaganie o 25 procent.",
+        "Każda statystyka ma osobny dynamiczny próg EXP rosnący wraz z jej wartością. Jeden mob ma też limit EXP statystyk, Soul XP i Class XP zależny od swojej rangi.",
+        "Skill Level 1-200 ma łagodniejsze skalowanie mocy i cooldownu; XP skilla zdobywa się szybciej, żeby 200 było osiągalne bez dziesiątek tysięcy użyć jednego skilla.",
+        "Różne buffy multiclass nadal działają jednocześnie i uniwersalnie, ale buff nie wzmacnia siły kolejnego buffa, a łączny bonus ma limit +125 procent.",
+        "Pojedyncze leczenie ma limit 80 procent maksymalnego HP na cast po wszystkich buffach; leczenie grupowe 60 procent na cel.",
+        "Po zużyciu gwarantowanego evade działa wspólny 4-sekundowy lockout dla kolejnego gwarantowanego uniku.",
+        "Czysty mithril z Górnictwa pozostaje jackpotem, ale szansa została obniżona dziesięciokrotnie; 1 mithril nadal oznacza 1000000 złota wspólnego salda.",
+        "Wyższe materiałowe EQ z ciał wymaga mocniejszych mobów; sprzedaż Astral/Pustka/Eternium nie przebija już ekonomii jednym dropem.",
+        "AoE, podstawowa Mana, fazy bossów, quest rewards v0.8.62 i ceny sklepów v0.8.61 przeszły audit bez dodatkowego nerfa.",
+    ]
+
+configure_v0864_balance_help()
+
+# ============================================================
+# v0.8.65 - FULL GAME BALANCE SIMULATION PASS
+# ============================================================
+def rebalance_profession_economy_v0865():
+    # Widmowy marlin był historycznym reliktem waluty: po redenominacji
+    # dominował dochód Wędkarstwa. Nadal jest legendarny, ale nie daje
+    # równowartości końcowego questa za pojedynczy zwykły roll.
+    ghost = ITEMS.get("ghost_marlin")
+    if ghost:
+        ghost["sell_silver"] = 0
+        ghost["sell_gold"] = 5_000
+        ghost["sell_mithril"] = 0
+        for key, definition in FISH_RARE_VARIANTS.items():
+            variant_id = rare_resource_variant_id("fish", key, "ghost_marlin")
+            variant = ITEMS.get(variant_id)
+            if variant:
+                variant["sell_silver"] = 0
+                variant["sell_gold"] = 5_000 * int(definition["value_mult"])
+                variant["sell_mithril"] = 0
+
+    # Drwalstwo miało podobny czas akcji do innych profesji, ale znacznie
+    # niższą wartość sprzedaży. Podwajamy wyłącznie ceny skupu drewna;
+    # receptury, drop rate i użyteczność craftingu pozostają bez zmian.
+    for item_id in WOOD_STORAGE_IDS:
+        item = ITEMS.get(item_id)
+        if not item:
+            continue
+        if int(item.get("sell_silver", 0) or 0) > 0:
+            item["sell_silver"] = int(item["sell_silver"]) * 2
+        if int(item.get("sell_gold", 0) or 0) > 0:
+            item["sell_gold"] = int(item["sell_gold"]) * 2
+
+rebalance_profession_economy_v0865()
+
+# v0.8.66: historyczne ceny części ryb oceanicznych powodowały ogromny
+# skok dochodu w środku progresji (szczególnie 50-100). Normalizujemy
+# wyłącznie outliery; wysokopoziomowe rekiny i legendarny endgame zostają
+# atrakcyjne. Rzadkie warianty zawsze dziedziczą tę samą bazę * mnożnik.
+V0866_FISH_PRICE_GOLD = {
+    "albacore": 1,
+    "cod": 1,
+    "mackerel": 1,
+    "sea_bass": 1,
+    "giant_pike": 5,
+    "bigeye_tuna": 5,
+    "cobia": 5,
+    "flounder": 5,
+    "haddock": 5,
+    "halibut": 5,
+    "mahi_mahi": 5,
+    "pollock": 5,
+    "amberjack": 15,
+    "barracuda": 15,
+    "wahoo": 15,
+    "bluefin_tuna": 60,
+    "ocean_sunfish": 60,
+}
+
+def rebalance_fishing_midgame_v0866():
+    for item_id, gold_value in V0866_FISH_PRICE_GOLD.items():
+        item = ITEMS.get(item_id)
+        if not item:
+            continue
+        item["sell_silver"] = 0
+        item["sell_gold"] = int(gold_value)
+        item["sell_mithril"] = 0
+        for key, definition in FISH_RARE_VARIANTS.items():
+            variant_id = rare_resource_variant_id("fish", key, item_id)
+            variant = ITEMS.get(variant_id)
+            if not variant:
+                continue
+            variant["sell_silver"] = 0
+            variant["sell_gold"] = int(gold_value) * int(definition["value_mult"])
+            variant["sell_mithril"] = 0
+
+rebalance_fishing_midgame_v0866()
+
+def configure_v0865_balance_help():
+    HELP_TOPICS["balans 0865"] = [
+        "v0.8.65 domyka balans praktyczny symulacją całej gry 1-200.",
+        "Pasywny dodge ma malejący przyrost ze Zręczności i limit 35 procent; gwarantowane evade pozostają osobną mechaniką.",
+        "Magiczne klasy odzyskują do 5 procent maksymalnej Many, maksymalnie 40, po awaryjnym ataku Bronią Duszy wykonanym przy braku Many.",
+        "W drużynie przeciwnik ma jeden aktywny cel aggro; pozostali gracze nie tworzą osobnych pełnych timerów kontrataku.",
+        "EXP każdej statystyki z pojedynczego killa jest ograniczony rangą przeciwnika; sześć liczników działa niezależnie i jest czytanych osobno.",
+        "Próby Rybaka, Górnika, Drwala i Zielarki startują od 0 i liczą tylko zasoby zdobyte po przyjęciu questa.",
+        "Czysty mithril z Górnictwa ma maksymalnie 0,01 procent szansy na akcję. Widmowy marlin odblokowuje się od Wędki 190.",
+        "Czas Wędkarstwa 15 do 5 sekund zależy od poziomu Wędkarstwa; profesja 191-200 ma minimum 5 sekund. Level Wędki nie skraca czasu.",
+    ]
+
+configure_v0865_balance_help()
+
+def configure_v0866_balance_help():
+    HELP_TOPICS["balans 0866"] = [
+        "v0.8.66 wykonuje kompletny pass balansu całej gry: tereny, moby, bossowie, RNG, EQ, questy, profesje, crafting, ekonomię i progresję 1-200.",
+        "Każdy quest po przyjęciu zaczyna od 0/x. Liczą się wyłącznie wymagane zdarzenia wykonane po przyjęciu; stary zapas przedmiotów ani wcześniejsze zabicia nie dają postępu.",
+        "Każda z sześciu statystyk ma własny EXP, własny próg i osobny odczyt NVDA: Siła, Zręczność, Kondycja, Inteligencja, Siła Woli i Charyzma.",
+        "Level profesji skraca czas pracy oraz spełnia wymagania receptur, zleceń i lochów profesyjnych. Level narzędzia nie skraca czasu i nie blokuje receptur.",
+        "Level narzędzia odblokowuje lepsze pule surowców i wpływa na jakość, rzadkie warianty oraz dodatkowy urobek. Narzędzia nadal nie mają trwałości.",
+        "Ocena zagrożenia terenu korzysta z realnych spawnów w konkretnym pokoju; wejścia z dużym skokiem trudności są ostrzegane przed przejściem.",
+        "Losowe materiałowe EQ ma stały budżet mocy dla materiału i slotu: RNG zmienia rozkład statystyk/właściwości, ale nie tworzy kilku-krotnie silniejszego przedmiotu tego samego tieru.",
+        "Wędkarstwo zachowuje czas 15 do 5 sekund zależny od levelu Wędkarstwa. Historyczne cenowe outliery ryb mid-game zostały znormalizowane bez obniżania wartości endgame.",
+        "help profesje, help receptury, help statystyki, help atlas i help balans 0866 opisują aktualne zasady.",
+    ]
+    HELP_TOPICS["questy 0"] = [
+        "Każde nowe podejście do questa zaczyna się od postępu 0/x.",
+        "Postęp rośnie dopiero po wymaganym zdarzeniu wykonanym po przyjęciu: nowym połowie, zbiorze, wydobyciu, cięciu, craftingu, zabiciu albo rozmowie/dostawie.",
+        "Przedmioty posiadane przed przyjęciem nie naliczają postępu. Jeśli quest wymaga oddania zasobów, przy rozliczeniu nadal musisz fizycznie posiadać wymaganą liczbę.",
+        "Porzucenie i ponowne rozpoczęcie podejścia zeruje bieżący licznik do 0/x; historia ukończeń zostaje zachowana.",
+    ]
+
+configure_v0866_balance_help()
+
+def configure_v0870_grave_moss_help():
+    HELP_TOPICS["questy"].append(
+        "Terenowe Zielarstwo: Mech Nagrobny startuje od 0/8. Każdy nowy Mech Nagrobny zebrany po przyjęciu questa zwiększa postęp; bonusowy dodatkowy zbiór zwiększa go o dodatkową sztukę."
+    )
+    HELP_TOPICS["questy 0"].append(
+        "Quest na konkretny surowiec rozpoznaje jego bazowy typ także wtedy, gdy zbiór ma rzadki wariant jakości. Taki wariant może również zostać użyty przy oddawaniu wymaganego bazowego surowca."
+    )
+
+configure_v0870_grave_moss_help()
+
+# ============================================================
+# v0.8.74 - FULL GAME MOB DURABILITY + XP POLISH PASS
+# ============================================================
+def v0874_min_hp_damage_ratio(template):
+    """Minimalna trwałość względem obrażeń dla przeciwników, którzy byli papierowi.
+
+    Generowane bossy Krypty/Astralu/Mityczne i Twierdzy Gigantów mają własne
+    duże pule HP i nie są dodatkowo pompowane. Zwykłe, rare/elite, mini i
+    starsze world bossy dostają tylko dolną granicę, więc mocne template'y
+    pozostają bez zmian.
+    """
+    power = v0866_mob_progression_power(template)
+    if template.get("world_boss"):
+        if power <= 80:
+            return 45
+        if power <= 120:
+            return 55
+        if power <= 160:
+            return 70
+        return 85
+    if template.get("mini_boss"):
+        if power <= 20:
+            return 30
+        if power <= 50:
+            return 34
+        if power <= 100:
+            return 38
+        if power <= 150:
+            return 42
+        return 46
+    elite = bool(
+        template.get("rare_mob") or template.get("rare_variant")
+        or template.get("rare_troll") or template.get("elite_affix")
+    )
+    if power <= 20:
+        base = 20
+    elif power <= 50:
+        base = 24
+    elif power <= 100:
+        base = 28
+    elif power <= 150:
+        base = 32
+    else:
+        base = 36
+    return base + (4 if elite else 0)
+
+def rebalance_paper_mobs_v0874():
+    changed = []
+    class_xp_fixed = 0
+    for mob_id, template in MOB_TEMPLATES.items():
+        if template.get("training_dummy"):
+            continue
+        # Bossowie piętrowi mają własne precyzyjne reguły HP i długie walki.
+        if (
+            template.get("crypt_boss") or template.get("astral_boss")
+            or template.get("mythic_crypt_boss") or template.get("mythic_astral_boss")
+            or template.get("giant_fortress_boss")
+        ):
+            continue
+
+        old_hp = max(1, int(template.get("max_hp", 1) or 1))
+        damage = max(1, int(template.get("damage", 1) or 1))
+        ratio = v0874_min_hp_damage_ratio(template)
+        target_hp = int(math.ceil((damage * ratio) / 10.0) * 10)
+        # Nigdy nie osłabiamy przeciwnika; ten pass ma tylko naprawiać
+        # za krótkie walki. Dodatkowo pojedyncza korekta nie przekracza x3.
+        new_hp = min(max(old_hp, target_hp), old_hp * 3)
+        # Pomijamy kosmetyczne różnice poniżej 5 procent, żeby pass dotykał
+        # wyłącznie przeciwników, których walka faktycznie była za krótka.
+        if new_hp < int(math.ceil(old_hp * 1.05)):
+            new_hp = old_hp
+
+        old_class_xp = int(template.get("class_xp_reward", 0) or 0)
+        baseline_class_xp = max(50, int(template.get("stat_reward", 0) or 0) * 10)
+        if old_class_xp <= 0:
+            template["class_xp_reward"] = baseline_class_xp
+            old_class_xp = baseline_class_xp
+            class_xp_fixed += 1
+
+        if new_hp <= old_hp:
+            continue
+
+        hp_mult = new_hp / float(old_hp)
+        # EXP rośnie wolniej niż samo HP, bo mob zachowuje ten sam damage,
+        # drop i Postęp Rozwoju statystyk. Maksymalny wzrost x2.25.
+        reward_mult = min(2.25, max(1.0, hp_mult ** 0.75))
+        old_soul_xp = max(0, int(template.get("soul_reward", 0) or 0))
+        template["max_hp"] = int(new_hp)
+        template["class_xp_reward"] = max(
+            old_class_xp, int(round(old_class_xp * reward_mult))
+        )
+        if old_soul_xp > 0:
+            template["soul_reward"] = max(
+                old_soul_xp, int(round(old_soul_xp * reward_mult))
+            )
+        template["v0874_durability_balanced"] = True
+        template["v0874_hp_before"] = old_hp
+        template["v0874_reward_multiplier"] = round(reward_mult, 4)
+        changed.append(mob_id)
+    return tuple(changed), class_xp_fixed
+
+V0874_DURABILITY_CHANGED_MOBS, V0874_FIXED_ZERO_CLASS_XP = rebalance_paper_mobs_v0874()
+
+def v0874_quest_stat_progress_base_grant(character, stat_name, raw_reward, repeatable=False):
+    """Bazowy EXP jednej statystyki z questa przed bonusem rasy.
+
+    Zachowuje szybki rozwój, ale nie pozwala jednemu oddaniu przeskoczyć
+    kilku pełnych progów tej samej statystyki.
+    """
+    raw_reward = max(0, int(raw_reward or 0))
+    threshold = character.stat_growth_threshold_for(stat_name)
+    cap_ratio = 0.85 if repeatable else 0.90
+    cap = max(1, int(math.floor(threshold * cap_ratio)))
+    return min(raw_reward, cap)
+
+def configure_v0874_balance_help():
+    HELP_TOPICS["balans 0874"] = [
+        "v0.8.74 wykonuje pełny audit długości walk całej gry 1-200 zamiast wzmacniać wszystko jednym mnożnikiem.",
+        "Zwykłe, rare/elite, mini-bossy i starsze world bossy z za małym HP względem własnych obrażeń dostały minimalną krzywą trwałości. Mocne moby oraz bossowie Krypty, Astralu, Mityczni i Twierdzy Gigantów zachowują własne pule HP.",
+        "Class XP i Soul XP rosną tylko tam, gdzie realnie wzrosła trwałość przeciwnika. Postęp Rozwoju sześciu statystyk z mobów nie został zwiększony.",
+        "Stare template'y z Class XP równym 0 otrzymują normalną nagrodę klasową wynikającą z dotychczasowego stat_reward, więc walka nie jest już pusta dla Biegłości klasy.",
+        "EXP statystyk z mobów zachowuje limity: zwykły 20 procent progu, elite/rare 35, mini-boss 50, boss 75, world/mythic 100 procent.",
+        "Questowy Postęp Rozwoju pozostaje mocny, ale jedno oddanie nie przeskakuje kilku punktów tej samej statystyki: powtarzalny quest maksymalnie 85 procent bieżącego progu, jednorazowy 90 procent przed bonusem rasy.",
+        "staty i staty info pokazują słowną ocenę bazowej wartości, np. 8 — słabo, 14 — przeciętnie; awans statystyki czyta także nową ocenę.",
+        "Samo help albo pomoc otwiera indeks kategorii. help kategorie / help categories pokazuje ten sam indeks.",
+        "EQ nie zostało zmienione: corpse EQ nadal ma stały budżet mocy, a limity redukcji płaskiej obrony pozostają 75 procent dla zwykłego moba i 60 procent dla bossa.",
+    ]
+    HELP_TOPIC_ALIASES.update({
+        "balans0874": "balans 0874", "balance0874": "balans 0874",
+        "fullbalance": "balans 0874", "pelnybalans": "balans 0874",
+    })
+    if "statystyki" in HELP_TOPICS:
+        HELP_TOPICS["statystyki"].append(
+            "Każda bazowa statystyka ma słowną ocenę 1-200, np. 8 — słabo, 14 — przeciętnie; opis zmienia się automatycznie przy wzroście."
+        )
+        HELP_TOPICS["statystyki"].append(
+            "Moby zachowują szybki, odczuwalny Postęp Rozwoju; limity per kill chronią tylko przed wielokrotnym przeskokiem. Questy również dają duży fragment jednego progu zamiast kilku natychmiastowych punktów."
+        )
+    HELP_TOPICS["rozwoj_statystyk"] = list(HELP_TOPICS.get("statystyki", []))
+
+configure_v0874_balance_help()
 
 # ============================================================
 # v0.8.18 - Exploration, Achievements & Collection Expansion
@@ -16685,6 +18028,60 @@ COLLECTION_CATALOGS = {
     "chests": CHEST_COLLECTION_CATALOG,
 }
 
+# ============================================================
+# v0.8.76 - persistent Bestiary
+# ============================================================
+def canonical_bestiary_template_id(template_id):
+    """Collapse procedural elite/rare affixes into the underlying species.
+
+    The world contains thousands of generated combat variants.  The Bestiary
+    intentionally tracks the actual species instead of requiring a separate
+    entry for every affix copy.
+    """
+    template_id = str(template_id or "")
+    seen = set()
+    while template_id and template_id not in seen:
+        seen.add(template_id)
+        template = MOB_TEMPLATES.get(template_id, {})
+        base_id = template.get("rare_base_template") or template.get("elite_base_template")
+        if not base_id or base_id == template_id:
+            break
+        template_id = str(base_id)
+    return template_id
+
+BESTIARY_CATALOG = {}
+BESTIARY_SPAWN_ROOMS = {}
+for _bestiary_room_id, _bestiary_template_id in MOB_SPAWNS:
+    _bestiary_id = canonical_bestiary_template_id(_bestiary_template_id)
+    if _bestiary_id not in MOB_TEMPLATES:
+        continue
+    BESTIARY_CATALOG[_bestiary_id] = MOB_TEMPLATES[_bestiary_id]["name"]
+    BESTIARY_SPAWN_ROOMS.setdefault(_bestiary_id, set()).add(_bestiary_room_id)
+
+def bestiary_resistance_text(template):
+    """Describe only resistance data that really exists in combat data."""
+    parts = []
+    resistances = template.get("resistances") or {}
+    if isinstance(resistances, dict):
+        labels = {"physical": "fizyczne", "magic": "magiczne"}
+        for key, value in sorted(resistances.items()):
+            try:
+                pct = int(round(float(value) * 100)) if abs(float(value)) <= 1 else int(round(float(value)))
+            except (TypeError, ValueError):
+                continue
+            parts.append(f"{labels.get(str(key), str(key))} {pct}%")
+    immunities = template.get("immunities") or ()
+    if isinstance(immunities, str):
+        immunities = (immunities,)
+    if immunities:
+        parts.append("odporność całkowita: " + ", ".join(map(str, immunities)))
+    weaknesses = template.get("weaknesses") or ()
+    if isinstance(weaknesses, str):
+        weaknesses = (weaknesses,)
+    if weaknesses:
+        parts.append("słabość: " + ", ".join(map(str, weaknesses)))
+    return "; ".join(parts) if parts else "brak specjalnych odporności"
+
 MINI_BOSS_IDS = frozenset(
     mob_id for mob_id, data in MOB_TEMPLATES.items() if data.get("mini_boss")
 )
@@ -16745,7 +18142,23 @@ def loot_filter_allows(mode, item_id):
     return True
 
 
+HELP_TOPIC_ALIASES.update({
+    "geody": "geody", "geodes": "geody", "geoda": "geody", "gemquality": "geody",
+})
+HELP_TOPICS["geody"] = [
+    "Geody są rzadkim dodatkowym znaleziskiem podczas Górnictwa i trafiają do Sakwy Górnika.",
+    "Geoda Kamienna: Kilof 20+, głębokość 10+; Kryształowa: 80+/60+; Astralna: 160+/150+.",
+    "geody / geodes - pokaż posiadane geody.",
+    "open geode / otwórz geodę / otworz geode - otwórz najlepszą posiadaną geodę; możesz podać jej nazwę.",
+    "Jakości klejnotów: Surowy -> Czysty -> Doskonały -> Perfekcyjny. Wyższa jakość daje mocniejszy bonus po szlifowaniu.",
+]
+if "gornictwo" in HELP_TOPICS:
+    HELP_TOPICS["gornictwo"].append("Kilof 20+ może znajdować geody; wpisz geody albo open geode / otwórz geodę.")
+if "profesje" in HELP_TOPICS:
+    HELP_TOPICS["profesje"].append("v0.8.75: Wędka/Kilof/Piła/Sierp 1-200 mają wygładzoną krzywą XP; około 36% mniej XP łącznie bez skracania progów 1-200.")
+
 COMMAND_ALIASES.update({
+    "bestiariusz": "bestiary", "bestiary": "bestiary",
     "postep": "progress", "postęp": "progress", "progress": "progress",
     "eksploracja": "exploration", "exploration": "exploration",
     "osiagniecia": "achievements", "osiągnięcia": "achievements",
@@ -16762,6 +18175,7 @@ COMMAND_ALIASES.update({
 
 HELP_TOPIC_ALIASES.update({
     "exploration": "eksploracja", "postep": "eksploracja", "postęp": "eksploracja",
+    "bestiary": "bestiariusz", "bestia": "bestiariusz",
     "achievements": "osiagniecia", "achievement": "osiagniecia",
     "osiągnięcia": "osiagniecia",
     "titles": "tytuly", "tytuły": "tytuly",
@@ -16772,11 +18186,12 @@ HELP_TOPIC_ALIASES.update({
 })
 
 HELP_TOPICS["eksploracja"] = [
-    "Eksploracja jest zapisywana osobno dla każdej postaci.",
-    "eksploracja - procent bieżącej strefy i świata.",
-    "eksploracja all - lista wszystkich większych stref.",
+    "Eksploracja jest zapisywana osobno dla każdej postaci i obejmuje wszystkie 1272 lokacje świata.",
+    "mapa / map - procent bieżącego regionu i tylko odkryte nazwy lokacji; nieodkryte miejsca pozostają ukryte.",
+    "mapa all / map all - procent wszystkich regionów oraz status nagrody za 100 procent.",
+    "eksploracja / exploration - procent bieżącej strefy i całego świata; exploration all - lista większych stref.",
     "progress - ogólny postęp; progress region - szczegóły bieżącego regionu.",
-    "100 procent większej strefy daje Soul XP, walutę, unikalną pamiątkę i tytuł.",
+    "100 procent większej strefy daje Soul XP, walutę, unikalną Pamiątkę Odkrywcy, tytuł i osiągnięcie.",
 ]
 HELP_TOPICS["osiagniecia"] = [
     "Achievementy mają progi Bronze, Silver, Gold i Platinum.",
@@ -16793,6 +18208,26 @@ HELP_TOPICS["collection_codex"] = [
     "kolekcja named|sety|bossowie|rare|skrzynie - wybrana kategoria.",
     "Nieodkryte wpisy nie zdradzają nazw.",
 ]
+HELP_TOPIC_ALIASES.update({
+    "skrzynie_bossow": "boss_chests", "skrzynie bossow": "boss_chests",
+    "bosschests": "boss_chests", "boss_chests": "boss_chests",
+    "admin": "admin_owner", "administrator": "admin_owner",
+})
+
+HELP_TOPICS["boss_chests"] = [
+    "Skrzynie Bossów stoją na piętrach bossów co 10 w Krypcie, Wieży Astralnej, Mitycznej Krypcie, Mitycznej Wieży i Twierdzy Gigantów.",
+    "Właściwy Klucz Bossa jest gwarantowany w ciele pokonanego bossa danego piętra.",
+    "Bez właściwego klucza skrzynia pozostaje zamknięta.",
+    "unlock / odklucz / odblokuj - zużyj klucz i otwórz skrzynię.",
+    "Skrzynia daje gwarantowane złoto oraz losowe użyteczne przedmioty zależne od poziomu zawartości.",
+]
+HELP_TOPICS["admin_owner"] = [
+    "Komendy administracyjne są owner-only i wymagają nazwy konta na serwerowej whitelist SOULBOUND_ADMIN_ACCOUNTS.",
+    "admin help / administrator pomoc - lista opcji właściciela.",
+    "wipe moje postacie POTWIERDZAM - usuwa postacie Twojego konta, ale zachowuje konto i hasło.",
+    "wipe wszystkie postacie POTWIERDZAM - serwerowy wipe postaci bez kasowania kont.",
+]
+
 HELP_TOPICS["loot_accessibility"] = [
     "historiadropow / drophistory - ostatnie wartościowe dropy.",
     "loot all - czytaj każdy loot.",
@@ -16970,6 +18405,149 @@ def verify_password(password: str, salt_hex: str, hash_hex: str) -> bool:
     return hmac.compare_digest(candidate, hash_hex)
 
 
+# ================================================================
+# v0.8.72 — bossowe skrzynie piętrowe, klucze i losowy urobek
+# ================================================================
+
+def _boss_floor_chest_spec(room_id):
+    """Zwraca opis skrzyni bossowej dla piętra co 10 lub None."""
+    floor = giant_fortress_floor_number(room_id)
+    if floor in GIANT_FORTRESS_BOSS_FLOORS:
+        return ("giant", floor, max(20, floor * 2))
+    floor = crypt_floor_number(room_id)
+    if floor in CRYPT_BOSS_FLOORS:
+        return ("crypt", floor, floor)
+    floor = astral_floor_number(room_id)
+    if floor in ASTRAL_BOSS_FLOORS:
+        return ("astral", floor, floor)
+    floor = mythic_crypt_floor_number(room_id)
+    if floor in MYTHIC_BOSS_FLOORS:
+        return ("mythic_crypt", floor, min(200, 100 + floor // 2))
+    floor = mythic_astral_floor_number(room_id)
+    if floor in MYTHIC_BOSS_FLOORS:
+        return ("mythic_astral", floor, min(200, 110 + floor // 2))
+    return None
+
+BOSS_CHEST_KIND_NAMES = {
+    "giant": "Twierdzy Gigantów",
+    "crypt": "Krypty",
+    "astral": "Wieży Astralnej",
+    "mythic_crypt": "Mitycznej Krypty",
+    "mythic_astral": "Mitycznej Wieży Astralnej",
+}
+
+def boss_floor_key_id(kind, floor):
+    return f"boss_chest_key_{kind}_{int(floor)}"
+
+def boss_floor_chest_name(kind, floor):
+    return f"Skrzynia Bossa {BOSS_CHEST_KIND_NAMES[kind]}, piętro {int(floor)}"
+
+def _register_boss_floor_keys():
+    rows = []
+    rows.extend(("giant", f) for f in GIANT_FORTRESS_BOSS_FLOORS)
+    rows.extend(("crypt", f) for f in CRYPT_BOSS_FLOORS)
+    rows.extend(("astral", f) for f in ASTRAL_BOSS_FLOORS)
+    rows.extend(("mythic_crypt", f) for f in sorted(MYTHIC_BOSS_FLOORS))
+    rows.extend(("mythic_astral", f) for f in sorted(MYTHIC_BOSS_FLOORS))
+    for kind, floor in rows:
+        key_id = boss_floor_key_id(kind, floor)
+        ITEMS[key_id] = {
+            "name": f"Klucz Bossa {BOSS_CHEST_KIND_NAMES[kind]} {floor}",
+            "type": "quest",
+            "price": None,
+            "boss_chest_key": True,
+            "boss_chest_kind": kind,
+            "boss_chest_floor": int(floor),
+            "desc": (
+                f"Jednorazowy klucz z ciała bossa. Otwiera skrzynię na "
+                f"piętrze {floor} w: {BOSS_CHEST_KIND_NAMES[kind]}."
+            ),
+        }
+
+_register_boss_floor_keys()
+
+def boss_key_for_template(template):
+    if template.get("giant_fortress_boss"):
+        floor = int(template.get("giant_fortress_floor", 0) or 0)
+        return boss_floor_key_id("giant", floor) if floor in GIANT_FORTRESS_BOSS_FLOORS else None
+    if template.get("crypt_boss"):
+        floor = int(template.get("crypt_floor", 0) or 0)
+        return boss_floor_key_id("crypt", floor) if floor in CRYPT_BOSS_FLOORS else None
+    if template.get("astral_boss"):
+        floor = int(template.get("astral_floor", 0) or 0)
+        return boss_floor_key_id("astral", floor) if floor in ASTRAL_BOSS_FLOORS else None
+    if template.get("mythic_crypt_boss"):
+        floor = int(template.get("mythic_crypt_floor", 0) or 0)
+        return boss_floor_key_id("mythic_crypt", floor) if floor in MYTHIC_BOSS_FLOORS else None
+    if template.get("mythic_astral_boss"):
+        floor = int(template.get("mythic_astral_floor", 0) or 0)
+        return boss_floor_key_id("mythic_astral", floor) if floor in MYTHIC_BOSS_FLOORS else None
+    return None
+
+def roll_profession_gather_quantity(tool_level, profession_level, kind):
+    """Drobna losowość ilości dla ryb/drewna/ziół bez pustych akcji.
+
+    Górnictwo ma własne losowe żyły x1/x2/x3/x5 i nie jest tu dublowane.
+    """
+    if kind == "mining":
+        return 1
+    tool_level = max(1, min(200, int(tool_level)))
+    profession_level = max(1, min(200, int(profession_level)))
+    power = tool_level + profession_level
+    double_chance = min(0.16, 0.025 + power * 0.00034)
+    triple_chance = min(0.035, max(0, power - 180) * 0.00016)
+    roll = random.random()
+    if roll < triple_chance:
+        return 3
+    if roll < triple_chance + double_chance:
+        return 2
+    return 1
+
+def boss_chest_reward_roll(kind, floor, power):
+    power = max(1, min(200, int(power)))
+    floor = int(floor)
+    # Gwarantowane złoto, ale kwota pozostaje umiarkowana względem bossa.
+    base_gold = {
+        "giant": max(1, floor // 10),
+        "crypt": max(1, floor // 20 + 1),
+        "astral": max(5, (floor - 80) // 15),
+        "mythic_crypt": max(6, floor // 10 + 4),
+        "mythic_astral": max(7, floor // 10 + 5),
+    }.get(kind, 1)
+    gold = random.randint(base_gold, max(base_gold, int(round(base_gold * 1.5))))
+
+    items = []
+    # Fragmenty Duszy są użyteczne na każdym etapie.
+    if "soul_shard" in ITEMS:
+        items.extend(["soul_shard"] * random.randint(1, 3))
+
+    consumables = ["healing_potion", "mana_potion", "soul_elixir"]
+    if power >= 60:
+        consumables += ["greater_healing_potion", "greater_mana_potion", "vitality_elixir"]
+    if power >= 120:
+        consumables += ["supreme_healing_potion", "supreme_mana_potion", "soul_tonic"]
+    if power >= 170:
+        consumables += ["astral_restoration_elixir", "eternal_soul_elixir"]
+    consumables = [item for item in consumables if item in ITEMS]
+    if consumables:
+        items.append(random.choice(consumables))
+
+    # Szansa na surowy klejnot odblokowany na poziomie tej zawartości.
+    available_gems = [
+        f"raw_gem_{definition['key']}"
+        for definition in GEM_DEFINITIONS
+        if int(definition.get("mining_level", 1)) <= power
+        and f"raw_gem_{definition['key']}" in ITEMS
+    ]
+    if available_gems and random.random() < min(0.55, 0.18 + power / 700.0):
+        items.append(random.choice(available_gems))
+
+    # Endgame ma małą szansę na drugi przydatny consumable.
+    if power >= 100 and consumables and random.random() < 0.30:
+        items.append(random.choice(consumables))
+
+    return {"gold": gold, "items": items}
+
 def normalize_lookup_text(value):
     text = str(value or "").strip().lower()
     text = text.replace("ł", "l")
@@ -17001,6 +18579,17 @@ def find_by_name(mapping, query, name_field="name"):
     if len(partial) == 1:
         return partial[0]
     return None
+
+
+def canonical_profession_resource_id(item_id):
+    """v0.8.70: zwraca bazowy zasób profesji dla postępu questów.
+
+    Rzadki wariant ryby/drewna/zioła nadal pochodzi z konkretnego bazowego
+    zasobu, więc quest na ten zasób nie może gubić postępu tylko dlatego,
+    że gracz trafił lepszą jakość. Zwykłe i terenowe zasoby zwracają siebie.
+    """
+    item = ITEMS.get(item_id, {})
+    return str(item.get("base_resource_id") or item_id)
 
 
 class Database:
@@ -17065,6 +18654,12 @@ class Database:
                 intelligence INTEGER NOT NULL,
                 willpower INTEGER NOT NULL,
                 stat_progress INTEGER NOT NULL DEFAULT 0,
+                strength_progress INTEGER NOT NULL DEFAULT 0,
+                dexterity_progress INTEGER NOT NULL DEFAULT 0,
+                constitution_progress INTEGER NOT NULL DEFAULT 0,
+                intelligence_progress INTEGER NOT NULL DEFAULT 0,
+                willpower_progress INTEGER NOT NULL DEFAULT 0,
+                charisma_progress INTEGER NOT NULL DEFAULT 0,
                 soul_level INTEGER NOT NULL DEFAULT 1,
                 soul_xp INTEGER NOT NULL DEFAULT 0,
                 soul_tier INTEGER NOT NULL DEFAULT 1,
@@ -17252,6 +18847,17 @@ class Database:
                 FOREIGN KEY(account_id) REFERENCES accounts(id) ON DELETE CASCADE
             );
 
+            CREATE TABLE IF NOT EXISTS bestiary_stats (
+                account_id INTEGER NOT NULL,
+                mob_template_id TEXT NOT NULL,
+                kills INTEGER NOT NULL DEFAULT 0,
+                fastest_kill_ms INTEGER,
+                first_killed_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                last_killed_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY(account_id, mob_template_id),
+                FOREIGN KEY(account_id) REFERENCES accounts(id) ON DELETE CASCADE
+            );
+
             CREATE TABLE IF NOT EXISTS achievement_progress (
                 account_id INTEGER NOT NULL,
                 metric TEXT NOT NULL,
@@ -17324,6 +18930,12 @@ class Database:
             "guild_bounty_json": "TEXT NOT NULL DEFAULT '{}'",
             "loot_filter": "TEXT NOT NULL DEFAULT 'all'",
             "active_title": "TEXT NOT NULL DEFAULT ''",
+            "strength_progress": "INTEGER NOT NULL DEFAULT 0",
+            "dexterity_progress": "INTEGER NOT NULL DEFAULT 0",
+            "constitution_progress": "INTEGER NOT NULL DEFAULT 0",
+            "intelligence_progress": "INTEGER NOT NULL DEFAULT 0",
+            "willpower_progress": "INTEGER NOT NULL DEFAULT 0",
+            "charisma_progress": "INTEGER NOT NULL DEFAULT 0",
         }
         for name, decl in additions.items():
             if name not in cols:
@@ -17408,6 +19020,25 @@ class Database:
             "CREATE TABLE IF NOT EXISTS migration_flags("
             "flag TEXT PRIMARY KEY, applied_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"
         )
+
+        # v0.8.66: sześć niezależnych liczników EXP statystyk.
+        # Stary wspólny Postęp Rozwoju jest kopiowany 1:1 do każdej statystyki,
+        # dzięki czemu żadna postać nie traci wypracowanego postępu.
+        stat_xp_migrated = self.conn.execute(
+            "SELECT 1 FROM migration_flags WHERE flag=?",
+            ("separate_stat_progress_v0866",),
+        ).fetchone()
+        if not stat_xp_migrated:
+            self.conn.execute(
+                "UPDATE characters SET "
+                "strength_progress=stat_progress, dexterity_progress=stat_progress, "
+                "constitution_progress=stat_progress, intelligence_progress=stat_progress, "
+                "willpower_progress=stat_progress, charisma_progress=stat_progress"
+            )
+            self.conn.execute(
+                "INSERT INTO migration_flags(flag) VALUES(?)",
+                ("separate_stat_progress_v0866",),
+            )
         migrated = self.conn.execute(
             "SELECT 1 FROM migration_flags WHERE flag=?",
             ("soul_tier_20_v085",),
@@ -17583,7 +19214,7 @@ class Database:
                 "SELECT account_id,class_name FROM characters"
             ).fetchall()
             for row in rows:
-                bonuses = CLASS_STARTING_STAT_BONUSES.get(row["class_name"], {})
+                bonuses = V0876_CLASS_STARTING_STAT_BONUSES.get(row["class_name"], {})
                 self.conn.execute(
                     "UPDATE characters SET strength=strength+?, dexterity=dexterity+?, "
                     "constitution=constitution+?, intelligence=intelligence+?, "
@@ -17601,6 +19232,66 @@ class Database:
             self.conn.execute(
                 "INSERT INTO migration_flags(flag) VALUES(?)",
                 ("class_starting_stats_v0851",),
+            )
+
+        # v0.9.0: pełny balans startu rasa + klasa + weapon_base.
+        # Zachowujemy CAŁY zdobyty później rozwój: do aktualnej wartości
+        # dodajemy wyłącznie różnicę między starym a nowym profilem startowym.
+        # Flaga sprawia, że migracja jest idempotentna.
+        character_balance_migrated = self.conn.execute(
+            "SELECT 1 FROM migration_flags WHERE flag=?",
+            ("character_start_balance_v0900",),
+        ).fetchone()
+        if not character_balance_migrated:
+            new_race_stats = {
+                race[0]: {
+                    "strength": int(race[2]),
+                    "dexterity": int(race[3]),
+                    "constitution": int(race[4]),
+                    "intelligence": int(race[5]),
+                    "willpower": int(race[6]),
+                }
+                for race in RACES
+            }
+            new_weapon_bases = {entry[0]: int(entry[3]) for entry in CLASSES}
+            rows = self.conn.execute(
+                "SELECT account_id,race,class_name FROM characters"
+            ).fetchall()
+            stat_names = (
+                "strength", "dexterity", "constitution",
+                "intelligence", "willpower", "charisma",
+            )
+            for row in rows:
+                race_name = row["race"]
+                class_name = row["class_name"]
+                old_race = V0876_RACE_BASE_STATS.get(race_name, {})
+                new_race = new_race_stats.get(race_name, old_race)
+                old_class = V0876_CLASS_STARTING_STAT_BONUSES.get(class_name, {})
+                new_class = CLASS_STARTING_STAT_BONUSES.get(class_name, old_class)
+                deltas = {}
+                for stat_name in stat_names:
+                    race_delta = 0
+                    if stat_name != "charisma":
+                        race_delta = int(new_race.get(stat_name, 0)) - int(old_race.get(stat_name, 0))
+                    class_delta = int(new_class.get(stat_name, 0)) - int(old_class.get(stat_name, 0))
+                    deltas[stat_name] = race_delta + class_delta
+                self.conn.execute(
+                    "UPDATE characters SET "
+                    "strength=MAX(1,strength+?), dexterity=MAX(1,dexterity+?), "
+                    "constitution=MAX(1,constitution+?), intelligence=MAX(1,intelligence+?), "
+                    "willpower=MAX(1,willpower+?), charisma=MAX(1,charisma+?), "
+                    "weapon_base=? WHERE account_id=?",
+                    (
+                        deltas["strength"], deltas["dexterity"],
+                        deltas["constitution"], deltas["intelligence"],
+                        deltas["willpower"], deltas["charisma"],
+                        int(new_weapon_bases.get(class_name, 7)),
+                        int(row["account_id"]),
+                    ),
+                )
+            self.conn.execute(
+                "INSERT INTO migration_flags(flag) VALUES(?)",
+                ("character_start_balance_v0900",),
             )
 
         # v0.8.60: jedno wspólne saldo, trzy nominały.
@@ -17663,6 +19354,74 @@ class Database:
             )
 
         self.conn.commit()
+
+    def account_name(self, account_id):
+        row = self.conn.execute(
+            "SELECT username FROM accounts WHERE id=?", (int(account_id),)
+        ).fetchone()
+        return str(row["username"]) if row else ""
+
+    def wipe_characters_for_master(self, master_account_id):
+        """Usuń postacie/progres konta, ale zachowaj login i hasło konta."""
+        master_account_id = int(master_account_id)
+        rows = self.conn.execute(
+            "SELECT character_account_id FROM account_characters WHERE master_account_id=? ORDER BY slot",
+            (master_account_id,),
+        ).fetchall()
+        char_ids = [int(row["character_account_id"]) for row in rows]
+
+        # Ukryte konta profili można bezpiecznie usunąć — FK CASCADE czyści ich dane.
+        for char_id in char_ids:
+            if char_id != master_account_id:
+                self.conn.execute("DELETE FROM accounts WHERE id=?", (char_id,))
+
+        # Pierwsza postać może używać ID konta głównego, więc kasujemy jej dane,
+        # ale nigdy rekordu logowania w accounts.
+        if master_account_id in char_ids:
+            tables = self.conn.execute(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'"
+            ).fetchall()
+            protected = {"accounts", "account_characters", "account_wallet"}
+            for table_row in tables:
+                table = str(table_row["name"])
+                if table in protected:
+                    continue
+                columns = {
+                    str(col["name"])
+                    for col in self.conn.execute(f'PRAGMA table_info("{table}")').fetchall()
+                }
+                if "account_id" in columns:
+                    self.conn.execute(
+                        f'DELETE FROM "{table}" WHERE account_id=?',
+                        (master_account_id,),
+                    )
+
+        self.conn.execute(
+            "DELETE FROM account_characters WHERE master_account_id=?",
+            (master_account_id,),
+        )
+        # Portfel jest częścią postępu gry, nie danych logowania. Nowa pierwsza
+        # postać ponownie dostanie normalny pakiet startowy.
+        self.conn.execute(
+            "DELETE FROM account_wallet WHERE master_account_id=?",
+            (master_account_id,),
+        )
+        self.conn.commit()
+        return len(char_ids)
+
+    def wipe_all_characters_preserve_accounts(self):
+        masters = [
+            int(row["id"])
+            for row in self.conn.execute(
+                "SELECT id FROM accounts WHERE id NOT IN ("
+                "SELECT character_account_id FROM account_characters "
+                "WHERE character_account_id<>master_account_id) ORDER BY id"
+            ).fetchall()
+        ]
+        removed = 0
+        for master_id in masters:
+            removed += self.wipe_characters_for_master(master_id)
+        return removed, masters
 
     def account_by_name(self, username):
         return self.conn.execute(
@@ -17969,7 +19728,9 @@ class Database:
             """
             UPDATE characters SET
                 strength=?, dexterity=?, constitution=?, intelligence=?, willpower=?,
-                stat_progress=?, soul_level=?, soul_xp=?, soul_tier=?, room_id=?,
+                stat_progress=?, strength_progress=?, dexterity_progress=?,
+                constitution_progress=?, intelligence_progress=?, willpower_progress=?,
+                charisma_progress=?, soul_level=?, soul_xp=?, soul_tier=?, room_id=?,
                 silver=?, gold=?, mithril=?, charisma=?, deaths=?,
                 guild_reputation_json=?, guild_exams_json=?,
                 guild_class_quests_json=?, guild_bounty_json=?,
@@ -17978,7 +19739,11 @@ class Database:
             """,
             (
                 c.strength, c.dexterity, c.constitution, c.intelligence, c.willpower,
-                c.stat_progress, c.soul_level, c.soul_xp, c.soul_tier, c.room_id,
+                min(c.strength_progress, c.dexterity_progress, c.constitution_progress,
+                    c.intelligence_progress, c.willpower_progress, c.charisma_progress),
+                c.strength_progress, c.dexterity_progress, c.constitution_progress,
+                c.intelligence_progress, c.willpower_progress, c.charisma_progress,
+                c.soul_level, c.soul_xp, c.soul_tier, c.room_id,
                 c.silver, c.gold, c.mithril, c.charisma, c.deaths,
                 c.guild_reputation_json, c.guild_exams_json,
                 c.guild_class_quests_json, c.guild_bounty_json,
@@ -18328,6 +20093,70 @@ class Database:
         )
         self.conn.commit()
         return cur.rowcount > 0
+
+    def exploration_reward_claimed(self, account_id, zone):
+        row = self.conn.execute(
+            "SELECT 1 FROM exploration_rewards WHERE account_id=? AND zone=?",
+            (account_id, zone),
+        ).fetchone()
+        return bool(row)
+
+    def record_bestiary_kill(self, account_id, mob_template_id, kill_ms=None):
+        mob_template_id = canonical_bestiary_template_id(mob_template_id)
+        previous = self.conn.execute(
+            "SELECT kills,fastest_kill_ms FROM bestiary_stats "
+            "WHERE account_id=? AND mob_template_id=?",
+            (account_id, mob_template_id),
+        ).fetchone()
+        is_new = previous is None
+        old_fastest = int(previous["fastest_kill_ms"]) if previous and previous["fastest_kill_ms"] is not None else None
+        clean_ms = None
+        if kill_ms is not None:
+            try:
+                clean_ms = max(1, int(kill_ms))
+            except (TypeError, ValueError):
+                clean_ms = None
+        self.conn.execute(
+            """
+            INSERT INTO bestiary_stats(
+                account_id,mob_template_id,kills,fastest_kill_ms,first_killed_at,last_killed_at
+            ) VALUES(?,?,1,?,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)
+            ON CONFLICT(account_id,mob_template_id) DO UPDATE SET
+                kills=bestiary_stats.kills+1,
+                fastest_kill_ms=CASE
+                    WHEN excluded.fastest_kill_ms IS NULL THEN bestiary_stats.fastest_kill_ms
+                    WHEN bestiary_stats.fastest_kill_ms IS NULL THEN excluded.fastest_kill_ms
+                    WHEN excluded.fastest_kill_ms < bestiary_stats.fastest_kill_ms THEN excluded.fastest_kill_ms
+                    ELSE bestiary_stats.fastest_kill_ms
+                END,
+                last_killed_at=CURRENT_TIMESTAMP
+            """,
+            (account_id, mob_template_id, clean_ms),
+        )
+        self.conn.commit()
+        row = self.bestiary_entry(account_id, mob_template_id)
+        new_fastest = row["fastest_kill_ms"] if row else None
+        is_record = (
+            clean_ms is not None
+            and new_fastest == clean_ms
+            and (old_fastest is None or clean_ms < old_fastest)
+        )
+        return row, is_new, is_record
+
+    def bestiary_entry(self, account_id, mob_template_id):
+        mob_template_id = canonical_bestiary_template_id(mob_template_id)
+        return self.conn.execute(
+            "SELECT mob_template_id,kills,fastest_kill_ms,first_killed_at,last_killed_at "
+            "FROM bestiary_stats WHERE account_id=? AND mob_template_id=?",
+            (account_id, mob_template_id),
+        ).fetchone()
+
+    def bestiary_rows(self, account_id):
+        return self.conn.execute(
+            "SELECT mob_template_id,kills,fastest_kill_ms,first_killed_at,last_killed_at "
+            "FROM bestiary_stats WHERE account_id=? ORDER BY kills DESC,mob_template_id",
+            (account_id,),
+        ).fetchall()
 
     def add_collection_entry(self, account_id, category, entry_id):
         cur = self.conn.execute(
@@ -19058,6 +20887,38 @@ class Database:
         self.conn.commit()
         return changed
 
+    def increment_item_collect_quest(self, account_id, item_id, amount=1):
+        """v0.8.66: zwykłe collect liczy wyłącznie nowe zdobycze po przyjęciu."""
+        amount = max(0, int(amount))
+        if amount <= 0:
+            return []
+        rows = self.conn.execute(
+            "SELECT * FROM quests WHERE account_id=? AND status='active'",
+            (account_id,),
+        ).fetchall()
+        changed = []
+        for row in rows:
+            quest = QUESTS.get(row["quest_id"])
+            if (
+                not quest
+                or quest.get("kind") != "collect"
+                or quest.get("track_craft_progress")
+                or quest.get("target") != item_id
+            ):
+                continue
+            needed = max(1, int(quest.get("needed", 1)))
+            old_progress = max(0, int(row["progress"]))
+            new_progress = min(needed, old_progress + amount)
+            if new_progress == old_progress:
+                continue
+            self.conn.execute(
+                "UPDATE quests SET progress=? WHERE account_id=? AND quest_id=?",
+                (new_progress, account_id, row["quest_id"]),
+            )
+            changed.append((row["quest_id"], new_progress, needed))
+        self.conn.commit()
+        return changed
+
     def increment_craft_quest(
         self, account_id, item_id, amount=1
     ):
@@ -19155,13 +21016,17 @@ class Database:
         ).fetchall()
 
         changed = []
+        progress_item_id = canonical_profession_resource_id(item_id)
         for row in rows:
             quest = QUESTS.get(row["quest_id"])
+            quest_target = canonical_profession_resource_id(
+                quest.get("target") if quest else ""
+            )
             if (
                 not quest
                 or quest.get("kind") != "collect_resource"
                 or not quest.get("track_resource_progress")
-                or quest.get("target") != item_id
+                or quest_target != progress_item_id
             ):
                 continue
 
@@ -19225,6 +21090,12 @@ class Character:
     intelligence: int
     willpower: int
     stat_progress: int
+    strength_progress: int
+    dexterity_progress: int
+    constitution_progress: int
+    intelligence_progress: int
+    willpower_progress: int
+    charisma_progress: int
     soul_level: int
     soul_xp: int
     soul_tier: int
@@ -19254,6 +21125,12 @@ class Character:
             strength=row["strength"], dexterity=row["dexterity"],
             constitution=row["constitution"], intelligence=row["intelligence"],
             willpower=row["willpower"], stat_progress=row["stat_progress"],
+            strength_progress=(row["strength_progress"] if "strength_progress" in row.keys() else row["stat_progress"]),
+            dexterity_progress=(row["dexterity_progress"] if "dexterity_progress" in row.keys() else row["stat_progress"]),
+            constitution_progress=(row["constitution_progress"] if "constitution_progress" in row.keys() else row["stat_progress"]),
+            intelligence_progress=(row["intelligence_progress"] if "intelligence_progress" in row.keys() else row["stat_progress"]),
+            willpower_progress=(row["willpower_progress"] if "willpower_progress" in row.keys() else row["stat_progress"]),
+            charisma_progress=(row["charisma_progress"] if "charisma_progress" in row.keys() else row["stat_progress"]),
             soul_level=row["soul_level"], soul_xp=row["soul_xp"],
             soul_tier=row["soul_tier"], room_id=row["room_id"],
             silver=row["silver"], gold=row["gold"], mithril=row["mithril"],
@@ -19292,11 +21169,11 @@ class Character:
         return 10 + self.dexterity * 2
 
     def dodge_chance(self):
-        # Szybkość przekłada się na szansę uniknięcia kontrataku.
-        # Bonusy klasy i rasy mogą się łączyć.
-        base = max(0.0, (self.speed() - 20) / 300.0)
+        # v0.8.65: Zręczność daje malejący pasywny dodge zamiast liniowej
+        # krzywej, która w endgame doprowadzała prawie każdą klasę do 45%.
+        base = v0865_dodge_chance_from_dexterity(self.dexterity)
         return min(
-            0.45,
+            0.35,
             base + self.class_dodge_bonus() + self.racial_dodge_bonus()
         )
 
@@ -19349,6 +21226,11 @@ class Character:
 
         if self.class_name in ("Wojownik", "Berserker", "Łowca"):
             multiplier *= 1.0 + self.soul_weapon_bonus_percent() / 100.0
+        elif self.class_name == "Łotrzyk":
+            # v0.9.0: połowa budżetu specjalizacji Soul Weapon idzie w
+            # obrażenia fizyczne, ponieważ czysty dodge dobijał do capu 35%
+            # i część Tierów nie dawała realnego efektu.
+            multiplier *= 1.0 + self.soul_weapon_rogue_damage_bonus_percent() / 100.0
         return multiplier
 
     def class_magic_damage_multiplier(self):
@@ -19516,20 +21398,17 @@ class Character:
 
     def soul_xp_multiplier(self):
         if self.soul_level >= SOUL_MAX_LEVEL:
-            return 0
-        # Co pełne 10 Soul Leveli wymaganie podwaja się:
-        # 1-10 x1, 11-20 x2, 21-30 x4, 31-40 x8 itd.
-        completed_ten_level_blocks = max(
-            0,
-            (self.soul_level - 1) // 10,
-        )
-        return 2 ** completed_ten_level_blocks
+            return 0.0
+        # v0.8.64: poprzednie x2 co 10 leveli dawało ponad 111 mld XP
+        # łącznie do 200. Teraz każdy pełny blok 10 leveli podnosi koszt o 25%.
+        completed_ten_level_blocks = max(0, (self.soul_level - 1) // 10)
+        return 1.25 ** completed_ten_level_blocks
 
     def soul_xp_to_next(self):
         if self.soul_level >= SOUL_MAX_LEVEL:
             return 0
         base = 180 + (self.soul_level - 1) * 60
-        return base * self.soul_xp_multiplier()
+        return max(1, int(round(base * self.soul_xp_multiplier())))
 
     def soul_milestone_specialization_bonus(self):
         tier = max(1, min(SOUL_MAX_TIER, int(self.soul_tier)))
@@ -19553,9 +21432,15 @@ class Character:
             + self.soul_milestone_specialization_bonus()
         )
 
+    def soul_weapon_rogue_damage_bonus_percent(self):
+        # Łotrzyk zachowuje defensywną tożsamość, ale jego Broń Duszy nie
+        # przepala już progresji po osiągnięciu globalnego capu dodge.
+        return max(0, (self.soul_weapon_bonus_percent() + 1) // 2)
+
     def soul_weapon_dodge_bonus(self):
         tier = max(1, min(SOUL_MAX_TIER, int(self.soul_tier)))
-        return (
+        return min(
+            0.05,
             SOUL_TIER_DODGE_BONUS[tier - 1]
             + self.soul_milestone_dodge_bonus()
         )
@@ -19576,7 +21461,11 @@ class Character:
             )
         if self.class_name == "Łotrzyk":
             pp = int(round(self.soul_weapon_dodge_bonus() * 100))
-            return f"+{pp} punkty procentowe uniku z Broni Duszy Łotrzyka"
+            dmg = self.soul_weapon_rogue_damage_bonus_percent()
+            return (
+                f"+{dmg} procent obrażeń fizycznych i +{pp} punktów "
+                "procentowych uniku z Broni Duszy Łotrzyka"
+            )
         if self.class_name in ("Mag", "Czarownik"):
             return (
                 f"+{percent} procent obrażeń magicznych z Broni Duszy "
@@ -19618,33 +21507,97 @@ class Character:
             return next_tier
         return None
 
-    def add_stat_progress(self, amount):
+    STAT_PROGRESS_FIELDS = {
+        "strength": ("Siła", "strength", "strength_progress"),
+        "dexterity": ("Zręczność", "dexterity", "dexterity_progress"),
+        "constitution": ("Kondycja", "constitution", "constitution_progress"),
+        "intelligence": ("Inteligencja", "intelligence", "intelligence_progress"),
+        "willpower": ("Siła Woli", "willpower", "willpower_progress"),
+        "charisma": ("Charyzma", "charisma", "charisma_progress"),
+    }
+
+    def stat_growth_threshold_for(self, stat_name):
+        """Próg EXP pojedynczej statystyki.
+
+        Każda statystyka rozwija się niezależnie. Start to 100 EXP, a od
+        wartości bazowej 26 próg rośnie o 10 za każdy punkt. Dzięki temu
+        niska statystyka może nadrobić, a wysoka nie rośnie lawinowo.
+        """
+        _label, value_field, _progress_field = self.STAT_PROGRESS_FIELDS[stat_name]
+        value = max(1, int(getattr(self, value_field)))
+        return STAT_GROWTH_THRESHOLD + max(0, value - 25) * 10
+
+    def stat_growth_threshold(self):
+        """Legacy: zwraca średni próg sześciu statystyk dla zgodności."""
+        thresholds = [self.stat_growth_threshold_for(name) for name in self.STAT_PROGRESS_FIELDS]
+        return int(round(sum(thresholds) / len(thresholds)))
+
+    def stat_progress_for(self, stat_name):
+        _label, _value_field, progress_field = self.STAT_PROGRESS_FIELDS[stat_name]
+        return max(0, int(getattr(self, progress_field)))
+
+    def stat_progress_snapshot(self):
+        result = {}
+        for stat_name, (label, value_field, progress_field) in self.STAT_PROGRESS_FIELDS.items():
+            result[stat_name] = {
+                "label": label,
+                "value": int(getattr(self, value_field)),
+                "progress": max(0, int(getattr(self, progress_field))),
+                "threshold": self.stat_growth_threshold_for(stat_name),
+            }
+        return result
+
+    def add_stat_progress(self, amount, targets=None):
+        """Dodaje EXP osobno do wskazanych statystyk.
+
+        Domyślnie źródła ogólnego rozwoju (moby/questy) przyznają tę samą
+        ilość EXP każdej statystyce, ale każda ma własny licznik i próg.
+        """
         base_amount = max(0, int(amount))
         amount = max(
             0,
             int(round(base_amount * self.racial_stat_progress_multiplier()))
         )
-        messages = [f"Postęp rozwoju statystyk +{amount}."]
-        if amount > base_amount:
+        if targets is None:
+            target_names = list(self.STAT_PROGRESS_FIELDS)
+        else:
+            target_names = [name for name in targets if name in self.STAT_PROGRESS_FIELDS]
+        messages = []
+        bonus = max(0, amount - base_amount)
+        for stat_name in target_names:
+            label, value_field, progress_field = self.STAT_PROGRESS_FIELDS[stat_name]
+            progress = max(0, int(getattr(self, progress_field))) + amount
+            leveled = 0
+            while True:
+                threshold = self.stat_growth_threshold_for(stat_name)
+                if progress < threshold:
+                    break
+                progress -= threshold
+                setattr(self, value_field, int(getattr(self, value_field)) + 1)
+                leveled += 1
+            setattr(self, progress_field, progress)
+            if leveled:
+                new_value = int(getattr(self, value_field))
+                if leveled == 1:
+                    messages.append(
+                        f"{label} wzrasta do {new_value} — {stat_quality_label(new_value)}."
+                    )
+                else:
+                    messages.append(
+                        f"{label} wzrasta o {leveled} do {new_value} — {stat_quality_label(new_value)}."
+                    )
+            threshold = self.stat_growth_threshold_for(stat_name)
             messages.append(
-                f"Bonus rasy {self.race}: +{amount - base_amount} Postępu Rozwoju."
+                f"{label}: EXP +{amount}. Postęp {progress} z {threshold}."
             )
-        self.stat_progress += amount
-        while self.stat_progress >= STAT_GROWTH_THRESHOLD:
-            self.stat_progress -= STAT_GROWTH_THRESHOLD
-
-            # Każda klasa rozwija wszystkie sześć statystyk.
-            self.strength += 1
-            self.dexterity += 1
-            self.constitution += 1
-            self.intelligence += 1
-            self.willpower += 1
-            self.charisma += 1
-
+        if bonus:
             messages.append(
-                "Statystyki wzrosły: Siła +1, Zręczność +1, Kondycja +1, "
-                "Inteligencja +1, Siła Woli +1, Charyzma +1."
+                f"Bonus rasy {self.race}: +{bonus} EXP do każdej rozwijanej statystyki."
             )
+        # Legacy pole zachowujemy jako najmniejszy bieżący postęp, ale nie
+        # steruje już rozwojem.
+        values = [self.stat_progress_for(name) for name in self.STAT_PROGRESS_FIELDS]
+        self.stat_progress = min(values) if values else 0
         return messages
 
     def add_soul_xp(self, amount):
@@ -19769,6 +21722,7 @@ class MobState:
     combat_turn: int = 0
     player_hits: int = 0
     phase_stage: int = 0
+    engaged_at: float = 0.0
 
 
 class World:
@@ -19803,6 +21757,7 @@ class World:
                 mob.combat_turn = 0
                 mob.player_hits = 0
                 mob.phase_stage = 0
+                mob.engaged_at = 0.0
 
     def live_crypt_boss(self, room_id):
         self.refresh()
@@ -19932,6 +21887,11 @@ class World:
                 )
                 for item_id in items
             ]
+
+        # v0.8.72: boss piętra co 10 zawsze zostawia właściwy klucz na ciele.
+        boss_key = boss_key_for_template(template)
+        if boss_key and boss_key not in items:
+            items.append(boss_key)
 
         material_pool = list(template.get("corpse_material_pool", ()))
         material_count = min(
@@ -20121,6 +22081,9 @@ class Session:
         self.skill_cooldowns = {}
         self.skill_guard = 0
         self.skill_evade = False
+        # v0.8.64: wszystkie gwarantowane uniki dzielą krótki lockout po
+        # zużyciu, żeby Łotrzyk/Łowca nie rotowali kilku evade w nietykalność.
+        self.skill_evade_lockout_until = 0.0
         # v0.8.45: każdy skill typu boost jest czasowym, uniwersalnym buffem.
         # Aktywne buffy wzmacniają wszystkie skille i spelle o mierzalnej sile
         # (obrażenia, leczenie i guard), także przy multiclassie.
@@ -20370,13 +22333,15 @@ class Session:
                 f"Ten loch profesyjny wymaga narzędzia: {tool_name}."
             )
 
-        tool = self.server.db.tool(self.account_id, tool_type)
-        level = int(tool["level"])
+        profession = profession_for_tool_type(tool_type)
+        prow = self.server.db.profession(self.account_id, profession)
+        profession_level = int(prow["level"])
         required = profession_dungeon_required_tool_level(floor)
-        if level < required:
+        if profession_level < required:
             return (
                 f"Ten poziom lochu profesyjnego wymaga "
-                f"{tool_name} level {required}. Masz level {level}."
+                f"{profession} level {required}. Masz level {profession_level}. "
+                f"Level {tool_name} nie blokuje piętra; odblokowuje lepsze surowce."
             )
         return None
 
@@ -20961,17 +22926,32 @@ class Session:
         return self.class_mastery_level(class_name) >= self.skill_required_mastery(skill)
 
     def skill_training_cost_silver(self, skill):
-        """Cena nauki we wspólnej walucie; rośnie z wymaganą Biegłością klasy."""
-        unlock = max(1, int(skill.get("unlock", 1)))
-        if unlock <= 20:
-            return 200 + unlock * 40
-        if unlock <= 60:
-            return 2000 + (unlock - 20) * 250
-        if unlock <= 120:
-            return 12000 + (unlock - 60) * 500
-        if unlock <= 160:
-            return 42000 + (unlock - 120) * 1000
-        return 82000 + (unlock - 160) * 3000
+        """v0.8.61: cena nauki na pełnej skali wspólnej waluty."""
+        unlock = max(1, min(200, int(skill.get("unlock", 1))))
+        anchors = (
+            (1, 200),
+            (10, 800),
+            (20, 2_000),
+            (30, 5_000),
+            (40, 10_000),
+            (50, 25_000),
+            (60, 50_000),
+            (80, 200_000),
+            (100, 1_000_000),
+            (120, 5_000_000),
+            (140, 20_000_000),
+            (160, 60_000_000),
+            (180, 150_000_000),
+            (200, 300_000_000),
+        )
+        for index in range(1, len(anchors)):
+            lo_level, lo_cost = anchors[index - 1]
+            hi_level, hi_cost = anchors[index]
+            if unlock <= hi_level:
+                span = hi_level - lo_level
+                progress = (unlock - lo_level) / span
+                return max(1, int(round(lo_cost + (hi_cost - lo_cost) * progress)))
+        return anchors[-1][1]
 
     def training_cost_text(self, silver_cost):
         return currency_reading_text(max(0, int(silver_cost)), 0, 0)
@@ -21733,6 +23713,8 @@ class Session:
     async def enter_world(self):
         self.refresh_active_classes()
 
+        moved_gems = self.migrate_raw_mining_gems_to_bag_v0867()
+
         # Najpierw zachowaj zgodność starego mechanizmu portali Krypty
         # na podstawie lokacji zapisanej przy poprzednim wylogowaniu.
         self.server.db.sync_legacy_crypt_checkpoint(
@@ -21759,6 +23741,11 @@ class Session:
         await self.send(
             "Rozpoczynasz sesję w Świątyni Odrodzenia."
         )
+        if moved_gems:
+            await self.send(
+                f"Sakwa Górnika: przeniesiono {moved_gems} surowych klejnotów "
+                "ze starego inventory do sakwy."
+            )
         await self.send("Wpisz help, aby poznać komendy.")
         await self.look()
 
@@ -22166,9 +24153,9 @@ class Session:
         )
 
     def critical_chance(self):
-        dexterity = self.effective_dexterity()
-        chance = 0.05 + (dexterity - 10) * 0.005
-        return max(0.01, min(0.35, chance))
+        return v0863_critical_chance_from_dexterity(
+            self.effective_dexterity()
+        )
 
     def critical_multiplier(self):
         return 1.50
@@ -22242,9 +24229,11 @@ class Session:
         return 10 + self.effective_dexterity() * 2
 
     def dodge_chance(self):
-        base = max(0.0, (self.speed() - 20) / 300.0)
+        base = v0865_dodge_chance_from_dexterity(
+            self.effective_dexterity()
+        )
         return min(
-            0.45,
+            0.35,
             base
             + self.character.class_dodge_bonus()
             + self.character.racial_dodge_bonus()
@@ -22598,6 +24587,16 @@ class Session:
             else:
                 await self.send(f"Skrzynia skarbów: {_chest_cfg['name']}. Pusta, odnowienie za około {_chest_remaining} sekund.")
 
+        _boss_chest = self.boss_floor_chest_here()
+        if _boss_chest:
+            _kind, _floor, _power = _boss_chest
+            _key = boss_floor_key_id(_kind, _floor)
+            _has_key = self.server.db.item_qty(self.account_id, _key) > 0
+            await self.send(
+                f"Skrzynia bossowa: {boss_floor_chest_name(_kind, _floor)}. "
+                + ("Masz klucz. Wpisz unlock albo odklucz." if _has_key else "Zamknięta. Klucz wypada z ciała bossa tego piętra.")
+            )
+
         corpses = self.server.world.room_corpses(
             self.character.room_id
         )
@@ -22680,59 +24679,100 @@ class Session:
                     target_name = target.get("name", str(target_id))
                     target_zone = target.get("zone", "")
                     zone_text = f", strefa {target_zone}" if target_zone else ""
+                    fallback = 1
+                    target_area = self.exp_area_for_room(target_id)
+                    if target_area:
+                        fallback = int(EXP_AREA_TARGET_POWER.get(target_area.get("id"), 1))
+                    threat_profile = v0866_room_threat_profile(target_id, fallback=fallback)
+                    target_power = int(threat_profile["target"])
+                    boss_power = threat_profile.get("boss_max")
+                    danger_power = max(
+                        target_power,
+                        int(boss_power) if boss_power is not None else target_power,
+                    )
+                    threat_label = v0866_threat_label(
+                        danger_power, self.character_progression_power()
+                    )
+                    boss_text = (
+                        f", boss do około {int(boss_power)}/200"
+                        if boss_power is not None else ""
+                    )
                     exits.append(
-                        f"{direction} -> {target_name}{zone_text}"
+                        f"{direction} -> {target_name}{zone_text}, "
+                        f"zagrożenie {threat_label}, zwykły próg około "
+                        f"{target_power}/200{boss_text}"
                     )
                 else:
                     exits.append(direction)
         await self.send("Wyjścia: " + ", ".join(exits) + ".")
 
-    async def show_map(self):
+    async def show_map(self, args=""):
+        raw = str(args or "").strip()
+        norm = normalize_lookup_text(raw)
+        discovered = self.server.db.discovered_room_ids(self.account_id)
         current = self.character.room_id
-        await self.send("MAPA ODKRYTEGO ŚWIATA")
+        world_count = sum(1 for room_id in ALL_EXPLORATION_ROOMS if room_id in discovered)
+        world_total = len(ALL_EXPLORATION_ROOMS)
+        world_pct = int(world_count * 100 / max(1, world_total))
 
-        zones = {}
-        for room_id, room in ROOMS.items():
-            if (
-                room_id.startswith("crypt_floor_")
-                or room_id.startswith("astral_floor_")
-                or room_id.startswith("mine_floor_")
-            ):
-                continue
-            zones.setdefault(room["zone"], []).append(
-                (room_id, room["name"])
+        if norm in ("all", "wszystko", "swiat", "world", "regiony", "regions"):
+            await self.send(
+                f"MAPA ODKRYTEGO ŚWIATA: {world_count} z {world_total} lokacji, {world_pct}%."
             )
+            for zone in sorted(EXPLORATION_ZONE_ROOMS, key=normalize_lookup_text):
+                count, total, pct = self.exploration_percent(zone)
+                if zone in TRACKED_EXPLORATION_ZONES:
+                    claimed = self.server.db.exploration_reward_claimed(self.account_id, zone)
+                    reward = "nagroda odebrana" if claimed else ("nagroda gotowa" if pct >= 100 else "nagroda przy 100%")
+                else:
+                    reward = "mała strefa bez osobnej nagrody 100%"
+                marker = " [TU]" if ROOMS[current]["zone"] == zone else ""
+                await self.send(f"{zone}{marker}: {count} z {total}, {pct}%; {reward}.")
+            return
 
-        for zone in sorted(zones):
-            await self.send(zone + ":")
-            entries = []
-            for room_id, name in sorted(
-                zones[zone], key=lambda entry: entry[1].lower()
-            ):
-                marker = " [TU]" if room_id == current else ""
-                entries.append(name + marker)
-            await self.send("; ".join(entries) + ".")
+        zone = ROOMS[current]["zone"]
+        if raw and norm not in ("region", "strefa", "current", "biezacy", "bieżący"):
+            candidates = {name: {"name": name} for name in EXPLORATION_ZONE_ROOMS}
+            found = find_by_name(candidates, raw)
+            if not found:
+                await self.send(
+                    "Nie rozpoznaję takiego regionu mapy. Wpisz mapa all / map all, aby usłyszeć regiony."
+                )
+                return
+            zone = found[0]
 
-        floor = crypt_floor_number(current)
-        marker = f" [TU: piętro {floor}]" if floor else ""
+        zone_rooms = tuple(EXPLORATION_ZONE_ROOMS.get(zone, ()))
+        known = [room_id for room_id in zone_rooms if room_id in discovered]
+        pct = int(len(known) * 100 / max(1, len(zone_rooms)))
         await self.send(
-            f"Krypta 1-{CRYPT_MAX_FLOOR}: "
-            f"piętra 1-{CRYPT_MAX_FLOOR}{marker}."
+            f"MAPA: {zone}. Odkryto {len(known)} z {len(zone_rooms)} lokacji, {pct}%. "
+            f"Cały świat: {world_pct}%."
         )
-        astral_floor = astral_floor_number(current)
-        astral_marker = (
-            f" [TU: poziom {astral_floor}]"
-            if astral_floor is not None else ""
-        )
-        await self.send(
-            f"Wieża Astralna {ASTRAL_MIN_FLOOR}-{ASTRAL_MAX_FLOOR}: "
-            f"poziomy {ASTRAL_MIN_FLOOR}-{ASTRAL_MAX_FLOOR}"
-            f"{astral_marker}."
-        )
-        await self.send(
-            "Każdą nazwę z mapy można podać do prowadz. "
-            "Wpisz prowadz lista, aby dostać pełną listę celów."
-        )
+        if zone in TRACKED_EXPLORATION_ZONES:
+            claimed = self.server.db.exploration_reward_claimed(self.account_id, zone)
+            if claimed:
+                await self.send("Nagroda za 100% tego regionu została odebrana.")
+            elif pct >= 100:
+                await self.send("Region jest ukończony; nagroda 100% powinna zostać przyznana automatycznie przy odkryciu ostatniej lokacji.")
+            else:
+                await self.send(
+                    "Za 100% regionu otrzymasz Soul XP, walutę, unikalną Pamiątkę Odkrywcy, tytuł i osiągnięcie."
+                )
+
+        if not known:
+            await self.send("Nie masz jeszcze odkrytych lokacji w tym regionie.")
+            return
+        entries = []
+        for room_id in sorted(known, key=lambda rid: normalize_lookup_text(ROOMS[rid]["name"])):
+            marker = " [TU]" if room_id == current else ""
+            entries.append(ROOMS[room_id]["name"] + marker)
+        chunk_size = 24
+        for offset in range(0, len(entries), chunk_size):
+            await self.send("Odkryte: " + "; ".join(entries[offset:offset + chunk_size]) + ".")
+        hidden = len(zone_rooms) - len(known)
+        if hidden:
+            await self.send(f"Nieodkryte lokacje w tym regionie: {hidden}. Ich nazwy pozostają ukryte.")
+        await self.send("Komendy: mapa / map; mapa all / map all; mapa <region> / map <region>.")
 
 
     async def show_crypt_info(self):
@@ -22760,6 +24800,7 @@ class Session:
             "Zwykłe moby Krypty zostawiają 1 element ekwipunku na ciele, "
             "bossowie 3."
         )
+        await self.send("Na każdym piętrze bossa co 10 stoi Skrzynia Bossa. Właściwy klucz jest gwarantowany w ciele bossa; bez klucza skrzyni nie otworzysz. Użyj unlock / odklucz.")
         await self.send(
             "Moby nie są agresywne. Nie atakują gracza same."
         )
@@ -22814,6 +24855,7 @@ class Session:
             "Zwykłe moby Wieży zostawiają 1 element Astralnego ekwipunku, "
             "bossowie 3. Bossowie mają także własne unikalne relikty."
         )
+        await self.send("Co 10 poziomów przy bossie stoi Skrzynia Bossa. Klucz jest w ciele tego bossa; bez klucza skrzyni nie otworzysz. Użyj unlock / odklucz.")
         await self.send(
             "Moby i bossowie Wieży nie są agresywni."
         )
@@ -22896,27 +24938,13 @@ class Session:
                 "achievement:all_minibosses", "Pogromca Mini-Bossów"
             )
 
-    async def announce_item_collect_quest_progress(self, item_id):
-        """Read progress for active collect quests fed by a newly gained item."""
-        rows = self.server.db.quest_rows(self.account_id)
-        for row in rows:
-            if row["status"] != "active":
-                continue
-            quest = QUESTS.get(row["quest_id"])
-            if not quest or quest.get("kind") != "collect":
-                continue
-            if quest.get("track_craft_progress"):
-                continue
-            if quest.get("target") != item_id:
-                continue
-
-            needed = int(quest.get("needed", 0))
-            if needed <= 0:
-                continue
-            progress = min(
-                self.server.db.item_qty(self.account_id, item_id),
-                needed,
-            )
+    async def announce_item_collect_quest_progress(self, item_id, amount=1):
+        """v0.8.66: postęp collect rośnie tylko od nowego zdobycza po przyjęciu."""
+        changed = self.server.db.increment_item_collect_quest(
+            self.account_id, item_id, amount
+        )
+        for quest_id, progress, needed in changed:
+            quest = QUESTS[quest_id]
             label = str(
                 quest.get("progress_label")
                 or ITEMS.get(item_id, {}).get("name", "przedmiotów")
@@ -23414,6 +25442,10 @@ class Session:
             )
 
     async def open_treasure_chest(self, args=""):
+        normalized = self.normalize_description_query(str(args or "").strip())
+        if normalized in ("geoda", "geode", "geode kamienna", "geoda kamienna", "geoda krysztalowa", "geoda kryształowa", "crystal geode", "stone geode", "geoda astralna", "astral geode"):
+            await self.open_geode(args)
+            return
         opened_at = self.server.db.treasure_chest_opened_at(
             self.account_id, self.character.room_id
         )
@@ -23471,8 +25503,8 @@ class Session:
         await self.send(f"Jesteś tutaj: {room['name']}. Strefa: {room['zone']}.")
 
     def help_commands(self):
-        return [
-            "help [temat] / pomoc [temat] - pomoc; help tematy pokazuje działy",
+        lines = [
+            "help / pomoc - kategorie pomocy; help [temat] / pomoc [temat] - wybrany temat; help tematy / topics - pełna lista",
             "changes / zmiany / changelog - pokaż najnowsze zmiany",
             "progress / postep - ogólny postęp; progress region - bieżący region",
             "eksploracja / exploration [all] - procent odkrycia stref i świata",
@@ -23484,12 +25516,15 @@ class Session:
             "opis [nazwa] / describe [name] - szczegółowy opis elementu świata",
             "look lub l - opis aktualnej lokacji",
             "exits - dostępne kierunki; exits info - kierunek, nazwa następnej lokacji i jej strefa",
-            "map - lista lokacji świata; Krypta 1-200 jest pokazana skrótowo",
+            "map / mapa - odkryte lokacje i procent bieżącego regionu; map all / mapa all - procent wszystkich regionów i status nagród 100%",
+            "bestiariusz / bestiary - dziennik pokonanych mobów; bestiariusz <mob> - lokacje, dropy, odporności i rekord zabicia",
             "krypta / crypt - informacje o Krypcie 1-200, bossach i checkpointach",
             "wieza / astral - informacje o Wieży Astralnej 100-200",
             "astralportal [poziom] - checkpointy Wieży Astralnej",
             "portal [piętro] - pokaż lub uruchom odblokowany Portal Krypty",
-            "atlas [ryby|drewno|rudy|surowiec] - atlas pozyskiwania surowców",
+            "atlas [ryby|drewno|rudy|zioła|surowiec] - pełny atlas pozyskiwania surowców i klejnotów",
+            "geody / geodes - geody w Sakwie Górnika; open geode / otwórz geodę - otwórz jedną geodę",
+            "unlock / odklucz / odblokuj - otwórz skrzynię bossową właściwym kluczem; poza skrzynią odblokuj kolejny Tier Broni Duszy",
             "where - aktualna lokacja",
             "teren info <nazwa> - Soul, NPC, questy, bossowie, profesje i dojście w regionie",
             "location / lokalizacja - lokacja, strefa i wyjścia",
@@ -23501,7 +25536,8 @@ class Session:
             "who - gracze online",
             "say tekst - rozmowa lokalna",
             "tell gracz tekst - wiadomość prywatna",
-            "druzyna / party - zarządzanie drużyną",
+            "załóż drużynę; zaproś <gracz>; dołącz; odrzuć; opuść; wyrzuć <gracz>; rozwiąż; lider <gracz> - bezpośrednie komendy drużynowe; działa też druzyna / party",
+            "zasłoń / zaslon [off] - Strażnik chroni drużynę w tej samej lokacji, przejmując aggro wspólnego przeciwnika",
             "pc tekst - czat drużyny",
             "charyzma / charisma - szósta statystyka; rabat sklepowy i limit drużyny",
             "multiclass / klasy - opcjonalne 1-3 aktywne klasy i Biegłość klas",
@@ -23524,7 +25560,7 @@ class Session:
             "portfel - pokazuje wspólną walutę wszystkich postaci na koncie oraz kurs nominałów",
             "professions / profesje - szybki stan profesji; profesje info - XP, rangi i zasady",
             "narzedzia / tools - szybki stan narzędzi; narzedzia info - XP, Tiery, bonusy i sprzedawcy",
-            "professions / profesje - 7 profesji: Wędkarstwo, Górnictwo, Drwalstwo, Zielarstwo, Alchemia, Kowalstwo, Jubilerstwo",
+            "professions / profesje - 8 profesji 1-200: Wędkarstwo, Górnictwo, Drwalstwo, Zielarstwo, Gotowanie, Alchemia, Kowalstwo, Jubilerstwo",
             "rangi / ranks - pełna lista rang profesji",
             "tools / narzedzia - skrót wszystkich 8 narzędzi",
             "wedka / kilof / pila / mlot / noz / sierp / mozdzierz / szczypce - pełne informacje o wybranym narzędziu",
@@ -23553,7 +25589,7 @@ class Session:
             "craft / stworz / wytworz receptura - rzemiosło z rud i drewna",
             "cook / gotuj receptura - przygotuj potrawę z ryb",
             "inventory / i - zwykły ekwipunek",
-            "equipment / eq - szybkie EQ; eq info - pełne bonusy, sockety i aktywne sety",
+            "equipment / eq - szybkie EQ zawsze pokazuje też Broń Duszy; eq info - Soul XP, pełne bonusy, sockety i aktywne sety",
             "sety / sety info / sety <klasa> - zestawy klasowe 2/4/6/8 dla 12 klas",
             "help loot_krypty - rarity, losowe statystyki i sety Krypty",
             "equip / załóż przedmiot albo slot - np. załóż buty, hełm, zbroja, rękawice, nogi, talizman",
@@ -23568,10 +25604,17 @@ class Session:
             "ciało / zwloki / corpse - pokaż ciała i ich ekwipunek",
             "przeszukaj ciało / loot - zabierz ekwipunek z ciała moba",
             "flee / uciekaj - ucieczka",
-            "unlock - odblokuj gotowy Soul Tier",
-            "save - zapis",
-            "quit - zapisz bieżącą postać i wróć do MENU POSTACI",
+            "unlock / odklucz / odblokuj - skrzynia bossowa z kluczem; unlock soul / odklucz dusza - odblokuj gotowy Soul Tier",
+            "save / zapisz - zapis",
+            "quit / wyjdz - zapisz bieżącą postać i wróć do MENU POSTACI",
         ]
+        if self.is_admin():
+            lines.extend([
+                "admin help / administrator pomoc - ukryte opcje właściciela",
+                "wipe / wyczyść moje postacie POTWIERDZAM - reset Twoich postaci bez kasowania konta",
+                "wipe / wyczyść wszystkie postacie POTWIERDZAM - serwerowy reset postaci bez kasowania kont",
+            ])
+        return lines
 
     def full_changelog_lines(self):
         module_dir = os.path.dirname(os.path.abspath(__file__))
@@ -23803,6 +25846,11 @@ class Session:
         raw = topic.strip().lower()
         key = HELP_TOPIC_ALIASES.get(raw, raw)
 
+        # v0.8.72: temat administratora jest całkowicie ukryty przed zwykłymi kontami.
+        if key == "admin_owner" and not self.is_admin():
+            await self.send("Nieznany temat pomocy. Wpisz help tematy.")
+            return
+
         # v0.8.52: pełny help dla wszystkich 253 skilli/spelli, także klas
         # nieaktywnych. Działa `help skill <nazwa>` oraz bezpośrednio
         # `help <nazwa skilla>`. Zwykłe tematy help zachowują pierwszeństwo.
@@ -23820,27 +25868,29 @@ class Session:
             if await self.show_skill_help(raw):
                 return
 
-        if not key:
-            await self.send("POMOC GŁÓWNA")
-            await self.send(
-                "Użyj help <temat>. Najważniejsze: podstawy, informacje, komendy, nawigacja, statystyki, hp, score, "
-                "walka, dusza, questy, profesje, ekwipunek, sety_klasowe, teren_info, loot_krypty, atlas, "
-                "gornictwo, drwalstwo, zielarstwo, alchemia, rzemioslo, gotowanie, receptury, atlas, "
-                "charyzma, druzyny, multiclass, krypta, portale, zwloki, pojemniki, sklepy, gracze, smierc, rasy, klasy, "
-                "umiejetnosci, nazwy_skilli, nauczyciele, opisy, zmiany."
-            )
-            await self.send("help tematy - lista tematów.")
-            await self.send("help wszystko - pełny przewodnik.")
-            await self.send("opis <nazwa> - szczegółowy opis dowolnego elementu.")
-            await self.send("help skill <nazwa> albo help <nazwa skilla> - pełna pomoc konkretnej umiejętności/spella, dla wszystkich klas.")
-            await self.send("changes / zmiany / changelog - pełna historia wszystkich wersji i zmian, najnowsze na górze.")
-            await self.send("Na start: look, exits, n/s/e/w, hp, score, staty, dusza, eq, quest, help nawigacja, help quest, help staty, help dusza.")
-            await self.send("Pomoc jest zsynchronizowana z v0.8.60. Pełna lista aktualnych tematów: help tematy.")
+        if not key or key == "kategorie":
+            await self.send("POMOC — KATEGORIE")
+            await self.send("START: help podstawy, help informacje, help komendy, help nawigacja.")
+            await self.send("POSTAĆ: help statystyki, help hp, help score, help dusza, help ekwipunek, help klasy, help rasy, help multiclass.")
+            await self.send("WALKA: help walka, help bossowie, help krytyki, help umiejetnosci, help druzyny, help skrzynie_bossow.")
+            await self.send("ŚWIAT: help questy, help eksploracja, help bestiariusz, help teren_info, help atlas, help krypta, help portale, help zwloki, help pojemniki, help sklepy.")
+            await self.send("PROFESJE: help profesje, help wedkarstwo, help gornictwo, help geody, help drwalstwo, help zielarstwo, help alchemia, help rzemioslo, help gotowanie, help receptury.")
+            await self.send("SPOŁECZNE: help gracze, help druzyny, help charyzma.")
+            await self.send("SYSTEM: help logowanie, help smierc, help opisy, help zmiany.")
+            if self.is_admin():
+                await self.send("ADMINISTRATOR: help admin.")
+            await self.send("help tematy / help topics — pełna lista tematów.")
+            await self.send("help wszystko / help all — pełny przewodnik.")
+            await self.send("help <temat> albo pomoc <temat> — otwiera wybraną pomoc.")
+            await self.send("help skill <nazwa> — pełna pomoc konkretnego skilla lub spella.")
+            await self.send("Samo help albo pomoc zawsze wraca do tego indeksu kategorii.")
             return
 
         if key == "tematy":
             await self.send("TEMATY POMOCY")
             for name in HELP_TOPICS:
+                if name == "admin_owner" and not self.is_admin():
+                    continue
                 await self.send(name)
             await self.send("Dodatkowo: komendy, wszystko.")
             return
@@ -23854,6 +25904,8 @@ class Session:
         if key == "wszystko":
             await self.send("PEŁNY PRZEWODNIK SOULBOUND")
             for name, lines in HELP_TOPICS.items():
+                if name == "admin_owner" and not self.is_admin():
+                    continue
                 await self.send(name.upper())
                 for line in lines:
                     await self.send(line)
@@ -23920,8 +25972,8 @@ class Session:
                 if int(item["stats"].get("dexterity", 0)) > 0:
                     parts.append(
                         "Zręczność zwiększa szansę na trafienie krytyczne: "
-                        "przy 10 wynosi ona 5 procent, a każdy punkt ponad 10 "
-                        "dodaje 0,5 punktu procentowego, do limitu 35 procent."
+                        "10 daje 5 procent, 40 daje 20 procent, 80 daje 30 procent, "
+                        "a dalszy przyrost maleje do limitu 35 procent."
                     )
             if item.get("properties"):
                 properties_text = ", ".join(
@@ -23940,7 +25992,7 @@ class Session:
                 )
         elif item.get("type") == "tool":
             tool = "Wędka" if item.get("tool_type") == "fishing" else "Kilof"
-            parts.append(f"Narzędzie profesji: {tool}. Ma własny level 1-100 i osobny XP.")
+            parts.append(f"Narzędzie profesji: {tool}. Ma własny level 1-200 i osobny XP.")
         elif "heal" in item:
             parts.append(f"Leczenie: {item['heal']} HP.")
         elif "soul_xp" in item:
@@ -24030,6 +26082,17 @@ class Session:
         item = ITEMS.get(item_id, {})
         base_id = item.get("base_resource_id", item_id)
         rows = []
+
+        field_rows = {
+            "field_grave_moss": [("Ogród Księżycowego Mchu, Stary Cmentarz", "Sierp", 20)],
+            "field_void_thorn": [("Ogród Cierni Pustki, Ruiny Kultystów", "Sierp", 60)],
+            "field_ironbark_root": [("Legowisko Bestii", "Piła", 50)],
+            "field_tomb_silver": [("Kamieniołom Nekropolii", "Kilof", 50)],
+            "field_blind_sewer_eel": [("Czarny Kanał pod Miastem Dusz", "Wędka", 30)],
+            "field_frost_crystal_ore": [("Lodowe Jaskinie", "Kilof", 90)],
+        }
+        if base_id in field_rows:
+            return list(field_rows[base_id])
 
         fish_groups = (
             ("river", "Rzeka", ("riverbank", "stone_bridge"), RIVER_FISH_ATLAS),
@@ -24240,10 +26303,10 @@ class Session:
 
         if not q:
             await self.send("ATLAS SUROWCÓW")
-            await self.send("Działy: ryby, drewno, rudy, zioła.")
+            await self.send("Działy: ryby, drewno, rudy, geody, zioła.")
             await self.send(
-                "Atlas pokazuje teraz wymagany level narzędzia i prawdziwe miejsce występowania. "
-                "Użycie: atlas ryby, atlas rzeka, atlas drewno, atlas rudy, atlas zioła "
+                "Atlas pokazuje teraz wymagany level profesji i prawdziwe miejsce występowania. "
+                "Użycie: atlas ryby, atlas rzeka, atlas drewno, atlas rudy, atlas geody, atlas zioła "
                 "albo atlas <nazwa surowca>."
             )
             return
@@ -24261,6 +26324,8 @@ class Session:
                 await self.send_atlas_group_with_levels(
                     title, places, items, "fish", habitat, "Wędka", chunk_size=12
                 )
+            if "field_blind_sewer_eel" in ITEMS:
+                await self.send("TERENOWA RYBA: Ślepy Węgorz Kanałowy [Wędka 30+; Czarny Kanał pod Miastem Dusz].")
             await self.send(
                 "Zatopiona Grota także zawiera ryby morskie i oceaniczne; dokładna minimalna głębokość jest podawana przy atlas <nazwa ryby>."
             )
@@ -24298,6 +26363,8 @@ class Session:
                 await self.send_atlas_group_with_levels(
                     title, places, items, "wood", key, "Piła", chunk_size=12
                 )
+            if "field_ironbark_root" in ITEMS:
+                await self.send("TERENOWE DREWNO: Korzeń Żelaznokory [Piła 50+; Legowisko Bestii].")
             await self.send(
                 "Pradawny Las również korzysta z puli Głębi Gaju; wymagany ostęp zależy od levelu danego drewna."
             )
@@ -24337,9 +26404,41 @@ class Session:
                     + "; ".join(entries[index:index + chunk_size])
                     + "."
                 )
+            if "field_tomb_silver" in ITEMS:
+                await self.send("TERENOWE RUDY: Srebro Grobowe [Kilof 50+; Nekropolia]; Ruda Lodowego Kryształu [Kilof 90+; Lodowe Jaskinie].")
+            gem_rows = []
+            for definition in GEM_DEFINITIONS:
+                raw_id = f"raw_gem_{definition['key']}"
+                if raw_id in ITEMS:
+                    gem_rows.append(
+                        f"{ITEMS[raw_id]['name']} [Kilof {definition['mining_level']}+; głębokość {definition['min_floor']}+]"
+                    )
+            if gem_rows:
+                await self.send("KLEJNOTY Z GÓRNICTWA: " + "; ".join(gem_rows) + ".")
+                await self.send(
+                    "Jakość klejnotu może być Surowa, Czysta, Doskonała lub Perfekcyjna. "
+                    "Lepszy Kilof i wyższe Górnictwo zwiększają szansę wyższej jakości."
+                )
+            await self.send(
+                "Geody: Kamienna [Kilof 20+, głębokość 10+], Kryształowa [80+/60+], "
+                "Astralna [160+/150+]. Wpisz atlas geody."
+            )
             await self.send(
                 "Czysty mithril nie jest rudą w Sakwie. To rzadka waluta możliwa "
                 "od efektywnej głębokości i levelu Kilofa 80."
+            )
+            return
+
+        if q in ("geody", "geoda", "geode", "geodes"):
+            await self.send("ATLAS GEOD.")
+            for geode_id, cfg in GEODE_DEFINITIONS.items():
+                await self.send(
+                    f"{cfg['name']} [Kilof {cfg['min_tool']}+; głębokość {cfg['min_floor']}+]. "
+                    f"Może zawierać klejnoty do poziomu {cfg['max_gem_level']}."
+                )
+            await self.send(
+                "Geody są dodatkowym rzutem Górnictwa i nie zastępują rudy ani zwykłego klejnotu. "
+                "Otwieranie: open geode / otwórz geodę."
             )
             return
 
@@ -24356,6 +26455,8 @@ class Session:
                 await self.send_atlas_group_with_levels(
                     title, places, items, "herb", key, "Sierp", chunk_size=12
                 )
+            if "field_grave_moss" in ITEMS:
+                await self.send("TERENOWE ROŚLINY: Mech Nagrobny [Sierp 20+; Stary Cmentarz]; Cierń Pustki [Sierp 60+; Ruiny Kultystów].")
             dedicated = []
             for room_id, herb_id in HERB_SPECIFIC_MEADOWS.items():
                 if room_id in ROOMS and herb_id in ITEMS:
@@ -24375,14 +26476,38 @@ class Session:
             for item_id in (
                 FISH_STORAGE_IDS
                 | ORE_STORAGE_IDS
+                | MINING_STORAGE_IDS
                 | WOOD_STORAGE_IDS
                 | HERB_STORAGE_IDS
             )
         }
         found = find_by_name(resources, query)
         if not found:
+            # v0.8.75: prosta nazwa klejnotu (np. "diament") pasuje do kilku
+            # jakości naraz. W takim wypadku atlas pokazuje wariant bazowy,
+            # zamiast uznawać wyszukiwanie za niejednoznaczne. Konkretna jakość
+            # nadal działa normalnie, np. "atlas czysty diament".
+            q_lookup = normalize_lookup_text(query)
+            gem_matches = []
+            for definition in GEM_DEFINITIONS:
+                gem_names = (
+                    definition["key"],
+                    definition["raw_name"],
+                    definition["cut_name"],
+                    definition["raw_name"].replace("Surowy ", "", 1),
+                    definition["cut_name"].replace("Szlifowany ", "", 1),
+                )
+                if any(
+                    q_lookup == normalize_lookup_text(name)
+                    for name in gem_names
+                ):
+                    gem_matches.append(definition)
+            if len(gem_matches) == 1:
+                base_gem_id = f"raw_gem_{gem_matches[0]['key']}"
+                found = (base_gem_id, ITEMS[base_gem_id])
+        if not found:
             await self.send(
-                "Atlas nie rozpoznaje tego surowca. Wpisz atlas ryby, atlas drewno, atlas rudy albo atlas zioła."
+                "Atlas nie rozpoznaje tego surowca. Wpisz atlas ryby, atlas drewno, atlas rudy, atlas geody albo atlas zioła."
             )
             return
 
@@ -24398,9 +26523,31 @@ class Session:
             await self.send("Typ: drewno. Trafia na Stos drewna.")
         elif base_id in HERB_RESOURCE_IDS:
             await self.send("Typ: zioło lub roślina. Trafia do Torby Zielarskiej.")
+        elif item_id in RAW_GEM_IDS:
+            await self.send("Typ: surowy klejnot Górnictwa. Trafia do Sakwy Górnika.")
+        elif item_id in GEODE_IDS:
+            await self.send("Typ: geoda Górnictwa. Trafia do Sakwy Górnika.")
         else:
             await self.send("Typ: ruda lub minerał. Trafia do Sakwy górniczej.")
 
+        if item_id in RAW_GEM_IDS:
+            gem_key = item.get("gem_key")
+            definition = next((d for d in GEM_DEFINITIONS if d["key"] == gem_key), None)
+            if definition:
+                quality = item.get("gem_quality", "raw")
+                await self.send(
+                    f"Górnictwo: Kilof {definition['mining_level']}+; efektywna głębokość kopalni {definition['min_floor']}+. "
+                    f"Jakość: {GEM_QUALITY_INFO.get(quality, GEM_QUALITY_INFO['raw'])['label']}. "
+                    "Klejnot jest dodatkowym znaleziskiem obok normalnej rudy i trafia do Sakwy Górnika."
+                )
+                return
+        if item_id in GEODE_IDS:
+            cfg = GEODE_DEFINITIONS[item_id]
+            await self.send(
+                f"Górnictwo: Kilof {cfg['min_tool']}+; efektywna głębokość {cfg['min_floor']}+. "
+                "Geoda jest dodatkowym znaleziskiem. Otwórz ją przez open geode / otwórz geodę."
+            )
+            return
         rows = self.atlas_resource_requirement_rows(base_id)
         if rows:
             tool, minimum = self.atlas_resource_min_level(base_id)
@@ -24462,6 +26609,133 @@ class Session:
                 )
                 + "."
             )
+
+    def bestiary_spawn_room_ids(self, mob_template_id):
+        base_id = canonical_bestiary_template_id(mob_template_id)
+        return tuple(sorted(BESTIARY_SPAWN_ROOMS.get(base_id, ())))
+
+    def bestiary_drop_lines(self, mob_template_id):
+        base_id = canonical_bestiary_template_id(mob_template_id)
+        template = MOB_TEMPLATES.get(base_id, {})
+        result = []
+        key_id = boss_key_for_template(template)
+        if key_id and key_id in ITEMS:
+            result.append(f"{ITEMS[key_id]['name']} — gwarantowany w ciele")
+        for item_id, chance in sorted(
+            (template.get("drops") or {}).items(),
+            key=lambda row: normalize_lookup_text(ITEMS.get(row[0], {"name": row[0]}).get("name", row[0])),
+        ):
+            name = ITEMS.get(item_id, {"name": item_id}).get("name", item_id)
+            result.append(f"{name} — około {float(chance) * 100:.1f}%")
+        return result
+
+    async def show_bestiary(self, args=""):
+        raw = str(args or "").strip()
+        norm = normalize_lookup_text(raw)
+        rows = self.server.db.bestiary_rows(self.account_id)
+        known_ids = {str(row["mob_template_id"]) for row in rows}
+        total_kills = sum(int(row["kills"]) for row in rows)
+        total_entries = len(BESTIARY_CATALOG)
+        unlocked = len(known_ids.intersection(BESTIARY_CATALOG))
+        pct = int(unlocked * 100 / max(1, total_entries))
+
+        if not raw:
+            await self.send(
+                f"BESTIARIUSZ: {unlocked} z {total_entries} gatunków, {pct}%. "
+                f"Łączne zaliczone zabicia: {total_kills}."
+            )
+            await self.send(
+                "Pierwsze zabicie odblokowuje wpis. Elite i proceduralne Rare liczą się do bazowego gatunku, więc Bestiariusz nie wymaga tysięcy kopii affixów."
+            )
+            await self.send(
+                "Komendy: bestiariusz lista / bestiary list; bestiariusz rekordy / bestiary records; bestiariusz <mob> / bestiary <mob>."
+            )
+            return
+
+        if norm in ("lista", "list", "odkryte", "unlocked"):
+            if not rows:
+                await self.send("Bestiariusz jest pusty. Pokonaj pierwszego przeciwnika, aby odblokować wpis.")
+                return
+            entries = []
+            for row in rows:
+                mob_id = str(row["mob_template_id"])
+                if mob_id not in BESTIARY_CATALOG:
+                    continue
+                entries.append((BESTIARY_CATALOG[mob_id], int(row["kills"])))
+            entries.sort(key=lambda x: normalize_lookup_text(x[0]))
+            await self.send(f"ODKRYTE WPISY BESTIARIUSZA: {len(entries)}.")
+            chunk = []
+            for name, kills in entries:
+                chunk.append(f"{name} ({kills})")
+                if len(chunk) >= 18:
+                    await self.send(", ".join(chunk) + ".")
+                    chunk = []
+            if chunk:
+                await self.send(", ".join(chunk) + ".")
+            return
+
+        if norm in ("rekordy", "records", "record", "czasy", "times"):
+            timed = [row for row in rows if row["fastest_kill_ms"] is not None and str(row["mob_template_id"]) in BESTIARY_CATALOG]
+            timed.sort(key=lambda row: int(row["fastest_kill_ms"]))
+            if not timed:
+                await self.send("Nie masz jeszcze zapisanych rekordów czasu zabicia.")
+                return
+            await self.send("NAJLEPSZE CZASY BESTIARIUSZA:")
+            for index, row in enumerate(timed[:20], 1):
+                mob_id = str(row["mob_template_id"])
+                await self.send(
+                    f"{index}. {BESTIARY_CATALOG[mob_id]}: {int(row['fastest_kill_ms']) / 1000.0:.2f} s; zabicia {int(row['kills'])}."
+                )
+            return
+
+        unlocked_mapping = {
+            mob_id: MOB_TEMPLATES[mob_id]
+            for mob_id in known_ids
+            if mob_id in MOB_TEMPLATES
+        }
+        found = find_by_name(unlocked_mapping, raw)
+        if not found:
+            # Distinguish an unknown name from a real but not-yet-killed creature
+            all_found = find_by_name(
+                {mob_id: MOB_TEMPLATES[mob_id] for mob_id in BESTIARY_CATALOG}, raw
+            )
+            if all_found:
+                await self.send("Ten wpis Bestiariusza jest jeszcze nieodkryty. Najpierw pokonaj tego przeciwnika.")
+            else:
+                await self.send("Bestiariusz nie rozpoznaje takiego przeciwnika.")
+            return
+
+        mob_id, template = found
+        row = self.server.db.bestiary_entry(self.account_id, mob_id)
+        if not row:
+            await self.send("Ten wpis Bestiariusza jest jeszcze nieodkryty.")
+            return
+        kind = "boss" if (mob_id in BOSS_COLLECTION_CATALOG or v0863_is_boss_template(template)) else ("mini-boss" if template.get("mini_boss") else "zwykły przeciwnik")
+        await self.send(f"BESTIARIUSZ: {template['name']}. Typ: {kind}.")
+        fastest = row["fastest_kill_ms"]
+        fastest_text = f"{int(fastest) / 1000.0:.2f} s" if fastest is not None else "brak zapisanego czasu"
+        await self.send(f"Zabicia: {int(row['kills'])}. Rekord pokonania: {fastest_text}.")
+        dtype = "magiczne" if template.get("damage_type") == "magic" else "fizyczne"
+        await self.send(
+            f"HP: {int(template.get('max_hp', 0))}. Bazowe obrażenia: {int(template.get('damage', 0))}. "
+            f"Typ ataku: {dtype}. Odporności: {bestiary_resistance_text(template)}."
+        )
+        room_ids = self.bestiary_spawn_room_ids(mob_id)
+        if room_ids:
+            zones = sorted({ROOMS[rid]["zone"] for rid in room_ids if rid in ROOMS}, key=normalize_lookup_text)
+            names = sorted({ROOMS[rid]["name"] for rid in room_ids if rid in ROOMS}, key=normalize_lookup_text)
+            await self.send("Regiony występowania: " + ", ".join(zones) + ".")
+            if len(names) <= 12:
+                await self.send("Lokacje: " + ", ".join(names) + ".")
+            else:
+                await self.send("Lokacje: " + ", ".join(names[:12]) + f"; oraz {len(names) - 12} dalszych.")
+        drops = self.bestiary_drop_lines(mob_id)
+        if drops:
+            await self.send("Dropy: " + "; ".join(drops) + ".")
+        else:
+            await self.send("Dropy specjalne: brak stałych wpisów; nadal może wystąpić materiałowe EQ z ciała zgodnie z siłą przeciwnika.")
+        if template.get("boss_mechanic_text"):
+            await self.send("Mechanika: " + str(template["boss_mechanic_text"]))
 
     async def show_world_codex(self, query=""):
         q = self.normalize_description_query(query)
@@ -24692,7 +26966,7 @@ class Session:
             await self.send(
                 f"Nagrody: Soul XP {mob.get('soul_reward', 0)}, "
                 f"Class XP {mob.get('class_xp_reward', max(50, int(mob.get('stat_reward', 0)) * 10))}, "
-                f"Rozwój statystyk +{mob.get('stat_reward', 0)}."
+                f"Bazowy EXP każdej statystyki +{mob.get('stat_reward', 0)}."
             )
             rooms = sorted({
                 ROOMS[room_id]["name"]
@@ -24784,7 +27058,7 @@ class Session:
                 + currency_reading_text(
                     mob.get("silver", 0), mob.get("gold", 0), mob.get("mithril", 0)
                 )
-                + f"; Rozwój statystyk +{mob.get('stat_reward',0)}; "
+                + f"; bazowy EXP każdej statystyki +{mob.get('stat_reward',0)}; "
                 + f"Soul XP +{mob.get('soul_reward',0)}."
             )
             drops = []
@@ -24814,7 +27088,7 @@ class Session:
             )
             rewards = []
             if quest.get("reward_stat_progress"):
-                rewards.append(f"{quest['reward_stat_progress']} EXP rozwoju")
+                rewards.append(f"{quest['reward_stat_progress']} EXP każdej statystyki")
             if quest.get("reward_profession_xp"):
                 rewards.append(
                     f"{quest['reward_profession_xp']} XP profesji {quest.get('reward_profession','')}"
@@ -24979,12 +27253,24 @@ class Session:
             await self.send(f"Rasa: {c.race}.")
             await self.send(f"Klasa główna: {c.class_name}.")
             await self.send(f"Aktywne klasy: {', '.join(active_classes)}.")
-            await self.send(f"Siła: {self.effective_strength()}.")
-            await self.send(f"Zręczność: {self.effective_dexterity()}.")
-            await self.send(f"Kondycja: {self.effective_constitution()}.")
-            await self.send(f"Inteligencja: {self.effective_intelligence()}.")
-            await self.send(f"Siła Woli: {self.effective_willpower()}.")
-            await self.send(f"Charyzma: {c.charisma}.")
+            stat_values = (
+                ("strength", "Siła", c.strength, self.effective_strength()),
+                ("dexterity", "Zręczność", c.dexterity, self.effective_dexterity()),
+                ("constitution", "Kondycja", c.constitution, self.effective_constitution()),
+                ("intelligence", "Inteligencja", c.intelligence, self.effective_intelligence()),
+                ("willpower", "Siła Woli", c.willpower, self.effective_willpower()),
+                ("charisma", "Charyzma", c.charisma, c.charisma),
+            )
+            for stat_key, label, base_value, effective_value in stat_values:
+                effective_text = (
+                    f" Efektywna {effective_value}."
+                    if effective_value != base_value else ""
+                )
+                await self.send(
+                    f"{label}: {base_value} — {stat_quality_label(base_value)}."
+                    f"{effective_text} EXP {c.stat_progress_for(stat_key)} z "
+                    f"{c.stat_growth_threshold_for(stat_key)}."
+                )
             await self.send(f"HP: {self.current_hp} z {self.max_hp()}.")
             await self.send(f"Mana: {self.current_mana} z {self.max_mana()}.")
             await self.send(f"Obrona fizyczna: {self.defense()}.")
@@ -24993,28 +27279,30 @@ class Session:
             await self.send(f"Moc czarów: {self.spell_power() if self.max_mana() > 0 else 0}.")
             await self.send(f"Unik: {int(self.dodge_chance() * 100)} procent.")
             await self.send(f"Krytyk: {int(round(self.critical_chance() * 100))} procent.")
-            await self.send(f"Rozwój statystyk: {c.stat_progress} z {STAT_GROWTH_THRESHOLD}.")
+            await self.send("Każda statystyka ma własny, niezależny licznik EXP.")
             await self.send("Wpisz staty info po pełne szczegóły albo help staty po pomoc.")
             return
 
         await self.send("STATY INFO")
-        await self.send("Soulbound nie ma levelu ani XP postaci.")
-        await self.send(
-            f"Postęp Rozwoju: {c.stat_progress} z {STAT_GROWTH_THRESHOLD}. "
-            "Pełny próg zwiększa wszystkie sześć bazowych statystyk o 1."
-        )
+        await self.send("Soulbound nie ma levelu ani XP postaci. Każda statystyka rozwija się osobno.")
         stat_rows = (
-            ("Siła", c.strength, self.effective_strength(), bonuses["strength"]),
-            ("Zręczność", c.dexterity, self.effective_dexterity(), bonuses["dexterity"]),
-            ("Kondycja", c.constitution, self.effective_constitution(), bonuses["constitution"]),
-            ("Inteligencja", c.intelligence, self.effective_intelligence(), bonuses["intelligence"]),
-            ("Siła Woli", c.willpower, self.effective_willpower(), bonuses["willpower"]),
+            ("strength", "Siła", c.strength, self.effective_strength(), bonuses["strength"]),
+            ("dexterity", "Zręczność", c.dexterity, self.effective_dexterity(), bonuses["dexterity"]),
+            ("constitution", "Kondycja", c.constitution, self.effective_constitution(), bonuses["constitution"]),
+            ("intelligence", "Inteligencja", c.intelligence, self.effective_intelligence(), bonuses["intelligence"]),
+            ("willpower", "Siła Woli", c.willpower, self.effective_willpower(), bonuses["willpower"]),
+            ("charisma", "Charyzma", c.charisma, c.charisma, 0),
         )
-        for label, base, effective, gear_bonus in stat_rows:
+        for stat_key, label, base, effective, gear_bonus in stat_rows:
+            await self.send(f"{label}: baza {base} — {stat_quality_label(base)}.")
+            if stat_key != "charisma":
+                await self.send(f"{label}: efektywna {effective}. Bonus EQ i klejnotów +{gear_bonus}.")
+            else:
+                await self.send(f"{label}: efektywna {effective}.")
             await self.send(
-                f"{label}: baza {base}. Efektywna {effective}. Bonus EQ i klejnotów +{gear_bonus}."
+                f"{label}: EXP {c.stat_progress_for(stat_key)} z "
+                f"{c.stat_growth_threshold_for(stat_key)} do następnego wzrostu."
             )
-        await self.send(f"Charyzma: baza {c.charisma}. Efektywna {c.charisma}.")
         await self.send(f"HP: {self.current_hp} z {self.max_hp()}. Bonus EQ +{bonuses['hp']}.")
         await self.send(f"Mana: {self.current_mana} z {self.max_mana()}. Bonus EQ +{bonuses['mana']}.")
         await self.send(f"Obrona fizyczna: {self.defense()}.")
@@ -25048,8 +27336,12 @@ class Session:
         name = SOUL_MILESTONE_NAMES[tier]
         c = self.character
         if c.class_name == "Łotrzyk":
-            amount = int(round(SOUL_MILESTONE_DODGE_BONUS[tier] * 100))
-            effect = f"dodatkowy unik +{amount} punkty procentowe"
+            damage = c.soul_weapon_rogue_damage_bonus_percent()
+            dodge = int(round(c.soul_weapon_dodge_bonus() * 100))
+            effect = (
+                f"specjalizacja Łotrzyka: obrażenia fizyczne Broni Duszy "
+                f"+{damage} procent, unik z Broni Duszy +{dodge} pp"
+            )
         elif c.class_name == "Strażnik":
             amount = SOUL_MILESTONE_GUARDIAN_REDUCTION[tier]
             effect = f"dodatkowa redukcja obrażeń +{amount} procent"
@@ -25219,9 +27511,13 @@ class Session:
             await self.send(f"Najpierw zdaj egzamin Soul {GUILD_EXAM_THRESHOLDS[idx-1]}.")
             return
 
-        # Cost provides an economy sink but is lower than high-end skill training.
-        gold_cost = {50: 1, 100: 3, 150: 8, 200: 20}[threshold]
-        total_silver_cost = gold_cost * SILVER_PER_GOLD
+        # v0.8.61: koszt egzaminu skaluje się z nową ekonomią jednego salda.
+        total_silver_cost = {
+            50: 100_000,       # 100 złota
+            100: 2_000_000,    # 2 000 złota
+            150: 50_000_000,   # 50 000 złota
+            200: 250_000_000,  # 250 000 złota
+        }[threshold]
         if not self.pay_training_cost(total_silver_cost):
             await self.send(f"Egzamin Soul {threshold} kosztuje " + currency_reading_text(total_silver_cost, 0, 0) + ". Nie masz wystarczającej ilości pieniędzy.")
             return
@@ -25320,7 +27616,7 @@ class Session:
             await self.send(f"Moc Broni Duszy: {c.soul_power()}.")
             if c.soul_level < SOUL_MAX_LEVEL:
                 await self.send(f"Soul XP: {c.soul_xp} z {c.soul_xp_to_next()}.")
-                await self.send(f"Mnożnik wymaganego Soul XP: x{c.soul_xp_multiplier()}.")
+                await self.send(f"Mnożnik wymaganego Soul XP: x{c.soul_xp_multiplier():.2f}.")
             else:
                 await self.send("Soul XP: maksimum.")
             await self.send(f"Bonus klasowy: {c.soul_weapon_class_bonus_text()}.")
@@ -25337,7 +27633,7 @@ class Session:
         await self.send(f"Moc Broni Duszy: {c.soul_power()}.")
         if c.soul_level < SOUL_MAX_LEVEL:
             await self.send(f"Soul XP: {c.soul_xp} z {c.soul_xp_to_next()}.")
-            await self.send(f"Mnożnik wymaganego Soul XP: x{c.soul_xp_multiplier()}.")
+            await self.send(f"Mnożnik wymaganego Soul XP: x{c.soul_xp_multiplier():.2f}.")
         else:
             await self.send("Soul XP: maksimum. Soul Level 200.")
         await self.send(f"Bonus klasowy Broni Duszy: {c.soul_weapon_class_bonus_text()}.")
@@ -25655,12 +27951,205 @@ class Session:
                 "Najpierw pokonaj bossa."
             )
             return
+        # v0.8.66: dostępne ostrzeżenie przed ostrym skokiem trudności.
+        # Nie blokuje wejścia; jedynie informuje gracza przed wykonaniem kroku.
+        current_profile = v0866_room_threat_profile(
+            self.character.room_id, fallback=1
+        )
+        target_profile = v0866_room_threat_profile(target, fallback=1)
+        current_danger = max(
+            int(current_profile.get("target") or 1),
+            int(current_profile.get("boss_max") or 0),
+        )
+        target_danger = max(
+            int(target_profile.get("target") or 1),
+            int(target_profile.get("boss_max") or 0),
+        )
+        player_power = self.character_progression_power()
+        if (
+            target_danger - current_danger >= 25
+            and target_danger - player_power >= 20
+        ):
+            await self.send(
+                f"UWAGA: przed tobą gwałtowny wzrost zagrożenia. "
+                f"Docelowy poziom około {target_danger}/200, "
+                f"twoja siła około {player_power}/200. "
+                f"Ocena: {v0866_threat_label(target_danger, player_power)}."
+            )
+
         await self.walk_room_transition(
             direction, target, guided=False, show_room=True
         )
 
     def party_key(self):
         return self.server.party_key_for_account(self.account_id)
+
+    def clean_party_player_argument(self, value, relation=None):
+        """Usuń naturalne końcówki typu `do drużyny` / `z drużyny`."""
+        raw = str(value or "").strip()
+        if not raw:
+            return ""
+        parts = raw.split()
+        normalized = [self.normalize_description_query(part) for part in parts]
+        endings = []
+        if relation == "to":
+            endings = [("do", "druzyny"), ("do", "party")]
+        elif relation == "from":
+            endings = [("z", "druzyny"), ("z", "party")]
+        else:
+            endings = [
+                ("do", "druzyny"), ("do", "party"),
+                ("z", "druzyny"), ("z", "party"),
+            ]
+        if len(parts) >= 2 and tuple(normalized[-2:]) in endings:
+            raw = " ".join(parts[:-2]).strip()
+        return raw
+
+    async def create_party(self):
+        key = self.party_key()
+        if key is not None:
+            await self.send("Już należysz do drużyny.")
+            await self.show_party()
+            return False
+        self.server.parties[self.account_id] = {self.account_id}
+        await self.send(
+            f"Zakładasz drużynę. Jesteś liderem. "
+            f"Limit: {self.character.party_capacity()} osób."
+        )
+        return True
+
+    async def transfer_party_leader(self, name):
+        key = self.party_key()
+        if key is None:
+            await self.send("Nie należysz do drużyny.")
+            return False
+        if key != self.account_id:
+            await self.send("Tylko lider może przekazać dowodzenie drużyną.")
+            return False
+
+        target_name = self.clean_party_player_argument(name)
+        if not target_name:
+            await self.send("Użycie: lider <gracz>.")
+            return False
+        target = self.server.find_character_session(target_name)
+        members = self.server.parties.get(key, set())
+        if not target or target.account_id not in members:
+            await self.send("Nie ma takiego członka w twojej drużynie.")
+            return False
+        if target is self:
+            await self.send("Już jesteś liderem drużyny.")
+            return False
+
+        protector_id = self.server.party_protectors.pop(key, None)
+        self.server.parties.pop(key, None)
+        self.server.parties[target.account_id] = set(members)
+        if protector_id in members:
+            self.server.party_protectors[target.account_id] = protector_id
+
+        for invited_id, leader_id in list(self.server.party_invites.items()):
+            if leader_id == key:
+                self.server.party_invites[invited_id] = target.account_id
+
+        await self.server.party_broadcast(
+            target.account_id,
+            f"{target.character.name} zostaje nowym liderem drużyny."
+        )
+        return True
+
+    async def stop_party_protection(self, announce=True):
+        key = self.party_key()
+        if key is None:
+            # Przy wyjściu/rozłączeniu klucz może już nie istnieć; usuń po wartości.
+            removed = self.server.clear_party_protector_for_account(self.account_id)
+            if announce and removed:
+                await self.send("Wyłączasz osłonę drużyny.")
+            return bool(removed)
+
+        if self.server.party_protectors.get(key) != self.account_id:
+            if announce:
+                protector = self.server.party_protector_session(self.account_id)
+                if protector:
+                    await self.send(
+                        f"Osłonę drużyny utrzymuje {protector.character.name}."
+                    )
+                else:
+                    await self.send("Osłona drużyny nie jest aktywna.")
+            return False
+
+        self.server.party_protectors.pop(key, None)
+
+        # Jeżeli tank wyłącza osłonę w trwającym starciu, oddaj aggro innemu
+        # członkowi drużyny walczącemu z tym samym przeciwnikiem.
+        for mob in self.server.world.mobs.values():
+            if not mob.alive or mob.engaged_by != self.character.name:
+                continue
+            candidates = [
+                session for session in self.server.party_sessions(
+                    self.account_id, same_room=mob.room_id
+                )
+                if session is not self and session.combat_mob_key == mob.key
+            ]
+            if candidates:
+                mob.engaged_by = sorted(
+                    candidates, key=lambda session: session.character.name.lower()
+                )[0].character.name
+
+        if announce:
+            await self.server.party_broadcast(
+                self.account_id,
+                f"{self.character.name} przestaje zasłaniać drużynę."
+            )
+        return True
+
+    async def protect_party(self, args=""):
+        mode = self.normalize_description_query(str(args or "").strip())
+        if mode in ("off", "stop", "wylacz", "koniec", "0", "nie"):
+            return await self.stop_party_protection(announce=True)
+
+        key = self.party_key()
+        if key is None:
+            await self.send(
+                "Najpierw załóż drużynę: załóż drużynę / zaloz druzyne."
+            )
+            return False
+        if not self.character.has_active_class("Strażnik"):
+            await self.send(
+                "Zasłoń jest drużynową mechaniką tanka i wymaga aktywnej klasy Strażnik."
+            )
+            return False
+
+        old = self.server.party_protector_session(self.account_id)
+        if old is self:
+            await self.send(
+                "Już zasłaniasz drużynę. Użyj zasłoń off, aby wyłączyć osłonę."
+            )
+        else:
+            self.server.party_protectors[key] = self.account_id
+            await self.server.party_broadcast(
+                self.account_id,
+                f"{self.character.name} jako Strażnik zasłania całą drużynę i przejmuje aggro wspólnego przeciwnika."
+            )
+
+        # Jeśli drużyna już walczy z jednym wspólnym celem, wolny tank od razu
+        # dołącza do tego starcia i przejmuje jego aggro.
+        if not self.combat_mob_key:
+            shared = []
+            for session in self.server.party_sessions(
+                self.account_id, same_room=self.character.room_id
+            ):
+                if session is self or not session.combat_mob_key:
+                    continue
+                mob = self.server.world.mobs.get(session.combat_mob_key)
+                if mob and mob.alive and mob.room_id == self.character.room_id:
+                    shared.append(mob)
+            if shared:
+                shared.sort(key=lambda mob: mob.key)
+                await self.server.apply_party_protection(self, shared[0])
+        elif self.combat_mob_key:
+            mob = self.server.world.mobs.get(self.combat_mob_key)
+            if mob and mob.alive and mob.room_id == self.character.room_id:
+                await self.server.apply_party_protection(self, mob)
+        return True
 
     async def show_party(self):
         key = self.party_key()
@@ -25686,6 +28175,13 @@ class Session:
             f"DRUŻYNA. Lider: {leader_name}. "
             f"Członkowie: {len(members)} z {capacity}."
         )
+        protector = self.server.party_protector_session(self.account_id)
+        if protector:
+            await self.send(
+                f"Osłona drużyny: aktywna. Tank: {protector.character.name}."
+            )
+        else:
+            await self.send("Osłona drużyny: wyłączona.")
         for number, session in enumerate(members, 1):
             marker = " Lider." if session.account_id == key else ""
             await self.send(
@@ -25699,6 +28195,11 @@ class Session:
             if announce:
                 await self.send("Nie należysz do drużyny.")
             return False
+
+        protector_id = self.server.party_protectors.get(key)
+        if protector_id == self.account_id:
+            await self.stop_party_protection(announce=False)
+            protector_id = None
 
         members = self.server.parties.get(key, set())
         members.discard(self.account_id)
@@ -25717,14 +28218,24 @@ class Session:
                     )[0]
                     self.server.parties[new_leader.account_id] = set(members)
                     self.server.parties.pop(key, None)
+                    if protector_id in members:
+                        self.server.party_protectors.pop(key, None)
+                        self.server.party_protectors[new_leader.account_id] = protector_id
+                    else:
+                        self.server.party_protectors.pop(key, None)
+                    for invited_id, leader_id in list(self.server.party_invites.items()):
+                        if leader_id == key:
+                            self.server.party_invites[invited_id] = new_leader.account_id
                     await self.server.party_broadcast(
                         new_leader.account_id,
                         f"{new_leader.character.name} zostaje nowym liderem drużyny."
                     )
                 else:
                     self.server.parties.pop(key, None)
+                    self.server.party_protectors.pop(key, None)
             else:
                 self.server.parties.pop(key, None)
+                self.server.party_protectors.pop(key, None)
         else:
             self.server.parties[key] = members
             await self.server.party_broadcast(
@@ -25758,11 +28269,16 @@ class Session:
                     "Drużyna została rozwiązana przez lidera."
                 )
         self.server.parties.pop(key, None)
+        self.server.party_protectors.pop(key, None)
         for target_id, leader_id in list(self.server.party_invites.items()):
             if leader_id == key:
                 self.server.party_invites.pop(target_id, None)
 
     async def party_invite(self, name):
+        name = self.clean_party_player_argument(name, relation="to")
+        if not name:
+            await self.send("Użycie: zaproś <gracz> [do drużyny].")
+            return
         target = self.server.find_character_session(name.strip())
         if not target:
             await self.send("Ten gracz nie jest online.")
@@ -25792,7 +28308,7 @@ class Session:
         self.server.party_invites[target.account_id] = key
         await target.send(
             f"{self.character.name} zaprasza cię do drużyny. "
-            f"Wpisz druzyna dolacz albo druzyna odrzuc."
+            f"Wpisz dołącz / dolacz albo odrzuć / odrzuc."
         )
         await self.send(
             f"Zapraszasz {target.character.name} do drużyny."
@@ -25841,6 +28357,7 @@ class Session:
         await self.send("Odrzucasz zaproszenie do drużyny.")
 
     async def party_kick(self, name):
+        name = self.clean_party_player_argument(name, relation="from")
         key = self.party_key()
         if key is None:
             await self.send("Nie należysz do drużyny.")
@@ -25858,6 +28375,9 @@ class Session:
                 "Lider używa druzyna opusc albo druzyna rozwiaz."
             )
             return
+
+        if self.server.party_protectors.get(key) == target.account_id:
+            await target.stop_party_protection(announce=False)
 
         self.server.parties[key].discard(target.account_id)
         await target.send(
@@ -25982,6 +28502,7 @@ class Session:
             return False
 
         self.combat_mob_key = mob.key
+        await self.server.apply_party_protection(self, mob)
 
         mob_name = MOB_TEMPLATES[
             mob.template_id
@@ -26013,6 +28534,8 @@ class Session:
 
         if action in ("status", "lista", "list", "sklad"):
             await self.show_party()
+        elif action in ("zaloz", "utworz", "stworz", "create"):
+            await self.create_party()
         elif action in ("zapros", "invite"):
             if not value:
                 await self.send("Użycie: druzyna zapros <gracz>.")
@@ -26031,6 +28554,10 @@ class Session:
                 await self.party_kick(value)
         elif action in ("rozwiaz", "disband"):
             await self.disband_party()
+        elif action in ("lider", "leader", "przekaz"):
+            await self.transfer_party_leader(value)
+        elif action in ("zaslon", "oslon", "protect"):
+            await self.protect_party(value)
         elif action in ("wspieraj", "assist", "pomagaj"):
             if not value:
                 await self.send(
@@ -26048,9 +28575,9 @@ class Session:
             )
         else:
             await self.send(
-                "Drużyna: status, zapros <gracz>, dolacz, odrzuc, "
-                "opusc, wyrzuc <gracz>, rozwiaz, wspieraj <gracz>, "
-                "limit. Czat: pc <tekst>."
+                "Drużyna: zaloz, status, zapros <gracz>, dolacz, odrzuc, "
+                "opusc, wyrzuc <gracz>, rozwiaz, lider <gracz>, "
+                "zaslon [off], wspieraj <gracz>, limit. Czat: pc <tekst>."
             )
 
     def character_progression_power(self):
@@ -26093,7 +28620,7 @@ class Session:
         return max(1, min(200, int(round(score))))
 
     def exp_area_target_power(self, area, room_id=None):
-        target = int(
+        static_target = int(
             EXP_AREA_TARGET_POWER.get(
                 area.get("id"),
                 max(1, int(area.get("soul_min", 1))),
@@ -26101,45 +28628,48 @@ class Session:
         )
         room_id = room_id or ""
 
-        # Wielopiętrowe dungeony naprawdę skalują się wraz z głębokością.
-        floor = crypt_floor_number(room_id)
-        if area.get("id") == "krypta" and floor is not None:
-            return max(target, min(200, int(floor)))
+        # v0.8.66: jeśli konkretny pokój ma spawny, realne moby mają
+        # pierwszeństwo przed szeroką etykietą biomu. Naprawia to m.in.
+        # Pradawny Szlak Bestii / Otchłań Trolli / Grobowiec Słońca.
+        if room_id:
+            profile = v0866_room_threat_profile(room_id, fallback=static_target)
+            if profile["normal_count"] or profile["variant_count"] or profile["boss_count"]:
+                return max(1, min(200, int(profile["target"])))
 
-        floor = astral_floor_number(room_id)
-        if area.get("id") == "astral" and floor is not None:
-            return max(target, min(200, int(floor)))
+        # v0.8.66: dla listy expowisk bez konkretnego pokoju bierzemy
+        # realny próg wejściowy z lokacji wskazanych przez guide. Dzięki temu
+        # szeroka strefa z endgame odnogą (np. Dzicz) nie udaje w całości
+        # poziomu 200, ale też Kanały/Cmentarz nie są zaniżane starą etykietą.
+        guide = str(area.get("guide", "") or "").strip()
+        if guide:
+            matches = self.find_room_matches(guide)
+            direct_targets = []
+            zones = set()
+            for target_room in matches:
+                room = ROOMS.get(target_room, {})
+                if room.get("zone"):
+                    zones.add(room.get("zone"))
+                profile = v0866_room_threat_profile(
+                    target_room, fallback=static_target
+                )
+                if profile["normal_count"] or profile["variant_count"]:
+                    direct_targets.append(int(profile["target"]))
+            if direct_targets:
+                return max(1, min(200, min(direct_targets)))
+            zone_entries = []
+            for zone in zones:
+                profile = v0866_zone_threat_profile(zone)
+                if profile.get("min") is not None:
+                    zone_entries.append(int(profile["min"]))
+            if zone_entries:
+                return max(1, min(200, min(zone_entries)))
 
-        floor = mythic_crypt_floor_number(room_id)
-        if area.get("id") == "mythic_crypt" and floor is not None:
-            return min(200, max(target, 100 + int(floor) // 2))
-
-        floor = mythic_astral_floor_number(room_id)
-        if area.get("id") == "mythic_astral" and floor is not None:
-            return min(200, max(target, 120 + int(floor) * 2 // 5))
-
-        floor = giant_fortress_floor_number(room_id)
-        if area.get("id") == "giganci" and floor is not None:
-            return min(200, max(target, 45 + int(floor) * 3 // 2))
-
-        return target
+        return max(1, min(200, static_target))
 
     def exp_area_dynamic_threat(self, area, room_id=None):
         power = self.character_progression_power()
         target = self.exp_area_target_power(area, room_id=room_id)
-        delta = target - power
-        if delta <= -40:
-            label = "Trywialny"
-        elif delta <= -15:
-            label = "Łatwy"
-        elif delta <= 10:
-            label = "Odpowiedni"
-        elif delta <= 30:
-            label = "Trudny"
-        elif delta <= 60:
-            label = "Śmiertelny"
-        else:
-            label = "Ekstremalny"
+        label = v0866_threat_label(target, power)
         return label, target, power
 
     def exp_area_recommended(self, area):
@@ -26158,69 +28688,37 @@ class Session:
         return next((a for a in EXP_AREAS if a.get("id") == area_id), None)
 
     def dynamic_kill_xp_profile(self, template, room_id=None):
-        """Skaluje mob EXP do aktualnej siły postaci bez Character XP/levelu."""
-        area = self.exp_area_for_room(room_id)
-        if area:
-            dynamic, target, power = self.exp_area_dynamic_threat(
-                area, room_id=room_id or self.character.room_id
-            )
-            key = dynamic.lower()
-            multiplier = {
-                "trywialny": 0.30,
-                "łatwy": 0.60,
-                "odpowiedni": 1.00,
-                "trudny": 1.25,
-                "śmiertelny": 1.55,
-                "ekstremalny": 1.90,
-            }[key]
-            return {
-                "label": key,
-                "multiplier": multiplier,
-                "area": area.get("name"),
-                "target": target,
-                "power": power,
-            }
+        """Skaluje Soul/Class XP do faktycznej siły konkretnego moba.
 
-        player_hit = max(1.0, self.consider_player_expected_hit())
-        enemy_hit = max(1.0, self.consider_enemy_expected_hit(template))
-        mob_hp = max(1.0, float(template.get("max_hp", 1)))
-        player_hp = max(1.0, float(self.max_hp()))
-        turns_to_kill = mob_hp / player_hit
-        turns_to_die = player_hp / enemy_hit
-        ratio = turns_to_die / max(0.01, turns_to_kill)
-
-        if template.get("boss_mechanic"):
-            ratio *= 0.82
-        if (
-            template.get("crypt_boss")
-            or template.get("astral_boss")
-            or template.get("mythic_crypt_boss")
-            or template.get("mythic_astral_boss")
-        ):
-            ratio *= 0.90
-        if template.get("world_boss"):
-            ratio *= 0.90
-
-        if ratio >= 3.0:
+        v0.8.66: nazwa strefy nie może już zawyżać/zaniżać EXP. Przeciwnik
+        endgame stojący w zwykłej Dziczy jest oceniany jako endgame, a słabszy
+        mob na wczesnym piętrze Krypty nie dostaje bonusu tylko dlatego, że
+        cały dungeon ma etykietę 'Trudny'.
+        """
+        power = self.character_progression_power()
+        target = v0866_mob_progression_power(template)
+        delta = int(target) - int(power)
+        if delta <= -40:
             key = "trywialny"
-        elif ratio >= 1.9:
+        elif delta <= -15:
             key = "łatwy"
-        elif ratio >= 1.25:
+        elif delta <= -5:
             key = "korzystny"
-        elif ratio >= 0.80:
+        elif delta <= 10:
             key = "odpowiedni"
-        elif ratio >= 0.50:
+        elif delta <= 30:
             key = "trudny"
-        elif ratio >= 0.28:
+        elif delta <= 60:
             key = "śmiertelny"
         else:
             key = "ekstremalny"
+        area = self.exp_area_for_room(room_id)
         return {
             "label": key,
             "multiplier": float(DYNAMIC_KILL_XP_MULTIPLIERS[key]),
-            "area": None,
-            "target": None,
-            "power": self.character_progression_power(),
+            "area": area.get("name") if area else None,
+            "target": target,
+            "power": power,
         }
 
     def find_exp_area(self, query):
@@ -26436,6 +28934,18 @@ class Session:
 
         await self.send(f"TEREN INFO: {zone}")
         await self.send(f"Lokacje w strefie: {len(room_ids)}.")
+        balance_profile = v0866_zone_threat_profile(zone)
+        if balance_profile.get("median") is not None:
+            await self.send(
+                f"Realna siła zwykłych części terenu: od {balance_profile['min']} "
+                f"do {balance_profile['max']} na skali 1-200. "
+                f"Mediana {balance_profile['median']}, górne 20 procent około {balance_profile['p80']}."
+            )
+        if balance_profile.get("boss_max") is not None:
+            await self.send(
+                f"Bossowie tej strefy: orientacyjna siła od {balance_profile['boss_min']} "
+                f"do {balance_profile['boss_max']} na skali 1-200."
+            )
         if areas:
             soul_min = min(int(area["soul_min"]) for area in areas)
             soul_max = max(int(area["soul_max"]) for area in areas)
@@ -26698,17 +29208,29 @@ class Session:
             f"{c.charisma_to_next_party_slot()} Charyzmy."
         )
         await self.send(
-            "Charyzma jest szóstą normalną statystyką i rośnie razem z pozostałymi "
-            "przez Postęp Rozwoju. Udana sprzedaż surowca może dodatkowo zwiększyć Charyzmę."
+            "Charyzma jest szóstą normalną statystyką i ma własny niezależny EXP oraz próg. "
+            "Udana sprzedaż przyznaje dodatkowy EXP Charyzmy zależny od wartości transakcji."
         )
 
-    async def gain_charisma_from_sale(self):
+    def charisma_sale_xp(self, sale_value_silver, units=1):
+        """EXP Charyzmy za handel bez możliwości pompowania tanim spamem.
+
+        Wartość transakcji ma znaczenie logarytmiczne, a liczba sztuk tylko
+        lekko podnosi nagrodę. Dzięki temu droższa sprzedaż jest lepsza, ale
+        sprzedaż setek tanich surowców nie daje setek punktów Charyzmy.
+        """
+        value = max(1, int(sale_value_silver or 0))
+        units = max(1, int(units or 1))
+        value_xp = 2 + int(math.log10(value + 1) * 2.5)
+        bulk_bonus = min(8, int(math.log2(units + 1)))
+        return max(2, min(20, value_xp + bulk_bonus))
+
+    async def gain_charisma_from_sale(self, sale_value_silver, units=1):
         old_discount = self.character.shop_discount_percent()
         old_capacity = self.character.party_capacity()
-        self.character.charisma += 1
-        await self.send(
-            f"Charyzma +1. Masz teraz {self.character.charisma}."
-        )
+        xp = self.charisma_sale_xp(sale_value_silver, units=units)
+        for message in self.character.add_stat_progress(xp, targets=("charisma",)):
+            await self.send(message)
         new_discount = self.character.shop_discount_percent()
         new_capacity = self.character.party_capacity()
         if new_discount > old_discount:
@@ -27155,10 +29677,16 @@ class Session:
         if level >= max_level:
             return 0
 
-        # v0.6.78: narzędzia rozwijają się 2x wolniej.
-        # Nagrody XP z akcji pozostają bez zmian; podwajamy koszt levelu.
-        base_requirement = 60 + (level - 1) * 30
-        return base_requirement * 2
+        # v0.8.75: gathering tools są częścią regularnej pętli świata i
+        # odblokowują ryby/surowce. Stara krzywa v0.8.74 dawała około
+        # 169,5k XP 1->200, czyli ~17k zwykłych użyć bez questów.
+        # Nowa krzywa to ~108,5k XP 1->200 (około -36%), dzięki czemu
+        # kolejne progi wpadają regularnie, ale level 200 nadal wymaga
+        # długiej gry. Narzędzia produkcyjne zachowują wolniejszą krzywą,
+        # bo wysokie receptury już dają znacznie więcej Tool XP za akcję.
+        if tool_type in ("fishing", "mining", "woodcutting", "herbalism"):
+            return 50 + (level - 1) * 5
+        return 60 + (level - 1) * 8
 
     def valid_tool_type(self, tool_type):
         return tool_type in (
@@ -27348,7 +29876,7 @@ class Session:
                 self.account_id, "net", item_id, quantity
             )
             return "net"
-        if item_id in ORE_STORAGE_IDS:
+        if item_id in MINING_STORAGE_IDS:
             self.server.db.add_storage_item(
                 self.account_id, "bag", item_id, quantity
             )
@@ -27366,6 +29894,19 @@ class Session:
         raise ValueError(
             f"Przedmiot {item_id} nie jest surowcem obsługiwanej profesji."
         )
+
+    def migrate_raw_mining_gems_to_bag_v0867(self):
+        moved = 0
+        for item_id in RAW_GEM_IDS:
+            qty = self.server.db.item_qty(self.account_id, item_id)
+            if qty <= 0:
+                continue
+            if self.server.db.remove_item(self.account_id, item_id, qty):
+                self.server.db.add_storage_item(
+                    self.account_id, "bag", item_id, qty
+                )
+                moved += qty
+        return moved
 
     def container_label(self, container):
         return {
@@ -27400,7 +29941,7 @@ class Session:
         if container == "net":
             allowed = FISH_STORAGE_IDS
         elif container == "bag":
-            allowed = ORE_STORAGE_IDS
+            allowed = MINING_STORAGE_IDS
         elif container == "woodpile":
             allowed = WOOD_STORAGE_IDS
         elif container == "herbbag":
@@ -27423,10 +29964,10 @@ class Session:
                 "value_label": "całej siatki",
             },
             "bag": {
-                "ids": ORE_STORAGE_IDS,
-                "count_label": "rud",
+                "ids": MINING_STORAGE_IDS,
+                "count_label": "urobku",
                 "type_label": "rodzajów",
-                "value_label": "całej sakwy",
+                "value_label": "całej Sakwy Górnika",
             },
             "woodpile": {
                 "ids": WOOD_STORAGE_IDS,
@@ -29390,8 +31931,8 @@ class Session:
     async def show_profession_ranks(self):
         for profession in (
             "Wędkarstwo", "Górnictwo", "Drwalstwo",
-            "Zielarstwo", "Alchemia", "Kowalstwo",
-            "Jubilerstwo",
+            "Zielarstwo", "Gotowanie", "Alchemia",
+            "Kowalstwo", "Jubilerstwo",
         ):
             await self.send(f"RANGI: {profession.upper()}")
             thresholds = profession_rank_thresholds(profession)
@@ -29418,8 +31959,8 @@ class Session:
             "info", "pelne", "pełne", "szczegoly", "szczegóły", "details"
         )
         professions = (
-            "Wędkarstwo", "Górnictwo", "Drwalstwo",
-            "Zielarstwo", "Alchemia", "Kowalstwo", "Jubilerstwo",
+            "Wędkarstwo", "Górnictwo", "Drwalstwo", "Zielarstwo",
+            "Gotowanie", "Alchemia", "Kowalstwo", "Jubilerstwo",
         )
         await self.send("PROFESJE INFO" if detailed else "PROFESJE")
         for name in professions:
@@ -29449,11 +31990,12 @@ class Session:
             )
         if detailed:
             await self.send(
-                "Maksimum: Wędkarstwo, Górnictwo, Drwalstwo, Zielarstwo i Alchemia 100; "
-                "Kowalstwo i Jubilerstwo 200."
+                "Maksimum wszystkich ośmiu profesji: level 200."
             )
             await self.send(
-                "Narzędzia mają własny niezależny level. Wpisz narzedzia info po sprzedawców, Tiery i bonusy."
+                "Poziom profesji skraca czas pracy i blokuje receptury/zlecenia. "
+                "Poziom narzędzia odblokowuje lepsze surowce oraz zwiększa rare/quality i bonus urobku. "
+                "Wpisz narzedzia info po Tiery i bonusy."
             )
         else:
             await self.send("Wpisz profesje info po XP, akcje, progi rang i zasady.")
@@ -29509,24 +32051,39 @@ class Session:
             return "Szansa na dodatkową biżuterię"
         return "Bonus dodatkowego urobku"
 
-    def tool_action_seconds(self, tool_type, level):
-        level = max(1, min(TOOL_MAX_LEVEL, int(level)))
-        base_seconds = int(
-            TOOL_ACTION_BASE_SECONDS.get(tool_type, 10)
-        )
-        minimum_seconds = int(
-            TOOL_ACTION_MIN_SECONDS.get(tool_type, 3)
-        )
+    def profession_level_for_tool(self, tool_type):
+        profession = profession_for_tool_type(tool_type)
+        if not profession:
+            return 1
+        row = self.server.db.profession(self.account_id, profession)
+        return max(1, min(profession_max_level(profession), int(row["level"])))
 
-        if TOOL_MAX_LEVEL <= 1:
+    def profession_action_seconds(self, tool_type, profession_level):
+        profession = profession_for_tool_type(tool_type)
+        max_level = profession_max_level(profession) if profession else PROFESSION_MAX_LEVEL
+        level = max(1, min(max_level, int(profession_level)))
+        base_seconds = int(TOOL_ACTION_BASE_SECONDS.get(tool_type, 10))
+        minimum_seconds = int(TOOL_ACTION_MIN_SECONDS.get(tool_type, 3))
+        if max_level <= 1:
             return max(minimum_seconds, base_seconds)
-
-        progress = (level - 1) / (TOOL_MAX_LEVEL - 1)
-        seconds = round(
-            base_seconds
-            - (base_seconds - minimum_seconds) * progress
-        )
+        progress = (level - 1) / (max_level - 1)
+        seconds = round(base_seconds - (base_seconds - minimum_seconds) * progress)
         return max(minimum_seconds, int(seconds))
+
+    def tool_action_seconds(self, tool_type, profession_level):
+        """Alias zgodności: od v0.8.66 argument oznacza level PROFESJI, nie narzędzia."""
+        return self.profession_action_seconds(tool_type, profession_level)
+
+    def recipe_action_seconds(self, tool_type, profession_level, recipe):
+        """Tempo receptury daje profesja; złożoność zależy od wymaganego skill levelu."""
+        base = self.profession_action_seconds(tool_type, profession_level)
+        required = max(1, min(200, int(
+            recipe.get("min_profession_level", recipe.get("min_tool_level", 1)) or 1
+        )))
+        complexity = min(3, max(0, int(math.ceil(required / 60.0)) - 1))
+        overlevel = max(0, int(profession_level) - required)
+        complexity = max(0, complexity - overlevel // 70)
+        return max(1, int(base + complexity))
 
     def tool_action_label(self, tool_type):
         return {
@@ -29633,9 +32190,12 @@ class Session:
             f"Level: {level} z {max_level}. "
             f"Użycia: {uses}."
         )
+        profession = profession_for_tool_type(tool_type)
+        profession_level = self.profession_level_for_tool(tool_type)
         await self.send(
             f"{self.tool_action_label(tool_type)}: "
-            f"{self.tool_action_seconds(tool_type, level)} sekund."
+            f"{self.profession_action_seconds(tool_type, profession_level)} sekund. "
+            f"Tempo daje {profession} level {profession_level}; level narzędzia nie skraca czasu."
         )
 
         if level >= max_level:
@@ -29741,7 +32301,8 @@ class Session:
             await self.send(
                 f"{name}: {tier_name}. Level {level}/{max_level}. Tier {tier}/{TOOL_MAX_TIER}. "
                 f"XP {xp_text}. Użycia {row['uses']}. "
-                f"{self.tool_action_label(tool_type)}: {self.tool_action_seconds(tool_type, level)} sekund. "
+                f"{self.tool_action_label(tool_type)}: {self.profession_action_seconds(tool_type, self.profession_level_for_tool(tool_type))} sekund "
+                f"(tempo z {profession_for_tool_type(tool_type)}). "
                 f"{self.tool_bonus_label(tool_type)}: {bonus_percent} procent. {next_text} "
                 f"Sprzedawca: {seller}, {location}."
             )
@@ -29835,16 +32396,16 @@ class Session:
                 base_pool = ("sprat", "sardine", "anchovy")
             elif tool_level < 20:
                 base_pool = (
-                    "sprat", "sardine", "anchovy", "whiting", "cod",
+                    "sprat", "sardine", "anchovy", "whiting",
                 )
             elif tool_level < 30:
                 base_pool = (
-                    "anchovy", "whiting", "cod", "mackerel", "flounder",
+                    "anchovy", "whiting", "hake", "sardine",
                 )
             elif tool_level < 50:
                 base_pool = (
                     "herring", "mackerel", "whiting", "cod",
-                    "hake", "sea_bass", "haddock", "pollock",
+                    "hake", "sea_bass",
                 )
             elif tool_level < 75:
                 base_pool = (
@@ -29866,32 +32427,35 @@ class Session:
             )
 
         if habitat == "ocean":
-            if tool_level < 20:
-                base_pool = ("mackerel", "mahi_mahi", "albacore")
-            elif tool_level < 40:
+            # v0.8.65: ocean nadal jest najbardziej dochodowym łowiskiem, ale
+            # wysokocenne rekiny nie pojawiają się już przy niskiej Wędce.
+            if tool_level < 15:
                 base_pool = (
-                    "mahi_mahi", "albacore", "wahoo",
-                    "barracuda", "sailfish",
+                    "flying_fish", "bonito",
                 )
-            elif tool_level < 60:
+            elif tool_level < 30:
                 base_pool = (
-                    "albacore", "bigeye_tuna", "wahoo",
-                    "barracuda", "cobia", "sailfish",
-                    "swordfish", "reef_shark",
+                    "flying_fish", "bonito", "yellowfin_tuna",
                 )
-            elif tool_level < 80:
+            elif tool_level < 50:
                 base_pool = (
-                    "bigeye_tuna", "cobia", "amberjack",
-                    "swordfish", "bluefin_tuna", "reef_shark",
-                    "mako_shark", "hammerhead_shark", "ocean_sunfish",
+                    "yellowfin_tuna", "king_mackerel", "mackerel",
+                    "albacore",
+                )
+            elif tool_level < 70:
+                base_pool = (
+                    "mahi_mahi", "albacore", "bigeye_tuna", "cobia",
+                )
+            elif tool_level < 90:
+                base_pool = (
+                    "wahoo", "barracuda", "bigeye_tuna", "cobia",
+                    "amberjack",
                 )
             else:
                 base_pool = unlocked_resource_pool(
                     (
                         "tuna", "bluefin_tuna", "bigeye_tuna", "amberjack",
-                        "ocean_sunfish", "mako_shark", "tiger_shark",
-                        "hammerhead_shark", "great_white_shark",
-                        "ghost_marlin", "swordfish",
+                        "ocean_sunfish", "swordfish",
                     ),
                     ENDGAME_FISH_UNLOCKS["ocean"],
                     tool_level,
@@ -29904,7 +32468,7 @@ class Session:
 
 
     def fishing_loot(self, tool_level, habitat="river"):
-        if self.character.room_id == "sewer_black_channel":
+        if self.character.room_id == "sewer_black_channel" and int(tool_level) >= 30:
             return "field_blind_sewer_eel"
         dungeon, dungeon_floor = profession_dungeon_floor(
             self.character.room_id
@@ -29983,9 +32547,9 @@ class Session:
 
     def mining_loot(self, tool_level, room_id=None):
         room_id = room_id or self.character.room_id
-        if room_id == "necropolis_quarry":
+        if room_id == "necropolis_quarry" and int(tool_level) >= 80:
             return "field_tomb_silver"
-        if room_id == "ice_cave_crystal_chamber":
+        if room_id == "ice_cave_crystal_chamber" and int(tool_level) >= 100:
             return "field_frost_crystal_ore"
         tool_level = max(1, int(tool_level))
         room_id = room_id or self.character.room_id
@@ -30022,11 +32586,11 @@ class Session:
                 return "gold_ore"
 
             if tool_level < 90:
-                mithril_chance = 0.001
+                mithril_chance = 0.00002
             elif tool_level < 100:
-                mithril_chance = 0.0025
+                mithril_chance = 0.00005
             else:
-                mithril_chance = 0.005
+                mithril_chance = 0.0001
 
             if r < mithril_chance:
                 return "__mithril_currency__"
@@ -30056,11 +32620,11 @@ class Session:
 
         if effective_depth >= 80:
             if effective_depth < 90:
-                mithril_chance = 0.001
+                mithril_chance = 0.00002
             elif effective_depth < 100:
-                mithril_chance = 0.0025
+                mithril_chance = 0.00005
             else:
-                mithril_chance = 0.005
+                mithril_chance = 0.0001
             if random.random() < mithril_chance:
                 return "__mithril_currency__"
 
@@ -30094,8 +32658,9 @@ class Session:
         return random.choice(pool)
 
 
-    def mining_gem_drop(self, tool_level, room_id=None):
+    def mining_gem_drop(self, tool_level, profession_level, room_id=None):
         tool_level = max(1, int(tool_level))
+        profession_level = max(1, int(profession_level))
         room_id = room_id or self.character.room_id
 
         floor = mine_floor_number(room_id)
@@ -30128,11 +32693,12 @@ class Session:
             weights=weights,
             k=1,
         )[0]
-        return f"raw_gem_{definition['key']}"
+        quality = roll_mined_gem_quality(tool_level, profession_level)
+        return gem_quality_item_id("raw", definition["key"], quality)
 
     def woodcutting_loot(self, tool_level, room_id=None):
         room_id = room_id or self.character.room_id
-        if room_id == "beast_lair_root_cavern":
+        if room_id == "beast_lair_root_cavern" and int(tool_level) >= 40:
             return "field_ironbark_root"
         room_id = room_id or self.character.room_id
         tool_level = max(1, int(tool_level))
@@ -30164,26 +32730,28 @@ class Session:
 
         # Gaj Szeptów i Stary Trakt: drewna użytkowe i szlachetne.
         if room_id in {"whisper_grove", "old_road"}:
-            if tool_level < 25:
+            if tool_level < 20:
+                return random.choice(("birch_log", "pine_log", "willow_log", "linden_log"))
+            if tool_level < 40:
                 return random.choice(("oak_log", "beech_log", "maple_log", "linden_log"))
-            if tool_level < 50:
+            if tool_level < 60:
                 return random.choice(("oak_log", "beech_log", "maple_log", "ash_log", "chestnut_log", "walnut_log"))
-            if tool_level < 75:
-                return random.choice(("maple_log", "ash_log", "chestnut_log", "walnut_log", "cedar_log", "yew_log", "mahogany_log"))
+            if tool_level < 80:
+                return random.choice(("maple_log", "ash_log", "chestnut_log", "walnut_log", "cedar_log", "yew_log"))
             return random.choice(("ash_log", "walnut_log", "cedar_log", "yew_log", "mahogany_log", "teak_log", "redwood_log", "ironwood_log"))
 
-        # Głębia Gaju: najrzadsze drewna naturalne i magiczne.
+        # Głębia Gaju: teren może być endgame, ale jakość surowca nadal
+        # odblokowuje Piła. Niska Piła nie omija całej progresji drewna.
+        if tool_level < 20:
+            return random.choice(("fallen_branch", "birch_log", "pine_log"))
         if tool_level < 40:
-            return random.choice(("ash_log", "chestnut_log", "cedar_log", "walnut_log"))
+            return random.choice(("oak_log", "beech_log", "maple_log"))
         if tool_level < 60:
-            return random.choice(("cedar_log", "yew_log", "mahogany_log", "teak_log", "ironwood_log", "ebony_log"))
+            return random.choice(("ash_log", "chestnut_log", "walnut_log"))
         if tool_level < 80:
-            return random.choice(("yew_log", "mahogany_log", "teak_log", "redwood_log", "ironwood_log", "ebony_log", "silverwood_log"))
+            return random.choice(("cedar_log", "yew_log", "mahogany_log"))
         if tool_level < 100:
-            return random.choice((
-                "redwood_log", "ironwood_log", "ebony_log", "silverwood_log",
-                "spiritwood_log", "ancient_heartwood", "worldtree_wood"
-            ))
+            return random.choice(("teak_log", "redwood_log", "ironwood_log", "ebony_log"))
         pool = (
             "teak_log", "redwood_log", "silverwood_log", "spiritwood_log",
             "ancient_heartwood", "worldtree_wood"
@@ -30196,16 +32764,21 @@ class Session:
 
     def herbalism_loot(self, tool_level, room_id=None):
         room_id = room_id or self.character.room_id
-        if room_id == "cemetery_moon_garden":
+        if room_id == "cemetery_moon_garden" and int(tool_level) >= 20:
             return "field_grave_moss"
-        if room_id == "cult_ruins_overgrown_garden":
+        if room_id == "cult_ruins_overgrown_garden" and int(tool_level) >= 60:
             return "field_void_thorn"
         room_id = room_id or self.character.room_id
         tool_level = max(1, int(tool_level))
 
         dedicated_herb = HERB_SPECIFIC_MEADOWS.get(room_id)
         if dedicated_herb:
-            return dedicated_herb
+            required = int(HERB_SPECIFIC_MEADOW_MIN_TOOL_LEVEL.get(room_id, 1))
+            if tool_level >= required:
+                return dedicated_herb
+            # Niski Sierp nie zbiera wysokiego zioła tylko dlatego, że gracz
+            # doszedł do jego łąki. Zwracamy prosty plon treningowy.
+            return random.choice(("nettle", "chamomile", "mint"))
 
         dungeon, dungeon_floor = profession_dungeon_floor(room_id)
         if dungeon == "alchemy_garden":
@@ -30292,21 +32865,27 @@ class Session:
             if tool_level < 25:
                 return random.choice(("mint", "lemon_balm", "chamomile"))
             if tool_level < 55:
-                return random.choice(("mint", "lemon_balm", "star_moss", "sage", "yarrow"))
-            return random.choice(("star_moss", "moonflower", "sage", "valerian", "ginseng"))
+                return random.choice(("mint", "lemon_balm", "sage", "yarrow", "lavender"))
+            if tool_level < 80:
+                return random.choice(("sage", "valerian", "ginseng", "nightshade"))
+            return random.choice(("moonflower", "soulroot", "star_moss", "ginseng"))
         if room_id in {"whisper_grove", "old_road"}:
             if tool_level < 25:
-                return random.choice(("sage", "valerian", "lavender"))
+                return random.choice(("sage", "lavender", "yarrow"))
             if tool_level < 50:
-                return random.choice(("sage", "valerian", "ginseng", "nightshade"))
+                return random.choice(("sage", "valerian", "ginseng"))
             if tool_level < 75:
-                return random.choice(("ginseng", "nightshade", "mandrake", "moonflower", "soulroot"))
+                return random.choice(("ginseng", "nightshade", "mandrake"))
             return random.choice(("mandrake", "moonflower", "soulroot", "phoenix_leaf", "star_moss"))
+        if tool_level < 20:
+            return random.choice(("nettle", "chamomile", "mint"))
         if tool_level < 40:
+            return random.choice(("lavender", "yarrow", "lemon_balm", "sage"))
+        if tool_level < 60:
+            return random.choice(("sage", "valerian", "ginseng", "nightshade"))
+        if tool_level < 80:
             return random.choice(("ginseng", "nightshade", "mandrake"))
-        if tool_level < 70:
-            return random.choice(("nightshade", "mandrake", "moonflower", "soulroot", "star_moss"))
-        if tool_level < 90:
+        if tool_level < 100:
             return random.choice(("mandrake", "moonflower", "soulroot", "phoenix_leaf", "star_moss"))
         pool = (
             "moonflower", "soulroot", "phoenix_leaf",
@@ -30316,6 +32895,187 @@ class Session:
             pool, ENDGAME_HERB_UNLOCKS, tool_level
         )
         return random.choice(pool)
+
+    def is_admin(self):
+        if self.master_account_id is None:
+            return False
+        username = self.server.db.account_name(self.master_account_id).casefold()
+        return bool(username and username in ADMIN_ACCOUNT_NAMES)
+
+    async def admin_command(self, args=""):
+        if not self.is_admin():
+            await self.send("Nieznana komenda. Wpisz help.")
+            return
+        raw = str(args or "").strip()
+        norm = self.normalize_description_query(raw)
+        if not norm or norm in ("help", "pomoc"):
+            await self.send("ADMIN OWNER-ONLY")
+            await self.send("admin status / administrator status — status uprawnień.")
+            await self.send("admin heal / administrator ulecz — pełne HP i Mana.")
+            await self.send("admin goto <room_id> / administrator teleport <room_id> — teleport testowy.")
+            await self.send("admin give <item_id> [ilość] / administrator daj <item_id> [ilość].")
+            await self.send("wipe moje postacie POTWIERDZAM / wipe my characters CONFIRM.")
+            await self.send("wipe wszystkie postacie POTWIERDZAM / wipe all characters CONFIRM.")
+            await self.send("Wipe usuwa postacie i ich progres, ale NIE usuwa kont/loginów/haseł.")
+            return
+        if norm in ("status",):
+            await self.send(
+                f"Administrator: TAK. Konto: {self.server.db.account_name(self.master_account_id)}."
+            )
+            return
+        if norm in ("heal", "ulecz", "wylecz"):
+            self.current_hp = self.max_hp()
+            self.current_mana = self.max_mana()
+            await self.send(f"ADMIN: HP {self.current_hp}/{self.max_hp()}, Mana {self.current_mana}/{self.max_mana()}.")
+            return
+        parts = raw.split()
+        first = self.normalize_description_query(parts[0]) if parts else ""
+        if first in ("goto", "teleport", "idz", "idź"):
+            target = " ".join(parts[1:]).strip()
+            room_id = target if target in ROOMS else self.resolve_room_query(target)
+            if not room_id or room_id not in ROOMS:
+                await self.send("ADMIN: nie znaleziono lokacji.")
+                return
+            self.character.room_id = room_id
+            self.server.db.save_character(self.character)
+            await self.send(f"ADMIN: teleport do {ROOMS[room_id]['name']}.")
+            await self.look()
+            return
+        if first in ("give", "daj"):
+            if len(parts) < 2:
+                await self.send("Użycie: admin give <item_id> [ilość].")
+                return
+            item_id = parts[1]
+            try:
+                qty = max(1, min(9999, int(parts[2]) if len(parts) >= 3 else 1))
+            except ValueError:
+                qty = 1
+            if item_id not in ITEMS:
+                await self.send("ADMIN: nieznany item_id.")
+                return
+            self.server.db.add_item(self.account_id, item_id, qty)
+            await self.send(f"ADMIN: dodano {ITEMS[item_id]['name']} x{qty}.")
+            return
+        await self.send("Nieznana opcja admin. Wpisz admin help.")
+
+    async def prepare_character_wipe(self):
+        """Wyczyść stan sesyjny bez zapisywania usuwanej postaci."""
+        if self.guide_task_active():
+            await self.cancel_guide(announce=False)
+        for task_name in ("rest_task", "auto_fishing_task", "auto_mining_task", "auto_woodcutting_task", "auto_herbalism_task", "combat_task"):
+            task = getattr(self, task_name, None)
+            if task and not task.done():
+                task.cancel()
+            setattr(self, task_name, None)
+        self.resting = False
+        self.auto_fishing = self.auto_mining = self.auto_woodcutting = self.auto_herbalism = False
+        if self.character:
+            await self.leave_party(announce=False)
+        self.combat_mob_key = None
+        self.account_id = None
+        self.character = None
+        self.current_hp = 0
+        self.current_mana = 0
+
+    async def wipe_command(self, args=""):
+        if not self.is_admin():
+            await self.send("Nieznana komenda. Wpisz help.")
+            return
+        norm = self.normalize_description_query(args)
+        own_tokens = ("moje postacie", "my characters")
+        all_tokens = ("wszystkie postacie", "all characters")
+        confirmed_pl = norm.endswith(" potwierdzam")
+        confirmed_en = norm.endswith(" confirm")
+        if not (confirmed_pl or confirmed_en):
+            await self.send(
+                "WIPE wymaga potwierdzenia. Konta NIE zostaną usunięte. "
+                "Użyj: wipe moje postacie POTWIERDZAM albo wipe wszystkie postacie POTWIERDZAM."
+            )
+            return
+        scope = norm.rsplit(" ", 1)[0]
+        if scope not in own_tokens + all_tokens:
+            await self.send("Nieprawidłowy zakres wipe.")
+            return
+
+        if scope in own_tokens:
+            target_masters = {int(self.master_account_id)}
+        else:
+            target_masters = {
+                int(row["id"])
+                for row in self.server.db.conn.execute(
+                    "SELECT id FROM accounts WHERE id NOT IN ("
+                    "SELECT character_account_id FROM account_characters "
+                    "WHERE character_account_id<>master_account_id)"
+                ).fetchall()
+            }
+
+        # Inne aktywne sesje z wipe zostają rozłączone bez zapisu usuwanej postaci.
+        for session in list(self.server.sessions):
+            if session is self or session.master_account_id not in target_masters:
+                continue
+            try:
+                await session.send("ADMIN WIPE: postacie zostały wyczyszczone. Konto pozostaje. Połącz się ponownie.")
+                await session.prepare_character_wipe()
+                session.closed = True
+                session.writer.close()
+            except Exception:
+                pass
+
+        await self.prepare_character_wipe()
+        if scope in own_tokens:
+            removed = self.server.db.wipe_characters_for_master(self.master_account_id)
+        else:
+            removed, _masters = self.server.db.wipe_all_characters_preserve_accounts()
+        # Wipe składu drużyn to tylko stan sesyjny.
+        self.server.parties.clear()
+        self.server.party_invites.clear()
+        self.server.party_protectors.clear()
+        await self.send(f"WIPE POSTACI zakończony. Usunięto postaci: {removed}. Konta i hasła zachowane.")
+        selected = await self.character_selection_flow()
+        if selected is True:
+            await self.enter_world()
+
+    def boss_floor_chest_here(self):
+        return _boss_floor_chest_spec(self.character.room_id) if self.character else None
+
+    async def unlock_boss_floor_chest(self):
+        spec = self.boss_floor_chest_here()
+        if not spec:
+            return False
+        kind, floor, power = spec
+        key_id = boss_floor_key_id(kind, floor)
+        if self.server.db.item_qty(self.account_id, key_id) <= 0:
+            await self.send(
+                f"{boss_floor_chest_name(kind, floor)} jest zamknięta. "
+                f"Nie masz właściwego klucza. Klucz znajduje się w ciele bossa tego piętra."
+            )
+            return True
+        if not self.server.db.remove_item(self.account_id, key_id, 1):
+            await self.send("Nie udało się zużyć klucza.")
+            return True
+        reward = boss_chest_reward_roll(kind, floor, power)
+        self.character.gold += int(reward["gold"])
+        for item_id in reward["items"]:
+            self.server.db.add_item(self.account_id, item_id, 1)
+            await self.record_item_collection(item_id, source=boss_floor_chest_name(kind, floor), announce=True)
+        self.server.db.save_character(self.character)
+        await self.send(
+            f"Odkluczasz i otwierasz: {boss_floor_chest_name(kind, floor)}. "
+            f"Klucz zostaje zużyty. Złoto: +{reward['gold']}."
+        )
+        if reward["items"]:
+            await self.send("Nagrody: " + ", ".join(ITEMS[i]["name"] for i in reward["items"]) + ".")
+        return True
+
+    async def unlock_context(self, args=""):
+        q = self.normalize_description_query(args)
+        if q in ("soul", "dusza", "bron duszy", "broń duszy"):
+            await self.unlock()
+            return
+        if self.boss_floor_chest_here() is not None:
+            await self.unlock_boss_floor_chest()
+            return
+        await self.unlock()
 
     def profession_ready(self):
         now = time.time()
@@ -30343,8 +33103,9 @@ class Session:
 
         tool = self.server.db.tool(self.account_id, "fishing")
         tool_level = int(tool["level"])
-        action_seconds = self.tool_action_seconds(
-            "fishing", tool_level
+        profession_level = self.profession_level_for_tool("fishing")
+        action_seconds = self.profession_action_seconds(
+            "fishing", profession_level
         )
         await self.send(
             f"Zarzucasz Wędkę. Czas połowu: "
@@ -30359,16 +33120,17 @@ class Session:
         item_id = roll_fish_variant(
             base_item_id, tool_level
         )
-        self.store_profession_resource(item_id, 1)
+        base_quantity = roll_profession_gather_quantity(tool_level, profession_level, "fishing")
+        self.store_profession_resource(item_id, base_quantity)
         item = ITEMS[item_id]
-        resource_quest_quantity = 1
+        resource_quest_quantity = base_quantity
         if item_id != base_item_id:
             await self.send(
                 f"RZADKI WARIANT RYBY: "
                 f"{item.get('rare_resource_label', 'rzadki')}."
             )
         await self.send(
-            f"Łowisz: {item['name']}. "
+            f"Łowisz: {item['name']} x{base_quantity}. "
             "Połów trafia do Siatki na ryby."
         )
 
@@ -30388,7 +33150,7 @@ class Session:
         await self.announce_resource_quest_progress(
             item_id, resource_quest_quantity
         )
-        await self.announce_collect_category_quest_progress("fish")
+        await self.announce_collect_category_quest_progress("fish", resource_quest_quantity)
 
         messages, profession_level, new_tool_level = self.grant_profession_progress(
             "Wędkarstwo",
@@ -30423,8 +33185,9 @@ class Session:
 
         tool = self.server.db.tool(self.account_id, "mining")
         tool_level = int(tool["level"])
-        action_seconds = self.tool_action_seconds(
-            "mining", tool_level
+        profession_level = self.profession_level_for_tool("mining")
+        action_seconds = self.profession_action_seconds(
+            "mining", profession_level
         )
         await self.send(
             f"Rozpoczynasz wydobycie Kilofem. "
@@ -30471,25 +33234,36 @@ class Session:
                 )
 
         gem_id = self.mining_gem_drop(
-            tool_level,
-            self.character.room_id,
+            tool_level, profession_level, self.character.room_id,
         )
         if gem_id:
-            self.server.db.add_item(
-                self.account_id,
-                gem_id,
-                1,
-            )
+            self.store_profession_resource(gem_id, 1)
+            quality = ITEMS[gem_id].get("gem_quality", "raw")
+            quality_text = GEM_QUALITY_INFO.get(quality, GEM_QUALITY_INFO["raw"])["label"]
             await self.send(
-                f"KLEJNOT: znajdujesz {ITEMS[gem_id]['name']} x1. "
-                "Kamień trafia do zwykłego ekwipunku."
+                f"KLEJNOT {quality_text.upper()}: znajdujesz {ITEMS[gem_id]['name']} x1. "
+                "Kamień trafia do Sakwy Górnika."
+            )
+
+        floor_for_geode = mine_floor_number(self.character.room_id)
+        dungeon_name, dungeon_floor = profession_dungeon_floor(self.character.room_id)
+        if dungeon_name == "crystal_mine":
+            floor_for_geode = min(200, int(dungeon_floor) * 10)
+        geode_id = roll_mining_geode(
+            tool_level, profession_level, floor_for_geode or 1
+        )
+        if geode_id:
+            self.store_profession_resource(geode_id, 1)
+            await self.send(
+                f"GEODA: znajdujesz {ITEMS[geode_id]['name']} x1. "
+                "Trafia do Sakwy Górnika. Otwórz: open geode / otwórz geodę."
             )
 
         if item_id != "__mithril_currency__":
             await self.announce_resource_quest_progress(
                 item_id, mined_resource_quantity
             )
-            await self.announce_collect_category_quest_progress("ore")
+            await self.announce_collect_category_quest_progress("ore", mined_resource_quantity)
 
         messages, profession_level, new_tool_level = self.grant_profession_progress(
             "Górnictwo",
@@ -30553,8 +33327,9 @@ class Session:
 
         tool = self.server.db.tool(self.account_id, "woodcutting")
         tool_level = int(tool["level"])
-        action_seconds = self.tool_action_seconds(
-            "woodcutting", tool_level
+        profession_level = self.profession_level_for_tool("woodcutting")
+        action_seconds = self.profession_action_seconds(
+            "woodcutting", profession_level
         )
         await self.send(
             f"Rozpoczynasz cięcie Piłą. "
@@ -30568,7 +33343,9 @@ class Session:
         item_id = roll_wood_variant(
             base_item_id, tool_level
         )
-        self.store_profession_resource(item_id, 1)
+        base_quantity = roll_profession_gather_quantity(tool_level, profession_level, "woodcutting")
+        self.store_profession_resource(item_id, base_quantity)
+        resource_quest_quantity = base_quantity
         item = ITEMS[item_id]
         if item_id != base_item_id:
             await self.send(
@@ -30576,7 +33353,7 @@ class Session:
                 f"{item.get('rare_resource_label', 'rzadki')}."
             )
         await self.send(
-            f"Pozyskujesz: {item['name']}. "
+            f"Pozyskujesz: {item['name']} x{base_quantity}. "
             "Drewno trafia na Stos drewna."
         )
 
@@ -30588,12 +33365,13 @@ class Session:
         )
         if bonus_chance > 0 and random.random() < bonus_chance:
             self.store_profession_resource(item_id, 1)
+            resource_quest_quantity += 1
             await self.send(
                 f"Bonus Tieru {current_tier} Piły: pozyskujesz dodatkowo {item['name']} x1."
             )
 
-        await self.announce_resource_quest_progress(item_id, 1)
-        await self.announce_collect_category_quest_progress("wood")
+        await self.announce_resource_quest_progress(item_id, resource_quest_quantity)
+        await self.announce_collect_category_quest_progress("wood", resource_quest_quantity)
 
         messages, profession_level, new_tool_level = self.grant_profession_progress(
             "Drwalstwo",
@@ -30628,8 +33406,9 @@ class Session:
 
         tool = self.server.db.tool(self.account_id, "herbalism")
         old_level = int(tool["level"])
-        action_seconds = self.tool_action_seconds(
-            "herbalism", old_level
+        profession_level = self.profession_level_for_tool("herbalism")
+        action_seconds = self.profession_action_seconds(
+            "herbalism", profession_level
         )
         await self.send(
             f"Rozpoczynasz zbiór Sierpem Zielarskim. "
@@ -30643,15 +33422,16 @@ class Session:
         item_id = roll_herb_variant(
             base_item_id, old_level
         )
-        self.store_profession_resource(item_id, 1)
-        resource_quest_quantity = 1
+        base_quantity = roll_profession_gather_quantity(old_level, profession_level, "herbalism")
+        self.store_profession_resource(item_id, base_quantity)
+        resource_quest_quantity = base_quantity
         if item_id != base_item_id:
             await self.send(
                 f"RZADKI WARIANT ROŚLINY: "
                 f"{ITEMS[item_id].get('rare_resource_label', 'rzadki')}."
             )
         await self.send(
-            f"Zbierasz: {ITEMS[item_id]['name']}. "
+            f"Zbierasz: {ITEMS[item_id]['name']} x{base_quantity}. "
             "Roślina trafia do Torby Zielarskiej."
         )
 
@@ -30670,7 +33450,7 @@ class Session:
         await self.announce_resource_quest_progress(
             item_id, resource_quest_quantity
         )
-        await self.announce_collect_category_quest_progress("herb")
+        await self.announce_collect_category_quest_progress("herb", resource_quest_quantity)
 
         messages, prof_level, new_tool_level = self.grant_profession_progress(
             "Zielarstwo",
@@ -30709,8 +33489,8 @@ class Session:
             result[currency] = value
             return result
 
-        # Wytwarzany / zdobyty ekwipunek bez ceny sklepowej otrzymuje cenę
-        # na podstawie obrony, affiksu, gniazd i wymagań Biegłości.
+        # v0.8.61: zdobyty/craftowany ekwipunek bez ceny sklepowej ma
+        # wartość zgodną z materiałem, statystykami i właściwościami.
         if item.get("type") == "armor":
             defense = max(0, int(item.get("defense", 0) or 0))
             affix = max(0, abs(int(item.get("affix_amount", 0) or 0)))
@@ -30720,7 +33500,23 @@ class Session:
                 int(item.get("jewelcraft_level", 0) or 0),
                 int(item.get("blacksmith_tier", 0) or 0) * 10,
             )
-            silver = max(10, defense * 18 + affix * 12 + sockets * 20 + mastery * 2 + craft_level)
+            material_key = str(item.get("corpse_material") or item.get("blacksmith_material") or "")
+            material_base = V0863_MATERIAL_SALE_BASE_SILVER.get(
+                material_key, 0
+            )
+            stat_power = sum(max(0, int(v or 0)) for v in (item.get("stats") or {}).values())
+            property_power = sum(max(0.0, float(v or 0)) for v in (item.get("properties") or {}).values())
+            silver = max(
+                25,
+                material_base
+                + defense * 40
+                + affix * 30
+                + sockets * 150
+                + mastery * 20
+                + craft_level * 25
+                + stat_power * 120
+                + int(property_power * 250),
+            )
             return {"silver": silver, "gold": 0, "mithril": 0}
 
         return {"silver": 0, "gold": 0, "mithril": 0}
@@ -30734,26 +33530,113 @@ class Session:
         return any(values.values())
 
     def resource_sale_allowed_here(self, item_id):
+        # v0.8.67: surowce profesji skupują tylko właściwi fachowcy.
         room_id = self.character.room_id
         if item_id in FISH_STORAGE_IDS:
-            return room_id in {"market", "inn", "fish_market"}
-        if item_id in ORE_STORAGE_IDS:
-            return room_id in {
-                "forge", "mountain_market"
-            }
+            return room_id == "fish_market"
+        if item_id in MINING_STORAGE_IDS:
+            return room_id == "mountain_market"
         if item_id in WOOD_STORAGE_IDS:
-            return room_id in {"market", "forge"}
+            return room_id == "lumberjack_camp"
         if item_id in HERB_STORAGE_IDS:
-            return room_id in {"market", "herbalist_hut"}
+            return room_id == "herbalist_hut"
         return False
 
     def resource_sale_location_text(self, container):
         return {
-            "net": "Targ Rybny, Rynek albo Karczma",
-            "bag": "Kuźnia Dusz albo Górski Targ Minerałów",
-            "woodpile": "Rynek albo Kuźnia Dusz",
-            "herbbag": "Rynek albo Chata Zielarki",
-        }.get(container, "właściwy punkt skupu")
+            "net": "Targ Rybny — Rybak Tomas i rybacy",
+            "bag": "Górski Targ Minerałów — Handlarka Minerałów Dagna",
+            "woodpile": "Obóz Drwala — Drwal Bran",
+            "herbbag": "Chata Zielarki — Zielarka Liora",
+        }.get(container, "właściwy punkt skupu profesji")
+
+    def resource_sale_buyer_text(self, container):
+        return {
+            "net": "Rybakom na Targu Rybnym",
+            "bag": "Handlarce Minerałów Dagnie",
+            "woodpile": "Drwalowi Branowi",
+            "herbbag": "Zielarce Liorze",
+        }.get(container, "właściwemu skupującemu")
+
+    def profession_sale_definition(self, container):
+        # v0.8.68: sprzedaż u właściwego fachowca rozwija specjalizację/profesję,
+        # ale nie narzędzie. EXP jest liczony za faktycznie sprzedane sztuki.
+        return {
+            "net": ("Wędkarstwo", "fishing"),
+            "bag": ("Górnictwo", "mining"),
+            "woodpile": ("Drwalstwo", "woodcutting"),
+            "herbbag": ("Zielarstwo", "herbalism"),
+        }.get(container)
+
+    def grant_profession_sale_xp(self, container, units):
+        definition = self.profession_sale_definition(container)
+        units = max(0, int(units or 0))
+        if not definition or units <= 0:
+            return []
+
+        profession, _tool_type = definition
+        # 1 bazowy XP za sztukę; respektuje globalny mnożnik EXP profesji.
+        actual_xp = units * PROFESSION_XP_GAIN_MULTIPLIER
+        prow = self.server.db.profession(self.account_id, profession)
+        level = int(prow["level"])
+        xp = int(prow["xp"]) + actual_xp
+        actions = int(prow["actions"])
+        cap = profession_max_level(profession)
+        old_rank = profession_rank(level, profession)
+        messages = [
+            f"{profession}: sprzedaż +{actual_xp} XP specjalizacji "
+            f"za {units} sztuk."
+        ]
+
+        while level < cap:
+            needed = self.profession_xp_to_next(level, profession)
+            if xp < needed:
+                break
+            xp -= needed
+            level += 1
+            messages.append(f"{profession} osiąga poziom {level}.")
+
+        if level >= cap:
+            level = cap
+            xp = 0
+
+        self.server.db.save_profession(
+            self.account_id, profession, level, xp, actions
+        )
+
+        new_rank = profession_rank(level, profession)
+        if new_rank > old_rank:
+            messages.append(
+                f"{profession}: awansujesz na Rangę {new_rank} "
+                f"z {profession_max_rank(profession)}: "
+                f"{profession_rank_name(profession, level)}."
+            )
+        return messages
+
+    def profession_sale_units_for_rows(self, rows):
+        totals = {"net": 0, "bag": 0, "woodpile": 0, "herbbag": 0}
+        for item_id, quantity in rows:
+            quantity = max(0, int(quantity or 0))
+            if quantity <= 0:
+                continue
+            if item_id in FISH_STORAGE_IDS:
+                totals["net"] += quantity
+            elif item_id in MINING_STORAGE_IDS:
+                totals["bag"] += quantity
+            elif item_id in WOOD_STORAGE_IDS:
+                totals["woodpile"] += quantity
+            elif item_id in HERB_STORAGE_IDS:
+                totals["herbbag"] += quantity
+        return totals
+
+    async def announce_profession_sale_xp(self, container, units):
+        for message in self.grant_profession_sale_xp(container, units):
+            await self.send(message)
+
+    async def announce_profession_sale_xp_for_rows(self, rows):
+        for container, units in self.profession_sale_units_for_rows(rows).items():
+            if units > 0:
+                await self.announce_profession_sale_xp(container, units)
 
     def bulk_sell_rewards_for_rows(self, rows):
         total_silver = 0
@@ -30794,32 +33677,14 @@ class Session:
             rewards["silver"], rewards["gold"], rewards["mithril"]
         )
 
-    async def gain_charisma_from_bulk_sale(self, units):
-        units = max(0, int(units))
+    async def gain_charisma_from_bulk_sale(self, rewards):
+        units = max(0, int(rewards.get("units", 0) or 0))
         if units <= 0:
             return
-
-        old_discount = self.character.shop_discount_percent()
-        old_capacity = self.character.party_capacity()
-        self.character.charisma += units
-
-        await self.send(
-            f"Charyzma +{units}. "
-            f"Masz teraz {self.character.charisma}."
+        sale_value = legacy_currency_to_coins(
+            rewards.get("silver", 0), rewards.get("gold", 0), rewards.get("mithril", 0)
         )
-
-        new_discount = self.character.shop_discount_percent()
-        new_capacity = self.character.party_capacity()
-
-        if new_discount > old_discount:
-            await self.send(
-                f"Nowy rabat sklepowy: {new_discount} procent."
-            )
-        if new_capacity > old_capacity:
-            await self.send(
-                f"Nowy limit drużyny jako lider: "
-                f"{new_capacity} osób."
-            )
+        await self.gain_charisma_from_sale(sale_value, units=units)
 
     def normalize_bulk_sell_target(self, query):
         q = normalize_lookup_text(query)
@@ -30939,11 +33804,12 @@ class Session:
         self.character.gold += rewards["gold"]
         self.character.mithril += rewards["mithril"]
 
-        await self.gain_charisma_from_bulk_sale(rewards["units"])
+        await self.gain_charisma_from_bulk_sale(rewards)
+        await self.announce_profession_sale_xp(container, rewards["units"])
         self.server.db.save_character(self.character)
 
         await self.send(
-            f"Sprzedajesz cały magazyn: "
+            f"Sprzedajesz {self.resource_sale_buyer_text(container)} cały magazyn: "
             f"{self.container_label(container)}. "
             f"Sztuk: {rewards['units']}. "
             f"Rodzajów: {rewards['types']}."
@@ -30977,7 +33843,7 @@ class Session:
             if equipped_count:
                 skipped += equipped_count
 
-            if item.get("type") == "resource":
+            if item.get("type") == "resource" or item_id in MINING_STORAGE_IDS:
                 if not (
                     item.get("sell_silver", 0)
                     or item.get("sell_gold", 0)
@@ -31022,7 +33888,8 @@ class Session:
         self.character.gold += rewards["gold"]
         self.character.mithril += rewards["mithril"]
 
-        await self.gain_charisma_from_bulk_sale(rewards["units"])
+        await self.gain_charisma_from_bulk_sale(rewards)
+        await self.announce_profession_sale_xp_for_rows(sell_rows)
         self.server.db.save_character(self.character)
 
         await self.send(
@@ -31070,7 +33937,7 @@ class Session:
 
         # v0.8.51: zwykłe przedmioty (np. talizmany, pierścienie, pancerze)
         # można sprzedać w dowolnym normalnym sklepie.
-        if item.get("type") != "resource":
+        if item.get("type") != "resource" and item_id not in MINING_STORAGE_IDS:
             if not self.generic_item_is_sellable(item_id, item):
                 await self.send("Tego przedmiotu nie można sprzedać.")
                 return
@@ -31113,7 +33980,7 @@ class Session:
             self.character.silver += values["silver"]
             self.character.gold += values["gold"]
             self.character.mithril += values["mithril"]
-            await self.gain_charisma_from_sale()
+            await self.gain_charisma_from_sale(legacy_currency_to_coins(values["silver"], values["gold"], values["mithril"]))
             self.server.db.save_character(self.character)
             copy_text = f" egzemplarz {copy_number}" if copy_number is not None else ""
             await self.send(
@@ -31123,7 +33990,7 @@ class Session:
             return
 
         fish_items = FISH_STORAGE_IDS
-        ore_items = ORE_STORAGE_IDS
+        ore_items = MINING_STORAGE_IDS
         wood_items = WOOD_STORAGE_IDS
         herb_items = HERB_STORAGE_IDS
 
@@ -31147,17 +34014,17 @@ class Session:
             await self.send("Nie masz tego przedmiotu.")
             return
 
-        if item_id in fish_items and self.character.room_id not in {"market", "inn", "fish_market"}:
-            await self.send("Ryby możesz sprzedać na Targu Rybnym, Rynku albo w Karczmie.")
+        if item_id in fish_items and self.character.room_id != "fish_market":
+            await self.send("Ryby skupują tylko rybacy na Targu Rybnym.")
             return
-        if item_id in ore_items and self.character.room_id != "forge":
-            await self.send("Rudy możesz sprzedać w Kuźni Dusz.")
+        if item_id in ore_items and self.character.room_id != "mountain_market":
+            await self.send("Rudy, minerały i surowe klejnoty skupuje tylko Handlarka Minerałów Dagna na Górskim Targu Minerałów.")
             return
-        if item_id in wood_items and self.character.room_id not in {"market", "forge"}:
-            await self.send("Drewno możesz sprzedać na Rynku albo w Kuźni Dusz.")
+        if item_id in wood_items and self.character.room_id != "lumberjack_camp":
+            await self.send("Drewno skupuje tylko Drwal Bran w Obozie Drwala.")
             return
-        if item_id in herb_items and self.character.room_id not in {"market", "herbalist_hut"}:
-            await self.send("Zioła możesz sprzedać na Rynku albo w Chacie Zielarki.")
+        if item_id in herb_items and self.character.room_id != "herbalist_hut":
+            await self.send("Zioła skupuje tylko Zielarka Liora w Chacie Zielarki.")
             return
 
         removed = False
@@ -31182,16 +34049,21 @@ class Session:
         self.character.silver += silver
         self.character.gold += gold
         self.character.mithril += mithril
-        await self.gain_charisma_from_sale()
+        await self.gain_charisma_from_sale(legacy_currency_to_coins(silver, gold, mithril))
+        await self.announce_profession_sale_xp(source_container, 1)
         self.server.db.save_character(self.character)
 
         reward_coins = legacy_currency_to_coins(silver, gold, mithril)
-        await self.send(f"Sprzedajesz {item['name']} za " + currency_reading_text(reward_coins, 0, 0) + ".")
+        buyer = self.resource_sale_buyer_text(source_container)
+        await self.send(
+            f"Sprzedajesz {buyer}: {item['name']} za "
+            + currency_reading_text(reward_coins, 0, 0) + "."
+        )
 
     def recipe_container_for_item(self, item_id):
         if item_id in FISH_STORAGE_IDS:
             return "net"
-        if item_id in ORE_STORAGE_IDS:
+        if item_id in MINING_STORAGE_IDS:
             return "bag"
         if item_id in WOOD_STORAGE_IDS:
             return "woodpile"
@@ -31327,31 +34199,21 @@ class Session:
                     f"{recipe['desc']}"
                 )
 
+    def recipe_profession_name(self, recipes):
+        if recipes is CRAFT_RECIPES:
+            return "Kowalstwo"
+        if recipes is ALCHEMY_RECIPES:
+            return "Alchemia"
+        if recipes is JEWELCRAFT_RECIPES:
+            return "Jubilerstwo"
+        return "Gotowanie"
+
     def recipe_level_requirement_text(self, recipes, recipe):
-        tool_type, _item_id, tool_name = self.recipe_tool_info(recipes)
-        required = max(
-            1, int(recipe.get("min_tool_level", 1))
-        )
-        parts = [
-            f"{tool_name} level {required}"
-        ]
-        if (
-            recipes is CRAFT_RECIPES
-            and "min_profession_level" in recipe
-        ):
-            parts.append(
-                "Kowalstwo level "
-                f"{max(1, int(recipe.get('min_profession_level', 1)))}"
-            )
-        if (
-            recipes is JEWELCRAFT_RECIPES
-            and "min_profession_level" in recipe
-        ):
-            parts.append(
-                "Jubilerstwo level "
-                f"{max(1, int(recipe.get('min_profession_level', 1)))}"
-            )
-        return "Wymaga: " + ", ".join(parts) + "."
+        profession = self.recipe_profession_name(recipes)
+        required = max(1, int(
+            recipe.get("min_profession_level", recipe.get("min_tool_level", 1)) or 1
+        ))
+        return f"Wymaga: {profession} level {required}."
 
     def recipe_tool_info(self, recipes):
         if recipes is CRAFT_RECIPES:
@@ -31402,61 +34264,20 @@ class Session:
 
         tool_row = self.server.db.tool(self.account_id, tool_type)
         old_tool_level = int(tool_row["level"])
-        required_level = max(
-            1, int(recipe.get("min_tool_level", 1))
+
+        profession = self.recipe_profession_name(recipes)
+        profession_row = self.server.db.profession(self.account_id, profession)
+        profession_level = int(profession_row["level"])
+        required_profession = max(
+            1,
+            int(recipe.get("min_profession_level", recipe.get("min_tool_level", 1)) or 1),
         )
-        if old_tool_level < required_level:
+        if profession_level < required_profession:
             await self.send(
-                f"{recipe['name']} wymaga {tool_name} level "
-                f"{required_level}, a masz {old_tool_level}."
+                f"{recipe['name']} wymaga {profession} level "
+                f"{required_profession}, a masz {profession_level}."
             )
             return False
-
-        if (
-            recipes is CRAFT_RECIPES
-            and "min_profession_level" in recipe
-        ):
-            blacksmith_row = self.server.db.profession(
-                self.account_id, "Kowalstwo"
-            )
-            blacksmith_level = int(
-                blacksmith_row["level"]
-            )
-            required_profession = max(
-                1,
-                int(
-                    recipe.get(
-                        "min_profession_level", 1
-                    )
-                ),
-            )
-            if blacksmith_level < required_profession:
-                await self.send(
-                    f"{recipe['name']} wymaga Kowalstwa level "
-                    f"{required_profession}, a masz "
-                    f"{blacksmith_level}."
-                )
-                return False
-
-        if (
-            recipes is JEWELCRAFT_RECIPES
-            and "min_profession_level" in recipe
-        ):
-            jewel_row = self.server.db.profession(
-                self.account_id, "Jubilerstwo"
-            )
-            jewel_level = int(jewel_row["level"])
-            required_profession = max(
-                1,
-                int(recipe.get("min_profession_level", 1)),
-            )
-            if jewel_level < required_profession:
-                await self.send(
-                    f"{recipe['name']} wymaga Jubilerstwa level "
-                    f"{required_profession}, a masz "
-                    f"{jewel_level}."
-                )
-                return False
 
         if self.character.room_id not in recipe["stations"]:
             await self.send(
@@ -31479,8 +34300,8 @@ class Session:
                 await self.send(line + ".")
             return False
 
-        action_seconds = self.tool_action_seconds(
-            tool_type, old_tool_level
+        action_seconds = self.recipe_action_seconds(
+            tool_type, profession_level, recipe
         )
         await self.send(
             f"Rozpoczynasz {action_name}. "
@@ -31582,10 +34403,7 @@ class Session:
                     tool_xp,
                 )
             )
-        elif (
-            tool_type == "crafting"
-            and self.character.room_id == "forge"
-        ):
+        elif tool_type == "crafting":
             profession_xp = int(
                 recipe.get(
                     "profession_xp",
@@ -31600,11 +34418,18 @@ class Session:
                     tool_xp,
                 )
             )
+        elif tool_type == "cooking":
+            profession_xp = int(
+                recipe.get("profession_xp", 10 + random.randint(0, 5))
+            )
+            messages, cooking_level, new_tool_level = (
+                self.grant_profession_progress(
+                    "Gotowanie", profession_xp, "cooking", tool_xp
+                )
+            )
         else:
             messages, new_tool_level = (
-                self.grant_tool_progress(
-                    tool_type, tool_xp
-                )
+                self.grant_tool_progress(tool_type, tool_xp)
             )
         for message in messages:
             await self.send(message)
@@ -31702,8 +34527,7 @@ class Session:
         await self.send("GOTOWANIE")
         await self.show_single_tool("cooking")
         await self.send(
-            "Gotowanie jest systemem opartym na Nożu Kucharskim level 1-200. "
-            "Nie tworzy osobnego levelu postaci ani osobnej profesji."
+            "Gotowanie jest osobną profesją level 1-200. Jej poziom skraca czas przygotowania potraw i blokuje receptury; level Noża nie skraca czasu."
         )
         await self.send(
             "Gotować możesz w Karczmie Pod Błękitnym Płomieniem "
@@ -31713,12 +34537,11 @@ class Session:
             "Komendy: gotuj <potrawa>, receptury cook, gotowanie."
         )
         await self.send(
-            "Niższe receptury prowadzą przez levele Noża 1-99, "
-            "a endgame zaczyna się od levelu 100 i kończy na 200."
+            "Niższe receptury prowadzą przez poziomy Gotowania 1-99, a endgame zaczyna się od levelu 100 i kończy na 200."
         )
         await self.send(
-            "Wyższy Tier Noża może przygotować dodatkową porcję. "
-            "Gotowanie daje XP wyłącznie Nożowi Kucharskiemu."
+            "Wyższy Tier Noża może przygotować dodatkową porcję, ale nie skraca czasu. "
+            "Gotowanie daje osobno XP profesji Gotowanie i XP Noża Kucharskiego."
         )
 
     def resolve_smelt_recipe(self, query):
@@ -31879,11 +34702,26 @@ class Session:
             "info", "pelne", "pełne", "szczegoly", "szczegóły", "details"
         )
         rows = self.server.db.equipment(self.account_id)
-        if not rows:
-            await self.send("Nie masz założonego dodatkowego wyposażenia.")
-            return
 
         await self.send("EQ INFO" if detailed else "EQ")
+        c = self.character
+        soul_line = (
+            f"Broń Duszy: {c.soul_weapon}. "
+            f"Soul Level {c.soul_level}/{SOUL_MAX_LEVEL}. "
+            f"Soul Tier {c.soul_tier}/{SOUL_MAX_TIER}. "
+            f"Moc {c.soul_power()}."
+        )
+        if detailed:
+            if c.soul_level < SOUL_MAX_LEVEL:
+                soul_line += f" Soul XP {c.soul_xp} z {c.soul_xp_to_next()}."
+            else:
+                soul_line += " Soul XP maksimum."
+            soul_line += f" Bonus klasowy: {c.soul_weapon_class_bonus_text()}."
+        await self.send(soul_line)
+
+        if not rows:
+            await self.send("Nie masz założonego dodatkowego wyposażenia.")
+        
         slot_names = {
             "head": "Głowa", "body": "Korpus", "hands": "Dłonie",
             "legs": "Nogi", "feet": "Stopy", "charm": "Talizman",
@@ -32174,11 +35012,83 @@ class Session:
                 returned.append(gem_id)
         return returned
 
+    async def show_geodes(self):
+        await self.send("GEODY")
+        rows = {row["item_id"]: int(row["quantity"]) for row in self.server.db.storage_rows(self.account_id, "bag")}
+        total = 0
+        for geode_id, cfg in GEODE_DEFINITIONS.items():
+            qty = rows.get(geode_id, 0)
+            total += qty
+            await self.send(
+                f"{cfg['name']}: {qty}. Kilof {cfg['min_tool']}+, głębokość {cfg['min_floor']}+."
+            )
+        if total:
+            await self.send("Otwieranie: open geode / otwórz geodę. Możesz też podać nazwę, np. otwórz geodę kryształową.")
+        else:
+            await self.send("Nie masz obecnie geod w Sakwie Górnika.")
+
+    def _find_owned_geode(self, query=""):
+        rows = {row["item_id"]: int(row["quantity"]) for row in self.server.db.storage_rows(self.account_id, "bag")}
+        owned = {gid: ITEMS[gid] for gid in GEODE_IDS if rows.get(gid, 0) > 0}
+        if not owned:
+            return None
+        q = self.normalize_description_query(str(query or "").strip())
+        for token in ("geoda", "geode", "geodę", "geodee"):
+            q = q.replace(token, " ").strip()
+        if q:
+            found = find_by_name(owned, q)
+            if found:
+                return found[0]
+        # Bez nazwy otwieramy najlepszą posiadaną geodę.
+        priority = ("astral_geode", "crystal_geode", "stone_geode")
+        return next((gid for gid in priority if gid in owned), None)
+
+    async def open_geode(self, query=""):
+        geode_id = self._find_owned_geode(query)
+        if not geode_id:
+            await self.send("Nie masz takiej geody w Sakwie Górnika. Wpisz geody / geodes.")
+            return False
+        if not self.server.db.remove_storage_item(self.account_id, "bag", geode_id, 1):
+            await self.send("Nie udało się pobrać geody z Sakwy Górnika.")
+            return False
+        cfg = GEODE_DEFINITIONS[geode_id]
+        eligible = [d for d in GEM_DEFINITIONS if int(d["level"]) <= int(cfg["max_gem_level"])]
+        weights = list(range(len(eligible), 0, -1))
+        low_qty, high_qty = cfg["gem_qty"]
+        quantity = random.randint(int(low_qty), int(high_qty))
+        rewards = []
+        for _ in range(quantity):
+            definition = random.choices(eligible, weights=weights, k=1)[0]
+            quality = random.choices(GEM_QUALITY_ORDER, weights=cfg["quality_weights"], k=1)[0]
+            gem_id = gem_quality_item_id("raw", definition["key"], quality)
+            self.store_profession_resource(gem_id, 1)
+            rewards.append(ITEMS[gem_id]["name"])
+        gold_low, gold_high = cfg["gold"]
+        gold = random.randint(int(gold_low), int(gold_high))
+        if gold > 0:
+            self.character.gold += gold
+        shard = False
+        if geode_id == "astral_geode" and random.random() < 0.08:
+            self.server.db.add_item(self.account_id, "soul_shard", 1)
+            shard = True
+        self.server.db.save_character(self.character)
+        await self.send(f"Otwierasz {cfg['name']}. Klejnoty: " + ", ".join(rewards) + ".")
+        if gold > 0:
+            await self.send(f"W geodzie znajdujesz także {gold} złota.")
+        if shard:
+            await self.send("Rzadkie znalezisko: Odłamek Duszy x1.")
+        return True
+
     async def show_gems(self):
         await self.send("KAMIENIE SZLACHETNE")
         await self.send(
-            "Surowe kamienie wypadają dodatkowo podczas Górnictwa. "
-            "Nie zastępują normalnej rudy."
+            "Kamienie wypadają dodatkowo podczas Górnictwa, trafiają do Sakwy Górnika "
+            "i nie zastępują normalnej rudy. Dagna skupuje je razem z urobkiem górniczym."
+        )
+        await self.send(
+            "Jakości: Surowy, Czysty, Doskonały, Perfekcyjny. Lepszy Kilof i wyższe Górnictwo "
+            "zwiększają szansę jakości; Perfekcyjny pozostaje rzadkim jackpotem. Geody dają dodatkową "
+            "szansę na klejnoty: geody / geodes."
         )
         for definition in GEM_DEFINITIONS:
             await self.send(
@@ -33064,16 +35974,27 @@ class Session:
             return "herbbag"
         return None
 
+    def resource_quest_equivalent_ids(self, item_id):
+        """Bazowy surowiec + jego jakościowe warianty dla konkretnego questa."""
+        base_id = canonical_profession_resource_id(item_id)
+        return {
+            candidate_id
+            for candidate_id in ITEMS
+            if canonical_profession_resource_id(candidate_id) == base_id
+        } or {item_id}
+
     def resource_quest_have(self, item_id):
         container = self.resource_quest_container(item_id)
+        equivalent_ids = self.resource_quest_equivalent_ids(item_id)
         if not container:
-            return self.server.db.item_qty(
-                self.account_id, item_id
+            return sum(
+                self.server.db.item_qty(self.account_id, candidate_id)
+                for candidate_id in equivalent_ids
             )
         return (
             self.server.db.total_items_across_storage_and_inventory(
                 self.account_id,
-                {item_id},
+                equivalent_ids,
                 container,
             )
         )
@@ -33088,19 +36009,18 @@ class Session:
         )
         for quest_id, progress, needed in changed:
             quest = QUESTS[quest_id]
-            name = ITEMS[item_id]["name"]
+            target_id = canonical_profession_resource_id(quest["target"])
+            target_name = ITEMS.get(target_id, ITEMS[item_id])["name"]
             if progress >= needed:
                 await self.send(
                     f"Postęp questa: {quest['name']}. "
-                    f"Zdobyłeś: {name}. "
-                    f"Postęp {progress} z {needed}. "
+                    f"Postęp {progress} z {needed}: {target_name}. "
                     "Cel wykonany."
                 )
             else:
                 await self.send(
                     f"Postęp questa: {quest['name']}. "
-                    f"Zdobyłeś: {name}. "
-                    f"Postęp {progress} z {needed}."
+                    f"Postęp {progress} z {needed}: {target_name}."
                 )
 
     def craft_set_progress(self, row, quest):
@@ -33125,29 +36045,15 @@ class Session:
             return min(int(row["progress"]), int(q["needed"]))
 
         if q["kind"] == "collect":
-            if q.get("track_craft_progress"):
-                return min(
-                    int(row["progress"]),
-                    int(q["needed"]),
-                )
-            return min(
-                self.server.db.item_qty(
-                    self.account_id, q["target"]
-                ),
-                int(q["needed"]),
-            )
+            # v0.8.66: każdy collect startuje 0/x. Stary zapas nie liczy się
+            # do postępu; rośnie tylko zapisany licznik zdarzeń po przyjęciu.
+            return min(int(row["progress"]), int(q["needed"]))
 
         if q["kind"] == "collect_category":
-            category = self.quest_collect_category_info(q["target"])
-            if not category:
-                return None
-            ids, container, label = category
-            return min(
-                self.server.db.total_items_across_storage_and_inventory(
-                    self.account_id, ids, container
-                ),
-                int(q["needed"]),
-            )
+            # v0.8.65: licznik zaczyna od 0 przy przyjęciu questa i rośnie
+            # tylko od zasobów zdobytych później. Stary zapas nadal może być
+            # użyty do fizycznego oddania, ale nie daje darmowego postępu.
+            return min(int(row["progress"]), int(q["needed"]))
 
         if q["kind"] == "collect_resource":
             return min(
@@ -33174,10 +36080,7 @@ class Session:
 
         needed = int(q["needed"])
 
-        if (
-            q.get("kind") == "collect"
-            and q.get("track_craft_progress")
-        ):
+        if q.get("kind") == "collect":
             have = self.server.db.item_qty(
                 self.account_id,
                 q["target"],
@@ -33197,7 +36100,7 @@ class Session:
                     f"{item_name}. "
                     f"Do oddania masz {have} z {needed}. "
                     "Wykonanie jest zakończone, ale musisz "
-                    "posiadać wymagane mikstury."
+                    "posiadać wymagane przedmioty do oddania."
                 )
             else:
                 await self.send(
@@ -33264,7 +36167,10 @@ class Session:
                 f"Postęp {progress} z {needed}."
             )
 
-    async def announce_collect_category_quest_progress(self, target):
+    async def announce_collect_category_quest_progress(self, target, amount=1):
+        amount = max(0, int(amount))
+        if amount <= 0:
+            return
         for row in self.server.db.quest_rows(self.account_id):
             if row["status"] != "active":
                 continue
@@ -33275,6 +36181,13 @@ class Session:
                 or q.get("target") != target
             ):
                 continue
+            needed = int(q.get("needed", 1))
+            new_progress = min(
+                needed, int(row["progress"]) + amount
+            )
+            self.server.db.set_quest_progress(
+                self.account_id, row["quest_id"], new_progress
+            )
             await self.announce_active_quest_progress(row["quest_id"])
 
     async def announce_craft_quest_progress(
@@ -33356,38 +36269,22 @@ class Session:
             return progress, progress >= needed
 
         if q["kind"] == "collect":
-            if q.get("track_craft_progress"):
-                crafted = min(
-                    int(row["progress"]),
-                    needed,
-                )
-                have = self.server.db.item_qty(
-                    self.account_id,
-                    q["target"],
-                )
-                return (
-                    crafted,
-                    crafted >= needed
-                    and have >= needed,
-                )
-
-            progress = self.server.db.item_qty(
-                self.account_id,
-                q["target"],
-            )
-            return progress, progress >= needed
+            # v0.8.66: także zwykłe collect wymaga postępu zdobytego po
+            # przyjęciu questa. Do oddania nadal trzeba fizycznie posiadać cel.
+            progress = min(int(row["progress"]), needed)
+            have = self.server.db.item_qty(self.account_id, q["target"])
+            return progress, progress >= needed and have >= needed
 
         if q["kind"] == "collect_category":
             category = self.quest_collect_category_info(q["target"])
             if not category:
                 return 0, False
             ids, container, _label = category
-            progress = (
-                self.server.db.total_items_across_storage_and_inventory(
-                    self.account_id, ids, container
-                )
+            progress = min(int(row["progress"]), needed)
+            have = self.server.db.total_items_across_storage_and_inventory(
+                self.account_id, ids, container
             )
-            return progress, progress >= needed
+            return progress, progress >= needed and have >= needed
 
         if q["kind"] == "collect_resource":
             gathered = min(
@@ -33479,14 +36376,8 @@ class Session:
             reasons.append(f"wymaga Soul Tier {required_soul_tier}")
 
         tool_type = quest.get("specialist_tool_type")
-        min_tool = int(quest.get("min_tool_level", 0) or 0)
-        if tool_type and min_tool:
-            row = self.server.db.tool(self.account_id, tool_type)
-            if int(row["level"]) < min_tool:
-                reasons.append(f"wymaga levelu narzędzia {min_tool}")
-
-        profession = quest.get("required_profession")
-        min_prof = int(quest.get("min_profession_level", 0) or 0)
+        profession = quest.get("required_profession") or quest.get("reward_profession") or profession_for_tool_type(tool_type)
+        min_prof = int(quest.get("min_profession_level", quest.get("min_tool_level", 0)) or 0)
         if profession and min_prof:
             prow = self.server.db.profession(self.account_id, profession)
             if int(prow["level"]) < min_prof:
@@ -33757,12 +36648,17 @@ class Session:
             requirements.append(
                 "ukończ quest " + QUESTS.get(required_quest, {}).get("name", required_quest)
             )
-        if quest.get("min_tool_level"):
-            requirements.append(f"level narzędzia {quest['min_tool_level']}")
-        if quest.get("min_profession_level") and quest.get("required_profession"):
-            requirements.append(
-                f"{quest['required_profession']} level {quest['min_profession_level']}"
-            )
+        tool_type = quest.get("specialist_tool_type")
+        profession = (
+            quest.get("required_profession")
+            or quest.get("reward_profession")
+            or profession_for_tool_type(tool_type)
+        )
+        min_profession = int(
+            quest.get("min_profession_level", quest.get("min_tool_level", 0)) or 0
+        )
+        if profession and min_profession:
+            requirements.append(f"{profession} level {min_profession}")
         if quest.get("required_soul_level"):
             requirements.append(f"Soul Level {quest['required_soul_level']}")
         if quest.get("required_soul_tier"):
@@ -33788,7 +36684,7 @@ class Session:
         if quest.get("reward_tool_xp"):
             reward_parts.append(f"XP narzędzia {quest['reward_tool_xp']}")
         if quest.get("reward_stat_progress"):
-            reward_parts.append(f"EXP rozwoju {quest['reward_stat_progress']}")
+            reward_parts.append(f"EXP każdej statystyki {quest['reward_stat_progress']}")
         if quest.get("unlocks_soul_tier"):
             reward_parts.append(f"odblokowanie Próby Soul Tier {quest['unlocks_soul_tier']}")
         await self.send(
@@ -34140,35 +37036,31 @@ class Session:
                 return
 
         elif q["kind"] == "collect":
-            if q.get("track_craft_progress"):
-                crafted = min(
-                    int(row["progress"]),
-                    int(q["needed"]),
+            # v0.8.66: każdy collect zaczyna 0/x i wymaga wykonania celu
+            # po przyjęciu. Sam stary zapas nigdy nie zalicza postępu.
+            completed_events = min(
+                int(row["progress"]),
+                int(q["needed"]),
+            )
+            if completed_events < int(q["needed"]):
+                action = "Wykonano" if q.get("track_craft_progress") else "Zdobyto"
+                await self.send(
+                    f"Quest aktywny: {q['name']}. "
+                    f"{action} {completed_events} z {q['needed']}: "
+                    f"{ITEMS[q['target']]['name']}."
                 )
-                if crafted < int(q["needed"]):
-                    await self.send(
-                        f"Quest aktywny: {q['name']}. "
-                        f"Wykonano {crafted} z {q['needed']}: "
-                        f"{ITEMS[q['target']]['name']}."
-                    )
-                    return
+                return
 
-            progress = self.server.db.item_qty(
+            have = self.server.db.item_qty(
                 self.account_id, q["target"]
             )
-            if progress < q["needed"]:
-                if q.get("track_craft_progress"):
-                    await self.send(
-                        f"Quest aktywny: {q['name']}. "
-                        f"Wykonanie zakończone, ale do oddania "
-                        f"masz {progress} z {q['needed']}: "
-                        f"{ITEMS[q['target']]['name']}."
-                    )
-                else:
-                    await self.send(
-                        f"Quest aktywny: {q['name']}. "
-                        f"Postęp {progress} z {q['needed']}."
-                    )
+            if have < q["needed"]:
+                await self.send(
+                    f"Quest aktywny: {q['name']}. "
+                    f"Cel wykonany {completed_events} z {q['needed']}, "
+                    f"ale do oddania masz {have} z {q['needed']}: "
+                    f"{ITEMS[q['target']]['name']}."
+                )
                 return
 
             self.server.db.remove_item(
@@ -34207,7 +37099,7 @@ class Session:
             ok = (
                 self.server.db.consume_items_across_storage_and_inventory(
                     self.account_id,
-                    {q["target"]},
+                    self.resource_quest_equivalent_ids(q["target"]),
                     int(q["needed"]),
                     container,
                 )
@@ -34281,15 +37173,21 @@ class Session:
                 return
 
             ids, container, label = category
-            progress = (
-                self.server.db.total_items_across_storage_and_inventory(
-                    self.account_id, ids, container
-                )
-            )
+            row = self.server.db.quest(self.account_id, quest_id)
+            progress = min(int(row["progress"]), int(q["needed"]))
             if progress < q["needed"]:
                 await self.send(
                     f"Quest aktywny: {q['name']}. "
                     f"Postęp {progress} z {q['needed']} wymaganych {label}."
+                )
+                return
+            have = self.server.db.total_items_across_storage_and_inventory(
+                self.account_id, ids, container
+            )
+            if have < q["needed"]:
+                await self.send(
+                    f"Cel wykonany, ale do oddania masz {have} z "
+                    f"{q['needed']} wymaganych {label}."
                 )
                 return
 
@@ -34386,25 +37284,15 @@ class Session:
             return False
 
         tool_type = quest.get("specialist_tool_type")
-        minimum = int(quest.get("min_tool_level", 1))
-        if tool_type:
-            row = self.server.db.tool(
-                self.account_id, tool_type
-            )
-            if int(row["level"]) < minimum:
-                return False
-
-        profession = quest.get(
-            "required_profession"
+        profession = (
+            quest.get("required_profession")
+            or quest.get("reward_profession")
+            or profession_for_tool_type(tool_type)
         )
         if profession:
-            prow = self.server.db.profession(
-                self.account_id, profession
-            )
+            prow = self.server.db.profession(self.account_id, profession)
             required_profession_level = int(
-                quest.get(
-                    "min_profession_level", 1
-                )
+                quest.get("min_profession_level", quest.get("min_tool_level", 1))
             )
             if (
                 int(prow["level"])
@@ -34451,7 +37339,7 @@ class Session:
             next_q = QUESTS[next_id]
             next_info = (
                 next_q["name"],
-                int(next_q.get("min_tool_level", 1)),
+                int(next_q.get("min_profession_level", next_q.get("min_tool_level", 1))),
             )
 
         return current, next_info
@@ -34462,25 +37350,21 @@ class Session:
             return
 
         tool_type = npc.get("specialist_tool_type")
-        tool_row = self.server.db.tool(
-            self.account_id, tool_type
-        )
-        tool_level = int(tool_row["level"])
+        profession = profession_for_tool_type(tool_type)
+        if not profession:
+            profession = QUESTS[chain[0]].get("reward_profession")
+        prow = self.server.db.profession(self.account_id, profession) if profession else None
+        profession_level = int(prow["level"]) if prow else 1
 
         await self.send(
-            f"Łańcuch zleceń specjalisty: "
-            f"{len(chain)} etapy. "
-            f"Aktualny level narzędzia: {tool_level}."
+            f"Łańcuch zleceń specjalisty: {len(chain)} etapy. "
+            f"Aktualny poziom {profession}: {profession_level}."
         )
 
         for number, quest_id in enumerate(chain, 1):
             quest = QUESTS[quest_id]
-            row = self.server.db.quest(
-                self.account_id, quest_id
-            )
-            minimum = int(
-                quest.get("min_tool_level", 1)
-            )
+            row = self.server.db.quest(self.account_id, quest_id)
+            minimum = int(quest.get("min_profession_level", quest.get("min_tool_level", 1)))
 
             if row and row["status"] == "active":
                 state = "aktywne"
@@ -34489,42 +37373,15 @@ class Session:
             elif not self.specialist_quest_available(quest_id):
                 required = quest.get("requires_quest")
                 reasons = []
-                if tool_level < minimum:
-                    reasons.append(
-                        f"wymaga levelu narzędzia {minimum}"
-                    )
-                if (
-                    required
-                    and not self.quest_completed(required)
-                ):
-                    reasons.append(
-                        "wymaga ukończenia poprzedniego etapu"
-                    )
-                profession = quest.get(
-                    "required_profession"
-                )
-                if profession:
-                    prow = self.server.db.profession(
-                        self.account_id,
-                        profession,
-                    )
-                    minimum_prof = int(
-                        quest.get(
-                            "min_profession_level", 1
-                        )
-                    )
-                    if int(prow["level"]) < minimum_prof:
-                        reasons.append(
-                            f"wymaga {profession} level "
-                            f"{minimum_prof}"
-                        )
+                if profession and profession_level < minimum:
+                    reasons.append(f"wymaga {profession} level {minimum}")
+                if required and not self.quest_completed(required):
+                    reasons.append("wymaga ukończenia poprzedniego etapu")
                 state = "zablokowane: " + ", ".join(reasons)
             else:
                 state = "dostępne"
 
-            await self.send(
-                f"Etap {number}: {quest['name']}. {state}."
-            )
+            await self.send(f"Etap {number}: {quest['name']}. {state}.")
 
     async def show_profession_specialist(self, npc):
         tool_type = npc.get("specialist_tool_type")
@@ -34663,11 +37520,30 @@ class Session:
             )
 
         # EXP rozwoju statystyk nie tworzy levelu postaci.
-        # Nadal zasila wyłącznie automatyczny wzrost pięciu statystyk.
-        reward_exp = q.get("reward_stat_progress", 0)
+        # v0.8.74: quest nadal daje mocny, odczuwalny postęp, ale jedno
+        # oddanie nie może przeskoczyć kilku punktów tej samej statystyki.
+        # Powtarzalny quest może dać do 85% bieżącego progu, jednorazowy
+        # do 90%. Bonus Człowieka (+10%) zachowuje przewagę rasy, a nadal
+        # nie pozwala przeskoczyć dwóch pełnych progów jednym oddaniem.
+        reward_exp = max(0, int(q.get("reward_stat_progress", 0) or 0))
+        quest_stat_applied = []
         if reward_exp:
-            for msg in self.character.add_stat_progress(reward_exp):
-                await self.send(msg)
+            for stat_name in self.character.STAT_PROGRESS_FIELDS:
+                granted = v0874_quest_stat_progress_base_grant(
+                    self.character, stat_name, reward_exp, q.get("repeatable", False)
+                )
+                quest_stat_applied.append(granted)
+                for msg in self.character.add_stat_progress(
+                    granted, targets=(stat_name,)
+                ):
+                    await self.send(msg)
+            if reward_exp > max(quest_stat_applied or [0]):
+                await self.send(
+                    "Balans Postępu Rozwoju: nadmiar nagrody questa został "
+                    "ograniczony do jednego mocnego fragmentu bieżącego progu "
+                    "każdej statystyki; niewykorzystany nadmiar nie przeskakuje "
+                    "kilku punktów statystyki naraz."
+                )
 
         self.character.silver += q.get("reward_silver", 0)
         self.character.gold += q.get("reward_gold", 0)
@@ -34690,9 +37566,16 @@ class Session:
                 "To zadanie jest powtarzalne. Będzie ponownie dostępne "
                 f"za {max(1, cooldown // 60)} minut."
             )
-        if q.get("reward_stat_progress", 0):
+        if reward_exp:
+            if quest_stat_applied:
+                lo = min(quest_stat_applied)
+                hi = max(quest_stat_applied)
+                amount_text = str(lo) if lo == hi else f"{lo}-{hi}"
+            else:
+                amount_text = "0"
             await self.send(
-                f"Nagroda EXP rozwoju: {q['reward_stat_progress']}."
+                f"Bazowa nagroda Postępu Rozwoju: {reward_exp}; "
+                f"zastosowano {amount_text} EXP do każdej statystyki przed bonusem rasy."
             )
         if (
             q.get("reward_silver", 0)
@@ -35308,7 +38191,7 @@ class Session:
         )
 
     async def grant_skill_use_xp(self, skill):
-        gain = 8 + random.randint(0, 4)
+        gain = 25 + random.randint(0, 10)
         result = self.server.db.add_skill_xp(
             self.account_id, skill["id"], gain
         )
@@ -35365,8 +38248,13 @@ class Session:
                     f"z graczem spoza twojej drużyny."
                 )
                 return None
-            if not mob.engaged_by:
-                mob.engaged_by = self.character.name
+            was_unengaged = not mob.engaged_by
+            protector = await self.server.apply_party_protection(self, mob)
+            if was_unengaged:
+                if mob.engaged_at <= 0:
+                    mob.engaged_at = time.monotonic()
+                if not mob.engaged_by:
+                    mob.engaged_by = self.character.name
                 mob.combat_turn = 0
                 mob.player_hits = 0
             self.combat_mob_key = mob.key
@@ -35938,6 +38826,7 @@ class Session:
 
         if self.skill_evade:
             self.skill_evade = False
+            self.skill_evade_lockout_until = time.time() + 4.0
             await self.send_combat(
                 f"{template['name']} atakuje, ale aktywna umiejętność gwarantuje unik.",
                 "normal",
@@ -35959,13 +38848,19 @@ class Session:
             full_reduction = self.defense()
             defense_name = "obrona fizyczna"
 
-        reduction = max(
+        raw_damage = max(1, int(round(
+            template["damage"] * profile["damage_multiplier"]
+        )))
+        requested_reduction = max(
             0,
             int(round(full_reduction * profile["defense_factor"]))
         )
-        raw_damage = int(round(
-            template["damage"] * profile["damage_multiplier"]
-        ))
+        # Płaska obrona nie może sama wyzerować trafienia. Zwykłe moby mogą
+        # stracić do 75% bazowego ciosu, bossowie do 60%; późniejsze guardy,
+        # pasywy rasowe i klasowe nadal działają niezależnie.
+        defense_cap_ratio = 0.60 if v0863_is_boss_template(template) else 0.75
+        defense_cap = max(0, int(math.floor(raw_damage * defense_cap_ratio)))
+        reduction = min(requested_reduction, defense_cap)
         incoming = max(
             1,
             raw_damage + random.randint(-2, 2) - reduction
@@ -36517,11 +39412,10 @@ class Session:
     def skill_buff_multiplier(self, exclude_skill_id=None):
         """Łączny mnożnik wszystkich aktywnych buffów.
 
-        Bonusy sumują się addytywnie (+35% i +55% = +90%), co zapobiega
-        wykładniczemu mnożeniu przy multiclassie. Łączny bonus jest ograniczony
-        do +200% (mnożnik x3), żeby kilka rotujących buffów nie łamało balansu.
-        `exclude_skill_id` pozwala buffowi korzystać z innych aktywnych buffów
-        bez wzmacniania samego siebie przy ręcznym odświeżeniu.
+        Bonusy sumują się addytywnie (+35% i +55% = +90%), więc różne buffy
+        nadal mogą działać razem i uniwersalnie wzmacniają wszystkie skille/spelle.
+        v0.8.64 ogranicza łączny bonus do +125% (x2.25). Buffy nie wzmacniają
+        siły kolejnego buffa - zapobiega to pętli multiclass buff->buff.
         """
         self.cleanup_skill_buffs()
         total_bonus = 0.0
@@ -36529,7 +39423,7 @@ class Session:
             if exclude_skill_id and skill_id == exclude_skill_id:
                 continue
             total_bonus += max(0.0, float(data.get("boost", 1.0) or 1.0) - 1.0)
-        return min(3.0, 1.0 + total_bonus)
+        return min(2.25, 1.0 + total_bonus)
 
     def clear_skill_buffs(self):
         getattr(self, "active_skill_buffs", {}).clear()
@@ -36564,8 +39458,9 @@ class Session:
                 return False
         elif kind == "guard" and self.skill_guard > 0:
             return False
-        elif kind == "evade" and self.skill_evade:
-            return False
+        elif kind == "evade":
+            if self.skill_evade or time.time() < getattr(self, "skill_evade_lockout_until", 0.0):
+                return False
         elif kind == "boost":
             # Nie ponawiaj tego samego buffa, dopóki jeszcze działa. Inne buffy
             # mogą być aktywowane równocześnie i składają się addytywnie.
@@ -36651,6 +39546,18 @@ class Session:
             return
 
         kind = skill["kind"]
+        if kind == "evade" and (
+            self.skill_evade
+            or time.time() < getattr(self, "skill_evade_lockout_until", 0.0)
+        ):
+            remaining = max(0, int(round(
+                getattr(self, "skill_evade_lockout_until", 0.0) - time.time()
+            )))
+            await self.send(
+                "Nie możesz jeszcze aktywować kolejnego gwarantowanego uniku."
+                + (f" Wspólny lockout: około {remaining} s." if remaining else "")
+            )
+            return
         offensive = kind in ("damage", "drain", "execute", "aoe_damage")
         mob = None
         aoe_mobs = []
@@ -36671,6 +39578,8 @@ class Session:
                 return
             for candidate in aoe_mobs:
                 if not candidate.engaged_by:
+                    if candidate.engaged_at <= 0:
+                        candidate.engaged_at = time.monotonic()
                     candidate.engaged_by = self.character.name
                     candidate.combat_turn = 0
                     candidate.player_hits = 0
@@ -36695,12 +39604,12 @@ class Session:
 
         if kind == "boost":
             base_boost = float(skill.get("boost", 1.0) or 1.0)
-            scaled_boost = 1.0 + (base_boost - 1.0) * skill_power
-            # Buffy wzmacniają także inne buffujące skille/spelle. Nie wzmacniamy
-            # jednak buffa nim samym podczas ręcznego odświeżenia.
-            existing_buff_mult = self.skill_buff_multiplier(exclude_skill_id=skill["id"])
-            if existing_buff_mult > 1.0:
-                scaled_boost = 1.0 + (scaled_boost - 1.0) * existing_buff_mult
+            # v0.8.64: Skill Level rozwija buff wolniej niż bezpośredni damage.
+            # Każdy pojedynczy buff może dać najwyżej +90%, a aktywne buffy nie
+            # wzmacniają siły kolejnego buffa. Różne buffy nadal stackują się.
+            base_bonus = max(0.0, base_boost - 1.0)
+            scaled_bonus = base_bonus * (1.0 + max(0.0, skill_power - 1.0) * 0.50)
+            scaled_boost = 1.0 + min(0.90, scaled_bonus)
             # Domyślnie buff trwa tyle, ile efektywny cooldown skilla. Dzięki temu
             # auto-kolejka może go odświeżyć dopiero po wygaśnięciu. Okrzyk Wojenny
             # zachowuje własne 12 sekund z definicji.
@@ -36756,8 +39665,8 @@ class Session:
             recipients = self.server.party_sessions(self.account_id, same_room=self.character.room_id)
             if not recipients:
                 recipients = [self]
-            heal_pct = min(0.70, skill.get("heal_pct", 0.20) * skill_power * self.character.racial_healing_multiplier() * self.character.class_healing_multiplier())
-            heal_pct = min(0.95, heal_pct * self.skill_buff_multiplier())
+            heal_pct = min(0.45, skill.get("heal_pct", 0.20) * skill_power * self.character.racial_healing_multiplier() * self.character.class_healing_multiplier())
+            heal_pct = min(0.60, heal_pct * self.skill_buff_multiplier())
             total_healed = 0
             for session in sorted(recipients, key=lambda target: target.character.name.lower()):
                 target_max = session.max_hp()
@@ -36781,13 +39690,13 @@ class Session:
         if kind == "heal":
             max_hp = self.max_hp()
             heal_pct = min(
-                0.75,
+                0.65,
                 skill.get("heal_pct", 0.25)
                 * skill_power
                 * self.character.racial_healing_multiplier()
                 * self.character.class_healing_multiplier()
             )
-            heal_pct = min(0.95, heal_pct * self.skill_buff_multiplier())
+            heal_pct = min(0.80, heal_pct * self.skill_buff_multiplier())
             heal = max(1, int(max_hp * heal_pct))
             before = self.current_hp
             self.current_hp = min(max_hp, self.current_hp + heal)
@@ -36873,9 +39782,13 @@ class Session:
 
         if kind == "execute":
             hp_ratio = mob.hp / max(1, template["max_hp"])
-            if hp_ratio <= 0.35:
-                multiplier *= skill.get("execute_mult", 1.5)
-                await self.send("Egzekucyjny próg aktywny: przeciwnik jest osłabiony.")
+            execute_threshold = v0863_execute_threshold(template)
+            if hp_ratio <= execute_threshold:
+                multiplier *= min(2.0, float(skill.get("execute_mult", 1.5)))
+                await self.send(
+                    f"Egzekucyjny próg aktywny: przeciwnik ma nie więcej niż "
+                    f"{int(round(execute_threshold * 100))} procent HP."
+                )
 
         damage = max(
             1,
@@ -36900,10 +39813,14 @@ class Session:
         )
 
         if kind == "drain":
-            heal = max(
+            requested_heal = max(
                 1,
                 int(damage * skill.get("drain_pct", 0.4) * self.character.class_drain_healing_multiplier())
             )
+            # Drain nadal skaluje się z obrażeniami, ale pojedynczy cast nie
+            # może przywrócić więcej niż 25% maksymalnego HP.
+            drain_cap = max(1, int(round(self.max_hp() * 0.25)))
+            heal = min(requested_heal, drain_cap)
             before = self.current_hp
             self.current_hp = min(self.max_hp(), self.current_hp + heal)
             actual = self.current_hp - before
@@ -36980,13 +39897,20 @@ class Session:
             )
 
         # Bez Many klasa magiczna nadal może uderzyć Bronią Duszy.
-        # Inteligencja działa słabiej, a Siła mocniej niż przy pełnym czarowaniu.
+        # v0.8.65: taki słabszy atak uruchamia Skupienie Broni Duszy i
+        # odzyskuje niewielką część Many. Zapobiega to wielominutowemu
+        # utknięciu magicznych klas na słabym autoataku w długich walkach,
+        # ale nie daje darmowej regeneracji dopóki Mana nie jest wyczerpana.
         base_damage = (
             c.soul_power()
             + self.spell_power() // 3
             + self.physical_power() // 2
             + random.randint(-2, 2)
         )
+        max_mana = self.max_mana()
+        mana_focus = min(40, max(4, int(round(max_mana * 0.05))))
+        self.current_mana = min(max_mana, self.current_mana + mana_focus)
+        self._last_mana_focus_gain = mana_focus
         return max(
                 1,
                 int(
@@ -37309,7 +40233,15 @@ class Session:
             return
 
         template = MOB_TEMPLATES[mob.template_id]
+        self._last_mana_focus_gain = 0
         damage = self.player_damage()
+        mana_focus_gain = int(getattr(self, "_last_mana_focus_gain", 0) or 0)
+        if mana_focus_gain > 0:
+            await self.send_combat(
+                f"Skupienie Broni Duszy: odzyskujesz {mana_focus_gain} Many. "
+                f"Mana {self.current_mana} z {self.max_mana()}.",
+                "normal",
+            )
         damage, critical = self.roll_critical_hit(damage)
         if critical:
             await self.send_combat(
@@ -37357,7 +40289,15 @@ class Session:
 
                 now = time.monotonic()
                 if now >= next_enemy:
-                    await self.enemy_counterattack(mob)
+                    # v0.8.65: jeden mob ma jeden aktywny cel aggro. Członkowie
+                    # drużyny mogą zadawać obrażenia temu samemu przeciwnikowi,
+                    # ale nie tworzą własnych pełnych timerów kontrataku bossa.
+                    if not mob.engaged_by:
+                        if mob.engaged_at <= 0:
+                            mob.engaged_at = time.monotonic()
+                        mob.engaged_by = self.character.name
+                    if mob.engaged_by == self.character.name:
+                        await self.enemy_counterattack(mob)
                     next_enemy = time.monotonic() + self.combat_enemy_interval
                     if not self.combat_mob_key or self.current_hp <= 0:
                         break
@@ -37446,8 +40386,13 @@ class Session:
                 return
 
         new_fight = self.combat_mob_key != mob.key
-        if not mob.engaged_by:
-            mob.engaged_by = self.character.name
+        was_unengaged = not mob.engaged_by
+        protector = await self.server.apply_party_protection(self, mob)
+        if was_unengaged:
+            if mob.engaged_at <= 0:
+                mob.engaged_at = time.monotonic()
+            if not mob.engaged_by:
+                mob.engaged_by = self.character.name
             mob.combat_turn = 0
             mob.player_hits = 0
         self.combat_mob_key = mob.key
@@ -37474,6 +40419,9 @@ class Session:
         # combat concise. Nie dziedziczą wyciszenia rutynowej auto kolejki.
         self.auto_queue_casting = False
         template = MOB_TEMPLATES[mob.template_id]
+        fight_duration_ms = None
+        if mob.engaged_at > 0:
+            fight_duration_ms = max(1, int(round((time.monotonic() - mob.engaged_at) * 1000)))
         mob.alive = False
         respawn_seconds = mob_respawn_seconds(template)
         mob.respawn_at = time.time() + respawn_seconds
@@ -37597,40 +40545,93 @@ class Session:
                     + currency_reading_text(silver, gold, mithril) + "."
                 )
 
-            for msg in session.character.add_stat_progress(
-                template["stat_reward"]
-            ):
-                await session.send(msg)
+            # v0.8.64: progresja z jednego killa ma limit zależny od rangi.
+            # Chroni to staty, Soul Level i Biegłość przed skokiem o dziesiątki
+            # poziomów po jednym endgame bossie/carry.
+            raw_stat_reward = max(0, int(template.get("stat_reward", 0)))
+            stat_factor = v0864_stat_progress_rank_factor(template)
+            stat_rewards = []
+            for stat_name in session.character.STAT_PROGRESS_FIELDS:
+                stat_cap = max(1, int(round(
+                    session.character.stat_growth_threshold_for(stat_name)
+                    * stat_factor
+                )))
+                stat_reward = min(raw_stat_reward, stat_cap)
+                stat_rewards.append(stat_reward)
+                for msg in session.character.add_stat_progress(
+                    stat_reward,
+                    targets=(stat_name,),
+                ):
+                    await session.send(msg)
+            if stat_rewards:
+                if min(stat_rewards) == max(stat_rewards):
+                    stat_reward_text = str(stat_rewards[0])
+                else:
+                    stat_reward_text = f"{min(stat_rewards)}-{max(stat_rewards)}"
+            else:
+                stat_reward_text = "0"
 
-            # v0.8.54: mob EXP skaluje się względem realnej siły postaci.
-            # Słabe moby z czasem dają mniej EXP, a trudne/śmiertelne więcej.
+            # v0.8.54 dynamic difficulty + v0.8.64 per-kill progression cap.
             xp_profile = session.dynamic_kill_xp_profile(template, room_id=session.character.room_id)
             xp_mult = float(xp_profile["multiplier"])
+            rank_factor = v0864_progression_rank_factor(template)
+
             base_soul_xp = int(template.get("soul_reward", 0))
-            soul_xp_reward = (
+            raw_soul_xp = (
                 max(1, int(round(base_soul_xp * xp_mult)))
                 if base_soul_xp > 0 else 0
             )
+            soul_next = session.character.soul_xp_to_next()
+            soul_cap = max(0, int(round(soul_next * rank_factor))) if soul_next > 0 else 0
+            soul_xp_reward = min(raw_soul_xp, soul_cap) if soul_cap > 0 else 0
             await session.grant_soul_xp(soul_xp_reward)
 
             base_class_xp = int(
                 template.get(
                     "class_xp_reward",
-                    max(50, int(template["stat_reward"]) * 10),
+                    max(50, int(template.get("stat_reward", 0)) * 10),
                 )
             )
-            class_xp_reward = (
+            raw_class_xp = (
                 max(1, int(round(base_class_xp * xp_mult)))
                 if base_class_xp > 0 else 0
             )
+            class_requirements = [
+                class_mastery_xp_to_next(session.class_mastery_level(class_name))
+                for class_name in session.active_class_names()
+            ]
+            class_requirements = [value for value in class_requirements if value > 0]
+            class_cap = (
+                max(1, int(round(sum(class_requirements) * rank_factor)))
+                if class_requirements else 0
+            )
+            class_xp_reward = min(raw_class_xp, class_cap) if class_cap > 0 else 0
             await session.send_combat(
-                f"Skalowanie EXP: {xp_profile['label']}, x{xp_mult:.2f}. "
-                f"Soul XP {base_soul_xp} -> {soul_xp_reward}; "
-                f"Class XP {base_class_xp} -> {class_xp_reward}.",
+                f"Skalowanie EXP: {xp_profile['label']}, x{xp_mult:.2f}; "
+                f"limit rangi x{rank_factor:.2f}. "
+                f"EXP statów {raw_stat_reward}->{stat_reward_text}; "
+                f"Soul XP {base_soul_xp}->{soul_xp_reward}; "
+                f"Class XP {base_class_xp}->{class_xp_reward}.",
                 detail="full",
             )
             await session.grant_class_xp(class_xp_reward)
             await session.record_mob_progress(mob)
+
+            bestiary_row, bestiary_new, bestiary_record = self.server.db.record_bestiary_kill(
+                session.account_id, mob.template_id, fight_duration_ms
+            )
+            bestiary_id = canonical_bestiary_template_id(mob.template_id)
+            bestiary_name = MOB_TEMPLATES.get(bestiary_id, template).get("name", template["name"])
+            if bestiary_new:
+                await session.send(
+                    f"Bestiariusz: nowy wpis — {bestiary_name}. "
+                    "Wpisz bestiariusz " + bestiary_name + "."
+                )
+            elif bestiary_record and bestiary_row and bestiary_row["fastest_kill_ms"] is not None:
+                await session.send(
+                    f"Bestiariusz: nowy rekord {bestiary_name}: "
+                    f"{int(bestiary_row['fastest_kill_ms']) / 1000.0:.2f} s."
+                )
 
             # v0.8.10: postęp zadania klasowego Gildii.
             try:
@@ -37738,6 +40739,8 @@ class Session:
         if not self.combat_mob_key:
             await self.send("Nie jesteś w walce.")
             return
+        if self.server.party_protector_session(self.account_id) is self:
+            await self.stop_party_protection(announce=True)
         mob = self.server.world.mobs.get(self.combat_mob_key)
         if mob:
             self.server.reassign_mob_engagement(mob, self)
@@ -37745,10 +40748,19 @@ class Session:
         await self.stop_realtime_combat()
         self.skill_guard = 0
         self.skill_evade = False
+        self.skill_evade_lockout_until = 0.0
         self.clear_skill_buffs()
         await self.send("Wycofujesz się z walki.")
 
     async def die(self, killer):
+        key = self.party_key()
+        if key is not None and self.server.party_protectors.get(key) == self.account_id:
+            self.server.party_protectors.pop(key, None)
+            await self.server.party_broadcast(
+                self.account_id,
+                f"{self.character.name} pada; osłona drużyny zostaje wyłączona.",
+                exclude=self,
+            )
         if self.resting or self.rest_task:
             await self.stop_rest(announce=False)
         if self.combat_mob_key:
@@ -37759,6 +40771,7 @@ class Session:
         await self.stop_realtime_combat()
         self.skill_guard = 0
         self.skill_evade = False
+        self.skill_evade_lockout_until = 0.0
         self.clear_skill_buffs()
         loss_silver = self.character.silver // 10
         loss_gold = self.character.gold // 10
@@ -37822,7 +40835,7 @@ class Session:
             rest_safe_commands = {
                 "rest", "help", "encoding", "describe", "changes", "look",
                 "corpse", "cryptinfo", "astralinfo", "consider",
-                "waterinfo", "exits", "map", "atlas", "codex",
+                "waterinfo", "exits", "map", "atlas", "codex", "bestiary",
                 "where", "who", "expareas", "terraininfo", "classsets", "say", "stats", "hp", "score", "mana", "declension", "skills",
                 "skillnames", "skillqueue", "soul", "money", "net", "bag",
                 "woodpile", "herbbag", "professions", "ranks",
@@ -37851,7 +40864,7 @@ class Session:
 
             guide_safe_commands = {
                 "guide", "route", "help", "encoding", "describe", "changes",
-                "look", "exits", "map", "atlas", "codex", "where", "who",
+                "look", "exits", "map", "atlas", "codex", "bestiary", "where", "who",
                 "terraininfo", "location", "stats", "hp", "score", "money",
                 "soul", "skills", "skillnames", "inventory", "equipment",
                 "quests", "progress", "exploration", "achievements", "titles",
@@ -37921,7 +40934,9 @@ class Session:
             elif command == "exits":
                 await self.show_exits(args)
             elif command == "map":
-                await self.show_map()
+                await self.show_map(args)
+            elif command == "bestiary":
+                await self.show_bestiary(args)
             elif command == "atlas":
                 await self.show_atlas(args)
             elif command == "codex":
@@ -37957,6 +40972,22 @@ class Session:
                 await self.tell(args)
             elif command == "party":
                 await self.handle_party(args)
+            elif command == "partyinvite":
+                await self.party_invite(args)
+            elif command == "partyaccept":
+                await self.party_accept()
+            elif command == "partydecline":
+                await self.party_decline()
+            elif command == "partyleave":
+                await self.leave_party(announce=True)
+            elif command == "partykick":
+                await self.party_kick(args)
+            elif command == "partydisband":
+                await self.disband_party()
+            elif command == "partyleader":
+                await self.transfer_party_leader(args)
+            elif command == "partyprotect":
+                await self.protect_party(args)
             elif command == "partychat":
                 await self.party_chat(args)
             elif command == "assist":
@@ -38136,6 +41167,10 @@ class Session:
                     await self.alchemy_item(args)
             elif command == "gems":
                 await self.show_gems()
+            elif command == "geodes":
+                await self.show_geodes()
+            elif command == "geodeopen":
+                await self.open_geode(args)
             elif command == "cutgem":
                 await self.cut_gem(args)
             elif command == "socketgem":
@@ -38149,7 +41184,11 @@ class Session:
             elif command == "classsets":
                 await self.show_class_sets(args)
             elif command == "equip":
-                await self.equip_item(args)
+                equip_target = self.normalize_description_query(str(args or "").strip())
+                if equip_target in ("druzyna", "druzyne", "party"):
+                    await self.create_party()
+                else:
+                    await self.equip_item(args)
             elif command == "use":
                 await self.use_item(args)
             elif command == "shop":
@@ -38175,7 +41214,11 @@ class Session:
             elif command == "flee":
                 await self.flee()
             elif command == "unlock":
-                await self.unlock()
+                await self.unlock_context(args)
+            elif command == "admin":
+                await self.admin_command(args)
+            elif command == "wipe":
+                await self.wipe_command(args)
             elif command == "save":
                 self.server.db.save_character(self.character)
                 await self.send("Postać zapisana.")
@@ -38248,6 +41291,7 @@ class Session:
         self.skill_cooldowns = {}
         self.skill_guard = 0
         self.skill_evade = False
+        self.skill_evade_lockout_until = 0.0
         self.active_skill_buffs = {}
         self.skill_queue_cursors = {"physical": 0, "magic": 0}
         self.skill_queue_next_type = "physical"
@@ -38296,6 +41340,8 @@ class MudServer:
         self.sessions = set()
         self.parties = {}
         self.party_invites = {}
+        # leader_account_id -> protector_account_id. Stan sesyjny; bez migracji DB.
+        self.party_protectors = {}
 
     def account_online(self, account_id):
         return any(
@@ -38326,6 +41372,81 @@ class MudServer:
         key_a = self.party_key_for_account(account_a)
         key_b = self.party_key_for_account(account_b)
         return key_a is not None and key_a == key_b
+
+    def clear_party_protector_for_account(self, account_id):
+        removed = False
+        for leader_id, protector_id in list(self.party_protectors.items()):
+            if protector_id == account_id:
+                self.party_protectors.pop(leader_id, None)
+                removed = True
+        return removed
+
+    def party_protector_session(self, account_id, same_room=None):
+        key = self.party_key_for_account(account_id)
+        if key is None:
+            return None
+        protector_id = self.party_protectors.get(key)
+        if protector_id is None:
+            return None
+        if protector_id not in self.parties.get(key, set()):
+            self.party_protectors.pop(key, None)
+            return None
+        protector = self.session_by_account(protector_id)
+        if (
+            not protector
+            or not protector.character
+            or protector.closed
+            or protector.current_hp <= 0
+            or not protector.character.has_active_class("Strażnik")
+        ):
+            self.party_protectors.pop(key, None)
+            return None
+        if (
+            same_room is not None
+            and protector.character.room_id != same_room
+        ):
+            return None
+        return protector
+
+    async def apply_party_protection(self, attacker, mob):
+        """Przekieruj jeden wspólny cel drużyny na aktywnego tanka Strażnika."""
+        if not attacker or not attacker.character or not mob or not mob.alive:
+            return None
+        protector = self.party_protector_session(
+            attacker.account_id, same_room=mob.room_id
+        )
+        if protector is None:
+            return None
+
+        # Jedna sesja Strażnika może prowadzić jeden pełny realtime target naraz.
+        if protector.combat_mob_key and protector.combat_mob_key != mob.key:
+            current = self.world.mobs.get(protector.combat_mob_key)
+            if current and current.alive and current.room_id == protector.character.room_id:
+                return None
+            protector.combat_mob_key = None
+
+        if not self.engagement_allowed(protector, mob):
+            return None
+
+        joined = protector.combat_mob_key != mob.key
+        old_aggro = mob.engaged_by
+        protector.combat_mob_key = mob.key
+        if mob.engaged_at <= 0:
+            mob.engaged_at = time.monotonic()
+        mob.engaged_by = protector.character.name
+        if joined:
+            protector.combat_hp_warn_level = 0
+            await protector.send(
+                f"Zasłaniasz drużynę przed {MOB_TEMPLATES[mob.template_id]['name']} i przejmujesz aggro."
+            )
+        if old_aggro != protector.character.name:
+            await self.party_broadcast(
+                attacker.account_id,
+                f"{protector.character.name} przejmuje aggro {MOB_TEMPLATES[mob.template_id]['name']} i osłania drużynę.",
+                exclude=protector,
+            )
+        await protector.ensure_realtime_combat()
+        return protector
 
     def party_sessions(self, account_id, same_room=None):
         key = self.party_key_for_account(account_id)
