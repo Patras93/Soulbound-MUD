@@ -1,3 +1,28 @@
+v0.24.1 — Quest Audit Hotfix
+==============================
+- Pełny audyt wszystkich 286 questów: 286/286 ma prawidłowy typ progresu, istniejącego NPC/cel/przedmiot, poprawne zależności i może osiągnąć stan GOTOWE DO ODDANIA.
+- Wszystkie questy dostawcze i rozmowy NPC są dodatkowo sprawdzane end-to-end.
+- Naprawiono „Kartograf Eren: Znak poza mapą”: przy KAŻDYM przyjęciu gracz dostaje 1 Mapę Skarbu Rubieży, także gdy posiada już inną mapę z lootu.
+- Przywrócono Borysa bez zmian: „Próba Rybaka” znowu wymaga 30 dowolnych ryb złowionych po przyjęciu.
+- Uproszczenie „2 różne gatunki” przeniesiono do właściwego NPC: pierwsze zlecenie Kucharza Marcela wymaga 2 różnych gatunków ryb i nie wymaga przedmiotu „Mała ryba”.
+- Dodano finalny globalny normalizer po wszystkich późniejszych definicjach questów. Usuwa stare min_tool_level z aktywnych questów, normalizuje wymagania profesji i wymusza event_progress_only dla wszystkich typów 0/x.
+- HELP zaktualizowany do poprawnego zachowania Borysa, Marcela i Erena. Audyt HELP: 213 tematów, 437 aliasów, 0 martwych aliasów.
+- Regresje: v0.18 Seasons/Expeditions, v0.19 Global Progression, v0.20 Megadungeons, v0.21 Ascension/World Tiers + 500 Endless, v0.22 World Projects/Legendary Contracts/Fishing Records — PASS.
+
+v0.24.0 — Cartography & Pharmacy Expansion
+==============================================
+- Dodano Aptekę Pod Srebrnym Liściem na południe od Karczmy Pod Błękitnym Płomieniem. Karczma zachowuje kuchnię i odpoczynek, ale nie sprzedaje już mikstur.
+- Aptekarka Neris sprzedaje 5 podstawowych mikstur/eliksirów: leczenie, manę, wielkie leczenie/manę i Eliksir Witalności. Mikstury usunięto także z miejskiego Rynku.
+- Neris ma powtarzalny co 60 minut quest „Apteczne zapasy: Świeże zioła”: 8 ziół zbieranych po przyjęciu, zawsze od 0/8.
+- Kartograf Eren zachowuje 5 godzinnych zleceń z v0.23 i dostaje dodatkową 5-etapową jednorazową serię „Wielki Atlas”; ma teraz 10 własnych questów.
+- Dodano `kartografia` / `cartography`: stan eksploracji pograniczy, sekretów, mini-lochów, wydarzeń, aktywnych Map Skarbów i postępu Wielkiego Atlasu.
+- Dodano `prowadz skarb` / `prowadz skarb <numer>`. Nawigacja materializuje tylko potrzebny korytarz proceduralnego biomu i dochodzi dokładnie do sektora wskazanego przez aktywną Mapę Skarbu.
+- Po dotarciu do tropu nawigacja przypomina o `sekret`; nie generuje całego biomu i nie wymaga ręcznego ostatniego kroku.
+- Zachowano v0.23: 2 różne gatunki w Próbie Rybaka, quest mapy co 60 minut, `dostarcz mapa`, bezpośrednie `prowadz kopalnia`, pojedynczą sprzedaż EQ i dynamiczny EXP 1-400.
+- Łącznie 286 questów. Test v0.24 sprawdza definicje i hooki progresu wszystkich questów oraz end-to-end dostawy/rozmowy, Próby Rybaka, Apteki, Kartografii, `prowadz skarb`, sklepów, kopalni i dynamicznego EXP.
+- Audyt aktywnego HELP: 213 tematów, 437 aliasów, 0 martwych aliasów. Nie znaleziono aktywnego wpisu kierującego po mikstury do Karczmy/Rynku ani starego celu 30 ryb.
+- Regresje v0.18-v0.22 i stress-testy przechodzą, w tym generator v0.19, 1000 pokojów megalochów i 500 rund Endless Gauntletu.
+
 v0.23.0 — Quest, Navigation, Shops & Dynamic XP Repair
 ==========================================================
 - Naprawiono questy dostawcze/rozmowy: wszystkie aktywne deliver_npc/talk_npc/talk_class_teacher reagują na właściwego NPC, a nie tylko questy oznaczone dawniej jako starterowe.

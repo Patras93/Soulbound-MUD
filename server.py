@@ -2,7 +2,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Soulbound v0.23.0 Quest, Navigation & Shop Repair
+Soulbound v0.24.1 Quest Audit Hotfix
 Wieloosobowy tekstowy MUD TCP/Telnet dla MUSHclienta/Mudleta.
 
 Najważniejsze zasady projektu:
@@ -30,7 +30,7 @@ import unicodedata
 from dataclasses import dataclass
 from typing import Optional
 
-VERSION = "0.23.0"
+VERSION = "0.24.1"
 
 # v0.8.72: właścicielskie komendy administracyjne. Nazwy kont podaje się
 # po stronie serwera, np. SOULBOUND_ADMIN_ACCOUNTS=Patryk. Nigdy nie są
@@ -4275,7 +4275,7 @@ ROOMS = {
     "market": {
         "zone": "Miasto Dusz", "name": "Rynek",
         "desc": (
-            "Kupcy sprzedają prowiant, mikstury i podstawowe wyposażenie. "
+            "Kupcy sprzedają prowiant i podstawowe wyposażenie. Mikstury kupisz w Aptece Pod Srebrnym Liściem. "
             "Przy kamiennym kantorze działa Bank Dusz Bankiera Aldrena. "
             "Handlarz Skupu Radan kupuje łupy, trofea i niezałożone EQ, "
             "ale nie skupuje ryb, rud, drewna, ziół ani innych materiałów rzemieślniczych."
@@ -9154,7 +9154,7 @@ NPCS = {
     "fisher_tomas": {
         "name": "Rybak Borys", "room": "fish_market",
         "rank_profession": "Wędkarstwo",
-        "dialogue": "Jeśli naprawdę chcesz zostać wędkarzem, złów dla mnie dwa różne gatunki ryb.",
+        "dialogue": "Jeśli naprawdę chcesz zostać wędkarzem, przynieś mi trzydzieści ryb.",
         "quest": "fisher_30_fish",
     },
     "lumberjack_bran": {
@@ -9400,7 +9400,7 @@ NPCS = {
     },
     "innkeeper": {
         "name": "Karczmarka Elia", "room": "inn",
-        "dialogue": "Witaj w Błękitnym Płomieniu. Na rynku i tutaj kupisz podstawowe mikstury.",
+        "dialogue": "Witaj w Błękitnym Płomieniu. Tutaj odpoczniesz i skorzystasz z kuchni; mikstury kupisz w Aptece Pod Srebrnym Liściem.",
         "quest": None,
     },
     "archivist": {
@@ -10201,7 +10201,8 @@ HELP_TOPICS = {
         "Kilka questów jednego NPC może być aktywnych równocześnie. Zlecenia profesyjne są niezależne, np. Mikstury Many i Mikstury Leczenia u Orina.",
         "Questy powtarzalne zachowują osobny czas odnowienia. Problem goblinów, Plaga Trolli i Cienie w Gaju odnawiają się co 60 minut.",
         "Kartograf Eren ma pięć niezależnych zleceń: mapa patroli, plan portowych magazynów, mapa drogi do kopalni, odkrycie 5 nowych sektorów i odkrycie 1 nowego sekretu. Każde odnawia się co 60 minut.",
-        "Próba Rybaka u Borysa wymaga teraz 2 RÓŻNYCH gatunków złowionych po przyjęciu; ten sam gatunek nie może nabić obu punktów.",
+        "Próba Rybaka u Borysa wymaga 30 dowolnych ryb złowionych po przyjęciu zadania.",
+        "Pierwsze zlecenie Kucharza Marcela wymaga 2 RÓŻNYCH gatunków ryb złowionych po przyjęciu; przedmiot Mała ryba nie jest wymagany.",
         "Jeśli numer nie pasuje, najpierw ponownie wpisz quest, quest ukończone albo quest list <NPC>, aby ustawić właściwą listę kontekstową.",
     ],
     "elity": [
@@ -11618,14 +11619,15 @@ QUESTS = {
         "repeat_cooldown": BLACKSMITH_QUEST_COOLDOWN_SECONDS,
     },
     "marcel_cooking_order": {
-        "name": "Zlecenie Marcela: Pieczone Ryby",
+        "name": "Zlecenie Marcela I: Dwa Gatunki Ryb",
         "giver": "Kucharz Marcel",
         "specialist_tool_type": "cooking",
         "min_tool_level": 1,
-        "kind": "collect", "target": "grilled_river_fish", "needed": 3,
+        "kind": "collect_distinct_category", "target": "fish", "needed": 2,
         "description": (
-            "Przygotuj 3 Pieczone ryby rzeczne i przynieś je "
-            "Kucharzowi Marcelowi w Karczmie."
+            "Złów po przyjęciu zadania 2 różne gatunki ryb i przynieś "
+            "Kucharzowi Marcelowi po jednej sztuce każdego gatunku. "
+            "Przedmiot Mała ryba nie jest wymagany."
         ),
         "reward_tool_type": "cooking",
         "reward_tool_xp": 450,
@@ -11938,15 +11940,10 @@ QUESTS = {
         "repeat_cooldown": QUEST_REPEAT_COOLDOWN_SECONDS,
     },
     "fisher_30_fish": {
-        # ID pozostaje dla zgodności starych save'ów. v0.23: cel został
-        # uproszczony z 30 dowolnych ryb do 2 RÓŻNYCH gatunków.
-        "name": "Próba Rybaka: Dwa Gatunki",
+        "name": "Próba Rybaka",
         "giver": "Rybak Borys",
-        "kind": "collect_distinct_category", "target": "fish", "needed": 2,
-        "description": (
-            "Złów po przyjęciu questa 2 różne gatunki ryb i przynieś "
-            "Borysowi po jednej sztuce każdego z zaliczonych gatunków."
-        ),
+        "kind": "collect_category", "target": "fish", "needed": 30,
+        "description": "Przynieś Rybakowi Borysowi 30 dowolnych ryb złowionych po przyjęciu zadania.",
         "reward_profession": "Wędkarstwo",
         "reward_profession_xp": 1000,
         "reward_tool_type": "fishing",
@@ -15292,8 +15289,8 @@ def build_mountain_crafting_expansion():
     # ========================================================
     marcel_base = QUESTS["marcel_cooking_order"]
     marcel_base.update({
-        "name": "Zlecenie Marcela I: Pieczone Ryby",
-        "track_craft_progress": True,
+        "name": "Zlecenie Marcela I: Dwa Gatunki Ryb",
+        "track_craft_progress": False,
         "requires_quest": None,
     })
 
@@ -19522,8 +19519,12 @@ def normalize_quest_progress_tracking_v0866():
             # zdarzeń od 0/x zamiast stanu magazynu sprzed przyjęcia.
             quest["track_resource_progress"] = True
             quest["event_progress_only"] = True
-        elif kind in ("collect_category", "collect_distinct_category", "kill", "craft_set",
-                      "deliver_npc", "talk_npc", "talk_class_teacher"):
+        elif kind in (
+            "collect_category", "collect_distinct_category", "collect_resource_set",
+            "kill", "craft_set", "deliver_npc", "talk_npc", "talk_class_teacher",
+            "explore_frontier", "discover_secret", "mini_dungeon", "world_event",
+            "legendary_rare", "world_boss",
+        ):
             quest["event_progress_only"] = True
 
 
@@ -22480,6 +22481,100 @@ def build_v0102_city_and_outskirts():
 
 build_v0102_city_and_outskirts()
 
+# ============================================================
+# v0.24.0 - APTEKA POD SREBRNYM LIŚCIEM
+# ============================================================
+# Mikstury są osobnym asortymentem aptecznym. Karczma zachowuje kuchnię i
+# Gotowanie, ale nie prowadzi już sprzedaży mikstur.
+ROOMS["pharmacy"] = {
+    "zone": "Miasto Dusz",
+    "name": "Apteka Pod Srebrnym Liściem",
+    "desc": (
+        "Jasne półki wypełniają fiolki, suszone zioła i opisane butelki. "
+        "To miejski sklep z podstawowymi miksturami i eliksirami."
+    ),
+    "exits": {"north": "inn"},
+}
+ROOMS["inn"].setdefault("exits", {})["south"] = "pharmacy"
+
+SHOPS["market"] = [iid for iid in SHOPS.get("market", ()) if iid != "healing_potion"]
+SHOPS["inn"] = [iid for iid in SHOPS.get("inn", ()) if iid != "healing_potion"]
+SHOPS["pharmacy"] = [
+    "healing_potion", "mana_potion",
+    "greater_healing_potion", "greater_mana_potion",
+    "vitality_elixir",
+]
+SHOP_SELLERS["pharmacy"] = "pharmacist_neris"
+for _iid, _price in {
+    "healing_potion": 100,
+    "mana_potion": 140,
+    "greater_healing_potion": 420,
+    "greater_mana_potion": 520,
+    "vitality_elixir": 800,
+}.items():
+    ITEMS[_iid]["price"] = _price
+    ITEMS[_iid]["currency"] = "silver"
+
+NPCS["pharmacist_neris"] = {
+    "name": "Aptekarka Neris",
+    "room": "pharmacy",
+    "dialogue": (
+        "Karczma jest od posiłku i odpoczynku. Mikstury kupisz tutaj. "
+        "Jeśli zbierasz zioła, mam też dla ciebie regularne zlecenie."
+    ),
+    "quest": "v024_pharmacy_herbs",
+}
+QUESTS["v024_pharmacy_herbs"] = {
+    "name": "Apteczne zapasy: Świeże zioła",
+    "giver": "Aptekarka Neris",
+    "kind": "collect_category", "target": "herb", "needed": 8,
+    "description": (
+        "Po przyjęciu zadania zbierz 8 dowolnych ziół i przynieś je Aptekarce Neris. "
+        "Postęp zaczyna od 0/8 i liczy tylko nowe zbiory."
+    ),
+    "specialist_tool_type": "herbalism", "min_tool_level": 1,
+    "reward_profession": "Zielarstwo", "reward_profession_xp": 500,
+    "reward_tool_type": "herbalism", "reward_tool_xp": 350,
+    "reward_silver": 450, "reward_gold": 0, "reward_mithril": 0,
+    "reward_items": {"healing_potion": 1},
+    "repeatable": True, "repeat_cooldown": QUEST_REPEAT_COOLDOWN_SECONDS,
+}
+
+COMMAND_ALIASES.update({
+    "kartografia": "cartography", "kartograf": "cartography",
+    "cartography": "cartography", "mapy": "cartography",
+})
+GUIDE_DESTINATION_ALIASES.update({
+    "apteka": "pharmacy",
+    "apteka pod srebrnym lisciem": "pharmacy",
+    "pharmacy": "pharmacy",
+})
+
+HELP_TOPICS["apteka"] = [
+    "Apteka Pod Srebrnym Liściem leży na południe od Karczmy Pod Błękitnym Płomieniem.",
+    "Karczma i Rynek nie sprzedają już mikstur. Podstawowe gotowe mikstury kupujesz u Aptekarki Neris.",
+    "Komendy: sklep/list, kup <nazwa lub numer>, sprzedaj <nazwa>, quest list Neris.",
+    "Oferta: Mikstura Leczenia, Mikstura Many, Wielkie Mikstury Leczenia/Many oraz Eliksir Witalności.",
+    "Alchemia nadal pozwala wytwarzać mikstury samodzielnie i pozostaje ważna dla wyższych receptur.",
+    "Neris ma powtarzalny co 60 minut quest na 8 świeżo zebranych ziół, zawsze od 0/8.",
+    "Nawigacja: prowadz apteka albo walk pharmacy.",
+]
+HELP_TOPIC_ALIASES.update({
+    "pharmacy": "apteka", "aptekarz": "apteka", "aptekarstwo": "apteka",
+})
+if "nawigacja" in HELP_TOPICS:
+    HELP_TOPICS["nawigacja"].append(
+        "Aktywny trop Mapy Skarbu obsługuje prowadz skarb; przy kilku tropach podaj numer, np. prowadz skarb 2."
+    )
+if "sklepy" in HELP_TOPICS:
+    HELP_TOPICS["sklepy"].append(
+        "Mikstury kupuje się w Aptece Pod Srebrnym Liściem, nie w Karczmie ani na Rynku. Użyj prowadz apteka."
+    )
+if "alchemia" in HELP_TOPICS:
+    HELP_TOPICS["alchemia"].append(
+        "Podstawowe gotowe mikstury można kupić w Aptece. Karczma i Rynek nie prowadzą już sprzedaży mikstur."
+    )
+
 # Nowi mieszkańcy i fachowcy. Są pokojowi i nie są celami walki.
 NPCS.update({
     "tailor_lysa": {
@@ -22621,7 +22716,8 @@ QUESTS.update({
     "city_cartographer_secret_marks": {
         "name":"Kartograf Eren: Znak poza mapą", "giver":"Kartograf Eren",
         "kind":"discover_secret", "target":"any", "needed":1,
-        "description":"Po przyjęciu zadania odkryj 1 nowy sekret proceduralnego świata i wróć do Kartografa Erena.",
+        "description":"Po przyjęciu zadania otrzymasz Mapę Skarbu Rubieży. Użyj jej, dotrzyj do wskazanego sektora, odkryj 1 nowy sekret proceduralnego świata i wróć do Kartografa Erena.",
+        "accept_items":{"treasure_map_frontier":1}, "accept_items_always":True,
         "reward_stat_progress":55, "reward_silver":900, "reward_gold":0, "reward_mithril":0,
         "reward_items":{}, "repeatable":True, "repeat_cooldown":QUEST_REPEAT_COOLDOWN_SECONDS,
         "event_progress_only":True,
@@ -22661,6 +22757,73 @@ QUESTS.update({
         "reward_items":{"healing_potion":1}, "repeatable":True, "repeat_cooldown":QUEST_REPEAT_COOLDOWN_SECONDS,
     },
 })
+
+# v0.24.0: pięć dotychczasowych zleceń Erena pozostaje niezależnych i
+# godzinnych. Poniższa seria jest nowym, jednorazowym łańcuchem mistrzowskim.
+ITEMS["v024_eren_master_atlas"] = {
+    "name": "Wielki Atlas Erena", "type": "quest", "price": None,
+    "desc": "Wielki atlas rubieży przygotowany przez Erena dla Kartografki Lysy.",
+}
+QUESTS.update({
+    "v024_eren_master_1": {
+        "name": "Wielki Atlas I: Dwanaście nowych sektorów", "giver": "Kartograf Eren",
+        "kind": "explore_frontier", "target": "any", "needed": 12,
+        "description": "Odkryj 12 nowych sektorów proceduralnych rubieży po przyjęciu zadania.",
+        "reward_silver": 5000, "reward_gold": 0, "reward_mithril": 0,
+        "reward_items": {"treasure_map_frontier": 1},
+        "reward_faction_v016": "cartographers", "reward_faction_amount_v016": 8,
+        "repeatable": False, "event_progress_only": True,
+    },
+    "v024_eren_master_2": {
+        "name": "Wielki Atlas II: Drogi poza mapą", "giver": "Kartograf Eren",
+        "kind": "discover_secret", "target": "any", "needed": 2,
+        "description": "Odkryj 2 nowe sekrety proceduralnego świata po przyjęciu zadania.",
+        "requires_quest": "v024_eren_master_1",
+        "reward_silver": 8500, "reward_gold": 0, "reward_mithril": 0,
+        "reward_items": {"treasure_map_frontier": 2},
+        "reward_faction_v016": "cartographers", "reward_faction_amount_v016": 12,
+        "repeatable": False, "event_progress_only": True,
+    },
+    "v024_eren_master_3": {
+        "name": "Wielki Atlas III: Małe głębiny", "giver": "Kartograf Eren",
+        "kind": "mini_dungeon", "target": "any", "needed": 2,
+        "description": "Dotrzyj do finałowej komnaty 2 nowych proceduralnych mini-lochów.",
+        "requires_quest": "v024_eren_master_2",
+        "reward_silver": 12000, "reward_gold": 0, "reward_mithril": 0,
+        "reward_items": {"treasure_map_frontier": 1, "soul_elixir": 1},
+        "reward_faction_v016": "cartographers", "reward_faction_amount_v016": 16,
+        "repeatable": False, "event_progress_only": True,
+    },
+    "v024_eren_master_4": {
+        "name": "Wielki Atlas IV: Żywy świat", "giver": "Kartograf Eren",
+        "kind": "world_event", "target": "any", "needed": 3,
+        "description": "Odwiedź 3 nowe aktywne wydarzenia świata po przyjęciu zadania.",
+        "requires_quest": "v024_eren_master_3",
+        "reward_silver": 16000, "reward_gold": 0, "reward_mithril": 0,
+        "reward_items": {"treasure_map_frontier": 2, "soul_elixir": 1},
+        "reward_faction_v016": "cartographers", "reward_faction_amount_v016": 20,
+        "repeatable": False, "event_progress_only": True,
+    },
+    "v024_eren_master_5": {
+        "name": "Wielki Atlas V: Przekazanie dzieła", "giver": "Kartograf Eren",
+        "kind": "deliver_npc", "target_npc": "cartographer_lysa",
+        "quest_item": "v024_eren_master_atlas", "accept_items": {"v024_eren_master_atlas": 1},
+        "needed": 1,
+        "description": "Dostarcz Wielki Atlas Erena Kartografce Lysie w Bibliotece.",
+        "requires_quest": "v024_eren_master_4",
+        "reward_silver": 25000, "reward_gold": 0, "reward_mithril": 0,
+        "reward_items": {"treasure_map_frontier": 3, "soul_elixir": 2},
+        "reward_faction_v016": "cartographers", "reward_faction_amount_v016": 30,
+        "repeatable": False, "event_progress_only": True,
+    },
+})
+NPCS["cartographer_eren"]["quest_chain"] = tuple(
+    f"v024_eren_master_{i}" for i in range(1, 6)
+)
+NPCS["cartographer_eren"]["dialogue"] = (
+    "Mam pięć godzinnych zleceń kartograficznych oraz pięcioetapową serię Wielkiego Atlasu. "
+    "Jeśli chcesz pracować nad mapami dłużej, zapytaj o listę questów."
+)
 
 MOB_TEMPLATES.update({
     "outskirts_thief": {
@@ -22777,6 +22940,23 @@ HELP_TOPICS["miasto"] = [
     "Przedmieścia tworzą zapętlony obszar z sadem, młynem, polami, ścieżką pod murami i alternatywnym dojściem do północnego posterunku.",
     "Samo Miasto Dusz pozostaje bezpieczne i bez wrogich spawnów.",
 ]
+HELP_TOPICS["miasto"].append(
+    "Apteka Pod Srebrnym Liściem znajduje się na południe od Karczmy. To jedyny miejski sklep z podstawowymi miksturami."
+)
+HELP_TOPICS["kartografia"] = [
+    "Kartograf Eren ma 5 godzinnych zleceń oraz 5-etapową jednorazową serię Wielkiego Atlasu, razem 10 własnych questów.",
+    "kartografia / cartography pokazuje postęp sektorów, sekretów, mini-lochów, wydarzeń i Map Skarbów.",
+    "Mapa Skarbu Rubieży zapisuje aktywny trop; mapa skarbu pokazuje wszystkie tropy.",
+    "prowadz skarb prowadzi bezpośrednio do jedynego tropu. Przy kilku użyj prowadz skarb <numer>.",
+    "Znak poza mapą wydaje przy przyjęciu Mapę Skarbu Rubieży. Użyj mapy, a po dotarciu do sektora użyj sekret / secret. Questy kartograficzne zawsze startują 0/x i liczą nowe zdarzenia.",
+    "Nawigacja do Erena: prowadz Eren. Lista jego zadań: quest list Eren.",
+]
+HELP_TOPIC_ALIASES.update({
+    "kartograf": "kartografia", "cartography": "kartografia",
+    "mapy skarbow": "kartografia", "mapy skarbów": "kartografia",
+    "prowadz skarb": "kartografia",
+})
+
 HELP_TOPICS["ruchome_moby"] = [
     "Zwykłe moby w świecie mogą przechodzić do sąsiednich pomieszczeń tej samej strefy, ale nigdy nie rozpoczynają walki same.",
     "Moby nie wchodzą do Miasta Dusz, sklepów, pokojów NPC ani innych bezpiecznych hubów.",
@@ -30229,7 +30409,7 @@ HELP_TOPICS["sekrety_swiata"] = [
 HELP_TOPIC_ALIASES.update({
     "wydarzenia": "wydarzenia_swiata", "eventy": "wydarzenia_swiata", "events": "wydarzenia_swiata",
     "mini lochy": "mini_lochy", "minilochy": "mini_lochy", "mini-lochy": "mini_lochy",
-    "sekrety swiata": "sekrety_swiata", "sekrety świata": "sekrety_swiata", "mapy skarbow": "sekrety_swiata", "mapy skarbów": "sekrety_swiata",
+    "sekrety swiata": "sekrety_swiata", "sekrety świata": "sekrety_swiata", "mapy skarbow": "kartografia", "mapy skarbów": "kartografia",
 })
 
 # ============================================================
@@ -30960,6 +31140,13 @@ for _fid, _story in V017_FACTION_STORIES.items():
     if not NPCS[_envoy].get("quest"):
         NPCS[_envoy]["quest"] = _chain[0]
     NPCS[_envoy]["dialogue"] += f" Mam też dla ciebie historię: {_story['title']}."
+
+# v0.24.1: finalny pass po WSZYSTKICH definicjach questów.
+# Część zadań z późniejszych wersji była dopisywana już po historycznych
+# normalizatorach v0.8.66, więc porządkujemy je ponownie globalnie.
+normalize_profession_requirements_v0866()
+normalize_quest_progress_tracking_v0866()
+ensure_profession_quest_currency_v098()
 
 HELP_TOPICS["artefakty_v017"] = [
     "artefakty / artifacts pokazuje 5 unikalnych artefaktów frakcyjnych i ich efekty.",
@@ -37300,6 +37487,104 @@ class Session:
             info = v0140_surface_secret_info(rid)
             zone = V013_FRONTIER_SPECS[info["kind"]]["zone"]
             await self.send(f"{number}. {zone}, sektor {info['x']+1}-{info['y']+1}. Użyj sekret w tym sektorze.")
+
+    def materialize_frontier_route_v024(self, room_id):
+        """Materializuje tylko bezpieczny korytarz od bramy biomu do celu.
+
+        Proceduralne sektory normalnie powstają dopiero przy wejściu. Nawigacja
+        do aktywnego tropu mapy potrzebuje jednak skończonego grafu trasy.
+        Tworzymy więc tylko prostą trasę 0,0 -> x,0 -> x,y, a nie cały biom.
+        """
+        identity = v0130_frontier_room_identity(room_id)
+        if identity is None:
+            return self.server.world.ensure_runtime_room(room_id)
+        kind, target_x, target_y = identity
+        coords = [(0, 0)]
+        coords.extend((x, 0) for x in range(1, target_x + 1))
+        coords.extend((target_x, y) for y in range(1, target_y + 1))
+        for x, y in coords:
+            if not self.server.world.ensure_runtime_room(
+                v0130_frontier_room_id(kind, x, y)
+            ):
+                return False
+        return room_id in ROOMS
+
+    def active_treasure_targets_v024(self):
+        targets = sorted(
+            self.server.db.collection_entry_ids(
+                self.account_id, "treasure_targets_v0140"
+            )
+        )
+        discovered = self.server.db.collection_entry_ids(
+            self.account_id, "surface_secrets_v0140"
+        )
+        return [
+            rid for rid in targets
+            if rid not in discovered and v0140_surface_secret_info(rid)
+        ]
+
+    async def show_cartography_v024(self):
+        discovered_rooms = self.server.db.discovered_room_ids(self.account_id)
+        frontier_rooms = tuple(
+            rid
+            for kind in V013_FRONTIER_SPECS
+            for rid in v0130_frontier_room_ids(kind)
+        )
+        frontier_known = sum(1 for rid in frontier_rooms if rid in discovered_rooms)
+        secrets = self.server.db.collection_entry_ids(
+            self.account_id, "surface_secrets_v0140"
+        )
+        mini = self.server.db.collection_entry_ids(
+            self.account_id, "mini_dungeons_v015"
+        )
+        events = self.server.db.collection_entry_ids(
+            self.account_id, "world_events_v0140"
+        )
+        all_targets = self.server.db.collection_entry_ids(
+            self.account_id, "treasure_targets_v0140"
+        )
+        active = self.active_treasure_targets_v024()
+        solved = max(0, len(all_targets) - len(active))
+        await self.send("KARTOGRAFIA")
+        await self.send(
+            f"Rubieże: odkryto {frontier_known} z {len(frontier_rooms)} sektorów. "
+            f"Sekrety: {len(secrets)}. Mini-lochy ukończone: {len(mini)}. "
+            f"Wydarzenia odwiedzone: {len(events)}."
+        )
+        await self.send(
+            f"Mapy skarbów: aktywne tropy {len(active)}, rozwiązane {solved}."
+        )
+        if active:
+            for number, rid in enumerate(active, 1):
+                info = v0140_surface_secret_info(rid)
+                zone = V013_FRONTIER_SPECS[info["kind"]]["zone"]
+                await self.send(
+                    f"Trop {number}: {zone}, sektor {info['x']+1}-{info['y']+1}. "
+                    f"Prowadzenie: prowadz skarb {number}."
+                )
+        else:
+            await self.send(
+                "Brak aktywnego tropu. Użyj Mapy Skarbu Rubieży, aby zapisać nowy cel."
+            )
+
+        eren_chain = tuple(NPCS.get("cartographer_eren", {}).get("quest_chain") or ())
+        if eren_chain:
+            completed = 0
+            active_names = []
+            for qid in eren_chain:
+                row = self.server.db.quest(self.account_id, qid)
+                if row and (row["status"] == "completed" or int(row["completion_count"] or 0) > 0):
+                    completed += 1
+                if row and row["status"] == "active":
+                    active_names.append(QUESTS[qid]["name"])
+            await self.send(
+                f"Łańcuch Erena: ukończone {completed}/{len(eren_chain)}."
+            )
+            if active_names:
+                await self.send("Aktywne u Erena: " + "; ".join(active_names) + ".")
+        await self.send(
+            "Komendy: mapa skarbu, prowadz skarb [numer], quest list Eren, help kartografia."
+        )
 
     async def discover_room(self, room_id, announce=True):
         if room_id not in ROOMS:
@@ -44515,34 +44800,74 @@ class Session:
         if shortcut and shortcut not in ROOMS:
             self.server.world.ensure_runtime_room(shortcut)
 
-        npc_match = self.find_guide_npc(q)
-        target_is_npc = npc_match is not None
-        target_npc = npc_match[1] if npc_match else None
-
-        if target_is_npc:
-            matches = [target_npc["room"]]
+        # v0.24.0: aktywny trop Mapy Skarbu jest celem zależnym od postaci,
+        # więc nie może być zwykłym globalnym aliasem pokoju.
+        treasure_match = re.fullmatch(
+            r"(?:skarb|skarbu|treasure)(?:\s+(\d+))?", normalized
+        )
+        target_is_treasure = treasure_match is not None
+        treasure_label = ""
+        if target_is_treasure:
+            active_treasures = self.active_treasure_targets_v024()
+            if not active_treasures:
+                await self.send(
+                    "Nie masz aktywnego tropu Mapy Skarbu. Użyj mapy, a potem wpisz mapa skarbu."
+                )
+                return
+            requested = treasure_match.group(1)
+            if requested is None and len(active_treasures) > 1:
+                await self.send(
+                    f"Masz {len(active_treasures)} aktywne tropy. Wpisz kartografia albo mapa skarbu, "
+                    "a następnie prowadz skarb <numer>."
+                )
+                return
+            index = int(requested or 1) - 1
+            if index < 0 or index >= len(active_treasures):
+                await self.send(
+                    f"Nie ma tropu numer {index + 1}. Aktywne tropy: {len(active_treasures)}."
+                )
+                return
+            treasure_target = active_treasures[index]
+            self.materialize_frontier_route_v024(treasure_target)
+            if treasure_target not in ROOMS:
+                await self.send("Nie udało się przygotować sektora wskazanego przez mapę.")
+                return
+            info = v0140_surface_secret_info(treasure_target)
+            zone = V013_FRONTIER_SPECS[info["kind"]]["zone"]
+            treasure_label = f"Trop skarbu: {zone}, sektor {info['x']+1}-{info['y']+1}"
+            npc_match = None
+            target_is_npc = False
+            target_npc = None
+            matches = [treasure_target]
         else:
-            floor_label = self.guide_floor_request_label(q)
-            matches = self.find_room_matches(q)
-            matches = list(dict.fromkeys(
-                self.guide_exploration_safe_target(room_id)
-                for room_id in matches
-            ))
-            # Bezpieczny cel po redukcji piętra także może być lazy-roomem.
-            for room_id in matches:
-                if room_id not in ROOMS:
-                    self.server.world.ensure_runtime_room(room_id)
-            if floor_label and matches and floor_label != "Kopalnia Głębinowa":
-                await self.send(
-                    f"Prowadzenie nie prowadzi na piętra. "
-                    f"Eksploracja wnętrza pozostaje ręczna. "
-                    f"Prowadzę tylko przed wejście: {floor_label}."
-                )
-            elif floor_label == "Kopalnia Głębinowa" and matches:
-                await self.send(
-                    "Kopalnia: prowadzenie doprowadzi bezpośrednio na poziom 1. "
-                    "Głębsze poziomy pozostają do eksploracji ręcznej."
-                )
+            npc_match = self.find_guide_npc(q)
+            target_is_npc = npc_match is not None
+            target_npc = npc_match[1] if npc_match else None
+
+            if target_is_npc:
+                matches = [target_npc["room"]]
+            else:
+                floor_label = self.guide_floor_request_label(q)
+                matches = self.find_room_matches(q)
+                matches = list(dict.fromkeys(
+                    self.guide_exploration_safe_target(room_id)
+                    for room_id in matches
+                ))
+                # Bezpieczny cel po redukcji piętra także może być lazy-roomem.
+                for room_id in matches:
+                    if room_id not in ROOMS:
+                        self.server.world.ensure_runtime_room(room_id)
+                if floor_label and matches and floor_label != "Kopalnia Głębinowa":
+                    await self.send(
+                        f"Prowadzenie nie prowadzi na piętra. "
+                        f"Eksploracja wnętrza pozostaje ręczna. "
+                        f"Prowadzę tylko przed wejście: {floor_label}."
+                    )
+                elif floor_label == "Kopalnia Głębinowa" and matches:
+                    await self.send(
+                        "Kopalnia: prowadzenie doprowadzi bezpośrednio na poziom 1. "
+                        "Głębsze poziomy pozostają do eksploracji ręcznej."
+                    )
 
         if not matches:
             await self.send(
@@ -44564,7 +44889,7 @@ class Session:
             and target == mine_floor_id(MINE_MIN_FLOOR)
             and mine_floor_number(target) == MINE_MIN_FLOOR
         )
-        reach_exact_target = target_is_npc or direct_mine_target
+        reach_exact_target = target_is_npc or direct_mine_target or target_is_treasure
 
         if target == self.character.room_id:
             if target_is_npc:
@@ -44583,12 +44908,14 @@ class Session:
 
         self.guide_target_room = target
         self.guide_target_label = (
-            target_npc["name"] if target_is_npc else ROOMS[target]["name"]
+            target_npc["name"] if target_is_npc
+            else (treasure_label if target_is_treasure else ROOMS[target]["name"])
         )
         self.guide_target_is_npc = target_is_npc
 
         # Accessibility rule: zwykłe lokacje zachowują historyczny ostatni
-        # ręczny krok. NPC oraz v0.23 Kopalnia Głębinowa są osiągane dokładnie.
+        # ręczny krok. NPC, v0.23 Kopalnia Głębinowa i v0.24 tropy skarbów
+        # są osiągane dokładnie.
         if reach_exact_target:
             path = full_path
             stop_room = target
@@ -44631,6 +44958,11 @@ class Session:
                 f"Prowadzę do NPC: {target_npc['name']}. "
                 f"Lokalizacja: {ROOMS[target]['name']}. "
                 f"Liczba przejść: {len(path)}."
+            )
+        elif target_is_treasure:
+            await self.send(
+                f"Prowadzę bezpośrednio do aktywnego tropu skarbu: {treasure_label}. "
+                f"Automatyczne przejścia: {len(path)}. Po dotarciu użyj sekret."
             )
         elif direct_mine_target:
             await self.send(
@@ -44761,6 +45093,12 @@ class Session:
             elif direct_mine_target and self.character.room_id == target:
                 await self.send(
                     f"Dotarłeś bezpośrednio do: {ROOMS[target]['name']}."
+                )
+                await self.look()
+            elif target_is_treasure and self.character.room_id == target:
+                await self.send(
+                    f"Dotarłeś bezpośrednio do tropu skarbu: {treasure_label}. "
+                    "Użyj sekret, aby zbadać wskazane miejsce."
                 )
                 await self.look()
             elif (not reach_exact_target) and self.character.room_id == stop_room:
@@ -50783,7 +51121,10 @@ class Session:
         for item_id, qty in (quest.get("accept_items") or {}).items():
             wanted_qty = max(1, int(qty))
             have_qty = self.server.db.item_qty(self.account_id, item_id)
-            missing = max(0, wanted_qty - have_qty)
+            if quest.get("accept_items_always"):
+                missing = wanted_qty
+            else:
+                missing = max(0, wanted_qty - have_qty)
             if missing:
                 self.server.db.add_item(self.account_id, item_id, missing)
                 await self.send(
@@ -56249,6 +56590,8 @@ class Session:
                 await self.show_exits(args)
             elif command == "map":
                 await self.show_map(args)
+            elif command == "cartography":
+                await self.show_cartography_v024()
             elif command == "worldevents":
                 await self.show_world_events()
             elif command == "weather":
