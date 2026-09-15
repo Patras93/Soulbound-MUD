@@ -2,7 +2,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Soulbound v0.13.0 Hybrid Procedural World
+Soulbound v0.14.0 Dynamic World Events & Secrets
 Wieloosobowy tekstowy MUD TCP/Telnet dla MUSHclienta/Mudleta.
 
 Najważniejsze zasady projektu:
@@ -30,7 +30,7 @@ import unicodedata
 from dataclasses import dataclass
 from typing import Optional
 
-VERSION = "0.13.0"
+VERSION = "0.14.0"
 
 # v0.8.72: właścicielskie komendy administracyjne. Nazwy kont podaje się
 # po stronie serwera, np. SOULBOUND_ADMIN_ACCOUNTS=Patryk. Nigdy nie są
@@ -5534,6 +5534,8 @@ COMMAND_ALIASES = {
     "statystykizycia": "lifetime", "lifestats": "lifetime",
     "spójrz": "look", "spojrz": "look", "l": "look",
     "wyjścia": "exits", "wyjscia": "exits",
+    "wydarzenia": "worldevents", "wydarzenie": "worldevents", "eventy": "worldevents", "events": "worldevents",
+    "worldevents": "worldevents", "worldevent": "worldevents",
     "mapa": "map",
     "sekret": "instancesecret", "secret": "instancesecret",
     "tajemnica": "instancesecret",
@@ -9540,8 +9542,15 @@ SYSTEM_DESCRIPTIONS = {
 }
 
 
-LATEST_CHANGES_TITLE = "Soulbound v0.13.0 - Hybrid Procedural World"
+LATEST_CHANGES_TITLE = "Soulbound v0.14.0 - Dynamic World Events & Secrets"
 LATEST_CHANGES = [
+    "v0.14.0: dodano pięć równoległych, rotujących co 30 minut wydarzeń proceduralnego świata: polowanie na rare, ławicę ryb, rozkwit ziół, bogatą żyłę oraz rozrost starego boru.",
+    "v0.14.0: eventy są opcjonalne i nigdy nie inicjują walki; wydarzenia profesyjne dają +2 do bazowego zbioru i +25 procent XP profesji/narzędzia w wskazanym sektorze.",
+    "v0.14.0: rare z wydarzeń są pasywne, mogą wędrować po zmaterializowanej części biomu i znikają po zakończeniu okna eventu, jeżeli nie walczą z graczem.",
+    "v0.14.0: proceduralne rubieże mogą zawierać deterministyczne mini-lochy 7-12 pokoi z pętlami, finałowym mini-bossem i odnawialną skrzynią skarbów.",
+    "v0.14.0: dodano deterministyczne sekrety powierzchniowe i ukryte komnaty; komenda sekret odkrywa je osobno dla postaci, a ponowne użycie sekretu w odkrytym punkcie wchodzi do ukrytej lokacji.",
+    "v0.14.0: dodano Mapę Skarbu Rubieży; użycie mapy zapisuje trwały cel w Codexie i wskazuje nieodkryty sekret w proceduralnym biomie. Mapa skarbu / mapa treasure pokazuje aktywne tropy.",
+    "v0.14.0: Kartografka Lysa w Bibliotece ma nowy łańcuch czterech questów eksploracyjnych: sektory rubieży, sekrety, mini-lochy i wydarzenia świata. Każdy licznik zaczyna od 0/x i liczy wyłącznie nowe zdarzenia po przyjęciu.",
     "v0.13.0: świat powierzchniowy jest hybrydowy: miasta, główne drogi, quest huby, ważni NPC i landmarki pozostają stałe, a rozległe naturalne rubieże są generowane na żądanie.",
     "v0.13.0: dodano 15 proceduralnych biomów po 12x12 sektorów, łącznie 2160 możliwych lokacji; przy stałym rdzeniu daje to około 70 procent potencjalnej mapy powierzchniowej jako proceduralnej.",
     "v0.13.0: proceduralne są łąki, las, dzicz, góry, mokradła, pustynia, wybrzeże, ocean, dorzecze, pojezierze, lodowe pustkowia oraz cztery rubieże endgame.",
@@ -29012,6 +29021,12 @@ def v0130_create_frontier_room_definition(room_id):
         direction = spec["direction"]
         exits[V013_REVERSE_DIRECTION[direction]] = v0130_gateway_id(kind)
 
+    # v0.14.0: wejścia do mini-lochów są częścią trwałego seedu sektora.
+    # Funkcja jest zdefiniowana niżej; nazwa rozwiązuje się dopiero przy
+    # faktycznym generowaniu pokoju po zakończeniu importu modułu.
+    if "v0140_has_mini_dungeon" in globals() and v0140_has_mini_dungeon(kind, x, y):
+        exits["down"] = v0140_mini_room_id(kind, x, y, 1)
+
     ROOMS[room_id] = {
         "zone": spec["zone"],
         "name": f"{title} — sektor {x + 1}-{y + 1}",
@@ -29028,6 +29043,14 @@ def v0130_create_frontier_room_definition(room_id):
         "procedural_x": x,
         "procedural_y": y,
     }
+    if "v0140_has_mini_dungeon" in globals() and v0140_has_mini_dungeon(kind, x, y):
+        ROOMS[room_id]["desc"] += " W terenie ukrywa się zejście do proceduralnego mini-lochu."
+        ROOMS[room_id]["v0140_mini_entrance"] = True
+    if "v0140_surface_secret_info" in globals():
+        secret_info = v0140_surface_secret_info(room_id)
+        if secret_info:
+            ROOMS[room_id]["v0140_surface_secret"] = True
+            ROOMS[room_id]["v0140_secret_name"] = secret_info["name"]
     _v0130_apply_resources(room_id, spec)
 
     mob_pool = tuple(t for t in spec.get("mobs", ()) if t in MOB_TEMPLATES)
@@ -29113,6 +29136,456 @@ HELP_TOPIC_ALIASES.update({
     "generowany swiat": "hybrydowy_swiat", "generowany świat": "hybrydowy_swiat",
 })
 
+
+# ============================================================
+# v0.14.0 - DYNAMIC WORLD EVENTS & SECRETS
+# Opcjonalne wydarzenia, rare roaming, deterministyczne mini-lochy,
+# sekrety powierzchniowe, mapy skarbów i questy eksploracyjne.
+# ============================================================
+V014_WORLD_SEED = "soulbound-v0140-events-secrets"
+V014_EVENT_ROTATION_SECONDS = 30 * 60
+V014_TREASURE_MAP_ITEM = "treasure_map_frontier"
+V014_MINI_DENOMINATOR = 18
+V014_SECRET_DENOMINATOR = 17
+
+ITEMS[V014_TREASURE_MAP_ITEM] = {
+    "name": "Mapa Skarbu Rubieży",
+    "type": "consumable",
+    "price": None,
+    "rarity": "rare",
+    "rarity_name": "Rzadki",
+    "treasure_map": True,
+    "desc": (
+        "Mapa prowadząca do jednego z deterministycznych sekretów proceduralnych rubieży. "
+        "Użyj jej, aby zapisać trop; potem wpisz mapa skarbu."
+    ),
+}
+
+V014_EVENT_DEFS = {
+    "rare_hunt": {
+        "title": "Trop rzadkiego przeciwnika",
+        "kinds": tuple(V013_FRONTIER_SPECS),
+        "desc": "W sektorze pojawił się wędrujący rare. Walka pozostaje całkowicie dobrowolna.",
+    },
+    "fish_run": {
+        "title": "Wielka ławica",
+        "kinds": ("coast", "ocean", "river", "lake", "void"),
+        "desc": "W tym łowisku trwa ławica: +2 do bazowego połowu i +25% XP Wędkarstwa/Wędki.",
+        "quantity_bonus": 2, "xp_mult": 1.25,
+    },
+    "herb_bloom": {
+        "title": "Rozkwit rzadkich ziół",
+        "kinds": ("meadow", "forest", "swamp", "river"),
+        "desc": "Roślinność jest wyjątkowo obfita: +2 do bazowego zbioru i +25% XP Zielarstwa/Sierpa.",
+        "quantity_bonus": 2, "xp_mult": 1.25,
+    },
+    "rich_vein": {
+        "title": "Bogata żyła",
+        "kinds": ("mountain", "desert", "frozen", "ash", "sky", "crown"),
+        "desc": "Odsłonięto wyjątkowo bogate złoże: +2 do bazowego urobku i +25% XP Górnictwa/Kilofa.",
+        "quantity_bonus": 2, "xp_mult": 1.25,
+    },
+    "forest_growth": {
+        "title": "Rozrost starego boru",
+        "kinds": ("forest", "wild", "meadow"),
+        "desc": "Stare drzewa dają więcej drewna: +2 do bazowego pozyskania i +25% XP Drwalstwa/Piły.",
+        "quantity_bonus": 2, "xp_mult": 1.25,
+    },
+}
+
+
+def _v0140_hash_int(*parts):
+    text = ":".join(str(part) for part in (V014_WORLD_SEED,) + parts)
+    return int(hashlib.sha256(text.encode("utf-8")).hexdigest()[:16], 16)
+
+
+def v0140_has_mini_dungeon(kind, x, y):
+    if kind not in V013_FRONTIER_SPECS:
+        return False
+    return _v0140_hash_int("mini", kind, int(x), int(y)) % V014_MINI_DENOMINATOR == 0
+
+
+def v0140_mini_size(kind, x, y):
+    return 7 + (_v0140_hash_int("mini-size", kind, int(x), int(y)) % 6)
+
+
+def v0140_mini_room_id(kind, x, y, index):
+    return f"v0140_mini_{kind}_{int(x):02d}_{int(y):02d}_{int(index):02d}"
+
+
+def v0140_mini_identity(room_id):
+    match = re.fullmatch(r"v0140_mini_([a-z]+)_(\d{2})_(\d{2})_(\d{2})", str(room_id or ""))
+    if not match:
+        return None
+    kind, sx, sy, si = match.groups()
+    if kind not in V013_FRONTIER_SPECS:
+        return None
+    x, y, index = int(sx), int(sy), int(si)
+    if not (0 <= x < V013_FRONTIER_SIDE and 0 <= y < V013_FRONTIER_SIDE):
+        return None
+    size = v0140_mini_size(kind, x, y)
+    if not v0140_has_mini_dungeon(kind, x, y) or not (1 <= index <= size):
+        return None
+    return kind, x, y, index, size
+
+
+def v0140_secret_room_id(kind, x, y):
+    return f"v0140_secret_{kind}_{int(x):02d}_{int(y):02d}"
+
+
+def v0140_secret_room_identity(room_id):
+    match = re.fullmatch(r"v0140_secret_([a-z]+)_(\d{2})_(\d{2})", str(room_id or ""))
+    if not match:
+        return None
+    kind, sx, sy = match.groups()
+    if kind not in V013_FRONTIER_SPECS:
+        return None
+    x, y = int(sx), int(sy)
+    if not (0 <= x < V013_FRONTIER_SIDE and 0 <= y < V013_FRONTIER_SIDE):
+        return None
+    parent = v0130_frontier_room_id(kind, x, y)
+    if not v0140_surface_secret_info(parent):
+        return None
+    return kind, x, y
+
+
+V014_SECRET_NAMES = (
+    "Zapomniana Kapliczka", "Ukryta Grota", "Zarośnięty Skarbiec",
+    "Kamienna Komnata", "Zatopiony Schowek", "Pradawny Krąg",
+    "Szczelina Kartografów", "Ruina Bez Drogi",
+)
+
+
+def v0140_surface_secret_info(room_id):
+    identity = v0130_frontier_room_identity(room_id)
+    if identity is None:
+        return None
+    kind, x, y = identity
+    value = _v0140_hash_int("secret", kind, x, y)
+    if value % V014_SECRET_DENOMINATOR != 0:
+        return None
+    return {
+        "kind": kind, "x": x, "y": y,
+        "name": V014_SECRET_NAMES[(value // V014_SECRET_DENOMINATOR) % len(V014_SECRET_NAMES)],
+        "room_id": room_id,
+        "hidden_room": v0140_secret_room_id(kind, x, y),
+    }
+
+
+def v0140_surface_secret_room_ids(kind=None):
+    kinds = (kind,) if kind else tuple(V013_FRONTIER_SPECS)
+    result = []
+    for current_kind in kinds:
+        for y in range(V013_FRONTIER_SIDE):
+            for x in range(V013_FRONTIER_SIDE):
+                rid = v0130_frontier_room_id(current_kind, x, y)
+                if v0140_surface_secret_info(rid):
+                    result.append(rid)
+    return tuple(result)
+
+
+def v0140_event_slot(now=None):
+    now = time.time() if now is None else float(now)
+    return int(now // V014_EVENT_ROTATION_SECONDS)
+
+
+def v0140_active_world_events(now=None):
+    now = time.time() if now is None else float(now)
+    slot = v0140_event_slot(now)
+    result = []
+    used_rooms = set()
+    for event_type, definition in V014_EVENT_DEFS.items():
+        rng = random.Random(_v0140_hash_int("event", slot, event_type))
+        kinds = tuple(definition["kinds"])
+        # Kilka prób, aby dwa typy eventu nie wylądowały w dokładnie tym samym sektorze.
+        for _ in range(20):
+            kind = rng.choice(kinds)
+            x = rng.randrange(V013_FRONTIER_SIDE)
+            y = rng.randrange(V013_FRONTIER_SIDE)
+            room_id = v0130_frontier_room_id(kind, x, y)
+            if room_id not in used_rooms:
+                break
+        used_rooms.add(room_id)
+        result.append({
+            "type": event_type,
+            "title": definition["title"],
+            "desc": definition["desc"],
+            "kind": kind,
+            "x": x,
+            "y": y,
+            "room_id": room_id,
+            "slot": slot,
+            "token": f"{slot}:{event_type}:{kind}:{x}:{y}",
+            "expires_at": (slot + 1) * V014_EVENT_ROTATION_SECONDS,
+            "quantity_bonus": int(definition.get("quantity_bonus", 0) or 0),
+            "xp_mult": float(definition.get("xp_mult", 1.0) or 1.0),
+        })
+    return tuple(result)
+
+
+def v0140_event_for_room(room_id, event_type=None, now=None):
+    for event in v0140_active_world_events(now):
+        if event["room_id"] == room_id and (event_type is None or event["type"] == event_type):
+            return event
+    return None
+
+
+def v0140_gather_event_bonus(room_id, tool_type=None, now=None):
+    event = v0140_event_for_room(room_id, now=now)
+    expected = {
+        "fish_run": "fishing",
+        "herb_bloom": "herbalism",
+        "rich_vein": "mining",
+        "forest_growth": "woodcutting",
+    }
+    if not event or expected.get(event["type"]) != str(tool_type or ""):
+        return {"label": "", "quantity_bonus": 0, "xp_mult": 1.0}
+    return {
+        "label": f"WYDARZENIE ŚWIATA — {event['title']}",
+        "quantity_bonus": int(event.get("quantity_bonus", 0) or 0),
+        "xp_mult": float(event.get("xp_mult", 1.0) or 1.0),
+    }
+
+
+def _v0140_clone_variant(base_id, *, rare=False, miniboss=False):
+    base = MOB_TEMPLATES.get(base_id)
+    if not base:
+        return None
+    suffix = "rare" if rare else "miniboss"
+    variant_id = f"v0140_{suffix}_{base_id}"
+    if variant_id in MOB_TEMPLATES:
+        return variant_id
+    data = dict(base)
+    data["drops"] = dict(base.get("drops", {}))
+    if rare:
+        data["name"] = f"Wędrujący Rzadki {base['name']}"
+        data["rare_mob"] = True
+        data["rare_base_template"] = base_id
+        hp_mult, dmg_mult, reward_mult = 1.75, 1.30, 2.20
+    else:
+        data["name"] = f"Strażnik Mini-Lochu: {base['name']}"
+        data["mini_boss"] = True
+        data["stationary_mob"] = True
+        data["v0140_mini_boss"] = True
+        hp_mult, dmg_mult, reward_mult = 2.80, 1.55, 3.20
+    data["max_hp"] = max(1, int(round(int(base.get("max_hp", 1)) * hp_mult)))
+    data["damage"] = max(1, int(round(int(base.get("damage", 1)) * dmg_mult)))
+    data["stat_reward"] = max(1, int(round(int(base.get("stat_reward", 1)) * min(1.8, reward_mult))))
+    data["soul_reward"] = max(1, int(round(int(base.get("soul_reward", 1)) * reward_mult)))
+    data["class_xp_reward"] = max(50, int(round(int(base.get("class_xp_reward", max(50, int(base.get("stat_reward", 1))*10))) * reward_mult)))
+    data["silver"] = max(1, int(round(int(base.get("silver", 1)) * reward_mult)))
+    data["gold"] = 0
+    data["mithril"] = 0
+    data["auto_aggro"] = False
+    data["drops"].setdefault(V014_TREASURE_MAP_ITEM, 0.28 if rare else 0.45)
+    data["drops"].setdefault("soul_shard", 0.45 if rare else 0.70)
+    MOB_TEMPLATES[variant_id] = data
+    return variant_id
+
+
+for _kind, _spec in V013_FRONTIER_SPECS.items():
+    for _base_id in tuple(_spec.get("mobs", ())):
+        if _base_id in MOB_TEMPLATES:
+            _v0140_clone_variant(_base_id, rare=True)
+            _v0140_clone_variant(_base_id, miniboss=True)
+
+# Katalogi Codexu powstały w starszej części modułu, więc dopisujemy nowe
+# dynamiczne warianty do tych samych słowników referencyjnych.
+for _mob_id, _data in MOB_TEMPLATES.items():
+    if _mob_id.startswith("v0140_rare_"):
+        RARE_MOB_COLLECTION_CATALOG[_mob_id] = _data["name"]
+    if _mob_id.startswith("v0140_miniboss_"):
+        BOSS_COLLECTION_CATALOG[_mob_id] = _data["name"]
+
+
+def v0140_rare_template_for_kind(kind, salt="event"):
+    pool = [base for base in V013_FRONTIER_SPECS[kind].get("mobs", ()) if base in MOB_TEMPLATES]
+    if not pool:
+        return None
+    base = pool[_v0140_hash_int("rare-pick", kind, salt) % len(pool)]
+    return _v0140_clone_variant(base, rare=True)
+
+
+def v0140_miniboss_template_for_sector(kind, x, y):
+    pool = [base for base in V013_FRONTIER_SPECS[kind].get("mobs", ()) if base in MOB_TEMPLATES]
+    if not pool:
+        return None
+    base = pool[_v0140_hash_int("mini-boss-pick", kind, x, y) % len(pool)]
+    return _v0140_clone_variant(base, miniboss=True)
+
+
+def v0140_create_mini_room_definition(room_id):
+    identity = v0140_mini_identity(room_id)
+    if identity is None:
+        return None, ()
+    if room_id in ROOMS:
+        return room_id, ()
+    kind, x, y, index, size = identity
+    spec = V013_FRONTIER_SPECS[kind]
+    width = 3
+    cx, cy = (index - 1) % width, (index - 1) // width
+    exits = {}
+    candidates = {
+        "west": (cx - 1, cy), "east": (cx + 1, cy),
+        "south": (cx, cy - 1), "north": (cx, cy + 1),
+    }
+    for direction, (nx, ny) in candidates.items():
+        if nx < 0 or ny < 0 or nx >= width:
+            continue
+        neighbor = ny * width + nx + 1
+        if 1 <= neighbor <= size:
+            exits[direction] = v0140_mini_room_id(kind, x, y, neighbor)
+    parent = v0130_frontier_room_id(kind, x, y)
+    if index == 1:
+        exits["up"] = parent
+    final = index == size
+    seed = _v0140_hash_int("mini-room", kind, x, y, index)
+    rng = random.Random(seed)
+    room_titles = (
+        "Zawalone Przejście", "Kamienna Galeria", "Boczna Komora", "Stary Korytarz",
+        "Podziemna Sala", "Szczelina Korzeni", "Zapomniany Tunel", "Komora Runiczna",
+    )
+    title = "Komnata Strażnika" if final else rng.choice(room_titles)
+    ROOMS[room_id] = {
+        "zone": f"Mini-loch: {spec['zone']}",
+        "name": f"{title} — {index}/{size}",
+        "desc": (
+            f"Proceduralny mini-loch odkryty w sektorze {x+1}-{y+1} biomu {spec['zone']}. "
+            "Układ tej podziemnej siatki jest trwały dla seedu świata."
+            + (" To finałowa komnata ze strażnikiem i skrzynią." if final else "")
+        ),
+        "exits": exits,
+        "recommended_mastery": min(400, int(spec["base_mastery"]) + (x+y)*int(spec["step"]) + index*3),
+        "generated_on_demand": True,
+        "v0140_mini_dungeon": True,
+        "v0140_mini_kind": kind,
+        "v0140_mini_index": index,
+        "v0140_mini_size": size,
+        "v0140_mini_final": final,
+    }
+    spawns = []
+    mob_pool = tuple(base for base in spec.get("mobs", ()) if base in MOB_TEMPLATES)
+    if final:
+        boss = v0140_miniboss_template_for_sector(kind, x, y)
+        if boss:
+            spawns.append((room_id, boss))
+        TREASURE_CHESTS.setdefault(room_id, {
+            "name": f"Skrzynia Mini-Lochu: {spec['zone']}",
+            "respawn": 3600,
+            "base_pool": ("soul_shard", "soul_elixir", V014_TREASURE_MAP_ITEM),
+            "set_pool": (),
+        })
+        CHEST_COLLECTION_CATALOG[room_id] = TREASURE_CHESTS[room_id]["name"]
+    elif mob_pool:
+        count = 1 + (1 if rng.random() < 0.45 else 0)
+        for _ in range(count):
+            spawns.append((room_id, rng.choice(mob_pool)))
+    return room_id, tuple(spawns)
+
+
+def v0140_create_secret_room_definition(room_id):
+    identity = v0140_secret_room_identity(room_id)
+    if identity is None:
+        return None, ()
+    if room_id in ROOMS:
+        return room_id, ()
+    kind, x, y = identity
+    parent = v0130_frontier_room_id(kind, x, y)
+    secret = v0140_surface_secret_info(parent)
+    spec = V013_FRONTIER_SPECS[kind]
+    ROOMS[room_id] = {
+        "zone": f"Sekret: {spec['zone']}",
+        "name": secret["name"],
+        "desc": (
+            f"Ukryta lokacja odnaleziona w sektorze {x+1}-{y+1}. "
+            "Nie należy do zwykłej siatki dróg i pozostaje stała dla seedu świata."
+        ),
+        "exits": {"down": parent},
+        "generated_on_demand": True,
+        "v0140_secret_room": True,
+        "v0140_secret_parent": parent,
+        "recommended_mastery": min(400, int(spec["base_mastery"]) + (x+y)*int(spec["step"])),
+    }
+    TREASURE_CHESTS.setdefault(room_id, {
+        "name": f"Ukryty Skarb: {secret['name']}",
+        "respawn": 5400,
+        "base_pool": ("soul_shard", V014_TREASURE_MAP_ITEM),
+        "set_pool": ("soul_elixir",),
+    })
+    CHEST_COLLECTION_CATALOG[room_id] = TREASURE_CHESTS[room_id]["name"]
+    return room_id, ()
+
+
+# Kartografka i cztery jednorazowe questy eksploracyjne. Postęp jest zdarzeniowy,
+# więc nic odkrytego przed przyjęciem nie daje darmowych punktów.
+QUESTS.update({
+    "v014_frontier_survey": {
+        "name": "Mapa Żywych Rubieży", "giver": "Kartografka Lysa",
+        "kind": "explore_frontier", "target": "any", "needed": 20,
+        "description": "Odkryj 20 nowych sektorów proceduralnych rubieży po przyjęciu zadania.",
+        "reward_silver": 3500, "reward_gold": 2, "reward_mithril": 0,
+        "reward_items": {V014_TREASURE_MAP_ITEM: 1}, "repeatable": False,
+    },
+    "v014_secret_signs": {
+        "name": "Znaki poza drogą", "giver": "Kartografka Lysa",
+        "kind": "discover_secret", "target": "any", "needed": 3,
+        "description": "Odkryj 3 nowe sekrety proceduralnego świata. W podejrzanym sektorze użyj sekret.",
+        "requires_quest": "v014_frontier_survey",
+        "reward_silver": 6000, "reward_gold": 4, "reward_mithril": 0,
+        "reward_items": {V014_TREASURE_MAP_ITEM: 2}, "repeatable": False,
+    },
+    "v014_mini_depths": {
+        "name": "Małe głębiny", "giver": "Kartografka Lysa",
+        "kind": "mini_dungeon", "target": "any", "needed": 2,
+        "description": "Dotrzyj do finałowej komnaty 2 nowych proceduralnych mini-lochów.",
+        "requires_quest": "v014_secret_signs",
+        "reward_silver": 9000, "reward_gold": 6, "reward_mithril": 0,
+        "reward_items": {"soul_elixir": 2}, "repeatable": False,
+    },
+    "v014_living_world": {
+        "name": "Świat, który się porusza", "giver": "Kartografka Lysa",
+        "kind": "world_event", "target": "any", "needed": 3,
+        "description": "Odwiedź 3 nowe aktywne wydarzenia świata po przyjęciu zadania. Komenda wydarzenia pokazuje aktualne cele.",
+        "requires_quest": "v014_mini_depths",
+        "reward_silver": 12000, "reward_gold": 10, "reward_mithril": 0,
+        "reward_items": {V014_TREASURE_MAP_ITEM: 2, "soul_elixir": 2}, "repeatable": False,
+    },
+})
+
+NPCS["cartographer_lysa"] = {
+    "name": "Kartografka Lysa", "room": "library",
+    "dialogue": (
+        "Stałe drogi znamy dobrze, ale rubieże żyją własnym rytmem. "
+        "Zbieram mapy nowych sektorów, sekretów, mini-lochów i wydarzeń świata."
+    ),
+    "quest": "v014_frontier_survey",
+    "quest_chain": (
+        "v014_frontier_survey", "v014_secret_signs", "v014_mini_depths", "v014_living_world",
+    ),
+}
+
+HELP_TOPICS["wydarzenia_swiata"] = [
+    "Komenda wydarzenia / events pokazuje pięć aktualnych eventów proceduralnego świata. Zestaw zmienia się co 30 minut.",
+    "Eventy nie teleportują i nie atakują gracza. Podają biom oraz sektor, do którego można dojść normalnie.",
+    "Polowanie na rare tworzy pasywnego wędrującego rare; walkę nadal rozpoczyna wyłącznie gracz.",
+    "Ławica, rozkwit ziół, bogata żyła i rozrost boru dają +2 do bazowego zbioru i +25 procent XP właściwej profesji/narzędzia w sektorze eventu.",
+]
+HELP_TOPICS["mini_lochy"] = [
+    "Część proceduralnych sektorów ma trwałe zejście do mini-lochu generowanego na żądanie.",
+    "Mini-loch ma 7-12 pokojów ułożonych w małą siatkę z pętlami; finał ma pasywnego mini-bossa i odnawialną skrzynię.",
+    "Mini-lochy nie zastępują dużych Krypt i Wież. Są krótkimi odkryciami podczas eksploracji powierzchni.",
+]
+HELP_TOPICS["sekrety_swiata"] = [
+    "W części proceduralnych sektorów istnieje deterministyczny sekret. Komenda sekret odkrywa go osobno dla postaci.",
+    "Po odkryciu wpisz sekret ponownie w tym samym sektorze, aby wejść do ukrytej komnaty ze skrzynią.",
+    "Mapa Skarbu Rubieży może wskazać jeden nieodkryty sekret. Wpisz mapa skarbu, aby sprawdzić zapisane tropy.",
+]
+HELP_TOPIC_ALIASES.update({
+    "wydarzenia": "wydarzenia_swiata", "eventy": "wydarzenia_swiata", "events": "wydarzenia_swiata",
+    "mini lochy": "mini_lochy", "minilochy": "mini_lochy", "mini-lochy": "mini_lochy",
+    "sekrety swiata": "sekrety_swiata", "sekrety świata": "sekrety_swiata", "mapy skarbow": "sekrety_swiata", "mapy skarbów": "sekrety_swiata",
+})
+
 @dataclass
 class CorpseState:
     key: str
@@ -29188,13 +29661,32 @@ class World:
         self.mobs[key] = mob
         return mob
 
-    def ensure_hybrid_surface_room(self, room_id):
-        room_id = str(room_id or "")
-        if not room_id:
-            return False
-        if room_id in ROOMS:
-            return True
-        created_room, spawns = v0130_create_frontier_room_definition(room_id)
+    def _ensure_v0140_event_spawn(self, room_id, now=None):
+        event = v0140_event_for_room(room_id, "rare_hunt", now=now)
+        if not event:
+            return None
+        event_key = "v0140event:" + event["token"]
+        for mob in self.mobs.values():
+            if getattr(mob, "v0140_event_key", "") == event_key:
+                return mob
+        template_id = v0140_rare_template_for_kind(event["kind"], salt=event["token"])
+        if not template_id:
+            return None
+        key = f"{event_key}:{template_id}"
+        mob = MobState(
+            key=key, room_id=room_id, template_id=template_id,
+            hp=MOB_TEMPLATES[template_id]["max_hp"], home_room_id=room_id,
+            next_wander_at=time.time() + random.uniform(MOB_WANDER_MIN_SECONDS, MOB_WANDER_MAX_SECONDS),
+        )
+        mob.v0140_event_key = event_key
+        mob.v0140_event_expires_at = float(event["expires_at"])
+        self.mobs[key] = mob
+        return mob
+
+    def ensure_v0140_special_room(self, room_id):
+        created_room, spawns = v0140_create_mini_room_definition(room_id)
+        if not created_room:
+            created_room, spawns = v0140_create_secret_room_definition(room_id)
         if not created_room:
             return False
         for spawn_room, template_id in spawns:
@@ -29203,11 +29695,31 @@ class World:
         _ZONE_THREAT_CACHE.clear()
         return True
 
+    def ensure_hybrid_surface_room(self, room_id):
+        room_id = str(room_id or "")
+        if not room_id:
+            return False
+        if room_id in ROOMS:
+            self._ensure_v0140_event_spawn(room_id)
+            return True
+        created_room, spawns = v0130_create_frontier_room_definition(room_id)
+        if not created_room:
+            return False
+        for spawn_room, template_id in spawns:
+            self._register_runtime_spawn(spawn_room, template_id)
+        self._ensure_v0140_event_spawn(room_id)
+        _ROOM_THREAT_CACHE.pop(created_room, None)
+        _ZONE_THREAT_CACHE.clear()
+        return True
+
     def ensure_runtime_room(self, room_id):
         room_id = str(room_id or "")
         if room_id in ROOMS:
+            self._ensure_v0140_event_spawn(room_id)
             return True
         if self.ensure_hybrid_surface_room(room_id):
+            return True
+        if self.ensure_v0140_special_room(room_id):
             return True
         return self.ensure_infinite_dungeon_floor(room_id)
 
@@ -29286,6 +29798,12 @@ class World:
 
     def refresh(self):
         now = time.time()
+        # v0.14.0: eventowy rare znika po zakończeniu okna eventu, ale nigdy
+        # w połowie aktywnej walki. Nie pozostawia trwałego spawnu.
+        for mob_key, mob in list(self.mobs.items()):
+            expires = float(getattr(mob, "v0140_event_expires_at", 0.0) or 0.0)
+            if expires and expires <= now and not mob.engaged_by:
+                self.mobs.pop(mob_key, None)
         for corpse_key, corpse in list(self.corpses.items()):
             if corpse.expires_at <= now:
                 self.corpses.pop(corpse_key, None)
@@ -32332,7 +32850,7 @@ class Session:
     async def look(self, query=""):
         # v0.9.12: po restarcie postać może być zapisana na proceduralnym
         # piętrze >200, którego nie pre-generujemy przy starcie serwera.
-        self.server.world.ensure_infinite_dungeon_floor(self.character.room_id)
+        self.server.world.ensure_runtime_room(self.character.room_id)
         query = str(query or "").strip()
 
         if query:
@@ -32387,6 +32905,15 @@ class Session:
         )
         await self.send(room["desc"])
         await self.discover_current_room(announce=True)
+        event = v0140_event_for_room(self.character.room_id)
+        if event:
+            await self.send(f"AKTYWNE WYDARZENIE: {event['title']}. {event['desc']}")
+            await self.register_v0140_world_event_visit(self.character.room_id)
+        if room.get("v0140_surface_secret"):
+            if self.character.room_id in self.server.db.collection_entry_ids(self.account_id, "surface_secrets_v0140"):
+                await self.send("Znasz sekret tego sektora. Wpisz sekret, aby wejść do ukrytej lokacji.")
+            else:
+                await self.send("W otoczeniu wyczuwasz nietypowy ślad. Możesz użyć sekret / secret.")
 
         npcs = [
             value["name"]
@@ -32621,9 +33148,37 @@ class Session:
         await self.send("Komendy: mapa; mapa instancje; mapa instancja <nazwa>; sekret / secret.")
 
     async def discover_instance_secret(self):
+        # v0.14.0: ta sama dostępna komenda obsługuje także sekrety powierzchni.
+        surface = v0140_surface_secret_info(self.character.room_id)
+        if surface:
+            discovered = self.server.db.collection_entry_ids(self.account_id, "surface_secrets_v0140")
+            if self.character.room_id in discovered:
+                hidden = surface["hidden_room"]
+                self.server.world.ensure_runtime_room(hidden)
+                await self.send(f"Otwierasz odkryte przejście: {surface['name']}.")
+                await self.walk_room_transition("up", hidden, guided=False, show_room=True)
+                return
+            is_new = self.server.db.add_collection_entry(
+                self.account_id, "surface_secrets_v0140", self.character.room_id
+            )
+            if is_new:
+                self.server.db.add_collection_entry(
+                    self.account_id, "treasure_targets_v0140", self.character.room_id
+                )
+                await self.advance_v0140_quest_progress("discover_secret", surface["kind"], 1)
+                await self.send(
+                    f"ODKRYWASZ SEKRET: {surface['name']}. Ukryte przejście zostało zapamiętane. "
+                    "Wpisz sekret ponownie, aby wejść do środka."
+                )
+            return
+
+        if v0140_secret_room_identity(self.character.room_id):
+            await self.send("Jesteś już wewnątrz odkrytej sekretnej lokacji. Zejdź w dół, aby wrócić.")
+            return
+
         kind, floor = instance_room_identity(self.character.room_id)
         if not kind or floor is None:
-            await self.send("Sekrety instancji można badać tylko na piętrach instancji.")
+            await self.send("Nie znajdujesz tutaj ukrytego punktu mapy.")
             return
         name = instance_secret_name(kind, floor)
         if not name:
@@ -32640,6 +33195,9 @@ class Session:
         norm = normalize_lookup_text(raw)
 
         current_kind, current_floor = instance_room_identity(self.character.room_id)
+        if norm in ("skarbu", "skarb", "treasure", "treasure map", "mapa skarbu", "mapy skarbow", "mapy skarbów"):
+            await self.show_v0140_treasure_targets()
+            return
         if norm in ("instancje", "instances", "instanceall", "dungeons"):
             await self.show_instance_map_summary()
             return
@@ -33399,6 +33957,97 @@ class Session:
             if template.get("mini_boss"):
                 await self.check_all_minibosses_achievement()
 
+    async def advance_v0140_quest_progress(self, kind, target="any", amount=1):
+        amount = max(1, int(amount))
+        changed = []
+        for row in self.server.db.quest_rows(self.account_id):
+            if row["status"] != "active":
+                continue
+            quest = QUESTS.get(row["quest_id"])
+            if not quest or quest.get("kind") != kind:
+                continue
+            wanted = str(quest.get("target", "any"))
+            if wanted not in ("any", str(target)):
+                continue
+            needed = max(1, int(quest.get("needed", 1)))
+            old = max(0, int(row["progress"]))
+            new = min(needed, old + amount)
+            if new == old:
+                continue
+            self.server.db.set_quest_progress(self.account_id, row["quest_id"], new)
+            changed.append((row["quest_id"], new, needed))
+        for quest_id, progress, needed in changed:
+            await self.send(f"Postęp questa: {QUESTS[quest_id]['name']}. {progress} z {needed}.")
+            if progress >= needed:
+                await self.send("Cel wykonany. Wróć do właściwego NPC.")
+        return changed
+
+    async def register_v0140_world_event_visit(self, room_id):
+        event = v0140_event_for_room(room_id)
+        if not event:
+            return False
+        is_new = self.server.db.add_collection_entry(
+            self.account_id, "world_events_v0140", event["token"]
+        )
+        if is_new:
+            await self.advance_v0140_quest_progress("world_event", event["type"], 1)
+        return is_new
+
+    async def show_world_events(self):
+        now = time.time()
+        events = v0140_active_world_events(now)
+        remaining = max(0, int(events[0]["expires_at"] - now)) if events else 0
+        await self.send(f"WYDARZENIA ŚWIATA — następna rotacja za około {remaining} sekund.")
+        for number, event in enumerate(events, 1):
+            zone = V013_FRONTIER_SPECS[event["kind"]]["zone"]
+            await self.send(
+                f"{number}. {event['title']}. {zone}, sektor {event['x']+1}-{event['y']+1}. {event['desc']}"
+            )
+        await self.send("Wszystkie eventy są opcjonalne. Żaden mob nie zaczyna walki sam.")
+
+    def v0140_treasure_map_target(self):
+        discovered = self.server.db.collection_entry_ids(self.account_id, "surface_secrets_v0140")
+        known = self.server.db.collection_entry_ids(self.account_id, "treasure_targets_v0140")
+        identity = v0130_frontier_room_identity(self.character.room_id) if self.character else None
+        preferred_kind = identity[0] if identity else None
+        candidates = [rid for rid in v0140_surface_secret_room_ids(preferred_kind) if rid not in discovered and rid not in known]
+        if not candidates:
+            candidates = [rid for rid in v0140_surface_secret_room_ids() if rid not in discovered and rid not in known]
+        if not candidates:
+            return None
+        seed = _v0140_hash_int("map-target", self.account_id, len(known), self.character.name if self.character else "")
+        return candidates[seed % len(candidates)]
+
+    async def use_v0140_treasure_map(self, item_id):
+        target = self.v0140_treasure_map_target()
+        if not target:
+            await self.send("Mapa nie znajduje już żadnego nieodkrytego sekretu proceduralnych rubieży.")
+            return False
+        if not self.server.db.remove_item(self.account_id, item_id, 1):
+            await self.send("Nie masz tej mapy skarbu.")
+            return False
+        self.server.db.add_collection_entry(self.account_id, "treasure_targets_v0140", target)
+        info = v0140_surface_secret_info(target)
+        zone = V013_FRONTIER_SPECS[info["kind"]]["zone"]
+        await self.send(
+            f"Odczytujesz Mapę Skarbu Rubieży. Trop zapisany: {zone}, sektor {info['x']+1}-{info['y']+1}. "
+            "Po dotarciu użyj sekret / secret. Trop możesz ponownie sprawdzić przez mapa skarbu."
+        )
+        return True
+
+    async def show_v0140_treasure_targets(self):
+        targets = sorted(self.server.db.collection_entry_ids(self.account_id, "treasure_targets_v0140"))
+        discovered = self.server.db.collection_entry_ids(self.account_id, "surface_secrets_v0140")
+        active = [rid for rid in targets if rid not in discovered and v0140_surface_secret_info(rid)]
+        await self.send(f"MAPY SKARBÓW: aktywne tropy {len(active)}, rozwiązane {len(targets)-len(active)}.")
+        if not active:
+            await self.send("Brak aktywnego tropu. Mapy Skarbu Rubieży wypadają m.in. z rare i skrzyń mini-lochów.")
+            return
+        for number, rid in enumerate(active, 1):
+            info = v0140_surface_secret_info(rid)
+            zone = V013_FRONTIER_SPECS[info["kind"]]["zone"]
+            await self.send(f"{number}. {zone}, sektor {info['x']+1}-{info['y']+1}. Użyj sekret w tym sektorze.")
+
     async def discover_room(self, room_id, announce=True):
         if room_id not in ROOMS:
             return False
@@ -33428,7 +34077,16 @@ class Session:
             return False
 
         self.server.db.add_lifetime_stat(self.account_id, "rooms_discovered", 1)
-        zone = ROOMS[room_id]["zone"]
+        room_meta = ROOMS[room_id]
+        if room_meta.get("procedural_surface"):
+            await self.advance_v0140_quest_progress(
+                "explore_frontier", room_meta.get("procedural_biome", "any"), 1
+            )
+        if room_meta.get("v0140_mini_final"):
+            await self.advance_v0140_quest_progress(
+                "mini_dungeon", room_meta.get("v0140_mini_kind", "any"), 1
+            )
+        zone = room_meta["zone"]
         zone_rooms = EXPLORATION_ZONE_ROOMS.get(zone, ())
         discovered = self.server.db.discovered_room_ids(self.account_id)
         current = sum(1 for rid in zone_rooms if rid in discovered)
@@ -42380,7 +43038,7 @@ class Session:
         self.last_profession_action = now
         return True, 0.0
 
-    def current_infinite_gather_feature(self):
+    def current_infinite_gather_feature(self, tool_type=None):
         """Bonus aktualnego proceduralnego sektora zbieractwa.
 
         Dane są zapisane w definicji pokoju, więc zwykły świat i ręcznie
@@ -42388,10 +43046,12 @@ class Session:
         """
         room = ROOMS.get(self.character.room_id, {}) if self.character else {}
         feature = room.get("infinite_gather_feature") or {}
+        event_feature = v0140_gather_event_bonus(self.character.room_id, tool_type=tool_type) if self.character else {"label":"", "quantity_bonus":0, "xp_mult":1.0}
+        labels = [str(feature.get("label", "") or ""), str(event_feature.get("label", "") or "")]
         return {
-            "label": str(feature.get("label", "") or ""),
-            "quantity_bonus": max(0, int(feature.get("quantity_bonus", 0) or 0)),
-            "xp_mult": max(1.0, float(feature.get("xp_mult", 1.0) or 1.0)),
+            "label": " + ".join(label for label in labels if label),
+            "quantity_bonus": max(0, int(feature.get("quantity_bonus", 0) or 0)) + max(0, int(event_feature.get("quantity_bonus", 0) or 0)),
+            "xp_mult": max(1.0, float(feature.get("xp_mult", 1.0) or 1.0)) * max(1.0, float(event_feature.get("xp_mult", 1.0) or 1.0)),
         }
 
     async def announce_infinite_gather_feature(self, feature):
@@ -42444,7 +43104,7 @@ class Session:
             base_item_id, tool_level
         )
         base_quantity = roll_profession_gather_quantity(tool_level, profession_level, "fishing")
-        gather_feature = self.current_infinite_gather_feature()
+        gather_feature = self.current_infinite_gather_feature("fishing")
         base_quantity += gather_feature["quantity_bonus"]
         self.store_profession_resource(item_id, base_quantity)
         item = ITEMS[item_id]
@@ -42583,7 +43243,7 @@ class Session:
         )
         await asyncio.sleep(action_seconds)
 
-        gather_feature = self.current_infinite_gather_feature()
+        gather_feature = self.current_infinite_gather_feature("mining")
         item_id = self.mining_loot(
             tool_level, self.character.room_id
         )
@@ -42750,7 +43410,7 @@ class Session:
             base_item_id, tool_level
         )
         base_quantity = roll_profession_gather_quantity(tool_level, profession_level, "woodcutting")
-        gather_feature = self.current_infinite_gather_feature()
+        gather_feature = self.current_infinite_gather_feature("woodcutting")
         base_quantity += gather_feature["quantity_bonus"]
         self.store_profession_resource(item_id, base_quantity)
         resource_quest_quantity = base_quantity
@@ -42843,7 +43503,7 @@ class Session:
             base_item_id, old_level
         )
         base_quantity = roll_profession_gather_quantity(old_level, profession_level, "herbalism")
-        gather_feature = self.current_infinite_gather_feature()
+        gather_feature = self.current_infinite_gather_feature("herbalism")
         base_quantity += gather_feature["quantity_bonus"]
         self.store_profession_resource(item_id, base_quantity)
         resource_quest_quantity = base_quantity
@@ -45259,6 +45919,13 @@ class Session:
 
         item_id, item = found
 
+        if item.get("treasure_map"):
+            if self.combat_mob_key:
+                await self.send("Nie możesz odczytywać mapy skarbu podczas walki.")
+                return
+            await self.use_v0140_treasure_map(item_id)
+            return
+
         if self.server.db.item_qty(self.account_id, item_id) <= 0:
             await self.send(f"Nie masz przedmiotu: {item['name']}.")
             return
@@ -45811,6 +46478,9 @@ class Session:
             return self.craft_set_progress(row, q)
 
         if q["kind"] in ("deliver_npc", "talk_npc", "talk_class_teacher"):
+            return min(int(row["progress"]), int(q.get("needed", 1)))
+
+        if q["kind"] in ("explore_frontier", "discover_secret", "mini_dungeon", "world_event"):
             return min(int(row["progress"]), int(q.get("needed", 1)))
 
         return None
@@ -51795,7 +52465,7 @@ class Session:
             rest_safe_commands = {
                 "rest", "help", "encoding", "describe", "changes", "look",
                 "corpse", "cryptinfo", "astralinfo", "consider",
-                "waterinfo", "fishjournal", "exits", "map", "atlas", "codex", "bestiary",
+                "waterinfo", "fishjournal", "exits", "map", "worldevents", "atlas", "codex", "bestiary",
                 "where", "who", "expareas", "terraininfo", "classsets", "say", "stats", "hp", "score", "mana", "declension", "skills",
                 "skillnames", "skillqueue", "soul", "money", "net", "bag",
                 "woodpile", "herbbag", "professions", "ranks",
@@ -51905,6 +52575,8 @@ class Session:
                 await self.show_exits(args)
             elif command == "map":
                 await self.show_map(args)
+            elif command == "worldevents":
+                await self.show_world_events()
             elif command == "instancesecret":
                 await self.discover_instance_secret()
             elif command == "bestiary":

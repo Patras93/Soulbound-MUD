@@ -1,3 +1,18 @@
+v0.14.0 — Dynamiczne Wydarzenia Świata i Sekrety
+====================================================
+- Dodano pięć równoległych typów wydarzeń świata rotujących co 30 minut: rare hunt, ławica ryb, rozkwit ziół, bogata żyła i leśny urodzaj.
+- Wszystkie wydarzenia są opcjonalne i zachowują globalny PASSIVE WORLD; rare i mini-bossowie nigdy nie inicjują walki.
+- Profesyjne eventy dają bonus tylko odpowiadającemu im narzędziu/profesji.
+- Seed v0.14.0 rozmieszcza 120 proceduralnych mini-lochów we wszystkich 15 biomach. Każdy ma 7–12 pokoi; łącznie 1123 pokoje powstające lazy przy wejściu.
+- Finał mini-lochu zawiera pasywnego mini-bossa i odnawialną skrzynię.
+- Dodano 127 deterministycznych sekretów powierzchniowych z osobnymi ukrytymi pokojami i skrzyniami.
+- Dodano Mapę Skarbu Rubieży wskazującą niepoznane jeszcze sekrety bez automatycznego rozwiązywania eksploracji.
+- Kartografka Lysa w Bibliotece oferuje 4 nowe jednorazowe questy eksploracyjne. Każdy startuje od 0/x i liczy tylko nowe zdarzenia po przyjęciu.
+- Dodano 46 pasywnych wariantów rare i 46 pasywnych wariantów mini-bossów.
+- `wydarzenia` / `events` pokazuje bieżące eventy świata; rozszerzono `sekret`, `mapa skarbu` i HELP.
+- Łączna liczba zdefiniowanych questów wynosi 240.
+- Testy: V0140_DYNAMIC_WORLD_EVENTS_SECRETS_OK i V0140_STRESS_OK. Regresje v0.10.0–v0.13.0 przechodzą.
+
 v0.13.0 — Hybrydowy Świat Proceduralny
 =========================================
 - Wprowadzono hybrydową architekturę świata: Świątynia, Miasto Dusz, ważne wsie, główne drogi, quest huby, NPC, warsztaty i landmarki pozostają stałe.
