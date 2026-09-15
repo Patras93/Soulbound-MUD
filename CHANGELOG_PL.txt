@@ -1,3 +1,65 @@
+v0.26.0 — Muzeum 2.0, Tytuły i Prestiż
+==========================================
+- Rozbudowano istniejący Collection Codex do nowego Muzeum 2.0 bez tworzenia równoległego systemu zapisu.
+- Muzeum ma 8 skończonych działów: Ryby, Rudy i minerały, Zioła, Drewno, Bossowie, Kompletne sety, Legendarne przedmioty i Sekrety.
+- Globalny procent jest uczciwie ważony: każdy dział odpowiada za 12,5% ukończenia. Tysiące wariantów legendarnego EQ nie dominują wyniku.
+- Stan katalogu v0.26.0: 325 ryb, 63 rudy/minerały, 114 ziół, 91 rodzajów drewna, 218 bossów, 66 logicznych setów, 4326 legendarnych przedmiotów i 182 sekrety; łącznie 5385 wpisów.
+- Set zalicza się dopiero po zebraniu wszystkich jego logicznych części; samo znalezienie jednego elementu nie wystarcza.
+- Sekrety powierzchni liczą się indywidualnie. Nieskończone instancje używają skończonych archetypów sekretów dla każdego typu instancji, dzięki czemu 100% pozostaje osiągalne.
+- Stare zapisy są migrowane z Collection Codexu, dziennika ryb, EQ i map sekretów; wcześniej zdobyty postęp nie jest zerowany.
+- Dodano komendy `muzeum` / `museum`, `muzeum <dział> [strona]` oraz `prestiz` / `prestiż` / `prestige`.
+- Prestiż Muzealny ma zakres 0-1000 i wynika bezpośrednio z globalnego procentu Muzeum. Nie resetuje postaci ani kolekcji.
+- 100% każdego działu odblokowuje osobny tytuł. Progi globalne 10/25/50/75/90/100% odblokowują kolejne tytuły prestiżowe.
+- Dodano długoterminowy tytuł `Łowca 1000 Bossów` jako Mythic próg achievementu zabójstw bossów.
+- Małe bonusy aktywnych tytułów: Mistrz Wielkich Wód +2% XP Wędkarstwa/Wędki; Mistrz Głębin +2% Górnictwa/Kilofa; Arcyzielarz Dziedzictwa +2% Zielarstwa/Sierpa; Strażnik Starych Borów +2% Drwalstwa/Piły; Legenda Kompletnej Kolekcji +1% XP wszystkich profesji i narzędzi.
+- Bonusy tytułów nie zwiększają HP, obrażeń, obrony, drop-rate, cen ani nagród walutowych. Działa tylko jeden aktywny tytuł naraz.
+- `tytuly` pokazuje teraz bonus przy tytułach, które go mają. `progress` pokazuje także procent Muzeum i Prestiż.
+- Audyt balansu względem v0.25.3: 0 zmian w rasach, klasach, mobach, questach, przedmiotach, skillach/spellach i katalogach zasobów poza celowo dodanym bonusem XP tytułu.
+- `test_v0260.py` oraz regresje v0.25.0-v0.25.3, v0.18-v0.22 i stress-testy endgame przechodzą.
+
+v0.25.3 — Cumulative Deep Mine Ores
+====================================
+- Kopalnia Głębinowa używa teraz kumulacyjnych pul rud: po odblokowaniu ruda pozostaje dostępna na każdym głębszym piętrze.
+- Dotyczy całej progresji: kamień/miedź/żelazo/srebro/złoto, rud 100-200, rud 220-400, 40 rud świata oraz dwóch specjalnych minerałów przeniesionych do Kopalni.
+- Starsze rudy na bardzo głębokich piętrach mają mniejszą wagę niż świeżo odblokowane, ale ich szansa nigdy nie spada do zera.
+- Nadal obowiązuje podwójny próg: odpowiedni Kilof i minimalne piętro wymagane do pierwszego odblokowania rudy.
+- Czysty mithril, klejnoty, geody, auto-kopanie i pozostałe mechaniki Górnictwa pozostają bez zmian.
+- HELP Górnictwa wyjaśnia kumulacyjne występowanie rud.
+- test_v0253.py sprawdza m.in. obecność starych rud na piętrach 100, 200 i 400 oraz komplet 63/63 źródeł w jednej Kopalni.
+
+v0.25.2 — Ore Atlas Threshold Hotfix
+=======================================
+- Zsynchronizowano Atlas podstawowych rud z realną logiką Kopalni Głębinowej.
+- Ruda żelaza: Kilof 10+ / piętro 10+.
+- Ruda srebra: Kilof 25+ / piętro 25+.
+- Ruda złota: Kilof 50+ / piętro 50+.
+- Audyt 63/63 aktywnych rud/minerałów: progi Atlasu odpowiadają realnym minimalnym progom wydobycia.
+- Bez zmian w drop-rate, ekonomii, questach, mobach i balansie; zmiana dotyczy wyłącznie błędnych danych Atlasu.
+- test_v0252.py PASS.
+
+v0.25.1 — Unified Deep Mine
+==============================
+- Górnictwo zostało skupione w jednej aktywnej kopalni: Kopalni Głębinowej.
+- Wszystkie 63 aktywne rudy/minerały mają ścieżkę zdobycia w Kopalni Głębinowej, w tym pełna progresja 1-400, Srebro Grobowe i Ruda Lodowego Kryształu.
+- Srebro Grobowe: Kilof 80+ i poziom 80+. Ruda Lodowego Kryształu: Kilof 100+ i poziom 100+.
+- Kamieniołom Nekropolii, Komnata Lodowego Kryształu, proceduralne tereny, ekspedycje i Endless nie są już alternatywnymi miejscami wydobycia.
+- Dawna Kopalnia Kryształów została zachowana jako Kryształowe Groty — połączony obszar eksploracyjny bez Górnictwa, dzięki czemu stare zapisy i świat pozostają spójne.
+- Stare komendy `prowadz kopalnia krysztalow` / `crystal mine` przekierowują do Kopalni Głębinowej. Nowe `prowadz krysztalowe groty` prowadzi do obszaru eksploracyjnego.
+- Questy Kordana na Srebro Grobowe i Rudę Lodowego Kryształu zostały przeniesione do Kopalni Głębinowej.
+- `atlas rudy` oraz `atlas <nazwa rudy>` wskazują wyłącznie Kopalnię Głębinową jako źródło wydobycia rud.
+- Klejnoty, geody, czysty mithril i auto-kopanie pozostają częścią Kopalni Głębinowej.
+- Balans matematyczny zachowany względem v0.25.0: 0 zmian w rasach, klasach, 1476 skillach/spellach, 14166 mobach, 286 questach i 26288 przedmiotach po pominięciu samych tekstów opisowych.
+- Test `test_v0251.py` PASS; regresje v0.18 stress, v0.19 stress, v0.20 stress, v0.21 stress, v0.22, v0.24.3 i Global Generator v0.25.0 PASS.
+
+v0.25.0 — Global Generator 2.0
+================================
+- Dodano jeden trwały seed serwera dla nowych profili świata, Kopalni, lochów i hotspotów profesji. Restart nie przetasowuje istniejącego świata.
+- Dodano losowe, deterministyczne profile lokacji i pięter bez zmiany budżetów HP/DMG/EXP, cen, progów progresji i nagród.
+- Zunifikowano generatory proceduralne pod wspólnym seedem przy zachowaniu ręcznie projektowanych miast, ważnych NPC i bossów.
+- Usunięto kolizje imion NPC; każdy NPC ma unikalne końcowe imię.
+- Naprawiono `oddaj quest <numer>` tak, aby numer odnosił się do ostatnio pokazanej listy questów.
+- Globalny audyt nazw skilli/spelli: 1476/1476 unikalnych pełnych nazw i działający HELP.
+
 v0.24.4 — Stability, Deep Mine & Accessibility Hotfix
 =========================================================
 - Naprawiono blokadę „To konto jest już zalogowane”: po poprawnym haśle serwer pyta „Czy chcesz się przelogować? tak/nie”. `tak` zamyka starą sesję i wraca bezpośrednio na tę samą aktywną postać; `nie` anuluje przejęcie.

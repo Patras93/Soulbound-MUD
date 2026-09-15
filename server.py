@@ -2,7 +2,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Soulbound v0.24.2 Marcel River Fish Recipe Hotfix
+Soulbound v0.25.2 Ore Atlas Threshold Hotfix
 Wieloosobowy tekstowy MUD TCP/Telnet dla MUSHclienta/Mudleta.
 
 Najważniejsze zasady projektu:
@@ -30,7 +30,7 @@ import unicodedata
 from dataclasses import dataclass
 from typing import Optional
 
-VERSION = "0.24.4"
+VERSION = "0.26.0"
 
 # v0.8.72: właścicielskie komendy administracyjne. Nazwy kont podaje się
 # po stronie serwera, np. SOULBOUND_ADMIN_ACCOUNTS=Patryk. Nigdy nie są
@@ -59,6 +59,165 @@ else:
 _VOLUME_PATH = os.getenv("RAILWAY_VOLUME_MOUNT_PATH", "").strip()
 _DEFAULT_DB = os.path.join(_VOLUME_PATH, "soulbound.db") if _VOLUME_PATH else "soulbound.db"
 DB_PATH = os.getenv("SOULBOUND_DB", _DEFAULT_DB)
+
+# ============================================================
+# v0.25.2 - ORE ATLAS THRESHOLD HOTFIX
+# Atlas podstawowych rud pokazuje dokładnie te same minimalne progi Kilofa i piętra,
+# których używa realna logika Kopalni Głębinowej: Żelazo 10/10, Srebro 25/25, Złoto 50/50.
+
+# v0.25.1 - UNIFIED DEEP MINE
+# Wszystkie normalne rudy/minerały, geody i klejnoty pochodzą z jednej
+# Kopalni Głębinowej. Dawne źródła terenowe i Kopalnia Kryształów nie są
+# już aktywnymi miejscami Górnictwa.
+#
+# v0.25.0 - GLOBAL GENERATOR 2.0
+# Jeden trwały seed serwera dla nowych warstw proceduralnych. Nie zmieniamy
+# historycznych seedów v0.11-v0.21, dzięki czemu istniejące mapy i save'y
+# zachowują dawny układ. Seed v0.25 steruje nowymi profilami świata,
+# hotspotami profesji, geologią Kopalni oraz opisami proceduralnych pięter.
+# ============================================================
+def _v0250_world_seed_path():
+    override = os.getenv("SOULBOUND_WORLD_SEED_FILE", "").strip()
+    if override:
+        return override
+    base_dir = os.path.dirname(os.path.abspath(DB_PATH)) or "."
+    return os.path.join(base_dir, "soulbound_world_seed.txt")
+
+
+def _v0250_load_or_create_world_seed():
+    explicit = os.getenv("SOULBOUND_WORLD_SEED", "").strip()
+    if explicit:
+        return explicit
+    path = _v0250_world_seed_path()
+    try:
+        with open(path, "r", encoding="utf-8") as handle:
+            value = handle.read().strip()
+            if value:
+                return value
+    except OSError:
+        pass
+    value = secrets.token_hex(24)
+    try:
+        os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
+        tmp = path + ".tmp"
+        with open(tmp, "w", encoding="utf-8") as handle:
+            handle.write(value + "\n")
+        os.replace(tmp, path)
+    except OSError:
+        # Read-only deployment: seed remains stable for the lifetime of process.
+        pass
+    return value
+
+
+V0250_WORLD_SEED = _v0250_load_or_create_world_seed()
+V0250_WORLD_SEED_ID = hashlib.sha256(V0250_WORLD_SEED.encode("utf-8")).hexdigest()[:12]
+V0250_HOTSPOT_SECONDS = 60 * 60
+
+
+def v0250_seed_int(*parts):
+    payload = ":".join(str(part) for part in (V0250_WORLD_SEED,) + parts)
+    return int(hashlib.sha256(payload.encode("utf-8")).hexdigest()[:16], 16)
+
+
+def v0250_rng(*parts):
+    return random.Random(v0250_seed_int(*parts))
+
+
+V0250_WORLD_AMBIENCE = (
+    "spokojne echo terenu", "ślady niedawnej wędrówki", "zmienny wiatr",
+    "stare ślady na ziemi", "nietypowa cisza", "odległe odgłosy świata",
+    "świeże tropy", "lekka mgła", "wyraźny zapach roślin", "suchy pył w powietrzu",
+)
+V0250_WORLD_FEATURES = (
+    "stary kamienny znak", "wąskie boczne przejście", "naturalna nisza",
+    "porzucone ognisko", "ślady dawnego obozu", "niewielkie rumowisko",
+    "wyróżniająca się formacja terenu", "stara ścieżka", "ukryty zakątek",
+    "miejsce osłonięte od wiatru",
+)
+V0250_CITY_AMBIENCE = (
+    "ruch mieszkańców", "dźwięk pracy rzemieślników", "przechodzący patrol",
+    "gwar rozmów", "odgłos wozów", "spokojny ruch kupców",
+)
+V0250_GATHER_HOTSPOT_LABELS = {
+    "fishing": ("Ławica", "Żerowisko", "Dobry prąd"),
+    "mining": ("Bogata żyła", "Świeże odsłonięcie", "Gęsta mineralizacja"),
+    "woodcutting": ("Gęsty drzewostan", "Dobre drewno", "Stary zagajnik"),
+    "herbalism": ("Rozkwit ziół", "Żyzna gleba", "Skupisko roślin"),
+}
+
+
+def v0250_room_generator_profile(room_id):
+    room = globals().get("ROOMS", {}).get(str(room_id), {})
+    zone = str(room.get("zone", "Nieznana strefa"))
+    rng = v0250_rng("room-profile", room_id, zone)
+    city = "miasto" in zone.casefold() or "świątynia" in zone.casefold()
+    ambience_pool = V0250_CITY_AMBIENCE if city else V0250_WORLD_AMBIENCE
+    return {
+        "seed_id": V0250_WORLD_SEED_ID,
+        "ambience": rng.choice(ambience_pool),
+        "feature": rng.choice(V0250_WORLD_FEATURES),
+        "variant": 1 + rng.randrange(9999),
+        "city": city,
+    }
+
+
+def v0250_gather_hotspot(room_id, tool_type=None, now=None):
+    tool = str(tool_type or "").strip().casefold()
+    labels = V0250_GATHER_HOTSPOT_LABELS.get(tool)
+    if not labels:
+        return {"label":"", "quantity_bonus":0, "xp_mult":1.0, "slot":0}
+    room = globals().get("ROOMS", {}).get(str(room_id), {})
+    zone = str(room.get("zone", ""))
+    slot = int((time.time() if now is None else float(now)) // V0250_HOTSPOT_SECONDS)
+    roll = v0250_seed_int("hotspot", slot, zone, tool)
+    # Około 1/4 stref profesyjnych ma aktywny bonus w danej godzinie.
+    if roll % 4 != 0:
+        return {"label":"", "quantity_bonus":0, "xp_mult":1.0, "slot":slot}
+    label = labels[(roll // 4) % len(labels)]
+    return {
+        "label": f"Global Generator: {label}",
+        "quantity_bonus": 0,
+        "xp_mult": 1.05,
+        "slot": slot,
+    }
+
+
+def v0250_mine_floor_profile(floor):
+    floor = max(1, int(floor))
+    rng = v0250_rng("deep-mine-profile", floor)
+    strata = (
+        "granitowa warstwa", "ciemny bazalt", "łupek z metalicznymi żyłami",
+        "kwarcowa skała", "żelazisty kamień", "kryształowa warstwa",
+        "stary wulkaniczny przekop", "zbita skała głębinowa",
+    )
+    shapes = (
+        "szeroka komora", "wąski chodnik", "pęknięta galeria", "naturalna grota",
+        "stary szyb", "rozgałęziony przekop", "komora podparta filarami",
+    )
+    signs = (
+        "ślady dawnych górników", "świeże pęknięcia skały", "drobne kryształy w ścianach",
+        "stare stemple górnicze", "wilgoć spływającą po skale", "pył mineralny w powietrzu",
+    )
+    return {
+        "strata": rng.choice(strata),
+        "shape": rng.choice(shapes),
+        "sign": rng.choice(signs),
+        "profile_id": v0250_seed_int("mine-profile-id", floor) % 100000,
+    }
+
+
+def v0250_instance_floor_profile(kind, floor):
+    rng = v0250_rng("instance-profile", kind, int(floor))
+    motifs = (
+        "echo dawnych walk", "ślady starego rytuału", "niestabilne sklepienie",
+        "gęsta mgła przy ziemi", "stare runy na ścianach", "rozbite posągi",
+        "zimny przeciąg", "ciemne boczne nisze", "pozostałości dawnego obozu",
+    )
+    layouts = (
+        "liczne pętle", "dwie główne odnogi", "wąskie łączniki", "szerokie galerie",
+        "krótkie ślepe odnogi", "kilka alternatywnych przejść",
+    )
+    return {"motif": rng.choice(motifs), "layout": rng.choice(layouts)}
 
 MAX_CLIENTS = int(os.getenv("SOULBOUND_MAX_CLIENTS", "100"))
 PBKDF2_ROUNDS = 210_000
@@ -1200,9 +1359,14 @@ MINING_ROOMS = {
 } | MINING_DEPTH_ROOMS
 
 
+UNIFIED_DEEP_MINE_STATIC_ROOMS = {
+    "cave_entrance", "cave_tunnel", "crystal_chamber"
+}
+
 def is_mining_room(room_id):
-    """True for every valid mining room, including lazy mine_floor_N above 200."""
-    return room_id in MINING_ROOMS or mine_floor_number(room_id) is not None
+    """v0.25.1: mining is available only in the single Deep Mine complex."""
+    room_id = str(room_id or "")
+    return room_id in UNIFIED_DEEP_MINE_STATIC_ROOMS or mine_floor_number(room_id) is not None
 
 AUTO_FISHING_ROUTE = (
     "riverbank", "lake_shore", "sea_pier", "ocean_platform",
@@ -2073,9 +2237,9 @@ validate_complete_resource_atlases()
 ORE_ATLAS_LEVELS = {
     "stone_chunk": 1,
     "copper_ore": 1,
-    "iron_ore": 1,
-    "silver_ore": 10,
-    "gold_ore": 25,
+    "iron_ore": 10,
+    "silver_ore": 25,
+    "gold_ore": 50,
     "cobalt_ore": 100,
     "runestone_ore": 120,
     "dragonsteel_ore": 140,
@@ -4625,18 +4789,18 @@ ROOMS = {
         "exits": {"west": "goblin_treasure_burrow"},
     },
     "cave_entrance": {
-        "zone": "Podziemia", "name": "Wejście do Kryształowej Jaskini",
-        "desc": "Z wnętrza jaskini dochodzi chłód i niebieska poświata.",
+        "zone": "Podziemia", "name": "Wejście do Kopalni Głębinowej",
+        "desc": "Główne wejście do jedynej kopalni świata. Niżej zaczynają się kolejne poziomy Kopalni Głębinowej.",
         "exits": {"north": "goblin_camp", "down": "cave_tunnel"},
     },
     "cave_tunnel": {
-        "zone": "Podziemia", "name": "Kryształowy Tunel",
-        "desc": "Ściany tunelu przecinają blade żyły kryształów.",
+        "zone": "Podziemia", "name": "Tunel Wejściowy Kopalni Głębinowej",
+        "desc": "Tunel prowadzi z wejścia do komnaty zejściowej Kopalni Głębinowej.",
         "exits": {"up": "cave_entrance", "east": "crystal_chamber"},
     },
     "crystal_chamber": {
-        "zone": "Podziemia", "name": "Kryształowa Komnata",
-        "desc": "Wysokie kryształy pulsują energią przypominającą energię Broni Duszy.",
+        "zone": "Podziemia", "name": "Komnata Zejściowa Kopalni Głębinowej",
+        "desc": "Ostatnia komnata wejściowa. Stąd schodzi się na poziom 1 jedynej Kopalni Głębinowej.",
         "exits": {"west": "cave_tunnel"},
     },
     "graveyard": {
@@ -5155,8 +5319,8 @@ GUIDE_DESTINATION_ALIASES = {
     'mythic crypt': 'mythic_crypt_gate',
     'ogrod alchemika': 'prof_alchemy_garden_1',
     'pradawny las': 'prof_ancient_forest_1',
-    'kopalnia krysztalow': 'prof_crystal_mine_1',
-    'krysztalowa kopalnia': 'prof_crystal_mine_1',
+    'kopalnia krysztalow': 'mine_floor_1',
+    'krysztalowa kopalnia': 'mine_floor_1',
     'zatopiona grota': 'prof_sunken_grotto_1',
     'otchlan trolli': 'troll_abyss',
     'tron pierwszego wodza': 'troll_abyss_throne',
@@ -5177,7 +5341,10 @@ GUIDE_DESTINATION_ALIASES = {
     'podziemia': 'cave_entrance',
     'underground': 'cave_entrance',
     'crystal cave': 'cave_entrance',
-    'crystal mine': 'prof_crystal_mine_1',
+    'crystal mine': 'mine_floor_1',
+    'krysztalowe groty': 'prof_crystal_mine_1',
+    'kryształowe groty': 'prof_crystal_mine_1',
+    'crystal grottos': 'prof_crystal_mine_1',
     'sunken grotto': 'prof_sunken_grotto_1',
     'ancient forest': 'prof_ancient_forest_1',
     'alchemy garden': 'prof_alchemy_garden_1',
@@ -10382,7 +10549,7 @@ HELP_TOPICS = {
         "Kategorie: miasto, gildia, profesje, tereny, lochy, npc i wszystko.",
         "Przykład: prowadz lista gildia, walk list dungeons, prowadz lista profesje.",
         "Jeżeli nazwa pasuje do kilku miejsc, dostajesz jedną numerowaną listę i wpisujesz tylko cyfrę.",
-        "Prowadzenie nie prowadzi na konkretne piętra ani w głąb lochów. Użyj np. prowadz krypta albo walk kopalnia; system zatrzyma się przed wejściem.",
+        "Kopalnia Głębinowa jest wyjątkiem: prowadz kopalnia prowadzi bezpośrednio do poziomu 1. Inne lochy zatrzymują prowadzenie przed wejściem.",
         "cofnij, wyjście, back, exit, wstecz, return i escape prowadzą bezpośrednio do bezpiecznego wyjścia z rozpoznanego lochu.",
         "Nawigacja automatyczna zatrzymuje się na blokadach progresji, żywym bossie, zamkniętej ścianie kopalni albo rozpoczęciu walki.",
         "Zmiana postaci: quit. Komenda zapisuje obecną postać i wraca do MENU POSTACI bez rozłączania.",
@@ -10770,7 +10937,7 @@ HELP_TOPICS = {
     ],
     "lochy_profesyjne": [
         "Cztery lochy profesyjne są nieskończone; każdy poziom ma po 10 pomieszczeń i od v0.11.0 jest tworzony dynamicznie dopiero przy wejściu.",
-        "Kopalnia Kryształów zaczyna się w Kryształowej Komnacie i rozwija Górnictwo.",
+        "Górnictwo rozwijasz wyłącznie w Kopalni Głębinowej; nie ma drugiej aktywnej kopalni.",
         "Zatopiona Grota zaczyna się przy Morskim Molo i rozwija Wędkarstwo.",
         "Pradawny Las zaczyna się w Głębi Gaju i rozwija Drwalstwo.",
         "Ogród Alchemika zaczyna się w Chacie Zielarki i rozwija Zielarstwo.",
@@ -10778,7 +10945,7 @@ HELP_TOPICS = {
         "Poziom 20 zachowuje dawny wymóg profesji 200; od 21 wymagania rosną do profesji 400, a po 40 kolejne piętra pozostają dostępne przy profesji 400.",
         "Im głębiej w lochu profesyjnym, tym wyższy poziom zasobów może wypaść.",
         "Auto-profesja uruchomiona wewnątrz lochu pozostaje w aktualnej komorze i dalej zbiera zasoby.",
-        "Prowadzenie: prowadz kopalnia krysztalow, prowadz zatopiona grota, prowadz pradawny las, prowadz ogrod alchemika.",
+        "Prowadzenie: prowadz kopalnia, prowadz zatopiona grota, prowadz pradawny las, prowadz ogrod alchemika.",
     ],
     "zasoby_swiata": [
         "World Resources Pack dodaje szeroki przekrój realnych zasobów z całego świata.",
@@ -13986,10 +14153,10 @@ def build_mythic_endgame():
 
 
 def build_profession_dungeons():
-    # 1. Kopalnia Kryształów - mining
-    ROOMS["crystal_chamber"]["exits"]["east"] = (
-        profession_dungeon_room_id("crystal_mine", 1)
-    )
+    # v0.25.1: istnieje tylko jedna aktywna kopalnia — Kopalnia Głębinowa.
+    # Dawna Kopalnia Kryształów pozostaje połączona wyłącznie jako zwykły
+    # obszar eksploracyjny "Kryształowe Groty" bez możliwości wydobycia.
+    ROOMS["crystal_chamber"]["exits"]["east"] = profession_dungeon_room_id("crystal_mine", 1)
     # 2. Zatopiona Grota - fishing
     ROOMS["sea_pier"]["exits"]["down"] = (
         profession_dungeon_room_id("sunken_grotto", 1)
@@ -14022,17 +14189,15 @@ def build_profession_dungeons():
                 "crystal_mine", floor + 1
             )
         ROOMS[rid] = {
-            "zone": "Loch Profesyjny - Kopalnia Kryształów",
-            "name": f"Kopalnia Kryształów, poziom {floor}",
+            "zone": "Kryształowe Groty",
+            "name": f"Kryształowe Groty, komora {floor}",
             "desc": (
-                f"Profesyjny poziom górniczy {floor}. Pierwsze 20 poziomów to ręcznie przygotowana część, a dalsza głębokość nie ma limitu. "
-                f"Wymagane Górnictwo level {required}. "
-                "Lepszy Kilof odblokowuje lepsze rudy i bonusy jakości. "
-                "Im głębiej, tym lepsze rudy i minerały."
+                f"Kryształowa komora eksploracyjna {floor}. "
+                "Nie prowadzi się tu wydobycia. Wszystkie rudy i Górnictwo są w Kopalni Głębinowej."
             ),
             "exits": exits,
         }
-        MINING_ROOMS.add(rid)
+        # Brak MINING_ROOMS: to nie jest już aktywna kopalnia.
 
         # Sunken Grotto, down = deeper.
         rid = profession_dungeon_room_id("sunken_grotto", floor)
@@ -14167,8 +14332,6 @@ HERB_SPECIFIC_MEADOW_MIN_TOOL_LEVEL = {
 
 FIELD_RESOURCE_MIN_TOOL_LEVEL = {
     "sewer_black_channel": ("fishing", 30, "Wędka"),
-    "necropolis_quarry": ("mining", 80, "Kilof"),
-    "ice_cave_crystal_chamber": ("mining", 100, "Kilof"),
     "beast_lair_root_cavern": ("woodcutting", 40, "Piła"),
     "cemetery_moon_garden": ("herbalism", 20, "Sierp Zielarski"),
     "cult_ruins_overgrown_garden": ("herbalism", 60, "Sierp Zielarski"),
@@ -16900,7 +17063,7 @@ def build_world_expansion_ii():
         "field_tomb_silver": {
             "name": "Srebro Grobowe", "type": "resource", "price": None,
             "resource_category": "ore", "sell_silver": 45,
-            "desc": "Ciemne srebro wydobywane wyłącznie w kamieniołomie Nekropolii.",
+            "desc": "Ciemne srebro z głębszych warstw Kopalni Głębinowej, dostępne od poziomu 80.",
         },
         "field_blind_sewer_eel": {
             "name": "Ślepy Węgorz Kanałowy", "type": "resource", "price": None,
@@ -16910,7 +17073,7 @@ def build_world_expansion_ii():
         "field_frost_crystal_ore": {
             "name": "Ruda Lodowego Kryształu", "type": "resource", "price": None,
             "resource_category": "ore", "sell_silver": 60,
-            "desc": "Lodowy minerał wydobywany tylko w Lodowych Jaskiniach.",
+            "desc": "Lodowy minerał z Kopalni Głębinowej, dostępny od poziomu 100.",
         },
     }
     ITEMS.update(field_items)
@@ -16930,7 +17093,8 @@ def build_world_expansion_ii():
     ORE_ATLAS_ALL.update({"field_tomb_silver", "field_frost_crystal_ore"})
     FISH_ATLAS_ALL.add("field_blind_sewer_eel")
     # Minimalne wymagania narzędzia zgodne ze specjalistycznymi questami.
-    ORE_ATLAS_LEVELS.update({"field_tomb_silver": 50, "field_frost_crystal_ore": 90})
+    ORE_ATLAS_LEVELS.update({"field_tomb_silver": 80, "field_frost_crystal_ore": 100})
+    ORE_MINE_FLOOR_MINIMUMS.update({"field_tomb_silver": 80, "field_frost_crystal_ore": 100})
 
     # ========================================================
     # 1. STARY CMENTARZ — expansion of the existing Graveyard
@@ -16982,13 +17146,12 @@ def build_world_expansion_ii():
     ROOMS.update({
         "necropolis_gate": {"zone":"Nekropolia","name":"Brama Nekropolii","desc":"Olbrzymie kamienne wrota prowadzą do miasta grobowców.","exits":{"west":"graveyard","east":"necropolis_procession"}},
         "necropolis_procession": {"zone":"Nekropolia","name":"Aleja Procesyjna","desc":"Posągi bez twarzy stoją wzdłuż drogi prowadzącej między mauzoleami.","exits":{"west":"necropolis_gate","east":"necropolis_quarry","north":"necropolis_catacombs"}},
-        "necropolis_quarry": {"zone":"Nekropolia","name":"Grobowy Kamieniołom","desc":"Ściany przecinają żyły Srebra Grobowego. To terenowe miejsce Górnictwa.","exits":{"west":"necropolis_procession","north":"necropolis_silent_square"}},
+        "necropolis_quarry": {"zone":"Nekropolia","name":"Grobowy Kamieniołom","desc":"Dawny kamieniołom Nekropolii. Wydobycie przeniesiono do Kopalni Głębinowej; miejsce pozostało częścią regionu i questów.","exits":{"west":"necropolis_procession","north":"necropolis_silent_square"}},
         "necropolis_catacombs": {"zone":"Nekropolia","name":"Katakumby Bezimiennych","desc":"Niskie tunele są wypełnione setkami zapieczętowanych nisz.","exits":{"south":"necropolis_procession","east":"necropolis_silent_square"}},
         "necropolis_silent_square": {"zone":"Nekropolia","name":"Plac Ciszy","desc":"Centralny plac Nekropolii otaczają cztery monumentalne grobowce.","exits":{"south":"necropolis_quarry","west":"necropolis_catacombs","north":"necropolis_royal_tombs"}},
         "necropolis_royal_tombs": {"zone":"Nekropolia","name":"Królewskie Grobowce","desc":"Złote inskrypcje mówią o dynastii, której imię zostało wymazane.","exits":{"south":"necropolis_silent_square","north":"necropolis_throne"}},
         "necropolis_throne": {"zone":"Nekropolia","name":"Tron Umarłego Króla","desc":"Kamienny tron stoi przed otwartym sarkofagiem. Umarły Król powrócił do swej sali.","exits":{"south":"necropolis_royal_tombs"}},
     })
-    MINING_ROOMS.add("necropolis_quarry")
 
     # ========================================================
     # 5. KANAŁY POD MIASTEM
@@ -17013,13 +17176,12 @@ def build_world_expansion_ii():
     ROOMS.update({
         "ice_cave_mouth": {"zone":"Lodowe Jaskinie","name":"Wejście do Lodowych Jaskiń","desc":"Szczelina w lodzie prowadzi do błękitnych tuneli pod górą.","exits":{"west":"ice_pass","east":"ice_cave_blue_tunnel"}},
         "ice_cave_blue_tunnel": {"zone":"Lodowe Jaskinie","name":"Błękitny Tunel","desc":"Światło odbija się w tysiącach drobnych kryształów lodu.","exits":{"west":"ice_cave_mouth","east":"ice_cave_frozen_lake","north":"ice_cave_crystal_chamber"}},
-        "ice_cave_crystal_chamber": {"zone":"Lodowe Jaskinie","name":"Komnata Lodowego Kryształu","desc":"W skale tkwią żyły Rudy Lodowego Kryształu. To terenowe miejsce Górnictwa.","exits":{"south":"ice_cave_blue_tunnel","east":"ice_cave_glacier裂"}},
+        "ice_cave_crystal_chamber": {"zone":"Lodowe Jaskinie","name":"Komnata Lodowego Kryształu","desc":"Komnata lodowych kryształów. Wydobycie przeniesiono do Kopalni Głębinowej; komnata pozostała miejscem eksploracji i walki.","exits":{"south":"ice_cave_blue_tunnel","east":"ice_cave_glacier裂"}},
         "ice_cave_frozen_lake": {"zone":"Lodowe Jaskinie","name":"Zamarznięte Jezioro","desc":"Gruby lód przykrywa czarną wodę. Coś porusza się pod powierzchnią.","exits":{"west":"ice_cave_blue_tunnel","north":"ice_cave_glacier裂"}},
         "ice_cave_glacier裂": {"zone":"Lodowe Jaskinie","name":"Szczelina Lodowca","desc":"Wąska rozpadlina prowadzi do najstarszej części jaskiń.","exits":{"west":"ice_cave_crystal_chamber","south":"ice_cave_frozen_lake","north":"ice_cave_ancient_hall"}},
         "ice_cave_ancient_hall": {"zone":"Lodowe Jaskinie","name":"Pradawna Sala Lodu","desc":"Naturalne kolumny lodu przypominają salę tronową.","exits":{"south":"ice_cave_glacier裂","north":"ice_cave_dragon_nest"}},
         "ice_cave_dragon_nest": {"zone":"Lodowe Jaskinie","name":"Gniazdo Lodowego Smoka","desc":"Ogromne ślady pazurów otaczają gniazdo wykute w wiecznym lodzie.","exits":{"south":"ice_cave_ancient_hall"}},
     })
-    MINING_ROOMS.add("ice_cave_crystal_chamber")
 
     # ========================================================
     # MOBS — 6 AREAS, REGULARS + ELITES + BOSSES
@@ -17079,9 +17241,9 @@ def build_world_expansion_ii():
         "field_grave_moss": {"name":"Terenowe Zielarstwo: Mech Nagrobny","giver":"Mistrzyni Zielarstwa Sena","kind":"collect_resource","target":"field_grave_moss","needed":8,"description":"Zbierz 8 sztuk Mchu Nagrobnego wyłącznie w Ogrodzie Księżycowego Mchu na Starym Cmentarzu. Postęp zaczyna od 0/8 i rośnie przy każdym nowym zbiorze po przyjęciu questa.","progress_label":"Mech Nagrobny","specialist_tool_type":"herbalism","min_tool_level":20,"reward_profession":"Zielarstwo","reward_profession_xp":1400,"reward_tool_type":"herbalism","reward_tool_xp":1100,"reward_silver":260,"reward_gold":1,"reward_mithril":0,"reward_items":{},"repeatable":True,"repeat_cooldown":QUEST_REPEAT_COOLDOWN_SECONDS},
         "field_void_thorn": {"name":"Terenowe Zielarstwo: Cierń Pustki","giver":"Mistrzyni Zielarstwa Sena","kind":"collect_resource","target":"field_void_thorn","needed":8,"description":"Zbierz 8 Cierni Pustki wyłącznie w Ogrodzie Cierni Pustki w Ruinach Kultystów.","specialist_tool_type":"herbalism","min_tool_level":60,"reward_profession":"Zielarstwo","reward_profession_xp":2400,"reward_tool_type":"herbalism","reward_tool_xp":1900,"reward_silver":420,"reward_gold":2,"reward_mithril":0,"reward_items":{},"repeatable":True,"repeat_cooldown":QUEST_REPEAT_COOLDOWN_SECONDS},
         "field_ironbark_root": {"name":"Terenowe Drwalstwo: Korzeń Żelaznokory","giver":"Mistrz Drwalstwa Oren","kind":"collect_resource","target":"field_ironbark_root","needed":8,"description":"Pozyskaj 8 Korzeni Żelaznokory wyłącznie w Grocie Żelaznokory w Legowisku Bestii.","specialist_tool_type":"woodcutting","min_tool_level":40,"reward_profession":"Drwalstwo","reward_profession_xp":1900,"reward_tool_type":"woodcutting","reward_tool_xp":1500,"reward_silver":330,"reward_gold":1,"reward_mithril":0,"reward_items":{},"repeatable":True,"repeat_cooldown":QUEST_REPEAT_COOLDOWN_SECONDS},
-        "field_tomb_silver": {"name":"Terenowe Górnictwo: Srebro Grobowe","giver":"Mistrz Górnictwa Kordan","kind":"collect_resource","target":"field_tomb_silver","needed":10,"description":"Wydobądź 10 Srebra Grobowego wyłącznie w Grobowym Kamieniołomie Nekropolii.","specialist_tool_type":"mining","min_tool_level":80,"reward_profession":"Górnictwo","reward_profession_xp":3200,"reward_tool_type":"mining","reward_tool_xp":2600,"reward_silver":600,"reward_gold":3,"reward_mithril":0,"reward_items":{},"repeatable":True,"repeat_cooldown":QUEST_REPEAT_COOLDOWN_SECONDS},
+        "field_tomb_silver": {"name":"Głębinowe Górnictwo: Srebro Grobowe","giver":"Mistrz Górnictwa Kordan","kind":"collect_resource","target":"field_tomb_silver","needed":10,"description":"Wydobądź 10 Srebra Grobowego w Kopalni Głębinowej od poziomu 80.","specialist_tool_type":"mining","min_tool_level":80,"reward_profession":"Górnictwo","reward_profession_xp":3200,"reward_tool_type":"mining","reward_tool_xp":2600,"reward_silver":600,"reward_gold":3,"reward_mithril":0,"reward_items":{},"repeatable":True,"repeat_cooldown":QUEST_REPEAT_COOLDOWN_SECONDS},
         "field_blind_sewer_eel": {"name":"Terenowe Wędkarstwo: Ślepy Węgorz","giver":"Mistrz Wędkarstwa Neris","kind":"collect_resource","target":"field_blind_sewer_eel","needed":6,"description":"Złów 6 Ślepych Węgorzy Kanałowych wyłącznie w Czarnym Kanale pod Miastem Dusz.","specialist_tool_type":"fishing","min_tool_level":30,"reward_profession":"Wędkarstwo","reward_profession_xp":1600,"reward_tool_type":"fishing","reward_tool_xp":1300,"reward_silver":300,"reward_gold":1,"reward_mithril":0,"reward_items":{},"repeatable":True,"repeat_cooldown":QUEST_REPEAT_COOLDOWN_SECONDS},
-        "field_frost_crystal_ore": {"name":"Terenowe Górnictwo: Lodowy Kryształ","giver":"Mistrz Górnictwa Kordan","kind":"collect_resource","target":"field_frost_crystal_ore","needed":10,"description":"Wydobądź 10 Rudy Lodowego Kryształu wyłącznie w Komnacie Lodowego Kryształu.","specialist_tool_type":"mining","min_tool_level":100,"reward_profession":"Górnictwo","reward_profession_xp":4200,"reward_tool_type":"mining","reward_tool_xp":3500,"reward_silver":800,"reward_gold":4,"reward_mithril":0,"reward_items":{},"repeatable":True,"repeat_cooldown":QUEST_REPEAT_COOLDOWN_SECONDS},
+        "field_frost_crystal_ore": {"name":"Głębinowe Górnictwo: Lodowy Kryształ","giver":"Mistrz Górnictwa Kordan","kind":"collect_resource","target":"field_frost_crystal_ore","needed":10,"description":"Wydobądź 10 Rudy Lodowego Kryształu w Kopalni Głębinowej od poziomu 100.","specialist_tool_type":"mining","min_tool_level":100,"reward_profession":"Górnictwo","reward_profession_xp":4200,"reward_tool_type":"mining","reward_tool_xp":3500,"reward_silver":800,"reward_gold":4,"reward_mithril":0,"reward_items":{},"repeatable":True,"repeat_cooldown":QUEST_REPEAT_COOLDOWN_SECONDS},
     })
 
     # Specialists list these field quests when spoken to.
@@ -17109,9 +17271,9 @@ def build_world_expansion_ii():
         {"id":"cmentarz","name":"Stary Cmentarz","aliases":("cmentarz","stary cmentarz","cemetery"),"soul_min":15,"soul_max":45,"difficulty":"łatwa do średniej","guide":"cmentarz","enemies":"Niespokojni Zmarli, Grobowe Ogary, Zbieracze Kości, Upiory Dzwonu i Nieumarły Strażnik Cmentarza","description":"Rozbudowany cmentarz z alejami, kaplicą, polem kości, miejscem Zielarstwa i bossem na końcu.","note":"Mech Nagrobny można zebrać tylko w Ogrodzie Księżycowego Mchu."},
         {"id":"ruiny_kultystow","name":"Ruiny Kultystów","aliases":("ruiny kultystow","ruiny kultu","cultist ruins"),"soul_min":40,"soul_max":80,"difficulty":"średnia do trudnej","guide":"ruiny kultystow","enemies":"Akolici Pustki, Ostrza Kultu, Wieszcze Pustki, Strażnicy Rytuału i Arcykultysta Otchłani","description":"Zniszczony kompleks kultu z ogrodem skażonych roślin, biblioteką i sanktuarium.","note":"Cierń Pustki występuje tylko w Ogrodzie Cierni Pustki."},
         {"id":"legowisko_bestii","name":"Legowisko Bestii","aliases":("legowisko bestii","beast lair"),"soul_min":35,"soul_max":75,"difficulty":"średnia","guide":"legowisko bestii","enemies":"Jaskiniowe Tropiciele, Dziki Żelaznoskóre, Niedźwiedzie Korzeni, Kościanogrzywe Drapieżniki i Pradawny Alfa","description":"Podziemne legowisko drapieżników z bocznymi norami, terenem Drwalstwa i bossem alfa.","note":"Korzeń Żelaznokory pozyskuje się tylko w Grocie Żelaznokory."},
-        {"id":"nekropolia","name":"Nekropolia","aliases":("nekropolia","necropolis"),"soul_min":70,"soul_max":125,"difficulty":"trudna","guide":"nekropolia","enemies":"Strażnicy Grobowców, Duchy Żałobników, Kościani Rycerze, Królewscy Licze i Umarły Król","description":"Miasto grobowców za Starym Cmentarzem, z katakumbami, kamieniołomem i królewską częścią.","note":"Srebro Grobowe można wydobyć tylko w Grobowym Kamieniołomie."},
+        {"id":"nekropolia","name":"Nekropolia","aliases":("nekropolia","necropolis"),"soul_min":70,"soul_max":125,"difficulty":"trudna","guide":"nekropolia","enemies":"Strażnicy Grobowców, Duchy Żałobników, Kościani Rycerze, Królewscy Licze i Umarły Król","description":"Miasto grobowców za Starym Cmentarzem, z katakumbami, kamieniołomem i królewską częścią.","note":"Srebro Grobowe wydobywa się w Kopalni Głębinowej od poziomu 80; kamieniołom jest miejscem eksploracji."},
         {"id":"kanaly","name":"Kanały Pod Miastem","aliases":("kanaly","kanaly pod miastem","sewers","city sewers"),"soul_min":10,"soul_max":45,"difficulty":"łatwa do średniej","guide":"kanaly","enemies":"Szczury Zarazy, Szlamy Kanałowe, Przemytnicy, Mutanci i Król Podmiejskich Kanałów","description":"Podziemna sieć pod Miastem Dusz z kanałem, kryjówką przemytników i starą cysterną.","note":"Ślepy Węgorz Kanałowy żyje tylko w Czarnym Kanale."},
-        {"id":"lodowe_jaskinie","name":"Lodowe Jaskinie","aliases":("lodowe jaskinie","lodowa jaskinia","ice caves","ice cave"),"soul_min":60,"soul_max":115,"difficulty":"trudna","guide":"lodowe jaskinie","enemies":"Wilki Lodowego Kła, Golemy Lodowego Kryształu, Upiory Szronu, Strażnicy Lodowca i Pradawny Lodowy Smok","description":"Rozległe jaskinie odchodzące od Lodowej Przełęczy, z kryształową komnatą i gniazdem smoka.","note":"Rudę Lodowego Kryształu wydobywa się tylko w Komnacie Lodowego Kryształu."},
+        {"id":"lodowe_jaskinie","name":"Lodowe Jaskinie","aliases":("lodowe jaskinie","lodowa jaskinia","ice caves","ice cave"),"soul_min":60,"soul_max":115,"difficulty":"trudna","guide":"lodowe jaskinie","enemies":"Wilki Lodowego Kła, Golemy Lodowego Kryształu, Upiory Szronu, Strażnicy Lodowca i Pradawny Lodowy Smok","description":"Rozległe jaskinie odchodzące od Lodowej Przełęczy, z kryształową komnatą i gniazdem smoka.","note":"Rudę Lodowego Kryształu wydobywa się w Kopalni Głębinowej od poziomu 100; komnata jest miejscem eksploracji i walki."},
     )
 
     HELP_TOPICS["world_expansion_ii"] = [
@@ -17121,7 +17283,7 @@ def build_world_expansion_ii():
         "Dodano terenowe questy profesyjne z unikalnymi surowcami możliwymi do zdobycia tylko w konkretnym miejscu.",
         "Sena: Mech Nagrobny ze Starego Cmentarza i Cierń Pustki z Ruin Kultystów.",
         "Oren: Korzeń Żelaznokory z Legowiska Bestii.",
-        "Kordan: Srebro Grobowe z Nekropolii i Ruda Lodowego Kryształu z Lodowych Jaskiń.",
+        "Kordan: wszystkie rudy, w tym Srebro Grobowe i Rudę Lodowego Kryształu, wydobywa się w Kopalni Głębinowej.",
         "Neris: Ślepy Węgorz Kanałowy z Kanałów Pod Miastem.",
     ]
     HELP_TOPICS["questy_profesji_teren"] = HELP_TOPICS["world_expansion_ii"]
@@ -18482,6 +18644,14 @@ ROOMS[profession_dungeon_room_id("alchemy_garden", PROF_DUNGEON_MAX_FLOOR)]["exi
 build_world_expansion_i()
 build_high_end_mob_pack()
 build_world_expansion_ii()
+
+# v0.25.1 — UNIFIED DEEP MINE
+# Jedyna aktywna kopalnia to Kopalnia Głębinowa. Wszystkie historyczne
+# rejestracje MINING_ROOMS poza jej wejściem i mine_floor_N są usuwane.
+def v0251_enforce_single_mine():
+    MINING_ROOMS.intersection_update(UNIFIED_DEEP_MINE_STATIC_ROOMS | MINING_DEPTH_ROOMS)
+
+v0251_enforce_single_mine()
 validate_complete_resource_atlases()
 build_forest_wolves_and_quest_balance()
 build_elite_rare_named_loot_expansion()
@@ -19043,6 +19213,7 @@ def configure_v0856_help_categories():
         "Kopalnia Głębinowa nie ma końca; ściany mają losową liczbę uderzeń zapisywaną dla postaci. Zasobowa moc głębokości zatrzymuje się na progresji 400.",
         "kop on może wystartować już w ręcznej części Kryształowej Jaskini: automat sam dochodzi w dół do poziomu 1, a potem schodzi po każdym przebiciu ściany.",
         "Rudy progresji 220-400 wymagają jednocześnie odpowiedniego levelu Kilofa i co najmniej odpowiadającego mu poziomu Kopalni Głębinowej.",
+        "Po odblokowaniu ruda pozostaje dostępna na wszystkich głębszych piętrach. Starsze rudy stają się rzadsze, ale nie znikają z puli.",
         "atlas rudy pokazuje wymagany level Kilofa i minimalną głębokość dla każdej rudy.",
         "kopalnia / mineinfo pokazuje bieżące piętro, najgłębszy odblokowany poziom, ścianę, auto-kopanie, Górnictwo, Kilof oraz najważniejsze dostępne rudy.",
     ]
@@ -19939,7 +20110,7 @@ INSTANCE_MAP_DEFS = {
     "mythic_astral": {"label": "Mityczna Wieża Astralna", "min_floor": 1},
     "giant": {"label": "Twierdza Gigantów", "min_floor": 1},
     "mine": {"label": "Kopalnia Głębinowa", "min_floor": 1, "passive_checkpoints": True},
-    "crystal_mine": {"label": "Kopalnia Kryształów", "min_floor": 1, "passive_checkpoints": True},
+    "crystal_mine": {"label": "Kryształowe Groty", "min_floor": 1, "passive_checkpoints": True},
     "sunken_grotto": {"label": "Zatopiona Grota", "min_floor": 1, "passive_checkpoints": True},
     "ancient_forest": {"label": "Pradawny Las", "min_floor": 1, "passive_checkpoints": True},
     "alchemy_garden": {"label": "Ogród Alchemika", "min_floor": 1, "passive_checkpoints": True},
@@ -19951,7 +20122,8 @@ INSTANCE_KIND_ALIASES = {
     "mitycznawieza": "mythic_astral", "mitycznawiezaastralna": "mythic_astral", "mythicastral": "mythic_astral",
     "twierdza": "giant", "twierdzagigantow": "giant", "giant": "giant", "giantfortress": "giant",
     "kopalnia": "mine", "kopalniaglebinowa": "mine", "deepmine": "mine",
-    "kopalniakrysztalow": "crystal_mine", "crystalmine": "crystal_mine",
+    "kopalniakrysztalow": "mine", "crystalmine": "mine",
+    "krysztalowegroty": "crystal_mine", "crystalgrottos": "crystal_mine",
     "zatopionagrota": "sunken_grotto", "sunkengrotto": "sunken_grotto",
     "pradawnylas": "ancient_forest", "ancientforest": "ancient_forest",
     "ogrodalchemika": "alchemy_garden", "alchemygarden": "alchemy_garden",
@@ -20269,7 +20441,7 @@ def _infinite_challenge_template(base_template, kind, floor):
 
 INFINITE_GATHER_FEATURE_LABELS = {
     "deep_mine": ("Rezonans Skały", "Bogata Komora", "Węzeł Głębinowy"),
-    "crystal_mine": ("Rezonans Kryształów", "Bogata Żyła Kryształów", "Węzeł Kryształowy"),
+    "crystal_mine": ("Rezonans Kryształów", "Komora Echa Kryształów", "Węzeł Energii Kryształowej"),
     "sunken_grotto": ("Prąd Obfitości", "Ławica Głębinowa", "Węzeł Oceaniczny"),
     "ancient_forest": ("Echo Korzeni", "Gęsty Ostęp", "Węzeł Pradawnych Drzew"),
     "alchemy_garden": ("Alchemiczny Rezonans", "Ogród Obfitości", "Węzeł Esencji"),
@@ -20632,6 +20804,7 @@ def create_infinite_mine_floor_definition(floor):
     }
     effective = min(400, floor)
     feature = infinite_gathering_floor_feature("deep_mine", floor, MINE_PREGENERATED_MAX_FLOOR)
+    generated_profile = v0250_mine_floor_profile(floor)
     if effective < 10:
         richness = "zwykłe skały i miedź"
     elif effective < 100:
@@ -20645,12 +20818,15 @@ def create_infinite_mine_floor_definition(floor):
         "name": f"Kopalnia - poziom {floor}",
         "desc": (
             f"Poziom {floor}. Kopalnia schodzi bez końca. W skale występują {richness}. "
-            "Moc surowców nie przekracza capu progresji 400."
+            "Moc surowców nie przekracza capu progresji 400. "
+            f"Generator piętra: {generated_profile['shape']}, {generated_profile['strata']}; "
+            f"{generated_profile['sign']}."
             + (f" Specjalny sektor: {feature['label']} — {feature['desc']}." if feature['label'] else "")
         ),
         "exits": exits,
         "procedural_infinite": True,
         "infinite_gather_feature": feature,
+        "v0250_generator_profile": generated_profile,
     }
     MINING_DEPTH_ROOMS.add(room_id)
     MINING_ROOMS.add(room_id)
@@ -20665,14 +20841,12 @@ def create_infinite_profession_dungeon_floor_definition(dungeon, floor):
     next_room = profession_dungeon_room_id(dungeon, floor + 1)
     if dungeon == "crystal_mine":
         exits = {"up": "crystal_chamber" if floor == 1 else previous, "down": next_room}
-        zone = "Loch Profesyjny - Kopalnia Kryształów"
-        name = f"Kopalnia Kryształów, poziom {floor}"
+        zone = "Kryształowe Groty"
+        name = f"Kryształowe Groty, komora {floor}"
         desc = (
-            f"Nieskończony poziom górniczy {floor}. Wymagane Górnictwo level {required}. "
-            "Po levelu 400 kolejne piętra nie podnoszą capu surowców."
-            + (f" Specjalny sektor: {feature['label']} — {feature['desc']}." if feature['label'] else "")
+            f"Kryształowa komora eksploracyjna {floor}. "
+            "Wydobycie jest wyłączone; wszystkie rudy są w Kopalni Głębinowej."
         )
-        MINING_ROOMS.add(room_id)
     elif dungeon == "sunken_grotto":
         exits = {"up": "sea_pier" if floor == 1 else previous, "down": next_room}
         zone = "Loch Profesyjny - Zatopiona Grota"
@@ -21998,6 +22172,7 @@ def v0100_expand_instance_floor(canonical_room, spawn_pairs=None, runtime=False)
     labels = V0100_INSTANCE_LABELS[spec["kind"]]
     floor = int(spec["floor"])
     zone = base.get("zone", "Loch")
+    generated_profile_v025 = v0250_instance_floor_profile(spec["kind"], floor)
 
     for index, rid in enumerate(subrooms, 1):
         label_seed = int(hashlib.sha256(f"{spec['kind']}:{floor}".encode("utf-8")).hexdigest()[:8], 16)
@@ -22015,10 +22190,13 @@ def v0100_expand_instance_floor(canonical_room, spawn_pairs=None, runtime=False)
             "desc": (
                 f"Rozległa część poziomu {floor}. Korytarze rozchodzą się w kilka stron, "
                 "łączą w pętle i prowadzą przez boczne komnaty. To pełne piętro lochu, "
-                "a nie pojedynczy liniowy pokój."
+                "a nie pojedynczy liniowy pokój. "
+                f"Generator piętra: {generated_profile_v025['layout']}; "
+                f"motyw: {generated_profile_v025['motif']}."
             ),
             "exits": {},
             "v0100_instance_kind": spec["kind"],
+            "v0250_generator_profile": generated_profile_v025,
             "v0100_floor": floor,
             "v0100_floor_room": index + 1,
             "procedural_dynamic": True,
@@ -22032,7 +22210,7 @@ def v0100_expand_instance_floor(canonical_room, spawn_pairs=None, runtime=False)
 
     # v0.11.0: układ jest proceduralny, ale deterministyczny dla rodzaju i numeru
     # piętra. Restart serwera nie zmienia mapy w trakcie progresji gracza.
-    seed_text = f"soulbound-v0110:{spec['kind']}:{floor}:{spec.get('profession_dungeon','')}"
+    seed_text = f"{V0250_WORLD_SEED}:soulbound-v0110:{spec['kind']}:{floor}:{spec.get('profession_dungeon','')}"
     floor_seed = int(hashlib.sha256(seed_text.encode("utf-8")).hexdigest()[:16], 16)
     floor_rng = random.Random(floor_seed)
 
@@ -23060,7 +23238,7 @@ HELP_TOPICS["wielkie_lochy"] = [
     "Schody na następne piętro są w końcowej komnacie, a nie przy wejściu.",
     "Na piętrach co 10 boss pilnuje przejścia dalej; po pierwszym trwałym zaliczeniu jego późniejszy respawn nie blokuje postaci.",
     "Dynamiczne piętra ponad dawnym końcem są generowane w tym samym dużym układzie.",
-    "Bojowe piętra mają więcej równoczesnych mobów; Kopalnia Kryształów pozostaje lochom zasobowym bez sztucznego zagęszczania walki.",
+    "Bojowe piętra mają więcej równoczesnych mobów; wszystkie rudy i Górnictwo są skupione w jednej Kopalni Głębinowej.",
     "Prowadzenie nadal zatrzymuje się przed wejściem do lochu i nie rozwiązuje mapy za gracza.",
 ]
 HELP_TOPIC_ALIASES.update({
@@ -29671,7 +29849,7 @@ HELP_TOPIC_ALIASES.update({
 # Naturalne pogranicza i endgame dostają duże, deterministyczne mapy tworzone
 # dopiero przy wejściu. Ten sam seed + biom + współrzędne zawsze daje ten sam pokój.
 # ============================================================
-V013_WORLD_SEED = "soulbound-v0130-hybrid-world"
+V013_WORLD_SEED = f"{V0250_WORLD_SEED}:soulbound-v0130-hybrid-world"
 V013_FRONTIER_SIDE = 12
 V013_FRONTIER_ROOMS_PER_BIOME = V013_FRONTIER_SIDE * V013_FRONTIER_SIDE
 
@@ -29874,7 +30052,9 @@ def _v0130_apply_resources(room_id, spec):
         elif resource == "wood":
             WOODCUTTING_ROOMS.add(room_id)
         elif resource == "mine":
-            MINING_ROOMS.add(room_id)
+            # v0.25.1: geologiczny motyw może wystąpić wizualnie, ale
+            # wydobycie jest dostępne wyłącznie w Kopalni Głębinowej.
+            pass
         elif resource == "fish_river":
             RIVER_FISHING_ROOMS.add(room_id)
             FRESHWATER_FISHING_ROOMS.add(room_id)
@@ -30051,7 +30231,7 @@ HELP_TOPIC_ALIASES.update({
 # Opcjonalne wydarzenia, rare roaming, deterministyczne mini-lochy,
 # sekrety powierzchniowe, mapy skarbów i questy eksploracyjne.
 # ============================================================
-V014_WORLD_SEED = "soulbound-v0140-events-secrets"
+V014_WORLD_SEED = f"{V0250_WORLD_SEED}:soulbound-v0140-events-secrets"
 V014_EVENT_ROTATION_SECONDS = 30 * 60
 V014_TREASURE_MAP_ITEM = "treasure_map_frontier"
 V014_MINI_DENOMINATOR = 18
@@ -31275,7 +31455,7 @@ COMMAND_ALIASES.update({
 # Seasons + archipelagos + transport + great ruins + legendary events
 # + first endless endgame layer. NO TRAPS. PASSIVE WORLD remains global.
 # ============================================================
-V018_WORLD_SEED = "soulbound-v0180-seasons-expeditions-endgame"
+V018_WORLD_SEED = f"{V0250_WORLD_SEED}:soulbound-v0180-seasons-expeditions-endgame"
 V018_SEASON_SECONDS = 6 * 60 * 60
 V018_LEGENDARY_EVENT_SECONDS = 4 * 60 * 60
 V018_GREAT_RUIN_DENOMINATOR = 48
@@ -31403,8 +31583,7 @@ def v0180_create_archipelago_room_definition(room_id):
     FISHING_WATER_TYPE_OVERRIDES[room_id] = spec["name"]
     if eid in ("coral","mist") and (x+y)%2 == 0:
         HERBALISM_ROOMS.add(room_id)
-    if eid in ("storm","frost","void") and (x+y)%3 == 0:
-        MINING_ROOMS.add(room_id)
+    # v0.25.1: ekspedycje nie są już alternatywnymi kopalniami.
     base_kind = spec["biome"]
     pool = [t for t in V013_FRONTIER_SPECS[base_kind].get("mobs",()) if t in MOB_TEMPLATES]
     spawns = []
@@ -31641,7 +31820,7 @@ def v0180_create_endless_room_definition(room_id):
         "exits":exits,"recommended_mastery":400,"generated_on_demand":True,
         "v018_endless":True,"v018_endless_depth":depth,"v018_endless_band":v0180_endless_band(depth),
     }
-    if depth%5==0: MINING_ROOMS.add(room_id)
+    # v0.25.1: Endless nie jest miejscem Górnictwa.
     spawns=[(room_id,v0180_endless_template(depth))]
     if rng.random()<0.35: spawns.append((room_id,v0180_endless_template(depth)))
     return room_id,tuple(spawns)
@@ -31727,7 +31906,7 @@ HELP_TOPIC_ALIASES.update({"generator":"generator_v019","balans 019":"generator_
 # trwały rozwój artefaktów i długoterminowe cele. NO TRAPS.
 # Całość korzysta z Global Progression & Reward Generator v0.19.
 # ============================================================
-V020_WORLD_SEED = "soulbound-v0200-endgame-challenges-megadungeons"
+V020_WORLD_SEED = f"{V0250_WORLD_SEED}:soulbound-v0200-endgame-challenges-megadungeons"
 V020_MYTHIC_WORLD_BOSS_SECONDS = 6 * 60 * 60
 V020_MEGA_BOSS_STEP = 25
 
@@ -32008,7 +32187,7 @@ COMMAND_ALIASES.update({"megalochy":"megadungeons","megadungeons":"megadungeons"
 # artifact Tier 6-10, five 8-piece mythic sets and an endless boss gauntlet.
 # PASSIVE WORLD stays global. No traps, entry damage or auto damage.
 # ============================================================
-V021_WORLD_SEED = "soulbound-v0210-ascension-world-tiers-mythic"
+V021_WORLD_SEED = f"{V0250_WORLD_SEED}:soulbound-v0210-ascension-world-tiers-mythic"
 V021_ASCENSION_MAX_RANK = 1000
 V021_WORLD_TIER_MAX = 10
 V021_ASCENSION_REQ = (
@@ -33009,11 +33188,312 @@ for _help_class_name, _help_skill in _FINAL_SKILL_HELP_ENTRIES:
 
 HELP_TOPICS.setdefault("umiejetnosci", []).extend([
     f"Aktualna baza zawiera {_FINAL_SKILL_HELP_COUNT} skilli/spelli. Każdy ma własny HELP generowany z aktywnej definicji umiejętności.",
-    "Użyj help <pełna nazwa>, help skill <pełna nazwa> albo skill info <pełna nazwa>. Przy identycznej nazwie w dwóch klasach HELP podaje klasę i dokładny identyfikator skilla.",
+    "Użyj help <pełna nazwa>, help skill <pełna nazwa> albo skill info <pełna nazwa>. Wszystkie aktualne nazwy skilli/spelli są globalnie unikalne.",
 ])
 HELP_TOPICS.setdefault("nazwy_skilli", []).append(
-    f"Audyt v0.24.4: {_FINAL_SKILL_HELP_COUNT}/{_FINAL_SKILL_HELP_COUNT} aktualnych skilli/spelli ma dostępny HELP po pełnym identyfikatorze; identyczne nazwy są jawnie rozróżniane klasą/ID."
+    f"Audyt v0.25.0: {_FINAL_SKILL_HELP_COUNT}/{_FINAL_SKILL_HELP_COUNT} aktualnych skilli/spelli ma dostępny HELP po pełnej, globalnie unikalnej nazwie oraz po identyfikatorze."
 )
+
+
+
+# v0.25.0: publiczny status Global Generator 2.0.
+COMMAND_ALIASES.update({
+    "generator": "globalgenerator", "generatory": "globalgenerator",
+    "worldgen": "globalgenerator", "generatorświata": "globalgenerator",
+    "generatorswiata": "globalgenerator", "losowyswiat": "globalgenerator",
+})
+HELP_TOPICS["global_generator"] = [
+    "Global Generator 2.0 używa jednego trwałego seedu serwera. Seed zapisuje się obok bazy i nie zmienia świata po restarcie.",
+    "Generator obejmuje profile wszystkich lokacji, Kopalnię Głębinową, proceduralne piętra lochów, hotspoty profesji, pogodę/sezony, wydarzenia, sekrety, mapy skarbów, dynamiczne questy i tablice kontraktów.",
+    "Miasta, ważni NPC, quest huby i fabularni bossowie pozostają stałe, aby losowość nie łamała fabuły ani zapisów.",
+    "Godzinne hotspoty profesji dają +5 procent XP profesji/narzędzia w wybranej strefie, ale nie zwiększają liczby surowców, więc nie pompują ekonomii.",
+    "Wpisz generator, aby przeczytać profil aktualnej lokacji i aktywne lokalne bonusy.",
+]
+HELP_TOPIC_ALIASES.update({
+    "generator":"global_generator", "generatory":"global_generator",
+    "worldgen":"global_generator", "generator swiata":"global_generator",
+    "generator świata":"global_generator", "losowy swiat":"global_generator",
+    "losowy świat":"global_generator",
+})
+
+# ============================================================
+# v0.25.0 - UNIQUE NPC NAMES
+# Ważni NPC są stałymi postaciami fabularnymi, więc nie losujemy ich przy
+# każdym restarcie. Usuwamy natomiast kolizje samych imion, aby komendy,
+# questy, HELP i reakcje profesyjne nie myliły dwóch różnych osób.
+# ============================================================
+V0250_NPC_RENAMES = {
+    "mountain_ore_storekeeper_borin": "Magazynier Davor",
+    "mountain_scout_harek": "Zwiadowca Kalen",
+    "guild_quartermaster_shadow": "Kwatermistrzyni Vessa",
+    "cartographer_lysa": "Kartografka Selia",
+    "swamp_herbalist_nela": "Bagienna Zielarka Maera",
+    "pharmacist_neris": "Aptekarka Elira",
+}
+
+
+def v0250_apply_unique_npc_names():
+    replacements = {}
+    for npc_id, new_name in V0250_NPC_RENAMES.items():
+        npc = NPCS.get(npc_id)
+        if not npc:
+            continue
+        old_name = str(npc.get("name", ""))
+        if old_name and old_name != new_name:
+            replacements[old_name] = new_name
+            npc["name"] = new_name
+
+    if not replacements:
+        return
+
+    # Quest giver jest tekstem wyświetlanym graczowi; targety używają ID NPC.
+    for quest in QUESTS.values():
+        giver = str(quest.get("giver", ""))
+        if giver in replacements:
+            quest["giver"] = replacements[giver]
+        description = str(quest.get("description", ""))
+        for old_name, new_name in replacements.items():
+            description = description.replace(old_name, new_name)
+        if description:
+            quest["description"] = description
+
+    # Aktualizuj tekstowe HELP-y, aby nie zostały stare imiona po migracji.
+    for topic, lines in list(HELP_TOPICS.items()):
+        if not isinstance(lines, list):
+            continue
+        fixed = []
+        for line in lines:
+            text = str(line)
+            for old_name, new_name in replacements.items():
+                text = text.replace(old_name, new_name)
+            fixed.append(text)
+        HELP_TOPICS[topic] = fixed
+
+    # Odmiany i skrócone odwołania, których nie da się poprawić samą
+    # zamianą pełnej nazwy NPC. Dotyczy wyłącznie przemianowanych postaci.
+    text_replacements = {
+        "Magazyniera Borina": "Magazyniera Davora",
+        "Magazynier Borin": "Magazynier Davor",
+        "wróć do Harka": "wróć do Kalena",
+        "Aptekarce Neris": "Aptekarce Elirze",
+        "Aptekarka Neris": "Aptekarka Elira",
+        "quest list Neris": "quest list Elira",
+        "Neris ma powtarzalny co 60 minut quest na 8 świeżo zebranych ziół":
+            "Elira ma powtarzalny co 60 minut quest na 8 świeżo zebranych ziół",
+    }
+    for quest in QUESTS.values():
+        for field in ("giver", "description"):
+            text = str(quest.get(field, ""))
+            for old_text, new_text in text_replacements.items():
+                text = text.replace(old_text, new_text)
+            if text:
+                quest[field] = text
+    for npc in NPCS.values():
+        text = str(npc.get("dialogue", ""))
+        for old_text, new_text in text_replacements.items():
+            text = text.replace(old_text, new_text)
+        if text:
+            npc["dialogue"] = text
+    for topic, lines in list(HELP_TOPICS.items()):
+        if not isinstance(lines, list):
+            continue
+        fixed = []
+        for line in lines:
+            text = str(line)
+            for old_text, new_text in text_replacements.items():
+                text = text.replace(old_text, new_text)
+            fixed.append(text)
+        HELP_TOPICS[topic] = fixed
+
+
+v0250_apply_unique_npc_names()
+
+
+def v0250_duplicate_npc_given_names():
+    seen = {}
+    duplicates = {}
+    for npc_id, npc in NPCS.items():
+        name = str(npc.get("name", "")).strip()
+        if not name:
+            continue
+        given = name.split()[-1].casefold()
+        if given in seen:
+            duplicates.setdefault(given, [seen[given]]).append((npc_id, name))
+        else:
+            seen[given] = (npc_id, name)
+    return duplicates
+
+
+# ============================================================
+# v0.26.0 - MUZEUM 2.0 + TYTUŁY I PRESTIŻ
+# Jedna, osiągalna kolekcja końcowa bez dublowania wpisów starego Codexu.
+# ============================================================
+V0260_WOOD_CATALOG = {
+    item_id: ITEMS[item_id]["name"]
+    for item_id in sorted(WOOD_RESOURCE_IDS)
+    if item_id in ITEMS
+}
+
+V0260_LEGENDARY_ITEM_CATALOG = {
+    item_id: data["name"]
+    for item_id, data in ITEMS.items()
+    if (
+        str(data.get("rarity", "")).lower() in ("legendary", "mythic", "eternal")
+        or data.get("legendary_set_loot")
+        or data.get("legendary_class_relic")
+    )
+    and not str(item_id).startswith("corpse_")
+}
+
+
+def _v0260_set_piece_key(item_id, item):
+    if item.get("class_set_name"):
+        return str(item.get("class_set_piece") or item.get("slot") or item_id)
+    if item.get("crypt_set_tier"):
+        return str(item.get("crypt_base_item") or item_id)
+    return str(item_id)
+
+
+def _v0260_build_set_piece_groups():
+    groups = {}
+    for item_id, set_id in SET_ENTRY_BY_ITEM.items():
+        item = ITEMS.get(item_id, {})
+        piece_key = _v0260_set_piece_key(item_id, item)
+        groups.setdefault(set_id, {}).setdefault(piece_key, set()).add(item_id)
+    return {
+        set_id: {piece: frozenset(ids) for piece, ids in pieces.items()}
+        for set_id, pieces in groups.items()
+    }
+
+
+V0260_SET_PIECE_GROUPS = _v0260_build_set_piece_groups()
+V0260_SET_CATALOG = {
+    set_id: row["name"] for set_id, row in SET_COLLECTION_CATALOG.items()
+}
+
+V0260_SURFACE_SECRET_CATALOG = {}
+for _rid in v0140_surface_secret_room_ids():
+    _info = v0140_surface_secret_info(_rid)
+    if _info:
+        V0260_SURFACE_SECRET_CATALOG[_rid] = _info["name"]
+
+V0260_INSTANCE_SECRET_CATALOG = {}
+for _kind, _info in INSTANCE_MAP_DEFS.items():
+    for _idx, _title in enumerate(INSTANCE_SECRET_TITLES):
+        _key = f"instance:{_kind}:{_idx}"
+        V0260_INSTANCE_SECRET_CATALOG[_key] = f"{_title} — {_info['label']}"
+
+V0260_SECRET_CATALOG = dict(V0260_SURFACE_SECRET_CATALOG)
+V0260_SECRET_CATALOG.update(V0260_INSTANCE_SECRET_CATALOG)
+
+V0260_MUSEUM_CATALOGS = {
+    "fish": FISH_COLLECTION_CATALOG,
+    "minerals": MINERAL_COLLECTION_CATALOG,
+    "herbs": HERB_COLLECTION_CATALOG,
+    "wood": V0260_WOOD_CATALOG,
+    "bosses": BOSS_COLLECTION_CATALOG,
+    "sets": V0260_SET_CATALOG,
+    "legendary": V0260_LEGENDARY_ITEM_CATALOG,
+    "secrets": V0260_SECRET_CATALOG,
+}
+V0260_MUSEUM_LABELS = {
+    "fish": "Ryby",
+    "minerals": "Rudy i minerały",
+    "herbs": "Zioła",
+    "wood": "Drewno",
+    "bosses": "Bossowie",
+    "sets": "Kompletne sety",
+    "legendary": "Legendarne przedmioty",
+    "secrets": "Sekrety",
+}
+V0260_MUSEUM_ALIASES = {
+    "ryby": "fish", "ryba": "fish", "fish": "fish",
+    "rudy": "minerals", "mineral": "minerals", "mineraly": "minerals", "minerały": "minerals", "minerals": "minerals",
+    "ziola": "herbs", "zioła": "herbs", "herbs": "herbs",
+    "drewno": "wood", "wood": "wood",
+    "boss": "bosses", "bossowie": "bosses", "bosses": "bosses",
+    "set": "sets", "sety": "sets", "sets": "sets",
+    "legendy": "legendary", "legendarne": "legendary", "legendarny": "legendary", "legendary": "legendary",
+    "sekrety": "secrets", "sekret": "secrets", "secrets": "secrets",
+}
+
+V0260_MUSEUM_CATEGORY_TITLES = {
+    "fish": "Mistrz Wielkich Wód",
+    "minerals": "Mistrz Głębin",
+    "herbs": "Arcyzielarz Dziedzictwa",
+    "wood": "Strażnik Starych Borów",
+    "bosses": "Pogromca Wszystkich Bossów",
+    "sets": "Kustosz Zbrojowni",
+    "legendary": "Strażnik Legend",
+    "secrets": "Kartograf Końca Świata",
+}
+V0260_GLOBAL_MUSEUM_TITLES = (
+    (10, "Kolekcjoner Dusz"),
+    (25, "Badacz Dziedzictwa"),
+    (50, "Kustosz Soulbound"),
+    (75, "Mistrz Muzeum"),
+    (90, "Strażnik Dziedzictwa"),
+    (100, "Legenda Kompletnej Kolekcji"),
+)
+V0260_TITLE_BONUSES = {
+    "Mistrz Wielkich Wód": {"tool": "fishing", "percent": 2, "text": "+2% XP Wędkarstwa i Wędki"},
+    "Mistrz Głębin": {"tool": "mining", "percent": 2, "text": "+2% XP Górnictwa i Kilofa"},
+    "Arcyzielarz Dziedzictwa": {"tool": "herbalism", "percent": 2, "text": "+2% XP Zielarstwa i Sierpa"},
+    "Strażnik Starych Borów": {"tool": "woodcutting", "percent": 2, "text": "+2% XP Drwalstwa i Piły"},
+    "Legenda Kompletnej Kolekcji": {"tool": "all", "percent": 1, "text": "+1% XP wszystkich profesji i narzędzi"},
+}
+
+
+def v0260_museum_rank(percent):
+    percent = max(0, min(100, int(percent)))
+    if percent >= 100:
+        return "Legenda Muzeum"
+    if percent >= 90:
+        return "Strażnik Dziedzictwa"
+    if percent >= 75:
+        return "Mistrz Muzeum"
+    if percent >= 50:
+        return "Kustosz"
+    if percent >= 25:
+        return "Badacz Dziedzictwa"
+    if percent >= 10:
+        return "Kolekcjoner"
+    return "Nowicjusz"
+
+
+COMMAND_ALIASES.update({
+    "muzeum": "museum", "museum": "museum", "kolekcje": "museum",
+    "prestiz": "prestige", "prestiż": "prestige", "prestige": "prestige",
+})
+HELP_TOPIC_ALIASES.update({
+    "muzeum": "museum_v026", "museum": "museum_v026", "kolekcje": "museum_v026",
+    "prestiz": "prestige_v026", "prestiż": "prestige_v026", "prestige": "prestige_v026",
+})
+HELP_TOPICS["museum_v026"] = [
+    "Muzeum 2.0 śledzi osiem skończonych kolekcji: ryby, rudy/minerały, zioła, drewno, bossów, kompletne sety, legendarne przedmioty i sekrety.",
+    "muzeum / museum - podsumowanie wszystkich działów i globalny procent ukończenia kolekcji gry. Każdy z 8 działów waży równo po 12,5% wyniku.",
+    "muzeum ryby|rudy|ziola|drewno|bossowie|sety|legendarne|sekrety [strona] - szczegóły działu. Nieodkryte wpisy nie zdradzają nazw.",
+    "Set zalicza się dopiero po odkryciu wszystkich jego logicznych części. Sekrety nieskończonych instancji liczą skończone archetypy sekretów dla każdego typu instancji.",
+    "100% działu odblokowuje tytuł. Tytuły czterech profesji dają mały bonus +2% XP właściwej profesji i narzędzia tylko wtedy, gdy są aktywne.",
+]
+HELP_TOPICS["prestige_v026"] = [
+    "prestiz / prestiż / prestige - pokaż Prestiż Muzealny 0-1000, rangę, globalne ukończenie i aktywny bonus tytułu.",
+    "Prestiż Muzealny wynika wyłącznie z procentu ukończenia Muzeum: 100% = 1000 punktów. Nie resetuje postaci i nie zużywa kolekcji.",
+    "Większość tytułów jest prestiżowa. Mistrz Wielkich Wód, Mistrz Głębin, Arcyzielarz Dziedzictwa i Strażnik Starych Borów dają po +2% XP swojej profesji/narzędzia; Legenda Kompletnej Kolekcji daje +1% wszystkim profesjom i narzędziom.",
+]
+# Nadpisz dawną informację, że absolutnie wszystkie tytuły są kosmetyczne.
+HELP_TOPICS["tytuly"] = [
+    "tytuly / titles - lista odblokowanych tytułów wraz z informacją o ewentualnym bonusie.",
+    "tytul <numer lub nazwa> / title <number or name> - ustaw aktywny tytuł; tytul off wyłącza tytuł.",
+    "Większość tytułów jest czysto prestiżowa. Wybrane tytuły Muzeum mają mały bonus do XP profesji/narzędzia; tytuły nie zwiększają obrażeń ani obrony.",
+]
+
+# Łowca 1000 Bossów jest długoterminowym, prestiżowym progiem bez bonusu bojowego.
+_boss_tiers = list(ACHIEVEMENT_TRACKS["boss_kills"]["tiers"])
+if not any(int(req) == 1000 for req, _tier in _boss_tiers):
+    _boss_tiers.append((1000, "Mythic"))
+ACHIEVEMENT_TRACKS["boss_kills"]["tiers"] = tuple(_boss_tiers)
+ACHIEVEMENT_TITLE_REWARDS[("boss_kills", "Mythic")] = "Łowca 1000 Bossów"
 
 
 class Session:
@@ -33292,7 +33772,7 @@ class Session:
         room_id = self.character.room_id
         floor = mine_floor_number(room_id)
         approach_names = {
-            "cave_entrance": "Wejście do Kryształowej Jaskini — przed poziomem 1",
+            "cave_entrance": "Wejście do Kopalni Głębinowej — przed poziomem 1",
             "cave_tunnel": "Tunel Kryształowej Jaskini — droga do poziomu 1",
             "crystal_chamber": "Komnata Kryształowa — bezpośrednio przed poziomem 1",
         }
@@ -33415,6 +33895,9 @@ class Session:
     def profession_dungeon_access_error(self, target_room):
         dungeon, floor = profession_dungeon_floor(target_room)
         if not dungeon:
+            return None
+        if dungeon == "crystal_mine":
+            # v0.25.1: to już zwykłe Kryształowe Groty, nie loch Górnictwa.
             return None
 
         tool_type, item_id, tool_name = PROF_DUNGEON_TOOL[dungeon]
@@ -35902,6 +36385,11 @@ class Session:
             f"{room['name']}. Strefa: {room['zone']}."
         )
         await self.send(room["desc"])
+        profile_v025 = v0250_room_generator_profile(self.character.room_id)
+        await self.send(
+            f"Generator świata: {profile_v025['ambience']}; "
+            f"punkt otoczenia: {profile_v025['feature']}."
+        )
         identity_v015 = v0130_frontier_room_identity(self.character.room_id)
         if identity_v015:
             weather_v015 = v0150_weather_state(self.character.room_id)
@@ -36008,6 +36496,58 @@ class Session:
             )
 
         await self.show_exits()
+
+    async def show_global_generator_v025(self, args=""):
+        room_id = self.character.room_id
+        self.server.world.ensure_runtime_room(room_id)
+        room = ROOMS.get(room_id, {})
+        profile = v0250_room_generator_profile(room_id)
+        await self.send(
+            f"GLOBAL GENERATOR 2.0. Seed serwera: {V0250_WORLD_SEED_ID}. "
+            f"Lokacja: {room.get('name', room_id)}. Strefa: {room.get('zone', 'brak')}."
+        )
+        await self.send(
+            f"Profil lokacji: {profile['ambience']}; punkt otoczenia: {profile['feature']}; "
+            f"wariant {profile['variant']}."
+        )
+        floor = mine_floor_number(room_id)
+        if floor is not None:
+            mine_profile = v0250_mine_floor_profile(floor)
+            await self.send(
+                f"Generator Kopalni: poziom {floor}; {mine_profile['shape']}; "
+                f"{mine_profile['strata']}; {mine_profile['sign']}."
+            )
+        inst = v0100_instance_spec(room_id)
+        if inst:
+            dungeon_profile = v0250_instance_floor_profile(inst['kind'], inst['floor'])
+            await self.send(
+                f"Generator lochu: {dungeon_profile['layout']}; motyw: {dungeon_profile['motif']}."
+            )
+
+        applicable = []
+        if room_id in FISHING_ROOMS:
+            applicable.append(("fishing", "Wędkarstwo"))
+        if is_mining_room(room_id):
+            applicable.append(("mining", "Górnictwo"))
+        if room_id in WOODCUTTING_ROOMS:
+            applicable.append(("woodcutting", "Drwalstwo"))
+        if room_id in HERBALISM_ROOMS:
+            applicable.append(("herbalism", "Zielarstwo"))
+        active = []
+        for tool, label in applicable:
+            hotspot = v0250_gather_hotspot(room_id, tool)
+            if hotspot.get("label"):
+                active.append(f"{label}: {hotspot['label'].replace('Global Generator: ', '')}")
+        if active:
+            await self.send("Aktywne hotspoty: " + "; ".join(active) + ".")
+        elif applicable:
+            await self.send("Hotspoty profesji: obecnie brak lokalnego bonusu.")
+        else:
+            await self.send("Hotspoty profesji: ta lokacja nie jest miejscem zbieractwa.")
+        await self.send(
+            "Pozostałe generatory: proceduralne biomy, lochy i megalochy, dynamiczne questy, "
+            "bounty/kontrakty, wydarzenia świata, pogoda, sezony, sekrety, skarby oraz warianty rare/elite."
+        )
 
     async def show_exits(self, args=""):
         room = ROOMS[self.character.room_id]
@@ -36175,6 +36715,8 @@ class Session:
                 await self.advance_bounty("secret", surface["kind"], 1)
                 await self.advance_dynamic_world_quest_v015("secret", surface["kind"], 1)
                 self.server.db.add_collection_entry(self.account_id, "secrets_v015", self.character.room_id)
+                self.server.db.add_collection_entry(self.account_id, "museum_secrets_v026", self.character.room_id)
+                await self.v0260_check_museum_rewards(announce=True)
                 await self.send(
                     f"ODKRYWASZ SEKRET: {surface['name']}. Ukryte przejście zostało zapamiętane. "
                     "Wpisz sekret ponownie, aby wejść do środka."
@@ -36195,6 +36737,10 @@ class Session:
             return
         is_new = self.server.db.mark_instance_secret(self.account_id, kind, floor, name)
         if is_new:
+            idx = instance_secret_index(kind, floor)
+            if idx is not None:
+                self.server.db.add_collection_entry(self.account_id, "museum_secrets_v026", f"instance:{kind}:{idx}")
+                await self.v0260_check_museum_rewards(announce=True)
             await self.send(f"Odkrywasz sekret: {name}. Mapa instancji została zaktualizowana.")
         else:
             await self.send(f"Ten sekret jest już zapisany na mapie: {name}.")
@@ -36393,6 +36939,165 @@ class Session:
                     f"Boss żyje i blokuje drogę w górę: "
                     f"{MOB_TEMPLATES[boss.template_id]['name']}."
                 )
+
+    def v0260_title_bonus_rule(self):
+        if not self.character:
+            return None
+        return V0260_TITLE_BONUSES.get(str(self.character.active_title or ""))
+
+    def v0260_profession_xp_bonus_percent(self, profession, tool_type):
+        rule = self.v0260_title_bonus_rule()
+        if not rule:
+            return 0
+        wanted = str(rule.get("tool", ""))
+        if wanted == "all" or wanted == str(tool_type):
+            return max(0, int(rule.get("percent", 0) or 0))
+        return 0
+
+    def v0260_title_bonus_text(self, title_name=None):
+        name = str(title_name if title_name is not None else (self.character.active_title if self.character else "") or "")
+        rule = V0260_TITLE_BONUSES.get(name)
+        return str(rule.get("text", "")) if rule else ""
+
+    def v0260_completed_set_ids(self):
+        discovered_eq = self.server.db.collection_entry_ids(self.account_id, "equipment")
+        completed = set()
+        for set_id, piece_groups in V0260_SET_PIECE_GROUPS.items():
+            if piece_groups and all(set(ids).intersection(discovered_eq) for ids in piece_groups.values()):
+                completed.add(set_id)
+        return completed
+
+    def v0260_museum_found_ids(self, category):
+        category = str(category or "")
+        if category == "sets":
+            return self.v0260_completed_set_ids()
+        db_category = {
+            "fish": "fish", "minerals": "minerals", "herbs": "herbs",
+            "wood": "wood_v026", "bosses": "bosses",
+            "legendary": "legendary_v026", "secrets": "museum_secrets_v026",
+        }.get(category)
+        if not db_category:
+            return set()
+        return self.server.db.collection_entry_ids(self.account_id, db_category)
+
+    def v0260_museum_snapshot(self):
+        rows = []
+        total_found = 0
+        total_entries = 0
+        for category, catalog in V0260_MUSEUM_CATALOGS.items():
+            found = self.v0260_museum_found_ids(category)
+            count = len(set(catalog).intersection(found))
+            total = len(catalog)
+            pct = int(count * 100 / max(1, total))
+            rows.append((category, count, total, pct))
+            total_found += count
+            total_entries += total
+        # Każdy z ośmiu działów waży równo. Dzięki temu tysiące wariantów
+        # legendarnego EQ nie dominują procentu całej kolekcji.
+        overall = round(
+            sum((count * 100.0 / max(1, total)) for _cat, count, total, _pct in rows)
+            / max(1, len(rows)),
+            1,
+        )
+        prestige = int(round(overall * 10))
+        return rows, total_found, total_entries, overall, prestige
+
+    async def v0260_sync_museum(self):
+        # Importuje stare osiągnięcia do nowego Muzeum bez odbierania graczowi historii.
+        await self.sync_collection_from_inventory()
+        old_materials = self.server.db.collection_entry_ids(self.account_id, "materials")
+        for item_id in V0260_WOOD_CATALOG:
+            if item_id in old_materials:
+                self.server.db.add_collection_entry(self.account_id, "wood_v026", item_id)
+
+        historic_items = set()
+        for old_cat in ("equipment", "unique", "named"):
+            historic_items.update(self.server.db.collection_entry_ids(self.account_id, old_cat))
+        for item_id in V0260_LEGENDARY_ITEM_CATALOG:
+            if item_id in historic_items:
+                self.server.db.add_collection_entry(self.account_id, "legendary_v026", item_id)
+
+        for room_id in self.server.db.collection_entry_ids(self.account_id, "surface_secrets_v0140"):
+            if room_id in V0260_SURFACE_SECRET_CATALOG:
+                self.server.db.add_collection_entry(self.account_id, "museum_secrets_v026", room_id)
+        for kind in INSTANCE_MAP_DEFS:
+            for row in self.server.db.instance_secret_rows(self.account_id, kind):
+                idx = instance_secret_index(kind, int(row["floor"]))
+                if idx is not None:
+                    key = f"instance:{kind}:{idx}"
+                    if key in V0260_INSTANCE_SECRET_CATALOG:
+                        self.server.db.add_collection_entry(self.account_id, "museum_secrets_v026", key)
+
+    async def v0260_check_museum_rewards(self, announce=True):
+        rows, _found, _total, overall, _prestige = self.v0260_museum_snapshot()
+        for category, count, total, pct in rows:
+            if total <= 0 or count < total:
+                continue
+            title_name = V0260_MUSEUM_CATEGORY_TITLES[category]
+            aid = f"museum:{category}:complete"
+            if self.server.db.unlock_achievement(self.account_id, aid, f"Muzeum: {V0260_MUSEUM_LABELS[category]}", "Platinum"):
+                if announce:
+                    await self.send(f"Muzeum ukończone: {V0260_MUSEUM_LABELS[category]}, 100%.")
+            await self.unlock_title(f"museum:{category}", title_name, announce=announce)
+        for threshold, title_name in V0260_GLOBAL_MUSEUM_TITLES:
+            if overall >= threshold:
+                await self.unlock_title(f"museum:overall:{threshold}", title_name, announce=announce)
+        return overall
+
+    async def show_museum_v0260(self, args=""):
+        await self.v0260_sync_museum()
+        await self.v0260_check_museum_rewards(announce=True)
+        raw = str(args or "").strip()
+        norm = normalize_lookup_text(raw)
+        parts = raw.split()
+        if not norm or norm in ("status", "all", "wszystko"):
+            rows, found, total, overall, prestige = self.v0260_museum_snapshot()
+            await self.send(f"MUZEUM SOULBOUND — ukończenie kolekcji całej gry: {found} z {total}, {overall}%.")
+            await self.send(f"Prestiż Muzealny: {prestige} z 1000. Ranga: {v0260_museum_rank(overall)}.")
+            for category, count, cat_total, pct in rows:
+                await self.send(f"{V0260_MUSEUM_LABELS[category]}: {count} z {cat_total}, {pct}%.")
+            await self.send("Szczegóły: muzeum ryby, rudy, ziola, drewno, bossowie, sety, legendarne albo sekrety.")
+            return
+
+        key = normalize_lookup_text(parts[0]).replace(" ", "") if parts else norm.replace(" ", "")
+        category = V0260_MUSEUM_ALIASES.get(key)
+        if not category:
+            await self.send("Działy Muzeum: ryby, rudy, ziola, drewno, bossowie, sety, legendarne, sekrety.")
+            return
+        page = 1
+        if len(parts) > 1 and parts[-1].isdigit():
+            page = max(1, int(parts[-1]))
+        catalog = V0260_MUSEUM_CATALOGS[category]
+        found_ids = self.v0260_museum_found_ids(category)
+        rows = sorted(catalog.items(), key=lambda row: normalize_lookup_text(row[1]))
+        page_size = 40
+        pages = max(1, math.ceil(len(rows) / page_size))
+        page = min(page, pages)
+        found_count = len(set(catalog).intersection(found_ids))
+        pct = int(found_count * 100 / max(1, len(catalog)))
+        await self.send(f"MUZEUM — {V0260_MUSEUM_LABELS[category]}: {found_count} z {len(catalog)}, {pct}%. Strona {page} z {pages}.")
+        start = (page - 1) * page_size
+        for number, (entry_id, name) in enumerate(rows[start:start + page_size], start + 1):
+            if entry_id in found_ids:
+                await self.send(f"{number}. {name}. Odkryty.")
+            else:
+                await self.send(f"{number}. Nieodkryty wpis.")
+        if page < pages:
+            await self.send(f"Następna strona: muzeum {parts[0]} {page + 1}.")
+
+    async def show_prestige_v0260(self):
+        await self.v0260_sync_museum()
+        await self.v0260_check_museum_rewards(announce=True)
+        _rows, found, total, overall, prestige = self.v0260_museum_snapshot()
+        await self.send(f"PRESTIŻ MUZEALNY: {prestige} z 1000. Ranga: {v0260_museum_rank(overall)}.")
+        await self.send(f"Muzeum: {found} z {total} wpisów, {overall}% ukończenia.")
+        active = self.character.active_title or "brak"
+        await self.send(f"Aktywny tytuł: {active}.")
+        bonus = self.v0260_title_bonus_text()
+        if bonus:
+            await self.send(f"Aktywny bonus tytułu: {bonus}.")
+        else:
+            await self.send("Aktywny tytuł nie daje bonusu mechanicznego.")
 
     def loot_message_allowed(self, item_id):
         return loot_filter_allows(self.character.loot_filter, item_id)
@@ -36892,16 +37597,28 @@ class Session:
             collection_candidates.append(("unique", item_id))
         if item_id in EQUIPMENT_COLLECTION_CATALOG:
             collection_candidates.append(("equipment", item_id))
+        if base_resource_id in V0260_WOOD_CATALOG:
+            collection_candidates.append(("wood_v026", base_resource_id))
+        if item_id in V0260_LEGENDARY_ITEM_CATALOG:
+            collection_candidates.append(("legendary_v026", item_id))
 
+        museum_changed = False
         for category, entry_id in collection_candidates:
             is_new = self.server.db.add_collection_entry(
                 self.account_id, category, entry_id
             )
+            if is_new and category in ("wood_v026", "legendary_v026"):
+                museum_changed = True
             if is_new and announce:
-                await self.send(
-                    f"Nowa kolekcja: {COLLECTION_CATEGORY_LABELS[category]} — "
-                    f"{COLLECTION_CATALOGS[category][entry_id]}."
-                )
+                if category == "wood_v026":
+                    await self.send(f"Nowy wpis Muzeum: Drewno — {V0260_WOOD_CATALOG[entry_id]}.")
+                elif category == "legendary_v026":
+                    await self.send(f"Nowy wpis Muzeum: Legendarne przedmioty — {V0260_LEGENDARY_ITEM_CATALOG[entry_id]}.")
+                else:
+                    await self.send(
+                        f"Nowa kolekcja: {COLLECTION_CATEGORY_LABELS[category]} — "
+                        f"{COLLECTION_CATALOGS[category][entry_id]}."
+                    )
 
         if item_id in NAMED_LOOT_CATALOG:
             is_new = self.server.db.add_collection_entry(
@@ -36921,6 +37638,10 @@ class Session:
                 await self.send(
                     f"Nowy wpis Codexu: {SET_COLLECTION_CATALOG[set_entry]['name']}, Set."
                 )
+            museum_changed = museum_changed or bool(is_new)
+
+        if museum_changed and announce:
+            await self.v0260_check_museum_rewards(announce=True)
 
         # v0.8.40: quest item progress is spoken immediately after loot.
         # This deliberately ignores the loot speech filter: quest progress is
@@ -36987,6 +37708,7 @@ class Session:
                 await self.send(
                     f"Nowy wpis Codexu: {template['name']}, Boss."
                 )
+                await self.v0260_check_museum_rewards(announce=True)
             await self.advance_achievement("boss_kills", 1)
             self.server.db.add_lifetime_stat(self.account_id, "boss_kills", 1)
             if template.get("mini_boss"):
@@ -38079,6 +38801,9 @@ class Session:
         await self.send(
             f"Collection Codex: {discovered_total} z {catalog_total}, {collection_pct}%."
         )
+        await self.v0260_sync_museum()
+        _mrows, mfound, mtotal, mpct, mprestige = self.v0260_museum_snapshot()
+        await self.send(f"Muzeum: {mfound} z {mtotal}, {mpct}%. Prestiż {mprestige}/1000.")
         await self.send(f"Odblokowane achievementy: {achievement_count}.")
         if self.character.active_title:
             await self.send(f"Aktywny tytuł: {self.character.active_title}.")
@@ -38099,7 +38824,7 @@ class Session:
                 )
             else:
                 await self.send(
-                    f"{definition['name']}: {value}. Platinum ukończony."
+                    f"{definition['name']}: {value}. Najwyższy próg ukończony."
                 )
         if rows:
             await self.send("ODBLOKOWANE:")
@@ -38107,6 +38832,8 @@ class Session:
                 await self.send(f"{row['name']}, {row['tier']}.")
 
     async def show_titles(self):
+        await self.v0260_sync_museum()
+        await self.v0260_check_museum_rewards(announce=False)
         rows = list(self.server.db.title_rows(self.account_id))
         await self.send(f"TYTUŁY. Odblokowane: {len(rows)}.")
         await self.send(
@@ -38114,7 +38841,9 @@ class Session:
         )
         for number, row in enumerate(rows, 1):
             marker = " Aktywny." if row["title_name"] == self.character.active_title else ""
-            await self.send(f"{number}. {row['title_name']}.{marker}")
+            bonus = self.v0260_title_bonus_text(row["title_name"])
+            bonus_text = f" Bonus: {bonus}." if bonus else ""
+            await self.send(f"{number}. {row['title_name']}.{marker}{bonus_text}")
 
     async def set_title(self, args=""):
         raw = str(args or "").strip()
@@ -38146,6 +38875,9 @@ class Session:
         self.character.active_title = str(chosen["title_name"])
         self.server.db.save_character(self.character)
         await self.send(f"Aktywny tytuł: {self.character.active_title}.")
+        bonus = self.v0260_title_bonus_text()
+        if bonus:
+            await self.send(f"Bonus aktywnego tytułu: {bonus}.")
 
     def _collection_v2_count(self, item_ids, discovered_eq=None):
         if discovered_eq is None:
@@ -39430,9 +40162,9 @@ class Session:
             "field_grave_moss": [("Ogród Księżycowego Mchu, Stary Cmentarz", "Sierp", 20)],
             "field_void_thorn": [("Ogród Cierni Pustki, Ruiny Kultystów", "Sierp", 60)],
             "field_ironbark_root": [("Legowisko Bestii", "Piła", 50)],
-            "field_tomb_silver": [("Kamieniołom Nekropolii", "Kilof", 50)],
+            "field_tomb_silver": [("Kopalnia Głębinowa od poziomu 80", "Kilof", 80)],
             "field_blind_sewer_eel": [("Czarny Kanał pod Miastem Dusz", "Wędka", 30)],
-            "field_frost_crystal_ore": [("Lodowe Jaskinie", "Kilof", 90)],
+            "field_frost_crystal_ore": [("Kopalnia Głębinowa od poziomu 100", "Kilof", 100)],
         }
         if base_id in field_rows:
             return list(field_rows[base_id])
@@ -39504,19 +40236,7 @@ class Session:
         if base_id in ORE_RESOURCE_IDS:
             level = int(ORE_ATLAS_LEVELS.get(base_id, 1))
             floor_min = int(ORE_MINE_FLOOR_MINIMUMS.get(base_id, 1))
-            # Minerały WORLD_ORE występują wyłącznie w systemie głębinowym.
-            if base_id not in WORLD_ORE_IDS:
-                cave_names = ", ".join(
-                    ROOMS[r]["name"]
-                    for r in ("cave_entrance", "cave_tunnel", "crystal_chamber")
-                )
-                rows.append((cave_names, "Kilof", level))
             rows.append((f"Kopalnia Głębinowa od poziomu {floor_min}", "Kilof", level))
-            crystal_floor = max(1, (floor_min + 9) // 10)
-            rows.append((
-                f"Kopalnia Kryształów od poziomu {crystal_floor}",
-                "Kilof", level
-            ))
             return rows
 
         return rows
@@ -39725,12 +40445,7 @@ class Session:
             ):
                 level = ORE_ATLAS_LEVELS.get(item_id, 1)
                 floor_min = ORE_MINE_FLOOR_MINIMUMS.get(item_id, 1)
-                if item_id in WORLD_ORE_IDS:
-                    where = f"Głębinowa {floor_min}+"
-                else:
-                    where = f"Kryształowa Jaskinia; Głębinowa {floor_min}+"
-                crystal_floor = max(1, (int(floor_min) + 9) // 10)
-                where += f"; Kopalnia Kryształów {crystal_floor}+"
+                where = f"Kopalnia Głębinowa {floor_min}+"
                 entries.append(
                     f"{ITEMS[item_id]['name']} [Kilof {level}+; {where}]"
                 )
@@ -39744,7 +40459,7 @@ class Session:
                     + "."
                 )
             if "field_tomb_silver" in ITEMS:
-                await self.send("TERENOWE RUDY: Srebro Grobowe [Kilof 50+; Nekropolia]; Ruda Lodowego Kryształu [Kilof 90+; Lodowe Jaskinie].")
+                await self.send("RUDY SPECJALNE W TEJ SAMEJ KOPALNI: Srebro Grobowe [Kilof 80+; poziom 80+]; Ruda Lodowego Kryształu [Kilof 100+; poziom 100+].")
             gem_rows = []
             for definition in GEM_DEFINITIONS:
                 raw_id = f"raw_gem_{definition['key']}"
@@ -41083,7 +41798,7 @@ class Session:
         # Lochy profesyjne.
         dungeon, _floor = profession_dungeon_floor(room_id)
         profession_exits = {
-            "crystal_mine": ("crystal_chamber", "Kopalnia Kryształów"),
+            "crystal_mine": ("crystal_chamber", "Kryształowe Groty"),
             "sunken_grotto": ("sea_pier", "Zatopiona Grota"),
             "ancient_forest": ("deep_grove", "Pradawny Las"),
             "alchemy_garden": ("herbalist_hut", "Ogród Alchemika"),
@@ -42303,13 +43018,14 @@ class Session:
         result = []
         checks = (
             ("Wędkarstwo", FISHING_ROOMS),
-            ("Górnictwo", MINING_ROOMS),
             ("Drwalstwo", WOODCUTTING_ROOMS),
             ("Zielarstwo", HERBALISM_ROOMS),
         )
         for name, rooms in checks:
             if room_ids & set(rooms):
                 result.append(name)
+        if any(is_mining_room(room_id) for room_id in room_ids):
+            result.append("Górnictwo")
         if "alchemy_lab" in room_ids:
             result.append("Alchemia")
         if "crafting_workshop" in room_ids or "forge" in room_ids:
@@ -43370,6 +44086,10 @@ class Session:
         tool_xp = v0190_scaled_gain(tool_xp, tlevel_preview, "tool", 12)
         actual_prof_xp=max(0,int(round(actual_prof_xp*(1.0+_guild_pct/100.0))))
         tool_xp=max(0,int(round(tool_xp*(1.0+_guild_pct/100.0))))
+        _title_pct = self.v0260_profession_xp_bonus_percent(profession, tool_type)
+        if _title_pct:
+            actual_prof_xp=max(0,int(round(actual_prof_xp*(1.0+_title_pct/100.0))))
+            tool_xp=max(0,int(round(tool_xp*(1.0+_title_pct/100.0))))
         old_profession_rank = profession_rank(
             plevel, profession
         )
@@ -43988,6 +44708,10 @@ class Session:
         tool_xp = v0190_scaled_gain(tool_xp, tlevel_preview, "tool", 12)
         actual_profession_xp=max(0,int(round(actual_profession_xp*(1.0+_guild_pct/100.0))))
         tool_xp=max(0,int(round(tool_xp*(1.0+_guild_pct/100.0))))
+        _title_pct = self.v0260_profession_xp_bonus_percent(profession, tool_type)
+        if _title_pct:
+            actual_profession_xp=max(0,int(round(actual_profession_xp*(1.0+_title_pct/100.0))))
+            tool_xp=max(0,int(round(tool_xp*(1.0+_title_pct/100.0))))
         pxp = int(prow["xp"]) + actual_profession_xp
         actions = int(prow["actions"])
 
@@ -44318,10 +45042,10 @@ class Session:
                 "Krypta: prowadz krypta.",
                 "Wieża Astralna: prowadz wieza astralna.",
                 "Kopalnia Głębinowa: prowadz kopalnia glebinowa.",
+                "Kryształowe Groty (bez Górnictwa): prowadz krysztalowe groty.",
                 "Mityczna Krypta: prowadz mityczna krypta.",
                 "Mityczna Wieża Astralna: prowadz mityczna wieza astralna.",
                 "Twierdza Gigantów: prowadz twierdza gigantow.",
-                "Kopalnia Kryształów: prowadz kopalnia krysztalow.",
                 "Zatopiona Grota: prowadz zatopiona grota.",
                 "Pradawny Las: prowadz pradawny las.",
                 "Ogród Alchemika: prowadz ogrod alchemika.",
@@ -44795,7 +45519,7 @@ class Session:
             (r"(?:mityczna krypta|mythic crypt)\s*\d+", "Mityczna Krypta"),
             (r"(?:mityczna wieza astralna|mythic astral(?: tower)?)\s*\d+", "Mityczna Wieża Astralna"),
             (r"(?:twierdza|twierdza gigantow|giant fortress)\s*\d+", "Twierdza Gigantów"),
-            (r"(?:kopalnia krysztalow|crystal mine)\s*\d+", "Kopalnia Kryształów"),
+            (r"(?:kopalnia krysztalow|crystal mine)\s*\d+", "Kopalnia Głębinowa"),
             (r"(?:zatopiona grota|sunken grotto)\s*\d+", "Zatopiona Grota"),
             (r"(?:pradawny las|ancient forest)\s*\d+", "Pradawny Las"),
             (r"(?:ogrod alchemika|alchemy garden)\s*\d+", "Ogród Alchemika"),
@@ -44815,17 +45539,6 @@ class Session:
                 "minimum": MINE_MIN_FLOOR,
                 "maximum": None,
                 "target_room": mine_floor_id(MINE_MIN_FLOOR),
-            },
-            {
-                "prefix": "prof_crystal_mine_",
-                "label": (
-                    "Wejście do Kopalni Kryształów"
-                ),
-                "minimum": 1,
-                "maximum": None,
-                "target_room": profession_dungeon_room_id(
-                    "crystal_mine", 1
-                ),
             },
             {
                 "prefix": "crypt_floor_",
@@ -45496,7 +46209,7 @@ class Session:
                 self.auto_mining_loop()
             )
             await self.send(
-                "Auto-kopanie włączone. Jeśli jesteś w ręcznej części Kryształowej Jaskini, "
+                "Auto-kopanie włączone. Jeśli jesteś w części wejściowej Kopalni Głębinowej, "
                 "automat sam zejdzie przez Wejście, Tunel i Komnatę na poziom 1 Kopalni Głębinowej. "
                 "Potem po przebiciu każdej ściany sam schodzi na następny odblokowany poziom. "
                 "Wpisz kop off albo mine off, aby je zatrzymać."
@@ -46473,10 +47186,6 @@ class Session:
 
     def mining_loot(self, tool_level, room_id=None):
         room_id = room_id or self.character.room_id
-        if room_id == "necropolis_quarry" and int(tool_level) >= 80:
-            return "field_tomb_silver"
-        if room_id == "ice_cave_crystal_chamber" and int(tool_level) >= 100:
-            return "field_frost_crystal_ore"
         tool_level = max(1, int(tool_level))
         room_id = room_id or self.character.room_id
         floor = mine_floor_number(room_id)
@@ -46554,40 +47263,64 @@ class Session:
             if random.random() < mithril_chance:
                 return "__mithril_currency__"
 
+        # v0.25.1: wszystkie normalne rudy są w jednej Kopalni Głębinowej.
+        # Dwie dawne rudy terenowe zachowują wysoki próg i pozostają rzadsze,
+        # ale nie wymagają już osobnych lokacji.
+        special_deep_ores = []
+        if int(tool_level) >= 80 and int(floor) >= 80 and "field_tomb_silver" in ITEMS:
+            special_deep_ores.append("field_tomb_silver")
+        if int(tool_level) >= 100 and int(floor) >= 100 and "field_frost_crystal_ore" in ITEMS:
+            special_deep_ores.append("field_frost_crystal_ore")
+        if special_deep_ores and random.random() < 0.12:
+            return random.choice(special_deep_ores)
+
         world_ore_pool = unlocked_world_ore_ids(
             tool_level, floor
         )
         if world_ore_pool and random.random() < 0.45:
-            return random.choice(world_ore_pool)
+            # v0.25.3: rudy świata po odblokowaniu nigdy nie znikają na
+            # głębszych piętrach. Starsze pozostają dostępne, ale im dalej
+            # od ich progu, tym mniejszą mają wagę wobec świeżo odblokowanych.
+            world_weights = []
+            for item_id in world_ore_pool:
+                unlock = int(ORE_ATLAS_LEVELS.get(item_id, 1))
+                age = max(0, int(effective_depth) - unlock)
+                world_weights.append(0.35 + 8.0 / (1.0 + age / 20.0) ** 1.35)
+            return random.choices(world_ore_pool, weights=world_weights, k=1)[0]
 
-        if effective_depth < 10:
-            pool = ("stone_chunk", "copper_ore")
-        elif effective_depth < 25:
-            pool = ("copper_ore", "iron_ore")
-        elif effective_depth < 50:
-            pool = ("iron_ore", "silver_ore")
-        elif effective_depth < 100:
-            pool = ("silver_ore", "gold_ore")
-        elif effective_depth < 120:
-            pool = ("gold_ore", "cobalt_ore")
-        elif effective_depth < 140:
-            pool = ("cobalt_ore", "runestone_ore")
-        elif effective_depth < 160:
-            pool = ("runestone_ore", "dragonsteel_ore")
-        elif effective_depth < 180:
-            pool = ("dragonsteel_ore", "astral_ore")
-        elif effective_depth < 200:
-            pool = ("astral_ore", "void_ore")
-        else:
-            # v0.24.4: post-200 ore progression requires BOTH pickaxe level
-            # and equivalent deep-mine floor. A level 400 pickaxe on floor 200
-            # must not skip directly to ore_400_400.
-            effective_unlock = min(int(tool_level), int(floor), 400)
-            pool = unlocked_resource_pool(
-                ("void_ore", "eternium_ore"), ENDGAME_ORE_UNLOCKS, effective_unlock
-            )
+        # v0.25.3: kumulacyjna pula głównych rud Kopalni Głębinowej.
+        # Każda ruda odblokowana przez Kilof ORAZ odpowiednią głębokość
+        # pozostaje możliwa na wszystkich dalszych piętrach.
+        core_unlocks = [
+            (1, "stone_chunk"),
+            (1, "copper_ore"),
+            (10, "iron_ore"),
+            (25, "silver_ore"),
+            (50, "gold_ore"),
+        ]
+        core_unlocks.extend(
+            (int(required), item_id)
+            for required, item_id in ENDGAME_ORE_UNLOCKS
+        )
+        seen = set()
+        eligible_core = []
+        core_weights = []
+        for required, item_id in core_unlocks:
+            if item_id in seen:
+                continue
+            seen.add(item_id)
+            required_floor = int(ORE_MINE_FLOOR_MINIMUMS.get(item_id, required))
+            if int(tool_level) < int(required) or int(floor) < required_floor:
+                continue
+            age = max(0, int(effective_depth) - max(int(required), required_floor))
+            # Nowe rudy dominują, ale starsze nigdy nie dostają wagi 0.
+            weight = 0.25 + 10.0 / (1.0 + age / 22.0) ** 1.45
+            eligible_core.append(item_id)
+            core_weights.append(weight)
 
-        return random.choice(pool)
+        if not eligible_core:
+            return "stone_chunk"
+        return random.choices(eligible_core, weights=core_weights, k=1)[0]
 
 
     def mining_gem_drop(self, tool_level, profession_level, room_id=None):
@@ -47041,11 +47774,27 @@ class Session:
         feature = room.get("infinite_gather_feature") or {}
         event_feature = v0140_gather_event_bonus(self.character.room_id, tool_type=tool_type) if self.character else {"label":"", "quantity_bonus":0, "xp_mult":1.0}
         env_feature = v0150_environment_bonus(self.character.room_id, tool_type=tool_type) if self.character else {"label":"", "quantity_bonus":0, "xp_mult":1.0}
-        labels = [str(feature.get("label", "") or ""), str(event_feature.get("label", "") or ""), str(env_feature.get("label", "") or "")]
+        global_feature = v0250_gather_hotspot(self.character.room_id, tool_type=tool_type) if self.character else {"label":"", "quantity_bonus":0, "xp_mult":1.0}
+        labels = [
+            str(feature.get("label", "") or ""),
+            str(event_feature.get("label", "") or ""),
+            str(env_feature.get("label", "") or ""),
+            str(global_feature.get("label", "") or ""),
+        ]
         return {
             "label": " + ".join(label for label in labels if label),
-            "quantity_bonus": max(0, int(feature.get("quantity_bonus", 0) or 0)) + max(0, int(event_feature.get("quantity_bonus", 0) or 0)) + max(0, int(env_feature.get("quantity_bonus", 0) or 0)),
-            "xp_mult": max(1.0, float(feature.get("xp_mult", 1.0) or 1.0)) * max(1.0, float(event_feature.get("xp_mult", 1.0) or 1.0)) * max(1.0, float(env_feature.get("xp_mult", 1.0) or 1.0)),
+            "quantity_bonus": (
+                max(0, int(feature.get("quantity_bonus", 0) or 0))
+                + max(0, int(event_feature.get("quantity_bonus", 0) or 0))
+                + max(0, int(env_feature.get("quantity_bonus", 0) or 0))
+                + max(0, int(global_feature.get("quantity_bonus", 0) or 0))
+            ),
+            "xp_mult": (
+                max(1.0, float(feature.get("xp_mult", 1.0) or 1.0))
+                * max(1.0, float(event_feature.get("xp_mult", 1.0) or 1.0))
+                * max(1.0, float(env_feature.get("xp_mult", 1.0) or 1.0))
+                * max(1.0, float(global_feature.get("xp_mult", 1.0) or 1.0))
+            ),
         }
 
     async def announce_infinite_gather_feature(self, feature):
@@ -47230,7 +47979,7 @@ class Session:
             await self.send("Tutaj nie ma odpowiedniego złoża.")
             return
         if self.server.db.item_qty(self.account_id, "pickaxe") <= 0:
-            await self.send("Do Górnictwa potrzebujesz Kilofa. Kup go u Górnika Torena przy Wejściu do Kryształowej Jaskini.")
+            await self.send("Do Górnictwa potrzebujesz Kilofa. Kup go u Górnika Torena przy Wejściu do Kopalni Głębinowej.")
             return
         ready, remaining = self.profession_ready()
         if not ready:
@@ -51285,7 +52034,7 @@ class Session:
                 "przetopię je na stal potrzebną kuźni."
             )
 
-        if profession == "Wędkarstwo" or "borys" in name_cf or "neris" in name_cf:
+        if profession == "Wędkarstwo" or "borys" in name_cf or "mistrz wędkarstwa" in name_cf:
             core = "Mam dla ciebie zadanie związane z wodą i połowem. Pokaż, że potrafisz czytać łowisko, a nie tylko zarzucać wędkę."
         elif profession == "Górnictwo" or any(x in name_cf for x in ("górnik", "gornik", "kordan", "dagna")):
             core = "Mam dla ciebie robotę w skale. Liczy się pewna ręka, dobry urobek i żadnego marnowania żyły."
@@ -51827,22 +52576,21 @@ class Session:
         await self.send("Szczegóły: quest info <numer>.")
 
     def local_quest_ids(self):
-        local_npcs = [
-            npc
-            for npc in NPCS.values()
+        local_npcs = {
+            npc_id: npc
+            for npc_id, npc in NPCS.items()
             if npc["room"] == self.character.room_id
-        ]
+        }
         giver_names = {
             self.normalize_description_query(npc["name"])
-            for npc in local_npcs
+            for npc in local_npcs.values()
         }
 
         result = []
         for quest_id, quest in QUESTS.items():
-            giver = self.normalize_description_query(
-                quest.get("giver", "")
-            )
-            if giver and giver in giver_names:
+            giver = self.normalize_description_query(quest.get("giver", ""))
+            target_npc = str(quest.get("target_npc", "") or "")
+            if (giver and giver in giver_names) or (target_npc and target_npc in local_npcs):
                 result.append(quest_id)
         return result
 
@@ -51894,6 +52642,64 @@ class Session:
         if exact:
             return exact
         return partial
+
+    def quest_id_for_turnin_number(self, raw_number):
+        value = str(raw_number or "").strip()
+        if not value.isdigit():
+            return None, "Podaj numer questa, np. oddaj quest 1."
+        index = int(value) - 1
+        context = self.quest_list_context or {}
+        source = context.get("source")
+        if source in ("active", "npc"):
+            if source == "npc" and context.get("room_id") != self.character.room_id:
+                return None, "Lista NPC jest nieaktualna. Ponownie wpisz quest list <NPC>."
+            quest_ids = list(context.get("quest_ids") or ())
+            if index < 0 or index >= len(quest_ids):
+                return None, f"Nie ma questa numer {value} na ostatnio pokazanej liście."
+            quest_id = quest_ids[index]
+            row = self.server.db.quest(self.account_id, quest_id)
+            if not row or row["status"] != "active":
+                return None, (
+                    f"Quest {value}: {QUESTS.get(quest_id, {}).get('name', quest_id)} "
+                    "nie jest obecnie aktywny."
+                )
+            return quest_id, None
+        if source == "completed":
+            return None, "Ostatnia lista pokazuje ukończone questy. Wpisz questy, aby zobaczyć aktywne."
+        return self.active_quest_id_by_number(value)
+
+    async def turn_in_quest_id(self, quest_id):
+        if self.combat_mob_key:
+            await self.send("Nie możesz oddawać zadania podczas walki.")
+            return
+        quest = QUESTS.get(quest_id)
+        row = self.server.db.quest(self.account_id, quest_id)
+        if not quest or not row or row["status"] != "active":
+            await self.send("Ten quest nie jest obecnie aktywny.")
+            return
+        local_ids = set(self.local_quest_ids())
+        if quest_id not in local_ids:
+            npc_name = self.quest_turnin_npc_name_v098(quest)
+            await self.send(
+                f"Quest: {quest['name']}. Aby go oddać, idź do NPC: {npc_name}."
+            )
+            return
+        progress, ready = self.quest_progress_for_turnin(quest_id)
+        if not ready:
+            await self.send(
+                f"Zadanie nie jest jeszcze gotowe do oddania: {quest['name']}. "
+                f"Postęp {progress} z {quest['needed']}."
+            )
+            stock = self.quest_turnin_stock_status(quest_id)
+            if stock is not None:
+                have, needed, label = stock
+                missing = max(0, int(needed) - int(have))
+                await self.send(
+                    f"Do oddania masz {have} z {needed}: {label}."
+                    + (f" Brakuje {missing}." if missing else "")
+                )
+            return
+        await self.handle_quest_interaction(quest_id)
 
     async def turn_in_quest(self, query):
         if self.combat_mob_key:
@@ -52887,14 +53693,14 @@ class Session:
         """Top-level: oddaj quest <numer>, z zachowaniem starego oddaj <nazwa>."""
         raw = str(args or "").strip()
         value = self.strip_optional_quest_word(raw)
-        # Naturalna forma numeryczna odwołuje się zawsze do listy aktywnych questów,
-        # a nie do przypadkowego/starego kontekstu NPC lub historii.
+        # v0.25.0: numer oznacza pozycję z ostatnio pokazanej listy (questy lub
+        # quest list <NPC>). Bez kontekstu używamy globalnej listy aktywnych.
         if value.isdigit():
-            quest_id, error = self.active_quest_id_by_number(value)
+            quest_id, error = self.quest_id_for_turnin_number(value)
             if error:
                 await self.send(error)
                 return
-            await self.turn_in_quest(QUESTS[quest_id]["name"])
+            await self.turn_in_quest_id(quest_id)
             return
         # Stare formy nadal działają: oddaj, oddaj <nazwa questa>, oddaj zadanie.
         await self.turn_in_quest(raw)
@@ -52948,13 +53754,13 @@ class Session:
                 value = raw.split(maxsplit=1)[1] if " " in raw else ""
                 value = self.strip_optional_quest_word(value)
                 if value.isdigit():
-                    quest_id, error = self.active_quest_id_by_number(value)
+                    quest_id, error = self.quest_id_for_turnin_number(value)
                 else:
                     quest_id, error = self.quest_from_context(value)
                 if error:
                     await self.send(error)
                     return
-                await self.turn_in_quest(QUESTS[quest_id]["name"])
+                await self.turn_in_quest_id(quest_id)
                 return
 
         await self.send(
@@ -56958,7 +57764,7 @@ class Session:
                 "terraininfo", "location", "stats", "hp", "score", "money",
                 "soul", "skills", "skillnames", "inventory", "equipment",
                 "quests", "progress", "exploration", "achievements", "titles", "weather", "biomemastery", "worldquest", "artifacts", "biomesets", "factionstories", "season", "expeditions", "transport", "greatruins", "legendaryevents", "endless", "megadungeons", "gauntlets", "mythicbosses", "artifactupgrade", "endgamegoals",
-                "collection", "bosscodex", "leaderboards", "bounty", "legendarycontracts", "worldprojects", "worldproject", "fishrecords", "drophistory", "combatlog", "lifetime", "fishjournal", "say", "tell", "reply", "friends", "craftbox", "runes", "clan", "masteryachievements",
+                "collection", "museum", "prestige", "bosscodex", "leaderboards", "bounty", "legendarycontracts", "worldprojects", "worldproject", "fishrecords", "drophistory", "combatlog", "lifetime", "fishjournal", "say", "tell", "reply", "friends", "craftbox", "runes", "clan", "masteryachievements",
                 "partychat",
             }
             if self.guide_task_active() and (
@@ -57013,6 +57819,10 @@ class Session:
                 await self.set_title(args)
             elif command == "collection":
                 await self.show_collection(args)
+            elif command == "museum":
+                await self.show_museum_v0260(args)
+            elif command == "prestige":
+                await self.show_prestige_v0260()
             elif command == "bosscodex":
                 await self.show_boss_codex(args)
             elif command == "leaderboards":
@@ -57047,6 +57857,8 @@ class Session:
                 await self.show_cartography_v024()
             elif command == "worldevents":
                 await self.show_world_events()
+            elif command == "globalgenerator":
+                await self.show_global_generator_v025(args)
             elif command == "weather":
                 await self.show_weather_v015()
             elif command == "biomemastery":
