@@ -2,7 +2,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Soulbound v0.24.1 Quest Audit Hotfix
+Soulbound v0.24.2 Marcel River Fish Recipe Hotfix
 Wieloosobowy tekstowy MUD TCP/Telnet dla MUSHclienta/Mudleta.
 
 Najważniejsze zasady projektu:
@@ -30,7 +30,7 @@ import unicodedata
 from dataclasses import dataclass
 from typing import Optional
 
-VERSION = "0.24.1"
+VERSION = "0.24.3"
 
 # v0.8.72: właścicielskie komendy administracyjne. Nazwy kont podaje się
 # po stronie serwera, np. SOULBOUND_ADMIN_ACCOUNTS=Patryk. Nigdy nie są
@@ -8930,10 +8930,16 @@ def jewelry_socket_capacity(item):
 COOK_RECIPES = {
     "grilled_river_fish": {
         "name": "Pieczona ryba rzeczna", "stations": ("inn", "fish_market"),
-        "ingredients": {"small_fish": 2},
+        "ingredients": {},
+        "distinct_ingredient_pool": ("river_bleak", "dace", "stone_loach"),
+        "distinct_ingredient_count": 2,
+        "distinct_ingredient_label": "różne gatunki małych ryb rzecznych",
         "output": "grilled_river_fish", "quantity": 1,
         "min_tool_level": 1, "tool_xp": 8,
-        "desc": "Gotowanie level 1. 2 Małe ryby. Przywraca do 30 HP.",
+        "desc": (
+            "Gotowanie level 1. Wymaga 2 różnych gatunków małych ryb rzecznych, "
+            "np. Uklei Rzecznej, Jelca lub Śliza Kamiennego. Przywraca do 30 HP."
+        ),
     },
     "river_fish_stew": {
         "name": "Gulasz rzeczny", "stations": ("inn", "fish_market"),
@@ -10202,7 +10208,7 @@ HELP_TOPICS = {
         "Questy powtarzalne zachowują osobny czas odnowienia. Problem goblinów, Plaga Trolli i Cienie w Gaju odnawiają się co 60 minut.",
         "Kartograf Eren ma pięć niezależnych zleceń: mapa patroli, plan portowych magazynów, mapa drogi do kopalni, odkrycie 5 nowych sektorów i odkrycie 1 nowego sekretu. Każde odnawia się co 60 minut.",
         "Próba Rybaka u Borysa wymaga 30 dowolnych ryb złowionych po przyjęciu zadania.",
-        "Pierwsze zlecenie Kucharza Marcela wymaga 2 RÓŻNYCH gatunków ryb złowionych po przyjęciu; przedmiot Mała ryba nie jest wymagany.",
+        "Pierwsze zlecenie Kucharza Marcela wymaga ugotowania 1 Pieczonej ryby rzecznej po przyjęciu zadania. Przepis zużywa 2 RÓŻNE gatunki małych ryb rzecznych (Ukleja Rzeczna, Jelec lub Śliz Kamienny); przedmiot Mała ryba nie jest wymagany.",
         "Jeśli numer nie pasuje, najpierw ponownie wpisz quest, quest ukończone albo quest list <NPC>, aby ustawić właściwą listę kontekstową.",
     ],
     "elity": [
@@ -11619,15 +11625,15 @@ QUESTS = {
         "repeat_cooldown": BLACKSMITH_QUEST_COOLDOWN_SECONDS,
     },
     "marcel_cooking_order": {
-        "name": "Zlecenie Marcela I: Dwa Gatunki Ryb",
+        "name": "Zlecenie Marcela I: Pieczona Ryba Rzeczna",
         "giver": "Kucharz Marcel",
         "specialist_tool_type": "cooking",
         "min_tool_level": 1,
-        "kind": "collect_distinct_category", "target": "fish", "needed": 2,
+        "kind": "collect", "target": "grilled_river_fish", "needed": 1,
         "description": (
-            "Złów po przyjęciu zadania 2 różne gatunki ryb i przynieś "
-            "Kucharzowi Marcelowi po jednej sztuce każdego gatunku. "
-            "Przedmiot Mała ryba nie jest wymagany."
+            "Po przyjęciu zadania ugotuj 1 Pieczoną rybę rzeczną i przynieś ją "
+            "Kucharzowi Marcelowi. Sam przepis wymaga 2 różnych gatunków "
+            "małych ryb rzecznych; techniczny przedmiot Mała ryba nie jest wymagany."
         ),
         "reward_tool_type": "cooking",
         "reward_tool_xp": 450,
@@ -15289,8 +15295,8 @@ def build_mountain_crafting_expansion():
     # ========================================================
     marcel_base = QUESTS["marcel_cooking_order"]
     marcel_base.update({
-        "name": "Zlecenie Marcela I: Dwa Gatunki Ryb",
-        "track_craft_progress": False,
+        "name": "Zlecenie Marcela I: Pieczona Ryba Rzeczna",
+        "track_craft_progress": True,
         "requires_quest": None,
     })
 
@@ -22717,7 +22723,7 @@ QUESTS.update({
         "name":"Kartograf Eren: Znak poza mapą", "giver":"Kartograf Eren",
         "kind":"discover_secret", "target":"any", "needed":1,
         "description":"Po przyjęciu zadania otrzymasz Mapę Skarbu Rubieży. Użyj jej, dotrzyj do wskazanego sektora, odkryj 1 nowy sekret proceduralnego świata i wróć do Kartografa Erena.",
-        "accept_items":{"treasure_map_frontier":1}, "accept_items_always":True,
+        "accept_items":{"quest_map_eren_secret_marks":1}, "accept_items_always":True,
         "reward_stat_progress":55, "reward_silver":900, "reward_gold":0, "reward_mithril":0,
         "reward_items":{}, "repeatable":True, "repeat_cooldown":QUEST_REPEAT_COOLDOWN_SECONDS,
         "event_progress_only":True,
@@ -22948,7 +22954,7 @@ HELP_TOPICS["kartografia"] = [
     "kartografia / cartography pokazuje postęp sektorów, sekretów, mini-lochów, wydarzeń i Map Skarbów.",
     "Mapa Skarbu Rubieży zapisuje aktywny trop; mapa skarbu pokazuje wszystkie tropy.",
     "prowadz skarb prowadzi bezpośrednio do jedynego tropu. Przy kilku użyj prowadz skarb <numer>.",
-    "Znak poza mapą wydaje przy przyjęciu Mapę Skarbu Rubieży. Użyj mapy, a po dotarciu do sektora użyj sekret / secret. Questy kartograficzne zawsze startują 0/x i liczą nowe zdarzenia.",
+    "Znak poza mapą wydaje przy przyjęciu questową Mapę Erena. Wpisz użyj mapy, potem prowadz skarb, a po dotarciu do sektora sekret / secret. Po porzuceniu questa jego mapa i aktywny trop znikają. Questy kartograficzne zawsze startują 0/x i liczą nowe zdarzenia.",
     "Nawigacja do Erena: prowadz Eren. Lista jego zadań: quest list Eren.",
 ]
 HELP_TOPIC_ALIASES.update({
@@ -26860,6 +26866,14 @@ class Database:
         ).fetchall()
         return {str(row["entry_id"]) for row in rows}
 
+    def remove_collection_entry(self, account_id, category, entry_id):
+        cur = self.conn.execute(
+            "DELETE FROM collection_codex WHERE account_id=? AND category=? AND entry_id=?",
+            (account_id, category, entry_id),
+        )
+        self.conn.commit()
+        return cur.rowcount > 0
+
 
     # v0.21.0: trwała progresja po capie 400, World Tier i Endless Gauntlet.
     def ascension_row_v021(self, account_id, track):
@@ -29984,6 +29998,21 @@ ITEMS[V014_TREASURE_MAP_ITEM] = {
     "desc": (
         "Mapa prowadząca do jednego z deterministycznych sekretów proceduralnych rubieży. "
         "Użyj jej, aby zapisać trop; potem wpisz mapa skarbu."
+    ),
+}
+
+V0243_EREN_SECRET_MAP_ITEM = "quest_map_eren_secret_marks"
+ITEMS[V0243_EREN_SECRET_MAP_ITEM] = {
+    "name": "Mapa Erena: Znak poza mapą",
+    "type": "consumable",
+    "price": None,
+    "rarity": "quest",
+    "rarity_name": "Questowy",
+    "treasure_map": True,
+    "quest_treasure_map_for": "city_cartographer_secret_marks",
+    "desc": (
+        "Questowa mapa Kartografa Erena. Wpisz użyj mapy, aby zapisać trop, "
+        "a następnie prowadz skarb. Po porzuceniu questa mapa i jej aktywny trop znikają."
     ),
 }
 
@@ -37467,11 +37496,23 @@ class Session:
             await self.send("Nie masz tej mapy skarbu.")
             return False
         self.server.db.add_collection_entry(self.account_id, "treasure_targets_v0140", target)
+        item = ITEMS.get(item_id, {})
+        quest_id = item.get("quest_treasure_map_for")
+        if quest_id:
+            row = self.server.db.quest(self.account_id, quest_id)
+            if row and row["status"] == "active":
+                self.server.db.add_collection_entry(
+                    self.account_id, "quest_treasure_targets_v0243", f"{quest_id}|{target}"
+                )
+        # v0.24.3: samo użycie mapy przygotowuje bezpieczny korytarz nawigacyjny.
+        # Dzięki temu `prowadz skarb` nie wskazuje celu, do którego graf tras jeszcze nie istnieje.
+        route_ready = self.materialize_frontier_route_v024(target)
         info = v0140_surface_secret_info(target)
         zone = V013_FRONTIER_SPECS[info["kind"]]["zone"]
         await self.send(
-            f"Odczytujesz Mapę Skarbu Rubieży. Trop zapisany: {zone}, sektor {info['x']+1}-{info['y']+1}. "
-            "Po dotarciu użyj sekret / secret. Trop możesz ponownie sprawdzić przez mapa skarbu."
+            f"Odczytujesz {item.get('name', 'Mapę Skarbu Rubieży')}. Trop zapisany: {zone}, sektor {info['x']+1}-{info['y']+1}. "
+            + ("Trasa została przygotowana. Wpisz prowadz skarb. " if route_ready else "Wpisz mapa skarbu i spróbuj ponownie przygotować trasę. ")
+            + "Po dotarciu użyj sekret / secret."
         )
         return True
 
@@ -48092,11 +48133,27 @@ class Session:
     def recipe_station_text(self, stations):
         return " lub ".join(ROOMS[room_id]["name"] for room_id in stations)
 
+    def recipe_distinct_ingredient_choices(self, recipe):
+        pool = tuple(recipe.get("distinct_ingredient_pool") or ())
+        needed = max(0, int(recipe.get("distinct_ingredient_count", 0) or 0))
+        available = [
+            item_id for item_id in pool
+            if self.available_recipe_item(item_id) > 0
+        ]
+        return available[:needed]
+
     def recipe_ingredients_text(self, recipe):
-        return ", ".join(
+        parts = [
             f"{ITEMS[item_id]['name']} x{quantity}"
             for item_id, quantity in recipe["ingredients"].items()
-        )
+        ]
+        distinct_pool = tuple(recipe.get("distinct_ingredient_pool") or ())
+        distinct_count = max(0, int(recipe.get("distinct_ingredient_count", 0) or 0))
+        if distinct_pool and distinct_count:
+            label = recipe.get("distinct_ingredient_label", "różne składniki")
+            examples = ", ".join(ITEMS[item_id]["name"] for item_id in distinct_pool)
+            parts.append(f"{distinct_count} {label} ({examples})")
+        return ", ".join(parts)
 
     async def show_recipes(self, mode=""):
         mode = self.normalize_description_query(mode)
@@ -48279,6 +48336,16 @@ class Session:
                     f"{ITEMS[item_id]['name']}: masz {have}, potrzeba {quantity}"
                 )
 
+        distinct_pool = tuple(recipe.get("distinct_ingredient_pool") or ())
+        distinct_needed = max(0, int(recipe.get("distinct_ingredient_count", 0) or 0))
+        distinct_choices = self.recipe_distinct_ingredient_choices(recipe)
+        if distinct_pool and len(distinct_choices) < distinct_needed:
+            names = ", ".join(ITEMS[item_id]["name"] for item_id in distinct_pool)
+            missing.append(
+                f"różne gatunki: masz {len(distinct_choices)}, potrzeba {distinct_needed}; "
+                f"liczą się {names}"
+            )
+
         if missing:
             await self.send("Brakuje składników:")
             for line in missing:
@@ -48301,6 +48368,21 @@ class Session:
                     "Nie udało się pobrać składników. Receptura przerwana."
                 )
                 return False
+
+        if distinct_pool and distinct_needed:
+            distinct_choices = self.recipe_distinct_ingredient_choices(recipe)
+            if len(distinct_choices) < distinct_needed:
+                await self.send(
+                    "Nie masz już wymaganych 2 różnych gatunków małych ryb rzecznych. "
+                    "Receptura przerwana."
+                )
+                return False
+            for item_id in distinct_choices[:distinct_needed]:
+                if not self.consume_recipe_item(item_id, 1):
+                    await self.send(
+                        "Nie udało się pobrać różnych gatunków ryb. Receptura przerwana."
+                    )
+                    return False
 
         output_id = recipe["output"]
         quantity = int(recipe.get("quantity", 1))
@@ -49651,6 +49733,14 @@ class Session:
         q = self.normalize_description_query(query)
         if not q:
             return None, []
+
+        # v0.24.3: prosty skrót `użyj mapy`. Jeśli aktywny quest Erena
+        # ma własną mapę, używamy najpierw jej; zwykła Mapa Skarbu nadal działa poza questem.
+        if q in {"mapa", "mapy", "mape", "mapę", "mapa skarbu", "mape skarbu", "mapę skarbu", "treasure map"}:
+            quest_map_id = globals().get("V0243_EREN_SECRET_MAP_ITEM")
+            if quest_map_id and self.server.db.item_qty(self.account_id, quest_map_id) > 0:
+                return (quest_map_id, ITEMS[quest_map_id]), []
+            return (V014_TREASURE_MAP_ITEM, ITEMS[V014_TREASURE_MAP_ITEM]), []
 
         # Celowe krótkie aliasy wymagane dla szybkiej obsługi NVDA.
         direct_aliases = {
@@ -51130,6 +51220,10 @@ class Session:
                 await self.send(
                     f"Otrzymujesz przedmiot questowy: {ITEMS[item_id]['name']} x{missing}."
                 )
+        if any(ITEMS.get(iid, {}).get("quest_treasure_map_for") == quest_id for iid in (quest.get("accept_items") or {})):
+            self.server.db.add_collection_entry(
+                self.account_id, "quest_map_grants_v0243", quest_id
+            )
 
         await self.send(quest["description"])
         await self.announce_active_quest_progress(quest_id)
@@ -51262,6 +51356,49 @@ class Session:
         else:
             await self.send("Powtarzalność: nie.")
 
+    def cleanup_quest_map_artifacts_v0243(self, quest_id, *, allow_legacy_generic=False):
+        """Usuwa questowe mapy i tropy przypisane do porzucanego/kończonego questa."""
+        quest_map_ids = [
+            item_id for item_id, item in ITEMS.items()
+            if item.get("quest_treasure_map_for") == quest_id
+        ]
+        removed_items = 0
+        for item_id in quest_map_ids:
+            qty = self.server.db.item_qty(self.account_id, item_id)
+            if qty > 0:
+                self.server.db.remove_item(self.account_id, item_id, qty)
+                removed_items += qty
+
+        tracked = self.server.db.collection_entry_ids(
+            self.account_id, "quest_treasure_targets_v0243"
+        )
+        removed_targets = 0
+        prefix = f"{quest_id}|"
+        for entry in tuple(tracked):
+            if not entry.startswith(prefix):
+                continue
+            target = entry[len(prefix):]
+            self.server.db.remove_collection_entry(
+                self.account_id, "treasure_targets_v0140", target
+            )
+            self.server.db.remove_collection_entry(
+                self.account_id, "quest_treasure_targets_v0243", entry
+            )
+            removed_targets += 1
+
+        # Kompatybilność z aktywnym questem przyjętym jeszcze na v0.24.1/v0.24.2:
+        # tam Eren wydawał zwykłą Mapę Skarbu Rubieży. Usuwamy najwyżej jedną sztukę
+        # tylko wtedy, gdy konto nigdy nie dostało nowej mapy questowej v0.24.3.
+        grant_marker = f"{quest_id}"
+        has_new_grant = grant_marker in self.server.db.collection_entry_ids(
+            self.account_id, "quest_map_grants_v0243"
+        )
+        if allow_legacy_generic and not has_new_grant and quest_id == "city_cartographer_secret_marks":
+            if self.server.db.item_qty(self.account_id, V014_TREASURE_MAP_ITEM) > 0:
+                if self.server.db.remove_item(self.account_id, V014_TREASURE_MAP_ITEM, 1):
+                    removed_items += 1
+        return removed_items, removed_targets
+
     async def abandon_quest_from_context(self, value):
         if self.combat_mob_key:
             await self.send("Nie możesz porzucać questa podczas walki.")
@@ -51301,6 +51438,9 @@ class Session:
         if not self.server.db.abandon_quest(self.account_id, quest_id):
             await self.send("Nie udało się porzucić tego questa.")
             return
+        removed_maps, removed_trops = self.cleanup_quest_map_artifacts_v0243(
+            quest_id, allow_legacy_generic=True
+        )
         for item_id, qty in (quest.get("accept_items") or {}).items():
             have_qty = self.server.db.item_qty(self.account_id, item_id)
             if have_qty > 0:
@@ -51311,6 +51451,10 @@ class Session:
             f"Quest porzucony: {quest['name']}. Bieżący postęp został wyzerowany. "
             "Możesz później przyjąć to zadanie ponownie od właściwego NPC."
         )
+        if removed_maps or removed_trops:
+            await self.send(
+                f"Usunięto questowe mapy: {removed_maps}; anulowane tropy mapy: {removed_trops}."
+            )
         # Odśwież kontekst do listy aktywnych, aby numery po porzuceniu były czytelne.
         await self.show_active_quests()
 
@@ -52283,6 +52427,7 @@ class Session:
     async def complete_quest(self, quest_id):
         q = QUESTS[quest_id]
         self.server.db.complete_quest(self.account_id, quest_id)
+        self.cleanup_quest_map_artifacts_v0243(quest_id, allow_legacy_generic=False)
         self.server.db.add_lifetime_stat(self.account_id, "quests_completed", 1)
 
         # v0.9.8: NPC najpierw reaguje na oddanie, potem przekazuje nagrody.

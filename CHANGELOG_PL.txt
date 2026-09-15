@@ -1,3 +1,24 @@
+v0.24.3 — Treasure Map Quest Cleanup Hotfix
+=================================================
+- Dodano naturalny skrót `użyj mapy` / `uzyj mapy`. Jeśli gracz ma questową mapę Erena, skrót używa jej w pierwszej kolejności; poza questem działa ze zwykłą Mapą Skarbu Rubieży.
+- Użycie mapy od razu zapisuje trop i materializuje tylko bezpieczny korytarz proceduralnego biomu potrzebny dla `prowadz skarb`, dzięki czemu nawigacja nie dostaje martwego celu.
+- „Kartograf Eren: Znak poza mapą” wydaje teraz osobny przedmiot `Mapa Erena: Znak poza mapą`, a nie zwykłą mapę lootową.
+- Po porzuceniu tego questa automatycznie znikają jego niewykorzystane mapy oraz wszystkie aktywne tropy utworzone przez questową mapę. Zwykłe Mapy Skarbu zdobyte z lootu pozostają nietknięte.
+- Dla graczy z aktywnym questem przyjętym jeszcze na v0.24.1/v0.24.2 dodano zgodność: przy porzuceniu może zostać usunięta jedna stara zwykła Mapa Skarbu wydana przez dawną wersję questa.
+- Dodatkowe zabezpieczenie: po ukończeniu questa niewykorzystana questowa mapa Erena także jest czyszczona, aby nie zostawał martwy przedmiot.
+- Test v0.24.3 sprawdza faktyczne przyjęcie questa, wydanie mapy, `użyj mapy`, przygotowanie osiągalnej trasy, zapis tropu, porzucenie questa, usunięcie mapy/tropu oraz zachowanie niezależnej mapy lootowej.
+- Regresje v0.18-v0.22 oraz stress-testy v0.18-v0.21 przechodzą po hotfixie.
+
+v0.24.2 — Marcel River Fish Recipe Hotfix
+============================================
+- Poprawiono właściwy quest Kucharza Marcela: „Zlecenie Marcela I: Pieczona Ryba Rzeczna”.
+- Quest znowu wymaga GOTOWANIA po przyjęciu zadania: ugotuj 1 Pieczoną rybę rzeczną i przynieś ją Marcelowi.
+- Przepis „Pieczona ryba rzeczna” NIE wymaga już 2 sztuk technicznego przedmiotu „Mała ryba”.
+- Przepis wymaga 2 RÓŻNYCH gatunków małych ryb rzecznych. Dozwolone gatunki: Ukleja Rzeczna, Jelec, Śliz Kamienny.
+- Dwie sztuki tego samego gatunku nie spełniają przepisu.
+- Borys pozostaje bez zmian: Próba Rybaka = 30 dowolnych ryb po przyjęciu.
+- Test v0.24.2 sprawdza składniki przepisu, brak zaliczenia dwóch identycznych ryb, zużycie dwóch różnych gatunków, progres 1/1 i oddanie questa Marcelowi.
+
 v0.24.1 — Quest Audit Hotfix
 ==============================
 - Pełny audyt wszystkich 286 questów: 286/286 ma prawidłowy typ progresu, istniejącego NPC/cel/przedmiot, poprawne zależności i może osiągnąć stan GOTOWE DO ODDANIA.
