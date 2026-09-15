@@ -1,3 +1,21 @@
+v0.23.0 — Quest, Navigation, Shops & Dynamic XP Repair
+==========================================================
+- Naprawiono questy dostawcze/rozmowy: wszystkie aktywne deliver_npc/talk_npc/talk_class_teacher reagują na właściwego NPC, a nie tylko questy oznaczone dawniej jako starterowe.
+- Dodano `dostarcz <nazwa>` / `deliver <name>` do jawnego przekazywania przedmiotów questowych; `dostarcz mapa` działa u właściwego odbiorcy i jest przyjazne dla NVDA.
+- Quest Kartografa Erena „Nowa mapa patroli” jest powtarzalny co 60 minut. Każde ponowne przyjęcie zaczyna 0/1 i wydaje nowy questowy egzemplarz mapy.
+- Rozszerzono HELP sklepów. `help sklep`, `help sprzedaj`, `help kup` opisują listę, zakup, sprzedaż jednej sztuki i ochronę założonego/Character-Bound EQ.
+- Dodano pojedynczą sprzedaż EQ/przedmiotów: `sprzedaj helm` oraz analogiczne typy EQ. Przy kilku pasujących wolnych sztukach gra podaje numerowaną listę zamiast wybierać losowo. Założone EQ nie jest sprzedawane.
+- Naprawiono `prowadz`: BFS nie wywala się na wyjściach do lazy-generated lokacji. `prowadz kopalnia` / `walk mine` tworzy brakujący cel i prowadzi bezpośrednio na poziom 1 Kopalni Głębinowej, bez ręcznego ostatniego kroku.
+- Naprawiono dynamiczny EXP z walki. Usunięto błąd `max(1.0, multiplier)`, który blokował spadek EXP ze słabszych mobów.
+- Dynamiczny EXP korzysta teraz z bieżącej siły postaci i moba w skali 1-400. Silniejszy przeciwnik daje premię za ryzyko, a ten sam mob daje stopniowo mniej, gdy postać go przerasta.
+- Mnożnik dynamiczny obejmuje EXP statów, Soul XP i Class XP, nie walutę ani loot. Zakres wynosi x0.35-x2.25. `con <mob>` pokazuje mnożnik oraz siłę postaci/moba.
+- Dodano test v0.23.0 obejmujący wszystkie 280 definicji questów, quest mapy, sprzedaż pojedynczego EQ, nawigację do kopalni i dynamiczny EXP.
+- Uproszczono „Próbę Rybaka”: zamiast 30 dowolnych ryb trzeba złowić po przyjęciu 2 różne gatunki; ten sam gatunek nie liczy się drugi raz.
+- Kartograf Eren ma teraz 5 niezależnych questów odnawianych co 60 minut: 3 dostawy/mapy oraz 2 zadania terenowo-kartograficzne.
+- Audyt HELP naprawił martwe aliasy `class/classes`, `money/economy`, `odmiana/namecases` oraz stare aktywne opisy eksploracji, score i AoE.
+- Regresje v0.10.0-v0.22.0: 22/22 PASS, w tym stress-testy świata proceduralnego, generatora v0.19, megalochów i 500 rund Endless Gauntletu.
+- Historyczne testy v0.9.x z twardymi starymi licznikami lokacji/EQ/material tierów są oznaczone jako nieaktualne specyfikacje po późniejszych przebudowach i nie są traktowane jako regresje v0.23.
+
 v0.22.0 — World Projects, Legendary Contracts & Fishing Records 2.0
 ====================================================================
 - Dodano 4 wspólne, trwałe World Projects: Odbudowę Wielkiego Portu Dusz, Most Północnych Rubieży, Wieżę Wielkich Kartografów i Osadę Końca Świata.

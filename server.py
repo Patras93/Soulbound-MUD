@@ -2,7 +2,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Soulbound v0.15.0 World Life & Progression
+Soulbound v0.23.0 Quest, Navigation & Shop Repair
 Wieloosobowy tekstowy MUD TCP/Telnet dla MUSHclienta/Mudleta.
 
 Najważniejsze zasady projektu:
@@ -30,7 +30,7 @@ import unicodedata
 from dataclasses import dataclass
 from typing import Optional
 
-VERSION = "0.22.0"
+VERSION = "0.23.0"
 
 # v0.8.72: właścicielskie komendy administracyjne. Nazwy kont podaje się
 # po stronie serwera, np. SOULBOUND_ADMIN_ACCOUNTS=Patryk. Nigdy nie są
@@ -5603,17 +5603,14 @@ EXP_ZONE_AREA_ID = {
     "Las Szeptów": "whisper_forest",
 }
 
-# Mnożniki dotyczą wyłącznie EXP za zabijane moby: Soul XP oraz Class XP.
-# Stat Progress, waluta i loot pozostają bez zmian.
-DYNAMIC_KILL_XP_MULTIPLIERS = {
-    "trywialny": 0.30,
-    "łatwy": 0.60,
-    "korzystny": 0.85,
-    "odpowiedni": 1.00,
-    "trudny": 1.25,
-    "śmiertelny": 1.55,
-    "ekstremalny": 1.90,
-}
+# v0.23.0: EXP z walki nie jest stałą nagrodą z tabeli moba. Bazowa wartość
+# nadal opisuje rangę przeciwnika, ale końcowa wypłata EXP statów, Soul XP i
+# Class XP zależy płynnie od siły moba względem AKTUALNEJ siły postaci.
+# Dzięki temu słabsza postać dostaje premię za ryzyko, a po przerośnięciu
+# danego expowiska ta sama farma daje stopniowo mniej EXP. Waluta i loot nie
+# są przez ten mnożnik zmieniane.
+DYNAMIC_KILL_XP_MIN_MULTIPLIER = 0.35
+DYNAMIC_KILL_XP_MAX_MULTIPLIER = 2.25
 
 # v0.8.66 - teren i EXP są oceniane z faktycznej siły spawnów, a nie tylko
 # z ręcznej etykiety biomu. Kalibracja bazuje na krzywej Krypty 1-200:
@@ -5859,6 +5856,7 @@ COMMAND_ALIASES = {
     "rozmawiaj": "talk",
     "oddaj": "turnin", "zdaj": "turnin",
     "turnin": "turnin", "turn-in": "turnin",
+    "dostarcz": "deliver", "deliver": "deliver",
     "teachers": "teachers", "training": "teachers", "trainers": "teachers", "nauczyciele": "teachers", "trenerzy": "teachers",
     "zadania": "quests", "questy": "quests", "quest": "quests",
     "accept": "questaccept", "akceptuj": "questaccept", "przyjmij": "questaccept",
@@ -9156,7 +9154,7 @@ NPCS = {
     "fisher_tomas": {
         "name": "Rybak Borys", "room": "fish_market",
         "rank_profession": "Wędkarstwo",
-        "dialogue": "Jeśli naprawdę chcesz zostać wędkarzem, przynieś mi trzydzieści ryb.",
+        "dialogue": "Jeśli naprawdę chcesz zostać wędkarzem, złów dla mnie dwa różne gatunki ryb.",
         "quest": "fisher_30_fish",
     },
     "lumberjack_bran": {
@@ -10198,9 +10196,12 @@ HELP_TOPICS = {
         "Po każdym zdarzeniu zwiększającym licznik NVDA od razu czyta bieżący postęp. Ponowne quest / quest aktywne zawsze pobiera aktualny stan z bazy, bez starego cache.",
         "quest info <numer> — działa po quest, quest ukończone i quest list <NPC>; pokazuje NPC, opis, cel, aktualny postęp, wymagania, nagrody, powtarzalność i cooldown.",
         "quest oddaj <numer> / oddaj quest <numer> — oddaje wskazany aktywny quest, jeżeli cele są wykonane i jesteś u właściwego NPC; NPC komentuje wykonanie i osobiście przekazuje nagrodę.",
+        "dostarcz <nazwa> / deliver <nazwa> — jawnie przekazuje aktywny przedmiot dostawy właściwemu NPC, np. dostarcz mapa. Rozmowa z odbiorcą nadal również może automatycznie zakończyć dostawę.",
         "quest porzuć <numer> / quest abandon <numer> — porzuca aktywny quest z ostatniej listy. Bieżący postęp przepada, ale wcześniejsze ukończenia pozostają w historii; quest można później przyjąć ponownie.",
         "Kilka questów jednego NPC może być aktywnych równocześnie. Zlecenia profesyjne są niezależne, np. Mikstury Many i Mikstury Leczenia u Orina.",
         "Questy powtarzalne zachowują osobny czas odnowienia. Problem goblinów, Plaga Trolli i Cienie w Gaju odnawiają się co 60 minut.",
+        "Kartograf Eren ma pięć niezależnych zleceń: mapa patroli, plan portowych magazynów, mapa drogi do kopalni, odkrycie 5 nowych sektorów i odkrycie 1 nowego sekretu. Każde odnawia się co 60 minut.",
+        "Próba Rybaka u Borysa wymaga teraz 2 RÓŻNYCH gatunków złowionych po przyjęciu; ten sam gatunek nie może nabić obu punktów.",
         "Jeśli numer nie pasuje, najpierw ponownie wpisz quest, quest ukończone albo quest list <NPC>, aby ustawić właściwą listę kontekstową.",
     ],
     "elity": [
@@ -10436,8 +10437,9 @@ HELP_TOPICS = {
         "Ocena dla ciebie zmienia się automatycznie wraz z Biegłością aktywnych klas, Soul Levelem, statystykami i wyposażeniem.",
         "Gobliny, Bandyci, Las Szeptów, Kanały i podobne wczesne strefy należą do kategorii Początkujący.",
         "expowiska polecane pokazuje obszary, które są teraz Odpowiednie albo Trudne dla twojej postaci.",
-        "EXP za zabicie jest dynamiczne: słabe moby dają mniej Soul/Class XP, a trudne i śmiertelne więcej.",
-        "con <mob> pokazuje także aktualny mnożnik EXP dla danego przeciwnika.",
+        "EXP za zabicie jest dynamiczne 1-400: silniejszy od ciebie mob daje premię, a ten sam przeciwnik daje stopniowo mniej EXP, gdy twoja postać go przerasta.",
+        "Dynamiczny mnożnik obejmuje EXP statów, Soul XP i Class XP; nie zmienia waluty ani lootu. Minimalna wypłata to 35% bazowego EXP, maksymalna premia x2.25.",
+        "con <mob> pokazuje aktualny mnożnik EXP oraz porównanie siły postaci i przeciwnika.",
         "expowiska krypta pokazuje szczegółowy opis Krypty.",
         "expowiska trolle pokazuje szczegółowy opis Jaskini Trolli.",
         "expowiska giganci pokazuje szczegółowy opis Twierdzy Gigantów.",
@@ -11936,10 +11938,15 @@ QUESTS = {
         "repeat_cooldown": QUEST_REPEAT_COOLDOWN_SECONDS,
     },
     "fisher_30_fish": {
-        "name": "Próba Rybaka",
+        # ID pozostaje dla zgodności starych save'ów. v0.23: cel został
+        # uproszczony z 30 dowolnych ryb do 2 RÓŻNYCH gatunków.
+        "name": "Próba Rybaka: Dwa Gatunki",
         "giver": "Rybak Borys",
-        "kind": "collect_category", "target": "fish", "needed": 30,
-        "description": "Przynieś Rybakowi Borysowi 30 dowolnych ryb.",
+        "kind": "collect_distinct_category", "target": "fish", "needed": 2,
+        "description": (
+            "Złów po przyjęciu questa 2 różne gatunki ryb i przynieś "
+            "Borysowi po jednej sztuce każdego z zaliczonych gatunków."
+        ),
         "reward_profession": "Wędkarstwo",
         "reward_profession_xp": 1000,
         "reward_tool_type": "fishing",
@@ -18850,7 +18857,7 @@ def configure_v0856_help_refresh():
         "score / wynik to zwarte podsumowanie aktualnej postaci.",
         "Pokazuje rasę, główną i aktywne klasy, Biegłość każdej klasy, Soul Level/Tier, HP, Manę i sześć statystyk.",
         "Pokazuje też wspólny portfel konta, aktualną lokację/strefę oraz dynamiczną ocenę terenu.",
-        "Orientacyjna siła progresji 1-200 używana przez score i expowiska nie jest levelem postaci.",
+        "score i expowiska pokazują orientacyjną ocenę terenu w historycznej skali 1-200; con i dynamiczny EXP walki używają osobnej bieżącej skali siły 1-400. Żadna z tych ocen nie jest levelem postaci.",
     ]
     HELP_TOPICS["dusza"] = [
         "dusza pokazuje krótki stan Broni Duszy: Soul Level, Tier, Soul XP, moc i następny cel.",
@@ -18864,7 +18871,7 @@ def configure_v0856_help_refresh():
     HELP_TOPICS["aoe"] = [
         "Czary i skille obszarowe trafiają wszystkie dostępne cele zgodnie z opisem konkretnej umiejętności.",
         "Historyczne progi Soul zostały zastąpione Biegłością klasy: np. umiejętność z progu 40 wymaga Biegłości 40 danej klasy.",
-        "Skille 1, 10, 20, 30 i dalej co 10 aż do 200 odblokowuje Biegłość właściwej klasy.",
+        "Skille odblokowuje Biegłość właściwej klasy w całym zakresie 1-400: klasyczne progi pozostają do 200, a dalsze odblokowania są w zakresie 220-400.",
         "Pełne szczegóły konkretnego AoE: help <nazwa skilla> albo skill info <nazwa>.",
         "Akcja obszarowa działa w walce realtime i nie tworzy osobnej tury przeciwnika.",
     ]
@@ -18924,7 +18931,9 @@ def configure_v0856_help_categories():
         "party": "druzyny", "druzyna": "druzyny", "drużyna": "druzyny",
         "corpse": "zwloki", "zwloki": "zwloki", "zwłoki": "zwloki",
         "containers": "pojemniki", "container": "pojemniki",
-        "shops": "sklepy", "shop": "sklepy",
+        "shops": "sklepy", "shop": "sklepy", "sklep": "sklepy",
+        "sprzedaj": "sklepy", "sell": "sklepy", "kup": "sklepy", "buy": "sklepy",
+        "dostarcz": "questy", "deliver": "questy",
         "players": "gracze", "player": "gracze",
         "death": "smierc", "smierc": "smierc", "śmierć": "smierc",
         "races": "rasy", "race": "rasy",
@@ -19025,10 +19034,14 @@ def configure_v0856_help_categories():
         "Bank Dusz jest osobnym trwałym magazynem konta.",
     ]
     HELP_TOPICS["sklepy"] = [
-        "shop / sklep / list / lista pokazuje ofertę aktualnego sprzedawcy.",
+        "shop / sklep / list / lista pokazuje numerowaną ofertę aktualnego sprzedawcy.",
         "kup <nazwa> albo kup <numer> kupuje przedmiot; np. kup 9 lub kup 9 3.",
-        "sprzedaj <przedmiot> sprzedaje wolny, nieprzypisany przedmiot. Założone i Character-Bound są chronione.",
-        "Charyzma wpływa na rabat zakupowy.",
+        "sprzedaj <nazwa> sprzedaje dokładnie jedną wolną sztukę przedmiotu z inventory.",
+        "EQ możesz wskazać typem zamiast pełnej nazwy: sprzedaj helm, zbroja, rękawice, nogi, buty, pierścień, talizman albo naszyjnik.",
+        "Jeśli do typu lub fragmentu pasuje kilka twoich przedmiotów, gra pokazuje numerowaną listę. Potem wpisz sprzedaj <numer>; nic nie jest wybierane losowo.",
+        "Założone EQ i Character-Bound są zawsze chronione. Sprzedaż pojedyncza nigdy nie zdejmie ani nie sprzeda założonej sztuki.",
+        "sprzedaj inventory sprzedaje hurtowo dozwolone wolne przedmioty. Zasoby profesji sprzedaje się u właściwych fachowców i można używać ich istniejących komend skupu.",
+        "Charyzma wpływa na rabat zakupowy i rozwija się również przez sprzedaż.",
     ]
     HELP_TOPICS["gracze"] = [
         "who pokazuje graczy online.",
@@ -19137,6 +19150,7 @@ def configure_v0857_navigation_help():
         "trasa <cel> / route <cel> planuje drogę bez poruszania postacią. Podaje liczbę przejść, pierwszy krok, skróconą trasę, strefy i szacowany czas.",
         "trasa pełna <cel> czyta każdy krok; trasa krok powtarza najbliższy kierunek do ostatnio zaplanowanego celu.",
         "prowadz <cel> / walk <cel> uruchamia prowadzenie w tle. Do NPC dochodzi dokładnie; przy zwykłej lokacji ostatni krok wykonujesz sam.",
+        "Wyjątek dostępności: prowadz kopalnia / walk mine prowadzi bezpośrednio na pierwszy poziom Kopalni Głębinowej, bez ręcznego ostatniego kroku.",
         "prowadz status / walk status podaje cel, pozostałe przejścia i następny krok podczas marszu.",
         "prowadz stop / walk stop natychmiast przerywa automatyczny marsz i zostawia postać w ostatniej osiągniętej lokacji.",
         "Ręczny kierunek lub rozpoczęcie innej aktywności przerywa prowadzenie, aby uniknąć jednoczesnych ruchów.",
@@ -19418,7 +19432,7 @@ def rebalance_quest_rewards_v0862():
             # łagodny wpływ, aby powtarzalnych questów nie dało się nadużywać.
             if kind == "craft_set":
                 reward = int(reward * 2.5)
-            elif kind == "collect_category":
+            elif kind in ("collect_category", "collect_distinct_category"):
                 reward = int(reward * 1.25)
             elif kind == "collect":
                 reward = int(reward * 1.10)
@@ -19508,7 +19522,7 @@ def normalize_quest_progress_tracking_v0866():
             # zdarzeń od 0/x zamiast stanu magazynu sprzed przyjęcia.
             quest["track_resource_progress"] = True
             quest["event_progress_only"] = True
-        elif kind in ("collect_category", "kill", "craft_set",
+        elif kind in ("collect_category", "collect_distinct_category", "kill", "craft_set",
                       "deliver_npc", "talk_npc", "talk_class_teacher"):
             quest["event_progress_only"] = True
 
@@ -19553,7 +19567,7 @@ def ensure_profession_quest_currency_v098():
         kind = quest.get("kind")
         if kind == "craft_set":
             reward = int(reward * 2.5)
-        elif kind == "collect_category":
+        elif kind in ("collect_category", "collect_distinct_category"):
             reward = int(reward * 1.25)
         elif kind == "collect":
             reward = int(reward * 1.10)
@@ -22519,7 +22533,7 @@ NPCS.update({
     },
     "cartographer_eren": {
         "name":"Kartograf Eren", "room":"cartographer_house",
-        "dialogue":"Aktualizuję mapy na podstawie meldunków zwiadowców i podróżnych. Każda nowa droga zmienia obraz świata.",
+        "dialogue":"Aktualizuję mapy na podstawie meldunków zwiadowców i podróżnych. Mam kilka zleceń: dostawy map, pomiary rubieży i oznaczanie sekretów.",
         "quest":"city_cartographer_guard_delivery",
     },
     "watchman_dalen": {
@@ -22540,6 +22554,8 @@ ITEMS.update({
     "city_bread_crate": {"name":"Skrzynka świeżego chleba", "type":"quest", "price":None, "desc":"Poranna dostawa Piekarza Oda dla południowej bramy."},
     "city_harbor_repair_list": {"name":"Lista napraw kutrów", "type":"quest", "price":None, "desc":"Lista Szkutnika Marka dla Rybaka Borysa."},
     "city_patrol_map": {"name":"Zaktualizowana mapa patroli", "type":"quest", "price":None, "desc":"Nowa mapa Kartografa Erena dla Kapitana Arvena."},
+    "city_harbor_chart": {"name":"Mapa magazynów portowych", "type":"quest", "price":None, "desc":"Plan portowych magazynów przygotowany przez Kartografa Erena dla Magazyniera Berka."},
+    "city_mine_route_map": {"name":"Mapa trasy do Kopalni Głębinowej", "type":"quest", "price":None, "desc":"Mapa bezpiecznej drogi z Miasta Dusz do kopalni dla Górnika Torena."},
 })
 
 QUESTS.update({
@@ -22573,7 +22589,42 @@ QUESTS.update({
         "accept_items":{"city_patrol_map":1}, "needed":1,
         "description":"Zanieś Kapitanowi Arvenowi w Strażnicy Głównej zaktualizowaną mapę patroli.",
         "reward_stat_progress":30, "reward_silver":260, "reward_gold":0, "reward_mithril":0,
-        "reward_items":{}, "repeatable":False, "event_progress_only":True,
+        "reward_items":{}, "repeatable":True, "repeat_cooldown":QUEST_REPEAT_COOLDOWN_SECONDS,
+        "event_progress_only":True,
+    },
+    "city_cartographer_harbor_delivery": {
+        "name":"Kartograf Eren: Plan portowych magazynów", "giver":"Kartograf Eren", "kind":"deliver_npc",
+        "target_npc":"warehouse_master_berek", "quest_item":"city_harbor_chart",
+        "accept_items":{"city_harbor_chart":1}, "needed":1,
+        "description":"Dostarcz Magazynierowi Berkowi w Porcie mapę magazynów i nabrzeży przygotowaną przez Erena.",
+        "reward_stat_progress":25, "reward_silver":240, "reward_gold":0, "reward_mithril":0,
+        "reward_items":{}, "repeatable":True, "repeat_cooldown":QUEST_REPEAT_COOLDOWN_SECONDS,
+        "event_progress_only":True,
+    },
+    "city_cartographer_mine_delivery": {
+        "name":"Kartograf Eren: Droga do kopalni", "giver":"Kartograf Eren", "kind":"deliver_npc",
+        "target_npc":"miner_toren", "quest_item":"city_mine_route_map",
+        "accept_items":{"city_mine_route_map":1}, "needed":1,
+        "description":"Zanieś Górnikowi Torenowi przy wejściu do kopalni nową mapę bezpiecznej trasy z miasta.",
+        "reward_stat_progress":30, "reward_silver":280, "reward_gold":0, "reward_mithril":0,
+        "reward_items":{}, "repeatable":True, "repeat_cooldown":QUEST_REPEAT_COOLDOWN_SECONDS,
+        "event_progress_only":True,
+    },
+    "city_cartographer_frontier_survey": {
+        "name":"Kartograf Eren: Pięć nowych sektorów", "giver":"Kartograf Eren",
+        "kind":"explore_frontier", "target":"any", "needed":5,
+        "description":"Po przyjęciu zadania odkryj 5 nowych sektorów proceduralnych rubieży i wróć do Kartografa Erena.",
+        "reward_stat_progress":45, "reward_silver":650, "reward_gold":0, "reward_mithril":0,
+        "reward_items":{}, "repeatable":True, "repeat_cooldown":QUEST_REPEAT_COOLDOWN_SECONDS,
+        "event_progress_only":True,
+    },
+    "city_cartographer_secret_marks": {
+        "name":"Kartograf Eren: Znak poza mapą", "giver":"Kartograf Eren",
+        "kind":"discover_secret", "target":"any", "needed":1,
+        "description":"Po przyjęciu zadania odkryj 1 nowy sekret proceduralnego świata i wróć do Kartografa Erena.",
+        "reward_stat_progress":55, "reward_silver":900, "reward_gold":0, "reward_mithril":0,
+        "reward_items":{}, "repeatable":True, "repeat_cooldown":QUEST_REPEAT_COOLDOWN_SECONDS,
+        "event_progress_only":True,
     },
     "city_carpenter_timber": {
         "name":"Miejska robota: Drewno na rusztowania", "giver":"Cieśla Edric", "kind":"collect_category",
@@ -23238,7 +23289,7 @@ HELP_TOPIC_ALIASES.update({
 })
 
 HELP_TOPICS["eksploracja"] = [
-    "Eksploracja jest zapisywana osobno dla każdej postaci i obejmuje wszystkie 1272 lokacje świata.",
+    "Eksploracja jest zapisywana osobno dla każdej postaci. Obejmuje bieżący świat oraz lokacje generowane dynamicznie; nie używa starego sztywnego licznika 1272.",
     "mapa / map - procent bieżącego regionu i tylko odkryte nazwy lokacji; nieodkryte miejsca pozostają ukryte.",
     "mapa all / map all - procent wszystkich regionów oraz status nagrody za 100 procent.",
     "eksploracja / exploration - procent bieżącej strefy i całego świata; exploration all - lista większych stref.",
@@ -28038,6 +28089,33 @@ class Database:
             result[target_id] = max(0, int(row["progress"])) if row else 0
         return result
 
+    def distinct_category_items_v023(self, account_id, quest_id):
+        rows = self.conn.execute(
+            "SELECT target_id FROM quest_resource_progress_v0929 "
+            "WHERE account_id=? AND quest_id=? AND progress>0 ORDER BY target_id",
+            (account_id, quest_id),
+        ).fetchall()
+        return [str(row["target_id"]) for row in rows]
+
+    def mark_distinct_category_item_v023(self, account_id, quest_id, item_id, needed):
+        """Zapisz jeden NOWY gatunek/typ dla questa wymagającego różnych zasobów."""
+        needed = max(1, int(needed))
+        existing = self.distinct_category_items_v023(account_id, quest_id)
+        if item_id in existing or len(existing) >= needed:
+            return len(existing), False
+        self.conn.execute(
+            "INSERT INTO quest_resource_progress_v0929(account_id,quest_id,target_id,progress) "
+            "VALUES(?,?,?,1) ON CONFLICT(account_id,quest_id,target_id) DO NOTHING",
+            (account_id, quest_id, str(item_id)),
+        )
+        count = len(self.distinct_category_items_v023(account_id, quest_id))
+        self.conn.execute(
+            "UPDATE quests SET progress=? WHERE account_id=? AND quest_id=?",
+            (min(needed, count), account_id, quest_id),
+        )
+        self.conn.commit()
+        return min(needed, count), True
+
     def increment_resource_set_quest_v0929(self, account_id, item_id, amount=1):
         amount = max(0, int(amount))
         if amount <= 0:
@@ -31864,6 +31942,27 @@ HELP_TOPICS["fishingrecords_v022"]=[
     "rekordyryb <gatunek> pokazuje rekord masy i długości gatunku wraz z właścicielami rekordów.",
 ]
 HELP_TOPIC_ALIASES.update({"projekty swiata":"worldprojects_v022","world projects":"worldprojects_v022","legendarne kontrakty":"legendarycontracts_v022","legendary contracts":"legendarycontracts_v022","rekordy ryb":"fishingrecords_v022","fishing records":"fishingrecords_v022"})
+
+# v0.23: finalny audit HELP — naprawa aktywnych aliasów wskazujących na brakujące tematy.
+HELP_TOPICS["klasy"] = [
+    "Soulbound ma 12 klas. Nie ma levelu postaci; każda klasa rozwija własną Biegłość 1-400.",
+    "Klasa główna jest wybierana przy tworzeniu postaci. Dodatkowe aktywne klasy obsługuje multiclass / multiklasa.",
+    "multiclass pokazuje aktywne klasy i komendy dodawania/usuwania klas zgodnie z aktualnymi wymaganiami.",
+    "kodeksklasowy info pokazuje wszystkie klasy; kodeksklasowy <klasa> czyta nauczyciela, skille, wymagania Biegłości, koszt i status nauki.",
+    "skills pokazuje skille aktywnych klas, a help <nazwa skilla> daje szczegóły konkretnej umiejętności.",
+]
+HELP_TOPICS["odmiana_imienia"] = [
+    "odmiana / przypadki / declension pokazuje siedem zapisanych form imienia postaci.",
+    "Czytane są: mianownik, dopełniacz, celownik, biernik, narzędnik, miejscownik i wołacz.",
+    "Formy są ustawiane przy tworzeniu postaci. Dla starszych postaci bez pełnej odmiany gra bezpiecznie używa zapisanego imienia jako formy awaryjnej.",
+]
+HELP_TOPICS["pieniadze"] = [
+    "portfel / wallet / saldo pokazuje jedno wspólne saldo konta w czytelnych nominałach.",
+    "1000 srebra = 1 złoto. 1000000 złota = 1 mithril. Wewnętrznie to jedno saldo, a nominały są sposobem prezentacji i wpisywania kwot.",
+    "Portfel jest wspólny dla postaci na koncie; zmiana postaci nie tworzy osobnej waluty.",
+    "Zakupy korzystają z rabatu Charyzmy. Sprzedaż pojedyncza i skup profesyjny dopisują wartość do tego samego salda.",
+    "bank obsługuje wpłaty/wypłaty waluty i przedmiotów; wpisz bank bez argumentu, aby usłyszeć składnię.",
+]
 COMMAND_ALIASES.update({
     "projekty":"worldprojects","projektyswiata":"worldprojects","worldprojects":"worldprojects",
     "projekt":"worldproject","worldproject":"worldproject",
@@ -32629,6 +32728,8 @@ class Session:
         self.auto_herbalism_task = None
         self.guiding = False
         self.guide_choice_state = None
+        # v0.23.0: numerowany wybór przy niejednoznacznej sprzedaży pojedynczego EQ/przedmiotu.
+        self.sell_choice_state = None
         # v0.8.57: prowadzenie jest osobnym zadaniem asyncio. Dzięki temu
         # gracz może odpytać status, zaplanować trasę lub przerwać marsz
         # bez czekania na zakończenie całej automatycznej podróży.
@@ -41422,38 +41523,93 @@ class Session:
             return None
         return next((a for a in EXP_AREAS if a.get("id") == area_id), None)
 
-    def dynamic_kill_xp_profile(self, template, room_id=None):
-        """Skaluje Soul/Class XP do faktycznej siły konkretnego moba.
+    def combat_xp_power_v023(self):
+        """Płynna siła bojowa 1-400 używana WYŁĄCZNIE do EXP za walkę.
 
-        v0.8.66: nazwa strefy nie może już zawyżać/zaniżać EXP. Przeciwnik
-        endgame stojący w zwykłej Dziczy jest oceniany jako endgame, a słabszy
-        mob na wczesnym piętrze Krypty nie dostaje bonusu tylko dlatego, że
-        cały dungeon ma etykietę 'Trudny'.
+        Nie jest to Character Level. Łączy aktualną Biegłość, Soul Level,
+        realne statystyki bojowe oraz wymagania założonego EQ. Stary model
+        v0.8.66 był ograniczony do 200 i po rozszerzeniu progresji do 400
+        przestał rozróżniać późny endgame.
         """
-        power = self.character_progression_power()
-        target = v0866_mob_progression_power(template)
-        delta = int(target) - int(power)
-        if delta <= -40:
-            key = "trywialny"
-        elif delta <= -15:
-            key = "łatwy"
-        elif delta <= -5:
-            key = "korzystny"
-        elif delta <= 10:
-            key = "odpowiedni"
-        elif delta <= 30:
-            key = "trudny"
-        elif delta <= 60:
-            key = "śmiertelny"
+        active = self.active_class_names()
+        masteries = [self.class_mastery_level(name) for name in active] or [1]
+        highest_mastery = max(masteries)
+        average_mastery = sum(masteries) / len(masteries)
+
+        combat_stats = (
+            self.effective_strength(),
+            self.effective_dexterity(),
+            self.effective_constitution(),
+            self.effective_intelligence(),
+            self.effective_willpower(),
+        )
+        average_stats = min(400.0, sum(combat_stats) / len(combat_stats))
+
+        gear_tiers = []
+        for row in self.server.db.equipment(self.account_id):
+            item = ITEMS.get(row["item_id"], {})
+            required = int(item.get("required_mastery", 0) or 0)
+            if required > 0:
+                gear_tiers.append(required)
+        gear_power = min(400.0, (sum(gear_tiers) / len(gear_tiers)) if gear_tiers else 1.0)
+
+        # Wagi sumują się do 1.0 przy maksymalnej progresji 400.
+        score = (
+            highest_mastery * 0.45
+            + average_mastery * 0.15
+            + min(400.0, int(self.character.soul_level)) * 0.20
+            + average_stats * 0.10
+            + gear_power * 0.10
+        )
+        return max(1, min(400, int(round(score))))
+
+    def dynamic_kill_xp_profile(self, template, room_id=None):
+        """Płynnie skaluje CAŁY EXP z zabicia do relacji siły 1-400.
+
+        Mob silniejszy od postaci daje premię za ryzyko. Ten sam przeciwnik
+        daje coraz mniej, kiedy postać rozwija Biegłość, Soul Level, staty i
+        EQ. Spadek jest stopniowy, a nie progowy, więc nie ma nagłego urwania
+        nagrody po przekroczeniu jednego sztucznego progu.
+        """
+        power = self.combat_xp_power_v023()
+        target = v0190_mob_stage(template)
+        delta = float(target) - float(power)
+
+        if delta >= 0.0:
+            # +40 siły moba ~= x1.25, +80 ~= x1.50, +160 ~= x2.00.
+            multiplier = 1.0 + delta / 160.0
         else:
-            key = "ekstremalny"
+            # Farma przeciwnika słabszego o 30 ~= x0.90, 60 ~= x0.80,
+            # 120 ~= x0.60. Minimalnie zostaje 35% bazowego EXP.
+            multiplier = 1.0 + delta / 300.0
+        multiplier = max(
+            DYNAMIC_KILL_XP_MIN_MULTIPLIER,
+            min(DYNAMIC_KILL_XP_MAX_MULTIPLIER, multiplier),
+        )
+
+        if delta <= -120:
+            label = "trywialny"
+        elif delta <= -60:
+            label = "łatwy"
+        elif delta <= -20:
+            label = "korzystny"
+        elif delta <= 20:
+            label = "odpowiedni"
+        elif delta <= 60:
+            label = "trudny"
+        elif delta <= 120:
+            label = "śmiertelny"
+        else:
+            label = "ekstremalny"
+
         area = self.exp_area_for_room(room_id)
         return {
-            "label": key,
-            "multiplier": float(DYNAMIC_KILL_XP_MULTIPLIERS[key]),
+            "label": label,
+            "multiplier": float(multiplier),
             "area": area.get("name") if area else None,
-            "target": target,
-            "power": power,
+            "target": int(target),
+            "power": int(power),
+            "delta": int(round(delta)),
         }
 
     def find_exp_area(self, query):
@@ -43911,8 +44067,20 @@ class Session:
 
         while queue:
             room_id, path = queue.pop(0)
-            for direction, next_room in ROOMS[room_id]["exits"].items():
+            room = ROOMS.get(room_id)
+            if not room:
+                continue
+            for direction, next_room in room["exits"].items():
                 if next_room in visited:
+                    continue
+                # v0.23.0: świat ma wyjścia do pięter tworzonych dopiero na
+                # żądanie. Nie rozwijamy ich wszystkich podczas BFS (to mogłoby
+                # generować kolejne piętra bez końca). Materializujemy tylko
+                # brakujący pokój, jeżeli jest dokładnie szukanym celem; inne
+                # lazy-exity bezpiecznie pomijamy.
+                if next_room not in ROOMS and next_room == target_room:
+                    self.server.world.ensure_runtime_room(next_room)
+                if next_room not in ROOMS:
                     continue
                 new_path = path + [(direction, next_room)]
                 if next_room == target_room:
@@ -44339,6 +44507,14 @@ class Session:
             await self.send("Nie możesz użyć prowadzenia podczas walki.")
             return
 
+        # v0.23.0: część celów (Kopalnia Głębinowa i lochy profesyjne)
+        # jest tworzona dopiero na żądanie. W v0.22 alias był odrzucany,
+        # dopóki pokój nie istniał już w ROOMS, więc np. `prowadz kopalnia`
+        # mogło odpowiadać, że nie rozpoznaje celu.
+        shortcut = GUIDE_DESTINATION_ALIASES.get(normalized)
+        if shortcut and shortcut not in ROOMS:
+            self.server.world.ensure_runtime_room(shortcut)
+
         npc_match = self.find_guide_npc(q)
         target_is_npc = npc_match is not None
         target_npc = npc_match[1] if npc_match else None
@@ -44352,11 +44528,20 @@ class Session:
                 self.guide_exploration_safe_target(room_id)
                 for room_id in matches
             ))
-            if floor_label and matches:
+            # Bezpieczny cel po redukcji piętra także może być lazy-roomem.
+            for room_id in matches:
+                if room_id not in ROOMS:
+                    self.server.world.ensure_runtime_room(room_id)
+            if floor_label and matches and floor_label != "Kopalnia Głębinowa":
                 await self.send(
                     f"Prowadzenie nie prowadzi na piętra. "
                     f"Eksploracja wnętrza pozostaje ręczna. "
                     f"Prowadzę tylko przed wejście: {floor_label}."
+                )
+            elif floor_label == "Kopalnia Głębinowa" and matches:
+                await self.send(
+                    "Kopalnia: prowadzenie doprowadzi bezpośrednio na poziom 1. "
+                    "Głębsze poziomy pozostają do eksploracji ręcznej."
                 )
 
         if not matches:
@@ -44374,6 +44559,12 @@ class Session:
             return
 
         target = matches[0]
+        direct_mine_target = (
+            (not target_is_npc)
+            and target == mine_floor_id(MINE_MIN_FLOOR)
+            and mine_floor_number(target) == MINE_MIN_FLOOR
+        )
+        reach_exact_target = target_is_npc or direct_mine_target
 
         if target == self.character.room_id:
             if target_is_npc:
@@ -44396,10 +44587,9 @@ class Session:
         )
         self.guide_target_is_npc = target_is_npc
 
-        # Accessibility rule: for locations, guide stops one room before
-        # the destination. The player performs the final move manually.
-        # NPCs are the exception and are reached exactly.
-        if target_is_npc:
+        # Accessibility rule: zwykłe lokacje zachowują historyczny ostatni
+        # ręczny krok. NPC oraz v0.23 Kopalnia Głębinowa są osiągane dokładnie.
+        if reach_exact_target:
             path = full_path
             stop_room = target
             final_direction = None
@@ -44441,6 +44631,12 @@ class Session:
                 f"Prowadzę do NPC: {target_npc['name']}. "
                 f"Lokalizacja: {ROOMS[target]['name']}. "
                 f"Liczba przejść: {len(path)}."
+            )
+        elif direct_mine_target:
+            await self.send(
+                f"Prowadzę bezpośrednio do: {ROOMS[target]['name']}. "
+                f"Automatyczne przejścia: {len(path)}. "
+                "Nie musisz wykonywać ostatniego kroku ręcznie."
             )
         else:
             await self.send(
@@ -44562,7 +44758,12 @@ class Session:
                     f"Lokalizacja: {ROOMS[target]['name']}."
                 )
                 await self.look()
-            elif (not target_is_npc) and self.character.room_id == stop_room:
+            elif direct_mine_target and self.character.room_id == target:
+                await self.send(
+                    f"Dotarłeś bezpośrednio do: {ROOMS[target]['name']}."
+                )
+                await self.look()
+            elif (not reach_exact_target) and self.character.room_id == stop_room:
                 await self.send(
                     f"Jesteś przed lokalizacją: {ROOMS[target]['name']}. "
                     f"Ostatni krok wykonaj sam: {final_direction}."
@@ -46362,6 +46563,7 @@ class Session:
             item_id, resource_quest_quantity
         )
         await self.announce_collect_category_quest_progress("fish", resource_quest_quantity)
+        await self.announce_distinct_category_quest_progress("fish", species_id)
         await self.announce_collect_category_quest_progress(
             f"fish_{habitat}", resource_quest_quantity
         )
@@ -47237,7 +47439,98 @@ class Session:
             )
         return True
 
+    def logical_sell_equipment_slot(self, slot):
+        slot = str(slot or "").strip().lower()
+        if slot in ("ring1", "ring2"):
+            return "ring"
+        if slot in ("charm1", "charm2"):
+            return "charm"
+        return slot
+
+    def sell_slot_from_query(self, query):
+        q = normalize_lookup_text(query)
+        if not q:
+            return None
+        for alias, slot in EQUIPMENT_SLOT_ALIASES.items():
+            if normalize_lookup_text(alias) == q:
+                return self.logical_sell_equipment_slot(slot)
+        return None
+
+    def owned_single_sale_candidates(self, query):
+        """v0.23: rozwiązuje sprzedaż WYŁĄCZNIE wśród faktycznie posiadanych,
+        wolnych i sprzedawalnych przedmiotów. Dzięki temu `sprzedaj helm` nie
+        przeszukuje 26 tysięcy globalnych definicji EQ i nie wybiera losowo.
+        """
+        q = normalize_lookup_text(query)
+        if not q:
+            return []
+        requested_slot = self.sell_slot_from_query(query)
+        rows = []
+        for row in self.server.db.inventory(self.account_id):
+            item_id = row["item_id"]
+            item = ITEMS.get(item_id)
+            if not item or not self.generic_item_is_sellable(item_id, item):
+                continue
+            free_qty = max(
+                0, int(row["quantity"]) - self.equipped_quantity_of_item(item_id)
+            )
+            if free_qty <= 0:
+                continue
+            if requested_slot:
+                if item.get("type") != "armor":
+                    continue
+                if self.logical_sell_equipment_slot(item.get("slot")) != requested_slot:
+                    continue
+                rows.append((item_id, item, free_qty))
+                continue
+            item_name = normalize_lookup_text(item.get("name", ""))
+            item_key = normalize_lookup_text(item_id)
+            if q == item_name or q == item_key or q in item_name or q in item_key:
+                rows.append((item_id, item, free_qty))
+        return rows
+
+    async def ask_single_sale_choice(self, query, candidates):
+        self.sell_choice_state = {
+            "room_id": self.character.room_id,
+            "query": str(query or "").strip(),
+            "item_ids": [item_id for item_id, _item, _qty in candidates],
+        }
+        await self.send(
+            f"Pasuje kilka twoich wolnych przedmiotów: {len(candidates)}. "
+            "Wybierz numer komendą sprzedaj <numer>."
+        )
+        for number, (item_id, item, free_qty) in enumerate(candidates, 1):
+            values = self.generic_item_sale_value(item_id, item)
+            await self.send(
+                f"{number}. {item['name']}. Wolne sztuki: {free_qty}. "
+                f"Cena jednej: {currency_reading_text(values['silver'], values['gold'], values['mithril'])}."
+            )
+
     async def sell_command(self, query):
+        raw_query = str(query or "").strip()
+        # Numer po liście niejednoznacznych przedmiotów oznacza wybór z tej
+        # listy, a nie nazwę globalnego itemu. Lista działa tylko w tym samym sklepie.
+        if raw_query.isdigit() and self.sell_choice_state:
+            state = self.sell_choice_state
+            if state.get("room_id") != self.character.room_id:
+                self.sell_choice_state = None
+                await self.send("Poprzednia lista sprzedaży wygasła. Wskaż przedmiot ponownie.")
+                return
+            index = int(raw_query) - 1
+            item_ids = list(state.get("item_ids") or ())
+            if index < 0 or index >= len(item_ids):
+                await self.send(
+                    f"Nie ma pozycji {raw_query}. Wybierz numer od 1 do {len(item_ids)}."
+                )
+                return
+            item_id = item_ids[index]
+            self.sell_choice_state = None
+            await self.sell_resource(item_id)
+            return
+
+        if not raw_query.isdigit():
+            self.sell_choice_state = None
+
         target = self.normalize_bulk_sell_target(query)
 
         if target == "inventory":
@@ -47259,9 +47552,27 @@ class Session:
 
     async def sell_resource(self, query):
         copy_number, item_query = self.parse_numbered_inventory_query(query)
-        found = find_by_name(ITEMS, item_query)
+
+        # v0.23: dla zwykłej sprzedaży najpierw patrzymy na RZECZY GRACZA,
+        # nie na cały katalog ITEMS. Obsługuje to m.in. `sprzedaj helm` i
+        # fragment nazwy. Przy wielu trafieniach zawsze jest jawny wybór.
+        found = None
+        if copy_number is None:
+            owned_candidates = self.owned_single_sale_candidates(item_query)
+            if len(owned_candidates) == 1:
+                item_id, item, _free_qty = owned_candidates[0]
+                found = (item_id, item)
+            elif len(owned_candidates) > 1:
+                await self.ask_single_sale_choice(item_query, owned_candidates)
+                return
+
         if not found:
-            await self.send("Nie rozpoznaję takiego przedmiotu.")
+            found = find_by_name(ITEMS, item_query)
+        if not found:
+            await self.send(
+                "Nie rozpoznaję takiego przedmiotu albo pasuje kilka pozycji. "
+                "Dla EQ możesz użyć typu, np. sprzedaj helm."
+            )
             return
         item_id, item = found
 
@@ -49308,6 +49619,10 @@ class Session:
                 f"{number}. {item['name']}: " + currency_reading_text(price_coins, 0, 0) + "."
                 f"{discount_text}{extra} {item['desc']}{bound_text}"
             )
+        await self.send(
+            "Pomoc sklepu: help sklep. Sprzedaż jednej sztuki: "
+            "sprzedaj <nazwa> albo np. sprzedaj helm."
+        )
 
     async def buy(self, query):
         raw_query = (query or "").strip()
@@ -49644,6 +49959,12 @@ class Session:
             # użyty do fizycznego oddania, ale nie daje darmowego postępu.
             return min(int(row["progress"]), int(q["needed"]))
 
+        if q["kind"] == "collect_distinct_category":
+            return min(
+                len(self.server.db.distinct_category_items_v023(self.account_id, quest_id)),
+                int(q["needed"]),
+            )
+
         if q["kind"] == "collect_resource":
             return min(
                 int(row["progress"]),
@@ -49665,7 +49986,10 @@ class Session:
         if q["kind"] in ("deliver_npc", "talk_npc", "talk_class_teacher"):
             return min(int(row["progress"]), int(q.get("needed", 1)))
 
-        if q["kind"] in ("explore_frontier", "discover_secret", "mini_dungeon", "world_event"):
+        if q["kind"] in (
+            "explore_frontier", "discover_secret", "mini_dungeon",
+            "world_event", "legendary_rare", "world_boss",
+        ):
             return min(int(row["progress"]), int(q.get("needed", 1)))
 
         return None
@@ -49708,6 +50032,24 @@ class Session:
                     f"Quest aktywny: {q['name']}. "
                     f"Wykonano {progress} z {needed}: "
                     f"{item_name}."
+                )
+            return
+
+        if q.get("kind") == "collect_distinct_category":
+            species = self.server.db.distinct_category_items_v023(
+                self.account_id, quest_id
+            )
+            names = [ITEMS.get(i, {"name": i})["name"] for i in species]
+            if progress >= needed:
+                await self.send(
+                    f"Quest aktywny: {q['name']}. Różne gatunki {progress} z {needed}: "
+                    + ", ".join(names)
+                    + ". Cel wykonany; zachowaj po jednej sztuce zaliczonych gatunków do oddania."
+                )
+            else:
+                await self.send(
+                    f"Quest aktywny: {q['name']}. Różne gatunki {progress} z {needed}."
+                    + ((" Zaliczono: " + ", ".join(names) + ".") if names else "")
                 )
             return
 
@@ -49813,6 +50155,27 @@ class Session:
             )
             await self.announce_active_quest_progress(row["quest_id"])
 
+    async def announce_distinct_category_quest_progress(self, target, item_id):
+        if target == "fish":
+            distinct_id = base_fish_species_id(item_id)
+        else:
+            distinct_id = canonical_profession_resource_id(item_id)
+        for row in self.server.db.quest_rows(self.account_id):
+            if row["status"] != "active":
+                continue
+            q = QUESTS.get(row["quest_id"])
+            if (
+                not q
+                or q.get("kind") != "collect_distinct_category"
+                or q.get("target") != target
+            ):
+                continue
+            _progress, added = self.server.db.mark_distinct_category_item_v023(
+                self.account_id, row["quest_id"], distinct_id, q.get("needed", 1)
+            )
+            if added:
+                await self.announce_active_quest_progress(row["quest_id"])
+
     async def announce_craft_quest_progress(
         self, item_id, amount=1
     ):
@@ -49908,6 +50271,19 @@ class Session:
                 self.account_id, ids, container
             )
             return progress, progress >= needed and have >= needed
+
+        if q["kind"] == "collect_distinct_category":
+            distinct_ids = self.server.db.distinct_category_items_v023(
+                self.account_id, quest_id
+            )[:needed]
+            progress = min(len(distinct_ids), needed)
+            ready = progress >= needed
+            if ready:
+                for item_id in distinct_ids:
+                    if self.resource_quest_have(item_id) < 1:
+                        ready = False
+                        break
+            return progress, ready
 
         if q["kind"] == "collect_resource":
             gathered = min(
@@ -50217,7 +50593,7 @@ class Session:
             kind = quest.get("kind")
             if kind == "kill":
                 core = "Mam dla ciebie zadanie w terenie. Trzeba usunąć zagrożenie, zanim urośnie jeszcze bardziej."
-            elif kind in ("collect", "collect_resource", "collect_category"):
+            elif kind in ("collect", "collect_resource", "collect_category", "collect_distinct_category"):
                 core = "Potrzebuję konkretnych materiałów. Zdobądź je po przyjęciu tego zadania i przynieś mi pełną wymaganą ilość."
             elif kind == "craft_set":
                 core = "Potrzebuję kompletnego wykonania. Przygotuj cały wymagany zestaw i wróć z nim do mnie."
@@ -51035,6 +51411,36 @@ class Session:
                     await self.send(f"Quest aktywny: {q['name']}. Cel nie został jeszcze wykonany.")
                 return
 
+        elif q["kind"] == "collect_distinct_category":
+            category = self.quest_collect_category_info(q["target"])
+            if not category:
+                await self.send("Błąd konfiguracji zadania.")
+                return
+            _ids, container, label = category
+            distinct_ids = self.server.db.distinct_category_items_v023(
+                self.account_id, quest_id
+            )[: int(q["needed"])]
+            if len(distinct_ids) < int(q["needed"]):
+                await self.send(
+                    f"Quest aktywny: {q['name']}. Różne gatunki {len(distinct_ids)} z {q['needed']}."
+                )
+                return
+            missing = [iid for iid in distinct_ids if self.resource_quest_have(iid) < 1]
+            if missing:
+                await self.send(
+                    "Cel wykonany, ale brakuje do oddania: "
+                    + ", ".join(ITEMS.get(iid, {"name": iid})["name"] for iid in missing)
+                    + "."
+                )
+                return
+            for iid in distinct_ids:
+                ok = self.server.db.consume_items_across_storage_and_inventory(
+                    self.account_id, self.resource_quest_equivalent_ids(iid), 1, container
+                )
+                if not ok:
+                    await self.send("Nie udało się pobrać wymaganych ryb.")
+                    return
+
         elif q["kind"] == "collect_category":
             category = self.quest_collect_category_info(q["target"])
             if not category:
@@ -51273,18 +51679,104 @@ class Session:
                 f"Receptury tej specjalizacji: wpisz {recipes}."
             )
 
+    async def deliver_quest_item(self, args=""):
+        """v0.23: jawne dostarczanie przedmiotów questowych do właściwego NPC.
+
+        `dostarcz mapa` jest wygodnym, czytelnym dla NVDA odpowiednikiem
+        rozmowy z odbiorcą. Komenda nigdy nie oddaje losowego questa: przy
+        kilku dopasowaniach wypisuje możliwe dostawy i prosi o dokładniejszą
+        nazwę.
+        """
+        if self.combat_mob_key:
+            await self.send("Nie możesz dostarczać przedmiotów questowych podczas walki.")
+            return
+
+        raw = str(args or "").strip()
+        query = normalize_lookup_text(raw)
+        active = []
+        for row in self.server.db.quest_rows(self.account_id):
+            if row["status"] != "active":
+                continue
+            quest_id = row["quest_id"]
+            quest = QUESTS.get(quest_id)
+            if not quest or quest.get("kind") != "deliver_npc":
+                continue
+            item_id = quest.get("quest_item")
+            target_id = quest.get("target_npc")
+            target = NPCS.get(target_id, {})
+            item = ITEMS.get(item_id, {})
+            if not item_id or not target_id:
+                continue
+            item_name = str(item.get("name", item_id))
+            searchable = normalize_lookup_text(
+                " ".join((item_name, quest.get("name", ""), item_id))
+            )
+            # Naturalne skróty dla najczęstszych przesyłek, np. `dostarcz mapa`.
+            query_match = (not query) or query in searchable
+            if query and query in ("mapa", "mape", "mapę", "map"):
+                query_match = "map" in searchable
+            if query_match:
+                active.append((quest_id, quest, item_id, item_name, target_id, target))
+
+        if not active:
+            if raw:
+                await self.send(f"Nie masz aktywnej dostawy pasującej do: {raw}.")
+            else:
+                await self.send("Nie masz aktywnego questa z przedmiotem do dostarczenia.")
+            return
+
+        here = [entry for entry in active if entry[5].get("room") == self.character.room_id]
+        candidates = here or active
+        if len(candidates) > 1:
+            await self.send("Pasuje kilka aktywnych dostaw. Podaj dokładniejszą nazwę:")
+            for _qid, quest, _iid, item_name, _tid, target in candidates:
+                await self.send(f"{item_name} — {quest['name']} — odbiorca: {target.get('name', 'nieznany')}.")
+            return
+
+        quest_id, quest, item_id, item_name, target_id, target = candidates[0]
+        if target.get("room") != self.character.room_id:
+            await self.send(
+                f"Odbiorcy nie ma tutaj. Dostarcz {item_name} do: "
+                f"{target.get('name', 'właściwy NPC')}. Możesz użyć prowadz {target.get('name', '')}."
+            )
+            return
+
+        needed = max(1, int(quest.get("needed", 1)))
+        have = self.server.db.item_qty(self.account_id, item_id)
+        if have < needed:
+            await self.send(
+                f"Nie masz wymaganej przesyłki: {item_name}. "
+                "Jeśli zaginęła, porzuć quest i przyjmij go ponownie po jego dostępności."
+            )
+            return
+
+        self.server.db.remove_item(self.account_id, item_id, needed)
+        await self.send(f"Dostarczasz: {item_name}.")
+        self.server.db.set_quest_progress(
+            self.account_id, quest_id, int(quest.get("needed", 1))
+        )
+        await self.announce_active_quest_progress(quest_id)
+        await self.complete_quest(quest_id)
+
     async def process_starter_talk_quests(self, npc_id, npc):
-        """Kończy aktywne jednorazowe dostawy/rozmowy startowe u właściwego NPC."""
+        """v0.23: obsługuje KAŻDĄ aktywną dostawę/rozmowę u właściwego NPC.
+
+        Historyczna nazwa funkcji zostaje dla zgodności. W v0.22 tylko questy
+        oznaczone starter_quest były tu wykonywane, przez co miejskie dostawy
+        deliver_npc pozostawały na 0/1 mimo rozmowy z prawidłowym odbiorcą.
+        """
         completed_any = False
         for row in list(self.server.db.quest_rows(self.account_id)):
             if row["status"] != "active":
                 continue
             quest_id = row["quest_id"]
             quest = QUESTS.get(quest_id)
-            if not quest or not quest.get("starter_quest"):
+            if not quest:
                 continue
 
             kind = quest.get("kind")
+            if kind not in ("deliver_npc", "talk_npc", "talk_class_teacher"):
+                continue
             matches = False
             if kind in ("deliver_npc", "talk_npc"):
                 matches = quest.get("target_npc") == npc_id
@@ -51437,7 +51929,7 @@ class Session:
         kind = quest.get("kind")
         if kind == "kill":
             return "Dobra robota. Cel został wykonany i okolica jest dzięki temu bezpieczniejsza."
-        if kind in ("collect", "collect_resource", "collect_resource_set", "collect_category"):
+        if kind in ("collect", "collect_resource", "collect_resource_set", "collect_category", "collect_distinct_category"):
             return "Właśnie tego potrzebowałem. Wszystko się zgadza i zadanie uznaję za wykonane."
         if kind == "craft_set":
             return "Pełny zestaw jest gotowy. To wykonanie zasługuje na zapłatę."
@@ -54183,7 +54675,8 @@ class Session:
         xp_profile = self.dynamic_kill_xp_profile(template, room_id=self.character.room_id)
         await self.send(
             f"EXP przy obecnej sile postaci: {xp_profile['label']}, "
-            f"mnożnik x{xp_profile['multiplier']:.2f} dla Soul XP i Class XP."
+            f"mnożnik x{xp_profile['multiplier']:.2f} dla EXP statów, Soul XP i Class XP. "
+            f"Siła postaci {xp_profile['power']}/400, siła przeciwnika około {xp_profile['target']}/400."
         )
         await self.send(rating["advice"])
         await self.send(
@@ -54619,7 +55112,9 @@ class Session:
             # Duże nagrody nie są przycinane procentowym capem. Długość gry
             # kontrolują rosnące wymagania EXP oraz kosztów.
             xp_profile=session.dynamic_kill_xp_profile(template,room_id=session.character.room_id)
-            xp_mult=max(1.0,float(xp_profile["multiplier"])) * session.v0210_reward_multiplier()
+            # v0.23.0: NIE podbijamy mnożnika do minimum 1.0. To był błąd,
+            # przez który słabsze moby nigdy nie traciły EXP podczas farmy.
+            xp_mult=float(xp_profile["multiplier"]) * session.v0210_reward_multiplier()
             raw_stat_reward=min(V019_SAFE_INT,max(0,int(round(v0190_combat_reward(template,"stat")*xp_mult))))
             stat_rewards=[]
             for stat_name in session.character.STAT_PROGRESS_FIELDS:
@@ -54633,7 +55128,9 @@ class Session:
 
             class_xp_reward=min(V019_SAFE_INT,max(0,int(round(v0190_combat_reward(template,"class")*xp_mult))))
             await session.send_combat(
-                f"Generator v0.19: etap {v0190_mob_stage(template)}, ranga {v0190_mob_rank(template)}; "
+                f"Generator v0.19 + dynamiczny EXP v0.23: etap {v0190_mob_stage(template)}, "
+                f"ranga {v0190_mob_rank(template)}, siła postaci {xp_profile['power']}/400, "
+                f"siła moba {xp_profile['target']}/400, mnożnik x{xp_profile['multiplier']:.2f}; "
                 f"EXP statów {stat_reward_text}; Soul XP {soul_xp_reward}; Class XP {class_xp_reward}.",
                 detail="full",
             )
@@ -56096,6 +56593,8 @@ class Session:
                 await self.buy(args)
             elif command == "talk":
                 await self.talk(args)
+            elif command == "deliver":
+                await self.deliver_quest_item(args)
             elif command == "questaccept":
                 await self.accept_quest_command(args)
             elif command == "turnin":
