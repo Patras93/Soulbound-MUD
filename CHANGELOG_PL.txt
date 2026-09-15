@@ -1,3 +1,96 @@
+v0.22.0 — World Projects, Legendary Contracts & Fishing Records 2.0
+====================================================================
+- Dodano 4 wspólne, trwałe World Projects: Odbudowę Wielkiego Portu Dusz, Most Północnych Rubieży, Wieżę Wielkich Kartografów i Osadę Końca Świata.
+- Projekty wymagają dziesiątek tysięcy zwykłych surowców profesyjnych oraz dużych wpłat waluty liczonych w mithrilach. Rzadkie warianty ryb/drewna/ziół, surowe klejnoty i geody nie są automatycznie zużywane.
+- Każdy gracz ma zapisany osobisty wkład. Nagrodę projektu można odebrać tylko po globalnym ukończeniu i po osiągnięciu minimalnego osobistego wkładu; nagrody obejmują Class XP, Soul XP, walutę oraz tytuł.
+- Dodano Legendary Contracts: trzy bardzo długie oferty dla Biegłości 50+, obejmujące wielkie polowania, bossów, world bossów, łowienie, zbieranie i eksplorację.
+- Legendarny kontrakt po przyjęciu zawsze startuje 0/x i jest trwały. Nagrody korzystają z Global Progression & Reward Generatora v0.19 i mogą osiągać setki bilionów Class/Soul XP oraz ogromne kwoty waluty w endgame.
+- Dodano Fishing Records 2.0. Dziennik ryb zachowuje rekordy osobiste, a nowa tabela zapisuje rekord całego serwera długości i masy dla każdego gatunku oraz nazwę rekordzisty.
+- Najrzadszy okaz jest zapisywany osobno dla postaci i dla całego serwera; uwzględnia rzadkość gatunku oraz warianty Albinos, Złoty, Olbrzymi i Pradawny.
+- Nowe komendy: projekty/worldprojects, projekt/worldproject, legendarnekontrakty/legendarycontracts, rekordyryb/fishrecords.
+- Zachowano start 2 złota 30 srebra, PASSIVE WORLD, brak pułapek i cały generator v0.19.
+- Regresje v0.10.0-v0.22.0 oraz stress-testy v0.20/v0.21 przechodzą.
+
+v0.21.0 — Ascension, World Tiers & Mythic Progression
+========================================================
+- Dodano Rangi Wzniesienia klas po Biegłości 400, bez resetu. Nadmiar Class XP po osiągnięciu 400 jest zachowywany i rozwija osobny postęp 0-1000.
+- Dodano World Tiery 1-10 z osobistą trwałą konfiguracją. Trudność i nagrody rosną razem, a PASSIVE WORLD pozostaje globalne.
+- Rozszerzono artefakty z Tier 5 do Tier 10 bez RNG i bez niszczenia przedmiotu.
+- Dodano Kryształ Wzniesienia, Herb World Tieru i Wieczny Sigil jako materiały T6-T10.
+- Dodano 5 mitycznych 8-częściowych setów megalochów, razem 40 elementów EQ, z progami 2/4/6/8.
+- Dodano Endless Gauntlet generowany bez końca; co 5 rund rośnie pasmo do twardego capu 100. Boss zawsze jest pasywny i blokuje tylko następne przejście.
+- World Tier jest liczony per gracz: efektywna wytrzymałość przeciwnika jest realizowana przez osobiste skalowanie zadawanych obrażeń, dzięki czemu wspólne moby nie są mutowane dla innych graczy.
+- Zachowano generator v0.19, start 2 zł 30 srebra, brak pułapek i pełny PASSIVE WORLD.
+- Główne regresje v0.10.0-v0.21.0 oraz stress-test 500 rund Endless Gauntletu przechodzą.
+
+v0.20.0 — Endgame Challenges & Megadungeons
+=====================================================
+- Dodano 5 megalochów endgame o rozmiarach 120/160/200/240/280 pokoi, razem 1000 potencjalnych pokojów lazy-generated.
+- Każdy megaloch ma deterministyczne pętle i alternatywne trasy. Boss co 25 pokoi oraz boss finałowy używają generatora v0.19.
+- Boss megalochu blokuje tylko przejście do kolejnej sekcji i tylko do pierwszego trwałego zaliczenia progu przez postać.
+- Dodano 4 boss gauntlety po 5 rund, łącznie 20 nowych bossów; finały dają Pieczęcie Próby.
+- Dodano 15 biomowych Mitycznych World Bossów; aktywne są 2 na raz, rotacja co 6 godzin. Dają m.in. Esencję Mitycznego Bossa.
+- Dodano trwały rozwój pięciu artefaktów frakcyjnych do poziomu 5. Ulepszanie nie ma RNG/faila i wymaga materiałów endgame oraz skalowanej waluty.
+- Dodano długoterminowe cele endgame i tytuły za pierwsze ukończenia gauntletów.
+- PASSIVE WORLD pozostaje globalne. Brak pułapek, entry damage, auto damage i auto-aggro.
+- Nowe komendy: `megalochy`, `gauntlety`, `gauntlet <nazwa>`, `mitycznebossy`, `ulepszartefakt`, `celekonca`.
+- Regresje v0.10.0-v0.20.0 i stress-test 1000 pokoi megalochów przechodzą.
+
+v0.19.0 — Global Progression & Reward Generator
+=====================================================
+- Wprowadzono jeden centralny generator balansu dla całej gry: wymagania EXP, nagrody bojowe i questowe, trudność mobów, profesje/narzędzia oraz ekonomia korzystają ze spójnych krzywych progresji.
+- Przyjęto zasadę „wielkie liczby, wielkie wymagania”: późna gra może dawać miliony, miliardy i biliony EXP/waluty bez skracania progresji, ponieważ wymagania i koszty rosną jeszcze szybciej.
+- Zachowano przyjemny początek oraz dokładny startowy portfel nowej postaci: 2 złota i 30 srebra.
+- Kalibracja Krypty: około 10 000 Class XP za zwykłego moba na etapie/piętrze 20, około 250 000 za bossa piętra 20; próg Biegłości 20 wynosi 500 000 EXP. Boss piętra 10 daje około 75 000 Class XP.
+- Przebudowano krzywe wymagań Biegłości, Soul Levelu, skillów, profesji, narzędzi i statystyk. Statystyki pozostają bez twardego limitu i mogą rozwijać się daleko ponad 400.
+- Usunięto procentowe ograniczanie nagród względem bieżącego paska; mocniejsza zawartość zachowuje duże nagrody, a tempo kontrolują wymagania.
+- Handel surowcami, questy, bounty, ceny usług/EQ i EXP Charyzmy ze sprzedaży korzystają ze wspólnej filozofii skalowania ekonomii.
+- Generator mobów jest idempotentny: wielokrotne zastosowanie do tego samego template'u nie podbija ponownie HP, obrażeń ani nagród.
+- Dodano bezpieczny limit 64-bit dla ekstremalnych wartości waluty w SQLite.
+- PASSIVE WORLD pozostaje globalne; generator nie wprowadza auto-aggro, pułapek ani automatycznych obrażeń.
+- Pełne regresje v0.10.0–v0.19.0 przechodzą; stress-test v0.19.0 sprawdza 14 130 template'ów mobów i pełne krzywe progresji.
+
+v0.18.0 — Seasons, Expeditions & Endgame
+========================================
+- Dodano 4 sezony świata: Wiosna, Lato, Jesień, Zima. Każdy trwa 6 godzin i daje wyłącznie małe bonusy ekologiczne; niczego nie blokuje.
+- Dodano 5 proceduralnych archipelagów ekspedycyjnych po 16 sektorów: Koralowy, Burz, Mglisty, Szronu i Czarnego Przypływu.
+- Dodano transport między odkrytymi hubami. Nie można przeskoczyć do nieodkrytej osady.
+- Dodano rzadkie Wielkie Ruiny: 20-40 pokoi, pętle, alternatywne przejścia i finałowy pasywny strażnik.
+- Dodano 2 Legendary World Events rotujące co 4 godziny. Profesyjne eventy wzmacniają tylko właściwe narzędzie; Przebudzenie Tytana dodaje pasywnego world bossa.
+- Dodano Rubież Końca: endless endgame generowany sektor po sektorze bez sztywnego końca, ale z twardym capem skalowania mocy.
+- PASSIVE WORLD pozostaje globalne. Brak pułapek, entry damage i auto damage.
+- Nowe komendy: sezon, ekspedycje, ekspedycja, transport, wielkieruiny, legendarnewydarzenia, rubiezkonca.
+
+v0.17.0 — Artefakty, Mechaniki Bossów i Historie Frakcji
+=========================================================
+- Dodano 5 unikalnych artefaktów frakcyjnych. Każdy jest nagrodą finałową nowej historii frakcji i zajmuje slot talizmanu.
+- Artefakty mają realne, umiarkowane premie do HP/Many, obrażeń lub obrony i są widoczne w Codexie/kolekcji.
+- Dodano 15 biomowych zestawów EQ po 6 części, łącznie 90 nowych elementów.
+- Zestawy biomowe używają istniejącego systemu progów 2/4/6: HP/Mana, obrażenia, obrona.
+- Legendary rare gwarantuje co najmniej 1 część zestawu swojego biomu, a world boss co najmniej 2.
+- Wszystkie 15 biomowych world bossów i 15 legendary rare dostało mechaniki specjalne oraz fazy przy 75/50/25% HP.
+- PASSIVE WORLD pozostaje bez zmian: boss/rare nigdy nie rozpoczyna walki sam.
+- Każda z 5 frakcji otrzymała nową 6-etapową historię. Łącznie dodano 30 nowych questów frakcyjnych.
+- Każdy etap zaczyna 0/x i liczy wyłącznie zdarzenia po przyjęciu. Finał historii daje artefakt danej frakcji.
+- Nowe komendy: artefakty, setybiomowe, historiefrakcji.
+- Bez pułapek, entry damage i auto damage.
+
+v0.16.0 — Frakcje, Wędrowcy i World Bossy
+================================================
+- Dodano 5 trwałych frakcji świata: Liga Kartografów, Bractwo Wód, Kamienny Związek, Krąg Zielonego Szlaku i Straż Rubieży.
+- Reputacja rośnie naturalnie przez eksplorację, Wędkarstwo, Górnictwo, Zielarstwo/Drwalstwo oraz wielkie łowy. Nie jest wymagana do głównej progresji.
+- Progi reputacji 25/75/150/300 dają tytuły lub małe jednorazowe nagrody kolekcjonerskie.
+- Dodano 5 małych stałych osad/posterunków po 3 pokoje, łącznie 15 nowych stałych lokacji przy granicach proceduralnych biomów. Stały rdzeń ma teraz 922 pokoje, a proceduralne 2160 sektorów nadal stanowi około 70,1% potencjalnej mapy powierzchniowej.
+- Dodano 5 wędrujących NPC zmieniających punkt trasy co 15 minut. Komenda `podroznicy` pokazuje ich bieżące położenie.
+- Co 2 godziny rotują 3 aktywne world bossy. Co godzinę rotuje 5 legendary rare.
+- Przygotowano 15 biomowych template'ów world bossów i 15 biomowych template'ów legendary rare.
+- World bossy i legendary rare zachowują PASSIVE WORLD: nigdy nie rozpoczynają walki automatycznie. Legendary rare mogą wędrować; world boss pozostaje w swoim sektorze.
+- Pokonany tymczasowy world boss/legendary rare nie odradza się ponownie w tym samym oknie rotacji.
+- Herold Rubieży Iren oferuje sześcioczęściowy łańcuch: 25 nowych sektorów, 4 eventy, 4 sekrety, 3 mini-lochy, 2 legendary rare i 1 world boss. Każdy etap zaczyna od 0/x po przyjęciu.
+- Dodano komendy: `frakcje`, `worldbossy`, `legendy`, `podroznicy` oraz odpowiednie tematy HELP.
+- Brak pułapek, entry damage i auto damage.
+- Testy v0.10.0–v0.16.0 przechodzą. Stress-test sprawdził pełne 2160 sektorów.
+
 v0.14.0 — Dynamiczne Wydarzenia Świata i Sekrety
 ====================================================
 - Dodano pięć równoległych typów wydarzeń świata rotujących co 30 minut: rare hunt, ławica ryb, rozkwit ziół, bogata żyła i leśny urodzaj.
