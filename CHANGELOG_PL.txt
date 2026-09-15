@@ -1,3 +1,206 @@
+v0.13.0 — Hybrydowy Świat Proceduralny
+=========================================
+- Wprowadzono hybrydową architekturę świata: Świątynia, Miasto Dusz, ważne wsie, główne drogi, quest huby, NPC, warsztaty i landmarki pozostają stałe.
+- Dodano 15 proceduralnych biomów powierzchniowych po 12x12 sektorów, czyli 2160 możliwych lokacji generowanych na żądanie.
+- Proceduralne są rubieże Łąk, Lasu, Dziczy, Gór, Mokradeł, Pustyni, Wybrzeża, Oceanu, Dorzecza, Pojezierza, Lodu oraz czterech regionów endgame.
+- Przy 907 pokojach stałego rdzenia proceduralna część stanowi około 70,4% potencjalnej mapy powierzchniowej.
+- Generator używa trwałego seedu świata. Ten sam biom i współrzędne zawsze odtwarzają ten sam pokój, opis, wyjścia, rekomendowaną trudność, zasoby i bazowe spawny.
+- Sektory powstają dopiero przy wejściu; po restarcie postać zapisana w proceduralnym pokoju odtwarza ten pokój zamiast wracać awaryjnie na Plac Dusz.
+- Profesje działają w proceduralnych biomach: Wędkarstwo w rzekach/jeziorach/morzu/oceanie, Zielarstwo na łąkach i mokradłach, Drwalstwo w lesie, Górnictwo w górach/lodzie/endgame.
+- Nie omijamy progresji 1-400: proceduralny teren zmienia miejsce pracy, nie wymagania narzędzia ani tabele odblokowań.
+- Wszystkie proceduralne moby dziedziczą globalny PASSIVE WORLD i nie atakują pierwsze.
+- Katalog eksploracji obejmuje konceptualnie wszystkie 2160 sektorów, mimo że pokoje nie są materializowane przy starcie.
+- Naprawiono katalog eksploracji v0.12.0: 43 nowe akweny/łąki są teraz poprawnie liczone do mapy i Kartografa.
+- Prowadzenie doprowadza do stałej granicy proceduralnego biomu; dalsza eksploracja odbywa się ręcznie.
+- Test główny: V0130_HYBRID_PROCEDURAL_WORLD_OK. Regresje v0.12.0, v0.11.0, v0.10.2, v0.10.1 i v0.10.0 przechodzą.
+
+v0.12.0 — Żywe Akweny + Rozległe Łąki + Pasywny Świat
+========================================================
+- Wprowadzono globalną zasadę PASSIVE WORLD: żaden zwykły mob ani boss nie inicjuje walki automatycznie. Roaming zmienia wyłącznie położenie moba; starcie zaczyna gracz.
+- Dodano 26 nowych stanowisk/akwenów Wędkarstwa: rozbudowane morze i ocean, estuarium, lagunę, rafę, szelf, głęboki ocean, pięć nowych stanowisk rzecznych, starorzecze, siedem nowych stanowisk jeziornych i staw łąkowy.
+- Każde nowe łowisko ma opis ekologiczny i preferowane gatunki, ale zachowuje twarde wymagania levelu Wędki.
+- Dodano 17 nowych lokacji Łąk z pętlami i alternatywnymi trasami: kwietne, wrzosowe, wysokotrawiaste, mokre i późne strefy zielarskie.
+- Dodano lokalne profile ziół dla nowych łąk oraz wpisy do atlasu bez omijania progresji Zielarstwa 1-400.
+- Dodano nową faunę: Zając Łąkowy, Lis Polny, Jeleń Łąkowy, Stary Jeleń, Błędny Ognik Traw i Wąż Polny; uzupełniono także istniejące wilki, dziki i osy na nowych łąkach.
+- Nowe i stare moby mają jawne auto_aggro=False; globalna funkcja polityki aggro zawsze zwraca False.
+- Dodano tematy pomocy: pasywny świat, akweny, rozległe łąki.
+
+v0.11.0 — Dynamiczne Lochy + Żywe Miasto
+=============================================
+- Wszystkie piętrowe instancje generują mapy na żądanie od pierwszego poziomu zamiast materializować tysiące pokojów przy starcie serwera.
+- Dynamiczne od poziomu 1 są: Krypta, Mityczna Krypta, Wieża Astralna, Mityczna Wieża Astralna, Twierdza Gigantów, Kopalnia Głębinowa i cztery lochy profesyjne.
+- Główne lochy bojowe zachowują 15 pokoi na piętro; Kopalnia Głębinowa i lochy profesyjne mają po 10.
+- Proceduralny układ jest deterministyczny dla rodzaju i numeru piętra, dzięki czemu restarty nie zmieniają mapy danego piętra.
+- Każde piętro zachowuje pętle i alternatywne trasy. Droga na następny poziom pozostaje w końcowej komnacie.
+- Boss-gate z v0.10.1 pozostaje: boss blokuje wyłącznie dalsze przejście i tylko do pierwszego trwałego zaliczenia progu przez postać.
+- Do wydania włączono także v0.10.2: rozbudowane Miasto Dusz i Przedmieścia, nowych NPC i małe questy, ruchome zwykłe moby, audyt gęstości spawnów oraz balans Tool XP.
+- Naprawiono błąd łączenia kolekcji stref spawnów, który mógł zatrzymać import serwera w niedokończonej bazie v0.10.2.
+- Testy: V0110_FULL_LAZY_DYNAMIC_DUNGEONS_OK, V0102_CITY_LIFE_ROAMING_MOBS_TOOL_BALANCE_OK, V0101_BOSS_GATE_ONLY_NEXT_FLOOR_OK, V0100_MASSIVE_WORLD_DUNGEONS_OK.
+
+v0.10.1 — Boss Gate Hotfix
+===========================
+- Bossowie Krypty, Mitycznej Krypty, Wieży Astralnej, Mitycznej Wieży Astralnej i Twierdzy Gigantów blokują wyłącznie faktyczne przejście na następne piętro.
+- Boss nie blokuje eksploracji ani przejść pomiędzy pokojami bieżącego piętra.
+- Boss-gate sprawdza cel wyjścia i uruchamia się tylko wtedy, gdy prowadzi ono na dalszy numer piętra.
+- Zachowano trwałe odblokowanie progu po pierwszym pokonaniu bossa przez postać.
+- Naprawiono uszkodzony fragment blokady bossa Twierdzy Gigantów.
+- Testy: V0101_BOSS_GATE_ONLY_NEXT_FLOOR_OK oraz V0100_MASSIVE_WORLD_DUNGEONS_OK.
+
+v0.10.0 — Massive World & Dungeons
+=====================================
+- Przebudowano główne instancje z liniowych pięter na wielopokojowe mapy. Krypta, Mityczna Krypta, Wieża Astralna, Mityczna Wieża Astralna i Twierdza Gigantów mają po 15 pomieszczeń na piętro.
+- Zwykła Krypta 1–200 oraz Mityczna Krypta 1–200 mają po 3000 pomieszczeń na samych piętrach. Dynamiczne piętra ponad dawnymi limitami są tworzone w identycznym standardzie 15 pokoi.
+- Przejście na kolejne piętro przeniesiono do końcowej komnaty mapy. Piętra bossowe co 10 mają bossa przy dalszej drodze; dotychczasowa trwała zasada jednorazowego odblokowania progu pozostaje.
+- Zwiększono gęstość przeciwników: typowe piętro Krypty/Wieży/Twierdzy ma ponad 20 równoczesnych spawnów zamiast kilku.
+- Cztery lochy profesyjne mają po 10 pomieszczeń na każdy poziom. Zatopiona Grota, Pradawny Las i Ogród Alchemika mają rozłożone grupy mobów; Kopalnia Kryształów pozostaje spokojnym lochom zasobowym.
+- Rozbudowano także pozostałe małe bojowe tereny: powierzchniowe expowiska mają minimum około 30 lokacji, Dzicz/Jaskinia Trolli 36, a cztery otwarte regiony endgame po 40.
+- Statyczny świat wzrósł do 13081 osiągalnych lokacji; World Cartographer Platinum automatycznie śledzi aktualny statyczny rozmiar świata.
+- Parsery instancji, mapa pięter, boss-gates, portal/checkpoint, awaryjne wyjście i lochy profesyjne rozpoznają także nowe pokoje pięter.
+- `prowadz` nadal zatrzymuje się przed lochami i nie omija eksploracji. Brak nowych twardych bram Biegłości.
+- Zachowano 23058 EQ, 1476 skilli/spelli, istniejące questy, Gildię, znajomych, ekonomię i zapis SQLite.
+- Test główny: `V0100_MASSIVE_WORLD_DUNGEONS_OK`; regresje v0.9.19–v0.9.30 przechodzą.
+
+v0.9.30 — Wielkie Regiony Eksploracyjne
+==========================================
+- Rozbudowano 17 małych i średnich terenów eksploracyjnych. Zamiast krótkich układów typu krzyż nowe sektory tworzą duże, zapętlone mapy z alternatywnymi drogami.
+- Obozowiska Bandytów, Jaskinie Goblinów, Ruiny Strażnicy, Stary Cmentarz, Ruiny Kultystów, Legowisko Bestii, Nekropolia, Kanały Pod Miastem, Lodowe Jaskinie i Las Szeptów mają teraz po 24 lokacje.
+- Pustynia, Bagna i Góry mają po 28 lokacji.
+- Popielne Pustkowia, Rozbite Niebo, Wybrzeże Pustki i Korona Świata mają po 30 lokacji.
+- Świat wzrósł z 1296 do 1598 bazowych lokacji. Wszystkie 1598 są osiągalne z normalnego świata.
+- Nowe sektory korzystają z istniejących zwykłych mobów danego regionu; bossowie świata nie są klonowani do nowych pokojów.
+- Stary Cmentarz ma 24 lokacje i co najmniej 20 równoczesnych spawnów zaliczających „Nieumarli znów wstali” 0/25, więc quest nie wymaga kilku pełnych respawnów.
+- Nie dodano nowego eventu eksploracyjnego, nowej waluty ani twardych bram Biegłości. To czysta rozbudowa map i ich zaludnienia.
+- Platynowy próg „Kartograf Świata” został zaktualizowany do aktualnych 1598 lokacji; wcześniej zdobyte nagrody pozostają zapisane.
+- Test główny: `V0930_LARGE_EXPLORATION_REGIONS_OK`.
+
+v0.9.29 — Godzinne Questy Odnawialne
+========================================
+- Dodano 8 nowych questów powtarzalnych z cooldownem 60 minut; wszystkie startują 0/x i liczą tylko zdarzenia wykonane po przyjęciu.
+- Haldor: „Złamane ostrza” 0/6. Uszkodzone Ostrza są quest-only dropem ze szkieletów/strażników i pojawiają się tylko przy aktywnym zadaniu. Nagroda obejmuje Kowalstwo XP, XP narzędzia Rzemiosła i monety.
+- Haldor: „Pancerz do przetopu” 0/6. Fragmenty Ciężkiego Pancerza pochodzą z ciężkich fizycznych mobów; zadanie działa równocześnie z innymi zleceniami Haldora.
+- Orin: „Toksyczne gruczoły” 0/10. Drop pochodzi z jadowitych/skażonych mobów oraz elit z affixem Toksyczny.
+- Borys: „Dzisiejszy połów” 0/15 ryb rzecznych. Kategoria rzeczna obejmuje także rzadkie warianty tych gatunków.
+- Toren: „Próbki rudy” ma trzy trwałe podliczniki: 5 Rudy miedzi, 5 Rudy żelaza i 5 Rudy srebra. Dodano tabelę `quest_resource_progress_v0929`; restart/porzucenie zeruje podpostęp.
+- Bran: „Drewno na naprawy” 0/25 dowolnego drewna. Liora: „Zestaw dla uzdrowiciela” 0/20 dowolnych ziół.
+- Na Starym Cmentarzu dodano Strażnika Starego Cmentarza z zadaniem „Nieumarli znów wstali” 0/25. Cmentarne typy nieumarłych współdzielą quest-target, a nagroda daje EXP statystyk i Soul XP.
+- Przy oddaniu questów zbierackich nadal wymagane jest fizyczne posiadanie materiałów; sam licznik 0/x nie wystarcza.
+- Liczba questów wzrosła z 220 do 228; liczba bazowych lokacji pozostaje 1296.
+- Test główny: `V0929_HOURLY_QUEST_EXPANSION_OK`; regresje v0.9.19–v0.9.28 przechodzą.
+
+v0.9.28 — Znajomi + Tell/Reply + szybkie zaproszenia
+========================================================
+- Dodano trwałą, obustronną listę znajomych zapisywaną w SQLite.
+- `znajomi dodaj <gracz>` wysyła prośbę; `znajomi akceptuj <gracz>` / `znajomi odrzuc <gracz>` obsługują zgodę, a `znajomi usun <gracz>` usuwa znajomość po obu stronach.
+- `znajomi` pokazuje status online/offline oraz oczekujące prośby.
+- `znajomi party <gracz>` szybko uruchamia istniejące zaproszenie do drużyny.
+- `znajomi gildia <gracz>` szybko uruchamia istniejące zaproszenie do Gildii; nadal obowiązują uprawnienia rangi i reguły Gildii.
+- Rozbudowano prywatne wiadomości: `tell <gracz> <tekst>` ma limit 500 znaków i oznaczenie [TELL].
+- Dodano `reply <tekst>` / `odpisz <tekst>` / `r <tekst>` — odpowiedź do ostatniej osoby, która wysłała prywatną wiadomość.
+- `reply` nie przenosi się między slotami postaci: zmiana aktywnej postaci czyści ostatniego nadawcę.
+- Krzyżujące się prośby o znajomość automatycznie kończą się obustronnym dodaniem.
+- Zachowano wszystkie systemy v0.9.27, 23058 EQ, 1476 skilli/spelli i 1296 bazowych lokacji.
+- Test główny: `V0928_FRIENDS_TELL_REPLY_OK`; regresje v0.9.19–v0.9.27 przechodzą.
+
+v0.9.27 — Siedziba Gildii, Kontrakty, Bossowie Gildyjni i Elitarne Affixy
+============================================================================
+- Prywatna Siedziba Gildii 1–10 generowana osobno dla każdej Gildii.
+- Główna Siedziba jest dużym kosztem rozwoju; późne poziomy używają najwyższego nominału waluty: 8→9 = 1 mithril, 9→10 = 2 mithrile.
+- Kuźnia, Skarbiec, Biblioteka i Sala Treningowa mają osobne poziomy 1–10 i są dużo tańsze niż rozbudowa głównej Siedziby.
+- Budynki nie mogą przewyższać poziomu Siedziby.
+- Siedziba 2 odblokowuje Tablicę Kontraktów, 4 Salę Trofeów, 7 bossów gildyjnych, 10 Wielką Salę Mistrzów.
+- Dodano specjalnych NPC dla budynków: Mistrza Kuźni, Kwatermistrza, Archiwistkę i Mistrza Oręża; Kuźnia Gildii obsługuje Salvage/Reforge/Runy.
+- Wspólne kontrakty: 100 mobów, 5 bossów i 20 Pyłu Runicznego. Nagrody trafiają do skarbca Gildii, cooldown kontraktu 6 godzin.
+- Bossowie gildyjni skalują się z poziomem Siedziby, mają godzinny cooldown przyzwania, własne rekordy, ranking i trwałe trofea; nagroda zasila skarbiec.
+- Osiągnięcia Gildii rozszerzono o duże wpłaty, 100 bossów, 1000. piętro Krypty, pełny legendarny set, Siedzibę 10 i pokonania bossów gildyjnych.
+- Elitarne affixy: dodano Burzowy i Toksyczny; dotychczasowy Wściekły nazywa się Berserker. Zachowano Wampiryczny, Lodowy, Opancerzony, Przeklęty i pozostałe wcześniejsze affixy.
+- Kontrakty i bossowie liczą wydarzenie raz na Gildię, a nie osobno za każdego członka tej samej Gildii w drużynie.
+- Zachowano 23058 elementów EQ, 1476 skilli/spelli, 1296 bazowych lokacji świata oraz pełną regresję v0.9.19–v0.9.26.
+
+v0.9.26 — Gildia: Skarbiec, Rozbudowa 1–100, Własne Rangi i Uprawnienia
+================================================================================
+- System graczy z v0.9.25 nazywa się teraz wszędzie Gildia. Główna komenda to `gildia`; stare `klan`/`clan` pozostają tylko zgodnościowymi aliasami.
+- Dawna reputacja klasowa NPC została jednoznacznie przeniesiona pod `gildiaklasowa` / `reputacja`; questy/egzaminy klasowe pozostają bez zmian.
+- Gildia ma poziomy 1–100 i wspólny skarbiec pieniędzy. Każdy członek może użyć `gildia wplac <kwota> [monet|zlota|mithril]`.
+- `gildia wyplac <kwota> ...` wypłaca pieniądze na własny portfel tylko wtedy, gdy ranga gracza ma uprawnienie wypłat. Każda wypłata trafia do trwałego logu.
+- Tylko lider może używać `gildia rozbuduj`; przed wydaniem pieniędzy gra pokazuje koszt i wymaga `gildia rozbuduj potwierdz`. Koszt następnego poziomu rośnie kwadratowo: 10 000 × bieżący_poziom².
+- Poziom 1 daje +1% do Biegłości/Class XP, Soul XP, EXP statystyk, profesji i narzędzi. Kolejne +1 punkt procentowy pojawia się na poziomach 10,20,...100; maksymalnie +11%.
+- Dodano własne rangi Gildii: `gildia ranga utworz <nazwa>`, `gildia ranga ustaw <ranga> <uprawnienie> <tak/nie>`, `gildia ranga priorytet <ranga> <1-900>`, `gildia ranga nadaj <gracz> <ranga>`, `gildia rangi`.
+- Uprawnienia rang obejmują wypłaty pieniędzy, wypłaty przedmiotów, zapraszanie i wyrzucanie niższych rang. Lider ma zawsze pełne prawa.
+- Rangi mają priorytet/hierarchię; prawo wyrzucania działa wyłącznie wobec niższej rangi.
+- Zachowano istniejących członków, bank przedmiotów, log, czat i osiągnięcia z v0.9.25. Migracja starej bazy dodaje poziom 1, skarbiec 0 i domyślne rangi Członek/Oficer bez utraty danych.
+- Test główny: `V0926_GUILD_DEVELOPMENT_CUSTOM_RANKS_OK`; migracja: `V0926_MIGRATION_FROM_V0925_OK`; regresje v0.9.19–v0.9.25 przechodzą.
+
+v0.9.25 — Salvage + Reforge + Runy + Klany + Szkatułka Kategorie + Mastery Achievements
+============================================================================================
+- Szkatułka Rzemieślnicza jest podzielona logicznie na kategorie: Kowalstwo, Jubilerstwo, Alchemia, Runy, Materiały z Salvage i Pozostałe. `szkatułka` pokazuje krótkie podsumowanie, a `szkatułka <kategoria>` tylko wybraną część. Stare materiały pozostają w tym samym trwałym magazynie i są klasyfikowane automatycznie.
+- Haldor obsługuje `salvage` / `rozłóż <pełna nazwa EQ>`. Tylko niezałożone EQ może zostać rozłożone. Materiał odzysku zależy od rodziny EQ; wyższe progi dają też Esencję Przekucia i Pył Runiczny. Wszystko trafia do odpowiedniej kategorii Szkatułki.
+- `reforge` / `przekuj <EQ>` zmienia jeden affix konkretnego EQ za Esencję Przekucia. Reforge nie zmienia materiału, nazwy ani wymaganego poziomu Biegłości.
+- Dodano sześć run: Mocy, Ochrony, Życia, Skupienia, Zwinności i Hartu. Endgame EQ ma 1 gniazdo od Biegłości 200, 2 od 300 i 3 przy 400. Jedna runa kosztuje 5 Pyłu Runicznego. `runy` pokazuje system, `runy stworz <typ>` tworzy runę u Haldora, a `runa <typ> <EQ>` osadza ją.
+- Przekazanie jedynej sztuki zmodyfikowanego EQ innemu graczowi przenosi razem z nią Reforge i osadzone runy. Bank klanu nie przyjmuje zmodyfikowanego EQ, żeby nie rozdzielać danych przedmiotu.
+- Dodano klany graczy (`klan` / `clan`) niezależne od istniejących klasowych gildii NPC. Są rangi leader/officer/member, zaproszenia i dołączanie, wspólny bank, log, czat, awanse, kick oraz trwałe wspólne osiągnięcia.
+- Dodano osiągnięcia klasowe i profesyjne obejmujące progresję 1–400: kamienie milowe 1/50/100/150/200/250/300/350/400 oraz dodatkowe wyzwania powiązane z bossami, craftingiem, kolekcją i eksploracją. `osiagnieciaklasowe` pokazuje skrót progresji.
+- Nie zmieniono katalogu 23058 EQ, progów Biegłości 1/10/20...400, 1476 skilli/spelli, regionów open-world v0.9.24 ani balansu bazowego.
+- Test główny: `V0925_SALVAGE_REFORGE_RUNES_CLANS_CASKET_ACHIEVEMENTS_OK`; gameplay smoke: `V0925_GAMEPLAY_SMOKE_OK`.
+
+v0.9.24 — Open World Choice Hotfix
+==================================
+- Usunięto twarde blokady Biegłości z normalnych terenów świata, w tym regionów endgame 300-400.
+- Progi 300/330/360/390 pozostają wyłącznie zalecaną Biegłością i ostrzeżeniem o zagrożeniu.
+- `wyjścia` informują o trudnym terenie, ale nie oznaczają kierunku jako zablokowanego.
+- Przy wejściu poniżej zalecanej Biegłości gra ostrzega, po czym pozwala przejść; decyzję i ryzyko podejmuje gracz.
+- Nie zmieniono wymagań EQ ani jednorazowych bramek bossów w instancjach.
+- Zachowano regiony v0.9.23, leaderboardy oraz godzinne zlecenie Haldora.
+
+v0.9.23 — Endgame Regions + Leaderboards + Steel Recycling
+=================================================================
+- Dodano 4 normalne regiony świata dla endgame 300-400: Popielne Pustkowia (Biegłość 300), Rozbite Niebo (330), Wybrzeże Pustki (360) i Korona Świata (390). Łącznie 24 nowe ręcznie zaprojektowane lokacje poza nieskończonymi instancjami.
+- Każdy region ma własne moby i bossa świata; od v0.9.24 Biegłość jest tylko zaleceniem zagrożenia i nie blokuje wejścia.
+- Dodano trwałe `rankingi` / `leaderboard`: najwyższe piętro Krypty, najwyższe piętro Wieży Astralnej, najszybsze bossy, liczba odkrytych legend oraz liczba kompletnych setów.
+- Rankingi korzystają z trwałych danych SQLite z Map Instancji, Boss Codexu i Collection Codexu.
+- Haldor dostał godzinne zlecenie `Stal do Przetopu`: po przyjęciu trzeba zdobyć 4 Stalowe Płyty z Pancerza ze szkieletów na Cmentarzu; stary zapas nie liczy postępu.
+- Stalowe Płyty są materiałem rzemieślniczym, automatycznie trafiają do Szkatułki i wszystkie 4 są zużywane przy oddaniu. Quest wraca po 3600 sekundach.
+- Szkielet w Stalowym Kirysie i dodatkowe szkielety Cmentarza tworzą kilka źródeł płyt zamiast pojedynczego moba.
+- Zachowano 1476 skilli/spelli v0.9.22, 23058 EQ, Boss/Collection Codex, Mapy Instancji, legendarny/setowy loot i progresję EQ 1/10/20.../400.
+- Test główny: `V0923_ENDGAME_LEADERBOARDS_STEEL_RECYCLING_OK`.
+
+v0.9.22 — Multi-Skill Mastery + więcej mobów questowych
+=========================================================
+- Każda z 12 klas ma teraz dokładnie 3 skille/spelle na każdym progu Biegłości: 1 oraz 10, 20, 30... aż do 400.
+- Daje to 41 progów x 3 umiejętności = 123 skille/spelle na klasę i 1476 łącznie.
+- Uzupełniono także wcześniej puste progi 210, 230, 250...390, więc progresja skilli jest teraz równie gęsta jak progresja EQ.
+- Nowe umiejętności nie tworzą power creepu przez rotację: wszystkie skille z tego samego progu Biegłości współdzielą cooldown wyboru. Gracz może nauczyć się wszystkich i świadomie wybierać funkcję, ale nie spamuje trzech umiejętności tego samego progu jedna po drugiej.
+- Profile klas zachowują różne role: fizyczny damage/guard/evade/boost, magia AoE, drain, heal i group heal zależnie od klasy.
+- Questy typu kill wymagające wielu zabójstw mają więcej równoczesnych celów. System liczy zarówno bezpośredni template moba, jak i quest_target/quest_targets.
+- Rzadkie przypadki z pojedynczym spawnem zostały zagęszczone: Szkielety, Upiory Krypty, cele na piętrach 35/45 oraz Troll Szaman mają po kilka równoczesnych mobów.
+- Bossowie questowi pozostają pojedynczy; zwiększenie gęstości dotyczy wyłącznie questów wymagających wielu zabójstw.
+- Zachowano Boss Codex, Collection Codex 2.0, Mapy Instancji, jednorazowe bramki bossów, legendarny/setowy loot, ręczne EQ i balans 1-400.
+- Test główny: `V0922_MULTI_SKILL_QUEST_MOBS_OK`.
+
+v0.9.21 — Boss Codex + Collection Codex 2.0 + Mapy Instancji
+=================================================================
+- Boss Codex został rozszerzony bez tworzenia drugiego systemu: nadal pokazuje pokonania, solo/grupa, pierwszy i ostatni kill oraz najlepszy czas, a dodatkowo wersję piętrową bossa i najwyższy zaliczony próg jego instancji.
+- Boss Codex zapisuje jako unikalne dropy tylko faktyczne unikaty/legendy/mityczne/relikty/sety bossowe; zwykłe mikstury i materiałowe EQ nie zaśmiecają listy.
+- Proceduralni bossowie generowani powyżej ręcznej części instancji są rejestrowani w Boss Codexie także na nieskończonych piętrach.
+- Collection Codex 2.0 dodaje procenty odkrytego EQ osobno dla wszystkich 12 klas, każdego konkretnego setu, legend, 10 rodzin materiałowego EQ, regionów świata i instancji.
+- Widok setów jest stronicowany po 30 pozycji, aby NVDA nie był zalewany tysiącami wpisów.
+- Mapy instancji zapisują odwiedzone piętra w trwałej bazie SQLite. Nieskończone instancje są dzielone na sektory po 100 pięter, więc procent odkrycia ma sens bez sztucznego końca lochu.
+- Mapa instancji pokazuje procent sektora, najwyższe odwiedzone piętro, zapamiętane checkpointy i odkryte sekrety.
+- Obsługiwane są: Krypta, Mityczna Krypta, Wieża Astralna, Mityczna Wieża Astralna, Twierdza Gigantów, Kopalnia Głębinowa, Kopalnia Kryształów, Zatopiona Grota, Pradawny Las i Ogród Alchemika.
+- W każdym 100-piętrowym sektorze są 4 ukryte punkty mapy. Na właściwym piętrze komenda `sekret` / `secret` zapisuje odkrycie; sekrety nie dają mocy ani waluty i nie naruszają balansu.
+- Bossowe checkpointy co 10 pięter są pamiętane przez mapę. Stare checkpointy Portalu Krypty i Astralnego Portalu są honorowane.
+- Zachowano wszystkie zasady v0.9.20: jednorazowe bramki bossów, legendarny/setowy loot, ręczne EQ i progresję Biegłości 1/10/20.../400.
+- Test główny: `V0921_BOSS_COLLECTION_INSTANCE_MAPS_OK`.
+
+v0.9.20 — Legendary Class Loot + EQ Collection + Milestone Bosses
+==================================================================
+- Bossowie co 10 pięter są jednorazową bramką progresji per postać. Pierwsze pokonanie zapisuje dungeon_kind + floor w SQLite; respawn pozostaje opcjonalny.
+- Zasada działa w Krypcie, Mitycznej Krypcie, Wieży Astralnej, Mitycznej Wieży Astralnej i Twierdzy Gigantów. Stare checkpointy Krypty/Wieży są honorowane.
+- Bossowie co 50 pięter dają setowy loot dla aktywnej klasy; co 100 pięter dodatkowo legendarny relikt klasy.
+- 12 klas x 8 progów Biegłości 50-400 x 8 części = 768 nowych części legendarnych setów. Dodano też 96 klasowych legendarnych reliktów.
+- Nowa kategoria Collection Codex: EQ. Rejestruje dokładne odkryte elementy wyposażenia; `kolekcja eq` / `collection equipment`.
+- Proceduralni bossowie kamieni milowych co 50/100 pięter mają specjalne nazwy zależne od rodzaju instancji.
+- Zachowano ręczne zakładanie EQ, wymagania Biegłości, sprzedaż/transfer tylko niezałożonych sztuk oraz balans v0.9.19.
+
 v0.9.19 — Full EQ Progression 10–400 + Final Rebalans
 ========================================================
 - Całe EQ jest bramkowane Biegłością, nigdy Soul Levelem. Dozwolone progi to wyłącznie 1 oraz 10, 20, 30...400.

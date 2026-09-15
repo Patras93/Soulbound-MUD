@@ -2,7 +2,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Soulbound v0.9.19 Full EQ Progression 10-400 + Final Rebalance
+Soulbound v0.13.0 Hybrid Procedural World
 Wieloosobowy tekstowy MUD TCP/Telnet dla MUSHclienta/Mudleta.
 
 Najważniejsze zasady projektu:
@@ -30,7 +30,7 @@ import unicodedata
 from dataclasses import dataclass
 from typing import Optional
 
-VERSION = "0.9.19"
+VERSION = "0.13.0"
 
 # v0.8.72: właścicielskie komendy administracyjne. Nazwy kont podaje się
 # po stronie serwera, np. SOULBOUND_ADMIN_ACCOUNTS=Patryk. Nigdy nie są
@@ -795,6 +795,21 @@ V095_FISHING_MIN_SECONDS = 5
 
 PROFESSION_SPEED_CAP_LEVEL = 200
 
+# v0.10.2: Tool XP dla narzędzi zbierackich jest wyrównany względem
+# rzeczywistego czasu jednej akcji. Wcześniej Kilof i Piła dostawały prawie
+# tyle samo XP co znacznie szybszy Sierp, więc wbijanie ich leveli trwało
+# wielokrotnie dłużej. Mnożniki nie zmieniają Profession XP ani dropu.
+GATHER_TOOL_LEVELING_MULTIPLIERS = {
+    "fishing": 1.50,
+    "mining": 3.00,
+    "woodcutting": 2.40,
+    "herbalism": 1.00,
+}
+
+def balanced_gather_tool_xp(tool_type, raw_xp):
+    multiplier = GATHER_TOOL_LEVELING_MULTIPLIERS.get(str(tool_type), 1.0)
+    return max(1, int(round(max(1, int(raw_xp)) * multiplier)))
+
 def _profession_speed_progress(level):
     # Stary balans timerów 1-200 pozostaje 1:1. Po 200 profesja rozwija się
     # dalej, ale nie skraca akcji poniżej ustalonego minimum.
@@ -913,7 +928,7 @@ def mine_floor_id(floor):
     return f"mine_floor_{int(floor)}"
 
 def mine_floor_number(room_id):
-    match = re.fullmatch(r"mine_floor_(\d+)", str(room_id or ""))
+    match = re.fullmatch(r"mine_floor_(\d+)(?:_r\d+)?", str(room_id or ""))
     if not match:
         return None
     floor = int(match.group(1))
@@ -3675,6 +3690,105 @@ for _class_name in _SOUL_GRID_CLASS_PROFILES:
             _make_post200_mastery_skill(_class_name, _level, _stage, _kind)
         )
 
+# v0.9.22: każdy próg Biegłości ma kilka realnych umiejętności do nauki.
+# Docelowo dokładnie 3 skille/spelle na próg 1, 10, 20...200 oraz 220...400.
+# Dodatkowe umiejętności są alternatywami tego samego progu i korzystają ze
+# wspólnego cooldownu mastery_choice_group, żeby zwiększyć wybór bez potrajania DPS.
+_V0922_MASTERY_LEVELS = tuple(sorted(set(SOUL_SKILL_UNLOCK_LEVELS) | {
+    level for level, _stage in _POST200_SKILL_STAGES
+}))
+_V0922_CLASS_ALT_PROFILES = {
+    "Wojownik":   (("Kontratak Wojownika", "damage"), ("Mur Wojownika", "guard"), ("Rozkaz Wojownika", "boost")),
+    "Berserker":  (("Rozdarcie Berserkera", "drain"), ("Furia Berserkera", "damage"), ("Ryk Berserkera", "boost")),
+    "Łotrzyk":    (("Riposta Łotrzyka", "damage"), ("Krok Łotrzyka", "evade"), ("Impuls Cienia", "boost")),
+    "Łowca":      (("Strzał Tropiciela", "damage"), ("Odskok Łowcy", "evade"), ("Skupienie Tropiciela", "boost")),
+    "Mnich":      (("Fala Ki", "damage"), ("Oddech Harmonii", "heal"), ("Krok Harmonii", "evade")),
+    "Strażnik":   (("Cios Bastionu", "damage"), ("Tarcza Strażnika", "guard"), ("Przysięga Bastionu", "boost")),
+    "Mag":        (("Lanca Arkanów", "damage"), ("Krąg Arkanów", "aoe_damage"), ("Bariera Eteru", "guard")),
+    "Nekromanta": (("Żniwo Nekromanty", "drain"), ("Fala Grobów", "aoe_damage"), ("Pancerz Grobu", "guard")),
+    "Kapłan":     (("Promień Kapłana", "damage"), ("Łaska Kapłana", "heal"), ("Modlitwa Drużyny", "group_heal")),
+    "Czarownik":  (("Pocisk Otchłani", "damage"), ("Krąg Pustki", "aoe_damage"), ("Pakt Otchłani", "drain")),
+    "Druid":      (("Cierń Druida", "damage"), ("Odnowa Natury", "heal"), ("Krąg Dziczy", "aoe_damage")),
+    "Psionik":    (("Impuls Psionika", "damage"), ("Fala Umysłu", "aoe_damage"), ("Forteca Myśli", "guard")),
+}
+
+
+def _v0922_alt_skill(class_name, level, variant_index, base_name, kind):
+    profile = _SOUL_GRID_CLASS_PROFILES[class_name]
+    magic = bool(profile["magic"])
+    level = int(level)
+    # Nazwa z progiem jest celowo jednoznaczna dla NVDA i komendy learn.
+    name = f"{base_name} {level}"
+    skill = {
+        "id": f"v0922_{profile['prefix']}_{level}_{variant_index}",
+        "name": name,
+        "aliases": [name.lower()],
+        "natural_tags": [w.lower() for w in base_name.split()],
+        "unlock": level,
+        "kind": kind,
+        "cooldown": 10,
+        "mana": (max(4, 5 + level // 12) if magic else 0),
+        "desc": (
+            f"Alternatywna umiejętność progu Biegłości {level} klasy {class_name}. "
+            "Umiejętności z tego samego progu współdzielą cooldown wyboru."
+        ),
+        "mastery_choice_group": f"{class_name}:{level}",
+    }
+    progress = min(1.0, max(0.0, (level - 1) / 399.0))
+    if kind in ("damage", "aoe_damage", "execute", "drain"):
+        skill["scale"] = profile["scale"]
+        # Alternatywy są trochę słabsze od najmocniejszego głównego skilla progu;
+        # ich wartością jest inny typ działania, nie power creep.
+        skill["mult"] = round(1.16 + progress * 1.75, 2)
+        skill["cooldown"] = 8 if kind == "damage" else 12
+    if kind == "aoe_damage":
+        skill["mult"] = round(1.02 + progress * 1.40, 2)
+        skill["cooldown"] = 14
+    elif kind == "execute":
+        skill["execute_mult"] = round(1.45 + progress * 0.35, 2)
+        skill["cooldown"] = 15
+    elif kind == "drain":
+        skill["drain_pct"] = round(0.24 + progress * 0.14, 2)
+        skill["cooldown"] = 13
+    elif kind == "guard":
+        skill["guard"] = 10 + int(round(progress * 110))
+        skill["cooldown"] = 13
+    elif kind == "evade":
+        skill["cooldown"] = 13
+    elif kind == "boost":
+        skill["boost"] = round(1.18 + progress * 0.42, 2)
+        skill["duration"] = 12
+        skill["cooldown"] = 15
+    elif kind == "heal":
+        skill["heal_pct"] = round(0.14 + progress * 0.36, 3)
+        skill["cooldown"] = 13
+    elif kind == "group_heal":
+        skill["heal_pct"] = round(0.10 + progress * 0.28, 3)
+        skill["cooldown"] = 16
+    return skill
+
+
+for _class_name in _SOUL_GRID_CLASS_PROFILES:
+    _skills = CLASS_SKILLS.setdefault(_class_name, [])
+    for _level in _V0922_MASTERY_LEVELS:
+        _at_level = [s for s in _skills if int(s.get("unlock", 1)) == int(_level)]
+        # Każdy już istniejący skill także należy do wspólnej grupy tego progu.
+        for _skill in _at_level:
+            _skill["mastery_choice_group"] = f"{_class_name}:{int(_level)}"
+        _profile_alts = _V0922_CLASS_ALT_PROFILES[_class_name]
+        _alt_index = 0
+        while len(_at_level) < 3:
+            _base_name, _kind = _profile_alts[_alt_index % len(_profile_alts)]
+            _candidate = _v0922_alt_skill(
+                _class_name, int(_level), len(_at_level) + 1, _base_name, _kind
+            )
+            if all(s.get("id") != _candidate["id"] for s in _skills):
+                _skills.append(_candidate)
+                _at_level.append(_candidate)
+            _alt_index += 1
+        for _skill in _at_level:
+            _skill["mastery_choice_group"] = f"{_class_name}:{int(_level)}"
+
 # v0.8.42: progi dostępu do skilli są progami Biegłości klasy 1-200.
 # Zachowujemy numer dawnego progu Soul jako identyczny próg Biegłości,
 # np. dawny 100 -> Biegłość 100, dawny 200 -> Biegłość 200.
@@ -5048,7 +5162,7 @@ EXP_AREAS = (
             "Ogrzy Miotacze Głazów, Cyklopi Strażnicy i Górskie Giganty"
         ),
         "description": (
-            "Nieskończony górski dungeon; poziomy 1-50 pozostają ręcznie przygotowaną częścią. "
+            "Nieskończony górski dungeon; każdy poziom od 1 jest tworzony dynamicznie dopiero przy wejściu. "
             "Z każdym poziomem rośnie HP, obrażenie i nagroda Soul XP. "
             "Nadaje się do dłuższego expienia bez zmiany regionu."
         ),
@@ -5421,6 +5535,8 @@ COMMAND_ALIASES = {
     "spójrz": "look", "spojrz": "look", "l": "look",
     "wyjścia": "exits", "wyjscia": "exits",
     "mapa": "map",
+    "sekret": "instancesecret", "secret": "instancesecret",
+    "tajemnica": "instancesecret",
     "gdzie": "where",
     "trasa": "route", "route": "route", "droga": "route", "sciezka": "route", "ścieżka": "route",
     "kto": "who",
@@ -5431,6 +5547,9 @@ COMMAND_ALIASES = {
     "tereninfo": "terraininfo",
     "sety": "classsets", "setklasowy": "classsets", "setyklasowe": "classsets",
     "say": "say", "powiedz": "say", "mow": "say", "mów": "say",
+    "tell": "tell", "msg": "tell", "pm": "tell", "wiadomosc": "tell", "wiadomość": "tell",
+    "reply": "reply", "odpisz": "reply", "r": "reply",
+    "znajomi": "friends", "znajomy": "friends", "friends": "friends", "friend": "friends",
     "atlas": "atlas", "atlasy": "atlas",
     "codex": "codex", "kodeks": "codex",
     "kodeksklasowy": "classcodex", "kodeks_klasowy": "classcodex",
@@ -5535,6 +5654,15 @@ COMMAND_ALIASES = {
     "zioła": "herbbag", "ziola": "herbbag", "herbs": "herbbag", "herbbag": "herbbag",
     "szkatułka": "craftbox", "szkatulka": "craftbox", "craftbox": "craftbox",
     "materialy": "craftbox", "materiały": "craftbox",
+    "rozloz": "salvage", "rozłóż": "salvage", "salvage": "salvage", "recycleeq": "salvage",
+    "przekuj": "reforge", "reforge": "reforge",
+    "runy": "runes", "runes": "runes", "runa": "socketrune", "socketrune": "socketrune",
+    # v0.9.26: system graczy nazywa się Gildia. Stare klan/clan są tylko zgodnościowymi aliasami.
+    "gildia": "playerguild", "guild": "playerguild", "guilda": "playerguild",
+    "klan": "playerguild", "clan": "playerguild",
+    "osiagnieciaklasowe": "masteryachievements", "osiągnięciaklasowe": "masteryachievements",
+    "osiagnieciaprofesji": "masteryachievements", "osiągnięciaprofesji": "masteryachievements",
+    "masteryachievements": "masteryachievements",
     "alchemia": "alchemy", "alchemy": "alchemy", "warz": "alchemy", "warzenie": "alchemy",
     "jubilerstwo": "jewelcraftinginfo", "jewelcrafting": "jewelcraftinginfo",
     "jub": "jewelcraft", "jubcraft": "jewelcraft",
@@ -5595,10 +5723,9 @@ COMMAND_ALIASES = {
     "trainers": "teachers", "teachers": "teachers",
     "woodcutting": "woodcut", "chop": "woodcut",
     "gather": "herb", "gatherherbs": "herb",
-    "jewelry": "jewelcraftinginfo", "jewellery": "jewelcraftinginfo",    "gildia": "guild",
-    "guild": "guild",
-    "reputacja": "guild",
-    "reputation": "guild",
+    "jewelry": "jewelcraftinginfo", "jewellery": "jewelcraftinginfo",
+    "gildiaklasowa": "classguild", "gildia_klasowa": "classguild", "classguild": "classguild",
+    "reputacja": "classguild", "reputation": "classguild",
     "zadanieklasowe": "guildquest",
     "classquest": "guildquest",
     "egzamin": "guildexam",
@@ -7560,6 +7687,108 @@ CLASS_SET_STAT_NAMES = {
     "willpower": "Siła Woli",
 }
 
+
+# ============================================================
+# v0.9.20 - LEGENDARY CLASS LOOT 50/100
+# ============================================================
+# Bossowie co 50 pięter mogą dawać pełnoprawne setowe EQ dla każdej z 12 klas.
+# Bossowie co 100 pięter dodatkowo dają osobny legendarny relikt klasowy.
+# Wszystko nadal respektuje Biegłość i ręczne zakładanie EQ.
+LEGENDARY_CLASS_LOOT_TIERS = tuple(range(50, 401, 50))
+LEGENDARY_CLASS_SET_ITEMS_BY_CLASS_TIER = {}
+LEGENDARY_CLASS_RELIC_BY_CLASS_TIER = {}
+
+
+def _legendary_class_loot_stat_profile(class_name):
+    definition = CLASS_EQUIPMENT_SETS[class_name]
+    return definition["affix"], int(definition["base_defense"])
+
+
+def _register_legendary_class_loot():
+    for class_name, definition in CLASS_EQUIPMENT_SETS.items():
+        affix, base_defense = _legendary_class_loot_stat_profile(class_name)
+        set_name = f"Legendy {definition['set_name']}"
+        class_slug = definition["prefix"]
+        class_sets = LEGENDARY_CLASS_SET_ITEMS_BY_CLASS_TIER.setdefault(class_name, {})
+        relics = LEGENDARY_CLASS_RELIC_BY_CLASS_TIER.setdefault(class_name, {})
+
+        for mastery in LEGENDARY_CLASS_LOOT_TIERS:
+            tier_index = max(1, mastery // 10)
+            defense_step = (tier_index + 1) // 2
+            affix_step = tier_index // 2
+            tier_items = []
+            for slot, (slot_name, defense_delta, _base_price) in CLASS_EQUIPMENT_SLOT_DEFS.items():
+                item_id = f"legendset_{class_slug}_m{mastery}_{slot}"
+                defense = max(1, base_defense + int(defense_delta) + defense_step + 1)
+                base_affix = 3 if slot == "necklace" else 2 if slot in ("ring", "charm") else 1
+                affix_amount = base_affix + affix_step + 1
+                ITEMS[item_id] = {
+                    "name": f"{slot_name} {set_name} +{mastery}",
+                    "type": "armor",
+                    "slot": slot,
+                    "defense": defense,
+                    "price": None,
+                    "rarity": "legendary",
+                    "rarity_name": "Legendarny Setowy",
+                    "affix": affix,
+                    "affix_amount": affix_amount,
+                    "required_class": class_name,
+                    "required_mastery": mastery,
+                    # Celowo korzysta z istniejących progów 2/4/6/8 klasy.
+                    "class_shop_item": True,
+                    "class_set_name": set_name,
+                    "class_set_piece": slot,
+                    "legendary_set_loot": True,
+                    "legendary_loot_tier": mastery,
+                    "desc": (
+                        f"Legendarna część zestawu dla klasy {class_name}. "
+                        f"Wymaga aktywnej klasy {class_name} i Biegłości {mastery}. "
+                        f"Zdobywana z bossów kamieni milowych co 50 pięter. Obrona +{defense}."
+                    ),
+                }
+                CLASS_EQUIPMENT_ITEM_IDS.add(item_id)
+                tier_items.append(item_id)
+            class_sets[mastery] = tuple(tier_items)
+
+            relic_id = f"legendrelic_{class_slug}_m{mastery}"
+            relic_defense = max(1, base_defense + 4 + defense_step + 2)
+            relic_affix = 4 + affix_step + 2
+            prop_value = max(1, min(5, mastery // 100 + 1))
+            properties = {
+                "all_damage_pct": prop_value,
+                "physical_defense_pct": prop_value,
+                "magic_defense_pct": prop_value,
+            }
+            if class_type_for_name(class_name) == "magic":
+                properties["max_mana_pct"] = prop_value
+            else:
+                properties["max_hp_pct"] = prop_value
+            ITEMS[relic_id] = {
+                "name": f"Relikwiarz Legendy {definition['set_name']} +{mastery}",
+                "type": "armor",
+                "slot": "necklace",
+                "defense": relic_defense,
+                "price": None,
+                "rarity": "legendary",
+                "rarity_name": "Legendarny Klasowy",
+                "affix": affix,
+                "affix_amount": relic_affix,
+                "required_class": class_name,
+                "required_mastery": mastery,
+                "properties": properties,
+                "legendary_class_relic": True,
+                "legendary_loot_tier": mastery,
+                "desc": (
+                    f"Legendarny relikt klasy {class_name} z bossa kamienia milowego co 100 pięter. "
+                    f"Wymaga Biegłości {mastery}. Nie należy do zestawu, więc jest świadomą alternatywą "
+                    "dla naszyjnika setowego."
+                ),
+            }
+            relics[mastery] = relic_id
+
+
+_register_legendary_class_loot()
+
 ITEMS["jeweler_pliers"] = {
     "name": "Szczypce Jubilerskie",
     "type": "tool",
@@ -9311,8 +9540,62 @@ SYSTEM_DESCRIPTIONS = {
 }
 
 
-LATEST_CHANGES_TITLE = "Soulbound v0.9.19 - Full EQ Progression 10-400 + Final Rebalance"
+LATEST_CHANGES_TITLE = "Soulbound v0.13.0 - Hybrid Procedural World"
 LATEST_CHANGES = [
+    "v0.13.0: świat powierzchniowy jest hybrydowy: miasta, główne drogi, quest huby, ważni NPC i landmarki pozostają stałe, a rozległe naturalne rubieże są generowane na żądanie.",
+    "v0.13.0: dodano 15 proceduralnych biomów po 12x12 sektorów, łącznie 2160 możliwych lokacji; przy stałym rdzeniu daje to około 70 procent potencjalnej mapy powierzchniowej jako proceduralnej.",
+    "v0.13.0: proceduralne są łąki, las, dzicz, góry, mokradła, pustynia, wybrzeże, ocean, dorzecze, pojezierze, lodowe pustkowia oraz cztery rubieże endgame.",
+    "v0.13.0: generator jest deterministyczny; ten sam sektor po restarcie zachowuje nazwę, opis, wyjścia, rekomendowaną trudność, zasoby i bazową obsadę mobów.",
+    "v0.13.0: proceduralne sektory obsługują Wędkarstwo, Zielarstwo, Drwalstwo i Górnictwo zgodnie z biomem bez omijania progresji narzędzi 1-400.",
+    "v0.13.0: PASSIVE WORLD obejmuje także wszystkie proceduralne moby; nikt nie rozpoczyna walki bez decyzji gracza.",
+    "v0.13.0: katalog eksploracji obejmuje wszystkie 2160 konceptualnych sektorów oraz naprawia brakujące wpisy nowych akwenów i łąk z v0.12.0.",
+    "v0.12.0: rozbudowano akweny i łąki oraz wprowadzono globalny PASSIVE WORLD.",
+    "v0.11.0: wszystkie piętrowe instancje są generowane na żądanie od pierwszego poziomu; serwer nie tworzy już tysięcy gotowych pokojów przy starcie.",
+    "v0.11.0: zwykła i Mityczna Krypta, obie Wieże Astralne oraz Twierdza Gigantów mają po 15 proceduralnych pomieszczeń na piętro z pętlami i alternatywnymi trasami.",
+    "v0.11.0: Kopalnia Głębinowa i cztery lochy profesyjne mają po 10 proceduralnych pomieszczeń na poziom; układ danego piętra jest deterministyczny między restartami.",
+    "v0.11.0: boss nadal blokuje tylko wyjście na następne piętro i tylko do pierwszego trwałego zaliczenia progu przez postać.",
+    "v0.10.2: rozbudowano Miasto Dusz i Przedmieścia, dodano miejskich NPC i małe questy, ruchome zwykłe moby oraz wyrównano tempo levelowania narzędzi zbierackich.",
+    "v0.10.1: bossowie instancji blokują wyłącznie rzeczywiste przejście na kolejne piętro; eksploracja wszystkich pokojów bieżącego piętra pozostaje swobodna.",
+    "v0.10.1: boss-gate sprawdza faktyczny cel schodów/przejścia i nie uruchamia się dla połączeń prowadzących w obrębie tego samego piętra.",
+    "v0.10.1: naprawiono blokadę Twierdzy Gigantów i zachowano trwałe odblokowanie progu po pierwszym pokonaniu bossa.",
+    "v0.10.0: główne piętra Krypty, Mitycznej Krypty, Wieży Astralnej, Mitycznej Wieży i Twierdzy Gigantów mają po 15 pomieszczeń z pętlami i odnogami zamiast jednego liniowego pokoju.",
+    "v0.10.0 historycznie wprowadziło 15-pokojowy standard; v0.11.0 przenosi ten standard na pełne generowanie on-demand od pierwszego piętra.",
+    "v0.10.0: wyjście na kolejne piętro znajduje się na końcu mapy danego piętra; na progach co 10 boss stoi przy tej drodze i naprawdę blokuje dalsze przejście przy pierwszym zaliczeniu.",
+    "v0.10.0: Zatopiona Grota, Pradawny Las, Ogród Alchemika i Kopalnia Kryształów mają po 10 pomieszczeń na każdy poziom; bojowe lochy mają znacznie więcej równoczesnych mobów.",
+    "v0.10.0: wszystkie małe bojowe strefy powierzchniowe zostały podciągnięte do około 30-40 lokacji; małe pozostają wyłącznie użytkowe huby, sklepy i pojedyncze wnętrza NPC.",
+    "v0.11.0 nie liczy już tysięcy nieodwiedzonych pięter do statycznego świata; są materializowane dopiero podczas gry.",
+    "v0.9.30: rozbudowano 17 małych i średnich regionów eksploracyjnych; zamiast małych krzyży mają teraz duże, zapętlone mapy z alternatywnymi trasami.",
+    "v0.9.30: zwykłe expowiska mają co najmniej 24 lokacje, Pustynia/Bagna/Góry po 28, a cztery regiony endgame po 30 lokacji.",
+    "v0.9.30: Stary Cmentarz ma teraz 24 lokacje i dużo więcej nieumarłych, dzięki czemu godzinny quest 0/25 nie wymaga czekania na kilka respawnów.",
+    "v0.9.30: nie dodano nowego eventu ani twardych bram eksploracyjnych; zmiana dotyczy wyłącznie wielkości, układu i zaludnienia terenów.",
+    "v0.9.29: dodano 8 niezależnych questów odnawianych co 60 minut; wszystkie startują 0/x i liczą tylko zdarzenia po przyjęciu.",
+    "v0.9.29: Haldor dostał Złamane ostrza 0/6 i Pancerz do przetopu 0/6; questowe przedmioty wypadają tylko przy aktywnym zadaniu z właściwych mobów.",
+    "v0.9.29: Orin dostał Toksyczne gruczoły 0/10; źródłem są skażone/jadowite moby oraz elity z affixem Toksyczny.",
+    "v0.9.29: Borys ma Dzisiejszy połów 0/15 ryb rzecznych, Bran Drewno na naprawy 0/25, Liora Zestaw dla uzdrowiciela 0/20.",
+    "v0.9.29: Toren ma Próbki rudy z trzema osobnymi licznikami 5 miedzi + 5 żelaza + 5 srebra; podpostęp jest trwały w SQLite i zeruje się przy nowym podejściu.",
+    "v0.9.29: na Starym Cmentarzu stoi Strażnik Starego Cmentarza z godzinnym questem Nieumarli znów wstali 0/25, dającym EXP statystyk i Soul XP.",
+    "v0.9.28: dodano trwałą listę znajomych, tell/reply oraz szybkie zaproszenia znajomych do party i Gildii.",
+    "v0.9.27: każda Gildia ma prywatną Siedzibę 1-10; późne poziomy Siedziby są głównym dużym wydatkiem i od poziomu 8 kosztują 1 mithril lub więcej.",
+    "v0.9.27: Kuźnia, Skarbiec, Biblioteka i Sala Treningowa rozwijają się osobno 1-10 i są wielokrotnie tańsze od samej Siedziby.",
+    "v0.9.27: Siedziba odblokowuje Tablicę Kontraktów na poziomie 2, Salę Trofeów na 4 oraz Herolda Wielkich Łowów i bossów gildyjnych na 7.",
+    "v0.9.27: wspólne kontrakty Gildii obejmują 100 zwykłych zabójstw, 5 bossów i dostawę Pyłu Runicznego; nagrody trafiają do wspólnego skarbca.",
+    "v0.9.27: specjalni bossowie Gildii mają własny ranking, trofea, godzinny cooldown przyzwania i nagradzają wspólny skarbiec zamiast omijać indywidualny balans.",
+    "v0.9.27: elitarne affixy rozszerzono o Burzowego i Toksycznego, a Wściekły został nazwany Berserkerem; zachowano Wampirycznego, Lodowego, Opancerzonego i Przeklętego.",
+    "v0.9.24: zwykłe tereny świata nie mają twardych blokad wejścia; progi Biegłości są wyłącznie zaleceniem i ostrzeżeniem, a decyzję o wejściu podejmuje gracz.",
+    "v0.9.23: cztery nowe regiony endgame 300-400 poza nieskończonymi instancjami: Popielne Pustkowia, Rozbite Niebo, Wybrzeże Pustki i Korona Świata.",
+    "v0.9.23: rankingi pokazują najwyższe piętro Krypty i Wieży, rekordy czasu bossów, liczbę odkrytych legend oraz liczbę skompletowanych setów.",
+    "v0.9.23: Haldor daje co 60 minut zlecenie na 4 Stalowe Płyty z nieumarłych Starego Cmentarza; płyty zdobyte przed przyjęciem nie liczą postępu, a przy oddaniu są zużywane do przetopu.",
+    "v0.9.22: każdy próg Biegłości 1, 10, 20... aż do 400 ma teraz dokładnie 3 skille/spelle do nauczenia dla każdej z 12 klas.",
+    "v0.9.22: skille z tego samego progu Biegłości współdzielą cooldown wyboru, więc zwiększają różnorodność bez potrajania tempa obrażeń.",
+    "v0.9.22: questy walki wymagające wielu zabójstw mają więcej równoczesnych mobów questowych; pojedynczy respawn nie blokuje już postępu. Bossowie questowi pozostają pojedynczy.",
+    "v0.9.21: Boss Codex pokazuje pełną historię bossa: pokonania, solo/grupa, pierwszy i ostatni kill, rekord czasu, piętro tej wersji, najwyższy pokonany próg instancji i odkryte unikalne dropy.",
+    "v0.9.21: Collection Codex 2.0 dodaje procenty EQ dla każdej klasy, każdego konkretnego setu, legend, materiałów EQ, regionów świata i instancji.",
+    "v0.9.21: Mapy instancji zapisują odwiedzone piętra, procent bieżącego sektora 100-piętrowego, sekrety oraz checkpointy; działa także dla nieskończonych pięter.",
+    "v0.9.21: instancje mają cztery ukryte punkty sekretów w każdym sektorze 100 pięter; użyj sekret / secret na właściwym piętrze, a mapa zapamięta odkrycie bez wpływu na balans.",
+    "v0.9.20: bossowie co 10 pięter są jednorazową bramką progresji; po pierwszym pokonaniu dany próg pozostaje odblokowany dla postaci, a boss po respawnie jest opcjonalny.",
+    "v0.9.20: bossowie kamieni milowych co 50 i 100 pięter mają specjalną tożsamość; co 50 dają klasowy loot setowy, a co 100 dodatkowo legendarny relikt klasowy.",
+    "v0.9.20: wszystkie 12 klas dostało legendarną linię setową w progach Biegłości 50-400 oraz osobne legendarne relikty; loot nigdy nie omija wymagań Biegłości.",
+    "v0.9.20: Collection Codex ma kategorię EQ, która zapisuje dokładnie odkryte sztuki wyposażenia, w tym sety, legendy, loot bossów i materiałowe warianty.",
     "v0.9.19: pełna progresja EQ używa Biegłości 1, 10, 20...400; na każdym kolejnym progu co 10 istnieje mocniejszy sprzęt dla każdego slotu.",
     "v0.9.19: klasowe EQ zwiększa moc na każdym progu +10, a materiałowe EQ ma podtiery +10 wewnątrz Żelaza, Stali, Mithrilu, Adamantytu, Kobaltu, Runicznego, Smoczej Stali, Astralu, Pustki i Eternium.",
     "v0.9.19: drop materiałowego EQ jest ograniczony głębokością/progresem instancji; boss daje następny krok +10 zamiast omijać kilka progów Biegłości.",
@@ -9661,9 +9944,32 @@ HELP_TOPICS = {
         "Każdy skill pokazuje wymaganą Biegłość klasy, nauczyciela, jego salę, koszt nauki po aktualnym rabacie Gildii oraz status odblokowania.",
         "Status rozróżnia: nauczona, dostępna do nauki, zablokowana przez Biegłość albo zablokowana przez nieaktywną klasę.",
     ],
+    "znajomi": [
+        "znajomi — lista znajomych, ich status online/offline oraz oczekujące zaproszenia.",
+        "znajomi dodaj <gracz> — wysyła prośbę o dodanie do znajomych; znajomi akceptuj <gracz> / odrzuc <gracz>.",
+        "znajomi usun <gracz> — usuwa obustronną znajomość.",
+        "znajomi party <gracz> — szybkie zaproszenie znajomego do drużyny.",
+        "znajomi gildia <gracz> — szybkie zaproszenie znajomego do Gildii; nadal obowiązują prawa rangi i pozostałe zasady Gildii.",
+        "tell <gracz> <tekst> — prywatna wiadomość do gracza online. reply <tekst> / odpisz <tekst> odpowiada ostatniemu nadawcy prywatnej wiadomości.",
+    ],
     "gildia": [
-        "gildia / guild — pokazuje reputację aktywnych klas, rangę i zniżkę na naukę.",
-        "gildia <klasa> — szczegóły reputacji i zadania danej klasy.",
+        "gildia — status Gildii graczy: poziom, bonus, skarbiec, członkowie i osiągnięcia.",
+        "gildia utworz <nazwa>; gildia dolacz; gildia zapros <gracz>; gildia członkowie.",
+        "gildia wplac <kwota> [monet|zlota|mithril] — każdy członek może zasilać wspólny skarbiec.",
+        "gildia wyplac <kwota> [monet|zlota|mithril] — wypłata na własny portfel wymaga prawa przypisanego do rangi.",
+        "gildia rozbuduj; gildia rozbuduj potwierdz — tylko lider wydaje skarbiec na poziomy Gildii 1-100.",
+        "gildia siedziba — prywatna Siedziba Gildii 1-10; wysokie poziomy kosztują bardzo dużo, nawet mithril jako najwyższy nominał waluty.",
+        "gildia budynek rozbuduj <kowal/skarbiec/biblioteka/trening> — tańsze budynki 1-10, nie mogą przewyższyć poziomu Siedziby.",
+        "gildia kontrakty; gildia kontrakt oddaj <ilość> — wspólne polowania, bossowie i dostawy materiałów z nagrodą do skarbca.",
+        "gildia boss; gildia boss przyzwij; gildia boss ranking; gildia trofea — specjalni bossowie Gildii, ranking i trofea.",
+        "gildia rangi; gildia ranga utworz/ustaw/priorytet/nadaj — własne rangi i uprawnienia.",
+        "Bonus Gildii: +1% od poziomu 1 i +1 p.p. na 10/20/.../100; maksymalnie +11% do Biegłości, Soul XP, EXP statystyk i profesji.",
+        "gildia bank [wplac|wyplac] — wspólny bank przedmiotów; wypłata przedmiotów też zależy od rangi.",
+        "gildia chat <tekst>; gildia log; gildia osiągnięcia.",
+    ],
+    "gildiaklasowa": [
+        "gildiaklasowa / reputacja — pokazuje reputację aktywnych klas, rangę i zniżkę na naukę.",
+        "gildiaklasowa <klasa> — szczegóły reputacji i zadania danej klasy.",
         "zadanieklasowe / classquest — klasowe zadanie gildyjne.",
         "egzamin / exam — stan egzaminów Soul 50, 100, 150 i 200.",
         "Egzaminy wymagają Soul, rosnącej reputacji Gildii oraz opłaty; Soul 50 wymaga też ukończenia zadania klasowego.",
@@ -9969,7 +10275,7 @@ HELP_TOPICS = {
         "Górski Troll może przy spawnie zostać zastąpiony rzadkim wariantem.",
         "Rzadkie trolle: Albinos Troll, Kryształowy Troll, Pradawny Troll i Troll Runiczny.",
         "Zwykłe trolle, rzadkie trolle i mieszkańcy Twierdzy mogą pojawić się jako elity.",
-        "Affixy elit: Opancerzony, Wampiryczny, Regenerujący, Lodowy, Ognisty i Astralny.",
+        "Affixy elit: Opancerzony, Wampiryczny, Regenerujący, Lodowy, Ognisty, Astralny, Burzowy, Toksyczny, Berserker i Przeklęty.",
         "Opancerzony redukuje otrzymywane obrażenia.",
         "Wampiryczny wysysa życie.",
         "Regenerujący odnawia HP.",
@@ -10036,7 +10342,7 @@ HELP_TOPICS = {
     "questy_rzemieslnicze_godzina": [
         "Wszystkie powtarzalne questy profesyjne i rzemieślnicze odnawiają się dokładnie co 60 minut od ukończenia.",
         "Próba Rybaka, Próba Górnika, Próba Drwala i Próba Zielarki: 60 minut.",
-        "Trzy zlecenia Haldora: każde 60 minut.",
+        "Cztery zlecenia Haldora: każde 60 minut, w tym przetop 4 Stalowych Płyt z Cmentarza.",
         "Trzy zlecenia Marcela: każde 60 minut.",
         "Trzy zlecenia Orina: każde 60 minut.",
         "Łącznie 13 questów profesyjno-rzemieślniczych.",
@@ -10050,7 +10356,7 @@ HELP_TOPICS = {
         "Każdy metal ma sztabkę oraz sześć elementów wyposażenia: hełm, pancerz, rękawice, nogawice, buty i talizman.",
         "Wyższe receptury wymagają jednocześnie odpowiedniego levelu Kowalstwa.",
         "Komendy: kowalstwo, kuj <receptura>, craft <receptura>, receptury kowalstwo.",
-        "Haldor w Kuźni daje trzy poziomy zleceń Rzemiosła/Kowalstwa.",
+        "Haldor w Kuźni daje trzy poziomy zleceń Rzemiosła/Kowalstwa oraz godzinne zlecenie recyklingu Stalowych Płyt.",
         "Zlecenia Haldora są powtarzalne i każde odnawia się dokładnie co 60 minut.",
         "Questy Haldora dają XP Kowalstwa, XP Młota oraz walutę.",
         "Kowalstwo nie ma trwałości, zużycia ani napraw narzędzi.",
@@ -10106,7 +10412,7 @@ HELP_TOPICS = {
         "Mityczna Krypta używa końcowego ekwipunku Krypty, a Mityczna Wieża końcowego Astralnego Kręgu.",
     ],
     "lochy_profesyjne": [
-        "Cztery lochy profesyjne są nieskończone; pierwsze 20 poziomów pozostaje ręcznie przygotowaną bazą.",
+        "Cztery lochy profesyjne są nieskończone; każdy poziom ma po 10 pomieszczeń i od v0.11.0 jest tworzony dynamicznie dopiero przy wejściu.",
         "Kopalnia Kryształów zaczyna się w Kryształowej Komnacie i rozwija Górnictwo.",
         "Zatopiona Grota zaczyna się przy Morskim Molo i rozwija Wędkarstwo.",
         "Pradawny Las zaczyna się w Głębi Gaju i rozwija Drwalstwo.",
@@ -10649,7 +10955,7 @@ HELP_TOPICS = {
         "Zwykłe moby odradzają się po 120 sekundach od śmierci.",
         "Bossowie Krypty i Herszt Bandytów odradzają się po 300 sekundach.",
         "Żywy Manekin treningowy odradza się po 60 sekundach.",
-        "Po respawnie boss Krypty ponownie blokuje zejście na następne piętro.",
+        "Boss progu blokuje przejście tylko do pierwszego pokonania przez daną postać. Po respawnie jest opcjonalny.",
     ],
     "bossowie": [
         "Bossowie działają w walce czasu rzeczywistego i wykonują ataki według własnego timera.",
@@ -10704,29 +11010,29 @@ HELP_TOPICS = {
         "Odblokowanie portalu zapisuje się trwale w SQLite.",
         "portal pokazuje wszystkie odblokowane cele.",
         "portal 30 przenosi z Sali Krypty lub Przedsionka Krypty bezpośrednio na piętro 30.",
-        "Portal służy tylko do szybkiego powrotu i nie wyłącza bossa.",
-        "Jeśli boss na piętrze portalu żyje, nadal blokuje zejście na następne piętro.",
-        "Po zabiciu bossa przejście jest otwarte do respawnu; po respawnie boss znowu blokuje.",
+        "Portal służy do szybkiego powrotu; pierwszy boss progu nadal wymaga pokonania, ale jego kolejne respawny są opcjonalne.",
+        "Jeśli boss tego progu nigdy nie został jeszcze pokonany przez postać, żywy boss blokuje dalszą drogę.",
+        "Po pierwszym zabiciu bossa przejście pozostaje odblokowane na stałe dla postaci, także po jego respawnie.",
         "Portalu nie można używać podczas walki.",
         "Stare komendy checkpoint nadal działają jako alias portalu dla zgodności.",
     ],
     "krypta": [
         "Loot Krypty ma rarity, losowe affixy statystyk i bonusy setowe 2/4/6 części.",
         "Wpisz help loot_krypty, help rarity albo help sety po szczegóły.",
-        "Krypta nie ma końcowego piętra; 1-200 to ręcznie przygotowana baza, a dalsze piętra powstają na żądanie.",
-        "Na każdym piętrze znajduje się skalowany przeciwnik.",
+        "Krypta nie ma końcowego piętra; od v0.11.0 każde piętro od 1 wzwyż powstaje dynamicznie dopiero przy wejściu.",
+        "Każde piętro jest dużą mapą: 15 pomieszczeń, pętle, boczne komnaty i dużo więcej przeciwników.",
         "Moby nie są agresywne i nie rozpoczynają walki same.",
         "Bossowie są co 10 pięter od 10 bez końca.",
-        "Każdy żywy boss zawsze blokuje zejście na następne piętro.",
-        "Po zabiciu bossa przejście jest otwarte do czasu jego respawnu.",
-        "Po respawnie boss ponownie blokuje przejście.",
+        "Boss co 10 pięter blokuje zejście tylko przy pierwszym przejściu danej postaci.",
+        "Po pierwszym pokonaniu bossa próg jest zapisany jako zaliczony na stałe dla postaci.",
+        "Po respawnie boss może być farmiony, ale nie blokuje już dalszej drogi ani checkpointu.",
         "Pokonanie bossa odblokowuje trwały Portal Krypty do jego piętra.",
         "portal pokazuje odblokowane cele; portal 50 przenosi na piętro 50.",
-        "Portal nie omija żywego bossa.",
+        "Portal nie zalicza niepokonanego progu; po pierwszym zwycięstwie żywy respawn bossa jest już opcjonalny.",
         "Zwykły mob Krypty daje 100 + piętro*10 Soul XP.",
         "Boss Krypty daje 600 + piętro*20 Soul XP.",
         "Zwykły mob zostawia 1 element ekwipunku na ciele, boss 3.",
-        "prowadz krypta prowadzi tylko przed wejście do Krypty. Piętra eksplorujesz samodzielnie.",
+        "prowadz krypta prowadzi tylko przed wejście do Krypty. Piętra eksplorujesz samodzielnie; schody na kolejne piętro trzeba odnaleźć w głębi mapy.",
         "Co 10 pięter rośnie próg trudności i nagród XP; Tier EQ rośnie tylko do Tieru 40 / progresji 400.",
     ],
     "multiclass": [
@@ -12347,7 +12653,7 @@ def crypt_floor_id(floor):
     return f"crypt_floor_{int(floor)}"
 
 def crypt_floor_number(room_id):
-    m = re.fullmatch(r"crypt_floor_(\d+)", str(room_id))
+    m = re.fullmatch(r"crypt_floor_(\d+)(?:_r\d+)?", str(room_id))
     if not m: return None
     floor=int(m.group(1))
     return floor if floor >= 1 else None
@@ -12696,7 +13002,7 @@ def astral_floor_id(floor):
     return f"astral_floor_{int(floor)}"
 
 def astral_floor_number(room_id):
-    match = re.fullmatch(r"astral_floor_(\d+)", str(room_id))
+    match = re.fullmatch(r"astral_floor_(\d+)(?:_r\d+)?", str(room_id))
     if not match:
         return None
     floor = int(match.group(1))
@@ -12740,7 +13046,7 @@ def mythic_crypt_floor_id(floor):
 
 def mythic_crypt_floor_number(room_id):
     match = re.fullmatch(
-        r"mythic_crypt_floor_(\d+)", str(room_id or "")
+        r"mythic_crypt_floor_(\d+)(?:_r\d+)?", str(room_id or "")
     )
     if not match:
         return None
@@ -12754,7 +13060,7 @@ def mythic_astral_floor_id(floor):
 
 def mythic_astral_floor_number(room_id):
     match = re.fullmatch(
-        r"mythic_astral_floor_(\d+)", str(room_id or "")
+        r"mythic_astral_floor_(\d+)(?:_r\d+)?", str(room_id or "")
     )
     if not match:
         return None
@@ -12790,8 +13096,9 @@ def profession_dungeon_floor(room_id):
         if not room_id.startswith(prefix):
             continue
         raw = room_id[len(prefix):]
-        if raw.isdigit():
-            floor = int(raw)
+        match = re.fullmatch(r"(\d+)(?:_r\d+)?", raw)
+        if match:
+            floor = int(match.group(1))
             if floor >= 1:
                 return dungeon, floor
     return None, None
@@ -13038,7 +13345,7 @@ def build_crypt_200_floors():
         exits["up"]="crypt_hall" if floor==1 else crypt_floor_id(floor-1)
         exits["down"]=crypt_floor_id(floor+1)
         if is_crypt_boss_floor(floor):
-            note=" Boss tego progu blokuje zejście niżej, dopóki żyje."
+            note=" Przy pierwszym przejściu boss tego progu blokuje zejście do chwili pokonania."
         else:
             note=""
         ROOMS[room_id]={
@@ -13149,7 +13456,7 @@ def build_mythic_endgame():
         }
         c_exits["down"] = mythic_crypt_floor_id(floor + 1)
         c_note = (
-            " Mityczny boss blokuje zejście niżej."
+            " Przy pierwszym przejściu mityczny boss blokuje zejście do chwili pokonania."
             if is_mythic_crypt_boss_floor(floor)
             else ""
         )
@@ -13240,7 +13547,7 @@ def build_mythic_endgame():
         if floor < MYTHIC_MAX_FLOOR:
             a_exits["up"] = mythic_astral_floor_id(floor + 1)
         a_note = (
-            " Mityczny boss blokuje drogę w górę; Wieża ciągnie się dalej po jego pokonaniu."
+            " Przy pierwszym przejściu mityczny boss blokuje drogę w górę; po pokonaniu próg zostaje odblokowany na stałe."
             if floor in MYTHIC_BOSS_FLOORS
             else ""
         )
@@ -13961,8 +14268,16 @@ ELITE_AFFIXES = {
         "text": "Astralny: zmienia typ obrażeń, wzmacnia je o 30 procent i częściowo omija obronę.",
     },
     "furious": {
-        "label": "Wściekły",
-        "text": "Wściekły: zadaje 40 procent więcej obrażeń.",
+        "label": "Berserker",
+        "text": "Berserker: zadaje 40 procent więcej obrażeń.",
+    },
+    "storm": {
+        "label": "Burzowy",
+        "text": "Burzowy: atakuje magią burzy, zadaje 30 procent więcej obrażeń i częściowo omija obronę.",
+    },
+    "toxic": {
+        "label": "Toksyczny",
+        "text": "Toksyczny: jad zadaje 15 procent więcej obrażeń i silnie omija zwykłą obronę.",
     },
     "cursed": {
         "label": "Przeklęty",
@@ -13982,7 +14297,7 @@ def giant_fortress_floor_id(floor):
 
 def giant_fortress_floor_number(room_id):
     match = re.fullmatch(
-        r"giant_fortress_(\d+)",
+        r"giant_fortress_(\d+)(?:_r\d+)?",
         str(room_id),
     )
     if not match:
@@ -18452,14 +18767,14 @@ def configure_v0856_help_categories():
     ]
     HELP_TOPICS["umiejetnosci"] = [
         "Każda z 12 klas ma Biegłość 1-400; istniejące progi odblokowania skilli 1-200 pozostają bez zmian.",
-        "Progi umiejętności: 1, 10, 20, 30 i dalej co 10 aż do 200; Kapłan zachowuje dodatkowy skill startowy.",
+        "Progi umiejętności: 1, 10, 20, 30 i dalej co 10 aż do 400. Każdy próg ma 3 skille/spelle do nauczenia; alternatywy progu współdzielą cooldown wyboru.",
         "skills pokazuje umiejętności aktywnej klasy; kodeksklasowy <klasa> pokazuje pełną progresję.",
         "help <nazwa skilla> albo skill info <nazwa> pokazuje pełną pomoc konkretnej umiejętności.",
         "Soul Level nie odblokowuje skilli klasowych.",
     ]
     HELP_TOPICS["nazwy_skilli"] = [
         "skillnames / nazwyskilli pokazuje nazwy wszystkich skilli/spelli.",
-        "help <nazwa skilla> działa dla wszystkich 253 obecnych skilli, także klas nieaktywnych.",
+        "help <nazwa skilla> działa dla wszystkich obecnych skilli/spelli, także klas nieaktywnych.",
     ]
     HELP_TOPICS["nauczyciele"] = [
         "teachers / nauczyciele pokazuje nauczycieli klasowych.",
@@ -19163,11 +19478,182 @@ def _ensure_dynamic_boss_key(kind, floor):
         }
     return key_id
 
+MILESTONE_BOSS_NAMES = {
+    "crypt": {
+        50: "Strażnik Pięćdziesięciu Grobów",
+        100: "Arcywładca Stu Krypt",
+    },
+    "mythic_crypt": {
+        50: "Mityczny Egzekutor Pięćdziesięciu Dusz",
+        100: "Mityczny Imperator Stu Otchłani",
+    },
+    "astral": {
+        50: "Strażnik Pięćdziesięciu Gwiazd",
+        100: "Imperator Stu Gwiazd",
+    },
+    "mythic_astral": {
+        50: "Mityczny Herold Pięćdziesięciu Sfer",
+        100: "Mityczny Suweren Stu Sfer",
+    },
+    "giant": {
+        50: "Król Pięćdziesięciu Olbrzymów",
+        100: "Cesarz Stu Tytanów",
+    },
+}
+
+
+def milestone_boss_tier(floor):
+    floor = max(1, int(floor))
+    if floor % 100 == 0:
+        return 100
+    if floor % 50 == 0:
+        return 50
+    return 0
+
+
+def milestone_boss_name(kind, floor, default_name):
+    marker = milestone_boss_tier(floor)
+    if not marker:
+        return default_name
+    base = MILESTONE_BOSS_NAMES.get(str(kind), {}).get(marker)
+    if not base:
+        return default_name
+    cycle = max(1, int(floor) // marker)
+    return f"{base} — próg {floor}, cykl {cycle}"
+
+
+def apply_milestone_boss_identity(template, kind, floor):
+    marker = milestone_boss_tier(floor)
+    if not marker:
+        return template
+    template["name"] = milestone_boss_name(kind, floor, template.get("name", "Boss"))
+    template["milestone_boss"] = True
+    template["milestone_boss_50"] = True
+    template["milestone_boss_100"] = (marker == 100)
+    template["milestone_dungeon_kind"] = str(kind)
+    template["milestone_floor"] = int(floor)
+    # Jeśli katalog bossów został już zbudowany, dopisujemy lazy-generated bossa.
+    catalog = globals().get("BOSS_COLLECTION_CATALOG")
+    template_id = template.get("template_id")
+    if isinstance(catalog, dict) and template_id:
+        catalog[str(template_id)] = template["name"]
+    return template
+
+
+def boss_floor_identity(template):
+    checks = (
+        ("crypt_boss", "crypt_floor", "crypt"),
+        ("mythic_crypt_boss", "mythic_crypt_floor", "mythic_crypt"),
+        ("astral_boss", "astral_floor", "astral"),
+        ("mythic_astral_boss", "mythic_astral_floor", "mythic_astral"),
+        ("giant_fortress_boss", "giant_fortress_floor", "giant"),
+    )
+    for boss_flag, floor_field, kind in checks:
+        if template.get(boss_flag):
+            floor = int(template.get(floor_field, 0) or 0)
+            if floor >= 10 and floor % 10 == 0:
+                return kind, floor
+    return None, 0
+
+
+
+# ============================================================
+# v0.9.21 - INSTANCE MAPS / SECRETS / CHECKPOINT MEMORY
+# ============================================================
+INSTANCE_MAP_DEFS = {
+    "crypt": {"label": "Krypta", "min_floor": 1},
+    "mythic_crypt": {"label": "Mityczna Krypta", "min_floor": 1},
+    "astral": {"label": "Wieża Astralna", "min_floor": ASTRAL_MIN_FLOOR},
+    "mythic_astral": {"label": "Mityczna Wieża Astralna", "min_floor": 1},
+    "giant": {"label": "Twierdza Gigantów", "min_floor": 1},
+    "mine": {"label": "Kopalnia Głębinowa", "min_floor": 1, "passive_checkpoints": True},
+    "crystal_mine": {"label": "Kopalnia Kryształów", "min_floor": 1, "passive_checkpoints": True},
+    "sunken_grotto": {"label": "Zatopiona Grota", "min_floor": 1, "passive_checkpoints": True},
+    "ancient_forest": {"label": "Pradawny Las", "min_floor": 1, "passive_checkpoints": True},
+    "alchemy_garden": {"label": "Ogród Alchemika", "min_floor": 1, "passive_checkpoints": True},
+}
+INSTANCE_KIND_ALIASES = {
+    "krypta": "crypt", "crypt": "crypt",
+    "mitycznakrypta": "mythic_crypt", "mythiccrypt": "mythic_crypt",
+    "wieza": "astral", "wiezaastralna": "astral", "astral": "astral", "astraltower": "astral",
+    "mitycznawieza": "mythic_astral", "mitycznawiezaastralna": "mythic_astral", "mythicastral": "mythic_astral",
+    "twierdza": "giant", "twierdzagigantow": "giant", "giant": "giant", "giantfortress": "giant",
+    "kopalnia": "mine", "kopalniaglebinowa": "mine", "deepmine": "mine",
+    "kopalniakrysztalow": "crystal_mine", "crystalmine": "crystal_mine",
+    "zatopionagrota": "sunken_grotto", "sunkengrotto": "sunken_grotto",
+    "pradawnylas": "ancient_forest", "ancientforest": "ancient_forest",
+    "ogrodalchemika": "alchemy_garden", "alchemygarden": "alchemy_garden",
+}
+INSTANCE_SECRET_OFFSETS = (16, 36, 66, 86)
+INSTANCE_SECRET_TITLES = (
+    "Ukryty zapis", "Zapomniana nisza", "Ślad dawnego przejścia", "Sekretna inskrypcja"
+)
+
+def instance_room_identity(room_id):
+    room_id = str(room_id or "")
+    floor = crypt_floor_number(room_id)
+    if floor is not None:
+        return "crypt", int(floor)
+    floor = mythic_crypt_floor_number(room_id)
+    if floor is not None:
+        return "mythic_crypt", int(floor)
+    floor = astral_floor_number(room_id)
+    if floor is not None:
+        return "astral", int(floor)
+    floor = mythic_astral_floor_number(room_id)
+    if floor is not None:
+        return "mythic_astral", int(floor)
+    floor = giant_fortress_floor_number(room_id)
+    if floor is not None:
+        return "giant", int(floor)
+    floor = mine_floor_number(room_id)
+    if floor is not None:
+        return "mine", int(floor)
+    dungeon, floor = profession_dungeon_floor(room_id)
+    if dungeon and floor is not None:
+        return str(dungeon), int(floor)
+    return None, None
+
+def instance_sector_bounds(kind, floor):
+    info = INSTANCE_MAP_DEFS[str(kind)]
+    minimum = int(info.get("min_floor", 1))
+    floor = max(minimum, int(floor))
+    start = minimum + ((floor - minimum) // 100) * 100
+    return start, start + 99
+
+def instance_secret_floors(kind, floor):
+    start, end = instance_sector_bounds(kind, floor)
+    return tuple(start + offset for offset in INSTANCE_SECRET_OFFSETS if start + offset <= end)
+
+def instance_secret_index(kind, floor):
+    floors = instance_secret_floors(kind, floor)
+    try:
+        return floors.index(int(floor))
+    except ValueError:
+        return None
+
+def instance_secret_name(kind, floor):
+    index = instance_secret_index(kind, floor)
+    if index is None:
+        return None
+    label = INSTANCE_MAP_DEFS[str(kind)]["label"]
+    start, end = instance_sector_bounds(kind, floor)
+    return f"{INSTANCE_SECRET_TITLES[index]} — {label}, sektor {start}-{end}, piętro {int(floor)}"
+
+def normalize_instance_kind(value):
+    key = normalize_lookup_text(str(value or "")).replace(" ", "")
+    return INSTANCE_KIND_ALIASES.get(key)
+
+def legendary_loot_mastery_for_floor(floor):
+    floor = max(1, int(floor))
+    return min(400, max(50, (floor // 50) * 50))
+
+
 def _infinite_crypt_boss_profile(floor):
     cycle = (110, 120, 130, 140, 150, 160, 170, 180, 190, 200)
     source = cycle[((int(floor) // 10) - 21) % len(cycle)]
     return (
-        f"Władca Nieskończonej Krypty, piętro {floor}",
+        milestone_boss_name("crypt", floor, f"Władca Nieskończonej Krypty, piętro {floor}"),
         CRYPT_BOSS_MECHANICS[source],
         CRYPT_BOSS_MECHANIC_TEXT[source],
     )
@@ -19182,7 +19668,7 @@ def _infinite_mythic_boss_profile(floor):
         "phantom_emperor": "Boss ma Widmowy Unik i okresowo wzmacnia magię.",
         "final_guardian": "Poniżej połowy HP boss staje się znacznie bardziej niebezpieczny.",
     }[mechanic]
-    return f"Mityczny Władca Nieskończonej Krypty, piętro {floor}", mechanic, text
+    return milestone_boss_name("mythic_crypt", floor, f"Mityczny Władca Nieskończonej Krypty, piętro {floor}"), mechanic, text
 
 def create_infinite_crypt_floor_definition(floor, mythic=False):
     floor = max(1, int(floor))
@@ -19199,7 +19685,7 @@ def create_infinite_crypt_floor_definition(floor, mythic=False):
             "up": "mythic_crypt_gate" if floor == 1 else mythic_crypt_floor_id(floor - 1),
             "down": mythic_crypt_floor_id(floor + 1),
         }
-        note = " Mityczny boss blokuje zejście niżej." if is_mythic_crypt_boss_floor(floor) else ""
+        note = " Przy pierwszym przejściu mityczny boss blokuje zejście do chwili pokonania." if is_mythic_crypt_boss_floor(floor) else ""
         ROOMS[room_id] = {
             "zone": "Mityczna Krypta",
             "name": f"Mityczna Krypta, piętro {floor}",
@@ -19256,6 +19742,8 @@ def create_infinite_crypt_floor_definition(floor, mythic=False):
                 "corpse_equipment_pool": gear + [f"crypt_t{tier}_charm"],
                 "corpse_equipment_guaranteed": 3,
             }
+            boss["template_id"] = boss_id
+            apply_milestone_boss_identity(boss, "mythic_crypt", floor)
             MOB_TEMPLATES[boss_id] = boss
             _configure_dynamic_corpse_material(boss)
             _ensure_dynamic_boss_key("mythic_crypt", floor)
@@ -19267,7 +19755,7 @@ def create_infinite_crypt_floor_definition(floor, mythic=False):
         "up": "crypt_hall" if floor == 1 else crypt_floor_id(floor - 1),
         "down": crypt_floor_id(floor + 1),
     }
-    note = " Boss tego progu blokuje zejście niżej." if is_crypt_boss_floor(floor) else ""
+    note = " Przy pierwszym przejściu boss tego progu blokuje zejście do chwili pokonania." if is_crypt_boss_floor(floor) else ""
     ROOMS[room_id] = {
         "zone": "Krypta Nieskończona",
         "name": f"Krypta, piętro {floor}",
@@ -19324,6 +19812,8 @@ def create_infinite_crypt_floor_definition(floor, mythic=False):
             "corpse_equipment_pool": gear + [f"crypt_t{tier}_charm"],
             "corpse_equipment_guaranteed": 3,
         }
+        boss["template_id"] = boss_id
+        apply_milestone_boss_identity(boss, "crypt", floor)
         MOB_TEMPLATES[boss_id] = boss
         _configure_dynamic_corpse_material(boss)
         _ensure_dynamic_boss_key("crypt", floor)
@@ -19442,7 +19932,7 @@ def _dynamic_astral_boss_profile(floor):
     source_floors = tuple(sorted(ASTRAL_BOSS_NAMES))
     source = source_floors[((int(floor) // 10) - 1) % len(source_floors)]
     return (
-        f"Władca Nieskończonej Wieży Astralnej, poziom {floor}",
+        milestone_boss_name("astral", floor, f"Władca Nieskończonej Wieży Astralnej, poziom {floor}"),
         ASTRAL_BOSS_MECHANICS[source],
         ASTRAL_BOSS_MECHANIC_TEXT[source],
     )
@@ -19451,7 +19941,7 @@ def _dynamic_mythic_astral_boss_profile(floor):
     source_floors = tuple(sorted(ASTRAL_BOSS_MECHANICS))
     source = source_floors[((int(floor) // 10) - 1) % len(source_floors)]
     return (
-        f"Mityczny Suweren Nieskończonej Wieży, poziom {floor}",
+        milestone_boss_name("mythic_astral", floor, f"Mityczny Suweren Nieskończonej Wieży, poziom {floor}"),
         ASTRAL_BOSS_MECHANICS[source],
         ASTRAL_BOSS_MECHANIC_TEXT[source],
     )
@@ -19460,7 +19950,7 @@ def _dynamic_giant_boss_profile(floor):
     source_floors = tuple(sorted(GIANT_FORTRESS_BOSS_NAMES))
     source = source_floors[((int(floor) // 10) - 1) % len(source_floors)]
     return (
-        f"Władca Nieskończonej Twierdzy, poziom {floor}",
+        milestone_boss_name("giant", floor, f"Władca Nieskończonej Twierdzy, poziom {floor}"),
         GIANT_FORTRESS_BOSS_MECHANICS[source],
         {
             10: "Co trzecią odpowiedź używa Miażdżenia Giganta.",
@@ -19482,7 +19972,7 @@ def create_infinite_astral_floor_definition(floor, mythic=False):
             "down": "mythic_astral_gate" if floor == 1 else mythic_astral_floor_id(floor - 1),
             "up": mythic_astral_floor_id(floor + 1),
         }
-        note = " Mityczny boss blokuje drogę w górę." if is_mythic_astral_boss_floor(floor) else ""
+        note = " Przy pierwszym przejściu mityczny boss blokuje drogę w górę do chwili pokonania." if is_mythic_astral_boss_floor(floor) else ""
         ROOMS[room_id] = {
             "zone": "Mityczna Wieża Astralna",
             "name": f"Mityczna Wieża Astralna, poziom {floor}",
@@ -19559,6 +20049,8 @@ def create_infinite_astral_floor_definition(floor, mythic=False):
                 ],
                 "corpse_equipment_guaranteed": 3,
             }
+            boss["template_id"] = boss_id
+            apply_milestone_boss_identity(boss, "mythic_astral", floor)
             MOB_TEMPLATES[boss_id] = boss
             _configure_dynamic_corpse_material(boss)
             _ensure_dynamic_boss_key("mythic_astral", floor)
@@ -19574,7 +20066,7 @@ def create_infinite_astral_floor_definition(floor, mythic=False):
         "down": "astral_gate" if floor == ASTRAL_MIN_FLOOR else astral_floor_id(floor - 1),
         "up": astral_floor_id(floor + 1),
     }
-    note = " Boss tego poziomu blokuje drogę w górę." if is_astral_boss_floor(floor) else ""
+    note = " Przy pierwszym przejściu boss tego poziomu blokuje drogę w górę do chwili pokonania." if is_astral_boss_floor(floor) else ""
     ROOMS[room_id] = {
         "zone": "Wieża Astralna",
         "name": f"Wieża Astralna, poziom {floor}",
@@ -19652,6 +20144,8 @@ def create_infinite_astral_floor_definition(floor, mythic=False):
             ],
             "corpse_equipment_guaranteed": 3,
         }
+        boss["template_id"] = boss_id
+        apply_milestone_boss_identity(boss, "astral", floor)
         MOB_TEMPLATES[boss_id] = boss
         _configure_dynamic_corpse_material(boss)
         _ensure_dynamic_boss_key("astral", floor)
@@ -19668,7 +20162,7 @@ def create_infinite_giant_fortress_floor_definition(floor):
         "down": "giant_fortress_gate" if floor == 1 else giant_fortress_floor_id(floor - 1),
         "up": giant_fortress_floor_id(floor + 1),
     }
-    note = " Boss tego poziomu blokuje drogę w górę." if is_giant_fortress_boss_floor(floor) else ""
+    note = " Przy pierwszym przejściu boss tego poziomu blokuje drogę w górę do chwili pokonania." if is_giant_fortress_boss_floor(floor) else ""
     ROOMS[room_id] = {
         "zone": "Twierdza Gigantów",
         "name": f"Twierdza Gigantów - poziom {floor}",
@@ -19749,6 +20243,8 @@ def create_infinite_giant_fortress_floor_definition(floor):
             ],
             "corpse_equipment_guaranteed": 2,
         }
+        boss["template_id"] = boss_id
+        apply_milestone_boss_identity(boss, "giant", floor)
         MOB_TEMPLATES[boss_id] = boss
         _configure_dynamic_corpse_material(boss)
         _ensure_dynamic_boss_key("giant", floor)
@@ -20372,6 +20868,7 @@ COLLECTION_CATEGORY_LABELS = {
     "rare": "Rare Moby",
     "materials": "Materiały",
     "unique": "Wyjątkowe przedmioty",
+    "equipment": "Odkryte EQ",
     # Starsze kategorie pozostają jako dodatkowe widoki kompatybilności.
     "named": "Named Loot",
     "sets": "Sety",
@@ -20384,6 +20881,7 @@ COLLECTION_CATEGORY_ALIASES = {
     "gems": "gems", "gem": "gems", "klejnoty": "gems", "klejnot": "gems",
     "materials": "materials", "material": "materials", "materialy": "materials", "materiały": "materials",
     "unique": "unique", "unikalne": "unique", "wyjatkowe": "unique", "wyjątkowe": "unique",
+    "equipment": "equipment", "eq": "equipment", "ekwipunek": "equipment", "sprzet": "equipment", "sprzęt": "equipment",
     "named": "named", "namedloot": "named", "loot": "named",
     "set": "sets", "sets": "sets", "sety": "sets",
     "boss": "bosses", "bosses": "bosses", "bossowie": "bosses",
@@ -20518,6 +21016,1502 @@ def _zone_title(zone):
     return special.get(zone, f"Odkrywca: {zone}")
 
 
+
+# ============================================================
+# v0.9.23 - ENDGAME REGIONS 300-400 + STEEL RECYCLING
+# ============================================================
+# Cztery zwykłe regiony świata dają alternatywę dla nieskończonych Krypt/Wież.
+# Każdy region ma własną ZALECANĄ Biegłość aktywnej klasy, kilka gatunków mobów
+# i bossa świata. Nie są instancjami i nie generują nieskończonych pięter.
+# v0.9.24: zalecenie nigdy nie blokuje wejścia — ryzyko podejmuje gracz.
+V0923_ENDGAME_REGIONS = (
+    ("Popielne Pustkowia", 300),
+    ("Rozbite Niebo", 330),
+    ("Wybrzeże Pustki", 360),
+    ("Korona Świata", 390),
+)
+
+# Zlecenie Haldora: Stalowe Płyty są materiałem rzemieślniczym i automatycznie
+# trafiają do Szkatułki, więc nie da się ich przypadkiem sprzedać przez sell all.
+ITEMS["salvaged_steel_plate"] = {
+    "name": "Stalowa Płyta z Pancerza",
+    "type": "craft_material",
+    "price": None,
+    "desc": (
+        "Ciężka płyta odzyskana ze starego pancerza nieumarłych. "
+        "Haldor przetapia cztery takie płyty w swoim godzinnym zleceniu."
+    ),
+}
+CRAFT_MATERIAL_STORAGE_IDS = frozenset(
+    set(CRAFT_MATERIAL_STORAGE_IDS) | {"salvaged_steel_plate"}
+)
+
+QUESTS["haldor_steel_recycling"] = {
+    "name": "Zlecenie Haldora: Stal do Przetopu",
+    "giver": "Mistrz Rzemiosła Haldor",
+    "kind": "collect",
+    "target": "salvaged_steel_plate",
+    "needed": 4,
+    "progress_label": "Stalowe Płyty",
+    "description": (
+        "Zdobądź po przyjęciu zlecenia 4 Stalowe Płyty z opancerzonych "
+        "nieumarłych na Starym Cmentarzu i przynieś je Haldorowi do przetopu. "
+        "Przy oddaniu wszystkie 4 płyty są zużywane."
+    ),
+    "specialist_tool_type": "crafting",
+    "min_tool_level": 1,
+    "reward_profession": "Kowalstwo",
+    "reward_profession_xp": 1300,
+    "reward_tool_type": "crafting",
+    "reward_tool_xp": 1000,
+    "reward_silver": 260,
+    "reward_gold": 1,
+    "reward_mithril": 0,
+    "reward_items": {},
+    "repeatable": True,
+    "repeat_cooldown": 60 * 60,
+}
+
+# Osobny cmentarny szkielet daje czytelne źródło Płyt. Stare moby cmentarza
+# również mogą je upuścić, żeby quest nie zależał od jednego respawnu.
+MOB_TEMPLATES["cemetery_steel_skeleton"] = {
+    "name": "Szkielet w Stalowym Kirysie",
+    "max_hp": 390,
+    "damage": 29,
+    "damage_type": "physical",
+    "silver": 72,
+    "gold": 0,
+    "mithril": 0,
+    "stat_reward": 90,
+    "class_xp_reward": 1150,
+    "soul_reward": 690,
+    "drops": {"salvaged_steel_plate": 0.72, "soul_shard": 0.20},
+    "quest_target": "cemetery_steel_skeleton",
+}
+for _mid, _chance in (
+    ("cemetery_restless_dead", 0.28),
+    ("cemetery_bone_collector", 0.42),
+):
+    if _mid in MOB_TEMPLATES:
+        MOB_TEMPLATES[_mid].setdefault("drops", {})["salvaged_steel_plate"] = _chance
+MOB_SPAWNS.extend([
+    ("graveyard", "cemetery_steel_skeleton"),
+    ("graveyard", "cemetery_steel_skeleton"),
+    ("cemetery_bone_field", "cemetery_steel_skeleton"),
+    ("cemetery_fallen_chapel", "cemetery_steel_skeleton"),
+])
+
+# Endgame world route: z Obozu Szczytowego w górę zaczyna się świat 300-400.
+ROOMS["summit_camp"]["exits"]["up"] = "ashen_frontier"
+
+_v0923_rooms = {
+    # 300-329
+    "ashen_frontier": ("Popielne Pustkowia", "Popielna Granica", 300, {"down":"summit_camp","north":"ashen_waste","east":"cinder_ravine"}),
+    "ashen_waste": ("Popielne Pustkowia", "Morze Popiołu", 300, {"south":"ashen_frontier","north":"ember_ruins","east":"ash_bonefield"}),
+    "cinder_ravine": ("Popielne Pustkowia", "Wąwóz Żaru", 300, {"west":"ashen_frontier","north":"ember_ruins"}),
+    "ash_bonefield": ("Popielne Pustkowia", "Pole Zwęglonych Kości", 300, {"west":"ashen_waste","north":"ashen_citadel"}),
+    "ember_ruins": ("Popielne Pustkowia", "Ruiny Ostatniego Paleniska", 300, {"south":"ashen_waste","east":"ashen_citadel"}),
+    "ashen_citadel": ("Popielne Pustkowia", "Cytadela Popiołu", 300, {"west":"ember_ruins","south":"ash_bonefield","up":"skybreak_gate"}),
+    # 330-359
+    "skybreak_gate": ("Rozbite Niebo", "Brama Rozbitego Nieba", 330, {"down":"ashen_citadel","north":"storm_bridge"}),
+    "storm_bridge": ("Rozbite Niebo", "Most Burz", 330, {"south":"skybreak_gate","north":"shattered_aerie","east":"thunder_shelf"}),
+    "thunder_shelf": ("Rozbite Niebo", "Półka Gromu", 330, {"west":"storm_bridge","north":"cloud_scar"}),
+    "cloud_scar": ("Rozbite Niebo", "Blizna Chmur", 330, {"south":"thunder_shelf","west":"shattered_aerie"}),
+    "shattered_aerie": ("Rozbite Niebo", "Rozbite Gniazdo", 330, {"south":"storm_bridge","east":"cloud_scar","north":"tempest_sanctum"}),
+    "tempest_sanctum": ("Rozbite Niebo", "Sanktuarium Nawałnicy", 330, {"south":"shattered_aerie","up":"void_coast_gate"}),
+    # 360-389
+    "void_coast_gate": ("Wybrzeże Pustki", "Czarna Przełęcz", 360, {"down":"tempest_sanctum","north":"void_shore"}),
+    "void_shore": ("Wybrzeże Pustki", "Brzeg Bez Gwiazd", 360, {"south":"void_coast_gate","north":"drowned_observatory","east":"black_tide_flats"}),
+    "black_tide_flats": ("Wybrzeże Pustki", "Równina Czarnego Przypływu", 360, {"west":"void_shore","north":"starless_chapel"}),
+    "drowned_observatory": ("Wybrzeże Pustki", "Zatopione Obserwatorium", 360, {"south":"void_shore","east":"starless_chapel"}),
+    "starless_chapel": ("Wybrzeże Pustki", "Kaplica Bez Gwiazd", 360, {"west":"drowned_observatory","south":"black_tide_flats","north":"void_throne"}),
+    "void_throne": ("Wybrzeże Pustki", "Tron Przypływu Pustki", 360, {"south":"starless_chapel","up":"world_crown_gate"}),
+    # 390-400
+    "world_crown_gate": ("Korona Świata", "Brama Korony Świata", 390, {"down":"void_throne","north":"eternal_causeway"}),
+    "eternal_causeway": ("Korona Świata", "Wieczna Grobla", 390, {"south":"world_crown_gate","north":"crown_stair","east":"absolute_gallery"}),
+    "absolute_gallery": ("Korona Świata", "Galeria Absolutu", 390, {"west":"eternal_causeway","north":"crown_stair"}),
+    "crown_stair": ("Korona Świata", "Schody Korony", 390, {"south":"eternal_causeway","east":"timeless_balcony","north":"world_crown_summit"}),
+    "timeless_balcony": ("Korona Świata", "Ponadczasowy Balkon", 390, {"west":"crown_stair","north":"world_crown_summit"}),
+    "world_crown_summit": ("Korona Świata", "Szczyt Korony Świata", 390, {"south":"crown_stair","west":"timeless_balcony"}),
+}
+for _rid, (_zone, _name, _req, _exits) in _v0923_rooms.items():
+    ROOMS[_rid] = {
+        "zone": _zone,
+        "name": _name,
+        "desc": (
+            f"Region endgame; zalecana Biegłość {_req}+. "
+            "To zwykła strefa świata, nie nieskończona instancja."
+        ),
+        "exits": dict(_exits),
+        "recommended_mastery": int(_req),
+    }
+
+EXP_AREAS = EXP_AREAS + (
+    {
+        "id":"ashen_wastes","name":"Popielne Pustkowia",
+        "aliases":("popielne pustkowia","popielna granica","ash wastes"),
+        "soul_min":300,"soul_max":329,"mastery_min":300,"mastery_max":329,
+        "difficulty":"endgame 300-329","guide":"popielne pustkowia",
+        "enemies":"Popielny Revenant, Upiór Żaru, Zwęglony Kolos, Wieszcz Popiołu i Suweren Popielnej Cytadeli",
+        "description":"Pierwszy otwarty region endgame po Górach, przeznaczony dla Biegłości 300+.",
+        "note":"To zwykły region świata, nie instancja. Zalecana Biegłość: 300; wejście nie jest blokowane.",
+    },
+    {
+        "id":"shattered_sky","name":"Rozbite Niebo",
+        "aliases":("rozbite niebo","brama rozbitego nieba","shattered sky"),
+        "soul_min":330,"soul_max":359,"mastery_min":330,"mastery_max":359,
+        "difficulty":"endgame 330-359","guide":"rozbite niebo",
+        "enemies":"Serafin Nawałnicy, Łamacz Nieba, Gromowy Harcownik, Tytan Chmur i Królowa Rozbitej Nawałnicy",
+        "description":"Wysokogórski region burzowy rozwijający otwarty endgame poza Wieżą.",
+        "note":"Zalecana Biegłość: 330; wejście nie jest blokowane.",
+    },
+    {
+        "id":"void_coast","name":"Wybrzeże Pustki",
+        "aliases":("wybrzeze pustki","wybrzeże pustki","void coast"),
+        "soul_min":360,"soul_max":389,"mastery_min":360,"mastery_max":389,
+        "difficulty":"endgame 360-389","guide":"wybrzeze pustki",
+        "enemies":"Żeglarz Pustki, Wyrocznia Czarnego Przypływu, Rycerz Bez Gwiazd, Manta Otchłani i Monarcha Przypływu Pustki",
+        "description":"Czarny brzeg i zatopione obserwatorium dla późnego endgame.",
+        "note":"Zalecana Biegłość: 360; wejście nie jest blokowane.",
+    },
+    {
+        "id":"world_crown","name":"Korona Świata",
+        "aliases":("korona swiata","korona świata","world crown"),
+        "soul_min":390,"soul_max":400,"mastery_min":390,"mastery_max":400,
+        "difficulty":"endgame 390-400","guide":"korona swiata",
+        "enemies":"Strażnik Korony, Ponadczasowy Magister, Strażnik Absolutu, Echo Korony Świata i Awatar Korony Świata",
+        "description":"Końcowy otwarty region progresji 390-400 z bossem na Szczycie Korony Świata.",
+        "note":"Zalecana Biegłość: 390; wejście nie jest blokowane, a finał jest projektowany pod 400.",
+    },
+)
+EXP_ZONE_AREA_ID.update({
+    "Popielne Pustkowia":"ashen_wastes",
+    "Rozbite Niebo":"shattered_sky",
+    "Wybrzeże Pustki":"void_coast",
+    "Korona Świata":"world_crown",
+})
+EXP_AREA_BASE_CATEGORY.update({
+    "ashen_wastes":"Endgame", "shattered_sky":"Endgame",
+    "void_coast":"Endgame", "world_crown":"Endgame",
+})
+
+# Moby są skalowane do odpowiednich odcinków 300-400. Każdy region ma
+# kilka archetypów, a finałowy pokój ma własnego world bossa.
+_v0923_mob_specs = {
+    "ash_revenant": ("Popielny Revenant", 9200, 176, "physical", 28500, 4850, 300),
+    "cinder_wraith": ("Upiór Żaru", 8600, 190, "magic", 29200, 5000, 300),
+    "charred_colossus": ("Zwęglony Kolos", 11200, 168, "physical", 30500, 5200, 300),
+    "ash_seer": ("Wieszcz Popiołu", 8900, 198, "magic", 31000, 5300, 300),
+    "storm_seraph": ("Serafin Nawałnicy", 10300, 210, "magic", 34000, 5700, 330),
+    "skybreaker": ("Łamacz Nieba", 12100, 205, "physical", 35000, 5900, 330),
+    "thunder_harrier": ("Gromowy Harcownik", 9800, 225, "magic", 35500, 6050, 330),
+    "cloud_titan": ("Tytan Chmur", 13300, 198, "physical", 36200, 6200, 330),
+    "void_mariner": ("Żeglarz Pustki", 11900, 238, "physical", 39500, 6650, 360),
+    "black_tide_oracle": ("Wyrocznia Czarnego Przypływu", 11100, 252, "magic", 40500, 6850, 360),
+    "starless_knight": ("Rycerz Bez Gwiazd", 13900, 232, "physical", 41500, 7000, 360),
+    "abyssal_manta": ("Manta Otchłani", 11600, 260, "magic", 42000, 7150, 360),
+    "crown_sentinel": ("Strażnik Korony", 13600, 270, "physical", 45500, 7650, 390),
+    "timeless_magister": ("Ponadczasowy Magister", 12800, 292, "magic", 46800, 7900, 390),
+    "absolute_guardian": ("Strażnik Absolutu", 15100, 274, "physical", 47800, 8100, 390),
+    "worldcrown_echo": ("Echo Korony Świata", 13200, 300, "magic", 48500, 8250, 390),
+}
+for _mid, (_name, _hp, _dmg, _dtype, _cxp, _sxp, _mastery) in _v0923_mob_specs.items():
+    _tmpl = {
+        "name": _name, "max_hp": _hp, "damage": _dmg, "damage_type": _dtype,
+        "silver": 420 + (_mastery - 300) * 5, "gold": 3 + (_mastery - 300)//30,
+        "mithril": 0, "stat_reward": 900 + (_mastery - 300) * 7,
+        "class_xp_reward": _cxp, "soul_reward": _sxp,
+        "drops": {"soul_shard": 0.35 + (_mastery - 300) / 600.0},
+        "quest_target": None, "endgame_region_mastery": _mastery,
+    }
+    MOB_TEMPLATES[_mid] = _tmpl
+    try:
+        _configure_dynamic_corpse_material(_tmpl)
+    except Exception:
+        pass
+
+_v0923_boss_specs = {
+    "ashen_sovereign": ("Suweren Popielnej Cytadeli", 260000, 300, "magic", 72000, 11500, 320, "ashen_citadel"),
+    "tempest_queen": ("Królowa Rozbitej Nawałnicy", 330000, 345, "magic", 83000, 13000, 350, "tempest_sanctum"),
+    "void_tide_monarch": ("Monarcha Przypływu Pustki", 420000, 390, "magic", 96000, 15000, 380, "void_throne"),
+    "world_crown_avatar": ("Awatar Korony Świata", 560000, 440, "physical", 120000, 17500, 400, "world_crown_summit"),
+}
+for _mid, (_name, _hp, _dmg, _dtype, _cxp, _sxp, _mastery, _room) in _v0923_boss_specs.items():
+    _tmpl = {
+        "name": _name, "max_hp": _hp, "damage": _dmg, "damage_type": _dtype,
+        "silver": 3500 + (_mastery - 300) * 20, "gold": 20 + (_mastery - 300)//10,
+        "mithril": 1 if _mastery >= 380 else 0,
+        "stat_reward": 2600 + (_mastery - 300) * 12,
+        "class_xp_reward": _cxp, "soul_reward": _sxp,
+        "drops": {"soul_shard": 1.0, "soul_elixir": 0.45},
+        "quest_target": None, "world_boss": True,
+        "endgame_region_mastery": _mastery,
+        "boss_mechanic": "endgame_region_boss",
+        "boss_mechanic_text": "Boss endgame ma podwyższone obrażenia i wytrzymałość odpowiednie do regionu.",
+    }
+    MOB_TEMPLATES[_mid] = _tmpl
+    try:
+        _configure_dynamic_corpse_material(_tmpl)
+    except Exception:
+        pass
+    MOB_SPAWNS.append((_room, _mid))
+
+_v0923_region_spawns = {
+    "ashen_frontier": ("ash_revenant","cinder_wraith","ash_revenant"),
+    "ashen_waste": ("ash_revenant","charred_colossus","cinder_wraith"),
+    "cinder_ravine": ("charred_colossus","ash_seer","cinder_wraith"),
+    "ash_bonefield": ("ash_revenant","charred_colossus","ash_seer"),
+    "ember_ruins": ("cinder_wraith","ash_seer","charred_colossus"),
+    "skybreak_gate": ("storm_seraph","skybreaker","thunder_harrier"),
+    "storm_bridge": ("thunder_harrier","storm_seraph","skybreaker"),
+    "thunder_shelf": ("cloud_titan","thunder_harrier","storm_seraph"),
+    "cloud_scar": ("skybreaker","cloud_titan","thunder_harrier"),
+    "shattered_aerie": ("storm_seraph","cloud_titan","skybreaker"),
+    "void_coast_gate": ("void_mariner","black_tide_oracle","starless_knight"),
+    "void_shore": ("void_mariner","abyssal_manta","black_tide_oracle"),
+    "black_tide_flats": ("abyssal_manta","starless_knight","void_mariner"),
+    "drowned_observatory": ("black_tide_oracle","abyssal_manta","starless_knight"),
+    "starless_chapel": ("starless_knight","black_tide_oracle","void_mariner"),
+    "world_crown_gate": ("crown_sentinel","timeless_magister","absolute_guardian"),
+    "eternal_causeway": ("crown_sentinel","worldcrown_echo","timeless_magister"),
+    "absolute_gallery": ("absolute_guardian","timeless_magister","worldcrown_echo"),
+    "crown_stair": ("crown_sentinel","absolute_guardian","worldcrown_echo"),
+    "timeless_balcony": ("timeless_magister","worldcrown_echo","crown_sentinel"),
+}
+for _room, _mobs in _v0923_region_spawns.items():
+    for _mob in _mobs:
+        MOB_SPAWNS.append((_room, _mob))
+
+GUIDE_DESTINATION_ALIASES.update({
+    "popielne pustkowia": "ashen_frontier", "popielna granica": "ashen_frontier",
+    "rozbite niebo": "skybreak_gate", "brama rozbitego nieba": "skybreak_gate",
+    "wybrzeze pustki": "void_coast_gate", "wybrzeże pustki": "void_coast_gate",
+    "korona swiata": "world_crown_gate", "korona świata": "world_crown_gate",
+})
+
+# Polecenia rankingów. Jedna komenda udostępnia pięć trwałych rankingów.
+COMMAND_ALIASES.update({
+    "rankingi": "leaderboards", "ranking": "leaderboards",
+    "leaderboard": "leaderboards", "leaderboards": "leaderboards",
+    "tablica rekordow": "leaderboards", "tablica rekordów": "leaderboards",
+})
+HELP_TOPICS["leaderboards"] = [
+    "rankingi / leaderboard - skrócone Top 5 wszystkich kategorii.",
+    "rankingi krypta - najwyższe odwiedzone piętro Krypty.",
+    "rankingi wieza - najwyższe odwiedzone piętro Wieży Astralnej.",
+    "rankingi boss - najszybsze zarejestrowane pokonania bossów.",
+    "rankingi legendy - liczba odkrytych legendarnych elementów EQ.",
+    "rankingi sety - liczba w pełni skompletowanych zestawów EQ.",
+]
+HELP_TOPIC_ALIASES.update({
+    "rankingi": "leaderboards", "ranking": "leaderboards",
+    "leaderboard": "leaderboards", "leaderboards": "leaderboards",
+})
+
+
+
+# ============================================================
+# v0.9.30 - LARGE EXPLORATION REGIONS
+# ============================================================
+def build_v0930_large_exploration_regions():
+    """Rozbudowuje małe expowiska do dużych, zapętlonych regionów.
+
+    Bez nowego eventu eksploracyjnego: zmiana dotyczy wyłącznie świata.
+    Nowe sektory tworzą siatki z pętlami i bocznymi drogami zamiast prostych
+    krzyży. Istniejące wejścia, bossowie i połączenia między regionami zostają.
+    """
+    reverse = {"north":"south","south":"north","east":"west","west":"east","up":"down","down":"up"}
+    targets = {
+        "Obozowiska Bandytów": 24,
+        "Jaskinie Goblinów": 24,
+        "Ruiny Strażnicy": 24,
+        "Stary Cmentarz": 24,
+        "Ruiny Kultystów": 24,
+        "Legowisko Bestii": 24,
+        "Nekropolia": 24,
+        "Kanały Pod Miastem": 24,
+        "Lodowe Jaskinie": 24,
+        "Las Szeptów": 24,
+        "Pustynia": 28,
+        "Bagna": 28,
+        "Góry": 28,
+        "Popielne Pustkowia": 30,
+        "Rozbite Niebo": 30,
+        "Wybrzeże Pustki": 30,
+        "Korona Świata": 30,
+    }
+    anchors = {
+        "Obozowiska Bandytów":"bandit_outer_ring",
+        "Jaskinie Goblinów":"goblin_scrap_tunnels",
+        "Ruiny Strażnicy":"ruin_courtyard",
+        "Stary Cmentarz":"cemetery_ossuary_path",
+        "Ruiny Kultystów":"cult_ruins_courtyard",
+        "Legowisko Bestii":"beast_lair_tracks",
+        "Nekropolia":"necropolis_procession",
+        "Kanały Pod Miastem":"sewer_runoff",
+        "Lodowe Jaskinie":"ice_cave_blue_tunnel",
+        "Las Szeptów":"forest_old_oaks",
+        "Pustynia":"desert_dunes",
+        "Bagna":"reed_mire",
+        "Góry":"mountain_lower_slopes",
+        "Popielne Pustkowia":"ashen_waste",
+        "Rozbite Niebo":"storm_bridge",
+        "Wybrzeże Pustki":"void_shore",
+        "Korona Świata":"eternal_causeway",
+    }
+    words = {
+        "Obozowiska Bandytów": (("Ścieżka","Namioty","Barykada","Plac","Zaułek"),("Czerwonych Chust","Zrabowanych Wozów","Nocnej Straży","Starych Palisad","Przemytników","Wilczych Zębów"),"Palisady, wozy i boczne przejścia rozbijają obóz na wiele połączonych sektorów."),
+        "Jaskinie Goblinów": (("Tunel","Grota","Szyb","Nora","Galeria"),("Zielonego Dymu","Kościanych Totemów","Złomiarzy","Krzywych Kilofów","Grzybowych Lamp","Piszczałek"),"Kręte tunele przecinają się i wracają do wcześniejszych grot, tworząc rozległą sieć."),
+        "Ruiny Strażnicy": (("Korytarz","Dziedziniec","Wieża","Komnata","Galeria"),("Pękniętych Tarcz","Starej Warty","Runicznych Murów","Zawalonych Łuków","Zapomnianego Garnizonu","Kamiennych Schodów"),"Pozostałości murów, krużganków i podziemi łączą się wieloma drogami."),
+        "Stary Cmentarz": (("Aleja","Kwatera","Mauzoleum","Krypta","Ogród"),("Zapomnianych Imion","Krzywych Krzyży","Czarnych Róż","Otwartych Grobów","Płaczących Figur","Zgaszonych Lamp"),"Nagrobki, mauzolea i boczne alejki tworzą rozległy cmentarz z licznymi pętlami."),
+        "Ruiny Kultystów": (("Krużganek","Komnata","Dziedziniec","Galeria","Przejście"),("Czarnej Pieczęci","Zgaszonych Świec","Pękniętych Run","Szeptów Otchłani","Spalonego Pergaminu","Pustych Masek"),"Ruiny świątyni ciągną się przez dziedzińce, biblioteki i boczne przejścia rytualne."),
+        "Legowisko Bestii": (("Grota","Korytarz","Gniazdo","Szczelina","Łowisko"),("Starych Kości","Poszarpanych Skór","Żelaznych Korzeni","Ciepłego Oddechu","Śladów Pazurów","Głębokiego Ryku"),"Naturalne jaskinie rozchodzą się na kilka poziomów i łączą z powrotem bocznymi szczelinami."),
+        "Nekropolia": (("Aleja","Katakumby","Mauzoleum","Plac","Grobowiec"),("Kamiennych Królów","Bezimiennych","Czarnych Chorągwi","Milczących Straży","Kościanych Bram","Wiecznego Czuwania"),"Monumentalna nekropolia ma wiele ulic grobowych, placów i zejść do katakumb."),
+        "Kanały Pod Miastem": (("Kanał","Tunel","Komora","Przepust","Cysterna"),("Czarnej Wody","Starych Krat","Zgniłych Desek","Przemytników","Zielonego Szlamu","Głębokiego Odpływu"),"Kanały tworzą prawdziwy labirynt przepustów, cystern i bocznych odpływów."),
+        "Lodowe Jaskinie": (("Tunel","Grota","Szczelina","Komora","Galeria"),("Błękitnego Lodu","Szronowych Kolumn","Zamarzniętych Ech","Kryształowego Pyłu","Pękniętego Lodowca","Wiecznej Zimy"),"Lodowe korytarze rozgałęziają się między szczelinami i zamarzniętymi komorami."),
+        "Las Szeptów": (("Ścieżka","Polana","Zagajnik","Parów","Krąg"),("Starych Dębów","Cichego Mchu","Wilczych Tropów","Srebrnych Brzóz","Księżycowych Paproci","Powalonych Pni"),"Leśne trakty przecinają się, zawracają i prowadzą przez liczne polany oraz parowy."),
+        "Pustynia": (("Wydmy","Kanion","Równina","Ruiny","Szlak"),("Siedmiu Wiatrów","Białych Kości","Czerwonego Piasku","Zaginionych Karawan","Szklanego Pyłu","Palącego Słońca"),"Wydmy i kaniony tworzą szeroki teren z wieloma szlakami między ruinami i oazami."),
+        "Bagna": (("Mokradło","Groble","Rozlewisko","Torfowisko","Zarośla"),("Czarnej Wody","Gnijących Korzeni","Trujących Oparów","Zatopionych Drzew","Bagiennych Świateł","Wężowych Gniazd"),"Groble, wyspy i rozlewiska układają się w duży, zapętlony teren bagienny."),
+        "Góry": (("Grań","Przełęcz","Półka","Wąwóz","Szlak"),("Białych Szczytów","Wiecznego Wiatru","Kamiennych Kozic","Starych Kopalń","Burzowych Chmur","Zamarzniętych Turni"),"Górskie trakty rozchodzą się po graniach, półkach i bocznych przełęczach."),
+        "Popielne Pustkowia": (("Szlak","Pole","Wąwóz","Ruiny","Krawędź"),("Czarnego Popiołu","Dogasłych Palenisk","Zwęglonych Kości","Czerwonego Żaru","Martwych Pieców","Popielnej Burzy"),"Pustkowia rozciągają się daleko między polami popiołu, ruinami i pęknięciami ziemi."),
+        "Rozbite Niebo": (("Most","Półka","Taras","Grań","Platforma"),("Piorunów","Rozdartych Chmur","Nawałnicy","Gromowych Wież","Podniebnych Ruin","Białego Wiatru"),"Podniebne mosty i półki tworzą wielodrogowy region wysoko nad chmurami."),
+        "Wybrzeże Pustki": (("Brzeg","Molo","Ruiny","Zatoka","Taras"),("Czarnego Przypływu","Bezgwiezdnej Wody","Zatopionych Dzwonów","Pustych Latarni","Martwych Żagli","Otchłani"),"Czarny brzeg ciągnie się przez zatoki, mola i zatopione ruiny połączone wieloma ścieżkami."),
+        "Korona Świata": (("Grobla","Galeria","Taras","Schody","Dziedziniec"),("Absolutu","Wiecznego Światła","Ponadczasowych Bram","Milczących Gwiazd","Białego Kamienia","Ostatniej Korony"),"Monumentalny szczyt tworzy rozległy kompleks tarasów, galerii i wielkich schodów."),
+    }
+    detail = (
+        "Boczna droga wraca do dalszej części regionu, więc nie jest to ślepy krzyż.",
+        "Kilka przejść pozwala obejść główny trakt i odkrywać teren różnymi trasami.",
+        "Ścieżki łączą ten sektor z sąsiednimi częściami regionu w dużą pętlę.",
+        "To jeden z wielu równoległych traktów; mapa ma liczne alternatywne połączenia.",
+    )
+
+    # Zbierz zwykłe moby obecnych regionów zanim dołożymy nowe spawny.
+    room_zone = {rid: room.get("zone") for rid, room in ROOMS.items()}
+    zone_pools = {}
+    for rid, mid in list(MOB_SPAWNS):
+        zone = room_zone.get(rid)
+        if zone not in targets:
+            continue
+        tmpl = MOB_TEMPLATES.get(mid, {})
+        if tmpl.get("world_boss") or tmpl.get("boss") or tmpl.get("boss_mechanic"):
+            continue
+        zone_pools.setdefault(zone, [])
+        if mid not in zone_pools[zone]:
+            zone_pools[zone].append(mid)
+
+    # Cmentarz dostaje gęstszy zestaw nieumarłych, aby 0/25 nie wymagało stania na respawnie.
+    cemetery_pool = [
+        mid for mid in (
+            "cemetery_restless_dead", "cemetery_bone_collector",
+            "cemetery_bell_wraith", "cemetery_steel_skeleton",
+            "cemetery_grave_hound", "cemetery_crypt_reaper",
+            "cemetery_mourning_knight",
+        ) if mid in MOB_TEMPLATES
+    ]
+    if cemetery_pool:
+        zone_pools["Stary Cmentarz"] = cemetery_pool
+
+    for zone, target in targets.items():
+        existing = [rid for rid, room in ROOMS.items() if room.get("zone") == zone]
+        need = max(0, int(target) - len(existing))
+        if need <= 0:
+            continue
+        anchor = anchors[zone]
+        prefixes, suffixes, zone_desc = words[zone]
+        safe = _collection_slug(zone)
+        new_ids = [f"v0930_{safe}_{i+1:02d}" for i in range(need)]
+        for i, rid in enumerate(new_ids):
+            prefix = prefixes[i % len(prefixes)]
+            suffix = suffixes[(i // len(prefixes) + i) % len(suffixes)]
+            room_data = {
+                "zone": zone,
+                "name": f"{prefix} {suffix}",
+                "desc": f"{zone_desc} {detail[i % len(detail)]}",
+                "exits": {},
+            }
+            endgame_recommended = dict(V0923_ENDGAME_REGIONS).get(zone)
+            if endgame_recommended is not None:
+                room_data["recommended_mastery"] = int(endgame_recommended)
+            ROOMS[rid] = room_data
+
+        # Dołącz nową część bez nadpisywania istniejących wyjść.
+        anchor_exits = ROOMS[anchor].setdefault("exits", {})
+        attach = next((d for d in ("south","east","west","north","down","up") if d not in anchor_exits), None)
+        if attach is None:
+            attach = "down"
+        anchor_exits[attach] = new_ids[0]
+        ROOMS[new_ids[0]]["exits"][reverse[attach]] = anchor
+
+        # Łącznik + nieregularna siatka 5 kolumn. Pełne poziome rzędy i kilka
+        # pionowych łączników dają pętle i alternatywne trasy, ale nie prosty krzyż.
+        if len(new_ids) > 1:
+            back_from_connector = reverse[attach]
+            forward = "south" if back_from_connector != "south" else "east"
+            ROOMS[new_ids[0]]["exits"][forward] = new_ids[1]
+            ROOMS[new_ids[1]]["exits"][reverse[forward]] = new_ids[0]
+
+            grid = new_ids[1:]
+            width = 5
+            for idx, rid in enumerate(grid):
+                row, col = divmod(idx, width)
+                # poziome przejścia
+                if col + 1 < width and idx + 1 < len(grid):
+                    other = grid[idx + 1]
+                    ROOMS[rid]["exits"]["east"] = other
+                    ROOMS[other]["exits"]["west"] = rid
+                # pionowe przejścia: kolumny skrajne zawsze, środkowe naprzemiennie
+                down_idx = idx + width
+                if down_idx < len(grid) and (col in (0, width-1) or (row + col) % 2 == 0):
+                    other = grid[down_idx]
+                    ROOMS[rid]["exits"]["south"] = other
+                    ROOMS[other]["exits"]["north"] = rid
+
+        # Zaludnij nowe sektory istniejącymi zwykłymi mobami regionu.
+        pool = zone_pools.get(zone, [])
+        if pool:
+            for i, rid in enumerate(new_ids):
+                MOB_SPAWNS.append((rid, pool[i % len(pool)]))
+                if i % 4 == 0 and len(pool) > 1:
+                    MOB_SPAWNS.append((rid, pool[(i + 1) % len(pool)]))
+
+    # Achievement ma oznaczać faktyczne odkrycie całego aktualnego świata.
+    tiers = list(ACHIEVEMENT_TRACKS.get("exploration_rooms", {}).get("tiers", ()))
+    if tiers:
+        fixed = [(req, rank) for req, rank in tiers if rank != "Platinum"]
+        fixed.append((len(ROOMS), "Platinum"))
+        ACHIEVEMENT_TRACKS["exploration_rooms"]["tiers"] = tuple(fixed)
+
+build_v0930_large_exploration_regions()
+
+
+# ============================================================
+# v0.10.0 - MASSIVE WORLD & DUNGEONS
+# ============================================================
+V0100_MAJOR_FLOOR_ROOMS = 15
+V0100_PROF_FLOOR_ROOMS = 10
+V0100_RESOURCE_ROOM_SETS = (
+    "MINING_ROOMS", "FISHING_ROOMS", "SEA_FISHING_ROOMS",
+    "OCEAN_FISHING_ROOMS", "MARINE_FISHING_ROOMS",
+    "WOODCUTTING_ROOMS", "HERBALISM_ROOMS", "MEADOW_HERBALISM_ROOMS",
+)
+
+V0100_INSTANCE_LABELS = {
+    "crypt": (
+        "Galeria Sarkofagów", "Korytarz Kości", "Zawalona Katakumba",
+        "Komnata Pieczęci", "Aleja Grobowców", "Sala Zgaszonych Świec",
+        "Krypta Bezimiennych", "Kamienny Labirynt", "Przejście Strażników",
+        "Komnata Popiołu", "Korytarz Otchłani", "Sala Starych Run",
+        "Galeria Umarłych", "Schody Głębi",
+    ),
+    "mythic_crypt": (
+        "Mityczna Galeria Kości", "Korytarz Pękniętej Duszy", "Komnata Otchłani",
+        "Sala Czarnego Płomienia", "Katakumba Pustki", "Galeria Krwawych Run",
+        "Krypta Bez Końca", "Korytarz Widm", "Komnata Zatraconych",
+        "Przejście Nekromantów", "Sala Echa", "Grobowiec Pustki",
+        "Labirynt Dusz", "Brama Głębszej Otchłani",
+    ),
+    "astral": (
+        "Gwiezdna Galeria", "Taras Konstelacji", "Korytarz Mgławic",
+        "Sala Gwiezdnego Pyłu", "Most Astralny", "Komnata Orbit",
+        "Galeria Firmamentu", "Taras Srebrnych Gwiazd", "Sala Światła",
+        "Korytarz Meteorytów", "Komnata Sfer", "Most Niebios",
+        "Galeria Konstelacji", "Schody Wyższego Kręgu",
+    ),
+    "mythic_astral": (
+        "Mityczna Galeria Gwiazd", "Taras Pustych Konstelacji", "Korytarz Zaćmienia",
+        "Sala Rozdartego Nieba", "Most Wieczności", "Komnata Ciemnych Orbit",
+        "Galeria Pustki", "Taras Gwiezdnej Burzy", "Sala Załamanego Światła",
+        "Korytarz Serafinów", "Komnata Sfer", "Most Firmamentu",
+        "Labirynt Gwiazd", "Brama Wyższej Sfery",
+    ),
+    "giant": (
+        "Galeria Kolosów", "Kamienna Hala", "Korytarz Cyklopów",
+        "Sala Głazów", "Dziedziniec Tytanów", "Most Gigantów",
+        "Zbrojownia Olbrzymów", "Komnata Runicznego Kamienia", "Hala Wojowników",
+        "Korytarz Burzy", "Sala Żelaznych Bram", "Taras Twierdzy",
+        "Galeria Królewska", "Schody Wyższego Bastionu",
+    ),
+    "profession": (
+        "Boczna Komora", "Rozgałęziony Korytarz", "Głęboki Sektor",
+        "Komora Zasobów", "Stare Przejście", "Ukryta Odnoga",
+        "Szeroka Galeria", "Mistrzowski Sektor", "Przejście Głębiej",
+    ),
+    "mine": (
+        "Galeria Skał", "Komora Żył", "Tunel Głębinowy",
+        "Sala Kryształów", "Zawalony Chodnik", "Szyb Boczny",
+        "Komora Rudy", "Stary Przekop", "Schody Głębi",
+    ),
+}
+
+
+def v0100_instance_spec(room_id):
+    """Zwraca opis kanonicznego pokoju piętra, bez jego nowych odnóg."""
+    rid = str(room_id or "")
+    floor = crypt_floor_number(rid)
+    if floor is not None and rid == crypt_floor_id(floor):
+        return {
+            "kind": "crypt", "floor": floor, "next_dir": "down",
+            "rooms": V0100_MAJOR_FLOOR_ROOMS, "boss_flag": "crypt_boss",
+        }
+    floor = mythic_crypt_floor_number(rid)
+    if floor is not None and rid == mythic_crypt_floor_id(floor):
+        return {
+            "kind": "mythic_crypt", "floor": floor, "next_dir": "down",
+            "rooms": V0100_MAJOR_FLOOR_ROOMS, "boss_flag": "mythic_crypt_boss",
+        }
+    floor = astral_floor_number(rid)
+    if floor is not None and rid == astral_floor_id(floor):
+        return {
+            "kind": "astral", "floor": floor, "next_dir": "up",
+            "rooms": V0100_MAJOR_FLOOR_ROOMS, "boss_flag": "astral_boss",
+        }
+    floor = mythic_astral_floor_number(rid)
+    if floor is not None and rid == mythic_astral_floor_id(floor):
+        return {
+            "kind": "mythic_astral", "floor": floor, "next_dir": "up",
+            "rooms": V0100_MAJOR_FLOOR_ROOMS, "boss_flag": "mythic_astral_boss",
+        }
+    floor = giant_fortress_floor_number(rid)
+    if floor is not None and rid == giant_fortress_floor_id(floor):
+        return {
+            "kind": "giant", "floor": floor, "next_dir": "up",
+            "rooms": V0100_MAJOR_FLOOR_ROOMS, "boss_flag": "giant_fortress_boss",
+        }
+    floor = mine_floor_number(rid)
+    if floor is not None and rid == mine_floor_id(floor):
+        return {
+            "kind": "mine", "floor": floor, "next_dir": "down",
+            "rooms": V0100_PROF_FLOOR_ROOMS, "boss_flag": None,
+        }
+    dungeon, floor = profession_dungeon_floor(rid)
+    if dungeon is not None and rid == profession_dungeon_room_id(dungeon, floor):
+        next_dirs = {
+            "crystal_mine": "down", "sunken_grotto": "down",
+            "ancient_forest": "south", "alchemy_garden": "east",
+        }
+        return {
+            "kind": "profession", "profession_dungeon": dungeon,
+            "floor": floor, "next_dir": next_dirs[dungeon],
+            "rooms": V0100_PROF_FLOOR_ROOMS, "boss_flag": None,
+        }
+    return None
+
+
+def v0100_subroom_id(canonical_room, index):
+    return f"{canonical_room}_r{int(index):02d}"
+
+
+def v0100_copy_resource_membership(canonical_room, subrooms):
+    for set_name in V0100_RESOURCE_ROOM_SETS:
+        room_set = globals().get(set_name)
+        if isinstance(room_set, set) and canonical_room in room_set:
+            room_set.update(subrooms)
+
+
+def v0100_connect_pair(a, direction, b, reverse_direction):
+    ROOMS[a].setdefault("exits", {})[direction] = b
+    ROOMS[b].setdefault("exits", {})[reverse_direction] = a
+
+
+def v0100_expand_instance_floor(canonical_room, spawn_pairs=None, runtime=False):
+    """Zmienia jedno liniowe piętro w dużą, zapętloną mapę.
+
+    Kanoniczny pokój pozostaje lądowaniem/checkpointem. Wyjście na kolejne
+    piętro zostaje przeniesione do ostatniej komnaty. Na piętrze bossa boss
+    również trafia do tej komnaty, dzięki czemu naprawdę pilnuje dalszej drogi.
+    """
+    canonical_room = str(canonical_room or "")
+    spec = v0100_instance_spec(canonical_room)
+    if not spec or canonical_room not in ROOMS:
+        return list(spawn_pairs or ())
+    first_sub = v0100_subroom_id(canonical_room, 1)
+    if first_sub in ROOMS:
+        return list(spawn_pairs or ())
+
+    base = ROOMS[canonical_room]
+    exits = base.setdefault("exits", {})
+    next_dir = spec["next_dir"]
+    vertical_reverse = {"down":"up", "up":"down", "south":"north", "north":"south", "east":"west", "west":"east"}
+    previous_dir = vertical_reverse[next_dir]
+    # Jeżeli poprzednie piętro jest już rozbudowane, powrót prowadzi do jego
+    # prawdziwej komnaty schodów, a nie teleportuje na początek piętra.
+    previous_target = exits.get(previous_dir)
+    previous_spec = v0100_instance_spec(previous_target) if previous_target else None
+    if previous_spec:
+        previous_final = v0100_subroom_id(previous_target, int(previous_spec["rooms"]) - 1)
+        if previous_final in ROOMS:
+            exits[previous_dir] = previous_final
+    next_target = exits.pop(next_dir, None)
+    total_rooms = max(3, int(spec["rooms"]))
+    subrooms = [v0100_subroom_id(canonical_room, i) for i in range(1, total_rooms)]
+    maze_rooms = subrooms[:-1]
+    final_room = subrooms[-1]
+    labels = V0100_INSTANCE_LABELS[spec["kind"]]
+    floor = int(spec["floor"])
+    zone = base.get("zone", "Loch")
+
+    for index, rid in enumerate(subrooms, 1):
+        label_seed = int(hashlib.sha256(f"{spec['kind']}:{floor}".encode("utf-8")).hexdigest()[:8], 16)
+        label = labels[(label_seed + index - 1) % len(labels)]
+        if rid == final_room:
+            if spec.get("boss_flag") and is_crypt_boss_floor(floor) and spec["kind"] in {"crypt", "mythic_crypt"}:
+                label = "Komnata Strażnika Progu"
+            elif spec.get("boss_flag") and spec["kind"] in {"astral", "mythic_astral"} and floor % 10 == 0:
+                label = "Komnata Strażnika Kręgu"
+            elif spec.get("boss_flag") and spec["kind"] == "giant" and floor % 10 == 0:
+                label = "Sala Strażnika Bastionu"
+        ROOMS[rid] = {
+            "zone": zone,
+            "name": f"{label} — {floor}",
+            "desc": (
+                f"Rozległa część poziomu {floor}. Korytarze rozchodzą się w kilka stron, "
+                "łączą w pętle i prowadzą przez boczne komnaty. To pełne piętro lochu, "
+                "a nie pojedynczy liniowy pokój."
+            ),
+            "exits": {},
+            "v0100_instance_kind": spec["kind"],
+            "v0100_floor": floor,
+            "v0100_floor_room": index + 1,
+            "procedural_dynamic": True,
+        }
+        if "recommended_mastery" in base:
+            ROOMS[rid]["recommended_mastery"] = base["recommended_mastery"]
+        dungeon = spec.get("profession_dungeon")
+        if dungeon:
+            ROOMS[rid]["profession_dungeon"] = dungeon
+            ROOMS[rid]["profession_dungeon_floor"] = floor
+
+    # v0.11.0: układ jest proceduralny, ale deterministyczny dla rodzaju i numeru
+    # piętra. Restart serwera nie zmienia mapy w trakcie progresji gracza.
+    seed_text = f"soulbound-v0110:{spec['kind']}:{floor}:{spec.get('profession_dungeon','')}"
+    floor_seed = int(hashlib.sha256(seed_text.encode("utf-8")).hexdigest()[:16], 16)
+    floor_rng = random.Random(floor_seed)
+
+    # Wejście na piętro prowadzi do labiryntu bokiem, a nie od razu dalej.
+    free_attach = [d for d in ("east", "south", "west", "north") if d not in exits]
+    attach_dir = floor_rng.choice(free_attach) if free_attach else "east"
+    reverse = {"east": "west", "west": "east", "north": "south", "south": "north"}
+    v0100_connect_pair(canonical_room, attach_dir, maze_rooms[0], reverse[attach_dir])
+
+    # Różne piętra dostają siatkę o szerokości 3 albo 4. Każdy rząd pozostaje
+    # spójny, a między kolejnymi rzędami zawsze istnieje co najmniej jedno
+    # przejście; dodatkowe przejścia tworzą losowane, lecz stałe pętle.
+    width = 3 + floor_rng.randrange(2)
+    for idx, rid in enumerate(maze_rooms):
+        row, col = divmod(idx, width)
+        if col + 1 < width and idx + 1 < len(maze_rooms):
+            other = maze_rooms[idx + 1]
+            if "east" not in ROOMS[rid]["exits"] and "west" not in ROOMS[other]["exits"]:
+                v0100_connect_pair(rid, "east", other, "west")
+
+    rows = (len(maze_rooms) + width - 1) // width
+    for row in range(rows - 1):
+        current = list(range(row * width, min((row + 1) * width, len(maze_rooms))))
+        below = list(range((row + 1) * width, min((row + 2) * width, len(maze_rooms))))
+        possible = [c for c in range(min(len(current), len(below)))]
+        if not possible:
+            continue
+        chosen = {floor_rng.choice(possible)}
+        # Każde piętro ma co najmniej jedną prawdziwą pętlę, a część rzędów
+        # dostaje dodatkowe alternatywne przejście.
+        if len(possible) > 1 and (row == 0 or floor_rng.random() < 0.70):
+            extras = [c for c in possible if c not in chosen]
+            if extras:
+                chosen.add(floor_rng.choice(extras))
+        for c in sorted(chosen):
+            a = maze_rooms[current[c]]
+            b = maze_rooms[below[c]]
+            if "south" not in ROOMS[a]["exits"] and "north" not in ROOMS[b]["exits"]:
+                v0100_connect_pair(a, "south", b, "north")
+
+    # Ostatnia komnata jest za labiryntem i zawiera drogę na kolejne piętro.
+    tail = maze_rooms[-1]
+    if "east" in ROOMS[tail]["exits"]:
+        # Dla krótszej siatki użyj pierwszej wolnej pary.
+        for d, rev in (("south", "north"), ("north", "south"), ("west", "east")):
+            if d not in ROOMS[tail]["exits"] and rev not in ROOMS[final_room]["exits"]:
+                v0100_connect_pair(tail, d, final_room, rev)
+                break
+    else:
+        v0100_connect_pair(tail, "east", final_room, "west")
+    if next_target:
+        ROOMS[final_room]["exits"][next_dir] = next_target
+        # Gdy następne piętro istnieje już statycznie, jego droga powrotna
+        # wskazuje na tę samą klatkę schodową. Dynamiczne piętro naprawi ten
+        # link w chwili utworzenia.
+        next_spec = v0100_instance_spec(next_target)
+        if next_spec and next_target in ROOMS:
+            ROOMS[next_target].setdefault("exits", {})[vertical_reverse[next_dir]] = final_room
+
+    v0100_copy_resource_membership(canonical_room, subrooms)
+
+    pairs = list(spawn_pairs or ())
+    if not pairs and not runtime:
+        pairs = [(r, t) for r, t in MOB_SPAWNS if r == canonical_room]
+    boss_flag = spec.get("boss_flag")
+    boss_ids = []
+    regular_ids = []
+    for r, tid in pairs:
+        if r != canonical_room:
+            continue
+        template = MOB_TEMPLATES.get(tid, {})
+        if boss_flag and template.get(boss_flag):
+            boss_ids.append(tid)
+        else:
+            regular_ids.append(tid)
+
+    # Przy statycznych piętrach przenieś bossów z lądowania do sali wyjściowej.
+    if not runtime and boss_ids:
+        moved = set(boss_ids)
+        MOB_SPAWNS[:] = [
+            (r, t) for r, t in MOB_SPAWNS
+            if not (r == canonical_room and t in moved)
+        ]
+        for tid in boss_ids:
+            MOB_SPAWNS.append((final_room, tid))
+    elif runtime and boss_ids:
+        pairs = [
+            (final_room if (r == canonical_room and t in set(boss_ids)) else r, t)
+            for r, t in pairs
+        ]
+
+    # Każda boczna komnata dostaje przeciwnika; część komnat ma dwa różne typy.
+    extra_pairs = []
+    if regular_ids:
+        for index, rid in enumerate(subrooms):
+            if rid == final_room and boss_ids:
+                continue
+            extra_pairs.append((rid, regular_ids[index % len(regular_ids)]))
+            if index % 3 == 1 and len(regular_ids) > 1:
+                extra_pairs.append((rid, regular_ids[(index + 1) % len(regular_ids)]))
+    if runtime:
+        pairs.extend(extra_pairs)
+        return pairs
+    MOB_SPAWNS.extend(extra_pairs)
+    return pairs
+
+
+def build_v0100_massive_instance_floors():
+    canonical = []
+    canonical.extend(crypt_floor_id(f) for f in range(1, CRYPT_PREGENERATED_MAX_FLOOR + 1))
+    canonical.extend(mythic_crypt_floor_id(f) for f in range(1, MYTHIC_MAX_FLOOR + 1))
+    canonical.extend(astral_floor_id(f) for f in range(ASTRAL_MIN_FLOOR, ASTRAL_MAX_FLOOR + 1))
+    canonical.extend(mythic_astral_floor_id(f) for f in range(1, MYTHIC_MAX_FLOOR + 1))
+    canonical.extend(giant_fortress_floor_id(f) for f in range(1, GIANT_FORTRESS_MAX_FLOOR + 1))
+    for dungeon in PROF_DUNGEON_PREFIXES:
+        canonical.extend(profession_dungeon_room_id(dungeon, f) for f in range(1, PROF_DUNGEON_MAX_FLOOR + 1))
+    for rid in canonical:
+        if rid in ROOMS:
+            v0100_expand_instance_floor(rid, runtime=False)
+
+
+V0100_SURFACE_TARGETS = {
+    "Wybrzeże": 30,
+    "Łąki": 30,
+    "Podziemia": 30,
+    "Łąki Zielarskie": 30,
+    "Jaskinia Trolli": 36,
+    "Obozowiska Bandytów": 30,
+    "Jaskinie Goblinów": 30,
+    "Ruiny Strażnicy": 30,
+    "Stary Cmentarz": 30,
+    "Ruiny Kultystów": 30,
+    "Legowisko Bestii": 30,
+    "Nekropolia": 30,
+    "Kanały Pod Miastem": 30,
+    "Lodowe Jaskinie": 30,
+    "Las Szeptów": 30,
+    "Dzicz": 36,
+    "Pustynia": 36,
+    "Bagna": 36,
+    "Góry": 36,
+    "Popielne Pustkowia": 40,
+    "Rozbite Niebo": 40,
+    "Wybrzeże Pustki": 40,
+    "Korona Świata": 40,
+}
+
+V0100_SURFACE_WORDS = {
+    "Wybrzeże": ("Brzeg", "Klif", "Zatoka", "Molo", "Wydma"),
+    "Łąki": ("Łąka", "Polana", "Pastwisko", "Wzgórze", "Zagajnik"),
+    "Podziemia": ("Korytarz", "Komnata", "Galeria", "Katakumba", "Przejście"),
+    "Łąki Zielarskie": ("Łąka", "Polana", "Ogród", "Zagajnik", "Dolina"),
+    "Jaskinia Trolli": ("Grota", "Tunel", "Sala", "Rozpadlina", "Korytarz"),
+    "Dzicz": ("Trakt", "Parów", "Polana", "Urwisko", "Ostęp"),
+    "Pustynia": ("Wydmy", "Kanion", "Równina", "Ruiny", "Szlak"),
+    "Bagna": ("Mokradło", "Groble", "Rozlewisko", "Torfowisko", "Zarośla"),
+    "Góry": ("Grań", "Przełęcz", "Półka", "Wąwóz", "Szlak"),
+}
+
+
+def v0100_zone_regular_pool(zone):
+    result = []
+    for rid, tid in MOB_SPAWNS:
+        if ROOMS.get(rid, {}).get("zone") != zone:
+            continue
+        template = MOB_TEMPLATES.get(tid, {})
+        if (
+            template.get("world_boss") or template.get("boss")
+            or template.get("boss_mechanic") or template.get("crypt_boss")
+            or template.get("astral_boss") or template.get("mythic_crypt_boss")
+            or template.get("mythic_astral_boss") or template.get("giant_fortress_boss")
+        ):
+            continue
+        if tid not in result:
+            result.append(tid)
+    return result
+
+
+def v0100_find_surface_anchor(zone):
+    candidates = [rid for rid, room in ROOMS.items() if room.get("zone") == zone]
+    # Najpierw wybierz pomieszczenie z wolnym kierunkiem poziomym i bez bossa.
+    boss_rooms = {
+        rid for rid, tid in MOB_SPAWNS
+        if ROOMS.get(rid, {}).get("zone") == zone
+        and (
+            MOB_TEMPLATES.get(tid, {}).get("world_boss")
+            or MOB_TEMPLATES.get(tid, {}).get("boss_mechanic")
+        )
+    }
+    candidates.sort(key=lambda rid: (rid in boss_rooms, len(ROOMS[rid].get("exits", {})), rid))
+    for rid in candidates:
+        exits = ROOMS[rid].get("exits", {})
+        if any(d not in exits for d in ("east", "south", "west", "north")):
+            return rid
+    return candidates[0] if candidates else None
+
+
+def v0100_expand_surface_zone(zone, target):
+    existing = [rid for rid, room in ROOMS.items() if room.get("zone") == zone]
+    need = max(0, int(target) - len(existing))
+    if not need:
+        return
+    anchor = v0100_find_surface_anchor(zone)
+    if not anchor:
+        return
+    pool = v0100_zone_regular_pool(zone)
+    safe = _collection_slug(zone)
+    new_ids = [f"v0100_{safe}_{i+1:03d}" for i in range(need)]
+    words = V0100_SURFACE_WORDS.get(zone, ("Szlak", "Sektor", "Przejście", "Odnoga", "Rejon"))
+    for i, rid in enumerate(new_ids):
+        word = words[i % len(words)]
+        ROOMS[rid] = {
+            "zone": zone,
+            "name": f"{word} {zone} {i+1}",
+            "desc": (
+                f"Rozległa część regionu {zone}. Teren rozchodzi się na boczne drogi, "
+                "pętle i alternatywne przejścia, dzięki czemu obszar nie jest małym expowiskiem."
+            ),
+            "exits": {},
+        }
+        endgame_recommended = dict(V0923_ENDGAME_REGIONS).get(zone)
+        if endgame_recommended is not None:
+            ROOMS[rid]["recommended_mastery"] = int(endgame_recommended)
+
+    reverse = {"east":"west", "west":"east", "north":"south", "south":"north"}
+    anchor_exits = ROOMS[anchor].setdefault("exits", {})
+    attach = next((d for d in ("east", "south", "west", "north") if d not in anchor_exits), None)
+    if attach is None:
+        return
+    v0100_connect_pair(anchor, attach, new_ids[0], reverse[attach])
+
+    width = 5
+    for idx, rid in enumerate(new_ids):
+        row, col = divmod(idx, width)
+        if col + 1 < width and idx + 1 < len(new_ids):
+            other = new_ids[idx + 1]
+            if "east" not in ROOMS[rid]["exits"] and "west" not in ROOMS[other]["exits"]:
+                v0100_connect_pair(rid, "east", other, "west")
+        down_idx = idx + width
+        if down_idx < len(new_ids) and (col in (0, width - 1) or (row + col) % 2 == 0):
+            other = new_ids[down_idx]
+            if "south" not in ROOMS[rid]["exits"] and "north" not in ROOMS[other]["exits"]:
+                v0100_connect_pair(rid, "south", other, "north")
+
+    # Skopiuj charakter profesyjny regionu, jeśli stara część już go miała.
+    for set_name in V0100_RESOURCE_ROOM_SETS:
+        room_set = globals().get(set_name)
+        if isinstance(room_set, set) and any(r in room_set for r in existing):
+            room_set.update(new_ids)
+
+    if pool:
+        for i, rid in enumerate(new_ids):
+            MOB_SPAWNS.append((rid, pool[i % len(pool)]))
+            if i % 3 == 0 and len(pool) > 1:
+                MOB_SPAWNS.append((rid, pool[(i + 1) % len(pool)]))
+
+
+def build_v0100_massive_surface_world():
+    for zone, target in V0100_SURFACE_TARGETS.items():
+        v0100_expand_surface_zone(zone, target)
+
+
+# v0.11.0: piętrowe instancje nie są już rozwijane przy starcie serwera.
+# Ich pełne mapy powstają dopiero przy pierwszym wejściu gracza.
+build_v0100_massive_surface_world()
+
+# ============================================================
+# v0.11.0 - FULL LAZY DYNAMIC DUNGEONS
+# ============================================================
+# Od tej wersji wszystkie piętrowe instancje są tworzone dopiero przy wejściu.
+# Zachowujemy istniejące template'y mobów/EQ dla kompatybilności zapisów i
+# questów, ale usuwamy tysiące gotowych pokojów oraz ich statyczne spawny.
+# Dzięki temu piętro 1 działa dokładnie tak samo proceduralnie jak piętro 401+.
+
+def v0110_dynamic_instance_kind(room_id):
+    rid = str(room_id or "")
+    if crypt_floor_number(rid) is not None:
+        return "crypt"
+    if mythic_crypt_floor_number(rid) is not None:
+        return "mythic_crypt"
+    if astral_floor_number(rid) is not None:
+        return "astral"
+    if mythic_astral_floor_number(rid) is not None:
+        return "mythic_astral"
+    if giant_fortress_floor_number(rid) is not None:
+        return "giant"
+    if mine_floor_number(rid) is not None:
+        return "mine"
+    dungeon, floor = profession_dungeon_floor(rid)
+    if dungeon is not None and floor is not None:
+        return "profession"
+    return None
+
+
+def v0110_is_dynamic_instance_room(room_id):
+    return v0110_dynamic_instance_kind(room_id) is not None
+
+
+def v0110_remove_pregenerated_instance_rooms():
+    removed = {rid for rid in tuple(ROOMS) if v0110_is_dynamic_instance_room(rid)}
+    if not removed:
+        return 0
+
+    # Usuń wyłącznie pokoje piętrowych instancji. Bramy, wejścia i huby świata
+    # pozostają i nadal wskazują na identyfikator pierwszego dynamicznego piętra.
+    for rid in removed:
+        ROOMS.pop(rid, None)
+
+    MOB_SPAWNS[:] = [(rid, tid) for rid, tid in MOB_SPAWNS if rid not in removed]
+
+    # Zestawy zasobowe mają zawierać tylko realnie istniejące pokoje.
+    # create_infinite_* doda je ponownie, kiedy piętro faktycznie powstanie.
+    for set_name in V0100_RESOURCE_ROOM_SETS + ("MINING_DEPTH_ROOMS",):
+        room_set = globals().get(set_name)
+        if isinstance(room_set, set):
+            room_set.difference_update(removed)
+
+    return len(removed)
+
+
+V0110_REMOVED_PREGENERATED_INSTANCE_ROOMS = v0110_remove_pregenerated_instance_rooms()
+
+# Kotwice wejściowe są stałe, ale ich cele nie muszą istnieć aż do pierwszego kroku.
+V0110_DYNAMIC_DUNGEON_ENTRANCES = {
+    "crypt_hall": crypt_floor_id(1),
+    "mythic_crypt_gate": mythic_crypt_floor_id(1),
+    "astral_gate": astral_floor_id(ASTRAL_MIN_FLOOR),
+    "mythic_astral_gate": mythic_astral_floor_id(1),
+    "giant_fortress_gate": giant_fortress_floor_id(1),
+    "crystal_chamber": mine_floor_id(1),
+    "profession_crystal_mine": profession_dungeon_room_id("crystal_mine", 1),
+    "sea_pier": profession_dungeon_room_id("sunken_grotto", 1),
+    "deep_grove": profession_dungeon_room_id("ancient_forest", 1),
+    "herbalist_hut": profession_dungeon_room_id("alchemy_garden", 1),
+}
+
+# ============================================================
+# v0.10.2 - CITY LIFE + OUTSKIRTS + ROAMING MOBS + TOOL BALANCE
+# ============================================================
+
+def build_v0102_city_and_outskirts():
+    """Rozbudowuje Miasto Dusz i tworzy żywe przedmieścia.
+
+    Miasto pozostaje strefą bezpieczną bez wrogich spawnów. Przedmieścia
+    są niskopoziomowym obszarem przejściowym między bramami i Łąkami.
+    """
+    city_rooms = {
+        "artisan_lane": {
+            "zone":"Miasto Dusz", "name":"Ulica Rzemieślników",
+            "desc":"Kamienna ulica pachnie drewnem, skórą i rozgrzanym metalem. Z obu stron stoją małe warsztaty miejskich fachowców.",
+            "exits":{},
+        },
+        "tailor_workshop": {
+            "zone":"Miasto Dusz", "name":"Pracownia Krawiecka",
+            "desc":"Stoły są przykryte tkaninami, nićmi i wykrojami płaszczy dla mieszkańców oraz straży.",
+            "exits":{},
+        },
+        "carpenter_workshop": {
+            "zone":"Miasto Dusz", "name":"Warsztat Ciesielski",
+            "desc":"Belki, deski i gotowe framugi wypełniają pracownię. Cieśla naprawia wozy i miejskie budynki.",
+            "exits":{},
+        },
+        "leatherworker_workshop": {
+            "zone":"Miasto Dusz", "name":"Warsztat Kaletnika",
+            "desc":"Na półkach leżą pasy, torby i uprzęże. W powietrzu czuć garbowaną skórę i wosk.",
+            "exits":{},
+        },
+        "mason_yard": {
+            "zone":"Miasto Dusz", "name":"Dziedziniec Kamieniarzy",
+            "desc":"Kamienne bloki, dłuta i fragmenty nowych murów tworzą głośny plac pracy budowniczych.",
+            "exits":{},
+        },
+        "potter_workshop": {
+            "zone":"Miasto Dusz", "name":"Warsztat Garncarski",
+            "desc":"Koło garncarskie obraca się obok pieca. Na półkach schną misy, dzbany i naczynia dla karczmy.",
+            "exits":{},
+        },
+        "lantern_alley": {
+            "zone":"Miasto Dusz", "name":"Zaułek Latarni",
+            "desc":"Wąski zaułek oświetlają rzędy błękitnych lamp. Mieszkańcy skracają tędy drogę do południowej dzielnicy.",
+            "exits":{},
+        },
+        "city_bakery": {
+            "zone":"Miasto Dusz", "name":"Piekarnia Pod Złotym Bochenkiem",
+            "desc":"Ciepły zapach chleba wypełnia niewielką piekarnię zaopatrującą karczmę i strażników przy bramach.",
+            "exits":{},
+        },
+        "healer_house": {
+            "zone":"Miasto Dusz", "name":"Dom Uzdrowicielki",
+            "desc":"Cicha izba z łóżkami, bandażami i suszonymi ziołami służy rannym podróżnym oraz mieszkańcom.",
+            "exits":{},
+        },
+        "residential_lane": {
+            "zone":"Miasto Dusz", "name":"Ulica Domów",
+            "desc":"Szereg niewielkich kamiennych domów otacza spokojną ulicę z ławkami i studzienkami deszczowymi.",
+            "exits":{},
+        },
+        "well_square": {
+            "zone":"Miasto Dusz", "name":"Plac Starej Studni",
+            "desc":"Mały plac skupia mieszkańców południowej dzielnicy. Pośrodku stoi głęboka, nadal używana studnia.",
+            "exits":{},
+        },
+        "courier_office": {
+            "zone":"Miasto Dusz", "name":"Poczta i Biuro Kurierów",
+            "desc":"Posłańcy sortują listy, paczki i meldunki przeznaczone dla portu, straży oraz odległych posterunków.",
+            "exits":{},
+        },
+        "dockside_lane": {
+            "zone":"Miasto Dusz", "name":"Ulica Portowa",
+            "desc":"Szeroka droga biegnie wzdłuż magazynów i nabrzeża. Słychać liny, dzwonki statków i nawoływania tragarzy.",
+            "exits":{},
+        },
+        "harbor_warehouse": {
+            "zone":"Miasto Dusz", "name":"Magazyn Portowy",
+            "desc":"Skrzynie, beczki i zaplombowane pakunki czekają na odbiór przez kupców oraz rybaków.",
+            "exits":{},
+        },
+        "ropewalk": {
+            "zone":"Miasto Dusz", "name":"Powroźnia",
+            "desc":"Długi warsztat służy do skręcania lin dla statków, wozów i miejskich dźwigów.",
+            "exits":{},
+        },
+        "shipwright_yard": {
+            "zone":"Miasto Dusz", "name":"Stocznia Miejska",
+            "desc":"Na drewnianych podporach stoi naprawiany kuter. Szkutnicy wymieniają deski i uszczelniają kadłub.",
+            "exits":{},
+        },
+        "scholar_lane": {
+            "zone":"Miasto Dusz", "name":"Ulica Uczonych",
+            "desc":"Spokojna uliczka łączy dziedziniec treningowy z domami skrybów, nauczycieli i kartografów.",
+            "exits":{},
+        },
+        "cartographer_house": {
+            "zone":"Miasto Dusz", "name":"Pracownia Kartografa",
+            "desc":"Ściany pokrywają mapy traktów, ruin, bagien i gór. Na dużym stole powstają nowe szkice szlaków.",
+            "exits":{},
+        },
+        "city_watch_office": {
+            "zone":"Miasto Dusz", "name":"Biuro Patroli Miejskich",
+            "desc":"Małe biuro przy północnej dzielnicy zbiera zgłoszenia mieszkańców i rozdziela krótkie patrole poza murami.",
+            "exits":{},
+        },
+    }
+    ROOMS.update(city_rooms)
+
+    def connect(a, da, b, db):
+        ROOMS[a].setdefault("exits", {})[da] = b
+        ROOMS[b].setdefault("exits", {})[db] = a
+
+    # Dzielnica rzemieślnicza przy Kuźni.
+    connect("forge", "east", "artisan_lane", "west")
+    connect("artisan_lane", "north", "tailor_workshop", "south")
+    connect("artisan_lane", "east", "carpenter_workshop", "west")
+    connect("artisan_lane", "south", "mason_yard", "north")
+    connect("carpenter_workshop", "east", "leatherworker_workshop", "west")
+    connect("carpenter_workshop", "south", "potter_workshop", "north")
+    connect("potter_workshop", "west", "mason_yard", "east")
+
+    # Południowa dzielnica mieszkalna.
+    connect("south_street", "west", "lantern_alley", "east")
+    connect("lantern_alley", "west", "residential_lane", "east")
+    connect("lantern_alley", "south", "city_bakery", "north")
+    connect("residential_lane", "west", "well_square", "east")
+    connect("residential_lane", "south", "healer_house", "north")
+    connect("well_square", "south", "courier_office", "north")
+    connect("courier_office", "east", "healer_house", "west")
+
+    # Dzielnica portowa.
+    connect("harbor", "north", "dockside_lane", "south")
+    connect("dockside_lane", "west", "harbor_warehouse", "east")
+    connect("dockside_lane", "east", "ropewalk", "west")
+    connect("ropewalk", "east", "shipwright_yard", "west")
+    connect("shipwright_yard", "south", "dockside_lane", "north")
+
+    # Uczeni i patrole.
+    connect("training", "east", "scholar_lane", "west")
+    connect("scholar_lane", "east", "cartographer_house", "west")
+    connect("scholar_lane", "south", "city_watch_office", "north")
+
+    outskirts = {
+        "city_outskirts_gate": ("Przedbramie Południowe", "Droga tuż za murami rozdziela się na sad, pola i trakt prowadzący ku Łąkom."),
+        "caravan_road": ("Droga Karawan", "Ubity trakt nosi ślady kół, końskich kopyt i pieszych podróżnych zmierzających do miasta."),
+        "orchard_path": ("Droga Sadowa", "Niska kamienna ściana oddziela drogę od starych sadów należących do mieszkańców miasta."),
+        "old_orchard": ("Stary Sad", "Pomiędzy jabłoniami i gruszami stoją porzucone kosze. Krzewy przyciągają drobną zwierzynę."),
+        "mill_road": ("Droga do Młyna", "Boczna droga biegnie w stronę starego młyna i zakola rzeki."),
+        "old_mill": ("Stary Młyn", "Koło wodne obraca się powoli przy kamiennym młynie, który nadal obsługuje okolicznych rolników."),
+        "riverside_path": ("Ścieżka Nad Rzeką", "Wąska ścieżka ciągnie się wzdłuż trzcin i płytkiego brzegu rzeki."),
+        "east_fields": ("Wschodnie Pola", "Niskie pola uprawne i miedze ciągną się aż do łagodnych wzgórz."),
+        "shepherd_hill": ("Wzgórze Pasterzy", "Z trawiastego wzgórza widać mury miasta, Łąki i fragment Starego Traktu."),
+        "roadside_shrine": ("Kapliczka Podróżnych", "Mała kamienna kapliczka stoi przy skrzyżowaniu dróg. Podróżni zostawiają tu świece i drobne monety."),
+        "drainage_ditch": ("Stary Rów Obronny", "Wyschnięty fragment dawnego rowu otacza południową część murów i tworzy osłoniętą ścieżkę."),
+        "abandoned_storehouse": ("Opuszczony Magazyn", "Zamknięty kiedyś magazyn ma wyłamane drzwi i ślady nieproszonych gości."),
+        "charcoal_camp": ("Obóz Węglarzy", "Dymiące mielerze stoją przy skraju zagajnika. Węglarze wracają tu tylko w dzień."),
+        "outer_wall_path": ("Ścieżka Pod Murami", "Patrolowa droga prowadzi wzdłuż zewnętrznej strony miejskich murów ku północnemu posterunkowi."),
+    }
+    for rid, (name, desc) in outskirts.items():
+        ROOMS[rid] = {"zone":"Przedmieścia Miasta Dusz", "name":name, "desc":desc, "exits":{}}
+
+    # Wstaw przedmieścia pomiędzy miasto i Łąki oraz dodaj boczną pętlę do Starego Traktu.
+    ROOMS["south_gate"]["exits"]["south"] = "city_outskirts_gate"
+    ROOMS["meadow"]["exits"]["north"] = "caravan_road"
+    connect("south_gate", "south", "city_outskirts_gate", "north")
+    connect("city_outskirts_gate", "south", "caravan_road", "north")
+    connect("caravan_road", "south", "meadow", "north")
+    connect("city_outskirts_gate", "west", "orchard_path", "east")
+    connect("orchard_path", "west", "old_orchard", "east")
+    connect("orchard_path", "south", "mill_road", "north")
+    connect("mill_road", "west", "old_mill", "east")
+    connect("mill_road", "south", "riverside_path", "north")
+    connect("riverside_path", "east", "caravan_road", "west")
+    connect("city_outskirts_gate", "east", "outer_wall_path", "west")
+    connect("outer_wall_path", "south", "east_fields", "north")
+    connect("east_fields", "south", "shepherd_hill", "north")
+    connect("shepherd_hill", "west", "roadside_shrine", "east")
+    connect("roadside_shrine", "north", "caravan_road", "east")
+    connect("east_fields", "east", "drainage_ditch", "west")
+    connect("drainage_ditch", "south", "abandoned_storehouse", "north")
+    connect("abandoned_storehouse", "west", "charcoal_camp", "east")
+    connect("charcoal_camp", "north", "shepherd_hill", "south")
+    connect("outer_wall_path", "north", "north_watchpost", "south")
+
+build_v0102_city_and_outskirts()
+
+# Nowi mieszkańcy i fachowcy. Są pokojowi i nie są celami walki.
+NPCS.update({
+    "tailor_lysa": {
+        "name":"Krawcowa Lysa", "room":"tailor_workshop",
+        "dialogue":"Szyję płaszcze, torby i mundury straży. Najwięcej pracy mam wtedy, gdy karawany przywożą nowe tkaniny.",
+        "quest":"city_tailor_guard_delivery",
+    },
+    "carpenter_edric": {
+        "name":"Cieśla Edric", "room":"carpenter_workshop",
+        "dialogue":"Miasto ciągle potrzebuje desek do dachów, wozów i rusztowań. Dobre drewno nigdy się nie marnuje.",
+        "quest":"city_carpenter_timber",
+    },
+    "leatherworker_soren": {
+        "name":"Kaletnik Soren", "room":"leatherworker_workshop",
+        "dialogue":"Naprawiam pasy, sakwy i uprzęże. W warsztacie zawsze znajdzie się robota, nawet gdy na Rynku jest spokojnie.",
+    },
+    "mason_kelda": {
+        "name":"Kamieniarka Kelda", "room":"mason_yard",
+        "dialogue":"Mury miasta stoją tak długo, jak długo ktoś pilnuje zaprawy i pękniętych kamieni.",
+    },
+    "potter_ves": {
+        "name":"Garncarz Ves", "room":"potter_workshop",
+        "dialogue":"Karczma tłucze dzbany szybciej, niż ja je wypalam. To chyba znak, że interes idzie dobrze.",
+    },
+    "baker_odo": {
+        "name":"Piekarz Odo", "room":"city_bakery",
+        "dialogue":"Straż przy bramach dostaje świeży chleb każdego ranka. Czasem brakuje mi rąk do roznoszenia dostaw.",
+        "quest":"city_baker_gate_delivery",
+    },
+    "healer_sava": {
+        "name":"Uzdrowicielka Sava", "room":"healer_house",
+        "dialogue":"Leczę drobne rany i przygotowuję opatrunki. Świeże zioła z okolic miasta szybko schodzą.",
+        "quest":"city_healer_herbs",
+    },
+    "courier_ina": {
+        "name":"Kurierka Ina", "room":"courier_office",
+        "dialogue":"Znam każdą ulicę i prawie każdy trakt. Najkrótsza droga nie zawsze jest najbezpieczniejsza.",
+    },
+    "warehouse_master_berek": {
+        "name":"Magazynier Berek", "room":"harbor_warehouse",
+        "dialogue":"Każda skrzynia ma znak właściciela. Bez porządku port zamieniłby się w jeden wielki stos towaru.",
+    },
+    "ropemaker_tina": {
+        "name":"Powroźniczka Tina", "room":"ropewalk",
+        "dialogue":"Dobra lina musi trzymać i statek, i wóz. Skręcanie jej wygląda prosto dopiero po latach praktyki.",
+    },
+    "shipwright_marek": {
+        "name":"Szkutnik Marek", "room":"shipwright_yard",
+        "dialogue":"Kadłub mówi, gdzie dostał falą. Ja tylko muszę umieć go słuchać.",
+        "quest":"city_shipwright_fisher_delivery",
+    },
+    "cartographer_eren": {
+        "name":"Kartograf Eren", "room":"cartographer_house",
+        "dialogue":"Aktualizuję mapy na podstawie meldunków zwiadowców i podróżnych. Każda nowa droga zmienia obraz świata.",
+        "quest":"city_cartographer_guard_delivery",
+    },
+    "watchman_dalen": {
+        "name":"Strażnik Dalen", "room":"city_watch_office",
+        "dialogue":"Patrole pod murami zgłaszają drobnych rabusiów. To nie armia, ale lekceważeni szybko robią się odważniejsi.",
+        "quest":"city_outskirts_thieves",
+    },
+    "orchardist_miro": {
+        "name":"Sadownik Miro", "room":"old_orchard",
+        "dialogue":"Sad jest stary, ale wciąż owocuje. Gorzej z wilkami, które zaczęły podchodzić pod drzewa.",
+        "quest":"city_outskirts_wolves",
+    },
+})
+
+# Przedmioty do krótkich dostaw miejskich.
+ITEMS.update({
+    "city_guard_uniform_order": {"name":"Zamówienie na mundury straży", "type":"quest", "price":None, "desc":"Dokument Krawcowej Lysy dla Kwatermistrza Harka."},
+    "city_bread_crate": {"name":"Skrzynka świeżego chleba", "type":"quest", "price":None, "desc":"Poranna dostawa Piekarza Oda dla południowej bramy."},
+    "city_harbor_repair_list": {"name":"Lista napraw kutrów", "type":"quest", "price":None, "desc":"Lista Szkutnika Marka dla Rybaka Borysa."},
+    "city_patrol_map": {"name":"Zaktualizowana mapa patroli", "type":"quest", "price":None, "desc":"Nowa mapa Kartografa Erena dla Kapitana Arvena."},
+})
+
+QUESTS.update({
+    "city_tailor_guard_delivery": {
+        "name":"Miejska przysługa: Mundury dla straży", "giver":"Krawcowa Lysa", "kind":"deliver_npc",
+        "target_npc":"guard_quartermaster_harek", "quest_item":"city_guard_uniform_order",
+        "accept_items":{"city_guard_uniform_order":1}, "needed":1,
+        "description":"Zanieś zamówienie Krawcowej Lysy Kwatermistrzowi Harkowi w Zbrojowni Straży.",
+        "reward_stat_progress":20, "reward_silver":180, "reward_gold":0, "reward_mithril":0,
+        "reward_items":{}, "repeatable":False, "event_progress_only":True,
+    },
+    "city_baker_gate_delivery": {
+        "name":"Miejska przysługa: Chleb na południową bramę", "giver":"Piekarz Odo", "kind":"deliver_npc",
+        "target_npc":"south_gate_guard_lena", "quest_item":"city_bread_crate",
+        "accept_items":{"city_bread_crate":1}, "needed":1,
+        "description":"Dostarcz skrzynkę świeżego chleba Strażniczce Lenie przy Południowej Bramie.",
+        "reward_stat_progress":20, "reward_silver":160, "reward_gold":0, "reward_mithril":0,
+        "reward_items":{"healing_potion":1}, "repeatable":False, "event_progress_only":True,
+    },
+    "city_shipwright_fisher_delivery": {
+        "name":"Miejska przysługa: Lista napraw portowych", "giver":"Szkutnik Marek", "kind":"deliver_npc",
+        "target_npc":"fisher_tomas", "quest_item":"city_harbor_repair_list",
+        "accept_items":{"city_harbor_repair_list":1}, "needed":1,
+        "description":"Przekaż Rybakowi Borysowi na Targu Rybnym listę kutrów wymagających naprawy.",
+        "reward_stat_progress":25, "reward_silver":220, "reward_gold":0, "reward_mithril":0,
+        "reward_items":{}, "repeatable":False, "event_progress_only":True,
+    },
+    "city_cartographer_guard_delivery": {
+        "name":"Miejska przysługa: Nowa mapa patroli", "giver":"Kartograf Eren", "kind":"deliver_npc",
+        "target_npc":"captain_arven", "quest_item":"city_patrol_map",
+        "accept_items":{"city_patrol_map":1}, "needed":1,
+        "description":"Zanieś Kapitanowi Arvenowi w Strażnicy Głównej zaktualizowaną mapę patroli.",
+        "reward_stat_progress":30, "reward_silver":260, "reward_gold":0, "reward_mithril":0,
+        "reward_items":{}, "repeatable":False, "event_progress_only":True,
+    },
+    "city_carpenter_timber": {
+        "name":"Miejska robota: Drewno na rusztowania", "giver":"Cieśla Edric", "kind":"collect_category",
+        "target":"wood", "needed":10,
+        "description":"Po przyjęciu zadania pozyskaj 10 sztuk dowolnego drewna i przynieś je Cieśli Edricowi.",
+        "specialist_tool_type":"woodcutting", "min_tool_level":1,
+        "reward_profession":"Drwalstwo", "reward_profession_xp":450,
+        "reward_tool_type":"woodcutting", "reward_tool_xp":360,
+        "reward_silver":240, "reward_gold":0, "reward_mithril":0, "reward_items":{},
+        "repeatable":True, "repeat_cooldown":QUEST_REPEAT_COOLDOWN_SECONDS,
+    },
+    "city_healer_herbs": {
+        "name":"Miejska robota: Zioła dla lecznicy", "giver":"Uzdrowicielka Sava", "kind":"collect_category",
+        "target":"herb", "needed":10,
+        "description":"Po przyjęciu zadania zbierz 10 dowolnych ziół i przynieś je Uzdrowicielce Savie.",
+        "specialist_tool_type":"herbalism", "min_tool_level":1,
+        "reward_profession":"Zielarstwo", "reward_profession_xp":450,
+        "reward_tool_type":"herbalism", "reward_tool_xp":360,
+        "reward_silver":240, "reward_gold":0, "reward_mithril":0, "reward_items":{"healing_potion":1},
+        "repeatable":True, "repeat_cooldown":QUEST_REPEAT_COOLDOWN_SECONDS,
+    },
+    "city_outskirts_thieves": {
+        "name":"Patrol przedmieść: Drobni rabusie", "giver":"Strażnik Dalen", "kind":"kill",
+        "target":"outskirts_thief", "needed":6,
+        "description":"Pokonaj 6 Rabusiów z Przedmieść po przyjęciu zadania i wróć do Strażnika Dalena.",
+        "reward_stat_progress":40, "reward_silver":420, "reward_gold":1, "reward_mithril":0,
+        "reward_items":{}, "repeatable":True, "repeat_cooldown":QUEST_REPEAT_COOLDOWN_SECONDS,
+    },
+    "city_outskirts_wolves": {
+        "name":"Sad pod presją: Wilki pod murami", "giver":"Sadownik Miro", "kind":"kill",
+        "target":"outskirts_wolf", "needed":5,
+        "description":"Pokonaj 5 Wilków z Przedmieść po przyjęciu zadania i wróć do Sadownika Mira.",
+        "reward_stat_progress":35, "reward_silver":360, "reward_gold":0, "reward_mithril":0,
+        "reward_items":{"healing_potion":1}, "repeatable":True, "repeat_cooldown":QUEST_REPEAT_COOLDOWN_SECONDS,
+    },
+})
+
+MOB_TEMPLATES.update({
+    "outskirts_thief": {
+        "name":"Rabuś z Przedmieść", "max_hp":70, "damage":7, "damage_type":"physical",
+        "silver":28, "gold":0, "mithril":0, "stat_reward":28, "soul_reward":135,
+        "drops":{"healing_potion":0.04}, "quest_target":"outskirts_thief",
+    },
+    "outskirts_wolf": {
+        "name":"Wilk z Przedmieść", "max_hp":56, "damage":6, "damage_type":"physical",
+        "silver":18, "gold":0, "mithril":0, "stat_reward":23, "soul_reward":118,
+        "drops":{"wolf_fang":0.18}, "quest_target":"outskirts_wolf",
+    },
+    "outskirts_boar": {
+        "name":"Dzik z Pól", "max_hp":68, "damage":7, "damage_type":"physical",
+        "silver":22, "gold":0, "mithril":0, "stat_reward":25, "soul_reward":125,
+        "drops":{}, "quest_target":None,
+    },
+    "outskirts_wasp": {
+        "name":"Osa Sadowa", "max_hp":44, "damage":5, "damage_type":"physical",
+        "silver":15, "gold":0, "mithril":0, "stat_reward":19, "soul_reward":100,
+        "drops":{}, "quest_target":None,
+    },
+})
+
+MOB_SPAWNS.extend([
+    ("caravan_road","outskirts_thief"), ("caravan_road","outskirts_wolf"),
+    ("orchard_path","outskirts_wolf"),
+    ("mill_road","outskirts_thief"),
+    ("old_mill","outskirts_boar"),
+    ("riverside_path","outskirts_wolf"), ("riverside_path","outskirts_boar"),
+    ("east_fields","outskirts_boar"), ("east_fields","outskirts_wasp"),
+    ("shepherd_hill","outskirts_wolf"), ("shepherd_hill","outskirts_thief"),
+    ("roadside_shrine","outskirts_thief"),
+    ("drainage_ditch","outskirts_wasp"), ("drainage_ditch","outskirts_wolf"),
+    ("abandoned_storehouse","outskirts_thief"), ("abandoned_storehouse","outskirts_thief"),
+    ("charcoal_camp","outskirts_boar"), ("charcoal_camp","outskirts_thief"),
+    ("outer_wall_path","outskirts_thief"), ("outer_wall_path","outskirts_wolf"),
+])
+
+# Audyt gęstości v0.10.2: puste pokoje Dziczy/Bagien/Pustyni są bezpiecznymi
+# hubami NPC. W Podziemiach dwa przejścia bojowe były wyraźnie rzadsze od reszty.
+MOB_SPAWNS.extend([
+    ("cave_tunnel", "crystal_guardian"),
+    ("crypt_entrance", "skeleton"),
+])
+
+# Wrogowie w zwykłym świecie mogą przemieszczać się między sąsiednimi pokojami.
+# Bossowie, mini-bossowie, aktywnie walczące moby, miasta, huby NPC oraz wielkie
+# piętra instancji pozostają stabilne, żeby ruch nie psuł bramek progresji.
+MOB_WANDER_MIN_SECONDS = 45
+MOB_WANDER_MAX_SECONDS = 110
+MOB_WANDER_ROOM_CAP = 4
+MOB_WANDER_BLOCKED_ZONES = {
+    "Miasto Dusz", "Gildia Dusz", "Wioska Górska",
+    "Krypta", "Mityczna Krypta", "Wieża Astralna", "Mityczna Wieża Astralna",
+    "Twierdza Gigantów", "Kopalnia Głębinowa",
+}
+MOB_WANDER_SAFE_ROOMS = frozenset(
+    {str(npc.get("room")) for npc in NPCS.values() if npc.get("room")}
+    | set(SHOPS)
+    | {"city_outskirts_gate", "caravan_camp", "swamp_hunter_post", "sewer_entrance"}
+)
+
+
+def mob_template_can_wander(template):
+    if not template or int(template.get("max_hp", 0) or 0) <= 0:
+        return False
+    if template.get("stationary_mob") or template.get("mini_boss") or template.get("world_boss"):
+        return False
+    boss_flags = (
+        "boss", "boss_mechanic", "crypt_boss", "astral_boss",
+        "mythic_crypt_boss", "mythic_astral_boss", "giant_fortress_boss",
+    )
+    return not any(template.get(flag) for flag in boss_flags)
+
+
+def mob_room_can_wander(room_id):
+    room = ROOMS.get(room_id, {})
+    zone = str(room.get("zone", ""))
+    if not room or room_id in MOB_WANDER_SAFE_ROOMS:
+        return False
+    if room.get("procedural_infinite"):
+        return False
+    if zone in MOB_WANDER_BLOCKED_ZONES:
+        return False
+    if zone.startswith("Loch Profesyjny"):
+        return False
+    if any(token in zone for token in ("Krypta", "Wieża Astralna", "Twierdza Gigantów")):
+        return False
+    return True
+
+
+def mob_wander_candidates(room_id):
+    if not mob_room_can_wander(room_id):
+        return []
+    room = ROOMS[room_id]
+    zone = room.get("zone")
+    result = []
+    for direction, target in room.get("exits", {}).items():
+        if direction not in ("north", "south", "east", "west"):
+            continue
+        target_room = ROOMS.get(target)
+        if not target_room or target_room.get("zone") != zone:
+            continue
+        if not mob_room_can_wander(target):
+            continue
+        result.append(target)
+    return result
+
+HELP_TOPICS["miasto"] = [
+    "Miasto Dusz ma rozbudowane dzielnice: rzemieślniczą, mieszkalną, portową oraz ulicę uczonych.",
+    "Nowe warsztaty i budynki mają pokojowych NPC, krótkie dialogi i małe zadania miejskie.",
+    "Południowa Brama prowadzi teraz przez Przedmieścia Miasta Dusz do Łąk.",
+    "Przedmieścia tworzą zapętlony obszar z sadem, młynem, polami, ścieżką pod murami i alternatywnym dojściem do północnego posterunku.",
+    "Samo Miasto Dusz pozostaje bezpieczne i bez wrogich spawnów.",
+]
+HELP_TOPICS["ruchome_moby"] = [
+    "Zwykłe moby w świecie mogą przechodzić do sąsiednich pomieszczeń tej samej strefy, ale nigdy nie rozpoczynają walki same.",
+    "Moby nie wchodzą do Miasta Dusz, sklepów, pokojów NPC ani innych bezpiecznych hubów.",
+    "Bossowie i mini-bossowie nie wędrują. Mob w aktywnej walce również pozostaje na miejscu.",
+    "Wielkie piętra Krypt, Wież, Twierdzy i lochów profesyjnych zachowują stałą obsadę, aby nie psuć progresji i bramek bossów.",
+    "Po śmierci wędrujący mob odradza się w swoim pierwotnym miejscu spawnu.",
+]
+HELP_TOPICS["balans_narzedzi"] = [
+    "v0.10.2 wyrównuje tempo zdobywania leveli narzędzi zbierackich w czasie rzeczywistym.",
+    "Kilof dostaje x3.0 Tool XP z normalnego wydobycia, Piła x2.4, Wędka x1.5, a Sierp zachowuje x1.0.",
+    "Mnożniki dotyczą Tool XP z normalnych akcji; nie zwiększają Profession XP, ilości surowców ani nagród questowych.",
+    "Narzędzia produkcyjne nie zostały przyspieszone, ponieważ ich realny koszt obejmuje materiały i różne wartości XP receptur.",
+]
+HELP_TOPIC_ALIASES.update({
+    "miasto dusz":"miasto", "city":"miasto", "przedmiescia":"miasto", "przedmieścia":"miasto",
+    "ruchome moby":"ruchome_moby", "wedrujace moby":"ruchome_moby", "wędrujące moby":"ruchome_moby",
+    "balans narzedzi":"balans_narzedzi", "balans narzędzi":"balans_narzedzi", "tool balance":"balans_narzedzi",
+})
+
+HELP_TOPICS["wielkie_lochy"] = [
+    "v0.11.0: wszystkie piętrowe Krypty i lochy są generowane dynamicznie od pierwszego poziomu, dopiero gdy gracz do nich wchodzi.",
+    "Dotyczy to obu Krypt, obu Wież Astralnych, Twierdzy Gigantów, Kopalni Głębinowej i czterech lochów profesyjnych.",
+    "v0.10.0 usuwa małe liniowe piętra z głównych instancji.",
+    "Krypta, Mityczna Krypta, Wieża Astralna, Mityczna Wieża Astralna i Twierdza Gigantów mają po 15 pomieszczeń na piętro.",
+    "Lochy profesyjne mają po 10 pomieszczeń na poziom.",
+    "Schody na następne piętro są w końcowej komnacie, a nie przy wejściu.",
+    "Na piętrach co 10 boss pilnuje przejścia dalej; po pierwszym trwałym zaliczeniu jego późniejszy respawn nie blokuje postaci.",
+    "Dynamiczne piętra ponad dawnym końcem są generowane w tym samym dużym układzie.",
+    "Bojowe piętra mają więcej równoczesnych mobów; Kopalnia Kryształów pozostaje lochom zasobowym bez sztucznego zagęszczania walki.",
+    "Prowadzenie nadal zatrzymuje się przed wejściem do lochu i nie rozwiązuje mapy za gracza.",
+]
+HELP_TOPIC_ALIASES.update({
+    "wielkie lochy": "wielkie_lochy", "massive dungeons": "wielkie_lochy",
+    "duze lochy": "wielkie_lochy", "duże lochy": "wielkie_lochy",
+    "dynamiczne lochy": "wielkie_lochy", "dynamiczne krypty": "wielkie_lochy",
+    "proceduralne lochy": "wielkie_lochy", "dynamic dungeons": "wielkie_lochy",
+})
+
+# Platynowy Kartograf zawsze śledzi cały aktualny statyczny świat.
+_v0100_tiers = list(ACHIEVEMENT_TRACKS.get("exploration_rooms", {}).get("tiers", ()))
+if _v0100_tiers:
+    _v0100_tiers = [(req, rank) for req, rank in _v0100_tiers if rank != "Platinum"]
+    _v0100_tiers.append((len(ROOMS), "Platinum"))
+    ACHIEVEMENT_TRACKS["exploration_rooms"]["tiers"] = tuple(_v0100_tiers)
+
 EXPLORATION_ZONE_ROOMS = {}
 for _room_id, _room in ROOMS.items():
     EXPLORATION_ZONE_ROOMS.setdefault(_room["zone"], []).append(_room_id)
@@ -20593,6 +22587,20 @@ def _build_set_catalog():
 
 SET_COLLECTION_CATALOG, SET_ENTRY_BY_ITEM = _build_set_catalog()
 
+def boss_codex_drop_is_unique(item_id):
+    item = ITEMS.get(str(item_id), {})
+    if not item:
+        return False
+    rarity = str(item.get("rarity", "")).lower()
+    return bool(
+        item.get("named_loot")
+        or item.get("legendary_set_loot")
+        or item.get("legendary_class_relic")
+        or item.get("boss_relic_floor") is not None
+        or item.get("astral_relic_floor") is not None
+        or rarity in ("legendary", "mythic", "eternal", "unique")
+    )
+
 NAMED_LOOT_CATALOG = {
     item_id: item["name"]
     for item_id, item in ITEMS.items()
@@ -20657,6 +22665,12 @@ UNIQUE_ITEM_COLLECTION_CATALOG = {
     )
 }
 
+EQUIPMENT_COLLECTION_CATALOG = {
+    item_id: data["name"]
+    for item_id, data in ITEMS.items()
+    if data.get("type") in ("armor", "weapon")
+}
+
 COLLECTION_CATALOGS = {
     "fish": FISH_COLLECTION_CATALOG,
     "minerals": MINERAL_COLLECTION_CATALOG,
@@ -20666,10 +22680,128 @@ COLLECTION_CATALOGS = {
     "rare": RARE_MOB_COLLECTION_CATALOG,
     "materials": MATERIAL_COLLECTION_CATALOG,
     "unique": UNIQUE_ITEM_COLLECTION_CATALOG,
+    "equipment": EQUIPMENT_COLLECTION_CATALOG,
     # Widoki dodatkowe z wcześniejszych wersji.
     "named": NAMED_LOOT_CATALOG,
     "sets": {key: value["name"] for key, value in SET_COLLECTION_CATALOG.items()},
     "chests": CHEST_COLLECTION_CATALOG,
+}
+
+
+# ============================================================
+# v0.9.22 - QUEST MOB DENSITY
+# Questy typu kill z potrzebą >1 nie powinny zmuszać do czekania na pojedynczy
+# respawn. Dla celu questu liczymy również moby oznaczone quest_target/quest_targets
+# i dokładamy brakujące instancje w istniejących pokojach. Bossowie (needed=1)
+# pozostają pojedynczymi przeciwnikami.
+def _v0922_expand_quest_mob_spawns():
+    def quest_tags(mob_id):
+        template = MOB_TEMPLATES.get(mob_id, {})
+        tags = {mob_id}
+        primary = template.get("quest_target")
+        if primary:
+            tags.add(primary)
+        tags.update(template.get("quest_targets") or ())
+        return tags
+
+    added = []
+    for quest_id, quest in QUESTS.items():
+        if quest.get("kind") != "kill":
+            continue
+        needed = max(1, int(quest.get("needed", 1) or 1))
+        if needed <= 1:
+            continue
+        target = str(quest.get("target", ""))
+        if not target:
+            continue
+        eligible = [
+            (room_id, mob_id)
+            for room_id, mob_id in MOB_SPAWNS
+            if target in quest_tags(mob_id)
+        ]
+        if not eligible:
+            continue
+        # Im większy quest, tym więcej równoczesnych celów, ale bez zalewania pokoju.
+        desired = min(8, max(3, (needed + 1) // 2))
+        if len(eligible) >= desired:
+            continue
+        seed = list(eligible)
+        index = 0
+        while len(eligible) < desired:
+            room_id, mob_id = seed[index % len(seed)]
+            MOB_SPAWNS.append((room_id, mob_id))
+            eligible.append((room_id, mob_id))
+            added.append((quest_id, target, room_id, mob_id))
+            index += 1
+    return added
+
+
+V0922_ADDED_QUEST_MOB_SPAWNS = _v0922_expand_quest_mob_spawns()
+
+# v0.9.21 - COLLECTION CODEX 2.0 dynamic group indexes
+# ============================================================
+def _build_collection_v2_groups():
+    class_groups = {name: set() for name in CLASS_EQUIPMENT_SETS}
+    legendary_groups = {name: set() for name in CLASS_EQUIPMENT_SETS}
+    legendary_groups["Ogólne"] = set()
+    material_groups = {tier["key"]: set() for tier in CORPSE_MATERIAL_TIERS}
+    set_groups = {}
+    set_names = {}
+    for item_id, item in ITEMS.items():
+        if item.get("type") not in ("armor", "weapon"):
+            continue
+        req_class = str(item.get("required_class") or "")
+        if req_class in class_groups:
+            class_groups[req_class].add(item_id)
+        if (
+            str(item.get("rarity", "")).lower() == "legendary"
+            or item.get("legendary_set_loot")
+            or item.get("legendary_class_relic")
+        ):
+            legendary_groups[req_class if req_class in CLASS_EQUIPMENT_SETS else "Ogólne"].add(item_id)
+        material = str(item.get("corpse_material") or item.get("blacksmith_material") or "")
+        if material in material_groups:
+            material_groups[material].add(item_id)
+
+        group_id = None
+        group_name = None
+        if item.get("class_set_name"):
+            mastery = int(item.get("required_mastery", 1) or 1)
+            group_id = f"class:{req_class}:{item.get('class_set_name')}:{mastery}"
+            group_name = f"{item.get('class_set_name')} — {req_class}, Biegłość {mastery}"
+        elif item.get("regional_set"):
+            sid = str(item["regional_set"])
+            group_id = f"regional:{sid}"
+            group_name = REGIONAL_SET_BONUSES.get(sid, {}).get("name", f"Set regionalny {sid}")
+        elif item.get("crypt_set_tier"):
+            tier = int(item["crypt_set_tier"])
+            group_id = f"crypt:{tier}"
+            group_name = f"Zestaw Krypty Tier {tier}"
+        elif item.get("astral_set_tier"):
+            tier = int(item["astral_set_tier"])
+            group_id = f"astral:{tier}"
+            group_name = f"Astralny Zestaw Kręgu {tier}"
+        if group_id:
+            set_groups.setdefault(group_id, set()).add(item_id)
+            set_names[group_id] = group_name
+    return (
+        {k: frozenset(v) for k, v in class_groups.items()},
+        {k: frozenset(v) for k, v in legendary_groups.items()},
+        {k: frozenset(v) for k, v in material_groups.items()},
+        {k: frozenset(v) for k, v in set_groups.items()},
+        set_names,
+    )
+
+(
+    COLLECTION_V2_CLASS_GROUPS,
+    COLLECTION_V2_LEGENDARY_GROUPS,
+    COLLECTION_V2_MATERIAL_GROUPS,
+    COLLECTION_V2_SET_GROUPS,
+    COLLECTION_V2_SET_NAMES,
+) = _build_collection_v2_groups()
+
+COLLECTION_V2_MATERIAL_LABELS = {
+    tier["key"]: tier["label"] for tier in CORPSE_MATERIAL_TIERS
 }
 
 # ============================================================
@@ -20773,7 +22905,7 @@ for _mob_id, _mob in MOB_TEMPLATES.items():
     if not _named_drops:
         continue
     _base = _mob.get("rare_base_template") or _mob.get("elite_base_template") or _mob_id
-    for _zone in _spawn_zones.get(_base, ()) | _spawn_zones.get(_mob_id, set()):
+    for _zone in _spawn_zones.get(_base, set()) | _spawn_zones.get(_mob_id, set()):
         REGION_COLLECTION_ENTRIES.setdefault(_zone, {}).setdefault("named", set()).update(_named_drops)
 
 
@@ -20881,6 +23013,7 @@ HELP_TOPIC_ALIASES.update({
     "zlecenie": "bounty_contracts", "tablicazlecen": "bounty_contracts",
 })
 HELP_TOPICS["boss_codex"] = [
+    "v0.9.21: Boss Codex pokazuje także wersję piętrową bossa, najwyższy pokonany próg jego instancji oraz unikalne dropy zdobyte z tego bossa.",
     "bosskodex / bosscodex - podsumowanie odkrytych bossów.",
     "bosskodex lista - odkryte bossy stronicowane po 30 wpisów.",
     "bosskodex <nazwa> - liczba pokonań, pierwszy i ostatni kill, solo/grupa, rekord czasu i odkryte dropy.",
@@ -20888,6 +23021,7 @@ HELP_TOPICS["boss_codex"] = [
 ]
 
 HELP_TOPICS["collection_codex"] = [
+    "v0.9.21 Collection Codex 2.0: procenty dla każdej klasy, konkretnego setu, legend, materiałowego EQ, regionu i instancji.",
     "kolekcja / collection - podsumowanie Collection Codex.",
     "kolekcja ryby|minerały|zioła|klejnoty|bossowie|rare|materiały|wyjątkowe - główne kategorie v0.9.6.",
     "Starsze widoki named|sety|skrzynie pozostają dostępne dla zgodności.",
@@ -20925,7 +23059,7 @@ HELP_TOPICS["loot_accessibility"] = [
 # v0.8.x pozostają archiwalne, ale bieżące tematy muszą opisywać realny stan gry.
 HELP_TOPICS["progresja400"] = [
     "Postać nadal NIE ma levelu postaci.",
-    "Biegłość każdej z 12 klas ma zakres 1-400; stare progi skilli 1-200 pozostają bez zmian, a nowe umiejętności Biegłości odblokowują się 220-400.",
+    "Biegłość każdej z 12 klas ma zakres 1-400; na każdym progu 1 oraz co 10 aż do 400 dostępne są 3 skille/spelle do nauczenia.",
     "Każdy nauczony skill/spell ma własny Skill Level 1-400 i własny XP.",
     "Broń Duszy ma Soul Level 1-400. Soul Tiery mają zakres 1-40; Tiery 21-40 odblokowują się co 10 Soul Level od 210 do 400 przez kolejne Próby Krypty.",
     "Wszystkie 8 profesji i 8 narzędzi mają zakres 1-400. Narzędzia mają 40 Tierów i nie mają trwałości.",
@@ -20992,9 +23126,9 @@ HELP_TOPICS["soul200"] = [
 
 # v0.9.14: finalna warstwa HELP dla domknięcia lochów/wież i progresji questów walki.
 HELP_TOPICS["lochy_wieze"] = [
-    "Ręcznie przygotowane piętra lochów i wież pozostają bez zmian. Po ich końcu działa dalsza, generowana na żądanie zawartość.",
+    "Od v0.11.0 wszystkie piętrowe lochy i wieże są generowane na żądanie już od pierwszego poziomu.",
     "Wieża Astralna, Mityczna Wieża Astralna i Twierdza Gigantów mają cykliczne motywy pięter. Co 5. proceduralne piętro bez głównego bossa ma dodatkowego Czempiona Próby; co 10. piętro nadal ma właściwego bossa.",
-    "Kopalnia Głębinowa i cztery lochy profesyjne mają po ręcznej części specjalne sektory: rezonansowe, bogate i mistrzowskie. Dają stały bonus do ilości zbioru lub XP profesji/narzędzia, ale nie podnoszą capu mocy ponad progresję 400.",
+    "Kopalnia Głębinowa i cztery lochy profesyjne również są dynamiczne od poziomu 1. Specjalne sektory rezonansowe, bogate i mistrzowskie nadal występują zgodnie z progresją i nie podnoszą capu mocy ponad 400.",
     "Nieskończona głębokość zwiększa wyzwanie i XP. Ekonomia, zasoby i moc EQ nadal respektują cap progresji 400.",
 ]
 HELP_TOPIC_ALIASES.update({
@@ -21416,6 +23550,490 @@ def canonical_profession_resource_id(item_id):
     return str(item.get("base_resource_id") or item_id)
 
 
+
+# ============================================================
+# v0.9.25 - SALVAGE / REFORGE / RUNES / PLAYER GUILDS (internal player_clan schema)
+# ============================================================
+V0925_SALVAGE_MATERIALS = {
+    "iron": ("salvage_iron_scrap", "Odłamek Żelaza"),
+    "steel": ("salvage_steel_scrap", "Odłamek Stali"),
+    "mithril": ("salvage_mithril_fragment", "Fragment Mithrilu"),
+    "adamantite": ("salvage_adamantite_fragment", "Fragment Adamantytu"),
+    "cobalt": ("salvage_cobalt_fragment", "Fragment Kobaltu"),
+    "runic": ("salvage_runic_fragment", "Runiczny Fragment"),
+    "dragonsteel": ("salvage_dragonsteel_fragment", "Fragment Smoczej Stali"),
+    "astral": ("salvage_astral_fragment", "Astralny Fragment"),
+    "void": ("salvage_void_fragment", "Fragment Pustki"),
+    "eternium": ("salvage_eternium_fragment", "Fragment Eternium"),
+}
+for _mat_key, (_iid, _iname) in V0925_SALVAGE_MATERIALS.items():
+    ITEMS[_iid] = {
+        "name": _iname, "type": "craft_material", "price": None,
+        "craftbox_category": "salvage",
+        "desc": "Materiał odzyskany przez rozkładanie niepotrzebnego EQ u Haldora.",
+    }
+ITEMS["reforge_essence"] = {
+    "name": "Esencja Przekucia", "type": "craft_material", "price": None,
+    "craftbox_category": "salvage",
+    "desc": "Esencja używana przez Haldora do zmiany jednego bonusu EQ.",
+}
+ITEMS["rune_dust"] = {
+    "name": "Pył Runiczny", "type": "craft_material", "price": None,
+    "craftbox_category": "runes",
+    "desc": "Pył odzyskiwany z wysokopoziomowego EQ; służy do tworzenia run.",
+}
+V0925_RUNES = {
+    "moc": ("rune_power", "Runa Mocy", {"all_damage_pct": 2}),
+    "ochrona": ("rune_guard", "Runa Ochrony", {"physical_defense_pct": 2, "magic_defense_pct": 2}),
+    "zycie": ("rune_vitality", "Runa Życia", {"max_hp_pct": 3}),
+    "mana": ("rune_focus", "Runa Skupienia", {"max_mana_pct": 3}),
+    "unik": ("rune_agility", "Runa Zwinności", {"dodge_pct": 1}),
+    "hart": ("rune_fortitude", "Runa Hartu", {"constitution": 1, "willpower": 1}),
+}
+V0925_RUNE_BY_ID = {}
+for _rkey, (_rid, _rname, _effects) in V0925_RUNES.items():
+    _props = {k:v for k,v in _effects.items() if k.endswith("_pct")}
+    _stats = {k:v for k,v in _effects.items() if not k.endswith("_pct")}
+    ITEMS[_rid] = {
+        "name": _rname, "type": "craft_material", "price": None,
+        "craftbox_category": "runes", "rune_key": _rkey,
+        "rune_properties": _props, "rune_stats": _stats,
+        "desc": "Runę można osadzić w gnieździe endgame EQ; nie zmienia wymogu Biegłości.",
+    }
+    V0925_RUNE_BY_ID[_rid] = (_rkey, _effects)
+
+CRAFT_MATERIAL_STORAGE_IDS = frozenset(
+    set(CRAFT_MATERIAL_STORAGE_IDS)
+    | {iid for iid,_name in V0925_SALVAGE_MATERIALS.values()}
+    | {"reforge_essence", "rune_dust"}
+    | {data[0] for data in V0925_RUNES.values()}
+)
+
+V0925_REFORGE_AFFIXES = ("strength", "dexterity", "constitution", "intelligence", "willpower", "hp", "mana")
+V0925_AFFIX_PL = {
+    "strength":"Siła", "dexterity":"Zręczność", "constitution":"Kondycja",
+    "intelligence":"Inteligencja", "willpower":"Siła Woli", "hp":"HP", "mana":"Mana",
+}
+V0925_MASTERY_MILESTONES = (1, 50, 100, 150, 200, 250, 300, 350, 400)
+
+def v0925_item_material_key(item):
+    key = str(item.get("corpse_material") or item.get("blacksmith_material") or "").strip()
+    if key in V0925_SALVAGE_MATERIALS:
+        return key
+    name = normalize_lookup_text(item.get("name", ""))
+    tests = (
+        ("eternium","eternium"),("pustk","void"),("astral","astral"),
+        ("smocz","dragonsteel"),("runicz","runic"),("kobalt","cobalt"),
+        ("adamant","adamantite"),("mithril","mithril"),("stal","steel"),("zelaz","iron"),
+    )
+    for text,key in tests:
+        if text in name:
+            return key
+    return "iron"
+
+def v0925_equipment_socket_count(item):
+    mastery = int(item.get("required_mastery", 1) or 1)
+    if mastery >= 400: return 3
+    if mastery >= 300: return 2
+    if mastery >= 200: return 1
+    return 0
+
+def v0925_craftbox_category(item_id):
+    item = ITEMS.get(item_id, {})
+    explicit = item.get("craftbox_category")
+    if explicit:
+        return explicit
+    if item_id in CUT_GEM_IDS or item.get("jewelcraft_level"):
+        return "jewelcrafting"
+    text = normalize_lookup_text(item.get("name", ""))
+    if item.get("blacksmith_material") or item.get("blacksmith_tier") or item_id.startswith("ingot_") or "sztabka" in text or "plyta" in text:
+        return "blacksmithing"
+    if any(x in text for x in ("esencja", "ekstrakt", "proszek alchem", "destylat")):
+        return "alchemy"
+    return "other"
+
+V0925_CRAFTBOX_CATEGORIES = {
+    "blacksmithing": "Kowalstwo",
+    "jewelcrafting": "Jubilerstwo",
+    "alchemy": "Alchemia",
+    "runes": "Runy",
+    "salvage": "Materiały z Salvage",
+    "other": "Pozostałe materiały",
+}
+V0925_CRAFTBOX_ALIASES = {
+    "kowalstwo":"blacksmithing", "kowal":"blacksmithing", "blacksmithing":"blacksmithing",
+    "jubilerstwo":"jewelcrafting", "jubilerskie":"jewelcrafting", "jewelry":"jewelcrafting",
+    "alchemia":"alchemy", "alchemy":"alchemy",
+    "runy":"runes", "runes":"runes",
+    "salvage":"salvage", "odzysk":"salvage", "odzyskane":"salvage",
+    "inne":"other", "pozostale":"other", "pozostałe":"other",
+}
+
+
+# ============================================================
+# v0.9.26 - GILDIA GRACZY: SKARBIEC / ROZWÓJ / RANGI
+# ============================================================
+V0926_GUILD_MAX_LEVEL = 100
+V0926_GUILD_DEFAULT_ROLES = {
+    "member": {
+        "name": "Członek", "priority": 10,
+        "withdraw_money": 0, "withdraw_items": 0,
+        "invite": 0, "kick": 0,
+    },
+    "officer": {
+        "name": "Oficer", "priority": 100,
+        "withdraw_money": 0, "withdraw_items": 1,
+        "invite": 1, "kick": 1,
+    },
+}
+V0926_GUILD_PERMISSION_ALIASES = {
+    "wyplata": "withdraw_money", "wyplaty": "withdraw_money", "wypłata": "withdraw_money", "wypłaty": "withdraw_money",
+    "withdraw": "withdraw_money", "withdrawmoney": "withdraw_money", "money": "withdraw_money",
+    "przedmioty": "withdraw_items", "itemy": "withdraw_items", "items": "withdraw_items", "bank": "withdraw_items",
+    "zapraszanie": "invite", "zaproszenia": "invite", "invite": "invite",
+    "wyrzucanie": "kick", "wyrzuc": "kick", "kick": "kick",
+}
+V0926_GUILD_PERMISSION_LABELS = {
+    "withdraw_money": "wypłata pieniędzy",
+    "withdraw_items": "wypłata przedmiotów",
+    "invite": "zapraszanie",
+    "kick": "wyrzucanie niższych rang",
+}
+
+def v0926_guild_upgrade_cost(current_level):
+    """Koszt przejścia z current_level na current_level+1 w monetach bazowych."""
+    level=max(1,min(V0926_GUILD_MAX_LEVEL,int(current_level or 1)))
+    if level >= V0926_GUILD_MAX_LEVEL:
+        return 0
+    return 10_000 * level * level
+
+
+def v0926_guild_bonus_percent(level):
+    """+1% od poziomu 1, potem +1 p.p. na 10/20/.../100; max +11%."""
+    level=max(1,min(V0926_GUILD_MAX_LEVEL,int(level or 1)))
+    return min(11, 1 + level // 10)
+
+
+def v0926_bool_word(value):
+    return "tak" if int(value or 0) else "nie"
+
+
+# ============================================================
+# v0.9.27 - SIEDZIBA GILDII / KONTRAKTY / BOSSOWIE / ELITY
+# ============================================================
+V0927_GUILD_HALL_MAX_LEVEL = 10
+V0927_GUILD_BUILDINGS = {
+    "forge": ("Kuźnia", "kowal", "forge"),
+    "treasury": ("Skarbiec", "skarbiec", "treasury"),
+    "library": ("Biblioteka", "biblioteka", "library"),
+    "training": ("Sala Treningowa", "trening", "training"),
+}
+V0927_GUILD_HALL_COSTS = {
+    1: 10_000 * SILVER_PER_GOLD,
+    2: 25_000 * SILVER_PER_GOLD,
+    3: 60_000 * SILVER_PER_GOLD,
+    4: 120_000 * SILVER_PER_GOLD,
+    5: 250_000 * SILVER_PER_GOLD,
+    6: 400_000 * SILVER_PER_GOLD,
+    7: 650_000 * SILVER_PER_GOLD,
+    8: 1 * SILVER_PER_MITHRIL,
+    9: 2 * SILVER_PER_MITHRIL,
+}
+
+def v0927_guild_hall_upgrade_cost(current_level):
+    level=max(1,min(V0927_GUILD_HALL_MAX_LEVEL,int(current_level or 1)))
+    return int(V0927_GUILD_HALL_COSTS.get(level,0))
+
+def v0927_guild_building_upgrade_cost(current_level):
+    # Budynki mają być zauważalnie tańsze od samej Siedziby.
+    level=max(0,min(10,int(current_level or 0)))
+    if level>=10:
+        return 0
+    next_level=level+1
+    return (250 * next_level * next_level) * SILVER_PER_GOLD
+
+V0927_GUILD_CONTRACTS = {
+    "hunt100": {"name":"Wspólne Polowanie", "kind":"kills", "need":100, "reward":5_000*SILVER_PER_GOLD, "cooldown":6*3600},
+    "boss5": {"name":"Piątka Bossów", "kind":"bosses", "need":5, "reward":15_000*SILVER_PER_GOLD, "cooldown":6*3600},
+    "rune20": {"name":"Dostawa Pyłu Runicznego", "kind":"material", "need":20, "item_id":"rune_dust", "reward":10_000*SILVER_PER_GOLD, "cooldown":6*3600},
+}
+
+def v0927_guild_contract_ready_text(ready_at):
+    now=int(time.time()); ready=max(0,int(ready_at or 0)-now)
+    if ready<=0: return "aktywny"
+    return f"odnowi się za {max(1,(ready+59)//60)} min"
+
+V0927_GUILD_BOSS_NAMES = (
+    (1, "Strażnik Żelaznej Pieczęci"),
+    (4, "Koloss Runicznej Bramy"),
+    (7, "Astralny Archont Gildii"),
+    (10, "Pradawny Władca Siedziby"),
+)
+
+def v0927_guild_boss_name(hall_level):
+    chosen=V0927_GUILD_BOSS_NAMES[0][1]
+    for threshold,name in V0927_GUILD_BOSS_NAMES:
+        if int(hall_level)>=threshold: chosen=name
+    return chosen
+
+# ---- v0.9.29: osiem godzinnych questów odnawialnych ----
+V0929_HOURLY_QUEST_COOLDOWN = 60 * 60
+
+# Przedmioty questowe wypadają wyłącznie podczas aktywnego zlecenia.
+ITEMS.update({
+    "damaged_weapon_v0929": {
+        "name": "Uszkodzone Ostrze", "type": "quest", "price": None,
+        "desc": "Pęknięta broń zabrana szkieletowi lub strażnikowi podczas zlecenia Haldora.",
+    },
+    "heavy_armor_fragment_v0929": {
+        "name": "Fragment Ciężkiego Pancerza", "type": "quest", "price": None,
+        "desc": "Ciężki fragment opancerzenia odzyskany z potężnego przeciwnika dla Haldora.",
+    },
+    "toxic_gland_v0929": {
+        "name": "Toksyczny Gruczoł", "type": "quest", "price": None,
+        "desc": "Gruczoł z jadowitej lub skażonej istoty potrzebny Orinowi do badań alchemicznych.",
+    },
+})
+
+# Ryby rzeczne obejmują bazowe gatunki i ich rzadkie warianty.
+V0929_RIVER_FISH_STORAGE_IDS = {
+    item_id for item_id in FISH_STORAGE_IDS
+    if base_fish_species_id(item_id) in RIVER_FISH_ATLAS
+}
+
+QUESTS.update({
+    "haldor_broken_blades_v0929": {
+        "name": "Złamane ostrza",
+        "giver": "Mistrz Rzemiosła Haldor",
+        "kind": "collect",
+        "target": "damaged_weapon_v0929",
+        "needed": 6,
+        "progress_label": "Uszkodzone Ostrza",
+        "description": (
+            "Zdobądź po przyjęciu zlecenia 6 Uszkodzonych Ostrzy ze szkieletów "
+            "lub strażników i przynieś je Haldorowi. Każde ostrze liczy się dopiero "
+            "po przyjęciu questa."
+        ),
+        "required_profession": "Kowalstwo",
+        "min_profession_level": 1,
+        "reward_profession": "Kowalstwo",
+        "reward_profession_xp": 1100,
+        "reward_tool_type": "crafting",
+        "reward_tool_xp": 850,
+        "reward_silver": 800, "reward_gold": 0, "reward_mithril": 0,
+        "reward_items": {},
+        "repeatable": True, "repeat_cooldown": V0929_HOURLY_QUEST_COOLDOWN,
+    },
+    "haldor_armor_recycling_v0929": {
+        "name": "Pancerz do przetopu",
+        "giver": "Mistrz Rzemiosła Haldor",
+        "kind": "collect",
+        "target": "heavy_armor_fragment_v0929",
+        "needed": 6,
+        "progress_label": "Fragmenty Ciężkiego Pancerza",
+        "description": (
+            "Zdobądź po przyjęciu zlecenia 6 Fragmentów Ciężkiego Pancerza z ciężkich "
+            "fizycznych przeciwników i przynieś je Haldorowi do przetopu."
+        ),
+        "required_profession": "Kowalstwo",
+        "min_profession_level": 1,
+        "reward_profession": "Kowalstwo",
+        "reward_profession_xp": 1300,
+        "reward_tool_type": "crafting",
+        "reward_tool_xp": 1000,
+        "reward_silver": 1000, "reward_gold": 0, "reward_mithril": 0,
+        "reward_items": {},
+        "repeatable": True, "repeat_cooldown": V0929_HOURLY_QUEST_COOLDOWN,
+    },
+    "orin_toxic_glands_v0929": {
+        "name": "Toksyczne gruczoły",
+        "giver": "Mistrz Alchemii Orin",
+        "kind": "collect",
+        "target": "toxic_gland_v0929",
+        "needed": 10,
+        "progress_label": "Toksyczne Gruczoły",
+        "description": (
+            "Zdobądź po przyjęciu zadania 10 Toksycznych Gruczołów z jadowitych, "
+            "skażonych albo Toksycznych elit i przynieś je Orinowi."
+        ),
+        "required_profession": "Alchemia",
+        "min_profession_level": 1,
+        "reward_profession": "Alchemia",
+        "reward_profession_xp": 1000,
+        "reward_tool_type": "alchemy",
+        "reward_tool_xp": 800,
+        "reward_silver": 900, "reward_gold": 0, "reward_mithril": 0,
+        "reward_items": {},
+        "repeatable": True, "repeat_cooldown": V0929_HOURLY_QUEST_COOLDOWN,
+    },
+    "borys_daily_catch_v0929": {
+        "name": "Dzisiejszy połów",
+        "giver": "Rybak Borys",
+        "kind": "collect_category",
+        "target": "fish_river",
+        "needed": 15,
+        "description": (
+            "Złów po przyjęciu zadania 15 ryb rzecznych i przynieś je Rybakowi Borysowi. "
+            "Liczą się również rzadkie warianty gatunków rzecznych."
+        ),
+        "required_profession": "Wędkarstwo",
+        "min_profession_level": 1,
+        "reward_profession": "Wędkarstwo",
+        "reward_profession_xp": 700,
+        "reward_tool_type": "fishing",
+        "reward_tool_xp": 600,
+        "reward_silver": 400, "reward_gold": 0, "reward_mithril": 0,
+        "reward_items": {},
+        "repeatable": True, "repeat_cooldown": V0929_HOURLY_QUEST_COOLDOWN,
+    },
+    "toren_ore_samples_v0929": {
+        "name": "Próbki rudy",
+        "giver": "Górnik Toren",
+        "kind": "collect_resource_set",
+        "resource_targets": {"copper_ore": 5, "iron_ore": 5, "silver_ore": 5},
+        "needed": 15,
+        "description": (
+            "Wydobądź po przyjęciu zadania po 5 sztuk trzech rud: Ruda miedzi 5, "
+            "Ruda żelaza 5 i Ruda srebra 5. Każdy rodzaj ma własny licznik."
+        ),
+        "required_profession": "Górnictwo",
+        "min_profession_level": 10,
+        "reward_profession": "Górnictwo",
+        "reward_profession_xp": 900,
+        "reward_tool_type": "mining",
+        "reward_tool_xp": 800,
+        "reward_silver": 750, "reward_gold": 0, "reward_mithril": 0,
+        "reward_items": {},
+        "repeatable": True, "repeat_cooldown": V0929_HOURLY_QUEST_COOLDOWN,
+    },
+    "bran_repair_wood_v0929": {
+        "name": "Drewno na naprawy",
+        "giver": "Drwal Bran",
+        "kind": "collect_category",
+        "target": "wood",
+        "needed": 25,
+        "description": "Zetnij po przyjęciu zadania 25 sztuk dowolnego drewna i przynieś je Drwalowi Branowi na naprawy.",
+        "required_profession": "Drwalstwo",
+        "min_profession_level": 1,
+        "reward_profession": "Drwalstwo",
+        "reward_profession_xp": 800,
+        "reward_tool_type": "woodcutting",
+        "reward_tool_xp": 700,
+        "reward_silver": 450, "reward_gold": 0, "reward_mithril": 0,
+        "reward_items": {},
+        "repeatable": True, "repeat_cooldown": V0929_HOURLY_QUEST_COOLDOWN,
+    },
+    "liora_healer_bundle_v0929": {
+        "name": "Zestaw dla uzdrowiciela",
+        "giver": "Zielarka Liora",
+        "kind": "collect_category",
+        "target": "herb",
+        "needed": 20,
+        "description": (
+            "Zbierz po przyjęciu zadania 20 dowolnych ziół dla uzdrowiciela. "
+            "Zioła mogą pochodzić z różnych regionów; liczy się nowy zbiór po przyjęciu."
+        ),
+        "required_profession": "Zielarstwo",
+        "min_profession_level": 1,
+        "reward_profession": "Zielarstwo",
+        "reward_profession_xp": 750,
+        "reward_tool_type": "herbalism",
+        "reward_tool_xp": 650,
+        "reward_silver": 450, "reward_gold": 0, "reward_mithril": 0,
+        "reward_items": {},
+        "repeatable": True, "repeat_cooldown": V0929_HOURLY_QUEST_COOLDOWN,
+    },
+    "cemetery_undead_rising_v0929": {
+        "name": "Nieumarli znów wstali",
+        "giver": "Strażnik Starego Cmentarza",
+        "kind": "kill",
+        "target": "cemetery_undead_v0929",
+        "needed": 25,
+        "description": (
+            "Pokonaj po przyjęciu zadania 25 nieumarłych ze Starego Cmentarza: "
+            "Niespokojnych Zmarłych, szkielety, Zbieraczy Kości lub Upiory Martwego Dzwonu."
+        ),
+        "reward_stat_progress": 180,
+        "reward_soul_xp": 300,
+        "reward_silver": 650, "reward_gold": 0, "reward_mithril": 0,
+        "reward_items": {},
+        "repeatable": True, "repeat_cooldown": V0929_HOURLY_QUEST_COOLDOWN,
+    },
+})
+
+# Dodatkowy NPC stoi bezpośrednio przy wejściu na Stary Cmentarz.
+NPCS["cemetery_watchman_v0929"] = {
+    "name": "Strażnik Starego Cmentarza",
+    "room": "graveyard",
+    "dialogue": (
+        "Nieumarli znowu wychodzą z grobów. Jeśli oczyścisz teren, zapłacę za patrol. "
+        "Zlecenie odnawia się co godzinę."
+    ),
+    "quest": "cemetery_undead_rising_v0929",
+}
+
+# Haldor i Orin pokazują nowe zlecenia również w swoich jawnych listach specjalisty.
+def _v0929_append_specialist_quests(npc_id, *quest_ids):
+    npc = NPCS.get(npc_id)
+    if not npc:
+        return
+    current = list(npc.get("specialist_quests") or ())
+    for quest_id in quest_ids:
+        if quest_id not in current:
+            current.append(quest_id)
+    npc["specialist_quests"] = tuple(current)
+
+_v0929_append_specialist_quests(
+    "specialist_crafting",
+    "haldor_broken_blades_v0929",
+    "haldor_armor_recycling_v0929",
+)
+_v0929_append_specialist_quests("specialist_alchemy", "orin_toxic_glands_v0929")
+
+# Cmentarne typy zaliczają jeden wspólny kill-target.
+for _mid in (
+    "cemetery_restless_dead",
+    "cemetery_bone_collector",
+    "cemetery_bell_wraith",
+    "cemetery_steel_skeleton",
+):
+    if _mid in MOB_TEMPLATES:
+        _tags = list(MOB_TEMPLATES[_mid].get("quest_targets") or ())
+        if "cemetery_undead_v0929" not in _tags:
+            _tags.append("cemetery_undead_v0929")
+        MOB_TEMPLATES[_mid]["quest_targets"] = tuple(_tags)
+
+def v0929_kill_drop_item(quest_id, mob_template_id, template):
+    """Quest-only drop. Zwraca item_id albo None."""
+    name = normalize_lookup_text(template.get("name", ""))
+    if quest_id == "haldor_broken_blades_v0929":
+        if "szkielet" in name or "straznik" in name:
+            return "damaged_weapon_v0929"
+    elif quest_id == "haldor_armor_recycling_v0929":
+        heavy_keywords = ("opancerz", "rycerz", "golem", "troll wojenny", "zelaznoskory", "kolos")
+        if (
+            template.get("damage_type") == "physical"
+            and (int(template.get("max_hp", 0) or 0) >= 650 or any(k in name for k in heavy_keywords))
+        ):
+            return "heavy_armor_fragment_v0929"
+    elif quest_id == "orin_toxic_glands_v0929":
+        toxic_keywords = ("zarazy", "szlam", "waz", "skorpion", "hydra", "bagien", "toksycz")
+        if template.get("elite_affix") == "toxic" or any(k in name for k in toxic_keywords):
+            return "toxic_gland_v0929"
+    return None
+
+HELP_TOPICS["questy godzinne"] = [
+    "v0.9.29 dodaje 8 niezależnych zadań odnawianych co 60 minut. Każde zaczyna od 0/x i liczy wyłącznie zdarzenia po przyjęciu.",
+    "Haldor: Złamane ostrza 0/6 oraz Pancerz do przetopu 0/6. Oba mogą być aktywne jednocześnie z innymi zleceniami Haldora.",
+    "Orin: Toksyczne gruczoły 0/10 z jadowitych/skażonych mobów albo elit z affixem Toksyczny.",
+    "Borys: Dzisiejszy połów 0/15 — tylko ryby rzeczne; Bran: Drewno na naprawy 0/25; Liora: Zestaw dla uzdrowiciela 0/20.",
+    "Toren: Próbki rudy — osobno Ruda miedzi 0/5, Ruda żelaza 0/5 i Ruda srebra 0/5; wymagane Górnictwo 10.",
+    "Strażnik Starego Cmentarza: Nieumarli znów wstali 0/25. Quest daje EXP każdej statystyki i Soul XP jak inne questy walki.",
+]
+HELP_TOPICS.setdefault("quest", []).append(
+    "v0.9.29: help questy godzinne opisuje 8 nowych odnawialnych zadań profesyjnych i cmentarnych."
+)
+
 class Database:
     def __init__(self, path: str):
         self.path = path
@@ -21538,6 +24156,15 @@ class Database:
                 FOREIGN KEY(account_id) REFERENCES accounts(id) ON DELETE CASCADE
             );
 
+            CREATE TABLE IF NOT EXISTS quest_resource_progress_v0929 (
+                account_id INTEGER NOT NULL,
+                quest_id TEXT NOT NULL,
+                target_id TEXT NOT NULL,
+                progress INTEGER NOT NULL DEFAULT 0,
+                PRIMARY KEY(account_id, quest_id, target_id),
+                FOREIGN KEY(account_id) REFERENCES accounts(id) ON DELETE CASCADE
+            );
+
             CREATE TABLE IF NOT EXISTS professions (
                 account_id INTEGER NOT NULL,
                 profession TEXT NOT NULL,
@@ -21581,6 +24208,26 @@ class Database:
                 quantity INTEGER NOT NULL DEFAULT 0,
                 PRIMARY KEY(account_id,item_id),
                 FOREIGN KEY(account_id) REFERENCES accounts(id) ON DELETE CASCADE
+            );
+
+            CREATE TABLE IF NOT EXISTS player_friends_v0928 (
+                account_id INTEGER NOT NULL,
+                friend_account_id INTEGER NOT NULL,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY(account_id, friend_account_id),
+                CHECK(account_id <> friend_account_id),
+                FOREIGN KEY(account_id) REFERENCES accounts(id) ON DELETE CASCADE,
+                FOREIGN KEY(friend_account_id) REFERENCES accounts(id) ON DELETE CASCADE
+            );
+
+            CREATE TABLE IF NOT EXISTS player_friend_requests_v0928 (
+                sender_account_id INTEGER NOT NULL,
+                target_account_id INTEGER NOT NULL,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY(sender_account_id, target_account_id),
+                CHECK(sender_account_id <> target_account_id),
+                FOREIGN KEY(sender_account_id) REFERENCES accounts(id) ON DELETE CASCADE,
+                FOREIGN KEY(target_account_id) REFERENCES accounts(id) ON DELETE CASCADE
             );
 
             CREATE TABLE IF NOT EXISTS astral_progress (
@@ -21700,6 +24347,15 @@ class Database:
                 FOREIGN KEY(account_id) REFERENCES accounts(id) ON DELETE CASCADE
             );
 
+            CREATE TABLE IF NOT EXISTS boss_floor_clears (
+                account_id INTEGER NOT NULL,
+                dungeon_kind TEXT NOT NULL,
+                floor INTEGER NOT NULL,
+                cleared_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY(account_id, dungeon_kind, floor),
+                FOREIGN KEY(account_id) REFERENCES accounts(id) ON DELETE CASCADE
+            );
+
             CREATE TABLE IF NOT EXISTS achievement_progress (
                 account_id INTEGER NOT NULL,
                 metric TEXT NOT NULL,
@@ -21734,6 +24390,120 @@ class Database:
                 completed_count INTEGER NOT NULL DEFAULT 0,
                 updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY(account_id) REFERENCES accounts(id) ON DELETE CASCADE
+            );
+
+            CREATE TABLE IF NOT EXISTS equipment_reforges (
+                account_id INTEGER NOT NULL,
+                item_id TEXT NOT NULL,
+                affix TEXT NOT NULL,
+                affix_amount INTEGER NOT NULL DEFAULT 0,
+                rerolls INTEGER NOT NULL DEFAULT 0,
+                PRIMARY KEY(account_id,item_id),
+                FOREIGN KEY(account_id) REFERENCES accounts(id) ON DELETE CASCADE
+            );
+
+            CREATE TABLE IF NOT EXISTS equipment_runes_v0925 (
+                account_id INTEGER NOT NULL,
+                item_id TEXT NOT NULL,
+                socket_index INTEGER NOT NULL,
+                rune_id TEXT NOT NULL,
+                PRIMARY KEY(account_id,item_id,socket_index),
+                FOREIGN KEY(account_id) REFERENCES accounts(id) ON DELETE CASCADE
+            );
+
+            CREATE TABLE IF NOT EXISTS player_clans (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL UNIQUE COLLATE NOCASE,
+                owner_account_id INTEGER NOT NULL,
+                level INTEGER NOT NULL DEFAULT 1,
+                treasury INTEGER NOT NULL DEFAULT 0,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            );
+
+            CREATE TABLE IF NOT EXISTS player_clan_roles (
+                clan_id INTEGER NOT NULL,
+                role_key TEXT NOT NULL,
+                name TEXT NOT NULL,
+                priority INTEGER NOT NULL DEFAULT 20,
+                withdraw_money INTEGER NOT NULL DEFAULT 0,
+                withdraw_items INTEGER NOT NULL DEFAULT 0,
+                invite INTEGER NOT NULL DEFAULT 0,
+                kick INTEGER NOT NULL DEFAULT 0,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY(clan_id,role_key),
+                UNIQUE(clan_id,name)
+            );
+            CREATE TABLE IF NOT EXISTS player_clan_members (
+                clan_id INTEGER NOT NULL,
+                account_id INTEGER NOT NULL UNIQUE,
+                rank TEXT NOT NULL DEFAULT 'member',
+                joined_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY(clan_id,account_id)
+            );
+            CREATE TABLE IF NOT EXISTS player_clan_invites (
+                clan_id INTEGER NOT NULL,
+                target_account_id INTEGER NOT NULL,
+                inviter_account_id INTEGER NOT NULL,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY(clan_id,target_account_id)
+            );
+            CREATE TABLE IF NOT EXISTS player_clan_bank (
+                clan_id INTEGER NOT NULL,
+                item_id TEXT NOT NULL,
+                quantity INTEGER NOT NULL DEFAULT 0,
+                PRIMARY KEY(clan_id,item_id)
+            );
+            CREATE TABLE IF NOT EXISTS player_clan_log (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                clan_id INTEGER NOT NULL,
+                actor_account_id INTEGER NOT NULL DEFAULT 0,
+                message TEXT NOT NULL,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            );
+            CREATE TABLE IF NOT EXISTS player_clan_metrics (
+                clan_id INTEGER NOT NULL,
+                metric TEXT NOT NULL,
+                value INTEGER NOT NULL DEFAULT 0,
+                PRIMARY KEY(clan_id,metric)
+            );
+            CREATE TABLE IF NOT EXISTS player_clan_achievements (
+                clan_id INTEGER NOT NULL,
+                achievement_id TEXT NOT NULL,
+                name TEXT NOT NULL,
+                unlocked_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY(clan_id,achievement_id)
+            );
+            CREATE TABLE IF NOT EXISTS player_guild_halls_v0927 (
+                clan_id INTEGER PRIMARY KEY,
+                hall_level INTEGER NOT NULL DEFAULT 1,
+                forge_level INTEGER NOT NULL DEFAULT 0,
+                treasury_level INTEGER NOT NULL DEFAULT 0,
+                library_level INTEGER NOT NULL DEFAULT 0,
+                training_level INTEGER NOT NULL DEFAULT 0,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            );
+            CREATE TABLE IF NOT EXISTS player_guild_contracts_v0927 (
+                clan_id INTEGER NOT NULL,
+                contract_id TEXT NOT NULL,
+                progress INTEGER NOT NULL DEFAULT 0,
+                completed_count INTEGER NOT NULL DEFAULT 0,
+                ready_at INTEGER NOT NULL DEFAULT 0,
+                PRIMARY KEY(clan_id,contract_id)
+            );
+            CREATE TABLE IF NOT EXISTS player_guild_boss_records_v0927 (
+                clan_id INTEGER PRIMARY KEY,
+                kills INTEGER NOT NULL DEFAULT 0,
+                fastest_kill_ms INTEGER,
+                last_boss_name TEXT NOT NULL DEFAULT '',
+                last_killed_at TEXT,
+                last_summoned_at INTEGER NOT NULL DEFAULT 0
+            );
+            CREATE TABLE IF NOT EXISTS player_guild_trophies_v0927 (
+                clan_id INTEGER NOT NULL,
+                trophy_id TEXT NOT NULL,
+                name TEXT NOT NULL,
+                count INTEGER NOT NULL DEFAULT 0,
+                PRIMARY KEY(clan_id,trophy_id)
             );
 
             CREATE TABLE IF NOT EXISTS lifetime_statistics (
@@ -21778,6 +24548,35 @@ class Database:
                 PRIMARY KEY(account_id, room_id),
                 FOREIGN KEY(account_id) REFERENCES accounts(id) ON DELETE CASCADE
             );
+
+            CREATE TABLE IF NOT EXISTS instance_map_progress (
+                account_id INTEGER NOT NULL,
+                instance_kind TEXT NOT NULL,
+                floor INTEGER NOT NULL,
+                first_visited_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                last_visited_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY(account_id, instance_kind, floor),
+                FOREIGN KEY(account_id) REFERENCES accounts(id) ON DELETE CASCADE
+            );
+
+            CREATE TABLE IF NOT EXISTS instance_map_secrets (
+                account_id INTEGER NOT NULL,
+                instance_kind TEXT NOT NULL,
+                floor INTEGER NOT NULL,
+                secret_name TEXT NOT NULL,
+                discovered_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY(account_id, instance_kind, floor),
+                FOREIGN KEY(account_id) REFERENCES accounts(id) ON DELETE CASCADE
+            );
+
+            CREATE TABLE IF NOT EXISTS instance_map_checkpoints (
+                account_id INTEGER NOT NULL,
+                instance_kind TEXT NOT NULL,
+                floor INTEGER NOT NULL,
+                unlocked_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY(account_id, instance_kind, floor),
+                FOREIGN KEY(account_id) REFERENCES accounts(id) ON DELETE CASCADE
+            );
             """
         )
         self.conn.commit()
@@ -21814,6 +24613,60 @@ class Database:
         for name, decl in additions.items():
             if name not in cols:
                 self.conn.execute(f"ALTER TABLE characters ADD COLUMN {name} {decl}")
+
+        # v0.9.26: rozwój Gildii graczy jest niedestrukcyjnym rozszerzeniem
+        # tabel v0.9.25. Wewnętrzne nazwy player_clan pozostają dla zgodności save'ów.
+        _guild_cols = {r["name"] for r in self.conn.execute("PRAGMA table_info(player_clans)")}
+        if "level" not in _guild_cols:
+            self.conn.execute("ALTER TABLE player_clans ADD COLUMN level INTEGER NOT NULL DEFAULT 1")
+        if "treasury" not in _guild_cols:
+            self.conn.execute("ALTER TABLE player_clans ADD COLUMN treasury INTEGER NOT NULL DEFAULT 0")
+        self.conn.execute("""
+            CREATE TABLE IF NOT EXISTS player_clan_roles (
+                clan_id INTEGER NOT NULL, role_key TEXT NOT NULL, name TEXT NOT NULL,
+                priority INTEGER NOT NULL DEFAULT 20,
+                withdraw_money INTEGER NOT NULL DEFAULT 0,
+                withdraw_items INTEGER NOT NULL DEFAULT 0,
+                invite INTEGER NOT NULL DEFAULT 0, kick INTEGER NOT NULL DEFAULT 0,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY(clan_id,role_key), UNIQUE(clan_id,name)
+            )
+        """)
+        for _grow in self.conn.execute("SELECT id FROM player_clans").fetchall():
+            _gid=int(_grow["id"])
+            for _key,_data in V0926_GUILD_DEFAULT_ROLES.items():
+                self.conn.execute(
+                    "INSERT OR IGNORE INTO player_clan_roles(clan_id,role_key,name,priority,withdraw_money,withdraw_items,invite,kick) VALUES(?,?,?,?,?,?,?,?)",
+                    (_gid,_key,_data["name"],_data["priority"],_data["withdraw_money"],_data["withdraw_items"],_data["invite"],_data["kick"]),
+                )
+
+        # v0.9.27: osobna Siedziba Gildii, budynki, kontrakty i bossy.
+        self.conn.executescript("""
+            CREATE TABLE IF NOT EXISTS player_guild_halls_v0927 (
+                clan_id INTEGER PRIMARY KEY, hall_level INTEGER NOT NULL DEFAULT 1,
+                forge_level INTEGER NOT NULL DEFAULT 0, treasury_level INTEGER NOT NULL DEFAULT 0,
+                library_level INTEGER NOT NULL DEFAULT 0, training_level INTEGER NOT NULL DEFAULT 0,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            );
+            CREATE TABLE IF NOT EXISTS player_guild_contracts_v0927 (
+                clan_id INTEGER NOT NULL, contract_id TEXT NOT NULL, progress INTEGER NOT NULL DEFAULT 0,
+                completed_count INTEGER NOT NULL DEFAULT 0, ready_at INTEGER NOT NULL DEFAULT 0,
+                PRIMARY KEY(clan_id,contract_id)
+            );
+            CREATE TABLE IF NOT EXISTS player_guild_boss_records_v0927 (
+                clan_id INTEGER PRIMARY KEY, kills INTEGER NOT NULL DEFAULT 0, fastest_kill_ms INTEGER,
+                last_boss_name TEXT NOT NULL DEFAULT '', last_killed_at TEXT, last_summoned_at INTEGER NOT NULL DEFAULT 0
+            );
+            CREATE TABLE IF NOT EXISTS player_guild_trophies_v0927 (
+                clan_id INTEGER NOT NULL, trophy_id TEXT NOT NULL, name TEXT NOT NULL, count INTEGER NOT NULL DEFAULT 0,
+                PRIMARY KEY(clan_id,trophy_id)
+            );
+        """)
+        for _grow in self.conn.execute("SELECT id FROM player_clans").fetchall():
+            _gid=int(_grow["id"])
+            self.conn.execute("INSERT OR IGNORE INTO player_guild_halls_v0927(clan_id) VALUES(?)",(_gid,))
+            for _cid in V0927_GUILD_CONTRACTS:
+                self.conn.execute("INSERT OR IGNORE INTO player_guild_contracts_v0927(clan_id,contract_id) VALUES(?,?)",(_gid,_cid))
 
         # Zgodność ze starymi postaciami: jeśli nie mają jeszcze odmiany,
         # dotychczasowe imię staje się bezpieczną formą we wszystkich przypadkach.
@@ -22824,6 +25677,26 @@ class Database:
             "SELECT 1 FROM characters WHERE name=? COLLATE NOCASE", (name,)
         ).fetchone() is not None
 
+    def character_account_id_by_name_v0928(self, name):
+        row = self.conn.execute(
+            "SELECT account_id FROM characters WHERE name=? COLLATE NOCASE",
+            (str(name or "").strip(),),
+        ).fetchone()
+        return int(row["account_id"]) if row else None
+
+    def character_name_by_account_v0928(self, account_id):
+        row = self.conn.execute(
+            "SELECT name FROM characters WHERE account_id=?",
+            (int(account_id),),
+        ).fetchone()
+        return str(row["name"]) if row else None
+
+    def are_friends_v0928(self, account_id, friend_account_id):
+        return self.conn.execute(
+            "SELECT 1 FROM player_friends_v0928 WHERE account_id=? AND friend_account_id=?",
+            (int(account_id), int(friend_account_id)),
+        ).fetchone() is not None
+
     def create_character(self, account_id, name, race, cls, name_cases):
         rname, _, _race_strength, _race_dexterity, _race_constitution, _race_intelligence, _race_willpower = race
         cname, ctype, soul_weapon, weapon_base = cls
@@ -22987,6 +25860,31 @@ class Database:
 
     def unlock_astral_portal(self, account_id, floor):
         return self.unlock_astral_checkpoint(account_id, floor)
+
+    def boss_floor_cleared(self, account_id, dungeon_kind, floor):
+        dungeon_kind = str(dungeon_kind or "").strip().lower()
+        floor = max(1, int(floor))
+        # Zgodność starych save'ów: checkpoint Krypty/Wieży oznacza, że wszystkie
+        # wcześniejsze bossy co 10 zostały już kiedyś pokonane.
+        if dungeon_kind == "crypt" and floor <= self.crypt_checkpoint(account_id):
+            return True
+        if dungeon_kind == "astral" and floor <= self.astral_checkpoint(account_id):
+            return True
+        row = self.conn.execute(
+            "SELECT 1 FROM boss_floor_clears WHERE account_id=? AND dungeon_kind=? AND floor=?",
+            (account_id, dungeon_kind, floor),
+        ).fetchone()
+        return bool(row)
+
+    def mark_boss_floor_cleared(self, account_id, dungeon_kind, floor):
+        dungeon_kind = str(dungeon_kind or "").strip().lower()
+        floor = max(1, int(floor))
+        cur = self.conn.execute(
+            "INSERT OR IGNORE INTO boss_floor_clears(account_id,dungeon_kind,floor) VALUES(?,?,?)",
+            (account_id, dungeon_kind, floor),
+        )
+        self.conn.commit()
+        return cur.rowcount > 0
 
     def ensure_mine_progress(self, account_id):
         self.conn.execute(
@@ -23343,6 +26241,8 @@ class Database:
         boss_id = canonical_bestiary_template_id(boss_id)
         if boss_id not in BOSS_COLLECTION_CATALOG or item_id not in ITEMS:
             return False
+        if not boss_codex_drop_is_unique(item_id):
+            return False
         cur = self.conn.execute(
             "INSERT OR IGNORE INTO boss_codex_drops(account_id,boss_id,item_id) VALUES(?,?,?)",
             (account_id, boss_id, item_id),
@@ -23373,6 +26273,91 @@ class Database:
             (account_id, category),
         ).fetchall()
         return {str(row["entry_id"]) for row in rows}
+
+    # v0.9.21: trwała mapa instancji, sekrety i checkpointy.
+    def mark_instance_floor_visited(self, account_id, instance_kind, floor):
+        instance_kind = str(instance_kind or "")
+        floor = max(1, int(floor))
+        previous = self.conn.execute(
+            "SELECT 1 FROM instance_map_progress WHERE account_id=? AND instance_kind=? AND floor=?",
+            (account_id, instance_kind, floor),
+        ).fetchone()
+        self.conn.execute(
+            "INSERT INTO instance_map_progress(account_id,instance_kind,floor) VALUES(?,?,?) "
+            "ON CONFLICT(account_id,instance_kind,floor) DO UPDATE SET last_visited_at=CURRENT_TIMESTAMP",
+            (account_id, instance_kind, floor),
+        )
+        self.conn.commit()
+        return previous is None
+
+    def instance_visited_floors(self, account_id, instance_kind):
+        rows = self.conn.execute(
+            "SELECT floor FROM instance_map_progress WHERE account_id=? AND instance_kind=? ORDER BY floor",
+            (account_id, str(instance_kind or "")),
+        ).fetchall()
+        return {int(row["floor"]) for row in rows}
+
+    def instance_highest_floor(self, account_id, instance_kind):
+        row = self.conn.execute(
+            "SELECT MAX(floor) AS floor FROM instance_map_progress WHERE account_id=? AND instance_kind=?",
+            (account_id, str(instance_kind or "")),
+        ).fetchone()
+        return int(row["floor"] or 0) if row else 0
+
+    def mark_instance_secret(self, account_id, instance_kind, floor, secret_name):
+        cur = self.conn.execute(
+            "INSERT OR IGNORE INTO instance_map_secrets(account_id,instance_kind,floor,secret_name) VALUES(?,?,?,?)",
+            (account_id, str(instance_kind or ""), max(1, int(floor)), str(secret_name or "Sekret")),
+        )
+        self.conn.commit()
+        return cur.rowcount > 0
+
+    def instance_secret_rows(self, account_id, instance_kind):
+        return self.conn.execute(
+            "SELECT floor,secret_name,discovered_at FROM instance_map_secrets "
+            "WHERE account_id=? AND instance_kind=? ORDER BY floor",
+            (account_id, str(instance_kind or "")),
+        ).fetchall()
+
+    def mark_instance_checkpoint(self, account_id, instance_kind, floor):
+        cur = self.conn.execute(
+            "INSERT OR IGNORE INTO instance_map_checkpoints(account_id,instance_kind,floor) VALUES(?,?,?)",
+            (account_id, str(instance_kind or ""), max(1, int(floor))),
+        )
+        self.conn.commit()
+        return cur.rowcount > 0
+
+    def instance_checkpoint_floors(self, account_id, instance_kind):
+        kind = str(instance_kind or "")
+        result = {
+            int(row["floor"])
+            for row in self.conn.execute(
+                "SELECT floor FROM instance_map_checkpoints WHERE account_id=? AND instance_kind=?",
+                (account_id, kind),
+            ).fetchall()
+        }
+        # Jednorazowo zaliczone bramki bossów są również checkpointami mapy.
+        result.update(
+            int(row["floor"])
+            for row in self.conn.execute(
+                "SELECT floor FROM boss_floor_clears WHERE account_id=? AND dungeon_kind=?",
+                (account_id, kind),
+            ).fetchall()
+        )
+        # Zgodność starych save'ów, które miały tylko najwyższy portal.
+        if kind == "crypt":
+            highest = self.crypt_checkpoint(account_id)
+            result.update(range(10, highest + 1, 10))
+        elif kind == "astral":
+            highest = self.astral_checkpoint(account_id)
+            start = int(ASTRAL_MIN_FLOOR)
+            if highest >= start:
+                result.update(range(start, highest + 1, 10))
+        return result
+
+    def highest_boss_floor_cleared(self, account_id, instance_kind):
+        floors = self.instance_checkpoint_floors(account_id, instance_kind)
+        return max(floors) if floors else 0
 
     def treasure_chest_opened_at(self, account_id, room_id):
         row = self.conn.execute(
@@ -24220,12 +27205,20 @@ class Database:
             ") VALUES(?,?, 'active',0,0,0)",
             (account_id, quest_id),
         )
+        self.conn.execute(
+            "DELETE FROM quest_resource_progress_v0929 WHERE account_id=? AND quest_id=?",
+            (account_id, quest_id),
+        )
         self.conn.commit()
 
     def restart_quest(self, account_id, quest_id):
         self.conn.execute(
             "UPDATE quests SET status='active',progress=0 "
             "WHERE account_id=? AND quest_id=?",
+            (account_id, quest_id),
+        )
+        self.conn.execute(
+            "DELETE FROM quest_resource_progress_v0929 WHERE account_id=? AND quest_id=?",
             (account_id, quest_id),
         )
         self.conn.commit()
@@ -24246,6 +27239,10 @@ class Database:
         self.conn.execute(
             "UPDATE quests SET status='abandoned',progress=0 "
             "WHERE account_id=? AND quest_id=?",
+            (account_id, quest_id),
+        )
+        self.conn.execute(
+            "DELETE FROM quest_resource_progress_v0929 WHERE account_id=? AND quest_id=?",
             (account_id, quest_id),
         )
         self.conn.commit()
@@ -24457,6 +27454,64 @@ class Database:
         self.conn.commit()
         return changed
 
+    def resource_set_progress_v0929(self, account_id, quest_id, targets):
+        result = {}
+        for target_id in targets:
+            row = self.conn.execute(
+                "SELECT progress FROM quest_resource_progress_v0929 "
+                "WHERE account_id=? AND quest_id=? AND target_id=?",
+                (account_id, quest_id, canonical_profession_resource_id(target_id)),
+            ).fetchone()
+            result[target_id] = max(0, int(row["progress"])) if row else 0
+        return result
+
+    def increment_resource_set_quest_v0929(self, account_id, item_id, amount=1):
+        amount = max(0, int(amount))
+        if amount <= 0:
+            return []
+        item_base = canonical_profession_resource_id(item_id)
+        rows = self.conn.execute(
+            "SELECT * FROM quests WHERE account_id=? AND status='active'",
+            (account_id,),
+        ).fetchall()
+        changed = []
+        for row in rows:
+            quest = QUESTS.get(row["quest_id"])
+            if not quest or quest.get("kind") != "collect_resource_set":
+                continue
+            requirements = dict(quest.get("resource_targets") or {})
+            matched_target = None
+            target_needed = 0
+            for target_id, needed in requirements.items():
+                if canonical_profession_resource_id(target_id) == item_base:
+                    matched_target = target_id
+                    target_needed = max(1, int(needed))
+                    break
+            if matched_target is None:
+                continue
+            current = self.resource_set_progress_v0929(
+                account_id, row["quest_id"], requirements
+            ).get(matched_target, 0)
+            updated = min(target_needed, current + amount)
+            self.conn.execute(
+                "INSERT INTO quest_resource_progress_v0929(account_id,quest_id,target_id,progress) "
+                "VALUES(?,?,?,?) ON CONFLICT(account_id,quest_id,target_id) "
+                "DO UPDATE SET progress=excluded.progress",
+                (account_id, row["quest_id"], canonical_profession_resource_id(matched_target), updated),
+            )
+            counts = self.resource_set_progress_v0929(
+                account_id, row["quest_id"], requirements
+            )
+            counts[matched_target] = updated
+            total = sum(min(max(1, int(requirements[t])), int(counts.get(t, 0))) for t in requirements)
+            self.conn.execute(
+                "UPDATE quests SET progress=? WHERE account_id=? AND quest_id=?",
+                (total, account_id, row["quest_id"]),
+            )
+            changed.append((row["quest_id"], total, int(quest.get("needed", total)), matched_target, updated, target_needed))
+        self.conn.commit()
+        return changed
+
     def complete_quest(self, account_id, quest_id):
         self.conn.execute(
             "UPDATE quests SET status='completed',completed_at=?,"
@@ -24465,6 +27520,155 @@ class Database:
             (int(time.time()), account_id, quest_id),
         )
         self.conn.commit()
+
+
+    # ---- v0.9.25 equipment crafting / clan persistence ----
+    def equipment_reforge(self, account_id, item_id):
+        return self.conn.execute(
+            "SELECT affix,affix_amount,rerolls FROM equipment_reforges WHERE account_id=? AND item_id=?",
+            (account_id,item_id),
+        ).fetchone()
+
+    def save_equipment_reforge(self, account_id, item_id, affix, amount):
+        self.conn.execute(
+            "INSERT INTO equipment_reforges(account_id,item_id,affix,affix_amount,rerolls) VALUES(?,?,?,?,1) "
+            "ON CONFLICT(account_id,item_id) DO UPDATE SET affix=excluded.affix,affix_amount=excluded.affix_amount,rerolls=equipment_reforges.rerolls+1",
+            (account_id,item_id,affix,int(amount)),
+        )
+        self.conn.commit()
+
+    def equipment_runes_v0925(self, account_id, item_id):
+        return self.conn.execute(
+            "SELECT socket_index,rune_id FROM equipment_runes_v0925 WHERE account_id=? AND item_id=? ORDER BY socket_index",
+            (account_id,item_id),
+        ).fetchall()
+
+    def add_equipment_rune_v0925(self, account_id, item_id, socket_index, rune_id):
+        self.conn.execute(
+            "INSERT OR REPLACE INTO equipment_runes_v0925(account_id,item_id,socket_index,rune_id) VALUES(?,?,?,?)",
+            (account_id,item_id,int(socket_index),rune_id),
+        )
+        self.conn.commit()
+
+    def remove_equipment_rune_v0925(self, account_id, item_id, socket_index):
+        row=self.conn.execute(
+            "SELECT rune_id FROM equipment_runes_v0925 WHERE account_id=? AND item_id=? AND socket_index=?",
+            (account_id,item_id,int(socket_index)),
+        ).fetchone()
+        if not row: return None
+        self.conn.execute(
+            "DELETE FROM equipment_runes_v0925 WHERE account_id=? AND item_id=? AND socket_index=?",
+            (account_id,item_id,int(socket_index)),
+        )
+        self.conn.commit()
+        return str(row["rune_id"])
+
+    def clear_equipment_crafting_v0925(self, account_id, item_id):
+        self.conn.execute("DELETE FROM equipment_reforges WHERE account_id=? AND item_id=?", (account_id,item_id))
+        self.conn.execute("DELETE FROM equipment_runes_v0925 WHERE account_id=? AND item_id=?", (account_id,item_id))
+        self.conn.commit()
+
+    def transfer_equipment_crafting_v0925(self, from_account_id, to_account_id, item_id):
+        ref=self.equipment_reforge(from_account_id,item_id)
+        runes=list(self.equipment_runes_v0925(from_account_id,item_id))
+        if ref:
+            self.conn.execute(
+                "INSERT OR REPLACE INTO equipment_reforges(account_id,item_id,affix,affix_amount,rerolls) VALUES(?,?,?,?,?)",
+                (to_account_id,item_id,ref["affix"],int(ref["affix_amount"]),int(ref["rerolls"])),
+            )
+            self.conn.execute("DELETE FROM equipment_reforges WHERE account_id=? AND item_id=?",(from_account_id,item_id))
+        for rr in runes:
+            self.conn.execute(
+                "INSERT OR REPLACE INTO equipment_runes_v0925(account_id,item_id,socket_index,rune_id) VALUES(?,?,?,?)",
+                (to_account_id,item_id,int(rr["socket_index"]),rr["rune_id"]),
+            )
+        if runes:
+            self.conn.execute("DELETE FROM equipment_runes_v0925 WHERE account_id=? AND item_id=?",(from_account_id,item_id))
+        self.conn.commit()
+
+    def clan_membership(self, account_id):
+        # Wewnętrzna nazwa pozostaje dla zgodności z v0.9.25; UI mówi Gildia.
+        return self.conn.execute(
+            "SELECT c.id clan_id,c.name,c.level,c.treasury,m.rank,c.owner_account_id "
+            "FROM player_clan_members m JOIN player_clans c ON c.id=m.clan_id WHERE m.account_id=?",
+            (account_id,),
+        ).fetchone()
+
+    def guild_bonus_percent_v0926(self, account_id):
+        row=self.clan_membership(account_id)
+        return v0926_guild_bonus_percent(int(row["level"])) if row else 0
+
+    def ensure_guild_default_roles_v0926(self, clan_id):
+        clan_id=int(clan_id)
+        for key,data in V0926_GUILD_DEFAULT_ROLES.items():
+            self.conn.execute(
+                "INSERT OR IGNORE INTO player_clan_roles(clan_id,role_key,name,priority,withdraw_money,withdraw_items,invite,kick) VALUES(?,?,?,?,?,?,?,?)",
+                (clan_id,key,data["name"],data["priority"],data["withdraw_money"],data["withdraw_items"],data["invite"],data["kick"]),
+            )
+        self.conn.commit()
+
+    def guild_role_v0926(self, clan_id, role_key):
+        if str(role_key)=="leader":
+            return {"role_key":"leader","name":"Lider","priority":1000,"withdraw_money":1,"withdraw_items":1,"invite":1,"kick":1}
+        self.ensure_guild_default_roles_v0926(clan_id)
+        return self.conn.execute(
+            "SELECT role_key,name,priority,withdraw_money,withdraw_items,invite,kick FROM player_clan_roles WHERE clan_id=? AND role_key=?",
+            (int(clan_id),str(role_key)),
+        ).fetchone()
+
+    def guild_role_by_name_v0926(self, clan_id, query):
+        self.ensure_guild_default_roles_v0926(clan_id)
+        norm=normalize_lookup_text(query)
+        rows=self.conn.execute(
+            "SELECT role_key,name,priority,withdraw_money,withdraw_items,invite,kick FROM player_clan_roles WHERE clan_id=?",
+            (int(clan_id),),
+        ).fetchall()
+        exact=[r for r in rows if normalize_lookup_text(r["name"])==norm or normalize_lookup_text(r["role_key"])==norm]
+        if exact: return exact[0]
+        partial=[r for r in rows if norm and (norm in normalize_lookup_text(r["name"]) or norm in normalize_lookup_text(r["role_key"]))]
+        return partial[0] if len(partial)==1 else None
+
+    def clan_log(self, clan_id, actor_account_id, message):
+        self.conn.execute("INSERT INTO player_clan_log(clan_id,actor_account_id,message) VALUES(?,?,?)", (clan_id,actor_account_id,str(message)))
+        self.conn.commit()
+
+    def clan_metric_add(self, clan_id, metric, amount=1):
+        self.conn.execute(
+            "INSERT INTO player_clan_metrics(clan_id,metric,value) VALUES(?,?,?) ON CONFLICT(clan_id,metric) DO UPDATE SET value=value+excluded.value",
+            (clan_id,metric,int(amount)),
+        )
+        self.conn.commit()
+
+    def guild_hall_v0927(self, clan_id):
+        clan_id=int(clan_id)
+        self.conn.execute("INSERT OR IGNORE INTO player_guild_halls_v0927(clan_id) VALUES(?)",(clan_id,))
+        self.conn.commit()
+        return self.conn.execute("SELECT * FROM player_guild_halls_v0927 WHERE clan_id=?",(clan_id,)).fetchone()
+
+    def guild_contract_row_v0927(self, clan_id, contract_id):
+        self.conn.execute("INSERT OR IGNORE INTO player_guild_contracts_v0927(clan_id,contract_id) VALUES(?,?)",(int(clan_id),str(contract_id)))
+        self.conn.commit()
+        return self.conn.execute("SELECT * FROM player_guild_contracts_v0927 WHERE clan_id=? AND contract_id=?",(int(clan_id),str(contract_id))).fetchone()
+
+    def guild_contract_add_v0927(self, clan_id, kind, amount=1):
+        clan_id=int(clan_id); now=int(time.time()); changed=[]
+        for contract_id,definition in V0927_GUILD_CONTRACTS.items():
+            if definition["kind"]!=kind: continue
+            row=self.guild_contract_row_v0927(clan_id,contract_id)
+            if int(row["ready_at"] or 0)>now: continue
+            need=int(definition["need"]); new=min(need,int(row["progress"] or 0)+int(amount))
+            self.conn.execute("UPDATE player_guild_contracts_v0927 SET progress=? WHERE clan_id=? AND contract_id=?",(new,clan_id,contract_id))
+            changed.append((contract_id,new,need))
+        self.conn.commit(); return changed
+
+    def guild_contract_complete_v0927(self, clan_id, contract_id):
+        clan_id=int(clan_id); definition=V0927_GUILD_CONTRACTS[str(contract_id)]
+        row=self.guild_contract_row_v0927(clan_id,contract_id)
+        if int(row["progress"] or 0)<int(definition["need"]): return False
+        ready=int(time.time())+int(definition["cooldown"]); reward=int(definition["reward"])
+        self.conn.execute("UPDATE player_guild_contracts_v0927 SET progress=0,completed_count=completed_count+1,ready_at=? WHERE clan_id=? AND contract_id=?",(ready,clan_id,contract_id))
+        self.conn.execute("UPDATE player_clans SET treasury=treasury+? WHERE id=?",(reward,clan_id))
+        self.conn.commit(); return True
 
 
 @dataclass
@@ -24966,16 +28170,19 @@ class Character:
         ilość EXP każdej statystyce, ale każda ma własny licznik i próg.
         """
         base_amount = max(0, int(amount))
-        amount = max(
+        racial_amount = max(
             0,
             int(round(base_amount * self.racial_stat_progress_multiplier()))
         )
+        _guild_pct=max(0,int(getattr(self,"_guild_bonus_percent",0) or 0))
+        amount=max(0,int(round(racial_amount*(1.0+_guild_pct/100.0))))
         if targets is None:
             target_names = list(self.STAT_PROGRESS_FIELDS)
         else:
             target_names = [name for name in targets if name in self.STAT_PROGRESS_FIELDS]
         messages = []
-        bonus = max(0, amount - base_amount)
+        bonus = max(0, racial_amount - base_amount)
+        guild_bonus=max(0, amount - racial_amount)
         for stat_name in target_names:
             label, value_field, progress_field = self.STAT_PROGRESS_FIELDS[stat_name]
             progress = max(0, int(getattr(self, progress_field))) + amount
@@ -25005,6 +28212,10 @@ class Character:
         if bonus:
             messages.append(
                 f"Bonus rasy {self.race}: +{bonus} EXP do każdej rozwijanej statystyki."
+            )
+        if guild_bonus:
+            messages.append(
+                f"Bonus Gildii +{_guild_pct}%: +{guild_bonus} EXP do każdej rozwijanej statystyki."
             )
         # Legacy pole zachowujemy jako najmniejszy bieżący postęp, ale nie
         # steruje już rozwojem.
@@ -25050,14 +28261,20 @@ class Character:
             ]
 
         base_amount = max(0, int(amount))
-        amount = max(
+        racial_amount = max(
             0,
             int(round(base_amount * self.racial_soul_xp_multiplier()))
         )
+        _guild_pct=max(0,int(getattr(self,"_guild_bonus_percent",0) or 0))
+        amount=max(0,int(round(racial_amount*(1.0+_guild_pct/100.0))))
         messages = [f"Broń Duszy otrzymuje {amount} Soul XP."]
-        if amount > base_amount:
+        if racial_amount > base_amount:
             messages.append(
-                f"Bonus rasy {self.race}: +{amount - base_amount} Soul XP."
+                f"Bonus rasy {self.race}: +{racial_amount - base_amount} Soul XP."
+            )
+        if amount > racial_amount:
+            messages.append(
+                f"Bonus Gildii +{_guild_pct}%: +{amount-racial_amount} Soul XP."
             )
         self.soul_xp += amount
         while self.soul_level < SOUL_MAX_LEVEL:
@@ -25162,6 +28379,740 @@ class Character:
     def set_guild_bounty_state(self, data):
         self._set_guild_json("guild_bounty_json", data)
 
+
+# ============================================================
+# v0.12.0 - LIVING WATERS + MEADOW BIOMES + PASSIVE WORLD
+# ============================================================
+# Globalna zasada rozgrywki: żaden mob ani boss nie zaczyna walki sam.
+# Moby mogą się poruszać i pojawiać obok gracza, ale combat uruchamia
+# wyłącznie świadoma akcja gracza (atakuj/k/skill ofensywny użyty na celu).
+GLOBAL_MOB_AUTO_AGGRO_ENABLED = False
+
+
+def mob_can_auto_aggro(_template=None):
+    """Jedno źródło prawdy dla globalnej polityki aggro.
+
+    Funkcja celowo zawsze zwraca False. Zostawiamy ją jawnie w kodzie,
+    aby przyszłe systemy biomów/roamingu nie wprowadziły auto-ataku bokiem.
+    """
+    return False
+
+
+V012_NEW_FISHING_ROOMS = set()
+V012_NEW_MEADOW_ROOMS = set()
+V012_WATER_MEADOW_ROOMS = set()
+V012_MEADOW_HERB_GROUP = {}
+V012_HERB_ECOLOGY_POOLS = {}
+
+
+def _v012_connect(a, direction_a, b, direction_b):
+    ROOMS[a].setdefault("exits", {})[direction_a] = b
+    ROOMS[b].setdefault("exits", {})[direction_b] = a
+
+
+def _v012_add_room(room_id, zone, name, desc):
+    ROOMS[room_id] = {
+        "zone": zone,
+        "name": name,
+        "desc": desc,
+        "exits": {},
+    }
+
+
+def build_v012_living_waters_and_meadows():
+    # --------------------------------------------------------
+    # WYBRZEŻE, MORZE I OCEAN
+    # --------------------------------------------------------
+    water_rooms = {
+        "coastal_cove": ("Wybrzeże", "Spokojna Zatoka", "Osłonięta zatoka o łagodnym nurcie. Płytka woda sprzyja rybom przybrzeżnym."),
+        "rocky_shore": ("Wybrzeże", "Skalisty Brzeg", "Poszarpane skały schodzą w słoną wodę. Między głazami tworzą się głębsze rynny łowiskowe."),
+        "river_estuary": ("Wybrzeże", "Ujście Srebrnej Rzeki", "Słodka i słona woda mieszają się w szerokim ujściu. Łowisko ma charakter estuarium."),
+        "salt_marsh": ("Wybrzeże", "Słone Mokradła", "Płytkie kanały pływowe przecinają kępy słonolubnych traw."),
+        "tidal_flats": ("Wybrzeże", "Płycizny Pływowe", "Rozległe płycizny zmieniają się wraz z przypływem. Ryby podchodzą tu blisko brzegu."),
+        "coastal_lagoon": ("Wybrzeże", "Laguna Przybrzeżna", "Ciepła laguna jest częściowo odcięta od morza pasem skał i piasku."),
+        "kelp_bay": ("Wybrzeże", "Zatoka Wodorostów", "Gęste pasma wodorostów falują pod powierzchnią i kryją wiele morskich gatunków."),
+        "outer_reef": ("Ocean", "Zewnętrzna Rafa", "Rafa leży już poza spokojnym pasem wybrzeża. Woda jest głęboka i przejrzysta."),
+        "bluewater_channel": ("Ocean", "Błękitny Kanał", "Silny prąd oceaniczny tworzy naturalny szlak dużych ryb pelagicznych."),
+        "ocean_shelf": ("Ocean", "Krawędź Szelfu", "Dno gwałtownie opada. To przejście między wodami przybrzeżnymi a otwartym oceanem."),
+        "deep_ocean_buoy": ("Ocean", "Boja Głębokiego Oceanu", "Samotna boja wyznacza dalekie łowisko na bardzo głębokiej wodzie."),
+        "trench_edge": ("Ocean", "Krawędź Rowu Oceanicznego", "Ciemna toń zaczyna się tuż za krawędzią podmorskiego urwiska."),
+        "storm_current": ("Ocean", "Prąd Burzowy", "Niespokojny prąd niesie chłodniejszą wodę i przyciąga silne oceaniczne drapieżniki."),
+    }
+    for rid, (zone, name, desc) in water_rooms.items():
+        _v012_add_room(rid, zone, name, desc)
+
+    _v012_connect("sea_pier", "north", "coastal_cove", "south")
+    _v012_connect("coastal_cove", "east", "rocky_shore", "west")
+    _v012_connect("rocky_shore", "north", "river_estuary", "south")
+    _v012_connect("river_estuary", "west", "salt_marsh", "east")
+    _v012_connect("salt_marsh", "south", "coastal_cove", "north")
+    _v012_connect("sea_pier", "south", "tidal_flats", "north")
+    _v012_connect("tidal_flats", "east", "coastal_lagoon", "west")
+    _v012_connect("coastal_lagoon", "north", "rocky_shore", "south")
+    _v012_connect("tidal_flats", "south", "kelp_bay", "north")
+    _v012_connect("kelp_bay", "east", "coastal_lagoon", "south")
+
+    _v012_connect("ocean_platform", "north", "outer_reef", "south")
+    _v012_connect("outer_reef", "east", "bluewater_channel", "west")
+    _v012_connect("bluewater_channel", "south", "ocean_shelf", "north")
+    _v012_connect("ocean_platform", "south", "ocean_shelf", "west")
+    _v012_connect("bluewater_channel", "east", "deep_ocean_buoy", "west")
+    _v012_connect("deep_ocean_buoy", "south", "trench_edge", "north")
+    _v012_connect("trench_edge", "west", "storm_current", "east")
+    _v012_connect("storm_current", "north", "ocean_shelf", "south")
+
+    sea_ids = {
+        "coastal_cove", "rocky_shore", "river_estuary", "salt_marsh",
+        "tidal_flats", "coastal_lagoon", "kelp_bay",
+    }
+    ocean_ids = {
+        "outer_reef", "bluewater_channel", "ocean_shelf",
+        "deep_ocean_buoy", "trench_edge", "storm_current",
+    }
+    SEA_FISHING_ROOMS.update(sea_ids)
+    OCEAN_FISHING_ROOMS.update(ocean_ids)
+    MARINE_FISHING_ROOMS.update(sea_ids | ocean_ids)
+    FISHING_ROOMS.update(sea_ids | ocean_ids)
+    V012_NEW_FISHING_ROOMS.update(sea_ids | ocean_ids)
+
+    # --------------------------------------------------------
+    # RZEKA, JEZIORO, STARORZECZE I STAW ŁĄKOWY
+    # --------------------------------------------------------
+    fresh_rooms = {
+        "willow_bend": ("Dolina Rzeki", "Wierzbowe Zakole", "Rzeka zwalnia pod starymi wierzbami i tworzy głębokie stanowiska przy brzegu."),
+        "river_rapids": ("Dolina Rzeki", "Srebrne Bystrza", "Szybki nurt pieni się między kamieniami. Żyją tu gatunki lubiące natlenioną wodę."),
+        "reed_bank": ("Dolina Rzeki", "Trzcinowy Brzeg", "Szeroki pas trzcin osłania spokojniejsze zatoczki rzecznego brzegu."),
+        "river_ford": ("Dolina Rzeki", "Kamienny Bród", "Płytki bród przecina rzekę, a za głazami tworzą się naturalne kieszenie dla ryb."),
+        "spring_creek": ("Dolina Rzeki", "Źródlany Potok", "Chłodny potok wpada do rzeki. Woda jest czysta i szybka."),
+        "oxbow_pool": ("Dolina Rzeki", "Stare Starorzecze", "Odcięte zakole tworzy ciche, zarośnięte łowisko o niemal jeziorowym charakterze."),
+        "reed_lake_bank": ("Srebrne Jezioro", "Trzcinowy Brzeg Jeziora", "Płytki brzeg jeziora porastają trzciny i lilie wodne."),
+        "quiet_cove": ("Srebrne Jezioro", "Cicha Zatoka Jeziora", "Osłonięta zatoka ma spokojną wodę i głębszy środek."),
+        "southern_lake_bank": ("Srebrne Jezioro", "Południowy Brzeg Jeziora", "Kamienisto-piaszczysty brzeg otwiera dostęp do szerokiej tafli Srebrnego Jeziora."),
+        "pebble_lake_bank": ("Srebrne Jezioro", "Żwirowy Brzeg Jeziora", "Dno opada tu równomiernie, a żwir przyciąga inne gatunki niż trzcinowe zatoki."),
+        "fisher_inlet": ("Srebrne Jezioro", "Zatoczka Rybaków", "Mała zatoczka z resztkami starego pomostu jest wygodnym miejscem do spokojnego łowienia."),
+        "deepwater_pier": ("Srebrne Jezioro", "Pomost Głębokiej Toni", "Długi pomost sięga nad najgłębszą część jeziora dostępną z brzegu."),
+        "meadow_pond": ("Łąki", "Staw pośród Łąk", "Niewielki staw otaczają miękkie trawy, mięta i owady. To spokojne łowisko jeziorno-stawowe."),
+    }
+    for rid, (zone, name, desc) in fresh_rooms.items():
+        _v012_add_room(rid, zone, name, desc)
+
+    _v012_connect("riverbank", "north", "willow_bend", "south")
+    _v012_connect("willow_bend", "east", "river_rapids", "west")
+    _v012_connect("river_rapids", "south", "stone_bridge", "north")
+    _v012_connect("riverbank", "south", "reed_bank", "north")
+    _v012_connect("reed_bank", "east", "river_ford", "west")
+    _v012_connect("river_ford", "north", "stone_bridge", "south")
+    _v012_connect("willow_bend", "west", "spring_creek", "east")
+    _v012_connect("spring_creek", "south", "reed_bank", "west")
+    _v012_connect("reed_bank", "south", "oxbow_pool", "north")
+
+    _v012_connect("lake_shore", "east", "reed_lake_bank", "west")
+    _v012_connect("reed_lake_bank", "south", "quiet_cove", "north")
+    _v012_connect("quiet_cove", "west", "southern_lake_bank", "east")
+    _v012_connect("southern_lake_bank", "north", "lake_shore", "south")
+    _v012_connect("lake_shore", "west", "pebble_lake_bank", "east")
+    _v012_connect("pebble_lake_bank", "south", "fisher_inlet", "north")
+    _v012_connect("fisher_inlet", "east", "southern_lake_bank", "west")
+    _v012_connect("quiet_cove", "east", "deepwater_pier", "west")
+    _v012_connect("deepwater_pier", "north", "reed_lake_bank", "east")
+
+    river_ids = {
+        "willow_bend", "river_rapids", "reed_bank", "river_ford", "spring_creek",
+    }
+    lake_ids = {
+        "oxbow_pool", "reed_lake_bank", "quiet_cove", "southern_lake_bank",
+        "pebble_lake_bank", "fisher_inlet", "deepwater_pier", "meadow_pond",
+    }
+    RIVER_FISHING_ROOMS.update(river_ids)
+    LAKE_FISHING_ROOMS.update(lake_ids)
+    FRESHWATER_FISHING_ROOMS.update(river_ids | lake_ids)
+    FISHING_ROOMS.update(river_ids | lake_ids)
+    V012_NEW_FISHING_ROOMS.update(river_ids | lake_ids)
+
+    # --------------------------------------------------------
+    # ROZLEGŁE ŁĄKI - kilka typów siedlisk połączonych pętlami
+    # --------------------------------------------------------
+    meadow_rooms = {
+        "wildflower_basin": ("Kotlina Dzikich Kwiatów", "Łagodna niecka pełna rumianku, lawendy, krwawnika i wysokich kwiatów."),
+        "butterfly_field": ("Łąka Motyli", "Ciepła polana przyciąga chmary motyli i drobną zwierzynę. Rosną tu lekkie zioła łąkowe."),
+        "heather_field": ("Wrzosowisko", "Purpurowe wrzosy pokrywają suchszy fragment łąk, gdzie roślinność jest rzadsza, ale bardziej aromatyczna."),
+        "wind_meadow": ("Wietrzna Łąka", "Wysoka trawa ugina się pod stałym wiatrem. Między kępami rosną odporne zioła."),
+        "clover_field": ("Pole Koniczyny", "Niskie, miękkie trawy i koniczyna tworzą spokojny teren dla drobnych zwierząt."),
+        "tall_grass_field": ("Morze Wysokich Traw", "Trawa sięga niemal do pasa i tworzy naturalne ścieżki między pagórkami."),
+        "wet_meadow": ("Mokra Łąka", "Grunt jest nasiąknięty wodą z rzeki. Mięta, melisa i rośliny wilgociolubne rosną bardzo gęsto."),
+        "reed_meadow": ("Trzcinowa Łąka", "Łąka przechodzi w pas trzcin i niewielkich oczek wodnych."),
+        "marshy_meadow": ("Podmokła Łąka", "Między trawami błyszczą małe rozlewiska. To przejście między łąką a mokradłem."),
+        "creek_meadow": ("Łąka Nad Potokiem", "Wąski potok przecina zielony teren, tworząc wilgotne stanowiska zielarskie."),
+        "herb_ridge": ("Zielarska Grań", "Nieznacznie wyniesiony teren jest suchszy i nasłoneczniony. Rosną tu szałwia i późniejsze zioła."),
+        "sage_hollow": ("Niecka Szałwii", "Ciepła niecka pachnie szałwią i gorzkimi roślinami leczniczymi."),
+        "valerian_lowland": ("Nizina Waleriany", "Chłodniejsza, wilgotna dolinka sprzyja walerianie i roślinom późniejszej progresji."),
+        "ginseng_hill": ("Wzgórze Żeń-szenia", "Stoki wzgórza są zacienione przez pojedyncze drzewa. Wśród korzeni można znaleźć cenne zioła."),
+        "moon_meadow": ("Księżycowa Łąka", "Jasne kwiaty pozostają otwarte nawet nocą. To jeden z bardziej wymagających terenów Zielarstwa."),
+        "old_stone_meadow": ("Łąka Starych Kamieni", "Krąg omszałych głazów dzieli łąkę na kilka naturalnych polan i ścieżek."),
+        "orchard_meadow": ("Łąka Przy Sadzie", "Trawiaste zbocze łączy dzikie łąki ze starymi sadami przedmieść."),
+    }
+    for rid, (name, desc) in meadow_rooms.items():
+        _v012_add_room(rid, "Łąki", name, desc)
+        HERBALISM_ROOMS.add(rid)
+        MEADOW_HERBALISM_ROOMS.add(rid)
+        V012_NEW_MEADOW_ROOMS.add(rid)
+
+    _v012_connect("flower_meadow", "south", "wildflower_basin", "north")
+    _v012_connect("wildflower_basin", "west", "butterfly_field", "east")
+    _v012_connect("butterfly_field", "south", "old_stone_meadow", "north")
+    _v012_connect("wildflower_basin", "east", "heather_field", "west")
+    _v012_connect("heather_field", "east", "wind_meadow", "west")
+    _v012_connect("wind_meadow", "south", "clover_field", "north")
+    _v012_connect("clover_field", "south", "mint_meadow", "north")
+    _v012_connect("heather_field", "north", "tall_grass_field", "south")
+    _v012_connect("tall_grass_field", "east", "old_stone_meadow", "west")
+    _v012_connect("old_stone_meadow", "south", "wind_meadow", "north")
+
+    _v012_connect("mint_meadow", "south", "wet_meadow", "north")
+    _v012_connect("wet_meadow", "east", "reed_meadow", "west")
+    _v012_connect("reed_meadow", "south", "marshy_meadow", "north")
+    _v012_connect("marshy_meadow", "west", "herb_ridge", "east")
+    _v012_connect("lakeside_meadow", "west", "creek_meadow", "east")
+    _v012_connect("creek_meadow", "south", "meadow_pond", "north")
+    _v012_connect("marshy_meadow", "south", "valerian_lowland", "north")
+
+    _v012_connect("creek_meadow", "north", "wet_meadow", "south")
+    _v012_connect("herb_ridge", "south", "sage_hollow", "north")
+    _v012_connect("sage_hollow", "east", "valerian_lowland", "west")
+    _v012_connect("sage_hollow", "south", "ginseng_hill", "north")
+    _v012_connect("ginseng_hill", "east", "moon_meadow", "west")
+    _v012_connect("moon_meadow", "north", "valerian_lowland", "south")
+    _v012_connect("tall_grass_field", "north", "orchard_meadow", "south")
+    if "old_orchard" in ROOMS:
+        _v012_connect("orchard_meadow", "north", "old_orchard", "south")
+
+    HERBALISM_ROOMS.add("meadow_pond")
+    MEADOW_HERBALISM_ROOMS.add("meadow_pond")
+    V012_WATER_MEADOW_ROOMS.update({
+        "wet_meadow", "reed_meadow", "marshy_meadow", "creek_meadow", "meadow_pond",
+    })
+
+
+build_v012_living_waters_and_meadows()
+
+# Opisy typów wody używane przez komendę łowienia/atlas.
+FISHING_WATER_TYPE_OVERRIDES.update({
+    "coastal_cove": "Zatoka morska", "rocky_shore": "Skalisty brzeg morski",
+    "river_estuary": "Estuarium", "salt_marsh": "Słone mokradła",
+    "tidal_flats": "Płycizny pływowe", "coastal_lagoon": "Laguna",
+    "kelp_bay": "Zatoka wodorostów", "outer_reef": "Rafa oceaniczna",
+    "bluewater_channel": "Otwarty ocean", "ocean_shelf": "Krawędź szelfu",
+    "deep_ocean_buoy": "Głęboki ocean", "trench_edge": "Rów oceaniczny",
+    "storm_current": "Prąd oceaniczny", "willow_bend": "Zakole rzeki",
+    "river_rapids": "Bystrza", "reed_bank": "Trzcinowy brzeg rzeki",
+    "river_ford": "Bród rzeczny", "spring_creek": "Potok",
+    "oxbow_pool": "Starorzecze", "reed_lake_bank": "Trzcinowy brzeg jeziora",
+    "quiet_cove": "Zatoka jeziora", "southern_lake_bank": "Brzeg jeziora",
+    "pebble_lake_bank": "Żwirowy brzeg jeziora", "fisher_inlet": "Zatoczka jeziora",
+    "deepwater_pier": "Głęboka toń jeziora", "meadow_pond": "Staw łąkowy",
+})
+
+# Ekologia łowisk: preferencja zmienia charakter stanowiska, ale nigdy
+# nie omija levelu Wędki. Gdy filtr byłby pusty, system wraca do normalnej puli.
+FISHING_ECOLOGY_PREFERRED_IDS.update({
+    "coastal_cove": {"sand_eel", "world_bonefish", "world_common_snook", "world_pompano", "world_yellowtail_snapper"},
+    "rocky_shore": {"world_sheepshead", "world_red_grouper", "world_european_conger", "world_scorpionfish", "world_wolffish"},
+    "river_estuary": {"world_atlantic_tarpon", "world_red_drum", "world_black_drum", "world_striped_bass", "world_atlantic_croaker"},
+    "salt_marsh": {"world_bonefish", "world_common_snook", "world_red_drum", "world_mangrove_snapper", "world_lane_snapper"},
+    "tidal_flats": {"sand_eel", "world_bonefish", "world_permit_fish", "world_pompano", "world_atlantic_croaker"},
+    "coastal_lagoon": {"world_common_snook", "world_red_drum", "world_yellowtail_snapper", "world_mangrove_snapper", "world_queen_triggerfish"},
+    "kelp_bay": {"world_atlantic_mackerel", "world_horse_mackerel", "world_john_dory", "world_wolffish", "world_atlantic_halibut_world"},
+    "outer_reef": {"reef_shark", "world_manta_ray", "world_spotted_eagle_ray", "world_blue_marlin", "world_whale_shark"},
+    "bluewater_channel": {"bluefin_tuna", "yellowfin_tuna", "world_skipjack_tuna", "world_blue_marlin", "world_white_marlin"},
+    "ocean_shelf": {"world_escolar", "world_oilfish", "world_lancetfish", "world_blue_shark", "world_common_thresher"},
+    "deep_ocean_buoy": {"world_oarfish", "world_greenland_shark", "world_goblin_shark", "world_orange_roughy", "world_coelacanth_world"},
+    "trench_edge": {"world_goblin_shark", "world_megamouth_shark", "world_bluntnose_sixgill", "world_frilled_shark", "world_coelacanth_world"},
+    "storm_current": {"mako_shark", "tiger_shark", "world_blue_shark", "world_oceanic_whitetip_shark", "world_common_thresher"},
+    "willow_bend": {"dace", "chub", "river_carp", "barbel", "ide", "world_freshwater_drum"},
+    "river_rapids": {"grayling", "salmon", "brown_trout", "river_taimen", "world_rainbow_trout", "world_chinook_salmon"},
+    "reed_bank": {"river_perch", "river_carp", "burbot", "river_catfish", "world_channel_catfish", "world_wels_catfish"},
+    "river_ford": {"dace", "common_nase", "barbel", "grayling", "world_mahseer", "world_golden_dorado"},
+    "spring_creek": {"stone_loach", "brown_trout", "silver_trout", "golden_trout", "world_brook_trout", "world_cutthroat_trout"},
+    "oxbow_pool": {"crucian_carp", "tench", "pike", "freshwater_eel", "world_largemouth_bass", "world_bluegill"},
+    "reed_lake_bank": {"lake_roach", "rudd", "crucian_carp", "tench", "lake_perch", "world_bluegill"},
+    "quiet_cove": {"bream", "tench", "pike", "zander", "freshwater_eel", "world_walleye"},
+    "southern_lake_bank": {"lake_roach", "bream", "lake_perch", "vendace", "world_yellow_perch", "world_cisco"},
+    "pebble_lake_bank": {"whitefish", "lake_char", "lake_trout", "world_round_whitefish", "world_marble_trout"},
+    "fisher_inlet": {"rudd", "crucian_carp", "bream", "tench", "world_pumpkinseed", "world_black_crappie"},
+    "deepwater_pier": {"pike", "zander", "lake_trout", "mirror_sturgeon", "world_lake_sturgeon", "world_taimen"},
+    "meadow_pond": {"crucian_carp", "tench", "rudd", "lake_roach", "world_bluegill", "world_pumpkinseed"},
+})
+
+# Lokalne profile ziół. Mają 65% szansy wpłynąć na zbiór; pozostałe 35%
+# korzysta z pełnej, levelowanej puli świata, więc progresja 1-400 nadal działa.
+V012_HERB_ECOLOGY_POOLS.update({
+    "wildflower_basin": ((1,"chamomile"),(1,"lavender"),(15,"yarrow"),(25,"lemon_balm"),(40,"sage")),
+    "butterfly_field": ((1,"chamomile"),(1,"mint"),(10,"lavender"),(20,"yarrow"),(35,"lemon_balm")),
+    "heather_field": ((15,"lavender"),(30,"sage"),(45,"valerian"),(70,"ginseng")),
+    "wind_meadow": ((1,"nettle"),(1,"chamomile"),(15,"yarrow"),(30,"sage"),(50,"valerian")),
+    "clover_field": ((1,"nettle"),(1,"mint"),(10,"chamomile"),(20,"lemon_balm"),(35,"yarrow")),
+    "tall_grass_field": ((1,"nettle"),(15,"yarrow"),(25,"lemon_balm"),(40,"sage"),(60,"valerian")),
+    "wet_meadow": ((1,"mint"),(10,"lemon_balm"),(30,"valerian"),(55,"ginseng"),(80,"moonflower")),
+    "reed_meadow": ((1,"mint"),(15,"lemon_balm"),(35,"sage"),(60,"ginseng"),(90,"star_moss")),
+    "marshy_meadow": ((10,"lemon_balm"),(30,"valerian"),(50,"ginseng"),(70,"nightshade"),(100,"moonflower")),
+    "creek_meadow": ((1,"mint"),(10,"chamomile"),(25,"lemon_balm"),(45,"valerian"),(75,"ginseng")),
+    "meadow_pond": ((1,"mint"),(20,"lemon_balm"),(40,"valerian"),(70,"ginseng"),(100,"star_moss")),
+    "herb_ridge": ((20,"lavender"),(35,"sage"),(50,"valerian"),(70,"ginseng"),(90,"mandrake")),
+    "sage_hollow": ((30,"sage"),(45,"valerian"),(65,"ginseng"),(85,"nightshade"),(110,"mandrake")),
+    "valerian_lowland": ((40,"valerian"),(60,"ginseng"),(80,"nightshade"),(100,"moonflower"),(120,"soulroot")),
+    "ginseng_hill": ((50,"ginseng"),(75,"nightshade"),(95,"mandrake"),(120,"soulroot"),(150,"phoenix_leaf")),
+    "moon_meadow": ((70,"moonflower"),(100,"soulroot"),(130,"star_moss"),(160,"phoenix_leaf"),(190,"astral_lotus")),
+    "old_stone_meadow": ((10,"yarrow"),(25,"lavender"),(45,"sage"),(70,"valerian"),(100,"ginseng")),
+    "orchard_meadow": ((1,"chamomile"),(10,"mint"),(20,"yarrow"),(35,"lemon_balm"),(50,"sage")),
+})
+V012_MEADOW_HERB_GROUP.update({rid: ("water" if rid in V012_WATER_MEADOW_ROOMS else "meadow") for rid in V012_NEW_MEADOW_ROOMS})
+V012_MEADOW_HERB_GROUP["meadow_pond"] = "water"
+
+# Atlas surowców zna nowe łąki i pokazuje realne wymagania Sierpa.
+for _rid, _rows in V012_HERB_ECOLOGY_POOLS.items():
+    HERB_ATLAS_ROOM_MIN_LEVELS.setdefault(_rid, {})
+    for _level, _herb_id in _rows:
+        if _herb_id in ITEMS:
+            previous = HERB_ATLAS_ROOM_MIN_LEVELS[_rid].get(_herb_id)
+            HERB_ATLAS_ROOM_MIN_LEVELS[_rid][_herb_id] = int(_level if previous is None else min(previous, _level))
+
+# Dodatkowa fauna łąkowa. To zabijalne moby, ale podlegają globalnej zasadzie
+# PASSIVE WORLD i nigdy nie inicjują walki bez decyzji gracza.
+MOB_TEMPLATES.update({
+    "meadow_hare": {"name":"Zając Łąkowy","max_hp":32,"damage":4,"damage_type":"physical","silver":8,"gold":0,"mithril":0,"stat_reward":12,"soul_reward":55,"drops":{},"quest_target":None,"auto_aggro":False},
+    "meadow_fox": {"name":"Lis Polny","max_hp":48,"damage":5,"damage_type":"physical","silver":13,"gold":0,"mithril":0,"stat_reward":18,"soul_reward":82,"drops":{},"quest_target":None,"auto_aggro":False},
+    "meadow_deer": {"name":"Jeleń Łąkowy","max_hp":72,"damage":6,"damage_type":"physical","silver":20,"gold":0,"mithril":0,"stat_reward":24,"soul_reward":112,"drops":{},"quest_target":None,"auto_aggro":False},
+    "meadow_stag": {"name":"Stary Jeleń","max_hp":105,"damage":8,"damage_type":"physical","silver":31,"gold":0,"mithril":0,"stat_reward":34,"soul_reward":165,"drops":{},"quest_target":None,"auto_aggro":False},
+    "meadow_grass_wisp": {"name":"Błędny Ognik Traw","max_hp":88,"damage":8,"damage_type":"magic","silver":28,"gold":0,"mithril":0,"stat_reward":31,"soul_reward":155,"drops":{},"quest_target":None,"auto_aggro":False},
+    "meadow_field_serpent": {"name":"Wąż Polny","max_hp":58,"damage":6,"damage_type":"physical","silver":16,"gold":0,"mithril":0,"stat_reward":21,"soul_reward":98,"drops":{},"quest_target":None,"auto_aggro":False},
+})
+
+MOB_SPAWNS.extend([
+    ("wildflower_basin","meadow_hare"), ("wildflower_basin","meadow_deer"),
+    ("butterfly_field","meadow_hare"), ("butterfly_field","meadow_fox"),
+    ("heather_field","meadow_fox"), ("heather_field","meadow_field_serpent"),
+    ("wind_meadow","meadow_deer"), ("wind_meadow","meadow_field_wolf"),
+    ("clover_field","meadow_hare"), ("clover_field","meadow_deer"),
+    ("tall_grass_field","meadow_field_serpent"), ("tall_grass_field","meadow_wild_boar"),
+    ("wet_meadow","meadow_giant_wasp"), ("wet_meadow","meadow_hare"),
+    ("reed_meadow","meadow_field_serpent"), ("reed_meadow","meadow_wild_boar"),
+    ("marshy_meadow","meadow_field_serpent"), ("marshy_meadow","meadow_giant_wasp"),
+    ("creek_meadow","meadow_deer"), ("creek_meadow","meadow_fox"),
+    ("herb_ridge","meadow_stag"), ("herb_ridge","meadow_field_wolf"),
+    ("sage_hollow","meadow_grass_wisp"), ("sage_hollow","meadow_wild_boar"),
+    ("valerian_lowland","meadow_grass_wisp"), ("valerian_lowland","meadow_field_serpent"),
+    ("ginseng_hill","meadow_stag"), ("ginseng_hill","meadow_field_wolf"),
+    ("moon_meadow","meadow_grass_wisp"), ("moon_meadow","meadow_stag"),
+    ("old_stone_meadow","meadow_deer"), ("old_stone_meadow","meadow_wild_boar"),
+    ("orchard_meadow","meadow_hare"), ("orchard_meadow","meadow_fox"),
+    ("meadow_pond","meadow_hare"),
+])
+
+# W istniejących definicjach również zapisujemy intencję. Mechanika walki i tak
+# respektuje GLOBAL_MOB_AUTO_AGGRO_ENABLED=False, ale metadane ułatwiają audyt.
+for _template in MOB_TEMPLATES.values():
+    if isinstance(_template, dict):
+        _template["auto_aggro"] = False
+
+GUIDE_DESTINATION_ALIASES.update({
+    "zatoka": "coastal_cove", "spokojna zatoka": "coastal_cove",
+    "ujscie rzeki": "river_estuary", "estuarium": "river_estuary",
+    "laguna": "coastal_lagoon", "zatoka wodorostow": "kelp_bay",
+    "rafa": "outer_reef", "rafa oceaniczna": "outer_reef",
+    "gleboki ocean": "deep_ocean_buoy", "row oceaniczny": "trench_edge",
+    "starorzecze": "oxbow_pool", "staw": "meadow_pond", "staw lakowy": "meadow_pond",
+    "wrzosowisko": "heather_field", "mokra laka": "wet_meadow",
+    "trzcinowa laka": "reed_meadow", "ksiezycowa laka": "moon_meadow",
+    "laka motyli": "butterfly_field", "dzikie kwiaty": "wildflower_basin",
+})
+
+HELP_TOPICS["pasywny_swiat"] = [
+    "GLOBALNA ZASADA: żaden zwykły mob ani boss w Soulbound nie rozpoczyna walki automatycznie.",
+    "Moby mogą chodzić między lokacjami i mogą wejść do pokoju gracza, ale samo spotkanie nigdy nie uruchamia combat loopa.",
+    "Walkę rozpoczyna gracz komendą atakuj <mob> / k <mob> albo świadomą ofensywną akcją na wybranym celu.",
+    "Po rozpoczęciu walki przeciwnik normalnie kontratakuje według timera realtime aż do śmierci, ucieczki lub zakończenia starcia.",
+    "Zasada dotyczy całego świata: łąk, dziczy, ruin, jaskiń, krypt, wież, bossów, endgame i przyszłych biomów.",
+]
+HELP_TOPICS["akweny"] = [
+    "v0.12.0 rozbudowuje Wędkarstwo przestrzennie: rzeki, potoki, starorzecze, jeziorne zatoki, staw, wybrzeże, estuarium, lagunę, morze, rafę, szelf i głęboki ocean.",
+    "Różne stanowiska tego samego typu wody preferują inne gatunki, ale nigdy nie omijają wymaganego levelu Wędki.",
+    "Nowe łowiska tworzą pętle i alternatywne trasy zamiast pojedynczego liniowego pomostu.",
+    "Komenda atlas / dziennik ryb nadal pokazuje progresję gatunków, a opis łowiska podaje typ akwenu.",
+]
+HELP_TOPICS["rozlegle_laki"] = [
+    "v0.12.0 rozbudowuje Łąki o suche, kwietne, wrzosowe, wysokotrawiaste, mokre i późniejsze zielarskie siedliska.",
+    "Nowe łąki mają własne preferowane zestawy ziół, ale pełna progresja Zielarstwa 1-400 pozostaje zachowana.",
+    "Na łąkach żyją i przemieszczają się moby, lecz zgodnie z zasadą PASSIVE WORLD nigdy nie atakują pierwsze.",
+    "Staw pośród Łąk jest jednocześnie łowiskiem i terenem zielarskim.",
+]
+HELP_TOPIC_ALIASES.update({
+    "pasywny swiat":"pasywny_swiat", "pasywny świat":"pasywny_swiat", "brak aggro":"pasywny_swiat", "aggro":"pasywny_swiat",
+    "akweny":"akweny", "lowiska":"akweny", "łowiska":"akweny", "oceany":"akweny",
+    "rozlegle laki":"rozlegle_laki", "rozległe łąki":"rozlegle_laki", "laki":"rozlegle_laki", "łąki":"rozlegle_laki",
+})
+
+
+# ============================================================
+# v0.13.0 - HYBRID PROCEDURAL WORLD
+# Stały rdzeń świata (miasta, drogi, quest huby i landmarki) pozostaje ręczny.
+# Naturalne pogranicza i endgame dostają duże, deterministyczne mapy tworzone
+# dopiero przy wejściu. Ten sam seed + biom + współrzędne zawsze daje ten sam pokój.
+# ============================================================
+V013_WORLD_SEED = "soulbound-v0130-hybrid-world"
+V013_FRONTIER_SIDE = 12
+V013_FRONTIER_ROOMS_PER_BIOME = V013_FRONTIER_SIDE * V013_FRONTIER_SIDE
+
+V013_FRONTIER_SPECS = {
+    "meadow": {
+        "zone": "Proceduralne Łąki", "anchor": "v0100_laki_001", "direction": "north",
+        "base_mastery": 1, "step": 2,
+        "titles": ("Polana Dzikich Kwiatów", "Łąka Wysokich Traw", "Wietrzne Pastwisko", "Koniczynowa Niecka", "Wrzosowa Polana"),
+        "features": ("stary kamienny krąg", "małe oczko wodne", "pas dzikich kwiatów", "opuszczony szałas", "kępę pachnących ziół"),
+        "mobs": ("meadow_hare", "meadow_fox", "meadow_deer", "meadow_field_serpent", "meadow_field_wolf", "meadow_wild_boar"),
+        "resources": ("herb_meadow",),
+    },
+    "forest": {
+        "zone": "Proceduralny Las", "anchor": "forest_wolf_trail", "direction": "east",
+        "base_mastery": 20, "step": 3,
+        "titles": ("Gęsty Bór", "Omszała Polana", "Dębowa Gęstwina", "Brzozowy Parów", "Ciemny Zagajnik"),
+        "features": ("powalone pradawne drzewo", "kamień porośnięty mchem", "suchy strumień", "ukrytą leśną polanę", "ślady dawnego obozu"),
+        "mobs": ("shadow_wolf", "shadow_wolf_stalker", "shadow_wolf_howler", "shadow_wolf_pack_leader"),
+        "resources": ("wood", "herb_forest"),
+    },
+    "wild": {
+        "zone": "Proceduralna Dzicz", "anchor": "stone_ravine", "direction": "east",
+        "base_mastery": 30, "step": 3,
+        "titles": ("Kamienista Dzicz", "Cierniste Pogranicze", "Dolina Starych Tropów", "Surowa Równina", "Parów Dziczy"),
+        "features": ("zarośnięty drogowskaz", "porzucone ognisko", "głazy ze starymi runami", "zwierzęcy wodopój", "wąską ścieżkę między cierniami"),
+        "mobs": ("shadow_wolf", "wild_ash_boar", "wild_thorn_wolf", "goblin_scout", "bandit_scout"),
+        "resources": ("wood",),
+    },
+    "mountain": {
+        "zone": "Proceduralne Góry", "anchor": "lava_fissure", "direction": "east",
+        "base_mastery": 70, "step": 4,
+        "titles": ("Skalna Grań", "Wysoka Przełęcz", "Kamienna Półka", "Wąwóz Szczytów", "Smagana Wiatrem Grań"),
+        "features": ("odsłoniętą żyłę minerału", "stare osuwisko", "kamienny schron", "głęboką szczelinę", "ślady kozic na skale"),
+        "mobs": ("mountain_ice_wolf", "mountain_stone_ram", "mountain_harpy", "mountain_troll"),
+        "resources": ("mine",),
+    },
+    "swamp": {
+        "zone": "Proceduralne Mokradła", "anchor": "fungal_bog", "direction": "north",
+        "base_mastery": 90, "step": 4,
+        "titles": ("Czarne Rozlewisko", "Trzcinowe Mokradło", "Gnijące Torfowisko", "Zatopiona Grobla", "Mglista Niecka"),
+        "features": ("kępy świecących grzybów", "zatopiony kamień", "martwe drzewo", "gęsty pas trzcin", "małe błotne źródło"),
+        "mobs": ("swamp_crawler", "swamp_serpent", "swamp_mire_witch"),
+        "resources": ("herb_water",),
+    },
+    "desert": {
+        "zone": "Proceduralna Pustynia", "anchor": "desert_oasis", "direction": "east",
+        "base_mastery": 110, "step": 4,
+        "titles": ("Morze Wydm", "Czerwony Kanion", "Szklana Równina", "Kamienista Niecka", "Szlak Gorącego Wiatru"),
+        "features": ("fragment zasypanej ruiny", "ciemną skałę wystającą z piasku", "wyschniętą studnię", "ślady dawnej karawany", "pas szkliwionego piasku"),
+        "mobs": ("desert_raider", "dune_scorpion", "sand_wraith"),
+        "resources": ("mine",),
+    },
+    "coast": {
+        "zone": "Proceduralne Wybrzeże", "anchor": "v0100_wybrzeze_001", "direction": "north",
+        "base_mastery": 40, "step": 3,
+        "titles": ("Skalisty Brzeg", "Piaszczysta Zatoka", "Klif Nad Morzem", "Płycizna Przypływu", "Wietrzne Molo"),
+        "features": ("małą zatoczkę", "wyrzucone przez morze drewno", "basen pływowy", "pas muszli", "stare pale pomostu"),
+        "mobs": ("coast_rock_crab", "coast_sea_raider"),
+        "resources": ("fish_sea",),
+    },
+    "ocean": {
+        "zone": "Proceduralny Ocean", "anchor": "outer_reef", "direction": "north",
+        "base_mastery": 80, "step": 4,
+        "titles": ("Otwarta Toń", "Głęboki Szelf", "Błękitny Prąd", "Rafa Dalekiego Morza", "Ciemna Głębia"),
+        "features": ("wir chłodnej wody", "pas wodorostów", "wynurzoną skałę", "dryfującą boję", "ciemną krawędź głębi"),
+        "mobs": ("coast_sea_raider", "coast_rock_crab"),
+        "resources": ("fish_ocean",),
+    },
+    "river": {
+        "zone": "Proceduralne Dorzecze", "anchor": "willow_bend", "direction": "north",
+        "base_mastery": 20, "step": 2,
+        "titles": ("Rzeczne Zakole", "Kamienny Bród", "Trzcinowy Brzeg", "Szybki Nurt", "Źródlana Odnoga"),
+        "features": ("piaszczystą łachę", "zwalone drzewo nad wodą", "głęboki dołek nurtu", "kępę trzcin", "kamienny próg rzeczny"),
+        "mobs": ("meadow_deer", "meadow_fox", "meadow_field_serpent", "bandit_scout"),
+        "resources": ("fish_river", "herb_water"),
+    },
+    "lake": {
+        "zone": "Proceduralne Pojezierze", "anchor": "deepwater_pier", "direction": "east",
+        "base_mastery": 30, "step": 2,
+        "titles": ("Cicha Zatoka", "Trzcinowy Brzeg", "Żwirowa Zatoczka", "Głęboka Toń", "Leśne Jezioro"),
+        "features": ("stary pomost", "pas lilii wodnych", "głęboką zatokę", "małą wyspę", "zatopiony pień"),
+        "mobs": ("meadow_hare", "meadow_deer", "meadow_field_wolf", "shadow_wolf"),
+        "resources": ("fish_lake", "herb_water"),
+    },
+    "frozen": {
+        "zone": "Proceduralne Lodowe Pustkowia", "anchor": "ice_cave_crystal_chamber", "direction": "north",
+        "base_mastery": 140, "step": 5,
+        "titles": ("Pole Niebieskiego Lodu", "Szczelina Szronu", "Kryształowa Grota", "Zamarznięta Galeria", "Lodowy Parów"),
+        "features": ("żyłę lodowego kryształu", "zamarznięty wodospad", "pękniętą kolumnę lodu", "ciemną szczelinę", "warstwę pradawnego szronu"),
+        "mobs": ("ice_crystal_golem", "ice_fang_wolf", "ice_wraith", "ice_glacier_guard"),
+        "resources": ("mine",),
+    },
+    "ash": {
+        "zone": "Proceduralne Popielne Rubieże", "anchor": "cinder_ravine", "direction": "east",
+        "base_mastery": 220, "step": 6,
+        "titles": ("Morze Popiołu", "Wąwóz Żaru", "Pole Czarnego Pyłu", "Spękana Równina", "Martwe Palenisko"),
+        "features": ("dogasającą szczelinę", "stos zwęglonych kości", "czarną żyłę minerału", "ruinę pieca", "wir gorącego popiołu"),
+        "mobs": ("cinder_wraith", "ash_revenant", "charred_colossus", "ash_seer"),
+        "resources": ("mine",),
+    },
+    "sky": {
+        "zone": "Proceduralne Rubieże Nieba", "anchor": "thunder_shelf", "direction": "east",
+        "base_mastery": 260, "step": 6,
+        "titles": ("Most Chmur", "Gromowa Półka", "Taras Nawałnicy", "Rozdarta Grań", "Podniebna Platforma"),
+        "features": ("wir elektrycznych chmur", "pęknięty filar", "wiszącą skałę", "runiczny piorunochron", "szczelinę między chmurami"),
+        "mobs": ("skybreaker", "storm_seraph", "thunder_harrier", "cloud_titan"),
+        "resources": ("mine",),
+    },
+    "void": {
+        "zone": "Proceduralne Wybrzeże Pustki", "anchor": "black_tide_flats", "direction": "east",
+        "base_mastery": 300, "step": 7,
+        "titles": ("Czarny Brzeg", "Bezgwiezdna Zatoka", "Molo Pustki", "Martwy Przypływ", "Zatopiony Taras"),
+        "features": ("czarną sadzawkę", "wrak bez żagli", "milczący dzwon", "ciemną rafę", "zatopiony posąg"),
+        "mobs": ("black_tide_oracle", "void_mariner", "starless_knight", "abyssal_manta"),
+        "resources": ("fish_ocean",),
+    },
+    "crown": {
+        "zone": "Proceduralne Rubieże Korony", "anchor": "absolute_gallery", "direction": "east",
+        "base_mastery": 340, "step": 5,
+        "titles": ("Grobla Absolutu", "Taras Milczących Gwiazd", "Galeria Wieczności", "Biała Platforma", "Ponadczasowa Grań"),
+        "features": ("biały monolit", "pęknięty zegar runiczny", "kamień świecący bez cienia", "zamkniętą bramę", "krąg nieruchomego światła"),
+        "mobs": ("timeless_magister", "crown_sentinel", "worldcrown_echo", "absolute_guardian"),
+        "resources": ("mine",),
+    },
+}
+
+V013_REVERSE_DIRECTION = {
+    "north": "south", "south": "north", "east": "west", "west": "east",
+    "up": "down", "down": "up",
+}
+
+
+def v0130_frontier_room_id(kind, x, y):
+    return f"v0130_frontier_{kind}_{int(x):02d}_{int(y):02d}"
+
+
+def v0130_frontier_room_identity(room_id):
+    match = re.fullmatch(r"v0130_frontier_([a-z]+)_(\d{2})_(\d{2})", str(room_id or ""))
+    if not match:
+        return None
+    kind, sx, sy = match.groups()
+    if kind not in V013_FRONTIER_SPECS:
+        return None
+    x, y = int(sx), int(sy)
+    if not (0 <= x < V013_FRONTIER_SIDE and 0 <= y < V013_FRONTIER_SIDE):
+        return None
+    return kind, x, y
+
+
+def v0130_frontier_room_ids(kind):
+    return tuple(
+        v0130_frontier_room_id(kind, x, y)
+        for y in range(V013_FRONTIER_SIDE)
+        for x in range(V013_FRONTIER_SIDE)
+    )
+
+
+def v0130_gateway_id(kind):
+    return f"v0130_gateway_{kind}"
+
+
+def v0130_build_static_gateways():
+    for kind, spec in V013_FRONTIER_SPECS.items():
+        anchor = spec["anchor"]
+        direction = spec["direction"]
+        if anchor not in ROOMS:
+            raise RuntimeError(f"Brak kotwicy proceduralnego biomu {kind}: {anchor}")
+        if direction in ROOMS[anchor].setdefault("exits", {}):
+            raise RuntimeError(f"Zajęty kierunek {direction} w kotwicy {anchor}")
+        gateway = v0130_gateway_id(kind)
+        reverse = V013_REVERSE_DIRECTION[direction]
+        root = v0130_frontier_room_id(kind, 0, 0)
+        anchor_zone = ROOMS[anchor].get("zone", "Dzicz")
+        ROOMS[gateway] = {
+            "zone": anchor_zone,
+            "name": f"Granica: {spec['zone']}",
+            "desc": (
+                "Stały punkt orientacyjny na granicy ręcznie zaprojektowanego świata. "
+                "Dalej zaczyna się rozległy teren proceduralny. Układ sektorów jest "
+                "deterministyczny i nie zmienia się po restarcie serwera."
+            ),
+            "exits": {reverse: anchor, direction: root},
+            "procedural_gateway": kind,
+        }
+        ROOMS[anchor]["exits"][direction] = gateway
+
+
+def _v0130_apply_resources(room_id, spec):
+    for resource in spec.get("resources", ()):
+        if resource == "herb_meadow":
+            HERBALISM_ROOMS.add(room_id)
+            MEADOW_HERBALISM_ROOMS.add(room_id)
+            V012_MEADOW_HERB_GROUP[room_id] = "meadow"
+        elif resource == "herb_forest":
+            HERBALISM_ROOMS.add(room_id)
+            V012_MEADOW_HERB_GROUP[room_id] = "forest"
+        elif resource == "herb_water":
+            HERBALISM_ROOMS.add(room_id)
+            V012_MEADOW_HERB_GROUP[room_id] = "water"
+        elif resource == "wood":
+            WOODCUTTING_ROOMS.add(room_id)
+        elif resource == "mine":
+            MINING_ROOMS.add(room_id)
+        elif resource == "fish_river":
+            RIVER_FISHING_ROOMS.add(room_id)
+            FRESHWATER_FISHING_ROOMS.add(room_id)
+            FISHING_ROOMS.add(room_id)
+            FISHING_WATER_TYPE_OVERRIDES[room_id] = "Proceduralna rzeka"
+        elif resource == "fish_lake":
+            LAKE_FISHING_ROOMS.add(room_id)
+            FRESHWATER_FISHING_ROOMS.add(room_id)
+            FISHING_ROOMS.add(room_id)
+            FISHING_WATER_TYPE_OVERRIDES[room_id] = "Proceduralne jezioro"
+        elif resource == "fish_sea":
+            SEA_FISHING_ROOMS.add(room_id)
+            MARINE_FISHING_ROOMS.add(room_id)
+            FISHING_ROOMS.add(room_id)
+            FISHING_WATER_TYPE_OVERRIDES[room_id] = "Proceduralne morze"
+        elif resource == "fish_ocean":
+            OCEAN_FISHING_ROOMS.add(room_id)
+            MARINE_FISHING_ROOMS.add(room_id)
+            FISHING_ROOMS.add(room_id)
+            FISHING_WATER_TYPE_OVERRIDES[room_id] = "Proceduralny ocean"
+
+
+def v0130_create_frontier_room_definition(room_id):
+    identity = v0130_frontier_room_identity(room_id)
+    if identity is None:
+        return None, ()
+    if room_id in ROOMS:
+        return room_id, ()
+    kind, x, y = identity
+    spec = V013_FRONTIER_SPECS[kind]
+    seed_text = f"{V013_WORLD_SEED}:{kind}:{x}:{y}"
+    seed = int(hashlib.sha256(seed_text.encode("utf-8")).hexdigest()[:16], 16)
+    rng = random.Random(seed)
+    title = rng.choice(spec["titles"])
+    feature = rng.choice(spec["features"])
+    distance = x + y
+    mastery = min(400, int(spec["base_mastery"]) + distance * int(spec["step"]))
+    exits = {}
+    if x > 0:
+        exits["west"] = v0130_frontier_room_id(kind, x - 1, y)
+    if x + 1 < V013_FRONTIER_SIDE:
+        exits["east"] = v0130_frontier_room_id(kind, x + 1, y)
+    if y > 0:
+        exits["south"] = v0130_frontier_room_id(kind, x, y - 1)
+    if y + 1 < V013_FRONTIER_SIDE:
+        exits["north"] = v0130_frontier_room_id(kind, x, y + 1)
+    if x == 0 and y == 0:
+        direction = spec["direction"]
+        exits[V013_REVERSE_DIRECTION[direction]] = v0130_gateway_id(kind)
+
+    ROOMS[room_id] = {
+        "zone": spec["zone"],
+        "name": f"{title} — sektor {x + 1}-{y + 1}",
+        "desc": (
+            f"Rozległy sektor biomu {spec['zone']}. Wyróżnia się tu {feature}. "
+            "Teren został wygenerowany z trwałego seedu świata, więc po ponownym "
+            "uruchomieniu serwera zachowuje ten sam układ i charakter."
+        ),
+        "exits": exits,
+        "recommended_mastery": mastery,
+        "procedural_surface": True,
+        "generated_on_demand": True,
+        "procedural_biome": kind,
+        "procedural_x": x,
+        "procedural_y": y,
+    }
+    _v0130_apply_resources(room_id, spec)
+
+    mob_pool = tuple(t for t in spec.get("mobs", ()) if t in MOB_TEMPLATES)
+    spawns = []
+    if mob_pool:
+        spawn_count = 1 + (1 if rng.random() < 0.38 else 0)
+        for _ in range(spawn_count):
+            spawns.append((room_id, rng.choice(mob_pool)))
+    return room_id, tuple(spawns)
+
+
+def v0130_refresh_exploration_catalog():
+    global TRACKED_EXPLORATION_ZONES, ALL_EXPLORATION_ROOMS
+    EXPLORATION_ZONE_ROOMS.clear()
+    for room_id, room in ROOMS.items():
+        EXPLORATION_ZONE_ROOMS.setdefault(room["zone"], []).append(room_id)
+    for kind, spec in V013_FRONTIER_SPECS.items():
+        EXPLORATION_ZONE_ROOMS.setdefault(spec["zone"], []).extend(v0130_frontier_room_ids(kind))
+    for zone in EXPLORATION_ZONE_ROOMS:
+        EXPLORATION_ZONE_ROOMS[zone] = sorted(set(EXPLORATION_ZONE_ROOMS[zone]))
+    TRACKED_EXPLORATION_ZONES = {
+        zone: tuple(room_ids)
+        for zone, room_ids in EXPLORATION_ZONE_ROOMS.items()
+        if len(room_ids) >= EXPLORATION_ZONE_MIN_ROOMS
+    }
+    ALL_EXPLORATION_ROOMS = tuple(sorted({rid for ids in EXPLORATION_ZONE_ROOMS.values() for rid in ids}))
+
+    EXPLORATION_REWARD_ITEMS.clear()
+    for zone, room_ids in TRACKED_EXPLORATION_ZONES.items():
+        reward_item_id = f"exploration_relic_{_collection_slug(zone)}"
+        EXPLORATION_REWARD_ITEMS[zone] = reward_item_id
+        ITEMS.setdefault(reward_item_id, {
+            "name": f"Pamiątka Odkrywcy: {zone}", "type": "collectible",
+            "price": None, "rarity": "unique", "rarity_name": "Unikalny",
+            "exploration_reward": True,
+            "desc": f"Unikalna pamiątka za odkrycie 100 procent strefy {zone}.",
+        })
+
+    tiers = list(ACHIEVEMENT_TRACKS.get("exploration_rooms", {}).get("tiers", ()))
+    if tiers:
+        tiers = [(req, rank) for req, rank in tiers if rank != "Platinum"]
+        tiers.append((len(ALL_EXPLORATION_ROOMS), "Platinum"))
+        ACHIEVEMENT_TRACKS["exploration_rooms"]["tiers"] = tuple(tiers)
+
+
+v0130_build_static_gateways()
+V013_FIXED_CORE_ROOMS = len(ROOMS)
+V013_FRONTIER_POTENTIAL_ROOMS = len(V013_FRONTIER_SPECS) * V013_FRONTIER_ROOMS_PER_BIOME
+V013_PROCEDURAL_SURFACE_SHARE = V013_FRONTIER_POTENTIAL_ROOMS / float(V013_FIXED_CORE_ROOMS + V013_FRONTIER_POTENTIAL_ROOMS)
+v0130_refresh_exploration_catalog()
+
+GUIDE_DESTINATION_ALIASES.update({
+    "proceduralne laki": v0130_gateway_id("meadow"), "dzikie laki": v0130_gateway_id("meadow"),
+    "proceduralny las": v0130_gateway_id("forest"), "dziki las": v0130_gateway_id("forest"),
+    "proceduralna dzicz": v0130_gateway_id("wild"),
+    "proceduralne gory": v0130_gateway_id("mountain"),
+    "proceduralne bagna": v0130_gateway_id("swamp"), "proceduralne mokradla": v0130_gateway_id("swamp"),
+    "proceduralna pustynia": v0130_gateway_id("desert"),
+    "proceduralne wybrzeze": v0130_gateway_id("coast"),
+    "proceduralny ocean": v0130_gateway_id("ocean"),
+    "proceduralna rzeka": v0130_gateway_id("river"), "proceduralne dorzecze": v0130_gateway_id("river"),
+    "proceduralne jeziora": v0130_gateway_id("lake"), "proceduralne pojezierze": v0130_gateway_id("lake"),
+    "proceduralny lod": v0130_gateway_id("frozen"),
+    "proceduralny popiol": v0130_gateway_id("ash"),
+    "proceduralne niebo": v0130_gateway_id("sky"),
+    "proceduralna pustka": v0130_gateway_id("void"),
+    "proceduralna korona": v0130_gateway_id("crown"),
+})
+
+HELP_TOPICS["hybrydowy_swiat"] = [
+    "v0.13.0 wprowadza hybrydowy świat: miasta, główne drogi, quest huby, ważni NPC i landmarki pozostają stałe.",
+    f"15 naturalnych i endgame'owych biomów ma po {V013_FRONTIER_ROOMS_PER_BIOME} proceduralnych sektorów, łącznie {V013_FRONTIER_POTENTIAL_ROOMS} możliwych lokacji powierzchniowych.",
+    "Sektory są tworzone dopiero przy wejściu. Nie obciążają startu serwera tysiącami gotowych pokoi.",
+    "Generator jest deterministyczny: ten sam biom i współrzędne zawsze tworzą tę samą nazwę, opis, wyjścia, zasoby i bazową obsadę mobów.",
+    "Proceduralne są: łąki, las, dzicz, góry, mokradła, pustynia, wybrzeże, ocean, dorzecze, pojezierze, lód oraz cztery rubieże endgame.",
+    "Profesje działają w proceduralnym świecie: odpowiednie sektory wspierają Wędkarstwo, Zielarstwo, Drwalstwo lub Górnictwo bez omijania levelu narzędzia 1-400.",
+    "Moby proceduralne również podlegają PASSIVE WORLD i nigdy nie zaczynają walki same.",
+    "Prowadzenie doprowadza do stałej granicy biomu; dalszą proceduralną mapę odkrywa się ręcznie.",
+]
+HELP_TOPIC_ALIASES.update({
+    "hybrydowy swiat": "hybrydowy_swiat", "hybrydowy świat": "hybrydowy_swiat",
+    "proceduralny swiat": "hybrydowy_swiat", "proceduralny świat": "hybrydowy_swiat",
+    "generowany swiat": "hybrydowy_swiat", "generowany świat": "hybrydowy_swiat",
+})
+
 @dataclass
 class CorpseState:
     key: str
@@ -25186,6 +29137,8 @@ class MobState:
     player_hits: int = 0
     phase_stage: int = 0
     engaged_at: float = 0.0
+    home_room_id: str = ""
+    next_wander_at: float = 0.0
 
 
 class World:
@@ -25205,9 +29158,18 @@ class World:
             self.mobs[key] = MobState(
                 key=key, room_id=room_id, template_id=template_id,
                 hp=MOB_TEMPLATES[template_id]["max_hp"],
+                home_room_id=room_id,
+                next_wander_at=time.time() + random.uniform(
+                    MOB_WANDER_MIN_SECONDS, MOB_WANDER_MAX_SECONDS
+                ),
             )
 
     def _register_runtime_spawn(self, room_id, template_id):
+        template_meta = MOB_TEMPLATES.get(template_id)
+        if isinstance(template_meta, dict):
+            # v0.12.0: również proceduralnie tworzone moby/bossowie dziedziczą
+            # globalną politykę PASSIVE WORLD.
+            template_meta["auto_aggro"] = False
         if not any(r == room_id and t == template_id for r, t in MOB_SPAWNS):
             MOB_SPAWNS.append((room_id, template_id))
         existing = [m for m in self.mobs.values() if m.room_id == room_id and m.template_id == template_id]
@@ -25218,9 +29180,36 @@ class World:
         mob = MobState(
             key=key, room_id=room_id, template_id=template_id,
             hp=MOB_TEMPLATES[template_id]["max_hp"],
+            home_room_id=room_id,
+            next_wander_at=time.time() + random.uniform(
+                MOB_WANDER_MIN_SECONDS, MOB_WANDER_MAX_SECONDS
+            ),
         )
         self.mobs[key] = mob
         return mob
+
+    def ensure_hybrid_surface_room(self, room_id):
+        room_id = str(room_id or "")
+        if not room_id:
+            return False
+        if room_id in ROOMS:
+            return True
+        created_room, spawns = v0130_create_frontier_room_definition(room_id)
+        if not created_room:
+            return False
+        for spawn_room, template_id in spawns:
+            self._register_runtime_spawn(spawn_room, template_id)
+        _ROOM_THREAT_CACHE.pop(created_room, None)
+        _ZONE_THREAT_CACHE.clear()
+        return True
+
+    def ensure_runtime_room(self, room_id):
+        room_id = str(room_id or "")
+        if room_id in ROOMS:
+            return True
+        if self.ensure_hybrid_surface_room(room_id):
+            return True
+        return self.ensure_infinite_dungeon_floor(room_id)
 
     def ensure_infinite_dungeon_floor(self, room_id):
         room_id = str(room_id or "")
@@ -25278,6 +29267,13 @@ class World:
 
         if not created_room:
             return False
+        ROOMS[created_room]["procedural_dynamic"] = True
+        ROOMS[created_room]["generated_on_demand"] = True
+        # v0.10.0: każde dynamicznie tworzone piętro dostaje ten sam duży,
+        # wielopokojowy układ co ręcznie przygotowana część instancji.
+        spawns = v0100_expand_instance_floor(
+            created_room, spawns, runtime=True
+        )
         for spawn_room, template_id in spawns:
             self._register_runtime_spawn(spawn_room, template_id)
         _ROOM_THREAT_CACHE.pop(created_room, None)
@@ -25302,6 +29298,46 @@ class World:
                 mob.player_hits = 0
                 mob.phase_stage = 0
                 mob.engaged_at = 0.0
+                if mob.home_room_id:
+                    mob.room_id = mob.home_room_id
+                mob.next_wander_at = now + random.uniform(
+                    MOB_WANDER_MIN_SECONDS, MOB_WANDER_MAX_SECONDS
+                )
+
+    def wander_step(self, now=None):
+        """Wykonuje pojedynczy bezpieczny tick ruchu zwykłych mobów."""
+        self.refresh()
+        now = time.time() if now is None else float(now)
+        moves = []
+        live_counts = {}
+        for other in self.mobs.values():
+            if other.alive:
+                live_counts[other.room_id] = live_counts.get(other.room_id, 0) + 1
+
+        for mob in self.mobs.values():
+            if not mob.alive or mob.engaged_by:
+                continue
+            if now < float(mob.next_wander_at or 0.0):
+                continue
+            mob.next_wander_at = now + random.uniform(
+                MOB_WANDER_MIN_SECONDS, MOB_WANDER_MAX_SECONDS
+            )
+            template = MOB_TEMPLATES.get(mob.template_id, {})
+            if not mob_template_can_wander(template):
+                continue
+            candidates = [
+                target for target in mob_wander_candidates(mob.room_id)
+                if live_counts.get(target, 0) < MOB_WANDER_ROOM_CAP
+            ]
+            if not candidates:
+                continue
+            old_room = mob.room_id
+            target = random.choice(candidates)
+            mob.room_id = target
+            live_counts[old_room] = max(0, live_counts.get(old_room, 1) - 1)
+            live_counts[target] = live_counts.get(target, 0) + 1
+            moves.append((mob, old_room, target))
+        return moves
 
     def live_crypt_boss(self, room_id):
         self.refresh()
@@ -25311,9 +29347,17 @@ class World:
         return None
 
     def crypt_descent_blocked(self, room_id, direction="down"):
-        if direction != "down": return False
-        floor=crypt_floor_number(room_id)
-        if floor is None or not is_crypt_boss_floor(floor): return False
+        # v0.10.1: boss blokuje tylko rzeczywiste zejście na dalsze piętro.
+        # Wszystkie przejścia wewnątrz bieżącego piętra pozostają dostępne.
+        if direction != "down":
+            return False
+        floor = crypt_floor_number(room_id)
+        if floor is None or not is_crypt_boss_floor(floor):
+            return False
+        target = ROOMS.get(room_id, {}).get("exits", {}).get(direction)
+        target_floor = crypt_floor_number(target)
+        if target_floor is None or target_floor <= floor:
+            return False
         return self.live_crypt_boss(room_id) is not None
 
     def live_astral_boss(self, room_id):
@@ -25332,6 +29376,10 @@ class World:
             return False
         floor = astral_floor_number(room_id)
         if floor is None or not is_astral_boss_floor(floor):
+            return False
+        target = ROOMS.get(room_id, {}).get("exits", {}).get(direction)
+        target_floor = astral_floor_number(target)
+        if target_floor is None or target_floor <= floor:
             return False
         return self.live_astral_boss(room_id) is not None
 
@@ -25356,6 +29404,10 @@ class World:
         floor = mythic_crypt_floor_number(room_id)
         if floor is None or not is_mythic_crypt_boss_floor(floor):
             return False
+        target = ROOMS.get(room_id, {}).get("exits", {}).get(direction)
+        target_floor = mythic_crypt_floor_number(target)
+        if target_floor is None or target_floor <= floor:
+            return False
         return self.live_mythic_crypt_boss(room_id) is not None
 
     def live_mythic_astral_boss(self, room_id):
@@ -25379,6 +29431,10 @@ class World:
         floor = mythic_astral_floor_number(room_id)
         if floor is None or not is_mythic_astral_boss_floor(floor):
             return False
+        target = ROOMS.get(room_id, {}).get("exits", {}).get(direction)
+        target_floor = mythic_astral_floor_number(target)
+        if target_floor is None or target_floor <= floor:
+            return False
         return self.live_mythic_astral_boss(room_id) is not None
 
     def live_giant_fortress_boss(self, room_id):
@@ -25399,20 +29455,14 @@ class World:
     ):
         if direction != "up":
             return False
-        floor = giant_fortress_floor_number(
-            room_id
-        )
-        if (
-            floor is None
-            or not is_giant_fortress_boss_floor(floor)
-        ):
+        floor = giant_fortress_floor_number(room_id)
+        if floor is None or not is_giant_fortress_boss_floor(floor):
             return False
-        return (
-            self.live_giant_fortress_boss(
-                room_id
-            )
-            is not None
-        )
+        target = ROOMS.get(room_id, {}).get("exits", {}).get(direction)
+        target_floor = giant_fortress_floor_number(target)
+        if target_floor is None or target_floor <= floor:
+            return False
+        return self.live_giant_fortress_boss(room_id) is not None
 
     def create_corpse(self, mob):
         template=MOB_TEMPLATES[mob.template_id]
@@ -25701,6 +29751,9 @@ class Session:
         self.rest_task = None
         # Ostatnia zwykła lokacja do komendy cofnij/back.
         self.previous_room_id = None
+        # v0.9.28: ostatni nadawca prywatnej wiadomości dla reply/odpisz.
+        self.last_private_sender_account_id = None
+        self.last_private_sender_name = None
 
     def mine_progress(self):
         return self.server.db.mine_progress(self.account_id)
@@ -25942,25 +29995,26 @@ class Session:
     def giant_fortress_ascent_blocked_for_player(
         self, room_id, direction="up"
     ):
-        return (
-            self.server.world.giant_fortress_ascent_blocked(
-                room_id, direction
-            )
-        )
+        floor = giant_fortress_floor_number(room_id)
+        if floor is not None and self.server.db.boss_floor_cleared(self.account_id, "giant", floor):
+            return False
+        return self.server.world.giant_fortress_ascent_blocked(room_id, direction)
 
     def mythic_crypt_descent_blocked_for_player(
         self, room_id, direction="down"
     ):
-        return self.server.world.mythic_crypt_descent_blocked(
-            room_id, direction
-        )
+        floor = mythic_crypt_floor_number(room_id)
+        if floor is not None and self.server.db.boss_floor_cleared(self.account_id, "mythic_crypt", floor):
+            return False
+        return self.server.world.mythic_crypt_descent_blocked(room_id, direction)
 
     def mythic_astral_ascent_blocked_for_player(
         self, room_id, direction="up"
     ):
-        return self.server.world.mythic_astral_ascent_blocked(
-            room_id, direction
-        )
+        floor = mythic_astral_floor_number(room_id)
+        if floor is not None and self.server.db.boss_floor_cleared(self.account_id, "mythic_astral", floor):
+            return False
+        return self.server.world.mythic_astral_ascent_blocked(room_id, direction)
 
     def crypt_portal(self):
         return self.server.db.crypt_portal(self.account_id)
@@ -25970,11 +30024,10 @@ class Session:
         return list(range(10, highest + 1, 10))
 
     def crypt_descent_blocked_for_player(self, room_id, direction="down"):
-        # Żywy boss zawsze blokuje zejście.
-        # Portal tylko skraca podróż i nie zmienia tej zasady.
-        return self.server.world.crypt_descent_blocked(
-            room_id, direction
-        )
+        floor = crypt_floor_number(room_id)
+        if floor is not None and self.server.db.boss_floor_cleared(self.account_id, "crypt", floor):
+            return False
+        return self.server.world.crypt_descent_blocked(room_id, direction)
 
     def astral_portal(self):
         return self.server.db.astral_portal(self.account_id)
@@ -25986,9 +30039,10 @@ class Session:
         return list(range(ASTRAL_MIN_FLOOR, highest + 1, 10))
 
     def astral_ascent_blocked_for_player(self, room_id, direction="up"):
-        return self.server.world.astral_ascent_blocked(
-            room_id, direction
-        )
+        floor = astral_floor_number(room_id)
+        if floor is not None and self.server.db.boss_floor_cleared(self.account_id, "astral", floor):
+            return False
+        return self.server.world.astral_ascent_blocked(room_id, direction)
 
     def astral_entry_blocked(self, target_room):
         return (
@@ -26766,14 +30820,17 @@ class Session:
         active = self.active_class_names()
         if not active:
             return
-        total_xp = max(0, int(total_xp))
-        if total_xp <= 0:
+        base_total_xp = max(0, int(total_xp))
+        if base_total_xp <= 0:
             return
+        _guild_pct=self.guild_bonus_percent_v0926()
+        total_xp=max(0,int(round(base_total_xp*(1.0+_guild_pct/100.0))))
 
         base_share, remainder = divmod(total_xp, len(active))
+        _guild_note=f" Bonus Gildii +{_guild_pct}%: +{total_xp-base_total_xp}." if total_xp>base_total_xp else ""
         await self.send(
             f"EXP klas: {total_xp}. Aktywne klasy: {len(active)}. "
-            "Pula jest dzielona między aktywne klasy."
+            "Pula jest dzielona między aktywne klasy." + _guild_note
         )
 
         for index, class_name in enumerate(active):
@@ -27101,7 +31158,10 @@ class Session:
 
             self.account_id = int(selected["character_account_id"])
             self.character = Character.from_row(selected)
+            self.refresh_guild_bonus_v0926()
             self.server.db.apply_shared_wallet_to_character(self.character)
+            if self.character.room_id not in ROOMS:
+                self.server.world.ensure_runtime_room(self.character.room_id)
             if self.character.room_id not in ROOMS:
                 self.character.room_id = "square"
             await self.send(
@@ -27419,6 +31479,7 @@ class Session:
         self.character = Character.from_row(
             self.server.db.character_for_account(self.account_id)
         )
+        self.refresh_guild_bonus_v0926()
         self.server.db.apply_shared_wallet_to_character(self.character)
         await self.send(
             f"Utworzono postać {self.character.name} w slocie {slot} z "
@@ -27507,9 +31568,16 @@ class Session:
             item = ITEMS.get(row["item_id"])
             if not item:
                 continue
-            affix = item.get("affix")
+            _reforge = self.server.db.equipment_reforge(self.account_id, row["item_id"])
+            affix = str(_reforge["affix"]) if _reforge else item.get("affix")
+            affix_amount = int(_reforge["affix_amount"]) if _reforge else int(item.get("affix_amount", 0))
             if affix in totals:
-                totals[affix] += int(item.get("affix_amount", 0))
+                totals[affix] += affix_amount
+            for _rrow in self.server.db.equipment_runes_v0925(self.account_id, row["item_id"]):
+                _rune = ITEMS.get(str(_rrow["rune_id"]), {})
+                for _stat,_amount in (_rune.get("rune_stats") or {}).items():
+                    if _stat in totals:
+                        totals[_stat] += int(_amount)
 
             for stat, amount in item.get("stats", {}).items():
                 if stat in totals:
@@ -27557,6 +31625,11 @@ class Session:
             for prop, amount in item.get("properties", {}).items():
                 if prop in totals:
                     totals[prop] += float(amount)
+            for _rrow in self.server.db.equipment_runes_v0925(self.account_id, row["item_id"]):
+                _rune = ITEMS.get(str(_rrow["rune_id"]), {})
+                for _prop,_amount in (_rune.get("rune_properties") or {}).items():
+                    if _prop in totals:
+                        totals[_prop] += float(_amount)
         return totals
 
     def equipment_damage_multiplier(self, damage_type):
@@ -28412,7 +32485,13 @@ class Session:
         detailed = normalized in ("info", "pelne", "pełne", "full", "cele", "targets")
         exits=[]
         for direction in room["exits"].keys():
-            if self.giant_fortress_ascent_blocked_for_player(
+            target_id = room["exits"].get(direction)
+            target_mastery = int(ROOMS.get(target_id, {}).get("recommended_mastery", 0) or 0)
+            if target_mastery and self.highest_active_class_mastery() < target_mastery:
+                exits.append(
+                    f"{direction}, trudny teren, zalecana Biegłość {target_mastery}; wejście dozwolone"
+                )
+            elif self.giant_fortress_ascent_blocked_for_player(
                 self.character.room_id, direction
             ):
                 exits.append(
@@ -28466,9 +32545,116 @@ class Session:
                     exits.append(direction)
         await self.send("Wyjścia: " + ", ".join(exits) + ".")
 
+    async def show_instance_map_summary(self):
+        await self.send("MAPY INSTANCJI")
+        any_seen = False
+        for kind, info in INSTANCE_MAP_DEFS.items():
+            visited = self.server.db.instance_visited_floors(self.account_id, kind)
+            if not visited:
+                continue
+            any_seen = True
+            highest = max(visited)
+            start, end = instance_sector_bounds(kind, highest)
+            sector_count = sum(1 for floor in visited if start <= floor <= end)
+            pct = int(sector_count * 100 / 100)
+            secrets = self.server.db.instance_secret_rows(self.account_id, kind)
+            checkpoints = self.server.db.instance_checkpoint_floors(self.account_id, kind)
+            await self.send(
+                f"{info['label']}: najwyższe piętro {highest}; sektor {start}-{end}: "
+                f"{sector_count} z 100, {pct}%; sekrety {len(secrets)}; "
+                f"checkpointy {len(checkpoints)}."
+            )
+        if not any_seen:
+            await self.send("Nie masz jeszcze zapisanej mapy żadnej instancji.")
+        else:
+            await self.send("Szczegóły: mapa instancja <nazwa>. W instancji sama komenda mapa pokazuje jej bieżący sektor.")
+
+    async def show_instance_map(self, kind_or_query="", floor=None):
+        kind = kind_or_query if kind_or_query in INSTANCE_MAP_DEFS else normalize_instance_kind(kind_or_query)
+        if not kind:
+            kind, current_floor = instance_room_identity(self.character.room_id)
+            if floor is None:
+                floor = current_floor
+        if not kind or kind not in INSTANCE_MAP_DEFS:
+            await self.send("Nie rozpoznaję instancji. Użyj mapa instancje, aby zobaczyć odkryte instancje.")
+            return
+        visited = self.server.db.instance_visited_floors(self.account_id, kind)
+        if not visited:
+            await self.send(f"{INSTANCE_MAP_DEFS[kind]['label']}: nie odkryto jeszcze żadnego piętra.")
+            return
+        highest = max(visited)
+        if floor is None:
+            current_kind, current_floor = instance_room_identity(self.character.room_id)
+            floor = current_floor if current_kind == kind and current_floor is not None else highest
+        start, end = instance_sector_bounds(kind, int(floor))
+        sector_visited = sorted(f for f in visited if start <= f <= end)
+        pct = int(len(sector_visited) * 100 / 100)
+        secret_rows = [
+            row for row in self.server.db.instance_secret_rows(self.account_id, kind)
+            if start <= int(row["floor"]) <= end
+        ]
+        secret_total = len(instance_secret_floors(kind, start))
+        checkpoints = sorted(
+            floor_value for floor_value in self.server.db.instance_checkpoint_floors(self.account_id, kind)
+            if start <= floor_value <= end
+        )
+        info = INSTANCE_MAP_DEFS[kind]
+        await self.send(
+            f"MAPA INSTANCJI: {info['label']}. Sektor {start}-{end}. "
+            f"Odkryto {len(sector_visited)} ze 100 pięter, {pct}%. "
+            f"Najwyższe odwiedzone piętro: {highest}."
+        )
+        current_kind, current_floor = instance_room_identity(self.character.room_id)
+        if current_kind == kind and current_floor is not None:
+            await self.send(f"Aktualnie jesteś na piętrze {current_floor}.")
+        if checkpoints:
+            tail = checkpoints[-15:]
+            await self.send("Zapamiętane checkpointy w sektorze: " + ", ".join(map(str, tail)) + ".")
+        else:
+            await self.send("Zapamiętane checkpointy w tym sektorze: brak.")
+        await self.send(f"Sekrety sektora: odkryto {len(secret_rows)} z {secret_total}.")
+        for row in secret_rows:
+            await self.send(f"Sekret, piętro {int(row['floor'])}: {row['secret_name']}.")
+        missing = 100 - len(sector_visited)
+        if missing:
+            await self.send(f"Nieodkryte piętra w sektorze: {missing}. Ich szczegóły pozostają ukryte.")
+        await self.send("Komendy: mapa; mapa instancje; mapa instancja <nazwa>; sekret / secret.")
+
+    async def discover_instance_secret(self):
+        kind, floor = instance_room_identity(self.character.room_id)
+        if not kind or floor is None:
+            await self.send("Sekrety instancji można badać tylko na piętrach instancji.")
+            return
+        name = instance_secret_name(kind, floor)
+        if not name:
+            await self.send("Nie znajdujesz tutaj ukrytego punktu mapy.")
+            return
+        is_new = self.server.db.mark_instance_secret(self.account_id, kind, floor, name)
+        if is_new:
+            await self.send(f"Odkrywasz sekret: {name}. Mapa instancji została zaktualizowana.")
+        else:
+            await self.send(f"Ten sekret jest już zapisany na mapie: {name}.")
+
     async def show_map(self, args=""):
         raw = str(args or "").strip()
         norm = normalize_lookup_text(raw)
+
+        current_kind, current_floor = instance_room_identity(self.character.room_id)
+        if norm in ("instancje", "instances", "instanceall", "dungeons"):
+            await self.show_instance_map_summary()
+            return
+        if norm.startswith("instancja ") or norm.startswith("instance "):
+            query = raw.split(maxsplit=1)[1] if len(raw.split(maxsplit=1)) > 1 else ""
+            await self.show_instance_map(query)
+            return
+        explicit_kind = normalize_instance_kind(raw) if raw else None
+        if explicit_kind:
+            await self.show_instance_map(explicit_kind)
+            return
+        if current_kind and (not norm or norm in ("instancja", "instance", "biezaca", "bieżąca", "current")):
+            await self.show_instance_map(current_kind, current_floor)
+            return
+
         discovered = self.server.db.discovered_room_ids(self.account_id)
         current = self.character.room_id
         world_count = sum(1 for room_id in ALL_EXPLORATION_ROOMS if room_id in discovered)
@@ -28542,15 +32728,15 @@ class Session:
             "Bossowie są co 10 pięter bez końca."
         )
         await self.send(
-            "Żywy boss zawsze blokuje zejście na następne piętro."
+            "Boss co 10 pięter blokuje zejście tylko do pierwszego pokonania przez tę postać."
         )
         await self.send(
-            "Po zabiciu bossa przejście jest otwarte tylko do jego respawnu. "
-            "Gdy boss odrodzi się, ponownie blokuje zejście."
+            "Po pierwszym zabiciu bossa próg zostaje zapisany jako zaliczony. "
+            "Gdy boss odrodzi się, można go farmić, ale nie blokuje już zejścia."
         )
         await self.send(
-            "Pokonanie bossa odblokowuje trwały Portal Krypty do jego piętra. "
-            "Portal skraca podróż, ale nie wyłącza żywego bossa."
+            "Pokonanie bossa odblokowuje trwały Portal Krypty do jego piętra oraz sam próg przejścia. "
+            "Respawn bossa pozostaje opcjonalnym celem do farmienia."
         )
         await self.send(
             "Portal uruchamiasz komendą portal <piętro> w Sali Krypty "
@@ -28744,6 +32930,7 @@ class Session:
         await self.set_achievement_progress(
             "bounties_completed", bounty_state.get("completed_count", 0)
         )
+        await self.sync_mastery_achievements_v0925()
 
     def bounty_kill_candidates(self):
         result = []
@@ -29053,6 +33240,30 @@ class Session:
                     f"{progress} z {needed} {label}."
                 )
 
+    async def grant_hourly_quest_kill_drop_v0929(self, mob_template_id, template):
+        for quest_id in (
+            "haldor_broken_blades_v0929",
+            "haldor_armor_recycling_v0929",
+            "orin_toxic_glands_v0929",
+        ):
+            row = self.server.db.quest(self.account_id, quest_id)
+            quest = QUESTS.get(quest_id)
+            if not row or row["status"] != "active" or not quest:
+                continue
+            if int(row["progress"]) >= int(quest.get("needed", 1)):
+                continue
+            item_id = v0929_kill_drop_item(quest_id, mob_template_id, template)
+            if not item_id:
+                continue
+            self.server.db.add_item(self.account_id, item_id, 1)
+            await self.send(
+                f"Przedmiot questowy: {ITEMS[item_id]['name']} x1 z {template.get('name', mob_template_id)}."
+            )
+            await self.record_item_collection(
+                item_id, source=template.get("name", mob_template_id),
+                announce=True, record_history=False, amount=1
+            )
+
     async def record_item_collection(
         self, item_id, source="", announce=True, record_history=True, amount=1
     ):
@@ -29086,6 +33297,8 @@ class Session:
             collection_candidates.append(("gems", item_id))
         if item_id in UNIQUE_ITEM_COLLECTION_CATALOG:
             collection_candidates.append(("unique", item_id))
+        if item_id in EQUIPMENT_COLLECTION_CATALOG:
+            collection_candidates.append(("equipment", item_id))
 
         for category, entry_id in collection_candidates:
             is_new = self.server.db.add_collection_entry(
@@ -29165,7 +33378,15 @@ class Session:
             await self.advance_achievement("rare_kills", 1)
             self.server.db.add_lifetime_stat(self.account_id, "rare_kills", 1)
 
-        if mob.template_id in BOSS_COLLECTION_CATALOG:
+        is_boss = any(
+            template.get(flag)
+            for flag in (
+                "world_boss", "mini_boss", "crypt_boss", "astral_boss",
+                "mythic_crypt_boss", "mythic_astral_boss", "giant_fortress_boss",
+            )
+        )
+        if is_boss:
+            BOSS_COLLECTION_CATALOG.setdefault(mob.template_id, template.get("name", mob.template_id))
             is_new = self.server.db.add_collection_entry(
                 self.account_id, "bosses", mob.template_id
             )
@@ -29181,6 +33402,25 @@ class Session:
     async def discover_room(self, room_id, announce=True):
         if room_id not in ROOMS:
             return False
+
+        # v0.9.21: instancje mają niezależną, nieskończoną mapę sektorów po 100 pięter.
+        instance_kind, instance_floor = instance_room_identity(room_id)
+        if instance_kind and instance_floor is not None:
+            instance_new = self.server.db.mark_instance_floor_visited(
+                self.account_id, instance_kind, instance_floor
+            )
+            info = INSTANCE_MAP_DEFS.get(instance_kind, {})
+            if info.get("passive_checkpoints") and instance_floor % 10 == 0:
+                self.server.db.mark_instance_checkpoint(
+                    self.account_id, instance_kind, instance_floor
+                )
+            if instance_new and instance_secret_index(instance_kind, instance_floor) is not None:
+                if announce:
+                    await self.send(
+                        "Mapa instancji: wyczuwasz tutaj ukryty ślad. "
+                        "Użyj sekret / secret, aby go zbadać."
+                    )
+
         is_new = self.server.db.mark_room_discovered(
             self.account_id, room_id
         )
@@ -29400,10 +33640,110 @@ class Session:
         self.server.db.save_character(self.character)
         await self.send(f"Aktywny tytuł: {self.character.active_title}.")
 
+    def _collection_v2_count(self, item_ids, discovered_eq=None):
+        if discovered_eq is None:
+            discovered_eq = self.server.db.collection_entry_ids(self.account_id, "equipment")
+        item_ids = set(item_ids)
+        return len(item_ids.intersection(discovered_eq)), len(item_ids)
+
+    async def show_collection_v2_classes(self):
+        discovered = self.server.db.collection_entry_ids(self.account_id, "equipment")
+        await self.send("COLLECTION CODEX 2.0 — EQ WEDŁUG KLASY")
+        for class_name in sorted(COLLECTION_V2_CLASS_GROUPS, key=normalize_lookup_text):
+            count, total = self._collection_v2_count(COLLECTION_V2_CLASS_GROUPS[class_name], discovered)
+            pct = int(count * 100 / max(1, total))
+            await self.send(f"{class_name}: {count} z {total}, {pct}%.")
+
+    async def show_collection_v2_sets(self, page=1):
+        discovered = self.server.db.collection_entry_ids(self.account_id, "equipment")
+        rows = []
+        for set_id, items in COLLECTION_V2_SET_GROUPS.items():
+            count, total = self._collection_v2_count(items, discovered)
+            pct = int(count * 100 / max(1, total))
+            rows.append((normalize_lookup_text(COLLECTION_V2_SET_NAMES[set_id]), COLLECTION_V2_SET_NAMES[set_id], count, total, pct))
+        rows.sort()
+        page_size = 30
+        pages = max(1, math.ceil(len(rows) / page_size))
+        page = max(1, min(int(page), pages))
+        await self.send(f"COLLECTION CODEX 2.0 — SETY. Strona {page} z {pages}; setów {len(rows)}.")
+        start = (page - 1) * page_size
+        for _key, name, count, total, pct in rows[start:start + page_size]:
+            await self.send(f"{name}: {count} z {total}, {pct}%.")
+        if page < pages:
+            await self.send(f"Następna strona: kolekcja sety2 {page + 1}.")
+
+    async def show_collection_v2_legends(self):
+        discovered = self.server.db.collection_entry_ids(self.account_id, "equipment")
+        all_items = set().union(*COLLECTION_V2_LEGENDARY_GROUPS.values()) if COLLECTION_V2_LEGENDARY_GROUPS else set()
+        count, total = self._collection_v2_count(all_items, discovered)
+        await self.send(f"COLLECTION CODEX 2.0 — LEGENDY: {count} z {total}, {int(count*100/max(1,total))}%.")
+        for class_name in sorted(COLLECTION_V2_LEGENDARY_GROUPS, key=normalize_lookup_text):
+            c, t = self._collection_v2_count(COLLECTION_V2_LEGENDARY_GROUPS[class_name], discovered)
+            await self.send(f"{class_name}: {c} z {t}, {int(c*100/max(1,t))}%.")
+
+    async def show_collection_v2_materials(self):
+        discovered = self.server.db.collection_entry_ids(self.account_id, "equipment")
+        await self.send("COLLECTION CODEX 2.0 — MATERIAŁOWE EQ")
+        for tier in CORPSE_MATERIAL_TIERS:
+            key = tier["key"]
+            c, t = self._collection_v2_count(COLLECTION_V2_MATERIAL_GROUPS.get(key, ()), discovered)
+            await self.send(f"{COLLECTION_V2_MATERIAL_LABELS[key]}: {c} z {t}, {int(c*100/max(1,t))}%.")
+
+    async def show_collection_v2_regions(self):
+        discovered = self.server.db.discovered_room_ids(self.account_id)
+        await self.send("COLLECTION CODEX 2.0 — REGIONY")
+        for zone in sorted(EXPLORATION_ZONE_ROOMS, key=normalize_lookup_text):
+            rooms = EXPLORATION_ZONE_ROOMS[zone]
+            count = sum(1 for room_id in rooms if room_id in discovered)
+            total = len(rooms)
+            await self.send(f"{zone}: {count} z {total}, {int(count*100/max(1,total))}%.")
+
+    async def show_collection_v2_instances(self):
+        await self.send("COLLECTION CODEX 2.0 — INSTANCJE")
+        any_seen = False
+        for kind, info in INSTANCE_MAP_DEFS.items():
+            visited = self.server.db.instance_visited_floors(self.account_id, kind)
+            if not visited:
+                continue
+            any_seen = True
+            highest = max(visited)
+            start, end = instance_sector_bounds(kind, highest)
+            count = sum(1 for floor in visited if start <= floor <= end)
+            secrets = self.server.db.instance_secret_rows(self.account_id, kind)
+            checkpoints = self.server.db.instance_checkpoint_floors(self.account_id, kind)
+            await self.send(
+                f"{info['label']}: sektor {start}-{end} {count} z 100, {count}%; "
+                f"najwyższe piętro {highest}; sekrety {len(secrets)}; checkpointy {len(checkpoints)}."
+            )
+        if not any_seen:
+            await self.send("Nie odkryto jeszcze żadnej instancji.")
+
     async def show_collection(self, args=""):
         await self.sync_collection_from_inventory()
         raw = str(args or "").strip()
         norm = normalize_lookup_text(raw)
+        compact = norm.replace(" ", "")
+
+        if compact in ("klasy", "classes", "class", "klasa"):
+            await self.show_collection_v2_classes()
+            return
+        first_token = normalize_lookup_text(raw.split()[0]).replace(" ", "") if raw.split() else ""
+        if first_token in ("sety2", "sety", "sets2", "setprogress", "setprogression"):
+            page = int(raw.split()[-1]) if raw.split()[-1].isdigit() else 1
+            await self.show_collection_v2_sets(page)
+            return
+        if compact in ("legendy", "legendarne", "legends", "legendary"):
+            await self.show_collection_v2_legends()
+            return
+        if compact in ("materialyeq", "materialeq", "eqmaterialy", "eqmaterials"):
+            await self.show_collection_v2_materials()
+            return
+        if compact in ("regiony", "regions"):
+            await self.show_collection_v2_regions()
+            return
+        if compact in ("instancje", "instances", "dungeons"):
+            await self.show_collection_v2_instances()
+            return
         if not norm:
             discovered_total = 0
             catalog_total = 0
@@ -29421,9 +33761,10 @@ class Session:
             pct = int(discovered_total * 100 / max(1, catalog_total))
             await self.send(f"Cały Collection Codex: {pct}%.")
             await self.send(
-                "Szczegóły: kolekcja ryby, minerały, zioła, klejnoty, bossowie, rare, "
-                "materiały albo wyjątkowe. Starsze: named, sety, skrzynie. "
-                "Duże kategorie są stronicowane po 40 wpisów."
+                "Collection Codex 2.0: kolekcja klasy, kolekcja sety2, kolekcja legendy, "
+                "kolekcja materialy eq, kolekcja regiony, kolekcja instancje. "
+                "Klasyczne widoki nadal działają: ryby, minerały, zioła, klejnoty, bossowie, rare, "
+                "materiały, wyjątkowe, eq, named, sety i skrzynie."
             )
             return
 
@@ -29436,7 +33777,7 @@ class Session:
         if not category:
             await self.send(
                 "Kategorie: ryby, minerały, zioła, klejnoty, bossowie, rare, "
-                "materiały, wyjątkowe; dodatkowo named, sety, skrzynie."
+                "materiały, wyjątkowe, eq; dodatkowo named, sety, skrzynie."
             )
             return
 
@@ -29482,8 +33823,13 @@ class Session:
             )
             await self.send(
                 "Wpisz bosskodex lista albo bosskodex <nazwa bossa>. "
-                "Codex pokazuje kille, pierwszy/ostatni kill, solo/grupa, rekord i odkryte dropy."
+                "Codex pokazuje kille, pierwszy/ostatni kill, solo/grupa, rekord czasu, "
+                "najwyższą wersję piętra i odkryte unikalne dropy."
             )
+            for kind, info in INSTANCE_MAP_DEFS.items():
+                highest = self.server.db.highest_boss_floor_cleared(self.account_id, kind)
+                if highest:
+                    await self.send(f"{info['label']}: najwyższy zaliczony próg bossa {highest}.")
             return
 
         if norm.startswith("lista") or norm == "list":
@@ -29542,14 +33888,29 @@ class Session:
             f"Pierwszy kill: {entry['first_killed_at']}. Ostatni kill: {entry['last_killed_at']}. "
             f"Najlepszy czas: {fastest_text}."
         )
+        boss_template = MOB_TEMPLATES.get(boss_id, {})
+        instance_kind, boss_floor = boss_floor_identity(boss_template)
+        if instance_kind and boss_floor:
+            highest_version = self.server.db.highest_boss_floor_cleared(self.account_id, instance_kind)
+            await self.send(
+                f"Wersja piętrowa: {boss_floor}. Najwyższy pokonany próg bossa w instancji "
+                f"{INSTANCE_MAP_DEFS.get(instance_kind, {}).get('label', instance_kind)}: {highest_version}."
+            )
         drops = self.server.db.boss_codex_drops(self.account_id, boss_id)
         if drops:
-            names = [ITEMS[row["item_id"]]["name"] for row in drops if row["item_id"] in ITEMS]
-            await self.send(
-                f"Odkryte dropy: {len(names)}. " + ", ".join(names) + "."
-            )
+            names = [
+                ITEMS[row["item_id"]]["name"]
+                for row in drops
+                if row["item_id"] in ITEMS and boss_codex_drop_is_unique(row["item_id"])
+            ]
+            if names:
+                await self.send(
+                    f"Odkryte unikalne dropy: {len(names)}. " + ", ".join(names) + "."
+                )
+            else:
+                await self.send("Odkryte unikalne dropy: jeszcze brak zapisanych.")
         else:
-            await self.send("Odkryte dropy: brak zapisanych od v0.9.6.")
+            await self.send("Odkryte unikalne dropy: jeszcze brak zapisanych.")
 
     async def show_drop_history(self):
         rows = self.server.db.drop_history_rows(self.account_id, 20)
@@ -29801,6 +34162,120 @@ class Session:
         elif result["items"]:
             await self.send("Przedmioty ze skrzyni ukrywa aktywny loot filter.")
 
+
+    async def show_leaderboards(self, args=""):
+        """v0.9.23: trwałe rankingi postaci oparte wyłącznie na zapisanym stanie."""
+        raw = self.normalize_description_query(args or "")
+        compact = raw.replace(" ", "")
+        db = self.server.db
+
+        def floor_rows(kind, limit=10):
+            return db.conn.execute(
+                "SELECT c.name AS name, MAX(p.floor) AS score "
+                "FROM characters c JOIN instance_map_progress p ON p.account_id=c.account_id "
+                "WHERE p.instance_kind=? GROUP BY c.account_id,c.name "
+                "HAVING MAX(p.floor)>0 ORDER BY score DESC,c.name COLLATE NOCASE LIMIT ?",
+                (kind, int(limit)),
+            ).fetchall()
+
+        def boss_speed_rows(limit=10):
+            return db.conn.execute(
+                "SELECT c.name AS name,b.mob_template_id AS boss_id,b.fastest_kill_ms AS ms "
+                "FROM bestiary_stats b JOIN boss_codex_stats bc "
+                "ON bc.account_id=b.account_id AND bc.boss_id=b.mob_template_id "
+                "JOIN characters c ON c.account_id=b.account_id "
+                "WHERE b.fastest_kill_ms IS NOT NULL "
+                "ORDER BY b.fastest_kill_ms ASC,c.name COLLATE NOCASE LIMIT ?",
+                (int(limit),),
+            ).fetchall()
+
+        legendary_ids = {
+            item_id for item_id, item in ITEMS.items()
+            if item.get("type") in ("armor", "weapon") and (
+                str(item.get("rarity", "")).lower() == "legendary"
+                or item.get("legendary_set_loot")
+                or item.get("legendary_class_relic")
+            )
+        }
+
+        def collection_rank(kind, limit=10):
+            rows = []
+            chars = db.conn.execute(
+                "SELECT account_id,name FROM characters ORDER BY name COLLATE NOCASE"
+            ).fetchall()
+            for char in chars:
+                discovered = db.collection_entry_ids(char["account_id"], "equipment")
+                if kind == "legends":
+                    score = len(discovered.intersection(legendary_ids))
+                else:
+                    score = sum(
+                        1 for items in COLLECTION_V2_SET_GROUPS.values()
+                        if items and set(items).issubset(discovered)
+                    )
+                if score > 0:
+                    rows.append((char["name"], score))
+            rows.sort(key=lambda row: (-row[1], str(row[0]).lower()))
+            return rows[:int(limit)]
+
+        async def send_floor(title, kind, limit=10):
+            rows = floor_rows(kind, limit)
+            await self.send(title + ":")
+            if not rows:
+                await self.send("Brak zapisanych wyników.")
+                return
+            for pos, row in enumerate(rows, 1):
+                await self.send(f"{pos}. {row['name']} — piętro {int(row['score'])}.")
+
+        async def send_boss(limit=10):
+            rows = boss_speed_rows(limit)
+            await self.send("Najszybsze pokonania bossów:")
+            if not rows:
+                await self.send("Brak zapisanych rekordów.")
+                return
+            for pos, row in enumerate(rows, 1):
+                boss_name = BOSS_COLLECTION_CATALOG.get(row["boss_id"], row["boss_id"])
+                await self.send(
+                    f"{pos}. {row['name']} — {boss_name}, {int(row['ms'])/1000.0:.2f} s."
+                )
+
+        async def send_collection(title, kind, limit=10):
+            rows = collection_rank(kind, limit)
+            await self.send(title + ":")
+            if not rows:
+                await self.send("Brak zapisanych wyników.")
+                return
+            label = "legend" if kind == "legends" else "pełnych setów"
+            for pos, (name, score) in enumerate(rows, 1):
+                await self.send(f"{pos}. {name} — {score} {label}.")
+
+        if compact in ("krypta", "crypt"):
+            await send_floor("Ranking Krypty", "crypt")
+            return
+        if compact in ("wieza", "wieża", "astral", "tower", "wiezaastralna"):
+            await send_floor("Ranking Wieży Astralnej", "astral")
+            return
+        if compact in ("boss", "bossowie", "bosses", "czas", "time"):
+            await send_boss()
+            return
+        if compact in ("legendy", "legends", "legendary"):
+            await send_collection("Ranking odkrytych legend", "legends")
+            return
+        if compact in ("sety", "sets", "set"):
+            await send_collection("Ranking skompletowanych setów", "sets")
+            return
+        if compact:
+            await self.send(
+                "Użycie: rankingi krypta, rankingi wieza, rankingi boss, "
+                "rankingi legendy albo rankingi sety."
+            )
+            return
+        # Domyślnie krótki Top 5 każdej kategorii, wygodny dla NVDA.
+        await send_floor("Ranking Krypty", "crypt", 5)
+        await send_floor("Ranking Wieży Astralnej", "astral", 5)
+        await send_boss(5)
+        await send_collection("Ranking odkrytych legend", "legends", 5)
+        await send_collection("Ranking skompletowanych setów", "sets", 5)
+
     async def show_lifetime_statistics(self):
         stats = self.server.db.lifetime_stats(self.account_id)
         # Pola, które mają już starsze trwałe źródło, są synchronizowane w górę
@@ -29865,14 +34340,16 @@ class Session:
             "osiagniecia / achievements - Bronze, Silver, Gold i Platinum",
             "tytuly / titles; tytul <nazwa> - lista i aktywny tytuł; tytuły są prestiżowe i nie dają statystyk",
             "bounty / zlecenia / contracts - losowana Tablica Zleceń; kontrakty startują od 0/x i czytają postęp na żywo",
-            "kolekcja / collection [ryby|minerały|zioła|klejnoty|bossowie|rare|materiały|wyjątkowe] - Collection Codex",
-            "bosskodex / bosscodex [lista|nazwa] - szczegółowy Boss Codex",
+            "kolekcja / collection - Collection Codex; 2.0: kolekcja klasy, sety2, legendy, materialy eq, regiony, instancje",
+            "rankingi / leaderboard - Top Krypty, Wieży, bossów, legend i kompletnych setów",
+            "bosskodex / bosscodex [lista|nazwa] - kille, czas, solo/grupa, najwyższa wersja piętra i odkryte unikalne dropy",
             "historiadropow / drophistory - ostatnie wartościowe dropy",
             "loot rare+ / epic+ / legendary / all / off - filtr komunikatów lootu pod NVDA",
             "opis [nazwa] / describe [name] - szczegółowy opis elementu świata",
             "look lub l - opis aktualnej lokacji",
             "exits - dostępne kierunki; exits info - kierunek, nazwa następnej lokacji i jej strefa",
-            "map / mapa - odkryte lokacje i procent bieżącego regionu; map all / mapa all - procent wszystkich regionów i status nagród 100%",
+            "map / mapa - w świecie mapa regionu, w instancji mapa sektora 100 pięter z procentem, sekretami i checkpointami; mapa instancje - podsumowanie",
+            "sekret / secret - zbadaj ukryty punkt na specjalnym piętrze instancji i zapisz go na mapie",
             "bestiariusz / bestiary - dziennik pokonanych mobów; bestiariusz <mob> - lokacje, dropy, odporności i rekord zabicia",
             "krypta / crypt - informacje o nieskończonej Krypcie, bossach co 10 pięter i checkpointach",
             "wieza / astral - informacje o nieskończonej Wieży Astralnej od piętra 100",
@@ -29939,7 +34416,14 @@ class Session:
             "net / siatka - Siatka na ryby; pokazuje liczbę ryb i szacowany zarobek ze sprzedaży",
             "bag / sakwa - Sakwa górnicza; pokazuje ilość rud i szacowany zarobek",
             "drewno / stos / woodpile - Stos drewna; pokazuje ilość drewna i szacowany zarobek",
-            "szkatułka / craftbox - Szkatułka Rzemieślnicza; automatyczny magazyn sztabek, desek, materiałów craftu i oszlifowanych klejnotów jubilerskich",
+            "szkatułka / craftbox - Szkatułka Rzemieślnicza podzielona na kategorie: Kowalstwo, Jubilerstwo, Alchemia, Runy, Salvage i pozostałe",
+        "salvage / rozłóż <pełna nazwa EQ> - u Haldora rozkłada niezałożone EQ na materiały do Szkatułki",
+        "reforge / przekuj <pełna nazwa EQ> - u Haldora zmienia jeden affix EQ za Esencję Przekucia; próg Biegłości nie zmienia się",
+        "runy - informacje, tworzenie i wyjmowanie run; runa <typ> <EQ> osadza runę w endgame EQ",
+        "gildia - Gildia graczy: poziomy 1-100, Siedziba 1-10, budynki, kontrakty, bossowie, skarbiec, rangi, bank, trofea, osiągnięcia, log i czat",
+        "znajomi - lista znajomych; dodaj/akceptuj/odrzuc/usun; szybkie zaproszenia party i gildia",
+        "tell <gracz> <tekst>; reply <tekst> - prywatne wiadomości i szybka odpowiedź do ostatniego nadawcy",
+        "osiagnieciaklasowe - osiągnięcia klas i profesji na progresji 1-400",
             "put fish net / wloz ryba siatka - przenieś ryby do Siatki",
             "put ore bag / wloz ruda sakwa - przenieś rudy do Sakwy",
             "take przedmiot net/bag / wyjmij przedmiot siatka/sakwa - wyjmij surowiec",
@@ -32178,7 +36662,7 @@ class Session:
         old = self.character.room_id
         if old == target:
             return True
-        self.server.world.ensure_infinite_dungeon_floor(target)
+        self.server.world.ensure_runtime_room(target)
         label = DIRECTION_WALK_LABELS.get(direction, str(direction))
         target_name = ROOMS.get(target, {}).get("name", str(target))
 
@@ -32229,7 +36713,7 @@ class Session:
         if not target:
             await self.send("Nie możesz iść w tym kierunku.")
             return
-        self.server.world.ensure_infinite_dungeon_floor(target)
+        self.server.world.ensure_runtime_room(target)
         mythic_error = self.mythic_entry_error(target)
         if mythic_error:
             await self.send(mythic_error)
@@ -32241,6 +36725,15 @@ class Session:
         if profession_error:
             await self.send(profession_error)
             return
+
+        # v0.9.24: zwykłe tereny świata nigdy nie są bramkowane Biegłością.
+        # Próg jest wyłącznie rekomendacją; gracz sam decyduje, czy podejmuje ryzyko.
+        target_mastery = int(ROOMS.get(target, {}).get("recommended_mastery", 0) or 0)
+        if target_mastery and self.highest_active_class_mastery() < target_mastery:
+            await self.send(
+                f"Ostrzeżenie: to bardzo trudny teren. Zalecana Biegłość {target_mastery}; "
+                f"masz {self.highest_active_class_mastery()}. Wchodzisz na własne ryzyko."
+            )
 
         if self.astral_entry_blocked(target):
             await self.send(
@@ -33064,6 +37557,13 @@ class Session:
         return label, target, power
 
     def exp_area_recommended(self, area):
+        # v0.9.23: nowe otwarte regiony endgame są opisane Biegłością,
+        # więc rekomendacja nie może udawać, że są to progi Soul Level.
+        if area.get("mastery_min") is not None:
+            mastery = self.highest_active_class_mastery()
+            minimum = int(area.get("mastery_min", 1))
+            maximum = int(area.get("mastery_max", CLASS_MASTERY_MAX_LEVEL))
+            return minimum <= mastery <= maximum
         label, _, _ = self.exp_area_dynamic_threat(area)
         return label in ("Odpowiedni", "Trudny")
 
@@ -33146,6 +37646,12 @@ class Session:
         return None
 
     def exp_area_soul_text(self, area):
+        if area.get("mastery_min") is not None:
+            minimum = int(area.get("mastery_min", 1))
+            maximum = int(area.get("mastery_max", minimum))
+            if minimum == maximum:
+                return f"Biegłość aktywnej klasy {minimum}"
+            return f"Biegłość aktywnej klasy {minimum}-{maximum}"
         minimum = int(area["soul_min"])
         maximum = int(area["soul_max"])
 
@@ -33551,16 +38057,194 @@ class Session:
         )
 
     async def tell(self, args):
-        parts = args.split(maxsplit=1)
+        parts = str(args or "").split(maxsplit=1)
         if len(parts) != 2:
-            await self.send("Użycie: tell gracz tekst")
+            await self.send("Użycie: tell <gracz> <tekst>.")
             return
-        target = self.server.find_character_session(parts[0])
-        if not target:
+        target_name, message = parts[0].strip(), parts[1].strip()
+        if not message:
+            await self.send("Wiadomość nie może być pusta.")
+            return
+        if len(message) > 500:
+            message = message[:500]
+            await self.send("Wiadomość prywatną skrócono do 500 znaków.")
+        target = self.server.find_character_session(target_name)
+        if not target or target.closed or not target.character:
             await self.send("Ten gracz nie jest online.")
             return
-        await target.send(f"{self.character.name} mówi ci prywatnie: {parts[1]}")
-        await self.send(f"Do {target.character.name}: {parts[1]}")
+        if target is self:
+            await self.send("Nie musisz wysyłać prywatnej wiadomości do siebie.")
+            return
+        target.last_private_sender_account_id = self.account_id
+        target.last_private_sender_name = self.character.name
+        await target.send(f"[TELL] {self.character.name}: {message}")
+        await self.send(f"[TELL do {target.character.name}] {message}")
+
+    async def reply_private_v0928(self, message):
+        message = str(message or "").strip()
+        if not message:
+            await self.send("Użycie: reply <tekst> albo odpisz <tekst>.")
+            return
+        if not self.last_private_sender_name:
+            await self.send("Nie masz jeszcze nadawcy prywatnej wiadomości, któremu można odpisać.")
+            return
+        target = self.server.find_character_session(self.last_private_sender_name)
+        if not target or target.closed or not target.character:
+            await self.send(f"{self.last_private_sender_name} nie jest teraz online.")
+            return
+        await self.tell(f"{target.character.name} {message}")
+
+    def friend_account_id_v0928(self, name):
+        return self.server.db.character_account_id_by_name_v0928(name)
+
+    async def show_friends_v0928(self):
+        conn = self.server.db.conn
+        rows = conn.execute(
+            "SELECT f.friend_account_id,c.name FROM player_friends_v0928 f "
+            "JOIN characters c ON c.account_id=f.friend_account_id "
+            "WHERE f.account_id=? ORDER BY c.name COLLATE NOCASE",
+            (self.account_id,),
+        ).fetchall()
+        await self.send("ZNAJOMI:")
+        if not rows:
+            await self.send("Lista znajomych jest pusta.")
+        for row in rows:
+            session = self.server.session_by_account(int(row["friend_account_id"]))
+            status = "online" if session and not session.closed and session.character else "offline"
+            if status == "online" and session.character:
+                rid = session.character.room_id
+                extra = f" — {ROOMS.get(rid, {}).get('name', rid)}"
+            else:
+                extra = ""
+            await self.send(f"{row['name']}: {status}{extra}.")
+        incoming = conn.execute(
+            "SELECT c.name FROM player_friend_requests_v0928 r "
+            "JOIN characters c ON c.account_id=r.sender_account_id "
+            "WHERE r.target_account_id=? ORDER BY r.created_at,c.name COLLATE NOCASE",
+            (self.account_id,),
+        ).fetchall()
+        if incoming:
+            await self.send("OCZEKUJĄCE PROŚBY:")
+            for row in incoming:
+                await self.send(f"{row['name']}. Użyj: znajomi akceptuj {row['name']} albo znajomi odrzuc {row['name']}.")
+
+    async def handle_friends_v0928(self, args=""):
+        raw = str(args or "").strip()
+        if not raw:
+            await self.show_friends_v0928()
+            return
+        parts = raw.split(maxsplit=1)
+        action = normalize_lookup_text(parts[0])
+        rest = parts[1].strip() if len(parts) > 1 else ""
+        conn = self.server.db.conn
+        if action in ("dodaj", "add", "zaproś", "zapros"):
+            if not rest:
+                await self.send("Użycie: znajomi dodaj <gracz>.")
+                return
+            target_id = self.friend_account_id_v0928(rest)
+            if target_id is None:
+                await self.send("Nie ma takiej postaci.")
+                return
+            if int(target_id) == int(self.account_id):
+                await self.send("Nie możesz dodać samego siebie do znajomych.")
+                return
+            if self.server.db.are_friends_v0928(self.account_id, target_id):
+                await self.send("Ta osoba jest już na twojej liście znajomych.")
+                return
+            if conn.execute(
+                "SELECT 1 FROM player_friend_requests_v0928 WHERE sender_account_id=? AND target_account_id=?",
+                (target_id, self.account_id),
+            ).fetchone():
+                # Dwie krzyżujące się prośby oznaczają zgodę obu stron.
+                conn.execute("DELETE FROM player_friend_requests_v0928 WHERE (sender_account_id=? AND target_account_id=?) OR (sender_account_id=? AND target_account_id=?)", (target_id,self.account_id,self.account_id,target_id))
+                conn.execute("INSERT OR IGNORE INTO player_friends_v0928(account_id,friend_account_id) VALUES(?,?)", (self.account_id,target_id))
+                conn.execute("INSERT OR IGNORE INTO player_friends_v0928(account_id,friend_account_id) VALUES(?,?)", (target_id,self.account_id))
+                conn.commit()
+                name = self.server.db.character_name_by_account_v0928(target_id) or rest
+                await self.send(f"{name} zostaje twoim znajomym.")
+                target = self.server.session_by_account(target_id)
+                if target and not target.closed:
+                    await target.send(f"{self.character.name} zostaje twoim znajomym.")
+                return
+            conn.execute(
+                "INSERT OR REPLACE INTO player_friend_requests_v0928(sender_account_id,target_account_id,created_at) VALUES(?,?,CURRENT_TIMESTAMP)",
+                (self.account_id,target_id),
+            )
+            conn.commit()
+            name = self.server.db.character_name_by_account_v0928(target_id) or rest
+            await self.send(f"Wysyłasz prośbę o dodanie do znajomych: {name}.")
+            target = self.server.session_by_account(target_id)
+            if target and not target.closed:
+                await target.send(f"{self.character.name} chce dodać cię do znajomych. Użyj: znajomi akceptuj {self.character.name} albo znajomi odrzuc {self.character.name}.")
+            return
+        if action in ("akceptuj", "accept", "zaakceptuj"):
+            sender_id = self.friend_account_id_v0928(rest) if rest else None
+            if sender_id is None:
+                await self.send("Użycie: znajomi akceptuj <gracz>.")
+                return
+            req = conn.execute(
+                "SELECT 1 FROM player_friend_requests_v0928 WHERE sender_account_id=? AND target_account_id=?",
+                (sender_id,self.account_id),
+            ).fetchone()
+            if not req:
+                await self.send("Nie masz prośby od tej osoby.")
+                return
+            conn.execute("DELETE FROM player_friend_requests_v0928 WHERE sender_account_id=? AND target_account_id=?", (sender_id,self.account_id))
+            conn.execute("DELETE FROM player_friend_requests_v0928 WHERE sender_account_id=? AND target_account_id=?", (self.account_id,sender_id))
+            conn.execute("INSERT OR IGNORE INTO player_friends_v0928(account_id,friend_account_id) VALUES(?,?)", (self.account_id,sender_id))
+            conn.execute("INSERT OR IGNORE INTO player_friends_v0928(account_id,friend_account_id) VALUES(?,?)", (sender_id,self.account_id))
+            conn.commit()
+            name = self.server.db.character_name_by_account_v0928(sender_id) or rest
+            await self.send(f"Dodajesz {name} do znajomych.")
+            target = self.server.session_by_account(sender_id)
+            if target and not target.closed:
+                await target.send(f"{self.character.name} zaakceptował twoją prośbę o znajomość.")
+            return
+        if action in ("odrzuc", "odrzuć", "decline"):
+            sender_id = self.friend_account_id_v0928(rest) if rest else None
+            if sender_id is None:
+                await self.send("Użycie: znajomi odrzuc <gracz>.")
+                return
+            cur = conn.execute("DELETE FROM player_friend_requests_v0928 WHERE sender_account_id=? AND target_account_id=?", (sender_id,self.account_id))
+            conn.commit()
+            await self.send("Odrzucono prośbę." if cur.rowcount else "Nie masz prośby od tej osoby.")
+            return
+        if action in ("usun", "usuń", "remove", "delete"):
+            target_id = self.friend_account_id_v0928(rest) if rest else None
+            if target_id is None:
+                await self.send("Użycie: znajomi usun <gracz>.")
+                return
+            was = self.server.db.are_friends_v0928(self.account_id,target_id)
+            conn.execute("DELETE FROM player_friends_v0928 WHERE (account_id=? AND friend_account_id=?) OR (account_id=? AND friend_account_id=?)", (self.account_id,target_id,target_id,self.account_id))
+            conn.execute("DELETE FROM player_friend_requests_v0928 WHERE (sender_account_id=? AND target_account_id=?) OR (sender_account_id=? AND target_account_id=?)", (self.account_id,target_id,target_id,self.account_id))
+            conn.commit()
+            await self.send("Usunięto znajomego." if was else "Ta osoba nie była na twojej liście znajomych.")
+            return
+        if action in ("party", "druzyna", "drużyna"):
+            target_id = self.friend_account_id_v0928(rest) if rest else None
+            if target_id is None or not self.server.db.are_friends_v0928(self.account_id,target_id):
+                await self.send("Najpierw dodaj tę osobę do znajomych.")
+                return
+            name = self.server.db.character_name_by_account_v0928(target_id)
+            target = self.server.session_by_account(target_id)
+            if not target or target.closed:
+                await self.send(f"{name or rest} nie jest teraz online.")
+                return
+            await self.party_invite(target.character.name)
+            return
+        if action in ("gildia", "guild"):
+            target_id = self.friend_account_id_v0928(rest) if rest else None
+            if target_id is None or not self.server.db.are_friends_v0928(self.account_id,target_id):
+                await self.send("Najpierw dodaj tę osobę do znajomych.")
+                return
+            name = self.server.db.character_name_by_account_v0928(target_id)
+            target = self.server.session_by_account(target_id)
+            if not target or target.closed:
+                await self.send(f"{name or rest} nie jest teraz online.")
+                return
+            await self.handle_guild_v0926(f"zaproś {target.character.name}")
+            return
+        await self.send("Użycie: znajomi; znajomi dodaj/akceptuj/odrzuc/usun <gracz>; znajomi party <gracz>; znajomi gildia <gracz>.")
 
     def shop_item_base_value_silver(self, item):
         price = int(item.get("price") or 0)
@@ -34115,10 +38799,13 @@ class Session:
         if not self.valid_tool_type(tool_type):
             raise ValueError(f"Nieznany typ narzędzia: {tool_type}")
 
+        _guild_pct=self.guild_bonus_percent_v0926()
         actual_prof_xp = (
             max(0, int(prof_xp))
             * PROFESSION_XP_GAIN_MULTIPLIER
         )
+        actual_prof_xp=max(0,int(round(actual_prof_xp*(1.0+_guild_pct/100.0))))
+        tool_xp=max(0,int(round(max(0,int(tool_xp))*(1.0+_guild_pct/100.0))))
 
         prow = self.server.db.profession(
             self.account_id, profession
@@ -34484,6 +39171,37 @@ class Session:
     def fish_net_value_text(self, summary):
         return self.profession_storage_value_text(summary)
 
+    async def show_craftbox_v0925(self, args=""):
+        rows = list(self.server.db.storage_rows(self.account_id, "craftbox"))
+        norm = normalize_lookup_text(args)
+        if not norm or norm in ("info", "lista", "list", "kategorie", "categories"):
+            counts = {key:0 for key in V0925_CRAFTBOX_CATEGORIES}
+            types = {key:set() for key in V0925_CRAFTBOX_CATEGORIES}
+            for row in rows:
+                cat=v0925_craftbox_category(str(row["item_id"]))
+                counts[cat]=counts.get(cat,0)+int(row["quantity"])
+                types.setdefault(cat,set()).add(str(row["item_id"]))
+            await self.send("SZKATUŁKA RZEMIEŚLNICZA — KATEGORIE")
+            for key,label in V0925_CRAFTBOX_CATEGORIES.items():
+                await self.send(f"{label}: {counts.get(key,0)} sztuk, {len(types.get(key,set()))} rodzajów.")
+            await self.send("Użyj: szkatułka kowalstwo / jubilerstwo / alchemia / runy / salvage / inne.")
+            return
+        cat=V0925_CRAFTBOX_ALIASES.get(norm)
+        if cat is None:
+            await self.send("Nie znam takiej kategorii Szkatułki. Dostępne: kowalstwo, jubilerstwo, alchemia, runy, salvage, inne.")
+            return
+        filtered=[row for row in rows if v0925_craftbox_category(str(row["item_id"]))==cat]
+        await self.send(f"SZKATUŁKA — {V0925_CRAFTBOX_CATEGORIES[cat]}:")
+        if not filtered:
+            await self.send("Pusto.")
+            return
+        total=0
+        for row in filtered:
+            item=ITEMS.get(str(row["item_id"]), {"name":str(row["item_id"])})
+            qty=int(row["quantity"]); total+=qty
+            await self.send(f"{item['name']} x{qty}.")
+        await self.send(f"Łącznie w tej kategorii: {total} sztuk, {len(filtered)} rodzajów.")
+
     async def show_container(self, container):
         label = self.container_label(container)
         rows = self.server.db.storage_rows(
@@ -34708,10 +39426,13 @@ class Session:
         if not self.valid_tool_type(tool_type):
             raise ValueError(f"Nieznany typ narzędzia: {tool_type}")
 
+        _guild_pct=self.guild_bonus_percent_v0926()
         actual_profession_xp = (
             max(0, int(profession_xp))
             * PROFESSION_XP_GAIN_MULTIPLIER
         )
+        actual_profession_xp=max(0,int(round(actual_profession_xp*(1.0+_guild_pct/100.0))))
+        tool_xp=max(0,int(round(max(0,int(tool_xp))*(1.0+_guild_pct/100.0))))
 
         prow = self.server.db.profession(
             self.account_id, profession
@@ -37340,11 +42061,25 @@ class Session:
             # doszedł do jego łąki. Zwracamy prosty plon treningowy.
             return random.choice(("nettle", "chamomile", "mint"))
 
+        # v0.12.0: lokalna ekologia rozbudowanych łąk. Profil siedliska
+        # wpływa na większość zbiorów, ale część akcji zostawia pełną pulę
+        # świata, aby późna progresja 201-400 nadal była dostępna.
+        ecology_rows = V012_HERB_ECOLOGY_POOLS.get(room_id, ())
+        if ecology_rows and random.random() < 0.65:
+            ecology_pool = [
+                herb_id for required, herb_id in ecology_rows
+                if tool_level >= int(required) and herb_id in ITEMS
+            ]
+            if ecology_pool:
+                return random.choice(ecology_pool)
+
         dungeon, dungeon_floor = profession_dungeon_floor(room_id)
         if dungeon == "alchemy_garden":
             tool_level = min(tool_level, dungeon_floor * 10)
 
-        if room_id in {
+        if room_id in V012_MEADOW_HERB_GROUP:
+            world_group = V012_MEADOW_HERB_GROUP[room_id]
+        elif room_id in {
             "herbalist_hut", "meadow",
             "mint_meadow", "flower_meadow",
         }:
@@ -37790,6 +42525,9 @@ class Session:
             item_id, resource_quest_quantity
         )
         await self.announce_collect_category_quest_progress("fish", resource_quest_quantity)
+        await self.announce_collect_category_quest_progress(
+            f"fish_{habitat}", resource_quest_quantity
+        )
         await self.advance_bounty("fish", item_id, resource_quest_quantity)
         self.server.db.add_lifetime_stat(self.account_id, "fish_caught", resource_quest_quantity)
         self.server.db.add_lifetime_stat(self.account_id, "profession_actions", 1)
@@ -37800,7 +42538,10 @@ class Session:
         fish_xp_scale = v096_fishing_reward_scale(profession_level)
         floor_xp_mult = gather_feature["xp_mult"]
         profession_xp = max(1, int(round((10 + random.randint(0, 5)) * fish_xp_scale * floor_xp_mult)))
-        tool_xp = max(1, int(round((8 + random.randint(0, 4)) * fish_xp_scale * floor_xp_mult)))
+        tool_xp = balanced_gather_tool_xp(
+            "fishing",
+            max(1, int(round((8 + random.randint(0, 4)) * fish_xp_scale * floor_xp_mult))),
+        )
         messages, profession_level, new_tool_level = self.grant_profession_progress(
             "Wędkarstwo", profession_xp, "fishing", tool_xp,
         )
@@ -37930,7 +42671,10 @@ class Session:
             "Górnictwo",
             max(1, int(round((10 + random.randint(0, 5)) * floor_xp_mult))),
             "mining",
-            max(1, int(round((8 + random.randint(0, 4)) * floor_xp_mult))),
+            balanced_gather_tool_xp(
+                "mining",
+                max(1, int(round((8 + random.randint(0, 4)) * floor_xp_mult))),
+            ),
         )
         for msg in messages:
             await self.send(msg)
@@ -38049,7 +42793,10 @@ class Session:
             "Drwalstwo",
             max(1, int(round((10 + random.randint(0, 5)) * floor_xp_mult))),
             "woodcutting",
-            max(1, int(round((8 + random.randint(0, 4)) * floor_xp_mult))),
+            balanced_gather_tool_xp(
+                "woodcutting",
+                max(1, int(round((8 + random.randint(0, 4)) * floor_xp_mult))),
+            ),
         )
         for msg in messages:
             await self.send(msg)
@@ -38139,7 +42886,10 @@ class Session:
             "Zielarstwo",
             max(1, int(round((10 + random.randint(0, 5)) * floor_xp_mult))),
             "herbalism",
-            max(1, int(round((8 + random.randint(0, 4)) * floor_xp_mult))),
+            balanced_gather_tool_xp(
+                "herbalism",
+                max(1, int(round((8 + random.randint(0, 4)) * floor_xp_mult))),
+            ),
         )
         for msg in messages:
             await self.send(msg)
@@ -39509,6 +44259,12 @@ class Session:
         ):
             await self.send("Nie udało się przekazać przedmiotu. Nic nie zostało zmienione.")
             return
+        # v0.9.25: gdy przekazano jedyną sztukę tej unikalnej nazwy,
+        # Reforge i runy idą razem z EQ zamiast znikać u poprzedniego właściciela.
+        if self.server.db.item_qty(self.account_id, item_id) <= 0:
+            self.server.db.transfer_equipment_crafting_v0925(
+                self.account_id, target.account_id, item_id
+            )
 
         await self.send(
             f"Przekazujesz graczowi {target.character.name}: {item['name']}."
@@ -40924,6 +45680,7 @@ class Session:
     def quest_collect_category_info(self, target):
         mapping = {
             "fish": (FISH_STORAGE_IDS, "net", "ryb"),
+            "fish_river": (V0929_RIVER_FISH_STORAGE_IDS, "net", "ryb rzecznych"),
             "ore": (ORE_STORAGE_IDS, "bag", "rud"),
             "wood": (WOOD_STORAGE_IDS, "woodpile", "sztuk drewna"),
             "herb": (HERB_STORAGE_IDS, "herbbag", "ziół"),
@@ -40990,6 +45747,19 @@ class Session:
                     f"Postęp {progress} z {needed}: {target_name}."
                 )
 
+        multi_changed = self.server.db.increment_resource_set_quest_v0929(
+            self.account_id, item_id, amount
+        )
+        for quest_id, total, needed, target_id, target_progress, target_needed in multi_changed:
+            quest = QUESTS[quest_id]
+            target_name = ITEMS.get(target_id, {"name": target_id})["name"]
+            await self.send(
+                f"Postęp questa: {quest['name']}. {target_name}: "
+                f"{target_progress} z {target_needed}. Łącznie {total} z {needed}."
+            )
+            if total >= needed:
+                await self.send("Wszystkie próbki zostały zebrane. Wróć do NPC.")
+
     def craft_set_progress(self, row, quest):
         targets = tuple(quest.get("targets") or ())
         mask = int(row["progress"])
@@ -41026,6 +45796,15 @@ class Session:
             return min(
                 int(row["progress"]),
                 int(q["needed"]),
+            )
+
+        if q["kind"] == "collect_resource_set":
+            counts = self.server.db.resource_set_progress_v0929(
+                self.account_id, quest_id, q.get("resource_targets") or {}
+            )
+            return min(
+                int(q.get("needed", 0)),
+                sum(min(int((q.get("resource_targets") or {})[tid]), int(counts.get(tid, 0))) for tid in (q.get("resource_targets") or {})),
             )
 
         if q["kind"] == "craft_set":
@@ -41097,6 +45876,28 @@ class Session:
                     f"Quest aktywny: {q['name']}. "
                     f"Zdobyto {progress} z {needed}: {name}."
                 )
+            return
+
+        if q.get("kind") == "collect_resource_set":
+            requirements = dict(q.get("resource_targets") or {})
+            counts = self.server.db.resource_set_progress_v0929(
+                self.account_id, quest_id, requirements
+            )
+            details = []
+            ready = True
+            for target_id, target_needed in requirements.items():
+                got = min(int(target_needed), int(counts.get(target_id, 0)))
+                have = self.resource_quest_have(target_id)
+                details.append(
+                    f"{ITEMS[target_id]['name']} {got}/{int(target_needed)}; masz {have}"
+                )
+                if got < int(target_needed) or have < int(target_needed):
+                    ready = False
+            await self.send(
+                f"Quest aktywny: {q['name']}. " + "; ".join(details) + (
+                    ". Quest gotowy do oddania." if ready else "."
+                )
+            )
             return
 
         if q.get("kind") == "craft_set":
@@ -41264,6 +46065,23 @@ class Session:
                 gathered,
                 gathered >= needed and have >= needed,
             )
+
+        if q["kind"] == "collect_resource_set":
+            requirements = dict(q.get("resource_targets") or {})
+            counts = self.server.db.resource_set_progress_v0929(
+                self.account_id, quest_id, requirements
+            )
+            progress = sum(
+                min(int(needed_each), int(counts.get(target_id, 0)))
+                for target_id, needed_each in requirements.items()
+            )
+            ready = progress >= needed
+            if ready:
+                for target_id, needed_each in requirements.items():
+                    if self.resource_quest_have(target_id) < int(needed_each):
+                        ready = False
+                        break
+            return progress, ready
 
         if q["kind"] == "craft_set":
             progress = self.craft_set_progress(row, q)
@@ -41517,6 +46335,12 @@ class Session:
             or profession_for_tool_type(quest.get("specialist_tool_type"))
             or ""
         )
+
+        if quest.get("target") == "salvaged_steel_plate":
+            return (
+                "Dobrze. Cztery stalowe płyty idą prosto do pieca; "
+                "przetopię je na stal potrzebną kuźni."
+            )
 
         if profession == "Wędkarstwo" or "borys" in name_cf or "neris" in name_cf:
             core = "Mam dla ciebie zadanie związane z wodą i połowem. Pokaż, że potrafisz czytać łowisko, a nie tylko zarzucać wędkę."
@@ -42267,6 +47091,37 @@ class Session:
                 )
                 return
 
+        elif q["kind"] == "collect_resource_set":
+            requirements = dict(q.get("resource_targets") or {})
+            counts = self.server.db.resource_set_progress_v0929(
+                self.account_id, quest_id, requirements
+            )
+            missing_progress = []
+            missing_items = []
+            for target_id, needed_each in requirements.items():
+                got = int(counts.get(target_id, 0))
+                have = self.resource_quest_have(target_id)
+                if got < int(needed_each):
+                    missing_progress.append(f"{ITEMS[target_id]['name']} {got}/{int(needed_each)}")
+                if have < int(needed_each):
+                    missing_items.append(f"{ITEMS[target_id]['name']} {have}/{int(needed_each)}")
+            if missing_progress:
+                await self.send("Quest aktywny: brakuje wydobycia: " + ", ".join(missing_progress) + ".")
+                return
+            if missing_items:
+                await self.send("Brakuje surowców do fizycznego oddania: " + ", ".join(missing_items) + ".")
+                return
+            for target_id, needed_each in requirements.items():
+                ok = self.server.db.consume_items_across_storage_and_inventory(
+                    self.account_id,
+                    self.resource_quest_equivalent_ids(target_id),
+                    int(needed_each),
+                    self.resource_quest_container(target_id),
+                )
+                if not ok:
+                    await self.send("Nie udało się pobrać wymaganych próbek rudy.")
+                    return
+
         elif q["kind"] == "craft_set":
             targets = tuple(q.get("targets") or ())
             crafted = self.craft_set_progress(
@@ -42729,7 +47584,7 @@ class Session:
         kind = quest.get("kind")
         if kind == "kill":
             return "Dobra robota. Cel został wykonany i okolica jest dzięki temu bezpieczniejsza."
-        if kind in ("collect", "collect_resource", "collect_category"):
+        if kind in ("collect", "collect_resource", "collect_resource_set", "collect_category"):
             return "Właśnie tego potrzebowałem. Wszystko się zgadza i zadanie uznaję za wykonane."
         if kind == "craft_set":
             return "Pełny zestaw jest gotowy. To wykonanie zasługuje na zapłatę."
@@ -44084,6 +48939,13 @@ class Session:
             )
         elif elite_affix == "furious":
             profile["damage_multiplier"] *= 1.40
+        elif elite_affix == "storm":
+            profile["damage_type"] = "magic"
+            profile["damage_multiplier"] *= 1.30
+            profile["defense_factor"] = min(profile["defense_factor"], 0.88)
+        elif elite_affix == "toxic":
+            profile["damage_multiplier"] *= 1.15
+            profile["defense_factor"] = min(profile["defense_factor"], 0.65)
         elif elite_affix == "cursed":
             profile["damage_type"] = "magic"
             profile["damage_multiplier"] *= 1.20
@@ -44715,6 +49577,9 @@ class Session:
             return False
         if self.skill_cooldowns.get(skill["id"], 0) > time.time():
             return False
+        mastery_group = skill.get("mastery_choice_group")
+        if mastery_group and self.skill_cooldowns.get(f"group::{mastery_group}", 0) > time.time():
+            return False
         if int(skill.get("mana", 0)) > self.current_mana:
             return False
 
@@ -44812,6 +49677,17 @@ class Session:
                 f"{skill['name']} jest na cooldownie jeszcze {int(ready_at - now + 0.999)} sekund."
             )
             return
+        mastery_group = skill.get("mastery_choice_group")
+        group_ready_at = (
+            self.skill_cooldowns.get(f"group::{mastery_group}", 0)
+            if mastery_group else 0
+        )
+        if group_ready_at > now:
+            await self.send(
+                f"Inna umiejętność z tego samego progu Biegłości jest na wspólnym cooldownie jeszcze "
+                f"{int(group_ready_at - now + 0.999)} sekund."
+            )
+            return
 
         mana_cost = skill.get("mana", 0)
         if mana_cost > self.current_mana:
@@ -44876,6 +49752,9 @@ class Session:
 
         self.current_mana -= mana_cost
         self.skill_cooldowns[skill["id"]] = now + effective_cooldown
+        mastery_group = skill.get("mastery_choice_group")
+        if mastery_group:
+            self.skill_cooldowns[f"group::{mastery_group}"] = now + effective_cooldown
 
         if kind == "boost":
             base_boost = float(skill.get("boost", 1.0) or 1.0)
@@ -45690,6 +50569,48 @@ class Session:
             )
         await self.ensure_realtime_combat()
 
+    def class_for_milestone_loot(self):
+        active = self.active_class_names()
+        if active:
+            return active[0]
+        return self.character.class_name
+
+    async def grant_milestone_boss_loot(self, template, floor):
+        marker = milestone_boss_tier(floor)
+        if not marker:
+            return
+        class_name = self.class_for_milestone_loot()
+        if class_name not in LEGENDARY_CLASS_SET_ITEMS_BY_CLASS_TIER:
+            return
+        mastery = legendary_loot_mastery_for_floor(floor)
+        set_pool = list(LEGENDARY_CLASS_SET_ITEMS_BY_CLASS_TIER[class_name][mastery])
+        discovered_eq = self.server.db.collection_entry_ids(self.account_id, "equipment")
+        missing = [item_id for item_id in set_pool if item_id not in discovered_eq]
+        set_item = random.choice(missing or set_pool)
+        self.server.db.add_item(self.account_id, set_item, 1)
+        await self.record_item_collection(
+            set_item, source=template.get("name", "Boss kamienia milowego"), announce=True
+        )
+        boss_id = str(template.get("template_id") or "")
+        if boss_id:
+            self.server.db.add_boss_codex_drop(self.account_id, boss_id, set_item)
+        await self.send(
+            f"Loot setowy klasy {class_name}: {ITEMS[set_item]['name']}. "
+            f"Wymaga Biegłości {mastery}."
+        )
+        if marker == 100:
+            relic_id = LEGENDARY_CLASS_RELIC_BY_CLASS_TIER[class_name][mastery]
+            self.server.db.add_item(self.account_id, relic_id, 1)
+            await self.record_item_collection(
+                relic_id, source=template.get("name", "Boss setnego piętra"), announce=True
+            )
+            if boss_id:
+                self.server.db.add_boss_codex_drop(self.account_id, boss_id, relic_id)
+            await self.send(
+                f"Legendarny loot klasy {class_name}: {ITEMS[relic_id]['name']}. "
+                f"Wymaga Biegłości {mastery}."
+            )
+
     async def mob_defeated(self, mob):
         # Zwycięstwo, loot, questy i nagrody są zawsze ważne nawet w trybie
         # combat concise. Nie dziedziczą wyciszenia rutynowej auto kolejki.
@@ -45723,6 +50644,23 @@ class Session:
         )
         count = len(recipients)
 
+        boss_kind, cleared_floor = boss_floor_identity(template)
+        if boss_kind and cleared_floor:
+            for session in recipients:
+                first_clear = self.server.db.mark_boss_floor_cleared(
+                    session.account_id, boss_kind, cleared_floor
+                )
+                if first_clear:
+                    self.server.db.mark_instance_checkpoint(
+                        session.account_id, boss_kind, cleared_floor
+                    )
+                    await session.send(
+                        f"Próg bossa {cleared_floor} został zaliczony na stałe. "
+                        "Po respawnie boss pozostaje opcjonalny i nie blokuje już dalszej drogi."
+                    )
+                if milestone_boss_tier(cleared_floor):
+                    await session.grant_milestone_boss_loot(template, cleared_floor)
+
         boss_floor = (
             int(template.get("crypt_floor", 0))
             if template.get("crypt_boss")
@@ -45744,8 +50682,8 @@ class Session:
                         f"{boss_floor}."
                     )
                     await session.send(
-                        "Portal odblokowany. Gdy boss się odrodzi, "
-                        "znów będzie blokował zejście z tego piętra."
+                        "Portal odblokowany. Ten boss został zaliczony; po respawnie jest opcjonalny "
+                        "i nie blokuje już zejścia dla tej postaci."
                     )
 
         astral_boss_floor = (
@@ -45772,8 +50710,8 @@ class Session:
                         f"{astral_boss_floor}."
                     )
                     await session.send(
-                        "Checkpoint Wieży zapisany. Żywy boss nadal "
-                        "blokuje drogę w górę po swoim respawnie."
+                        "Checkpoint Wieży zapisany. Ten boss został zaliczony; po respawnie jest opcjonalny "
+                        "i nie blokuje już drogi w górę dla tej postaci."
                     )
 
         for session in recipients:
@@ -45796,6 +50734,7 @@ class Session:
                 shares[self.account_id] += remainder
             currency_rewards[currency] = shares
 
+        _v0927_guild_progressed = set()
         for session in recipients:
             silver = currency_rewards["silver"][session.account_id]
             gold = currency_rewards["gold"][session.account_id]
@@ -45890,6 +50829,26 @@ class Session:
                 self.server.db.record_boss_codex_kill(
                     session.account_id, bestiary_id, grouped=(count > 1)
                 )
+            # v0.9.27: wspólne kontrakty i osiągnięcia Gildii.
+            _guild=session.guild_row_v0926()
+            if _guild:
+                _gid=int(_guild["clan_id"])
+                if _gid not in _v0927_guild_progressed:
+                    _v0927_guild_progressed.add(_gid)
+                    _is_boss=v0866_is_boss_template(template)
+                    self.server.db.clan_metric_add(_gid,"boss_kills" if _is_boss else "mob_kills",1)
+                    _changed=self.server.db.guild_contract_add_v0927(_gid,"bosses" if _is_boss else "kills",1)
+                    await session.finish_ready_guild_contracts_v0927(_gid,_changed)
+                    if template.get("guild_boss") and int(template.get("guild_id",0))==_gid:
+                        _rec=self.server.db.conn.execute("SELECT fastest_kill_ms FROM player_guild_boss_records_v0927 WHERE clan_id=?",(_gid,)).fetchone()
+                        _old=int(_rec["fastest_kill_ms"]) if _rec and _rec["fastest_kill_ms"] is not None else None
+                        _best=fight_duration_ms if _old is None else min(_old,fight_duration_ms)
+                        _name=str(template.get("name","Boss Gildii")); _tid=f"hall_{int(template.get('guild_hall_level',1))}"
+                        self.server.db.conn.execute("INSERT INTO player_guild_boss_records_v0927(clan_id,kills,fastest_kill_ms,last_boss_name,last_killed_at) VALUES(?,1,?,?,CURRENT_TIMESTAMP) ON CONFLICT(clan_id) DO UPDATE SET kills=kills+1,fastest_kill_ms=?,last_boss_name=?,last_killed_at=CURRENT_TIMESTAMP",(_gid,_best,_name,_best,_name))
+                        self.server.db.conn.execute("INSERT INTO player_guild_trophies_v0927(clan_id,trophy_id,name,count) VALUES(?,?,?,1) ON CONFLICT(clan_id,trophy_id) DO UPDATE SET count=count+1",(_gid,_tid,f"Trofeum: {_name}"))
+                        _reward=(2_000+int(template.get('guild_hall_level',1))*1_000)*SILVER_PER_GOLD
+                        self.server.db.conn.execute("UPDATE player_clans SET treasury=treasury+? WHERE id=?",(_reward,_gid)); self.server.db.conn.commit(); self.server.db.clan_metric_add(_gid,"guild_boss_kills",1); self.server.db.clan_log(_gid,session.account_id,f"Gildia pokonuje {_name}. Trofeum zapisane; do skarbca trafia {currency_reading_text(_reward,0,0)}.")
+                        await session.send(f"Boss Gildii pokonany. Trofeum zapisane, a skarbiec otrzymuje {currency_reading_text(_reward,0,0)}.")
             await session.advance_bounty("kill", bestiary_id, 1)
             bestiary_ids_now = {
                 str(row["mob_template_id"])
@@ -45963,6 +50922,9 @@ class Session:
                 for quest_id, _progress in changed:
                     await session.announce_active_quest_progress(quest_id)
 
+            await session.grant_hourly_quest_kill_drop_v0929(
+                mob.template_id, template
+            )
             self.server.db.save_character(session.character)
 
         for item_id, chance in template["drops"].items():
@@ -46076,6 +51038,726 @@ class Session:
         await self.send("Twoja dusza odradza się w Świątyni Odrodzenia.")
         await self.look()
 
+    # ============================================================
+    # v0.9.25 - SALVAGE / REFORGE / RUNES / PLAYER GUILDS (internal player_clan schema)
+    # ============================================================
+    def at_haldor_forge_v0925(self):
+        room_id=str(self.character.room_id or "")
+        if room_id in ("forge", "crafting_workshop"):
+            return True
+        match=re.fullmatch(r"player_guild_estate_(\d+)_forge",room_id)
+        if not match:
+            return False
+        row=self.guild_row_v0926()
+        if not row or int(row["clan_id"])!=int(match.group(1)):
+            return False
+        hall=self.server.db.guild_hall_v0927(int(row["clan_id"]))
+        return int(hall["forge_level"] or 0)>=1
+
+    def resolve_owned_equipment_v0925(self, query, free_only=False):
+        pool={}
+        for item_id,item in ITEMS.items():
+            if item.get("type") != "armor":
+                continue
+            qty=self.server.db.item_qty(self.account_id,item_id)
+            if qty <= 0: continue
+            if free_only and self.free_equipment_quantity(item_id) <= 0: continue
+            pool[item_id]=item
+        return find_by_name(pool, query)
+
+    async def salvage_equipment_v0925(self, args=""):
+        if not self.at_haldor_forge_v0925():
+            await self.send("EQ rozkłada Haldor w Kuźni/Warsztacie Rzemieślniczym.")
+            return
+        found=self.resolve_owned_equipment_v0925(args, free_only=True)
+        if not found:
+            await self.send("Podaj pełną nazwę niezałożonego EQ z inventory. Założonego EQ nie można rozłożyć.")
+            return
+        item_id,item=found
+        if is_character_bound_item(item_id):
+            await self.send("Tego przedmiotu nie można rozłożyć.")
+            return
+        mat=v0925_item_material_key(item)
+        salvage_id=V0925_SALVAGE_MATERIALS[mat][0]
+        mastery=max(1,int(item.get("required_mastery",1) or 1))
+        rarity=str(item.get("rarity", "common"))
+        qty=1 + mastery//100
+        if rarity in ("legendary","mythic","eternal"): qty += 1
+        if not self.server.db.remove_item(self.account_id,item_id,1):
+            await self.send("Nie udało się rozłożyć przedmiotu.")
+            return
+        self.server.db.add_storage_item(self.account_id,"craftbox",salvage_id,qty)
+        essence=1 if mastery >= 100 else 0
+        dust=1 if mastery >= 200 else 0
+        if essence: self.server.db.add_storage_item(self.account_id,"craftbox","reforge_essence",essence)
+        if dust: self.server.db.add_storage_item(self.account_id,"craftbox","rune_dust",dust)
+        if self.server.db.item_qty(self.account_id,item_id)<=0:
+            self.server.db.clear_equipment_crafting_v0925(self.account_id,item_id)
+        clan=self.server.db.clan_membership(self.account_id)
+        if clan:
+            self.server.db.clan_metric_add(int(clan["clan_id"]),"salvage",1)
+            self.server.db.clan_log(int(clan["clan_id"]),self.account_id,f"{self.character.name} rozłożył EQ: {item.get('name',item_id)}.")
+        await self.send(f"Haldor rozkłada: {item['name']}. Otrzymujesz {ITEMS[salvage_id]['name']} x{qty}" + (", Esencja Przekucia x1" if essence else "") + (", Pył Runiczny x1" if dust else "") + ". Wszystko trafia do odpowiednich kategorii Szkatułki.")
+
+    async def reforge_equipment_v0925(self, args=""):
+        if not self.at_haldor_forge_v0925():
+            await self.send("Przekuwanie wykonuje Haldor w Kuźni/Warsztacie Rzemieślniczym.")
+            return
+        found=self.resolve_owned_equipment_v0925(args, free_only=False)
+        if not found:
+            await self.send("Podaj pełną nazwę posiadanego EQ do przekucia.")
+            return
+        item_id,item=found
+        mastery=max(1,int(item.get("required_mastery",1) or 1))
+        cost=max(1,1+mastery//100)
+        have=self.server.db.storage_qty(self.account_id,"craftbox","reforge_essence")
+        if have < cost:
+            await self.send(f"Potrzeba {cost} Esencji Przekucia w Szkatułce. Masz {have}.")
+            return
+        base_affix=str(item.get("affix") or "constitution")
+        old=self.server.db.equipment_reforge(self.account_id,item_id)
+        current=str(old["affix"]) if old else base_affix
+        choices=[a for a in V0925_REFORGE_AFFIXES if a != current]
+        seed=(self.account_id * 131 + sum(ord(c) for c in item_id) + (int(old["rerolls"]) if old else 0))
+        new_affix=choices[seed % len(choices)]
+        amount=max(1,int(item.get("affix_amount",0) or 0))
+        if new_affix in ("hp","mana") and amount < 10: amount *= 10
+        if current in ("hp","mana") and new_affix not in ("hp","mana"): amount=max(1,amount//10)
+        if not self.server.db.remove_storage_item(self.account_id,"craftbox","reforge_essence",cost):
+            await self.send("Nie udało się pobrać materiałów.")
+            return
+        self.server.db.save_equipment_reforge(self.account_id,item_id,new_affix,amount)
+        clan=self.server.db.clan_membership(self.account_id)
+        if clan:
+            self.server.db.clan_metric_add(int(clan["clan_id"]),"reforge",1)
+            self.server.db.clan_log(int(clan["clan_id"]),self.account_id,f"{self.character.name} przekuł EQ: {item.get('name',item_id)}.")
+        await self.send(f"Przekucie zakończone: {item['name']}. Nowy bonus: {V0925_AFFIX_PL.get(new_affix,new_affix)} +{amount}. Wymóg Biegłości pozostaje {mastery}.")
+
+    async def handle_runes_v0925(self, args=""):
+        raw=str(args or "").strip(); norm=normalize_lookup_text(raw)
+        if not raw or norm in ("lista","list","info"):
+            await self.send("RUNY. Endgame EQ: Biegłość 200-299 ma 1 gniazdo, 300-399 ma 2, 400 ma 3. Tworzenie u Haldora: runy stworz <moc/ochrona/zycie/mana/unik/hart>. Osadzanie: runa <typ> <pełna nazwa EQ>. Wyjmowanie: runy wyjmij <nr> <pełna nazwa EQ>.")
+            for key,(rid,name,effects) in V0925_RUNES.items():
+                await self.send(f"{key}: {name}. Koszt 5 Pyłu Runicznego. Efekt {effects}.")
+            return
+        parts=raw.split(maxsplit=2)
+        action=normalize_lookup_text(parts[0])
+        if action in ("stworz","stwórz","craft","wykuj"):
+            if len(parts)<2:
+                await self.send("Użycie: runy stworz <typ>."); return
+            if not self.at_haldor_forge_v0925():
+                await self.send("Runy wykuwa Haldor w Kuźni/Warsztacie Rzemieślniczym."); return
+            key=normalize_lookup_text(parts[1]).replace("życie","zycie")
+            aliases={"power":"moc","guard":"ochrona","life":"zycie","focus":"mana","agility":"unik","fortitude":"hart"}
+            key=aliases.get(key,key)
+            if key not in V0925_RUNES:
+                await self.send("Nieznany typ runy."); return
+            if self.server.db.storage_qty(self.account_id,"craftbox","rune_dust") < 5:
+                await self.send("Potrzeba 5 Pyłu Runicznego w kategorii Runy Szkatułki."); return
+            self.server.db.remove_storage_item(self.account_id,"craftbox","rune_dust",5)
+            rid=V0925_RUNES[key][0]
+            self.server.db.add_storage_item(self.account_id,"craftbox",rid,1)
+            await self.send(f"Haldor wykuwa: {ITEMS[rid]['name']}. Runa trafia do Szkatułka -> Runy.")
+            return
+        if action in ("wyjmij","remove"):
+            if len(parts)<3 or not parts[1].isdigit():
+                await self.send("Użycie: runy wyjmij <numer gniazda> <pełna nazwa EQ>."); return
+            idx=int(parts[1]); found=self.resolve_owned_equipment_v0925(parts[2],False)
+            if not found: await self.send("Nie rozpoznaję posiadanego EQ."); return
+            rid=self.server.db.remove_equipment_rune_v0925(self.account_id,found[0],idx)
+            if not rid: await self.send("To gniazdo jest puste."); return
+            self.server.db.add_storage_item(self.account_id,"craftbox",rid,1)
+            await self.send(f"Wyjmujesz {ITEMS.get(rid,{}).get('name',rid)} z gniazda {idx}. Runa wraca do Szkatułki.")
+            return
+        await self.send("Użyj: runy, runy stworz <typ> albo runy wyjmij <nr> <EQ>.")
+
+    async def socket_rune_v0925(self, args=""):
+        parts=str(args or "").strip().split(maxsplit=1)
+        if len(parts)<2:
+            await self.send("Użycie: runa <moc/ochrona/zycie/mana/unik/hart> <pełna nazwa EQ>."); return
+        key=normalize_lookup_text(parts[0]).replace("życie","zycie")
+        aliases={"power":"moc","guard":"ochrona","life":"zycie","focus":"mana","agility":"unik","fortitude":"hart"}
+        key=aliases.get(key,key)
+        if key not in V0925_RUNES:
+            await self.send("Nieznany typ runy."); return
+        found=self.resolve_owned_equipment_v0925(parts[1],False)
+        if not found:
+            await self.send("Nie rozpoznaję posiadanego EQ."); return
+        item_id,item=found; sockets=v0925_equipment_socket_count(item)
+        if sockets <= 0:
+            await self.send("Gniazda runiczne ma endgame EQ wymagające co najmniej Biegłości 200."); return
+        existing=list(self.server.db.equipment_runes_v0925(self.account_id,item_id))
+        if len(existing) >= sockets:
+            await self.send(f"Wszystkie {sockets} gniazda tego EQ są zajęte. Najpierw wyjmij runę."); return
+        rid=V0925_RUNES[key][0]
+        if self.server.db.storage_qty(self.account_id,"craftbox",rid) <= 0:
+            await self.send(f"Nie masz w Szkatułce: {ITEMS[rid]['name']}. Najpierw wykuj runę."); return
+        used={int(r["socket_index"]) for r in existing}; idx=next(i for i in range(1,sockets+1) if i not in used)
+        self.server.db.remove_storage_item(self.account_id,"craftbox",rid,1)
+        self.server.db.add_equipment_rune_v0925(self.account_id,item_id,idx,rid)
+        await self.send(f"Osadzasz {ITEMS[rid]['name']} w gnieździe {idx}/{sockets}: {item['name']}. Wymóg Biegłości nie zmienia się.")
+
+    async def show_mastery_achievements_v0925(self):
+        await self.sync_mastery_achievements_v0925()
+        await self.send("OSIĄGNIĘCIA KLASOWE I PROFESYJNE 1-400")
+        for cname,*_ in CLASSES:
+            lvl=self.class_mastery_level(cname)
+            done=sum(1 for t in V0925_MASTERY_MILESTONES if lvl>=t)
+            await self.send(f"Klasa {cname}: Biegłość {lvl}/400, kamienie milowe {done}/{len(V0925_MASTERY_MILESTONES)}.")
+        for prof in dict.fromkeys(TOOL_PROFESSION_MAP.values()):
+            lvl=int(self.server.db.profession(self.account_id,prof)["level"])
+            done=sum(1 for t in V0925_MASTERY_MILESTONES if lvl>=t)
+            await self.send(f"Profesja {prof}: {lvl}/400, kamienie milowe {done}/{len(V0925_MASTERY_MILESTONES)}.")
+        await self.send("Dodatkowe osiągnięcia łączą mastery z bossami, craftingiem, kolekcją i eksploracją i pojawiają się w zwykłej komendzie osiągnięcia.")
+
+    async def sync_mastery_achievements_v0925(self):
+        boss_kills=self.server.db.achievement_metric(self.account_id,"boss_kills")
+        explored=self.server.db.achievement_metric(self.account_id,"exploration_rooms")
+        eq_collection=len(self.server.db.collection_entry_ids(self.account_id,"equipment"))
+        _active_mastery_classes=set(self.active_class_names())
+        _active_mastery_classes.update(str(r["class_name"]) for r in self.server.db.conn.execute("SELECT class_name FROM class_progress WHERE account_id=?",(self.account_id,)).fetchall())
+        for cname,*_ in CLASSES:
+            if cname not in _active_mastery_classes:
+                continue
+            level=self.class_mastery_level(cname); slug=_collection_slug(cname)
+            for threshold in V0925_MASTERY_MILESTONES:
+                if level>=threshold:
+                    self.server.db.unlock_achievement(self.account_id,f"class_{slug}_{threshold}",f"{cname}: Biegłość {threshold}","Class Mastery")
+            if level>=200 and boss_kills>=25:
+                self.server.db.unlock_achievement(self.account_id,f"class_{slug}_boss",f"{cname}: Pogromca Bossów","Class Challenge")
+            if level>=300 and explored>=300:
+                self.server.db.unlock_achievement(self.account_id,f"class_{slug}_explore",f"{cname}: Wędrowiec Endgame","Class Challenge")
+            if level>=400 and eq_collection>=500:
+                self.server.db.unlock_achievement(self.account_id,f"class_{slug}_collector",f"{cname}: Kolekcjoner Mistrzowski","Class Challenge")
+        for prof in dict.fromkeys(TOOL_PROFESSION_MAP.values()):
+            row=self.server.db.profession(self.account_id,prof); level=int(row["level"]); actions=int(row["actions"]); slug=_collection_slug(prof)
+            for threshold in V0925_MASTERY_MILESTONES:
+                if level>=threshold:
+                    self.server.db.unlock_achievement(self.account_id,f"prof_{slug}_{threshold}",f"{prof}: poziom {threshold}","Profession Mastery")
+            if level>=200 and actions>=1000:
+                self.server.db.unlock_achievement(self.account_id,f"prof_{slug}_1000",f"{prof}: Tysiąc Prac","Profession Challenge")
+            if level>=400 and actions>=5000:
+                self.server.db.unlock_achievement(self.account_id,f"prof_{slug}_5000",f"{prof}: Arcydzieło 400","Profession Challenge")
+
+    # ------------------------------------------------------------
+    # v0.9.26 - GILDIA GRACZY
+    # ------------------------------------------------------------
+    def guild_row_v0926(self):
+        return self.server.db.clan_membership(self.account_id)
+
+    # kompatybilność wewnętrzna dla v0.9.25: stare wywołania nie zmieniają nazwy UI
+    def clan_row_v0925(self):
+        return self.guild_row_v0926()
+
+    def clan_session_by_account_v0925(self, account_id):
+        for sess in list(self.server.sessions):
+            if getattr(sess,"account_id",None)==account_id and not sess.closed:
+                return sess
+        return None
+
+    def refresh_guild_bonus_v0926(self):
+        pct=self.server.db.guild_bonus_percent_v0926(self.account_id) if getattr(self,"account_id",None) else 0
+        if getattr(self,"character",None):
+            self.character._guild_bonus_percent=int(pct)
+        return int(pct)
+
+    def guild_bonus_percent_v0926(self):
+        return self.refresh_guild_bonus_v0926()
+
+    def guild_role_v0926(self, membership=None):
+        row=membership or self.guild_row_v0926()
+        if not row:
+            return None
+        return self.server.db.guild_role_v0926(int(row["clan_id"]),str(row["rank"]))
+
+    def guild_has_permission_v0926(self, permission, membership=None):
+        row=membership or self.guild_row_v0926()
+        if not row:
+            return False
+        if str(row["rank"])=="leader":
+            return True
+        role=self.guild_role_v0926(row)
+        return bool(role and int(role[permission] or 0))
+
+    def guild_rank_name_v0926(self, membership=None):
+        row=membership or self.guild_row_v0926()
+        if not row:
+            return "Brak"
+        role=self.guild_role_v0926(row)
+        return str(role["name"]) if role else str(row["rank"])
+
+    def guild_rank_priority_v0926(self, membership=None):
+        row=membership or self.guild_row_v0926()
+        if not row:
+            return 0
+        role=self.guild_role_v0926(row)
+        return int(role["priority"]) if role else 0
+
+    def parse_guild_money_v0926(self, raw):
+        parts=str(raw or "").strip().split()
+        if not parts or not parts[0].isdigit():
+            return None
+        amount=int(parts[0])
+        if amount<=0:
+            return None
+        currency=self.normalize_bank_currency(parts[1]) if len(parts)>1 else "silver"
+        if not currency:
+            return None
+        return self.bank_amount_to_silver(amount,currency)
+
+    def guild_role_key_v0926(self, name):
+        key=_collection_slug(str(name or ""))
+        key=re.sub(r"[^a-z0-9_]+","_",key).strip("_")
+        return key[:40] or "ranga"
+
+    async def sync_clan_achievements_v0925(self, clan_id):
+        conn=self.server.db.conn
+        members=int(conn.execute("SELECT COUNT(*) c FROM player_clan_members WHERE clan_id=?",(clan_id,)).fetchone()["c"])
+        bank=int(conn.execute("SELECT COALESCE(SUM(quantity),0) c FROM player_clan_bank WHERE clan_id=?",(clan_id,)).fetchone()["c"])
+        grow=conn.execute("SELECT level,treasury FROM player_clans WHERE id=?",(clan_id,)).fetchone()
+        level=int(grow["level"] or 1) if grow else 1; treasury=int(grow["treasury"] or 0) if grow else 0
+        metrics={str(r["metric"]):int(r["value"]) for r in conn.execute("SELECT metric,value FROM player_clan_metrics WHERE clan_id=?",(clan_id,)).fetchall()}
+        hall=self.server.db.guild_hall_v0927(clan_id)
+        member_ids=[int(r["account_id"]) for r in conn.execute("SELECT account_id FROM player_clan_members WHERE clan_id=?",(clan_id,)).fetchall()]
+        max_crypt=0; full_set=False
+        if member_ids:
+            q=",".join("?" for _ in member_ids)
+            rr=conn.execute(f"SELECT COALESCE(MAX(floor),0) m FROM instance_map_progress WHERE account_id IN ({q}) AND instance_kind IN ('crypt','mythic_crypt')",member_ids).fetchone()
+            max_crypt=int(rr["m"] or 0)
+            for aid in member_ids:
+                owned=self.server.db.collection_entry_ids(aid,"equipment")
+                for cname,tiers in LEGENDARY_CLASS_SET_ITEMS_BY_CLASS_TIER.items():
+                    if any(set(items).issubset(owned) for items in tiers.values()):
+                        full_set=True; break
+                if full_set: break
+        defs=(
+            ("members3","Zgrana Trójka",members>=3),("members5","Piątka Bohaterów",members>=5),
+            ("bank25","Pierwszy Skarbiec Przedmiotów",bank>=25),("bank100","Wspólny Magazyn",bank>=100),
+            ("salvage25","Kuźnia Gildii",metrics.get("salvage",0)>=25),("reforge25","Mistrzowie Przekucia",metrics.get("reforge",0)>=25),
+            ("treasury1m","Milion w Skarbcu",treasury>=1_000_000),("guild10","Gildia Poziomu 10",level>=10),
+            ("guild50","Gildia Poziomu 50",level>=50),("guild100","Gildia Poziomu 100",level>=100),
+            ("deposit_1m_gold","Milion Złota Wpłacony",metrics.get("money_deposited",0)>=1_000_000*SILVER_PER_GOLD),
+            ("boss100","Stu Bossów Gildii",metrics.get("boss_kills",0)>=100),
+            ("crypt1000","Tysiąc Pięter",max_crypt>=1000),
+            ("full_class_set","Pełny Legendarny Set",full_set),
+            ("hall10","Wielka Siedziba",int(hall["hall_level"])>=10),
+            ("guild_boss25","Łowcy Bossów Gildyjnych",metrics.get("guild_boss_kills",0)>=25),
+        )
+        for aid,name,ok in defs:
+            if ok:
+                conn.execute("INSERT OR IGNORE INTO player_clan_achievements(clan_id,achievement_id,name) VALUES(?,?,?)",(clan_id,aid,name))
+        conn.commit()
+
+    async def handle_guild_rank_v0926(self, rest, row):
+        conn=self.server.db.conn; cid=int(row["clan_id"]); leader=str(row["rank"])=="leader"
+        parts=str(rest or "").strip().split(maxsplit=1)
+        if not parts:
+            rows=conn.execute("SELECT role_key,name,priority,withdraw_money,withdraw_items,invite,kick FROM player_clan_roles WHERE clan_id=? ORDER BY priority DESC,name",(cid,)).fetchall()
+            await self.send("RANGI GILDII:")
+            await self.send("Lider: priorytet 1000, wszystkie uprawnienia.")
+            for rr in rows:
+                perms=[V0926_GUILD_PERMISSION_LABELS[k] for k in V0926_GUILD_PERMISSION_LABELS if int(rr[k] or 0)]
+                await self.send(f"{rr['name']}: priorytet {rr['priority']}; uprawnienia: {', '.join(perms) if perms else 'brak specjalnych'}.")
+            return
+        sub=normalize_lookup_text(parts[0]); tail=parts[1].strip() if len(parts)>1 else ""
+        if sub in ("utworz","utwórz","create"):
+            if not leader: await self.send("Tylko lider może tworzyć rangi."); return
+            name=tail.strip()
+            if not name: await self.send("Użycie: gildia ranga utworz <nazwa>."); return
+            if normalize_lookup_text(name) in ("lider","leader","czlonek","członek","member","oficer","officer"):
+                await self.send("Ta nazwa jest zarezerwowana."); return
+            key=self.guild_role_key_v0926(name); base=key; n=2
+            while conn.execute("SELECT 1 FROM player_clan_roles WHERE clan_id=? AND role_key=?",(cid,key)).fetchone():
+                key=f"{base}_{n}"; n+=1
+            try:
+                conn.execute("INSERT INTO player_clan_roles(clan_id,role_key,name,priority) VALUES(?,?,?,20)",(cid,key,name[:40])); conn.commit()
+            except Exception:
+                await self.send("Nie udało się utworzyć rangi; nazwa może już istnieć."); return
+            self.server.db.clan_log(cid,self.account_id,f"{self.character.name} tworzy rangę {name}.")
+            await self.send(f"Utworzono rangę: {name}. Domyślnie nie ma specjalnych uprawnień."); return
+        if sub in ("usun","usuń","delete"):
+            if not leader: await self.send("Tylko lider może usuwać rangi."); return
+            rr=self.server.db.guild_role_by_name_v0926(cid,tail)
+            if not rr or rr["role_key"] in ("member","officer"): await self.send("Nie znaleziono własnej rangi do usunięcia."); return
+            conn.execute("UPDATE player_clan_members SET rank='member' WHERE clan_id=? AND rank=?",(cid,rr["role_key"]))
+            conn.execute("DELETE FROM player_clan_roles WHERE clan_id=? AND role_key=?",(cid,rr["role_key"])); conn.commit()
+            self.server.db.clan_log(cid,self.account_id,f"{self.character.name} usuwa rangę {rr['name']}; jej członkowie wracają do rangi Członek.")
+            await self.send(f"Usunięto rangę {rr['name']}. Przypisani gracze mają teraz rangę Członek."); return
+        if sub in ("ustaw","permission","uprawnienie"):
+            if not leader: await self.send("Tylko lider może zmieniać uprawnienia rang."); return
+            p=tail.rsplit(maxsplit=2)
+            if len(p)<3: await self.send("Użycie: gildia ranga ustaw <ranga> <uprawnienie> <tak/nie>."); return
+            role_name,perm_raw,val_raw=p[0],p[1],p[2]
+            rr=self.server.db.guild_role_by_name_v0926(cid,role_name)
+            if not rr: await self.send("Nie ma takiej rangi."); return
+            if rr["role_key"] in ("member","officer"): await self.send("Domyślnych rang Członek/Oficer nie edytujemy; utwórz własną rangę."); return
+            perm=V0926_GUILD_PERMISSION_ALIASES.get(normalize_lookup_text(perm_raw))
+            if not perm: await self.send("Uprawnienia: wyplata, przedmioty, zapraszanie, wyrzucanie."); return
+            val=normalize_lookup_text(val_raw) in ("tak","yes","on","1","true")
+            conn.execute(f"UPDATE player_clan_roles SET {perm}=? WHERE clan_id=? AND role_key=?",(1 if val else 0,cid,rr["role_key"])); conn.commit()
+            self.server.db.clan_log(cid,self.account_id,f"{self.character.name} ustawia rangę {rr['name']}: {V0926_GUILD_PERMISSION_LABELS[perm]} = {v0926_bool_word(val)}.")
+            await self.send(f"Ranga {rr['name']}: {V0926_GUILD_PERMISSION_LABELS[perm]} = {v0926_bool_word(val)}."); return
+        if sub in ("priorytet","priority"):
+            if not leader: await self.send("Tylko lider może ustawiać priorytet rang."); return
+            p=tail.rsplit(maxsplit=1)
+            if len(p)!=2 or not p[1].isdigit(): await self.send("Użycie: gildia ranga priorytet <ranga> <1-900>."); return
+            rr=self.server.db.guild_role_by_name_v0926(cid,p[0]); pr=max(1,min(900,int(p[1])))
+            if not rr or rr["role_key"] in ("member","officer"): await self.send("Wybierz własną rangę."); return
+            conn.execute("UPDATE player_clan_roles SET priority=? WHERE clan_id=? AND role_key=?",(pr,cid,rr["role_key"])); conn.commit()
+            await self.send(f"Ranga {rr['name']} ma teraz priorytet {pr}."); return
+        if sub in ("nadaj","assign"):
+            if not leader: await self.send("Tylko lider może nadawać rangi."); return
+            p=tail.split(maxsplit=1)
+            if len(p)!=2: await self.send("Użycie: gildia ranga nadaj <gracz> <ranga>."); return
+            target=self.server.find_character_session(p[0]); rr=self.server.db.guild_role_by_name_v0926(cid,p[1])
+            if not target or not target.character: await self.send("Gracz musi być online."); return
+            tr=target.guild_row_v0926()
+            if not tr or int(tr["clan_id"])!=cid: await self.send("Ten gracz nie należy do twojej Gildii."); return
+            if str(tr["rank"])=="leader": await self.send("Lider zachowuje rangę Lider."); return
+            if not rr: await self.send("Nie ma takiej rangi."); return
+            conn.execute("UPDATE player_clan_members SET rank=? WHERE clan_id=? AND account_id=?",(rr["role_key"],cid,target.account_id)); conn.commit()
+            self.server.db.clan_log(cid,self.account_id,f"{self.character.name} nadaje {target.character.name} rangę {rr['name']}.")
+            await self.send(f"{target.character.name} otrzymuje rangę {rr['name']}."); await target.send(f"W Gildii {row['name']} otrzymujesz rangę {rr['name']}."); return
+        await self.send("Rangi: gildia rangi; gildia ranga utworz/usun/ustaw/priorytet/nadaj.")
+
+    # ------------------------------------------------------------
+    # v0.9.27 - SIEDZIBA / KONTRAKTY / BOSSOWIE GILDYJNI
+    # ------------------------------------------------------------
+    def ensure_guild_estate_rooms_v0927(self, clan_id, guild_name):
+        cid=int(clan_id); base=f"player_guild_estate_{cid}"
+        hall=self.server.db.guild_hall_v0927(cid); hall_level=int(hall["hall_level"])
+        ROOMS[base]={"zone":f"Siedziba Gildii {guild_name}","name":f"Siedziba Gildii {guild_name}, poziom {hall_level}","desc":f"Prywatna Siedziba Gildii {guild_name}. Poziom Siedziby {hall_level}/10. Rozbudowa budynków jest osobna i tańsza od rozbudowy głównej Siedziby.","exits":{"south":"square"}}
+        mapping=(("forge_level","east","forge","Kuźnia Gildii"),("treasury_level","west","treasury","Skarbiec Gildii"),("library_level","up","library","Biblioteka Gildii"),("training_level","down","training","Sala Treningowa Gildii"))
+        for field,direction,key,label in mapping:
+            lvl=int(hall[field] or 0)
+            if lvl<=0: continue
+            rid=f"{base}_{key}"
+            ROOMS[base]["exits"][direction]=rid
+            back={"east":"west","west":"east","up":"down","down":"up"}[direction]
+            ROOMS[rid]={"zone":f"Siedziba Gildii {guild_name}","name":f"{label}, poziom {lvl}","desc":f"{label} rozwinięta do poziomu {lvl}/10. Pomieszczenie należy wyłącznie do Gildii {guild_name}.","exits":{back:base}}
+            npc_specs={
+                "forge": ("Mistrz Kuźni Gildii", "Obsługuje Salvage, Reforge i runy bez konieczności wracania do miejskiej Kuźni."),
+                "treasury": ("Kwatermistrz Gildii", "Pilnuje wspólnego banku przedmiotów i skarbca pieniędzy."),
+                "library": ("Archiwistka Gildii", "Prowadzi kroniki osiągnięć, kontraktów i odkryć członków."),
+                "training": ("Mistrz Oręża Gildii", "Prowadzi Salę Treningową i przygotowuje walki z bossami gildyjnymi."),
+            }
+            npc_name,npc_dialogue=npc_specs[key]
+            NPCS[f"player_guild_{key}_{cid}"]={"name":npc_name,"room":rid,"dialogue":npc_dialogue}
+        if hall_level>=2:
+            NPCS[f"player_guild_contracts_{cid}"]={"name":"Opiekun Tablicy Kontraktów","room":base,"dialogue":"Prowadzi wspólne kontrakty Gildii. Użyj: gildia kontrakty."}
+        if hall_level>=4:
+            NPCS[f"player_guild_trophies_{cid}"]={"name":"Kustosz Trofeów","room":base,"dialogue":"Prowadzi Salę Trofeów Gildii. Użyj: gildia trofea."}
+        if hall_level>=7:
+            NPCS[f"player_guild_bossmaster_{cid}"]={"name":"Herold Wielkich Łowów","room":base,"dialogue":"Otwiera dostęp do specjalnych bossów Gildii. Użyj: gildia boss."}
+        return base
+
+    async def enter_guild_estate_v0927(self, row):
+        cid=int(row["clan_id"]); base=self.ensure_guild_estate_rooms_v0927(cid,row["name"])
+        old=self.character.room_id; self.character.room_id=base; self.server.db.save_character(self.character)
+        if old in ROOMS: await self.server.broadcast_room(old,f"{self.character.name} udaje się do Siedziby Gildii.",exclude=self)
+        await self.look()
+
+    async def show_guild_hall_v0927(self, row):
+        cid=int(row["clan_id"]); hall=self.server.db.guild_hall_v0927(cid); treasury=int(self.server.db.conn.execute("SELECT treasury FROM player_clans WHERE id=?",(cid,)).fetchone()["treasury"] or 0)
+        level=int(hall["hall_level"]); await self.send(f"SIEDZIBA GILDII: poziom {level}/10. Skarbiec: {currency_reading_text(treasury,0,0)}.")
+        if level<10: await self.send(f"Rozbudowa Siedziby {level}->{level+1}: {currency_reading_text(v0927_guild_hall_upgrade_cost(level),0,0)}.")
+        for key,(label,_alias,_field) in V0927_GUILD_BUILDINGS.items():
+            field=f"{key}_level" if key!='treasury' else 'treasury_level'
+            lvl=int(hall[field]); text=f"{label}: {lvl}/10"
+            if lvl<10: text+=f", następny poziom {currency_reading_text(v0927_guild_building_upgrade_cost(lvl),0,0)}"
+            await self.send(text+".")
+        unlocks=["prywatna Siedziba"]
+        if level>=2: unlocks.append("Tablica Kontraktów")
+        if level>=4: unlocks.append("Sala Trofeów")
+        if level>=7: unlocks.append("Herold Wielkich Łowów i bossowie gildyjni")
+        if level>=10: unlocks.append("Wielka Sala Mistrzów")
+        await self.send("Odblokowane przez poziom Siedziby: "+", ".join(unlocks)+".")
+        await self.send("Komendy: gildia siedziba wejdz; gildia siedziba rozbuduj; gildia budynek rozbuduj <kowal/skarbiec/biblioteka/trening>.")
+
+    async def handle_guild_hall_v0927(self, raw, row):
+        cid=int(row["clan_id"]); rank=str(row["rank"]); norm=normalize_lookup_text(raw)
+        if not raw or norm in ("status","info"): await self.show_guild_hall_v0927(row); return
+        if norm in ("wejdz","wejdź","enter"): await self.enter_guild_estate_v0927(row); return
+        if norm.startswith("rozbuduj"):
+            if rank!="leader": await self.send("Tylko lider może rozbudowywać Siedzibę Gildii."); return
+            hall=self.server.db.guild_hall_v0927(cid); level=int(hall["hall_level"]); cost=v0927_guild_hall_upgrade_cost(level)
+            if not cost: await self.send("Siedziba ma już poziom 10."); return
+            confirm=any(x in norm for x in ("potwierdz","confirm","tak"))
+            treasury=int(self.server.db.conn.execute("SELECT treasury FROM player_clans WHERE id=?",(cid,)).fetchone()["treasury"] or 0)
+            if not confirm: await self.send(f"Rozbudowa Siedziby {level}->{level+1} kosztuje {currency_reading_text(cost,0,0)}. Wpisz: gildia siedziba rozbuduj potwierdz."); return
+            if treasury<cost: await self.send(f"Brakuje {currency_reading_text(cost-treasury,0,0)}."); return
+            self.server.db.conn.execute("UPDATE player_clans SET treasury=treasury-? WHERE id=?",(cost,cid)); self.server.db.conn.execute("UPDATE player_guild_halls_v0927 SET hall_level=hall_level+1,updated_at=CURRENT_TIMESTAMP WHERE clan_id=?",(cid,)); self.server.db.conn.commit(); self.server.db.clan_log(cid,self.account_id,f"{self.character.name} rozbudowuje Siedzibę Gildii do poziomu {level+1}; koszt {currency_reading_text(cost,0,0)}."); self.ensure_guild_estate_rooms_v0927(cid,row["name"]); await self.send(f"Siedziba Gildii osiąga poziom {level+1}."); return
+        await self.send("Użyj: gildia siedziba; gildia siedziba wejdz; gildia siedziba rozbuduj [potwierdz].")
+
+    async def handle_guild_building_v0927(self, raw, row):
+        cid=int(row["clan_id"]); rank=str(row["rank"]); parts=str(raw or '').split(maxsplit=1)
+        if len(parts)<2 or normalize_lookup_text(parts[0]) not in ("rozbuduj","upgrade"):
+            await self.send("Użycie: gildia budynek rozbuduj <kowal/skarbiec/biblioteka/trening>."); return
+        query=normalize_lookup_text(parts[1]); chosen=None
+        for key,(label,alias,_field) in V0927_GUILD_BUILDINGS.items():
+            if query in (key,normalize_lookup_text(label),normalize_lookup_text(alias)): chosen=key; break
+        if not chosen: await self.send("Nieznany budynek."); return
+        if rank!="leader": await self.send("Tylko lider może finansować rozbudowę budynków Siedziby."); return
+        hall=self.server.db.guild_hall_v0927(cid); field=f"{chosen}_level" if chosen!='treasury' else 'treasury_level'; lvl=int(hall[field]); hall_level=int(hall['hall_level'])
+        if lvl>=10: await self.send("Ten budynek ma już poziom 10."); return
+        if lvl>=hall_level: await self.send(f"Najpierw rozbuduj Siedzibę powyżej poziomu {hall_level}; budynek nie może przewyższać Siedziby."); return
+        cost=v0927_guild_building_upgrade_cost(lvl); treasury=int(self.server.db.conn.execute("SELECT treasury FROM player_clans WHERE id=?",(cid,)).fetchone()["treasury"] or 0)
+        if treasury<cost: await self.send(f"Potrzeba {currency_reading_text(cost,0,0)}; brakuje {currency_reading_text(cost-treasury,0,0)}."); return
+        self.server.db.conn.execute("UPDATE player_clans SET treasury=treasury-? WHERE id=?",(cost,cid)); self.server.db.conn.execute(f"UPDATE player_guild_halls_v0927 SET {field}={field}+1,updated_at=CURRENT_TIMESTAMP WHERE clan_id=?",(cid,)); self.server.db.conn.commit(); label=V0927_GUILD_BUILDINGS[chosen][0]; self.server.db.clan_log(cid,self.account_id,f"{self.character.name} rozbudowuje {label} do poziomu {lvl+1}; koszt {currency_reading_text(cost,0,0)}."); self.ensure_guild_estate_rooms_v0927(cid,row['name']); await self.send(f"{label} osiąga poziom {lvl+1}/10.")
+
+    async def handle_guild_contracts_v0927(self, raw, row):
+        cid=int(row["clan_id"]); norm=normalize_lookup_text(raw); now=int(time.time())
+        hall=self.server.db.guild_hall_v0927(cid)
+        if int(hall["hall_level"])<2:
+            await self.send("Tablica Kontraktów odblokowuje się na poziomie 2 Siedziby Gildii."); return
+        if not raw or norm in ("lista","list","status"):
+            await self.send("KONTRAKTY GILDII:")
+            for contract_id,d in V0927_GUILD_CONTRACTS.items():
+                rr=self.server.db.guild_contract_row_v0927(cid,contract_id); status=v0927_guild_contract_ready_text(rr['ready_at'])
+                await self.send(f"{d['name']}: {int(rr['progress'])}/{d['need']}; nagroda {currency_reading_text(d['reward'],0,0)} do skarbca; {status}.")
+            await self.send("Materiałowy kontrakt: gildia kontrakt oddaj <ilość> — oddaje Pył Runiczny ze Szkatułki."); return
+        parts=str(raw).split(maxsplit=1); action=normalize_lookup_text(parts[0]); rest=parts[1].strip() if len(parts)>1 else ''
+        if action in ("oddaj","donate"):
+            if not rest.isdigit() or int(rest)<=0: await self.send("Użycie: gildia kontrakt oddaj <ilość>."); return
+            d=V0927_GUILD_CONTRACTS['rune20']; rr=self.server.db.guild_contract_row_v0927(cid,'rune20')
+            if int(rr['ready_at'] or 0)>now: await self.send(f"Ten kontrakt {v0927_guild_contract_ready_text(rr['ready_at'])}."); return
+            need=max(0,int(d['need'])-int(rr['progress'])); amount=min(int(rest),need,self.server.db.storage_qty(self.account_id,'craftbox',d['item_id']))
+            if amount<=0: await self.send("Nie masz potrzebnego Pyłu Runicznego albo kontrakt jest już gotowy."); return
+            self.server.db.remove_storage_item(self.account_id,'craftbox',d['item_id'],amount); changed=self.server.db.guild_contract_add_v0927(cid,'material',amount); await self.send(f"Oddajesz {amount} Pyłu Runicznego na kontrakt Gildii.")
+            await self.finish_ready_guild_contracts_v0927(cid,changed); return
+        await self.send("Użyj: gildia kontrakty albo gildia kontrakt oddaj <ilość>.")
+
+    async def finish_ready_guild_contracts_v0927(self, cid, changed=None):
+        for contract_id,d in V0927_GUILD_CONTRACTS.items():
+            rr=self.server.db.guild_contract_row_v0927(cid,contract_id)
+            if int(rr['progress'])>=int(d['need']) and int(rr['ready_at'] or 0)<=int(time.time()):
+                if self.server.db.guild_contract_complete_v0927(cid,contract_id):
+                    self.server.db.clan_metric_add(cid,'contracts_completed',1); self.server.db.clan_log(cid,self.account_id,f"Kontrakt {d['name']} ukończony. Do skarbca trafia {currency_reading_text(d['reward'],0,0)}.")
+                    for sess in list(self.server.sessions):
+                        sr=sess.guild_row_v0926() if getattr(sess,'account_id',None) and not sess.closed else None
+                        if sr and int(sr['clan_id'])==cid: await sess.send(f"Gildia kończy kontrakt {d['name']}. Do skarbca trafia {currency_reading_text(d['reward'],0,0)}.")
+
+    def ensure_guild_boss_v0927(self, row):
+        cid=int(row['clan_id']); hall=self.server.db.guild_hall_v0927(cid); hl=int(hall['hall_level']); base=self.ensure_guild_estate_rooms_v0927(cid,row['name']); arena=f"{base}_training" if int(hall['training_level'] or 0)>0 else base
+        name=v0927_guild_boss_name(hl); tid=f"guild_boss_v0927_{cid}_{hl}"
+        if tid not in MOB_TEMPLATES:
+            hp=10_000 + hl*12_000; dmg=35+hl*14
+            MOB_TEMPLATES[tid]={"name":name,"max_hp":hp,"base_max_hp":hp,"damage":dmg,"damage_type":"physical","silver":0,"gold":0,"mithril":0,"stat_reward":150+hl*25,"class_xp_reward":2500+hl*1200,"soul_reward":800+hl*350,"drops":{},"guild_boss":True,"guild_id":cid,"guild_hall_level":hl,"mini_boss":True,"elite_eligible":False}
+        mob=self.server.world._register_runtime_spawn(arena,tid); return mob,arena,name
+
+    async def handle_guild_boss_v0927(self, raw, row):
+        cid=int(row['clan_id']); norm=normalize_lookup_text(raw); conn=self.server.db.conn
+        hall=self.server.db.guild_hall_v0927(cid)
+        if int(hall['hall_level'])<7:
+            await self.send("Bossowie gildyjni odblokowują się na poziomie 7 Siedziby Gildii."); return
+        if int(hall['training_level'])<1:
+            await self.send("Najpierw zbuduj Salę Treningową poziom 1."); return
+        rec=conn.execute("SELECT * FROM player_guild_boss_records_v0927 WHERE clan_id=?",(cid,)).fetchone(); kills=int(rec['kills'] or 0) if rec else 0; best=int(rec['fastest_kill_ms']) if rec and rec['fastest_kill_ms'] is not None else None
+        if not raw or norm in ("info","status"):
+            await self.send(f"BOSS GILDYJNY. Pokonania: {kills}. Najlepszy czas: {best/1000:.2f} s." if best is not None else f"BOSS GILDYJNY. Pokonania: {kills}. Brak rekordu czasu.")
+            await self.send("Lider: gildia boss przyzwij. Ranking: gildia boss ranking. Trofea: gildia trofea."); return
+        if norm in ("ranking","leaderboard"):
+            rows=conn.execute("SELECT c.name,r.kills,r.fastest_kill_ms FROM player_guild_boss_records_v0927 r JOIN player_clans c ON c.id=r.clan_id ORDER BY r.kills DESC,CASE WHEN r.fastest_kill_ms IS NULL THEN 1 ELSE 0 END,r.fastest_kill_ms ASC LIMIT 20").fetchall(); await self.send("RANKING BOSSÓW GILDYJNYCH:")
+            for i,r in enumerate(rows,1): await self.send(f"{i}. {r['name']}: {r['kills']} pokonań, rekord {('-' if r['fastest_kill_ms'] is None else f"{int(r['fastest_kill_ms'])/1000:.2f} s")}.")
+            if not rows: await self.send("Brak wyników.")
+            return
+        if norm in ("przyzwij","summon"):
+            if str(row['rank'])!='leader': await self.send("Tylko lider może przyzwać bossa Gildii."); return
+            mob,arena,name=self.ensure_guild_boss_v0927(row); now=int(time.time())
+            if rec and now-int(rec['last_summoned_at'] or 0)<3600: await self.send(f"Boss Gildii może być przyzwany ponownie za {max(1,(3600-(now-int(rec['last_summoned_at']))+59)//60)} min."); return
+            mob.alive=True; mob.hp=MOB_TEMPLATES[mob.template_id]['max_hp']; mob.respawn_at=0; mob.engaged_by=None; mob.engaged_at=0.0
+            conn.execute("INSERT INTO player_guild_boss_records_v0927(clan_id,last_boss_name,last_summoned_at) VALUES(?,?,?) ON CONFLICT(clan_id) DO UPDATE SET last_boss_name=excluded.last_boss_name,last_summoned_at=excluded.last_summoned_at",(cid,name,now)); conn.commit(); self.server.db.clan_log(cid,self.account_id,f"{self.character.name} przyzywa bossa Gildii: {name}.")
+            await self.send(f"Przyzwano: {name}. Czeka w {'Sali Treningowej' if arena.endswith('_training') else 'głównej Siedzibie'}. Wpisz: gildia siedziba wejdz."); return
+        await self.send("Użyj: gildia boss; gildia boss przyzwij; gildia boss ranking.")
+
+    async def show_guild_trophies_v0927(self, row):
+        cid=int(row['clan_id']); hall=self.server.db.guild_hall_v0927(cid)
+        if int(hall['hall_level'])<4:
+            await self.send("Sala Trofeów odblokowuje się na poziomie 4 Siedziby Gildii."); return
+        rows=self.server.db.conn.execute("SELECT name,count FROM player_guild_trophies_v0927 WHERE clan_id=? ORDER BY count DESC,name",(cid,)).fetchall(); await self.send("SALA TROFEÓW GILDII:")
+        for r in rows: await self.send(f"{r['name']}: {r['count']}.")
+        if not rows: await self.send("Brak trofeów bossów gildyjnych.")
+
+    async def handle_guild_v0926(self, args=""):
+        raw=str(args or "").strip(); norm=normalize_lookup_text(raw); conn=self.server.db.conn
+        row=self.guild_row_v0926()
+        if not raw or norm in ("status","info"):
+            if not row:
+                await self.send("Nie należysz do Gildii. Użyj: gildia utworz <nazwa> albo gildia dolacz po zaproszeniu."); return
+            cid=int(row["clan_id"]); await self.sync_clan_achievements_v0925(cid)
+            members=int(conn.execute("SELECT COUNT(*) c FROM player_clan_members WHERE clan_id=?",(cid,)).fetchone()["c"])
+            item_bank=int(conn.execute("SELECT COALESCE(SUM(quantity),0) c FROM player_clan_bank WHERE clan_id=?",(cid,)).fetchone()["c"])
+            grow=conn.execute("SELECT level,treasury FROM player_clans WHERE id=?",(cid,)).fetchone(); level=int(grow["level"]); treasury=int(grow["treasury"])
+            ach=int(conn.execute("SELECT COUNT(*) c FROM player_clan_achievements WHERE clan_id=?",(cid,)).fetchone()["c"])
+            bonus=v0926_guild_bonus_percent(level); next_cost=v0926_guild_upgrade_cost(level)
+            await self.send(f"GILDIA {row['name']}. Ranga: {self.guild_rank_name_v0926(row)}. Poziom {level} z {V0926_GUILD_MAX_LEVEL}. Bonus rozwoju +{bonus}%. Członkowie: {members}. Skarbiec: {currency_reading_text(treasury,0,0)}. Bank przedmiotów: {item_bank}. Osiągnięcia: {ach}.")
+            if level<V0926_GUILD_MAX_LEVEL: await self.send(f"Następna rozbudowa kosztuje {currency_reading_text(next_cost,0,0)}.")
+            hall=self.server.db.guild_hall_v0927(cid)
+            await self.send(f"Siedziba: {int(hall['hall_level'])}/10. Kontrakty, bossowie i budynki są dostępne przez komendy Gildii.")
+            await self.send("Komendy: gildia członkowie, zaproś, dołącz, chat, wpłać, wypłać, skarbiec, bank, rangi, ranga, rozbuduj, siedziba, budynek, kontrakty, kontrakt, boss, trofea, log, osiągnięcia.")
+            return
+        parts=raw.split(maxsplit=1); action=normalize_lookup_text(parts[0]); rest=parts[1].strip() if len(parts)>1 else ""
+        if action in ("utworz","utwórz","create"):
+            if row: await self.send("Już należysz do Gildii."); return
+            name=rest.strip()
+            if len(name)<3: await self.send("Nazwa Gildii musi mieć co najmniej 3 znaki."); return
+            try:
+                cur=conn.execute("INSERT INTO player_clans(name,owner_account_id,level,treasury) VALUES(?,?,1,0)",(name,self.account_id)); cid=int(cur.lastrowid)
+                conn.execute("INSERT INTO player_clan_members(clan_id,account_id,rank) VALUES(?,?,'leader')",(cid,self.account_id)); conn.commit()
+                self.server.db.ensure_guild_default_roles_v0926(cid)
+                self.server.db.guild_hall_v0927(cid)
+                for _contract_id in V0927_GUILD_CONTRACTS:
+                    self.server.db.guild_contract_row_v0927(cid,_contract_id)
+            except Exception:
+                await self.send("Nie udało się utworzyć Gildii. Nazwa może być zajęta."); return
+            self.server.db.clan_log(cid,self.account_id,f"{self.character.name} zakłada Gildię {name}."); self.refresh_guild_bonus_v0926()
+            await self.send(f"Utworzono Gildię {name}. Poziom 1 daje +1% do Biegłości, Soul XP, EXP statystyk i profesji."); return
+        if action in ("dolacz","dołącz","join"):
+            if row: await self.send("Już należysz do Gildii."); return
+            inv=conn.execute("SELECT i.clan_id,c.name FROM player_clan_invites i JOIN player_clans c ON c.id=i.clan_id WHERE i.target_account_id=? ORDER BY i.created_at DESC LIMIT 1",(self.account_id,)).fetchone()
+            if not inv: await self.send("Nie masz zaproszenia do Gildii."); return
+            conn.execute("INSERT INTO player_clan_members(clan_id,account_id,rank) VALUES(?,?,'member')",(inv["clan_id"],self.account_id)); conn.execute("DELETE FROM player_clan_invites WHERE target_account_id=?",(self.account_id,)); conn.commit()
+            self.server.db.ensure_guild_default_roles_v0926(int(inv["clan_id"])); self.server.db.clan_log(int(inv["clan_id"]),self.account_id,f"{self.character.name} dołącza do Gildii."); self.refresh_guild_bonus_v0926()
+            await self.send(f"Dołączasz do Gildii {inv['name']}."); return
+        if not row: await self.send("Nie należysz do Gildii."); return
+        cid=int(row["clan_id"]); rank=str(row["rank"]); self.server.db.ensure_guild_default_roles_v0926(cid)
+        if action in ("siedziba","hall","estate"):
+            await self.handle_guild_hall_v0927(rest,row); return
+        if action in ("budynek","building"):
+            await self.handle_guild_building_v0927(rest,row); return
+        if action in ("kontrakty","contracts"):
+            await self.handle_guild_contracts_v0927("",row); return
+        if action in ("kontrakt","contract"):
+            await self.handle_guild_contracts_v0927(rest,row); return
+        if action in ("boss","bossgildii"):
+            await self.handle_guild_boss_v0927(rest,row); return
+        if action in ("trofea","trophies"):
+            await self.show_guild_trophies_v0927(row); return
+        if action in ("czlonkowie","członkowie","members"):
+            await self.send(f"CZŁONKOWIE GILDII {row['name']}:")
+            rows=conn.execute("SELECT m.account_id,m.rank,a.username FROM player_clan_members m JOIN accounts a ON a.id=m.account_id WHERE m.clan_id=?",(cid,)).fetchall()
+            rendered=[]
+            for mr in rows:
+                role=self.server.db.guild_role_v0926(cid,mr["rank"]); rendered.append((-(int(role["priority"]) if role else 0),str(mr["username"]),str(role["name"] if role else mr["rank"])))
+            for _neg,name,rname in sorted(rendered): await self.send(f"{name}: {rname}.")
+            return
+        if action in ("rangi","roles"):
+            await self.handle_guild_rank_v0926("",row); return
+        if action in ("ranga","role"):
+            await self.handle_guild_rank_v0926(rest,row); return
+        if action in ("invite","zapros","zaproś"):
+            if not self.guild_has_permission_v0926("invite",row): await self.send("Twoja ranga nie ma prawa zapraszania."); return
+            target=self.server.find_character_session(rest)
+            if not target or target.closed or not target.character: await self.send("Ten gracz nie jest online."); return
+            if target.character.room_id!=self.character.room_id: await self.send("Zapraszany gracz musi stać w tej samej lokacji."); return
+            if target.guild_row_v0926(): await self.send("Ten gracz już należy do Gildii."); return
+            conn.execute("INSERT OR REPLACE INTO player_clan_invites(clan_id,target_account_id,inviter_account_id) VALUES(?,?,?)",(cid,target.account_id,self.account_id)); conn.commit()
+            await self.send(f"Zapraszasz {target.character.name} do Gildii {row['name']}."); await target.send(f"{self.character.name} zaprasza cię do Gildii {row['name']}. Wpisz: gildia dolacz."); return
+        if action in ("opusc","opuść","leave"):
+            if rank=="leader": await self.send("Lider nie może opuścić Gildii. Najpierw przekaż przywództwo: gildia lider <gracz>."); return
+            conn.execute("DELETE FROM player_clan_members WHERE clan_id=? AND account_id=?",(cid,self.account_id)); conn.commit(); self.server.db.clan_log(cid,self.account_id,f"{self.character.name} opuszcza Gildię."); self.refresh_guild_bonus_v0926(); await self.send("Opuszczasz Gildię."); return
+        if action in ("leader","lider"):
+            if rank!="leader": await self.send("Tylko lider może przekazać przywództwo."); return
+            target=self.server.find_character_session(rest); tr=target.guild_row_v0926() if target else None
+            if not target or not tr or int(tr["clan_id"])!=cid: await self.send("Ten gracz nie jest członkiem twojej Gildii i online."); return
+            conn.execute("UPDATE player_clan_members SET rank='officer' WHERE clan_id=? AND account_id=?",(cid,self.account_id)); conn.execute("UPDATE player_clan_members SET rank='leader' WHERE clan_id=? AND account_id=?",(cid,target.account_id)); conn.execute("UPDATE player_clans SET owner_account_id=? WHERE id=?",(target.account_id,cid)); conn.commit()
+            self.server.db.clan_log(cid,self.account_id,f"{self.character.name} przekazuje przywództwo {target.character.name}.")
+            await self.send(f"{target.character.name} zostaje liderem Gildii."); await target.send("Zostajesz liderem Gildii."); return
+        if action in ("kick","wyrzuc","wyrzuć"):
+            if not self.guild_has_permission_v0926("kick",row): await self.send("Twoja ranga nie ma prawa wyrzucania."); return
+            target=self.server.find_character_session(rest); tr=target.guild_row_v0926() if target else None
+            if not target or not tr or int(tr["clan_id"])!=cid: await self.send("Nie znaleziono członka Gildii online."); return
+            if str(tr["rank"])=="leader": await self.send("Nie można wyrzucić lidera."); return
+            if self.guild_rank_priority_v0926(row)<=target.guild_rank_priority_v0926(tr): await self.send("Możesz wyrzucać tylko graczy o niższym priorytecie rangi."); return
+            conn.execute("DELETE FROM player_clan_members WHERE clan_id=? AND account_id=?",(cid,target.account_id)); conn.commit(); target.refresh_guild_bonus_v0926(); self.server.db.clan_log(cid,self.account_id,f"{self.character.name} usuwa {target.character.name} z Gildii.")
+            await self.send(f"Usuwasz {target.character.name} z Gildii."); await target.send(f"Zostałeś usunięty z Gildii {row['name']}."); return
+        if action in ("log","dziennik"):
+            rows=conn.execute("SELECT message,created_at FROM player_clan_log WHERE clan_id=? ORDER BY id DESC LIMIT 40",(cid,)).fetchall(); await self.send("LOG GILDII:")
+            for lr in reversed(rows): await self.send(f"{lr['created_at']}: {lr['message']}")
+            if not rows: await self.send("Brak wpisów.")
+            return
+        if action in ("osiagniecia","osiągnięcia","achievements"):
+            await self.sync_clan_achievements_v0925(cid); rows=conn.execute("SELECT name,unlocked_at FROM player_clan_achievements WHERE clan_id=? ORDER BY unlocked_at",(cid,)).fetchall(); await self.send("WSPÓLNE OSIĄGNIĘCIA GILDII:")
+            for ar in rows: await self.send(f"{ar['name']}, {ar['unlocked_at']}.")
+            if not rows: await self.send("Jeszcze brak.")
+            return
+        if action in ("chat","czat"):
+            if not rest: await self.send("Użycie: gildia chat <tekst>."); return
+            for sess in list(self.server.sessions):
+                if getattr(sess,"account_id",None) and not sess.closed:
+                    sr=sess.guild_row_v0926()
+                    if sr and int(sr["clan_id"])==cid: await sess.send(f"[GILDIA] {self.character.name}: {rest}")
+            return
+        if action in ("skarbiec","treasury"):
+            grow=conn.execute("SELECT level,treasury FROM player_clans WHERE id=?",(cid,)).fetchone(); level=int(grow["level"]); treasury=int(grow["treasury"])
+            await self.send(f"SKARBIEC GILDII: {currency_reading_text(treasury,0,0)}. Poziom Gildii {level}; bonus +{v0926_guild_bonus_percent(level)}%.")
+            if level<V0926_GUILD_MAX_LEVEL: await self.send(f"Koszt następnej rozbudowy: {currency_reading_text(v0926_guild_upgrade_cost(level),0,0)}.")
+            return
+        if action in ("wplac","wpłać","deposit"):
+            amount=self.parse_guild_money_v0926(rest)
+            if amount is None: await self.send("Użycie: gildia wplac <kwota> [monet|zlota|mithril]."); return
+            wallet=self.character_wallet_silver_value()
+            if wallet<amount: await self.send(f"Nie masz tyle. Portfel: {currency_reading_text(wallet,0,0)}."); return
+            self.character.silver=wallet-amount; self.character.gold=0; self.character.mithril=0; self.server.db.save_character(self.character)
+            conn.execute("UPDATE player_clans SET treasury=treasury+? WHERE id=?",(amount,cid)); conn.commit(); self.server.db.clan_metric_add(cid,"money_deposited",amount); self.server.db.clan_log(cid,self.account_id,f"{self.character.name} wpłaca do skarbca {currency_reading_text(amount,0,0)}.")
+            await self.send(f"Wpłacasz do skarbca Gildii {currency_reading_text(amount,0,0)}."); return
+        if action in ("wyplac","wypłać","withdraw"):
+            if not self.guild_has_permission_v0926("withdraw_money",row): await self.send("Twoja ranga nie ma uprawnienia do wypłat ze skarbca."); return
+            amount=self.parse_guild_money_v0926(rest)
+            if amount is None: await self.send("Użycie: gildia wyplac <kwota> [monet|zlota|mithril]."); return
+            grow=conn.execute("SELECT treasury FROM player_clans WHERE id=?",(cid,)).fetchone(); treasury=int(grow["treasury"] or 0)
+            if treasury<amount: await self.send(f"W skarbcu jest tylko {currency_reading_text(treasury,0,0)}."); return
+            conn.execute("UPDATE player_clans SET treasury=treasury-? WHERE id=?",(amount,cid)); conn.commit()
+            self.character.silver=self.character_wallet_silver_value()+amount; self.character.gold=0; self.character.mithril=0; self.server.db.save_character(self.character)
+            self.server.db.clan_log(cid,self.account_id,f"{self.character.name} ({self.guild_rank_name_v0926(row)}) wypłaca na własny portfel {currency_reading_text(amount,0,0)}.")
+            await self.send(f"Wypłacasz ze skarbca Gildii {currency_reading_text(amount,0,0)}. Operacja została zapisana w logu."); return
+        if action in ("rozbuduj","upgrade"):
+            if rank!="leader": await self.send("Tylko lider może wydawać skarbiec na rozbudowę Gildii."); return
+            grow=conn.execute("SELECT level,treasury FROM player_clans WHERE id=?",(cid,)).fetchone(); level=int(grow["level"]); treasury=int(grow["treasury"])
+            if level>=V0926_GUILD_MAX_LEVEL: await self.send("Gildia ma już maksymalny poziom 100."); return
+            cost=v0926_guild_upgrade_cost(level); confirm=normalize_lookup_text(rest) in ("potwierdz","potwierdź","confirm","tak")
+            if not confirm:
+                await self.send(f"Rozbudowa Gildii z poziomu {level} na {level+1} kosztuje {currency_reading_text(cost,0,0)}. Skarbiec: {currency_reading_text(treasury,0,0)}. Aby wydać środki wpisz: gildia rozbuduj potwierdz."); return
+            if treasury<cost: await self.send(f"Brakuje {currency_reading_text(cost-treasury,0,0)} w skarbcu Gildii."); return
+            conn.execute("UPDATE player_clans SET treasury=treasury-?,level=level+1 WHERE id=?",(cost,cid)); conn.commit(); new_level=level+1; new_bonus=v0926_guild_bonus_percent(new_level)
+            self.server.db.clan_log(cid,self.account_id,f"{self.character.name} rozbudowuje Gildię do poziomu {new_level}; koszt {currency_reading_text(cost,0,0)}.")
+            for sess in list(self.server.sessions):
+                if getattr(sess,"account_id",None) and not sess.closed:
+                    sr=sess.guild_row_v0926()
+                    if sr and int(sr["clan_id"])==cid:
+                        sess.refresh_guild_bonus_v0926(); await sess.send(f"Gildia osiąga poziom {new_level}. Bonus rozwoju wynosi teraz +{new_bonus}%.")
+            return
+        if action=="bank":
+            bparts=rest.split(maxsplit=1); sub=normalize_lookup_text(bparts[0]) if bparts else ""; query=bparts[1].strip() if len(bparts)>1 else ""
+            if not sub:
+                rows=conn.execute("SELECT item_id,quantity FROM player_clan_bank WHERE clan_id=? AND quantity>0 ORDER BY item_id",(cid,)).fetchall(); await self.send("BANK PRZEDMIOTÓW GILDII:")
+                for br in rows: await self.send(f"{ITEMS.get(br['item_id'],{}).get('name',br['item_id'])} x{br['quantity']}.")
+                if not rows: await self.send("Pusto.")
+                return
+            if sub in ("wplac","wpłać","deposit"):
+                found=self.resolve_owned_equipment_v0925(query,True)
+                if not found:
+                    pool={iid:item for iid,item in ITEMS.items() if self.server.db.item_qty(self.account_id,iid)>0 and item.get('type') not in ('quest','tool','resource','craft_material') and not is_character_bound_item(iid)}; found=find_by_name(pool,query)
+                if not found: await self.send("Nie rozpoznaję wolnego przedmiotu, który można wpłacić."); return
+                iid,item=found
+                if item.get('type')=='armor' and self.free_equipment_quantity(iid)<=0: await self.send("Założonego EQ nie można wpłacić."); return
+                if item.get('type')=='armor' and (self.server.db.equipment_reforge(self.account_id,iid) or self.server.db.equipment_runes_v0925(self.account_id,iid)):
+                    await self.send("Przekute lub runiczne EQ przekaż bezpośrednio graczowi; bank Gildii przyjmuje tylko niemodyfikowane EQ."); return
+                if not self.server.db.remove_item(self.account_id,iid,1): await self.send("Nie udało się wpłacić."); return
+                conn.execute("INSERT INTO player_clan_bank(clan_id,item_id,quantity) VALUES(?,?,1) ON CONFLICT(clan_id,item_id) DO UPDATE SET quantity=quantity+1",(cid,iid)); conn.commit(); self.server.db.clan_metric_add(cid,"bank_deposits",1); self.server.db.clan_log(cid,self.account_id,f"{self.character.name} wpłaca do banku przedmiotów: {item['name']}."); await self.send(f"Wpłacasz do banku Gildii: {item['name']}."); return
+            if sub in ("wyplac","wypłać","withdraw"):
+                if not self.guild_has_permission_v0926("withdraw_items",row): await self.send("Twoja ranga nie ma prawa wypłaty przedmiotów."); return
+                rows=conn.execute("SELECT item_id,quantity FROM player_clan_bank WHERE clan_id=? AND quantity>0",(cid,)).fetchall(); pool={str(r['item_id']):ITEMS.get(str(r['item_id']),{'name':str(r['item_id'])}) for r in rows}; found=find_by_name(pool,query)
+                if not found: await self.send("Nie ma takiego przedmiotu w banku."); return
+                iid,item=found
+                conn.execute("UPDATE player_clan_bank SET quantity=quantity-1 WHERE clan_id=? AND item_id=?",(cid,iid)); conn.execute("DELETE FROM player_clan_bank WHERE clan_id=? AND item_id=? AND quantity<=0",(cid,iid)); conn.commit(); self.server.db.add_item(self.account_id,iid,1); self.server.db.clan_log(cid,self.account_id,f"{self.character.name} ({self.guild_rank_name_v0926(row)}) wypłaca z banku: {item['name']}."); await self.send(f"Wypłacasz z banku Gildii: {item['name']}."); return
+            await self.send("Użycie: gildia bank; gildia bank wplac <przedmiot>; gildia bank wyplac <przedmiot>."); return
+        await self.send("Nieznana komenda Gildii. Wpisz: gildia.")
+
+    # zgodnościowy alias dla starych wywołań z v0.9.25
+    async def handle_clan_v0925(self, args=""):
+        await self.handle_guild_v0926(args)
+
     async def command_loop(self):
         while not self.closed:
             raw = await self.ask("> ")
@@ -46127,7 +51809,7 @@ class Session:
                 "teachers", "quests", "charisma", "multiclass",
                 "back", "dungeonexit", "progress", "exploration",
                 "achievements", "titles", "title", "collection", "bosscodex", "bounty",
-                "drophistory", "lootfilter", "regionprogress", "combatlog", "lifetime",
+                "drophistory", "lootfilter", "regionprogress", "combatlog", "lifetime", "craftbox", "runes", "clan", "masteryachievements", "friends",
             }
 
             if (
@@ -46146,7 +51828,7 @@ class Session:
                 "terraininfo", "location", "stats", "hp", "score", "money",
                 "soul", "skills", "skillnames", "inventory", "equipment",
                 "quests", "progress", "exploration", "achievements", "titles",
-                "collection", "bosscodex", "bounty", "drophistory", "combatlog", "lifetime", "fishjournal", "say", "tell",
+                "collection", "bosscodex", "leaderboards", "bounty", "drophistory", "combatlog", "lifetime", "fishjournal", "say", "tell", "reply", "friends", "craftbox", "runes", "clan", "masteryachievements",
                 "partychat",
             }
             if self.guide_task_active() and (
@@ -46159,7 +51841,7 @@ class Session:
 
             if direction:
                 await self.move(direction)
-            elif command == "guild":
+            elif command == "classguild":
                 await self.show_guild(args)
             elif command == "guildquest":
                 await self.guild_class_quest(args)
@@ -46195,6 +51877,8 @@ class Session:
                 await self.show_collection(args)
             elif command == "bosscodex":
                 await self.show_boss_codex(args)
+            elif command == "leaderboards":
+                await self.show_leaderboards(args)
             elif command == "drophistory":
                 await self.show_drop_history()
             elif command == "lootfilter":
@@ -46221,6 +51905,8 @@ class Session:
                 await self.show_exits(args)
             elif command == "map":
                 await self.show_map(args)
+            elif command == "instancesecret":
+                await self.discover_instance_secret()
             elif command == "bestiary":
                 await self.show_bestiary(args)
             elif command == "atlas":
@@ -46256,6 +51942,10 @@ class Session:
                 await self.say(args)
             elif command == "tell":
                 await self.tell(args)
+            elif command == "reply":
+                await self.reply_private_v0928(args)
+            elif command == "friends":
+                await self.handle_friends_v0928(args)
             elif command == "party":
                 await self.handle_party(args)
             elif command == "partyinvite":
@@ -46331,7 +52021,19 @@ class Session:
             elif command == "herbbag":
                 await self.show_container("herbbag")
             elif command == "craftbox":
-                await self.show_container("craftbox")
+                await self.show_craftbox_v0925(args)
+            elif command == "salvage":
+                await self.salvage_equipment_v0925(args)
+            elif command == "reforge":
+                await self.reforge_equipment_v0925(args)
+            elif command == "runes":
+                await self.handle_runes_v0925(args)
+            elif command == "socketrune":
+                await self.socket_rune_v0925(args)
+            elif command == "playerguild":
+                await self.handle_guild_v0926(args)
+            elif command == "masteryachievements":
+                await self.show_mastery_achievements_v0925()
             elif command == "put":
                 await self.put_in_container(args)
             elif command == "take":
@@ -46593,6 +52295,8 @@ class Session:
         self.guide_choice_state = None
         self.quest_list_context = None
         self.previous_room_id = None
+        self.last_private_sender_account_id = None
+        self.last_private_sender_name = None
 
     async def close(self):
         if self.closed:
@@ -46856,6 +52560,20 @@ class MudServer:
             if s is not exclude and s.character and s.character.room_id == room_id:
                 await s.send(text)
 
+    async def mob_wander_loop(self):
+        while True:
+            await asyncio.sleep(5.0)
+            for mob, old_room, new_room in self.world.wander_step():
+                name = MOB_TEMPLATES.get(mob.template_id, {}).get(
+                    "name", "Wróg"
+                )
+                await self.broadcast_room(
+                    old_room, f"{name} odchodzi do sąsiedniej lokacji."
+                )
+                await self.broadcast_room(
+                    new_room, f"{name} nadchodzi z sąsiedniej lokacji."
+                )
+
     async def handle_client(self, reader, writer):
         if len(self.sessions) >= MAX_CLIENTS:
             writer.write(
@@ -46898,8 +52616,16 @@ class MudServer:
         print(f"Baza danych: {DB_PATH}", flush=True)
         print(f"Lokacje: {len(ROOMS)}", flush=True)
         print(f"Limit klientów: {MAX_CLIENTS}", flush=True)
-        async with server:
-            await server.serve_forever()
+        wander_task = asyncio.create_task(self.mob_wander_loop())
+        try:
+            async with server:
+                await server.serve_forever()
+        finally:
+            wander_task.cancel()
+            try:
+                await wander_task
+            except asyncio.CancelledError:
+                pass
 
 
 def main():
