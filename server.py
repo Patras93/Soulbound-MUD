@@ -30,7 +30,7 @@ import unicodedata
 from dataclasses import dataclass
 from typing import Optional
 
-VERSION = "0.24.3"
+VERSION = "0.24.4"
 
 # v0.8.72: właścicielskie komendy administracyjne. Nazwy kont podaje się
 # po stronie serwera, np. SOULBOUND_ADMIN_ACCOUNTS=Patryk. Nigdy nie są
@@ -1199,6 +1199,11 @@ MINING_ROOMS = {
     "cave_entrance", "cave_tunnel", "crystal_chamber"
 } | MINING_DEPTH_ROOMS
 
+
+def is_mining_room(room_id):
+    """True for every valid mining room, including lazy mine_floor_N above 200."""
+    return room_id in MINING_ROOMS or mine_floor_number(room_id) is not None
+
 AUTO_FISHING_ROUTE = (
     "riverbank", "lake_shore", "sea_pier", "ocean_platform",
 )
@@ -2096,6 +2101,13 @@ ORE_MINE_FLOOR_MINIMUMS = {
 for _level, _floor, _item_id, _name in WORLD_ORE_UNLOCKS:
     ORE_ATLAS_LEVELS[_item_id] = _level
     ORE_MINE_FLOOR_MINIMUMS[_item_id] = _floor
+
+# v0.24.4: rudy progresji 220-400 wymagają równocześnie odpowiedniego
+# Kilofa i głębokości Kopalni Głębinowej. Atlas ma pokazywać te same progi.
+for _level, _item_id in ENDGAME_ORE_UNLOCKS:
+    if int(_level) > 200:
+        ORE_ATLAS_LEVELS[_item_id] = int(_level)
+        ORE_MINE_FLOOR_MINIMUMS[_item_id] = int(_level)
 
 # v0.8.22 - dokładne minimalne levele narzędzi według lokacji.
 # Dane odpowiadają aktywnym pulom Drwalstwa i Zielarstwa v0.8.22.
@@ -3185,8 +3197,8 @@ ENDGAME_CLASS_SKILLS = {
     "Wojownik": [
         {
             "id": "warrior_soul_rend",
-            "name": "Rozdarcie Duszy",
-            "aliases": ["rozdarcie duszy", "soul rend"],
+            "name": "Rozcięcie Duszy Bohatera",
+            "aliases": ["rozciecie duszy bohatera", "rozcięcie duszy bohatera", "hero soul slash"],
             "natural_tags": ["ciecie", "slash", "dusza"],
             "unlock": 100, "kind": "damage", "cooldown": 8, "mana": 0,
             "desc": "Silne cięcie końcowego etapu Wojownika.",
@@ -3729,7 +3741,7 @@ SOUL_LEVEL_SKILL_EXPANSION = {
         (70,"Unik Tropiciela","evade"),(80,"Potrójna Salwa","damage"),
         (90,"Strzał Łowcy","execute"),(110,"Strzała Widma","damage"),
         (120,"Zasadzka","evade"),(130,"Strzał w Słaby Punkt","damage"),
-        (150,"Skupienie Mistrza","boost"),(160,"Nawałnica Strzał","damage"),
+        (150,"Sokole Skupienie Mistrza","boost"),(160,"Nawałnica Strzał","damage"),
         (170,"Polowanie Legendy","damage"),(190,"Ostatnia Strzała","execute"),
     ],
     "Mnich": [
@@ -3738,7 +3750,7 @@ SOUL_LEVEL_SKILL_EXPANSION = {
         (70,"Krok Wiatru","evade"),(80,"Seria Tygrysa","damage"),
         (90,"Cios Smoka","execute"),(110,"Pięść Harmonii","damage"),
         (120,"Wewnętrzny Spokój","heal"),(130,"Fala Ki","damage"),
-        (150,"Skupienie Mistrza","boost"),(160,"Taniec Smoka","damage"),
+        (150,"Skupienie Mistrza Ki","boost"),(160,"Taniec Smoka","damage"),
         (170,"Pięść Legendy","damage"),(190,"Wyrok Oświeconego","execute"),
     ],
     "Strażnik": [
@@ -3764,7 +3776,7 @@ SOUL_LEVEL_SKILL_EXPANSION = {
         (80,"Uścisk Kości","damage"),(90,"Kradzież Życia","drain"),
         (110,"Włócznia Śmierci","damage"),(120,"Pancerz Kości","guard"),
         (130,"Mroczne Żniwo","damage"),(150,"Przymierze Grobu","boost"),
-        (170,"Rozdarcie Duszy","damage"),(190,"Ostatni Oddech","execute"),
+        (170,"Rozdarcie Duszy Grobu","damage"),(190,"Ostatni Oddech","execute"),
     ],
     "Kapłan": [
         (10,"Błysk Światła","damage"),(30,"Modlitwa Skupienia","boost"),
@@ -3969,13 +3981,67 @@ _V0922_CLASS_ALT_PROFILES = {
     "Psionik":    (("Impuls Psionika", "damage"), ("Fala Umysłu", "aoe_damage"), ("Forteca Myśli", "guard")),
 }
 
+# v0.24.4: stary generator tworzył dziesiątki nazw typu
+# "Kontratak Wojownika 10", "Kontratak Wojownika 20" itd. ID i mechanika
+# pozostają bez zmian, ale nazwy alternatywnych skilli Wojownika są teraz
+# faktycznie różne i czytelne dla NVDA.
+_V0244_WARRIOR_LEVEL_TITLES = {
+    level: title for level, title in zip(
+        _V0922_MASTERY_LEVELS,
+        (
+            "Pierwszej Warty", "Żelaznego Świtu", "Stalowej Straży",
+            "Miecza Północy", "Tarczy Miasta", "Krwawego Frontu",
+            "Srebrnej Gwardii", "Nieugiętej Linii", "Płonącego Bastionu",
+            "Weterana", "Kamiennej Bramy", "Wojennego Sztandaru",
+            "Hartowanego Ostrza", "Czerwonej Warty", "Złamanego Muru",
+            "Niezłomnego Legionu", "Ostatniej Straży", "Ducha Bohatera",
+            "Korony Wojny", "Mistrza Oręża", "Legendy Pola Bitwy",
+            "Przekroczonej Granicy", "Przebudzonej Stali", "Wyższej Warty",
+            "Transcendentnej Gwardii", "Dalekiego Horyzontu",
+            "Horyzontu Bitew", "Głębokiej Otchłani", "Otchłannego Ostrza",
+            "Gwiezdnej Kuźni", "Gwiezdnego Bastionu", "Pierwotnego Szańca",
+            "Pierwotnego Legionu", "Wiecznej Warty", "Nieskończonej Straży",
+            "Korony Zwycięstwa", "Korony Świata", "Czasu Bohaterów",
+            "Ponadczasowej Wojny", "Ostatniej Granicy", "Absolutnej Stali",
+        ),
+    )
+}
+_V0244_WARRIOR_ACTION_PREFIXES = {
+    "damage": (
+        "Riposta", "Odwet", "Przechwyt", "Cięcie Odpowiedzi",
+        "Pchnięcie Zwrotne", "Uderzenie po Bloku", "Natarcie Zwrotne",
+        "Zamach Odpowiedzi", "Przecięcie Gardy",
+    ),
+    "guard": (
+        "Żelazna Zasłona", "Bastion", "Tarcza", "Garda",
+        "Forteca", "Warta", "Szańcowanie", "Mur",
+    ),
+    "boost": (
+        "Rozkaz", "Zew", "Komenda", "Sygnał Natarcia",
+        "Marsz", "Przysięga", "Mobilizacja", "Sztandar",
+    ),
+}
+
+def _v0244_warrior_alt_name(level, kind):
+    title = _V0244_WARRIOR_LEVEL_TITLES.get(int(level), f"Biegłości {int(level)}")
+    prefixes = _V0244_WARRIOR_ACTION_PREFIXES.get(kind)
+    if not prefixes:
+        return None
+    idx = _V0922_MASTERY_LEVELS.index(int(level))
+    return f"{prefixes[idx % len(prefixes)]} {title}"
+
 
 def _v0922_alt_skill(class_name, level, variant_index, base_name, kind):
     profile = _SOUL_GRID_CLASS_PROFILES[class_name]
     magic = bool(profile["magic"])
     level = int(level)
-    # Nazwa z progiem jest celowo jednoznaczna dla NVDA i komendy learn.
-    name = f"{base_name} {level}"
+    # Nazwa ma być jednoznaczna dla NVDA i komendy learn, ale nie może
+    # udawać nowego skilla przez samo dopisanie numeru poziomu.
+    name = None
+    if class_name == "Wojownik":
+        name = _v0244_warrior_alt_name(level, kind)
+    if not name:
+        name = f"{base_name} {level}"
     skill = {
         "id": f"v0922_{profile['prefix']}_{level}_{variant_index}",
         "name": name,
@@ -10755,15 +10821,15 @@ HELP_TOPICS = {
         "160-179: Smocza Stal i Ruda Astralna.",
         "180-199: Ruda Astralna i Ruda Pustki.",
         "200+: Ruda Pustki i Eternium; nowe zasoby 201-400 respektują cap narzędzia/profesji 400, a dalsza głębokość nie zwiększa mocy ekonomii ponad 400.",
-        "kopalnia pokazuje najgłębszy poziom i postęp ściany.",
-        "kop on kopie tylko w aktualnym miejscu i nie schodzi sam po przebiciu ściany.",
+        "kopalnia pokazuje aktualne położenie/piętro, najgłębszy odblokowany poziom, postęp ściany, auto-kopanie, Górnictwo, Kilof i dostępne progi rud.",
+        "kop on może wystartować w ręcznej części Kryształowej Jaskini, sam dojść do poziomu 1 i po przebiciu ściany schodzić na kolejny odblokowany poziom.",
     ],
     "auto_chodzenie": [
         "Auto-profesje nie chodzą samodzielnie.",
         "low on łowi tylko w aktualnym łowisku i nie przemieszcza postaci.",
         "zbieraj on zbiera tylko w aktualnym miejscu i nie przemieszcza postaci.",
         "tnij on ścina tylko w aktualnym miejscu i nie przemieszcza postaci.",
-        "kop on kopie tylko w aktualnym miejscu; po przebiciu ściany trzeba zejść ręcznie.",
+        "kop on jest wyjątkiem: w ręcznej części Kryształowej Jaskini może sam dojść do poziomu 1, a potem automatycznie schodzi na kolejne odblokowane poziomy po przebiciu ściany.",
         "Manualny ruch gracza nadal wyłącza aktywne auto.",
         "off nadal dokańcza bieżącą akcję i dopiero potem zatrzymuje automat.",
     ],
@@ -18975,7 +19041,10 @@ def configure_v0856_help_categories():
         "Górnictwo ma progresję 1-400; jego level skraca czas kopania do ustalonego minimum. Kilof rozwija się osobno 1-400 i odblokowuje lepsze rudy/żyły oraz bonus urobku.",
         "kop wykonuje pojedyncze wydobycie; kop on i kop off sterują auto-kopaniem.",
         "Kopalnia Głębinowa nie ma końca; ściany mają losową liczbę uderzeń zapisywaną dla postaci. Zasobowa moc głębokości zatrzymuje się na progresji 400.",
-        "atlas rudy pokazuje wymagany level Kilofa i miejsca występowania rud.",
+        "kop on może wystartować już w ręcznej części Kryształowej Jaskini: automat sam dochodzi w dół do poziomu 1, a potem schodzi po każdym przebiciu ściany.",
+        "Rudy progresji 220-400 wymagają jednocześnie odpowiedniego levelu Kilofa i co najmniej odpowiadającego mu poziomu Kopalni Głębinowej.",
+        "atlas rudy pokazuje wymagany level Kilofa i minimalną głębokość dla każdej rudy.",
+        "kopalnia / mineinfo pokazuje bieżące piętro, najgłębszy odblokowany poziom, ścianę, auto-kopanie, Górnictwo, Kilof oraz najważniejsze dostępne rudy.",
     ]
     HELP_TOPICS["drwalstwo"] = [
         "Drwalstwo ma progresję 1-400; jego level skraca czas cięcia do ustalonego minimum. Piła rozwija się osobno 1-400 i odblokowuje lepsze drewno oraz bonus urobku.",
@@ -32908,6 +32977,44 @@ class World:
             return best[requested_index - 1]
         return None
 
+# v0.24.4: jasne wyświetlanie wspólnego zapasu dla równoległych questów.
+HELP_TOPICS.setdefault("questy", []).append(
+    "Questy na ryby, zioła, drewno, rudy i inne zużywane zasoby pamiętają postęp zdobywania od 0/x, ale przy oddaniu zawsze sprawdzają aktualny fizyczny zapas. `quest` i `quest info` pokazują osobno Postęp oraz Do oddania/Brakuje, więc dwa aktywne questy nie mogą udawać gotowych po zużyciu wspólnych surowców."
+)
+
+# v0.24.4: finalny HELP umiejętności po zbudowaniu całej siatki 1-400.
+_FINAL_SKILL_HELP_ENTRIES = tuple(
+    (class_name, skill)
+    for class_name, skills in CLASS_SKILLS.items()
+    for skill in skills
+)
+_FINAL_SKILL_HELP_COUNT = len(_FINAL_SKILL_HELP_ENTRIES)
+# Indeks dokładnych nazw/ID/aliasów: `help <pełna nazwa>` nie skanuje już
+# całej tabeli 1476 wpisów. Fragmenty nadal używają kontrolowanego skanu.
+_FINAL_SKILL_HELP_EXACT_INDEX = {}
+_FINAL_SKILL_HELP_SEARCH_ROWS = []
+for _help_class_name, _help_skill in _FINAL_SKILL_HELP_ENTRIES:
+    _help_values = [_help_skill.get("name", ""), _help_skill.get("id", "")]
+    _help_values.extend(_help_skill.get("aliases", []))
+    _help_norms = tuple(sorted({
+        normalize_lookup_text(_value)
+        for _value in _help_values
+        if normalize_lookup_text(_value)
+    }))
+    _FINAL_SKILL_HELP_SEARCH_ROWS.append((_help_class_name, _help_skill, _help_norms))
+    for _help_key in _help_norms:
+        _FINAL_SKILL_HELP_EXACT_INDEX.setdefault(_help_key, []).append(
+            (_help_class_name, _help_skill)
+        )
+
+HELP_TOPICS.setdefault("umiejetnosci", []).extend([
+    f"Aktualna baza zawiera {_FINAL_SKILL_HELP_COUNT} skilli/spelli. Każdy ma własny HELP generowany z aktywnej definicji umiejętności.",
+    "Użyj help <pełna nazwa>, help skill <pełna nazwa> albo skill info <pełna nazwa>. Przy identycznej nazwie w dwóch klasach HELP podaje klasę i dokładny identyfikator skilla.",
+])
+HELP_TOPICS.setdefault("nazwy_skilli", []).append(
+    f"Audyt v0.24.4: {_FINAL_SKILL_HELP_COUNT}/{_FINAL_SKILL_HELP_COUNT} aktualnych skilli/spelli ma dostępny HELP po pełnym identyfikatorze; identyczne nazwy są jawnie rozróżniane klasą/ID."
+)
+
 
 class Session:
     def __init__(self, server, reader, writer):
@@ -33006,14 +33113,39 @@ class Session:
             return False
 
         current_room = self.character.room_id
-        floor = mine_floor_number(current_room)
 
+        # v0.24.4: auto-kopanie potrafi wejść do Kopalni Głębinowej z całej
+        # ręcznej części jaskini zamiast bez końca kopać przy wejściu.
+        approach_steps = {
+            "cave_entrance": ("down", "cave_tunnel"),
+            "cave_tunnel": ("east", "crystal_chamber"),
+            "crystal_chamber": ("down", mine_floor_id(MINE_MIN_FLOOR)),
+        }
+        if current_room in approach_steps:
+            direction, target = approach_steps[current_room]
+            if target.startswith("mine_floor_"):
+                self.server.world.ensure_infinite_dungeon_floor(target)
+            if ROOMS.get(current_room, {}).get("exits", {}).get(direction) != target:
+                ROOMS[current_room].setdefault("exits", {})[direction] = target
+            old = current_room
+            self.previous_room_id = old
+            await self.server.broadcast_room(old, f"{self.character.name} odchodzi.", exclude=self)
+            self.character.room_id = target
+            self.server.db.save_character(self.character)
+            await self.discover_room(target, announce=False)
+            await self.server.broadcast_room(target, f"{self.character.name} przychodzi.", exclude=self)
+            await self.send(f"Auto-kopanie schodzi głębiej: {ROOMS[target]['name']}.")
+            return True
+
+        floor = mine_floor_number(current_room)
         if floor is None:
             return False
 
-        target = ROOMS[current_room]["exits"].get("down")
         expected_target = mine_floor_id(floor + 1)
         self.server.world.ensure_infinite_dungeon_floor(expected_target)
+        # Napraw stare runtime-roomy/zapisy, którym brakowało wyjścia down.
+        ROOMS[current_room].setdefault("exits", {})["down"] = expected_target
+        target = ROOMS[current_room]["exits"].get("down")
 
         if target != expected_target:
             return False
@@ -33155,36 +33287,117 @@ class Session:
         return self.character.room_id == target
 
     async def show_mine_info(self):
+        """Czytelny status Kopalni Głębinowej dla NVDA."""
         progress = self.mine_progress()
-        floor = mine_floor_number(self.character.room_id)
+        room_id = self.character.room_id
+        floor = mine_floor_number(room_id)
+        approach_names = {
+            "cave_entrance": "Wejście do Kryształowej Jaskini — przed poziomem 1",
+            "cave_tunnel": "Tunel Kryształowej Jaskini — droga do poziomu 1",
+            "crystal_chamber": "Komnata Kryształowa — bezpośrednio przed poziomem 1",
+        }
+
         await self.send("KOPALNIA GŁĘBINOWA")
-        await self.send(
-            f"Odblokowane poziomy: 1-{progress['max_floor_unlocked']}. "
-            "Kopalnia nie ma górnego limitu."
-        )
         if floor is not None:
+            await self.send(f"Położenie: poziom {floor}.")
+        elif room_id in approach_names:
+            await self.send(f"Położenie: {approach_names[room_id]}.")
+        else:
+            room_name = ROOMS.get(room_id, {}).get("name", "nieznana lokacja")
             await self.send(
-                f"Aktualny poziom kopalni: {floor}."
+                f"Położenie: {room_name}. Nie jesteś teraz w Kopalni Głębinowej. "
+                "Użyj: prowadz kopalnia."
             )
-            if floor == progress["max_floor_unlocked"]:
-                required_hits = progress["wall_required_hits"]
+
+        max_floor = int(progress["max_floor_unlocked"])
+        await self.send(
+            f"Najgłębiej odblokowany poziom: {max_floor}. "
+            "Kopalnia nie ma górnego limitu pięter; moc zasobów skaluje się do progresji 400."
+        )
+
+        if floor is not None:
+            if floor == max_floor:
+                hits = int(progress["wall_hits"])
+                required = int(progress["wall_required_hits"])
+                missing = max(0, required - hits)
                 await self.send(
-                    f"Ściana w dół: {progress['wall_hits']} z "
-                    f"{required_hits} uderzeń."
+                    f"Ściana do poziomu {floor + 1}: {hits}/{required} uderzeń. "
+                    f"Brakuje {missing}."
+                )
+            elif floor < max_floor:
+                await self.send(
+                    f"Zejście do poziomu {floor + 1} jest już odblokowane."
                 )
             else:
                 await self.send(
-                    "Zejście niżej z tego poziomu jest już przebite."
+                    "Uwaga: jesteś głębiej niż zapisany postęp odblokowania; "
+                    "użyj ruchu w górę albo zaloguj się ponownie, jeśli to stary zapis."
                 )
+
+        auto_text = "włączone" if self.auto_mining else "wyłączone"
+        await self.send(f"Auto-kopanie: {auto_text}.")
+
+        try:
+            profession_level = int(self.profession_level_for_tool("mining"))
+        except Exception:
+            profession_level = 1
+        try:
+            tool_level = int(self.server.db.tool(self.account_id, "mining")["level"])
+        except Exception:
+            tool_level = 1
         await self.send(
-            "Im głębiej, tym lepsze złoża. "
-            "Kilof nadal musi mieć odpowiedni level."
+            f"Górnictwo: {profession_level}/400. Kilof: {tool_level}/400."
         )
-        await self.send(
-            "kop on nie chodzi po świecie. "
-            "Może zejść tylko o jeden poziom przez wyjście down, "
-            "jeśli ściana do następnego poziomu jest już przebita."
-        )
+
+        # W Kopalni Głębinowej ruda wymaga jednocześnie odpowiedniego Kilofa
+        # i głębokości. Pokazujemy kilka najwyższych spełnionych progów zamiast
+        # zalewać czytnik ekranu całą tabelą atlasu.
+        if floor is not None:
+            eligible = []
+            for item_id in ORE_ATLAS_ALL:
+                if item_id not in ITEMS:
+                    continue
+                need_tool = int(ORE_ATLAS_LEVELS.get(item_id, 1))
+                need_floor = int(ORE_MINE_FLOOR_MINIMUMS.get(item_id, 1))
+                if tool_level >= need_tool and floor >= need_floor:
+                    eligible.append((max(need_tool, need_floor), need_tool, need_floor, item_id))
+            eligible.sort(key=lambda row: (row[0], row[1], row[2], ITEMS[row[3]].get("name", row[3])))
+            best = eligible[-5:]
+            if best:
+                await self.send(
+                    "Najwyższe dostępne rudy przy tym Kilofie i piętrze: "
+                    + ", ".join(ITEMS[item_id].get("name", item_id) for *_rest, item_id in best)
+                    + "."
+                )
+
+            future = []
+            for item_id in ORE_ATLAS_ALL:
+                if item_id not in ITEMS:
+                    continue
+                need_tool = int(ORE_ATLAS_LEVELS.get(item_id, 1))
+                need_floor = int(ORE_MINE_FLOOR_MINIMUMS.get(item_id, 1))
+                if need_tool > tool_level or need_floor > floor:
+                    distance = max(0, need_tool - tool_level) + max(0, need_floor - floor)
+                    future.append((distance, max(need_tool, need_floor), item_id, need_tool, need_floor))
+            if future:
+                future.sort(key=lambda row: (row[0], row[1], ITEMS[row[2]].get("name", row[2])))
+                _distance, _rank, item_id, need_tool, need_floor = future[0]
+                await self.send(
+                    f"Najbliższy kolejny próg rudy: {ITEMS[item_id].get('name', item_id)} — "
+                    f"Kilof {need_tool}, poziom kopalni {need_floor}."
+                )
+
+        if self.auto_mining:
+            if floor is None and room_id in approach_names:
+                await self.send(
+                    "Auto-kopanie samo przejdzie do poziomu 1 i będzie schodzić po przebiciu kolejnych ścian."
+                )
+            elif floor is not None:
+                await self.send(
+                    "Auto-kopanie po przebiciu ściany automatycznie schodzi na następny odblokowany poziom."
+                )
+        else:
+            await self.send("Włącz auto-kopanie komendą: kop on.")
 
     def mythic_entry_error(self, target_room):
         # v0.9.12: Mityczna Krypta jest zawsze dostępna; trudność, nie level,
@@ -34305,9 +34518,50 @@ class Session:
         if not verify_password(password, row["password_salt"], row["password_hash"]):
             await self.send("Nieprawidłowe hasło.")
             return False
-        if self.server.account_online(row["id"]):
+        old_session = self.server.session_by_master_account(row["id"], exclude=self)
+        if old_session is not None:
             await self.send("To konto jest już zalogowane.")
-            return False
+            answer = await self.ask("Czy chcesz się przelogować? tak/nie: ")
+            if answer is None:
+                return False
+            if normalize_lookup_text(answer) not in ("tak", "yes", "y", "t"):
+                await self.send("Przelogowanie anulowane.")
+                return False
+
+            resume_character_id = int(old_session.account_id) if old_session.character else None
+            resume_character_name = old_session.character.name if old_session.character else None
+            try:
+                await old_session.send(
+                    "To konto zostało przejęte przez nowe logowanie. Ta sesja zostanie zamknięta."
+                )
+            except Exception:
+                pass
+            await old_session.close()
+            self.server.sessions.discard(old_session)
+
+            self.master_account_id = int(row["id"])
+            if resume_character_id is not None:
+                selected = next(
+                    (r for r in self.server.db.characters_for_master(self.master_account_id)
+                     if int(r["character_account_id"]) == resume_character_id),
+                    None,
+                )
+                if selected is not None:
+                    self.account_id = int(selected["character_account_id"])
+                    self.character = Character.from_row(selected)
+                    self.refresh_guild_bonus_v0926()
+                    self.server.db.apply_shared_wallet_to_character(self.character)
+                    if self.character.room_id not in ROOMS:
+                        self.server.world.ensure_runtime_room(self.character.room_id)
+                    if self.character.room_id not in ROOMS:
+                        self.character.room_id = "square"
+                    await self.send(
+                        f"Przelogowano. Wracasz na postać: {resume_character_name or self.character.name}."
+                    )
+                    return True
+            await self.send("Przelogowano konto. Wybierz postać.")
+            return await self.character_selection_flow()
+
         self.master_account_id = int(row["id"])
         return await self.character_selection_flow()
 
@@ -38778,32 +39032,20 @@ class Session:
         if not wanted:
             return []
 
-        exact = []
-        partial = []
-        for class_name, skill in self.all_skill_help_entries():
-            names = [skill.get("name", ""), skill.get("id", "")]
-            names.extend(skill.get("aliases", []))
-            normalized_names = {
-                normalize_lookup_text(value)
-                for value in names
-                if normalize_lookup_text(value)
-            }
-            if wanted in normalized_names:
-                exact.append((class_name, skill))
-                continue
-            if any(wanted in value for value in normalized_names):
-                partial.append((class_name, skill))
-
-        # Pełna nazwa/alias ma zawsze pierwszeństwo. Przy niejednoznacznym
-        # fragmencie nie zgadujemy skilla za gracza.
+        # Najczęstszy przypadek (pełna nazwa, ID lub alias) jest O(1).
+        exact = _FINAL_SKILL_HELP_EXACT_INDEX.get(wanted, ())
         if exact:
             unique = {}
             for class_name, skill in exact:
                 unique[skill["id"]] = (class_name, skill)
             return list(unique.values())
+
+        # Fragmenty nazw są celowo dopuszczone, ale nigdy nie zgadujemy przy
+        # wielu trafieniach. Skan wykonuje się tylko dla niepełnego zapytania.
         unique = {}
-        for class_name, skill in partial:
-            unique[skill["id"]] = (class_name, skill)
+        for class_name, skill, normalized_names in _FINAL_SKILL_HELP_SEARCH_ROWS:
+            if any(wanted in value for value in normalized_names):
+                unique[skill["id"]] = (class_name, skill)
         return list(unique.values())
 
     def skill_help_kind_label(self, kind):
@@ -38870,10 +39112,10 @@ class Session:
             await self.send(
                 "Nazwa jest niejednoznaczna. Pasujące umiejętności: "
                 + "; ".join(
-                    f"{skill['name']} ({class_name})"
+                    f"{skill['name']} ({class_name}, ID: {skill['id']})"
                     for class_name, skill in matches[:20]
                 )
-                + ". Podaj pełniejszą nazwę."
+                + ". Użyj help skill <ID>, aby wybrać dokładnie właściwą umiejętność."
             )
             return True
 
@@ -39127,7 +39369,7 @@ class Session:
             features.append("łowisko morskie")
         if room_id in OCEAN_FISHING_ROOMS:
             features.append("łowisko oceaniczne")
-        if room_id in MINING_ROOMS:
+        if is_mining_room(room_id):
             features.append("miejsce wydobycia")
             floor = mine_floor_number(room_id)
             if floor is not None:
@@ -45198,7 +45440,7 @@ class Session:
                         "Auto-kopanie zatrzymane: nie masz Kilofa."
                     )
                     break
-                if self.character.room_id not in MINING_ROOMS:
+                if not is_mining_room(self.character.room_id):
                     await self.send(
                         "Auto-kopanie zatrzymane: nie stoisz w miejscu wydobycia."
                     )
@@ -45235,7 +45477,7 @@ class Session:
                 )
                 return
 
-            if self.character.room_id not in MINING_ROOMS:
+            if not is_mining_room(self.character.room_id):
                 await self.send(
                     "Auto-kopanie możesz włączyć tylko w miejscu wydobycia. "
                     "Automat nie chodzi sam."
@@ -45254,9 +45496,9 @@ class Session:
                 self.auto_mining_loop()
             )
             await self.send(
-                "Auto-kopanie włączone. Kopie tylko w Kopalni Głębinowej. "
-                "Po przebiciu ściany może zejść wyłącznie przez odblokowane "
-                "wyjście down na następny poziom. Nie chodzi w innych kierunkach. "
+                "Auto-kopanie włączone. Jeśli jesteś w ręcznej części Kryształowej Jaskini, "
+                "automat sam zejdzie przez Wejście, Tunel i Komnatę na poziom 1 Kopalni Głębinowej. "
+                "Potem po przebiciu każdej ściany sam schodzi na następny odblokowany poziom. "
                 "Wpisz kop off albo mine off, aby je zatrzymać."
             )
             return
@@ -46337,8 +46579,12 @@ class Session:
         elif effective_depth < 200:
             pool = ("astral_ore", "void_ore")
         else:
+            # v0.24.4: post-200 ore progression requires BOTH pickaxe level
+            # and equivalent deep-mine floor. A level 400 pickaxe on floor 200
+            # must not skip directly to ore_400_400.
+            effective_unlock = min(int(tool_level), int(floor), 400)
             pool = unlocked_resource_pool(
-                ("void_ore", "eternium_ore"), ENDGAME_ORE_UNLOCKS, tool_level
+                ("void_ore", "eternium_ore"), ENDGAME_ORE_UNLOCKS, effective_unlock
             )
 
         return random.choice(pool)
@@ -46980,7 +47226,7 @@ class Session:
         if self.combat_mob_key:
             await self.send("Nie możesz wydobywać podczas walki.")
             return
-        if self.character.room_id not in MINING_ROOMS:
+        if not is_mining_room(self.character.room_id):
             await self.send("Tutaj nie ma odpowiedniego złoża.")
             return
         if self.server.db.item_qty(self.account_id, "pickaxe") <= 0:
@@ -50671,6 +50917,44 @@ class Session:
         row = self.server.db.quest(self.account_id, quest_id)
         return bool(row and row["status"] == "completed")
 
+    def quest_turnin_stock_status(self, quest_id):
+        """Return (have, needed, label) for quests that consume a physical shared stock."""
+        q = QUESTS.get(quest_id)
+        if not q:
+            return None
+        needed = int(q.get("needed", 0))
+        kind = q.get("kind")
+        if kind == "collect":
+            return (self.available_recipe_item(q["target"]), needed, ITEMS[q["target"]]["name"])
+        if kind == "collect_category":
+            category = self.quest_collect_category_info(q.get("target"))
+            if not category:
+                return None
+            ids, container, label = category
+            have = self.server.db.total_items_across_storage_and_inventory(
+                self.account_id, ids, container
+            )
+            return (int(have), needed, label)
+        if kind == "collect_resource":
+            return (int(self.resource_quest_have(q["target"])), needed, ITEMS[q["target"]]["name"])
+        if kind == "collect_distinct_category":
+            distinct_ids = self.server.db.distinct_category_items_v023(self.account_id, quest_id)[:needed]
+            have = sum(1 for item_id in distinct_ids if self.resource_quest_have(item_id) >= 1)
+            return (have, needed, "różnych zaliczonych gatunków")
+        if kind == "collect_resource_set":
+            requirements = dict(q.get("resource_targets") or {})
+            stock_needed = sum(int(value) for value in requirements.values())
+            have = sum(
+                min(int(value), int(self.resource_quest_have(item_id)))
+                for item_id, value in requirements.items()
+            )
+            return (have, stock_needed, "wymaganych próbek surowców")
+        if kind == "craft_set":
+            targets = tuple(q.get("targets") or ())
+            have = sum(1 for item_id in targets if self.server.db.item_qty(self.account_id, item_id) > 0)
+            return (have, len(targets), "elementów zestawu")
+        return None
+
     def quest_progress_for_turnin(self, quest_id):
         q = QUESTS.get(quest_id)
         row = self.server.db.quest(self.account_id, quest_id)
@@ -51288,6 +51572,14 @@ class Session:
             await self.send(
                 f"Postęp: {progress} z {int(quest.get('needed', 1))}.{ready_text}"
             )
+            stock = self.quest_turnin_stock_status(quest_id)
+            if stock is not None:
+                have, stock_needed, label = stock
+                missing = max(0, int(stock_needed) - int(have))
+                text = f"Do oddania: {have} z {stock_needed}: {label}."
+                if missing:
+                    text += f" Brakuje {missing}."
+                await self.send(text)
         elif row and int(row["completion_count"] or 0) > 0:
             await self.send(
                 f"Historia: ukończono {int(row['completion_count'] or 0)} razy."
@@ -51476,9 +51768,17 @@ class Session:
             quest = QUESTS[row["quest_id"]]
             progress, ready = self.quest_progress_for_turnin(row["quest_id"])
             state = "GOTOWE DO ODDANIA" if ready else "aktywne"
+            stock = self.quest_turnin_stock_status(row["quest_id"])
+            stock_text = ""
+            if stock is not None:
+                have, stock_needed, label = stock
+                missing = max(0, int(stock_needed) - int(have))
+                stock_text = f" Do oddania {have} z {stock_needed}: {label}."
+                if missing:
+                    stock_text += f" Brakuje {missing}."
             await self.send(
                 f"{number}. {quest['name']}. {state}. "
-                f"Postęp {progress} z {quest['needed']}. NPC: {quest['giver']}."
+                f"Postęp {progress} z {quest['needed']}.{stock_text} NPC: {quest['giver']}."
             )
         await self.send("Szczegóły: quest info <numer>.")
 
@@ -51670,8 +51970,16 @@ class Session:
                 "gotowe do oddania."
             )
             for _quest_id, quest, progress, _is_ready in active:
+                stock = self.quest_turnin_stock_status(_quest_id)
+                extra = ""
+                if stock is not None:
+                    have, stock_needed, label = stock
+                    missing = max(0, int(stock_needed) - int(have))
+                    extra = f" Do oddania {have} z {stock_needed}: {label}."
+                    if missing:
+                        extra += f" Brakuje {missing}."
                 await self.send(
-                    f"{quest['name']}: {progress} z {quest['needed']}."
+                    f"{quest['name']}: {progress} z {quest['needed']}.{extra}"
                 )
             return
 
@@ -52394,13 +52702,13 @@ class Session:
             or ""
         )
 
-        if profession == "Wędkarstwo" or "borys" in name_cf or "neris" in name_cf:
+        if profession == "Wędkarstwo" or "borys" in name_cf or "mistrz wędkarstwa" in name_cf:
             return "Dobry połów. Widać, że znasz wodę i nie wyciągasz sieci byle jak."
         if profession == "Górnictwo" or any(x in name_cf for x in ("górnik", "gornik", "kordan", "dagna")):
             return "Porządny urobek. Taki materiał ma wartość i zasługuje na uczciwą zapłatę."
         if profession == "Drwalstwo" or any(x in name_cf for x in ("drwal", "bran", "oren")):
             return "Dobra robota. Drewno jest pozyskane porządnie i bez marnowania materiału."
-        if profession == "Zielarstwo" or any(x in name_cf for x in ("zielar", "sena", "liora", "ira")):
+        if profession == "Zielarstwo" or any(x in name_cf for x in ("zielar", "sena", "liora", "ira", "aptekarka")):
             return "Dobrze zebrane. Rośliny zachowały to, co w nich najcenniejsze."
         if profession == "Gotowanie" or "marcel" in name_cf:
             return "Dobra robota. Smak i wykonanie są takie, jakich oczekuję od fachowca."
@@ -57234,11 +57542,15 @@ class MudServer:
         self.party_protectors = {}
 
     def account_online(self, account_id):
-        return any(
-            getattr(s, "master_account_id", None) == account_id
-            and s.character
-            for s in self.sessions
-        )
+        return self.session_by_master_account(account_id) is not None
+
+    def session_by_master_account(self, account_id, exclude=None):
+        for session in list(self.sessions):
+            if session is exclude or session.closed:
+                continue
+            if getattr(session, "master_account_id", None) == int(account_id):
+                return session
+        return None
 
     def find_character_session(self, name):
         for s in self.sessions:

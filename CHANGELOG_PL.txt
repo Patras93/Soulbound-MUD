@@ -1,3 +1,21 @@
+v0.24.4 — Stability, Deep Mine & Accessibility Hotfix
+=========================================================
+- Naprawiono blokadę „To konto jest już zalogowane”: po poprawnym haśle serwer pyta „Czy chcesz się przelogować? tak/nie”. `tak` zamyka starą sesję i wraca bezpośrednio na tę samą aktywną postać; `nie` anuluje przejęcie.
+- Questy współdzielące ten sam fizyczny zapas (ryby, zioła, drewno, rudy i inne zasoby) pokazują osobno historyczny Postęp 0/x oraz aktualne `Do oddania / Brakuje`. Zużycie surowca przez drugi quest odbiera status GOTOWE, ale nie cofa prawidłowo zdobytego postępu zdarzeń.
+- Dodano naturalne `oddaj quest <numer>` / `quest turnin <numer>` według numerowanej listy aktywnych questów; stare formy oddawania pozostają.
+- Audyt skilli/spelli: 1476/1476 ma HELP po ID i nazwie oraz unikalną nazwę w skali całej gry. Usunięto ostatnie globalne duplikaty nazw.
+- Przebudowano powtarzalne nazwy Wojownika z generatora: usunięto serie `Kontratak Wojownika <poziom>`, `Mur Wojownika <poziom>` i `Rozkaz Wojownika <poziom>` bez zmiany ID, progów, efektów ani balansu.
+- Zoptymalizowano indeks HELP skilli/spelli, dzięki czemu dokładne `help <nazwa>` / `help <id>` nie skanuje liniowo całej listy 1476 wpisów.
+- Naprawiono reakcje Aptekarki Neris: jej zielarski quest nie wpada już w tekst Wędkarstwa mimo konfliktu imienia z Mistrzem Wędkarstwa Neris.
+- Naprawiono Kopalnię Głębinową dla poziomów 201+: `is_mining_room` rozpoznaje wszystkie dynamiczne `mine_floor_N`, także powyżej ręcznie przygotowanego zakresu 1-200.
+- Auto-kopanie może wystartować przy Wejściu do Kryształowej Jaskini, przejść przez Tunel i Komnatę Kryształową na poziom 1, a potem automatycznie schodzić po przebiciu kolejnych ścian. Naprawiane są też stare runtime-roomy bez wyjścia `down`.
+- Rudy progresji 220-400 wymagają jednocześnie odpowiedniego levelu Kilofa i odpowiadającej głębokości Kopalni. Kilof 400 na poziomie 200 nie może już przeskoczyć bezpośrednio do rud 220-400.
+- Zsynchronizowano `atlas rudy` z realnymi progami rud 220-400: level Kilofa i minimalne piętro odpowiadają faktycznej logice wydobycia.
+- Rozbudowano komendę `kopalnia` / `mineinfo`: pokazuje aktualne położenie/piętro, najgłębszy odblokowany poziom, postęp ściany i brakujące uderzenia, stan auto-kopania, Górnictwo, Kilof, najwyższe dostępne rudy oraz najbliższy kolejny próg rudy.
+- Zaktualizowano HELP Kopalni i auto-kopania; usunięto stare sprzeczne informacje, że po przebiciu ściany trzeba zawsze schodzić ręcznie.
+- Stan końcowy: 286 questów, 1476 skilli/spelli, 1476 unikalnych nazw skilli/spelli, 213 tematów HELP i 437 aliasów HELP.
+- Test v0.24.4 PASS. Regresje mechanik v0.18-v0.22, stress 1-400, 1000-pokojowe megalochy, 500 rund Endless oraz v0.24.3 Treasure Map Cleanup przechodzą. Historyczne testy v0.24.0-v0.24.2 zawierają celowo nieaktualne asercje dotyczące Marcela i mapy Erena i nie są traktowane jako obowiązująca specyfikacja.
+
 v0.24.3 — Treasure Map Quest Cleanup Hotfix
 =================================================
 - Dodano naturalny skrót `użyj mapy` / `uzyj mapy`. Jeśli gracz ma questową mapę Erena, skrót używa jej w pierwszej kolejności; poza questem działa ze zwykłą Mapą Skarbu Rubieży.
