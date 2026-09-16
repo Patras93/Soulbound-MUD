@@ -34,7 +34,7 @@ import world_topology_generator as world_topology_generator_v0281
 import dynamic_world_v029 as dynamic_world_v029
 import world_logic_validator as world_logic_validator_v030
 
-VERSION = "0.30.3"
+VERSION = "0.30.4"
 
 # v0.8.72: właścicielskie komendy administracyjne. Nazwy kont podaje się
 # po stronie serwera, np. SOULBOUND_ADMIN_ACCOUNTS=Patryk. Nigdy nie są

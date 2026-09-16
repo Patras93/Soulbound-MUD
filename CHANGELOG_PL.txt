@@ -1,3 +1,12 @@
+SOULBOUND v0.30.4 — RAILWAY DOCKER CONTEXT HOTFIX
+==================================================
+
+- Naprawiono Railway Build Failed: Dockerfile nie wymaga już README_PL.txt, CHANGELOG_PL.txt ani RAILWAY_PL.txt.
+- Obraz Dockera kopiuje wyłącznie pliki Python potrzebne do uruchomienia serwera.
+- Dzięki temu brak dowolnego pliku dokumentacji nie może zatrzymać builda Railway.
+- Zachowany port hotfix v0.30.3: RAILWAY_TCP_APPLICATION_PORT -> PORT -> SOULBOUND_PORT -> 4000.
+- Brak zmian balansu, świata, questów, save'ów i panelu administratora. Wipe nie jest wymagany.
+
 SOULBOUND v0.30.3 — RAILWAY PORT / TCP HOTFIX
 - Naprawiono priorytet portu Railway: TCP application port, potem PORT, dopiero potem legacy SOULBOUND_PORT.
 - Usunięto wymuszanie SOULBOUND_PORT=4000 z Dockerfile.
