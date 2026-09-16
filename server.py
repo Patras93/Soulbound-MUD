@@ -2,7 +2,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Soulbound v0.30.6 Direct Guide + Training Plaza + HP Hotfix + Single-File Railway Edition
+Soulbound v0.30.7 Quest & Gathering QOL + Single-File Railway Edition
 Wieloosobowy tekstowy MUD TCP/Telnet dla MUSHclienta/Mudleta.
 
 Najważniejsze zasady projektu:
@@ -50,7 +50,7 @@ dynamic_world_v029 = _load_embedded_runtime_module('dynamic_world_v029', _EMBEDD
 _EMBEDDED_WORLD_LOGIC_VALIDATOR_SOURCE = '"""Soulbound v0.30.0 Semantic World Logic Validator.\n\nThe topology may be procedural, but geography must remain understandable.\nThis validator checks semantic gateway rules, vertical movement semantics,\nworld reachability, reciprocal navigation and deterministic topology output.\n"""\nfrom __future__ import annotations\n\nfrom collections import defaultdict, deque\nimport hashlib\nimport json\n\nVERSION = "0.30.0"\nHORIZONTAL = ("north","east","south","west","northeast","southeast","southwest","northwest")\nOPPOSITE = {\n    "north":"south","south":"north","east":"west","west":"east",\n    "northeast":"southwest","southwest":"northeast",\n    "northwest":"southeast","southeast":"northwest",\n    "up":"down","down":"up",\n}\n\n\ndef _norm(text):\n    return str(text or "").casefold()\n\n\ndef zone_family(zone: str) -> str:\n    z=_norm(zone)\n    if any(k in z for k in ("miasto dusz","gildia dusz","pracownia kartografa")):\n        return "urban"\n    if any(k in z for k in ("przedmieścia","przedmiescia","wioska","osada","posterunek","obóz straży","oboz strazy","przystań","przystan")):\n        return "settlement"\n    if any(k in z for k in ("kanały","kanaly","podziemia","krypt","jaskini","jaskinie","nekropolia","katakumb","kopal")):\n        return "underground"\n    if any(k in z for k in ("góry","gory","lodowe","twierdza gigant")):\n        return "highland"\n    if any(k in z for k in ("popielne","rozbite niebo","pustki","korona świata","korona swiata","rubież końca","rubiez konca")):\n        return "endgame"\n    if any(k in z for k in ("próba","proba","arena","archiwum otchłani","archiwum otchlani","katedra tysiąca","katedra tysiaca","kuźnia pierwszych","kuznia pierwszych","labirynt wiecznych","pałac bezimiennej","palac bezimiennej")):\n        return "instance"\n    if "proceduralny region:" in z:\n        return "expedition"\n    if any(k in z for k in ("ocean","wybrzeże","wybrzeze","jezior","dolina rzek")):\n        return "waterland"\n    return "wilderness"\n\n\ndef _gateway_semantic(rid: str, room: dict, direction: str, target_id: str, target: dict) -> bool:\n    """True when a cross-zone edge has a believable semantic transition."""\n    if direction in ("up","down"):\n        return True\n    src=_norm(rid)+" "+_norm(room.get("name"))\n    dst=_norm(target_id)+" "+_norm(target.get("name"))\n    gateway_words=(\n        "gate","brama","harbor","port","pier","molo","road","trakt","path","szlak",\n        "pass","przełęcz","przelecz","bridge","most","entrance","wejście","wejscie",\n        "mouth","wylot","frontier","rubież","rubiez","gateway","portal","archive","archiw",\n        "hall","hala","lobby","warsztat kartograf","cartographer","watchpost","posterunek",\n        "camp","obóz","oboz","v0130_gateway","v028_region_gate",\n    )\n    return any(k in src or k in dst for k in gateway_words)\n\n\ndef _reachable(rooms, start):\n    if start not in rooms:\n        return set()\n    seen={start}; q=deque([start])\n    while q:\n        cur=q.popleft()\n        for target in rooms[cur].get("exits",{}).values():\n            if target in rooms and target not in seen:\n                seen.add(target); q.append(target)\n    return seen\n\n\ndef topology_fingerprint(rooms):\n    payload=[]\n    for rid in sorted(rooms):\n        exits=rooms[rid].get("exits",{}) or {}\n        payload.append((rid,tuple(sorted((str(k),str(v)) for k,v in exits.items()))))\n    raw=json.dumps(payload,ensure_ascii=False,separators=(",",":"))\n    return hashlib.sha256(raw.encode("utf-8")).hexdigest()\n\n\ndef validate_world_logic(rooms: dict) -> dict:\n    errors=[]; warnings=[]; cross=[]; vertical=[]\n    if not isinstance(rooms,dict):\n        return {"version":VERSION,"error_count":1,"errors":["ROOMS is not dict"]}\n\n    # References and reciprocal navigation for every static edge.\n    for rid,room in rooms.items():\n        exits=room.get("exits",{}) or {}\n        for direction,target_id in exits.items():\n            if target_id not in rooms:\n                # Runtime/lazy destination; validated by its own materializer.\n                continue\n            target=rooms[target_id]\n            if direction in OPPOSITE:\n                reverse=OPPOSITE[direction]\n                if target.get("exits",{}).get(reverse)!=rid:\n                    # Some explicit gauntlet finales remain one-way by design; require a\n                    # global return path instead of pretending the exact edge is reciprocal.\n                    if not (room.get("procedural_dynamic") or target.get("procedural_dynamic")):\n                        warnings.append(f"one-way {rid}.{direction}->{target_id}")\n            z1=str(room.get("zone") or "Bez strefy")\n            z2=str(target.get("zone") or "Bez strefy")\n            if direction in ("up","down"):\n                vertical.append((rid,direction,target_id))\n            if z1!=z2:\n                cross.append((rid,direction,target_id,z1,z2))\n                f1,f2=zone_family(z1),zone_family(z2)\n                semantic_gateway=_gateway_semantic(rid,room,direction,target_id,target)\n                # Granice naturalnych biomów (np. łąka -> rzeka -> dzicz) mogą\n                # przechodzić bez sztucznej bramy. Twarda semantyczna brama jest\n                # wymagana, gdy opuszczamy/wchodzimy do huba miejskiego.\n                if (f1=="urban") != (f2=="urban") and not semantic_gateway:\n                    errors.append(f"urban boundary without semantic gateway: {rid}.{direction}->{target_id} ({z1}->{z2})")\n                # Miasto nie może być bezpośrednim sąsiadem gór/endgame. Nawet\n                # prawdziwa brama miejska ma prowadzić najpierw do traktu/przedmieść.\n                if f1=="urban" and f2 in {"highland","endgame"} and direction not in ("up","down"):\n                    errors.append(f"urban direct jump to {f2}: {rid}.{direction}->{target_id}")\n                if f2=="urban" and f1 in {"highland","endgame"} and direction not in ("up","down"):\n                    errors.append(f"{f1} direct jump to urban: {rid}.{direction}->{target_id}")\n\n    # v0.30 generator nie używa up/down jako GENERATED_DIRS. Każde pionowe\n    # przejście obecne tutaj pochodzi więc z semantycznej tożsamości świata\n    # (schody, piwnica, wieża, krypta, jaskinia, portal) albo z generatora\n    # dedykowanej instancji, a nie z losowego łączenia topologii.\n\n    reachable=_reachable(rooms,"square")\n    if len(reachable)!=len(rooms):\n        missing=sorted(set(rooms)-reachable)\n        errors.append(f"unreachable from square: {len(missing)} rooms; sample {missing[:10]}")\n\n    # Every static room must have some route back to the hub. Reverse-graph BFS.\n    rev=defaultdict(list)\n    for rid,room in rooms.items():\n        for target in room.get("exits",{}).values():\n            if target in rooms: rev[target].append(rid)\n    can_return=set()\n    if "square" in rooms:\n        can_return={"square"}; q=deque(["square"])\n        while q:\n            cur=q.popleft()\n            for source in rev.get(cur,[]):\n                if source not in can_return:\n                    can_return.add(source); q.append(source)\n    if len(can_return)!=len(rooms):\n        missing=sorted(set(rooms)-can_return)\n        errors.append(f"cannot return to square: {len(missing)} rooms; sample {missing[:10]}")\n\n    city=[rid for rid,r in rooms.items() if r.get("zone")=="Miasto Dusz"]\n    city_bad=[]\n    for rid in city:\n        for d,t in rooms[rid].get("exits",{}).items():\n            if t not in rooms: continue\n            z2=rooms[t].get("zone")\n            if z2=="Miasto Dusz": continue\n            if not _gateway_semantic(rid,rooms[rid],d,t,rooms[t]):\n                city_bad.append(f"{rid}.{d}->{t}")\n    if city_bad:\n        errors.append("city exits without gateway semantics: "+", ".join(city_bad[:10]))\n\n    families=defaultdict(int)\n    for r in rooms.values(): families[zone_family(r.get("zone"))]+=1\n    return {\n        "version":VERSION,\n        "room_count":len(rooms),\n        "reachable_from_square":len(reachable),\n        "returnable_to_square":len(can_return),\n        "cross_zone_edges":len(cross),\n        "vertical_edges":len(vertical),\n        "city_rooms":len(city),\n        "zone_family_room_counts":dict(families),\n        "topology_fingerprint":topology_fingerprint(rooms),\n        "warning_count":len(warnings),\n        "warnings":warnings,\n        "error_count":len(errors),\n        "errors":errors,\n    }\n'
 world_logic_validator_v030 = _load_embedded_runtime_module('world_logic_validator', _EMBEDDED_WORLD_LOGIC_VALIDATOR_SOURCE)
 
-VERSION = "0.30.6"
+VERSION = "0.30.7"
 
 # v0.8.72: właścicielskie komendy administracyjne. Nazwy kont podaje się
 # po stronie serwera, np. SOULBOUND_ADMIN_ACCOUNTS=Patryk. Nigdy nie są
@@ -10175,6 +10175,8 @@ LATEST_CHANGES = [
     "v0.9.29: Haldor dostał Złamane ostrza 0/6 i Pancerz do przetopu 0/6; questowe przedmioty wypadają tylko przy aktywnym zadaniu z właściwych mobów.",
     "v0.9.29: Orin dostał Toksyczne gruczoły 0/10; źródłem są skażone/jadowite moby oraz elity z affixem Toksyczny.",
     "v0.9.29: Borys ma Dzisiejszy połów 0/15 ryb rzecznych, Bran Drewno na naprawy 0/25, Liora Zestaw dla uzdrowiciela 0/20.",
+    "v0.30.7: widoczny postęp questów zbierackich odpowiada zaliczonym zasobom nadal dostępnym do oddania; zużycie zasobów obniża widoczny licznik bez utraty ochrony przed starym zapasem.",
+    "v0.30.7: komunikat gotowości questa nie powtarza się po każdym kolejnym zdarzeniu przy pełnym liczniku, a niezmieniona pogoda/warunki zbierania są ogłaszane tylko raz do chwili zmiany.",
     "v0.9.29: Toren ma Próbki rudy z trzema osobnymi licznikami 5 miedzi + 5 żelaza + 5 srebra; podpostęp jest trwały w SQLite i zeruje się przy nowym podejściu.",
     "v0.9.29: na Starym Cmentarzu stoi Strażnik Starego Cmentarza z godzinnym questem Nieumarli znów wstali 0/25, dającym EXP statystyk i Soul XP.",
     "v0.9.28: dodano trwałą listę znajomych, tell/reply oraz szybkie zaproszenia znajomych do party i Gildii.",
@@ -28558,6 +28560,10 @@ class Database:
             if not q or q["kind"] != "kill" or q["target"] != target:
                 continue
             new_progress = min(q["needed"], row["progress"] + 1)
+            # v0.30.7: gotowy quest nie ogłasza ponownie tego samego
+            # stanu po każdym kolejnym zabiciu tego samego celu.
+            if int(new_progress) == int(row["progress"]):
+                continue
             self.conn.execute(
                 "UPDATE quests SET progress=? WHERE account_id=? AND quest_id=?",
                 (new_progress, account_id, row["quest_id"]),
@@ -28717,6 +28723,11 @@ class Database:
                 needed,
                 old_progress + amount,
             )
+            # v0.30.7: po osiągnięciu celu nie zwracamy sztucznej
+            # "zmiany" 30->30. Dzięki temu komunikat o gotowości questa
+            # nie powtarza się przy każdym następnym zbiorze.
+            if new_progress == old_progress:
+                continue
             self.conn.execute(
                 "UPDATE quests SET progress=? "
                 "WHERE account_id=? AND quest_id=?",
@@ -28803,6 +28814,9 @@ class Database:
                 account_id, row["quest_id"], requirements
             ).get(matched_target, 0)
             updated = min(target_needed, current + amount)
+            # v0.30.7: brak ponownego komunikatu po osiągnięciu limitu.
+            if updated == current:
+                continue
             self.conn.execute(
                 "INSERT INTO quest_resource_progress_v0929(account_id,quest_id,target_id,progress) "
                 "VALUES(?,?,?,?) ON CONFLICT(account_id,quest_id,target_id) "
@@ -33824,7 +33838,7 @@ class World:
 
 # v0.24.4: jasne wyświetlanie wspólnego zapasu dla równoległych questów.
 HELP_TOPICS.setdefault("questy", []).append(
-    "Questy na ryby, zioła, drewno, rudy i inne zużywane zasoby pamiętają postęp zdobywania od 0/x, ale przy oddaniu zawsze sprawdzają aktualny fizyczny zapas. `quest` i `quest info` pokazują osobno Postęp oraz Do oddania/Brakuje, więc dwa aktywne questy nie mogą udawać gotowych po zużyciu wspólnych surowców."
+    "v0.30.7: Questy na ryby, zioła, drewno, rudy i inne zużywane zasoby pamiętają wewnętrznie zdarzenia zdobycia od 0/x, ale widoczny Postęp pokazuje tylko zaliczone sztuki nadal dostępne do oddania. Po zużyciu części zapasu licznik spada odpowiednio; stary zapas sprzed przyjęcia nadal nie daje darmowego postępu."
 )
 
 # v0.24.4: finalny HELP umiejętności po zbudowaniu całej siatki 1-400.
@@ -34187,6 +34201,10 @@ class Session:
         # ważnych progów HP, zamiast czytać każde zwykłe trafienie.
         self.combat_hp_warn_level = 0
         self.last_profession_action = 0.0
+        # v0.30.7: warunki zbierania (w tym pogoda/pora) są ogłaszane
+        # tylko przy zmianie. Auto-zbieranie nie spamuje NVDA tym samym
+        # komunikatem po każdym cyklu profesji.
+        self.last_gather_feature_signature = None
         self.auto_fishing = False
         self.auto_fishing_task = None
         self.auto_mining = False
@@ -48332,9 +48350,17 @@ class Session:
 
     async def announce_infinite_gather_feature(self, feature):
         if not feature.get("label"):
+            self.last_gather_feature_signature = None
             return
         qty = int(feature.get("quantity_bonus", 0) or 0)
         xp_mult = float(feature.get("xp_mult", 1.0) or 1.0)
+        # v0.30.7: pogoda/pora i inne stałe warunki sektora nie są
+        # powtarzane przy każdym połowie, wydobyciu, cięciu lub zbiorze.
+        # Gdy warunki faktycznie się zmienią, nowy komunikat padnie raz.
+        signature = (str(feature.get("label", "")), qty, round(xp_mult, 6))
+        if signature == self.last_gather_feature_signature:
+            return
+        self.last_gather_feature_signature = signature
         parts = []
         if qty:
             parts.append(f"+{qty} do bazowego zbioru")
@@ -51986,37 +52012,13 @@ class Session:
         if q["kind"] == "kill":
             return min(int(row["progress"]), int(q["needed"]))
 
-        if q["kind"] == "collect":
-            # v0.8.66: każdy collect startuje 0/x. Stary zapas nie liczy się
-            # do postępu; rośnie tylko zapisany licznik zdarzeń po przyjęciu.
-            return min(int(row["progress"]), int(q["needed"]))
-
-        if q["kind"] == "collect_category":
-            # v0.8.65: licznik zaczyna od 0 przy przyjęciu questa i rośnie
-            # tylko od zasobów zdobytych później. Stary zapas nadal może być
-            # użyty do fizycznego oddania, ale nie daje darmowego postępu.
-            return min(int(row["progress"]), int(q["needed"]))
-
-        if q["kind"] == "collect_distinct_category":
-            return min(
-                len(self.server.db.distinct_category_items_v023(self.account_id, quest_id)),
-                int(q["needed"]),
-            )
-
-        if q["kind"] == "collect_resource":
-            return min(
-                int(row["progress"]),
-                int(q["needed"]),
-            )
-
-        if q["kind"] == "collect_resource_set":
-            counts = self.server.db.resource_set_progress_v0929(
-                self.account_id, quest_id, q.get("resource_targets") or {}
-            )
-            return min(
-                int(q.get("needed", 0)),
-                sum(min(int((q.get("resource_targets") or {})[tid]), int(counts.get(tid, 0))) for tid in (q.get("resource_targets") or {})),
-            )
+        if q["kind"] in ("collect", "collect_category", "collect_distinct_category", "collect_resource", "collect_resource_set"):
+            # v0.30.7: wszystkie komunikaty/UI korzystają z tego samego
+            # realnego postępu do oddania. Historyczny licznik zdarzeń nadal
+            # istnieje w SQLite, ale sam nie udaje już zasobów, których gracz
+            # fizycznie nie ma.
+            progress, _ready = self.quest_progress_for_turnin(quest_id)
+            return int(progress)
 
         if q["kind"] == "craft_set":
             return self.craft_set_progress(row, q)
@@ -52185,9 +52187,12 @@ class Session:
             ):
                 continue
             needed = int(q.get("needed", 1))
-            new_progress = min(
-                needed, int(row["progress"]) + amount
-            )
+            old_progress = int(row["progress"])
+            new_progress = min(needed, old_progress + amount)
+            # v0.30.7: po pierwszym dojściu do celu dalsze zbiory nie
+            # powtarzają "quest gotowy do oddania".
+            if new_progress == old_progress:
+                continue
             self.server.db.set_quest_progress(
                 self.account_id, row["quest_id"], new_progress
             )
@@ -52289,30 +52294,39 @@ class Session:
         needed = int(q.get("needed", 0))
         kind = q.get("kind")
         if kind == "collect":
-            return (self.available_recipe_item(q["target"]), needed, ITEMS[q["target"]]["name"])
+            row = self.server.db.quest(self.account_id, quest_id)
+            gathered = min(int(row["progress"] if row else 0), needed)
+            have = min(gathered, int(self.available_recipe_item(q["target"])))
+            return (have, needed, ITEMS[q["target"]]["name"])
         if kind == "collect_category":
             category = self.quest_collect_category_info(q.get("target"))
             if not category:
                 return None
             ids, container, label = category
-            have = self.server.db.total_items_across_storage_and_inventory(
+            row = self.server.db.quest(self.account_id, quest_id)
+            gathered = min(int(row["progress"] if row else 0), needed)
+            physical = self.server.db.total_items_across_storage_and_inventory(
                 self.account_id, ids, container
             )
-            return (int(have), needed, label)
+            return (min(gathered, int(physical)), needed, label)
         if kind == "collect_resource":
-            return (int(self.resource_quest_have(q["target"])), needed, ITEMS[q["target"]]["name"])
+            row = self.server.db.quest(self.account_id, quest_id)
+            gathered = min(int(row["progress"] if row else 0), needed)
+            have = min(gathered, int(self.resource_quest_have(q["target"])))
+            return (have, needed, ITEMS[q["target"]]["name"])
         if kind == "collect_distinct_category":
             distinct_ids = self.server.db.distinct_category_items_v023(self.account_id, quest_id)[:needed]
             have = sum(1 for item_id in distinct_ids if self.resource_quest_have(item_id) >= 1)
-            return (have, needed, "różnych zaliczonych gatunków")
+            return (min(have, needed), needed, "różnych zaliczonych gatunków")
         if kind == "collect_resource_set":
             requirements = dict(q.get("resource_targets") or {})
+            counts = self.server.db.resource_set_progress_v0929(self.account_id, quest_id, requirements)
             stock_needed = sum(int(value) for value in requirements.values())
             have = sum(
-                min(int(value), int(self.resource_quest_have(item_id)))
+                min(int(value), int(counts.get(item_id, 0)), int(self.resource_quest_have(item_id)))
                 for item_id, value in requirements.items()
             )
-            return (have, stock_needed, "wymaganych próbek surowców")
+            return (min(have, stock_needed), stock_needed, "wymaganych próbek surowców")
         if kind == "craft_set":
             targets = tuple(q.get("targets") or ())
             have = sum(1 for item_id in targets if self.server.db.item_qty(self.account_id, item_id) > 0)
@@ -52331,47 +52345,44 @@ class Session:
             return progress, progress >= needed
 
         if q["kind"] == "collect":
-            # v0.8.66: także zwykłe collect wymaga postępu zdobytego po
-            # przyjęciu questa. Do oddania nadal trzeba fizycznie posiadać cel.
-            progress = min(int(row["progress"]), needed)
+            # v0.30.7: widoczny postęp questa dostawczego oznacza realną
+            # liczbę zaliczonych sztuk, które nadal są dostępne do oddania.
+            # Historyczny licznik zdarzeń nadal chroni przed starym zapasem.
+            gathered = min(int(row["progress"]), needed)
             have = self.available_recipe_item(q["target"])
-            return progress, progress >= needed and have >= needed
+            progress = min(gathered, int(have), needed)
+            return progress, progress >= needed
 
         if q["kind"] == "collect_category":
             category = self.quest_collect_category_info(q["target"])
             if not category:
                 return 0, False
             ids, container, _label = category
-            progress = min(int(row["progress"]), needed)
+            gathered = min(int(row["progress"]), needed)
             have = self.server.db.total_items_across_storage_and_inventory(
                 self.account_id, ids, container
             )
-            return progress, progress >= needed and have >= needed
+            progress = min(gathered, int(have), needed)
+            return progress, progress >= needed
 
         if q["kind"] == "collect_distinct_category":
             distinct_ids = self.server.db.distinct_category_items_v023(
                 self.account_id, quest_id
             )[:needed]
-            progress = min(len(distinct_ids), needed)
-            ready = progress >= needed
-            if ready:
-                for item_id in distinct_ids:
-                    if self.resource_quest_have(item_id) < 1:
-                        ready = False
-                        break
-            return progress, ready
+            # Liczymy tylko zaliczone gatunki, które nadal są fizycznie
+            # dostępne do oddania. Sam historyczny wpis nie udaje postępu.
+            progress = sum(
+                1 for item_id in distinct_ids
+                if self.resource_quest_have(item_id) >= 1
+            )
+            progress = min(progress, needed)
+            return progress, progress >= needed
 
         if q["kind"] == "collect_resource":
-            gathered = min(
-                int(row["progress"]), needed
-            )
-            have = self.resource_quest_have(
-                q["target"]
-            )
-            return (
-                gathered,
-                gathered >= needed and have >= needed,
-            )
+            gathered = min(int(row["progress"]), needed)
+            have = self.resource_quest_have(q["target"])
+            progress = min(gathered, int(have), needed)
+            return progress, progress >= needed
 
         if q["kind"] == "collect_resource_set":
             requirements = dict(q.get("resource_targets") or {})
@@ -52379,16 +52390,15 @@ class Session:
                 self.account_id, quest_id, requirements
             )
             progress = sum(
-                min(int(needed_each), int(counts.get(target_id, 0)))
+                min(
+                    int(needed_each),
+                    int(counts.get(target_id, 0)),
+                    int(self.resource_quest_have(target_id)),
+                )
                 for target_id, needed_each in requirements.items()
             )
-            ready = progress >= needed
-            if ready:
-                for target_id, needed_each in requirements.items():
-                    if self.resource_quest_have(target_id) < int(needed_each):
-                        ready = False
-                        break
-            return progress, ready
+            progress = min(progress, needed)
+            return progress, progress >= needed
 
         if q["kind"] == "craft_set":
             progress = self.craft_set_progress(row, q)

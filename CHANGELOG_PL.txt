@@ -1,3 +1,11 @@
+Soulbound v0.30.7 — Quest & Gathering QOL
+- Naprawiono Próby Rybaka, Górnika, Drwala i Zielarki oraz inne questy zbierackie korzystające z tego samego rdzenia: widoczny Postęp oznacza teraz liczbę zaliczonych sztuk, które nadal są dostępne do oddania.
+- Przykład: po zaliczeniu 30/30 i zużyciu/oddaniu 20 sztuk dziennik pokazuje 10/30 zamiast historycznego 30/30. Wewnętrzny licznik zdobycia nadal pilnuje, aby zapas sprzed przyjęcia questa nie dawał darmowego postępu.
+- Komunikat GOTOWE DO ODDANIA nie jest spamowany po osiągnięciu celu. Dalsze zbieranie lub zabijanie tego samego celu przy już pełnym liczniku nie ogłasza ponownie gotowości.
+- Pogoda, pora i pozostałe niezmienione warunki zbierania nie są powtarzane po każdym cyklu profesji. Komunikat pojawia się ponownie dopiero po rzeczywistej zmianie warunków/bonusu.
+- Zmiany obejmują łowienie, górnictwo, drwalstwo i zielarstwo. Brak wipe; zapis SQLite pozostaje kompatybilny.
+- Runtime nadal jest jednoplikowy: do uruchomienia wystarcza server.py.
+
 Soulbound v0.30.6 — Direct Guide + Training Plaza + HP Hotfix
 - `hp` nie wysyła już osobnego nagłówka `HP`, więc NVDA nie czyta „HP HP”.
 - `prowadz <lokacja>` automatycznie przechodzi całą najkrótszą trasę aż do wskazanej lokalizacji. Nie trzeba wykonywać ostatniego kroku ręcznie.
