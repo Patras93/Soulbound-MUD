@@ -1,3 +1,9 @@
+SOULBOUND v0.30.3 — RAILWAY PORT / TCP HOTFIX
+- Naprawiono priorytet portu Railway: TCP application port, potem PORT, dopiero potem legacy SOULBOUND_PORT.
+- Usunięto wymuszanie SOULBOUND_PORT=4000 z Dockerfile.
+- Dodano walidację portu i diagnostykę źródła portu w logu startowym.
+- Bez zmian balansu, save'ów i Generator Core.
+
 SOULBOUND v0.30.2 — RAILWAY STARTUP HOTFIX
 =================================================
 - Naprawiono crash kontenera Railway przy starcie: Dockerfile v0.30.1 kopiował tylko server.py, mimo że server.py importuje generator_core.py, world_topology_generator.py, dynamic_world_v029.py i world_logic_validator.py.

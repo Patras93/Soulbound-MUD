@@ -34,7 +34,7 @@ import world_topology_generator as world_topology_generator_v0281
 import dynamic_world_v029 as dynamic_world_v029
 import world_logic_validator as world_logic_validator_v030
 
-VERSION = "0.30.2"
+VERSION = "0.30.3"
 
 # v0.8.72: właścicielskie komendy administracyjne. Nazwy kont podaje się
 # po stronie serwera, np. SOULBOUND_ADMIN_ACCOUNTS=Patryk. Nigdy nie są
@@ -51,14 +51,27 @@ _RAILWAY_TCP_PORT = os.getenv("RAILWAY_TCP_APPLICATION_PORT", "").strip()
 _SOULBOUND_PORT = os.getenv("SOULBOUND_PORT", "").strip()
 _GENERIC_PORT = os.getenv("PORT", "").strip()
 
+def _valid_port(raw, fallback=None):
+    try:
+        value = int(str(raw).strip())
+    except (TypeError, ValueError):
+        return fallback
+    return value if 1 <= value <= 65535 else fallback
+
+# Railway raw-TCP proxy has the strongest signal when configured. Otherwise
+# Railway's injected PORT must win over any legacy Soulbound override.
 if _RAILWAY_TCP_PORT:
-    PORT = int(_RAILWAY_TCP_PORT)
-elif _SOULBOUND_PORT:
-    PORT = int(_SOULBOUND_PORT)
+    PORT = _valid_port(_RAILWAY_TCP_PORT, 4000)
+    PORT_SOURCE = "RAILWAY_TCP_APPLICATION_PORT"
 elif _GENERIC_PORT:
-    PORT = int(_GENERIC_PORT)
+    PORT = _valid_port(_GENERIC_PORT, 4000)
+    PORT_SOURCE = "PORT"
+elif _SOULBOUND_PORT:
+    PORT = _valid_port(_SOULBOUND_PORT, 4000)
+    PORT_SOURCE = "SOULBOUND_PORT"
 else:
     PORT = 4000
+    PORT_SOURCE = "default"
 
 _VOLUME_PATH = os.getenv("RAILWAY_VOLUME_MOUNT_PATH", "").strip()
 _DEFAULT_DB = os.path.join(_VOLUME_PATH, "soulbound.db") if _VOLUME_PATH else "soulbound.db"
@@ -59282,7 +59295,7 @@ class MudServer:
         addresses = ", ".join(str(sock.getsockname()) for sock in server.sockets or [])
         print(f"Soulbound v{VERSION} World Core nasłuchuje: {addresses}", flush=True)
         print(f"HOST={HOST}", flush=True)
-        print(f"PORT={PORT}", flush=True)
+        print(f"PORT={PORT} (source={PORT_SOURCE})", flush=True)
         print(
             "Railway TCP application port="
             + (os.getenv("RAILWAY_TCP_APPLICATION_PORT") or "brak"),
