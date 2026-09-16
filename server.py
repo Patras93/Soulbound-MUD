@@ -2,7 +2,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Soulbound v0.30.6 HP Speech Hotfix + Single-File Railway Edition + Semantic Total Procedural Core
+Soulbound v0.30.6 Direct Guide + Training Plaza + HP Hotfix + Single-File Railway Edition
 Wieloosobowy tekstowy MUD TCP/Telnet dla MUSHclienta/Mudleta.
 
 Najważniejsze zasady projektu:
@@ -4575,7 +4575,7 @@ ROOMS = {
         "exits": {"west": "guard_cells"},
     },
     "training": {
-        "zone": "Miasto Dusz", "name": "Dziedziniec Treningowy",
+        "zone": "Miasto Dusz", "name": "Plac Treningowy",
         "desc": "Plac do ćwiczeń. Drewniane manekiny stoją obok północnej bramy.",
         "exits": {"south": "north_street", "north": "north_gate"},
     },
@@ -5201,6 +5201,8 @@ GUIDE_DESTINATION_ALIASES = {
     'piwnica': 'temple_basement',
     'piwnica swiatyni': 'temple_basement',
     'dziedziniec': 'training',
+    'plac treningowy': 'training',
+    'manekin': 'training',
     'manekiny': 'training',
     'trening': 'training',
     'oltar trolli': 'troll_altar',
@@ -12996,7 +12998,7 @@ MOB_TEMPLATES = {
 }
 
 # v0.9.10: fauna otwartego świata. Miasta, Gildia Dusz i Wioska Górska
-# pozostają bez wrogich spawnów; Dziedziniec Treningowy zachowuje tylko manekina.
+# pozostają bez wrogich spawnów; Plac Treningowy zachowuje tylko manekina.
 MOB_TEMPLATES.update({
     "meadow_field_wolf": {
         "name": "Wilk Łąkowy", "max_hp": 48, "damage": 5, "damage_type": "physical",
@@ -22779,7 +22781,7 @@ def build_v0102_city_and_outskirts():
         },
         "scholar_lane": {
             "zone":"Miasto Dusz", "name":"Ulica Uczonych",
-            "desc":"Spokojna uliczka łączy dziedziniec treningowy z domami skrybów, nauczycieli i kartografów.",
+            "desc":"Spokojna uliczka łączy Plac Treningowy z domami skrybów, nauczycieli i kartografów.",
             "exits":{},
         },
         "cartographer_house": {
@@ -42278,7 +42280,7 @@ class Session:
         await self.send(f"Wołacz: {self.character.name_voc}.")
 
     async def show_hp(self):
-        """Krótki stan zasobów bez powielania etykiety HP w NVDA."""
+        """Krótki stan zasobów bez podwójnego nagłówka HP pod NVDA."""
         await self.send(f"HP: {self.current_hp} z {self.max_hp()}.")
         await self.send(f"Mana: {self.current_mana} z {self.max_mana()}.")
 
@@ -46335,13 +46337,7 @@ class Session:
             await self.send("Strefy po drodze: " + " -> ".join(zones) + ".")
         estimate = self.estimated_guide_seconds(path)
         await self.send(f"Szacowany czas automatycznego prowadzenia: {estimate:.1f} sekundy.")
-        if target_is_npc:
-            await self.send("Do NPC prowadzenie może dojść dokładnie do jego lokacji.")
-        else:
-            await self.send(
-                f"Prowadzenie do zwykłej lokacji zatrzyma się jeden krok wcześniej. "
-                f"Końcowy kierunek do celu: {path[-1][0]}."
-            )
+        await self.send("Prowadzenie dochodzi dokładnie do wskazanej lokalizacji; nie wymaga ręcznego ostatniego kroku.")
         if full:
             await self.send("PEŁNA TRASA:")
             for index, (step_direction, step_room) in enumerate(path, 1):
@@ -46888,7 +46884,10 @@ class Session:
             and target == mine_floor_id(MINE_MIN_FLOOR)
             and mine_floor_number(target) == MINE_MIN_FLOOR
         )
-        reach_exact_target = target_is_npc or direct_mine_target or target_is_treasure
+        # v0.30.6: prowadzenie zawsze dochodzi dokładnie do rozpoznanej lokalizacji.
+        # Nadal respektuje wszystkie blokady wejścia i nie omija eksploracyjnych
+        # ograniczeń dla pięter, bo te cele są wcześniej redukowane do bezpiecznych wejść.
+        reach_exact_target = True
 
         if target == self.character.room_id:
             if target_is_npc:
@@ -46912,31 +46911,13 @@ class Session:
         )
         self.guide_target_is_npc = target_is_npc
 
-        # Accessibility rule: zwykłe lokacje zachowują historyczny ostatni
-        # ręczny krok. NPC, v0.23 Kopalnia Głębinowa i v0.24 tropy skarbów
-        # są osiągane dokładnie.
-        if reach_exact_target:
-            path = full_path
-            stop_room = target
-            final_direction = None
-            self.guide_final_direction = None
-        else:
-            final_direction = full_path[-1][0]
-            self.guide_final_direction = final_direction
-            path = full_path[:-1]
-            stop_room = (
-                self.character.room_id
-                if not path
-                else path[-1][1]
-            )
-
-            if not path:
-                await self.send(
-                    f"Jesteś już przed lokalizacją: {ROOMS[target]['name']}. "
-                    f"Ostatni krok wykonaj sam: {final_direction}."
-                )
-                await self.look()
-                return
+        # v0.30.6: pełna auto-nawigacja do celu. Nie zostawiamy ostatniego
+        # ręcznego kroku; przejścia są wykonywane normalnie jedno po drugim,
+        # więc walka, wymagania wejścia i inne blokady nadal mogą zatrzymać trasę.
+        path = full_path
+        stop_room = target
+        final_direction = None
+        self.guide_final_direction = None
 
         if self.auto_fishing or self.auto_fishing_task:
             await self.stop_auto_fishing(announce=False)
@@ -46971,9 +46952,9 @@ class Session:
             )
         else:
             await self.send(
-                f"Prowadzę przed lokalizację: {ROOMS[target]['name']}. "
+                f"Prowadzę bezpośrednio do: {ROOMS[target]['name']}. "
                 f"Automatyczne przejścia: {len(path)}. "
-                f"Ostatni krok wykonasz sam: {final_direction}."
+                "Nie musisz wykonywać żadnego kroku ręcznie."
             )
 
         try:
@@ -47100,10 +47081,9 @@ class Session:
                     "Użyj sekret, aby zbadać wskazane miejsce."
                 )
                 await self.look()
-            elif (not reach_exact_target) and self.character.room_id == stop_room:
+            elif (not target_is_npc) and (not direct_mine_target) and (not target_is_treasure) and self.character.room_id == target:
                 await self.send(
-                    f"Jesteś przed lokalizacją: {ROOMS[target]['name']}. "
-                    f"Ostatni krok wykonaj sam: {final_direction}."
+                    f"Dotarłeś bezpośrednio do: {ROOMS[target]['name']}."
                 )
                 await self.look()
         finally:

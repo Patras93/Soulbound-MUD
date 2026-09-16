@@ -1,7 +1,9 @@
-v0.30.6 — HP Speech Hotfix
-- Naprawiono komendę `hp`: NVDA nie dostaje już osobnego nagłówka „HP” przed właściwą linią stanu.
-- `hp` wysyła teraz dokładnie jeden komunikat HP i jeden komunikat Mana.
-- Brak zmian balansu, save'ów, generatorów i świata.
+Soulbound v0.30.6 — Direct Guide + Training Plaza + HP Hotfix
+- `hp` nie wysyła już osobnego nagłówka `HP`, więc NVDA nie czyta „HP HP”.
+- `prowadz <lokacja>` automatycznie przechodzi całą najkrótszą trasę aż do wskazanej lokalizacji. Nie trzeba wykonywać ostatniego kroku ręcznie.
+- Auto-nawigacja nadal respektuje walkę, wymagania wejścia, bossów, ściany kopalni i ograniczenia eksploracji lochów.
+- Miejski `training` ma oficjalną nazwę `Plac Treningowy`; aliasy `plac treningowy`, `trening`, `manekin` i `manekiny` prowadzą do niego.
+- Runtime nadal jest jednoplikowy: do uruchomienia wystarcza server.py.
 
 v0.30.5 — Single-File Railway Edition
 - Cały runtime został scalony do server.py.
