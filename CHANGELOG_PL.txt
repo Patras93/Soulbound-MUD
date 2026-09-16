@@ -1,3 +1,13 @@
+Soulbound v0.30.10 — Quest Unlock + WIMPY + Hourly x2 EXP + Help Audit
+- Usunięto globalną blokadę Levelu postaci z questów. Generator nie tworzy już wymagania Character Level dla questów; pozostałe wymagania mechaniczne (np. poprzedni quest, Soul Level/Tier, profesja lub narzędzie) pozostają aktywne.
+- Dodano WIMPY: `wimpy`, `wimpy status`, `wimpy set <1-99>`, `wimpy <1-99>`, `wimpy off`. Po przeżytym trafieniu postać automatycznie próbuje uciec, gdy HP spadnie do ustawionego procentu lub niżej.
+- Dodano cykliczny event x2 EXP: pierwsze 15 minut każdej pełnej godziny. Obejmuje Character XP, Class XP, Soul XP, Skill XP, stat XP, profession XP i tool XP. Start i koniec eventu są ogłaszane graczom; `eventxp` / `xpevent` pokazuje status.
+- Dodano `/` + Enter: natychmiastowy powrót do Świątyni Odrodzenia. Teleport zatrzymuje auto-prace i prowadzenie; podczas walki najpierw używa normalnej mechaniki ucieczki.
+- Dodano `walk krypta dół` / `prowadz krypta dół`. Z dowolnej komnaty zwykłej Krypty autopilot prowadzi przed zejście na następne piętro. Samo zejście wykonuje gracz ręcznie.
+- Wykonano pełny audyt systemu pomocy. `help` otwiera menu kategorii, dodano aktualne tematy WIMPY, eventu x2 EXP i nawigacji oraz usunięto sprzeczne informacje z aktywnej pomocy.
+- Generator Core, World Topology i World Logic Validator: 0 błędów. Testy v0.30.10: ALL PASS. Start single-file na porcie Railway/PORT: PASS.
+- Brak wipe. Nowa tabela `wimpy_settings` jest tworzona automatycznie i nie narusza istniejących zapisów.
+
 Soulbound v0.30.8 — Accessibility Navigation & Static Character Stats
 - Dodano komendy `level` i `lvl`: pokazują Level postaci 1-400, aktualny EXP i dokładnie ile EXP brakuje do następnego poziomu.
 - Dodano komendę `xp`: pokazuje aktualny EXP postaci oraz dokładną brakującą wartość do następnego Levelu.
