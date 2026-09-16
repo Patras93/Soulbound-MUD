@@ -1,3 +1,99 @@
+v0.30.1 — ADMIN CHARACTER MENU
+- MENU POSTACI pokazuje opcję `6. Administrator` wyłącznie kontom owner/admin z SOULBOUND_ADMIN_ACCOUNTS. Zwykły gracz nie widzi tej pozycji i wpisanie 6 nie otwiera panelu.
+- Panel działa bez aktywnej postaci, również przy 0/12 postaci.
+- Dodano: listę prawdziwych kont (bez technicznych profili slotów), podgląd postaci wskazanego konta, wipe własnego konta, wipe wskazanego konta, usunięcie jednej wskazanej postaci i serwerowy wipe wszystkich postaci.
+- Operacje destrukcyjne wymagają dokładnego potwierdzenia tekstem i zachowują loginy/hasła.
+- Aktywne sesje celu są rozłączane przed kasowaniem, aby autosave nie odtworzył usuniętej postaci.
+- Pełny Generator Core, Semantic World Logic, quest gating, crafting, ekonomia i nawigacja v0.30.0 pozostają bez zmian.
+
+v0.30.0 — SEMANTIC TOTAL PROCEDURAL CORE
+==============================================
+- Generator świata nie jest już przypadkową siecią: role semantyczne lokacji wpływają na dobór sąsiedztw.
+- Zwykła topologia generowana używa wyłącznie kierunków poziomych; `up/down` pozostają dla prawdziwych schodów, piwnic, wież, jaskiń, krypt i portali.
+- Dodano ukośne kierunki NE/SE/SW/NW oraz polskie skróty PNW/PDW/PDZ/PNZ, żeby duże strefy mogły mieć pętle bez sztucznych pionowych ulic.
+- Statyczne przejścia między strefami są normalizowane do dokładnych par przeciwnych kierunków; usunięto stare przypadki typu wejście south / powrót west.
+- Dodano World Logic Validator: blokuje nielogiczne połączenia miasta bezpośrednio z highland/endgame, wymaga semantycznych wyjść z huba i sprawdza osiągalność oraz powrót.
+- 1117/1117 statycznych lokacji ma drogę z Placu Dusz i z powrotem; World Logic Validator: 0 błędów, 0 ostrzeżeń.
+- Ten sam seed daje identyczny fingerprint topologii w niezależnych uruchomieniach.
+- Generator Core, Dynamic World Events/Nemesis, quest gating, sklepy, crafting, nielimitowane statystyki i migracje save pozostają bez regresji.
+- Nowa komenda `generator logika`.
+
+v0.29.0 — DYNAMIC WORLD EVENTS + BOSS/NEMESIS GENERATOR
+========================================================
+- Dodano pięć godzinnych dynamicznych eventów generowanych deterministycznie z aktualnego seedu, lokacji, spawnów i etapów Generator Core.
+- Eventy generują Najazd Elite, polowanie na Rare, czempiona/mini-bossa, proceduralnego World Bossa oraz wędrujące elity. Wszystkie pozostają pasywne do chwili ataku.
+- Proceduralni bossowie dostają generowaną nazwę, mechanikę/fazy i rangę; HP, damage, Character/Class/Soul/Stat XP oraz waluta nadal pochodzą wyłącznie z Generator Core.
+- Dodano trwały system Nemesis per konto. Przeciwnik, który pokona gracza, zostaje zapisany z miejscem porażki. Kolejne zwycięstwa tego samego bazowego moba nad graczem podnoszą rangę Nemesis.
+- Nemesis ma generowaną nazwę, etap i rangę Rare/Mini/Boss/World Boss. Po pokonaniu rekord przechodzi w stan nieaktywny i zapisuje liczbę pokonanych Nemesis.
+- Komendy `dynamiceventy` oraz `nemesis`; zwykłe `wydarzenia` pokazują również nową warstwę v0.29.
+- Baza v0.28.1 migruje automatycznie przez CREATE TABLE IF NOT EXISTS `nemesis_v029`; konta/postacie nie są resetowane.
+- Pełny audyt v0.28.1, quest gating i regresja Generator Core nadal przechodzą ALL PASS.
+
+v0.28.1 — UNIVERSAL WORLD TOPOLOGY GENERATOR
+================================================
+- Domknięto zasadę „cała gra generowana” dla map: Universal World Topology Generator przebudowuje deterministycznie topologię wszystkich dawniej stałych stref, w tym Miasta Dusz, Gildii i starych regionów.
+- 957 dawniej statycznych lokacji w 51 strefach ma topologię generowaną z seedu; pozostałe 160 pre-generowanych lokacji należy do Procedural World Regions 2.0. Dynamiczne Krypty, rubieże, kopalnia i nieskończone instancje zachowują własne generatory runtime.
+- Miasto Dusz nie ma już ręcznie utrzymywanej siatki ulic: 46 lokacji i 52 wewnętrzne połączenia są składane przez generator z pętlami i rozgałęzieniami. Plac Dusz pozostaje stabilnym punktem startowym.
+- Zachowano semantyczne ID lokacji, NPC, quest giverów, sklepów, spawnów, bram między strefami i pionowych kotwic, dzięki czemu save'y pozostają kompatybilne mimo przebudowanej mapy.
+- Nawigacja ma twarde testy dostępności: 1117/1117 statycznych lokacji ma trasę z Placu Dusz i z powrotem; wszystkie 90 NPC-ów są osiągalne przez ten sam shortest_path używany przez prowadzenie.
+- Testowane są kierunki n/s/e/w/u/d, pełne nazwy oraz polskie aliasy; `prowadz`, `guide`, `go`, `idz`, `nawiguj` i ich warianty nadal trafiają do prowadzenia.
+- `generator topologia` pokazuje audyt świata, a `generator miasto` podaje parametry wygenerowanego Miasta Dusz. HELP `generator swiata` / `topologia` opisuje nowy system.
+- Finalny Generator Core nadal obejmuje 14 215 mobów, 26 295 przedmiotów, 307 questów, 1476 skilli/spelli, 289 receptur i 1117 lokacji z 0 błędów.
+- `test_v0281_full_audit.py`, `test_v0281_regression.py` i test quest gating przechodzą ALL PASS.
+
+v0.28.0 — PROCEDURAL WORLD REGIONS + FULL GAME AUDIT
+=====================================================
+- Dodano Procedural World Generator 2.0: siedem deterministycznie generowanych regionów rozłożonych na etapach Generator Core 1–400.
+- Każdy region generuje biom, połączony i zapętlony układ 16–25 głównych sektorów, dwa sekrety, miejsca realnego zbieractwa, cztery rodziny zwykłych mobów, Elite, Rare, bossa, relikt oraz trzyczęściowy chain questów.
+- Regiony są dostępne z Pracowni Kartografa przez korytarz Bram Ekspedycji. `generator regiony` pokazuje listę i etapy, a `generator region <nr>` szczegóły biomu, zasobów, Elite/Rare/bossa i questów.
+- Nowe regiony nie mają ręcznie balansowanych HP/damage/EXP/cen/nagród. Etap regionu i położenie sektora trafiają do Generator Core, który wylicza wszystkie aktywne liczby.
+- Przed dodaniem regionów wykonano pełny audyt v0.27.1. Naprawiono prawdziwy błąd etapów questów: startery/profesyjne chainy nie są już wypychane do endgame przez reward/hash fallback; level wynika z celu, NPC/regionu, profesji i zależności chaina.
+- Naprawiono generator craftingu: cztery gałęzie zachowują realną ścieżkę 1–400, podstawowe receptury zaczynają się wcześnie, a składnik nie odblokowuje się później niż receptura, która go wymaga.
+- Naprawiono stare proceduralne rubieże: poziom sektora rośnie monotonicznie od bramy wraz z odległością, bez losowego hash-skoku. Mob w proceduralnym sektorze dostaje runtime-klon template'u na poziomie sektora, więc daleki sektor nie używa już statystyk wczesnego moba.
+- Audyt świata: 1117/1117 statycznych lokacji osiągalnych po dodaniu regionów; wszystkie dynamiczne wyjścia materializują się; wszystkie spawny wskazują istniejące moby; NPC, sklepy, receptury, questy, dropy i Bestiariusz nie mają martwych referencji.
+- Finalny Generator Core: 14 215 mobów, 26 295 przedmiotów, 307 questów, 1476 skilli/spelli, 289 receptur, 1117 statycznych lokacji; Balance Validator: 0 błędów.
+- `test_v0280_full_audit.py`, `test_v0280_regression.py` i test quest gating przechodzą z wynikiem ALL PASS, łącznie z migracją starego save'a i nielimitowanymi statystykami.
+
+v0.27.1 — UNLIMITED GENERATED STATS
+
+- Usunięto faktyczny twardy limit 400 z Siły, Zręczności, Kondycji, Inteligencji, Siły Woli i Charyzmy.
+- Generator Core ekstrapoluje próg EXP każdej statystyki bez końcowego levelu; pozostałe główne osie nadal mają zakres 1–400.
+- Powyżej 400 nagroda Stat XP jest automatycznie skalowana względem wygenerowanego progu. Źródło z etapu 400 utrzymuje podobne tempo rozwoju, natomiast słabsze źródła nadal pozostają proporcjonalnie gorsze.
+- Statystyki powyżej 400 zachowują realny wpływ na HP, Manę, obrażenia, szybkość, obronę magiczną, krytyk i unik zgodnie z istniejącymi generatorami efektów.
+- Poprawiono HELP i komunikaty diagnostyczne, aby nie sugerowały capu 400 dla statystyk.
+
+v0.27.0 — FULL GENERATOR CORE 1–400
+=====================================
+- Generator Core v0.27.0 jest jedynym aktywnym źródłem balansu liczbowego gry. Historyczne liczby pozostają wyłącznie jako dane zgodności/identyfikacji tam, gdzie stary kod ich potrzebuje; nie sterują wynikiem balansu.
+- Dodano Level postaci 1–400 z własnym Character XP. Stare save’y v0.26.x są migrowane bez utraty postaci; początkowy Level jest wyprowadzany z najwyższej istniejącej osi progresji.
+- Biegłość klas, Soul Level, Skill Level, statystyki, profesje i narzędzia działają w jednej spójnej przestrzeni progresji 1–400. Soul Tier pozostaje 1–40.
+- Wszystkie 14 166 template’ów mobów przechodzą przez generator: level, HP, obrażenia, Character/Class/Soul/Stat XP, waluta i drop-rate są wyliczane z etapu/rangi zamiast ręcznych wartości. Runtime i nieskończone lochy używają tej samej matematyki.
+- Wszystkie 1476 skilli/spelli mają generowane progi odblokowania 1–400 oraz aktywne wartości efektów: damage, heal, AoE, drain, execute, guard, boost, koszt Many i cooldown zależnie od archetypu.
+- Wszystkie 289 receptur w czterech gałęziach craftingu są rozłożone od 1 do 400. Generator pilnuje, aby składnik nie odblokowywał się później niż receptura, która go wymaga.
+- Ryby, rudy/minerały, drewno i zioła mają generowane progi 1–400 i kumulacyjne pule: wcześniej odblokowany surowiec nie znika w późnej progresji.
+- Ceny, skup, nagrody, koszty systemowe, World Projects, Legendary Contracts i gildia korzystają z centralnych krzywych Generator Core. Historyczny adapter v0.19 ignoruje stare wartości Y i kieruje aktywne wyliczenia do v0.27.0.
+- Wszystkie 286 questów dostają generator_level, wymagany Character Level i generowane nagrody. Gracz poniżej wymaganego Levelu nie może przyjąć questa.
+- `quest list` pokazuje blokadę poziomu; `quest info` pokazuje wymagania; ukończony wpis w dzienniku ma stan `ZAKTUALIZOWANO — GOTOWE DO ODDANIA`.
+- Stary Cmentarz, Szkielet w Stalowym Kirysie, Stalowa Płyta i quest Haldora są powiązane przez generator `lokacja → mob → drop → quest`. Aktualnie wspólny etap wynosi 19, bez ręcznego wyjątku dla Haldora.
+- Sklepy mają numerowaną listę. `shop info 1` / `sklep info 1` pokazuje pełne informacje przed zakupem, cenę po rabacie, wymagania i porównanie z założonym EQ. `kup 1` oraz `kup 1 <ilość>` kupuje po numerze.
+- HELP i atlasy używają finalnej warstwy prawdy Generator Core; usunięto aktywne opisy dawnych wzorów 1–200 i ręcznych wartości.
+- Balance Validator obejmuje pełne rejestry: 14 166 mobów, 26 288 przedmiotów, 286 questów, 1476 skilli/spelli, 289 receptur i 950 lokacji. Wynik wydania: 0 błędów.
+- Nowy `test_v0270.py` sprawdza krzywe 1–400, statystyki wszystkich mobów, skille, crafting, zasoby, nieskończone lochy, questy, sklep, gildię, World Projects, Legendary Contracts, stary adapter krzywych i migrację save’ów.
+
+v0.26.1 — Soul Trial Balance Pass
+=================================
+- Przebalansowano wszystkie 39 Prób Broni Duszy T2-T40 z naciskiem na łagodny start nowej postaci.
+- Usunięto absurdalny pierwszy skok: Tier 2 nie wymaga już Kościanego Egzekutora z około 10 250 HP.
+- Nowe pasma: T2-4 Początkująca, T5-7 Poszukiwacza, T8-12 Weterana, T13-20 Mistrzowska, T21-30 Endgame, T31-40 Ekstremalna.
+- T2-T7 używają zwykłych przeciwników i rosną płynnie: 360, 700, 1100, 1400, 1840 i 2080 łącznego HP celów.
+- T8-T12 to bossowie regionalni o stopniowanej puli około 3850-10000 HP. Ciężkie bossy Krypty zaczynają się dopiero od T13.
+- T13-T40 zachowują dotychczasowy endgame i nie zostały osłabione.
+- `dusza info` oraz `quest info` pokazują pasmo trudności Próby; dodano HELP `próby duszy` / `proby duszy` / `soul trials`.
+- Naprawiono stare teksty T19/T20 mówiące o „ostatniej Próbie”; progresja trwa do Tieru 40 / Soul 400.
+- Historyczne quest_id T4/T7/T13/T19 zachowano dla kompatybilności save'ów.
+- Poza celami Prób nie zmieniono ras, klas, mobów, przedmiotów, skilli/spelli, progów Soul, mocy Tierów, Muzeum ani pozostałych questów.
+- `test_v0261.py` oraz regresje Muzeum, Kopalni, World Projects, Ascension/World Tiers, megalochów i Endless przechodzą.
+
 v0.26.0 — Muzeum 2.0, Tytuły i Prestiż
 ==========================================
 - Rozbudowano istniejący Collection Codex do nowego Muzeum 2.0 bez tworzenia równoległego systemu zapisu.
