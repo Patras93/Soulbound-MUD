@@ -1,3 +1,9 @@
+v0.30.5 — Single-File Railway Edition
+- Cały runtime został scalony do server.py.
+- Generator Core, generator topologii, Dynamic World/Nemesis i World Logic Validator są osadzone w server.py.
+- Dockerfile kopiuje tylko server.py; dokumentacja i dodatkowe moduły nie są wymagane do uruchomienia.
+- Brak zmian balansu, save'ów, questów i świata względem v0.30.4.
+
 SOULBOUND v0.30.4 — RAILWAY DOCKER CONTEXT HOTFIX
 ==================================================
 
