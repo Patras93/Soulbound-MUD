@@ -1,3 +1,15 @@
+Soulbound v0.30.8 — Accessibility Navigation & Static Character Stats
+- Dodano komendy `level` i `lvl`: pokazują Level postaci 1-400, aktualny EXP i dokładnie ile EXP brakuje do następnego poziomu.
+- Dodano komendę `xp`: pokazuje aktualny EXP postaci oraz dokładną brakującą wartość do następnego Levelu.
+- Dodano skrót `sp` jako odpowiednik `spojrz`; `l dusza`, `sp dusza` i `spojrz dusza` otwierają bezpośrednio status Broni Duszy.
+- `walk profesje` / `prowadz profesje` pokazuje teraz osiem profesji wraz z konkretnymi mistrzami, sklepami narzędzi, warsztatami i przydatnymi miejscami.
+- Dodano bezpośrednie cele `walk profesje <profesja>`, np. `walk profesje alchemia`, `walk profesje gornictwo`.
+- Dodano `walk eq` / `prowadz eq`: lista sześciu sklepów klasowego EQ wraz z obsługiwanymi klasami i kwatermistrzami. Działa także `walk eq <klasa>` oraz `walk sklep eq <klasa>`.
+- Generator Core nie generuje już bazowych statystyk postaci z rasy i klasy. RACES i CLASS_STARTING_STAT_BONUSES pozostają ręcznie zbalansowanymi profilami gry; generator nie losuje ani nie nadpisuje Siły, Zręczności, Kondycji, Inteligencji, Siły Woli ani Charyzmy postaci.
+- Istniejące postacie nie są automatycznie przepisywane ani resetowane; brak wipe.
+- Zachowano poprawki v0.30.7: realny licznik questów zbierackich, jednorazowe GOTOWE DO ODDANIA oraz brak spamowania niezmienionej pogody.
+- Generator Core, World Topology i World Logic Validator: 0 błędów. Single-file Railway startup: PASS.
+
 Soulbound v0.30.7 — Quest & Gathering QOL
 - Naprawiono Próby Rybaka, Górnika, Drwala i Zielarki oraz inne questy zbierackie korzystające z tego samego rdzenia: widoczny Postęp oznacza teraz liczbę zaliczonych sztuk, które nadal są dostępne do oddania.
 - Przykład: po zaliczeniu 30/30 i zużyciu/oddaniu 20 sztuk dziennik pokazuje 10/30 zamiast historycznego 30/30. Wewnętrzny licznik zdobycia nadal pilnuje, aby zapas sprzed przyjęcia questa nie dawał darmowego postępu.
