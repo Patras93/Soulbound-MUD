@@ -1,17 +1,7 @@
-v0.30.6 — FUN & PACING PASS
-================================
-- Pełny audyt grywalności early/mid/endgame bez dokładania nowego systemu progresji.
-- Naprawiono eksplozję długości walk: w v0.30.5 referencyjny zwykły mob Level 400 wymagał około 117 autoataków; v0.30.6 utrzymuje zwykłe walki tego samego etapu w około 4-11 autoatakach / około 6-15 sekund od early do Level 400.
-- Krzywa obrażeń mobów została dopasowana do generowanego HP postaci. Normalny przeciwnik jest przeżywalny bez obowiązkowego heal-builda; Elite/Rare/Boss/World Boss zachowują własne mnożniki rangi.
-- Profession XP i Tool XP mają wspólny cel około 16 akcji na poziom. Profesja i narzędzie dochodzą do 400 razem zamiast rozjeżdżać się w późnej grze.
-- Po skróceniu walk skorygowano monety z mobów: typowy wspólny przedmiot sklepu tego samego etapu kosztuje około 5-6 normalnych zabójstw przez całą krzywą 1-400.
-- Dodano stałe guardraile Generator Core dla TTK, przeżywalności, ekonomii oraz synchronizacji profesja/narzędzie. Przyszła zmiana krzywych, która przekroczy te granice, daje błąd walidatora.
-- Audyt handlu: 0 przypadków kup->sprzedaj z zyskiem nawet przy maksymalnym rabacie Charyzmy; 0 receptur z w pełni kupowalnymi składnikami pozwalających na zysk przez craft->sprzedaż.
-- Grillowana ryba rzeczna nie jest darmową recepturą: specjalny system pobiera dwa różne gatunki małych ryb rzecznych.
-- Naprawiono stare dynamiczne eventy v0.14/v0.16/v0.18/v0.20: ich moby dziedziczą teraz etap faktycznego pokoju przez runtime-klon Generator Core. Daleki sektor nie może dostać słabego legendarnego moba z wczesnego template'u.
-- Poprawiono nieaktualny komunikat tworzenia postaci oraz opisy czasu profesji, które nadal sugerowały stary zakres 1-200.
-- Zachowano Single-File Railway Edition: do runtime nadal potrzebny jest tylko server.py.
-- Brak zmiany ID kont/postaci/questów/przedmiotów i brak wymaganego wipe.
+v0.30.6 — HP Speech Hotfix
+- Naprawiono komendę `hp`: NVDA nie dostaje już osobnego nagłówka „HP” przed właściwą linią stanu.
+- `hp` wysyła teraz dokładnie jeden komunikat HP i jeden komunikat Mana.
+- Brak zmian balansu, save'ów, generatorów i świata.
 
 v0.30.5 — Single-File Railway Edition
 - Cały runtime został scalony do server.py.
