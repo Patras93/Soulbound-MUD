@@ -1,3 +1,25 @@
+Soulbound v0.30.12 - NPC Private Rooms + Character Level Areas
+
+- Stali NPC nie współdzielą już jednego pokoju: jeśli kilku NPC stało w tej samej lokacji, pozostali dostają osobne pomieszczenia w tej samej strefie.
+- Właściciel sklepu/usługi ma priorytet pozostania w dotychczasowym pokoju, aby zachować istniejące funkcje lokacji.
+- Nawigacja `prowadz <NPC>` prowadzi do aktualnego, osobnego pokoju NPC.
+- Dobór i rekomendacje terenów zależą od Levelu postaci, nie od Biegłości klasy.
+- Popielne Pustkowia: Level 300-329; Rozbite Niebo: 330-359; Wybrzeże Pustki: 360-389; Korona Świata: 390-400.
+- Ostrzeżenia przy wejściu na trudny teren porównują teraz Level postaci z poziomem terenu.
+- HELP zaktualizowany dla poruszania i expowisk.
+- Zachowane wszystkie funkcje v0.30.11: party follow, bufory historii, trading, repeatable bread quest oraz v0.30.10.
+
+Soulbound v0.30.11 — Party Follow + History Buffers + Player Trading
+- Członkowie drużyny stojący z liderem automatycznie podążają za jego zwykłym ruchem i prowadzeniem. Każdy członek nadal przechodzi przez własne blokady ruchu; walka lub niedostępne przejście może zatrzymać tylko jego.
+- Dodano sesyjne bufory historii po 100 wpisów dla XP, lootu, questów, systemu, czatu lokalnego, drużyny, prywatnych wiadomości i walki. `bufor <kategoria>` pokazuje wpisy; `historia xp`, `historia loot` i `historia quest` są skrótami.
+- Rozszerzono `daj` / `przekaż`: można przekazywać zwykłe przedmioty inventory i ich ilości graczowi online stojącemu w tej samej lokacji. Character-Bound, questowe i założone EQ pozostają chronione.
+- Dodano przekazywanie waluty: np. `daj Arven 250 złota`, a także srebra i mithrilu. Transfer aktualizuje oba wspólne portfele atomowo.
+- Quest `Miejska przysługa: Chleb na południową bramę` od Piekarza Oda jest odnawialny co 60 minut i przy każdym przyjęciu zaczyna się od 0/1.
+- Wykonano kolejny audyt aktywnego HELP. `help` nadal otwiera menu kategorii; zaktualizowano pomoc drużyn, buforów, przekazywania, pieniędzy, XP, ekwipunku, questów i walki.
+- Zachowano v0.30.10: questy bez globalnej blokady Levelu postaci, WIMPY, godzinny event x2 EXP, `/` do Świątyni oraz `walk krypta dół` zatrzymujące przed zejściem.
+- Test dwóch graczy: party follow, transfer mikstury, transfer złota, bufory historii i help: ALL PASS. Regresja v0.30.10 po zmianie numeru wersji: ALL PASS. Generator Core: 0 błędów.
+- Brak wipe. Runtime nadal jest jednoplikowy: `server.py`.
+
 Soulbound v0.30.10 — Quest Unlock + WIMPY + Hourly x2 EXP + Help Audit
 - Usunięto globalną blokadę Levelu postaci z questów. Generator nie tworzy już wymagania Character Level dla questów; pozostałe wymagania mechaniczne (np. poprzedni quest, Soul Level/Tier, profesja lub narzędzie) pozostają aktywne.
 - Dodano WIMPY: `wimpy`, `wimpy status`, `wimpy set <1-99>`, `wimpy <1-99>`, `wimpy off`. Po przeżytym trafieniu postać automatycznie próbuje uciec, gdy HP spadnie do ustawionego procentu lub niżej.
