@@ -1,3 +1,10 @@
+SOULBOUND v0.30.2 — RAILWAY STARTUP HOTFIX
+=================================================
+- Naprawiono crash kontenera Railway przy starcie: Dockerfile v0.30.1 kopiował tylko server.py, mimo że server.py importuje generator_core.py, world_topology_generator.py, dynamic_world_v029.py i world_logic_validator.py.
+- Dockerfile kopiuje teraz wszystkie wymagane moduły runtime do /app.
+- Brak zmian balansu, świata, questów, postaci, bazy danych i panelu administratora względem v0.30.1.
+- Aktualizacja nie wymaga wipe. Zachowaj Railway Volume i istniejącą bazę SQLite.
+
 v0.30.1 — ADMIN CHARACTER MENU
 - MENU POSTACI pokazuje opcję `6. Administrator` wyłącznie kontom owner/admin z SOULBOUND_ADMIN_ACCOUNTS. Zwykły gracz nie widzi tej pozycji i wpisanie 6 nie otwiera panelu.
 - Panel działa bez aktywnej postaci, również przy 0/12 postaci.
