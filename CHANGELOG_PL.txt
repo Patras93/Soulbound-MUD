@@ -1,3 +1,25 @@
+v0.30.19 — Generator Core Whitelist Guard
+- Generator Core ma teraz jawną białą listę zapisu zamiast samej ogólnej zasady NUMERIC-ONLY.
+- Każdy zapis do mobów, itemów/EQ, questów, skilli/spelli, receptur, pokoi i liczbowych domen Soul przechodzi przez bezpieczny setter sprawdzający domenę, pole i typ liczbowy.
+- Generator nie może zmieniać nazw, ID, unlocków, rodzaju/scale skilla, ranku moba, listy dropów, kluczy stats/properties/runes, wymagań EQ, celów questów, składników/produktów receptur ani gate'ów świata.
+- W istniejących drops/stats/properties/runes wolno mu zmieniać wyłącznie wartości liczbowe istniejących kluczy.
+- Próba dodania nowego klucza dropu lub nowego statystyku EQ przez Generator Core kończy się błędem whitelisty.
+- Semantic Guard pozostaje drugą niezależną warstwą ochrony wartości semantycznych.
+- W finalnym starcie Generator Core wykonał 327 774 dozwolone zapisy liczbowe; whitelist, Semantic Guard i Full Game Audit zakończyły się 0 błędów.
+- Import pełnego runtime trwa około 29 s w środowisku testowym wobec około 26 s dla v0.30.18; whitelist nie wykonuje już kosztownego pełnego duplikatu audytu danych.
+- Progresja v0.30.18 pozostaje bez zmian: kolejka 10 slotów na Levelu 1, +1 co 10 Leveli; skille na progach Biegłości 1, 10, 20...400.
+- Brak wipe.
+
+v0.30.18 — Generator Core Numeric-Only + 10 Startowych Slotów
+- Generator Core ma teraz twardą granicę NUMERIC-ONLY: wolno mu przeliczać liczby balansu, ale nie wolno zmieniać nazw, ID, progów unlock, wymagań, struktury questów/receptur, tożsamości EQ ani semantyki świata.
+- Semantic Guard wykonuje fingerprint chronionej semantyki przed i po generatorze. Niezgodność blokuje start serwera.
+- Przywrócone i chronione są ręczne Soul Milestones 5/10/15/20.
+- Generator nie może tworzyć ani nadpisywać required_mastery, min_profession_level, min_tool_level, unlocków skilli ani gate'ów terenów.
+- Nadal generowane są tylko wartości balansu: HP, damage, XP, ceny, nagrody, cooldowny, koszt many, siła efektów, czasy profesji i wartości dropu.
+- Auto kolejka ma 10 slotów od Levelu postaci 1 i +1 slot co 10 Leveli: 10/11/20/30/50 na Levelach 1/10/100/200/400.
+- Biegłość nadal odblokowuje skille na progach 1, 10, 20...400; sloty kolejki zależą tylko od Character Level.
+- Brak wipe.
+
 v0.30.17 — Soul Weapon Combat + Skill Grid + Character-Level Queue
 - Naprawiono progi skilli/spelli: każda z 12 klas ma dokładnie 3 umiejętności na progach Biegłości 1, 10, 20...400. Generator Core nie rozciąga już unlocków na przypadkowe poziomy.
 - Sloty auto kolejki rosną z Levelem postaci: 3 na Levelu 1, +1 co 10 Leveli, maksymalnie 43 na Levelu 400.
