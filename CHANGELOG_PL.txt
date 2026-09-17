@@ -1,3 +1,10 @@
+v0.30.17 — Soul Weapon Combat + Skill Grid + Character-Level Queue
+- Naprawiono progi skilli/spelli: każda z 12 klas ma dokładnie 3 umiejętności na progach Biegłości 1, 10, 20...400. Generator Core nie rozciąga już unlocków na przypadkowe poziomy.
+- Sloty auto kolejki rosną z Levelem postaci: 3 na Levelu 1, +1 co 10 Leveli, maksymalnie 43 na Levelu 400.
+- Broń Duszy jest jawną bronią autoataku; każda klasa ma własną technikę, a Soul Power bierze udział w autoatakach i ofensywnych skillach/spellach.
+- Fizyczne ataki skalują się z Siły, magiczne z Inteligencji; usunięto ukryty wkład Siły do magicznego autoataku.
+- Brak wipe.
+
 Soulbound v0.30.16 - Unique Class Equipment Identity
 
 - Pełny audyt nazw EQ: 23 238 pancerzy ma unikalne nazwy; 0 progresywnych nazw kończy się +liczba.
