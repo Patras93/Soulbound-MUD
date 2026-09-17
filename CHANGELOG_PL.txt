@@ -1,3 +1,17 @@
+Soulbound v0.30.13 — Full World Topology Audit + Semantic Backbone
+
+- Wykonano pełny audyt topologii całej gry: statyczny świat, ręcznie projektowane ciągi fabularne, próby, lazy dungeony i proceduralne instancje.
+- Naprawiono główną przyczynę problemu Wieży Martwego Dzwonu: Universal World Topology Generator nie może już usuwać ręcznie zaprojektowanych połączeń semantic backbone.
+- Generator zachowuje 548 ręcznie zaprojektowanych relacji między ważnymi lokacjami, a proceduralnie układa tylko rozszerzenia/fillery.
+- Stary Cmentarz zachowuje ciąg: Aleja Ossuariów -> Zawalona Kaplica -> Wieża Martwego Dzwonu -> Grobowiec Strażnika, a Pole Kości ponownie łączy się z Wieżą.
+- Cztery pięciorundowe Próby (Stalowa, Mityczna, Astralna, Wieczna) są znowu dokładnymi łańcuchami rund 1-5. Generator nie dodaje w nich pętli pozwalających ominąć rundy.
+- Naprawiono kierunki powrotne pierwszego poziomu trzech lochów profesji: Kopalnia Kryształów, Pradawny Las i Ogród Alchemika.
+- Naprawiono wejścia do wszystkich pięciu mega-lochów: pierwszy pokój wraca teraz przez `up` do bramy, zgodnie z bramą prowadzącą `down`.
+- Full World Topology Audit v0.30.13: 1113/1113 statycznych pokoi osiągalnych z Placu Dusz i 1113/1113 z drogą powrotną; 58 stref spójnych wewnętrznie; 548/548 semantic backbone zachowane; 0 błędów i 0 ostrzeżeń.
+- Dodatkowy audit runtime objął 102 próbki: Krypty, Mityczne Krypty, Wieże Astralne, Mityczne Wieże, Twierdzę Gigantów, Kopalnię Głębinową, cztery lochy profesji, proceduralne rubieże, mini-lochy, sekrety, Wielkie Ruiny, archipelagi, Rubież Końca, Endless Gauntlet i pięć mega-lochów: 0 błędów po poprawkach.
+- HELP zaktualizowany o semantic backbone i Full World Topology Audit.
+- Brak wipe. Runtime nadal pozostaje jednoplikowy: `server.py`.
+
 Soulbound v0.30.12 - NPC Private Rooms + Character Level Areas
 
 - Stali NPC nie współdzielą już jednego pokoju: jeśli kilku NPC stało w tej samej lokacji, pozostali dostają osobne pomieszczenia w tej samej strefie.
