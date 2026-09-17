@@ -1,3 +1,17 @@
+Soulbound v0.30.14 — Full Game Audit + Unique Skills + Dual-Stat Class EQ
+
+- Wykonano pełny audyt całej gry po załadowaniu finalnego runtime: klasy, rasy, progresja, skille/spelle, EQ, NPC, questy, receptury, spawny, przedmioty, moby, świat/topologia, HELP i aliasy komend.
+- Full Game Audit v0.30.14: 0 błędów, 0 ostrzeżeń. Audyt jest teraz uruchamiany przy starcie serwera i blokuje start przy wykryciu krytycznej niespójności.
+- Audyt objął 12 klas, 13 ras, 1476 skilli/spelli, 12 672 klasowe elementy pancerza, 90 NPC, 307 questów, 289 receptur, 1401 statycznych spawnów, 14 215 mobów, 26 295 przedmiotów i 1122 statyczne lokacje.
+- Pełny audyt nazw skilli/spelli: 1476/1476 nazw unikalnych globalnie; 1011 dawnych numerowanych serii przemianowano, stare nazwy zachowano jako aliasy. Mechanika skilli nie została zmieniona.
+- Klasowe EQ ma dwie obowiązkowe bazowe statystyki archetypu: klasy fizyczne Siła + Kondycja; klasy magiczne Inteligencja + Siła Woli. Zachowany jest łączny budżet starego affixu, więc zmiana nie podwaja mocy EQ.
+- Audyt 12 672 klasowych pancerzy: 0 elementów z błędną parą statystyk.
+- Naprawiono 251 opisów receptur pokazujących stary level po przeliczeniu Generator Core.
+- Naprawiono 37 opisów receptur pokazujących starą ilość pojedynczego składnika. Od teraz tekst receptury jest synchronizowany z aktywnymi danymi runtime.
+- Potwierdzono brak globalnej blokady Character Level na questach; pozostają wymagania profesji, narzędzia, Soul Level/Tier i zależności questowe tam, gdzie są częścią mechaniki.
+- Potwierdzono prywatne pokoje NPC, poprawne referencje questów/receptur/spawnów, monotoniczną progresję 1-400 oraz czyste audyty Generator Core/World Topology/World Logic.
+- Brak wipe. Runtime nadal jest jednoplikowy: `server.py`.
+
 Soulbound v0.30.13 — Full World Topology Audit + Semantic Backbone
 
 - Wykonano pełny audyt topologii całej gry: statyczny świat, ręcznie projektowane ciągi fabularne, próby, lazy dungeony i proceduralne instancje.
