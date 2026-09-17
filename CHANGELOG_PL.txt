@@ -1,3 +1,14 @@
+Soulbound v0.30.16 - Unique Class Equipment Identity
+
+- Pełny audyt nazw EQ: 23 238 pancerzy ma unikalne nazwy; 0 progresywnych nazw kończy się +liczba.
+- 12 klas ma własne proporcje bazowych statystyk EQ. Fizyczne: Siła + Kondycja; magiczne: Inteligencja + Siła Woli.
+- Berserker kieruje budżet mocno w Siłę, Strażnik w Kondycję, Mag w Inteligencję, Kapłan w Siłę Woli; pozostałe klasy mają własne proporcje.
+- Każda klasa ma też własny profil właściwości procentowych (obrażenia, obrona, HP, mana, unik itd.).
+- Sloty różnią rozkład: rękawice/pierścienie są bardziej ofensywne, pancerz/nogawice bardziej przeżywalnościowe.
+- Dodano skróty NVDA do zakładania EQ: zh, zz, zr, zn, zb, zt/zt1, zt2, zp1, zp2, zna. Sam skrót pokazuje numerowaną listę; np. zh 2 zakłada pozycję 2.
+- Stare numerowane nazwy pozostają aliasami wyszukiwania. ID, wymagania Biegłości i zapisy postaci pozostają zgodne.
+- Equipment Name Audit: 0 błędów. Class EQ Identity Audit: 0 błędów. Full Game Audit: 0 błędów / 0 ostrzeżeń.
+
 Soulbound v0.30.15 — Stat-Based Combat + Room-Wide AoE + Aggro Cleanup
 
 - Wszystkie ofensywne skille fizyczne skalują moc z Siły, a wszystkie ofensywne skille/spelle magiczne z Inteligencji. Audyt objął 953 ofensywne umiejętności wszystkich 12 klas.
