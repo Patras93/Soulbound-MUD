@@ -1,3 +1,17 @@
+Soulbound v0.30.15 — Stat-Based Combat + Room-Wide AoE + Aggro Cleanup
+
+- Wszystkie ofensywne skille fizyczne skalują moc z Siły, a wszystkie ofensywne skille/spelle magiczne z Inteligencji. Audyt objął 953 ofensywne umiejętności wszystkich 12 klas.
+- Zręczność nie jest już źródłem bazowej mocy fizycznych skilli Łotrzyka, Łowcy ani Mnicha; pozostaje od krytyka, uniku i szybkości.
+- Maksymalna Mana korzysta z Inteligencji i Siły Woli po równo: zachowany został dawny łączny budżet 4,8 punktu many na parę statów jako 2,4×INT + 2,4×WILL.
+- Kondycja nadal zwiększa maksymalne HP.
+- Ofensywne AoE trafia wszystkie żywe moby w całym pokoju, również moby walczące z innym graczem. Nie wymaga wspólnej drużyny.
+- AoE nie kradnie aggro aktywnego cudzego moba. Automatyczna dalsza walka wybiera tylko wolny, własny albo drużynowy cel.
+- Naprawiono fałszywy komunikat o mobie walczącym z graczem, gdy w pokoju nikogo nie było. Serwer czyści osierocone/zombie aggro po graczu, który wyszedł, zmienił postać, zginął albo nie walczy już z tym mobem.
+- Przy wyjściu z walki/gry zwalniane są wszystkie moby przypisane do postaci, nie tylko bieżący combat_mob_key.
+- Bez drużyny zwykły atak pojedynczy mówi „walczy już z innym graczem”; komunikat „spoza twojej drużyny” jest używany tylko przy realnie aktywnej drużynie.
+- Combat/Stat Audit v0.30.15 i Aggro Cleanup Audit v0.30.15: 0 błędów. Generator Core i pełny audyt gry pozostają czyste.
+- Brak wipe. Runtime nadal jest jednoplikowy: `server.py`.
+
 Soulbound v0.30.14 — Full Game Audit + Unique Skills + Dual-Stat Class EQ
 
 - Wykonano pełny audyt całej gry po załadowaniu finalnego runtime: klasy, rasy, progresja, skille/spelle, EQ, NPC, questy, receptury, spawny, przedmioty, moby, świat/topologia, HELP i aliasy komend.
