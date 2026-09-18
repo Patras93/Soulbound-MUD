@@ -1,3 +1,18 @@
+v0.30.35 - Quest Integrity + Lossless Death + Character Level EQ + Mine Reset
+- Naprawiono „Złamane ostrza”: jawne źródła uzbrojonych nieumarłych i sprawdzony postęp 0/6 -> 1/6.
+- Audyt 173 questów collect/resource/craft nie wykrywa brakujących targetów ani martwych źródeł; sprawdzono również Pancerz do przetopu i Toksyczne gruczoły.
+- Śmierć nie zabiera waluty, przedmiotów, EQ ani żadnej progresji; postać odradza się z pełnym HP/Maną, a aktywne buffy zachowują pozostały czas.
+- Wymagania EQ są oparte na Levelu postaci 1-400. Biegłość klasy nadal odblokowuje skille/spelle.
+- Przy logowaniu zbyt wysokie EQ jest bezpiecznie zdejmowane do inventory.
+- Przy każdym starcie procesu/deployu Kopalnia Głębinowa resetuje odblokowaną głębokość do poziomu 1 i zeruje postęp ściany; postacie w Kopalni wracają do wejścia.
+- Reset Kopalni nie zmienia Levelu Górnictwa, Kilofa, Sakwy ani zdobytego loot. Generator Core pozostaje v0.30.24. Brak wipe postaci.
+
+v0.30.34 - Haldor Steel Plate Corpse Fix
+- Quest „Stal do Przetopu”: Stalowa Płyta z Pancerza pojawia się teraz na ciele opancerzonego nieumarłego.
+- Samo zabicie moba nie zalicza płyty; postęp rośnie dopiero po zabraniu jej z ciała.
+- Po zabraniu płyta trafia do Szkatułki Rzemieślniczej i może zostać oddana Haldorowi.
+- Zachowano dotychczasowe szanse: 72% / 42% / 28%. Brak wipe.
+
 Soulbound v0.30.32 — Party Roles + Class Help Catalogs
 
 - Moby w walce drużynowej mogą wybierać różnych żywych członków party w tej samej lokacji; Strażnik z aktywnym `zasłoń` zachowuje priorytet przejmowania ataków.

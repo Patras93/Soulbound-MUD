@@ -51,7 +51,7 @@ dynamic_world_v029 = _load_embedded_runtime_module('dynamic_world_v029', _EMBEDD
 _EMBEDDED_WORLD_LOGIC_VALIDATOR_SOURCE = '"""Soulbound v0.30.0 Semantic World Logic Validator.\n\nThe topology may be procedural, but geography must remain understandable.\nThis validator checks semantic gateway rules, vertical movement semantics,\nworld reachability, reciprocal navigation and deterministic topology output.\n"""\nfrom __future__ import annotations\n\nfrom collections import defaultdict, deque\nimport hashlib\nimport json\n\nVERSION = "0.30.0"\nHORIZONTAL = ("north","east","south","west","northeast","southeast","southwest","northwest")\nOPPOSITE = {\n    "north":"south","south":"north","east":"west","west":"east",\n    "northeast":"southwest","southwest":"northeast",\n    "northwest":"southeast","southeast":"northwest",\n    "up":"down","down":"up",\n}\n\n\ndef _norm(text):\n    return str(text or "").casefold()\n\n\ndef zone_family(zone: str) -> str:\n    z=_norm(zone)\n    if any(k in z for k in ("miasto dusz","gildia dusz","pracownia kartografa")):\n        return "urban"\n    if any(k in z for k in ("przedmieścia","przedmiescia","wioska","osada","posterunek","obóz straży","oboz strazy","przystań","przystan")):\n        return "settlement"\n    if any(k in z for k in ("kanały","kanaly","podziemia","krypt","jaskini","jaskinie","nekropolia","katakumb","kopal")):\n        return "underground"\n    if any(k in z for k in ("góry","gory","lodowe","twierdza gigant")):\n        return "highland"\n    if any(k in z for k in ("popielne","rozbite niebo","pustki","korona świata","korona swiata","rubież końca","rubiez konca")):\n        return "endgame"\n    if any(k in z for k in ("próba","proba","arena","archiwum otchłani","archiwum otchlani","katedra tysiąca","katedra tysiaca","kuźnia pierwszych","kuznia pierwszych","labirynt wiecznych","pałac bezimiennej","palac bezimiennej")):\n        return "instance"\n    if "proceduralny region:" in z:\n        return "expedition"\n    if any(k in z for k in ("ocean","wybrzeże","wybrzeze","jezior","dolina rzek")):\n        return "waterland"\n    return "wilderness"\n\n\ndef _gateway_semantic(rid: str, room: dict, direction: str, target_id: str, target: dict) -> bool:\n    """True when a cross-zone edge has a believable semantic transition."""\n    if direction in ("up","down"):\n        return True\n    src=_norm(rid)+" "+_norm(room.get("name"))\n    dst=_norm(target_id)+" "+_norm(target.get("name"))\n    gateway_words=(\n        "gate","brama","harbor","port","pier","molo","road","trakt","path","szlak",\n        "pass","przełęcz","przelecz","bridge","most","entrance","wejście","wejscie",\n        "mouth","wylot","frontier","rubież","rubiez","gateway","portal","archive","archiw",\n        "hall","hala","lobby","warsztat kartograf","cartographer","watchpost","posterunek",\n        "camp","obóz","oboz","v0130_gateway","v028_region_gate",\n    )\n    return any(k in src or k in dst for k in gateway_words)\n\n\ndef _reachable(rooms, start):\n    if start not in rooms:\n        return set()\n    seen={start}; q=deque([start])\n    while q:\n        cur=q.popleft()\n        for target in rooms[cur].get("exits",{}).values():\n            if target in rooms and target not in seen:\n                seen.add(target); q.append(target)\n    return seen\n\n\ndef topology_fingerprint(rooms):\n    payload=[]\n    for rid in sorted(rooms):\n        exits=rooms[rid].get("exits",{}) or {}\n        payload.append((rid,tuple(sorted((str(k),str(v)) for k,v in exits.items()))))\n    raw=json.dumps(payload,ensure_ascii=False,separators=(",",":"))\n    return hashlib.sha256(raw.encode("utf-8")).hexdigest()\n\n\ndef validate_world_logic(rooms: dict) -> dict:\n    errors=[]; warnings=[]; cross=[]; vertical=[]\n    if not isinstance(rooms,dict):\n        return {"version":VERSION,"error_count":1,"errors":["ROOMS is not dict"]}\n\n    # References and reciprocal navigation for every static edge.\n    for rid,room in rooms.items():\n        exits=room.get("exits",{}) or {}\n        for direction,target_id in exits.items():\n            if target_id not in rooms:\n                # Runtime/lazy destination; validated by its own materializer.\n                continue\n            target=rooms[target_id]\n            if direction in OPPOSITE:\n                reverse=OPPOSITE[direction]\n                if target.get("exits",{}).get(reverse)!=rid:\n                    # Some explicit gauntlet finales remain one-way by design; require a\n                    # global return path instead of pretending the exact edge is reciprocal.\n                    if not (room.get("procedural_dynamic") or target.get("procedural_dynamic")):\n                        warnings.append(f"one-way {rid}.{direction}->{target_id}")\n            z1=str(room.get("zone") or "Bez strefy")\n            z2=str(target.get("zone") or "Bez strefy")\n            if direction in ("up","down"):\n                vertical.append((rid,direction,target_id))\n            if z1!=z2:\n                cross.append((rid,direction,target_id,z1,z2))\n                f1,f2=zone_family(z1),zone_family(z2)\n                semantic_gateway=_gateway_semantic(rid,room,direction,target_id,target)\n                # Granice naturalnych biomów (np. łąka -> rzeka -> dzicz) mogą\n                # przechodzić bez sztucznej bramy. Twarda semantyczna brama jest\n                # wymagana, gdy opuszczamy/wchodzimy do huba miejskiego.\n                if (f1=="urban") != (f2=="urban") and not semantic_gateway:\n                    errors.append(f"urban boundary without semantic gateway: {rid}.{direction}->{target_id} ({z1}->{z2})")\n                # Miasto nie może być bezpośrednim sąsiadem gór/endgame. Nawet\n                # prawdziwa brama miejska ma prowadzić najpierw do traktu/przedmieść.\n                if f1=="urban" and f2 in {"highland","endgame"} and direction not in ("up","down"):\n                    errors.append(f"urban direct jump to {f2}: {rid}.{direction}->{target_id}")\n                if f2=="urban" and f1 in {"highland","endgame"} and direction not in ("up","down"):\n                    errors.append(f"{f1} direct jump to urban: {rid}.{direction}->{target_id}")\n\n    # v0.30 generator nie używa up/down jako GENERATED_DIRS. Każde pionowe\n    # przejście obecne tutaj pochodzi więc z semantycznej tożsamości świata\n    # (schody, piwnica, wieża, krypta, jaskinia, portal) albo z generatora\n    # dedykowanej instancji, a nie z losowego łączenia topologii.\n\n    reachable=_reachable(rooms,"square")\n    if len(reachable)!=len(rooms):\n        missing=sorted(set(rooms)-reachable)\n        errors.append(f"unreachable from square: {len(missing)} rooms; sample {missing[:10]}")\n\n    # Every static room must have some route back to the hub. Reverse-graph BFS.\n    rev=defaultdict(list)\n    for rid,room in rooms.items():\n        for target in room.get("exits",{}).values():\n            if target in rooms: rev[target].append(rid)\n    can_return=set()\n    if "square" in rooms:\n        can_return={"square"}; q=deque(["square"])\n        while q:\n            cur=q.popleft()\n            for source in rev.get(cur,[]):\n                if source not in can_return:\n                    can_return.add(source); q.append(source)\n    if len(can_return)!=len(rooms):\n        missing=sorted(set(rooms)-can_return)\n        errors.append(f"cannot return to square: {len(missing)} rooms; sample {missing[:10]}")\n\n    city=[rid for rid,r in rooms.items() if r.get("zone")=="Miasto Dusz"]\n    city_bad=[]\n    for rid in city:\n        for d,t in rooms[rid].get("exits",{}).items():\n            if t not in rooms: continue\n            z2=rooms[t].get("zone")\n            if z2=="Miasto Dusz": continue\n            if not _gateway_semantic(rid,rooms[rid],d,t,rooms[t]):\n                city_bad.append(f"{rid}.{d}->{t}")\n    if city_bad:\n        errors.append("city exits without gateway semantics: "+", ".join(city_bad[:10]))\n\n    families=defaultdict(int)\n    for r in rooms.values(): families[zone_family(r.get("zone"))]+=1\n    return {\n        "version":VERSION,\n        "room_count":len(rooms),\n        "reachable_from_square":len(reachable),\n        "returnable_to_square":len(can_return),\n        "cross_zone_edges":len(cross),\n        "vertical_edges":len(vertical),\n        "city_rooms":len(city),\n        "zone_family_room_counts":dict(families),\n        "topology_fingerprint":topology_fingerprint(rooms),\n        "warning_count":len(warnings),\n        "warnings":warnings,\n        "error_count":len(errors),\n        "errors":errors,\n    }\n'
 world_logic_validator_v030 = _load_embedded_runtime_module('world_logic_validator', _EMBEDDED_WORLD_LOGIC_VALIDATOR_SOURCE)
 
-VERSION = "0.30.32"
+VERSION = "0.30.35"
 GLOBAL_SKILL_BUFF_DURATION_SECONDS = 30
 HISTORY_BUFFER_LIMIT = 100
 HISTORY_BUFFER_DEFAULT_SHOW = 20
@@ -922,15 +922,189 @@ TOOL_TIER_NAMES = {
     ),
 }
 
-# v0.9.12: Tiery 21-40 zachowują nazwę dotychczasowego najwyższego
-# narzędzia i dodają czytelny próg levelu. Dzięki temu stare nazwy 1-20
-# pozostają 1:1 zgodne z save'ami i HELP.
+# v0.30.33: Tiery 21-40 mają pełne, unikalne nazwy zamiast powtarzania
+# nazwy Tieru 20 z dopiskiem +210/+220 itd. Progi i mechanika pozostają bez zmian.
+V03033_TOOL_TIER_NAMES_21_40 = {
+    "fishing": (
+        "Wędka Przebudzonej Rafy",
+        "Wędka Transcendentnego Strumienia",
+        "Wędka Horyzontu",
+        "Wędka Niebiańskiego Prądu",
+        "Wędka Pierwotnego Morza",
+        "Wędka Echa Lewiatana",
+        "Wędka Korony Fal",
+        "Wędka Serca Oceanu",
+        "Wędka Nieskończonego Sztormu",
+        "Wędka Pradawnej Toni",
+        "Wędka Zorzy Głębin",
+        "Wędka Smoczego Prądu",
+        "Wędka Tajemnicy Rafy",
+        "Wędka Gwiezdnej Otchłani",
+        "Wędka Wiecznego Horyzontu",
+        "Wędka Korony Lewiatana",
+        "Wędka Przeznaczenia Mórz",
+        "Wędka Ponadczasowej Fali",
+        "Wędka Końca Głębin",
+        "Wędka Absolutnych Głębin",
+    ),
+    "mining": (
+        "Kilof Przebudzonego Kamienia",
+        "Kilof Transcendentnej Rudy",
+        "Kilof Horyzontu Skał",
+        "Kilof Niebiańskiego Kryształu",
+        "Kilof Pierwotnej Góry",
+        "Kilof Echa Głębin",
+        "Kilof Korony Minerałów",
+        "Kilof Serca Ziemi",
+        "Kilof Nieskończonego Złoża",
+        "Kilof Pradawnego Granitu",
+        "Kilof Zorzy Kryształów",
+        "Kilof Smoczej Skały",
+        "Kilof Tajemnicy Podziemi",
+        "Kilof Gwiezdnej Żyły",
+        "Kilof Wiecznego Masywu",
+        "Kilof Korony Gór",
+        "Kilof Przeznaczenia Rudy",
+        "Kilof Ponadczasowej Skały",
+        "Kilof Końca Złoża",
+        "Kilof Absolutnej Góry",
+    ),
+    "woodcutting": (
+        "Piła Przebudzonego Gaju",
+        "Piła Transcendentnego Pnia",
+        "Piła Horyzontu Koron",
+        "Piła Niebiańskiej Kory",
+        "Piła Pierwotnego Lasu",
+        "Piła Echa Drzew",
+        "Piła Korony Konarów",
+        "Piła Serca Puszczy",
+        "Piła Nieskończonego Boru",
+        "Piła Pradawnego Dębu",
+        "Piła Zorzy Liści",
+        "Piła Smoczego Pnia",
+        "Piła Tajemnicy Kniei",
+        "Piła Gwiezdnej Kory",
+        "Piła Wiecznej Puszczy",
+        "Piła Korony Drzewa Świata",
+        "Piła Przeznaczenia Lasu",
+        "Piła Ponadczasowego Drewna",
+        "Piła Końca Boru",
+        "Piła Absolutnego Drzewa",
+    ),
+    "crafting": (
+        "Młot Przebudzonej Kuźni",
+        "Młot Transcendentnego Kowala",
+        "Młot Horyzontu Metalu",
+        "Młot Niebiańskiej Stali",
+        "Młot Pierwotnego Ognia",
+        "Młot Echa Kowadła",
+        "Młot Korony Kuźni",
+        "Młot Serca Metalu",
+        "Młot Nieskończonego Żaru",
+        "Młot Pradawnego Kowadła",
+        "Młot Zorzy Stali",
+        "Młot Smoczego Żaru",
+        "Młot Tajemnicy Metalu",
+        "Młot Gwiezdnego Kowadła",
+        "Młot Wiecznej Kuźni",
+        "Młot Korony Kowali",
+        "Młot Przeznaczenia Stali",
+        "Młot Ponadczasowego Metalu",
+        "Młot Końca Kuźni",
+        "Młot Absolutnego Kowala",
+    ),
+    "cooking": (
+        "Nóż Przebudzonej Kuchni",
+        "Nóż Transcendentnego Smaku",
+        "Nóż Horyzontu Uczty",
+        "Nóż Niebiańskiej Potrawy",
+        "Nóż Pierwotnego Paleniska",
+        "Nóż Echa Przypraw",
+        "Nóż Korony Szefów",
+        "Nóż Serca Uczty",
+        "Nóż Nieskończonego Smaku",
+        "Nóż Pradawnej Receptury",
+        "Nóż Zorzy Aromatów",
+        "Nóż Smoczego Paleniska",
+        "Nóż Tajemnicy Kuchni",
+        "Nóż Gwiezdnej Receptury",
+        "Nóż Wiecznej Uczty",
+        "Nóż Korony Kucharzy",
+        "Nóż Przeznaczenia Smaku",
+        "Nóż Ponadczasowej Potrawy",
+        "Nóż Końca Uczty",
+        "Nóż Absolutnego Kucharza",
+    ),
+    "herbalism": (
+        "Sierp Przebudzonej Łąki",
+        "Sierp Transcendentnych Ziół",
+        "Sierp Horyzontu Kwiatów",
+        "Sierp Niebiańskiego Ogrodu",
+        "Sierp Pierwotnego Gaju",
+        "Sierp Echa Natury",
+        "Sierp Korony Zielarzy",
+        "Sierp Serca Ogrodu",
+        "Sierp Nieskończonej Łąki",
+        "Sierp Pradawnego Zielnika",
+        "Sierp Zorzy Kwiatów",
+        "Sierp Smoczych Korzeni",
+        "Sierp Tajemnicy Natury",
+        "Sierp Gwiezdnego Zielnika",
+        "Sierp Wiecznego Ogrodu",
+        "Sierp Korony Kwiatów",
+        "Sierp Przeznaczenia Ziół",
+        "Sierp Ponadczasowego Gaju",
+        "Sierp Końca Łąki",
+        "Sierp Absolutnego Zielarza",
+    ),
+    "alchemy": (
+        "Moździerz Przebudzonej Esencji",
+        "Moździerz Transcendentnego Eliksiru",
+        "Moździerz Horyzontu Mikstur",
+        "Moździerz Niebiańskiej Esencji",
+        "Moździerz Pierwotnej Substancji",
+        "Moździerz Echa Alchemii",
+        "Moździerz Korony Alchemików",
+        "Moździerz Serca Eliksiru",
+        "Moździerz Nieskończonej Mikstury",
+        "Moździerz Pradawnej Formuły",
+        "Moździerz Zorzy Esencji",
+        "Moździerz Smoczego Eliksiru",
+        "Moździerz Tajemnicy Alchemii",
+        "Moździerz Gwiezdnej Formuły",
+        "Moździerz Wiecznej Esencji",
+        "Moździerz Korony Mikstur",
+        "Moździerz Przeznaczenia Eliksiru",
+        "Moździerz Ponadczasowej Substancji",
+        "Moździerz Końca Formuły",
+        "Moździerz Absolutnego Alchemika",
+    ),
+    "jewelcrafting": (
+        "Szczypce Przebudzonego Klejnotu",
+        "Szczypce Transcendentnej Oprawy",
+        "Szczypce Horyzontu Kryształów",
+        "Szczypce Niebiańskiego Szlifu",
+        "Szczypce Pierwotnego Kamienia",
+        "Szczypce Echa Klejnotów",
+        "Szczypce Korony Jubilerów",
+        "Szczypce Serca Kryształu",
+        "Szczypce Nieskończonej Oprawy",
+        "Szczypce Pradawnego Szlifu",
+        "Szczypce Zorzy Klejnotów",
+        "Szczypce Smoczego Kryształu",
+        "Szczypce Tajemnicy Oprawy",
+        "Szczypce Gwiezdnego Kamienia",
+        "Szczypce Wiecznej Korony",
+        "Szczypce Korony Kryształów",
+        "Szczypce Przeznaczenia Szlifu",
+        "Szczypce Ponadczasowej Oprawy",
+        "Szczypce Końca Klejnotu",
+        "Szczypce Absolutnego Jubilera",
+    ),
+}
 for _tool_type, _names in list(TOOL_TIER_NAMES.items()):
     _base_names = tuple(_names)
-    _final_name = _base_names[-1]
-    TOOL_TIER_NAMES[_tool_type] = _base_names + tuple(
-        f"{_final_name} +{level}" for level in range(210, 401, 10)
-    )
+    TOOL_TIER_NAMES[_tool_type] = _base_names + V03033_TOOL_TIER_NAMES_21_40[_tool_type]
 
 def tool_tier(level):
     level = max(1, min(TOOL_MAX_LEVEL, int(level)))
@@ -22224,8 +22398,9 @@ V0923_ENDGAME_REGIONS = (
     ("Korona Świata", 390),
 )
 
-# Zlecenie Haldora: Stalowe Płyty są materiałem rzemieślniczym i automatycznie
-# trafiają do Szkatułki, więc nie da się ich przypadkiem sprzedać przez sell all.
+# Zlecenie Haldora: Stalowe Płyty są materiałem rzemieślniczym.
+# v0.30.34: najpierw fizycznie trafiają na ciało moba; po zabraniu z ciała
+# są przenoszone do Szkatułki i dopiero wtedy zaliczają postęp questa.
 ITEMS["salvaged_steel_plate"] = {
     "name": "Stalowa Płyta z Pancerza",
     "type": "craft_material",
@@ -22248,8 +22423,10 @@ QUESTS["haldor_steel_recycling"] = {
     "progress_label": "Stalowe Płyty",
     "description": (
         "Zdobądź po przyjęciu zlecenia 4 Stalowe Płyty z opancerzonych "
-        "nieumarłych na Starym Cmentarzu i przynieś je Haldorowi do przetopu. "
-        "Przy oddaniu wszystkie 4 płyty są zużywane."
+        "nieumarłych na Starym Cmentarzu. Płyty znajdują się na ciałach; "
+        "przeszukaj ciało albo weź płytę z ciała. Po zabraniu trafiają do "
+        "Szkatułki Rzemieślniczej i zaliczają postęp. Przy oddaniu wszystkie "
+        "4 płyty są zużywane."
     ),
     "specialist_tool_type": "crafting",
     "min_tool_level": 1,
@@ -22278,7 +22455,8 @@ MOB_TEMPLATES["cemetery_steel_skeleton"] = {
     "stat_reward": 90,
     "class_xp_reward": 1150,
     "soul_reward": 690,
-    "drops": {"salvaged_steel_plate": 0.72, "soul_shard": 0.20},
+    "drops": {"soul_shard": 0.20},
+    "corpse_material_chances": {"salvaged_steel_plate": 0.72},
     "quest_target": "cemetery_steel_skeleton",
 }
 for _mid, _chance in (
@@ -22286,7 +22464,9 @@ for _mid, _chance in (
     ("cemetery_bone_collector", 0.42),
 ):
     if _mid in MOB_TEMPLATES:
-        MOB_TEMPLATES[_mid].setdefault("drops", {})["salvaged_steel_plate"] = _chance
+        # v0.30.34: płyta ma być widoczna na ciele, nie przyznawana automatycznie.
+        MOB_TEMPLATES[_mid].setdefault("drops", {}).pop("salvaged_steel_plate", None)
+        MOB_TEMPLATES[_mid].setdefault("corpse_material_chances", {})["salvaged_steel_plate"] = _chance
 MOB_SPAWNS.extend([
     ("graveyard", "cemetery_steel_skeleton"),
     ("graveyard", "cemetery_steel_skeleton"),
@@ -23582,9 +23762,10 @@ QUESTS.update({
         "name":"Miejska przysługa: Mundury dla straży", "giver":"Krawcowa Lysa", "kind":"deliver_npc",
         "target_npc":"guard_quartermaster_harek", "quest_item":"city_guard_uniform_order",
         "accept_items":{"city_guard_uniform_order":1}, "needed":1,
-        "description":"Zanieś zamówienie Krawcowej Lysy Kwatermistrzowi Harkowi w Zbrojowni Straży.",
+        "description":"Zanieś zamówienie Krawcowej Lysy Kwatermistrzowi Harkowi w Zbrojowni Straży. Zadanie odnawia się co 60 minut.",
         "reward_stat_progress":20, "reward_silver":180, "reward_gold":0, "reward_mithril":0,
-        "reward_items":{}, "repeatable":False, "event_progress_only":True,
+        "reward_items":{}, "repeatable":True, "repeat_cooldown":QUEST_REPEAT_COOLDOWN_SECONDS,
+        "event_progress_only":True,
     },
     "city_baker_gate_delivery": {
         "name":"Miejska przysługa: Chleb na południową bramę", "giver":"Piekarz Odo", "kind":"deliver_npc",
@@ -25228,9 +25409,9 @@ QUESTS.update({
         "needed": 6,
         "progress_label": "Uszkodzone Ostrza",
         "description": (
-            "Zdobądź po przyjęciu zlecenia 6 Uszkodzonych Ostrzy ze szkieletów "
-            "lub strażników i przynieś je Haldorowi. Każde ostrze liczy się dopiero "
-            "po przyjęciu questa."
+            "Zdobądź po przyjęciu zlecenia 6 Uszkodzonych Ostrzy z uzbrojonych "
+            "nieumarłych Starego Cmentarza, szkieletów, strażników lub rycerzy i przynieś je Haldorowi. "
+            "Każdy kwalifikujący się kill daje 1 ostrze i od razu zwiększa postęp 0/6."
         ),
         "required_profession": "Kowalstwo",
         "min_profession_level": 1,
@@ -25421,11 +25602,30 @@ for _mid in (
             _tags.append("cemetery_undead_v0929")
         MOB_TEMPLATES[_mid]["quest_targets"] = tuple(_tags)
 
+V03035_BROKEN_BLADE_SOURCES = frozenset({
+    "cemetery_restless_dead",
+    "cemetery_bone_collector",
+    "cemetery_bell_wraith",
+    "cemetery_steel_skeleton",
+    "cemetery_crypt_reaper",
+    "cemetery_mourning_knight",
+    "cemetery_keeper",
+})
+
 def v0929_kill_drop_item(quest_id, mob_template_id, template):
     """Quest-only drop. Zwraca item_id albo None."""
     name = normalize_lookup_text(template.get("name", ""))
     if quest_id == "haldor_broken_blades_v0929":
-        if "szkielet" in name or "straznik" in name:
+        # v0.30.35: jawne źródła na Starym Cmentarzu + kompatybilny fallback
+        # dla innych szkieletów/strażników. Nie zależymy już tylko od nazwy moba.
+        base_id = str(template.get("base_template") or mob_template_id)
+        if (
+            str(mob_template_id) in V03035_BROKEN_BLADE_SOURCES
+            or base_id in V03035_BROKEN_BLADE_SOURCES
+            or "szkielet" in name
+            or "straznik" in name
+            or "rycerz" in name
+        ):
             return "damaged_weapon_v0929"
     elif quest_id == "haldor_armor_recycling_v0929":
         heavy_keywords = ("opancerz", "rycerz", "golem", "troll wojenny", "zelaznoskory", "kolos")
@@ -27551,6 +27751,36 @@ class Database:
             "wall_hits": hits,
             "wall_required_hits": required_hits,
             "unlocked_floor": unlocked_floor,
+        }
+
+    def reset_mine_for_server_start(self):
+        """v0.30.35: reset Kopalni Głębinowej przy każdym starcie procesu/deployu.
+
+        Reset dotyczy wyłącznie wspólnego stanu przejścia Kopalni: odblokowanej
+        głębokości oraz postępu bieżącej ściany. Nie dotyka Górnictwa, Kilofa,
+        surowców, EQ, questów ani żadnej progresji postaci. Postacie zapisane
+        wewnątrz dynamicznych pięter są przenoszone do wejścia, żeby po resecie
+        nie pozostawały poniżej ponownie zamkniętej ściany.
+        """
+        progress_rows = int(self.conn.execute(
+            "SELECT COUNT(*) AS n FROM mine_progress"
+        ).fetchone()["n"] or 0)
+        moved_rows = int(self.conn.execute(
+            "SELECT COUNT(*) AS n FROM characters WHERE room_id LIKE 'mine_floor_%'"
+        ).fetchone()["n"] or 0)
+        self.conn.execute(
+            "UPDATE mine_progress SET max_floor_unlocked=?, wall_hits=0, wall_required_hits=0",
+            (MINE_MIN_FLOOR,),
+        )
+        self.conn.execute(
+            "UPDATE characters SET room_id='crystal_chamber' WHERE room_id LIKE 'mine_floor_%'"
+        )
+        self.conn.commit()
+        return {
+            "progress_rows_reset": progress_rows,
+            "characters_moved_to_entrance": moved_rows,
+            "max_floor_unlocked": MINE_MIN_FLOOR,
+            "wall_hits": 0,
         }
 
     def ensure_bank(self, account_id):
@@ -34992,6 +35222,14 @@ class World:
             for item_id in material_items:
                 if item_id not in items:
                     items.append(item_id)
+
+        # v0.30.34: materiały o losowej szansie mogą naprawdę leżeć na ciele.
+        # Jest to osobne od globalnego `drops`, który przyznaje przedmiot od razu.
+        # Dzięki temu questy typu odzysk z pancerza wymagają przeszukania ciała.
+        for item_id, chance in (template.get("corpse_material_chances") or {}).items():
+            if item_id in ITEMS and random.random() <= max(0.0, min(1.0, float(chance))):
+                if item_id not in items:
+                    items.append(item_id)
         # v0.9.11: losowy drop klasowego EQ z mobów. Poziom przedmiotu
         # wynika z siły moba/material tieru, a klasa/linia/slot są losowe.
         # Zwykły mob nie gwarantuje klasowego przedmiotu, więc nie zalewamy ekonomii.
@@ -36699,29 +36937,40 @@ class Session:
             return 1
         return max(self.class_mastery_level(class_name) for class_name in active)
 
+    def equipment_character_level_requirement(self, item):
+        if item.get("type") != "armor":
+            return 1
+        return max(1, min(CHARACTER_MAX_LEVEL, int(
+            item.get("required_character_level", item.get("required_mastery", 1)) or 1
+        )))
+
     def equipment_mastery_requirement_met(self, item):
-        required_mastery = max(1, int(item.get("required_mastery", 1) or 1))
-        required_class = item.get("required_class")
-        if required_class:
-            return self.class_mastery_level(required_class) >= required_mastery
-        if item.get("mastery_requirement_scope") == "active_class":
-            return self.highest_active_class_mastery() >= required_mastery
-        return True
+        """Compatibility name: v0.30.35 EQ gates are Character Level gates."""
+        if item.get("type") != "armor":
+            return True
+        return int(self.character.character_level) >= self.equipment_character_level_requirement(item)
 
     def equipment_mastery_requirement_text(self, item):
-        required_mastery = max(1, int(item.get("required_mastery", 1) or 1))
-        required_class = item.get("required_class")
-        if required_class:
-            return (
-                f"Wymaga Biegłości {required_class} {required_mastery}. "
-                f"Masz {self.class_mastery_level(required_class)}."
-            )
-        if item.get("mastery_requirement_scope") == "active_class":
-            return (
-                f"Wymaga Biegłości aktywnej klasy {required_mastery}. "
-                f"Najwyższa Biegłość twoich aktywnych klas: {self.highest_active_class_mastery()}."
-            )
-        return ""
+        """Compatibility name kept for old callers; text now reports Character Level."""
+        if item.get("type") != "armor":
+            return ""
+        required_level = self.equipment_character_level_requirement(item)
+        return (
+            f"Wymaga Levelu postaci {required_level}. "
+            f"Masz Level postaci {int(self.character.character_level)}."
+        )
+
+    def enforce_equipment_character_level(self):
+        """Unequip legacy gear that is above the current Character Level."""
+        removed = []
+        for row in list(self.server.db.equipment(self.account_id)):
+            item = ITEMS.get(row["item_id"])
+            if not item or item.get("type") != "armor":
+                continue
+            if not self.equipment_mastery_requirement_met(item):
+                self.server.db.unequip(self.account_id, row["slot"])
+                removed.append(item.get("name", row["item_id"]))
+        return removed
 
     def skill_required_mastery(self, skill):
         return max(1, int(skill.get("unlock", 1)))
@@ -38024,6 +38273,7 @@ class Session:
 
         moved_gems = self.migrate_raw_mining_gems_to_bag_v0867()
         moved_craft_materials = self.migrate_craft_materials_to_casket_v0915()
+        level_unequipped = self.enforce_equipment_character_level()
 
         # Najpierw zachowaj zgodność starego mechanizmu portali Krypty
         # na podstawie lokacji zapisanej przy poprzednim wylogowaniu.
@@ -38061,6 +38311,11 @@ class Session:
             await self.send(
                 f"Szkatułka Rzemieślnicza: przeniesiono {moved_craft_materials} "
                 "materiałów ze starego inventory do szkatułki."
+            )
+        if level_unequipped:
+            await self.send(
+                "EQ zdjęte z powodu zbyt niskiego Levelu postaci: "
+                + ", ".join(level_unequipped) + ". Przedmioty pozostają w inventory."
             )
         if self.double_xp_state()["active"]:
             await self.show_double_xp_event()
@@ -42742,10 +42997,14 @@ class Session:
                     f"Rzadkość: {item['rarity_name']}."
                 )
             if item.get("required_class"):
-                req_mastery = max(1, int(item.get("required_mastery", 1)))
+                req_level = max(1, int(item.get("required_character_level", item.get("required_mastery", 1)) or 1))
                 parts.append(
                     f"Wymagana aktywna klasa: {item['required_class']}. "
-                    f"Wymagana Biegłość klasy: {req_mastery}."
+                    f"Wymagany Level postaci: {req_level}."
+                )
+            elif int(item.get("required_character_level", item.get("required_mastery", 1)) or 1) > 1:
+                parts.append(
+                    f"Wymagany Level postaci: {int(item.get('required_character_level', item.get('required_mastery', 1)) or 1)}."
                 )
             if item.get("class_shop_item") and item.get("required_class"):
                 class_name = item["required_class"]
@@ -53163,7 +53422,7 @@ class Session:
             n2 = ITEMS.get(self.server.db.equipped_item(self.account_id, s2), {}).get("name", "pusty")
             await self.send(f"{noun.capitalize()}. Slot 1: {n1}. Slot 2: {n2}. Wybierz numer przedmiotu:")
             for idx, (_score, item_id, item) in enumerate(candidates, 1):
-                await self.send(f"{idx}. {item.get('name', item_id)}. Biegłość {int(item.get('required_mastery',1) or 1)}.")
+                await self.send(f"{idx}. {item.get('name', item_id)}. Level postaci {int(item.get('required_character_level', item.get('required_mastery',1)) or 1)}.")
             return
         if raw.isdigit():
             idx = int(raw)
@@ -53206,7 +53465,7 @@ class Session:
                 marker = " [ZAŁOŻONE]" if item_id == current_id else ""
                 await self.send(
                     f"{idx}. {item.get('name', item_id)}. "
-                    f"Biegłość {mastery}. "
+                    f"Level postaci {int(item.get('required_character_level', mastery) or mastery)}. "
                     f"{CLASS_SET_STAT_NAMES.get(item.get('affix'), item.get('affix'))} "
                     f"+{int(item.get('affix_amount', 0) or 0)}; "
                     + ", ".join(
@@ -53708,8 +53967,9 @@ class Session:
 
         offers = []
         for class_name in selected:
-            mastery = self.class_mastery_level(class_name)
-            unlocked_tier = class_equipment_unlocked_tier(mastery)
+            # v0.30.35: klasowe EQ odblokowuje Level postaci, nie Biegłość klasy.
+            character_level = max(1, min(CHARACTER_MAX_LEVEL, int(self.character.character_level)))
+            unlocked_tier = class_equipment_unlocked_tier(character_level)
             offers.extend(
                 CLASS_EQUIPMENT_ITEMS_BY_CLASS_TIER
                 .get(class_name, {})
@@ -53726,8 +53986,8 @@ class Session:
         if required_class and required_class not in self.active_class_names():
             states.append(f"wymaga aktywnej klasy {required_class}")
         if item.get("type") == "armor" and not self.equipment_mastery_requirement_met(item):
-            required_mastery = max(1, int(item.get("required_mastery", 1)))
-            states.append(f"wymaga Biegłości {required_mastery}")
+            required_level = self.equipment_character_level_requirement(item)
+            states.append(f"wymaga Levelu postaci {required_level}")
         return "; ".join(states)
 
     def equipped_items_for_shop_item(self, item):
@@ -59985,13 +60245,8 @@ class Session:
         self.skill_guard = 0
         self.skill_evade = False
         self.skill_evade_lockout_until = 0.0
-        self.clear_skill_buffs()
-        loss_silver = self.character.silver // 10
-        loss_gold = self.character.gold // 10
-        loss_mithril = self.character.mithril // 10
-        self.character.silver -= loss_silver
-        self.character.gold -= loss_gold
-        self.character.mithril -= loss_mithril
+        # v0.30.35: śmierć jest bezstratna. Nie kasuje waluty, przedmiotów,
+        # EQ, progresji ani aktywnych 30-sekundowych buffów.
         self.character.deaths += 1
         self.server.db.add_lifetime_stat(self.account_id, "deaths", 1)
         old_room = self.character.room_id
@@ -60003,12 +60258,10 @@ class Session:
             old_room, f"{self.character.name} pada w walce.", exclude=self
         )
         await self.send(f"Pokonuje cię {killer}.")
-        if loss_silver or loss_gold or loss_mithril:
-            await self.send(
-                "Tracisz: "
-                + currency_reading_text(loss_silver, loss_gold, loss_mithril)
-                + "."
-            )
+        await self.send(
+            "Śmierć nie powoduje utraty waluty, przedmiotów, EQ ani progresji. "
+            "Aktywne buffy zachowują pozostały czas działania."
+        )
         await self.send("Twoja dusza odradza się w Świątyni Odrodzenia.")
         await self.look()
 
@@ -61424,6 +61677,7 @@ class Session:
 class MudServer:
     def __init__(self):
         self.db = Database(DB_PATH)
+        self.mine_startup_reset = self.db.reset_mine_for_server_start()
         self.world = World()
         self.sessions = set()
         self.parties = {}
@@ -63156,7 +63410,7 @@ def refresh_help_v03021_full():
         "shop / sklep / list / lista pokazuje numerowaną ofertę aktualnego sprzedawcy.",
         "shop info <numer> / sklep info <numer> pokazuje pełny opis, statystyki, wymagania, cenę po rabacie i porównanie z założonym EQ.",
         "kup <nazwa> albo kup <numer> kupuje przedmiot; np. kup 9 albo kup 9 3.",
-        "Klasowe sklepy EQ pokazują najlepszy odblokowany Tier dla aktywnej klasy i wszystkie 13 typów: hełm, pancerz, rękawice, nogawice, buty, talizman, pierścień, naszyjnik, naramienniki, pas, peleryna, karwasze i relikt.",
+        "Klasowe sklepy EQ pokazują najlepszy Tier odblokowany przez Level postaci dla aktywnej klasy i wszystkie 13 typów: hełm, pancerz, rękawice, nogawice, buty, talizman, pierścień, naszyjnik, naramienniki, pas, peleryna, karwasze i relikt.",
         "sprzedaj <nazwa> sprzedaje jedną wolną sztukę. Założone EQ i Character-Bound są chronione.",
         "sell all / sprzedaj wszystko sprzedaje wyłącznie niezałożone EQ. Nie sprzedaje mikstur, consumables, zwykłego lootu, materiałów, narzędzi ani quest itemów.",
         "Zasoby profesyjne sprzedaje się osobno u właściwych fachowców; hurtowo działają istniejące komendy wszystko siatka/sakwa/stos/torba.",
@@ -63168,7 +63422,7 @@ def refresh_help_v03021_full():
         "Pierścienie i talizmany zakładają się automatycznie: załóż <nazwa>, zp <numer> albo zt <numer> używa wolnego slotu; przy dwóch zajętych zastępuje słabszy.",
         "Ręczny wybór pozostaje: zp1/zp2 dla pierścieni oraz zt1/zt2 dla talizmanów.",
         "Skróty: zh hełm, zz zbroja, zr rękawice, zn nogi, zb buty, zna naszyjnik, znar naramienniki, zpas pas, zpel peleryna, zkar karwasze, zrel relikt.",
-        "Biegłość klasy odblokowuje klasowe EQ na progach 1, 10, 20...400. Generator może balansować liczby, ale nie zmienia klas, slotów ani progów.",
+        "Level postaci odblokowuje EQ na progach 1, 10, 20...400. Biegłość klasy nadal odblokowuje skille/spelle, ale nie jest bramą założenia EQ.",
     ]
     HELP_TOPICS["sety_klasowe"] = [
         "Każda z 12 klas ma klasowe linie EQ obejmujące 13 typów wyposażenia.",
@@ -64137,6 +64391,339 @@ if PARTY_ROLES_AUDIT_V03032.get("error_count"):
         "Party Roles Audit v0.30.32 failed: "
         + "; ".join(PARTY_ROLES_AUDIT_V03032.get("errors", [])[:20])
     )
+
+# ============================================================
+# v0.30.33 - UNIQUE TOOL TIER NAMES + RENEWABLE TAILOR QUEST
+# ============================================================
+def tool_tier_name_audit_v03033():
+    errors = []
+    checked = 0
+    for tool_type, names in TOOL_TIER_NAMES.items():
+        checked += len(names)
+        if len(names) != TOOL_MAX_TIER:
+            errors.append(f"{tool_type}: {len(names)} nazw, oczekiwano {TOOL_MAX_TIER}")
+        normalized = [str(name).strip().casefold() for name in names]
+        if len(set(normalized)) != len(normalized):
+            seen = set()
+            duplicates = []
+            for name in normalized:
+                if name in seen and name not in duplicates:
+                    duplicates.append(name)
+                seen.add(name)
+            errors.append(f"{tool_type}: duplikaty {duplicates[:5]}")
+    quest = QUESTS.get("city_tailor_guard_delivery", {})
+    if not quest.get("repeatable"):
+        errors.append("city_tailor_guard_delivery nie jest repeatable")
+    if int(quest.get("repeat_cooldown", 0) or 0) != int(QUEST_REPEAT_COOLDOWN_SECONDS):
+        errors.append("city_tailor_guard_delivery ma zły cooldown")
+    return {
+        "version": "0.30.33",
+        "tool_names_checked": checked,
+        "expected_tool_names": len(TOOL_TIER_NAMES) * TOOL_MAX_TIER,
+        "tailor_quest_repeatable": bool(quest.get("repeatable")),
+        "error_count": len(errors),
+        "errors": errors,
+    }
+
+TOOL_TIER_NAME_AUDIT_V03033 = tool_tier_name_audit_v03033()
+if TOOL_TIER_NAME_AUDIT_V03033.get("error_count"):
+    raise RuntimeError(
+        "Tool Tier Name Audit v0.30.33 failed: "
+        + "; ".join(TOOL_TIER_NAME_AUDIT_V03033.get("errors", [])[:20])
+    )
+
+HELP_TOPICS.setdefault("narzedzia", []).append(
+    "v0.30.33: wszystkie 40 Tierów każdego z 8 narzędzi ma własną unikalną nazwę; usunięto powtarzanie nazwy Tieru 20 z dopiskami +210, +220 itd."
+)
+HELP_TOPICS.setdefault("quest", []).append(
+    "Miejska przysługa Krawcowej Lysy: Mundury dla straży jest odnawialna co 60 minut. Po ponownym przyjęciu postęp zaczyna się od 0/1 i trzeba ponownie wykonać dostawę."
+)
+HELP_TOPICS.setdefault("wersja", []).append(
+    "v0.30.33: unikalne nazwy wszystkich Tierów narzędzi oraz odnawialne co 60 minut zadanie Krawcowej Lysy."
+)
+LATEST_CHANGES = [
+    "v0.30.33: 8 narzędzi ma po 40 unikalnych nazw Tierów; łącznie 320 nazw bez duplikatów w obrębie narzędzia.",
+    "v0.30.33: usunięto nazwy typu Wędka Wiecznego Oceanu +210/+220; Tiery 21-40 mają osobne nazwy tematyczne.",
+    "v0.30.33: quest Krawcowej Lysy - Mundury dla straży - jest odnawialny co 60 minut i przy ponownym przyjęciu zaczyna od 0/1.",
+    "Brak wipe.",
+] + LATEST_CHANGES
+LATEST_CHANGES_TITLE = "Soulbound v0.30.33 - Unique Tool Tiers + Renewable Tailor Quest"
+
+
+# ============================================================
+# v0.30.34 - HALDOR STEEL PLATE CORPSE QUEST FIX
+# ============================================================
+def haldor_steel_plate_corpse_audit_v03034():
+    errors = []
+    q = QUESTS.get("haldor_steel_recycling", {})
+    if q.get("target") != "salvaged_steel_plate" or int(q.get("needed", 0) or 0) != 4:
+        errors.append("haldor_steel_recycling target/needed")
+    sources = {
+        "cemetery_steel_skeleton": 0.72,
+        "cemetery_restless_dead": 0.28,
+        "cemetery_bone_collector": 0.42,
+    }
+    for mid, expected in sources.items():
+        t = MOB_TEMPLATES.get(mid, {})
+        if "salvaged_steel_plate" in (t.get("drops") or {}):
+            errors.append(f"{mid}: plate still in direct drops")
+        actual = float((t.get("corpse_material_chances") or {}).get("salvaged_steel_plate", -1))
+        if abs(actual - expected) > 1e-9:
+            errors.append(f"{mid}: corpse chance={actual} expected={expected}")
+    if ITEMS.get("salvaged_steel_plate", {}).get("type") != "craft_material":
+        errors.append("plate is not craft_material")
+    if "salvaged_steel_plate" not in CRAFT_MATERIAL_STORAGE_IDS:
+        errors.append("plate missing from craftbox routing")
+    return {"version":"0.30.34","sources":len(sources),"error_count":len(errors),"errors":errors}
+
+HALDOR_STEEL_PLATE_CORPSE_AUDIT_V03034 = haldor_steel_plate_corpse_audit_v03034()
+if HALDOR_STEEL_PLATE_CORPSE_AUDIT_V03034.get("error_count"):
+    raise RuntimeError("Haldor Steel Plate Corpse Audit v0.30.34 failed: " + "; ".join(HALDOR_STEEL_PLATE_CORPSE_AUDIT_V03034["errors"]))
+
+HELP_TOPICS.setdefault("kowalstwo", []).extend([
+    "v0.30.34: quest Stal do Przetopu wymaga odzyskania Stalowych Płyt z ciał opancerzonych nieumarłych.",
+    "Płyta pojawia się na ciele. Użyj ciało, przeszukaj ciało albo weź Stalową Płytę z ciała. Dopiero zabranie płyty zalicza postęp 0/4 i przenosi ją do Szkatułki Rzemieślniczej.",
+])
+HELP_TOPICS.setdefault("quest", []).append(
+    "v0.30.34: Stal do Przetopu — Stalowe Płyty są realnym lootem z ciał na Starym Cmentarzu; samo zabicie moba nie zalicza płyty."
+)
+LATEST_CHANGES_TITLE = "Soulbound v0.30.34 - Haldor Steel Plate Corpse Fix"
+LATEST_CHANGES = [
+    "Naprawiono quest Haldora Stal do Przetopu: Stalowa Płyta z Pancerza pojawia się na ciele opancerzonego nieumarłego zamiast wpadać bezpośrednio do magazynu.",
+    "Postęp 0/4 zwiększa się dopiero po zabraniu płyty z ciała; płyta następnie trafia do Szkatułki Rzemieślniczej.",
+    "Szanse zachowane: Szkielet w Stalowym Kirysie 72%, Niespokojny Umarły 28%, Zbieracz Kości 42%.",
+    "Generator Core pozostaje v0.30.24. Brak wipe.",
+] + LATEST_CHANGES
+
+
+
+# ============================================================
+# v0.30.35 - BROKEN BLADES QUEST + LOSSLESS DEATH
+# ============================================================
+def v03035_broken_blades_and_death_audit():
+    errors = []
+    quest = QUESTS.get("haldor_broken_blades_v0929", {})
+    if quest.get("target") != "damaged_weapon_v0929" or int(quest.get("needed", 0) or 0) != 6:
+        errors.append("broken blades target/needed")
+    if not quest.get("repeatable"):
+        errors.append("broken blades not repeatable")
+    for mob_id in V03035_BROKEN_BLADE_SOURCES:
+        template = MOB_TEMPLATES.get(mob_id)
+        if not template:
+            errors.append(f"missing source mob: {mob_id}")
+            continue
+        if v0929_kill_drop_item("haldor_broken_blades_v0929", mob_id, template) != "damaged_weapon_v0929":
+            errors.append(f"source not recognized: {mob_id}")
+    import inspect as _inspect_v03035
+    die_src = _inspect_v03035.getsource(Session.die)
+    forbidden = (
+        "self.character.silver -=",
+        "self.character.gold -=",
+        "self.character.mithril -=",
+        "remove_item(",
+        "remove_storage_item(",
+        "clear_skill_buffs()",
+    )
+    for token in forbidden:
+        if token in die_src:
+            errors.append(f"death still removes state: {token}")
+    return {
+        "version": "0.30.35",
+        "broken_blade_sources": len(V03035_BROKEN_BLADE_SOURCES),
+        "error_count": len(errors),
+        "errors": errors,
+    }
+
+V03035_AUDIT = v03035_broken_blades_and_death_audit()
+if V03035_AUDIT.get("error_count"):
+    raise RuntimeError(
+        "Broken Blades + Lossless Death Audit v0.30.35 failed: "
+        + "; ".join(V03035_AUDIT.get("errors", [])[:30])
+    )
+
+HELP_TOPICS["śmierć"] = (
+    "Po śmierci postać odradza się w Świątyni Odrodzenia z pełnym HP i Maną. "
+    "Nie traci waluty, przedmiotów, EQ, XP, Biegłości, Soul XP, profesji ani poziomów narzędzi. "
+    "Aktywne buffy zachowują pozostały czas działania."
+)
+HELP_TOPICS["smierc"] = HELP_TOPICS["śmierć"]
+HELP_TOPICS["death"] = HELP_TOPICS["śmierć"]
+HELP_TOPICS.setdefault("questy godzinne", []).append(
+    "v0.30.35: Złamane ostrza 0/6 działa na jawnej liście uzbrojonych nieumarłych Starego Cmentarza; każdy kwalifikujący się kill daje 1 Uszkodzone Ostrze i natychmiast zwiększa postęp."
+)
+HELP_TOPICS.setdefault("kowalstwo", []).append(
+    "v0.30.35: Złamane ostrza nie zależy już od przypadkowego słowa w nazwie moba; źródła na Starym Cmentarzu są jawnie oznaczone."
+)
+HELP_TOPICS.setdefault("wersja", []).append(
+    "v0.30.35: naprawiono Złamane ostrza oraz usunięto wszystkie trwałe kary śmierci."
+)
+LATEST_CHANGES_TITLE = "Soulbound v0.30.35 - Broken Blades + Lossless Death"
+LATEST_CHANGES = [
+    "v0.30.35: Złamane ostrza 0/6 ma jawne źródła na Starym Cmentarzu i nie zależy już wyłącznie od tekstu nazwy przeciwnika.",
+    "v0.30.35: każdy kwalifikujący się kill przy aktywnym queście daje 1 Uszkodzone Ostrze i od razu podnosi postęp.",
+    "v0.30.35: śmierć nie zabiera już 10% waluty ani żadnych przedmiotów, EQ czy progresji.",
+    "v0.30.35: aktywne 30-sekundowe buffy nie są kasowane przez śmierć; zachowują pozostały czas.",
+    "Po śmierci gracz odradza się w Świątyni z pełnym HP i Maną. Brak wipe.",
+] + LATEST_CHANGES
+
+
+# ============================================================
+# v0.30.35 - CHARACTER LEVEL EQ + RELATED QUEST FLOW AUDIT
+# ============================================================
+# `required_mastery` remains a historical numeric tier field for item identity,
+# balance and save compatibility. Runtime equipment gating uses Character Level.
+for _item_id, _item in ITEMS.items():
+    if _item.get("type") != "armor":
+        continue
+    _req = max(1, min(CHARACTER_MAX_LEVEL, int(_item.get("required_mastery", 1) or 1)))
+    _item["required_character_level"] = _req
+    _desc = str(_item.get("desc") or "")
+    _desc = _desc.replace("Biegłości aktywnej klasy ", "Levelu postaci ")
+    _desc = _desc.replace("i Biegłości ", "i Levelu postaci ")
+    _desc = _desc.replace("Tier: Biegłość ", "Tier EQ: Level ")
+    _item["desc"] = _desc
+
+
+def v03035_related_quest_flow_audit():
+    errors = []
+    recipe_outputs = {
+        str(recipe.get("output"))
+        for table in (CRAFT_RECIPES, COOK_RECIPES, ALCHEMY_RECIPES, JEWELCRAFT_RECIPES)
+        for recipe in table.values()
+        if recipe.get("output")
+    }
+    category_targets = {"fish", "fish_river", "ore", "wood", "herb"}
+    checked = 0
+    for quest_id, quest in QUESTS.items():
+        kind = quest.get("kind")
+        if kind == "collect":
+            checked += 1
+            target = quest.get("target")
+            if target not in ITEMS:
+                errors.append(f"{quest_id}: missing collect target {target}")
+            if quest.get("track_craft_progress") and target not in recipe_outputs:
+                errors.append(f"{quest_id}: craft target has no recipe {target}")
+        elif kind == "collect_category":
+            checked += 1
+            if quest.get("target") not in category_targets:
+                errors.append(f"{quest_id}: unknown category {quest.get('target')}")
+        elif kind == "collect_resource":
+            checked += 1
+            if quest.get("target") not in ITEMS:
+                errors.append(f"{quest_id}: missing resource {quest.get('target')}")
+        elif kind == "collect_resource_set":
+            checked += 1
+            requirements = dict(quest.get("resource_targets") or {})
+            if not requirements:
+                errors.append(f"{quest_id}: empty resource set")
+            if sum(max(1, int(v)) for v in requirements.values()) != int(quest.get("needed", 0) or 0):
+                errors.append(f"{quest_id}: resource-set needed mismatch")
+            for target in requirements:
+                if target not in ITEMS:
+                    errors.append(f"{quest_id}: missing set resource {target}")
+        elif kind == "craft_set":
+            checked += 1
+            for target in quest.get("targets") or ():
+                if target not in recipe_outputs:
+                    errors.append(f"{quest_id}: craft-set target has no recipe {target}")
+
+    special_sources = {
+        "haldor_broken_blades_v0929": "damaged_weapon_v0929",
+        "haldor_armor_recycling_v0929": "heavy_armor_fragment_v0929",
+        "orin_toxic_glands_v0929": "toxic_gland_v0929",
+    }
+    source_counts = {}
+    for quest_id, expected_item in special_sources.items():
+        matches = 0
+        for mob_id, template in MOB_TEMPLATES.items():
+            if v0929_kill_drop_item(quest_id, mob_id, template) == expected_item:
+                matches += 1
+        source_counts[quest_id] = matches
+        if matches <= 0:
+            errors.append(f"{quest_id}: no kill sources")
+
+    ordinary_item_sources = {
+        "soul_shards": "soul_shard",
+        "stolen_mountain_ores": "stolen_mountain_ore",
+    }
+    for quest_id, item_id in ordinary_item_sources.items():
+        if not any(item_id in (template.get("drops") or {}) for template in MOB_TEMPLATES.values()):
+            errors.append(f"{quest_id}: no mob drop source for {item_id}")
+
+    return {
+        "version": "0.30.35",
+        "quests_checked": checked,
+        "special_source_counts": source_counts,
+        "error_count": len(errors),
+        "errors": errors,
+    }
+
+V03035_RELATED_QUEST_FLOW_AUDIT = v03035_related_quest_flow_audit()
+if V03035_RELATED_QUEST_FLOW_AUDIT.get("error_count"):
+    raise RuntimeError(
+        "Related Quest Flow Audit v0.30.35 failed: "
+        + "; ".join(V03035_RELATED_QUEST_FLOW_AUDIT.get("errors", [])[:40])
+    )
+
+
+def v03035_equipment_level_audit():
+    errors = []
+    armor = 0
+    for item_id, item in ITEMS.items():
+        if item.get("type") != "armor":
+            continue
+        armor += 1
+        req = int(item.get("required_character_level", 0) or 0)
+        expected = max(1, min(CHARACTER_MAX_LEVEL, int(item.get("required_mastery", 1) or 1)))
+        if req != expected:
+            errors.append(f"{item_id}: level={req} expected={expected}")
+    if not hasattr(Session, "enforce_equipment_character_level"):
+        errors.append("missing equipment level enforcement")
+    return {"version":"0.30.35","armor_checked":armor,"error_count":len(errors),"errors":errors}
+
+V03035_EQUIPMENT_LEVEL_AUDIT = v03035_equipment_level_audit()
+if V03035_EQUIPMENT_LEVEL_AUDIT.get("error_count"):
+    raise RuntimeError(
+        "Equipment Character Level Audit v0.30.35 failed: "
+        + "; ".join(V03035_EQUIPMENT_LEVEL_AUDIT.get("errors", [])[:40])
+    )
+
+HELP_TOPICS["smierc"] = [
+    "Po śmierci postać odradza się w Świątyni Odrodzenia z pełnym HP i Maną.",
+    "Śmierć nie zabiera waluty, przedmiotów, EQ, EXP postaci, Biegłości, Soul XP, profesji ani poziomów narzędzi.",
+    "Aktywne 30-sekundowe buffy zachowują pozostały czas działania. Licznik śmierci i system Nemesis mogą nadal rejestrować zdarzenie, ale nie są karą majątkową ani progresyjną.",
+]
+HELP_TOPICS["śmierć"] = HELP_TOPICS["smierc"]
+HELP_TOPICS["death"] = HELP_TOPICS["smierc"]
+HELP_TOPICS["eq"] = [
+    "equipment / eq pokazuje założone wyposażenie oraz Broń Duszy; eq info pokazuje szczegóły, bonusy, sockety i aktywne sety.",
+    "EQ jest bramkowane przez Level postaci 1-400. Przykład: przedmiot wymagający Levelu 40 można posiadać wcześniej, ale nie można go założyć ani kupić przed Levelem 40.",
+    "Klasowe EQ nadal wymaga aktywnej właściwej klasy. Biegłość klasy odblokowuje skille i spelle, ale nie jest już wymogiem założenia EQ.",
+    "Przy logowaniu EQ ponad aktualny Level postaci jest automatycznie zdejmowane, ale pozostaje w inventory; nic nie przepada.",
+    "Pierścienie i talizmany zakładają się automatycznie: załóż <nazwa>, zp <numer> albo zt <numer> używa wolnego slotu; przy dwóch zajętych zastępuje słabszy.",
+]
+HELP_TOPICS["ekwipunek"] = HELP_TOPICS["eq"]
+HELP_TOPICS.setdefault("questy godzinne", []).append(
+    "v0.30.35: wykonano pełny audit podobnych questów. Złamane ostrza, Pancerz do przetopu, Toksyczne gruczoły, Dzisiejszy połów, Próbki rudy, Drewno na naprawy, Zestaw dla uzdrowiciela i Nieumarli znów wstali mają działające źródła oraz postęp 0/x."
+)
+HELP_TOPICS.setdefault("wersja", []).append(
+    "v0.30.35: EQ zależy od Levelu postaci; pełny audit collect/resource questów nie wykazał brakujących targetów ani martwych źródeł."
+)
+HELP_TOPICS.setdefault("kopalnia_200", []).append(
+    "v0.30.35: przy każdym starcie serwera/deployu Kopalnia Głębinowa resetuje odblokowaną głębokość do poziomu 1 i zeruje postęp ściany. Górnictwo, Kilof, Sakwa, przedmioty i pozostała progresja nie są resetowane. Postać zapisana na piętrze Kopalni wraca do wejścia."
+)
+HELP_TOPICS.setdefault("gornictwo", []).append(
+    "v0.30.35: deploy/restart procesu resetuje tylko przejście Kopalni Głębinowej: głębokość i ścianę. Level Górnictwa, Kilofa i zdobyty urobek zostają."
+)
+LATEST_CHANGES_TITLE = "Soulbound v0.30.35 - Quest Integrity + Lossless Death + Character Level EQ + Mine Reset"
+LATEST_CHANGES = [
+    "v0.30.35: naprawiono Złamane ostrza i przetestowano 0/6 -> 1/6 na świeżej bazie.",
+    "v0.30.35: audit objął wszystkie collect, collect_category, collect_resource, collect_resource_set i craft_set; brak brakujących targetów i martwych źródeł.",
+    "v0.30.35: śmierć jest całkowicie bezstratna dla waluty, przedmiotów, EQ i całej progresji; respawn daje pełne HP i Manę.",
+    "v0.30.35: wymagania EQ są oparte na Levelu postaci 1-400; Biegłość klasy pozostaje systemem skilli/spelli.",
+    "v0.30.35: przy logowaniu zbyt wysokie EQ jest zdejmowane do inventory, nigdy usuwane.",
+    "v0.30.35: po starcie serwera/deployu Kopalnia Głębinowa wraca do poziomu 1 i zerowej ściany; Górnictwo, Kilof i loot pozostają bez zmian. Brak wipe postaci.",
+] + LATEST_CHANGES
 
 if __name__ == "__main__":
     main()
