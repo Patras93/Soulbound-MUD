@@ -1,3 +1,49 @@
+Soulbound v0.30.23 — Accessible Exits
+
+- `exits` pokazuje teraz każdy dostępny kierunek razem z nazwą lokacji, do której prowadzi, zamiast czytać same kierunki.
+- Dodano krótki alias `ex`, działający identycznie jak `exits`.
+- Domyślny odczyt jest zwięzły pod NVDA, np. `północ — Północna Ulica; wschód — Targ Rybny`.
+- `exits info` pozostaje wariantem rozszerzonym: dodaje strefę i ocenę zagrożenia celu.
+- Lazy/runtime wyjścia próbują zmaterializować sąsiednią lokację tylko do odczytania prawdziwej nazwy; postać nie jest poruszana.
+- Pełny test regresji v0.30.22 nadal przechodzi: 20 audytów, 1122 statyczne lokacje, 2772 skierowane przejścia, 31 lazy-exitów i 69 próbek runtime do piętra 1000.
+- Topologia, balans, ekonomia, Generator Core i schemat bazy danych bez zmian. Brak wipe.
+
+Soulbound v0.30.22 — Full Regression + World Integrity
+
+- Pełny ponowny regression pass całej gry przed finalnym pakowaniem. v0.30.22 bazuje bez wipe na v0.30.21.
+- Dodano wspólny Full Release Integrity Audit, który blokuje start przy zerwaniu któregokolwiek aktywnego audytu Generator Core, topologii, całej gry, walki, EQ, HELP lub ekonomii.
+- Statyczny świat jest sprawdzany pokój po pokoju: nazwa, strefa, opis, poprawne kierunki, brak self-exitów, wzajemność zwykłych wyjść, pełna osiągalność ze square i pełna droga powrotna.
+- Lazy runtime exits są jawnie walidowane jako wejścia do znanych generatorów: Krypty, Mitycznej Krypty, Wieży Astralnej, Mitycznej Wieży, Twierdzy Gigantów, Kopalni, lochów profesyjnych, frontierów, Endless i Megadungeonów.
+- Zweryfikowano tereny profesji: miejsca i trasy Wędkarstwa, Górnictwa, Drwalstwa i Zielarstwa oraz pokoje prowadzenia do profesji i sklepy narzędziowe.
+- Zweryfikowano referencje zasobów, sklepów, spawnów, NPC i pełnego klasowego EQ.
+- Generator Core pozostaje v0.30.21 Numeric-Only + Whitelist Guard; v0.30.22 nie zmienia balansu ani semantyki świata.
+- Osobny test runtime generuje próbki wszystkich nieskończonych/leniwych instancji na poziomach granicznych aż do 1000 i waliduje utworzone pokoje, wyjścia i spawny.
+- Brak wipe.
+
+Soulbound v0.30.21 — Full HELP + Unified Currency Economy
+
+- Pełny audit całego systemu HELP: 233 tematy i 497 aliasów; stare teksty o 8-częściowym EQ, starej kolejce i sprzedaży hurtowej zostały zastąpione finalną warstwą pomocy.
+- Klasowe sklepy EQ audytowane dla 12 klas i wszystkich 13 typów wyposażenia; opisy sal gildii mówią już o 13-elementowym EQ.
+- Jedno wspólne saldo jest zawsze normalizowane do najwyższych nominałów: mithril, złoto, srebro. 1000 srebra = 1 złota; 2500 srebra = 2 złota, 500 srebra.
+- Ta sama normalizacja obowiązuje przy zarabianiu, wydawaniu, zakupie, sprzedaży, banku i komunikatach nagród.
+- Nagrody questów zostały przebudowane: każdy zwykły quest daje co najmniej równowartość 1 złota + resztę w srebrze; wysokie poziomy rosną w złocie, a mithril pojawia się dopiero w późnym endgame.
+- Naprawiono ceny 8 podstawowych narzędzi. Nie zależą już od przypadkowego generator_level przedmiotu; kosztują około 1 złota 386–544 srebra.
+- Generator Core pozostaje Numeric-Only + Whitelist Guard; zmieniono tylko dozwolone formuły ekonomiczne.
+- Full Game Audit: 0 błędów / 0 ostrzeżeń. Brak wipe.
+
+v0.30.20 — Expanded EQ + Safe Sell All + Easy Jewelry
+- Dodano 5 nowych slotów EQ: Naramienniki, Pas, Peleryna, Karwasze i Relikt. Łącznie klasowe wyposażenie ma teraz 13 logicznych slotów.
+- Wszystkie 12 klas otrzymuje nowe sloty w pełnej progresji Biegłości 1, 10, 20...400; nazwy pozostają unikalne i zachowują klasowe profile statów.
+- Nowe sloty mają różne role: Naramienniki/Pas bardziej defensywne, Karwasze bardziej ofensywne, Peleryna bardziej utility, Relikt ma mocniejszy profil klasowy.
+- Zestawy nadal mają progi bonusów 2/4/6/8; dodatkowe sloty zwiększają wybór i nie dodają nowego progu setowego.
+- sell all / sprzedaj wszystko sprzedaje wyłącznie NIEZAŁOŻONE EQ z inventory. Nigdy nie sprzedaje mikstur, consumables, lootu, materiałów, narzędzi, quest itemów ani założonego EQ.
+- Hurtowa sprzedaż profesyjna pozostaje osobna: wszystko siatka/sakwa/stos/torba nadal sprzedaje odpowiednie zasoby u właściwego fachowca.
+- Pierścienie i talizmany nie wymagają już ręcznego wyboru slotu 1/2. Wybrany przedmiot trafia najpierw do wolnego slotu; gdy oba są zajęte, zastępuje słabszy.
+- Dodano skróty: zp (pierścienie auto), zt (talizmany auto), znar (naramienniki), zpas (pas), zpel (peleryna), zkar (karwasze), zrel (relikt). zp1/zp2 i zt1/zt2 nadal wymuszają konkretny slot.
+- HELP zaktualizowany dla nowych slotów, prostszego zakładania biżuterii i bezpiecznego sell all.
+- Generator Core pozostaje v0.30.19 Whitelist Guard i przechodzi bez zmian: whitelist + Semantic Guard PASS.
+- Full Game Audit: 0 błędów / 0 ostrzeżeń. Brak wipe.
+
 v0.30.19 — Generator Core Whitelist Guard
 - Generator Core ma teraz jawną białą listę zapisu zamiast samej ogólnej zasady NUMERIC-ONLY.
 - Każdy zapis do mobów, itemów/EQ, questów, skilli/spelli, receptur, pokoi i liczbowych domen Soul przechodzi przez bezpieczny setter sprawdzający domenę, pole i typ liczbowy.
