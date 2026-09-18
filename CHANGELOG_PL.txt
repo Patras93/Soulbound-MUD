@@ -1,3 +1,15 @@
+Soulbound v0.30.32 — Party Roles + Class Help Catalogs
+
+- Moby w walce drużynowej mogą wybierać różnych żywych członków party w tej samej lokacji; Strażnik z aktywnym `zasłoń` zachowuje priorytet przejmowania ataków.
+- Kapłan automatycznie reaguje na rannego członka drużyny w tej samej lokacji, nie tylko lidera. Wybiera dostępne leczenie z zachowaniem Many, cooldownu, nauczenia skilla i Biegłości; przy kilku rannych może użyć leczenia grupowego.
+- Wszystkie skille typu boost nakładają 30-sekundowy buff także na członków drużyny w tej samej lokacji. Aktywacja i wygaśnięcie są komunikowane NVDA.
+- Party Combat Feed z v0.30.31 pozostaje aktywny: członkowie widzą kto, czym i za ile uderza.
+- Dodano osobny HELP dla wszystkich 12 klas: `help wojownik`, `help berserker`, `help łotrzyk`, `help łowca`, `help mnich`, `help strażnik`, `help mag`, `help nekromanta`, `help kapłan`, `help czarownik`, `help druid`, `help psionik`.
+- `skills all` pokazuje pełną pulę 1476 skilli/spelli wszystkich klas, pogrupowaną klasami i porcjami po 20 nazw dla NVDA.
+- `spells all` pokazuje pełną pulę 738 czarów sześciu klas magicznych. Alias `spels all` i `czary all` również działa.
+- `skills <klasa>` oraz `spells <klasa magiczna>` ograniczają katalog do wybranej klasy.
+- Generator Core pozostaje v0.30.24. Brak wipe.
+
 Soulbound v0.30.30 - 30-Second Buffs + NVDA Lifecycle
 
 - Wszystkie bojowe buffy typu boost trwają dokładnie 30 sekund.

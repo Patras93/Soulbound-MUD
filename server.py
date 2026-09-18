@@ -51,7 +51,7 @@ dynamic_world_v029 = _load_embedded_runtime_module('dynamic_world_v029', _EMBEDD
 _EMBEDDED_WORLD_LOGIC_VALIDATOR_SOURCE = '"""Soulbound v0.30.0 Semantic World Logic Validator.\n\nThe topology may be procedural, but geography must remain understandable.\nThis validator checks semantic gateway rules, vertical movement semantics,\nworld reachability, reciprocal navigation and deterministic topology output.\n"""\nfrom __future__ import annotations\n\nfrom collections import defaultdict, deque\nimport hashlib\nimport json\n\nVERSION = "0.30.0"\nHORIZONTAL = ("north","east","south","west","northeast","southeast","southwest","northwest")\nOPPOSITE = {\n    "north":"south","south":"north","east":"west","west":"east",\n    "northeast":"southwest","southwest":"northeast",\n    "northwest":"southeast","southeast":"northwest",\n    "up":"down","down":"up",\n}\n\n\ndef _norm(text):\n    return str(text or "").casefold()\n\n\ndef zone_family(zone: str) -> str:\n    z=_norm(zone)\n    if any(k in z for k in ("miasto dusz","gildia dusz","pracownia kartografa")):\n        return "urban"\n    if any(k in z for k in ("przedmieścia","przedmiescia","wioska","osada","posterunek","obóz straży","oboz strazy","przystań","przystan")):\n        return "settlement"\n    if any(k in z for k in ("kanały","kanaly","podziemia","krypt","jaskini","jaskinie","nekropolia","katakumb","kopal")):\n        return "underground"\n    if any(k in z for k in ("góry","gory","lodowe","twierdza gigant")):\n        return "highland"\n    if any(k in z for k in ("popielne","rozbite niebo","pustki","korona świata","korona swiata","rubież końca","rubiez konca")):\n        return "endgame"\n    if any(k in z for k in ("próba","proba","arena","archiwum otchłani","archiwum otchlani","katedra tysiąca","katedra tysiaca","kuźnia pierwszych","kuznia pierwszych","labirynt wiecznych","pałac bezimiennej","palac bezimiennej")):\n        return "instance"\n    if "proceduralny region:" in z:\n        return "expedition"\n    if any(k in z for k in ("ocean","wybrzeże","wybrzeze","jezior","dolina rzek")):\n        return "waterland"\n    return "wilderness"\n\n\ndef _gateway_semantic(rid: str, room: dict, direction: str, target_id: str, target: dict) -> bool:\n    """True when a cross-zone edge has a believable semantic transition."""\n    if direction in ("up","down"):\n        return True\n    src=_norm(rid)+" "+_norm(room.get("name"))\n    dst=_norm(target_id)+" "+_norm(target.get("name"))\n    gateway_words=(\n        "gate","brama","harbor","port","pier","molo","road","trakt","path","szlak",\n        "pass","przełęcz","przelecz","bridge","most","entrance","wejście","wejscie",\n        "mouth","wylot","frontier","rubież","rubiez","gateway","portal","archive","archiw",\n        "hall","hala","lobby","warsztat kartograf","cartographer","watchpost","posterunek",\n        "camp","obóz","oboz","v0130_gateway","v028_region_gate",\n    )\n    return any(k in src or k in dst for k in gateway_words)\n\n\ndef _reachable(rooms, start):\n    if start not in rooms:\n        return set()\n    seen={start}; q=deque([start])\n    while q:\n        cur=q.popleft()\n        for target in rooms[cur].get("exits",{}).values():\n            if target in rooms and target not in seen:\n                seen.add(target); q.append(target)\n    return seen\n\n\ndef topology_fingerprint(rooms):\n    payload=[]\n    for rid in sorted(rooms):\n        exits=rooms[rid].get("exits",{}) or {}\n        payload.append((rid,tuple(sorted((str(k),str(v)) for k,v in exits.items()))))\n    raw=json.dumps(payload,ensure_ascii=False,separators=(",",":"))\n    return hashlib.sha256(raw.encode("utf-8")).hexdigest()\n\n\ndef validate_world_logic(rooms: dict) -> dict:\n    errors=[]; warnings=[]; cross=[]; vertical=[]\n    if not isinstance(rooms,dict):\n        return {"version":VERSION,"error_count":1,"errors":["ROOMS is not dict"]}\n\n    # References and reciprocal navigation for every static edge.\n    for rid,room in rooms.items():\n        exits=room.get("exits",{}) or {}\n        for direction,target_id in exits.items():\n            if target_id not in rooms:\n                # Runtime/lazy destination; validated by its own materializer.\n                continue\n            target=rooms[target_id]\n            if direction in OPPOSITE:\n                reverse=OPPOSITE[direction]\n                if target.get("exits",{}).get(reverse)!=rid:\n                    # Some explicit gauntlet finales remain one-way by design; require a\n                    # global return path instead of pretending the exact edge is reciprocal.\n                    if not (room.get("procedural_dynamic") or target.get("procedural_dynamic")):\n                        warnings.append(f"one-way {rid}.{direction}->{target_id}")\n            z1=str(room.get("zone") or "Bez strefy")\n            z2=str(target.get("zone") or "Bez strefy")\n            if direction in ("up","down"):\n                vertical.append((rid,direction,target_id))\n            if z1!=z2:\n                cross.append((rid,direction,target_id,z1,z2))\n                f1,f2=zone_family(z1),zone_family(z2)\n                semantic_gateway=_gateway_semantic(rid,room,direction,target_id,target)\n                # Granice naturalnych biomów (np. łąka -> rzeka -> dzicz) mogą\n                # przechodzić bez sztucznej bramy. Twarda semantyczna brama jest\n                # wymagana, gdy opuszczamy/wchodzimy do huba miejskiego.\n                if (f1=="urban") != (f2=="urban") and not semantic_gateway:\n                    errors.append(f"urban boundary without semantic gateway: {rid}.{direction}->{target_id} ({z1}->{z2})")\n                # Miasto nie może być bezpośrednim sąsiadem gór/endgame. Nawet\n                # prawdziwa brama miejska ma prowadzić najpierw do traktu/przedmieść.\n                if f1=="urban" and f2 in {"highland","endgame"} and direction not in ("up","down"):\n                    errors.append(f"urban direct jump to {f2}: {rid}.{direction}->{target_id}")\n                if f2=="urban" and f1 in {"highland","endgame"} and direction not in ("up","down"):\n                    errors.append(f"{f1} direct jump to urban: {rid}.{direction}->{target_id}")\n\n    # v0.30 generator nie używa up/down jako GENERATED_DIRS. Każde pionowe\n    # przejście obecne tutaj pochodzi więc z semantycznej tożsamości świata\n    # (schody, piwnica, wieża, krypta, jaskinia, portal) albo z generatora\n    # dedykowanej instancji, a nie z losowego łączenia topologii.\n\n    reachable=_reachable(rooms,"square")\n    if len(reachable)!=len(rooms):\n        missing=sorted(set(rooms)-reachable)\n        errors.append(f"unreachable from square: {len(missing)} rooms; sample {missing[:10]}")\n\n    # Every static room must have some route back to the hub. Reverse-graph BFS.\n    rev=defaultdict(list)\n    for rid,room in rooms.items():\n        for target in room.get("exits",{}).values():\n            if target in rooms: rev[target].append(rid)\n    can_return=set()\n    if "square" in rooms:\n        can_return={"square"}; q=deque(["square"])\n        while q:\n            cur=q.popleft()\n            for source in rev.get(cur,[]):\n                if source not in can_return:\n                    can_return.add(source); q.append(source)\n    if len(can_return)!=len(rooms):\n        missing=sorted(set(rooms)-can_return)\n        errors.append(f"cannot return to square: {len(missing)} rooms; sample {missing[:10]}")\n\n    city=[rid for rid,r in rooms.items() if r.get("zone")=="Miasto Dusz"]\n    city_bad=[]\n    for rid in city:\n        for d,t in rooms[rid].get("exits",{}).items():\n            if t not in rooms: continue\n            z2=rooms[t].get("zone")\n            if z2=="Miasto Dusz": continue\n            if not _gateway_semantic(rid,rooms[rid],d,t,rooms[t]):\n                city_bad.append(f"{rid}.{d}->{t}")\n    if city_bad:\n        errors.append("city exits without gateway semantics: "+", ".join(city_bad[:10]))\n\n    families=defaultdict(int)\n    for r in rooms.values(): families[zone_family(r.get("zone"))]+=1\n    return {\n        "version":VERSION,\n        "room_count":len(rooms),\n        "reachable_from_square":len(reachable),\n        "returnable_to_square":len(can_return),\n        "cross_zone_edges":len(cross),\n        "vertical_edges":len(vertical),\n        "city_rooms":len(city),\n        "zone_family_room_counts":dict(families),\n        "topology_fingerprint":topology_fingerprint(rooms),\n        "warning_count":len(warnings),\n        "warnings":warnings,\n        "error_count":len(errors),\n        "errors":errors,\n    }\n'
 world_logic_validator_v030 = _load_embedded_runtime_module('world_logic_validator', _EMBEDDED_WORLD_LOGIC_VALIDATOR_SOURCE)
 
-VERSION = "0.30.30"
+VERSION = "0.30.32"
 GLOBAL_SKILL_BUFF_DURATION_SECONDS = 30
 HISTORY_BUFFER_LIMIT = 100
 HISTORY_BUFFER_DEFAULT_SHOW = 20
@@ -485,6 +485,7 @@ CHARISMA_DISCOUNT_STEP = 4
 CHARISMA_MAX_DISCOUNT = 25
 PARTY_BASE_CAPACITY = 8
 PARTY_CHARISMA_STEP = 25
+PARTY_AUTO_HEAL_THRESHOLD = 0.85
 
 PROFESSION_RANK_THRESHOLDS = (
     1, 15, 30, 45, 60, 75, 90,
@@ -6447,6 +6448,7 @@ COMMAND_ALIASES = {
     "mana": "mana", "manaregen": "mana",
     "odmiana": "declension", "przypadki": "declension", "namecases": "declension", "declension": "declension",
     "skills": "skills", "umiejętności": "skills", "umiejetnosci": "skills", "zdolności": "skills", "zdolnosci": "skills",
+    "spells": "spells", "spels": "spells", "spellsy": "spells", "czary": "spells", "zaklecia": "spells", "zaklęcia": "spells",
     "skillnames": "skillnames", "nazwyskilli": "skillnames", "nazwyumiejetnosci": "skillnames", "nazwyumiejętności": "skillnames",
     "skill": "skill", "umiejętność": "skill", "umiejetnosc": "skill", "zdolność": "skill", "zdolnosc": "skill",
     "cast": "skill", "rzuc": "skill", "rzuć": "skill",
@@ -35204,6 +35206,53 @@ HELP_TOPICS.setdefault("nazwy_skilli", []).append(
     f"Audyt v0.25.0: {_FINAL_SKILL_HELP_COUNT}/{_FINAL_SKILL_HELP_COUNT} aktualnych skilli/spelli ma dostępny HELP po pełnej, globalnie unikalnej nazwie oraz po identyfikatorze."
 )
 
+# v0.30.32: pełne pomoce klas + katalogi skills all / spells all.
+_CLASS_TYPE_LABEL_V03032 = {"physical": "fizyczna", "magic": "magiczna"}
+for _class_name, _class_type, _soul_weapon, _base_power in CLASSES:
+    _topic_key = "klasa_" + normalize_lookup_text(_class_name).replace(" ", "_")
+    _teacher = next(
+        (npc for npc in NPCS.values() if npc.get("teacher_class") == _class_name),
+        None,
+    )
+    _teacher_name = _teacher.get("name", "brak") if _teacher else "brak"
+    _teacher_room = (
+        ROOMS.get(_teacher.get("room"), {}).get("name", "nieznana lokacja")
+        if _teacher else "nieznana lokacja"
+    )
+    _skill_count = len(CLASS_SKILLS.get(_class_name, []))
+    _scale_text = (
+        "Siła dla ofensywy fizycznej; Zręczność wspiera krytyk, unik i szybkość."
+        if _class_type == "physical"
+        else "Inteligencja dla ofensywy magicznej; Siła Woli wspiera Manę i obronę magiczną."
+    )
+    HELP_TOPICS[_topic_key] = [
+        f"{_class_name}. Typ: {_CLASS_TYPE_LABEL_V03032.get(_class_type, _class_type)}. Broń Duszy: {_soul_weapon}.",
+        CLASS_DESCRIPTIONS.get(_class_name, ""),
+        _scale_text,
+        f"Biegłość klasy: 1-400. Umiejętności/spelle w aktualnej puli: {_skill_count}.",
+        f"Nauczyciel: {_teacher_name}. Lokacja: {_teacher_room}.",
+        f"Komendy: skills {_class_name}; kodeksklasowy {_class_name}; help skill <nazwa>; multiclass.",
+    ]
+    for _alias in {_class_name.lower(), normalize_lookup_text(_class_name)}:
+        HELP_TOPIC_ALIASES[_alias] = _topic_key
+
+HELP_TOPICS["klasy"] = [
+    "Soulbound ma 12 klas: " + ", ".join(row[0] for row in CLASSES) + ".",
+    "Każda klasa ma Biegłość 1-400, własną Broń Duszy, pasywy i pulę skilli/spelli.",
+    "help <klasa> otwiera osobną pomoc klasy, np. help wojownik, help kapłan, help mag.",
+    "skills pokazuje szczegóły umiejętności aktywnych klas; skills all pokazuje nazwy wszystkich umiejętności wszystkich 12 klas.",
+    "spells / spels / czary pokazuje czary aktywnych klas magicznych; spells all / spels all pokazuje czary wszystkich klas magicznych.",
+    "kodeksklasowy <klasa> czyta pełną progresję, wymagania Biegłości, nauczyciela, koszt i status nauki.",
+]
+HELP_TOPICS.setdefault("umiejetnosci", []).extend([
+    "skills all pokazuje wszystkie skille i spelle pogrupowane klasami, po 20 nazw na linię dla wygodnego czytania NVDA.",
+    "spells all / spels all / czary all pokazuje pełną pulę klas magicznych: Mag, Nekromanta, Kapłan, Czarownik, Druid i Psionik.",
+    "skills <klasa> oraz spells <klasa magiczna> ograniczają katalog do jednej klasy.",
+])
+HELP_TOPIC_ALIASES.update({
+    "spells": "umiejetnosci", "spels": "umiejetnosci", "czary": "umiejetnosci",
+    "skills all": "umiejetnosci", "spells all": "umiejetnosci", "spels all": "umiejetnosci",
+})
 
 
 # v0.25.0: publiczny status Global Generator 2.0.
@@ -35573,6 +35622,7 @@ class Session:
         # Aktywne buffy wzmacniają wszystkie skille i spelle o mierzalnej sile
         # (obrażenia, leczenie i guard), także przy multiclassie.
         self.active_skill_buffs = {}
+        self._party_auto_heal_busy = False
         # v0.8.26: automatyczna rotacja dwóch kolejek skilli.
         # Konfiguracja kolejki jest trwała w SQLite, a kursory rotacji są sesyjne.
         self.skill_queue_cursors = {"physical": 0, "magic": 0}
@@ -42294,7 +42344,8 @@ class Session:
             "hp / zdrowie - szybkie bieżące i maksymalne HP oraz Mana",
             "score / wynik - podsumowanie postaci, klas, Biegłości, Duszy, statystyk, portfela i terenu",
             "odmiana / przypadki - pokaż 7 form imienia postaci",
-            "skills / umiejetnosci - lista umiejętności twojej klasy",
+            "skills / umiejetnosci - szczegółowa lista umiejętności aktywnych klas; skills all - nazwy skilli/spelli wszystkich 12 klas",
+            "spells / spels / czary - czary aktywnych klas magicznych; spells all / spels all - czary wszystkich klas magicznych",
             "kodeksklasowy <klasa> / classcodex <class> - wszystkie skille, wymagana Biegłość, nauczyciel, koszt i status odblokowania",
             "skillnames / nazwyskilli - wszystkie nazwy skilli wszystkich klas",
             "skill / umiejetnosc / cast <nazwa lub numer> [cel] - użyj umiejętności",
@@ -44859,6 +44910,159 @@ class Session:
         if len(parts) >= 2 and tuple(normalized[-2:]) in endings:
             raw = " ".join(parts[:-2]).strip()
         return raw
+
+    def auto_priest_heal_option(self, injured_members):
+        if getattr(self, "_party_auto_heal_busy", False):
+            return None
+        if not self.character or self.current_hp <= 0 or "Kapłan" not in self.active_class_names():
+            return None
+        injured = [
+            member for member in injured_members
+            if member and not member.closed and member.character and member.current_hp > 0
+            and member.current_hp < member.max_hp()
+        ]
+        if not injured:
+            return None
+        known = self.server.db.learned_skill_ids(self.account_id)
+        now = time.time()
+        options = []
+        for skill in CLASS_SKILLS.get("Kapłan", []):
+            if skill.get("kind") not in ("heal", "group_heal"):
+                continue
+            if skill.get("id") not in known or not self.skill_mastery_unlocked(skill):
+                continue
+            if self.skill_cooldowns.get(skill["id"], 0) > now:
+                continue
+            mastery_group = skill.get("mastery_choice_group")
+            if mastery_group and self.skill_cooldowns.get(f"group::{mastery_group}", 0) > now:
+                continue
+            mana_cost = int(skill.get("mana", 0) or 0)
+            if mana_cost > self.current_mana:
+                continue
+            progress = self.server.db.skill_progress(self.account_id, skill["id"])
+            if not progress:
+                continue
+            skill_level = int(progress["level"])
+            skill_power = skill_power_multiplier(skill_level)
+            if skill.get("kind") == "group_heal":
+                heal_pct = min(
+                    0.45,
+                    float(skill.get("heal_pct", 0.20)) * skill_power
+                    * self.character.racial_healing_multiplier()
+                    * self.character.class_healing_multiplier(),
+                )
+                heal_pct = min(0.60, heal_pct * self.skill_buff_multiplier())
+                expected = 0
+                for target in injured:
+                    amount = max(1, int(target.max_hp() * heal_pct))
+                    expected += min(target.max_hp() - target.current_hp, amount)
+                target = min(injured, key=lambda x: (x.current_hp / max(1, x.max_hp()), x.current_hp))
+            else:
+                target = min(injured, key=lambda x: (x.current_hp / max(1, x.max_hp()), x.current_hp))
+                heal_pct = min(
+                    0.65,
+                    float(skill.get("heal_pct", 0.25)) * skill_power
+                    * self.character.racial_healing_multiplier()
+                    * self.character.class_healing_multiplier(),
+                )
+                heal_pct = min(0.80, heal_pct * self.skill_buff_multiplier())
+                amount = max(1, int(target.max_hp() * heal_pct))
+                expected = min(target.max_hp() - target.current_hp, amount)
+            if expected > 0:
+                options.append((expected, skill_level, int(skill.get("unlock", 1)), skill, target, heal_pct))
+        if not options:
+            return None
+        options.sort(key=lambda row: (row[0], row[1], row[2]), reverse=True)
+        expected, skill_level, _unlock, skill, target, heal_pct = options[0]
+        return {
+            "score": expected, "skill": skill, "target": target,
+            "heal_pct": heal_pct, "skill_level": skill_level,
+        }
+
+    async def perform_auto_priest_heal(self, option, injured_members):
+        if not option or self._party_auto_heal_busy:
+            return False
+        self._party_auto_heal_busy = True
+        try:
+            skill = option["skill"]
+            now = time.time()
+            if self.skill_cooldowns.get(skill["id"], 0) > now:
+                return False
+            mana_cost = int(skill.get("mana", 0) or 0)
+            if mana_cost > self.current_mana:
+                return False
+            progress = self.server.db.skill_progress(self.account_id, skill["id"])
+            if not progress:
+                return False
+            skill_level = int(progress["level"])
+            effective_cooldown = self.effective_skill_cooldown(skill, skill_level)
+            self.current_mana -= mana_cost
+            self.skill_cooldowns[skill["id"]] = now + effective_cooldown
+            mastery_group = skill.get("mastery_choice_group")
+            if mastery_group:
+                self.skill_cooldowns[f"group::{mastery_group}"] = now + effective_cooldown
+
+            if skill.get("kind") == "group_heal":
+                recipients = [
+                    member for member in self.server.party_sessions(
+                        self.account_id, same_room=self.character.room_id
+                    )
+                    if member.character and member.current_hp > 0
+                ]
+                total = 0
+                healed_count = 0
+                for target in recipients:
+                    target_max = target.max_hp()
+                    amount = max(1, int(target_max * float(option["heal_pct"])))
+                    before = target.current_hp
+                    target.current_hp = min(target_max, target.current_hp + amount)
+                    actual = target.current_hp - before
+                    if actual <= 0:
+                        continue
+                    total += actual
+                    healed_count += 1
+                    if target is not self:
+                        await target.send(
+                            f"{self.character.name} automatycznie używa {skill['name']}. "
+                            f"Odzyskujesz {actual} HP. Masz {target.current_hp} z {target_max} HP."
+                        )
+                await self.send(
+                    f"Auto-leczenie drużyny: {skill['name']}. "
+                    f"Wyleczono {healed_count} osób, łącznie {total} HP."
+                )
+            else:
+                target = min(
+                    [m for m in injured_members if m.character and not m.closed and m.current_hp > 0 and m.current_hp < m.max_hp()],
+                    key=lambda x: (x.current_hp / max(1, x.max_hp()), x.current_hp),
+                    default=None,
+                )
+                if target is None:
+                    return False
+                target_max = target.max_hp()
+                amount = max(1, int(target_max * float(option["heal_pct"])))
+                before = target.current_hp
+                target.current_hp = min(target_max, target.current_hp + amount)
+                actual = target.current_hp - before
+                if actual <= 0:
+                    return False
+                if target is self:
+                    await self.send(
+                        f"Auto-leczenie: używasz {skill['name']} i odzyskujesz {actual} HP. "
+                        f"Masz {target.current_hp} z {target_max} HP."
+                    )
+                else:
+                    await target.send(
+                        f"{self.character.name} automatycznie używa {skill['name']} na tobie. "
+                        f"Odzyskujesz {actual} HP. Masz {target.current_hp} z {target_max} HP."
+                    )
+                    await self.send(
+                        f"Auto-leczenie: {skill['name']} na {target.character.name}. "
+                        f"Przywrócono {actual} HP."
+                    )
+            await self.grant_skill_use_xp(skill)
+            return True
+        finally:
+            self._party_auto_heal_busy = False
 
     async def create_party(self):
         key = self.party_key()
@@ -56755,7 +56959,58 @@ class Session:
             "Nazw możesz używać w komendach skill <nazwa> oraz naucz <nazwa>."
         )
 
-    async def show_skills(self):
+    async def show_skill_catalog_names(self, class_names, title):
+        """NVDA-friendly compact catalog: names in chunks, grouped by class."""
+        class_names = list(class_names or [])
+        await self.send(title)
+        total = 0
+        for class_name in class_names:
+            skills = list(CLASS_SKILLS.get(class_name, []))
+            total += len(skills)
+            await self.send(f"{class_name}: {len(skills)} umiejętności.")
+            if not skills:
+                continue
+            chunk_size = 20
+            for start_index in range(0, len(skills), chunk_size):
+                chunk = skills[start_index:start_index + chunk_size]
+                first = start_index + 1
+                last = start_index + len(chunk)
+                names = ", ".join(
+                    f"{index}. {skill['name']}"
+                    for index, skill in enumerate(chunk, first)
+                )
+                await self.send(f"{class_name} {first}-{last}: {names}.")
+        await self.send(
+            f"Łącznie: {total}. Szczegóły konkretnej umiejętności: "
+            "help <nazwa>, help skill <nazwa> albo skill info <nazwa>."
+        )
+
+    async def show_skills(self, args=""):
+        mode = normalize_lookup_text(str(args or "").strip())
+        all_classes = [row[0] for row in CLASSES]
+        if mode in ("all", "wszystkie", "wszystko", "pelne", "pelny", "full"):
+            await self.show_skill_catalog_names(
+                all_classes,
+                "SKILLS ALL. Wszystkie skille i spelle wszystkich 12 klas.",
+            )
+            return
+
+        # Wygodne skills <klasa> bez konieczności otwierania kodeksu.
+        if mode:
+            matched = next(
+                (name for name in all_classes if normalize_lookup_text(name) == mode),
+                None,
+            )
+            if matched:
+                await self.show_skill_catalog_names(
+                    [matched], f"SKILLS: {matched}."
+                )
+                return
+            await self.send(
+                "Użycie: skills, skills all albo skills <klasa>."
+            )
+            return
+
         active = self.active_class_names()
         learned = self.server.db.learned_skill_ids(self.account_id)
         await self.send(
@@ -56831,7 +57086,42 @@ class Session:
             "Przy nauczycielu komenda learn <numer> używa lokalnej listy jego klasy."
         )
         await self.send(
-            "Każdy nauczony skill ma własny Skill Level 1-400 i XP."
+            "Każdy nauczony skill ma własny Skill Level 1-400 i XP. "
+            "Wpisz skills all, aby usłyszeć pulę wszystkich klas."
+        )
+
+    async def show_spells(self, args=""):
+        mode = normalize_lookup_text(str(args or "").strip())
+        magic_classes = [name for name, class_type, _weapon, _power in CLASSES if class_type == "magic"]
+        if mode in ("all", "wszystkie", "wszystko", "pelne", "pelny", "full"):
+            await self.show_skill_catalog_names(
+                magic_classes,
+                "SPELLS ALL. Czary wszystkich klas magicznych.",
+            )
+            return
+
+        if mode:
+            matched = next(
+                (name for name in magic_classes if normalize_lookup_text(name) == mode),
+                None,
+            )
+            if matched:
+                await self.show_skill_catalog_names([matched], f"SPELLS: {matched}.")
+                return
+            await self.send(
+                "Użycie: spells, spells all, spels all, czary albo spells <klasa magiczna>."
+            )
+            return
+
+        active_magic = [name for name in self.active_class_names() if name in magic_classes]
+        if not active_magic:
+            await self.send(
+                "Nie masz aktywnej klasy magicznej. Wpisz spells all, aby poznać wszystkie czary."
+            )
+            return
+        await self.show_skill_catalog_names(
+            active_magic,
+            "CZARY AKTYWNYCH KLAS MAGICZNYCH.",
         )
 
 
@@ -57650,6 +57940,7 @@ class Session:
         if self.current_hp <= 0:
             await self.die(template["name"])
             return
+        await self.server.auto_priest_party_heal(self)
         await self.maybe_auto_wimpy()
 
 
@@ -58357,27 +58648,40 @@ class Session:
         if kind == "boost":
             base_boost = float(skill.get("boost", 1.0) or 1.0)
             # v0.8.64: Skill Level rozwija buff wolniej niż bezpośredni damage.
-            # Każdy pojedynczy buff może dać najwyżej +90%, a aktywne buffy nie
-            # wzmacniają siły kolejnego buffa. Różne buffy nadal stackują się.
             base_bonus = max(0.0, base_boost - 1.0)
             scaled_bonus = base_bonus * (1.0 + max(0.0, skill_power - 1.0) * 0.50)
             scaled_boost = 1.0 + min(0.90, scaled_bonus)
-            # v0.30.30: wszystkie bojowe buffy mają dokładnie 30 sekund.
-            # Cooldown może być inny, ale nie zmienia czasu aktywnego buffa.
             duration = GLOBAL_SKILL_BUFF_DURATION_SECONDS
-            self.active_skill_buffs[skill["id"]] = {
+            recipients = self.server.party_sessions(
+                self.account_id, same_room=self.character.room_id
+            ) or [self]
+            buff_data = {
                 "name": skill["name"],
                 "boost": max(1.0, scaled_boost),
                 "until": now + duration,
+                "source": self.character.name,
             }
+            for session in recipients:
+                if session.closed or not session.character or session.current_hp <= 0:
+                    continue
+                session.active_skill_buffs[skill["id"]] = dict(buff_data)
             bonus_pct = int(round((max(1.0, scaled_boost) - 1.0) * 100))
             total_pct = int(round((self.skill_buff_multiplier() - 1.0) * 100))
             await self.send(
-                f"Buff aktywowany: {skill['name']}. "
+                f"Buff drużynowy aktywowany: {skill['name']}. "
                 f"Czas działania: {duration} sekund. "
                 f"Wzmocnienie: {bonus_pct} procent. "
+                f"Objęci członkowie: {sum(1 for x in recipients if not x.closed and x.character and x.current_hp > 0)}. "
                 f"Łączne aktywne wzmocnienie: {total_pct} procent."
             )
+            for session in recipients:
+                if session is self or session.closed or not session.character or session.current_hp <= 0:
+                    continue
+                await session.send(
+                    f"{self.character.name} aktywuje buff {skill['name']}. "
+                    f"Działa na ciebie przez {duration} sekund. "
+                    f"Wzmocnienie: {bonus_pct} procent."
+                )
             await self.grant_skill_use_xp(skill)
             if self.combat_mob_key:
                 await self.ensure_realtime_combat()
@@ -58492,12 +58796,15 @@ class Session:
             )
             defeated, survivors = [], []
             total_damage = 0
+            critical_hits = 0
             for target in list(aoe_mobs):
                 if not target.alive:
                     continue
                 template = MOB_TEMPLATES[target.template_id]
                 damage = max(1, int((self.character.soul_power() + scale) * multiplier) + random.randint(-2, 3))
                 damage, critical = self.roll_critical_hit(damage)
+                if critical:
+                    critical_hits += 1
                 damage = await self.apply_boss_defense(target, damage)
                 damage = self.v0210_adjust_player_damage(damage)
                 target.hp -= damage
@@ -58509,6 +58816,13 @@ class Session:
             if mana_cost:
                 await self.send(f"Mana: {self.current_mana} z {self.max_mana()}.")
             await self.send(f"{skill['name']}: łączne obrażenia {total_damage}, pokonani przeciwnicy {len(defeated)}.")
+            _party_aoe = (
+                f"{self.character.name}: {skill['name']}, {total_damage} obrażeń łącznie, "
+                f"cele {len(aoe_mobs)}, pokonani {len(defeated)}"
+            )
+            if critical_hits:
+                _party_aoe += f", krytyki {critical_hits}"
+            await self.server.party_combat_broadcast(self, _party_aoe + ".")
             for target in defeated:
                 owner_name = aoe_reward_owner.get(target.key)
                 reward_session = (
@@ -58588,6 +58902,14 @@ class Session:
             f"Broń Duszy {self.character.soul_weapon} prowadzi {skill['name']} na {template['name']}. "
             f"Zadajesz {damage} obrażeń. Przeciwnik: {max(0, mob.hp)} z {template['max_hp']} HP."
         )
+        _party_skill = (
+            f"{self.character.name}: {skill['name']}, {damage} obrażeń w {template['name']}"
+        )
+        if critical:
+            _party_skill += ". Krytyk"
+        if mob.hp <= 0:
+            _party_skill += ". Pokonany"
+        await self.server.party_combat_broadcast(self, _party_skill + ".")
 
         if kind == "drain":
             requested_heal = max(
@@ -59035,6 +59357,14 @@ class Session:
             f"Przeciwnik: {max(0, mob.hp)} z {template['max_hp']} życia.",
             "normal",
         )
+        _party_attack = (
+            f"{self.character.name}: {technique}, {damage} obrażeń w {template['name']}"
+        )
+        if critical:
+            _party_attack += ". Krytyk"
+        if mob.hp <= 0:
+            _party_attack += ". Pokonany"
+        await self.server.party_combat_broadcast(self, _party_attack + ".")
         if mob.hp <= 0:
             await self.mob_defeated(mob)
 
@@ -59076,7 +59406,9 @@ class Session:
                             mob.engaged_at = time.monotonic()
                         mob.engaged_by = self.character.name
                     if mob.engaged_by == self.character.name:
-                        await self.enemy_counterattack(mob)
+                        target_session = self.server.party_combat_target(self, mob)
+                        if target_session and not target_session.closed and target_session.current_hp > 0:
+                            await target_session.enemy_counterattack(mob)
                     next_enemy = time.monotonic() + self.combat_enemy_interval
                     if not self.combat_mob_key or self.current_hp <= 0:
                         break
@@ -60449,7 +60781,7 @@ class Session:
                 "rest", "help", "encoding", "describe", "changes", "look", "level", "xp", "wimpy", "eventxp",
                 "corpse", "cryptinfo", "astralinfo", "consider",
                 "waterinfo", "fishjournal", "exits", "map", "worldevents", "atlas", "codex", "bestiary",
-                "where", "who", "expareas", "terraininfo", "classsets", "say", "stats", "hp", "score", "mana", "declension", "skills",
+                "where", "who", "expareas", "terraininfo", "classsets", "say", "stats", "hp", "score", "mana", "declension", "skills", "spells",
                 "skillnames", "skillqueue", "soul", "money", "net", "bag",
                 "woodpile", "herbbag", "professions", "ranks",
                 "tools", "toolinfo_fishing", "toolinfo_mining",
@@ -60479,7 +60811,7 @@ class Session:
                 "guide", "route", "help", "encoding", "describe", "changes", "wimpy", "eventxp",
                 "look", "level", "xp", "exits", "map", "atlas", "codex", "bestiary", "where", "who",
                 "terraininfo", "location", "stats", "hp", "score", "money",
-                "soul", "skills", "skillnames", "inventory", "equipment",
+                "soul", "skills", "spells", "skillnames", "inventory", "equipment",
                 "quests", "progress", "exploration", "achievements", "titles", "weather", "biomemastery", "worldquest", "artifacts", "biomesets", "factionstories", "season", "expeditions", "transport", "greatruins", "legendaryevents", "endless", "megadungeons", "gauntlets", "mythicbosses", "artifactupgrade", "endgamegoals",
                 "collection", "museum", "prestige", "bosscodex", "leaderboards", "bounty", "legendarycontracts", "worldprojects", "worldproject", "fishrecords", "drophistory", "combatlog", "lifetime", "historybuffer", "fishjournal", "say", "tell", "reply", "friends", "craftbox", "runes", "clan", "masteryachievements",
                 "partychat",
@@ -60730,7 +61062,9 @@ class Session:
             elif command == "declension":
                 await self.show_name_declension()
             elif command == "skills":
-                await self.show_skills()
+                await self.show_skills(args)
+            elif command == "spells":
+                await self.show_spells(args)
             elif command == "skillnames":
                 await self.show_all_skill_names()
             elif command == "skill":
@@ -61046,6 +61380,7 @@ class Session:
         self.skill_evade = False
         self.skill_evade_lockout_until = 0.0
         self.active_skill_buffs = {}
+        self._party_auto_heal_busy = False
         self.skill_queue_cursors = {"physical": 0, "magic": 0}
         self.skill_queue_next_type = "physical"
         self.auto_queue_casting = False
@@ -61234,10 +61569,89 @@ class MudServer:
             result.append(session)
         return result
 
+    def party_combat_target(self, owner_session, mob):
+        if not owner_session or not mob or not mob.alive:
+            return owner_session
+        protector = self.party_protector_session(
+            owner_session.account_id, same_room=mob.room_id
+        )
+        if protector and protector.current_hp > 0:
+            return protector
+        candidates = [
+            session for session in self.party_sessions(
+                owner_session.account_id, same_room=mob.room_id
+            )
+            if session.character and not session.closed and session.current_hp > 0
+            and session.combat_mob_key == mob.key
+        ]
+        if not candidates:
+            return owner_session
+        candidates.sort(key=lambda session: session.character.name.lower())
+        return candidates[int(getattr(mob, "combat_turn", 0) or 0) % len(candidates)]
+
+    async def auto_priest_party_heal(self, damaged_session):
+        if (
+            not damaged_session or damaged_session.closed or not damaged_session.character
+            or damaged_session.current_hp <= 0
+            or self.party_key_for_account(damaged_session.account_id) is None
+        ):
+            return False
+        room_id = damaged_session.character.room_id
+        members = [
+            session for session in self.party_sessions(
+                damaged_session.account_id, same_room=room_id
+            )
+            if session.character and not session.closed and session.current_hp > 0
+        ]
+        injured = [
+            session for session in members
+            if session.current_hp / max(1, session.max_hp()) < PARTY_AUTO_HEAL_THRESHOLD
+        ]
+        if not injured:
+            return False
+        options = []
+        for healer in members:
+            option = healer.auto_priest_heal_option(injured)
+            if option:
+                options.append((int(option.get("score", 0)), healer.character.name.lower(), healer, option))
+        if not options:
+            return False
+        options.sort(key=lambda row: (-row[0], row[1]))
+        _score, _name, healer, option = options[0]
+        return await healer.perform_auto_priest_heal(option, injured)
+
     async def party_broadcast(self, account_id, message, exclude=None, history_category=None):
         for session in self.party_sessions(account_id):
             if session is not exclude:
                 await session.send(message, history_category=history_category)
+
+    async def party_combat_broadcast(self, actor, message, detail="normal"):
+        """NVDA-friendly combat feed for party members in the same room.
+
+        The actor already receives the native combat message, so only other
+        online party members are notified. Each recipient keeps their own
+        combat-log filter (concise/normal/full).
+        """
+        if (
+            actor is None
+            or actor.closed
+            or not actor.character
+            or actor.account_id is None
+            or self.party_key_for_account(actor.account_id) is None
+        ):
+            return 0
+        sent = 0
+        room_id = actor.character.room_id
+        for session in self.party_sessions(actor.account_id, same_room=room_id):
+            if session is actor or session.closed or not session.character:
+                continue
+            await session.send(
+                str(message),
+                combat_detail=detail,
+                history_category="combat",
+            )
+            sent += 1
+        return sent
 
     async def auto_assist_party_combat(self, initiator, mob):
         """Automatycznie dołącza wolnych członków drużyny z tej samej lokacji."""
@@ -63639,6 +64053,90 @@ LATEST_CHANGES = [
     "Brak wipe.",
 ] + LATEST_CHANGES
 LATEST_CHANGES_TITLE = "Soulbound v0.30.30 - 30-Second Buffs + NVDA Lifecycle"
+
+# ============================================================
+# v0.30.31 - PARTY COMBAT FEED
+# ============================================================
+HELP_TOPICS.setdefault("party", []).extend([
+    "Podczas wspólnej walki członkowie drużyny w tej samej lokacji widzą, kto atakuje, jakiego ataku lub skilla używa i ile obrażeń zadaje.",
+    "Krytyki i pokonanie celu są oznaczane. Ataki obszarowe są czytane jako jeden krótki wynik łączny, aby nie spamować NVDA.",
+    "Party Combat Feed respektuje filtr walki: combat normal i combat full pokazują feed, combat concise go ukrywa.",
+])
+HELP_TOPICS.setdefault("combat", []).append(
+    "W drużynie tryb normal/full pokazuje także zwięzłe obrażenia innych członków będących w tej samej lokacji; concise pozostaje cichy."
+)
+HELP_TOPICS.setdefault("wersja", []).append(
+    "v0.30.31: Party Combat Feed pokazuje w tej samej lokacji nazwę członka drużyny, atak/skill, dokładne obrażenia, krytyki i wynik AoE."
+)
+LATEST_CHANGES = [
+    "v0.30.31: Party Combat Feed pokazuje obrażenia innych członków drużyny znajdujących się w tej samej lokacji.",
+    "v0.30.31: autoatak i skill pokazują nazwę gracza, nazwę ataku, cel i dokładne obrażenia; krytyk i zabicie są oznaczane.",
+    "v0.30.31: AoE daje jeden zwięzły wynik łączny zamiast osobnego spamu dla każdego celu.",
+    "v0.30.31: feed respektuje combat normal/full; combat concise go ukrywa.",
+    "Brak wipe.",
+] + LATEST_CHANGES
+LATEST_CHANGES_TITLE = "Soulbound v0.30.31 - Party Combat Feed"
+
+def party_combat_feed_audit_v03031():
+    errors = []
+    if not hasattr(MudServer, "party_combat_broadcast"):
+        errors.append("brak MudServer.party_combat_broadcast")
+    return {
+        "version": "0.30.31",
+        "error_count": len(errors),
+        "errors": errors,
+    }
+
+PARTY_COMBAT_FEED_AUDIT_V03031 = party_combat_feed_audit_v03031()
+if PARTY_COMBAT_FEED_AUDIT_V03031.get("error_count"):
+    raise RuntimeError(
+        "Party Combat Feed Audit v0.30.31 failed: "
+        + "; ".join(PARTY_COMBAT_FEED_AUDIT_V03031.get("errors", [])[:20])
+    )
+
+# ============================================================
+# v0.30.32 - PARTY ROLES: TARGETING, PRIEST AUTO-HEAL, PARTY BUFFS
+# ============================================================
+HELP_TOPICS.setdefault("party", []).extend([
+    "Moby walczące z drużyną mogą atakować różnych żywych członków party będących w tej samej lokacji i zaangażowanych w tę walkę.",
+    "Aktywne zasłoń Strażnika ma pierwszeństwo: gdy tank zasłania drużynę, przejmuje ataki moba.",
+    "Kapłan w drużynie automatycznie reaguje na najbardziej rannego żywego członka w tej samej lokacji, gdy jego HP spadnie poniżej 85 procent. Dotyczy każdego członka, nie tylko lidera.",
+    "Auto-leczenie używa wyłącznie faktycznie nauczonych i odblokowanych leczeń, zużywa normalną Manę i respektuje cooldown. Przy kilku rannych może wybrać leczenie grupowe.",
+    "Każdy bojowy buff typu boost działa przez 30 sekund na żywych członków drużyny znajdujących się w tej samej lokacji co rzucający.",
+])
+HELP_TOPICS.setdefault("combat", []).append(
+    "v0.30.32: walka drużynowa ma role: mob rozdziela cele po party, Strażnik może przejąć ataki przez zasłoń, Kapłan automatycznie leczy rannych, a boosty działają na drużynę w tej samej lokacji."
+)
+HELP_TOPICS.setdefault("wersja", []).append(
+    "v0.30.32: Party Roles - ataki mobów na drużynę, auto-heal Kapłana każdego rannego członka i 30-sekundowe boosty drużynowe."
+)
+LATEST_CHANGES = [
+    "v0.30.32: mob walczący z party może wybierać różnych aktywnych członków drużyny jako cel; Strażnik z zasłoń nadal ma pierwszeństwo.",
+    "v0.30.32: Kapłan automatycznie leczy najbardziej rannego członka party w tej samej lokacji poniżej 85% HP; nie tylko lidera.",
+    "v0.30.32: auto-heal respektuje nauczone skille, Biegłość, Manę i cooldown oraz może wybrać group heal przy kilku rannych.",
+    "v0.30.32: wszystkie skille boost nakładają 30-sekundowy buff także na żywych członków party w tej samej lokacji.",
+    "Brak wipe.",
+] + LATEST_CHANGES
+LATEST_CHANGES_TITLE = "Soulbound v0.30.32 - Party Roles"
+
+def party_roles_audit_v03032():
+    errors = []
+    for name in ("party_combat_target", "auto_priest_party_heal"):
+        if not hasattr(MudServer, name):
+            errors.append(f"brak MudServer.{name}")
+    for name in ("auto_priest_heal_option", "perform_auto_priest_heal"):
+        if not hasattr(Session, name):
+            errors.append(f"brak Session.{name}")
+    if PARTY_AUTO_HEAL_THRESHOLD != 0.85:
+        errors.append(f"threshold={PARTY_AUTO_HEAL_THRESHOLD}")
+    return {"version": "0.30.32", "error_count": len(errors), "errors": errors}
+
+PARTY_ROLES_AUDIT_V03032 = party_roles_audit_v03032()
+if PARTY_ROLES_AUDIT_V03032.get("error_count"):
+    raise RuntimeError(
+        "Party Roles Audit v0.30.32 failed: "
+        + "; ".join(PARTY_ROLES_AUDIT_V03032.get("errors", [])[:20])
+    )
 
 if __name__ == "__main__":
     main()
