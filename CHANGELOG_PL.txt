@@ -1,3 +1,12 @@
+v0.30.39 - Race HELP + Profession Carryover + Any River Fish
+- Dodano help rasy oraz osobne helpy dla wszystkich 13 ras: statystyki, pasyw, polecane klasy i uzasadnienie.
+- Pule ryb/rud/drewna/ziół/surowych klejnotów są twardo audytowane jako kumulacyjne przez wszystkie 40 Tierów.
+- Specjalne łowiska tylko zwiększają szansę typowych ryb; nie usuwają wcześniej odblokowanych gatunków.
+- Sprawdzono 308 receptur: wcześniejsze receptury pozostają dostępne na późniejszych Tierach.
+- Zlecenie Marcela I: Pieczona ryba rzeczna przyjmuje 2 dowolne ryby rzeczne, także dwa takie same gatunki, późne gatunki i rzadkie warianty.
+- Poprawiono help śmierć do bezstratnej mechaniki.
+- Generator Core pozostaje v0.30.24. Brak wipe.
+
 v0.30.38 - Broken Blades Spoken Progress Hotfix
 - Złamane ostrza podaje teraz postęp 1/6, 2/6 itd. natychmiast po kwalifikującym się dropie.
 - Pancerz do przetopu i Toksyczne gruczoły korzystają z tego samego bezpośredniego kanału postępu.

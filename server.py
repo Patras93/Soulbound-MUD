@@ -51,7 +51,7 @@ dynamic_world_v029 = _load_embedded_runtime_module('dynamic_world_v029', _EMBEDD
 _EMBEDDED_WORLD_LOGIC_VALIDATOR_SOURCE = '"""Soulbound v0.30.0 Semantic World Logic Validator.\n\nThe topology may be procedural, but geography must remain understandable.\nThis validator checks semantic gateway rules, vertical movement semantics,\nworld reachability, reciprocal navigation and deterministic topology output.\n"""\nfrom __future__ import annotations\n\nfrom collections import defaultdict, deque\nimport hashlib\nimport json\n\nVERSION = "0.30.0"\nHORIZONTAL = ("north","east","south","west","northeast","southeast","southwest","northwest")\nOPPOSITE = {\n    "north":"south","south":"north","east":"west","west":"east",\n    "northeast":"southwest","southwest":"northeast",\n    "northwest":"southeast","southeast":"northwest",\n    "up":"down","down":"up",\n}\n\n\ndef _norm(text):\n    return str(text or "").casefold()\n\n\ndef zone_family(zone: str) -> str:\n    z=_norm(zone)\n    if any(k in z for k in ("miasto dusz","gildia dusz","pracownia kartografa")):\n        return "urban"\n    if any(k in z for k in ("przedmieścia","przedmiescia","wioska","osada","posterunek","obóz straży","oboz strazy","przystań","przystan")):\n        return "settlement"\n    if any(k in z for k in ("kanały","kanaly","podziemia","krypt","jaskini","jaskinie","nekropolia","katakumb","kopal")):\n        return "underground"\n    if any(k in z for k in ("góry","gory","lodowe","twierdza gigant")):\n        return "highland"\n    if any(k in z for k in ("popielne","rozbite niebo","pustki","korona świata","korona swiata","rubież końca","rubiez konca")):\n        return "endgame"\n    if any(k in z for k in ("próba","proba","arena","archiwum otchłani","archiwum otchlani","katedra tysiąca","katedra tysiaca","kuźnia pierwszych","kuznia pierwszych","labirynt wiecznych","pałac bezimiennej","palac bezimiennej")):\n        return "instance"\n    if "proceduralny region:" in z:\n        return "expedition"\n    if any(k in z for k in ("ocean","wybrzeże","wybrzeze","jezior","dolina rzek")):\n        return "waterland"\n    return "wilderness"\n\n\ndef _gateway_semantic(rid: str, room: dict, direction: str, target_id: str, target: dict) -> bool:\n    """True when a cross-zone edge has a believable semantic transition."""\n    if direction in ("up","down"):\n        return True\n    src=_norm(rid)+" "+_norm(room.get("name"))\n    dst=_norm(target_id)+" "+_norm(target.get("name"))\n    gateway_words=(\n        "gate","brama","harbor","port","pier","molo","road","trakt","path","szlak",\n        "pass","przełęcz","przelecz","bridge","most","entrance","wejście","wejscie",\n        "mouth","wylot","frontier","rubież","rubiez","gateway","portal","archive","archiw",\n        "hall","hala","lobby","warsztat kartograf","cartographer","watchpost","posterunek",\n        "camp","obóz","oboz","v0130_gateway","v028_region_gate",\n    )\n    return any(k in src or k in dst for k in gateway_words)\n\n\ndef _reachable(rooms, start):\n    if start not in rooms:\n        return set()\n    seen={start}; q=deque([start])\n    while q:\n        cur=q.popleft()\n        for target in rooms[cur].get("exits",{}).values():\n            if target in rooms and target not in seen:\n                seen.add(target); q.append(target)\n    return seen\n\n\ndef topology_fingerprint(rooms):\n    payload=[]\n    for rid in sorted(rooms):\n        exits=rooms[rid].get("exits",{}) or {}\n        payload.append((rid,tuple(sorted((str(k),str(v)) for k,v in exits.items()))))\n    raw=json.dumps(payload,ensure_ascii=False,separators=(",",":"))\n    return hashlib.sha256(raw.encode("utf-8")).hexdigest()\n\n\ndef validate_world_logic(rooms: dict) -> dict:\n    errors=[]; warnings=[]; cross=[]; vertical=[]\n    if not isinstance(rooms,dict):\n        return {"version":VERSION,"error_count":1,"errors":["ROOMS is not dict"]}\n\n    # References and reciprocal navigation for every static edge.\n    for rid,room in rooms.items():\n        exits=room.get("exits",{}) or {}\n        for direction,target_id in exits.items():\n            if target_id not in rooms:\n                # Runtime/lazy destination; validated by its own materializer.\n                continue\n            target=rooms[target_id]\n            if direction in OPPOSITE:\n                reverse=OPPOSITE[direction]\n                if target.get("exits",{}).get(reverse)!=rid:\n                    # Some explicit gauntlet finales remain one-way by design; require a\n                    # global return path instead of pretending the exact edge is reciprocal.\n                    if not (room.get("procedural_dynamic") or target.get("procedural_dynamic")):\n                        warnings.append(f"one-way {rid}.{direction}->{target_id}")\n            z1=str(room.get("zone") or "Bez strefy")\n            z2=str(target.get("zone") or "Bez strefy")\n            if direction in ("up","down"):\n                vertical.append((rid,direction,target_id))\n            if z1!=z2:\n                cross.append((rid,direction,target_id,z1,z2))\n                f1,f2=zone_family(z1),zone_family(z2)\n                semantic_gateway=_gateway_semantic(rid,room,direction,target_id,target)\n                # Granice naturalnych biomów (np. łąka -> rzeka -> dzicz) mogą\n                # przechodzić bez sztucznej bramy. Twarda semantyczna brama jest\n                # wymagana, gdy opuszczamy/wchodzimy do huba miejskiego.\n                if (f1=="urban") != (f2=="urban") and not semantic_gateway:\n                    errors.append(f"urban boundary without semantic gateway: {rid}.{direction}->{target_id} ({z1}->{z2})")\n                # Miasto nie może być bezpośrednim sąsiadem gór/endgame. Nawet\n                # prawdziwa brama miejska ma prowadzić najpierw do traktu/przedmieść.\n                if f1=="urban" and f2 in {"highland","endgame"} and direction not in ("up","down"):\n                    errors.append(f"urban direct jump to {f2}: {rid}.{direction}->{target_id}")\n                if f2=="urban" and f1 in {"highland","endgame"} and direction not in ("up","down"):\n                    errors.append(f"{f1} direct jump to urban: {rid}.{direction}->{target_id}")\n\n    # v0.30 generator nie używa up/down jako GENERATED_DIRS. Każde pionowe\n    # przejście obecne tutaj pochodzi więc z semantycznej tożsamości świata\n    # (schody, piwnica, wieża, krypta, jaskinia, portal) albo z generatora\n    # dedykowanej instancji, a nie z losowego łączenia topologii.\n\n    reachable=_reachable(rooms,"square")\n    if len(reachable)!=len(rooms):\n        missing=sorted(set(rooms)-reachable)\n        errors.append(f"unreachable from square: {len(missing)} rooms; sample {missing[:10]}")\n\n    # Every static room must have some route back to the hub. Reverse-graph BFS.\n    rev=defaultdict(list)\n    for rid,room in rooms.items():\n        for target in room.get("exits",{}).values():\n            if target in rooms: rev[target].append(rid)\n    can_return=set()\n    if "square" in rooms:\n        can_return={"square"}; q=deque(["square"])\n        while q:\n            cur=q.popleft()\n            for source in rev.get(cur,[]):\n                if source not in can_return:\n                    can_return.add(source); q.append(source)\n    if len(can_return)!=len(rooms):\n        missing=sorted(set(rooms)-can_return)\n        errors.append(f"cannot return to square: {len(missing)} rooms; sample {missing[:10]}")\n\n    city=[rid for rid,r in rooms.items() if r.get("zone")=="Miasto Dusz"]\n    city_bad=[]\n    for rid in city:\n        for d,t in rooms[rid].get("exits",{}).items():\n            if t not in rooms: continue\n            z2=rooms[t].get("zone")\n            if z2=="Miasto Dusz": continue\n            if not _gateway_semantic(rid,rooms[rid],d,t,rooms[t]):\n                city_bad.append(f"{rid}.{d}->{t}")\n    if city_bad:\n        errors.append("city exits without gateway semantics: "+", ".join(city_bad[:10]))\n\n    families=defaultdict(int)\n    for r in rooms.values(): families[zone_family(r.get("zone"))]+=1\n    return {\n        "version":VERSION,\n        "room_count":len(rooms),\n        "reachable_from_square":len(reachable),\n        "returnable_to_square":len(can_return),\n        "cross_zone_edges":len(cross),\n        "vertical_edges":len(vertical),\n        "city_rooms":len(city),\n        "zone_family_room_counts":dict(families),\n        "topology_fingerprint":topology_fingerprint(rooms),\n        "warning_count":len(warnings),\n        "warnings":warnings,\n        "error_count":len(errors),\n        "errors":errors,\n    }\n'
 world_logic_validator_v030 = _load_embedded_runtime_module('world_logic_validator', _EMBEDDED_WORLD_LOGIC_VALIDATOR_SOURCE)
 
-VERSION = "0.30.38"
+VERSION = "0.30.39"
 GLOBAL_SKILL_BUFF_DURATION_SECONDS = 30
 HISTORY_BUFFER_LIMIT = 100
 HISTORY_BUFFER_DEFAULT_SHOW = 20
@@ -9950,18 +9950,27 @@ def jewelry_socket_capacity(item):
         return 2
     return 1
 
+# v0.30.39: pełna pula ryb rzecznych do Gotowania. Obejmuje każdy bazowy
+# gatunek rzeczny oraz wszystkie rzadkie warianty tych gatunków. Dzięki temu
+# późniejszy Tier Wędki nigdy nie blokuje pierwszego zlecenia Kucharza Marcela.
+RIVER_FISH_COOKING_IDS = tuple(sorted(
+    item_id for item_id in FISH_STORAGE_IDS
+    if base_fish_species_id(item_id) in RIVER_FISH_ATLAS
+))
+
 COOK_RECIPES = {
     "grilled_river_fish": {
         "name": "Pieczona ryba rzeczna", "stations": ("inn", "fish_market"),
         "ingredients": {},
-        "distinct_ingredient_pool": ("river_bleak", "dace", "stone_loach"),
-        "distinct_ingredient_count": 2,
-        "distinct_ingredient_label": "różne gatunki małych ryb rzecznych",
+        "pooled_ingredient_pool": RIVER_FISH_COOKING_IDS,
+        "pooled_ingredient_count": 2,
+        "pooled_ingredient_label": "dowolne ryby rzeczne",
         "output": "grilled_river_fish", "quantity": 1,
         "min_tool_level": 1, "tool_xp": 8,
         "desc": (
-            "Gotowanie level 1. Wymaga 2 różnych gatunków małych ryb rzecznych, "
-            "np. Uklei Rzecznej, Jelca lub Śliza Kamiennego. Przywraca do 30 HP."
+            "Gotowanie level 1. Wymaga 2 dowolnych ryb rzecznych. Mogą to być "
+            "te same albo różne gatunki, ryby ze starszych i późniejszych Tierów "
+            "oraz rzadkie warianty gatunków rzecznych. Przywraca do 30 HP."
         ),
     },
     "river_fish_stew": {
@@ -12676,8 +12685,8 @@ QUESTS = {
         "kind": "collect", "target": "grilled_river_fish", "needed": 1,
         "description": (
             "Po przyjęciu zadania ugotuj 1 Pieczoną rybę rzeczną i przynieś ją "
-            "Kucharzowi Marcelowi. Sam przepis wymaga 2 różnych gatunków "
-            "małych ryb rzecznych; techniczny przedmiot Mała ryba nie jest wymagany."
+            "Kucharzowi Marcelowi. Przepis przyjmuje 2 dowolne ryby rzeczne: "
+            "stare lub nowe gatunki, dwie takie same albo różne oraz rzadkie warianty."
         ),
         "reward_tool_type": "cooking",
         "reward_tool_xp": 450,
@@ -50200,13 +50209,9 @@ class Session:
         effective_level = tool_level
         if dungeon == "sunken_grotto":
             effective_level = min(tool_level, max(1, int(dungeon_floor) * 10))
-        pool = tuple(self.fishing_available_pool(effective_level, habitat))
-        preferred = FISHING_ECOLOGY_PREFERRED_IDS.get(room_id)
-        if preferred:
-            filtered = tuple(item_id for item_id in pool if item_id in preferred)
-            if filtered:
-                pool = filtered
-        return pool
+        # v0.30.39: ekologia łowiska nie wycina już odblokowanych gatunków.
+        # Pula zawsze pozostaje kumulacyjna; preferencje wpływają tylko na wagę.
+        return tuple(self.fishing_available_pool(effective_level, habitat))
 
 
     def fishing_loot(self, tool_level, habitat="river"):
@@ -50217,6 +50222,14 @@ class Session:
         weights = generator_core_v027.resource_weights(
             pool, ITEMS, tool_level, f"fishing:{habitat}:{room_id}"
         )
+        preferred = FISHING_ECOLOGY_PREFERRED_IDS.get(room_id) or set()
+        if preferred:
+            # Typowe gatunki danego stanowiska są częstsze, ale żaden wcześniej
+            # odblokowany gatunek tego habitatu nie dostaje wagi 0.
+            weights = [
+                float(weight) * (2.75 if item_id in preferred else 1.0)
+                for item_id, weight in zip(pool, weights)
+            ]
         return random.choices(pool, weights=weights, k=1)[0]
 
     async def show_water_info(self):
@@ -52025,6 +52038,22 @@ class Session:
         ]
         return available[:needed]
 
+    def recipe_pooled_ingredient_choices(self, recipe):
+        """Wybiera dowolną liczbę sztuk z jednej puli, także kilka tego samego ID."""
+        pool = tuple(recipe.get("pooled_ingredient_pool") or ())
+        needed = max(0, int(recipe.get("pooled_ingredient_count", 0) or 0))
+        selected = []
+        remaining = needed
+        for item_id in pool:
+            if remaining <= 0:
+                break
+            available = max(0, int(self.available_recipe_item(item_id)))
+            take = min(remaining, available)
+            if take > 0:
+                selected.extend([item_id] * take)
+                remaining -= take
+        return selected
+
     def recipe_ingredients_text(self, recipe):
         parts = [
             f"{ITEMS[item_id]['name']} x{quantity}"
@@ -52036,6 +52065,11 @@ class Session:
             label = recipe.get("distinct_ingredient_label", "różne składniki")
             examples = ", ".join(ITEMS[item_id]["name"] for item_id in distinct_pool)
             parts.append(f"{distinct_count} {label} ({examples})")
+        pooled_pool = tuple(recipe.get("pooled_ingredient_pool") or ())
+        pooled_count = max(0, int(recipe.get("pooled_ingredient_count", 0) or 0))
+        if pooled_pool and pooled_count:
+            label = recipe.get("pooled_ingredient_label", "dowolne składniki z puli")
+            parts.append(f"{pooled_count} {label}")
         return ", ".join(parts)
 
     async def show_recipes(self, mode=""):
@@ -52246,6 +52280,15 @@ class Session:
                 f"liczą się {names}"
             )
 
+        pooled_pool = tuple(recipe.get("pooled_ingredient_pool") or ())
+        pooled_needed = max(0, int(recipe.get("pooled_ingredient_count", 0) or 0))
+        pooled_choices = self.recipe_pooled_ingredient_choices(recipe)
+        if pooled_pool and len(pooled_choices) < pooled_needed:
+            label = recipe.get("pooled_ingredient_label", "składniki z puli")
+            missing.append(
+                f"{label}: masz {len(pooled_choices)}, potrzeba {pooled_needed}"
+            )
+
         if missing:
             await self.send("Brakuje składników:")
             for line in missing:
@@ -52273,14 +52316,27 @@ class Session:
             distinct_choices = self.recipe_distinct_ingredient_choices(recipe)
             if len(distinct_choices) < distinct_needed:
                 await self.send(
-                    "Nie masz już wymaganych 2 różnych gatunków małych ryb rzecznych. "
-                    "Receptura przerwana."
+                    "Nie masz już wymaganych różnych składników. Receptura przerwana."
                 )
                 return False
             for item_id in distinct_choices[:distinct_needed]:
                 if not self.consume_recipe_item(item_id, 1):
                     await self.send(
-                        "Nie udało się pobrać różnych gatunków ryb. Receptura przerwana."
+                        "Nie udało się pobrać różnych składników. Receptura przerwana."
+                    )
+                    return False
+
+        if pooled_pool and pooled_needed:
+            pooled_choices = self.recipe_pooled_ingredient_choices(recipe)
+            if len(pooled_choices) < pooled_needed:
+                await self.send(
+                    "Nie masz już wymaganej liczby składników z puli. Receptura przerwana."
+                )
+                return False
+            for item_id in pooled_choices[:pooled_needed]:
+                if not self.consume_recipe_item(item_id, 1):
+                    await self.send(
+                        "Nie udało się pobrać składników z puli. Receptura przerwana."
                     )
                     return False
 
@@ -65356,6 +65412,197 @@ LATEST_CHANGES = [
     "v0.30.38: Złamane ostrza podaje teraz 1/6, 2/6 itd. bezpośrednio po przyznaniu Uszkodzonego Ostrza.",
     "v0.30.38: ten sam bezpośredni kanał postępu obejmuje Pancerz do przetopu i Toksyczne gruczoły, aby podobny błąd nie wrócił.",
     "v0.30.38: Collection/Museum nadal zapisuje zdobyty przedmiot, ale nie może naliczyć tego samego dropu drugi raz.",
+]
+
+
+
+# ============================================================
+# v0.30.39 - RACE HELP + PROFESSION CARRYOVER + ANY RIVER FISH
+# ============================================================
+def _install_race_help_v03039():
+    HELP_TOPICS["rasy"] = [
+        "Soulbound ma 13 ras. Każda ma dokładnie 50 bazowych punktów w pięciu głównych statystykach oraz własny pasyw rasowy.",
+        "Rasa nie blokuje żadnej klasy. Polecane klasy są tylko wskazówką wynikającą ze statystyk i pasywu.",
+        "Osobna pomoc: help człowiek, ogr, elf, krasnolud, ork, niziołek, mroczny elf, gnom, smoczy, troll, diablę, aasimar, driada.",
+        "Każdy temat rasy podaje bazowe statystyki, opis/pasyw oraz polecane klasy.",
+    ]
+    stat_labels = ("Siła", "Zręczność", "Kondycja", "Inteligencja", "Siła Woli")
+    for row in RACES:
+        race_name, description, *values = row
+        slug = "rasa_" + normalize_lookup_text(race_name).replace(" ", "_")
+        stats_text = ", ".join(
+            f"{label} {int(value)}" for label, value in zip(stat_labels, values)
+        )
+        rec = RACE_CLASS_RECOMMENDATIONS.get(race_name, {})
+        classes = ", ".join(rec.get("classes", ())) or "brak szczególnych zaleceń"
+        reason = str(rec.get("reason") or "każda klasa jest dozwolona")
+        HELP_TOPICS[slug] = [
+            f"Rasa: {race_name}.",
+            f"Bazowe statystyki: {stats_text}. Razem: {sum(int(v) for v in values)} punktów.",
+            str(description),
+            f"Polecane klasy: {classes}.",
+            f"Dlaczego: {reason}.",
+            "Polecenie jest wskazówką, nie blokadą; możesz wybrać dowolną z 12 klas.",
+        ]
+        aliases = {
+            race_name.lower(),
+            normalize_lookup_text(race_name),
+            f"rasa {race_name.lower()}",
+            f"rasa {normalize_lookup_text(race_name)}",
+        }
+        for alias in aliases:
+            HELP_TOPIC_ALIASES[alias] = slug
+
+_install_race_help_v03039()
+
+# Finalna pomoc śmierci: od v0.30.35 śmierć jest całkowicie bezstratna.
+HELP_TOPICS["smierc"] = [
+    "Po śmierci postać odradza się w Świątyni Odrodzenia z pełnym HP i Maną.",
+    "Śmierć nie zabiera waluty, przedmiotów, EQ, EXP, Levelu postaci, Biegłości, Soul XP, profesji ani levelu narzędzi.",
+    "Nie ma trwałości ani utraty wyposażenia. Aktywne buffy nie są kasowane karą śmierci i wygasają według własnego czasu.",
+]
+
+HELP_TOPICS.setdefault("wedkarstwo", []).extend([
+    "v0.30.39: pule ryb są kumulacyjne. Awans Tieru Wędki dodaje nowe gatunki, ale nie usuwa wcześniej odblokowanych gatunków z tego samego habitatu.",
+    "Specjalne łowisko może zwiększać szansę swoich typowych gatunków, lecz nie ustawia wcześniejszych odblokowanych ryb na 0 procent.",
+])
+HELP_TOPICS.setdefault("gornictwo", []).append(
+    "v0.30.39: pule rud/minerałów i surowych klejnotów są kumulacyjne; późniejszy Tier Kilofa nie usuwa wcześniej odblokowanych zasobów."
+)
+HELP_TOPICS.setdefault("drwalstwo", []).append(
+    "v0.30.39: pula drewna jest kumulacyjna; późniejszy Tier Piły nadal może dać każdy wcześniej odblokowany rodzaj drewna."
+)
+HELP_TOPICS.setdefault("zielarstwo", []).append(
+    "v0.30.39: pula ziół jest kumulacyjna; późniejszy Tier Sierpa nadal może dać każde wcześniej odblokowane zioło."
+)
+HELP_TOPICS.setdefault("receptury", []).append(
+    "v0.30.39: receptury nie mają górnego limitu Levelu/Tieru. Po odblokowaniu wcześniejsza receptura Kowalstwa, Gotowania, Alchemii lub Jubilerstwa pozostaje dostępna na późniejszych Tierach."
+)
+HELP_TOPICS.setdefault("gotowanie", []).append(
+    "v0.30.39: Pieczona ryba rzeczna do zlecenia Marcela przyjmuje 2 dowolne ryby rzeczne, również dwa takie same gatunki, późne gatunki i rzadkie warianty gatunków rzecznych."
+)
+HELP_TOPICS.setdefault("questy", []).append(
+    "v0.30.39: Zlecenie Marcela I nie wymaga już trzech starych gatunków. Każde 2 ryby rzeczne mogą zostać użyte do Pieczonej ryby rzecznej, a gotowa potrawa zalicza quest."
+)
+
+
+def profession_carryover_audit_v03039():
+    errors = []
+    pool_checks = 0
+    positive_weights = 0
+    thresholds = tuple(int(v) for v in TOOL_TIER_THRESHOLDS)
+
+    groups = {
+        "rzeka": tuple(RIVER_FISH_ATLAS),
+        "jezioro": tuple(LAKE_FISH_ATLAS),
+        "morze": tuple(SEA_FISH_ATLAS),
+        "ocean": tuple(OCEAN_FISH_ATLAS),
+        "rudy": tuple(ORE_RESOURCE_IDS),
+        "drewno": tuple(WOOD_RESOURCE_IDS),
+        "ziola": tuple(HERB_RESOURCE_IDS),
+        "klejnoty": tuple(
+            iid for iid, item in ITEMS.items()
+            if item.get("type") == "gem_raw" and not item.get("gem_quality")
+        ),
+    }
+    final_sizes = {}
+    for label, ids in groups.items():
+        previous = set()
+        for level in thresholds:
+            pool = tuple(generator_core_v027.resource_pool(ids, ITEMS, level, f"audit:{label}"))
+            pool_checks += 1
+            current = set(pool)
+            if not previous.issubset(current):
+                errors.append(f"{label}: zasób zniknął przy Tierze dla levelu {level}")
+            weights = generator_core_v027.resource_weights(pool, ITEMS, level, f"audit:{label}")
+            if len(weights) != len(pool):
+                errors.append(f"{label}: niezgodna liczba wag na levelu {level}")
+            for item_id, weight in zip(pool, weights):
+                if float(weight) <= 0:
+                    errors.append(f"{label}: zerowa waga {item_id} na levelu {level}")
+                else:
+                    positive_weights += 1
+            previous = current
+        final_sizes[label] = len(previous)
+
+    # Specjalne łowisko nie może wycinać gatunków ze zwykłej kumulacyjnej puli.
+    forest_pref = set(FISHING_ECOLOGY_PREFERRED_IDS.get("forest_stream") or ())
+    river_low = set(generator_core_v027.resource_pool(tuple(RIVER_FISH_ATLAS), ITEMS, thresholds[0], "audit:forest"))
+    river_high = set(generator_core_v027.resource_pool(tuple(RIVER_FISH_ATLAS), ITEMS, thresholds[-1], "audit:forest"))
+    if not river_low.issubset(river_high):
+        errors.append("forest_stream: wcześniejsze ryby nie są podzbiorem późniejszej puli")
+    if forest_pref and not (forest_pref & river_high):
+        errors.append("forest_stream: preferencje ekologiczne nie przecinają puli rzecznej")
+
+    recipe_count = 0
+    forbidden_max_keys = (
+        "max_profession_level", "max_tool_level", "max_level",
+        "maximum_profession_level", "maximum_tool_level",
+    )
+    for table_name, table in (
+        ("craft", CRAFT_RECIPES), ("cook", COOK_RECIPES),
+        ("alchemy", ALCHEMY_RECIPES), ("jewel", JEWELCRAFT_RECIPES),
+    ):
+        for recipe_id, recipe in table.items():
+            recipe_count += 1
+            for key in forbidden_max_keys:
+                if recipe.get(key) not in (None, 0, ""):
+                    errors.append(f"{table_name}:{recipe_id}: górny limit {key}")
+
+    # Quest Marcela: pełna baza gatunków rzecznych + ich rzadkie warianty.
+    recipe = COOK_RECIPES.get("grilled_river_fish", {})
+    pool = set(recipe.get("pooled_ingredient_pool") or ())
+    expected = {
+        item_id for item_id in FISH_STORAGE_IDS
+        if base_fish_species_id(item_id) in RIVER_FISH_ATLAS
+    }
+    missing = expected - pool
+    if missing:
+        errors.append("Pieczona ryba rzeczna: brakuje ryb: " + ", ".join(sorted(missing)[:20]))
+    if int(recipe.get("pooled_ingredient_count", 0) or 0) != 2:
+        errors.append("Pieczona ryba rzeczna: wymaganie nie wynosi 2 ryb")
+    if recipe.get("distinct_ingredient_pool"):
+        errors.append("Pieczona ryba rzeczna nadal wymaga różnych gatunków")
+
+    race_topics = 0
+    for race_name, *_rest in RACES:
+        slug = "rasa_" + normalize_lookup_text(race_name).replace(" ", "_")
+        if slug not in HELP_TOPICS:
+            errors.append(f"brak help rasy: {race_name}")
+        else:
+            race_topics += 1
+
+    return {
+        "version": "0.30.39",
+        "race_topics": race_topics,
+        "pool_checks": pool_checks,
+        "positive_weights_checked": positive_weights,
+        "recipes_checked": recipe_count,
+        "river_recipe_pool_size": len(pool),
+        "river_base_species": len(RIVER_FISH_ATLAS),
+        "final_pool_sizes": final_sizes,
+        "error_count": len(errors),
+        "errors": errors,
+    }
+
+PROFESSION_CARRYOVER_AUDIT_V03039 = profession_carryover_audit_v03039()
+if PROFESSION_CARRYOVER_AUDIT_V03039.get("error_count"):
+    raise RuntimeError(
+        "Profession Carryover Audit v0.30.39 failed: "
+        + "; ".join(PROFESSION_CARRYOVER_AUDIT_V03039.get("errors", [])[:50])
+    )
+
+HELP_TOPICS.setdefault("wersja", []).append(
+    "v0.30.39: dodano pełne pomoce 13 ras, kumulacyjny audit zasobów/profesji oraz dowolne ryby rzeczne w pierwszym zleceniu Gotowania Marcela."
+)
+LATEST_CHANGES_TITLE = "Soulbound v0.30.39 - Race HELP + Profession Carryover + Any River Fish"
+LATEST_CHANGES = [
+    "v0.30.39: help rasy ma indeks, a każda z 13 ras ma osobny help ze statystykami, pasywem i polecanymi klasami.",
+    "v0.30.39: wszystkie pule zasobów są audytowane jako kumulacyjne przez 40 Tierów; starsze ryby, rudy, drewno, zioła i surowe klejnoty nie znikają po awansie.",
+    "v0.30.39: specjalne łowiska tylko zwiększają wagi typowych gatunków; nie wycinają wcześniejszych odblokowanych ryb.",
+    "v0.30.39: stare receptury Kowalstwa, Gotowania, Alchemii i Jubilerstwa nie mają górnego limitu i pozostają używalne na późniejszych Tierach.",
+    "v0.30.39: Pieczona ryba rzeczna przyjmuje 2 dowolne ryby rzeczne, także dwa takie same gatunki, późne gatunki i rzadkie warianty.",
+    "v0.30.39: help śmierć został zsynchronizowany z bezstratną śmiercią v0.30.35.",
 ]
 
 if __name__ == "__main__":
