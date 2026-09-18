@@ -1,3 +1,18 @@
+Soulbound v0.30.25 — Profession + Tool XP Integrity
+
+- Każda właściwa akcja profesyjna wykonywana narzędziem rozwija teraz jawnie obie osie: profesję oraz odpowiadające jej narzędzie.
+- Zweryfikowano wszystkie 289 receptur Kowalstwa, Alchemii, Gotowania i Jubilerstwa: każda ma dodatnie `profession_xp` i `tool_xp`.
+- Zweryfikowano wszystkie 19 receptur przetapiania sztabek od progresji 1 do 400: każde przetopienie daje XP Kowalstwa i XP Młota Rzemieślniczego.
+- Łowienie, wydobycie, ścinanie i Zielarstwo nadal korzystają ze wspólnej ścieżki dual-XP: profesja + Wędka/Kilof/Piła/Sierp.
+- Naprawiono 13 questów Gotowania Marcela. Miały XP Noża Kucharskiego, ale brakowało jawnego `reward_profession=Gotowanie`, przez co stary fallback mógł kierować XP profesji do Wędkarstwa.
+- Usunięto ryzykowny fallback nagród questów na Wędkarstwo. Jeśli stary quest nie ma nazwy profesji, jest ona wyprowadzana z prawidłowego `reward_tool_type`.
+- Zweryfikowano 171 questów profesyjnych: każdy ma dodatnie XP profesji, dodatnie XP narzędzia oraz zgodną parę profesja/narzędzie.
+- Nowy audit startowy blokuje uruchomienie przy recepturze bez jednego z dwóch XP albo przy niespójnej nagrodzie profesyjnego questu.
+- Sprzedaż surowców nadal daje XP profesji zgodnie z dotychczasową mechaniką, ale nie daje XP narzędzia, ponieważ narzędzie nie jest używane podczas sprzedaży.
+- Generator Core pozostaje v0.30.24; balans liczbowy, ekonomia i topologia świata nie zostały zmienione.
+- Regression: 22 aktywne audyty, 1122/1122 lokacji osiągalnych i z drogą powrotną przy wspólnym seedzie testowym, 0 błędów / 0 ostrzeżeń; fingerprint identyczny z v0.30.24.
+- Brak wipe.
+
 Soulbound v0.30.24 — Hybrid Quest Rewards
 
 - Dodano hybrydowy balans waluty questów: ważne, ręcznie projektowane zadania mają chronione kwoty, a pozostałe nadal skaluje Generator Core.

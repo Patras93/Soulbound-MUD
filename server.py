@@ -2,7 +2,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Soulbound v0.30.24 Hybrid Quest Rewards Edition
+Soulbound v0.30.25 Profession + Tool XP Integrity Edition
 Wieloosobowy tekstowy MUD TCP/Telnet dla MUSHclienta/Mudleta.
 
 Najważniejsze zasady projektu:
@@ -51,7 +51,7 @@ dynamic_world_v029 = _load_embedded_runtime_module('dynamic_world_v029', _EMBEDD
 _EMBEDDED_WORLD_LOGIC_VALIDATOR_SOURCE = '"""Soulbound v0.30.0 Semantic World Logic Validator.\n\nThe topology may be procedural, but geography must remain understandable.\nThis validator checks semantic gateway rules, vertical movement semantics,\nworld reachability, reciprocal navigation and deterministic topology output.\n"""\nfrom __future__ import annotations\n\nfrom collections import defaultdict, deque\nimport hashlib\nimport json\n\nVERSION = "0.30.0"\nHORIZONTAL = ("north","east","south","west","northeast","southeast","southwest","northwest")\nOPPOSITE = {\n    "north":"south","south":"north","east":"west","west":"east",\n    "northeast":"southwest","southwest":"northeast",\n    "northwest":"southeast","southeast":"northwest",\n    "up":"down","down":"up",\n}\n\n\ndef _norm(text):\n    return str(text or "").casefold()\n\n\ndef zone_family(zone: str) -> str:\n    z=_norm(zone)\n    if any(k in z for k in ("miasto dusz","gildia dusz","pracownia kartografa")):\n        return "urban"\n    if any(k in z for k in ("przedmieścia","przedmiescia","wioska","osada","posterunek","obóz straży","oboz strazy","przystań","przystan")):\n        return "settlement"\n    if any(k in z for k in ("kanały","kanaly","podziemia","krypt","jaskini","jaskinie","nekropolia","katakumb","kopal")):\n        return "underground"\n    if any(k in z for k in ("góry","gory","lodowe","twierdza gigant")):\n        return "highland"\n    if any(k in z for k in ("popielne","rozbite niebo","pustki","korona świata","korona swiata","rubież końca","rubiez konca")):\n        return "endgame"\n    if any(k in z for k in ("próba","proba","arena","archiwum otchłani","archiwum otchlani","katedra tysiąca","katedra tysiaca","kuźnia pierwszych","kuznia pierwszych","labirynt wiecznych","pałac bezimiennej","palac bezimiennej")):\n        return "instance"\n    if "proceduralny region:" in z:\n        return "expedition"\n    if any(k in z for k in ("ocean","wybrzeże","wybrzeze","jezior","dolina rzek")):\n        return "waterland"\n    return "wilderness"\n\n\ndef _gateway_semantic(rid: str, room: dict, direction: str, target_id: str, target: dict) -> bool:\n    """True when a cross-zone edge has a believable semantic transition."""\n    if direction in ("up","down"):\n        return True\n    src=_norm(rid)+" "+_norm(room.get("name"))\n    dst=_norm(target_id)+" "+_norm(target.get("name"))\n    gateway_words=(\n        "gate","brama","harbor","port","pier","molo","road","trakt","path","szlak",\n        "pass","przełęcz","przelecz","bridge","most","entrance","wejście","wejscie",\n        "mouth","wylot","frontier","rubież","rubiez","gateway","portal","archive","archiw",\n        "hall","hala","lobby","warsztat kartograf","cartographer","watchpost","posterunek",\n        "camp","obóz","oboz","v0130_gateway","v028_region_gate",\n    )\n    return any(k in src or k in dst for k in gateway_words)\n\n\ndef _reachable(rooms, start):\n    if start not in rooms:\n        return set()\n    seen={start}; q=deque([start])\n    while q:\n        cur=q.popleft()\n        for target in rooms[cur].get("exits",{}).values():\n            if target in rooms and target not in seen:\n                seen.add(target); q.append(target)\n    return seen\n\n\ndef topology_fingerprint(rooms):\n    payload=[]\n    for rid in sorted(rooms):\n        exits=rooms[rid].get("exits",{}) or {}\n        payload.append((rid,tuple(sorted((str(k),str(v)) for k,v in exits.items()))))\n    raw=json.dumps(payload,ensure_ascii=False,separators=(",",":"))\n    return hashlib.sha256(raw.encode("utf-8")).hexdigest()\n\n\ndef validate_world_logic(rooms: dict) -> dict:\n    errors=[]; warnings=[]; cross=[]; vertical=[]\n    if not isinstance(rooms,dict):\n        return {"version":VERSION,"error_count":1,"errors":["ROOMS is not dict"]}\n\n    # References and reciprocal navigation for every static edge.\n    for rid,room in rooms.items():\n        exits=room.get("exits",{}) or {}\n        for direction,target_id in exits.items():\n            if target_id not in rooms:\n                # Runtime/lazy destination; validated by its own materializer.\n                continue\n            target=rooms[target_id]\n            if direction in OPPOSITE:\n                reverse=OPPOSITE[direction]\n                if target.get("exits",{}).get(reverse)!=rid:\n                    # Some explicit gauntlet finales remain one-way by design; require a\n                    # global return path instead of pretending the exact edge is reciprocal.\n                    if not (room.get("procedural_dynamic") or target.get("procedural_dynamic")):\n                        warnings.append(f"one-way {rid}.{direction}->{target_id}")\n            z1=str(room.get("zone") or "Bez strefy")\n            z2=str(target.get("zone") or "Bez strefy")\n            if direction in ("up","down"):\n                vertical.append((rid,direction,target_id))\n            if z1!=z2:\n                cross.append((rid,direction,target_id,z1,z2))\n                f1,f2=zone_family(z1),zone_family(z2)\n                semantic_gateway=_gateway_semantic(rid,room,direction,target_id,target)\n                # Granice naturalnych biomów (np. łąka -> rzeka -> dzicz) mogą\n                # przechodzić bez sztucznej bramy. Twarda semantyczna brama jest\n                # wymagana, gdy opuszczamy/wchodzimy do huba miejskiego.\n                if (f1=="urban") != (f2=="urban") and not semantic_gateway:\n                    errors.append(f"urban boundary without semantic gateway: {rid}.{direction}->{target_id} ({z1}->{z2})")\n                # Miasto nie może być bezpośrednim sąsiadem gór/endgame. Nawet\n                # prawdziwa brama miejska ma prowadzić najpierw do traktu/przedmieść.\n                if f1=="urban" and f2 in {"highland","endgame"} and direction not in ("up","down"):\n                    errors.append(f"urban direct jump to {f2}: {rid}.{direction}->{target_id}")\n                if f2=="urban" and f1 in {"highland","endgame"} and direction not in ("up","down"):\n                    errors.append(f"{f1} direct jump to urban: {rid}.{direction}->{target_id}")\n\n    # v0.30 generator nie używa up/down jako GENERATED_DIRS. Każde pionowe\n    # przejście obecne tutaj pochodzi więc z semantycznej tożsamości świata\n    # (schody, piwnica, wieża, krypta, jaskinia, portal) albo z generatora\n    # dedykowanej instancji, a nie z losowego łączenia topologii.\n\n    reachable=_reachable(rooms,"square")\n    if len(reachable)!=len(rooms):\n        missing=sorted(set(rooms)-reachable)\n        errors.append(f"unreachable from square: {len(missing)} rooms; sample {missing[:10]}")\n\n    # Every static room must have some route back to the hub. Reverse-graph BFS.\n    rev=defaultdict(list)\n    for rid,room in rooms.items():\n        for target in room.get("exits",{}).values():\n            if target in rooms: rev[target].append(rid)\n    can_return=set()\n    if "square" in rooms:\n        can_return={"square"}; q=deque(["square"])\n        while q:\n            cur=q.popleft()\n            for source in rev.get(cur,[]):\n                if source not in can_return:\n                    can_return.add(source); q.append(source)\n    if len(can_return)!=len(rooms):\n        missing=sorted(set(rooms)-can_return)\n        errors.append(f"cannot return to square: {len(missing)} rooms; sample {missing[:10]}")\n\n    city=[rid for rid,r in rooms.items() if r.get("zone")=="Miasto Dusz"]\n    city_bad=[]\n    for rid in city:\n        for d,t in rooms[rid].get("exits",{}).items():\n            if t not in rooms: continue\n            z2=rooms[t].get("zone")\n            if z2=="Miasto Dusz": continue\n            if not _gateway_semantic(rid,rooms[rid],d,t,rooms[t]):\n                city_bad.append(f"{rid}.{d}->{t}")\n    if city_bad:\n        errors.append("city exits without gateway semantics: "+", ".join(city_bad[:10]))\n\n    families=defaultdict(int)\n    for r in rooms.values(): families[zone_family(r.get("zone"))]+=1\n    return {\n        "version":VERSION,\n        "room_count":len(rooms),\n        "reachable_from_square":len(reachable),\n        "returnable_to_square":len(can_return),\n        "cross_zone_edges":len(cross),\n        "vertical_edges":len(vertical),\n        "city_rooms":len(city),\n        "zone_family_room_counts":dict(families),\n        "topology_fingerprint":topology_fingerprint(rooms),\n        "warning_count":len(warnings),\n        "warnings":warnings,\n        "error_count":len(errors),\n        "errors":errors,\n    }\n'
 world_logic_validator_v030 = _load_embedded_runtime_module('world_logic_validator', _EMBEDDED_WORLD_LOGIC_VALIDATOR_SOURCE)
 
-VERSION = "0.30.24"
+VERSION = "0.30.25"
 HISTORY_BUFFER_LIMIT = 100
 HISTORY_BUFFER_DEFAULT_SHOW = 20
 
@@ -56137,12 +56137,16 @@ class Session:
             q.get("reward_tool_xp", 0)
         )
         reward_tool_type = q.get("reward_tool_type")
+        reward_profession = (
+            q.get("reward_profession")
+            or profession_for_tool_type(reward_tool_type)
+        )
 
         if reward_prof_xp:
             await self.grant_profession_reward_xp(
-                q.get("reward_profession", "Wędkarstwo"),
+                reward_profession,
                 reward_prof_xp,
-                reward_tool_type or "fishing",
+                reward_tool_type,
                 reward_tool_xp,
             )
         elif reward_tool_xp and reward_tool_type:
@@ -62300,7 +62304,7 @@ def full_combat_scaling_audit_v03015():
         errors.append("INT/WIL does not increase mana")
     if int_plus - base != wil_plus - base:
         errors.append("INT/WIL mana contribution is not equal")
-    if VERSION != "0.30.24":
+    if VERSION != "0.30.25":
         errors.append(f"VERSION={VERSION}")
     if GENERATOR_CORE_VERSION != "0.30.24":
         errors.append(f"GENERATOR_CORE_VERSION={GENERATOR_CORE_VERSION}")
@@ -63121,6 +63125,156 @@ LATEST_CHANGES = [
     "quest list <NPC> pokazuje walutę przed przyjęciem, a quest info informuje, gdy kwota jest ręcznie chroniona.",
     "Wszystkie 307 questów nadal wypłacają do jednego wspólnego salda; reward_gold i reward_mithril pozostają wyzerowane w finalnym rejestrze.",
     "Brak wipe. Topologia świata, quest progress, walka, EQ i pozostałe systemy nie są przebudowywane przez tę zmianę.",
+]
+
+
+# ============================================================
+# v0.30.25 - PROFESSION + TOOL XP INTEGRITY
+# ============================================================
+# Każda realna akcja profesyjna wykonywana narzędziem rozwija obie osie:
+# profesję oraz odpowiadające jej narzędzie. Sprzedaż surowców nie jest
+# akcją narzędzia i zachowuje dotychczasowe zasady.
+V03025_PROFESSION_REWARD_REPAIRS = {}
+for _quest_id, _quest in QUESTS.items():
+    _tool_type = _quest.get("reward_tool_type")
+    _expected_profession = profession_for_tool_type(_tool_type)
+    _has_profession_reward = int(_quest.get("reward_profession_xp", 0) or 0) > 0
+    _has_tool_reward = int(_quest.get("reward_tool_xp", 0) or 0) > 0
+    if _has_profession_reward and _has_tool_reward and _expected_profession:
+        if not _quest.get("reward_profession"):
+            _quest["reward_profession"] = _expected_profession
+            V03025_PROFESSION_REWARD_REPAIRS[_quest_id] = _expected_profession
+
+
+def profession_tool_xp_audit_v03025():
+    errors = []
+    recipe_tables = (
+        ("Kowalstwo", "crafting", CRAFT_RECIPES),
+        ("Alchemia", "alchemy", ALCHEMY_RECIPES),
+        ("Gotowanie", "cooking", COOK_RECIPES),
+        ("Jubilerstwo", "jewelcrafting", JEWELCRAFT_RECIPES),
+    )
+    recipe_count = 0
+    ingot_count = 0
+    for profession, tool_type, recipes in recipe_tables:
+        for recipe_id, recipe in recipes.items():
+            recipe_count += 1
+            profession_xp = int(recipe.get("profession_xp", 0) or 0)
+            tool_xp = int(recipe.get("tool_xp", 0) or 0)
+            if profession_xp <= 0:
+                errors.append(f"{profession}/{recipe_id}: brak profession_xp")
+            if tool_xp <= 0:
+                errors.append(f"{profession}/{recipe_id}: brak tool_xp")
+            output_id = str(recipe.get("output") or "")
+            if tool_type == "crafting" and (output_id.endswith("_ingot") or output_id.startswith("ingot_")):
+                ingot_count += 1
+                if profession_xp <= 0 or tool_xp <= 0:
+                    errors.append(f"przetop {recipe_id}: nie rozwija jednocześnie Kowalstwa i Młota")
+
+    profession_quest_count = 0
+    for quest_id, quest in QUESTS.items():
+        profession_xp = int(quest.get("reward_profession_xp", 0) or 0)
+        tool_xp = int(quest.get("reward_tool_xp", 0) or 0)
+        profession = quest.get("reward_profession")
+        tool_type = quest.get("reward_tool_type")
+        if not (profession_xp or tool_xp or profession or tool_type):
+            continue
+        profession_quest_count += 1
+        expected = profession_for_tool_type(tool_type)
+        if profession_xp <= 0:
+            errors.append(f"quest {quest_id}: brak reward_profession_xp")
+        if tool_xp <= 0:
+            errors.append(f"quest {quest_id}: brak reward_tool_xp")
+        if not tool_type:
+            errors.append(f"quest {quest_id}: brak reward_tool_type")
+        if not profession:
+            errors.append(f"quest {quest_id}: brak reward_profession")
+        if expected and profession and profession != expected:
+            errors.append(
+                f"quest {quest_id}: {profession} nie pasuje do narzędzia {tool_type} ({expected})"
+            )
+
+    # Główne akcje zbierackie są celowo jawne: każda wywołuje
+    # grant_profession_progress(profesja, xp, narzędzie, xp).
+    gathering_pairs = {
+        "fish": ("Wędkarstwo", "fishing"),
+        "mine": ("Górnictwo", "mining"),
+        "woodcut": ("Drwalstwo", "woodcutting"),
+        "gather_herb": ("Zielarstwo", "herbalism"),
+    }
+    return {
+        "version": "0.30.25",
+        "recipes_checked": recipe_count,
+        "ingot_recipes_checked": ingot_count,
+        "profession_quests_checked": profession_quest_count,
+        "quest_profession_repairs": len(V03025_PROFESSION_REWARD_REPAIRS),
+        "gathering_actions_checked": len(gathering_pairs),
+        "gathering_pairs": gathering_pairs,
+        "error_count": len(errors),
+        "errors": errors,
+    }
+
+
+PROFESSION_TOOL_XP_AUDIT_V03025 = profession_tool_xp_audit_v03025()
+if PROFESSION_TOOL_XP_AUDIT_V03025.get("error_count"):
+    raise RuntimeError(
+        "Profession + Tool XP Audit v0.30.25 failed: "
+        + "; ".join(PROFESSION_TOOL_XP_AUDIT_V03025.get("errors", [])[:30])
+    )
+
+def full_release_integrity_audit_v03025():
+    errors = []
+    previous = globals().get("FULL_RELEASE_INTEGRITY_AUDIT_V03022") or {}
+    if int(previous.get("error_count", 0) or 0):
+        errors.append("v0.30.22 release gate regressed")
+    if int(PROFESSION_TOOL_XP_AUDIT_V03025.get("error_count", 0) or 0):
+        errors.append("profession/tool XP audit failed")
+    if int(WORLD_LOGIC_AUDIT.get("error_count", 0) or 0):
+        errors.append("world logic audit failed")
+    if int(WORLD_LOGIC_AUDIT.get("warning_count", 0) or 0):
+        errors.append("world logic warnings present")
+    if VERSION != "0.30.25":
+        errors.append(f"VERSION={VERSION}")
+    if GENERATOR_CORE_VERSION != "0.30.24":
+        errors.append(f"GENERATOR_CORE_VERSION={GENERATOR_CORE_VERSION}")
+    return {
+        "version": "0.30.25",
+        "base_release_gate": previous.get("version", "v0.30.22"),
+        "profession_tool_xp": PROFESSION_TOOL_XP_AUDIT_V03025.get("error_count") == 0,
+        "world_logic": WORLD_LOGIC_AUDIT.get("error_count") == 0,
+        "world_warnings": WORLD_LOGIC_AUDIT.get("warning_count", 0),
+        "error_count": len(errors),
+        "errors": errors,
+    }
+
+FULL_RELEASE_INTEGRITY_AUDIT_V03025 = full_release_integrity_audit_v03025()
+if FULL_RELEASE_INTEGRITY_AUDIT_V03025.get("error_count"):
+    raise RuntimeError(
+        "Full Release Integrity Audit v0.30.25 failed: "
+        + "; ".join(FULL_RELEASE_INTEGRITY_AUDIT_V03025.get("errors", [])[:30])
+    )
+
+HELP_TOPICS.setdefault("kowalstwo", []).extend([
+    "v0.30.25: każde przetopienie sztabki daje jednocześnie XP Kowalstwa i XP Młota Rzemieślniczego.",
+    "Ta sama zasada obowiązuje każde kucie: akcja rozwija profesję Kowalstwo oraz Młot Rzemieślniczy.",
+])
+HELP_TOPICS.setdefault("profesje", []).extend([
+    "v0.30.25: każda właściwa akcja wykonywana narzędziem rozwija równolegle profesję i odpowiadające jej narzędzie.",
+    "Wędkarstwo/Wędka, Górnictwo/Kilof, Drwalstwo/Piła, Zielarstwo/Sierp, Kowalstwo/Młot, Gotowanie/Nóż, Alchemia/Moździerz i Jubilerstwo/Szczypce są audytowane jako pary XP.",
+    "Sprzedaż surowców nadal może dawać XP profesji, ale nie daje XP narzędzia, ponieważ narzędzie nie jest używane przy sprzedaży.",
+])
+HELP_TOPICS.setdefault("wersja", []).append(
+    "v0.30.25: pełny audit profession+tool XP. Naprawiono 13 questów Gotowania Marcela, które mogły kierować XP profesji do Wędkarstwa zamiast Gotowania."
+)
+
+LATEST_CHANGES_TITLE = "Soulbound v0.30.25 - Profession + Tool XP Integrity"
+LATEST_CHANGES = [
+    "Każde przetopienie i każde kucie daje jednocześnie XP Kowalstwa oraz XP Młota Rzemieślniczego.",
+    "Pełny audit objął wszystkie receptury Kowalstwa, Alchemii, Gotowania i Jubilerstwa oraz główne akcje czterech profesji zbierackich.",
+    "Naprawiono 13 questów Gotowania Marcela: nagroda profesji jest teraz jawnie przypisana do Gotowania, a nie do awaryjnego Wędkarstwa.",
+    "Nagroda profesyjna questu jest teraz wyprowadzana z reward_tool_type, jeśli stary wpis nie ma reward_profession; usunięto ryzykowny domyślny fallback na Wędkarstwo.",
+    "Start serwera blokuje się, jeśli receptura nie ma dodatniego XP profesji i narzędzia albo jeśli quest profesyjny ma niespójną parę profesja/narzędzie.",
+    "Generator Core pozostaje v0.30.24; v0.30.25 nie zmienia jego balansu, topologii świata ani ekonomii. Brak wipe.",
 ]
 
 if __name__ == "__main__":
