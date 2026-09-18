@@ -1,3 +1,11 @@
+v0.30.29 — Deploy Startup Hotfix
+- Naprawiono błąd, przez który DEPLOY/Railway kończył start na historycznym Combat/Stat Audit.
+- Historyczne audyty nie przypinają już bieżącego release'u do starych numerów VERSION.
+- Generator Core pozostaje 0.30.24.
+- DEPLOY_ONLY został uruchomiony testowo z PORT i doszedł do nasłuchiwania.
+- Zaktualizowano instrukcję Railway.
+- Brak wipe.
+
 v0.30.28 - Accessible Exits Client Compatibility
 - ex/exits wysyła teraz prosty wieloliniowy blok: kierunek: miejsce docelowe.
 - Poprawiona zgodność z klientami MUD i NVDA, które nie czytały starej długiej linii wyjść.
