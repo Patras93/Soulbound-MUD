@@ -1,4 +1,9 @@
-Soulbound v0.30.37 - Complete EQ Slots + Earrings + Unique Stats
+v0.30.38 - Broken Blades Spoken Progress Hotfix
+- Złamane ostrza podaje teraz postęp 1/6, 2/6 itd. natychmiast po kwalifikującym się dropie.
+- Pancerz do przetopu i Toksyczne gruczoły korzystają z tego samego bezpośredniego kanału postępu.
+- Collection/Museum nie może już podbić tego samego dropu drugi raz.
+
+Soulbound v0.30.38 - Complete EQ Slots + Earrings + Unique Stats
 
 - Dodano kolczyki jako pełnoprawne EQ z dwoma miejscami: Kolczyk 1 i Kolczyk 2.
 - Skróty NVDA: zkol, zkol1, zkol2. Kolczyki obsługują gniazda klejnotów.
