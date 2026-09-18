@@ -1,3 +1,12 @@
+Soulbound v0.30.30 - 30-Second Buffs + NVDA Lifecycle
+
+- Wszystkie bojowe buffy typu boost trwają dokładnie 30 sekund.
+- Przy aktywacji NVDA czyta nazwę buffa, czas działania, bonus i łączne aktywne wzmocnienie.
+- Przy naturalnym wygaśnięciu NVDA mówi dokładnie raz: Buff wygasł: <nazwa>.
+- Auto Skill Queue nie odnawia tego samego buffa przed wygaśnięciem.
+- Generator Core pozostaje v0.30.24.
+- Brak wipe.
+
 v0.30.29 — Deploy Startup Hotfix
 - Naprawiono błąd, przez który DEPLOY/Railway kończył start na historycznym Combat/Stat Audit.
 - Historyczne audyty nie przypinają już bieżącego release'u do starych numerów VERSION.

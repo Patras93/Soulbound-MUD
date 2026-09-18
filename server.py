@@ -51,7 +51,8 @@ dynamic_world_v029 = _load_embedded_runtime_module('dynamic_world_v029', _EMBEDD
 _EMBEDDED_WORLD_LOGIC_VALIDATOR_SOURCE = '"""Soulbound v0.30.0 Semantic World Logic Validator.\n\nThe topology may be procedural, but geography must remain understandable.\nThis validator checks semantic gateway rules, vertical movement semantics,\nworld reachability, reciprocal navigation and deterministic topology output.\n"""\nfrom __future__ import annotations\n\nfrom collections import defaultdict, deque\nimport hashlib\nimport json\n\nVERSION = "0.30.0"\nHORIZONTAL = ("north","east","south","west","northeast","southeast","southwest","northwest")\nOPPOSITE = {\n    "north":"south","south":"north","east":"west","west":"east",\n    "northeast":"southwest","southwest":"northeast",\n    "northwest":"southeast","southeast":"northwest",\n    "up":"down","down":"up",\n}\n\n\ndef _norm(text):\n    return str(text or "").casefold()\n\n\ndef zone_family(zone: str) -> str:\n    z=_norm(zone)\n    if any(k in z for k in ("miasto dusz","gildia dusz","pracownia kartografa")):\n        return "urban"\n    if any(k in z for k in ("przedmieścia","przedmiescia","wioska","osada","posterunek","obóz straży","oboz strazy","przystań","przystan")):\n        return "settlement"\n    if any(k in z for k in ("kanały","kanaly","podziemia","krypt","jaskini","jaskinie","nekropolia","katakumb","kopal")):\n        return "underground"\n    if any(k in z for k in ("góry","gory","lodowe","twierdza gigant")):\n        return "highland"\n    if any(k in z for k in ("popielne","rozbite niebo","pustki","korona świata","korona swiata","rubież końca","rubiez konca")):\n        return "endgame"\n    if any(k in z for k in ("próba","proba","arena","archiwum otchłani","archiwum otchlani","katedra tysiąca","katedra tysiaca","kuźnia pierwszych","kuznia pierwszych","labirynt wiecznych","pałac bezimiennej","palac bezimiennej")):\n        return "instance"\n    if "proceduralny region:" in z:\n        return "expedition"\n    if any(k in z for k in ("ocean","wybrzeże","wybrzeze","jezior","dolina rzek")):\n        return "waterland"\n    return "wilderness"\n\n\ndef _gateway_semantic(rid: str, room: dict, direction: str, target_id: str, target: dict) -> bool:\n    """True when a cross-zone edge has a believable semantic transition."""\n    if direction in ("up","down"):\n        return True\n    src=_norm(rid)+" "+_norm(room.get("name"))\n    dst=_norm(target_id)+" "+_norm(target.get("name"))\n    gateway_words=(\n        "gate","brama","harbor","port","pier","molo","road","trakt","path","szlak",\n        "pass","przełęcz","przelecz","bridge","most","entrance","wejście","wejscie",\n        "mouth","wylot","frontier","rubież","rubiez","gateway","portal","archive","archiw",\n        "hall","hala","lobby","warsztat kartograf","cartographer","watchpost","posterunek",\n        "camp","obóz","oboz","v0130_gateway","v028_region_gate",\n    )\n    return any(k in src or k in dst for k in gateway_words)\n\n\ndef _reachable(rooms, start):\n    if start not in rooms:\n        return set()\n    seen={start}; q=deque([start])\n    while q:\n        cur=q.popleft()\n        for target in rooms[cur].get("exits",{}).values():\n            if target in rooms and target not in seen:\n                seen.add(target); q.append(target)\n    return seen\n\n\ndef topology_fingerprint(rooms):\n    payload=[]\n    for rid in sorted(rooms):\n        exits=rooms[rid].get("exits",{}) or {}\n        payload.append((rid,tuple(sorted((str(k),str(v)) for k,v in exits.items()))))\n    raw=json.dumps(payload,ensure_ascii=False,separators=(",",":"))\n    return hashlib.sha256(raw.encode("utf-8")).hexdigest()\n\n\ndef validate_world_logic(rooms: dict) -> dict:\n    errors=[]; warnings=[]; cross=[]; vertical=[]\n    if not isinstance(rooms,dict):\n        return {"version":VERSION,"error_count":1,"errors":["ROOMS is not dict"]}\n\n    # References and reciprocal navigation for every static edge.\n    for rid,room in rooms.items():\n        exits=room.get("exits",{}) or {}\n        for direction,target_id in exits.items():\n            if target_id not in rooms:\n                # Runtime/lazy destination; validated by its own materializer.\n                continue\n            target=rooms[target_id]\n            if direction in OPPOSITE:\n                reverse=OPPOSITE[direction]\n                if target.get("exits",{}).get(reverse)!=rid:\n                    # Some explicit gauntlet finales remain one-way by design; require a\n                    # global return path instead of pretending the exact edge is reciprocal.\n                    if not (room.get("procedural_dynamic") or target.get("procedural_dynamic")):\n                        warnings.append(f"one-way {rid}.{direction}->{target_id}")\n            z1=str(room.get("zone") or "Bez strefy")\n            z2=str(target.get("zone") or "Bez strefy")\n            if direction in ("up","down"):\n                vertical.append((rid,direction,target_id))\n            if z1!=z2:\n                cross.append((rid,direction,target_id,z1,z2))\n                f1,f2=zone_family(z1),zone_family(z2)\n                semantic_gateway=_gateway_semantic(rid,room,direction,target_id,target)\n                # Granice naturalnych biomów (np. łąka -> rzeka -> dzicz) mogą\n                # przechodzić bez sztucznej bramy. Twarda semantyczna brama jest\n                # wymagana, gdy opuszczamy/wchodzimy do huba miejskiego.\n                if (f1=="urban") != (f2=="urban") and not semantic_gateway:\n                    errors.append(f"urban boundary without semantic gateway: {rid}.{direction}->{target_id} ({z1}->{z2})")\n                # Miasto nie może być bezpośrednim sąsiadem gór/endgame. Nawet\n                # prawdziwa brama miejska ma prowadzić najpierw do traktu/przedmieść.\n                if f1=="urban" and f2 in {"highland","endgame"} and direction not in ("up","down"):\n                    errors.append(f"urban direct jump to {f2}: {rid}.{direction}->{target_id}")\n                if f2=="urban" and f1 in {"highland","endgame"} and direction not in ("up","down"):\n                    errors.append(f"{f1} direct jump to urban: {rid}.{direction}->{target_id}")\n\n    # v0.30 generator nie używa up/down jako GENERATED_DIRS. Każde pionowe\n    # przejście obecne tutaj pochodzi więc z semantycznej tożsamości świata\n    # (schody, piwnica, wieża, krypta, jaskinia, portal) albo z generatora\n    # dedykowanej instancji, a nie z losowego łączenia topologii.\n\n    reachable=_reachable(rooms,"square")\n    if len(reachable)!=len(rooms):\n        missing=sorted(set(rooms)-reachable)\n        errors.append(f"unreachable from square: {len(missing)} rooms; sample {missing[:10]}")\n\n    # Every static room must have some route back to the hub. Reverse-graph BFS.\n    rev=defaultdict(list)\n    for rid,room in rooms.items():\n        for target in room.get("exits",{}).values():\n            if target in rooms: rev[target].append(rid)\n    can_return=set()\n    if "square" in rooms:\n        can_return={"square"}; q=deque(["square"])\n        while q:\n            cur=q.popleft()\n            for source in rev.get(cur,[]):\n                if source not in can_return:\n                    can_return.add(source); q.append(source)\n    if len(can_return)!=len(rooms):\n        missing=sorted(set(rooms)-can_return)\n        errors.append(f"cannot return to square: {len(missing)} rooms; sample {missing[:10]}")\n\n    city=[rid for rid,r in rooms.items() if r.get("zone")=="Miasto Dusz"]\n    city_bad=[]\n    for rid in city:\n        for d,t in rooms[rid].get("exits",{}).items():\n            if t not in rooms: continue\n            z2=rooms[t].get("zone")\n            if z2=="Miasto Dusz": continue\n            if not _gateway_semantic(rid,rooms[rid],d,t,rooms[t]):\n                city_bad.append(f"{rid}.{d}->{t}")\n    if city_bad:\n        errors.append("city exits without gateway semantics: "+", ".join(city_bad[:10]))\n\n    families=defaultdict(int)\n    for r in rooms.values(): families[zone_family(r.get("zone"))]+=1\n    return {\n        "version":VERSION,\n        "room_count":len(rooms),\n        "reachable_from_square":len(reachable),\n        "returnable_to_square":len(can_return),\n        "cross_zone_edges":len(cross),\n        "vertical_edges":len(vertical),\n        "city_rooms":len(city),\n        "zone_family_room_counts":dict(families),\n        "topology_fingerprint":topology_fingerprint(rooms),\n        "warning_count":len(warnings),\n        "warnings":warnings,\n        "error_count":len(errors),\n        "errors":errors,\n    }\n'
 world_logic_validator_v030 = _load_embedded_runtime_module('world_logic_validator', _EMBEDDED_WORLD_LOGIC_VALIDATOR_SOURCE)
 
-VERSION = "0.30.29"
+VERSION = "0.30.30"
+GLOBAL_SKILL_BUFF_DURATION_SECONDS = 30
 HISTORY_BUFFER_LIMIT = 100
 HISTORY_BUFFER_DEFAULT_SHOW = 20
 
@@ -10876,7 +10877,7 @@ LATEST_CHANGES = [
     "Aktywne buffy wzmacniają obrażenia fizyczne i magiczne, leczenie oraz siłę guardów przez cały czas działania, a nie tylko następny skill.",
     "Różne buffy mogą działać równocześnie; bonusy sumują się addytywnie, buff nie wzmacnia kolejnego buffa, a łączne wzmocnienie jest ograniczone do +125 procent (x2,25).",
     "Auto Skill Queue nie ponawia tego samego buffa przed jego wygaśnięciem; po wygaśnięciu może go automatycznie odświeżyć.",
-    "Okrzyk Wojenny korzysta z tego samego uniwersalnego systemu buffów i zachowuje 12 sekund działania.",
+    "Okrzyk Wojenny korzysta z tego samego uniwersalnego systemu buffów i działa 30 sekund, tak jak wszystkie buffy typu boost.",
     "Komenda con <mob> działa na każdego żywego moba w aktualnej lokacji, którego normalnie da się zabić.",
     "con korzysta z tego samego uniwersalnego resolvera celu co k <mob>: pełna nazwa, fragment, nazwa bez polskich znaków i numer wystąpienia, np. con 2 goblin.",
     "con nie rozpoczyna walki; tylko ocenia HP, obrażenia, typ obrażeń i orientacyjne zagrożenie celu.",
@@ -33920,6 +33921,42 @@ V03024_MANUAL_QUEST_REWARD_MARKING = apply_manual_quest_currency_rewards_v03024(
 # i proceduralnie pre-generowanych rejestrów treści.
 # ============================================================
 GENERATOR_CORE_AUDIT = generator_core_v027.apply_generator_core(globals())
+
+# v0.30.30: wszystkie bojowe skille typu boost mają jeden, czytelny czas działania.
+# Ta reguła jest nakładana PO Generator Core, aby generator nie skracał buffów.
+def normalize_global_skill_buff_duration_v03030():
+    changed = 0
+    for _class_name, _skills in CLASS_SKILLS.items():
+        for _skill in _skills:
+            if str(_skill.get("kind") or "").lower() != "boost":
+                continue
+            if int(_skill.get("duration", 0) or 0) != GLOBAL_SKILL_BUFF_DURATION_SECONDS:
+                changed += 1
+            _skill["duration"] = GLOBAL_SKILL_BUFF_DURATION_SECONDS
+            _desc = str(_skill.get("desc") or "").strip()
+            if re.search(r"\bPrzez \d+ sekund", _desc, flags=re.IGNORECASE):
+                _desc = re.sub(
+                    r"\bPrzez \d+ sekund",
+                    f"Przez {GLOBAL_SKILL_BUFF_DURATION_SECONDS} sekund",
+                    _desc,
+                    flags=re.IGNORECASE,
+                )
+            elif re.search(r"\b\d+ sekund", _desc, flags=re.IGNORECASE):
+                _desc = re.sub(
+                    r"\b\d+ sekund",
+                    f"{GLOBAL_SKILL_BUFF_DURATION_SECONDS} sekund",
+                    _desc,
+                    count=1,
+                    flags=re.IGNORECASE,
+                )
+            elif _desc:
+                _desc += f" Działa {GLOBAL_SKILL_BUFF_DURATION_SECONDS} sekund."
+            else:
+                _desc = f"Czasowy buff. Działa {GLOBAL_SKILL_BUFF_DURATION_SECONDS} sekund."
+            _skill["desc"] = _desc
+    return changed
+
+V03030_BUFF_DURATIONS_NORMALIZED = normalize_global_skill_buff_duration_v03030()
 
 # v0.30.16: jednoznaczne skalowanie ofensywnych umiejętności po finalnym
 # przejściu Generator Core. Dane skilla i HELP mają odpowiadać temu, co liczy walka.
@@ -58064,12 +58101,24 @@ class Session:
         )
 
     def cleanup_skill_buffs(self):
-        """Usuń wygasłe czasowe buffy skilli."""
+        """Usuń wygasłe czasowe buffy i ogłoś naturalne wygaśnięcie dokładnie raz."""
         now = time.time()
         buffs = getattr(self, "active_skill_buffs", {})
+        expired_names = []
         for skill_id, data in list(buffs.items()):
             if now >= float(data.get("until", 0.0) or 0.0):
-                buffs.pop(skill_id, None)
+                removed = buffs.pop(skill_id, None)
+                if removed:
+                    expired_names.append(str(removed.get("name") or skill_id))
+        for name in expired_names:
+            try:
+                asyncio.get_running_loop().create_task(
+                    self.send(f"Buff wygasł: {name}.")
+                )
+            except RuntimeError:
+                # Poza działającą pętlą asyncio (np. statyczny audit) nie ma klienta,
+                # któremu można wysłać komunikat.
+                pass
 
     def skill_buff_active(self, skill_id):
         self.cleanup_skill_buffs()
@@ -58313,10 +58362,9 @@ class Session:
             base_bonus = max(0.0, base_boost - 1.0)
             scaled_bonus = base_bonus * (1.0 + max(0.0, skill_power - 1.0) * 0.50)
             scaled_boost = 1.0 + min(0.90, scaled_bonus)
-            # Domyślnie buff trwa tyle, ile efektywny cooldown skilla. Dzięki temu
-            # auto-kolejka może go odświeżyć dopiero po wygaśnięciu. Okrzyk Wojenny
-            # zachowuje własne 12 sekund z definicji.
-            duration = max(1, int(round(float(skill.get("duration", effective_cooldown) or effective_cooldown))))
+            # v0.30.30: wszystkie bojowe buffy mają dokładnie 30 sekund.
+            # Cooldown może być inny, ale nie zmienia czasu aktywnego buffa.
+            duration = GLOBAL_SKILL_BUFF_DURATION_SECONDS
             self.active_skill_buffs[skill["id"]] = {
                 "name": skill["name"],
                 "boost": max(1.0, scaled_boost),
@@ -58325,9 +58373,9 @@ class Session:
             bonus_pct = int(round((max(1.0, scaled_boost) - 1.0) * 100))
             total_pct = int(round((self.skill_buff_multiplier() - 1.0) * 100))
             await self.send(
-                f"Używasz {skill['name']} na Skill Level {skill_level}. "
-                f"Przez {duration} sekund wszystkie skille i spelle są "
-                f"wzmocnione o {bonus_pct} procent. "
+                f"Buff aktywowany: {skill['name']}. "
+                f"Czas działania: {duration} sekund. "
+                f"Wzmocnienie: {bonus_pct} procent. "
                 f"Łączne aktywne wzmocnienie: {total_pct} procent."
             )
             await self.grant_skill_use_xp(skill)
@@ -63534,6 +63582,63 @@ HELP_TOPICS.setdefault("wersja", []).append(
     "v0.30.29: naprawiono blokadę startu DEPLOY/Railway powodowaną przez historyczne audyty przypięte do starych numerów VERSION."
 )
 LATEST_CHANGES_TITLE = "Soulbound v0.30.29 - Deploy Startup Hotfix"
+
+# ============================================================
+# v0.30.30 - 30-SECOND BUFFS + NVDA LIFECYCLE ANNOUNCEMENTS
+# ============================================================
+HELP_TOPIC_ALIASES.update({
+    "buff": "buffy", "buffs": "buffy", "boost": "buffy",
+    "buffy": "buffy", "wzmocnienia": "buffy",
+})
+HELP_TOPICS["buffy"] = [
+    "Wszystkie bojowe skille typu boost działają dokładnie 30 sekund.",
+    "Po użyciu gra mówi: Buff aktywowany, nazwę buffa, czas 30 sekund oraz siłę wzmocnienia.",
+    "Po naturalnym zakończeniu gra mówi dokładnie raz: Buff wygasł i nazwę buffa.",
+    "Różne buffy mogą działać równocześnie i nadal sumują bonusy według dotychczasowych zasad.",
+    "Auto Skill Queue nie odnawia tego samego buffa, dopóki jest aktywny; po wygaśnięciu może użyć go ponownie.",
+]
+
+def buff_duration_audit_v03030():
+    errors = []
+    checked = 0
+    for class_name, skills in CLASS_SKILLS.items():
+        for skill in skills:
+            if str(skill.get("kind") or "").lower() != "boost":
+                continue
+            checked += 1
+            if int(skill.get("duration", 0) or 0) != GLOBAL_SKILL_BUFF_DURATION_SECONDS:
+                errors.append(
+                    f"{class_name}/{skill.get('name')}: duration={skill.get('duration')}"
+                )
+            desc = str(skill.get("desc") or "")
+            if "30 sekund" not in desc:
+                errors.append(f"{class_name}/{skill.get('name')}: opis bez 30 sekund")
+    return {
+        "version": "0.30.30",
+        "checked": checked,
+        "duration_seconds": GLOBAL_SKILL_BUFF_DURATION_SECONDS,
+        "error_count": len(errors),
+        "errors": errors,
+    }
+
+BUFF_DURATION_AUDIT_V03030 = buff_duration_audit_v03030()
+if BUFF_DURATION_AUDIT_V03030["error_count"]:
+    raise RuntimeError(
+        "Buff Duration Audit v0.30.30 failed: "
+        + "; ".join(BUFF_DURATION_AUDIT_V03030["errors"][:20])
+    )
+
+HELP_TOPICS.setdefault("wersja", []).append(
+    "v0.30.30: wszystkie bojowe buffy typu boost trwają 30 sekund; NVDA informuje o aktywacji i naturalnym wygaśnięciu."
+)
+LATEST_CHANGES = [
+    "v0.30.30: wszystkie bojowe buffy typu boost mają dokładnie 30 sekund działania.",
+    "v0.30.30: przy aktywacji NVDA czyta nazwę buffa, czas 30 sekund, jego bonus oraz łączne aktywne wzmocnienie.",
+    "v0.30.30: po naturalnym wygaśnięciu NVDA mówi dokładnie raz: Buff wygasł: <nazwa>.",
+    "v0.30.30: Generator Core nadal pozostaje v0.30.24; czas buffów jest finalną regułą gameplay po Generator Core.",
+    "Brak wipe.",
+] + LATEST_CHANGES
+LATEST_CHANGES_TITLE = "Soulbound v0.30.30 - 30-Second Buffs + NVDA Lifecycle"
 
 if __name__ == "__main__":
     main()
