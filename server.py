@@ -51,7 +51,7 @@ dynamic_world_v029 = _load_embedded_runtime_module('dynamic_world_v029', _EMBEDD
 _EMBEDDED_WORLD_LOGIC_VALIDATOR_SOURCE = '"""Soulbound v0.30.0 Semantic World Logic Validator.\n\nThe topology may be procedural, but geography must remain understandable.\nThis validator checks semantic gateway rules, vertical movement semantics,\nworld reachability, reciprocal navigation and deterministic topology output.\n"""\nfrom __future__ import annotations\n\nfrom collections import defaultdict, deque\nimport hashlib\nimport json\n\nVERSION = "0.30.0"\nHORIZONTAL = ("north","east","south","west","northeast","southeast","southwest","northwest")\nOPPOSITE = {\n    "north":"south","south":"north","east":"west","west":"east",\n    "northeast":"southwest","southwest":"northeast",\n    "northwest":"southeast","southeast":"northwest",\n    "up":"down","down":"up",\n}\n\n\ndef _norm(text):\n    return str(text or "").casefold()\n\n\ndef zone_family(zone: str) -> str:\n    z=_norm(zone)\n    if any(k in z for k in ("miasto dusz","gildia dusz","pracownia kartografa")):\n        return "urban"\n    if any(k in z for k in ("przedmieścia","przedmiescia","wioska","osada","posterunek","obóz straży","oboz strazy","przystań","przystan")):\n        return "settlement"\n    if any(k in z for k in ("kanały","kanaly","podziemia","krypt","jaskini","jaskinie","nekropolia","katakumb","kopal")):\n        return "underground"\n    if any(k in z for k in ("góry","gory","lodowe","twierdza gigant")):\n        return "highland"\n    if any(k in z for k in ("popielne","rozbite niebo","pustki","korona świata","korona swiata","rubież końca","rubiez konca")):\n        return "endgame"\n    if any(k in z for k in ("próba","proba","arena","archiwum otchłani","archiwum otchlani","katedra tysiąca","katedra tysiaca","kuźnia pierwszych","kuznia pierwszych","labirynt wiecznych","pałac bezimiennej","palac bezimiennej")):\n        return "instance"\n    if "proceduralny region:" in z:\n        return "expedition"\n    if any(k in z for k in ("ocean","wybrzeże","wybrzeze","jezior","dolina rzek")):\n        return "waterland"\n    return "wilderness"\n\n\ndef _gateway_semantic(rid: str, room: dict, direction: str, target_id: str, target: dict) -> bool:\n    """True when a cross-zone edge has a believable semantic transition."""\n    if direction in ("up","down"):\n        return True\n    src=_norm(rid)+" "+_norm(room.get("name"))\n    dst=_norm(target_id)+" "+_norm(target.get("name"))\n    gateway_words=(\n        "gate","brama","harbor","port","pier","molo","road","trakt","path","szlak",\n        "pass","przełęcz","przelecz","bridge","most","entrance","wejście","wejscie",\n        "mouth","wylot","frontier","rubież","rubiez","gateway","portal","archive","archiw",\n        "hall","hala","lobby","warsztat kartograf","cartographer","watchpost","posterunek",\n        "camp","obóz","oboz","v0130_gateway","v028_region_gate",\n    )\n    return any(k in src or k in dst for k in gateway_words)\n\n\ndef _reachable(rooms, start):\n    if start not in rooms:\n        return set()\n    seen={start}; q=deque([start])\n    while q:\n        cur=q.popleft()\n        for target in rooms[cur].get("exits",{}).values():\n            if target in rooms and target not in seen:\n                seen.add(target); q.append(target)\n    return seen\n\n\ndef topology_fingerprint(rooms):\n    payload=[]\n    for rid in sorted(rooms):\n        exits=rooms[rid].get("exits",{}) or {}\n        payload.append((rid,tuple(sorted((str(k),str(v)) for k,v in exits.items()))))\n    raw=json.dumps(payload,ensure_ascii=False,separators=(",",":"))\n    return hashlib.sha256(raw.encode("utf-8")).hexdigest()\n\n\ndef validate_world_logic(rooms: dict) -> dict:\n    errors=[]; warnings=[]; cross=[]; vertical=[]\n    if not isinstance(rooms,dict):\n        return {"version":VERSION,"error_count":1,"errors":["ROOMS is not dict"]}\n\n    # References and reciprocal navigation for every static edge.\n    for rid,room in rooms.items():\n        exits=room.get("exits",{}) or {}\n        for direction,target_id in exits.items():\n            if target_id not in rooms:\n                # Runtime/lazy destination; validated by its own materializer.\n                continue\n            target=rooms[target_id]\n            if direction in OPPOSITE:\n                reverse=OPPOSITE[direction]\n                if target.get("exits",{}).get(reverse)!=rid:\n                    # Some explicit gauntlet finales remain one-way by design; require a\n                    # global return path instead of pretending the exact edge is reciprocal.\n                    if not (room.get("procedural_dynamic") or target.get("procedural_dynamic")):\n                        warnings.append(f"one-way {rid}.{direction}->{target_id}")\n            z1=str(room.get("zone") or "Bez strefy")\n            z2=str(target.get("zone") or "Bez strefy")\n            if direction in ("up","down"):\n                vertical.append((rid,direction,target_id))\n            if z1!=z2:\n                cross.append((rid,direction,target_id,z1,z2))\n                f1,f2=zone_family(z1),zone_family(z2)\n                semantic_gateway=_gateway_semantic(rid,room,direction,target_id,target)\n                # Granice naturalnych biomów (np. łąka -> rzeka -> dzicz) mogą\n                # przechodzić bez sztucznej bramy. Twarda semantyczna brama jest\n                # wymagana, gdy opuszczamy/wchodzimy do huba miejskiego.\n                if (f1=="urban") != (f2=="urban") and not semantic_gateway:\n                    errors.append(f"urban boundary without semantic gateway: {rid}.{direction}->{target_id} ({z1}->{z2})")\n                # Miasto nie może być bezpośrednim sąsiadem gór/endgame. Nawet\n                # prawdziwa brama miejska ma prowadzić najpierw do traktu/przedmieść.\n                if f1=="urban" and f2 in {"highland","endgame"} and direction not in ("up","down"):\n                    errors.append(f"urban direct jump to {f2}: {rid}.{direction}->{target_id}")\n                if f2=="urban" and f1 in {"highland","endgame"} and direction not in ("up","down"):\n                    errors.append(f"{f1} direct jump to urban: {rid}.{direction}->{target_id}")\n\n    # v0.30 generator nie używa up/down jako GENERATED_DIRS. Każde pionowe\n    # przejście obecne tutaj pochodzi więc z semantycznej tożsamości świata\n    # (schody, piwnica, wieża, krypta, jaskinia, portal) albo z generatora\n    # dedykowanej instancji, a nie z losowego łączenia topologii.\n\n    reachable=_reachable(rooms,"square")\n    if len(reachable)!=len(rooms):\n        missing=sorted(set(rooms)-reachable)\n        errors.append(f"unreachable from square: {len(missing)} rooms; sample {missing[:10]}")\n\n    # Every static room must have some route back to the hub. Reverse-graph BFS.\n    rev=defaultdict(list)\n    for rid,room in rooms.items():\n        for target in room.get("exits",{}).values():\n            if target in rooms: rev[target].append(rid)\n    can_return=set()\n    if "square" in rooms:\n        can_return={"square"}; q=deque(["square"])\n        while q:\n            cur=q.popleft()\n            for source in rev.get(cur,[]):\n                if source not in can_return:\n                    can_return.add(source); q.append(source)\n    if len(can_return)!=len(rooms):\n        missing=sorted(set(rooms)-can_return)\n        errors.append(f"cannot return to square: {len(missing)} rooms; sample {missing[:10]}")\n\n    city=[rid for rid,r in rooms.items() if r.get("zone")=="Miasto Dusz"]\n    city_bad=[]\n    for rid in city:\n        for d,t in rooms[rid].get("exits",{}).items():\n            if t not in rooms: continue\n            z2=rooms[t].get("zone")\n            if z2=="Miasto Dusz": continue\n            if not _gateway_semantic(rid,rooms[rid],d,t,rooms[t]):\n                city_bad.append(f"{rid}.{d}->{t}")\n    if city_bad:\n        errors.append("city exits without gateway semantics: "+", ".join(city_bad[:10]))\n\n    families=defaultdict(int)\n    for r in rooms.values(): families[zone_family(r.get("zone"))]+=1\n    return {\n        "version":VERSION,\n        "room_count":len(rooms),\n        "reachable_from_square":len(reachable),\n        "returnable_to_square":len(can_return),\n        "cross_zone_edges":len(cross),\n        "vertical_edges":len(vertical),\n        "city_rooms":len(city),\n        "zone_family_room_counts":dict(families),\n        "topology_fingerprint":topology_fingerprint(rooms),\n        "warning_count":len(warnings),\n        "warnings":warnings,\n        "error_count":len(errors),\n        "errors":errors,\n    }\n'
 world_logic_validator_v030 = _load_embedded_runtime_module('world_logic_validator', _EMBEDDED_WORLD_LOGIC_VALIDATOR_SOURCE)
 
-VERSION = "0.30.26"
+VERSION = "0.30.28"
 HISTORY_BUFFER_LIMIT = 100
 HISTORY_BUFFER_DEFAULT_SHOW = 20
 
@@ -39127,7 +39127,7 @@ class Session:
             target = ROOMS.get(target_id, {})
             target_name = str(target.get("name") or str(target_id).replace("_", " "))
             direction_name = self.route_direction_name(direction)
-            base = f"{direction_name} — {target_name}"
+            base = f"{direction_name}: {target_name}"
 
             target_level = int(target.get("recommended_mastery", 0) or 0)
             character_level = max(1, int(getattr(self.character, "character_level", 1) or 1))
@@ -39180,7 +39180,10 @@ class Session:
                 )
             else:
                 exits.append(base)
-        await self.send("Wyjścia: " + "; ".join(exits) + ".")
+        # v0.30.28: compatibility/NVDA mode. Send one simple multiline block
+        # instead of a long punctuation-heavy sentence. Some MUD clients only
+        # announced the local echo ("ex") and skipped the old formatted line.
+        await self.send("Wyjścia:\r\n" + "\r\n".join(exits))
 
     async def show_instance_map_summary(self):
         await self.send("MAPY INSTANCJI")
@@ -60353,7 +60356,9 @@ class Session:
 
     async def command_loop(self):
         while not self.closed:
-            raw = await self.ask("> ")
+            # v0.30.27: cichy prompt dla NVDA. Nie wypisujemy znaku ">"
+            # po każdej komendzie; klient po prostu czeka na następną linię.
+            raw = await self.read_line()
             if raw is None:
                 break
             if raw.startswith("'"):
@@ -63483,6 +63488,15 @@ HELP_TOPICS.setdefault("wersja", []).append(
     "v0.30.26: gameplay flow pass. Naprawiono ex->exits, Tier-gating zasobów i receptur, stanowiska specjalistów oraz deski Drwalstwo+Piła."
 )
 LATEST_CHANGES_TITLE = "Soulbound v0.30.26 - Gameplay Flow + Tool Tier Gating"
+
+# ============================================================
+# v0.30.27 - SILENT COMMAND PROMPT / NVDA
+# ============================================================
+LATEST_CHANGES = [
+    "v0.30.27: po wykonaniu komendy gra nie wypisuje już znaku >. NVDA nie czyta zbędnego promptu; wejście komend działa bez zmian.",
+] + LATEST_CHANGES
+LATEST_CHANGES_TITLE = "Soulbound v0.30.27 - Silent NVDA Command Prompt"
+
 LATEST_CHANGES = [
     "Naprawiono skrót ex: jest twardym aliasem parsera do exits i czyta kierunek oraz nazwę lokacji docelowej.",
     "Ryby, rudy, drewno i zioła są odblokowywane przez Tier właściwego narzędzia; pula nie zmienia się przy każdym levelu wewnątrz Tieru.",
@@ -63494,6 +63508,24 @@ LATEST_CHANGES = [
     "Doran sprzedaje podstawowe Rudy Żelaza, Srebra i Złota, więc czysty Kowal może rozpocząć profesję bez Górnictwa; Kobalt i wyżej pozostają zawartością świata/Górnictwa.",
     "Naprawiono zaniżanie szansy Odłamków Duszy przez ogólny rebalance: zwykła Krypta ma teraz około 25-65 procent, klasyczne moby Krypty 55-85 procent, a bossowie gwarantują Odłamek.",
     "Generator Core pozostaje v0.30.24. Brak wipe.",
+]
+
+
+# ============================================================
+# v0.30.28 - ACCESSIBLE EXITS CLIENT COMPATIBILITY HOTFIX
+# ============================================================
+HELP_TOPICS["exits"] = [
+    "exits / ex pokazuje każdy kierunek oraz nazwę miejsca, do którego prowadzi.",
+    "Odpowiedź jest wysyłana w prostych osobnych liniach, np. północ: Północna Ulica.",
+    "ex i exits używają dokładnie tego samego handlera.",
+    "exits info dodaje strefę oraz ocenę zagrożenia celu.",
+]
+LATEST_CHANGES_TITLE = "Soulbound v0.30.28 - Accessible Exits Client Compatibility"
+LATEST_CHANGES = [
+    "v0.30.28: ex i exits zwracają prosty wieloliniowy blok kierunek: miejsce docelowe.",
+    "v0.30.28: usunięto z podstawowego formatu wyjść znak półpauzy/em dash i długą linię ze średnikami dla lepszej zgodności z klientami MUD i NVDA.",
+    "Brak zmian balansu, mapy, questów, profesji i Generator Core.",
+    "Brak wipe.",
 ]
 
 if __name__ == "__main__":

@@ -1,3 +1,8 @@
+v0.30.28 - Accessible Exits Client Compatibility
+- ex/exits wysyła teraz prosty wieloliniowy blok: kierunek: miejsce docelowe.
+- Poprawiona zgodność z klientami MUD i NVDA, które nie czytały starej długiej linii wyjść.
+- Brak zmian balansu, mapy i progresji. Brak wipe.
+
 Soulbound v0.30.26 — Full Gameplay Flow + Tool Tier Gating
 
 - Naprawiono `ex`: jest twardym aliasem parsera do `exits` i pokazuje kierunek oraz nazwę lokacji docelowej.
