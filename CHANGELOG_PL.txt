@@ -1,3 +1,16 @@
+Soulbound v0.30.24 — Hybrid Quest Rewards
+
+- Dodano hybrydowy balans waluty questów: ważne, ręcznie projektowane zadania mają chronione kwoty, a pozostałe nadal skaluje Generator Core.
+- 64 questy mają ręcznie chronione nagrody; 243 questy pozostają automatyczne. Żaden ręczny quest nie został znerfiony względem v0.30.23.
+- `Odłamki dla kowala` ponownie dają 7 złota 500 srebra. Cztery podstawowe Próby profesji dają po 2 złota 500 srebra.
+- Duże questy świata odzyskały projektowane premie, m.in. `Plaga Trolli` 15 złota, `Polowanie na Króla Trolli` 75 złota i `Bezpieczny Szlak Karawan` 150 złota.
+- Próby Broni Duszy mają chronioną krzywą kamieni milowych do Tier 40; Generator Core nie spłaszcza już ich ręcznych wartości.
+- `quest list <NPC>` pokazuje nagrodę walutową przed przyjęciem questa. `quest info <numer>` pokazuje pełne nagrody i informuje o ręcznie chronionej walucie.
+- Wszystkie 307 questów nadal wpłacają do jednego wspólnego salda. `reward_gold` i `reward_mithril` są zerowe w finalnym rejestrze; złoto i mithril są tylko prezentacją wspólnego salda.
+- Generator Core podniesiony do v0.30.24: Numeric Whitelist + Hybrid Quest Rewards. Whitelist i semantic fingerprint pozostają czyste.
+- Pełny regression/world-integrity pass: 21 aktywnych audytów, 1104 statyczne lokacje, identyczny fingerprint topologii jak v0.30.23, 0 błędów i 0 ostrzeżeń.
+- Brak wipe.
+
 Soulbound v0.30.23 — Accessible Exits
 
 - `exits` pokazuje teraz każdy dostępny kierunek razem z nazwą lokacji, do której prowadzi, zamiast czytać same kierunki.
@@ -5,7 +18,7 @@ Soulbound v0.30.23 — Accessible Exits
 - Domyślny odczyt jest zwięzły pod NVDA, np. `północ — Północna Ulica; wschód — Targ Rybny`.
 - `exits info` pozostaje wariantem rozszerzonym: dodaje strefę i ocenę zagrożenia celu.
 - Lazy/runtime wyjścia próbują zmaterializować sąsiednią lokację tylko do odczytania prawdziwej nazwy; postać nie jest poruszana.
-- Pełny test regresji v0.30.22 nadal przechodzi: 20 audytów, 1122 statyczne lokacje, 2772 skierowane przejścia, 31 lazy-exitów i 69 próbek runtime do piętra 1000.
+- Pełny test regresji v0.30.22 nadal przechodzi: 20 audytów, 1104 statyczne lokacje, 2712 skierowanych przejść, 31 lazy-exitów i 69 próbek runtime do piętra 1000.
 - Topologia, balans, ekonomia, Generator Core i schemat bazy danych bez zmian. Brak wipe.
 
 Soulbound v0.30.22 — Full Regression + World Integrity
