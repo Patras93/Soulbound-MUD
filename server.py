@@ -51,7 +51,7 @@ dynamic_world_v029 = _load_embedded_runtime_module('dynamic_world_v029', _EMBEDD
 _EMBEDDED_WORLD_LOGIC_VALIDATOR_SOURCE = '"""Soulbound v0.30.0 Semantic World Logic Validator.\n\nThe topology may be procedural, but geography must remain understandable.\nThis validator checks semantic gateway rules, vertical movement semantics,\nworld reachability, reciprocal navigation and deterministic topology output.\n"""\nfrom __future__ import annotations\n\nfrom collections import defaultdict, deque\nimport hashlib\nimport json\n\nVERSION = "0.30.0"\nHORIZONTAL = ("north","east","south","west","northeast","southeast","southwest","northwest")\nOPPOSITE = {\n    "north":"south","south":"north","east":"west","west":"east",\n    "northeast":"southwest","southwest":"northeast",\n    "northwest":"southeast","southeast":"northwest",\n    "up":"down","down":"up",\n}\n\n\ndef _norm(text):\n    return str(text or "").casefold()\n\n\ndef zone_family(zone: str) -> str:\n    z=_norm(zone)\n    if any(k in z for k in ("miasto dusz","gildia dusz","pracownia kartografa")):\n        return "urban"\n    if any(k in z for k in ("przedmieścia","przedmiescia","wioska","osada","posterunek","obóz straży","oboz strazy","przystań","przystan")):\n        return "settlement"\n    if any(k in z for k in ("kanały","kanaly","podziemia","krypt","jaskini","jaskinie","nekropolia","katakumb","kopal")):\n        return "underground"\n    if any(k in z for k in ("góry","gory","lodowe","twierdza gigant")):\n        return "highland"\n    if any(k in z for k in ("popielne","rozbite niebo","pustki","korona świata","korona swiata","rubież końca","rubiez konca")):\n        return "endgame"\n    if any(k in z for k in ("próba","proba","arena","archiwum otchłani","archiwum otchlani","katedra tysiąca","katedra tysiaca","kuźnia pierwszych","kuznia pierwszych","labirynt wiecznych","pałac bezimiennej","palac bezimiennej")):\n        return "instance"\n    if "proceduralny region:" in z:\n        return "expedition"\n    if any(k in z for k in ("ocean","wybrzeże","wybrzeze","jezior","dolina rzek")):\n        return "waterland"\n    return "wilderness"\n\n\ndef _gateway_semantic(rid: str, room: dict, direction: str, target_id: str, target: dict) -> bool:\n    """True when a cross-zone edge has a believable semantic transition."""\n    if direction in ("up","down"):\n        return True\n    src=_norm(rid)+" "+_norm(room.get("name"))\n    dst=_norm(target_id)+" "+_norm(target.get("name"))\n    gateway_words=(\n        "gate","brama","harbor","port","pier","molo","road","trakt","path","szlak",\n        "pass","przełęcz","przelecz","bridge","most","entrance","wejście","wejscie",\n        "mouth","wylot","frontier","rubież","rubiez","gateway","portal","archive","archiw",\n        "hall","hala","lobby","warsztat kartograf","cartographer","watchpost","posterunek",\n        "camp","obóz","oboz","v0130_gateway","v028_region_gate",\n    )\n    return any(k in src or k in dst for k in gateway_words)\n\n\ndef _reachable(rooms, start):\n    if start not in rooms:\n        return set()\n    seen={start}; q=deque([start])\n    while q:\n        cur=q.popleft()\n        for target in rooms[cur].get("exits",{}).values():\n            if target in rooms and target not in seen:\n                seen.add(target); q.append(target)\n    return seen\n\n\ndef topology_fingerprint(rooms):\n    payload=[]\n    for rid in sorted(rooms):\n        exits=rooms[rid].get("exits",{}) or {}\n        payload.append((rid,tuple(sorted((str(k),str(v)) for k,v in exits.items()))))\n    raw=json.dumps(payload,ensure_ascii=False,separators=(",",":"))\n    return hashlib.sha256(raw.encode("utf-8")).hexdigest()\n\n\ndef validate_world_logic(rooms: dict) -> dict:\n    errors=[]; warnings=[]; cross=[]; vertical=[]\n    if not isinstance(rooms,dict):\n        return {"version":VERSION,"error_count":1,"errors":["ROOMS is not dict"]}\n\n    # References and reciprocal navigation for every static edge.\n    for rid,room in rooms.items():\n        exits=room.get("exits",{}) or {}\n        for direction,target_id in exits.items():\n            if target_id not in rooms:\n                # Runtime/lazy destination; validated by its own materializer.\n                continue\n            target=rooms[target_id]\n            if direction in OPPOSITE:\n                reverse=OPPOSITE[direction]\n                if target.get("exits",{}).get(reverse)!=rid:\n                    # Some explicit gauntlet finales remain one-way by design; require a\n                    # global return path instead of pretending the exact edge is reciprocal.\n                    if not (room.get("procedural_dynamic") or target.get("procedural_dynamic")):\n                        warnings.append(f"one-way {rid}.{direction}->{target_id}")\n            z1=str(room.get("zone") or "Bez strefy")\n            z2=str(target.get("zone") or "Bez strefy")\n            if direction in ("up","down"):\n                vertical.append((rid,direction,target_id))\n            if z1!=z2:\n                cross.append((rid,direction,target_id,z1,z2))\n                f1,f2=zone_family(z1),zone_family(z2)\n                semantic_gateway=_gateway_semantic(rid,room,direction,target_id,target)\n                # Granice naturalnych biomów (np. łąka -> rzeka -> dzicz) mogą\n                # przechodzić bez sztucznej bramy. Twarda semantyczna brama jest\n                # wymagana, gdy opuszczamy/wchodzimy do huba miejskiego.\n                if (f1=="urban") != (f2=="urban") and not semantic_gateway:\n                    errors.append(f"urban boundary without semantic gateway: {rid}.{direction}->{target_id} ({z1}->{z2})")\n                # Miasto nie może być bezpośrednim sąsiadem gór/endgame. Nawet\n                # prawdziwa brama miejska ma prowadzić najpierw do traktu/przedmieść.\n                if f1=="urban" and f2 in {"highland","endgame"} and direction not in ("up","down"):\n                    errors.append(f"urban direct jump to {f2}: {rid}.{direction}->{target_id}")\n                if f2=="urban" and f1 in {"highland","endgame"} and direction not in ("up","down"):\n                    errors.append(f"{f1} direct jump to urban: {rid}.{direction}->{target_id}")\n\n    # v0.30 generator nie używa up/down jako GENERATED_DIRS. Każde pionowe\n    # przejście obecne tutaj pochodzi więc z semantycznej tożsamości świata\n    # (schody, piwnica, wieża, krypta, jaskinia, portal) albo z generatora\n    # dedykowanej instancji, a nie z losowego łączenia topologii.\n\n    reachable=_reachable(rooms,"square")\n    if len(reachable)!=len(rooms):\n        missing=sorted(set(rooms)-reachable)\n        errors.append(f"unreachable from square: {len(missing)} rooms; sample {missing[:10]}")\n\n    # Every static room must have some route back to the hub. Reverse-graph BFS.\n    rev=defaultdict(list)\n    for rid,room in rooms.items():\n        for target in room.get("exits",{}).values():\n            if target in rooms: rev[target].append(rid)\n    can_return=set()\n    if "square" in rooms:\n        can_return={"square"}; q=deque(["square"])\n        while q:\n            cur=q.popleft()\n            for source in rev.get(cur,[]):\n                if source not in can_return:\n                    can_return.add(source); q.append(source)\n    if len(can_return)!=len(rooms):\n        missing=sorted(set(rooms)-can_return)\n        errors.append(f"cannot return to square: {len(missing)} rooms; sample {missing[:10]}")\n\n    city=[rid for rid,r in rooms.items() if r.get("zone")=="Miasto Dusz"]\n    city_bad=[]\n    for rid in city:\n        for d,t in rooms[rid].get("exits",{}).items():\n            if t not in rooms: continue\n            z2=rooms[t].get("zone")\n            if z2=="Miasto Dusz": continue\n            if not _gateway_semantic(rid,rooms[rid],d,t,rooms[t]):\n                city_bad.append(f"{rid}.{d}->{t}")\n    if city_bad:\n        errors.append("city exits without gateway semantics: "+", ".join(city_bad[:10]))\n\n    families=defaultdict(int)\n    for r in rooms.values(): families[zone_family(r.get("zone"))]+=1\n    return {\n        "version":VERSION,\n        "room_count":len(rooms),\n        "reachable_from_square":len(reachable),\n        "returnable_to_square":len(can_return),\n        "cross_zone_edges":len(cross),\n        "vertical_edges":len(vertical),\n        "city_rooms":len(city),\n        "zone_family_room_counts":dict(families),\n        "topology_fingerprint":topology_fingerprint(rooms),\n        "warning_count":len(warnings),\n        "warnings":warnings,\n        "error_count":len(errors),\n        "errors":errors,\n    }\n'
 world_logic_validator_v030 = _load_embedded_runtime_module('world_logic_validator', _EMBEDDED_WORLD_LOGIC_VALIDATOR_SOURCE)
 
-VERSION = "0.30.35"
+VERSION = "0.30.37"
 GLOBAL_SKILL_BUFF_DURATION_SECONDS = 30
 HISTORY_BUFFER_LIMIT = 100
 HISTORY_BUFFER_DEFAULT_SHOW = 20
@@ -6003,6 +6003,15 @@ EQUIPMENT_SLOT_ALIASES = {
     "naszyjnika": "necklace",
     "necklace": "necklace",
 
+    "kolczyk": "earring",
+    "kolczyki": "earring",
+    "earring": "earring",
+    "earrings": "earring",
+    "kolczyk 1": "earring1", "kolczyk1": "earring1",
+    "earring 1": "earring1", "earring1": "earring1",
+    "kolczyk 2": "earring2", "kolczyk2": "earring2",
+    "earring 2": "earring2", "earring2": "earring2",
+
     "naramienniki": "shoulders",
     "naramiennik": "shoulders",
     "shoulders": "shoulders",
@@ -6038,6 +6047,9 @@ EQUIPMENT_SLOT_NAMES = {
     "ring1": "pierścień 1",
     "ring2": "pierścień 2",
     "necklace": "naszyjnik",
+    "earring": "kolczyki",
+    "earring1": "kolczyk 1",
+    "earring2": "kolczyk 2",
     "shoulders": "naramienniki",
     "belt": "pas",
     "cloak": "peleryna",
@@ -6638,6 +6650,7 @@ COMMAND_ALIASES = {
     "zn": "equiplegs", "zb": "equipfeet",
     "zt": "equipcharmauto", "zt1": "equipcharm", "zt2": "equipcharm2",
     "zp": "equipringauto", "zp1": "equipring1", "zp2": "equipring2", "zna": "equipnecklace",
+    "zkol": "equipearringauto", "zkol1": "equipearring1", "zkol2": "equipearring2",
     "znar": "equipshoulders", "zpas": "equipbelt", "zpel": "equipcloak",
     "zkar": "equipbracers", "zrel": "equiprelic",
     "zdejmij": "unequip", "zdejm": "unequip", "ściągnij": "unequip", "sciagnij": "unequip", "unequip": "unequip",
@@ -7745,6 +7758,14 @@ CORPSE_MATERIAL_SLOT_DEFS = {
     "legs": ("Nogawice", 1),
     "feet": ("Buty", -1),
     "charm": ("Talizman", -2),
+    "ring": ("Pierścień", -2),
+    "necklace": ("Naszyjnik", -1),
+    "earring": ("Kolczyk", -2),
+    "shoulders": ("Naramienniki", 2),
+    "belt": ("Pas", 1),
+    "cloak": ("Peleryna", 0),
+    "bracers": ("Karwasze", 0),
+    "relic": ("Relikt", 0),
 }
 
 MATERIAL_STAT_NAMES = {
@@ -7807,6 +7828,51 @@ MATERIAL_SLOT_NAME_FOR_TITLE = {
     "legs": "Nogawice",
     "feet": "Buty",
     "charm": "Talizman",
+    "ring": "Pierścień",
+    "necklace": "Naszyjnik",
+    "earring": "Kolczyk",
+    "shoulders": "Naramienniki",
+    "belt": "Pas",
+    "cloak": "Peleryna",
+    "bracers": "Karwasze",
+    "relic": "Relikt",
+}
+
+# Każdy slot ma własny charakter statów. Kolejność jest używana jako
+# preferencja przy losowaniu profilu i sprawia, że np. korpus nie wygląda
+# statystycznie tak samo jak kolczyk czy karwasze.
+MATERIAL_SLOT_STAT_PREFERENCES = {
+    "head": ("willpower", "constitution", "intelligence", "strength", "dexterity"),
+    "body": ("constitution", "willpower", "strength", "intelligence", "dexterity"),
+    "hands": ("strength", "dexterity", "intelligence", "constitution", "willpower"),
+    "legs": ("constitution", "dexterity", "strength", "willpower", "intelligence"),
+    "feet": ("dexterity", "constitution", "strength", "willpower", "intelligence"),
+    "charm": ("willpower", "intelligence", "constitution", "dexterity", "strength"),
+    "ring": ("dexterity", "strength", "intelligence", "willpower", "constitution"),
+    "necklace": ("intelligence", "willpower", "constitution", "strength", "dexterity"),
+    "earring": ("intelligence", "dexterity", "willpower", "strength", "constitution"),
+    "shoulders": ("strength", "constitution", "willpower", "dexterity", "intelligence"),
+    "belt": ("constitution", "strength", "willpower", "dexterity", "intelligence"),
+    "cloak": ("dexterity", "willpower", "intelligence", "constitution", "strength"),
+    "bracers": ("strength", "dexterity", "constitution", "intelligence", "willpower"),
+    "relic": ("willpower", "intelligence", "strength", "constitution", "dexterity"),
+}
+
+MATERIAL_SLOT_PROPERTY_PREFERENCES = {
+    "head": ("magic_defense_pct", "max_mana_pct", "physical_defense_pct", "max_hp_pct", "magic_damage_pct", "physical_damage_pct", "dodge_pct"),
+    "body": ("physical_defense_pct", "max_hp_pct", "magic_defense_pct", "max_mana_pct", "physical_damage_pct", "magic_damage_pct", "dodge_pct"),
+    "hands": ("physical_damage_pct", "magic_damage_pct", "dodge_pct", "physical_defense_pct", "magic_defense_pct", "max_hp_pct", "max_mana_pct"),
+    "legs": ("physical_defense_pct", "max_hp_pct", "dodge_pct", "magic_defense_pct", "physical_damage_pct", "magic_damage_pct", "max_mana_pct"),
+    "feet": ("dodge_pct", "physical_defense_pct", "magic_defense_pct", "physical_damage_pct", "magic_damage_pct", "max_hp_pct", "max_mana_pct"),
+    "charm": ("max_mana_pct", "magic_defense_pct", "magic_damage_pct", "max_hp_pct", "physical_defense_pct", "dodge_pct", "physical_damage_pct"),
+    "ring": ("physical_damage_pct", "magic_damage_pct", "dodge_pct", "max_mana_pct", "max_hp_pct", "physical_defense_pct", "magic_defense_pct"),
+    "necklace": ("max_mana_pct", "magic_damage_pct", "magic_defense_pct", "max_hp_pct", "physical_damage_pct", "physical_defense_pct", "dodge_pct"),
+    "earring": ("magic_damage_pct", "dodge_pct", "max_mana_pct", "physical_damage_pct", "magic_defense_pct", "physical_defense_pct", "max_hp_pct"),
+    "shoulders": ("physical_defense_pct", "physical_damage_pct", "max_hp_pct", "magic_defense_pct", "magic_damage_pct", "dodge_pct", "max_mana_pct"),
+    "belt": ("max_hp_pct", "physical_defense_pct", "magic_defense_pct", "dodge_pct", "physical_damage_pct", "magic_damage_pct", "max_mana_pct"),
+    "cloak": ("dodge_pct", "magic_defense_pct", "max_mana_pct", "magic_damage_pct", "physical_defense_pct", "physical_damage_pct", "max_hp_pct"),
+    "bracers": ("physical_damage_pct", "dodge_pct", "physical_defense_pct", "magic_damage_pct", "max_hp_pct", "magic_defense_pct", "max_mana_pct"),
+    "relic": ("max_mana_pct", "max_hp_pct", "magic_damage_pct", "physical_damage_pct", "magic_defense_pct", "physical_defense_pct", "dodge_pct"),
 }
 
 
@@ -7819,34 +7885,30 @@ def _material_budget_split(rng, budget, count):
     return values
 
 
-def _material_random_profile(tier, slot, variant_index):
-    """Deterministyczny random o stałym budżecie mocy dla danego tieru.
+def _material_random_profile(tier, slot, variant_index, salt=0):
+    """Deterministyczny profil materiałowego EQ.
 
-    v0.8.66: RNG wybiera *jakie* statystyki/właściwości dostaje przedmiot,
-    ale nie losuje już ogromnej różnicy całkowitej siły między dwoma
-    egzemplarzami tego samego materiału i slotu.
+    v0.30.37: każdy slot ma własne preferencje statów/właściwości, a rejestracja
+    odrzuca powtórzone profile statów w obrębie tego samego materiału i slotu.
+    `salt` służy wyłącznie do deterministycznego znalezienia innego profilu.
     """
     tier_index = 1 + next(
         i for i, row in enumerate(CORPSE_MATERIAL_TIERS)
         if row["key"] == tier["key"]
     )
     rng = random.Random(
-        f"soulbound-v0.8.66:{tier['key']}:{slot}:{int(variant_index)}"
+        f"soulbound-v0.30.37:{tier['key']}:{slot}:{int(variant_index)}:{int(salt)}"
     )
 
-    stat_budgets = (1, 2, 4, 5, 7, 9, 12, 13, 16, 20)
+    stat_budgets = (2, 3, 4, 5, 7, 9, 12, 13, 16, 20)
     property_budgets = (1, 1, 2, 3, 4, 5, 7, 8, 10, 12)
     required_mastery = corpse_material_variant_mastery(tier["key"], variant_index)
     band_levels = CORPSE_MATERIAL_MASTERY_BANDS[tier["key"]]
     substep = band_levels.index(required_mastery)
-    # Każde +10 Biegłości w obrębie materiału daje +1 budżetu statystyk.
-    # To jest mały, ale realny wzrost mocy bez gwałtownego power creepu.
-    stat_budget = stat_budgets[tier_index - 1] + substep
+    stat_budget = max(2, stat_budgets[tier_index - 1] + substep)
     property_budget = property_budgets[tier_index - 1]
 
-    if tier_index <= 2:
-        stat_count = 1
-    elif tier_index <= 4:
+    if tier_index <= 4:
         stat_count = 2
     elif tier_index <= 6:
         stat_count = rng.choice((2, 3))
@@ -7857,7 +7919,20 @@ def _material_random_profile(tier, slot, variant_index):
     else:
         stat_count = 4
     stat_count = min(stat_count, len(MATERIAL_RANDOM_STAT_POOL), stat_budget)
-    chosen_stats = rng.sample(list(MATERIAL_RANDOM_STAT_POOL), stat_count)
+
+    # Preferencje slotu są rotowane przez seed, więc slot ma własny charakter,
+    # ale 24 warianty nadal nie są kopiami tego samego rozkładu.
+    stat_pref = list(MATERIAL_SLOT_STAT_PREFERENCES.get(slot, MATERIAL_RANDOM_STAT_POOL))
+    tier_pref = [tier.get("primary"), tier.get("secondary")]
+    weighted_stats = []
+    for stat in tier_pref + stat_pref + list(MATERIAL_RANDOM_STAT_POOL):
+        if stat in MATERIAL_RANDOM_STAT_POOL and stat not in weighted_stats:
+            weighted_stats.append(stat)
+    # Losuj z preferowanej listy przez permutację, nie przez identyczną stałą parę.
+    rotated = weighted_stats[rng.randrange(len(weighted_stats)):] + weighted_stats[:rng.randrange(len(weighted_stats))]
+    # Drugi shuffle daje warianty przy zachowaniu slot-specific seed.
+    rng.shuffle(rotated)
+    chosen_stats = rotated[:stat_count]
     stat_values = _material_budget_split(rng, stat_budget, stat_count)
     stats = dict(zip(chosen_stats, stat_values))
 
@@ -7869,79 +7944,78 @@ def _material_random_profile(tier, slot, variant_index):
         property_count = 3
     else:
         property_count = 4
-    property_count = min(
-        property_count,
-        len(MATERIAL_RANDOM_PROPERTY_POOL),
-        property_budget,
-    )
-    chosen_properties = rng.sample(
-        list(MATERIAL_RANDOM_PROPERTY_POOL), property_count
-    )
-    property_values = _material_budget_split(
-        rng, property_budget, property_count
-    )
+    property_count = min(property_count, len(MATERIAL_RANDOM_PROPERTY_POOL), property_budget)
+    prop_pref = list(MATERIAL_SLOT_PROPERTY_PREFERENCES.get(slot, MATERIAL_RANDOM_PROPERTY_POOL))
+    rng.shuffle(prop_pref)
+    chosen_properties = prop_pref[:property_count]
+    property_values = _material_budget_split(rng, property_budget, property_count)
     properties = dict(zip(chosen_properties, property_values))
 
-    # Obrona zależy od materiału i slotu, nie od szczęścia. Random pozostaje
-    # w rozkładzie statów/właściwości, więc dwa dropy nadal budują inaczej.
     _slot_label, defense_delta = CORPSE_MATERIAL_SLOT_DEFS[slot]
-    defense = max(
-        1,
-        int(tier["base_defense"]) + int(defense_delta) + substep // 2,
-    )
+    defense = max(1, int(tier["base_defense"]) + int(defense_delta) + substep // 2)
     return defense, stats, properties
 
 
+MATERIAL_TITLE_PHRASE = {
+    "iron": "z Żelaza", "steel": "ze Stali", "mithril": "z Mithrilu",
+    "adamantite": "z Adamantytu", "cobalt": "z Kobaltu", "runic": "z Metalu Runicznego",
+    "dragonsteel": "ze Smoczej Stali", "astral": "z Astralu", "void": "z Pustki",
+    "eternium": "z Eternium",
+}
+
+
 def _material_variant_title(tier, slot, stats, variant_index, required_mastery):
-    ordered = [
-        stat for stat in MATERIAL_RANDOM_STAT_POOL
-        if stat in stats
-    ]
-    if ordered:
-        # Dwie pierwsze statystyki ułatwiają rozróżnianie losowych wariantów
-        # komendami NVDA, bez konieczności pamiętania wewnętrznego item_id.
-        epithets = [MATERIAL_STAT_EPITHETS[s] for s in ordered[:2]]
-        stat_part = " i ".join(epithets)
-    else:
-        stat_part = "Losu"
+    ordered = [stat for stat in MATERIAL_RANDOM_STAT_POOL if stat in stats]
+    epithets = [MATERIAL_STAT_EPITHETS[s] for s in ordered[:2]] if ordered else ["Losu"]
+    stat_part = " i ".join(epithets)
     slot_name = MATERIAL_SLOT_NAME_FOR_TITLE[slot]
+    material_part = MATERIAL_TITLE_PHRASE.get(tier["key"], tier["label"])
     return (
-        f"{slot_name} {tier['label']} {stat_part} "
-        f"[Biegłość {int(required_mastery)}, wariant {int(variant_index):02d}]"
+        f"{slot_name} {material_part} {stat_part} "
+        f"[Level {int(required_mastery)}, wariant {int(variant_index):02d}]"
     )
 
 
 def _register_corpse_material_items():
+    global CORPSE_MATERIAL_ITEM_IDS
+    CORPSE_MATERIAL_ITEM_IDS = {}
+    all_names = set()
     for tier_index, tier in enumerate(CORPSE_MATERIAL_TIERS, 1):
         ids = []
         for slot in CORPSE_MATERIAL_SLOT_DEFS:
+            seen_stats = set()
             for variant_index in range(1, CORPSE_RANDOM_VARIANTS_PER_SLOT + 1):
-                item_id = (
-                    f"corpse_{tier['key']}_{slot}_v{variant_index:02d}"
-                )
-                defense, stats, properties = _material_random_profile(
-                    tier, slot, variant_index
-                )
+                item_id = f"corpse_{tier['key']}_{slot}_v{variant_index:02d}"
+                profile = None
+                for salt in range(512):
+                    defense, stats, properties = _material_random_profile(tier, slot, variant_index, salt=salt)
+                    stat_sig = tuple(sorted((str(k), int(v)) for k, v in stats.items()))
+                    if stat_sig not in seen_stats:
+                        profile = (defense, stats, properties, stat_sig)
+                        break
+                if profile is None:
+                    raise RuntimeError(
+                        f"v0.30.37: nie udało się utworzyć unikalnych statów {tier['key']} {slot} wariant {variant_index}"
+                    )
+                defense, stats, properties, stat_sig = profile
+                seen_stats.add(stat_sig)
+                required_mastery = corpse_material_variant_mastery(tier["key"], variant_index)
+                name = _material_variant_title(tier, slot, stats, variant_index, required_mastery)
+                if str(name).casefold() in all_names:
+                    raise RuntimeError(f"v0.30.37: powtórzona nazwa materiałowego EQ: {name}")
+                all_names.add(str(name).casefold())
                 stat_text = ", ".join(
-                    f"{MATERIAL_STAT_NAMES.get(stat, stat)} +{amount}"
-                    for stat, amount in stats.items()
+                    f"{MATERIAL_STAT_NAMES.get(stat, stat)} +{amount}" for stat, amount in stats.items()
                 )
                 prop_text = ", ".join(
-                    f"{MATERIAL_PROPERTY_NAMES.get(prop, prop)} +{amount}%"
-                    for prop, amount in properties.items()
+                    f"{MATERIAL_PROPERTY_NAMES.get(prop, prop)} +{amount}%" for prop, amount in properties.items()
                 )
                 crit_note = (
-                    " Zręczność z tej części zwiększa także szansę "
-                    "na trafienie krytyczne."
+                    " Zręczność z tej części zwiększa także szansę na trafienie krytyczne."
                     if stats.get("dexterity", 0) > 0 else ""
                 )
-                required_mastery = corpse_material_variant_mastery(
-                    tier["key"], variant_index
-                )
                 ITEMS[item_id] = {
-                    "name": _material_variant_title(
-                        tier, slot, stats, variant_index, required_mastery
-                    ),
+                    "name": name,
                     "type": "armor",
                     "slot": slot,
                     "defense": defense,
@@ -7956,12 +8030,9 @@ def _register_corpse_material_items():
                     "required_mastery": required_mastery,
                     "mastery_requirement_scope": "active_class",
                     "desc": (
-                        f"Losowe materiałowe EQ z ciała przeciwnika. "
-                        f"Materiał wyznacza poziom mocy, ale statystyki nie "
-                        f"są przypisane do klasy. Wymaga Biegłości aktywnej klasy "
-                        f"{required_mastery}. Obrona +{defense}. "
-                        f"Statystyki: {stat_text}. "
-                        f"Właściwości: {prop_text}.{crit_note}"
+                        f"Losowe materiałowe EQ z ciała przeciwnika. Materiał wyznacza poziom mocy, "
+                        f"a slot i wariant mają własny profil statów. Wymaga Levelu postaci {required_mastery}. "
+                        f"Obrona +{defense}. Statystyki: {stat_text}. Właściwości: {prop_text}.{crit_note}"
                     ),
                 }
                 ids.append(item_id)
@@ -8495,6 +8566,7 @@ CLASS_EQUIPMENT_SLOT_DEFS = {
     "charm": ("Talizman", 0, 120),
     "ring": ("Pierścień", 0, 140),
     "necklace": ("Naszyjnik", 1, 180),
+    "earring": ("Kolczyk", 0, 130),
     "shoulders": ("Naramienniki", 2, 145),
     "belt": ("Pas", 1, 115),
     "cloak": ("Peleryna", 0, 150),
@@ -8602,6 +8674,7 @@ CLASS_EQUIPMENT_SLOT_PRIMARY_BIAS = {
     "charm": 0.04,
     "ring": 0.08,
     "necklace": -0.03,
+    "earring": 0.06,
     "shoulders": -0.08,
     "belt": -0.10,
     "cloak": 0.03,
@@ -8611,7 +8684,7 @@ CLASS_EQUIPMENT_SLOT_PRIMARY_BIAS = {
 
 CLASS_EQUIPMENT_SLOT_PROPERTY_SCALE = {
     "head": 1.00, "body": 1.15, "hands": 0.95, "legs": 1.10,
-    "feet": 0.90, "charm": 0.85, "ring": 0.85, "necklace": 1.00,
+    "feet": 0.90, "charm": 0.85, "ring": 0.85, "necklace": 1.00, "earring": 0.82,
     "shoulders": 1.08, "belt": 1.05, "cloak": 0.92, "bracers": 0.95, "relic": 1.20,
 }
 
@@ -8741,14 +8814,14 @@ def _register_class_equipment_shops():
 
                     if slot in ("necklace", "relic"):
                         base_affix = 3
-                    elif slot in ("ring", "charm", "shoulders", "belt", "cloak", "bracers"):
+                    elif slot in ("ring", "charm", "earring", "shoulders", "belt", "cloak", "bracers"):
                         base_affix = 2
                     else:
                         base_affix = 1
 
                     legacy_affix_amount = base_affix + affix_step
                     primary_stat, primary_amount, secondary_stat, secondary_amount = (
-                        class_equipment_split_stat_budget(class_name, legacy_affix_amount)
+                        class_equipment_split_stat_budget(class_name, legacy_affix_amount, slot)
                     )
                     defense = max(
                         1,
@@ -8788,7 +8861,7 @@ def _register_class_equipment_shops():
                             f"i Biegłości {required_mastery}. Tier: {tier_label}. "
                             f"Obrona +{defense}. "
                             f"Podstawowe statystyki EQ: "
-                            f"{class_equipment_base_stats_text(class_name, legacy_affix_amount)}."
+                            f"{class_equipment_base_stats_text(class_name, legacy_affix_amount, slot)}."
                         ),
                     }
                     CLASS_EQUIPMENT_ITEM_IDS.add(item_id)
@@ -8942,7 +9015,7 @@ def _register_legendary_class_loot():
             for slot, (slot_name, defense_delta, _base_price) in CLASS_EQUIPMENT_SLOT_DEFS.items():
                 item_id = f"legendset_{class_slug}_m{mastery}_{slot}"
                 defense = max(1, base_defense + int(defense_delta) + defense_step + 1)
-                base_affix = 3 if slot in ("necklace", "relic") else 2 if slot in ("ring", "charm", "shoulders", "belt", "cloak", "bracers") else 1
+                base_affix = 3 if slot in ("necklace", "relic") else 2 if slot in ("ring", "charm", "earring", "shoulders", "belt", "cloak", "bracers") else 1
                 legacy_affix_amount = base_affix + affix_step + 1
                 primary_stat, primary_amount, secondary_stat, secondary_amount = (
                     class_equipment_split_stat_budget(class_name, legacy_affix_amount)
@@ -8972,7 +9045,7 @@ def _register_legendary_class_loot():
                         f"Wymaga aktywnej klasy {class_name} i Biegłości {mastery}. "
                         f"Zdobywana z bossów kamieni milowych co 50 pięter. Obrona +{defense}. "
                         f"Podstawowe statystyki EQ: "
-                        f"{class_equipment_base_stats_text(class_name, legacy_affix_amount)}."
+                        f"{class_equipment_base_stats_text(class_name, legacy_affix_amount, slot)}."
                     ),
                 }
                 CLASS_EQUIPMENT_ITEM_IDS.add(item_id)
@@ -9082,7 +9155,7 @@ SHOP_SELLERS = {
 for _room_id in CLASS_SHOP_ITEMS_BY_ROOM:
     ROOMS[_room_id]["desc"] += (
         " W tej sali działa także klasowy sklep "
-        "z pełnym 13-elementowym wyposażeniem."
+        "z pełnym 14-elementowym wyposażeniem."
     )
 
 
@@ -9436,84 +9509,53 @@ def _register_jewelcrafting_recipes():
     for tier in JEWELCRAFTING_TIERS:
         ring_id = f"jewel_{tier['key']}_ring"
         necklace_id = f"jewel_{tier['key']}_necklace"
+        earring_id = f"jewel_{tier['key']}_earring"
+        socket_count = 3 if tier["level"] >= 180 else 2 if tier["level"] >= 100 else 1
+        earring_sockets = 2 if tier["level"] >= 180 else 1
 
         ITEMS[ring_id] = {
-            "name": f"{tier['label']} Pierścień Jubilerski",
-            "type": "armor",
-            "slot": "ring",
-            "defense": tier["defense"],
-            "price": None,
-            "rarity": "crafted",
-            "rarity_name": "Jubilerski",
-            "affix": tier["affix"],
-            "affix_amount": tier["affix_amount"],
-            "jewelcraft_level": tier["level"],
-            "sockets": (
-                3 if tier["level"] >= 180
-                else 2 if tier["level"] >= 100
-                else 1
-            ),
-            "desc": (
-                f"Pierścień wykonany przez Jubilerstwo. "
-                f"Wymaga Jubilerstwa level {tier['level']}. "
-                f"Obrona +{tier['defense']}."
-            ),
+            "name": f"{tier['label']} Pierścień Jubilerski", "type": "armor", "slot": "ring",
+            "defense": tier["defense"], "price": None, "rarity": "crafted", "rarity_name": "Jubilerski",
+            "affix": tier["affix"], "affix_amount": tier["affix_amount"], "jewelcraft_level": tier["level"],
+            "sockets": socket_count,
+            "desc": f"Pierścień wykonany przez Jubilerstwo. Wymaga Jubilerstwa level {tier['level']}. Obrona +{tier['defense']}.",
         }
         ITEMS[necklace_id] = {
-            "name": f"{tier['label']} Naszyjnik Jubilerski",
-            "type": "armor",
-            "slot": "necklace",
-            "defense": tier["defense"] + 1,
-            "price": None,
-            "rarity": "crafted",
-            "rarity_name": "Jubilerski",
-            "affix": tier["affix"],
-            "affix_amount": tier["affix_amount"] + 1,
-            "jewelcraft_level": tier["level"],
-            "sockets": (
-                3 if tier["level"] >= 180
-                else 2 if tier["level"] >= 100
-                else 1
-            ),
-            "desc": (
-                f"Naszyjnik wykonany przez Jubilerstwo. "
-                f"Wymaga Jubilerstwa level {tier['level']}. "
-                f"Obrona +{tier['defense'] + 1}."
-            ),
+            "name": f"{tier['label']} Naszyjnik Jubilerski", "type": "armor", "slot": "necklace",
+            "defense": tier["defense"] + 1, "price": None, "rarity": "crafted", "rarity_name": "Jubilerski",
+            "affix": tier["affix"], "affix_amount": tier["affix_amount"] + 1, "jewelcraft_level": tier["level"],
+            "sockets": socket_count,
+            "desc": f"Naszyjnik wykonany przez Jubilerstwo. Wymaga Jubilerstwa level {tier['level']}. Obrona +{tier['defense'] + 1}.",
+        }
+        # Kolczyk ma inny profil: mniej obrony, więcej ofensywnego affixu. Dwie sztuki można nosić naraz.
+        ITEMS[earring_id] = {
+            "name": f"{tier['label']} Kolczyk Jubilerski", "type": "armor", "slot": "earring",
+            "defense": max(0, tier["defense"] - 1), "price": None, "rarity": "crafted", "rarity_name": "Jubilerski",
+            "affix": tier["affix"], "affix_amount": tier["affix_amount"] + 1, "jewelcraft_level": tier["level"],
+            "sockets": earring_sockets,
+            "desc": f"Kolczyk wykonany przez Jubilerstwo. Można nosić dwie sztuki. Wymaga Jubilerstwa level {tier['level']}.",
         }
 
         base_xp = 12 + tier["level"] // 8
-
         JEWELCRAFT_RECIPES[ring_id] = {
-            "name": ITEMS[ring_id]["name"],
-            "stations": ("jeweler_workshop",),
-            "ingredients": {tier["material"]: 2},
-            "output": ring_id,
-            "quantity": 1,
-            "min_tool_level": tier["level"],
-            "min_profession_level": tier["level"],
-            "profession_xp": base_xp,
-            "tool_xp": max(8, base_xp - 2),
-            "desc": (
-                f"Jubilerstwo level {tier['level']}. "
-                f"Wykonuje pierścień z 2 sztuk materiału."
-            ),
+            "name": ITEMS[ring_id]["name"], "stations": ("jeweler_workshop",), "ingredients": {tier["material"]: 2},
+            "output": ring_id, "quantity": 1, "min_tool_level": tier["level"], "min_profession_level": tier["level"],
+            "profession_xp": base_xp, "tool_xp": max(8, base_xp - 2),
+            "desc": f"Jubilerstwo level {tier['level']}. Wykonuje pierścień z 2 sztuk materiału.",
         }
         JEWELCRAFT_RECIPES[necklace_id] = {
-            "name": ITEMS[necklace_id]["name"],
-            "stations": ("jeweler_workshop",),
-            "ingredients": {tier["material"]: 3},
-            "output": necklace_id,
-            "quantity": 1,
-            "min_tool_level": tier["level"],
-            "min_profession_level": tier["level"],
-            "profession_xp": base_xp + 3,
-            "tool_xp": max(9, base_xp),
-            "desc": (
-                f"Jubilerstwo level {tier['level']}. "
-                f"Wykonuje naszyjnik z 3 sztuk materiału."
-            ),
+            "name": ITEMS[necklace_id]["name"], "stations": ("jeweler_workshop",), "ingredients": {tier["material"]: 3},
+            "output": necklace_id, "quantity": 1, "min_tool_level": tier["level"], "min_profession_level": tier["level"],
+            "profession_xp": base_xp + 3, "tool_xp": max(9, base_xp),
+            "desc": f"Jubilerstwo level {tier['level']}. Wykonuje naszyjnik z 3 sztuk materiału.",
         }
+        JEWELCRAFT_RECIPES[earring_id] = {
+            "name": ITEMS[earring_id]["name"], "stations": ("jeweler_workshop",), "ingredients": {tier["material"]: 2},
+            "output": earring_id, "quantity": 1, "min_tool_level": tier["level"], "min_profession_level": tier["level"],
+            "profession_xp": base_xp + 1, "tool_xp": max(8, base_xp - 1),
+            "desc": f"Jubilerstwo level {tier['level']}. Wykonuje jeden kolczyk z 2 sztuk materiału; do obu uszu potrzebujesz dwóch sztuk.",
+        }
+
 
 _register_jewelcrafting_recipes()
 
@@ -9889,7 +9931,7 @@ def gem_definition_by_cut_id(item_id):
     return None
 
 def jewelry_socket_capacity(item):
-    if not item or item.get("slot") not in ("ring", "necklace"):
+    if not item or item.get("slot") not in ("ring", "necklace", "earring"):
         return 0
 
     explicit = item.get("sockets")
@@ -9897,9 +9939,11 @@ def jewelry_socket_capacity(item):
         return max(0, int(explicit))
 
     if item.get("required_class"):
-        return 1 if item.get("slot") == "ring" else 2
+        return 2 if item.get("slot") == "necklace" else 1
 
     level = int(item.get("jewelcraft_level", 1))
+    if item.get("slot") == "earring":
+        return 2 if level >= 180 else 1
     if level >= 180:
         return 3
     if level >= 100:
@@ -12104,7 +12148,7 @@ HELP_TOPICS = {
         "Jeśli zwykły slot jest zajęty, samo załóż hełm / zbroja / rękawice / nogi / buty niczego nie podmienia. Dokładna nazwa nowego przedmiotu jest świadomą decyzją o zastąpieniu starego.",
         "Pierścienie i talizmany zakładają się automatycznie: najpierw do wolnego slotu, a gdy oba są zajęte — zastępują słabszy. Ręczne sloty 1/2 nadal działają.",
         "Skróty: zp pokazuje pierścienie i zp <numer> zakłada wybrany; zt robi to samo dla talizmanów. zp1/zp2 i zt1/zt2 wymuszają konkretny slot.",
-        "Nowe sloty EQ: naramienniki, pas, peleryna, karwasze i relikt.",
+        "Nowe sloty EQ: naramienniki, pas, peleryna, karwasze, kolczyki i relikt.",
         "Zdejmowanie jest ręczne: zdejmij hełm, zbroja, naramienniki, pas, peleryna, karwasze, relikt, pierścień 1, talizman 2 itd.",
         "Założone EQ nadal jest niesprzedawalne; po zdjęciu staje się zwykłym wolnym egzemplarzem i może zostać sprzedane, jeśli jego kategoria na to pozwala.",
         "Zmiana ekwipunku podczas aktywnej walki nadal jest zablokowana.",
@@ -14122,16 +14166,17 @@ def crypt_affix_amount(tier, rarity_key, affix_key):
     return stat_value
 
 def build_crypt_loot_variants():
+    slot_pattern = "|".join(re.escape(slot) for slot in CLASS_EQUIPMENT_SLOT_DEFS)
     base_ids = [
         item_id
         for item_id, item in list(ITEMS.items())
-        if re.fullmatch(r"crypt_t\d+_(?:head|body|hands|legs|feet|charm)", item_id)
+        if re.fullmatch(rf"crypt_t\d+_(?:{slot_pattern})", item_id)
     ]
 
     for base_item_id in base_ids:
         base_item = ITEMS[base_item_id]
         m = re.fullmatch(
-            r"crypt_t(\d+)_(head|body|hands|legs|feet|charm)",
+            rf"crypt_t(\d+)_({slot_pattern})",
             base_item_id,
         )
         if not m:
@@ -14489,6 +14534,14 @@ def build_astral_tower():
             ("legs", "Astralne Nogawice", 7 + tier_index // 2),
             ("feet", "Astralne Buty", 5 + tier_index // 2),
             ("charm", "Astralny Talizman", 4 + tier_index // 2),
+            ("ring", "Astralny Pierścień", 4 + tier_index // 2),
+            ("necklace", "Astralny Naszyjnik", 5 + tier_index // 2),
+            ("earring", "Astralny Kolczyk", 4 + tier_index // 2),
+            ("shoulders", "Astralne Naramienniki", 7 + tier_index // 2),
+            ("belt", "Astralny Pas", 6 + tier_index // 2),
+            ("cloak", "Astralna Peleryna", 5 + tier_index // 2),
+            ("bracers", "Astralne Karwasze", 5 + tier_index // 2),
+            ("relic", "Astralny Relikt", 6 + tier_index // 2),
         )
         affix = stat_cycle[(tier_index - 1) % len(stat_cycle)]
         affix_amount = 5 + tier_index // 2
@@ -14543,9 +14596,7 @@ def build_astral_tower():
         )
         gear = [
             f"astral_t{tier_index}_{slot}"
-            for slot in (
-                "head", "body", "hands", "legs", "feet", "charm"
-            )
+            for slot in CLASS_EQUIPMENT_SLOT_DEFS
         ]
 
         regular_id = f"astral_floor_mob_{floor}"
@@ -14610,27 +14661,34 @@ def build_crypt_200_floors():
     ROOMS["crypt_hall"]["exits"]["east"] = "crypt_depths"
     ROOMS["crypt_depths"]["exits"] = {"west": "crypt_hall"}
 
+    crypt_slot_specs = {
+        "head": ("Hełm Krypty", 1),
+        "body": ("Napierśnik Krypty", 3),
+        "hands": ("Rękawice Krypty", 0),
+        "legs": ("Nogawice Krypty", 2),
+        "feet": ("Buty Krypty", 0),
+        "charm": ("Talizman Krypty", 0),
+        "ring": ("Pierścień Krypty", 0),
+        "necklace": ("Naszyjnik Krypty", 1),
+        "earring": ("Kolczyk Krypty", 0),
+        "shoulders": ("Naramienniki Krypty", 2),
+        "belt": ("Pas Krypty", 1),
+        "cloak": ("Peleryna Krypty", 0),
+        "bracers": ("Karwasze Krypty", 0),
+        "relic": ("Relikt Krypty", 1),
+    }
     for tier in range(1, 41):
-        defs=(
-            ("head","Hełm Krypty",1+tier//2),
-            ("body","Napierśnik Krypty",2+tier),
-            ("hands","Rękawice Krypty",1+tier//3),
-            ("legs","Nogawice Krypty",2+tier//2),
-            ("feet","Buty Krypty",1+tier//3),
-        )
-        for slot,label,defense in defs:
+        for slot, (label, defense_delta) in crypt_slot_specs.items():
+            defense = max(1, 1 + tier // 2 + defense_delta)
+            if slot == "body":
+                defense = max(defense, 2 + tier)
             item_id=f"crypt_t{tier}_{slot}"
             ITEMS[item_id]={
                 "name":f"{label} Tier {tier}","type":"armor","slot":slot,
                 "defense":defense,"price":None,
                 "desc":f"Ekwipunek z Krypty. Tier {tier}. Obrona +{defense}.",
             }
-        charm=f"crypt_t{tier}_charm"; defense=1+tier//2
-        ITEMS[charm]={
-            "name":f"Talizman Bossa Krypty Tier {tier}","type":"armor","slot":"charm",
-            "defense":defense,"price":None,
-            "desc":f"Talizman po bossie Krypty. Tier {tier}. Obrona +{defense}.",
-        }
+
 
     for floor in range(1, CRYPT_MAX_FLOOR+1):
         room_id=crypt_floor_id(floor); exits={}
@@ -14649,7 +14707,7 @@ def build_crypt_200_floors():
             "exits":exits,
         }
         tier=min(40,(floor-1)//10+1)
-        gear=[f"crypt_t{tier}_{x}" for x in ("head","body","hands","legs","feet")]
+        gear=[f"crypt_t{tier}_{x}" for x in CLASS_EQUIPMENT_SLOT_DEFS]
         tid=f"crypt_floor_mob_{floor}"
         name=CRYPT_REGULAR_NAMES[(floor-1)%len(CRYPT_REGULAR_NAMES)]
         depth_mult=crypt_depth_multiplier(floor)
@@ -14667,7 +14725,7 @@ def build_crypt_200_floors():
         }
         MOB_SPAWNS.append((room_id,tid))
         if is_crypt_boss_floor(floor):
-            bid=f"crypt_boss_{floor}"; pool=gear+[f"crypt_t{tier}_charm"]
+            bid=f"crypt_boss_{floor}"; pool=list(gear)
             MOB_TEMPLATES[bid]={
                 "name":CRYPT_BOSS_NAMES[floor],"max_hp":350+floor*25,
                 "damage":max(1,int(round((16+floor//2)*depth_mult))),
@@ -14783,9 +14841,7 @@ def build_mythic_endgame():
             "mythic_crypt_floor": floor,
             "corpse_equipment_pool": [
                 f"crypt_t{min(40, 20 + (floor - 1) // 10)}_{slot}"
-                for slot in (
-                    "head", "body", "hands", "legs", "feet", "charm"
-                )
+                for slot in CLASS_EQUIPMENT_SLOT_DEFS
             ],
             "corpse_equipment_guaranteed": 1,
         }
@@ -14818,10 +14874,7 @@ def build_mythic_endgame():
                 ),
                 "corpse_equipment_pool": [
                     f"crypt_t{min(40, 20 + (floor - 1) // 10)}_{slot}"
-                    for slot in (
-                        "head", "body", "hands",
-                        "legs", "feet", "charm"
-                    )
+                    for slot in CLASS_EQUIPMENT_SLOT_DEFS
                 ],
                 "corpse_equipment_guaranteed": 3,
             }
@@ -14873,10 +14926,7 @@ def build_mythic_endgame():
             "mythic_astral_floor": floor,
             "corpse_equipment_pool": [
                 f"astral_t11_{slot}"
-                for slot in (
-                    "head", "body", "hands",
-                    "legs", "feet", "charm"
-                )
+                for slot in CLASS_EQUIPMENT_SLOT_DEFS
             ],
             "corpse_equipment_guaranteed": 1,
         }
@@ -14909,10 +14959,7 @@ def build_mythic_endgame():
                 ),
                 "corpse_equipment_pool": [
                     f"astral_t11_{slot}"
-                    for slot in (
-                        "head", "body", "hands",
-                        "legs", "feet", "charm"
-                    )
+                    for slot in CLASS_EQUIPMENT_SLOT_DEFS
                 ],
                 "corpse_equipment_guaranteed": 3,
             }
@@ -21087,7 +21134,7 @@ def create_infinite_crypt_floor_definition(floor, mythic=False):
     tier = min(40, max(1, (floor - 1) // 10 + 1))
     if mythic:
         tier = min(40, max(20, 20 + (floor - 1) // 10))
-    gear = [f"crypt_t{tier}_{slot}" for slot in ("head", "body", "hands", "legs", "feet")]
+    gear = [f"crypt_t{tier}_{slot}" for slot in CLASS_EQUIPMENT_SLOT_DEFS]
     if mythic:
         room_id = mythic_crypt_floor_id(floor)
         exits = {
@@ -21119,7 +21166,7 @@ def create_infinite_crypt_floor_definition(floor, mythic=False):
             "drops": {"soul_shard": 0.55},
             "quest_target": None,
             "mythic_crypt_floor": floor,
-            "corpse_equipment_pool": gear + [f"crypt_t{tier}_charm"],
+            "corpse_equipment_pool": list(gear),
             "corpse_equipment_guaranteed": 1,
         }
         MOB_TEMPLATES[regular_id] = template
@@ -21148,7 +21195,7 @@ def create_infinite_crypt_floor_definition(floor, mythic=False):
                 "mythic_crypt_boss": True,
                 "boss_mechanic": mechanic,
                 "boss_mechanic_text": mechanic_text,
-                "corpse_equipment_pool": gear + [f"crypt_t{tier}_charm"],
+                "corpse_equipment_pool": list(gear),
                 "corpse_equipment_guaranteed": 3,
             }
             boss["template_id"] = boss_id
@@ -21218,7 +21265,7 @@ def create_infinite_crypt_floor_definition(floor, mythic=False):
             "crypt_boss": True,
             "boss_mechanic": mechanic,
             "boss_mechanic_text": mechanic_text,
-            "corpse_equipment_pool": gear + [f"crypt_t{tier}_charm"],
+            "corpse_equipment_pool": list(gear),
             "corpse_equipment_guaranteed": 3,
         }
         boss["template_id"] = boss_id
@@ -21412,7 +21459,7 @@ def create_infinite_astral_floor_definition(floor, mythic=False):
             "mythic_astral_floor": floor,
             "corpse_equipment_pool": [
                 f"astral_t11_{slot}"
-                for slot in ("head", "body", "hands", "legs", "feet", "charm")
+                for slot in CLASS_EQUIPMENT_SLOT_DEFS
             ],
             "corpse_equipment_guaranteed": 1,
         }
@@ -21454,7 +21501,7 @@ def create_infinite_astral_floor_definition(floor, mythic=False):
                 "boss_mechanic_text": mechanic_text,
                 "corpse_equipment_pool": [
                     f"astral_t11_{slot}"
-                    for slot in ("head", "body", "hands", "legs", "feet", "charm")
+                    for slot in CLASS_EQUIPMENT_SLOT_DEFS
                 ],
                 "corpse_equipment_guaranteed": 3,
             }
@@ -21507,7 +21554,7 @@ def create_infinite_astral_floor_definition(floor, mythic=False):
         "astral_floor": floor,
         "corpse_equipment_pool": [
             f"astral_t11_{slot}"
-            for slot in ("head", "body", "hands", "legs", "feet", "charm")
+            for slot in CLASS_EQUIPMENT_SLOT_DEFS
         ],
         "corpse_equipment_guaranteed": 1,
     }
@@ -21549,7 +21596,7 @@ def create_infinite_astral_floor_definition(floor, mythic=False):
             "boss_mechanic_text": mechanic_text,
             "corpse_equipment_pool": [
                 f"astral_t11_{slot}"
-                for slot in ("head", "body", "hands", "legs", "feet", "charm")
+                for slot in CLASS_EQUIPMENT_SLOT_DEFS
             ],
             "corpse_equipment_guaranteed": 3,
         }
@@ -33337,7 +33384,7 @@ for _set_index,(_key,_spec) in enumerate(V020_MEGADUNGEONS.items()):
         ITEMS[_iid]={"name":f"{_slot_name} — {_label}","type":"armor","slot":_slot,"defense":_def,"price":None,
             "rarity":"mythic","rarity_name":"Mityczny","sockets":4,"affix":_affix,"affix_amount":_amount,
             "required_mastery":400,"v021_mythic_set":_key,
-            "desc":f"Część 13-elementowego zestawu {_label}. Progi bonusów pozostają 2/4/6/8. Wymaga Biegłości 400. Bez RNG i bez pułapek."}
+            "desc":f"Część 14-elementowego zestawu {_label}. Progi bonusów pozostają 2/4/6/8. Wymaga Biegłości 400. Bez RNG i bez pułapek."}
         EQUIPMENT_COLLECTION_CATALOG[_iid]=ITEMS[_iid]["name"]; UNIQUE_ITEM_COLLECTION_CATALOG[_iid]=ITEMS[_iid]["name"]; _ids.append(_iid)
     V021_MYTHIC_SET_ITEMS[_key]=tuple(_ids)
 
@@ -38354,10 +38401,10 @@ class Session:
                 if stat in totals:
                     totals[stat] += int(amount)
 
-            if item.get("slot") in ("ring", "necklace"):
+            if item.get("slot") in ("ring", "necklace", "earring"):
                 socket_slot = (
                     row["slot"]
-                    if item.get("slot") == "ring"
+                    if item.get("slot") in ("ring", "earring")
                     else "necklace"
                 )
                 for gem_row in self.server.db.socketed_gems(
@@ -42250,6 +42297,7 @@ class Session:
                 "charm": "załóż talizman",
                 "ring": "załóż pierścień",
                 "necklace": "załóż naszyjnik",
+                "earring": "załóż kolczyki",
                 "shoulders": "załóż naramienniki",
                 "belt": "załóż pas",
                 "cloak": "załóż peleryna",
@@ -42655,9 +42703,9 @@ class Session:
             "equipment / eq - szybkie EQ zawsze pokazuje też Broń Duszy; eq info - Soul XP, pełne bonusy, sockety i aktywne sety",
             "sety / sety info / sety <klasa> - zestawy klasowe 2/4/6/8 dla 12 klas",
             "help loot_krypty - rarity, losowe statystyki i sety Krypty",
-            "equip / załóż przedmiot albo slot - m.in. hełm, zbroja, rękawice, nogi, buty, naramienniki, pas, peleryna, karwasze, relikt, pierścienie, talizmany, naszyjnik",
+            "equip / załóż przedmiot albo slot - m.in. hełm, zbroja, rękawice, nogi, buty, naramienniki, pas, peleryna, karwasze, kolczyki, relikt, pierścienie, talizmany, naszyjnik",
             "Biżuteria v0.30.21: załóż <nazwa pierścienia/talizmanu> wybiera wolny slot automatycznie, a gdy oba są zajęte zastępuje słabszy; ręczne sloty 1/2 nadal działają.",
-            "Skróty EQ: zh hełm, zz zbroja, zr rękawice, zn nogi, zb buty, zp pierścienie auto, zt talizmany auto, zp1/zp2 i zt1/zt2 ręcznie, zna naszyjnik, znar naramienniki, zpas pas, zpel peleryna, zkar karwasze, zrel relikt.",
+            "Skróty EQ: zh hełm, zz zbroja, zr rękawice, zn nogi, zb buty, zp pierścienie auto, zt talizmany auto, zp1/zp2 i zt1/zt2 ręcznie, zna naszyjnik, zkol kolczyki auto, zkol1/zkol2 ręcznie, znar naramienniki, zpas pas, zpel peleryna, zkar karwasze, zrel relikt.",
             "use / użyj - przedmioty, skille i czary; np. użyj ciecie goblin albo użyj pocisk goblin",
             "shop / sklep / list / lista - krótka numerowana oferta: numer, nazwa i cena",
             "shop info <numer> / sklep info <numer> - pełny opis i porównanie EQ przed zakupem",
@@ -52803,6 +52851,7 @@ class Session:
             "charm1": "Talizman 1", "charm2": "Talizman 2",
             "ring": "Pierścień", "ring1": "Pierścień 1",
             "ring2": "Pierścień 2", "necklace": "Naszyjnik",
+            "earring1": "Kolczyk 1", "earring2": "Kolczyk 2",
             "shoulders": "Naramienniki", "belt": "Pas", "cloak": "Peleryna",
             "bracers": "Karwasze", "relic": "Relikt",
         }
@@ -52919,8 +52968,9 @@ class Session:
         )
         await self.send(self.class_set_threshold_text(found) + ".")
         await self.send(
-            "Osiem unikalnych części to: głowa, korpus, dłonie, nogi, stopy, "
-            "talizman, pierścień i naszyjnik. Drugi taki sam talizman ani pierścień nie zwiększa licznika setu."
+            "Czternaście logicznych części to: głowa, korpus, dłonie, nogi, stopy, talizman, "
+            "pierścień, naszyjnik, kolczyki, naramienniki, pas, peleryna, karwasze i relikt. "
+            "Drugi taki sam talizman, pierścień ani kolczyk nie zwiększa licznika setu."
         )
 
     def equipment_item_score(self, item):
@@ -52934,6 +52984,7 @@ class Session:
             "legendary": 4,
             "mythic": 5,
             "unique": 6,
+            "eternal": 7,
         }
         stat_power = int(item.get("affix_amount", 0) or 0) + sum(
             max(0, int(v or 0)) for v in (item.get("stats") or {}).values()
@@ -52951,6 +53002,8 @@ class Session:
             logical_slot = "ring"
         elif slot in ("charm1", "charm2"):
             logical_slot = "charm"
+        elif slot in ("earring1", "earring2"):
+            logical_slot = "earring"
         else:
             logical_slot = slot
         for item_id, item in ITEMS.items():
@@ -52992,7 +53045,7 @@ class Session:
         return find_by_name(owned_armor, query)
 
     def explicit_dual_slot_and_item_query(self, query):
-        """Return (slot, remaining item query) for numbered ring/charm syntax.
+        """Return (slot, remaining item query) for numbered ring/charm/earring syntax.
 
         Accepted examples:
         - załóż pierścień 1 <nazwa>
@@ -53009,6 +53062,8 @@ class Session:
             ("ring 2", "ring2"), ("ring2", "ring2"),
             ("talizman 1", "charm1"), ("charm 1", "charm1"), ("charm1", "charm1"),
             ("talizman 2", "charm2"), ("charm 2", "charm2"), ("charm2", "charm2"),
+            ("kolczyk 1", "earring1"), ("earring 1", "earring1"), ("earring1", "earring1"),
+            ("kolczyk 2", "earring2"), ("earring 2", "earring2"), ("earring2", "earring2"),
         )
         for alias, slot in aliases:
             alias_norm = self.normalize_description_query(alias)
@@ -53036,22 +53091,24 @@ class Session:
         return ", ".join(names)
 
     def equipped_jewelry(self, slot):
-        if slot == "ring":
-            slot = (
-                "ring1"
-                if self.server.db.equipped_item(self.account_id, "ring1")
-                else "ring2"
-            )
-        if slot not in ("ring1", "ring2", "necklace"):
+        if slot in ("ring", "earring"):
+            pair = ("ring1", "ring2") if slot == "ring" else ("earring1", "earring2")
+            slot = pair[0] if self.server.db.equipped_item(self.account_id, pair[0]) else pair[1]
+        valid = ("ring1", "ring2", "earring1", "earring2", "necklace")
+        if slot not in valid:
             return None, None
-        item_id = self.server.db.equipped_item(
-            self.account_id, slot
-        )
+        item_id = self.server.db.equipped_item(self.account_id, slot)
         item = ITEMS.get(item_id) if item_id else None
-        logical = "ring" if slot in ("ring1", "ring2") else slot
+        if slot in ("ring1", "ring2"):
+            logical = "ring"
+        elif slot in ("earring1", "earring2"):
+            logical = "earring"
+        else:
+            logical = slot
         if not item or item.get("slot") != logical:
             return None, None
         return item_id, item
+
 
     def socketed_gem_rows_for_item(self, slot, item_id):
         return list(
@@ -53259,8 +53316,8 @@ class Session:
         raw = str(query or "").strip()
         if not raw:
             await self.send(
-                "Użycie: osadz <klejnot> <pierścień/naszyjnik>. "
-                "Przykład: osadz rubin pierścień."
+                "Użycie: osadz <klejnot> <pierścień/kolczyk/naszyjnik>. "
+                "Przykład: osadz rubin kolczyk 1."
             )
             return False
 
@@ -53273,6 +53330,9 @@ class Session:
             ("ring 2", "ring2"), ("ring2", "ring2"),
             ("pierścień", "ring"), ("pierscien", "ring"),
             ("ring", "ring"),
+            ("kolczyk 1", "earring1"), ("earring 1", "earring1"), ("earring1", "earring1"),
+            ("kolczyk 2", "earring2"), ("earring 2", "earring2"), ("earring2", "earring2"),
+            ("kolczyk", "earring"), ("kolczyki", "earring"), ("earring", "earring"),
             ("naszyjnik", "necklace"),
             ("necklace", "necklace"),
         )
@@ -53282,7 +53342,8 @@ class Session:
             if normalized.endswith(" " + token_norm):
                 slot = resolved
                 words = raw.split()
-                gem_query = " ".join(words[:-1]).strip()
+                token_words = len(token.split())
+                gem_query = " ".join(words[:-token_words]).strip()
                 break
             if normalized == token_norm:
                 slot = resolved
@@ -53291,17 +53352,14 @@ class Session:
 
         if not slot:
             await self.send(
-                "Na końcu podaj pierścień 1, pierścień 2 albo naszyjnik. "
-                "Po angielsku: ring1, ring2 albo necklace."
+                "Na końcu podaj pierścień 1/2, kolczyk 1/2 albo naszyjnik. "
+                "Po angielsku: ring1, ring2, earring1, earring2 albo necklace."
             )
             return False
 
-        if slot == "ring":
-            slot = (
-                "ring1"
-                if self.server.db.equipped_item(self.account_id, "ring1")
-                else "ring2"
-            )
+        if slot in ("ring", "earring"):
+            pair = ("ring1", "ring2") if slot == "ring" else ("earring1", "earring2")
+            slot = pair[0] if self.server.db.equipped_item(self.account_id, pair[0]) else pair[1]
 
         item_id, item = self.equipped_jewelry(slot)
         if not item:
@@ -53380,7 +53438,7 @@ class Session:
     async def show_socketed_gems(self):
         await self.send("GNIAZDA BIŻUTERII")
         found_any = False
-        for slot in ("ring1", "ring2", "necklace"):
+        for slot in ("ring1", "ring2", "earring1", "earring2", "necklace"):
             item_id, item = self.equipped_jewelry(slot)
             if not item:
                 continue
@@ -53392,12 +53450,17 @@ class Session:
             )
         if not found_any:
             await self.send(
-                "Nie masz założonego pierścienia ani naszyjnika."
+                "Nie masz założonego pierścienia, kolczyka ani naszyjnika."
             )
 
     def automatic_dual_slot_v03020(self, logical_slot):
-        """Pick first free ring/charm slot; when full, replace the weaker equipped piece."""
-        paired = ("ring1", "ring2") if logical_slot == "ring" else ("charm1", "charm2")
+        """Pick first free ring/charm/earring slot; when full, replace the weaker equipped piece."""
+        pairs = {
+            "ring": ("ring1", "ring2"),
+            "charm": ("charm1", "charm2"),
+            "earring": ("earring1", "earring2"),
+        }
+        paired = pairs[logical_slot]
         for slot in paired:
             if not self.server.db.equipped_item(self.account_id, slot):
                 return slot
@@ -53409,15 +53472,20 @@ class Session:
         scored.sort(key=lambda row: (row[0], row[1]))
         return scored[0][2]
 
+
     async def equip_shortcut_dual_v03020(self, logical_slot, query=""):
-        candidates = self.owned_armor_for_slot("ring1" if logical_slot == "ring" else "charm1")
-        noun = "pierścienie" if logical_slot == "ring" else "talizmany"
+        pairs = {
+            "ring": ("ring1", "ring2", "pierścienie", "zp"),
+            "charm": ("charm1", "charm2", "talizmany", "zt"),
+            "earring": ("earring1", "earring2", "kolczyki", "zkol"),
+        }
+        s1, s2, noun, shortcut = pairs[logical_slot]
+        candidates = self.owned_armor_for_slot(s1)
         if not candidates:
             await self.send(f"Nie masz żadnego EQ w kategorii {noun}.")
             return
         raw = str(query or "").strip()
         if not raw:
-            s1, s2 = (("ring1", "ring2") if logical_slot == "ring" else ("charm1", "charm2"))
             n1 = ITEMS.get(self.server.db.equipped_item(self.account_id, s1), {}).get("name", "pusty")
             n2 = ITEMS.get(self.server.db.equipped_item(self.account_id, s2), {}).get("name", "pusty")
             await self.send(f"{noun.capitalize()}. Slot 1: {n1}. Slot 2: {n2}. Wybierz numer przedmiotu:")
@@ -53434,10 +53502,11 @@ class Session:
             pool = {item_id:item for _score,item_id,item in candidates}
             found = find_by_name(pool, raw)
             if not found:
-                await self.send(f"Nie rozpoznaję przedmiotu. Wpisz {'zp' if logical_slot=='ring' else 'zt'}, aby dostać listę.")
+                await self.send(f"Nie rozpoznaję przedmiotu. Wpisz {shortcut}, aby dostać listę.")
                 return
             item_id, item = found
         await self.equip_item(item.get("name", item_id))
+
 
     async def equip_shortcut_slot_v03016(self, slot, query=""):
         """NVDA-friendly numbered slot picker.
@@ -53496,7 +53565,7 @@ class Session:
                 return
 
         item_id, item = found
-        if slot in ("ring1", "ring2", "charm1", "charm2"):
+        if slot in ("ring1", "ring2", "charm1", "charm2", "earring1", "earring2"):
             await self.equip_item(f"{slot} {item.get('name', item_id)}")
         else:
             await self.equip_item(item.get("name", item_id))
@@ -53513,15 +53582,15 @@ class Session:
         normalized = self.normalize_description_query(raw_query)
         if not normalized:
             await self.send(
-                "Użycie: załóż <pełna nazwa EQ>. Pierścienie i talizmany wybierają wolny slot automatycznie; "
-                "ręczny slot 1/2 nadal działa. Skróty: zp dla pierścieni, zt dla talizmanów."
+                "Użycie: załóż <pełna nazwa EQ>. Pierścienie, talizmany i kolczyki wybierają wolny slot automatycznie; "
+                "ręczny slot 1/2 nadal działa. Skróty: zp, zt i zkol."
             )
             return
 
         # Slot-only commands never choose the best item automatically.
         requested_slot = EQUIPMENT_SLOT_ALIASES.get(normalized)
         if requested_slot:
-            if requested_slot in ("ring", "charm"):
+            if requested_slot in ("ring", "charm", "earring"):
                 await self.equip_shortcut_dual_v03020(requested_slot)
                 return
 
@@ -53589,7 +53658,7 @@ class Session:
         if not found:
             await self.send(
                 "Nie rozpoznaję posiadanego EQ. Podaj pełną nazwę przedmiotu. "
-                "Pierścienie i talizmany nie wymagają już podawania slotu 1/2."
+                "Pierścienie, talizmany i kolczyki nie wymagają podawania slotu 1/2."
             )
             return
 
@@ -53621,6 +53690,8 @@ class Session:
             actual_slot = explicit_slot if explicit_slot in ("ring1", "ring2") else self.automatic_dual_slot_v03020("ring")
         elif logical_slot == "charm":
             actual_slot = explicit_slot if explicit_slot in ("charm1", "charm2") else self.automatic_dual_slot_v03020("charm")
+        elif logical_slot == "earring":
+            actual_slot = explicit_slot if explicit_slot in ("earring1", "earring2") else self.automatic_dual_slot_v03020("earring")
         else:
             actual_slot = logical_slot
             if explicit_slot and explicit_slot != actual_slot:
@@ -53629,8 +53700,12 @@ class Session:
                 )
                 return
 
-        if logical_slot in ("ring", "charm"):
-            paired = ("ring1", "ring2") if logical_slot == "ring" else ("charm1", "charm2")
+        if logical_slot in ("ring", "charm", "earring"):
+            paired = {
+                "ring": ("ring1", "ring2"),
+                "charm": ("charm1", "charm2"),
+                "earring": ("earring1", "earring2"),
+            }[logical_slot]
             already_equipped = sum(
                 1 for row in self.equipped_item_rows()
                 if row["slot"] in paired and row["item_id"] == item_id and row["slot"] != actual_slot
@@ -53647,7 +53722,7 @@ class Session:
             return
 
         returned_gems = []
-        if actual_slot in ("ring1", "ring2", "necklace") and old_item_id:
+        if actual_slot in ("ring1", "ring2", "earring1", "earring2", "necklace") and old_item_id:
             returned_gems = await self.return_socketed_gems(actual_slot, old_item_id)
 
         # Replacing is explicit by chosen item; v0.30.20 may auto-pick the free/weaker ring or charm slot.
@@ -53700,14 +53775,14 @@ class Session:
 
         normalized = self.normalize_description_query(str(query or "").strip())
         slot = EQUIPMENT_SLOT_ALIASES.get(normalized)
-        if slot in ("ring", "charm"):
-            noun = "pierścień" if slot == "ring" else "talizman"
+        if slot in ("ring", "charm", "earring"):
+            noun = {"ring":"pierścień", "charm":"talizman", "earring":"kolczyk"}[slot]
             await self.send(f"Podaj konkretny slot: zdejmij {noun} 1 albo zdejmij {noun} 2.")
             return
         if slot not in EQUIPMENT_SLOT_NAMES:
             await self.send(
                 "Użycie: zdejmij <slot>, np. zdejmij hełm, zdejmij pierścień 1, "
-                "zdejmij talizman 2 albo zdejmij naszyjnik."
+                "zdejmij kolczyk 2, zdejmij talizman 2 albo zdejmij naszyjnik."
             )
             return
 
@@ -53717,7 +53792,7 @@ class Session:
             return
         item = ITEMS.get(item_id, {"name": item_id})
         returned_gems = []
-        if slot in ("ring1", "ring2", "necklace"):
+        if slot in ("ring1", "ring2", "earring1", "earring2", "necklace"):
             returned_gems = await self.return_socketed_gems(slot, item_id)
         self.server.db.unequip(self.account_id, slot)
         self.current_hp = min(self.current_hp, self.max_hp())
@@ -53999,6 +54074,8 @@ class Session:
             valid_slots = {"ring", "ring1", "ring2"}
         elif logical == "charm":
             valid_slots = {"charm", "charm1", "charm2"}
+        elif logical == "earring":
+            valid_slots = {"earring", "earring1", "earring2"}
         else:
             valid_slots = {logical}
         results = []
@@ -61505,11 +61582,12 @@ class Session:
                 await self.equipment(args)
             elif command == "classsets":
                 await self.show_class_sets(args)
-            elif command in ("equiphead", "equipbody", "equiphands", "equiplegs", "equipfeet", "equipcharm", "equipcharm2", "equipring1", "equipring2", "equipnecklace", "equipshoulders", "equipbelt", "equipcloak", "equipbracers", "equiprelic"):
+            elif command in ("equiphead", "equipbody", "equiphands", "equiplegs", "equipfeet", "equipcharm", "equipcharm2", "equipring1", "equipring2", "equipnecklace", "equipearring1", "equipearring2", "equipshoulders", "equipbelt", "equipcloak", "equipbracers", "equiprelic"):
                 shortcut_slots = {
                     "equiphead": "head", "equipbody": "body", "equiphands": "hands",
                     "equiplegs": "legs", "equipfeet": "feet", "equipcharm": "charm1", "equipcharm2": "charm2",
                     "equipring1": "ring1", "equipring2": "ring2", "equipnecklace": "necklace",
+                    "equipearring1": "earring1", "equipearring2": "earring2",
                     "equipshoulders": "shoulders", "equipbelt": "belt", "equipcloak": "cloak",
                     "equipbracers": "bracers", "equiprelic": "relic",
                 }
@@ -61518,6 +61596,8 @@ class Session:
                 await self.equip_shortcut_dual_v03020("ring", args)
             elif command == "equipcharmauto":
                 await self.equip_shortcut_dual_v03020("charm", args)
+            elif command == "equipearringauto":
+                await self.equip_shortcut_dual_v03020("earring", args)
             elif command == "equip":
                 equip_target = self.normalize_description_query(str(args or "").strip())
                 if equip_target in ("druzyna", "druzyne", "party"):
@@ -63348,7 +63428,7 @@ def equipment_expansion_audit_v03020():
     for alias, command in expected_commands.items():
         if COMMAND_ALIASES.get(alias) != command:
             errors.append(f"shortcut {alias} -> {COMMAND_ALIASES.get(alias)!r}, expected {command!r}")
-    # Every class/tier should now expose all 13 logical equipment pieces per style.
+    # Every class/tier should now expose all 14 logical equipment pieces per style.
     logical_slots = set(CLASS_EQUIPMENT_SLOT_DEFS)
     for class_name, tiers in CLASS_EQUIPMENT_ITEMS_BY_CLASS_TIER.items():
         for mastery in (1, 100, 200, 400):
@@ -63370,7 +63450,7 @@ if EQUIPMENT_EXPANSION_AUDIT_V03020.get("error_count"):
     raise RuntimeError("Equipment Expansion Audit v0.30.20 failed: " + "; ".join(EQUIPMENT_EXPANSION_AUDIT_V03020.get("errors", [])[:20]))
 
 HELP_TOPICS.setdefault("eq", []).extend([
-    "v0.30.20: dodano 5 nowych slotów EQ: naramienniki, pas, peleryna, karwasze i relikt. Klasowe EQ wszystkich 12 klas generuje te sloty na każdym istniejącym progu Biegłości.",
+    "v0.30.20: dodano 5 nowych slotów EQ: naramienniki, pas, peleryna, karwasze, kolczyki i relikt. Klasowe EQ wszystkich 12 klas generuje te sloty na każdym istniejącym progu Biegłości.",
     "Nowe sloty mają różne role: naramienniki/pas są bardziej defensywne, karwasze bardziej ofensywne, peleryna bardziej utility, relikt ma mocniejszy profil klasowy.",
     "Pierścienie i talizmany nie wymagają już ręcznego wskazywania slotu 1/2: pełna nazwa albo zp/zt + numer używa wolnego slotu, a przy dwóch zajętych zastępuje słabszy.",
     "Ręczne zp1/zp2 oraz zt1/zt2 pozostają dostępne, gdy chcesz wymusić konkretny slot.",
@@ -63382,7 +63462,7 @@ HELP_TOPICS.setdefault("sprzedaj_wszystko", []).extend([
 
 LATEST_CHANGES_TITLE = "Soulbound v0.30.20 - Expanded EQ + Safe Sell All + Easy Jewelry"
 LATEST_CHANGES = [
-    "Dodano pięć nowych slotów wyposażenia: naramienniki, pas, peleryna, karwasze i relikt; wszystkie klasy dostają je w pełnej progresji EQ.",
+    "Dodano pięć nowych slotów wyposażenia: naramienniki, pas, peleryna, karwasze, kolczyki i relikt; wszystkie klasy dostają je w pełnej progresji EQ.",
     "Sell all / sprzedaj wszystko sprzedaje wyłącznie niezałożone EQ. Mikstury i wszystkie nie-EQ są chronione.",
     "Pierścienie i talizmany można zakładać bez wybierania slotu 1/2: gra używa wolnego slotu, a przy pełnych slotach zastępuje słabszy.",
     "Dodano zp/zt oraz skróty nowych slotów; ręczne zp1/zp2 i zt1/zt2 pozostają.",
@@ -63410,7 +63490,7 @@ def refresh_help_v03021_full():
         "shop / sklep / list / lista pokazuje numerowaną ofertę aktualnego sprzedawcy.",
         "shop info <numer> / sklep info <numer> pokazuje pełny opis, statystyki, wymagania, cenę po rabacie i porównanie z założonym EQ.",
         "kup <nazwa> albo kup <numer> kupuje przedmiot; np. kup 9 albo kup 9 3.",
-        "Klasowe sklepy EQ pokazują najlepszy Tier odblokowany przez Level postaci dla aktywnej klasy i wszystkie 13 typów: hełm, pancerz, rękawice, nogawice, buty, talizman, pierścień, naszyjnik, naramienniki, pas, peleryna, karwasze i relikt.",
+        "Klasowe sklepy EQ pokazują najlepszy Tier odblokowany przez Level postaci dla aktywnej klasy i wszystkie 13 typów: hełm, pancerz, rękawice, nogawice, buty, talizman, pierścień, naszyjnik, naramienniki, pas, peleryna, karwasze, kolczyki i relikt.",
         "sprzedaj <nazwa> sprzedaje jedną wolną sztukę. Założone EQ i Character-Bound są chronione.",
         "sell all / sprzedaj wszystko sprzedaje wyłącznie niezałożone EQ. Nie sprzedaje mikstur, consumables, zwykłego lootu, materiałów, narzędzi ani quest itemów.",
         "Zasoby profesyjne sprzedaje się osobno u właściwych fachowców; hurtowo działają istniejące komendy wszystko siatka/sakwa/stos/torba.",
@@ -63418,10 +63498,10 @@ def refresh_help_v03021_full():
     ]
     HELP_TOPICS["eq"] = [
         "equipment / eq pokazuje założone wyposażenie oraz Broń Duszy; eq info pokazuje szczegóły, bonusy, sockety i aktywne sety.",
-        "Klasowe EQ ma 13 logicznych typów: hełm, pancerz, rękawice, nogawice, buty, talizman, pierścień, naszyjnik, naramienniki, pas, peleryna, karwasze i relikt.",
+        "Klasowe EQ ma 13 logicznych typów: hełm, pancerz, rękawice, nogawice, buty, talizman, pierścień, naszyjnik, naramienniki, pas, peleryna, karwasze, kolczyki i relikt.",
         "Pierścienie i talizmany zakładają się automatycznie: załóż <nazwa>, zp <numer> albo zt <numer> używa wolnego slotu; przy dwóch zajętych zastępuje słabszy.",
         "Ręczny wybór pozostaje: zp1/zp2 dla pierścieni oraz zt1/zt2 dla talizmanów.",
-        "Skróty: zh hełm, zz zbroja, zr rękawice, zn nogi, zb buty, zna naszyjnik, znar naramienniki, zpas pas, zpel peleryna, zkar karwasze, zrel relikt.",
+        "Skróty: zh hełm, zz zbroja, zr rękawice, zn nogi, zb buty, zna naszyjnik, zkol kolczyki auto, zkol1/zkol2 ręcznie, znar naramienniki, zpas pas, zpel peleryna, zkar karwasze, zrel relikt.",
         "Level postaci odblokowuje EQ na progach 1, 10, 20...400. Biegłość klasy nadal odblokowuje skille/spelle, ale nie jest bramą założenia EQ.",
     ]
     HELP_TOPICS["sety_klasowe"] = [
@@ -63501,8 +63581,8 @@ if FULL_HELP_AUDIT_V03021["error_count"]:
 def eq_shop_audit_v03021():
     errors=[]
     slots=set(CLASS_EQUIPMENT_SLOT_DEFS)
-    if len(slots)!=13:
-        errors.append(f"logical EQ slots={len(slots)}, expected 13")
+    if len(slots)!=14:
+        errors.append(f"logical EQ slots={len(slots)}, expected 14")
     for class_name,definition in CLASS_EQUIPMENT_SETS.items():
         room=definition.get("room")
         if room not in SHOPS:
@@ -64697,12 +64777,52 @@ HELP_TOPICS["śmierć"] = HELP_TOPICS["smierc"]
 HELP_TOPICS["death"] = HELP_TOPICS["smierc"]
 HELP_TOPICS["eq"] = [
     "equipment / eq pokazuje założone wyposażenie oraz Broń Duszy; eq info pokazuje szczegóły, bonusy, sockety i aktywne sety.",
-    "EQ jest bramkowane przez Level postaci 1-400. Przykład: przedmiot wymagający Levelu 40 można posiadać wcześniej, ale nie można go założyć ani kupić przed Levelem 40.",
+    "EQ jest bramkowane przez Level postaci 1-400. Przedmiot można posiadać wcześniej, ale nie można go założyć ani kupić przed wymaganym Levelem.",
     "Klasowe EQ nadal wymaga aktywnej właściwej klasy. Biegłość klasy odblokowuje skille i spelle, ale nie jest już wymogiem założenia EQ.",
+    "Aktualne logiczne sloty: głowa, korpus, dłonie, nogi, stopy, talizman, pierścień, naszyjnik, kolczyki, naramienniki, pas, peleryna, karwasze i relikt. Pierścienie, talizmany i kolczyki mają po dwa fizyczne miejsca 1/2.",
+    "Pierścienie, talizmany i kolczyki zakładają się automatycznie: zp, zt i zkol wybierają wolny slot; przy obu zajętych zastępują słabszy. Ręcznie: zp1/zp2, zt1/zt2, zkol1/zkol2.",
+    "Materiałowe EQ z mobów obejmuje wszystkie obecne logiczne sloty i materiały od Żelaza do Eternium. Każdy wariant ma unikalną nazwę oraz unikalny profil statów w obrębie materiału i slotu.",
     "Przy logowaniu EQ ponad aktualny Level postaci jest automatycznie zdejmowane, ale pozostaje w inventory; nic nie przepada.",
-    "Pierścienie i talizmany zakładają się automatycznie: załóż <nazwa>, zp <numer> albo zt <numer> używa wolnego slotu; przy dwóch zajętych zastępuje słabszy.",
 ]
 HELP_TOPICS["ekwipunek"] = HELP_TOPICS["eq"]
+
+HELP_TOPIC_ALIASES.update({
+    "kolczyk": "kolczyki", "kolczyki": "kolczyki", "earring": "kolczyki", "earrings": "kolczyki",
+    "materialy eq": "materialy_eq", "materiały eq": "materialy_eq",
+})
+HELP_TOPICS["materialy_eq"] = [
+    "Materiałowe EQ z ciał występuje jako Żelazne, Stalowe, Mithrilowe, Adamantytowe, Kobaltowe, Runiczne, ze Smoczej Stali, Astralne, Pustki i Eternium.",
+    "Każdy z 10 materiałów obejmuje wszystkie 14 logicznych slotów: głowę, korpus, dłonie, nogi, stopy, talizman, pierścień, naszyjnik, kolczyk, naramienniki, pas, pelerynę, karwasze i relikt.",
+    "Każdy materiał i slot ma 24 warianty. Nazwy nie powtarzają się, a profile statów nie powtarzają się w obrębie tego samego materiału i slotu.",
+    "EQ wymaga Levelu postaci, nie Biegłości klasy. Materiałowe przedmioty można zdobyć wcześniej i przechować, ale nie założyć przed wymaganym Levelem.",
+    "Zwykły świat jest ograniczony do niższych materiałów; wysokie materiały zdobywa się głównie w Kryptach, Wieżach, Twierdzy i bojowych lochach.",
+    "Krypta rozciąga progresję materiałów przez Level 1-400: Żelazo, Stal, Mithril, Adamantyt, Kobalt, Runiczny, Smocza Stal, Astral, Pustka i Eternium.",
+]
+HELP_TOPICS["klasy"] = [
+    "Soulbound ma 12 klas. Level postaci 1-400 jest wspólną osią postaci, a każda klasa ma osobną Biegłość 1-400.",
+    "Level postaci bramkuje EQ. Biegłość właściwej aktywnej klasy odblokowuje skille/spelle i rozwija się przez Class XP.",
+    "Każda klasa ma własną Broń Duszy, role, skille/spelle oraz osobny sklep EQ. Użyj help <klasa> albo walk eq <klasa>.",
+    "Multiclass zachowuje osobną Biegłość każdej klasy; wyłączenie klasy nie kasuje jej progresji ani nauczonych umiejętności.",
+]
+HELP_TOPICS["zakladanie_lootu"] = [
+    "Gracz sam wybiera konkretny element EQ. Zwykłe sloty nie podmieniają się bez wskazania przedmiotu.",
+    "Całe EQ jest bramkowane przez Level postaci 1-400. Biegłość klasy odblokowuje skille/spelle, a nie możliwość założenia EQ.",
+    "Pierścienie, talizmany i kolczyki mają po dwa miejsca. zp, zt i zkol wybierają wolne albo słabsze miejsce automatycznie; zp1/zp2, zt1/zt2 i zkol1/zkol2 wymuszają konkretny slot.",
+    "Aktualne logiczne sloty: głowa, korpus, dłonie, nogi, stopy, talizman, pierścień, naszyjnik, kolczyk, naramienniki, pas, peleryna, karwasze i relikt.",
+    "Zmiana EQ podczas aktywnej walki jest zablokowana. Założonego EQ nie można sprzedać ani przekazać.",
+]
+HELP_TOPICS["sklepy"] = [
+    "shop / sklep / list / lista pokazuje numerowaną ofertę aktualnego sprzedawcy; shop info <numer> pokazuje pełny opis i porównanie.",
+    "Każda z 12 klas ma osobny sklep EQ. walk eq <klasa> prowadzi bezpośrednio do właściwej sali klasowej.",
+    "Klasowe sklepy mają pełne 14 logicznych typów EQ, w tym kolczyki, naramienniki, pas, pelerynę, karwasze i relikt.",
+    "Oferta Tieru zależy od Levelu postaci, a zakup klasowego EQ wymaga aktywnej właściwej klasy.",
+    "sell all / sprzedaj wszystko sprzedaje wyłącznie niezałożone EQ; materiały, narzędzia, quest itemy i consumables są chronione.",
+]
+HELP_TOPICS["sety_klasowe"] = [
+    "Każda z 12 klas ma linie EQ obejmujące wszystkie 14 logicznych typów wyposażenia, w tym kolczyki.",
+    "Bonusy zestawów pozostają na progach 2/4/6/8 części; większa liczba dostępnych slotów daje wybór, a nie nowy automatyczny próg mocy.",
+    "Level postaci bramkuje założenie EQ; aktywna klasa nadal jest wymagana dla klasowych części.",
+]
 HELP_TOPICS.setdefault("questy godzinne", []).append(
     "v0.30.35: wykonano pełny audit podobnych questów. Złamane ostrza, Pancerz do przetopu, Toksyczne gruczoły, Dzisiejszy połów, Próbki rudy, Drewno na naprawy, Zestaw dla uzdrowiciela i Nieumarli znów wstali mają działające źródła oraz postęp 0/x."
 )
@@ -64723,6 +64843,442 @@ LATEST_CHANGES = [
     "v0.30.35: wymagania EQ są oparte na Levelu postaci 1-400; Biegłość klasy pozostaje systemem skilli/spelli.",
     "v0.30.35: przy logowaniu zbyt wysokie EQ jest zdejmowane do inventory, nigdy usuwane.",
     "v0.30.35: po starcie serwera/deployu Kopalnia Głębinowa wraca do poziomu 1 i zerowej ściany; Górnictwo, Kilof i loot pozostają bez zmian. Brak wipe postaci.",
+] + LATEST_CHANGES
+
+
+# ============================================================
+# v0.30.36 - ONE CLASS, ONE EQ SHOP
+# Każda z 12 klas ma własny sklep EQ w swojej osobnej sali klasowej.
+# Stare sześć wspólnych punktów sprzedaży pozostaje wyłącznie hubami.
+# ============================================================
+CLASS_SHOP_ROOM_BY_CLASS_V03036 = {
+    "Wojownik": "guild_warrior_chamber",
+    "Berserker": "guild_berserker_chamber",
+    "Łotrzyk": "guild_rogue_chamber",
+    "Łowca": "guild_hunter_chamber",
+    "Mnich": "guild_monk_chamber",
+    "Strażnik": "guild_guardian_chamber",
+    "Mag": "guild_mage_chamber",
+    "Nekromanta": "guild_necromancer_chamber",
+    "Kapłan": "guild_priest_chamber",
+    "Czarownik": "guild_warlock_chamber",
+    "Druid": "guild_druid_chamber",
+    "Psionik": "guild_psion_chamber",
+}
+
+CLASS_SHOP_SELLER_NAMES_V03036 = {
+    "Wojownik": "Kwatermistrz Wojownika",
+    "Berserker": "Kwatermistrz Berserkera",
+    "Łotrzyk": "Kwatermistrz Łotrzyka",
+    "Łowca": "Kwatermistrz Łowcy",
+    "Mnich": "Kwatermistrz Mnicha",
+    "Strażnik": "Kwatermistrz Strażnika",
+    "Mag": "Kwatermistrz Maga",
+    "Nekromanta": "Kwatermistrz Nekromanty",
+    "Kapłan": "Kwatermistrz Kapłana",
+    "Czarownik": "Kwatermistrz Czarownika",
+    "Druid": "Kwatermistrz Druida",
+    "Psionik": "Kwatermistrz Psionika",
+}
+
+OLD_SHARED_CLASS_SHOP_ROOMS_V03036 = (
+    "guild_martial_hall",
+    "guild_shadow_gallery",
+    "guild_body_hall",
+    "guild_arcane_chamber",
+    "guild_dark_chamber",
+    "guild_sanctuary",
+)
+OLD_SHARED_CLASS_SHOP_SELLERS_V03036 = (
+    "guild_quartermaster_martial",
+    "guild_quartermaster_shadow",
+    "guild_quartermaster_body",
+    "guild_quartermaster_arcane",
+    "guild_quartermaster_dark",
+    "guild_quartermaster_sanctuary",
+)
+
+
+def apply_separate_class_shops_v03036():
+    # 1. Wspólne sale przestają być sklepami.
+    for room_id in OLD_SHARED_CLASS_SHOP_ROOMS_V03036:
+        SHOPS.pop(room_id, None)
+        SHOP_SELLERS.pop(room_id, None)
+        room = ROOMS.get(room_id)
+        if room:
+            room["desc"] = str(room.get("desc") or "").replace(
+                " W tej sali działa także klasowy sklep z pełnym 14-elementowym wyposażeniem.",
+                " Sklepy EQ znajdują się w osobnych salach poszczególnych klas."
+            )
+    for npc_id in OLD_SHARED_CLASS_SHOP_SELLERS_V03036:
+        npc = NPCS.get(npc_id)
+        if npc:
+            npc["shopkeeper"] = False
+            npc["dialogue"] = (
+                "Każda klasa ma teraz osobny sklep EQ w swojej własnej sali. "
+                "Wpisz walk eq <klasa>, aby dojść bezpośrednio do właściwego sklepu."
+            )
+
+    # 2. Przebudowa mapowania: jeden pokój = dokładnie jedna klasa.
+    CLASS_SHOP_CLASSES_BY_ROOM.clear()
+    CLASS_SHOP_ITEMS_BY_ROOM.clear()
+
+    for class_name, room_id in CLASS_SHOP_ROOM_BY_CLASS_V03036.items():
+        if room_id not in ROOMS:
+            raise RuntimeError(f"v0.30.36: brak sali sklepu klasy {class_name}: {room_id}")
+        if class_name not in CLASS_EQUIPMENT_ITEMS_BY_CLASS_TIER:
+            raise RuntimeError(f"v0.30.36: brak EQ klasy {class_name}")
+
+        CLASS_EQUIPMENT_SETS[class_name]["room"] = room_id
+        CLASS_SHOP_CLASSES_BY_ROOM[room_id] = [class_name]
+        tier_one = list(CLASS_EQUIPMENT_ITEMS_BY_CLASS_TIER[class_name].get(1, ()))
+        CLASS_SHOP_ITEMS_BY_ROOM[room_id] = tier_one
+        SHOPS[room_id] = list(tier_one)
+
+        seller_id = "class_eq_shop_" + normalize_lookup_text(class_name).replace(" ", "_")
+        seller_name = CLASS_SHOP_SELLER_NAMES_V03036[class_name]
+        NPCS[seller_id] = {
+            "name": seller_name,
+            "room": room_id,
+            "dialogue": (
+                f"Prowadzę osobny sklep EQ klasy {class_name}. "
+                "Wpisz shop albo list, aby usłyszeć aktualny Tier wyposażenia "
+                "odblokowany przez Level postaci."
+            ),
+            "shopkeeper": True,
+            "class_eq_shop": class_name,
+        }
+        SHOP_SELLERS[room_id] = seller_id
+        if isinstance(globals().get("NPC_DESCRIPTIONS"), dict):
+            NPC_DESCRIPTIONS[seller_id] = (
+                f"Sprzedawca wyposażenia wyłącznie dla klasy {class_name}. "
+                "Oferta skaluje się z Levelem postaci, a zakup nadal wymaga aktywnej właściwej klasy."
+            )
+
+        room = ROOMS[room_id]
+        shop_sentence = (
+            f" Działa tu osobny sklep EQ klasy {class_name}; "
+            "wpisz shop, aby usłyszeć ofertę."
+        )
+        if shop_sentence.strip() not in str(room.get("desc") or ""):
+            room["desc"] = str(room.get("desc") or "") + shop_sentence
+
+        # 3. Prowadzenie i stare skróty zawsze trafiają do nowego, osobnego sklepu.
+        for prefix in ("eq", "sklep eq", "sklep z eq", "ekwipunek", "sklep"):
+            GUIDE_DESTINATION_ALIASES[
+                normalize_lookup_text(f"{prefix} {class_name}")
+            ] = room_id
+
+    HELP_TOPICS["sklepy klasowe"] = [
+        "Każda z 12 klas ma własny, osobny sklep EQ w swojej sali klasowej w Gildii Dusz.",
+        "Wojownik, Berserker, Łotrzyk, Łowca, Mnich, Strażnik, Mag, Nekromanta, Kapłan, Czarownik, Druid i Psionik nie współdzielą już punktów sprzedaży.",
+        "Najprościej użyć: walk eq <klasa>, na przykład walk eq wojownik albo walk eq kapłan.",
+        "W sklepie wpisz shop. Oferta pokazuje najlepszy Tier EQ odblokowany przez Level postaci; zakup nadal wymaga aktywnej odpowiedniej klasy.",
+    ]
+    HELP_TOPICS.setdefault("eq", []).append(
+        "v0.30.36: każda klasa ma osobny sklep EQ w swojej sali klasowej. Użyj walk eq <klasa>."
+    )
+    HELP_TOPICS.setdefault("sklepy", []).append(
+        "v0.30.36: help sklepy klasowe opisuje 12 osobnych sklepów wyposażenia klasowego."
+    )
+    HELP_TOPICS.setdefault("wersja", []).append(
+        "v0.30.36: rozdzielono klasowe sklepy EQ na 12 osobnych punktów, po jednym dla każdej klasy."
+    )
+
+
+apply_separate_class_shops_v03036()
+
+
+def class_shop_audit_v03036():
+    errors = []
+    checked = 0
+    if len(CLASS_SHOP_CLASSES_BY_ROOM) != 12:
+        errors.append(f"shop room count={len(CLASS_SHOP_CLASSES_BY_ROOM)} expected=12")
+    if set(CLASS_SHOP_ROOM_BY_CLASS_V03036) != set(CLASS_EQUIPMENT_SETS):
+        missing = sorted(set(CLASS_EQUIPMENT_SETS) - set(CLASS_SHOP_ROOM_BY_CLASS_V03036))
+        extra = sorted(set(CLASS_SHOP_ROOM_BY_CLASS_V03036) - set(CLASS_EQUIPMENT_SETS))
+        errors.append(f"class mapping mismatch missing={missing} extra={extra}")
+
+    for class_name, room_id in CLASS_SHOP_ROOM_BY_CLASS_V03036.items():
+        checked += 1
+        classes = list(CLASS_SHOP_CLASSES_BY_ROOM.get(room_id, ()))
+        if classes != [class_name]:
+            errors.append(f"{class_name}: room mapping={classes}")
+        if CLASS_EQUIPMENT_SETS.get(class_name, {}).get("room") != room_id:
+            errors.append(f"{class_name}: equipment set room mismatch")
+        seller_id = SHOP_SELLERS.get(room_id)
+        seller = NPCS.get(seller_id, {}) if seller_id else {}
+        if not seller_id or seller.get("room") != room_id or not seller.get("shopkeeper"):
+            errors.append(f"{class_name}: missing active seller")
+        for level in (1, 10, 100, 200, 300, 400):
+            tier = class_equipment_unlocked_tier(level)
+            offers = CLASS_EQUIPMENT_ITEMS_BY_CLASS_TIER.get(class_name, {}).get(tier, ())
+            if not offers:
+                errors.append(f"{class_name}: no offers at level {level}")
+                continue
+            wrong = [iid for iid in offers if ITEMS.get(iid, {}).get("required_class") != class_name]
+            if wrong:
+                errors.append(f"{class_name}: foreign items at level {level}: {wrong[:3]}")
+        for prefix in ("eq", "sklep eq", "sklep z eq", "ekwipunek", "sklep"):
+            key = normalize_lookup_text(f"{prefix} {class_name}")
+            if GUIDE_DESTINATION_ALIASES.get(key) != room_id:
+                errors.append(f"{class_name}: guide alias {key!r} points elsewhere")
+
+    for room_id in OLD_SHARED_CLASS_SHOP_ROOMS_V03036:
+        if room_id in CLASS_SHOP_CLASSES_BY_ROOM:
+            errors.append(f"old shared room still class shop: {room_id}")
+        if SHOPS.get(room_id):
+            errors.append(f"old shared room still sells items: {room_id}")
+        if SHOP_SELLERS.get(room_id):
+            errors.append(f"old shared room still has seller mapping: {room_id}")
+
+    return {
+        "version": "0.30.36",
+        "class_shops_checked": checked,
+        "shop_room_count": len(CLASS_SHOP_CLASSES_BY_ROOM),
+        "error_count": len(errors),
+        "errors": errors,
+    }
+
+
+CLASS_SHOP_AUDIT_V03036 = class_shop_audit_v03036()
+if CLASS_SHOP_AUDIT_V03036.get("error_count"):
+    raise RuntimeError(
+        "Class Shop Audit v0.30.36 failed: "
+        + "; ".join(CLASS_SHOP_AUDIT_V03036.get("errors", [])[:40])
+    )
+
+LATEST_CHANGES_TITLE = "Soulbound v0.30.36 - Separate Class EQ Shops"
+LATEST_CHANGES = [
+    "v0.30.36: każda z 12 klas ma własny, osobny sklep EQ w swojej sali klasowej.",
+    "v0.30.36: sześć dawnych wspólnych punktów sprzedaży jest teraz wyłącznie hubami; nie sprzedają już mieszanego EQ dwóch klas.",
+    "v0.30.36: walk eq <klasa>, sklep eq <klasa> i sklep <klasa> prowadzą do właściwego osobnego sklepu.",
+    "v0.30.36: oferta nadal zależy od Levelu postaci, a zakup wymaga aktywnej właściwej klasy. Brak wipe.",
+] + LATEST_CHANGES
+
+
+# ============================================================
+# v0.30.37 - COMPLETE EQUIPMENT SLOT / MATERIAL DROP PASS
+# ============================================================
+def refresh_material_stat_profiles_v03037():
+    """Finalna warstwa po Generator Core: 24 różne profile statów per materiał/slot.
+
+    Generator Core może numerycznie wyrównać wartości istniejących statów. Tutaj zachowujemy
+    jego całkowity budżet możliwie blisko, ale rozkładamy go na 24 różne podzbiory statów.
+    Dzięki temu żadna para wariantów tego samego materiału i slotu nie jest statystyczną kopią.
+    """
+    from itertools import combinations
+    for tier in CORPSE_MATERIAL_TIERS:
+        ids = CORPSE_MATERIAL_ITEM_IDS.get(tier["key"], ())
+        for slot in CORPSE_MATERIAL_SLOT_DEFS:
+            rows = [
+                (item_id, ITEMS[item_id]) for item_id in ids
+                if ITEMS.get(item_id, {}).get("slot") == slot
+            ]
+            rows.sort(key=lambda row: int(row[1].get("corpse_random_variant", 0) or 0))
+            order = tuple(MATERIAL_SLOT_STAT_PREFERENCES.get(slot, MATERIAL_RANDOM_STAT_POOL))
+            patterns = []
+            # 5 singletonów + 10 par + pierwsze 9 trójek = dokładnie 24 unikalne układy kluczy.
+            for size in (1, 2, 3):
+                for combo in combinations(order, size):
+                    patterns.append(combo)
+                    if len(patterns) == CORPSE_RANDOM_VARIANTS_PER_SLOT:
+                        break
+                if len(patterns) == CORPSE_RANDOM_VARIANTS_PER_SLOT:
+                    break
+            if len(patterns) != CORPSE_RANDOM_VARIANTS_PER_SLOT:
+                raise RuntimeError(f"v0.30.37: za mało wzorców statów dla {slot}")
+
+            for index, (item_id, item) in enumerate(rows):
+                combo = patterns[index]
+                old_total = sum(max(0, int(v or 0)) for v in (item.get("stats") or {}).values())
+                # Nie osłabiamy przedmiotu; bardzo niski budżet może wzrosnąć maksymalnie do 3,
+                # żeby unikalny układ statów był możliwy także na Żelazie/Stali.
+                budget = max(len(combo), old_total)
+                values = {stat: 1 for stat in combo}
+                remaining = budget - len(combo)
+                pos = index % len(combo)
+                while remaining > 0:
+                    stat = combo[pos % len(combo)]
+                    values[stat] += 1
+                    pos += 1
+                    remaining -= 1
+                item["stats"] = values
+                variant = int(item.get("corpse_random_variant", index + 1) or index + 1)
+                req = int(item.get("required_character_level", item.get("required_mastery", 1)) or 1)
+                item["name"] = _material_variant_title(tier, slot, values, variant, req)
+                stat_text = ", ".join(
+                    f"{MATERIAL_STAT_NAMES.get(stat, stat)} +{amount}" for stat, amount in values.items()
+                )
+                prop_text = ", ".join(
+                    f"{MATERIAL_PROPERTY_NAMES.get(prop, prop)} +{amount}%"
+                    for prop, amount in (item.get("properties") or {}).items()
+                )
+                item["desc"] = (
+                    f"Materiałowe EQ z ciała przeciwnika. Wymaga Levelu postaci {req}. "
+                    f"Slot ma własny profil, a wariant nie powtarza statów innego wariantu tego samego materiału/slotu. "
+                    f"Obrona +{int(item.get('defense', 0) or 0)}. Statystyki: {stat_text}. "
+                    f"Właściwości: {prop_text or 'brak dodatkowych'} ."
+                )
+
+refresh_material_stat_profiles_v03037()
+
+
+def equipment_completeness_audit_v03037():
+    errors = []
+    logical_slots = set(CLASS_EQUIPMENT_SLOT_DEFS)
+    expected_slots = {
+        "head", "body", "hands", "legs", "feet", "charm", "ring", "necklace",
+        "earring", "shoulders", "belt", "cloak", "bracers", "relic",
+    }
+    if logical_slots != expected_slots:
+        errors.append(f"class logical slots={sorted(logical_slots)} expected={sorted(expected_slots)}")
+    if set(CORPSE_MATERIAL_SLOT_DEFS) != expected_slots:
+        errors.append("material corpse slots do not match full logical slot set")
+
+    material_names = set()
+    material_items = 0
+    duplicate_profiles = []
+    for tier in CORPSE_MATERIAL_TIERS:
+        ids = CORPSE_MATERIAL_ITEM_IDS.get(tier["key"], ())
+        expected_count = len(expected_slots) * CORPSE_RANDOM_VARIANTS_PER_SLOT
+        if len(ids) != expected_count:
+            errors.append(f"{tier['key']}: item count={len(ids)} expected={expected_count}")
+        for slot in expected_slots:
+            rows = [ITEMS[i] for i in ids if ITEMS.get(i, {}).get("slot") == slot]
+            if len(rows) != CORPSE_RANDOM_VARIANTS_PER_SLOT:
+                errors.append(f"{tier['key']} {slot}: variants={len(rows)} expected={CORPSE_RANDOM_VARIANTS_PER_SLOT}")
+                continue
+            sigs = [tuple(sorted((k, int(v)) for k, v in (row.get("stats") or {}).items())) for row in rows]
+            if len(set(sigs)) != len(sigs):
+                duplicate_profiles.append(f"{tier['key']}:{slot}")
+            for row in rows:
+                material_items += 1
+                n = normalize_lookup_text(row.get("name", ""))
+                if n in material_names:
+                    errors.append(f"duplicate material EQ name: {row.get('name')}")
+                material_names.add(n)
+    if duplicate_profiles:
+        errors.append("duplicate material stat profiles: " + ", ".join(duplicate_profiles[:20]))
+
+    # Class EQ must expose earrings on representative levels for all 12 classes.
+    for class_name, tiers in CLASS_EQUIPMENT_ITEMS_BY_CLASS_TIER.items():
+        for level in (1, 100, 200, 300, 400):
+            ids = tiers.get(class_equipment_unlocked_tier(level), ())
+            slots = {ITEMS[i].get("slot") for i in ids if i in ITEMS}
+            if "earring" not in slots:
+                errors.append(f"{class_name} level {level}: missing class earring")
+                break
+
+    # Jewelcrafting must offer earrings throughout its tier table.
+    jewel_earrings = [i for i, item in ITEMS.items() if item.get("slot") == "earring" and item.get("jewelcraft_level")]
+    if len(jewel_earrings) < len(JEWELCRAFTING_TIERS):
+        errors.append(f"jewelcraft earrings={len(jewel_earrings)} tiers={len(JEWELCRAFTING_TIERS)}")
+
+    for slot in ("earring", "earring1", "earring2"):
+        if slot not in EQUIPMENT_SLOT_NAMES:
+            errors.append(f"missing display slot {slot}")
+    for alias in ("zkol", "zkol1", "zkol2"):
+        if alias not in COMMAND_ALIASES:
+            errors.append(f"missing earring shortcut {alias}")
+
+    # Krypta i Wieża Astralna również muszą używać pełnych 14 slotów.
+    for tier in (1, 20, 40):
+        crypt_slots = {ITEMS.get(f"crypt_t{tier}_{slot}", {}).get("slot") for slot in expected_slots}
+        if crypt_slots != expected_slots:
+            errors.append(f"crypt tier {tier}: incomplete slots {sorted(expected_slots - crypt_slots)}")
+    for tier in (1, 6, 11):
+        astral_slots = {ITEMS.get(f"astral_t{tier}_{slot}", {}).get("slot") for slot in expected_slots}
+        if astral_slots != expected_slots:
+            errors.append(f"astral tier {tier}: incomplete slots {sorted(expected_slots - astral_slots)}")
+
+    # Żadna nazwa pancerza/EQ w całej grze nie może się powtarzać.
+    armor_names = {}
+    duplicate_armor_names = []
+    for item_id, item in ITEMS.items():
+        if item.get("type") != "armor":
+            continue
+        key = normalize_lookup_text(item.get("name", ""))
+        previous = armor_names.get(key)
+        if previous is not None:
+            duplicate_armor_names.append((previous, item_id, item.get("name", "")))
+        else:
+            armor_names[key] = item_id
+    if duplicate_armor_names:
+        errors.append("duplicate armor names: " + repr(duplicate_armor_names[:10]))
+
+    # Reprezentatywny klasowy Tier: każdy slot musi mieć odmienny pełny profil
+    # (obrona + staty + właściwości), więc nowe sloty nie są mechanicznymi kopiami.
+    class_profiles_checked = 0
+    for class_name, tiers in CLASS_EQUIPMENT_ITEMS_BY_CLASS_TIER.items():
+        ids = list(tiers.get(class_equipment_unlocked_tier(200), ()))
+        # Pierwsza linia stylistyczna: po jednej części z każdego slotu.
+        first_style = {}
+        for iid in ids:
+            item = ITEMS.get(iid, {})
+            if int(item.get("class_equipment_style", 1) or 1) == 1:
+                first_style.setdefault(item.get("slot"), item)
+        if set(first_style) != expected_slots:
+            errors.append(f"{class_name}: incomplete representative class profile")
+            continue
+        signatures = []
+        for slot in sorted(expected_slots):
+            item = first_style[slot]
+            signatures.append((
+                int(item.get("defense", 0) or 0),
+                item.get("affix"), int(item.get("affix_amount", 0) or 0),
+                tuple(sorted((item.get("stats") or {}).items())),
+                tuple(sorted((item.get("properties") or {}).items())),
+            ))
+        class_profiles_checked += len(signatures)
+        if len(set(signatures)) != len(signatures):
+            errors.append(f"{class_name}: duplicated slot profiles at Level 200")
+
+    return {
+        "version": "0.30.37",
+        "logical_slot_count": len(expected_slots),
+        "material_items_checked": material_items,
+        "material_name_count": len(material_names),
+        "global_armor_name_count": len(armor_names),
+        "class_profiles_checked": class_profiles_checked,
+        "materials": len(CORPSE_MATERIAL_TIERS),
+        "variants_per_material_slot": CORPSE_RANDOM_VARIANTS_PER_SLOT,
+        "error_count": len(errors),
+        "errors": errors,
+    }
+
+V03037_EQUIPMENT_COMPLETENESS_AUDIT = equipment_completeness_audit_v03037()
+if V03037_EQUIPMENT_COMPLETENESS_AUDIT.get("error_count"):
+    raise RuntimeError(
+        "Equipment Completeness Audit v0.30.37 failed: "
+        + "; ".join(V03037_EQUIPMENT_COMPLETENESS_AUDIT.get("errors", [])[:50])
+    )
+
+HELP_TOPICS["kolczyki"] = [
+    "Kolczyki są pełnoprawnym EQ. Możesz nosić dwa naraz: kolczyk 1 i kolczyk 2.",
+    "zkol pokazuje posiadane kolczyki i automatycznie wybiera wolne/słabsze miejsce; zkol1 i zkol2 wymuszają konkretny slot.",
+    "Kolczyki występują jako klasowe EQ, materiałowy drop z mobów oraz receptury Jubilerstwa. Mogą mieć gniazda na oszlifowane klejnoty.",
+    "Materiałowe kolczyki istnieją dla Żelaza, Stali, Mithrilu, Adamantytu, Kobaltu, Runicznego metalu, Smoczej Stali, Astralu, Pustki i Eternium.",
+]
+HELP_TOPICS.setdefault("materialy_eq", []).append(
+    "v0.30.37: materiałowe EQ obejmuje wszystkie 14 logicznych slotów, w tym naramienniki, pas, pelerynę, karwasze, relikt i nowe kolczyki. Każdy wariant ma niepowtarzalną nazwę i profil statów w obrębie materiału/slotu."
+)
+HELP_TOPICS.setdefault("jubilerstwo", []).append(
+    "v0.30.37: Jubilerstwo tworzy też kolczyki. Jedna receptura daje jedną sztukę; do obu uszu potrzebujesz dwóch. Kolczyki obsługują gniazda klejnotów."
+)
+HELP_TOPICS.setdefault("wersja", []).append(
+    "v0.30.37: pełny pass EQ: 14 logicznych slotów, dwa miejsca na kolczyki, pełne materiałowe dropy wszystkich slotów i audit braku powtórek nazw/profili statów."
+)
+LATEST_CHANGES_TITLE = "Soulbound v0.30.37 - Complete EQ Slots + Earrings + Unique Material Stats"
+LATEST_CHANGES = [
+    "v0.30.37: dodano kolczyki jako pełnoprawne dwa sloty użytkowe: kolczyk 1 i kolczyk 2, z automatycznym zkol oraz ręcznym zkol1/zkol2.",
+    "v0.30.37: kolczyki są dostępne w klasowym EQ, materiale z mobów oraz Jubilerstwie i obsługują gniazda klejnotów.",
+    "v0.30.37: materiałowe EQ z ciał obejmuje teraz wszystkie 14 logicznych slotów dla wszystkich 10 materiałów od Żelaza do Eternium.",
+    "v0.30.37: 24 warianty każdego materiału/slotu mają niepowtarzalne profile statów; nazwy materiałowego EQ są globalnie unikalne.",
+    "v0.30.37: sloty mają własne preferencje statów/właściwości, więc np. korpus, karwasze, peleryna i kolczyki nie są statystycznymi kopiami.",
+    "v0.30.37: Krypta i Wieża Astralna zostały podniesione do pełnych 14 slotów; stare sześcioslotowe pule nie ograniczają już nowych dropów.",
+    "v0.30.37: globalny audit wymaga unikalnej nazwy każdego EQ typu armor i rozróżnia pełne profile klasowych slotów.",
+    "v0.30.37: po dodaniu kolczyków podstawowe sloty wearable są kompletne; Broń Duszy pozostaje osobnym systemem broni i nie jest dublowana zwykłym main-hand/off-hand.",
 ] + LATEST_CHANGES
 
 if __name__ == "__main__":

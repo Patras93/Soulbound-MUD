@@ -1,3 +1,22 @@
+Soulbound v0.30.37 - Complete EQ Slots + Earrings + Unique Stats
+
+- Dodano kolczyki jako pełnoprawne EQ z dwoma miejscami: Kolczyk 1 i Kolczyk 2.
+- Skróty NVDA: zkol, zkol1, zkol2. Kolczyki obsługują gniazda klejnotów.
+- Klasowe EQ, materiałowe dropy, Krypta i Wieża Astralna obsługują pełne 14 logicznych slotów.
+- Materiałowe EQ: 10 materiałów x 14 slotów x 24 warianty = 3360 części.
+- Każdy wariant materiału/slotu ma unikalny profil statów; wszystkie nazwy EQ typu armor są globalnie unikalne.
+- Level postaci bramkuje EQ; Biegłość klasy pozostaje bramą skilli/spelli.
+- Jubilerstwo tworzy kolczyki na wszystkich aktualnych progach.
+- Broń Duszy pozostaje osobnym systemem broni; nie dodano dublującego main-hand/off-hand.
+- Generator Core pozostaje v0.30.24. Brak wipe.
+
+v0.30.36 — Separate Class EQ Shops
+- Każda z 12 klas ma własny sklep EQ w swojej osobnej sali klasowej.
+- Stare 6 wspólnych punktów sprzedaży jest teraz wyłącznie hubami i nie sprzedaje mieszanego EQ.
+- walk eq <klasa>, sklep eq <klasa>, sklep z eq <klasa>, ekwipunek <klasa> i sklep <klasa> prowadzą do właściwej sali.
+- Oferta nadal zależy od Levelu postaci; zakup wymaga aktywnej właściwej klasy.
+- Audit: 12/12 sklepów, 0 mieszanych ofert, stare huby 0 ofert. Brak wipe.
+
 v0.30.35 - Quest Integrity + Lossless Death + Character Level EQ + Mine Reset
 - Naprawiono „Złamane ostrza”: jawne źródła uzbrojonych nieumarłych i sprawdzony postęp 0/6 -> 1/6.
 - Audyt 173 questów collect/resource/craft nie wykrywa brakujących targetów ani martwych źródeł; sprawdzono również Pancerz do przetopu i Toksyczne gruczoły.
