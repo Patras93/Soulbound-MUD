@@ -51,7 +51,7 @@ dynamic_world_v029 = _load_embedded_runtime_module('dynamic_world_v029', _EMBEDD
 _EMBEDDED_WORLD_LOGIC_VALIDATOR_SOURCE = '"""Soulbound v0.30.0 Semantic World Logic Validator.\n\nThe topology may be procedural, but geography must remain understandable.\nThis validator checks semantic gateway rules, vertical movement semantics,\nworld reachability, reciprocal navigation and deterministic topology output.\n"""\nfrom __future__ import annotations\n\nfrom collections import defaultdict, deque\nimport hashlib\nimport json\n\nVERSION = "0.30.0"\nHORIZONTAL = ("north","east","south","west","northeast","southeast","southwest","northwest")\nOPPOSITE = {\n    "north":"south","south":"north","east":"west","west":"east",\n    "northeast":"southwest","southwest":"northeast",\n    "northwest":"southeast","southeast":"northwest",\n    "up":"down","down":"up",\n}\n\n\ndef _norm(text):\n    return str(text or "").casefold()\n\n\ndef zone_family(zone: str) -> str:\n    z=_norm(zone)\n    if any(k in z for k in ("miasto dusz","gildia dusz","pracownia kartografa")):\n        return "urban"\n    if any(k in z for k in ("przedmieścia","przedmiescia","wioska","osada","posterunek","obóz straży","oboz strazy","przystań","przystan")):\n        return "settlement"\n    if any(k in z for k in ("kanały","kanaly","podziemia","krypt","jaskini","jaskinie","nekropolia","katakumb","kopal")):\n        return "underground"\n    if any(k in z for k in ("góry","gory","lodowe","twierdza gigant")):\n        return "highland"\n    if any(k in z for k in ("popielne","rozbite niebo","pustki","korona świata","korona swiata","rubież końca","rubiez konca")):\n        return "endgame"\n    if any(k in z for k in ("próba","proba","arena","archiwum otchłani","archiwum otchlani","katedra tysiąca","katedra tysiaca","kuźnia pierwszych","kuznia pierwszych","labirynt wiecznych","pałac bezimiennej","palac bezimiennej")):\n        return "instance"\n    if "proceduralny region:" in z:\n        return "expedition"\n    if any(k in z for k in ("ocean","wybrzeże","wybrzeze","jezior","dolina rzek")):\n        return "waterland"\n    return "wilderness"\n\n\ndef _gateway_semantic(rid: str, room: dict, direction: str, target_id: str, target: dict) -> bool:\n    """True when a cross-zone edge has a believable semantic transition."""\n    if direction in ("up","down"):\n        return True\n    src=_norm(rid)+" "+_norm(room.get("name"))\n    dst=_norm(target_id)+" "+_norm(target.get("name"))\n    gateway_words=(\n        "gate","brama","harbor","port","pier","molo","road","trakt","path","szlak",\n        "pass","przełęcz","przelecz","bridge","most","entrance","wejście","wejscie",\n        "mouth","wylot","frontier","rubież","rubiez","gateway","portal","archive","archiw",\n        "hall","hala","lobby","warsztat kartograf","cartographer","watchpost","posterunek",\n        "camp","obóz","oboz","v0130_gateway","v028_region_gate",\n    )\n    return any(k in src or k in dst for k in gateway_words)\n\n\ndef _reachable(rooms, start):\n    if start not in rooms:\n        return set()\n    seen={start}; q=deque([start])\n    while q:\n        cur=q.popleft()\n        for target in rooms[cur].get("exits",{}).values():\n            if target in rooms and target not in seen:\n                seen.add(target); q.append(target)\n    return seen\n\n\ndef topology_fingerprint(rooms):\n    payload=[]\n    for rid in sorted(rooms):\n        exits=rooms[rid].get("exits",{}) or {}\n        payload.append((rid,tuple(sorted((str(k),str(v)) for k,v in exits.items()))))\n    raw=json.dumps(payload,ensure_ascii=False,separators=(",",":"))\n    return hashlib.sha256(raw.encode("utf-8")).hexdigest()\n\n\ndef validate_world_logic(rooms: dict) -> dict:\n    errors=[]; warnings=[]; cross=[]; vertical=[]\n    if not isinstance(rooms,dict):\n        return {"version":VERSION,"error_count":1,"errors":["ROOMS is not dict"]}\n\n    # References and reciprocal navigation for every static edge.\n    for rid,room in rooms.items():\n        exits=room.get("exits",{}) or {}\n        for direction,target_id in exits.items():\n            if target_id not in rooms:\n                # Runtime/lazy destination; validated by its own materializer.\n                continue\n            target=rooms[target_id]\n            if direction in OPPOSITE:\n                reverse=OPPOSITE[direction]\n                if target.get("exits",{}).get(reverse)!=rid:\n                    # Some explicit gauntlet finales remain one-way by design; require a\n                    # global return path instead of pretending the exact edge is reciprocal.\n                    if not (room.get("procedural_dynamic") or target.get("procedural_dynamic")):\n                        warnings.append(f"one-way {rid}.{direction}->{target_id}")\n            z1=str(room.get("zone") or "Bez strefy")\n            z2=str(target.get("zone") or "Bez strefy")\n            if direction in ("up","down"):\n                vertical.append((rid,direction,target_id))\n            if z1!=z2:\n                cross.append((rid,direction,target_id,z1,z2))\n                f1,f2=zone_family(z1),zone_family(z2)\n                semantic_gateway=_gateway_semantic(rid,room,direction,target_id,target)\n                # Granice naturalnych biomów (np. łąka -> rzeka -> dzicz) mogą\n                # przechodzić bez sztucznej bramy. Twarda semantyczna brama jest\n                # wymagana, gdy opuszczamy/wchodzimy do huba miejskiego.\n                if (f1=="urban") != (f2=="urban") and not semantic_gateway:\n                    errors.append(f"urban boundary without semantic gateway: {rid}.{direction}->{target_id} ({z1}->{z2})")\n                # Miasto nie może być bezpośrednim sąsiadem gór/endgame. Nawet\n                # prawdziwa brama miejska ma prowadzić najpierw do traktu/przedmieść.\n                if f1=="urban" and f2 in {"highland","endgame"} and direction not in ("up","down"):\n                    errors.append(f"urban direct jump to {f2}: {rid}.{direction}->{target_id}")\n                if f2=="urban" and f1 in {"highland","endgame"} and direction not in ("up","down"):\n                    errors.append(f"{f1} direct jump to urban: {rid}.{direction}->{target_id}")\n\n    # v0.30 generator nie używa up/down jako GENERATED_DIRS. Każde pionowe\n    # przejście obecne tutaj pochodzi więc z semantycznej tożsamości świata\n    # (schody, piwnica, wieża, krypta, jaskinia, portal) albo z generatora\n    # dedykowanej instancji, a nie z losowego łączenia topologii.\n\n    reachable=_reachable(rooms,"square")\n    if len(reachable)!=len(rooms):\n        missing=sorted(set(rooms)-reachable)\n        errors.append(f"unreachable from square: {len(missing)} rooms; sample {missing[:10]}")\n\n    # Every static room must have some route back to the hub. Reverse-graph BFS.\n    rev=defaultdict(list)\n    for rid,room in rooms.items():\n        for target in room.get("exits",{}).values():\n            if target in rooms: rev[target].append(rid)\n    can_return=set()\n    if "square" in rooms:\n        can_return={"square"}; q=deque(["square"])\n        while q:\n            cur=q.popleft()\n            for source in rev.get(cur,[]):\n                if source not in can_return:\n                    can_return.add(source); q.append(source)\n    if len(can_return)!=len(rooms):\n        missing=sorted(set(rooms)-can_return)\n        errors.append(f"cannot return to square: {len(missing)} rooms; sample {missing[:10]}")\n\n    city=[rid for rid,r in rooms.items() if r.get("zone")=="Miasto Dusz"]\n    city_bad=[]\n    for rid in city:\n        for d,t in rooms[rid].get("exits",{}).items():\n            if t not in rooms: continue\n            z2=rooms[t].get("zone")\n            if z2=="Miasto Dusz": continue\n            if not _gateway_semantic(rid,rooms[rid],d,t,rooms[t]):\n                city_bad.append(f"{rid}.{d}->{t}")\n    if city_bad:\n        errors.append("city exits without gateway semantics: "+", ".join(city_bad[:10]))\n\n    families=defaultdict(int)\n    for r in rooms.values(): families[zone_family(r.get("zone"))]+=1\n    return {\n        "version":VERSION,\n        "room_count":len(rooms),\n        "reachable_from_square":len(reachable),\n        "returnable_to_square":len(can_return),\n        "cross_zone_edges":len(cross),\n        "vertical_edges":len(vertical),\n        "city_rooms":len(city),\n        "zone_family_room_counts":dict(families),\n        "topology_fingerprint":topology_fingerprint(rooms),\n        "warning_count":len(warnings),\n        "warnings":warnings,\n        "error_count":len(errors),\n        "errors":errors,\n    }\n'
 world_logic_validator_v030 = _load_embedded_runtime_module('world_logic_validator', _EMBEDDED_WORLD_LOGIC_VALIDATOR_SOURCE)
 
-VERSION = "0.30.39"
+VERSION = "0.30.40"
 GLOBAL_SKILL_BUFF_DURATION_SECONDS = 30
 HISTORY_BUFFER_LIMIT = 100
 HISTORY_BUFFER_DEFAULT_SHOW = 20
@@ -6653,6 +6653,14 @@ COMMAND_ALIASES = {
     "zkol": "equipearringauto", "zkol1": "equipearring1", "zkol2": "equipearring2",
     "znar": "equipshoulders", "zpas": "equipbelt", "zpel": "equipcloak",
     "zkar": "equipbracers", "zrel": "equiprelic",
+    # v0.30.40 czytelne skróty całego EQ; stare ultra-krótkie aliasy pozostają.
+    "zhel": "equiphead", "zhelm": "equiphead", "zhełm": "equiphead",
+    "zpan": "equipbody", "zpanc": "equipbody", "zpancerz": "equipbody",
+    "zrek": "equiphands", "zrekawice": "equiphands", "zrękawice": "equiphands",
+    "znog": "equiplegs", "zbut": "equipfeet",
+    "ztal": "equipcharmauto", "zpier": "equipringauto",
+    "znasz": "equipnecklace", "znas": "equipnecklace",
+    "autoeq": "autoequip", "eqauto": "autoequip", "zauto": "autoequip",
     "zdejmij": "unequip", "zdejm": "unequip", "ściągnij": "unequip", "sciagnij": "unequip", "unequip": "unequip",
     "wyposażenie": "equipment", "wyposazenie": "equipment", "eq": "equipment",
     "przekaż": "giveeq", "przekaz": "giveeq", "daj": "giveeq", "give": "giveeq", "giveeq": "giveeq",
@@ -52907,6 +52915,9 @@ class Session:
 
     async def equipment(self, mode=""):
         mode = self.normalize_description_query(mode)
+        if mode in ("auto", "automatycznie", "najlepsze", "best"):
+            await self.auto_equip_best_v03040()
+            return
         detailed = mode in (
             "info", "pelne", "pełne", "szczegoly", "szczegóły", "details"
         )
@@ -53016,7 +53027,7 @@ class Session:
                     continue
                 any_set = True
                 await self.send(
-                    f"{class_name}: {count}/13 części. Bonusy kończą się na progu 8. "
+                    f"{class_name}: {count}/14 części. Bonusy kończą się na progu 8. "
                     f"{self.class_set_threshold_text(class_name)}."
                 )
             if not any_set:
@@ -53050,7 +53061,7 @@ class Session:
         set_name = CLASS_EQUIPMENT_SETS[found]["set_name"]
         count = int(counts.get(found, 0))
         await self.send(
-            f"SET {found}: Zestaw {set_name}. Masz założone {count}/13 części; bonusy aktywują się na 2/4/6/8."
+            f"SET {found}: Zestaw {set_name}. Masz założone {count}/14 części; bonusy aktywują się na 2/4/6/8."
         )
         await self.send(self.class_set_threshold_text(found) + ".")
         await self.send(
@@ -53080,6 +53091,181 @@ class Session:
             rarity_order.get(item.get("rarity"), 0),
             stat_power,
             normalize_lookup_text(item.get("name", "")),
+        )
+
+    def auto_equipment_score_v03040(self, item):
+        """Porównanie indywidualnej mocy EQ dla opcjonalnego trybu auto.
+
+        Nie zmienia balansu przedmiotów. Uwzględnia obronę, bazowe staty,
+        właściwości procentowe, affix, rarity oraz pojemność gniazd biżuterii.
+        """
+        if not item or item.get("type") != "armor":
+            return (-1, -1, -1, -1, -1, "")
+        rarity_order = {
+            "common": 0, "crafted": 1, "uncommon": 1, "rare": 2,
+            "epic": 3, "legendary": 4, "mythic": 5, "unique": 6,
+            "eternal": 7,
+        }
+        defense = max(0, int(item.get("defense", 0) or 0))
+        stats = sum(max(0, int(v or 0)) for v in (item.get("stats") or {}).values())
+        props = sum(max(0, int(v or 0)) for v in (item.get("properties") or {}).values())
+        affix = max(0, int(item.get("affix_amount", 0) or 0))
+        rarity = rarity_order.get(str(item.get("rarity") or "").lower(), 0)
+        sockets = 0
+        if item.get("slot") in ("ring", "earring", "necklace"):
+            try:
+                sockets = max(0, int(jewelry_socket_capacity(item)))
+            except Exception:
+                sockets = 0
+        total = defense * 12 + stats * 8 + props * 10 + affix * 8 + rarity * 5 + sockets * 3
+        return (
+            total, defense, stats + affix, props, rarity,
+            normalize_lookup_text(item.get("name", "")),
+        )
+
+    def auto_equipment_eligible_v03040(self, item):
+        if not item or item.get("type") != "armor":
+            return False
+        required_class = item.get("required_class")
+        if required_class and required_class not in self.active_class_names():
+            return False
+        if not self.equipment_mastery_requirement_met(item):
+            return False
+        return True
+
+    async def auto_equip_best_v03040(self):
+        """Jednym poleceniem zakłada indywidualnie najmocniejsze dostępne EQ.
+
+        Działa wyłącznie na posiadanych i aktualnie dozwolonych przedmiotach.
+        Podwójne sloty respektują faktyczną liczbę posiadanych kopii.
+        """
+        if self.combat_mob_key:
+            await self.send(
+                "Nie możesz automatycznie zmieniać EQ podczas aktywnej walki. "
+                "Najpierw zakończ walkę albo użyj flee."
+            )
+            return
+
+        active_classes = set(self.active_class_names())
+        owned = {}
+        for item_id, item in ITEMS.items():
+            if item.get("type") != "armor":
+                continue
+            qty = int(self.server.db.item_qty(self.account_id, item_id) or 0)
+            if qty <= 0:
+                continue
+            required_class = item.get("required_class")
+            if required_class and required_class not in active_classes:
+                continue
+            if not self.equipment_mastery_requirement_met(item):
+                continue
+            owned[item_id] = (item, qty)
+
+        if not owned:
+            await self.send("AUTO EQ: nie masz żadnego dostępnego EQ do założenia.")
+            return
+
+        changes = []
+        returned_gems = []
+        single_slots = (
+            "head", "body", "hands", "legs", "feet", "necklace",
+            "shoulders", "belt", "cloak", "bracers", "relic",
+        )
+
+        for slot in single_slots:
+            candidates = [
+                (self.auto_equipment_score_v03040(item), item_id, item)
+                for item_id, (item, qty) in owned.items()
+                if qty > 0 and item.get("slot") == slot
+            ]
+            if not candidates:
+                continue
+            candidates.sort(key=lambda row: row[0], reverse=True)
+            _score, best_id, best_item = candidates[0]
+            old_id = self.server.db.equipped_item(self.account_id, slot)
+            old_item = ITEMS.get(old_id) if old_id else None
+            if old_id == best_id:
+                continue
+            if old_item and self.auto_equipment_score_v03040(old_item) >= self.auto_equipment_score_v03040(best_item):
+                continue
+            if slot == "necklace" and old_id:
+                returned_gems.extend(await self.return_socketed_gems(slot, old_id))
+            self.server.db.equip(self.account_id, slot, best_id)
+            changes.append((slot, old_item.get("name", old_id) if old_item else "pusty", best_item.get("name", best_id)))
+
+        duals = {
+            "ring": ("ring1", "ring2"),
+            "charm": ("charm1", "charm2"),
+            "earring": ("earring1", "earring2"),
+        }
+        for logical_slot, pair in duals.items():
+            expanded = []
+            for item_id, (item, qty) in owned.items():
+                if item.get("slot") != logical_slot:
+                    continue
+                for _ in range(min(2, max(0, int(qty)))):
+                    expanded.append((self.auto_equipment_score_v03040(item), item_id, item))
+            if not expanded:
+                continue
+            expanded.sort(key=lambda row: row[0], reverse=True)
+            selected = expanded[:2]
+
+            # Zachowaj obecne pozycje, jeśli dana sztuka nadal należy do najlepszej dwójki.
+            remaining = {}
+            selected_rows = {}
+            for score, item_id, item in selected:
+                remaining[item_id] = remaining.get(item_id, 0) + 1
+                selected_rows.setdefault(item_id, (score, item))
+            desired = {}
+            for slot in pair:
+                cur = self.server.db.equipped_item(self.account_id, slot)
+                if cur and remaining.get(cur, 0) > 0:
+                    desired[slot] = cur
+                    remaining[cur] -= 1
+            rest = []
+            for score, item_id, item in selected:
+                if remaining.get(item_id, 0) > 0:
+                    rest.append((score, item_id, item))
+                    remaining[item_id] -= 1
+            for slot in pair:
+                if slot not in desired and rest:
+                    _score, item_id, _item = rest.pop(0)
+                    desired[slot] = item_id
+
+            for slot in pair:
+                target_id = desired.get(slot)
+                if not target_id:
+                    continue
+                old_id = self.server.db.equipped_item(self.account_id, slot)
+                if old_id == target_id:
+                    continue
+                target_item = ITEMS[target_id]
+                old_item = ITEMS.get(old_id) if old_id else None
+                # Gdy slot nie należy do docelowej najlepszej dwójki, wymiana jest bezpieczna.
+                if logical_slot in ("ring", "earring") and old_id:
+                    returned_gems.extend(await self.return_socketed_gems(slot, old_id))
+                self.server.db.equip(self.account_id, slot, target_id)
+                changes.append((slot, old_item.get("name", old_id) if old_item else "pusty", target_item.get("name", target_id)))
+
+        self.current_hp = min(self.current_hp, self.max_hp())
+        self.current_mana = min(self.current_mana, self.max_mana())
+
+        if not changes:
+            await self.send("AUTO EQ: masz już najmocniejsze dostępne indywidualne części według statystyk EQ.")
+            return
+
+        await self.send(f"AUTO EQ: zmieniono {len(changes)} slotów.")
+        for slot, old_name, new_name in changes:
+            await self.send(
+                f"{EQUIPMENT_SLOT_NAMES.get(slot, slot)}: {old_name} -> {new_name}."
+            )
+        if returned_gems:
+            await self.send(
+                f"Z wymienionej biżuterii zwrócono {len(returned_gems)} klejnotów do Szkatułki Rzemieślniczej."
+            )
+        await self.send(
+            "Auto EQ porównuje indywidualną moc części: obronę, statystyki, właściwości, affix, rarity i gniazda. "
+            "Nie zmienia przedmiotów niedostępnych przez Level postaci lub klasę."
         )
 
     def owned_armor_for_slot(self, slot):
@@ -53669,8 +53855,11 @@ class Session:
         if not normalized:
             await self.send(
                 "Użycie: załóż <pełna nazwa EQ>. Pierścienie, talizmany i kolczyki wybierają wolny slot automatycznie; "
-                "ręczny slot 1/2 nadal działa. Skróty: zp, zt i zkol."
+                "ręczny slot 1/2 nadal działa. Skróty: zp, zt i zkol. Całość automatycznie: załóż auto albo eq auto."
             )
+            return
+        if normalized in ("auto", "automatycznie", "najlepsze", "best"):
+            await self.auto_equip_best_v03040()
             return
 
         # Slot-only commands never choose the best item automatically.
@@ -61666,6 +61855,8 @@ class Session:
                 await self.inventory()
             elif command == "equipment":
                 await self.equipment(args)
+            elif command == "autoequip":
+                await self.auto_equip_best_v03040()
             elif command == "classsets":
                 await self.show_class_sets(args)
             elif command in ("equiphead", "equipbody", "equiphands", "equiplegs", "equipfeet", "equipcharm", "equipcharm2", "equipring1", "equipring2", "equipnecklace", "equipearring1", "equipearring2", "equipshoulders", "equipbelt", "equipcloak", "equipbracers", "equiprelic"):
@@ -65603,6 +65794,77 @@ LATEST_CHANGES = [
     "v0.30.39: stare receptury Kowalstwa, Gotowania, Alchemii i Jubilerstwa nie mają górnego limitu i pozostają używalne na późniejszych Tierach.",
     "v0.30.39: Pieczona ryba rzeczna przyjmuje 2 dowolne ryby rzeczne, także dwa takie same gatunki, późne gatunki i rzadkie warianty.",
     "v0.30.39: help śmierć został zsynchronizowany z bezstratną śmiercią v0.30.35.",
+]
+
+# ============================================================
+# v0.30.40 - COMPLETE EQ SHORTCUTS + OPTIONAL AUTO EQUIP
+# ============================================================
+def eq_shortcuts_auto_audit_v03040():
+    errors = []
+    expected_aliases = {
+        "zhel":"equiphead", "zpan":"equipbody", "zrek":"equiphands",
+        "znog":"equiplegs", "zbut":"equipfeet", "ztal":"equipcharmauto",
+        "zpier":"equipringauto", "znasz":"equipnecklace", "zkol":"equipearringauto",
+        "znar":"equipshoulders", "zpas":"equipbelt", "zpel":"equipcloak",
+        "zkar":"equipbracers", "zrel":"equiprelic",
+        "autoeq":"autoequip", "eqauto":"autoequip", "zauto":"autoequip",
+    }
+    for alias, expected in expected_aliases.items():
+        if COMMAND_ALIASES.get(alias) != expected:
+            errors.append(f"{alias}: {COMMAND_ALIASES.get(alias)!r}, expected {expected!r}")
+    import inspect as _inspect_v03040
+    src = _inspect_v03040.getsource(Session.auto_equip_best_v03040)
+    for token in (
+        "required_class", "equipment_mastery_requirement_met",
+        "ring1", "ring2", "charm1", "charm2", "earring1", "earring2",
+        "return_socketed_gems", "AUTO EQ",
+    ):
+        if token not in src:
+            errors.append(f"auto eq missing token: {token}")
+    if len(CLASS_EQUIPMENT_SLOT_DEFS) != 14:
+        errors.append(f"logical EQ slot count {len(CLASS_EQUIPMENT_SLOT_DEFS)}, expected 14")
+    return {
+        "version":"0.30.40",
+        "shortcut_count":len(expected_aliases),
+        "logical_slot_count":len(CLASS_EQUIPMENT_SLOT_DEFS),
+        "error_count":len(errors),
+        "errors":errors,
+    }
+
+EQ_SHORTCUTS_AUTO_AUDIT_V03040 = eq_shortcuts_auto_audit_v03040()
+if EQ_SHORTCUTS_AUTO_AUDIT_V03040.get("error_count"):
+    raise RuntimeError(
+        "EQ Shortcuts/Auto Audit v0.30.40 failed: "
+        + "; ".join(EQ_SHORTCUTS_AUTO_AUDIT_V03040.get("errors", [])[:30])
+    )
+
+HELP_TOPICS["skroty_eq"] = [
+    "Pełne skróty zakładania EQ: zhel hełm, zpan pancerz, zrek rękawice, znog nogawice, zbut buty.",
+    "Biżuteria: ztal talizmany auto, zpier pierścienie auto, znasz naszyjnik, zkol kolczyki auto. Ręcznie nadal działają zt1/zt2, zp1/zp2 i zkol1/zkol2.",
+    "Pozostałe: znar naramienniki, zpas pas, zpel peleryna, zkar karwasze, zrel relikt.",
+    "Stare skróty zh, zz, zr, zn, zb, zt, zp, zna itd. nadal działają.",
+    "Samo wpisanie skrótu pokazuje numerowaną listę posiadanego EQ danego slotu; skrót + numer zakłada wybraną pozycję.",
+    "eq auto, załóż auto, autoeq, eqauto albo zauto automatycznie wymienia dostępne części na indywidualnie najmocniejsze posiadane EQ.",
+]
+HELP_TOPIC_ALIASES.update({
+    "skroty eq":"skroty_eq", "skróty eq":"skroty_eq", "eq skroty":"skroty_eq",
+    "eq skróty":"skroty_eq", "auto eq":"skroty_eq", "autoeq":"skroty_eq",
+})
+HELP_TOPICS.setdefault("eq", []).extend([
+    "v0.30.40: pełne czytelne skróty: zhel, zpan, zrek, znog, zbut, ztal, zpier, znasz, zkol, znar, zpas, zpel, zkar, zrel. Stare skróty nadal działają.",
+    "v0.30.40: eq auto / załóż auto / autoeq / zauto jednym poleceniem wymienia posiadane, dostępne EQ na indywidualnie najmocniejsze części. Auto respektuje Level postaci, aktywną klasę i liczbę posiadanych kopii.",
+    "Auto EQ nie klonuje podwójnej biżuterii; do dwóch identycznych pierścieni, talizmanów lub kolczyków potrzebujesz dwóch sztuk. Klejnoty z wymienianej biżuterii wracają do Szkatułki.",
+])
+HELP_TOPICS.setdefault("wersja", []).append(
+    "v0.30.40: komplet skrótów całego EQ oraz opcjonalny Auto Equip jednym poleceniem."
+)
+LATEST_CHANGES_TITLE = "Soulbound v0.30.40 - Complete EQ Shortcuts + Optional Auto Equip"
+LATEST_CHANGES = [
+    "v0.30.40: dodano czytelne skróty dla każdego logicznego slotu EQ; stare skróty zachowano bez zmian.",
+    "v0.30.40: eq auto, załóż auto, autoeq, eqauto i zauto automatycznie dobierają najmocniejsze dostępne indywidualne części.",
+    "v0.30.40: Auto EQ respektuje Level postaci, aktywne klasy, podwójne sloty i rzeczywistą liczbę posiadanych kopii.",
+    "v0.30.40: przy automatycznej wymianie biżuterii osadzone klejnoty są bezpiecznie zwracane do Szkatułki Rzemieślniczej.",
+    "v0.30.40: komunikaty setów zostały zsynchronizowane z 14 logicznymi typami EQ.",
 ]
 
 if __name__ == "__main__":
