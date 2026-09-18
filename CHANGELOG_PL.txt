@@ -1,3 +1,16 @@
+Soulbound v0.30.26 — Full Gameplay Flow + Tool Tier Gating
+
+- Naprawiono `ex`: jest twardym aliasem parsera do `exits` i pokazuje kierunek oraz nazwę lokacji docelowej.
+- Ryby, rudy, drewno i zioła odblokowują się na progach Tieru właściwego narzędzia, nie co pojedynczy level.
+- Receptury Kowalstwa, Gotowania, Alchemii i Jubilerstwa wymagają levelu profesji oraz odpowiedniego Tieru narzędzia.
+- Deski używają Drwalstwa + Piły i dają XP obu osi; usunięto błędne traktowanie ich jako Kowalstwa + Młota.
+- Naprawiono stanowiska specjalistów i stare komunikaty o miejscach zakupu narzędzi.
+- Doran sprzedaje podstawowe Rudy Żelaza, Srebra i Złota, aby Kowal mógł rozpocząć profesję bez Górnictwa; Kobalt+ pozostaje zawartością świata/Górnictwa.
+- Naprawiono zaniżanie Odłamków Duszy przez ogólny rebalance: zwykła Krypta około 25-65%, Szkielet 55%, Upiór Krypty 85%, bossowie Krypty 100%, Mityczna Krypta 65%.
+- Pełny gameplay smoke na świeżej bazie: Kowalstwo, Drwalstwo, Gotowanie, Alchemia, Jubilerstwo oraz dual XP — PASS.
+- Pełna regresja: 24 aktywne audyty; 69 próbek dynamicznych do piętra 1000; 875 pokoi utworzonych w teście; 0 błędów i 0 ostrzeżeń.
+- Generator Core pozostaje v0.30.24. Brak wipe.
+
 Soulbound v0.30.25 — Profession + Tool XP Integrity
 
 - Każda właściwa akcja profesyjna wykonywana narzędziem rozwija teraz jawnie obie osie: profesję oraz odpowiadające jej narzędzie.

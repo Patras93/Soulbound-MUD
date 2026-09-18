@@ -51,7 +51,7 @@ dynamic_world_v029 = _load_embedded_runtime_module('dynamic_world_v029', _EMBEDD
 _EMBEDDED_WORLD_LOGIC_VALIDATOR_SOURCE = '"""Soulbound v0.30.0 Semantic World Logic Validator.\n\nThe topology may be procedural, but geography must remain understandable.\nThis validator checks semantic gateway rules, vertical movement semantics,\nworld reachability, reciprocal navigation and deterministic topology output.\n"""\nfrom __future__ import annotations\n\nfrom collections import defaultdict, deque\nimport hashlib\nimport json\n\nVERSION = "0.30.0"\nHORIZONTAL = ("north","east","south","west","northeast","southeast","southwest","northwest")\nOPPOSITE = {\n    "north":"south","south":"north","east":"west","west":"east",\n    "northeast":"southwest","southwest":"northeast",\n    "northwest":"southeast","southeast":"northwest",\n    "up":"down","down":"up",\n}\n\n\ndef _norm(text):\n    return str(text or "").casefold()\n\n\ndef zone_family(zone: str) -> str:\n    z=_norm(zone)\n    if any(k in z for k in ("miasto dusz","gildia dusz","pracownia kartografa")):\n        return "urban"\n    if any(k in z for k in ("przedmieścia","przedmiescia","wioska","osada","posterunek","obóz straży","oboz strazy","przystań","przystan")):\n        return "settlement"\n    if any(k in z for k in ("kanały","kanaly","podziemia","krypt","jaskini","jaskinie","nekropolia","katakumb","kopal")):\n        return "underground"\n    if any(k in z for k in ("góry","gory","lodowe","twierdza gigant")):\n        return "highland"\n    if any(k in z for k in ("popielne","rozbite niebo","pustki","korona świata","korona swiata","rubież końca","rubiez konca")):\n        return "endgame"\n    if any(k in z for k in ("próba","proba","arena","archiwum otchłani","archiwum otchlani","katedra tysiąca","katedra tysiaca","kuźnia pierwszych","kuznia pierwszych","labirynt wiecznych","pałac bezimiennej","palac bezimiennej")):\n        return "instance"\n    if "proceduralny region:" in z:\n        return "expedition"\n    if any(k in z for k in ("ocean","wybrzeże","wybrzeze","jezior","dolina rzek")):\n        return "waterland"\n    return "wilderness"\n\n\ndef _gateway_semantic(rid: str, room: dict, direction: str, target_id: str, target: dict) -> bool:\n    """True when a cross-zone edge has a believable semantic transition."""\n    if direction in ("up","down"):\n        return True\n    src=_norm(rid)+" "+_norm(room.get("name"))\n    dst=_norm(target_id)+" "+_norm(target.get("name"))\n    gateway_words=(\n        "gate","brama","harbor","port","pier","molo","road","trakt","path","szlak",\n        "pass","przełęcz","przelecz","bridge","most","entrance","wejście","wejscie",\n        "mouth","wylot","frontier","rubież","rubiez","gateway","portal","archive","archiw",\n        "hall","hala","lobby","warsztat kartograf","cartographer","watchpost","posterunek",\n        "camp","obóz","oboz","v0130_gateway","v028_region_gate",\n    )\n    return any(k in src or k in dst for k in gateway_words)\n\n\ndef _reachable(rooms, start):\n    if start not in rooms:\n        return set()\n    seen={start}; q=deque([start])\n    while q:\n        cur=q.popleft()\n        for target in rooms[cur].get("exits",{}).values():\n            if target in rooms and target not in seen:\n                seen.add(target); q.append(target)\n    return seen\n\n\ndef topology_fingerprint(rooms):\n    payload=[]\n    for rid in sorted(rooms):\n        exits=rooms[rid].get("exits",{}) or {}\n        payload.append((rid,tuple(sorted((str(k),str(v)) for k,v in exits.items()))))\n    raw=json.dumps(payload,ensure_ascii=False,separators=(",",":"))\n    return hashlib.sha256(raw.encode("utf-8")).hexdigest()\n\n\ndef validate_world_logic(rooms: dict) -> dict:\n    errors=[]; warnings=[]; cross=[]; vertical=[]\n    if not isinstance(rooms,dict):\n        return {"version":VERSION,"error_count":1,"errors":["ROOMS is not dict"]}\n\n    # References and reciprocal navigation for every static edge.\n    for rid,room in rooms.items():\n        exits=room.get("exits",{}) or {}\n        for direction,target_id in exits.items():\n            if target_id not in rooms:\n                # Runtime/lazy destination; validated by its own materializer.\n                continue\n            target=rooms[target_id]\n            if direction in OPPOSITE:\n                reverse=OPPOSITE[direction]\n                if target.get("exits",{}).get(reverse)!=rid:\n                    # Some explicit gauntlet finales remain one-way by design; require a\n                    # global return path instead of pretending the exact edge is reciprocal.\n                    if not (room.get("procedural_dynamic") or target.get("procedural_dynamic")):\n                        warnings.append(f"one-way {rid}.{direction}->{target_id}")\n            z1=str(room.get("zone") or "Bez strefy")\n            z2=str(target.get("zone") or "Bez strefy")\n            if direction in ("up","down"):\n                vertical.append((rid,direction,target_id))\n            if z1!=z2:\n                cross.append((rid,direction,target_id,z1,z2))\n                f1,f2=zone_family(z1),zone_family(z2)\n                semantic_gateway=_gateway_semantic(rid,room,direction,target_id,target)\n                # Granice naturalnych biomów (np. łąka -> rzeka -> dzicz) mogą\n                # przechodzić bez sztucznej bramy. Twarda semantyczna brama jest\n                # wymagana, gdy opuszczamy/wchodzimy do huba miejskiego.\n                if (f1=="urban") != (f2=="urban") and not semantic_gateway:\n                    errors.append(f"urban boundary without semantic gateway: {rid}.{direction}->{target_id} ({z1}->{z2})")\n                # Miasto nie może być bezpośrednim sąsiadem gór/endgame. Nawet\n                # prawdziwa brama miejska ma prowadzić najpierw do traktu/przedmieść.\n                if f1=="urban" and f2 in {"highland","endgame"} and direction not in ("up","down"):\n                    errors.append(f"urban direct jump to {f2}: {rid}.{direction}->{target_id}")\n                if f2=="urban" and f1 in {"highland","endgame"} and direction not in ("up","down"):\n                    errors.append(f"{f1} direct jump to urban: {rid}.{direction}->{target_id}")\n\n    # v0.30 generator nie używa up/down jako GENERATED_DIRS. Każde pionowe\n    # przejście obecne tutaj pochodzi więc z semantycznej tożsamości świata\n    # (schody, piwnica, wieża, krypta, jaskinia, portal) albo z generatora\n    # dedykowanej instancji, a nie z losowego łączenia topologii.\n\n    reachable=_reachable(rooms,"square")\n    if len(reachable)!=len(rooms):\n        missing=sorted(set(rooms)-reachable)\n        errors.append(f"unreachable from square: {len(missing)} rooms; sample {missing[:10]}")\n\n    # Every static room must have some route back to the hub. Reverse-graph BFS.\n    rev=defaultdict(list)\n    for rid,room in rooms.items():\n        for target in room.get("exits",{}).values():\n            if target in rooms: rev[target].append(rid)\n    can_return=set()\n    if "square" in rooms:\n        can_return={"square"}; q=deque(["square"])\n        while q:\n            cur=q.popleft()\n            for source in rev.get(cur,[]):\n                if source not in can_return:\n                    can_return.add(source); q.append(source)\n    if len(can_return)!=len(rooms):\n        missing=sorted(set(rooms)-can_return)\n        errors.append(f"cannot return to square: {len(missing)} rooms; sample {missing[:10]}")\n\n    city=[rid for rid,r in rooms.items() if r.get("zone")=="Miasto Dusz"]\n    city_bad=[]\n    for rid in city:\n        for d,t in rooms[rid].get("exits",{}).items():\n            if t not in rooms: continue\n            z2=rooms[t].get("zone")\n            if z2=="Miasto Dusz": continue\n            if not _gateway_semantic(rid,rooms[rid],d,t,rooms[t]):\n                city_bad.append(f"{rid}.{d}->{t}")\n    if city_bad:\n        errors.append("city exits without gateway semantics: "+", ".join(city_bad[:10]))\n\n    families=defaultdict(int)\n    for r in rooms.values(): families[zone_family(r.get("zone"))]+=1\n    return {\n        "version":VERSION,\n        "room_count":len(rooms),\n        "reachable_from_square":len(reachable),\n        "returnable_to_square":len(can_return),\n        "cross_zone_edges":len(cross),\n        "vertical_edges":len(vertical),\n        "city_rooms":len(city),\n        "zone_family_room_counts":dict(families),\n        "topology_fingerprint":topology_fingerprint(rooms),\n        "warning_count":len(warnings),\n        "warnings":warnings,\n        "error_count":len(errors),\n        "errors":errors,\n    }\n'
 world_logic_validator_v030 = _load_embedded_runtime_module('world_logic_validator', _EMBEDDED_WORLD_LOGIC_VALIDATOR_SOURCE)
 
-VERSION = "0.30.25"
+VERSION = "0.30.26"
 HISTORY_BUFFER_LIMIT = 100
 HISTORY_BUFFER_DEFAULT_SHOW = 20
 
@@ -939,6 +939,19 @@ def tool_tier(level):
         else:
             break
     return tier
+
+def tool_tier_access_level(level):
+    """Najwyższy próg zasobów/receptur odblokowany przez aktualny Tier narzędzia.
+
+    Dostęp do nowej zawartości zmienia się wyłącznie przy awansie Tieru,
+    a nie przy każdym pojedynczym levelu narzędzia.
+    """
+    tier = tool_tier(level)
+    return int(TOOL_TIER_THRESHOLDS[tier - 1])
+
+
+def required_tool_tier_for_level(required_level):
+    return tool_tier(max(1, int(required_level or 1)))
 
 def tool_tier_name(tool_type, level):
     tier = tool_tier(level)
@@ -7395,7 +7408,8 @@ def _register_blacksmith_items():
                     f"Wyposażenie wykute przez Kowala. "
                     f"Kowalstwo level {tier['profession_level']}+. "
                     "Młot Rzemieślniczy wpływa na dostęp do lepszych materiałów "
-                    "i bonus produktu, ale nie blokuje receptury ani nie skraca czasu. "
+                    "i bonus produktu. Tier Młota musi spełniać próg receptury; "
+                    "pojedynczy level Młota wewnątrz Tieru nie skraca czasu. "
                     f"Obrona +{defense}."
                 ),
                 "blacksmith_tier": tier_number,
@@ -11220,7 +11234,7 @@ HELP_TOPICS = {
     "przetop": [
         "przetop <metal albo ruda> przetapia rudę na właściwą sztabkę.",
         "Komenda korzysta z istniejących receptur Kowalstwa i nie omija wymagań.",
-        "Musisz mieć Młot Rzemieślniczy, odpowiedni level Kowalstwa, składniki i stać przy właściwej kuźni. Level Młota nie blokuje receptury.",
+        "Musisz mieć Młot Rzemieślniczy, odpowiedni level Kowalstwa, wymagany Tier Młota, składniki i stać przy właściwej kuźni.",
         "Przykłady: przetop żelazo, przetop srebro, przetop złoto, przetop kobalt.",
         "Obsługiwane są także: runa, smocza stal, astral, pustka i Eternium.",
         "Przetapianie daje XP Kowalstwa i Młota tak samo jak dotychczasowe receptury sztabek.",
@@ -11971,13 +11985,14 @@ HELP_TOPICS = {
     ],
     "xp_narzedzi": [
         "XP dostaje wyłącznie narzędzie faktycznie użyte w danej akcji.",
-        "Łowienie rozwija tylko Wędkę.",
-        "Kopanie rozwija tylko Kilof.",
-        "Drwalstwo rozwija tylko Piłę.",
-        "Crafting rozwija tylko Młot Rzemieślniczy.",
-        "Gotowanie rozwija profesję Gotowanie oraz używany Nóż Kucharski; level Gotowania skraca czas, a Nóż odblokowuje wyższe pule/bonus produktu.",
-        "Zielarstwo rozwija tylko Sierp Zielarski.",
-        "Alchemia rozwija profesję Alchemia oraz używany Moździerz Alchemiczny; level Alchemii skraca czas, a Moździerz odpowiada za Tier/bonus produktu.",
+        "Łowienie rozwija Wędkarstwo oraz Wędkę.",
+        "Kopanie rozwija Górnictwo oraz Kilof.",
+        "Drwalstwo i obróbka desek rozwijają Drwalstwo oraz Piłę.",
+        "Kucie i przetapianie rozwijają Kowalstwo oraz Młot Rzemieślniczy.",
+        "Gotowanie rozwija Gotowanie oraz Nóż Kucharski.",
+        "Zielarstwo rozwija Zielarstwo oraz Sierp Zielarski.",
+        "Alchemia rozwija Alchemię oraz Moździerz Alchemiczny.",
+        "Jubilerstwo rozwija Jubilerstwo oraz Szczypce Jubilerskie.",
         "Pozostałe narzędzia nie dostają XP, użyć ani leveli od tej akcji.",
     ],
     "endgame_profesje": [
@@ -11986,8 +12001,8 @@ HELP_TOPICS = {
         "Kilof odblokowuje: Ruda Kobaltu 100, Kamień Runiczny 120, Smocza Stal 140, Ruda Astralna 160, Ruda Pustki 180 i Eternium 200.",
         "Piła w Głębi Gaju odblokowuje nowe drewna na levelach 100, 120, 140, 160, 180 i 200.",
         "Sierp w Głębi Gaju odblokowuje nowe zioła na levelach 100, 120, 140, 160, 180 i 200.",
-        "Rzemiosło, Gotowanie i Alchemia mają receptury 100, 120, 140, 160, 180 i 200 wymagające odpowiedniego levelu profesji.",
-        "Receptury są twardo zablokowane levelem odpowiedniej profesji. Samo posiadanie składników i wysokiego narzędzia nie wystarcza.",
+        "Kowalstwo, Gotowanie, Alchemia i Jubilerstwo mają receptury progresji wymagające odpowiedniego levelu profesji oraz Tieru właściwego narzędzia.",
+        "Receptury są twardo zablokowane jednocześnie levelem profesji i wymaganym Tierem narzędzia; sam składnik albo tylko jedna z tych osi nie wystarcza.",
         "Wpisz receptury, receptury craft, receptury cook albo receptury alchemia, aby usłyszeć wymagany level.",
     ],
     "logowanie": [
@@ -18367,7 +18382,7 @@ def configure_profession_tool_sellers():
     
     HELP_TOPICS["sprzedawcy_narzedzi"] = [
         "Każde narzędzie kupisz tylko u NPC dokładnie związanego z jego profesją.",
-        "Wędka: Mistrz Wędkarstwa Neris w Szkole Wędkarstwa.",
+        "Wędka: Rybak Borys na Targu Rybnym.",
         "Kilof: Górnik Toren przy Wejściu do Kryształowej Jaskini.",
         "Piła: Mistrz Drwalstwa Oren w Leśniczówce.",
         "Młot Rzemieślniczy: Mistrz Rzemiosła Haldor w Warsztacie Rzemieślniczym.",
@@ -19894,7 +19909,7 @@ def configure_v0856_help_categories():
     HELP_TOPICS["receptury"] = [
         "receptury pokazuje dostępne przepisy.",
         "receptury craft, receptury cook, receptury alchemia i receptury jubilerstwo filtrują listę.",
-        "Wymagania receptur wynikają z levelu odpowiedniej profesji i są pokazywane na liście. Level narzędzia nie blokuje receptury.",
+        "Wymagania receptur pokazują level odpowiedniej profesji oraz wymagany Tier właściwego narzędzia. Oba warunki muszą być spełnione.",
     ]
     HELP_TOPICS["charyzma"] = [
         "Charyzma jest szóstą normalną statystyką postaci.",
@@ -21825,8 +21840,8 @@ def configure_v0866_balance_help():
         "v0.8.66 wykonuje kompletny pass balansu całej gry: tereny, moby, bossowie, RNG, EQ, questy, profesje, crafting, ekonomię i progresję 1-200.",
         "Każdy quest po przyjęciu zaczyna od 0/x. Liczą się wyłącznie wymagane zdarzenia wykonane po przyjęciu; stary zapas przedmiotów ani wcześniejsze zabicia nie dają postępu.",
         "Każda z sześciu statystyk ma własny EXP, własny próg i osobny odczyt NVDA: Siła, Zręczność, Kondycja, Inteligencja, Siła Woli i Charyzma.",
-        "Level profesji skraca czas pracy oraz spełnia wymagania receptur, zleceń i lochów profesyjnych. Level narzędzia nie skraca czasu i nie blokuje receptur.",
-        "Level narzędzia odblokowuje lepsze pule surowców i wpływa na jakość, rzadkie warianty oraz dodatkowy urobek. Narzędzia nadal nie mają trwałości.",
+        "Level profesji skraca czas pracy oraz spełnia wymagania zleceń i lochów profesyjnych. Receptury wymagają także odpowiedniego Tieru właściwego narzędzia.",
+        "Tier narzędzia odblokowuje lepsze pule surowców i receptur; level wewnątrz Tieru wpływa na progres/bonus, ale nie odblokowuje nowej puli. Narzędzia nadal nie mają trwałości.",
         "Ocena zagrożenia terenu korzysta z realnych spawnów w konkretnym pokoju; wejścia z dużym skokiem trudności są ostrzegane przed przejściem.",
         "Losowe materiałowe EQ ma stały budżet mocy dla materiału i slotu: RNG zmienia rozkład statystyk/właściwości, ale nie tworzy kilku-krotnie silniejszego przedmiotu tego samego tieru.",
         "Wędkarstwo ma czas 16 do 3 sekund zależny od levelu Wędkarstwa. Historyczne cenowe outliery ryb mid-game zostały znormalizowane bez obniżania wartości endgame.",
@@ -49582,6 +49597,7 @@ class Session:
     def fishing_available_pool(self, tool_level, habitat=None):
         habitat = habitat or self.fishing_habitat()
         tool_level = max(1, min(400, int(tool_level)))
+        access_level = tool_tier_access_level(tool_level)
         habitat_ids = {
             "river": tuple(RIVER_FISH_ATLAS),
             "lake": tuple(LAKE_FISH_ATLAS),
@@ -49589,7 +49605,7 @@ class Session:
             "ocean": tuple(OCEAN_FISH_ATLAS),
         }.get(habitat, ())
         return generator_core_v027.resource_pool(
-            habitat_ids, ITEMS, tool_level, f"fishing:{habitat or 'unknown'}"
+            habitat_ids, ITEMS, access_level, f"fishing:{habitat or 'unknown'}"
         )
 
 
@@ -49641,7 +49657,8 @@ class Session:
         )
         await self.send(
             f"Ekosystem ryb: {FISHING_HABITAT_LABELS.get(habitat, habitat)}. "
-            f"Wędka level {tool_level}. Dostępnych teraz gatunków: {len(pool)}."
+            f"Wędka level {tool_level}, Tier {tool_tier(tool_level)}. "
+            f"Dostępnych teraz gatunków: {len(pool)}."
         )
 
         known = self.server.db.fish_journal_ids(self.account_id)
@@ -49669,13 +49686,13 @@ class Session:
         locked = sorted(
             (int(ITEMS[iid].get("generator_level", 1) or 1), iid)
             for iid in habitat_ids if iid in ITEMS
-            if int(ITEMS[iid].get("generator_level", 1) or 1) > tool_level
+            if int(ITEMS[iid].get("generator_level", 1) or 1) > tool_tier_access_level(tool_level)
         )
         if locked:
             next_level, next_item = locked[0]
             await self.send(
-                f"Następny wygenerowany próg Wędki: level {next_level}. "
-                f"Odblokowuje nowy gatunek: {ITEMS[next_item]['name']}."
+                f"Kolejny gatunek wymaga wyższego Tieru Wędki; "
+                f"najbliższy próg zasobu to level {next_level}: {ITEMS[next_item]['name']}."
             )
         else:
             await self.send("Masz odblokowane wszystkie ryby tego ekosystemu.")
@@ -49777,7 +49794,8 @@ class Session:
         dungeon, dungeon_floor = profession_dungeon_floor(room_id)
         if dungeon == "crystal_mine":
             floor = min(400, max(1, int(dungeon_floor) * 10))
-        effective_level = tool_level if floor is None else min(tool_level, max(1, int(floor)))
+        tool_access_level = tool_tier_access_level(tool_level)
+        effective_level = tool_access_level if floor is None else min(tool_access_level, max(1, int(floor)))
         if random.random() < generator_core_v027.jackpot_chance(effective_level, f"mining:{room_id}"):
             return "__mithril_currency__"
         pool = generator_core_v027.resource_pool(
@@ -49799,7 +49817,10 @@ class Session:
         dungeon, dungeon_floor = profession_dungeon_floor(room_id)
         if dungeon == "crystal_mine":
             floor = min(400, max(1, int(dungeon_floor) * 10))
-        effective = min(tool_level, profession_level)
+        # v0.30.26: rodzaj surowego klejnotu zależy od Tieru Kilofa.
+        # Górnictwo nadal wpływa na jakość/szansę, ale nie odblokowuje
+        # nowych rodzajów klejnotów pomiędzy progami Tieru narzędzia.
+        effective = tool_tier_access_level(tool_level)
         if floor is not None:
             effective = min(effective, max(1, int(floor)))
         base_gems = tuple(
@@ -49809,7 +49830,8 @@ class Session:
         pool = generator_core_v027.resource_pool(
             base_gems, ITEMS, effective, f"gems:{room_id}"
         )
-        chance = min(0.18, 0.035 + 0.11 * (effective / 400.0))
+        gem_skill = min(tool_level, profession_level)
+        chance = min(0.18, 0.035 + 0.11 * (gem_skill / 400.0))
         chance *= 0.85 + 0.30 * generator_core_v027.stable_unit(f"gems:{room_id}")
         if not pool or random.random() >= chance:
             return None
@@ -49827,9 +49849,9 @@ class Session:
         room_id = room_id or self.character.room_id
         tool_level = max(1, min(400, int(tool_level)))
         dungeon, dungeon_floor = profession_dungeon_floor(room_id)
-        effective = tool_level
+        effective = tool_tier_access_level(tool_level)
         if dungeon == "ancient_forest":
-            effective = min(tool_level, max(1, int(dungeon_floor) * 10))
+            effective = min(effective, max(1, int(dungeon_floor) * 10))
         pool = generator_core_v027.resource_pool(
             tuple(WOOD_RESOURCE_IDS), ITEMS, effective, f"wood:{room_id}"
         )
@@ -49843,9 +49865,9 @@ class Session:
         room_id = room_id or self.character.room_id
         tool_level = max(1, min(400, int(tool_level)))
         dungeon, dungeon_floor = profession_dungeon_floor(room_id)
-        effective = tool_level
+        effective = tool_tier_access_level(tool_level)
         if dungeon == "alchemy_garden":
-            effective = min(tool_level, max(1, int(dungeon_floor) * 10))
+            effective = min(effective, max(1, int(dungeon_floor) * 10))
         pool = generator_core_v027.resource_pool(
             tuple(HERB_RESOURCE_IDS), ITEMS, effective, f"herb:{room_id}"
         )
@@ -50107,7 +50129,7 @@ class Session:
             await self.send("Tutaj nie ma odpowiedniego łowiska.")
             return
         if self.server.db.item_qty(self.account_id, "fishing_rod") <= 0:
-            await self.send("Do Wędkarstwa potrzebujesz Wędki. Kup ją na Rynku.")
+            await self.send("Do Wędkarstwa potrzebujesz Wędki. Kup ją u Rybaka Tomasa na Targu Rybnym.")
             return
         ready, remaining = self.profession_ready()
         if not ready:
@@ -50433,7 +50455,7 @@ class Session:
             await self.send("Tutaj nie ma odpowiednich drzew do Drwalstwa.")
             return
         if self.server.db.item_qty(self.account_id, "saw") <= 0:
-            await self.send("Do Drwalstwa potrzebujesz Piły. Kup ją u Drwala Brana w Obozie Drwala.")
+            await self.send("Do Drwalstwa potrzebujesz Piły. Kup ją u Mistrza Drwalstwa Orena w Leśniczówce.")
             return
         ready, remaining = self.profession_ready()
         if not ready:
@@ -50529,7 +50551,7 @@ class Session:
             await self.send("Tutaj nie ma odpowiednich ziół.")
             return
         if self.server.db.item_qty(self.account_id, "herbalist_sickle") <= 0:
-            await self.send("Do Zielarstwa potrzebujesz Sierpa Zielarskiego. Kup go w Chacie Zielarki.")
+            await self.send("Do Zielarstwa potrzebujesz Sierpa Zielarskiego. Kup go u Mistrzyni Zielarstwa Seny w Ogrodzie Zielarskim.")
             return
         ready, remaining = self.profession_ready()
         if not ready:
@@ -51521,7 +51543,9 @@ class Session:
                     f"{recipe['desc']}"
                 )
 
-    def recipe_profession_name(self, recipes):
+    def recipe_profession_name(self, recipes, recipe=None):
+        if recipe and recipe.get("profession"):
+            return str(recipe["profession"])
         if recipes is CRAFT_RECIPES:
             return "Kowalstwo"
         if recipes is ALCHEMY_RECIPES:
@@ -51530,14 +51554,21 @@ class Session:
             return "Jubilerstwo"
         return "Gotowanie"
 
-    def recipe_level_requirement_text(self, recipes, recipe):
-        profession = self.recipe_profession_name(recipes)
-        required = max(1, int(
-            recipe.get("min_profession_level", recipe.get("min_tool_level", 1)) or 1
-        ))
-        return f"Wymaga: {profession} level {required}."
-
-    def recipe_tool_info(self, recipes):
+    def recipe_tool_info(self, recipes, recipe=None):
+        if recipe and recipe.get("tool_type"):
+            mapping = {
+                "fishing": ("fishing_rod", "Wędka"),
+                "mining": ("pickaxe", "Kilof"),
+                "woodcutting": ("saw", "Piła"),
+                "crafting": ("crafting_hammer", "Młot Rzemieślniczy"),
+                "cooking": ("chef_knife", "Nóż Kucharski"),
+                "herbalism": ("herbalist_sickle", "Sierp Zielarski"),
+                "alchemy": ("alchemy_mortar", "Moździerz Alchemiczny"),
+                "jewelcrafting": ("jeweler_pliers", "Szczypce Jubilerskie"),
+            }
+            tool_type = str(recipe["tool_type"])
+            item_id, name = mapping[tool_type]
+            return tool_type, recipe.get("tool_item_id", item_id), recipe.get("tool_name", name)
         if recipes is CRAFT_RECIPES:
             return "crafting", "crafting_hammer", "Młot Rzemieślniczy"
         if recipes is ALCHEMY_RECIPES:
@@ -51546,6 +51577,18 @@ class Session:
             return "jewelcrafting", "jeweler_pliers", "Szczypce Jubilerskie"
         return "cooking", "chef_knife", "Nóż Kucharski"
 
+    def recipe_level_requirement_text(self, recipes, recipe):
+        profession = self.recipe_profession_name(recipes, recipe)
+        required = max(1, int(
+            recipe.get("min_profession_level", recipe.get("min_tool_level", 1)) or 1
+        ))
+        _tool_type, _tool_item, tool_name = self.recipe_tool_info(recipes, recipe)
+        required_tier = required_tool_tier_for_level(required)
+        return (
+            f"Wymaga: {profession} level {required} oraz "
+            f"{tool_name} Tier {required_tier}+."
+        )
+
     async def perform_recipe(self, query, recipes, action_name):
         if self.combat_mob_key:
             await self.send(
@@ -51553,41 +51596,28 @@ class Session:
             )
             return False
 
-        tool_type, tool_item_id, tool_name = self.recipe_tool_info(recipes)
-        if self.server.db.item_qty(self.account_id, tool_item_id) <= 0:
-            if tool_type == "crafting":
-                await self.send(
-                    "Do Rzemiosła potrzebujesz Młota Rzemieślniczego. "
-                    "Kup go u Kowala Dorana w Kuźni Dusz."
-                )
-            elif tool_type == "alchemy":
-                await self.send(
-                    "Do Alchemii potrzebujesz Moździerza Alchemicznego. "
-                    "Kup go w Chacie Zielarki."
-                )
-            elif tool_type == "jewelcrafting":
-                await self.send(
-                    "Do Jubilerstwa potrzebujesz Szczypiec Jubilerskich. "
-                    "Kup je u Jubilerki Mirelli w Pracowni Jubilerskiej."
-                )
-            else:
-                await self.send(
-                    "Do Gotowania potrzebujesz Noża Kucharskiego. "
-                    "Kup go w Karczmie Pod Błękitnym Płomieniem."
-                )
-            return False
-
         found = find_by_name(recipes, query)
         if not found:
             await self.send("Nie rozpoznaję tej receptury. Wpisz receptury.")
             return False
-
         recipe_id, recipe = found
+
+        tool_type, tool_item_id, tool_name = self.recipe_tool_info(recipes, recipe)
+        if self.server.db.item_qty(self.account_id, tool_item_id) <= 0:
+            shop_room = TOOL_SHOP_ROOMS.get(tool_item_id)
+            room_name = ROOMS.get(shop_room, {}).get("name", "właściwym sklepie profesji")
+            seller_id = SHOP_SELLERS.get(shop_room)
+            seller_name = NPCS.get(seller_id, {}).get("name", "specjalisty profesji")
+            await self.send(
+                f"Do tej receptury potrzebujesz: {tool_name}. "
+                f"Kupisz narzędzie u {seller_name}, lokacja: {room_name}."
+            )
+            return False
 
         tool_row = self.server.db.tool(self.account_id, tool_type)
         old_tool_level = int(tool_row["level"])
 
-        profession = self.recipe_profession_name(recipes)
+        profession = self.recipe_profession_name(recipes, recipe)
         profession_row = self.server.db.profession(self.account_id, profession)
         profession_level = int(profession_row["level"])
         required_profession = max(
@@ -51598,6 +51628,15 @@ class Session:
             await self.send(
                 f"{recipe['name']} wymaga {profession} level "
                 f"{required_profession}, a masz {profession_level}."
+            )
+            return False
+
+        required_tool_tier = required_tool_tier_for_level(required_profession)
+        current_tool_tier = tool_tier(old_tool_level)
+        if current_tool_tier < required_tool_tier:
+            await self.send(
+                f"{recipe['name']} wymaga {tool_name} Tier "
+                f"{required_tool_tier}+, a masz Tier {current_tool_tier}."
             )
             return False
 
@@ -51718,9 +51757,16 @@ class Session:
                     f"{ITEMS[output_id]['name']} "
                     f"x{bonus_quantity}."
                 )
+            elif tool_type == "woodcutting":
+                await self.send(
+                    f"Bonus Tieru {tier} Piły: "
+                    f"obrabiasz dodatkowo "
+                    f"{ITEMS[output_id]['name']} "
+                    f"x{bonus_quantity}."
+                )
             else:
                 await self.send(
-                    f"Bonus Tieru {tier} Młota Rzemieślniczego: "
+                    f"Bonus Tieru {tier} {tool_name}: "
                     f"wytwarzasz dodatkowo "
                     f"{ITEMS[output_id]['name']} "
                     f"x{bonus_quantity}."
@@ -51728,74 +51774,26 @@ class Session:
 
         if tool_type in (
             "alchemy", "cooking", "crafting",
-            "jewelcrafting",
+            "jewelcrafting", "woodcutting",
         ):
             await self.announce_craft_quest_progress(
                 output_id,
                 total_quantity,
             )
 
-        if "tool_xp" in recipe:
-            tool_xp = roll_crafting_xp(recipe["tool_xp"])
-        else:
-            tool_xp = 8 + random.randint(0, 4)
-        if tool_type == "alchemy":
-            profession_xp = (
-                roll_crafting_xp(recipe["profession_xp"])
-                if "profession_xp" in recipe
-                else 10 + random.randint(0, 5)
-            )
-            messages, alchemy_level, new_tool_level = (
-                self.grant_profession_progress(
-                    "Alchemia",
-                    profession_xp,
-                    "alchemy",
-                    tool_xp,
-                )
-            )
-        elif tool_type == "jewelcrafting":
-            profession_xp = (
-                roll_crafting_xp(recipe["profession_xp"])
-                if "profession_xp" in recipe
-                else 10 + random.randint(0, 5)
-            )
-            messages, jewel_level, new_tool_level = (
-                self.grant_profession_progress(
-                    "Jubilerstwo",
-                    profession_xp,
-                    "jewelcrafting",
-                    tool_xp,
-                )
-            )
-        elif tool_type == "crafting":
-            profession_xp = (
-                roll_crafting_xp(recipe["profession_xp"])
-                if "profession_xp" in recipe
-                else 10 + random.randint(0, 5)
-            )
-            messages, blacksmith_level, new_tool_level = (
-                self.grant_profession_progress(
-                    "Kowalstwo",
-                    profession_xp,
-                    "crafting",
-                    tool_xp,
-                )
-            )
-        elif tool_type == "cooking":
-            profession_xp = (
-                roll_crafting_xp(recipe["profession_xp"])
-                if "profession_xp" in recipe
-                else 10 + random.randint(0, 5)
-            )
-            messages, cooking_level, new_tool_level = (
-                self.grant_profession_progress(
-                    "Gotowanie", profession_xp, "cooking", tool_xp
-                )
-            )
-        else:
-            messages, new_tool_level = (
-                self.grant_tool_progress(tool_type, tool_xp)
-            )
+        tool_xp = (
+            roll_crafting_xp(recipe["tool_xp"])
+            if "tool_xp" in recipe
+            else 8 + random.randint(0, 4)
+        )
+        profession_xp = (
+            roll_crafting_xp(recipe["profession_xp"])
+            if "profession_xp" in recipe
+            else 10 + random.randint(0, 5)
+        )
+        messages, _profession_level_after, new_tool_level = self.grant_profession_progress(
+            profession, profession_xp, tool_type, tool_xp
+        )
         for message in messages:
             await self.send(message)
 
@@ -53747,7 +53745,10 @@ class Session:
         cashback = self.shop_cashback_silver(item) * quantity
         if cashback > 0:
             self.character.silver += cashback
-        self.server.db.add_item(self.account_id, item_id, quantity)
+        if item_id in (FISH_STORAGE_IDS | MINING_STORAGE_IDS | WOOD_STORAGE_IDS | HERB_STORAGE_IDS):
+            self.store_profession_resource(item_id, quantity)
+        else:
+            self.server.db.add_item(self.account_id, item_id, quantity)
         if item.get("type") == "tool":
             self.server.db.ensure_tool(self.account_id, item["tool_type"])
         self.server.db.save_character(self.character)
@@ -60381,6 +60382,10 @@ class Session:
             parts = raw.split(maxsplit=1)
             command = parts[0].lower()
             args = parts[1] if len(parts) > 1 else ""
+            # v0.30.26: twardy alias parsera. `ex` zawsze trafia do tego
+            # samego handlera co `exits`, niezależnie od późniejszych tabel aliasów.
+            if command == "ex":
+                command = "exits"
             if command == "loot" and args.strip().lower() in LOOT_FILTER_INPUTS:
                 command = "lootfilter"
             else:
@@ -62304,7 +62309,7 @@ def full_combat_scaling_audit_v03015():
         errors.append("INT/WIL does not increase mana")
     if int_plus - base != wil_plus - base:
         errors.append("INT/WIL mana contribution is not equal")
-    if VERSION != "0.30.25":
+    if VERSION not in ("0.30.25", "0.30.26"):
         errors.append(f"VERSION={VERSION}")
     if GENERATOR_CORE_VERSION != "0.30.24":
         errors.append(f"GENERATOR_CORE_VERSION={GENERATOR_CORE_VERSION}")
@@ -63233,7 +63238,7 @@ def full_release_integrity_audit_v03025():
         errors.append("world logic audit failed")
     if int(WORLD_LOGIC_AUDIT.get("warning_count", 0) or 0):
         errors.append("world logic warnings present")
-    if VERSION != "0.30.25":
+    if VERSION not in ("0.30.25", "0.30.26"):
         errors.append(f"VERSION={VERSION}")
     if GENERATOR_CORE_VERSION != "0.30.24":
         errors.append(f"GENERATOR_CORE_VERSION={GENERATOR_CORE_VERSION}")
@@ -63275,6 +63280,220 @@ LATEST_CHANGES = [
     "Nagroda profesyjna questu jest teraz wyprowadzana z reward_tool_type, jeśli stary wpis nie ma reward_profession; usunięto ryzykowny domyślny fallback na Wędkarstwo.",
     "Start serwera blokuje się, jeśli receptura nie ma dodatniego XP profesji i narzędzia albo jeśli quest profesyjny ma niespójną parę profesja/narzędzie.",
     "Generator Core pozostaje v0.30.24; v0.30.25 nie zmienia jego balansu, topologii świata ani ekonomii. Brak wipe.",
+]
+
+
+# ============================================================
+# v0.30.26 - FULL GAMEPLAY FLOW + TOOL TIER GATING
+# ============================================================
+# `ex` jest publiczną komendą gry, nie tylko aliasem HELP.
+COMMAND_ALIASES.update({"ex": "exits"})
+
+# Dedykowane pomieszczenia specjalistów są również prawdziwymi stanowiskami pracy.
+# Deski należą do Drwalstwa, więc nie dostają Warsztatu Haldora jako stanowiska.
+V03026_WOOD_RECIPES = []
+for _recipe_id, _recipe in CRAFT_RECIPES.items():
+    _output = str(_recipe.get("output") or "")
+    if _output.endswith("_plank"):
+        _recipe["profession"] = "Drwalstwo"
+        _recipe["tool_type"] = "woodcutting"
+        _recipe["tool_item_id"] = "saw"
+        _recipe["tool_name"] = "Piła"
+        _recipe["category"] = "woodworking"
+        _recipe["stations"] = tuple(dict.fromkeys(tuple(_recipe.get("stations", ())) + ("forester_lodge",)))
+        _recipe["profession_xp"] = max(1, int(_recipe.get("profession_xp", 10) or 10))
+        _recipe["tool_xp"] = max(1, int(_recipe.get("tool_xp", 8) or 8))
+        V03026_WOOD_RECIPES.append(_recipe_id)
+    else:
+        _recipe["stations"] = tuple(dict.fromkeys(tuple(_recipe.get("stations", ())) + ("crafting_workshop",)))
+for _recipe in COOK_RECIPES.values():
+    _recipe["stations"] = tuple(dict.fromkeys(tuple(_recipe.get("stations", ())) + ("blue_flame_kitchen",)))
+for _recipe in ALCHEMY_RECIPES.values():
+    _recipe["stations"] = tuple(dict.fromkeys(tuple(_recipe.get("stations", ())) + ("alchemy_lab",)))
+for _recipe in JEWELCRAFT_RECIPES.values():
+    _recipe["stations"] = tuple(dict.fromkeys(tuple(_recipe.get("stations", ())) + ("jeweler_workshop",)))
+
+# Czysty Kowal może rozpocząć profesję bez rozwijania Górnictwa.
+# Doran sprzedaje tylko podstawowe rudy; Kobalt+ pozostaje zdobyczą świata/Górnictwa.
+for _starter_ore in ("iron_ore", "silver_ore", "gold_ore"):
+    if _starter_ore not in SHOPS.setdefault("forge", []):
+        SHOPS["forge"].append(_starter_ore)
+
+# v0.30.26: Odłamki Duszy są materiałem questowym Krypty i nie mogą być
+# spłaszczane przez ogólny rebalance dropów Generator Core. Ten późny pass
+# przywraca celowe szanse po wykonaniu Generator Core. Dynamiczne piętra
+# tworzone później mają własne wysokie wartości w generatorze runtime.
+def apply_soul_shard_drop_fix_v03026():
+    # Klasyczne moby wejściowej Krypty.
+    if "skeleton" in MOB_TEMPLATES:
+        MOB_TEMPLATES["skeleton"].setdefault("drops", {})["soul_shard"] = 0.55
+    if "crypt_wraith" in MOB_TEMPLATES:
+        MOB_TEMPLATES["crypt_wraith"].setdefault("drops", {})["soul_shard"] = 0.85
+
+    regular_fixed = 0
+    boss_fixed = 0
+    mythic_fixed = 0
+    for _tid, _template in MOB_TEMPLATES.items():
+        _crypt_floor = int(_template.get("crypt_floor", 0) or 0)
+        _mythic_floor = int(_template.get("mythic_crypt_floor", 0) or 0)
+        if _template.get("crypt_boss") or _template.get("mythic_crypt_boss"):
+            _template.setdefault("drops", {})["soul_shard"] = 1.0
+            boss_fixed += 1
+        elif _crypt_floor > 0:
+            # Zwykła Krypta: około 25% na początku, rośnie do 65%.
+            _template.setdefault("drops", {})["soul_shard"] = min(0.65, 0.25 + _crypt_floor * 0.002)
+            regular_fixed += 1
+        elif _mythic_floor > 0:
+            # Mityczna Krypta jest późnym źródłem — odłamek ma być częsty.
+            _template.setdefault("drops", {})["soul_shard"] = 0.65
+            mythic_fixed += 1
+    return {
+        "regular_crypt": regular_fixed,
+        "mythic_crypt": mythic_fixed,
+        "bosses": boss_fixed,
+    }
+
+SOUL_SHARD_DROP_FIX_V03026 = apply_soul_shard_drop_fix_v03026()
+
+# HELP: Tier narzędzia jest teraz twardym progiem zawartości.
+HELP_TOPICS.setdefault("quest", []).append(
+    "v0.30.26: Odłamki Duszy w Krypcie wypadają znacznie częściej. Zwykłe piętra zaczynają od około 25 procent i rosną do 65 procent; bossowie Krypty gwarantują Odłamek."
+)
+HELP_TOPICS.setdefault("narzedzia", []).extend([
+    "v0.30.26: nowy gatunek ryby, ruda, drewno lub zioło odblokowuje się dopiero przy wejściu narzędzia na wymagany Tier; pojedynczy level wewnątrz Tieru nie rozszerza puli zasobów.",
+    "Receptury Kowalstwa, Gotowania, Alchemii, Jubilerstwa i obróbki drewna wymagają także odpowiedniego Tieru właściwego narzędzia. Próg Tieru wynika z wymaganego levelu profesji.",
+])
+HELP_TOPICS.setdefault("wedkarstwo", []).append(
+    "v0.30.26: dostępne gatunki ryb zależą od Tieru Wędki. Awans levelu wewnątrz tego samego Tieru poprawia progres/bonus, ale nie odblokowuje nowego gatunku."
+)
+HELP_TOPICS.setdefault("gornictwo", []).append(
+    "v0.30.26: dostępne rudy i minerały zależą od Tieru Kilofa oraz, w kopalniach piętrowych, od osiągniętej głębokości."
+)
+HELP_TOPICS.setdefault("drwalstwo", []).extend([
+    "v0.30.26: dostępne gatunki drewna zależą od Tieru Piły.",
+    "Obróbka desek używa teraz Drwalstwa + Piły i daje XP obu, zamiast błędnie używać Kowalstwa + Młota."
+])
+HELP_TOPICS.setdefault("zielarstwo", []).append(
+    "v0.30.26: dostępne rośliny zależą od Tieru Sierpa Zielarskiego."
+)
+HELP_TOPICS.setdefault("kowalstwo", []).append(
+    "v0.30.26: receptura wymaga zarówno odpowiedniego levelu Kowalstwa, jak i Tieru Młota Rzemieślniczego odpowiadającego temu progowi."
+)
+HELP_TOPICS.setdefault("gotowanie", []).append(
+    "v0.30.26: receptura wymaga odpowiedniego levelu Gotowania i odpowiadającego mu Tieru Noża Kucharskiego."
+)
+HELP_TOPICS.setdefault("alchemia", []).append(
+    "v0.30.26: receptura wymaga odpowiedniego levelu Alchemii i odpowiadającego mu Tieru Moździerza Alchemicznego."
+)
+HELP_TOPICS.setdefault("jubilerstwo", []).append(
+    "v0.30.26: receptura wymaga odpowiedniego levelu Jubilerstwa i odpowiadającego mu Tieru Szczypiec Jubilerskich."
+)
+HELP_TOPICS["exits"] = [
+    "exits / ex pokazuje wszystkie dostępne kierunki razem z nazwą lokacji, do której każdy kierunek prowadzi.",
+    "Przykład: północ — Północna Ulica; wschód — Targ Rybny.",
+    "ex jest twardym aliasem parsera i wywołuje dokładnie ten sam handler co exits.",
+    "exits info pokazuje dodatkowo strefę oraz ocenę zagrożenia celu.",
+]
+
+
+def gameplay_flow_audit_v03026():
+    errors = []
+    if COMMAND_ALIASES.get("ex") != "exits":
+        errors.append("ex nie mapuje się na exits")
+
+    # Dostęp zasobów musi zmieniać się wyłącznie na progach Tieru.
+    for _tool_type in ("fishing", "mining", "woodcutting", "herbalism"):
+        previous_access = None
+        previous_tier = None
+        for _level in range(1, 401):
+            _tier = tool_tier(_level)
+            _access = tool_tier_access_level(_level)
+            if _access != TOOL_TIER_THRESHOLDS[_tier - 1]:
+                errors.append(f"{_tool_type}: zły access level {_level}->{_access}")
+                break
+            if previous_tier == _tier and previous_access != _access:
+                errors.append(f"{_tool_type}: pula zmienia się wewnątrz Tieru {_tier}")
+                break
+            previous_access, previous_tier = _access, _tier
+
+    recipe_count = 0
+    for _recipes in (CRAFT_RECIPES, COOK_RECIPES, ALCHEMY_RECIPES, JEWELCRAFT_RECIPES):
+        for _rid, _recipe in _recipes.items():
+            recipe_count += 1
+            _required = max(1, int(_recipe.get("min_profession_level", _recipe.get("min_tool_level", 1)) or 1))
+            _required_tier = required_tool_tier_for_level(_required)
+            if not 1 <= _required_tier <= TOOL_MAX_TIER:
+                errors.append(f"recipe {_rid}: invalid tool tier {_required_tier}")
+            if int(_recipe.get("profession_xp", 0) or 0) <= 0:
+                errors.append(f"recipe {_rid}: brak profession_xp")
+            if int(_recipe.get("tool_xp", 0) or 0) <= 0:
+                errors.append(f"recipe {_rid}: brak tool_xp")
+
+    for _rid in V03026_WOOD_RECIPES:
+        _recipe = CRAFT_RECIPES[_rid]
+        if _recipe.get("profession") != "Drwalstwo" or _recipe.get("tool_type") != "woodcutting":
+            errors.append(f"wood recipe {_rid}: zła para profesja/narzędzie")
+
+    smith_missing = [
+        _rid for _rid, _recipe in CRAFT_RECIPES.items()
+        if _rid not in V03026_WOOD_RECIPES
+        and "crafting_workshop" not in tuple(_recipe.get("stations", ()))
+    ]
+    if smith_missing:
+        errors.append(f"station crafting_workshop: brak w {smith_missing[:5]}")
+    wood_missing = [
+        _rid for _rid in V03026_WOOD_RECIPES
+        if "forester_lodge" not in tuple(CRAFT_RECIPES[_rid].get("stations", ()))
+    ]
+    if wood_missing:
+        errors.append(f"station forester_lodge: brak w {wood_missing[:5]}")
+    required_stations = (
+        (COOK_RECIPES, "blue_flame_kitchen"),
+        (ALCHEMY_RECIPES, "alchemy_lab"),
+        (JEWELCRAFT_RECIPES, "jeweler_workshop"),
+    )
+    for _recipes, _station in required_stations:
+        missing = [_rid for _rid, _recipe in _recipes.items() if _station not in tuple(_recipe.get("stations", ()))]
+        if missing:
+            errors.append(f"station {_station}: brak w {missing[:5]}")
+
+    if VERSION != "0.30.26":
+        errors.append(f"VERSION={VERSION}")
+    if GENERATOR_CORE_VERSION != "0.30.24":
+        errors.append(f"GENERATOR_CORE_VERSION={GENERATOR_CORE_VERSION}")
+
+    return {
+        "version": "0.30.26",
+        "recipes_checked": recipe_count,
+        "wood_recipes_fixed": len(V03026_WOOD_RECIPES),
+        "tool_tiers": TOOL_MAX_TIER,
+        "gathering_professions": 4,
+        "error_count": len(errors),
+        "errors": errors,
+    }
+
+GAMEPLAY_FLOW_AUDIT_V03026 = gameplay_flow_audit_v03026()
+if GAMEPLAY_FLOW_AUDIT_V03026["error_count"]:
+    raise RuntimeError(
+        "Gameplay Flow Audit v0.30.26 failed: "
+        + "; ".join(GAMEPLAY_FLOW_AUDIT_V03026["errors"][:30])
+    )
+
+HELP_TOPICS.setdefault("wersja", []).append(
+    "v0.30.26: gameplay flow pass. Naprawiono ex->exits, Tier-gating zasobów i receptur, stanowiska specjalistów oraz deski Drwalstwo+Piła."
+)
+LATEST_CHANGES_TITLE = "Soulbound v0.30.26 - Gameplay Flow + Tool Tier Gating"
+LATEST_CHANGES = [
+    "Naprawiono skrót ex: jest twardym aliasem parsera do exits i czyta kierunek oraz nazwę lokacji docelowej.",
+    "Ryby, rudy, drewno i zioła są odblokowywane przez Tier właściwego narzędzia; pula nie zmienia się przy każdym levelu wewnątrz Tieru.",
+    "Receptury wymagają teraz odpowiedniego Tieru narzędzia wynikającego z progu profesji, a nie tylko levelu profesji.",
+    "Deski są poprawnie obsługiwane przez Drwalstwo + Piłę i dają XP obu osi, zamiast Kowalstwa + Młota.",
+    "Warsztat Rzemieślniczy, Kuchnia Błękitnego Płomienia, Laboratorium Alchemiczne i Pracownia Jubilerska są prawdziwymi stanowiskami właściwych receptur.",
+    "Poprawiono komunikaty o miejscach zakupu wszystkich narzędzi oraz stare wpisy HELP dotyczące XP i blokad receptur.",
+    "Surowe klejnoty z Górnictwa są odblokowywane przez Tier Kilofa; level Górnictwa wpływa nadal na jakość i szansę, ale nie zmienia puli między Tierami.",
+    "Doran sprzedaje podstawowe Rudy Żelaza, Srebra i Złota, więc czysty Kowal może rozpocząć profesję bez Górnictwa; Kobalt i wyżej pozostają zawartością świata/Górnictwa.",
+    "Naprawiono zaniżanie szansy Odłamków Duszy przez ogólny rebalance: zwykła Krypta ma teraz około 25-65 procent, klasyczne moby Krypty 55-85 procent, a bossowie gwarantują Odłamek.",
+    "Generator Core pozostaje v0.30.24. Brak wipe.",
 ]
 
 if __name__ == "__main__":
