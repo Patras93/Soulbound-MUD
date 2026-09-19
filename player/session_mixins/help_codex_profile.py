@@ -156,7 +156,7 @@ class SessionHelpCodexProfileMixin:
             "salvage / rozłóż <pełna nazwa EQ> - u Haldora rozkłada niezałożone EQ na materiały do Szkatułki i daje Kowalstwo XP; nie nabija użyć Młota Rzemieślniczego",
             "reforge / przekuj <pełna nazwa EQ> - u Haldora zmienia jeden affix EQ za Esencję Przekucia; próg Biegłości nie zmienia się",
             "runy - informacje, tworzenie i wyjmowanie run; runa <typ> <EQ> osadza runę w endgame EQ",
-            "gildia - Gildia graczy: poziomy 1-100, Siedziba 1-10, budynki, kontrakty, bossowie, skarbiec, rangi, bank, trofea, osiągnięcia, log i czat",
+            "gildia - Gildia graczy: poziomy 1-400, Siedziba 1-10, budynki, kontrakty, bossowie, skarbiec, rangi, bank, trofea, osiągnięcia, log i czat",
             "znajomi - lista znajomych; dodaj/akceptuj/odrzuc/usun; szybkie zaproszenia party i gildia",
             "tell <gracz> <tekst>; reply <tekst> - prywatne wiadomości i szybka odpowiedź do ostatniego nadawcy",
             "osiagnieciaklasowe - osiągnięcia klas i profesji na progresji 1-400",
@@ -979,8 +979,9 @@ class SessionHelpCodexProfileMixin:
                     "Astralna [160+/150+]. Wpisz atlas geody."
                 )
                 await self.send(
-                    "Czysty mithril nie jest rudą w Sakwie. To rzadka waluta możliwa "
-                    "od efektywnej głębokości i levelu Kilofa 80."
+                    "Mithril nie jest rudą w Sakwie. Od Kilofa 80, Górnictwa 80 i poziomu kopalni 80 "
+                    "może wypaść bezpośrednio jako waluta do wspólnego portfela. "
+                    "Szansa rośnie od 0,5 procent do 2 procent na poziomie 400 i nie zastępuje zwykłej rudy."
                 )
                 return
 
@@ -2252,6 +2253,16 @@ class SessionHelpCodexProfileMixin:
             else:
                 await self.send("Soul XP: maksimum. Soul Level 400.")
             await self.send(f"Bonus klasowy Broni Duszy: {c.soul_weapon_class_bonus_text()}.")
+            trait = soul_weapon_trait_for_tier(c.soul_tier, c.class_name)
+            totals = soul_weapon_trait_totals(c.soul_tier, c.class_name)
+            if trait:
+                await self.send(f"Najnowsza właściwość T{c.soul_tier}: {trait['name']}. {trait['description']}.")
+            await self.send(
+                f"Łączne właściwości klasy {c.class_name}: +{totals['damage_percent']:.1f}% obrażeń podstawowego ataku; "
+                f"+{totals['crit_chance']*100:.1f} pp krytyka; +{totals['crit_damage_percent']:.0f}% obrażeń krytycznych; "
+                f"{totals['lifesteal_percent']:.1f}% wysysania życia; +{totals['execute_damage_percent']:.1f}% obrażeń przy celu do 35% HP; "
+                f"+{totals['boss_damage_percent']:.1f}% obrażeń przeciw bossom; {totals['mana_restore_percent']:.1f}% obrażeń zwracane jako Mana."
+            )
             await self.send(
                 "Progi Tierów 1-10: T1 Soul 1; T2 10; T3 20; T4 25; T5 35; "
                 "T6 45; T7 60; T8 70; T9 80; T10 90."
@@ -2283,7 +2294,9 @@ class SessionHelpCodexProfileMixin:
                 else:
                     state = "dostępna u Kapłana Elora"
                 band = quest.get("trial_band", soul_trial_difficulty_band(tier))
-                await self.send(f"Tier {tier}. Wymaga Soul {required_soul}. Próba: {band}. {state}.")
+                trait = soul_weapon_trait_for_tier(tier, c.class_name)
+                trait_text = f" Właściwość: {trait['name']} - {trait['description']}." if trait else ""
+                await self.send(f"Tier {tier}. Wymaga Soul {required_soul}. Próba: {band}. {state}." + trait_text)
 
             await self.send("KAMIENIE MILOWE BRONI DUSZY")
             for milestone_tier in SOUL_MILESTONE_TIERS:

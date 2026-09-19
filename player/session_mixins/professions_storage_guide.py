@@ -79,6 +79,9 @@ class SessionProfessionsStorageGuideMixin:
                 self.mentor_record_activity_v03051()
             actual_prof_xp = self.apply_double_xp(actual_prof_xp)
             tool_xp = self.apply_double_xp(tool_xp)
+            self.session_summary_add("profession_xp", actual_prof_xp, profession)
+            if tool_progress:
+                self.session_summary_add("tool_xp", tool_xp, tool_type)
             old_profession_rank = profession_rank(
                 plevel, profession
             )
@@ -171,6 +174,7 @@ class SessionProfessionsStorageGuideMixin:
             old_tier = tool_tier(level)
             tool_xp = v0190_scaled_gain(tool_xp, level, "tool", 12)
             tool_xp = self.apply_double_xp(tool_xp)
+            self.session_summary_add("tool_xp", tool_xp, tool_type)
             xp = int(row["xp"]) + max(0, int(tool_xp))
             uses = int(row["uses"]) + 1
 
@@ -645,6 +649,7 @@ class SessionProfessionsStorageGuideMixin:
             level = int(row["level"])
             tool_xp = v0190_scaled_gain(tool_xp, level, "tool", 12)
             tool_xp = self.apply_double_xp(tool_xp)
+            self.session_summary_add("tool_xp", tool_xp, tool_type)
             xp = int(row["xp"]) + tool_xp
             uses = int(row["uses"])
 
@@ -711,6 +716,8 @@ class SessionProfessionsStorageGuideMixin:
                 tool_xp=max(0,int(round(tool_xp*(1.0+_title_pct/100.0))))
             actual_profession_xp = self.apply_double_xp(actual_profession_xp)
             tool_xp = self.apply_double_xp(tool_xp)
+            self.session_summary_add("profession_xp", actual_profession_xp, profession)
+            self.session_summary_add("tool_xp", tool_xp, tool_type)
             pxp = int(prow["xp"]) + actual_profession_xp
             actions = int(prow["actions"])
 
@@ -3126,15 +3133,27 @@ class SessionProfessionsStorageGuideMixin:
                 floor = min(400, max(1, int(dungeon_floor) * 10))
             tool_access_level = tool_tier_access_level(tool_level)
             effective_level = tool_access_level if floor is None else min(tool_access_level, max(1, int(floor)))
-            if random.random() < generator_core_v027.jackpot_chance(effective_level, f"mining:{room_id}"):
-                return "__mithril_currency__"
-            pool = generator_core_v027.resource_pool(
-                tuple(ORE_RESOURCE_IDS), ITEMS, effective_level, f"mining:{room_id}"
-            )
+            # v0.34.4: progi wydobycia są autorską semantyką gry i muszą
+            # pochodzić z ORE_ATLAS_LEVELS / ORE_MINE_FLOOR_MINIMUMS.
+            # Generator Core może balansować liczby i wagi, ale nie może
+            # przesuwać odblokowań zasobów przez generator_level przedmiotu.
+            pool = []
+            for ore_id in ORE_RESOURCE_IDS:
+                if ore_id not in ITEMS:
+                    continue
+                need_tool = int(ORE_ATLAS_LEVELS.get(ore_id, 1) or 1)
+                if tool_access_level < need_tool:
+                    continue
+                if floor is not None:
+                    need_floor = int(ORE_MINE_FLOOR_MINIMUMS.get(ore_id, need_tool) or need_tool)
+                    if int(floor) < need_floor:
+                        continue
+                pool.append(ore_id)
             if not pool:
                 return None
-            weights = generator_core_v027.resource_weights(
-                pool, ITEMS, effective_level, f"mining:{room_id}"
+            pool = tuple(sorted(pool, key=lambda iid: (int(ORE_ATLAS_LEVELS.get(iid, 1) or 1), iid)))
+            weights = mining_ore_weights(
+                pool, effective_level, f"mining:{room_id}"
             )
             return random.choices(pool, weights=weights, k=1)[0]
 

@@ -839,7 +839,8 @@ V0925_CRAFTBOX_ALIASES = {
 # ============================================================
 # v0.9.26 - GILDIA GRACZY: SKARBIEC / ROZWÓJ / RANGI
 # ============================================================
-V0926_GUILD_MAX_LEVEL = 100
+V0926_GUILD_MAX_LEVEL = 400
+V0926_GUILD_LEGACY_MAX_LEVEL = 100
 V0926_GUILD_DEFAULT_ROLES = {
     "member": {
         "name": "Członek", "priority": 10,
@@ -867,17 +868,27 @@ V0926_GUILD_PERMISSION_LABELS = {
 }
 
 def v0926_guild_upgrade_cost(current_level):
-    """Generator Core: koszt rozwoju Gildii bez ręcznej tabeli per poziom."""
+    """Koszt rozwoju Gildii 1-400. Poziomy 1-100 zachowują historyczną krzywą 1:1."""
     level=max(1,min(V0926_GUILD_MAX_LEVEL,int(current_level or 1)))
     if level >= V0926_GUILD_MAX_LEVEL:
         return 0
-    stage=generator_core_v027.stage_from_index(level+1,V0926_GUILD_MAX_LEVEL)
-    return generator_core_v027.system_cost(stage,"guild-level",300.0)
+    if level < V0926_GUILD_LEGACY_MAX_LEVEL:
+        stage=generator_core_v027.stage_from_index(level+1,V0926_GUILD_LEGACY_MAX_LEVEL)
+        return generator_core_v027.system_cost(stage,"guild-level",300.0)
+    # Po 100 Generator Core nie ma wyższego stage niż 400, więc kontynuujemy
+    # koszt od historycznego maksimum bez resetowania ekonomii.
+    anchor=generator_core_v027.system_cost(generator_core_v027.MAX_LEVEL,"guild-level",300.0)
+    extension=(float(level)/float(V0926_GUILD_LEGACY_MAX_LEVEL))**2.0
+    return min(9_000_000_000_000_000_000,max(1,int(round(anchor*extension))))
 
 
 def v0926_guild_bonus_percent(level):
+    """Bonus Gildii 1-400 bez nerfienia istniejących poziomów 1-100."""
     level=max(1,min(V0926_GUILD_MAX_LEVEL,int(level or 1)))
-    return generator_core_v027.guild_bonus_percent(level,V0926_GUILD_MAX_LEVEL)
+    if level <= V0926_GUILD_LEGACY_MAX_LEVEL:
+        return generator_core_v027.guild_bonus_percent(level,V0926_GUILD_LEGACY_MAX_LEVEL)
+    progress=(level-V0926_GUILD_LEGACY_MAX_LEVEL)/(V0926_GUILD_MAX_LEVEL-V0926_GUILD_LEGACY_MAX_LEVEL)
+    return min(23,11+int(round(12*(progress**0.90))))
 
 
 def v0926_bool_word(value):

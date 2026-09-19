@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #!/usr/bin/env python3
-"""Soulbound v0.33.12 Full Game 100% Audit & Runtime Text Integrity."""
+"""Soulbound v0.34.4 Mining Drop Rebalance + Mithril Currency Fix."""
 from pathlib import Path
 import os
 import socket
@@ -97,6 +97,22 @@ for _name in _RUNTIME_MODULES:
     _path = _ROOT / _name
     _source = _path.read_text(encoding="utf-8")
     exec(compile(_source, str(_path), "exec"), globals(), globals())
+
+# v0.34.4: run the exhaustive gate against the FINAL assembled runtime,
+# after economy/full-system/crafting compatibility layers have finished.
+if os.environ.get("SOULBOUND_FULL_AUDIT", "").strip().lower() in ("1", "true", "yes", "on"):
+    FULL_GAME_PREDEPLOY_AUDIT_V0336 = full_game_predeploy_audit_v0336()
+    if FULL_GAME_PREDEPLOY_AUDIT_V0336["error_count"]:
+        raise RuntimeError(
+            "Full Game Pre-Deploy Audit v0.34.4 failed: "
+            + "; ".join(map(str, FULL_GAME_PREDEPLOY_AUDIT_V0336["errors"][:100]))
+        )
+else:
+    FULL_GAME_PREDEPLOY_AUDIT_V0336 = {
+        "version": "0.34.4", "skipped_at_runtime": True,
+        "error_count": 0, "warning_count": 0, "errors": [], "warnings": [],
+        "reason": "Run before deploy with SOULBOUND_FULL_AUDIT=1; skipped during normal server startup.",
+    }
 
 if __name__ == "__main__":
     main()

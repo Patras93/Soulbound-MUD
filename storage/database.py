@@ -1227,7 +1227,7 @@ class Database:
 
         # v0.8.60: jedno wspólne saldo, trzy nominały.
         # Konwersja jest wykonywana dokładnie raz i zachowuje pełną wartość:
-        # silver 1:1, gold 1:1000, mithril 1:1_000_000 srebra.
+        # silver 1:1, gold 1:100, mithril 1:100_000 srebra.
         unified_currency_migrated = self.conn.execute(
             "SELECT 1 FROM migration_flags WHERE flag=?",
             ("unified_currency_v0859",),
@@ -1282,6 +1282,41 @@ class Database:
             self.conn.execute(
                 "INSERT INTO migration_flags(flag) VALUES(?)",
                 ("unified_currency_v0859",),
+            )
+
+        # v0.34.4: krótkotrwała v0.34.3 błędnie wprowadziła mithril_ore jako
+        # zwykłą rudę. Mithril w Soulbound jest walutą. Stare sztuki nie mogą
+        # zostać osierocone w Sakwie: jednorazowo zamieniamy je na ich dawną
+        # wartość sprzedaży (500 srebra za sztukę), bez tworzenia dodatkowego
+        # zysku ani 1:1 z wysokim nominałem mithrilu.
+        legacy_mithril_ore_migrated = self.conn.execute(
+            "SELECT 1 FROM migration_flags WHERE flag=?",
+            ("legacy_mithril_ore_v0344",),
+        ).fetchone()
+        if not legacy_mithril_ore_migrated:
+            _legacy_by_master = {}
+            _legacy_rows = self.conn.execute(
+                "SELECT account_id,quantity FROM inventory WHERE item_id='mithril_ore' AND quantity>0 "
+                "UNION ALL "
+                "SELECT account_id,quantity FROM profession_storage WHERE item_id='mithril_ore' AND quantity>0"
+            ).fetchall()
+            for _row in _legacy_rows:
+                _aid = int(_row["account_id"])
+                _qty = max(0, int(_row["quantity"] or 0))
+                if _qty <= 0:
+                    continue
+                _master = self.master_account_for_character(_aid)
+                _legacy_by_master[_master] = _legacy_by_master.get(_master, 0) + _qty
+            for _master, _qty in _legacy_by_master.items():
+                _silver, _gold, _mithril = self.shared_wallet_for_master(_master)
+                self.set_shared_wallet_for_master(
+                    _master, _silver + _qty * 500, _gold, _mithril, commit=False
+                )
+            self.conn.execute("DELETE FROM inventory WHERE item_id='mithril_ore'")
+            self.conn.execute("DELETE FROM profession_storage WHERE item_id='mithril_ore'")
+            self.conn.execute(
+                "INSERT INTO migration_flags(flag) VALUES(?)",
+                ("legacy_mithril_ore_v0344",),
             )
 
         # v0.9.4: Historia postaci / Lifetime Statistics.

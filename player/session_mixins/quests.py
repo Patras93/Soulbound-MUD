@@ -140,10 +140,10 @@ class SessionQuestsMixin:
             needed = int(q["needed"])
 
             if q.get("kind") == "collect":
-                have = self.server.db.item_qty(
-                    self.account_id,
-                    q["target"],
-                )
+                # v0.34.4: collect pokazuje ten sam fizyczny stan, z którego
+                # korzysta oddawanie questa: inventory + właściwy magazyn
+                # profesji (np. Szkatułka Rzemieślnicza dla sztabek/płyt).
+                have = self.quest_crafted_item_have_v0333(q["target"])
                 item_name = ITEMS[q["target"]]["name"]
                 if progress >= needed and have >= needed:
                     await self.send(
@@ -233,12 +233,12 @@ class SessionQuestsMixin:
 
             if q.get("kind") == "craft_set":
                 targets = tuple(q.get("targets") or ())
+                # v0.34.4: przyszłościowo licz także elementy zestawu, które
+                # trafią do magazynu profesji lub występują jako wariant jakości.
                 have = sum(
                     1
                     for item_id in targets
-                    if self.server.db.item_qty(
-                        self.account_id, item_id
-                    ) > 0
+                    if self.quest_crafted_item_have_v0333(item_id) > 0
                 )
                 if progress >= needed and have >= needed:
                     await self.send(

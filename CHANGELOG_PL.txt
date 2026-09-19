@@ -1,3 +1,62 @@
+v0.34.4 — Mining Drop Rebalance + Mithril Currency Fix
+- Mithril nie jest rudą ani przedmiotem w Sakwie Górnika. Od Kilofa 80, Górnictwa 80 i poziomu kopalni 80 może wypaść bezpośrednio jako 1 mithril do wspólnego portfela.
+- Szansa na mithril walutowy rośnie od 0,5% na progu 80 do 2% przy progresji 400 i jest dodatkowym rzutem — nie zastępuje zwykłej rudy.
+- Usunięto `mithril_ore` z aktywnej puli, atlasu i progów Górnictwa. Stare sztuki z v0.34.3 są jednorazowo zamieniane na ich dawną wartość sprzedaży 500 srebra.
+- Przebudowano wagi rud: świeżo odblokowane surowce mają teraz sensowną szansę, a wcześniejsze rudy pozostają możliwe na późniejszych poziomach.
+- Dodano gate drop-rate: główna ruda aktualnego progu nie może spaść poniżej 8% na kluczowych progach 50-400.
+- Zachowano pełny audyt ekonomii walutowej i brak arbitrażu kup->sprzedaj.
+
+v0.34.3 — Mithril Mining + Full Currency Economy Audit
+- Przywrócono Rudę mithrilu jako aktywny surowiec Górnictwa: Kilof 80+ i poziom 80+ Kopalni Głębinowej.
+- Wydobycie korzysta z autorskich progów ORE_ATLAS_LEVELS/ORE_MINE_FLOOR_MINIMUMS; Generator Core nie przesuwa już realnych odblokowań rud przez generator_level.
+- Ruda mithrilu trafia do Sakwy Górnika i ma wartość ekonomiczną pomiędzy złotem a kobaltem.
+- Jackpot górniczy waluty ma osobny komunikat „legendarny depozyt monet”, więc nie udaje fizycznej Rudy mithrilu.
+- Dodano pełny gate ekonomii walutowej: kurs 100 srebra = 1 złoto, 1000 złota = 1 mithril, normalizacja nagród mobów/questów, rzeczywiste oferty sklepów i arbitraż kup->sprzedaj także przy maksymalnym rabacie Charyzmy.
+- Audyt mierzy również maksymalne nagrody mobów/questów, repeatable questy, wartości sprzedaży itemów i koszt rozwoju Gildii 1-400.
+- Zachowano poprawki v0.34.2: questy Haldora poprawnie liczą i pobierają przedmioty ze Szkatułki Rzemieślniczej.
+
+v0.34.1 — Rebalans zarobku Kowalstwa
+- Sprzedaż wykutego EQ nie mnoży już wartości rudy na wysokich poziomach Kowalstwa.
+- Normalny craft ma limit 90% wartości zużytego surowca; Dobry 95%, Doskonały 100%, Mistrzowski 108%, Legendarny 118%.
+- Krytyczny craft może dodać maksymalnie kolejne 5 pp premii do limitu sprzedaży.
+- Zachowano dotychczasowe niższe ceny, więc wczesne przedmioty nie zostały sztucznie podbite.
+- Zmiana dotyczy wyłącznie NPC resale wykutego EQ; statystyki, jakość, XP Kowalstwa i receptury pozostają bez zmian.
+
+v0.34.0 — Class Soul Weapon Traits + Session Summary
+- Weapon Traits per class: wszystkie 14 klas mają teraz własny zestaw 40 właściwości Broni Duszy.
+- Właściwości działają wyłącznie na zwykły atak Broni Duszy i nie są skillami ani spellami.
+- Profile klas różnią rozkład obrażeń, krytyka, lifestealu, execute, obrażeń bossowych i odzyskiwania Many.
+- `dusza info` pokazuje właściwości dla aktualnej klasy postaci.
+- Session Summary: przy `quit` gra podsumowuje czas sesji, zabójstwa, dropy, crafting, akcje profesji oraz zdobyte XP.
+- Podsumowanie pokazuje także XP poszczególnych profesji/narzędzi oraz najczęstsze dropy sesji.
+
+Soulbound v0.33.16 - Guild Progression 1-400
+
+- Maksymalny poziom Gildii graczy został rozszerzony z 100 do 400.
+- Poziomy 1-100 zachowują dokładnie dotychczasową krzywą kosztów i bonusów, więc istniejące Gildie nie są nerfione.
+- Poziomy 101-400 kontynuują koszt rozwoju bez resetu ekonomii; koszt rośnie dalej od historycznego maksimum.
+- Bonus rozwoju Gildii rośnie dalej ponad poziom 100 i dochodzi maksymalnie do +23% na poziomie 400.
+- Dodano osiągnięcia Gildii za poziomy 200, 300 i 400.
+- HELP i komunikat maksymalnego poziomu zostały zaktualizowane do 1-400.
+- Siedziba Gildii pozostaje osobnym systemem 1-10.
+
+v0.33.15 - Właściwości Broni Duszy na każdym Tierze
+- Każdy Soul Tier 1-40 odblokowuje własną kumulatywną właściwość Broni Duszy.
+- Właściwości działają wyłącznie na zwykły atak Broni Duszy; nie są skillami ani spellami.
+- Progresja obejmuje obrażenia podstawowego ataku, krytyk, obrażenia krytyczne, wysysanie życia i premię przeciw osłabionym celom.
+- `dusza info` pokazuje właściwość każdego Tiera i łączne aktywne premie.
+
+v0.33.14 - Oddzielenie ataku broni od skilli
+- Broń Duszy wykonuje wyłącznie zwykły autoatak bronią.
+- Skille i spelle są komunikowane jako osobne użycie zdolności, bez tekstu sugerującego, że rzuca je miecz/Broń Duszy.
+- Auto-kolejka nadal może automatycznie używać gotowych skilli, ale są one osobnymi akcjami umiejętności.
+- Skalowanie i balans skilli pozostają bez zmian.
+
+v0.33.13 - Inventory ukrywa założone EQ
+- Inventory pokazuje tylko wolne sztuki przedmiotów; każda aktualnie założona sztuka jest odejmowana od ilości prezentowanej graczowi.
+- Obsługiwane są także identyczne przedmioty w podwójnych slotach: pierścienie, talizmany i kolczyki.
+- Jeśli wszystkie posiadane sztuki danego EQ są założone, przedmiot nie pojawia się w inventory.
+
 v0.33.12 - Indywidualne cooldowny wszystkich skilli
 - Każdy skill i spell ma od teraz wyłącznie własny cooldown po swoim ID.
 - Usunięto wspólne cooldowny grup Biegłości z ręcznego użycia, auto-kolejki oraz auto-healu.

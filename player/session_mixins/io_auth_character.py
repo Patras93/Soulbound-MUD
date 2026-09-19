@@ -1,3 +1,4 @@
+import time
 # -*- coding: utf-8 -*-
 """Soulbound v0.30.51 Session mixin: io_auth_character."""
 
@@ -1080,8 +1081,98 @@ class SessionIOAuthCharacterMixin:
                 )
             return True
 
+
+    def start_session_summary(self):
+        if not self.character or self.account_id is None:
+            self._session_summary = None
+            return
+        stats = self.server.db.lifetime_stats(self.account_id)
+        row = self.server.db.conn.execute(
+            "SELECT COALESCE(MAX(id),0) AS max_id FROM drop_history WHERE account_id=?",
+            (self.account_id,),
+        ).fetchone()
+        self._session_summary = {
+            "started_at": time.time(),
+            "kills_start": int(stats.get("kills_total", 0)),
+            "crafted_start": int(stats.get("crafted_items", 0)),
+            "profession_actions_start": int(stats.get("profession_actions", 0)),
+            "drop_start_id": int(row["max_id"] or 0) if row else 0,
+            "character_xp": 0,
+            "class_xp": 0,
+            "soul_xp": 0,
+            "profession_xp": {},
+            "tool_xp": {},
+        }
+
+    def session_summary_add(self, key, amount, subkey=None):
+        state = getattr(self, "_session_summary", None)
+        if not state:
+            return
+        amount = max(0, int(amount or 0))
+        if amount <= 0:
+            return
+        if subkey is None:
+            state[key] = int(state.get(key, 0) or 0) + amount
+        else:
+            bucket = state.setdefault(key, {})
+            bucket[str(subkey)] = int(bucket.get(str(subkey), 0) or 0) + amount
+
+    async def show_session_summary(self):
+        state = getattr(self, "_session_summary", None)
+        if not state or self.account_id is None:
+            return
+        stats = self.server.db.lifetime_stats(self.account_id)
+        kills = max(0, int(stats.get("kills_total", 0)) - int(state.get("kills_start", 0)))
+        crafted = max(0, int(stats.get("crafted_items", 0)) - int(state.get("crafted_start", 0)))
+        prof_actions = max(0, int(stats.get("profession_actions", 0)) - int(state.get("profession_actions_start", 0)))
+        rows = self.server.db.conn.execute(
+            "SELECT item_name,COUNT(*) AS qty FROM drop_history WHERE account_id=? AND id>? GROUP BY item_name ORDER BY qty DESC,item_name LIMIT 8",
+            (self.account_id, int(state.get("drop_start_id", 0))),
+        ).fetchall()
+        drop_total_row = self.server.db.conn.execute(
+            "SELECT COUNT(*) AS qty FROM drop_history WHERE account_id=? AND id>?",
+            (self.account_id, int(state.get("drop_start_id", 0))),
+        ).fetchone()
+        drop_total = int(drop_total_row["qty"] or 0) if drop_total_row else 0
+        duration = max(0, int(time.time() - float(state.get("started_at", time.time()))))
+        await self.send(
+            f"PODSUMOWANIE SESJI. Czas: {self.format_duration_short(duration)}. "
+            f"Zabici przeciwnicy: {kills}. Wytworzone przedmioty: {crafted}. "
+            f"Akcje profesji: {prof_actions}. Dropy: {drop_total}.",
+            history_store=False,
+        )
+        xp_parts = []
+        if int(state.get("character_xp", 0)):
+            xp_parts.append(f"Postać {int(state['character_xp'])} XP")
+        if int(state.get("class_xp", 0)):
+            xp_parts.append(f"Klasy {int(state['class_xp'])} XP")
+        if int(state.get("soul_xp", 0)):
+            xp_parts.append(f"Soul {int(state['soul_xp'])} XP")
+        if xp_parts:
+            await self.send("Zdobyte XP: " + "; ".join(xp_parts) + ".", history_store=False)
+        prof_xp = state.get("profession_xp", {}) or {}
+        if prof_xp:
+            text = ", ".join(f"{name} +{amount} XP" for name, amount in sorted(prof_xp.items()))
+            await self.send("Profesje: " + text + ".", history_store=False)
+        tool_xp = state.get("tool_xp", {}) or {}
+        if tool_xp:
+            _tool_names = {
+                "fishing":"Wędka", "mining":"Kilof", "woodcutting":"Piła",
+                "crafting":"Młot Rzemieślniczy", "cooking":"Nóż Kucharski",
+                "herbalism":"Sierp Zielarski", "alchemy":"Moździerz Alchemiczny",
+                "jewelcrafting":"Szczypce Jubilerskie",
+            }
+            text = ", ".join(f"{_tool_names.get(name, name)} +{amount} XP" for name, amount in sorted(tool_xp.items()))
+            await self.send("Narzędzia: " + text + ".", history_store=False)
+        if rows:
+            await self.send(
+                "Najczęstsze dropy: " + ", ".join(f"{row['item_name']} x{int(row['qty'])}" for row in rows) + ".",
+                history_store=False,
+            )
+
     async def enter_world(self):
             self.refresh_active_classes()
+            self.start_session_summary()
 
             moved_gems = self.migrate_raw_mining_gems_to_bag_v0867()
             moved_craft_materials = self.migrate_craft_materials_to_casket_v0915()

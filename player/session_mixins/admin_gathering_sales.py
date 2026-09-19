@@ -439,46 +439,55 @@ class SessionAdminGatheringSalesMixin:
                 tool_level, self.character.room_id
             )
 
-            mined_resource_quantity = 0
-            if item_id == "__mithril_currency__":
-                jackpot_stage = max(1, min(400, max(tool_level, profession_level)))
-                jackpot = generator_core_v027.currency_for_stage(jackpot_stage, "rare") * 8
-                self.character.silver += jackpot
-                self.server.db.save_character(self.character)
-                await self.send(
-                    "Trafiasz na wyjątkową żyłę mithrilu! Generator Core przyznaje "
-                    + currency_reading_text(jackpot, 0, 0, full_names=True, include_zero=False) + "."
-                )
-            else:
-                vein = roll_mining_vein(tool_level)
-                vein_quantity = int(vein["quantity"]) + gather_feature["quantity_bonus"]
-                self.store_profession_resource(
-                    item_id, vein_quantity
-                )
-                mined_resource_quantity = vein_quantity
-                item = ITEMS[item_id]
-                await self.record_item_collection(
-                    item_id, source="Górnictwo", announce=True, record_history=False, amount=vein_quantity
-                )
-                await self.send(
-                    f"ŻYŁA: {vein['name']}. "
-                    f"Wydobywasz: {item['name']} x{vein_quantity}. "
-                    "Urobek trafia do Sakwy górniczej."
-                )
-                await self.announce_infinite_gather_feature(gather_feature)
+            if not item_id or item_id not in ITEMS:
+                await self.send("Nie udało się odnaleźć prawidłowego urobku dla tego poziomu kopalni.")
+                return
 
-                current_tier = tool_tier(tool_level)
-                bonus_chance = min(
+            vein = roll_mining_vein(tool_level)
+            vein_quantity = int(vein["quantity"]) + gather_feature["quantity_bonus"]
+            self.store_profession_resource(item_id, vein_quantity)
+            mined_resource_quantity = vein_quantity
+            item = ITEMS[item_id]
+            await self.record_item_collection(
+                item_id, source="Górnictwo", announce=True, record_history=False, amount=vein_quantity
+            )
+            await self.send(
+                f"ŻYŁA: {vein['name']}. "
+                f"Wydobywasz: {item['name']} x{vein_quantity}. "
+                "Urobek trafia do Sakwy górniczej."
+            )
+            await self.announce_infinite_gather_feature(gather_feature)
+
+            current_tier = tool_tier(tool_level)
+            bonus_chance = min(
                 0.50,
                 tool_tier_bonus_chance(tool_level)
                 + self.character.racial_profession_bonus_chance()
             )
-                if bonus_chance > 0 and random.random() < bonus_chance:
-                    self.store_profession_resource(item_id, 1)
-                    mined_resource_quantity += 1
-                    await self.send(
-                        f"Bonus Tieru {current_tier} Kilofa: wydobywasz dodatkowo {item['name']} x1."
-                    )
+            if bonus_chance > 0 and random.random() < bonus_chance:
+                self.store_profession_resource(item_id, 1)
+                mined_resource_quantity += 1
+                await self.send(
+                    f"Bonus Tieru {current_tier} Kilofa: wydobywasz dodatkowo {item['name']} x1."
+                )
+
+            # v0.34.4: Mithril jest walutą, nie rudą. Jest niezależnym bonusem
+            # i nigdy nie zastępuje normalnego urobku.
+            floor_for_currency = mine_floor_number(self.character.room_id)
+            dungeon_for_currency, dungeon_floor_for_currency = profession_dungeon_floor(self.character.room_id)
+            if dungeon_for_currency == "crystal_mine":
+                floor_for_currency = min(400, max(1, int(dungeon_floor_for_currency) * 10))
+            mithril_chance = mining_mithril_currency_chance(
+                tool_level, profession_level, floor_for_currency or 1
+            )
+            if mithril_chance > 0 and random.random() < mithril_chance:
+                self.character.mithril += 1
+                self.server.db.save_character(self.character)
+                self.server.db.add_lifetime_stat(self.account_id, "mithril_mined", 1)
+                await self.send(
+                    "MITHRIL: odkrywasz czysty mithril walutowy x1. "
+                    "Trafia bezpośrednio do wspólnego portfela konta."
+                )
 
             gem_id = self.mining_gem_drop(
                 tool_level, profession_level, self.character.room_id,
@@ -511,16 +520,15 @@ class SessionAdminGatheringSalesMixin:
                     "Trafia do Sakwy Górnika. Otwórz: open geode / otwórz geodę."
                 )
 
-            if item_id != "__mithril_currency__":
-                await self.announce_resource_quest_progress(
-                    item_id, mined_resource_quantity
-                )
-                await self.announce_collect_category_quest_progress("ore", mined_resource_quantity)
-                await self.advance_bounty("mine", item_id, mined_resource_quantity)
-                await self.advance_legendary_contract_v022("gather", mined_resource_quantity)
-                await self.advance_dynamic_world_quest_v015("mine", item_id, mined_resource_quantity)
-                await self.add_faction_reputation_v016("miners", 1, reason="mining")
-                self.server.db.add_lifetime_stat(self.account_id, "ore_mined", mined_resource_quantity)
+            await self.announce_resource_quest_progress(
+                item_id, mined_resource_quantity
+            )
+            await self.announce_collect_category_quest_progress("ore", mined_resource_quantity)
+            await self.advance_bounty("mine", item_id, mined_resource_quantity)
+            await self.advance_legendary_contract_v022("gather", mined_resource_quantity)
+            await self.advance_dynamic_world_quest_v015("mine", item_id, mined_resource_quantity)
+            await self.add_faction_reputation_v016("miners", 1, reason="mining")
+            self.server.db.add_lifetime_stat(self.account_id, "ore_mined", mined_resource_quantity)
 
             self.server.db.add_lifetime_stat(self.account_id, "profession_actions", 1)
             floor_xp_mult = gather_feature["xp_mult"]
@@ -544,7 +552,7 @@ class SessionAdminGatheringSalesMixin:
                 )
             if new_tool_level >= 80 and tool_level < 80:
                 await self.send(
-                    "Twój Kilof osiągnął level 80. Od teraz masz minimalną szansę wydobyć czysty mithril."
+                    "Twój Kilof osiągnął level 80. Od poziomu kopalni 80 możesz znaleźć mithril bezpośrednio jako walutę."
                 )
 
             floor = mine_floor_number(self.character.room_id)
@@ -790,7 +798,48 @@ class SessionAdminGatheringSalesMixin:
                 return True
             return False
 
+    def blacksmith_crafted_sale_cap_v0341(self, item_id, item):
+            """Cap NPC resale of crafted blacksmith gear by the value of consumed ore.
+
+            Smithing should create equipment and profession progress, not multiply currency.
+            Normal crafts are worth at most 90% of the source ore opportunity value; only
+            high-quality/critical crafts can earn a modest premium.
+            """
+            material_key = str(item.get("blacksmith_material") or "").strip()
+            if not material_key:
+                return None
+
+            tier = next((row for row in BLACKSMITH_TIERS if str(row.get("key")) == material_key), None)
+            if not tier:
+                return None
+            ore = ITEMS.get(str(tier.get("ore")), {})
+            ore_value = legacy_currency_to_coins(
+                ore.get("sell_silver", 0), ore.get("sell_gold", 0), ore.get("sell_mithril", 0)
+            )
+            if ore_value <= 0:
+                return None
+
+            slot = str(item.get("slot") or "")
+            slot_row = BLACKSMITH_SLOT_DEFS.get(slot)
+            if not slot_row:
+                return None
+            ingot_cost = max(1, int(slot_row[2] or 1))
+            material_value = ore_value * ingot_cost
+
+            quality = str(item.get("craft_quality_v03054") or "normal").lower()
+            quality_factor = {
+                "normal": 0.90,
+                "good": 0.95,
+                "excellent": 1.00,
+                "masterwork": 1.08,
+                "legendary": 1.18,
+            }.get(quality, 0.90)
+            if item.get("craft_critical_v03054"):
+                quality_factor += 0.05
+            return max(1, int(material_value * quality_factor))
+
     def generic_item_sale_value(self, item_id, item):
+            smith_cap = self.blacksmith_crafted_sale_cap_v0341(item_id, item)
             # Jawna cena sprzedaży ma pierwszeństwo.
             explicit = {
                 "silver": int(item.get("sell_silver", 0) or 0),
@@ -798,6 +847,13 @@ class SessionAdminGatheringSalesMixin:
                 "mithril": int(item.get("sell_mithril", 0) or 0),
             }
             if any(explicit.values()):
+                if item.get("blacksmith_material"):
+                    total = legacy_currency_to_coins(
+                        explicit["silver"], explicit["gold"], explicit["mithril"]
+                    )
+                    if smith_cap is not None:
+                        total = min(total, smith_cap)
+                    return {"silver": total, "gold": 0, "mithril": 0}
                 if item_id in FISH_STORAGE_IDS:
                     total = legacy_currency_to_coins(
                         explicit["silver"], explicit["gold"], explicit["mithril"]
@@ -813,6 +869,10 @@ class SessionAdminGatheringSalesMixin:
                 value = max(1, int(price) // 2)
                 result = {"silver": 0, "gold": 0, "mithril": 0}
                 result[currency] = value
+                if smith_cap is not None:
+                    total = legacy_currency_to_coins(result["silver"], result["gold"], result["mithril"])
+                    total = min(total, smith_cap)
+                    return {"silver": total, "gold": 0, "mithril": 0}
                 return result
 
             # v0.9.15: zwykły loot z mobów (np. kły i trofea) można
@@ -853,6 +913,8 @@ class SessionAdminGatheringSalesMixin:
                     + stat_power * 120
                     + int(property_power * 250),
                 )
+                if smith_cap is not None:
+                    silver = min(silver, smith_cap)
                 return {"silver": silver, "gold": 0, "mithril": 0}
 
             return {"silver": 0, "gold": 0, "mithril": 0}

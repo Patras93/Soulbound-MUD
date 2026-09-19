@@ -1021,6 +1021,16 @@ class SessionCraftingInventoryEquipmentMixin:
 
     async def inventory(self):
             rows = self.server.db.inventory(self.account_id)
+            # v0.33.16: inventory pokazuje tylko WOLNE sztuki.
+            # Baza zachowuje łączną ilość przedmiotu, również gdy konkretna sztuka
+            # jest aktualnie założona. Odejmujemy więc każdą sztukę obecną w EQ
+            # wyłącznie na potrzeby prezentacji inventory. Dzięki temu dwa identyczne
+            # pierścienie/talizmany/kolczyki są liczone poprawnie sztuka po sztuce.
+            equipped_counts = {}
+            for equipped in self.server.db.equipment(self.account_id):
+                equipped_id = str(equipped["item_id"])
+                equipped_counts[equipped_id] = equipped_counts.get(equipped_id, 0) + 1
+
             await self.send(
                 "Waluta: "
                 + currency_reading_text(
@@ -1034,11 +1044,21 @@ class SessionCraftingInventoryEquipmentMixin:
                 "i Szkatułka Rzemieślnicza są osobnymi magazynami; użyj siatka/net, "
                 "sakwa/bag, drewno/stos, ziola/herbs oraz szkatułka/craftbox."
             )
-            if not rows:
+            visible_rows = []
+            for row in rows:
+                item_id = str(row["item_id"])
+                visible_quantity = max(
+                    0,
+                    int(row["quantity"]) - int(equipped_counts.get(item_id, 0)),
+                )
+                if visible_quantity > 0:
+                    visible_rows.append((row, visible_quantity))
+
+            if not visible_rows:
                 await self.send("Ekwipunek jest pusty.")
                 return
             await self.send("Ekwipunek:")
-            for row in rows:
+            for row, visible_quantity in visible_rows:
                 item = ITEMS.get(row["item_id"]) or ensure_crafting_quality_variant_v0332(row["item_id"]) or {"name": player_item_display_name_v0335(row["item_id"]), "desc": ""}
                 bound_text = (
                     " Przypisany do postaci; nie można oddać ani wyrzucić."
@@ -1046,7 +1066,7 @@ class SessionCraftingInventoryEquipmentMixin:
                     else ""
                 )
                 await self.send(
-                    f"{item['name']} x{row['quantity']}. "
+                    f"{item['name']} x{visible_quantity}. "
                     f"{item.get('desc','')}{bound_text}"
                 )
 

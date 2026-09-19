@@ -1190,6 +1190,41 @@ FISH_RESOURCE_IDS = {
     "marlin_black", "opah", "celestial_swordfish", "astral_sunfish",
     "void_marlin", "world_leviathan",
 }
+
+# v0.34.4: Górnictwo ma zawsze dawać normalny urobek, a aktualnie odblokowane
+# rudy/minerały nie mogą ginąć w ogromnej kumulatywnej puli. Starsze zasoby
+# nadal pozostają możliwe, lecz świeże progi mają wyższą wagę.
+def mining_ore_weights(resource_ids, effective_level, context="mining"):
+    effective_level = max(1, min(400, int(effective_level)))
+    result = []
+    for item_id in resource_ids:
+        unlock = max(1, min(400, int(ORE_ATLAS_LEVELS.get(item_id, 1) or 1)))
+        age = max(0, effective_level - unlock)
+        # Około 10-20% dla świeżego zasobu przy zwykłych progach 1-200;
+        # stare rudy nigdy nie spadają do zera.
+        freshness = 0.20 + 8.0 / ((1.0 + age / 20.0) ** 1.50)
+        affinity = 0.92 + 0.16 * generator_core_v027.stable_unit(
+            f"{context}:{item_id}:mining-affinity"
+        )
+        result.append(max(0.05, freshness * affinity))
+    return result
+
+
+def mining_mithril_currency_chance(tool_level, profession_level, floor):
+    """Szansa na bezpośrednie znalezienie 1 mithrilu jako WALUTY.
+
+    Mithril nie jest rudą i nie zastępuje normalnego urobku. Odblokowuje się
+    od Kilofa/Górnictwa 80 i poziomu kopalni 80. Szansa rośnie od 0.5% do 2%.
+    """
+    tool_level = max(1, min(400, int(tool_level)))
+    profession_level = max(1, min(400, int(profession_level)))
+    floor = max(1, min(400, int(floor or 1)))
+    effective = min(tool_level, profession_level, floor)
+    if effective < 80:
+        return 0.0
+    progress = (effective - 80) / 320.0
+    return round(0.005 + 0.015 * progress, 6)
+
 ORE_RESOURCE_IDS = {
     "stone_chunk", "copper_ore", "iron_ore",
     "silver_ore", "gold_ore",

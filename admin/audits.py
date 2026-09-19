@@ -71,8 +71,8 @@ def generator_whitelist_audit_v03019():
     audit = GENERATOR_CORE_AUDIT or {}
     whitelist = audit.get("whitelist_audit") or {}
     errors = []
-    if GENERATOR_CORE_VERSION != "0.33.12":
-        errors.append(f"Generator Core version={GENERATOR_CORE_VERSION}, expected 0.33.12")
+    if GENERATOR_CORE_VERSION != "0.34.4":
+        errors.append(f"Generator Core version={GENERATOR_CORE_VERSION}, expected 0.34.4")
     if not audit.get("numeric_only"):
         errors.append("numeric_only flag missing")
     runtime_fast = bool(audit.get("runtime_fast_path"))
@@ -758,7 +758,7 @@ def full_release_integrity_audit_v03025():
         errors.append("world logic audit failed")
     if int(WORLD_LOGIC_AUDIT.get("warning_count", 0) or 0):
         errors.append("world logic warnings present")
-    if GENERATOR_CORE_VERSION != "0.33.12":
+    if GENERATOR_CORE_VERSION != "0.34.4":
         errors.append(f"GENERATOR_CORE_VERSION={GENERATOR_CORE_VERSION}")
     return {
         "version": "0.30.25",
@@ -975,7 +975,7 @@ def gameplay_flow_audit_v03026():
         if missing:
             errors.append(f"station {_station}: brak w {missing[:5]}")
 
-    if GENERATOR_CORE_VERSION != "0.33.12":
+    if GENERATOR_CORE_VERSION != "0.34.4":
         errors.append(f"GENERATOR_CORE_VERSION={GENERATOR_CORE_VERSION}")
 
     return {
@@ -2835,7 +2835,7 @@ def _install_v0310_tech_help():
 _install_v0310_tech_help()
 
 # ============================================================
-# v0.33.12 - FULL GAME PRE-DEPLOY INTEGRITY GATE
+# v0.34.1 - FULL GAME PRE-DEPLOY INTEGRITY GATE
 # Covers every registered runtime content domain and blocks startup on broken
 # cross-references, technical IDs in player-facing item names, stale generated
 # numeric item descriptions, invalid quest/item/NPC/shop links, skill-name
@@ -3140,6 +3140,151 @@ def full_game_predeploy_audit_v0336():
         _stack.remove(qid)
     for _qid in QUESTS: _visit_quest_dep_v0336(_qid)
 
+    # 9e) v0.34.1 Blacksmithing NPC resale must not multiply raw ore value.
+    _smith_rows_checked=0
+    try:
+        _smith_dummy=object.__new__(Session)
+        for _tier in BLACKSMITH_TIERS:
+            _ore=ITEMS.get(str(_tier.get('ore')), {})
+            _ore_value=legacy_currency_to_coins(
+                _ore.get('sell_silver',0), _ore.get('sell_gold',0), _ore.get('sell_mithril',0)
+            )
+            if _ore_value<=0:
+                err('blacksmith_ore_without_sale_value',_tier.get('key'),_tier.get('ore')); continue
+            for _slot,_slot_row in BLACKSMITH_SLOT_DEFS.items():
+                _iid=f"smith_{_tier['key']}_{_slot}"
+                _item=ITEMS.get(_iid)
+                if not _item:
+                    err('blacksmith_missing_crafted_item',_iid); continue
+                _cost=max(1,int(_slot_row[2] or 1))
+                _material_value=_ore_value*_cost
+                _sale=Session.generic_item_sale_value(_smith_dummy,_iid,_item)
+                _sale_value=legacy_currency_to_coins(_sale.get('silver',0),_sale.get('gold',0),_sale.get('mithril',0))
+                _max_normal=int(_material_value*0.90)
+                if _sale_value>_max_normal:
+                    err('blacksmith_normal_resale_too_high',_iid,_sale_value,_max_normal,_material_value)
+                _smith_rows_checked+=1
+    except Exception as _exc:
+        err('blacksmith_economy_audit_exception',repr(_exc))
+    metrics['blacksmith_resale_rows_checked']=_smith_rows_checked
+
+    # 9f) v0.34.4 Currency economy + Mithril mining gate.
+    # One wallet uses silver as the canonical unit; gold/mithril are display denominations.
+    if int(SILVER_PER_GOLD) != 100:
+        err('currency_ratio_silver_gold',SILVER_PER_GOLD,100)
+    if int(GOLD_PER_MITHRIL) != 1000:
+        err('currency_ratio_gold_mithril',GOLD_PER_MITHRIL,1000)
+    if int(SILVER_PER_MITHRIL) != 100000:
+        err('currency_ratio_silver_mithril',SILVER_PER_MITHRIL,100000)
+
+    _mob_split=0; _quest_split=0
+    _max_mob_currency=0; _max_quest_currency=0; _repeatable_count=0; _max_repeatable=0
+    for _mid,_mob in MOB_TEMPLATES.items():
+        _silver=int(_mob.get('silver',0) or 0)
+        _max_mob_currency=max(_max_mob_currency,_silver)
+        if int(_mob.get('gold',0) or 0) or int(_mob.get('mithril',0) or 0):
+            _mob_split+=1; err('mob_split_currency_not_normalized',_mid,_mob.get('gold'),_mob.get('mithril'))
+    for _qid,_q in QUESTS.items():
+        _coins=int(_q.get('reward_silver',0) or 0)
+        _max_quest_currency=max(_max_quest_currency,_coins)
+        if bool(_q.get('repeatable')) or int(_q.get('cooldown_seconds',0) or 0)>0:
+            _repeatable_count+=1; _max_repeatable=max(_max_repeatable,_coins)
+        if int(_q.get('reward_gold',0) or 0) or int(_q.get('reward_mithril',0) or 0):
+            _quest_split+=1; err('quest_split_currency_not_normalized',_qid,_q.get('reward_gold'),_q.get('reward_mithril'))
+    metrics['currency_mob_split_count']=_mob_split
+    metrics['currency_quest_split_count']=_quest_split
+    metrics['currency_max_mob_reward']=_max_mob_currency
+    metrics['currency_max_quest_reward']=_max_quest_currency
+    metrics['currency_repeatable_quests']=_repeatable_count
+    metrics['currency_max_repeatable_quest_reward']=_max_repeatable
+
+    # Real shop offers only, with the maximum Charisma cashback applied: no buy -> sell profit loop.
+    _shop_ids=set()
+    for _offers in SHOPS.values():
+        _shop_ids.update(_offers or ())
+    for _offers in CLASS_SHOP_ITEMS_BY_ROOM.values():
+        _shop_ids.update(_offers or ())
+    _shop_arbitrage=[]
+    try:
+        _economy_dummy=object.__new__(Session)
+        _max_discount=max(0,min(100,int(CHARISMA_MAX_DISCOUNT or 0)))
+        for _iid in sorted(_shop_ids):
+            _item=ITEMS.get(_iid)
+            if not _item:
+                continue
+            _buy=int(Session.shop_item_base_value_silver(_economy_dummy,_item) or 0)
+            if _buy<=0:
+                continue
+            _effective_buy=max(0,_buy-((_buy*_max_discount)//100))
+            _sale=Session.generic_item_sale_value(_economy_dummy,_iid,_item)
+            _sell=legacy_currency_to_coins(
+                _sale.get('silver',0),_sale.get('gold',0),_sale.get('mithril',0)
+            )
+            if _sell>_effective_buy:
+                _shop_arbitrage.append((_iid,_effective_buy,_sell))
+                err('shop_buy_sell_arbitrage',_iid,_effective_buy,_sell,_max_discount)
+    except Exception as _exc:
+        err('currency_shop_audit_exception',repr(_exc))
+    metrics['currency_shop_items_checked']=len(_shop_ids)
+    metrics['currency_shop_arbitrage_count']=len(_shop_arbitrage)
+    metrics['currency_max_charisma_discount']=int(CHARISMA_MAX_DISCOUNT or 0)
+
+    _max_explicit_sell=0
+    for _iid,_item in ITEMS.items():
+        _value=legacy_currency_to_coins(
+            _item.get('sell_silver',0),_item.get('sell_gold',0),_item.get('sell_mithril',0)
+        )
+        _max_explicit_sell=max(_max_explicit_sell,int(_value or 0))
+    metrics['currency_max_explicit_item_sell']=_max_explicit_sell
+
+    # v0.34.4: Mithril is a currency bonus from mining, never an ore resource.
+    if 'mithril_ore' in ORE_RESOURCE_IDS:
+        err('mithril_ore_must_not_be_active_resource')
+    if 'mithril_ore' in ORE_ATLAS_ALL:
+        err('mithril_ore_must_not_be_in_atlas')
+    if 'mithril_ore' in ORE_ATLAS_LEVELS or 'mithril_ore' in ORE_MINE_FLOOR_MINIMUMS:
+        err('mithril_ore_must_not_have_unlock_threshold')
+    _mithril_chance_79=mining_mithril_currency_chance(79,79,79)
+    _mithril_chance_80=mining_mithril_currency_chance(80,80,80)
+    _mithril_chance_400=mining_mithril_currency_chance(400,400,400)
+    if _mithril_chance_79 != 0:
+        err('mithril_currency_unlock_too_early',_mithril_chance_79)
+    if not (0.0049 <= _mithril_chance_80 <= 0.0051):
+        err('mithril_currency_level80_chance',_mithril_chance_80)
+    if not (0.0199 <= _mithril_chance_400 <= 0.0201):
+        err('mithril_currency_level400_chance',_mithril_chance_400)
+    metrics['mithril_currency_chance_level80']=_mithril_chance_80
+    metrics['mithril_currency_chance_level400']=_mithril_chance_400
+
+    # Audit authored ore weighting: newly unlocked core ores must be meaningfully
+    # visible, while older ores remain possible.
+    _ore_drop_checks=(
+        (50,'gold_ore'),(100,'cobalt_ore'),(120,'runestone_ore'),
+        (140,'dragonsteel_ore'),(160,'astral_ore'),(180,'void_ore'),
+        (200,'eternium_ore'),(220,'ore_400_220'),(400,'ore_400_400'),
+    )
+    _ore_drop_metrics={}
+    for _level,_ore_id in _ore_drop_checks:
+        _pool=[]
+        for _iid in ORE_RESOURCE_IDS:
+            if _iid not in ITEMS:
+                continue
+            if int(ORE_ATLAS_LEVELS.get(_iid,1) or 1) <= _level and int(ORE_MINE_FLOOR_MINIMUMS.get(_iid,1) or 1) <= _level:
+                _pool.append(_iid)
+        _weights=mining_ore_weights(_pool,_level,f'audit:mine_floor_{_level}')
+        _total=sum(_weights) or 1.0
+        _prob=0.0
+        if _ore_id in _pool:
+            _prob=float(_weights[_pool.index(_ore_id)])/_total
+        _ore_drop_metrics[_ore_id]=round(_prob,6)
+        if _prob < 0.08:
+            err('current_tier_ore_too_rare',_level,_ore_id,_prob)
+    metrics['mining_current_ore_probabilities']=_ore_drop_metrics
+    try:
+        metrics['currency_guild_upgrade_1_400']=sum(int(v0926_guild_upgrade_cost(_lvl) or 0) for _lvl in range(1,400))
+    except Exception as _exc:
+        warnings.append(('guild_currency_sink_metric_unavailable',repr(_exc)))
+
     # 10) Skills/spells: no duplicate display names, no numeric disambiguators.
     seen_skill_names={}; skill_count=0
     for cname,rows in CLASS_SKILLS.items():
@@ -3173,26 +3318,16 @@ def full_game_predeploy_audit_v0336():
     metrics['command_methods_checked']=len(called)
 
     return {
-        'version':'0.33.12','error_count':len(errors),'warning_count':len(warnings),
+        'version':'0.34.4','error_count':len(errors),'warning_count':len(warnings),
         'errors':errors,'warnings':warnings,'metrics':metrics,
         'description_sync':dict(ITEM_DESCRIPTION_SYNC_V0336),
     }
 
-# The exhaustive pre-deploy audit is intentionally NOT executed during normal
-# production startup. It walks tens of thousands of runtime records and can
-# delay opening the Railway port long enough for clients/health checks to
-# reconnect. Run it explicitly before release or set SOULBOUND_FULL_AUDIT=1.
-import os as _os_v0338
-if _os_v0338.environ.get('SOULBOUND_FULL_AUDIT','').strip().lower() in ('1','true','yes','on'):
-    FULL_GAME_PREDEPLOY_AUDIT_V0336=full_game_predeploy_audit_v0336()
-    if FULL_GAME_PREDEPLOY_AUDIT_V0336['error_count']:
-        raise RuntimeError(
-            'Full Game Pre-Deploy Audit v0.33.12 failed: '+
-            '; '.join(map(str,FULL_GAME_PREDEPLOY_AUDIT_V0336['errors'][:100]))
-        )
-else:
-    FULL_GAME_PREDEPLOY_AUDIT_V0336={
-        'version':'0.33.12','skipped_at_runtime':True,'error_count':0,'warning_count':0,
-        'errors':[],'warnings':[],
-        'reason':'Run before deploy with SOULBOUND_FULL_AUDIT=1; skipped during normal server startup.'
-    }
+# v0.34.4: the exhaustive audit must run only after *all* runtime modules are
+# loaded. server.py executes it after the module loop when SOULBOUND_FULL_AUDIT=1.
+# Keeping a placeholder here preserves compatibility for code that inspects the symbol.
+FULL_GAME_PREDEPLOY_AUDIT_V0336={
+    'version':'0.34.4','deferred_until_runtime_complete':True,'error_count':0,'warning_count':0,
+    'errors':[],'warnings':[],
+    'reason':'Final pre-deploy audit is executed by server.py after every runtime module has loaded.'
+}

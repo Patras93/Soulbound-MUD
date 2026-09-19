@@ -883,7 +883,7 @@ def full_combat_scaling_audit_v03015():
         errors.append("INT/WIL does not increase mana")
     if int_plus - base != wil_plus - base:
         errors.append("INT/WIL mana contribution is not equal")
-    if GENERATOR_CORE_VERSION != "0.33.12":
+    if GENERATOR_CORE_VERSION != "0.34.4":
         errors.append(f"GENERATOR_CORE_VERSION={GENERATOR_CORE_VERSION}")
     return {
         "version": "0.30.19",
@@ -1055,7 +1055,7 @@ HELP_TOPICS.setdefault("kolejka", []).append(
 LATEST_CHANGES_TITLE = "Soulbound v0.30.17 - Soul Weapon Combat + Skill Grid + Character-Level Queue"
 LATEST_CHANGES = [
     "Broń Duszy jest jawną aktywną bronią autoataku; każda z 14 klas ma własną technikę ataku, a Soul Power pozostaje rdzeniem obrażeń.",
-    "Ofensywne skille/spelle pokazują używaną Broń Duszy i nadal korzystają z jej mocy; fizyczne skalują się z Siły, magiczne z Inteligencji.",
+    "Broń Duszy wykonuje wyłącznie zwykły atak bronią. Skille i spelle są uruchamiane jako osobne zdolności i nie są opisywane jako ataki wykonywane przez broń. Ich dotychczasowe skalowanie obrażeń pozostaje bez zmian.",
     "Naprawiono Generator Core: 123 skille na klasę nie są już rozciągane po losowych progach. Każda klasa ma dokładnie 3 skille na 1, 10, 20...400.",
     "Sloty auto kolejki zależą od Character Level: 10 na Levelu 1, 11 na 10, 20 na 100, 30 na 200, 50 na 400.",
     "Brak wipe; ID skilli, nauczone umiejętności i zapisane kolejki pozostają kompatybilne.",

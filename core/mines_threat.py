@@ -1903,9 +1903,9 @@ ITEMS = {
         "desc": "Rzadka i cenna ruda.", "sell_gold": 4,
     },
     "mithril_ore": {
-        "name": "Ruda mithrilu (stary przedmiot)", "type": "resource", "price": None,
-        "desc": "Przedmiot zgodności ze starszych wersji. Nie można go już wydobyć.",
-        "sell_gold": 120,
+        "name": "Stary mithrilowy urobek", "type": "legacy", "price": None,
+        "desc": "Przedmiot legacy z v0.34.3. Nie wypada już w kopalni; mithril jest walutą.",
+        "sell_silver": 500,
     },
     "soul_shard": {
         "name": "Odłamek Duszy", "type": "quest", "price": None,

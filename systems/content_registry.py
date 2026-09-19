@@ -642,12 +642,12 @@ SYSTEM_DESCRIPTIONS = {
     "górnictwo": (
         "Górnictwo ma własny poziom 1-400. Kilof ma osobny level 1-400. "
         "Użyj mine albo kop. Auto-kopanie: kop on i kop off. "
-        "Czysty mithril może zostać wydobyty bezpośrednio dopiero od levelu 80 Kilofa. "
+        "Mithril jest walutą i może wypaść jako dodatkowy bonus od Kilofa 80, Górnictwa 80 i poziomu kopalni 80. "
         "Od Kilofa 20 mogą wypadać geody; open geode / otwórz geodę otwiera je na klejnoty."
     ),
     "gornictwo": (
         "Górnictwo ma własny poziom 1-400. Kilof ma osobny level 1-400. "
-        "Czysty mithril może zostać wydobyty bezpośrednio dopiero od levelu 80 Kilofa."
+        "Mithril jest walutą i może wypaść jako dodatkowy bonus od Kilofa 80, Górnictwa 80 i poziomu kopalni 80."
     ),
     "mining": "Górnictwo ma własny poziom 1-400 i do 200 skraca czas wydobycia; Kilof ma niezależny level 1-400 i odblokowuje lepsze rudy/żyły.",
     "jubilerstwo": (
@@ -894,7 +894,7 @@ LATEST_CHANGES = [
     "Portfel i Bank Dusz przechowują jedną wartość, a NVDA odczytuje ją automatycznie jako mithril, złoto i srebro.",
     "Komendy bank wplac/wyplac przyjmują nominał, np. bank wplac 5 zlota albo bank wyplac 1 mithril, lecz operują na tym samym saldzie.",
     "Sklepy, sprzedaż, nagrody, nauka skilli i egzaminy korzystają z tego samego wspólnego salda i automatycznie przeliczają nominały.",
-    "Czysty mithril z Górnictwa dodaje równowartość 1 mithrilu do wspólnego salda.",
+    "Mithril z Górnictwa wpada bezpośrednio jako 1 mithril do wspólnego salda; nie jest rudą ani przedmiotem w Sakwie.",
     "Migracja jest oznaczana flagą i nie wykonuje się drugi raz po restarcie/deployu; nie kasuj soulbound.db ani Railway Volume.",
 
     "Ciała mobów otrzymują materiałowe EQ dobrane do siły przeciwnika: żelazo, stal, mithril, adamantyt, kobalt, runiczny metal, smocza stal, astral, Pustka i eternium.",
@@ -1323,8 +1323,8 @@ HELP_TOPICS = {
         "v0.31.15: każda udana receptura nalicza aktywne questy craftingowe; Salvage/Salvage 3.0/Tech Salvage dają Kowalstwo XP bez sztucznego nabijania Młota.",
         "Komenda korzysta z istniejących receptur Kowalstwa i nie omija wymagań.",
         "Musisz mieć Młot Rzemieślniczy, odpowiedni level Kowalstwa, wymagany Tier Młota, składniki i stać przy właściwej kuźni.",
-        "Przykłady: przetop żelazo, przetop odłamki żelaza, przetop srebro, przetop płyty, przetop złoto, przetop kobalt.",
-        "Obsługiwane są także: runa, smocza stal, astral, pustka i Eternium.",
+        "Przykłady: przetop żelazo, przetop odłamki żelaza, przetop srebro, przetop płyty, przetop złoto, przetop mithril, przetop kobalt.",
+        "Mithril wydobywa się od Kilofa 80 i poziomu 80 Kopalni Głębinowej. Obsługiwane są także: runa, smocza stal, astral, pustka i Eternium.",
         "Przetapianie daje XP Kowalstwa i Młota tak samo jak dotychczasowe receptury sztabek.",
     ],
     "assist": [
@@ -1556,6 +1556,7 @@ HELP_TOPICS = {
         "Haldor w Kuźni daje trzy poziomy zleceń Rzemiosła/Kowalstwa oraz godzinne zlecenie recyklingu Stalowych Płyt.",
         "Zlecenia Haldora są powtarzalne i każde odnawia się dokładnie co 60 minut.",
         "Questy Haldora dają XP Kowalstwa, XP Młota oraz walutę.",
+        "Sprzedaż wykutego EQ jest ograniczona względem wartości zużytej rudy: zwykły craft nie służy do mnożenia waluty, a wyższą cenę mogą uzyskać dopiero rzadkie jakości craftu.",
         "v0.30.42: ulepsz <EQ> / ulepsz lista u Haldora wzmacnia każde armor EQ od +1 do +10, zużywając fragment materiału z rozkładania. Ulepszanie daje XP Kowalstwa i Młota.",
         "Kowalstwo nie ma trwałości, zużycia ani napraw narzędzi.",
     ],
@@ -1565,7 +1566,7 @@ HELP_TOPICS = {
         "Rzadkie ryby mają większą wartość sprzedaży i są przechowywane jako osobne okazy w Siatce.",
         "Górnictwo losuje jakość żyły przy każdym udanym wydobyciu.",
         "Zwykła żyła daje x1, Bogata x2, Kryształowa x3, a Legendarna x5 tej samej rudy.",
-        "Czysty mithril pozostaje osobną bardzo rzadką walutą i nie jest mnożony przez żyłę.",
+        "Mithril pozostaje osobną walutą: 0,5-2 procent szansy zależnie od progresu, nie zastępuje rudy i nie jest mnożony przez żyłę.",
         "Drewno może być Bujne, Pradawne, Kryształowe albo Legendarne.",
         "Rośliny mogą być Bujne, Lśniące, Pradawne albo Legendarne.",
         "Rzadkie drewno i rośliny są osobnymi cenniejszymi okazami w magazynach profesji.",

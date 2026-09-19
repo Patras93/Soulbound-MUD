@@ -1576,7 +1576,7 @@ def configure_v0864_balance_help():
         "Różne buffy multiclass nadal działają jednocześnie i uniwersalnie, ale buff nie wzmacnia siły kolejnego buffa, a łączny bonus ma limit +125 procent.",
         "Pojedyncze leczenie ma limit 80 procent maksymalnego HP na cast po wszystkich buffach; leczenie grupowe 60 procent na cel.",
         "Po zużyciu gwarantowanego evade działa wspólny 4-sekundowy lockout dla kolejnego gwarantowanego uniku.",
-        "Czysty mithril z Górnictwa pozostaje jackpotem, ale szansa została obniżona dziesięciokrotnie; 1 mithril oznacza teraz 1000 złota wspólnego salda.",
+        "Mithril z Górnictwa jest walutą, nie rudą. Od poziomu 80 może wypaść jako dodatkowy bonus; szansa rośnie od 0,5 do 2 procent i nie zastępuje zwykłego urobku.",
         "Wyższe materiałowe EQ z ciał wymaga mocniejszych mobów; sprzedaż Astral/Pustka/Eternium nie przebija już ekonomii jednym dropem.",
         "AoE, podstawowa Mana, fazy bossów, quest rewards v0.8.62 i ceny sklepów v0.8.61 przeszły audit bez dodatkowego nerfa.",
     ]
@@ -1668,7 +1668,7 @@ def configure_v0865_balance_help():
         "W drużynie przeciwnik ma jeden aktywny cel aggro; pozostali gracze nie tworzą osobnych pełnych timerów kontrataku.",
         "EXP każdej statystyki z pojedynczego killa jest ograniczony rangą przeciwnika; sześć liczników działa niezależnie i jest czytanych osobno.",
         "Próby Rybaka, Górnika, Drwala i Zielarki startują od 0 i liczą tylko zasoby zdobyte po przyjęciu questa.",
-        "Czysty mithril z Górnictwa ma maksymalnie 0,01 procent szansy na akcję. Widmowy marlin odblokowuje się od Wędki 190.",
+        "Mithril z Górnictwa ma od 0,5 procent szansy na poziomie 80 do 2 procent na poziomie 400. Jest dodatkową walutą i nie zastępuje rudy. Widmowy marlin odblokowuje się od Wędki 190.",
         "Czas Wędkarstwa zależy od poziomu Wędkarstwa; od poziomu 200 do 400 obowiązuje końcowe minimum 3 sekundy. Level Wędki nie skraca czasu.",
     ]
 

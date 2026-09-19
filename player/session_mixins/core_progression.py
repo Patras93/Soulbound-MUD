@@ -98,7 +98,9 @@ class SessionCoreProgressionMixin:
             return min(V019_SAFE_INT, amount * int(state["multiplier"]))
 
     def add_character_xp_with_event(self, amount):
-            return self.character.add_character_xp(self.apply_double_xp(amount))
+            actual = self.apply_double_xp(amount)
+            self.session_summary_add("character_xp", actual)
+            return self.character.add_character_xp(actual)
 
     async def show_double_xp_event(self):
             state = self.double_xp_state()
@@ -632,6 +634,7 @@ class SessionCoreProgressionMixin:
                 amount = max(0, int(round(amount * (1.0 + _mentor_pct / 100.0))))
                 self.mentor_record_activity_v03051()
 
+            self.session_summary_add("soul_xp", amount)
             messages = self.character.add_soul_xp(amount)
             for message in messages:
                 await self.send(message)
@@ -1371,6 +1374,7 @@ class SessionCoreProgressionMixin:
                 total_xp=max(0,int(round(total_xp*(1.0+_mentor_pct/100.0))))
                 self.mentor_record_activity_v03051()
 
+            self.session_summary_add("class_xp", total_xp)
             base_share, remainder = divmod(total_xp, len(active))
             _guild_note=f" Bonus Gildii +{_guild_pct}%: +{total_xp-base_total_xp}." if total_xp>base_total_xp else ""
             _event_note=" Event x2 EXP." if base_total_xp>original_total_xp else ""

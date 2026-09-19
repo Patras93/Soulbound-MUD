@@ -739,6 +739,7 @@ class SessionCommandLoopMixin:
             self.server.release_all_engagements_for_session(self)
             self.combat_mob_key = None
 
+            await self.show_session_summary()
             self.server.db.save_character(self.character)
             await self.server.broadcast_room(
                 old_room, f"{old_name} opuszcza grę.", exclude=self
@@ -764,6 +765,7 @@ class SessionCommandLoopMixin:
             self.previous_room_id = None
             self.last_private_sender_account_id = None
             self.last_private_sender_name = None
+            self._session_summary = None
 
     async def close(self):
             if self.closed:
