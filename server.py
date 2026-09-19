@@ -1,21 +1,20 @@
 # -*- coding: utf-8 -*-
 #!/usr/bin/env python3
-"""Soulbound v0.30.44 Logical Modular Core.
+"""Soulbound v0.30.45 Structured Modular Core.
 
-The runtime is split into broad, named modules. They intentionally execute in
-the preserved legacy order so v0.30.43/v0.30.42 behaviour and global bindings
-remain compatible while the codebase becomes easier to navigate.
+Runtime files live in functional directories, while execution order is kept
+identical to v0.30.44 so legacy globals and initialization remain compatible.
 """
 from pathlib import Path
 
 _ROOT = Path(__file__).resolve().parent
 _RUNTIME_MODULES = [
-    "core_progression.py",
-    "items_loot_dungeons.py",
-    "world_content_equipment.py",
-    "network_gameplay_systems.py",
-    "world_runtime_session.py",
-    "server_admin_audits.py",
+    "core/progression.py",
+    "systems/items_loot_dungeons.py",
+    "world/content_equipment.py",
+    "network/gameplay_systems.py",
+    "world/runtime_session.py",
+    "admin/server_audits.py",
 ]
 
 _missing = [name for name in _RUNTIME_MODULES if not (_ROOT / name).is_file()]

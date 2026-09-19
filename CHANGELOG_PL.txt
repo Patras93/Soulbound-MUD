@@ -1,3 +1,10 @@
+Soulbound v0.30.45 — Structured Modular Core
+- Przeniesiono runtime do normalnej struktury katalogów: core/, systems/, world/, network/ i admin/.
+- server.py pozostaje małym loaderem i zachowuje dokładną kolejność wykonania v0.30.44.
+- Dockerfile obsługuje teraz katalogową strukturę projektu wygodną dla Git/GitHub Desktop.
+- Nie zmieniono mechaniki, balansu, danych postaci ani zachowania świata.
+- DEPLOY_ONLY może być kopiowany do lokalnego repo razem z folderami i wysyłany przez git add -A / commit / push.
+
 Soulbound v0.30.44 — Logical Modular Core
 
 - Zastąpiono techniczne nazwy part_01.py–part_06.py logicznymi nazwami modułów.
