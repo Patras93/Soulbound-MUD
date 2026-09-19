@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #!/usr/bin/env python3
-"""Soulbound v0.30.62 Full Systems Audit 3.0."""
+"""Soulbound v0.31.12 Tech Crafting & Socket Expansion."""
 from pathlib import Path
 
 _ROOT = Path(__file__).resolve().parent
@@ -14,10 +14,14 @@ _RUNTIME_MODULES = [
     "systems/content_registry.py",
     "systems/dungeons_regions.py",
     "world/expansions.py",
+    "world/machine_expansion_v0314.py",
+    "world/magitek_dungeon_v0319.py",
+    "systems/tech_crafting_v03111.py",
     "world/equipment_help.py",
     "world/economy_quests.py",
     "world/dynamic_content.py",
     "network/protocol_gameplay_utils.py",
+    "network/tech_runes_v03111.py",
     "storage/database.py",
     "player/character.py",
     "world/generation_systems.py",
@@ -41,6 +45,7 @@ _RUNTIME_MODULES = [
     "player/session_mixins/social_expansion.py",
     "player/session_mixins/progression_accessibility_v03052.py",
     "player/session_mixins/professions_v03053.py",
+    "player/session_mixins/tech_crafting_v03111.py",
     "player/session_mixins/command_loop.py",
     "player/session.py",
     "server/mud_server.py",

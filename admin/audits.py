@@ -22,6 +22,10 @@ def generator_numeric_only_audit_v03018():
         errors.append(f"Soul Milestones changed: {SOUL_MILESTONE_TIERS}")
     skill_grid = {1, *range(10, 401, 10)}
     for cname, rows in CLASS_SKILLS.items():
+        if cname in ("Inżynier","Mec"):
+            if any(not 1 <= int(s.get("unlock", 0) or 0) <= 400 for s in rows):
+                errors.append(f"skill unlock range changed: {cname}")
+            continue
         if any(int(s.get("unlock", 0) or 0) not in skill_grid for s in rows):
             errors.append(f"skill unlock grid changed: {cname}")
     # Generator is forbidden to invent equipment mastery requirements.
@@ -164,7 +168,7 @@ if EQUIPMENT_EXPANSION_AUDIT_V03020.get("error_count"):
     raise RuntimeError("Equipment Expansion Audit v0.30.20 failed: " + "; ".join(EQUIPMENT_EXPANSION_AUDIT_V03020.get("errors", [])[:20]))
 
 HELP_TOPICS.setdefault("eq", []).extend([
-    "v0.30.20: dodano 5 nowych slotów EQ: naramienniki, pas, peleryna, karwasze, kolczyki i relikt. Klasowe EQ wszystkich 12 klas generuje te sloty na każdym istniejącym progu Biegłości.",
+    "v0.30.20: dodano 5 nowych slotów EQ: naramienniki, pas, peleryna, karwasze, kolczyki i relikt. Klasowe EQ wszystkich 14 klas generuje te sloty na każdym istniejącym progu Biegłości.",
     "Nowe sloty mają różne role: naramienniki/pas są bardziej defensywne, karwasze bardziej ofensywne, peleryna bardziej utility, relikt ma mocniejszy profil klasowy.",
     "Pierścienie i talizmany nie wymagają już ręcznego wskazywania slotu 1/2: pełna nazwa albo zp/zt + numer używa wolnego slotu, a przy dwóch zajętych zastępuje słabszy.",
     "Ręczne zp1/zp2 oraz zt1/zt2 pozostają dostępne, gdy chcesz wymusić konkretny slot.",
@@ -219,7 +223,7 @@ def refresh_help_v03021_full():
         "Level postaci odblokowuje EQ na progach 1, 10, 20...400. Biegłość klasy nadal odblokowuje skille/spelle, ale nie jest bramą założenia EQ.",
     ]
     HELP_TOPICS["sety_klasowe"] = [
-        "Każda z 12 klas ma klasowe linie EQ obejmujące 13 typów wyposażenia.",
+        "Każda z 14 klas ma klasowe linie EQ obejmujące 13 typów wyposażenia.",
         "Bonusy zestawów nadal mają progi 2/4/6/8 części. Nowe sloty zwiększają wybór i nie dodają kolejnego automatycznego progu mocy.",
         "Sety i ich tożsamość są ręcznie projektowane; Generator Core może balansować wyłącznie liczbowe wartości istniejących bonusów.",
     ]
@@ -357,7 +361,7 @@ if CURRENCY_ECONOMY_AUDIT_V03021["error_count"]:
 LATEST_CHANGES_TITLE = "Soulbound v0.30.21 - Full HELP + Unified Currency Economy"
 LATEST_CHANGES = [
     "Pełny audit finalnego HELP: wszystkie tematy i aliasy są sprawdzane po nałożeniu wszystkich historycznych warstw pomocy.",
-    "Klasowe sklepy EQ są audytowane dla wszystkich 12 klas i pełnych 13 typów wyposażenia.",
+    "Klasowe sklepy EQ są audytowane dla wszystkich 14 klas i pełnych 13 typów wyposażenia.",
     "Jedno saldo waluty jest zawsze prezentowane po normalizacji: mithril, złoto, srebro; 100 srebra jest czytane jako 1 złota.",
     "Nagrody questów zostały podniesione i skalowane tak, aby od początku zawierały co najmniej równowartość złota, a mithril pojawiał się dopiero w późnym endgame.",
     "Ceny podstawowych narzędzi nie zależą już od przypadkowego generator_level przedmiotu; wszystkie starterowe narzędzia mają spójny przedział cenowy.",
@@ -1513,7 +1517,7 @@ HELP_TOPICS["materialy_eq"] = [
     "Krypta rozciąga progresję materiałów przez Level 1-400: Żelazo, Stal, Mithril, Adamantyt, Kobalt, Runiczny, Smocza Stal, Astral, Pustka i Eternium.",
 ]
 HELP_TOPICS["klasy"] = [
-    "Soulbound ma 12 klas. Level postaci 1-400 jest wspólną osią postaci, a każda klasa ma osobną Biegłość 1-400.",
+    "Soulbound ma 14 klas. Level postaci 1-400 jest wspólną osią postaci, a każda klasa ma osobną Biegłość 1-400.",
     "Level postaci bramkuje EQ. Biegłość właściwej aktywnej klasy odblokowuje skille/spelle i rozwija się przez Class XP.",
     "Każda klasa ma własną Broń Duszy, role, skille/spelle oraz osobny sklep EQ. Użyj help <klasa> albo walk eq <klasa>.",
     "Multiclass zachowuje osobną Biegłość każdej klasy; wyłączenie klasy nie kasuje jej progresji ani nauczonych umiejętności.",
@@ -1527,13 +1531,13 @@ HELP_TOPICS["zakladanie_lootu"] = [
 ]
 HELP_TOPICS["sklepy"] = [
     "shop / sklep / list / lista pokazuje numerowaną ofertę aktualnego sprzedawcy; shop info <numer> pokazuje pełny opis i porównanie.",
-    "Każda z 12 klas ma osobny sklep EQ. walk eq <klasa> prowadzi bezpośrednio do właściwej sali klasowej.",
+    "Każda z 14 klas ma osobny sklep EQ. walk eq <klasa> prowadzi bezpośrednio do właściwej sali klasowej.",
     "Klasowe sklepy mają pełne 14 logicznych typów EQ, w tym kolczyki, naramienniki, pas, pelerynę, karwasze i relikt.",
     "Oferta Tieru zależy od Levelu postaci, a zakup klasowego EQ wymaga aktywnej właściwej klasy.",
     "sell all / sprzedaj wszystko sprzedaje wyłącznie niezałożone EQ; materiały, narzędzia, quest itemy i consumables są chronione.",
 ]
 HELP_TOPICS["sety_klasowe"] = [
-    "Każda z 12 klas ma linie EQ obejmujące wszystkie 14 logicznych typów wyposażenia, w tym kolczyki.",
+    "Każda z 14 klas ma linie EQ obejmujące wszystkie 14 logicznych typów wyposażenia, w tym kolczyki.",
     "Bonusy zestawów pozostają na progach 2/4/6/8 części; większa liczba dostępnych slotów daje wybór, a nie nowy automatyczny próg mocy.",
     "Level postaci bramkuje założenie EQ; aktywna klasa nadal jest wymagana dla klasowych części.",
 ]
@@ -1562,7 +1566,7 @@ LATEST_CHANGES = [
 
 # ============================================================
 # v0.30.36 - ONE CLASS, ONE EQ SHOP
-# Każda z 12 klas ma własny sklep EQ w swojej osobnej sali klasowej.
+# Każda z 14 klas ma własny sklep EQ w swojej osobnej sali klasowej.
 # Stare sześć wspólnych punktów sprzedaży pozostaje wyłącznie hubami.
 # ============================================================
 CLASS_SHOP_ROOM_BY_CLASS_V03036 = {
@@ -1578,6 +1582,8 @@ CLASS_SHOP_ROOM_BY_CLASS_V03036 = {
     "Czarownik": "guild_warlock_chamber",
     "Druid": "guild_druid_chamber",
     "Psionik": "guild_psion_chamber",
+    "Mec": "guild_mec_chamber",
+    "Inżynier": "guild_engineer_chamber",
 }
 
 CLASS_SHOP_SELLER_NAMES_V03036 = {
@@ -1593,6 +1599,8 @@ CLASS_SHOP_SELLER_NAMES_V03036 = {
     "Czarownik": "Kwatermistrz Czarownika",
     "Druid": "Kwatermistrz Druida",
     "Psionik": "Kwatermistrz Psionika",
+    "Mec": "Kwatermistrz Meca",
+    "Inżynier": "Kwatermistrz Inżyniera",
 }
 
 OLD_SHARED_CLASS_SHOP_ROOMS_V03036 = (
@@ -1684,7 +1692,7 @@ def apply_separate_class_shops_v03036():
             ] = room_id
 
     HELP_TOPICS["sklepy klasowe"] = [
-        "Każda z 12 klas ma własny, osobny sklep EQ w swojej sali klasowej w Gildii Dusz.",
+        "Każda z 14 klas ma własny, osobny sklep EQ w swojej sali klasowej w Gildii Dusz.",
         "Wojownik, Berserker, Łotrzyk, Łowca, Mnich, Strażnik, Mag, Nekromanta, Kapłan, Czarownik, Druid i Psionik nie współdzielą już punktów sprzedaży.",
         "Najprościej użyć: walk eq <klasa>, na przykład walk eq wojownik albo walk eq kapłan.",
         "W sklepie wpisz shop. Oferta pokazuje najlepszy Tier EQ odblokowany przez Level postaci; zakup nadal wymaga aktywnej odpowiedniej klasy.",
@@ -1693,12 +1701,28 @@ def apply_separate_class_shops_v03036():
         "v0.30.36: każda klasa ma osobny sklep EQ w swojej sali klasowej. Użyj walk eq <klasa>."
     )
     HELP_TOPICS.setdefault("sklepy", []).append(
-        "v0.30.36: help sklepy klasowe opisuje 12 osobnych sklepów wyposażenia klasowego."
+        "v0.30.36: help sklepy klasowe opisuje 14 osobnych sklepów wyposażenia klasowego."
     )
     HELP_TOPICS.setdefault("wersja", []).append(
-        "v0.30.36: rozdzielono klasowe sklepy EQ na 12 osobnych punktów, po jednym dla każdej klasy."
+        "v0.30.36: rozdzielono klasowe sklepy EQ na 14 osobnych punktów, po jednym dla każdej klasy."
     )
 
+
+# v0.31.2: dwie nowe sale klas technologicznych.
+ROOMS.setdefault("guild_mec_chamber", {
+    "name": "Hangar Meca", "zone": "Gildia Dusz",
+    "desc": "Wzmocniony hangar z rdzeniami energetycznymi i stanowiskami ciężkiego pancerza.",
+    "exits": {"south": "guild_martial_hall"},
+})
+ROOMS.setdefault("guild_engineer_chamber", {
+    "name": "Warsztat Inżyniera", "zone": "Gildia Dusz",
+    "desc": "Warsztat pełen narzędzi, działek testowych, skanerów i mechanicznych konstrukcji.",
+    "exits": {"east": "guild_shadow_gallery"},
+})
+ROOMS.setdefault("guild_martial_hall", {}).setdefault("exits", {})["east"] = "guild_mec_chamber"
+ROOMS.setdefault("guild_shadow_gallery", {}).setdefault("exits", {})["west"] = "guild_engineer_chamber"
+NPCS["teacher_mec"]["room"] = "guild_mec_chamber"
+NPCS["teacher_engineer"]["room"] = "guild_engineer_chamber"
 
 apply_separate_class_shops_v03036()
 
@@ -1706,8 +1730,8 @@ apply_separate_class_shops_v03036()
 def class_shop_audit_v03036():
     errors = []
     checked = 0
-    if len(CLASS_SHOP_CLASSES_BY_ROOM) != 12:
-        errors.append(f"shop room count={len(CLASS_SHOP_CLASSES_BY_ROOM)} expected=12")
+    if len(CLASS_SHOP_CLASSES_BY_ROOM) != 14:
+        errors.append(f"shop room count={len(CLASS_SHOP_CLASSES_BY_ROOM)} expected=14")
     if set(CLASS_SHOP_ROOM_BY_CLASS_V03036) != set(CLASS_EQUIPMENT_SETS):
         missing = sorted(set(CLASS_EQUIPMENT_SETS) - set(CLASS_SHOP_ROOM_BY_CLASS_V03036))
         extra = sorted(set(CLASS_SHOP_ROOM_BY_CLASS_V03036) - set(CLASS_EQUIPMENT_SETS))
@@ -1764,7 +1788,7 @@ if CLASS_SHOP_AUDIT_V03036.get("error_count"):
 
 LATEST_CHANGES_TITLE = "Soulbound v0.30.36 - Separate Class EQ Shops"
 LATEST_CHANGES = [
-    "v0.30.36: każda z 12 klas ma własny, osobny sklep EQ w swojej sali klasowej.",
+    "v0.30.36: każda z 14 klas ma własny, osobny sklep EQ w swojej sali klasowej.",
     "v0.30.36: sześć dawnych wspólnych punktów sprzedaży jest teraz wyłącznie hubami; nie sprzedają już mieszanego EQ dwóch klas.",
     "v0.30.36: walk eq <klasa>, sklep eq <klasa> i sklep <klasa> prowadzą do właściwego osobnego sklepu.",
     "v0.30.36: oferta nadal zależy od Levelu postaci, a zakup wymaga aktywnej właściwej klasy. Brak wipe.",
@@ -2049,7 +2073,7 @@ LATEST_CHANGES = [
 # ============================================================
 def _install_race_help_v03039():
     HELP_TOPICS["rasy"] = [
-        "Soulbound ma 13 ras. Każda ma dokładnie 50 bazowych punktów w pięciu głównych statystykach oraz własny pasyw rasowy.",
+        "Soulbound ma 14 ras. Każda ma dokładnie 50 bazowych punktów w pięciu głównych statystykach oraz własny pasyw rasowy.",
         "Rasa nie blokuje żadnej klasy. Polecane klasy są tylko wskazówką wynikającą ze statystyk i pasywu.",
         "Osobna pomoc: help człowiek, ogr, elf, krasnolud, ork, niziołek, mroczny elf, gnom, smoczy, troll, diablę, aasimar, driada.",
         "Każdy temat rasy podaje bazowe statystyki, opis/pasyw oraz polecane klasy.",
@@ -2070,7 +2094,7 @@ def _install_race_help_v03039():
             str(description),
             f"Polecane klasy: {classes}.",
             f"Dlaczego: {reason}.",
-            "Polecenie jest wskazówką, nie blokadą; możesz wybrać dowolną z 12 klas.",
+            "Polecenie jest wskazówką, nie blokadą; możesz wybrać dowolną z 14 klas.",
         ]
         aliases = {
             race_name.lower(),
@@ -2221,11 +2245,11 @@ if PROFESSION_CARRYOVER_AUDIT_V03039.get("error_count"):
     )
 
 HELP_TOPICS.setdefault("wersja", []).append(
-    "v0.30.39: dodano pełne pomoce 13 ras, kumulacyjny audit zasobów/profesji oraz dowolne ryby rzeczne w pierwszym zleceniu Gotowania Marcela."
+    "v0.30.39: dodano pełne pomoce 14 ras, kumulacyjny audit zasobów/profesji oraz dowolne ryby rzeczne w pierwszym zleceniu Gotowania Marcela."
 )
 LATEST_CHANGES_TITLE = "Soulbound v0.30.39 - Race HELP + Profession Carryover + Any River Fish"
 LATEST_CHANGES = [
-    "v0.30.39: help rasy ma indeks, a każda z 13 ras ma osobny help ze statystykami, pasywem i polecanymi klasami.",
+    "v0.30.39: help rasy ma indeks, a każda z 14 ras ma osobny help ze statystykami, pasywem i polecanymi klasami.",
     "v0.30.39: wszystkie pule zasobów są audytowane jako kumulacyjne przez 40 Tierów; starsze ryby, rudy, drewno, zioła i surowe klejnoty nie znikają po awansie.",
     "v0.30.39: specjalne łowiska tylko zwiększają wagi typowych gatunków; nie wycinają wcześniejszych odblokowanych ryb.",
     "v0.30.39: stare receptury Kowalstwa, Gotowania, Alchemii i Jubilerstwa nie mają górnego limitu i pozostają używalne na późniejszych Tierach.",
@@ -2654,8 +2678,8 @@ def full_game_audit_v03055():
         warnings.append(f"dynamic exit targets={len(dynamic_exits)} (validated by runtime generators)")
 
     # 2. Core catalogs.
-    if len(CLASSES) != 12:
-        errors.append(f"classes={len(CLASSES)}, expected 12")
+    if len(CLASSES) != 14:
+        errors.append(f"classes={len(CLASSES)}, expected 14")
     class_names = [row[0] for row in CLASSES]
     missing_skill_classes = [name for name in class_names if not CLASS_SKILLS.get(name)]
     if missing_skill_classes:
@@ -2784,3 +2808,25 @@ LATEST_CHANGES = [
 ]
 
 
+
+
+# v0.31.2: nowe helpy rasy i klas technologicznych.
+def _install_v0310_tech_help():
+    HELP_TOPICS["cyborg"] = [
+        "Cyborg: 14. rasa Soulbound. Bazowe statystyki: Siła 10, Zręczność 11, Kondycja 12, Inteligencja 10, Siła Woli 7.",
+        "Pasyw: redukcja wszystkich otrzymywanych obrażeń. Polecane klasy: Mec, Inżynier, Strażnik, Łowca.",
+    ]
+    HELP_TOPICS["mec"] = [
+        "Mec: technologiczna klasa fizyczna 1-400. Broń Duszy: Rdzeń Meca.",
+        "Ma pełną siatkę 123 skilli: 3 na progu 1 i co 10 aż do 400. Wczesne umiejętności obejmują Fire Beam, Ice Beam, Bolt Beam, TekShield, Gravity Bomb, TekMissile, Heal Force i Overdrive.",
+        "Styl: ciężki pancerz, bariery, salwy rdzenia i przeciążenia systemów.",
+    ]
+    HELP_TOPICS["inzynier"] = HELP_TOPICS["inżynier"] = [
+        "Inżynier: technologiczna klasa fizyczna 1-400. Broń Duszy: Omni-Narzędzie.",
+        "Wczesne umiejętności inspirowane Engineerem UOSSMUD obejmują Auto Crossbow, Mako Gun, Bio Blaster, Scanner, Flash, Debilitator, Drill, Napalm, Launcher, Noise Blaster, Chainsaw, Mega Bomb i Air Anchor.",
+        "Styl: Zręczność, narzędzia, materiały wybuchowe, skanowanie i urządzenia taktyczne.",
+    ]
+    HELP_TOPIC_ALIASES["engineer"] = "inżynier"
+    HELP_TOPIC_ALIASES["cyborg"] = "cyborg"
+    HELP_TOPIC_ALIASES["mech"] = "mec"
+_install_v0310_tech_help()

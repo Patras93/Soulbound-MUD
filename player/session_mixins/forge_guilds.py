@@ -323,7 +323,7 @@ class SessionForgeGuildsMixin:
     async def handle_runes_v0925(self, args=""):
             raw=str(args or "").strip(); norm=normalize_lookup_text(raw)
             if not raw or norm in ("lista","list","info"):
-                await self.send("RUNY. Endgame EQ: Biegłość 200-299 ma 1 gniazdo, 300-399 ma 2, 400 ma 3. Tworzenie u Haldora: runy stworz <moc/ochrona/zycie/mana/unik/hart>. Osadzanie: runa <typ> <pełna nazwa EQ>. Wyjmowanie: runy wyjmij <nr> <pełna nazwa EQ>.")
+                await self.send("RUNY. Endgame EQ: Biegłość 200-299 ma 1 gniazdo, 300-399 ma 2, 400 ma 3. Tworzenie u Haldora: runy stworz <moc/ochrona/zycie/mana/unik/hart/impuls/bariera/rdzen>. Osadzanie: runa <typ> <pełna nazwa EQ>. Wyjmowanie: runy wyjmij <nr> <pełna nazwa EQ>.")
                 for key,(rid,name,effects) in V0925_RUNES.items():
                     await self.send(f"{key}: {name}. Koszt 5 Pyłu Runicznego. Efekt {effects}.")
                 return
@@ -361,7 +361,7 @@ class SessionForgeGuildsMixin:
     async def socket_rune_v0925(self, args=""):
             parts=str(args or "").strip().split(maxsplit=1)
             if len(parts)<2:
-                await self.send("Użycie: runa <moc/ochrona/zycie/mana/unik/hart> <pełna nazwa EQ>."); return
+                await self.send("Użycie: runa <moc/ochrona/zycie/mana/unik/hart/impuls/bariera/rdzen> <pełna nazwa EQ>."); return
             key=normalize_lookup_text(parts[0]).replace("życie","zycie")
             aliases={"power":"moc","guard":"ochrona","life":"zycie","focus":"mana","agility":"unik","fortitude":"hart"}
             key=aliases.get(key,key)

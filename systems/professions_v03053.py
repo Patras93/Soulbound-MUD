@@ -102,6 +102,15 @@ for _room,_item,_seller in (
     SHOP_SELLERS[_room]=_seller
 TOOL_SHOP_ROOMS.update({'tailor_kit':'tailor_workshop','tanning_knife':'leatherworker_workshop','carpenter_tools':'carpenter_workshop','runic_focus':'guild_arcane_chamber'})
 
+# v0.31.7: wszystkie 12 profesji używa tej samej zasady: dokładnie jedno narzędzie na postać.
+CHARACTER_BOUND_TOOL_IDS.update({'tailor_kit','tanning_knife','carpenter_tools','runic_focus'})
+TOOL_BUY_ALIASES.update({
+ 'zestaw krawiecki':'tailor_kit','tailor kit':'tailor_kit','sewing kit':'tailor_kit',
+ 'noz garbarski':'tanning_knife','tanning knife':'tanning_knife','leatherworking knife':'tanning_knife',
+ 'narzedzia ciesielskie':'carpenter_tools','carpenter tools':'carpenter_tools','carpentry tools':'carpenter_tools',
+ 'fokus runiczny':'runic_focus','runic focus':'runic_focus','enchanting focus':'runic_focus',
+})
+
 # Receptury wspólnego silnika perform_recipe.
 V03053_CRAFT_RECIPES={}
 def _recipe(key,name,profession,tool_type,tool_item,station,level,ingredients,output,quantity=1,xp=None):

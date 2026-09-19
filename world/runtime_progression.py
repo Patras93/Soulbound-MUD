@@ -237,7 +237,7 @@ HELP_TOPIC_ALIASES.update({"projekty swiata":"worldprojects_v022","world project
 
 # v0.23: finalny audit HELP — naprawa aktywnych aliasów wskazujących na brakujące tematy.
 HELP_TOPICS["klasy"] = [
-    "Soulbound ma 12 klas. Nie ma levelu postaci; każda klasa rozwija własną Biegłość 1-400.",
+    "Soulbound ma 14 klas. Nie ma levelu postaci; każda klasa rozwija własną Biegłość 1-400.",
     "Klasa główna jest wybierana przy tworzeniu postaci. Dodatkowe aktywne klasy obsługuje multiclass / multiklasa.",
     "multiclass pokazuje aktywne klasy i komendy dodawania/usuwania klas zgodnie z aktualnymi wymaganiami.",
     "kodeksklasowy info pokazuje wszystkie klasy; kodeksklasowy <klasa> czyta nauczyciela, skille, wymagania Biegłości, koszt i status nauki.",
@@ -878,6 +878,19 @@ V03024_MANUAL_QUEST_REWARD_MARKING = apply_manual_quest_currency_rewards_v03024(
 # ============================================================
 GENERATOR_CORE_AUDIT = generator_core_v027.apply_generator_core(globals())
 
+# v0.31.3: Moogle Board jest specjalnym rasowym Boardem Cyborga.
+# Generator Core nie może nadpisywać jego skalowania z Biegłością Meca.
+if "moogle_board" in ITEMS:
+    ITEMS["moogle_board"].update({
+        "defense": 0,
+        "price": 1000,
+        "required_mastery": 1,
+        "required_character_level": 1,
+        "generator_level": 1,
+        "stats": {},
+        "cyborg_board_scaling": "mec_mastery",
+    })
+
 # v0.30.30: wszystkie bojowe skille typu boost mają jeden, czytelny czas działania.
 # Ta reguła jest nakładana PO Generator Core, aby generator nie skracał buffów.
 def normalize_global_skill_buff_duration_v03030():
@@ -1258,7 +1271,7 @@ HELP_TOPICS["level"] = [
     "Level postaci zwiększa bazowe HP, Manę i moc. Biegłość, Soul, Skill Level i profesje mają własne osie 1-400, a statystyki rozwijają się bez twardego limitu.",
 ]
 HELP_TOPICS["klasy"] = [
-    "Soulbound ma 12 klas. Level postaci, Biegłość klasy i Skill Level mają zakres 1-400 i są liczone przez Generator Core.",
+    "Soulbound ma 14 klas. Level postaci, Biegłość klasy i Skill Level mają zakres 1-400 i są liczone przez Generator Core.",
     "Klasa główna jest wybierana przy tworzeniu postaci. Dodatkowe aktywne klasy obsługuje multiclass / multiklasa.",
     "skills pokazuje skille aktywnych klas, a help <nazwa skilla> podaje aktualne wygenerowane wymagania i parametry.",
 ]

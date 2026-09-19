@@ -351,6 +351,16 @@ NPCS = {
         "dialogue": "Uczę Psioników dyscypliny umysłu i kontroli energii psionicznej.",
         "teacher_class": "Psionik",
     },
+    "teacher_mec": {
+        "name": "Mechanik Vektor", "room": "guild_mec_chamber",
+        "dialogue": "Uczę Meców kontroli Rdzenia, pancerza i uzbrojenia pokładowego.",
+        "teacher_class": "Mec",
+    },
+    "teacher_engineer": {
+        "name": "Inżynierka Ada", "room": "guild_engineer_chamber",
+        "dialogue": "Uczę Inżynierów obsługi Omni-Narzędzia, działek i urządzeń taktycznych.",
+        "teacher_class": "Inżynier",
+    },
 }
 
 
@@ -762,7 +772,7 @@ LATEST_CHANGES = [
     "v0.9.23: cztery nowe regiony endgame 300-400 poza nieskończonymi instancjami: Popielne Pustkowia, Rozbite Niebo, Wybrzeże Pustki i Korona Świata.",
     "v0.9.23: rankingi pokazują najwyższe piętro Krypty i Wieży, rekordy czasu bossów, liczbę odkrytych legend oraz liczbę skompletowanych setów.",
     "v0.9.23: Haldor daje co 60 minut zlecenie na 4 Stalowe Płyty z nieumarłych Starego Cmentarza; płyty zdobyte przed przyjęciem nie liczą postępu, a przy oddaniu są zużywane do przetopu.",
-    "v0.9.22: każdy próg Biegłości 1, 10, 20... aż do 400 ma teraz dokładnie 3 skille/spelle do nauczenia dla każdej z 12 klas.",
+    "v0.9.22: każdy próg Biegłości 1, 10, 20... aż do 400 ma teraz dokładnie 3 skille/spelle do nauczenia dla każdej z 14 klas.",
     "v0.9.22: skille z tego samego progu Biegłości współdzielą cooldown wyboru, więc zwiększają różnorodność bez potrajania tempa obrażeń.",
     "v0.9.22: questy walki wymagające wielu zabójstw mają więcej równoczesnych mobów questowych; pojedynczy respawn nie blokuje już postępu. Bossowie questowi pozostają pojedynczy.",
     "v0.9.21: Boss Codex pokazuje pełną historię bossa: pokonania, solo/grupa, pierwszy i ostatni kill, rekord czasu, piętro tej wersji, najwyższy pokonany próg instancji i odkryte unikalne dropy.",
@@ -771,7 +781,7 @@ LATEST_CHANGES = [
     "v0.9.21: instancje mają cztery ukryte punkty sekretów w każdym sektorze 100 pięter; użyj sekret / secret na właściwym piętrze, a mapa zapamięta odkrycie bez wpływu na balans.",
     "v0.9.20: bossowie co 10 pięter są jednorazową bramką progresji; po pierwszym pokonaniu dany próg pozostaje odblokowany dla postaci, a boss po respawnie jest opcjonalny.",
     "v0.9.20: bossowie kamieni milowych co 50 i 100 pięter mają specjalną tożsamość; co 50 dają klasowy loot setowy, a co 100 dodatkowo legendarny relikt klasowy.",
-    "v0.9.20: wszystkie 12 klas dostało legendarną linię setową w progach Biegłości 50-400 oraz osobne legendarne relikty; loot nigdy nie omija wymagań Biegłości.",
+    "v0.9.20: wszystkie 14 klas dostało legendarną linię setową w progach Biegłości 50-400 oraz osobne legendarne relikty; loot nigdy nie omija wymagań Biegłości.",
     "v0.9.20: Collection Codex ma kategorię EQ, która zapisuje dokładnie odkryte sztuki wyposażenia, w tym sety, legendy, loot bossów i materiałowe warianty.",
     "v0.9.19: pełna progresja EQ używa Biegłości 1, 10, 20...400; na każdym kolejnym progu co 10 istnieje mocniejszy sprzęt dla każdego slotu.",
     "v0.9.19: klasowe EQ zwiększa moc na każdym progu +10, a materiałowe EQ ma podtiery +10 wewnątrz Żelaza, Stali, Mithrilu, Adamantytu, Kobaltu, Runicznego, Smoczej Stali, Astralu, Pustki i Eternium.",
@@ -795,9 +805,9 @@ LATEST_CHANGES = [
     "v0.9.13: Kopalnia Głębinowa może być przebijana poniżej poziomu 200, a lochy profesyjne po dawnym poziomie 20 rozwijają się dalej do wymogu profesji 400 i następnie bez limitu głębokości.",
     "v0.9.12: zakres 201-400 nie jest pusty: dodano 10 dalszych rang każdej profesji, zasoby 220-400, receptury i zlecenia dla wszystkich 8 profesji.",
     "v0.9.12: Soul Weapon ma Tiery 1-40; Tiery 21-40 wymagają kolejnych Prób na bossach nieskończonej Krypty co 10 Soul Level.",
-    "v0.9.12: każda z 12 klas otrzymuje nową linię skilli Biegłości 220-400; stare progi 1-200 pozostają nietknięte.",
+    "v0.9.12: każda z 14 klas otrzymuje nową linię skilli Biegłości 220-400; stare progi 1-200 pozostają nietknięte.",
     "v0.9.12: narzędzia 201-400 poprawiają bonusowy urobek, rare roll, żyły i jakość klejnotów bez skracania czynności poniżej starych minimów.",
-    "v0.9.12: Biegłość 12 klas, Soul Level, Skill Level, 8 profesji i 8 narzędzi mają teraz zakres 1-400; nie dodano levelu postaci.",
+    "v0.9.12: Biegłość 14 klas, Soul Level, Skill Level, 8 profesji i 8 narzędzi mają teraz zakres 1-400; nie dodano levelu postaci.",
     "v0.9.12: stare progi i odblokowania 1-200 pozostają bez zmian; zakres 201-400 jest dalszą progresją i nie cofa żadnej zawartości.",
     "v0.9.12: klasowe EQ ma nowe progi Biegłości 210-400, a Krypta ma Tiery EQ 21-40; moc wyposażenia zatrzymuje się na capie 400 mimo nieskończonych pięter.",
     "v0.9.12: po 200 tempo profesji nie skraca czasów poniżej dotychczasowych minimów; nowe levele rozwijają prestiż i narzędzia bez łamania timerów.",
@@ -807,7 +817,7 @@ LATEST_CHANGES = [
     "v0.9.12: boss występuje co 10 pięter bez końca i nadal blokuje zejście; Portal Krypty zapisuje checkpointy także powyżej 200.",
     "v0.9.12: EQ z Krypt rozwija się do Tieru 40 / progresji 400, a potem zatrzymuje moc; waluta nie skaluje się bez końca, więc Infinite Crypts nie tworzą nieskończonego power creepu ekonomii/EQ.",
     "v0.9.11: usunięto startowe EQ klasowe; nowa postać zaczyna bez darmowego pancerza klasowego.",
-    "v0.9.11: każda z 12 klas ma 3 różne linie EQ na każdym progu Biegłości 1-400; linie mają ten sam budżet mocy.",
+    "v0.9.11: każda z 14 klas ma 3 różne linie EQ na każdym progu Biegłości 1-400; linie mają ten sam budżet mocy.",
     "v0.9.11: klasowe EQ może losowo wypaść z mobów; tier zależy od siły moba, klasa/linia/slot są losowe.",
     "v0.9.11: shop <klasa> filtruje ofertę klasową w salach Gildii, co skraca odczyt NVDA.",
     "v0.9.11: drużyna automatycznie asystuje przy rozpoczęciu walki, jeśli członkowie stoją w tej samej lokacji i nie walczą z innym celem.",
@@ -846,11 +856,11 @@ LATEST_CHANGES = [
     "v0.9.2: rozmowy i dostawy NPC czytają finalne 1/x przed ukończeniem, a przedmioty z nagród questowych mogą od razu nabić aktywny collect.",
     "v0.9.2: quest/quest aktywne nadal odczytuje progres bezpośrednio z SQLite przy każdym otwarciu, więc dziennik nie przechowuje starej wartości.",
     "v0.9.2: wszystkie cztery ścieżki craftu mają losowy XP na każdej akcji; stałe XP receptury dostają symetryczny rzut ±15% bez zmiany długoterminowej średniej.",
-    "v0.30.1: owner-only opcja 6 Administrator w MENU POSTACI działa także przy 0/12 postaci; zwykłe konta jej nie widzą.",
+    "v0.30.1: owner-only opcja 6 Administrator w MENU POSTACI działa także przy 0/14 postaci; zwykłe konta jej nie widzą.",
     "v0.9.1: MENU POSTACI ma opcję 4 Usuń postać; wylogowanie przesunięto na opcję 5.",
     "v0.9.1: usuwanie jednej postaci wymaga wskazania slotu/nazwy i potwierdzenia USUN <nazwa> lub DELETE <nazwa>; login, hasło i wspólny portfel konta pozostają.",
-    "v0.9.0: wszystkie 13 ras mają teraz identyczny budżet 50 bazowych punktów w pięciu głównych statystykach; różni je rozkład i pasyw, nie ukryte 50-58 punktów.",
-    "v0.9.0: wszystkie 12 klas dokłada dokładnie 9 punktów startowych zamiast dawnego zakresu 8-10; wraz z bazową Charyzmą każda kombinacja rasa-klasa ma identyczny budżet 69 punktów.",
+    "v0.9.0: wszystkie 14 ras mają teraz identyczny budżet 50 bazowych punktów w pięciu głównych statystykach; różni je rozkład i pasyw, nie ukryte 50-58 punktów.",
+    "v0.9.0: wszystkie 14 klas dokłada dokładnie 9 punktów startowych zamiast dawnego zakresu 8-10; wraz z bazową Charyzmą każda kombinacja rasa-klasa ma identyczny budżet 69 punktów.",
     "v0.9.0: bazowa Moc Broni Duszy została zwężona z 6-9 do 7-8, żeby early game nie zależał nadmiernie od ukrytej różnicy weapon_base.",
     "v0.9.0: Łotrzyk ma z Broni Duszy maksymalnie +5 pp uniku oraz umiarkowany bonus obrażeń fizycznych; żaden Soul Tier nie jest już marnowany po dojściu do capu 35 procent uniku.",
     "v0.9.0: istniejące postacie są migrowane różnicą starego i nowego profilu startowego; cały zdobyty później EXP/progres statystyk, Soul, klasy, EQ, questy i eksploracja pozostają zachowane.",
@@ -941,8 +951,8 @@ LATEST_CHANGES = [
     "Kupowanie po nazwie nadal działa bez zmian.",
     "Bez zmian schematu SQLite; nie resetuj soulbound.db ani Railway Volume.",
 
-    "Przy wyborze każdej z 13 ras gra czyta teraz polecane klasy oraz krótkie uzasadnienie wynikające ze statystyk i pasywu rasy.",
-    "Rekomendacje nie blokują wyboru: każda rasa nadal może wybrać dowolną z 12 klas.",
+    "Przy wyborze każdej z 14 ras gra czyta teraz polecane klasy oraz krótkie uzasadnienie wynikające ze statystyk i pasywu rasy.",
+    "Rekomendacje nie blokują wyboru: każda rasa nadal może wybrać dowolną z 14 klas.",
     "Po zatwierdzeniu rasy rekomendacja jest powtarzana przed ekranem wyboru klasy, co ułatwia decyzję użytkownikom NVDA.",
     "Komenda opis <rasa> pokazuje teraz także polecane klasy i wyjaśnia, dlaczego dana rasa do nich pasuje.",
     "Bez zmian schematu SQLite; nie resetuj soulbound.db ani Railway Volume.",
@@ -963,7 +973,7 @@ LATEST_CHANGES = [
     "Piąty quest prowadzi gracza do nauczyciela jego podstawowej klasy i kończy się przy rozmowie z właściwym nauczycielem.",
     "Questy startowe nie są powtarzalne i nie mają cooldownu; po ukończeniu nigdy się nie odnawiają.",
     "Porzucenie zadania dostawczego usuwa jego paczkę/list, a ponowne przyjęcie wydaje nowy egzemplarz bez duplikowania przedmiotów.",
-    "Biegłość każdej z 12 klas ma zakres 1-400 i nadal odblokowuje skille klasowe.",
+    "Biegłość każdej z 14 klas ma zakres 1-400 i nadal odblokowuje skille klasowe.",
     "Skille klasowe nadal odblokowuje Biegłość właściwej klasy; Soul Level nie blokuje skilli.",
     "Pełna siatka 253 skilli zachowuje progi 1-200 bez przeliczania przez dwa: dawny próg 100 = Biegłość 100, próg 200 = Biegłość 200.",
     "Class XP zdobywany po zabiciu mobów rozwija aktywne klasy dalej aż do Biegłości 400.",
@@ -1122,7 +1132,7 @@ HELP_TOPICS = {
         "Codex klasowy pokazuje wszystkie skille klas wraz z wymaganiami i stanem postaci.",
         "kodeksklasowy <klasa> / classcodex <class> - pełny Codex jednej klasy.",
         "kodeksklasowy moje / classcodex mine - Codex wszystkich aktywnych klas.",
-        "kodeksklasowy wszystkie / classcodex all - wszystkie 12 klas.",
+        "kodeksklasowy wszystkie / classcodex all - wszystkie 14 klas.",
         "Możesz też użyć: codex klasy <klasa> albo codex class <class>.",
         "Każdy skill pokazuje wymaganą Biegłość klasy, nauczyciela, jego salę, koszt nauki po aktualnym rabacie Gildii oraz status odblokowania.",
         "Status rozróżnia: nauczona, dostępna do nauki, zablokowana przez Biegłość albo zablokowana przez nieaktywną klasę.",
@@ -1267,7 +1277,7 @@ HELP_TOPICS = {
         "HP, obrażenia, Soul XP, nagrody, loot i mechaniki walki nie zostały zmienione.",
     ],
     "bizuteria_klasowa": [
-        "Każda z 12 klas ma własny Pierścień i Naszyjnik.",
+        "Każda z 14 klas ma własny Pierścień i Naszyjnik.",
         "Pierścień zajmuje osobny slot pierścień.",
         "Naszyjnik zajmuje osobny slot naszyjnik.",
         "Biżuteria jest dostępna w tym samym sklepie klasowym co pozostałe części zestawu.",
@@ -1278,7 +1288,7 @@ HELP_TOPICS = {
         "Szybkie komendy: załóż pierścień oraz załóż naszyjnik.",
     ],
     "sklepy_klasowe": [
-        "Dodano klasowe sklepy wyposażenia dla wszystkich 12 klas.",
+        "Dodano klasowe sklepy wyposażenia dla wszystkich 14 klas.",
         "Każda klasa ma 3 różne linie wyposażenia; każda linia obejmuje hełm, pancerz, rękawice, nogawice, buty, talizman, pierścień i naszyjnik.",
         "Wojownik i Berserker kupują wyposażenie w Sali Oręża Gildii.",
         "Łotrzyk i Łowca kupują wyposażenie w Galerii Cieni Gildii.",
@@ -1307,10 +1317,11 @@ HELP_TOPICS = {
         "Stare salda są zachowywane wartościowo i nie są kasowane.",
     ],
     "przetop": [
-        "przetop <metal albo ruda> przetapia rudę na właściwą sztabkę.",
+        "przetop <metal, ruda albo płyty> przetapia surowiec na właściwą sztabkę.",
+        "4 Stalowe Płyty z Pancerza ze Szkatułki można przetopić w 1 Sztabkę Stali: przetop płyty / smelt plates.",
         "Komenda korzysta z istniejących receptur Kowalstwa i nie omija wymagań.",
         "Musisz mieć Młot Rzemieślniczy, odpowiedni level Kowalstwa, wymagany Tier Młota, składniki i stać przy właściwej kuźni.",
-        "Przykłady: przetop żelazo, przetop srebro, przetop złoto, przetop kobalt.",
+        "Przykłady: przetop żelazo, przetop odłamki żelaza, przetop srebro, przetop płyty, przetop złoto, przetop kobalt.",
         "Obsługiwane są także: runa, smocza stal, astral, pustka i Eternium.",
         "Przetapianie daje XP Kowalstwa i Młota tak samo jak dotychczasowe receptury sztabek.",
     ],
@@ -2023,7 +2034,7 @@ HELP_TOPICS = {
         "Nieużywane narzędzia nie zdobywają XP ani użyć.",
     ],
     "skille100_200": [
-        "Każda z 12 klas dostała 4 nowe umiejętności endgame.",
+        "Każda z 14 klas dostała 4 nowe umiejętności endgame.",
         "Historyczne progi endgame są teraz Biegłością klasy 100, 140, 180 i 200.",
         "Łącznie dodano 48 nowych skilli.",
         "Nowe skille trzeba nauczyć się u właściwego nauczyciela klasy, tak jak wcześniejsze.",
@@ -3860,3 +3871,40 @@ CRYPT_PREGENERATED_MAX_FLOOR = 200
 CRYPT_MAX_FLOOR = CRYPT_PREGENERATED_MAX_FLOOR  # legacy compatibility only
 CRYPT_BOSS_FLOORS = tuple(range(10, CRYPT_PREGENERATED_MAX_FLOOR + 1, 10))
 INFINITE_CRYPT_STEP_RATE = 0.025
+
+
+# v0.31.9 HELP refresh
+HELP_TOPICS["mec"] = [
+ "Mec: pełny zestaw Melee, Ranged, Feedback, Magic, Support, Counter, Inherent i Passive. Progi umiejętności zależą od Biegłości Meca.",
+ "V-MAX wymaga Biegłości 130. Will wydłuża czas działania. Aktywuje Protect, Shell, Haste, Regen, Preach, Praise i Permanence oraz zmienia wybrane umiejętności.",
+ "Cosmic Rave: Biegłość 110; normalnie trafia wszystkich, w V-MAX wykonuje 5 losowych trafień. Shoot-All i Starlight Shower także zyskują efekty V-MAX.",
+ "Self-Repair, Combat Mastery, Maxwell Program, Shooting Mastery oraz cztery Protocols działają pasywnie po nauczeniu.",
+]
+HELP_TOPICS["engineer upgrade"] = [
+ "Engineer Upgrade 2.0: Upgrade <narzędzie> zapisuje ulepszenie. Scanner nie podlega Upgrade.",
+ "Bazowo masz 1 slot Upgrade; Silver Gear daje drugi, Gold Battery trzeci.",
+ "Upgrade bez argumentu pokazuje aktywne sloty oraz dokładny efekt każdego ulepszonego narzędzia.",
+ "Przykłady: Launcher 4->6 pocisków, Debilitator 1->3 podatności, Drill wzmacnia przebicie/dispel, Chainsaw Demi->Quarter, Napalm nakłada olej.",
+]
+HELP_TOPIC_ALIASES.update({"mec skills":"mec","mec umiejętności":"mec","engineer upgrade":"engineer upgrade","upgrade 2":"engineer upgrade"})
+
+
+# v0.31.12 Tech Crafting / Runes & Sockets 2.0
+HELP_TOPICS["techcraft"] = [
+    "Machine Salvage 2.0: komponenty Machine trafiają do Szkatułki -> Technologia.",
+    "techsalvage <komponent> rozkłada cięższe części na Servo, Circuit, Power Cell i Plating.",
+    "techcraft pokazuje receptury technologiczne; techcraft <nazwa> wykonuje Boardy Cyborga, komponenty Meca, zestawy Upgrade Inżyniera i technologiczne EQ.",
+    "Upgrade Inżyniera wymaga teraz 1 Zestawu Upgrade Inżyniera na trwałe ulepszenie narzędzia.",
+]
+HELP_TOPICS["sockety2"] = [
+    "Runy i sockety 2.0 rozwijają istniejące systemy bez kasowania starych run i klejnotów.",
+    "Oszlifowane klejnoty mogą trafiać także do wysokopoziomowego lub technologicznego EQ z gniazdami, nie tylko do biżuterii.",
+    "gemsockets pokazuje jednocześnie zajęcie gniazd klejnotów i run na założonym EQ.",
+    "Stare runy endgame pozostają; dodano Runę Impulsu, Runę Bariery Magitek i Runę Rdzenia.",
+]
+HELP_TOPICS["vmax2"] = [
+    "vmaxstatus / vmaxinfo pokazuje stan V-MAX, pozostały czas, Overheat i efekty zależne od V-MAX.",
+    "Will wydłuża V-MAX. Po wygaśnięciu występuje Overheat i czasowa kara do statystyk.",
+    "Zmiany: Cosmic Rave = 5 losowych trafień; Shoot-All = większy damage/crit; Starlight Shower = pełne AoE; Kamikaze Crush = większy limit HP; Heal Beam = party heal.",
+]
+HELP_TOPIC_ALIASES.update({"tech crafting":"techcraft","technologia":"techcraft","sockets2":"sockety2","sockety":"sockety2","vmaxstatus":"vmax2","v-max":"vmax2"})

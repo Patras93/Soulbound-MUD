@@ -594,6 +594,12 @@ class SessionCommandLoopMixin:
                     await self.socket_gem(args)
                 elif command == "gemsockets":
                     await self.show_socketed_gems()
+                elif command == "techsalvage":
+                    await self.tech_salvage_v03111(args)
+                elif command == "techcraft":
+                    await self.tech_craft_v03111(args)
+                elif command == "vmaxstatus":
+                    await self.vmax_status_v03111()
                 elif command == "inventory":
                     await self.inventory()
                 elif command == "equipment":

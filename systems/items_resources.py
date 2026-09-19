@@ -75,6 +75,21 @@ ENDGAME_PROFESSION_ITEMS = {
 }
 ITEMS.update(ENDGAME_PROFESSION_ITEMS)
 
+# v0.31.3: specjalny Board tylko dla rasy Cyborga, skalowany Biegłością Meca.
+ITEMS["moogle_board"] = {
+    "name": "Moogle Board",
+    "type": "armor",
+    "slot": "board",
+    "defense": 0,
+    "price": 1000,
+    "rarity": "cyborg",
+    "rarity_name": "Cyborg",
+    "required_race": "Cyborg",
+    "stats": {},
+    "cyborg_board_scaling": "mec_mastery",
+    "desc": "Specjalny moduł Cyborga. Bonus do wszystkich pięciu głównych statystyk rośnie wraz z Biegłością Meca: od +2 na początku do +18 przy Biegłości 400.",
+}
+
 _PROGRESSION_400_NAMES = {
     220: "Przebudzenia", 240: "Transcendencji", 260: "Horyzontu",
     280: "Otchłani", 300: "Gwiezdnego Rdzenia", 320: "Pierwotności",
@@ -1226,11 +1241,13 @@ CLASS_EQUIPMENT_SETS = {
         "room": "guild_sanctuary",
     },
     "Psionik": {
-        "prefix": "psion_mind",
-        "set_name": "Umysłu",
-        "affix": "willpower",
-        "base_defense": 1,
-        "room": "guild_arcane_chamber",
+        "prefix": "psion_mind", "set_name": "Umysłu", "affix": "willpower", "base_defense": 1, "room": "guild_arcane_chamber",
+    },
+    "Mec": {
+        "prefix": "mec_core", "set_name": "Rdzenia", "affix": "constitution", "base_defense": 3, "room": "guild_martial_hall",
+    },
+    "Inżynier": {
+        "prefix": "engineer_tools", "set_name": "Konstruktora", "affix": "dexterity", "base_defense": 2, "room": "guild_shadow_gallery",
     },
 }
 
@@ -1251,6 +1268,8 @@ CLASS_EQUIPMENT_STYLES = {
     "Czarownik": ("Otchłani", "Czarnego Paktu", "Pustego Księżyca"),
     "Druid": ("Korzeni", "Dzikiego Gaju", "Księżycowej Kory"),
     "Psionik": ("Umysłu", "Kryształowej Myśli", "Astralnego Echa"),
+    "Mec": ("Rdzenia", "Tytanowej Ramy", "Reaktora Bojowego"),
+    "Inżynier": ("Konstruktora", "Mistrza Narzędzi", "Mechanicznego Geniuszu"),
 }
 
 CLASS_EQUIPMENT_SLOT_DEFS = {
@@ -1356,6 +1375,16 @@ CLASS_EQUIPMENT_CLASS_PROFILES = {
         "primary_ratio": 0.54,
         "identity": "równowaga Inteligencji z psychiczną obroną",
         "properties": {"magic_defense_pct": 0.65, "max_mana_pct": 0.35},
+    },
+    "Mec": {
+        "primary_ratio": 0.42,
+        "identity": "ciężki pancerz i stabilna ofensywa rdzenia",
+        "properties": {"physical_defense_pct": 0.60, "max_hp_pct": 0.40},
+    },
+    "Inżynier": {
+        "primary_ratio": 0.68,
+        "identity": "zręczność, narzędzia i mobilna ofensywa",
+        "properties": {"physical_damage_pct": 0.60, "dodge_pct": 0.40},
     },
 }
 

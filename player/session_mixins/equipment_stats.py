@@ -1,6 +1,14 @@
 # -*- coding: utf-8 -*-
 """Soulbound v0.30.51 Session mixin: equipment_stats."""
 
+
+def moogle_board_stat_bonus_v0313(mec_mastery):
+    """Bonus Moogle Board do każdego głównego statu, skalowany Biegłością Meca."""
+    level = max(1, min(400, int(mec_mastery or 1)))
+    if level >= 400:
+        return 18
+    return 2 + 2 * (level // 50)
+
 class SessionEquipmentStatsMixin:
     def equipped_item_rows(self):
             return list(self.server.db.equipment(self.account_id))
@@ -34,6 +42,12 @@ class SessionEquipmentStatsMixin:
                     if stat in totals:
                         totals[stat] += int(amount)
 
+                # v0.31.3: Moogle Board skaluje wszystkie główne staty z Biegłością Meca.
+                if row["item_id"] == "moogle_board" and item.get("cyborg_board_scaling") == "mec_mastery":
+                    board_bonus = moogle_board_stat_bonus_v0313(self.class_mastery_level("Mec"))
+                    for stat in ("strength", "dexterity", "constitution", "intelligence", "willpower"):
+                        totals[stat] += board_bonus
+
                 upgrade_level = self.server.db.equipment_upgrade_level_v03042(
                     self.account_id, row["item_id"]
                 )
@@ -43,25 +57,15 @@ class SessionEquipmentStatsMixin:
                     if upgrade_stat in totals and upgrade_amount > 0:
                         totals[upgrade_stat] += upgrade_amount
 
-                if item.get("slot") in ("ring", "necklace", "earring"):
-                    socket_slot = (
-                        row["slot"]
-                        if item.get("slot") in ("ring", "earring")
-                        else "necklace"
-                    )
-                    for gem_row in self.server.db.socketed_gems(
-                        self.account_id,
-                        socket_slot,
-                        row["item_id"],
-                    ):
+                if globals().get("equipment_gem_socket_capacity_v03111", lambda _i: jewelry_socket_capacity(_i))(item) > 0:
+                    socket_slot = row["slot"]
+                    for gem_row in self.server.db.socketed_gems(self.account_id, socket_slot, row["item_id"]):
                         gem = ITEMS.get(gem_row["gem_id"])
                         if not gem:
                             continue
                         gem_affix = gem.get("affix")
                         if gem_affix in totals:
-                            totals[gem_affix] += int(
-                                gem.get("affix_amount", 0)
-                            )
+                            totals[gem_affix] += int(gem.get("affix_amount", 0))
             for _erow in self.server.db.equipment_enchants_v03053(self.account_id):
                 _stat=str(_erow["stat"]); _amount=int(_erow["amount"])
                 if _stat in totals:

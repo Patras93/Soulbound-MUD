@@ -215,6 +215,8 @@ GUILD_CLASS_QUESTS = {
     "Czarownik": ("Próba Otchłani", "Pokonaj 10 przeciwników dla Gildii.", 95, 750, 10),
     "Druid": ("Próba Natury", "Pokonaj 8 przeciwników dla Gildii.", 90, 700, 8),
     "Psionik": ("Próba Umysłu", "Pokonaj 10 przeciwników dla Gildii.", 95, 750, 10),
+    "Mec": ("Próba Rdzenia", "Pokonaj 8 przeciwników dla Gildii.", 100, 800, 8),
+    "Inżynier": ("Próba Konstruktora", "Pokonaj 10 przeciwników dla Gildii.", 90, 700, 10),
 }
 
 GUILD_BOUNTY_TARGETS = (
@@ -283,6 +285,8 @@ CLASS_SET_BONUSES = {
         "stats": {"willpower": 3, "intelligence": 2},
         "damage": 1.13, "defense": 1.11, "vitality": 1.16,
     },
+    "Mec": {"stats": {"constitution": 4}, "damage": 1.08, "defense": 1.18, "vitality": 1.20},
+    "Inżynier": {"stats": {"dexterity": 4}, "damage": 1.12, "defense": 1.08, "vitality": 1.08},
 }
 
 CLASS_SET_STAT_NAMES = {
@@ -297,7 +301,7 @@ CLASS_SET_STAT_NAMES = {
 # ============================================================
 # v0.9.20 - LEGENDARY CLASS LOOT 50/100
 # ============================================================
-# Bossowie co 50 pięter mogą dawać pełnoprawne setowe EQ dla każdej z 12 klas.
+# Bossowie co 50 pięter mogą dawać pełnoprawne setowe EQ dla każdej z 14 klas.
 # Bossowie co 100 pięter dodatkowo dają osobny legendarny relikt klasowy.
 # Wszystko nadal respektuje Biegłość i ręczne zakładanie EQ.
 LEGENDARY_CLASS_LOOT_TIERS = tuple(range(50, 401, 50))
@@ -473,18 +477,18 @@ for _room_id in CLASS_SHOP_ITEMS_BY_ROOM:
 CRAFT_RECIPES = {
     "iron_ingot": {
         "name": "Żelazna sztabka", "stations": ("forge",),
-        "ingredients": {"iron_ore": 2}, "output": "iron_ingot", "quantity": 1,
-        "desc": "Przetop 2 Rudy żelaza w 1 Żelazną sztabkę.",
+        "ingredients": {"iron_ore": 1}, "output": "iron_ingot", "quantity": 1,
+        "desc": "Przetop 1 Rudę żelaza w 1 Żelazną sztabkę.",
     },
     "silver_ingot": {
         "name": "Srebrna sztabka", "stations": ("forge",),
-        "ingredients": {"silver_ore": 2}, "output": "silver_ingot", "quantity": 1,
-        "desc": "Przetop 2 Rudy srebra w 1 Srebrną sztabkę.",
+        "ingredients": {"silver_ore": 1}, "output": "silver_ingot", "quantity": 1,
+        "desc": "Przetop 1 Rudę srebra w 1 Srebrną sztabkę.",
     },
     "gold_ingot": {
         "name": "Złota sztabka", "stations": ("forge",),
-        "ingredients": {"gold_ore": 2}, "output": "gold_ingot", "quantity": 1,
-        "desc": "Przetop 2 Rudy złota w 1 Złotą sztabkę.",
+        "ingredients": {"gold_ore": 1}, "output": "gold_ingot", "quantity": 1,
+        "desc": "Przetop 1 Rudę złota w 1 Złotą sztabkę.",
     },
     "oak_plank": {
         "name": "Deska dębowa", "stations": ("lumberjack_camp",),
@@ -603,7 +607,7 @@ def _register_blacksmith_recipes():
                 "name": ITEMS[ingot_id]["name"],
                 "stations": ("forge",),
                 "ingredients": {
-                    tier["ore"]: 2,
+                    tier["ore"]: 1,
                 },
                 "output": ingot_id,
                 "quantity": 1,
@@ -619,7 +623,7 @@ def _register_blacksmith_recipes():
                 ),
                 "category": "smithing",
                 "desc": (
-                    f"Przetop 2 sztuki surowca "
+                    f"Przetop 1 sztukę surowca "
                     f"{ITEMS[tier['ore']]['name']} "
                     f"w 1 sztabkę."
                 ),

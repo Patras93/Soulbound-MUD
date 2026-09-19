@@ -18,6 +18,7 @@ class Session(
     SessionSocialExpansionMixin,
     SessionProgressionAccessibilityV03052Mixin,
     SessionProfessionsV03053Mixin,
+    SessionTechCraftingV03111Mixin,
     SessionCommandLoopMixin
 ):
     """Player session composed from focused subsystem mixins."""

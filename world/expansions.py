@@ -2860,7 +2860,7 @@ def configure_v0800_help_info():
 
 def configure_v081_help_info():
     HELP_TOPICS["sety_klasowe"] = [
-        "Każda z 12 klas ma pełny zestaw 8 części: głowa, korpus, dłonie, nogi, stopy, talizman, pierścień i naszyjnik.",
+        "Każda z 14 klas ma pełny zestaw 8 części: głowa, korpus, dłonie, nogi, stopy, talizman, pierścień i naszyjnik.",
         "Klasowe EQ ma Tiery Biegłości 1, 10, 20, 30 i dalej co 10 aż do 400; każdy próg daje mocniejszy pełny zestaw.",
         "Każda część klasowego EQ ma dwie podstawowe statystyki archetypu: klasy fizyczne dostają Siłę i Kondycję, a klasy magiczne Inteligencję i Siłę Woli.",
         "W klasach magicznych Inteligencja jest statystyką odpowiadającą mocy/mądrości magicznej; gra nie tworzy osobnej siódmej statystyki Mądrość.",
@@ -3037,7 +3037,7 @@ def build_paid_training_guild_expansion():
         "Nauczyciel zawsze podaje cenę przed nauką.",
         "Komendy: learn <numer>, learn <skill>, naucz <numer>, naucz <umiejętność>.",
         "Pieniądze są pobierane dopiero po sprawdzeniu aktywnej klasy, wymaganej Biegłości i tego, czy skill nie jest już znany.",
-        "Każda z 12 klas ma teraz własną salę i własnego nauczyciela.",
+        "Każda z 14 klas ma teraz własną salę i własnego nauczyciela.",
         "Wpisz teachers albo nauczyciele, aby usłyszeć dokładne lokacje.",
     ]
 
@@ -3409,3 +3409,21 @@ def build_elite_rare_named_loot_expansion():
         TREASURE_CHESTS[room]={
             "name":name,"respawn":respawn,"base_pool":tuple(base_pool),"set_pool":tuple(set_pool),
         }
+
+# v0.31.2: sale treningowe nowych klas technologicznych, obecne przed auditami.
+ROOMS.setdefault("guild_mec_chamber", {
+    "name": "Hangar Meca", "zone": "Gildia Dusz",
+    "desc": "Wzmocniony hangar z rdzeniami energetycznymi i stanowiskami ciężkiego pancerza.",
+    "exits": {"south": "guild_martial_hall"},
+})
+ROOMS.setdefault("guild_engineer_chamber", {
+    "name": "Warsztat Inżyniera", "zone": "Gildia Dusz",
+    "desc": "Warsztat pełen narzędzi, działek testowych, skanerów i mechanicznych konstrukcji.",
+    "exits": {"east": "guild_shadow_gallery"},
+})
+ROOMS.setdefault("guild_martial_hall", {}).setdefault("exits", {})["east"] = "guild_mec_chamber"
+ROOMS.setdefault("guild_shadow_gallery", {}).setdefault("exits", {})["west"] = "guild_engineer_chamber"
+if "teacher_mec" in NPCS:
+    NPCS["teacher_mec"]["room"] = "guild_mec_chamber"
+if "teacher_engineer" in NPCS:
+    NPCS["teacher_engineer"]["room"] = "guild_engineer_chamber"

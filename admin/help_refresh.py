@@ -39,7 +39,7 @@ def refresh_generator_help_v0271():
         "Pełne aktualne wartości: help <nazwa skilla> albo skill info <nazwa>.",
     ]
     HELP_TOPICS["umiejetnosci"] = [
-        "Każda z 12 klas ma wygenerowaną linię skilli/spelli rozłożoną po Biegłości 1-400.",
+        "Każda z 14 klas ma wygenerowaną linię skilli/spelli rozłożoną po Biegłości 1-400.",
         "Skill Level każdej poznanej umiejętności ma zakres 1-400 i korzysta z jednej wygenerowanej krzywej mocy/cooldownu.",
         "Damage, heal, guard, drain, boost, Mana i cooldown nie są balansowane ręcznie per skill; wylicza je Generator Core z rodzaju i etapu umiejętności.",
     ]
@@ -608,14 +608,14 @@ if EQUIPMENT_NAME_AUDIT_V03016.get("error_count"):
     )
 
 HELP_TOPICS.setdefault("eq", []).append(
-    "v0.30.16: klasowe EQ wszystkich 12 klas ma unikalne nazwy progresji. Nazwa nie jest już tym samym przedmiotem z +10/+20/+30; Biegłość pozostaje w wymaganiu i opisie."
+    "v0.30.16: klasowe EQ wszystkich 14 klas ma unikalne nazwy progresji. Nazwa nie jest już tym samym przedmiotem z +10/+20/+30; Biegłość pozostaje w wymaganiu i opisie."
 )
 HELP_TOPICS.setdefault("eq", []).append(
     "Stare numerowane nazwy EQ pozostają aliasami wyszukiwania, więc wcześniejsze komendy nadal mogą rozpoznać stary przedmiot."
 )
 
 HELP_TOPICS.setdefault("eq", []).append(
-    "v0.30.16: klasy nie mają już identycznych wartości bazowych. Berserker kieruje budżet w Siłę, Strażnik w Kondycję, Mag w Inteligencję, Kapłan w Siłę Woli, a każda z 12 klas ma własne proporcje i właściwości EQ."
+    "v0.30.16: klasy nie mają już identycznych wartości bazowych. Berserker kieruje budżet w Siłę, Strażnik w Kondycję, Mag w Inteligencję, Kapłan w Siłę Woli, a każda z 14 klas ma własne proporcje i właściwości EQ."
 )
 HELP_TOPICS.setdefault("eq", []).append(
     "Różnią się też sloty: rękawice i pierścienie są bardziej ofensywne, pancerz i nogawice bardziej przeżywalnościowe. Łączny budżet danego Tieru pozostaje kontrolowany."
@@ -627,7 +627,7 @@ HELP_TOPICS.setdefault("eq", []).append(
 LATEST_CHANGES_TITLE = "Soulbound v0.30.16 - Unique Class Equipment Identity"
 LATEST_CHANGES = [
     "Pełny audyt nazw EQ: 23 238 pancerzy ma unikalne nazwy; 0 nazw progresji kończy się +liczba.",
-    "12 klas ma własne proporcje dwóch bazowych statystyk EQ oraz własne właściwości procentowe; klasy nie są już statystycznymi kopiami.",
+    "14 klas ma własne proporcje dwóch bazowych statystyk EQ oraz własne właściwości procentowe; klasy nie są już statystycznymi kopiami.",
     "Fizyczne klasy nadal używają Siły + Kondycji, magiczne Inteligencji + Siły Woli, ale rozkład zależy od klasy i slotu.",
     "Skróty NVDA do zakładania EQ: zh, zz, zr, zn, zb, zp, zt, zp1/zp2, zt1/zt2, zna, znar, zpas, zpel, zkar, zrel; skrót bez argumentu pokazuje numerowaną listę.",
     "Stare numerowane nazwy EQ pozostają aliasami wyszukiwania; brak wipe i brak zmiany ID przedmiotów.",
@@ -656,12 +656,12 @@ def full_game_audit_v03014():
 
     # Klasy i rasy.
     class_types = {row[0]: row[1] for row in CLASSES}
-    require(len(class_types) == 12, f"classes={len(class_types)}")
+    require(len(class_types) == 14, f"classes={len(class_types)}")
     require(all(kind in ("physical", "magic") for kind in class_types.values()),
             "invalid class archetype")
     race_names = [row[0] for row in RACES]
-    require(len(race_names) == 13 and len(set(race_names)) == 13,
-            "races are not 13 unique entries")
+    require(len(race_names) == 14 and len(set(race_names)) == 14,
+            "races are not 14 unique entries")
     for row in RACES:
         require(sum(int(v) for v in row[2:7]) == 50,
                 f"race base stat budget {row[0]}")
@@ -855,7 +855,7 @@ if V03014_SKILL_NAME_AUDIT.get("error_count"):
         "; ".join(V03014_SKILL_NAME_AUDIT.get("errors", [])[:20])
     )
 HELP_TOPICS.setdefault("skille", []).append(
-    "v0.30.14: pełny audyt nazw 12 klas usunął numerowane serie skilli/spelli; każda umiejętność ma unikalną nazwę, a dawne nazwy pozostają aliasami kompatybilności."
+    "v0.30.14: pełny audyt nazw 14 klas usunął numerowane serie skilli/spelli; każda umiejętność ma unikalną nazwę, a dawne nazwy pozostają aliasami kompatybilności."
 )
 HELP_TOPICS.setdefault("biegłość", []).append(
     "Nazwy alternatywnych umiejętności progów Biegłości są unikalne; stare formy typu 'Furia Berserkera 80' nadal działają jako aliasy."
@@ -992,15 +992,18 @@ def progression_combat_audit_v03017():
         counts = {level: 0 for level in grid}
         for skill in rows:
             unlock = int(skill.get("unlock", 0) or 0)
-            if unlock not in grid_set:
+            if class_name not in ("Inżynier","Mec") and unlock not in grid_set:
                 errors.append(f"{class_name}/{skill.get('id')}: próg {unlock} poza siatką")
-            else:
+            elif unlock in grid_set:
                 counts[unlock] += 1
+            elif not (1 <= unlock <= CLASS_MASTERY_MAX_LEVEL):
+                errors.append(f"{class_name}/{skill.get('id')}: nieprawidłowy próg {unlock}")
         if len(rows) != len(grid) * 3:
             errors.append(f"{class_name}: {len(rows)} skilli, oczekiwano {len(grid)*3}")
-        for level in grid:
-            if counts[level] != 3:
-                errors.append(f"{class_name}: próg {level} ma {counts[level]} skilli, oczekiwano 3")
+        if class_name not in ("Inżynier","Mec"):
+            for level in grid:
+                if counts[level] != 3:
+                    errors.append(f"{class_name}: próg {level} ma {counts[level]} skilli, oczekiwano 3")
 
     expected_slots = {1: 10, 10: 11, 100: 20, 200: 30, 400: 50}
     for level, expected in expected_slots.items():
@@ -1038,7 +1041,7 @@ if PROGRESSION_COMBAT_AUDIT_V03017.get("error_count"):
     )
 
 HELP_TOPICS.setdefault("skille", []).extend([
-    "v0.30.17: progi odblokowania skilli są dokładnie 1, 10, 20...400. Każda z 12 klas ma dokładnie 3 skille/spelle na każdy próg.",
+    "Większość klas zachowuje siatkę 1, 10, 20...400 po 3 skille. Inżynier i Mec mają autorskie progi wynikające z ich projektów klasowych.",
     "Generator Core nie rozciąga już 123 skilli po przypadkowych poziomach 1-400; zachowuje zaprojektowane progi Biegłości.",
 ])
 HELP_TOPICS.setdefault("walka", []).extend([
@@ -1051,7 +1054,7 @@ HELP_TOPICS.setdefault("kolejka", []).append(
 
 LATEST_CHANGES_TITLE = "Soulbound v0.30.17 - Soul Weapon Combat + Skill Grid + Character-Level Queue"
 LATEST_CHANGES = [
-    "Broń Duszy jest jawną aktywną bronią autoataku; każda z 12 klas ma własną technikę ataku, a Soul Power pozostaje rdzeniem obrażeń.",
+    "Broń Duszy jest jawną aktywną bronią autoataku; każda z 14 klas ma własną technikę ataku, a Soul Power pozostaje rdzeniem obrażeń.",
     "Ofensywne skille/spelle pokazują używaną Broń Duszy i nadal korzystają z jej mocy; fizyczne skalują się z Siły, magiczne z Inteligencji.",
     "Naprawiono Generator Core: 123 skille na klasę nie są już rozciągane po losowych progach. Każda klasa ma dokładnie 3 skille na 1, 10, 20...400.",
     "Sloty auto kolejki zależą od Character Level: 10 na Levelu 1, 11 na 10, 20 na 100, 30 na 200, 50 na 400.",
@@ -1079,5 +1082,28 @@ try:
       "krytycznycraft":"Krytyczny craft v0.30.54: mała szansa na dodatkowy affix statystyki. Szansa rośnie z levelem profesji oraz Crafting Mastery i ma bezpieczny limit.",
       "craftmastery":"Crafting Mastery v0.30.54 jest osobne od levelu profesji i narzędzia. Rośnie od liczby udanych craftów w konkretnej kategorii. Komenda: craftmastery [filtr]. Maksymalnie 100.",
     })
+except Exception:
+    pass
+
+
+# v0.31.7 Engineer Toolkit + profession tool audit.
+HELP_TOPICS.setdefault("inzynier", []).extend([
+    "v0.31.7: Inżynier ma autorski zestaw narzędzi: Auto Crossbow, Mako Gun, Bio Blaster, Scanner, Flash, Debilitator, Drill, Napalm, Launcher, Upgrade, Noise Blaster, Chainsaw, Mega Bomb i Air Anchor.",
+    "Soulbound nie używa AP. Wartości źródłowej mocy są tylko wewnętrzną mocą bazową umiejętności.",
+    "Upgrade <nazwa narzędzia> zapisuje trwałe ulepszenie. Bazowo dostępny jest 1 slot; Silver Gear daje drugi, Gold Battery trzeci. Upgrade reset czyści sloty.",
+    "Hypercharge pasywnie wzmacnia single-target, Lindblum Assembly obszarowe narzędzia, a Improved Kinematics wydłuża efekty statusowe.",
+])
+HELP_TOPICS.setdefault("narzedzia", []).append(
+    "v0.31.7: wszystkie 12 profesji ma dokładnie jedno kupowalne, przypisane do postaci narzędzie. Ponowny zakup tej samej postaci jest blokowany."
+)
+
+# v0.31.8: Mec support semantics + tool migration clarification.
+try:
+    _mec_help = HELP_TOPICS.get("mec", "")
+    if isinstance(_mec_help, str) and "Support Effect" not in _mec_help:
+        HELP_TOPICS["mec"] = _mec_help + (
+            "\nSupport Effect to dodatkowy tryb/efekt konkretnej umiejętności Meca. "
+            "Nie jest osobną bronią. Rdzeń Meca pozostaje jego jedyną Bronią Duszy."
+        )
 except Exception:
     pass

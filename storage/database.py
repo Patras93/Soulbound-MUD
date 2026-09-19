@@ -707,6 +707,7 @@ class Database:
             CREATE TABLE IF NOT EXISTS combat_recaps_v03052(id INTEGER PRIMARY KEY AUTOINCREMENT, account_id INTEGER NOT NULL, opponent TEXT NOT NULL DEFAULT '', duration_ms INTEGER NOT NULL DEFAULT 0, damage_dealt INTEGER NOT NULL DEFAULT 0, damage_taken INTEGER NOT NULL DEFAULT 0, healing INTEGER NOT NULL DEFAULT 0, crits INTEGER NOT NULL DEFAULT 0, skills_used INTEGER NOT NULL DEFAULT 0, result TEXT NOT NULL DEFAULT '', created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
             CREATE TABLE IF NOT EXISTS death_recaps_v03052(id INTEGER PRIMARY KEY AUTOINCREMENT, account_id INTEGER NOT NULL, killer TEXT NOT NULL DEFAULT '', room_id TEXT NOT NULL DEFAULT '', damage_taken INTEGER NOT NULL DEFAULT 0, duration_ms INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
             CREATE TABLE IF NOT EXISTS equipment_enchants_v03053(account_id INTEGER NOT NULL, slot TEXT NOT NULL, enchant_key TEXT NOT NULL, stat TEXT NOT NULL, amount INTEGER NOT NULL DEFAULT 0, updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY(account_id,slot));
+            CREATE TABLE IF NOT EXISTS engineer_tool_upgrades_v0317(account_id INTEGER NOT NULL, skill_id TEXT NOT NULL, upgraded_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY(account_id,skill_id));
         """)
         # v0.30.51: Mentor System. Jedna aktywna para mentor-uczeń na konto.
         self.conn.executescript("""
@@ -981,6 +982,51 @@ class Database:
             self.conn.execute(
                 "INSERT INTO migration_flags(flag) VALUES(?)",
                 ("character_bound_tools_v088",),
+            )
+
+        # v0.31.8: ponowna, pełna normalizacja narzędzi po dodaniu
+        # Krawiectwa, Garbarstwa, Stolarstwa i Zaklinania. Stara flaga v0.8.8
+        # mogła już istnieć na kontach utworzonych przed dodaniem tych profesji.
+        # Progres narzędzi (level/xp/uses) jest w tabeli tools i nie jest tu
+        # modyfikowany — normalizujemy wyłącznie fizyczną liczbę przedmiotów.
+        tools_0318_migrated = self.conn.execute(
+            "SELECT 1 FROM migration_flags WHERE flag=?",
+            ("character_bound_tools_all_v0318",),
+        ).fetchone()
+        if not tools_0318_migrated:
+            for item_id in CHARACTER_BOUND_TOOL_IDS:
+                # Jeśli stara kopia leży w Banku Dusz, przenieś jedną sztukę
+                # do inventory właściciela tylko wtedy, gdy nie ma jej już tam.
+                bank_rows = self.conn.execute(
+                    "SELECT account_id,quantity FROM bank_items "
+                    "WHERE item_id=? AND quantity>0",
+                    (item_id,),
+                ).fetchall()
+                for bank_row in bank_rows:
+                    account_id = int(bank_row["account_id"])
+                    owned = self.conn.execute(
+                        "SELECT quantity FROM inventory "
+                        "WHERE account_id=? AND item_id=?",
+                        (account_id, item_id),
+                    ).fetchone()
+                    if not owned or int(owned["quantity"] or 0) <= 0:
+                        self.conn.execute(
+                            "INSERT INTO inventory(account_id,item_id,quantity) "
+                            "VALUES(?,?,1) "
+                            "ON CONFLICT(account_id,item_id) DO UPDATE SET quantity=1",
+                            (account_id, item_id),
+                        )
+                # Bank nie może przechowywać character-bound tools.
+                self.conn.execute("DELETE FROM bank_items WHERE item_id=?", (item_id,))
+                # Na każdej postaci zostaje najwyżej jedna fizyczna sztuka.
+                self.conn.execute(
+                    "UPDATE inventory SET quantity=1 "
+                    "WHERE item_id=? AND quantity>1",
+                    (item_id,),
+                )
+            self.conn.execute(
+                "INSERT INTO migration_flags(flag) VALUES(?)",
+                ("character_bound_tools_all_v0318",),
             )
 
         # v0.8.20: stare konto z jedną postacią staje się kontem głównym
@@ -1919,6 +1965,11 @@ class Database:
             "INSERT OR REPLACE INTO inventory(account_id,item_id,quantity) VALUES(?,?,?)",
             (account_id, "healing_potion", 2),
         )
+        if rname == "Cyborg":
+            self.conn.execute(
+                "INSERT OR REPLACE INTO inventory(account_id,item_id,quantity) VALUES(?,?,?)",
+                (account_id, "moogle_board", 1),
+            )
         self.conn.execute(
             "INSERT OR IGNORE INTO class_progress(account_id,class_name,level,xp,active_slot) "
             "VALUES(?,?,1,0,1)",

@@ -921,10 +921,10 @@ for _class_name, _class_type, _soul_weapon, _base_power in CLASSES:
         HELP_TOPIC_ALIASES[_alias] = _topic_key
 
 HELP_TOPICS["klasy"] = [
-    "Soulbound ma 12 klas: " + ", ".join(row[0] for row in CLASSES) + ".",
+    "Soulbound ma 14 klas: " + ", ".join(row[0] for row in CLASSES) + ".",
     "Każda klasa ma Biegłość 1-400, własną Broń Duszy, pasywy i pulę skilli/spelli.",
     "help <klasa> otwiera osobną pomoc klasy, np. help wojownik, help kapłan, help mag.",
-    "skills pokazuje szczegóły umiejętności aktywnych klas; skills all pokazuje nazwy wszystkich umiejętności wszystkich 12 klas.",
+    "skills pokazuje szczegóły umiejętności aktywnych klas; skills all pokazuje nazwy wszystkich umiejętności wszystkich 14 klas.",
     "spells / spels / czary pokazuje czary aktywnych klas magicznych; spells all / spels all pokazuje czary wszystkich klas magicznych.",
     "kodeksklasowy <klasa> czyta pełną progresję, wymagania Biegłości, nauczyciela, koszt i status nauki.",
 ]

@@ -170,14 +170,51 @@ ITEMS["salvaged_steel_plate"] = {
     "name": "Stalowa Płyta z Pancerza",
     "type": "craft_material",
     "price": None,
+    "craftbox_category": "blacksmithing",
     "desc": (
         "Ciężka płyta odzyskana ze starego pancerza nieumarłych. "
-        "Haldor przetapia cztery takie płyty w swoim godzinnym zleceniu."
+        "Cztery płyty można oddać w godzinnym zleceniu Haldora albo "
+        "samodzielnie przetopić w 1 Sztabkę Stali."
     ),
 }
+ITEMS["steel_ingot"] = {
+    "name": "Sztabka Stali",
+    "type": "craft_material",
+    "price": None,
+    "craftbox_category": "blacksmithing",
+    "desc": "Sztabka stali odzyskana przez przetopienie czterech Stalowych Płyt z Pancerza.",
+}
 CRAFT_MATERIAL_STORAGE_IDS = frozenset(
-    set(CRAFT_MATERIAL_STORAGE_IDS) | {"salvaged_steel_plate"}
+    set(CRAFT_MATERIAL_STORAGE_IDS) | {"salvaged_steel_plate", "steel_ingot"}
 )
+
+# v0.31.12: odłamki żelaza z salvage można ponownie przetopić w pełny materiał.
+CRAFT_RECIPES["recycled_iron_ingot"] = {
+    "name": "Przetop Odłamków Żelaza",
+    "stations": ("forge",),
+    "ingredients": {"salvage_iron_scrap": 2},
+    "output": "iron_ingot",
+    "quantity": 1,
+    "min_profession_level": 1,
+    "profession_xp": 12,
+    "tool_xp": 10,
+    "category": "smithing",
+    "desc": "Przetop 2 Odłamki Żelaza ze Szkatułki Rzemieślniczej w 1 Żelazną sztabkę.",
+}
+
+# v0.31.12: gracz może wykorzystać płyty poza questem Haldora.
+CRAFT_RECIPES["recycled_steel_ingot"] = {
+    "name": "Przetop Stalowych Płyt",
+    "stations": ("forge",),
+    "ingredients": {"salvaged_steel_plate": 4},
+    "output": "steel_ingot",
+    "quantity": 1,
+    "min_profession_level": 1,
+    "profession_xp": 18,
+    "tool_xp": 14,
+    "category": "smithing",
+    "desc": "Przetop 4 Stalowe Płyty z Pancerza ze Szkatułki Rzemieślniczej w 1 Sztabkę Stali.",
+}
 
 QUESTS["haldor_steel_recycling"] = {
     "name": "Zlecenie Haldora: Stal do Przetopu",

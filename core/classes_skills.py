@@ -494,6 +494,7 @@ V0876_RACE_BASE_STATS = {
     "Diablę": {"strength": 9, "dexterity": 11, "constitution": 9, "intelligence": 13, "willpower": 13},
     "Aasimar": {"strength": 10, "dexterity": 10, "constitution": 11, "intelligence": 12, "willpower": 14},
     "Driada": {"strength": 7, "dexterity": 10, "constitution": 11, "intelligence": 15, "willpower": 15},
+    "Cyborg": {"strength": 10, "dexterity": 11, "constitution": 12, "intelligence": 10, "willpower": 7},
 }
 
 # v0.9.0: każda rasa ma dokładnie ten sam budżet 50 bazowych punktów
@@ -553,10 +554,15 @@ RACES = [
      "Pasyw rasowy: +15 procent mocy wszystkich klasowych umiejętności leczących. "
      "Szczególnie dobrze pasuje do Kapłana i Druida.",
      7, 9, 10, 12, 12),
+    ("Cyborg",
+     "Technologicznie zmodyfikowana rasa o wysokiej Kondycji i dobrej Zręczności. "
+     "Pasyw rasowy: 10 procent redukcji wszystkich otrzymywanych obrażeń. "
+     "Szczególnie dobrze współpracuje z klasami Mec i Inżynier.",
+     10, 11, 12, 10, 7),
 ]
 
 # v0.8.46: rekomendacje klas są wskazówką dla nowych graczy, nie ograniczeniem.
-# Każda rasa nadal może wybrać każdą z 12 klas.
+# Każda rasa nadal może wybrać każdą z 14 klas.
 RACE_CLASS_RECOMMENDATIONS = {
     "Człowiek": {
         "classes": ["Wojownik", "Łotrzyk", "Mag", "Kapłan", "Druid", "Psionik"],
@@ -610,6 +616,10 @@ RACE_CLASS_RECOMMENDATIONS = {
         "classes": ["Druid", "Kapłan", "Psionik", "Mag"],
         "reason": "profil Inteligencji i Siły Woli oraz rasowy bonus do leczenia szczególnie wspierają klasy magiczne i lecznicze",
     },
+    "Cyborg": {
+        "classes": ["Mec", "Inżynier", "Strażnik", "Łowca"],
+        "reason": "wysoka Kondycja, dobra Zręczność i redukcja obrażeń wspierają technologiczne oraz defensywne style walki",
+    },
 }
 
 def race_class_recommendation_text(race_name):
@@ -634,6 +644,8 @@ CLASSES = [
     ("Czarownik", "magic", "Ostrze Otchłani", 8),
     ("Druid", "magic", "Kostur Korzeni", 7),
     ("Psionik", "magic", "Kryształ Umysłu", 7),
+    ("Mec", "physical", "Rdzeń Meca", 8),
+    ("Inżynier", "physical", "Omni-Narzędzie", 7),
 ]
 
 # v0.30.17: Broń Duszy jest aktywną bronią autoataku, nie tylko ukrytym bonusem.
@@ -650,6 +662,8 @@ SOUL_WEAPON_ATTACK_TECHNIQUES = {
     "Czarownik": "Cięcie Otchłani",
     "Druid": "Cios Korzeni",
     "Psionik": "Impuls Umysłu",
+    "Mec": "Impuls Rdzenia",
+    "Inżynier": "Strzał Omni-Narzędzia",
 }
 
 # v0.8.51: klasa nadaje własny profil startowych statystyk.
@@ -668,7 +682,8 @@ V0876_CLASS_STARTING_STAT_BONUSES = {
     "Kapłan":     {"strength": 0, "dexterity": 0, "constitution": 3, "intelligence": 2, "willpower": 4, "charisma": 0},
     "Czarownik":  {"strength": 1, "dexterity": 2, "constitution": 1, "intelligence": 4, "willpower": 1, "charisma": 0},
     "Druid":      {"strength": 0, "dexterity": 1, "constitution": 3, "intelligence": 3, "willpower": 3, "charisma": 0},
-    "Psionik":    {"strength": 0, "dexterity": 2, "constitution": 1, "intelligence": 3, "willpower": 4, "charisma": 0},
+    "Psionik":    {"strength": 0, "dexterity": 2, "constitution": 1, "intelligence": 3, "willpower": 4, "charisma": 0},    "Mec":       {"strength": 3, "dexterity": 2, "constitution": 3, "intelligence": 1, "willpower": 0, "charisma": 0},
+    "Inżynier":  {"strength": 1, "dexterity": 4, "constitution": 2, "intelligence": 2, "willpower": 0, "charisma": 0},
 }
 
 # v0.9.0: każda klasa dokłada dokładnie 9 punktów startowych.
@@ -686,7 +701,8 @@ CLASS_STARTING_STAT_BONUSES = {
     "Kapłan":     {"strength": 0, "dexterity": 0, "constitution": 3, "intelligence": 2, "willpower": 4, "charisma": 0},
     "Czarownik":  {"strength": 1, "dexterity": 2, "constitution": 1, "intelligence": 4, "willpower": 1, "charisma": 0},
     "Druid":      {"strength": 0, "dexterity": 1, "constitution": 2, "intelligence": 4, "willpower": 2, "charisma": 0},
-    "Psionik":    {"strength": 0, "dexterity": 1, "constitution": 1, "intelligence": 3, "willpower": 4, "charisma": 0},
+    "Psionik":    {"strength": 0, "dexterity": 1, "constitution": 1, "intelligence": 3, "willpower": 4, "charisma": 0},    "Mec":       {"strength": 3, "dexterity": 2, "constitution": 3, "intelligence": 1, "willpower": 0, "charisma": 0},
+    "Inżynier":  {"strength": 1, "dexterity": 4, "constitution": 2, "intelligence": 2, "willpower": 0, "charisma": 0},
 }
 
 def class_starting_stat_bonus(class_name, stat_name):
@@ -789,6 +805,15 @@ CLASS_DESCRIPTIONS = {
         "Każda z sześciu statystyk ma własny automatyczny EXP. "
         "Najlepiej wykorzystuje wysoką Inteligencję i Siłę Woli."
         "Pasyw klasowy: +10 procent obrony magicznej."
+    ),    "Mec": (
+        "Technologiczna klasa bojowa oparta na ciężkim pancerzu, rdzeniu energetycznym i uzbrojeniu pokładowym. "
+        "Inspiruje się ideą jobu Mec oraz technologicznych jobów UOSSMUD, ale działa według zasad Soulbound. "
+        "Pasyw klasowy: 10 procent redukcji wszystkich otrzymywanych obrażeń."
+    ),
+    "Inżynier": (
+        "Zręcznościowa klasa technologiczna korzystająca z narzędzi, działek, skanera, materiałów wybuchowych i urządzeń. "
+        "Część nazw i pomysłów na narzędzia inspirowana jest Engineerem UOSSMUD. "
+        "Pasyw klasowy: +10 procent obrażeń fizycznych."
     ),
 }
 
@@ -2177,6 +2202,216 @@ _V03014_SKILL_FAMILIES = {
     },
 }
 
+
+
+# v0.31.2: kompletne siatki skilli nowych klas technologicznych.
+def _v0310_tech_skill(class_name, prefix, level, index, name, kind):
+    sid = f"v0310_{prefix}_{level}_{index}"
+    base = {
+        "id": sid, "name": name, "aliases": [name.casefold()], "unlock": level,
+        "kind": kind, "cooldown": 4 + ((level // 10 + index) % 7), "mana": 0,
+        "desc": f"Umiejętność klasy {class_name} odblokowywana przez Biegłość {level}.",
+    }
+    scale = "dexterity" if class_name == "Inżynier" else "strength"
+    if kind in ("damage","aoe_damage","execute","drain"):
+        base["scale"] = scale
+        base["mult"] = round(1.20 + min(1.10, level / 400.0) + index * 0.08, 2)
+    if kind == "aoe_damage": base["aoe"] = True
+    if kind == "execute": base["execute_mult"] = 1.65
+    if kind == "drain": base["drain_pct"] = 0.18
+    if kind == "boost": base.update({"boost": 1.25 + min(.30, level/1400.0), "duration": 30})
+    if kind == "guard": base["guard"] = 12 + level // 20
+    if kind == "evade": base["evade"] = True
+    if kind == "heal": base["heal_pct"] = min(.40, .16 + level/1800.0)
+    if kind == "group_heal": base["heal_pct"] = min(.30, .12 + level/2200.0)
+    return base
+
+def _v0310_build_tech_class_skills():
+    levels = (1, *range(10, 401, 10))
+    mec_special = {
+        1: [("Fire Beam", "damage"), ("TekShield", "guard"), ("Vent Heat", "heal")],
+        10: [("Ice Beam", "damage"), ("Bolt Beam", "damage"), ("Target Lock", "boost")],
+        20: [("Gravity Bomb", "aoe_damage"), ("TekBarrier", "guard"), ("Overdrive", "boost")],
+        30: [("Bio Blast", "aoe_damage"), ("TekMissile", "execute"), ("Heal Force", "heal")],
+        40: [("Diffuser", "aoe_damage"), ("Runic Weapon", "boost"), ("Core Meltdown", "execute")],
+    }
+    eng_special = {
+        1: [("Auto Crossbow", "aoe_damage"), ("Mako Gun", "damage"), ("Scanner", "boost")],
+        10: [("Bio Blaster", "aoe_damage"), ("Flash", "aoe_damage"), ("Debilitator", "boost")],
+        20: [("Drill", "damage"), ("Napalm", "aoe_damage"), ("Launcher", "execute")],
+        30: [("Noise Blaster", "aoe_damage"), ("Chainsaw", "execute"), ("Mega Bomb", "aoe_damage")],
+        40: [("Air Anchor", "damage"), ("Field Repair", "heal"), ("Tool Upgrade", "boost")],
+    }
+    generic_mec = (("Salwa Rdzenia", "damage"), ("Pancerz Reaktywny", "guard"), ("Przeciążenie Systemów", "boost"))
+    generic_eng = (("Wieżyczka Szturmowa", "damage"), ("Ładunek Taktyczny", "aoe_damage"), ("Kalibracja", "boost"))
+    for cname,prefix,special,generic in (("Mec","mec",mec_special,generic_mec),("Inżynier","engineer",eng_special,generic_eng)):
+        rows=[]
+        for level in levels:
+            specs=special.get(level)
+            if specs is None:
+                stage=level//10 if level>1 else 1
+                specs=[(f"{n} Mk-{stage}A", k) for n,k in generic]
+            for idx,(name,kind) in enumerate(specs,1):
+                rows.append(_v0310_tech_skill(cname,prefix,level,idx,name,kind))
+        CLASS_SKILLS[cname]=rows
+
+_v0310_build_tech_class_skills()
+
+# v0.31.5: UOSSMUD-inspired Mec abilities. Cosmic Rave keeps the supplied
+# UOSS behavior adapted to Soulbound: base power 2000, requirement 110, all enemies normally,
+# five random hits while V-MAX is active.
+def _v0315_install_cosmic_rave():
+    rows = CLASS_SKILLS.get("Mec", [])
+    by_level = {}
+    for row in rows:
+        by_level.setdefault(int(row.get("unlock", 0) or 0), []).append(row)
+    if by_level.get(100):
+        row = by_level[100][0]
+        row.clear(); row.update({
+            "id":"v0315_mec_vmax", "name":"V-MAX", "aliases":["v-max","vmax","v max"],
+            "unlock":100, "kind":"boost", "cooldown":45, "mana":0,
+            "boost":1.0, "duration":30,
+            "desc":"Aktywuje V-MAX na 30 sekund. Cosmic Rave wykonuje wtedy 5 losowych trafień zamiast jednego trafienia we wszystkich przeciwników."
+        })
+    if by_level.get(110):
+        row = by_level[110][0]
+        row.clear(); row.update({
+            "id":"v0315_mec_cosmic_rave", "name":"Cosmic Rave", "aliases":["cosmic rave","kosmiczny rave"],
+            "unlock":110, "kind":"aoe_damage", "cooldown":8, "mana":0,
+            "base_power":2000, "scale":"strength", "mult":1.0,
+            "desc":"Moc bazowa 2000. Normalnie trafia wszystkich przeciwników salwą meteorycznych ładunków. Pod V-MAX wykonuje 5 losowych trafień. Soulbound nie używa AP."
+        })
+_v0315_install_cosmic_rave()
+
+
+# v0.31.9: Full authored Mec kit based on the user-provided UOSSMUD ability list.
+# Soulbound does NOT use AP. Source Base AP is stored only as internal base_power.
+def _v0319_install_full_mec_kit():
+    rows = CLASS_SKILLS.get("Mec", [])
+    specs = [
+        # Melee
+        ("Hammer Crush",1,"damage",200,"melee","hammer_crush","Smashes one enemy with a powerful melee attack."),
+        ("Shock Soldier",14,"aoe_damage",600,"melee","shock_soldier","Miniature weapon-wielding clones attack all enemies."),
+        ("Plural Slash",32,"damage",900,"melee","plural_slash","Multiple slashes on one enemy. Scales especially with Dexterity."),
+        ("Pop Knight",46,"aoe_damage",1500,"melee","pop_knight","Flying clones attack all enemies."),
+        ("Tiger Rampage",80,"damage",1800,"melee","tiger_rampage","Powerful single-target attack that lowers Defense."),
+        ("Cosmic Rave",110,"aoe_damage",2000,"melee","cosmic_rave","Hits all enemies; during V-MAX performs 5 random hits instead."),
+        # Ranged
+        ("Crosshair",1,"damage",200,"ranged","crosshair","Precise shot; benefits strongly from critical chance."),
+        ("Range Fire",8,"aoe_damage",500,"ranged","range_fire","Bullets hit all enemies; non-diminishing area attack."),
+        ("Dispose",32,"aoe_damage",1200,"ranged","dispose","Lasers hit all enemies at a cost of some HP."),
+        ("Satellite Linker",44,"damage",1000,"ranged","satellite_linker","Attack drones repeatedly damage one enemy over time; scales with Will."),
+        ("Magnify",90,"damage",1500,"ranged","magnify","Very strong overload attack; may Lock the user."),
+        ("Shoot-All",110,"aoe_damage",2000,"ranged","shoot_all","Fires all ammunition at all enemies; V-MAX increases damage and crit."),
+        # Feedback
+        ("Destroy",1,"damage",200,"feedback","destroy","Single-target smash at a cost of HP."),
+        ("Robo Tackle",20,"damage",500,"feedback","robo_tackle","Body/shield charge at a cost of HP."),
+        ("Compress",30,"damage",600,"feedback","compress","Gravity percentile damage at a cost of HP."),
+        ("Crush",46,"damage",1000,"feedback","crush","Damage increases with HP already lost; costs HP."),
+        ("Uzi Punch",95,"aoe_damage",1400,"feedback","uzi_punch","Random fist/shield attacks across enemies at a cost of HP."),
+        ("Kamikaze Crush",110,"damage",2000,"feedback","kamikaze_crush","Lethal dive bomb; more HP sacrificed means more damage. V-MAX raises the sacrifice limit."),
+        # Magic
+        ("Laser Spin",1,"aoe_damage",200,"magic","laser_spin","Dark lasers hit all enemies."),
+        ("Area Bomb",8,"aoe_damage",300,"magic","area_bomb","Fire bomb burns engaged targets."),
+        ("Mec Sonata",20,"damage",1000,"magic","mec_sonata","Holy gospel attacks one enemy and may reduce its level-equivalent power."),
+        ("Maelstrom",44,"aoe_damage",1500,"magic","maelstrom","Water vortex floods all enemies."),
+        ("Shock",95,"aoe_damage",1800,"magic","shock","Dark + Lightning attack on all enemies."),
+        ("Starlight Shower",110,"damage",2000,"magic","starlight_shower","Focused laser barrage; in V-MAX becomes non-diminishing and hits all enemies."),
+        # Support
+        ("Cure Beam",10,"heal",100,"support","cure_beam","Single-target heal; support effect improves healing and clears Poison/Blind."),
+        ("Hypno Flash",16,"damage",300,"support","hypno_flash","Attempts to put one enemy to Sleep; support effect improves chance."),
+        ("Jammer",32,"damage",750,"support","jammer","Disables one enemy, stronger on Machine; support effect attempts all enemies."),
+        ("Heal Beam",54,"heal",1000,"support","heal_beam","Large single-target heal; support effect heals entire party."),
+        ("Logic Bomb",95,"damage",1200,"support","logic_bomb","Attempts Silence/Don't Act/Slow; support effect can add Curse/Don't Move/Blind."),
+        ("V-MAX",130,"boost",2000,"support","vmax","Core overdrive: Protect, Shell, Haste, Regen, Preach, Praise, Permanence; changes several Mec skills. Overheats when it ends unless Support Effect suppresses it."),
+        # Counter
+        ("Intercept System",75,"passive",1000,"counter","intercept_system","Counters enemy melee using the user's highest combat stat."),
+        # Inherent
+        ("Self-Repair",1,"passive",1000,"inherent","self_repair","Auto-Regen and delayed recovery of Feedback self-damage."),
+        ("Combat Mastery",30,"passive",1000,"inherent","combat_mastery","Increases purely Strength-based weapon/Mec melee damage."),
+        ("Maxwell Program",30,"passive",2000,"inherent","maxwell_program","Auto-Mana Regen and increased magic damage."),
+        ("Shooting Mastery",30,"passive",1000,"inherent","shooting_mastery","Increases purely Dexterity-based ranged damage."),
+        # Passive protocols
+        ("Strength Protocol",1,"passive",2000,"passive","strength_protocol","Increases Mec melee potency."),
+        ("Ranged Protocol",1,"passive",2000,"passive","ranged_protocol","Increases Mec ranged potency."),
+        ("Feedback Protocol",1,"passive",2000,"passive","feedback_protocol","Increases Mec feedback potency."),
+        ("Magic Protocol",1,"passive",2000,"passive","magic_protocol","Increases Mec magic potency."),
+    ]
+    if len(rows) < len(specs):
+        return
+    for idx,(name,unlock,kind,power,branch,special,desc) in enumerate(specs):
+        row=rows[idx]
+        row.clear()
+        row.update({
+            "id":f"v0319_mec_{special}", "name":name, "aliases":[name.casefold()],
+            "unlock":unlock, "kind":kind, "cooldown":5, "mana":0,
+            "base_power":power, "mec_authored":True, "mec_branch":branch,
+            "mec_special":special, "desc":desc,
+        })
+        if kind in ("damage","aoe_damage"):
+            row["scale"] = "intelligence" if branch=="magic" else ("dexterity" if branch=="ranged" else "strength")
+            row["mult"] = 1.0
+            if kind=="aoe_damage": row["aoe"]=True
+        if kind=="heal": row["heal_pct"] = .22 if special=="cure_beam" else .48
+        if special in ("destroy","robo_tackle"): row["self_damage_pct"]=.04
+        if special=="compress": row["self_damage_pct"]=.06
+        if special=="crush": row["self_damage_pct"]=.08
+        if special=="uzi_punch": row["self_damage_pct"]=.10
+        if special=="kamikaze_crush": row["self_damage_pct"]=.18
+        if special=="dispose": row["self_damage_pct"]=.08
+        if special=="vmax": row.update({"boost":1.0,"duration":30,"cooldown":60})
+    CLASS_SKILLS["Mec"] = rows
+
+_v0319_install_full_mec_kit()
+
+
+# v0.31.7: authored Engineer tool kit based on the user-provided UOSSMUD list.
+# Soulbound has no AP. The original Base AP values are represented only as
+# internal base_power values for relative skill strength.
+def _v0317_install_engineer_toolkit():
+    rows = CLASS_SKILLS.get("Inżynier", [])
+    if len(rows) < 19:
+        return
+    specs = [
+      # name, unlock, kind, base_power, special, category, description
+      ("Auto Crossbow",1,"aoe_damage",100,"auto_crossbow","area","Automatyczna kusza ostrzeliwuje wszystkich przeciwników. Ulepszenie zwiększa obrażenia."),
+      ("Mako Gun",1,"damage",100,"mako_gun","single","Losowy atak żywiołowy. Ulepszenie zwiększa obrażenia i dobiera skuteczniejszy element."),
+      ("Bio Blaster",1,"aoe_damage",200,"bio_blaster","area","Fala toksycznego gazu na wszystkich przeciwników. Ulepszenie zwiększa obrażenia i siłę efektu biologicznego."),
+      ("Scanner",1,"damage",500,"scanner","utility","Skanuje cel i podaje HP, rangę, typ, odporności oraz słabości. Nie podlega Upgrade."),
+      ("Flash",8,"aoe_damage",800,"flash","area","Święte światło uderza wszystkich przeciwników. Ulepszenie zwiększa obrażenia i wzmacnia efekt oślepienia/Guard Break."),
+      ("Debilitator",8,"damage",1000,"debilitator","utility","Nadaje celowi losową słabość żywiołową. Ulepszenie nadaje trzy słabości jednocześnie."),
+      ("Hypercharge",8,"passive",500,"hypercharge","passive","Pasywnie wzmacnia pojedyncze ofensywne narzędzia Inżyniera, w tym Mega Bomb."),
+      ("Lindblum Assembly",8,"passive",500,"lindblum","passive","Pasywnie wzmacnia obszarowe narzędzia Inżyniera."),
+      ("Improved Kinematics",8,"passive",500,"kinematics","passive","Pasywnie wydłuża efekty statusowe narzędzi Inżyniera."),
+      ("Drill",12,"damage",1500,"drill","single","Wiertło przebija ochronę celu. Ulepszenie zwiększa obrażenia i wzmacnia przebicie ochrony."),
+      ("Napalm",12,"aoe_damage",1500,"napalm","area","Ognista bomba uderza wszystkich przeciwników. Ulepszenie zwiększa obrażenia i pokrywa cele łatwopalnym olejem."),
+      ("Launcher",14,"aoe_damage",2500,"launcher","area","Do czterech pocisków trafia losowe cele, każdy redukuje bieżące HP celu o połowę. Ulepszenie: do sześciu pocisków."),
+      ("Upgrade",16,"boost",15000,"upgrade","utility","Ulepsza wybrane narzędzie Inżyniera. Bazowo 1 slot; Silver Gear i Gold Battery zwiększają limit."),
+      ("Noise Blaster",18,"aoe_damage",2500,"noise_blaster","area","Fala dźwięku uderza i ucisza przeciwników. Ulepszenie zwiększa obrażenia i efekt kontroli."),
+      ("Chainsaw",20,"damage",5000,"chainsaw","single","Piła łańcuchowa zadaje ciężkie obrażenia albo efekt Demi. Ulepszenie wzmacnia Demi do Quarter."),
+      ("Mega Bomb",21,"aoe_damage",5000,"mega_bomb","single","Potężna eksplozja: główny cel otrzymuje pełne obrażenia, pozostali mniejsze. Ulepszenie zwiększa obrażenia wszystkim celom."),
+      ("Silver Gear",21,"passive",15000,"silver_gear","passive","Pasywnie dodaje drugi slot systemu Upgrade."),
+      ("Air Anchor",23,"damage",7500,"air_anchor","single","Kotwica wbija się w cel i zadaje obrażenia. Ulepszenie zwiększa moc efektu."),
+      ("Gold Battery",23,"passive",15000,"gold_battery","passive","Pasywnie dodaje trzeci slot systemu Upgrade."),
+    ]
+    # Replace only 19 generated entries so total class skill count remains 123.
+    for index, spec in enumerate(specs):
+        name,unlock,kind,power,special,category,desc = spec
+        row=rows[index]
+        row.clear()
+        row.update({
+          "id":f"v0317_engineer_{special}","name":name,
+          "aliases":[name.casefold()],"unlock":unlock,"kind":kind,"cooldown":4,"mana":0,
+          "base_power":power,"engineer_tool":True,"engineer_special":special,
+          "engineer_category":category,"desc":desc,
+        })
+        if kind in ("damage","aoe_damage"):
+            row.update({"scale":"dexterity","mult":1.0})
+            if kind=="aoe_damage": row["aoe"]=True
+        if special=="upgrade": row.update({"boost":1.0,"duration":1})
+    CLASS_SKILLS["Inżynier"] = rows
+
+_v0317_install_engineer_toolkit()
 
 def _v03014_unique_generated_skill_names():
     renamed = 0

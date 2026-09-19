@@ -755,7 +755,7 @@ class SessionIOAuthCharacterMixin:
             await self.send(f"ADMIN: serwerowy wipe zakończony. Usunięto postaci: {removed}. Konta zachowane.")
 
     async def admin_character_menu_v0301(self):
-            """Ukryte menu właściciela dostępne nawet przy 0/12 postaci."""
+            """Ukryte menu właściciela dostępne nawet przy 0/14 postaci."""
             if not self.is_admin():
                 await self.send("Nieprawidłowa opcja.")
                 return
@@ -996,7 +996,7 @@ class SessionIOAuthCharacterMixin:
             selected_race_name = race[0]
             await self.send(
                 f"Wybrana rasa: {selected_race_name}. {race_class_recommendation_text(selected_race_name)} "
-                "To tylko rekomendacja. Możesz wybrać dowolną z 12 klas."
+                "To tylko rekomendacja. Możesz wybrać dowolną z 14 klas."
             )
             await self.send("Wybierz klasę:")
             for i, cls in enumerate(CLASSES, 1):
@@ -1041,7 +1041,7 @@ class SessionIOAuthCharacterMixin:
             except ValueError as exc:
                 if str(exc) == "character_limit":
                     await self.send(
-                        "Na jednym koncie można mieć maksymalnie 12 postaci."
+                        "Na jednym koncie można mieć maksymalnie 14 postaci."
                     )
                     return False
                 raise

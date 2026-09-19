@@ -635,6 +635,28 @@ class SessionCraftingInventoryEquipmentMixin:
             if not wanted:
                 return None
 
+            iron_scrap_aliases = {
+                "odlamki zelaza", "odłamki żelaza", "odlamek zelaza", "odłamek żelaza",
+                "zelazne odlamki", "żelazne odłamki", "iron scrap", "iron scraps",
+                "iron fragment", "iron fragments",
+            }
+            if wanted in {self.normalize_description_query(x) for x in iron_scrap_aliases}:
+                recipe = CRAFT_RECIPES.get("recycled_iron_ingot")
+                if recipe:
+                    return ("recycled_iron_ingot", recipe)
+
+            plate_aliases = {
+                "plyty", "płyty", "plyta", "płyta",
+                "stalowe plyty", "stalowe płyty",
+                "stalowa plyta", "stalowa płyta",
+                "stalowa plyta z pancerza", "stalowa płyta z pancerza",
+                "steel plate", "steel plates", "armor plate", "armor plates",
+            }
+            if wanted in {self.normalize_description_query(x) for x in plate_aliases}:
+                recipe = CRAFT_RECIPES.get("recycled_steel_ingot")
+                if recipe:
+                    return ("recycled_steel_ingot", recipe)
+
             extra_aliases = {
                 "iron": (
                     "zelazo", "żelazo", "zelazna", "żelazna",
@@ -715,7 +737,7 @@ class SessionCraftingInventoryEquipmentMixin:
                 await self.send(
                     "Użycie: przetop <metal albo ruda>. "
                     "Przykłady: przetop żelazo, przetop srebro, "
-                    "przetop kobalt, przetop Eternium."
+                    "przetop odłamki żelaza, przetop płyty, przetop kobalt, przetop Eternium."
                 )
                 return False
 
@@ -723,7 +745,7 @@ class SessionCraftingInventoryEquipmentMixin:
             if not found:
                 await self.send(
                     "Nie rozpoznaję metalu do przetopienia. "
-                    "Dostępne: żelazo, srebro, złoto, kobalt, "
+                    "Dostępne: żelazo, odłamki żelaza, srebro, złoto, stalowe płyty, kobalt, "
                     "runa, smocza stal, astral, pustka, Eternium."
                 )
                 return False
@@ -1027,7 +1049,7 @@ class SessionCraftingInventoryEquipmentMixin:
                 "ring2": "Pierścień 2", "necklace": "Naszyjnik",
                 "earring1": "Kolczyk 1", "earring2": "Kolczyk 2",
                 "shoulders": "Naramienniki", "belt": "Pas", "cloak": "Peleryna",
-                "bracers": "Karwasze", "relic": "Relikt",
+                "bracers": "Karwasze", "relic": "Relikt", "board": "Board",
             }
             for row in rows:
                 item = ITEMS.get(row["item_id"])
@@ -1077,6 +1099,9 @@ class SessionCraftingInventoryEquipmentMixin:
                     )
                     if fixed_stats:
                         extra += f" Statystyki bazowe: {fixed_stats}."
+                if row["item_id"] == "moogle_board" and item and item.get("cyborg_board_scaling") == "mec_mastery":
+                    _mb = moogle_board_stat_bonus_v0313(self.class_mastery_level("Mec"))
+                    extra += f" Skalowanie Moogle Board: Biegłość Meca {self.class_mastery_level('Mec')}/400, +{_mb} do Siły, Zręczności, Kondycji, Inteligencji i Siły Woli."
                 if item and item.get("slot") in ("ring", "necklace"):
                     extra += " " + self.jewelry_socket_text(row["slot"], row["item_id"], item)
                 await self.send(f"{slot_name}: {name}. Obrona +{defense}.{extra}")
@@ -1259,6 +1284,9 @@ class SessionCraftingInventoryEquipmentMixin:
                 required_class = item.get("required_class")
                 if required_class and required_class not in active_classes:
                     continue
+                required_race = item.get("required_race")
+                if required_race and str(self.character.race) != str(required_race):
+                    continue
                 if not self.equipment_mastery_requirement_met(item):
                     continue
                 owned[item_id] = (item, qty)
@@ -1271,7 +1299,7 @@ class SessionCraftingInventoryEquipmentMixin:
             returned_gems = []
             single_slots = (
                 "head", "body", "hands", "legs", "feet", "necklace",
-                "shoulders", "belt", "cloak", "bracers", "relic",
+                "shoulders", "belt", "cloak", "bracers", "relic", "board",
             )
 
             for slot in single_slots:
@@ -1706,8 +1734,15 @@ class SessionCraftingInventoryEquipmentMixin:
                 ("kolczyk 1", "earring1"), ("earring 1", "earring1"), ("earring1", "earring1"),
                 ("kolczyk 2", "earring2"), ("earring 2", "earring2"), ("earring2", "earring2"),
                 ("kolczyk", "earring"), ("kolczyki", "earring"), ("earring", "earring"),
-                ("naszyjnik", "necklace"),
-                ("necklace", "necklace"),
+                ("naszyjnik", "necklace"), ("necklace", "necklace"),
+                ("głowa", "head"), ("glowa", "head"), ("head", "head"),
+                ("ciało", "body"), ("cialo", "body"), ("body", "body"),
+                ("ręce", "hands"), ("rece", "hands"), ("hands", "hands"),
+                ("nogi", "legs"), ("legs", "legs"), ("stopy", "feet"), ("feet", "feet"),
+                ("barki", "shoulders"), ("shoulders", "shoulders"), ("pas", "belt"), ("belt", "belt"),
+                ("płaszcz", "cloak"), ("plaszcz", "cloak"), ("cloak", "cloak"),
+                ("karwasze", "bracers"), ("bracers", "bracers"), ("relikt", "relic"), ("relic", "relic"),
+                ("board", "board"),
             )
             gem_query = raw
             for token, resolved in slot_tokens:
@@ -1725,8 +1760,7 @@ class SessionCraftingInventoryEquipmentMixin:
 
             if not slot:
                 await self.send(
-                    "Na końcu podaj pierścień 1/2, kolczyk 1/2 albo naszyjnik. "
-                    "Po angielsku: ring1, ring2, earring1, earring2 albo necklace."
+                    "Na końcu podaj slot EQ, np. ring1, necklace, body, head, bracers albo board."
                 )
                 return False
 
@@ -1734,15 +1768,15 @@ class SessionCraftingInventoryEquipmentMixin:
                 pair = ("ring1", "ring2") if slot == "ring" else ("earring1", "earring2")
                 slot = pair[0] if self.server.db.equipped_item(self.account_id, pair[0]) else pair[1]
 
-            item_id, item = self.equipped_jewelry(slot)
+            item_id = self.server.db.equipped_item(self.account_id, slot)
+            item = ITEMS.get(item_id) if item_id else None
             if not item:
-                await self.send(
-                    f"Nie masz założonego przedmiotu w slocie "
-                    f"{EQUIPMENT_SLOT_NAMES[slot]}."
-                )
+                await self.send(f"Nie masz założonego przedmiotu w slocie {EQUIPMENT_SLOT_NAMES.get(slot, slot)}.")
                 return False
-
-            capacity = jewelry_socket_capacity(item)
+            capacity = equipment_gem_socket_capacity_v03111(item) if "equipment_gem_socket_capacity_v03111" in globals() else jewelry_socket_capacity(item)
+            if capacity <= 0:
+                await self.send(f"{item['name']} nie ma gniazd na klejnoty.")
+                return False
             rows = self.socketed_gem_rows_for_item(
                 slot,
                 item_id,
@@ -1809,22 +1843,22 @@ class SessionCraftingInventoryEquipmentMixin:
             return True
 
     async def show_socketed_gems(self):
-            await self.send("GNIAZDA BIŻUTERII")
+            await self.send("GNIAZDA EQ 2.0")
             found_any = False
-            for slot in ("ring1", "ring2", "earring1", "earring2", "necklace"):
-                item_id, item = self.equipped_jewelry(slot)
+            for row in self.equipped_item_rows():
+                slot=row["slot"]; item_id=row["item_id"]; item=ITEMS.get(item_id)
                 if not item:
                     continue
-                found_any = True
-                await self.send(
-                    f"{EQUIPMENT_SLOT_NAMES[slot].capitalize()}: "
-                    f"{item['name']}. "
-                    f"{self.jewelry_socket_text(slot, item_id, item)}"
-                )
+                capacity=equipment_gem_socket_capacity_v03111(item) if "equipment_gem_socket_capacity_v03111" in globals() else jewelry_socket_capacity(item)
+                rune_capacity=v0925_equipment_socket_count(item)
+                if capacity<=0 and rune_capacity<=0:
+                    continue
+                found_any=True
+                gems=self.socketed_gem_rows_for_item(slot,item_id) if capacity>0 else []
+                runes=list(self.server.db.equipment_runes_v0925(self.account_id,item_id)) if rune_capacity>0 else []
+                await self.send(f"{EQUIPMENT_SLOT_NAMES.get(slot,slot)}: {item['name']}. Klejnoty {len(gems)}/{capacity}. Runy {len(runes)}/{rune_capacity}.")
             if not found_any:
-                await self.send(
-                    "Nie masz założonego pierścienia, kolczyka ani naszyjnika."
-                )
+                await self.send("Nie masz założonego EQ z gniazdami.")
 
     def automatic_dual_slot_v03020(self, logical_slot):
             """Pick first free ring/charm/earring slot; when full, replace the weaker equipped piece."""
@@ -2045,6 +2079,13 @@ class SessionCraftingInventoryEquipmentMixin:
             if required_class and required_class not in self.active_class_names():
                 await self.send(
                     f"{item['name']} wymaga aktywnej klasy {required_class}."
+                )
+                return
+
+            required_race = item.get("required_race")
+            if required_race and str(self.character.race) != str(required_race):
+                await self.send(
+                    f"{item['name']} może używać tylko rasa {required_race}."
                 )
                 return
 

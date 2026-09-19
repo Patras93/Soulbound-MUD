@@ -15,8 +15,8 @@ def full_systems_audit_v03062():
         for d,t in (r.get('exits') or {}).items():
             if t not in ROOMS and not str(t).startswith(dyn_prefixes): bad_exits.append((rid,d,t))
     check('world_exits', not bad_exits, str(bad_exits[:10]))
-    check('classes_12', len(CLASSES)==12, len(CLASSES))
-    check('skills_1476', sum(len(v) for v in CLASS_SKILLS.values())==1476, sum(len(v) for v in CLASS_SKILLS.values()))
+    check('classes_14', len(CLASSES)==14, len(CLASSES))
+    check('skills_1722', sum(len(v) for v in CLASS_SKILLS.values())==1722, sum(len(v) for v in CLASS_SKILLS.values()))
     check('items_present', bool(ITEMS), len(ITEMS))
     check('mobs_present', bool(MOB_TEMPLATES), len(MOB_TEMPLATES))
     check('quests_present', bool(QUESTS), len(QUESTS))
@@ -72,7 +72,7 @@ def full_systems_audit_v03062():
     # Legacy audits already in runtime
     check('full_game_audit_3055', not FULL_GAME_AUDIT_V03055.get('error_count'), FULL_GAME_AUDIT_V03055.get('errors'))
 
-    return {'version':'0.30.62','checks':checks,'warnings':warnings,'error_count':len(errors),'errors':errors,
+    return {'version':'0.31.6','checks':checks,'warnings':warnings,'error_count':len(errors),'errors':errors,
             'metrics':{'rooms':len(ROOMS),'items':len(ITEMS),'mobs':len(MOB_TEMPLATES),'quests':len(QUESTS),'classes':len(CLASSES),'skills':sum(len(v) for v in CLASS_SKILLS.values()),'professions':len(PROFESSION_RANK_NAMES),'recipes':recipe_count,'help_topics':len(HELP_TOPICS),'help_aliases':len(HELP_TOPIC_ALIASES),'command_aliases':len(COMMAND_ALIASES)}}
 
 FULL_SYSTEMS_AUDIT_V03062=full_systems_audit_v03062()

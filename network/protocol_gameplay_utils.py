@@ -1,3 +1,9 @@
+
+COMMAND_ALIASES.update({
+    "techsalvage":"techsalvage", "salvagetech":"techsalvage", "rozloztech":"techsalvage", "rozłóżtech":"techsalvage",
+    "techcraft":"techcraft", "technologia":"techcraft", "technology":"techcraft",
+    "vmaxstatus":"vmaxstatus", "vmaxinfo":"vmaxstatus", "v-maxstatus":"vmaxstatus",
+})
 COMMAND_ALIASES.update({
     "bosskodex": "bosscodex", "bosscodex": "bosscodex",
     "kodeksbossow": "bosscodex", "kodeksbossów": "bosscodex",
@@ -82,7 +88,7 @@ HELP_TOPICS["boss_chests"] = [
 HELP_TOPICS["admin_owner"] = [
     "Komendy administracyjne są owner-only i wymagają nazwy konta na serwerowej whitelist SOULBOUND_ADMIN_ACCOUNTS.",
     "v0.30.1: w MENU POSTACI admin widzi ukrytą opcję 6 Administrator; zwykłe konta nie widzą tej pozycji wcale.",
-    "Panel działa także przy 0/12 postaci: lista kont, postacie konta, wipe własnego lub wskazanego konta, usunięcie jednej postaci i wipe wszystkich postaci serwera.",
+    "Panel działa także przy 0/14 postaci: lista kont, postacie konta, wipe własnego lub wskazanego konta, usunięcie jednej postaci i wipe wszystkich postaci serwera.",
     "admin help / administrator pomoc - lista opcji właściciela podczas gry postacią.",
     "wipe moje postacie POTWIERDZAM - usuwa postacie Twojego konta, ale zachowuje konto i hasło.",
     "wipe wszystkie postacie POTWIERDZAM - serwerowy wipe postaci bez kasowania kont.",
@@ -100,7 +106,7 @@ HELP_TOPICS["loot_accessibility"] = [
 # v0.8.x pozostają archiwalne, ale bieżące tematy muszą opisywać realny stan gry.
 HELP_TOPICS["progresja400"] = [
     "Postać nadal NIE ma levelu postaci.",
-    "Biegłość każdej z 12 klas ma zakres 1-400; na każdym progu 1 oraz co 10 aż do 400 dostępne są 3 skille/spelle do nauczenia.",
+    "Biegłość każdej z 14 klas ma zakres 1-400; na każdym progu 1 oraz co 10 aż do 400 dostępne są 3 skille/spelle do nauczenia.",
     "Każdy nauczony skill/spell ma własny Skill Level 1-400 i własny XP.",
     "Broń Duszy ma Soul Level 1-400. Soul Tiery mają zakres 1-40; Tiery 21-40 odblokowują się co 10 Soul Level od 210 do 400 przez kolejne Próby Krypty.",
     "Wszystkie 8 profesji i 8 narzędzi mają zakres 1-400. Narzędzia mają 40 Tierów i nie mają trwałości.",
@@ -131,7 +137,7 @@ HELP_TOPICS["profesje"] = [
 ]
 HELP_TOPICS["ekwipunek"] = [
     "Nowa postać nie dostaje startowego EQ klasowego. Klasowe wyposażenie zdobywa się w sklepach i jako losowy drop z mobów.",
-    "Każda z 12 klas ma 3 różne linie EQ o równym budżecie mocy.",
+    "Każda z 14 klas ma 3 różne linie EQ o równym budżecie mocy.",
     "Klasowe EQ ma progi Biegłości 1, 10, 20 i dalej co 10 aż do 400.",
     "Krypta daje zwykłe EQ Tier 1-40: Tiery 21-40 odpowiadają progresji po dawnym capie 200.",
     "Nieskończone piętra powyżej progresji 400 nie zwiększają dalej mocy EQ.",
@@ -198,7 +204,7 @@ HELP_TOPICS["dusza"] = [
 ]
 HELP_TOPICS["progresja400"] = [
     "Postać nadal NIE ma levelu postaci.",
-    "Biegłość każdej z 12 klas ma zakres 1-400; skille zachowują stare progi 1-200 i dalsze odblokowania 220-400.",
+    "Biegłość każdej z 14 klas ma zakres 1-400; skille zachowują stare progi 1-200 i dalsze odblokowania 220-400.",
     "Każdy nauczony skill/spell ma własny Skill Level 1-400 i własny XP.",
     "Broń Duszy ma Soul Level 1-400 oraz Soul Tier 1-40. Soul XP zatrzymuje się na progu następnego nieodblokowanego Tieru.",
     "Siła, Zręczność, Kondycja, Inteligencja, Siła Woli i Charyzma rozwijają się niezależnym EXP statystyk; questy walki rozwijają wszystkie sześć.",
@@ -612,6 +618,13 @@ for _mat_key, (_iid, _iname) in V0925_SALVAGE_MATERIALS.items():
         "craftbox_category": "salvage",
         "desc": "Materiał odzyskany przez rozkładanie niepotrzebnego EQ u Haldora.",
     }
+# v0.31.12: żelazny salvage ma także praktyczne zastosowanie w Kuźni.
+if "salvage_iron_scrap" in ITEMS:
+    ITEMS["salvage_iron_scrap"]["desc"] = (
+        "Odłamek żelaza odzyskany przez rozkładanie EQ u Haldora. "
+        "Dwa odłamki można przetopić w Kuźni w 1 Żelazną sztabkę."
+    )
+
 ITEMS["reforge_essence"] = {
     "name": "Esencja Przekucia", "type": "craft_material", "price": None,
     "craftbox_category": "salvage",
@@ -794,6 +807,7 @@ V0925_CRAFTBOX_CATEGORIES = {
     "alchemy": "Alchemia",
     "runes": "Runy",
     "salvage": "Materiały z Salvage",
+    "technology": "Technologia",
     "other": "Pozostałe materiały",
 }
 V0925_CRAFTBOX_ALIASES = {
@@ -802,6 +816,7 @@ V0925_CRAFTBOX_ALIASES = {
     "alchemia":"alchemy", "alchemy":"alchemy",
     "runy":"runes", "runes":"runes",
     "salvage":"salvage", "odzysk":"salvage", "odzyskane":"salvage",
+    "technologia":"technology", "tech":"technology", "technology":"technology",
     "inne":"other", "pozostale":"other", "pozostałe":"other",
 }
 

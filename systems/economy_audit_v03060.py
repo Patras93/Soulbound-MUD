@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Soulbound v0.30.62 Economy Audit 2.0.
+"""Soulbound v0.31.6 Economy Audit 2.0.
 
 Final post-generation normalization for the denomination:
 100 silver = 1 gold, 1000 gold = 1 mithril.
@@ -7,7 +7,7 @@ The pass intentionally preserves reasonable authored values and only clamps
 legacy outliers created for older denomination scales.
 """
 
-ECONOMY_AUDIT_VERSION = "0.30.62"
+ECONOMY_AUDIT_VERSION = "0.31.6"
 
 
 def _v03060_stage(record):

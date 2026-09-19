@@ -1,3 +1,97 @@
+v0.31.12 — Przetapianie Odłamków Żelaza
+- Dodano przetop salvage: 2 Odłamki Żelaza -> 1 Żelazna sztabka.
+- Komendy PL/EN: `przetop odłamki żelaza`, `smelt iron scraps` oraz warianty liczby pojedynczej.
+- Odłamki nadal pozostają materiałem z rozkładania EQ; nowa receptura daje im alternatywne zastosowanie w Kowalstwie.
+
+v0.31.12 — Tech Crafting, Machine Salvage 2.0, Runes & Sockets 2.0
+- Machine components now go to Craftbox -> Technology.
+- Tech Salvage converts advanced Machine parts into Servo/Circuit/Power Cell/Plating.
+- Tech Crafting adds Cyborg Boards, Mec component, Engineer Upgrade Kit and technological EQ.
+- Existing runes/gem sockets expanded; high-level armor can receive gem sockets.
+- V-MAX status UI added.
+- All ore smelting recipes are now 1 ore -> 1 ingot.
+
+v0.31.10 — Steel Plate Smelting
+- Dodano możliwość przetapiania Stalowych Płyt z Pancerza przechowywanych w Szkatułce Rzemieślniczej.
+- 4 Stalowe Płyty z Pancerza -> 1 Sztabka Stali.
+- Komendy: `przetop płyty`, `smelt plates`, `smelt steel plate`.
+- Płyty nadal mogą być zamiast tego oddawane Haldorowi w godzinnym queście „Stal do Przetopu”.
+- Sztabka Stali trafia automatycznie do kategorii Kowalstwo w Szkatułce.
+
+v0.31.9 — MAGITEK DUNGEON 2.0 + FULL MEC REWORK + ENGINEER UPGRADE 2.0
+- Pełny authored Mec kit na podstawie dostarczonej listy: Melee/Ranged/Feedback/Magic/Support/Counter/Inherent/Passive.
+- V-MAX: Biegłość 130, czas rośnie z Will; efekty Protect/Shell/Haste/Regen/Preach/Praise/Permanence; Overheat po wygaśnięciu.
+- Cosmic Rave Biegłość 110: wszyscy przeciwnicy; w V-MAX 5 losowych trafień.
+- Dodano Self-Repair, Combat/Shooting Mastery, Maxwell Program i 4 Protocols.
+- Engineer Upgrade 2.0: pełniejsza lista efektów oraz UI pokazujące efekt każdego aktywnego ulepszenia.
+- Magitek Dungeon 2.0: 16 nowych pomieszczeń w 4 sektorach, 4 nowych bossów i windy między sektorami.
+- Soulbound nadal nie posiada AP; źródłowe Base AP jest wyłącznie wewnętrzną mocą bazową.
+
+v0.31.8 — Tool Duplicate Migration + Mec Support Clarification
+- Dodano nową jednorazową migrację `character_bound_tools_all_v0318` obejmującą wszystkie 12 narzędzi profesji.
+- Stare duplikaty narzędzi w inventory są redukowane do dokładnie 1 sztuki na postać.
+- Narzędzia character-bound są usuwane z Banku Dusz; jeśli jedyna kopia była w banku, jedna sztuka trafia do inventory właściciela.
+- Migracja nie zmienia tabeli progresu narzędzi: level, XP i liczba użyć pozostają bez zmian.
+- Doprecyzowano Meca: Rdzeń Meca pozostaje jego jedyną Bronią Duszy; `Support Effect` jest modyfikacją działania umiejętności, nie osobną support weapon.
+
+SOULBOUND v0.31.7 ENGINEER TOOLKIT + PROFESSION TOOL AUDIT
+
+- Audyt narzędzi profesji: wszystkie 12 profesji pozwala kupić dokładnie jedno narzędzie na postać. Naprawiono Krawiectwo, Garbarstwo, Stolarstwo i Zaklinanie.
+- Inżynier otrzymał autorski zestaw narzędzi: Auto Crossbow, Mako Gun, Bio Blaster, Scanner, Flash, Debilitator, Drill, Napalm, Launcher, Upgrade, Noise Blaster, Chainsaw, Mega Bomb i Air Anchor.
+- Dodano pasywki Hypercharge, Lindblum Assembly, Improved Kinematics, Silver Gear i Gold Battery.
+- Dodano trwały system Upgrade z 1-3 slotami.
+- Soulbound nadal nie ma AP; wartości źródłowej mocy są mapowane wyłącznie na wewnętrzną moc bazową skilli.
+
+Soulbound v0.31.6 — Smart Single-Target Healing
+- Zwykłe heale są ponownie single-target, ale automatycznie wybierają najbardziej rannego członka party w tej samej lokacji.
+- Zdrowy healer nie marnuje leczenia na sobie, gdy ktoś w drużynie jest ranny.
+- Group Heal nadal leczy całą drużynę.
+- Jeśli nikt nie jest ranny, zwykły heal nie zużywa efektu.
+
+Soulbound v0.31.5 — Cosmic Rave / V-MAX
+- Wszystkie zwykłe skille/spelle typu heal leczą teraz całą drużynę w tej samej lokacji; solo nadal leczą użytkownika.
+- Auto-kolejka heal reaguje na brakujące HP dowolnego członka drużyny w tej samej lokacji.
+- Soulbound nie używa systemu AP; wartość 2000 została odwzorowana wyłącznie jako wewnętrzna moc bazowa Cosmic Rave.
+- Mec otrzymuje V-MAX przy Biegłości 100.
+- Cosmic Rave wymaga Biegłości Meca 110 i ma moc bazową 2000.
+- Cosmic Rave normalnie trafia wszystkich przeciwników w lokacji.
+- Pod V-MAX Cosmic Rave wykonuje dokładnie 5 losowych trafień; ten sam cel może zostać trafiony wielokrotnie.
+- Skill nie dodaje sztucznego mnożnika EXP: szybki EXP wynika z szybkiego zabijania przeciwników.
+
+Soulbound v0.31.4 — Machine Enemy Expansion
+- Dodano typ Machine z realnymi odpornościami: 10% przeciw zwykłym physical/magic, +35% podatności na Lightning/EMP oraz -75% dla ataków biologicznych.
+- Drain na Machine nie przywraca HP.
+- Dodano 26 template’ów Machine, 4 bossów, 16-pokojowy Kompleks Magitek i 12 technologicznych komponentów.
+- Kompleks Magitek łączy się z Ulicą Rzemieślników.
+- Dodano HELP dla Machine/Magitek.
+
+Soulbound v0.31.3 — Cyborg Moogle Board Scaling
+- Moogle Board nie ma już stałego +2.
+- Bonus do Siły, Zręczności, Kondycji, Inteligencji i Siły Woli skaluje się z Biegłością Meca.
+- Progi: 1-49 +2; 50-99 +4; 100-149 +6; 150-199 +8; 200-249 +10; 250-299 +12; 300-349 +14; 350-399 +16; 400 +18.
+- Pozostaje jeden slot Board tylko dla Cyborga; nie dodano Memory.
+
+Soulbound v0.31.2 — Cyborg Moogle Board
+- Dodano unikalny slot Board dostępny tylko dla rasy Cyborg.
+- Każdy nowy Cyborg otrzymuje Moogle Board jako przedmiot startowy.
+- Moogle Board daje po założeniu +2 do Siły, Zręczności, Kondycji, Inteligencji i Siły Woli.
+- Inne rasy nie mogą zakładać Boardów.
+- Komendy slotu: board / equip board / załóż board.
+
+v0.31.1 — 14 postaci na konto
+- Limit postaci na jednym koncie zwiększono z 12 do 14.
+- Menu postaci, walidacja slotów i komunikaty używają wspólnej stałej limitu 14.
+
+Soulbound v0.31.0 — Cyborg, Mec & Engineer Expansion
+
+- Dodano 14. rasę: Cyborg. Zachowuje równy budżet 50 punktów bazowych i ma defensywny pasyw technologiczny.
+- Dodano 13. klasę: Mec. Broń Duszy: Rdzeń Meca.
+- Dodano 14. klasę: Inżynier. Broń Duszy: Omni-Narzędzie.
+- Obie nowe klasy mają pełną Biegłość 1-400 i po 123 skille: dokładnie 3 na progu 1 oraz co 10 aż do 400.
+- Wczesne skille technologiczne inspirowane są ideami UOSSMUD Engineer/Magitek: Auto Crossbow, Mako Gun, Bio Blaster, Scanner, Drill, Napalm, Launcher, Chainsaw, Air Anchor oraz Fire/Ice/Bolt Beam, TekShield, Gravity Bomb i TekMissile.
+- Dodano pełne klasowe EQ, trzy linie stylistyczne, sety, zadania gildii, rekomendacje rasowe i HELP dla Meca/Inżyniera.
+- Zaktualizowano aktywne audyty i komunikaty z 12 do 14 klas oraz z 13 do 14 ras.
+
 v0.30.62 — Full Systems Audit 3.0
 - Pełny przekrojowy audyt wszystkich głównych systemów gry, danych i runtime.
 - 0 błędów krytycznych w finalnym audycie.

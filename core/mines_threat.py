@@ -602,6 +602,11 @@ EQUIPMENT_SLOT_ALIASES = {
     "relikt": "relic",
     "relic": "relic",
 
+    "board": "board",
+    "moogle board": "board",
+    "modul": "board",
+    "moduł": "board",
+
 }
 
 EQUIPMENT_SLOT_NAMES = {
@@ -625,6 +630,7 @@ EQUIPMENT_SLOT_NAMES = {
     "cloak": "peleryna",
     "bracers": "karwasze",
     "relic": "relikt",
+    "board": "Board",
 }
 
 EXP_AREAS = (

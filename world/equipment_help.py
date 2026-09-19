@@ -892,7 +892,7 @@ def configure_v0856_help_categories():
     HELP_TOPICS["ekwipunek"] = [
         "inventory / i pokazuje przedmioty w ekwipunku. eq / equipment pokazuje założone wyposażenie.",
         "Od v0.9.11 nowa postać NIE dostaje startowego EQ klasowego. Klasowe wyposażenie zdobywa się w sklepach i jako losowy drop z mobów.",
-        "Każda z 12 klas ma 3 różne linie EQ na każdym progu Biegłości; alternatywne linie mają równy budżet mocy, więc wybór jest różnorodnością, nie power creepem.",
+        "Każda z 14 klas ma 3 różne linie EQ na każdym progu Biegłości; alternatywne linie mają równy budżet mocy, więc wybór jest różnorodnością, nie power creepem.",
         "eq info pokazuje pełne bonusy, sety i sockety.",
         "Materiałowe EQ z ciał występuje jako żelazo, stal, mithril, adamantyt, kobalt, runiczne, smocza stal, astral, Pustka i eternium; konkretne statystyki i właściwości są losowane niezależnie od klasy.",
         "Zręczność z EQ realnie zwiększa szansę na krytyk; inne właściwości mogą wzmacniać obrażenia, obronę, unik, HP albo Manę.",
@@ -1014,14 +1014,14 @@ def configure_v0856_help_categories():
         "Postęp postaci, EQ, questy, Biegłość, Soul i profesje pozostają zapisane.",
     ]
     HELP_TOPICS["rasy"] = [
-        "Gra ma 13 ras. Od v0.9.0 każda rasa ma dokładnie 50 bazowych punktów rozdzielonych między Siłę, Zręczność, Kondycję, Inteligencję i Siłę Woli; nie ma rasy z ukrytym większym budżetem startowym.",
+        "Gra ma 14 ras. Od v0.9.0 każda rasa ma dokładnie 50 bazowych punktów rozdzielonych między Siłę, Zręczność, Kondycję, Inteligencję i Siłę Woli; nie ma rasy z ukrytym większym budżetem startowym.",
         "Rasy różnią się rozkładem tych 50 punktów oraz własnym pasywem, więc nadal mają wyraźne specjalizacje.",
-        "Każda z 12 klas dokłada dokładnie 9 własnych punktów startowych; startowa Charyzma bazowa wynosi 10 przed bonusem klasy.",
+        "Każda z 14 klas dokłada dokładnie 9 własnych punktów startowych; startowa Charyzma bazowa wynosi 10 przed bonusem klasy.",
         "Kreator podaje polecane klasy dla każdej rasy, ale żadna kombinacja rasa-klasa nie jest blokowana.",
         "opis <rasa> pokazuje opis rasy oraz polecane klasy.",
     ]
     HELP_TOPICS["umiejetnosci"] = [
-        "Każda z 12 klas ma Biegłość 1-400; istniejące progi odblokowania skilli 1-200 pozostają bez zmian.",
+        "Każda z 14 klas ma Biegłość 1-400; istniejące progi odblokowania skilli 1-200 pozostają bez zmian.",
         "Progi umiejętności: 1, 10, 20, 30 i dalej co 10 aż do 400. Każdy próg ma 3 skille/spelle do nauczenia; alternatywy progu współdzielą cooldown wyboru.",
         "skills pokazuje umiejętności aktywnej klasy; kodeksklasowy <klasa> pokazuje pełną progresję.",
         "help <nazwa skilla> albo skill info <nazwa> pokazuje pełną pomoc konkretnej umiejętności.",
