@@ -71,8 +71,8 @@ def generator_whitelist_audit_v03019():
     audit = GENERATOR_CORE_AUDIT or {}
     whitelist = audit.get("whitelist_audit") or {}
     errors = []
-    if GENERATOR_CORE_VERSION != "0.34.6":
-        errors.append(f"Generator Core version={GENERATOR_CORE_VERSION}, expected 0.34.6")
+    if GENERATOR_CORE_VERSION != "0.34.7":
+        errors.append(f"Generator Core version={GENERATOR_CORE_VERSION}, expected 0.34.7")
     if not audit.get("numeric_only"):
         errors.append("numeric_only flag missing")
     runtime_fast = bool(audit.get("runtime_fast_path"))
@@ -758,7 +758,7 @@ def full_release_integrity_audit_v03025():
         errors.append("world logic audit failed")
     if int(WORLD_LOGIC_AUDIT.get("warning_count", 0) or 0):
         errors.append("world logic warnings present")
-    if GENERATOR_CORE_VERSION != "0.34.6":
+    if GENERATOR_CORE_VERSION != "0.34.7":
         errors.append(f"GENERATOR_CORE_VERSION={GENERATOR_CORE_VERSION}")
     return {
         "version": "0.30.25",
@@ -975,7 +975,7 @@ def gameplay_flow_audit_v03026():
         if missing:
             errors.append(f"station {_station}: brak w {missing[:5]}")
 
-    if GENERATOR_CORE_VERSION != "0.34.6":
+    if GENERATOR_CORE_VERSION != "0.34.7":
         errors.append(f"GENERATOR_CORE_VERSION={GENERATOR_CORE_VERSION}")
 
     return {
@@ -3303,7 +3303,7 @@ def full_game_predeploy_audit_v0336():
         if len(rows)>1: err('duplicate_skill_name',key,rows)
     metrics['skills_total']=skill_count
 
-    # v0.34.6: Hunter/combat regression gate. Offensive Hunter skills must keep
+    # v0.34.7: Hunter/combat regression gate. Offensive Hunter skills must keep
     # their authored Dexterity scaling, and Soul Weapon trait_totals must never
     # leak into use_class_skill (traits belong only to the basic weapon attack).
     _hunter_rows=list(CLASS_SKILLS.get('Łowca') or [])
@@ -3348,6 +3348,50 @@ def full_game_predeploy_audit_v0336():
     except Exception as _exc:
         err('combat_skill_source_audit_failed',repr(_exc))
 
+    # 10b) v0.34.7 Soul Weapon Mastery + Main Menu Exit gate.
+    try:
+        if int(SOUL_WEAPON_MASTERY_MAX_LEVEL) != 400:
+            err('soul_weapon_mastery_bad_cap',SOUL_WEAPON_MASTERY_MAX_LEVEL)
+        _m1=soul_weapon_mastery_bonuses(1)
+        _m200=soul_weapon_mastery_bonuses(200)
+        _m400=soul_weapon_mastery_bonuses(400)
+        if any(float(_m1.get(k,0) or 0) != 0.0 for k in ('damage_percent','crit_chance','crit_damage_percent','boss_damage_percent','echo_chance')):
+            err('soul_weapon_mastery_level1_not_neutral',_m1)
+        if not (0.0099 <= float(_m200.get('echo_chance',0) or 0) <= 0.0101):
+            err('soul_weapon_mastery_echo_200',_m200.get('echo_chance'))
+        if abs(float(_m400.get('damage_percent',0))-8.0)>0.0001:
+            err('soul_weapon_mastery_damage_400',_m400.get('damage_percent'))
+        if abs(float(_m400.get('crit_chance',0))-0.02)>0.000001:
+            err('soul_weapon_mastery_crit_400',_m400.get('crit_chance'))
+        if abs(float(_m400.get('crit_damage_percent',0))-12.0)>0.0001:
+            err('soul_weapon_mastery_crit_damage_400',_m400.get('crit_damage_percent'))
+        if abs(float(_m400.get('boss_damage_percent',0))-5.0)>0.0001:
+            err('soul_weapon_mastery_boss_400',_m400.get('boss_damage_percent'))
+        if abs(float(_m400.get('echo_chance',0))-0.05)>0.000001:
+            err('soul_weapon_mastery_echo_400',_m400.get('echo_chance'))
+        _combat_source=(_ROOT/'player/session_mixins/skills_combat.py').read_text(encoding='utf-8')
+        _basic_start=_combat_source.index('    async def realtime_player_action(')
+        _loop_start=_combat_source.index('    async def realtime_combat_loop(',_basic_start)
+        _basic_body=_combat_source[_basic_start:_loop_start]
+        if 'grant_soul_weapon_mastery_hit_xp' not in _basic_body:
+            err('soul_weapon_mastery_missing_basic_attack_xp')
+        _use_start=_combat_source.index('    async def use_class_skill(')
+        _use_end=_combat_source.index('    async def stop_realtime_combat(',_use_start)
+        _use_body=_combat_source[_use_start:_use_end]
+        if 'grant_soul_weapon_mastery_hit_xp' in _use_body or 'soul_weapon_mastery_bonuses' in _use_body:
+            err('soul_weapon_mastery_leaked_into_skills')
+        _auth_source=(_ROOT/'player/session_mixins/io_auth_character.py').read_text(encoding='utf-8')
+        if 'await self.close_from_main_menu()' not in _auth_source or 'self.writer.close()' not in _auth_source:
+            err('main_menu_exit_not_explicit_close')
+        _db_source=(_ROOT/'storage/database.py').read_text(encoding='utf-8')
+        for _column in ('soul_weapon_mastery_level','soul_weapon_mastery_xp'):
+            if _column not in _db_source:
+                err('soul_weapon_mastery_db_column_missing',_column)
+        metrics['soul_weapon_mastery_cap']=int(SOUL_WEAPON_MASTERY_MAX_LEVEL)
+        metrics['soul_weapon_mastery_bonus_400']=dict(_m400)
+    except Exception as _exc:
+        err('soul_weapon_mastery_audit_exception',repr(_exc))
+
     # 11) HELP aliases and nonempty topics.
     virtual={'tematy','komendy','wszystko','kategorie'}
     for alias,target in HELP_TOPIC_ALIASES.items():
@@ -3363,7 +3407,7 @@ def full_game_predeploy_audit_v0336():
     metrics['command_methods_checked']=len(called)
 
     return {
-        'version':'0.34.6','error_count':len(errors),'warning_count':len(warnings),
+        'version':'0.34.7','error_count':len(errors),'warning_count':len(warnings),
         'errors':errors,'warnings':warnings,'metrics':metrics,
         'description_sync':dict(ITEM_DESCRIPTION_SYNC_V0336),
     }
@@ -3372,7 +3416,7 @@ def full_game_predeploy_audit_v0336():
 # loaded. server.py executes it after the module loop when SOULBOUND_FULL_AUDIT=1.
 # Keeping a placeholder here preserves compatibility for code that inspects the symbol.
 FULL_GAME_PREDEPLOY_AUDIT_V0336={
-    'version':'0.34.6','deferred_until_runtime_complete':True,'error_count':0,'warning_count':0,
+    'version':'0.34.7','deferred_until_runtime_complete':True,'error_count':0,'warning_count':0,
     'errors':[],'warnings':[],
     'reason':'Final pre-deploy audit is executed by server.py after every runtime module has loaded.'
 }

@@ -31,6 +31,8 @@ class Character:
     soul_level: int
     soul_xp: int
     soul_tier: int
+    soul_weapon_mastery_level: int
+    soul_weapon_mastery_xp: int
     room_id: str
     silver: int
     gold: int
@@ -66,7 +68,10 @@ class Character:
             willpower_progress=(row["willpower_progress"] if "willpower_progress" in row.keys() else row["stat_progress"]),
             charisma_progress=(row["charisma_progress"] if "charisma_progress" in row.keys() else row["stat_progress"]),
             soul_level=row["soul_level"], soul_xp=row["soul_xp"],
-            soul_tier=row["soul_tier"], room_id=row["room_id"],
+            soul_tier=row["soul_tier"],
+            soul_weapon_mastery_level=(row["soul_weapon_mastery_level"] if "soul_weapon_mastery_level" in row.keys() else 1),
+            soul_weapon_mastery_xp=(row["soul_weapon_mastery_xp"] if "soul_weapon_mastery_xp" in row.keys() else 0),
+            room_id=row["room_id"],
             silver=row["silver"], gold=row["gold"], mithril=row["mithril"],
             charisma=row["charisma"],
             character_level=(row["character_level"] if "character_level" in row.keys() else 1),
@@ -79,6 +84,37 @@ class Character:
             loot_filter=(row["loot_filter"] if "loot_filter" in row.keys() else "all"),
             active_title=(row["active_title"] if "active_title" in row.keys() else ""),
         )
+
+    def soul_weapon_mastery_xp_to_next(self):
+        return soul_weapon_mastery_xp_to_next(self.soul_weapon_mastery_level)
+
+    def soul_weapon_mastery_bonus(self):
+        return soul_weapon_mastery_bonuses(self.soul_weapon_mastery_level)
+
+    def add_soul_weapon_mastery_xp(self, amount):
+        amount = max(0, int(amount or 0))
+        if self.soul_weapon_mastery_level >= SOUL_WEAPON_MASTERY_MAX_LEVEL:
+            self.soul_weapon_mastery_level = SOUL_WEAPON_MASTERY_MAX_LEVEL
+            self.soul_weapon_mastery_xp = 0
+            return {"level_ups": 0, "level": self.soul_weapon_mastery_level, "xp": 0, "next_xp": 0}
+        self.soul_weapon_mastery_xp += amount
+        level_ups = 0
+        while self.soul_weapon_mastery_level < SOUL_WEAPON_MASTERY_MAX_LEVEL:
+            needed = soul_weapon_mastery_xp_to_next(self.soul_weapon_mastery_level)
+            if needed <= 0 or self.soul_weapon_mastery_xp < needed:
+                break
+            self.soul_weapon_mastery_xp -= needed
+            self.soul_weapon_mastery_level += 1
+            level_ups += 1
+        if self.soul_weapon_mastery_level >= SOUL_WEAPON_MASTERY_MAX_LEVEL:
+            self.soul_weapon_mastery_level = SOUL_WEAPON_MASTERY_MAX_LEVEL
+            self.soul_weapon_mastery_xp = 0
+        return {
+            "level_ups": level_ups,
+            "level": self.soul_weapon_mastery_level,
+            "xp": self.soul_weapon_mastery_xp,
+            "next_xp": soul_weapon_mastery_xp_to_next(self.soul_weapon_mastery_level),
+        }
 
     def character_xp_to_next(self):
         return character_xp_to_next(self.character_level)

@@ -9,13 +9,13 @@
 def refresh_generator_help_v0271():
     HELP_TOPICS["podstawy"] = [
         "Soulbound v0.27.1 używa Generator Core jako jedynego źródła aktywnego balansu.",
-        "Level postaci, Biegłość, Soul Level, Skill Level, profesje i narzędzia mają zakres 1-400. Sześć statystyk bazowych nie ma twardego limitu.",
+        "Level postaci, Biegłość, Soul Level, Soul Weapon Mastery, Skill Level, profesje i narzędzia mają zakres 1-400. Sześć statystyk bazowych nie ma twardego limitu.",
         "Najważniejsze komendy startowe: look, exits, hp, score, staty, dusza, eq, quest, atlas i help.",
         "k <mob> rozpoczyna walkę realtime; con <mob> pokazuje wygenerowaną ocenę przeciwnika bez walki.",
         "Nowa zawartość dziedziczy liczby z Generator Core zamiast wymagać ręcznego balansowania.",
     ]
     HELP_TOPICS["score"] = [
-        "score pokazuje Level postaci i EXP, aktywne klasy i Biegłość, Soul Level/Tier, HP, Manę, statystyki, portfel i lokację.",
+        "score pokazuje Level postaci i EXP, aktywne klasy i Biegłość, Soul Level/Tier i Soul Weapon Mastery, HP, Manę, statystyki, portfel i lokację.",
         "Ocena siły postaci i terenu działa w tej samej skali Generator Core 1-400.",
         "Wartości terenu wynikają z wygenerowanych lokacji i realnych spawnów, a nie ze starej ręcznej tabeli.",
     ]
@@ -29,7 +29,7 @@ def refresh_generator_help_v0271():
     HELP_TOPICS["dusza"] = [
         f"Broń Duszy ma Soul Level 1-{SOUL_MAX_LEVEL} i {SOUL_MAX_TIER} Tierów.",
         "Progi Tierów, moc, bonusy i wymagania Prób są generowane z jednej krzywej Generator Core.",
-        "Soul Level jest osobną osią od Levelu postaci, Biegłości klasy i Skill Levelu.",
+        "Soul Level jest osobną osią od Levelu postaci, Biegłości klasy i Skill Levelu. Soul Weapon Mastery 1-400 rozwija wyłącznie zwykły atak Broni Duszy i zdobywa XP tylko za jego trafienia.",
         "dusza info pokazuje aktualne progi i stan Prób; po spełnieniu warunków użyj unlock.",
     ]
     HELP_TOPICS["aoe"] = [
@@ -193,7 +193,7 @@ def refresh_help_v03010():
     ]
     HELP_TOPICS["podstawy"] = [
         "Soulbound v0.30.11 używa Generator Core jako źródła aktywnego balansu; bazowe statystyki rasy i klasy pozostają stałe i nie są losowane przez generator.",
-        "Level postaci, Biegłość, Soul Level, Skill Level, profesje i narzędzia mają progresję 1-400; sześć statystyk bazowych rozwija się automatycznie.",
+        "Level postaci, Biegłość, Soul Level, Soul Weapon Mastery, Skill Level, profesje i narzędzia mają progresję 1-400; sześć statystyk bazowych rozwija się automatycznie.",
         "Najważniejsze komendy: help, look/l/sp, exits, hp, level/lvl, xp, score, staty, dusza, eq, quest, walk/prowadz oraz / do Świątyni.",
         "k <mob> rozpoczyna walkę; con <mob> ocenia przeciwnika; wimpy set 50 może automatycznie wycofać postać przy niskim HP.",
         "eventxp pokazuje godzinny event x2 EXP. Samo help zawsze otwiera menu kategorii.",
@@ -896,7 +896,7 @@ def full_combat_scaling_audit_v03015():
         errors.append("INT/WIL does not increase mana")
     if int_plus - base != wil_plus - base:
         errors.append("INT/WIL mana contribution is not equal")
-    if GENERATOR_CORE_VERSION != "0.34.6":
+    if GENERATOR_CORE_VERSION != "0.34.7":
         errors.append(f"GENERATOR_CORE_VERSION={GENERATOR_CORE_VERSION}")
     return {
         "version": "0.30.19",

@@ -3270,6 +3270,20 @@ class SessionSkillsCombatMixin:
                 return
             self.combat_task = asyncio.create_task(self.realtime_combat_loop())
 
+    async def grant_soul_weapon_mastery_hit_xp(self):
+            if not self.character or self.character.soul_weapon_mastery_level >= SOUL_WEAPON_MASTERY_MAX_LEVEL:
+                return
+            level = max(1, int(self.character.soul_weapon_mastery_level))
+            gain = v0190_scaled_gain(30, level, "skill", 30)
+            gain = self.apply_double_xp(gain)
+            result = self.character.add_soul_weapon_mastery_xp(gain)
+            self.session_summary_add("soul_weapon_mastery_xp", gain)
+            if result["level_ups"]:
+                await self.send(
+                    f"Soul Weapon Mastery wzrasta do {result['level']}/{SOUL_WEAPON_MASTERY_MAX_LEVEL}.",
+                    combat_detail="essential",
+                )
+
     async def realtime_player_action(self, mob):
             if not mob or not mob.alive:
                 return
@@ -3281,6 +3295,9 @@ class SessionSkillsCombatMixin:
             template = MOB_TEMPLATES[mob.template_id]
             self._last_mana_focus_gain = 0
             damage = self.player_damage()
+            # v0.34.7: Soul Weapon Mastery wzmacnia wyłącznie zwykły atak broni.
+            mastery = soul_weapon_mastery_bonuses(self.character.soul_weapon_mastery_level)
+            damage = max(1, int(round(damage * (1.0 + mastery["damage_percent"] / 100.0))))
             # v0.33.16: właściwości Soul Tier działają tylko na zwykły atak
             # Broni Duszy. Nie modyfikują skilli ani spelli.
             trait_totals = soul_weapon_trait_totals(self.character.soul_tier, self.character.class_name)
@@ -3291,8 +3308,10 @@ class SessionSkillsCombatMixin:
                 "world_boss", "mini_boss", "crypt_boss", "astral_boss",
                 "mythic_crypt_boss", "mythic_astral_boss", "giant_fortress_boss",
             ))
-            if _is_boss_target and trait_totals["boss_damage_percent"] > 0:
-                damage = max(1, int(round(damage * (1.0 + trait_totals["boss_damage_percent"] / 100.0))))
+            if _is_boss_target:
+                _boss_bonus = float(trait_totals["boss_damage_percent"]) + float(mastery["boss_damage_percent"])
+                if _boss_bonus > 0:
+                    damage = max(1, int(round(damage * (1.0 + _boss_bonus / 100.0))))
             mana_focus_gain = int(getattr(self, "_last_mana_focus_gain", 0) or 0)
             if mana_focus_gain > 0:
                 await self.send_combat(
@@ -3300,10 +3319,10 @@ class SessionSkillsCombatMixin:
                     f"Mana {self.current_mana} z {self.max_mana()}.",
                     "normal",
                 )
-            weapon_crit_chance = min(0.60, self.critical_chance() + trait_totals["crit_chance"])
+            weapon_crit_chance = min(0.60, self.critical_chance() + trait_totals["crit_chance"] + mastery["crit_chance"])
             critical = random.random() < weapon_crit_chance
             if critical:
-                weapon_crit_multiplier = self.critical_multiplier() * (1.0 + trait_totals["crit_damage_percent"] / 100.0)
+                weapon_crit_multiplier = self.critical_multiplier() * (1.0 + (trait_totals["crit_damage_percent"] + mastery["crit_damage_percent"]) / 100.0)
                 damage = max(1, int(round(damage * weapon_crit_multiplier)))
                 await self.send_combat(
                     f"TRAFIENIE KRYTYCZNE BRONI DUSZY! Zręczność {self.effective_dexterity()}. "
@@ -3316,6 +3335,12 @@ class SessionSkillsCombatMixin:
             damage, machine_note = v0314_adjust_damage_vs_template(template, damage, _basic_kind, "")
             mob.hp -= damage
             self._recap52_dealt=int(getattr(self,"_recap52_dealt",0))+max(0,int(damage))
+            await self.grant_soul_weapon_mastery_hit_xp()
+            echo_damage = 0
+            if mob.hp > 0 and mastery["echo_chance"] > 0 and random.random() < mastery["echo_chance"]:
+                echo_damage = max(1, int(round(damage * mastery["echo_damage_percent"] / 100.0)))
+                mob.hp -= echo_damage
+                self._recap52_dealt = int(getattr(self, "_recap52_dealt", 0)) + echo_damage
             soul_heal = 0
             _lifesteal = float(trait_totals.get("lifesteal_percent", 0.0) or 0.0)
             if _lifesteal > 0 and self.current_hp < self.max_hp():
@@ -3338,11 +3363,12 @@ class SessionSkillsCombatMixin:
                 f"Przeciwnik: {max(0, mob.hp)} z {template['max_hp']} życia."
                 + (f" Właściwość Broni Duszy leczy {soul_heal}." if soul_heal > 0 else "")
                 + (f" Odzyskujesz {_mana_restore} Many." if _mana_restore > 0 else "")
+                + (f" Echo Broni Duszy zadaje dodatkowo {echo_damage} obrażeń." if echo_damage > 0 else "")
                 + machine_note,
                 "normal",
             )
             _party_attack = (
-                f"{self.character.name}: {technique}, {damage} obrażeń w {template['name']}"
+                f"{self.character.name}: {technique}, {damage + echo_damage} obrażeń w {template['name']}"
             )
             if critical:
                 _party_attack += ". Krytyk"

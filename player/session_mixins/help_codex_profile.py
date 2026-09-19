@@ -1786,6 +1786,7 @@ class SessionHelpCodexProfileMixin:
             await self.send(f"Broń Duszy: {c.soul_weapon}.")
             await self.send(f"Soul Level: {c.soul_level}/{SOUL_MAX_LEVEL}.")
             await self.send(f"Soul Tier: {c.soul_tier}/{SOUL_MAX_TIER}.")
+            await self.send(f"Soul Weapon Mastery: {c.soul_weapon_mastery_level}/{SOUL_WEAPON_MASTERY_MAX_LEVEL}. XP: {c.soul_weapon_mastery_xp} z {c.soul_weapon_mastery_xp_to_next() if c.soul_weapon_mastery_level < SOUL_WEAPON_MASTERY_MAX_LEVEL else 0}.")
             await self.send(f"HP: {self.current_hp} z {self.max_hp()}.")
             await self.send(f"Mana: {self.current_mana} z {self.max_mana()}.")
             await self.send(f"Siła: {self.effective_strength()}.")
@@ -2216,6 +2217,11 @@ class SessionHelpCodexProfileMixin:
                 await self.send(f"Broń Duszy: {c.soul_weapon}.")
                 await self.send(f"Soul Level: {c.soul_level}/{SOUL_MAX_LEVEL}.")
                 await self.send(f"Soul Tier: {c.soul_tier}/{SOUL_MAX_TIER}.")
+                await self.send(f"Soul Weapon Mastery: {c.soul_weapon_mastery_level}/{SOUL_WEAPON_MASTERY_MAX_LEVEL}.")
+                if c.soul_weapon_mastery_level < SOUL_WEAPON_MASTERY_MAX_LEVEL:
+                    await self.send(f"Mastery XP: {c.soul_weapon_mastery_xp} z {c.soul_weapon_mastery_xp_to_next()}.")
+                else:
+                    await self.send("Mastery XP: maksimum.")
                 await self.send(f"Moc Broni Duszy: {c.soul_power()}.")
                 if c.soul_level < SOUL_MAX_LEVEL:
                     if c.soul_progress_is_tier_locked():
@@ -2240,6 +2246,18 @@ class SessionHelpCodexProfileMixin:
             await self.send(f"Broń Duszy: {c.soul_weapon}.")
             await self.send(f"Soul Level: {c.soul_level}/{SOUL_MAX_LEVEL}.")
             await self.send(f"Soul Tier: {c.soul_tier}/{SOUL_MAX_TIER}.")
+            await self.send(f"Soul Weapon Mastery: {c.soul_weapon_mastery_level}/{SOUL_WEAPON_MASTERY_MAX_LEVEL}.")
+            if c.soul_weapon_mastery_level < SOUL_WEAPON_MASTERY_MAX_LEVEL:
+                await self.send(f"Mastery XP: {c.soul_weapon_mastery_xp} z {c.soul_weapon_mastery_xp_to_next()}. XP wpada tylko za zwykłe trafienia Bronią Duszy.")
+            else:
+                await self.send("Mastery XP: maksimum. Soul Weapon Mastery 400.")
+            _mastery = c.soul_weapon_mastery_bonus()
+            await self.send(
+                f"Premie Mastery: +{_mastery['damage_percent']:.1f}% obrażeń podstawowego ataku; "
+                f"+{_mastery['crit_chance']*100:.1f} pp krytyka; +{_mastery['crit_damage_percent']:.1f}% obrażeń krytycznych; "
+                f"+{_mastery['boss_damage_percent']:.1f}% przeciw bossom; "
+                f"{_mastery['echo_chance']*100:.1f}% szansy na Echo zadające {_mastery['echo_damage_percent']:.0f}% obrażeń."
+            )
             await self.send(f"Moc Broni Duszy: {c.soul_power()}.")
             if c.soul_level < SOUL_MAX_LEVEL:
                 if c.soul_progress_is_tier_locked():

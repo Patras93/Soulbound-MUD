@@ -1,3 +1,10 @@
+v0.34.7 — Soul Weapon Mastery + Main Menu Exit Fix
+- Dodano Soul Weapon Mastery 1-400, zdobywane wyłącznie za zwykłe trafienia Bronią Duszy.
+- Mastery wzmacnia tylko podstawowy atak: obrażenia, krytyk, obrażenia krytyczne, anti-boss oraz Echo od poziomu 200.
+- Dodano trwały zapis Mastery Level/XP i automatyczną migrację istniejących baz.
+- dusza, dusza info, score i Session Summary pokazują nową progresję.
+- Naprawiono opcję 3 Wyjdź w MENU GŁÓWNYM: wysyła pożegnanie i jawnie zamyka socket klienta.
+
 v0.34.6 — Combat Loop + Hunter Skills Fix
 - Naprawiono zatrzymanie pętli walki: ofensywne skille nie odwołują się już do niezdefiniowanego trait_totals.
 - Soul Weapon Traits pozostają wyłącznie przy zwykłym ataku Broni Duszy; nie wzmacniają skilli/spelli.

@@ -796,7 +796,7 @@ def configure_v0856_help_refresh():
     ]
     HELP_TOPICS["score"] = [
         "score / wynik to zwarte podsumowanie aktualnej postaci.",
-        "Pokazuje rasę, główną i aktywne klasy, Biegłość każdej klasy, Soul Level/Tier, HP, Manę i sześć statystyk.",
+        "Pokazuje rasę, główną i aktywne klasy, Biegłość każdej klasy, Soul Level/Tier i Soul Weapon Mastery, HP, Manę i sześć statystyk.",
         "Pokazuje też wspólny portfel konta, aktualną lokację/strefę oraz dynamiczną ocenę terenu.",
         "score i expowiska pokazują orientacyjną ocenę terenu w historycznej skali 1-400; con i dynamiczny EXP walki używają osobnej bieżącej skali siły 1-400. Żadna z tych ocen nie jest levelem postaci.",
     ]
@@ -804,7 +804,7 @@ def configure_v0856_help_refresh():
         "dusza pokazuje krótki stan Broni Duszy: Soul Level, Tier, Soul XP, moc i następny cel.",
         "dusza info pokazuje pełne progi Tierów 1-40 oraz stan Prób Broni Duszy potrzebnych do dalszej progresji.",
         "Kolejne Tiery do 40 wymagają odpowiedniego Soul Levelu i właściwego odblokowania; progi 1-200 zachowują wcześniejsze Próby, a 201-400 kontynuują progresję endgame.",
-        "Soul Level ma zakres 1-400 i rozwija Broń Duszy; nie jest levelem postaci.",
+        "Soul Level ma zakres 1-400 i rozwija Broń Duszy; nie jest levelem postaci. Soul Weapon Mastery ma osobny zakres 1-400 i rozwija wyłącznie zwykły atak broni.",
         "Skille/spelle klasowe zachowują stare progi odblokowania do 200, a Biegłość właściwej klasy rozwija się 1-400, nie Soul Level.",
         "Po osiągnięciu progu wpisz quest list Kapłan Elor, przyjmij właściwą Próbę, wykonaj cel, oddaj quest i użyj unlock.",
     ]

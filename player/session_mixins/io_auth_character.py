@@ -336,6 +336,19 @@ class SessionIOAuthCharacterMixin:
             await self.prompt(text)
             return await self.read_line()
 
+    async def close_from_main_menu(self):
+            """Opcja Wyjdź ma naprawdę zamknąć połączenie klienta."""
+            try:
+                await self.send("Do zobaczenia.")
+            except Exception:
+                pass
+            try:
+                self.writer.close()
+                await self.writer.wait_closed()
+            except Exception:
+                pass
+            self.closed = True
+
     async def login_flow(self):
             await self.negotiate_polish_charset()
             await self.send(f"SOULBOUND ONLINE v{VERSION}")
@@ -362,7 +375,8 @@ class SessionIOAuthCharacterMixin:
                 elif normalized in ("2", "new", "nowe", "konto", "utworz konto", "nowe konto"):
                     if await self.do_new_account():
                         return True
-                elif normalized in ("3", "quit", "wyjdz", "wyjscie"):
+                elif normalized in ("3", "quit", "exit", "wyjdz", "wyjscie"):
+                    await self.close_from_main_menu()
                     return False
                 else:
                     await self.send("Nieprawidłowa opcja. Wybierz 1, 2 albo 3.")
@@ -1128,6 +1142,7 @@ class SessionIOAuthCharacterMixin:
             "character_xp": 0,
             "class_xp": 0,
             "soul_xp": 0,
+            "soul_weapon_mastery_xp": 0,
             "profession_xp": {},
             "tool_xp": {},
         }
@@ -1176,6 +1191,8 @@ class SessionIOAuthCharacterMixin:
             xp_parts.append(f"Klasy {int(state['class_xp'])} XP")
         if int(state.get("soul_xp", 0)):
             xp_parts.append(f"Soul {int(state['soul_xp'])} XP")
+        if int(state.get("soul_weapon_mastery_xp", 0)):
+            xp_parts.append(f"Soul Weapon Mastery {int(state['soul_weapon_mastery_xp'])} XP")
         if xp_parts:
             await self.send("Zdobyte XP: " + "; ".join(xp_parts) + ".", history_store=False)
         prof_xp = state.get("profession_xp", {}) or {}

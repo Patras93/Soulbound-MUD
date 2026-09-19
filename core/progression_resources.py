@@ -325,6 +325,30 @@ def skill_power_multiplier(level):
 def skill_cooldown_multiplier(level):
     return generator_core_v027.skill_cooldown_factor(level)
 
+# v0.34.7: osobna biegłość zwykłego ataku Broni Duszy.
+# Nie rozwija skilli/spelli i nie jest Soul Levelem ani Biegłością klasy.
+SOUL_WEAPON_MASTERY_MAX_LEVEL = 400
+
+def soul_weapon_mastery_xp_to_next(level):
+    level = max(1, min(SOUL_WEAPON_MASTERY_MAX_LEVEL, int(level)))
+    if level >= SOUL_WEAPON_MASTERY_MAX_LEVEL:
+        return 0
+    # Ta sama długość pojedynczego poziomu co Skill Level: około 18 realnych trafień.
+    return v0190_requirement("skill", level)
+
+def soul_weapon_mastery_bonuses(level):
+    level = max(1, min(SOUL_WEAPON_MASTERY_MAX_LEVEL, int(level)))
+    progress = (level - 1) / float(SOUL_WEAPON_MASTERY_MAX_LEVEL - 1)
+    # Premie są celowo umiarkowane i dotyczą wyłącznie podstawowego ataku.
+    return {
+        "damage_percent": round(8.0 * (progress ** 0.85), 4),
+        "crit_chance": round(0.02 * (progress ** 0.90), 6),
+        "crit_damage_percent": round(12.0 * (progress ** 0.90), 4),
+        "boss_damage_percent": round(5.0 * (progress ** 1.05), 4),
+        "echo_chance": round((0.01 + 0.04 * (((level - 200) / 200.0) ** 0.85)) if level >= 200 else 0.0, 6),
+        "echo_damage_percent": 30.0 if level >= 200 else 0.0,
+    }
+
 BANK_ROOM = "market"
 
 PROFESSION_COOLDOWN = 2.0

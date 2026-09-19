@@ -71,6 +71,8 @@ class Database:
                 soul_level INTEGER NOT NULL DEFAULT 1,
                 soul_xp INTEGER NOT NULL DEFAULT 0,
                 soul_tier INTEGER NOT NULL DEFAULT 1,
+                soul_weapon_mastery_level INTEGER NOT NULL DEFAULT 1,
+                soul_weapon_mastery_xp INTEGER NOT NULL DEFAULT 0,
                 room_id TEXT NOT NULL DEFAULT 'square',
                 silver INTEGER NOT NULL DEFAULT 250,
                 gold INTEGER NOT NULL DEFAULT 2,
@@ -754,6 +756,8 @@ class Database:
             "intelligence_progress": "INTEGER NOT NULL DEFAULT 0",
             "willpower_progress": "INTEGER NOT NULL DEFAULT 0",
             "charisma_progress": "INTEGER NOT NULL DEFAULT 0",
+            "soul_weapon_mastery_level": "INTEGER NOT NULL DEFAULT 1",
+            "soul_weapon_mastery_xp": "INTEGER NOT NULL DEFAULT 0",
         }
         for name, decl in additions.items():
             if name not in cols:
@@ -2045,7 +2049,8 @@ class Database:
                 strength=?, dexterity=?, constitution=?, intelligence=?, willpower=?,
                 stat_progress=?, strength_progress=?, dexterity_progress=?,
                 constitution_progress=?, intelligence_progress=?, willpower_progress=?,
-                charisma_progress=?, soul_level=?, soul_xp=?, soul_tier=?, room_id=?,
+                charisma_progress=?, soul_level=?, soul_xp=?, soul_tier=?,
+                soul_weapon_mastery_level=?, soul_weapon_mastery_xp=?, room_id=?,
                 silver=?, gold=?, mithril=?, charisma=?, character_level=?, character_xp=?, deaths=?,
                 guild_reputation_json=?, guild_exams_json=?,
                 guild_class_quests_json=?, guild_bounty_json=?,
@@ -2058,7 +2063,8 @@ class Database:
                     c.intelligence_progress, c.willpower_progress, c.charisma_progress),
                 c.strength_progress, c.dexterity_progress, c.constitution_progress,
                 c.intelligence_progress, c.willpower_progress, c.charisma_progress,
-                c.soul_level, c.soul_xp, c.soul_tier, c.room_id,
+                c.soul_level, c.soul_xp, c.soul_tier,
+                c.soul_weapon_mastery_level, c.soul_weapon_mastery_xp, c.room_id,
                 c.silver, c.gold, c.mithril, c.charisma, c.character_level, c.character_xp, c.deaths,
                 c.guild_reputation_json, c.guild_exams_json,
                 c.guild_class_quests_json, c.guild_bounty_json,
