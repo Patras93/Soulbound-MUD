@@ -1,20 +1,32 @@
 # -*- coding: utf-8 -*-
 #!/usr/bin/env python3
-"""Soulbound v0.30.45 Structured Modular Core.
-
-Runtime files live in functional directories, while execution order is kept
-identical to v0.30.44 so legacy globals and initialization remain compatible.
-"""
+"""Soulbound v0.30.46 Fine-Grained Modular Core."""
 from pathlib import Path
 
 _ROOT = Path(__file__).resolve().parent
 _RUNTIME_MODULES = [
-    "core/progression.py",
-    "systems/items_loot_dungeons.py",
-    "world/content_equipment.py",
-    "network/gameplay_systems.py",
-    "world/runtime_session.py",
-    "admin/server_audits.py",
+    "core/bootstrap_economy_professions.py",
+    "core/progression_resources.py",
+    "core/classes_skills.py",
+    "core/mines_threat.py",
+    "systems/items_resources.py",
+    "systems/equipment_crafting.py",
+    "systems/content_registry.py",
+    "systems/dungeons_regions.py",
+    "world/expansions.py",
+    "world/equipment_help.py",
+    "world/economy_quests.py",
+    "world/dynamic_content.py",
+    "network/protocol_gameplay_utils.py",
+    "storage/database.py",
+    "player/character.py",
+    "world/generation_systems.py",
+    "world/runtime_progression.py",
+    "world/world_state.py",
+    "player/session.py",
+    "server/mud_server.py",
+    "admin/help_refresh.py",
+    "admin/audits.py",
 ]
 
 _missing = [name for name in _RUNTIME_MODULES if not (_ROOT / name).is_file()]

@@ -1,3 +1,10 @@
+Soulbound v0.30.46 — Fine-Grained Modular Core
+- Rozbito 6 dużych modułów v0.30.45 na 22 mniejsze pliki funkcjonalne.
+- Wydzielono osobno Database, Character, Session, MudServer, HELP, audyty, crafting/EQ, lochy, ekonomię/profesje, klasy/skille i generatory świata.
+- Cięcia wykonano wyłącznie na granicach instrukcji top-level wykrytych przez AST.
+- Zachowano kolejność wykonania 1:1 względem v0.30.45; bez zmian mechaniki i balansu.
+- Dockerfile obsługuje nową strukturę katalogów pod Git/GitHub/Railway.
+
 Soulbound v0.30.45 — Structured Modular Core
 - Przeniesiono runtime do normalnej struktury katalogów: core/, systems/, world/, network/ i admin/.
 - server.py pozostaje małym loaderem i zachowuje dokładną kolejność wykonania v0.30.44.

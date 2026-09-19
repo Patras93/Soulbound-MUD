@@ -13,6 +13,9 @@ COPY core /app/core
 COPY systems /app/systems
 COPY world /app/world
 COPY network /app/network
+COPY storage /app/storage
+COPY player /app/player
+COPY server /app/server
 COPY admin /app/admin
 COPY soulbound_world_seed.txt /app/soulbound_world_seed.txt
 COPY CHANGELOG_PL.txt /app/CHANGELOG_PL.txt
