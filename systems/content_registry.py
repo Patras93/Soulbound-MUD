@@ -2476,7 +2476,7 @@ QUESTS = {
         "giver": "Mistrz Rzemiosła Haldor",
         "specialist_tool_type": "crafting",
         "min_tool_level": 1,
-        "kind": "collect", "target": "iron_ingot", "needed": 3,
+        "kind": "collect", "track_craft_progress": True, "target": "iron_ingot", "needed": 3,
         "description": (
             "Wytwórz 3 Żelazne sztabki i przynieś je "
             "Mistrzowi Rzemiosła Haldorowi w Kuźni Dusz."

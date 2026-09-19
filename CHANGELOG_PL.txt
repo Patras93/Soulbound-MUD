@@ -1,3 +1,10 @@
+v0.33.10 - Quest Collect Storage & Haldor Recovery
+- Naprawiono questy collect, które błędnie sprawdzały tylko inventory zamiast właściwego magazynu profesji.
+- Żelazne Sztabki Haldora jawnie śledzą craft.
+- Stalowe Płyty oraz inne materiały w Szkatułce Rzemieślniczej są liczone przy postępie i oddawaniu.
+- Aktywne questy zepsute przez wcześniejszy błąd odzyskują postęp z faktycznie posiadanych przedmiotów, do limitu celu.
+- Oddawanie zużywa przedmioty z inventory albo właściwego magazynu.
+
 v0.33.9 — Railway Immediate Port Bootstrap
 - Port TCP jest otwierany natychmiast na początku server.py, przed ładowaniem dużego runtime i Generator Core.
 - asyncio przejmuje ten sam socket po inicjalizacji; połączenia wykonane w trakcie bootu czekają w backlogu zamiast wpadać w reconnecting.

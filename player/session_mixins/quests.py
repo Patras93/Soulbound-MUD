@@ -445,24 +445,53 @@ class SessionQuestsMixin:
                 pass
             return tuple(sorted(ids))
 
+    def quest_collect_storage_container_v03310(self, base_id):
+            """Return the profession storage used by a physical collect target, if any."""
+            ids = set(self.quest_crafted_equivalent_ids_v0333(base_id))
+            if any(item_id in CRAFT_MATERIAL_STORAGE_IDS for item_id in ids):
+                return "craftbox"
+            if any(item_id in FISH_STORAGE_IDS for item_id in ids):
+                return "net"
+            if any(item_id in ORE_STORAGE_IDS for item_id in ids):
+                return "bag"
+            if any(item_id in WOOD_STORAGE_IDS for item_id in ids):
+                return "woodpile"
+            if any(item_id in HERB_STORAGE_IDS for item_id in ids):
+                return "herbbag"
+            return None
+
     def quest_crafted_item_have_v0333(self, base_id):
-            return sum(
-                int(self.server.db.item_qty(self.account_id, item_id))
-                for item_id in self.quest_crafted_equivalent_ids_v0333(base_id)
-            )
+            ids = self.quest_crafted_equivalent_ids_v0333(base_id)
+            container = self.quest_collect_storage_container_v03310(base_id)
+            return int(self.server.db.total_items_across_storage_and_inventory(
+                self.account_id, ids, container
+            ))
 
     def consume_quest_crafted_items_v0333(self, base_id, quantity):
-            remaining = max(0, int(quantity))
-            for item_id in self.quest_crafted_equivalent_ids_v0333(base_id):
-                if remaining <= 0:
-                    break
-                have = int(self.server.db.item_qty(self.account_id, item_id))
-                take = min(have, remaining)
-                if take > 0:
-                    if not self.server.db.remove_item(self.account_id, item_id, take):
-                        return False
-                    remaining -= take
-            return remaining == 0
+            ids = self.quest_crafted_equivalent_ids_v0333(base_id)
+            container = self.quest_collect_storage_container_v03310(base_id)
+            return bool(self.server.db.consume_items_across_storage_and_inventory(
+                self.account_id, ids, max(0, int(quantity)), container
+            ))
+
+    def recover_broken_collect_progress_v03310(self, quest_id):
+            """One-way recovery for active collect quests affected by old storage/craft bugs.
+
+            We only raise progress up to physically owned stock and never above needed. This
+            repairs currently active Haldor/crafting orders that stayed at 0/x even though
+            the required items were produced/looted after acceptance.
+            """
+            q = QUESTS.get(quest_id)
+            row = self.server.db.quest(self.account_id, quest_id)
+            if not q or not row or row["status"] != "active" or q.get("kind") != "collect":
+                return 0
+            needed = max(1, int(q.get("needed", 1)))
+            current = max(0, int(row["progress"]))
+            physical = min(needed, int(self.quest_crafted_item_have_v0333(q.get("target"))))
+            if physical > current and (q.get("track_craft_progress") or q.get("target") in CRAFT_MATERIAL_STORAGE_IDS):
+                self.server.db.set_quest_progress(self.account_id, quest_id, physical)
+                return physical
+            return current
 
     def quest_progress_for_turnin(self, quest_id):
             q = QUESTS.get(quest_id)
@@ -476,6 +505,10 @@ class SessionQuestsMixin:
                 return progress, progress >= needed
 
             if q["kind"] == "collect":
+                # v0.33.10: napraw aktywne questy, które przez stary błąd
+                # storage/craft pozostały na 0/x mimo posiadania celu.
+                self.recover_broken_collect_progress_v03310(quest_id)
+                row = self.server.db.quest(self.account_id, quest_id)
                 # v0.30.7: widoczny postęp questa dostawczego oznacza realną
                 # liczbę zaliczonych sztuk, które nadal są dostępne do oddania.
                 # Historyczny licznik zdarzeń nadal chroni przed starym zapasem.
