@@ -1180,7 +1180,7 @@ class SessionHelpCodexProfileMixin:
                 (template.get("drops") or {}).items(),
                 key=lambda row: normalize_lookup_text(ITEMS.get(row[0], {"name": row[0]}).get("name", row[0])),
             ):
-                name = ITEMS.get(item_id, {"name": item_id}).get("name", item_id)
+                name = player_item_display_name_v0335(item_id)
                 result.append(f"{name} — około {float(chance) * 100:.1f}%")
             return result
 
@@ -1531,7 +1531,7 @@ class SessionHelpCodexProfileMixin:
                 if rooms:
                     await self.send("Występowanie: " + ", ".join(rooms) + ".")
                 drops = [
-                    f"{ITEMS.get(item_id, {'name': item_id})['name']} około {int(chance * 100)} procent"
+                    f"{player_item_display_name_v0335(item_id)} około {int(chance * 100)} procent"
                     for item_id, chance in mob.get("drops", {}).items()
                 ]
                 if drops:
@@ -1618,8 +1618,7 @@ class SessionHelpCodexProfileMixin:
                 )
                 drops = []
                 for item_id, chance in mob.get("drops", {}).items():
-                    item = ITEMS.get(item_id, {"name": item_id})
-                    drops.append(f"{item['name']} około {int(chance * 100)} procent")
+                    drops.append(f"{player_item_display_name_v0335(item_id)} około {int(chance * 100)} procent")
                 if drops:
                     await self.send("Możliwe dropy: " + ", ".join(drops) + ".")
                 return
@@ -1664,7 +1663,7 @@ class SessionHelpCodexProfileMixin:
                         )
                     )
                 for item_id, qty in quest.get("reward_items", {}).items():
-                    rewards.append(f"{ITEMS.get(item_id, {'name': item_id})['name']} x{qty}")
+                    rewards.append(f"{player_item_display_name_v0335(item_id)} x{qty}")
                 if rewards:
                     await self.send("Nagrody: " + ", ".join(rewards) + ".")
                 return

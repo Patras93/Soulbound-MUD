@@ -1289,3 +1289,88 @@ for _topic, _lines in list(HELP_TOPICS.items()):
             _text="Level postaci 1-400 i główne osie progresji są wyliczane przez Generator Core v0.30.0; statystyki są nielimitowane."
         _clean.append(_text)
     HELP_TOPICS[_topic]=_clean
+
+
+# ============================================================
+# v0.33.6 - RUNTIME NUMERIC DESCRIPTION SYNCHRONIZER
+# Generator Core is authoritative for numeric balance. Player-facing item
+# descriptions must therefore mirror the generated values instead of old
+# authored numbers retained in legacy descriptions.
+# ============================================================
+
+def _fmt_runtime_number_v0336(value):
+    try:
+        value=float(value)
+    except Exception:
+        return str(value)
+    if abs(value-round(value)) < 1e-9:
+        return str(int(round(value)))
+    return (f"{value:.3f}").rstrip("0").rstrip(".")
+
+
+def sync_item_numeric_description_v0336(item):
+    desc=str(item.get("desc") or "")
+    if not desc:
+        return desc
+
+    # Direct defense.
+    if "defense" in item:
+        desc=re.sub(r"(?i)(Obrona\s*\+)\s*-?\d+(?:[.,]\d+)?", lambda m: m.group(1)+_fmt_runtime_number_v0336(item.get("defense",0)), desc)
+
+    stats=dict(item.get("stats") or {})
+    affix=str(item.get("affix") or "")
+    affix_amount=item.get("affix_amount")
+    stat_labels={
+        "strength": r"Siła",
+        "dexterity": r"Zręczność",
+        "constitution": r"Kondycja",
+        "intelligence": r"Inteligencja",
+        "willpower": r"Siła Woli",
+        "charisma": r"Charyzma",
+    }
+    for key,label in stat_labels.items():
+        actual=stats.get(key)
+        if actual is None and affix==key:
+            actual=affix_amount
+        if actual is None:
+            continue
+        pat=rf"(?i)({label}\s*\+)\s*-?\d+(?:[.,]\d+)?"
+        desc=re.sub(pat, lambda m,v=actual: m.group(1)+_fmt_runtime_number_v0336(v), desc)
+
+    # Generic legacy affix wording.
+    if affix_amount is not None:
+        desc=re.sub(r"(?i)(Bonus statystyki\s*\+)\s*-?\d+(?:[.,]\d+)?", lambda m: m.group(1)+_fmt_runtime_number_v0336(affix_amount), desc)
+        if affix=="hp":
+            desc=re.sub(r"(?i)(?<!maksymalne )(?<!maksymalne)(HP\s*\+)\s*-?\d+(?:[.,]\d+)?", lambda m: m.group(1)+_fmt_runtime_number_v0336(affix_amount), desc)
+        if affix=="mana":
+            desc=re.sub(r"(?i)(?<!maksymalna )(?<!maksymalna)(Mana\s*\+)\s*-?\d+(?:[.,]\d+)?", lambda m: m.group(1)+_fmt_runtime_number_v0336(affix_amount), desc)
+
+    props=dict(item.get("properties") or {})
+    prop_labels={
+        "max_hp_pct": r"maksymalne HP",
+        "max_mana_pct": r"maksymalna Mana",
+        "physical_damage_pct": r"obrażenia fizyczne",
+        "magic_damage_pct": r"obrażenia magiczne",
+        "physical_defense_pct": r"obrona fizyczna",
+        "magic_defense_pct": r"obrona magiczna",
+        "dodge_pct": r"unik",
+        "all_damage_pct": r"obrażenia",
+    }
+    for key,label in prop_labels.items():
+        if key not in props:
+            continue
+        actual=props[key]
+        pat=rf"(?i)({label}\s*\+)\s*-?\d+(?:[.,]\d+)?(?=%)"
+        desc=re.sub(pat, lambda m,v=actual: m.group(1)+_fmt_runtime_number_v0336(v), desc)
+
+    item["desc"]=desc
+    return desc
+
+
+ITEM_DESCRIPTION_SYNC_V0336={"checked":0,"changed":0}
+for _iid_v0336,_item_v0336 in ITEMS.items():
+    _before_v0336=str(_item_v0336.get("desc") or "")
+    sync_item_numeric_description_v0336(_item_v0336)
+    ITEM_DESCRIPTION_SYNC_V0336["checked"]+=1
+    if str(_item_v0336.get("desc") or "") != _before_v0336:
+        ITEM_DESCRIPTION_SYNC_V0336["changed"]+=1

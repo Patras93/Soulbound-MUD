@@ -667,7 +667,7 @@ class SessionWorldProgressionMixin:
                 self.server.db.add_drop_history(
                     self.account_id,
                     item_id,
-                    item.get("name", item_id),
+                    player_item_display_name_v0335(item_id),
                     rarity,
                     source,
                     zone,

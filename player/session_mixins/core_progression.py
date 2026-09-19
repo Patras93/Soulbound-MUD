@@ -471,7 +471,7 @@ class SessionCoreProgressionMixin:
                 if best:
                     await self.send(
                         "Najwyższe dostępne rudy przy tym Kilofie i piętrze: "
-                        + ", ".join(ITEMS[item_id].get("name", item_id) for *_rest, item_id in best)
+                        + ", ".join(player_item_display_name_v0335(item_id) for *_rest, item_id in best)
                         + "."
                     )
 
@@ -488,7 +488,7 @@ class SessionCoreProgressionMixin:
                     future.sort(key=lambda row: (row[0], row[1], ITEMS[row[2]].get("name", row[2])))
                     _distance, _rank, item_id, need_tool, need_floor = future[0]
                     await self.send(
-                        f"Najbliższy kolejny próg rudy: {ITEMS[item_id].get('name', item_id)} — "
+                        f"Najbliższy kolejny próg rudy: {player_item_display_name_v0335(item_id)} — "
                         f"Kilof {need_tool}, poziom kopalni {need_floor}."
                     )
 

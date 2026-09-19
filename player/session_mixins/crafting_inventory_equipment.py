@@ -1039,7 +1039,7 @@ class SessionCraftingInventoryEquipmentMixin:
                 return
             await self.send("Ekwipunek:")
             for row in rows:
-                item = ITEMS.get(row["item_id"]) or ensure_crafting_quality_variant_v0332(row["item_id"]) or {"name": row["item_id"], "desc": ""}
+                item = ITEMS.get(row["item_id"]) or ensure_crafting_quality_variant_v0332(row["item_id"]) or {"name": player_item_display_name_v0335(row["item_id"]), "desc": ""}
                 bound_text = (
                     " Przypisany do postaci; nie można oddać ani wyrzucić."
                     if is_character_bound_item(row["item_id"])
@@ -1094,7 +1094,7 @@ class SessionCraftingInventoryEquipmentMixin:
                 upgrade_level = self.server.db.equipment_upgrade_level_v03042(
                     self.account_id, row["item_id"]
                 ) if item else 0
-                base_name = item["name"] if item else row["item_id"]
+                base_name = item["name"] if item else player_item_display_name_v0335(row["item_id"])
                 name = v03042_upgraded_display_name(base_name, upgrade_level)
                 defense = (
                     int(item.get("defense", 0) or 0)
@@ -1934,7 +1934,7 @@ class SessionCraftingInventoryEquipmentMixin:
                 n2 = ITEMS.get(self.server.db.equipped_item(self.account_id, s2), {}).get("name", "pusty")
                 await self.send(f"{noun.capitalize()}. Slot 1: {n1}. Slot 2: {n2}. Wybierz numer przedmiotu:")
                 for idx, (_score, item_id, item) in enumerate(candidates, 1):
-                    await self.send(f"{idx}. {item.get('name', item_id)}. Level postaci {int(item.get('required_character_level', item.get('required_mastery',1)) or 1)}.")
+                    await self.send(f"{idx}. {player_item_display_name_v0335(item_id)}. Level postaci {int(item.get('required_character_level', item.get('required_mastery',1)) or 1)}.")
                 return
             if raw.isdigit():
                 idx = int(raw)
@@ -1949,7 +1949,7 @@ class SessionCraftingInventoryEquipmentMixin:
                     await self.send(f"Nie rozpoznaję przedmiotu. Wpisz {shortcut}, aby dostać listę.")
                     return
                 item_id, item = found
-            await self.equip_item(item.get("name", item_id))
+            await self.equip_item(player_item_display_name_v0335(item_id))
 
     async def equip_shortcut_slot_v03016(self, slot, query=""):
             """NVDA-friendly numbered slot picker.
@@ -1976,7 +1976,7 @@ class SessionCraftingInventoryEquipmentMixin:
                     mastery = int(item.get("required_mastery", 1) or 1)
                     marker = " [ZAŁOŻONE]" if item_id == current_id else ""
                     await self.send(
-                        f"{idx}. {item.get('name', item_id)}. "
+                        f"{idx}. {player_item_display_name_v0335(item_id)}. "
                         f"Level postaci {int(item.get('required_character_level', mastery) or mastery)}. "
                         f"{CLASS_SET_STAT_NAMES.get(item.get('affix'), item.get('affix'))} "
                         f"+{int(item.get('affix_amount', 0) or 0)}; "
@@ -2009,9 +2009,9 @@ class SessionCraftingInventoryEquipmentMixin:
 
             item_id, item = found
             if slot in ("ring1", "ring2", "charm1", "charm2", "earring1", "earring2"):
-                await self.equip_item(f"{slot} {item.get('name', item_id)}")
+                await self.equip_item(f"{slot} {player_item_display_name_v0335(item_id)}")
             else:
-                await self.equip_item(item.get("name", item_id))
+                await self.equip_item(player_item_display_name_v0335(item_id))
 
     async def equip_item(self, query):
             if self.combat_mob_key:
@@ -2243,7 +2243,7 @@ class SessionCraftingInventoryEquipmentMixin:
             if not item_id:
                 await self.send(f"Slot {EQUIPMENT_SLOT_NAMES[slot]} jest już pusty.")
                 return
-            item = ITEMS.get(item_id, {"name": item_id})
+            item = ITEMS.get(item_id) or ensure_crafting_quality_variant_v0332(item_id) or {"name": player_item_display_name_v0335(item_id)}
             returned_gems = []
             if slot in ("ring1", "ring2", "earring1", "earring2", "necklace"):
                 returned_gems = await self.return_socketed_gems(slot, item_id)

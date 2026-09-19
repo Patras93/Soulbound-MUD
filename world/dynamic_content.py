@@ -633,9 +633,35 @@ def build_v0930_large_exploration_regions():
         prefixes, suffixes, zone_desc = words[zone]
         safe = _collection_slug(zone)
         new_ids = [f"v0930_{safe}_{i+1:02d}" for i in range(need)]
+        # v0.33.6: nazwa każdego pokoju ma być globalnie jednoznaczna dla NVDA.
+        # Wybieramy pełne kombinacje prefix x suffix i omijamy nazwy istniejące
+        # już wcześniej w świecie; żadnych dopisków 2/3/4.
+        used_room_names = {
+            str(existing_room.get("name", "")).casefold().strip()
+            for existing_room in ROOMS.values()
+            if str(existing_room.get("name", "")).strip()
+        }
+        name_combinations = [
+            (pfx, sfx)
+            for sfx in suffixes
+            for pfx in prefixes
+        ]
+        combo_cursor = 0
         for i, rid in enumerate(new_ids):
-            prefix = prefixes[i % len(prefixes)]
-            suffix = suffixes[(i // len(prefixes) + i) % len(suffixes)]
+            chosen_pair = None
+            while combo_cursor < len(name_combinations):
+                candidate = name_combinations[combo_cursor]
+                combo_cursor += 1
+                candidate_name = f"{candidate[0]} {candidate[1]}"
+                if candidate_name.casefold().strip() not in used_room_names:
+                    chosen_pair = candidate
+                    used_room_names.add(candidate_name.casefold().strip())
+                    break
+            if chosen_pair is None:
+                # Teoretyczny bezpiecznik: pula ma 30 kombinacji, a każdy region
+                # potrzebuje mniej nowych sektorów niż ten limit.
+                chosen_pair = (prefixes[i % len(prefixes)], suffixes[(i // len(prefixes)) % len(suffixes)])
+            prefix, suffix = chosen_pair
             room_data = {
                 "zone": zone,
                 "name": f"{prefix} {suffix}",

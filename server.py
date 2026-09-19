@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #!/usr/bin/env python3
-"""Soulbound v0.33.3 Party Progress, Recap & Tech Set Milestone."""
+"""Soulbound v0.33.6 Full Game 100% Audit & Runtime Text Integrity."""
 from pathlib import Path
 
 _ROOT = Path(__file__).resolve().parent

@@ -2384,6 +2384,24 @@ class Database:
                     found.update(str(row[0]) for row in rows if row[0])
                 except Exception:
                     pass
+        # v0.33.6: Housing 2.0 stores item ids inside JSON rather than an
+        # item_id column. Include those ids as well so Crafting Quality variants
+        # survive a restart even when every copy is currently in the house chest.
+        try:
+            import json as _json
+            rows=self.conn.execute("SELECT storage_json FROM player_housing_v03051").fetchall()
+            for row in rows:
+                try:
+                    box=_json.loads(row[0] or "{}")
+                except Exception:
+                    continue
+                if isinstance(box,dict):
+                    for item_id in box:
+                        item_id=str(item_id or "")
+                        if item_id.startswith("craftq_"):
+                            found.add(item_id)
+        except Exception:
+            pass
         return sorted(found)
 
     def inventory(self, account_id):

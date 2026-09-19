@@ -71,8 +71,8 @@ def generator_whitelist_audit_v03019():
     audit = GENERATOR_CORE_AUDIT or {}
     whitelist = audit.get("whitelist_audit") or {}
     errors = []
-    if GENERATOR_CORE_VERSION != "0.33.3":
-        errors.append(f"Generator Core version={GENERATOR_CORE_VERSION}, expected 0.33.3")
+    if GENERATOR_CORE_VERSION != "0.33.6":
+        errors.append(f"Generator Core version={GENERATOR_CORE_VERSION}, expected 0.33.6")
     if not audit.get("numeric_only"):
         errors.append("numeric_only flag missing")
     if not audit.get("semantic_preserved"):
@@ -755,7 +755,7 @@ def full_release_integrity_audit_v03025():
         errors.append("world logic audit failed")
     if int(WORLD_LOGIC_AUDIT.get("warning_count", 0) or 0):
         errors.append("world logic warnings present")
-    if GENERATOR_CORE_VERSION != "0.33.3":
+    if GENERATOR_CORE_VERSION != "0.33.6":
         errors.append(f"GENERATOR_CORE_VERSION={GENERATOR_CORE_VERSION}")
     return {
         "version": "0.30.25",
@@ -972,7 +972,7 @@ def gameplay_flow_audit_v03026():
         if missing:
             errors.append(f"station {_station}: brak w {missing[:5]}")
 
-    if GENERATOR_CORE_VERSION != "0.33.3":
+    if GENERATOR_CORE_VERSION != "0.33.6":
         errors.append(f"GENERATOR_CORE_VERSION={GENERATOR_CORE_VERSION}")
 
     return {
@@ -2830,3 +2830,354 @@ def _install_v0310_tech_help():
     HELP_TOPIC_ALIASES["cyborg"] = "cyborg"
     HELP_TOPIC_ALIASES["mech"] = "mec"
 _install_v0310_tech_help()
+
+# ============================================================
+# v0.33.6 - FULL GAME PRE-DEPLOY INTEGRITY GATE
+# Covers every registered runtime content domain and blocks startup on broken
+# cross-references, technical IDs in player-facing item names, stale generated
+# numeric item descriptions, invalid quest/item/NPC/shop links, skill-name
+# regressions, mojibake, or missing help aliases.
+# ============================================================
+def full_game_predeploy_audit_v0336():
+    errors=[]; warnings=[]; metrics={}
+    def err(kind,*parts): errors.append((kind,*parts))
+
+    # 1) Core registries and basic identity.
+    registries={
+        'rooms':ROOMS,'items':ITEMS,'mobs':MOB_TEMPLATES,'quests':QUESTS,
+        'npcs':NPCS,'shops':SHOPS,'classes':CLASSES,'skills':CLASS_SKILLS,
+        'help_topics':HELP_TOPICS,'help_aliases':HELP_TOPIC_ALIASES,
+        'command_aliases':COMMAND_ALIASES,
+    }
+    for name,table in registries.items():
+        metrics[name]=len(table)
+        if not table: err('empty_registry',name)
+
+    # 2) UTF-8/mojibake guard for runtime-visible text.
+    bad_text_tokens=('\ufffd','Ã','Â','â€','â€™','ï¿½')
+    def bad_text(value):
+        s=str(value or '')
+        return any(tok in s for tok in bad_text_tokens)
+    for iid,it in ITEMS.items():
+        for field in ('name','desc','rarity_name'):
+            if bad_text(it.get(field,'')): err('mojibake_item',iid,field,it.get(field))
+    for mid,mob in MOB_TEMPLATES.items():
+        for field in ('name','desc'):
+            if bad_text(mob.get(field,'')): err('mojibake_mob',mid,field,mob.get(field))
+    for qid,q in QUESTS.items():
+        for field in ('name','desc','description'):
+            if bad_text(q.get(field,'')): err('mojibake_quest',qid,field,q.get(field))
+    for rid,room in ROOMS.items():
+        for field in ('name','desc'):
+            if bad_text(room.get(field,'')): err('mojibake_room',rid,field,room.get(field))
+    for topic,lines in HELP_TOPICS.items():
+        if bad_text(topic): err('mojibake_help_topic',topic)
+        if isinstance(lines,(list,tuple)):
+            for line in lines:
+                if bad_text(line): err('mojibake_help',topic,line)
+
+    # 2b) Player-facing names that identify content must be globally unique
+    # inside their own registry. This is especially important for NVDA navigation.
+    for registry_name,table in (
+        ('items',ITEMS),('mobs',MOB_TEMPLATES),('quests',QUESTS),('npcs',NPCS),('rooms',ROOMS)
+    ):
+        names={}
+        for object_id,obj in table.items():
+            name=str(obj.get('name') or '').strip()
+            if not name:
+                continue
+            key=name.casefold()
+            names.setdefault(key,[]).append(object_id)
+        for key,object_ids in names.items():
+            if len(object_ids)>1:
+                err('duplicate_display_name',registry_name,key,tuple(object_ids))
+
+    # 3) Rooms and exits.
+    dynamic_prefixes=(
+        'prof_','mine_floor_','crypt_floor_','astral_floor_','mythic_crypt_floor_',
+        'mythic_astral_floor_','giant_fortress_','v0130_frontier_','v018_endless_',
+        'v020_mega_'
+    )
+    for rid,room in ROOMS.items():
+        if not str(room.get('name') or '').strip(): err('room_missing_name',rid)
+        for direction,target in (room.get('exits') or {}).items():
+            if target not in ROOMS and not str(target).startswith(dynamic_prefixes):
+                err('broken_exit',rid,direction,target)
+
+    # 4) NPCs and shops.
+    for nid,npc in NPCS.items():
+        if not str(npc.get('name') or '').strip(): err('npc_missing_name',nid)
+        room=npc.get('room')
+        if room and room not in ROOMS: err('npc_missing_room',nid,room)
+        for key in ('quest','specialist_quest'):
+            qid=npc.get(key)
+            if qid and qid not in QUESTS: err('npc_missing_quest',nid,key,qid)
+        for qid in tuple(npc.get('quest_chain') or ()) + tuple(npc.get('specialist_quests') or ()):
+            if qid not in QUESTS: err('npc_missing_quest',nid,'chain',qid)
+    for shop_id,offers in SHOPS.items():
+        for iid in offers or ():
+            if iid not in ITEMS: err('shop_missing_item',shop_id,iid)
+    for room_id,offers in CLASS_SHOP_ITEMS_BY_ROOM.items():
+        if room_id not in ROOMS: err('class_shop_missing_room',room_id)
+        for iid in offers or ():
+            if iid not in ITEMS: err('class_shop_missing_item',room_id,iid)
+
+    # 5) Item identity and player-facing names.
+    technical_name_prefixes=('craftq_','item_','eq_','loot_')
+    for iid,it in ITEMS.items():
+        name=str(it.get('name') or '').strip()
+        if not name: err('item_missing_name',iid)
+        if name==str(iid) or name.lower().startswith(technical_name_prefixes):
+            err('technical_item_name',iid,name)
+        if 'price' in it:
+            try:
+                if int(it.get('price') or 0) < 0: err('negative_price',iid,it.get('price'))
+            except Exception: err('invalid_price',iid,it.get('price'))
+
+    # 6) Numeric item descriptions must equal post-generator runtime values.
+    numeric_claims=0
+    stat_patterns={
+        'strength':r'Siła','dexterity':r'Zręczność','constitution':r'Kondycja',
+        'intelligence':r'Inteligencja','willpower':r'Siła Woli','charisma':r'Charyzma'
+    }
+    for iid,it in ITEMS.items():
+        desc=str(it.get('desc') or '')
+        m=re.search(r'(?i)Obrona\s*\+\s*(-?\d+(?:[.,]\d+)?)',desc)
+        if m:
+            numeric_claims+=1
+            stated=float(m.group(1).replace(',','.')); actual=float(it.get('defense',0) or 0)
+            if abs(stated-actual)>1e-6: err('stale_item_defense_desc',iid,stated,actual)
+        stats=dict(it.get('stats') or {}); affix=str(it.get('affix') or ''); affix_amount=it.get('affix_amount')
+        for key,label in stat_patterns.items():
+            for m in re.finditer(rf'(?i){label}\s*\+\s*(-?\d+(?:[.,]\d+)?)',desc):
+                actual=stats.get(key)
+                if actual is None and affix==key: actual=affix_amount
+                if actual is None: continue
+                numeric_claims+=1
+                stated=float(m.group(1).replace(',','.'))
+                if abs(stated-float(actual))>1e-6: err('stale_item_stat_desc',iid,key,stated,actual)
+    metrics['numeric_item_claims_checked']=numeric_claims
+
+    # 7) Mob drops.
+    for mid,mob in MOB_TEMPLATES.items():
+        if not str(mob.get('name') or '').strip(): err('mob_missing_name',mid)
+        drops=mob.get('drops') or mob.get('loot') or {}
+        if isinstance(drops,dict): iterable=drops.keys()
+        else: iterable=drops
+        for entry in iterable:
+            iid=(entry.get('item') or entry.get('id')) if isinstance(entry,dict) else entry
+            if iid and iid not in ITEMS: err('mob_missing_drop_item',mid,iid)
+
+    # 8) Recipes across every recipe registry.
+    recipe_tables={
+        'craft':CRAFT_RECIPES,'cook':COOK_RECIPES,'alchemy':ALCHEMY_RECIPES,
+        'jewelcraft':JEWELCRAFT_RECIPES,'profession':V03053_CRAFT_RECIPES,
+    }
+    if 'TECH_CRAFT_RECIPES' in globals(): recipe_tables['tech']=TECH_CRAFT_RECIPES
+    for table_name,table in recipe_tables.items():
+        for rid,recipe in table.items():
+            for iid,qty in (recipe.get('ingredients') or {}).items():
+                if iid not in ITEMS: err('recipe_missing_ingredient',table_name,rid,iid)
+                try:
+                    if int(qty)<=0: err('recipe_bad_quantity',table_name,rid,iid,qty)
+                except Exception: err('recipe_bad_quantity',table_name,rid,iid,qty)
+            output=recipe.get('output')
+            if output and output not in ITEMS: err('recipe_missing_output',table_name,rid,output)
+    metrics['recipes_total']=sum(len(x) for x in recipe_tables.values())
+
+    # 9) Quests: definitions, items, rewards and supported kinds.
+    supported_kinds={
+        'collect','collect_category','collect_distinct_category','collect_resource',
+        'collect_resource_set','kill','deliver_npc','talk_class_teacher','craft_set',
+        'explore_frontier','discover_secret','mini_dungeon','world_event',
+        'legendary_rare','world_boss'
+    }
+    quest_kinds=set()
+    for qid,q in QUESTS.items():
+        if not str(q.get('name') or '').strip(): err('quest_missing_name',qid)
+        kind=q.get('kind'); quest_kinds.add(kind)
+        if kind not in supported_kinds: err('unsupported_quest_kind',qid,kind)
+        try:
+            if int(q.get('needed',1) or 0) < 0: err('quest_bad_needed',qid,q.get('needed'))
+        except Exception: err('quest_bad_needed',qid,q.get('needed'))
+        for field in ('item','item_id','required_item'):
+            iid=q.get(field)
+            if iid and isinstance(iid,str) and iid not in ITEMS: err('quest_missing_item',qid,field,iid)
+        for field in ('accept_items','reward_items','required_items'):
+            values=q.get(field) or {}
+            if isinstance(values,dict):
+                for iid,qty in values.items():
+                    if iid not in ITEMS: err('quest_missing_item',qid,field,iid)
+                    try:
+                        if int(qty)<=0: err('quest_bad_item_qty',qid,field,iid,qty)
+                    except Exception: err('quest_bad_item_qty',qid,field,iid,qty)
+        if kind=='craft_set':
+            req=q.get('craft_requirements') or q.get('requirements') or {}
+            for iid,qty in req.items():
+                if iid not in ITEMS: err('craft_set_missing_item',qid,iid)
+                try:
+                    if int(qty)<=0: err('craft_set_bad_qty',qid,iid,qty)
+                except Exception: err('craft_set_bad_qty',qid,iid,qty)
+    metrics['quest_kinds']=tuple(sorted(str(x) for x in quest_kinds))
+
+    # 9b) Collections, museum, sets, boss codex and achievements.
+    if 'COLLECTION_V2_SET_GROUPS' in globals():
+        for group_id,item_ids in COLLECTION_V2_SET_GROUPS.items():
+            for iid in item_ids:
+                if iid not in ITEMS: err('collection_set_missing_item',group_id,iid)
+    if 'V0260_SET_PIECE_GROUPS' in globals():
+        for group_id,slots in V0260_SET_PIECE_GROUPS.items():
+            for slot,item_ids in slots.items():
+                for iid in item_ids:
+                    if iid not in ITEMS: err('museum_set_missing_item',group_id,slot,iid)
+    if 'LEGENDARY_CLASS_SET_ITEMS_BY_CLASS_TIER' in globals():
+        for cname,tiers in LEGENDARY_CLASS_SET_ITEMS_BY_CLASS_TIER.items():
+            if cname not in CLASS_SKILLS: err('legendary_set_missing_class',cname)
+            for tier,item_ids in tiers.items():
+                for iid in item_ids:
+                    if iid not in ITEMS: err('legendary_set_missing_item',cname,tier,iid)
+    for table_name in ('V017_BIOME_SET_ITEMS','V021_MYTHIC_SET_ITEMS'):
+        table=globals().get(table_name,{})
+        for group_id,item_ids in table.items():
+            for iid in item_ids:
+                if iid not in ITEMS: err('set_missing_item',table_name,group_id,iid)
+    if 'NAMED_LOOT_CATALOG' in globals():
+        for iid in NAMED_LOOT_CATALOG:
+            if iid not in ITEMS: err('named_loot_missing_item',iid)
+    if 'WORLD_BOSS_UNIQUES' in globals():
+        for iid in WORLD_BOSS_UNIQUES:
+            if iid not in ITEMS: err('world_unique_missing_item',iid)
+    if 'BOSS_COLLECTION_CATALOG' in globals():
+        for mid in BOSS_COLLECTION_CATALOG:
+            if mid not in MOB_TEMPLATES: err('boss_catalog_missing_mob',mid)
+    if 'REGION_COLLECTION_ENTRIES' in globals():
+        for region,entry in REGION_COLLECTION_ENTRIES.items():
+            for mid in entry.get('bosses',()):
+                if mid not in MOB_TEMPLATES: err('region_collection_missing_boss',region,mid)
+    if 'CLASS_EQUIPMENT_SETS' in globals():
+        for cname,spec in CLASS_EQUIPMENT_SETS.items():
+            if cname not in CLASS_SKILLS: err('class_set_unknown_class',cname)
+            room=spec.get('room')
+            if room and room not in ROOMS: err('class_set_missing_room',cname,room)
+    if 'ACHIEVEMENT_TITLE_REWARDS' in globals() and 'ACHIEVEMENT_TRACKS' in globals():
+        for (track,tier),title in ACHIEVEMENT_TITLE_REWARDS.items():
+            if track not in ACHIEVEMENT_TRACKS:
+                err('achievement_title_missing_track',track,tier,title); continue
+            valid_tiers={x[1] for x in ACHIEVEMENT_TRACKS[track].get('tiers',())}
+            if tier not in valid_tiers: err('achievement_title_missing_tier',track,tier,title)
+
+    # 9c) Professions, tools and progression tables.
+    if len(PROFESSION_RANK_NAMES)!=12: err('profession_count',len(PROFESSION_RANK_NAMES))
+    if len(TOOL_TIER_THRESHOLDS)!=40: err('tool_tier_count',len(TOOL_TIER_THRESHOLDS))
+
+    # 9d) Deep quest target/dependency validation for every quest.
+    valid_kill_targets=set(MOB_TEMPLATES)
+    for _mid,_mob in MOB_TEMPLATES.items():
+        for _field in ('quest_target','quest_targets'):
+            _value=_mob.get(_field)
+            if isinstance(_value,str): valid_kill_targets.add(_value)
+            elif isinstance(_value,(list,tuple,set)): valid_kill_targets.update(map(str,_value))
+    valid_collect_categories={'fish','fish_river','ore','wood','herb'}
+    npc_display_names={str(_npc.get('name') or '').casefold() for _npc in NPCS.values()}
+    for qid,q in QUESTS.items():
+        kind=q.get('kind'); target=q.get('target')
+        if kind in ('collect','collect_resource') and target not in ITEMS:
+            err('quest_bad_target_item',qid,target)
+        if kind in ('collect_category','collect_distinct_category') and target not in valid_collect_categories:
+            err('quest_bad_category',qid,target)
+        if kind=='kill' and target not in valid_kill_targets:
+            dynamic_ok=False
+            if isinstance(target,str) and target.startswith('crypt_boss_'):
+                try:
+                    floor=int(target.rsplit('_',1)[1])
+                    dynamic_ok=210<=floor<=400 and floor%10==0
+                except Exception:
+                    dynamic_ok=False
+            if not dynamic_ok: err('quest_bad_kill_target',qid,target)
+        if kind=='deliver_npc' and q.get('target_npc') not in NPCS:
+            err('quest_bad_target_npc',qid,q.get('target_npc'))
+        if q.get('quest_item') and q.get('quest_item') not in ITEMS:
+            err('quest_bad_quest_item',qid,q.get('quest_item'))
+        if q.get('requires_quest') and q.get('requires_quest') not in QUESTS:
+            err('quest_bad_prerequisite',qid,q.get('requires_quest'))
+        if q.get('required_profession') and q.get('required_profession') not in PROFESSION_RANK_NAMES:
+            err('quest_bad_required_profession',qid,q.get('required_profession'))
+        if q.get('reward_profession') and q.get('reward_profession') not in PROFESSION_RANK_NAMES:
+            err('quest_bad_reward_profession',qid,q.get('reward_profession'))
+        if q.get('reward_faction_v016') and q.get('reward_faction_v016') not in V016_FACTIONS:
+            err('quest_bad_faction',qid,q.get('reward_faction_v016'))
+        if q.get('repeatable') and int(q.get('repeat_cooldown',0) or 0)<=0:
+            err('quest_bad_repeat_cooldown',qid,q.get('repeat_cooldown'))
+        if kind=='collect_resource_set':
+            req=dict(q.get('resource_targets') or {})
+            if sum(int(v) for v in req.values()) != int(q.get('needed',0) or 0):
+                err('quest_resource_set_needed_mismatch',qid,q.get('needed'),req)
+            for iid,qty in req.items():
+                if iid not in ITEMS: err('quest_resource_set_missing_item',qid,iid)
+                if int(qty)<=0: err('quest_resource_set_bad_qty',qid,iid,qty)
+        if kind=='craft_set':
+            targets=tuple(q.get('targets') or ())
+            if len(targets) != int(q.get('needed',0) or 0):
+                err('quest_craft_set_needed_mismatch',qid,q.get('needed'),len(targets))
+            for iid in targets:
+                if iid not in ITEMS: err('quest_craft_set_missing_item',qid,iid)
+        giver=str(q.get('giver') or '').strip()
+        if giver and giver.casefold() not in npc_display_names and giver!='Tablica Godzinnych Zleceń':
+            err('quest_unknown_giver',qid,giver)
+
+    # Prerequisite graph must be acyclic.
+    _visited=set(); _stack=set()
+    def _visit_quest_dep_v0336(qid):
+        if qid in _stack:
+            err('quest_prerequisite_cycle',qid); return
+        if qid in _visited: return
+        _visited.add(qid); _stack.add(qid)
+        dep=QUESTS[qid].get('requires_quest')
+        if dep in QUESTS: _visit_quest_dep_v0336(dep)
+        _stack.remove(qid)
+    for _qid in QUESTS: _visit_quest_dep_v0336(_qid)
+
+    # 10) Skills/spells: no duplicate display names, no numeric disambiguators.
+    seen_skill_names={}; skill_count=0
+    for cname,rows in CLASS_SKILLS.items():
+        for skill in rows:
+            skill_count+=1
+            name=str(skill.get('name') or '').strip()
+            if not name: err('skill_missing_name',cname,skill.get('id'))
+            key=normalize_lookup_text(name)
+            seen_skill_names.setdefault(key,[]).append((cname,skill.get('id'),name))
+            if re.search(r'\d',name): err('skill_numeric_name',cname,skill.get('id'),name)
+            try:
+                unlock=int(skill.get('unlock',0) or 0)
+                if not 1<=unlock<=400: err('skill_bad_unlock',cname,skill.get('id'),unlock)
+            except Exception: err('skill_bad_unlock',cname,skill.get('id'),skill.get('unlock'))
+    for key,rows in seen_skill_names.items():
+        if len(rows)>1: err('duplicate_skill_name',key,rows)
+    metrics['skills_total']=skill_count
+
+    # 11) HELP aliases and nonempty topics.
+    virtual={'tematy','komendy','wszystko','kategorie'}
+    for alias,target in HELP_TOPIC_ALIASES.items():
+        if target not in HELP_TOPICS and target not in virtual: err('help_alias_missing_target',alias,target)
+    for topic,lines in HELP_TOPICS.items():
+        if not lines: err('empty_help_topic',topic)
+
+    # 12) Command loop self-method references must exist on assembled Session.
+    command_source=(_ROOT/'player/session_mixins/command_loop.py').read_text(encoding='utf-8')
+    called=set(re.findall(r'\bself\.([A-Za-z_]\w*)\s*\(',command_source))
+    missing_methods=sorted(name for name in called if not hasattr(Session,name))
+    for name in missing_methods: err('missing_command_method',name)
+    metrics['command_methods_checked']=len(called)
+
+    return {
+        'version':'0.33.6','error_count':len(errors),'warning_count':len(warnings),
+        'errors':errors,'warnings':warnings,'metrics':metrics,
+        'description_sync':dict(ITEM_DESCRIPTION_SYNC_V0336),
+    }
+
+FULL_GAME_PREDEPLOY_AUDIT_V0336=full_game_predeploy_audit_v0336()
+if FULL_GAME_PREDEPLOY_AUDIT_V0336['error_count']:
+    raise RuntimeError(
+        'Full Game Pre-Deploy Audit v0.33.6 failed: '+
+        '; '.join(map(str,FULL_GAME_PREDEPLOY_AUDIT_V0336['errors'][:100]))
+    )

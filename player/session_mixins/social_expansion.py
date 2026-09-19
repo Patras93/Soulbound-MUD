@@ -225,7 +225,8 @@ class SessionSocialExpansionMixin:
             import json as _json
             box=_json.loads(row['storage_json'] or '{}'); await self.send("SKRZYNIA DOMOWA:")
             if not box: await self.send("Pusta."); return
-            for iid,qty in sorted(box.items(), key=lambda kv: ITEMS.get(kv[0],{}).get('name',kv[0]).lower()): await self.send(f"{ITEMS.get(iid,{}).get('name',iid)}: {qty}.")
+            for iid,qty in sorted(box.items(), key=lambda kv: normalize_lookup_text(player_item_display_name_v0335(kv[0]))):
+                await self.send(f"{player_item_display_name_v0335(iid)}: {qty}.")
             return
         if action in ('trophies','trofea'):
             rows=conn.execute("SELECT name,tier FROM achievements WHERE account_id=? ORDER BY unlocked_at DESC LIMIT 20",(self.account_id,)).fetchall(); await self.send("TROFEA DOMOWE:")
@@ -239,7 +240,7 @@ class SessionSocialExpansionMixin:
             if len(seg)==2 and seg[1].isdigit(): tail=seg[0]; qty=max(1,int(seg[1]))
             norm=normalize_lookup_text(tail); candidates=[]
             for inv in self.server.db.inventory(self.account_id):
-                iid=str(inv['item_id']); name=ITEMS.get(iid,{}).get('name',iid)
+                iid=str(inv['item_id']); name=player_item_display_name_v0335(iid)
                 if normalize_lookup_text(name)==norm or normalize_lookup_text(iid)==norm: candidates.append((iid,name,int(inv['quantity'])))
             import json as _json
             box=_json.loads(row['storage_json'] or '{}')
@@ -252,12 +253,12 @@ class SessionSocialExpansionMixin:
             # take: match storage by id or visible name
             found=None
             for iid,have in box.items():
-                if normalize_lookup_text(iid)==norm or normalize_lookup_text(ITEMS.get(iid,{}).get('name',iid))==norm: found=(iid,int(have)); break
+                if normalize_lookup_text(iid)==norm or normalize_lookup_text(player_item_display_name_v0335(iid))==norm: found=(iid,int(have)); break
             if not found: await self.send("Nie ma tego w skrzyni."); return
             iid,have=found; qty=min(qty,have); self.server.db.add_item(self.account_id,iid,qty); left=have-qty
             if left>0: box[iid]=left
             else: box.pop(iid,None)
-            conn.execute("UPDATE player_housing_v03051 SET storage_json=? WHERE account_id=?",(_json.dumps(box,ensure_ascii=False),self.account_id)); conn.commit(); await self.send(f"Ze skrzyni: {ITEMS.get(iid,{}).get('name',iid)} x{qty}."); return
+            conn.execute("UPDATE player_housing_v03051 SET storage_json=? WHERE account_id=?",(_json.dumps(box,ensure_ascii=False),self.account_id)); conn.commit(); await self.send(f"Ze skrzyni: {player_item_display_name_v0335(iid)} x{qty}."); return
         await self.send("Dom: status, name <tekst>, decor <tekst>, upgrade, chest, store, take, trophies.")
 
     def record_social_record_v03051(self,key,value,text=''):
@@ -279,7 +280,7 @@ class SessionSocialExpansionMixin:
         await self.send(f"INSPECT {target.character.name}:")
         eq=target.equipped_item_rows()
         for r in eq:
-            item=ITEMS.get(r['item_id'],{}); await self.send(f"{r['slot']}: {item.get('name',r['item_id'])}.")
+            await self.send(f"{r['slot']}: {player_item_display_name_v0335(r['item_id'])}.")
         if not eq: await self.send("Brak założonego EQ.")
 
     async def inspect_privacy_v03051(self,args=''):

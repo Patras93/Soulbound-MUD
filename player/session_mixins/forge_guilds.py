@@ -58,7 +58,7 @@ class SessionForgeGuildsMixin:
                     salvage_id = V0925_SALVAGE_MATERIALS[material][0]
                     level = max(1, min(400, int(item.get("required_character_level", item.get("required_mastery", 1)) or 1)))
                     await self.send(
-                        f"{index}. {item.get('name', item_id)}. Wolne {free_qty}. "
+                        f"{index}. {player_item_display_name_v0335(item_id)}. Wolne {free_qty}. "
                         f"Level {level}. Odzysk: {ITEMS[salvage_id]['name']}."
                     )
                 return
@@ -160,7 +160,7 @@ class SessionForgeGuildsMixin:
                 self.server.db.clan_metric_add(int(clan["clan_id"]), "salvage", 1)
                 self.server.db.clan_log(
                     int(clan["clan_id"]), self.account_id,
-                    f"{self.character.name} rozłożył EQ: {item.get('name', item_id)}."
+                    f"{self.character.name} rozłożył EQ: {player_item_display_name_v0335(item_id)}."
                 )
 
             extras = []
@@ -369,7 +369,7 @@ class SessionForgeGuildsMixin:
             clan=self.server.db.clan_membership(self.account_id)
             if clan:
                 self.server.db.clan_metric_add(int(clan["clan_id"]),"reforge",1)
-                self.server.db.clan_log(int(clan["clan_id"]),self.account_id,f"{self.character.name} przekuł EQ: {item.get('name',item_id)}.")
+                self.server.db.clan_log(int(clan["clan_id"]),self.account_id,f"{self.character.name} przekuł EQ: {player_item_display_name_v0335(item_id)}.")
             await self.send(f"Przekucie zakończone: {item['name']}. Nowy bonus: {V0925_AFFIX_PL.get(new_affix,new_affix)} +{amount}. Wymóg Biegłości pozostaje {mastery}.")
 
     async def handle_runes_v0925(self, args=""):

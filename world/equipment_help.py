@@ -554,10 +554,14 @@ def densify_static_dungeon_spawns():
                 suffix = f", poziom {floor_text}" if floor_text else ""
                 if "Krypta" in zone:
                     suffix = f", piętro {floor_text}" if floor_text else ""
-                variant["name"] = f"{chosen}{suffix}"
+                base_name = re.sub(r",\s*(?:poziom|piętro)\s+\d+.*$", "", str(base.get("name", "Przeciwnik")), flags=re.I).strip()
+                if base_name.casefold().strip() == str(chosen).casefold().strip():
+                    variant["name"] = f"{chosen} — patrolowy łowca{suffix}"
+                else:
+                    variant["name"] = f"{chosen} — {base_name}{suffix}"
                 distinct_archetypes.add(str(chosen).casefold().strip())
             else:
-                variant["name"] = f"{base.get('name', 'Przeciwnik')} — patrol {n + 2}"
+                variant["name"] = f"{base.get('name', 'Przeciwnik')} — patrolowy łowca"
             # Lekko różny profil walki, bez zwiększania ekonomii za pojedyncze zabicie.
             if n % 2 == 0:
                 variant["damage_type"] = "magic" if base.get("damage_type") == "physical" else "physical"

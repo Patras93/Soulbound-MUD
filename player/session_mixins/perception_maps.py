@@ -122,7 +122,7 @@ class SessionPerceptionMapsMixin:
                 item = entry["item"]
                 normalized_id = self.normalize_description_query(item_id)
                 normalized_name = self.normalize_description_query(
-                    item.get("name", item_id)
+                    player_item_display_name_v0335(item_id)
                 )
                 result = (item_id, entry)
 

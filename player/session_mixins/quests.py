@@ -1154,7 +1154,7 @@ class SessionQuestsMixin:
             if generated_currency:
                 reward_parts.append(currency_reading_text(generated_currency,0,0))
             for item_id, qty in (quest.get("reward_items") or {}).items():
-                item_name = ITEMS.get(item_id, {}).get("name", item_id)
+                item_name = player_item_display_name_v0335(item_id)
                 reward_parts.append(f"{item_name} x{qty}")
             if quest.get("reward_profession_xp"):
                 reward_parts.append(
@@ -2095,7 +2095,7 @@ class SessionQuestsMixin:
                 item = ITEMS.get(item_id, {})
                 if not item_id or not target_id:
                     continue
-                item_name = str(item.get("name", item_id))
+                item_name = player_item_display_name_v0335(item_id)
                 searchable = normalize_lookup_text(
                     " ".join((item_name, quest.get("name", ""), item_id))
                 )

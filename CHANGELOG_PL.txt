@@ -1,3 +1,25 @@
+v0.33.6 — Full Game 100% Audit & Runtime Text Integrity
+- Wykonano pełny pre-deploy audit całej zarejestrowanej zawartości runtime: 1146 lokacji na czystej bazie, 53085 itemów, 14487 mobów, 319 questów, 106 NPC, 29 sklepów, 398 receptur, 1722 skille/spelle, 324+ tematów HELP/aliasów ładowanych warstwowo oraz 816 aliasów komend.
+- Wszystkie 319 questów przechodzi głęboki audit targetów, NPC, itemów, profesji, frakcji, cooldownów, `needed`, craft/resource setów i grafu `requires_quest`; 0 błędów i 0 cykli zależności.
+- Naprawiono 23711 opisów itemów, których stare liczby nie zgadzały się z faktycznym balansem Generator Core. Sprawdzono 122807 liczbowych deklaracji opisów; po synchronizacji 0 rozbieżności.
+- Usunięto 13 grup zduplikowanych nazw mobów oraz 85 grup powtarzających się nazw proceduralnych lokacji. Finalnie itemy, moby, questy, NPC i lokacje mają 0 zduplikowanych nazw wyświetlanych.
+- Usunięto pozostałe fallbacki mogące wypuścić techniczne `item_id` do NVDA w inspect, codexie, dropach, zdejmowaniu EQ i innych listach.
+- Dodano twardy `FULL_GAME_PREDEPLOY_AUDIT_V0336`, który blokuje start przy zerwanych referencjach świata, sklepów, questów, receptur, kolekcji, setów, boss codexu, achievementów, HELP, command loop lub przy niespójnych opisach/liczbach/nazwach.
+- Fresh DB i upgrade bazy v0.33.5 -> v0.33.6 przechodzą start serwera; SQLite `integrity_check` = ok. Brak wipe i brak zmiany danych postaci.
+
+v0.33.5 — Advanced Pre-Deploy Stability Audit
+- Wykonano zaawansowany audit całego runtime przed deployem: UTF-8, historyczne release-gate'y, 249 wywołań metod z command loop, 1722 skille/spelle, dynamiczne Crafting Quality i surowe ID w UI.
+- Naprawiono rekonstrukcję craftq_* przechowywanych wyłącznie w skrzyni domu (storage_json); po restarcie nadal mają normalne nazwy.
+- Skrzynia domu oraz główne listy inventory/EQ nie wypuszczają technicznego item_id jako nazwy dla gracza.
+- Audit nazw skilli uznaje legalny typ passive; wynik końcowy: 1722 skille, 0 błędów, 0 ostrzeżeń.
+- Wszystkie pliki tekstowe runtime przechodzą czysty UTF-8; brak znaków zastępczych/mojibake.
+- Wszystkie aktywne historyczne audyty mają 0 błędów. Jedno informacyjne ostrzeżenie Full Game Audit dotyczy 31 dynamicznych wyjść walidowanych przez generatory runtime.
+- Brak zmian balansu, progresji, questów i danych postaci; brak wipe.
+
+v0.33.4 — Naprawa komendy przetop
+- Samo `przetop` nie zgłasza już błędu „Nie rozpoznaję metalu do przetopienia”; pokazuje składnię i listę dostępnych materiałów.
+- Plik obsługi przetopu zapisany jawnie jako UTF-8, aby polskie znaki w komunikatach nie były uszkadzane.
+
 v0.33.3 — Crafting Quality Quest Turn-in Fix
 - Naprawiono questy craftingowe typu collect: warianty jakości `craftq_*` są traktowane jako ich bazowy przedmiot przy wyświetlaniu postępu i oddawaniu questa.
 - Zlecenie Górskiego Kowala na 3 żelazne hełmy nie spada już do 0/3 tylko dlatego, że wykute hełmy mają jakość Zwykły/Dobry/Doskonały itd.
