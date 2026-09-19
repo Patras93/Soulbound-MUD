@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Soulbound v0.31.12 — Machine Salvage 2.0 + Tech Crafting + Runes/Sockets 2.0."""
+"""Soulbound v0.31.13 — Machine Salvage 2.0 + Tech Crafting + Runes/Sockets 2.0."""
 
 TECH_COMPONENT_IDS = {
     "machine_servo", "machine_plating", "machine_circuit", "machine_sensor",

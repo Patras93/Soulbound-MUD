@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #!/usr/bin/env python3
-"""Soulbound v0.31.12 Tech Crafting & Socket Expansion."""
+"""Soulbound v0.33.0 Party Progress, Recap & Tech Set Milestone."""
 from pathlib import Path
 
 _ROOT = Path(__file__).resolve().parent
@@ -22,7 +22,11 @@ _RUNTIME_MODULES = [
     "world/dynamic_content.py",
     "network/protocol_gameplay_utils.py",
     "network/tech_runes_v03111.py",
+    "systems/crafting_expansion_v03114.py",
+    "systems/milestone_v0320.py",
     "storage/database.py",
+    "storage/crafting_expansion_v03114.py",
+    "storage/milestone_v0320.py",
     "player/character.py",
     "world/generation_systems.py",
     "world/runtime_progression.py",
@@ -46,6 +50,8 @@ _RUNTIME_MODULES = [
     "player/session_mixins/progression_accessibility_v03052.py",
     "player/session_mixins/professions_v03053.py",
     "player/session_mixins/tech_crafting_v03111.py",
+    "player/session_mixins/crafting_expansion_v03114.py",
+    "player/session_mixins/milestone_v0320.py",
     "player/session_mixins/command_loop.py",
     "player/session.py",
     "server/mud_server.py",
@@ -53,6 +59,7 @@ _RUNTIME_MODULES = [
     "admin/audits.py",
     "systems/economy_audit_v03060.py",
     "systems/full_systems_audit_v03062.py",
+    "admin/crafting_audit_v03114.py",
 ]
 
 _missing = [name for name in _RUNTIME_MODULES if not (_ROOT / name).is_file()]

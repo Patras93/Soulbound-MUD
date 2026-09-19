@@ -618,12 +618,27 @@ for _mat_key, (_iid, _iname) in V0925_SALVAGE_MATERIALS.items():
         "craftbox_category": "salvage",
         "desc": "Materiał odzyskany przez rozkładanie niepotrzebnego EQ u Haldora.",
     }
-# v0.31.12: żelazny salvage ma także praktyczne zastosowanie w Kuźni.
+# v0.31.13: materiały salvage mają także praktyczne zastosowanie w Kuźni.
 if "salvage_iron_scrap" in ITEMS:
     ITEMS["salvage_iron_scrap"]["desc"] = (
         "Odłamek żelaza odzyskany przez rozkładanie EQ u Haldora. "
         "Dwa odłamki można przetopić w Kuźni w 1 Żelazną sztabkę."
     )
+_V03113_SALVAGE_SMELT_OUTPUTS = {
+    "salvage_steel_scrap": "Sztabkę Stali",
+    "salvage_cobalt_fragment": "Kobaltową sztabkę",
+    "salvage_runic_fragment": "Runiczną sztabkę",
+    "salvage_dragonsteel_fragment": "Sztabkę Smoczej Stali",
+    "salvage_astral_fragment": "Astralną sztabkę",
+    "salvage_void_fragment": "Sztabkę Pustki",
+    "salvage_eternium_fragment": "Sztabkę Eternium",
+}
+for _sid, _out_name in _V03113_SALVAGE_SMELT_OUTPUTS.items():
+    if _sid in ITEMS:
+        ITEMS[_sid]["desc"] = (
+            ITEMS[_sid].get("desc", "").rstrip(". ")
+            + f". Dwa takie materiały można przetopić w Kuźni w 1 {_out_name}."
+        )
 
 ITEMS["reforge_essence"] = {
     "name": "Esencja Przekucia", "type": "craft_material", "price": None,

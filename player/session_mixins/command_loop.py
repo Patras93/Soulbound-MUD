@@ -151,9 +151,9 @@ class SessionCommandLoopMixin:
                 elif command == "completion":
                     await self.completion_v03052()
                 elif command == "deathrecap":
-                    await self.death_recap_v03052()
+                    await self.recap2_v0320(death=True)
                 elif command == "combatrecap":
-                    await self.combat_recap_v03052()
+                    await self.recap2_v0320(death=False)
                 elif command == "loothistory":
                     await self.loot_history_v03052(args)
                 elif command == "nvda":
@@ -436,7 +436,7 @@ class SessionCommandLoopMixin:
                 elif command == "equpgrade":
                     await self.upgrade_equipment_v03042(args)
                 elif command == "runes":
-                    await self.handle_runes_v0925(args)
+                    await self.handle_runes_v03114(args)
                 elif command == "socketrune":
                     await self.socket_rune_v0925(args)
                 elif command == "playerguild":
@@ -531,9 +531,25 @@ class SessionCommandLoopMixin:
                     if not args.strip():
                         await self.send("Użycie: craft <receptura>. Wpisz receptury.")
                     else:
-                        await self.craft_item(args)
+                        await self.craft_item_v03114(args)
                 elif command == "smelt":
-                    await self.smelt_item(args)
+                    await self.smelt_item_v03114(args)
+                elif command == "materialconversion":
+                    await self.material_conversion_v03114()
+                elif command == "refine":
+                    await self.refine_v03114(args)
+                elif command == "socketcraft":
+                    await self.socket_craft_v03114(args)
+                elif command == "vmaxupgrade":
+                    await self.vmax_upgrade_v03114(args)
+                elif command == "techsets":
+                    await self.show_tech_sets_v03114()
+                elif command == "techupgrade":
+                    await self.tech_set_upgrade_v0320(args)
+                elif command == "partyquest":
+                    await self.party_quest_status_v0320()
+                elif command == "dungeonbonus":
+                    await self.dungeon_party_bonus_status_v0320()
                 elif command == "blacksmithinginfo":
                     await self.show_blacksmithing_info()
                 elif command == "jewelcraftinginfo":

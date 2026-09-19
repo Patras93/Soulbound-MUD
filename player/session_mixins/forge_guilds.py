@@ -101,6 +101,14 @@ class SessionForgeGuildsMixin:
             total_before = int(self.server.db.item_qty(self.account_id, item_id) or 0)
             last_copy = total_before <= 1
             rune_rows = list(self.server.db.equipment_runes_v0925(self.account_id, item_id)) if last_copy else []
+            _gem_rows=[]
+            if last_copy:
+                try:
+                    _slot=str(item.get("slot") or "")
+                    if _slot:
+                        _gem_rows=list(self.server.db.socketed_gems(self.account_id,_slot,item_id))
+                except Exception:
+                    _gem_rows=[]
             reforged = self.server.db.equipment_reforge(self.account_id, item_id) if last_copy else None
 
             if not self.server.db.remove_item(self.account_id, item_id, 1):
@@ -122,12 +130,29 @@ class SessionForgeGuildsMixin:
                 self.server.db.add_storage_item(self.account_id, "craftbox", "rune_dust", dust)
 
             returned_runes = []
+            returned_gems = []
+            lost_gems = []
             if last_copy:
                 for row in rune_rows:
                     rune_id = str(row["rune_id"])
                     if rune_id in ITEMS:
                         self.server.db.add_storage_item(self.account_id, "craftbox", rune_id, 1)
                         returned_runes.append(rune_id)
+                # Salvage 4.0: runy są zwracane zawsze, a odzysk klejnotu zależy od Kowalstwa.
+                try:
+                    _prow=self.server.db.profession(self.account_id,"Kowalstwo")
+                    _smith=max(1,min(400,int(_prow["level"])))
+                except Exception:
+                    _smith=1
+                _gem_chance=min(0.85,0.25+_smith*0.0015)
+                for _gr in _gem_rows:
+                    _gid=str(_gr["gem_id"])
+                    if random.random() <= _gem_chance and _gid in ITEMS:
+                        self.server.db.add_storage_item(self.account_id,"craftbox",_gid,1); returned_gems.append(_gid)
+                    else:
+                        lost_gems.append(_gid)
+                if _gem_rows:
+                    self.server.db.conn.execute("DELETE FROM equipment_gems WHERE account_id=? AND slot=? AND jewelry_item_id=?",(self.account_id,str(item.get("slot") or ""),item_id)); self.server.db.conn.commit()
                 self.server.db.clear_equipment_crafting_v0925(self.account_id, item_id)
 
             clan = self.server.db.clan_membership(self.account_id)
@@ -147,12 +172,25 @@ class SessionForgeGuildsMixin:
                 extras.append(
                     "zwrócone runy: " + ", ".join(ITEMS[r]["name"] for r in returned_runes)
                 )
+            if returned_gems:
+                extras.append("odzyskane klejnoty: "+", ".join(ITEMS[g]["name"] for g in returned_gems))
+            if lost_gems:
+                extras.append(f"utracone klejnoty: {len(lost_gems)}")
             extra_text = (", " + ", ".join(extras)) if extras else ""
             await self.send(
                 f"Haldor rozkłada: {item['name']}. Otrzymujesz "
                 f"{ITEMS[salvage_id]['name']} x{qty}{extra_text}. "
                 "Wszystko trafia do odpowiednich kategorii Szkatułki."
             )
+
+            # v0.31.15: salvage is a real Kowalstwo action, but it does not
+            # pretend that the crafting hammer was used.
+            salvage_prof_xp = max(8, 8 + level // 10 + rarity_bonus * 6)
+            messages, _prof_after, _tool_after = self.grant_profession_progress(
+                "Kowalstwo", salvage_prof_xp, "crafting", 0, tool_progress=False
+            )
+            for message in messages:
+                await self.send(message)
 
     def owned_equipment_upgrade_rows_v03042(self):
             rows = []
@@ -251,6 +289,15 @@ class SessionForgeGuildsMixin:
                 )
                 return
 
+            # v0.31.14 Forge 3.0: kamienie milowe +4/+7/+10 wymagają stopów rafinowanych.
+            forge3_id = None
+            if target >= 10: forge3_id = "eternium_alloy"
+            elif target >= 7: forge3_id = "astral_alloy"
+            elif target >= 4: forge3_id = "hardened_steel_ingot"
+            if forge3_id and self.available_recipe_item(forge3_id) < 1:
+                await self.send(f"Forge 3.0: ulepszenie +{target} wymaga także {ITEMS[forge3_id]['name']} x1. Użyj refine.")
+                return
+
             action_seconds = generator_core_v027.profession_action_seconds("crafting", smithing_level)
             await self.send(
                 f"Haldor rozpoczyna ulepszanie: {item['name']} +{current} -> +{target}. "
@@ -259,6 +306,11 @@ class SessionForgeGuildsMixin:
             await asyncio.sleep(action_seconds)
             if not self.server.db.remove_storage_item(self.account_id, "craftbox", salvage_id, cost):
                 await self.send("Nie udało się pobrać materiałów. Ulepszenie przerwane.")
+                return
+            if forge3_id and not self.consume_recipe_item(forge3_id,1):
+                # zwrot podstawowego materiału, jeżeli stop zniknął podczas oczekiwania
+                self.server.db.add_storage_item(self.account_id,"craftbox",salvage_id,cost)
+                await self.send("Brakuje stopu Refining 2.0. Ulepszenie przerwane, podstawowy materiał zwrócony.")
                 return
 
             self.server.db.set_equipment_upgrade_level_v03042(self.account_id, item_id, target)
@@ -370,7 +422,7 @@ class SessionForgeGuildsMixin:
             found=self.resolve_owned_equipment_v0925(parts[1],False)
             if not found:
                 await self.send("Nie rozpoznaję posiadanego EQ."); return
-            item_id,item=found; sockets=v0925_equipment_socket_count(item)
+            item_id,item=found; sockets=self.equipment_total_socket_capacity_v03114(item_id,item,"rune")
             if sockets <= 0:
                 await self.send("Gniazda runiczne ma endgame EQ wymagające co najmniej Biegłości 200."); return
             existing=list(self.server.db.equipment_runes_v0925(self.account_id,item_id))

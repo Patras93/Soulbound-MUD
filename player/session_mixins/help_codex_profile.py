@@ -153,7 +153,7 @@ class SessionHelpCodexProfileMixin:
                 "bag / sakwa - Sakwa górnicza; pokazuje ilość rud i szacowany zarobek",
                 "drewno / stos / woodpile - Stos drewna; pokazuje ilość drewna i szacowany zarobek",
                 "szkatułka / craftbox - Szkatułka Rzemieślnicza podzielona na kategorie: Kowalstwo, Jubilerstwo, Alchemia, Runy, Salvage i pozostałe",
-            "salvage / rozłóż <pełna nazwa EQ> - u Haldora rozkłada niezałożone EQ na materiały do Szkatułki",
+            "salvage / rozłóż <pełna nazwa EQ> - u Haldora rozkłada niezałożone EQ na materiały do Szkatułki i daje Kowalstwo XP; nie nabija użyć Młota Rzemieślniczego",
             "reforge / przekuj <pełna nazwa EQ> - u Haldora zmienia jeden affix EQ za Esencję Przekucia; próg Biegłości nie zmienia się",
             "runy - informacje, tworzenie i wyjmowanie run; runa <typ> <EQ> osadza runę w endgame EQ",
             "gildia - Gildia graczy: poziomy 1-100, Siedziba 1-10, budynki, kontrakty, bossowie, skarbiec, rangi, bank, trofea, osiągnięcia, log i czat",

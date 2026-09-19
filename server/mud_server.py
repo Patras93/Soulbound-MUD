@@ -203,12 +203,12 @@ class MudServer:
             if session is not exclude:
                 await session.send(message, history_category=history_category)
 
-    async def party_combat_broadcast(self, actor, message, detail="normal"):
-        """NVDA-friendly combat feed for party members in the same room.
+    async def party_nearby_broadcast(self, actor, message, exclude=None, detail=None, history_category=None):
+        """Send a party gameplay event only to online party members in actor's room.
 
-        The actor already receives the native combat message, so only other
-        online party members are notified. Each recipient keeps their own
-        combat-log filter (concise/normal/full).
+        Administrative party state messages continue to use party_broadcast.
+        This helper is for nearby gameplay feed: combat, healing, loot and other
+        events that should never travel across the map.
         """
         if (
             actor is None
@@ -218,18 +218,26 @@ class MudServer:
             or self.party_key_for_account(actor.account_id) is None
         ):
             return 0
+        excluded = set(exclude or [])
         sent = 0
         room_id = actor.character.room_id
         for session in self.party_sessions(actor.account_id, same_room=room_id):
-            if session is actor or session.closed or not session.character:
+            if session in excluded or session.closed or not session.character:
                 continue
-            await session.send(
-                str(message),
-                combat_detail=detail,
-                history_category="combat",
-            )
+            kwargs = {}
+            if detail is not None:
+                kwargs["combat_detail"] = detail
+            if history_category is not None:
+                kwargs["history_category"] = history_category
+            await session.send(str(message), **kwargs)
             sent += 1
         return sent
+
+    async def party_combat_broadcast(self, actor, message, detail="normal"):
+        """NVDA-friendly combat feed for other party members in the same room."""
+        return await self.party_nearby_broadcast(
+            actor, message, exclude=[actor], detail=detail, history_category="combat"
+        )
 
     async def auto_assist_party_combat(self, initiator, mob):
         """Automatycznie dołącza wolnych członków drużyny z tej samej lokacji."""

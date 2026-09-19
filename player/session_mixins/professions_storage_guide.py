@@ -51,7 +51,7 @@ class SessionProfessionsStorageGuideMixin:
                 )
             return result
 
-    def grant_profession_progress(self, profession, prof_xp, tool_type, tool_xp):
+    def grant_profession_progress(self, profession, prof_xp, tool_type, tool_xp, tool_progress=True):
             if not self.valid_tool_type(tool_type):
                 raise ValueError(f"Nieznany typ narzędzia: {tool_type}")
 
@@ -117,44 +117,45 @@ class SessionProfessionsStorageGuideMixin:
 
             trow = self.server.db.tool(self.account_id, tool_type)
             tlevel = int(trow["level"])
-            old_tool_tier = tool_tier(tlevel)
-            txp = int(trow["xp"]) + tool_xp
-            uses = int(trow["uses"]) + 1
-            tool_name = {
-                "fishing": "Wędka",
-                "mining": "Kilof",
-                "woodcutting": "Piła",
-                "crafting": "Młot Rzemieślniczy",
-                "cooking": "Nóż Kucharski",
-                "herbalism": "Sierp Zielarski",
-                "alchemy": "Moździerz Alchemiczny",
-                "jewelcrafting": "Szczypce Jubilerskie",
-            }.get(tool_type, tool_type)
-            messages.append(f"{tool_name}: +{tool_xp} XP narzędzia.")
+            if tool_progress:
+                old_tool_tier = tool_tier(tlevel)
+                txp = int(trow["xp"]) + tool_xp
+                uses = int(trow["uses"]) + 1
+                tool_name = {
+                    "fishing": "Wędka",
+                    "mining": "Kilof",
+                    "woodcutting": "Piła",
+                    "crafting": "Młot Rzemieślniczy",
+                    "cooking": "Nóż Kucharski",
+                    "herbalism": "Sierp Zielarski",
+                    "alchemy": "Moździerz Alchemiczny",
+                    "jewelcrafting": "Szczypce Jubilerskie",
+                }.get(tool_type, tool_type)
+                messages.append(f"{tool_name}: +{tool_xp} XP narzędzia.")
 
-            tool_level_cap = tool_max_level(tool_type)
-            while tlevel < tool_level_cap:
-                needed = self.tool_xp_to_next(tlevel, tool_type)
-                if txp < needed:
-                    break
-                txp -= needed
-                tlevel += 1
-                messages.append(f"{tool_name} osiąga level {tlevel}.")
-            if tlevel >= tool_level_cap:
-                tlevel = tool_level_cap
-                txp = 0
-            self.server.db.save_tool(
-                self.account_id, tool_type, tlevel, txp, uses
-            )
-
-            new_tool_tier = tool_tier(tlevel)
-            if new_tool_tier > old_tool_tier:
-                messages.append(
-                    f"{tool_name} awansuje na Tier {new_tool_tier} z {TOOL_MAX_TIER}: "
-                    f"{tool_tier_name(tool_type, tlevel)}. "
-                    f"Szansa na dodatkowy urobek: "
-                    f"{int(tool_tier_bonus_chance(tlevel) * 100)} procent."
+                tool_level_cap = tool_max_level(tool_type)
+                while tlevel < tool_level_cap:
+                    needed = self.tool_xp_to_next(tlevel, tool_type)
+                    if txp < needed:
+                        break
+                    txp -= needed
+                    tlevel += 1
+                    messages.append(f"{tool_name} osiąga level {tlevel}.")
+                if tlevel >= tool_level_cap:
+                    tlevel = tool_level_cap
+                    txp = 0
+                self.server.db.save_tool(
+                    self.account_id, tool_type, tlevel, txp, uses
                 )
+
+                new_tool_tier = tool_tier(tlevel)
+                if new_tool_tier > old_tool_tier:
+                    messages.append(
+                        f"{tool_name} awansuje na Tier {new_tool_tier} z {TOOL_MAX_TIER}: "
+                        f"{tool_tier_name(tool_type, tlevel)}. "
+                        f"Szansa na dodatkowy urobek: "
+                        f"{int(tool_tier_bonus_chance(tlevel) * 100)} procent."
+                    )
 
             _char_stage=max(1,min(400,max(plevel,tlevel)))
             _char_gain=generator_core_v027.axis_gain("character",_char_stage,0.35)

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Soulbound v0.30.55 Session assembly from focused mixins."""
+"""Soulbound v0.33.0 Session assembly from focused mixins."""
 
 class Session(
     SessionCoreProgressionMixin,
@@ -19,6 +19,8 @@ class Session(
     SessionProgressionAccessibilityV03052Mixin,
     SessionProfessionsV03053Mixin,
     SessionTechCraftingV03111Mixin,
+    SessionCraftingExpansionV03114Mixin,
+    SessionMilestoneV0320Mixin,
     SessionCommandLoopMixin
 ):
     """Player session composed from focused subsystem mixins."""

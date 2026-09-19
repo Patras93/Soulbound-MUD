@@ -237,6 +237,11 @@ class SessionIOAuthCharacterMixin:
                 self.closed = True
 
     async def send_combat(self, text, detail="essential"):
+            try:
+                if self.account_id:
+                    self.server.db.add_combat_event_v0320(self.account_id, str(text), "combat")
+            except Exception:
+                pass
             await self.send(text, combat_detail=detail)
 
     async def set_combat_log(self, args=""):

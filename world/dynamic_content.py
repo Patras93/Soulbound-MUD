@@ -202,6 +202,44 @@ CRAFT_RECIPES["recycled_iron_ingot"] = {
     "desc": "Przetop 2 Odłamki Żelaza ze Szkatułki Rzemieślniczej w 1 Żelazną sztabkę.",
 }
 
+# v0.31.13: standardowy `przetop <metal>` potrafi automatycznie sięgnąć
+# do Szkatułki -> Salvage, gdy zabraknie zwykłej rudy w Sakwie Górnika.
+# Salvage jest mniej wydajny od świeżej rudy: 2 fragmenty = 1 sztabka.
+SALVAGE_SMELT_FALLBACK_V03113 = {
+    "iron_ingot": "recycled_iron_ingot",
+    "steel_ingot": "recycled_steel_scrap_ingot_v03113",
+    "cobalt_ingot": "recycled_cobalt_ingot_v03113",
+    "runestone_ingot": "recycled_runic_ingot_v03113",
+    "dragonsteel_ingot": "recycled_dragonsteel_ingot_v03113",
+    "astral_ingot": "recycled_astral_ingot_v03113",
+    "void_ingot": "recycled_void_ingot_v03113",
+    "eternium_ingot": "recycled_eternium_ingot_v03113",
+}
+
+_SALVAGE_SMELT_DEFS_V03113 = (
+    ("recycled_steel_scrap_ingot_v03113", "Przetop Odłamków Stali", "salvage_steel_scrap", "steel_ingot", 1),
+    ("recycled_cobalt_ingot_v03113", "Przetop Fragmentów Kobaltu", "salvage_cobalt_fragment", "cobalt_ingot", 100),
+    ("recycled_runic_ingot_v03113", "Przetop Fragmentów Runicznych", "salvage_runic_fragment", "runestone_ingot", 120),
+    ("recycled_dragonsteel_ingot_v03113", "Przetop Fragmentów Smoczej Stali", "salvage_dragonsteel_fragment", "dragonsteel_ingot", 140),
+    ("recycled_astral_ingot_v03113", "Przetop Fragmentów Astralnych", "salvage_astral_fragment", "astral_ingot", 160),
+    ("recycled_void_ingot_v03113", "Przetop Fragmentów Pustki", "salvage_void_fragment", "void_ingot", 180),
+    ("recycled_eternium_ingot_v03113", "Przetop Fragmentów Eternium", "salvage_eternium_fragment", "eternium_ingot", 200),
+)
+for _rid, _name, _fragment, _output, _level in _SALVAGE_SMELT_DEFS_V03113:
+    CRAFT_RECIPES[_rid] = {
+        "name": _name,
+        "stations": ("forge",),
+        "ingredients": {_fragment: 2},
+        "output": _output,
+        "quantity": 1,
+        "min_profession_level": _level,
+        "min_tool_level": _level,
+        "profession_xp": 12 + max(0, _level // 10),
+        "tool_xp": 10 + max(0, _level // 12),
+        "category": "smithing",
+        "desc": "Przetop 2 materiały odzyskane z Salvage w 1 właściwą sztabkę.",
+    }
+
 # v0.31.12: gracz może wykorzystać płyty poza questem Haldora.
 CRAFT_RECIPES["recycled_steel_ingot"] = {
     "name": "Przetop Stalowych Płyt",

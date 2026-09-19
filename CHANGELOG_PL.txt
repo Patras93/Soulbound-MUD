@@ -1,3 +1,61 @@
+v0.33.0 — Full Skill & Equipment Progression Rebalance
+
+- Wszystkie aktywne umiejętności 14 klas skalują się znacznie mocniej z własnym Skill Level 1-400.
+- Globalna krzywa mocy Skill Level: 1=1.00x, 50≈1.54x, 100≈1.96x, 200≈2.70x, 300≈3.37x, 400=4.00x.
+- Cooldown umiejętności skaluje się do 50% redukcji na Skill Level 400, dzięki czemu utility/evade/control także realnie się rozwijają.
+- Pasywne umiejętności tej samej klasy dostają 25% Skill XP podczas używania aktywnych umiejętności i mogą rozwijać się 1-400.
+- Pasywy Meca i Inżyniera skalują własne efekty z poziomem umiejętności.
+- V-MAX zwiększa czas działania wraz z własnym Skill Level, dodatkowo do Will i trwałych upgrade'ów.
+- Kontrola Meca, Intercept System i Self-Repair skalują się z własnym Skill Level.
+- Całe EQ otrzymuje nową nieliniową krzywą obrony, statów, properties i run 1-400.
+- Sprzęt na progach 50/100/200/300/400 jest wyraźnie silniejszy od starterowego; endgame ma dużo większy przyrost.
+- Zachowane są klasy, wymagania Biegłości, sety, Forge, runy, sockety, Tech Set Mk-II/Mk-III i istniejące zapisy postaci.
+
+v0.32.0 — Party Progress, Recap & Tech Set Milestone
+- Party Quest Progress 2.0: zabójstwa do aktywnych kill questów oraz boss kill credit są przyznawane każdemu członkowi drużyny stojącemu w tej samej lokacji. Gather i craft nadal liczą wyłącznie własne akcje gracza.
+- Dungeon Party Bonuses: w lochach pełna drużyna daje +3% EXP, 3 różne klasy +2%, 5+ różnych klas kolejne +2%; łączny limit +7%.
+- Death/Combat Recap 2.0: finalny cios, przyczyna śmierci/zwycięstwa, ostatnie 10 zdarzeń walki, suma leczenia oraz obrażeń zatrzymanych przez guard.
+- Tech Set Upgrade: 8-częściowe sety Meca, Inżyniera i Cyborga można ulepszać do Mk-II i Mk-III; ulepszenia są trwałe i wzmacniają obronę oraz bonus setu.
+- Salvage 4.0: przy rozkładaniu ostatniej kopii EQ runy są odzyskiwane, a klejnoty mają 25-85% szansy odzysku zależnie od Kowalstwa.
+
+v0.31.17 — Nearby Party Feed
+
+- Wszystkie komunikaty rozgrywki drużynowej są teraz kierowane do członków party stojących w tej samej lokacji.
+- Feed obejmuje m.in. cel i obrażenia ataku moba, ataki graczy, leczenie, ucieczkę i śmierć.
+- Członkowie drużyny w innych lokacjach nie dostają komunikatów walki.
+- Komunikaty administracyjne drużyny (np. rozwiązanie, wyrzucenie, zmiana lidera) nadal docierają do właściwych graczy niezależnie od lokacji.
+- Zachowano filtry NVDA dla combat feedu i ograniczono duplikowanie pełnych komunikatów ofierze/wykonawcy.
+
+v0.31.16 — Party Target Feed + Shared Troll Chests
+- W walce drużynowej wszyscy członkowie w tej samej lokacji słyszą teraz krótki komunikat, którego gracza atakuje mob; cel nadal dostaje pełny komunikat obrażeń.
+- Skradziona Skrzynia Rudy z trolli jest losowana raz na zabicie według istniejącej szansy 30/35/100%; gdy wypadnie, każdy kwalifikujący się członek party w tej samej lokacji dostaje po 1 skrzyni.
+- Pozostały loot nadal używa dotychczasowego losowego odbiorcy, więc zmiana nie duplikuje zwykłych dropów.
+
+v0.31.15 — Craft Quest + Salvage Progress Fix
+- Naprawiono wspólny event postępu questów craftingowych: każda udana receptura wszystkich profesji nalicza właściwy quest od 0/x po jego przyjęciu.
+- Audyt obejmuje zlecenia Broka na hełmy, pancerze, rękawice, nogawice i talizmany oraz wszystkie inne questy track_craft_progress.
+- Salvage zwykłego EQ, Salvage 3.0 i Tech Salvage dają od teraz Kowalstwo XP.
+- Salvage nie nabija sztucznie XP/użyć Młota Rzemieślniczego, ponieważ młot nie jest używany w tej akcji.
+- HELP zaktualizowany.
+
+v0.31.14 — Forge & Materials 3.0
+- Salvage 3.0 dla EQ, technologii, Boardów, Upgrade Kitów i boss components.
+- Refining 2.0: 4 zaawansowane stopy.
+- Forge 3.0: progres +1..+10 z rosnącym kosztem stopów.
+- 3 pełne Tech EQ sety po 8 części, progi 2/4/6/8.
+- trwały Socket Crafting +1/+2 gniazda.
+- Rune Crafting z klejnotami i materiałami technologicznymi.
+- V-MAX Upgrade Path.
+- konwersje, przetop max, przetop wszystko, craft max.
+- Full Crafting Audit 2.0 — PASS.
+
+v0.31.13 — Automatyczny przetop materiałów Salvage
+- `przetop <metal>` używa rudy 1:1, a gdy jej brakuje automatycznie pobiera zgodny materiał ze Szkatułki -> Salvage.
+- 2 materiały salvage = 1 sztabka dla: żelaza, stali, kobaltu, runicznego, Smoczej Stali, Astralu, Pustki i Eternium.
+- Zachowano dotychczasowy przetop Stalowych Płyt 4:1.
+- Mithril/Adamantyt pozostają materiałami upgrade EQ, bo bieżąca linia Kowalstwa nie ma ich osobnych sztabek.
+- HELP zaktualizowany.
+
 v0.31.12 — Przetapianie Odłamków Żelaza
 - Dodano przetop salvage: 2 Odłamki Żelaza -> 1 Żelazna sztabka.
 - Komendy PL/EN: `przetop odłamki żelaza`, `smelt iron scraps` oraz warianty liczby pojedynczej.

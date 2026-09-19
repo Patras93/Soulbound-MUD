@@ -1319,6 +1319,8 @@ HELP_TOPICS = {
     "przetop": [
         "przetop <metal, ruda albo płyty> przetapia surowiec na właściwą sztabkę.",
         "4 Stalowe Płyty z Pancerza ze Szkatułki można przetopić w 1 Sztabkę Stali: przetop płyty / smelt plates.",
+        "v0.31.13: przetop <metal> najpierw pobiera zwykłą rudę, a gdy jej brakuje automatycznie sprawdza Szkatułkę -> Salvage. Dwa zgodne fragmenty salvage dają 1 sztabkę.",
+        "v0.31.15: każda udana receptura nalicza aktywne questy craftingowe; Salvage/Salvage 3.0/Tech Salvage dają Kowalstwo XP bez sztucznego nabijania Młota.",
         "Komenda korzysta z istniejących receptur Kowalstwa i nie omija wymagań.",
         "Musisz mieć Młot Rzemieślniczy, odpowiedni level Kowalstwa, wymagany Tier Młota, składniki i stać przy właściwej kuźni.",
         "Przykłady: przetop żelazo, przetop odłamki żelaza, przetop srebro, przetop płyty, przetop złoto, przetop kobalt.",
@@ -3908,3 +3910,37 @@ HELP_TOPICS["vmax2"] = [
     "Zmiany: Cosmic Rave = 5 losowych trafień; Shoot-All = większy damage/crit; Starlight Shower = pełne AoE; Kamikaze Crush = większy limit HP; Heal Beam = party heal.",
 ]
 HELP_TOPIC_ALIASES.update({"tech crafting":"techcraft","technologia":"techcraft","sockets2":"sockety2","sockety":"sockety2","vmaxstatus":"vmax2","v-max":"vmax2"})
+
+# v0.32.0 HELP refresh — Party Progress, Recap, Tech Set Upgrade, Salvage 4.0
+HELP_TOPICS["partyquest2"] = [
+    "Party Quest Progress 2.0: kill questy oraz boss kill credit są przyznawane każdemu członkowi drużyny stojącemu w tej samej lokacji podczas zabicia.",
+    "Gathering i crafting nie są współdzielone: postęp dostaje wyłącznie postać, która samodzielnie zebrała zasób lub wykonała recepturę.",
+    "partyquest pokazuje bieżącą zasadę i liczbę członków drużyny stojących obok.",
+]
+HELP_TOPICS["dungeonparty"] = [
+    "Dungeon Party Bonus działa wyłącznie w lokacjach lochowych.",
+    "Pełna drużyna daje +3 procent EXP. Co najmniej 3 różne klasy daje +2 procent, a 5 lub więcej różnych klas kolejne +2 procent.",
+    "Łączny bonus jest ograniczony do +7 procent, aby nie zaburzać głównego balansu progresji.",
+    "dungeonbonus pokazuje aktualny bonus w bieżącej lokacji.",
+]
+HELP_TOPICS["recap2"] = [
+    "Death/Combat Recap 2.0 rozszerza deathrecap i combatrecap.",
+    "Recap pokazuje finalny cios, przyczynę śmierci lub zwycięstwa, ostatnie 10 zdarzeń walki, sumę leczenia i obrażenia zatrzymane przez aktywny guard.",
+]
+HELP_TOPICS["techupgrade"] = [
+    "Tech Set Upgrade: części 8-elementowych setów Meca, Inżyniera i Cyborga można ulepszać z Mk-I do Mk-II i Mk-III.",
+    "Użycie: techupgrade <pełna nazwa części EQ>. Mk-II wymaga Kowalstwo 240; Mk-III wymaga Kowalstwo 340 oraz rzadszych materiałów.",
+    "Poziom Mk jest trwały. Mk-II/Mk-III zwiększa obronę części i wzmacnia działanie założonego Tech Setu.",
+]
+HELP_TOPICS["salvage4"] = [
+    "Salvage 4.0 działa podczas rozkładania ostatniej posiadanej kopii danego EQ.",
+    "Osadzone runy są zwracane do Szkatułki. Osadzone klejnoty mają szansę odzysku zależną od Kowalstwa: około 25 procent na początku do maksymalnie 85 procent.",
+    "Nieodzyskany klejnot zostaje zniszczony podczas rozkładania.",
+]
+HELP_TOPIC_ALIASES.update({
+    "party quest 2":"partyquest2", "party quest":"partyquest2", "questy drużynowe":"partyquest2",
+    "dungeon party bonus":"dungeonparty", "bonus lochu":"dungeonparty",
+    "recap 2":"recap2", "death recap 2":"recap2", "combat recap 2":"recap2",
+    "tech set upgrade":"techupgrade", "tech upgrade":"techupgrade",
+    "salvage 4":"salvage4", "salvage 4.0":"salvage4",
+})

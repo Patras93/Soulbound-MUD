@@ -588,6 +588,18 @@ class SessionSkillsCombatMixin:
                     f"Level {result['level']}, XP {result['xp']} z {result['next_xp']}.",
                     combat_detail="full" if self.combat_mob_key else None,
                 )
+            # v0.33.0: pasywne umiejętności tej samej klasy również rozwijają się
+            # podczas realnego używania aktywnych skilli. Dostają 25% bazowego Skill XP,
+            # dzięki czemu ich poziom 1-400 ma znaczenie bez osobnej komendy cast.
+            if str(skill.get("kind", "")) != "passive":
+                skill_class = self.skill_class_name(skill)
+                passive_gain = max(1, gain // 4)
+                for passive in CLASS_SKILLS.get(skill_class, []):
+                    if passive.get("kind") != "passive" or passive.get("id") == skill.get("id"):
+                        continue
+                    if not self.server.db.knows_skill(self.account_id, passive["id"]):
+                        continue
+                    self.server.db.add_skill_xp(self.account_id, passive["id"], passive_gain)
             return result
 
     def skill_scale_value(self, scale):
@@ -1239,8 +1251,13 @@ class SessionSkillsCombatMixin:
             if now < float(getattr(mob,"v0319_blind_until",0.0) or 0.0) and random.random()<0.35:
                 await self.send_combat(f"{template['name']} pudłuje przez Blind.","normal"); return
 
-            if self.mec_skill_known_v0319("v0319_mec_intercept_system") and profile.get("damage_type")=="physical" and random.random()<0.20:
-                counter=max(1,int((self.physical_power()+self.magic_power())/2))
+            _intercept_level=1
+            if self.mec_skill_known_v0319("v0319_mec_intercept_system"):
+                _intercept_level=int(self.server.db.skill_progress(self.account_id,"v0319_mec_intercept_system")["level"])
+            _intercept_progress=(max(1,min(400,_intercept_level))-1)/399.0
+            _intercept_chance=0.10 + 0.25*(_intercept_progress**0.82)
+            if self.mec_skill_known_v0319("v0319_mec_intercept_system") and profile.get("damage_type")=="physical" and random.random()<_intercept_chance:
+                counter=max(1,int(((self.physical_power()+self.magic_power())/2)*(1.0+1.5*_intercept_progress)))
                 mob.hp-=counter
                 await self.send_combat(f"Intercept System przerywa atak {template['name']} i kontruje za {counter}.","normal")
                 if mob.hp<=0:
@@ -1294,6 +1311,7 @@ class SessionSkillsCombatMixin:
                 self.skill_guard = 0
                 before = incoming
                 incoming = max(1, incoming - guard)
+                self._recap32_guard_saved=int(getattr(self,"_recap32_guard_saved",0))+max(0,before-incoming)
                 await self.send_combat(
                     f"Aktywna osłona redukuje trafienie dodatkowo o "
                     f"{before - incoming} obrażeń.",
@@ -1365,13 +1383,20 @@ class SessionSkillsCombatMixin:
                     await self.mob_defeated(mob); return
             # Self-Repair: passive combat regeneration for Mec when learned.
             if self.mec_skill_known_v0319("v0319_mec_self_repair") and self.current_hp>0:
-                rep=max(1,int(self.max_hp()*0.01)); self.current_hp=min(self.max_hp(),self.current_hp+rep)
+                _sr_level=int(self.server.db.skill_progress(self.account_id,"v0319_mec_self_repair")["level"]); _sr_p=(max(1,min(400,_sr_level))-1)/399.0
+                rep=max(1,int(self.max_hp()*(0.005+0.025*(_sr_p**0.82)))); self.current_hp=min(self.max_hp(),self.current_hp+rep)
             await self.send_combat(
                 f"{template['name']} atakuje. Typ obrażeń: "
                 f"{'magiczne' if damage_type == 'magic' else 'fizyczne'}. "
                 f"Otrzymujesz {incoming} obrażeń po redukcji przez {defense_name}. "
                 f"Twoje życie: {max(0, self.current_hp)} z {self.max_hp()}.",
                 "normal",
+            )
+            await self.server.party_combat_broadcast(
+                self,
+                f"{template['name']} trafia {self.character.name} za {incoming}. "
+                f"HP {max(0, self.current_hp)} z {self.max_hp()}.",
+                detail="normal",
             )
             await self.combat_hp_warning()
 
@@ -1914,10 +1939,16 @@ class SessionSkillsCombatMixin:
     def engineer_passive_multiplier_v0317(self, skill):
             category = str(skill.get("engineer_category", ""))
             mult = 1.0
-            if category == "single" and self.engineer_skill_known_v0317("v0317_engineer_hypercharge"):
-                mult *= 1.15
-            if category == "area" and self.engineer_skill_known_v0317("v0317_engineer_lindblum"):
-                mult *= 1.15
+            pairs = []
+            if category == "single": pairs.append("v0317_engineer_hypercharge")
+            if category == "area": pairs.append("v0317_engineer_lindblum")
+            for sid in pairs:
+                if not self.engineer_skill_known_v0317(sid):
+                    continue
+                row = self.server.db.skill_progress(self.account_id, sid)
+                level = int(row["level"])
+                progress = (max(1, min(400, level)) - 1) / 399.0
+                mult *= 1.05 + 0.25 * (progress ** 0.82)
             return mult
 
 
@@ -1940,9 +1971,11 @@ class SessionSkillsCombatMixin:
                 self.v0319_vmax_until=0.0
                 # UOSS source confirms Overheat after V-MAX; exact duration is not supplied,
                 # so Soulbound uses a short 20-second recovery window.
-                self.v0319_overheat_until=max(float(getattr(self,"v0319_overheat_until",0.0) or 0.0),now+20.0)
+                _vd,_vc=self.server.db.vmax_upgrades_v03114(self.account_id)
+                _overheat=max(4,20-8*_vc)
+                self.v0319_overheat_until=max(float(getattr(self,"v0319_overheat_until",0.0) or 0.0),now+_overheat)
                 self.active_skill_buffs.pop("v0319_mec_vmax",None)
-                await self.send("V-MAX wygasa. OVERHEAT: wszystkie statystyki bojowe są osłabione przez 20 sekund i V-MAX nie może być ponownie użyty.")
+                await self.send(f"V-MAX wygasa. OVERHEAT: wszystkie statystyki bojowe są osłabione przez {_overheat} sekund i V-MAX nie może być ponownie użyty.")
 
     def mec_branch_multiplier_v0319(self, branch):
             mult=1.0
@@ -1953,7 +1986,10 @@ class SessionSkillsCombatMixin:
               "magic":("v0319_mec_maxwell_program","v0319_mec_magic_protocol"),
             }
             for sid in checks.get(branch,()):
-                if sid and self.mec_skill_known_v0319(sid): mult*=1.12
+                if sid and self.mec_skill_known_v0319(sid):
+                    row=self.server.db.skill_progress(self.account_id,sid)
+                    level=int(row["level"]); progress=(max(1,min(400,level))-1)/399.0
+                    mult*=1.04 + 0.21*(progress**0.82)
             if self.mec_overheat_active_v0319(): mult*=0.75
             return mult
 
@@ -2372,7 +2408,10 @@ class SessionSkillsCombatMixin:
                     if self.mec_overheat_active_v0319():
                         await self.send(f"V-MAX zablokowany przez Overheat jeszcze przez {int(getattr(self,'v0319_overheat_until',0)-time.time()+.999)} s."); return
                     will=max(1,int(self.effective_willpower()))
-                    duration=min(75,25 + will//8)  # source says Will increases duration; exact source formula not supplied.
+                    _vd,_vc=self.server.db.vmax_upgrades_v03114(self.account_id)
+                    _skill_progress=(max(1,min(400,skill_level))-1)/399.0
+                    _skill_duration_mult=1.0 + 0.80*(_skill_progress**0.90)
+                    duration=min(180,int(round((25 + will//8 + 10*_vd)*_skill_duration_mult)))  # v0.33.0: Skill Level V-MAX rozwija czas działania.
                     self.v0319_vmax_until=time.time()+duration
                     self.active_skill_buffs[skill["id"]]={"name":"V-MAX","boost":1.30,"until":self.v0319_vmax_until,"source":self.character.name}
                     await self.send(f"V-MAX aktywny przez {duration} s. Protect, Shell, Haste, Regen, Preach, Praise i Permanence aktywne. Wybrane skille Meca zmieniają działanie.")
@@ -2597,7 +2636,12 @@ class SessionSkillsCombatMixin:
                         await self.send(f"{skill['name']}: odzyskujesz {actual} HP. Masz {session.current_hp} z {target_max} HP.")
                     else:
                         await session.send(f"{self.character.name} używa {skill['name']}. Odzyskujesz {actual} HP. Masz {session.current_hp} z {target_max} HP.")
+                _group_heal_msg = (
+                    f"{self.character.name}: {skill['name']} leczy drużynę. "
+                    f"Cele {len(recipients)}, przywrócono łącznie {total_healed} HP."
+                )
                 await self.send(f"Leczenie obszarowe obejmuje {len(recipients)} członków drużyny w tej lokacji. Wyleczono łącznie {total_healed} HP.")
+                await self.server.party_combat_broadcast(self, _group_heal_msg)
                 await self.grant_skill_use_xp(skill)
                 if mana_cost:
                     await self.send(f"Mana: {self.current_mana} z {self.max_mana()}.")
@@ -2658,6 +2702,13 @@ class SessionSkillsCombatMixin:
                         f"Używasz {skill['name']} na {target.character.name}. "
                         f"Przywrócono {actual} HP."
                     )
+                await self.server.party_nearby_broadcast(
+                    self,
+                    f"{self.character.name}: {skill['name']} leczy {target.character.name} za {actual} HP.",
+                    exclude=[self, target],
+                    detail="normal",
+                    history_category="combat",
+                )
                 if self.character.racial_healing_bonus_percent() > 0:
                     await self.send(
                         f"Bonus rasy {self.character.race}: "
@@ -2846,7 +2897,8 @@ class SessionSkillsCombatMixin:
             if self_damage:
                 self.current_hp -= self_damage
                 if skill.get("mec_branch")=="feedback" and self.mec_skill_known_v0319("v0319_mec_self_repair"):
-                    self.v0319_feedback_repair_pool=int(getattr(self,"v0319_feedback_repair_pool",0) or 0)+max(1,int(self_damage*0.60))
+                    _sr_level=int(self.server.db.skill_progress(self.account_id,"v0319_mec_self_repair")["level"]); _sr_p=(max(1,min(400,_sr_level))-1)/399.0
+                    self.v0319_feedback_repair_pool=int(getattr(self,"v0319_feedback_repair_pool",0) or 0)+max(1,int(self_damage*(0.35+0.45*_sr_p)))
                     self.v0319_feedback_repair_at=time.time()+8.0
                 await self.send(
                     f"Koszt umiejętności: tracisz {self_damage} HP. "
@@ -3221,7 +3273,7 @@ class SessionSkillsCombatMixin:
 
     async def ensure_realtime_combat(self):
             if not hasattr(self, "_recap52_start") or not getattr(self, "_recap52_start", 0):
-                self._recap52_start=__import__("time").time(); self._recap52_dealt=0; self._recap52_taken=0; self._recap52_heal=0; self._recap52_crits=0; self._recap52_skills=0
+                self._recap52_start=__import__("time").time(); self._recap52_dealt=0; self._recap52_taken=0; self._recap52_heal=0; self._recap52_crits=0; self._recap52_skills=0; self._recap32_guard_saved=0
             if self.closed or not self.combat_mob_key:
                 return
             mob = self.server.world.mobs.get(self.combat_mob_key)
@@ -3327,6 +3379,14 @@ class SessionSkillsCombatMixin:
                         if mob.engaged_by == self.character.name:
                             target_session = self.server.party_combat_target(self, mob)
                             if target_session and not target_session.closed and target_session.current_hp > 0:
+                                # v0.31.16: party target feed. The victim receives the native
+                                # detailed damage line from enemy_counterattack; everyone else
+                                # in the same party/room gets a short NVDA-friendly target line.
+                                await self.server.party_combat_broadcast(
+                                    target_session,
+                                    f"{MOB_TEMPLATES[mob.template_id]['name']} atakuje {target_session.character.name}.",
+                                    detail="normal",
+                                )
                                 await target_session.enemy_counterattack(mob)
                         next_enemy = time.monotonic() + self.combat_enemy_interval
                         if not self.combat_mob_key or self.current_hp <= 0:
@@ -3661,6 +3721,10 @@ class SessionSkillsCombatMixin:
                 # v0.23.0: NIE podbijamy mnożnika do minimum 1.0. To był błąd,
                 # przez który słabsze moby nigdy nie traciły EXP podczas farmy.
                 xp_mult=float(xp_profile["multiplier"]) * session.v0210_reward_multiplier()
+                _party_bonus=dungeon_party_bonus_v0320(session)
+                xp_mult*=float(_party_bonus.get("multiplier",1.0))
+                if int(_party_bonus.get("bonus_pct",0))>0:
+                    await session.send_combat(f"Dungeon Party Bonus: +{int(_party_bonus['bonus_pct'])}% EXP; członków obok {_party_bonus['members']}; różne klasy {_party_bonus['diverse']}.",detail="full")
                 raw_stat_reward=min(V019_SAFE_INT,max(0,int(round(v0190_combat_reward(template,"stat")*xp_mult))))
                 raw_stat_reward=session.apply_double_xp(raw_stat_reward)
                 stat_rewards=[]
@@ -3812,20 +3876,32 @@ class SessionSkillsCombatMixin:
                 await session.grant_hourly_quest_kill_drop_v0929(
                     mob.template_id, template
                 )
+                try:
+                    _dur=int(fight_duration_ms or 0)
+                    session.server.db.conn.execute("INSERT INTO combat_recaps_v03052(account_id,opponent,duration_ms,damage_dealt,damage_taken,healing,crits,skills_used,result) VALUES(?,?,?,?,?,?,?,?,?)",(session.account_id,str(template.get("name",mob.template_id)),_dur,int(getattr(session,"_recap52_dealt",0)),int(getattr(session,"_recap52_taken",0)),int(getattr(session,"_recap52_heal",0)),int(getattr(session,"_recap52_crits",0)),int(getattr(session,"_recap52_skills",0)),"victory"))
+                    session.server.db.set_recap_summary_v0320(session.account_id, self.character.name, f"Pokonano {template.get('name',mob.template_id)}", int(getattr(session,"_recap32_guard_saved",0)), int(getattr(session,"_recap52_heal",0)), "victory")
+                    session.server.db.add_combat_event_v0320(session.account_id,f"Finalny cios zadaje {self.character.name}. {template.get('name',mob.template_id)} zostaje pokonany.","final")
+                    session.server.db.conn.commit(); session._recap52_start=0
+                except Exception:
+                    pass
                 self.server.db.save_character(session.character)
 
             for item_id, chance in template["drops"].items():
                 if random.random() <= chance:
-                    winner = random.choice(recipients)
-                    if item_id in globals().get("TECH_COMPONENT_IDS", set()) or ITEMS.get(item_id, {}).get("craftbox_category") == "technology":
-                        self.server.db.add_storage_item(winner.account_id, "craftbox", item_id, 1)
-                    else:
-                        self.server.db.add_item(
-                            winner.account_id, item_id, 1
+                    # v0.31.16: Skradziona Skrzynia Rudy is a shared party quest
+                    # drop. Roll the configured chance exactly once per troll kill;
+                    # on success every eligible party member in the room receives
+                    # one copy. Other drops keep the historical random-winner rule.
+                    drop_recipients = recipients if item_id == "stolen_mountain_ore" else [random.choice(recipients)]
+                    for winner in drop_recipients:
+                        if item_id in globals().get("TECH_COMPONENT_IDS", set()) or ITEMS.get(item_id, {}).get("craftbox_category") == "technology":
+                            self.server.db.add_storage_item(winner.account_id, "craftbox", item_id, 1)
+                        else:
+                            self.server.db.add_item(winner.account_id, item_id, 1)
+                        await winner.record_item_collection(
+                            item_id, source=template["name"], announce=True
                         )
-                    await winner.record_item_collection(
-                        item_id, source=template["name"], announce=True
-                    )
+
                     boss_id_for_drop = canonical_bestiary_template_id(mob.template_id)
                     if boss_id_for_drop in BOSS_COLLECTION_CATALOG:
                         for party_session in recipients:
@@ -3837,20 +3913,29 @@ class SessionSkillsCombatMixin:
                                     f"Boss Codex: odkryty drop {ITEMS[item_id]['name']} z "
                                     f"{BOSS_COLLECTION_CATALOG[boss_id_for_drop]}."
                                 )
-                    if winner.loot_message_allowed(item_id):
-                        await winner.send(
-                            f"Drop drużyny trafia do ciebie: "
-                            f"{ITEMS[item_id]['name']}."
-                        )
-                    if count > 1:
-                        for party_session in recipients:
-                            if party_session is winner:
-                                continue
+
+                    if item_id == "stolen_mountain_ore":
+                        for party_session in drop_recipients:
                             if party_session.loot_message_allowed(item_id):
                                 await party_session.send(
-                                    f"Drop: {ITEMS[item_id]['name']} otrzymuje "
-                                    f"{winner.character.name}."
+                                    f"Drop drużynowy: otrzymujesz {ITEMS[item_id]['name']}."
                                 )
+                    else:
+                        winner = drop_recipients[0]
+                        if winner.loot_message_allowed(item_id):
+                            await winner.send(
+                                f"Drop drużyny trafia do ciebie: "
+                                f"{ITEMS[item_id]['name']}."
+                            )
+                        if count > 1:
+                            for party_session in recipients:
+                                if party_session is winner:
+                                    continue
+                                if party_session.loot_message_allowed(item_id):
+                                    await party_session.send(
+                                        f"Drop: {ITEMS[item_id]['name']} otrzymuje "
+                                        f"{winner.character.name}."
+                                    )
 
             await self.server.broadcast_room(
                 self.character.room_id,
@@ -3877,15 +3962,20 @@ class SessionSkillsCombatMixin:
             self.skill_evade_lockout_until = 0.0
             self.clear_skill_buffs()
             await self.send("Wycofujesz się z walki.")
+            await self.server.party_combat_broadcast(
+                self, f"{self.character.name} wycofuje się z walki.", detail="normal"
+            )
 
     async def die(self, killer):
             key = self.party_key()
             if key is not None and self.server.party_protectors.get(key) == self.account_id:
                 self.server.party_protectors.pop(key, None)
-                await self.server.party_broadcast(
-                    self.account_id,
+                await self.server.party_nearby_broadcast(
+                    self,
                     f"{self.character.name} pada; osłona drużyny zostaje wyłączona.",
-                    exclude=self,
+                    exclude=[self],
+                    detail="essential",
+                    history_category="combat",
                 )
             if self.resting or self.rest_task:
                 await self.stop_rest(announce=False)
@@ -3922,6 +4012,8 @@ class SessionSkillsCombatMixin:
                 _dur=int(max(0.0,__import__("time").time()-float(getattr(self,"_recap52_start",__import__("time").time())))*1000)
                 self.server.db.conn.execute("INSERT INTO death_recaps_v03052(account_id,killer,room_id,damage_taken,duration_ms) VALUES(?,?,?,?,?)",(self.account_id,str(killer),str(old_room),int(getattr(self,"_recap52_taken",0)),_dur))
                 self.server.db.conn.execute("INSERT INTO combat_recaps_v03052(account_id,opponent,duration_ms,damage_dealt,damage_taken,healing,crits,skills_used,result) VALUES(?,?,?,?,?,?,?,?,?)",(self.account_id,str(killer),_dur,int(getattr(self,"_recap52_dealt",0)),int(getattr(self,"_recap52_taken",0)),int(getattr(self,"_recap52_heal",0)),int(getattr(self,"_recap52_crits",0)),int(getattr(self,"_recap52_skills",0)),"death"))
+                self.server.db.set_recap_summary_v0320(self.account_id,str(killer),f"Śmierć od: {killer}",int(getattr(self,"_recap32_guard_saved",0)),int(getattr(self,"_recap52_heal",0)),"death")
+                self.server.db.add_combat_event_v0320(self.account_id,f"{killer} zadaje finalny cios. {self.character.name} ginie.","final")
                 self.server.db.conn.commit(); self._recap52_start=0
             except Exception:
                 pass

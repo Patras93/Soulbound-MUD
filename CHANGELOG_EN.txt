@@ -1,0 +1,185 @@
+v0.33.0 — Full Skill & Equipment Progression Rebalance
+
+- All active abilities across all 14 classes now scale much more strongly with their own Skill Level 1-400.
+- Global Skill Level power curve: 1=1.00x, 50≈1.54x, 100≈1.96x, 200≈2.70x, 300≈3.37x, 400=4.00x.
+- Skill cooldowns now scale up to 50% reduction at Skill Level 400, making utility/evade/control progression meaningful too.
+- Passive skills of the same class receive 25% Skill XP when active skills are used and can progress from 1-400.
+- Mec and Engineer passive effects now scale with their own skill levels.
+- V-MAX duration now grows with V-MAX Skill Level in addition to Will and permanent upgrades.
+- Mec control effects, Intercept System and Self-Repair now scale with their own Skill Level.
+- All equipment uses a new nonlinear 1-400 curve for defense, stats, properties and rune values.
+- Gear at thresholds 50/100/200/300/400 is substantially stronger than starter gear, with much larger endgame gains.
+- Classes, Proficiency gates, sets, Forge, runes, sockets, Tech Set Mk-II/Mk-III and existing character saves remain compatible.
+
+v0.32.0 — Party Progress, Recap & Tech Set Milestone
+- Party Quest Progress 2.0: active kill quests and boss kill credit are shared with party members standing in the same room. Gathering and crafting remain personal actions only.
+- Dungeon Party Bonuses: in dungeons a full party grants +3% XP, 3 distinct classes grant +2%, and 5+ distinct classes add another +2%; total cap +7%.
+- Death/Combat Recap 2.0: final blow, cause of death/victory, last 10 combat events, healing saved and damage prevented by guard.
+- Tech Set Upgrade: the 8-piece Mec, Engineer and Cyborg tech sets can be upgraded to Mk-II and Mk-III; upgrades persist and improve defense/set power.
+- Salvage 4.0: salvaging the last copy of an equipment item returns runes, while socketed gems have a Smithing-scaled 25-85% recovery chance.
+
+v0.31.17 — Nearby Party Feed
+
+- Party gameplay messages are now broadcast to party members in the same room only.
+- The feed covers mob targets and damage, player attacks, healing, fleeing and deaths.
+- Party members in other rooms no longer receive combat feed messages.
+- Administrative party-state notices (such as disband, kick and leader changes) still reach the affected players regardless of room.
+- NVDA combat filters are preserved and duplicate full messages for the actor/victim are reduced.
+
+v0.31.16 — Party Target Feed + Shared Troll Chests
+- In party combat, all party members in the same location now receive a short message showing which player the mob attacks; the actual target still receives the full damage message.
+- Stolen Ore Chests from trolls are rolled once per kill using the existing 30/35/100% chances; when the roll succeeds, every eligible party member in the same location receives 1 chest.
+- Other loot still uses the existing random party recipient, so normal drops are not duplicated.
+
+v0.31.15 — Craft Quest + Salvage Progress Fix
+- Fixed the shared craft-quest progress event: every successful recipe from every profession now advances the proper accepted quest from 0/x.
+- Audited Brok's helmet, armor, glove, leg and talisman orders plus all other track_craft_progress quests.
+- Normal equipment Salvage, Salvage 3.0 and Tech Salvage now grant Blacksmithing XP.
+- Salvage does not artificially increase Crafting Hammer XP/uses because the hammer is not used for that action.
+- HELP updated.
+
+v0.31.14 — Forge & Materials 3.0
+- Salvage 3.0 for equipment, technology items, Boards, Upgrade Kits and boss components.
+- Refining 2.0 with 4 advanced alloys.
+- Forge 3.0 progression from +1 to +10 with increasing refined-material costs.
+- Three complete 8-piece Tech EQ sets with 2/4/6/8 bonuses.
+- Persistent Socket Crafting with +1/+2 extra sockets.
+- Rune Crafting using cut gems and technological materials.
+- V-MAX Upgrade Path.
+- Material conversion UI, smelt max, smelt all and craft max.
+- Full Crafting Audit 2.0 — PASS.
+
+v0.31.13 — Automatic Salvage Smelting
+- `smelt <metal>` uses ore at 1:1 first; if ore is missing it automatically pulls the matching material from Craftbox -> Salvage.
+- 2 salvage materials = 1 ingot for Iron, Steel, Cobalt, Runic, Dragonsteel, Astral, Void and Eternium.
+- Existing Steel Armor Plate smelting remains 4:1.
+- Mithril and Adamantite remain equipment-upgrade materials because the current Blacksmithing line has no separate ingots for them.
+- HELP updated.
+
+v0.31.12 — Iron Scrap Smelting
+- Added salvage smelting: 2 Iron Scraps -> 1 Iron Ingot.
+- PL/EN commands include `przetop odłamki żelaza`, `smelt iron scraps` and singular variants.
+- Iron Scrap remains an equipment-salvage material and now also has an alternative Blacksmithing use.
+
+v0.31.11 — Tech Crafting, Machine Salvage 2.0, Runes & Sockets 2.0
+- Machine components now go to Craftbox -> Technology.
+- Tech Salvage converts advanced Machine parts into Servo/Circuit/Power Cell/Plating.
+- Tech Crafting adds Cyborg Boards, a Mec component, Engineer Upgrade Kit and technological EQ.
+- Existing rune/gem sockets were expanded; high-level armor can receive gem sockets.
+- V-MAX status UI added.
+- All direct ore-smelting recipes are now 1 ore -> 1 ingot.
+
+v0.31.10 — Steel Plate Smelting
+- Added smelting for Steel Armor Plates stored in the Craftbox.
+- 4 Steel Armor Plates -> 1 Steel Ingot.
+- Commands: `przetop płyty`, `smelt plates`, `smelt steel plate`.
+- Plates can still be handed to Haldor for the hourly Steel for Smelting quest instead.
+- The Steel Ingot is stored automatically in Craftbox -> Blacksmithing.
+
+v0.31.9 — Magitek Dungeon 2.0 + Full Mec Rework + Engineer Upgrade 2.0
+- Full authored Mec kit based on the supplied source list: Melee/Ranged/Feedback/Magic/Support/Counter/Inherent/Passive.
+- V-MAX: Mec Proficiency 130, duration scales with Will; Protect/Shell/Haste/Regen/Preach/Praise/Permanence effects; Overheat after expiry.
+- Cosmic Rave at Mec Proficiency 110: normally hits all enemies; under V-MAX performs 5 random hits.
+- Added Self-Repair, Combat/Shooting Mastery, Maxwell Program and four Protocols.
+- Engineer Upgrade 2.0 expanded tool effects and UI showing each active upgrade.
+- Magitek Dungeon 2.0 adds 16 rooms across 4 sectors, 4 new bosses and elevators between sectors.
+- Soulbound still has no AP system; source Base AP values are used only as internal base power.
+
+v0.31.8 — Tool Duplicate Migration + Mec Support Clarification
+- Added the one-time `character_bound_tools_all_v0318` migration covering all 12 profession tools.
+- Old duplicate tools in inventory are reduced to exactly one copy per character.
+- Character-bound tools are removed from the Soul Bank; if the only copy was in the bank, one is restored to the owner's inventory.
+- Tool progression data is preserved: level, XP and use count remain unchanged.
+- Clarified Mec design: Mec Core remains the only Soul Weapon; `Support Effect` modifies abilities and is not a separate support weapon.
+
+v0.31.7 — Engineer Toolkit + Profession Tool Audit
+- Audited profession tools: all 12 professions allow exactly one purchased tool per character; Tailoring, Leatherworking, Carpentry and Enchanting were fixed.
+- Engineer received authored tools/skills: Auto Crossbow, Mako Gun, Bio Blaster, Scanner, Flash, Debilitator, Drill, Napalm, Launcher, Upgrade, Noise Blaster, Chainsaw, Mega Bomb and Air Anchor.
+- Added Hypercharge, Lindblum Assembly, Improved Kinematics, Silver Gear and Gold Battery passives.
+- Added persistent Upgrade system with 1–3 slots.
+- Soulbound still has no AP; source power values map only to internal base power.
+
+v0.31.6 — Smart Single-Target Healing
+- Normal heals are single-target again but automatically select the most wounded party member in the same location.
+- A healthy healer no longer wastes healing on themselves while another party member is injured.
+- Group Heal still heals the whole party.
+- If nobody is injured, a normal heal is not wasted.
+
+v0.31.5 — Cosmic Rave / V-MAX
+- Healing and auto-heal party behavior expanded, later refined by v0.31.6.
+- Soulbound does not use AP; Cosmic Rave's 2000 value is internal base power only.
+- Cosmic Rave requires Mec Proficiency 110 and under V-MAX performs exactly 5 random hits; the same target may be hit more than once.
+- No artificial EXP multiplier was added; faster EXP comes from faster kills.
+
+v0.31.4 — Machine Enemy Expansion
+- Added Machine enemy type with actual resistances: 10% vs normal physical/magic, +35% vulnerability to Lightning/EMP and -75% effectiveness for biological attacks.
+- Drain does not restore HP from Machines.
+- Added 26 Machine templates, 4 bosses, a 16-room Magitek Complex and 12 technological components.
+- Added HELP for Machine/Magitek content.
+
+v0.31.3 — Cyborg Moogle Board Scaling
+- Moogle Board bonus now scales with Mec Proficiency instead of staying at +2.
+- Thresholds: 1-49 +2; 50-99 +4; 100-149 +6; 150-199 +8; 200-249 +10; 250-299 +12; 300-349 +14; 350-399 +16; 400 +18.
+- One Cyborg-only Board slot remains; no Memory system was added.
+
+v0.31.2 — Cyborg Moogle Board
+- Added a unique Board slot for Cyborgs.
+- Every new Cyborg starts with a Moogle Board.
+- Moogle Board initially grants +2 to Strength, Dexterity, Constitution, Intelligence and Will.
+- Other races cannot equip Boards.
+
+v0.31.1 — 14 Characters per Account
+- Increased the account character limit from 12 to 14.
+- Character menu, slot validation and messages now use the shared 14-character limit.
+
+v0.31.0 — Cyborg, Mec & Engineer Expansion
+- Added the 14th race: Cyborg.
+- Added Mec and Engineer classes with full Proficiency 1–400 progression.
+- Mec Soul Weapon: Mec Core. Engineer Soul Weapon: Omni-Tool.
+- Added class equipment, sets, halls, quests, recommendations and HELP.
+- Updated active audits and class/race counts.
+
+v0.30.62 — Full Systems Audit 3.0
+- Full cross-system audit of game data and runtime with 0 critical errors in the final audit.
+- Stat XP pacing changed to about 60 relevant actions per stat point.
+- Profession/Tool pacing remains at 50/65 from v0.30.61.
+
+v0.30.61 — EXP Audit 2.0 / Profession & Tool Pacing
+- Profession progression slowed to about 50 actions per level.
+- Tool progression slowed to about 65 uses per level.
+- Profession XP from resource sales multiplier reduced from 4x to 2x.
+
+v0.30.60 — Economy Audit 2.0
+- Full economy audit after the 100 silver = 1 gold, 1000 gold = 1 mithril conversion.
+- Normalized extreme quest rewards and overvalued resource/gem sale values.
+- Guild Hall/building costs reduced relative to the old scale.
+
+v0.30.59 — Economy Rebase II
+- Global currency ratio: 100 silver = 1 gold; 1000 gold = 1 mithril.
+- 1 mithril = 100,000 silver.
+- Updated active HELP, formatters, audits and economy messages.
+
+v0.30.58 — Economy Rebase
+- Earlier currency rebase milestone; superseded by the final ratio in v0.30.59.
+
+v0.30.57 — Guild Creation Fee
+- Creating a Guild costs 500 gold from the shared account wallet.
+- Payment is only deducted after successful Guild creation.
+
+v0.30.56 — Full Gameplay Simulation Audit
+- Added full clean-database gameplay/regression audit covering accounts, characters, save/reload, inventory, equipment, storage, quests, professions/tools, recipes, Crafting Mastery, world, command routing/HELP and social systems.
+- 0 critical gameplay-audit errors.
+
+v0.30.55 — Full Game Audit + English Commands + HELP Refresh
+- Full audit of world/exits, classes/skills, items, mobs, quests, recipes, professions, commands and HELP.
+- Added missing English aliases for newer crafting and system commands.
+- Startup critical audit now blocks damaged deployments.
+
+v0.30.54 — Crafting Quality + Critical Craft + Mastery
+- Added Common, Good, Excellent, Masterwork and Legendary crafted-equipment qualities.
+- Added critical crafting with extra affixes.
+- Added Crafting Mastery 1–100 by recipe category.
+
+v0.30.53 — Extended Crafting Professions
+- Added Tailoring, Leatherworking, Carpentry and Enchanting as full 1–400 professions with tools and 40 tiers.
+- Expanded Jewelry, intermediate materials, equipment lines and persistent equipment enchantments.

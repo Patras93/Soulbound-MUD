@@ -469,14 +469,15 @@ class SessionCraftingInventoryEquipmentMixin:
                         f"x{bonus_quantity}."
                     )
 
-            if tool_type in (
-                "alchemy", "cooking", "crafting",
-                "jewelcrafting", "woodcutting",
-            ):
-                await self.announce_craft_quest_progress(
-                    output_id,
-                    total_quantity,
-                )
+            # v0.31.15: every successful recipe emits exactly one craft event.
+            # This fixes quest progress for all profession families, including
+            # blacksmith helmet/body orders and newer tailoring/leatherworking/
+            # carpentry/enchanting recipes. The base output ID is intentional so
+            # quality variants still count for the original quest target.
+            await self.announce_craft_quest_progress(
+                output_id,
+                total_quantity,
+            )
 
             tool_xp = (
                 roll_crafting_xp(recipe["tool_xp"])
@@ -657,6 +658,21 @@ class SessionCraftingInventoryEquipmentMixin:
                 if recipe:
                     return ("recycled_steel_ingot", recipe)
 
+            salvage_aliases_v03113 = {
+                "recycled_steel_scrap_ingot_v03113": ("stal", "steel", "odlamki stali", "odłamki stali", "steel scrap", "steel scraps"),
+                "recycled_cobalt_ingot_v03113": ("fragment kobaltu", "fragmenty kobaltu", "cobalt fragment", "cobalt fragments"),
+                "recycled_runic_ingot_v03113": ("fragment runiczny", "fragmenty runiczne", "runic fragment", "runic fragments"),
+                "recycled_dragonsteel_ingot_v03113": ("fragment smoczej stali", "fragmenty smoczej stali", "dragonsteel fragment", "dragonsteel fragments"),
+                "recycled_astral_ingot_v03113": ("fragment astralny", "fragmenty astralne", "astral fragment", "astral fragments"),
+                "recycled_void_ingot_v03113": ("fragment pustki", "fragmenty pustki", "void fragment", "void fragments"),
+                "recycled_eternium_ingot_v03113": ("fragment eternium", "fragmenty eternium", "eternium fragment", "eternium fragments"),
+            }
+            for salvage_recipe_id, aliases in salvage_aliases_v03113.items():
+                if wanted in {self.normalize_description_query(x) for x in aliases}:
+                    recipe = CRAFT_RECIPES.get(salvage_recipe_id)
+                    if recipe:
+                        return (salvage_recipe_id, recipe)
+
             extra_aliases = {
                 "iron": (
                     "zelazo", "żelazo", "zelazna", "żelazna",
@@ -745,12 +761,34 @@ class SessionCraftingInventoryEquipmentMixin:
             if not found:
                 await self.send(
                     "Nie rozpoznaję metalu do przetopienia. "
-                    "Dostępne: żelazo, odłamki żelaza, srebro, złoto, stalowe płyty, kobalt, "
-                    "runa, smocza stal, astral, pustka, Eternium."
+                    "Dostępne: żelazo, odłamki żelaza, srebro, złoto, stal, stalowe płyty, kobalt, "
+                    "runa, smocza stal, astral, pustka, Eternium. "
+                    "Jeśli zabraknie rudy, przetop automatycznie sprawdzi Szkatułkę -> Salvage."
                 )
                 return False
 
             recipe_id, recipe = found
+
+            # v0.31.13: dla zwykłego `przetop <metal>` najpierw używamy
+            # świeżej rudy. Jeśli jej brakuje, automatycznie próbujemy
+            # odpowiedniego materiału ze Szkatułki -> Salvage.
+            enough_primary = all(
+                self.available_recipe_item(item_id) >= int(quantity)
+                for item_id, quantity in recipe.get("ingredients", {}).items()
+            )
+            if not enough_primary:
+                fallback_id = SALVAGE_SMELT_FALLBACK_V03113.get(recipe.get("output"))
+                fallback = CRAFT_RECIPES.get(fallback_id) if fallback_id else None
+                if fallback and all(
+                    self.available_recipe_item(item_id) >= int(quantity)
+                    for item_id, quantity in fallback.get("ingredients", {}).items()
+                ):
+                    await self.send(
+                        "Brakuje zwykłej rudy. Pobieram materiał odzyskany przez "
+                        "Salvage ze Szkatułki Rzemieślniczej."
+                    )
+                    recipe_id, recipe = fallback_id, fallback
+
             return await self.perform_recipe(
                 recipe["name"],
                 CRAFT_RECIPES,
@@ -1773,7 +1811,7 @@ class SessionCraftingInventoryEquipmentMixin:
             if not item:
                 await self.send(f"Nie masz założonego przedmiotu w slocie {EQUIPMENT_SLOT_NAMES.get(slot, slot)}.")
                 return False
-            capacity = equipment_gem_socket_capacity_v03111(item) if "equipment_gem_socket_capacity_v03111" in globals() else jewelry_socket_capacity(item)
+            capacity = self.equipment_total_socket_capacity_v03114(item_id, item, "gem")
             if capacity <= 0:
                 await self.send(f"{item['name']} nie ma gniazd na klejnoty.")
                 return False
@@ -1849,8 +1887,8 @@ class SessionCraftingInventoryEquipmentMixin:
                 slot=row["slot"]; item_id=row["item_id"]; item=ITEMS.get(item_id)
                 if not item:
                     continue
-                capacity=equipment_gem_socket_capacity_v03111(item) if "equipment_gem_socket_capacity_v03111" in globals() else jewelry_socket_capacity(item)
-                rune_capacity=v0925_equipment_socket_count(item)
+                capacity=self.equipment_total_socket_capacity_v03114(item_id,item,"gem")
+                rune_capacity=self.equipment_total_socket_capacity_v03114(item_id,item,"rune")
                 if capacity<=0 and rune_capacity<=0:
                     continue
                 found_any=True

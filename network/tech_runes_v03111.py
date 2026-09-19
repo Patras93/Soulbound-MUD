@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""v0.31.12 technological runes registered after legacy rune system."""
+"""v0.31.13 technological runes registered after legacy rune system."""
 _NEW_TECH_RUNES_V03111 = {
     "impuls": ("rune_impulse", "Runa Impulsu", {"all_damage_pct":3}),
     "bariera": ("rune_barrier_tech", "Runa Bariery Magitek", {"magic_defense_pct":3,"physical_defense_pct":1}),

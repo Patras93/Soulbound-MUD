@@ -57,7 +57,7 @@ class SessionEquipmentStatsMixin:
                     if upgrade_stat in totals and upgrade_amount > 0:
                         totals[upgrade_stat] += upgrade_amount
 
-                if globals().get("equipment_gem_socket_capacity_v03111", lambda _i: jewelry_socket_capacity(_i))(item) > 0:
+                if self.equipment_total_socket_capacity_v03114(row["item_id"], item, "gem") > 0:
                     socket_slot = row["slot"]
                     for gem_row in self.server.db.socketed_gems(self.account_id, socket_slot, row["item_id"]):
                         gem = ITEMS.get(gem_row["gem_id"])
@@ -248,6 +248,12 @@ class SessionEquipmentStatsMixin:
             for set_id,count in self.regional_set_counts().items():
                 if count >= 2:
                     mult *= float(REGIONAL_SET_BONUSES.get(set_id,{}).get("hp",1.0))
+                if count >= 8:
+                    mult *= float(REGIONAL_SET_BONUSES.get(set_id,{}).get("complete",1.0))
+            try:
+                mult *= self.tech_set_equipped_mark_multiplier_v0320()
+            except Exception:
+                pass
             return mult
 
     def regional_set_damage_multiplier(self):
@@ -255,6 +261,12 @@ class SessionEquipmentStatsMixin:
             for set_id,count in self.regional_set_counts().items():
                 if count >= 4:
                     mult *= float(REGIONAL_SET_BONUSES.get(set_id,{}).get("damage",1.0))
+                if count >= 8:
+                    mult *= float(REGIONAL_SET_BONUSES.get(set_id,{}).get("complete",1.0))
+            try:
+                mult *= self.tech_set_equipped_mark_multiplier_v0320()
+            except Exception:
+                pass
             return mult
 
     def regional_set_defense_multiplier(self):
@@ -262,6 +274,12 @@ class SessionEquipmentStatsMixin:
             for set_id,count in self.regional_set_counts().items():
                 if count >= 6:
                     mult *= float(REGIONAL_SET_BONUSES.get(set_id,{}).get("defense",1.0))
+                if count >= 8:
+                    mult *= float(REGIONAL_SET_BONUSES.get(set_id,{}).get("complete",1.0))
+            try:
+                mult *= self.tech_set_equipped_mark_multiplier_v0320()
+            except Exception:
+                pass
             return mult
 
     def regional_set_status_lines(self):
@@ -274,8 +292,10 @@ class SessionEquipmentStatsMixin:
                 active=[]
                 if count >= 2: active.append(f"2/6 HP i Mana +{int(round((config['hp']-1)*100))}%")
                 if count >= 4: active.append(f"4/6 obrażenia +{int(round((config['damage']-1)*100))}%")
-                if count >= 6: active.append(f"6/6 obrona +{int(round((config['defense']-1)*100))}%")
-                lines.append(f"{config['name']}: {count}/6 części. " + ("; ".join(active) if active else "brak aktywnego progu" ) + ".")
+                if count >= 6: active.append(f"6/8 obrona +{int(round((config['defense']-1)*100))}%")
+                if count >= 8 and float(config.get('complete',1.0))>1.0: active.append(f"8/8 pełna synchronizacja +{int(round((config['complete']-1)*100))}%")
+                max_pieces = 8 if 'complete' in config else 6
+                lines.append(f"{config['name']}: {count}/{max_pieces} części. " + ("; ".join(active) if active else "brak aktywnego progu" ) + ".")
             return lines or ["Brak aktywnego regionalnego zestawu."]
 
     def dominant_crypt_set(self):
@@ -601,9 +621,16 @@ class SessionEquipmentStatsMixin:
                     upgrade_level = self.server.db.equipment_upgrade_level_v03042(
                         self.account_id, row["item_id"]
                     )
+                    _tech_mark_bonus=0
+                    try:
+                        if row["item_id"] in {x for rows in TECH_SET_ITEMS_V03114.values() for x in rows}:
+                            _m=self.server.db.tech_set_mark_v0320(self.account_id,row["item_id"])
+                            _tech_mark_bonus=5 if _m==2 else 10 if _m>=3 else 0
+                    except Exception:
+                        _tech_mark_bonus=0
                     total += int(item.get("defense", 0)) + v03042_upgrade_defense_bonus(
                         item, upgrade_level
-                    )
+                    ) + _tech_mark_bonus
             return max(
                 0,
                 int(round(
