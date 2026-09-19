@@ -2365,6 +2365,27 @@ class Database:
         self.conn.commit()
         return True
 
+    def persisted_crafting_quality_item_ids_v0332(self):
+        found=set()
+        tables=self.conn.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()
+        for table_row in tables:
+            table=str(table_row[0])
+            if not table.replace("_","").isalnum():
+                continue
+            try:
+                cols=[str(row[1]) for row in self.conn.execute(f"PRAGMA table_info({table})").fetchall()]
+            except Exception:
+                continue
+            for col in cols:
+                if col not in ("item_id","jewelry_item_id"):
+                    continue
+                try:
+                    rows=self.conn.execute(f"SELECT DISTINCT {col} FROM {table} WHERE {col} LIKE 'craftq_%'").fetchall()
+                    found.update(str(row[0]) for row in rows if row[0])
+                except Exception:
+                    pass
+        return sorted(found)
+
     def inventory(self, account_id):
         return self.conn.execute(
             "SELECT item_id,quantity FROM inventory WHERE account_id=? AND quantity>0 ORDER BY item_id",

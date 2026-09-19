@@ -2244,13 +2244,29 @@ def _v0310_build_tech_class_skills():
     }
     generic_mec = (("Salwa Rdzenia", "damage"), ("Pancerz Reaktywny", "guard"), ("Przeciążenie Systemów", "boost"))
     generic_eng = (("Wieżyczka Szturmowa", "damage"), ("Ładunek Taktyczny", "aoe_damage"), ("Kalibracja", "boost"))
+    # v0.33.1: nie używamy już sztucznych nazw Mk-13A, Mk-14A itd.
+    # Każdy próg technologiczny dostaje własny, czytelny tytuł bez cyfr.
+    tech_stage_titles = (
+        "Pierwszy Zapłon", "Miedziany Impuls", "Żelazny Obwód", "Stalowy Rezonans",
+        "Kobaltowy Sygnał", "Srebrna Matryca", "Złoty Przekaźnik", "Runiczny Układ",
+        "Kryształowy Rdzeń", "Astralna Iskra", "Próżniowy Napęd", "Eteryczna Sieć",
+        "Reaktywny Pancerz", "Puls Plazmowy", "Jonowy Horyzont", "Kwantowa Brama",
+        "Neuralny Splot", "Magitekowy Węzeł", "Tytanowy Obwód", "Gwiezdny Reaktor",
+        "Fazowy Przekaźnik", "Chronalny Impuls", "Burzowy Kondensator", "Słoneczny Rdzeń",
+        "Lunarny Moduł", "Grawitonowa Matryca", "Widmowy Układ", "Harmoniczny Napęd",
+        "Pustkowy Rezonator", "Kosmiczny Obwód", "Niebiański Reaktor", "Pierwotny Węzeł",
+        "Wieczny Przekaźnik", "Nieskończona Matryca", "Transcendentny Rdzeń", "Korona Maszyny",
+        "Horyzont Absolutu", "Ponadczasowy Układ", "Ostateczny Rezonans", "Szczyt Techniki",
+        "Absolutny Rdzeń",
+    )
+    stage_title_by_level = {level: tech_stage_titles[idx] for idx, level in enumerate(levels)}
     for cname,prefix,special,generic in (("Mec","mec",mec_special,generic_mec),("Inżynier","engineer",eng_special,generic_eng)):
         rows=[]
         for level in levels:
             specs=special.get(level)
             if specs is None:
-                stage=level//10 if level>1 else 1
-                specs=[(f"{n} Mk-{stage}A", k) for n,k in generic]
+                title = stage_title_by_level[level]
+                specs=[(f"{n}: {title}", k) for n,k in generic]
             for idx,(name,kind) in enumerate(specs,1):
                 rows.append(_v0310_tech_skill(cname,prefix,level,idx,name,kind))
         CLASS_SKILLS[cname]=rows
@@ -2491,7 +2507,9 @@ def _v03014_skill_name_audit():
                 errors.append(f"Powtórzona nazwa {name}: {seen_names[name_key]} / {class_name}")
             else:
                 seen_names[name_key] = class_name
-            if re.search(r"\s\d+$", name):
+            # v0.33.1: cyfry w nazwie wyświetlanej skilla/spella są zabronione.
+            # Progi i warianty należą do pól unlock/id, nie do nazwy dla gracza.
+            if re.search(r"\d", name):
                 numeric_names.append((class_name, name))
             if kind not in valid_kinds:
                 warnings.append(f"{class_name}/{name}: nieznany kind={kind}")
@@ -2501,7 +2519,7 @@ def _v03014_skill_name_audit():
     if numeric_names:
         errors.append(f"Pozostały numerowane nazwy: {len(numeric_names)}")
     return {
-        "version": "0.30.14",
+        "version": "0.33.2",
         "classes": len(CLASS_SKILLS),
         "skills": sum(per_class.values()),
         "renamed": V03014_SKILLS_RENAMED,

@@ -1,3 +1,11 @@
+v0.33.1 — Global Skill/Spell Name Uniqueness Pass
+- Audited all 1722 skills/spells across 14 classes.
+- Removed artificial Mec and Engineer Mk-6A...Mk-40A display-name series.
+- Every generated technology skill now has a distinct descriptive stage name without digits.
+- Final audit: 0 duplicate display names, 0 display names containing digits, 0 validation errors.
+- Internal IDs, Mastery unlock thresholds, balance and mechanics are unchanged.
+- The validator now blocks digits from being reintroduced into skill/spell display names.
+
 v0.33.0 — Full Skill & Equipment Progression Rebalance
 
 - All active abilities across all 14 classes now scale much more strongly with their own Skill Level 1-400.

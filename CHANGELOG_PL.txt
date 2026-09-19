@@ -1,3 +1,18 @@
+v0.33.2 — Crafting Quality persistence + clean item names
+- Naprawiono przeciekanie technicznych ID `craftq_*` do inventory/EQ i odczytu NVDA.
+- Dynamiczne warianty Crafting Quality są odtwarzane z bazy przy starcie serwera.
+- Nowe krytyczne crafty zapisują dokładną wartość affixu w trwałym ID, więc zachowują identyczne statystyki po restarcie.
+- Nazwa krytycznego craftu pokazuje konkretny affix i wartość zamiast ogólnego, powtarzalnego `Krytyczny`.
+- Zachowana zgodność ze starymi ID `craftq_*`; zwykłe/good/excellent/masterwork/legendary warianty odzyskują normalne polskie nazwy.
+
+v0.33.1 — Global Skill/Spell Name Uniqueness Pass
+- Pełny audit wszystkich 1722 skilli/spelli w 14 klasach.
+- Usunięto sztuczne serie nazw Meca i Inżyniera z oznaczeniami Mk-6A...Mk-40A.
+- Każdy wygenerowany skill technologiczny ma teraz własną opisową nazwę etapu bez cyfr.
+- Finalny audit: 0 zduplikowanych nazw, 0 nazw wyświetlanych zawierających cyfry, 0 błędów walidacji.
+- ID, progi Biegłości, balans i mechanika skilli pozostały bez zmian.
+- Walidator blokuje ponowne wprowadzenie cyfr do nazw wyświetlanych skilli/spelli.
+
 v0.33.0 — Full Skill & Equipment Progression Rebalance
 
 - Wszystkie aktywne umiejętności 14 klas skalują się znacznie mocniej z własnym Skill Level 1-400.

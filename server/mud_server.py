@@ -1,6 +1,10 @@
 class MudServer:
     def __init__(self):
         self.db = Database(DB_PATH)
+        self.crafting_quality_restored_v0332 = 0
+        for _item_id in self.db.persisted_crafting_quality_item_ids_v0332():
+            if ensure_crafting_quality_variant_v0332(_item_id):
+                self.crafting_quality_restored_v0332 += 1
         self.mine_startup_reset = self.db.reset_mine_for_server_start()
         self.world = World()
         self.sessions = set()

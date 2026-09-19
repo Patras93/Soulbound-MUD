@@ -1039,7 +1039,7 @@ class SessionCraftingInventoryEquipmentMixin:
                 return
             await self.send("Ekwipunek:")
             for row in rows:
-                item = ITEMS.get(row["item_id"], {"name": row["item_id"], "desc": ""})
+                item = ITEMS.get(row["item_id"]) or ensure_crafting_quality_variant_v0332(row["item_id"]) or {"name": row["item_id"], "desc": ""}
                 bound_text = (
                     " Przypisany do postaci; nie można oddać ani wyrzucić."
                     if is_character_bound_item(row["item_id"])
@@ -1090,7 +1090,7 @@ class SessionCraftingInventoryEquipmentMixin:
                 "bracers": "Karwasze", "relic": "Relikt", "board": "Board",
             }
             for row in rows:
-                item = ITEMS.get(row["item_id"])
+                item = ITEMS.get(row["item_id"]) or ensure_crafting_quality_variant_v0332(row["item_id"])
                 upgrade_level = self.server.db.equipment_upgrade_level_v03042(
                     self.account_id, row["item_id"]
                 ) if item else 0
