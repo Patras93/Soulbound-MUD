@@ -1,3 +1,12 @@
+Soulbound v0.30.47 — Session Modularization & Auditability
+
+- Rozbito monolityczną klasę Session (747 metod, ponad 26 tys. linii) na 14 tematycznych mixinów.
+- Osobne moduły: core/progression, I/O i logowanie, EQ/statystyki, look/mapy, świat/progresja, HELP/kodeks, ruch/party/social, profesje/storage/guide, admin/gathering/sales, crafting/inventory/EQ, questy, skille/combat, forge/gildie oraz command loop.
+- Zachowano oryginalny kod metod bez zmiany mechaniki; finalna klasa Session składa moduły przez wielodziedziczenie.
+- Brak duplikatów nazw metod; wszystkie 747 metod są zachowane dokładnie raz.
+- Dodano manifest i audyt modułów sesji ułatwiający kolejne testy i przeglądy.
+- Deployment nadal używa katalogowej struktury Git/GitHub i nie zawiera bazy graczy ani plików testowych w DEPLOY_ONLY.
+
 Soulbound v0.30.46 — Fine-Grained Modular Core
 - Rozbito 6 dużych modułów v0.30.45 na 22 mniejsze pliki funkcjonalne.
 - Wydzielono osobno Database, Character, Session, MudServer, HELP, audyty, crafting/EQ, lochy, ekonomię/profesje, klasy/skille i generatory świata.

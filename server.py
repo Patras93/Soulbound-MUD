@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #!/usr/bin/env python3
-"""Soulbound v0.30.46 Fine-Grained Modular Core."""
+"""Soulbound v0.30.47 Session Modularization Core."""
 from pathlib import Path
 
 _ROOT = Path(__file__).resolve().parent
@@ -23,6 +23,20 @@ _RUNTIME_MODULES = [
     "world/generation_systems.py",
     "world/runtime_progression.py",
     "world/world_state.py",
+    "player/session_mixins/core_progression.py",
+    "player/session_mixins/io_auth_character.py",
+    "player/session_mixins/equipment_stats.py",
+    "player/session_mixins/perception_maps.py",
+    "player/session_mixins/world_progression.py",
+    "player/session_mixins/help_codex_profile.py",
+    "player/session_mixins/movement_party_social.py",
+    "player/session_mixins/professions_storage_guide.py",
+    "player/session_mixins/admin_gathering_sales.py",
+    "player/session_mixins/crafting_inventory_equipment.py",
+    "player/session_mixins/quests.py",
+    "player/session_mixins/skills_combat.py",
+    "player/session_mixins/forge_guilds.py",
+    "player/session_mixins/command_loop.py",
     "player/session.py",
     "server/mud_server.py",
     "admin/help_refresh.py",
