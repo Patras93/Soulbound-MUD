@@ -278,7 +278,7 @@ class SessionWorldProgressionMixin:
                     continue
                 if v0863_is_boss_template(template):
                     continue
-                result.append((mob_id, template.get("name", mob_id)))
+                result.append((mob_id, template.get("name") or "Nieznany przeciwnik"))
             return result
 
     def generate_bounty_offers(self):
@@ -898,7 +898,7 @@ class SessionWorldProgressionMixin:
                 await self.send(f"{V013_FRONTIER_SPECS[kind]['zone']}: {count} z {total}, {pct}%.")
 
     async def show_collection_world_v015(self):
-            await self.send("COLLECTION CODEX — ŚWIAT v0.15")
+            await self.send("KODEKS KOLEKCJI — ŚWIAT")
             for kind in V013_FRONTIER_SPECS:
                 await self.check_biome_mastery_v015(kind)
             mastery = self.server.db.collection_entry_ids(self.account_id, "biome_mastery_v015")
@@ -1031,7 +1031,7 @@ class SessionWorldProgressionMixin:
             now = time.time()
             bosses = v0160_active_world_bosses(now)
             remaining = max(0, int(bosses[0]["expires_at"]-now)) if bosses else 0
-            await self.send(f"WORLD BOSSY — rotacja za około {remaining} sekund.")
+            await self.send(f"BOSSOWIE ŚWIATA — rotacja za około {remaining} sekund.")
             for i, e in enumerate(bosses,1):
                 template = MOB_TEMPLATES[e["template_id"]]
                 await self.send(f"{i}. {template['name']}. {V013_FRONTIER_SPECS[e['kind']]['zone']}, sektor {e['x']+1}-{e['y']+1}.")
@@ -1215,7 +1215,7 @@ class SessionWorldProgressionMixin:
             total=self.v0210_total_ascension_rank(); wt=self.v0210_world_tier(); best=self.server.db.endless_gauntlet_best_v021(self.account_id)
             t10=sum(1 for fid in V017_ARTIFACTS if v0200_artifact_owned_tier(self.server.db,self.account_id,fid)[0]>=10)
             full=sum(1 for key,count in self.v0210_mythic_set_counts().items() if count>=8)
-            await self.send("MITYCZNA PROGRESJA v0.21")
+            await self.send("MITYCZNA PROGRESJA")
             await self.send(f"Łączna Ranga Wzniesienia: {total}. World Tier: {wt}/10. Endless Gauntlet: najlepsza runda {best}. Artefakty Tier 10: {t10}/5. Sety mityczne z końcowym bonusem 8/13: {full}/5.")
 
     def v022_project_key(self, raw):
@@ -1231,7 +1231,7 @@ class SessionWorldProgressionMixin:
             if q and not key:
                 await self.send("Nie rozpoznaję projektu. Dostępne: port, bridge, tower, settlement."); return
             keys=[key] if key else list(V022_WORLD_PROJECTS)
-            await self.send("WORLD PROJECTS — wspólne, trwałe projekty całego serwera")
+            await self.send("PROJEKTY ŚWIATA — wspólne, trwałe projekty całego serwera")
             for pkey in keys:
                 spec=V022_WORLD_PROJECTS[pkey]; state=self.server.db.world_project_state_v022(pkey); contrib=self.server.db.world_project_contribution_v022(pkey,self.account_id)
                 await self.send(f"{pkey}: {spec['name']}. {'UKOŃCZONY' if state['completed'] else 'w budowie'}. Twój wkład: {contrib['points']} pkt; wymagane do nagrody {spec['min_points']} pkt.")
@@ -1349,21 +1349,21 @@ class SessionWorldProgressionMixin:
                 if glob: await self.send(f"Rekord serwera długości: {format_fish_length(glob['best_length_mm'])} — {glob['length_holder']}. Rekord masy: {format_fish_weight(glob['best_weight_g'])} — {glob['weight_holder']}.")
                 else: await self.send("Rekord serwera: brak.")
                 return
-            rows=self.server.db.fish_journal_rows(self.account_id); await self.send("FISHING RECORDS 2.0")
+            rows=self.server.db.fish_journal_rows(self.account_id); await self.send("REKORDY WĘDKARSKIE")
             if rows:
                 longest=max(rows,key=lambda r:int(r['best_length_mm'] or 0)); heaviest=max(rows,key=lambda r:int(r['best_weight_g'] or 0)); rarest=max(rows,key=lambda r:(v022_fish_rarity_score(str(r['fish_id'])),int(r['best_weight_g'] or 0)))
-                await self.send(f"Twój najdłuższy okaz: {ITEMS.get(longest['fish_id'],{}).get('name',longest['fish_id'])}, {format_fish_length(longest['best_length_mm'])}.")
-                await self.send(f"Twój najcięższy okaz: {ITEMS.get(heaviest['fish_id'],{}).get('name',heaviest['fish_id'])}, {format_fish_weight(heaviest['best_weight_g'])}.")
-                await self.send(f"Twój najrzadszy odkryty gatunek: {ITEMS.get(rarest['fish_id'],{}).get('name',rarest['fish_id'])}, {fish_rarity_label(rarest['fish_id'])}.")
+                await self.send(f"Twój najdłuższy okaz: {player_item_display_name_v0335(longest['fish_id'])}, {format_fish_length(longest['best_length_mm'])}.")
+                await self.send(f"Twój najcięższy okaz: {player_item_display_name_v0335(heaviest['fish_id'])}, {format_fish_weight(heaviest['best_weight_g'])}.")
+                await self.send(f"Twój najrzadszy odkryty gatunek: {player_item_display_name_v0335(rarest['fish_id'])}, {fish_rarity_label(rarest['fish_id'])}.")
             else: await self.send("Nie masz jeszcze zapisanych połowów.")
             personal_rare=self.server.db.fish_rarest_personal_v022(self.account_id)
-            if personal_rare: await self.send(f"Twój najrzadszy okaz: {ITEMS.get(personal_rare['item_id'],ITEMS.get(personal_rare['fish_id'],{})).get('name',personal_rare['fish_id'])}; {personal_rare['rarity_label']}; {format_fish_weight(personal_rare['weight_g'])}.")
+            if personal_rare: await self.send(f"Twój najrzadszy okaz: {player_item_display_name_v0335(personal_rare['item_id'] or personal_rare['fish_id'])}; {personal_rare['rarity_label']}; {format_fish_weight(personal_rare['weight_g'])}.")
             rare=self.server.db.fish_rarest_global_v022()
-            if rare: await self.send(f"Najrzadszy okaz serwera: {ITEMS.get(rare['item_id'],ITEMS.get(rare['fish_id'],{})).get('name',rare['fish_id'])}; {rare['rarity_label']}; {format_fish_weight(rare['weight_g'])}; złowił {rare['holder_name']}.")
+            if rare: await self.send(f"Najrzadszy okaz serwera: {player_item_display_name_v0335(rare['item_id'] or rare['fish_id'])}; {rare['rarity_label']}; {format_fish_weight(rare['weight_g'])}; złowił {rare['holder_name']}.")
             top=self.server.db.fish_global_top_v022(5)
             if top:
                 await self.send("Najcięższe rekordy gatunków na serwerze:")
-                for i,row in enumerate(top,1): await self.send(f"{i}. {ITEMS.get(row['fish_id'],{}).get('name',row['fish_id'])}: {format_fish_weight(row['best_weight_g'])} — {row['weight_holder']}.")
+                for i,row in enumerate(top,1): await self.send(f"{i}. {player_item_display_name_v0335(row['fish_id'])}: {format_fish_weight(row['best_weight_g'])} — {row['weight_holder']}.")
             await self.send("Szczegóły gatunku: rekordyryb <nazwa ryby>.")
 
     def v0200_live_blocking_boss(self, room_id, *, mega=False, gauntlet=False):
@@ -1419,7 +1419,7 @@ class SessionWorldProgressionMixin:
 
     async def show_mythic_bosses_v020(self):
             now=time.time(); entries=v0200_active_mythic_world_bosses(now); remaining=max(0,int(entries[0]['expires_at']-now)) if entries else 0
-            await self.send(f"MITYCZNE WORLD BOSSY — rotacja za około {remaining//60} minut.")
+            await self.send(f"MITYCZNE BOSSOWIE ŚWIATA — rotacja za około {remaining//60} minut.")
             for i,e in enumerate(entries,1):
                 await self.send(f"{i}. {MOB_TEMPLATES[e['template_id']]['name']}. {V013_FRONTIER_SPECS[e['kind']]['zone']}, sektor {e['x']+1}-{e['y']+1}.")
             await self.send("Wszystkie są pasywne. Dają mityczne materiały endgame.")
@@ -1533,17 +1533,17 @@ class SessionWorldProgressionMixin:
             now = time.time()
             events = v0290_active_world_events(now)
             remaining = max(0, int(events[0]["expires_at"] - now)) if events else 0
-            await self.send(f"DYNAMICZNE EVENTY v0.29 — rotacja za około {remaining} sekund.")
+            await self.send(f"DYNAMICZNE WYDARZENIA — rotacja za około {remaining} sekund.")
             if not events:
-                await self.send("Brak aktywnych eventów.")
+                await self.send("Brak aktywnych wydarzeń.")
                 return
             for number, event in enumerate(events, 1):
                 room = ROOMS.get(event["room_id"], {})
                 await self.send(
-                    f"{number}. {event['title']}. {room.get('name', event['room_id'])}. "
+                    f"{number}. {event['title']}. {room.get('name') or 'Nieznana lokacja'}. "
                     f"Etap {event['stage']}. Ranga {event['rank']}. Liczba przeciwników {event['count']}."
                 )
-            await self.send("Wszystkie wygenerowane eventy są pasywne do chwili ataku.")
+            await self.send("Wszystkie aktywne wydarzenia są pasywne do chwili ataku.")
 
     async def show_nemesis_v029(self):
             row = self.server.db.nemesis_row_v029(self.account_id)
@@ -1558,7 +1558,7 @@ class SessionWorldProgressionMixin:
                 return
             room_id = str(row["room_id"])
             self.server.world.ensure_runtime_room(room_id)
-            room_name = ROOMS.get(room_id, {}).get("name", room_id)
+            room_name = ROOMS.get(room_id, {}).get("name") or "Nieznana lokacja"
             await self.send(
                 f"NEMESIS: {row['nemesis_name']}. Ranga {int(row['rank'])}. Etap {int(row['level'])}. "
                 f"Pokonał cię {int(row['kills_player'])} razy. Lokalizacja: {room_name}."
@@ -2030,7 +2030,7 @@ class SessionWorldProgressionMixin:
 
     async def show_collection_v2_classes(self):
             discovered = self.server.db.collection_entry_ids(self.account_id, "equipment")
-            await self.send("COLLECTION CODEX 2.0 — EQ WEDŁUG KLASY")
+            await self.send("KODEKS KOLEKCJI — EQ WEDŁUG KLASY")
             for class_name in sorted(COLLECTION_V2_CLASS_GROUPS, key=normalize_lookup_text):
                 count, total = self._collection_v2_count(COLLECTION_V2_CLASS_GROUPS[class_name], discovered)
                 pct = int(count * 100 / max(1, total))
@@ -2047,7 +2047,7 @@ class SessionWorldProgressionMixin:
             page_size = 30
             pages = max(1, math.ceil(len(rows) / page_size))
             page = max(1, min(int(page), pages))
-            await self.send(f"COLLECTION CODEX 2.0 — SETY. Strona {page} z {pages}; setów {len(rows)}.")
+            await self.send(f"KODEKS KOLEKCJI — SETY. Strona {page} z {pages}; setów {len(rows)}.")
             start = (page - 1) * page_size
             for _key, name, count, total, pct in rows[start:start + page_size]:
                 await self.send(f"{name}: {count} z {total}, {pct}%.")
@@ -2058,14 +2058,14 @@ class SessionWorldProgressionMixin:
             discovered = self.server.db.collection_entry_ids(self.account_id, "equipment")
             all_items = set().union(*COLLECTION_V2_LEGENDARY_GROUPS.values()) if COLLECTION_V2_LEGENDARY_GROUPS else set()
             count, total = self._collection_v2_count(all_items, discovered)
-            await self.send(f"COLLECTION CODEX 2.0 — LEGENDY: {count} z {total}, {int(count*100/max(1,total))}%.")
+            await self.send(f"KODEKS KOLEKCJI — LEGENDY: {count} z {total}, {int(count*100/max(1,total))}%.")
             for class_name in sorted(COLLECTION_V2_LEGENDARY_GROUPS, key=normalize_lookup_text):
                 c, t = self._collection_v2_count(COLLECTION_V2_LEGENDARY_GROUPS[class_name], discovered)
                 await self.send(f"{class_name}: {c} z {t}, {int(c*100/max(1,t))}%.")
 
     async def show_collection_v2_materials(self):
             discovered = self.server.db.collection_entry_ids(self.account_id, "equipment")
-            await self.send("COLLECTION CODEX 2.0 — MATERIAŁOWE EQ")
+            await self.send("KODEKS KOLEKCJI — MATERIAŁOWE EQ")
             for tier in CORPSE_MATERIAL_TIERS:
                 key = tier["key"]
                 c, t = self._collection_v2_count(COLLECTION_V2_MATERIAL_GROUPS.get(key, ()), discovered)
@@ -2073,7 +2073,7 @@ class SessionWorldProgressionMixin:
 
     async def show_collection_v2_regions(self):
             discovered = self.server.db.discovered_room_ids(self.account_id)
-            await self.send("COLLECTION CODEX 2.0 — REGIONY")
+            await self.send("KODEKS KOLEKCJI — REGIONY")
             for zone in sorted(EXPLORATION_ZONE_ROOMS, key=normalize_lookup_text):
                 rooms = EXPLORATION_ZONE_ROOMS[zone]
                 count = sum(1 for room_id in rooms if room_id in discovered)
@@ -2081,7 +2081,7 @@ class SessionWorldProgressionMixin:
                 await self.send(f"{zone}: {count} z {total}, {int(count*100/max(1,total))}%.")
 
     async def show_collection_v2_instances(self):
-            await self.send("COLLECTION CODEX 2.0 — INSTANCJE")
+            await self.send("KODEKS KOLEKCJI — INSTANCJE")
             any_seen = False
             for kind, info in INSTANCE_MAP_DEFS.items():
                 visited = self.server.db.instance_visited_floors(self.account_id, kind)
@@ -2132,7 +2132,7 @@ class SessionWorldProgressionMixin:
             if not norm:
                 discovered_total = 0
                 catalog_total = 0
-                await self.send("COLLECTION CODEX")
+                await self.send("KODEKS KOLEKCJI")
                 for category, catalog in COLLECTION_CATALOGS.items():
                     found = self.server.db.collection_entry_ids(self.account_id, category)
                     count = len(set(catalog).intersection(found))

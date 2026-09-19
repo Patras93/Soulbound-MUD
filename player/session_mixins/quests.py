@@ -662,7 +662,7 @@ class SessionQuestsMixin:
 
             required_soul_level = int(quest.get("required_soul_level", 0) or 0)
             if required_soul_level and self.character.soul_level < required_soul_level:
-                reasons.append(f"wymaga Soul Level {required_soul_level}")
+                reasons.append(f"wymaga Soul Poziom {required_soul_level}")
 
             required_soul_tier = int(quest.get("required_soul_tier", 0) or 0)
             if required_soul_tier and self.character.soul_tier < required_soul_tier:
@@ -674,7 +674,7 @@ class SessionQuestsMixin:
             if profession and min_prof:
                 prow = self.server.db.profession(self.account_id, profession)
                 if int(prow["level"]) < min_prof:
-                    reasons.append(f"wymaga {profession} level {min_prof}")
+                    reasons.append(f"wymaga {profession} poziom {min_prof}")
 
             return reasons
 
@@ -737,7 +737,7 @@ class SessionQuestsMixin:
                     "quest_ids": list(quest_ids),
                 }
 
-            await self.send(f"QUEST LIST: {npc['name']}. {len(quest_ids)} zadań.")
+            await self.send(f"LISTA ZADAŃ: {npc['name']}. {len(quest_ids)} zadań.")
             for number, quest_id in enumerate(quest_ids, 1):
                 quest = QUESTS[quest_id]
                 state = self.quest_offer_state(quest_id)
@@ -1114,7 +1114,7 @@ class SessionQuestsMixin:
             quest = QUESTS[quest_id]
             row = self.server.db.quest(self.account_id, quest_id)
 
-            await self.send(f"QUEST INFO: {quest['name']}.")
+            await self.send(f"INFORMACJE O ZADANIU: {quest['name']}.")
             await self.send(f"NPC: {quest.get('giver', 'brak')}.")
             await self.send(f"Stan: {self.quest_offer_state(quest_id)}.")
             if quest.get("soul_trial_tier"):
@@ -1172,9 +1172,9 @@ class SessionQuestsMixin:
                 quest.get("min_profession_level", quest.get("min_tool_level", 0)) or 0
             )
             if profession and min_profession:
-                requirements.append(f"{profession} level {min_profession}")
+                requirements.append(f"{profession} poziom {min_profession}")
             if quest.get("required_soul_level"):
-                requirements.append(f"Soul Level {quest['required_soul_level']}")
+                requirements.append(f"Soul Poziom {quest['required_soul_level']}")
             if quest.get("required_soul_tier"):
                 requirements.append(f"Soul Tier {quest['required_soul_tier']}")
             if requirements:
@@ -1336,7 +1336,7 @@ class SessionQuestsMixin:
                 "source": "active",
                 "quest_ids": [row["quest_id"] for row in rows],
             }
-            await self.send(f"AKTYWNE QUESTY: {len(rows)}.")
+            await self.send(f"AKTYWNE ZADANIA: {len(rows)}.")
             for number, row in enumerate(rows, 1):
                 quest = QUESTS[row["quest_id"]]
                 progress, ready = self.quest_progress_for_turnin(row["quest_id"])
@@ -1372,7 +1372,7 @@ class SessionQuestsMixin:
                 "source": "completed",
                 "quest_ids": [row["quest_id"] for row in rows],
             }
-            await self.send(f"UKOŃCZONE QUESTY: {len(rows)}.")
+            await self.send(f"UKOŃCZONE ZADANIA: {len(rows)}.")
             for number, row in enumerate(rows, 1):
                 quest = QUESTS[row["quest_id"]]
                 count = int(row["completion_count"] or 0)
@@ -2070,7 +2070,7 @@ class SessionQuestsMixin:
                     required = quest.get("requires_quest")
                     reasons = []
                     if profession and profession_level < minimum:
-                        reasons.append(f"wymaga {profession} level {minimum}")
+                        reasons.append(f"wymaga {profession} poziom {minimum}")
                     if required and not self.quest_completed(required):
                         reasons.append("wymaga ukończenia poprzedniego etapu")
                     state = "zablokowane: " + ", ".join(reasons)
@@ -2240,7 +2240,7 @@ class SessionQuestsMixin:
             if profession not in PROFESSION_RANK_NAMES:
                 return ""
             row = self.server.db.profession(self.account_id, profession)
-            level = max(1, min(profession_max_level(profession), int(row["level"])))
+            poziom = max(1, min(profession_max_level(profession), int(row["level"])))
             rank = profession_rank(level, profession)
             rank_name = profession_rank_name(profession, level)
             stage = profession_npc_reaction_stage(rank)
@@ -2253,7 +2253,7 @@ class SessionQuestsMixin:
                     "Widzę twój rozwój w tej profesji. Im wyższa ranga, "
                     "tym bardziej rozmówcy traktują cię jak doświadczonego fachowca."
                 )
-            return f"Twoja ranga: {rank_name}, level {level}. {reaction}"
+            return f"Twoja ranga: {rank_name}, poziom {level}. {reaction}"
 
     async def talk(self, query):
             raw_query = str(query or "").strip()

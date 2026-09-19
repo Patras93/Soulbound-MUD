@@ -384,10 +384,10 @@ class SessionHelpCodexProfileMixin:
                 level = max(1, int(progress.get("level", 1)))
                 effective_cd = self.effective_skill_cooldown(skill, level)
                 if level >= SKILL_MAX_LEVEL:
-                    progress_text = f"Skill Level {level}, maksymalny"
+                    progress_text = f"Skill Poziom {level}, maksymalny"
                 else:
                     progress_text = (
-                        f"Skill Level {level}, XP {progress.get('xp', 0)} z "
+                        f"Skill Poziom {level}, XP {progress.get('xp', 0)} z "
                         f"{skill_xp_to_next(level)}, użycia {progress.get('uses', 0)}"
                     )
                 await self.send(
@@ -514,11 +514,11 @@ class SessionHelpCodexProfileMixin:
                     req_level = max(1, int(item.get("required_character_level", item.get("required_mastery", 1)) or 1))
                     parts.append(
                         f"Wymagana aktywna klasa: {item['required_class']}. "
-                        f"Wymagany Level postaci: {req_level}."
+                        f"Wymagany Poziom postaci: {req_level}."
                     )
                 elif int(item.get("required_character_level", item.get("required_mastery", 1)) or 1) > 1:
                     parts.append(
-                        f"Wymagany Level postaci: {int(item.get('required_character_level', item.get('required_mastery', 1)) or 1)}."
+                        f"Wymagany Poziom postaci: {int(item.get('required_character_level', item.get('required_mastery', 1)) or 1)}."
                     )
                 if item.get("class_shop_item") and item.get("required_class"):
                     class_name = item["required_class"]
@@ -564,7 +564,7 @@ class SessionHelpCodexProfileMixin:
                     )
             elif item.get("type") == "tool":
                 tool = "Wędka" if item.get("tool_type") == "fishing" else "Kilof"
-                parts.append(f"Narzędzie profesji: {tool}. Ma własny level 1-400 i osobny XP.")
+                parts.append(f"Narzędzie profesji: {tool}. Ma własny poziom 1-400 i osobny XP.")
             elif "heal" in item:
                 parts.append(f"Leczenie: {item['heal']} HP.")
             elif "soul_xp" in item:
@@ -1107,9 +1107,9 @@ class SessionHelpCodexProfileMixin:
             rows = self.atlas_resource_requirement_rows(base_id)
             if rows:
                 tool, minimum = self.atlas_resource_min_level(base_id)
-                await self.send(f"Minimalny wymagany level: {tool} {minimum}+.")
+                await self.send(f"Minimalny wymagany poziom: {tool} {minimum}+.")
                 for place, row_tool, level in rows:
-                    await self.send(f"{place}: {row_tool} level {level}+.")
+                    await self.send(f"{place}: {row_tool} poziom {level}+.")
             else:
                 await self.send("Brak danych o miejscu pozyskania tego surowca.")
 
@@ -1492,7 +1492,7 @@ class SessionHelpCodexProfileMixin:
                 tool, minimum = self.atlas_resource_min_level(item_id)
                 if tool is not None:
                     await self.send(
-                        f"Minimalny wymagany level: {tool} {minimum}+. "
+                        f"Minimalny wymagany poziom: {tool} {minimum}+. "
                         "Dokładne poziomy dla każdej lokacji: atlas "
                         f"{item['name']}."
                     )
@@ -1743,15 +1743,15 @@ class SessionHelpCodexProfileMixin:
             await self.send(f"Mana: {self.current_mana} z {self.max_mana()}.")
 
     async def show_character_level(self):
-            """Krótki Level postaci 1-400, niezależny od Soul Levelu."""
+            """Krótki Poziom postaci 1-400, niezależny od Soul Levelu."""
             c = self.character
             if c.character_level >= CHARACTER_MAX_LEVEL:
-                await self.send(f"Level postaci: {CHARACTER_MAX_LEVEL}/{CHARACTER_MAX_LEVEL}. Maksymalny poziom.")
+                await self.send(f"Poziom postaci: {CHARACTER_MAX_LEVEL}/{CHARACTER_MAX_LEVEL}. Maksymalny poziom.")
                 return
             needed = character_xp_to_next(c.character_level)
             missing = max(0, int(needed) - int(c.character_xp))
             await self.send(
-                f"Level postaci: {c.character_level}/{CHARACTER_MAX_LEVEL}. "
+                f"Poziom postaci: {c.character_level}/{CHARACTER_MAX_LEVEL}. "
                 f"EXP {c.character_xp} z {needed}. Brakuje {missing} EXP do Levelu {c.character_level + 1}."
             )
 
@@ -1759,7 +1759,7 @@ class SessionHelpCodexProfileMixin:
             """Stan EXP postaci z dokładną liczbą brakującą do następnego Levelu."""
             c = self.character
             if c.character_level >= CHARACTER_MAX_LEVEL:
-                await self.send(f"EXP postaci: maksimum. Level {CHARACTER_MAX_LEVEL}/{CHARACTER_MAX_LEVEL}.")
+                await self.send(f"EXP postaci: maksimum. Poziom {CHARACTER_MAX_LEVEL}/{CHARACTER_MAX_LEVEL}.")
                 return
             needed = character_xp_to_next(c.character_level)
             missing = max(0, int(needed) - int(c.character_xp))
@@ -1778,7 +1778,7 @@ class SessionHelpCodexProfileMixin:
             await self.send(f"Postać: {c.name}.")
             await self.send(f"Rasa: {c.race}.")
             await self.send(f"Klasa główna: {c.class_name}.")
-            await self.send(f"Level postaci: {c.character_level}/400. EXP: {c.character_xp} z {character_xp_to_next(c.character_level) if c.character_level < 400 else 0}.")
+            await self.send(f"Poziom postaci: {c.character_level}/400. EXP: {c.character_xp} z {character_xp_to_next(c.character_level) if c.character_level < 400 else 0}.")
             for class_name in active_classes:
                 await self.send(
                     f"Biegłość {class_name}: {self.class_mastery_level(class_name)}/{CLASS_MASTERY_MAX_LEVEL}."
@@ -1803,7 +1803,7 @@ class SessionHelpCodexProfileMixin:
                 )
                 + "."
             )
-            await self.send(f"Lokacja: {room.get('name', c.room_id)}.")
+            await self.send(f"Lokacja: {room.get('name') or 'Nieznana lokacja'}.")
             await self.send(f"Strefa: {room.get('zone', 'brak')}.")
             area = self.exp_area_for_room(c.room_id)
             if area:
@@ -2226,7 +2226,7 @@ class SessionHelpCodexProfileMixin:
                 if c.soul_level < SOUL_MAX_LEVEL:
                     if c.soul_progress_is_tier_locked():
                         await self.send(
-                            f"Soul XP: ZABLOKOWANY na Soul Level {c.soul_level}. "
+                            f"Soul XP: ZABLOKOWANY na Soul Poziom {c.soul_level}. "
                             f"Najpierw odblokuj Tier {min(SOUL_MAX_TIER, c.soul_tier + 1)}."
                         )
                     else:
@@ -2262,7 +2262,7 @@ class SessionHelpCodexProfileMixin:
             if c.soul_level < SOUL_MAX_LEVEL:
                 if c.soul_progress_is_tier_locked():
                     await self.send(
-                        f"Soul XP: ZABLOKOWANY na Soul Level {c.soul_level}. "
+                        f"Soul XP: ZABLOKOWANY na Soul Poziom {c.soul_level}. "
                         f"Najpierw odblokuj Tier {min(SOUL_MAX_TIER, c.soul_tier + 1)}."
                     )
                 else:

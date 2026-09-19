@@ -8,13 +8,13 @@ class SessionProfessionsStorageGuideMixin:
                 if profession is not None
                 else PROFESSION_MAX_LEVEL
             )
-            if level >= max_level:
+            if poziom >= max_level:
                 return 0
             return v0190_requirement("profession", level)
 
     def tool_xp_to_next(self, level, tool_type=None):
             max_level = tool_max_level(tool_type)
-            if level >= max_level:
+            if poziom >= max_level:
                 return 0
 
             return v0190_requirement("tool", level)
@@ -143,7 +143,7 @@ class SessionProfessionsStorageGuideMixin:
                         break
                     txp -= needed
                     tlevel += 1
-                    messages.append(f"{tool_name} osiąga level {tlevel}.")
+                    messages.append(f"{tool_name} osiąga poziom {tlevel}.")
                 if tlevel >= tool_level_cap:
                     tlevel = tool_level_cap
                     txp = 0
@@ -170,7 +170,7 @@ class SessionProfessionsStorageGuideMixin:
             if not self.valid_tool_type(tool_type):
                 raise ValueError(f"Nieznany typ narzędzia: {tool_type}")
             row = self.server.db.tool(self.account_id, tool_type)
-            level = int(row["level"])
+            poziom = int(row["level"])
             old_tier = tool_tier(level)
             tool_xp = v0190_scaled_gain(tool_xp, level, "tool", 12)
             tool_xp = self.apply_double_xp(tool_xp)
@@ -192,16 +192,16 @@ class SessionProfessionsStorageGuideMixin:
             messages = [f"{tool_name}: +{tool_xp} XP narzędzia."]
 
             tool_level_cap = tool_max_level(tool_type)
-            while level < tool_level_cap:
+            while poziom < tool_level_cap:
                 needed = self.tool_xp_to_next(level, tool_type)
                 if xp < needed:
                     break
                 xp -= needed
-                level += 1
-                messages.append(f"{tool_name} osiąga level {level}.")
+                poziom += 1
+                messages.append(f"{tool_name} osiąga poziom {level}.")
 
-            if level >= tool_level_cap:
-                level = tool_level_cap
+            if poziom >= tool_level_cap:
+                poziom = tool_level_cap
                 xp = 0
 
             self.server.db.save_tool(
@@ -466,7 +466,7 @@ class SessionProfessionsStorageGuideMixin:
                 return
             total=0
             for row in filtered:
-                item=ITEMS.get(str(row["item_id"]), {"name":str(row["item_id"])})
+                item=ITEMS.get(str(row["item_id"]), {"name":player_item_display_name_v0335(str(row["item_id"]))})
                 qty=int(row["quantity"]); total+=qty
                 await self.send(f"{item['name']} x{qty}.")
             await self.send(f"Łącznie w tej kategorii: {total} sztuk, {len(filtered)} rodzajów.")
@@ -646,7 +646,7 @@ class SessionProfessionsStorageGuideMixin:
             row = self.server.db.tool(
                 self.account_id, tool_type
             )
-            level = int(row["level"])
+            poziom = int(row["level"])
             tool_xp = v0190_scaled_gain(tool_xp, level, "tool", 12)
             tool_xp = self.apply_double_xp(tool_xp)
             self.session_summary_add("tool_xp", tool_xp, tool_type)
@@ -669,20 +669,20 @@ class SessionProfessionsStorageGuideMixin:
             )
 
             cap = tool_max_level(tool_type)
-            while level < cap:
+            while poziom < cap:
                 needed = self.tool_xp_to_next(
                     level, tool_type
                 )
                 if xp < needed:
                     break
                 xp -= needed
-                level += 1
+                poziom += 1
                 await self.send(
-                    f"{tool_name} osiąga level {level}."
+                    f"{tool_name} osiąga poziom {level}."
                 )
 
-            if level >= cap:
-                level = cap
+            if poziom >= cap:
+                poziom = cap
                 xp = 0
 
             self.server.db.save_tool(
@@ -767,7 +767,7 @@ class SessionProfessionsStorageGuideMixin:
                     break
                 txp -= needed
                 tlevel += 1
-                await self.send(f"{tool_name} osiąga level {tlevel}.")
+                await self.send(f"{tool_name} osiąga poziom {tlevel}.")
 
             if tlevel >= tool_level_cap:
                 tlevel = tool_level_cap
@@ -2070,7 +2070,7 @@ class SessionProfessionsStorageGuideMixin:
                     if self.astral_entry_blocked(next_room):
                         await self.send(
                             f"Prowadzenie zatrzymane. Wieża Astralna wymaga "
-                            f"Soul Level {ASTRAL_MIN_SOUL_LEVEL}."
+                            f"Soul Poziom {ASTRAL_MIN_SOUL_LEVEL}."
                         )
                         break
                     if self.mine_descent_blocked_for_player(old, direction):
@@ -2556,14 +2556,14 @@ class SessionProfessionsStorageGuideMixin:
             await self.send("PROFESJE INFO" if detailed else "PROFESJE")
             for name in professions:
                 row = self.server.db.profession(self.account_id, name)
-                level = int(row["level"])
+                poziom = int(row["level"])
                 max_level = profession_max_level(name)
                 rank = profession_rank(level, name)
                 max_rank = profession_max_rank(name)
                 rank_name = profession_rank_name(name, level)
                 if not detailed:
                     await self.send(
-                        f"{name}: level {level}/{max_level}, ranga {rank}/{max_rank}: {rank_name}."
+                        f"{name}: poziom {level}/{max_level}, ranga {rank}/{max_rank}: {rank_name}."
                     )
                     continue
                 thresholds = profession_rank_thresholds(name)
@@ -2572,16 +2572,16 @@ class SessionProfessionsStorageGuideMixin:
                 else:
                     next_rank = "Ranga maksymalna."
                 xp_text = (
-                    "maksimum" if level >= max_level else
+                    "maksimum" if poziom >= max_level else
                     f"{row['xp']} z {self.profession_xp_to_next(level, name)}"
                 )
                 await self.send(
-                    f"{name}: level {level}/{max_level}. Ranga {rank}/{max_rank}: {rank_name}. "
+                    f"{name}: poziom {level}/{max_level}. Ranga {rank}/{max_rank}: {rank_name}. "
                     f"XP {xp_text}. Akcje {row['actions']}. {next_rank}"
                 )
             if detailed:
                 await self.send(
-                    "Maksimum wszystkich dwunastu profesji: level 400."
+                    "Maksimum wszystkich dwunastu profesji: poziom 400."
                 )
                 await self.send(
                     "Poziom profesji skraca czas pracy i blokuje receptury/zlecenia. "
@@ -2656,7 +2656,7 @@ class SessionProfessionsStorageGuideMixin:
             return generator_core_v027.profession_action_seconds(tool_type, profession_level)
 
     def tool_action_seconds(self, tool_type, profession_level):
-            """Alias zgodności: od v0.8.66 argument oznacza level PROFESJI, nie narzędzia."""
+            """Alias zgodności: od v0.8.66 argument oznacza poziom PROFESJI, nie narzędzia."""
             return self.profession_action_seconds(tool_type, profession_level)
 
     def recipe_action_seconds(self, tool_type, profession_level, recipe):
@@ -2685,7 +2685,7 @@ class SessionProfessionsStorageGuideMixin:
 
     def tool_xp_remaining_to_level(self, level, xp, tool_type=None):
             max_level = tool_max_level(tool_type)
-            if level >= max_level:
+            if poziom >= max_level:
                 return 0
             return max(
                 0,
@@ -2759,7 +2759,7 @@ class SessionProfessionsStorageGuideMixin:
                 return
 
             row = self.server.db.tool(self.account_id, tool_type)
-            level = int(row["level"])
+            poziom = int(row["level"])
             xp = int(row["xp"])
             uses = int(row["uses"])
             tier = tool_tier(level)
@@ -2773,7 +2773,7 @@ class SessionProfessionsStorageGuideMixin:
                 f"Aktualna nazwa narzędzia: {tier_name}."
             )
             await self.send(
-                f"Level: {level} z {max_level}. "
+                f"Poziom: {level} z {max_level}. "
                 f"Użycia: {uses}."
             )
             profession = profession_for_tool_type(tool_type)
@@ -2781,10 +2781,10 @@ class SessionProfessionsStorageGuideMixin:
             await self.send(
                 f"{self.tool_action_label(tool_type)}: "
                 f"{self.profession_action_seconds(tool_type, profession_level)} sekund. "
-                f"Tempo daje {profession} level {profession_level}; level narzędzia nie skraca czasu."
+                f"Tempo daje {profession} poziom {profession_level}; poziom narzędzia nie skraca czasu."
             )
 
-            if level >= max_level:
+            if poziom >= max_level:
                 await self.send("XP: maksimum. Do następnego levelu: maksimum.")
             else:
                 needed = self.tool_xp_to_next(level, tool_type)
@@ -2870,18 +2870,18 @@ class SessionProfessionsStorageGuideMixin:
                         await self.send(f"{name}: brak.")
                     continue
                 row = self.server.db.tool(self.account_id, tool_type)
-                level = int(row["level"])
+                poziom = int(row["level"])
                 max_level = tool_max_level(tool_type)
                 tier = tool_tier(level)
                 tier_name = tool_tier_name(tool_type, level)
                 if not detailed:
                     await self.send(
-                        f"{name}: level {level}/{max_level}, Tier {tier}/{TOOL_MAX_TIER}: {tier_name}."
+                        f"{name}: poziom {level}/{max_level}, Tier {tier}/{TOOL_MAX_TIER}: {tier_name}."
                     )
                     continue
                 bonus_percent = int(tool_tier_bonus_chance(level) * 100)
                 xp_text = (
-                    "maksimum" if level >= max_level else
+                    "maksimum" if poziom >= max_level else
                     f"{row['xp']} z {self.tool_xp_to_next(level, tool_type)}"
                 )
                 if tier < TOOL_MAX_TIER:
@@ -2889,7 +2889,7 @@ class SessionProfessionsStorageGuideMixin:
                 else:
                     next_text = "Tier maksymalny."
                 await self.send(
-                    f"{name}: {tier_name}. Level {level}/{max_level}. Tier {tier}/{TOOL_MAX_TIER}. "
+                    f"{name}: {tier_name}. Poziom {level}/{max_level}. Tier {tier}/{TOOL_MAX_TIER}. "
                     f"XP {xp_text}. Użycia {row['uses']}. "
                     f"{self.tool_action_label(tool_type)}: {self.profession_action_seconds(tool_type, self.profession_level_for_tool(tool_type))} sekund "
                     f"(tempo z {profession_for_tool_type(tool_type)}). "
@@ -2991,11 +2991,11 @@ class SessionProfessionsStorageGuideMixin:
             pool = tuple(self.fishing_ecology_pool(tool_level, habitat=habitat, room_id=self.character.room_id))
             room = ROOMS.get(self.character.room_id, {})
             await self.send(
-                f"ŁOWISKO: {water_type}. Lokacja: {room.get('name', self.character.room_id)}."
+                f"ŁOWISKO: {water_type}. Lokacja: {room.get('name') or 'Nieznana lokacja'}."
             )
             await self.send(
                 f"Ekosystem ryb: {FISHING_HABITAT_LABELS.get(habitat, habitat)}. "
-                f"Wędka level {tool_level}, Tier {tool_tier(tool_level)}. "
+                f"Wędka poziom {tool_level}, Tier {tool_tier(tool_level)}. "
                 f"Dostępnych teraz gatunków: {len(pool)}."
             )
 
@@ -3030,7 +3030,7 @@ class SessionProfessionsStorageGuideMixin:
                 next_level, next_item = locked[0]
                 await self.send(
                     f"Kolejny gatunek wymaga wyższego Tieru Wędki; "
-                    f"najbliższy próg zasobu to level {next_level}: {ITEMS[next_item]['name']}."
+                    f"najbliższy próg zasobu to poziom {next_level}: {ITEMS[next_item]['name']}."
                 )
             else:
                 await self.send("Masz odblokowane wszystkie ryby tego ekosystemu.")

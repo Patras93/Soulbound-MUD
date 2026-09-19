@@ -366,7 +366,7 @@ class SessionAdminGatheringSalesMixin:
                 if global_record_v022.get("new_global_length"): parts.append("rekord długości serwera")
                 if global_record_v022.get("new_global_weight"): parts.append("rekord masy serwera")
                 if global_record_v022.get("new_global_rarest"): parts.append("najrzadszy okaz serwera")
-                await self.send("FISHING RECORDS 2.0 — " + ", ".join(parts) + ".")
+                await self.send("REKORDY WĘDKARSKIE — " + ", ".join(parts) + ".")
 
             await self.announce_resource_quest_progress(
                 item_id, resource_quest_quantity
@@ -401,7 +401,7 @@ class SessionAdminGatheringSalesMixin:
             await self.sync_extended_achievements()
             if new_tool_level != tool_level:
                 await self.send(
-                    f"Wędka ma teraz level {new_tool_level}, Tier "
+                    f"Wędka ma teraz poziom {new_tool_level}, Tier "
                     f"{tool_tier(new_tool_level)}: "
                     f"{tool_tier_name('fishing', new_tool_level)}."
                 )
@@ -546,13 +546,13 @@ class SessionAdminGatheringSalesMixin:
             await self.sync_extended_achievements()
             if new_tool_level != tool_level:
                 await self.send(
-                    f"Kilof ma teraz level {new_tool_level}, Tier "
+                    f"Kilof ma teraz poziom {new_tool_level}, Tier "
                     f"{tool_tier(new_tool_level)}: "
                     f"{tool_tier_name('mining', new_tool_level)}."
                 )
             if new_tool_level >= 80 and tool_level < 80:
                 await self.send(
-                    "Twój Kilof osiągnął level 80. Od poziomu kopalni 80 możesz znaleźć mithril bezpośrednio jako walutę."
+                    "Twój Kilof osiągnął poziom 80. Od poziomu kopalni 80 możesz znaleźć mithril bezpośrednio jako walutę."
                 )
 
             floor = mine_floor_number(self.character.room_id)
@@ -671,7 +671,7 @@ class SessionAdminGatheringSalesMixin:
             await self.sync_extended_achievements()
             if new_tool_level != tool_level:
                 await self.send(
-                    f"Piła ma teraz level {new_tool_level}, Tier "
+                    f"Piła ma teraz poziom {new_tool_level}, Tier "
                     f"{tool_tier(new_tool_level)}: "
                     f"{tool_tier_name('woodcutting', new_tool_level)}."
                 )
@@ -767,7 +767,7 @@ class SessionAdminGatheringSalesMixin:
             await self.sync_extended_achievements()
             if new_tool_level != old_level:
                 await self.send(
-                    f"Sierp Zielarski ma teraz level {new_tool_level}, Tier "
+                    f"Sierp Zielarski ma teraz poziom {new_tool_level}, Tier "
                     f"{tool_tier(new_tool_level)}: {tool_tier_name('herbalism', new_tool_level)}."
                 )
 
@@ -976,7 +976,7 @@ class SessionAdminGatheringSalesMixin:
 
             profession, _tool_type = definition
             prow = self.server.db.profession(self.account_id, profession)
-            level = int(prow["level"])
+            poziom = int(prow["level"])
             # 1 bazowy XP za sztukę; Wędkarstwo v0.9.6 kompensuje szybszy endgame.
             xp_scale = v096_fishing_reward_scale(level) if container == "net" else 1.0
             actual_xp = max(1, int(round(units * PROFESSION_XP_GAIN_MULTIPLIER * xp_scale)))
@@ -990,16 +990,16 @@ class SessionAdminGatheringSalesMixin:
                 f"za {units} sztuk."
             ]
 
-            while level < cap:
+            while poziom < cap:
                 needed = self.profession_xp_to_next(level, profession)
                 if xp < needed:
                     break
                 xp -= needed
-                level += 1
+                poziom += 1
                 messages.append(f"{profession} osiąga poziom {level}.")
 
-            if level >= cap:
-                level = cap
+            if poziom >= cap:
+                poziom = cap
                 xp = 0
 
             self.server.db.save_profession(

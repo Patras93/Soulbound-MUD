@@ -17,7 +17,7 @@ class SessionProgressionAccessibilityV03052Mixin:
         secret_catalog=set(V0260_MUSEUM_CATALOGS.get('secrets',()))
         secrets=self.v0260_museum_found_ids('secrets')
         categories=[('Ryby',len(fish_seen&fish),len(fish)),('Rudy',len(ore_seen&ores),len(ores)),('Sety',len(set_seen&set_catalog),len(set_catalog)),('Bossowie',len(boss_seen&bosses),len(bosses)),('Rare moby',len(rare_seen&rare),len(rare)),('Sekrety',len(secrets&secret_catalog),len(secret_catalog))]
-        await self.send('COLLECTION CODEX 2.0 — PODSUMOWANIE')
+        await self.send('KODEKS KOLEKCJI — PODSUMOWANIE')
         for name,c,t in categories: await self.send(f'{name}: {c} z {t}, {self._pct52(c,t)}%.')
         if q in ('braki','missing','brakujace','brakujące'):
             miss_f=[ITEMS.get(x,{}).get('name',x) for x in sorted(fish-fish_seen,key=str)][:30]
@@ -38,7 +38,7 @@ class SessionProgressionAccessibilityV03052Mixin:
             found=db.collection_entry_ids(aid,cat); coll_c+=len(set(catalog)&found); coll_t+=len(catalog)
         parts=[('Świat',world,world_total),('Profesje',prof_score,prof_total),('Bossowie',boss_score,len(bosses)),('Kolekcje',coll_c,coll_t)]
         vals=[]
-        await self.send('COMPLETION % 2.0')
+        await self.send('UKOŃCZENIE GRY')
         for n,c,t in parts:
             p=self._pct52(c,t); vals.append(p); await self.send(f'{n}: {p}% ({c}/{t}).')
         await self.send(f'Cała gra: {int(round(sum(vals)/len(vals)))}%.')
@@ -68,7 +68,7 @@ class SessionProgressionAccessibilityV03052Mixin:
         if q in ('rekordy','records'):
             await rows('Ranking największego krytyka',"SELECT c.name name, pr.value score FROM player_records_v03051 pr JOIN characters c ON c.account_id=pr.account_id WHERE pr.record_key='biggest_crit' ORDER BY score DESC,c.name COLLATE NOCASE LIMIT 20")
             return
-        await self.send('LEADERBOARDS 2.0: leaderboards profesje, bossowie, kolekcje, rekordy, gildie, mentorzy. Klasyczne rankingi lochów nadal działają przez leaderboards krypta/astral itd.')
+        await self.send('RANKINGI: leaderboards profesje, bossowie, kolekcje, rekordy, gildie, mentorzy. Klasyczne rankingi lochów nadal działają przez leaderboards krypta/astral itd.')
 
     async def mentor_v03052(self,args=''):
         raw=str(args or '').strip(); q=normalize_lookup_text(raw)
@@ -96,7 +96,7 @@ class SessionProgressionAccessibilityV03052Mixin:
         conn=self.server.db.conn; aid=self.account_id
         if act in ('rooms','pokoje'):
             rows=conn.execute("SELECT room_key,room_name,decor,station FROM housing_rooms_v03052 WHERE account_id=? ORDER BY room_key",(aid,)).fetchall()
-            await self.send('HOUSING 2.0 — POKOJE:')
+            await self.send('DOM — POKOJE:')
             if not rows: await self.send('Brak dodatkowych pokoi. Użyj: house room add <nazwa>.'); return
             for r in rows: await self.send(f"{r['room_key']}: {r['room_name']}. Stacja: {r['station'] or 'brak'}. Dekoracja: {r['decor'] or 'brak'}.")
             return
@@ -122,24 +122,24 @@ class SessionProgressionAccessibilityV03052Mixin:
         q=normalize_lookup_text(args or '')
         # Existing world transport remains authoritative; this adds named categories/help.
         if not q:
-            await self.send('TRANSPORT 2.0: łodzie łączą porty i wybrzeża; wozy — miasta/osady; windy — kopalnie; portale — odblokowane punkty lochów. Następnie wybierz cel przez transport <cel>.')
+            await self.send('TRANSPORT: łodzie łączą porty i wybrzeża; wozy — miasta/osady; windy — kopalnie; portale — odblokowane punkty lochów. Następnie wybierz cel przez transport <cel>.')
         return await self.handle_transport_v018(args)
 
     async def death_recap_v03052(self):
         r=self.server.db.conn.execute("SELECT killer,room_id,damage_taken,duration_ms,created_at FROM death_recaps_v03052 WHERE account_id=? ORDER BY id DESC LIMIT 1",(self.account_id,)).fetchone()
         if not r: await self.send('Brak zapisanego Death Recap.'); return
-        room=ROOMS.get(r['room_id'],{}).get('name',r['room_id']); await self.send(f"DEATH RECAP: pokonał cię {r['killer']}; miejsce {room}; otrzymane obrażenia {r['damage_taken']}; czas walki {int(r['duration_ms'])/1000:.1f} s.")
+        room=ROOMS.get(r['room_id'],{}).get('name') or 'Nieznana lokacja'; await self.send(f"PODSUMOWANIE ŚMIERCI: pokonał cię {r['killer']}; miejsce {room}; otrzymane obrażenia {r['damage_taken']}; czas walki {int(r['duration_ms'])/1000:.1f} s.")
 
     async def combat_recap_v03052(self):
         r=self.server.db.conn.execute("SELECT * FROM combat_recaps_v03052 WHERE account_id=? ORDER BY id DESC LIMIT 1",(self.account_id,)).fetchone()
         if not r: await self.send('Brak zapisanego Combat Recap.'); return
-        await self.send(f"COMBAT RECAP: {r['opponent']}; wynik {r['result'] or 'brak'}; czas {int(r['duration_ms'])/1000:.1f} s; damage {r['damage_dealt']}; otrzymane {r['damage_taken']}; leczenie {r['healing']}; crit {r['crits']}; skille {r['skills_used']}.")
+        await self.send(f"PODSUMOWANIE WALKI: {r['opponent']}; wynik {r['result'] or 'brak'}; czas {int(r['duration_ms'])/1000:.1f} s; damage {r['damage_dealt']}; otrzymane {r['damage_taken']}; leczenie {r['healing']}; crit {r['crits']}; skille {r['skills_used']}.")
 
     async def loot_history_v03052(self,args=''):
         raw=str(args or '').strip(); q=normalize_lookup_text(raw); rows=self.server.db.conn.execute("SELECT item_name,rarity,source,zone,created_at FROM drop_history WHERE account_id=? ORDER BY id DESC LIMIT 100",(self.account_id,)).fetchall()
         if q:
             rows=[r for r in rows if q in normalize_lookup_text(' '.join(str(r[k] or '') for k in ('item_name','rarity','source','zone')))]
-        await self.send(f'LOOT HISTORY 2.0: wyników {len(rows)}.')
+        await self.send(f'HISTORIA ŁUPÓW: wyników {len(rows)}.')
         for i,r in enumerate(rows[:30],1): await self.send(f"{i}. {r['item_name']}; {r['rarity']}; {r['source'] or 'źródło nieznane'}; {r['zone'] or 'strefa nieznana'}.")
         if not rows: await self.send('Brak pasujących dropów.')
 

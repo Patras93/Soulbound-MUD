@@ -325,7 +325,7 @@ def skill_power_multiplier(level):
 def skill_cooldown_multiplier(level):
     return generator_core_v027.skill_cooldown_factor(level)
 
-# v0.34.7: osobna biegłość zwykłego ataku Broni Duszy.
+# v0.35.0: osobna biegłość zwykłego ataku Broni Duszy.
 # Nie rozwija skilli/spelli i nie jest Soul Levelem ani Biegłością klasy.
 SOUL_WEAPON_MASTERY_MAX_LEVEL = 400
 

@@ -54,7 +54,7 @@ class SessionMilestoneV0320Mixin:
 
     async def party_quest_status_v0320(self):
         members=self.server.party_sessions(self.account_id,same_room=self.character.room_id)
-        await self.send(f"PARTY QUEST PROGRESS 2.0: obok {len(members)} członków. Kill questy i boss kill credit liczą się każdemu obok. Gather/craft pozostają wyłącznie osobiste.")
+        await self.send(f"POSTĘP ZADAŃ DRUŻYNY: obok {len(members)} członków. Kill questy i boss kill credit liczą się każdemu obok. Gather/craft pozostają wyłącznie osobiste.")
 
     async def dungeon_party_bonus_status_v0320(self):
         st=dungeon_party_bonus_v0320(self)
@@ -70,7 +70,7 @@ class SessionMilestoneV0320Mixin:
         else:
             await SessionProgressionAccessibilityV03052Mixin.combat_recap_v03052(self)
         if summary:
-            await self.send(f"RECAP 2.0: finalny cios: {summary['final_blow'] or 'brak'}; przyczyna: {summary['cause'] or 'brak'}; leczenie uratowało {int(summary['healing_saved'])} HP; guard uratował {int(summary['guard_saved'])} obrażeń.")
+            await self.send(f"PODSUMOWANIE: finalny cios: {summary['final_blow'] or 'brak'}; przyczyna: {summary['cause'] or 'brak'}; leczenie uratowało {int(summary['healing_saved'])} HP; guard uratował {int(summary['guard_saved'])} obrażeń.")
         events=list(reversed(self.server.db.combat_events_v0320(self.account_id,10)))
         if events:
             await self.send(f"Ostatnie zdarzenia walki: {len(events)}.")

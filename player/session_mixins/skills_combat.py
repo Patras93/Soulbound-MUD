@@ -2251,7 +2251,7 @@ class SessionSkillsCombatMixin:
                         await self.send(f"Brak wolnego slotu Upgrade. Masz {len(current)}/{self.engineer_upgrade_slots_v0317()}. Użyj Upgrade reset albo naucz się Silver Gear / Gold Battery.")
                         return
                     if self.available_recipe_item("engineer_upgrade_kit") <= 0:
-                        await self.send("Upgrade 2.0 wymaga 1 Zestawu Upgrade Inżyniera. Wykonaj go przez techcraft zestaw upgrade.")
+                        await self.send("Ulepszenie wymaga 1 Zestawu Upgrade Inżyniera. Wykonaj go przez techcraft zestaw upgrade.")
                         return
                     if not self.consume_recipe_item("engineer_upgrade_kit", 1):
                         await self.send("Nie udało się pobrać Zestawu Upgrade Inżyniera.")
@@ -3295,7 +3295,7 @@ class SessionSkillsCombatMixin:
             template = MOB_TEMPLATES[mob.template_id]
             self._last_mana_focus_gain = 0
             damage = self.player_damage()
-            # v0.34.7: Soul Weapon Mastery wzmacnia wyłącznie zwykły atak broni.
+            # v0.35.0: Soul Weapon Mastery wzmacnia wyłącznie zwykły atak broni.
             mastery = soul_weapon_mastery_bonuses(self.character.soul_weapon_mastery_level)
             damage = max(1, int(round(damage * (1.0 + mastery["damage_percent"] / 100.0))))
             # v0.33.16: właściwości Soul Tier działają tylko na zwykły atak

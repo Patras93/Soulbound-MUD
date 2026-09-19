@@ -354,7 +354,7 @@ class SessionIOAuthCharacterMixin:
             await self.send(f"SOULBOUND ONLINE v{VERSION}")
             await self.send("ENCODING: UTF-8")
             await self.send(
-                "Kodowanie domyślne: UTF-8. Jeśli widzisz znaki typu ��, wpisz: "
+                "Kodowanie domyślne: UTF-8. Jeśli polskie znaki są uszkodzone, wpisz: "
                 "kodowanie utf8. Windows-1250 używaj tylko w starym kliencie: kodowanie cp1250."
             )
             while True:

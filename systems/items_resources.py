@@ -87,7 +87,7 @@ ITEMS["moogle_board"] = {
     "required_race": "Cyborg",
     "stats": {},
     "cyborg_board_scaling": "mec_mastery",
-    "desc": "Specjalny moduł Cyborga. Bonus do wszystkich pięciu głównych statystyk rośnie wraz z Biegłością Meca: od +2 na początku do +18 przy Biegłości 400.",
+    "desc": "Specjalny startowy moduł Cyborga. Może być używany także przez Inżyniera. Bonus do wszystkich pięciu głównych statystyk rośnie wraz z Biegłością Meca: od +2 na początku do +18 przy Biegłości 400.",
 }
 
 _PROGRESSION_400_NAMES = {

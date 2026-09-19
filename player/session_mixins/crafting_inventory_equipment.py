@@ -217,7 +217,7 @@ class SessionCraftingInventoryEquipmentMixin:
             _tool_type, _tool_item, tool_name = self.recipe_tool_info(recipes, recipe)
             required_tier = required_tool_tier_for_level(required)
             return (
-                f"Wymaga: {profession} level {required} oraz "
+                f"Wymaga: {profession} poziom {required} oraz "
                 f"{tool_name} Tier {required_tier}+."
             )
 
@@ -258,7 +258,7 @@ class SessionCraftingInventoryEquipmentMixin:
             )
             if profession_level < required_profession:
                 await self.send(
-                    f"{recipe['name']} wymaga {profession} level "
+                    f"{recipe['name']} wymaga {profession} poziom "
                     f"{required_profession}, a masz {profession_level}."
                 )
                 return False
@@ -498,7 +498,7 @@ class SessionCraftingInventoryEquipmentMixin:
             await self.sync_extended_achievements()
             if new_tool_level != old_tool_level:
                 await self.send(
-                    f"{tool_name} ma teraz level {new_tool_level}, "
+                    f"{tool_name} ma teraz poziom {new_tool_level}, "
                     f"Tier {tool_tier(new_tool_level)}: "
                     f"{tool_tier_name(tool_type, new_tool_level)}."
                 )
@@ -515,7 +515,7 @@ class SessionCraftingInventoryEquipmentMixin:
                 await self.send("Nie masz jeszcze mastery. Wykonaj pierwszą udaną recepturę.")
                 return
             for row in rows:
-                level = crafting_mastery_level_v03054(row["actions"])
+                poziom = crafting_mastery_level_v03054(row["actions"])
                 await self.send(
                     f"{row['profession']} / {row['category']}: mastery {level}/100, "
                     f"crafty {row['actions']}, krytyczne {row['criticals']}, legendarne {row['legendary_count']}."
@@ -530,25 +530,25 @@ class SessionCraftingInventoryEquipmentMixin:
             row = self.server.db.profession(
                 self.account_id, "Jubilerstwo"
             )
-            level = int(row["level"])
+            poziom = int(row["level"])
             max_level = profession_max_level("Jubilerstwo")
             rank = profession_rank(level, "Jubilerstwo")
             xp_text = (
                 "maksimum"
-                if level >= max_level
+                if poziom >= max_level
                 else (
                     f"{row['xp']} z "
                     f"{self.profession_xp_to_next(level, 'Jubilerstwo')}"
                 )
             )
             await self.send(
-                f"Level {level} z {max_level}. "
+                f"Poziom {level} z {max_level}. "
                 f"Ranga {rank} z {profession_max_rank('Jubilerstwo')}: "
                 f"{profession_rank_name('Jubilerstwo', level)}. "
                 f"XP: {xp_text}. Akcje: {row['actions']}."
             )
             await self.send(
-                "Narzędzie: Szczypce Jubilerskie, level 1-400 i 40 Tierów. "
+                "Narzędzie: Szczypce Jubilerskie, poziom 1-400 i 40 Tierów. "
                 "Kupisz je wyłącznie u Jubilerki Mirelli w Pracowni Jubilerskiej."
             )
             await self.send(
@@ -565,19 +565,19 @@ class SessionCraftingInventoryEquipmentMixin:
             row = self.server.db.profession(
                 self.account_id, "Kowalstwo"
             )
-            level = int(row["level"])
+            poziom = int(row["level"])
             max_level = profession_max_level("Kowalstwo")
             rank = profession_rank(level, "Kowalstwo")
             xp_text = (
                 "maksimum"
-                if level >= max_level
+                if poziom >= max_level
                 else (
                     f"{row['xp']} z "
                     f"{self.profession_xp_to_next(level, 'Kowalstwo')}"
                 )
             )
             await self.send(
-                f"Kowalstwo: level {level} z "
+                f"Kowalstwo: poziom {level} z "
                 f"{max_level}. "
                 f"Ranga {rank} z "
                 f"{profession_max_rank('Kowalstwo')}: "
@@ -614,7 +614,7 @@ class SessionCraftingInventoryEquipmentMixin:
             await self.send("GOTOWANIE")
             await self.show_single_tool("cooking")
             await self.send(
-                "Gotowanie jest osobną profesją level 1-400. Jej poziom skraca czas przygotowania potraw i blokuje receptury; level Noża nie skraca czasu."
+                "Gotowanie jest osobną profesją poziom 1-400. Jej poziom skraca czas przygotowania potraw i blokuje receptury; poziom Noża nie skraca czasu."
             )
             await self.send(
                 "Gotować możesz w Karczmie Pod Błękitnym Płomieniem "
@@ -1084,7 +1084,7 @@ class SessionCraftingInventoryEquipmentMixin:
             c = self.character
             soul_line = (
                 f"Broń Duszy: {c.soul_weapon}. "
-                f"Soul Level {c.soul_level}/{SOUL_MAX_LEVEL}. "
+                f"Soul Poziom {c.soul_level}/{SOUL_MAX_LEVEL}. "
                 f"Soul Tier {c.soul_tier}/{SOUL_MAX_TIER}. "
                 f"Moc {c.soul_power()}."
             )
@@ -1492,7 +1492,7 @@ class SessionCraftingInventoryEquipmentMixin:
                 )
             await self.send(
                 "Auto EQ porównuje indywidualną moc części: obronę, statystyki, właściwości, affix, rarity i gniazda. "
-                "Nie zmienia przedmiotów niedostępnych przez Level postaci lub klasę."
+                "Nie zmienia przedmiotów niedostępnych przez Poziom postaci lub klasę."
             )
 
     def owned_armor_for_slot(self, slot):
@@ -1940,7 +1940,7 @@ class SessionCraftingInventoryEquipmentMixin:
             return True
 
     async def show_socketed_gems(self):
-            await self.send("GNIAZDA EQ 2.0")
+            await self.send("GNIAZDA EQ")
             found_any = False
             for row in self.equipped_item_rows():
                 slot=row["slot"]; item_id=row["item_id"]; item=ITEMS.get(item_id)
@@ -1993,7 +1993,7 @@ class SessionCraftingInventoryEquipmentMixin:
                 n2 = ITEMS.get(self.server.db.equipped_item(self.account_id, s2), {}).get("name", "pusty")
                 await self.send(f"{noun.capitalize()}. Slot 1: {n1}. Slot 2: {n2}. Wybierz numer przedmiotu:")
                 for idx, (_score, item_id, item) in enumerate(candidates, 1):
-                    await self.send(f"{idx}. {player_item_display_name_v0335(item_id)}. Level postaci {int(item.get('required_character_level', item.get('required_mastery',1)) or 1)}.")
+                    await self.send(f"{idx}. {player_item_display_name_v0335(item_id)}. Poziom postaci {int(item.get('required_character_level', item.get('required_mastery',1)) or 1)}.")
                 return
             if raw.isdigit():
                 idx = int(raw)
@@ -2036,7 +2036,7 @@ class SessionCraftingInventoryEquipmentMixin:
                     marker = " [ZAŁOŻONE]" if item_id == current_id else ""
                     await self.send(
                         f"{idx}. {player_item_display_name_v0335(item_id)}. "
-                        f"Level postaci {int(item.get('required_character_level', mastery) or mastery)}. "
+                        f"Poziom postaci {int(item.get('required_character_level', mastery) or mastery)}. "
                         f"{CLASS_SET_STAT_NAMES.get(item.get('affix'), item.get('affix'))} "
                         f"+{int(item.get('affix_amount', 0) or 0)}; "
                         + ", ".join(
@@ -2553,7 +2553,7 @@ class SessionCraftingInventoryEquipmentMixin:
 
             offers = []
             for class_name in selected:
-                # v0.30.35: klasowe EQ odblokowuje Level postaci, nie Biegłość klasy.
+                # v0.30.35: klasowe EQ odblokowuje Poziom postaci, nie Biegłość klasy.
                 character_level = max(1, min(CHARACTER_MAX_LEVEL, int(self.character.character_level)))
                 unlocked_tier = class_equipment_unlocked_tier(character_level)
                 offers.extend(
@@ -2640,7 +2640,7 @@ class SessionCraftingInventoryEquipmentMixin:
             base_price = self.shop_item_base_value_silver(item)
             cashback = self.shop_cashback_silver(item)
             final_price = max(0, base_price - cashback)
-            await self.send(f"SHOP INFO {number}. {item['name']}.")
+            await self.send(f"INFORMACJE O SKLEPIE {number}. {item['name']}.")
             await self.send(self.format_item_description(item_id, item))
             if cashback > 0:
                 await self.send(
@@ -2895,10 +2895,10 @@ class SessionCraftingInventoryEquipmentMixin:
                     row = self.server.db.skill_progress(self.account_id, skill["id"])
                     status = "już nauczona"
                     if int(row["level"]) >= SKILL_MAX_LEVEL:
-                        progress = f" Skill Level {SKILL_MAX_LEVEL}, maksymalny."
+                        progress = f" Skill Poziom {SKILL_MAX_LEVEL}, maksymalny."
                     else:
                         progress = (
-                            f" Skill Level {row['level']}, XP {row['xp']} z "
+                            f" Skill Poziom {row['level']}, XP {row['xp']} z "
                             f"{skill_xp_to_next(int(row['level']))}."
                         )
                 elif self.class_mastery_level(class_name) >= int(skill["unlock"]):

@@ -71,8 +71,8 @@ def generator_whitelist_audit_v03019():
     audit = GENERATOR_CORE_AUDIT or {}
     whitelist = audit.get("whitelist_audit") or {}
     errors = []
-    if GENERATOR_CORE_VERSION != "0.34.7":
-        errors.append(f"Generator Core version={GENERATOR_CORE_VERSION}, expected 0.34.7")
+    if GENERATOR_CORE_VERSION != "0.35.0":
+        errors.append(f"Generator Core version={GENERATOR_CORE_VERSION}, expected 0.35.0")
     if not audit.get("numeric_only"):
         errors.append("numeric_only flag missing")
     runtime_fast = bool(audit.get("runtime_fast_path"))
@@ -758,7 +758,7 @@ def full_release_integrity_audit_v03025():
         errors.append("world logic audit failed")
     if int(WORLD_LOGIC_AUDIT.get("warning_count", 0) or 0):
         errors.append("world logic warnings present")
-    if GENERATOR_CORE_VERSION != "0.34.7":
+    if GENERATOR_CORE_VERSION != "0.35.0":
         errors.append(f"GENERATOR_CORE_VERSION={GENERATOR_CORE_VERSION}")
     return {
         "version": "0.30.25",
@@ -975,7 +975,7 @@ def gameplay_flow_audit_v03026():
         if missing:
             errors.append(f"station {_station}: brak w {missing[:5]}")
 
-    if GENERATOR_CORE_VERSION != "0.34.7":
+    if GENERATOR_CORE_VERSION != "0.35.0":
         errors.append(f"GENERATOR_CORE_VERSION={GENERATOR_CORE_VERSION}")
 
     return {
@@ -2818,11 +2818,13 @@ def _install_v0310_tech_help():
     HELP_TOPICS["cyborg"] = [
         "Cyborg: 14. rasa Soulbound. Bazowe statystyki: Siła 10, Zręczność 11, Kondycja 12, Inteligencja 10, Siła Woli 7.",
         "Pasyw: redukcja wszystkich otrzymywanych obrażeń. Polecane klasy: Mec, Inżynier, Strażnik, Łowca.",
+        "Cyborg dostaje Moogle Board na starcie. To jeden slot Board; moduł może być używany również przez Inżyniera.",
     ]
     HELP_TOPICS["mec"] = [
         "Mec: technologiczna klasa fizyczna 1-400. Broń Duszy: Rdzeń Meca.",
         "Ma pełną siatkę 123 skilli: 3 na progu 1 i co 10 aż do 400. Wczesne umiejętności obejmują Fire Beam, Ice Beam, Bolt Beam, TekShield, Gravity Bomb, TekMissile, Heal Force i Overdrive.",
         "Styl: ciężki pancerz, bariery, salwy rdzenia i przeciążenia systemów.",
+        "Moogle Board jest startowym Boardem Cyborga i może być używany także przy Inżynierze; bonus skaluje się zgodnie z istniejącą progresją Boarda.",
     ]
     HELP_TOPICS["inzynier"] = HELP_TOPICS["inżynier"] = [
         "Inżynier: technologiczna klasa fizyczna 1-400. Broń Duszy: Omni-Narzędzie.",
@@ -2835,7 +2837,7 @@ def _install_v0310_tech_help():
 _install_v0310_tech_help()
 
 # ============================================================
-# v0.34.1 - FULL GAME PRE-DEPLOY INTEGRITY GATE
+# v0.35.0 - FULL GAME PRE-DEPLOY INTEGRITY + POLISH GATE
 # Covers every registered runtime content domain and blocks startup on broken
 # cross-references, technical IDs in player-facing item names, stale generated
 # numeric item descriptions, invalid quest/item/NPC/shop links, skill-name
@@ -3303,7 +3305,7 @@ def full_game_predeploy_audit_v0336():
         if len(rows)>1: err('duplicate_skill_name',key,rows)
     metrics['skills_total']=skill_count
 
-    # v0.34.7: Hunter/combat regression gate. Offensive Hunter skills must keep
+    # v0.35.0: Hunter/combat regression gate. Offensive Hunter skills must keep
     # their authored Dexterity scaling, and Soul Weapon trait_totals must never
     # leak into use_class_skill (traits belong only to the basic weapon attack).
     _hunter_rows=list(CLASS_SKILLS.get('Łowca') or [])
@@ -3348,7 +3350,7 @@ def full_game_predeploy_audit_v0336():
     except Exception as _exc:
         err('combat_skill_source_audit_failed',repr(_exc))
 
-    # 10b) v0.34.7 Soul Weapon Mastery + Main Menu Exit gate.
+    # 10b) v0.35.0 Soul Weapon Mastery + Main Menu Exit gate.
     try:
         if int(SOUL_WEAPON_MASTERY_MAX_LEVEL) != 400:
             err('soul_weapon_mastery_bad_cap',SOUL_WEAPON_MASTERY_MAX_LEVEL)
@@ -3399,6 +3401,39 @@ def full_game_predeploy_audit_v0336():
     for topic,lines in HELP_TOPICS.items():
         if not lines: err('empty_help_topic',topic)
 
+    # 11b) v0.35.0 polish regression gate: keep internal release labels and
+    # stale caps out of normal player-facing runtime text.
+    try:
+        _polish_files=(
+            'player/session_mixins/quests.py',
+            'player/session_mixins/progression_accessibility_v03052.py',
+            'player/session_mixins/milestone_v0320.py',
+            'player/session_mixins/crafting_inventory_equipment.py',
+            'player/session_mixins/crafting_expansion_v03114.py',
+            'player/session_mixins/tech_crafting_v03111.py',
+            'player/session_mixins/world_progression.py',
+            'player/session_mixins/social_expansion.py',
+            'player/session_mixins/admin_gathering_sales.py',
+            'player/session_mixins/forge_guilds.py',
+            'systems/content_registry.py',
+        )
+        _polish_source='\n'.join((_ROOT/_rel).read_text(encoding='utf-8') for _rel in _polish_files)
+        _forbidden_ui=(
+            'QUEST LIST:', 'QUEST INFO:', 'AKTYWNE QUESTY:', 'UKOŃCZONE QUESTY:',
+            'COLLECTION CODEX 2.0', 'LOOT HISTORY 2.0', 'DEATH RECAP:',
+            'COMBAT RECAP:', 'PARTY QUEST PROGRESS 2.0', 'SALVAGE 3.0:',
+            'REFINING 2.0', 'MACHINE SALVAGE 2.0', 'FISHING RECORDS 2.0',
+            'DYNAMICZNE EVENTY v0.29', 'MITYCZNA PROGRESJA v0.21',
+            'COLLECTION CODEX — ŚWIAT v0.15',
+            'poziomy Gildii 1-100', 'maksymalnie +11% do Biegłości',
+        )
+        for _token in _forbidden_ui:
+            if _token in _polish_source:
+                err('stale_player_ui_token',_token)
+        metrics['polish_ui_tokens_checked']=len(_forbidden_ui)
+    except Exception as _exc:
+        err('polish_source_audit_failed',repr(_exc))
+
     # 12) Command loop self-method references must exist on assembled Session.
     command_source=(_ROOT/'player/session_mixins/command_loop.py').read_text(encoding='utf-8')
     called=set(re.findall(r'\bself\.([A-Za-z_]\w*)\s*\(',command_source))
@@ -3407,7 +3442,7 @@ def full_game_predeploy_audit_v0336():
     metrics['command_methods_checked']=len(called)
 
     return {
-        'version':'0.34.7','error_count':len(errors),'warning_count':len(warnings),
+        'version':'0.35.0','error_count':len(errors),'warning_count':len(warnings),
         'errors':errors,'warnings':warnings,'metrics':metrics,
         'description_sync':dict(ITEM_DESCRIPTION_SYNC_V0336),
     }
@@ -3416,7 +3451,7 @@ def full_game_predeploy_audit_v0336():
 # loaded. server.py executes it after the module loop when SOULBOUND_FULL_AUDIT=1.
 # Keeping a placeholder here preserves compatibility for code that inspects the symbol.
 FULL_GAME_PREDEPLOY_AUDIT_V0336={
-    'version':'0.34.7','deferred_until_runtime_complete':True,'error_count':0,'warning_count':0,
+    'version':'0.35.0','deferred_until_runtime_complete':True,'error_count':0,'warning_count':0,
     'errors':[],'warnings':[],
     'reason':'Final pre-deploy audit is executed by server.py after every runtime module has loaded.'
 }

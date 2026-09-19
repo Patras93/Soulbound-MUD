@@ -497,7 +497,7 @@ class SessionPerceptionMapsMixin:
             profile = v0250_room_generator_profile(room_id)
             await self.send(
                 f"GLOBAL GENERATOR 2.0. Seed serwera: {V0250_WORLD_SEED_ID}. "
-                f"Lokacja: {room.get('name', room_id)}. Strefa: {room.get('zone', 'brak')}."
+                f"Lokacja: {room.get('name') or 'Nieznana lokacja'}. Strefa: {room.get('zone', 'brak')}."
             )
             await self.send(
                 f"Profil lokacji: {profile['ambience']}; punkt otoczenia: {profile['feature']}; "

@@ -1420,7 +1420,7 @@ class SessionMovementPartySocialMixin:
                     {room.get("zone", "") for room in ROOMS.values() if room.get("zone")},
                     key=self.normalize_description_query,
                 )
-                await self.send("TEREN INFO")
+                await self.send("INFORMACJE O TERENIE")
                 await self.send(
                     "Użycie: teren info <nazwa>. Przykład: teren info bagna."
                 )
@@ -1490,7 +1490,7 @@ class SessionMovementPartySocialMixin:
             professions = self.terrain_professions(room_ids)
             areas = self.terrain_exp_areas(zone)
 
-            await self.send(f"TEREN INFO: {zone}")
+            await self.send(f"INFORMACJE O TERENIE: {zone}")
             await self.send(f"Lokacje w strefie: {len(room_ids)}.")
             balance_profile = v0866_zone_threat_profile(zone)
             if balance_profile.get("median") is not None:

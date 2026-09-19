@@ -164,7 +164,7 @@ class SessionSocialExpansionMixin:
         row=self.mentor_link_v03050()
         if not row: await self.send("Nie masz relacji mentor-uczeń."); return
         mid,sid=int(row['mentor_account_id']),int(row['student_account_id']); conn=self.server.db.conn; pr=conn.execute("SELECT activity_points,rewards_claimed FROM mentor_progress_v03051 WHERE mentor_account_id=? AND student_account_id=?",(mid,sid)).fetchone(); pts=int(pr['activity_points'] if pr else 0); claimed=int(pr['rewards_claimed'] if pr else 0); available=pts//20
-        if not claim: await self.send(f"MENTOR 2.0: wspólne aktywności {pts}. Nagroda co 20 punktów. Odebrane pakiety: {claimed}. Dostępne do odbioru: {max(0,available-claimed)}."); return
+        if not claim: await self.send(f"MENTOR: wspólne aktywności {pts}. Nagroda co 20 punktów. Odebrane pakiety: {claimed}. Dostępne do odbioru: {max(0,available-claimed)}."); return
         if available<=claimed: await self.send("Nie ma jeszcze nowej nagrody mentorskiej."); return
         reward=2500
         for _aid in (mid,sid):
@@ -174,7 +174,7 @@ class SessionSocialExpansionMixin:
             if _sess and _sess.character:
                 self.server.db.apply_shared_wallet_to_character(_sess.character)
         conn.execute("UPDATE mentor_progress_v03051 SET rewards_claimed=rewards_claimed+1 WHERE mentor_account_id=? AND student_account_id=?",(mid,sid)); conn.commit()
-        await self.send(f"Nagroda Mentor 2.0 trafia do mentora i ucznia: po {currency_reading_text(reward,0,0)}.")
+        await self.send(f"Nagroda Mentora trafia do mentora i ucznia: po {currency_reading_text(reward,0,0)}.")
 
     async def newbie_protection_v03051(self,args=''):
         norm=normalize_lookup_text(args or 'status'); conn=self.server.db.conn; row=conn.execute("SELECT enabled FROM newbie_protection_v03051 WHERE account_id=?",(self.account_id,)).fetchone(); enabled=True if row is None else bool(row['enabled'])

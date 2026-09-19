@@ -1,3 +1,21 @@
+v0.35.0 - Full Game Polish Pass
+- Polskie i krótsze komunikaty ekranów NVDA; usunięto techniczne etykiety 2.0/3.0/v0.xx z UI gracza.
+- HELP Gildii zaktualizowany do poziomów 1-400 i maksymalnego bonusu +23%.
+- Dalsze zabezpieczenia przed wyświetlaniem surowych item_id/room_id.
+- Bez zmian balansu i mechanik względem v0.34.9.
+
+v0.34.9 - Moogle Board Starter Restore
+- Przywrócono Moogle Board jako startowy Board Cyborga.
+- Board nie wymaga klasy Mec ani Biegłości Meca 10 i może być używany także przez Inżyniera.
+- Usunięto Moogle Board ze specjalnej oferty sklepu Meca.
+
+v0.34.8 — Moogle Board jako progresja Meca
+- Moogle Board nie jest już automatycznym przedmiotem startowym rasy Cyborg.
+- Moogle Board jest specjalnym wyposażeniem Meca dla Cyborga; wymaga aktywnej klasy Mec i Biegłości Meca 10.
+- Board jest dostępny w sklepie Mechanika Vektora w Hangarze Meca i kosztuje 5000 srebra.
+- Istniejące egzemplarze nie są usuwane, ale obowiązuje je nowy warunek klasy/progresji przy zakładaniu.
+- Pozostałe technologiczne Boardy Cyborga z Tech Craftingu pozostają bez zmian i mogą służyć innym buildom, w tym Inżynierowi.
+
 v0.34.7 — Soul Weapon Mastery + Main Menu Exit Fix
 - Dodano Soul Weapon Mastery 1-400, zdobywane wyłącznie za zwykłe trafienia Bronią Duszy.
 - Mastery wzmacnia tylko podstawowy atak: obrażenia, krytyk, obrażenia krytyczne, anti-boss oraz Echo od poziomu 200.

@@ -11,7 +11,7 @@ class SessionCraftingExpansionV03114Mixin:
         # Preserve the old EQ list/default behavior.
         if not raw or normalize_lookup_text(raw) in ("list","lista","info"):
             await SessionForgeGuildsMixin.salvage_equipment_v0925(self,args)
-            await self.send("SALVAGE 3.0: można też rozkładać boardy, Tech EQ, stare Upgrade Kity i ciężkie części bossowe. Użyj rozloz <nazwa>.")
+            await self.send("ROZKŁADANIE EQ: można też rozkładać boardy, Tech EQ, stare Upgrade Kity i ciężkie części bossowe. Użyj rozloz <nazwa>.")
             return
         # Armor first, exactly as before.
         found=self.resolve_owned_equipment_v0925(raw,free_only=True)
@@ -23,10 +23,10 @@ class SessionCraftingExpansionV03114Mixin:
             return await SessionForgeGuildsMixin.salvage_equipment_v0925(self,args)
         iid,item=found
         if not self.consume_recipe_item(iid,1):
-            await self.send("Nie udało się pobrać przedmiotu do Salvage 3.0."); return
+            await self.send("Nie udało się pobrać przedmiotu do rozkładania EQ."); return
         outputs=SALVAGE3_V03114[iid]
         for oid,qty in outputs.items(): self.server.db.add_storage_item(self.account_id,"craftbox",oid,qty)
-        await self.send("SALVAGE 3.0: "+item['name']+" -> "+", ".join(f"{ITEMS[o]['name']} x{q}" for o,q in outputs.items())+".")
+        await self.send("ROZKŁADANIE EQ: "+item['name']+" -> "+", ".join(f"{ITEMS[o]['name']} x{q}" for o,q in outputs.items())+".")
         salvage_level=max(1,min(400,int(item.get("required_character_level",item.get("required_mastery",item.get("min_profession_level",1))) or 1)))
         salvage_prof_xp=max(10,10+salvage_level//12+sum(int(q) for q in outputs.values())*2)
         messages,_prof_after,_tool_after=self.grant_profession_progress(
@@ -128,7 +128,7 @@ class SessionCraftingExpansionV03114Mixin:
         raw=str(query or '').strip()
         recipes={rid:r for rid,r in CRAFT_RECIPES.items() if rid.startswith('refine_')}
         if not raw:
-            await self.send("REFINING 2.0. Użycie: refine <stop>. Dostępne:")
+            await self.send("RAFINACJA. Użycie: refine <stop>. Dostępne:")
             for r in recipes.values(): await self.send(f"{r['name']}: {self.recipe_ingredients_text(r)}.")
             return
         if normalize_lookup_text(raw).startswith("max "):

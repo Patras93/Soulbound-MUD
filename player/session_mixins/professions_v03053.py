@@ -14,8 +14,8 @@ class SessionProfessionsV03053Mixin:
         row=self.server.db.profession(self.account_id,name)
         level=int(row['level']); tool=self.server.db.tool(self.account_id,cfg['tool_type'])
         await self.send(name.upper())
-        await self.send(f"Level {level}/400. Ranga {profession_rank(level,name)}/{profession_max_rank(name)}: {profession_rank_name(name,level)}. XP {row['xp']}. Akcje {row['actions']}.")
-        await self.send(f"Narzędzie: {cfg['tool_name']}, level {tool['level']}/400, Tier {tool_tier(tool['level'])}/40: {tool_tier_name(cfg['tool_type'],tool['level'])}.")
+        await self.send(f"Poziom {level}/400. Ranga {profession_rank(level,name)}/{profession_max_rank(name)}: {profession_rank_name(name,level)}. XP {row['xp']}. Akcje {row['actions']}.")
+        await self.send(f"Narzędzie: {cfg['tool_name']}, poziom {tool['level']}/400, Tier {tool_tier(tool['level'])}/40: {tool_tier_name(cfg['tool_type'],tool['level'])}.")
         await self.send(f"Warsztat: {ROOMS.get(cfg['station'],{}).get('name',cfg['station'])}.")
         await self.send(f"Receptury: receptury {name.lower()}. Wytwarzanie: {self.v03053_command_for(name)} <nazwa>.")
 
@@ -33,8 +33,8 @@ class SessionProfessionsV03053Mixin:
             return
         await self.send(f"RECEPTURY: {name.upper()}")
         for _rid,r in sorted(rows,key=lambda kv:int(kv[1].get('min_profession_level',1))):
-            mats=', '.join(f"{ITEMS.get(i,{}).get('name',i)} x{q}" for i,q in r.get('ingredients',{}).items())
-            await self.send(f"{r['name']}. Level {r.get('min_profession_level',1)}. Składniki: {mats}.")
+            mats=', '.join(f"{player_item_display_name_v0335(i)} x{q}" for i,q in r.get('ingredients',{}).items())
+            await self.send(f"{r['name']}. Poziom {r.get('min_profession_level',1)}. Składniki: {mats}.")
 
     async def v03053_craft(self, profession, query):
         name=normalize_profession_name(profession)
@@ -69,16 +69,16 @@ class SessionProfessionsV03053Mixin:
         prow=self.server.db.profession(self.account_id,'Zaklinanie'); level=int(prow['level'])
         req=max(1, {'sila':1,'zrecznosc':1,'kondycja':30,'inteligencja':60,'wola':100,'hp':160,'mana':220}.get(key,1))
         if level<req:
-            await self.send(f"To zaklęcie wymaga Zaklinanie level {req}, masz {level}."); return False
+            await self.send(f"To zaklęcie wymaga Zaklinanie poziom {req}, masz {level}."); return False
         label,stat,base,mats=ench
-        missing=[f"{ITEMS.get(i,{}).get('name',i)}: {self.server.db.item_qty(self.account_id,i)}/{q}" for i,q in mats.items() if self.server.db.item_qty(self.account_id,i)<q]
+        missing=[f"{player_item_display_name_v0335(i)}: {self.server.db.item_qty(self.account_id,i)}/{q}" for i,q in mats.items() if self.server.db.item_qty(self.account_id,i)<q]
         if missing:
             await self.send('Brakuje składników: '+', '.join(missing)+'.'); return False
         for iid,q in mats.items(): self.server.db.remove_item(self.account_id,iid,q)
         amt=self.v03053_enchant_amount(base,level)
         self.server.db.set_equipment_enchant_v03053(self.account_id,slot,key,stat,amt)
         messages,*_=self.grant_profession_progress('Zaklinanie',max(25,level*2),'enchanting',max(20,level))
-        await self.send(f"Zaklinasz {ITEMS.get(eq[slot]['item_id'],{}).get('name',eq[slot]['item_id'])}: {label} +{amt}.")
+        await self.send(f"Zaklinasz {player_item_display_name_v0335(eq[slot]['item_id'])}: {label} +{amt}.")
         for m in messages: await self.send(m)
         return True
 

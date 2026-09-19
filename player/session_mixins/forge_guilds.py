@@ -56,10 +56,10 @@ class SessionForgeGuildsMixin:
                 for index, (item_id, item, free_qty) in enumerate(free_rows, 1):
                     material = v03041_salvage_material_key(item)
                     salvage_id = V0925_SALVAGE_MATERIALS[material][0]
-                    level = max(1, min(400, int(item.get("required_character_level", item.get("required_mastery", 1)) or 1)))
+                    poziom = max(1, min(400, int(item.get("required_character_level", item.get("required_mastery", 1)) or 1)))
                     await self.send(
                         f"{index}. {player_item_display_name_v0335(item_id)}. Wolne {free_qty}. "
-                        f"Level {level}. Odzysk: {ITEMS[salvage_id]['name']}."
+                        f"Poziom {level}. Odzysk: {ITEMS[salvage_id]['name']}."
                     )
                 return
 
@@ -86,7 +86,7 @@ class SessionForgeGuildsMixin:
 
             material = v03041_salvage_material_key(item)
             salvage_id = V0925_SALVAGE_MATERIALS[material][0]
-            level = max(1, min(400, int(
+            poziom = max(1, min(400, int(
                 item.get("required_character_level", item.get("required_mastery", 1)) or 1
             )))
             rarity = str(item.get("rarity", "common") or "common").lower()
@@ -94,7 +94,7 @@ class SessionForgeGuildsMixin:
                 "uncommon": 0, "rare": 1, "epic": 1, "legendary": 2,
                 "mythic": 3, "unique": 3, "eternal": 4, "crafted": 0,
             }.get(rarity, 0)
-            qty = max(1, 1 + level // 100 + rarity_bonus)
+            qty = max(1, 1 + poziom // 100 + rarity_bonus)
 
             # Modyfikacje są przypięte do item_id. Zwracamy je dopiero wtedy,
             # gdy rozkładana jest ostatnia posiadana kopia tego konkretnego ID.
@@ -116,11 +116,11 @@ class SessionForgeGuildsMixin:
                 return
 
             self.server.db.add_storage_item(self.account_id, "craftbox", salvage_id, qty)
-            essence = 1 if level >= 100 else 0
-            dust = 1 if level >= 200 else 0
+            essence = 1 if poziom >= 100 else 0
+            dust = 1 if poziom >= 200 else 0
             if rarity in ("legendary", "mythic", "unique", "eternal"):
                 essence += 1
-            if level >= 300:
+            if poziom >= 300:
                 dust += 1
             if reforged:
                 essence += 1
@@ -185,7 +185,7 @@ class SessionForgeGuildsMixin:
 
             # v0.31.15: salvage is a real Kowalstwo action, but it does not
             # pretend that the crafting hammer was used.
-            salvage_prof_xp = max(8, 8 + level // 10 + rarity_bonus * 6)
+            salvage_prof_xp = max(8, 8 + poziom // 10 + rarity_bonus * 6)
             messages, _prof_after, _tool_after = self.grant_profession_progress(
                 "Kowalstwo", salvage_prof_xp, "crafting", 0, tool_progress=False
             )
@@ -263,7 +263,7 @@ class SessionForgeGuildsMixin:
             smithing_level = int(profession_row["level"])
             if smithing_level < required_smithing:
                 await self.send(
-                    f"Ulepszenie {item['name']} do +{target} wymaga Kowalstwo level {required_smithing}. "
+                    f"Ulepszenie {item['name']} do +{target} wymaga Kowalstwo poziom {required_smithing}. "
                     f"Masz {smithing_level}."
                 )
                 return
@@ -289,13 +289,13 @@ class SessionForgeGuildsMixin:
                 )
                 return
 
-            # v0.31.14 Forge 3.0: kamienie milowe +4/+7/+10 wymagają stopów rafinowanych.
+            # v0.31.14 Kuźnia: kamienie milowe +4/+7/+10 wymagają stopów rafinowanych.
             forge3_id = None
             if target >= 10: forge3_id = "eternium_alloy"
             elif target >= 7: forge3_id = "astral_alloy"
             elif target >= 4: forge3_id = "hardened_steel_ingot"
             if forge3_id and self.available_recipe_item(forge3_id) < 1:
-                await self.send(f"Forge 3.0: ulepszenie +{target} wymaga także {ITEMS[forge3_id]['name']} x1. Użyj refine.")
+                await self.send(f"Kuźnia: ulepszenie +{target} wymaga także {ITEMS[forge3_id]['name']} x1. Użyj refine.")
                 return
 
             action_seconds = generator_core_v027.profession_action_seconds("crafting", smithing_level)
@@ -310,7 +310,7 @@ class SessionForgeGuildsMixin:
             if forge3_id and not self.consume_recipe_item(forge3_id,1):
                 # zwrot podstawowego materiału, jeżeli stop zniknął podczas oczekiwania
                 self.server.db.add_storage_item(self.account_id,"craftbox",salvage_id,cost)
-                await self.send("Brakuje stopu Refining 2.0. Ulepszenie przerwane, podstawowy materiał zwrócony.")
+                await self.send("Brakuje stopu rafinacji. Ulepszenie przerwane, podstawowy materiał zwrócony.")
                 return
 
             self.server.db.set_equipment_upgrade_level_v03042(self.account_id, item_id, target)
@@ -987,7 +987,7 @@ class SessionForgeGuildsMixin:
                 bparts=rest.split(maxsplit=1); sub=normalize_lookup_text(bparts[0]) if bparts else ""; query=bparts[1].strip() if len(bparts)>1 else ""
                 if not sub:
                     rows=conn.execute("SELECT item_id,quantity FROM player_clan_bank WHERE clan_id=? AND quantity>0 ORDER BY item_id",(cid,)).fetchall(); await self.send("BANK PRZEDMIOTÓW GILDII:")
-                    for br in rows: await self.send(f"{ITEMS.get(br['item_id'],{}).get('name',br['item_id'])} x{br['quantity']}.")
+                    for br in rows: await self.send(f"{player_item_display_name_v0335(br['item_id'])} x{br['quantity']}.")
                     if not rows: await self.send("Pusto.")
                     return
                 if sub in ("wplac","wpłać","deposit"):

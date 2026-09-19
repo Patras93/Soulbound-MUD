@@ -513,8 +513,8 @@ class SessionCoreProgressionMixin:
                 if self.character.soul_level < MYTHIC_ASTRAL_MIN_SOUL_LEVEL:
                     return (
                         "Mityczna Wieża Astralna jest zablokowana. "
-                        f"Wymaga Soul Level {MYTHIC_ASTRAL_MIN_SOUL_LEVEL}. "
-                        f"Masz Soul Level {self.character.soul_level}."
+                        f"Wymaga Soul Poziom {MYTHIC_ASTRAL_MIN_SOUL_LEVEL}. "
+                        f"Masz Soul Poziom {self.character.soul_level}."
                     )
 
             return None
@@ -540,8 +540,8 @@ class SessionCoreProgressionMixin:
             if profession_level < required:
                 return (
                     f"Ten poziom lochu profesyjnego wymaga "
-                    f"{profession} level {required}. Masz level {profession_level}. "
-                    f"Level {tool_name} nie blokuje piętra; odblokowuje lepsze surowce."
+                    f"{profession} poziom {required}. Masz poziom {profession_level}. "
+                    f"Poziom {tool_name} nie blokuje piętra; odblokowuje lepsze surowce."
                 )
             return None
 
@@ -653,8 +653,8 @@ class SessionCoreProgressionMixin:
     async def show_astral_portal_status(self):
             if self.character.soul_level < ASTRAL_MIN_SOUL_LEVEL:
                 await self.send(
-                    f"Wieża Astralna wymaga Soul Level {ASTRAL_MIN_SOUL_LEVEL}. "
-                    f"Masz Soul Level {self.character.soul_level}."
+                    f"Wieża Astralna wymaga Soul Poziom {ASTRAL_MIN_SOUL_LEVEL}. "
+                    f"Masz Soul Poziom {self.character.soul_level}."
                 )
                 return
 
@@ -689,7 +689,7 @@ class SessionCoreProgressionMixin:
 
             if self.character.soul_level < ASTRAL_MIN_SOUL_LEVEL:
                 await self.send(
-                    f"Wieża Astralna wymaga Soul Level {ASTRAL_MIN_SOUL_LEVEL}. "
+                    f"Wieża Astralna wymaga Soul Poziom {ASTRAL_MIN_SOUL_LEVEL}. "
                     f"Masz {self.character.soul_level}."
                 )
                 return
@@ -1159,15 +1159,27 @@ class SessionCoreProgressionMixin:
             )))
 
     def equipment_mastery_requirement_met(self, item):
-            """Compatibility name: v0.30.35 EQ gates are Character Level gates."""
+            """EQ zwykle wymaga Levelu postaci; wybrane przedmioty mogą wymagać Biegłości konkretnej klasy."""
             if item.get("type") != "armor":
                 return True
+            required_class_mastery = int(item.get("required_class_mastery", 0) or 0)
+            required_class = item.get("required_class")
+            if required_class_mastery > 0 and required_class:
+                return self.class_mastery_level(required_class) >= required_class_mastery
             return int(self.character.character_level) >= self.equipment_character_level_requirement(item)
 
     def equipment_mastery_requirement_text(self, item):
-            """Compatibility name kept for old callers; text now reports Character Level."""
+            """Czytelny opis progu EQ: Biegłość klasy dla wyjątków, Level postaci dla zwykłego EQ."""
             if item.get("type") != "armor":
                 return ""
+            required_class_mastery = int(item.get("required_class_mastery", 0) or 0)
+            required_class = item.get("required_class")
+            if required_class_mastery > 0 and required_class:
+                current = self.class_mastery_level(required_class)
+                return (
+                    f"Wymaga Biegłości klasy {required_class} {required_class_mastery}. "
+                    f"Masz Biegłość {current}."
+                )
             required_level = self.equipment_character_level_requirement(item)
             return (
                 f"Wymaga Levelu postaci {required_level}. "
@@ -1183,7 +1195,7 @@ class SessionCoreProgressionMixin:
                     continue
                 if not self.equipment_mastery_requirement_met(item):
                     self.server.db.unequip(self.account_id, row["slot"])
-                    removed.append(item.get("name", row["item_id"]))
+                    removed.append(item.get("name") or player_item_display_name_v0335(row["item_id"]))
             return removed
 
     def skill_required_mastery(self, skill):
@@ -1240,11 +1252,11 @@ class SessionCoreProgressionMixin:
                 self.account_id, self.character.class_name
             )
             for row in rows:
-                level = int(row["level"])
+                poziom = int(row["level"])
                 xp = int(row["xp"])
                 slot = int(row["active_slot"])
                 role = "główna" if slot == 1 else f"dodatkowa, slot {slot}"
-                if level >= CLASS_MASTERY_MAX_LEVEL:
+                if poziom >= CLASS_MASTERY_MAX_LEVEL:
                     _arow=self.server.db.ascension_row_v021(self.account_id,f"class:{row['class_name']}")
                     _rank=int(_arow["rank"] or 0); _axp=int(_arow["xp"] or 0); _need=v0210_ascension_xp_to_next(_rank)
                     progress = f"Biegłość {CLASS_MASTERY_MAX_LEVEL}, maksimum; Wzniesienie {_rank}" + (f", XP {_axp} z {_need}." if _need else ", maksimum Wzniesienia.")

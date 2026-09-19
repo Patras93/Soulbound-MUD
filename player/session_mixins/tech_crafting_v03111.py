@@ -4,7 +4,7 @@ class SessionTechCraftingV03111Mixin:
     async def tech_salvage_v03111(self, query=""):
         raw=str(query or "").strip()
         if not raw or normalize_lookup_text(raw) in ("list","lista","info"):
-            await self.send("MACHINE SALVAGE 2.0. Rozkładanie: techsalvage <komponent>. Cięższe części wracają do podstawowych Servo/Circuit/Power Cell/Plating w Szkatułce -> Technologia.")
+            await self.send("ROZKŁADANIE TECHNOLOGICZNE. Rozkładanie: techsalvage <komponent>. Cięższe części wracają do podstawowych Servo/Circuit/Power Cell/Plating w Szkatułce -> Technologia.")
             for iid,outputs in TECH_SALVAGE_RECIPES.items():
                 out=", ".join(f"{ITEMS[k]['name']} x{v}" for k,v in outputs.items())
                 await self.send(f"{ITEMS[iid]['name']} -> {out}.")
