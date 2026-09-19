@@ -250,7 +250,7 @@ HELP_TOPICS["odmiana_imienia"] = [
 ]
 HELP_TOPICS["pieniadze"] = [
     "portfel / wallet / saldo pokazuje jedno wspólne saldo konta w czytelnych nominałach.",
-    "1000 srebra = 1 złoto. 1000000 złota = 1 mithril. Wewnętrznie to jedno saldo, a nominały są sposobem prezentacji i wpisywania kwot.",
+    "100 srebra = 1 złoto. 1000 złota = 1 mithril. Wewnętrznie to jedno saldo, a nominały są sposobem prezentacji i wpisywania kwot.",
     "Portfel jest wspólny dla postaci na koncie; zmiana postaci nie tworzy osobnej waluty.",
     "Zakupy korzystają z rabatu Charyzmy. Sprzedaż pojedyncza i skup profesyjny dopisują wartość do tego samego salda.",
     "bank obsługuje wpłaty/wypłaty waluty i przedmiotów; wpisz bank bez argumentu, aby usłyszeć składnię.",

@@ -1188,3 +1188,32 @@ V0861_CLASS_SLOT_PRICE_FACTOR = {
     "ring": 1.20,
     "necklace": 1.40,
 }
+
+# v0.30.51: Social & Mentor help
+HELP_TOPICS["kanaly"] = [
+    "Kanały komunikacji: gossip <tekst> — rozmowy ogólne; newbie <tekst> — pytania i pomoc dla nowych; trade <tekst> — handel.",
+    "Lokalnie: say. Prywatnie: tell. Drużyna: pc. Gildia: gildia czat <tekst>.",
+    "channels lub kanaly wyświetla skrót kanałów.",
+]
+HELP_TOPICS["mentor"] = [
+    "Mentor System: mentor wymaga Biegłości 50 i Soul Level 50; uczeń może mieć maksymalnie Biegłość 20 i Soul Level 20.",
+    "Komendy: mentor; mentor zapros <gracz>; mentor akceptuj <gracz>; mentor zakoncz.",
+    "W tej samej drużynie i lokacji obaj dostają +5% Class XP, Soul XP oraz XP profesji i narzędzi.",
+]
+
+# v0.30.51 Social Suite 2.0
+HELP_TOPICS["social"] = ["Social 2.0: ignore/unignore, friends/friend, afk, whois, mail, board, lfg, inspect, emote/smile/wave/cheer.", "Kanały gossip/newbie/trade mają on/off, historię i ochronę przed spamem."]
+HELP_TOPICS["mail"] = ["mail list; mail send <gracz> <tekst>; mail read <id>; mail delete <id>."]
+HELP_TOPICS["lfg"] = ["lfg crypt [opis]; lfg boss [opis]; lfg profession [opis]; lfg list; lfg off."]
+HELP_TOPICS["house"] = ["house — własny dom; house name <tekst>; house decor <tekst>; house upgrade; house chest; house store/take <przedmiot> [ilość]; house trophies."]
+HELP_TOPICS["records"] = ["records [gracz] — rekordy: głębokość lochu, największy krytyk, najcięższa ryba i zabicia."]
+
+# v0.30.52 quick help aliases
+HELP_TOPICS.update({
+    "collection2": "Collection Codex 2.0: collection2 [braki]. Pokazuje ryby, rudy, sety, bossów, rare i sekrety.",
+    "completion": "Completion % 2.0: procent świata, profesji, bossów, kolekcji i całej gry.",
+    "deathrecap": "Death Recap: podsumowanie ostatniej śmierci.",
+    "combatrecap": "Combat Recap: podsumowanie ostatniej zapisanej walki.",
+    "loothistory": "Loot History 2.0: drophistory [tekst] lub loothistory [tekst].",
+    "nvda": "Presety dostępności: nvda <combat|social|system|all> <concise|normal|full>.",
+})

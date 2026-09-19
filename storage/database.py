@@ -143,6 +143,17 @@ class Database:
                 FOREIGN KEY(account_id) REFERENCES accounts(id) ON DELETE CASCADE
             );
 
+            CREATE TABLE IF NOT EXISTS crafting_mastery_v03054 (
+                account_id INTEGER NOT NULL,
+                profession TEXT NOT NULL,
+                category TEXT NOT NULL,
+                actions INTEGER NOT NULL DEFAULT 0,
+                criticals INTEGER NOT NULL DEFAULT 0,
+                legendary_count INTEGER NOT NULL DEFAULT 0,
+                PRIMARY KEY(account_id, profession, category),
+                FOREIGN KEY(account_id) REFERENCES accounts(id) ON DELETE CASCADE
+            );
+
             CREATE TABLE IF NOT EXISTS tools (
                 account_id INTEGER NOT NULL,
                 tool_type TEXT NOT NULL,
@@ -673,6 +684,45 @@ class Database:
         self.conn.commit()
 
     def migrate_schema(self):
+        # v0.30.51: Social Suite 2.0, mail, LFG, housing, records, mentor 2.0.
+        self.conn.executescript("""
+            CREATE TABLE IF NOT EXISTS social_ignores_v03051(account_id INTEGER NOT NULL, ignored_account_id INTEGER NOT NULL, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY(account_id,ignored_account_id));
+            CREATE TABLE IF NOT EXISTS social_channel_settings_v03051(account_id INTEGER NOT NULL, channel TEXT NOT NULL, enabled INTEGER NOT NULL DEFAULT 1, PRIMARY KEY(account_id,channel));
+            CREATE TABLE IF NOT EXISTS social_channel_history_v03051(id INTEGER PRIMARY KEY AUTOINCREMENT, channel TEXT NOT NULL, sender_account_id INTEGER NOT NULL, sender_name TEXT NOT NULL, message TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
+            CREATE TABLE IF NOT EXISTS social_afk_v03051(account_id INTEGER PRIMARY KEY, message TEXT NOT NULL DEFAULT '', since_ts INTEGER NOT NULL DEFAULT 0);
+            CREATE TABLE IF NOT EXISTS player_mail_v03051(id INTEGER PRIMARY KEY AUTOINCREMENT, recipient_account_id INTEGER NOT NULL, sender_account_id INTEGER, sender_name TEXT NOT NULL, subject TEXT NOT NULL DEFAULT '', body TEXT NOT NULL, is_read INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
+            CREATE TABLE IF NOT EXISTS bulletin_posts_v03051(id INTEGER PRIMARY KEY AUTOINCREMENT, author_account_id INTEGER NOT NULL, author_name TEXT NOT NULL, category TEXT NOT NULL, body TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
+            CREATE TABLE IF NOT EXISTS lfg_entries_v03051(account_id INTEGER PRIMARY KEY, character_name TEXT NOT NULL, category TEXT NOT NULL, note TEXT NOT NULL DEFAULT '', created_ts INTEGER NOT NULL, expires_ts INTEGER NOT NULL);
+            CREATE TABLE IF NOT EXISTS mentor_progress_v03051(mentor_account_id INTEGER NOT NULL, student_account_id INTEGER NOT NULL, activity_points INTEGER NOT NULL DEFAULT 0, rewards_claimed INTEGER NOT NULL DEFAULT 0, last_point_ts INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(mentor_account_id,student_account_id));
+            CREATE TABLE IF NOT EXISTS newbie_protection_v03051(account_id INTEGER PRIMARY KEY, enabled INTEGER NOT NULL DEFAULT 1);
+            CREATE TABLE IF NOT EXISTS daily_login_v03051(account_id INTEGER PRIMARY KEY, last_day TEXT NOT NULL DEFAULT '', streak INTEGER NOT NULL DEFAULT 0, best_streak INTEGER NOT NULL DEFAULT 0);
+            CREATE TABLE IF NOT EXISTS player_housing_v03051(account_id INTEGER PRIMARY KEY, level INTEGER NOT NULL DEFAULT 1, name TEXT NOT NULL DEFAULT 'Dom', decor TEXT NOT NULL DEFAULT '', storage_json TEXT NOT NULL DEFAULT '{}');
+            CREATE TABLE IF NOT EXISTS player_profile_privacy_v03051(account_id INTEGER PRIMARY KEY, inspect_enabled INTEGER NOT NULL DEFAULT 1);
+            CREATE TABLE IF NOT EXISTS player_records_v03051(account_id INTEGER NOT NULL, record_key TEXT NOT NULL, value INTEGER NOT NULL DEFAULT 0, text_value TEXT NOT NULL DEFAULT '', updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY(account_id,record_key));
+            CREATE TABLE IF NOT EXISTS player_completion_v03052(account_id INTEGER PRIMARY KEY, secrets_found INTEGER NOT NULL DEFAULT 0, updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
+            CREATE TABLE IF NOT EXISTS mentor_graduation_v03052(mentor_account_id INTEGER NOT NULL, student_account_id INTEGER NOT NULL, graduated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, activity_points INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(mentor_account_id,student_account_id));
+            CREATE TABLE IF NOT EXISTS housing_rooms_v03052(account_id INTEGER NOT NULL, room_key TEXT NOT NULL, room_name TEXT NOT NULL, decor TEXT NOT NULL DEFAULT '', station TEXT NOT NULL DEFAULT '', chest_json TEXT NOT NULL DEFAULT '{}', PRIMARY KEY(account_id,room_key));
+            CREATE TABLE IF NOT EXISTS housing_trophies_v03052(account_id INTEGER NOT NULL, trophy_key TEXT NOT NULL, display_name TEXT NOT NULL, PRIMARY KEY(account_id,trophy_key));
+            CREATE TABLE IF NOT EXISTS accessibility_presets_v03052(account_id INTEGER PRIMARY KEY, combat TEXT NOT NULL DEFAULT 'normal', social TEXT NOT NULL DEFAULT 'normal', system TEXT NOT NULL DEFAULT 'normal');
+            CREATE TABLE IF NOT EXISTS combat_recaps_v03052(id INTEGER PRIMARY KEY AUTOINCREMENT, account_id INTEGER NOT NULL, opponent TEXT NOT NULL DEFAULT '', duration_ms INTEGER NOT NULL DEFAULT 0, damage_dealt INTEGER NOT NULL DEFAULT 0, damage_taken INTEGER NOT NULL DEFAULT 0, healing INTEGER NOT NULL DEFAULT 0, crits INTEGER NOT NULL DEFAULT 0, skills_used INTEGER NOT NULL DEFAULT 0, result TEXT NOT NULL DEFAULT '', created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
+            CREATE TABLE IF NOT EXISTS death_recaps_v03052(id INTEGER PRIMARY KEY AUTOINCREMENT, account_id INTEGER NOT NULL, killer TEXT NOT NULL DEFAULT '', room_id TEXT NOT NULL DEFAULT '', damage_taken INTEGER NOT NULL DEFAULT 0, duration_ms INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
+            CREATE TABLE IF NOT EXISTS equipment_enchants_v03053(account_id INTEGER NOT NULL, slot TEXT NOT NULL, enchant_key TEXT NOT NULL, stat TEXT NOT NULL, amount INTEGER NOT NULL DEFAULT 0, updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY(account_id,slot));
+        """)
+        # v0.30.51: Mentor System. Jedna aktywna para mentor-uczeń na konto.
+        self.conn.executescript("""
+            CREATE TABLE IF NOT EXISTS mentor_requests_v03050 (
+                mentor_account_id INTEGER NOT NULL,
+                student_account_id INTEGER NOT NULL,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY(mentor_account_id, student_account_id)
+            );
+            CREATE TABLE IF NOT EXISTS mentor_links_v03050 (
+                mentor_account_id INTEGER NOT NULL UNIQUE,
+                student_account_id INTEGER NOT NULL UNIQUE,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY(mentor_account_id, student_account_id)
+            );
+        """)
         cols = {r["name"] for r in self.conn.execute("PRAGMA table_info(characters)")}
         _v027_character_level_new = "character_level" not in cols
         additions = {
@@ -1131,7 +1181,7 @@ class Database:
 
         # v0.8.60: jedno wspólne saldo, trzy nominały.
         # Konwersja jest wykonywana dokładnie raz i zachowuje pełną wartość:
-        # silver 1:1, gold 1:1000, mithril 1:1_000_000_000 srebra.
+        # silver 1:1, gold 1:1000, mithril 1:1_000_000 srebra.
         unified_currency_migrated = self.conn.execute(
             "SELECT 1 FROM migration_flags WHERE flag=?",
             ("unified_currency_v0859",),
@@ -3578,6 +3628,17 @@ class Database:
         )
         self.conn.commit()
 
+
+    def equipment_enchant_v03053(self, account_id, slot):
+        return self.conn.execute("SELECT * FROM equipment_enchants_v03053 WHERE account_id=? AND slot=?",(account_id,slot)).fetchone()
+
+    def set_equipment_enchant_v03053(self, account_id, slot, enchant_key, stat, amount):
+        self.conn.execute("INSERT INTO equipment_enchants_v03053(account_id,slot,enchant_key,stat,amount) VALUES(?,?,?,?,?) ON CONFLICT(account_id,slot) DO UPDATE SET enchant_key=excluded.enchant_key,stat=excluded.stat,amount=excluded.amount,updated_at=CURRENT_TIMESTAMP",(account_id,slot,enchant_key,stat,int(amount)))
+        self.conn.commit()
+
+    def equipment_enchants_v03053(self, account_id):
+        return self.conn.execute("SELECT * FROM equipment_enchants_v03053 WHERE account_id=? ORDER BY slot",(account_id,)).fetchall()
+
     def ensure_tool(self, account_id, tool_type):
         self.conn.execute(
             "INSERT OR IGNORE INTO tools(account_id,tool_type,level,xp,uses) VALUES(?,?,1,0,0)",
@@ -4227,3 +4288,33 @@ class Database:
         self.conn.execute("UPDATE player_guild_contracts_v0927 SET progress=0,completed_count=completed_count+1,ready_at=? WHERE clan_id=? AND contract_id=?",(ready,clan_id,contract_id))
         self.conn.execute("UPDATE player_clans SET treasury=treasury+? WHERE id=?",(reward,clan_id))
         self.conn.commit(); return True
+
+
+    # v0.30.54 Crafting Mastery -------------------------------------------------
+    def crafting_mastery_v03054(self, account_id, profession, category):
+        profession=str(profession); category=str(category)
+        self.conn.execute(
+            "INSERT OR IGNORE INTO crafting_mastery_v03054(account_id,profession,category) VALUES(?,?,?)",
+            (int(account_id),profession,category),
+        )
+        self.conn.commit()
+        return self.conn.execute(
+            "SELECT * FROM crafting_mastery_v03054 WHERE account_id=? AND profession=? AND category=?",
+            (int(account_id),profession,category),
+        ).fetchone()
+
+    def add_crafting_mastery_action_v03054(self, account_id, profession, category, critical=False, legendary=False):
+        self.crafting_mastery_v03054(account_id,profession,category)
+        self.conn.execute(
+            "UPDATE crafting_mastery_v03054 SET actions=actions+1, criticals=criticals+?, legendary_count=legendary_count+? "
+            "WHERE account_id=? AND profession=? AND category=?",
+            (1 if critical else 0,1 if legendary else 0,int(account_id),str(profession),str(category)),
+        )
+        self.conn.commit()
+        return self.crafting_mastery_v03054(account_id,profession,category)
+
+    def crafting_masteries_v03054(self, account_id):
+        return self.conn.execute(
+            "SELECT * FROM crafting_mastery_v03054 WHERE account_id=? ORDER BY profession,category",
+            (int(account_id),),
+        ).fetchall()

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Soulbound v0.30.47 Session mixin: help_codex_profile."""
+"""Soulbound v0.30.51 Session mixin: help_codex_profile."""
 
 class SessionHelpCodexProfileMixin:
     async def show_lifetime_statistics(self):
@@ -180,7 +180,7 @@ class SessionHelpCodexProfileMixin:
                 "buy / kup przedmiot - kup po nazwie lub numerze z listy; np. kup 9 albo kup 9 3",
                 "talk npc - rozmowa, zadania i lekcje nauczycieli klasowych",
                 "teachers / nauczyciele - lista nauczycieli w Sali Gildii",
-                "help quest - pełna pomoc dziennika; quest - aktywne; questy ukończone; quest list <NPC>; accept quest <numer>; oddaj quest <numer>; quest info/porzuć <numer>",
+                "help quest - pełna pomoc dziennika; quest - aktywne; quest godzinne - wszystkie zlecenia godzinne; każde odnawia się niezależnie po 60 minutach; questy ukończone; quest list <NPC>; accept quest <numer>; oddaj quest <numer>; quest info/porzuć <numer>",
                 "consider / con / ocen <mob> - oceń dowolnego zabijalnego moba bez rozpoczynania walki; działa też np. con 2 goblin",
                 "k <mob> / attack / atakuj / zabij / kill <mob> - szybki atak na wskazanego przeciwnika",
                 "ciało / zwloki / corpse - pokaż ciała i ich ekwipunek",
@@ -444,9 +444,9 @@ class SessionHelpCodexProfileMixin:
                 await self.send("POSTAĆ: help statystyki, help hp, help score, help dusza, help ekwipunek, help klasy, help rasy, help multiclass.")
                 await self.send("WALKA: help walka, help wimpy, help bossowie, help krytyki, help umiejetnosci, help druzyny, help skrzynie_bossow.")
                 await self.send("ŚWIAT: help questy, help nawigacja, help event_exp, help eksploracja, help bestiariusz, help teren_info, help atlas, help krypta, help portale, help zwloki, help pojemniki, help sklepy.")
-                await self.send("PROFESJE: help profesje, help wedkarstwo, help gornictwo, help geody, help drwalstwo, help zielarstwo, help alchemia, help rzemioslo, help gotowanie, help receptury.")
-                await self.send("SPOŁECZNE: help gracze, help druzyny, help przekazywanie, help bufory, help pieniadze, help charyzma.")
-                await self.send("SYSTEM: help logowanie, help smierc, help opisy, help zmiany.")
+                await self.send("PROFESJE: help profesje, help wedkarstwo, help gornictwo, help geody, help drwalstwo, help zielarstwo, help alchemia, help rzemioslo, help gotowanie, help jubilerstwo2, help krawiectwo/tailoring, help garbarstwo/leatherworking, help stolarstwo/carpentry, help zaklinanie/enchanting, help craftmastery.")
+                await self.send("SPOŁECZNE: help gracze, help druzyny, help przekazywanie, help social2, help mentor2, help housing2, help leaderboards2, help bufory, help pieniadze, help charyzma.")
+                await self.send("SYSTEM: help logowanie, help smierc, help recaps, help loothistory2, help accessibility_presets, help audyt_v03055, help opisy, help zmiany.")
                 if self.is_admin():
                     await self.send("ADMINISTRATOR: help admin.")
                 await self.send("help tematy / help topics — pełna lista tematów.")

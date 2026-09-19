@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Soulbound v0.30.47 Session mixin: world_progression."""
+"""Soulbound v0.30.51 Session mixin: world_progression."""
 
 class SessionWorldProgressionMixin:
     def v0260_title_bonus_rule(self):

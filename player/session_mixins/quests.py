@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Soulbound v0.30.47 Session mixin: quests."""
+"""Soulbound v0.30.51 Session mixin: quests."""
 
 class SessionQuestsMixin:
     def quest_collect_category_info(self, target):
@@ -547,6 +547,31 @@ class SessionQuestsMixin:
                 )
                 result = regular + trials
             return result
+
+    def hourly_quest_ids(self, at_time=None):
+            """Pełna lista godzinnych zleceń; bez rotacji."""
+            return [qid for qid in HOURLY_QUEST_IDS if qid in QUESTS]
+
+    async def show_hourly_quests(self):
+            quest_ids = self.hourly_quest_ids()
+            self.quest_list_context = {"source": "hourly", "quest_ids": quest_ids}
+            if not quest_ids:
+                await self.send("Brak godzinnych zleceń.")
+                return
+            await self.send(
+                f"GODZINNE ZLECENIA: {len(quest_ids)}. Wszystkie są zawsze dostępne; "
+                "każde odnawia się niezależnie po 60 minutach od ukończenia."
+            )
+            for number, quest_id in enumerate(quest_ids, 1):
+                quest = QUESTS[quest_id]
+                await self.send(
+                    f"{number}. {quest['name']}. {self.quest_offer_state(quest_id)}. "
+                    f"Cel: {quest['description']}"
+                )
+            await self.send(
+                "Przyjmowanie: quest accept <numer>. Możesz przyjąć wszystkie dostępne godzinne zlecenia. "
+                "Gotowe zlecenie oddajesz komendą oddaj quest <numer> z listy aktywnych."
+            )
 
     def quest_lock_reasons(self, quest_id):
             """Powody, dla których quest nie może jeszcze zostać przyjęty."""
@@ -1409,7 +1434,7 @@ class SessionQuestsMixin:
                 await self.send("Ten quest nie jest obecnie aktywny.")
                 return
             local_ids = set(self.local_quest_ids())
-            if quest_id not in local_ids:
+            if quest_id not in local_ids and not quest.get("remote_turnin"):
                 npc_name = self.quest_turnin_npc_name_v098(quest)
                 await self.send(
                     f"Quest: {quest['name']}. Aby go oddać, idź do NPC: {npc_name}."
@@ -2455,6 +2480,10 @@ class SessionQuestsMixin:
                 await self.show_completed_quests()
                 return
 
+            if norm in ("godzinne", "godzinny", "hourly", "hourlies"):
+                await self.show_hourly_quests()
+                return
+
             if norm == "list" or norm == "lista":
                 await self.show_quest_npc_list("")
                 return
@@ -2500,7 +2529,7 @@ class SessionQuestsMixin:
                     return
 
             await self.send(
-                "Questy: quest/questy — aktywne; quest ukończone/questy ukończone — historia; "
+                "Questy: quest/questy — aktywne; quest godzinne — wszystkie odnawialne zlecenia godzinne; quest ukończone/questy ukończone — historia; "
                 "quest list <NPC> — numerowana oferta; quest accept <numer> lub accept quest <numer> — przyjmij; "
                 "quest info <numer> — szczegóły; quest oddaj <numer> lub oddaj quest <numer> — oddaj aktywny quest; "
                 "quest porzuć <numer> — porzuć aktywne zadanie."

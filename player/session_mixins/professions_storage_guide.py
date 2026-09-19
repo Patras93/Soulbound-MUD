@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Soulbound v0.30.47 Session mixin: professions_storage_guide."""
+"""Soulbound v0.30.51 Session mixin: professions_storage_guide."""
 
 class SessionProfessionsStorageGuideMixin:
     def profession_xp_to_next(self, level, profession=None):
@@ -72,6 +72,11 @@ class SessionProfessionsStorageGuideMixin:
             if _title_pct:
                 actual_prof_xp=max(0,int(round(actual_prof_xp*(1.0+_title_pct/100.0))))
                 tool_xp=max(0,int(round(tool_xp*(1.0+_title_pct/100.0))))
+            _mentor_pct = self.mentor_bonus_percent_v03050()
+            if _mentor_pct:
+                actual_prof_xp=max(0,int(round(actual_prof_xp*(1.0+_mentor_pct/100.0))))
+                tool_xp=max(0,int(round(tool_xp*(1.0+_mentor_pct/100.0))))
+                self.mentor_record_activity_v03051()
             actual_prof_xp = self.apply_double_xp(actual_prof_xp)
             tool_xp = self.apply_double_xp(tool_xp)
             old_profession_rank = profession_rank(
@@ -2538,6 +2543,7 @@ class SessionProfessionsStorageGuideMixin:
             professions = (
                 "Wędkarstwo", "Górnictwo", "Drwalstwo", "Zielarstwo",
                 "Gotowanie", "Alchemia", "Kowalstwo", "Jubilerstwo",
+                "Krawiectwo", "Garbarstwo", "Stolarstwo", "Zaklinanie",
             )
             await self.send("PROFESJE INFO" if detailed else "PROFESJE")
             for name in professions:
@@ -2567,7 +2573,7 @@ class SessionProfessionsStorageGuideMixin:
                 )
             if detailed:
                 await self.send(
-                    "Maksimum wszystkich ośmiu profesji: level 400."
+                    "Maksimum wszystkich dwunastu profesji: level 400."
                 )
                 await self.send(
                     "Poziom profesji skraca czas pracy i blokuje receptury/zlecenia. "
@@ -2587,6 +2593,10 @@ class SessionProfessionsStorageGuideMixin:
                 ("herbalism", "SIERPA ZIELARSKIEGO"),
                 ("alchemy", "MOŹDZIERZA ALCHEMICZNEGO"),
                 ("jewelcrafting", "SZCZYPIEC JUBILERSKICH"),
+                ("tailoring", "ZESTAWU KRAWIECKIEGO"),
+                ("leatherworking", "NOŻA GARBARSKIEGO"),
+                ("carpentry", "NARZĘDZI CIESIELSKICH"),
+                ("enchanting", "FOKUSU RUNICZNEGO"),
             ):
                 await self.send(f"NAZWY TIERÓW {title}")
                 for tier, minimum in enumerate(TOOL_TIER_THRESHOLDS, 1):
@@ -2659,6 +2669,10 @@ class SessionProfessionsStorageGuideMixin:
                 "herbalism": "Czas zbioru",
                 "alchemy": "Czas warzenia",
                 "jewelcrafting": "Czas wykonania biżuterii",
+                "tailoring": "Czas szycia",
+                "leatherworking": "Czas garbowania",
+                "carpentry": "Czas pracy stolarskiej",
+                "enchanting": "Czas zaklinania",
             }.get(tool_type, "Czas akcji")
 
     def tool_xp_remaining_to_level(self, level, xp, tool_type=None):
@@ -2833,6 +2847,10 @@ class SessionProfessionsStorageGuideMixin:
                 ("herbalism", "herbalist_sickle", "Sierp Zielarski", "Sena", "Ogród Zielarski"),
                 ("alchemy", "alchemy_mortar", "Moździerz Alchemiczny", "Orin", "Laboratorium Alchemiczne"),
                 ("jewelcrafting", "jeweler_pliers", "Szczypce Jubilerskie", "Mirella", "Pracownia Jubilerska"),
+                ("tailoring", "tailor_kit", "Zestaw Krawiecki", "Lysa", "Pracownia Krawiecka"),
+                ("leatherworking", "tanning_knife", "Nóż Garbarski", "Soren", "Warsztat Kaletnika"),
+                ("carpentry", "carpenter_tools", "Narzędzia Ciesielskie", "Edric", "Warsztat Ciesielski"),
+                ("enchanting", "runic_focus", "Fokus Runiczny", "Kwatermistrz Arkanów", "Komnata Arkanów"),
             ]
             await self.send("NARZĘDZIA INFO" if detailed else "NARZĘDZIA")
             for tool_type, item_id, name, seller, location in tools:

@@ -219,7 +219,7 @@ GUILD_CLASS_QUESTS = {
 
 GUILD_BOUNTY_TARGETS = (
     # v0.8.61: nagrody są wartościami jednego wspólnego salda w srebrze.
-    # 1000 srebra = 1 złoto; 1 000 000 złota = 1 mithril.
+    # 100 srebra = 1 złoto; 1000 złota = 1 mithril.
     ("wild_horned_king", "Rogaty Król Dziczy", 120, 1_000_000),       # 1 000 złota
     ("mountain_storm_eagle", "Orzeł Burzy", 140, 2_500_000),         # 2 500 złota
     ("deep_troll_warlord", "Głęboki Wódz Trolli", 160, 5_000_000),   # 5 000 złota

@@ -283,7 +283,7 @@ def refresh_help_v03011():
     ]
     HELP_TOPICS["pieniadze"] = [
         "portfel / wallet / saldo pokazuje jedno wspólne saldo konta jako mithril, złoto i srebro.",
-        "1000 srebra = 1 złoto; 1 000 000 złota = 1 mithril. Wewnętrznie gra zapisuje jedno saldo w srebrze.",
+        "100 srebra = 1 złoto; 1000 złota = 1 mithril. Wewnętrznie gra zapisuje jedno saldo w srebrze.",
         "daj <gracz> <ilość> złota przekazuje walutę innemu graczowi online w tej samej lokacji; można też podać srebro lub mithril.",
         "Przekazanie waluty aktualizuje oba wspólne portfele atomowo i nie może zejść poniżej zera ani przekroczyć bezpiecznego limitu SQLite.",
     ]
@@ -1057,3 +1057,27 @@ LATEST_CHANGES = [
     "Sloty auto kolejki zależą od Character Level: 10 na Levelu 1, 11 na 10, 20 na 100, 30 na 200, 50 na 400.",
     "Brak wipe; ID skilli, nauczone umiejętności i zapisane kolejki pozostają kompatybilne.",
 ]
+
+
+# v0.30.53 help additions
+try:
+    HELP_TOPICS.update({
+      "krawiectwo":"Krawiectwo 1-400. Krawcowa Lysa, Pracownia Krawiecka. Komendy: krawiectwo, szyj <receptura>, szyj lista. Tworzy tkaniny, szaty i płaszcze.",
+      "garbarstwo":"Garbarstwo 1-400. Kaletnik Soren. Komendy: garbarstwo, garbuj <receptura>, garbuj lista. Skóry bestii -> garbowana skóra -> pasy, karwasze i naramienniki.",
+      "stolarstwo":"Stolarstwo 1-400. Cieśla Edric. Komendy: stolarstwo, stolarka <receptura>, stolarka lista. Obrabia drewno i tworzy totemy oraz komponenty housingu.",
+      "zaklinanie":"Zaklinanie 1-400. Komnata Arkanów. Komendy: zaklinanie, zaklinaj <slot> <typ>, enchants. Jedno trwałe zaklęcie na slot; nowe zastępuje stare.",
+      "jubilerstwo2":"Jubilerstwo 2.0 dodaje nowe kolczyki, pierścienie i naszyjniki w progresji do levelu 400. Użyj receptury jubilerstwo i jub <nazwa>.",
+    })
+except Exception:
+    pass
+
+
+# v0.30.54 Crafting 2.0 help
+try:
+    HELP_TOPICS.update({
+      "jakosccraftu":"Jakość craftu v0.30.54: gotowe EQ może wyjść jako Zwykłe, Dobre, Doskonałe, Mistrzowskie lub Legendarne. Wyższa jakość realnie zwiększa bazową moc/statystyki przedmiotu.",
+      "krytycznycraft":"Krytyczny craft v0.30.54: mała szansa na dodatkowy affix statystyki. Szansa rośnie z levelem profesji oraz Crafting Mastery i ma bezpieczny limit.",
+      "craftmastery":"Crafting Mastery v0.30.54 jest osobne od levelu profesji i narzędzia. Rośnie od liczby udanych craftów w konkretnej kategorii. Komenda: craftmastery [filtr]. Maksymalnie 100.",
+    })
+except Exception:
+    pass

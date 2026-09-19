@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Soulbound v0.30.47 Session mixin: core_progression."""
+"""Soulbound v0.30.51 Session mixin: core_progression."""
 
 class SessionCoreProgressionMixin:
     def __init__(self, server, reader, writer):
@@ -627,6 +627,10 @@ class SessionCoreProgressionMixin:
     async def grant_soul_xp(self, amount):
             old_level = self.character.soul_level
             amount = self.apply_double_xp(amount)
+            _mentor_pct = self.mentor_bonus_percent_v03050()
+            if _mentor_pct:
+                amount = max(0, int(round(amount * (1.0 + _mentor_pct / 100.0))))
+                self.mentor_record_activity_v03051()
 
             messages = self.character.add_soul_xp(amount)
             for message in messages:
@@ -1362,6 +1366,10 @@ class SessionCoreProgressionMixin:
             base_total_xp = self.apply_double_xp(original_total_xp)
             _guild_pct=self.guild_bonus_percent_v0926()
             total_xp=max(0,int(round(base_total_xp*(1.0+_guild_pct/100.0))))
+            _mentor_pct = self.mentor_bonus_percent_v03050()
+            if _mentor_pct:
+                total_xp=max(0,int(round(total_xp*(1.0+_mentor_pct/100.0))))
+                self.mentor_record_activity_v03051()
 
             base_share, remainder = divmod(total_xp, len(active))
             _guild_note=f" Bonus Gildii +{_guild_pct}%: +{total_xp-base_total_xp}." if total_xp>base_total_xp else ""

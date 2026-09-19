@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Soulbound v0.30.47 Session mixin: admin_gathering_sales."""
+"""Soulbound v0.30.51 Session mixin: admin_gathering_sales."""
 
 class SessionAdminGatheringSalesMixin:
     def is_admin(self):

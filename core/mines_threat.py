@@ -1169,6 +1169,11 @@ COMMAND_ALIASES = {
     "tereninfo": "terraininfo",
     "sety": "classsets", "setklasowy": "classsets", "setyklasowe": "classsets",
     "say": "say", "powiedz": "say", "mow": "say", "mów": "say",
+    "gossip": "gossip", "plotki": "gossip", "plotka": "gossip",
+    "newbie": "newbie", "nowi": "newbie", "nowicjusze": "newbie",
+    "trade": "trade", "handel": "trade", "targ": "trade",
+    "kanaly": "channels", "kanały": "channels", "channels": "channels",
+    "mentor": "mentor", "mentoring": "mentor",
     "tell": "tell", "msg": "tell", "pm": "tell", "wiadomosc": "tell", "wiadomość": "tell",
     "reply": "reply", "odpisz": "reply", "r": "reply",
     "znajomi": "friends", "znajomy": "friends", "friends": "friends", "friend": "friends",
@@ -1394,6 +1399,21 @@ COMMAND_ALIASES = {
     "open": "chest",
     "otworzskrzynie": "chest",
     "otwórzskrzynię": "chest",
+
+    # v0.30.55 - pełne angielskie aliasy dla nowszych rzemiosł.
+    "tailoring": "krawiectwo", "tailor": "krawiectwo",
+    "sew": "szyj", "sewing": "szyj",
+    "leatherworking": "garbarstwo", "leatherwork": "garbarstwo",
+    "tan": "garbuj", "tanning": "garbuj",
+    "carpentry": "stolarstwo", "woodworking": "stolarstwo",
+    "woodcraft": "stolarka", "carpenter": "stolarstwo",
+    "enchanting": "zaklinanie", "enchantinginfo": "zaklinanie",
+    "enchantitem": "zaklinaj", "enchant": "zaklinaj",
+    "craftmastery": "craftmastery", "craftingmastery": "craftmastery",
+    "leaderboard": "leaderboards", "rankings": "leaderboards",
+    "collections": "collection2", "completionpercent": "completion",
+    "deathsummary": "deathrecap", "combatsummary": "combatrecap",
+    "loothistory": "loothistory",
 
 }
 

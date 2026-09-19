@@ -25,13 +25,13 @@ def rebalance_economy_v0861():
 
     # 3. Skup surowców. Zwykłe srebrne ceny pozostają czytelne,
     #    a drogie surowce w złocie rosną łagodnie. Stary sprzedawalny
-    #    mithril nie może dawać 1 000 000 złota za pojedynczy surowiec.
+    #    mithril nie może destabilizować skali nagród pojedynczego surowca.
     for item in ITEMS.values():
         old_mithril = int(item.get("sell_mithril", 0) or 0)
         old_gold = int(item.get("sell_gold", 0) or 0)
         if old_mithril > 0:
             # Sprzedawalny przedmiot za dawny 1 mithril daje 100 000 złota,
-            # a nie pełny nowy mithril wart 1 000 000 złota.
+            # a nie pełny mithril wart 1000 złota.
             item["sell_gold"] = old_gold + old_mithril * 100_000
             item["sell_mithril"] = 0
             continue
@@ -75,8 +75,8 @@ rebalance_economy_v0861()
 # ============================================================
 # Wszystkie nagrody pieniężne są od tej wersji zapisywane wyłącznie jako
 # wartość wspólnego salda w najmniejszym nominale (srebro). Złoto i mithril
-# pozostają nominałami prezentacji: 1000 srebra = 1 złoto,
-# 1 000 000 złota = 1 mithril.
+# pozostają nominałami prezentacji: 100 srebra = 1 złoto,
+# 1000 złota = 1 mithril.
 V0862_PROFESSION_QUEST_BASE_SILVER = {
     1: 250,
     5: 400,
@@ -1576,7 +1576,7 @@ def configure_v0864_balance_help():
         "Różne buffy multiclass nadal działają jednocześnie i uniwersalnie, ale buff nie wzmacnia siły kolejnego buffa, a łączny bonus ma limit +125 procent.",
         "Pojedyncze leczenie ma limit 80 procent maksymalnego HP na cast po wszystkich buffach; leczenie grupowe 60 procent na cel.",
         "Po zużyciu gwarantowanego evade działa wspólny 4-sekundowy lockout dla kolejnego gwarantowanego uniku.",
-        "Czysty mithril z Górnictwa pozostaje jackpotem, ale szansa została obniżona dziesięciokrotnie; 1 mithril nadal oznacza 1000000 złota wspólnego salda.",
+        "Czysty mithril z Górnictwa pozostaje jackpotem, ale szansa została obniżona dziesięciokrotnie; 1 mithril oznacza teraz 1000 złota wspólnego salda.",
         "Wyższe materiałowe EQ z ciał wymaga mocniejszych mobów; sprzedaż Astral/Pustka/Eternium nie przebija już ekonomii jednym dropem.",
         "AoE, podstawowa Mana, fazy bossów, quest rewards v0.8.62 i ceny sklepów v0.8.61 przeszły audit bez dodatkowego nerfa.",
     ]

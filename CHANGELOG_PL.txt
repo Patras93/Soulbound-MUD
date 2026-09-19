@@ -1,3 +1,129 @@
+v0.30.62 — Full Systems Audit 3.0
+- Pełny przekrojowy audyt wszystkich głównych systemów gry, danych i runtime.
+- 0 błędów krytycznych w finalnym audycie.
+- Stat XP spowolniony: Generator Core target 28 -> 60 odpowiednich akcji na punkt statystyki.
+- Profession/Tool XP pozostają na 50/65 z v0.30.61; pozostałe osie bez zmian.
+- Dodano startowy audit gate v0.30.62 blokujący uszkodzony deploy.
+
+v0.30.61 — EXP Audit 2.0 / Profession & Tool Pacing
+- Pełny audyt progresji XP ze szczególnym naciskiem na profesje i narzędzia.
+- Generator Core: docelowe tempo profesji zmienione z ok. 22 do ok. 50 akcji na poziom.
+- Generator Core: docelowe tempo narzędzi zmienione z ok. 24 do ok. 65 użyć na poziom.
+- XP profesji ze sprzedaży zasobów spowolniony przez zmianę mnożnika 4x -> 2x.
+- Class XP, Soul XP, Skill XP i Stat XP nie zostały zmienione tym passem.
+- Bonusy gildii, mentora i Double XP nadal działają, ale bazowa krzywa jest wyraźnie wolniejsza.
+
+v0.30.60 — Economy Audit 2.0
+- Pełny audyt gospodarki po kursie 100 srebra = 1 złoto, 1000 złota = 1 mithril.
+- 123 skrajnie zawyżone nagrody questów zostały ograniczone do skali zależnej od poziomu, rodzaju i powtarzalności zadania.
+- 15 zawyżonych wartości sprzedaży zasobów/klejnotów zostało ograniczonych względem poziomu przedmiotu.
+- Koszty rozbudowy Siedziby Gildii i budynków zmniejszono około 10x względem starej skali.
+- Sklepy i boss loot zachowano po audycie; ich relacja do cen EQ jest spójna.
+- Housing zachowuje lekkie koszty osobiste; transport po odkryciu pozostaje darmowy jako funkcja dostępności.
+
+v0.30.59 — Economy Rebase II
+- Globalny kurs waluty zmieniono na: 100 srebra = 1 złoto; 1000 złota = 1 mithril.
+- 1 mithril = 100 000 srebra.
+- SILVER_PER_GOLD zmieniono z 1000 na 100; GOLD_PER_MITHRIL pozostaje 1000.
+- Zaktualizowano aktywne HELP-y, formattery, audyty i komunikaty ekonomii.
+- Historyczne wpisy changelogu zachowano bez przepisywania.
+
+v0.30.58 — Economy Rebase: 1000 Gold = 1 Mithril
+- Globalny kurs waluty zmieniono na: 1000 srebra = 1 złoto; 1000 złota = 1 mithril.
+- 1 mithril odpowiada teraz 1 000 000 srebra wspólnego salda.
+- Zmieniono GOLD_PER_MITHRIL z 1 000 000 na 1000; bank, sklepy, gildie, nagrody, płatności i formatter waluty korzystają z jednego wspólnego przelicznika.
+- Zaktualizowano aktywne HELP-y i komunikaty ekonomii; historyczne wpisy changelogu pozostają bez zmian jako historia wcześniejszych wersji.
+- Saldo nadal jest przechowywane jako jedna liczba srebra w SQLite; nie dodano osobnych portfeli.
+
+Soulbound v0.30.57 - Guild Creation Fee
+
+- Założenie Gildii kosztuje teraz 500 złota (500 000 monet/srebra w wewnętrznym saldzie).
+- `gildia utworz <nazwa>` oraz `guild create <name>` sprawdzają wspólny portfel konta przed utworzeniem.
+- Opłata jest pobierana dopiero po poprawnym utworzeniu Gildii; zajęta/błędna nazwa nie zabiera pieniędzy.
+- HELP Gildii pokazuje aktualny koszt utworzenia.
+
+Soulbound v0.30.56 — Full Gameplay Simulation Audit
+- Dodano pełny audyt gameplay/regresji uruchamiany na czystej bazie.
+- Test obejmuje konto/postać, save/reload, inventory/EQ/storage, quest lifecycle, wszystkie profesje i narzędzia, receptury, Crafting Mastery, świat dynamiczny, routing komend/HELP oraz systemy social.
+- Pełny runtime otwiera port poprawnie i ładuje 1122 lokacje.
+- 0 błędów krytycznych w audycie gameplayowym.
+
+v0.30.55 - Full Game Audit + English Commands + HELP Refresh
+- wykonano pełny audyt całej gry: świat/przejścia, klasy/skille, itemy, moby, questy, receptury, profesje, komendy i HELP;
+- audyt krytyczny jest częścią startu serwera i zatrzymuje build przy błędzie integralności;
+- dodano brakujące angielskie komendy nowych rzemiosł: tailoring/sew, leatherworking/tan, carpentry/woodcraft, enchanting/enchantitem;
+- Zaklinanie akceptuje angielskie nazwy statystyk: strength, dexterity, constitution, intelligence, will/willpower, health, mana;
+- dodano aliasy leaderboard/rankings, craftingmastery, deathsummary i combatsummary;
+- odświeżono HELP-y Social Suite 2.0, Mentor 2.0, Housing 2.0, Collection/Completion 2.0, Leaderboards 2.0, Transport 2.0, recapy, Loot History 2.0, NVDA presets i Crafting 2.0;
+- `help komendy` zawiera aktualne polsko-angielskie odpowiedniki;
+- finalny audyt: 0 błędów krytycznych.
+
+v0.30.54 - Crafting Quality + Critical Craft + Mastery
+- Dodano pięć jakości gotowego EQ: Zwykły, Dobry, Doskonały, Mistrzowski, Legendarny.
+- Jakość mechanicznie skaluje obronę/statystyki craftowanego wyposażenia.
+- Dodano krytyczny craft z dodatkowym affixem; szansa rośnie z profesją i Crafting Mastery, ale ma limit.
+- Dodano Crafting Mastery 1-100 osobno dla kategorii receptury, niezależne od levelu profesji i narzędzia.
+- Nowa komenda: craftmastery [filtr] / mistrzostwocraftu.
+- Questy i kolekcje nadal śledzą bazowy przedmiot, więc warianty jakości nie rozbijają starej progresji.
+- Materiały i consumable pozostają stackowalne pod bazowym ID; trwałe warianty jakości dotyczą gotowego EQ.
+
+v0.30.53 - Extended Crafting Professions
+- Dodano Krawiectwo, Garbarstwo, Stolarstwo i Zaklinanie jako pełne profesje 1-400 z własnymi narzędziami i 40 Tierami.
+- Dodano warsztaty/NPC: Krawcowa Lysa, Kaletnik Soren, Cieśla Edric oraz Komnata Arkanów dla Zaklinania.
+- Dodano skóry bestii jako realny drop oraz materiały pośrednie: tkanina, garbowana skóra, deski i esencje.
+- Dodano linie craftowanego EQ aż do levelu 400 oraz Jubilerstwo 2.0 z nową biżuterią.
+- Dodano trwałe zaklęcia EQ per slot, wpływające na statystyki postaci.
+- Zaktualizowano PROFESJE i HELP; łącznie 12 profesji.
+
+Soulbound v0.30.53 — Completion, Rankings, Housing & Accessibility 2.0
+
+- Collection Codex 2.0: collection2 oraz collection2 braki.
+- Completion % 2.0: osobno świat, profesje, bossowie, kolekcje i cała gra.
+- Leaderboards 2.0: profesje, bossowie, kolekcje, rekordy, gildie i mentorzy; zachowane stare rankingi lochów.
+- Mentor Rankings oraz Apprentice Graduation po 100 wspólnych aktywnościach i progach ucznia.
+- Housing 2.0: dodatkowe pokoje, stacje craftingu i gabloty; zachowana skrzynia domu.
+- Transport 2.0: opis łodzi, wozów, wind i portali na bazie istniejącej sieci transportu.
+- Death Recap i Combat Recap.
+- Loot History 2.0 z wyszukiwaniem po nazwie, rarity, źródle i strefie.
+- NVDA presets: concise/normal/full osobno dla combat/social/system lub all.
+
+Soulbound v0.30.51 — Social Suite 2.0
+- Ignore/unignore i wyciszanie gossip/newbie/trade.
+- Friend/friends z informacją online.
+- AFK z automatyczną odpowiedzią na tell.
+- WHO 2.0 i WHOIS/profile.
+- Poczta offline, tablica ogłoszeń i LFG.
+- Mentor 2.0: punkty realnej wspólnej aktywności i małe nagrody.
+- Newbie Protection dla skrajnie za trudnych zwykłych terenów.
+- Daily login streak z umiarkowaną nagrodą.
+- Zachowano i wykorzystano istniejące Guild Hall upgrades.
+- Player housing z prywatną skrzynią, dekoracją i trofeami; Records 2.0, inspect z prywatnością, emotes.
+- Historia 20 wpisów gossip po wejściu oraz rate limiting kanałów.
+
+v0.30.51 — Social & Mentor Systems
+- Dodano globalne kanały: gossip/plotki, newbie/nowi oraz trade/handel.
+- Dodano `channels` / `kanaly` z krótkim opisem komunikacji.
+- Dodano Mentor System: mentor zaprasza początkującego, uczeń akceptuje relację.
+- Mentor wymaga Biegłości 50 i Soul Level 50; uczeń maks. Biegłość 20 i Soul Level 20.
+- Mentor i uczeń w tej samej drużynie oraz lokacji otrzymują +5% Class XP, Soul XP, XP profesji i narzędzi.
+- Relacja jest trwała w bazie i może zostać zakończona komendą `mentor zakoncz`.
+- Zaktualizowano HELP.
+
+v0.30.49 — Godzinne Zlecenia bez rotacji
+- Usunięto rotację 6 z 12 zadań. `quest godzinne` pokazuje teraz wszystkie godzinne zlecenia.
+- Wszystkie godzinne zlecenia można przyjmować równolegle.
+- Każde zlecenie ma własny cooldown 60 minut po ukończeniu/oddaniu.
+- Zachowano zasadę 0/x: liczą się wyłącznie zdarzenia wykonane po przyjęciu zadania.
+
+Soulbound v0.30.48 — Hourly Quest Rotation
+- Dodano Godzinne Zlecenia: komenda `quest godzinne` pokazuje 6 zadań z rotacyjnej puli.
+- Rotacja jest deterministyczna dla konta i zmienia się co pełną godzinę.
+- Dodano 12 zleceń: 5 bojowych i 7 profesyjnych/zbierackich.
+- Wszystkie godzinne questy zaczynają od 0/x i liczą tylko zdarzenia po przyjęciu.
+- Każde zlecenie odnawia się po 60 minutach od ukończenia.
+- Godzinne zlecenia można oddawać zdalnie po wykonaniu celu.
+- Zaktualizowano HELP i obsługę questów.
+
 Soulbound v0.30.47 — Session Modularization & Auditability
 
 - Rozbito monolityczną klasę Session (747 metod, ponad 26 tys. linii) na 14 tematycznych mixinów.

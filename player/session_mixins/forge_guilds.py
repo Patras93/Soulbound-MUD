@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Soulbound v0.30.47 Session mixin: forge_guilds."""
+"""Soulbound v0.30.59 Session mixin: forge_guilds."""
 
 class SessionForgeGuildsMixin:
     def at_haldor_forge_v0925(self):
@@ -765,7 +765,7 @@ class SessionForgeGuildsMixin:
             row=self.guild_row_v0926()
             if not raw or norm in ("status","info"):
                 if not row:
-                    await self.send("Nie należysz do Gildii. Użyj: gildia utworz <nazwa> albo gildia dolacz po zaproszeniu."); return
+                    await self.send("Nie należysz do Gildii. Założenie kosztuje 500 złota. Użyj: gildia utworz <nazwa> / guild create <name> albo gildia dolacz po zaproszeniu."); return
                 cid=int(row["clan_id"]); await self.sync_clan_achievements_v0925(cid)
                 members=int(conn.execute("SELECT COUNT(*) c FROM player_clan_members WHERE clan_id=?",(cid,)).fetchone()["c"])
                 item_bank=int(conn.execute("SELECT COALESCE(SUM(quantity),0) c FROM player_clan_bank WHERE clan_id=?",(cid,)).fetchone()["c"])
@@ -783,6 +783,14 @@ class SessionForgeGuildsMixin:
                 if row: await self.send("Już należysz do Gildii."); return
                 name=rest.strip()
                 if len(name)<3: await self.send("Nazwa Gildii musi mieć co najmniej 3 znaki."); return
+                creation_cost=500*SILVER_PER_GOLD
+                wallet=self.character_wallet_silver_value()
+                if wallet<creation_cost:
+                    await self.send(
+                        f"Założenie Gildii kosztuje {currency_reading_text(creation_cost,0,0)}. "
+                        f"Twój portfel: {currency_reading_text(wallet,0,0)}."
+                    )
+                    return
                 try:
                     cur=conn.execute("INSERT INTO player_clans(name,owner_account_id,level,treasury) VALUES(?,?,1,0)",(name,self.account_id)); cid=int(cur.lastrowid)
                     conn.execute("INSERT INTO player_clan_members(clan_id,account_id,rank) VALUES(?,?,'leader')",(cid,self.account_id)); conn.commit()
@@ -791,9 +799,15 @@ class SessionForgeGuildsMixin:
                     for _contract_id in V0927_GUILD_CONTRACTS:
                         self.server.db.guild_contract_row_v0927(cid,_contract_id)
                 except Exception:
-                    await self.send("Nie udało się utworzyć Gildii. Nazwa może być zajęta."); return
-                self.server.db.clan_log(cid,self.account_id,f"{self.character.name} zakłada Gildię {name}."); self.refresh_guild_bonus_v0926()
-                await self.send(f"Utworzono Gildię {name}. Poziom 1 daje +1% do Biegłości, Soul XP, EXP statystyk i profesji."); return
+                    await self.send("Nie udało się utworzyć Gildii. Nazwa może być zajęta. Opłata nie została pobrana."); return
+                # Opłata jest pobierana dopiero po poprawnym utworzeniu Gildii.
+                self.character.silver=wallet-creation_cost; self.character.gold=0; self.character.mithril=0
+                self.server.db.save_character(self.character)
+                self.server.db.clan_log(cid,self.account_id,f"{self.character.name} zakłada Gildię {name} za {currency_reading_text(creation_cost,0,0)}."); self.refresh_guild_bonus_v0926()
+                await self.send(
+                    f"Utworzono Gildię {name}. Koszt: {currency_reading_text(creation_cost,0,0)}. "
+                    "Poziom 1 daje +1% do Biegłości, Soul XP, EXP statystyk i profesji."
+                ); return
             if action in ("dolacz","dołącz","join"):
                 if row: await self.send("Już należysz do Gildii."); return
                 inv=conn.execute("SELECT i.clan_id,c.name FROM player_clan_invites i JOIN player_clans c ON c.id=i.clan_id WHERE i.target_account_id=? ORDER BY i.created_at DESC LIMIT 1",(self.account_id,)).fetchone()

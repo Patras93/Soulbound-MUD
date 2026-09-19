@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Soulbound v0.30.47 Session mixin: equipment_stats."""
+"""Soulbound v0.30.51 Session mixin: equipment_stats."""
 
 class SessionEquipmentStatsMixin:
     def equipped_item_rows(self):
@@ -62,6 +62,10 @@ class SessionEquipmentStatsMixin:
                             totals[gem_affix] += int(
                                 gem.get("affix_amount", 0)
                             )
+            for _erow in self.server.db.equipment_enchants_v03053(self.account_id):
+                _stat=str(_erow["stat"]); _amount=int(_erow["amount"])
+                if _stat in totals:
+                    totals[_stat] += _amount
             class_stats = self.class_set_stat_bonus_totals()
             for stat, amount in class_stats.items():
                 totals[stat] += int(amount)

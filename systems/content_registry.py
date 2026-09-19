@@ -667,14 +667,14 @@ SYSTEM_DESCRIPTIONS = {
     ),
     "proby duszy": "Próby Broni Duszy mają pasma trudności od początkujących T2-4 do ekstremalnych T31-40. Użyj dusza info.",
     "soul trials": "Próby Broni Duszy mają pasma trudności od początkujących T2-4 do ekstremalnych T31-40. Użyj dusza info.",
-    "srebro": "Srebro jest najmniejszym nominałem wspólnej waluty. 1000 srebra = 1 złoto.",
-    "silver": "Srebro jest najmniejszym nominałem wspólnej waluty. 1000 srebra = 1 złoto.",
-    "złoto": "Złoto jest wyższym nominałem tego samego salda. 1 złoto = 1000 srebra.",
-    "zloto": "Złoto jest wyższym nominałem tego samego salda. 1 złoto = 1000 srebra.",
-    "gold": "Złoto jest wyższym nominałem tego samego salda. 1 złoto = 1000 srebra.",
+    "srebro": "Srebro jest najmniejszym nominałem wspólnej waluty. 100 srebra = 1 złoto.",
+    "silver": "Srebro jest najmniejszym nominałem wspólnej waluty. 100 srebra = 1 złoto.",
+    "złoto": "Złoto jest wyższym nominałem tego samego salda. 1 złoto = 100 srebra.",
+    "zloto": "Złoto jest wyższym nominałem tego samego salda. 1 złoto = 100 srebra.",
+    "gold": "Złoto jest wyższym nominałem tego samego salda. 1 złoto = 100 srebra.",
     "mithril": (
         "Mithril jest najwyższym nominałem tego samego wspólnego salda. "
-        "1 mithril = 1000000 złota = 1000000000 srebra. "
+        "1 mithril = 1000 złota = 100000 srebra. "
         "Może być nagrodą lub bardzo rzadkim bezpośrednim wydobyciem wysokopoziomowym Kilofem."
     ),
     "siatka": "Siatka na ryby jest osobnym trwałym magazynem profesji. Komenda siatka/net pokazuje też łączną liczbę ryb, liczbę gatunków i szacowany zarobek ze sprzedaży całej zawartości. Sprzedaż ryb właściwym rybakom daje dodatkowy EXP Wędkarstwa.",
@@ -880,7 +880,7 @@ LATEST_CHANGES = [
     "v0.8.72: Questy dostają dokładnie tyle postępu, ile sztuk faktycznie pozyskano po przyjęciu.",
     "v0.8.72: Atlasy ryb, rud/minerałów, drewna i roślin zsynchronizowano z terenowymi zasobami oraz surowymi klejnotami Górnictwa, w tym Diamentem.",
     "Srebro, złoto i mithril tworzą jedno wspólne saldo; nie są trzema osobnymi portfelami.",
-    "Nominały: 1000 srebra = 1 złoto; 1000000 złota = 1 mithril; 1 mithril = 1000000000 srebra.",
+    "Nominały: 100 srebra = 1 złoto; 1000 złota = 1 mithril; 1 mithril = 100000 srebra.",
     "Portfel i Bank Dusz przechowują jedną wartość, a NVDA odczytuje ją automatycznie jako mithril, złoto i srebro.",
     "Komendy bank wplac/wyplac przyjmują nominał, np. bank wplac 5 zlota albo bank wyplac 1 mithril, lecz operują na tym samym saldzie.",
     "Sklepy, sprzedaż, nagrody, nauka skilli i egzaminy korzystają z tego samego wspólnego salda i automatycznie przeliczają nominały.",
@@ -1137,7 +1137,7 @@ HELP_TOPICS = {
     ],
     "gildia": [
         "gildia — status Gildii graczy: poziom, bonus, skarbiec, członkowie i osiągnięcia.",
-        "gildia utworz <nazwa>; gildia dolacz; gildia zapros <gracz>; gildia członkowie.",
+        "gildia utworz <nazwa> / guild create <name> — założenie kosztuje 500 złota; gildia dolacz; gildia zapros <gracz>; gildia członkowie.",
         "gildia wplac <kwota> [monet|zlota|mithril] — każdy członek może zasilać wspólny skarbiec.",
         "gildia wyplac <kwota> [monet|zlota|mithril] — wypłata na własny portfel wymaga prawa przypisanego do rangi.",
         "gildia rozbuduj; gildia rozbuduj potwierdz — tylko lider wydaje skarbiec na poziomy Gildii 1-100.",
@@ -1301,7 +1301,7 @@ HELP_TOPICS = {
     "waluta_auto": [
         "Wspólne saldo działa automatycznie bez komendy wymiany.",
         "Jedno wspólne saldo z nominałami: srebro, złoto i mithril.",
-        "Nominały: 1000 srebra = 1 złoto; 1000000 złota = 1 mithril.",
+        "Nominały: 100 srebra = 1 złoto; 1000 złota = 1 mithril.",
         "Portfel i Bank Dusz normalizują nominały automatycznie.",
         "Stara ręczna wymiana została usunięta z MUD-a.",
         "Stare salda są zachowywane wartościowo i nie są kasowane.",
@@ -1683,7 +1683,7 @@ HELP_TOPICS = {
     "kurs_walut": [
         "Nominały wspólnego salda przeliczają się automatycznie.",
         "Jedno wspólne saldo z nominałami: srebro, złoto i mithril.",
-        "Nominały: 1000 srebra = 1 złoto; 1000000 złota = 1 mithril.",
+        "Nominały: 100 srebra = 1 złoto; 1000 złota = 1 mithril.",
         "Saldo jest automatycznie przedstawiane w najwyższych możliwych nominałach.",
         "Automatyczne przeliczanie działa w portfelu oraz Banku Dusz.",
         "Stara ręczna komenda wymiany została usunięta.",
@@ -1858,7 +1858,7 @@ HELP_TOPICS = {
         "prowadz bank prowadzi bezpośrednio na Rynek.",
         "bank pokazuje saldo bankowe oraz przedmioty w skrytce.",
         "bank wplac 100 wpłaca 100 srebra do wspólnego salda.",
-        "bank wplac 5 zlota wpłaca 5000 srebra wartości; bank wplac 1 mithril wpłaca 1000000000 srebra wartości.",
+        "bank wplac 5 zlota wpłaca 5000 srebra wartości; bank wplac 1 mithril wpłaca 100000 srebra wartości.",
         "bank wyplac <ile> <nominał> wypłaca wskazaną wartość z tego samego salda.",
         "bank wplac wszystko wpłaca całe wspólne saldo z portfela.",
         "bank wyplac wszystko wypłaca całe wspólne saldo z banku.",
@@ -3004,6 +3004,121 @@ QUESTS = {
         "reward_items": {"soul_elixir": 2},
     },
 }
+
+
+# v0.30.51: Godzinne Zlecenia — pełna stała oferta.
+# Wszystkie zlecenia są zawsze dostępne do przyjęcia. Każde odnawia się
+# niezależnie po 60 minutach od ukończenia/oddania, zaczyna od 0/x i liczy
+# wyłącznie zdarzenia wykonane po przyjęciu.
+HOURLY_QUEST_ROTATION_SIZE = 0
+HOURLY_QUEST_IDS = (
+    "hourly_goblins",
+    "hourly_bandits",
+    "hourly_shadow_wolves",
+    "hourly_skeletons",
+    "hourly_temple_rats",
+    "hourly_fishing",
+    "hourly_mining",
+    "hourly_woodcutting",
+    "hourly_herbalism",
+    "hourly_fish_variety",
+    "hourly_ore_variety",
+    "hourly_herb_variety",
+)
+
+QUESTS.update({
+    "hourly_goblins": {
+        "name": "Godzinne zlecenie: Gobliny na szlaku", "giver": "Tablica Godzinnych Zleceń",
+        "kind": "kill", "target": "goblin", "needed": 20,
+        "description": "Pokonaj 20 goblinów. Liczą się wyłącznie zabójstwa po przyjęciu zadania.",
+        "reward_silver": 900, "reward_gold": 0, "reward_mithril": 0, "reward_items": {"healing_potion": 1},
+        "repeatable": True, "repeat_cooldown": 60 * 60, "hourly_rotation": False, "remote_turnin": True,
+    },
+    "hourly_bandits": {
+        "name": "Godzinne zlecenie: Patrol przeciw bandytom", "giver": "Tablica Godzinnych Zleceń",
+        "kind": "kill", "target": "bandit", "needed": 15,
+        "description": "Pokonaj 15 bandytów po przyjęciu tego godzinnego zlecenia.",
+        "reward_silver": 1000, "reward_gold": 0, "reward_mithril": 0, "reward_items": {"healing_potion": 1},
+        "repeatable": True, "repeat_cooldown": 60 * 60, "hourly_rotation": False, "remote_turnin": True,
+    },
+    "hourly_shadow_wolves": {
+        "name": "Godzinne zlecenie: Cienie w gaju", "giver": "Tablica Godzinnych Zleceń",
+        "kind": "kill", "target": "shadow_wolf", "needed": 12,
+        "description": "Pokonaj 12 Wilków Cienia po przyjęciu zlecenia.",
+        "reward_silver": 1100, "reward_gold": 0, "reward_mithril": 0, "reward_items": {"healing_potion": 2},
+        "repeatable": True, "repeat_cooldown": 60 * 60, "hourly_rotation": False, "remote_turnin": True,
+    },
+    "hourly_skeletons": {
+        "name": "Godzinne zlecenie: Kości krypty", "giver": "Tablica Godzinnych Zleceń",
+        "kind": "kill", "target": "skeleton", "needed": 18,
+        "description": "Pokonaj 18 szkieletów po przyjęciu zlecenia.",
+        "reward_silver": 1200, "reward_gold": 0, "reward_mithril": 0, "reward_items": {"healing_potion": 2},
+        "repeatable": True, "repeat_cooldown": 60 * 60, "hourly_rotation": False, "remote_turnin": True,
+    },
+    "hourly_temple_rats": {
+        "name": "Godzinne zlecenie: Szczurza plaga", "giver": "Tablica Godzinnych Zleceń",
+        "kind": "kill", "target": "temple_rat", "needed": 25,
+        "description": "Pokonaj 25 szczurów świątynnych po przyjęciu zlecenia.",
+        "reward_silver": 700, "reward_gold": 0, "reward_mithril": 0, "reward_items": {"healing_potion": 1},
+        "repeatable": True, "repeat_cooldown": 60 * 60, "hourly_rotation": False, "remote_turnin": True,
+    },
+    "hourly_fishing": {
+        "name": "Godzinne zlecenie: Połów", "giver": "Tablica Godzinnych Zleceń",
+        "kind": "collect_category", "target": "fish", "needed": 20,
+        "description": "Złów 20 dowolnych ryb po przyjęciu zlecenia.",
+        "reward_profession": "Wędkarstwo", "reward_profession_xp": 900, "reward_tool_type": "fishing", "reward_tool_xp": 750,
+        "reward_silver": 800, "reward_gold": 0, "reward_mithril": 0, "reward_items": {},
+        "repeatable": True, "repeat_cooldown": 60 * 60, "hourly_rotation": False, "remote_turnin": True,
+    },
+    "hourly_mining": {
+        "name": "Godzinne zlecenie: Górnicza zmiana", "giver": "Tablica Godzinnych Zleceń",
+        "kind": "collect_category", "target": "ore", "needed": 20,
+        "description": "Wydobądź 20 dowolnych rud po przyjęciu zlecenia.",
+        "reward_profession": "Górnictwo", "reward_profession_xp": 900, "reward_tool_type": "mining", "reward_tool_xp": 750,
+        "reward_silver": 850, "reward_gold": 0, "reward_mithril": 0, "reward_items": {},
+        "repeatable": True, "repeat_cooldown": 60 * 60, "hourly_rotation": False, "remote_turnin": True,
+    },
+    "hourly_woodcutting": {
+        "name": "Godzinne zlecenie: Drewno na zapasy", "giver": "Tablica Godzinnych Zleceń",
+        "kind": "collect_category", "target": "wood", "needed": 20,
+        "description": "Zbierz 20 jednostek dowolnego drewna po przyjęciu zlecenia.",
+        "reward_profession": "Drwalstwo", "reward_profession_xp": 900, "reward_tool_type": "woodcutting", "reward_tool_xp": 750,
+        "reward_silver": 800, "reward_gold": 0, "reward_mithril": 0, "reward_items": {},
+        "repeatable": True, "repeat_cooldown": 60 * 60, "hourly_rotation": False, "remote_turnin": True,
+    },
+    "hourly_herbalism": {
+        "name": "Godzinne zlecenie: Zielarski zbiór", "giver": "Tablica Godzinnych Zleceń",
+        "kind": "collect_category", "target": "herb", "needed": 20,
+        "description": "Zbierz 20 dowolnych ziół po przyjęciu zlecenia.",
+        "reward_profession": "Zielarstwo", "reward_profession_xp": 900, "reward_tool_type": "herbalism", "reward_tool_xp": 750,
+        "reward_silver": 800, "reward_gold": 0, "reward_mithril": 0, "reward_items": {},
+        "repeatable": True, "repeat_cooldown": 60 * 60, "hourly_rotation": False, "remote_turnin": True,
+    },
+    "hourly_fish_variety": {
+        "name": "Godzinne zlecenie: Różnorodny połów", "giver": "Tablica Godzinnych Zleceń",
+        "kind": "collect_category", "target": "fish", "needed": 30,
+        "description": "Złów 30 ryb po przyjęciu zlecenia. Starsze gatunki nadal się liczą.",
+        "reward_profession": "Wędkarstwo", "reward_profession_xp": 1200, "reward_tool_type": "fishing", "reward_tool_xp": 950,
+        "reward_silver": 1000, "reward_gold": 0, "reward_mithril": 0, "reward_items": {},
+        "repeatable": True, "repeat_cooldown": 60 * 60, "hourly_rotation": False, "remote_turnin": True,
+    },
+    "hourly_ore_variety": {
+        "name": "Godzinne zlecenie: Zapasy rudy", "giver": "Tablica Godzinnych Zleceń",
+        "kind": "collect_category", "target": "ore", "needed": 30,
+        "description": "Wydobądź 30 rud po przyjęciu zlecenia. Liczą się wszystkie odpowiednie tiery.",
+        "reward_profession": "Górnictwo", "reward_profession_xp": 1200, "reward_tool_type": "mining", "reward_tool_xp": 950,
+        "reward_silver": 1050, "reward_gold": 0, "reward_mithril": 0, "reward_items": {},
+        "repeatable": True, "repeat_cooldown": 60 * 60, "hourly_rotation": False, "remote_turnin": True,
+    },
+    "hourly_herb_variety": {
+        "name": "Godzinne zlecenie: Zapas ziół", "giver": "Tablica Godzinnych Zleceń",
+        "kind": "collect_category", "target": "herb", "needed": 30,
+        "description": "Zbierz 30 ziół po przyjęciu zlecenia. Liczą się wcześniejsze i późniejsze tiery.",
+        "reward_profession": "Zielarstwo", "reward_profession_xp": 1200, "reward_tool_type": "herbalism", "reward_tool_xp": 950,
+        "reward_silver": 1000, "reward_gold": 0, "reward_mithril": 0, "reward_items": {},
+        "repeatable": True, "repeat_cooldown": 60 * 60, "hourly_rotation": False, "remote_turnin": True,
+    },
+})
 
 # v0.8.43: jednorazowe questy startowe Archiwisty Sola.
 # Nie mają cooldownu i po ukończeniu nigdy się nie odnawiają.

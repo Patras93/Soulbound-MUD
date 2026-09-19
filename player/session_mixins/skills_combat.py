@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Soulbound v0.30.47 Session mixin: skills_combat."""
+"""Soulbound v0.30.51 Session mixin: skills_combat."""
 
 class SessionSkillsCombatMixin:
     async def unlock(self):
@@ -1310,6 +1310,7 @@ class SessionSkillsCombatMixin:
                 )
 
             self.current_hp -= incoming
+            self._recap52_taken=int(getattr(self,"_recap52_taken",0))+max(0,int(incoming))
             await self.send_combat(
                 f"{template['name']} atakuje. Typ obrażeń: "
                 f"{'magiczne' if damage_type == 'magic' else 'fizyczne'}. "
@@ -2198,6 +2199,7 @@ class SessionSkillsCombatMixin:
                     damage = max(1, int((self.character.soul_power() + scale) * multiplier) + random.randint(-2, 3))
                     damage, critical = self.roll_critical_hit(damage)
                     if critical:
+                        self.record_social_record_v03051("biggest_crit", damage)
                         critical_hits += 1
                     damage = await self.apply_boss_defense(target, damage)
                     damage = self.v0210_adjust_player_damage(damage)
@@ -2282,6 +2284,7 @@ class SessionSkillsCombatMixin:
             )
             damage, critical = self.roll_critical_hit(damage)
             if critical:
+                self.record_social_record_v03051("biggest_crit", damage)
                 await self.send(
                     f"TRAFIENIE KRYTYCZNE umiejętnością "
                     f"{skill['name']}! Zręczność "
@@ -2292,6 +2295,7 @@ class SessionSkillsCombatMixin:
             damage = await self.apply_boss_defense(mob, damage)
             damage = self.v0210_adjust_player_damage(damage)
             mob.hp -= damage
+            self._recap52_dealt=int(getattr(self,"_recap52_dealt",0))+max(0,int(damage))
             await self.send(
                 f"Broń Duszy {self.character.soul_weapon} prowadzi {skill['name']} na {template['name']}. "
                 f"Zadajesz {damage} obrażeń. Przeciwnik: {max(0, mob.hp)} z {template['max_hp']} HP."
@@ -2698,6 +2702,8 @@ class SessionSkillsCombatMixin:
                     pass
 
     async def ensure_realtime_combat(self):
+            if not hasattr(self, "_recap52_start") or not getattr(self, "_recap52_start", 0):
+                self._recap52_start=__import__("time").time(); self._recap52_dealt=0; self._recap52_taken=0; self._recap52_heal=0; self._recap52_crits=0; self._recap52_skills=0
             if self.closed or not self.combat_mob_key:
                 return
             mob = self.server.world.mobs.get(self.combat_mob_key)
@@ -2740,6 +2746,7 @@ class SessionSkillsCombatMixin:
             damage = await self.apply_boss_defense(mob, damage)
             damage = self.v0210_adjust_player_damage(damage)
             mob.hp -= damage
+            self._recap52_dealt=int(getattr(self,"_recap52_dealt",0))+max(0,int(damage))
             technique = SOUL_WEAPON_ATTACK_TECHNIQUES.get(
                 self.character.class_name, "Atak Broni Duszy"
             )
@@ -3388,6 +3395,13 @@ class SessionSkillsCombatMixin:
             await self.server.broadcast_room(
                 old_room, f"{self.character.name} pada w walce.", exclude=self
             )
+            try:
+                _dur=int(max(0.0,__import__("time").time()-float(getattr(self,"_recap52_start",__import__("time").time())))*1000)
+                self.server.db.conn.execute("INSERT INTO death_recaps_v03052(account_id,killer,room_id,damage_taken,duration_ms) VALUES(?,?,?,?,?)",(self.account_id,str(killer),str(old_room),int(getattr(self,"_recap52_taken",0)),_dur))
+                self.server.db.conn.execute("INSERT INTO combat_recaps_v03052(account_id,opponent,duration_ms,damage_dealt,damage_taken,healing,crits,skills_used,result) VALUES(?,?,?,?,?,?,?,?,?)",(self.account_id,str(killer),_dur,int(getattr(self,"_recap52_dealt",0)),int(getattr(self,"_recap52_taken",0)),int(getattr(self,"_recap52_heal",0)),int(getattr(self,"_recap52_crits",0)),int(getattr(self,"_recap52_skills",0)),"death"))
+                self.server.db.conn.commit(); self._recap52_start=0
+            except Exception:
+                pass
             await self.send(f"Pokonuje cię {killer}.")
             await self.send(
                 "Śmierć nie powoduje utraty waluty, przedmiotów, EQ ani progresji. "

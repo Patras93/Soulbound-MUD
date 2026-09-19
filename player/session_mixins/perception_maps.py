@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Soulbound v0.30.47 Session mixin: perception_maps."""
+"""Soulbound v0.30.51 Session mixin: perception_maps."""
 
 class SessionPerceptionMapsMixin:
     def visible_player_for_look(self, query):

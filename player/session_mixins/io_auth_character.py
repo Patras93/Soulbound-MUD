@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Soulbound v0.30.47 Session mixin: io_auth_character."""
+"""Soulbound v0.30.51 Session mixin: io_auth_character."""
 
 class SessionIOAuthCharacterMixin:
     def encode_session_text(self, value):
@@ -1108,6 +1108,9 @@ class SessionIOAuthCharacterMixin:
             await self.send(
                 "Rozpoczynasz sesję w Świątyni Odrodzenia."
             )
+            await self.daily_login_v03051()
+            if self.channel_enabled_v03051("gossip"):
+                await self.show_channel_history_v03051("gossip", 20)
             await self.sync_extended_achievements()
             if moved_gems:
                 await self.send(

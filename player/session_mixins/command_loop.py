@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Soulbound v0.30.47 Session mixin: command_loop."""
+"""Soulbound v0.30.51 Session mixin: command_loop."""
 
 class SessionCommandLoopMixin:
     async def command_loop(self):
@@ -49,7 +49,7 @@ class SessionCommandLoopMixin:
                     "rest", "help", "encoding", "describe", "changes", "look", "level", "xp", "wimpy", "eventxp",
                     "corpse", "cryptinfo", "astralinfo", "consider",
                     "waterinfo", "fishjournal", "exits", "map", "worldevents", "atlas", "codex", "bestiary",
-                    "where", "who", "expareas", "terraininfo", "classsets", "say", "stats", "hp", "score", "mana", "declension", "skills", "spells",
+                    "where", "who", "gossip", "newbie", "trade", "channels", "mentor", "expareas", "terraininfo", "classsets", "say", "stats", "hp", "score", "mana", "declension", "skills", "spells",
                     "skillnames", "skillqueue", "soul", "money", "net", "bag",
                     "woodpile", "herbbag", "professions", "ranks",
                     "tools", "toolinfo_fishing", "toolinfo_mining",
@@ -62,7 +62,7 @@ class SessionCommandLoopMixin:
                     "teachers", "quests", "charisma", "multiclass",
                     "back", "dungeonexit", "progress", "exploration",
                     "achievements", "titles", "title", "collection", "bosscodex", "bounty",
-                    "drophistory", "lootfilter", "regionprogress", "combatlog", "lifetime", "historybuffer", "craftbox", "runes", "clan", "masteryachievements", "friends",
+                    "drophistory", "lootfilter", "regionprogress", "combatlog", "lifetime", "historybuffer", "craftbox", "craftmastery", "mistrzostwocraftu", "runes", "clan", "masteryachievements", "friends", "friend", "ignore", "unignore", "afk", "whois", "mail", "board", "lfg", "newbieprotect", "house", "records", "inspect", "inspectprivacy", "emote", "smile", "wave", "cheer", "collection2", "completion", "deathrecap", "combatrecap", "loothistory", "nvda", "krawiectwo", "garbarstwo", "stolarstwo", "zaklinanie", "szyj", "garbuj", "stolarka", "enchants",
                 }
 
                 if (
@@ -81,7 +81,7 @@ class SessionCommandLoopMixin:
                     "terraininfo", "location", "stats", "hp", "score", "money",
                     "soul", "skills", "spells", "skillnames", "inventory", "equipment",
                     "quests", "progress", "exploration", "achievements", "titles", "weather", "biomemastery", "worldquest", "artifacts", "biomesets", "factionstories", "season", "expeditions", "transport", "greatruins", "legendaryevents", "endless", "megadungeons", "gauntlets", "mythicbosses", "artifactupgrade", "endgamegoals",
-                    "collection", "museum", "prestige", "bosscodex", "leaderboards", "bounty", "legendarycontracts", "worldprojects", "worldproject", "fishrecords", "drophistory", "combatlog", "lifetime", "historybuffer", "fishjournal", "say", "tell", "reply", "friends", "craftbox", "runes", "clan", "masteryachievements",
+                    "collection", "museum", "prestige", "bosscodex", "leaderboards", "bounty", "legendarycontracts", "worldprojects", "worldproject", "fishrecords", "drophistory", "combatlog", "lifetime", "historybuffer", "fishjournal", "say", "gossip", "newbie", "trade", "channels", "mentor", "tell", "reply", "friends", "craftbox", "craftmastery", "mistrzostwocraftu", "runes", "clan", "masteryachievements",
                     "partychat",
                 }
                 if self.guide_task_active() and (
@@ -146,6 +146,18 @@ class SessionCommandLoopMixin:
                     await self.set_title(args)
                 elif command == "collection":
                     await self.show_collection(args)
+                elif command == "collection2":
+                    await self.collection_codex_v03052(args)
+                elif command == "completion":
+                    await self.completion_v03052()
+                elif command == "deathrecap":
+                    await self.death_recap_v03052()
+                elif command == "combatrecap":
+                    await self.combat_recap_v03052()
+                elif command == "loothistory":
+                    await self.loot_history_v03052(args)
+                elif command == "nvda":
+                    await self.accessibility_v03052(args)
                 elif command == "museum":
                     await self.show_museum_v0260(args)
                 elif command == "prestige":
@@ -153,9 +165,12 @@ class SessionCommandLoopMixin:
                 elif command == "bosscodex":
                     await self.show_boss_codex(args)
                 elif command == "leaderboards":
-                    await self.show_leaderboards(args)
+                    if normalize_lookup_text(args or "") in ("profesje","profession","professions","bossowie","bosses","kolekcje","collection","rekordy","records","gildie","guilds","mentor","mentorzy"):
+                        await self.leaderboards_v03052(args)
+                    else:
+                        await self.show_leaderboards(args)
                 elif command == "drophistory":
-                    await self.show_drop_history()
+                    await self.loot_history_v03052(args)
                 elif command == "lootfilter":
                     await self.set_loot_filter(args)
                 elif command == "combatlog":
@@ -217,7 +232,7 @@ class SessionCommandLoopMixin:
                 elif command == "expedition":
                     await self.start_expedition_v018(args)
                 elif command == "transport":
-                    await self.handle_transport_v018(args)
+                    await self.transport_v03052(args)
                 elif command == "greatruins":
                     await self.show_great_ruins_v018()
                 elif command == "legendaryevents":
@@ -281,11 +296,54 @@ class SessionCommandLoopMixin:
                     await self.who()
                 elif command == "say":
                     await self.say(args)
+                elif command == "gossip":
+                    await self.channel_broadcast_v03050("gossip", args)
+                elif command == "newbie":
+                    await self.channel_broadcast_v03050("newbie", args)
+                elif command == "trade":
+                    await self.channel_broadcast_v03050("trade", args)
+                elif command == "channels":
+                    _cp=str(args or '').strip().split(maxsplit=1)
+                    if _cp and normalize_lookup_text(_cp[0]) in ("history","historia"):
+                        await self.show_channel_history_v03051(_cp[1] if len(_cp)>1 else "gossip")
+                    else:
+                        await self.show_channels_v03050()
+                elif command == "mentor":
+                    _mn=normalize_lookup_text(str(args or '').strip())
+                    if _mn in ("zadania","tasks"): await self.mentor_tasks_v03051(False)
+                    elif _mn in ("odbierz","claim"): await self.mentor_tasks_v03051(True)
+                    else: await self.mentor_v03052(args)
+                elif command == "ignore":
+                    await self.handle_ignore_v03051(args,False)
+                elif command == "unignore":
+                    await self.handle_ignore_v03051(args,True)
+                elif command == "afk":
+                    await self.handle_afk_v03051(args)
+                elif command == "whois":
+                    await self.whois_v03051(args)
+                elif command == "mail":
+                    await self.handle_mail_v03051(args)
+                elif command == "board":
+                    await self.handle_board_v03051(args)
+                elif command == "lfg":
+                    await self.handle_lfg_v03051(args)
+                elif command == "newbieprotect":
+                    await self.newbie_protection_v03051(args)
+                elif command == "house":
+                    await self.housing_v03052(args)
+                elif command == "records":
+                    await self.records_v03051(args)
+                elif command == "inspect":
+                    await self.inspect_v03051(args)
+                elif command == "inspectprivacy":
+                    await self.inspect_privacy_v03051(args)
+                elif command in ("emote","smile","wave","cheer"):
+                    await self.emote_v03051(command,args)
                 elif command == "tell":
                     await self.tell(args)
                 elif command == "reply":
                     await self.reply_private_v0928(args)
-                elif command == "friends":
+                elif command in ("friends","friend"):
                     await self.handle_friends_v0928(args)
                 elif command == "party":
                     await self.handle_party(args)
@@ -369,6 +427,8 @@ class SessionCommandLoopMixin:
                     await self.show_container("herbbag")
                 elif command == "craftbox":
                     await self.show_craftbox_v0925(args)
+                elif command in ("craftmastery", "mistrzostwocraftu"):
+                    await self.show_crafting_mastery_v03054(args)
                 elif command == "salvage":
                     await self.salvage_equipment_v0925(args)
                 elif command == "reforge":
@@ -504,6 +564,24 @@ class SessionCommandLoopMixin:
                         await self.send("Użycie: alchemia <mikstura>. Wpisz receptury alchemia.")
                     else:
                         await self.alchemy_item(args)
+                elif command == "krawiectwo":
+                    await self.v03053_show_profession("Krawiectwo")
+                elif command == "garbarstwo":
+                    await self.v03053_show_profession("Garbarstwo")
+                elif command == "stolarstwo":
+                    await self.v03053_show_profession("Stolarstwo")
+                elif command == "zaklinanie":
+                    await self.v03053_show_profession("Zaklinanie")
+                elif command == "szyj":
+                    await self.v03053_craft("Krawiectwo", args)
+                elif command == "garbuj":
+                    await self.v03053_craft("Garbarstwo", args)
+                elif command == "stolarka":
+                    await self.v03053_craft("Stolarstwo", args)
+                elif command == "zaklinaj":
+                    await self.v03053_enchant(args)
+                elif command == "enchants":
+                    await self.v03053_enchants()
                 elif command == "gems":
                     await self.show_gems()
                 elif command == "geodes":

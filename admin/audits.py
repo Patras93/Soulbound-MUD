@@ -196,8 +196,8 @@ def refresh_help_v03021_full():
     })
     HELP_TOPICS["waluta"] = [
         "Cała ekonomia używa jednego wspólnego salda. Nominały służą tylko do czytelnego wyświetlania i wpisywania kwot.",
-        "1000 srebra = 1 złota. 1 000 000 złota = 1 mithril. 1 mithril = 1 000 000 000 srebra.",
-        "Gra zawsze normalizuje kwotę do najwyższych nominałów: 1000 srebra jest czytane jako 1 złota; 2500 srebra jako 2 złota, 500 srebra.",
+        "100 srebra = 1 złota. 1000 złota = 1 mithril. 1 mithril = 100 000 srebra.",
+        "Gra zawsze normalizuje kwotę do najwyższych nominałów: 100 srebra jest czytane jako 1 złota; 250 srebra jako 2 złota, 50 srebra.",
         "Przy późnym endgame duże kwoty przechodzą automatycznie w mithril. Ta sama zasada działa przy zarabianiu, zakupie, sprzedaży, banku i innych kosztach.",
     ]
     HELP_TOPICS["sklepy"] = [
@@ -317,11 +317,11 @@ if EQ_SHOP_AUDIT_V03021["error_count"]:
 def currency_economy_audit_v03021():
     errors=[]
     formatter_tests={
-        999:"999 srebra",
-        1000:"1 złota",
-        2500:"2 złota, 500 srebra",
+        SILVER_PER_GOLD-1:f"{SILVER_PER_GOLD-1} srebra",
+        SILVER_PER_GOLD:"1 złota",
+        2*SILVER_PER_GOLD+50:"2 złota, 50 srebra",
         SILVER_PER_MITHRIL:"1 mithril",
-        SILVER_PER_MITHRIL+2*SILVER_PER_GOLD+345:"1 mithril, 2 złota, 345 srebra",
+        SILVER_PER_MITHRIL+2*SILVER_PER_GOLD+45:"1 mithril, 2 złota, 45 srebra",
     }
     for total,expected in formatter_tests.items():
         got=currency_reading_text(total,0,0)
@@ -330,7 +330,7 @@ def currency_economy_audit_v03021():
     for qid,q in QUESTS.items():
         value=v0190_quest_currency_reward(q)
         quest_values.append(value)
-        if value<1001: errors.append(f"quest <1 gold: {qid}={value}")
+        if value<SILVER_PER_GOLD: errors.append(f"quest <1 gold: {qid}={value}")
     tool_rows=[]
     for iid,item in ITEMS.items():
         if str(item.get("type","")).lower()=="tool" or item.get("tool_type"):
@@ -358,7 +358,7 @@ LATEST_CHANGES_TITLE = "Soulbound v0.30.21 - Full HELP + Unified Currency Econom
 LATEST_CHANGES = [
     "Pełny audit finalnego HELP: wszystkie tematy i aliasy są sprawdzane po nałożeniu wszystkich historycznych warstw pomocy.",
     "Klasowe sklepy EQ są audytowane dla wszystkich 12 klas i pełnych 13 typów wyposażenia.",
-    "Jedno saldo waluty jest zawsze prezentowane po normalizacji: mithril, złoto, srebro; 1000 srebra jest czytane jako 1 złota.",
+    "Jedno saldo waluty jest zawsze prezentowane po normalizacji: mithril, złoto, srebro; 100 srebra jest czytane jako 1 złota.",
     "Nagrody questów zostały podniesione i skalowane tak, aby od początku zawierały co najmniej równowartość złota, a mithril pojawiał się dopiero w późnym endgame.",
     "Ceny podstawowych narzędzi nie zależą już od przypadkowego generator_level przedmiotu; wszystkie starterowe narzędzia mają spójny przedział cenowy.",
 ]
@@ -2473,6 +2473,314 @@ LATEST_CHANGES = [
     "v0.30.42: eq, eq info oraz eq auto uwzględniają poziomy ulepszeń.",
 ]
 
-if __name__ == "__main__":
-    main()
+
+# ============================================================
+# v0.30.55 - FULL GAME / COMMANDS / HELP AUDIT
+# ============================================================
+# Final truth layer for the current release. It intentionally runs after every
+# historical HELP/audit patch above, so stale older release text cannot win.
+
+COMMAND_ALIASES.update({
+    # Extended crafting professions: Polish + English pairs.
+    "tailoring": "krawiectwo", "tailor": "krawiectwo",
+    "sew": "szyj", "sewing": "szyj",
+    "leatherworking": "garbarstwo", "leatherwork": "garbarstwo",
+    "tan": "garbuj", "tanning": "garbuj",
+    "carpentry": "stolarstwo", "woodworking": "stolarstwo",
+    "woodcraft": "stolarka", "carpenter": "stolarstwo",
+    "enchanting": "zaklinanie", "enchantinginfo": "zaklinanie",
+    "enchantitem": "zaklinaj", "enchant": "zaklinaj",
+    # Current 2.0 systems.
+    "craftingmastery": "craftmastery",
+    "leaderboard": "leaderboards", "rankings": "leaderboards",
+    "collections": "collection2", "completionpercent": "completion",
+    "deathsummary": "deathrecap", "combatsummary": "combatrecap",
+})
+
+HELP_TOPIC_ALIASES.update({
+    "tailoring": "krawiectwo", "sewing": "krawiectwo",
+    "leatherworking": "garbarstwo", "tanning": "garbarstwo",
+    "carpentry": "stolarstwo", "woodworking": "stolarstwo",
+    "enchanting": "zaklinanie", "enchant": "zaklinanie",
+    "crafting mastery": "craftmastery", "craftingmastery": "craftmastery",
+    "craft quality": "jakosccraftu", "craftquality": "jakosccraftu",
+    "critical craft": "krytycznycraft", "criticalcraft": "krytycznycraft",
+    "collection 2": "collection2", "collection2": "collection2",
+    "completion": "completion2", "completion percent": "completion2",
+    "leaderboards": "leaderboards2", "rankings": "leaderboards2",
+    "mentor rankings": "mentor2", "mentor graduation": "mentor2",
+    "housing 2": "housing2", "transport 2": "transport2",
+    "death recap": "recaps", "combat recap": "recaps",
+    "loot history": "loothistory2", "nvda": "accessibility_presets",
+    "channels": "social2", "mail": "social2", "lfg": "social2",
+})
+
+HELP_TOPICS.update({
+    "krawiectwo": [
+        "Krawiectwo / Tailoring 1-400. NPC: Krawcowa Lysa, Pracownia Krawiecka.",
+        "Komendy PL/EN: krawiectwo / tailoring; szyj <receptura> / sew <recipe>; szyj lista / sew list.",
+        "Tworzy tkaniny, szaty, płaszcze i inne gotowe EQ. Gotowe EQ korzysta z jakości craftu i Crafting Mastery.",
+    ],
+    "garbarstwo": [
+        "Garbarstwo / Leatherworking 1-400. NPC: Kaletnik Soren.",
+        "Komendy PL/EN: garbarstwo / leatherworking; garbuj <receptura> / tan <recipe>; garbuj lista / tan list.",
+        "Przerabia skóry bestii na materiały i lekkie EQ; gotowe EQ może otrzymać jakość oraz krytyczny affix.",
+    ],
+    "stolarstwo": [
+        "Stolarstwo / Carpentry 1-400. NPC: Cieśla Edric.",
+        "Komendy PL/EN: stolarstwo / carpentry; stolarka <receptura> / woodcraft <recipe>; stolarka lista / woodcraft list.",
+        "Obrabia drewno i tworzy komponenty, totemy oraz elementy powiązane z housingiem.",
+    ],
+    "zaklinanie": [
+        "Zaklinanie / Enchanting 1-400. Warsztat: Komnata Arkanów Gildii Dusz.",
+        "Komendy PL/EN: zaklinanie / enchanting; zaklinaj <slot> <typ> / enchantitem <slot> <type>; enchants.",
+        "Typy statystyk można podać po polsku lub angielsku: sila/strength, zrecznosc/dexterity, kondycja/constitution, inteligencja/intelligence, wola/will, hp/health, mana.",
+        "Jedno trwałe zaklęcie na slot; nowe zaklęcie zastępuje poprzednie.",
+    ],
+    "jakosccraftu": [
+        "Craft Quality / Jakość craftu: gotowe EQ może być Zwykłe, Dobre, Doskonałe, Mistrzowskie lub Legendarne.",
+        "Wyższa jakość realnie zwiększa moc/statystyki gotowego EQ. Materiały i consumable pozostają kompatybilne ze starymi recepturami i stackowaniem.",
+    ],
+    "krytycznycraft": [
+        "Critical Craft / Krytyczny craft: mała szansa na dodatkowy affix albo mocniejszy wynik.",
+        "Szansa rośnie z levelem właściwej profesji i Crafting Mastery, ale ma bezpieczny limit.",
+    ],
+    "craftmastery": [
+        "Crafting Mastery 1-100 jest osobne od levelu profesji i narzędzia i rośnie przez realne wykonywanie receptur w danej kategorii.",
+        "Komendy: craftmastery [filtr] / craftingmastery [filter]. Mastery wpływa na jakość i krytyczny craft.",
+    ],
+    "collection2": [
+        "Collection Codex 2.0: collection2; collection2 braki / collection2 missing.",
+        "Pokazuje ryby, rudy, sety, bossów, rare moby i sekrety oraz brakujące wpisy.",
+    ],
+    "completion2": [
+        "Completion % 2.0: completion. Pokazuje osobno świat, profesje, bossów, kolekcje i procent całej gry.",
+    ],
+    "leaderboards2": [
+        "Leaderboards 2.0: leaderboards / leaderboard / rankings.",
+        "Kategorie: professions, bosses, collection, records, guilds, mentor/mentorzy; starsze rankingi lochów pozostają dostępne.",
+    ],
+    "mentor2": [
+        "Mentor 2.0: relacja mentor-uczeń nagradza realną wspólną aktywność. mentor ranking pokazuje ranking mentorów.",
+        "mentor graduate / mentor graduation kończy naukę po spełnieniu progów i przyznaje nagrodę obu osobom.",
+    ],
+    "housing2": [
+        "Housing 2.0: house status, house rooms, house room add <nazwa>, house station <roomN> <typ>, house gallery.",
+        "Starsze funkcje domu nadal działają: name, decor, upgrade, chest, store, take, trophies.",
+    ],
+    "transport2": [
+        "Transport 2.0: transport. Sieć obejmuje łodzie, wozy, windy i portale, z zachowaniem istniejących odblokowań świata.",
+    ],
+    "recaps": [
+        "Death Recap: deathrecap / deathsummary. Pokazuje krótkie podsumowanie przyczyny ostatniej śmierci, jeśli dane są dostępne.",
+        "Combat Recap: combatrecap / combatsummary. Pokazuje czas walki, obrażenia, leczenie, krytyki i użyte skille z ostatniej walki.",
+    ],
+    "loothistory2": [
+        "Loot History 2.0: loothistory [filtr] lub drophistory [filtr]. Filtr może dopasować nazwę, rarity, źródło albo strefę.",
+    ],
+    "accessibility_presets": [
+        "Presety NVDA: nvda <combat|social|system|all> <concise|normal|full>.",
+        "Ustawienia są rozdzielone dla walki, komunikacji społecznej i komunikatów systemowych.",
+    ],
+    "social2": [
+        "Social Suite 2.0: ignore/unignore, friends/friend, afk, who/whois, mail, board, lfg, gossip/newbie/trade, channels.",
+        "Kanały można włączać i wyciszać przez gossip/newbie/trade on/off. channels pokazuje stan i historię.",
+        "Mail obsługuje list/send/read/delete; board list/post/delete; LFG obsługuje crypt, boss, profession, list i off.",
+    ],
+})
+
+# Current category summaries: append only current truth, without deleting useful old help.
+for _topic, _line in {
+    "profesje": "v0.30.55: nowe rzemiosła mają pełne komendy PL/EN: Tailoring, Leatherworking, Carpentry i Enchanting; Crafting Mastery oraz jakość craftu działają na gotowym EQ.",
+    "rzemioslo": "v0.30.55: help krawiectwo/tailoring, garbarstwo/leatherworking, stolarstwo/carpentry, zaklinanie/enchanting oraz help craftmastery opisują aktualny Crafting 2.0.",
+    "gracze": "v0.30.55: Social Suite obejmuje ignore, friends, AFK, WHO 2.0, whois, mail, board, LFG, kanały i mentoring.",
+    "eq": "v0.30.55: crafted EQ może mieć jakość, krytyczny affix, upgrade +1..+10, runy/sockety oraz trwałe zaklęcie slotu.",
+}.items():
+    HELP_TOPICS.setdefault(_topic, [])
+    if _line not in HELP_TOPICS[_topic]:
+        HELP_TOPICS[_topic].append(_line)
+
+# Keep `help komendy` current without rewriting the large historical list.
+_old_help_commands_v03055 = Session.help_commands
+def _help_commands_v03055(self):
+    rows = list(_old_help_commands_v03055(self))
+    extras = [
+        "tailoring / krawiectwo; sew / szyj <recipe> - Krawiectwo 1-400",
+        "leatherworking / garbarstwo; tan / garbuj <recipe> - Garbarstwo 1-400",
+        "carpentry / stolarstwo; woodcraft / stolarka <recipe> - Stolarstwo 1-400",
+        "enchanting / zaklinanie; enchantitem / zaklinaj <slot> <type>; enchants - Zaklinanie 1-400",
+        "craftmastery / craftingmastery [filter] - mastery kategorii craftu 1-100",
+        "collection2 [missing/braki]; completion - Collection/Completion 2.0",
+        "leaderboards / leaderboard / rankings [professions|bosses|collection|records|guilds|mentor] - rankingi 2.0",
+        "deathrecap / deathsummary; combatrecap / combatsummary - podsumowania śmierci i walki",
+        "loothistory [filter] - Loot History 2.0",
+        "nvda <combat|social|system|all> <concise|normal|full> - presety dostępności",
+        "ignore/unignore, friends/friend, afk, whois, mail, board, lfg - systemy społeczne 2.0",
+        "house rooms / room add / station / gallery - Housing 2.0; transport - system transportu",
+    ]
+    for row in extras:
+        if row not in rows:
+            rows.append(row)
+    return rows
+Session.help_commands = _help_commands_v03055
+
+
+def full_game_audit_v03055():
+    errors = []
+    warnings = []
+
+    # 1. World graph: every explicit exit must point to a real room.
+    bad_exits = []
+    dynamic_exits = []
+    dynamic_prefixes = (
+        "prof_", "mine_floor_", "crypt_floor_", "astral_floor_",
+        "mythic_crypt_floor_", "mythic_astral_floor_", "giant_fortress_",
+        "v0130_frontier_", "v018_endless_", "v020_mega_",
+    )
+    exit_count = 0
+    for room_id, room in ROOMS.items():
+        exits = room.get("exits", {}) or {}
+        if isinstance(exits, dict):
+            for direction, target in exits.items():
+                exit_count += 1
+                if target not in ROOMS:
+                    if str(target).startswith(dynamic_prefixes):
+                        dynamic_exits.append(f"{room_id}:{direction}->{target}")
+                    else:
+                        bad_exits.append(f"{room_id}:{direction}->{target}")
+    if bad_exits:
+        errors.append("invalid static room exits: " + ", ".join(bad_exits[:20]))
+    if dynamic_exits:
+        warnings.append(f"dynamic exit targets={len(dynamic_exits)} (validated by runtime generators)")
+
+    # 2. Core catalogs.
+    if len(CLASSES) != 12:
+        errors.append(f"classes={len(CLASSES)}, expected 12")
+    class_names = [row[0] for row in CLASSES]
+    missing_skill_classes = [name for name in class_names if not CLASS_SKILLS.get(name)]
+    if missing_skill_classes:
+        errors.append("classes without skills: " + ", ".join(missing_skill_classes))
+    if not ITEMS:
+        errors.append("ITEMS is empty")
+    if not MOB_TEMPLATES:
+        errors.append("MOB_TEMPLATES is empty")
+    if not QUESTS:
+        errors.append("QUESTS is empty")
+
+    # 3. Recipe integrity across all major recipe registries.
+    recipe_sets = {
+        "craft": CRAFT_RECIPES,
+        "cook": COOK_RECIPES,
+        "alchemy": ALCHEMY_RECIPES,
+        "jewel": JEWELCRAFT_RECIPES,
+        "extended": V03053_CRAFT_RECIPES,
+    }
+    recipe_count = 0
+    for label, table in recipe_sets.items():
+        for recipe_id, recipe in table.items():
+            recipe_count += 1
+            for item_id, qty in (recipe.get("ingredients", {}) or {}).items():
+                if item_id not in ITEMS:
+                    errors.append(f"{label}/{recipe_id}: missing ingredient {item_id}")
+                if int(qty or 0) <= 0:
+                    errors.append(f"{label}/{recipe_id}: invalid quantity {item_id}={qty}")
+            output = recipe.get("output")
+            if output and output not in ITEMS:
+                errors.append(f"{label}/{recipe_id}: missing output {output}")
+
+    # 4. Profession/tool mappings.
+    expected_professions = {
+        "fishing":"Wędkarstwo", "mining":"Górnictwo", "woodcutting":"Drwalstwo",
+        "crafting":"Kowalstwo", "cooking":"Gotowanie", "herbalism":"Zielarstwo",
+        "alchemy":"Alchemia", "jewelcrafting":"Jubilerstwo", "tailoring":"Krawiectwo",
+        "leatherworking":"Garbarstwo", "carpentry":"Stolarstwo", "enchanting":"Zaklinanie",
+    }
+    for tool_type, profession in expected_professions.items():
+        if TOOL_PROFESSION_MAP.get(tool_type) != profession:
+            errors.append(f"tool/profession map {tool_type}->{TOOL_PROFESSION_MAP.get(tool_type)!r}, expected {profession}")
+        if profession not in PROFESSION_RANK_NAMES:
+            errors.append(f"missing rank names for {profession}")
+
+    # 5. English command coverage for every newer Polish-only canonical command.
+    english_aliases = {
+        "tailoring":"krawiectwo", "sew":"szyj",
+        "leatherworking":"garbarstwo", "tan":"garbuj",
+        "carpentry":"stolarstwo", "woodcraft":"stolarka",
+        "enchanting":"zaklinanie", "enchantitem":"zaklinaj",
+        "craftingmastery":"craftmastery", "leaderboard":"leaderboards",
+        "rankings":"leaderboards", "deathsummary":"deathrecap",
+        "combatsummary":"combatrecap",
+    }
+    for alias, target in english_aliases.items():
+        if COMMAND_ALIASES.get(alias) != target:
+            errors.append(f"English command alias missing/wrong: {alias}->{COMMAND_ALIASES.get(alias)!r}, expected {target}")
+
+    # 6. HELP integrity and current-system coverage.
+    virtual_help = {"tematy", "komendy", "wszystko", "kategorie"}
+    for alias, target in HELP_TOPIC_ALIASES.items():
+        if target not in HELP_TOPICS and target not in virtual_help:
+            errors.append(f"HELP alias without target: {alias}->{target}")
+    required_help = {
+        "krawiectwo", "garbarstwo", "stolarstwo", "zaklinanie",
+        "jakosccraftu", "krytycznycraft", "craftmastery",
+        "collection2", "completion2", "leaderboards2", "mentor2",
+        "housing2", "transport2", "recaps", "loothistory2",
+        "accessibility_presets", "social2",
+    }
+    for topic in sorted(required_help):
+        rows = HELP_TOPICS.get(topic)
+        if not rows:
+            errors.append(f"missing current HELP topic: {topic}")
+
+    # 7. Important data collisions worth reviewing, but not fatal.
+    names = {}
+    for item_id, item in ITEMS.items():
+        name = normalize_lookup_text(item.get("name", ""))
+        if name:
+            names.setdefault(name, []).append(item_id)
+    duplicate_names = {name: ids for name, ids in names.items() if len(ids) > 1}
+    if duplicate_names:
+        warnings.append(f"duplicate visible item names={len(duplicate_names)} (may be intentional variants)")
+
+    return {
+        "version": "0.30.55",
+        "rooms": len(ROOMS),
+        "exits": exit_count,
+        "items": len(ITEMS),
+        "mobs": len(MOB_TEMPLATES),
+        "quests": len(QUESTS),
+        "classes": len(CLASSES),
+        "skills": sum(len(CLASS_SKILLS.get(name, ())) for name in class_names),
+        "professions": len(PROFESSION_RANK_NAMES),
+        "recipes": recipe_count,
+        "help_topics": len(HELP_TOPICS),
+        "help_aliases": len(HELP_TOPIC_ALIASES),
+        "command_aliases": len(COMMAND_ALIASES),
+        "warnings": warnings,
+        "error_count": len(errors),
+        "errors": errors,
+    }
+
+FULL_GAME_AUDIT_V03055 = full_game_audit_v03055()
+if FULL_GAME_AUDIT_V03055["error_count"]:
+    raise RuntimeError(
+        "Full Game Audit v0.30.55 failed: " + "; ".join(FULL_GAME_AUDIT_V03055["errors"][:80])
+    )
+
+HELP_TOPICS["audyt_v03055"] = [
+    "v0.30.55 wykonuje finalny audyt świata, przejść, klas/skilli, itemów, mobów, questów, receptur, profesji, komend PL/EN i HELP.",
+    "Błędy integralności zatrzymują start serwera zamiast pozwalać wdrożyć uszkodzony build.",
+    "Raport wydania AUDYT_CALEJ_GRY_v0.30.55_PL.txt zawiera wyniki audytu oraz ostrzeżenia nieblokujące.",
+]
+HELP_TOPIC_ALIASES.update({"audyt gry":"audyt_v03055", "game audit":"audyt_v03055", "audit":"audyt_v03055"})
+
+LATEST_CHANGES_TITLE = "Soulbound v0.30.55 - Full Game Audit + English Commands + HELP Refresh"
+LATEST_CHANGES = [
+    "Pełny audyt całej gry: świat/przejścia, klasy/skille, przedmioty, moby, questy, receptury, profesje, komendy i HELP.",
+    "Dodano brakujące angielskie komendy dla nowych rzemiosł: tailoring/sew, leatherworking/tan, carpentry/woodcraft, enchanting/enchantitem.",
+    "Zaklinanie akceptuje teraz również angielskie nazwy statystyk: strength, dexterity, constitution, intelligence, will, health i mana.",
+    "HELP został odświeżony dla systemów v0.30.50-v0.30.54, w tym Social, Mentor, Housing, Collection/Completion, rankingi, recapy, NVDA i Crafting 2.0.",
+    "help komendy zawiera aktualne komendy nowych systemów i ich polsko-angielskie odpowiedniki.",
+]
+
 

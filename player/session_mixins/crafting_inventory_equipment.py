@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Soulbound v0.30.47 Session mixin: crafting_inventory_equipment."""
+"""Soulbound v0.30.51 Session mixin: crafting_inventory_equipment."""
 
 class SessionCraftingInventoryEquipmentMixin:
     def available_recipe_item(self, item_id):
@@ -82,7 +82,11 @@ class SessionCraftingInventoryEquipmentMixin:
             return ", ".join(parts)
 
     async def show_recipes(self, mode=""):
-            mode = self.normalize_description_query(mode)
+            _raw_mode = self.normalize_description_query(mode)
+            if _raw_mode in ("krawiectwo", "tailoring", "garbarstwo", "leatherworking", "stolarstwo", "carpentry", "zaklinanie", "enchanting"):
+                await self.v03053_show_recipes(_raw_mode)
+                return
+            mode = _raw_mode
             craft_modes = {
                 "craft", "stworz", "rzemioslo", "kowalstwo",
                 "smithing", "blacksmithing", "kuj",
@@ -189,6 +193,10 @@ class SessionCraftingInventoryEquipmentMixin:
                     "herbalism": ("herbalist_sickle", "Sierp Zielarski"),
                     "alchemy": ("alchemy_mortar", "Moździerz Alchemiczny"),
                     "jewelcrafting": ("jeweler_pliers", "Szczypce Jubilerskie"),
+                    "tailoring": ("tailor_kit", "Zestaw Krawiecki"),
+                    "leatherworking": ("tanning_knife", "Nóż Garbarski"),
+                    "carpentry": ("carpenter_tools", "Narzędzia Ciesielskie"),
+                    "enchanting": ("runic_focus", "Fokus Runiczny"),
                 }
                 tool_type = str(recipe["tool_type"])
                 item_id, name = mapping[tool_type]
@@ -352,6 +360,23 @@ class SessionCraftingInventoryEquipmentMixin:
             output_id = recipe["output"]
             quantity = int(recipe.get("quantity", 1))
 
+            # v0.30.54: mastery jest osobne od levelu profesji i narzędzia.
+            mastery_category = crafting_mastery_category_v03054(recipe, profession)
+            mastery_row = self.server.db.crafting_mastery_v03054(
+                self.account_id, profession, mastery_category
+            )
+            mastery_before = crafting_mastery_level_v03054(mastery_row["actions"])
+            quality_key = crafting_quality_roll_v03054(
+                profession_level, old_tool_level, mastery_before
+            )
+            critical_chance = crafting_critical_chance_v03054(
+                profession_level, mastery_before
+            )
+            critical_craft = random.random() < critical_chance
+            crafted_output_id, critical_affix = crafting_quality_output_v03054(
+                output_id, quality_key, critical_craft, mastery_before
+            )
+
             tier = tool_tier(old_tool_level)
             bonus_chance = tool_tier_bonus_chance(old_tool_level)
 
@@ -361,12 +386,20 @@ class SessionCraftingInventoryEquipmentMixin:
 
             total_quantity = quantity + bonus_quantity
             self.server.db.add_item(
-                self.account_id, output_id, total_quantity
+                self.account_id, crafted_output_id, total_quantity
             )
+            # Kolekcje/questy śledzą bazowy przedmiot, aby wariant jakości nie
+            # rozbijał istniejących celów i progresji.
             await self.record_item_collection(
                 output_id, source="Rzemiosło", announce=True,
                 record_history=False, amount=total_quantity
             )
+            mastery_after_row = self.server.db.add_crafting_mastery_action_v03054(
+                self.account_id, profession, mastery_category,
+                critical=bool(critical_affix),
+                legendary=(quality_key == "legendary"),
+            )
+            mastery_after = crafting_mastery_level_v03054(mastery_after_row["actions"])
             self.server.db.add_lifetime_stat(self.account_id, "craft_actions", 1)
             self.server.db.add_lifetime_stat(self.account_id, "crafted_items", total_quantity)
             self.server.db.add_lifetime_stat(self.account_id, "profession_actions", 1)
@@ -376,10 +409,28 @@ class SessionCraftingInventoryEquipmentMixin:
                 if output_id in CRAFT_MATERIAL_STORAGE_IDS
                 else "zwykłego ekwipunku"
             )
+            crafted_name = ITEMS.get(crafted_output_id, ITEMS[output_id])["name"]
             await self.send(
-                f"{action_name.capitalize()}: {ITEMS[output_id]['name']} "
+                f"{action_name.capitalize()}: {crafted_name} "
                 f"x{quantity}. Przedmiot trafia do {destination}."
             )
+            if crafting_output_is_quality_equipment_v03054(output_id):
+                quality_name = CRAFT_QUALITY_V03054[quality_key]["name"]
+                await self.send(
+                    f"Jakość craftu: {quality_name}. "
+                    f"Mastery {profession}/{mastery_category}: {mastery_after}/100."
+                )
+                if critical_affix:
+                    crafted_item = ITEMS.get(crafted_output_id,{})
+                    amount = int(crafted_item.get("craft_critical_affix_amount_v03054",0) or 0)
+                    stat_name = CRAFT_CRIT_AFFIX_NAMES_V03054.get(critical_affix,critical_affix)
+                    await self.send(
+                        f"KRYTYCZNY CRAFT: dodatkowy affix {stat_name} +{amount}."
+                    )
+                if mastery_after > mastery_before:
+                    await self.send(
+                        f"Crafting Mastery rośnie: {mastery_before} -> {mastery_after}."
+                    )
 
             if bonus_quantity > 0:
                 if tool_type == "cooking":
@@ -452,6 +503,26 @@ class SessionCraftingInventoryEquipmentMixin:
                 )
 
             return True
+
+    async def show_crafting_mastery_v03054(self, query=""):
+            rows = list(self.server.db.crafting_masteries_v03054(self.account_id))
+            q = normalize_lookup_text(query or "")
+            if q:
+                rows = [r for r in rows if q in normalize_lookup_text(r["profession"]) or q in normalize_lookup_text(r["category"])]
+            await self.send("CRAFTING MASTERY")
+            if not rows:
+                await self.send("Nie masz jeszcze mastery. Wykonaj pierwszą udaną recepturę.")
+                return
+            for row in rows:
+                level = crafting_mastery_level_v03054(row["actions"])
+                await self.send(
+                    f"{row['profession']} / {row['category']}: mastery {level}/100, "
+                    f"crafty {row['actions']}, krytyczne {row['criticals']}, legendarne {row['legendary_count']}."
+                )
+            await self.send(
+                "Mastery jest niezależne od levelu profesji i narzędzia. "
+                "Większe mastery zwiększa szansę na wyższą jakość i krytyczny craft."
+            )
 
     async def show_jewelcrafting_info(self):
             await self.send("JUBILERSTWO")
