@@ -2519,7 +2519,7 @@ def _v03014_skill_name_audit():
     if numeric_names:
         errors.append(f"Pozostały numerowane nazwy: {len(numeric_names)}")
     return {
-        "version": "0.33.2",
+        "version": "0.33.3",
         "classes": len(CLASS_SKILLS),
         "skills": sum(per_class.values()),
         "renamed": V03014_SKILLS_RENAMED,

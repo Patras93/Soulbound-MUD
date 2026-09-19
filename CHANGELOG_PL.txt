@@ -1,3 +1,10 @@
+v0.33.3 — Crafting Quality Quest Turn-in Fix
+- Naprawiono questy craftingowe typu collect: warianty jakości `craftq_*` są traktowane jako ich bazowy przedmiot przy wyświetlaniu postępu i oddawaniu questa.
+- Zlecenie Górskiego Kowala na 3 żelazne hełmy nie spada już do 0/3 tylko dlatego, że wykute hełmy mają jakość Zwykły/Dobry/Doskonały itd.
+- Oddanie questa zużywa bazowe przedmioty oraz odpowiadające im warianty Crafting Quality.
+- Tę samą zgodność dodano do questów `craft_set`, aby jakościowe elementy pełnych zestawów również zaliczały i dawały się oddać.
+- Zasada 0/x pozostaje bez zmian: tylko craft wykonany po przyjęciu questa zwiększa historyczny licznik zdarzeń; stary zapas sam nie daje postępu.
+
 v0.33.2 — Crafting Quality persistence + clean item names
 - Naprawiono przeciekanie technicznych ID `craftq_*` do inventory/EQ i odczytu NVDA.
 - Dynamiczne warianty Crafting Quality są odtwarzane z bazy przy starcie serwera.

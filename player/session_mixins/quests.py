@@ -390,7 +390,7 @@ class SessionQuestsMixin:
             if kind == "collect":
                 row = self.server.db.quest(self.account_id, quest_id)
                 gathered = min(int(row["progress"] if row else 0), needed)
-                have = min(gathered, int(self.available_recipe_item(q["target"])))
+                have = min(gathered, int(self.quest_crafted_item_have_v0333(q["target"])))
                 return (have, needed, ITEMS[q["target"]]["name"])
             if kind == "collect_category":
                 category = self.quest_collect_category_info(q.get("target"))
@@ -423,9 +423,46 @@ class SessionQuestsMixin:
                 return (min(have, stock_needed), stock_needed, "wymaganych próbek surowców")
             if kind == "craft_set":
                 targets = tuple(q.get("targets") or ())
-                have = sum(1 for item_id in targets if self.server.db.item_qty(self.account_id, item_id) > 0)
+                have = sum(1 for item_id in targets if self.quest_crafted_item_have_v0333(item_id) > 0)
                 return (have, len(targets), "elementów zestawu")
             return None
+
+
+    def quest_crafted_equivalent_ids_v0333(self, base_id):
+            """Return base item plus all Crafting Quality variants representing it."""
+            ids = {str(base_id)}
+            for item_id, item in ITEMS.items():
+                if str(item.get("crafted_base_id_v03054") or "") == str(base_id):
+                    ids.add(str(item_id))
+            # Defensive fallback for legacy/persisted variants not yet registered in ITEMS.
+            try:
+                for row in self.server.db.inventory(self.account_id):
+                    item_id = str(row["item_id"])
+                    parsed = parse_crafting_quality_variant_v0332(item_id)
+                    if parsed and parsed.get("base_id") == str(base_id):
+                        ids.add(item_id)
+            except Exception:
+                pass
+            return tuple(sorted(ids))
+
+    def quest_crafted_item_have_v0333(self, base_id):
+            return sum(
+                int(self.server.db.item_qty(self.account_id, item_id))
+                for item_id in self.quest_crafted_equivalent_ids_v0333(base_id)
+            )
+
+    def consume_quest_crafted_items_v0333(self, base_id, quantity):
+            remaining = max(0, int(quantity))
+            for item_id in self.quest_crafted_equivalent_ids_v0333(base_id):
+                if remaining <= 0:
+                    break
+                have = int(self.server.db.item_qty(self.account_id, item_id))
+                take = min(have, remaining)
+                if take > 0:
+                    if not self.server.db.remove_item(self.account_id, item_id, take):
+                        return False
+                    remaining -= take
+            return remaining == 0
 
     def quest_progress_for_turnin(self, quest_id):
             q = QUESTS.get(quest_id)
@@ -443,7 +480,7 @@ class SessionQuestsMixin:
                 # liczbę zaliczonych sztuk, które nadal są dostępne do oddania.
                 # Historyczny licznik zdarzeń nadal chroni przed starym zapasem.
                 gathered = min(int(row["progress"]), needed)
-                have = self.available_recipe_item(q["target"])
+                have = self.quest_crafted_item_have_v0333(q["target"])
                 progress = min(gathered, int(have), needed)
                 return progress, progress >= needed
 
@@ -498,9 +535,7 @@ class SessionQuestsMixin:
                 progress = self.craft_set_progress(row, q)
                 targets = tuple(q.get("targets") or ())
                 have_all = all(
-                    self.server.db.item_qty(
-                        self.account_id, item_id
-                    ) > 0
+                    self.quest_crafted_item_have_v0333(item_id) > 0
                     for item_id in targets
                 )
                 return (
@@ -1624,7 +1659,7 @@ class SessionQuestsMixin:
                     )
                     return
 
-                have = self.available_recipe_item(q["target"])
+                have = self.quest_crafted_item_have_v0333(q["target"])
                 if have < q["needed"]:
                     await self.send(
                         f"Quest aktywny: {q['name']}. "
@@ -1634,7 +1669,7 @@ class SessionQuestsMixin:
                     )
                     return
 
-                if not self.consume_recipe_item(q["target"], q["needed"]):
+                if not self.consume_quest_crafted_items_v0333(q["target"], q["needed"]):
                     await self.send("Nie udało się pobrać przedmiotów do oddania questa.")
                     return
 
@@ -1725,9 +1760,7 @@ class SessionQuestsMixin:
                 missing = [
                     item_id
                     for item_id in targets
-                    if self.server.db.item_qty(
-                        self.account_id, item_id
-                    ) <= 0
+                    if self.quest_crafted_item_have_v0333(item_id) <= 0
                 ]
                 if missing:
                     await self.send(
@@ -1742,11 +1775,11 @@ class SessionQuestsMixin:
                     return
 
                 for item_id in targets:
-                    self.server.db.remove_item(
-                        self.account_id,
-                        item_id,
-                        1,
-                    )
+                    if not self.consume_quest_crafted_items_v0333(item_id, 1):
+                        await self.send(
+                            "Nie udało się pobrać elementu zestawu do oddania questa."
+                        )
+                        return
 
             elif q["kind"] in ("deliver_npc", "talk_npc", "talk_class_teacher"):
                 progress = int(row["progress"])
