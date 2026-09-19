@@ -1,4 +1,9 @@
-v0.33.10 - Quest Collect Storage & Haldor Recovery
+v0.33.12 - Indywidualne cooldowny wszystkich skilli
+- Każdy skill i spell ma od teraz wyłącznie własny cooldown po swoim ID.
+- Usunięto wspólne cooldowny grup Biegłości z ręcznego użycia, auto-kolejki oraz auto-healu.
+- Umiejętności evade nie mają już dodatkowego wspólnego lockoutu; aktywny gwarantowany unik pozostaje tylko bieżącym efektem skilla.
+
+v0.33.11 - Quest Collect Storage & Haldor Recovery
 - Naprawiono questy collect, które błędnie sprawdzały tylko inventory zamiast właściwego magazynu profesji.
 - Żelazne Sztabki Haldora jawnie śledzą craft.
 - Stalowe Płyty oraz inne materiały w Szkatułce Rzemieślniczej są liczone przy postępie i oddawaniu.

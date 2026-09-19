@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #!/usr/bin/env python3
-"""Soulbound v0.33.10 Full Game 100% Audit & Runtime Text Integrity."""
+"""Soulbound v0.33.12 Full Game 100% Audit & Runtime Text Integrity."""
 from pathlib import Path
 import os
 import socket

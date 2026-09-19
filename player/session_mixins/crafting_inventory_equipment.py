@@ -1367,34 +1367,74 @@ class SessionCraftingInventoryEquipmentMixin:
                 "earring": ("earring1", "earring2"),
             }
             for logical_slot, pair in duals.items():
-                expanded = []
+                # v0.33.11: dual-slot auto-equip must compare the two currently
+                # equipped pieces as well as owned inventory candidates. Older
+                # saves may have equipped jewelry whose inventory quantity is 0,
+                # and those pieces must still participate in the ranking.
+                candidate_counts = {}
+                candidate_items = {}
                 for item_id, (item, qty) in owned.items():
-                    if item.get("slot") != logical_slot:
+                    item_slot = str(item.get("slot") or "")
+                    if item_slot not in (logical_slot, pair[0], pair[1]):
                         continue
-                    for _ in range(min(2, max(0, int(qty)))):
+                    candidate_counts[item_id] = max(candidate_counts.get(item_id, 0), max(0, int(qty)))
+                    candidate_items[item_id] = item
+
+                current_by_slot = {}
+                equipped_counts = {}
+                for slot in pair:
+                    cur = self.server.db.equipped_item(self.account_id, slot)
+                    if not cur:
+                        continue
+                    current_by_slot[slot] = cur
+                    cur_item = ITEMS.get(cur)
+                    if not cur_item:
+                        continue
+                    cur_slot = str(cur_item.get("slot") or "")
+                    if cur_slot not in (logical_slot, pair[0], pair[1]):
+                        continue
+                    candidate_items[cur] = cur_item
+                    equipped_counts[cur] = equipped_counts.get(cur, 0) + 1
+
+                for item_id, count in equipped_counts.items():
+                    candidate_counts[item_id] = max(candidate_counts.get(item_id, 0), count)
+
+                expanded = []
+                for item_id, count in candidate_counts.items():
+                    item = candidate_items.get(item_id)
+                    if not item:
+                        continue
+                    for _ in range(min(2, max(0, int(count)))):
                         expanded.append((self.auto_equipment_score_v03040(item, item_id), item_id, item))
                 if not expanded:
                     continue
                 expanded.sort(key=lambda row: row[0], reverse=True)
                 selected = expanded[:2]
 
-                # Zachowaj obecne pozycje, jeśli dana sztuka nadal należy do najlepszej dwójki.
-                remaining = {}
-                selected_rows = {}
+                # Build the desired top-two multiset.
+                wanted_counts = {}
+                selected_score = {}
                 for score, item_id, item in selected:
-                    remaining[item_id] = remaining.get(item_id, 0) + 1
-                    selected_rows.setdefault(item_id, (score, item))
+                    wanted_counts[item_id] = wanted_counts.get(item_id, 0) + 1
+                    selected_score[item_id] = score
+
                 desired = {}
+                # Preserve an existing ring only when that exact copy belongs to
+                # the final top-two set. This prevents needless slot shuffling.
+                remaining = dict(wanted_counts)
                 for slot in pair:
-                    cur = self.server.db.equipped_item(self.account_id, slot)
+                    cur = current_by_slot.get(slot)
                     if cur and remaining.get(cur, 0) > 0:
                         desired[slot] = cur
                         remaining[cur] -= 1
+
                 rest = []
                 for score, item_id, item in selected:
                     if remaining.get(item_id, 0) > 0:
                         rest.append((score, item_id, item))
                         remaining[item_id] -= 1
+
+                # Fill empty/non-top slots with the strongest remaining pieces.
                 for slot in pair:
                     if slot not in desired and rest:
                         _score, item_id, _item = rest.pop(0)
@@ -1409,7 +1449,6 @@ class SessionCraftingInventoryEquipmentMixin:
                         continue
                     target_item = ITEMS[target_id]
                     old_item = ITEMS.get(old_id) if old_id else None
-                    # Gdy slot nie należy do docelowej najlepszej dwójki, wymiana jest bezpieczna.
                     if logical_slot in ("ring", "earring") and old_id:
                         returned_gems.extend(await self.return_socketed_gems(slot, old_id))
                     self.server.db.equip(self.account_id, slot, target_id)

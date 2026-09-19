@@ -413,9 +413,6 @@ class SessionMovementPartySocialMixin:
                     continue
                 if self.skill_cooldowns.get(skill["id"], 0) > now:
                     continue
-                mastery_group = skill.get("mastery_choice_group")
-                if mastery_group and self.skill_cooldowns.get(f"group::{mastery_group}", 0) > now:
-                    continue
                 mana_cost = int(skill.get("mana", 0) or 0)
                 if mana_cost > self.current_mana:
                     continue
@@ -478,9 +475,6 @@ class SessionMovementPartySocialMixin:
                 effective_cooldown = self.effective_skill_cooldown(skill, skill_level)
                 self.current_mana -= mana_cost
                 self.skill_cooldowns[skill["id"]] = now + effective_cooldown
-                mastery_group = skill.get("mastery_choice_group")
-                if mastery_group:
-                    self.skill_cooldowns[f"group::{mastery_group}"] = now + effective_cooldown
 
                 if skill.get("kind") == "group_heal":
                     recipients = [

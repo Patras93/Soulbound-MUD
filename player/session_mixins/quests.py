@@ -505,7 +505,7 @@ class SessionQuestsMixin:
                 return progress, progress >= needed
 
             if q["kind"] == "collect":
-                # v0.33.10: napraw aktywne questy, które przez stary błąd
+                # v0.33.11: napraw aktywne questy, które przez stary błąd
                 # storage/craft pozostały na 0/x mimo posiadania celu.
                 self.recover_broken_collect_progress_v03310(quest_id)
                 row = self.server.db.quest(self.account_id, quest_id)

@@ -1266,7 +1266,6 @@ class SessionSkillsCombatMixin:
 
             if self.skill_evade:
                 self.skill_evade = False
-                self.skill_evade_lockout_until = time.time() + 4.0
                 await self.send_combat(
                     f"{template['name']} atakuje, ale aktywna umiejętność gwarantuje unik.",
                     "normal",
@@ -2016,9 +2015,6 @@ class SessionSkillsCombatMixin:
                 return False
             if self.skill_cooldowns.get(skill["id"], 0) > time.time():
                 return False
-            mastery_group = skill.get("mastery_choice_group")
-            if mastery_group and self.skill_cooldowns.get(f"group::{mastery_group}", 0) > time.time():
-                return False
             if int(skill.get("mana", 0)) > self.current_mana:
                 return False
 
@@ -2047,7 +2043,7 @@ class SessionSkillsCombatMixin:
             elif kind == "guard" and self.skill_guard > 0:
                 return False
             elif kind == "evade":
-                if self.skill_evade or time.time() < getattr(self, "skill_evade_lockout_until", 0.0):
+                if self.skill_evade:
                     return False
             elif kind == "boost":
                 # Nie ponawiaj tego samego buffa, dopóki jeszcze działa. Inne buffy
@@ -2126,18 +2122,6 @@ class SessionSkillsCombatMixin:
                     f"{skill['name']} jest na cooldownie jeszcze {int(ready_at - now + 0.999)} sekund."
                 )
                 return
-            mastery_group = skill.get("mastery_choice_group")
-            group_ready_at = (
-                self.skill_cooldowns.get(f"group::{mastery_group}", 0)
-                if mastery_group else 0
-            )
-            if group_ready_at > now:
-                await self.send(
-                    f"Inna umiejętność z tego samego progu Biegłości jest na wspólnym cooldownie jeszcze "
-                    f"{int(group_ready_at - now + 0.999)} sekund."
-                )
-                return
-
             mana_cost = skill.get("mana", 0)
             if mana_cost > self.current_mana:
                 await self.send(
@@ -2149,17 +2133,8 @@ class SessionSkillsCombatMixin:
             if kind == "passive":
                 await self.send(f"{skill['name']} jest umiejętnością pasywną i działa automatycznie, gdy jest nauczona.")
                 return
-            if kind == "evade" and (
-                self.skill_evade
-                or time.time() < getattr(self, "skill_evade_lockout_until", 0.0)
-            ):
-                remaining = max(0, int(round(
-                    getattr(self, "skill_evade_lockout_until", 0.0) - time.time()
-                )))
-                await self.send(
-                    "Nie możesz jeszcze aktywować kolejnego gwarantowanego uniku."
-                    + (f" Wspólny lockout: około {remaining} s." if remaining else "")
-                )
+            if kind == "evade" and self.skill_evade:
+                await self.send("Masz już aktywny gwarantowany unik.")
                 return
             offensive = kind in ("damage", "drain", "execute", "aoe_damage")
             mob = None
@@ -2224,9 +2199,6 @@ class SessionSkillsCombatMixin:
 
             self.current_mana -= mana_cost
             self.skill_cooldowns[skill["id"]] = now + effective_cooldown
-            mastery_group = skill.get("mastery_choice_group")
-            if mastery_group:
-                self.skill_cooldowns[f"group::{mastery_group}"] = now + effective_cooldown
 
             # v0.31.7: Engineer authored tool mechanics.
             if skill.get("engineer_tool"):
