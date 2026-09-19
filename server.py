@@ -1,7 +1,34 @@
 # -*- coding: utf-8 -*-
 #!/usr/bin/env python3
-"""Soulbound v0.33.8 Full Game 100% Audit & Runtime Text Integrity."""
+"""Soulbound v0.33.9 Full Game 100% Audit & Runtime Text Integrity."""
 from pathlib import Path
+import os
+import socket
+
+_ROOT = Path(__file__).resolve().parent
+
+def _boot_port() -> int:
+    # Keep exactly the same precedence as core/bootstrap_economy_professions.py.
+    for key in ("RAILWAY_TCP_APPLICATION_PORT", "PORT", "SOULBOUND_PORT"):
+        raw = os.getenv(key, "").strip()
+        if raw:
+            try:
+                value = int(raw)
+                if 1 <= value <= 65535:
+                    return value
+            except ValueError:
+                pass
+    return 4000
+
+# Railway/TCP health must see a listening socket immediately, before the large
+# world registry and Generator Core finish loading. asyncio adopts this socket
+# later; connections made during boot wait safely in the kernel backlog.
+_BOOT_SOCKET = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+_BOOT_SOCKET.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+_BOOT_SOCKET.bind((os.getenv("SOULBOUND_HOST", "0.0.0.0"), _boot_port()))
+_BOOT_SOCKET.listen(128)
+_BOOT_SOCKET.setblocking(False)
+print(f"Soulbound bootstrap port open: {_BOOT_SOCKET.getsockname()}", flush=True)
 
 _ROOT = Path(__file__).resolve().parent
 _RUNTIME_MODULES = [

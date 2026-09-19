@@ -1,3 +1,9 @@
+v0.33.9 — Railway Immediate Port Bootstrap
+- Port TCP jest otwierany natychmiast na początku server.py, przed ładowaniem dużego runtime i Generator Core.
+- asyncio przejmuje ten sam socket po inicjalizacji; połączenia wykonane w trakcie bootu czekają w backlogu zamiast wpadać w reconnecting.
+- Zachowana identyczna kolejność wyboru portu: RAILWAY_TCP_APPLICATION_PORT -> PORT -> SOULBOUND_PORT -> 4000.
+- Test: połączenie TCP po 0,25 s od startu, następnie normalny banner SOULBOUND ONLINE v0.33.9 po zakończeniu inicjalizacji.
+
 v0.33.6 — Full Game 100% Audit & Runtime Text Integrity
 - Wykonano pełny pre-deploy audit całej zarejestrowanej zawartości runtime: 1146 lokacji na czystej bazie, 53085 itemów, 14487 mobów, 319 questów, 106 NPC, 29 sklepów, 398 receptur, 1722 skille/spelle, 324+ tematów HELP/aliasów ładowanych warstwowo oraz 816 aliasów komend.
 - Wszystkie 319 questów przechodzi głęboki audit targetów, NPC, itemów, profesji, frakcji, cooldownów, `needed`, craft/resource setów i grafu `requires_quest`; 0 błędów i 0 cykli zależności.
