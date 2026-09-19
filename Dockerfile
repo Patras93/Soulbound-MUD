@@ -9,7 +9,7 @@ ENV SOULBOUND_HOST=0.0.0.0
 ENV SOULBOUND_MAX_CLIENTS=100
 WORKDIR /app
 COPY server.py /app/server.py
-COPY runtime_parts /app/runtime_parts
+COPY part_*.py /app/
 COPY soulbound_world_seed.txt /app/soulbound_world_seed.txt
 COPY CHANGELOG_PL.txt /app/CHANGELOG_PL.txt
 CMD ["python", "-u", "/app/server.py"]
