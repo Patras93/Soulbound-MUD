@@ -868,14 +868,27 @@ def full_combat_scaling_audit_v03015():
     magical_classes = {name for name, kind, *_ in CLASSES if kind == "magic"}
     offensive = {"damage", "aoe_damage", "execute", "drain"}
     checked = 0
+    dexterity_classes = {"Łotrzyk", "Łowca"}
+    flexible_classes = {"Mnich", "Mec", "Inżynier"}
     for class_name, skills in CLASS_SKILLS.items():
-        expected = "strength" if class_name in physical_classes else "intelligence"
+        if class_name in dexterity_classes:
+            expected = "dexterity"
+        elif class_name in magical_classes:
+            expected = "intelligence"
+        elif class_name in physical_classes and class_name not in flexible_classes:
+            expected = "strength"
+        else:
+            expected = None
         for skill in skills:
             if skill.get("kind") not in offensive:
                 continue
             checked += 1
-            if skill.get("scale") != expected:
-                errors.append(f"{class_name}/{skill.get('id')}: scale={skill.get('scale')} expected={expected}")
+            actual = skill.get("scale")
+            if class_name in flexible_classes:
+                if actual not in {"strength", "dexterity", "intelligence"}:
+                    errors.append(f"{class_name}/{skill.get('id')}: invalid branch scale={actual}")
+            elif expected is not None and actual != expected:
+                errors.append(f"{class_name}/{skill.get('id')}: scale={actual} expected={expected}")
     base = generator_core_v027.character_mana_base(100, 50, 50)
     int_plus = generator_core_v027.character_mana_base(100, 60, 50)
     wil_plus = generator_core_v027.character_mana_base(100, 50, 60)
@@ -883,7 +896,7 @@ def full_combat_scaling_audit_v03015():
         errors.append("INT/WIL does not increase mana")
     if int_plus - base != wil_plus - base:
         errors.append("INT/WIL mana contribution is not equal")
-    if GENERATOR_CORE_VERSION != "0.34.4":
+    if GENERATOR_CORE_VERSION != "0.34.6":
         errors.append(f"GENERATOR_CORE_VERSION={GENERATOR_CORE_VERSION}")
     return {
         "version": "0.30.19",

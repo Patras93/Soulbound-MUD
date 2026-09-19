@@ -608,12 +608,14 @@ class SessionSkillsCombatMixin:
             return result
 
     def skill_scale_value(self, scale):
-            # v0.30.16: ofensywa ma dwa jednoznaczne źródła mocy.
-            # Fizyczne skille skalują się z Siły; magiczne spelle z Inteligencji.
-            # Zręczność pozostaje od krytyka/uniku/szybkości, a Siła Woli od many
-            # i obrony magicznej.
+            # v0.34.6: respektuj autorskie źródło mocy konkretnego skilla.
+            # Łowca/Łotrzyk oraz zręcznościowe techniki Mnicha/Meca/Inżyniera
+            # muszą naprawdę liczyć Zręczność zamiast wpadać w fallback Siły.
+            scale = str(scale or "strength").lower()
             if scale == "intelligence":
                 return self.effective_intelligence()
+            if scale == "dexterity":
+                return self.effective_dexterity()
             return self.effective_strength()
 
     def engagement_block_message(self, mob):
@@ -2833,14 +2835,9 @@ class SessionSkillsCombatMixin:
                 skill.get("name", ""),
             )
             mob.hp -= damage
-            soul_heal = 0
-            lifesteal = float(trait_totals["lifesteal_percent"])
-            if lifesteal > 0 and damage > 0 and self.current_hp < self.max_hp():
-                soul_heal = max(1, int(round(damage * lifesteal / 100.0)))
-                soul_heal = min(soul_heal, self.max_hp() - self.current_hp)
-                if soul_heal > 0:
-                    self.current_hp += soul_heal
-                    self._recap52_heal = int(getattr(self, "_recap52_heal", 0)) + soul_heal
+            # v0.34.6: cechy Broni Duszy nie modyfikują skilli/spelli.
+            # Lifesteal/Mana/execute/boss bonus z Soul Weapon Traits działa wyłącznie
+            # w realtime_player_action(), czyli na zwykłym ataku Broni Duszy.
             self._recap52_dealt=int(getattr(self,"_recap52_dealt",0))+max(0,int(damage))
             await self.send(
                 f"Używasz {skill['name']} na {template['name']}. "

@@ -885,10 +885,16 @@ class SessionForgeGuildsMixin:
                 await self.show_guild_trophies_v0927(row); return
             if action in ("czlonkowie","członkowie","members"):
                 await self.send(f"CZŁONKOWIE GILDII {row['name']}:")
-                rows=conn.execute("SELECT m.account_id,m.rank,a.username FROM player_clan_members m JOIN accounts a ON a.id=m.account_id WHERE m.clan_id=?",(cid,)).fetchall()
+                rows=conn.execute(
+                    "SELECT m.account_id,m.rank,COALESCE(ch.name,a.username) display_name "
+                    "FROM player_clan_members m "
+                    "JOIN accounts a ON a.id=m.account_id "
+                    "LEFT JOIN characters ch ON ch.account_id=m.account_id "
+                    "WHERE m.clan_id=?",(cid,)
+                ).fetchall()
                 rendered=[]
                 for mr in rows:
-                    role=self.server.db.guild_role_v0926(cid,mr["rank"]); rendered.append((-(int(role["priority"]) if role else 0),str(mr["username"]),str(role["name"] if role else mr["rank"])))
+                    role=self.server.db.guild_role_v0926(cid,mr["rank"]); rendered.append((-(int(role["priority"]) if role else 0),str(mr["display_name"]),str(role["name"] if role else mr["rank"])))
                 for _neg,name,rname in sorted(rendered): await self.send(f"{name}: {rname}.")
                 return
             if action in ("rangi","roles"):

@@ -1928,6 +1928,12 @@ class Database:
                     master_account_id,
                     wallet_row["silver"], wallet_row["gold"], wallet_row["mithril"],
                 )
+            # v0.34.5: Gildia jest dziedziczona przez nowe postacie tego samego
+            # konta. Ranga zawsze startuje jako `member`; uprawnienia lidera/oficera
+            # pozostają przy postaci, która faktycznie dostała tę rangę.
+            self.ensure_character_guild_from_master_v0345(
+                master_account_id, character_account_id
+            )
         except Exception:
             self.conn.execute(
                 "DELETE FROM account_characters WHERE master_account_id=? AND slot=?",
@@ -4337,6 +4343,69 @@ class Database:
             "FROM player_clan_members m JOIN player_clans c ON c.id=m.clan_id WHERE m.account_id=?",
             (account_id,),
         ).fetchone()
+
+    def guild_memberships_for_master_v0345(self, master_account_id):
+        """Zwróć Gildie wszystkich postaci należących do jednego konta głównego.
+
+        v0.34.5: profile postaci używają osobnych technicznych account_id, dlatego
+        Gildia musi być rozpoznawana przez account_characters, a nie tylko bieżący
+        profil postaci.
+        """
+        return self.conn.execute(
+            """
+            SELECT ac.slot, ac.character_account_id, ch.name AS character_name,
+                   m.clan_id, m.rank, c.name AS clan_name
+            FROM account_characters ac
+            JOIN characters ch ON ch.account_id=ac.character_account_id
+            JOIN player_clan_members m ON m.account_id=ac.character_account_id
+            JOIN player_clans c ON c.id=m.clan_id
+            WHERE ac.master_account_id=?
+            ORDER BY ac.slot, ac.character_account_id
+            """,
+            (int(master_account_id),),
+        ).fetchall()
+
+    def ensure_character_guild_from_master_v0345(self, master_account_id, character_account_id):
+        """Dopisz postać do Gildii konta jako zwykłego członka.
+
+        Zasady bezpieczeństwa:
+        - brak Gildii na koncie -> nic nie rób;
+        - dokładnie jedna Gildia na pozostałych postaciach -> dopisz `member`;
+        - różne Gildie na jednym starym koncie -> nie wybieraj losowo i nic nie zmieniaj.
+        Ranga lidera/oficera nie jest kopiowana, żeby nie tworzyć kilku technicznych
+        liderów tej samej Gildii.
+        """
+        master_account_id=int(master_account_id)
+        character_account_id=int(character_account_id)
+        current=self.clan_membership(character_account_id)
+        memberships=[r for r in self.guild_memberships_for_master_v0345(master_account_id)
+                     if int(r["character_account_id"]) != character_account_id]
+        clan_ids=sorted({int(r["clan_id"]) for r in memberships})
+        all_clan_ids=sorted(set(clan_ids + ([int(current["clan_id"])] if current else [])))
+        if len(all_clan_ids) > 1:
+            return {"status":"conflict","clan_ids":all_clan_ids}
+        if current:
+            return {"status":"already","clan_id":int(current["clan_id"]),"name":str(current["name"])}
+        if not clan_ids:
+            return {"status":"none"}
+        if len(clan_ids) != 1:
+            return {"status":"conflict","clan_ids":clan_ids}
+        clan_id=clan_ids[0]
+        clan=self.conn.execute("SELECT name FROM player_clans WHERE id=?",(clan_id,)).fetchone()
+        if not clan:
+            return {"status":"missing_clan","clan_id":clan_id}
+        self.conn.execute(
+            "INSERT OR IGNORE INTO player_clan_members(clan_id,account_id,rank) VALUES(?,?,'member')",
+            (clan_id,character_account_id),
+        )
+        ch=self.character_for_account(character_account_id)
+        ch_name=str(ch["name"]) if ch else f"account {character_account_id}"
+        self.conn.execute(
+            "INSERT INTO player_clan_log(clan_id,actor_account_id,message) VALUES(?,?,?)",
+            (clan_id,character_account_id,f"{ch_name} automatycznie dołącza do Gildii jako postać tego samego konta."),
+        )
+        self.conn.commit()
+        return {"status":"joined","clan_id":clan_id,"name":str(clan["name"]),"rank":"member"}
 
     def guild_bonus_percent_v0926(self, account_id):
         row=self.clan_membership(account_id)

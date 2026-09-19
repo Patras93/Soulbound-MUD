@@ -927,20 +927,25 @@ def normalize_global_skill_buff_duration_v03030():
 
 V03030_BUFF_DURATIONS_NORMALIZED = normalize_global_skill_buff_duration_v03030()
 
-# v0.30.16: jednoznaczne skalowanie ofensywnych umiejętności po finalnym
-# przejściu Generator Core. Dane skilla i HELP mają odpowiadać temu, co liczy walka.
+# v0.34.6: zachowujemy autorskie skalowanie każdego skilla. Generator Core
+# gwarantuje, że pole scale jest semantyką chronioną i nie powinno być
+# nadpisywane po generowaniu. Dzięki temu Łowca/Łotrzyk/Mnich używają
+# Zręczności, klasy magiczne Inteligencji, a Mec/Inżynier mogą zachować
+# własne gałęzie ranged/magic/melee.
 def _apply_v03015_offensive_stat_scaling():
-    changed = 0
-    for class_name, skills in CLASS_SKILLS.items():
-        expected = "intelligence" if class_type_for_name(class_name) == "magic" else "strength"
+    restored = 0
+    for _class_name, skills in CLASS_SKILLS.items():
         for skill in skills:
             if skill.get("kind") not in ("damage", "aoe_damage", "execute", "drain"):
                 continue
-            if skill.get("scale") != expected:
-                skill["legacy_scale_v03014"] = skill.get("scale")
-                skill["scale"] = expected
-                changed += 1
-    return changed
+            # Obsługa save/source z warstwy v0.30.16, jeśli pole zostało już
+            # wcześniej oznaczone jako legacy_scale_v03014. W świeżym runtime
+            # pole nie występuje i niczego nie zmieniamy.
+            legacy = skill.pop("legacy_scale_v03014", None)
+            if legacy and skill.get("scale") != legacy:
+                skill["scale"] = legacy
+                restored += 1
+    return restored
 
 V03015_SKILL_SCALES_NORMALIZED = _apply_v03015_offensive_stat_scaling()
 if GENERATOR_CORE_AUDIT.get("error_count"):

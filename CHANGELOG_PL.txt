@@ -1,3 +1,19 @@
+v0.34.6 — Combat Loop + Hunter Skills Fix
+- Naprawiono zatrzymanie pętli walki: ofensywne skille nie odwołują się już do niezdefiniowanego trait_totals.
+- Soul Weapon Traits pozostają wyłącznie przy zwykłym ataku Broni Duszy; nie wzmacniają skilli/spelli.
+- Usunięto starą warstwę, która przepisywała wszystkie fizyczne skille na Siłę.
+- Łowca, Łotrzyk i Mnich ponownie skalują swoje ofensywne umiejętności Zręcznością zgodnie z definicją klasy.
+- Mec/Inżynier zachowują autorskie skalowanie gałęzi zamiast globalnego nadpisania.
+- Dodano regresyjny audit wszystkich finalnych skilli Łowcy.
+- Poprawiono podpowiedź kodowania: UTF-8 jest domyślne; CP1250 tylko dla starych klientów.
+
+v0.34.5 — Account Guild Inheritance
+- Nowe postacie automatycznie dziedziczą jedną wspólną Gildię istniejących postaci tego samego konta.
+- Dziedziczona ranga to zawsze Członek; rangi Lider/Oficer nie są kopiowane na alty.
+- Istniejący alt bez Gildii synchronizuje członkostwo przy wyborze postaci.
+- Jeśli stare konto ma postacie w różnych Gildiach, automat nie wybiera żadnej i zgłasza konflikt.
+- Lista członków Gildii pokazuje nazwy postaci zamiast technicznych nazw ukrytych profili.
+
 v0.34.4 — Mining Drop Rebalance + Mithril Currency Fix
 - Mithril nie jest rudą ani przedmiotem w Sakwie Górnika. Od Kilofa 80, Górnictwa 80 i poziomu kopalni 80 może wypaść bezpośrednio jako 1 mithril do wspólnego portfela.
 - Szansa na mithril walutowy rośnie od 0,5% na progu 80 do 2% przy progresji 400 i jest dodatkowym rzutem — nie zastępuje zwykłej rudy.

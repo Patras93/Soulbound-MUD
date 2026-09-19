@@ -1147,6 +1147,7 @@ HELP_TOPICS = {
     ],
     "gildia": [
         "gildia — status Gildii graczy: poziom, bonus, skarbiec, członkowie i osiągnięcia.",
+        "v0.34.5: nowa postać na koncie automatycznie dołącza jako Członek do tej samej Gildii, jeśli pozostałe postacie konta mają jedną wspólną Gildię.",
         "gildia utworz <nazwa> / guild create <name> — założenie kosztuje 500 złota; gildia dolacz; gildia zapros <gracz>; gildia członkowie.",
         "gildia wplac <kwota> [monet|zlota|mithril] — każdy członek może zasilać wspólny skarbiec.",
         "gildia wyplac <kwota> [monet|zlota|mithril] — wypłata na własny portfel wymaga prawa przypisanego do rangi.",

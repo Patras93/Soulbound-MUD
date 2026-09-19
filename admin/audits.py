@@ -71,8 +71,8 @@ def generator_whitelist_audit_v03019():
     audit = GENERATOR_CORE_AUDIT or {}
     whitelist = audit.get("whitelist_audit") or {}
     errors = []
-    if GENERATOR_CORE_VERSION != "0.34.4":
-        errors.append(f"Generator Core version={GENERATOR_CORE_VERSION}, expected 0.34.4")
+    if GENERATOR_CORE_VERSION != "0.34.6":
+        errors.append(f"Generator Core version={GENERATOR_CORE_VERSION}, expected 0.34.6")
     if not audit.get("numeric_only"):
         errors.append("numeric_only flag missing")
     runtime_fast = bool(audit.get("runtime_fast_path"))
@@ -758,7 +758,7 @@ def full_release_integrity_audit_v03025():
         errors.append("world logic audit failed")
     if int(WORLD_LOGIC_AUDIT.get("warning_count", 0) or 0):
         errors.append("world logic warnings present")
-    if GENERATOR_CORE_VERSION != "0.34.4":
+    if GENERATOR_CORE_VERSION != "0.34.6":
         errors.append(f"GENERATOR_CORE_VERSION={GENERATOR_CORE_VERSION}")
     return {
         "version": "0.30.25",
@@ -975,7 +975,7 @@ def gameplay_flow_audit_v03026():
         if missing:
             errors.append(f"station {_station}: brak w {missing[:5]}")
 
-    if GENERATOR_CORE_VERSION != "0.34.4":
+    if GENERATOR_CORE_VERSION != "0.34.6":
         errors.append(f"GENERATOR_CORE_VERSION={GENERATOR_CORE_VERSION}")
 
     return {
@@ -3303,6 +3303,51 @@ def full_game_predeploy_audit_v0336():
         if len(rows)>1: err('duplicate_skill_name',key,rows)
     metrics['skills_total']=skill_count
 
+    # v0.34.6: Hunter/combat regression gate. Offensive Hunter skills must keep
+    # their authored Dexterity scaling, and Soul Weapon trait_totals must never
+    # leak into use_class_skill (traits belong only to the basic weapon attack).
+    _hunter_rows=list(CLASS_SKILLS.get('Łowca') or [])
+    _hunter_supported={'damage','drain','execute','aoe_damage','heal','group_heal','guard','evade','boost','passive'}
+    _hunter_aliases={}
+    _hunter_alias_collisions=[]
+    for _skill in _hunter_rows:
+        _sid=str(_skill.get('id') or '')
+        _kind=str(_skill.get('kind') or '')
+        if _kind not in _hunter_supported:
+            err('hunter_unsupported_kind',_sid,_kind)
+        if _kind in {'damage','drain','execute','aoe_damage'}:
+            if _skill.get('scale') != 'dexterity':
+                err('hunter_bad_scale',_sid,_skill.get('scale'))
+            for _field in ('scale','mult'):
+                if _field not in _skill:
+                    err('hunter_missing_field',_sid,_field)
+        if _kind == 'execute' and 'execute_mult' not in _skill:
+            err('hunter_missing_field',_sid,'execute_mult')
+        if _kind == 'boost' and 'boost' not in _skill:
+            err('hunter_missing_field',_sid,'boost')
+        for _form in [str(_skill.get('name') or '')] + list(_skill.get('aliases') or []):
+            _norm=normalize_lookup_text(_form)
+            if not _norm:
+                continue
+            _prev=_hunter_aliases.get(_norm)
+            if _prev and _prev != _sid:
+                _hunter_alias_collisions.append((_form,_prev,_sid))
+            else:
+                _hunter_aliases[_norm]=_sid
+    for _row in _hunter_alias_collisions:
+        err('hunter_alias_collision',*_row)
+    metrics['hunter_skills_checked']=len(_hunter_rows)
+    metrics['hunter_alias_collisions']=len(_hunter_alias_collisions)
+    try:
+        _combat_source=(_ROOT/'player/session_mixins/skills_combat.py').read_text(encoding='utf-8')
+        _use_start=_combat_source.index('    async def use_class_skill(')
+        _use_end=_combat_source.index('    async def stop_realtime_combat(',_use_start)
+        _use_body=_combat_source[_use_start:_use_end]
+        if 'trait_totals' in _use_body:
+            err('soul_weapon_trait_leak_into_skills')
+    except Exception as _exc:
+        err('combat_skill_source_audit_failed',repr(_exc))
+
     # 11) HELP aliases and nonempty topics.
     virtual={'tematy','komendy','wszystko','kategorie'}
     for alias,target in HELP_TOPIC_ALIASES.items():
@@ -3318,7 +3363,7 @@ def full_game_predeploy_audit_v0336():
     metrics['command_methods_checked']=len(called)
 
     return {
-        'version':'0.34.4','error_count':len(errors),'warning_count':len(warnings),
+        'version':'0.34.6','error_count':len(errors),'warning_count':len(warnings),
         'errors':errors,'warnings':warnings,'metrics':metrics,
         'description_sync':dict(ITEM_DESCRIPTION_SYNC_V0336),
     }
@@ -3327,7 +3372,7 @@ def full_game_predeploy_audit_v0336():
 # loaded. server.py executes it after the module loop when SOULBOUND_FULL_AUDIT=1.
 # Keeping a placeholder here preserves compatibility for code that inspects the symbol.
 FULL_GAME_PREDEPLOY_AUDIT_V0336={
-    'version':'0.34.4','deferred_until_runtime_complete':True,'error_count':0,'warning_count':0,
+    'version':'0.34.6','deferred_until_runtime_complete':True,'error_count':0,'warning_count':0,
     'errors':[],'warnings':[],
     'reason':'Final pre-deploy audit is executed by server.py after every runtime module has loaded.'
 }

@@ -341,8 +341,8 @@ class SessionIOAuthCharacterMixin:
             await self.send(f"SOULBOUND ONLINE v{VERSION}")
             await self.send("ENCODING: UTF-8")
             await self.send(
-                "Jeśli polskie znaki są błędne, wpisz: "
-                "kodowanie cp1250"
+                "Kodowanie domyślne: UTF-8. Jeśli widzisz znaki typu ��, wpisz: "
+                "kodowanie utf8. Windows-1250 używaj tylko w starym kliencie: kodowanie cp1250."
             )
             while True:
                 await self.send("MENU GŁÓWNE")
@@ -488,7 +488,21 @@ class SessionIOAuthCharacterMixin:
 
                 self.account_id = int(selected["character_account_id"])
                 self.character = Character.from_row(selected)
+                # v0.34.5: starszy alt bez Gildii dziedziczy jedyną Gildię
+                # pozostałych postaci tego samego konta przy wyborze postaci.
+                _guild_sync = self.server.db.ensure_character_guild_from_master_v0345(
+                    self.master_account_id, self.account_id
+                )
                 self.refresh_guild_bonus_v0926()
+                if _guild_sync.get("status") == "joined":
+                    await self.send(
+                        f"Ta postać została automatycznie przypisana do Gildii {_guild_sync['name']} z tego konta."
+                    )
+                elif _guild_sync.get("status") == "conflict":
+                    await self.send(
+                        "UWAGA: postacie tego konta należą do różnych Gildii. "
+                        "Automatyczne przypisanie tej postaci zostało pominięte."
+                    )
                 self.server.db.apply_shared_wallet_to_character(self.character)
                 if self.character.room_id not in ROOMS:
                     self.server.world.ensure_runtime_room(self.character.room_id)
@@ -1055,12 +1069,26 @@ class SessionIOAuthCharacterMixin:
             self.character = Character.from_row(
                 self.server.db.character_for_account(self.account_id)
             )
+            _guild_after_create = self.server.db.ensure_character_guild_from_master_v0345(
+                self.master_account_id, self.account_id
+            )
             self.refresh_guild_bonus_v0926()
             self.server.db.apply_shared_wallet_to_character(self.character)
             await self.send(
                 f"Utworzono postać {self.character.name} w slocie {slot} z "
                 f"{MAX_CHARACTERS_PER_ACCOUNT}."
             )
+            if _guild_after_create.get("status") in ("joined", "already") and slot > 1:
+                _grow = self.server.db.clan_membership(self.account_id)
+                if _grow:
+                    await self.send(
+                        f"Gildia konta: {_grow['name']}. Nowa postać została automatycznie przypisana jako Członek."
+                    )
+            elif _guild_after_create.get("status") == "conflict":
+                await self.send(
+                    "UWAGA: starsze postacie tego konta należą do różnych Gildii. "
+                    "Nowa postać nie została przypisana automatycznie."
+                )
             await self.send(
                 "Postać ma osobny Level 1-400. Sześć statystyk bazowych nadal rośnie automatycznie."
             )
