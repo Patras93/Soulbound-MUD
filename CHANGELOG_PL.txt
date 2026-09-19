@@ -1,3 +1,30 @@
+Soulbound v0.30.43 - Modular Core
+- Podzielono monolityczny server.py na uporządkowane runtime_parts bez zmiany mechaniki gry.
+- server.py jest teraz małym loaderem uruchamiającym części w jednym wspólnym namespace, zachowując zgodność z v0.30.42.
+- Dockerfile kopiuje loader i katalog runtime_parts zamiast jednego wielkiego pliku.
+- Paczka release została oczyszczona z historycznych testów, audytów i starych kopii wersji.
+- Dodano test_v03043.py sprawdzający modularność i kluczową regresję ulepszania EQ.
+
+v0.30.42 — Kowalstwo: ulepszanie EQ +1..+10
+- Haldor w Kuźni/Warsztacie Rzemieślniczym ulepsza każde armor EQ od +1 do +10.
+- Komendy: ulepsz, ulepsz lista, ulepsz <numer>, ulepsz <pełna nazwa>; aliasy upgrade/upgradeeq.
+- Brak szansy niepowodzenia: ulepszenie nie niszczy EQ i nie cofa poziomu.
+- Każdy poziom realnie zwiększa obronę; co dwa poziomy rośnie główna statystyka przedmiotu.
+- Wymagania zależą od Levelu EQ, Kowalstwa oraz Tieru Młota Rzemieślniczego.
+- Koszt stanowią fragmenty właściwego materiału z systemu rozkładania EQ, od Żelaza do Eternium.
+- Ulepszanie daje XP Kowalstwa i Młota oraz zwykły Character XP z akcji profesji.
+- eq/eq info pokazują ulepszenie, a eq auto uwzględnia jego realną moc.
+- Ulepszenia są trwałe w SQLite i są czyszczone/przenoszone razem z istniejącym crafting state EQ.
+
+v0.30.41 - Universal Equipment Salvage
+- Każde niezałożone armor EQ można rozłożyć u Haldora: materiałowe, klasowe, bossowe, setowe, crafted, Krypta, Astral i pozostałe linie.
+- `rozloz` / `rozloz lista` pokazuje numerowaną listę; `rozloz <numer>` i `rozloz <pełna nazwa>` rozkładają wybraną sztukę.
+- Założone EQ jest chronione; jeśli masz drugą wolną identyczną sztukę, można rozłożyć tylko wolną kopię.
+- EQ bez jawnego materiału odzyskuje materiał według Levelu: Żelazo 1-39, Stal 40-79, Mithril 80-119, Adamantyt 120-159, Kobalt 160-199, Runiczny 200-239, Smocza Stal 240-279, Astral 280-319, Pustka 320-359, Eternium 360-400.
+- Wyższy Level i rarity zwiększają ilość odzysku; późne EQ daje Esencję Przekucia i Pył Runiczny.
+- Przy rozłożeniu ostatniej kopii osadzone runy wracają do Szkatułki; przekucie ostatniej kopii daje dodatkową Esencję Przekucia.
+- Broń Duszy pozostaje trwałym systemem postaci i nie jest zwykłym itemem inventory do rozkładania.
+
 v0.30.39 - Race HELP + Profession Carryover + Any River Fish
 - Dodano help rasy oraz osobne helpy dla wszystkich 13 ras: statystyki, pasyw, polecane klasy i uzasadnienie.
 - Pule ryb/rud/drewna/ziół/surowych klejnotów są twardo audytowane jako kumulacyjne przez wszystkie 40 Tierów.
