@@ -10,7 +10,7 @@ def full_systems_audit_v03062():
     # Core/world/content
     check('world_rooms', len(ROOMS)>=1000, f"rooms={len(ROOMS)}")
     bad_exits=[]
-    dyn_prefixes=("prof_","mine_floor_","crypt_floor_","astral_floor_","mythic_crypt_floor_","mythic_astral_floor_","giant_fortress_","v0130_frontier_","v018_endless_","v020_mega_")
+    dyn_prefixes=("prof_","mine_floor_","crypt_floor_","astral_floor_","mythic_crypt_floor_","mythic_astral_floor_","giant_fortress_","v0130_frontier_","v018_endless_","v020_mega_","magitek_floor_")
     for rid,r in ROOMS.items():
         for d,t in (r.get('exits') or {}).items():
             if t not in ROOMS and not str(t).startswith(dyn_prefixes): bad_exits.append((rid,d,t))

@@ -45,6 +45,23 @@ class SessionCommandLoopMixin:
                     command = COMMAND_ALIASES.get(command, command)
                 direction = DIRECTION_ALIASES.get(command)
 
+                # v0.37.1: powalony gracz zostaje w pokoju i czeka na wskrzeszenie.
+                # Blokujemy ruch/walkę/crafting, ale zostawiamy komunikację, podgląd
+                # drużyny oraz ręczne odrodzenie w Świątyni.
+                if self.is_downed_v0371():
+                    downed_safe = {
+                        "help", "look", "party", "partychat", "say", "tell", "reply",
+                        "who", "where", "hp", "score", "records", "selfrespawn",
+                        "historybuffer", "lifetime", "deathrecap", "combatrecap",
+                    }
+                    if direction or command not in downed_safe:
+                        remaining = max(0, int(round(self.party_downed_until_v0371 - time.time())))
+                        await self.send(
+                            f"Jesteś powalony. Pozostało około {remaining} s na wskrzeszenie. "
+                            "Czekaj na członka drużyny albo wpisz odrodz."
+                        )
+                        continue
+
                 rest_safe_commands = {
                     "rest", "help", "encoding", "describe", "changes", "look", "level", "xp", "wimpy", "eventxp",
                     "corpse", "cryptinfo", "astralinfo", "consider",
@@ -367,6 +384,10 @@ class SessionCommandLoopMixin:
                     await self.party_chat(args)
                 elif command == "assist":
                     await self.assist_party_member(args)
+                elif command == "partyrevive":
+                    await self.revive_party_member_v0371(args)
+                elif command == "selfrespawn":
+                    await self.respawn_from_downed_v0371(auto=False)
                 elif command == "charisma":
                     await self.show_charisma()
                 elif command == "multiclass":
@@ -718,6 +739,7 @@ class SessionCommandLoopMixin:
                 return
 
             # Zatrzymaj wszystkie aktywności przypisane do bieżącej postaci.
+            self.clear_downed_v0371(cancel_task=True)
             if self.guide_task_active():
                 await self.cancel_guide(announce=False)
             if self.resting or self.rest_task:
@@ -771,6 +793,7 @@ class SessionCommandLoopMixin:
     async def close(self):
             if self.closed:
                 return
+            self.clear_downed_v0371(cancel_task=True)
             if self.resting or self.rest_task:
                 await self.stop_rest(announce=False)
             if self.auto_fishing or self.auto_fishing_task:

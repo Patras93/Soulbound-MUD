@@ -1203,6 +1203,8 @@ COMMAND_ALIASES = {
     "lider": "partyleader", "leader": "partyleader",
     "zasłoń": "partyprotect", "zaslon": "partyprotect", "osłoń": "partyprotect", "oslon": "partyprotect", "protect": "partyprotect",
     "wspieraj": "assist", "assist": "assist", "pomagaj": "assist",
+    "wskrzes": "partyrevive", "wskrześ": "partyrevive", "wskrzesz": "partyrevive", "revive": "partyrevive",
+    "odrodz": "selfrespawn", "odrodź": "selfrespawn", "respawnself": "selfrespawn",
     "pc": "partychat", "dczat": "partychat", "partychat": "partychat",
     "multiclass": "multiclass", "multiklasa": "multiclass",
     "multiklas": "multiclass", "klasy": "multiclass",

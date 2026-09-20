@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #!/usr/bin/env python3
-"""Soulbound v0.36.11 More Troll Shamans."""
+"""Soulbound v0.38.4 Hourly Magitek Contracts."""
 from pathlib import Path
 import os
 import socket
@@ -91,7 +91,15 @@ _RUNTIME_MODULES = [
     "world/uoss_superbosses_v0366.py",
     "world/crypt_party_rebalance_v0368.py",
     "world/crypt_floor_progression_v03610.py",
+    "world/crypt_overdrive_v0370.py",
+    "world/tower_overdrive_v0381.py",
+    "world/magitek_infinite_v0382.py",
+    "world/magitek_hourly_quests_v0383.py",
+    "world/world_threat_overdrive_v0384.py",
     "world/troll_shaman_density_v03611.py",
+    "systems/public_records_v0370.py",
+    "admin/party_revive_audit_v0371.py",
+    "world/party_combo_ultimate_summary_v0380.py",
     "admin/release_integrity_v0369.py",
 ]
 
@@ -110,12 +118,12 @@ if os.environ.get("SOULBOUND_FULL_AUDIT", "").strip().lower() in ("1", "true", "
     FULL_GAME_PREDEPLOY_AUDIT_V0336 = full_game_predeploy_audit_v0336()
     if FULL_GAME_PREDEPLOY_AUDIT_V0336["error_count"]:
         raise RuntimeError(
-            "Full Game Pre-Deploy Audit v0.36.11 failed: "
+            "Full Game Pre-Deploy Audit v0.38.4 failed: "
             + "; ".join(map(str, FULL_GAME_PREDEPLOY_AUDIT_V0336["errors"][:100]))
         )
 else:
     FULL_GAME_PREDEPLOY_AUDIT_V0336 = {
-        "version": "0.36.11", "skipped_at_runtime": True,
+        "version": "0.38.4", "skipped_at_runtime": True,
         "error_count": 0, "warning_count": 0, "errors": [], "warnings": [],
         "reason": "Run before deploy with SOULBOUND_FULL_AUDIT=1; skipped during normal server startup.",
     }

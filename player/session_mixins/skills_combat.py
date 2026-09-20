@@ -4149,9 +4149,8 @@ class SessionSkillsCombatMixin:
             self.character.deaths += 1
             self.server.db.add_lifetime_stat(self.account_id, "deaths", 1)
             old_room = self.character.room_id
-            self.character.room_id = "temple"
-            self.current_hp = self.max_hp()
-            self.current_mana = self.max_mana()
+            self.current_hp = 0
+            self.current_mana = 0
             self.server.db.save_character(self.character)
             await self.server.broadcast_room(
                 old_room, f"{self.character.name} pada w walce.", exclude=self
@@ -4169,6 +4168,29 @@ class SessionSkillsCombatMixin:
             await self.send(
                 "Śmierć nie powoduje utraty waluty, przedmiotów, EQ ani progresji. "
                 "Aktywne buffy zachowują pozostały czas działania."
+            )
+
+            # v0.37.1: jeśli w tym samym pokoju stoi żywy członek drużyny,
+            # nie teleportuj natychmiast. Daj 60 sekund na lokalne wskrzeszenie.
+            revivers = self.party_revive_candidates_v0371()
+            if revivers:
+                await self.begin_downed_v0371(killer, seconds=60)
+                await self.server.party_nearby_broadcast(
+                    self,
+                    f"{self.character.name} jest powalony. Użyj: wskrzes {self.character.name}. Czas: 60 sekund.",
+                    exclude=[self],
+                    detail="essential",
+                    history_category="combat",
+                )
+                return
+
+            # Bez żywego członka drużyny obok zachowujemy dawny natychmiastowy respawn.
+            self.character.room_id = "temple"
+            self.current_hp = self.max_hp()
+            self.current_mana = self.max_mana()
+            self.server.db.save_character(self.character)
+            await self.server.broadcast_room(
+                "temple", f"{self.character.name} odradza się w Świątyni Odrodzenia.", exclude=self
             )
             await self.send("Twoja dusza odradza się w Świątyni Odrodzenia.")
             await self.look()

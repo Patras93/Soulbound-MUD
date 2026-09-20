@@ -69,6 +69,12 @@ class SessionCoreProgressionMixin:
             # (obrażenia, leczenie i guard), także przy multiclassie.
             self.active_skill_buffs = {}
             self._party_auto_heal_busy = False
+            # v0.37.1: po śmierci w lokalnej drużynie postać może przez chwilę
+            # pozostać powalona w pokoju i zostać wskrzeszona przez członka party.
+            self.party_downed_until_v0371 = 0.0
+            self.party_downed_task_v0371 = None
+            self.party_downed_killer_v0371 = ""
+            self.party_downed_room_v0371 = None
             # v0.8.26: automatyczna rotacja dwóch kolejek skilli.
             # Konfiguracja kolejki jest trwała w SQLite, a kursory rotacji są sesyjne.
             self.skill_queue_cursors = {"physical": 0, "magic": 0}

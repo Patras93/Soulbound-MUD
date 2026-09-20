@@ -538,6 +538,158 @@ class SessionMovementPartySocialMixin:
             finally:
                 self._party_auto_heal_busy = False
 
+    # v0.37.1: drużynowe wskrzeszanie. Powalona postać pozostaje w tym
+    # samym pokoju maksymalnie 60 sekund, jeśli obok jest żywy członek party.
+    def is_downed_v0371(self):
+            return bool(
+                self.character
+                and self.current_hp <= 0
+                and float(getattr(self, "party_downed_until_v0371", 0.0) or 0.0) > time.time()
+                and getattr(self, "party_downed_room_v0371", None) == self.character.room_id
+            )
+
+    def party_revive_candidates_v0371(self):
+            if not self.character or self.party_key() is None:
+                return []
+            room_id = self.character.room_id
+            return [
+                member for member in self.server.party_sessions(self.account_id, same_room=room_id)
+                if member is not self and member.character and not member.closed and member.current_hp > 0
+            ]
+
+    def clear_downed_v0371(self, cancel_task=True):
+            task = getattr(self, "party_downed_task_v0371", None)
+            current = asyncio.current_task()
+            if cancel_task and task and task is not current and not task.done():
+                task.cancel()
+            self.party_downed_task_v0371 = None
+            self.party_downed_until_v0371 = 0.0
+            self.party_downed_killer_v0371 = ""
+            self.party_downed_room_v0371 = None
+
+    async def _party_downed_timeout_v0371(self, deadline, room_id):
+            try:
+                await asyncio.sleep(max(0.0, float(deadline) - time.time()))
+            except asyncio.CancelledError:
+                return
+            if (
+                self.closed or not self.character or self.current_hp > 0
+                or getattr(self, "party_downed_room_v0371", None) != room_id
+                or float(getattr(self, "party_downed_until_v0371", 0.0) or 0.0) != float(deadline)
+            ):
+                return
+            await self.respawn_from_downed_v0371(auto=True)
+
+    async def begin_downed_v0371(self, killer, seconds=60):
+            if not self.character:
+                return False
+            self.clear_downed_v0371(cancel_task=True)
+            self.current_hp = 0
+            self.current_mana = 0
+            self.combat_mob_key = None
+            self.skill_guard = 0
+            self.skill_evade = False
+            self.skill_evade_lockout_until = 0.0
+            deadline = time.time() + max(1, int(seconds or 60))
+            self.party_downed_until_v0371 = deadline
+            self.party_downed_killer_v0371 = str(killer or "")
+            self.party_downed_room_v0371 = self.character.room_id
+            self.party_downed_task_v0371 = asyncio.create_task(
+                self._party_downed_timeout_v0371(deadline, self.character.room_id)
+            )
+            await self.send(
+                "Jesteś POWALONY. Członek twojej drużyny stojący w tej samej lokacji "
+                "może użyć: wskrzes <twoja nazwa>. Masz 60 sekund. "
+                "Możesz też wpisać odrodz, aby natychmiast wrócić do Świątyni Odrodzenia."
+            )
+            return True
+
+    async def respawn_from_downed_v0371(self, auto=False):
+            if not self.character:
+                return False
+            if not self.is_downed_v0371() and self.current_hp > 0:
+                await self.send("Nie jesteś powalony.")
+                return False
+            old_room = self.character.room_id
+            name = self.character.name
+            self.clear_downed_v0371(cancel_task=True)
+            self.server.release_all_engagements_for_session(self)
+            self.combat_mob_key = None
+            await self.stop_realtime_combat()
+            self.character.room_id = "temple"
+            self.current_hp = self.max_hp()
+            self.current_mana = self.max_mana()
+            self.server.db.save_character(self.character)
+            await self.server.broadcast_room(
+                old_room, f"Dusza {name} opuszcza pole walki i wraca do Świątyni Odrodzenia.", exclude=self
+            )
+            await self.server.broadcast_room(
+                "temple", f"{name} odradza się w Świątyni Odrodzenia.", exclude=self
+            )
+            if auto:
+                await self.send("Nikt nie zdążył cię wskrzesić. Twoja dusza wraca do Świątyni Odrodzenia.")
+            else:
+                await self.send("Rezygnujesz z oczekiwania na wskrzeszenie i odradzasz się w Świątyni Odrodzenia.")
+            await self.look()
+            return True
+
+    async def revive_party_member_v0371(self, name):
+            if not self.character or self.current_hp <= 0:
+                await self.send("Powalona postać nie może wskrzeszać innych.")
+                return False
+            if self.party_key() is None:
+                await self.send("Wskrzeszanie działa tylko między członkami tej samej drużyny.")
+                return False
+            target_name = self.clean_party_player_argument(name)
+            if not target_name:
+                await self.send("Użycie: wskrzes <gracz>.")
+                return False
+            target = self.server.find_character_session(target_name)
+            if not target or not target.character or target.closed:
+                await self.send("Nie ma teraz takiego gracza online.")
+                return False
+            if target is self:
+                await self.send("Nie możesz wskrzesić własnej postaci.")
+                return False
+            if not self.server.same_party(self.account_id, target.account_id):
+                await self.send("Ta postać nie należy do twojej drużyny.")
+                return False
+            if target.character.room_id != self.character.room_id:
+                await self.send("Wskrzeszana postać musi leżeć w tej samej lokacji.")
+                return False
+            if not target.is_downed_v0371():
+                await self.send(f"{target.character.name} nie jest teraz powalony albo czas na wskrzeszenie minął.")
+                return False
+
+            target.clear_downed_v0371(cancel_task=True)
+            target.server.release_all_engagements_for_session(target)
+            target.combat_mob_key = None
+            await target.stop_realtime_combat()
+            target.current_hp = max(1, int(target.max_hp() * 0.35))
+            target.current_mana = max(0, int(target.max_mana() * 0.35))
+            target.skill_guard = 0
+            target.skill_evade = False
+            target.skill_evade_lockout_until = 0.0
+            target.server.db.save_character(target.character)
+
+            await target.send(
+                f"{self.character.name} wskrzesza cię. Wracasz do walki z {target.current_hp} HP "
+                f"i {target.current_mana} many."
+            )
+            await self.send(
+                f"Wskrzeszasz {target.character.name}. Wraca z 35 procent HP i many."
+            )
+            for observer in list(self.server.sessions):
+                if (
+                    observer not in (self, target) and not observer.closed and observer.character
+                    and observer.character.room_id == self.character.room_id
+                ):
+                    await observer.send(
+                        f"{self.character.name} wskrzesza {target.character.name}.",
+                        history_category="combat",
+                    )
+            return True
+
     async def create_party(self):
             key = self.party_key()
             if key is not None:
@@ -717,9 +869,10 @@ class SessionMovementPartySocialMixin:
                 await self.send("Osłona drużyny: wyłączona.")
             for number, session in enumerate(members, 1):
                 marker = " Lider." if session.account_id == key else ""
+                downed = " Powalony — można wskrzesić." if session.is_downed_v0371() else ""
                 await self.send(
                     f"{number}. {session.character.name}. "
-                    f"Lokacja: {ROOMS[session.character.room_id]['name']}.{marker}"
+                    f"Lokacja: {ROOMS[session.character.room_id]['name']}.{marker}{downed}"
                 )
 
     async def leave_party(self, announce=True):
@@ -1084,6 +1237,8 @@ class SessionMovementPartySocialMixin:
                     )
                 else:
                     await self.assist_party_member(value)
+            elif action in ("wskrzes", "wskrześ", "revive"):
+                await self.revive_party_member_v0371(value)
             elif action in ("limit", "capacity"):
                 key = self.party_key()
                 leader = self.server.session_by_account(key) if key else self
@@ -1096,7 +1251,7 @@ class SessionMovementPartySocialMixin:
                 await self.send(
                     "Drużyna: zaloz, status, zapros <gracz>, dolacz, odrzuc, "
                     "opusc, wyrzuc <gracz>, rozwiaz, lider <gracz>, "
-                    "zaslon [off], wspieraj <gracz>, limit. Czat: pc <tekst>."
+                    "zaslon [off], wspieraj <gracz>, wskrzes <gracz>, limit. Czat: pc <tekst>."
                 )
 
     def character_progression_power(self):

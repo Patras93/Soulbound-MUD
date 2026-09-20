@@ -71,8 +71,8 @@ def generator_whitelist_audit_v03019():
     audit = GENERATOR_CORE_AUDIT or {}
     whitelist = audit.get("whitelist_audit") or {}
     errors = []
-    if GENERATOR_CORE_VERSION != "0.36.11":
-        errors.append(f"Generator Core version={GENERATOR_CORE_VERSION}, expected 0.36.11")
+    if GENERATOR_CORE_VERSION != "0.38.4":
+        errors.append(f"Generator Core version={GENERATOR_CORE_VERSION}, expected 0.38.4")
     if not audit.get("numeric_only"):
         errors.append("numeric_only flag missing")
     runtime_fast = bool(audit.get("runtime_fast_path"))
@@ -428,7 +428,7 @@ def full_release_integrity_audit_v03022():
                 lazy_edges.append((rid,direction,target))
                 kind,floor=instance_room_identity(target)
                 known=kind is not None or str(target).startswith((
-                    "v0130_frontier_", "v018_endless_", "v020_mega_",
+                    "v0130_frontier_", "v018_endless_", "v020_mega_", "magitek_floor_",
                     "v021_gauntlet_", "v0140_mini_", "v0140_secret_",
                     "v018_archipelago_", "v018_ruin_",
                 ))
@@ -758,7 +758,7 @@ def full_release_integrity_audit_v03025():
         errors.append("world logic audit failed")
     if int(WORLD_LOGIC_AUDIT.get("warning_count", 0) or 0):
         errors.append("world logic warnings present")
-    if GENERATOR_CORE_VERSION != "0.36.11":
+    if GENERATOR_CORE_VERSION != "0.38.4":
         errors.append(f"GENERATOR_CORE_VERSION={GENERATOR_CORE_VERSION}")
     return {
         "version": "0.30.25",
@@ -975,7 +975,7 @@ def gameplay_flow_audit_v03026():
         if missing:
             errors.append(f"station {_station}: brak w {missing[:5]}")
 
-    if GENERATOR_CORE_VERSION != "0.36.11":
+    if GENERATOR_CORE_VERSION != "0.38.4":
         errors.append(f"GENERATOR_CORE_VERSION={GENERATOR_CORE_VERSION}")
 
     return {
@@ -2671,7 +2671,7 @@ def full_game_audit_v03055():
     dynamic_prefixes = (
         "prof_", "mine_floor_", "crypt_floor_", "astral_floor_",
         "mythic_crypt_floor_", "mythic_astral_floor_", "giant_fortress_",
-        "v0130_frontier_", "v018_endless_", "v020_mega_",
+        "v0130_frontier_", "v018_endless_", "v020_mega_", "magitek_floor_",
     )
     exit_count = 0
     for room_id, room in ROOMS.items():
@@ -2910,7 +2910,7 @@ def full_game_predeploy_audit_v0336():
     dynamic_prefixes=(
         'prof_','mine_floor_','crypt_floor_','astral_floor_','mythic_crypt_floor_',
         'mythic_astral_floor_','giant_fortress_','v0130_frontier_','v018_endless_',
-        'v020_mega_'
+        'v020_mega_','magitek_floor_'
     )
     for rid,room in ROOMS.items():
         if not str(room.get('name') or '').strip(): err('room_missing_name',rid)
@@ -3101,6 +3101,11 @@ def full_game_predeploy_audit_v0336():
             err('quest_bad_category',qid,target)
         if kind=='kill' and target not in valid_kill_targets:
             dynamic_ok=False
+            # v0.38.4: these aliases are authored for lazy-generated Infinite Magitek
+            # templates, so they may have no static template before the first floor
+            # is materialized. Their dedicated audit verifies runtime tagging.
+            if target in ('magitek_infinite', 'magitek_elite') and callable(globals().get('create_infinite_magitek_floor_definition')):
+                dynamic_ok=True
             if isinstance(target,str) and target.startswith('crypt_boss_'):
                 try:
                     floor=int(target.rsplit('_',1)[1])

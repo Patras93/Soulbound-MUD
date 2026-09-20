@@ -1,3 +1,81 @@
+SOULBOUND v0.38.4 — GLOBAL WORLD THREAT OVERDRIVE
+
+- Wzmocniono cały otwarty świat od najniższych stref do endgame: zwykłe moby mają wyższe HP i obrażenia na każdym etapie.
+- Elite, Rare, minibossowie, regionalni bossowie i World Bossowie dostają dodatkowe mnożniki ponad zwykłe moby.
+- Nemesis jest dodatkowo wzmacniany ponad standardowego bossa.
+- Dynamiczne eventy v0.14/v0.16/v0.18/v0.20/v0.29 korzystają z tej samej warstwy World Threat.
+- Class XP, Soul XP, Character XP, stat XP i waluta rosną proporcjonalnie do nowej trudności.
+- Krypty, Wieże Astralne i Nieskończony Kompleks Magitek zachowują swoje osobne, mocniejsze Overdrive i nie dostają podwójnej warstwy v0.38.4.
+- Dodano help `trudnosc swiata` oraz audit World Threat Overdrive.
+
+SOULBOUND v0.38.3 — GODZINNE ZLECENIA MAGITEK
+
+- Dodano 7 stałych zleceń Magitek do Tablicy Godzinnych Zleceń.
+- Każde zlecenie odnawia się niezależnie 60 minut po oddaniu i każdy nowy odbiór zaczyna od 0/x.
+- Cele: 30 dowolnych Machine, 20 Machine na nieskończonych piętrach, 3 elitarne prototypy, 2 bossów Magitek, 5 Rdzeni Magitek, 2 Rdzenie WarMecha oraz zestaw 13 komponentów technologicznych.
+- Zabójstwa Machine mają wspólne aliasy questowe, więc liczą się zarówno autorskie sektory, jak i lazy-generated piętra nieskończonego Magitek.
+- Zadania nie mają blokady levelowej i korzystają z istniejącej synchronizacji przyjmowania questów przez lidera drużyny.
+- Dodano help `godzinne magitek` oraz audit v0.38.3.
+- Cumulative Release Integrity wymaga teraz zachowania również v0.38.3.
+
+SOULBOUND v0.38.2 — NIESKOŃCZONY KOMPLEKS MAGITEK
+
+- Scalono dawny Kompleks Magitek i Magitek Dungeon 2.0 w jedną strefę: Nieskończony Kompleks Magitek.
+- Zachowano wszystkie 32 autorskie pomieszczenia jako ciągłą część wejściową; Archiwum WarMecha prowadzi dalej na nieskończone piętro 1.
+- Każde nieskończone piętro jest dużą, proceduralną mapą z pętlami i odnogami: 12 pomieszczeń na początku, rosnące do 20 na dużej głębokości.
+- Trudność, HP, obrażenia oraz Class/Soul/stat EXP rosną na każdym kolejnym piętrze także ponad progresję 600.
+- Co 5 pięter występuje elitarny prototyp; co 10 pięter nazwany boss Machine z trwałym first-clear/checkpointem i skrzynią bossową.
+- Zachowano biologiczne odporności Machine oraz słabości Lightning/EMP.
+- Wyjście awaryjne rozpoznaje całą strefę Magitek i nieskończone piętra.
+- Dodano stały audit v0.38.2 i rozszerzono Cumulative Release Integrity.
+
+SOULBOUND v0.38.1 TOWER OVERDRIVE
+
+- Wieża Astralna i Mityczna Wieża Astralna zostały wzmocnione analogicznie do Krypt.
+- Zwykła Wieża rośnie na każdym poziomie od 100: HP, obrażenia oraz Class/Soul/stat EXP.
+- Mityczna Wieża rośnie na każdym poziomie od 1, bez płaskich poziomów z identycznymi statami.
+- Bossowie co 10 poziomów są dodatkowymi skokami trudności i nagród; Superbossowie UOSSMUD zachowują indywidualne profile.
+- Skalowanie obejmuje poziomy dynamiczne ponad 200 i nadal rośnie ponad 600.
+- Zachowano wszystkie systemy v0.38.0 i wcześniejsze audytowane milestone'y.
+
+SOULBOUND v0.38.0 PARTY COMBO + ULTIMATE + DUNGEON SUMMARY
+
+- Party Combo: kompatybilne skille dwóch różnych lokalnych członków drużyny na tym samym przeciwniku w oknie 8 s uruchamiają nazwane combo i dodatkowy efekt.
+- Drużynowy Ultimate: wspólny pasek 0-100 ładowany atakami, skillami, combo i zabójstwami. Lider: `druzyna ultimate`; status: `druzyna ultimate status`.
+- Efekt Ultimate zależy od składu party (m.in. tech Mec+Inżynier, Kapłan+Nekromanta, przewaga fizyczna/magiczna lub skład mieszany).
+- Dungeon Summary dla zwykłej i Mitycznej Krypty: czas runu, zabite moby/bossowie, Class/Soul/Character XP, waluta, najcenniejszy drop i najgłębsze piętro.
+- Auto-follow po revive pozostaje aktywny, ponieważ wskrzeszony zostaje w tym samym pokoju i party-follow natychmiast ponownie obejmuje go przy ruchu lidera.
+- Zachowano wszystkie wcześniejsze milestone'y i audyty.
+
+SOULBOUND v0.37.1 LOCAL PARTY REVIVE
+====================================
+- Jeśli postać ginie, a w tej samej lokacji stoi żywy członek jej drużyny, nie wraca od razu do Świątyni: zostaje POWALONA na maksymalnie 60 sekund.
+- Każdy żywy członek tej samej drużyny w tym pokoju może użyć `wskrzes <gracz>` / `revive <player>`.
+- Wskrzeszony pozostaje w tej samej lokacji i wraca z 35 procent maksymalnego HP oraz 35 procent maksymalnej many.
+- Wskrzeszenie nie włącza automatycznie z powrotem walki; gracz sam decyduje, czy ponownie zaatakować.
+- Powalony może użyć `odrodz`, aby od razu wrócić do Świątyni Odrodzenia. Po 60 sekundach bez pomocy respawn następuje automatycznie.
+- Jeśli przy śmierci nie ma żywego członka drużyny w tej samej lokacji, zachowany jest dotychczasowy natychmiastowy respawn w Świątyni.
+- `druzyna status` oznacza powalonego członka, aby NVDA jasno podawało, kogo można wskrzesić.
+- Zachowano cały v0.37.0: Public Records, Hall of Fame, rekordy profesji, bezpieczne klucze bossowe i Crypt Overdrive.
+
+SOULBOUND v0.37.0 PUBLIC RECORDS + HALL OF FAME + CRYPT OVERDRIVE
+
+- Wszystkie zwykłe i Mityczne Krypty zostały ponownie wzmocnione od piętra 1.
+- Crypt Overdrive obejmuje zwykłe moby, bossów i Superbossów: więcej HP, obrażeń oraz Class/Soul/stat EXP.
+- Dodatkowy mnożnik rośnie wraz z piętrem, więc każda kolejna Krypta nadal jest trudniejsza i bardziej nagradzająca od poprzedniej, również 201+ i 600+.
+
+SOULBOUND v0.37.0 PUBLIC RECORDS + HALL OF FAME
+===============================================
+- `rekordy` pokazuje publiczne rekordy całego serwera.
+- Rekordy obejmują najwyższy Level, najgłębszą Kryptę, najwięcej bossów, największą rybę, najwięcej craftów i największy przetop.
+- `rekordy profesje` pokazuje największy przetop, najwięcej rudy w jednej ciągłej sesji kopania, najrzadszy klejnot i najlepszy craft.
+- `rekordy hall` pokazuje trwały Hall of Fame pierwszych osiągnięć.
+- Hall of Fame zapisuje pierwszego gracza z Levelem 600, pierwszą Biegłość 600, pierwsze Biegłości 600 dla klas i pierwszych zabójców nazwanych Superbossów.
+- Istniejące osiągnięcia sprzed v0.37.0 są inicjalizowane jako stan zastany, gdy historycznej kolejności nie da się odtworzyć.
+- Klucze bossowe są nadal zużywane przy otwieraniu właściwej skrzyni.
+- Nadmiarowe klucze bossowe można teraz rozłożyć przez `rozłóż <nazwa klucza>` lub `rozłóż klucze`.
+- `salvage wszystko` celowo nie niszczy kluczy automatycznie.
+
 Soulbound v0.36.11 — More Troll Shamans
 
 - Quest `Polowanie na Trolli Szamanów` nadal wymaga 5 zabójstw.
