@@ -44,6 +44,17 @@ class SessionSkillsCombatMixin:
                 f"Odblokowano Tier {next_tier} z {SOUL_MAX_TIER}. "
                 f"Moc Broni Duszy: {self.character.soul_power()}."
             )
+            # v0.36.8: odblokowanie Soul Tieru jest wydarzeniem lokalnym.
+            # Każdy gracz stojący w dokładnie tej samej lokacji dostaje krótką
+            # informację, niezależnie od członkostwa w drużynie. Właściciel
+            # Tieru ma już pełny komunikat powyżej, więc jest wykluczony z
+            # broadcastu, aby NVDA nie czytał awansu dwa razy.
+            await self.server.broadcast_room(
+                self.character.room_id,
+                f"{self.character.name} odblokował Tier Duszy {next_tier} z {SOUL_MAX_TIER}.",
+                exclude=self,
+                history_category="system",
+            )
             await self.send(
                 f"Nowy bonus klasowy Broni Duszy: "
                 f"{self.character.soul_weapon_class_bonus_text()}."

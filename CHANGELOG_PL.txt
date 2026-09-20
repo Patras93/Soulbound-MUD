@@ -1,3 +1,70 @@
+Soulbound v0.36.10 — Every Crypt Floor Is Harder
+
+- Zwykła Krypta: od piętra 1 każde następne piętro ma więcej HP, obrażeń i EXP niż poprzednie.
+- Mityczna Krypta: ta sama zasada per-piętro na znacznie wyższej krzywej trudności i nagród.
+- Boss co 10 pięter pozostaje dodatkowym skokiem trudności i EXP.
+- Skalowanie działa także w nieskończonych piętrach 201+ i nie zatrzymuje się po 600.
+- Zachowano v0.36.8 same-room combat dungeon exit oraz lokalne komunikaty odblokowania Tieru Duszy.
+- Dodano audit monotoniczności wszystkich statycznych pięter 1-200 i krzywych 1-600.
+
+Soulbound v0.36.9 — Cumulative Release Integrity
+
+- Uporządkowano linię wydań v0.36.x; wpisy v0.36.3-v0.36.6 nie są już rozrzucone na końcu changelogu.
+- Dodano nadrzędny audit regresji, który wymaga zachowania wszystkich audytowanych milestone'ów od v0.35.5 do v0.36.8.
+- Potwierdzono zachowanie: party/teleport/shards, salvage all, bulk smelting + sztabki, no-PvP, wspólne dropy i corpse loot, wszystkie lokalne buffy drużynowe, progresję 600, party quest accept, terrain rebalance, profile offline, niezależne cooldowny, Tier 7 Cemetery fix, poprawne UOSSMUD named Superbosses oraz balans Krypt/EXP + same-room combat exit + lokalne ogłoszenia Soul Tier.
+- Ta wersja nie zmienia balansu v0.36.8; naprawia integralność i historię release'u.
+
+Soulbound v0.36.8 — Same-Room Combat Dungeon Exit + Local Soul Tier Announcements
+
+- Gdy gracz odblokuje nowy Tier Duszy, wszyscy inni gracze stojący w dokładnie tej samej lokacji dostają lokalny komunikat z nazwą gracza i numerem nowego Tieru.
+- Komunikat lokalny działa niezależnie od drużyny; osoby w innych lokacjach nic nie dostają, a odblokowujący nie dostaje zdublowanego komunikatu NVDA.
+- Wyjście awaryjne z lochu użyte przez lidera obejmuje tylko członków drużyny stojących z nim w dokładnie tej samej lokacji/pokoju.
+- Członkowie na innych piętrach i w innych pokojach tego samego lochu pozostają na miejscu.
+- Drużynowe wycofanie lidera działa także podczas walki. Przed teleportem zatrzymywane są realtime-combat i aggro wycofywanych osób, aby walka nie została zawieszona po wyjściu.
+- Balans i premie EXP Krypt z v0.36.7 pozostają bez zmian.
+
+Soulbound v0.36.7 — Crypt Threat/EXP + Party Dungeon Exit
+
+- Zwykła Krypta została globalnie wzmocniona: zwykłe moby i bossowie są wyraźnie trudniejsi od otwartego świata o porównywalnym etapie.
+- Mityczna Krypta dostała kolejny skok HP i obrażeń; runtime refresh nie kasuje już dedykowanego balansu Krypt ani profili UOSSMUD Superbossów.
+- EXP z Krypty: zwykłe moby x2, bossowie x3; Mityczna Krypta: zwykłe moby x3, bossowie/Superbossowie x5. Mnożniki działają przed dynamicznym EXP i Dungeon Party Bonus.
+- Wyjście awaryjne z lochu użyte przez lidera wycofuje wszystkich online członków drużyny znajdujących się w tym samym lochu, nawet z innych pięter. Jeśli którykolwiek z nich walczy, wspólne wycofanie jest blokowane.
+- Dodano audit v0.36.7 pilnujący balansu zwykłej/Mitycznej Krypty, premii EXP i drużynowego wyjścia.
+
+Soulbound v0.36.6 — Correct UOSSMUD Named Superbosses
+- Poprawiono implementację Superbossów UOSSMUD w Mitycznej Krypcie i Mitycznej Wieży Astralnej.
+- Asterisks, Lunar Trials, Elementals i Four Fiends nie są używane jako pojedyncze nazwy bossów.
+- Dodano rotację konkretnych bossów: Black Rabite, Culex, Dad, Diabolos, Emerald Weapon, Grahf, Hades, Odin, Ozma, Ruby Weapon, Sephiroth, Serpentarius, Yiazmat, Nova Dragon, Doomtrain, Th'uban oraz dziewięć Lunar Eidolonów.
+- Lunar Eidolons: Lunar Ifrit, Lunar Shiva, Lunar Ramuh, Lunar Asura, Lunar Leviathan, Lunar Dragon, Lunar Titan, Lunar Odin i Lunar Bahamut.
+- Rotacja działa na progach co 10 także w nieskończonej części >200.
+- Dodano audit blokujący użycie zbiorczych nazw jako pojedynczych mobów.
+Soulbound v0.36.5 — Soul Tier 7 Cemetery Spawn Fix
+
+- Próba Broni Duszy Tier 7 nadal wymaga pokonania 4 Niespokojnych Zmarłych na Starym Cmentarzu.
+- Zwiększono dostępność wymaganego moba: teraz jest 6 stałych spawnów rozmieszczonych po sześciu pokojach Starego Cmentarza.
+- Cele są dostępne w: Starym Cmentarzu, Alei Ossuariów, Ogrodzie Księżycowego Mchu, Zawalonej Kaplicy, Polu Kości oraz Wieży Martwego Dzwonu.
+- Quest nie powinien już wymagać czekania na respawn po zabiciu 2-3 sztuk.
+- Dodano audit spójności Tieru 7: target cemetery_restless_dead, wymaganie 4 oraz minimum 6 różnych pokojów ze spawnem.
+
+
+Soulbound v0.36.4 — Independent Skill Cooldowns
+
+- Każdy skill i spell ma własny, niezależny cooldown po unikalnym ID umiejętności.
+- Użycie jednej umiejętności nie uruchamia, nie resetuje ani nie przedłuża cooldownu innej.
+- Nie ma wspólnego cooldownu fizycznego, magicznego, klasowego ani globalnego.
+- Auto-kolejka i auto-heal Kapłana respektują niezależne cooldowny dokładnie tak samo jak użycie ręczne.
+- Dodano audit wszystkich 2562 skilli/spelli oraz test zachowania timerów A/B.
+
+
+Soulbound v0.36.3 — Offline Player Profiles
+- Dodano `profil <gracz>` i `profile <player>`; stare `whois <gracz>` działa tak samo.
+- Profil działa także dla postaci offline.
+- Pokazuje status online/offline, ostatnią obecność, ostatnie logowanie i wylogowanie.
+- Pokazuje publiczną progresję: Level, klasy/Biegłość, Broń Duszy, statystyki, profesje, narzędzia, Gildię, World Tier/Wzniesienie, osiągnięcia, questy, Bestiariusz, zgony, rekordy i postęp lochów.
+- EQ respektuje `inspectprivacy`.
+- Profil nie pokazuje loginu, hasła, poczty, banku ani innych prywatnych danych konta.
+
+
 Soulbound v0.36.2 — Terrain Threat Rebalance
 - Naprawiono zaniżoną trudność mobów na zwykłych terenach. `recommended_mastery` jest teraz dolną granicą numerycznego etapu lokacji, ale nadal nie blokuje wejścia.
 - Współdzielone szablony mobów są na terenach balansowane do etapu aktualnego pokoju zamiast dziedziczyć statystyki z najłatwiejszej lokacji, w której występują.
@@ -5550,28 +5617,3 @@ SOULBOUND v0.6 WORLD CORE
 - Zachowano priorytet RAILWAY_TCP_APPLICATION_PORT.
 - Zachowano kompatybilność z MUSHclientem i Mudletem.
 
-Soulbound v0.36.3 — Offline Player Profiles
-- Dodano `profil <gracz>` i `profile <player>`; stare `whois <gracz>` działa tak samo.
-- Profil działa także dla postaci offline.
-- Pokazuje status online/offline, ostatnią obecność, ostatnie logowanie i wylogowanie.
-- Pokazuje publiczną progresję: Level, klasy/Biegłość, Broń Duszy, statystyki, profesje, narzędzia, Gildię, World Tier/Wzniesienie, osiągnięcia, questy, Bestiariusz, zgony, rekordy i postęp lochów.
-- EQ respektuje `inspectprivacy`.
-- Profil nie pokazuje loginu, hasła, poczty, banku ani innych prywatnych danych konta.
-
-
-Soulbound v0.36.4 — Independent Skill Cooldowns
-
-- Każdy skill i spell ma własny, niezależny cooldown po unikalnym ID umiejętności.
-- Użycie jednej umiejętności nie uruchamia, nie resetuje ani nie przedłuża cooldownu innej.
-- Nie ma wspólnego cooldownu fizycznego, magicznego, klasowego ani globalnego.
-- Auto-kolejka i auto-heal Kapłana respektują niezależne cooldowny dokładnie tak samo jak użycie ręczne.
-- Dodano audit wszystkich 2562 skilli/spelli oraz test zachowania timerów A/B.
-
-
-Soulbound v0.36.5 — Soul Tier 7 Cemetery Spawn Fix
-
-- Próba Broni Duszy Tier 7 nadal wymaga pokonania 4 Niespokojnych Zmarłych na Starym Cmentarzu.
-- Zwiększono dostępność wymaganego moba: teraz jest 6 stałych spawnów rozmieszczonych po sześciu pokojach Starego Cmentarza.
-- Cele są dostępne w: Starym Cmentarzu, Alei Ossuariów, Ogrodzie Księżycowego Mchu, Zawalonej Kaplicy, Polu Kości oraz Wieży Martwego Dzwonu.
-- Quest nie powinien już wymagać czekania na respawn po zabiciu 2-3 sztuk.
-- Dodano audit spójności Tieru 7: target cemetery_restless_dead, wymaganie 4 oraz minimum 6 różnych pokojów ze spawnem.
