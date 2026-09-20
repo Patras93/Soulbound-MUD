@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #!/usr/bin/env python3
-"""Soulbound v0.36.10 Cumulative Release Integrity."""
+"""Soulbound v0.36.11 More Troll Shamans."""
 from pathlib import Path
 import os
 import socket
@@ -90,8 +90,9 @@ _RUNTIME_MODULES = [
     "admin/crafting_audit_v03114.py",
     "world/uoss_superbosses_v0366.py",
     "world/crypt_party_rebalance_v0368.py",
-    "admin/release_integrity_v0369.py",
     "world/crypt_floor_progression_v03610.py",
+    "world/troll_shaman_density_v03611.py",
+    "admin/release_integrity_v0369.py",
 ]
 
 _missing = [name for name in _RUNTIME_MODULES if not (_ROOT / name).is_file()]
@@ -109,12 +110,12 @@ if os.environ.get("SOULBOUND_FULL_AUDIT", "").strip().lower() in ("1", "true", "
     FULL_GAME_PREDEPLOY_AUDIT_V0336 = full_game_predeploy_audit_v0336()
     if FULL_GAME_PREDEPLOY_AUDIT_V0336["error_count"]:
         raise RuntimeError(
-            "Full Game Pre-Deploy Audit v0.36.10 failed: "
+            "Full Game Pre-Deploy Audit v0.36.11 failed: "
             + "; ".join(map(str, FULL_GAME_PREDEPLOY_AUDIT_V0336["errors"][:100]))
         )
 else:
     FULL_GAME_PREDEPLOY_AUDIT_V0336 = {
-        "version": "0.36.10", "skipped_at_runtime": True,
+        "version": "0.36.11", "skipped_at_runtime": True,
         "error_count": 0, "warning_count": 0, "errors": [], "warnings": [],
         "reason": "Run before deploy with SOULBOUND_FULL_AUDIT=1; skipped during normal server startup.",
     }

@@ -1,3 +1,11 @@
+Soulbound v0.36.11 — More Troll Shamans
+
+- Quest `Polowanie na Trolli Szamanów` nadal wymaga 5 zabójstw.
+- Finalny runtime ma teraz 8 równoczesnych zwykłych Trolli Szamanów w Jaskini Trolli zamiast zbyt małej liczby celów.
+- Spawny są rozłożone między Jaskinię Trolli: Komorę 2, Komorę 3, Podziemną Rzekę Trolli, Galerię Szamanów i Gniazdo Trolli.
+- Galeria Szamanów zawiera 3 równoczesnych zwykłych Trolli Szamanów.
+- Dodano audit v0.36.11 pilnujący 5 wymaganych zabójstw, minimum 8 spawnów i minimum 4 komór.
+
 Soulbound v0.36.10 — Every Crypt Floor Is Harder
 
 - Zwykła Krypta: od piętra 1 każde następne piętro ma więcej HP, obrażeń i EXP niż poprzednie.
