@@ -255,7 +255,7 @@ FISHING_ECOLOGY_PREFERRED_IDS.update({
 })
 
 # Lokalne profile ziół. Mają 65% szansy wpłynąć na zbiór; pozostałe 35%
-# korzysta z pełnej, levelowanej puli świata, więc progresja 1-400 nadal działa.
+# korzysta z pełnej, levelowanej puli świata, więc progresja 1-600 nadal działa.
 V012_HERB_ECOLOGY_POOLS.update({
     "wildflower_basin": ((1,"chamomile"),(1,"lavender"),(15,"yarrow"),(25,"lemon_balm"),(40,"sage")),
     "butterfly_field": ((1,"chamomile"),(1,"mint"),(10,"lavender"),(20,"yarrow"),(35,"lemon_balm")),
@@ -352,7 +352,7 @@ HELP_TOPICS["akweny"] = [
 ]
 HELP_TOPICS["rozlegle_laki"] = [
     "v0.12.0 rozbudowuje Łąki o suche, kwietne, wrzosowe, wysokotrawiaste, mokre i późniejsze zielarskie siedliska.",
-    "Nowe łąki mają własne preferowane zestawy ziół, ale pełna progresja Zielarstwa 1-400 pozostaje zachowana.",
+    "Nowe łąki mają własne preferowane zestawy ziół, ale pełna progresja Zielarstwa 1-600 pozostaje zachowana.",
     "Na łąkach żyją i przemieszczają się moby, lecz zgodnie z zasadą PASSIVE WORLD nigdy nie atakują pierwsze.",
     "Staw pośród Łąk jest jednocześnie łowiskiem i terenem zielarskim.",
 ]
@@ -611,7 +611,7 @@ def v0130_create_frontier_room_definition(room_id):
     title = rng.choice(spec["titles"])
     feature = rng.choice(spec["features"])
     distance = x + y
-    mastery = min(400, int(spec["base_mastery"]) + distance * int(spec["step"]))
+    mastery = min(CHARACTER_MAX_LEVEL, int(spec["base_mastery"]) + distance * int(spec["step"]))
     exits = {}
     if x > 0:
         exits["west"] = v0130_frontier_room_id(kind, x - 1, y)
@@ -735,7 +735,7 @@ HELP_TOPICS["hybrydowy_swiat"] = [
     "Sektory są tworzone dopiero przy wejściu. Nie obciążają startu serwera tysiącami gotowych pokoi.",
     "Generator jest deterministyczny: ten sam biom i współrzędne zawsze tworzą tę samą nazwę, opis, wyjścia, zasoby i bazową obsadę mobów.",
     "Proceduralne są: łąki, las, dzicz, góry, mokradła, pustynia, wybrzeże, ocean, dorzecze, pojezierze, lód oraz cztery rubieże endgame.",
-    "Profesje działają w proceduralnym świecie: odpowiednie sektory wspierają Wędkarstwo, Zielarstwo, Drwalstwo lub Górnictwo bez omijania levelu narzędzia 1-400.",
+    "Profesje działają w proceduralnym świecie: odpowiednie sektory wspierają Wędkarstwo, Zielarstwo, Drwalstwo lub Górnictwo bez omijania levelu narzędzia 1-600.",
     "Moby proceduralne również podlegają PASSIVE WORLD i nigdy nie zaczynają walki same.",
     "Prowadzenie doprowadza do stałej granicy biomu; dalszą proceduralną mapę odkrywa się ręcznie.",
 ]
@@ -1079,7 +1079,7 @@ def v0140_create_mini_room_definition(room_id):
             + (" To finałowa komnata ze strażnikiem i skrzynią." if final else "")
         ),
         "exits": exits,
-        "recommended_mastery": min(400, int(spec["base_mastery"]) + (x+y)*int(spec["step"]) + index*3),
+        "recommended_mastery": min(CHARACTER_MAX_LEVEL, int(spec["base_mastery"]) + (x+y)*int(spec["step"]) + index*3),
         "generated_on_demand": True,
         "v0140_mini_dungeon": True,
         "v0140_mini_kind": kind,
@@ -1128,7 +1128,7 @@ def v0140_create_secret_room_definition(room_id):
         "generated_on_demand": True,
         "v0140_secret_room": True,
         "v0140_secret_parent": parent,
-        "recommended_mastery": min(400, int(spec["base_mastery"]) + (x+y)*int(spec["step"])),
+        "recommended_mastery": min(CHARACTER_MAX_LEVEL, int(spec["base_mastery"]) + (x+y)*int(spec["step"])),
     }
     TREASURE_CHESTS.setdefault(room_id, {
         "name": f"Ukryty Skarb: {secret['name']}",
@@ -1324,7 +1324,7 @@ def v0150_dynamic_world_offer(account_id, now=None):
         "herb":"Zbierz zioła", "mine":"Wydobądź surowce", "wood":"Pozyskaj drewno",
     }
     needed = needs[qtype]
-    stage=max(1,min(400,int(V013_FRONTIER_SPECS[kind].get("base_mastery",1) or 1)))
+    stage=max(1,min(CHARACTER_MAX_LEVEL,int(V013_FRONTIER_SPECS[kind].get("base_mastery",1) or 1)))
     complexity=1.5 if qtype in {"event","secret","mini"} else 1.0
     reward_soul=max(1,int(round(v0190_log_curve(stage,V019_SOUL_KILL_NORMAL)*max(2.0,math.sqrt(needed))*complexity)))
     reward_coins=max(1,int(round(v0190_log_curve(stage,V019_QUEST_COIN)*complexity)))
@@ -2195,7 +2195,7 @@ def v0180_create_ruin_room_definition(room_id):
             + ("To finałowa komnata strażnika. " if final else "")
             + "Nie ma tu pułapek ani automatycznych obrażeń wejściowych."
         ),
-        "exits":exits, "recommended_mastery":min(400, int(V013_FRONTIER_SPECS[kind].get("base_mastery",1))+40),
+        "exits":exits, "recommended_mastery":min(CHARACTER_MAX_LEVEL, int(V013_FRONTIER_SPECS[kind].get("base_mastery",1))+40),
         "generated_on_demand":True, "v018_great_ruin":True, "v018_ruin_final":final,
         "v018_biome":kind, "v018_ruin_parent":v0130_frontier_room_id(kind,x,y),
     }
@@ -2334,7 +2334,7 @@ def v0180_create_endless_room_definition(room_id):
         "zone":V018_ENDLESS_ZONE,"name":f"{rng.choice(names)} — sektor {depth}",
         "desc":(
             "Pierwsza warstwa endless endgame. Mapa nie ma sztywnego końca i powstaje przy wejściu, "
-            "ale siła przeciwników ma twardy bezpieczny cap, aby progresja 1-400 nie została unieważniona. "
+            "ale siła przeciwników ma twardy bezpieczny cap, aby progresja 1-600 nie została unieważniona. "
             "Brak pułapek i automatycznego aggro."
         ),
         "exits":exits,"recommended_mastery":400,"generated_on_demand":True,
@@ -2390,7 +2390,7 @@ HELP_TOPICS["legend_event_v018"]=[
 ]
 HELP_TOPICS["endless_v018"]=[
     "rubiezkonca / endless pokazuje informacje o Rubieży Końca. Mapa generuje sektory bez sztywnego końca.",
-    "Skalowanie przeciwników jest ograniczone twardym capem, więc system 1-400 pozostaje ważny. PASSIVE WORLD obowiązuje wszędzie.",
+    "Skalowanie przeciwników jest ograniczone twardym capem, więc system 1-600 pozostaje ważny. PASSIVE WORLD obowiązuje wszędzie.",
 ]
 HELP_TOPIC_ALIASES.update({
     "sezony":"sezony_v018","sezon":"sezony_v018","seasons":"sezony_v018",
@@ -2477,8 +2477,8 @@ def v0200_mega_identity(room_id):
 def v0200_mega_stage(key, index):
     spec=V020_MEGADUNGEONS[key]; size=max(2,int(spec["size"])); base=int(spec["stage"])
     # W obrębie jednego megalochu trudność powoli rośnie, ale zawsze pozostaje
-    # w zakresie generatora 1-400.
-    return max(1,min(400,int(round(base + (400-base)*((index-1)/(size-1))*0.72))))
+    # w zakresie generatora 1-600.
+    return max(1,min(CHARACTER_MAX_LEVEL,int(round(base + (CHARACTER_MAX_LEVEL-base)*((index-1)/(size-1))*0.72))))
 
 
 def v0200_mega_is_boss_index(key, index):
@@ -2606,7 +2606,7 @@ def v0200_mythic_template(kind):
     tid=f"v020_mythic_worldboss_{kind}"
     if tid in MOB_TEMPLATES: return tid
     spec=V013_FRONTIER_SPECS[kind]; biome=kind
-    stage=max(250,min(400,int(spec.get("base_mastery",1))+140))
+    stage=max(250,min(CHARACTER_MAX_LEVEL,int(spec.get("base_mastery",1))+140))
     mechanic, text=V017_BIOME_BOSS_MECHANICS.get(kind,("two_hundred_lord","Wielofazowa mechanika."))
     pool=list(V017_BIOME_SET_ITEMS.get(kind,()))
     MOB_TEMPLATES[tid]={"name":f"Mityczny Władca — {spec['zone']}","max_hp":1,"damage":1,"damage_type":"magic" if kind in ("void","sky","crown","ocean") else "physical",

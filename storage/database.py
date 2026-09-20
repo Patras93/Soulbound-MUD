@@ -700,6 +700,14 @@ class Database:
             CREATE TABLE IF NOT EXISTS daily_login_v03051(account_id INTEGER PRIMARY KEY, last_day TEXT NOT NULL DEFAULT '', streak INTEGER NOT NULL DEFAULT 0, best_streak INTEGER NOT NULL DEFAULT 0);
             CREATE TABLE IF NOT EXISTS player_housing_v03051(account_id INTEGER PRIMARY KEY, level INTEGER NOT NULL DEFAULT 1, name TEXT NOT NULL DEFAULT 'Dom', decor TEXT NOT NULL DEFAULT '', storage_json TEXT NOT NULL DEFAULT '{}');
             CREATE TABLE IF NOT EXISTS player_profile_privacy_v03051(account_id INTEGER PRIMARY KEY, inspect_enabled INTEGER NOT NULL DEFAULT 1);
+            CREATE TABLE IF NOT EXISTS player_presence_v0363(
+                account_id INTEGER PRIMARY KEY,
+                last_login_ts INTEGER NOT NULL DEFAULT 0,
+                last_logout_ts INTEGER NOT NULL DEFAULT 0,
+                last_seen_ts INTEGER NOT NULL DEFAULT 0,
+                login_count INTEGER NOT NULL DEFAULT 0,
+                FOREIGN KEY(account_id) REFERENCES accounts(id) ON DELETE CASCADE
+            );
             CREATE TABLE IF NOT EXISTS player_records_v03051(account_id INTEGER NOT NULL, record_key TEXT NOT NULL, value INTEGER NOT NULL DEFAULT 0, text_value TEXT NOT NULL DEFAULT '', updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY(account_id,record_key));
             CREATE TABLE IF NOT EXISTS player_completion_v03052(account_id INTEGER PRIMARY KEY, secrets_found INTEGER NOT NULL DEFAULT 0, updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
             CREATE TABLE IF NOT EXISTS mentor_graduation_v03052(mentor_account_id INTEGER NOT NULL, student_account_id INTEGER NOT NULL, graduated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, activity_points INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(mentor_account_id,student_account_id));
@@ -1950,6 +1958,30 @@ class Database:
             self.conn.commit()
             raise
         return character_account_id, slot
+
+    def mark_player_login_v0363(self, account_id, now_ts=None):
+        now_ts = int(time.time() if now_ts is None else now_ts)
+        self.conn.execute(
+            "INSERT INTO player_presence_v0363(account_id,last_login_ts,last_seen_ts,login_count) VALUES(?,?,?,1) "
+            "ON CONFLICT(account_id) DO UPDATE SET last_login_ts=excluded.last_login_ts,last_seen_ts=excluded.last_seen_ts,login_count=player_presence_v0363.login_count+1",
+            (int(account_id), now_ts, now_ts),
+        )
+        self.conn.commit()
+
+    def mark_player_logout_v0363(self, account_id, now_ts=None):
+        now_ts = int(time.time() if now_ts is None else now_ts)
+        self.conn.execute(
+            "INSERT INTO player_presence_v0363(account_id,last_logout_ts,last_seen_ts,login_count) VALUES(?,?,?,0) "
+            "ON CONFLICT(account_id) DO UPDATE SET last_logout_ts=excluded.last_logout_ts,last_seen_ts=excluded.last_seen_ts",
+            (int(account_id), now_ts, now_ts),
+        )
+        self.conn.commit()
+
+    def player_presence_v0363(self, account_id):
+        return self.conn.execute(
+            "SELECT last_login_ts,last_logout_ts,last_seen_ts,login_count FROM player_presence_v0363 WHERE account_id=?",
+            (int(account_id),),
+        ).fetchone()
 
     def character_name_exists(self, name):
         return self.conn.execute(

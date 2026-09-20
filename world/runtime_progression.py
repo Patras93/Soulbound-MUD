@@ -61,7 +61,7 @@ for _set_index,(_key,_spec) in enumerate(V020_MEGADUNGEONS.items()):
         ITEMS[_iid]={"name":f"{_slot_name} — {_label}","type":"armor","slot":_slot,"defense":_def,"price":None,
             "rarity":"mythic","rarity_name":"Mityczny","sockets":4,"affix":_affix,"affix_amount":_amount,
             "required_mastery":400,"v021_mythic_set":_key,
-            "desc":f"Część 14-elementowego zestawu {_label}. Progi bonusów pozostają 2/4/6/8. Wymaga Biegłości 400. Bez RNG i bez pułapek."}
+            "desc":f"Część 14-elementowego zestawu {_label}. Progi bonusów pozostają 2/4/6/8. Wymaga Biegłości 600. Bez RNG i bez pułapek."}
         EQUIPMENT_COLLECTION_CATALOG[_iid]=ITEMS[_iid]["name"]; UNIQUE_ITEM_COLLECTION_CATALOG[_iid]=ITEMS[_iid]["name"]; _ids.append(_iid)
     V021_MYTHIC_SET_ITEMS[_key]=tuple(_ids)
 
@@ -107,12 +107,12 @@ def v0210_create_endless_gauntlet_room_definition(room_id):
     return room_id,((room_id,v0210_endless_gauntlet_template(round_no)),)
 
 HELP_TOPICS["ascension_v021"]=[
-    "wzniesienie / ascension pokazuje progresję klasy po osiągnięciu Biegłości 400. Biegłość nie resetuje się.",
+    "wzniesienie / ascension pokazuje progresję klasy po osiągnięciu Biegłości 600. Biegłość nie resetuje się.",
     "Każdy dalszy Class XP trafia do Rangi Wzniesienia. Maksymalna ranga techniczna to 1000; wymagania rosną do ekstremalnego endgame.",
 ]
 HELP_TOPICS["worldtier_v021"]=[
     "worldtier / poziomswiata pokazuje lub ustawia osobisty World Tier 1-10. Zmiana jest możliwa tylko poza walką.",
-    "Wyższy Tier zwiększa efektywną wytrzymałość i obrażenia przeciwników oraz nagrody. Tier 2+ wymaga Biegłości 400 i dalszych Rang Wzniesienia.",
+    "Wyższy Tier zwiększa efektywną wytrzymałość i obrażenia przeciwników oraz nagrody. Tier 2+ wymaga Biegłości 600 i dalszych Rang Wzniesienia.",
     "World Tier nie włącza auto-aggro: PASSIVE WORLD nadal obowiązuje.",
 ]
 HELP_TOPICS["mythicsets_v021"]=[
@@ -195,7 +195,7 @@ V022_LEGENDARY_LABELS={
 V027_LEGENDARY_MIN_MASTERY = 1 + int(generator_core_v027.stable_unit("legendary-contract-unlock") * 399)
 
 def v022_legendary_contract_offer(kind, stage):
-    stage=max(V027_LEGENDARY_MIN_MASTERY,min(400,int(stage or V027_LEGENDARY_MIN_MASTERY)))
+    stage=max(V027_LEGENDARY_MIN_MASTERY,min(CLASS_MASTERY_MAX_LEVEL,int(stage or V027_LEGENDARY_MIN_MASTERY)))
     base=generator_core_v027.generated_count(stage,"legendary:"+kind,30,300)
     divisors={"kill":1,"boss":12,"worldboss":35,"fish":1,"gather":1,"explore":2}
     needed=max(1,int(round(base/divisors.get(kind,1))))
@@ -237,7 +237,7 @@ HELP_TOPIC_ALIASES.update({"projekty swiata":"worldprojects_v022","world project
 
 # v0.23: finalny audit HELP — naprawa aktywnych aliasów wskazujących na brakujące tematy.
 HELP_TOPICS["klasy"] = [
-    "Soulbound ma 14 klas. Nie ma levelu postaci; każda klasa rozwija własną Biegłość 1-400.",
+    "Soulbound ma 14 klas. Level postaci i każda klasa rozwijają się niezależnie; Biegłość każdej klasy ma zakres 1-600.",
     "Klasa główna jest wybierana przy tworzeniu postaci. Dodatkowe aktywne klasy obsługuje multiclass / multiklasa.",
     "multiclass pokazuje aktywne klasy i komendy dodawania/usuwania klas zgodnie z aktualnymi wymaganiami.",
     "kodeksklasowy info pokazuje wszystkie klasy; kodeksklasowy <klasa> czyta nauczyciela, skille, wymagania Biegłości, koszt i status nauki.",
@@ -372,7 +372,7 @@ def _v028_build_regions():
                 rid=_v028_region_room_id(index,x,y); room_ids.append(rid)
                 dist=x+y
                 span=max(6,min(28,400-stage))
-                room_stage=min(400,stage+int(round((dist/max_distance)*span)))
+                room_stage=min(CHARACTER_MAX_LEVEL,stage+int(round((dist/max_distance)*span)))
                 title=_v028_pick(theme["titles"],f"r{index}:{x}:{y}:title")
                 feature=_v028_pick(theme["features"],f"r{index}:{x}:{y}:feature")
                 ROOMS[rid]={
@@ -435,15 +435,15 @@ def _v028_build_regions():
             normal_ids.append(mid)
         elite_id=f"v028_region_{index:02d}_elite"
         MOB_TEMPLATES[elite_id]={"name":f"Elitarny Strażnik — {theme['label']}","damage_type":theme["damage_type"],
-            "drops":{relic_id:.18},"procedural_region_stage":min(400,stage+6),"elite_affix":"procedural",
+            "drops":{relic_id:.18},"procedural_region_stage":min(CHARACTER_MAX_LEVEL,stage+6),"elite_affix":"procedural",
             "quest_targets":(f"v028_region_{index:02d}_threat",f"v028_region_{index:02d}_elite_target")}
         rare_id=f"v028_region_{index:02d}_rare"
         MOB_TEMPLATES[rare_id]={"name":f"Rzadki Wędrowiec — {theme['label']}","damage_type":theme["damage_type"],
-            "drops":{relic_id:.30},"procedural_region_stage":min(400,stage+10),"rare_mob":True,
+            "drops":{relic_id:.30},"procedural_region_stage":min(CHARACTER_MAX_LEVEL,stage+10),"rare_mob":True,
             "quest_targets":(f"v028_region_{index:02d}_threat",f"v028_region_{index:02d}_rare_target")}
         boss_id=f"v028_region_{index:02d}_boss"
         MOB_TEMPLATES[boss_id]={"name":f"Władca Regionu — {theme['label']}","damage_type":theme["damage_type"],
-            "drops":{relic_id:1.0},"procedural_region_stage":min(400,stage+18),"boss_mechanic":"procedural_region",
+            "drops":{relic_id:1.0},"procedural_region_stage":min(CHARACTER_MAX_LEVEL,stage+18),"boss_mechanic":"procedural_region",
             "boss_mechanic_text":"Generator regionu wybiera fazę presji na podstawie etapu i biomu.",
             "quest_targets":(f"v028_region_{index:02d}_boss_target",),"leave_corpse":True}
 
@@ -991,9 +991,15 @@ def finalize_class_equipment_v03015():
             continue
         class_name = expected_class[item_id]
         primary_stat, secondary_stat = class_equipment_base_stat_pair(class_name)
-        # Generator Core określa łączny budżet; v0.30.16 rozdziela go według
-        # klasy i slotu zamiast identycznego 50/50 dla wszystkich.
-        generated_budget = max(2, int(item.get("affix_amount", 1) or 1))
+        # Dla zwykłego klasowego EQ finalna warstwa wymusza progresję statów
+        # na KAŻDYM progu 1/10/20/.../600. Generator Core może wcześniej
+        # przeliczyć affix_amount, ale nie może spłaszczyć dwóch sąsiednich
+        # Tierów do identycznego budżetu. Legendarne sety/relicty zachowują
+        # swój osobny wygenerowany budżet.
+        if item.get("class_shop_item") and not item.get("legendary_set_loot") and not item.get("legendary_class_relic"):
+            generated_budget = class_equipment_stat_budget(mastery, item.get("slot"))
+        else:
+            generated_budget = max(2, int(item.get("affix_amount", 1) or 1))
         primary_stat, primary_amount, secondary_stat, secondary_amount = (
             class_equipment_split_stat_budget(
                 class_name, generated_budget, item.get("slot")
@@ -1064,7 +1070,7 @@ if CLASS_EQ_AUDIT_V03015["error_count"]:
 def class_equipment_identity_audit_v03016():
     errors = []
     signatures = {}
-    # Biegłość 400 daje wystarczający budżet liczb, by sprawdzić realny rozkład.
+    # Biegłość 600 daje wystarczający budżet liczb, by sprawdzić realny rozkład.
     for class_name in CLASS_EQUIPMENT_SETS:
         ids = CLASS_EQUIPMENT_ITEMS_BY_CLASS_TIER.get(class_name, {}).get(400, ())
         sample = None
@@ -1266,17 +1272,17 @@ if FULL_WORLD_TOPOLOGY_AUDIT_V03013.get("error_count"):
 # HELP i atlasy nie przechowują osobnego balansu: czytają wartości wygenerowane.
 HELP_TOPICS["generator"] = [
     "Generator Core pozostaje jedynym źródłem aktywnego balansu Soulbound; v0.30.0 dodaje semantyczny generator geografii i World Logic Validator.",
-    "Generowane są: Level postaci 1-400, nielimitowane statystyki, moby i bossowie, HP, obrażenia, EXP, monety, drop-rate, przedmioty, wymagania, questy, skille i spelle, Soul 1-400, profesje, narzędzia, receptury, ceny oraz atlasy.",
+    "Generowane są: Level postaci 1-600, nielimitowane statystyki, moby i bossowie, HP, obrażenia, EXP, monety, drop-rate, przedmioty, wymagania, questy, skille i spelle, Soul 1-600, profesje, narzędzia, receptury, ceny oraz atlasy.",
     "Nowa zawartość nie wymaga ręcznego liczenia wartości. Nadaj jej nazwę, typ i powiązania ze światem; liczby wylicza Generator Core.",
-    "Balance Validator sprawdza zakresy osi 1-400, dodatnie wartości oraz monotoniczność także nielimitowanej krzywej statystyk.",
+    "Balance Validator sprawdza zakresy osi 1-600, dodatnie wartości oraz monotoniczność także nielimitowanej krzywej statystyk.",
 ]
 HELP_TOPICS["level"] = [
-    "Level postaci ma zakres 1-400. EXP postaci pochodzi z walki, questów i aktywności profesyjnych.",
+    "Level postaci ma zakres 1-600. EXP postaci pochodzi z walki, questów i aktywności profesyjnych.",
     "Próg EXP i nagrody wylicza Generator Core; nie są wpisywane osobno dla poziomów ani przeciwników.",
-    "Level postaci zwiększa bazowe HP, Manę i moc. Biegłość, Soul, Skill Level i profesje mają własne osie 1-400, a statystyki rozwijają się bez twardego limitu.",
+    "Level postaci zwiększa bazowe HP, Manę i moc. Biegłość, Soul, Skill Level i profesje mają własne osie 1-600, a statystyki rozwijają się bez twardego limitu.",
 ]
 HELP_TOPICS["klasy"] = [
-    "Soulbound ma 14 klas. Level postaci, Biegłość klasy i Skill Level mają zakres 1-400 i są liczone przez Generator Core.",
+    "Soulbound ma 14 klas. Level postaci, Biegłość klasy i Skill Level mają zakres 1-600 i są liczone przez Generator Core.",
     "Klasa główna jest wybierana przy tworzeniu postaci. Dodatkowe aktywne klasy obsługuje multiclass / multiklasa.",
     "skills pokazuje skille aktywnych klas, a help <nazwa skilla> podaje aktualne wygenerowane wymagania i parametry.",
 ]
@@ -1291,7 +1297,7 @@ for _topic, _lines in list(HELP_TOPICS.items()):
         _text=str(_line)
         _low=normalize_lookup_text(_text) if 'normalize_lookup_text' in globals() else _text.lower()
         if ("nie ma levelu postaci" in _low or "brak levelu postaci" in _low or "postac nie ma levelu" in _low):
-            _text="Level postaci 1-400 i główne osie progresji są wyliczane przez Generator Core v0.30.0; statystyki są nielimitowane."
+            _text="Level postaci 1-600 i główne osie progresji są wyliczane przez Generator Core v0.30.0; statystyki są nielimitowane."
         _clean.append(_text)
     HELP_TOPICS[_topic]=_clean
 

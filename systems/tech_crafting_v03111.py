@@ -123,6 +123,7 @@ def equipment_gem_socket_capacity_v03111(item):
     if item.get("slot") in ("ring","necklace","earring"):
         return jewelry_socket_capacity(item)
     mastery=int(item.get("required_mastery",0) or 0)
+    if mastery>=500: return 4
     if mastery>=400: return 3
     if mastery>=300: return 2
     if mastery>=200: return 1

@@ -20,10 +20,10 @@ def generator_numeric_only_audit_v03018():
     # Explicit regression guards for semantics previously overwritten by Generator Core.
     if tuple(SOUL_MILESTONE_TIERS) != (5, 10, 15, 20):
         errors.append(f"Soul Milestones changed: {SOUL_MILESTONE_TIERS}")
-    skill_grid = {1, *range(10, 401, 10)}
+    skill_grid = {1, *range(10, CLASS_MASTERY_MAX_LEVEL + 1, 10)}
     for cname, rows in CLASS_SKILLS.items():
         if cname in ("Inżynier","Mec"):
-            if any(not 1 <= int(s.get("unlock", 0) or 0) <= 400 for s in rows):
+            if any(not 1 <= int(s.get("unlock", 0) or 0) <= CLASS_MASTERY_MAX_LEVEL for s in rows):
                 errors.append(f"skill unlock range changed: {cname}")
             continue
         if any(int(s.get("unlock", 0) or 0) not in skill_grid for s in rows):
@@ -71,8 +71,8 @@ def generator_whitelist_audit_v03019():
     audit = GENERATOR_CORE_AUDIT or {}
     whitelist = audit.get("whitelist_audit") or {}
     errors = []
-    if GENERATOR_CORE_VERSION != "0.35.3":
-        errors.append(f"Generator Core version={GENERATOR_CORE_VERSION}, expected 0.35.3")
+    if GENERATOR_CORE_VERSION != "0.36.3":
+        errors.append(f"Generator Core version={GENERATOR_CORE_VERSION}, expected 0.36.3")
     if not audit.get("numeric_only"):
         errors.append("numeric_only flag missing")
     runtime_fast = bool(audit.get("runtime_fast_path"))
@@ -152,7 +152,7 @@ def equipment_expansion_audit_v03020():
     # Every class/tier should now expose all 14 logical equipment pieces per style.
     logical_slots = set(CLASS_EQUIPMENT_SLOT_DEFS)
     for class_name, tiers in CLASS_EQUIPMENT_ITEMS_BY_CLASS_TIER.items():
-        for mastery in (1, 100, 200, 400):
+        for mastery in (1, 100, 200, 400, 600):
             ids = tiers.get(mastery, ())
             present = {ITEMS[i].get("slot") for i in ids if i in ITEMS}
             if not logical_slots.issubset(present):
@@ -308,7 +308,7 @@ def eq_shop_audit_v03021():
         room=definition.get("room")
         if room not in SHOPS:
             errors.append(f"brak sklepu: {class_name}/{room}")
-        for mastery in (1,100,200,300,400):
+        for mastery in (1,100,200,300,400,600):
             ids=CLASS_EQUIPMENT_ITEMS_BY_CLASS_TIER.get(class_name,{}).get(mastery,())
             present={ITEMS[i].get("slot") for i in ids if i in ITEMS}
             if not slots.issubset(present):
@@ -758,7 +758,7 @@ def full_release_integrity_audit_v03025():
         errors.append("world logic audit failed")
     if int(WORLD_LOGIC_AUDIT.get("warning_count", 0) or 0):
         errors.append("world logic warnings present")
-    if GENERATOR_CORE_VERSION != "0.35.3":
+    if GENERATOR_CORE_VERSION != "0.36.3":
         errors.append(f"GENERATOR_CORE_VERSION={GENERATOR_CORE_VERSION}")
     return {
         "version": "0.30.25",
@@ -975,7 +975,7 @@ def gameplay_flow_audit_v03026():
         if missing:
             errors.append(f"station {_station}: brak w {missing[:5]}")
 
-    if GENERATOR_CORE_VERSION != "0.35.3":
+    if GENERATOR_CORE_VERSION != "0.36.3":
         errors.append(f"GENERATOR_CORE_VERSION={GENERATOR_CORE_VERSION}")
 
     return {
@@ -1752,7 +1752,7 @@ def class_shop_audit_v03036():
         seller = NPCS.get(seller_id, {}) if seller_id else {}
         if not seller_id or seller.get("room") != room_id or not seller.get("shopkeeper"):
             errors.append(f"{class_name}: missing active seller")
-        for level in (1, 10, 100, 200, 300, 400):
+        for level in (1, 10, 100, 200, 300, 400, 600):
             tier = class_equipment_unlocked_tier(level)
             offers = CLASS_EQUIPMENT_ITEMS_BY_CLASS_TIER.get(class_name, {}).get(tier, ())
             if not offers:
@@ -1905,7 +1905,7 @@ def equipment_completeness_audit_v03037():
 
     # Class EQ must expose earrings on representative levels for all 12 classes.
     for class_name, tiers in CLASS_EQUIPMENT_ITEMS_BY_CLASS_TIER.items():
-        for level in (1, 100, 200, 300, 400):
+        for level in (1, 100, 200, 300, 400, 600):
             ids = tiers.get(class_equipment_unlocked_tier(level), ())
             slots = {ITEMS[i].get("slot") for i in ids if i in ITEMS}
             if "earring" not in slots:
@@ -2431,7 +2431,7 @@ def equipment_upgrade_audit_v03042():
         for target in range(1, V03042_EQ_UPGRADE_MAX + 1):
             req = v03042_upgrade_required_smithing(item, target)
             cost = v03042_upgrade_material_cost(item, target)
-            if not 1 <= req <= 400:
+            if not 1 <= req <= CHARACTER_MAX_LEVEL:
                 errors.append(f"{item_id}: bad smithing requirement +{target}={req}")
                 break
             if req < previous_req:
@@ -3082,7 +3082,7 @@ def full_game_predeploy_audit_v0336():
 
     # 9c) Professions, tools and progression tables.
     if len(PROFESSION_RANK_NAMES)!=12: err('profession_count',len(PROFESSION_RANK_NAMES))
-    if len(TOOL_TIER_THRESHOLDS)!=40: err('tool_tier_count',len(TOOL_TIER_THRESHOLDS))
+    if len(TOOL_TIER_THRESHOLDS)!=TOOL_MAX_TIER or TOOL_MAX_TIER!=60: err('tool_tier_count',len(TOOL_TIER_THRESHOLDS))
 
     # 9d) Deep quest target/dependency validation for every quest.
     valid_kill_targets=set(MOB_TEMPLATES)
@@ -3104,7 +3104,7 @@ def full_game_predeploy_audit_v0336():
             if isinstance(target,str) and target.startswith('crypt_boss_'):
                 try:
                     floor=int(target.rsplit('_',1)[1])
-                    dynamic_ok=210<=floor<=400 and floor%10==0
+                    dynamic_ok=210<=floor<=SOUL_MAX_LEVEL and floor%10==0
                 except Exception:
                     dynamic_ok=False
             if not dynamic_ok: err('quest_bad_kill_target',qid,target)
@@ -3258,14 +3258,16 @@ def full_game_predeploy_audit_v0336():
     _mithril_chance_79=mining_mithril_currency_chance(79,79,79)
     _mithril_chance_80=mining_mithril_currency_chance(80,80,80)
     _mithril_chance_400=mining_mithril_currency_chance(400,400,400)
+    _mithril_chance_600=mining_mithril_currency_chance(600,600,600)
     if _mithril_chance_79 != 0:
         err('mithril_currency_unlock_too_early',_mithril_chance_79)
     if not (0.0049 <= _mithril_chance_80 <= 0.0051):
         err('mithril_currency_level80_chance',_mithril_chance_80)
-    if not (0.0199 <= _mithril_chance_400 <= 0.0201):
-        err('mithril_currency_level400_chance',_mithril_chance_400)
+    if not (0.0199 <= _mithril_chance_600 <= 0.0201):
+        err('mithril_currency_level600_chance',_mithril_chance_600)
     metrics['mithril_currency_chance_level80']=_mithril_chance_80
     metrics['mithril_currency_chance_level400']=_mithril_chance_400
+    metrics['mithril_currency_chance_level600']=_mithril_chance_600
 
     # Audit authored ore weighting: newly unlocked core ores must be meaningfully
     # visible, while older ores remain possible.
@@ -3292,7 +3294,7 @@ def full_game_predeploy_audit_v0336():
             err('current_tier_ore_too_rare',_level,_ore_id,_prob)
     metrics['mining_current_ore_probabilities']=_ore_drop_metrics
     try:
-        metrics['currency_guild_upgrade_1_400']=sum(int(v0926_guild_upgrade_cost(_lvl) or 0) for _lvl in range(1,400))
+        metrics['currency_guild_upgrade_1_400']=sum(int(v0926_guild_upgrade_cost(_lvl) or 0) for _lvl in range(1,V0926_GUILD_MAX_LEVEL))
     except Exception as _exc:
         warnings.append(('guild_currency_sink_metric_unavailable',repr(_exc)))
 
@@ -3308,7 +3310,7 @@ def full_game_predeploy_audit_v0336():
             if re.search(r'\d',name): err('skill_numeric_name',cname,skill.get('id'),name)
             try:
                 unlock=int(skill.get('unlock',0) or 0)
-                if not 1<=unlock<=400: err('skill_bad_unlock',cname,skill.get('id'),unlock)
+                if not 1<=unlock<=CLASS_MASTERY_MAX_LEVEL: err('skill_bad_unlock',cname,skill.get('id'),unlock)
             except Exception: err('skill_bad_unlock',cname,skill.get('id'),skill.get('unlock'))
     for key,rows in seen_skill_names.items():
         if len(rows)>1: err('duplicate_skill_name',key,rows)
@@ -3361,25 +3363,26 @@ def full_game_predeploy_audit_v0336():
 
     # 10b) v0.35.3 Soul Weapon Mastery + Main Menu Exit gate.
     try:
-        if int(SOUL_WEAPON_MASTERY_MAX_LEVEL) != 400:
+        if int(SOUL_WEAPON_MASTERY_MAX_LEVEL) != 600:
             err('soul_weapon_mastery_bad_cap',SOUL_WEAPON_MASTERY_MAX_LEVEL)
         _m1=soul_weapon_mastery_bonuses(1)
         _m200=soul_weapon_mastery_bonuses(200)
         _m400=soul_weapon_mastery_bonuses(400)
+        _m600=soul_weapon_mastery_bonuses(600)
         if any(float(_m1.get(k,0) or 0) != 0.0 for k in ('damage_percent','crit_chance','crit_damage_percent','boss_damage_percent','echo_chance')):
             err('soul_weapon_mastery_level1_not_neutral',_m1)
         if not (0.0099 <= float(_m200.get('echo_chance',0) or 0) <= 0.0101):
             err('soul_weapon_mastery_echo_200',_m200.get('echo_chance'))
-        if abs(float(_m400.get('damage_percent',0))-8.0)>0.0001:
-            err('soul_weapon_mastery_damage_400',_m400.get('damage_percent'))
-        if abs(float(_m400.get('crit_chance',0))-0.02)>0.000001:
-            err('soul_weapon_mastery_crit_400',_m400.get('crit_chance'))
-        if abs(float(_m400.get('crit_damage_percent',0))-12.0)>0.0001:
-            err('soul_weapon_mastery_crit_damage_400',_m400.get('crit_damage_percent'))
-        if abs(float(_m400.get('boss_damage_percent',0))-5.0)>0.0001:
-            err('soul_weapon_mastery_boss_400',_m400.get('boss_damage_percent'))
-        if abs(float(_m400.get('echo_chance',0))-0.05)>0.000001:
-            err('soul_weapon_mastery_echo_400',_m400.get('echo_chance'))
+        if abs(float(_m600.get('damage_percent',0))-8.0)>0.0001:
+            err('soul_weapon_mastery_damage_600',_m600.get('damage_percent'))
+        if abs(float(_m600.get('crit_chance',0))-0.02)>0.000001:
+            err('soul_weapon_mastery_crit_600',_m600.get('crit_chance'))
+        if abs(float(_m600.get('crit_damage_percent',0))-12.0)>0.0001:
+            err('soul_weapon_mastery_crit_damage_600',_m600.get('crit_damage_percent'))
+        if abs(float(_m600.get('boss_damage_percent',0))-5.0)>0.0001:
+            err('soul_weapon_mastery_boss_600',_m600.get('boss_damage_percent'))
+        if abs(float(_m600.get('echo_chance',0))-0.05)>0.000001:
+            err('soul_weapon_mastery_echo_600',_m600.get('echo_chance'))
         _combat_source=(_ROOT/'player/session_mixins/skills_combat.py').read_text(encoding='utf-8')
         _basic_start=_combat_source.index('    async def realtime_player_action(')
         _loop_start=_combat_source.index('    async def realtime_combat_loop(',_basic_start)
@@ -3590,7 +3593,7 @@ def full_game_predeploy_audit_v0336():
         err('code_integrity_gate_exception',repr(_exc))
 
     return {
-        'version':'0.35.3','error_count':len(errors),'warning_count':len(warnings),
+        'version':'0.35.6','error_count':len(errors),'warning_count':len(warnings),
         'errors':errors,'warnings':warnings,'metrics':metrics,
         'description_sync':dict(ITEM_DESCRIPTION_SYNC_V0336),
     }
@@ -3599,7 +3602,7 @@ def full_game_predeploy_audit_v0336():
 # loaded. server.py executes it after the module loop when SOULBOUND_FULL_AUDIT=1.
 # Keeping a placeholder here preserves compatibility for code that inspects the symbol.
 FULL_GAME_PREDEPLOY_AUDIT_V0336={
-    'version':'0.35.3','deferred_until_runtime_complete':True,'error_count':0,'warning_count':0,
+    'version':'0.35.6','deferred_until_runtime_complete':True,'error_count':0,'warning_count':0,
     'errors':[],'warnings':[],
     'reason':'Final pre-deploy audit is executed by server.py after every runtime module has loaded.'
 }
@@ -3620,4 +3623,754 @@ LATEST_CHANGES = [
     "Nowszy Salvage 3.0 jest aktywny i nadal deleguje klasyczne rozkładanie armor EQ do stabilnej warstwy bazowej.",
     "Odpoczynek, wędrówka mobów i event x2 EXP nie giną już bezpowrotnie po pojedynczym błędzie taska w tle.",
     "Dodano Code Integrity Gate, który blokuje release przy wywołaniu nieistniejącej metody lub ponownym zasłonięciu nowszego mixinu.",
+]
+
+
+# ============================================================
+# v0.35.5 - PARTY TEMPLE TELEPORT + SHARED SOUL SHARDS
+# ============================================================
+def party_temple_shard_audit_v0355():
+    errors = []
+    metrics = {}
+    try:
+        _core_path = _ROOT / "player/session_mixins/core_progression.py"
+        _combat_path = _ROOT / "player/session_mixins/skills_combat.py"
+        _core = _core_path.read_text(encoding="utf-8")
+        _combat = _combat_path.read_text(encoding="utf-8")
+        if "_teleport_self_to_temple_v0354" not in _core:
+            errors.append("brak helpera teleportu pojedynczego członka")
+        if "same_room=origin_room" not in _core:
+            errors.append("teleport świątyni nie ogranicza drużyny do wspólnej lokacji")
+        # v0.35.9 rozszerzyło zasadę z samych Odłamków na wszystkie zwykłe dropy.
+        # Historyczny gate v0.35.5 sprawdza więc, czy nadal istnieje aktywny
+        # mechanizm wspólnych odbiorców, niezależnie od jego nowszej nazwy.
+        if "drop_recipients = party_drop_recipients_v0359(item_id, recipients)" not in _combat:
+            errors.append("wspólne dropy drużyny nie używają aktywnego helpera odbiorców")
+        if "party_drop_recipients_v0359" not in globals():
+            errors.append("brak aktywnego helpera wspólnych dropów po rozszerzeniu v0.35.9")
+        metrics["teleport_helper"] = hasattr(Session, "_teleport_self_to_temple_v0354")
+        metrics["teleport_command"] = hasattr(Session, "teleport_to_temple_command")
+        if not metrics["teleport_helper"] or not metrics["teleport_command"]:
+            errors.append("brak aktywnej metody teleportu v0.35.5")
+    except Exception as exc:
+        errors.append(f"audit exception: {exc!r}")
+    return {"version":"0.35.5","error_count":len(errors),"errors":errors,"metrics":metrics}
+
+PARTY_TEMPLE_SHARD_AUDIT_V0355 = party_temple_shard_audit_v0355()
+if PARTY_TEMPLE_SHARD_AUDIT_V0355.get("error_count"):
+    raise RuntimeError(
+        "Party Temple/Shard Audit v0.35.5 failed: "
+        + "; ".join(PARTY_TEMPLE_SHARD_AUDIT_V0355.get("errors", [])[:20])
+    )
+
+HELP_TOPICS.setdefault("party", []).extend([
+    "Teleport do Świątyni przez / albo Enter obejmuje tylko członków drużyny stojących razem w tej samej lokacji; członkowie drużyny gdzie indziej pozostają na miejscu.",
+    "Odłamek Duszy jest wspólnym dropem drużynowym: gdy jego rzut się powiedzie, każdy obecny w tej samej lokacji członek drużyny dostaje własny Odłamek.",
+])
+HELP_TOPICS.setdefault("wersja", []).append(
+    "v0.35.5: teleport do Świątyni oraz wspólne Odłamki Duszy obejmują tylko członków drużyny stojących razem w tej samej lokacji."
+)
+LATEST_CHANGES_TITLE = "Soulbound v0.35.5 - Party Temple Teleport + Shared Soul Shards"
+LATEST_CHANGES = [
+    "Teleport do Świątyni przez / lub Enter obejmuje tylko członków aktualnej drużyny stojących razem w tej samej lokacji co osoba uruchamiająca teleport.",
+    "Teleport zatrzymuje prowadzenie, odpoczynek, auto-rzemiosła i aktywną walkę tylko u członków faktycznie przenoszonych z tej samej lokacji.",
+    "Odłamki Duszy z dropu przeciwników są teraz współdzielone: po udanym rzucie każdy członek drużyny obecny przy walce dostaje po 1 Odłamku.",
+    "Od v0.35.9 ta sama lokalna zasada drużynowa została rozszerzona na wszystkie zwykłe dropy z mobów.",
+]
+
+
+# v0.35.6 - SALVAGE WSZYSTKO
+def salvage_all_audit_v0356():
+    errors=[]
+    metrics={}
+    try:
+        import inspect
+        source=inspect.getsource(SessionCraftingExpansionV03114Mixin.salvage_equipment_v0925)
+        bulk=inspect.getsource(SessionCraftingExpansionV03114Mixin.salvage_all_v0356)
+        metrics["has_bulk_command"] = '"wszystko"' in source and 'salvage_all_v0356' in source
+        metrics["protects_equipped"] = 'free_equipment_quantity' in bulk and 'equipped_quantity_of_item' in bulk
+        metrics["protects_moogle"] = 'moogle_board' in bulk
+        metrics["extended_salvage"] = 'SALVAGE3_V03114' in bulk
+        metrics["aggregated_output"] = 'SALVAGE WSZYSTKO' in bulk
+        for key,value in metrics.items():
+            if not value: errors.append(f"salvage wszystko audit failed: {key}")
+    except Exception as exc:
+        errors.append(f"salvage wszystko audit exception: {type(exc).__name__}: {exc}")
+    return {"version":"0.35.6","error_count":len(errors),"errors":errors,"metrics":metrics}
+
+SALVAGE_ALL_AUDIT_V0356 = salvage_all_audit_v0356()
+if SALVAGE_ALL_AUDIT_V0356["error_count"]:
+    raise RuntimeError("Salvage Wszystko Audit v0.35.6 failed: " + "; ".join(SALVAGE_ALL_AUDIT_V0356["errors"]))
+
+LATEST_CHANGES_TITLE = "Soulbound v0.35.6 - Salvage Wszystko"
+LATEST_CHANGES = [
+    "v0.35.6: dodano salvage wszystko / rozloz wszystko — hurtowe rozkładanie wszystkich wolnych przedmiotów obsługiwanych przez Salvage.",
+    "Założone EQ jest zawsze pomijane; startowy Moogle Board jest chroniony przed przypadkowym hurtowym rozłożeniem.",
+    "Hurtowy Salvage agreguje raport odzyskanych materiałów, run i klejnotów, żeby nie spamować NVDA setkami komunikatów.",
+]
+
+
+# v0.35.7 - BULK SMELTING + INGOT-BASED SMITHING
+def bulk_smelting_ingot_smithing_audit_v0357():
+    errors=[]
+    metrics={}
+    try:
+        import inspect
+        source=inspect.getsource(SessionCraftingExpansionV03114Mixin.smelt_item_v03114)
+        metrics["bulk_single_action"] = "przetopów w jednej akcji" in source and "await asyncio.sleep(action_seconds)" in source
+        metrics["pooled_xp"] = "pooled_profession_xp" in source and "pooled_tool_xp" in source
+        metrics["includes_direct_ore"] = 'recipe_ids = [tier["ingot"] for tier in BLACKSMITH_TIERS]' in source
+        metrics["includes_steel_plates"] = 'recipe_ids.append("recycled_steel_ingot")' in source
+        metrics["includes_salvage"] = "SALVAGE_SMELT_FALLBACK_V03113.values()" in source
+        for key,value in metrics.items():
+            if not value:
+                errors.append(f"bulk smelting audit failed: {key}")
+
+        ingot_ids={str(tier.get("ingot")) for tier in BLACKSMITH_TIERS}
+        ingot_ids.add("steel_ingot")
+        checked=0
+        for recipe_id,recipe in CRAFT_RECIPES.items():
+            output=ITEMS.get(recipe.get("output"),{})
+            if output.get("type") != "armor":
+                continue
+            category=str(recipe.get("category") or "")
+            # Tech equipment has its own component/alloy economy. This gate covers
+            # the normal blacksmith equipment line and the historical forge charms.
+            if category in ("technology","tech_set"):
+                continue
+            if "forge" not in tuple(recipe.get("stations") or ()):
+                continue
+            profession=str(recipe.get("profession") or "Kowalstwo")
+            tool_type=str(recipe.get("tool_type") or "crafting")
+            if profession != "Kowalstwo" or tool_type != "crafting":
+                continue
+            checked+=1
+            ingredients=set((recipe.get("ingredients") or {}).keys())
+            raw_ores=[iid for iid in ingredients if str(iid).endswith("_ore") or str(iid).startswith("ore_")]
+            if raw_ores:
+                errors.append(f"kowalskie EQ używa surowej rudy {recipe_id}: {raw_ores}")
+            if not (ingredients & ingot_ids):
+                errors.append(f"kowalskie EQ bez sztabki {recipe_id}: {sorted(ingredients)}")
+        metrics["smith_equipment_recipes_checked"] = checked
+        if checked < 10:
+            errors.append(f"za mało receptur kowalskiego EQ w audicie: {checked}")
+    except Exception as exc:
+        errors.append(f"bulk smelting/ingot smithing audit exception: {type(exc).__name__}: {exc}")
+    return {"version":"0.35.7","error_count":len(errors),"errors":errors,"metrics":metrics}
+
+BULK_SMELTING_INGOT_SMITHING_AUDIT_V0357 = bulk_smelting_ingot_smithing_audit_v0357()
+if BULK_SMELTING_INGOT_SMITHING_AUDIT_V0357["error_count"]:
+    raise RuntimeError(
+        "Bulk Smelting/Ingot Smithing Audit v0.35.7 failed: "
+        + "; ".join(BULK_SMELTING_INGOT_SMITHING_AUDIT_V0357["errors"][:30])
+    )
+
+HELP_TOPICS.setdefault("kowalstwo", []).extend([
+    "v0.35.7: metalowe EQ z normalnej linii Kowalstwa powstaje ze sztabek. Ruda jest najpierw przetapiana, a dopiero sztabki są zużywane do kucia EQ.",
+    "przetop wszystko wykonuje cały dostępny przetop jako jedną akcję: rudy, Stalowe Płyty i zgodne materiały Salvage. XP Kowalstwa i Młota jest sumowane i przyznawane wspólnie raz.",
+])
+HELP_TOPICS.setdefault("wersja", []).append(
+    "v0.35.7: przetop wszystko jest jedną hurtową akcją ze wspólnym XP; standardowe kowalskie EQ wymaga sztabek zamiast surowej rudy."
+)
+LATEST_CHANGES_TITLE = "Soulbound v0.35.7 - Bulk Smelting + Ingot-Based Smithing"
+LATEST_CHANGES = [
+    "v0.35.7: przetop wszystko zużywa w jednej akcji wszystkie dostępne rudy, Stalowe Płyty oraz zgodne materiały Salvage, do których postać ma wymagany poziom Kowalstwa i Tier Młota.",
+    "Cały hurtowy przetop ma jeden czas akcji i jeden wspólny grant XP Kowalstwa oraz Młota zamiast osobnego XP za każdą sztukę.",
+    "Normalne kowalskie EQ nie może być już tworzone bezpośrednio z rudy: metal najpierw przetapia się na sztabki, a receptury EQ zużywają odpowiednie sztabki.",
+    "Poprawiono starsze talizmany Kowalstwa 100-200 oraz linię progresji 220-400, które wcześniej omijały sztabki.",
+]
+
+
+# v0.35.8 - GLOBAL NO-PVP PLAYER SAFETY
+def no_pvp_player_safety_audit_v0358():
+    errors=[]
+    metrics={}
+    try:
+        import inspect
+        helper_source=inspect.getsource(SessionSkillsCombatMixin.reject_player_attack)
+        target_source=inspect.getsource(SessionSkillsCombatMixin.protected_player_target)
+        attack_source=inspect.getsource(SessionSkillsCombatMixin.attack)
+        skill_target_source=inspect.getsource(SessionSkillsCombatMixin.skill_combat_target)
+        skill_source=inspect.getsource(SessionSkillsCombatMixin.use_class_skill)
+        metrics["explicit_player_guard"] = "PvP jest wyłączone" in helper_source
+        metrics["same_room_player_lookup"] = "self.server.sessions" in target_source and "room_id" in target_source
+        metrics["attack_guard_before_activity"] = attack_source.find("reject_player_attack") < attack_source.find("stop_auto_fishing")
+        metrics["skill_target_guard"] = "reject_player_attack" in skill_target_source
+        metrics["aoe_mobs_only"] = "self.server.world.room_mobs(self.character.room_id)" in skill_source
+        metrics["no_player_damage_assignment"] = (
+            "session.current_hp -=" not in skill_source
+            and "target_session.current_hp -=" not in skill_source
+        )
+        for key,value in metrics.items():
+            if not value:
+                errors.append(f"no-PvP audit failed: {key}")
+    except Exception as exc:
+        errors.append(f"no-PvP audit exception: {type(exc).__name__}: {exc}")
+    return {"version":"0.35.8","error_count":len(errors),"errors":errors,"metrics":metrics}
+
+NO_PVP_PLAYER_SAFETY_AUDIT_V0358 = no_pvp_player_safety_audit_v0358()
+if NO_PVP_PLAYER_SAFETY_AUDIT_V0358["error_count"]:
+    raise RuntimeError(
+        "No-PvP Player Safety Audit v0.35.8 failed: "
+        + "; ".join(NO_PVP_PLAYER_SAFETY_AUDIT_V0358["errors"][:20])
+    )
+
+HELP_TOPICS.setdefault("walka", []).extend([
+    "v0.35.8: PvP jest całkowicie wyłączone. Gracze nie mogą atakować, ranić ani zabijać innych graczy ani własnej postaci.",
+    "atakuj/k oraz ofensywne skille odrzucają nazwę gracza jako cel. AoE obejmuje wyłącznie żywe moby w lokacji.",
+])
+HELP_TOPICS.setdefault("wersja", []).append(
+    "v0.35.8: globalna blokada PvP chroni wszystkich graczy przed atakami, ofensywnymi skillami i friendly fire."
+)
+LATEST_CHANGES_TITLE = "Soulbound v0.35.8 - PvP Protection + Player Safety"
+LATEST_CHANGES = [
+    "v0.35.8: PvP jest globalnie wyłączone — gracze nie mogą atakować, ranić ani zabijać innych graczy ani własnej postaci.",
+    "atakuj <gracz> / k <gracz> zatrzymuje się natychmiast i informuje, że PvP jest wyłączone; nie przerywa przy tym profesji automatycznych.",
+    "Ofensywne skille nie mogą wybrać gracza jako celu, a AoE nadal działa wyłącznie na moby w bieżącej lokacji.",
+    "Dodano stały audit no-PvP, aby przyszłe zmiany systemu walki nie przywróciły przypadkowego friendly fire.",
+]
+
+# v0.35.9 - ALL LOCAL PARTY MOB DROPS SHARED
+def all_party_mob_drops_shared_audit_v0359():
+    errors=[]
+    metrics={}
+    try:
+        import inspect
+        helper_source=inspect.getsource(party_drop_recipients_v0359)
+        combat_source=inspect.getsource(SessionSkillsCombatMixin.mob_defeated)
+        metrics["helper_returns_all"] = "return list(recipients or [])" in helper_source
+        metrics["single_roll"] = "for item_id, chance in template[\"drops\"].items()" in combat_source and "if random.random() <= chance" in combat_source
+        metrics["all_drop_types_use_helper"] = "drop_recipients = party_drop_recipients_v0359(item_id, recipients)" in combat_source
+        metrics["no_random_winner"] = "random.choice(recipients)" not in helper_source and "winner = drop_recipients[0]" not in combat_source
+        metrics["shared_message"] = "każdy obecny członek otrzymuje" in combat_source
+        metrics["same_room_reward_set"] = "party_sessions(\n                self.account_id, same_room=self.character.room_id\n            )" in combat_source
+        for key,value in metrics.items():
+            if not value:
+                errors.append(f"all-party drop audit failed: {key}")
+    except Exception as exc:
+        errors.append(f"all-party drop audit exception: {type(exc).__name__}: {exc}")
+    return {"version":"0.35.9","error_count":len(errors),"errors":errors,"metrics":metrics}
+
+ALL_PARTY_MOB_DROPS_SHARED_AUDIT_V0359 = all_party_mob_drops_shared_audit_v0359()
+if ALL_PARTY_MOB_DROPS_SHARED_AUDIT_V0359["error_count"]:
+    raise RuntimeError(
+        "All Party Mob Drops Shared Audit v0.35.9 failed: "
+        + "; ".join(ALL_PARTY_MOB_DROPS_SHARED_AUDIT_V0359["errors"][:20])
+    )
+
+HELP_TOPICS.setdefault("party", []).extend([
+    "v0.35.9: każdy zwykły drop z pokonanego moba jest kopiowany do wszystkich członków drużyny obecnych razem przy zabiciu.",
+    "Szansa dropu jest losowana raz na moba. Jeśli przedmiot wypadnie, każdy obecny członek dostaje własną kopię — dotyczy eliksirów, mikstur, materiałów, run, klejnotów, komponentów i Odłamków Duszy.",
+    "Członkowie drużyny w innych lokacjach nie otrzymują dropu z tego zabicia.",
+])
+HELP_TOPICS.setdefault("druzyna", []).extend([
+    "v0.35.9: każdy zwykły drop z pokonanego moba jest kopiowany do wszystkich członków drużyny obecnych razem przy zabiciu.",
+    "Szansa dropu jest losowana raz na moba. Jeśli przedmiot wypadnie, każdy obecny członek dostaje własną kopię — dotyczy eliksirów, mikstur, materiałów, run, klejnotów, komponentów i Odłamków Duszy.",
+    "Członkowie drużyny w innych lokacjach nie otrzymują dropu z tego zabicia.",
+])
+HELP_TOPICS.setdefault("wersja", []).append(
+    "v0.35.9: wszystkie zwykłe dropy z mobów są współdzielone przez członków drużyny obecnych razem przy zabiciu."
+)
+LATEST_CHANGES_TITLE = "Soulbound v0.35.9 - All Local Party Mob Drops Shared"
+LATEST_CHANGES = [
+    "v0.35.9: każdy udany zwykły drop z moba trafia do każdego członka drużyny obecnego w tej samej lokacji przy zabiciu.",
+    "Szansa dropu jest wykonywana tylko raz; wynik jest wspólny, a każda uprawniona postać dostaje własną kopię przedmiotu.",
+    "Wspólna zasada obejmuje Eliksiry Duszy, mikstury, Odłamki Duszy, materiały, runy, klejnoty i komponenty technologiczne z tabeli drops.",
+    "Gracze poza lokacją zabicia nie dostają dropu; liczniki questów nie są mnożone przez kopiowanie przedmiotów.",
+]
+
+
+# v0.35.10 - ALL LOCAL PARTY CORPSE LOOT SHARED
+def all_party_corpse_loot_shared_audit_v03510():
+    errors=[]
+    metrics={}
+    try:
+        import inspect
+        recipient_source=inspect.getsource(SessionWorldProgressionMixin._corpse_party_recipients_v03510)
+        record_source=inspect.getsource(SessionWorldProgressionMixin._record_corpse_loot)
+        all_source=inspect.getsource(SessionWorldProgressionMixin.loot_corpse)
+        one_source=inspect.getsource(SessionWorldProgressionMixin.get_from_corpse)
+        metrics["same_room_party"] = "party_sessions(\n                self.account_id, same_room=corpse.room_id\n            )" in recipient_source
+        metrics["award_every_recipient"] = "for recipient in recipients" in record_source and "recipient.server.db.add_item(recipient.account_id, item_id, 1)" in record_source
+        metrics["quest_collection_per_recipient"] = "await recipient.record_item_collection(" in record_source
+        metrics["whole_corpse_cleared_before_award"] = "corpse.items.clear()" in all_source and "recipients = await self._record_corpse_loot(corpse, looted)" in all_source
+        metrics["single_item_removed_before_award"] = one_source.find("corpse.items.remove(item_id)") < one_source.find("recipients = await self._record_corpse_loot(corpse, [item_id])")
+        metrics["no_remote_party"] = "session.character.room_id == corpse.room_id" in recipient_source
+        metrics["shared_nvda_message"] = "Loot z ciała drużyny" in all_source and "Loot z ciała drużyny" in one_source
+        for key,value in metrics.items():
+            if not value:
+                errors.append(f"party corpse loot audit failed: {key}")
+    except Exception as exc:
+        errors.append(f"party corpse loot audit exception: {type(exc).__name__}: {exc}")
+    return {"version":"0.35.10","error_count":len(errors),"errors":errors,"metrics":metrics}
+
+ALL_PARTY_CORPSE_LOOT_SHARED_AUDIT_V03510 = all_party_corpse_loot_shared_audit_v03510()
+if ALL_PARTY_CORPSE_LOOT_SHARED_AUDIT_V03510["error_count"]:
+    raise RuntimeError(
+        "All Party Corpse Loot Shared Audit v0.35.10 failed: "
+        + "; ".join(ALL_PARTY_CORPSE_LOOT_SHARED_AUDIT_V03510["errors"][:20])
+    )
+
+HELP_TOPICS.setdefault("party", []).extend([
+    "v0.35.10: loot leżący na ciele moba także jest współdzielony — gdy ktoś z drużyny przeszuka ciało lub zabierze z niego przedmiot, każdy członek drużyny stojący przy tym samym ciele w tej lokacji dostaje własną kopię.",
+    "Ciało jest opróżniane tylko raz, więc współdzielonego EQ, materiału ani przedmiotu nie da się rozdawać ponownie przez wielokrotne przeszukiwanie.",
+    "Członkowie drużyny poza lokacją ciała nie dostają jego lootu.",
+])
+HELP_TOPICS.setdefault("druzyna", []).extend(HELP_TOPICS.get("party", [])[-3:])
+HELP_TOPICS.setdefault("zwloki", []).extend([
+    "v0.35.10: przeszukanie ciała lub zabranie pojedynczego przedmiotu daje własną kopię każdemu członkowi drużyny stojącemu razem w lokacji ciała.",
+    "Przedmiot znika z ciała przed rozdaniem kopii, więc jedno ciało nie może wypłacić tego samego lootu drugi raz.",
+])
+HELP_TOPICS.setdefault("wersja", []).append(
+    "v0.35.10: cały loot z ciał mobów jest współdzielony z lokalnymi członkami drużyny, tak jak zwykłe dropy z zabicia."
+)
+LATEST_CHANGES_TITLE = "Soulbound v0.35.10 - All Local Party Corpse Loot Shared"
+LATEST_CHANGES = [
+    "v0.35.10: EQ, materiały, klucze i inne przedmioty leżące na ciele moba są kopiowane do każdego członka drużyny obecnego w tej samej lokacji podczas przeszukania.",
+    "Zasada działa zarówno dla przeszukaj/loot/get all, jak i dla zabrania pojedynczego przedmiotu get/wez z ciała.",
+    "Przedmiot jest usuwany z ciała przed rozdaniem kopii, więc wielokrotne przeszukanie nie może zduplikować tego samego lootu.",
+    "Materiały rzemieślnicze nadal trafiają do Szkatułki Rzemieślniczej, a każdy rzeczywisty odbiorca dostaje własny postęp kolekcji i aktywnego questa zbierackiego.",
+    "Gracze poza lokacją ciała nie otrzymują lootu.",
+]
+
+
+# v0.35.11 - ALL LOCAL PARTY COMBAT BUFFS
+
+def all_local_party_buffs_audit_v03511():
+    errors=[]
+    metrics={}
+    try:
+        import inspect
+        combat_source=inspect.getsource(SessionSkillsCombatMixin.use_class_skill)
+        helper_source=inspect.getsource(SessionSkillsCombatMixin.local_party_buff_recipients_v03511)
+        boost_source=inspect.getsource(SessionSkillsCombatMixin.apply_party_boost_v03511)
+        vmax_support_source=inspect.getsource(SessionSkillsCombatMixin.party_vmax_support_active_v03511)
+        metrics["same_room_party_helper"] = "party_sessions" in helper_source and "same_room=self.character.room_id" in helper_source
+        metrics["living_local_only"] = "session.current_hp > 0" in helper_source and "session.character.room_id == self.character.room_id" in helper_source
+        metrics["generic_boost_shared"] = "apply_party_boost_v03511" in combat_source and "session.active_skill_buffs" in boost_source
+        metrics["guard_shared"] = "for session in recipients:\n                    session.skill_guard" in combat_source
+        metrics["evade_shared"] = "for session in recipients:\n                    session.skill_evade = True" in combat_source
+        metrics["vmax_shared"] = '"V-MAX", 1.30' in combat_source and "v03511_party_vmax_until" in combat_source
+        metrics["vmax_defense_party_support"] = "mec_vmax_active_v0319" in vmax_support_source and "v03511_party_vmax_until" in vmax_support_source
+        engineer_upgrade = next((x for x in CLASS_SKILLS.get("Inżynier",[]) if x.get("id")=="v0317_engineer_upgrade"), None)
+        metrics["engineer_upgrade_not_fake_buff"] = bool(engineer_upgrade and engineer_upgrade.get("kind")=="utility")
+        boost_skills=[(cls,sk.get("id")) for cls,rows in CLASS_SKILLS.items() for sk in rows if sk.get("kind")=="boost"]
+        metrics["boost_skill_count"] = len(boost_skills)
+        if not boost_skills:
+            errors.append("brak skilli boost do weryfikacji")
+        for key,value in metrics.items():
+            if key=="boost_skill_count":
+                continue
+            if not value:
+                errors.append(f"party buff audit failed: {key}")
+    except Exception as exc:
+        errors.append(f"party buff audit exception: {type(exc).__name__}: {exc}")
+    return {"version":"0.35.11","error_count":len(errors),"errors":errors,"metrics":metrics}
+
+ALL_LOCAL_PARTY_BUFFS_AUDIT_V03511 = all_local_party_buffs_audit_v03511()
+if ALL_LOCAL_PARTY_BUFFS_AUDIT_V03511["error_count"]:
+    raise RuntimeError(
+        "All Local Party Buffs Audit v0.35.11 failed: "
+        + "; ".join(ALL_LOCAL_PARTY_BUFFS_AUDIT_V03511["errors"][:30])
+    )
+
+HELP_TOPICS.setdefault("party", []).extend([
+    "v0.35.11: wszystkie bojowe buffy klasowe działają na wszystkich żywych członków drużyny stojących w tej samej lokacji co rzucający.",
+    "Boosty, guardy i gwarantowane uniki są nakładane osobno na każdego obecnego członka drużyny. Osoby w innych lokacjach nie dostają efektu.",
+    "V-MAX daje lokalnej drużynie +30 procent do skilli/spelli oraz Protect, Shell i Regen. Specjalne zmiany konkretnych skilli Meca pozostają mechaniką Meca uruchamiającego V-MAX.",
+])
+HELP_TOPICS.setdefault("druzyna", []).extend(HELP_TOPICS.get("party", [])[-3:])
+HELP_TOPICS.setdefault("walka", []).extend([
+    "v0.35.11: guard i evade są efektami drużynowymi w bieżącej lokacji, tak samo jak zwykłe boosty.",
+    "Inżynierski Upgrade jest trwałym narzędziem użytkowym, nie buffem bojowym; dlatego nie jest kopiowany na drużynę jako status czasowy.",
+])
+HELP_TOPICS.setdefault("wersja", []).append(
+    "v0.35.11: wszystkie prawdziwe buffy bojowe są lokalnie drużynowe; obejmuje to boost, guard, evade oraz drużynową warstwę V-MAX."
+)
+LATEST_CHANGES_TITLE = "Soulbound v0.35.11 - All Local Party Combat Buffs"
+LATEST_CHANGES = [
+    "v0.35.11: każdy prawdziwy boost bojowy trafia do wszystkich żywych członków drużyny stojących razem w tej samej lokacji.",
+    "Guard daje każdemu obecnemu członkowi własną ochronę następnego trafienia, a evade daje każdemu własny gwarantowany unik następnego ataku.",
+    "V-MAX Meca daje lokalnej drużynie +30 procent do skilli/spelli oraz Protect/Shell/Regen; Mec uruchamiający V-MAX zachowuje dodatkowo swoje specjalne transformacje skilli.",
+    "Upgrade Inżyniera został poprawnie sklasyfikowany jako utility, ponieważ jest trwałym ulepszeniem narzędzia, a nie czasowym buffem bojowym.",
+    "Dodano stały audit wszystkich lokalnych buffów drużynowych.",
+]
+
+# ============================================================
+# v0.36.0 - GLOBAL PROGRESSION 600 + LEADER DISBAND
+# ============================================================
+def progression_600_and_leader_disband_audit_v0360():
+    errors=[]
+    metrics={}
+    def check(name, condition, detail=None):
+        metrics[name]=bool(condition)
+        if not condition:
+            errors.append(f"{name}: {detail or 'FAIL'}")
+
+    caps={
+        "generator": int(getattr(generator_core_v027,"MAX_LEVEL",0) or 0),
+        "character": int(CHARACTER_MAX_LEVEL),
+        "class_mastery": int(CLASS_MASTERY_MAX_LEVEL),
+        "skill": int(SKILL_MAX_LEVEL),
+        "soul": int(SOUL_MAX_LEVEL),
+        "soul_weapon_mastery": int(SOUL_WEAPON_MASTERY_MAX_LEVEL),
+        "profession": int(PROFESSION_MAX_LEVEL),
+        "tool": int(TOOL_MAX_LEVEL),
+        "guild": int(V0926_GUILD_MAX_LEVEL),
+    }
+    metrics["caps"]=caps
+    check("all_main_caps_600", all(v==600 for v in caps.values()), caps)
+    check("soul_tiers_60", int(SOUL_MAX_TIER)==60 and len(SOUL_TIER_THRESHOLDS)==60 and int(SOUL_TIER_THRESHOLDS[-1])==600)
+    check("tool_tiers_60", int(TOOL_MAX_TIER)==60 and len(TOOL_TIER_THRESHOLDS)==60 and int(TOOL_TIER_THRESHOLDS[-1])==600)
+    check("profession_rank_cap_600", int(PROFESSION_RANK_THRESHOLDS[-1])==600)
+    check("profession_count_12", len(PROFESSION_RANK_NAMES)>=12, len(PROFESSION_RANK_NAMES))
+    check("all_tool_name_tables_60", all(len(tuple(v))>=60 for v in TOOL_TIER_NAMES.values()), {k:len(tuple(v)) for k,v in TOOL_TIER_NAMES.items()})
+
+    grid=(1,*range(10,601,10))
+    skill_errors=[]
+    for class_name,rows in CLASS_SKILLS.items():
+        unlocks=[int(row.get("unlock",0) or 0) for row in rows]
+        counts={level:unlocks.count(level) for level in grid}
+        if len(rows)!=183 or min(unlocks or [0])!=1 or max(unlocks or [0])!=600:
+            skill_errors.append(f"{class_name}:{len(rows)}:{min(unlocks or [0])}-{max(unlocks or [0])}")
+        if class_name not in ("Mec","Inżynier") and any(counts[level]!=3 for level in grid):
+            skill_errors.append(f"{class_name}:grid")
+    check("skill_grid_183_per_class", not skill_errors, skill_errors[:10])
+    metrics["classes"]=len(CLASS_SKILLS)
+    metrics["skills_total"]=sum(len(v) for v in CLASS_SKILLS.values())
+
+    check("class_equipment_to_600", int(CLASS_EQUIPMENT_MASTERY_LEVELS[-1])==600)
+
+    # v0.36.0: każdy kolejny Tier klasowego EQ ma realnie inny, rosnący
+    # budżet podstawowych statów. Chroni szczególnie niskie progi
+    # 1/10/20/30, które wcześniej mogły powtarzać te same wartości.
+    eq_stat_progression_errors=[]
+    for class_name, per_tier in CLASS_EQUIPMENT_ITEMS_BY_CLASS_TIER.items():
+        previous={}
+        for required_level in CLASS_EQUIPMENT_MASTERY_LEVELS:
+            for item_id in per_tier.get(required_level, ()):
+                item=ITEMS.get(item_id,{})
+                key=(int(item.get("class_equipment_style",1) or 1), str(item.get("slot") or ""))
+                budget=int(item.get("affix_amount",0) or 0) + sum(
+                    int(v or 0) for v in (item.get("stats") or {}).values()
+                )
+                if key in previous and budget <= previous[key][1]:
+                    eq_stat_progression_errors.append(
+                        f"{class_name}:{key[0]}:{key[1]}:{previous[key][0]}={previous[key][1]} -> {required_level}={budget}"
+                    )
+                previous[key]=(int(required_level),budget)
+    check("class_equipment_stats_rise_every_tier", not eq_stat_progression_errors, eq_stat_progression_errors[:20])
+
+    low_tier_budgets={}
+    for class_name, per_tier in CLASS_EQUIPMENT_ITEMS_BY_CLASS_TIER.items():
+        row=[]
+        for required_level in (1,10,20,30):
+            ids=tuple(per_tier.get(required_level,()))
+            if not ids:
+                row.append(None); continue
+            item=ITEMS[ids[0]]
+            row.append(int(item.get("affix_amount",0) or 0) + sum(int(v or 0) for v in (item.get("stats") or {}).values()))
+        low_tier_budgets[class_name]=row
+    check("class_equipment_low_tiers_1_10_20_30_distinct",
+          all(None not in row and row==sorted(set(row)) and len(row)==4 for row in low_tier_budgets.values()),
+          low_tier_budgets)
+
+    check("endgame_resources_to_600",
+          any(int(level)==600 for level,_ in ENDGAME_ORE_UNLOCKS)
+          and any(int(level)==600 for level,_ in ENDGAME_WOOD_UNLOCKS)
+          and any(int(level)==600 for level,_ in ENDGAME_HERB_UNLOCKS))
+    check("soul_trials_41_60", all(tier in SOUL_TRIAL_QUEST_IDS for tier in range(41,61)))
+    check("guild_bonus_legacy_preserved",
+          v0926_guild_bonus_percent(100)==11 and v0926_guild_bonus_percent(200)==15
+          and v0926_guild_bonus_percent(300)==19 and v0926_guild_bonus_percent(400)==23
+          and v0926_guild_bonus_percent(600)==29,
+          [v0926_guild_bonus_percent(x) for x in (100,200,300,400,600)])
+    check("guild_cost_monotonic_extension",
+          v0926_guild_upgrade_cost(399)>0 and v0926_guild_upgrade_cost(400)>=v0926_guild_upgrade_cost(399)
+          and v0926_guild_upgrade_cost(500)>=v0926_guild_upgrade_cost(400))
+
+    try:
+        import inspect
+        src=inspect.getsource(SessionMovementPartySocialMixin.leave_party)
+        check("leader_leave_disbands", "self.server.parties.pop(key, None)" in src and "Drużyna została rozwiązana" in src)
+        check("leader_leave_no_transfer", "new_leader" not in src and "min(members)" not in src and "next(iter(members" not in src)
+    except Exception as exc:
+        errors.append(f"leader source audit: {type(exc).__name__}: {exc}")
+
+    return {"version":"0.36.0","error_count":len(errors),"errors":errors,"metrics":metrics}
+
+PROGRESSION_600_AND_LEADER_DISBAND_AUDIT_V0360=progression_600_and_leader_disband_audit_v0360()
+if PROGRESSION_600_AND_LEADER_DISBAND_AUDIT_V0360["error_count"]:
+    raise RuntimeError(
+        "Progression 600 + Leader Disband Audit v0.36.0 failed: "
+        + "; ".join(PROGRESSION_600_AND_LEADER_DISBAND_AUDIT_V0360["errors"][:50])
+    )
+
+# Final truth layer: old HELP aliases remain accepted, but describe current 600 progression.
+HELP_TOPICS["progresja600"] = [
+    "Główne osie progresji mają zakres 1-600: Level postaci, Biegłość klas, Soul Level, Soul Weapon Mastery, Skill Level, profesje i narzędzia. Sześć statystyk bazowych pozostaje bez twardego limitu.",
+    "Każda z 14 klas ma 183 skille/spelle i dochodzi do Biegłości 600. Dwanaście standardowych klas ma dokładnie 3 skille na progach 1, 10, 20 i dalej co 10; Mec i Inżynier zachowują swoje autorskie wczesne progi.",
+    "Broń Duszy rozwija się do Soul Level 600 i Soul Tier 60. Tiery 41-60 kontynuują próby co 10 poziomów od 410 do 600.",
+    "Wszystkie 12 profesji i 12 narzędzi rozwijają się do 600. Narzędzia mają 60 Tierów i nie mają trwałości.",
+    "Klasowe EQ ma progi 1, 10, 20, 30 i dalej co 10 aż do 600. Każdy kolejny próg ma wyższy rzeczywisty budżet podstawowych statów, więc niskie Tiery nie powtarzają tych samych wartości. Surowce i receptury mają dalszą zawartość 401-600.",
+    "Wzniesienie klas i dostęp do World Tier 2+ zaczynają się po osiągnięciu Biegłości 600, bez resetowania wcześniejszej progresji.",
+    "Auto kolejka skilli zaczyna z 10 slotami i rośnie o 1 co 10 Leveli postaci, do 70 slotów na Levelu 600.",
+]
+HELP_TOPICS["progresja400"] = list(HELP_TOPICS["progresja600"])
+HELP_TOPIC_ALIASES.update({
+    "600":"progresja600", "progresja 600":"progresja600", "progression600":"progresja600",
+    "400":"progresja600", "progresja 400":"progresja600", "progression400":"progresja600",
+})
+HELP_TOPICS["podstawy"] = [
+    "Soulbound v0.36.0 używa Generator Core jako źródła aktywnego balansu liczbowego.",
+    "Level postaci, Biegłość, Soul Level, Soul Weapon Mastery, Skill Level, profesje i narzędzia mają zakres 1-600; sześć statystyk bazowych rozwija się bez twardego limitu.",
+    "Najważniejsze komendy: help, look/l/sp, exits/ex, hp, level/lvl, xp, score, staty, dusza, eq, quest, walk/prowadz oraz / do Świątyni.",
+    "Wpisz help progresja600 po pełny opis obecnego zakresu progresji.",
+]
+HELP_TOPICS["profesje"] = [
+    "Soulbound ma 12 profesji 1-600: Wędkarstwo, Górnictwo, Drwalstwo, Zielarstwo, Gotowanie, Alchemia, Kowalstwo, Jubilerstwo, Krawiectwo, Garbarstwo, Stolarstwo i Zaklinanie.",
+    "Każda profesja ma własny poziom do 600, a odpowiadające narzędzie ma niezależny poziom do 600 i 60 Tierów.",
+    "Zakres 401-600 ma dalsze rangi, materiały i receptury; stare progi i zawartość 1-400 pozostają kompatybilne.",
+    "Narzędzia nie mają trwałości ani zużycia.",
+]
+HELP_TOPICS["narzedzia200"] = [
+    "Wszystkie 12 narzędzi profesji mają level 1-600 i 60 Tierów.",
+    "Historyczne Tiery 1-40 do poziomu 400 pozostają w tych samych miejscach; Tiery 41-60 zaczynają się od 410 i kończą na 600.",
+    "Narzędzia nie mają trwałości i nie wymagają naprawy.",
+]
+HELP_TOPICS["dusza"] = [
+    "Broń Duszy ma Soul Level 1-600, Soul Weapon Mastery 1-600 i 60 Soul Tierów.",
+    "Soul XP zatrzymuje się na progu następnego nieodblokowanego Tieru; dalszy rozwój wymaga odpowiedniej Próby Broni Duszy.",
+    "Historyczne Tiery 1-40 pozostają zgodne ze starą progresją, a Tiery 41-60 prowadzą od Soul 410 do 600.",
+    "Skille klasowe odblokuje Biegłość właściwej klasy, nie Soul Level.",
+]
+HELP_TOPICS["soul200"] = list(HELP_TOPICS["dusza"])
+HELP_TOPICS["umiejetnosci"] = [
+    "Każda z 14 klas ma 183 skille/spelle i progresję do Biegłości 600. Standardowe klasy mają po 3 na progach 1/10/20...600; Mec i Inżynier zachowują autorskie wczesne progi swoich zestawów technologicznych.",
+    "Każdy nauczony skill/spell ma własny Skill Level 1-600 i własny XP.",
+    "Odblokowanie zależy od Biegłości klasy; Skill Level rozwija konkretną poznaną umiejętność przez jej używanie.",
+]
+HELP_TOPICS["ekwipunek"] = [
+    "Klasowe EQ ma progi 1, 10, 20, 30 i dalej co 10 aż do 600; każdy kolejny próg ma większy rzeczywisty budżet podstawowych statów, więc kolejne Tiery nie powtarzają tych samych wartości.",
+    "Zwykłe i mityczne lochy oraz crafting zachowują starsze przedmioty, a progresja 401-600 dodaje dalsze EQ bez kasowania starego ekwipunku.",
+    "Kowalskie metalowe EQ powstaje ze sztabek: ruda -> przetopienie -> sztabka -> kucie EQ.",
+]
+HELP_TOPICS["gildia"] = list(HELP_TOPICS.get("gildia", [])) + [
+    "v0.36.0: poziom Gildii rozwija się do 600. Bonusy i koszty poziomów 1-400 zachowują balans v0.35.11, a 401-600 jest dalszą progresją.",
+]
+HELP_TOPICS["party"] = list(HELP_TOPICS.get("party", [])) + [
+    "v0.36.0: gdy lider opuszcza drużynę, drużyna natychmiast się rozwiązuje; przywództwo nie jest przekazywane innej osobie.",
+]
+HELP_TOPICS["druzyna"] = list(HELP_TOPICS.get("druzyna", [])) + [
+    "v0.36.0: wyjście lidera zawsze rozwiązuje całą drużynę zamiast wybierać nowego lidera.",
+]
+HELP_TOPICS.setdefault("wersja", []).append(
+    "v0.36.0: Global Progression 600 + Leader Disband — wszystkie główne osie dawnej progresji 1-400 rozwijają się do 600, a wyjście lidera rozwiązuje drużynę."
+)
+
+LATEST_CHANGES_TITLE = "Soulbound v0.36.0 - Global Progression 600 + Leader Disband"
+LATEST_CHANGES = [
+    "Wyjście lidera drużyny natychmiast rozwiązuje całą drużynę; nie ma automatycznego przekazania lidera.",
+    "Level postaci, Biegłość klas, Skill Level, Soul Level, Soul Weapon Mastery, profesje, narzędzia i poziom Gildii mają cap 600.",
+    "Każda z 14 klas ma 183 skille/spelle do Biegłości 600; Mec i Inżynier zachowują autorskie wczesne progi.",
+    "Soul ma 60 Tierów; narzędzia mają 60 Tierów; profesje i crafting otrzymały zawartość 401-600.",
+    "Klasowe EQ i receptury rozwijają się do 600; każdy Tier EQ 1/10/20/30/... ma realnie wyższy budżet statów. Wzniesienie i World Tier 2+ zaczynają się po Biegłości 600.",
+    "Stare save'y nie wymagają wipe. Historyczna progresja 1-400 pozostaje kompatybilna.",
+]
+
+# ============================================================
+# v0.36.1 - PARTY QUEST ACCEPT SYNC
+# ============================================================
+def party_quest_accept_sync_audit_v0361():
+    errors=[]
+    metrics={}
+    def check(name, condition, detail=None):
+        metrics[name]=bool(condition)
+        if not condition:
+            errors.append(f"{name}: {detail or 'FAIL'}")
+    try:
+        import inspect
+        src=inspect.getsource(SessionQuestsMixin.accept_quest_id)
+        check("party_accept_internal_guard", "_party_shared" in src and "if not _party_shared" in src)
+        check("leader_only_party_accept", "party_key" in src and "int(party_key) == int(self.account_id)" in src)
+        check("same_room_party_accept", "same_room=self.character.room_id" in src)
+        check("living_local_members_only", 'getattr(session, "current_hp"' in src and '> 0' in src)
+        check("per_member_accept_call", "await member.accept_quest_id" in src and "_party_shared=True" in src)
+        check("individual_requirements_preserved", "self.quest_lock_reasons(quest_id)" in src)
+        check("individual_accept_items_preserved", 'quest.get("accept_items")' in src)
+        check("party_summary_present", "Quest przyjęła razem z tobą drużyna" in src)
+    except Exception as exc:
+        errors.append(f"party quest source audit: {type(exc).__name__}: {exc}")
+    return {"version":"0.36.1","error_count":len(errors),"errors":errors,"metrics":metrics}
+
+PARTY_QUEST_ACCEPT_SYNC_AUDIT_V0361=party_quest_accept_sync_audit_v0361()
+if PARTY_QUEST_ACCEPT_SYNC_AUDIT_V0361["error_count"]:
+    raise RuntimeError(
+        "Party Quest Accept Sync Audit v0.36.1 failed: "
+        + "; ".join(PARTY_QUEST_ACCEPT_SYNC_AUDIT_V0361["errors"][:50])
+    )
+
+HELP_TOPICS.setdefault("questy", []).append(
+    "v0.36.1: gdy lider przyjmuje zwykły quest, wszyscy żywi członkowie drużyny stojący z nim w tej samej lokacji automatycznie próbują przyjąć ten sam quest. Każdy zaczyna własny postęp od 0/x i musi spełniać własne wymagania."
+)
+HELP_TOPICS.setdefault("party", []).append(
+    "v0.36.1: lider przyjmujący quest automatycznie dzieli jego przyjęcie z żywymi członkami drużyny stojącymi w tej samej lokacji. Członkowie poza pokojem nie dostają questa."
+)
+HELP_TOPICS.setdefault("druzyna", []).append(
+    "v0.36.1: quest przyjęty przez lidera jest automatycznie przyjmowany osobno przez uprawnionych żywych członków drużyny obecnych przy liderze."
+)
+HELP_TOPICS.setdefault("wersja", []).append(
+    "v0.36.1: Party Quest Accept Sync — lider przyjmuje zwykłe questy razem z lokalną drużyną, z osobnym postępem 0/x dla każdego gracza."
+)
+LATEST_CHANGES_TITLE = "Soulbound v0.36.1 - Party Quest Accept Sync"
+LATEST_CHANGES = [
+    "Lider przyjmujący zwykły quest automatycznie próbuje przyjąć go także dla wszystkich żywych członków drużyny stojących w tej samej lokacji.",
+    "Każdy członek dostaje własny wpis 0/x, własne przedmioty questowe, własny postęp i własną nagrodę.",
+    "Każdy gracz nadal musi spełniać własne wymagania questa; aktywne/ukończone zadanie, cooldown, brak wymagań albo walka powodują pominięcie tylko tej osoby.",
+    "Członkowie poza pokojem i martwi członkowie nie dostają questa automatycznie; przyjęcie przez zwykłego członka drużyny pozostaje osobiste.",
+    "Dodano stały audit v0.36.1 zapobiegający rekurencyjnemu rozsyłaniu questów.",
+]
+
+# ============================================================
+# v0.36.2 - OPEN-WORLD TERRAIN THREAT REBALANCE
+# ============================================================
+def terrain_threat_rebalance_audit_v0362():
+    errors=[]
+    metrics={}
+    def check(name, condition, detail=None):
+        metrics[name]=bool(condition)
+        if not condition:
+            errors.append(f"{name}: {detail or 'FAIL'}")
+    try:
+        import inspect
+        # Every currently materialized authored recommendation must be honored
+        # by the numeric room stage used by combat generation.
+        bad=[]
+        checked=0
+        for rid, room in ROOMS.items():
+            try:
+                rec=int(room.get("recommended_mastery",0) or 0)
+                stage=int(room.get("generator_level",0) or 0)
+            except Exception:
+                continue
+            if rec>0:
+                checked+=1
+                if stage < rec:
+                    bad.append((rid,rec,stage))
+        metrics["recommended_rooms_checked"]=checked
+        check("recommended_mastery_is_balance_floor", not bad, str(bad[:10]))
+
+        gsrc=inspect.getsource(generator_core_v027.runtime_room_level)
+        check("runtime_room_recommended_floor", "_v0362_recommended_room_floor" in gsrc and "_v0362" in generator_core_v027.runtime_room_level.__name__)
+
+        wsrc=inspect.getsource(World._terrain_scaled_template_v0362)
+        check("room_stage_runtime_clone", "stage > base_stage" in wsrc and "runtime_mob_balance" in wsrc)
+        check("terrain_hp_growth", "1.0 + runtime_stage / 100.0" in wsrc and "min(4.0" in wsrc)
+        check("terrain_damage_growth", "runtime_stage / 1000.0" in wsrc and "min(0.50" in wsrc)
+        check("bosses_not_extra_terrain_scaled", 'rank in ("normal", "elite", "rare")' in wsrc)
+
+        csrc=inspect.getsource(v0190_apply_combat_template)
+        check("terrain_multiplier_survives_runtime_refresh", "terrain_runtime_clone_v0362" in csrc and "terrain_hp_multiplier_v0362" in csrc)
+
+        # Concrete curve anchors used by the terrain layer.
+        def hp_mult(stage): return min(4.0, 1.0 + stage / 100.0)
+        def dmg_mult(stage): return 1.0 + min(0.50, stage / 1000.0)
+        check("terrain_100_hp_x2", abs(hp_mult(100)-2.0)<1e-9)
+        check("terrain_100_damage_x1_10", abs(dmg_mult(100)-1.10)<1e-9)
+        check("terrain_300_hp_cap_x4", abs(hp_mult(300)-4.0)<1e-9)
+    except Exception as exc:
+        errors.append(f"terrain threat source audit: {type(exc).__name__}: {exc}")
+    return {"version":"0.36.2","error_count":len(errors),"errors":errors,"metrics":metrics}
+
+TERRAIN_THREAT_REBALANCE_AUDIT_V0362=terrain_threat_rebalance_audit_v0362()
+if TERRAIN_THREAT_REBALANCE_AUDIT_V0362["error_count"]:
+    raise RuntimeError(
+        "Terrain Threat Rebalance Audit v0.36.2 failed: "
+        + "; ".join(TERRAIN_THREAT_REBALANCE_AUDIT_V0362["errors"][:50])
+    )
+
+HELP_TOPICS.setdefault("walka", []).append(
+    "v0.36.2: zwykłe moby terenowe od etapu 50+ są wyraźnie mocniejsze. Teren około 100 ma około 2x bazowego HP moba i +10 procent obrażeń; wzrost trwa dalej na późnych terenach. Bossowie zachowują własne reguły rang i nie dostają dodatkowego mnożnika terenowego."
+)
+HELP_TOPICS.setdefault("generator", []).append(
+    "v0.36.2: recommended_mastery jest dolną granicą NUMERYCZNEGO balansu pokoju. Nie blokuje wejścia, ale moby nie są już generowane jak dla znacznie słabszego terenu."
+)
+HELP_TOPICS.setdefault("wersja", []).append(
+    "v0.36.2: Terrain Threat Rebalance — naprawiono zaniżone etapy statycznych i proceduralnych terenów oraz skalowanie współdzielonych mobów do aktualnej lokacji."
+)
+LATEST_CHANGES_TITLE = "Soulbound v0.36.2 - Terrain Threat Rebalance"
+LATEST_CHANGES = [
+    "Naprawiono zaniżony poziom mobów na terenach: recommended_mastery jest teraz dolną granicą numerycznego etapu lokacji bez tworzenia blokady wejścia.",
+    "Współdzielony szablon moba jest na zwykłym terenie klonowany i balansowany pod aktualny etap pokoju zamiast pozostawać na poziomie najłatwiejszej strefy, w której występuje.",
+    "Zwykłe/Elite/Rare moby terenowe od etapu 50 dostają dodatkowy wzrost wytrzymałości: około x2 HP na 100, x3 na 200 i x4 od 300; obrażenia rosną łagodniej, np. +10 procent na 100 i +20 procent na 200.",
+    "Bossowie, World Bossowie i systemy lochowe zachowują własne reguły trudności; dodatkowy mnożnik terenowy nie jest na nie nakładany.",
+    "Naprawiono także pokoje tworzone dopiero przy wejściu: ich recommended_mastery jest używane przy generowaniu etapu i mobów.",
+    "Dodano stały audit v0.36.2 pilnujący balansu terenów i zachowania mnożników po runtime refreshu moba.",
+]
+
+# ============================================================
+# v0.36.3 - OFFLINE PLAYER PROFILES + PRESENCE
+# ============================================================
+def offline_player_profiles_audit_v0363():
+    errors=[]
+    metrics={}
+    def check(name, condition, detail=None):
+        metrics[name]=bool(condition)
+        if not condition:
+            errors.append(f"{name}: {detail or 'FAIL'}")
+    try:
+        import inspect
+        dbsrc=inspect.getsource(Database.migrate_schema)
+        check("presence_table", "player_presence_v0363" in dbsrc and "last_login_ts" in dbsrc and "last_logout_ts" in dbsrc and "last_seen_ts" in dbsrc)
+        check("profile_alias_pl", COMMAND_ALIASES.get("profil")=="whois")
+        check("profile_alias_en", COMMAND_ALIASES.get("profile")=="whois")
+        psrc=inspect.getsource(SessionSocialExpansionMixin.whois_v03051)
+        check("offline_lookup", "SELECT * FROM characters WHERE account_id=?" in psrc)
+        check("profile_character_level", "Level postaci" in psrc and "character_level" in psrc)
+        check("profile_all_classes", "FROM class_progress" in psrc)
+        check("profile_soul", "Soul Weapon Mastery" in psrc and "soul_tier" in psrc)
+        check("profile_stats", "Statystyki:" in psrc and "charisma" in psrc)
+        check("profile_professions_tools", "FROM professions" in psrc and "FROM tools" in psrc)
+        check("profile_endgame", "world_tier_settings_v021" in psrc and "ascension_progress_v021" in psrc)
+        check("profile_activity", "osiągnięcia" in psrc and "bestiary_stats" in psrc and "deaths" in psrc)
+        check("profile_presence", "last_seen_ts" in psrc and "ostatnio widziany" in psrc)
+        check("profile_eq_privacy", "inspect_enabled" in psrc and "inspectprivacy" in psrc)
+        check("profile_no_account_secrets", "password_hash" not in psrc and "password_salt" not in psrc and "username" not in psrc)
+        esrc=inspect.getsource(SessionIOAuthCharacterMixin.enter_world)
+        csrc=inspect.getsource(SessionCommandLoopMixin.close)
+        lsrc=inspect.getsource(SessionCommandLoopMixin.leave_current_character_for_selection)
+        check("login_presence_hook", "mark_player_login_v0363" in esrc)
+        check("logout_presence_close_hook", "mark_player_logout_v0363" in csrc)
+        check("logout_presence_switch_hook", "mark_player_logout_v0363" in lsrc)
+    except Exception as exc:
+        errors.append(f"offline profile audit: {type(exc).__name__}: {exc}")
+    return {"version":"0.36.3","error_count":len(errors),"errors":errors,"metrics":metrics}
+
+OFFLINE_PLAYER_PROFILES_AUDIT_V0363=offline_player_profiles_audit_v0363()
+if OFFLINE_PLAYER_PROFILES_AUDIT_V0363["error_count"]:
+    raise RuntimeError(
+        "Offline Player Profiles Audit v0.36.3 failed: "
+        + "; ".join(OFFLINE_PLAYER_PROFILES_AUDIT_V0363["errors"][:50])
+    )
+
+HELP_TOPICS["profil"] = [
+    "profil <nazwa gracza> działa dla postaci online i offline. Alias angielski: profile <nazwa>; starsze whois <nazwa> działa tak samo.",
+    "Profil pokazuje publiczną progresję postaci: status i ostatnią obecność, Level, wszystkie klasy/Biegłości, Broń Duszy, statystyki, profesje, narzędzia, Gildię, World Tier/Wzniesienie, osiągnięcia, questy, Bestiariusz, zgony, rekordy i postęp lochów.",
+    "EQ jest pokazane tylko wtedy, gdy pozwala na to inspectprivacy właściciela. Profil nigdy nie ujawnia loginu, hasła, poczty, banku ani innych prywatnych danych konta.",
+]
+HELP_TOPICS["profile"] = list(HELP_TOPICS["profil"])
+HELP_TOPICS["whois"] = list(HELP_TOPICS["profil"])
+HELP_TOPICS.setdefault("social", []).append(
+    "v0.36.3: profil/profile/whois <gracz> pokazuje rozbudowany publiczny profil także wtedy, gdy postać jest offline, wraz z czasem ostatniej obecności."
+)
+HELP_TOPICS.setdefault("wersja", []).append(
+    "v0.36.3: Offline Player Profiles — pełny profil postaci działa online i offline oraz zapisuje ostatnie logowanie/wylogowanie."
+)
+LATEST_CHANGES_TITLE = "Soulbound v0.36.3 - Offline Player Profiles"
+LATEST_CHANGES = [
+    "Dodano profil <gracz> oraz profile <player>; starsze whois korzysta z tego samego rozbudowanego profilu.",
+    "Profil działa także dla postaci offline i pokazuje status, ostatnio widziany, ostatnie logowanie oraz ostatnie wylogowanie.",
+    "Profil obejmuje Level postaci, wszystkie klasy/Biegłości, Broń Duszy, statystyki, profesje, narzędzia, Gildię, World Tier/Wzniesienie, osiągnięcia, questy, Bestiariusz, zgony, rekordy i postęp lochów.",
+    "EQ respektuje inspectprivacy. Dane konta, login/hasło, poczta i bank nie są ujawniane.",
+    "Dodano trwałą tabelę obecności i hooki logowania/wylogowania oraz stały audit v0.36.3.",
 ]

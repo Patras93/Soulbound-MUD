@@ -23,7 +23,7 @@ def _corpse_material_tier_by_index(index):
 def _dungeon_material_tier_index(template):
     """v0.9.17: wysokie materiały są przede wszystkim nagrodą za lochy/wieże.
 
-    v0.9.19 rozciąga zwykłą Kryptę przez pełne 1-400: materiał zmienia się
+    v0.9.19 rozciąga zwykłą Kryptę przez pełne 1-600: materiał zmienia się
     wraz z pasmami Biegłości, a konkretne warianty EQ dochodzą co 10.
     Mityczne warianty zaczynają od wyższego pułapu. Wieża Astralna,
     Twierdza Gigantów i bojowe lochy profesyjne mają własne pasma.
@@ -41,7 +41,7 @@ def _dungeon_material_tier_index(template):
 
     crypt_floor = int(template.get("crypt_floor", 0) or 0)
     if crypt_floor > 0:
-        # v0.9.19: pełna drabinka materiałów jest rozciągnięta przez progresję 1-400.
+        # v0.9.19: pełna drabinka materiałów jest rozciągnięta przez progresję 1-600.
         # Żelazo 1-39, Stal 40-79, Mithril 80-119, ... Eternium 360+.
         idx = max(idx if idx is not None else 0, crypt_floor // 40)
 
@@ -94,15 +94,15 @@ CLASS_DROP_MASTERY_BY_MATERIAL = {
 
 
 def class_equipment_drop_mastery_for_template(template):
-    # Nieskończone Krypty są źródłem EQ 201-400. Zwykły świat nadal
+    # Nieskończone Krypty są źródłem EQ 201-600. Zwykły świat nadal
     # korzysta z materiałów i starego capu 200, więc nie zalewamy mapy
     # nowym endgameowym sprzętem.
     crypt_floor = int(template.get("crypt_floor", 0) or 0)
     if crypt_floor > 0:
-        return class_equipment_unlocked_tier(min(400, crypt_floor))
+        return class_equipment_unlocked_tier(min(CLASS_MASTERY_MAX_LEVEL, crypt_floor))
     mythic_floor = int(template.get("mythic_crypt_floor", 0) or 0)
     if mythic_floor > 0:
-        return class_equipment_unlocked_tier(min(400, 100 + mythic_floor // 2))
+        return class_equipment_unlocked_tier(min(CLASS_MASTERY_MAX_LEVEL, 100 + mythic_floor // 2))
     material = corpse_material_tier_for_template(template)["key"]
     wanted = CLASS_DROP_MASTERY_BY_MATERIAL.get(material, 1)
     return class_equipment_unlocked_tier(wanted)
@@ -157,7 +157,7 @@ def _is_equipment_progression_boss(template):
 
 
 def corpse_material_tier_for_mastery_v0919(mastery):
-    mastery = max(1, min(400, int(mastery or 1)))
+    mastery = max(1, min(CLASS_MASTERY_MAX_LEVEL, int(mastery or 1)))
     selected = CORPSE_MATERIAL_TIERS[0]
     for tier in CORPSE_MATERIAL_TIERS:
         levels = CORPSE_MATERIAL_MASTERY_BANDS[tier["key"]]
@@ -180,17 +180,17 @@ def equipment_progression_mastery_for_template_v0919(template):
     prof_name = str(template.get("profession_dungeon") or "")
 
     if crypt_floor > 0:
-        mastery = min(400, max(1, crypt_floor))
+        mastery = min(CLASS_MASTERY_MAX_LEVEL, max(1, crypt_floor))
     elif mythic_crypt > 0:
-        mastery = min(400, 200 + max(0, mythic_crypt - 1) * 2)
+        mastery = min(CLASS_MASTERY_MAX_LEVEL, 200 + max(0, mythic_crypt - 1) * 2)
     elif mythic_astral > 0:
-        mastery = min(400, 200 + max(0, mythic_astral - 1) * 2)
+        mastery = min(CLASS_MASTERY_MAX_LEVEL, 200 + max(0, mythic_astral - 1) * 2)
     elif astral_floor > 0:
-        mastery = min(400, 160 + max(0, astral_floor - 100) * 2)
+        mastery = min(CLASS_MASTERY_MAX_LEVEL, 160 + max(0, astral_floor - 100) * 2)
     elif giant_floor > 0:
-        mastery = min(400, 40 + max(0, giant_floor - 1) * 4)
+        mastery = min(CLASS_MASTERY_MAX_LEVEL, 40 + max(0, giant_floor - 1) * 4)
     elif prof_floor > 0 and prof_name and prof_name != "crystal_mine":
-        mastery = min(400, 1 if prof_floor <= 1 else (prof_floor - 1) * 10)
+        mastery = min(CLASS_MASTERY_MAX_LEVEL, 1 if prof_floor <= 1 else (prof_floor - 1) * 10)
 
     if mastery is None:
         material = corpse_material_tier_for_template(template)["key"]
@@ -198,7 +198,7 @@ def equipment_progression_mastery_for_template_v0919(template):
 
     # Boss daje dostęp do następnego progu +10, a nie skok o cały materiał.
     if _is_equipment_progression_boss(template):
-        mastery = min(400, mastery + 10)
+        mastery = min(CLASS_MASTERY_MAX_LEVEL, mastery + 10)
     return class_equipment_unlocked_tier(mastery)
 
 
@@ -339,19 +339,19 @@ def configure_equipment_mastery_requirements_v0918():
 
         crypt_tier = int(item.get("crypt_set_tier", 0) or 0)
         if crypt_tier > 0:
-            requirement = max(requirement, min(400, crypt_tier * 10))
+            requirement = max(requirement, min(CHARACTER_MAX_LEVEL, crypt_tier * 10))
 
         astral_tier = int(item.get("astral_set_tier", 0) or 0)
         if astral_tier > 0:
-            requirement = max(requirement, min(400, 90 + astral_tier * 10))
+            requirement = max(requirement, min(CHARACTER_MAX_LEVEL, 90 + astral_tier * 10))
 
         astral_floor = int(item.get("astral_relic_floor", 0) or 0)
         if astral_floor > 0:
-            requirement = max(requirement, min(400, astral_floor))
+            requirement = max(requirement, min(CHARACTER_MAX_LEVEL, astral_floor))
 
         crypt_boss_floor = int(item.get("boss_relic_floor", 0) or 0)
         if crypt_boss_floor > 0:
-            requirement = max(requirement, min(400, crypt_boss_floor))
+            requirement = max(requirement, min(CHARACTER_MAX_LEVEL, crypt_boss_floor))
 
         regional_set = str(item.get("regional_set") or "")
         if regional_set in regional_mastery:
@@ -366,10 +366,10 @@ def configure_equipment_mastery_requirements_v0918():
 
         jewel_level = int(item.get("jewelcraft_level", 0) or 0)
         if jewel_level > 0:
-            requirement = max(requirement, min(400, jewel_level))
+            requirement = max(requirement, min(CHARACTER_MAX_LEVEL, jewel_level))
 
         if item_id in recipe_mastery:
-            requirement = max(requirement, min(400, recipe_mastery[item_id]))
+            requirement = max(requirement, min(CHARACTER_MAX_LEVEL, recipe_mastery[item_id]))
 
         item["required_mastery"] = max(1, min(CLASS_MASTERY_MAX_LEVEL, requirement))
         item["mastery_requirement_scope"] = "active_class"
@@ -385,14 +385,14 @@ V0918_EQUIPMENT_MASTERY_CONFIGURED = configure_equipment_mastery_requirements_v0
 
 # v0.9.19: globalna siatka wymagań EQ. Poziom 1 pozostaje startowy dla
 # zgodności save'ów, a wszystkie dalsze progi są dokładnie co 10 Biegłości.
-EQUIPMENT_MASTERY_LEVELS_V0919 = (1,) + tuple(range(10, 401, 10))
+EQUIPMENT_MASTERY_LEVELS_V0919 = (1,) + tuple(range(10, CLASS_MASTERY_MAX_LEVEL + 1, 10))
 
 
 def normalize_equipment_mastery_v0919(value):
-    value = max(1, min(400, int(value or 1)))
+    value = max(1, min(CHARACTER_MAX_LEVEL, int(value or 1)))
     if value <= 1:
         return 1
-    return min(400, ((value + 9) // 10) * 10)
+    return min(CHARACTER_MAX_LEVEL, ((value + 9) // 10) * 10)
 
 
 def normalize_all_equipment_mastery_v0919():
@@ -575,9 +575,9 @@ def densify_static_dungeon_spawns():
 DENSE_DUNGEON_ADDED_SPAWNS = densify_static_dungeon_spawns()
 
 # ============================================================
-# v0.9.12 - CONTENT 201-400: Soul Trials + questy profesyjne
+# v0.9.12 - CONTENT 201-600: Soul Trials + questy profesyjne
 # ============================================================
-for _tier in range(21, 41):
+for _tier in range(21, SOUL_MAX_TIER + 1):
     _level = SOUL_TIER_THRESHOLDS[_tier - 1]
     _qid = SOUL_TRIAL_QUEST_IDS[_tier]
     QUESTS[_qid] = {
@@ -655,18 +655,18 @@ def configure_soul_trials_v0261():
         if tier in overrides:
             quest.update(overrides[tier])
 
-    # Teksty sprzed rozszerzenia 201-400 nie mogą nazywać T19/T20 końcem serii.
+    # Teksty sprzed rozszerzenia 201-600 nie mogą nazywać T19/T20 końcem serii.
     q19 = QUESTS.get(SOUL_TRIAL_QUEST_IDS.get(19), {})
     if q19:
         q19["description"] = (
             "Pokonaj Cesarza Upiorów na piętrze 180 Krypty, a następnie wróć do Kapłana Elora. "
-            "To końcówka mistrzowskiej części 1-200, ale dalsze Próby trwają do Tieru 40."
+            "To końcówka mistrzowskiej części 1-200, ale dalsze Próby trwają do Tieru 60."
         )
     q20 = QUESTS.get(SOUL_TRIAL_QUEST_IDS.get(20), {})
     if q20:
         q20["description"] = (
             "Pokonaj Władcę Dwustu Pięter na kamieniu milowym piętra 200 Krypty i wróć do Kapłana Elora. "
-            "Tier 20 zamyka część 1-200; kolejne Próby Tierów 21-40 prowadzą przez progresję 201-400."
+            "Tier 20 zamyka część 1-200; kolejne Próby Tierów 21-60 prowadzą przez progresję 201-600."
         )
 
 configure_soul_trials_v0261()
@@ -798,21 +798,21 @@ def configure_v0856_help_refresh():
         "score / wynik to zwarte podsumowanie aktualnej postaci.",
         "Pokazuje rasę, główną i aktywne klasy, Biegłość każdej klasy, Soul Level/Tier i Soul Weapon Mastery, HP, Manę i sześć statystyk.",
         "Pokazuje też wspólny portfel konta, aktualną lokację/strefę oraz dynamiczną ocenę terenu.",
-        "score i expowiska pokazują orientacyjną ocenę terenu w historycznej skali 1-400; con i dynamiczny EXP walki używają osobnej bieżącej skali siły 1-400. Żadna z tych ocen nie jest levelem postaci.",
+        "score i expowiska pokazują orientacyjną ocenę terenu w historycznej skali 1-600; con i dynamiczny EXP walki używają osobnej bieżącej skali siły 1-600. Żadna z tych ocen nie jest levelem postaci.",
     ]
     HELP_TOPICS["dusza"] = [
         "dusza pokazuje krótki stan Broni Duszy: Soul Level, Tier, Soul XP, moc i następny cel.",
         "dusza info pokazuje pełne progi Tierów 1-40 oraz stan Prób Broni Duszy potrzebnych do dalszej progresji.",
-        "Kolejne Tiery do 40 wymagają odpowiedniego Soul Levelu i właściwego odblokowania; progi 1-200 zachowują wcześniejsze Próby, a 201-400 kontynuują progresję endgame.",
-        "Soul Level ma zakres 1-400 i rozwija Broń Duszy; nie jest levelem postaci. Soul Weapon Mastery ma osobny zakres 1-400 i rozwija wyłącznie zwykły atak broni.",
-        "Skille/spelle klasowe zachowują stare progi odblokowania do 200, a Biegłość właściwej klasy rozwija się 1-400, nie Soul Level.",
+        "Kolejne Tiery do 40 wymagają odpowiedniego Soul Levelu i właściwego odblokowania; progi 1-200 zachowują wcześniejsze Próby, a 201-600 kontynuują progresję endgame.",
+        "Soul Level ma zakres 1-600 i rozwija Broń Duszy; nie jest levelem postaci. Soul Weapon Mastery ma osobny zakres 1-600 i rozwija wyłącznie zwykły atak broni.",
+        "Skille/spelle klasowe zachowują stare progi odblokowania do 200, a Biegłość właściwej klasy rozwija się 1-600, nie Soul Level.",
         "Po osiągnięciu progu wpisz quest list Kapłan Elor, przyjmij właściwą Próbę, wykonaj cel, oddaj quest i użyj unlock.",
     ]
 
     HELP_TOPICS["aoe"] = [
         "Czary i skille obszarowe trafiają wszystkie dostępne cele zgodnie z opisem konkretnej umiejętności.",
         "Historyczne progi Soul zostały zastąpione Biegłością klasy: np. umiejętność z progu 40 wymaga Biegłości 40 danej klasy.",
-        "Skille odblokowuje Biegłość właściwej klasy w całym zakresie 1-400: klasyczne progi pozostają do 200, a dalsze odblokowania są w zakresie 220-400.",
+        "Skille odblokowuje Biegłość właściwej klasy w całym zakresie 1-600: klasyczne progi pozostają do 200, a dalsze odblokowania są w zakresie 220-600.",
         "Pełne szczegóły konkretnego AoE: help <nazwa skilla> albo skill info <nazwa>.",
         "Akcja obszarowa działa w walce realtime i nie tworzy osobnej tury przeciwnika.",
     ]
@@ -826,11 +826,11 @@ def configure_v0856_help_refresh():
     ]
     HELP_TOPICS["rozwoj_statystyk"] = list(HELP_TOPICS["statystyki"])
     HELP_TOPICS["soul200"] = [
-        "Broń Duszy ma Soul Level 1-400 i 40 Tierów.",
+        "Broń Duszy ma Soul Level 1-600 i 60 Tierów.",
         "Każdy Tier 2-20 ma własną jednorazową Próbę u Kapłana Elora.",
         "Po osiągnięciu wymaganego Soul Levelu wykonaj Próbę, oddaj ją i wpisz unlock.",
         "Soul Level zwiększa moc Broni Duszy i nie odblokowuje skilli klasowych.",
-        "Skille klasowe odblokowuje Biegłość klasy 1-400; stare progi 1-200 pozostają w tych samych miejscach, a dalsza linia działa do 400.",
+        "Skille klasowe odblokowuje Biegłość klasy 1-600; stare progi 1-200 pozostają w tych samych miejscach, a dalsza linia działa do 600.",
         "Nie ma levelu postaci.",
     ]
     HELP_TOPICS["soul_tier45_krypta200"] = [
@@ -884,10 +884,10 @@ def configure_v0856_help_categories():
         "atlas": "atlas",
     })
     HELP_TOPICS["profesje"] = [
-        "Soulbound ma 8 profesji 1-400: Wędkarstwo, Górnictwo, Drwalstwo, Zielarstwo, Gotowanie, Alchemia, Kowalstwo i Jubilerstwo.",
-        "Każda profesja ma własny level 1-400. Odpowiadające narzędzie ma osobną progresję 1-400 i służy do odblokowania lepszych surowców oraz bonusów jakości/urobku.",
+        "Soulbound ma 8 profesji 1-600: Wędkarstwo, Górnictwo, Drwalstwo, Zielarstwo, Gotowanie, Alchemia, Kowalstwo i Jubilerstwo.",
+        "Każda profesja ma własny level 1-600. Odpowiadające narzędzie ma osobną progresję 1-600 i służy do odblokowania lepszych surowców oraz bonusów jakości/urobku.",
         "profesje pokazuje szybki stan; profesje info pokazuje XP, rangi i dalszy rozwój.",
-        "Narzędzia profesji rozwijają się do 400 i nie mają trwałości.",
+        "Narzędzia profesji rozwijają się do 600 i nie mają trwałości.",
         "Zasada v0.8.66: level profesji skraca czas pracy i blokuje receptury/zlecenia/poziomy lochów; level narzędzia odblokowuje lepsze zasoby i zwiększa bonus jakości/urobku.",
         "v0.9.9: przy rozmowie NPC profesyjny informuje o nowym zadaniu, komentuje powrót i stan n/x, a przy przyjęciu mówi osobną kwestię przed startem 0/x.",
         "v0.9.8: przy oddaniu questa NPC komentuje wykonanie i czytelnie wręcza nagrodę; questy profesyjne/rzemieślnicze zawsze mają także nagrodę w walucie.",
@@ -900,7 +900,7 @@ def configure_v0856_help_categories():
         "eq info pokazuje pełne bonusy, sety i sockety.",
         "Materiałowe EQ z ciał występuje jako żelazo, stal, mithril, adamantyt, kobalt, runiczne, smocza stal, astral, Pustka i eternium; konkretne statystyki i właściwości są losowane niezależnie od klasy.",
         "Zręczność z EQ realnie zwiększa szansę na krytyk; inne właściwości mogą wzmacniać obrażenia, obronę, unik, HP albo Manę.",
-        "Klasowe EQ ma progi Biegłości 1, 10, 20 i dalej co 10 aż do 400.",
+        "Klasowe EQ ma progi Biegłości 1, 10, 20 i dalej co 10 aż do 600.",
         "Postać może nosić dwa pierścienie i dwa talizmany.",
         "Sprzedawalne nieprzypisane duplikaty można wskazać numerem, np. sprzedaj 2.talizman korzeni.",
     ]
@@ -910,32 +910,32 @@ def configure_v0856_help_categories():
         "Wpis konkretnego zasobu podaje region/lokację, wymagane narzędzie i minimalny level narzędzia. Szybkość pracy zależy od levelu właściwej profesji.",
     ]
     HELP_TOPICS["gornictwo"] = [
-        "Górnictwo ma progresję 1-400; jego level skraca czas kopania do ustalonego minimum. Kilof rozwija się osobno 1-400 i odblokowuje lepsze rudy/żyły oraz bonus urobku.",
+        "Górnictwo ma progresję 1-600; jego level skraca czas kopania do ustalonego minimum. Kilof rozwija się osobno 1-600 i odblokowuje lepsze rudy/żyły oraz bonus urobku.",
         "kop wykonuje pojedyncze wydobycie; kop on i kop off sterują auto-kopaniem.",
         "Kopalnia Głębinowa nie ma końca; ściany mają losową liczbę uderzeń zapisywaną dla postaci. Zasobowa moc głębokości zatrzymuje się na progresji 400.",
         "kop on może wystartować już w ręcznej części Kryształowej Jaskini: automat sam dochodzi w dół do poziomu 1, a potem schodzi po każdym przebiciu ściany.",
-        "Rudy progresji 220-400 wymagają jednocześnie odpowiedniego levelu Kilofa i co najmniej odpowiadającego mu poziomu Kopalni Głębinowej.",
+        "Rudy progresji 220-600 wymagają jednocześnie odpowiedniego levelu Kilofa i co najmniej odpowiadającego mu poziomu Kopalni Głębinowej.",
         "Po odblokowaniu ruda pozostaje dostępna na wszystkich głębszych piętrach. Starsze rudy stają się rzadsze, ale nie znikają z puli.",
         "atlas rudy pokazuje wymagany level Kilofa i minimalną głębokość dla każdej rudy.",
         "kopalnia / mineinfo pokazuje bieżące piętro, najgłębszy odblokowany poziom, ścianę, auto-kopanie, Górnictwo, Kilof oraz najważniejsze dostępne rudy.",
     ]
     HELP_TOPICS["drwalstwo"] = [
-        "Drwalstwo ma progresję 1-400; jego level skraca czas cięcia do ustalonego minimum. Piła rozwija się osobno 1-400 i odblokowuje lepsze drewno oraz bonus urobku.",
+        "Drwalstwo ma progresję 1-600; jego level skraca czas cięcia do ustalonego minimum. Piła rozwija się osobno 1-600 i odblokowuje lepsze drewno oraz bonus urobku.",
         "tnij wykonuje pojedynczą akcję; tnij on i tnij off sterują automatem.",
         "atlas drewno pokazuje wymagany level Piły i miejsca występowania drewna.",
     ]
     HELP_TOPICS["zielarstwo"] = [
-        "Zielarstwo ma progresję 1-400; jego level skraca czas zbioru do ustalonego minimum. Sierp rozwija się osobno 1-400 i odblokowuje lepsze zioła oraz bonus urobku.",
+        "Zielarstwo ma progresję 1-600; jego level skraca czas zbioru do ustalonego minimum. Sierp rozwija się osobno 1-600 i odblokowuje lepsze zioła oraz bonus urobku.",
         "zbieraj wykonuje pojedynczy zbiór; zbieraj on i zbieraj off sterują automatem.",
         "atlas zioła pokazuje wymagany level Sierpa i miejsca występowania ziół.",
     ]
     HELP_TOPICS["alchemia"] = [
-        "Alchemia rozwija się 1-400; jej level skraca czas warzenia do ustalonego minimum i blokuje receptury/zlecenia. Moździerz rozwija się osobno 1-400 i zwiększa Tier/bonus produktu.",
+        "Alchemia rozwija się 1-600; jej level skraca czas warzenia do ustalonego minimum i blokuje receptury/zlecenia. Moździerz rozwija się osobno 1-600 i zwiększa Tier/bonus produktu.",
         "alchemia / warz <receptura> tworzy mikstury, jeśli masz wymagany poziom i składniki.",
         "Questy Alchemii u Orina są niezależne; np. Mikstury Many i Mikstury Leczenia mogą być aktywne równocześnie.",
     ]
     HELP_TOPICS["rzemioslo"] = [
-        "Crafting metalowy korzysta z Młota Rzemieślniczego 1-400, a jego wymagania i tempo wynikają z profesji Kowalstwo 1-400.",
+        "Crafting metalowy korzysta z Młota Rzemieślniczego 1-600, a jego wymagania i tempo wynikają z profesji Kowalstwo 1-600.",
         "craft / stworz / wytworz <receptura> tworzy przedmiot.",
         "Nie ma trwałości ani zużywania narzędzi.",
     ]
@@ -966,8 +966,8 @@ def configure_v0856_help_categories():
         "ciało / zwloki / corpse pokazuje numerowaną listę ciał mobów w aktualnej lokacji.",
         "Przy wielu ciałach użyj selektora 2.cialo / 2.corpse, 3.cialo / 3.corpse itd.",
         "l in corpse / l in 2.corpse / l w 2.cialo pokazuje zawartość bez zabierania.",
-        "przeszukaj 2.cialo / loot 2.corpse zabiera całą zawartość konkretnego ciała.",
-        "get miecz from 2.corpse / wez miecz z 2.cialo zabiera jeden przedmiot; get all from 2.corpse zabiera wszystko.",
+        "przeszukaj 2.cialo / loot 2.corpse zabiera całą zawartość konkretnego ciała. W drużynie każdy członek stojący razem przy ciele dostaje własną kopię znalezionych przedmiotów.",
+        "get miecz from 2.corpse / wez miecz z 2.cialo zabiera jeden przedmiot; get all from 2.corpse zabiera wszystko. Pojedyncze zabranie także współdzieli ten przedmiot z obecną lokalnie drużyną.",
         "Każde ciało przeciwnika może mieć materiałowe EQ dobrane poziomem do siły moba: od żelaza i stali przez mithril i adamantyt aż po eternium. Konkretne statystyki i właściwości części są losowe.",
         "Elity, rzadkie moby i bossowie mogą zostawić dwie części materiałowego EQ, a ich dotychczasowy unikalny loot pozostaje osobno.",
     ]
@@ -979,12 +979,12 @@ def configure_v0856_help_categories():
         "Bank Dusz jest osobnym trwałym magazynem konta.",
     ]
     HELP_TOPICS["level"] = [
-        "level albo lvl pokazuje Level postaci 1-400, aktualny EXP oraz dokładnie ile EXP brakuje do następnego Levelu.",
+        "level albo lvl pokazuje Level postaci 1-600, aktualny EXP oraz dokładnie ile EXP brakuje do następnego Levelu.",
         "Level postaci jest osobny od Soul Levelu Broni Duszy; dusza pokazuje progres Broni Duszy.",
     ]
     HELP_TOPICS["xp"] = [
         "xp pokazuje aktualny EXP postaci oraz dokładnie ile brakuje do następnego Levelu postaci.",
-        "Na Levelu 400 komenda informuje o osiągniętym maksimum.",
+        "Na Levelu 600 komenda informuje o osiągniętym maksimum.",
     ]
     HELP_TOPICS["nawigacja_profesje"] = [
         "walk profesje albo prowadz profesje pokazuje wszystkie profesje i miejsca, do których warto iść: mistrzów, sklepy narzędzi, warsztaty i wejścia.",
@@ -1025,8 +1025,8 @@ def configure_v0856_help_categories():
         "opis <rasa> pokazuje opis rasy oraz polecane klasy.",
     ]
     HELP_TOPICS["umiejetnosci"] = [
-        "Każda z 14 klas ma Biegłość 1-400; istniejące progi odblokowania skilli 1-200 pozostają bez zmian.",
-        "Progi umiejętności: 1, 10, 20, 30 i dalej co 10 aż do 400. Każdy próg ma 3 skille/spelle do nauczenia; alternatywy progu współdzielą cooldown wyboru.",
+        "Każda z 14 klas ma Biegłość 1-600; istniejące progi odblokowania skilli 1-200 pozostają bez zmian.",
+        "Progi umiejętności: 1, 10, 20, 30 i dalej co 10 aż do 600. Każdy próg ma 3 skille/spelle do nauczenia; alternatywy progu współdzielą cooldown wyboru.",
         "skills pokazuje umiejętności aktywnej klasy; kodeksklasowy <klasa> pokazuje pełną progresję.",
         "help <nazwa skilla> albo skill info <nazwa> pokazuje pełną pomoc konkretnej umiejętności.",
         "Soul Level nie odblokowuje skilli klasowych.",
@@ -1060,7 +1060,7 @@ def configure_v0917_help():
     HELP_TOPICS["materialy_eq"] = [
         "Materiałowe EQ występuje jako: Żelazne, Stalowe, Mithrilowe, Adamantytowe, Kobaltowe, Runiczne, ze Smoczej Stali, Astralne, Pustki i Eternium.",
         "Najwyższe materiały po v0.9.17 zdobywa się przede wszystkim w Kryptach, Wieżach, Twierdzy i bojowych Lochach, a nie z przypadkowych zwykłych mobów świata.",
-        "Od v0.9.19 zwykła Krypta rozciąga materiały przez pełną progresję 1-400: Żelazo na początku, potem Stal, Mithril, Adamantyt, Kobalt, Runiczny, Smocza Stal, Astral, Pustka i Eternium.",
+        "Od v0.9.19 zwykła Krypta rozciąga materiały przez pełną progresję 1-600: Żelazo na początku, potem Stal, Mithril, Adamantyt, Kobalt, Runiczny, Smocza Stal, Astral, Pustka i Eternium.",
         "W obrębie jednego materiału istnieją kolejne warianty co 10 Biegłości. Boss daje następny krok +10, zamiast przeskakiwać od razu o cały materiał.",
         "Mityczne Krypty/Wieże zaczynają od wyższych materiałów. Wieża Astralna i Twierdza również mają progresję materiału wraz z piętrem.",
         "Kopalnie pozostają systemem surowców i nie dostały bojowych mobów tylko po to, aby generować EQ.",
@@ -1178,7 +1178,7 @@ V0861_CLASS_TIER_BASE_SILVER = {
 # v0.9.12: ceny klasowego EQ 210-400 rosną łagodnie od starego progu 200.
 # 200 pozostaje dokładnie 900 000 000 srebra bazowo; każdy kolejny próg
 # co 10 Biegłości to +8%, więc EQ 400 jest droższe, ale ekonomia nie eksploduje.
-for _mastery in range(210, 401, 10):
+for _mastery in range(210, CLASS_MASTERY_MAX_LEVEL + 1, 10):
     _steps = (_mastery - 200) // 10
     V0861_CLASS_TIER_BASE_SILVER[_mastery] = int(round(900_000_000 * (1.08 ** _steps)))
 

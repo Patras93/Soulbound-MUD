@@ -56,7 +56,7 @@ class SessionForgeGuildsMixin:
                 for index, (item_id, item, free_qty) in enumerate(free_rows, 1):
                     material = v03041_salvage_material_key(item)
                     salvage_id = V0925_SALVAGE_MATERIALS[material][0]
-                    level = max(1, min(400, int(item.get("required_character_level", item.get("required_mastery", 1)) or 1)))
+                    level = max(1, min(CHARACTER_MAX_LEVEL, int(item.get("required_character_level", item.get("required_mastery", 1)) or 1)))
                     await self.send(
                         f"{index}. {player_item_display_name_v0335(item_id)}. Wolne {free_qty}. "
                         f"Poziom {level}. Odzysk: {ITEMS[salvage_id]['name']}."
@@ -86,7 +86,7 @@ class SessionForgeGuildsMixin:
 
             material = v03041_salvage_material_key(item)
             salvage_id = V0925_SALVAGE_MATERIALS[material][0]
-            level = max(1, min(400, int(
+            level = max(1, min(CHARACTER_MAX_LEVEL, int(
                 item.get("required_character_level", item.get("required_mastery", 1)) or 1
             )))
             rarity = str(item.get("rarity", "common") or "common").lower()
@@ -141,7 +141,7 @@ class SessionForgeGuildsMixin:
                 # Salvage 4.0: runy są zwracane zawsze, a odzysk klejnotu zależy od Kowalstwa.
                 try:
                     _prow=self.server.db.profession(self.account_id,"Kowalstwo")
-                    _smith=max(1,min(400,int(_prow["level"])))
+                    _smith=max(1,min(PROFESSION_MAX_LEVEL,int(_prow["level"])))
                 except Exception:
                     _smith=1
                 _gem_chance=min(0.85,0.25+_smith*0.0015)
@@ -375,7 +375,7 @@ class SessionForgeGuildsMixin:
     async def handle_runes_v0925(self, args=""):
             raw=str(args or "").strip(); norm=normalize_lookup_text(raw)
             if not raw or norm in ("lista","list","info"):
-                await self.send("RUNY. Endgame EQ: Biegłość 200-299 ma 1 gniazdo, 300-399 ma 2, 400 ma 3. Tworzenie u Haldora: runy stworz <moc/ochrona/zycie/mana/unik/hart/impuls/bariera/rdzen>. Osadzanie: runa <typ> <pełna nazwa EQ>. Wyjmowanie: runy wyjmij <nr> <pełna nazwa EQ>.")
+                await self.send("RUNY. Endgame EQ: Biegłość 200-299 ma 1 gniazdo, 300-399 ma 2, 400-499 ma 3, 500-600 ma 4. Tworzenie u Haldora: runy stworz <moc/ochrona/zycie/mana/unik/hart/impuls/bariera/rdzen>. Osadzanie: runa <typ> <pełna nazwa EQ>. Wyjmowanie: runy wyjmij <nr> <pełna nazwa EQ>.")
                 for key,(rid,name,effects) in V0925_RUNES.items():
                     await self.send(f"{key}: {name}. Koszt 5 Pyłu Runicznego. Efekt {effects}.")
                 return
@@ -438,15 +438,15 @@ class SessionForgeGuildsMixin:
 
     async def show_mastery_achievements_v0925(self):
             await self.sync_mastery_achievements_v0925()
-            await self.send("OSIĄGNIĘCIA KLASOWE I PROFESYJNE 1-400")
+            await self.send("OSIĄGNIĘCIA KLASOWE I PROFESYJNE 1-600")
             for cname,*_ in CLASSES:
                 lvl=self.class_mastery_level(cname)
                 done=sum(1 for t in V0925_MASTERY_MILESTONES if lvl>=t)
-                await self.send(f"Klasa {cname}: Biegłość {lvl}/400, kamienie milowe {done}/{len(V0925_MASTERY_MILESTONES)}.")
+                await self.send(f"Klasa {cname}: Biegłość {lvl}/{CLASS_MASTERY_MAX_LEVEL}, kamienie milowe {done}/{len(V0925_MASTERY_MILESTONES)}.")
             for prof in dict.fromkeys(TOOL_PROFESSION_MAP.values()):
                 lvl=int(self.server.db.profession(self.account_id,prof)["level"])
                 done=sum(1 for t in V0925_MASTERY_MILESTONES if lvl>=t)
-                await self.send(f"Profesja {prof}: {lvl}/400, kamienie milowe {done}/{len(V0925_MASTERY_MILESTONES)}.")
+                await self.send(f"Profesja {prof}: {lvl}/{PROFESSION_MAX_LEVEL}, kamienie milowe {done}/{len(V0925_MASTERY_MILESTONES)}.")
             await self.send("Dodatkowe osiągnięcia łączą mastery z bossami, craftingiem, kolekcją i eksploracją i pojawiają się w zwykłej komendzie osiągnięcia.")
 
     async def sync_mastery_achievements_v0925(self):
@@ -466,7 +466,7 @@ class SessionForgeGuildsMixin:
                     self.server.db.unlock_achievement(self.account_id,f"class_{slug}_boss",f"{cname}: Pogromca Bossów","Class Challenge")
                 if level>=300 and explored>=300:
                     self.server.db.unlock_achievement(self.account_id,f"class_{slug}_explore",f"{cname}: Wędrowiec Endgame","Class Challenge")
-                if level>=400 and eq_collection>=500:
+                if level>=CLASS_MASTERY_MAX_LEVEL and eq_collection>=500:
                     self.server.db.unlock_achievement(self.account_id,f"class_{slug}_collector",f"{cname}: Kolekcjoner Mistrzowski","Class Challenge")
             for prof in dict.fromkeys(TOOL_PROFESSION_MAP.values()):
                 row=self.server.db.profession(self.account_id,prof); level=int(row["level"]); actions=int(row["actions"]); slug=_collection_slug(prof)
@@ -475,8 +475,8 @@ class SessionForgeGuildsMixin:
                         self.server.db.unlock_achievement(self.account_id,f"prof_{slug}_{threshold}",f"{prof}: poziom {threshold}","Profession Mastery")
                 if level>=200 and actions>=1000:
                     self.server.db.unlock_achievement(self.account_id,f"prof_{slug}_1000",f"{prof}: Tysiąc Prac","Profession Challenge")
-                if level>=400 and actions>=5000:
-                    self.server.db.unlock_achievement(self.account_id,f"prof_{slug}_5000",f"{prof}: Arcydzieło 400","Profession Challenge")
+                if level>=PROFESSION_MAX_LEVEL and actions>=5000:
+                    self.server.db.unlock_achievement(self.account_id,f"prof_{slug}_5000",f"{prof}: Arcydzieło 600","Profession Challenge")
 
     def guild_row_v0926(self):
             return self.server.db.clan_membership(self.account_id)
@@ -572,7 +572,7 @@ class SessionForgeGuildsMixin:
                 ("treasury1m","Milion w Skarbcu",treasury>=1_000_000),("guild10","Gildia Poziomu 10",level>=10),
                 ("guild50","Gildia Poziomu 50",level>=50),("guild100","Gildia Poziomu 100",level>=100),
                 ("guild200","Gildia Poziomu 200",level>=200),("guild300","Gildia Poziomu 300",level>=300),
-                ("guild400","Gildia Poziomu 400",level>=400),
+                ("guild600","Gildia Poziomu 600",level>=V0926_GUILD_MAX_LEVEL),
                 ("deposit_1m_gold","Milion Złota Wpłacony",metrics.get("money_deposited",0)>=1_000_000*SILVER_PER_GOLD),
                 ("boss100","Stu Bossów Gildii",metrics.get("boss_kills",0)>=100),
                 ("crypt1000","Tysiąc Pięter",max_crypt>=1000),
@@ -970,7 +970,7 @@ class SessionForgeGuildsMixin:
             if action in ("rozbuduj","upgrade"):
                 if rank!="leader": await self.send("Tylko lider może wydawać skarbiec na rozbudowę Gildii."); return
                 grow=conn.execute("SELECT level,treasury FROM player_clans WHERE id=?",(cid,)).fetchone(); level=int(grow["level"]); treasury=int(grow["treasury"])
-                if level>=V0926_GUILD_MAX_LEVEL: await self.send("Gildia ma już maksymalny poziom 400."); return
+                if level>=V0926_GUILD_MAX_LEVEL: await self.send("Gildia ma już maksymalny poziom 600."); return
                 cost=v0926_guild_upgrade_cost(level); confirm=normalize_lookup_text(rest) in ("potwierdz","potwierdź","confirm","tak")
                 if not confirm:
                     await self.send(f"Rozbudowa Gildii z poziomu {level} na {level+1} kosztuje {currency_reading_text(cost,0,0)}. Skarbiec: {currency_reading_text(treasury,0,0)}. Aby wydać środki wpisz: gildia rozbuduj potwierdz."); return

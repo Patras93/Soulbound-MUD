@@ -1,6 +1,17 @@
 # -*- coding: utf-8 -*-
 """Soulbound v0.30.51 Session mixin: skills_combat."""
 
+def party_drop_recipients_v0359(item_id, recipients):
+    """Return every eligible local party member for a successful mob drop.
+
+    The configured drop chance is rolled once per defeated mob. If that roll
+    succeeds, each party member already selected by ``mob_defeated`` (same room
+    and eligible for the kill rewards) receives one copy of the item. This rule
+    applies uniformly to elixirs, potions, materials, runes, gems, technology
+    components, Soul Shards and every other normal entry in ``template["drops"]``.
+    """
+    return list(recipients or [])
+
 class SessionSkillsCombatMixin:
     async def unlock(self):
             if self.character.soul_tier >= SOUL_MAX_TIER:
@@ -488,7 +499,7 @@ class SessionSkillsCombatMixin:
                 "Przy nauczycielu komenda learn <numer> używa lokalnej listy jego klasy."
             )
             await self.send(
-                "Każdy nauczony skill ma własny Skill Level 1-400 i XP. "
+                "Każdy nauczony skill ma własny Skill Level 1-600 i XP. "
                 "Wpisz skills all, aby usłyszeć pulę wszystkich klas."
             )
 
@@ -553,6 +564,34 @@ class SessionSkillsCombatMixin:
             )
             return True
 
+    def protected_player_target(self, query):
+            raw = normalize_lookup_text(str(query or "").strip())
+            if not raw:
+                return None
+            for session in list(self.server.sessions):
+                if session.closed or not session.character:
+                    continue
+                if session.character.room_id != self.character.room_id:
+                    continue
+                if normalize_lookup_text(session.character.name) == raw:
+                    return session
+            return None
+
+    async def reject_player_attack(self, query):
+            target = self.protected_player_target(query)
+            if not target:
+                return False
+            if target is self:
+                await self.send(
+                    "Nie możesz zaatakować własnej postaci. PvP jest wyłączone w Soulbound."
+                )
+            else:
+                await self.send(
+                    f"Nie możesz zaatakować gracza {target.character.name}. "
+                    "PvP jest wyłączone: gracze nie mogą ranić ani zabijać innych graczy."
+                )
+            return True
+
     def skill_progress_data(self, skill):
             if not self.server.db.knows_skill(self.account_id, skill["id"]):
                 return {"level": 0, "xp": 0, "uses": 0}
@@ -595,7 +634,7 @@ class SessionSkillsCombatMixin:
                 )
             # v0.33.0: pasywne umiejętności tej samej klasy również rozwijają się
             # podczas realnego używania aktywnych skilli. Dostają 25% bazowego Skill XP,
-            # dzięki czemu ich poziom 1-400 ma znaczenie bez osobnej komendy cast.
+            # dzięki czemu ich poziom 1-600 ma znaczenie bez osobnej komendy cast.
             if str(skill.get("kind", "")) != "passive":
                 skill_class = self.skill_class_name(skill)
                 passive_gain = max(1, gain // 4)
@@ -625,6 +664,8 @@ class SessionSkillsCombatMixin:
             return f"{name} walczy już z graczem spoza twojej drużyny."
 
     async def skill_combat_target(self, query):
+            if str(query or "").strip() and await self.reject_player_attack(query):
+                return None
             self.server.world.refresh()
             mob = None
             if self.combat_mob_key:
@@ -636,6 +677,8 @@ class SessionSkillsCombatMixin:
             if mob is None:
                 if not query.strip():
                     await self.send("Ta umiejętność wymaga celu. Podaj nazwę przeciwnika.")
+                    return None
+                if await self.reject_player_attack(query):
                     return None
                 if await self.reject_friendly_npc_attack(query):
                     return None
@@ -1261,7 +1304,7 @@ class SessionSkillsCombatMixin:
             _intercept_level=1
             if self.mec_skill_known_v0319("v0319_mec_intercept_system"):
                 _intercept_level=int(self.server.db.skill_progress(self.account_id,"v0319_mec_intercept_system")["level"])
-            _intercept_progress=(max(1,min(400,_intercept_level))-1)/399.0
+            _intercept_progress=(max(1,min(SKILL_MAX_LEVEL,_intercept_level))-1)/float(max(1, SKILL_MAX_LEVEL-1))
             _intercept_chance=0.10 + 0.25*(_intercept_progress**0.82)
             if self.mec_skill_known_v0319("v0319_mec_intercept_system") and profile.get("damage_type")=="physical" and random.random()<_intercept_chance:
                 counter=max(1,int(((self.physical_power()+self.spell_power())/2)*(1.0+1.5*_intercept_progress)))
@@ -1371,13 +1414,13 @@ class SessionSkillsCombatMixin:
                 )
 
             # v0.31.9 V-MAX Protect/Shell adaptation: reduce incoming physical/magic damage while active.
-            if self.mec_vmax_active_v0319():
+            if self.party_vmax_support_active_v03511():
                 before_vmax=incoming
                 incoming=max(1,int(round(incoming*0.80)))
                 if before_vmax>incoming:
                     await self.send_combat(f"V-MAX Protect/Shell redukuje trafienie o {before_vmax-incoming}.","full")
             self.current_hp -= incoming
-            if self.mec_vmax_active_v0319():
+            if self.party_vmax_support_active_v03511():
                 regen=max(1,int(self.max_hp()*0.02))
                 self.current_hp=min(self.max_hp(),self.current_hp+regen)
             self._recap52_taken=int(getattr(self,"_recap52_taken",0))+max(0,int(incoming))
@@ -1389,7 +1432,7 @@ class SessionSkillsCombatMixin:
                     await self.mob_defeated(mob); return
             # Self-Repair: passive combat regeneration for Mec when learned.
             if self.mec_skill_known_v0319("v0319_mec_self_repair") and self.current_hp>0:
-                _sr_level=int(self.server.db.skill_progress(self.account_id,"v0319_mec_self_repair")["level"]); _sr_p=(max(1,min(400,_sr_level))-1)/399.0
+                _sr_level=int(self.server.db.skill_progress(self.account_id,"v0319_mec_self_repair")["level"]); _sr_p=(max(1,min(SKILL_MAX_LEVEL,_sr_level))-1)/float(max(1, SKILL_MAX_LEVEL-1))
                 rep=max(1,int(self.max_hp()*(0.005+0.025*(_sr_p**0.82)))); self.current_hp=min(self.max_hp(),self.current_hp+rep)
             await self.send_combat(
                 f"{template['name']} atakuje. Typ obrażeń: "
@@ -1610,11 +1653,11 @@ class SessionSkillsCombatMixin:
     def skill_queue_capacity(self, queue_type):
             # v0.30.18: startowa pojemność kolejki to 10 slotów.
             # Sloty nadal rosną wyłącznie z Character Level, nie z Biegłości klasy:
-            # Level 1=10, 10=11, 100=20, 200=30, 400=50.
+            # Level 1=10, 10=11, 100=20, 200=30, 400=50, 600=70.
             if self.skill_queue_active_mastery(queue_type) <= 0:
                 return 0
             character_level = max(1, min(CHARACTER_MAX_LEVEL, int(self.character.character_level)))
-            return min(50, 10 + character_level // 10)
+            return min(10 + CHARACTER_MAX_LEVEL // 10, 10 + character_level // 10)
 
     def skill_queue_entries(self, queue_type, active_only=False):
             rows = list(self.server.db.skill_queue_rows(self.account_id, queue_type))
@@ -1915,6 +1958,40 @@ class SessionSkillsCombatMixin:
     def clear_skill_buffs(self):
             getattr(self, "active_skill_buffs", {}).clear()
 
+    def local_party_buff_recipients_v03511(self):
+            """All living party members standing with the caster, including solo self."""
+            recipients = self.server.party_sessions(
+                self.account_id, same_room=self.character.room_id
+            ) or [self]
+            valid = [
+                session for session in recipients
+                if not session.closed and session.character and session.current_hp > 0
+                and session.character.room_id == self.character.room_id
+            ]
+            if self not in valid and self.character and not self.closed and self.current_hp > 0:
+                valid.append(self)
+            return sorted(valid, key=lambda session: session.character.name.casefold())
+
+    def apply_party_boost_v03511(self, skill_id, name, boost, until, source=None):
+            """Apply one combat boost to every living local party member."""
+            recipients = self.local_party_buff_recipients_v03511()
+            data = {
+                "name": str(name),
+                "boost": max(1.0, float(boost or 1.0)),
+                "until": float(until),
+                "source": str(source or self.character.name),
+            }
+            for session in recipients:
+                session.active_skill_buffs[str(skill_id)] = dict(data)
+            return recipients
+
+    def party_vmax_support_active_v03511(self):
+            """V-MAX party support grants Protect/Shell/Regen without granting Mec-only skill rewrites."""
+            return (
+                self.mec_vmax_active_v0319()
+                or time.time() < float(getattr(self, "v03511_party_vmax_until", 0.0) or 0.0)
+            )
+
     def engineer_skill_known_v0317(self, skill_id):
             try:
                 return bool(self.server.db.knows_skill(self.account_id, skill_id))
@@ -1953,7 +2030,7 @@ class SessionSkillsCombatMixin:
                     continue
                 row = self.server.db.skill_progress(self.account_id, sid)
                 level = int(row["level"])
-                progress = (max(1, min(400, level)) - 1) / 399.0
+                progress = (max(1, min(SKILL_MAX_LEVEL, level)) - 1) / float(max(1, SKILL_MAX_LEVEL - 1))
                 mult *= 1.05 + 0.25 * (progress ** 0.82)
             return mult
 
@@ -1994,7 +2071,7 @@ class SessionSkillsCombatMixin:
             for sid in checks.get(branch,()):
                 if sid and self.mec_skill_known_v0319(sid):
                     row=self.server.db.skill_progress(self.account_id,sid)
-                    level=int(row["level"]); progress=(max(1,min(400,level))-1)/399.0
+                    level=int(row["level"]); progress=(max(1,min(SKILL_MAX_LEVEL,level))-1)/float(max(1, SKILL_MAX_LEVEL-1))
                     mult*=1.04 + 0.21*(progress**0.82)
             if self.mec_overheat_active_v0319(): mult*=0.75
             return mult
@@ -2026,7 +2103,7 @@ class SessionSkillsCombatMixin:
                 return False
 
             kind = skill.get("kind")
-            if kind == "passive":
+            if kind in ("passive", "utility"):
                 return False
             if kind in ("damage", "drain", "execute", "aoe_damage"):
                 if not mob or not mob.alive or mob.room_id != self.character.room_id:
@@ -2388,12 +2465,29 @@ class SessionSkillsCombatMixin:
                         await self.send(f"V-MAX zablokowany przez Overheat jeszcze przez {int(getattr(self,'v0319_overheat_until',0)-time.time()+.999)} s."); return
                     will=max(1,int(self.effective_willpower()))
                     _vd,_vc=self.server.db.vmax_upgrades_v03114(self.account_id)
-                    _skill_progress=(max(1,min(400,skill_level))-1)/399.0
+                    _skill_progress=(max(1,min(SKILL_MAX_LEVEL,skill_level))-1)/float(max(1, SKILL_MAX_LEVEL-1))
                     _skill_duration_mult=1.0 + 0.80*(_skill_progress**0.90)
                     duration=min(180,int(round((25 + will//8 + 10*_vd)*_skill_duration_mult)))  # v0.33.0: Skill Level V-MAX rozwija czas działania.
                     self.v0319_vmax_until=time.time()+duration
-                    self.active_skill_buffs[skill["id"]]={"name":"V-MAX","boost":1.30,"until":self.v0319_vmax_until,"source":self.character.name}
-                    await self.send(f"V-MAX aktywny przez {duration} s. Protect, Shell, Haste, Regen, Preach, Praise i Permanence aktywne. Wybrane skille Meca zmieniają działanie.")
+                    recipients = self.apply_party_boost_v03511(
+                        skill["id"], "V-MAX", 1.30, self.v0319_vmax_until, self.character.name
+                    )
+                    for session in recipients:
+                        session.v03511_party_vmax_until = max(
+                            float(getattr(session, "v03511_party_vmax_until", 0.0) or 0.0),
+                            self.v0319_vmax_until,
+                        )
+                    await self.send(
+                        f"V-MAX aktywny przez {duration} s dla {len(recipients)} członków drużyny w tej lokacji. "
+                        "Wszyscy otrzymują +30 procent do skilli/spelli oraz Protect, Shell i Regen. "
+                        "Mec uruchamiający V-MAX zachowuje też swoje specjalne zmiany skilli."
+                    )
+                    for session in recipients:
+                        if session is self:
+                            continue
+                        await session.send(
+                            f"{self.character.name} aktywuje V-MAX. Przez {duration} s otrzymujesz +30 procent do skilli/spelli oraz Protect, Shell i Regen."
+                        )
                     await self.grant_skill_use_xp(skill); return
 
                 if special in ("cure_beam","heal_beam"):
@@ -2468,11 +2562,15 @@ class SessionSkillsCombatMixin:
             # v0.31.5: V-MAX is a dedicated Mec state used by Cosmic Rave.
             if skill.get("id") == "v0315_mec_vmax":
                 duration = int(skill.get("duration", 30) or 30)
-                self.active_skill_buffs[skill["id"]] = {
-                    "name": "V-MAX", "boost": 1.0, "until": now + duration,
-                    "source": self.character.name,
-                }
-                await self.send(f"V-MAX aktywny przez {duration} sekund. Cosmic Rave wykona teraz 5 losowych trafień.")
+                recipients = self.apply_party_boost_v03511(
+                    skill["id"], "V-MAX", float(skill.get("boost", 1.0) or 1.0),
+                    now + duration, self.character.name
+                )
+                for session in recipients:
+                    session.v03511_party_vmax_until = max(
+                        float(getattr(session, "v03511_party_vmax_until", 0.0) or 0.0), now + duration
+                    )
+                await self.send(f"V-MAX aktywny drużynowo przez {duration} sekund. Cosmic Rave Meca wykona teraz 5 losowych trafień.")
                 await self.grant_skill_use_xp(skill)
                 return
 
@@ -2533,19 +2631,10 @@ class SessionSkillsCombatMixin:
                 scaled_bonus = base_bonus * (1.0 + max(0.0, skill_power - 1.0) * 0.50)
                 scaled_boost = 1.0 + min(0.90, scaled_bonus)
                 duration = GLOBAL_SKILL_BUFF_DURATION_SECONDS
-                recipients = self.server.party_sessions(
-                    self.account_id, same_room=self.character.room_id
-                ) or [self]
-                buff_data = {
-                    "name": skill["name"],
-                    "boost": max(1.0, scaled_boost),
-                    "until": now + duration,
-                    "source": self.character.name,
-                }
-                for session in recipients:
-                    if session.closed or not session.character or session.current_hp <= 0:
-                        continue
-                    session.active_skill_buffs[skill["id"]] = dict(buff_data)
+                recipients = self.apply_party_boost_v03511(
+                    skill["id"], skill["name"], max(1.0, scaled_boost),
+                    now + duration, self.character.name
+                )
                 bonus_pct = int(round((max(1.0, scaled_boost) - 1.0) * 100))
                 total_pct = int(round((self.skill_buff_multiplier() - 1.0) * 100))
                 await self.send(
@@ -2574,11 +2663,18 @@ class SessionSkillsCombatMixin:
                     1,
                     int(round(skill.get("guard", 0) * skill_power * buff_mult)),
                 )
-                self.skill_guard = max(self.skill_guard, scaled_guard)
+                recipients = self.local_party_buff_recipients_v03511()
+                for session in recipients:
+                    session.skill_guard = max(session.skill_guard, scaled_guard)
                 await self.send(
-                    f"Używasz {skill['name']} na Skill Level {skill_level}. "
-                    f"Następne trafienie zostanie dodatkowo zredukowane o {self.skill_guard}."
+                    f"Drużynowy guard {skill['name']} na Skill Level {skill_level}. "
+                    f"{len(recipients)} członków w tej lokacji: następne trafienie każdego zostanie dodatkowo zredukowane o {scaled_guard}."
                 )
+                for session in recipients:
+                    if session is not self:
+                        await session.send(
+                            f"{self.character.name} używa {skill['name']}. Twój następny otrzymany cios zostanie dodatkowo zredukowany o {scaled_guard}."
+                        )
                 await self.grant_skill_use_xp(skill)
                 if mana_cost:
                     await self.send(f"Mana: {self.current_mana} z {self.max_mana()}.")
@@ -2587,11 +2683,18 @@ class SessionSkillsCombatMixin:
                 return
 
             if kind == "evade":
-                self.skill_evade = True
+                recipients = self.local_party_buff_recipients_v03511()
+                for session in recipients:
+                    session.skill_evade = True
                 await self.send(
-                    f"Używasz {skill['name']} na Skill Level {skill_level}. "
-                    f"Następny atak przeciwnika zostanie uniknięty."
+                    f"Drużynowy unik {skill['name']} na Skill Level {skill_level}. "
+                    f"{len(recipients)} członków w tej lokacji uniknie swojego następnego ataku przeciwnika."
                 )
+                for session in recipients:
+                    if session is not self:
+                        await session.send(
+                            f"{self.character.name} używa {skill['name']}. Twój następny atak przeciwnika zostanie automatycznie uniknięty."
+                        )
                 await self.grant_skill_use_xp(skill)
                 if self.combat_mob_key:
                     await self.ensure_realtime_combat()
@@ -2879,7 +2982,7 @@ class SessionSkillsCombatMixin:
             if self_damage:
                 self.current_hp -= self_damage
                 if skill.get("mec_branch")=="feedback" and self.mec_skill_known_v0319("v0319_mec_self_repair"):
-                    _sr_level=int(self.server.db.skill_progress(self.account_id,"v0319_mec_self_repair")["level"]); _sr_p=(max(1,min(400,_sr_level))-1)/399.0
+                    _sr_level=int(self.server.db.skill_progress(self.account_id,"v0319_mec_self_repair")["level"]); _sr_p=(max(1,min(SKILL_MAX_LEVEL,_sr_level))-1)/float(max(1, SKILL_MAX_LEVEL-1))
                     self.v0319_feedback_repair_pool=int(getattr(self,"v0319_feedback_repair_pool",0) or 0)+max(1,int(self_damage*(0.35+0.45*_sr_p)))
                     self.v0319_feedback_repair_at=time.time()+8.0
                 await self.send(
@@ -3234,7 +3337,7 @@ class SessionSkillsCombatMixin:
             await self.send(
                 f"EXP przy obecnej sile postaci: {xp_profile['label']}, "
                 f"mnożnik x{xp_profile['multiplier']:.2f} dla EXP statów, Soul XP i Class XP. "
-                f"Siła postaci {xp_profile['power']}/400, siła przeciwnika około {xp_profile['target']}/400."
+                f"Siła postaci {xp_profile['power']}/{CHARACTER_MAX_LEVEL}, siła przeciwnika około {xp_profile['target']}/{CHARACTER_MAX_LEVEL}."
             )
             await self.send(rating["advice"])
             await self.send(
@@ -3447,6 +3550,9 @@ class SessionSkillsCombatMixin:
                     self.combat_task = None
 
     async def attack(self, query):
+            wanted = (query or "").strip()
+            if wanted and await self.reject_player_attack(wanted):
+                return
             if self.auto_fishing or self.auto_fishing_task:
                 await self.stop_auto_fishing(announce=False)
                 await self.send("Auto-łowienie wyłączone z powodu walki.")
@@ -3473,10 +3579,11 @@ class SessionSkillsCombatMixin:
                     self.combat_mob_key = None
                     current = None
 
-            wanted = (query or "").strip()
             if current and wanted:
                 requested = self.server.world.find_mob(self.character.room_id, wanted)
                 if not requested:
+                    if await self.reject_player_attack(wanted):
+                        return
                     if await self.reject_friendly_npc_attack(wanted):
                         return
                     await self.send("Nie widzę tutaj takiego przeciwnika do zabicia.")
@@ -3500,6 +3607,8 @@ class SessionSkillsCombatMixin:
                 # k <mob>, jeżeli w tym samym pokoju istnieje zabijalny przeciwnik.
                 mob = self.server.world.find_mob(self.character.room_id, wanted)
                 if not mob:
+                    if await self.reject_player_attack(wanted):
+                        return
                     if await self.reject_friendly_npc_attack(wanted):
                         return
                     await self.send("Nie widzę tutaj takiego przeciwnika do zabicia.")
@@ -3779,8 +3888,8 @@ class SessionSkillsCombatMixin:
                 class_xp_reward=min(V019_SAFE_INT,max(0,int(round(v0190_combat_reward(template,"class")*xp_mult))))
                 await session.send_combat(
                     f"Generator v0.19 + dynamiczny EXP v0.23: etap {v0190_mob_stage(template)}, "
-                    f"ranga {v0190_mob_rank(template)}, siła postaci {xp_profile['power']}/400, "
-                    f"siła moba {xp_profile['target']}/400, mnożnik x{xp_profile['multiplier']:.2f}; "
+                    f"ranga {v0190_mob_rank(template)}, siła postaci {xp_profile['power']}/{CHARACTER_MAX_LEVEL}, "
+                    f"siła moba {xp_profile['target']}/{CHARACTER_MAX_LEVEL}, mnożnik x{xp_profile['multiplier']:.2f}; "
                     f"bazowy EXP statów {stat_reward_text}; Soul XP {soul_xp_reward}; Class XP {class_xp_reward}; "
                     f"EXP postaci {character_xp_reward if 'character_xp_reward' in locals() else v0190_combat_reward(template,'character')}.",
                     detail="full",
@@ -3927,11 +4036,11 @@ class SessionSkillsCombatMixin:
 
             for item_id, chance in template["drops"].items():
                 if random.random() <= chance:
-                    # v0.31.16: Skradziona Skrzynia Rudy is a shared party quest
-                    # drop. Roll the configured chance exactly once per troll kill;
-                    # on success every eligible party member in the room receives
-                    # one copy. Other drops keep the historical random-winner rule.
-                    drop_recipients = recipients if item_id == "stolen_mountain_ore" else [random.choice(recipients)]
+                    # v0.35.9: every normal mob drop is shared locally with the
+                    # whole eligible party. Roll the configured chance exactly once
+                    # per defeated mob; on success each present reward recipient gets
+                    # one copy of the same item.
+                    drop_recipients = party_drop_recipients_v0359(item_id, recipients)
                     for winner in drop_recipients:
                         if item_id in globals().get("TECH_COMPONENT_IDS", set()) or ITEMS.get(item_id, {}).get("craftbox_category") == "technology":
                             self.server.db.add_storage_item(winner.account_id, "craftbox", item_id, 1)
@@ -3953,28 +4062,17 @@ class SessionSkillsCombatMixin:
                                     f"{BOSS_COLLECTION_CATALOG[boss_id_for_drop]}."
                                 )
 
-                    if item_id == "stolen_mountain_ore":
-                        for party_session in drop_recipients:
-                            if party_session.loot_message_allowed(item_id):
+                    for party_session in drop_recipients:
+                        if party_session.loot_message_allowed(item_id):
+                            if count > 1:
                                 await party_session.send(
-                                    f"Drop drużynowy: otrzymujesz {ITEMS[item_id]['name']}."
+                                    f"Drop drużynowy: każdy obecny członek otrzymuje "
+                                    f"{ITEMS[item_id]['name']}."
                                 )
-                    else:
-                        winner = drop_recipients[0]
-                        if winner.loot_message_allowed(item_id):
-                            await winner.send(
-                                f"Drop drużyny trafia do ciebie: "
-                                f"{ITEMS[item_id]['name']}."
-                            )
-                        if count > 1:
-                            for party_session in recipients:
-                                if party_session is winner:
-                                    continue
-                                if party_session.loot_message_allowed(item_id):
-                                    await party_session.send(
-                                        f"Drop: {ITEMS[item_id]['name']} otrzymuje "
-                                        f"{winner.character.name}."
-                                    )
+                            else:
+                                await party_session.send(
+                                    f"Drop: otrzymujesz {ITEMS[item_id]['name']}."
+                                )
 
             await self.server.broadcast_room(
                 self.character.room_id,

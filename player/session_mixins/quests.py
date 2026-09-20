@@ -1003,14 +1003,29 @@ class SessionQuestsMixin:
                     f"{name}: Dobrze cię znowu widzieć. Na razie nie mam dla ciebie nowego zadania."
                 )
 
-    async def accept_quest_id(self, quest_id, npc_id=None):
+    async def accept_quest_id(self, quest_id, npc_id=None, _party_shared=False, _party_leader_name=None):
+            """Przyjmij quest; lider automatycznie dzieli przyjęcie z lokalną drużyną.
+
+            v0.36.1: jeśli wywołujący jest liderem drużyny, po własnym udanym
+            przyjęciu ten sam quest jest przyjmowany niezależnie przez każdego
+            żywego członka drużyny stojącego w tej samej lokacji. Każdy gracz
+            zachowuje własny wpis 0/x, wymagania, cooldown, accept_items i progres.
+            Wewnętrzny ``_party_shared`` zapobiega rekurencyjnemu ponownemu
+            rozsyłaniu questa przez członków drużyny.
+            """
             if self.combat_mob_key:
-                await self.send("Nie możesz przyjmować questa podczas walki.")
-                return
+                if _party_shared and _party_leader_name:
+                    await self.send(
+                        f"Nie dołączasz do questa przyjmowanego przez {_party_leader_name}: "
+                        "jesteś w walce."
+                    )
+                else:
+                    await self.send("Nie możesz przyjmować questa podczas walki.")
+                return False
             quest = QUESTS.get(quest_id)
             if not quest:
                 await self.send("Nie znaleziono tego questa.")
-                return
+                return False
 
             row = self.server.db.quest(self.account_id, quest_id)
             if row and row["status"] == "active":
@@ -1020,12 +1035,12 @@ class SessionQuestsMixin:
                     f"Quest już aktywny: {quest['name']}. "
                     f"Postęp {progress} z {quest['needed']}.{suffix}"
                 )
-                return
+                return False
 
             if row and row["status"] == "completed":
                 if not quest.get("repeatable"):
                     await self.send(f"Quest {quest['name']} jest już ukończony.")
-                    return
+                    return False
                 cooldown = int(
                     quest.get("repeat_cooldown", QUEST_REPEAT_COOLDOWN_SECONDS)
                 )
@@ -1037,7 +1052,7 @@ class SessionQuestsMixin:
                         f"Quest {quest['name']} odnawia się za "
                         f"{self.format_duration_short(remaining)}."
                     )
-                    return
+                    return False
 
             reasons = self.quest_lock_reasons(quest_id)
             if reasons:
@@ -1046,12 +1061,17 @@ class SessionQuestsMixin:
                     + ", ".join(reasons)
                     + "."
                 )
-                return
+                return False
 
             repeated = bool(row and row["status"] in ("completed", "abandoned"))
             accept_npc = self.quest_accept_npc_name_v099(quest_id, npc_id)
-            accept_reaction = self.quest_accept_reaction_v099(quest, accept_npc, repeated=repeated)
-            await self.send(f"{accept_npc}: {accept_reaction}")
+            if _party_shared and _party_leader_name:
+                await self.send(
+                    f"Lider {_party_leader_name} przyjmuje dla drużyny quest: {quest['name']}."
+                )
+            else:
+                accept_reaction = self.quest_accept_reaction_v099(quest, accept_npc, repeated=repeated)
+                await self.send(f"{accept_npc}: {accept_reaction}")
 
             if repeated:
                 self.server.db.restart_quest(self.account_id, quest_id)
@@ -1080,6 +1100,52 @@ class SessionQuestsMixin:
 
             await self.send(quest["description"])
             await self.announce_active_quest_progress(quest_id)
+
+            # v0.36.1: tylko faktyczny lider rozsyła przyjęcie dalej i tylko
+            # po własnym poprawnym przyjęciu. Osoby w innym pokoju, offline lub
+            # martwe nie dostają questa. Każdy odbiorca przechodzi własne
+            # wymagania questa/cooldown i zaczyna z własnym postępem 0/x.
+            if not _party_shared:
+                party_key = self.server.party_key_for_account(self.account_id)
+                if party_key is not None and int(party_key) == int(self.account_id):
+                    recipients = [
+                        session
+                        for session in self.server.party_sessions(
+                            self.account_id, same_room=self.character.room_id
+                        )
+                        if session is not self
+                        and session.character
+                        and not session.closed
+                        and int(getattr(session, "current_hp", 0) or 0) > 0
+                    ]
+                    accepted_names = []
+                    skipped_names = []
+                    for member in sorted(
+                        recipients, key=lambda session: session.character.name.lower()
+                    ):
+                        accepted = await member.accept_quest_id(
+                            quest_id,
+                            npc_id=npc_id,
+                            _party_shared=True,
+                            _party_leader_name=self.character.name,
+                        )
+                        if accepted:
+                            accepted_names.append(member.character.name)
+                        else:
+                            skipped_names.append(member.character.name)
+                    if accepted_names:
+                        await self.send(
+                            "Quest przyjęła razem z tobą drużyna: "
+                            + ", ".join(accepted_names)
+                            + "."
+                        )
+                    if skipped_names:
+                        await self.send(
+                            "Nie wszyscy mogli przyjąć ten quest. Pominięto: "
+                            + ", ".join(skipped_names)
+                            + "."
+                        )
+            return True
 
     async def accept_quest_from_context(self, args):
             text = str(args or "").strip()

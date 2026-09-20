@@ -22,7 +22,7 @@ class SessionTechCraftingV03111Mixin:
         for out_id,qty in outputs.items():
             self.server.db.add_storage_item(self.account_id,"craftbox",out_id,qty)
         await self.send("Tech Salvage: " + item["name"] + " -> " + ", ".join(f"{ITEMS[k]['name']} x{v}" for k,v in outputs.items()) + ".")
-        salvage_level=max(1,min(400,int(item.get("required_character_level",item.get("required_mastery",150)) or 150)))
+        salvage_level=max(1,min(CHARACTER_MAX_LEVEL,int(item.get("required_character_level",item.get("required_mastery",150)) or 150)))
         salvage_prof_xp=max(14,14+salvage_level//14+sum(int(v) for v in outputs.values())*2)
         messages,_prof_after,_tool_after=self.grant_profession_progress(
             "Kowalstwo",salvage_prof_xp,"crafting",0,tool_progress=False
@@ -40,12 +40,14 @@ class SessionTechCraftingV03111Mixin:
 
     async def vmax_status_v03111(self):
         await self.mec_refresh_vmax_v0319()
-        now=time.time(); vmax=max(0,int(float(getattr(self,'v0319_vmax_until',0.0) or 0.0)-now+0.999)); over=max(0,int(float(getattr(self,'v0319_overheat_until',0.0) or 0.0)-now+0.999))
+        now=time.time(); vmax=max(0,int(float(getattr(self,'v0319_vmax_until',0.0) or 0.0)-now+0.999)); party_vmax=max(0,int(float(getattr(self,'v03511_party_vmax_until',0.0) or 0.0)-now+0.999)); over=max(0,int(float(getattr(self,'v0319_overheat_until',0.0) or 0.0)-now+0.999))
         will=int(getattr(self.character,'willpower',0) or 0)
         vd,vc=self.server.db.vmax_upgrades_v03114(self.account_id)
         if vmax>0:
             await self.send(f"V-MAX: AKTYWNY. Pozostało {vmax} s. Will {will}. Upgrade: czas {vd}/3, chłodzenie {vc}/2. Efekty: Protect, Shell, Haste, Regen, Preach, Praise, Permanence.")
             await self.send("Zmiany V-MAX: Cosmic Rave = 5 losowych trafień; Shoot-All = większy damage/crit; Starlight Shower = niedyminishing AoE; Kamikaze Crush = wyższy limit HP; Heal Beam = party heal.")
+        elif party_vmax>0:
+            await self.send(f"V-MAX DRUŻYNY: aktywne wsparcie jeszcze {party_vmax} s. Otrzymujesz +30 procent do skilli/spelli oraz Protect, Shell i Regen. Specjalne zmiany skilli Meca wymagają własnej aktywacji V-MAX.")
         elif over>0:
             await self.send(f"V-MAX: OVERHEAT. Pozostało {over} s. Wszystkie statystyki bojowe osłabione; V-MAX zablokowany.")
         else:

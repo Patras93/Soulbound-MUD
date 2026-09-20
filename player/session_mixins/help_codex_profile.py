@@ -96,7 +96,7 @@ class SessionHelpCodexProfileMixin:
                 "north/south/east/west/up/down lub n/s/e/w/u/d - chodzenie; każdy krok najpierw rozpoczyna marsz, potem dopiero przenosi do sąsiedniej lokacji",
                 "prowadz <cel> / walk <cel> - automatycznie prowadzi dokładnie do rozpoznanej lokalizacji lub NPC; działa też walk to <cel>",
                 "walk krypta dół - będąc na piętrze zwykłej Krypty prowadzi przed zejście na następne piętro; samo zejście wykonujesz ręcznie",
-                "/ - sam znak ukośnika i Enter natychmiast teleportuje do Świątyni Odrodzenia",
+                "/ - sam znak ukośnika i Enter natychmiast teleportuje do Świątyni Odrodzenia; w drużynie obejmuje tylko osoby stojące razem w tej samej lokacji",
                 "wimpy set <1-99> - automatyczna ucieczka przy wskazanym procencie HP; wimpy off wyłącza; wimpy pokazuje status",
                 "eventxp / xpevent - status godzinnego eventu x2 EXP; aktywne okno trwa pierwsze 15 minut każdej godziny",
                 "prowadz status - bieżący cel, pozostała droga i następny krok; prowadz stop - natychmiast przerwij prowadzenie",
@@ -131,7 +131,7 @@ class SessionHelpCodexProfileMixin:
                 "portfel - pokazuje wspólną walutę wszystkich postaci na koncie oraz kurs nominałów",
                 "professions / profesje - szybki stan profesji; profesje info - XP, rangi i zasady",
                 "narzedzia / tools - szybki stan narzędzi; narzedzia info - XP, Tiery, bonusy i sprzedawcy",
-                "professions / profesje - 8 profesji 1-400: Wędkarstwo, Górnictwo, Drwalstwo, Zielarstwo, Gotowanie, Alchemia, Kowalstwo, Jubilerstwo",
+                "professions / profesje - 12 profesji 1-600: Wędkarstwo, Górnictwo, Drwalstwo, Zielarstwo, Gotowanie, Alchemia, Kowalstwo, Jubilerstwo, Krawiectwo, Garbarstwo, Stolarstwo, Zaklinanie",
                 "rangi / ranks - pełna lista rang profesji",
                 "tools / narzedzia - skrót wszystkich 8 narzędzi",
                 "wedka / kilof / pila / mlot / noz / sierp / mozdzierz / szczypce - pełne informacje o wybranym narzędziu",
@@ -153,13 +153,13 @@ class SessionHelpCodexProfileMixin:
                 "bag / sakwa - Sakwa górnicza; pokazuje ilość rud i szacowany zarobek",
                 "drewno / stos / woodpile - Stos drewna; pokazuje ilość drewna i szacowany zarobek",
                 "szkatułka / craftbox - Szkatułka Rzemieślnicza podzielona na kategorie: Kowalstwo, Jubilerstwo, Alchemia, Runy, Salvage i pozostałe",
-            "salvage / rozłóż <pełna nazwa EQ> - u Haldora rozkłada niezałożone EQ na materiały do Szkatułki i daje Kowalstwo XP; nie nabija użyć Młota Rzemieślniczego",
+            "salvage / rozłóż <pełna nazwa EQ> - u Haldora rozkłada pojedyncze niezałożone EQ; salvage wszystko / rozłóż wszystko hurtowo rozkłada wszystkie wolne przedmioty obsługiwane przez Salvage, pomijając założone EQ i chroniony Moogle Board; materiały trafiają do Szkatułki, a operacja daje Kowalstwo XP bez nabijania użyć Młota Rzemieślniczego",
             "reforge / przekuj <pełna nazwa EQ> - u Haldora zmienia jeden affix EQ za Esencję Przekucia; próg Biegłości nie zmienia się",
             "runy - informacje, tworzenie i wyjmowanie run; runa <typ> <EQ> osadza runę w endgame EQ",
-            "gildia - Gildia graczy: poziomy 1-400, Siedziba 1-10, budynki, kontrakty, bossowie, skarbiec, rangi, bank, trofea, osiągnięcia, log i czat",
+            "gildia - Gildia graczy: poziomy 1-600, Siedziba 1-10, budynki, kontrakty, bossowie, skarbiec, rangi, bank, trofea, osiągnięcia, log i czat",
             "znajomi - lista znajomych; dodaj/akceptuj/odrzuc/usun; szybkie zaproszenia party i gildia",
             "tell <gracz> <tekst>; reply <tekst> - prywatne wiadomości i szybka odpowiedź do ostatniego nadawcy",
-            "osiagnieciaklasowe - osiągnięcia klas i profesji na progresji 1-400",
+            "osiagnieciaklasowe - osiągnięcia klas i profesji na progresji 1-600",
                 "put fish net / wloz ryba siatka - przenieś ryby do Siatki",
                 "put ore bag / wloz ruda sakwa - przenieś rudy do Sakwy",
                 "take przedmiot net/bag / wyjmij przedmiot siatka/sakwa - wyjmij surowiec",
@@ -285,6 +285,7 @@ class SessionHelpCodexProfileMixin:
                 "evade": "unik",
                 "heal": "leczenie",
                 "group_heal": "leczenie drużynowe",
+                "utility": "narzędzie użytkowe / trwałe ulepszenie",
             }.get(kind, str(kind or "nieznany"))
 
     def skill_help_scale_label(self, scale):
@@ -564,7 +565,7 @@ class SessionHelpCodexProfileMixin:
                     )
             elif item.get("type") == "tool":
                 tool = "Wędka" if item.get("tool_type") == "fishing" else "Kilof"
-                parts.append(f"Narzędzie profesji: {tool}. Ma własny poziom 1-400 i osobny XP.")
+                parts.append(f"Narzędzie profesji: {tool}. Ma własny poziom 1-600 i osobny XP.")
             elif "heal" in item:
                 parts.append(f"Leczenie: {item['heal']} HP.")
             elif "soul_xp" in item:
@@ -981,7 +982,7 @@ class SessionHelpCodexProfileMixin:
                 await self.send(
                     "Mithril nie jest rudą w Sakwie. Od Kilofa 80, Górnictwa 80 i poziomu kopalni 80 "
                     "może wypaść bezpośrednio jako waluta do wspólnego portfela. "
-                    "Szansa rośnie od 0,5 procent do 2 procent na poziomie 400 i nie zastępuje zwykłej rudy."
+                    "Szansa rośnie od 0,5 procent do 2 procent na poziomie 600 i nie zastępuje zwykłej rudy."
                 )
                 return
 
@@ -1743,7 +1744,7 @@ class SessionHelpCodexProfileMixin:
             await self.send(f"Mana: {self.current_mana} z {self.max_mana()}.")
 
     async def show_character_level(self):
-            """Krótki Poziom postaci 1-400, niezależny od Soul Levelu."""
+            """Krótki Poziom postaci 1-600, niezależny od Soul Levelu."""
             c = self.character
             if c.character_level >= CHARACTER_MAX_LEVEL:
                 await self.send(f"Poziom postaci: {CHARACTER_MAX_LEVEL}/{CHARACTER_MAX_LEVEL}. Maksymalny poziom.")
@@ -1778,7 +1779,7 @@ class SessionHelpCodexProfileMixin:
             await self.send(f"Postać: {c.name}.")
             await self.send(f"Rasa: {c.race}.")
             await self.send(f"Klasa główna: {c.class_name}.")
-            await self.send(f"Poziom postaci: {c.character_level}/400. EXP: {c.character_xp} z {character_xp_to_next(c.character_level) if c.character_level < 400 else 0}.")
+            await self.send(f"Poziom postaci: {c.character_level}/{CHARACTER_MAX_LEVEL}. EXP: {c.character_xp} z {character_xp_to_next(c.character_level) if c.character_level < CHARACTER_MAX_LEVEL else 0}.")
             for class_name in active_classes:
                 await self.send(
                     f"Biegłość {class_name}: {self.class_mastery_level(class_name)}/{CLASS_MASTERY_MAX_LEVEL}."
@@ -1810,13 +1811,13 @@ class SessionHelpCodexProfileMixin:
                 label, target, power = self.exp_area_dynamic_threat(area, room_id=c.room_id)
                 await self.send(f"Ocena terenu dla tej postaci: {label}.")
                 await self.send(
-                    f"Orientacyjna siła progresji: {power}/400. Próg terenu: {target}/400."
+                    f"Orientacyjna siła progresji: {power}/{CHARACTER_MAX_LEVEL}. Próg terenu: {target}/{CHARACTER_MAX_LEVEL}."
                 )
             else:
                 await self.send(
-                    f"Orientacyjna siła progresji: {self.character_progression_power()}/400."
+                    f"Orientacyjna siła progresji: {self.character_progression_power()}/{CHARACTER_MAX_LEVEL}."
                 )
-            await self.send("Wszystkie główne osie progresji 1-400 korzystają z Generator Core.")
+            await self.send("Wszystkie główne osie progresji 1-600 korzystają z Generator Core.")
 
     async def show_stats(self, mode=""):
             mode = self.normalize_description_query(mode)
@@ -2240,9 +2241,9 @@ class SessionHelpCodexProfileMixin:
                 return
 
             await self.send("DUSZA INFO")
-            await self.send("Soul Level jest osobnym rozwojem Broni Duszy 1-400. Nie jest levelem postaci.")
+            await self.send("Soul Level jest osobnym rozwojem Broni Duszy 1-600. Nie jest levelem postaci.")
             await self.send("Soul Level zatrzymuje się na progu następnego Tieru. Dalszy Soul XP rusza dopiero po ukończeniu Próby i użyciu unlock.")
-            await self.send("Stare progi skilli do 200 odblokuje Biegłość właściwej klasy; sama Biegłość rozwija się do 400, nie Soul Level.")
+            await self.send("Stare progi skilli do 200 odblokuje Biegłość właściwej klasy; sama Biegłość rozwija się do 600, nie Soul Level.")
             await self.send(f"Broń Duszy: {c.soul_weapon}.")
             await self.send(f"Soul Level: {c.soul_level}/{SOUL_MAX_LEVEL}.")
             await self.send(f"Soul Tier: {c.soul_tier}/{SOUL_MAX_TIER}.")
@@ -2250,7 +2251,7 @@ class SessionHelpCodexProfileMixin:
             if c.soul_weapon_mastery_level < SOUL_WEAPON_MASTERY_MAX_LEVEL:
                 await self.send(f"Mastery XP: {c.soul_weapon_mastery_xp} z {c.soul_weapon_mastery_xp_to_next()}. XP wpada tylko za zwykłe trafienia Bronią Duszy.")
             else:
-                await self.send("Mastery XP: maksimum. Soul Weapon Mastery 400.")
+                await self.send("Mastery XP: maksimum. Soul Weapon Mastery 600.")
             _mastery = c.soul_weapon_mastery_bonus()
             await self.send(
                 f"Premie Mastery: +{_mastery['damage_percent']:.1f}% obrażeń podstawowego ataku; "
@@ -2269,7 +2270,7 @@ class SessionHelpCodexProfileMixin:
                     await self.send(f"Soul XP: {c.soul_xp} z {c.soul_xp_to_next()}.")
                     await self.send(f"Mnożnik wymaganego Soul XP: x{c.soul_xp_multiplier():.2f}.")
             else:
-                await self.send("Soul XP: maksimum. Soul Level 400.")
+                await self.send("Soul XP: maksimum. Soul Level 600.")
             await self.send(f"Bonus klasowy Broni Duszy: {c.soul_weapon_class_bonus_text()}.")
             trait = soul_weapon_trait_for_tier(c.soul_tier, c.class_name)
             totals = soul_weapon_trait_totals(c.soul_tier, c.class_name)

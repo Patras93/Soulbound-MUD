@@ -97,14 +97,124 @@ class SessionSocialExpansionMixin:
             extras=', '.join(x for x in (guild and f"gildia {guild}",role,afk and 'AFK',party) if x)
             await self.send(f"{c.name}: {classes}, Soul {c.soul_level}{title}" + (f", {extras}" if extras else '') + '.')
 
+    def _profile_time_v0363(self, ts):
+        try:
+            ts=int(ts or 0)
+        except Exception:
+            ts=0
+        if ts <= 0:
+            return "brak danych"
+        return time.strftime("%Y-%m-%d %H:%M:%S UTC", time.gmtime(ts))
+
     async def whois_v03051(self,args=''):
-        aid=self._social_target_id_v03051(args)
-        if aid is None: await self.send("Użycie: whois <gracz>."); return
-        row=self.server.db.conn.execute("SELECT * FROM characters WHERE account_id=?",(aid,)).fetchone()
-        if not row: await self.send("Brak profilu."); return
-        name=row['name']; title=row['active_title'] or 'brak'; guild=self._guild_name_v03051(aid) or 'brak'; mastery=self.server.db.conn.execute("SELECT COALESCE(MAX(level),1) mx FROM class_progress WHERE account_id=?",(aid,)).fetchone()['mx']; ach=self.server.db.conn.execute("SELECT COUNT(*) n FROM achievements WHERE account_id=?",(aid,)).fetchone()['n']; prows=self.server.db.conn.execute("SELECT profession,level FROM professions WHERE account_id=? ORDER BY level DESC,profession LIMIT 8",(aid,)).fetchall(); prof=', '.join(f"{r['profession']} {r['level']}" for r in prows) or 'brak'; bosses=self.server.db.conn.execute("SELECT COALESCE(SUM(kills),0) n FROM bestiary WHERE account_id=?",(aid,)).fetchone() if self.server.db.conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='bestiary'").fetchone() else None
-        await self.send(f"PROFIL {name}. Tytuł: {title}. Klasa: {row['class_name']}. Biegłość max {mastery}. Soul Level {row['soul_level']}. Gildia: {guild}. Osiągnięcia: {ach}. Profesje: {prof}.")
-        await self.records_v03051(str(name), compact=True)
+        raw=str(args or '').strip()
+        aid=self._social_target_id_v03051(raw)
+        if aid is None:
+            await self.send("Użycie: profil <gracz>. Działa także dla graczy offline.")
+            return
+        conn=self.server.db.conn
+        row=conn.execute("SELECT * FROM characters WHERE account_id=?",(aid,)).fetchone()
+        if not row:
+            await self.send("Brak profilu.")
+            return
+
+        name=str(row['name'])
+        online_session=self.server.find_character_session(name)
+        online=bool(online_session and not online_session.closed and online_session.character)
+        presence=self.server.db.player_presence_v0363(aid)
+        if online:
+            status="online teraz"
+        elif presence and int(presence['last_seen_ts'] or 0)>0:
+            status=f"offline; ostatnio widziany {self._profile_time_v0363(presence['last_seen_ts'])}"
+        else:
+            status="offline; brak zapisanego czasu ostatniej obecności"
+
+        title=(row['active_title'] if 'active_title' in row.keys() else '') or 'brak'
+        guild_row=conn.execute(
+            "SELECT c.name,c.level,m.rank FROM player_clan_members m JOIN player_clans c ON c.id=m.clan_id WHERE m.account_id=?",
+            (aid,),
+        ).fetchone()
+        guild=(f"{guild_row['name']} (poziom {int(guild_row['level'])}, ranga {guild_row['rank']})" if guild_row else "brak")
+
+        classes=conn.execute(
+            "SELECT class_name,level,xp,active_slot FROM class_progress WHERE account_id=? ORDER BY CASE WHEN active_slot IS NULL THEN 99 ELSE active_slot END, level DESC, class_name",
+            (aid,),
+        ).fetchall()
+        class_text=', '.join(
+            f"{r['class_name']} {int(r['level'])}" + (f" [slot {int(r['active_slot'])}]" if r['active_slot'] is not None else "")
+            for r in classes
+        ) or f"{row['class_name']} 1"
+
+        prof_rows=conn.execute("SELECT profession,level,xp FROM professions WHERE account_id=? ORDER BY profession",(aid,)).fetchall()
+        prof_text=', '.join(f"{r['profession']} {int(r['level'])}" for r in prof_rows) or 'brak'
+        tool_rows=conn.execute("SELECT tool_type,level,xp FROM tools WHERE account_id=? ORDER BY tool_type",(aid,)).fetchall()
+        tool_labels={
+            'fishing':'Wędka','mining':'Kilof','woodcutting':'Piła','herbalism':'Sierp',
+            'cooking':'Narzędzie kucharskie','alchemy':'Narzędzie alchemiczne','blacksmithing':'Młot',
+            'jewelcrafting':'Narzędzie jubilerskie','tailoring':'Zestaw krawiecki',
+            'leatherworking':'Nóż garbarski','carpentry':'Narzędzia ciesielskie','enchanting':'Fokus runiczny',
+        }
+        tool_text=', '.join(f"{tool_labels.get(r['tool_type'],r['tool_type'])} {int(r['level'])}" for r in tool_rows) or 'brak'
+
+        wt=conn.execute("SELECT tier FROM world_tier_settings_v021 WHERE account_id=?",(aid,)).fetchone()
+        world_tier=int(wt['tier']) if wt else 1
+        asc_rows=conn.execute("SELECT track,rank FROM ascension_progress_v021 WHERE account_id=? ORDER BY track",(aid,)).fetchall()
+        asc_text=', '.join(f"{r['track']} {int(r['rank'])}" for r in asc_rows) or 'brak'
+
+        ach=int(conn.execute("SELECT COUNT(*) n FROM achievements WHERE account_id=?",(aid,)).fetchone()['n'])
+        unlocked_titles=int(conn.execute("SELECT COUNT(*) n FROM unlocked_titles WHERE account_id=?",(aid,)).fetchone()['n'])
+        qrow=conn.execute("SELECT SUM(CASE WHEN status='completed' THEN 1 ELSE 0 END) done, COUNT(*) total FROM quests WHERE account_id=?",(aid,)).fetchone()
+        q_done=int(qrow['done'] or 0); q_total=int(qrow['total'] or 0)
+        bstats=conn.execute("SELECT COALESCE(SUM(kills),0) kills, COUNT(*) species FROM bestiary_stats WHERE account_id=?",(aid,)).fetchone()
+        kills=int(bstats['kills'] or 0); species=int(bstats['species'] or 0)
+        deepest=int(conn.execute("SELECT COALESCE(MAX(floor),0) v FROM boss_floor_clears WHERE account_id=?",(aid,)).fetchone()['v'])
+        mine=conn.execute("SELECT max_floor_unlocked FROM mine_progress WHERE account_id=?",(aid,)).fetchone()
+        mine_floor=int(mine['max_floor_unlocked']) if mine else 1
+        gaunt=conn.execute("SELECT best_round FROM endless_gauntlet_progress_v021 WHERE account_id=?",(aid,)).fetchone()
+        gaunt_round=int(gaunt['best_round']) if gaunt else 0
+        crit=conn.execute("SELECT value FROM player_records_v03051 WHERE account_id=? AND record_key='biggest_crit'",(aid,)).fetchone()
+        fish=conn.execute("SELECT COALESCE(MAX(best_weight_g),0) v FROM fish_journal WHERE account_id=?",(aid,)).fetchone()
+        biggest_crit=int(crit['value']) if crit else 0
+        biggest_fish=int(fish['v'] or 0)
+
+        room_id=str(row['room_id'] or '')
+        room_name=str((ROOMS.get(room_id) or {}).get('name') or room_id or 'brak')
+        if online and online_session and online_session.character:
+            room_id=str(online_session.character.room_id or room_id)
+            room_name=str((ROOMS.get(room_id) or {}).get('name') or room_id or 'brak')
+
+        await self.send(f"PROFIL {name}. Status: {status}.")
+        await self.send(f"Tożsamość: rasa {row['race']}; główna klasa {row['class_name']}; tytuł {title}; Gildia: {guild}.")
+        await self.send(f"Level postaci: {int(row['character_level'])}/600; Character XP {int(row['character_xp'])}. Klasy/Biegłość: {class_text}.")
+        await self.send(f"Broń Duszy: {row['soul_weapon']}; Soul Level {int(row['soul_level'])}/600; Soul Tier {int(row['soul_tier'])}/60; Soul Weapon Mastery {int(row['soul_weapon_mastery_level'])}/600.")
+        await self.send(
+            "Statystyki: "
+            f"Siła {int(row['strength'])}; Zręczność {int(row['dexterity'])}; Kondycja {int(row['constitution'])}; "
+            f"Inteligencja {int(row['intelligence'])}; Siła Woli {int(row['willpower'])}; Charyzma {int(row['charisma'])}."
+        )
+        await self.send(f"Profesje: {prof_text}.")
+        await self.send(f"Narzędzia: {tool_text}.")
+        await self.send(f"Endgame: World Tier {world_tier}; Wzniesienie: {asc_text}; najgłębszy boss/loch {deepest}; Kopalnia piętro {mine_floor}; Endless Gauntlet rekord {gaunt_round}.")
+        await self.send(f"Postęp: osiągnięcia {ach}; odblokowane tytuły {unlocked_titles}; questy ukończone {q_done}, zapisanych questów {q_total}; Bestiariusz: {species} wpisów i {kills} zabójstw; zgony {int(row['deaths'])}.")
+        await self.send(f"Rekordy: największy krytyk {biggest_crit}; najcięższa ryba {biggest_fish} g. Ostatnia/zapisana lokacja: {room_name}.")
+
+        if presence:
+            await self.send(
+                f"Obecność: ostatnie logowanie {self._profile_time_v0363(presence['last_login_ts'])}; "
+                f"ostatnie wylogowanie {self._profile_time_v0363(presence['last_logout_ts'])}; "
+                f"liczba wejść do świata od v0.36.3: {int(presence['login_count'] or 0)}."
+            )
+
+        privacy=conn.execute("SELECT inspect_enabled FROM player_profile_privacy_v03051 WHERE account_id=?",(aid,)).fetchone()
+        eq_visible=(privacy is None or bool(privacy['inspect_enabled']) or int(aid)==int(self.account_id))
+        if eq_visible:
+            eq_rows=conn.execute("SELECT slot,item_id FROM equipment WHERE account_id=? ORDER BY slot",(aid,)).fetchall()
+            eq_text=', '.join(f"{r['slot']}: {player_item_display_name_v0335(r['item_id'])}" for r in eq_rows) or 'brak założonego EQ'
+            await self.send(f"EQ: {eq_text}.")
+        else:
+            await self.send("EQ: ukryte przez ustawienie inspectprivacy tego gracza.")
+
+        await self.send("Profil nie ujawnia loginu, hasła, poczty, banku ani innych prywatnych danych konta.")
 
     async def handle_mail_v03051(self,args=''):
         raw=str(args or '').strip(); conn=self.server.db.conn; parts=raw.split(maxsplit=2); action=normalize_lookup_text(parts[0]) if parts else 'lista'

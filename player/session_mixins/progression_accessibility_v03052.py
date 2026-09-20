@@ -31,7 +31,7 @@ class SessionProgressionAccessibilityV03052Mixin:
         db=self.server.db; aid=self.account_id
         discovered=db.discovered_room_ids(aid); world_total=len(ROOMS); world=len(discovered.intersection(ROOMS.keys()))
         prof_rows=db.conn.execute("SELECT level FROM professions WHERE account_id=?",(aid,)).fetchall()
-        prof_score=sum(min(400,int(r['level'] or 1)) for r in prof_rows); prof_total=max(1,len(prof_rows)*400)
+        prof_score=sum(min(PROFESSION_MAX_LEVEL,int(r['level'] or 1)) for r in prof_rows); prof_total=max(1,len(prof_rows)*PROFESSION_MAX_LEVEL)
         bosses=set(self.codex_boss_ids()); br=db.conn.execute("SELECT mob_template_id FROM bestiary_stats WHERE account_id=? AND kills>0",(aid,)).fetchall(); boss_score=len({str(r['mob_template_id']) for r in br}&bosses)
         coll_c=coll_t=0
         for cat,catalog in COLLECTION_CATALOGS.items():

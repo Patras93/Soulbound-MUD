@@ -1086,6 +1086,7 @@ HELP_TOPICS = {
     ],
     "walka": [
         "Walka działa w czasie rzeczywistym. atakuj <mob> i k <mob> rozpoczynają starcie z wybranym zabijalnym mobem.",
+        "PvP jest wyłączone. Gracze nie mogą atakować, ranić ani zabijać innych graczy; ofensywne skille i AoE wybierają wyłącznie moby.",
         "combat — pokazuje aktualny filtr logu walki.",
         "combat concise — minimalny log pod NVDA: kluczowe wydarzenia, mechaniki bossa, ostrzeżenia HP, zwycięstwo, śmierć i najważniejsze nagrody.",
         "combat normal — domyślny tryb: czyta zwykłe trafienia i używane skille, ale ogranicza techniczne szczegóły redukcji oraz Skill XP podczas walki.",

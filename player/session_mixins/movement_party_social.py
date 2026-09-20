@@ -358,8 +358,8 @@ class SessionMovementPartySocialMixin:
             ):
                 await self.send(
                     f"UWAGA: przed tobą gwałtowny wzrost zagrożenia. "
-                    f"Docelowy poziom około {target_danger}/400, "
-                    f"twoja siła około {player_power}/400. "
+                    f"Docelowy poziom około {target_danger}/{CHARACTER_MAX_LEVEL}, "
+                    f"twoja siła około {player_power}/{CHARACTER_MAX_LEVEL}. "
                     f"Ocena: {v0866_threat_label(target_danger, player_power)}."
                 )
 
@@ -738,37 +738,22 @@ class SessionMovementPartySocialMixin:
             members.discard(self.account_id)
 
             if self.account_id == key:
-                if members:
-                    candidates = [
-                        self.server.session_by_account(member_id)
-                        for member_id in members
-                    ]
-                    candidates = [s for s in candidates if s]
-                    if candidates:
-                        new_leader = sorted(
-                            candidates,
-                            key=lambda s: s.character.name.lower(),
-                        )[0]
-                        self.server.parties[new_leader.account_id] = set(members)
-                        self.server.parties.pop(key, None)
-                        if protector_id in members:
-                            self.server.party_protectors.pop(key, None)
-                            self.server.party_protectors[new_leader.account_id] = protector_id
-                        else:
-                            self.server.party_protectors.pop(key, None)
-                        for invited_id, leader_id in list(self.server.party_invites.items()):
-                            if leader_id == key:
-                                self.server.party_invites[invited_id] = new_leader.account_id
-                        await self.server.party_broadcast(
-                            new_leader.account_id,
-                            f"{new_leader.character.name} zostaje nowym liderem drużyny."
+                # v0.36.0: lider nie przekazuje już przywództwa. Jego wyjście
+                # zawsze rozwiązuje drużynę, niezależnie od tego, ilu członków zostało.
+                for member_id in list(members):
+                    session = self.server.session_by_account(member_id)
+                    if session:
+                        await session.send(
+                            f"Lider {self.character.name} opuszcza drużynę. Drużyna została rozwiązana."
                         )
-                    else:
-                        self.server.parties.pop(key, None)
-                        self.server.party_protectors.pop(key, None)
-                else:
-                    self.server.parties.pop(key, None)
-                    self.server.party_protectors.pop(key, None)
+                self.server.parties.pop(key, None)
+                self.server.party_protectors.pop(key, None)
+                for invited_id, leader_id in list(self.server.party_invites.items()):
+                    if leader_id == key:
+                        self.server.party_invites.pop(invited_id, None)
+                if announce:
+                    await self.send("Opuszczasz drużynę. Drużyna została rozwiązana.")
+                return True
             else:
                 self.server.parties[key] = members
                 await self.server.party_broadcast(
@@ -1115,7 +1100,7 @@ class SessionMovementPartySocialMixin:
                 )
 
     def character_progression_power(self):
-            """Generated combat progression estimate 1-400, including Character Level."""
+            """Generated combat progression estimate 1-600, including Character Level."""
             return self.combat_xp_power_v023()
 
     def exp_area_target_power(self, area, room_id=None):
@@ -1133,7 +1118,7 @@ class SessionMovementPartySocialMixin:
             if room_id:
                 profile = v0866_room_threat_profile(room_id, fallback=static_target)
                 if profile["normal_count"] or profile["variant_count"] or profile["boss_count"]:
-                    return max(1, min(400, int(profile["target"])))
+                    return max(1, min(CHARACTER_MAX_LEVEL, int(profile["target"])))
 
             # v0.8.66: dla listy expowisk bez konkretnego pokoju bierzemy
             # realny próg wejściowy z lokacji wskazanych przez guide. Dzięki temu
@@ -1154,16 +1139,16 @@ class SessionMovementPartySocialMixin:
                     if profile["normal_count"] or profile["variant_count"]:
                         direct_targets.append(int(profile["target"]))
                 if direct_targets:
-                    return max(1, min(400, min(direct_targets)))
+                    return max(1, min(CHARACTER_MAX_LEVEL, min(direct_targets)))
                 zone_entries = []
                 for zone in zones:
                     profile = v0866_zone_threat_profile(zone)
                     if profile.get("min") is not None:
                         zone_entries.append(int(profile["min"]))
                 if zone_entries:
-                    return max(1, min(400, min(zone_entries)))
+                    return max(1, min(CHARACTER_MAX_LEVEL, min(zone_entries)))
 
-            return max(1, min(400, static_target))
+            return max(1, min(CHARACTER_MAX_LEVEL, static_target))
 
     def exp_area_dynamic_threat(self, area, room_id=None):
             power = self.character_progression_power()
@@ -1175,7 +1160,7 @@ class SessionMovementPartySocialMixin:
             """Zwraca zakres Levelu postaci właściwy dla terenu.
 
             Stare pola soul_min/mastery_min są traktowane tylko jako dane zgodności.
-            Dla nazwanych regionów endgame zachowujemy jawne zakresy 300-400
+            Dla nazwanych regionów endgame zachowujemy jawne zakresy 300-600
             zapisane w ich kategorii difficulty.
             """
             difficulty = str(area.get("difficulty") or "")
@@ -1206,7 +1191,7 @@ class SessionMovementPartySocialMixin:
             return next((a for a in EXP_AREAS if a.get("id") == area_id), None)
 
     def combat_xp_power_v023(self):
-            """Generator-based combat power 1-400 across all progression axes."""
+            """Generator-based combat power 1-600 across all progression axes."""
             active = self.active_class_names()
             masteries = [self.class_mastery_level(name) for name in active] or [1]
             highest_mastery = max(masteries)
@@ -1216,26 +1201,26 @@ class SessionMovementPartySocialMixin:
                 self.effective_constitution(), self.effective_intelligence(),
                 self.effective_willpower(),
             )
-            average_stats = min(400.0, sum(combat_stats) / len(combat_stats))
+            average_stats = min(float(CHARACTER_MAX_LEVEL), sum(combat_stats) / len(combat_stats))
             gear_levels = []
             for row in self.server.db.equipment(self.account_id):
                 item = ITEMS.get(row["item_id"], {})
                 gear_levels.append(int(item.get("generator_level", 1) or 1))
-            gear_power = min(400.0, (sum(gear_levels) / len(gear_levels)) if gear_levels else 1.0)
-            character_level = max(1, min(400, int(getattr(self.character, "character_level", 1) or 1)))
+            gear_power = min(float(CHARACTER_MAX_LEVEL), (sum(gear_levels) / len(gear_levels)) if gear_levels else 1.0)
+            character_level = max(1, min(CHARACTER_MAX_LEVEL, int(getattr(self.character, "character_level", 1) or 1)))
             # Generated axes share the budget; no historical 1-200 branch remains.
             score = (
                 character_level * 0.22
                 + highest_mastery * 0.28
                 + average_mastery * 0.08
-                + min(400.0, int(self.character.soul_level)) * 0.16
+                + min(float(SOUL_MAX_LEVEL), int(self.character.soul_level)) * 0.16
                 + average_stats * 0.10
                 + gear_power * 0.16
             )
-            return max(1, min(400, int(round(score))))
+            return max(1, min(CHARACTER_MAX_LEVEL, int(round(score))))
 
     def dynamic_kill_xp_profile(self, template, room_id=None):
-            """Płynnie skaluje CAŁY EXP z zabicia do relacji siły 1-400.
+            """Płynnie skaluje CAŁY EXP z zabicia do relacji siły 1-600.
 
             Mob silniejszy od postaci daje premię za ryzyko. Ten sam przeciwnik
             daje coraz mniej, kiedy postać rozwija Biegłość, Soul Level, staty i
@@ -1328,7 +1313,7 @@ class SessionMovementPartySocialMixin:
             return (
                 f"Kategoria bazowa: {base}. "
                 f"Dla twojej obecnej postaci: {dynamic}. "
-                f"Siła postaci {power}/400, próg terenu około {target}/400"
+                f"Siła postaci {power}/{CHARACTER_MAX_LEVEL}, próg terenu około {target}/{CHARACTER_MAX_LEVEL}"
             )
 
     def resolve_terrain_zone(self, query):
@@ -1496,13 +1481,13 @@ class SessionMovementPartySocialMixin:
             if balance_profile.get("median") is not None:
                 await self.send(
                     f"Realna siła zwykłych części terenu: od {balance_profile['min']} "
-                    f"do {balance_profile['max']} na skali 1-400. "
+                    f"do {balance_profile['max']} na skali 1-600. "
                     f"Mediana {balance_profile['median']}, górne 20 procent około {balance_profile['p80']}."
                 )
             if balance_profile.get("boss_max") is not None:
                 await self.send(
                     f"Bossowie tej strefy: orientacyjna siła od {balance_profile['boss_min']} "
-                    f"do {balance_profile['boss_max']} na skali 1-400."
+                    f"do {balance_profile['boss_max']} na skali 1-600."
                 )
             if areas:
                 soul_min = min(int(area["soul_min"]) for area in areas)
@@ -1589,7 +1574,7 @@ class SessionMovementPartySocialMixin:
                 await self.send(
                     f"POLECANE EXPOWISKA. "
                     f"Soul Level: {self.character.soul_level}. "
-                    f"Orientacyjna siła postaci: {self.character_progression_power()}/400."
+                    f"Orientacyjna siła postaci: {self.character_progression_power()}/{CHARACTER_MAX_LEVEL}."
                 )
                 if not areas:
                     await self.send(
@@ -1619,7 +1604,7 @@ class SessionMovementPartySocialMixin:
 
             await self.send(
                 f"EXPOWISKA. Soul Level: {self.character.soul_level}. "
-                f"Orientacyjna siła postaci: {self.character_progression_power()}/400."
+                f"Orientacyjna siła postaci: {self.character_progression_power()}/{CHARACTER_MAX_LEVEL}."
             )
             await self.send(
                 "Tereny mają kategorię bazową: Początkujący, Umiarkowany, Trudny, "

@@ -398,19 +398,19 @@ def _boss_floor_chest_spec(room_id):
     """Zwraca opis skrzyni bossowej dla piętra co 10 lub None."""
     floor = giant_fortress_floor_number(room_id)
     if is_giant_fortress_boss_floor(floor):
-        return ("giant", floor, min(400, max(20, floor * 2)))
+        return ("giant", floor, min(CHARACTER_MAX_LEVEL, max(20, floor * 2)))
     floor = crypt_floor_number(room_id)
     if is_crypt_boss_floor(floor):
-        return ("crypt", floor, min(400, floor))
+        return ("crypt", floor, min(CHARACTER_MAX_LEVEL, floor))
     floor = astral_floor_number(room_id)
     if is_astral_boss_floor(floor):
-        return ("astral", floor, min(400, floor))
+        return ("astral", floor, min(CHARACTER_MAX_LEVEL, floor))
     floor = mythic_crypt_floor_number(room_id)
     if is_mythic_crypt_boss_floor(floor):
-        return ("mythic_crypt", floor, min(400, 100 + floor // 2))
+        return ("mythic_crypt", floor, min(CHARACTER_MAX_LEVEL, 100 + floor // 2))
     floor = mythic_astral_floor_number(room_id)
     if is_mythic_astral_boss_floor(floor):
-        return ("mythic_astral", floor, min(400, 110 + floor // 2))
+        return ("mythic_astral", floor, min(CHARACTER_MAX_LEVEL, 110 + floor // 2))
     return None
 
 BOSS_CHEST_KIND_NAMES = {
@@ -479,7 +479,7 @@ def roll_crafting_xp(base_value, variance=0.15):
     return generator_core_v027.crafting_xp_roll(base_value, random.random())
 
 def boss_chest_reward_roll(kind, floor, power):
-    power = max(1, min(400, int(power)))
+    power = max(1, min(CHARACTER_MAX_LEVEL, int(power)))
     floor = int(floor)
     # Gwarantowane złoto, ale kwota pozostaje umiarkowana względem bossa.
     base_gold = {
@@ -682,7 +682,7 @@ V0925_AFFIX_PL = {
     "strength":"Siła", "dexterity":"Zręczność", "constitution":"Kondycja",
     "intelligence":"Inteligencja", "willpower":"Siła Woli", "hp":"HP", "mana":"Mana",
 }
-V0925_MASTERY_MILESTONES = (1, 50, 100, 150, 200, 250, 300, 350, 400)
+V0925_MASTERY_MILESTONES = (1, 50, 100, 150, 200, 250, 300, 350, 400, 450, 500, 550, 600)
 
 def v0925_item_material_key(item):
     key = str(item.get("corpse_material") or item.get("blacksmith_material") or "").strip()
@@ -719,7 +719,7 @@ def v03041_salvage_material_key(item):
     for marker, key in tests:
         if marker in name:
             return key
-    level = max(1, min(400, int(
+    level = max(1, min(CHARACTER_MAX_LEVEL, int(
         item.get("required_character_level", item.get("required_mastery", 1)) or 1
     )))
     if level >= 360: return "eternium"
@@ -748,13 +748,13 @@ V03042_UPGRADE_SLOT_FALLBACK_STAT = {
 V03042_MAIN_STATS = ("strength", "dexterity", "constitution", "intelligence", "willpower")
 
 def v03042_equipment_level(item):
-    return max(1, min(400, int(
+    return max(1, min(CHARACTER_MAX_LEVEL, int(
         item.get("required_character_level", item.get("required_mastery", 1)) or 1
     )))
 
 def v03042_upgrade_required_smithing(item, target_upgrade):
     target_upgrade = max(1, min(V03042_EQ_UPGRADE_MAX, int(target_upgrade)))
-    return min(400, v03042_equipment_level(item) + (target_upgrade - 1) * 5)
+    return min(PROFESSION_MAX_LEVEL, v03042_equipment_level(item) + (target_upgrade - 1) * 5)
 
 def v03042_upgrade_material_cost(item, target_upgrade):
     target_upgrade = max(1, min(V03042_EQ_UPGRADE_MAX, int(target_upgrade)))
@@ -797,6 +797,7 @@ def v03042_upgraded_display_name(item_name, upgrade_level):
 
 def v0925_equipment_socket_count(item):
     mastery = int(item.get("required_mastery", 1) or 1)
+    if mastery >= 500: return 4
     if mastery >= 400: return 3
     if mastery >= 300: return 2
     if mastery >= 200: return 1
@@ -839,8 +840,9 @@ V0925_CRAFTBOX_ALIASES = {
 # ============================================================
 # v0.9.26 - GILDIA GRACZY: SKARBIEC / ROZWÓJ / RANGI
 # ============================================================
-V0926_GUILD_MAX_LEVEL = 400
+V0926_GUILD_MAX_LEVEL = 600
 V0926_GUILD_LEGACY_MAX_LEVEL = 100
+V0926_GUILD_PREVIOUS_CAP = 400
 V0926_GUILD_DEFAULT_ROLES = {
     "member": {
         "name": "Członek", "priority": 10,
@@ -867,28 +869,50 @@ V0926_GUILD_PERMISSION_LABELS = {
     "kick": "wyrzucanie niższych rang",
 }
 
+def _v0926_legacy_guild_anchor_400():
+    # v0.35.11 używało Generator Core MAX_LEVEL=400 jako kotwicy kosztu.
+    # Wyliczamy tę samą wartość bez zależności od nowego globalnego capu 600.
+    old_max = int(generator_core_v027.MAX_LEVEL)
+    try:
+        generator_core_v027.MAX_LEVEL = V0926_GUILD_PREVIOUS_CAP
+        return generator_core_v027.system_cost(V0926_GUILD_PREVIOUS_CAP, "guild-level", 300.0)
+    finally:
+        generator_core_v027.MAX_LEVEL = old_max
+
 def v0926_guild_upgrade_cost(current_level):
-    """Koszt rozwoju Gildii 1-400. Poziomy 1-100 zachowują historyczną krzywą 1:1."""
+    """Koszt rozwoju Gildii 1-600; poziomy 1-400 zachowują balans v0.35.11."""
     level=max(1,min(V0926_GUILD_MAX_LEVEL,int(current_level or 1)))
     if level >= V0926_GUILD_MAX_LEVEL:
         return 0
     if level < V0926_GUILD_LEGACY_MAX_LEVEL:
-        stage=generator_core_v027.stage_from_index(level+1,V0926_GUILD_LEGACY_MAX_LEVEL)
-        return generator_core_v027.system_cost(stage,"guild-level",300.0)
-    # Po 100 Generator Core nie ma wyższego stage niż 400, więc kontynuujemy
-    # koszt od historycznego maksimum bez resetowania ekonomii.
-    anchor=generator_core_v027.system_cost(generator_core_v027.MAX_LEVEL,"guild-level",300.0)
-    extension=(float(level)/float(V0926_GUILD_LEGACY_MAX_LEVEL))**2.0
-    return min(9_000_000_000_000_000_000,max(1,int(round(anchor*extension))))
-
+        # To mapowanie było historycznie liczone w przestrzeni 1-400.
+        old_max = int(generator_core_v027.MAX_LEVEL)
+        try:
+            generator_core_v027.MAX_LEVEL = V0926_GUILD_PREVIOUS_CAP
+            stage=generator_core_v027.stage_from_index(level+1,V0926_GUILD_LEGACY_MAX_LEVEL)
+            return generator_core_v027.system_cost(stage,"guild-level",300.0)
+        finally:
+            generator_core_v027.MAX_LEVEL = old_max
+    anchor=_v0926_legacy_guild_anchor_400()
+    if level <= V0926_GUILD_PREVIOUS_CAP:
+        extension=(float(level)/float(V0926_GUILD_LEGACY_MAX_LEVEL))**2.0
+        return min(9_000_000_000_000_000_000,max(1,int(round(anchor*extension))))
+    # 401-600 kontynuuje krzywą od dokładnego kosztu poziomu 400.
+    cost_400=min(9_000_000_000_000_000_000,max(1,int(round(anchor*(4.0**2.0)))))
+    extension=(float(level)/float(V0926_GUILD_PREVIOUS_CAP))**2.0
+    return min(9_000_000_000_000_000_000,max(1,int(round(cost_400*extension))))
 
 def v0926_guild_bonus_percent(level):
-    """Bonus Gildii 1-400 bez nerfienia istniejących poziomów 1-100."""
+    """Bonus Gildii 1-600; 1-400 identyczne z v0.35.11, potem dalszy wzrost."""
     level=max(1,min(V0926_GUILD_MAX_LEVEL,int(level or 1)))
     if level <= V0926_GUILD_LEGACY_MAX_LEVEL:
         return generator_core_v027.guild_bonus_percent(level,V0926_GUILD_LEGACY_MAX_LEVEL)
-    progress=(level-V0926_GUILD_LEGACY_MAX_LEVEL)/(V0926_GUILD_MAX_LEVEL-V0926_GUILD_LEGACY_MAX_LEVEL)
-    return min(23,11+int(round(12*(progress**0.90))))
+    if level <= V0926_GUILD_PREVIOUS_CAP:
+        progress=(level-V0926_GUILD_LEGACY_MAX_LEVEL)/(V0926_GUILD_PREVIOUS_CAP-V0926_GUILD_LEGACY_MAX_LEVEL)
+        return min(23,11+int(round(12*(progress**0.90))))
+    # Po starym capie 400 bonus nadal rośnie, do 29% na poziomie 600.
+    progress=(level-V0926_GUILD_PREVIOUS_CAP)/(V0926_GUILD_MAX_LEVEL-V0926_GUILD_PREVIOUS_CAP)
+    return min(29,23+int(round(6*(progress**0.90))))
 
 
 def v0926_bool_word(value):

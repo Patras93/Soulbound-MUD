@@ -19,7 +19,7 @@ def _v03060_stage(record):
     for value in candidates:
         try:
             if value is not None and int(value) > 0:
-                return max(1, min(400, int(value)))
+                return max(1, min(PROGRESSION_MAX_LEVEL, int(value)))
         except Exception:
             pass
     return 1

@@ -56,10 +56,12 @@ class World:
         self.corpse_counter = 0
         self.treasure_chest_opened_at = {}
         counts = {}
-        for room_id, template_id in MOB_SPAWNS:
-            template_id = resolve_world_spawn_template(
-                template_id
-            )
+        # v0.36.2: initial open-world spawns use the CURRENT room stage, not only
+        # the shared base template's earliest spawn. This keeps terrain 100+
+        # and endgame regions from inheriting low-level combat numbers.
+        for room_id, template_id in list(MOB_SPAWNS):
+            template_id = resolve_world_spawn_template(template_id)
+            template_id = self._terrain_scaled_template_v0362(room_id, template_id)
             counts[(room_id, template_id)] = counts.get((room_id, template_id), 0) + 1
             n = counts[(room_id, template_id)]
             key = f"{room_id}:{template_id}:{n}"
@@ -73,27 +75,78 @@ class World:
                 ),
             )
 
+    def _terrain_scaled_template_v0362(self, room_id, template_id):
+        """Return a room-stage clone for ordinary open-world terrain mobs.
+
+        Dungeons/gauntlets keep their dedicated floor logic. Open-world normal,
+        elite and rare mobs are additionally tougher from stage 50 upward.
+        """
+        room_id = str(room_id or "")
+        template_id = str(template_id or "")
+        room = ROOMS.get(room_id, {})
+        template = MOB_TEMPLATES.get(template_id)
+        if not isinstance(room, dict) or not isinstance(template, dict):
+            return template_id
+
+        # Known instanced/floor systems keep their authored difficulty rules.
+        dungeon_flags = (
+            "crypt_floor", "astral_floor", "mythic_crypt_floor", "mythic_astral_floor",
+            "giant_fortress_floor", "profession_dungeon_floor", "v020_gauntlet",
+            "v020_mega_gate", "v0140_mini_dungeon", "v0180_great_ruin",
+        )
+        if any(room.get(flag) is not None for flag in dungeon_flags):
+            return template_id
+
+        try:
+            room_stage = int(room.get("generator_level", room.get("recommended_mastery", 1)) or 1)
+        except Exception:
+            room_stage = 1
+        try:
+            recommended = int(room.get("recommended_mastery", 0) or 0)
+        except Exception:
+            recommended = 0
+        stage = max(1, min(CHARACTER_MAX_LEVEL, room_stage, ))
+        if recommended > stage:
+            stage = max(1, min(CHARACTER_MAX_LEVEL, recommended))
+
+        try:
+            base_stage = int(template.get("generator_level", 1) or 1)
+        except Exception:
+            base_stage = 1
+        rank = generator_core_v027.mob_rank(template)
+        is_terrain_rank = rank in ("normal", "elite", "rare")
+        needs_room_clone = stage > base_stage
+        needs_terrain_boost = is_terrain_rank and stage >= 50
+        if not needs_room_clone and not needs_terrain_boost:
+            return template_id
+
+        runtime_stage = max(base_stage, stage)
+        runtime_id = f"{template_id}__terrain_v0362_{runtime_stage:03d}"
+        if runtime_id not in MOB_TEMPLATES:
+            import copy as _copy
+            clone = _copy.deepcopy(template)
+            clone["base_template"] = str(template.get("base_template") or template_id)
+            clone["terrain_runtime_clone_v0362"] = True
+            clone["terrain_room_stage_v0362"] = runtime_stage
+            generator_core_v027.runtime_mob_balance(runtime_id, clone, runtime_stage, rank=rank)
+            if is_terrain_rank and runtime_stage >= 50:
+                # Level 50 ~= 1.5x HP, 100 = 2x, 200 = 3x, 300+ = 4x.
+                # Damage rises more gently: +5% at 50, +10% at 100,
+                # +20% at 200 and up to +50% in the highest regions.
+                hp_mult = min(4.0, 1.0 + runtime_stage / 100.0)
+                dmg_mult = 1.0 + min(0.50, runtime_stage / 1000.0)
+                clone["terrain_hp_multiplier_v0362"] = round(hp_mult, 3)
+                clone["terrain_damage_multiplier_v0362"] = round(dmg_mult, 3)
+                clone["max_hp"] = max(1, int(round(int(clone.get("max_hp", 1)) * hp_mult)))
+                clone["base_max_hp"] = clone["max_hp"]
+                clone["damage"] = max(1, int(round(int(clone.get("damage", 1)) * dmg_mult)))
+            MOB_TEMPLATES[runtime_id] = clone
+        return runtime_id
+
     def _register_runtime_spawn(self, room_id, template_id):
         room_meta = ROOMS.get(str(room_id or ""), {})
+        template_id = self._terrain_scaled_template_v0362(room_id, template_id)
         template_meta = MOB_TEMPLATES.get(template_id)
-        # Generator Core v0.27.2: reusable base templates are never allowed to
-        # under-level procedural surface sectors. A deterministic runtime clone
-        # inherits semantic identity/quest tags/drop types, while every numeric
-        # combat value comes from the room's generated stage.
-        if isinstance(template_meta, dict) and room_meta.get("procedural_surface"):
-            stage = int(room_meta.get("generator_level", 1) or 1)
-            base_id = str(template_id)
-            runtime_id = f"{base_id}__proc_stage_{stage:03d}"
-            if runtime_id not in MOB_TEMPLATES:
-                import copy as _copy
-                clone = _copy.deepcopy(template_meta)
-                clone["base_template"] = base_id
-                clone["procedural_region_stage"] = stage
-                clone["procedural_runtime_clone"] = True
-                generator_core_v027.runtime_mob_balance(runtime_id, clone, stage)
-                MOB_TEMPLATES[runtime_id] = clone
-            template_id = runtime_id
-            template_meta = MOB_TEMPLATES[template_id]
         if isinstance(template_meta, dict):
             template_meta["auto_aggro"] = False
         if not any(r == room_id and t == template_id for r, t in MOB_SPAWNS):
@@ -857,7 +910,7 @@ HELP_TOPICS.setdefault("questy", []).append(
     "v0.30.7: Questy na ryby, zioła, drewno, rudy i inne zużywane zasoby pamiętają wewnętrznie zdarzenia zdobycia od 0/x, ale widoczny Postęp pokazuje tylko zaliczone sztuki nadal dostępne do oddania. Po zużyciu części zapasu licznik spada odpowiednio; stary zapas sprzed przyjęcia nadal nie daje darmowego postępu."
 )
 
-# v0.24.4: finalny HELP umiejętności po zbudowaniu całej siatki 1-400.
+# v0.24.4: finalny HELP umiejętności po zbudowaniu całej siatki 1-600.
 _FINAL_SKILL_HELP_ENTRIES = tuple(
     (class_name, skill)
     for class_name, skills in CLASS_SKILLS.items()
@@ -913,7 +966,7 @@ for _class_name, _class_type, _soul_weapon, _base_power in CLASSES:
         f"{_class_name}. Typ: {_CLASS_TYPE_LABEL_V03032.get(_class_type, _class_type)}. Broń Duszy: {_soul_weapon}.",
         CLASS_DESCRIPTIONS.get(_class_name, ""),
         _scale_text,
-        f"Biegłość klasy: 1-400. Umiejętności/spelle w aktualnej puli: {_skill_count}.",
+        f"Biegłość klasy: 1-600. Umiejętności/spelle w aktualnej puli: {_skill_count}.",
         f"Nauczyciel: {_teacher_name}. Lokacja: {_teacher_room}.",
         f"Komendy: skills {_class_name}; kodeksklasowy {_class_name}; help skill <nazwa>; multiclass.",
     ]
@@ -922,7 +975,7 @@ for _class_name, _class_type, _soul_weapon, _base_power in CLASSES:
 
 HELP_TOPICS["klasy"] = [
     "Soulbound ma 14 klas: " + ", ".join(row[0] for row in CLASSES) + ".",
-    "Każda klasa ma Biegłość 1-400, własną Broń Duszy, pasywy i pulę skilli/spelli.",
+    "Każda klasa ma Biegłość 1-600, własną Broń Duszy, pasywy i pulę skilli/spelli.",
     "help <klasa> otwiera osobną pomoc klasy, np. help wojownik, help kapłan, help mag.",
     "skills pokazuje szczegóły umiejętności aktywnych klas; skills all pokazuje nazwy wszystkich umiejętności wszystkich 14 klas.",
     "spells / spels / czary pokazuje czary aktywnych klas magicznych; spells all / spels all pokazuje czary wszystkich klas magicznych.",

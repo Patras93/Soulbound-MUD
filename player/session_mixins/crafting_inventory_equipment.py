@@ -548,7 +548,7 @@ class SessionCraftingInventoryEquipmentMixin:
                 f"XP: {xp_text}. Akcje: {row['actions']}."
             )
             await self.send(
-                "Narzędzie: Szczypce Jubilerskie, poziom 1-400 i 40 Tierów. "
+                "Narzędzie: Szczypce Jubilerskie, poziom 1-600 i 60 Tierów. "
                 "Kupisz je wyłącznie u Jubilerki Mirelli w Pracowni Jubilerskiej."
             )
             await self.send(
@@ -614,7 +614,7 @@ class SessionCraftingInventoryEquipmentMixin:
             await self.send("GOTOWANIE")
             await self.show_single_tool("cooking")
             await self.send(
-                "Gotowanie jest osobną profesją poziom 1-400. Jej poziom skraca czas przygotowania potraw i blokuje receptury; poziom Noża nie skraca czasu."
+                "Gotowanie jest osobną profesją poziom 1-600. Jej poziom skraca czas przygotowania potraw i blokuje receptury; poziom Noża nie skraca czasu."
             )
             await self.send(
                 "Gotować możesz w Karczmie Pod Błękitnym Płomieniem "
@@ -624,7 +624,7 @@ class SessionCraftingInventoryEquipmentMixin:
                 "Komendy: gotuj <potrawa>, receptury cook, gotowanie."
             )
             await self.send(
-                "Niższe receptury prowadzą przez początek progresji, a pełny endgame Gotowania rozwija się aż do poziomu 400."
+                "Niższe receptury prowadzą przez początek progresji, a pełny endgame Gotowania rozwija się aż do poziomu 600."
             )
             await self.send(
                 "Wyższy Tier Noża może przygotować dodatkową porcję, ale nie skraca czasu. "
@@ -1159,7 +1159,7 @@ class SessionCraftingInventoryEquipmentMixin:
                         extra += f" Statystyki bazowe: {fixed_stats}."
                 if row["item_id"] == "moogle_board" and item and item.get("cyborg_board_scaling") == "mec_mastery":
                     _mb = moogle_board_stat_bonus_v0313(self.class_mastery_level("Mec"))
-                    extra += f" Skalowanie Moogle Board: Biegłość Meca {self.class_mastery_level('Mec')}/400, +{_mb} do Siły, Zręczności, Kondycji, Inteligencji i Siły Woli."
+                    extra += f" Skalowanie Moogle Board: Biegłość Meca {self.class_mastery_level('Mec')}/{CLASS_MASTERY_MAX_LEVEL}, +{_mb} do Siły, Zręczności, Kondycji, Inteligencji i Siły Woli."
                 if item and item.get("slot") in ("ring", "necklace"):
                     extra += " " + self.jewelry_socket_text(row["slot"], row["item_id"], item)
                 await self.send(f"{slot_name}: {name}. Obrona +{defense}.{extra}")

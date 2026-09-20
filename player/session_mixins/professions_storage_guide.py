@@ -160,7 +160,7 @@ class SessionProfessionsStorageGuideMixin:
                         f"{int(tool_tier_bonus_chance(tlevel) * 100)} procent."
                     )
 
-            _char_stage=max(1,min(400,max(plevel,tlevel)))
+            _char_stage=max(1,min(CHARACTER_MAX_LEVEL,max(plevel,tlevel)))
             _char_gain=generator_core_v027.axis_gain("character",_char_stage,0.35)
             messages.extend(self.add_character_xp_with_event(_char_gain))
             self.server.db.save_character(self.character)
@@ -223,7 +223,7 @@ class SessionProfessionsStorageGuideMixin:
                     f"{int(tool_tier_bonus_chance(level) * 100)} procent."
                 )
 
-            _char_gain=generator_core_v027.axis_gain("character",max(1,min(400,level)),0.25)
+            _char_gain=generator_core_v027.axis_gain("character",max(1,min(CHARACTER_MAX_LEVEL,level)),0.25)
             messages.extend(self.add_character_xp_with_event(_char_gain))
             self.server.db.save_character(self.character)
             return messages, level
@@ -2633,7 +2633,7 @@ class SessionProfessionsStorageGuideMixin:
                 )
             if detailed:
                 await self.send(
-                    "Maksimum wszystkich dwunastu profesji: poziom 400."
+                    "Maksimum wszystkich dwunastu profesji: poziom 600."
                 )
                 await self.send(
                     "Poziom profesji skraca czas pracy i blokuje receptury/zlecenia. "
@@ -2714,9 +2714,9 @@ class SessionProfessionsStorageGuideMixin:
     def recipe_action_seconds(self, tool_type, profession_level, recipe):
             """Generator Core owns both profession tempo and recipe-stage complexity."""
             base = generator_core_v027.profession_action_seconds(tool_type, profession_level)
-            required = max(1, min(400, int(recipe.get("generator_level", 1) or 1)))
+            required = max(1, min(PROFESSION_MAX_LEVEL, int(recipe.get("generator_level", 1) or 1)))
             progress_gap = max(0, required - int(profession_level))
-            generated_penalty = int(round(3.0 * progress_gap / 400.0))
+            generated_penalty = int(round(3.0 * progress_gap / float(PROFESSION_MAX_LEVEL)))
             return max(1, int(base + generated_penalty))
 
     def tool_action_label(self, tool_type):
@@ -2984,7 +2984,7 @@ class SessionProfessionsStorageGuideMixin:
 
     def fishing_available_pool(self, tool_level, habitat=None):
             habitat = habitat or self.fishing_habitat()
-            tool_level = max(1, min(400, int(tool_level)))
+            tool_level = max(1, min(TOOL_MAX_LEVEL, int(tool_level)))
             access_level = tool_tier_access_level(tool_level)
             habitat_ids = {
                 "river": tuple(RIVER_FISH_ATLAS),
@@ -2999,7 +2999,7 @@ class SessionProfessionsStorageGuideMixin:
     def fishing_ecology_pool(self, tool_level, habitat=None, room_id=None):
             room_id = room_id or self.character.room_id
             habitat = habitat or self.fishing_habitat(room_id)
-            tool_level = max(1, min(400, int(tool_level)))
+            tool_level = max(1, min(TOOL_MAX_LEVEL, int(tool_level)))
             if not habitat:
                 return ()
             dungeon, dungeon_floor = profession_dungeon_floor(room_id)
@@ -3178,11 +3178,11 @@ class SessionProfessionsStorageGuideMixin:
 
     def mining_loot(self, tool_level, room_id=None):
             room_id = room_id or self.character.room_id
-            tool_level = max(1, min(400, int(tool_level)))
+            tool_level = max(1, min(TOOL_MAX_LEVEL, int(tool_level)))
             floor = mine_floor_number(room_id)
             dungeon, dungeon_floor = profession_dungeon_floor(room_id)
             if dungeon == "crystal_mine":
-                floor = min(400, max(1, int(dungeon_floor) * 10))
+                floor = min(TOOL_MAX_LEVEL, max(1, int(dungeon_floor) * 10))
             tool_access_level = tool_tier_access_level(tool_level)
             effective_level = tool_access_level if floor is None else min(tool_access_level, max(1, int(floor)))
             # v0.34.4: progi wydobycia są autorską semantyką gry i muszą
@@ -3210,13 +3210,13 @@ class SessionProfessionsStorageGuideMixin:
             return random.choices(pool, weights=weights, k=1)[0]
 
     def mining_gem_drop(self, tool_level, profession_level, room_id=None):
-            tool_level = max(1, min(400, int(tool_level)))
-            profession_level = max(1, min(400, int(profession_level)))
+            tool_level = max(1, min(TOOL_MAX_LEVEL, int(tool_level)))
+            profession_level = max(1, min(PROFESSION_MAX_LEVEL, int(profession_level)))
             room_id = room_id or self.character.room_id
             floor = mine_floor_number(room_id)
             dungeon, dungeon_floor = profession_dungeon_floor(room_id)
             if dungeon == "crystal_mine":
-                floor = min(400, max(1, int(dungeon_floor) * 10))
+                floor = min(TOOL_MAX_LEVEL, max(1, int(dungeon_floor) * 10))
             # v0.30.26: rodzaj surowego klejnotu zależy od Tieru Kilofa.
             # Górnictwo nadal wpływa na jakość/szansę, ale nie odblokowuje
             # nowych rodzajów klejnotów pomiędzy progami Tieru narzędzia.
@@ -3231,7 +3231,7 @@ class SessionProfessionsStorageGuideMixin:
                 base_gems, ITEMS, effective, f"gems:{room_id}"
             )
             gem_skill = min(tool_level, profession_level)
-            chance = min(0.18, 0.035 + 0.11 * (gem_skill / 400.0))
+            chance = min(0.18, 0.035 + 0.11 * (gem_skill / float(PROFESSION_MAX_LEVEL)))
             chance *= 0.85 + 0.30 * generator_core_v027.stable_unit(f"gems:{room_id}")
             if not pool or random.random() >= chance:
                 return None
@@ -3246,7 +3246,7 @@ class SessionProfessionsStorageGuideMixin:
 
     def woodcutting_loot(self, tool_level, room_id=None):
             room_id = room_id or self.character.room_id
-            tool_level = max(1, min(400, int(tool_level)))
+            tool_level = max(1, min(TOOL_MAX_LEVEL, int(tool_level)))
             dungeon, dungeon_floor = profession_dungeon_floor(room_id)
             effective = tool_tier_access_level(tool_level)
             if dungeon == "ancient_forest":
@@ -3261,7 +3261,7 @@ class SessionProfessionsStorageGuideMixin:
 
     def herbalism_loot(self, tool_level, room_id=None):
             room_id = room_id or self.character.room_id
-            tool_level = max(1, min(400, int(tool_level)))
+            tool_level = max(1, min(TOOL_MAX_LEVEL, int(tool_level)))
             dungeon, dungeon_floor = profession_dungeon_floor(room_id)
             effective = tool_tier_access_level(tool_level)
             if dungeon == "alchemy_garden":

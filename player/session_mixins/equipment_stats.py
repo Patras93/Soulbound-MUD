@@ -4,9 +4,7 @@
 
 def moogle_board_stat_bonus_v0313(mec_mastery):
     """Bonus Moogle Board do każdego głównego statu, skalowany Biegłością Meca."""
-    level = max(1, min(400, int(mec_mastery or 1)))
-    if level >= 400:
-        return 18
+    level = max(1, min(CLASS_MASTERY_MAX_LEVEL, int(mec_mastery or 1)))
     return 2 + 2 * (level // 50)
 
 class SessionEquipmentStatsMixin:

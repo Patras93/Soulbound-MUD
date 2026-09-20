@@ -32,9 +32,9 @@ def class_equipment_profile_properties(class_name, mastery, slot=None):
     weights = dict(profile.get("properties") or {})
     if not weights:
         return {}
-    mastery = max(1, min(400, int(mastery or 1)))
-    # Łagodny budżet właściwości: ok. 0.3% na początku do 2.0% na część przy 400.
-    total = 0.25 + 1.75 * ((mastery - 1) / 399.0) ** 0.90
+    mastery = max(1, min(CLASS_MASTERY_MAX_LEVEL, int(mastery or 1)))
+    # Łagodny budżet właściwości: ok. 0.3% na początku do 2.0% na część przy 600.
+    total = 0.25 + 1.75 * ((mastery - 1) / float(max(1, CLASS_MASTERY_MAX_LEVEL - 1))) ** 0.90
     total *= float(CLASS_EQUIPMENT_SLOT_PROPERTY_SCALE.get(str(slot or ""), 1.0))
     norm = sum(max(0.0, float(v)) for v in weights.values()) or 1.0
     return {
@@ -66,6 +66,10 @@ def _class_equipment_tier_label(required_mastery):
 
 
 def _class_equipment_rarity_name(required_mastery):
+    if required_mastery >= 600:
+        return "Klasowy Absolutny"
+    if required_mastery >= 500:
+        return "Klasowy Kosmiczny"
     if required_mastery >= 400:
         return "Klasowy Transcendentny"
     if required_mastery >= 350:
@@ -83,6 +87,29 @@ def _class_equipment_rarity_name(required_mastery):
     if required_mastery >= 50:
         return "Klasowy Rzadki"
     return "Klasowy"
+
+
+def class_equipment_stat_budget(required_mastery, slot=None):
+    """Łączny budżet dwóch bazowych statów klasowego EQ.
+
+    Każdy próg 1/10/20/.../600 zwiększa budżet dokładnie o 1, dzięki czemu
+    nawet niskie Tiery mają realnie inne statystyki. Sloty biżuterii zachowują
+    lekko wyższy punkt startowy, ale progresja między Tierami jest zawsze
+    ścisła i monotoniczna.
+    """
+    try:
+        tier_index = CLASS_EQUIPMENT_MASTERY_LEVELS.index(int(required_mastery))
+    except ValueError:
+        unlocked = class_equipment_unlocked_tier(required_mastery)
+        tier_index = CLASS_EQUIPMENT_MASTERY_LEVELS.index(int(unlocked))
+    slot = str(slot or "")
+    if slot in ("necklace", "relic"):
+        base_affix = 3
+    elif slot in ("ring", "charm", "earring", "shoulders", "belt", "cloak", "bracers"):
+        base_affix = 2
+    else:
+        base_affix = 1
+    return max(2, int(base_affix)) + int(tier_index)
 
 
 def class_equipment_unlocked_tier(mastery_level):
@@ -107,10 +134,15 @@ def _register_class_equipment_shops():
             # v0.9.19: KAŻDY próg Biegłości co 10 daje realnie lepsze EQ.
             # Do 200 zachowujemy ten sam łączny budżet mocy co wcześniej,
             # ale rozkładamy go naprzemiennie: raz rośnie obrona, raz affix.
-            # Po 200 kontynuujemy tę samą czytelną zasadę aż do 400.
+            # Po 200 kontynuujemy tę samą czytelną zasadę aż do 600.
             # Dzięki temu nie ma "pustych" progów 10/30/50..., a wzrost pozostaje łagodny.
             defense_step = (tier_index + 1) // 2
-            affix_step = tier_index // 2
+            # v0.36.0: każdy próg 1/10/20/30/.../600 ma inny realny
+            # budżet podstawowych statów. Wcześniej affix rósł co drugi próg,
+            # więc np. część niskiego EQ 1/10/20 mogła mieć identyczne
+            # Siła/Kondycja albo Inteligencja/Siła Woli. Teraz łączny budżet
+            # rośnie dokładnie o 1 na każdym kolejnym Tierze, zachowując
+            # klasowy ratio i bias konkretnego slotu.
             # Ceny rosną wyraźnie wraz z Biegłością, ale pozostają w istniejącej ekonomii srebra.
             price_multiplier = 1 + tier_index + (tier_index * tier_index) // 4
 
@@ -130,7 +162,9 @@ def _register_class_equipment_shops():
                     else:
                         base_affix = 1
 
-                    legacy_affix_amount = base_affix + affix_step
+                    # Minimalny Tier zawsze ma obie statystyki (budżet >= 2),
+                    # a każdy następny próg dodaje kolejny pełny punkt budżetu.
+                    legacy_affix_amount = class_equipment_stat_budget(required_mastery, slot)
                     primary_stat, primary_amount, secondary_stat, secondary_amount = (
                         class_equipment_split_stat_budget(class_name, legacy_affix_amount, slot)
                     )
@@ -304,7 +338,7 @@ CLASS_SET_STAT_NAMES = {
 # Bossowie co 50 pięter mogą dawać pełnoprawne setowe EQ dla każdej z 14 klas.
 # Bossowie co 100 pięter dodatkowo dają osobny legendarny relikt klasowy.
 # Wszystko nadal respektuje Biegłość i ręczne zakładanie EQ.
-LEGENDARY_CLASS_LOOT_TIERS = tuple(range(50, 401, 50))
+LEGENDARY_CLASS_LOOT_TIERS = tuple(range(50, CLASS_MASTERY_MAX_LEVEL + 1, 50))
 LEGENDARY_CLASS_SET_ITEMS_BY_CLASS_TIER = {}
 LEGENDARY_CLASS_RELIC_BY_CLASS_TIER = {}
 
@@ -421,7 +455,7 @@ ITEMS["jeweler_pliers"] = {
     "currency": "silver",
     "desc": (
         "Podstawowe narzędzie Jubilerstwa. "
-        "Ma własny level 1-400, XP i 40 Tierów. "
+        "Ma własny level 1-600, XP i 60 Tierów. "
         "Nie ma trwałości i nie zużywa się."
     ),
 }
@@ -535,45 +569,45 @@ CRAFT_RECIPES = {
     },
     "runic_guard_charm": {
         "name": "Runiczny Talizman Straży", "stations": ("forge",),
-        "ingredients": {"cobalt_ore": 2, "runewood_log": 2},
+        "ingredients": {"cobalt_ingot": 2, "runewood_log": 2},
         "output": "runic_guard_charm", "quantity": 1,
         "min_tool_level": 100, "tool_xp": 24,
-        "desc": "Rzemiosło level 100. Obrona +6, Kondycja +2.",
+        "desc": "Kowalstwo level 100. 2 Kobaltowe sztabki + 2 Runiczne drewno. Obrona +6, Kondycja +2.",
     },
     "dragonforge_charm": {
         "name": "Talizman Smoczej Kuźni", "stations": ("forge",),
-        "ingredients": {"runestone_ore": 2, "dragonwood_log": 2},
+        "ingredients": {"runestone_ingot": 2, "dragonwood_log": 2},
         "output": "dragonforge_charm", "quantity": 1,
         "min_tool_level": 120, "tool_xp": 28,
-        "desc": "Rzemiosło level 120. Obrona +7, Siła +3.",
+        "desc": "Kowalstwo level 120. 2 Runiczne sztabki + 2 Smocze drewno. Obrona +7, Siła +3.",
     },
     "astral_forge_charm": {
         "name": "Astralny Talizman Kuźni", "stations": ("forge",),
-        "ingredients": {"dragonsteel_ore": 2, "astralwood_log": 2},
+        "ingredients": {"dragonsteel_ingot": 2, "astralwood_log": 2},
         "output": "astral_forge_charm", "quantity": 1,
         "min_tool_level": 140, "tool_xp": 32,
-        "desc": "Rzemiosło level 140. Obrona +8, Inteligencja +3.",
+        "desc": "Kowalstwo level 140. 2 Sztabki Smoczej Stali + 2 Astralne drewno. Obrona +8, Inteligencja +3.",
     },
     "void_guard_charm": {
         "name": "Talizman Straży Pustki", "stations": ("forge",),
-        "ingredients": {"astral_ore": 2, "voidwood_log": 2},
+        "ingredients": {"astral_ingot": 2, "voidwood_log": 2},
         "output": "void_guard_charm", "quantity": 1,
         "min_tool_level": 160, "tool_xp": 36,
-        "desc": "Rzemiosło level 160. Obrona +9, Siła Woli +4.",
+        "desc": "Kowalstwo level 160. 2 Astralne sztabki + 2 Drewno Pustki. Obrona +9, Siła Woli +4.",
     },
     "worldheart_charm": {
         "name": "Talizman Serca Świata", "stations": ("forge",),
-        "ingredients": {"void_ore": 2, "starheart_log": 2},
+        "ingredients": {"void_ingot": 2, "starheart_log": 2},
         "output": "worldheart_charm", "quantity": 1,
         "min_tool_level": 180, "tool_xp": 40,
-        "desc": "Rzemiosło level 180. Obrona +10, HP +60.",
+        "desc": "Kowalstwo level 180. 2 Sztabki Pustki + 2 Drewno Serca Gwiazdy. Obrona +10, HP +60.",
     },
     "eternal_soul_charm": {
         "name": "Talizman Wiecznej Duszy", "stations": ("forge",),
-        "ingredients": {"eternium_ore": 2, "eternal_worldwood_log": 2},
+        "ingredients": {"eternium_ingot": 2, "eternal_worldwood_log": 2},
         "output": "eternal_soul_charm", "quantity": 1,
         "min_tool_level": 200, "tool_xp": 50,
-        "desc": "Rzemiosło level 200. Obrona +12, Zręczność +5.",
+        "desc": "Kowalstwo level 200. 2 Sztabki Eternium + 2 Wieczne drewno. Obrona +12, Zręczność +5.",
     },
 }
 
@@ -1104,7 +1138,7 @@ def roll_mined_gem_quality(tool_level, profession_level):
     profession_level = max(1, min(PROFESSION_MAX_LEVEL, int(profession_level)))
     power = (tool_level + profession_level) / 2.0
     old_power = min(200.0, power)
-    # 1-200 zachowuje stare szanse. 201-400 dodaje mały dalszy bonus,
+    # 1-200 zachowuje stare szanse. 201-600 dodaje mały dalszy bonus,
     # ale perfekcyjny kamień nadal pozostaje jackpotem.
     perfect = 0.0 if old_power < 120 else min(0.020, (old_power - 120) * 0.00025)
     excellent = 0.0 if old_power < 70 else min(0.100, (old_power - 70) * 0.00077)
@@ -1205,7 +1239,7 @@ def roll_mining_geode(tool_level, profession_level, floor):
     tool_level = max(1, min(TOOL_MAX_LEVEL, int(tool_level)))
     profession_level = max(1, min(PROFESSION_MAX_LEVEL, int(profession_level)))
     # v0.9.13: głębokość lochu jest nieskończona, ale zasobowa moc ekonomii
-    # zatrzymuje się na progresji 400.
+    # zatrzymuje się na progresji 600.
     floor = max(1, min(PROFESSION_MAX_LEVEL, int(floor or 1)))
     eligible = [
         geode_id for geode_id, cfg in GEODE_DEFINITIONS.items()
@@ -1409,13 +1443,14 @@ COOK_RECIPES = {
     },
 }
 
-# v0.9.12: receptury 220-400. Każdy próg co 20 leveli ma realną
+# v0.9.12: receptury 220-600. Każdy próg co 20 leveli ma realną
 # zawartość dla Gotowania, Alchemii i Kowalstwa/Rzemiosła.
 for _level in PROGRESSION_400_LEVELS:
     _suffix = _PROGRESSION_400_NAMES[_level]
     _fish = f"fish_400_ocean_{_level}"
     _herb = f"herb_400_{_level}"
     _ore = f"ore_400_{_level}"
+    _ingot = f"ingot_400_{_level}"
     _wood = f"wood_400_{_level}"
 
     _food_id = f"feast_400_{_level}"
@@ -1423,7 +1458,7 @@ for _level in PROGRESSION_400_LEVELS:
         "name": f"Uczta {_suffix}", "type": "consumable", "price": None,
         "heal": 260 + (_level - 200) // 2,
         "mana": 160 + (_level - 200) // 3,
-        "desc": f"Gotowanie level {_level}. Potrawa progresji 201-400.",
+        "desc": f"Gotowanie level {_level}. Potrawa progresji 201-600.",
     }
     COOK_RECIPES[_food_id] = {
         "name": ITEMS[_food_id]["name"], "stations": ("inn", "fish_market"),
@@ -1440,7 +1475,7 @@ for _level in PROGRESSION_400_LEVELS:
         "heal": 180 + (_level - 200) // 2,
         "mana": 120 + (_level - 200) // 3,
         "soul_xp": 400 + (_level - 200) * 2,
-        "desc": f"Alchemia level {_level}. Eliksir progresji 201-400.",
+        "desc": f"Alchemia level {_level}. Eliksir progresji 201-600.",
     }
     ALCHEMY_RECIPES[_potion_id] = {
         "name": ITEMS[_potion_id]["name"], "stations": ("herbalist_hut", "alchemy_lab"),
@@ -1457,14 +1492,14 @@ for _level in PROGRESSION_400_LEVELS:
         "defense": 12 + (_level - 200) // 40, "price": None,
         "rarity": "crafted", "rarity_name": "Rzemieślniczy",
         "affix": "willpower", "affix_amount": 5 + (_level - 200) // 50,
-        "desc": f"Kowalstwo level {_level}. Talizman progresji 201-400.",
+        "desc": f"Kowalstwo level {_level}. Talizman progresji 201-600.",
     }
     CRAFT_RECIPES[_charm_id] = {
         "name": ITEMS[_charm_id]["name"], "stations": ("forge",),
-        "ingredients": {_ore: 2, _wood: 2}, "output": _charm_id, "quantity": 1,
+        "ingredients": {_ingot: 2, _wood: 2}, "output": _charm_id, "quantity": 1,
         "min_tool_level": _level, "min_profession_level": _level,
         "profession_xp": 58 + (_level - 200) // 4,
         "tool_xp": 50 + (_level - 200) // 5,
         "category": "smithing",
-        "desc": f"Kowalstwo level {_level}. Ruda i drewno progresji {_level}.",
+        "desc": f"Kowalstwo level {_level}. Sztabki i drewno progresji {_level}.",
     }

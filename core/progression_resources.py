@@ -14,13 +14,13 @@ def v0190_log_curve(value, anchors):
             break
     try:
         xs = [max(1, int(round(float(x)))) for x, _y in anchors]
-        maximum = max(xs) if xs else 400
+        maximum = max(xs) if xs else CHARACTER_MAX_LEVEL
     except Exception:
         maximum = 400
     raw = max(1, int(round(float(value))))
-    # Real 1-400 axes keep their stage. Short ordinal systems (e.g. ranks 1-10)
-    # are stretched through the same 1-400 Generator Core space.
-    stage = generator_core_v027.clamp(raw, 1, 400) if maximum >= 300 else generator_core_v027.stage_from_index(raw, max(1, maximum))
+    # Real 1-600 axes keep their stage. Short ordinal systems (e.g. ranks 1-10)
+    # are stretched through the same 1-600 Generator Core space.
+    stage = generator_core_v027.clamp(raw, 1, CHARACTER_MAX_LEVEL) if maximum >= 300 else generator_core_v027.stage_from_index(raw, max(1, maximum))
 
     exact = {
         "V019_CLASS_REQ": lambda: generator_core_v027.axis_requirement("class", stage),
@@ -105,33 +105,33 @@ def v0190_mob_stage(template):
     # pierwszej klasyfikacji etap nie może ponownie rosnąć od HP/damage już
     # zwiększonych przez generator.
     if template.get("v019_stage") is not None:
-        return max(1, min(400, int(template.get("v019_stage") or 1)))
+        return max(1, min(CHARACTER_MAX_LEVEL, int(template.get("v019_stage") or 1)))
     if template.get("crypt_floor") is not None:
-        return max(1, min(400, int(template.get("crypt_floor") or 1)))
+        return max(1, min(CHARACTER_MAX_LEVEL, int(template.get("crypt_floor") or 1)))
     if template.get("astral_floor") is not None:
-        return max(1, min(400, int(template.get("astral_floor") or 1)))
+        return max(1, min(CHARACTER_MAX_LEVEL, int(template.get("astral_floor") or 1)))
     if template.get("giant_fortress_floor") is not None:
-        return max(1, min(400, int(template.get("giant_fortress_floor") or 1)))
+        return max(1, min(CHARACTER_MAX_LEVEL, int(template.get("giant_fortress_floor") or 1)))
     if template.get("mythic_crypt_floor") is not None:
         floor=max(1,int(template.get("mythic_crypt_floor") or 1))
-        return max(130,min(400,120 + floor*2//5))
+        return max(130,min(CHARACTER_MAX_LEVEL,120 + floor*2//5))
     if template.get("mythic_astral_floor") is not None:
         floor=max(1,int(template.get("mythic_astral_floor") or 1))
-        return max(150,min(400,140 + floor*3//10))
+        return max(150,min(CHARACTER_MAX_LEVEL,140 + floor*3//10))
     if template.get("v018_endless_band") is not None:
         band=max(1,int(template.get("v018_endless_band") or 1))
-        return max(200,min(400,190 + band*5))
+        return max(200,min(CHARACTER_MAX_LEVEL,190 + band*5))
     if template.get("required_mastery") is not None:
-        return max(1,min(400,int(template.get("required_mastery") or 1)))
+        return max(1,min(CHARACTER_MAX_LEVEL,int(template.get("required_mastery") or 1)))
     try:
         if "v0866_mob_progression_power" in globals():
-            return max(1,min(400,int(round(v0866_mob_progression_power(template)))))
+            return max(1,min(CHARACTER_MAX_LEVEL,int(round(v0866_mob_progression_power(template)))))
     except Exception:
         pass
     hp=max(1,float(template.get("max_hp",1) or 1))
     dmg=max(1,float(template.get("damage",1) or 1))
     estimate=max(1.0, ((hp/80.0)**0.45)*8.0 + ((dmg/5.0)**0.55)*4.0)
-    return max(1,min(400,int(round(estimate))))
+    return max(1,min(CHARACTER_MAX_LEVEL,int(round(estimate))))
 
 def v0190_mob_rank(template):
     template=template or {}
@@ -149,7 +149,7 @@ def v0190_mob_rank(template):
 
 def v0190_generated_combat_reward(template, kind):
     template = template or {}
-    stage = max(1, min(400, int(template.get("generator_level", template.get("v019_stage", 1)) or 1)))
+    stage = max(1, min(CHARACTER_MAX_LEVEL, int(template.get("generator_level", template.get("v019_stage", 1)) or 1)))
     rank = str(template.get("generator_rank") or generator_core_v027.mob_rank(template))
     intensity = generator_core_v027.RANK_REWARD.get(rank, 1.0)
     if kind == "coins":
@@ -177,7 +177,7 @@ def v0190_apply_combat_template(template):
                     break
     if stage is None:
         stage = 1 + int(generator_core_v027.stable_unit(str(template.get("name", "mob"))) * 399)
-    stage = max(1, min(400, int(stage)))
+    stage = max(1, min(CHARACTER_MAX_LEVEL, int(stage)))
     rank = generator_core_v027.mob_rank(template)
     template["generator_level"] = stage
     template["v019_stage"] = stage
@@ -191,6 +191,16 @@ def v0190_apply_combat_template(template):
     template["silver"] = generator_core_v027.currency_for_stage(stage, rank)
     template["gold"] = 0
     template["mithril"] = 0
+    # v0.36.2: runtime terrain clones intentionally receive an additional
+    # open-world threat multiplier after the canonical Generator Core numbers.
+    # This block is idempotent because every call above first restores the
+    # canonical stage HP/damage before applying the multiplier again.
+    if template.get("terrain_runtime_clone_v0362"):
+        hp_mult = float(template.get("terrain_hp_multiplier_v0362", 1.0) or 1.0)
+        dmg_mult = float(template.get("terrain_damage_multiplier_v0362", 1.0) or 1.0)
+        template["max_hp"] = max(1, int(round(template["max_hp"] * hp_mult)))
+        template["base_max_hp"] = template["max_hp"]
+        template["damage"] = max(1, int(round(template["damage"] * dmg_mult)))
     drops=template.get("drops")
     if isinstance(drops,dict) and drops:
         base_chance={"normal":.055,"elite":.09,"rare":.14,"mini":.22,"boss":.34,"world_boss":.48}.get(rank,.055)
@@ -214,7 +224,7 @@ def v0190_quest_stage(quest):
     # Liczba wymaganych akcji podnosi wartość zadania, ale nie udaje levelu.
     needed=max(1,int(quest.get("needed",1) or 1))
     base=max(values)
-    return max(1,min(400,int(round(base + min(30,math.sqrt(needed)*2)))))
+    return max(1,min(CHARACTER_MAX_LEVEL,int(round(base + min(30,math.sqrt(needed)*2)))))
 
 def v0190_quest_currency_reward(quest):
     quest = quest or {}
@@ -243,36 +253,36 @@ def v0270_quest_character_reward(quest):
     return generator_core_v027.axis_gain("character", v0190_quest_stage(quest), 2.0)
 
 def v0190_economy_sink(stage, category="generic"):
-    stage=max(1,min(400,int(stage)))
+    stage=max(1,min(CHARACTER_MAX_LEVEL,int(stage)))
     mult={"skill":1.0,"equipment":0.60,"service":0.35,"generic":1.0}.get(category,1.0)
     return min(V019_SAFE_INT,max(1,int(round(generator_core_v027.item_price_for_stage(stage)*mult))))
 
 def v0190_resource_stage(item_id, item=None):
-    """Poziom ekonomiczny surowca 1-400 z Generator Core."""
+    """Poziom ekonomiczny surowca 1-600 z Generator Core."""
     item = item or globals().get("ITEMS", {}).get(item_id, {}) or {}
     if item.get("generator_level") is not None:
-        return max(1, min(400, int(item.get("generator_level") or 1)))
+        return max(1, min(CHARACTER_MAX_LEVEL, int(item.get("generator_level") or 1)))
     base_id = str(item.get("base_resource_id") or item_id)
     base_item = globals().get("ITEMS", {}).get(base_id, item) or item
     # Ryby mają pełne tabele unlocków, gdy funkcja jest już zdefiniowana.
     try:
         if "fish_unlock_level" in globals() and (base_id in globals().get("FISH_RESOURCE_IDS", set()) or base_id.startswith("fish_400_")):
-            return max(1, min(400, int(fish_unlock_level(base_id))))
+            return max(1, min(CHARACTER_MAX_LEVEL, int(fish_unlock_level(base_id))))
     except Exception:
         pass
     for key in ("min_tool_level", "min_profession_level", "required_mastery", "level"):
         try:
             val = int(base_item.get(key, 0) or 0)
             if val > 0:
-                return max(1, min(400, val))
+                return max(1, min(CHARACTER_MAX_LEVEL, val))
         except Exception:
             pass
     text = f"{base_id} {base_item.get('desc','')}"
     matches = re.findall(r"(?:level|poziom|lvl)[ _:+-]*(\d{1,4})", text, flags=re.I)
     if not matches:
-        matches = re.findall(r"(?:^|_)([1-4]\d{2})(?:_|$)", base_id)
+        matches = re.findall(r"(?:^|_)([1-6]\d{2})(?:_|$)", base_id)
     if matches:
-        return max(1, min(400, max(int(x) for x in matches)))
+        return max(1, min(CHARACTER_MAX_LEVEL, max(int(x) for x in matches)))
     return 1
 
 def v0190_resource_sale_coins(item_id, item=None):
@@ -281,7 +291,7 @@ def v0190_resource_sale_coins(item_id, item=None):
     mult = max(1.0, float(item.get("rare_value_multiplier", 1.0) or 1.0))
     return generator_core_v027.resource_sale_for_stage(stage, mult)
 
-CHARACTER_MAX_LEVEL = 400
+CHARACTER_MAX_LEVEL = 600
 STAT_MAX_LEVEL = None  # v0.27.1: statystyki są bez twardego limitu
 def character_xp_to_next(level):
     level=max(1,min(CHARACTER_MAX_LEVEL,int(level)))
@@ -289,7 +299,7 @@ def character_xp_to_next(level):
         return 0
     return generator_core_v027.axis_requirement("character", level)
 
-CLASS_MASTERY_MAX_LEVEL = 400
+CLASS_MASTERY_MAX_LEVEL = 600
 CLASS_MASTERY_XP_BASE = 1000
 CLASS_MASTERY_XP_STEP = 250
 MULTICLASS_MAX_ACTIVE = 3
@@ -306,7 +316,7 @@ def class_type_for_name(class_name):
             return ctype
     return "physical"
 
-SKILL_MAX_LEVEL = 400
+SKILL_MAX_LEVEL = 600
 SKILL_XP_BASE = 50
 # v0.8.64: stara wartość 25 dawała około 50 tysięcy użyć na jeden
 # skill 1-200. Mniejszy krok + większe XP za użycie utrzymują długą,
@@ -327,7 +337,7 @@ def skill_cooldown_multiplier(level):
 
 # v0.35.1: osobna biegłość zwykłego ataku Broni Duszy.
 # Nie rozwija skilli/spelli i nie jest Soul Levelem ani Biegłością klasy.
-SOUL_WEAPON_MASTERY_MAX_LEVEL = 400
+SOUL_WEAPON_MASTERY_MAX_LEVEL = 600
 
 def soul_weapon_mastery_xp_to_next(level):
     level = max(1, min(SOUL_WEAPON_MASTERY_MAX_LEVEL, int(level)))
@@ -345,7 +355,7 @@ def soul_weapon_mastery_bonuses(level):
         "crit_chance": round(0.02 * (progress ** 0.90), 6),
         "crit_damage_percent": round(12.0 * (progress ** 0.90), 4),
         "boss_damage_percent": round(5.0 * (progress ** 1.05), 4),
-        "echo_chance": round((0.01 + 0.04 * (((level - 200) / 200.0) ** 0.85)) if level >= 200 else 0.0, 6),
+        "echo_chance": round((0.01 + 0.04 * (((level - 200) / float(max(1, SOUL_WEAPON_MASTERY_MAX_LEVEL - 200))) ** 0.85)) if level >= 200 else 0.0, 6),
         "echo_damage_percent": 30.0 if level >= 200 else 0.0,
     }
 
@@ -502,7 +512,7 @@ MINE_WALL_SCALING_START_FLOOR = 10
 def mine_wall_hit_range(floor):
     """Zwraca losowy przedział wytrzymałości ściany dla danego piętra."""
     floor = max(MINE_MIN_FLOOR, int(floor))
-    effective_floor = min(400, floor)
+    effective_floor = min(CHARACTER_MAX_LEVEL, floor)
     if effective_floor < MINE_WALL_SCALING_START_FLOOR:
         return 3, 8
     low = max(6, int(math.floor(effective_floor * 0.70)))
@@ -687,8 +697,8 @@ ENDGAME_HERB_UNLOCKS = (
     (200, "eternal_blossom"),
 )
 
-# v0.9.12: dalsza progresja narzędzi 201-400 ma własne zasoby.
-PROGRESSION_400_LEVELS = tuple(range(220, 401, 20))
+# v0.9.12: dalsza progresja narzędzi 201-600 ma własne zasoby.
+PROGRESSION_400_LEVELS = tuple(range(220, 601, 20))
 ENDGAME_ORE_UNLOCKS += tuple((level, f"ore_400_{level}") for level in PROGRESSION_400_LEVELS)
 ENDGAME_WOOD_UNLOCKS += tuple((level, f"wood_400_{level}") for level in PROGRESSION_400_LEVELS)
 ENDGAME_HERB_UNLOCKS += tuple((level, f"herb_400_{level}") for level in PROGRESSION_400_LEVELS)
@@ -1219,10 +1229,10 @@ FISH_RESOURCE_IDS = {
 # rudy/minerały nie mogą ginąć w ogromnej kumulatywnej puli. Starsze zasoby
 # nadal pozostają możliwe, lecz świeże progi mają wyższą wagę.
 def mining_ore_weights(resource_ids, effective_level, context="mining"):
-    effective_level = max(1, min(400, int(effective_level)))
+    effective_level = max(1, min(CHARACTER_MAX_LEVEL, int(effective_level)))
     result = []
     for item_id in resource_ids:
-        unlock = max(1, min(400, int(ORE_ATLAS_LEVELS.get(item_id, 1) or 1)))
+        unlock = max(1, min(CHARACTER_MAX_LEVEL, int(ORE_ATLAS_LEVELS.get(item_id, 1) or 1)))
         age = max(0, effective_level - unlock)
         # Około 10-20% dla świeżego zasobu przy zwykłych progach 1-200;
         # stare rudy nigdy nie spadają do zera.
@@ -1240,13 +1250,13 @@ def mining_mithril_currency_chance(tool_level, profession_level, floor):
     Mithril nie jest rudą i nie zastępuje normalnego urobku. Odblokowuje się
     od Kilofa/Górnictwa 80 i poziomu kopalni 80. Szansa rośnie od 0.5% do 2%.
     """
-    tool_level = max(1, min(400, int(tool_level)))
-    profession_level = max(1, min(400, int(profession_level)))
-    floor = max(1, min(400, int(floor or 1)))
+    tool_level = max(1, min(TOOL_MAX_LEVEL, int(tool_level)))
+    profession_level = max(1, min(PROFESSION_MAX_LEVEL, int(profession_level)))
+    floor = max(1, min(CHARACTER_MAX_LEVEL, int(floor or 1)))
     effective = min(tool_level, profession_level, floor)
     if effective < 80:
         return 0.0
-    progress = (effective - 80) / 320.0
+    progress = (effective - 80) / float(max(1, min(TOOL_MAX_LEVEL, PROFESSION_MAX_LEVEL, CHARACTER_MAX_LEVEL) - 80))
     return round(0.005 + 0.015 * progress, 6)
 
 ORE_RESOURCE_IDS = {
@@ -1340,7 +1350,7 @@ WOOD_DEEP_ATLAS = {
     "voidwood_log", "starheart_log", "eternal_worldwood_log",
 }
 
-# v0.9.12: zasoby 220-400 są pełnoprawnymi zasobami atlasów/kolekcji.
+# v0.9.12: zasoby 220-600 są pełnoprawnymi zasobami atlasów/kolekcji.
 _POST400_ORE_IDS = {item_id for _level, item_id in ENDGAME_ORE_UNLOCKS if _level > 200}
 _POST400_WOOD_IDS = {item_id for _level, item_id in ENDGAME_WOOD_UNLOCKS if _level > 200}
 _POST400_HERB_IDS = {item_id for _level, item_id in ENDGAME_HERB_UNLOCKS if _level > 200}

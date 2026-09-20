@@ -130,7 +130,7 @@ V0862_SOUL_TRIAL_REWARD_SILVER = {
     180: 75_000_000,
     200: 500_000_000,
 }
-for _level in range(210, 401, 10):
+for _level in range(210, SOUL_MAX_LEVEL + 1, 10):
     V0862_SOUL_TRIAL_REWARD_SILVER[_level] = int(
         500_000_000 * (1.0 + 0.50 * ((_level - 200) / 200.0))
     )
@@ -717,7 +717,7 @@ def normalize_instance_kind(value):
 
 def legendary_loot_mastery_for_floor(floor):
     floor = max(1, int(floor))
-    return min(400, max(50, (floor // 50) * 50))
+    return min(CLASS_MASTERY_MAX_LEVEL, max(50, (floor // 50) * 50))
 
 
 def _infinite_crypt_boss_profile(floor):
@@ -745,10 +745,10 @@ def create_infinite_crypt_floor_definition(floor, mythic=False):
     floor = max(1, int(floor))
     mult = crypt_depth_multiplier(floor)
     econ = _infinite_crypt_economy_floor(floor)
-    # EQ rośnie do progresji 400, potem ma twardy cap mimo nieskończonej Krypty.
-    tier = min(40, max(1, (floor - 1) // 10 + 1))
+    # EQ rośnie do progresji 600, potem ma twardy cap mimo nieskończonej Krypty.
+    tier = min(SOUL_MAX_TIER, max(1, (floor - 1) // 10 + 1))
     if mythic:
-        tier = min(40, max(20, 20 + (floor - 1) // 10))
+        tier = min(SOUL_MAX_TIER, max(20, 20 + (floor - 1) // 10))
     gear = [f"crypt_t{tier}_{slot}" for slot in CLASS_EQUIPMENT_SLOT_DEFS]
     if mythic:
         room_id = mythic_crypt_floor_id(floor)
@@ -996,8 +996,8 @@ def infinite_continuation_multiplier(floor, handmade_max):
     return 1.0 + INFINITE_DUNGEON_STEP_RATE * extra_tens
 
 def _capped_dungeon_economy_floor(floor):
-    # Waluta, surowce i gear zatrzymują ekonomiczną moc na progresji 400.
-    return min(400, max(1, int(floor)))
+    # Waluta, surowce i gear zatrzymują ekonomiczną moc na progresji 600.
+    return min(CHARACTER_MAX_LEVEL, max(1, int(floor)))
 
 def _dynamic_astral_boss_profile(floor):
     source_floors = tuple(sorted(ASTRAL_BOSS_NAMES))
@@ -1329,7 +1329,7 @@ def create_infinite_mine_floor_definition(floor):
         "up": "crystal_chamber" if floor == MINE_MIN_FLOOR else mine_floor_id(floor - 1),
         "down": mine_floor_id(floor + 1),
     }
-    effective = min(400, floor)
+    effective = min(TOOL_MAX_LEVEL, floor)
     feature = infinite_gathering_floor_feature("deep_mine", floor, MINE_PREGENERATED_MAX_FLOOR)
     generated_profile = v0250_mine_floor_profile(floor)
     if effective < 10:
@@ -1339,13 +1339,13 @@ def create_infinite_mine_floor_definition(floor):
     elif effective < 200:
         richness = "rzadkie rudy endgame"
     else:
-        richness = "najwyższe rudy progresji 400"
+        richness = "najwyższe rudy progresji 600"
     ROOMS[room_id] = {
         "zone": "Kopalnia Głębinowa",
         "name": f"Kopalnia - poziom {floor}",
         "desc": (
             f"Poziom {floor}. Kopalnia schodzi bez końca. W skale występują {richness}. "
-            "Moc surowców nie przekracza capu progresji 400. "
+            "Moc surowców nie przekracza capu progresji 600. "
             f"Generator piętra: {generated_profile['shape']}, {generated_profile['strata']}; "
             f"{generated_profile['sign']}."
             + (f" Specjalny sektor: {feature['label']} — {feature['desc']}." if feature['label'] else "")
@@ -1381,7 +1381,7 @@ def create_infinite_profession_dungeon_floor_definition(dungeon, floor):
         name = f"Zatopiona Grota, głębokość {floor}"
         desc = (
             f"Nieskończona głębokość {floor}. Wymagane Wędkarstwo level {required}. "
-            "Najrzadsze ryby nadal respektują cap Wędkarstwa 400."
+            "Najrzadsze ryby nadal respektują cap Wędkarstwa 600."
             + (f" Specjalny sektor: {feature['label']} — {feature['desc']}." if feature['label'] else "")
         )
         OCEAN_FISHING_ROOMS.add(room_id)
@@ -1394,7 +1394,7 @@ def create_infinite_profession_dungeon_floor_definition(dungeon, floor):
         name = f"Pradawny Las, ostęp {floor}"
         desc = (
             f"Nieskończony ostęp {floor}. Wymagane Drwalstwo level {required}. "
-            "Jakość drewna zatrzymuje progresję mocy na levelu 400."
+            "Jakość drewna zatrzymuje progresję mocy na levelu 600."
             + (f" Specjalny sektor: {feature['label']} — {feature['desc']}." if feature['label'] else "")
         )
         WOODCUTTING_ROOMS.add(room_id)
@@ -1405,7 +1405,7 @@ def create_infinite_profession_dungeon_floor_definition(dungeon, floor):
         name = f"Ogród Alchemika, sektor {floor}"
         desc = (
             f"Nieskończony sektor {floor}. Wymagane Zielarstwo level {required}. "
-            "Rzadkość ziół respektuje cap progresji 400."
+            "Rzadkość ziół respektuje cap progresji 600."
             + (f" Specjalny sektor: {feature['label']} — {feature['desc']}." if feature['label'] else "")
         )
         HERBALISM_ROOMS.add(room_id)
@@ -1572,7 +1572,7 @@ def configure_v0864_balance_help():
         "v0.8.64 wykonuje pełny audit balansu walki, progresji, profesji, lootu i multiclass.",
         "Soul XP nie podwaja się już co 10 leveli; każdy pełny blok 10 Soul Leveli zwiększa wymaganie o 25 procent.",
         "Każda statystyka ma osobny dynamiczny próg EXP rosnący wraz z jej wartością. Jeden mob ma też limit EXP statystyk, Soul XP i Class XP zależny od swojej rangi.",
-        "Skill Level 1-400 ma łagodne, malejące skalowanie mocy i cooldownu; XP skilla zdobywa się szybciej, żeby 200 było osiągalne bez dziesiątek tysięcy użyć jednego skilla.",
+        "Skill Level 1-600 ma łagodne, malejące skalowanie mocy i cooldownu; XP skilla zdobywa się szybciej, żeby 200 było osiągalne bez dziesiątek tysięcy użyć jednego skilla.",
         "Różne buffy multiclass nadal działają jednocześnie i uniwersalnie, ale buff nie wzmacnia siły kolejnego buffa, a łączny bonus ma limit +125 procent.",
         "Pojedyncze leczenie ma limit 80 procent maksymalnego HP na cast po wszystkich buffach; leczenie grupowe 60 procent na cel.",
         "Po zużyciu gwarantowanego evade działa wspólny 4-sekundowy lockout dla kolejnego gwarantowanego uniku.",
@@ -1668,8 +1668,8 @@ def configure_v0865_balance_help():
         "W drużynie przeciwnik ma jeden aktywny cel aggro; pozostali gracze nie tworzą osobnych pełnych timerów kontrataku.",
         "EXP każdej statystyki z pojedynczego killa jest ograniczony rangą przeciwnika; sześć liczników działa niezależnie i jest czytanych osobno.",
         "Próby Rybaka, Górnika, Drwala i Zielarki startują od 0 i liczą tylko zasoby zdobyte po przyjęciu questa.",
-        "Mithril z Górnictwa ma od 0,5 procent szansy na poziomie 80 do 2 procent na poziomie 400. Jest dodatkową walutą i nie zastępuje rudy. Widmowy marlin odblokowuje się od Wędki 190.",
-        "Czas Wędkarstwa zależy od poziomu Wędkarstwa; od poziomu 200 do 400 obowiązuje końcowe minimum 3 sekundy. Level Wędki nie skraca czasu.",
+        "Mithril z Górnictwa ma od 0,5 procent szansy na poziomie 80 do 2 procent na poziomie 600. Jest dodatkową walutą i nie zastępuje rudy. Widmowy marlin odblokowuje się od Wędki 190.",
+        "Czas Wędkarstwa zależy od poziomu Wędkarstwa; od poziomu 200 do 600 obowiązuje końcowe minimum 3 sekundy. Level Wędki nie skraca czasu.",
     ]
 
 configure_v0865_balance_help()

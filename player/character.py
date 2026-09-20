@@ -372,9 +372,9 @@ class Character:
             # Dokładnie stara krzywa 1-200.
             completed_ten_level_blocks = max(0, (level - 1) // 10)
             return 1.25 ** completed_ten_level_blocks
-        # 201-400: nie kontynuujemy wykładniczego 1.25^blok, bo koszt
+        # 201-600: nie kontynuujemy wykładniczego 1.25^blok, bo koszt
         # eksplodowałby do setek milionów na level. Kotwiczymy na koszcie
-        # levelu 200 i zwiększamy go liniowo do około x3 na 399->400.
+        # levelu 200 i zwiększamy go liniowo do około x3 na 599->600.
         anchor_base = 180 + (200 - 1) * 60
         anchor_cost = anchor_base * (1.25 ** 19)
         target_cost = anchor_cost * (1.0 + (level - 200) * 0.01)
@@ -473,8 +473,8 @@ class Character:
         tier = max(1, min(SOUL_MAX_TIER, int(self.soul_tier)))
         tier_bonus = SOUL_TIER_POWER_BONUSES[tier - 1]
         level = max(1, min(SOUL_MAX_LEVEL, int(self.soul_level)))
-        # 1-200 zachowuje dawny +1 mocy/level. 201-400 daje +1 mocy
-        # co 2 levele, więc cap 400 jest dalszym wzrostem, nie x2 power creepem.
+        # 1-200 zachowuje dawny +1 mocy/level. 201-600 daje +1 mocy
+        # co 2 levele, więc cap 600 jest dalszym wzrostem, nie x2 power creepem.
         level_bonus = min(level, 200) - 1 + max(0, level - 200) // 2
         return self.weapon_base + level_bonus + tier_bonus
 
@@ -597,7 +597,7 @@ class Character:
         """Najwyższy Soul Level dostępny przed odblokowaniem kolejnego Tieru.
 
         Tier 1 pozwala dojść do progu Tieru 2, Tier 2 do progu Tieru 3 itd.
-        Tier 40 ma końcowy cap Soul Level 400. Istniejących save'ów nie cofamy:
+        Tier 60 ma końcowy cap Soul Level 600. Istniejących save'ów nie cofamy:
         postać zapisana powyżej bieżącego capu po prostu nie dostaje dalszego
         Soul XP, dopóki nie odblokuje brakujących Tierów.
         """

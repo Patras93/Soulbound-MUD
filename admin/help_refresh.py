@@ -182,7 +182,7 @@ def refresh_help_v03010():
         "prowadz <cel> / walk <cel> automatycznie idzie dokładnie do rozpoznanej lokalizacji lub NPC; prowadz stop przerywa marsz, prowadz status pokazuje stan.",
         "exits / ex czyta każdy dostępny kierunek razem z nazwą lokacji, do której prowadzi; exits info dodaje strefę i zagrożenie.",
         "walk krypta dół działa wewnątrz zwykłej Krypty i prowadzi przez bieżące piętro przed zejście na kolejne. Samo zejście wykonujesz ręcznie.",
-        "Sam znak / i Enter przerywa aktywności i teleportuje postać do Świątyni Odrodzenia.",
+        "Sam znak / i Enter przerywa aktywności i teleportuje do Świątyni Odrodzenia. Jeśli jesteś w drużynie, teleport obejmuje tylko członków stojących razem z tobą w tej samej lokacji.",
         "prowadz lista / walk list pokazuje kategorie celów; trasa <cel> planuje drogę bez wykonywania ruchu.",
     ]
     HELP_TOPICS["walka"] = [
@@ -278,6 +278,7 @@ def refresh_help_v03011():
         "Gdy porusza się lider, członkowie stojący z nim w tej samej lokacji automatycznie próbują wykonać ten sam krok. Działa to również podczas prowadzenia walk/prowadz.",
         "Follower nie jest teleportowany przez blokady: walka, niedostępne przejście lub indywidualne wymaganie może zatrzymać konkretnego członka bez zatrzymywania lidera.",
         "pc <tekst> to czat drużynowy; bufor party pokazuje jego ostatnie wpisy.",
+        "Jeśli Odłamek Duszy wypadnie z przeciwnika podczas wspólnej walki, każdy członek drużyny obecny w tej samej lokacji otrzymuje własny Odłamek.",
         "wspieraj / assist pomaga członkowi w walce; zasłoń / zaslon pozwala aktywnemu Strażnikowi przejmować aggro wspólnego przeciwnika w tej samej lokacji.",
         "Limit drużyny rośnie z Charyzmą lidera.",
     ]
@@ -427,6 +428,26 @@ V03016_EQ_MASTERY_EPITHETS = {
     380: "Końca Świata",
     390: "Ostatniej Granicy",
     400: "Transcendentnego Dziedzictwa",
+    410: "Przekroczenia",
+    420: "Gwiezdnego Tronu",
+    430: "Wiecznego Echa",
+    440: "Serca Otchłani",
+    450: "Korony Gwiazd",
+    460: "Sądu Horyzontu",
+    470: "Nieskończonego Pulsu",
+    480: "Kosmicznej Pieczęci",
+    490: "Pradawnego Rezonansu",
+    500: "Świtu Absolutu",
+    510: "Drogi Przeznaczenia",
+    520: "Oka Wszechświata",
+    530: "Wiecznej Iskry",
+    540: "Transcendentnego Znaku",
+    550: "Głosu Nieskończoności",
+    560: "Ostatecznego Horyzontu",
+    570: "Duszy Kosmosu",
+    580: "Korony Wieczności",
+    590: "Apogeum",
+    600: "Absolutu Duszy",
 }
 
 V03016_ARTIFACT_EPITHETS = {
@@ -672,7 +693,7 @@ def full_game_audit_v03014():
     skill_names = {}
     for class_name in class_types:
         rows = CLASS_SKILLS.get(class_name, [])
-        require(len(rows) == 123, f"{class_name}: skills={len(rows)}")
+        require(len(rows) == len(_V0922_MASTERY_LEVELS) * 3, f"{class_name}: skills={len(rows)}")
         for skill in rows:
             all_skills.append((class_name, skill))
             sid = str(skill.get("id", ""))
@@ -683,7 +704,7 @@ def full_game_audit_v03014():
             if sname in skill_names:
                 errors.append(f"duplicate skill name {skill.get('name')}")
             skill_names[sname] = sid
-            require(1 <= int(skill.get("unlock", 0) or 0) <= 400,
+            require(1 <= int(skill.get("unlock", 0) or 0) <= CLASS_MASTERY_MAX_LEVEL,
                     f"skill unlock {sid}")
             require(int(skill.get("cooldown", 0) or 0) >= 0,
                     f"negative cooldown {sid}")
@@ -792,7 +813,7 @@ def full_game_audit_v03014():
                 require(output_id in ITEMS,
                         f"{table_name} output missing {recipe_id}:{output_id}")
             level = int(recipe.get("generator_level", 0) or 0)
-            require(1 <= level <= 400, f"{table_name} level {recipe_id}:{level}")
+            require(1 <= level <= PROFESSION_MAX_LEVEL, f"{table_name} level {recipe_id}:{level}")
             desc = str(recipe.get("desc", "") or "")
             match = re.search(r"(?i)level\s*(\d+)", desc)
             if match:
@@ -815,9 +836,9 @@ def full_game_audit_v03014():
         require(target in HELP_TOPICS or target in virtual_help,
                 f"HELP alias target missing {alias}:{target}")
 
-    # Wszystkie główne krzywe progresji 1-400 muszą być monotoniczne.
+    # Wszystkie główne krzywe progresji 1-600 muszą być monotoniczne.
     for axis in generator_core_v027.AXIS_CURVES:
-        values = [generator_core_v027.axis_requirement(axis, level) for level in range(1, 401)]
+        values = [generator_core_v027.axis_requirement(axis, level) for level in range(1, PROGRESSION_MAX_LEVEL + 1)]
         require(all(b >= a for a, b in zip(values, values[1:])),
                 f"nonmonotonic progression axis {axis}")
 
@@ -896,7 +917,7 @@ def full_combat_scaling_audit_v03015():
         errors.append("INT/WIL does not increase mana")
     if int_plus - base != wil_plus - base:
         errors.append("INT/WIL mana contribution is not equal")
-    if GENERATOR_CORE_VERSION != "0.35.3":
+    if GENERATOR_CORE_VERSION != "0.36.3":
         errors.append(f"GENERATOR_CORE_VERSION={GENERATOR_CORE_VERSION}")
     return {
         "version": "0.30.19",
@@ -1018,9 +1039,9 @@ def progression_combat_audit_v03017():
                 if counts[level] != 3:
                     errors.append(f"{class_name}: próg {level} ma {counts[level]} skilli, oczekiwano 3")
 
-    expected_slots = {1: 10, 10: 11, 100: 20, 200: 30, 400: 50}
+    expected_slots = {1: 10, 10: 11, 100: 20, 200: 30, 400: 50, 600: 70}
     for level, expected in expected_slots.items():
-        got = min(50, 10 + level // 10)
+        got = min(10 + CHARACTER_MAX_LEVEL // 10, 10 + level // 10)
         if got != expected:
             errors.append(f"sloty Level {level}: {got}, oczekiwano {expected}")
 

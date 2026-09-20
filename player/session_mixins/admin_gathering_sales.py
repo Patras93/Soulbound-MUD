@@ -476,7 +476,7 @@ class SessionAdminGatheringSalesMixin:
             floor_for_currency = mine_floor_number(self.character.room_id)
             dungeon_for_currency, dungeon_floor_for_currency = profession_dungeon_floor(self.character.room_id)
             if dungeon_for_currency == "crystal_mine":
-                floor_for_currency = min(400, max(1, int(dungeon_floor_for_currency) * 10))
+                floor_for_currency = min(PROFESSION_MAX_LEVEL, max(1, int(dungeon_floor_for_currency) * 10))
             mithril_chance = mining_mithril_currency_chance(
                 tool_level, profession_level, floor_for_currency or 1
             )
@@ -509,7 +509,7 @@ class SessionAdminGatheringSalesMixin:
             floor_for_geode = mine_floor_number(self.character.room_id)
             dungeon_name, dungeon_floor = profession_dungeon_floor(self.character.room_id)
             if dungeon_name == "crystal_mine":
-                floor_for_geode = min(400, int(dungeon_floor) * 10)
+                floor_for_geode = min(PROFESSION_MAX_LEVEL, int(dungeon_floor) * 10)
             geode_id = roll_mining_geode(
                 tool_level, profession_level, floor_for_geode or 1
             )

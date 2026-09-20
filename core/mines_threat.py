@@ -945,7 +945,7 @@ EXP_AREA_BASE_CATEGORY = {
     "mythic_astral": "Ekstremalny Endgame",
 }
 
-# Orientacyjna siła wejściowa obszaru w skali 1-400. Dla wielopiętrowych
+# Orientacyjna siła wejściowa obszaru w skali 1-600. Dla wielopiętrowych
 # lochów faktyczny próg jest dodatkowo liczony z aktualnego piętra.
 EXP_AREA_TARGET_POWER = {
     "trening": 1,
@@ -1032,21 +1032,21 @@ def v0866_is_random_variant_template(template):
 def v0866_template_explicit_floor_power(template):
     level = template.get("generator_level")
     if level is not None:
-        return max(1, min(400, int(level)))
+        return max(1, min(CHARACTER_MAX_LEVEL, int(level)))
     semantic = generator_core_v027.semantic_floor_level(template)
-    return max(1, min(400, int(semantic))) if semantic is not None else None
+    return max(1, min(CHARACTER_MAX_LEVEL, int(semantic))) if semantic is not None else None
 
 def v0866_mob_progression_power(template):
-    """Compatibility route: active threat is Generator Core stage 1-400."""
+    """Compatibility route: active threat is Generator Core stage 1-600."""
     level = template.get("generator_level")
     if level is not None:
-        return max(1, min(400, int(level)))
+        return max(1, min(CHARACTER_MAX_LEVEL, int(level)))
     explicit = v0866_template_explicit_floor_power(template)
     if explicit is not None:
         return explicit
     # Dynamic records are normalized immediately before use.
     v0190_apply_combat_template(template)
-    return max(1, min(400, int(template.get("generator_level", 1) or 1)))
+    return max(1, min(CHARACTER_MAX_LEVEL, int(template.get("generator_level", 1) or 1)))
 
 def v0866_percentile(values, fraction):
     values = sorted(int(v) for v in values)
@@ -1086,7 +1086,7 @@ def v0866_room_threat_profile(room_id, fallback=1):
     if target is None:
         target = v0866_percentile(bosses, 0.35)
     if target is None:
-        target = max(1, min(400, int(fallback or 1)))
+        target = max(1, min(CHARACTER_MAX_LEVEL, int(fallback or 1)))
     profile = {
         "target": int(target),
         "normal_min": min(normal) if normal else None,
@@ -1168,6 +1168,7 @@ COMMAND_ALIASES = {
     "gdzie": "where",
     "trasa": "route", "route": "route", "droga": "route", "sciezka": "route", "ścieżka": "route",
     "kto": "who",
+    "whois": "whois", "profile": "whois", "profil": "whois",
     "expowiska": "expareas", "expowisko": "expareas",
     "terenyexp": "expareas", "terenydoexpienia": "expareas",
     "expienie": "expareas",
@@ -1482,37 +1483,37 @@ ITEMS = {
     "fishing_rod": {
         "name": "Wędka", "type": "tool", "tool_type": "fishing",
         "price": 10, "currency": "silver",
-        "desc": "Podstawowe narzędzie do Wędkarstwa. Ma własny level 1-400 i 40 Tierów.",
+        "desc": "Podstawowe narzędzie do Wędkarstwa. Ma własny level 1-600 i 60 Tierów.",
     },
     "pickaxe": {
         "name": "Kilof", "type": "tool", "tool_type": "mining",
         "price": 10, "currency": "silver",
-        "desc": "Podstawowe narzędzie do Górnictwa. Ma własny level 1-400 i 40 Tierów.",
+        "desc": "Podstawowe narzędzie do Górnictwa. Ma własny level 1-600 i 60 Tierów.",
     },
     "saw": {
         "name": "Piła", "type": "tool", "tool_type": "woodcutting",
         "price": 10, "currency": "silver",
-        "desc": "Podstawowe narzędzie do Drwalstwa. Ma własny level 1-400 i 40 Tierów.",
+        "desc": "Podstawowe narzędzie do Drwalstwa. Ma własny level 1-600 i 60 Tierów.",
     },
     "crafting_hammer": {
         "name": "Młot Rzemieślniczy", "type": "tool", "tool_type": "crafting",
         "price": 10, "currency": "silver",
-        "desc": "Narzędzie wymagane do Rzemiosła. Ma własny level 1-400, XP i 40 Tierów.",
+        "desc": "Narzędzie wymagane do Rzemiosła. Ma własny level 1-600, XP i 60 Tierów.",
     },
     "chef_knife": {
         "name": "Nóż Kucharski", "type": "tool", "tool_type": "cooking",
         "price": 10, "currency": "silver",
-        "desc": "Narzędzie wymagane do Gotowania. Ma własny level 1-400, XP i 40 Tierów.",
+        "desc": "Narzędzie wymagane do Gotowania. Ma własny level 1-600, XP i 60 Tierów.",
     },
     "herbalist_sickle": {
         "name": "Sierp Zielarski", "type": "tool", "tool_type": "herbalism",
         "price": 10, "currency": "silver",
-        "desc": "Narzędzie do Zielarstwa. Ma własny level 1-400, XP i 40 Tierów.",
+        "desc": "Narzędzie do Zielarstwa. Ma własny level 1-600, XP i 60 Tierów.",
     },
     "alchemy_mortar": {
         "name": "Moździerz Alchemiczny", "type": "tool", "tool_type": "alchemy",
         "price": 10, "currency": "silver",
-        "desc": "Narzędzie do Alchemii. Ma własny level 1-400, XP i 40 Tierów.",
+        "desc": "Narzędzie do Alchemii. Ma własny level 1-600, XP i 60 Tierów.",
     },
     "nettle": {"name": "Pokrzywa", "type": "resource", "price": None, "sell_silver": 5, "desc": "Pospolite zioło lecznicze."},
     "chamomile": {"name": "Rumianek", "type": "resource", "price": None, "sell_silver": 7, "desc": "Łagodne zioło lecznicze."},

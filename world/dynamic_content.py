@@ -2403,7 +2403,7 @@ HELP_TOPICS["geody"] = [
 if "gornictwo" in HELP_TOPICS:
     HELP_TOPICS["gornictwo"].append("Kilof 20+ może znajdować geody; wpisz geody albo open geode / otwórz geodę.")
 if "profesje" in HELP_TOPICS:
-    HELP_TOPICS["profesje"].append("Wędka/Kilof/Piła/Sierp rozwijają się obecnie 1-400; dawna wygładzona część krzywej 1-200 pozostaje zachowana, a 201-400 jest jej dalszą progresją.")
+    HELP_TOPICS["profesje"].append("Wędka/Kilof/Piła/Sierp rozwijają się obecnie 1-600; dawna część krzywej 1-400 pozostaje zachowana, a 401-600 jest jej dalszą progresją.")
 
 COMMAND_ALIASES.update({
     "bestiariusz": "bestiary", "bestiary": "bestiary",

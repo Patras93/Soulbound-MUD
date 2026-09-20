@@ -450,7 +450,7 @@ class SessionPerceptionMapsMixin:
                     boss_level = int(MOB_TEMPLATES[info["boss"]].get("generator_level", info["stage"]) or info["stage"])
                     quest_levels = [int(QUESTS[qid].get("generator_level", info["stage"]) or info["stage"]) for qid in info["quests"]]
                     await self.send(
-                        f"{index}. {info['name']} — etap {info['stage']}/400; "
+                        f"{index}. {info['name']} — etap {info['stage']}/{CHARACTER_MAX_LEVEL}; "
                         f"sektory {len(info['rooms'])}; sekrety {len(info['secrets'])}; "
                         f"miejsca zasobów {len(info['resource_rooms'])}; boss około Level {boss_level}; "
                         f"questy {quest_levels[0]}/{quest_levels[1]}/{quest_levels[2]}."
@@ -472,7 +472,7 @@ class SessionPerceptionMapsMixin:
                 elite = MOB_TEMPLATES[info["elite"]]
                 rare = MOB_TEMPLATES[info["rare"]]
                 await self.send(
-                    f"REGION {index}: {info['name']}. Biom {info['biome']}; etap bazowy {info['stage']}/400. "
+                    f"REGION {index}: {info['name']}. Biom {info['biome']}; etap bazowy {info['stage']}/{CHARACTER_MAX_LEVEL}. "
                     f"Sektory {len(info['rooms'])}, sekrety {len(info['secrets'])}, miejsca zasobów {len(info['resource_rooms'])}."
                 )
                 resource_labels = {
@@ -604,12 +604,12 @@ class SessionPerceptionMapsMixin:
                         danger_power, self.character_progression_power()
                     )
                     boss_text = (
-                        f", boss do około {int(boss_power)}/400"
+                        f", boss do około {int(boss_power)}/{CHARACTER_MAX_LEVEL}"
                         if boss_power is not None else ""
                     )
                     exits.append(
                         f"{base}{zone_text}, zagrożenie {threat_label}, zwykły próg około "
-                        f"{target_power}/400{boss_text}"
+                        f"{target_power}/{CHARACTER_MAX_LEVEL}{boss_text}"
                     )
                 else:
                     exits.append(base)

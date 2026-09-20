@@ -1,3 +1,86 @@
+Soulbound v0.36.2 — Terrain Threat Rebalance
+- Naprawiono zaniżoną trudność mobów na zwykłych terenach. `recommended_mastery` jest teraz dolną granicą numerycznego etapu lokacji, ale nadal nie blokuje wejścia.
+- Współdzielone szablony mobów są na terenach balansowane do etapu aktualnego pokoju zamiast dziedziczyć statystyki z najłatwiejszej lokacji, w której występują.
+- Zwykłe, Elite i Rare moby terenowe od etapu 50 dostają dodatkowe HP: około x2 na 100, x3 na 200 i x4 od 300. Obrażenia rosną łagodniej: +10% na 100, +20% na 200, do +50% na najwyższych terenach.
+- Bossowie, World Bossowie i dedykowane systemy lochowe nie dostają dodatkowego mnożnika terenowego i zachowują własne reguły.
+- Naprawiono proceduralne pokoje tworzone dopiero przy wejściu: ich `recommended_mastery` jest teraz używane przy generowaniu etapu i mobów.
+- Dodano audit v0.36.2 pilnujący zgodności etapów terenów, runtime clone oraz utrzymania mnożników po odświeżeniu szablonu walki.
+
+Soulbound v0.36.1 — Drużynowe przyjmowanie questów
+- Gdy lider drużyny przyjmuje zwykły quest, każdy żywy członek drużyny stojący z nim w tej samej lokacji automatycznie próbuje przyjąć ten sam quest.
+- Każdy gracz dostaje własny wpis questa od 0/x, własne przedmioty przyznawane przy przyjęciu oraz niezależny późniejszy postęp i nagrodę.
+- Wymagania są sprawdzane osobno dla każdego gracza. Osoba z aktywnym/ukończonym questem, cooldownem, brakującą profesją/Soul lub będąca w walce jest pomijana i dostaje jasny komunikat.
+- Członkowie drużyny poza lokacją lidera oraz martwi członkowie nie dostają questa automatycznie.
+- Przyjęcie questa przez zwykłego członka drużyny pozostaje osobiste; automatyczne rozsyłanie uruchamia wyłącznie lider.
+- Dodano stały audit v0.36.1 pilnujący lokalnego rozsyłania questów przez lidera bez rekurencji.
+
+Soulbound v0.36.0 — Global Progression 600 + Leader Disband
+- Gdy lider opuszcza drużynę, drużyna natychmiast się rozwiązuje. Przywództwo nie jest automatycznie przekazywane innemu graczowi.
+- Level postaci, Biegłość 14 klas, Skill Level, Soul Level, Soul Weapon Mastery, 12 profesji, 12 narzędzi i poziom Gildii rozwijają się do 600.
+- Każda z 14 klas ma 183 skille/spelle. Dwanaście standardowych klas zachowuje siatkę 3 skilli na 1/10/20...600; Mec i Inżynier zachowują autorskie wczesne progi swoich zestawów technologicznych i także dochodzą do 600.
+- Broń Duszy ma 60 Tierów. Dodano Tiery i Próby 41-60 dla Soul Level 410-600.
+- Wszystkie narzędzia mają 60 Tierów. Profesje dostały dalsze rangi i zawartość 401-600; linie surowców i receptur dochodzą do 600.
+- Klasowe EQ ma dalsze progi co 10 aż do Biegłości 600; crafting i rozszerzone profesje mają realne przedmioty/receptury 420-600.
+- Klasowe EQ na każdym progu 1/10/20/30/.../600 ma rosnący, rzeczywiście inny budżet podstawowych statów; niskie Tiery nie powtarzają już tych samych wartości statów między kolejnymi progami.
+- Auto kolejka skilli rośnie do 70 slotów na Character Level 600.
+- Wzniesienie oraz możliwość ustawienia World Tier 2+ wymagają teraz co najmniej jednej klasy z Biegłością 600.
+- Gildia rozwija się do poziomu 600. Koszty i bonusy poziomów 1-400 są dokładnie zgodne z v0.35.11; 401-600 kontynuuje progresję, a bonus dochodzi do +29% na 600.
+- Nie ma wipe. Historyczne save'y, ID przedmiotów i zawartość 1-400 pozostają kompatybilne.
+- Dodano stały audit v0.36.0 sprawdzający capy 600, 60 Tierów Soul/narzędzi, skille, profesje, EQ, surowce, Gildię oraz brak transferu lidera po wyjściu.
+
+Soulbound v0.35.11 — Wszystkie buffy lokalnej drużyny
+- Każdy prawdziwy bojowy `boost` działa na wszystkich żywych członków drużyny stojących w tej samej lokacji.
+- `guard` jest drużynowy: każdy obecny członek dostaje własną ochronę na następne trafienie.
+- `evade` jest drużynowy: każdy obecny członek dostaje własny gwarantowany unik następnego ataku.
+- V-MAX Meca daje całej lokalnej drużynie +30% do skilli/spelli oraz Protect/Shell/Regen; specjalne przepisywanie skilli Meca pozostaje mechaniką Meca uruchamiającego V-MAX.
+- Inżynierski Upgrade został poprawnie oznaczony jako narzędzie użytkowe, a nie buff bojowy; jego trwałe ulepszanie narzędzi nadal działa jak wcześniej.
+- Dodano audit wymuszający lokalne działanie drużynowe buffów i wykrywający powrót osobistych guard/evade/V-MAX.
+
+Soulbound v0.35.10 — Wspólny loot z ciał dla drużyny
+- `przeszukaj/loot/get all` na ciele moba rozdaje własną kopię każdego znalezionego przedmiotu wszystkim członkom drużyny stojącym w tej samej lokacji.
+- `get/wez <przedmiot> from/z <ciało>` również współdzieli pojedynczy zabrany przedmiot z lokalną drużyną.
+- Przedmiot jest usuwany z ciała przed rozdaniem kopii, więc nie da się powtórnie rozdać tego samego lootu przez ponowne przeszukanie.
+- Materiały rzemieślnicze zachowują automatyczne kierowanie do Szkatułki Rzemieślniczej. Każdy odbiorca dostaje własny wpis kolekcji i postęp odpowiedniego aktywnego questa zbierackiego.
+- Członkowie drużyny poza lokacją ciała niczego nie dostają.
+
+Soulbound v0.35.9 — Wspólne wszystkie dropy drużyny
+- Każdy zwykły drop z pokonanego moba jest teraz współdzielony przez wszystkich uprawnionych członków drużyny obecnych razem przy zabiciu.
+- Szansa dropu jest losowana tylko raz na moba; jeśli drop wypadnie, każdy obecny członek dostaje własną kopię tego samego przedmiotu.
+- Zasada obejmuje m.in. Eliksiry Duszy, mikstury, Odłamki Duszy, materiały, runy, klejnoty oraz komponenty technologiczne z tabeli `drops`.
+- Gracze poza lokacją zabicia niczego nie dostają. Postęp questów zabójstw pozostaje naliczany niezależnie i nie jest dublowany przez kopiowanie przedmiotów.
+
+Soulbound v0.35.8 — PvP Protection / pełna ochrona graczy
+- PvP jest globalnie wyłączone: gracze nie mogą atakować, ranić ani zabijać innych graczy.
+- `atakuj <gracz>` / `k <gracz>` rozpoznaje gracza w tej samej lokacji i zwraca jasny komunikat o wyłączonym PvP.
+- Ofensywne skille z nazwą gracza jako celem są blokowane przed rozpoczęciem walki.
+- AoE nadal wybiera wyłącznie żywe moby z lokacji; nie obejmuje sesji graczy.
+- HELP walki opisuje brak PvP. Dodano audit zabezpieczający ścieżki ataku i skilli.
+
+Soulbound v0.35.7 — Hurtowy przetop + EQ ze sztabek
+- `przetop wszystko` przetapia w jednej akcji wszystkie dostępne rudy, Stalowe Płyty i zgodne materiały Salvage, które spełniają wymagania Kowalstwa/Tieru Młota.
+- Hurtowy przetop ma jeden czas akcji oraz jeden wspólny pakiet XP Kowalstwa i Młota zamiast osobnych przyrostów za każdą sztukę.
+- Standardowe kowalskie EQ powstaje ze sztabek: ruda -> przetop -> sztabka -> kucie EQ.
+- Poprawiono stare talizmany Kowalstwa 100-200 oraz talizmany progresji 220-400, które wcześniej używały rudy bezpośrednio.
+- Dodano audit blokujący powrót receptur kowalskiego EQ zużywających surową rudę.
+
+Soulbound v0.35.6 — Salvage Wszystko
+- Dodano `salvage wszystko` / `rozloz wszystko`: hurtowo rozkłada wszystkie wolne przedmioty obsługiwane przez Salvage.
+- Założone EQ jest zawsze pomijane; Moogle Board jest chroniony przed przypadkowym hurtowym rozłożeniem.
+- Raport odzysku jest agregowany dla NVDA; Kowalstwo XP i odzysk run/klejnotów pozostają aktywne.
+
+v0.35.5 - Lokalna synchronizacja drużyny
+- Teleport / i Enter do Świątyni obejmuje tylko członków drużyny stojących razem w tej samej lokacji co osoba uruchamiająca teleport.
+- Członkowie drużyny znajdujący się gdzie indziej nie są teleportowani.
+- Odłamki Duszy pozostają wspólnym dropem tylko dla członków drużyny obecnych razem przy walce.
+- HELP zaktualizowany do nowej zasady lokalnej drużyny.
+
+SOULBOUND v0.35.5 PARTY TEMPLE TELEPORT + SHARED SOUL SHARDS
+============================================================
+- / i Enter teleportują do Świątyni Odrodzenia tylko członków drużyny stojących razem w tej samej lokacji co osoba uruchamiająca teleport.
+- Teleport zatrzymuje aktywności i walkę każdego przenoszonego członka.
+- Odłamek Duszy po udanym rzucie dropu trafia po 1 sztuce do każdego członka drużyny obecnego przy walce.
+- Pozostałe zwykłe dropy zachowują dotychczasowy losowy podział.
+
 v0.35.3 - Deep Code Inspection + Rare Path Stability
 - Naprawiono rzadki crash Meca Intercept System: nieistniejące magic_power zastąpiono spell_power.
 - Naprawiono admin goto po nazwie lokacji: resolve_room_query zastąpiono find_room.
@@ -5466,3 +5549,11 @@ SOULBOUND v0.6 WORLD CORE
 - Zachowano Soul Tier 1-3.
 - Zachowano priorytet RAILWAY_TCP_APPLICATION_PORT.
 - Zachowano kompatybilność z MUSHclientem i Mudletem.
+
+Soulbound v0.36.3 — Offline Player Profiles
+- Dodano `profil <gracz>` i `profile <player>`; stare `whois <gracz>` działa tak samo.
+- Profil działa także dla postaci offline.
+- Pokazuje status online/offline, ostatnią obecność, ostatnie logowanie i wylogowanie.
+- Pokazuje publiczną progresję: Level, klasy/Biegłość, Broń Duszy, statystyki, profesje, narzędzia, Gildię, World Tier/Wzniesienie, osiągnięcia, questy, Bestiariusz, zgony, rekordy i postęp lochów.
+- EQ respektuje `inspectprivacy`.
+- Profil nie pokazuje loginu, hasła, poczty, banku ani innych prywatnych danych konta.

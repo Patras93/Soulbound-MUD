@@ -166,9 +166,10 @@ class SessionCoreProgressionMixin:
             await self.flee()
             return True
 
-    async def teleport_to_temple_command(self):
-            if not self.character:
-                return
+    async def _teleport_self_to_temple_v0354(self, party_trigger_name=None):
+            """Teleport one online session to the temple without recursing through party logic."""
+            if not self.character or self.closed:
+                return False
             if self.guide_task_active():
                 await self.cancel_guide(announce=False)
             if self.resting or self.rest_task:
@@ -185,8 +186,11 @@ class SessionCoreProgressionMixin:
                 await self.flee()
             old_room = self.character.room_id
             if old_room == "temple":
-                await self.send("Już jesteś w Świątyni Odrodzenia.")
-                return
+                if party_trigger_name and party_trigger_name != self.character.name:
+                    await self.send(
+                        f"{party_trigger_name} uruchamia teleport drużyny. Już jesteś w Świątyni Odrodzenia."
+                    )
+                return False
             self.previous_room_id = old_room
             self.character.room_id = "temple"
             self.server.db.save_character(self.character)
@@ -196,8 +200,45 @@ class SessionCoreProgressionMixin:
             await self.server.broadcast_room(
                 "temple", f"{self.character.name} pojawia się w Świątyni Odrodzenia.", exclude=self
             )
-            await self.send("Teleportujesz się do Świątyni Odrodzenia.")
+            if party_trigger_name and party_trigger_name != self.character.name:
+                await self.send(
+                    f"{party_trigger_name} uruchamia teleport drużyny. Zostajesz przeniesiony do Świątyni Odrodzenia."
+                )
+            else:
+                await self.send("Teleportujesz się do Świątyni Odrodzenia.")
             await self.look()
+            return True
+
+    async def teleport_to_temple_command(self):
+            if not self.character:
+                return
+            origin_room = self.character.room_id
+            party_members = self.server.party_sessions(
+                self.account_id, same_room=origin_room
+            )
+            if not party_members:
+                party_members = [self]
+            party_members = sorted(
+                [s for s in party_members if s.character and not s.closed],
+                key=lambda s: s.character.name.casefold(),
+            )
+            if len(party_members) <= 1:
+                moved = await self._teleport_self_to_temple_v0354()
+                if not moved and self.character.room_id == "temple":
+                    await self.send("Już jesteś w Świątyni Odrodzenia.")
+                return
+
+            trigger_name = self.character.name
+            moved_count = 0
+            for member in party_members:
+                if await member._teleport_self_to_temple_v0354(
+                    party_trigger_name=trigger_name
+                ):
+                    moved_count += 1
+            await self.server.party_broadcast(
+                self.account_id,
+                f"Teleport do Świątyni zakończony dla członków drużyny stojących razem. Przeniesiono {moved_count} z {len(party_members)} obecnych w tej lokacji.",
+            )
 
     def mine_progress(self):
             return self.server.db.mine_progress(self.account_id)
@@ -419,7 +460,7 @@ class SessionCoreProgressionMixin:
             max_floor = int(progress["max_floor_unlocked"])
             await self.send(
                 f"Najgłębiej odblokowany poziom: {max_floor}. "
-                "Kopalnia nie ma górnego limitu pięter; moc zasobów skaluje się do progresji 400."
+                "Kopalnia nie ma górnego limitu pięter; moc zasobów skaluje się do progresji 600."
             )
 
             if floor is not None:
@@ -453,7 +494,7 @@ class SessionCoreProgressionMixin:
             except Exception:
                 tool_level = 1
             await self.send(
-                f"Górnictwo: {profession_level}/400. Kilof: {tool_level}/400."
+                f"Górnictwo: {profession_level}/{PROFESSION_MAX_LEVEL}. Kilof: {tool_level}/{TOOL_MAX_LEVEL}."
             )
 
             # W Kopalni Głębinowej ruda wymaga jednocześnie odpowiedniego Kilofa
@@ -1429,7 +1470,7 @@ class SessionCoreProgressionMixin:
                 if result["level"] >= CLASS_MASTERY_MAX_LEVEL:
                     if ascension:
                         nxt=(f" z {ascension['next_xp']}" if ascension['next_xp'] else " — maksimum")
-                        await self.send(f"{class_name}: +{share} EXP klasy. Biegłość 400; Wzniesienie {ascension['rank']}, XP {ascension['xp']}{nxt}.")
+                        await self.send(f"{class_name}: +{share} EXP klasy. Biegłość 600; Wzniesienie {ascension['rank']}, XP {ascension['xp']}{nxt}.")
                     else:
                         await self.send(f"{class_name}: +{share} EXP klasy. Biegłość {CLASS_MASTERY_MAX_LEVEL}, maksimum.")
                 else:

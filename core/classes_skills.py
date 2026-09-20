@@ -48,7 +48,7 @@ for _level, _floor, _item_id, _name in WORLD_ORE_UNLOCKS:
     ORE_ATLAS_LEVELS[_item_id] = _level
     ORE_MINE_FLOOR_MINIMUMS[_item_id] = _floor
 
-# v0.24.4: rudy progresji 220-400 wymagają równocześnie odpowiedniego
+# v0.24.4: rudy progresji 220-600 wymagają równocześnie odpowiedniego
 # Kilofa i głębokości Kopalni Głębinowej. Atlas ma pokazywać te same progi.
 for _level, _item_id in ENDGAME_ORE_UNLOCKS:
     if int(_level) > 200:
@@ -1829,7 +1829,7 @@ def _make_soul_grid_skill(class_name, soul_level, name, kind):
     elif kind == "execute":
         skill["scale"] = profile["scale"]
         skill["mult"] = round(1.22 + int(soul_level) * 0.0078, 2)
-        skill["execute_mult"] = round(min(2.0, 1.45 + int(soul_level) / 400.0), 2)
+        skill["execute_mult"] = round(min(2.0, 1.45 + int(soul_level) / float(SOUL_MAX_LEVEL)), 2)
         skill["cooldown"] = min(17, 9 + int(soul_level) // 30)
     elif kind == "drain":
         skill["scale"] = profile["scale"]
@@ -1837,7 +1837,7 @@ def _make_soul_grid_skill(class_name, soul_level, name, kind):
         skill["drain_pct"] = round(min(0.48, 0.24 + int(soul_level) / 800.0), 2)
         skill["cooldown"] = min(15, 8 + int(soul_level) // 35)
     elif kind == "boost":
-        skill["boost"] = round(min(1.70, 1.20 + int(soul_level) / 400.0), 2)
+        skill["boost"] = round(min(1.70, 1.20 + int(soul_level) / float(SOUL_MAX_LEVEL)), 2)
         skill["cooldown"] = min(16, 10 + int(soul_level) // 45)
         skill["duration"] = skill["cooldown"]
         skill["desc"] = (
@@ -1871,13 +1871,18 @@ for _class_name, _specs in SOUL_LEVEL_SKILL_EXPANSION.items():
         _existing_levels.add(int(_soul_level))
 
 
-# v0.9.12: nowe umiejętności Biegłości 220-400. Stare progi 1-200
+# v0.9.12: nowe umiejętności Biegłości 220-600. Stare progi 1-200
 # pozostają bez zmian; nowe skille mają malejący przyrost mocy.
 _POST200_SKILL_STAGES = (
     (220, "Przebudzenie"), (240, "Transcendencja"), (260, "Horyzont"),
     (280, "Otchłań"), (300, "Gwiezdny Rdzeń"), (320, "Pierwotność"),
     (340, "Nieskończoność"), (360, "Korona Świata"),
     (380, "Ponadczasowość"), (400, "Absolut"),
+    (420, "Przekroczenie"), (440, "Gwiezdny Tron"),
+    (460, "Wieczne Echo"), (480, "Serce Otchłani"),
+    (500, "Korona Gwiazd"), (520, "Sąd Horyzontu"),
+    (540, "Kosmiczny Szlak"), (560, "Wieczność"),
+    (580, "Apogeum"), (600, "Absolut Duszy"),
 )
 _POST200_CLASS_NOUN = {
     "Wojownik":"Wojownika", "Berserker":"Berserkera", "Łotrzyk":"Łotrzyka",
@@ -1912,7 +1917,7 @@ def _make_post200_mastery_skill(class_name, level, stage, kind):
         "mana": (18 + level // 18) if magic else 0,
         "desc": f"Umiejętność Biegłości {level} klasy {class_name}.",
     }
-    progress = (level - 200) / 200.0
+    progress = (level - 200) / float(max(1, CLASS_MASTERY_MAX_LEVEL - 200))
     if kind in ("damage", "execute", "drain"):
         skill["scale"] = profile["scale"]
         skill["mult"] = round(2.65 + progress * 0.55, 2)
@@ -1990,6 +1995,13 @@ _V0244_WARRIOR_LEVEL_TITLES = {
             "Pierwotnego Legionu", "Wiecznej Warty", "Nieskończonej Straży",
             "Korony Zwycięstwa", "Korony Świata", "Czasu Bohaterów",
             "Ponadczasowej Wojny", "Ostatniej Granicy", "Absolutnej Stali",
+            "Przekroczenia Granic", "Gwiezdnego Tronu", "Wiecznego Echa",
+            "Serca Otchłani", "Korony Gwiazd", "Sądu Horyzontu",
+            "Nieskończonego Pulsu", "Kosmicznej Pieczęci", "Pradawnego Rezonansu",
+            "Świtu Absolutu", "Drogi Przeznaczenia", "Oka Wszechświata",
+            "Wiecznej Iskry", "Transcendentnego Znaku", "Głosu Nieskończoności",
+            "Ostatecznego Horyzontu", "Duszy Kosmosu", "Korony Wieczności",
+            "Apogeum Wojny", "Absolutu Duszy",
         ),
     )
 }
@@ -2044,7 +2056,7 @@ def _v0922_alt_skill(class_name, level, variant_index, base_name, kind):
         ),
         "mastery_choice_group": f"{class_name}:{level}",
     }
-    progress = min(1.0, max(0.0, (level - 1) / 399.0))
+    progress = min(1.0, max(0.0, (level - 1) / float(max(1, CLASS_MASTERY_MAX_LEVEL - 1))))
     if kind in ("damage", "aoe_damage", "execute", "drain"):
         skill["scale"] = profile["scale"]
         # Alternatywy są trochę słabsze od najmocniejszego głównego skilla progu;
@@ -2119,6 +2131,11 @@ _V03014_SKILL_TITLES = (
     "Pierwotny Tron", "Wieczny Zew", "Nieskończona Droga", "Korona Zwycięstwa",
     "Korona Świata", "Czas Bohaterów", "Ponadczasowy Znak", "Ostatnia Granica",
     "Absolutny Szczyt",
+    "Przekroczenie Granic", "Gwiezdny Tron", "Wieczne Echo", "Serce Otchłani",
+    "Korona Gwiazd", "Sąd Horyzontu", "Nieskończony Puls", "Kosmiczna Pieczęć",
+    "Pradawny Rezonans", "Świt Absolutu", "Droga Przeznaczenia", "Oko Wszechświata",
+    "Wieczna Iskra", "Transcendentny Znak", "Głos Nieskończoności",
+    "Ostateczny Horyzont", "Dusza Kosmosu", "Korona Wieczności", "Apogeum", "Absolut Duszy",
 )
 
 _V03014_SKILL_FAMILIES = {
@@ -2215,7 +2232,7 @@ def _v0310_tech_skill(class_name, prefix, level, index, name, kind):
     scale = "dexterity" if class_name == "Inżynier" else "strength"
     if kind in ("damage","aoe_damage","execute","drain"):
         base["scale"] = scale
-        base["mult"] = round(1.20 + min(1.10, level / 400.0) + index * 0.08, 2)
+        base["mult"] = round(1.20 + min(1.10, level / float(CLASS_MASTERY_MAX_LEVEL)) + index * 0.08, 2)
     if kind == "aoe_damage": base["aoe"] = True
     if kind == "execute": base["execute_mult"] = 1.65
     if kind == "drain": base["drain_pct"] = 0.18
@@ -2227,7 +2244,7 @@ def _v0310_tech_skill(class_name, prefix, level, index, name, kind):
     return base
 
 def _v0310_build_tech_class_skills():
-    levels = (1, *range(10, 401, 10))
+    levels = (1, *range(10, CLASS_MASTERY_MAX_LEVEL + 1, 10))
     mec_special = {
         1: [("Fire Beam", "damage"), ("TekShield", "guard"), ("Vent Heat", "heal")],
         10: [("Ice Beam", "damage"), ("Bolt Beam", "damage"), ("Target Lock", "boost")],
@@ -2257,7 +2274,13 @@ def _v0310_build_tech_class_skills():
         "Pustkowy Rezonator", "Kosmiczny Obwód", "Niebiański Reaktor", "Pierwotny Węzeł",
         "Wieczny Przekaźnik", "Nieskończona Matryca", "Transcendentny Rdzeń", "Korona Maszyny",
         "Horyzont Absolutu", "Ponadczasowy Układ", "Ostateczny Rezonans", "Szczyt Techniki",
-        "Absolutny Rdzeń",
+        "Absolutny Rdzeń", "Przekroczenie Obwodu", "Gwiezdny Tron Maszyny",
+        "Wieczne Echo Rdzenia", "Serce Otchłani Techniki", "Korona Gwiezdnej Maszyny",
+        "Sąd Horyzontu Techniki", "Nieskończony Puls Systemu", "Kosmiczna Matryca",
+        "Pradawny Rezonator", "Świt Absolutnego Rdzenia", "Moduł Przeznaczenia",
+        "Oko Wszechsystemu", "Wieczna Iskra Maszyny", "Transcendentny Obwód",
+        "Głos Nieskończonej Sieci", "Ostateczny Horyzont Techniki", "Dusza Kosmicznej Maszyny",
+        "Korona Wiecznego Rdzenia", "Apogeum Techniki", "Absolut Maszyny",
     )
     stage_title_by_level = {level: tech_stage_titles[idx] for idx, level in enumerate(levels)}
     for cname,prefix,special,generic in (("Mec","mec",mec_special,generic_mec),("Inżynier","engineer",eng_special,generic_eng)):
@@ -2402,7 +2425,7 @@ def _v0317_install_engineer_toolkit():
       ("Drill",12,"damage",1500,"drill","single","Wiertło przebija ochronę celu. Ulepszenie zwiększa obrażenia i wzmacnia przebicie ochrony."),
       ("Napalm",12,"aoe_damage",1500,"napalm","area","Ognista bomba uderza wszystkich przeciwników. Ulepszenie zwiększa obrażenia i pokrywa cele łatwopalnym olejem."),
       ("Launcher",14,"aoe_damage",2500,"launcher","area","Do czterech pocisków trafia losowe cele, każdy redukuje bieżące HP celu o połowę. Ulepszenie: do sześciu pocisków."),
-      ("Upgrade",16,"boost",15000,"upgrade","utility","Ulepsza wybrane narzędzie Inżyniera. Bazowo 1 slot; Silver Gear i Gold Battery zwiększają limit."),
+      ("Upgrade",16,"utility",15000,"upgrade","utility","Trwałe narzędzie użytkowe Inżyniera: ulepsza wybrane narzędzie. Nie jest buffem bojowym. Bazowo 1 slot; Silver Gear i Gold Battery zwiększają limit."),
       ("Noise Blaster",18,"aoe_damage",2500,"noise_blaster","area","Fala dźwięku uderza i ucisza przeciwników. Ulepszenie zwiększa obrażenia i efekt kontroli."),
       ("Chainsaw",20,"damage",5000,"chainsaw","single","Piła łańcuchowa zadaje ciężkie obrażenia albo efekt Demi. Ulepszenie wzmacnia Demi do Quarter."),
       ("Mega Bomb",21,"aoe_damage",5000,"mega_bomb","single","Potężna eksplozja: główny cel otrzymuje pełne obrażenia, pozostali mniejsze. Ulepszenie zwiększa obrażenia wszystkim celom."),
@@ -2483,7 +2506,7 @@ def _v03014_skill_name_audit():
     seen_ids = {}
     valid_kinds = {
         "damage", "aoe_damage", "execute", "drain", "boost", "guard", "evade",
-        "heal", "group_heal", "passive",
+        "heal", "group_heal", "passive", "utility",
     }
     per_class = {}
     numeric_names = []
@@ -2519,7 +2542,7 @@ def _v03014_skill_name_audit():
     if numeric_names:
         errors.append(f"Pozostały numerowane nazwy: {len(numeric_names)}")
     return {
-        "version": "0.35.3",
+        "version": "0.35.6",
         "classes": len(CLASS_SKILLS),
         "skills": sum(per_class.values()),
         "renamed": V03014_SKILLS_RENAMED,

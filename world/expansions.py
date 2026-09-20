@@ -2796,7 +2796,7 @@ def configure_profession_tool_sellers():
     )
     NPCS["specialist_woodcutting"]["dialogue"] = (
         "Jestem Mistrzem Drwalstwa. Tylko u mnie kupisz Piłę. "
-        "Uczę pracy z drewnem od levelu 1 do 400."
+        "Uczę pracy z drewnem od levelu 1 do 600."
     )
     NPCS["specialist_crafting"]["dialogue"] = (
         "Prowadzę Rzemiosło i Kowalstwo. "
@@ -2815,7 +2815,7 @@ def configure_profession_tool_sellers():
         "Tylko u mnie kupisz Moździerz Alchemiczny."
     )
     NPCS["jeweler_mirella"]["dialogue"] = (
-        "Prowadzę Jubilerstwo od levelu 1 do 400. "
+        "Prowadzę Jubilerstwo od levelu 1 do 600. "
         "Tylko u mnie kupisz Szczypce Jubilerskie."
     )
 
@@ -2861,7 +2861,7 @@ def configure_v0800_help_info():
 def configure_v081_help_info():
     HELP_TOPICS["sety_klasowe"] = [
         "Każda z 14 klas ma pełny zestaw 8 części: głowa, korpus, dłonie, nogi, stopy, talizman, pierścień i naszyjnik.",
-        "Klasowe EQ ma Tiery Biegłości 1, 10, 20, 30 i dalej co 10 aż do 400; każdy próg daje mocniejszy pełny zestaw.",
+        "Klasowe EQ ma Tiery Biegłości 1, 10, 20, 30 i dalej co 10 aż do 600; każdy próg daje mocniejszy pełny zestaw.",
         "Każda część klasowego EQ ma dwie podstawowe statystyki archetypu: klasy fizyczne dostają Siłę i Kondycję, a klasy magiczne Inteligencję i Siłę Woli.",
         "W klasach magicznych Inteligencja jest statystyką odpowiadającą mocy/mądrości magicznej; gra nie tworzy osobnej siódmej statystyki Mądrość.",
         "Sklep klasowy pokazuje najlepszy Tier odblokowany przez Biegłość danej klasy; wyższy Tier wymaga tej Biegłości także przy zakładaniu.",
@@ -2903,7 +2903,7 @@ def configure_v081_help_info():
     # Uaktualnienie starszych opisów po rozwoju profesji i narzędzi.
     if "profesje" in HELP_TOPICS:
         HELP_TOPICS["profesje"].append(
-            "Aktualne profesje 1-400: Wędkarstwo, Górnictwo, Drwalstwo, Zielarstwo, Gotowanie, Alchemia, Kowalstwo i Jubilerstwo. Każda ma własny poziom; odpowiadające narzędzie rozwija się osobno."
+            "Aktualne profesje 1-600: Wędkarstwo, Górnictwo, Drwalstwo, Zielarstwo, Gotowanie, Alchemia, Kowalstwo i Jubilerstwo. Każda ma własny poziom; odpowiadające narzędzie rozwija się osobno."
         )
     if "ekwipunek" in HELP_TOPICS:
         HELP_TOPICS["ekwipunek"].append(

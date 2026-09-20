@@ -77,7 +77,7 @@ class SessionCommandLoopMixin:
 
                 guide_safe_commands = {
                     "guide", "route", "help", "encoding", "describe", "changes", "wimpy", "eventxp",
-                    "look", "level", "xp", "exits", "map", "atlas", "codex", "bestiary", "where", "who",
+                    "look", "level", "xp", "exits", "map", "atlas", "codex", "bestiary", "where", "who", "whois",
                     "terraininfo", "location", "stats", "hp", "score", "money",
                     "soul", "skills", "spells", "skillnames", "inventory", "equipment",
                     "quests", "progress", "exploration", "achievements", "titles", "weather", "biomemastery", "worldquest", "artifacts", "biomesets", "factionstories", "season", "expeditions", "transport", "greatruins", "legendaryevents", "endless", "megadungeons", "gauntlets", "mythicbosses", "artifactupgrade", "endgamegoals",
@@ -741,6 +741,7 @@ class SessionCommandLoopMixin:
 
             await self.show_session_summary()
             self.server.db.save_character(self.character)
+            self.server.db.mark_player_logout_v0363(self.account_id)
             await self.server.broadcast_room(
                 old_room, f"{old_name} opuszcza grę.", exclude=self
             )
@@ -788,6 +789,7 @@ class SessionCommandLoopMixin:
                 self.server.release_all_engagements_for_session(self)
             if self.character:
                 self.server.db.save_character(self.character)
+                self.server.db.mark_player_logout_v0363(self.account_id)
                 await self.server.broadcast_room(
                     self.character.room_id, f"{self.character.name} opuszcza grę.", exclude=self
                 )

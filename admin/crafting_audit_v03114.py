@@ -58,7 +58,7 @@ if FULL_CRAFTING_AUDIT_V03114['error_count']:
 HELP_TOPICS['crafting_03114']=[
     'FORGE & MATERIALS 3.0: Salvage 3.0, Refining 2.0, Forge +1..+10, Tech EQ Sety, Socket Crafting, Rune Crafting i V-MAX Upgrade Path.',
     'Konwersje materiałów: konwersje / materialconversion.',
-    'Przetop hurtowy: przetop max <metal>; przetop wszystko zużywa wyłącznie materiały Salvage z odpowiednikiem sztabki.',
+    'Przetop hurtowy: przetop max <metal>; przetop wszystko w jednej akcji zużywa wszystkie dostępne rudy, Stalowe Płyty i zgodne materiały Salvage, a XP Kowalstwa i Młota przyznaje jako jeden wspólny pakiet.',
     'Craft hurtowy: craft max <receptura>. Każda sztuka nadal jest osobną akcją craftingu i daje normalny progres.',
     'Refining: refine pokazuje Hartowaną Stal, Stop Magitek, Astralny Stop i Stop Eternium.',
     'Socket Crafting: najpierw wykuj Rdzeń Gniazda, potem socketcraft <EQ>. Maksymalnie +2 trwałe gniazda na dany przedmiot.',

@@ -87,7 +87,7 @@ ITEMS["moogle_board"] = {
     "required_race": "Cyborg",
     "stats": {},
     "cyborg_board_scaling": "mec_mastery",
-    "desc": "Specjalny startowy moduł Cyborga. Może być używany także przez Inżyniera. Bonus do wszystkich pięciu głównych statystyk rośnie wraz z Biegłością Meca: od +2 na początku do +18 przy Biegłości 400.",
+    "desc": "Specjalny startowy moduł Cyborga. Może być używany także przez Inżyniera. Bonus do wszystkich pięciu głównych statystyk rośnie wraz z Biegłością Meca: od +2 na początku do +26 przy Biegłości 600.",
 }
 
 _PROGRESSION_400_NAMES = {
@@ -95,6 +95,10 @@ _PROGRESSION_400_NAMES = {
     280: "Otchłani", 300: "Gwiezdnego Rdzenia", 320: "Pierwotności",
     340: "Nieskończoności", 360: "Korony Świata",
     380: "Ponadczasowy", 400: "Absolutu",
+    420: "Przekroczenia", 440: "Gwiezdnego Tronu", 460: "Wiecznego Echa",
+    480: "Serca Otchłani", 500: "Korony Gwiazd", 520: "Sądu Horyzontu",
+    540: "Kosmicznego Szlaku", 560: "Wieczności",
+    580: "Apogeum", 600: "Absolutu Duszy",
 }
 _FISH_400_LABELS = {
     "river": "Rzeczny Wędrowiec", "lake": "Jeziorny Strażnik",
@@ -106,23 +110,23 @@ for _level in PROGRESSION_400_LEVELS:
     ITEMS[f"ore_400_{_level}"] = {
         "name": f"Ruda {_suffix}", "type": "resource", "price": None,
         "sell_gold": _sell,
-        "desc": f"Ruda progresji 201-400. Kilof level {_level}+.",
+        "desc": f"Ruda progresji 201-600. Kilof level {_level}+.",
     }
     ITEMS[f"wood_400_{_level}"] = {
         "name": f"Pień {_suffix}", "type": "resource", "price": None,
         "sell_gold": _sell,
-        "desc": f"Drewno progresji 201-400. Piła level {_level}+.",
+        "desc": f"Drewno progresji 201-600. Piła level {_level}+.",
     }
     ITEMS[f"herb_400_{_level}"] = {
         "name": f"Ziele {_suffix}", "type": "resource", "price": None,
         "sell_gold": _sell,
-        "desc": f"Zioło progresji 201-400. Sierp level {_level}+.",
+        "desc": f"Zioło progresji 201-600. Sierp level {_level}+.",
     }
     for _habitat, _label in _FISH_400_LABELS.items():
         ITEMS[f"fish_400_{_habitat}_{_level}"] = {
             "name": f"{_label} {_suffix}", "type": "resource", "price": None,
             "sell_gold": _sell,
-            "desc": f"Ryba progresji 201-400. Wędka level {_level}+.",
+            "desc": f"Ryba progresji 201-600. Wędka level {_level}+.",
         }
 
 _register_world_resource_items()
@@ -244,12 +248,16 @@ BLACKSMITH_SLOT_DEFS = {
     "charm": ("Talizman", -2, 2),
 }
 
-# v0.9.12: materiały Kowalstwa 220-400. Stare Tiery 1-200 zostają 1:1.
+# v0.9.12: materiały Kowalstwa 220-600. Stare Tiery 1-200 zostają 1:1.
 _BLACKSMITH_400_LABELS = {
     220: "Przebudzenia", 240: "Transcendencji", 260: "Horyzontu",
     280: "Otchłani", 300: "Gwiezdnego Rdzenia", 320: "Pierwotności",
     340: "Nieskończoności", 360: "Korony Świata",
     380: "Ponadczasowy", 400: "Absolutu",
+    420: "Przekroczenia", 440: "Gwiezdnego Tronu", 460: "Wiecznego Echa",
+    480: "Serca Otchłani", 500: "Korony Gwiazd", 520: "Sądu Horyzontu",
+    540: "Kosmicznego Szlaku", 560: "Wieczności",
+    580: "Apogeum", 600: "Absolutu Duszy",
 }
 BLACKSMITH_TIERS += tuple(
     {
@@ -434,11 +442,11 @@ CORPSE_MATERIAL_TIERS = (
 )
 
 # v0.9.18: materiałowe EQ jest bramkowane Biegłością aktywnej klasy,
-# a nie Soul Levelem. Skala obejmuje pełną progresję 1-400 i uniemożliwia
+# a nie Soul Levelem. Skala obejmuje pełną progresję 1-600 i uniemożliwia
 # założenie endgame EQ przez świeżą postać po samym transferze od innego gracza.
 # v0.9.19: materiał nie jest już pojedynczym skokiem mocy. Każdy materiał
 # ma warianty EQ co 10 Biegłości. Materiał określa rodzinę/epokę sprzętu,
-# a konkretna sztuka ma własny próg 1/10/20/.../400.
+# a konkretna sztuka ma własny próg 1/10/20/.../600.
 CORPSE_MATERIAL_MASTERY_BANDS = {
     "iron": (1, 10, 20, 30),
     "steel": (40, 50, 60, 70),
@@ -449,7 +457,7 @@ CORPSE_MATERIAL_MASTERY_BANDS = {
     "dragonsteel": (240, 250, 260, 270),
     "astral": (280, 290, 300, 310),
     "void": (320, 330, 340, 350),
-    "eternium": (360, 370, 380, 390, 400),
+    "eternium": tuple(range(360, 601, 20)),
 }
 CORPSE_MATERIAL_REQUIRED_MASTERY = {
     key: levels[0] for key, levels in CORPSE_MATERIAL_MASTERY_BANDS.items()
@@ -975,7 +983,7 @@ def fish_unlock_level(item_id):
     item_id = base_fish_species_id(item_id)
     _item = ITEMS.get(item_id, {})
     if _item.get("generator_level") is not None:
-        return max(1, min(400, int(_item.get("generator_level") or 1)))
+        return max(1, min(TOOL_MAX_LEVEL, int(_item.get("generator_level") or 1)))
     levels = []
     if item_id in BASE_FISH_MIN_TOOL_LEVELS:
         levels.append(int(BASE_FISH_MIN_TOOL_LEVELS[item_id]))
@@ -1292,7 +1300,7 @@ CLASS_EQUIPMENT_SLOT_DEFS = {
 # Pełna progresja klasowego EQ oparta na Biegłości klasy.
 # Biegłość 1 zachowuje historyczne ID przedmiotów z v0.8.47,
 # dzięki czemu już kupione/założone wyposażenie pozostaje zgodne z save'em.
-CLASS_EQUIPMENT_MASTERY_LEVELS = (1,) + tuple(range(10, 401, 10))
+CLASS_EQUIPMENT_MASTERY_LEVELS = (1,) + tuple(range(10, CLASS_MASTERY_MAX_LEVEL + 1, 10))
 CLASS_EQUIPMENT_ITEMS_BY_CLASS_TIER = {}
 CLASS_SHOP_CLASSES_BY_ROOM = {}
 CLASS_SHOP_ITEMS_BY_ROOM = {

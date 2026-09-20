@@ -1147,21 +1147,21 @@ class SessionWorldProgressionMixin:
 
     def v0210_any_class_at_400(self):
             row=self.server.db.conn.execute("SELECT MAX(level) AS mx FROM class_progress WHERE account_id=?",(self.account_id,)).fetchone()
-            return int(row["mx"] or 0)>=400 if row else False
+            return int(row["mx"] or 0)>=CLASS_MASTERY_MAX_LEVEL if row else False
 
     async def show_ascension_v021(self,args=""):
             q=normalize_lookup_text(args); rows={str(r["track"]):r for r in self.server.db.ascension_rows_v021(self.account_id)}
-            await self.send("WZNIESIENIE KLAS — po Biegłości 400, bez resetu")
+            await self.send("WZNIESIENIE KLAS — po Biegłości 600, bez resetu")
             shown=0
             for cname,_,_,_ in CLASSES:
                 if q and q not in normalize_lookup_text(cname): continue
                 prow=self.server.db.class_progress_row(self.account_id,cname)
                 level=int(prow["level"] if prow else 1)
                 row=rows.get(f"class:{cname}"); rank=int(row["rank"] or 0) if row else 0; xp=int(row["xp"] or 0) if row else 0
-                if level<400 and not q: continue
+                if level<CLASS_MASTERY_MAX_LEVEL and not q: continue
                 nxt=v0210_ascension_xp_to_next(rank)
-                await self.send(f"{cname}: Biegłość {level}/400; Wzniesienie {rank}/{V021_ASCENSION_MAX_RANK}; " + (f"XP {xp} z {nxt}." if nxt else "maksymalna Ranga Wzniesienia.")); shown+=1
-            if not shown: await self.send("Żadna klasa nie osiągnęła jeszcze Biegłości 400.")
+                await self.send(f"{cname}: Biegłość {level}/{CLASS_MASTERY_MAX_LEVEL}; Wzniesienie {rank}/{V021_ASCENSION_MAX_RANK}; " + (f"XP {xp} z {nxt}." if nxt else "maksymalna Ranga Wzniesienia.")); shown+=1
+            if not shown: await self.send("Żadna klasa nie osiągnęła jeszcze Biegłości 600.")
             await self.send(f"Łączna Ranga Wzniesienia: {self.v0210_total_ascension_rank()}.")
 
     async def handle_world_tier_v021(self,args=""):
@@ -1178,7 +1178,7 @@ class SessionWorldProgressionMixin:
             if not 1<=tier<=V021_WORLD_TIER_MAX:
                 await self.send("World Tier musi być od 1 do 10."); return
             if tier>=2 and not self.v0210_any_class_at_400():
-                await self.send("World Tier 2+ wymaga co najmniej jednej klasy z Biegłością 400."); return
+                await self.send("World Tier 2+ wymaga co najmniej jednej klasy z Biegłością 600."); return
             need=V021_WORLD_TIER_ASCENSION_REQUIREMENT[tier]; total=self.v0210_total_ascension_rank()
             if total<need:
                 await self.send(f"World Tier {tier} wymaga łącznej Rangi Wzniesienia {need}. Masz {total}."); return
@@ -2365,19 +2365,48 @@ class SessionWorldProgressionMixin:
                 "get <przedmiot> from 2.corpse albo wez <przedmiot> z 2.cialo."
             )
 
+    def _corpse_party_recipients_v03510(self, corpse):
+            """Local party members who receive a copy of corpse loot.
+
+            The corpse itself remains a single shared world object. Removing an
+            item from it happens once, then every online member of the looter's
+            party who is standing in the corpse room receives one copy. Players
+            outside that room are never included.
+            """
+            recipients = self.server.party_sessions(
+                self.account_id, same_room=corpse.room_id
+            )
+            if not recipients:
+                recipients = [self]
+            recipients = [
+                session for session in recipients
+                if session.character and not session.closed
+                and session.character.room_id == corpse.room_id
+            ]
+            if not recipients:
+                recipients = [self]
+            return sorted(
+                recipients, key=lambda session: session.character.name.lower()
+            )
+
     async def _record_corpse_loot(self, corpse, looted):
-            for item_id in looted:
-                self.server.db.add_item(self.account_id, item_id, 1)
-                await self.record_item_collection(
-                    item_id, source=corpse.mob_name, announce=True
-                )
-                boss_id = canonical_bestiary_template_id(corpse.mob_template_id)
-                if boss_id in BOSS_COLLECTION_CATALOG:
-                    if self.server.db.add_boss_codex_drop(self.account_id, boss_id, item_id):
-                        await self.send(
-                            f"Boss Codex: odkryty drop {ITEMS[item_id]['name']} z "
-                            f"{BOSS_COLLECTION_CATALOG[boss_id]}."
-                        )
+            recipients = self._corpse_party_recipients_v03510(corpse)
+            boss_id = canonical_bestiary_template_id(corpse.mob_template_id)
+            for recipient in recipients:
+                for item_id in looted:
+                    recipient.server.db.add_item(recipient.account_id, item_id, 1)
+                    await recipient.record_item_collection(
+                        item_id, source=corpse.mob_name, announce=True
+                    )
+                    if boss_id in BOSS_COLLECTION_CATALOG:
+                        if recipient.server.db.add_boss_codex_drop(
+                            recipient.account_id, boss_id, item_id
+                        ):
+                            await recipient.send(
+                                f"Boss Codex: odkryty drop {ITEMS[item_id]['name']} z "
+                                f"{BOSS_COLLECTION_CATALOG[boss_id]}."
+                            )
+            return recipients
 
     async def loot_corpse(self, query=""):
             corpses = self.server.world.room_corpses(self.character.room_id)
@@ -2400,7 +2429,7 @@ class SessionWorldProgressionMixin:
                 return
             looted = list(corpse.items)
             corpse.items.clear()
-            await self._record_corpse_loot(corpse, looted)
+            recipients = await self._record_corpse_loot(corpse, looted)
 
             spoken_loot = [
                 ITEMS[i]["name"] for i in looted
@@ -2416,6 +2445,25 @@ class SessionWorldProgressionMixin:
                     f"Przeszukujesz ciało: {corpse.mob_name}. "
                     "Zdobyty loot ukrywa aktywny filtr."
                 )
+
+            if len(recipients) > 1:
+                for recipient in recipients:
+                    if recipient is self:
+                        continue
+                    visible = [
+                        ITEMS[i]["name"] for i in looted
+                        if i in ITEMS and recipient.loot_message_allowed(i)
+                    ]
+                    if visible:
+                        await recipient.send(
+                            f"Loot z ciała drużyny: {corpse.mob_name}. Otrzymujesz: "
+                            + ", ".join(visible) + "."
+                        )
+                    else:
+                        await recipient.send(
+                            f"Loot z ciała drużyny: {corpse.mob_name}. "
+                            "Otrzymane przedmioty ukrywa aktywny filtr."
+                        )
 
             armor_slots = sorted({
                 ITEMS[item_id].get("slot")
@@ -2492,11 +2540,22 @@ class SessionWorldProgressionMixin:
                 )
                 return
             item_id, item = found
+            # Remove first: one corpse item can be distributed only once, even
+            # when every local party member receives a personal copy.
             corpse.items.remove(item_id)
-            await self._record_corpse_loot(corpse, [item_id])
+            recipients = await self._record_corpse_loot(corpse, [item_id])
             await self.send(
                 f"Zabierasz {item['name']} z ciała: {corpse.mob_name}."
             )
+            if len(recipients) > 1:
+                for recipient in recipients:
+                    if recipient is self:
+                        continue
+                    if recipient.loot_message_allowed(item_id):
+                        await recipient.send(
+                            f"Loot z ciała drużyny: otrzymujesz {item['name']} z "
+                            f"{corpse.mob_name}."
+                        )
 
     async def open_treasure_chest(self, args=""):
             normalized = self.normalize_description_query(str(args or "").strip())

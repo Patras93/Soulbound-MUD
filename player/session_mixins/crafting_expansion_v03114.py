@@ -8,6 +8,9 @@ class SessionCraftingExpansionV03114Mixin:
 
     async def salvage_equipment_v0925(self, args=""):
         raw=str(args or "").strip()
+        norm=normalize_lookup_text(raw)
+        if norm in ("wszystko", "all", "everything"):
+            return await self.salvage_all_v0356()
         # Preserve the old EQ list/default behavior.
         if not raw or normalize_lookup_text(raw) in ("list","lista","info"):
             await SessionForgeGuildsMixin.salvage_equipment_v0925(self,args)
@@ -27,12 +30,261 @@ class SessionCraftingExpansionV03114Mixin:
         outputs=SALVAGE3_V03114[iid]
         for oid,qty in outputs.items(): self.server.db.add_storage_item(self.account_id,"craftbox",oid,qty)
         await self.send("ROZKŁADANIE EQ: "+item['name']+" -> "+", ".join(f"{ITEMS[o]['name']} x{q}" for o,q in outputs.items())+".")
-        salvage_level=max(1,min(400,int(item.get("required_character_level",item.get("required_mastery",item.get("min_profession_level",1))) or 1)))
+        salvage_level=max(1,min(CHARACTER_MAX_LEVEL,int(item.get("required_character_level",item.get("required_mastery",item.get("min_profession_level",1))) or 1)))
         salvage_prof_xp=max(10,10+salvage_level//12+sum(int(q) for q in outputs.values())*2)
         messages,_prof_after,_tool_after=self.grant_profession_progress(
             "Kowalstwo",salvage_prof_xp,"crafting",0,tool_progress=False
         )
         for message in messages: await self.send(message)
+
+
+    async def salvage_all_v0356(self):
+        """v0.35.6: bezpieczne hurtowe rozkładanie wszystkich wolnych przedmiotów Salvage."""
+        if not self.at_haldor_forge_v0925():
+            await self.send("EQ rozkłada Haldor w Kuźni/Warsztacie Rzemieślniczym.")
+            return False
+        if self.combat_mob_key:
+            await self.send("Nie możesz użyć salvage wszystko podczas aktywnej walki.")
+            return False
+
+        outputs_total = {}
+        returned_runes = {}
+        returned_gems = {}
+        lost_gems = 0
+        salvaged_total = 0
+        salvaged_stacks = 0
+        protected_skipped = 0
+        equipped_skipped = 0
+        progress_messages = []
+
+        def add_total(mapping, item_id, qty):
+            qty = max(0, int(qty or 0))
+            if qty:
+                mapping[item_id] = int(mapping.get(item_id, 0)) + qty
+
+        def bulk_protected(item_id, item):
+            # Moogle Board jest startowym, rasowym modułem Cyborga. Hurtowa komenda
+            # go nie usuwa; nadal można rozłożyć go jawnie pojedynczą komendą.
+            if item_id == "moogle_board":
+                return True
+            if item.get("no_salvage") or item.get("no_bulk_salvage"):
+                return True
+            if item.get("quest_item") or item.get("quest_treasure_map_for"):
+                return True
+            return False
+
+        armor_plan = []
+        for item_id, item in ITEMS.items():
+            if item.get("type") != "armor":
+                continue
+            total = int(self.server.db.item_qty(self.account_id, item_id) or 0)
+            if total <= 0:
+                continue
+            equipped = min(total, int(self.equipped_quantity_of_item(item_id) or 0))
+            free_qty = max(0, total - equipped)
+            equipped_skipped += equipped
+            if free_qty <= 0:
+                continue
+            if bulk_protected(item_id, item):
+                protected_skipped += free_qty
+                continue
+            armor_plan.append((item_id, item, free_qty))
+
+        # Salvage 3.0 ma również kilka nie-EQ komponentów technologicznych.
+        # Armor z tego rejestru trafia już przez standardową ścieżkę wyżej.
+        extended_plan = []
+        for item_id, recipe_outputs in SALVAGE3_V03114.items():
+            item = ITEMS.get(item_id, {})
+            if item.get("type") == "armor":
+                continue
+            qty = int(self.available_recipe_item(item_id) or 0)
+            if qty <= 0:
+                continue
+            if bulk_protected(item_id, item):
+                protected_skipped += qty
+                continue
+            extended_plan.append((item_id, item, qty, recipe_outputs))
+
+        if not armor_plan and not extended_plan:
+            suffix = []
+            if equipped_skipped:
+                suffix.append(f"założone: {equipped_skipped}")
+            if protected_skipped:
+                suffix.append(f"chronione: {protected_skipped}")
+            extra = (" Pominięto " + ", ".join(suffix) + ".") if suffix else ""
+            await self.send("Nie masz wolnych przedmiotów nadających się do hurtowego Salvage." + extra)
+            return False
+
+        # Klasyczne EQ. Logika odzysku jest zgodna z pojedynczym Salvage 4.0,
+        # ale raport jest agregowany, żeby NVDA nie czytał setek komunikatów.
+        for item_id, item, free_qty in armor_plan:
+            stack_done = 0
+            for _ in range(free_qty):
+                if int(self.free_equipment_quantity(item_id) or 0) <= 0:
+                    break
+                material = v03041_salvage_material_key(item)
+                salvage_id = V0925_SALVAGE_MATERIALS[material][0]
+                level = max(1, min(CHARACTER_MAX_LEVEL, int(
+                    item.get("required_character_level", item.get("required_mastery", 1)) or 1
+                )))
+                rarity = str(item.get("rarity", "common") or "common").lower()
+                rarity_bonus = {
+                    "uncommon": 0, "rare": 1, "epic": 1, "legendary": 2,
+                    "mythic": 3, "unique": 3, "eternal": 4, "crafted": 0,
+                }.get(rarity, 0)
+                salvage_qty = max(1, 1 + level // 100 + rarity_bonus)
+
+                total_before = int(self.server.db.item_qty(self.account_id, item_id) or 0)
+                last_copy = total_before <= 1
+                rune_rows = list(self.server.db.equipment_runes_v0925(self.account_id, item_id)) if last_copy else []
+                gem_rows = []
+                if last_copy:
+                    try:
+                        slot = str(item.get("slot") or "")
+                        if slot:
+                            gem_rows = list(self.server.db.socketed_gems(self.account_id, slot, item_id))
+                    except Exception:
+                        gem_rows = []
+                reforged = self.server.db.equipment_reforge(self.account_id, item_id) if last_copy else None
+
+                if not self.server.db.remove_item(self.account_id, item_id, 1):
+                    break
+
+                self.server.db.add_storage_item(self.account_id, "craftbox", salvage_id, salvage_qty)
+                add_total(outputs_total, salvage_id, salvage_qty)
+
+                essence = 1 if level >= 100 else 0
+                dust = 1 if level >= 200 else 0
+                if rarity in ("legendary", "mythic", "unique", "eternal"):
+                    essence += 1
+                if level >= 300:
+                    dust += 1
+                if reforged:
+                    essence += 1
+                if essence:
+                    self.server.db.add_storage_item(self.account_id, "craftbox", "reforge_essence", essence)
+                    add_total(outputs_total, "reforge_essence", essence)
+                if dust:
+                    self.server.db.add_storage_item(self.account_id, "craftbox", "rune_dust", dust)
+                    add_total(outputs_total, "rune_dust", dust)
+
+                if last_copy:
+                    for row in rune_rows:
+                        rune_id = str(row["rune_id"])
+                        if rune_id in ITEMS:
+                            self.server.db.add_storage_item(self.account_id, "craftbox", rune_id, 1)
+                            add_total(returned_runes, rune_id, 1)
+                    try:
+                        prow = self.server.db.profession(self.account_id, "Kowalstwo")
+                        smith = max(1, min(PROFESSION_MAX_LEVEL, int(prow["level"])))
+                    except Exception:
+                        smith = 1
+                    gem_chance = min(0.85, 0.25 + smith * 0.0015)
+                    for row in gem_rows:
+                        gem_id = str(row["gem_id"])
+                        if random.random() <= gem_chance and gem_id in ITEMS:
+                            self.server.db.add_storage_item(self.account_id, "craftbox", gem_id, 1)
+                            add_total(returned_gems, gem_id, 1)
+                        else:
+                            lost_gems += 1
+                    if gem_rows:
+                        self.server.db.conn.execute(
+                            "DELETE FROM equipment_gems WHERE account_id=? AND slot=? AND jewelry_item_id=?",
+                            (self.account_id, str(item.get("slot") or ""), item_id),
+                        )
+                        self.server.db.conn.commit()
+                    self.server.db.clear_equipment_crafting_v0925(self.account_id, item_id)
+
+                salvage_prof_xp = max(8, 8 + level // 10 + rarity_bonus * 6)
+                messages, _prof_after, _tool_after = self.grant_profession_progress(
+                    "Kowalstwo", salvage_prof_xp, "crafting", 0, tool_progress=False
+                )
+                # Przy hurtowej operacji zachowaj komunikaty o awansach, ale nie spam XP za każdą sztukę.
+                for message in messages:
+                    low_message = normalize_lookup_text(message)
+                    if "osiaga poziom" in low_message or "awansuje" in low_message or "awansujesz" in low_message:
+                        progress_messages.append(message)
+
+                salvaged_total += 1
+                stack_done += 1
+            if stack_done:
+                salvaged_stacks += 1
+
+        # Rozszerzone, nie-EQ Salvage 3.0.
+        for item_id, item, qty, recipe_outputs in extended_plan:
+            done = 0
+            for _ in range(qty):
+                if self.available_recipe_item(item_id) <= 0:
+                    break
+                if not self.consume_recipe_item(item_id, 1):
+                    break
+                for output_id, output_qty in recipe_outputs.items():
+                    self.server.db.add_storage_item(self.account_id, "craftbox", output_id, output_qty)
+                    add_total(outputs_total, output_id, output_qty)
+                salvage_level = max(1, min(CHARACTER_MAX_LEVEL, int(
+                    item.get("required_character_level", item.get("required_mastery", item.get("min_profession_level", 1))) or 1
+                )))
+                salvage_prof_xp = max(10, 10 + salvage_level // 12 + sum(int(q) for q in recipe_outputs.values()) * 2)
+                messages, _prof_after, _tool_after = self.grant_profession_progress(
+                    "Kowalstwo", salvage_prof_xp, "crafting", 0, tool_progress=False
+                )
+                for message in messages:
+                    low_message = normalize_lookup_text(message)
+                    if "osiaga poziom" in low_message or "awansuje" in low_message or "awansujesz" in low_message:
+                        progress_messages.append(message)
+                salvaged_total += 1
+                done += 1
+            if done:
+                salvaged_stacks += 1
+
+        if salvaged_total <= 0:
+            await self.send("Salvage wszystko nie rozłożyło żadnego przedmiotu.")
+            return False
+
+        clan = self.server.db.clan_membership(self.account_id)
+        if clan:
+            self.server.db.clan_metric_add(int(clan["clan_id"]), "salvage", salvaged_total)
+            self.server.db.clan_log(
+                int(clan["clan_id"]), self.account_id,
+                f"{self.character.name} użył Salvage Wszystko: {salvaged_total} przedmiotów."
+            )
+
+        output_parts = []
+        for output_id, qty in sorted(
+            outputs_total.items(), key=lambda row: normalize_lookup_text(ITEMS.get(row[0], {}).get("name", row[0]))
+        ):
+            output_parts.append(f"{player_item_display_name_v0335(output_id)} x{qty}")
+        for rune_id, qty in sorted(returned_runes.items()):
+            output_parts.append(f"zwrócona runa {player_item_display_name_v0335(rune_id)} x{qty}")
+        for gem_id, qty in sorted(returned_gems.items()):
+            output_parts.append(f"odzyskany klejnot {player_item_display_name_v0335(gem_id)} x{qty}")
+        if lost_gems:
+            output_parts.append(f"utracone klejnoty {lost_gems}")
+
+        skipped = []
+        if equipped_skipped:
+            skipped.append(f"założone {equipped_skipped}")
+        if protected_skipped:
+            skipped.append(f"chronione {protected_skipped}")
+        skipped_text = (" Pominięto: " + ", ".join(skipped) + ".") if skipped else ""
+
+        await self.send(
+            f"SALVAGE WSZYSTKO: rozłożono {salvaged_total} przedmiotów w {salvaged_stacks} pozycjach."
+            + skipped_text
+        )
+        if output_parts:
+            # Dzielimy długi raport na krótkie porcje, żeby czytnik ekranu nie dostał jednej ogromnej linii.
+            chunk = []
+            for part in output_parts:
+                chunk.append(part)
+                if len(chunk) >= 8:
+                    await self.send("Odzysk: " + ", ".join(chunk) + ".")
+                    chunk = []
+            if chunk:
+                await self.send("Odzysk: " + ", ".join(chunk) + ".")
+        for message in dict.fromkeys(progress_messages):
+            await self.send(message)
+        return True
 
     def max_recipe_crafts_v03114(self, recipe):
         limits=[]
@@ -85,17 +337,176 @@ class SessionCraftingExpansionV03114Mixin:
             )
             return False
         if norm in ("wszystko","all"):
-            total=0
-            # Safety: only salvage fallback recipes; normal ores are not consumed by 'all'.
-            for fallback_id in dict.fromkeys(SALVAGE_SMELT_FALLBACK_V03113.values()):
-                rec=CRAFT_RECIPES.get(fallback_id)
-                if not rec: continue
-                n=self.max_recipe_crafts_v03114(rec)
-                for _ in range(n):
-                    ok=await self.perform_recipe(fallback_id,CRAFT_RECIPES,"przetapianie")
-                    if not ok: break
-                    total+=1
-            await self.send(f"PRZETOP WSZYSTKO: wykonano {total} przetopów materiałów Salvage."); return total>0
+            # v0.35.7: prawdziwy przetop hurtowy. Wszystkie dostępne rudy,
+            # Stalowe Płyty i materiały Salvage są przetwarzane jako JEDNA
+            # akcja, z jednym czasem oczekiwania i jednym wspólnym pakietem XP.
+            if self.combat_mob_key:
+                await self.send("Nie możesz użyć przetop wszystko podczas walki.")
+                return False
+
+            tool_type, tool_item_id, tool_name = self.recipe_tool_info(CRAFT_RECIPES, None)
+            if self.server.db.item_qty(self.account_id, tool_item_id) <= 0:
+                await self.send(f"Do przetapiania potrzebujesz: {tool_name}.")
+                return False
+            if self.character.room_id != "forge":
+                await self.send("Przetapianie wykonasz w Kuźni.")
+                return False
+
+            profession = "Kowalstwo"
+            profession_row = self.server.db.profession(self.account_id, profession)
+            profession_level = int(profession_row["level"])
+            tool_row = self.server.db.tool(self.account_id, tool_type)
+            old_tool_level = int(tool_row["level"])
+            current_tool_tier = tool_tier(old_tool_level)
+
+            recipe_ids = [tier["ingot"] for tier in BLACKSMITH_TIERS]
+            recipe_ids.append("recycled_steel_ingot")
+            recipe_ids.extend(SALVAGE_SMELT_FALLBACK_V03113.values())
+            recipe_ids = list(dict.fromkeys(recipe_ids))
+
+            plan = []
+            locked_crafts = 0
+            for recipe_id in recipe_ids:
+                recipe = CRAFT_RECIPES.get(recipe_id)
+                if not recipe:
+                    continue
+                count = self.max_recipe_crafts_v03114(recipe)
+                if count <= 0:
+                    continue
+                required_profession = max(
+                    1, int(recipe.get("min_profession_level", recipe.get("min_tool_level", 1)) or 1)
+                )
+                required_tool_tier = required_tool_tier_for_level(required_profession)
+                if profession_level < required_profession or current_tool_tier < required_tool_tier:
+                    locked_crafts += count
+                    continue
+                if self.character.room_id not in recipe.get("stations", ()):
+                    continue
+                plan.append((recipe_id, recipe, count))
+
+            if not plan:
+                if locked_crafts:
+                    await self.send(
+                        "Masz materiały do przetopienia, ale wymagają wyższego Kowalstwa "
+                        "lub Tieru Młota Rzemieślniczego."
+                    )
+                else:
+                    await self.send("Brak materiałów do przetopienia.")
+                return False
+
+            total_crafts = sum(count for _rid, _recipe, count in plan)
+            action_seconds = max(
+                self.recipe_action_seconds(tool_type, profession_level, recipe)
+                for _rid, recipe, _count in plan
+            )
+            await self.send(
+                f"PRZETOP WSZYSTKO: {total_crafts} przetopów w jednej akcji. "
+                f"{self.tool_action_label(tool_type)}: {action_seconds} sekund."
+            )
+            await asyncio.sleep(action_seconds)
+
+            outputs = {}
+            total_output_items = 0
+            total_profession_xp_base = 0
+            total_tool_xp_base = 0
+            bonus_chance = tool_tier_bonus_chance(old_tool_level)
+
+            for _recipe_id, recipe, count in plan:
+                # Pobierz cały stos składników tej receptury naraz.
+                consumed = True
+                for item_id, quantity in recipe.get("ingredients", {}).items():
+                    need = int(quantity) * int(count)
+                    if need > 0 and not self.consume_recipe_item(item_id, need):
+                        consumed = False
+                        break
+                if not consumed:
+                    await self.send("Nie udało się pobrać części materiałów. Przetop hurtowy przerwany.")
+                    break
+
+                output_id = recipe["output"]
+                per_craft = max(1, int(recipe.get("quantity", 1) or 1))
+                base_quantity = per_craft * count
+
+                # Zachowaj średnią korzyść z bonusu Tieru bez wykonywania tysięcy
+                # osobnych akcji/losowań.
+                bonus_crafts = 0
+                if bonus_chance > 0:
+                    expected = count * float(bonus_chance)
+                    bonus_crafts = int(expected)
+                    if random.random() < (expected - bonus_crafts):
+                        bonus_crafts += 1
+                produced = base_quantity + bonus_crafts * per_craft
+
+                self.server.db.add_item(self.account_id, output_id, produced)
+                outputs[output_id] = int(outputs.get(output_id, 0)) + produced
+                total_output_items += produced
+                await self.record_item_collection(
+                    output_id, source="Przetapianie", announce=True,
+                    record_history=False, amount=produced
+                )
+                await self.announce_craft_quest_progress(output_id, produced)
+
+                prof_base = int(recipe.get("profession_xp", 10) or 10) * count
+                tool_base = int(recipe.get("tool_xp", 8) or 8) * count
+                total_profession_xp_base += prof_base
+                total_tool_xp_base += tool_base
+
+            if not outputs:
+                return False
+
+            # Jedna akcja mastery/statystyk oraz jeden wspólny grant XP.
+            first_recipe = plan[0][1]
+            mastery_category = crafting_mastery_category_v03054(first_recipe, profession)
+            mastery_before_row = self.server.db.crafting_mastery_v03054(
+                self.account_id, profession, mastery_category
+            )
+            mastery_before = crafting_mastery_level_v03054(mastery_before_row["actions"])
+            mastery_after_row = self.server.db.add_crafting_mastery_action_v03054(
+                self.account_id, profession, mastery_category, critical=False, legendary=False
+            )
+            mastery_after = crafting_mastery_level_v03054(mastery_after_row["actions"])
+
+            self.server.db.add_lifetime_stat(self.account_id, "craft_actions", 1)
+            self.server.db.add_lifetime_stat(self.account_id, "crafted_items", total_output_items)
+            self.server.db.add_lifetime_stat(self.account_id, "profession_actions", 1)
+
+            pooled_profession_xp = roll_crafting_xp(max(1, total_profession_xp_base))
+            pooled_tool_xp = roll_crafting_xp(max(1, total_tool_xp_base))
+            messages, _profession_level_after, new_tool_level = self.grant_profession_progress(
+                profession, pooled_profession_xp, tool_type, pooled_tool_xp
+            )
+
+            result_parts = [f"{ITEMS[item_id]['name']} x{qty}" for item_id, qty in outputs.items()]
+            await self.send(
+                f"PRZETOP WSZYSTKO zakończony: {total_crafts} przetopów jako jedna akcja."
+            )
+            chunk = []
+            for part in result_parts:
+                chunk.append(part)
+                if len(chunk) >= 6:
+                    await self.send("Uzyskano: " + ", ".join(chunk) + ".")
+                    chunk = []
+            if chunk:
+                await self.send("Uzyskano: " + ", ".join(chunk) + ".")
+            for message in messages:
+                await self.send(message)
+            if mastery_after > mastery_before:
+                await self.send(
+                    f"Crafting Mastery {profession}/{mastery_category}: "
+                    f"{mastery_before} -> {mastery_after}."
+                )
+            if new_tool_level != old_tool_level:
+                await self.send(
+                    f"{tool_name} ma teraz poziom {new_tool_level}, "
+                    f"Tier {tool_tier(new_tool_level)}: {tool_tier_name(tool_type, new_tool_level)}."
+                )
+            if locked_crafts:
+                await self.send(
+                    f"Pominięto {locked_crafts} możliwych przetopów wymagających wyższego "
+                    "Kowalstwa lub Tieru Młota."
+                )
+            await self.sync_extended_achievements()
+            return True
         if norm.startswith("max "):
             wanted=raw.split(maxsplit=1)[1]
             found=self.resolve_smelt_recipe(wanted)

@@ -1104,7 +1104,7 @@ class SessionIOAuthCharacterMixin:
                     "Nowa postać nie została przypisana automatycznie."
                 )
             await self.send(
-                "Postać ma osobny Level 1-400. Sześć statystyk bazowych nadal rośnie automatycznie."
+                "Postać ma osobny Level 1-600. Sześć statystyk bazowych nadal rośnie automatycznie."
             )
             if slot == 1:
                 await self.send(
@@ -1218,6 +1218,8 @@ class SessionIOAuthCharacterMixin:
     async def enter_world(self):
             self.refresh_active_classes()
             self.start_session_summary()
+            # v0.36.3: trwały status profilu działa także po wylogowaniu.
+            self.server.db.mark_player_login_v0363(self.account_id)
 
             moved_gems = self.migrate_raw_mining_gems_to_bag_v0867()
             moved_craft_materials = self.migrate_craft_materials_to_casket_v0915()

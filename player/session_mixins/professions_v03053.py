@@ -14,8 +14,8 @@ class SessionProfessionsV03053Mixin:
         row=self.server.db.profession(self.account_id,name)
         level=int(row['level']); tool=self.server.db.tool(self.account_id,cfg['tool_type'])
         await self.send(name.upper())
-        await self.send(f"Poziom {level}/400. Ranga {profession_rank(level,name)}/{profession_max_rank(name)}: {profession_rank_name(name,level)}. XP {row['xp']}. Akcje {row['actions']}.")
-        await self.send(f"Narzędzie: {cfg['tool_name']}, poziom {tool['level']}/400, Tier {tool_tier(tool['level'])}/40: {tool_tier_name(cfg['tool_type'],tool['level'])}.")
+        await self.send(f"Poziom {level}/{PROFESSION_MAX_LEVEL}. Ranga {profession_rank(level,name)}/{profession_max_rank(name)}: {profession_rank_name(name,level)}. XP {row['xp']}. Akcje {row['actions']}.")
+        await self.send(f"Narzędzie: {cfg['tool_name']}, poziom {tool['level']}/{TOOL_MAX_LEVEL}, Tier {tool_tier(tool['level'])}/{TOOL_MAX_TIER}: {tool_tier_name(cfg['tool_type'],tool['level'])}.")
         await self.send(f"Warsztat: {ROOMS.get(cfg['station'],{}).get('name',cfg['station'])}.")
         await self.send(f"Receptury: receptury {name.lower()}. Wytwarzanie: {self.v03053_command_for(name)} <nazwa>.")
 

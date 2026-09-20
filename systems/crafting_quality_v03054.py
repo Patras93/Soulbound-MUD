@@ -27,13 +27,13 @@ def crafting_mastery_category_v03054(recipe, profession):
     return normalize_lookup_text(raw).replace(" ","_") or "ogolne"
 
 def crafting_quality_roll_v03054(profession_level, tool_level, mastery_level):
-    skill=max(0.0,min(1.0,(max(1,int(profession_level))/400.0)*0.45 + (max(1,int(tool_level))/400.0)*0.20 + (max(1,int(mastery_level))/100.0)*0.35))
+    skill=max(0.0,min(1.0,(max(1,int(profession_level))/float(PROFESSION_MAX_LEVEL))*0.45 + (max(1,int(tool_level))/float(TOOL_MAX_LEVEL))*0.20 + (max(1,int(mastery_level))/100.0)*0.35))
     weights=[60-35*skill,25+8*skill,10+12*skill,4+9*skill,1+6*skill]
     return random.choices(CRAFT_QUALITY_ORDER_V03054,weights=weights,k=1)[0]
 
 def crafting_critical_chance_v03054(profession_level, mastery_level):
     # 2% start, do około 12% na pełnym progresie.
-    return min(0.12,0.02 + max(1,int(profession_level))/400.0*0.035 + max(1,int(mastery_level))/100.0*0.065)
+    return min(0.12,0.02 + max(1,int(profession_level))/float(PROFESSION_MAX_LEVEL)*0.035 + max(1,int(mastery_level))/100.0*0.065)
 
 def crafting_critical_affix_amount_v03054(stat, quality_key, mastery_level):
     idx=CRAFT_QUALITY_ORDER_V03054.index(quality_key)

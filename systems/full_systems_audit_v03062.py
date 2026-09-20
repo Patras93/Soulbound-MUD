@@ -16,7 +16,7 @@ def full_systems_audit_v03062():
             if t not in ROOMS and not str(t).startswith(dyn_prefixes): bad_exits.append((rid,d,t))
     check('world_exits', not bad_exits, str(bad_exits[:10]))
     check('classes_14', len(CLASSES)==14, len(CLASSES))
-    check('skills_1722', sum(len(v) for v in CLASS_SKILLS.values())==1722, sum(len(v) for v in CLASS_SKILLS.values()))
+    check('skills_progression_grid', sum(len(v) for v in CLASS_SKILLS.values())==len(CLASSES)*len(_V0922_MASTERY_LEVELS)*3, sum(len(v) for v in CLASS_SKILLS.values()))
     check('items_present', bool(ITEMS), len(ITEMS))
     check('mobs_present', bool(MOB_TEMPLATES), len(MOB_TEMPLATES))
     check('quests_present', bool(QUESTS), len(QUESTS))
@@ -27,7 +27,7 @@ def full_systems_audit_v03062():
     check('tool_target_65', axes.get('tool')==65, axes.get('tool'))
     check('stat_target_60', axes.get('stat')==60, axes.get('stat'))
     for axis in ('class','soul','skill','profession','tool','stat'):
-        vals=[generator_core_v027.axis_requirement(axis,l) for l in (1,10,50,100,200,400)]
+        vals=[generator_core_v027.axis_requirement(axis,l) for l in (1,10,50,100,200,400,600)]
         check(f'xp_monotonic_{axis}', all(b>a for a,b in zip(vals,vals[1:])), vals)
     check('generator_core', not GENERATOR_CORE_AUDIT.get('error_count'), GENERATOR_CORE_AUDIT.get('errors'))
 
@@ -55,7 +55,7 @@ def full_systems_audit_v03062():
     expected={"fishing":"Wędkarstwo","mining":"Górnictwo","woodcutting":"Drwalstwo","crafting":"Kowalstwo","cooking":"Gotowanie","herbalism":"Zielarstwo","alchemy":"Alchemia","jewelcrafting":"Jubilerstwo","tailoring":"Krawiectwo","leatherworking":"Garbarstwo","carpentry":"Stolarstwo","enchanting":"Zaklinanie"}
     check('professions_12', len(PROFESSION_RANK_NAMES)==12, len(PROFESSION_RANK_NAMES))
     check('tool_profession_map', all(TOOL_PROFESSION_MAP.get(k)==v for k,v in expected.items()), TOOL_PROFESSION_MAP)
-    check('tool_tiers_40', len(TOOL_TIER_THRESHOLDS)==40, len(TOOL_TIER_THRESHOLDS))
+    check('tool_tiers_60', len(TOOL_TIER_THRESHOLDS)==TOOL_MAX_TIER==60, len(TOOL_TIER_THRESHOLDS))
 
     # Help/commands/language
     virtual={'tematy','komendy','wszystko','kategorie'}
