@@ -943,6 +943,19 @@ class SessionCoreProgressionMixin:
                         break
             except asyncio.CancelledError:
                 pass
+            except Exception as exc:
+                try:
+                    await self.send(
+                        f"Odpoczynek został zatrzymany przez błąd wewnętrzny: "
+                        f"{type(exc).__name__}: {exc}."
+                    )
+                except Exception:
+                    pass
+                try:
+                    import traceback
+                    print("REST_LOOP_ERROR\n" + traceback.format_exc(), flush=True)
+                except Exception:
+                    pass
             finally:
                 self.resting = False
                 if self.rest_task is asyncio.current_task():
@@ -1252,11 +1265,11 @@ class SessionCoreProgressionMixin:
                 self.account_id, self.character.class_name
             )
             for row in rows:
-                poziom = int(row["level"])
+                level = int(row["level"])
                 xp = int(row["xp"])
                 slot = int(row["active_slot"])
                 role = "główna" if slot == 1 else f"dodatkowa, slot {slot}"
-                if poziom >= CLASS_MASTERY_MAX_LEVEL:
+                if level >= CLASS_MASTERY_MAX_LEVEL:
                     _arow=self.server.db.ascension_row_v021(self.account_id,f"class:{row['class_name']}")
                     _rank=int(_arow["rank"] or 0); _axp=int(_arow["xp"] or 0); _need=v0210_ascension_xp_to_next(_rank)
                     progress = f"Biegłość {CLASS_MASTERY_MAX_LEVEL}, maksimum; Wzniesienie {_rank}" + (f", XP {_axp} z {_need}." if _need else ", maksimum Wzniesienia.")

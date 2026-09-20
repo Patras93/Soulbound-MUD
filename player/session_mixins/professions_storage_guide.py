@@ -8,13 +8,13 @@ class SessionProfessionsStorageGuideMixin:
                 if profession is not None
                 else PROFESSION_MAX_LEVEL
             )
-            if poziom >= max_level:
+            if level >= max_level:
                 return 0
             return v0190_requirement("profession", level)
 
     def tool_xp_to_next(self, level, tool_type=None):
             max_level = tool_max_level(tool_type)
-            if poziom >= max_level:
+            if level >= max_level:
                 return 0
 
             return v0190_requirement("tool", level)
@@ -170,7 +170,7 @@ class SessionProfessionsStorageGuideMixin:
             if not self.valid_tool_type(tool_type):
                 raise ValueError(f"Nieznany typ narzędzia: {tool_type}")
             row = self.server.db.tool(self.account_id, tool_type)
-            poziom = int(row["level"])
+            level = int(row["level"])
             old_tier = tool_tier(level)
             tool_xp = v0190_scaled_gain(tool_xp, level, "tool", 12)
             tool_xp = self.apply_double_xp(tool_xp)
@@ -192,16 +192,16 @@ class SessionProfessionsStorageGuideMixin:
             messages = [f"{tool_name}: +{tool_xp} XP narzędzia."]
 
             tool_level_cap = tool_max_level(tool_type)
-            while poziom < tool_level_cap:
+            while level < tool_level_cap:
                 needed = self.tool_xp_to_next(level, tool_type)
                 if xp < needed:
                     break
                 xp -= needed
-                poziom += 1
+                level += 1
                 messages.append(f"{tool_name} osiąga poziom {level}.")
 
-            if poziom >= tool_level_cap:
-                poziom = tool_level_cap
+            if level >= tool_level_cap:
+                level = tool_level_cap
                 xp = 0
 
             self.server.db.save_tool(
@@ -646,7 +646,7 @@ class SessionProfessionsStorageGuideMixin:
             row = self.server.db.tool(
                 self.account_id, tool_type
             )
-            poziom = int(row["level"])
+            level = int(row["level"])
             tool_xp = v0190_scaled_gain(tool_xp, level, "tool", 12)
             tool_xp = self.apply_double_xp(tool_xp)
             self.session_summary_add("tool_xp", tool_xp, tool_type)
@@ -669,20 +669,20 @@ class SessionProfessionsStorageGuideMixin:
             )
 
             cap = tool_max_level(tool_type)
-            while poziom < cap:
+            while level < cap:
                 needed = self.tool_xp_to_next(
                     level, tool_type
                 )
                 if xp < needed:
                     break
                 xp -= needed
-                poziom += 1
+                level += 1
                 await self.send(
                     f"{tool_name} osiąga poziom {level}."
                 )
 
-            if poziom >= cap:
-                poziom = cap
+            if level >= cap:
+                level = cap
                 xp = 0
 
             self.server.db.save_tool(
@@ -1452,6 +1452,19 @@ class SessionProfessionsStorageGuideMixin:
 
             except asyncio.CancelledError:
                 pass
+            except Exception as exc:
+                try:
+                    await self.send(
+                        f"Auto-łowienie zatrzymane przez błąd wewnętrzny: "
+                        f"{type(exc).__name__}: {exc}."
+                    )
+                except Exception:
+                    pass
+                try:
+                    import traceback
+                    print("AUTO_FISHING_ERROR\n" + traceback.format_exc(), flush=True)
+                except Exception:
+                    pass
             finally:
                 self.auto_fishing = False
                 if self.auto_fishing_task is asyncio.current_task():
@@ -2239,6 +2252,19 @@ class SessionProfessionsStorageGuideMixin:
 
             except asyncio.CancelledError:
                 pass
+            except Exception as exc:
+                try:
+                    await self.send(
+                        f"Auto-kopanie zatrzymane przez błąd wewnętrzny: "
+                        f"{type(exc).__name__}: {exc}."
+                    )
+                except Exception:
+                    pass
+                try:
+                    import traceback
+                    print("AUTO_MINING_ERROR\n" + traceback.format_exc(), flush=True)
+                except Exception:
+                    pass
             finally:
                 self.auto_mining = False
                 if self.auto_mining_task is asyncio.current_task():
@@ -2348,6 +2374,19 @@ class SessionProfessionsStorageGuideMixin:
 
             except asyncio.CancelledError:
                 pass
+            except Exception as exc:
+                try:
+                    await self.send(
+                        f"Auto-Drwalstwo zatrzymane przez błąd wewnętrzny: "
+                        f"{type(exc).__name__}: {exc}."
+                    )
+                except Exception:
+                    pass
+                try:
+                    import traceback
+                    print("AUTO_WOODCUTTING_ERROR\n" + traceback.format_exc(), flush=True)
+                except Exception:
+                    pass
             finally:
                 self.auto_woodcutting = False
                 if self.auto_woodcutting_task is asyncio.current_task():
@@ -2460,6 +2499,19 @@ class SessionProfessionsStorageGuideMixin:
 
             except asyncio.CancelledError:
                 pass
+            except Exception as exc:
+                try:
+                    await self.send(
+                        f"Auto-Zielarstwo zatrzymane przez błąd wewnętrzny: "
+                        f"{type(exc).__name__}: {exc}."
+                    )
+                except Exception:
+                    pass
+                try:
+                    import traceback
+                    print("AUTO_HERBALISM_ERROR\n" + traceback.format_exc(), flush=True)
+                except Exception:
+                    pass
             finally:
                 self.auto_herbalism = False
                 if self.auto_herbalism_task is asyncio.current_task():
@@ -2556,7 +2608,7 @@ class SessionProfessionsStorageGuideMixin:
             await self.send("PROFESJE INFO" if detailed else "PROFESJE")
             for name in professions:
                 row = self.server.db.profession(self.account_id, name)
-                poziom = int(row["level"])
+                level = int(row["level"])
                 max_level = profession_max_level(name)
                 rank = profession_rank(level, name)
                 max_rank = profession_max_rank(name)
@@ -2572,7 +2624,7 @@ class SessionProfessionsStorageGuideMixin:
                 else:
                     next_rank = "Ranga maksymalna."
                 xp_text = (
-                    "maksimum" if poziom >= max_level else
+                    "maksimum" if level >= max_level else
                     f"{row['xp']} z {self.profession_xp_to_next(level, name)}"
                 )
                 await self.send(
@@ -2685,7 +2737,7 @@ class SessionProfessionsStorageGuideMixin:
 
     def tool_xp_remaining_to_level(self, level, xp, tool_type=None):
             max_level = tool_max_level(tool_type)
-            if poziom >= max_level:
+            if level >= max_level:
                 return 0
             return max(
                 0,
@@ -2759,7 +2811,7 @@ class SessionProfessionsStorageGuideMixin:
                 return
 
             row = self.server.db.tool(self.account_id, tool_type)
-            poziom = int(row["level"])
+            level = int(row["level"])
             xp = int(row["xp"])
             uses = int(row["uses"])
             tier = tool_tier(level)
@@ -2784,7 +2836,7 @@ class SessionProfessionsStorageGuideMixin:
                 f"Tempo daje {profession} poziom {profession_level}; poziom narzędzia nie skraca czasu."
             )
 
-            if poziom >= max_level:
+            if level >= max_level:
                 await self.send("XP: maksimum. Do następnego levelu: maksimum.")
             else:
                 needed = self.tool_xp_to_next(level, tool_type)
@@ -2870,7 +2922,7 @@ class SessionProfessionsStorageGuideMixin:
                         await self.send(f"{name}: brak.")
                     continue
                 row = self.server.db.tool(self.account_id, tool_type)
-                poziom = int(row["level"])
+                level = int(row["level"])
                 max_level = tool_max_level(tool_type)
                 tier = tool_tier(level)
                 tier_name = tool_tier_name(tool_type, level)
@@ -2881,7 +2933,7 @@ class SessionProfessionsStorageGuideMixin:
                     continue
                 bonus_percent = int(tool_tier_bonus_chance(level) * 100)
                 xp_text = (
-                    "maksimum" if poziom >= max_level else
+                    "maksimum" if level >= max_level else
                     f"{row['xp']} z {self.tool_xp_to_next(level, tool_type)}"
                 )
                 if tier < TOOL_MAX_TIER:

@@ -396,34 +396,50 @@ class MudServer:
         last_active = double_xp_event_state()["active"]
         while True:
             await asyncio.sleep(5.0)
-            state = double_xp_event_state()
-            active = bool(state["active"])
-            if active == last_active:
-                continue
-            last_active = active
-            if active:
-                await self.broadcast_all(
-                    "EVENT x2 EXP START. Przez 15 minut wszystkie główne rodzaje EXP są podwajane.",
-                    history_category="system",
-                )
-            else:
-                await self.broadcast_all(
-                    "EVENT x2 EXP ZAKOŃCZONY. Następny start na początku kolejnej godziny.",
-                    history_category="system",
+            try:
+                state = double_xp_event_state()
+                active = bool(state["active"])
+                if active == last_active:
+                    continue
+                last_active = active
+                if active:
+                    await self.broadcast_all(
+                        "EVENT x2 EXP START. Przez 15 minut wszystkie główne rodzaje EXP są podwajane.",
+                        history_category="system",
+                    )
+                else:
+                    await self.broadcast_all(
+                        "EVENT x2 EXP ZAKOŃCZONY. Następny start na początku kolejnej godziny.",
+                        history_category="system",
+                    )
+            except asyncio.CancelledError:
+                raise
+            except Exception as exc:
+                print(
+                    f"[DOUBLE XP LOOP ERROR] {type(exc).__name__}: {exc}",
+                    file=sys.stderr, flush=True,
                 )
 
     async def mob_wander_loop(self):
         while True:
             await asyncio.sleep(5.0)
-            for mob, old_room, new_room in self.world.wander_step():
-                name = MOB_TEMPLATES.get(mob.template_id, {}).get(
-                    "name", "Wróg"
-                )
-                await self.broadcast_room(
-                    old_room, f"{name} odchodzi do sąsiedniej lokacji."
-                )
-                await self.broadcast_room(
-                    new_room, f"{name} nadchodzi z sąsiedniej lokacji."
+            try:
+                for mob, old_room, new_room in self.world.wander_step():
+                    name = MOB_TEMPLATES.get(mob.template_id, {}).get(
+                        "name", "Wróg"
+                    )
+                    await self.broadcast_room(
+                        old_room, f"{name} odchodzi do sąsiedniej lokacji."
+                    )
+                    await self.broadcast_room(
+                        new_room, f"{name} nadchodzi z sąsiedniej lokacji."
+                    )
+            except asyncio.CancelledError:
+                raise
+            except Exception as exc:
+                print(
+                    f"[MOB WANDER LOOP ERROR] {type(exc).__name__}: {exc}",
+                    file=sys.stderr, flush=True,
                 )
 
     async def handle_client(self, reader, writer):

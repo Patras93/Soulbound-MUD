@@ -56,7 +56,7 @@ class SessionForgeGuildsMixin:
                 for index, (item_id, item, free_qty) in enumerate(free_rows, 1):
                     material = v03041_salvage_material_key(item)
                     salvage_id = V0925_SALVAGE_MATERIALS[material][0]
-                    poziom = max(1, min(400, int(item.get("required_character_level", item.get("required_mastery", 1)) or 1)))
+                    level = max(1, min(400, int(item.get("required_character_level", item.get("required_mastery", 1)) or 1)))
                     await self.send(
                         f"{index}. {player_item_display_name_v0335(item_id)}. Wolne {free_qty}. "
                         f"Poziom {level}. Odzysk: {ITEMS[salvage_id]['name']}."
@@ -86,7 +86,7 @@ class SessionForgeGuildsMixin:
 
             material = v03041_salvage_material_key(item)
             salvage_id = V0925_SALVAGE_MATERIALS[material][0]
-            poziom = max(1, min(400, int(
+            level = max(1, min(400, int(
                 item.get("required_character_level", item.get("required_mastery", 1)) or 1
             )))
             rarity = str(item.get("rarity", "common") or "common").lower()
@@ -94,7 +94,7 @@ class SessionForgeGuildsMixin:
                 "uncommon": 0, "rare": 1, "epic": 1, "legendary": 2,
                 "mythic": 3, "unique": 3, "eternal": 4, "crafted": 0,
             }.get(rarity, 0)
-            qty = max(1, 1 + poziom // 100 + rarity_bonus)
+            qty = max(1, 1 + level // 100 + rarity_bonus)
 
             # Modyfikacje są przypięte do item_id. Zwracamy je dopiero wtedy,
             # gdy rozkładana jest ostatnia posiadana kopia tego konkretnego ID.
@@ -116,11 +116,11 @@ class SessionForgeGuildsMixin:
                 return
 
             self.server.db.add_storage_item(self.account_id, "craftbox", salvage_id, qty)
-            essence = 1 if poziom >= 100 else 0
-            dust = 1 if poziom >= 200 else 0
+            essence = 1 if level >= 100 else 0
+            dust = 1 if level >= 200 else 0
             if rarity in ("legendary", "mythic", "unique", "eternal"):
                 essence += 1
-            if poziom >= 300:
+            if level >= 300:
                 dust += 1
             if reforged:
                 essence += 1
@@ -185,7 +185,7 @@ class SessionForgeGuildsMixin:
 
             # v0.31.15: salvage is a real Kowalstwo action, but it does not
             # pretend that the crafting hammer was used.
-            salvage_prof_xp = max(8, 8 + poziom // 10 + rarity_bonus * 6)
+            salvage_prof_xp = max(8, 8 + level // 10 + rarity_bonus * 6)
             messages, _prof_after, _tool_after = self.grant_profession_progress(
                 "Kowalstwo", salvage_prof_xp, "crafting", 0, tool_progress=False
             )

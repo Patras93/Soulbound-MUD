@@ -1,3 +1,24 @@
+v0.35.3 - Deep Code Inspection + Rare Path Stability
+- Naprawiono rzadki crash Meca Intercept System: nieistniejące magic_power zastąpiono spell_power.
+- Naprawiono admin goto po nazwie lokacji: resolve_room_query zastąpiono find_room.
+- Poprawiono MRO Session: aktywne są nowsze Social Expansion i Salvage 3.0.
+- Zabezpieczono rest_loop, mob_wander_loop i double_xp_event_loop przed trwałym zgaśnięciem po pojedynczym wyjątku.
+- Dodano statyczny Code Integrity Gate dla Session/Database/World/MudServer/Character oraz MRO gate.
+- Odświeżono changes/help wersja.
+
+v0.35.2 - Hourly Fang Quest + Full Regression Audit
+- Dodano odnawialne co 60 minut zlecenie Kły Wilków Cienia: 0/5, liczące wyłącznie nowe kły zdobyte po przyjęciu.
+- Kły są fizycznie zabierane przy oddaniu; stare zapasy nie nabijają postępu.
+- Quest dodano do stałej Tablicy Godzinnych Zleceń i objęto auditem realnych źródeł dropu `wolf_fang`.
+- Wykonano pełny regression audit finalnego runtime po poprawkach v0.35.1.
+
+v0.35.1 - Profession Automation Stability Fix
+- Naprawiono regresję v0.35.0: przypadkowa zamiana identyfikatorów `level`/`poziom` mogła wywołać NameError przy naliczaniu XP i zatrzymać auto-łowienie, auto-kopanie, auto-drwalstwo lub auto-zielarstwo.
+- Naprawiono wszystkie 15 wykrytych funkcji dotkniętych regresją, w tym salvage, ekrany profesji, multiclass, reakcje NPC i XP ze sprzedaży surowców.
+- Auto-pętle zbierania nie znikają już bez informacji po nieobsłużonym wyjątku; komunikują błąd i zapisują traceback w logu serwera.
+- Dodano stały gate pre-deploy dla pomieszanych identyfikatorów level/poziom i ochrony czterech auto-pętli.
+- Test regresji: 4 profesje x50 naliczeń XP, granice poziomów oraz 4 auto-pętle x6 cykli — PASS.
+
 v0.35.0 - Full Game Polish Pass
 - Polskie i krótsze komunikaty ekranów NVDA; usunięto techniczne etykiety 2.0/3.0/v0.xx z UI gracza.
 - HELP Gildii zaktualizowany do poziomów 1-400 i maksymalnego bonusu +23%.

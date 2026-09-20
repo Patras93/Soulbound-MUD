@@ -38,7 +38,7 @@ class SessionAdminGatheringSalesMixin:
             first = self.normalize_description_query(parts[0]) if parts else ""
             if first in ("goto", "teleport", "idz", "idź"):
                 target = " ".join(parts[1:]).strip()
-                room_id = target if target in ROOMS else self.resolve_room_query(target)
+                room_id = target if target in ROOMS else self.find_room(target)
                 if not room_id or room_id not in ROOMS:
                     await self.send("ADMIN: nie znaleziono lokacji.")
                     return
@@ -976,7 +976,7 @@ class SessionAdminGatheringSalesMixin:
 
             profession, _tool_type = definition
             prow = self.server.db.profession(self.account_id, profession)
-            poziom = int(prow["level"])
+            level = int(prow["level"])
             # 1 bazowy XP za sztukę; Wędkarstwo v0.9.6 kompensuje szybszy endgame.
             xp_scale = v096_fishing_reward_scale(level) if container == "net" else 1.0
             actual_xp = max(1, int(round(units * PROFESSION_XP_GAIN_MULTIPLIER * xp_scale)))
@@ -990,16 +990,16 @@ class SessionAdminGatheringSalesMixin:
                 f"za {units} sztuk."
             ]
 
-            while poziom < cap:
+            while level < cap:
                 needed = self.profession_xp_to_next(level, profession)
                 if xp < needed:
                     break
                 xp -= needed
-                poziom += 1
+                level += 1
                 messages.append(f"{profession} osiąga poziom {level}.")
 
-            if poziom >= cap:
-                poziom = cap
+            if level >= cap:
+                level = cap
                 xp = 0
 
             self.server.db.save_profession(

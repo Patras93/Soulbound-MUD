@@ -3030,6 +3030,7 @@ HOURLY_QUEST_IDS = (
     "hourly_goblins",
     "hourly_bandits",
     "hourly_shadow_wolves",
+    "hourly_shadow_fangs",
     "hourly_skeletons",
     "hourly_temple_rats",
     "hourly_fishing",
@@ -3061,6 +3062,14 @@ QUESTS.update({
         "kind": "kill", "target": "shadow_wolf", "needed": 12,
         "description": "Pokonaj 12 Wilków Cienia po przyjęciu zlecenia.",
         "reward_silver": 1100, "reward_gold": 0, "reward_mithril": 0, "reward_items": {"healing_potion": 2},
+        "repeatable": True, "repeat_cooldown": 60 * 60, "hourly_rotation": False, "remote_turnin": True,
+    },
+    "hourly_shadow_fangs": {
+        "name": "Godzinne zlecenie: Kły Wilków Cienia", "giver": "Tablica Godzinnych Zleceń",
+        "kind": "collect", "target": "wolf_fang", "needed": 5,
+        "description": "Zdobądź 5 Kłów Wilka Cienia po przyjęciu zlecenia. Stare zapasy nie nabijają postępu; przy oddaniu kły są zabierane.",
+        "progress_label": "Kłów Wilka Cienia",
+        "reward_silver": 950, "reward_gold": 0, "reward_mithril": 0, "reward_items": {"healing_potion": 1},
         "repeatable": True, "repeat_cooldown": 60 * 60, "hourly_rotation": False, "remote_turnin": True,
     },
     "hourly_skeletons": {

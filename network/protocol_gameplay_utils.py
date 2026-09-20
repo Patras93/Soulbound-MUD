@@ -1221,12 +1221,9 @@ def v0929_kill_drop_item(quest_id, mob_template_id, template):
     return None
 
 HELP_TOPICS["questy godzinne"] = [
-    "v0.9.29 dodaje 8 niezależnych zadań odnawianych co 60 minut. Każde zaczyna od 0/x i liczy wyłącznie zdarzenia po przyjęciu.",
-    "Haldor: Złamane ostrza 0/6 oraz Pancerz do przetopu 0/6. Oba mogą być aktywne jednocześnie z innymi zleceniami Haldora.",
-    "Orin: Toksyczne gruczoły 0/10 z jadowitych/skażonych mobów albo elit z affixem Toksyczny.",
-    "Borys: Dzisiejszy połów 0/15 — tylko ryby rzeczne; Bran: Drewno na naprawy 0/25; Liora: Zestaw dla uzdrowiciela 0/20.",
-    "Toren: Próbki rudy — osobno Ruda miedzi 0/5, Ruda żelaza 0/5 i Ruda srebra 0/5; wymagane Górnictwo 10.",
-    "Strażnik Starego Cmentarza: Nieumarli znów wstali 0/25. Quest daje EXP każdej statystyki i Soul XP jak inne questy walki.",
+    "Godzinne zlecenia odnawiają się niezależnie po 60 minutach od ukończenia. Każde zaczyna od 0/x i liczy wyłącznie zdarzenia wykonane po przyjęciu.",
+    "Tablica Godzinnych Zleceń oferuje stale zadania bojowe i profesyjne, w tym Kły Wilków Cienia 0/5. Kły muszą zostać zdobyte po przyjęciu i są zabierane przy oddaniu.",
+    "Haldor: Złamane ostrza i Pancerz do przetopu; Orin: Toksyczne gruczoły; pozostałe godzinne zadania obejmują ryby, rudy, drewno, zioła i walkę.",
 ]
 HELP_TOPICS.setdefault("quest", []).append(
     "v0.9.29: help questy godzinne opisuje 8 nowych odnawialnych zadań profesyjnych i cmentarnych."

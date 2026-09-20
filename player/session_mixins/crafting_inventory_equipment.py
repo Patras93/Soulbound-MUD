@@ -515,7 +515,7 @@ class SessionCraftingInventoryEquipmentMixin:
                 await self.send("Nie masz jeszcze mastery. Wykonaj pierwszą udaną recepturę.")
                 return
             for row in rows:
-                poziom = crafting_mastery_level_v03054(row["actions"])
+                level = crafting_mastery_level_v03054(row["actions"])
                 await self.send(
                     f"{row['profession']} / {row['category']}: mastery {level}/100, "
                     f"crafty {row['actions']}, krytyczne {row['criticals']}, legendarne {row['legendary_count']}."
@@ -530,12 +530,12 @@ class SessionCraftingInventoryEquipmentMixin:
             row = self.server.db.profession(
                 self.account_id, "Jubilerstwo"
             )
-            poziom = int(row["level"])
+            level = int(row["level"])
             max_level = profession_max_level("Jubilerstwo")
             rank = profession_rank(level, "Jubilerstwo")
             xp_text = (
                 "maksimum"
-                if poziom >= max_level
+                if level >= max_level
                 else (
                     f"{row['xp']} z "
                     f"{self.profession_xp_to_next(level, 'Jubilerstwo')}"
@@ -565,12 +565,12 @@ class SessionCraftingInventoryEquipmentMixin:
             row = self.server.db.profession(
                 self.account_id, "Kowalstwo"
             )
-            poziom = int(row["level"])
+            level = int(row["level"])
             max_level = profession_max_level("Kowalstwo")
             rank = profession_rank(level, "Kowalstwo")
             xp_text = (
                 "maksimum"
-                if poziom >= max_level
+                if level >= max_level
                 else (
                     f"{row['xp']} z "
                     f"{self.profession_xp_to_next(level, 'Kowalstwo')}"

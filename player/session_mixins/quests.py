@@ -2240,7 +2240,7 @@ class SessionQuestsMixin:
             if profession not in PROFESSION_RANK_NAMES:
                 return ""
             row = self.server.db.profession(self.account_id, profession)
-            poziom = max(1, min(profession_max_level(profession), int(row["level"])))
+            level = max(1, min(profession_max_level(profession), int(row["level"])))
             rank = profession_rank(level, profession)
             rank_name = profession_rank_name(profession, level)
             stage = profession_npc_reaction_stage(rank)

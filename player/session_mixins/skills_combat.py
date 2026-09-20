@@ -1264,7 +1264,7 @@ class SessionSkillsCombatMixin:
             _intercept_progress=(max(1,min(400,_intercept_level))-1)/399.0
             _intercept_chance=0.10 + 0.25*(_intercept_progress**0.82)
             if self.mec_skill_known_v0319("v0319_mec_intercept_system") and profile.get("damage_type")=="physical" and random.random()<_intercept_chance:
-                counter=max(1,int(((self.physical_power()+self.magic_power())/2)*(1.0+1.5*_intercept_progress)))
+                counter=max(1,int(((self.physical_power()+self.spell_power())/2)*(1.0+1.5*_intercept_progress)))
                 mob.hp-=counter
                 await self.send_combat(f"Intercept System przerywa atak {template['name']} i kontruje za {counter}.","normal")
                 if mob.hp<=0:
@@ -3295,7 +3295,7 @@ class SessionSkillsCombatMixin:
             template = MOB_TEMPLATES[mob.template_id]
             self._last_mana_focus_gain = 0
             damage = self.player_damage()
-            # v0.35.0: Soul Weapon Mastery wzmacnia wyłącznie zwykły atak broni.
+            # v0.35.1: Soul Weapon Mastery wzmacnia wyłącznie zwykły atak broni.
             mastery = soul_weapon_mastery_bonuses(self.character.soul_weapon_mastery_level)
             damage = max(1, int(round(damage * (1.0 + mastery["damage_percent"] / 100.0))))
             # v0.33.16: właściwości Soul Tier działają tylko na zwykły atak

@@ -71,8 +71,8 @@ def generator_whitelist_audit_v03019():
     audit = GENERATOR_CORE_AUDIT or {}
     whitelist = audit.get("whitelist_audit") or {}
     errors = []
-    if GENERATOR_CORE_VERSION != "0.35.0":
-        errors.append(f"Generator Core version={GENERATOR_CORE_VERSION}, expected 0.35.0")
+    if GENERATOR_CORE_VERSION != "0.35.3":
+        errors.append(f"Generator Core version={GENERATOR_CORE_VERSION}, expected 0.35.3")
     if not audit.get("numeric_only"):
         errors.append("numeric_only flag missing")
     runtime_fast = bool(audit.get("runtime_fast_path"))
@@ -758,7 +758,7 @@ def full_release_integrity_audit_v03025():
         errors.append("world logic audit failed")
     if int(WORLD_LOGIC_AUDIT.get("warning_count", 0) or 0):
         errors.append("world logic warnings present")
-    if GENERATOR_CORE_VERSION != "0.35.0":
+    if GENERATOR_CORE_VERSION != "0.35.3":
         errors.append(f"GENERATOR_CORE_VERSION={GENERATOR_CORE_VERSION}")
     return {
         "version": "0.30.25",
@@ -975,7 +975,7 @@ def gameplay_flow_audit_v03026():
         if missing:
             errors.append(f"station {_station}: brak w {missing[:5]}")
 
-    if GENERATOR_CORE_VERSION != "0.35.0":
+    if GENERATOR_CORE_VERSION != "0.35.3":
         errors.append(f"GENERATOR_CORE_VERSION={GENERATOR_CORE_VERSION}")
 
     return {
@@ -1446,6 +1446,7 @@ def v03035_related_quest_flow_audit():
     ordinary_item_sources = {
         "soul_shards": "soul_shard",
         "stolen_mountain_ores": "stolen_mountain_ore",
+        "hourly_shadow_fangs": "wolf_fang",
     }
     for quest_id, item_id in ordinary_item_sources.items():
         if not any(item_id in (template.get("drops") or {}) for template in MOB_TEMPLATES.values()):
@@ -2355,16 +2356,24 @@ def universal_salvage_audit_v03041():
         ):
             errors.append(f"{item_id}: level {level} maps to {material}, expected eternium")
     import inspect as _inspect_v03041
-    src = _inspect_v03041.getsource(Session.salvage_equipment_v0925)
+    # v0.35.3: the active method is the newer Salvage 3.0 wrapper, which
+    # delegates classic armor salvage to SessionForgeGuildsMixin. Audit both
+    # layers instead of forcing the old implementation to remain first in MRO.
+    base_src = _inspect_v03041.getsource(SessionForgeGuildsMixin.salvage_equipment_v0925)
+    active_src = _inspect_v03041.getsource(Session.salvage_equipment_v0925)
     for token in (
         "free_equipment_quantity", "v03041_salvage_material_key",
         "equipment_runes_v0925", "clear_equipment_crafting_v0925",
         "ROZKŁADANIE EQ", "Wybierz numer",
     ):
-        if token not in src:
-            errors.append(f"salvage implementation missing token: {token}")
-    if "is_character_bound_item" in src:
+        if token not in base_src:
+            errors.append(f"salvage base implementation missing token: {token}")
+    if "is_character_bound_item" in base_src:
         errors.append("salvage still rejects bound armor")
+    if "SessionForgeGuildsMixin.salvage_equipment_v0925" not in active_src:
+        errors.append("Salvage 3.0 wrapper no longer delegates classic armor salvage")
+    if "SALVAGE3_V03114" not in active_src:
+        errors.append("Salvage 3.0 wrapper missing extended salvage registry")
     return {
         "version": "0.30.41",
         "armor_checked": len(armor_ids),
@@ -2837,7 +2846,7 @@ def _install_v0310_tech_help():
 _install_v0310_tech_help()
 
 # ============================================================
-# v0.35.0 - FULL GAME PRE-DEPLOY INTEGRITY + POLISH GATE
+# v0.35.3 - FULL GAME PRE-DEPLOY INTEGRITY + POLISH GATE
 # Covers every registered runtime content domain and blocks startup on broken
 # cross-references, technical IDs in player-facing item names, stale generated
 # numeric item descriptions, invalid quest/item/NPC/shop links, skill-name
@@ -3305,7 +3314,7 @@ def full_game_predeploy_audit_v0336():
         if len(rows)>1: err('duplicate_skill_name',key,rows)
     metrics['skills_total']=skill_count
 
-    # v0.35.0: Hunter/combat regression gate. Offensive Hunter skills must keep
+    # v0.35.3: Hunter/combat regression gate. Offensive Hunter skills must keep
     # their authored Dexterity scaling, and Soul Weapon trait_totals must never
     # leak into use_class_skill (traits belong only to the basic weapon attack).
     _hunter_rows=list(CLASS_SKILLS.get('Łowca') or [])
@@ -3350,7 +3359,7 @@ def full_game_predeploy_audit_v0336():
     except Exception as _exc:
         err('combat_skill_source_audit_failed',repr(_exc))
 
-    # 10b) v0.35.0 Soul Weapon Mastery + Main Menu Exit gate.
+    # 10b) v0.35.3 Soul Weapon Mastery + Main Menu Exit gate.
     try:
         if int(SOUL_WEAPON_MASTERY_MAX_LEVEL) != 400:
             err('soul_weapon_mastery_bad_cap',SOUL_WEAPON_MASTERY_MAX_LEVEL)
@@ -3394,6 +3403,65 @@ def full_game_predeploy_audit_v0336():
     except Exception as _exc:
         err('soul_weapon_mastery_audit_exception',repr(_exc))
 
+    # 10c) v0.35.3 profession automation / identifier regression gate.
+    # The v0.35.0 Polish Pass accidentally changed some Python identifiers
+    # from ``level`` to ``poziom`` while leaving references to the other name.
+    # That produced NameError inside gathering XP and silently killed auto tasks.
+    try:
+        import ast as _ast
+        _identifier_mismatches=[]
+        _functions_checked=0
+        for _path in sorted(_ROOT.rglob('*.py')):
+            # Ignore generated bytecode/cache trees if a local developer has them.
+            if '__pycache__' in _path.parts:
+                continue
+            try:
+                _tree=_ast.parse(_path.read_text(encoding='utf-8'), filename=str(_path))
+            except Exception as _exc:
+                err('python_source_parse_failed',str(_path.relative_to(_ROOT)),repr(_exc))
+                continue
+            for _node in _ast.walk(_tree):
+                if not isinstance(_node,(_ast.FunctionDef,_ast.AsyncFunctionDef)):
+                    continue
+                _functions_checked += 1
+                _params={_a.arg for _a in list(_node.args.args)+list(_node.args.kwonlyargs)}
+                _stores=set(_params)
+                _loads=set()
+                for _child in _ast.walk(_node):
+                    if isinstance(_child,_ast.Name):
+                        if isinstance(_child.ctx,(_ast.Store,_ast.Param)):
+                            _stores.add(_child.id)
+                        elif isinstance(_child.ctx,_ast.Load):
+                            _loads.add(_child.id)
+                if 'level' in _stores and 'poziom' in _loads and 'poziom' not in _stores:
+                    _identifier_mismatches.append((str(_path.relative_to(_ROOT)),_node.name,'local_level_load_poziom'))
+                if 'poziom' in _stores and 'level' in _loads and 'level' not in _stores:
+                    _identifier_mismatches.append((str(_path.relative_to(_ROOT)),_node.name,'local_poziom_load_level'))
+        for _row in _identifier_mismatches:
+            err('level_poziom_identifier_mismatch',*_row)
+        metrics['python_functions_identifier_checked']=_functions_checked
+        metrics['level_poziom_identifier_mismatches']=len(_identifier_mismatches)
+
+        _prof_source=(_ROOT/'player/session_mixins/professions_storage_guide.py').read_text(encoding='utf-8')
+        _auto_specs=(
+            ('auto_fishing_loop','set_auto_fishing','AUTO_FISHING_ERROR'),
+            ('auto_mining_loop','set_auto_mining','AUTO_MINING_ERROR'),
+            ('auto_woodcutting_loop','set_auto_woodcutting','AUTO_WOODCUTTING_ERROR'),
+            ('auto_herbalism_loop','set_auto_herbalism','AUTO_HERBALISM_ERROR'),
+        )
+        for _fn,_next_fn,_tag in _auto_specs:
+            _start=_prof_source.find(f'    async def {_fn}(')
+            _end=_prof_source.find(f'    async def {_next_fn}(',_start+1)
+            if _start < 0 or _end < 0:
+                err('auto_profession_loop_missing',_fn)
+                continue
+            _body=_prof_source[_start:_end]
+            if 'except Exception as exc:' not in _body or _tag not in _body:
+                err('auto_profession_loop_silent_failure_guard_missing',_fn)
+        metrics['auto_profession_loops_guarded']=len(_auto_specs)
+    except Exception as _exc:
+        err('profession_automation_regression_audit_exception',repr(_exc))
+
     # 11) HELP aliases and nonempty topics.
     virtual={'tematy','komendy','wszystko','kategorie'}
     for alias,target in HELP_TOPIC_ALIASES.items():
@@ -3401,7 +3469,7 @@ def full_game_predeploy_audit_v0336():
     for topic,lines in HELP_TOPICS.items():
         if not lines: err('empty_help_topic',topic)
 
-    # 11b) v0.35.0 polish regression gate: keep internal release labels and
+    # 11b) v0.35.3 polish regression gate: keep internal release labels and
     # stale caps out of normal player-facing runtime text.
     try:
         _polish_files=(
@@ -3434,15 +3502,95 @@ def full_game_predeploy_audit_v0336():
     except Exception as _exc:
         err('polish_source_audit_failed',repr(_exc))
 
-    # 12) Command loop self-method references must exist on assembled Session.
-    command_source=(_ROOT/'player/session_mixins/command_loop.py').read_text(encoding='utf-8')
-    called=set(re.findall(r'\bself\.([A-Za-z_]\w*)\s*\(',command_source))
-    missing_methods=sorted(name for name in called if not hasattr(Session,name))
-    for name in missing_methods: err('missing_command_method',name)
-    metrics['command_methods_checked']=len(called)
+    # 12) Static code-integrity gate for assembled runtime.
+    # Check method references across every Session mixin, plus the main runtime
+    # collaborators used through self.server/db/world/character. This catches
+    # rare-path typos that normal startup cannot execute (e.g. a single Mec proc
+    # or an admin-only command).
+    try:
+        import ast as _ast_code
+        _session_called=set()
+        _db_called=set()
+        _world_called=set()
+        _server_called=set()
+        _character_called=set()
+        _session_files=list((_ROOT/'player/session_mixins').glob('*.py'))+[(_ROOT/'player/session.py')]
+        for _path in _session_files:
+            _tree=_ast_code.parse(_path.read_text(encoding='utf-8'), filename=str(_path))
+            for _node in _ast_code.walk(_tree):
+                if not isinstance(_node,_ast_code.Call) or not isinstance(_node.func,_ast_code.Attribute):
+                    continue
+                _attr=_node.func.attr
+                _value=_node.func.value
+                if isinstance(_value,_ast_code.Name) and _value.id=='self':
+                    _session_called.add(_attr)
+                    continue
+                # self.character.foo(...)
+                if (isinstance(_value,_ast_code.Attribute) and _value.attr=='character'
+                        and isinstance(_value.value,_ast_code.Name) and _value.value.id=='self'):
+                    _character_called.add(_attr); continue
+                # self.server.foo(...)
+                if (isinstance(_value,_ast_code.Attribute) and _value.attr=='server'
+                        and isinstance(_value.value,_ast_code.Name) and _value.value.id=='self'):
+                    _server_called.add(_attr); continue
+                # self.server.db.foo(...) / self.server.world.foo(...)
+                if isinstance(_value,_ast_code.Attribute) and _value.attr in ('db','world'):
+                    _base=_value.value
+                    if (isinstance(_base,_ast_code.Attribute) and _base.attr=='server'
+                            and isinstance(_base.value,_ast_code.Name) and _base.value.id=='self'):
+                        (_db_called if _value.attr=='db' else _world_called).add(_attr)
+        for _name in sorted(_session_called):
+            if not hasattr(Session,_name): err('missing_session_method_reference',_name)
+        for _name in sorted(_db_called):
+            if not hasattr(Database,_name): err('missing_database_method_reference',_name)
+        for _name in sorted(_world_called):
+            if not hasattr(World,_name): err('missing_world_method_reference',_name)
+        for _name in sorted(_server_called):
+            if not hasattr(MudServer,_name): err('missing_server_method_reference',_name)
+        for _name in sorted(_character_called):
+            if not hasattr(Character,_name): err('missing_character_method_reference',_name)
+        metrics['session_methods_called_checked']=len(_session_called)
+        metrics['database_methods_called_checked']=len(_db_called)
+        metrics['world_methods_called_checked']=len(_world_called)
+        metrics['server_methods_called_checked']=len(_server_called)
+        metrics['character_methods_called_checked']=len(_character_called)
+
+        # MRO regression gate: newer extensions must remain the active methods,
+        # while they can explicitly delegate to their older compatibility layer.
+        _expected_owners={
+            'salvage_equipment_v0925':SessionCraftingExpansionV03114Mixin,
+            'tell':SessionSocialExpansionMixin,
+            'who':SessionSocialExpansionMixin,
+            'channel_broadcast_v03050':SessionSocialExpansionMixin,
+            'show_channels_v03050':SessionSocialExpansionMixin,
+        }
+        for _name,_owner in _expected_owners.items():
+            _resolved=getattr(Session,_name,None)
+            _expected=getattr(_owner,_name,None)
+            if _resolved is not _expected:
+                err('session_mro_shadowing_regression',_name,getattr(_resolved,'__qualname__',None),getattr(_expected,'__qualname__',None))
+        metrics['mro_resolution_checks']=len(_expected_owners)
+
+        # Long-lived background loops must survive an unexpected iteration error.
+        _server_source=(_ROOT/'server/mud_server.py').read_text(encoding='utf-8')
+        for _fn,_tag in (('double_xp_event_loop','DOUBLE XP LOOP ERROR'),('mob_wander_loop','MOB WANDER LOOP ERROR')):
+            _start=_server_source.find(f'    async def {_fn}(')
+            _next=_server_source.find('    async def ',_start+1)
+            _body=_server_source[_start:(_next if _next>_start else len(_server_source))]
+            if 'except Exception as exc:' not in _body or _tag not in _body:
+                err('background_loop_guard_missing',_fn)
+        _core_source=(_ROOT/'player/session_mixins/core_progression.py').read_text(encoding='utf-8')
+        _start=_core_source.find('    async def rest_loop(')
+        _next=_core_source.find('    async def ',_start+1)
+        _body=_core_source[_start:(_next if _next>_start else len(_core_source))]
+        if 'except Exception as exc:' not in _body or 'REST_LOOP_ERROR' not in _body:
+            err('background_loop_guard_missing','rest_loop')
+        metrics['background_loop_guards_checked']=3
+    except Exception as _exc:
+        err('code_integrity_gate_exception',repr(_exc))
 
     return {
-        'version':'0.35.0','error_count':len(errors),'warning_count':len(warnings),
+        'version':'0.35.3','error_count':len(errors),'warning_count':len(warnings),
         'errors':errors,'warnings':warnings,'metrics':metrics,
         'description_sync':dict(ITEM_DESCRIPTION_SYNC_V0336),
     }
@@ -3451,7 +3599,25 @@ def full_game_predeploy_audit_v0336():
 # loaded. server.py executes it after the module loop when SOULBOUND_FULL_AUDIT=1.
 # Keeping a placeholder here preserves compatibility for code that inspects the symbol.
 FULL_GAME_PREDEPLOY_AUDIT_V0336={
-    'version':'0.35.0','deferred_until_runtime_complete':True,'error_count':0,'warning_count':0,
+    'version':'0.35.3','deferred_until_runtime_complete':True,'error_count':0,'warning_count':0,
     'errors':[],'warnings':[],
     'reason':'Final pre-deploy audit is executed by server.py after every runtime module has loaded.'
 }
+
+
+# ============================================================
+# v0.35.3 - DEEP CODE INSPECTION + RARE PATH STABILITY
+# ============================================================
+HELP_TOPICS.setdefault("wersja", []).append(
+    "v0.35.3: Deep Code Inspection — naprawione rzadkie ścieżki Meca/admina, aktywowane nowsze Social/Salvage oraz zabezpieczone taski tła."
+)
+LATEST_CHANGES_TITLE = "Soulbound v0.35.3 - Deep Code Inspection + Rare Path Stability"
+LATEST_CHANGES = [
+    "Pełna statyczna inspekcja call-graphu Session/Database/World/MudServer/Character oraz test MRO mixinów.",
+    "Naprawiono Mec Intercept System: kontratak używa spell_power zamiast nieistniejącego magic_power.",
+    "Naprawiono admin goto po nazwie lokacji: używa istniejącego find_room zamiast nieistniejącego resolve_room_query.",
+    "Nowsze Social Expansion jest aktywne dla who/tell/kanałów: ignore, AFK, historia kanałów, antyspam i rozszerzone WHO.",
+    "Nowszy Salvage 3.0 jest aktywny i nadal deleguje klasyczne rozkładanie armor EQ do stabilnej warstwy bazowej.",
+    "Odpoczynek, wędrówka mobów i event x2 EXP nie giną już bezpowrotnie po pojedynczym błędzie taska w tle.",
+    "Dodano Code Integrity Gate, który blokuje release przy wywołaniu nieistniejącej metody lub ponownym zasłonięciu nowszego mixinu.",
+]
