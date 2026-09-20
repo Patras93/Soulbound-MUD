@@ -478,7 +478,7 @@ class SessionSkillsCombatMixin:
                     remaining = max(
                         0,
                         int(
-                            self.skill_cooldowns.get(skill["id"], 0)
+                            self.skill_cooldown_ready_at_v0364(skill)
                             - time.time() + 0.999
                         ),
                     )
@@ -2097,7 +2097,7 @@ class SessionSkillsCombatMixin:
                 return False
             if not self.skill_mastery_unlocked(skill):
                 return False
-            if self.skill_cooldowns.get(skill["id"], 0) > time.time():
+            if self.skill_cooldown_ready_at_v0364(skill) > time.time():
                 return False
             if int(skill.get("mana", 0)) > self.current_mana:
                 return False
@@ -2200,7 +2200,7 @@ class SessionSkillsCombatMixin:
 
             now = time.time()
             await self.mec_refresh_vmax_v0319()
-            ready_at = self.skill_cooldowns.get(skill["id"], 0)
+            ready_at = self.skill_cooldown_ready_at_v0364(skill)
             if ready_at > now:
                 await self.send(
                     f"{skill['name']} jest na cooldownie jeszcze {int(ready_at - now + 0.999)} sekund."
@@ -2282,7 +2282,7 @@ class SessionSkillsCombatMixin:
                     return
 
             self.current_mana -= mana_cost
-            self.skill_cooldowns[skill["id"]] = now + effective_cooldown
+            self.start_skill_cooldown_v0364(skill, effective_cooldown, now)
 
             # v0.31.7: Engineer authored tool mechanics.
             if skill.get("engineer_tool"):

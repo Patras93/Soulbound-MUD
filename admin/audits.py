@@ -71,8 +71,8 @@ def generator_whitelist_audit_v03019():
     audit = GENERATOR_CORE_AUDIT or {}
     whitelist = audit.get("whitelist_audit") or {}
     errors = []
-    if GENERATOR_CORE_VERSION != "0.36.3":
-        errors.append(f"Generator Core version={GENERATOR_CORE_VERSION}, expected 0.36.3")
+    if GENERATOR_CORE_VERSION != "0.36.4":
+        errors.append(f"Generator Core version={GENERATOR_CORE_VERSION}, expected 0.36.4")
     if not audit.get("numeric_only"):
         errors.append("numeric_only flag missing")
     runtime_fast = bool(audit.get("runtime_fast_path"))
@@ -758,7 +758,7 @@ def full_release_integrity_audit_v03025():
         errors.append("world logic audit failed")
     if int(WORLD_LOGIC_AUDIT.get("warning_count", 0) or 0):
         errors.append("world logic warnings present")
-    if GENERATOR_CORE_VERSION != "0.36.3":
+    if GENERATOR_CORE_VERSION != "0.36.4":
         errors.append(f"GENERATOR_CORE_VERSION={GENERATOR_CORE_VERSION}")
     return {
         "version": "0.30.25",
@@ -975,7 +975,7 @@ def gameplay_flow_audit_v03026():
         if missing:
             errors.append(f"station {_station}: brak w {missing[:5]}")
 
-    if GENERATOR_CORE_VERSION != "0.36.3":
+    if GENERATOR_CORE_VERSION != "0.36.4":
         errors.append(f"GENERATOR_CORE_VERSION={GENERATOR_CORE_VERSION}")
 
     return {
@@ -4373,4 +4373,97 @@ LATEST_CHANGES = [
     "Profil obejmuje Level postaci, wszystkie klasy/Biegłości, Broń Duszy, statystyki, profesje, narzędzia, Gildię, World Tier/Wzniesienie, osiągnięcia, questy, Bestiariusz, zgony, rekordy i postęp lochów.",
     "EQ respektuje inspectprivacy. Dane konta, login/hasło, poczta i bank nie są ujawniane.",
     "Dodano trwałą tabelę obecności i hooki logowania/wylogowania oraz stały audit v0.36.3.",
+]
+
+
+# ============================================================
+# v0.36.4 - INDEPENDENT SKILL / SPELL COOLDOWNS
+# ============================================================
+def independent_skill_cooldowns_audit_v0364():
+    errors=[]
+    metrics={}
+    def check(name, condition, detail=None):
+        metrics[name]=bool(condition)
+        if not condition:
+            errors.append(f"{name}: {detail or 'FAIL'}")
+    try:
+        import inspect
+        all_rows=[]
+        seen={}
+        duplicates=[]
+        for class_name, rows in (CLASS_SKILLS or {}).items():
+            for skill in rows:
+                sid=str(skill.get("id") or "")
+                all_rows.append((class_name, sid, skill.get("name")))
+                if not sid:
+                    errors.append(f"skill without id: {class_name}/{skill.get('name')}")
+                    continue
+                if sid in seen:
+                    duplicates.append((sid, seen[sid], (class_name, skill.get("name"))))
+                else:
+                    seen[sid]=(class_name, skill.get("name"))
+        check("all_skill_ids_unique", not duplicates, duplicates[:5])
+        metrics["skill_count"] = len(all_rows)
+        metrics["unique_skill_ids"] = len(seen)
+
+        csrc=inspect.getsource(SessionCoreProgressionMixin.start_skill_cooldown_v0364)
+        check("single_id_write", 'self.skill_cooldowns[skill_id] = ready_at' in csrc)
+        check("no_category_cooldown_keys", all(
+            token not in csrc for token in ('physical_cooldown','magic_cooldown','class_cooldown','global_cooldown')
+        ))
+
+        usrc=inspect.getsource(SessionSkillsCombatMixin.use_class_skill)
+        check("manual_skill_reads_own_cd", 'skill_cooldown_ready_at_v0364(skill)' in usrc)
+        check("manual_skill_starts_own_cd", 'start_skill_cooldown_v0364(skill, effective_cooldown, now)' in usrc)
+        qsrc=inspect.getsource(SessionSkillsCombatMixin.auto_queue_skill_usable)
+        check("queue_reads_own_cd", 'skill_cooldown_ready_at_v0364(skill)' in qsrc)
+        hsrc=inspect.getsource(SessionMovementPartySocialMixin.auto_priest_heal_option)
+        check("auto_heal_reads_own_cd", 'skill_cooldown_ready_at_v0364(skill)' in hsrc)
+        h2src=inspect.getsource(SessionMovementPartySocialMixin.perform_auto_priest_heal)
+        check("auto_heal_starts_own_cd", 'start_skill_cooldown_v0364(skill, effective_cooldown, now)' in h2src)
+
+        # Behavior test: starting B must not alter A, and restarting A must not alter B.
+        class Dummy:
+            skill_cooldowns={}
+            skill_cooldown_ready_at_v0364=SessionCoreProgressionMixin.skill_cooldown_ready_at_v0364
+            skill_cooldown_remaining_v0364=SessionCoreProgressionMixin.skill_cooldown_remaining_v0364
+            skill_cooldown_active_v0364=SessionCoreProgressionMixin.skill_cooldown_active_v0364
+            start_skill_cooldown_v0364=SessionCoreProgressionMixin.start_skill_cooldown_v0364
+        d=Dummy(); d.skill_cooldowns={}
+        d.start_skill_cooldown_v0364('audit_skill_a', 10, 100.0)
+        a1=d.skill_cooldown_ready_at_v0364('audit_skill_a')
+        d.start_skill_cooldown_v0364('audit_skill_b', 20, 100.0)
+        a2=d.skill_cooldown_ready_at_v0364('audit_skill_a')
+        b1=d.skill_cooldown_ready_at_v0364('audit_skill_b')
+        d.start_skill_cooldown_v0364('audit_skill_a', 5, 101.0)
+        b2=d.skill_cooldown_ready_at_v0364('audit_skill_b')
+        check("behavior_independent_a_after_b", a1 == a2 == 110.0)
+        check("behavior_independent_b_after_a", b1 == b2 == 120.0)
+        check("behavior_only_two_keys", set(d.skill_cooldowns)=={'audit_skill_a','audit_skill_b'})
+    except Exception as exc:
+        errors.append(f"independent cooldown audit: {type(exc).__name__}: {exc}")
+    return {"version":"0.36.4","error_count":len(errors),"errors":errors,"metrics":metrics}
+
+INDEPENDENT_SKILL_COOLDOWNS_AUDIT_V0364=independent_skill_cooldowns_audit_v0364()
+if INDEPENDENT_SKILL_COOLDOWNS_AUDIT_V0364["error_count"]:
+    raise RuntimeError(
+        "Independent Skill Cooldowns Audit v0.36.4 failed: "
+        + "; ".join(INDEPENDENT_SKILL_COOLDOWNS_AUDIT_V0364["errors"][:50])
+    )
+
+HELP_TOPICS.setdefault("skills", []).append(
+    "v0.36.4: każdy skill i spell ma własny niezależny cooldown. Użycie jednej umiejętności nie uruchamia, nie resetuje i nie przedłuża cooldownu żadnej innej umiejętności."
+)
+HELP_TOPICS.setdefault("spells", []).append(
+    "v0.36.4: cooldown każdego zaklęcia jest liczony osobno po jego unikalnym ID; nie ma wspólnego cooldownu magicznego, fizycznego, klasowego ani globalnego."
+)
+HELP_TOPICS.setdefault("wersja", []).append(
+    "v0.36.4: Independent Skill Cooldowns — wszystkie skille i zaklęcia mają niezależne timery cooldownu."
+)
+LATEST_CHANGES_TITLE = "Soulbound v0.36.4 - Independent Skill Cooldowns"
+LATEST_CHANGES = [
+    "Każdy skill i spell ma własny cooldown zapisany wyłącznie pod unikalnym ID danej umiejętności.",
+    "Użycie skilla fizycznego nie blokuje innych skilli fizycznych ani zaklęć; użycie zaklęcia nie blokuje innych zaklęć ani skilli.",
+    "Auto-kolejka oraz automatyczne leczenie Kapłana korzystają z tych samych niezależnych timerów co ręczne używanie umiejętności.",
+    "Dodano stały audit v0.36.4 sprawdzający unikalność ID wszystkich skilli/spelli i test zachowania, że uruchomienie cooldownu A nie zmienia cooldownu B.",
 ]

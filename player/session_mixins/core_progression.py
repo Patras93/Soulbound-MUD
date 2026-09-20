@@ -89,6 +89,30 @@ class SessionCoreProgressionMixin:
             }
             self.history_replaying = False
 
+    # v0.36.4: cooldowny skilli i spelli są bezwzględnie niezależne.
+    # Kluczem jest wyłącznie unikalne ID konkretnej umiejętności; nie istnieje
+    # wspólny cooldown fizyczny, magiczny, klasowy ani globalny.
+    def skill_cooldown_ready_at_v0364(self, skill_or_id):
+            skill_id = skill_or_id.get("id") if isinstance(skill_or_id, dict) else skill_or_id
+            return float(self.skill_cooldowns.get(str(skill_id), 0.0) or 0.0)
+
+    def skill_cooldown_remaining_v0364(self, skill_or_id, now=None):
+            now = time.time() if now is None else float(now)
+            return max(0.0, self.skill_cooldown_ready_at_v0364(skill_or_id) - now)
+
+    def skill_cooldown_active_v0364(self, skill_or_id, now=None):
+            return self.skill_cooldown_remaining_v0364(skill_or_id, now) > 0.0
+
+    def start_skill_cooldown_v0364(self, skill_or_id, seconds, now=None):
+            skill_id = skill_or_id.get("id") if isinstance(skill_or_id, dict) else skill_or_id
+            skill_id = str(skill_id)
+            now = time.time() if now is None else float(now)
+            # Modyfikujemy tylko jeden wpis. Inne skille/spelle zachowują swoje
+            # własne timery bez resetu, przedłużenia ani blokady kategorii.
+            ready_at = now + max(0.0, float(seconds or 0.0))
+            self.skill_cooldowns[skill_id] = ready_at
+            return ready_at
+
     def double_xp_state(self, now=None):
             return double_xp_event_state(now)
 

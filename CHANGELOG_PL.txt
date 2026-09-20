@@ -5557,3 +5557,12 @@ Soulbound v0.36.3 — Offline Player Profiles
 - Pokazuje publiczną progresję: Level, klasy/Biegłość, Broń Duszy, statystyki, profesje, narzędzia, Gildię, World Tier/Wzniesienie, osiągnięcia, questy, Bestiariusz, zgony, rekordy i postęp lochów.
 - EQ respektuje `inspectprivacy`.
 - Profil nie pokazuje loginu, hasła, poczty, banku ani innych prywatnych danych konta.
+
+
+Soulbound v0.36.4 — Independent Skill Cooldowns
+
+- Każdy skill i spell ma własny, niezależny cooldown po unikalnym ID umiejętności.
+- Użycie jednej umiejętności nie uruchamia, nie resetuje ani nie przedłuża cooldownu innej.
+- Nie ma wspólnego cooldownu fizycznego, magicznego, klasowego ani globalnego.
+- Auto-kolejka i auto-heal Kapłana respektują niezależne cooldowny dokładnie tak samo jak użycie ręczne.
+- Dodano audit wszystkich 2562 skilli/spelli oraz test zachowania timerów A/B.

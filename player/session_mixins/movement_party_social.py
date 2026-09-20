@@ -411,7 +411,7 @@ class SessionMovementPartySocialMixin:
                     continue
                 if skill.get("id") not in known or not self.skill_mastery_unlocked(skill):
                     continue
-                if self.skill_cooldowns.get(skill["id"], 0) > now:
+                if self.skill_cooldown_ready_at_v0364(skill) > now:
                     continue
                 mana_cost = int(skill.get("mana", 0) or 0)
                 if mana_cost > self.current_mana:
@@ -463,7 +463,7 @@ class SessionMovementPartySocialMixin:
             try:
                 skill = option["skill"]
                 now = time.time()
-                if self.skill_cooldowns.get(skill["id"], 0) > now:
+                if self.skill_cooldown_ready_at_v0364(skill) > now:
                     return False
                 mana_cost = int(skill.get("mana", 0) or 0)
                 if mana_cost > self.current_mana:
@@ -474,7 +474,7 @@ class SessionMovementPartySocialMixin:
                 skill_level = int(progress["level"])
                 effective_cooldown = self.effective_skill_cooldown(skill, skill_level)
                 self.current_mana -= mana_cost
-                self.skill_cooldowns[skill["id"]] = now + effective_cooldown
+                self.start_skill_cooldown_v0364(skill, effective_cooldown, now)
 
                 if skill.get("kind") == "group_heal":
                     recipients = [
