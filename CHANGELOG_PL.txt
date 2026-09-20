@@ -5566,3 +5566,12 @@ Soulbound v0.36.4 — Independent Skill Cooldowns
 - Nie ma wspólnego cooldownu fizycznego, magicznego, klasowego ani globalnego.
 - Auto-kolejka i auto-heal Kapłana respektują niezależne cooldowny dokładnie tak samo jak użycie ręczne.
 - Dodano audit wszystkich 2562 skilli/spelli oraz test zachowania timerów A/B.
+
+
+Soulbound v0.36.5 — Soul Tier 7 Cemetery Spawn Fix
+
+- Próba Broni Duszy Tier 7 nadal wymaga pokonania 4 Niespokojnych Zmarłych na Starym Cmentarzu.
+- Zwiększono dostępność wymaganego moba: teraz jest 6 stałych spawnów rozmieszczonych po sześciu pokojach Starego Cmentarza.
+- Cele są dostępne w: Starym Cmentarzu, Alei Ossuariów, Ogrodzie Księżycowego Mchu, Zawalonej Kaplicy, Polu Kości oraz Wieży Martwego Dzwonu.
+- Quest nie powinien już wymagać czekania na respawn po zabiciu 2-3 sztuk.
+- Dodano audit spójności Tieru 7: target cemetery_restless_dead, wymaganie 4 oraz minimum 6 różnych pokojów ze spawnem.

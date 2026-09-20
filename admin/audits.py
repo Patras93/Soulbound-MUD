@@ -71,8 +71,8 @@ def generator_whitelist_audit_v03019():
     audit = GENERATOR_CORE_AUDIT or {}
     whitelist = audit.get("whitelist_audit") or {}
     errors = []
-    if GENERATOR_CORE_VERSION != "0.36.4":
-        errors.append(f"Generator Core version={GENERATOR_CORE_VERSION}, expected 0.36.4")
+    if GENERATOR_CORE_VERSION != "0.36.5":
+        errors.append(f"Generator Core version={GENERATOR_CORE_VERSION}, expected 0.36.5")
     if not audit.get("numeric_only"):
         errors.append("numeric_only flag missing")
     runtime_fast = bool(audit.get("runtime_fast_path"))
@@ -758,7 +758,7 @@ def full_release_integrity_audit_v03025():
         errors.append("world logic audit failed")
     if int(WORLD_LOGIC_AUDIT.get("warning_count", 0) or 0):
         errors.append("world logic warnings present")
-    if GENERATOR_CORE_VERSION != "0.36.4":
+    if GENERATOR_CORE_VERSION != "0.36.5":
         errors.append(f"GENERATOR_CORE_VERSION={GENERATOR_CORE_VERSION}")
     return {
         "version": "0.30.25",
@@ -975,7 +975,7 @@ def gameplay_flow_audit_v03026():
         if missing:
             errors.append(f"station {_station}: brak w {missing[:5]}")
 
-    if GENERATOR_CORE_VERSION != "0.36.4":
+    if GENERATOR_CORE_VERSION != "0.36.5":
         errors.append(f"GENERATOR_CORE_VERSION={GENERATOR_CORE_VERSION}")
 
     return {
@@ -4466,4 +4466,60 @@ LATEST_CHANGES = [
     "Użycie skilla fizycznego nie blokuje innych skilli fizycznych ani zaklęć; użycie zaklęcia nie blokuje innych zaklęć ani skilli.",
     "Auto-kolejka oraz automatyczne leczenie Kapłana korzystają z tych samych niezależnych timerów co ręczne używanie umiejętności.",
     "Dodano stały audit v0.36.4 sprawdzający unikalność ID wszystkich skilli/spelli i test zachowania, że uruchomienie cooldownu A nie zmienia cooldownu B.",
+]
+
+
+# ============================================================
+# v0.36.5 - SOUL TIER 7 CEMETERY TARGET DENSITY
+# ============================================================
+def soul_tier7_cemetery_spawn_audit_v0365():
+    errors=[]
+    quest_id = SOUL_TRIAL_QUEST_IDS.get(7)
+    quest = QUESTS.get(quest_id, {}) if quest_id else {}
+    target = str(quest.get("target") or "")
+    needed = int(quest.get("needed", 0) or 0)
+    if target != "cemetery_restless_dead":
+        errors.append(f"Tier 7 target={target!r}, expected cemetery_restless_dead")
+    if needed != 4:
+        errors.append(f"Tier 7 needed={needed}, expected 4")
+    target_rooms = [
+        room_id for room_id, mob_id in MOB_SPAWNS
+        if mob_id == "cemetery_restless_dead"
+        and ROOMS.get(room_id, {}).get("zone") == "Stary Cmentarz"
+    ]
+    distinct_rooms = sorted(set(target_rooms))
+    expected_rooms = {
+        "graveyard", "cemetery_ossuary_path", "cemetery_moon_garden",
+        "cemetery_fallen_chapel", "cemetery_bone_field", "cemetery_bell_tower",
+    }
+    missing = sorted(expected_rooms - set(distinct_rooms))
+    if missing:
+        errors.append("missing Tier 7 cemetery spawn rooms: " + ", ".join(missing))
+    if len(distinct_rooms) < 6:
+        errors.append(f"Tier 7 has only {len(distinct_rooms)} distinct cemetery target rooms, expected >=6")
+    return {
+        "version":"0.36.5", "quest_id":quest_id, "target":target, "needed":needed,
+        "distinct_spawn_rooms":len(distinct_rooms), "spawn_rooms":distinct_rooms,
+        "error_count":len(errors), "errors":errors,
+    }
+
+SOUL_TIER7_CEMETERY_SPAWN_AUDIT_V0365 = soul_tier7_cemetery_spawn_audit_v0365()
+if SOUL_TIER7_CEMETERY_SPAWN_AUDIT_V0365["error_count"]:
+    raise RuntimeError(
+        "Soul Tier 7 Cemetery Spawn Audit v0.36.5 failed: "
+        + "; ".join(SOUL_TIER7_CEMETERY_SPAWN_AUDIT_V0365["errors"][:50])
+    )
+
+HELP_TOPICS.setdefault("wersja", []).append(
+    "v0.36.5: Próba Broni Duszy Tier 7 ma sześć stałych Niespokojnych Zmarłych rozłożonych po Starym Cmentarzu przy wymaganiu 4 zabójstw."
+)
+HELP_TOPICS.setdefault("quests", []).append(
+    "Próba Broni Duszy Tier 7: na Starym Cmentarzu dostępnych jest sześć stałych Niespokojnych Zmarłych, więc wykonanie celu 4/4 nie wymaga czekania na respawn."
+)
+LATEST_CHANGES_TITLE = "Soulbound v0.36.5 - Soul Tier 7 Cemetery Spawn Fix"
+LATEST_CHANGES = [
+    "Próba Broni Duszy Tier 7 nadal wymaga 4 Niespokojnych Zmarłych na Starym Cmentarzu.",
+    "Zwiększono liczbę stałych celów questu z 2 naturalnych miejsc do 6 rozłożonych po całym Starym Cmentarzu.",
+    "Niespokojni Zmarli są teraz w: Starym Cmentarzu, Alei Ossuariów, Ogrodzie Księżycowego Mchu, Zawalonej Kaplicy, Polu Kości i Wieży Martwego Dzwonu.",
+    "Dodano audit v0.36.5 pilnujący celu 4/4 i co najmniej sześciu różnych miejsc spawnu.",
 ]
