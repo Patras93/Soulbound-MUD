@@ -33,8 +33,8 @@ def full_systems_audit_v03062():
 
     # Economy
     check('currency_silver_gold', SILVER_PER_GOLD==100, SILVER_PER_GOLD)
-    check('currency_gold_mithril', GOLD_PER_MITHRIL==1000, GOLD_PER_MITHRIL)
-    check('currency_silver_mithril', SILVER_PER_MITHRIL==100000, SILVER_PER_MITHRIL)
+    check('currency_gold_mithril', GOLD_PER_MITHRIL==1000000, GOLD_PER_MITHRIL)
+    check('currency_silver_mithril', SILVER_PER_MITHRIL==100000000, SILVER_PER_MITHRIL)
     if 'ECONOMY_AUDIT_V03060' in globals():
         check('economy_audit', not ECONOMY_AUDIT_V03060.get('error_count'), ECONOMY_AUDIT_V03060.get('errors'))
 

@@ -2281,7 +2281,17 @@ def canonical_bestiary_template_id(template_id):
     while template_id and template_id not in seen:
         seen.add(template_id)
         template = MOB_TEMPLATES.get(template_id, {})
-        base_id = template.get("rare_base_template") or template.get("elite_base_template")
+        base_id = (
+            template.get("rare_base_template")
+            or template.get("elite_base_template")
+            or template.get("dense_dungeon_base_template")
+        )
+        # v0.38.7 migration fallback: stare aktywne kontrakty mogły zapisać
+        # techniczny identyfikator *_v915_N zanim wariant miał jawne pole base.
+        if not base_id and "_v915_" in template_id:
+            legacy_base = template_id.split("_v915_", 1)[0]
+            if legacy_base in MOB_TEMPLATES:
+                base_id = legacy_base
         if not base_id or base_id == template_id:
             break
         template_id = str(base_id)

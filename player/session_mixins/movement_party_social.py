@@ -2667,5 +2667,5 @@ class SessionMovementPartySocialMixin:
                 + "."
             )
             await self.send(
-                "To jedno wspólne saldo. 100 srebra = 1 złoto, a 1000 złota = 1 mithril."
+                "To jedno wspólne saldo. 100 srebra = 1 złoto, a 1 000 000 złota = 1 mithril."
             )

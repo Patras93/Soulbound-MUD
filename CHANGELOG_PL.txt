@@ -1,3 +1,32 @@
+SOULBOUND v0.38.7 — KANONICZNE CELE TABLICY ZLECEŃ
+
+- Naprawiono kontrakty typu kill, które mogły losować techniczne warianty zagęszczające lochy z nazwą złożoną z dwóch mobów, np. „Grobowy Upiór — Kościany Rycerz”.
+- Tablica Zleceń losuje teraz wyłącznie kanoniczne gatunki zwykłych mobów.
+- Warianty dense_dungeon są kanonizowane do bazowego template ID w Bestiariuszu i kontraktach.
+- Już zapisany aktywny kontrakt na stary wariant jest automatycznie naprawiany bez utraty postępu; etykieta jest odbudowywana z poprawnej nazwy UTF-8.
+- Dodano Bounty Canonical Target Audit v0.38.7 i kolejny milestone Release Integrity.
+
+SOULBOUND v0.38.6 — GLOBAL DIFFICULTY OVERDRIVE II
+
+- Globalnie ponownie wzmocniono wszystkie moby w całej grze.
+- Końcowy mnożnik działa po wszystkich wcześniejszych warstwach balansu, więc obejmuje otwarty świat, Elite, Rare, minibossów, bossów, World Bossów, Nemesis i eventy.
+- Krypty, Mityczne Krypty, Wieża Astralna, Mityczna Wieża Astralna, Nieskończony Kompleks Magitek i inne instancje dostają dodatkową premię trudności.
+- HP rośnie globalnie od około x1.70 na początku do około x2.70 przy etapie 600 przed premiami rangi/instancji.
+- Obrażenia rosną od około x1.22 do około x1.80 przed premiami rangi/instancji.
+- Elite/Rare/boss/World Boss/Nemesis zachowują osobną hierarchię siły.
+- Class XP, Soul XP, Character XP, stat XP oraz waluta rosną razem z trudnością.
+- Skalowanie kontynuuje wzrost ponad 600 w nieskończonych systemach.
+- Dodano Global Difficulty Overdrive Audit v0.38.6 oraz kolejny milestone Release Integrity.
+
+SOULBOUND v0.38.5 — CURRENCY RATIO REBASE
+
+- Globalny kurs waluty: 100 srebra = 1 złoto.
+- Globalny kurs waluty: 1 000 000 złota = 1 mithril.
+- Zatem 1 mithril = 100 000 000 srebra wspólnego salda.
+- Zmieniono GOLD_PER_MITHRIL z 1000 na 1 000 000; SILVER_PER_GOLD pozostaje 100.
+- Bank, sklepy, gildie, transfery, nagrody, sprzedaż i formatter korzystają z jednego globalnego przelicznika.
+- Istniejące saldo przechowywane w srebrze nie wymaga migracji; zmienia się wartość nominałów złoto/mithril przy prezentacji i nowych operacjach.
+
 SOULBOUND v0.38.4 — GLOBAL WORLD THREAT OVERDRIVE
 
 - Wzmocniono cały otwarty świat od najniższych stref do endgame: zwykłe moby mają wyższe HP i obrażenia na każdym etapie.

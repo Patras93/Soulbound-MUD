@@ -2,7 +2,7 @@
 """Soulbound v0.31.6 Economy Audit 2.0.
 
 Final post-generation normalization for the denomination:
-100 silver = 1 gold, 1000 gold = 1 mithril.
+100 silver = 1 gold, 1,000,000 gold = 1 mithril.
 The pass intentionally preserves reasonable authored values and only clamps
 legacy outliers created for older denomination scales.
 """
@@ -143,7 +143,7 @@ def economy_audit_summary_v03060():
 
 
 HELP_TOPICS["economy_audit2"] = [
-    "Economy Audit 2.0 obowiązuje po kursie 100 srebra = 1 złoto i 1000 złota = 1 mithril.",
+    "Economy Audit 2.0 obowiązuje po kursie 100 srebra = 1 złoto i 1 000 000 złota = 1 mithril.",
     "Nagrody questów mają końcowy limit zależny od poziomu, rodzaju celu, liczby wymaganych akcji i powtarzalności; zachowano rozsądne niższe nagrody ręczne.",
     "Jawne ceny sprzedaży surowców i klejnotów są ograniczone względem poziomu, aby pojedynczy drop nie był wielokrotnie cenniejszy od endgame EQ.",
     "Siedziba Gildii i budynki używają skali dostosowanej do nowego nominału. Housing pozostaje lekkim osobistym sinkiem, a odkryty transport jest darmowy z powodów dostępności.",

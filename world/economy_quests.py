@@ -31,7 +31,7 @@ def rebalance_economy_v0861():
         old_gold = int(item.get("sell_gold", 0) or 0)
         if old_mithril > 0:
             # Sprzedawalny przedmiot za dawny 1 mithril daje 100 000 złota,
-            # a nie pełny mithril wart 1000 złota.
+            # a nie pełny mithril wart 1 000 000 złota.
             item["sell_gold"] = old_gold + old_mithril * 100_000
             item["sell_mithril"] = 0
             continue
@@ -76,7 +76,7 @@ rebalance_economy_v0861()
 # Wszystkie nagrody pieniężne są od tej wersji zapisywane wyłącznie jako
 # wartość wspólnego salda w najmniejszym nominale (srebro). Złoto i mithril
 # pozostają nominałami prezentacji: 100 srebra = 1 złoto,
-# 1000 złota = 1 mithril.
+# 1 000 000 złota = 1 mithril.
 V0862_PROFESSION_QUEST_BASE_SILVER = {
     1: 250,
     5: 400,

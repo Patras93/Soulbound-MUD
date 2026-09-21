@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #!/usr/bin/env python3
-"""Soulbound v0.38.4 Hourly Magitek Contracts."""
+"""Soulbound v0.38.7 Bounty Canonical Target Fix."""
 from pathlib import Path
 import os
 import socket
@@ -100,6 +100,9 @@ _RUNTIME_MODULES = [
     "systems/public_records_v0370.py",
     "admin/party_revive_audit_v0371.py",
     "world/party_combo_ultimate_summary_v0380.py",
+    "systems/currency_ratio_v0385.py",
+    "world/global_difficulty_overdrive_v0386.py",
+    "admin/bounty_target_audit_v0387.py",
     "admin/release_integrity_v0369.py",
 ]
 
@@ -118,12 +121,12 @@ if os.environ.get("SOULBOUND_FULL_AUDIT", "").strip().lower() in ("1", "true", "
     FULL_GAME_PREDEPLOY_AUDIT_V0336 = full_game_predeploy_audit_v0336()
     if FULL_GAME_PREDEPLOY_AUDIT_V0336["error_count"]:
         raise RuntimeError(
-            "Full Game Pre-Deploy Audit v0.38.4 failed: "
+            "Full Game Pre-Deploy Audit v0.38.7 failed: "
             + "; ".join(map(str, FULL_GAME_PREDEPLOY_AUDIT_V0336["errors"][:100]))
         )
 else:
     FULL_GAME_PREDEPLOY_AUDIT_V0336 = {
-        "version": "0.38.4", "skipped_at_runtime": True,
+        "version": "0.38.7", "skipped_at_runtime": True,
         "error_count": 0, "warning_count": 0, "errors": [], "warnings": [],
         "reason": "Run before deploy with SOULBOUND_FULL_AUDIT=1; skipped during normal server startup.",
     }

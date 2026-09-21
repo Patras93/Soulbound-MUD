@@ -276,6 +276,11 @@ class SessionWorldProgressionMixin:
                     continue
                 if template.get("rare_mob") or template.get("rare_base_template") or template.get("elite_base_template"):
                     continue
+                # v0.38.7: warianty zagęszczające lochy są techniczne. Ich
+                # nazwy mogą mieć formę „Grobowy Upiór — Kościany Rycerz” i
+                # nigdy nie mogą być osobnym celem Tablicy Zleceń.
+                if template.get("dense_dungeon_variant"):
+                    continue
                 if v0863_is_boss_template(template):
                     continue
                 result.append((mob_id, template.get("name") or "Nieznany przeciwnik"))
@@ -364,6 +369,23 @@ class SessionWorldProgressionMixin:
                 })
             return offers[:BOUNTY_OFFER_COUNT]
 
+    def normalize_bounty_kill_entry_v0387(self, entry):
+            """Return one clean, canonical bounty entry without technical mob names."""
+            row = dict(entry or {})
+            if str(row.get("kind") or "") != "kill":
+                return row, False
+            old_target = str(row.get("target") or "")
+            canonical = canonical_bestiary_template_id(old_target)
+            if canonical not in MOB_TEMPLATES:
+                return row, False
+            needed = max(1, int(row.get("needed", 1) or 1))
+            clean_name = str(MOB_TEMPLATES[canonical].get("name") or canonical)
+            clean_label = f"Pokonaj {needed} razy: {clean_name}"
+            changed = old_target != canonical or str(row.get("label") or "") != clean_label
+            row["target"] = canonical
+            row["label"] = clean_label
+            return row, changed
+
     def ensure_bounty_board(self):
             state = self.server.db.bounty_board_state(self.account_id)
             if not state.get("offers"):
@@ -372,6 +394,25 @@ class SessionWorldProgressionMixin:
                     self.account_id,
                     offers=state["offers"],
                     active=state.get("active", {}),
+                    completed_count=state.get("completed_count", 0),
+                )
+                return state
+
+            # v0.38.7: napraw również już zapisane oferty/aktywny kontrakt
+            # z wcześniejszej wersji, bez zerowania postępu gracza.
+            changed = False
+            clean_offers = []
+            for offer in state.get("offers") or []:
+                clean, was_changed = self.normalize_bounty_kill_entry_v0387(offer)
+                clean_offers.append(clean)
+                changed = changed or was_changed
+            clean_active, active_changed = self.normalize_bounty_kill_entry_v0387(state.get("active") or {})
+            changed = changed or active_changed
+            state["offers"] = clean_offers
+            state["active"] = clean_active
+            if changed:
+                self.server.db.save_bounty_board_state(
+                    self.account_id, offers=clean_offers, active=clean_active,
                     completed_count=state.get("completed_count", 0),
                 )
             return state

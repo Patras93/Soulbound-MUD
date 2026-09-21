@@ -31,6 +31,9 @@ _RELEASE_AUDITS_V0369 = [
     ("v0.38.2 Infinite Unified Magitek", "MAGITEK_INFINITE_AUDIT_V0382"),
     ("v0.38.3 hourly Magitek contracts", "MAGITEK_HOURLY_QUESTS_AUDIT_V0383"),
     ("v0.38.4 global world threat", "WORLD_THREAT_OVERDRIVE_AUDIT_V0384"),
+    ("v0.38.5 currency ratio", "CURRENCY_RATIO_AUDIT_V0385"),
+    ("v0.38.6 global difficulty overdrive II", "GLOBAL_DIFFICULTY_OVERDRIVE_AUDIT_V0386"),
+    ("v0.38.7 canonical bounty targets", "BOUNTY_CANONICAL_TARGET_AUDIT_V0387"),
 ]
 
 def cumulative_release_integrity_audit_v0369():
@@ -48,13 +51,13 @@ def cumulative_release_integrity_audit_v0369():
         preserved.append(label)
 
     # Direct release-line checks for the exact milestones the user flagged.
-    if str(globals().get("VERSION","")) != "0.38.4":
-        errors.append(f"VERSION={globals().get('VERSION')!r}, expected 0.38.4")
-    if str(globals().get("GENERATOR_CORE_VERSION","")) != "0.38.4":
-        errors.append(f"Generator Core={globals().get('GENERATOR_CORE_VERSION')!r}, expected 0.38.4")
+    if str(globals().get("VERSION","")) != "0.38.7":
+        errors.append(f"VERSION={globals().get('VERSION')!r}, expected 0.38.7")
+    if str(globals().get("GENERATOR_CORE_VERSION","")) != "0.38.7":
+        errors.append(f"Generator Core={globals().get('GENERATOR_CORE_VERSION')!r}, expected 0.38.7")
 
     return {
-        "version":"0.38.4",
+        "version":"0.38.7",
         "checked":len(_RELEASE_AUDITS_V0369),
         "preserved":preserved,
         "preserved_count":len(preserved),
@@ -65,17 +68,18 @@ def cumulative_release_integrity_audit_v0369():
 CUMULATIVE_RELEASE_INTEGRITY_AUDIT_V0369=cumulative_release_integrity_audit_v0369()
 if CUMULATIVE_RELEASE_INTEGRITY_AUDIT_V0369["error_count"]:
     raise RuntimeError(
-        "Cumulative Release Integrity Audit v0.38.4 failed: "
+        "Cumulative Release Integrity Audit v0.38.7 failed: "
         + "; ".join(CUMULATIVE_RELEASE_INTEGRITY_AUDIT_V0369["errors"][:100])
     )
 
 HELP_TOPICS.setdefault("wersja", []).append(
-    "v0.38.4: Cumulative Release Integrity — zachowuje wszystkie wcześniejsze milestone'y i dodaje Global World Threat Overdrive."
+    "v0.38.7: Cumulative Release Integrity — zachowuje wszystkie wcześniejsze milestone'y i dodaje naprawę kanonicznych celów kontraktów."
 )
-LATEST_CHANGES_TITLE = "Soulbound v0.38.4 - Global World Threat Overdrive"
+LATEST_CHANGES_TITLE = "Soulbound v0.38.7 - Canonical Bounty Targets"
 LATEST_CHANGES = [
-    "Globalnie wzmocniono otwarty świat, Elite/Rare, bossów, World Bossów, Nemesis i dynamiczne eventy.",
-    "HP, obrażenia i nagrody rosną wraz z etapem świata; bossowie i Nemesis mają dodatkowe mnożniki.",
-    "Krypty, Wieże i Nieskończony Magitek zachowują własne mocniejsze warstwy trudności.",
-    "Zachowano wszystkie wcześniejsze audytowane milestone'y.",
+    "Tablica Zleceń nie losuje już technicznych wariantów mobów z podwójnymi nazwami.",
+    "Istniejące aktywne kontrakty na wariant dense_dungeon są automatycznie przepinane na bazowy gatunek bez utraty postępu.",
+    "Bestiariusz i liczniki zabójstw kanonizują warianty zagęszczające do jednego bazowego moba.",
+    "Etykieta kontraktu jest odbudowywana z bieżącej nazwy UTF-8, więc stare uszkodzone/podwójne etykiety nie są zachowywane.",
+    "Zachowano Global Difficulty Overdrive II i wszystkie wcześniejsze audytowane milestone'y.",
 ]

@@ -566,6 +566,10 @@ def densify_static_dungeon_spawns():
             if n % 2 == 0:
                 variant["damage_type"] = "magic" if base.get("damage_type") == "physical" else "physical"
             variant["dense_dungeon_variant"] = True
+            # v0.38.7: techniczny wariant zagęszczający ma zawsze wskazywać
+            # jeden kanoniczny gatunek. Dzięki temu Bestiariusz, kontrakty i
+            # statystyki nie traktują nazwy typu „A — B” jako osobnego moba.
+            variant["dense_dungeon_base_template"] = base_id
             variant["template_id"] = variant_id
             MOB_TEMPLATES[variant_id] = variant
             additions.append((room_id, variant_id))

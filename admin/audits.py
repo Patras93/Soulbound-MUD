@@ -71,8 +71,8 @@ def generator_whitelist_audit_v03019():
     audit = GENERATOR_CORE_AUDIT or {}
     whitelist = audit.get("whitelist_audit") or {}
     errors = []
-    if GENERATOR_CORE_VERSION != "0.38.4":
-        errors.append(f"Generator Core version={GENERATOR_CORE_VERSION}, expected 0.38.4")
+    if GENERATOR_CORE_VERSION != "0.38.7":
+        errors.append(f"Generator Core version={GENERATOR_CORE_VERSION}, expected 0.38.7")
     if not audit.get("numeric_only"):
         errors.append("numeric_only flag missing")
     runtime_fast = bool(audit.get("runtime_fast_path"))
@@ -203,7 +203,7 @@ def refresh_help_v03021_full():
     })
     HELP_TOPICS["waluta"] = [
         "Cała ekonomia używa jednego wspólnego salda. Nominały służą tylko do czytelnego wyświetlania i wpisywania kwot.",
-        "100 srebra = 1 złota. 1000 złota = 1 mithril. 1 mithril = 100 000 srebra.",
+        "100 srebra = 1 złota. 1 000 000 złota = 1 mithril. 1 mithril = 100 000 000 srebra.",
         "Gra zawsze normalizuje kwotę do najwyższych nominałów: 100 srebra jest czytane jako 1 złota; 250 srebra jako 2 złota, 50 srebra.",
         "Przy późnym endgame duże kwoty przechodzą automatycznie w mithril. Ta sama zasada działa przy zarabianiu, zakupie, sprzedaży, banku i innych kosztach.",
     ]
@@ -758,7 +758,7 @@ def full_release_integrity_audit_v03025():
         errors.append("world logic audit failed")
     if int(WORLD_LOGIC_AUDIT.get("warning_count", 0) or 0):
         errors.append("world logic warnings present")
-    if GENERATOR_CORE_VERSION != "0.38.4":
+    if GENERATOR_CORE_VERSION != "0.38.7":
         errors.append(f"GENERATOR_CORE_VERSION={GENERATOR_CORE_VERSION}")
     return {
         "version": "0.30.25",
@@ -975,7 +975,7 @@ def gameplay_flow_audit_v03026():
         if missing:
             errors.append(f"station {_station}: brak w {missing[:5]}")
 
-    if GENERATOR_CORE_VERSION != "0.38.4":
+    if GENERATOR_CORE_VERSION != "0.38.7":
         errors.append(f"GENERATOR_CORE_VERSION={GENERATOR_CORE_VERSION}")
 
     return {
@@ -3188,10 +3188,10 @@ def full_game_predeploy_audit_v0336():
     # One wallet uses silver as the canonical unit; gold/mithril are display denominations.
     if int(SILVER_PER_GOLD) != 100:
         err('currency_ratio_silver_gold',SILVER_PER_GOLD,100)
-    if int(GOLD_PER_MITHRIL) != 1000:
-        err('currency_ratio_gold_mithril',GOLD_PER_MITHRIL,1000)
-    if int(SILVER_PER_MITHRIL) != 100000:
-        err('currency_ratio_silver_mithril',SILVER_PER_MITHRIL,100000)
+    if int(GOLD_PER_MITHRIL) != 1000000:
+        err('currency_ratio_gold_mithril',GOLD_PER_MITHRIL,1000000)
+    if int(SILVER_PER_MITHRIL) != 100000000:
+        err('currency_ratio_silver_mithril',SILVER_PER_MITHRIL,100000000)
 
     _mob_split=0; _quest_split=0
     _max_mob_currency=0; _max_quest_currency=0; _repeatable_count=0; _max_repeatable=0

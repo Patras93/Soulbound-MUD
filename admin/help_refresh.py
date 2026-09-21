@@ -284,7 +284,7 @@ def refresh_help_v03011():
     ]
     HELP_TOPICS["pieniadze"] = [
         "portfel / wallet / saldo pokazuje jedno wspólne saldo konta jako mithril, złoto i srebro.",
-        "100 srebra = 1 złoto; 1000 złota = 1 mithril. Wewnętrznie gra zapisuje jedno saldo w srebrze.",
+        "100 srebra = 1 złoto; 1 000 000 złota = 1 mithril. Wewnętrznie gra zapisuje jedno saldo w srebrze.",
         "daj <gracz> <ilość> złota przekazuje walutę innemu graczowi online w tej samej lokacji; można też podać srebro lub mithril.",
         "Przekazanie waluty aktualizuje oba wspólne portfele atomowo i nie może zejść poniżej zera ani przekroczyć bezpiecznego limitu SQLite.",
     ]
@@ -917,7 +917,7 @@ def full_combat_scaling_audit_v03015():
         errors.append("INT/WIL does not increase mana")
     if int_plus - base != wil_plus - base:
         errors.append("INT/WIL mana contribution is not equal")
-    if GENERATOR_CORE_VERSION != "0.38.4":
+    if GENERATOR_CORE_VERSION != "0.38.7":
         errors.append(f"GENERATOR_CORE_VERSION={GENERATOR_CORE_VERSION}")
     return {
         "version": "0.30.19",

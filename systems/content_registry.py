@@ -684,7 +684,7 @@ SYSTEM_DESCRIPTIONS = {
     "gold": "Złoto jest wyższym nominałem tego samego salda. 1 złoto = 100 srebra.",
     "mithril": (
         "Mithril jest najwyższym nominałem tego samego wspólnego salda. "
-        "1 mithril = 1000 złota = 100000 srebra. "
+        "1 mithril = 1 000 000 złota = 100000000 srebra. "
         "Może być nagrodą lub bardzo rzadkim bezpośrednim wydobyciem wysokopoziomowym Kilofem."
     ),
     "siatka": "Siatka na ryby jest osobnym trwałym magazynem profesji. Komenda siatka/net pokazuje też łączną liczbę ryb, liczbę gatunków i szacowany zarobek ze sprzedaży całej zawartości. Sprzedaż ryb właściwym rybakom daje dodatkowy EXP Wędkarstwa.",
@@ -890,7 +890,7 @@ LATEST_CHANGES = [
     "v0.8.72: Questy dostają dokładnie tyle postępu, ile sztuk faktycznie pozyskano po przyjęciu.",
     "v0.8.72: Atlasy ryb, rud/minerałów, drewna i roślin zsynchronizowano z terenowymi zasobami oraz surowymi klejnotami Górnictwa, w tym Diamentem.",
     "Srebro, złoto i mithril tworzą jedno wspólne saldo; nie są trzema osobnymi portfelami.",
-    "Nominały: 100 srebra = 1 złoto; 1000 złota = 1 mithril; 1 mithril = 100000 srebra.",
+    "Nominały: 100 srebra = 1 złoto; 1 000 000 złota = 1 mithril; 1 mithril = 100000000 srebra.",
     "Portfel i Bank Dusz przechowują jedną wartość, a NVDA odczytuje ją automatycznie jako mithril, złoto i srebro.",
     "Komendy bank wplac/wyplac przyjmują nominał, np. bank wplac 5 zlota albo bank wyplac 1 mithril, lecz operują na tym samym saldzie.",
     "Sklepy, sprzedaż, nagrody, nauka skilli i egzaminy korzystają z tego samego wspólnego salda i automatycznie przeliczają nominały.",
@@ -1313,7 +1313,7 @@ HELP_TOPICS = {
     "waluta_auto": [
         "Wspólne saldo działa automatycznie bez komendy wymiany.",
         "Jedno wspólne saldo z nominałami: srebro, złoto i mithril.",
-        "Nominały: 100 srebra = 1 złoto; 1000 złota = 1 mithril.",
+        "Nominały: 100 srebra = 1 złoto; 1 000 000 złota = 1 mithril.",
         "Portfel i Bank Dusz normalizują nominały automatycznie.",
         "Stara ręczna wymiana została usunięta z MUD-a.",
         "Stare salda są zachowywane wartościowo i nie są kasowane.",
@@ -1699,7 +1699,7 @@ HELP_TOPICS = {
     "kurs_walut": [
         "Nominały wspólnego salda przeliczają się automatycznie.",
         "Jedno wspólne saldo z nominałami: srebro, złoto i mithril.",
-        "Nominały: 100 srebra = 1 złoto; 1000 złota = 1 mithril.",
+        "Nominały: 100 srebra = 1 złoto; 1 000 000 złota = 1 mithril.",
         "Saldo jest automatycznie przedstawiane w najwyższych możliwych nominałach.",
         "Automatyczne przeliczanie działa w portfelu oraz Banku Dusz.",
         "Stara ręczna komenda wymiany została usunięta.",
@@ -1874,7 +1874,7 @@ HELP_TOPICS = {
         "prowadz bank prowadzi bezpośrednio na Rynek.",
         "bank pokazuje saldo bankowe oraz przedmioty w skrytce.",
         "bank wplac 100 wpłaca 100 srebra do wspólnego salda.",
-        "bank wplac 5 zlota wpłaca 5000 srebra wartości; bank wplac 1 mithril wpłaca 100000 srebra wartości.",
+        "bank wplac 5 zlota wpłaca 500 srebra wartości; bank wplac 1 mithril wpłaca 100000000 srebra wartości.",
         "bank wyplac <ile> <nominał> wypłaca wskazaną wartość z tego samego salda.",
         "bank wplac wszystko wpłaca całe wspólne saldo z portfela.",
         "bank wyplac wszystko wypłaca całe wspólne saldo z banku.",
