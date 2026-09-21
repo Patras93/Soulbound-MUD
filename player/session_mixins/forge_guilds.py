@@ -230,13 +230,12 @@ class SessionForgeGuildsMixin:
                         continue
                     target = current + 1
                     req = v03042_upgrade_required_smithing(item, target)
-                    material = v03041_salvage_material_key(item)
-                    salvage_id = V0925_SALVAGE_MATERIALS[material][0]
+                    material_id = v03810_upgrade_material_item_id(item, target)
                     cost = v03042_upgrade_material_cost(item, target)
                     await self.send(
                         f"{idx}. {item['name']}. +{current} -> +{target}. "
                         f"Wymaga Kowalstwo {req} i Młot Tier {required_tool_tier_for_level(req)}. "
-                        f"Koszt: {ITEMS[salvage_id]['name']} x{cost}. x{qty}."
+                        f"Koszt: {ITEMS[material_id]['name']} x{cost}. Sztuk EQ: {qty}."
                     )
                 return
 
@@ -278,14 +277,13 @@ class SessionForgeGuildsMixin:
                 )
                 return
 
-            material = v03041_salvage_material_key(item)
-            salvage_id = V0925_SALVAGE_MATERIALS[material][0]
+            material_id = v03810_upgrade_material_item_id(item, target)
             cost = v03042_upgrade_material_cost(item, target)
-            have = self.server.db.storage_qty(self.account_id, "craftbox", salvage_id)
+            have = self.available_recipe_item(material_id)
             if have < cost:
                 await self.send(
-                    f"Brakuje materiału. Potrzeba {ITEMS[salvage_id]['name']} x{cost}; masz {have}. "
-                    "Niepotrzebne EQ możesz rozłożyć u Haldora komendą rozloz."
+                    f"Brakuje materiału. Potrzeba {ITEMS[material_id]['name']} x{cost}; masz {have}. "
+                    "Ulepszenia EQ korzystają z normalnych sztabek Kowalstwa, nie z mithrilu walutowego."
                 )
                 return
 
@@ -304,12 +302,12 @@ class SessionForgeGuildsMixin:
                 f"Czas pracy: {action_seconds} sekund. Nie ma ryzyka zniszczenia ani cofnięcia ulepszenia."
             )
             await asyncio.sleep(action_seconds)
-            if not self.server.db.remove_storage_item(self.account_id, "craftbox", salvage_id, cost):
+            if not self.consume_recipe_item(material_id, cost):
                 await self.send("Nie udało się pobrać materiałów. Ulepszenie przerwane.")
                 return
             if forge3_id and not self.consume_recipe_item(forge3_id,1):
                 # zwrot podstawowego materiału, jeżeli stop zniknął podczas oczekiwania
-                self.server.db.add_storage_item(self.account_id,"craftbox",salvage_id,cost)
+                self.server.db.add_storage_item(self.account_id,"craftbox",material_id,cost)
                 await self.send("Brakuje stopu rafinacji. Ulepszenie przerwane, podstawowy materiał zwrócony.")
                 return
 

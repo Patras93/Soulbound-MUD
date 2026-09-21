@@ -1,3 +1,12 @@
+SOULBOUND v0.38.10 — KANONICZNE MATERIAŁY KOWALSTWA
+
+- Ulepszanie EQ +1..+10 korzysta teraz z normalnych sztabek Kowalstwa zamiast fragmentów Salvage.
+- Mithril pozostaje walutą i nie jest składnikiem aktywnych receptur Kowalstwa ani kosztem ulepszania EQ.
+- EQ wymagające Kowalstwa 80 przy +0 -> +1 zużywa Złotą sztabkę; dalsze ulepszenia przechodzą na kolejne prawdziwe Tiery Kowalstwa po przekroczeniu ich progów.
+- Lista `ulepsz lista` pokazuje teraz `Sztuk EQ: N`, zamiast mylącego drugiego `xN` po koszcie materiału.
+- Audit sprawdza 232 aktywne receptury Kowalstwa i całą drabinkę kosztów ulepszeń 1-600 / +1..+10; 0 użyć mithrilu jako materiału.
+- Zachowano v0.38.9 Canonical Kill Quest Credit i wszystkie wcześniejsze audytowane milestone'y.
+
 SOULBOUND v0.38.9 — KANONICZNE ZALICZANIE KILL QUESTÓW
 
 - Naprawiono kill questy dla Elite, Rare i proceduralnych wariantów mobów.
