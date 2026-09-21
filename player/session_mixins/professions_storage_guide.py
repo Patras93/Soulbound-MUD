@@ -1078,7 +1078,7 @@ class SessionProfessionsStorageGuideMixin:
                 ]
                 for line in entries:
                     await self.send(line)
-                await self.send("Prowadzenie zatrzymuje się przed wejściem. Piętra i wnętrze eksplorujesz samodzielnie.")
+                await self.send("Prowadzenie zatrzymuje się przy progu. Wpisz nazwę lochu, np. krypty, wieza astralna albo jaskinia trolli, aby wejść bez kierunku. Wewnątrz eksplorujesz normalnie; wyjście wraca do progu.")
                 return
 
             if selected == "npc":

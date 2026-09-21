@@ -119,6 +119,10 @@ class SessionMovementPartySocialMixin:
             self.server.world.ensure_runtime_room(target)
             label = DIRECTION_WALK_LABELS.get(direction, str(direction))
             target_name = ROOMS.get(target, {}).get("name", str(target))
+            entry_label_v03812 = (
+                str(getattr(self, "_dungeon_entry_label_v03812", "") or "").strip()
+                if not guided else ""
+            )
 
             # Zbierz followerów PRZED ruchem lidera. Tylko lider uruchamia follow,
             # więc ruch członka nie wywoła rekurencyjnego łańcucha.
@@ -134,10 +138,20 @@ class SessionMovementPartySocialMixin:
 
             async def follow_leader(member):
                 try:
-                    await member.send(
-                        f"Podążasz za liderem {self.character.name}: {label}."
-                    )
-                    await member.move(direction)
+                    if entry_label_v03812:
+                        await member.send(
+                            f"Podążasz za liderem {self.character.name} do: {entry_label_v03812}."
+                        )
+                        member._dungeon_entry_label_v03812 = entry_label_v03812
+                    else:
+                        await member.send(
+                            f"Podążasz za liderem {self.character.name}: {label}."
+                        )
+                    try:
+                        await member.move(direction)
+                    finally:
+                        if entry_label_v03812:
+                            member._dungeon_entry_label_v03812 = ""
                 except Exception as exc:
                     print(
                         f"[PARTY FOLLOW ERROR] {getattr(member.character, 'name', member.account_id)}: {exc}",
@@ -151,10 +165,16 @@ class SessionMovementPartySocialMixin:
 
             self.moving = True
             try:
-                await self.send(f"Idziesz {label}. Cel: {target_name}.")
-                await self.server.broadcast_room(
-                    old, f"{self.character.name} rusza {label}.", exclude=self
-                )
+                if entry_label_v03812:
+                    await self.send(f"Wchodzisz do: {entry_label_v03812}.")
+                    await self.server.broadcast_room(
+                        old, f"{self.character.name} wchodzi do {entry_label_v03812}.", exclude=self
+                    )
+                else:
+                    await self.send(f"Idziesz {label}. Cel: {target_name}.")
+                    await self.server.broadcast_room(
+                        old, f"{self.character.name} rusza {label}.", exclude=self
+                    )
                 await asyncio.sleep(self.movement_delay(direction, guided=guided))
                 if self.closed:
                     return False
@@ -165,7 +185,10 @@ class SessionMovementPartySocialMixin:
                 await self.server.broadcast_room(
                     target, f"{self.character.name} przychodzi.", exclude=self
                 )
-                await self.send(f"Docierasz do: {target_name}.")
+                if entry_label_v03812:
+                    await self.send(f"WEJŚCIE: {target_name}.")
+                else:
+                    await self.send(f"Docierasz do: {target_name}.")
                 if show_room:
                     await self.look()
                 return True

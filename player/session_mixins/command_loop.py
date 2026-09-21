@@ -32,6 +32,12 @@ class SessionCommandLoopMixin:
                     else:
                         self.guide_choice_state = None
 
+                # v0.38.12: przy wejściach do instancji naturalna nazwa lochu
+                # zastępuje ręczny kierunek graniczny. Wewnątrz nadal używa się
+                # normalnych kierunków do eksploracji.
+                if await self.try_dungeon_entry_command_v03812(raw):
+                    continue
+
                 parts = raw.split(maxsplit=1)
                 command = parts[0].lower()
                 args = parts[1] if len(parts) > 1 else ""
@@ -51,7 +57,7 @@ class SessionCommandLoopMixin:
                 if self.is_downed_v0371():
                     downed_safe = {
                         "help", "look", "party", "partychat", "say", "tell", "reply",
-                        "who", "where", "hp", "score", "records", "selfrespawn",
+                        "who", "where", "hp", "score", "records", "chronicle", "selfrespawn",
                         "historybuffer", "lifetime", "deathrecap", "combatrecap",
                     }
                     if direction or command not in downed_safe:
@@ -79,7 +85,7 @@ class SessionCommandLoopMixin:
                     "teachers", "quests", "charisma", "multiclass",
                     "back", "dungeonexit", "progress", "exploration",
                     "achievements", "titles", "title", "collection", "bosscodex", "bounty",
-                    "drophistory", "lootfilter", "regionprogress", "combatlog", "lifetime", "historybuffer", "craftbox", "craftmastery", "mistrzostwocraftu", "runes", "clan", "masteryachievements", "friends", "friend", "ignore", "unignore", "afk", "whois", "mail", "board", "lfg", "newbieprotect", "house", "records", "inspect", "inspectprivacy", "emote", "smile", "wave", "cheer", "collection2", "completion", "deathrecap", "combatrecap", "loothistory", "nvda", "krawiectwo", "garbarstwo", "stolarstwo", "zaklinanie", "szyj", "garbuj", "stolarka", "enchants",
+                    "drophistory", "lootfilter", "regionprogress", "combatlog", "lifetime", "historybuffer", "craftbox", "craftmastery", "mistrzostwocraftu", "runes", "clan", "masteryachievements", "friends", "friend", "ignore", "unignore", "afk", "whois", "mail", "board", "lfg", "newbieprotect", "house", "records", "inspect", "inspectprivacy", "emote", "smile", "wave", "cheer", "collection2", "completion", "deathrecap", "combatrecap", "loothistory", "chronicle", "nvda", "krawiectwo", "garbarstwo", "stolarstwo", "zaklinanie", "szyj", "garbuj", "stolarka", "enchants",
                 }
 
                 if (
@@ -98,7 +104,7 @@ class SessionCommandLoopMixin:
                     "terraininfo", "location", "stats", "hp", "score", "money",
                     "soul", "skills", "spells", "skillnames", "inventory", "equipment",
                     "quests", "progress", "exploration", "achievements", "titles", "weather", "biomemastery", "worldquest", "artifacts", "biomesets", "factionstories", "season", "expeditions", "transport", "greatruins", "legendaryevents", "endless", "megadungeons", "gauntlets", "mythicbosses", "artifactupgrade", "endgamegoals",
-                    "collection", "museum", "prestige", "bosscodex", "leaderboards", "bounty", "legendarycontracts", "worldprojects", "worldproject", "fishrecords", "drophistory", "combatlog", "lifetime", "historybuffer", "fishjournal", "say", "gossip", "newbie", "trade", "channels", "mentor", "tell", "reply", "friends", "craftbox", "craftmastery", "mistrzostwocraftu", "runes", "clan", "masteryachievements",
+                    "collection", "museum", "prestige", "bosscodex", "leaderboards", "bounty", "chronicle", "legendarycontracts", "worldprojects", "worldproject", "fishrecords", "drophistory", "combatlog", "lifetime", "historybuffer", "fishjournal", "say", "gossip", "newbie", "trade", "channels", "mentor", "tell", "reply", "friends", "craftbox", "craftmastery", "mistrzostwocraftu", "runes", "clan", "masteryachievements",
                     "partychat",
                 }
                 if self.guide_task_active() and (
@@ -129,6 +135,8 @@ class SessionCommandLoopMixin:
                     await self.handle_world_project_v022(args)
                 elif command == "fishrecords":
                     await self.show_fish_records_v022(args)
+                elif command == "chronicle":
+                    await self.show_server_chronicle_v03811(args)
                 elif command == "help":
                     await self.show_help(args)
                 elif command == "wimpy":

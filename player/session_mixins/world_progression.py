@@ -705,14 +705,23 @@ class SessionWorldProgressionMixin:
             rank = loot_rarity_rank(item_id)
             if record_history and rank >= 1:
                 rarity = str(item.get("rarity_name") or item.get("rarity") or "Rare")
+                item_display_name_v03811 = player_item_display_name_v0335(item_id)
                 self.server.db.add_drop_history(
                     self.account_id,
                     item_id,
-                    player_item_display_name_v0335(item_id),
+                    item_display_name_v03811,
                     rarity,
                     source,
                     zone,
                 )
+                if rank >= 3:
+                    try:
+                        self.server.db.record_server_exceptional_drop_v03811(
+                            self.account_id, self.character.name, item_id,
+                            item_display_name_v03811, rarity, source, zone,
+                        )
+                    except Exception:
+                        pass
 
             base_resource_id = canonical_profession_resource_id(item_id)
             collection_candidates = []
@@ -1325,6 +1334,12 @@ class SessionWorldProgressionMixin:
                 if not self.server.db.consume_items_across_storage_and_inventory(self.account_id,ids,take,container=container): await self.send("Nie udało się przekazać zasobów."); return
                 result=self.server.db.add_world_project_contribution_v022(key,self.account_id,cat,take,take); await self.send(f"Przekazujesz {take} sztuk: {V022_PROJECT_CATEGORY_LABELS[cat]}. Twój wkład +{take} pkt.")
             if result.get("newly_completed"):
+                try:
+                    self.server.db.record_server_project_v03811(
+                        self.account_id, self.character.name, key
+                    )
+                except Exception:
+                    pass
                 for ss in list(self.server.sessions):
                     if getattr(ss,"character",None): await ss.send(f"WORLD PROJECT UKOŃCZONY: {spec['name']}! Współtwórcy z wymaganym wkładem mogą użyć projekt odbierz {key}.")
 

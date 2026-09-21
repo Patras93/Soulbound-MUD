@@ -322,9 +322,18 @@ class SessionAdminGatheringSalesMixin:
                 self.account_id, species_id, resource_quest_quantity,
                 best_length, best_weight, self.character.room_id,
             )
+            global_record_before_v03811 = self.server.db.fish_global_record_v022(species_id)
             global_record_v022 = self.server.db.record_fishing_global_v022(
                 species_id, item_id, self.character.name, best_length, best_weight, self.account_id
             )
+            try:
+                self.server.db.record_server_fish_record_v03811(
+                    self.account_id, self.character.name, species_id, item_id,
+                    best_length, best_weight, global_record_v022,
+                    had_global_record=(global_record_before_v03811 is not None),
+                )
+            except Exception:
+                pass
             await self.record_item_collection(
                 species_id, source=self.fishing_water_type() or "łowisko",
                 announce=True, record_history=False, amount=resource_quest_quantity

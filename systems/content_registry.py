@@ -1221,7 +1221,7 @@ HELP_TOPICS = {
         "Kategorie: miasto, gildia, profesje, tereny, lochy, npc i wszystko.",
         "Przykład: prowadz lista gildia, walk list dungeons, prowadz lista profesje.",
         "Jeżeli nazwa pasuje do kilku miejsc, dostajesz jedną numerowaną listę i wpisujesz tylko cyfrę.",
-        "Kopalnia Głębinowa jest wyjątkiem: prowadz kopalnia prowadzi bezpośrednio do poziomu 1. Inne lochy zatrzymują prowadzenie przed wejściem.",
+        "v0.38.12: prowadz kopalnia kończy się w Komnacie Kryształowej przy progu Kopalni Głębinowej; wpisz kopalnia, aby wejść bez podawania kierunku.",
         "cofnij, wyjście, back, exit, wstecz, return i escape prowadzą bezpośrednio do bezpiecznego wyjścia z rozpoznanego lochu.",
         "Nawigacja automatyczna zatrzymuje się na blokadach progresji, żywym bossie, zamkniętej ścianie kopalni albo rozpoczęciu walki.",
         "Zmiana postaci: quit. Komenda zapisuje obecną postać i wraca do MENU POSTACI bez rozłączania.",
@@ -1327,7 +1327,7 @@ HELP_TOPICS = {
         "Musisz mieć Młot Rzemieślniczy, odpowiedni level Kowalstwa, wymagany Tier Młota, składniki i stać przy właściwej kuźni.",
         "Przykłady: przetop żelazo, przetop odłamki żelaza, przetop srebro, przetop płyty, przetop złoto, przetop mithril, przetop kobalt.",
         "Mithril wydobywa się od Kilofa 80 i poziomu 80 Kopalni Głębinowej. Obsługiwane są także: runa, smocza stal, astral, pustka i Eternium.",
-        "Przetapianie daje XP Kowalstwa i Młota tak samo jak dotychczasowe receptury sztabek.",
+        "Przetapianie rudy w sztabki daje XP Kowalstwa i Młota tak samo jak pozostałe receptury wytwarzania sztabek.",
     ],
     "assist": [
         "Drużyna ma automatyczne asystowanie: gdy członek rozpoczyna walkę, wolni członkowie tej samej drużyny i lokacji automatycznie dołączają do jego celu.",

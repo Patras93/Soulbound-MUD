@@ -3743,6 +3743,16 @@ class SessionSkillsCombatMixin:
             )
             count = len(recipients)
 
+            # v0.38.11: one real kill creates at most one server-wide legend entry.
+            # Party rewards still remain per recipient; the Chronicle records the actual event once.
+            try:
+                self.server.db.record_server_kill_v03811(
+                    self.account_id, self.character.name, mob.template_id,
+                    [s.character.name for s in recipients],
+                )
+            except Exception:
+                pass
+
             if template.get("v020_megadungeon_boss"):
                 _mk=str(template.get("v020_mega_key")); _mi=int(template.get("v020_mega_index",0) or 0)
                 for session in recipients:

@@ -37,6 +37,8 @@ _RELEASE_AUDITS_V0369 = [
     ("v0.38.8 easier Soul Tier 8 trial", "SOUL_TIER8_TRIAL_AUDIT_V0388"),
     ("v0.38.9 canonical kill quest credit", "QUEST_KILL_CANONICALIZATION_AUDIT_V0389"),
     ("v0.38.10 canonical smithing materials", "SMITHING_MATERIALS_AUDIT_V03810"),
+    ("v0.38.11 procedural legends/server chronicle", "SERVER_CHRONICLE_AUDIT_V03811"),
+    ("v0.38.12 named dungeon entry/return", "DUNGEON_NAMED_ENTRY_AUDIT_V03812"),
 ]
 
 def cumulative_release_integrity_audit_v0369():
@@ -54,13 +56,13 @@ def cumulative_release_integrity_audit_v0369():
         preserved.append(label)
 
     # Direct release-line checks for the exact milestones the user flagged.
-    if str(globals().get("VERSION","")) != "0.38.10":
-        errors.append(f"VERSION={globals().get('VERSION')!r}, expected 0.38.10")
-    if str(globals().get("GENERATOR_CORE_VERSION","")) != "0.38.10":
-        errors.append(f"Generator Core={globals().get('GENERATOR_CORE_VERSION')!r}, expected 0.38.10")
+    if str(globals().get("VERSION","")) != "0.38.12":
+        errors.append(f"VERSION={globals().get('VERSION')!r}, expected 0.38.12")
+    if str(globals().get("GENERATOR_CORE_VERSION","")) != "0.38.12":
+        errors.append(f"Generator Core={globals().get('GENERATOR_CORE_VERSION')!r}, expected 0.38.12")
 
     return {
-        "version":"0.38.10",
+        "version":"0.38.12",
         "checked":len(_RELEASE_AUDITS_V0369),
         "preserved":preserved,
         "preserved_count":len(preserved),
@@ -71,18 +73,14 @@ def cumulative_release_integrity_audit_v0369():
 CUMULATIVE_RELEASE_INTEGRITY_AUDIT_V0369=cumulative_release_integrity_audit_v0369()
 if CUMULATIVE_RELEASE_INTEGRITY_AUDIT_V0369["error_count"]:
     raise RuntimeError(
-        "Cumulative Release Integrity Audit v0.38.10 failed: "
+        "Cumulative Release Integrity Audit v0.38.12 failed: "
         + "; ".join(CUMULATIVE_RELEASE_INTEGRITY_AUDIT_V0369["errors"][:100])
     )
 
 HELP_TOPICS.setdefault("wersja", []).append(
-    "v0.38.10: Kowalstwo i ulepszanie EQ nie używają mithrilu jako materiału; mithril pozostaje walutą."
+    "v0.38.11: Proceduralne Legendy zapisują trwałą Kronikę Serwera: pierwsze zabicia, world bossy, rekordy połowów, projekty świata i wyjątkowe dropy."
 )
-LATEST_CHANGES_TITLE = "Soulbound v0.38.10 - Canonical Smithing Materials"
-LATEST_CHANGES = [
-    "Ulepszanie EQ +1..+10 zużywa teraz normalne sztabki Kowalstwa zamiast materiałów Salvage.",
-    "Poziom 80 używa Złotej sztabki; mithril nie występuje jako składnik aktywnych receptur Kowalstwa ani koszt ulepszenia.",
-    "Lista ulepszeń pokazuje liczbę posiadanych kopii jako Sztuk EQ zamiast mylącego drugiego xN.",
-    "Dodano audit pełnej drabinki ulepszeń 1-600 i receptur Kowalstwa.",
-    "Zachowano v0.38.9 Canonical Kill Quest Credit oraz wszystkie wcześniejsze audytowane milestone'y.",
-]
+
+HELP_TOPICS.setdefault("wersja", []).append(
+    "v0.38.12: przy progu Krypty, Wieży lub lochu wpisuje się nazwę miejsca; wyjście wraca do tego samego bezpiecznego progu."
+)

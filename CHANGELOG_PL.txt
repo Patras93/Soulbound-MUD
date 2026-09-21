@@ -1,4 +1,31 @@
+SOULBOUND v0.38.12 NAMED DUNGEON ENTRY & RETURN
+================================================
+- Przy progu instancji nazwa lochu zastępuje ręczny kierunek wejścia.
+- `krypty`, `wieza astralna`, `mityczna krypta`, `twierdza gigantow`, `jaskinia trolli`, `magitek` i nazwy lochów profesyjnych wchodzą do właściwej instancji.
+- `wyjście` wraca do bezpiecznego progu; zwykła Krypta wraca do Przedsionka Krypty.
+- Prowadzenie do Kopalni i lochów profesyjnych kończy się przy progu.
+- Nazwane wejścia obejmują także pięć megalochów.
+- Wewnątrz lochów zwykłe kierunki pozostają bez zmian.
+- Brak zmian balansu i brak wipe SQLite.
+
+SOULBOUND v0.38.11 PROCEDURAL LEGENDS & SERVER CHRONICLE
+=========================================================
+- Dodano trwałą Kronikę Serwera w SQLite.
+- Komenda: kronika / chronicle.
+- Kronika zapisuje pierwsze zabicia na serwerze.
+- Każde pokonanie world bossa trafia do kroniki; pierwsze jest oznaczone jako pierwsze na serwerze.
+- Globalne rekordy długości/masy ryb oraz najrzadszy okaz trafiają do kroniki.
+- Ukończenie wspólnego Projektu Świata trafia do kroniki.
+- Dropy Legendary, Unique i Mythic trafiają do kroniki jako wyjątkowe zdarzenia.
+- Zwykłe pierwsze zabicia są pamiętane jako historia niskiego priorytetu i nie zaśmiecają widoku domyślnego.
+- Filtry: kronika zabicia, kronika bossy, kronika ryby, kronika projekty, kronika dropy, kronika wszystko.
+- Opcjonalny limit 1-100 wpisów, np. kronika bossy 50.
+- Kronika przeżywa restart i deploy dzięki trwałemu zapisowi w bazie.
+- Nie rekonstruuje na siłę zdarzeń sprzed v0.38.11, których stary system nie zapisał wiarygodnie.
+- Zachowano v0.38.10 Canonical Smithing Materials i wcześniejsze milestone'y.
+
 SOULBOUND v0.38.10 — KANONICZNE MATERIAŁY KOWALSTWA
+- HOTFIX TEKSTOWY: poprawiono stare sformułowania sugerujące „przetapianie sztabek”. Ruda jest przetapiana w sztabkę; mechanika przetopu nie została zmieniona.
 
 - Ulepszanie EQ +1..+10 korzysta teraz z normalnych sztabek Kowalstwa zamiast fragmentów Salvage.
 - Mithril pozostaje walutą i nie jest składnikiem aktywnych receptur Kowalstwa ani kosztem ulepszania EQ.

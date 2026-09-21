@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #!/usr/bin/env python3
-"""Soulbound v0.38.10 Canonical Smithing Materials."""
+"""Soulbound v0.38.12 Named Dungeon Entry & Return."""
 from pathlib import Path
 import os
 import socket
@@ -106,6 +106,8 @@ _RUNTIME_MODULES = [
     "admin/soul_tier8_trial_audit_v0388.py",
     "admin/quest_kill_credit_audit_v0389.py",
     "systems/smithing_materials_v03810.py",
+    "systems/server_chronicle_v03811.py",
+    "systems/dungeon_entry_commands_v03812.py",
     "admin/release_integrity_v0369.py",
 ]
 
@@ -124,12 +126,12 @@ if os.environ.get("SOULBOUND_FULL_AUDIT", "").strip().lower() in ("1", "true", "
     FULL_GAME_PREDEPLOY_AUDIT_V0336 = full_game_predeploy_audit_v0336()
     if FULL_GAME_PREDEPLOY_AUDIT_V0336["error_count"]:
         raise RuntimeError(
-            "Full Game Pre-Deploy Audit v0.38.10 failed: "
+            "Full Game Pre-Deploy Audit v0.38.12 failed: "
             + "; ".join(map(str, FULL_GAME_PREDEPLOY_AUDIT_V0336["errors"][:100]))
         )
 else:
     FULL_GAME_PREDEPLOY_AUDIT_V0336 = {
-        "version": "0.38.10", "skipped_at_runtime": True,
+        "version": "0.38.12", "skipped_at_runtime": True,
         "error_count": 0, "warning_count": 0, "errors": [], "warnings": [],
         "reason": "Run before deploy with SOULBOUND_FULL_AUDIT=1; skipped during normal server startup.",
     }

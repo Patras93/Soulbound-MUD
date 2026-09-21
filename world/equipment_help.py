@@ -1118,7 +1118,7 @@ def configure_v0857_navigation_help():
         "trasa <cel> / route <cel> planuje drogę bez poruszania postacią. Podaje liczbę przejść, pierwszy krok, skróconą trasę, strefy i szacowany czas.",
         "trasa pełna <cel> czyta każdy krok; trasa krok powtarza najbliższy kierunek do ostatnio zaplanowanego celu.",
         "prowadz <cel> / walk <cel> uruchamia prowadzenie w tle. Do NPC dochodzi dokładnie; przy zwykłej lokacji ostatni krok wykonujesz sam.",
-        "Wyjątek dostępności: prowadz kopalnia / walk mine prowadzi bezpośrednio na pierwszy poziom Kopalni Głębinowej, bez ręcznego ostatniego kroku.",
+        "v0.38.12: prowadz kopalnia / walk mine prowadzi do Komnaty Kryształowej przy progu; wpisz kopalnia, aby wejść na pierwszy poziom bez podawania kierunku.",
         "prowadz status / walk status podaje cel, pozostałe przejścia i następny krok podczas marszu.",
         "prowadz stop / walk stop natychmiast przerywa automatyczny marsz i zostawia postać w ostatniej osiągniętej lokacji.",
         "Ręczny kierunek lub rozpoczęcie innej aktywności przerywa prowadzenie, aby uniknąć jednoczesnych ruchów.",
