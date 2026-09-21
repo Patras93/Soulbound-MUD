@@ -1,3 +1,10 @@
+SOULBOUND v0.38.9 — KANONICZNE ZALICZANIE KILL QUESTÓW
+
+- Naprawiono kill questy dla Elite, Rare i proceduralnych wariantów mobów.
+- Zabicie wariantu zalicza teraz także kanoniczny bazowy gatunek i jego aliasy questowe.
+- Próba Broni Duszy Tier 8 zalicza zwykłego, Elite i Rare Upiora Martwego Dzwonu.
+- Aktywne questy zachowują bieżący postęp; nie trzeba ich porzucać.
+
 SOULBOUND v0.38.8 — ŁATWIEJSZA PRÓBA BRONI DUSZY TIER 8
 
 - Tier 8 nie wymaga już pojedynczego bossa Nieumarłego Strażnika Cmentarza.

@@ -2297,6 +2297,32 @@ def canonical_bestiary_template_id(template_id):
         template_id = str(base_id)
     return template_id
 
+
+def quest_kill_targets_v0389(template_id, template=None):
+    """Return every kill-quest target credited by this defeated mob.
+
+    v0.38.9: generated Elite/Rare/dense variants must also credit quests for
+    the canonical base species and for any quest aliases authored on that base.
+    """
+    template_id = str(template_id or "")
+    template = template or MOB_TEMPLATES.get(template_id, {}) or {}
+    canonical_id = canonical_bestiary_template_id(template_id)
+    canonical_template = MOB_TEMPLATES.get(canonical_id, {}) or {}
+
+    targets = []
+    for value in (template_id, canonical_id):
+        if value:
+            targets.append(str(value))
+    for source in (template, canonical_template):
+        primary = source.get("quest_target")
+        if primary:
+            targets.append(str(primary))
+        for value in source.get("quest_targets") or ():
+            if value:
+                targets.append(str(value))
+    return tuple(dict.fromkeys(targets))
+
+
 BESTIARY_CATALOG = {}
 BESTIARY_SPAWN_ROOMS = {}
 for _bestiary_room_id, _bestiary_template_id in MOB_SPAWNS:

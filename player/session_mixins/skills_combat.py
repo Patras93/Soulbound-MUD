@@ -4017,15 +4017,9 @@ class SessionSkillsCombatMixin:
                 # przez własny template_id. Zachowujemy również historyczne aliasy
                 # quest_target/quest_targets, więc stare questy nadal zaliczają całe
                 # rodziny mobów (np. wszystkie odmiany goblinów).
-                quest_targets = [mob.template_id]
-                primary_target = template.get("quest_target")
-                if primary_target:
-                    quest_targets.append(primary_target)
-                quest_targets.extend(
-                    template.get("quest_targets") or ()
-                )
+                quest_targets = quest_kill_targets_v0389(mob.template_id, template)
 
-                for target in dict.fromkeys(quest_targets):
+                for target in quest_targets:
                     changed = self.server.db.increment_quest(
                         session.account_id, target
                     )

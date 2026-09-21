@@ -35,6 +35,7 @@ _RELEASE_AUDITS_V0369 = [
     ("v0.38.6 global difficulty overdrive II", "GLOBAL_DIFFICULTY_OVERDRIVE_AUDIT_V0386"),
     ("v0.38.7 canonical bounty targets", "BOUNTY_CANONICAL_TARGET_AUDIT_V0387"),
     ("v0.38.8 easier Soul Tier 8 trial", "SOUL_TIER8_TRIAL_AUDIT_V0388"),
+    ("v0.38.9 canonical kill quest credit", "QUEST_KILL_CANONICALIZATION_AUDIT_V0389"),
 ]
 
 def cumulative_release_integrity_audit_v0369():
@@ -52,13 +53,13 @@ def cumulative_release_integrity_audit_v0369():
         preserved.append(label)
 
     # Direct release-line checks for the exact milestones the user flagged.
-    if str(globals().get("VERSION","")) != "0.38.8":
-        errors.append(f"VERSION={globals().get('VERSION')!r}, expected 0.38.8")
-    if str(globals().get("GENERATOR_CORE_VERSION","")) != "0.38.8":
-        errors.append(f"Generator Core={globals().get('GENERATOR_CORE_VERSION')!r}, expected 0.38.8")
+    if str(globals().get("VERSION","")) != "0.38.9":
+        errors.append(f"VERSION={globals().get('VERSION')!r}, expected 0.38.9")
+    if str(globals().get("GENERATOR_CORE_VERSION","")) != "0.38.9":
+        errors.append(f"Generator Core={globals().get('GENERATOR_CORE_VERSION')!r}, expected 0.38.9")
 
     return {
-        "version":"0.38.8",
+        "version":"0.38.9",
         "checked":len(_RELEASE_AUDITS_V0369),
         "preserved":preserved,
         "preserved_count":len(preserved),
@@ -69,17 +70,18 @@ def cumulative_release_integrity_audit_v0369():
 CUMULATIVE_RELEASE_INTEGRITY_AUDIT_V0369=cumulative_release_integrity_audit_v0369()
 if CUMULATIVE_RELEASE_INTEGRITY_AUDIT_V0369["error_count"]:
     raise RuntimeError(
-        "Cumulative Release Integrity Audit v0.38.8 failed: "
+        "Cumulative Release Integrity Audit v0.38.9 failed: "
         + "; ".join(CUMULATIVE_RELEASE_INTEGRITY_AUDIT_V0369["errors"][:100])
     )
 
 HELP_TOPICS.setdefault("wersja", []).append(
-    "v0.38.8: Tier 8 Próby Broni Duszy wymaga 5 Upiorów Dzwonu zamiast pojedynczego bossa; zachowano wszystkie wcześniejsze milestone'y."
+    "v0.38.9: kill questy zaliczają kanoniczny bazowy gatunek również przy Elite, Rare i proceduralnych wariantach; Tier 8 Broni Duszy działa z każdym Upiorzem Dzwonu."
 )
-LATEST_CHANGES_TITLE = "Soulbound v0.38.8 - Soul Tier 8 Trial QoL"
+LATEST_CHANGES_TITLE = "Soulbound v0.38.9 - Canonical Kill Quest Credit"
 LATEST_CHANGES = [
-    "Próba Broni Duszy Tier 8 nie wymaga już Nieumarłego Strażnika Cmentarza.",
-    "Tier 8 wymaga 5 Upiorów Dzwonu; finalny świat ma co najmniej 5 równoczesnych spawnów celu.",
-    "Pierwsza próba bossowa Broni Duszy zaczyna się od Tieru 9.",
-    "Zachowano v0.38.7 Canonical Bounty Targets oraz wszystkie wcześniejsze audytowane milestone'y.",
+    "Naprawiono kill-credit questów dla Elite, Rare i proceduralnych wariantów mobów.",
+    "Próba Broni Duszy Tier 8 zalicza teraz każdy wariant Upiora Martwego Dzwonu.",
+    "Kanoniczny bazowy gatunek i jego quest_target/quest_targets są zawsze dopisywane do listy celów zabicia.",
+    "Aktywne questy nie wymagają porzucenia ani ponownego przyjęcia; postęp zacznie naliczać się po aktualizacji.",
+    "Zachowano v0.38.8 Soul Tier 8 Trial QoL oraz wszystkie wcześniejsze audytowane milestone'y.",
 ]

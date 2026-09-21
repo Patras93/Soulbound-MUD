@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Soulbound v0.38.8 Session assembly from focused mixins."""
+"""Soulbound v0.38.9 Session assembly from focused mixins."""
 
 class Session(
     SessionCoreProgressionMixin,
