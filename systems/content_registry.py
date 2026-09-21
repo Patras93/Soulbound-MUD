@@ -3295,8 +3295,8 @@ QUESTS.update({
     "soul_tier_08_trial": {
         "name": "Próba Broni Duszy: Tier 8",
         "giver": "Kapłan Elor",
-        "kind": "kill", "target": "crypt_boss_70", "needed": 1,
-        "description": "Pokonaj Nekromantycznego Kolosa na piętrze 70 Krypty i wróć do Kapłana Elora.",
+        "kind": "kill", "target": "cemetery_bell_wraith", "needed": 5,
+        "description": "Pokonaj 5 Upiorów Dzwonu na Starym Cmentarzu i wróć do Kapłana Elora.",
         "required_soul_level": 70, "required_soul_tier": 7,
         "unlocks_soul_tier": 8,
         "reward_silver": 300, "reward_gold": 0, "reward_mithril": 0,

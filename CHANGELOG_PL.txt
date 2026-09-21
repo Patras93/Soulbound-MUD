@@ -1,3 +1,11 @@
+SOULBOUND v0.38.8 — ŁATWIEJSZA PRÓBA BRONI DUSZY TIER 8
+
+- Tier 8 nie wymaga już pojedynczego bossa Nieumarłego Strażnika Cmentarza.
+- Nowy cel: pokonaj 5 Upiorów Dzwonu na Starym Cmentarzu i wróć do Kapłana Elora.
+- Pierwsza próba bossowa Broni Duszy zaczyna się od Tieru 9.
+- Audit wymaga co najmniej 5 równoczesnych spawnów Upiorów Dzwonu; finalny runtime ma ich 6.
+- Zachowano wszystkie wcześniejsze milestone'y i naprawy v0.38.7.
+
 SOULBOUND v0.38.7 — KANONICZNE CELE TABLICY ZLECEŃ
 
 - Naprawiono kontrakty typu kill, które mogły losować techniczne warianty zagęszczające lochy z nazwą złożoną z dwóch mobów, np. „Grobowy Upiór — Kościany Rycerz”.

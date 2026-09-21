@@ -598,11 +598,11 @@ for _tier in range(21, SOUL_MAX_TIER + 1):
         "reward_mithril": 0, "reward_items": {},
     }
 
-# v0.26.1 — Soul Trial Balance Pass.
-# Tiery 2-7 prowadzą początkującego przez zwykłych przeciwników zamiast
-# natychmiast wysyłać go na bossów Krypty. Tiery 8-12 używają bossów
-# regionalnych o łagodniejszej krzywej HP. Od Tieru 13 zaczynają się
-# właściwe próby mistrzowskie na bossach Krypty, a 21-40 pozostają endgame.
+# v0.26.1/v0.38.8 — Soul Trial Balance Pass.
+# Tiery 2-8 prowadzą gracza przez zwykłych, łatwo dostępnych przeciwników.
+# Tier 8 nie wymaga już pojedynczego regionalnego bossa; pierwsza próba
+# bossowa zaczyna się od Tieru 9. Od Tieru 13 zaczynają się właściwe próby
+# mistrzowskie na bossach Krypty, a dalsze tiery pozostają endgame.
 def configure_soul_trials_v0261():
     overrides = {
         2: {
@@ -630,8 +630,8 @@ def configure_soul_trials_v0261():
             "description": "Pokonaj 4 Niespokojnych Zmarłych na Starym Cmentarzu i wróć do Kapłana Elora.",
         },
         8: {
-            "target": "cemetery_keeper", "needed": 1,
-            "description": "Pokonaj Nieumarłego Strażnika Cmentarza i wróć do Kapłana Elora. To pierwsza próba bossowa Broni Duszy.",
+            "target": "cemetery_bell_wraith", "needed": 5,
+            "description": "Pokonaj 5 Upiorów Dzwonu na Starym Cmentarzu i wróć do Kapłana Elora.",
         },
         9: {
             "target": "sewer_king", "needed": 1,
