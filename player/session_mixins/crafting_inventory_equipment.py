@@ -410,10 +410,20 @@ class SessionCraftingInventoryEquipmentMixin:
                 else "zwykłego ekwipunku"
             )
             crafted_name = ITEMS.get(crafted_output_id, ITEMS[output_id])["name"]
-            await self.send(
-                f"{action_name.capitalize()}: {crafted_name} "
-                f"x{quantity}. Przedmiot trafia do {destination}."
-            )
+            if normalize_lookup_text(action_name) == "przetapianie":
+                consumed_text = " + ".join(
+                    f"{ITEMS.get(item_id, {}).get('name', item_id)} x{int(amount)}"
+                    for item_id, amount in recipe.get("ingredients", {}).items()
+                )
+                await self.send(
+                    f"Przetapiasz: {consumed_text} -> {crafted_name} x{quantity}. "
+                    f"Przedmiot trafia do {destination}."
+                )
+            else:
+                await self.send(
+                    f"{action_name.capitalize()}: {crafted_name} "
+                    f"x{quantity}. Przedmiot trafia do {destination}."
+                )
             if crafting_output_is_quality_equipment_v03054(output_id):
                 quality_name = CRAFT_QUALITY_V03054[quality_key]["name"]
                 await self.send(

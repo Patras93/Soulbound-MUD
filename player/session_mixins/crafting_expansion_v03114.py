@@ -518,7 +518,14 @@ class SessionCraftingExpansionV03114Mixin:
                 if fb and CRAFT_RECIPES.get(fb): rid,rec=fb,CRAFT_RECIPES[fb]
             n=self.max_recipe_crafts_v03114(rec)
             if n<=0: await self.send("Brak materiału do przetopienia."); return False
-            await self.send(f"PRZETOP MAX: {rec['name']} x{n}.")
+            input_text = " + ".join(
+                f"{ITEMS.get(item_id, {}).get('name', item_id)} x{int(amount) * n}"
+                for item_id, amount in rec.get("ingredients", {}).items()
+            )
+            output_id = rec.get("output")
+            output_name = ITEMS.get(output_id, {}).get("name", rec.get("name", output_id))
+            output_count = max(1, int(rec.get("quantity", 1) or 1)) * n
+            await self.send(f"PRZETOP MAX: {input_text} -> {output_name} x{output_count}.")
             done=0
             for _ in range(n):
                 if not await self.perform_recipe(rid,CRAFT_RECIPES,"przetapianie"): break

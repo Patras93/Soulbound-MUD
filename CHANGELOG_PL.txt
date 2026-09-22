@@ -1,4 +1,8 @@
 SOULBOUND v0.38.12 NAMED DUNGEON ENTRY & RETURN
+
+HOTFIX TEKSTOWY PRZETAPIANIA
+- Poprawiono komunikat `przetop max`: pokazuje teraz surowiec wejściowy i wynik, np. `Ruda żelaza x3 -> Żelazna sztabka x3`, zamiast sugerować przetapianie trzech sztabek.
+- Zwykłe przetapianie również pokazuje jednoznacznie `surowiec -> sztabka`. Mechanika i koszty receptur nie zostały zmienione.
 ================================================
 - Przy progu instancji nazwa lochu zastępuje ręczny kierunek wejścia.
 - `krypty`, `wieza astralna`, `mityczna krypta`, `twierdza gigantow`, `jaskinia trolli`, `magitek` i nazwy lochów profesyjnych wchodzą do właściwej instancji.
