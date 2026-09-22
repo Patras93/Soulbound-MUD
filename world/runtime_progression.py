@@ -646,6 +646,47 @@ def _snapshot_semantic_backbone_v03013(rooms):
         result[zone].sort()
     return result
 
+# ============================================================
+# v0.38.13 - UNDERGROUND ROUTE ISOLATION
+# Historycznie kilka niezależnych obszarów miało wspólną etykietę strefy
+# "Podziemia". Semantic topology traktowała więc piwnicę Świątyni, Kopalnię
+# Głębinową i Kryptę jak jeden region i dodawała między nimi filler-links.
+# To zamieniało Piwnicę Świątyni w przypadkowy skrót dla `prowadz`.
+#
+# Zachowujemy wszystkie stare room_id (ważne dla save'ów), ale rozdzielamy
+# semantyczne strefy przed zrobieniem snapshotu backbone i przed generacją
+# topologii. Dzięki temu generator może rozbudować każdą część osobno, lecz
+# nie wolno mu scalać niezależnych wejść pod ziemią.
+_V03813_UNDERGROUND_ZONE_OVERRIDES = {
+    "temple_basement": "Piwnica Świątyni",
+    "cave_entrance": "Kopalnia Głębinowa",
+    "cave_tunnel": "Kopalnia Głębinowa",
+    "crystal_chamber": "Kopalnia Głębinowa",
+    "miners_guild": "Kopalnia Głębinowa",
+    "crypt_entrance": "Krypta",
+    "crypt_hall": "Krypta",
+    "crypt_depths": "Krypta",
+}
+for _rid, _zone in _V03813_UNDERGROUND_ZONE_OVERRIDES.items():
+    if _rid in ROOMS:
+        ROOMS[_rid]["zone"] = _zone
+
+# v0.10.0 utworzył rozszerzenie Podziemi z trwałymi ID v0100_podziemia_*.
+# Jego historyczny authored anchor prowadzi przez Gildię Górników, dlatego
+# traktujemy te pokoje jako część wejściowych tuneli Kopalni Głębinowej.
+# Zmieniamy tylko etykietę strefy, nigdy ID: stare save'y pozostają zgodne.
+for _rid, _room in ROOMS.items():
+    if str(_rid).startswith("v0100_podziemia_"):
+        _room["zone"] = "Kopalnia Głębinowa"
+
+# Zachowaj dotychczasową klasyfikację trudności mimo dokładniejszych nazw stref.
+if isinstance(globals().get("EXP_ZONE_AREA_ID"), dict):
+    EXP_ZONE_AREA_ID.update({
+        "Piwnica Świątyni": "podziemia",
+        "Kopalnia Głębinowa": "podziemia",
+        "Krypta": "krypta",
+    })
+
 SEMANTIC_BACKBONE_V03013 = _snapshot_semantic_backbone_v03013(ROOMS)
 SEMANTIC_BACKBONE_PAIR_COUNT_V03013 = sum(len(v) for v in SEMANTIC_BACKBONE_V03013.values())
 
@@ -1263,6 +1304,57 @@ def audit_entire_world_topology_v03013(rooms):
         "errors":errors,
         "warnings":warnings,
     }
+
+def audit_underground_route_isolation_v03813():
+    errors = []
+    expected_zones = {
+        "temple_basement": "Piwnica Świątyni",
+        "cave_entrance": "Kopalnia Głębinowa",
+        "cave_tunnel": "Kopalnia Głębinowa",
+        "crystal_chamber": "Kopalnia Głębinowa",
+        "miners_guild": "Kopalnia Głębinowa",
+        "crypt_entrance": "Krypta",
+        "crypt_hall": "Krypta",
+        "crypt_depths": "Krypta",
+    }
+    for rid, zone in expected_zones.items():
+        if rid not in ROOMS:
+            errors.append(f"missing room {rid}")
+        elif ROOMS[rid].get("zone") != zone:
+            errors.append(f"{rid} zone={ROOMS[rid].get('zone')!r}, expected {zone!r}")
+
+    # Piwnica może prowadzić do Świątyni i swojego historycznego rozszerzenia,
+    # ale nigdy bezpośrednio do Kopalni/Krypty. Te obszary mają własne wejścia.
+    forbidden = {"cave_entrance", "cave_tunnel", "crystal_chamber", "miners_guild",
+                 "crypt_entrance", "crypt_hall", "crypt_depths"}
+    basement_targets = set((ROOMS.get("temple_basement", {}).get("exits", {}) or {}).values())
+    bad = sorted(basement_targets & forbidden)
+    if bad:
+        errors.append(f"temple basement has forbidden shortcuts: {bad}")
+
+    # Historyczne v0100_podziemia_* należą teraz do tuneli Kopalni i również
+    # nie mogą mieć żadnego łącznika z Piwnicą Świątyni.
+    expansion_ids = {rid for rid in ROOMS if str(rid).startswith("v0100_podziemia_")}
+    for rid in sorted(expansion_ids):
+        if ROOMS[rid].get("zone") != "Kopalnia Głębinowa":
+            errors.append(f"{rid} not assigned to Kopalnia Głębinowa")
+        if "temple_basement" in set((ROOMS[rid].get("exits", {}) or {}).values()):
+            errors.append(f"historical expansion still links to temple basement: {rid}")
+
+    return {
+        "version": "0.38.13",
+        "basement_rooms": 1,
+        "mine_expansion_rooms": len(expansion_ids),
+        "error_count": len(errors),
+        "errors": errors,
+    }
+
+UNDERGROUND_ROUTE_ISOLATION_AUDIT_V03813 = audit_underground_route_isolation_v03813()
+if UNDERGROUND_ROUTE_ISOLATION_AUDIT_V03813["error_count"]:
+    raise RuntimeError(
+        "Underground Route Isolation Audit v0.38.13 failed: "
+        + "; ".join(UNDERGROUND_ROUTE_ISOLATION_AUDIT_V03813["errors"][:50])
+    )
 
 FULL_WORLD_TOPOLOGY_AUDIT_V03013 = audit_entire_world_topology_v03013(ROOMS)
 if FULL_WORLD_TOPOLOGY_AUDIT_V03013.get("error_count"):

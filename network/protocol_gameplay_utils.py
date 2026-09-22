@@ -48,6 +48,7 @@ HELP_TOPICS["bounty_contracts"] = [
     "bounty accept <1-3> / bounty <1-3> - przyjmij jeden kontrakt. Każdy zaczyna od 0/x.",
     "bounty aktywne - przeczytaj aktualny postęp bez cache.",
     "bounty odbierz / bounty claim - odbierz Soul XP i złoto po wykonaniu celu.",
+    "bounty porzuć / bounty porzuc - porzuć aktywny kontrakt; bieżący postęp przepada, licznik ukończonych i aktualne oferty pozostają bez zmian.",
     "bounty odśwież - ponownie losuje trzy oferty, ale tylko gdy nie masz aktywnego kontraktu.",
     "Postęp kontraktu jest zapisywany per postać i po każdym właściwym zabiciu, wydobyciu, połowie, ścięciu albo zbiorze NVDA od razu czyta n/x.",
     "Stare zlecenia Gildii są nadal dostępne: guildbounty / zleceniagildii.",

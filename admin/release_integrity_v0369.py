@@ -39,6 +39,8 @@ _RELEASE_AUDITS_V0369 = [
     ("v0.38.10 canonical smithing materials", "SMITHING_MATERIALS_AUDIT_V03810"),
     ("v0.38.11 procedural legends/server chronicle", "SERVER_CHRONICLE_AUDIT_V03811"),
     ("v0.38.12 named dungeon entry/return", "DUNGEON_NAMED_ENTRY_AUDIT_V03812"),
+    ("v0.38.13 underground route isolation", "UNDERGROUND_ROUTE_ISOLATION_AUDIT_V03813"),
+    ("v0.38.14 bounty abandon aliases", "BOUNTY_ABANDON_AUDIT_V03814"),
 ]
 
 def cumulative_release_integrity_audit_v0369():
@@ -56,13 +58,13 @@ def cumulative_release_integrity_audit_v0369():
         preserved.append(label)
 
     # Direct release-line checks for the exact milestones the user flagged.
-    if str(globals().get("VERSION","")) != "0.38.12":
-        errors.append(f"VERSION={globals().get('VERSION')!r}, expected 0.38.12")
-    if str(globals().get("GENERATOR_CORE_VERSION","")) != "0.38.12":
-        errors.append(f"Generator Core={globals().get('GENERATOR_CORE_VERSION')!r}, expected 0.38.12")
+    if str(globals().get("VERSION","")) != "0.38.14":
+        errors.append(f"VERSION={globals().get('VERSION')!r}, expected 0.38.14")
+    if str(globals().get("GENERATOR_CORE_VERSION","")) != "0.38.14":
+        errors.append(f"Generator Core={globals().get('GENERATOR_CORE_VERSION')!r}, expected 0.38.14")
 
     return {
-        "version":"0.38.12",
+        "version":"0.38.14",
         "checked":len(_RELEASE_AUDITS_V0369),
         "preserved":preserved,
         "preserved_count":len(preserved),
@@ -73,7 +75,7 @@ def cumulative_release_integrity_audit_v0369():
 CUMULATIVE_RELEASE_INTEGRITY_AUDIT_V0369=cumulative_release_integrity_audit_v0369()
 if CUMULATIVE_RELEASE_INTEGRITY_AUDIT_V0369["error_count"]:
     raise RuntimeError(
-        "Cumulative Release Integrity Audit v0.38.12 failed: "
+        "Cumulative Release Integrity Audit v0.38.14 failed: "
         + "; ".join(CUMULATIVE_RELEASE_INTEGRITY_AUDIT_V0369["errors"][:100])
     )
 
@@ -84,3 +86,12 @@ HELP_TOPICS.setdefault("wersja", []).append(
 HELP_TOPICS.setdefault("wersja", []).append(
     "v0.38.12: przy progu Krypty, Wieży lub lochu wpisuje się nazwę miejsca; wyjście wraca do tego samego bezpiecznego progu."
 )
+
+HELP_TOPICS.setdefault("wersja", []).append(
+    "v0.38.13: Piwnica Świątyni, Kopalnia Głębinowa i Krypta są osobnymi strefami nawigacji; `prowadz` nie używa już piwnicy jako skrótu do niezwiązanych obszarów."
+)
+HELP_TOPICS.setdefault("wersja", []).append(
+    "v0.38.14: bounty porzuć / bounty porzuc anuluje aktywny kontrakt bez zmiany licznika ukończonych i bez darmowego losowania nowych ofert."
+)
+
+LATEST_CHANGES_TITLE = "Soulbound v0.38.14 - Bounty Abandon"

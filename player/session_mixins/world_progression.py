@@ -444,7 +444,7 @@ class SessionWorldProgressionMixin:
                     f"{currency_reading_text(0, int(offer.get('reward_gold', 0)), 0)}."
                 )
             await self.send(
-                "Komendy: bounty accept <1-3>, bounty aktywne, bounty odbierz; "
+                "Komendy: bounty accept <1-3>, bounty aktywne, bounty odbierz, bounty porzuć; "
                 "bounty odśwież losuje nową tablicę tylko bez aktywnego kontraktu."
             )
 
@@ -465,6 +465,25 @@ class SessionWorldProgressionMixin:
                 needed = max(1, int(active.get("needed", 1)))
                 await self.send(
                     f"Kontrakt: {active.get('label', 'Kontrakt')}. Postęp {progress} z {needed}."
+                )
+                return
+
+            if norm in ("porzuc", "porzuć", "abandon", "cancel"):
+                if not active:
+                    await self.send("Nie masz aktywnego kontraktu do porzucenia.")
+                    return
+                label = str(active.get("label", "Kontrakt"))
+                progress = max(0, int(active.get("progress", 0)))
+                needed = max(1, int(active.get("needed", 1)))
+                self.server.db.save_bounty_board_state(
+                    self.account_id,
+                    offers=state.get("offers", []),
+                    active={},
+                    completed_count=state.get("completed_count", 0),
+                )
+                await self.send(
+                    f"Porzucono kontrakt: {label}. Postęp {progress} z {needed} został anulowany. "
+                    "Oferty na Tablicy Zleceń pozostały bez zmian."
                 )
                 return
 
@@ -556,7 +575,7 @@ class SessionWorldProgressionMixin:
 
             await self.send(
                 "Użycie: bounty; bounty accept <1-3>; bounty aktywne; "
-                "bounty odbierz; bounty odśwież."
+                "bounty odbierz; bounty porzuć lub bounty porzuc; bounty odśwież."
             )
 
     async def advance_bounty(self, kind, target=None, amount=1):

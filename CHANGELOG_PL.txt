@@ -1,3 +1,17 @@
+SOULBOUND v0.38.14 BOUNTY ABANDON
+
+- Dodano `bounty porzuć` oraz alias bez polskich znaków `bounty porzuc`.
+- Porzucenie usuwa tylko aktywny kontrakt i jego bieżący postęp.
+- Licznik ukończonych bounty pozostaje bez zmian.
+- Aktualne trzy oferty na Tablicy Zleceń pozostają bez zmian, więc porzucenie nie daje darmowego rerollu.
+- HELP i komunikaty NVDA zostały zaktualizowane.
+
+SOULBOUND v0.38.13 UNDERGROUND ROUTE ISOLATION
+- Rozdzielono historyczną zbiorczą strefę Podziemia na Piwnicę Świątyni, Kopalnię Głębinową i Kryptę.
+- `prowadz` nie używa już Piwnicy Świątyni jako skrótu do niezwiązanych obszarów.
+- Zachowano stare room_id i kompatybilność save'ów.
+- Dodano regresyjny audit izolacji tras podziemnych.
+
 SOULBOUND v0.38.12 NAMED DUNGEON ENTRY & RETURN
 
 HOTFIX TEKSTOWY PRZETAPIANIA
