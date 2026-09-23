@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Maintenance map for Soulbound v0.58.3.
+"""Maintenance map for Soulbound v0.60.0.
 
 This module is intentionally independent from the legacy gameplay namespace.
 It answers one question: where should a bug be fixed?
@@ -56,6 +56,10 @@ MAINTENANCE_AREAS = {
     "database/items": {
         "files": ("storage/db_inventory.py", "storage/db_crafting_extensions.py"),
         "purpose": "bank, inventory, EQ, storage, transfery oraz trwały stan craftingu bez monkey-patchy",
+    },
+    "progression/ui": {
+        "files": ("player/session_mixins/progress_titles.py", "player/session_mixins/progress_gaps.py", "player/session_mixins/exploration_progress.py"),
+        "purpose": "podsumowanie postępu, tytuły i konkretne braki do najbliższych celów",
     },
     "database/progression": {
         "files": ("storage/db_progression.py",),

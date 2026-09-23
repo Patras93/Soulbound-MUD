@@ -84,13 +84,13 @@ def cumulative_release_integrity_audit_v0369():
         preserved.append(label)
 
     # Direct release-line checks for the exact milestones the user flagged.
-    if str(globals().get("VERSION","")) != "0.58.3":
-        errors.append(f"VERSION={globals().get('VERSION')!r}, expected 0.58.3")
-    if str(globals().get("GENERATOR_CORE_VERSION","")) != "0.58.3":
-        errors.append(f"Generator Core={globals().get('GENERATOR_CORE_VERSION')!r}, expected 0.58.3")
+    if str(globals().get("VERSION","")) != "0.60.0":
+        errors.append(f"VERSION={globals().get('VERSION')!r}, expected 0.60.0")
+    if str(globals().get("GENERATOR_CORE_VERSION","")) != "0.60.0":
+        errors.append(f"Generator Core={globals().get('GENERATOR_CORE_VERSION')!r}, expected 0.60.0")
 
     return {
-        "version":"0.58.3",
+        "version":"0.60.0",
         "checked":len(_RELEASE_AUDITS_V0369),
         "preserved":preserved,
         "preserved_count":len(preserved),
@@ -101,7 +101,7 @@ def cumulative_release_integrity_audit_v0369():
 CUMULATIVE_RELEASE_INTEGRITY_AUDIT_V0369=cumulative_release_integrity_audit_v0369()
 if CUMULATIVE_RELEASE_INTEGRITY_AUDIT_V0369["error_count"]:
     raise RuntimeError(
-        "Cumulative Release Integrity Audit v0.58.3 failed: "
+        "Cumulative Release Integrity Audit v0.60.0 failed: "
         + "; ".join(CUMULATIVE_RELEASE_INTEGRITY_AUDIT_V0369["errors"][:100])
     )
 
@@ -120,11 +120,16 @@ HELP_TOPICS.setdefault("wersja", []).append(
     "v0.38.14: bounty porzuć / bounty porzuc anuluje aktywny kontrakt bez zmiany licznika ukończonych i bez darmowego losowania nowych ofert."
 )
 
-LATEST_CHANGES_TITLE = "Soulbound v0.58.3 - Soul Trial Runtime Kill Credit Hotfix"
+HELP_TOPICS.setdefault("wersja", []).append("v0.59.0: braki / gaps / missing pokazuje konkretne wartości brakujące do Levelu, Soul Tieru, profesji, Gildii, kolekcji i aktywnych celów.")
+HELP_TOPICS.setdefault("wersja", []).append("v0.60.0: rotujące Zamówienia Rzemieślnicze NPC co godzinę oraz porownaj <przedmiot> do pełnego porównania posiadanego EQ poza sklepem. Crafting Odłamków Duszy z v0.59.2 pozostaje bez zmian.")
+
+LATEST_CHANGES_TITLE = "Soulbound v0.60.0 - NPC Crafting Orders & EQ Compare"
 LATEST_CHANGES = [
-    "v0.58.3: Próba Broni Duszy Tier 9 zalicza Króla Podmiejskich Kanałów także wtedy, gdy runtime skaluje bossa do technicznego terrain/world clone.",
-    "Questowy kill-credit v0.38.9 uwzględnia teraz `base_template` runtime-clonów, bez zmiany kanonicznej tożsamości Bestiariusza ani balansu mobów.",
-    "Dodano regresję 0/1 -> 1/1 dla aktywnego `soul_tier_09_trial` oraz test terrain/world-threat clone.",
+    "v0.60.0: rotujące zamówienia NPC używają realnych receptur i odnawiają się co 60 minut.",
+    "porownaj <przedmiot> pokazuje zyski i straty względem założonego EQ poza sklepem.",
+    "Eliksiry Duszy zużywają 2/5/10 Odłamków zależnie od tieru.",
+    "Mocniejsze talizmany zużywają 2-8 Odłamków; Rune Crafting 2-6; Rdzeń Gniazda 5.",
+    "Podstawowe receptury pozostają bez kosztu Odłamków; drop 100% w Krypcie z v0.59.1 bez zmian.",
     "Brak zmian schematu SQLite i save'ów; bez wipe postaci.",
 ]
 
@@ -201,4 +206,4 @@ HELP_TOPICS.setdefault("wersja", []).append("v0.57.1: Fast Railway Predeploy —
 HELP_TOPICS.setdefault("wersja", []).append("v0.58.0: Titles 2.0 & Unified Progress — retroaktywne tytuły za eksplorację, bossy, profesje, Kurierów, gildie i frakcje oraz pełna komenda postep w jednym widoku NVDA.")
 HELP_TOPICS.setdefault("wersja", []).append("v0.58.1: Living NPC Late Finalize Hotfix — późno tworzeni NPC, w tym klasowi sprzedawcy EQ, dostają godzinne questy przed audytem; naprawiono restart loop na Railway bez wyłączania walidacji.")
 HELP_TOPICS.setdefault("wersja", []).append("v0.58.2: Runtime Symbol Collision Hotfix — usunięto kolizję `_has_quest` między audytami i dodano wykrywanie nieoczekiwanych override’ów symboli do Fast Railway Predeploy.")
-HELP_TOPICS.setdefault("wersja", []).append("v0.58.3: Soul Trial Runtime Kill Credit Hotfix — Próba Tier 9 zalicza Króla Podmiejskich Kanałów także jako runtime terrain/world clone.")
+HELP_TOPICS.setdefault("wersja", []).append("v0.58.4: Essential Quest Progress Notifications — postęp questów nie znika w zwięzłym logu walki; kill-quest pokazuje zaliczony cel, X/Y i gotowość do oddania.")

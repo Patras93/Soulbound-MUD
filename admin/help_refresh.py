@@ -278,7 +278,7 @@ def refresh_help_v03011():
         "Gdy porusza się lider, członkowie stojący z nim w tej samej lokacji automatycznie próbują wykonać ten sam krok. Działa to również podczas prowadzenia walk/prowadz.",
         "Follower nie jest teleportowany przez blokady: walka, niedostępne przejście lub indywidualne wymaganie może zatrzymać konkretnego członka bez zatrzymywania lidera.",
         "pc <tekst> to czat drużynowy; bufor party pokazuje jego ostatnie wpisy.",
-        "Jeśli Odłamek Duszy wypadnie z przeciwnika podczas wspólnej walki, każdy członek drużyny obecny w tej samej lokacji otrzymuje własny Odłamek.",
+        "Jeśli Odłamek Duszy wypadnie z przeciwnika podczas wspólnej walki, każdy członek drużyny obecny w tej samej lokacji otrzymuje własny Odłamek. Odłamki po queście zużywa też crafting: Eliksiry Duszy, wysokie talizmany, runy i Rdzeń Gniazda.",
         "wspieraj / assist pomaga członkowi w walce; zasłoń / zaslon pozwala aktywnemu Strażnikowi przejmować aggro wspólnego przeciwnika w tej samej lokacji.",
         "Limit drużyny rośnie z Charyzmą lidera.",
     ]
@@ -917,7 +917,7 @@ def full_combat_scaling_audit_v03015():
         errors.append("INT/WIL does not increase mana")
     if int_plus - base != wil_plus - base:
         errors.append("INT/WIL mana contribution is not equal")
-    if GENERATOR_CORE_VERSION != "0.58.3":
+    if GENERATOR_CORE_VERSION != "0.60.0":
         errors.append(f"GENERATOR_CORE_VERSION={GENERATOR_CORE_VERSION}")
     return {
         "version": "0.30.19",

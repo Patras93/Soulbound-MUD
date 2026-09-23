@@ -849,7 +849,7 @@ def build_crypt_200_floors():
             "stat_reward":max(1,int(round((20+floor*2)*depth_mult))),
             "class_xp_reward":max(1,int(round((450+floor*60)*depth_mult))),
             "soul_reward":max(1,int(round((100+floor*10)*depth_mult))),
-            "drops":{"soul_shard":min(0.30,0.08+floor*0.002)},"quest_target":None,
+            "drops":{"soul_shard":1.0},"quest_target":None,
             "crypt_floor":floor,"corpse_equipment_pool":gear,"corpse_equipment_guaranteed":1,
         }, 'MOB_TEMPLATES', MOB_TEMPLATES, (tid,))
         MOB_SPAWNS.append((room_id,tid))
@@ -965,7 +965,7 @@ def build_mythic_endgame():
             "stat_reward": max(1, int(round((800 + floor * 5) * c_depth_mult))),
             "class_xp_reward": max(1, int(round((20000 + floor * 300) * c_depth_mult))),
             "soul_reward": max(1, int(round((4000 + floor * 25) * c_depth_mult))),
-            "drops": {"soul_shard": 0.55},
+            "drops": {"soul_shard": 1.0},
             "quest_target": None,
             "mythic_crypt_floor": floor,
             "corpse_equipment_pool": [

@@ -70,6 +70,9 @@ RUNTIME_MODULES = ['core/bootstrap_economy_professions.py',
  'player/session_mixins/collection_loot_records.py',
  'player/session_mixins/world_progression.py',
  'player/session_mixins/progress_titles.py',
+ 'player/session_mixins/progress_gaps.py',
+ 'player/session_mixins/crafting_orders.py',
+ 'player/session_mixins/equipment_compare.py',
  'player/session_mixins/help_system.py',
  'player/session_mixins/atlas_codex.py',
  'player/session_mixins/character_profile.py',
@@ -174,6 +177,7 @@ RUNTIME_MODULES = ['core/bootstrap_economy_professions.py',
  'admin/living_npcs_late_finalize_audit_v0581.py',
  'admin/modular_refactor_audit_v0570.py',
  'admin/titles_progress_audit_v0580.py',
+ 'admin/crafting_orders_compare_audit_v0600.py',
  'admin/release_integrity_v0369.py']
 
 
@@ -784,8 +788,14 @@ EXPLICIT_RUNTIME_EXPORTS["player/session_mixins/progress_titles.py"] = (
     "EXPLORATION_TITLES_V0580", "BOSS_TITLES_V0580",
     "PROFESSION_TITLE_THRESHOLDS_V0580",
 )
+EXPLICIT_RUNTIME_EXPORTS["player/session_mixins/progress_gaps.py"] = (
+    "SessionProgressGapsV0590Mixin",
+)
 EXPLICIT_RUNTIME_EXPORTS["admin/titles_progress_audit_v0580.py"] = (
     "titles_progress_audit_v0580", "TITLES_PROGRESS_AUDIT_V0580",
+)
+EXPLICIT_RUNTIME_EXPORTS["admin/crafting_orders_compare_audit_v0600.py"] = (
+    "crafting_orders_compare_audit_v0600", "CRAFTING_ORDERS_COMPARE_AUDIT_V0600",
 )
 
 EXPLICIT_RUNTIME_EXPORTS["admin/railway_packaging_audit_v0521.py"] = (
@@ -915,3 +925,12 @@ EXPECTED_SESSION_METHOD_DUPLICATES = {
         "player/session_mixins/crafting_expansion.py:SessionCraftingExpansionV03114Mixin",
     ],
 }
+
+# v0.60.0: rotating NPC crafting orders and inventory-wide EQ comparison.
+EXPLICIT_RUNTIME_EXPORTS["player/session_mixins/crafting_orders.py"] = (
+    "CRAFTING_ORDER_REFRESH_SECONDS_V0600", "CRAFTING_ORDER_NPCS_V0600",
+    "SessionCraftingOrdersV0600Mixin",
+)
+EXPLICIT_RUNTIME_EXPORTS["player/session_mixins/equipment_compare.py"] = (
+    "SessionEquipmentCompareV0600Mixin",
+)

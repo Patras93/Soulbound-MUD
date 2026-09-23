@@ -1,4 +1,81 @@
+﻿SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
+Aktualna paczka: v0.60.0
+
+Ten plik jest changelogiem narastającym. Kolejne wydania mają dopisywać nowe wpisy na górze, bez usuwania starszej historii.
+Historia poniżej została odtworzona z zachowanych wpisów release, HELP, audytów, komentarzy milestone oraz aktywnego kodu Soulbound.
+Jeżeli stara wersja pozostawiła w obecnej bazie tylko numer bez wiarygodnego opisu, nie dopisuję zmyślonych zmian; takie numery są wymienione na końcu.
+
+==============================================================================
+Soulbound v0.60.0 — NPC Crafting Orders & EQ Compare
+==============================================================================
+
+- Dodano rotujące Zamówienia Rzemieślnicze NPC. Oferty odnawiają się co 60 minut i są generowane z realnych receptur dostępnych dla aktualnego poziomu profesji gracza.
+- System zamówień obejmuje Kowalstwo, Gotowanie, Alchemię, Jubilerstwo, Krawiectwo, Garbarstwo i Stolarstwo.
+- Każdy lokalny specjalista pokazuje do 3 ofert; przyjęcie: `zamowienia wez <numer>`, stan: `zamowienia status`, oddanie: `zamowienia oddaj`, anulowanie: `zamowienia porzuc`.
+- Jednocześnie może być aktywne jedno zamówienie. W jednym cyklu godzinowym można ukończyć jedno, co zapobiega farmieniu tej samej rotacji.
+- Postęp liczy wyłącznie nowe sztuki wykonane po przyjęciu. Przy oddaniu NPC pobiera fizycznie zamówioną liczbę produktów z ekwipunku lub właściwego magazynu profesji.
+- Nagrody zamówień: waluta oraz dodatkowy XP profesji i narzędzia. Zamówienia rzemieślnicze nie dają Soul XP.
+- Dodano trwałą tabelę SQLite `crafting_orders_v0600`; jest tworzona automatycznie na istniejącej bazie przy starcie, bez wipe postaci.
+- Dodano `porownaj <przedmiot>` / `porównaj <przedmiot>` / `compare <przedmiot>` do porównywania posiadanego EQ poza sklepem.
+- Porównanie pokazuje różnice obrony, statystyk, właściwości procentowych oraz liczby gniazd względem aktualnie założonego przedmiotu.
+- Porównanie uwzględnia upgrade, reforge, runy oraz klejnoty w aktualnie założonym EQ. Dla pierścieni, talizmanów i kolczyków pokazuje osobno oba pasujące sloty.
+- Dodano osobny Crafting Orders & EQ Compare Audit v0.60.0 i ochronę nowej tabeli w Fast Railway Predeploy.
+- Zachowano v0.59.2: Odłamki Duszy pozostają składnikiem duszo-magicznego craftingu, a gwarantowany drop w Krypcie pozostaje bez zmian.
+
+==============================================================================
+Soulbound v0.59.2 — Soul Shard Crafting Sink
+==============================================================================
+
+- Odłamki Duszy po ukończeniu questa mają stałe zastosowanie jako składnik craftingu.
+- Eliksir Duszy zużywa 2 Odłamki, Tonik Duszy 5, a Eliksir Wiecznej Duszy 10.
+- Talizmany od Talizmanu Drzewa Dusz do Talizmanu Wiecznej Duszy zużywają 2–8 Odłamków zależnie od tieru.
+- Rune Crafting zużywa 2 Odłamki dla podstawowych run, 4 dla zaawansowanych oraz 6 dla Runy Rdzenia.
+- Rdzeń Gniazda używany przez Socket Crafting wymaga dodatkowo 5 Odłamków Duszy.
+- Podstawowe receptury, jedzenie, zwykłe mikstury i sztabki pozostają bez kosztu Odłamków.
+- Odłamek pozostaje niesprzedawalnym przedmiotem questowym; 100% drop w Krypcie/Mitycznej Krypcie z v0.59.1 pozostaje bez zmian.
+- Brak zmian schematu SQLite i save'ów; bez wipe postaci.
+
+==============================================================================
+Soulbound v0.59.1 — More Soul Shards
+==============================================================================
+
+- Quest „Odłamki dla kowala” nadal wymaga 20 Odłamków Duszy, ale zdobywanie ich nie zależy już od pechowych rzutów RNG.
+- Każdy zwykły mob Krypty Nieskończonej gwarantuje teraz 1 Odłamek Duszy.
+- Każdy zwykły mob Mitycznej Krypty również gwarantuje 1 Odłamek Duszy.
+- Klasyczne moby Krypty (m.in. Szkielet i Upiór Krypty) także mają gwarantowany Odłamek.
+- Bossowie Krypty nadal gwarantują Odłamek, bez zmian w pozostałych dropach.
+- Zmieniono także proceduralne piętra tworzone w runtime, więc zasada działa powyżej wcześniej zbudowanych zakresów pięter.
+- Odłamek Duszy pozostaje przedmiotem questowym bez normalnej ceny sprzedaży; zmiana nie zwiększa podaży waluty.
+- Brak zmian w SQLite i save'ach; bez wipe postaci.
+
+==============================================================================
+Soulbound v0.59.0 — Progress Gaps
+==============================================================================
+
+- Dodano komendę `braki` / `gaps` / `missing` jako zwięzły, NVDA-friendly widok konkretnych wartości brakujących do najbliższych głównych celów progresji.
+- Level postaci: pokazuje dokładny brakujący Character EXP do następnego poziomu.
+- Soul Tier: rozpoznaje etap rozwoju i mówi, czy brakuje Soul Levelu, przyjęcia właściwej Próby Broni Duszy, postępu celu, oddania Próby czy już tylko komendy `unlock`.
+- Profesje: wszystkie 12 profesji pokazują dokładny brakujący XP do następnego poziomu albo stan maksimum 600/600.
+- Gildia gracza: pokazuje brakującą walutę w skarbcu do następnego poziomu Gildii albo informuje, że środki już wystarczają.
+- Kolekcje: pokazują łączną liczbę brakujących wpisów do 100% oraz trzy kategorie najbliższe skompletowania.
+- Aktywne cele: do pięciu aktywnych questów z X/Y i brakującą liczbą, aktywna Tablica Zleceń, Legendarny Kontrakt i dostawa kurierska.
+- Komenda jest tylko odczytem istniejącego stanu; brak zmian schematu SQLite, save'ów, balansu i gameplayu.
+- Fast Railway Predeploy: 169 modułów runtime, 0 braków, 0 błędów składni; 850 aliasów, 231 handlerów po dodaniu nowej komendy.
+
+==============================================================================
+Soulbound v0.58.4 — Essential Quest Progress Notifications
+==============================================================================
+
+- Naprawiono brak widocznego komunikatu po poprawnym zaliczeniu kill-questa podczas walki w zwięzłym trybie logu.
+- Wszystkie komunikaty z `announce_active_quest_progress()` są wysyłane jako `combat_detail=essential`, więc nie są wyciszane przez combat log `concise`.
+- Kill-quest pokazuje nazwę faktycznie pokonanego celu, postęp X/Y oraz jednorazowe `GOTOWE DO ODDANIA` po osiągnięciu celu.
+- Próba Broni Duszy Tier 9 po Królu Podmiejskich Kanałów informuje: zaliczony cel, 1/1 i NPC Kapłan Elor.
+- Zachowano v0.58.3 runtime kill-credit dla terrain/world clone.
+- Brak zmian schematu SQLite i save'ów; bez wipe postaci.
+
+==============================================================================
 Soulbound v0.58.3 — Soul Trial Runtime Kill Credit Hotfix
+==============================================================================
 
 - Naprawiono Próbę Broni Duszy Tier 9: zabicie Króla Podmiejskich Kanałów zalicza teraz cel także wtedy, gdy World/Terrain runtime skaluje bossa do technicznego template ID.
 - `quest_kill_targets_v0389` uwzględnia `base_template` runtime-clonów oprócz dotychczasowych canonical/Elite/Rare/dense targetów.
@@ -7,21 +84,15 @@ Soulbound v0.58.3 — Soul Trial Runtime Kill Credit Hotfix
 - Rozszerzono istniejący Canonical Kill Quest Credit Audit v0.38.9 o przypadek `base_template` dla Króla Podmiejskich Kanałów.
 - Brak zmian schematu SQLite i save'ów; bez wipe postaci.
 
+==============================================================================
 Soulbound v0.58.2 — Runtime Symbol Collision Hotfix
+==============================================================================
 
 - Naprawiono produkcyjny crash Railway: `Unexpected runtime symbol override: _has_quest: admin/living_npcs_activity_audit_v0560.py -> admin/living_npcs_late_finalize_audit_v0581.py`.
 - Późny audyt Living NPCs używa teraz unikalnego helpera `_v0581_has_quest`, więc nie narusza jawnej polityki override native runtime.
 - Zachowano naprawę v0.58.1: finalizer nadal domyka godzinne questy dla NPC tworzonych po głównym przebiegu, w tym klasowych sprzedawców EQ.
 - Fast Railway Predeploy analizuje wszystkie top-level funkcje i klasy runtime oraz wykrywa nieoczekiwane kolizje symboli i błędną kolejność dozwolonych override’ów przed Docker deployem.
 - Brak zmian gameplayu, schematu SQLite i save’ów; bez wipe postaci.
-
-SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v0.58.3
-
-Ten plik jest changelogiem narastającym. Kolejne wydania mają dopisywać nowe wpisy na górze, bez usuwania starszej historii.
-Historia poniżej została odtworzona z zachowanych wpisów release, HELP, audytów, komentarzy milestone oraz aktywnego kodu Soulbound.
-Jeżeli stara wersja pozostawiła w obecnej bazie tylko numer bez wiarygodnego opisu, nie dopisuję zmyślonych zmian; takie numery są wymienione na końcu.
-
 
 ==============================================================================
 Soulbound v0.58.1 — Living NPC Late Finalize Hotfix

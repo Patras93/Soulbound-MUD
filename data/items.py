@@ -477,7 +477,7 @@ ITEMS = {
     },
     "soul_shard": {
         "name": "Odłamek Duszy", "type": "quest", "price": None,
-        "desc": "Niestabilny odłamek znaleziony przy istotach z krypty.",
+        "desc": "Niestabilny odłamek znaleziony przy istotach z krypty. Służy także jako składnik craftingu duszy, run i socketów.",
     },
     "wolf_fang": {
         "name": "Kieł Wilka Cienia", "type": "loot", "price": None,

@@ -15,7 +15,7 @@ import math
 import re
 import os
 
-GENERATOR_VERSION = "0.58.3"
+GENERATOR_VERSION = "0.60.0"
 MAX_LEVEL = 400
 SAFE_INT = 9_000_000_000_000_000_000
 

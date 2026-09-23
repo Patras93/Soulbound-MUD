@@ -31,6 +31,9 @@ COMMAND_REGISTRY = {
     'describe': ('describe_target', (COMMAND_TEXT,), {}),
     'changes': ('show_latest_changes', (), {}),
     'progress': ('show_progress', (COMMAND_TEXT,), {}),
+    'gaps': ('show_progress_gaps_v0590', (COMMAND_TEXT,), {}),
+    'craftorders': ('handle_crafting_orders_v0600', (COMMAND_TEXT,), {}),
+    'compareeq': ('compare_equipment_v0600', (COMMAND_TEXT,), {}),
     'historybuffer': ('show_history_buffer', (COMMAND_TEXT,), {}),
     'regionprogress': ('show_region_progress', (), {}),
     'exploration': ('show_exploration', (COMMAND_TEXT,), {}),
@@ -298,13 +301,13 @@ COMMAND_REGISTRY.update({
 # Command-state policy is metadata, not parser code.  The loop asks the
 # catalog whether the resolved canonical command is safe in a given state.
 DOWNED_SAFE_COMMANDS = {
-    "activityjournal", "whattodo",
+    "activityjournal", "whattodo", "gaps", "compareeq",
     "help", "look", "party", "partychat", "say", "tell", "reply", "who",
     "where", "hp", "score", "records", "chronicle", "selfrespawn",
     "historybuffer", "lifetime", "deathrecap", "combatrecap",
 }
 REST_SAFE_COMMANDS = {
-    "activityjournal", "whattodo",
+    "activityjournal", "whattodo", "gaps", "compareeq",
     "rest", "help", "encoding", "describe", "changes", "look", "level", "xp", "wimpy", "eventxp",
     "corpse", "cryptinfo", "astralinfo", "consider", "waterinfo", "fishjournal", "exits", "map",
     "worldevents", "atlas", "codex", "bestiary", "where", "who", "gossip", "newbie", "trade",
@@ -324,7 +327,7 @@ REST_SAFE_COMMANDS = {
     "garbuj", "stolarka", "enchants",
 }
 GUIDE_SAFE_COMMANDS = {
-    "activityjournal", "whattodo",
+    "activityjournal", "whattodo", "gaps", "compareeq",
     "guide", "route", "help", "encoding", "describe", "changes", "wimpy", "eventxp", "look", "level",
     "xp", "exits", "map", "atlas", "codex", "bestiary", "where", "who", "whois", "terraininfo",
     "location", "stats", "hp", "score", "money", "soul", "skills", "spells", "skillnames", "inventory",

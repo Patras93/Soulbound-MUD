@@ -140,10 +140,20 @@ class SessionQuestProgressMixin:
 
             return None
 
-    async def announce_active_quest_progress(self, quest_id):
+    async def announce_active_quest_progress(self, quest_id, event_label=None):
             q = QUESTS.get(quest_id)
             if not q:
                 return
+
+            # v0.58.4: quest progress is gameplay-essential. During active combat
+            # Session.send() otherwise auto-classifies ordinary text as normal
+            # combat detail, which can be hidden by concise combat log mode.
+            async def _send_progress(message):
+                await self.send(
+                    message,
+                    combat_detail="essential",
+                    history_category="quest",
+                )
 
             progress = self.quest_progress_value(quest_id)
             if progress is None:
@@ -158,14 +168,14 @@ class SessionQuestProgressMixin:
                 have = self.quest_crafted_item_have_v0333(q["target"])
                 item_name = ITEMS[q["target"]]["name"]
                 if progress >= needed and have >= needed:
-                    await self.send(
+                    await _send_progress(
                         f"Quest aktywny: {q['name']}. "
                         f"Wykonano {progress} z {needed}: "
                         f"{item_name}. Masz {have} sztuk. "
                         "Dziennik zaktualizowany. GOTOWE DO ODDANIA."
                     )
                 elif progress >= needed:
-                    await self.send(
+                    await _send_progress(
                         f"Quest aktywny: {q['name']}. "
                         f"Wykonano {progress} z {needed}: "
                         f"{item_name}. "
@@ -174,7 +184,7 @@ class SessionQuestProgressMixin:
                         "posiadać wymagane przedmioty do oddania."
                     )
                 else:
-                    await self.send(
+                    await _send_progress(
                         f"Quest aktywny: {q['name']}. "
                         f"Wykonano {progress} z {needed}: "
                         f"{item_name}."
@@ -187,13 +197,13 @@ class SessionQuestProgressMixin:
                 )
                 names = [ITEMS.get(i, {"name": i})["name"] for i in species]
                 if progress >= needed:
-                    await self.send(
+                    await _send_progress(
                         f"Quest aktywny: {q['name']}. Różne gatunki {progress} z {needed}: "
                         + ", ".join(names)
                         + ". Cel wykonany; zachowaj po jednej sztuce zaliczonych gatunków do oddania."
                     )
                 else:
-                    await self.send(
+                    await _send_progress(
                         f"Quest aktywny: {q['name']}. Różne gatunki {progress} z {needed}."
                         + ((" Zaliczono: " + ", ".join(names) + ".") if names else "")
                     )
@@ -203,19 +213,19 @@ class SessionQuestProgressMixin:
                 have = self.resource_quest_have(q["target"])
                 name = ITEMS[q["target"]]["name"]
                 if progress >= needed and have >= needed:
-                    await self.send(
+                    await _send_progress(
                         f"Quest aktywny: {q['name']}. "
                         f"Zdobyto {progress} z {needed}: {name}. "
                         f"Masz {have}. Quest gotowy do oddania."
                     )
                 elif progress >= needed:
-                    await self.send(
+                    await _send_progress(
                         f"Quest aktywny: {q['name']}. "
                         f"Zdobyto {progress} z {needed}: {name}. "
                         f"Do oddania masz {have} z {needed}."
                     )
                 else:
-                    await self.send(
+                    await _send_progress(
                         f"Quest aktywny: {q['name']}. "
                         f"Zdobyto {progress} z {needed}: {name}."
                     )
@@ -236,7 +246,7 @@ class SessionQuestProgressMixin:
                     )
                     if got < int(target_needed) or have < int(target_needed):
                         ready = False
-                await self.send(
+                await _send_progress(
                     f"Quest aktywny: {q['name']}. " + "; ".join(details) + (
                         ". Dziennik zaktualizowany. GOTOWE DO ODDANIA." if ready else "."
                     )
@@ -253,27 +263,43 @@ class SessionQuestProgressMixin:
                     if self.quest_crafted_item_have_v0333(item_id) > 0
                 )
                 if progress >= needed and have >= needed:
-                    await self.send(
+                    await _send_progress(
                         f"Quest aktywny: {q['name']}. "
                         f"Elementy zestawu wykonane {progress} z {needed}. "
                         "Dziennik zaktualizowany. Pełny zestaw GOTOWY DO ODDANIA."
                     )
                 else:
-                    await self.send(
+                    await _send_progress(
                         f"Quest aktywny: {q['name']}. "
                         f"Elementy zestawu wykonane {progress} z {needed}. "
                         f"Posiadasz {have} z {needed}."
                     )
                 return
 
+            if q.get("kind") == "kill":
+                label = str(event_label or q.get("progress_label") or "").strip()
+                credited = f"Zaliczono: {label}. " if label else "Zabicie zaliczone. "
+                if progress >= needed:
+                    await _send_progress(
+                        f"Postęp questa: {q['name']}. "
+                        f"{credited}Postęp {progress} z {needed}. "
+                        f"GOTOWE DO ODDANIA. NPC: {q.get('giver', 'NPC')}."
+                    )
+                else:
+                    await _send_progress(
+                        f"Postęp questa: {q['name']}. "
+                        f"{credited}Postęp {progress} z {needed}."
+                    )
+                return
+
             if progress >= needed:
-                await self.send(
+                await _send_progress(
                     f"Quest aktywny: {q['name']}. "
                     f"Postęp {progress} z {needed}. "
                     "Dziennik zaktualizowany. GOTOWE DO ODDANIA — wróć do NPC."
                 )
             else:
-                await self.send(
+                await _send_progress(
                     f"Quest aktywny: {q['name']}. "
                     f"Postęp {progress} z {needed}."
                 )
@@ -369,6 +395,9 @@ class SessionQuestProgressMixin:
                         f"Wykonałeś: {item_name}. "
                         f"Postęp {progress} z {needed}."
                     )
+
+            # v0.60.0: rotujące zamówienia NPC liczą te same realne craft events.
+            await self.announce_crafting_order_progress_v0600(item_id, amount)
 
     def format_duration_short(self, seconds):
             seconds = max(0, int(seconds))

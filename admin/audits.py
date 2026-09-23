@@ -72,8 +72,8 @@ def generator_whitelist_audit_v03019():
     audit = GENERATOR_CORE_AUDIT or {}
     whitelist = audit.get("whitelist_audit") or {}
     errors = []
-    if GENERATOR_CORE_VERSION != "0.58.3":
-        errors.append(f"Generator Core version={GENERATOR_CORE_VERSION}, expected 0.58.3")
+    if GENERATOR_CORE_VERSION != "0.60.0":
+        errors.append(f"Generator Core version={GENERATOR_CORE_VERSION}, expected 0.60.0")
     if not audit.get("numeric_only"):
         errors.append("numeric_only flag missing")
     runtime_fast = bool(audit.get("runtime_fast_path"))
@@ -759,7 +759,7 @@ def full_release_integrity_audit_v03025():
         errors.append("world logic audit failed")
     if int(WORLD_LOGIC_AUDIT.get("warning_count", 0) or 0):
         errors.append("world logic warnings present")
-    if GENERATOR_CORE_VERSION != "0.58.3":
+    if GENERATOR_CORE_VERSION != "0.60.0":
         errors.append(f"GENERATOR_CORE_VERSION={GENERATOR_CORE_VERSION}")
     return {
         "version": "0.30.25",
@@ -845,9 +845,9 @@ for _starter_ore in ("iron_ore", "silver_ore", "gold_ore"):
 def apply_soul_shard_drop_fix_v03026():
     # Klasyczne moby wejściowej Krypty.
     if "skeleton" in MOB_TEMPLATES:
-        _catalog_mut.catalog_setdefault_path('MOB_TEMPLATES', MOB_TEMPLATES, ("skeleton",), "drops", {})["soul_shard"] = 0.55
+        _catalog_mut.catalog_setdefault_path('MOB_TEMPLATES', MOB_TEMPLATES, ("skeleton",), "drops", {})["soul_shard"] = 1.0
     if "crypt_wraith" in MOB_TEMPLATES:
-        _catalog_mut.catalog_setdefault_path('MOB_TEMPLATES', MOB_TEMPLATES, ("crypt_wraith",), "drops", {})["soul_shard"] = 0.85
+        _catalog_mut.catalog_setdefault_path('MOB_TEMPLATES', MOB_TEMPLATES, ("crypt_wraith",), "drops", {})["soul_shard"] = 1.0
 
     regular_fixed = 0
     boss_fixed = 0
@@ -859,12 +859,12 @@ def apply_soul_shard_drop_fix_v03026():
             _template.setdefault("drops", {})["soul_shard"] = 1.0
             boss_fixed += 1
         elif _crypt_floor > 0:
-            # Zwykła Krypta: około 25% na początku, rośnie do 65%.
-            _template.setdefault("drops", {})["soul_shard"] = min(0.65, 0.25 + _crypt_floor * 0.002)
+            # v0.59.1: zwykła Krypta gwarantuje Odłamek, aby quest na 20 sztuk nie zależał od RNG.
+            _template.setdefault("drops", {})["soul_shard"] = 1.0
             regular_fixed += 1
         elif _mythic_floor > 0:
             # Mityczna Krypta jest późnym źródłem — odłamek ma być częsty.
-            _template.setdefault("drops", {})["soul_shard"] = 0.65
+            _template.setdefault("drops", {})["soul_shard"] = 1.0
             mythic_fixed += 1
     return {
         "regular_crypt": regular_fixed,
@@ -876,7 +876,7 @@ SOUL_SHARD_DROP_FIX_V03026 = apply_soul_shard_drop_fix_v03026()
 
 # HELP: Tier narzędzia jest teraz twardym progiem zawartości.
 HELP_TOPICS.setdefault("quest", []).append(
-    "v0.30.26: Odłamki Duszy w Krypcie wypadają znacznie częściej. Zwykłe piętra zaczynają od około 25 procent i rosną do 65 procent; bossowie Krypty gwarantują Odłamek."
+    "v0.59.1: Odłamki Duszy są gwarantowanym dropem z każdego zwykłego moba Krypty i Mitycznej Krypty; bossowie nadal gwarantują Odłamek. Quest Odłamki dla kowala wymaga 20 sztuk, więc nie zależy już od pechowych rzutów RNG."
 )
 HELP_TOPICS.setdefault("narzedzia", []).extend([
     "v0.30.26: nowy gatunek ryby, ruda, drewno lub zioło odblokowuje się dopiero przy wejściu narzędzia na wymagany Tier; pojedynczy level wewnątrz Tieru nie rozszerza puli zasobów.",
@@ -976,7 +976,7 @@ def gameplay_flow_audit_v03026():
         if missing:
             errors.append(f"station {_station}: brak w {missing[:5]}")
 
-    if GENERATOR_CORE_VERSION != "0.58.3":
+    if GENERATOR_CORE_VERSION != "0.60.0":
         errors.append(f"GENERATOR_CORE_VERSION={GENERATOR_CORE_VERSION}")
 
     return {
@@ -1018,7 +1018,7 @@ LATEST_CHANGES = [
     "Poprawiono komunikaty o miejscach zakupu wszystkich narzędzi oraz stare wpisy HELP dotyczące XP i blokad receptur.",
     "Surowe klejnoty z Górnictwa są odblokowywane przez Tier Kilofa; level Górnictwa wpływa nadal na jakość i szansę, ale nie zmienia puli między Tierami.",
     "Doran sprzedaje podstawowe Rudy Żelaza, Srebra i Złota, więc czysty Kowal może rozpocząć profesję bez Górnictwa; Kobalt i wyżej pozostają zawartością świata/Górnictwa.",
-    "Naprawiono zaniżanie szansy Odłamków Duszy przez ogólny rebalance: zwykła Krypta ma teraz około 25-65 procent, klasyczne moby Krypty 55-85 procent, a bossowie gwarantują Odłamek.",
+    "Odłamki Duszy są teraz gwarantowane z każdego zwykłego moba Krypty i Mitycznej Krypty; bossowie również gwarantują Odłamek, więc quest na 20 sztuk nie zależy od RNG.",
     "Generator Core pozostaje v0.30.24. Brak wipe.",
 ]
 

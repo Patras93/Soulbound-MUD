@@ -34,7 +34,7 @@ ALCHEMY_RECIPES = {
     },
     "soul_elixir": {
         "name": "Eliksir Duszy", "stations": ("herbalist_hut",),
-        "ingredients": {"soulroot": 2, "astral_lotus": 1},
+        "ingredients": {"soulroot": 2, "astral_lotus": 1, "soul_shard": 2},
         "output": "soul_elixir", "quantity": 1,
         "desc": "Daje 80 Soul XP.",
     },
@@ -61,7 +61,7 @@ ALCHEMY_RECIPES = {
     },
     "soul_tonic": {
         "name": "Tonik Duszy", "stations": ("herbalist_hut",),
-        "ingredients": {"void_lotus": 2, "astral_lotus": 1},
+        "ingredients": {"void_lotus": 2, "astral_lotus": 1, "soul_shard": 5},
         "output": "soul_tonic", "quantity": 1,
         "min_tool_level": 160, "tool_xp": 36,
         "desc": "Alchemia level 160. Daje 180 Soul XP.",
@@ -75,7 +75,7 @@ ALCHEMY_RECIPES = {
     },
     "eternal_soul_elixir": {
         "name": "Eliksir Wiecznej Duszy", "stations": ("herbalist_hut",),
-        "ingredients": {"eternal_blossom": 2, "void_lotus": 1},
+        "ingredients": {"eternal_blossom": 2, "void_lotus": 1, "soul_shard": 10},
         "output": "eternal_soul_elixir", "quantity": 1,
         "min_tool_level": 200, "tool_xp": 50,
         "desc": "Alchemia level 200. Daje 400 Soul XP.",

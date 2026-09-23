@@ -217,6 +217,67 @@ class DatabaseQuestMixin:
         self.conn.commit()
         return changed
 
+    def crafting_order_v0600(self, account_id):
+        return self.conn.execute(
+            "SELECT * FROM crafting_orders_v0600 WHERE account_id=?",
+            (account_id,),
+        ).fetchone()
+
+    def start_crafting_order_v0600(self, account_id, offer):
+        old = self.crafting_order_v0600(account_id)
+        completed_cycle = int(old["completed_cycle_slot"]) if old else -1
+        completed_count = int(old["completed_count"]) if old else 0
+        self.conn.execute(
+            "INSERT INTO crafting_orders_v0600("
+            "account_id,cycle_slot,npc_id,profession,item_id,item_name,needed,progress,"
+            "reward_coins,reward_profession_xp,reward_tool_type,reward_tool_xp,accepted_at,"
+            "completed_cycle_slot,completed_count) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) "
+            "ON CONFLICT(account_id) DO UPDATE SET "
+            "cycle_slot=excluded.cycle_slot,npc_id=excluded.npc_id,profession=excluded.profession,"
+            "item_id=excluded.item_id,item_name=excluded.item_name,needed=excluded.needed,progress=0,"
+            "reward_coins=excluded.reward_coins,reward_profession_xp=excluded.reward_profession_xp,"
+            "reward_tool_type=excluded.reward_tool_type,reward_tool_xp=excluded.reward_tool_xp,"
+            "accepted_at=excluded.accepted_at",
+            (account_id, int(offer["cycle"]), str(offer["npc_id"]), str(offer["profession"]),
+             str(offer["item_id"]), str(offer["item_name"]), int(offer["needed"]), 0,
+             int(offer["reward_coins"]), int(offer["reward_profession_xp"]), str(offer["tool_type"]),
+             int(offer["reward_tool_xp"]), int(__import__('time').time()), completed_cycle, completed_count),
+        )
+        self.conn.commit()
+
+    def increment_crafting_order_v0600(self, account_id, item_id, amount=1):
+        row = self.crafting_order_v0600(account_id)
+        if not row or not str(row["item_id"] or "") or str(row["item_id"]) != str(item_id):
+            return None
+        needed = max(1, int(row["needed"]))
+        old = max(0, int(row["progress"]))
+        new = min(needed, old + max(0, int(amount)))
+        if new == old:
+            return None
+        self.conn.execute(
+            "UPDATE crafting_orders_v0600 SET progress=? WHERE account_id=?",
+            (new, account_id),
+        )
+        self.conn.commit()
+        return (new, needed, str(row["item_name"] or item_id))
+
+    def abandon_crafting_order_v0600(self, account_id):
+        self.conn.execute(
+            "UPDATE crafting_orders_v0600 SET npc_id='',profession='',item_id='',item_name='',needed=0,progress=0,"
+            "reward_coins=0,reward_profession_xp=0,reward_tool_type='',reward_tool_xp=0,accepted_at=0 WHERE account_id=?",
+            (account_id,),
+        )
+        self.conn.commit()
+
+    def finish_crafting_order_v0600(self, account_id, cycle_slot):
+        self.conn.execute(
+            "UPDATE crafting_orders_v0600 SET npc_id='',profession='',item_id='',item_name='',needed=0,progress=0,"
+            "reward_coins=0,reward_profession_xp=0,reward_tool_type='',reward_tool_xp=0,accepted_at=0,"
+            "completed_cycle_slot=?,completed_count=completed_count+1 WHERE account_id=?",
+            (int(cycle_slot), account_id),
+        )
+        self.conn.commit()
+
     def increment_resource_quest(
         self, account_id, item_id, amount=1
     ):

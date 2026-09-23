@@ -433,7 +433,10 @@ class SessionCombatRewardsMixin:
                             session.account_id, target
                         )
                         for quest_id, _progress in changed:
-                            await session.announce_active_quest_progress(quest_id)
+                            await session.announce_active_quest_progress(
+                                quest_id,
+                                template.get("name", mob.template_id),
+                            )
 
                     await session.grant_hourly_quest_kill_drop_v0929(
                         mob.template_id, template

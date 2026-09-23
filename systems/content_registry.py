@@ -2603,3 +2603,41 @@ HELP_TOPIC_ALIASES.update({
     "questy walki": "questy_walka_0522", "combat quests": "questy_walka_0522",
     "exp bieglosci quest": "questy_walka_0522", "exp biegłości quest": "questy_walka_0522",
 })
+
+
+# v0.59.0 - precise progression gaps command.
+HELP_TOPICS["braki"] = [
+    "braki / gaps / missing - pokazuje wyłącznie to, czego brakuje do najbliższych ważnych celów progresji.",
+    "Level postaci: brakujący EXP do następnego Character Levelu.",
+    "Soul Tier: brakujący Soul Level lub dokładny stan właściwej Próby Broni Duszy, a po jej ukończeniu przypomnienie o unlock.",
+    "Profesje: dla każdej z 12 profesji brakujący XP do następnego poziomu albo informacja o maksimum.",
+    "Gildia gracza: brakująca waluta w skarbcu do następnego poziomu Gildii.",
+    "Kolekcje: liczba brakujących wpisów do 100% i trzy kategorie najbliższe ukończenia.",
+    "Aktywne cele: do pięciu aktywnych questów oraz aktywna Tablica Zleceń, Legendarny Kontrakt i dostawa kurierska.",
+]
+HELP_TOPIC_ALIASES.update({"gaps": "braki", "missing": "braki"})
+
+
+# v0.60.0 - rotating crafting orders and inventory EQ comparison.
+HELP_TOPICS["zamowienia_rzemieslnicze"] = [
+    "zamowienia / zamówienia / orders - pokaż 3 rotujące oferty lokalnego NPC rzemieślniczego; odświeżanie co 60 minut.",
+    "zamowienia wez <numer> - przyjmij ofertę. Jednocześnie możesz mieć jedno aktywne zamówienie, a w jednym cyklu godzinowym ukończyć jedno.",
+    "Liczą się wyłącznie sztuki wykonane po przyjęciu zamówienia. Przy oddaniu NPC zabiera dokładnie zamówioną liczbę produktów.",
+    "zamowienia status - pokaż produkt, postęp, zleceniodawcę i nagrodę; zamowienia oddaj - oddaj gotowe zamówienie u właściwego NPC; zamowienia porzuc - anuluj.",
+    "Nagrody to waluta oraz dodatkowy XP profesji i narzędzia. Zamówienia rzemieślnicze nie dają Soul XP.",
+    "System obejmuje Kowalstwo, Gotowanie, Alchemię, Jubilerstwo, Krawiectwo, Garbarstwo i Stolarstwo i korzysta z realnych receptur dostępnych dla poziomu profesji.",
+]
+HELP_TOPIC_ALIASES.update({
+    "zamowienia": "zamowienia_rzemieslnicze", "zamówienia": "zamowienia_rzemieslnicze",
+    "orders": "zamowienia_rzemieslnicze", "craft orders": "zamowienia_rzemieslnicze",
+})
+
+HELP_TOPICS["porownaj_eq"] = [
+    "porownaj <przedmiot> / porównaj <przedmiot> / compare <przedmiot> - porównuje posiadany element EQ z aktualnie założonym wyposażeniem tego samego slotu.",
+    "Pokazuje różnicę obrony, statystyk, właściwości procentowych i liczby gniazd. Uwzględnia upgrade, reforge, runy oraz klejnoty obecnie osadzone w założonym EQ.",
+    "Dla pierścieni, talizmanów i kolczyków pokazuje osobne porównanie względem każdego zajętego slotu.",
+    "Komenda działa poza sklepem i porównuje wyłącznie EQ, które faktycznie posiadasz.",
+]
+HELP_TOPIC_ALIASES.update({
+    "porownaj": "porownaj_eq", "porównaj": "porownaj_eq", "compare": "porownaj_eq", "compare eq": "porownaj_eq",
+})

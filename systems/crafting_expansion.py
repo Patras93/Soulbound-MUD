@@ -29,22 +29,22 @@ _catalog_mut.catalog_assign({"name":"Rdzeń Gniazda","type":"craft_material","pr
     "craftbox_category":"runes","desc":"Zużywany przez Socket Crafting do dodania trwałego gniazda EQ."}, 'ITEMS', ITEMS, ("socket_core_v03114",))
 _catalog_mut.catalog_assign({
     "name":"Rdzeń Gniazda","aliases":("rdzen gniazda","rdzeń gniazda","socket core"),"stations":("forge",),
-    "ingredients":{"runestone_ingot":1,"reforge_essence":1},"output":"socket_core_v03114","quantity":1,
+    "ingredients":{"runestone_ingot":1,"reforge_essence":1,"soul_shard":5},"output":"socket_core_v03114","quantity":1,
     "min_profession_level":180,"profession_xp":80,"tool_xp":60,"category":"socketcraft",
     "desc":"Materiał do komendy socketcraft <EQ>."
 }, 'CRAFT_RECIPES', CRAFT_RECIPES, ("socket_core_v03114",))
 
 # Rune Crafting 2.0 costs: rune dust + a cut gem or technology component.
 RUNE_CRAFT_COSTS_V03114={
-    "moc":{"rune_dust":3,"cut_gem_ruby":1},
-    "ochrona":{"rune_dust":3,"cut_gem_sapphire":1},
-    "zycie":{"rune_dust":3,"cut_gem_diamond":1},
-    "mana":{"rune_dust":3,"cut_gem_amethyst":1},
-    "unik":{"rune_dust":3,"cut_gem_emerald":1},
-    "hart":{"rune_dust":4,"hardened_steel_ingot":1},
-    "impuls":{"rune_dust":4,"machine_power_cell":1},
-    "bariera":{"rune_dust":4,"magitek_alloy":1},
-    "rdzen":{"rune_dust":5,"machine_magitek_core":1},
+    "moc":{"rune_dust":3,"cut_gem_ruby":1,"soul_shard":2},
+    "ochrona":{"rune_dust":3,"cut_gem_sapphire":1,"soul_shard":2},
+    "zycie":{"rune_dust":3,"cut_gem_diamond":1,"soul_shard":2},
+    "mana":{"rune_dust":3,"cut_gem_amethyst":1,"soul_shard":2},
+    "unik":{"rune_dust":3,"cut_gem_emerald":1,"soul_shard":2},
+    "hart":{"rune_dust":4,"hardened_steel_ingot":1,"soul_shard":4},
+    "impuls":{"rune_dust":4,"machine_power_cell":1,"soul_shard":4},
+    "bariera":{"rune_dust":4,"magitek_alloy":1,"soul_shard":4},
+    "rdzen":{"rune_dust":5,"machine_magitek_core":1,"soul_shard":6},
 }
 # Keep only gem IDs that actually exist in this build; fallback to rune dust for unknown legacy gem names.
 for _key,_cost in list(RUNE_CRAFT_COSTS_V03114.items()):

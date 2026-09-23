@@ -129,6 +129,25 @@ def create_world_quests_schema(self):
                         FOREIGN KEY(account_id) REFERENCES accounts(id) ON DELETE CASCADE
                     );
 
+        CREATE TABLE IF NOT EXISTS crafting_orders_v0600 (
+                        account_id INTEGER PRIMARY KEY,
+                        cycle_slot INTEGER NOT NULL DEFAULT 0,
+                        npc_id TEXT NOT NULL DEFAULT '',
+                        profession TEXT NOT NULL DEFAULT '',
+                        item_id TEXT NOT NULL DEFAULT '',
+                        item_name TEXT NOT NULL DEFAULT '',
+                        needed INTEGER NOT NULL DEFAULT 0,
+                        progress INTEGER NOT NULL DEFAULT 0,
+                        reward_coins INTEGER NOT NULL DEFAULT 0,
+                        reward_profession_xp INTEGER NOT NULL DEFAULT 0,
+                        reward_tool_type TEXT NOT NULL DEFAULT '',
+                        reward_tool_xp INTEGER NOT NULL DEFAULT 0,
+                        accepted_at INTEGER NOT NULL DEFAULT 0,
+                        completed_cycle_slot INTEGER NOT NULL DEFAULT -1,
+                        completed_count INTEGER NOT NULL DEFAULT 0,
+                        FOREIGN KEY(account_id) REFERENCES accounts(id) ON DELETE CASCADE
+                    );
+
         CREATE TABLE IF NOT EXISTS dynamic_world_quests_v015 (
                         account_id INTEGER PRIMARY KEY,
                         quest_key TEXT NOT NULL DEFAULT '',

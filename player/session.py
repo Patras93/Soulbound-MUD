@@ -6,6 +6,9 @@ from player.session_mixins.io_auth_character import SessionIOAuthCharacterMixin
 from player.session_mixins.equipment_stats import SessionEquipmentStatsMixin
 from player.session_mixins.perception_maps import SessionPerceptionMapsMixin
 from player.session_mixins.progress_titles import SessionProgressTitlesV0580Mixin
+from player.session_mixins.progress_gaps import SessionProgressGapsV0590Mixin
+from player.session_mixins.crafting_orders import SessionCraftingOrdersV0600Mixin
+from player.session_mixins.equipment_compare import SessionEquipmentCompareV0600Mixin
 from player.session_mixins.world_progression import SessionWorldProgressionMixin
 from player.session_mixins.help_codex_profile import SessionHelpCodexProfileMixin
 from player.session_mixins.social_expansion import SessionSocialExpansionMixin
@@ -34,6 +37,9 @@ class Session(
     SessionEquipmentStatsMixin,
     SessionPerceptionMapsMixin,
     SessionProgressTitlesV0580Mixin,
+    SessionProgressGapsV0590Mixin,
+    SessionCraftingOrdersV0600Mixin,
+    SessionEquipmentCompareV0600Mixin,
     SessionWorldProgressionMixin,
     SessionHelpCodexProfileMixin,
     SessionSocialExpansionMixin,
