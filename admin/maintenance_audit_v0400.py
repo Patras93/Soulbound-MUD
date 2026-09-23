@@ -13,7 +13,7 @@ def maintenance_architecture_audit_v0400():
     metrics = {}
 
     required = (
-        "storage/db_schema.py", "storage/db_accounts.py", "storage/db_world.py",
+        "storage/db_schema.py", "storage/schema_core.py", "storage/schema_progression.py", "storage/schema_world_quests.py", "storage/schema_social_guilds.py", "storage/db_accounts.py", "storage/db_world.py",
         "storage/db_inventory.py", "storage/db_progression.py", "storage/db_quests.py",
         "storage/db_guilds.py", "player/session_mixins/skill_learning.py",
         "player/session_mixins/skill_queue_buffs.py", "player/session_mixins/combat.py",

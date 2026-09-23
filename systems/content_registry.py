@@ -784,6 +784,7 @@ HELP_TOPICS = {
         "Kilka questów jednego NPC może być aktywnych równocześnie. Zlecenia profesyjne są niezależne, np. Mikstury Many i Mikstury Leczenia u Orina.",
         "Questy powtarzalne zachowują osobny czas odnowienia. Problem goblinów, Plaga Trolli i Cienie w Gaju odnawiają się co 60 minut.",
         "Kartograf Eren ma pięć niezależnych zleceń: mapa patroli, plan portowych magazynów, mapa drogi do kopalni, odkrycie 5 nowych sektorów i odkrycie 1 nowego sekretu. Każde odnawia się co 60 minut.",
+        "Karczmarka Elia w Błękitnym Płomieniu ma trzy niezależne zlecenia godzinne: świeże ryby, zioła do naparów oraz bezpieczny szlak przeciw bandytom.",
         "Próba Rybaka u Borysa wymaga 30 dowolnych ryb złowionych po przyjęciu zadania.",
         "Pierwsze zlecenie Kucharza Marcela wymaga ugotowania 1 Pieczonej ryby rzecznej po przyjęciu zadania. Przepis zużywa 2 RÓŻNE gatunki małych ryb rzecznych (Ukleja Rzeczna, Jelec lub Śliz Kamienny); przedmiot Mała ryba nie jest wymagany.",
         "Jeśli numer nie pasuje, najpierw ponownie wpisz quest, quest ukończone albo quest list <NPC>, aby ustawić właściwą listę kontekstową.",
@@ -891,7 +892,7 @@ HELP_TOPICS = {
         "Wyjątek: gdy celem jest NPC, prowadzenie dochodzi dokładnie do pokoju NPC.",
         "Działają też guide <cel>, idz <cel>, go <cel> oraz navigate <cel>.",
         "Lista jest uporządkowana kategoriami: prowadz lista lub walk list.",
-        "Kategorie: miasto, gildia, profesje, tereny, lochy, npc i wszystko.",
+        "Kategorie: miasto, miasta, gildia, profesje, tereny, lochy, npc i wszystko. `walk miasta` pokazuje wszystkie 9 miejscowości.",
         "Przykład: prowadz lista gildia, walk list dungeons, prowadz lista profesje.",
         "Jeżeli nazwa pasuje do kilku miejsc, dostajesz jedną numerowaną listę i wpisujesz tylko cyfrę.",
         "v0.38.12: prowadz kopalnia kończy się w Komnacie Kryształowej przy progu Kopalni Głębinowej; wpisz kopalnia, aby wejść bez podawania kierunku.",
@@ -2571,4 +2572,34 @@ HELP_TOPIC_ALIASES.update({
     "recap 2":"recap2", "death recap 2":"recap2", "combat recap 2":"recap2",
     "tech set upgrade":"techupgrade", "tech upgrade":"techupgrade",
     "salvage 4":"salvage4", "salvage 4.0":"salvage4",
+})
+
+
+# v0.52.2 - City Courier Network
+HELP_TOPICS["poczta"] = [
+    "Poczta obsługuje dostawy paczek między 9 miastami i osadami Soulbound.",
+    "W punkcie pocztowym wpisz poczta lista lub paczki. Lista ofert zmienia się automatycznie co 15 minut.",
+    "Przyjmij kurs komendą paczka <numer> albo poczta wez <numer>. Jednocześnie możesz nieść jedną paczkę.",
+    "poczta status pokazuje aktywną przesyłkę, cel i pełną nagrodę. Przyjęta paczka nie znika po odświeżeniu listy ani reconnect.",
+    "Od v0.54.0 paczki nie mają losowych komplikacji, uszkodzeń, przechwyceń ani losowego obniżania wypłaty.",
+    "poczta gildia pokazuje reputację 1-400, rangę, bonus wypłaty i odblokowane klasy przesyłek.",
+    "poczta statystyki pokazuje liczbę dostaw, zarobek, najdłuższą trasę i odwiedzone miasta.",
+    "poczta osiągnięcia pokazuje progi 10/100/1000/10 000 dostaw, wszystkie miasta i typy oraz osiągnięcia za 100 dostaw do każdego miasta i 100 dostaw każdego typu paczki.",
+    "Prestiżowa paczka odblokowuje się od reputacji 360 (Strażnik Szlaków), zawsze pojawia się na liście po odblokowaniu i daje bardzo wysoką wypłatę bez losowego ryzyka.",
+    "Po dotarciu do punktu pocztowego miasta docelowego wpisz poczta dostarcz. Nagrodą jest waluta; dostawy nie dają Soul XP.",
+    "walk miasta / prowadz lista miasta pokazuje wszystkie miasta. Możesz też wpisać bezpośrednio np. walk Srebrna Korona.",
+]
+HELP_TOPIC_ALIASES.update({
+    "postal": "poczta", "paczka": "poczta", "paczki": "poczta",
+    "kurier": "poczta", "kurierzy": "poczta", "dostawy": "poczta",
+})
+
+HELP_TOPICS["questy_walka_0522"] = [
+    "Od v0.52.2 każdy quest typu kill daje dodatkowo EXP Biegłości aktywnych klas.",
+    "EXP Biegłości korzysta z Generator Core i istniejących bonusów x2 EXP, Gildii oraz Mentora.",
+    "Questy profesyjne i rzemieślnicze nie dają już Soul XP. Profesja i narzędzie zachowują własne EXP.",
+]
+HELP_TOPIC_ALIASES.update({
+    "questy walki": "questy_walka_0522", "combat quests": "questy_walka_0522",
+    "exp bieglosci quest": "questy_walka_0522", "exp biegłości quest": "questy_walka_0522",
 })

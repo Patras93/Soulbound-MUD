@@ -587,6 +587,42 @@ class DatabaseWorldMixin:
         self.conn.commit()
         return stamp
 
+    # v0.56.0 - durable, compact player activity journal.
+    def record_activity_v0560(self, account_id, category, title, detail="", created_at=None):
+        category = str(category or "system").strip().casefold()[:32] or "system"
+        title = " ".join(str(title or "").split())[:240]
+        detail = " ".join(str(detail or "").split())[:500]
+        if not title:
+            return False
+        stamp = int(time.time() if created_at is None else created_at)
+        self.conn.execute(
+            "INSERT INTO activity_journal_v0560(account_id,category,title,detail,created_at) VALUES(?,?,?,?,?)",
+            (int(account_id), category, title, detail, stamp),
+        )
+        # The journal is intentionally bounded; enough for recent history without
+        # allowing an endlessly growing save.
+        self.conn.execute(
+            "DELETE FROM activity_journal_v0560 WHERE account_id=? AND id NOT IN ("
+            "SELECT id FROM activity_journal_v0560 WHERE account_id=? ORDER BY created_at DESC,id DESC LIMIT 300)",
+            (int(account_id), int(account_id)),
+        )
+        self.conn.commit()
+        return True
+
+    def activity_rows_v0560(self, account_id, limit=30, category=None):
+        limit = max(1, min(100, int(limit or 30)))
+        if category:
+            return self.conn.execute(
+                "SELECT id,category,title,detail,created_at FROM activity_journal_v0560 "
+                "WHERE account_id=? AND category=? ORDER BY created_at DESC,id DESC LIMIT ?",
+                (int(account_id), str(category).casefold(), limit),
+            ).fetchall()
+        return self.conn.execute(
+            "SELECT id,category,title,detail,created_at FROM activity_journal_v0560 "
+            "WHERE account_id=? ORDER BY created_at DESC,id DESC LIMIT ?",
+            (int(account_id), limit),
+        ).fetchall()
+
     def achievement_metric(self, account_id, metric):
         row = self.conn.execute(
             "SELECT value FROM achievement_progress WHERE account_id=? AND metric=?",
@@ -625,7 +661,12 @@ class DatabaseWorldMixin:
             (account_id, achievement_id, name, tier),
         )
         self.conn.commit()
-        return cur.rowcount > 0
+        is_new = cur.rowcount > 0
+        if is_new:
+            self.record_activity_v0560(
+                account_id, "osiagniecie", str(name), f"Poziom osiągnięcia: {tier}."
+            )
+        return is_new
 
     def achievement_rows(self, account_id):
         return self.conn.execute(
@@ -640,7 +681,12 @@ class DatabaseWorldMixin:
             (account_id, title_id, title_name),
         )
         self.conn.commit()
-        return cur.rowcount > 0
+        is_new = cur.rowcount > 0
+        if is_new:
+            self.record_activity_v0560(
+                account_id, "awans", f"Nowy tytuł: {title_name}", "Odblokowano nowy tytuł lub kamień milowy progresji."
+            )
+        return is_new
 
     def title_rows(self, account_id):
         return self.conn.execute(
@@ -945,3 +991,129 @@ class DatabaseWorldMixin:
             ON CONFLICT(account_id) DO UPDATE SET offers_json=excluded.offers_json,active_json=excluded.active_json,completed_count=excluded.completed_count,updated_at=CURRENT_TIMESTAMP""",
             (account_id,json.dumps(list(offers or []),ensure_ascii=False,separators=(",",":")),json.dumps(dict(active or {}),ensure_ascii=False,separators=(",",":")),max(0,int(completed_count or 0))))
         self.conn.commit()
+
+
+    # v0.52.2 - persistent city package deliveries.  Offer lists are generated
+    # deterministically from the 15-minute time slot; only the accepted package
+    # needs persistence so refresh/reconnect never destroys an active delivery.
+    def postal_delivery_state_v0522(self, account_id):
+        row = self.conn.execute(
+            "SELECT active_json,completed_count,abandoned_count FROM postal_delivery_state_v0522 WHERE account_id=?",
+            (int(account_id),),
+        ).fetchone()
+        if not row:
+            return {"active": {}, "completed_count": 0, "abandoned_count": 0}
+        try:
+            active = json.loads(row["active_json"] or "{}")
+        except Exception:
+            active = {}
+        return {
+            "active": active if isinstance(active, dict) else {},
+            "completed_count": max(0, int(row["completed_count"] or 0)),
+            "abandoned_count": max(0, int(row["abandoned_count"] or 0)),
+        }
+
+    def save_postal_delivery_state_v0522(
+        self, account_id, *, active=None, completed_count=None, abandoned_count=None
+    ):
+        current = self.postal_delivery_state_v0522(account_id)
+        active = current["active"] if active is None else dict(active or {})
+        completed_count = current["completed_count"] if completed_count is None else max(0, int(completed_count))
+        abandoned_count = current["abandoned_count"] if abandoned_count is None else max(0, int(abandoned_count))
+        self.conn.execute(
+            """
+            INSERT INTO postal_delivery_state_v0522(account_id,active_json,completed_count,abandoned_count,updated_at)
+            VALUES(?,?,?,?,CURRENT_TIMESTAMP)
+            ON CONFLICT(account_id) DO UPDATE SET
+                active_json=excluded.active_json,
+                completed_count=excluded.completed_count,
+                abandoned_count=excluded.abandoned_count,
+                updated_at=CURRENT_TIMESTAMP
+            """,
+            (
+                int(account_id),
+                json.dumps(active, ensure_ascii=False, separators=(",", ":")),
+                completed_count,
+                abandoned_count,
+            ),
+        )
+        self.conn.commit()
+        return {
+            "active": active,
+            "completed_count": completed_count,
+            "abandoned_count": abandoned_count,
+        }
+
+    # v0.53.0 - Courier Guild progression and permanent courier statistics.
+    def courier_guild_state_v0530(self, account_id):
+        row = self.conn.execute(
+            "SELECT reputation,total_earnings,longest_route,visited_cities_json "
+            "FROM courier_guild_state_v0530 WHERE account_id=?",
+            (int(account_id),),
+        ).fetchone()
+        if not row:
+            return {
+                "reputation": 1,
+                "total_earnings": 0,
+                "longest_route": 0,
+                "visited_cities": [],
+            }
+        try:
+            visited = json.loads(row["visited_cities_json"] or "[]")
+        except Exception:
+            visited = []
+        if not isinstance(visited, list):
+            visited = []
+        return {
+            "reputation": max(1, min(400, int(row["reputation"] or 1))),
+            "total_earnings": max(0, int(row["total_earnings"] or 0)),
+            "longest_route": max(0, int(row["longest_route"] or 0)),
+            "visited_cities": sorted({str(x) for x in visited if str(x).strip()}),
+        }
+
+    def save_courier_guild_state_v0530(
+        self, account_id, *, reputation=None, total_earnings=None,
+        longest_route=None, visited_cities=None
+    ):
+        current = self.courier_guild_state_v0530(account_id)
+        reputation = current["reputation"] if reputation is None else max(1, min(400, int(reputation)))
+        total_earnings = current["total_earnings"] if total_earnings is None else max(0, int(total_earnings))
+        longest_route = current["longest_route"] if longest_route is None else max(0, int(longest_route))
+        visited_cities = current["visited_cities"] if visited_cities is None else sorted({str(x) for x in visited_cities if str(x).strip()})
+        self.conn.execute(
+            """
+            INSERT INTO courier_guild_state_v0530(
+                account_id,reputation,total_earnings,longest_route,visited_cities_json,updated_at
+            ) VALUES(?,?,?,?,?,CURRENT_TIMESTAMP)
+            ON CONFLICT(account_id) DO UPDATE SET
+                reputation=excluded.reputation,
+                total_earnings=excluded.total_earnings,
+                longest_route=excluded.longest_route,
+                visited_cities_json=excluded.visited_cities_json,
+                updated_at=CURRENT_TIMESTAMP
+            """,
+            (
+                int(account_id), reputation, total_earnings, longest_route,
+                json.dumps(visited_cities, ensure_ascii=False, separators=(",", ":")),
+            ),
+        )
+        self.conn.commit()
+        return {
+            "reputation": reputation,
+            "total_earnings": total_earnings,
+            "longest_route": longest_route,
+            "visited_cities": visited_cities,
+        }
+
+    def record_courier_city_visit_v0530(self, account_id, city_name):
+        city_name = str(city_name or "").strip()
+        if not city_name:
+            return self.courier_guild_state_v0530(account_id)
+        state = self.courier_guild_state_v0530(account_id)
+        visited = set(state["visited_cities"])
+        if city_name in visited:
+            return state
+        visited.add(city_name)
+        return self.save_courier_guild_state_v0530(
+            account_id, visited_cities=sorted(visited)
+        )

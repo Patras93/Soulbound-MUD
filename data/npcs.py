@@ -250,8 +250,13 @@ NPCS = {
     },
     "innkeeper": {
         "name": "Karczmarka Elia", "room": "inn",
-        "dialogue": "Witaj w Błękitnym Płomieniu. Tutaj odpoczniesz i skorzystasz z kuchni; mikstury kupisz w Aptece Pod Srebrnym Liściem.",
-        "quest": None,
+        "dialogue": (
+            "Witaj w Błękitnym Płomieniu. Tutaj odpoczniesz i skorzystasz z kuchni; "
+            "mikstury kupisz w Aptece Pod Srebrnym Liściem. Mam też trzy niezależne "
+            "zlecenia odnawiane co godzinę."
+        ),
+        "quest": "elia_hourly_fish",
+        "specialist_quests": ("elia_hourly_fish", "elia_hourly_herbs", "elia_hourly_bandits"),
     },
     "archivist": {
         "name": "Archiwista Sol", "room": "library",

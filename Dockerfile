@@ -24,4 +24,6 @@ COPY validation /app/validation
 COPY soulbound_world_seed.txt /app/soulbound_world_seed.txt
 COPY CHANGELOG_PL.txt /app/CHANGELOG_PL.txt
 COPY Dockerfile /app/Dockerfile
+COPY predeploy_check.py /app/predeploy_check.py
+RUN python /app/predeploy_check.py
 CMD ["python", "-u", "/app/server.py"]

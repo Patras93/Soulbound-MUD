@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Maintenance map for Soulbound v0.52.1.
+"""Maintenance map for Soulbound v0.57.1.
 
 This module is intentionally independent from the legacy gameplay namespace.
 It answers one question: where should a bug be fixed?
@@ -46,7 +46,7 @@ MAINTENANCE_AREAS = {
         "purpose": "logowanie, konta, postacie, zapis podstawowych danych",
     },
     "database/schema": {
-        "files": ("storage/db_schema.py",),
+        "files": ("storage/db_schema.py", "storage/schema_core.py", "storage/schema_progression.py", "storage/schema_world_quests.py", "storage/schema_social_guilds.py", "storage/schema_migrate_character.py", "storage/schema_migrate_economy.py", "storage/schema_migrate_history.py"),
         "purpose": "tabele SQLite i migracje",
     },
     "database/world": {
@@ -148,6 +148,10 @@ MAINTENANCE_AREAS = {
     "party/social": {
         "files": ("player/session_mixins/party.py", "player/session_mixins/social_base.py", "player/session_mixins/social_expansion.py"),
         "purpose": "party, komunikacja, who/tell/kanały i funkcje społeczne",
+    },
+    "postal/deliveries": {
+        "files": ("config/postal.py", "player/session_mixins/courier_delivery.py", "storage/db_world.py", "storage/schema_migrate_social.py", "player/session_mixins/guide_navigation.py", "admin/postal_quest_rewards_audit_v0522.py", "admin/courier_guild_audit_v0530.py", "admin/courier_achievements_audit_v0540.py"),
+        "purpose": "v0.55.0: poczta co 15 minut, Gildia Kurierów 1-400, paczki prestiżowe bez ryzyka, osiągnięcia per-miasto/per-typ, statystyki i nawigacja między miastami",
     },
     "guilds": {
         "files": ("player/session_mixins/forge_guilds.py",),

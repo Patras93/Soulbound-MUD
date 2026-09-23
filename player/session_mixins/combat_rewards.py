@@ -322,6 +322,14 @@ class SessionCombatRewardsMixin:
                         self.server.db.record_boss_codex_kill(
                             session.account_id, bestiary_id, grouped=(count > 1)
                         )
+                        try:
+                            self.server.db.record_activity_v0560(
+                                session.account_id, "boss", str(template.get("name") or bestiary_id),
+                                f"Czas walki: {max(0, int(fight_duration_ms or 0))} ms. "
+                                f"Tryb: {'drużyna' if count > 1 else 'solo'}."
+                            )
+                        except Exception:
+                            pass
                     # v0.9.27: wspólne kontrakty i osiągnięcia Gildii.
                     _guild=session.guild_row_v0926()
                     if _guild:

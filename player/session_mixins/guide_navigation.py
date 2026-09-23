@@ -7,6 +7,7 @@ import re
 import sys
 import unicodedata
 from core.classes_skills import ROOMS
+from config.postal import GUIDE_CITY_HUBS_V0522
 from core.mines_threat import GUIDE_DESTINATION_ALIASES
 from core.progression_resources import MINE_MIN_FLOOR, mine_floor_id, mine_floor_number
 from systems.content_registry import MOB_TEMPLATES, NPCS
@@ -235,6 +236,7 @@ class SessionGuideNavigationMixin:
             category_aliases = {
                 "": "",
                 "miasto": "miasto", "city": "miasto", "town": "miasto",
+                "miasta": "miasta", "cities": "miasta", "towns": "miasta", "osady": "miasta",
                 "gildia": "gildia", "guild": "gildia", "teachers": "gildia", "nauczyciele": "gildia",
                 "profesje": "profesje", "professions": "profesje", "crafting": "profesje",
                 "eq": "eq", "ekwipunek": "eq", "sklepy eq": "eq", "equipment": "eq", "gear": "eq",
@@ -246,20 +248,21 @@ class SessionGuideNavigationMixin:
             selected = category_aliases.get(q)
             if selected is None:
                 await self.send(
-                    "Nie znam takiej kategorii. Dostępne: miasto, gildia, profesje, eq, tereny, lochy, npc, wszystko."
+                    "Nie znam takiej kategorii. Dostępne: miasto, miasta, gildia, profesje, eq, tereny, lochy, npc, wszystko."
                 )
                 return
 
             if not selected:
                 await self.send("PROWADZENIE / WALK — KATEGORIE")
                 await self.send("1. miasto — ważne miejsca Miasta Dusz.")
-                await self.send("2. gildia — sale 12 nauczycieli klas.")
-                await self.send("3. profesje — mistrzowie, warsztaty i sklepy narzędzi.")
-                await self.send("4. eq — sklepy z klasowym wyposażeniem.")
-                await self.send("5. tereny — regiony świata.")
-                await self.send("6. lochy — Krypta, Wieże, Kopalnie, Twierdza i lochy profesyjne.")
-                await self.send("7. npc — nazwani NPC i ich lokalizacje.")
-                await self.send("8. wszystko — pełna lista lokacji pogrupowana strefami.")
+                await self.send("2. miasta — wszystkie miasta i osady świata.")
+                await self.send("3. gildia — sale 12 nauczycieli klas.")
+                await self.send("4. profesje — mistrzowie, warsztaty i sklepy narzędzi.")
+                await self.send("5. eq — sklepy z klasowym wyposażeniem.")
+                await self.send("6. tereny — regiony świata.")
+                await self.send("7. lochy — Krypta, Wieże, Kopalnie, Twierdza i lochy profesyjne.")
+                await self.send("8. npc — nazwani NPC i ich lokalizacje.")
+                await self.send("9. wszystko — pełna lista lokacji pogrupowana strefami.")
                 await self.send("Użyj np. prowadz lista gildia albo walk list dungeons.")
                 return
 
@@ -268,6 +271,17 @@ class SessionGuideNavigationMixin:
                 rooms = [(rid, room) for rid, room in ROOMS.items() if room.get("zone") == "Miasto Dusz"]
                 for room_id, room in sorted(rooms, key=lambda x: self.normalize_room_query(x[1]["name"])):
                     await self.send(f"{room['name']}: prowadz {room['name']}.")
+                return
+
+            if selected == "miasta":
+                await self.send("PROWADZENIE — MIASTA I OSADY")
+                for city_name, room_id in GUIDE_CITY_HUBS_V0522.items():
+                    if room_id not in ROOMS:
+                        continue
+                    await self.send(
+                        f"{city_name}: {ROOMS[room_id]['name']}. prowadz {city_name}."
+                    )
+                await self.send("Punkty pocztowe działają w tych samych 9 miejscowościach. Wpisz poczta w punkcie pocztowym, aby zobaczyć paczki.")
                 return
 
             if selected == "gildia":

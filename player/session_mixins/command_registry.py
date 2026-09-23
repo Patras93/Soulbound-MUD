@@ -113,6 +113,9 @@ COMMAND_REGISTRY = {
     'afk': ('handle_afk_v03051', (COMMAND_TEXT,), {}),
     'whois': ('whois_v03051', (COMMAND_TEXT,), {}),
     'mail': ('handle_mail_v03051', (COMMAND_TEXT,), {}),
+    'postal': ('handle_postal_v0522', (COMMAND_TEXT,), {}),
+    'activityjournal': ('show_activity_journal_v0560', (COMMAND_TEXT,), {}),
+    'whattodo': ('show_what_to_do_v0560', (COMMAND_TEXT,), {}),
     'board': ('handle_board_v03051', (COMMAND_TEXT,), {}),
     'lfg': ('handle_lfg_v03051', (COMMAND_TEXT,), {}),
     'newbieprotect': ('newbie_protection_v03051', (COMMAND_TEXT,), {}),
@@ -295,11 +298,13 @@ COMMAND_REGISTRY.update({
 # Command-state policy is metadata, not parser code.  The loop asks the
 # catalog whether the resolved canonical command is safe in a given state.
 DOWNED_SAFE_COMMANDS = {
+    "activityjournal", "whattodo",
     "help", "look", "party", "partychat", "say", "tell", "reply", "who",
     "where", "hp", "score", "records", "chronicle", "selfrespawn",
     "historybuffer", "lifetime", "deathrecap", "combatrecap",
 }
 REST_SAFE_COMMANDS = {
+    "activityjournal", "whattodo",
     "rest", "help", "encoding", "describe", "changes", "look", "level", "xp", "wimpy", "eventxp",
     "corpse", "cryptinfo", "astralinfo", "consider", "waterinfo", "fishjournal", "exits", "map",
     "worldevents", "atlas", "codex", "bestiary", "where", "who", "gossip", "newbie", "trade",
@@ -313,12 +318,13 @@ REST_SAFE_COMMANDS = {
     "achievements", "titles", "title", "collection", "bosscodex", "bounty", "drophistory", "lootfilter",
     "regionprogress", "combatlog", "lifetime", "historybuffer", "craftbox", "craftmastery",
     "mistrzostwocraftu", "runes", "clan", "masteryachievements", "friends", "ignore", "unignore", "afk",
-    "whois", "mail", "board", "lfg", "newbieprotect", "house", "records", "inspect", "inspectprivacy",
+    "whois", "mail", "postal", "board", "lfg", "newbieprotect", "house", "records", "inspect", "inspectprivacy",
     "emote", "smile", "wave", "cheer", "collection2", "completion", "deathrecap", "combatrecap",
     "loothistory", "chronicle", "nvda", "krawiectwo", "garbarstwo", "stolarstwo", "zaklinanie", "szyj",
     "garbuj", "stolarka", "enchants",
 }
 GUIDE_SAFE_COMMANDS = {
+    "activityjournal", "whattodo",
     "guide", "route", "help", "encoding", "describe", "changes", "wimpy", "eventxp", "look", "level",
     "xp", "exits", "map", "atlas", "codex", "bestiary", "where", "who", "whois", "terraininfo",
     "location", "stats", "hp", "score", "money", "soul", "skills", "spells", "skillnames", "inventory",
@@ -328,7 +334,7 @@ GUIDE_SAFE_COMMANDS = {
     "artifactupgrade", "endgamegoals", "collection", "museum", "prestige", "bosscodex", "leaderboards",
     "bounty", "chronicle", "legendarycontracts", "worldprojects", "worldproject", "fishrecords",
     "drophistory", "combatlog", "lifetime", "historybuffer", "fishjournal", "say", "gossip", "newbie",
-    "trade", "channels", "mentor", "tell", "reply", "friends", "craftbox", "craftmastery",
+    "trade", "channels", "mentor", "tell", "reply", "friends", "postal", "craftbox", "craftmastery",
     "mistrzostwocraftu", "runes", "clan", "masteryachievements", "partychat",
 }
 

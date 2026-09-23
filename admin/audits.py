@@ -72,8 +72,8 @@ def generator_whitelist_audit_v03019():
     audit = GENERATOR_CORE_AUDIT or {}
     whitelist = audit.get("whitelist_audit") or {}
     errors = []
-    if GENERATOR_CORE_VERSION != "0.52.1":
-        errors.append(f"Generator Core version={GENERATOR_CORE_VERSION}, expected 0.52.1")
+    if GENERATOR_CORE_VERSION != "0.57.1":
+        errors.append(f"Generator Core version={GENERATOR_CORE_VERSION}, expected 0.57.1")
     if not audit.get("numeric_only"):
         errors.append("numeric_only flag missing")
     runtime_fast = bool(audit.get("runtime_fast_path"))
@@ -759,7 +759,7 @@ def full_release_integrity_audit_v03025():
         errors.append("world logic audit failed")
     if int(WORLD_LOGIC_AUDIT.get("warning_count", 0) or 0):
         errors.append("world logic warnings present")
-    if GENERATOR_CORE_VERSION != "0.52.1":
+    if GENERATOR_CORE_VERSION != "0.57.1":
         errors.append(f"GENERATOR_CORE_VERSION={GENERATOR_CORE_VERSION}")
     return {
         "version": "0.30.25",
@@ -976,7 +976,7 @@ def gameplay_flow_audit_v03026():
         if missing:
             errors.append(f"station {_station}: brak w {missing[:5]}")
 
-    if GENERATOR_CORE_VERSION != "0.52.1":
+    if GENERATOR_CORE_VERSION != "0.57.1":
         errors.append(f"GENERATOR_CORE_VERSION={GENERATOR_CORE_VERSION}")
 
     return {
@@ -3380,7 +3380,7 @@ def full_game_predeploy_audit_v0336():
         _auth_source=(_ROOT/'player/session_mixins/io_auth_character.py').read_text(encoding='utf-8')
         if 'await self.close_from_main_menu()' not in _auth_source or 'self.writer.close()' not in _auth_source:
             err('main_menu_exit_not_explicit_close')
-        _db_source=(_ROOT/'storage/db_schema.py').read_text(encoding='utf-8')
+        _db_source='\n'.join(((_ROOT/'storage/db_schema.py').read_text(encoding='utf-8'), (_ROOT/'storage/schema_migrate_character.py').read_text(encoding='utf-8')))
         for _column in ('soul_weapon_mastery_level','soul_weapon_mastery_xp'):
             if _column not in _db_source:
                 err('soul_weapon_mastery_db_column_missing',_column)
@@ -3476,6 +3476,7 @@ def full_game_predeploy_audit_v0336():
             'player/session_mixins/exploration_progress.py',
             'player/session_mixins/collection_loot_records.py',
             'player/session_mixins/social_expansion.py',
+            'player/session_mixins/courier_delivery.py',
             'player/session_mixins/admin_tools.py',
             'player/session_mixins/gathering_actions.py',
             'player/session_mixins/sales.py',
@@ -4314,7 +4315,7 @@ def offline_player_profiles_audit_v0363():
             errors.append(f"{name}: {detail or 'FAIL'}")
     try:
         import inspect
-        dbsrc=inspect.getsource(Database.migrate_schema)
+        dbsrc=(_ROOT/'storage/schema_migrate_social.py').read_text(encoding='utf-8')
         check("presence_table", "player_presence_v0363" in dbsrc and "last_login_ts" in dbsrc and "last_logout_ts" in dbsrc and "last_seen_ts" in dbsrc)
         check("profile_alias_pl", COMMAND_ALIASES.get("profil")=="whois")
         check("profile_alias_en", COMMAND_ALIASES.get("profile")=="whois")

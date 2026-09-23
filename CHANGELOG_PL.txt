@@ -1,9 +1,97 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v0.52.1
+Aktualna paczka: v0.57.1
 
 Ten plik jest changelogiem narastającym. Kolejne wydania mają dopisywać nowe wpisy na górze, bez usuwania starszej historii.
 Historia poniżej została odtworzona z zachowanych wpisów release, HELP, audytów, komentarzy milestone oraz aktywnego kodu Soulbound.
 Jeżeli stara wersja pozostawiła w obecnej bazie tylko numer bez wiarygodnego opisu, nie dopisuję zmyślonych zmian; takie numery są wymienione na końcu.
+
+==============================================================================
+Soulbound v0.57.1 — Fast Railway Predeploy
+==============================================================================
+- Refactor dotyczy wyłącznie kontroli wdrożenia; gameplay, save'y, questy, Courier, walka i moduły runtime v0.57.0 pozostają bez zmian.
+- `predeploy_check.py` jest teraz szybkim Railway gate i nie składa całego świata ani nie uruchamia pełnego historycznego audytu.
+- Szybki gate sprawdza Dockerfile i wszystkie wymagane katalogi runtime, kompletność manifestu 164 modułów, składnię Pythona, krytyczny import `config.balance`, bazowy schemat SQLite oraz rozmiar rejestru komend/aliasów.
+- Fast SQLite smoke tworzy 98 tabel / 99 obiektów bez ładowania pełnego świata.
+- Dockerfile kopiuje `predeploy_check.py` do obrazu i wykonuje `RUN python /app/predeploy_check.py`; nieudany szybki audit zatrzymuje Railway build przed uruchomieniem serwera.
+- Dotychczasowy ciężki predeploy został zachowany jako `predeploy_full.py`; nadal uruchamia pełny runtime i `full_game_predeploy_audit_v0336()` przed większym wydaniem.
+- Pomiar lokalny szybkiego gate: około 3 s zamiast historycznego przekraczania 180 s przez pełny audit.
+- Testy regresji: 106/106 głównych szybkich/średnich + 13/13 subsystemów = 119/119 PASS.
+
+==============================================================================
+Soulbound v0.57.0 — Courier & Schema Modularization
+==============================================================================
+- Refactor architektury bez zmiany gameplayu i bez wipe postaci.
+- Cały system poczty/Gildii Kurierów został wydzielony z `player/session_mixins/social_expansion.py` do `player/session_mixins/courier_delivery.py`; dotychczasowe komendy, osiągnięcia, reputacja i wypłaty pozostają bez zmian.
+- `social_expansion.py` zmniejszono z 869 do 418 linii; dedykowany Courier ma 462 linie.
+- `storage/db_schema.py` zmniejszono z 1606 do lekkiego koordynatora (poniżej 100 linii).
+- Definicje i migracje SQLite rozdzielono na 10 modułów: core, progression, world/quests, social/guilds oraz pięć wyspecjalizowanych warstw migracji.
+- Zachowano kolejność migracji oraz wszystkie dotychczasowe zależności loadera; nowe moduły są jawnie wpisane do runtime manifestu.
+- Porównanie świeżej bazy v0.56.0 i v0.57.0: 106 obiektów SQLite po obu stronach, 0 brakujących, 0 dodatkowych; znormalizowany SQL jest identyczny.
+- Dodano Modular Refactor Audit v0.57.0 pilnujący, aby Courier i schemat bazy ponownie nie urosły do monolitów.
+
+==============================================================================
+Soulbound v0.56.0 — Living NPCs & Activity Journal
+==============================================================================
+- Dodano osiem karczm/gospód w pozostałych miastach i osadach pocztowych. Każda ma własnego karczmarza lub karczmarkę oraz trzy niezależne questy odnawiane co 60 minut.
+- Nowe karczmy razem dają 24 godzinne zlecenia: po dwa lokalne zadania profesyjne oraz jedno bojowe zadanie ochrony szlaku.
+- Dodano generator Living NPCs: każdy NPC, który po załadowaniu ekspansji nie miał żadnego questa, otrzymuje bezpieczne godzinne zlecenie rozmowy/wiadomości do innego NPC, preferencyjnie w tej samej strefie.
+- Pełny katalog po generatorze: 118 NPC, 522 questy i 0 NPC bez zadania; generator dopisał 39 questów dla wcześniej bezczynnych NPC.
+- Wszystkie nowe automatyczne questy korzystają z globalnego Generator Core dla nagrody walutowej i respektują jednolite minimum ekonomii.
+- Dodano trwały Dziennik Aktywności w SQLite. Zapisuje najnowsze bossy, ukończone questy, ważne dropy, dostawy, osiągnięcia oraz awanse.
+- Komenda `dziennik` pokazuje ostatnie wpisy; filtry: `dziennik bossy`, `dziennik questy`, `dziennik dropy`, `dziennik dostawy`, `dziennik osiągnięcia`, `dziennik awansy`.
+- Dziennik przechowuje maksymalnie 300 najnowszych wpisów na konto i działa po reconnect/restarcie.
+- Dodano NVDA-friendly `co robic` / `co robić`: gra podaje dokładnie 5 sensownych następnych aktywności na podstawie aktywnych/gotowych questów, lokalnych ofert, dostaw kurierskich, aktualnej siły/expowiska, godzinnych zleceń, profesji i eksploracji.
+- Zachowano bezryzykową pocztę, Gildię Kurierów, osiągnięcia, prestiżowe paczki i zasady Soul/Class XP z v0.55.0. Brak wipe postaci.
+
+==============================================================================
+Soulbound v0.55.0 — Courier Prestige & Tavern Hourlies
+==============================================================================
+- Dodano Prestiżową paczkę od reputacji Gildii Kurierów 360 (Strażnik Szlaków). Jest zawsze widoczna w pięciu ofertach po odblokowaniu, daje bardzo wysoką wypłatę (mnożnik bazowy x5) i +10 premii do przyrostu reputacji klasy przesyłki.
+- Prestiżowa paczka, tak jak pozostałe klasy od v0.54.0, jest całkowicie bez losowego ryzyka: brak kradzieży, uszkodzeń, przechwyceń i losowej utraty nagrody.
+- Dodano 9 osiągnięć za po 100 dostaw do każdego konkretnego miasta/osady: Miasto Dusz, Brzozowy Trakt, Żelazne Bramy, Twierdza Popiołu, Port Mglistych Wysp, Srebrna Korona, Zielony Brzeg, Kamienna Straż i Cicha Przystań.
+- Dodano osiągnięcia za po 100 dostaw każdego typu paczki; obejmują także nową Prestiżową paczkę.
+- `poczta osiągnięcia` pokazuje teraz postęp 0/100 osobno dla każdego miasta i każdego typu paczki.
+- Liczniki per-miasto i per-typ są zapisywane od v0.55.0. Wcześniejsze wydania nie przechowywały tych dokładnych liczników, więc nie są sztucznie odtwarzane z łącznej liczby dostaw.
+- Karczmarka Elia w Karczmie Błękitny Płomień dostała 3 niezależne questy odnawiane co 60 minut: Świeże ryby (8 dowolnych ryb), Zioła do naparów (8 dowolnych ziół) oraz Bezpieczny szlak (8 bandytów).
+- Questy rybne i zielarskie rozwijają odpowiednią profesję/narzędzie i nadal nie dają Soul XP jako questy profesyjne; quest bojowy Elii korzysta z normalnych nagród questów walki.
+- Zachowano całą pocztę v0.52.2+, Gildię Kurierów 1-400, osiągnięcia v0.54.0 i brak wipe postaci.
+
+==============================================================================
+Soulbound v0.54.0 — Risk-Free Courier Achievements
+==============================================================================
+- Całkowicie usunięto losowy system ryzyka z przesyłek kurierskich: brak uszkodzeń, kradzieży, przechwyceń, komplikacji i losowego obniżania wypłaty.
+- Stare aktywne paczki zapisane w v0.53.0 również ignorują dawne pola ryzyka i po aktualizacji wypłacają pełną nagrodę.
+- Zachowano 6 klas paczek: zwykła, pilna, ciężka, delikatna, tajna i wartościowa. Różnią się progiem reputacji, mnożnikiem wypłaty i przyrostem reputacji Gildii Kurierów.
+- Dodano osiągnięcia kurierskie za 10, 100, 1000 i 10 000 dostarczonych paczek. Progi korzystają z istniejącego licznika, więc mogą odblokować się wstecz po aktualizacji.
+- Dodano osiągnięcie za odwiedzenie wszystkich 9 miast/osad. Korzysta z już zapisanych statystyk odwiedzin.
+- Dodano osiągnięcie za ukończenie wszystkich 6 typów paczek. Typy są zapisywane od v0.54.0, ponieważ wcześniejsze wydania nie przechowywały historii klas dostarczonych przesyłek.
+- Dodano `poczta osiągnięcia` / `poczta osiagniecia` oraz `gildia kurierow osiągnięcia`; odblokowane wpisy pojawiają się także w globalnej komendzie `osiągnięcia`.
+- Gildia Kurierów 1-400, rangi, tytuły, statystyki, 5 ofert na miasto i odświeżanie co 15 minut pozostają bez zmian.
+- Brak wipe postaci.
+
+==============================================================================
+Soulbound v0.53.0 — Courier Guild & Package Classes
+==============================================================================
+- Dodano Gildię Kurierów z reputacją 1-400 i 8 rangami: Posłaniec, Kurier, Kurier Gildyjny, Starszy Kurier, Kurier Królewski, Naczelny Kurier, Strażnik Szlaków, Mistrz Szlaków.
+- Wyższe rangi zwiększają wypłaty i zmniejszają ryzyko komplikacji kurierskich.
+- Dodano 6 klas przesyłek: zwykła, pilna, ciężka, delikatna, tajna i wartościowa; lepsze klasy odblokowują się z reputacją.
+- Pilne paczki mają limit czasu; pozostałe specjalne klasy mają różne szanse komplikacji i korekty wypłaty.
+- Dodano trwałe statystyki kuriera: dostarczone paczki, łączny zarobek, najdłuższa trasa oraz unikalne odwiedzone miasta.
+- Nowe komendy: `poczta gildia`, `poczta reputacja`, `poczta statystyki`, `gildia kurierow`, `gildia kurierow statystyki`.
+- Reputacja, statystyki i odwiedzone miasta są zapisywane w SQLite bez wipe istniejących postaci.
+- Zachowano v0.52.2: 5 ofert na miasto co 15 minut, aktywną paczkę po reconnect, EXP Biegłości z questów walki i brak Soul XP z rzemiosł/questów profesyjnych.
+
+==============================================================================
+Soulbound v0.52.2 — City Courier & Combat Quest Mastery
+==============================================================================
+- Dodano sieć kurierską obejmującą 9 miast i osad; w każdym punkcie dostępnych jest 5 przesyłek do innych miejscowości.
+- Lista paczek (`poczta`, `paczki`) odświeża się deterministycznie co 15 minut; przyjęta paczka pozostaje zapisana w SQLite mimo refreshu i reconnectu.
+- Dodano `paczka <numer>`, `poczta wez <numer>`, `poczta status`, `poczta dostarcz` i `poczta porzuc`; dostawy dają walutę, ale nie Soul XP.
+- `walk/prowadz` ma kategorię `miasta` i bezpośrednie cele dla wszystkich 9 miejscowości; `prowadz poczta` prowadzi do Biura Kurierów w Mieście Dusz.
+- Questy walki typu kill, legendary_rare i world_boss przy oddaniu dają dodatkowo EXP Biegłości aktywnych klas.
+- Questy profesyjne/rzemieślnicze nie przyznają już Soul XP; zwykłe czynności profesyjne również nie zasilają Broni Duszy.
+- Dodano trwały stan dostaw, testy regresji oraz Postal & Quest Rewards Audit v0.52.2.
+- Zachowano Railway Packaging Hotfix v0.52.1 i brak wipe postaci.
 
 ==============================================================================
 Soulbound v0.52.1 — Railway Packaging Hotfix

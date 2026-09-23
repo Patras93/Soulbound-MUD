@@ -28,6 +28,16 @@ RUNTIME_MODULES = ['core/bootstrap_economy_professions.py',
  'network/tech_runes.py',
  'systems/crafting_expansion.py',
  'systems/milestone.py',
+ 'storage/schema_core.py',
+ 'storage/schema_progression.py',
+ 'storage/schema_world_quests.py',
+ 'storage/schema_social_guilds.py',
+ 'storage/schema_migrate_social.py',
+ 'storage/schema_migrate_character.py',
+ 'storage/schema_migrate_guilds.py',
+ 'storage/schema_migrate_tools.py',
+ 'storage/schema_migrate_economy.py',
+ 'storage/schema_migrate_history.py',
  'storage/db_schema.py',
  'storage/db_accounts.py',
  'storage/db_world.py',
@@ -42,6 +52,7 @@ RUNTIME_MODULES = ['core/bootstrap_economy_professions.py',
  'world/world_expansion_i.py',
  'world/world_expansion_ii.py',
  'world/runtime_progression.py',
+ 'world/living_npcs.py',
  'world/world_state.py',
  'systems/professions.py',
  'systems/crafting_quality.py',
@@ -98,12 +109,14 @@ RUNTIME_MODULES = ['core/bootstrap_economy_professions.py',
  'player/session_mixins/skills_combat.py',
  'player/session_mixins/forge_guilds.py',
  'player/session_mixins/social_expansion.py',
+ 'player/session_mixins/courier_delivery.py',
  'player/session_mixins/progression_accessibility.py',
  'player/session_mixins/professions.py',
  'player/session_mixins/tech_crafting.py',
  'player/session_mixins/crafting_expansion.py',
  'player/session_mixins/milestone.py',
  'player/session_mixins/command_special_handlers.py',
+ 'player/session_mixins/activity_guidance.py',
  'player/session_mixins/command_registry.py',
  'player/session_mixins/command_loop.py',
  'player/session.py',
@@ -151,6 +164,12 @@ RUNTIME_MODULES = ['core/bootstrap_economy_professions.py',
  'admin/world_expansion_i_audit_v0510.py',
  'admin/world_expansion_ii_audit_v0520.py',
  'admin/railway_packaging_audit_v0521.py',
+ 'admin/postal_quest_rewards_audit_v0522.py',
+ 'admin/courier_guild_audit_v0530.py',
+ 'admin/courier_achievements_audit_v0540.py',
+ 'admin/courier_prestige_tavern_audit_v0550.py',
+ 'admin/living_npcs_activity_audit_v0560.py',
+ 'admin/modular_refactor_audit_v0570.py',
  'admin/release_integrity_v0369.py']
 
 
@@ -719,11 +738,54 @@ EXPLICIT_RUNTIME_EXPORTS["admin/world_expansion_ii_audit_v0520.py"] = (
     "world_expansion_ii_audit_v0520", "WORLD_EXPANSION_II_AUDIT_V0520",
 )
 
+EXPLICIT_RUNTIME_EXPORTS["world/living_npcs.py"] = (
+    "V0560_VERSION", "V0560_HOURLY_COOLDOWN", "V0560_TAVERNS",
+    "V0560_TAVERN_NPC_IDS", "V0560_TAVERN_QUEST_IDS",
+    "V0560_GENERATED_HOURLY_IDS", "V0560_GENERATED_NPC_IDS",
+    "V0560_ALL_HOURLY_IDS", "V0560_LIVING_NPCS_STATE",
+)
+EXPLICIT_RUNTIME_EXPORTS["player/session_mixins/activity_guidance.py"] = (
+    "SessionActivityGuidanceV0560Mixin",
+)
+EXPLICIT_RUNTIME_EXPORTS["admin/living_npcs_activity_audit_v0560.py"] = (
+    "living_npcs_activity_audit_v0560", "LIVING_NPCS_ACTIVITY_AUDIT_V0560",
+)
+
+# v0.57.0: focused Courier and database-schema modularization.
+EXPLICIT_RUNTIME_EXPORTS.update({
+    "storage/schema_core.py": ("create_core_schema",),
+    "storage/schema_progression.py": ("create_progression_schema",),
+    "storage/schema_world_quests.py": ("create_world_quests_schema",),
+    "storage/schema_social_guilds.py": ("create_social_guilds_schema",),
+    "storage/schema_migrate_social.py": ("migrate_social_courier_schema",),
+    "storage/schema_migrate_character.py": ("migrate_character_columns", "migrate_character_legacy"),
+    "storage/schema_migrate_guilds.py": ("migrate_guild_schema",),
+    "storage/schema_migrate_tools.py": ("migrate_stats_and_tools",),
+    "storage/schema_migrate_economy.py": ("migrate_accounts_and_economy",),
+    "storage/schema_migrate_history.py": ("migrate_history_and_collections",),
+    "player/session_mixins/courier_delivery.py": ("SessionCourierDeliveryMixin",),
+})
+EXPLICIT_RUNTIME_EXPORTS["admin/modular_refactor_audit_v0570.py"] = (
+    "modular_refactor_audit_v0570", "MODULAR_REFACTOR_AUDIT_V0570", "SCHEMA_MODULES_V0570",
+)
+
 EXPLICIT_RUNTIME_EXPORTS["admin/railway_packaging_audit_v0521.py"] = (
     "railway_packaging_audit_v0521", "RAILWAY_PACKAGING_AUDIT_V0521",
 )
+EXPLICIT_RUNTIME_EXPORTS["admin/postal_quest_rewards_audit_v0522.py"] = (
+    "postal_quest_rewards_audit_v0522", "POSTAL_QUEST_REWARDS_AUDIT_V0522",
+)
+EXPLICIT_RUNTIME_EXPORTS["admin/courier_guild_audit_v0530.py"] = (
+    "courier_guild_audit_v0530", "COURIER_GUILD_AUDIT_V0530",
+)
+EXPLICIT_RUNTIME_EXPORTS["admin/courier_achievements_audit_v0540.py"] = (
+    "courier_achievements_audit_v0540", "COURIER_ACHIEVEMENTS_AUDIT_V0540",
+)
+EXPLICIT_RUNTIME_EXPORTS["admin/courier_prestige_tavern_audit_v0550.py"] = (
+    "courier_prestige_tavern_audit_v0550", "COURIER_PRESTIGE_TAVERN_AUDIT_V0550",
+)
 
-LEGACY_IMPLICIT_DEPENDENCY_BUDGET = 1022
+LEGACY_IMPLICIT_DEPENDENCY_BUDGET = 1020
 
 # v0.50.0: legacy compatibility is quarantined. A new runtime module may not
 # silently enter the symbol-injection bridge; it must either be explicit or be

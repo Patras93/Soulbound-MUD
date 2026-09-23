@@ -59,6 +59,12 @@ _RELEASE_AUDITS_V0369 = [
     ("v0.51.0 World Expansion I", "WORLD_EXPANSION_I_AUDIT_V0510"),
     ("v0.52.0 World Expansion II", "WORLD_EXPANSION_II_AUDIT_V0520"),
     ("v0.52.1 Railway packaging hotfix", "RAILWAY_PACKAGING_AUDIT_V0521"),
+    ("v0.52.2 City Courier & Combat Quest Mastery", "POSTAL_QUEST_REWARDS_AUDIT_V0522"),
+    ("v0.53.0 Courier Guild & Package Classes", "COURIER_GUILD_AUDIT_V0530"),
+    ("v0.54.0 Risk-Free Courier Achievements", "COURIER_ACHIEVEMENTS_AUDIT_V0540"),
+    ("v0.55.0 Courier Prestige & Tavern Hourlies", "COURIER_PRESTIGE_TAVERN_AUDIT_V0550"),
+    ("v0.56.0 Living NPCs & Activity Journal", "LIVING_NPCS_ACTIVITY_AUDIT_V0560"),
+    ("v0.57.0 Courier & Schema Modularization", "MODULAR_REFACTOR_AUDIT_V0570"),
 ]
 
 def cumulative_release_integrity_audit_v0369():
@@ -76,13 +82,13 @@ def cumulative_release_integrity_audit_v0369():
         preserved.append(label)
 
     # Direct release-line checks for the exact milestones the user flagged.
-    if str(globals().get("VERSION","")) != "0.52.1":
-        errors.append(f"VERSION={globals().get('VERSION')!r}, expected 0.52.1")
-    if str(globals().get("GENERATOR_CORE_VERSION","")) != "0.52.1":
-        errors.append(f"Generator Core={globals().get('GENERATOR_CORE_VERSION')!r}, expected 0.52.1")
+    if str(globals().get("VERSION","")) != "0.57.1":
+        errors.append(f"VERSION={globals().get('VERSION')!r}, expected 0.57.1")
+    if str(globals().get("GENERATOR_CORE_VERSION","")) != "0.57.1":
+        errors.append(f"Generator Core={globals().get('GENERATOR_CORE_VERSION')!r}, expected 0.57.1")
 
     return {
-        "version":"0.52.1",
+        "version":"0.57.1",
         "checked":len(_RELEASE_AUDITS_V0369),
         "preserved":preserved,
         "preserved_count":len(preserved),
@@ -93,7 +99,7 @@ def cumulative_release_integrity_audit_v0369():
 CUMULATIVE_RELEASE_INTEGRITY_AUDIT_V0369=cumulative_release_integrity_audit_v0369()
 if CUMULATIVE_RELEASE_INTEGRITY_AUDIT_V0369["error_count"]:
     raise RuntimeError(
-        "Cumulative Release Integrity Audit v0.52.1 failed: "
+        "Cumulative Release Integrity Audit v0.57.1 failed: "
         + "; ".join(CUMULATIVE_RELEASE_INTEGRITY_AUDIT_V0369["errors"][:100])
     )
 
@@ -112,17 +118,13 @@ HELP_TOPICS.setdefault("wersja", []).append(
     "v0.38.14: bounty porzuć / bounty porzuc anuluje aktywny kontrakt bez zmiany licznika ukończonych i bez darmowego losowania nowych ofert."
 )
 
-LATEST_CHANGES_TITLE = "Soulbound v0.52.1 - Railway Packaging Hotfix"
+LATEST_CHANGES_TITLE = "Soulbound v0.57.1 - Fast Railway Predeploy"
 LATEST_CHANGES = [
-    "v0.52.1: Railway Packaging Hotfix — obraz kontenera zawiera config/, data/, events/ i validation/ wymagane przez modułowy runtime.",
-    "v0.52.0: World Expansion II — dodano zamorski ląd Ardelii ze stolicą Srebrna Korona i trzema osadami.",
-    "Dodano dziesięć nowych expowisk od Brzegów Szeptów po Rubieże Nocy, każde z własnymi mobami i bossem.",
-    "Nowy ląd ma pętle dróg i trzy trasy między osadami, więc podróż nie wymaga ciągłego wracania do stolicy.",
-    "Dodano 20 odnawialnych lokalnych zleceń; stare regiony, progresja i World Expansion I pozostają bez zmian.",
-    "v0.50.1-v0.50.3 nadal obowiązuje: wolniejsza długoterminowa progresja i podniesiona trudność świata/lochów.",
+    "v0.57.1: standardowy predeploy jest szybkim Railway gate i nie ładuje całego świata ani pełnego historycznego audytu.",
+    "Docker build uruchamia `python /app/predeploy_check.py`; błąd pakowania, składni, manifestu, krytycznego importu config.balance lub schematu SQLite zatrzymuje build.",
+    "Pełny dotychczasowy audyt został zachowany jako predeploy_full.py i nadal może być uruchamiany przed większym wydaniem.",
+    "Gameplay, save'y, Courier, questy, walka i architektura v0.57.0 pozostają bez zmian.",
 ]
-
-
 
 HELP_TOPICS.setdefault("wersja", []).append(
     "v0.39.0: uporządkowano architekturę bez zmiany gameplayu: jawny manifest runtime, kontrolowane nadpisania, osobne moduły generatorów i deklaratywny router prostych komend."
@@ -171,3 +173,24 @@ HELP_TOPICS.setdefault("wersja", []).append("v0.51.0: World Expansion I — czte
 HELP_TOPICS.setdefault("wersja", []).append("v0.52.0: World Expansion II — Ardelia, stolica Srebrna Korona, trzy osady, dziesięć nowych expowisk, 40 nowych mobów i 20 lokalnych zleceń.")
 
 HELP_TOPICS.setdefault("wersja", []).append("v0.52.1: Railway Packaging Hotfix — Dockerfile kopiuje wszystkie pakiety modułowego runtime: config, data, events i validation; brak tych katalogów nie może już przejść audytu wydania.")
+
+HELP_TOPICS.setdefault("wersja", []).append("v0.52.2: City Courier & Combat Quest Mastery — poczta kurierska między 9 miastami, lista paczek co 15 minut, miasta w walk/prowadz, EXP Biegłości z questów walki i brak Soul XP z questów profesyjnych/rzemieślniczych.")
+HELP_TOPICS.setdefault("wersja", []).append("v0.53.0: Courier Guild & Package Classes — reputacja Kurierów 1-400, osiem rang i tytułów, sześć rodzajów paczek z różną nagrodą/ryzykiem oraz trwałe statystyki kuriera.")
+HELP_TOPICS.setdefault("wersja", []).append("v0.54.0: Risk-Free Courier Achievements — usunięto losowe ryzyko z paczek i dodano osiągnięcia za 10/100/1000/10 000 dostaw, wszystkie miasta i wszystkie typy paczek.")
+HELP_TOPICS.setdefault("wersja", []).append("v0.55.0: Courier Prestige & Tavern Hourlies — prestiżowe paczki od reputacji 360, osiągnięcia po 100 dostaw per miasto/per typ oraz trzy godzinne zlecenia Karczmarki Elii.")
+
+
+
+HELP_TOPICS.setdefault("dziennik", []).extend([
+    "Dziennik aktywności zapisuje od v0.56.0 ostatnie bossy, ukończone questy, ważne dropy, dostawy, osiągnięcia i awanse.",
+    "Komendy: dziennik; dziennik bossy; dziennik questy; dziennik dropy; dziennik dostawy; dziennik osiągnięcia; dziennik awansy.",
+])
+HELP_TOPICS.setdefault("co robic", []).extend([
+    "co robic — podaje dokładnie pięć aktualnych propozycji: questy do oddania/wykonania, lokalne zadania, pocztę, expowisko, profesje lub eksplorację.",
+    "Lista jest krótka i przeznaczona do wygodnego czytania przez NVDA.",
+])
+HELP_TOPICS.setdefault("wersja", []).append("v0.56.0: Living NPCs & Activity Journal — sieć karczm z godzinymi questami, automatyczne questy dla NPC bez zadań, trwały dziennik aktywności i komenda co robic.")
+
+HELP_TOPICS.setdefault("wersja", []).append("v0.57.0: Courier & Schema Modularization — Courier ma osobny moduł, a db_schema.py jest małym koordynatorem dziesięciu modułów schematu/migracji; gameplay i save'y pozostają zgodne.")
+
+HELP_TOPICS.setdefault("wersja", []).append("v0.57.1: Fast Railway Predeploy — szybki gate działa podczas Docker build, a pełny historyczny audyt pozostaje osobno w predeploy_full.py; bez zmian gameplayu i save'ów.")

@@ -257,6 +257,24 @@ class SessionIOAuthCharacterMixin:
                     return
             if history_store:
                 self.record_history_buffer(text, category=history_category, combat_detail=combat_detail)
+            if history_store and self.account_id is not None and not getattr(self, "history_replaying", False):
+                try:
+                    _value = str(text or "").strip()
+                    _promotion_patterns = (
+                        r"^Level postaci wzrasta do \d+",
+                        r"^Broń Duszy osiąga Soul Level \d+",
+                        r"^.+: Biegłość rośnie do \d+",
+                        r"^.+: Wzniesienie rośnie do rangi \d+",
+                        r"^.+ osiąga poziom \d+",
+                        r"^.+ awansuje na Tier \d+",
+                        r"^.+: awansujesz na Rangę \d+",
+                        r"^.+ awansuje na Skill Level \d+",
+                        r"^Soul Weapon Mastery wzrasta do \d+",
+                    )
+                    if _value and any(re.match(_pattern, _value, re.IGNORECASE) for _pattern in _promotion_patterns):
+                        self.server.db.record_activity_v0560(self.account_id, "awans", _value, "")
+                except Exception:
+                    pass
             try:
                 self.writer.write(
                     self.encode_session_text(

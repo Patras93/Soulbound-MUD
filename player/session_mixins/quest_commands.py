@@ -1,7 +1,12 @@
 # -*- coding: utf-8 -*-
 """Quest completion and player-facing quest commands."""
 # v0.45.0: explicit imports; no compatibility-runtime injection.
-from core.progression_resources import v0190_quest_currency_reward, v0270_quest_character_reward
+from core.progression_resources import (
+    v0190_quest_currency_reward,
+    v0270_quest_character_reward,
+    v0522_combat_quest_class_reward,
+    v0522_is_profession_quest,
+)
 from player.session_mixins.dungeon_progression import v0874_quest_stat_progress_base_grant
 from player.session_mixins.museum_bounty import v0914_combat_quest_stat_reward
 from player.session_mixins.quest_npc import ITEMS, QUESTS, profession_for_tool_type
@@ -18,6 +23,13 @@ class SessionQuestCommandsMixin:
             self.server.db.complete_quest(self.account_id, quest_id)
             self.cleanup_quest_map_artifacts_v0243(quest_id, allow_legacy_generic=False)
             self.server.db.add_lifetime_stat(self.account_id, "quests_completed", 1)
+            try:
+                self.server.db.record_activity_v0560(
+                    self.account_id, "quest", str(q.get("name") or quest_id),
+                    f"NPC: {q.get('giver', 'nieznany')}."
+                )
+            except Exception:
+                pass
 
             # v0.9.8: NPC najpierw reaguje na oddanie, potem przekazuje nagrody.
             turnin_npc = self.quest_turnin_npc_name_v098(q)
@@ -52,7 +64,7 @@ class SessionQuestCommandsMixin:
             # EXP rozwoju statystyk nie tworzy levelu postaci.
             # v0.19: quest może dawać bardzo duże liczby EXP. Nie obcinamy
             # nagrody procentowym capem; tempo kontroluje globalna krzywa wymagań.
-            is_combat_quest = q.get("kind") == "kill"
+            is_combat_quest = str(q.get("kind") or "") in {"kill", "legendary_rare", "world_boss"}
             # v0.9.14: każdy quest walki daje prawdziwy EXP sześciu statystyk.
             # Korzystamy z istniejącego add_stat_progress, więc rosną bezpośrednio
             # Siła, Zręczność, Kondycja, Inteligencja, Siła Woli i Charyzma.
@@ -71,11 +83,20 @@ class SessionQuestCommandsMixin:
                     ):
                         await self.send(msg)
 
-            # v0.19: quest walki daje duży Soul XP z globalnego generatora.
-            # Bramka Soul Tier pozostaje jedyną twardą blokadą progresji Soul.
-            reward_soul_xp = v0914_combat_quest_soul_reward(q, self.character)
+            # v0.52.2: questy typu kill rozwijają także Biegłość aktywnych klas.
+            # grant_class_xp zachowuje istniejące x2 EXP, bonus Gildii, Mentora
+            # i podział puli pomiędzy aktywne klasy.
+            reward_class_xp = v0522_combat_quest_class_reward(q) if is_combat_quest else 0
+            if reward_class_xp:
+                await self.send(f"Nagroda questa walki: {reward_class_xp} EXP Biegłości.")
+                await self.grant_class_xp(reward_class_xp)
+
+            # v0.52.2: progresja profesji/rzemiosł nie zasila już Broni Duszy.
+            # Zwykłe questy nieprofesyjne zachowują dotychczasowy Soul XP.
+            is_profession_quest = v0522_is_profession_quest(q)
+            reward_soul_xp = 0 if is_profession_quest else v0914_combat_quest_soul_reward(q, self.character)
             if reward_soul_xp:
-                await self.send(f"Nagroda questa walki: {reward_soul_xp} Soul XP.")
+                await self.send(f"Nagroda questa: {reward_soul_xp} Soul XP.")
                 await self.grant_soul_xp(reward_soul_xp)
 
             quest_coins=v0190_quest_currency_reward(q)

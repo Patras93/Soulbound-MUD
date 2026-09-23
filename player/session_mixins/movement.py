@@ -13,6 +13,7 @@ from core.mines_threat import (
     v0866_threat_label,
 )
 from core.progression_600 import CHARACTER_MAX_LEVEL
+from config.postal import COURIER_CITY_ROOM_TO_NAME_V0530
 from core.progression_resources import mine_floor_number
 from systems.content_registry import MOB_TEMPLATES
 from systems.dungeons_regions import (
@@ -208,6 +209,9 @@ class SessionMovementMixin:
                 self.previous_room_id = old
                 self.character.room_id = target
                 self.server.db.save_character(self.character)
+                city_name_v0530 = COURIER_CITY_ROOM_TO_NAME_V0530.get(str(target))
+                if city_name_v0530 and self.account_id is not None:
+                    self.server.db.record_courier_city_visit_v0530(self.account_id, city_name_v0530)
                 await self.server.broadcast_room(
                     target, f"{self.character.name} przychodzi.", exclude=self
                 )

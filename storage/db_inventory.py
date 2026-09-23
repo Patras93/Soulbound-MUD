@@ -215,6 +215,12 @@ class DatabaseInventoryMixin:
             (account_id, account_id, DROP_HISTORY_LIMIT),
         )
         self.conn.commit()
+        recorder = getattr(self, "record_activity_v0560", None)
+        if recorder:
+            recorder(
+                account_id, "drop", str(item_name),
+                f"Rzadkość: {rarity}. Źródło: {source or 'nieznane'}. Strefa: {zone or 'nieznana'}."
+            )
 
     def drop_history_rows(self, account_id, limit=20):
         return self.conn.execute(

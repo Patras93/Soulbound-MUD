@@ -1,3 +1,5 @@
+import math
+from core import generator_core as generator_core_v027
 from data import catalog_mutations as _catalog_mut
 from config.balance import (
     CHARACTER_MAX_LEVEL,
@@ -268,6 +270,35 @@ def v0190_quest_soul_reward(quest):
     if quest.get("generator_level") is not None:
         return max(0, int(quest.get("reward_soul_xp", 0) or 0))
     return generator_core_v027.axis_gain("soul", v0190_quest_stage(quest), 2.0)
+
+V0522_COMBAT_QUEST_KINDS = {"kill", "legendary_rare", "world_boss"}
+
+def v0522_combat_quest_class_reward(quest):
+    """Class Mastery XP for quests whose objective is defeating enemies."""
+    quest = quest or {}
+    if str(quest.get("kind") or "") not in V0522_COMBAT_QUEST_KINDS:
+        return 0
+    stage = v0190_quest_stage(quest)
+    needed = max(1, int(quest.get("needed", 1) or 1))
+    workload = max(1.0, min(8.0, math.sqrt(needed)))
+    repeat_mult = .72 if quest.get("repeatable") else 1.0
+    return generator_core_v027.axis_gain("class", stage, workload * repeat_mult)
+
+
+def v0522_is_profession_quest(quest):
+    """True for quests that advance a profession/tool axis.
+
+    These quests may still award profession/tool/stat/character rewards, but
+    v0.52.2 deliberately removes Soul XP from profession/crafting progression.
+    """
+    quest = quest or {}
+    return bool(
+        int(quest.get("reward_profession_xp", 0) or 0) > 0
+        or int(quest.get("reward_tool_xp", 0) or 0) > 0
+        or quest.get("reward_profession")
+        or quest.get("reward_tool_type")
+        or quest.get("specialist_tool_type")
+    )
 
 def v0270_quest_character_reward(quest):
     quest = quest or {}

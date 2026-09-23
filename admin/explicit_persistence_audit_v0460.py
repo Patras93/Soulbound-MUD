@@ -9,7 +9,7 @@ def explicit_persistence_audit_v0460():
     e=validate_explicit_runtime_modules(root,EXPLICIT_RUNTIME_EXPORTS,RUNTIME_MODULES); errors.extend(e["errors"])
     l=validate_layer_imports(root); errors.extend(l["errors"])
     m=legacy_dependency_metrics(root,RUNTIME_MODULES,EXPLICIT_RUNTIME_EXPORTS); total=int(m["legacy_implicit_reference_total"])
-    expected={"storage/db_schema.py","storage/db_accounts.py","storage/db_world.py","storage/db_inventory.py","storage/db_progression.py","storage/db_quests.py","storage/db_guilds.py","storage/db_crafting_extensions.py","storage/database.py"}
+    expected={"storage/db_schema.py","storage/db_accounts.py","storage/db_world.py","storage/db_inventory.py","storage/db_progression.py","storage/db_quests.py","storage/db_guilds.py","storage/db_crafting_extensions.py","storage/database.py",'storage/schema_core.py','storage/schema_migrate_character.py','storage/schema_migrate_economy.py','storage/schema_migrate_guilds.py','storage/schema_migrate_history.py','storage/schema_migrate_social.py','storage/schema_migrate_tools.py','storage/schema_progression.py','storage/schema_social_guilds.py','storage/schema_world_quests.py'}
     missing=sorted(expected-set(EXPLICIT_RUNTIME_EXPORTS))
     if missing: errors.append("persistence modules not explicit: "+", ".join(missing))
     for old in ("storage/crafting_expansion_v03114.py","storage/milestone_v0320.py"):

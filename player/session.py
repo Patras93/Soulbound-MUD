@@ -8,6 +8,7 @@ from player.session_mixins.perception_maps import SessionPerceptionMapsMixin
 from player.session_mixins.world_progression import SessionWorldProgressionMixin
 from player.session_mixins.help_codex_profile import SessionHelpCodexProfileMixin
 from player.session_mixins.social_expansion import SessionSocialExpansionMixin
+from player.session_mixins.courier_delivery import SessionCourierDeliveryMixin
 from player.session_mixins.movement_party_social import SessionMovementPartySocialMixin
 from player.session_mixins.professions_storage_guide import SessionProfessionsStorageGuideMixin
 from player.session_mixins.admin_gathering_sales import SessionAdminGatheringSalesMixin
@@ -21,6 +22,7 @@ from player.session_mixins.professions import SessionProfessionsV03053Mixin
 from player.session_mixins.tech_crafting import SessionTechCraftingV03111Mixin
 from player.session_mixins.milestone import SessionMilestoneV0320Mixin
 from player.session_mixins.command_special_handlers import SessionCommandSpecialHandlersMixin
+from player.session_mixins.activity_guidance import SessionActivityGuidanceV0560Mixin
 from player.session_mixins.command_registry import SessionCommandRegistryMixin
 from player.session_mixins.command_loop import SessionCommandLoopMixin
 
@@ -33,6 +35,7 @@ class Session(
     SessionWorldProgressionMixin,
     SessionHelpCodexProfileMixin,
     SessionSocialExpansionMixin,
+    SessionCourierDeliveryMixin,
     SessionMovementPartySocialMixin,
     SessionProfessionsStorageGuideMixin,
     SessionAdminGatheringSalesMixin,
@@ -46,6 +49,7 @@ class Session(
     SessionTechCraftingV03111Mixin,
     SessionMilestoneV0320Mixin,
     SessionCommandSpecialHandlersMixin,
+    SessionActivityGuidanceV0560Mixin,
     SessionCommandRegistryMixin,
     SessionCommandLoopMixin
 ):

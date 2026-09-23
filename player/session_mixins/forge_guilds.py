@@ -832,6 +832,15 @@ class SessionForgeGuildsMixin:
                 await self.send("Komendy: gildia członkowie, zaproś, dołącz, chat, wpłać, wypłać, skarbiec, bank, rangi, ranga, rozbuduj, siedziba, budynek, kontrakty, kontrakt, boss, trofea, log, osiągnięcia.")
                 return
             parts=raw.split(maxsplit=1); action=normalize_lookup_text(parts[0]); rest=parts[1].strip() if len(parts)>1 else ""
+            if action in ("kurierow","kurierów","couriers","courier"):
+                courier_action = normalize_lookup_text(rest)
+                if courier_action in ("statystyki","staty","stats","statistics"):
+                    await self.postal_show_statistics_v0530()
+                elif courier_action in ("osiagniecia","osiągnięcia","achievements","achievement"):
+                    await self.postal_show_achievements_v0540()
+                else:
+                    await self.postal_show_guild_v0530()
+                return
             if action in ("utworz","utwórz","create"):
                 if row: await self.send("Już należysz do Gildii."); return
                 name=rest.strip()

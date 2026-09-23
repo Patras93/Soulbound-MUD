@@ -242,6 +242,7 @@ class SessionSocialExpansionMixin:
             conn.execute("DELETE FROM player_mail_v03051 WHERE id=? AND recipient_account_id=?",(int(parts[1]),self.account_id)); conn.commit(); await self.send("Wiadomość usunięta."); return
         else: await self.send("Mail: mail list, mail send <gracz> <tekst>, mail read <id>, mail delete <id>.")
 
+
     async def handle_board_v03051(self,args=''):
         raw=str(args or '').strip(); conn=self.server.db.conn; parts=raw.split(maxsplit=2); action=normalize_lookup_text(parts[0]) if parts else 'list'
         if action in ('list','lista'):

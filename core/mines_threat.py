@@ -1,6 +1,7 @@
 from data import catalog_mutations as _catalog_mut
 from core.command_catalog import CommandAliasMap
 from config.command_aliases import COMMAND_ALIAS_DEFINITIONS
+from config.postal import GUIDE_CITY_HUBS_V0522
 
 def build_mine_depth_rooms():
     _catalog_mut.catalog_assign(mine_floor_id(1), 'ROOMS', ROOMS, ("crystal_chamber", "exits", "down"))
@@ -469,6 +470,27 @@ GUIDE_DESTINATION_ALIASES = {
     'alchemy garden': 'prof_alchemy_garden_1',
 
 }
+
+# v0.52.2: settlement names are first-class guide destinations.  Queries are
+# normalized before lookup, so aliases stored here intentionally use the same
+# ASCII form as the navigation normalizer.
+for _city_name_v0522, _city_room_v0522 in GUIDE_CITY_HUBS_V0522.items():
+    _city_key_v0522 = (
+        _city_name_v0522.lower()
+        .replace("ą", "a").replace("ć", "c").replace("ę", "e")
+        .replace("ł", "l").replace("ń", "n").replace("ó", "o")
+        .replace("ś", "s").replace("ź", "z").replace("ż", "z")
+    )
+    GUIDE_DESTINATION_ALIASES[_city_key_v0522] = _city_room_v0522
+
+# Miasto Dusz ma osobne, istniejące Biuro Kurierów; pozostałe miasta
+# obsługują pocztę na swoich centralnych placach.
+GUIDE_DESTINATION_ALIASES.update({
+    "poczta": "courier_office",
+    "biuro kurierow": "courier_office",
+    "biuro kuriera": "courier_office",
+    "kurier": "courier_office",
+})
 
 TOOL_BUY_ALIASES = {
     "wedka": "fishing_rod",

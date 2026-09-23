@@ -751,6 +751,48 @@ QUESTS = {
         "reward_silver": 7500, "reward_gold": 0, "reward_mithril": 0,
         "reward_items": {"soul_elixir": 2},
     },
+    "elia_hourly_fish": {
+        "name": "Karczma Błękitny Płomień: Świeże ryby",
+        "giver": "Karczmarka Elia",
+        "kind": "collect_category", "target": "fish", "needed": 8,
+        "description": (
+            "Po przyjęciu zadania złów 8 dowolnych ryb dla kuchni Karczmy "
+            "Błękitny Płomień i wróć do Karczmarki Elii. Zadanie odnawia się co godzinę."
+        ),
+        "reward_profession": "Wędkarstwo", "reward_profession_xp": 500,
+        "reward_tool_type": "fishing", "reward_tool_xp": 400,
+        "reward_silver": 350, "reward_gold": 1, "reward_mithril": 0,
+        "reward_items": {"healing_potion": 1},
+        "repeatable": True, "repeat_cooldown": 60 * 60,
+    },
+    "elia_hourly_herbs": {
+        "name": "Karczma Błękitny Płomień: Zioła do naparów",
+        "giver": "Karczmarka Elia",
+        "kind": "collect_category", "target": "herb", "needed": 8,
+        "description": (
+            "Po przyjęciu zadania zbierz 8 dowolnych ziół do naparów i przypraw "
+            "Karczmy Błękitny Płomień, a potem wróć do Karczmarki Elii. "
+            "Zadanie odnawia się co godzinę."
+        ),
+        "reward_profession": "Zielarstwo", "reward_profession_xp": 500,
+        "reward_tool_type": "herbalism", "reward_tool_xp": 400,
+        "reward_silver": 350, "reward_gold": 1, "reward_mithril": 0,
+        "reward_items": {"mana_potion": 1},
+        "repeatable": True, "repeat_cooldown": 60 * 60,
+    },
+    "elia_hourly_bandits": {
+        "name": "Karczma Błękitny Płomień: Bezpieczny szlak",
+        "giver": "Karczmarka Elia",
+        "kind": "kill", "target": "bandit", "needed": 8,
+        "description": (
+            "Pokonaj 8 bandytów zagrażających gościom i dostawcom Karczmy Błękitny "
+            "Płomień, a potem wróć do Karczmarki Elii. Zadanie odnawia się co godzinę."
+        ),
+        "reward_stat_progress": 60,
+        "reward_silver": 600, "reward_gold": 2, "reward_mithril": 0,
+        "reward_items": {"healing_potion": 2},
+        "repeatable": True, "repeat_cooldown": 60 * 60,
+    },
 }
 
 __all__ = ['QUESTS']
