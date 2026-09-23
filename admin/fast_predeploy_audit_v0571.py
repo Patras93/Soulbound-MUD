@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Soulbound v0.58.2 - fast Railway predeploy audit.
+"""Soulbound v0.58.3 - fast Railway predeploy audit.
 
 This audit intentionally does not assemble the whole gameplay runtime.  It
 checks the deployment-critical surface that can make Railway fail before the
@@ -223,7 +223,7 @@ def fast_predeploy_audit_v0571():
         errors.append(f"server bootstrap contract check failed: {type(exc).__name__}: {exc}")
 
     return {
-        "version": "0.58.2",
+        "version": "0.58.3",
         "runtime_module_count": len(RUNTIME_MODULES),
         "missing_runtime_packages": missing_packages,
         "missing_manifest_files": missing_manifest_files,

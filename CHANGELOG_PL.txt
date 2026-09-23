@@ -1,3 +1,12 @@
+Soulbound v0.58.3 — Soul Trial Runtime Kill Credit Hotfix
+
+- Naprawiono Próbę Broni Duszy Tier 9: zabicie Króla Podmiejskich Kanałów zalicza teraz cel także wtedy, gdy World/Terrain runtime skaluje bossa do technicznego template ID.
+- `quest_kill_targets_v0389` uwzględnia `base_template` runtime-clonów oprócz dotychczasowych canonical/Elite/Rare/dense targetów.
+- Nie zmieniono kanonicznej tożsamości Bestiariusza, statystyk bossa ani balansu; poprawka dotyczy wyłącznie questowego kill-credit.
+- Dodano testy terrain clone i world-threat clone oraz pełną regresję aktywnego `soul_tier_09_trial`: postęp 0/1 -> 1/1 po zabiciu technicznego klona `sewer_king`.
+- Rozszerzono istniejący Canonical Kill Quest Credit Audit v0.38.9 o przypadek `base_template` dla Króla Podmiejskich Kanałów.
+- Brak zmian schematu SQLite i save'ów; bez wipe postaci.
+
 Soulbound v0.58.2 — Runtime Symbol Collision Hotfix
 
 - Naprawiono produkcyjny crash Railway: `Unexpected runtime symbol override: _has_quest: admin/living_npcs_activity_audit_v0560.py -> admin/living_npcs_late_finalize_audit_v0581.py`.
@@ -7,7 +16,7 @@ Soulbound v0.58.2 — Runtime Symbol Collision Hotfix
 - Brak zmian gameplayu, schematu SQLite i save’ów; bez wipe postaci.
 
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v0.58.1
+Aktualna paczka: v0.58.3
 
 Ten plik jest changelogiem narastającym. Kolejne wydania mają dopisywać nowe wpisy na górze, bez usuwania starszej historii.
 Historia poniżej została odtworzona z zachowanych wpisów release, HELP, audytów, komentarzy milestone oraz aktywnego kodu Soulbound.

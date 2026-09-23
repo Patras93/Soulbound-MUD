@@ -84,13 +84,13 @@ def cumulative_release_integrity_audit_v0369():
         preserved.append(label)
 
     # Direct release-line checks for the exact milestones the user flagged.
-    if str(globals().get("VERSION","")) != "0.58.2":
-        errors.append(f"VERSION={globals().get('VERSION')!r}, expected 0.58.2")
-    if str(globals().get("GENERATOR_CORE_VERSION","")) != "0.58.2":
-        errors.append(f"Generator Core={globals().get('GENERATOR_CORE_VERSION')!r}, expected 0.58.2")
+    if str(globals().get("VERSION","")) != "0.58.3":
+        errors.append(f"VERSION={globals().get('VERSION')!r}, expected 0.58.3")
+    if str(globals().get("GENERATOR_CORE_VERSION","")) != "0.58.3":
+        errors.append(f"Generator Core={globals().get('GENERATOR_CORE_VERSION')!r}, expected 0.58.3")
 
     return {
-        "version":"0.58.2",
+        "version":"0.58.3",
         "checked":len(_RELEASE_AUDITS_V0369),
         "preserved":preserved,
         "preserved_count":len(preserved),
@@ -101,7 +101,7 @@ def cumulative_release_integrity_audit_v0369():
 CUMULATIVE_RELEASE_INTEGRITY_AUDIT_V0369=cumulative_release_integrity_audit_v0369()
 if CUMULATIVE_RELEASE_INTEGRITY_AUDIT_V0369["error_count"]:
     raise RuntimeError(
-        "Cumulative Release Integrity Audit v0.58.2 failed: "
+        "Cumulative Release Integrity Audit v0.58.3 failed: "
         + "; ".join(CUMULATIVE_RELEASE_INTEGRITY_AUDIT_V0369["errors"][:100])
     )
 
@@ -120,13 +120,14 @@ HELP_TOPICS.setdefault("wersja", []).append(
     "v0.38.14: bounty porzuć / bounty porzuc anuluje aktywny kontrakt bez zmiany licznika ukończonych i bez darmowego losowania nowych ofert."
 )
 
-LATEST_CHANGES_TITLE = "Soulbound v0.58.2 - Runtime Symbol Collision Hotfix"
+LATEST_CHANGES_TITLE = "Soulbound v0.58.3 - Soul Trial Runtime Kill Credit Hotfix"
 LATEST_CHANGES = [
-    "v0.58.2: naprawiono crash Railway `Unexpected runtime symbol override: _has_quest` po hotfixie Living NPCs v0.58.1.",
-    "Pomocnicza funkcja późnego audytu NPC ma teraz unikalną nazwę i nie koliduje z audytem v0.56.0; naprawa questów dla późno tworzonych NPC z v0.58.1 pozostaje aktywna.",
-    "Fast Railway Predeploy statycznie sprawdza teraz wszystkie top-level funkcje i klasy z manifestu oraz blokuje nieoczekiwane kolizje symboli przed Docker deployem.",
-    "Brak zmian gameplayu, schematu SQLite i save'ów; bez wipe postaci.",
+    "v0.58.3: Próba Broni Duszy Tier 9 zalicza Króla Podmiejskich Kanałów także wtedy, gdy runtime skaluje bossa do technicznego terrain/world clone.",
+    "Questowy kill-credit v0.38.9 uwzględnia teraz `base_template` runtime-clonów, bez zmiany kanonicznej tożsamości Bestiariusza ani balansu mobów.",
+    "Dodano regresję 0/1 -> 1/1 dla aktywnego `soul_tier_09_trial` oraz test terrain/world-threat clone.",
+    "Brak zmian schematu SQLite i save'ów; bez wipe postaci.",
 ]
+
 
 
 HELP_TOPICS.setdefault("wersja", []).append(
@@ -200,3 +201,4 @@ HELP_TOPICS.setdefault("wersja", []).append("v0.57.1: Fast Railway Predeploy —
 HELP_TOPICS.setdefault("wersja", []).append("v0.58.0: Titles 2.0 & Unified Progress — retroaktywne tytuły za eksplorację, bossy, profesje, Kurierów, gildie i frakcje oraz pełna komenda postep w jednym widoku NVDA.")
 HELP_TOPICS.setdefault("wersja", []).append("v0.58.1: Living NPC Late Finalize Hotfix — późno tworzeni NPC, w tym klasowi sprzedawcy EQ, dostają godzinne questy przed audytem; naprawiono restart loop na Railway bez wyłączania walidacji.")
 HELP_TOPICS.setdefault("wersja", []).append("v0.58.2: Runtime Symbol Collision Hotfix — usunięto kolizję `_has_quest` między audytami i dodano wykrywanie nieoczekiwanych override’ów symboli do Fast Railway Predeploy.")
+HELP_TOPICS.setdefault("wersja", []).append("v0.58.3: Soul Trial Runtime Kill Credit Hotfix — Próba Tier 9 zalicza Króla Podmiejskich Kanałów także jako runtime terrain/world clone.")

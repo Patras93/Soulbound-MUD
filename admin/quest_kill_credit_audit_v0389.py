@@ -42,6 +42,16 @@ def quest_kill_credit_audit_v0389():
     if len(bell_variants) < 3:
         errors.append(f"too few Bell Wraith variants checked: {len(bell_variants)}")
 
+    # v0.58.3 regression: terrain/world-threat clones preserve the authored
+    # quest identity only in base_template.  Tier 9 must therefore credit
+    # sewer_king even when the defeated runtime mob has a technical clone id.
+    terrain_targets = set(helper(
+        "sewer_king__terrain_v0362_audit",
+        {"base_template": "sewer_king", "name": "Król Podmiejskich Kanałów"},
+    ))
+    if "sewer_king" not in terrain_targets:
+        errors.append("terrain runtime clone does not credit sewer_king")
+
     # Base aliases authored on the canonical species must also survive generated variants.
     base_aliases = set((MOB_TEMPLATES.get("cemetery_bell_wraith") or {}).get("quest_targets") or ())
     for mob_id in bell_variants:

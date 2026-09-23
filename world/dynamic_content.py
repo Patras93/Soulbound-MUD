@@ -2301,11 +2301,19 @@ def quest_kill_targets_v0389(template_id, template=None):
     canonical_id = canonical_bestiary_template_id(template_id)
     canonical_template = MOB_TEMPLATES.get(canonical_id, {}) or {}
 
+    # v0.58.3: open-world terrain/world-threat/event clones carry their
+    # authored quest identity in base_template.  They are not Elite/Rare/dense
+    # variants, so canonical_bestiary_template_id intentionally does not
+    # collapse them.  Kill quests still must credit the authored base mob.
+    base_id = str(template.get("base_template") or "")
+    canonical_base_id = canonical_bestiary_template_id(base_id) if base_id else ""
+    base_template = MOB_TEMPLATES.get(canonical_base_id or base_id, {}) or {}
+
     targets = []
-    for value in (template_id, canonical_id):
+    for value in (template_id, canonical_id, base_id, canonical_base_id):
         if value:
             targets.append(str(value))
-    for source in (template, canonical_template):
+    for source in (template, canonical_template, base_template):
         primary = source.get("quest_target")
         if primary:
             targets.append(str(primary))
