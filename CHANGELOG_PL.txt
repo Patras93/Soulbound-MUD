@@ -1,3 +1,11 @@
+Soulbound v0.58.2 — Runtime Symbol Collision Hotfix
+
+- Naprawiono produkcyjny crash Railway: `Unexpected runtime symbol override: _has_quest: admin/living_npcs_activity_audit_v0560.py -> admin/living_npcs_late_finalize_audit_v0581.py`.
+- Późny audyt Living NPCs używa teraz unikalnego helpera `_v0581_has_quest`, więc nie narusza jawnej polityki override native runtime.
+- Zachowano naprawę v0.58.1: finalizer nadal domyka godzinne questy dla NPC tworzonych po głównym przebiegu, w tym klasowych sprzedawców EQ.
+- Fast Railway Predeploy analizuje wszystkie top-level funkcje i klasy runtime oraz wykrywa nieoczekiwane kolizje symboli i błędną kolejność dozwolonych override’ów przed Docker deployem.
+- Brak zmian gameplayu, schematu SQLite i save’ów; bez wipe postaci.
+
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
 Aktualna paczka: v0.58.1
 

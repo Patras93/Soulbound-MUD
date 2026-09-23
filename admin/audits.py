@@ -72,8 +72,8 @@ def generator_whitelist_audit_v03019():
     audit = GENERATOR_CORE_AUDIT or {}
     whitelist = audit.get("whitelist_audit") or {}
     errors = []
-    if GENERATOR_CORE_VERSION != "0.58.1":
-        errors.append(f"Generator Core version={GENERATOR_CORE_VERSION}, expected 0.58.1")
+    if GENERATOR_CORE_VERSION != "0.58.2":
+        errors.append(f"Generator Core version={GENERATOR_CORE_VERSION}, expected 0.58.2")
     if not audit.get("numeric_only"):
         errors.append("numeric_only flag missing")
     runtime_fast = bool(audit.get("runtime_fast_path"))
@@ -759,7 +759,7 @@ def full_release_integrity_audit_v03025():
         errors.append("world logic audit failed")
     if int(WORLD_LOGIC_AUDIT.get("warning_count", 0) or 0):
         errors.append("world logic warnings present")
-    if GENERATOR_CORE_VERSION != "0.58.1":
+    if GENERATOR_CORE_VERSION != "0.58.2":
         errors.append(f"GENERATOR_CORE_VERSION={GENERATOR_CORE_VERSION}")
     return {
         "version": "0.30.25",
@@ -976,7 +976,7 @@ def gameplay_flow_audit_v03026():
         if missing:
             errors.append(f"station {_station}: brak w {missing[:5]}")
 
-    if GENERATOR_CORE_VERSION != "0.58.1":
+    if GENERATOR_CORE_VERSION != "0.58.2":
         errors.append(f"GENERATOR_CORE_VERSION={GENERATOR_CORE_VERSION}")
 
     return {

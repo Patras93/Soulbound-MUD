@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Soulbound v0.58.1 - fast Railway predeploy audit.
+"""Soulbound v0.58.2 - fast Railway predeploy audit.
 
 This audit intentionally does not assemble the whole gameplay runtime.  It
 checks the deployment-critical surface that can make Railway fail before the
@@ -68,7 +68,7 @@ def fast_predeploy_audit_v0571():
 
     # 2. Explicit runtime manifest: every declared file must exist and compile.
     try:
-        from core.runtime_manifest import RUNTIME_MODULES
+        from core.runtime_manifest import RUNTIME_MODULES, EXPECTED_OVERRIDE_ORDER
     except Exception as exc:  # pragma: no cover - fatal deployment guard
         RUNTIME_MODULES = []
         errors.append(f"runtime manifest import failed: {type(exc).__name__}: {exc}")
@@ -104,10 +104,43 @@ def fast_predeploy_audit_v0571():
         errors.append(f"runtime manifest duplicate: {rel}")
     errors.extend(f"Python syntax failure: {item}" for item in syntax_errors)
 
+    # 2a. Mirror native_runtime's top-level symbol ownership guard without
+    # executing the full world. This catches deployment crashes such as v0.58.2
+    # defining the same helper function name in two audit modules.
+    symbol_owners: dict[str, list[str]] = {}
+    for rel in RUNTIME_MODULES:
+        path = ROOT / rel
+        if not path.is_file():
+            continue
+        try:
+            tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+        except Exception:
+            continue  # syntax failure is already reported above
+        for node in tree.body:
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+                symbol_owners.setdefault(node.name, []).append(rel)
+
+    unexpected_symbol_overrides = []
+    expected_order_mismatches = []
+    for symbol, owners in sorted(symbol_owners.items()):
+        if len(owners) < 2:
+            continue
+        expected = list(EXPECTED_OVERRIDE_ORDER.get(symbol, ()))
+        if not expected:
+            unexpected_symbol_overrides.append(f"{symbol}: {' -> '.join(owners)}")
+        elif owners != expected:
+            expected_order_mismatches.append(
+                f"{symbol}: observed {' -> '.join(owners)}; expected {' -> '.join(expected)}"
+            )
+    for item in unexpected_symbol_overrides:
+        errors.append(f"unexpected runtime symbol override: {item}")
+    for item in expected_order_mismatches:
+        errors.append(f"runtime override order mismatch: {item}")
+
 
     # 2b. Late living-NPC reconciliation must run after late NPC creators and
     # before the v0.56.0 coverage audit. This protects the Railway regression
-    # fixed in v0.58.1, where class EQ shopkeepers were added after the first
+    # fixed in v0.58.2, where class EQ shopkeepers were added after the first
     # living-NPC pass.
     try:
         finalizer = "world/living_npcs_finalize.py"
@@ -190,12 +223,14 @@ def fast_predeploy_audit_v0571():
         errors.append(f"server bootstrap contract check failed: {type(exc).__name__}: {exc}")
 
     return {
-        "version": "0.58.1",
+        "version": "0.58.2",
         "runtime_module_count": len(RUNTIME_MODULES),
         "missing_runtime_packages": missing_packages,
         "missing_manifest_files": missing_manifest_files,
         "duplicate_manifest_files": duplicate_manifest_files,
         "syntax_error_count": len(syntax_errors),
+        "unexpected_symbol_overrides": unexpected_symbol_overrides,
+        "expected_override_order_mismatches": expected_order_mismatches,
         "critical_import_ok": critical_import_ok,
         "schema_object_count": schema_object_count,
         "schema_table_count": len(schema_tables),

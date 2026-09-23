@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Native/explicit hybrid runtime for Soulbound v0.58.1.
+"""Native/explicit hybrid runtime for Soulbound v0.58.2.
 
 v0.40.0 still executed legacy source files into ``server.py``'s globals.  This
 loader keeps the proven load order and final-symbol compatibility, but every
@@ -278,7 +278,7 @@ def load_native_runtime(root: Path, namespace: MutableMapping[str, object]) -> d
     _sync_modules(compatibility_modules, runtime)
 
     state = {
-        "version": "0.58.1",
+        "version": "0.58.2",
         "module_count": len(modules),
         "modules": tuple(RUNTIME_MODULES),
         "native_module_names": tuple(module_name_for_path(p) for p in RUNTIME_MODULES),

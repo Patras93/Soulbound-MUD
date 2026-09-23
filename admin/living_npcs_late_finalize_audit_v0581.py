@@ -4,7 +4,7 @@ from data.catalogs import NPCS, QUESTS
 from world.living_npcs_finalize import LIVING_NPCS_FINALIZE_STATE
 
 
-def _has_quest(npc):
+def _v0581_has_quest(npc):
     ids=[]
     for key in ("quest","quest_chain","specialist_quests","quests"):
         value=npc.get(key)
@@ -19,8 +19,8 @@ def _has_quest(npc):
 def living_npcs_late_finalize_audit_v0581():
     errors=[]
     shop_ids=sorted(nid for nid,npc in NPCS.items() if str(nid).startswith("class_eq_shop_") or npc.get("class_eq_shop"))
-    uncovered=sorted(nid for nid,npc in NPCS.items() if not _has_quest(npc))
-    uncovered_shops=[nid for nid in shop_ids if not _has_quest(NPCS[nid])]
+    uncovered=sorted(nid for nid,npc in NPCS.items() if not _v0581_has_quest(npc))
+    uncovered_shops=[nid for nid in shop_ids if not _v0581_has_quest(NPCS[nid])]
     state=dict(LIVING_NPCS_FINALIZE_STATE.get("state", {}) or {})
     if uncovered:
         errors.append("NPCs without quests after late finalize: "+", ".join(uncovered[:30]))

@@ -84,13 +84,13 @@ def cumulative_release_integrity_audit_v0369():
         preserved.append(label)
 
     # Direct release-line checks for the exact milestones the user flagged.
-    if str(globals().get("VERSION","")) != "0.58.1":
-        errors.append(f"VERSION={globals().get('VERSION')!r}, expected 0.58.1")
-    if str(globals().get("GENERATOR_CORE_VERSION","")) != "0.58.1":
-        errors.append(f"Generator Core={globals().get('GENERATOR_CORE_VERSION')!r}, expected 0.58.1")
+    if str(globals().get("VERSION","")) != "0.58.2":
+        errors.append(f"VERSION={globals().get('VERSION')!r}, expected 0.58.2")
+    if str(globals().get("GENERATOR_CORE_VERSION","")) != "0.58.2":
+        errors.append(f"Generator Core={globals().get('GENERATOR_CORE_VERSION')!r}, expected 0.58.2")
 
     return {
-        "version":"0.58.1",
+        "version":"0.58.2",
         "checked":len(_RELEASE_AUDITS_V0369),
         "preserved":preserved,
         "preserved_count":len(preserved),
@@ -101,7 +101,7 @@ def cumulative_release_integrity_audit_v0369():
 CUMULATIVE_RELEASE_INTEGRITY_AUDIT_V0369=cumulative_release_integrity_audit_v0369()
 if CUMULATIVE_RELEASE_INTEGRITY_AUDIT_V0369["error_count"]:
     raise RuntimeError(
-        "Cumulative Release Integrity Audit v0.58.1 failed: "
+        "Cumulative Release Integrity Audit v0.58.2 failed: "
         + "; ".join(CUMULATIVE_RELEASE_INTEGRITY_AUDIT_V0369["errors"][:100])
     )
 
@@ -120,13 +120,14 @@ HELP_TOPICS.setdefault("wersja", []).append(
     "v0.38.14: bounty porzuć / bounty porzuc anuluje aktywny kontrakt bez zmiany licznika ukończonych i bez darmowego losowania nowych ofert."
 )
 
-LATEST_CHANGES_TITLE = "Soulbound v0.58.1 - Living NPC Late Finalize Hotfix"
+LATEST_CHANGES_TITLE = "Soulbound v0.58.2 - Runtime Symbol Collision Hotfix"
 LATEST_CHANGES = [
-    "v0.58.1: naprawiono crash Railway powodowany przez klasowych sprzedawców EQ dodawanych po pierwszym przebiegu generatora godzinnych questów NPC.",
-    "Dodano końcowe, idempotentne domknięcie questów NPC po późnych warstwach runtime i przed audytem v0.56.0; audyt nadal wymaga 0 NPC bez questa.",
-    "Fast Railway Predeploy pilnuje teraz kolejności finalizera względem admin/audits.py i audytu Living NPCs; gameplay Titles 2.0 z v0.58.0 pozostaje bez zmian.",
-    "Brak zmian schematu SQLite i brak wipe postaci.",
+    "v0.58.2: naprawiono crash Railway `Unexpected runtime symbol override: _has_quest` po hotfixie Living NPCs v0.58.1.",
+    "Pomocnicza funkcja późnego audytu NPC ma teraz unikalną nazwę i nie koliduje z audytem v0.56.0; naprawa questów dla późno tworzonych NPC z v0.58.1 pozostaje aktywna.",
+    "Fast Railway Predeploy statycznie sprawdza teraz wszystkie top-level funkcje i klasy z manifestu oraz blokuje nieoczekiwane kolizje symboli przed Docker deployem.",
+    "Brak zmian gameplayu, schematu SQLite i save'ów; bez wipe postaci.",
 ]
+
 
 HELP_TOPICS.setdefault("wersja", []).append(
     "v0.39.0: uporządkowano architekturę bez zmiany gameplayu: jawny manifest runtime, kontrolowane nadpisania, osobne moduły generatorów i deklaratywny router prostych komend."
@@ -198,3 +199,4 @@ HELP_TOPICS.setdefault("wersja", []).append("v0.57.0: Courier & Schema Modulariz
 HELP_TOPICS.setdefault("wersja", []).append("v0.57.1: Fast Railway Predeploy — szybki gate działa podczas Docker build, a pełny historyczny audyt pozostaje osobno w predeploy_full.py; bez zmian gameplayu i save'ów.")
 HELP_TOPICS.setdefault("wersja", []).append("v0.58.0: Titles 2.0 & Unified Progress — retroaktywne tytuły za eksplorację, bossy, profesje, Kurierów, gildie i frakcje oraz pełna komenda postep w jednym widoku NVDA.")
 HELP_TOPICS.setdefault("wersja", []).append("v0.58.1: Living NPC Late Finalize Hotfix — późno tworzeni NPC, w tym klasowi sprzedawcy EQ, dostają godzinne questy przed audytem; naprawiono restart loop na Railway bez wyłączania walidacji.")
+HELP_TOPICS.setdefault("wersja", []).append("v0.58.2: Runtime Symbol Collision Hotfix — usunięto kolizję `_has_quest` między audytami i dodano wykrywanie nieoczekiwanych override’ów symboli do Fast Railway Predeploy.")
