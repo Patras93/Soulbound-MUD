@@ -65,6 +65,7 @@ _RELEASE_AUDITS_V0369 = [
     ("v0.55.0 Courier Prestige & Tavern Hourlies", "COURIER_PRESTIGE_TAVERN_AUDIT_V0550"),
     ("v0.56.0 Living NPCs & Activity Journal", "LIVING_NPCS_ACTIVITY_AUDIT_V0560"),
     ("v0.57.0 Courier & Schema Modularization", "MODULAR_REFACTOR_AUDIT_V0570"),
+    ("v0.58.0 Titles 2.0 & Unified Progress", "TITLES_PROGRESS_AUDIT_V0580"),
 ]
 
 def cumulative_release_integrity_audit_v0369():
@@ -82,13 +83,13 @@ def cumulative_release_integrity_audit_v0369():
         preserved.append(label)
 
     # Direct release-line checks for the exact milestones the user flagged.
-    if str(globals().get("VERSION","")) != "0.57.1":
-        errors.append(f"VERSION={globals().get('VERSION')!r}, expected 0.57.1")
-    if str(globals().get("GENERATOR_CORE_VERSION","")) != "0.57.1":
-        errors.append(f"Generator Core={globals().get('GENERATOR_CORE_VERSION')!r}, expected 0.57.1")
+    if str(globals().get("VERSION","")) != "0.58.0":
+        errors.append(f"VERSION={globals().get('VERSION')!r}, expected 0.58.0")
+    if str(globals().get("GENERATOR_CORE_VERSION","")) != "0.58.0":
+        errors.append(f"Generator Core={globals().get('GENERATOR_CORE_VERSION')!r}, expected 0.58.0")
 
     return {
-        "version":"0.57.1",
+        "version":"0.58.0",
         "checked":len(_RELEASE_AUDITS_V0369),
         "preserved":preserved,
         "preserved_count":len(preserved),
@@ -99,7 +100,7 @@ def cumulative_release_integrity_audit_v0369():
 CUMULATIVE_RELEASE_INTEGRITY_AUDIT_V0369=cumulative_release_integrity_audit_v0369()
 if CUMULATIVE_RELEASE_INTEGRITY_AUDIT_V0369["error_count"]:
     raise RuntimeError(
-        "Cumulative Release Integrity Audit v0.57.1 failed: "
+        "Cumulative Release Integrity Audit v0.58.0 failed: "
         + "; ".join(CUMULATIVE_RELEASE_INTEGRITY_AUDIT_V0369["errors"][:100])
     )
 
@@ -118,12 +119,12 @@ HELP_TOPICS.setdefault("wersja", []).append(
     "v0.38.14: bounty porzuć / bounty porzuc anuluje aktywny kontrakt bez zmiany licznika ukończonych i bez darmowego losowania nowych ofert."
 )
 
-LATEST_CHANGES_TITLE = "Soulbound v0.57.1 - Fast Railway Predeploy"
+LATEST_CHANGES_TITLE = "Soulbound v0.58.0 - Titles 2.0 & Unified Progress"
 LATEST_CHANGES = [
-    "v0.57.1: standardowy predeploy jest szybkim Railway gate i nie ładuje całego świata ani pełnego historycznego audytu.",
-    "Docker build uruchamia `python /app/predeploy_check.py`; błąd pakowania, składni, manifestu, krytycznego importu config.balance lub schematu SQLite zatrzymuje build.",
-    "Pełny dotychczasowy audyt został zachowany jako predeploy_full.py i nadal może być uruchamiany przed większym wydaniem.",
-    "Gameplay, save'y, Courier, questy, walka i architektura v0.57.0 pozostają bez zmian.",
+    "v0.58.0: Titles 2.0 dodaje retroaktywne tytuły za eksplorację, bossy, profesje, Kurierów, reputację gildii klasowych, Gildię gracza i komplet reputacji frakcji.",
+    "Komenda postep/postęp pokazuje w jednym NVDA-friendly widoku Level postaci, Biegłości, Soul, profesje, reputacje, osiągnięcia, tytuły, eksplorację, kolekcje i Muzeum.",
+    "Tytuły synchronizują się z istniejącego trwałego stanu, więc stare postacie otrzymują należne progi bez powtarzania wcześniejszej gry.",
+    "Brak zmian schematu SQLite i brak wipe postaci; Fast Railway Predeploy v0.57.1 pozostaje aktywny.",
 ]
 
 HELP_TOPICS.setdefault("wersja", []).append(
@@ -194,3 +195,4 @@ HELP_TOPICS.setdefault("wersja", []).append("v0.56.0: Living NPCs & Activity Jou
 HELP_TOPICS.setdefault("wersja", []).append("v0.57.0: Courier & Schema Modularization — Courier ma osobny moduł, a db_schema.py jest małym koordynatorem dziesięciu modułów schematu/migracji; gameplay i save'y pozostają zgodne.")
 
 HELP_TOPICS.setdefault("wersja", []).append("v0.57.1: Fast Railway Predeploy — szybki gate działa podczas Docker build, a pełny historyczny audyt pozostaje osobno w predeploy_full.py; bez zmian gameplayu i save'ów.")
+HELP_TOPICS.setdefault("wersja", []).append("v0.58.0: Titles 2.0 & Unified Progress — retroaktywne tytuły za eksplorację, bossy, profesje, Kurierów, gildie i frakcje oraz pełna komenda postep w jednym widoku NVDA.")

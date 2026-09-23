@@ -47,14 +47,15 @@ courier_achievements = ns["COURIER_ACHIEVEMENTS_AUDIT_V0540"]
 courier_prestige_tavern = ns["COURIER_PRESTIGE_TAVERN_AUDIT_V0550"]
 living_npcs_activity = ns["LIVING_NPCS_ACTIVITY_AUDIT_V0560"]
 modular_refactor = ns["MODULAR_REFACTOR_AUDIT_V0570"]
+titles_progress = ns["TITLES_PROGRESS_AUDIT_V0580"]
 release = ns["CUMULATIVE_RELEASE_INTEGRITY_AUDIT_V0369"]
 full = ns["full_game_predeploy_audit_v0336"]()
 runtime_state = ns["RUNTIME_ARCHITECTURE_STATE"]
 
-if arch["error_count"] or maintenance["error_count"] or native["error_count"] or modular["error_count"] or explicit["error_count"] or explicit_gameplay["error_count"] or explicit_persistence["error_count"] or combat_arch["error_count"] or catalog_ownership["error_count"] or command_registry["error_count"] or maintainable["error_count"] or progression_pace["error_count"] or long_term_balance["error_count"] or difficulty_pressure["error_count"] or world_expansion["error_count"] or world_expansion_ii["error_count"] or railway_packaging["error_count"] or postal_quest_rewards["error_count"] or courier_guild["error_count"] or courier_achievements["error_count"] or courier_prestige_tavern["error_count"] or living_npcs_activity["error_count"] or modular_refactor["error_count"] or release["error_count"] or full["error_count"]:
+if arch["error_count"] or maintenance["error_count"] or native["error_count"] or modular["error_count"] or explicit["error_count"] or explicit_gameplay["error_count"] or explicit_persistence["error_count"] or combat_arch["error_count"] or catalog_ownership["error_count"] or command_registry["error_count"] or maintainable["error_count"] or progression_pace["error_count"] or long_term_balance["error_count"] or difficulty_pressure["error_count"] or world_expansion["error_count"] or world_expansion_ii["error_count"] or railway_packaging["error_count"] or postal_quest_rewards["error_count"] or courier_guild["error_count"] or courier_achievements["error_count"] or courier_prestige_tavern["error_count"] or living_npcs_activity["error_count"] or modular_refactor["error_count"] or titles_progress["error_count"] or release["error_count"] or full["error_count"]:
     raise SystemExit(1)
 
-print("Soulbound v0.57.1 FULL PREDEPLOY PASS")
+print("Soulbound v0.58.0 FULL PREDEPLOY PASS")
 print(f"Architecture: {arch['error_count']} errors; {arch['registered_simple_commands']} registered simple commands")
 print(f"Maintenance: {maintenance['error_count']} errors; {maintenance['metrics']['maintenance_area_count']} repair areas")
 print(f"Native modules: {native['error_count']} errors; {native['checked_native_modules']} verified module identities")
@@ -78,6 +79,7 @@ print(f"Courier achievements: {courier_achievements['error_count']} errors; thre
 print(f"Courier prestige/tavern: {courier_prestige_tavern['error_count']} errors; {courier_prestige_tavern['city_achievement_count']} city achievements; {courier_prestige_tavern['package_achievement_count']} package achievements; {courier_prestige_tavern['tavern_hourly_count']} tavern hourlies")
 print(f"Living NPCs/activity: {living_npcs_activity['error_count']} errors; {living_npcs_activity['tavern_count']} new taverns; {living_npcs_activity['tavern_hourly_count']} tavern hourlies; {living_npcs_activity['generated_hourly_count']} generated NPC hourlies; {living_npcs_activity['npc_without_quest_count']} NPCs without quests")
 print(f"Modular refactor: {modular_refactor['error_count']} errors; social {modular_refactor['social_lines']} lines; courier {modular_refactor['courier_lines']} lines; db_schema {modular_refactor['db_schema_lines']} lines; {modular_refactor['focused_schema_module_count']} schema modules")
+print(f"Titles 2.0/progress: {titles_progress['error_count']} errors; {titles_progress['exploration_title_count']} exploration titles; {titles_progress['boss_title_count']} boss titles; {titles_progress['profession_count']} professions")
 print(f"Runtime mode: {runtime_state['runtime_mode']}; {runtime_state['explicit_module_count']} explicit / {runtime_state['legacy_compat_module_count']} legacy-compat")
 print(f"Release integrity: {release['preserved_count']}/{release['checked']} milestones preserved")
 print(f"Full game audit: {full['error_count']} errors, {full.get('warning_count', 0)} warnings")

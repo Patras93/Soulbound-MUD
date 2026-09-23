@@ -1,9 +1,24 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v0.57.1
+Aktualna paczka: v0.58.0
 
 Ten plik jest changelogiem narastającym. Kolejne wydania mają dopisywać nowe wpisy na górze, bez usuwania starszej historii.
 Historia poniżej została odtworzona z zachowanych wpisów release, HELP, audytów, komentarzy milestone oraz aktywnego kodu Soulbound.
 Jeżeli stara wersja pozostawiła w obecnej bazie tylko numer bez wiarygodnego opisu, nie dopisuję zmyślonych zmian; takie numery są wymienione na końcu.
+
+==============================================================================
+Soulbound v0.58.0 — Titles 2.0 & Unified Progress
+==============================================================================
+- Dodano System Tytułów 2.0 oparty na istniejącym `unlocked_titles`; bez nowej tabeli SQLite i bez wipe postaci.
+- Tytuły są synchronizowane retroaktywnie z trwałego progresu przy wejściu do gry oraz podczas użycia `tytuly` i `postep`, więc stare postacie otrzymują należne odblokowania bez ponownego wykonywania aktywności.
+- Eksploracja daje nowe tytuły przy 10%, 25%, 50%, 75% i 100% odkrycia świata.
+- Licznik zabitych bossów daje tytuły przy 10, 50, 100, 250, 500 i 1000 bossach.
+- Każda z 12 profesji ma tytuły za poziom 200, 400 i 600; dodatkowe tytuły nagradzają rozwinięcie wielu lub wszystkich profesji.
+- Rozszerzono tytuły za Gildię Kurierów, reputację gildii klasowych, poziom/rangę gildii gracza oraz komplet wysokich reputacji pięciu frakcji.
+- Tytuły 2.0 są prestiżowe i nie dodają nowych bonusów statystyk.
+- Rozbudowano istniejącą komendę `postep`: pokazuje Character Level i brakujący EXP, Biegłość aktywnych klas, Soul Level/Tier i Soul Weapon Mastery, 12 profesji, reputację Kurierów, frakcji i gildii klasowych, gildię gracza, osiągnięcia, tytuły oraz procent eksploracji świata.
+- `postep` zachowuje także wcześniejsze informacje o kolekcjach i muzeum; `postep region` nadal otwiera dotychczasowy widok progresu regionu.
+- Dodano Titles & Progress Audit v0.58.0 i jawny moduł `player/session_mixins/progress_titles.py`; brak nowych duplikatów metod mixinów i brak zwiększenia długu legacy.
+- Fast Railway Predeploy z v0.57.1 pozostaje aktywny; gameplay, schemat save'ów i dotychczasowa progresja nie są resetowane.
 
 ==============================================================================
 Soulbound v0.57.1 — Fast Railway Predeploy

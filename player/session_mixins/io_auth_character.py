@@ -1303,6 +1303,7 @@ class SessionIOAuthCharacterMixin:
             if self.channel_enabled_v03051("gossip"):
                 await self.show_channel_history_v03051("gossip", 20)
             await self.sync_extended_achievements()
+            await self.sync_titles_v0580(announce=True)
             if moved_gems:
                 await self.send(
                     f"Sakwa Górnika: przeniesiono {moved_gems} surowych klejnotów "

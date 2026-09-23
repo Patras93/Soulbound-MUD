@@ -69,6 +69,7 @@ RUNTIME_MODULES = ['core/bootstrap_economy_professions.py',
  'player/session_mixins/exploration_progress.py',
  'player/session_mixins/collection_loot_records.py',
  'player/session_mixins/world_progression.py',
+ 'player/session_mixins/progress_titles.py',
  'player/session_mixins/help_system.py',
  'player/session_mixins/atlas_codex.py',
  'player/session_mixins/character_profile.py',
@@ -170,6 +171,7 @@ RUNTIME_MODULES = ['core/bootstrap_economy_professions.py',
  'admin/courier_prestige_tavern_audit_v0550.py',
  'admin/living_npcs_activity_audit_v0560.py',
  'admin/modular_refactor_audit_v0570.py',
+ 'admin/titles_progress_audit_v0580.py',
  'admin/release_integrity_v0369.py']
 
 
@@ -767,6 +769,14 @@ EXPLICIT_RUNTIME_EXPORTS.update({
 })
 EXPLICIT_RUNTIME_EXPORTS["admin/modular_refactor_audit_v0570.py"] = (
     "modular_refactor_audit_v0570", "MODULAR_REFACTOR_AUDIT_V0570", "SCHEMA_MODULES_V0570",
+)
+EXPLICIT_RUNTIME_EXPORTS["player/session_mixins/progress_titles.py"] = (
+    "SessionProgressTitlesV0580Mixin", "PROFESSIONS_V0580",
+    "EXPLORATION_TITLES_V0580", "BOSS_TITLES_V0580",
+    "PROFESSION_TITLE_THRESHOLDS_V0580",
+)
+EXPLICIT_RUNTIME_EXPORTS["admin/titles_progress_audit_v0580.py"] = (
+    "titles_progress_audit_v0580", "TITLES_PROGRESS_AUDIT_V0580",
 )
 
 EXPLICIT_RUNTIME_EXPORTS["admin/railway_packaging_audit_v0521.py"] = (

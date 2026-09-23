@@ -377,24 +377,8 @@ class SessionExplorationProgressMixin:
             if norm in ("region", "strefa", "region progress", "regionprogress"):
                 await self.show_region_progress()
                 return
-            await self.show_exploration("")
-            achievement_count = len(self.server.db.achievement_rows(self.account_id))
-            await self.sync_collection_from_inventory()
-            discovered_total = sum(
-                len(self.server.db.collection_entry_ids(self.account_id, category))
-                for category in COLLECTION_CATALOGS
-            )
-            catalog_total = sum(len(catalog) for catalog in COLLECTION_CATALOGS.values())
-            collection_pct = int(discovered_total * 100 / max(1, catalog_total))
-            await self.send(
-                f"Collection Codex: {discovered_total} z {catalog_total}, {collection_pct}%."
-            )
-            await self.v0260_sync_museum()
-            _mrows, mfound, mtotal, mpct, mprestige = self.v0260_museum_snapshot()
-            await self.send(f"Muzeum: {mfound} z {mtotal}, {mpct}%. Prestiż {mprestige}/1000.")
-            await self.send(f"Odblokowane achievementy: {achievement_count}.")
-            if self.character.active_title:
-                await self.send(f"Aktywny tytuł: {self.character.active_title}.")
+            # v0.58.0: pełny widok jest utrzymywany w osobnym, skupionym module.
+            await self.show_unified_progress_v0580()
 
     async def show_achievements(self):
             await self.sync_extended_achievements()
@@ -420,6 +404,7 @@ class SessionExplorationProgressMixin:
                     await self.send(f"{row['name']}, {row['tier']}.")
 
     async def show_titles(self):
+            await self.sync_titles_v0580(announce=True)
             await self.v0260_sync_museum()
             await self.v0260_check_museum_rewards(announce=False)
             rows = list(self.server.db.title_rows(self.account_id))
