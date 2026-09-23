@@ -150,6 +150,7 @@ RUNTIME_MODULES = ['core/bootstrap_economy_professions.py',
  'admin/long_term_balance_audit_v0502.py',
  'admin/world_expansion_i_audit_v0510.py',
  'admin/world_expansion_ii_audit_v0520.py',
+ 'admin/railway_packaging_audit_v0521.py',
  'admin/release_integrity_v0369.py']
 
 
@@ -716,6 +717,10 @@ EXPLICIT_RUNTIME_EXPORTS["world/world_expansion_ii.py"] = (
 )
 EXPLICIT_RUNTIME_EXPORTS["admin/world_expansion_ii_audit_v0520.py"] = (
     "world_expansion_ii_audit_v0520", "WORLD_EXPANSION_II_AUDIT_V0520",
+)
+
+EXPLICIT_RUNTIME_EXPORTS["admin/railway_packaging_audit_v0521.py"] = (
+    "railway_packaging_audit_v0521", "RAILWAY_PACKAGING_AUDIT_V0521",
 )
 
 LEGACY_IMPLICIT_DEPENDENCY_BUDGET = 1022

@@ -17,6 +17,11 @@ COPY storage /app/storage
 COPY player /app/player
 COPY server /app/server
 COPY admin /app/admin
+COPY config /app/config
+COPY data /app/data
+COPY events /app/events
+COPY validation /app/validation
 COPY soulbound_world_seed.txt /app/soulbound_world_seed.txt
 COPY CHANGELOG_PL.txt /app/CHANGELOG_PL.txt
+COPY Dockerfile /app/Dockerfile
 CMD ["python", "-u", "/app/server.py"]

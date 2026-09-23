@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Maintenance map for Soulbound v0.52.0.
+"""Maintenance map for Soulbound v0.52.1.
 
 This module is intentionally independent from the legacy gameplay namespace.
 It answers one question: where should a bug be fixed?
@@ -163,6 +163,10 @@ MAINTENANCE_AREAS = {
             "admin/command_registry_audit_v0490.py",
         ),
         "purpose": "jedno źródło aliasów/handlerów/HELP/polityki komend; parser tylko transportuje i dispatchuje",
+    },
+    "deployment/railway": {
+        "files": ("Dockerfile", "admin/railway_packaging_audit_v0521.py", "tests/test_railway_packaging_v0521.py"),
+        "purpose": "v0.52.1: kompletność obrazu Railway i COPY wszystkich pakietów modułowego runtime",
     },
     "admin/audits": {
         "files": ("admin/audits.py", "admin/architecture_audit_v0390.py", "admin/maintenance_audit_v0400.py", "admin/native_modules_audit_v0410.py", "admin/modular_services_audit_v0420.py", "admin/explicit_dependencies_audit_v0430.py"),

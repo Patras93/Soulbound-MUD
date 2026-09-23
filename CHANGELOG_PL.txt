@@ -1,22 +1,6 @@
-Soulbound v0.52.0 — World Expansion II
+Soulbound v0.52.1 — Railway Packaging Hotfix
 
-- Dodano nowy zamorski ląd: Ardelia.
-- Dodano dużą stolicę: Srebrna Korona.
-- Dodano trzy osady: Zielony Brzeg, Kamienna Straż i Cicha Przystań.
-- Dodano 10 nowych expowisk obejmujących szeroki zakres trudności:
-  Brzegi Szeptów, Las Srebrnych Liści, Ruiny Strażnicy Wichru,
-  Szkarłatne Mokradła, Góry Burzowego Grzbietu, Kryształowe Równiny,
-  Pustynia Białego Szkła, Kanion Smoczych Kości,
-  Wyżyna Pękniętego Nieba i Rubieże Nocy.
-- Dodano 155 nowych pokoi, 40 nowych template'ów mobów, 10 NPC i 20 odnawialnych questów.
-- Każde expowisko ma 3 własne zwykłe typy przeciwników i własnego bossa.
-- Srebrna Korona jest połączona drogą morską z Portem Mglistych Wysp.
-- Nowy ląd ma trzy trakty zewnętrzne łączące osady bez obowiązkowego powrotu przez stolicę.
-- Dodano 21 automatycznych reliktów eksploracyjnych dla nowych regionów; istniejące itemy pozostały niezmienione.
-- Fame i multiclass NIE zostały dodane.
-- Balans progresji i trudności v0.50.1-v0.50.3 pozostaje bez zmian.
-- World Expansion I pozostaje w całości zachowane.
-- World Expansion II Audit: 0 błędów.
-- Full Game Audit: 0 błędów, 0 ostrzeżeń.
-- Release Integrity: 52/52 milestone'y zachowane.
-- 94/94 testy projektu PASS (zweryfikowane w grupach).
+- Naprawiono crash Railway: ModuleNotFoundError: No module named 'config'.
+- Dockerfile kopiuje teraz wszystkie pakiety wymagane przez modułowy runtime: config/, data/, events/ i validation/.
+- Dodano Railway Packaging Audit, który blokuje wydanie, jeśli którykolwiek wymagany pakiet nie jest kopiowany do /app.
+- Gameplay, balans, World Expansion I/II, progresja, looty, questy i mapa pozostają bez zmian względem v0.52.0.

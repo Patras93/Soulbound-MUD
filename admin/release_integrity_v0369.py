@@ -58,6 +58,7 @@ _RELEASE_AUDITS_V0369 = [
     ("v0.50.3 world/dungeon difficulty pressure", "DIFFICULTY_PRESSURE_AUDIT_V0503"),
     ("v0.51.0 World Expansion I", "WORLD_EXPANSION_I_AUDIT_V0510"),
     ("v0.52.0 World Expansion II", "WORLD_EXPANSION_II_AUDIT_V0520"),
+    ("v0.52.1 Railway packaging hotfix", "RAILWAY_PACKAGING_AUDIT_V0521"),
 ]
 
 def cumulative_release_integrity_audit_v0369():
@@ -75,13 +76,13 @@ def cumulative_release_integrity_audit_v0369():
         preserved.append(label)
 
     # Direct release-line checks for the exact milestones the user flagged.
-    if str(globals().get("VERSION","")) != "0.52.0":
-        errors.append(f"VERSION={globals().get('VERSION')!r}, expected 0.52.0")
-    if str(globals().get("GENERATOR_CORE_VERSION","")) != "0.52.0":
-        errors.append(f"Generator Core={globals().get('GENERATOR_CORE_VERSION')!r}, expected 0.52.0")
+    if str(globals().get("VERSION","")) != "0.52.1":
+        errors.append(f"VERSION={globals().get('VERSION')!r}, expected 0.52.1")
+    if str(globals().get("GENERATOR_CORE_VERSION","")) != "0.52.1":
+        errors.append(f"Generator Core={globals().get('GENERATOR_CORE_VERSION')!r}, expected 0.52.1")
 
     return {
-        "version":"0.52.0",
+        "version":"0.52.1",
         "checked":len(_RELEASE_AUDITS_V0369),
         "preserved":preserved,
         "preserved_count":len(preserved),
@@ -92,7 +93,7 @@ def cumulative_release_integrity_audit_v0369():
 CUMULATIVE_RELEASE_INTEGRITY_AUDIT_V0369=cumulative_release_integrity_audit_v0369()
 if CUMULATIVE_RELEASE_INTEGRITY_AUDIT_V0369["error_count"]:
     raise RuntimeError(
-        "Cumulative Release Integrity Audit v0.52.0 failed: "
+        "Cumulative Release Integrity Audit v0.52.1 failed: "
         + "; ".join(CUMULATIVE_RELEASE_INTEGRITY_AUDIT_V0369["errors"][:100])
     )
 
@@ -111,8 +112,9 @@ HELP_TOPICS.setdefault("wersja", []).append(
     "v0.38.14: bounty porzuć / bounty porzuc anuluje aktywny kontrakt bez zmiany licznika ukończonych i bez darmowego losowania nowych ofert."
 )
 
-LATEST_CHANGES_TITLE = "Soulbound v0.52.0 - World Expansion II"
+LATEST_CHANGES_TITLE = "Soulbound v0.52.1 - Railway Packaging Hotfix"
 LATEST_CHANGES = [
+    "v0.52.1: Railway Packaging Hotfix — obraz kontenera zawiera config/, data/, events/ i validation/ wymagane przez modułowy runtime.",
     "v0.52.0: World Expansion II — dodano zamorski ląd Ardelii ze stolicą Srebrna Korona i trzema osadami.",
     "Dodano dziesięć nowych expowisk od Brzegów Szeptów po Rubieże Nocy, każde z własnymi mobami i bossem.",
     "Nowy ląd ma pętle dróg i trzy trasy między osadami, więc podróż nie wymaga ciągłego wracania do stolicy.",
@@ -167,3 +169,5 @@ HELP_TOPICS.setdefault("wersja", []).append("v0.50.3: Harder World & Dungeons �
 HELP_TOPICS.setdefault("wersja", []).append("v0.51.0: World Expansion I — cztery nowe osady, osiem nowych expowisk, nowe drogi, moby, bossowie, NPC i 16 lokalnych zleceń.")
 
 HELP_TOPICS.setdefault("wersja", []).append("v0.52.0: World Expansion II — Ardelia, stolica Srebrna Korona, trzy osady, dziesięć nowych expowisk, 40 nowych mobów i 20 lokalnych zleceń.")
+
+HELP_TOPICS.setdefault("wersja", []).append("v0.52.1: Railway Packaging Hotfix — Dockerfile kopiuje wszystkie pakiety modułowego runtime: config, data, events i validation; brak tych katalogów nie może już przejść audytu wydania.")
