@@ -1,3 +1,4 @@
+from data import catalog_mutations as _catalog_mut
 
 def rebalance_economy_v0861():
     """Ujednolica wszystkie cenniki pod wspólne saldo i nowe nominały."""
@@ -236,10 +237,10 @@ rebalance_quest_rewards_v0862()
 
 # v0.8.73: dwa większe questy zbierackie z podniesionymi nagrodami.
 if "soul_shards" in QUESTS:
-    QUESTS["soul_shards"]["reward_items"] = {"soul_elixir": 2}
+    _catalog_mut.catalog_assign({"soul_elixir": 2}, 'QUESTS', QUESTS, ("soul_shards", "reward_items"))
 if "neris_fish_1" in QUESTS:
-    QUESTS["neris_fish_1"]["reward_profession_xp"] = 1200
-    QUESTS["neris_fish_1"]["reward_tool_xp"] = 1000
+    _catalog_mut.catalog_assign(1200, 'QUESTS', QUESTS, ("neris_fish_1", "reward_profession_xp"))
+    _catalog_mut.catalog_assign(1000, 'QUESTS', QUESTS, ("neris_fish_1", "reward_tool_xp"))
 
 
 def normalize_profession_requirements_v0866():
@@ -398,28 +399,28 @@ def repair_world_topology_v0855():
     """
     # Stary, nigdy niezdefiniowany cel mógł spowodować wyjątek przy ruchu.
     if ROOMS.get("troll_cave_3", {}).get("exits", {}).get("south") == "troll_war_camp":
-        ROOMS["troll_cave_3"]["exits"].pop("south", None)
+        _catalog_mut.catalog_pop_path('ROOMS', ROOMS, ("troll_cave_3", "exits"), "south", None)
 
     # Pradawny Las: pierwotne wejście ``south`` z Deep Grove zostało zajęte
     # przez Bagna. Zachowujemy oba tereny i dodajemy niezależne zejście.
     if "deep_grove" in ROOMS and profession_dungeon_room_id("ancient_forest", 1) in ROOMS:
-        ROOMS["deep_grove"]["exits"]["down"] = profession_dungeon_room_id("ancient_forest", 1)
+        _catalog_mut.catalog_assign(profession_dungeon_room_id("ancient_forest", 1), 'ROOMS', ROOMS, ("deep_grove", "exits", "down"))
         if "Wejście do Pradawnego Lasu" not in ROOMS["deep_grove"]["desc"]:
-            ROOMS["deep_grove"]["desc"] += " Wejście do Pradawnego Lasu prowadzi w dół, w najgęstszy ostęp."
+            _catalog_mut.catalog_aug_path('ROOMS', ROOMS, ("deep_grove", "desc"), 'Add', " Wejście do Pradawnego Lasu prowadzi w dół, w najgęstszy ostęp.")
 
     # Ogród Alchemika: wschodnie wyjście Zielarki zajęło później laboratorium.
     # Dodajemy osobne północne wejście, nie usuwając laboratorium ani ogrodu ziół.
     if "herbalist_hut" in ROOMS and profession_dungeon_room_id("alchemy_garden", 1) in ROOMS:
-        ROOMS["herbalist_hut"]["exits"]["north"] = profession_dungeon_room_id("alchemy_garden", 1)
+        _catalog_mut.catalog_assign(profession_dungeon_room_id("alchemy_garden", 1), 'ROOMS', ROOMS, ("herbalist_hut", "exits", "north"))
         if "Ogród Alchemika" not in ROOMS["herbalist_hut"]["desc"]:
-            ROOMS["herbalist_hut"]["desc"] += " Na północy znajduje się wejście do Ogrodu Alchemika."
+            _catalog_mut.catalog_aug_path('ROOMS', ROOMS, ("herbalist_hut", "desc"), 'Add', " Na północy znajduje się wejście do Ogrodu Alchemika.")
 
     # Pustynia: północ Ruin Strażnicy została później zajęta przez Ruiny
     # Kultystów. Pustynia pozostaje podłączona osobnym podejściem w górę.
     if "ruined_watchtower" in ROOMS and "dry_canyon" in ROOMS:
-        ROOMS["ruined_watchtower"]["exits"]["up"] = "dry_canyon"
+        _catalog_mut.catalog_assign("dry_canyon", 'ROOMS', ROOMS, ("ruined_watchtower", "exits", "up"))
         if "Suchy Kanion" not in ROOMS["ruined_watchtower"]["desc"]:
-            ROOMS["ruined_watchtower"]["desc"] += " Stroma droga w górę prowadzi do Suchego Kanionu i dalej ku Pustyni."
+            _catalog_mut.catalog_aug_path('ROOMS', ROOMS, ("ruined_watchtower", "desc"), 'Add', " Stroma droga w górę prowadzi do Suchego Kanionu i dalej ku Pustyni.")
 
 
 repair_world_topology_v0855()
@@ -526,7 +527,7 @@ def _dynamic_regular_mob_pack(room_id, base_id, template, names, floor, floor_wo
             variant["damage"] = max(1, int(round(int(template.get("damage", 1)) * 1.08)))
         variant["template_id"] = variant_id
         variant["dense_dungeon_variant"] = True
-        MOB_TEMPLATES[variant_id] = variant
+        _catalog_mut.catalog_assign(variant, 'MOB_TEMPLATES', MOB_TEMPLATES, (variant_id,))
         _configure_dynamic_corpse_material(variant)
         spawns.append((room_id, variant_id))
     return spawns
@@ -534,7 +535,7 @@ def _dynamic_regular_mob_pack(room_id, base_id, template, names, floor, floor_wo
 def _ensure_dynamic_boss_key(kind, floor):
     key_id = boss_floor_key_id(kind, floor)
     if key_id not in ITEMS:
-        ITEMS[key_id] = {
+        _catalog_mut.catalog_assign({
             "name": f"Klucz Bossa {BOSS_CHEST_KIND_NAMES[kind]} {floor}",
             "type": "quest",
             "price": None,
@@ -545,7 +546,7 @@ def _ensure_dynamic_boss_key(kind, floor):
                 f"Jednorazowy klucz z ciała bossa. Otwiera skrzynię na "
                 f"piętrze {floor} w: {BOSS_CHEST_KIND_NAMES[kind]}."
             ),
-        }
+        }, 'ITEMS', ITEMS, (key_id,))
     return key_id
 
 MILESTONE_BOSS_NAMES = {
@@ -757,13 +758,13 @@ def create_infinite_crypt_floor_definition(floor, mythic=False):
             "down": mythic_crypt_floor_id(floor + 1),
         }
         note = " Przy pierwszym przejściu mityczny boss blokuje zejście do chwili pokonania." if is_mythic_crypt_boss_floor(floor) else ""
-        ROOMS[room_id] = {
+        _catalog_mut.catalog_assign({
             "zone": "Mityczna Krypta",
             "name": f"Mityczna Krypta, piętro {floor}",
             "desc": f"Mityczne piętro {floor}. Próg trudności {crypt_depth_step(floor)}.{note}",
             "exits": exits,
             "procedural_infinite": True,
-        }
+        }, 'ROOMS', ROOMS, (room_id,))
         regular_id = f"mythic_crypt_mob_{floor}"
         base_hp = max(1, int(round((4000 + floor * 100) * mult)))
         template = {
@@ -784,7 +785,7 @@ def create_infinite_crypt_floor_definition(floor, mythic=False):
             "corpse_equipment_pool": list(gear),
             "corpse_equipment_guaranteed": 1,
         }
-        MOB_TEMPLATES[regular_id] = template
+        _catalog_mut.catalog_assign(template, 'MOB_TEMPLATES', MOB_TEMPLATES, (regular_id,))
         _configure_dynamic_corpse_material(template)
         spawns = _dynamic_regular_mob_pack(
             room_id, regular_id, template, MYTHIC_CRYPT_REGULAR_NAMES, floor, "piętro"
@@ -815,7 +816,7 @@ def create_infinite_crypt_floor_definition(floor, mythic=False):
             }
             boss["template_id"] = boss_id
             apply_milestone_boss_identity(boss, "mythic_crypt", floor)
-            MOB_TEMPLATES[boss_id] = boss
+            _catalog_mut.catalog_assign(boss, 'MOB_TEMPLATES', MOB_TEMPLATES, (boss_id,))
             _configure_dynamic_corpse_material(boss)
             _ensure_dynamic_boss_key("mythic_crypt", floor)
             spawns.append((room_id, boss_id))
@@ -827,13 +828,13 @@ def create_infinite_crypt_floor_definition(floor, mythic=False):
         "down": crypt_floor_id(floor + 1),
     }
     note = " Przy pierwszym przejściu boss tego progu blokuje zejście do chwili pokonania." if is_crypt_boss_floor(floor) else ""
-    ROOMS[room_id] = {
+    _catalog_mut.catalog_assign({
         "zone": "Krypta Nieskończona",
         "name": f"Krypta, piętro {floor}",
         "desc": f"Piętro {floor}. Próg trudności {crypt_depth_step(floor)}.{note}",
         "exits": exits,
         "procedural_infinite": True,
-    }
+    }, 'ROOMS', ROOMS, (room_id,))
     regular_id = f"crypt_floor_mob_{floor}"
     base_hp = max(1, int(round((70 + floor * 9) * mult)))
     template = {
@@ -854,7 +855,7 @@ def create_infinite_crypt_floor_definition(floor, mythic=False):
         "corpse_equipment_pool": gear,
         "corpse_equipment_guaranteed": 1,
     }
-    MOB_TEMPLATES[regular_id] = template
+    _catalog_mut.catalog_assign(template, 'MOB_TEMPLATES', MOB_TEMPLATES, (regular_id,))
     _configure_dynamic_corpse_material(template)
     spawns = _dynamic_regular_mob_pack(
         room_id, regular_id, template, CRYPT_REGULAR_NAMES, floor, "piętro"
@@ -885,7 +886,7 @@ def create_infinite_crypt_floor_definition(floor, mythic=False):
         }
         boss["template_id"] = boss_id
         apply_milestone_boss_identity(boss, "crypt", floor)
-        MOB_TEMPLATES[boss_id] = boss
+        _catalog_mut.catalog_assign(boss, 'MOB_TEMPLATES', MOB_TEMPLATES, (boss_id,))
         _configure_dynamic_corpse_material(boss)
         _ensure_dynamic_boss_key("crypt", floor)
         spawns.append((room_id, boss_id))
@@ -1044,7 +1045,7 @@ def create_infinite_astral_floor_definition(floor, mythic=False):
             "up": mythic_astral_floor_id(floor + 1),
         }
         note = " Przy pierwszym przejściu mityczny boss blokuje drogę w górę do chwili pokonania." if is_mythic_astral_boss_floor(floor) else ""
-        ROOMS[room_id] = {
+        _catalog_mut.catalog_assign({
             "zone": "Mityczna Wieża Astralna",
             "name": f"Mityczna Wieża Astralna, poziom {floor}",
             "desc": (
@@ -1054,7 +1055,7 @@ def create_infinite_astral_floor_definition(floor, mythic=False):
             ),
             "exits": exits,
             "procedural_infinite": True,
-        }
+        }, 'ROOMS', ROOMS, (room_id,))
         regular_id = f"mythic_astral_mob_{floor}"
         base_hp = max(1, int(round((5000 + floor * 120) * mult)))
         template = {
@@ -1080,7 +1081,7 @@ def create_infinite_astral_floor_definition(floor, mythic=False):
         }
         template["template_id"] = regular_id
         _apply_infinite_combat_theme(template, theme)
-        MOB_TEMPLATES[regular_id] = template
+        _catalog_mut.catalog_assign(template, 'MOB_TEMPLATES', MOB_TEMPLATES, (regular_id,))
         _configure_dynamic_corpse_material(template)
         spawns = _dynamic_regular_mob_pack(
             room_id, regular_id, template, MYTHIC_ASTRAL_REGULAR_NAMES, floor, "poziom"
@@ -1089,7 +1090,7 @@ def create_infinite_astral_floor_definition(floor, mythic=False):
             challenge_id = f"mythic_astral_challenge_{floor}"
             challenge = _infinite_challenge_template(template, "mythic_astral", floor)
             challenge["elite_base_template"] = regular_id
-            MOB_TEMPLATES[challenge_id] = challenge
+            _catalog_mut.catalog_assign(challenge, 'MOB_TEMPLATES', MOB_TEMPLATES, (challenge_id,))
             _configure_dynamic_corpse_material(challenge)
             spawns.append((room_id, challenge_id))
         if is_mythic_astral_boss_floor(floor):
@@ -1122,7 +1123,7 @@ def create_infinite_astral_floor_definition(floor, mythic=False):
             }
             boss["template_id"] = boss_id
             apply_milestone_boss_identity(boss, "mythic_astral", floor)
-            MOB_TEMPLATES[boss_id] = boss
+            _catalog_mut.catalog_assign(boss, 'MOB_TEMPLATES', MOB_TEMPLATES, (boss_id,))
             _configure_dynamic_corpse_material(boss)
             _ensure_dynamic_boss_key("mythic_astral", floor)
             spawns.append((room_id, boss_id))
@@ -1138,7 +1139,7 @@ def create_infinite_astral_floor_definition(floor, mythic=False):
         "up": astral_floor_id(floor + 1),
     }
     note = " Przy pierwszym przejściu boss tego poziomu blokuje drogę w górę do chwili pokonania." if is_astral_boss_floor(floor) else ""
-    ROOMS[room_id] = {
+    _catalog_mut.catalog_assign({
         "zone": "Wieża Astralna",
         "name": f"Wieża Astralna, poziom {floor}",
         "desc": (
@@ -1148,7 +1149,7 @@ def create_infinite_astral_floor_definition(floor, mythic=False):
         ),
         "exits": exits,
         "procedural_infinite": True,
-    }
+    }, 'ROOMS', ROOMS, (room_id,))
     relative = floor - ASTRAL_MIN_FLOOR
     regular_id = f"astral_floor_mob_{floor}"
     base_hp = max(1, int(round((1050 + relative * 12) * mult)))
@@ -1175,7 +1176,7 @@ def create_infinite_astral_floor_definition(floor, mythic=False):
     }
     template["template_id"] = regular_id
     _apply_infinite_combat_theme(template, theme)
-    MOB_TEMPLATES[regular_id] = template
+    _catalog_mut.catalog_assign(template, 'MOB_TEMPLATES', MOB_TEMPLATES, (regular_id,))
     _configure_dynamic_corpse_material(template)
     spawns = _dynamic_regular_mob_pack(
         room_id, regular_id, template, ASTRAL_REGULAR_NAMES, floor, "poziom"
@@ -1184,7 +1185,7 @@ def create_infinite_astral_floor_definition(floor, mythic=False):
         challenge_id = f"astral_challenge_{floor}"
         challenge = _infinite_challenge_template(template, "astral", floor)
         challenge["elite_base_template"] = regular_id
-        MOB_TEMPLATES[challenge_id] = challenge
+        _catalog_mut.catalog_assign(challenge, 'MOB_TEMPLATES', MOB_TEMPLATES, (challenge_id,))
         _configure_dynamic_corpse_material(challenge)
         spawns.append((room_id, challenge_id))
     if is_astral_boss_floor(floor):
@@ -1217,7 +1218,7 @@ def create_infinite_astral_floor_definition(floor, mythic=False):
         }
         boss["template_id"] = boss_id
         apply_milestone_boss_identity(boss, "astral", floor)
-        MOB_TEMPLATES[boss_id] = boss
+        _catalog_mut.catalog_assign(boss, 'MOB_TEMPLATES', MOB_TEMPLATES, (boss_id,))
         _configure_dynamic_corpse_material(boss)
         _ensure_dynamic_boss_key("astral", floor)
         spawns.append((room_id, boss_id))
@@ -1234,7 +1235,7 @@ def create_infinite_giant_fortress_floor_definition(floor):
         "up": giant_fortress_floor_id(floor + 1),
     }
     note = " Przy pierwszym przejściu boss tego poziomu blokuje drogę w górę do chwili pokonania." if is_giant_fortress_boss_floor(floor) else ""
-    ROOMS[room_id] = {
+    _catalog_mut.catalog_assign({
         "zone": "Twierdza Gigantów",
         "name": f"Twierdza Gigantów - poziom {floor}",
         "desc": (
@@ -1244,7 +1245,7 @@ def create_infinite_giant_fortress_floor_definition(floor):
         ),
         "exits": exits,
         "procedural_infinite": True,
-    }
+    }, 'ROOMS', ROOMS, (room_id,))
     names = ("Ogr Miotacz Głazów", "Cyklop Strażnik", "Górski Gigant")
     mob_id = f"giant_fortress_mob_{floor}"
     base_hp = max(1, int(round((450 + floor * 55) * mult)))
@@ -1273,7 +1274,7 @@ def create_infinite_giant_fortress_floor_definition(floor):
     }
     template["template_id"] = mob_id
     _apply_infinite_combat_theme(template, theme)
-    MOB_TEMPLATES[mob_id] = template
+    _catalog_mut.catalog_assign(template, 'MOB_TEMPLATES', MOB_TEMPLATES, (mob_id,))
     _configure_dynamic_corpse_material(template)
     spawns = _dynamic_regular_mob_pack(
         room_id, mob_id, template, names, floor, "poziom"
@@ -1282,7 +1283,7 @@ def create_infinite_giant_fortress_floor_definition(floor):
         challenge_id = f"giant_fortress_challenge_{floor}"
         challenge = _infinite_challenge_template(template, "giant", floor)
         challenge["elite_base_template"] = mob_id
-        MOB_TEMPLATES[challenge_id] = challenge
+        _catalog_mut.catalog_assign(challenge, 'MOB_TEMPLATES', MOB_TEMPLATES, (challenge_id,))
         _configure_dynamic_corpse_material(challenge)
         spawns.append((room_id, challenge_id))
     if is_giant_fortress_boss_floor(floor):
@@ -1316,7 +1317,7 @@ def create_infinite_giant_fortress_floor_definition(floor):
         }
         boss["template_id"] = boss_id
         apply_milestone_boss_identity(boss, "giant", floor)
-        MOB_TEMPLATES[boss_id] = boss
+        _catalog_mut.catalog_assign(boss, 'MOB_TEMPLATES', MOB_TEMPLATES, (boss_id,))
         _configure_dynamic_corpse_material(boss)
         _ensure_dynamic_boss_key("giant", floor)
         spawns.append((room_id, boss_id))
@@ -1340,7 +1341,7 @@ def create_infinite_mine_floor_definition(floor):
         richness = "rzadkie rudy endgame"
     else:
         richness = "najwyższe rudy progresji 600"
-    ROOMS[room_id] = {
+    _catalog_mut.catalog_assign({
         "zone": "Kopalnia Głębinowa",
         "name": f"Kopalnia - poziom {floor}",
         "desc": (
@@ -1354,7 +1355,7 @@ def create_infinite_mine_floor_definition(floor):
         "procedural_infinite": True,
         "infinite_gather_feature": feature,
         "v0250_generator_profile": generated_profile,
-    }
+    }, 'ROOMS', ROOMS, (room_id,))
     MINING_DEPTH_ROOMS.add(room_id)
     MINING_ROOMS.add(room_id)
     return room_id, []
@@ -1411,14 +1412,14 @@ def create_infinite_profession_dungeon_floor_definition(dungeon, floor):
         HERBALISM_ROOMS.add(room_id)
     else:
         return None, []
-    ROOMS[room_id] = {
+    _catalog_mut.catalog_assign({
         "zone": zone,
         "name": name,
         "desc": desc,
         "exits": exits,
         "procedural_infinite": True,
         "infinite_gather_feature": feature,
-    }
+    }, 'ROOMS', ROOMS, (room_id,))
     spawns = profession_dungeon_combat_pack(dungeon, floor)
     return room_id, spawns
 

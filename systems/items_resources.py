@@ -1,3 +1,4 @@
+from data import catalog_mutations as _catalog_mut
 ENDGAME_PROFESSION_ITEMS = {
     # Ryby endgame - Rzeka
     "soulfin_trout": {"name": "Pstrąg Duszopłetwy", "type": "resource", "price": None, "sell_gold": 25, "desc": "Rzadka ryba rzeczna. Wędka level 100+."},
@@ -73,10 +74,10 @@ ENDGAME_PROFESSION_ITEMS = {
     "astral_restoration_elixir": {"name": "Astralny Eliksir Odnowy", "type": "consumable", "price": None, "heal": 180, "mana": 120, "desc": "Alchemia level 180. Przywraca do 180 HP i 120 Many."},
     "eternal_soul_elixir": {"name": "Eliksir Wiecznej Duszy", "type": "consumable", "price": None, "soul_xp": 400, "desc": "Alchemia level 200. Daje 400 Soul XP."},
 }
-ITEMS.update(ENDGAME_PROFESSION_ITEMS)
+_catalog_mut.catalog_update_path('ITEMS', ITEMS, (), ENDGAME_PROFESSION_ITEMS)
 
 # v0.31.3: specjalny Board tylko dla rasy Cyborga, skalowany Biegłością Meca.
-ITEMS["moogle_board"] = {
+_catalog_mut.catalog_assign({
     "name": "Moogle Board",
     "type": "armor",
     "slot": "board",
@@ -88,7 +89,7 @@ ITEMS["moogle_board"] = {
     "stats": {},
     "cyborg_board_scaling": "mec_mastery",
     "desc": "Specjalny startowy moduł Cyborga. Może być używany także przez Inżyniera. Bonus do wszystkich pięciu głównych statystyk rośnie wraz z Biegłością Meca: od +2 na początku do +26 przy Biegłości 600.",
-}
+}, 'ITEMS', ITEMS, ("moogle_board",))
 
 _PROGRESSION_400_NAMES = {
     220: "Przebudzenia", 240: "Transcendencji", 260: "Horyzontu",
@@ -107,32 +108,32 @@ _FISH_400_LABELS = {
 for _level in PROGRESSION_400_LEVELS:
     _suffix = _PROGRESSION_400_NAMES[_level]
     _sell = 190 + ((_level - 200) // 20) * 11
-    ITEMS[f"ore_400_{_level}"] = {
+    _catalog_mut.catalog_assign({
         "name": f"Ruda {_suffix}", "type": "resource", "price": None,
         "sell_gold": _sell,
         "desc": f"Ruda progresji 201-600. Kilof level {_level}+.",
-    }
-    ITEMS[f"wood_400_{_level}"] = {
+    }, 'ITEMS', ITEMS, (f"ore_400_{_level}",))
+    _catalog_mut.catalog_assign({
         "name": f"Pień {_suffix}", "type": "resource", "price": None,
         "sell_gold": _sell,
         "desc": f"Drewno progresji 201-600. Piła level {_level}+.",
-    }
-    ITEMS[f"herb_400_{_level}"] = {
+    }, 'ITEMS', ITEMS, (f"wood_400_{_level}",))
+    _catalog_mut.catalog_assign({
         "name": f"Ziele {_suffix}", "type": "resource", "price": None,
         "sell_gold": _sell,
         "desc": f"Zioło progresji 201-600. Sierp level {_level}+.",
-    }
+    }, 'ITEMS', ITEMS, (f"herb_400_{_level}",))
     for _habitat, _label in _FISH_400_LABELS.items():
-        ITEMS[f"fish_400_{_habitat}_{_level}"] = {
+        _catalog_mut.catalog_assign({
             "name": f"{_label} {_suffix}", "type": "resource", "price": None,
             "sell_gold": _sell,
             "desc": f"Ryba progresji 201-600. Wędka level {_level}+.",
-        }
+        }, 'ITEMS', ITEMS, (f"fish_400_{_habitat}_{_level}",))
 
 _register_world_resource_items()
 
 # v0.8.43: jednorazowe przedmioty z samouczka Archiwisty Sola.
-ITEMS.update({
+_catalog_mut.catalog_update_path('ITEMS', ITEMS, (), {
     "sol_smith_package": {
         "name": "Paczka Archiwisty dla Kowala",
         "type": "quest", "price": None,
@@ -282,7 +283,7 @@ def _register_blacksmith_items():
         ("eternium_ingot", "Sztabka Eternium"),
     )
     for item_id, name in extra_ingots:
-        ITEMS[item_id] = {
+        _catalog_mut.catalog_assign({
             "name": name,
             "type": "craft_material",
             "price": None,
@@ -290,7 +291,7 @@ def _register_blacksmith_items():
                 "Przetopiony metal używany w zaawansowanym "
                 "Kowalstwie."
             ),
-        }
+        }, 'ITEMS', ITEMS, (item_id,))
 
     for tier_number, tier in enumerate(BLACKSMITH_TIERS, 1):
         for slot, (
@@ -304,7 +305,7 @@ def _register_blacksmith_items():
                 int(tier["base_defense"])
                 + int(defense_delta),
             )
-            ITEMS[item_id] = {
+            _catalog_mut.catalog_assign({
                 "name": (
                     f"{slot_name} - {tier['name']} "
                     f"[Kowalstwo Tier {tier_number}]"
@@ -323,15 +324,15 @@ def _register_blacksmith_items():
                 ),
                 "blacksmith_tier": tier_number,
                 "blacksmith_material": tier["key"],
-            }
+            }, 'ITEMS', ITEMS, (item_id,))
 
 _register_blacksmith_items()
 for _level in PROGRESSION_400_LEVELS:
-    ITEMS[f"ingot_400_{_level}"] = {
+    _catalog_mut.catalog_assign({
         "name": f"Sztabka {_BLACKSMITH_400_LABELS[_level]}",
         "type": "craft_material", "price": None,
         "desc": f"Materiał Kowalstwa level {_level}.",
-    }
+    }, 'ITEMS', ITEMS, (f"ingot_400_{_level}",))
 
 # ============================================================
 # v0.8.58: materiałowe EQ znajdowane na ciałach mobów.
@@ -733,7 +734,7 @@ def _register_corpse_material_items():
                     " Zręczność z tej części zwiększa także szansę na trafienie krytyczne."
                     if stats.get("dexterity", 0) > 0 else ""
                 )
-                ITEMS[item_id] = {
+                _catalog_mut.catalog_assign({
                     "name": name,
                     "type": "armor",
                     "slot": slot,
@@ -753,7 +754,7 @@ def _register_corpse_material_items():
                         f"a slot i wariant mają własny profil statów. Wymaga Levelu postaci {required_mastery}. "
                         f"Obrona +{defense}. Statystyki: {stat_text}. Właściwości: {prop_text}.{crit_note}"
                     ),
-                }
+                }, 'ITEMS', ITEMS, (item_id,))
                 ids.append(item_id)
         CORPSE_MATERIAL_ITEM_IDS[tier["key"]] = tuple(ids)
 
@@ -937,7 +938,7 @@ def _register_rare_resource_variants():
                         base_item, value_mult
                     )
                 )
-                ITEMS[variant_id] = item
+                _catalog_mut.catalog_assign(item, 'ITEMS', ITEMS, (variant_id,))
 
 _register_rare_resource_variants()
 

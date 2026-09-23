@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """Soulbound v0.30.59 Session mixin: forge_guilds."""
+from data import catalog_mutations as _catalog_mut
 
 class SessionForgeGuildsMixin:
     def at_haldor_forge_v0925(self):
@@ -658,16 +659,16 @@ class SessionForgeGuildsMixin:
     def ensure_guild_estate_rooms_v0927(self, clan_id, guild_name):
             cid=int(clan_id); base=f"player_guild_estate_{cid}"
             hall=self.server.db.guild_hall_v0927(cid); hall_level=int(hall["hall_level"])
-            ROOMS[base]={"zone":f"Siedziba Gildii {guild_name}","name":f"Siedziba Gildii {guild_name}, poziom {hall_level}","desc":f"Prywatna Siedziba Gildii {guild_name}. Poziom Siedziby {hall_level}/10. Rozbudowa budynków jest osobna i tańsza od rozbudowy głównej Siedziby.","exits":{"south":"square"},"guild_hall_level":hall_level}
+            _catalog_mut.catalog_assign({"zone":f"Siedziba Gildii {guild_name}","name":f"Siedziba Gildii {guild_name}, poziom {hall_level}","desc":f"Prywatna Siedziba Gildii {guild_name}. Poziom Siedziby {hall_level}/10. Rozbudowa budynków jest osobna i tańsza od rozbudowy głównej Siedziby.","exits":{"south":"square"},"guild_hall_level":hall_level}, 'ROOMS', ROOMS, (base,))
             generator_core_v027.runtime_room_level(base,ROOMS[base],ROOMS)
             mapping=(("forge_level","east","forge","Kuźnia Gildii"),("treasury_level","west","treasury","Skarbiec Gildii"),("library_level","up","library","Biblioteka Gildii"),("training_level","down","training","Sala Treningowa Gildii"))
             for field,direction,key,label in mapping:
                 lvl=int(hall[field] or 0)
                 if lvl<=0: continue
                 rid=f"{base}_{key}"
-                ROOMS[base]["exits"][direction]=rid
+                _catalog_mut.catalog_assign(rid, 'ROOMS', ROOMS, (base, "exits", direction))
                 back={"east":"west","west":"east","up":"down","down":"up"}[direction]
-                ROOMS[rid]={"zone":f"Siedziba Gildii {guild_name}","name":f"{label}, poziom {lvl}","desc":f"{label} rozwinięta do poziomu {lvl}/10. Pomieszczenie należy wyłącznie do Gildii {guild_name}.","exits":{back:base},"guild_hall_level":lvl}
+                _catalog_mut.catalog_assign({"zone":f"Siedziba Gildii {guild_name}","name":f"{label}, poziom {lvl}","desc":f"{label} rozwinięta do poziomu {lvl}/10. Pomieszczenie należy wyłącznie do Gildii {guild_name}.","exits":{back:base},"guild_hall_level":lvl}, 'ROOMS', ROOMS, (rid,))
                 generator_core_v027.runtime_room_level(rid,ROOMS[rid],ROOMS)
                 npc_specs={
                     "forge": ("Mistrz Kuźni Gildii", "Obsługuje Salvage, Reforge i runy bez konieczności wracania do miejskiej Kuźni."),
@@ -676,13 +677,13 @@ class SessionForgeGuildsMixin:
                     "training": ("Mistrz Oręża Gildii", "Prowadzi Salę Treningową i przygotowuje walki z bossami gildyjnymi."),
                 }
                 npc_name,npc_dialogue=npc_specs[key]
-                NPCS[f"player_guild_{key}_{cid}"]={"name":npc_name,"room":rid,"dialogue":npc_dialogue}
+                _catalog_mut.catalog_assign({"name":npc_name,"room":rid,"dialogue":npc_dialogue}, 'NPCS', NPCS, (f"player_guild_{key}_{cid}",))
             if hall_level>=2:
-                NPCS[f"player_guild_contracts_{cid}"]={"name":"Opiekun Tablicy Kontraktów","room":base,"dialogue":"Prowadzi wspólne kontrakty Gildii. Użyj: gildia kontrakty."}
+                _catalog_mut.catalog_assign({"name":"Opiekun Tablicy Kontraktów","room":base,"dialogue":"Prowadzi wspólne kontrakty Gildii. Użyj: gildia kontrakty."}, 'NPCS', NPCS, (f"player_guild_contracts_{cid}",))
             if hall_level>=4:
-                NPCS[f"player_guild_trophies_{cid}"]={"name":"Kustosz Trofeów","room":base,"dialogue":"Prowadzi Salę Trofeów Gildii. Użyj: gildia trofea."}
+                _catalog_mut.catalog_assign({"name":"Kustosz Trofeów","room":base,"dialogue":"Prowadzi Salę Trofeów Gildii. Użyj: gildia trofea."}, 'NPCS', NPCS, (f"player_guild_trophies_{cid}",))
             if hall_level>=7:
-                NPCS[f"player_guild_bossmaster_{cid}"]={"name":"Herold Wielkich Łowów","room":base,"dialogue":"Otwiera dostęp do specjalnych bossów Gildii. Użyj: gildia boss."}
+                _catalog_mut.catalog_assign({"name":"Herold Wielkich Łowów","room":base,"dialogue":"Otwiera dostęp do specjalnych bossów Gildii. Użyj: gildia boss."}, 'NPCS', NPCS, (f"player_guild_bossmaster_{cid}",))
             return base
 
     async def enter_guild_estate_v0927(self, row):
@@ -775,7 +776,7 @@ class SessionForgeGuildsMixin:
             cid=int(row['clan_id']); hall=self.server.db.guild_hall_v0927(cid); hl=int(hall['hall_level']); base=self.ensure_guild_estate_rooms_v0927(cid,row['name']); arena=f"{base}_training" if int(hall['training_level'] or 0)>0 else base
             name=v0927_guild_boss_name(hl); tid=f"guild_boss_v0927_{cid}_{hl}"
             if tid not in MOB_TEMPLATES:
-                MOB_TEMPLATES[tid]={"name":name,"damage_type":"physical","drops":{},"guild_boss":True,"guild_id":cid,"guild_hall_level":hl,"mini_boss":True,"elite_eligible":False}
+                _catalog_mut.catalog_assign({"name":name,"damage_type":"physical","drops":{},"guild_boss":True,"guild_id":cid,"guild_hall_level":hl,"mini_boss":True,"elite_eligible":False}, 'MOB_TEMPLATES', MOB_TEMPLATES, (tid,))
                 v0190_apply_combat_template(MOB_TEMPLATES[tid])
             mob=self.server.world._register_runtime_spawn(arena,tid); return mob,arena,name
 

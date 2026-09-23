@@ -1,5 +1,21 @@
 # -*- coding: utf-8 -*-
 """v0.30.62 - przekrojowy audyt wszystkich głównych systemów runtime."""
+# v0.45.0: explicit imports; no compatibility-runtime injection.
+from admin.audits import FULL_GAME_AUDIT_V03055
+from core.classes_skills import _V0922_MASTERY_LEVELS
+from core.mines_threat import COMMAND_ALIASES
+from player.session_mixins.banking_charisma import GOLD_PER_MITHRIL, SILVER_PER_GOLD, SILVER_PER_MITHRIL
+from player.session_mixins.crafting import ALCHEMY_RECIPES, COOK_RECIPES
+from player.session_mixins.crafting_expansion import CRAFT_RECIPES, ITEMS
+from player.session_mixins.gathering import TOOL_TIER_THRESHOLDS, generator_core_v027
+from player.session_mixins.museum_bounty import TOOL_PROFESSION_MAP
+from player.session_mixins.professions import JEWELCRAFT_RECIPES, ROOMS, TOOL_MAX_TIER, V03053_CRAFT_RECIPES
+from player.session_mixins.quest_npc import PROFESSION_RANK_NAMES
+from player.session_mixins.skill_learning import CLASSES, CLASS_SKILLS, MOB_TEMPLATES, QUESTS
+from systems.economy_audit_v03060 import ECONOMY_AUDIT_V03060
+from world.equipment_help import HELP_TOPICS, HELP_TOPIC_ALIASES
+from world.runtime_progression import GENERATOR_CORE_AUDIT
+
 
 def full_systems_audit_v03062():
     errors=[]; warnings=[]; checks={}
@@ -81,7 +97,7 @@ if FULL_SYSTEMS_AUDIT_V03062['error_count']:
 
 HELP_TOPICS['audyt_v03062']=[
     'v0.30.62 wykonuje przekrojowy audyt wszystkich głównych systemów: świat, Generator Core, wszystkie osie EXP, ekonomię, klasy/skille, itemy, moby, questy, crafting, profesje/narzędzia, HELP, PL/EN, social, mentor, gildie, housing, transport, recapy i dostępność.',
-    'Stat XP został spowolniony z około 28 do około 60 odpowiednich akcji na punkt, ponieważ jeden kill przyznaje EXP wszystkim sześciu statystykom.',
+    'Od v0.50.2 efektywne tempo bazowych statystyk to około 120 równorzędnych akcji na punkt; wszystkie sześć statystyk nadal otrzymuje osobny EXP i nie ma twardego limitu.',
     'Błąd krytyczny audytu blokuje start serwera.'
 ]
 HELP_TOPIC_ALIASES.update({'audyt 3062':'audyt_v03062','full audit':'audyt_v03062','systems audit':'audyt_v03062'})

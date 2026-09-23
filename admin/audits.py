@@ -1,3 +1,4 @@
+from data import catalog_mutations as _catalog_mut
 
 
 def main():
@@ -71,8 +72,8 @@ def generator_whitelist_audit_v03019():
     audit = GENERATOR_CORE_AUDIT or {}
     whitelist = audit.get("whitelist_audit") or {}
     errors = []
-    if GENERATOR_CORE_VERSION != "0.38.14":
-        errors.append(f"Generator Core version={GENERATOR_CORE_VERSION}, expected 0.38.14")
+    if GENERATOR_CORE_VERSION != "0.52.0":
+        errors.append(f"Generator Core version={GENERATOR_CORE_VERSION}, expected 0.52.0")
     if not audit.get("numeric_only"):
         errors.append("numeric_only flag missing")
     runtime_fast = bool(audit.get("runtime_fast_path"))
@@ -758,7 +759,7 @@ def full_release_integrity_audit_v03025():
         errors.append("world logic audit failed")
     if int(WORLD_LOGIC_AUDIT.get("warning_count", 0) or 0):
         errors.append("world logic warnings present")
-    if GENERATOR_CORE_VERSION != "0.38.14":
+    if GENERATOR_CORE_VERSION != "0.52.0":
         errors.append(f"GENERATOR_CORE_VERSION={GENERATOR_CORE_VERSION}")
     return {
         "version": "0.30.25",
@@ -805,7 +806,7 @@ LATEST_CHANGES = [
 # v0.30.26 - FULL GAMEPLAY FLOW + TOOL TIER GATING
 # ============================================================
 # `ex` jest publiczną komendą gry, nie tylko aliasem HELP.
-COMMAND_ALIASES.update({"ex": "exits"})
+# v0.49.0: aliasy komend są centralnie zdefiniowane w config/command_aliases.py.
 
 # Dedykowane pomieszczenia specjalistów są również prawdziwymi stanowiskami pracy.
 # Deski należą do Drwalstwa, więc nie dostają Warsztatu Haldora jako stanowiska.
@@ -834,7 +835,7 @@ for _recipe in JEWELCRAFT_RECIPES.values():
 # Czysty Kowal może rozpocząć profesję bez rozwijania Górnictwa.
 # Doran sprzedaje tylko podstawowe rudy; Kobalt+ pozostaje zdobyczą świata/Górnictwa.
 for _starter_ore in ("iron_ore", "silver_ore", "gold_ore"):
-    if _starter_ore not in SHOPS.setdefault("forge", []):
+    if _starter_ore not in _catalog_mut.catalog_setdefault_path('SHOPS', SHOPS, (), "forge", []):
         SHOPS["forge"].append(_starter_ore)
 
 # v0.30.26: Odłamki Duszy są materiałem questowym Krypty i nie mogą być
@@ -844,9 +845,9 @@ for _starter_ore in ("iron_ore", "silver_ore", "gold_ore"):
 def apply_soul_shard_drop_fix_v03026():
     # Klasyczne moby wejściowej Krypty.
     if "skeleton" in MOB_TEMPLATES:
-        MOB_TEMPLATES["skeleton"].setdefault("drops", {})["soul_shard"] = 0.55
+        _catalog_mut.catalog_setdefault_path('MOB_TEMPLATES', MOB_TEMPLATES, ("skeleton",), "drops", {})["soul_shard"] = 0.55
     if "crypt_wraith" in MOB_TEMPLATES:
-        MOB_TEMPLATES["crypt_wraith"].setdefault("drops", {})["soul_shard"] = 0.85
+        _catalog_mut.catalog_setdefault_path('MOB_TEMPLATES', MOB_TEMPLATES, ("crypt_wraith",), "drops", {})["soul_shard"] = 0.85
 
     regular_fixed = 0
     boss_fixed = 0
@@ -975,7 +976,7 @@ def gameplay_flow_audit_v03026():
         if missing:
             errors.append(f"station {_station}: brak w {missing[:5]}")
 
-    if GENERATOR_CORE_VERSION != "0.38.14":
+    if GENERATOR_CORE_VERSION != "0.52.0":
         errors.append(f"GENERATOR_CORE_VERSION={GENERATOR_CORE_VERSION}")
 
     return {
@@ -1628,7 +1629,7 @@ OLD_SHARED_CLASS_SHOP_SELLERS_V03036 = (
 def apply_separate_class_shops_v03036():
     # 1. Wspólne sale przestają być sklepami.
     for room_id in OLD_SHARED_CLASS_SHOP_ROOMS_V03036:
-        SHOPS.pop(room_id, None)
+        _catalog_mut.catalog_pop_path('SHOPS', SHOPS, (), room_id, None)
         SHOP_SELLERS.pop(room_id, None)
         room = ROOMS.get(room_id)
         if room:
@@ -1659,11 +1660,11 @@ def apply_separate_class_shops_v03036():
         CLASS_SHOP_CLASSES_BY_ROOM[room_id] = [class_name]
         tier_one = list(CLASS_EQUIPMENT_ITEMS_BY_CLASS_TIER[class_name].get(1, ()))
         CLASS_SHOP_ITEMS_BY_ROOM[room_id] = tier_one
-        SHOPS[room_id] = list(tier_one)
+        _catalog_mut.catalog_assign(list(tier_one), 'SHOPS', SHOPS, (room_id,))
 
         seller_id = "class_eq_shop_" + normalize_lookup_text(class_name).replace(" ", "_")
         seller_name = CLASS_SHOP_SELLER_NAMES_V03036[class_name]
-        NPCS[seller_id] = {
+        _catalog_mut.catalog_assign({
             "name": seller_name,
             "room": room_id,
             "dialogue": (
@@ -1673,7 +1674,7 @@ def apply_separate_class_shops_v03036():
             ),
             "shopkeeper": True,
             "class_eq_shop": class_name,
-        }
+        }, 'NPCS', NPCS, (seller_id,))
         SHOP_SELLERS[room_id] = seller_id
         if isinstance(globals().get("NPC_DESCRIPTIONS"), dict):
             NPC_DESCRIPTIONS[seller_id] = (
@@ -1713,20 +1714,20 @@ def apply_separate_class_shops_v03036():
 
 
 # v0.31.2: dwie nowe sale klas technologicznych.
-ROOMS.setdefault("guild_mec_chamber", {
+_catalog_mut.catalog_setdefault_path('ROOMS', ROOMS, (), "guild_mec_chamber", {
     "name": "Hangar Meca", "zone": "Gildia Dusz",
     "desc": "Wzmocniony hangar z rdzeniami energetycznymi i stanowiskami ciężkiego pancerza.",
     "exits": {"south": "guild_martial_hall"},
 })
-ROOMS.setdefault("guild_engineer_chamber", {
+_catalog_mut.catalog_setdefault_path('ROOMS', ROOMS, (), "guild_engineer_chamber", {
     "name": "Warsztat Inżyniera", "zone": "Gildia Dusz",
     "desc": "Warsztat pełen narzędzi, działek testowych, skanerów i mechanicznych konstrukcji.",
     "exits": {"east": "guild_shadow_gallery"},
 })
-ROOMS.setdefault("guild_martial_hall", {}).setdefault("exits", {})["east"] = "guild_mec_chamber"
-ROOMS.setdefault("guild_shadow_gallery", {}).setdefault("exits", {})["west"] = "guild_engineer_chamber"
-NPCS["teacher_mec"]["room"] = "guild_mec_chamber"
-NPCS["teacher_engineer"]["room"] = "guild_engineer_chamber"
+_catalog_mut.catalog_setdefault_path('ROOMS', ROOMS, (), "guild_martial_hall", {}).setdefault("exits", {})["east"] = "guild_mec_chamber"
+_catalog_mut.catalog_setdefault_path('ROOMS', ROOMS, (), "guild_shadow_gallery", {}).setdefault("exits", {})["west"] = "guild_engineer_chamber"
+_catalog_mut.catalog_assign("guild_mec_chamber", 'NPCS', NPCS, ("teacher_mec", "room"))
+_catalog_mut.catalog_assign("guild_engineer_chamber", 'NPCS', NPCS, ("teacher_engineer", "room"))
 
 apply_separate_class_shops_v03036()
 
@@ -2516,22 +2517,7 @@ LATEST_CHANGES = [
 # Final truth layer for the current release. It intentionally runs after every
 # historical HELP/audit patch above, so stale older release text cannot win.
 
-COMMAND_ALIASES.update({
-    # Extended crafting professions: Polish + English pairs.
-    "tailoring": "krawiectwo", "tailor": "krawiectwo",
-    "sew": "szyj", "sewing": "szyj",
-    "leatherworking": "garbarstwo", "leatherwork": "garbarstwo",
-    "tan": "garbuj", "tanning": "garbuj",
-    "carpentry": "stolarstwo", "woodworking": "stolarstwo",
-    "woodcraft": "stolarka", "carpenter": "stolarstwo",
-    "enchanting": "zaklinanie", "enchantinginfo": "zaklinanie",
-    "enchantitem": "zaklinaj", "enchant": "zaklinaj",
-    # Current 2.0 systems.
-    "craftingmastery": "craftmastery",
-    "leaderboard": "leaderboards", "rankings": "leaderboards",
-    "collections": "collection2", "completionpercent": "completion",
-    "deathsummary": "deathrecap", "combatsummary": "combatrecap",
-})
+# v0.49.0: aliasy komend są centralnie zdefiniowane w config/command_aliases.py.
 
 HELP_TOPIC_ALIASES.update({
     "tailoring": "krawiectwo", "sewing": "krawiectwo",
@@ -3357,10 +3343,7 @@ def full_game_predeploy_audit_v0336():
     metrics['hunter_skills_checked']=len(_hunter_rows)
     metrics['hunter_alias_collisions']=len(_hunter_alias_collisions)
     try:
-        _combat_source=(_ROOT/'player/session_mixins/skills_combat.py').read_text(encoding='utf-8')
-        _use_start=_combat_source.index('    async def use_class_skill(')
-        _use_end=_combat_source.index('    async def stop_realtime_combat(',_use_start)
-        _use_body=_combat_source[_use_start:_use_end]
+        _use_body=(_ROOT/'player/session_mixins/combat_skills.py').read_text(encoding='utf-8')
         if 'trait_totals' in _use_body:
             err('soul_weapon_trait_leak_into_skills')
     except Exception as _exc:
@@ -3388,21 +3371,16 @@ def full_game_predeploy_audit_v0336():
             err('soul_weapon_mastery_boss_600',_m600.get('boss_damage_percent'))
         if abs(float(_m600.get('echo_chance',0))-0.05)>0.000001:
             err('soul_weapon_mastery_echo_600',_m600.get('echo_chance'))
-        _combat_source=(_ROOT/'player/session_mixins/skills_combat.py').read_text(encoding='utf-8')
-        _basic_start=_combat_source.index('    async def realtime_player_action(')
-        _loop_start=_combat_source.index('    async def realtime_combat_loop(',_basic_start)
-        _basic_body=_combat_source[_basic_start:_loop_start]
+        _basic_body=(_ROOT/'player/session_mixins/combat_realtime.py').read_text(encoding='utf-8')
         if 'grant_soul_weapon_mastery_hit_xp' not in _basic_body:
             err('soul_weapon_mastery_missing_basic_attack_xp')
-        _use_start=_combat_source.index('    async def use_class_skill(')
-        _use_end=_combat_source.index('    async def stop_realtime_combat(',_use_start)
-        _use_body=_combat_source[_use_start:_use_end]
+        _use_body=(_ROOT/'player/session_mixins/combat_skills.py').read_text(encoding='utf-8')
         if 'grant_soul_weapon_mastery_hit_xp' in _use_body or 'soul_weapon_mastery_bonuses' in _use_body:
             err('soul_weapon_mastery_leaked_into_skills')
         _auth_source=(_ROOT/'player/session_mixins/io_auth_character.py').read_text(encoding='utf-8')
         if 'await self.close_from_main_menu()' not in _auth_source or 'self.writer.close()' not in _auth_source:
             err('main_menu_exit_not_explicit_close')
-        _db_source=(_ROOT/'storage/database.py').read_text(encoding='utf-8')
+        _db_source=(_ROOT/'storage/db_schema.py').read_text(encoding='utf-8')
         for _column in ('soul_weapon_mastery_level','soul_weapon_mastery_xp'):
             if _column not in _db_source:
                 err('soul_weapon_mastery_db_column_missing',_column)
@@ -3450,7 +3428,7 @@ def full_game_predeploy_audit_v0336():
         metrics['python_functions_identifier_checked']=_functions_checked
         metrics['level_poziom_identifier_mismatches']=len(_identifier_mismatches)
 
-        _prof_source=(_ROOT/'player/session_mixins/professions_storage_guide.py').read_text(encoding='utf-8')
+        _prof_source=(_ROOT/'player/session_mixins/gathering.py').read_text(encoding='utf-8')
         _auto_specs=(
             ('auto_fishing_loop','set_auto_fishing','AUTO_FISHING_ERROR'),
             ('auto_mining_loop','set_auto_mining','AUTO_MINING_ERROR'),
@@ -3481,15 +3459,26 @@ def full_game_predeploy_audit_v0336():
     # stale caps out of normal player-facing runtime text.
     try:
         _polish_files=(
-            'player/session_mixins/quests.py',
-            'player/session_mixins/progression_accessibility_v03052.py',
-            'player/session_mixins/milestone_v0320.py',
-            'player/session_mixins/crafting_inventory_equipment.py',
-            'player/session_mixins/crafting_expansion_v03114.py',
-            'player/session_mixins/tech_crafting_v03111.py',
-            'player/session_mixins/world_progression.py',
+            'player/session_mixins/quest_progress.py',
+            'player/session_mixins/quest_offers.py',
+            'player/session_mixins/quest_turnin.py',
+            'player/session_mixins/quest_npc.py',
+            'player/session_mixins/quest_commands.py',
+            'player/session_mixins/progression_accessibility.py',
+            'player/session_mixins/milestone.py',
+            'player/session_mixins/crafting.py',
+            'player/session_mixins/inventory_equipment.py',
+            'player/session_mixins/shops_teachers.py',
+            'player/session_mixins/crafting_expansion.py',
+            'player/session_mixins/tech_crafting.py',
+            'player/session_mixins/museum_bounty.py',
+            'player/session_mixins/world_events_endgame.py',
+            'player/session_mixins/exploration_progress.py',
+            'player/session_mixins/collection_loot_records.py',
             'player/session_mixins/social_expansion.py',
-            'player/session_mixins/admin_gathering_sales.py',
+            'player/session_mixins/admin_tools.py',
+            'player/session_mixins/gathering_actions.py',
+            'player/session_mixins/sales.py',
             'player/session_mixins/forge_guilds.py',
             'systems/content_registry.py',
         )
@@ -3587,7 +3576,7 @@ def full_game_predeploy_audit_v0336():
             _body=_server_source[_start:(_next if _next>_start else len(_server_source))]
             if 'except Exception as exc:' not in _body or _tag not in _body:
                 err('background_loop_guard_missing',_fn)
-        _core_source=(_ROOT/'player/session_mixins/core_progression.py').read_text(encoding='utf-8')
+        _core_source=(_ROOT/'player/session_mixins/rest_mana.py').read_text(encoding='utf-8')
         _start=_core_source.find('    async def rest_loop(')
         _next=_core_source.find('    async def ',_start+1)
         _body=_core_source[_start:(_next if _next>_start else len(_core_source))]
@@ -3638,8 +3627,8 @@ def party_temple_shard_audit_v0355():
     errors = []
     metrics = {}
     try:
-        _core_path = _ROOT / "player/session_mixins/core_progression.py"
-        _combat_path = _ROOT / "player/session_mixins/skills_combat.py"
+        _core_path = _ROOT / "player/session_mixins/session_runtime_state.py"
+        _combat_path = _ROOT / "player/session_mixins/combat_rewards.py"
         _core = _core_path.read_text(encoding="utf-8")
         _combat = _combat_path.read_text(encoding="utf-8")
         if "_teleport_self_to_temple_v0354" not in _core:
@@ -3848,7 +3837,7 @@ def all_party_mob_drops_shared_audit_v0359():
         metrics["all_drop_types_use_helper"] = "drop_recipients = party_drop_recipients_v0359(item_id, recipients)" in combat_source
         metrics["no_random_winner"] = "random.choice(recipients)" not in helper_source and "winner = drop_recipients[0]" not in combat_source
         metrics["shared_message"] = "każdy obecny członek otrzymuje" in combat_source
-        metrics["same_room_reward_set"] = "party_sessions(\n                self.account_id, same_room=self.character.room_id\n            )" in combat_source
+        metrics["same_room_reward_set"] = "self.server.party_sessions(" in combat_source and "same_room=self.character.room_id" in combat_source
         for key,value in metrics.items():
             if not value:
                 errors.append(f"all-party drop audit failed: {key}")
@@ -3953,8 +3942,8 @@ def all_local_party_buffs_audit_v03511():
         metrics["same_room_party_helper"] = "party_sessions" in helper_source and "same_room=self.character.room_id" in helper_source
         metrics["living_local_only"] = "session.current_hp > 0" in helper_source and "session.character.room_id == self.character.room_id" in helper_source
         metrics["generic_boost_shared"] = "apply_party_boost_v03511" in combat_source and "session.active_skill_buffs" in boost_source
-        metrics["guard_shared"] = "for session in recipients:\n                    session.skill_guard" in combat_source
-        metrics["evade_shared"] = "for session in recipients:\n                    session.skill_evade = True" in combat_source
+        metrics["guard_shared"] = "for session in recipients:" in combat_source and "session.skill_guard" in combat_source
+        metrics["evade_shared"] = "for session in recipients:" in combat_source and "session.skill_evade = True" in combat_source
         metrics["vmax_shared"] = '"V-MAX", 1.30' in combat_source and "v03511_party_vmax_until" in combat_source
         metrics["vmax_defense_party_support"] = "mec_vmax_active_v0319" in vmax_support_source and "v03511_party_vmax_until" in vmax_support_source
         engineer_upgrade = next((x for x in CLASS_SKILLS.get("Inżynier",[]) if x.get("id")=="v0317_engineer_upgrade"), None)

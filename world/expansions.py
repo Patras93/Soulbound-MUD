@@ -1,20 +1,63 @@
+from data import catalog_mutations as _catalog_mut
+# v0.45.0: explicit imports; no compatibility-runtime injection.
+from core.bootstrap_economy_professions import QUEST_REPEAT_COOLDOWN_SECONDS
+from core.classes_skills import ORE_ATLAS_LEVELS, ORE_MINE_FLOOR_MINIMUMS
+from core.mines_threat import CHARACTER_BOUND_TOOL_IDS, EXP_AREAS, GUIDE_DESTINATION_ALIASES, TOOL_SHOP_ROOMS
+from core.progression_resources import (
+    FISH_ATLAS_ALL,
+    FISH_RESOURCE_IDS,
+    HERB_ATLAS_ALL,
+    HERB_RESOURCE_IDS,
+    ORE_ATLAS_ALL,
+    ORE_RESOURCE_IDS,
+    RIVER_FISHING_ROOMS,
+    WOOD_ATLAS_ALL,
+    WOOD_RESOURCE_IDS,
+)
+from systems.content_registry import HELP_TOPICS, HELP_TOPIC_ALIASES, MOB_DESCRIPTIONS
+from systems.dungeons_regions import (
+    FISHING_ROOMS,
+    GIANT_FORTRESS_BOSS_FLOORS,
+    GIANT_FORTRESS_BOSS_MECHANICS,
+    GIANT_FORTRESS_BOSS_NAMES,
+    GIANT_FORTRESS_MAX_FLOOR,
+    HERBALISM_ROOMS,
+    ITEMS,
+    MOB_SPAWNS,
+    MOB_TEMPLATES,
+    NPCS,
+    QUESTS,
+    RARE_TROLL_VARIANTS,
+    ROOMS,
+    WOODCUTTING_ROOMS,
+    _register_elite_variants,
+    _register_rare_variants,
+    giant_fortress_floor_id,
+)
+from systems.equipment_crafting import (
+    FISH_STORAGE_IDS,
+    MINING_STORAGE_IDS,
+    ORE_STORAGE_IDS,
+    SHOPS,
+    SHOP_SELLERS,
+)
+from systems.items_resources import HERB_STORAGE_IDS, WOOD_STORAGE_IDS
+
 def build_mountain_crafting_expansion():
     # ========================================================
     # ROOMS AND NPC HUBS
     # ========================================================
-    ROOMS["mountain_guard_house"]["exits"].update({
+    _catalog_mut.catalog_update_path('ROOMS', ROOMS, ("mountain_guard_house", "exits"), {
         "east": "mountain_forge",
         "west": "hunter_lodge",
     })
-    ROOMS["mountain_inn"]["exits"].update({
+    _catalog_mut.catalog_update_path('ROOMS', ROOMS, ("mountain_inn", "exits"), {
         "north": "mountain_market",
         "east": "alpine_herbalist_hut",
     })
-    ROOMS["mountain_village"]["exits"]["up"] = (
-        "giant_fortress_gate"
-    )
+    _catalog_mut.catalog_assign("giant_fortress_gate", 'ROOMS', ROOMS, ("mountain_village", "exits", "up"))
 
-    ROOMS["mountain_forge"] = {
+    _catalog_mut.catalog_assign({
         "zone": "Wioska Górska",
         "name": "Górska Kuźnia",
         "desc": (
@@ -24,8 +67,8 @@ def build_mountain_crafting_expansion():
         "exits": {
             "west": "mountain_guard_house",
         },
-    }
-    ROOMS["hunter_lodge"] = {
+    }, 'ROOMS', ROOMS, ("mountain_forge",))
+    _catalog_mut.catalog_assign({
         "zone": "Wioska Górska",
         "name": "Chata Łowcy Potworów",
         "desc": (
@@ -35,8 +78,8 @@ def build_mountain_crafting_expansion():
         "exits": {
             "east": "mountain_guard_house",
         },
-    }
-    ROOMS["mountain_market"] = {
+    }, 'ROOMS', ROOMS, ("hunter_lodge",))
+    _catalog_mut.catalog_assign({
         "zone": "Wioska Górska",
         "name": "Górski Targ Minerałów",
         "desc": (
@@ -46,8 +89,8 @@ def build_mountain_crafting_expansion():
         "exits": {
             "south": "mountain_inn",
         },
-    }
-    ROOMS["alpine_herbalist_hut"] = {
+    }, 'ROOMS', ROOMS, ("mountain_market",))
+    _catalog_mut.catalog_assign({
         "zone": "Wioska Górska",
         "name": "Chata Zielarki Alpejskiej",
         "desc": (
@@ -57,12 +100,12 @@ def build_mountain_crafting_expansion():
         "exits": {
             "west": "mountain_inn",
         },
-    }
+    }, 'ROOMS', ROOMS, ("alpine_herbalist_hut",))
 
     # ========================================================
     # GIANT FORTRESS 1-50
     # ========================================================
-    ROOMS["giant_fortress_gate"] = {
+    _catalog_mut.catalog_assign({
         "zone": "Twierdza Gigantów",
         "name": "Brama Twierdzy Gigantów",
         "desc": (
@@ -73,7 +116,7 @@ def build_mountain_crafting_expansion():
             "down": "mountain_village",
             "up": giant_fortress_floor_id(1),
         },
-    }
+    }, 'ROOMS', ROOMS, ("giant_fortress_gate",))
 
     boss_text = {
         10: "Co trzecią odpowiedź używa Miażdżenia Giganta.",
@@ -100,7 +143,7 @@ def build_mountain_crafting_expansion():
                 floor + 1
             )
 
-        ROOMS[room_id] = {
+        _catalog_mut.catalog_assign({
             "zone": "Twierdza Gigantów",
             "name": (
                 f"Twierdza Gigantów - poziom {floor}"
@@ -110,7 +153,7 @@ def build_mountain_crafting_expansion():
                 "dla istot kilkukrotnie większych od człowieka."
             ),
             "exits": exits,
-        }
+        }, 'ROOMS', ROOMS, (room_id,))
 
         mob_id = f"giant_fortress_mob_{floor}"
         if floor % 3 == 1:
@@ -120,7 +163,7 @@ def build_mountain_crafting_expansion():
         else:
             mob_name = "Górski Gigant"
 
-        MOB_TEMPLATES[mob_id] = {
+        _catalog_mut.catalog_assign({
             "name": f"{mob_name}, poziom {floor}",
             "max_hp": 450 + floor * 55,
             "damage": 18 + floor * 2,
@@ -154,7 +197,7 @@ def build_mountain_crafting_expansion():
                 "iron_boots",
             ],
             "corpse_equipment_guaranteed": 1,
-        }
+        }, 'MOB_TEMPLATES', MOB_TEMPLATES, (mob_id,))
         fortress_regular_ids.append(mob_id)
 
         MOB_SPAWNS.extend([
@@ -166,7 +209,7 @@ def build_mountain_crafting_expansion():
             boss_id = (
                 f"giant_fortress_boss_{floor}"
             )
-            MOB_TEMPLATES[boss_id] = {
+            _catalog_mut.catalog_assign({
                 "name": GIANT_FORTRESS_BOSS_NAMES[
                     floor
                 ],
@@ -208,7 +251,7 @@ def build_mountain_crafting_expansion():
                     "forge_charm",
                 ],
                 "corpse_equipment_guaranteed": 2,
-            }
+            }, 'MOB_TEMPLATES', MOB_TEMPLATES, (boss_id,))
             MOB_SPAWNS.append(
                 (room_id, boss_id)
             )
@@ -216,7 +259,7 @@ def build_mountain_crafting_expansion():
     # ========================================================
     # RARE TROLLS + ELITE ELIGIBILITY
     # ========================================================
-    ITEMS["stolen_mountain_ore"] = {
+    _catalog_mut.catalog_assign({
         "name": "Skradziona Skrzynia Rudy",
         "type": "quest",
         "price": None,
@@ -224,7 +267,7 @@ def build_mountain_crafting_expansion():
             "Skrzynia rudy skradziona mieszkańcom "
             "Wioski Górskiej przez trolle."
         ),
-    }
+    }, 'ITEMS', ITEMS, ("stolen_mountain_ore",))
 
     base_troll_specs = {
         "albino_troll": (
@@ -243,7 +286,7 @@ def build_mountain_crafting_expansion():
     for troll_id, (
         name, hp, damage, damage_type
     ) in base_troll_specs.items():
-        MOB_TEMPLATES[troll_id] = {
+        _catalog_mut.catalog_assign({
             "name": name,
             "max_hp": hp,
             "damage": damage,
@@ -270,7 +313,7 @@ def build_mountain_crafting_expansion():
                 "iron_boots",
             ],
             "corpse_equipment_guaranteed": 1,
-        }
+        }, 'MOB_TEMPLATES', MOB_TEMPLATES, (troll_id,))
 
     for troll_id in (
         "mountain_troll",
@@ -295,12 +338,10 @@ def build_mountain_crafting_expansion():
             dict.fromkeys(targets)
         )
 
-    MOB_TEMPLATES["troll_king"].setdefault(
+    _catalog_mut.catalog_setdefault_path('MOB_TEMPLATES', MOB_TEMPLATES, ("troll_king",), 
         "drops", {}
     )["stolen_mountain_ore"] = 1.0
-    MOB_TEMPLATES["troll_king"][
-        "quest_targets"
-    ] = ("troll_king",)
+    _catalog_mut.catalog_assign(("troll_king",), 'MOB_TEMPLATES', MOB_TEMPLATES, ("troll_king", "quest_targets"))
 
     elite_bases = list(
         fortress_regular_ids
@@ -315,7 +356,7 @@ def build_mountain_crafting_expansion():
     # ========================================================
     # MOUNTAIN COMBAT QUESTS
     # ========================================================
-    QUESTS["mountain_trail_patrol"] = {
+    _catalog_mut.catalog_assign({
         "name": "Patrol Górskiego Szlaku",
         "giver": "Strażnik Górski Eryk",
         "kind": "kill",
@@ -333,8 +374,8 @@ def build_mountain_crafting_expansion():
         "reward_items": {},
         "repeatable": True,
         "repeat_cooldown": 60 * 60,
-    }
-    QUESTS["troll_shaman_hunt"] = {
+    }, 'QUESTS', QUESTS, ("mountain_trail_patrol",))
+    _catalog_mut.catalog_assign({
         "name": "Polowanie na Trolli Szamanów",
         "giver": "Łowca Potworów Ragna",
         "kind": "kill",
@@ -352,8 +393,8 @@ def build_mountain_crafting_expansion():
         },
         "repeatable": True,
         "repeat_cooldown": 60 * 60,
-    }
-    QUESTS["troll_king_hunt"] = {
+    }, 'QUESTS', QUESTS, ("troll_shaman_hunt",))
+    _catalog_mut.catalog_assign({
         "name": "Polowanie na Króla Trolli",
         "giver": "Łowca Potworów Ragna",
         "kind": "kill",
@@ -373,8 +414,8 @@ def build_mountain_crafting_expansion():
         },
         "repeatable": True,
         "repeat_cooldown": 60 * 60,
-    }
-    QUESTS["stolen_mountain_ores"] = {
+    }, 'QUESTS', QUESTS, ("troll_king_hunt",))
+    _catalog_mut.catalog_assign({
         "name": "Skradzione Skrzynie Rudy",
         "giver": "Magazynier Borin",
         "kind": "collect",
@@ -393,9 +434,9 @@ def build_mountain_crafting_expansion():
         "reward_items": {},
         "repeatable": True,
         "repeat_cooldown": QUEST_REPEAT_COOLDOWN_SECONDS,
-    }
+    }, 'QUESTS', QUESTS, ("stolen_mountain_ores",))
 
-    NPCS["mountain_ore_storekeeper_borin"] = {
+    _catalog_mut.catalog_assign({
         "name": "Magazynier Borin",
         "room": "mountain_village",
         "dialogue": (
@@ -404,15 +445,13 @@ def build_mountain_crafting_expansion():
             "ponownie co godzinę."
         ),
         "quest": "stolen_mountain_ores",
-    }
+    }, 'NPCS', NPCS, ("mountain_ore_storekeeper_borin",))
 
-    NPCS["mountain_guard_eryk"][
-        "quest_chain"
-    ] = (
+    _catalog_mut.catalog_assign((
         "mountain_troll_hunt",
         "mountain_trail_patrol",
-    )
-    NPCS["mountain_monster_hunter"] = {
+    ), 'NPCS', NPCS, ("mountain_guard_eryk", "quest_chain"))
+    _catalog_mut.catalog_assign({
         "name": "Łowca Potworów Ragna",
         "room": "hunter_lodge",
         "dialogue": (
@@ -423,7 +462,7 @@ def build_mountain_crafting_expansion():
             "troll_shaman_hunt",
             "troll_king_hunt",
         ),
-    }
+    }, 'NPCS', NPCS, ("mountain_monster_hunter",))
 
     # ========================================================
     # BLACKSMITH QUESTS 1-200
@@ -489,7 +528,7 @@ def build_mountain_crafting_expansion():
         }
         if previous:
             quest["requires_quest"] = previous
-        QUESTS[qid] = quest
+        _catalog_mut.catalog_assign(quest, 'QUESTS', QUESTS, (qid,))
         smith_chain.append(qid)
         previous = qid
 
@@ -500,7 +539,7 @@ def build_mountain_crafting_expansion():
             "legs", "feet", "charm",
         )
     )
-    QUESTS["mountain_smith_200"] = {
+    _catalog_mut.catalog_assign({
         "name": (
             "Zlecenie Górskiego Kowala 13: "
             "Pełny Zestaw Eternium"
@@ -531,10 +570,10 @@ def build_mountain_crafting_expansion():
         "repeat_cooldown": (
             QUEST_REPEAT_COOLDOWN_SECONDS
         ),
-    }
+    }, 'QUESTS', QUESTS, ("mountain_smith_200",))
     smith_chain.append("mountain_smith_200")
 
-    NPCS["mountain_blacksmith_brok"] = {
+    _catalog_mut.catalog_assign({
         "name": "Kowal Górski Brok",
         "room": "mountain_forge",
         "dialogue": (
@@ -547,7 +586,7 @@ def build_mountain_crafting_expansion():
         "specialist_quests": tuple(
             smith_chain
         ),
-    }
+    }, 'NPCS', NPCS, ("mountain_blacksmith_brok",))
 
     # ========================================================
     # COOKING QUESTS 1-200
@@ -572,7 +611,7 @@ def build_mountain_crafting_expansion():
     for index, (
         qid, level, target, needed, label
     ) in enumerate(cooking_specs, 2):
-        QUESTS[qid] = {
+        _catalog_mut.catalog_assign({
             "name": (
                 f"Zlecenie Marcela {index}: {label}"
             ),
@@ -604,7 +643,7 @@ def build_mountain_crafting_expansion():
             "repeat_cooldown": (
                 QUEST_REPEAT_COOLDOWN_SECONDS
             ),
-        }
+        }, 'QUESTS', QUESTS, (qid,))
         cooking_chain.append(qid)
         previous = qid
 
@@ -631,7 +670,7 @@ def build_mountain_crafting_expansion():
     for index, (
         qid, level, target, needed, label
     ) in enumerate(high_cooking, 9):
-        QUESTS[qid] = {
+        _catalog_mut.catalog_assign({
             "name": (
                 f"Zlecenie Marcela {index}: {label}"
             ),
@@ -663,7 +702,7 @@ def build_mountain_crafting_expansion():
             "repeat_cooldown": (
                 QUEST_REPEAT_COOLDOWN_SECONDS
             ),
-        }
+        }, 'QUESTS', QUESTS, (qid,))
         cooking_chain.append(qid)
         previous = qid
 
@@ -678,9 +717,7 @@ def build_mountain_crafting_expansion():
     cooking_chain.append(
         "marcel_cooking_order_master"
     )
-    NPCS["specialist_cooking"][
-        "specialist_quests"
-    ] = tuple(cooking_chain)
+    _catalog_mut.catalog_assign(tuple(cooking_chain), 'NPCS', NPCS, ("specialist_cooking", "specialist_quests"))
 
     # ========================================================
     # HERBALISM SPECIFIC MEADOW QUESTS
@@ -739,11 +776,11 @@ def build_mountain_crafting_expansion():
         }
         if previous:
             quest["requires_quest"] = previous
-        QUESTS[qid] = quest
+        _catalog_mut.catalog_assign(quest, 'QUESTS', QUESTS, (qid,))
         herb_chain.append(qid)
         previous = qid
 
-    NPCS["alpine_herbalist_ira"] = {
+    _catalog_mut.catalog_assign({
         "name": "Zielarka Alpejska Ira",
         "room": "alpine_herbalist_hut",
         "dialogue": (
@@ -755,7 +792,7 @@ def build_mountain_crafting_expansion():
         "specialist_quests": tuple(
             herb_chain
         ),
-    }
+    }, 'NPCS', NPCS, ("alpine_herbalist_ira",))
 
     # ========================================================
     # MINING SPECIFIC ORE QUESTS
@@ -776,7 +813,7 @@ def build_mountain_crafting_expansion():
     previous = None
     for level, target, needed in ore_specs:
         qid = f"dagna_ore_{level}"
-        QUESTS[qid] = {
+        _catalog_mut.catalog_assign({
             "name": (
                 f"Zlecenie Dagny: "
                 f"{ITEMS[target]['name']}"
@@ -815,11 +852,11 @@ def build_mountain_crafting_expansion():
             "repeat_cooldown": (
                 QUEST_REPEAT_COOLDOWN_SECONDS
             ),
-        }
+        }, 'QUESTS', QUESTS, (qid,))
         mining_chain.append(qid)
         previous = qid
 
-    NPCS["mountain_mineral_trader_dagna"] = {
+    _catalog_mut.catalog_assign({
         "name": "Handlarka Minerałów Dagna",
         "room": "mountain_market",
         "dialogue": (
@@ -831,7 +868,7 @@ def build_mountain_crafting_expansion():
         "specialist_quests": tuple(
             mining_chain
         ),
-    }
+    }, 'NPCS', NPCS, ("mountain_mineral_trader_dagna",))
 
     # ========================================================
     # FISHING SPECIFIC + RARE VARIANT QUESTS
@@ -902,24 +939,22 @@ def build_mountain_crafting_expansion():
         }
         if previous:
             quest["requires_quest"] = previous
-        QUESTS[qid] = quest
+        _catalog_mut.catalog_assign(quest, 'QUESTS', QUESTS, (qid,))
         fishing_chain.append(qid)
         previous = qid
 
-    NPCS["specialist_fishing"][
-        "specialist_quests"
-    ] = tuple(fishing_chain)
+    _catalog_mut.catalog_assign(tuple(fishing_chain), 'NPCS', NPCS, ("specialist_fishing", "specialist_quests"))
 
     # ========================================================
     # SHOPS / SALES / GUIDE
     # ========================================================
-    SHOPS["mountain_forge"] = [
+    _catalog_mut.catalog_assign([
         "crafting_hammer",
-    ]
-    SHOPS["alpine_herbalist_hut"] = [
+    ], 'SHOPS', SHOPS, ("mountain_forge",))
+    _catalog_mut.catalog_assign([
         "herbalist_sickle",
         "alchemy_mortar",
-    ]
+    ], 'SHOPS', SHOPS, ("alpine_herbalist_hut",))
 
     
 
@@ -931,8 +966,8 @@ def build_world_expansion_i():
     # Sprzedawcy podstawowych narzędzi zostają w swoich punktach,
     # a mistrzowie profesji dostają osobne miejsca nauki.
     # ========================================================
-    ROOMS["fish_market"]["exits"]["west"] = "fishing_school"
-    ROOMS["fishing_school"] = {
+    _catalog_mut.catalog_assign("fishing_school", 'ROOMS', ROOMS, ("fish_market", "exits", "west"))
+    _catalog_mut.catalog_assign({
         "zone": "Miasto Dusz",
         "name": "Szkoła Wędkarstwa",
         "desc": (
@@ -940,10 +975,10 @@ def build_world_expansion_i():
             "łowisk i stare wędki mistrzów. Tutaj uczy Neris."
         ),
         "exits": {"east": "fish_market"},
-    }
+    }, 'ROOMS', ROOMS, ("fishing_school",))
 
-    ROOMS["cave_entrance"]["exits"]["east"] = "miners_guild"
-    ROOMS["miners_guild"] = {
+    _catalog_mut.catalog_assign("miners_guild", 'ROOMS', ROOMS, ("cave_entrance", "exits", "east"))
+    _catalog_mut.catalog_assign({
         "zone": "Podziemia",
         "name": "Gildia Górników",
         "desc": (
@@ -951,10 +986,10 @@ def build_world_expansion_i():
             "tu szkolenie z Górnictwa, z dala od sklepu Torena."
         ),
         "exits": {"west": "cave_entrance"},
-    }
+    }, 'ROOMS', ROOMS, ("miners_guild",))
 
-    ROOMS["lumberjack_camp"]["exits"]["north"] = "forester_lodge"
-    ROOMS["forester_lodge"] = {
+    _catalog_mut.catalog_assign("forester_lodge", 'ROOMS', ROOMS, ("lumberjack_camp", "exits", "north"))
+    _catalog_mut.catalog_assign({
         "zone": "Dzicz",
         "name": "Leśniczówka",
         "desc": (
@@ -962,11 +997,11 @@ def build_world_expansion_i():
             "Mistrz Drwalstwa Oren uczy tutaj pracy z rzadkim drewnem."
         ),
         "exits": {"south": "lumberjack_camp"},
-    }
+    }, 'ROOMS', ROOMS, ("forester_lodge",))
 
-    ROOMS["herbalist_hut"]["exits"]["west"] = "herbalism_garden"
-    ROOMS["herbalist_hut"]["exits"]["east"] = "alchemy_lab"
-    ROOMS["herbalism_garden"] = {
+    _catalog_mut.catalog_assign("herbalism_garden", 'ROOMS', ROOMS, ("herbalist_hut", "exits", "west"))
+    _catalog_mut.catalog_assign("alchemy_lab", 'ROOMS', ROOMS, ("herbalist_hut", "exits", "east"))
+    _catalog_mut.catalog_assign({
         "zone": "Dzicz",
         "name": "Ogród Zielarski",
         "desc": (
@@ -974,8 +1009,8 @@ def build_world_expansion_i():
             "Mistrzyni Sena prowadzi tu naukę Zielarstwa."
         ),
         "exits": {"east": "herbalist_hut"},
-    }
-    ROOMS["alchemy_lab"] = {
+    }, 'ROOMS', ROOMS, ("herbalism_garden",))
+    _catalog_mut.catalog_assign({
         "zone": "Dzicz",
         "name": "Laboratorium Alchemiczne",
         "desc": (
@@ -983,10 +1018,10 @@ def build_world_expansion_i():
             "laboratorium. Orin prowadzi tutaj Alchemię i swoje zlecenia."
         ),
         "exits": {"west": "herbalist_hut"},
-    }
+    }, 'ROOMS', ROOMS, ("alchemy_lab",))
 
-    ROOMS["forge"]["exits"]["north"] = "crafting_workshop"
-    ROOMS["crafting_workshop"] = {
+    _catalog_mut.catalog_assign("crafting_workshop", 'ROOMS', ROOMS, ("forge", "exits", "north"))
+    _catalog_mut.catalog_assign({
         "zone": "Miasto Dusz",
         "name": "Warsztat Rzemieślniczy",
         "desc": (
@@ -994,20 +1029,20 @@ def build_world_expansion_i():
             "rzemiosła. Haldor prowadzi tu zlecenia Kowalstwa i Rzemiosła."
         ),
         "exits": {"south": "forge"},
-    }
+    }, 'ROOMS', ROOMS, ("crafting_workshop",))
 
-    NPCS["specialist_fishing"]["room"] = "fishing_school"
-    NPCS["specialist_mining"]["room"] = "miners_guild"
-    NPCS["specialist_woodcutting"]["room"] = "forester_lodge"
-    NPCS["specialist_herbalism"]["room"] = "herbalism_garden"
-    NPCS["specialist_alchemy"]["room"] = "alchemy_lab"
-    NPCS["specialist_crafting"]["room"] = "crafting_workshop"
+    _catalog_mut.catalog_assign("fishing_school", 'NPCS', NPCS, ("specialist_fishing", "room"))
+    _catalog_mut.catalog_assign("miners_guild", 'NPCS', NPCS, ("specialist_mining", "room"))
+    _catalog_mut.catalog_assign("forester_lodge", 'NPCS', NPCS, ("specialist_woodcutting", "room"))
+    _catalog_mut.catalog_assign("herbalism_garden", 'NPCS', NPCS, ("specialist_herbalism", "room"))
+    _catalog_mut.catalog_assign("alchemy_lab", 'NPCS', NPCS, ("specialist_alchemy", "room"))
+    _catalog_mut.catalog_assign("crafting_workshop", 'NPCS', NPCS, ("specialist_crafting", "room"))
 
     # ========================================================
     # DZICZ — NOWY PÓŁNOCNY REGION
     # ========================================================
-    ROOMS["crossroads"]["exits"]["north"] = "wild_frontier"
-    ROOMS["wild_frontier"] = {
+    _catalog_mut.catalog_assign("wild_frontier", 'ROOMS', ROOMS, ("crossroads", "exits", "north"))
+    _catalog_mut.catalog_assign({
         "zone": "Dzicz",
         "name": "Skraj Północnej Dziczy",
         "desc": (
@@ -1020,8 +1055,8 @@ def build_world_expansion_i():
             "west": "thorn_scrub",
             "east": "abandoned_farm",
         },
-    }
-    ROOMS["hunter_clearing"] = {
+    }, 'ROOMS', ROOMS, ("wild_frontier",))
+    _catalog_mut.catalog_assign({
         "zone": "Dzicz",
         "name": "Polana Łowców",
         "desc": (
@@ -1032,8 +1067,8 @@ def build_world_expansion_i():
             "south": "wild_frontier",
             "north": "burnt_fields",
         },
-    }
-    ROOMS["thorn_scrub"] = {
+    }, 'ROOMS', ROOMS, ("hunter_clearing",))
+    _catalog_mut.catalog_assign({
         "zone": "Dzicz",
         "name": "Cierniste Zarośla",
         "desc": (
@@ -1044,8 +1079,8 @@ def build_world_expansion_i():
             "east": "wild_frontier",
             "north": "beast_den",
         },
-    }
-    ROOMS["abandoned_farm"] = {
+    }, 'ROOMS', ROOMS, ("thorn_scrub",))
+    _catalog_mut.catalog_assign({
         "zone": "Dzicz",
         "name": "Opuszczona Farma",
         "desc": (
@@ -1056,8 +1091,8 @@ def build_world_expansion_i():
             "west": "wild_frontier",
             "north": "broken_shrine",
         },
-    }
-    ROOMS["burnt_fields"] = {
+    }, 'ROOMS', ROOMS, ("abandoned_farm",))
+    _catalog_mut.catalog_assign({
         "zone": "Dzicz",
         "name": "Spalone Pola",
         "desc": (
@@ -1068,8 +1103,8 @@ def build_world_expansion_i():
             "south": "hunter_clearing",
             "north": "stone_ravine",
         },
-    }
-    ROOMS["stone_ravine"] = {
+    }, 'ROOMS', ROOMS, ("burnt_fields",))
+    _catalog_mut.catalog_assign({
         "zone": "Dzicz",
         "name": "Kamienny Wąwóz",
         "desc": (
@@ -1080,8 +1115,8 @@ def build_world_expansion_i():
             "south": "burnt_fields",
             "west": "beast_den",
         },
-    }
-    ROOMS["broken_shrine"] = {
+    }, 'ROOMS', ROOMS, ("stone_ravine",))
+    _catalog_mut.catalog_assign({
         "zone": "Dzicz",
         "name": "Pęknięta Kapliczka",
         "desc": (
@@ -1092,8 +1127,8 @@ def build_world_expansion_i():
             "south": "abandoned_farm",
             "west": "beast_den",
         },
-    }
-    ROOMS["beast_den"] = {
+    }, 'ROOMS', ROOMS, ("broken_shrine",))
+    _catalog_mut.catalog_assign({
         "zone": "Dzicz",
         "name": "Legowisko Rogatego Króla",
         "desc": (
@@ -1105,13 +1140,13 @@ def build_world_expansion_i():
             "east": "stone_ravine",
             "north": "broken_shrine",
         },
-    }
+    }, 'ROOMS', ROOMS, ("beast_den",))
 
     # ========================================================
     # GÓRY — NIŻSZE STOKI, LÓD, SZCZYT I STARA KOPALNIA
     # ========================================================
-    ROOMS["mountain_pass"]["exits"]["north"] = "mountain_lower_slopes"
-    ROOMS["mountain_lower_slopes"] = {
+    _catalog_mut.catalog_assign("mountain_lower_slopes", 'ROOMS', ROOMS, ("mountain_pass", "exits", "north"))
+    _catalog_mut.catalog_assign({
         "zone": "Góry",
         "name": "Niższe Stoki",
         "desc": (
@@ -1123,8 +1158,8 @@ def build_world_expansion_i():
             "north": "wind_shelf",
             "west": "goat_trail",
         },
-    }
-    ROOMS["goat_trail"] = {
+    }, 'ROOMS', ROOMS, ("mountain_lower_slopes",))
+    _catalog_mut.catalog_assign({
         "zone": "Góry",
         "name": "Szlak Kozic",
         "desc": (
@@ -1135,8 +1170,8 @@ def build_world_expansion_i():
             "east": "mountain_lower_slopes",
             "west": "dwarf_mine_entrance",
         },
-    }
-    ROOMS["dwarf_mine_entrance"] = {
+    }, 'ROOMS', ROOMS, ("goat_trail",))
+    _catalog_mut.catalog_assign({
         "zone": "Góry",
         "name": "Wejście do Starej Kopalni Krasnoludów",
         "desc": (
@@ -1147,8 +1182,8 @@ def build_world_expansion_i():
             "east": "goat_trail",
             "north": "abandoned_dwarf_hall",
         },
-    }
-    ROOMS["abandoned_dwarf_hall"] = {
+    }, 'ROOMS', ROOMS, ("dwarf_mine_entrance",))
+    _catalog_mut.catalog_assign({
         "zone": "Góry",
         "name": "Opuszczona Hala Krasnoludów",
         "desc": (
@@ -1156,8 +1191,8 @@ def build_world_expansion_i():
             "Dziś mieszkają tu górskie bestie."
         ),
         "exits": {"south": "dwarf_mine_entrance"},
-    }
-    ROOMS["wind_shelf"] = {
+    }, 'ROOMS', ROOMS, ("abandoned_dwarf_hall",))
+    _catalog_mut.catalog_assign({
         "zone": "Góry",
         "name": "Wietrzna Półka",
         "desc": (
@@ -1169,8 +1204,8 @@ def build_world_expansion_i():
             "north": "ice_pass",
             "east": "summit_camp",
         },
-    }
-    ROOMS["ice_pass"] = {
+    }, 'ROOMS', ROOMS, ("wind_shelf",))
+    _catalog_mut.catalog_assign({
         "zone": "Góry",
         "name": "Lodowa Przełęcz",
         "desc": (
@@ -1181,8 +1216,8 @@ def build_world_expansion_i():
             "south": "wind_shelf",
             "north": "storm_summit",
         },
-    }
-    ROOMS["summit_camp"] = {
+    }, 'ROOMS', ROOMS, ("ice_pass",))
+    _catalog_mut.catalog_assign({
         "zone": "Góry",
         "name": "Obóz Szczytowy",
         "desc": (
@@ -1194,8 +1229,8 @@ def build_world_expansion_i():
             "east": "lava_fissure",
             "north": "storm_summit",
         },
-    }
-    ROOMS["lava_fissure"] = {
+    }, 'ROOMS', ROOMS, ("summit_camp",))
+    _catalog_mut.catalog_assign({
         "zone": "Góry",
         "name": "Szczelina Lawowa",
         "desc": (
@@ -1203,8 +1238,8 @@ def build_world_expansion_i():
             "Kamienie mają tu czerwony połysk."
         ),
         "exits": {"west": "summit_camp"},
-    }
-    ROOMS["storm_summit"] = {
+    }, 'ROOMS', ROOMS, ("lava_fissure",))
+    _catalog_mut.catalog_assign({
         "zone": "Góry",
         "name": "Szczyt Burzy",
         "desc": (
@@ -1215,15 +1250,15 @@ def build_world_expansion_i():
             "south": "ice_pass",
             "west": "summit_camp",
         },
-    }
+    }, 'ROOMS', ROOMS, ("storm_summit",))
 
     # ========================================================
     # JASKINIA TROLLI — BOCZNE GŁĘBOKIE KOMORY
     # ========================================================
-    ROOMS["troll_cave_2"]["exits"]["north"] = "troll_fungus_cavern"
-    ROOMS["troll_cave_3"]["exits"]["south"] = "troll_war_camp"
+    _catalog_mut.catalog_assign("troll_fungus_cavern", 'ROOMS', ROOMS, ("troll_cave_2", "exits", "north"))
+    _catalog_mut.catalog_assign("troll_war_camp", 'ROOMS', ROOMS, ("troll_cave_3", "exits", "south"))
 
-    ROOMS["troll_fungus_cavern"] = {
+    _catalog_mut.catalog_assign({
         "zone": "Jaskinia Trolli",
         "name": "Grota Grzybów",
         "desc": (
@@ -1234,8 +1269,8 @@ def build_world_expansion_i():
             "south": "troll_cave_2",
             "east": "troll_underground_river",
         },
-    }
-    ROOMS["troll_underground_river"] = {
+    }, 'ROOMS', ROOMS, ("troll_fungus_cavern",))
+    _catalog_mut.catalog_assign({
         "zone": "Jaskinia Trolli",
         "name": "Podziemna Rzeka Trolli",
         "desc": (
@@ -1247,8 +1282,8 @@ def build_world_expansion_i():
             "north": "troll_shaman_gallery",
             "south": "troll_bone_pit",
         },
-    }
-    ROOMS["troll_shaman_gallery"] = {
+    }, 'ROOMS', ROOMS, ("troll_underground_river",))
+    _catalog_mut.catalog_assign({
         "zone": "Jaskinia Trolli",
         "name": "Galeria Szamanów",
         "desc": (
@@ -1259,8 +1294,8 @@ def build_world_expansion_i():
             "south": "troll_underground_river",
             "east": "troll_nursery",
         },
-    }
-    ROOMS["troll_nursery"] = {
+    }, 'ROOMS', ROOMS, ("troll_shaman_gallery",))
+    _catalog_mut.catalog_assign({
         "zone": "Jaskinia Trolli",
         "name": "Gniazdo Trolli",
         "desc": (
@@ -1271,8 +1306,8 @@ def build_world_expansion_i():
             "west": "troll_shaman_gallery",
             "south": "troll_slave_pens",
         },
-    }
-    ROOMS["troll_slave_pens"] = {
+    }, 'ROOMS', ROOMS, ("troll_nursery",))
+    _catalog_mut.catalog_assign({
         "zone": "Jaskinia Trolli",
         "name": "Zagrody Jeńców",
         "desc": (
@@ -1283,8 +1318,8 @@ def build_world_expansion_i():
             "north": "troll_nursery",
             "east": "troll_treasure_vault",
         },
-    }
-    ROOMS["troll_treasure_vault"] = {
+    }, 'ROOMS', ROOMS, ("troll_slave_pens",))
+    _catalog_mut.catalog_assign({
         "zone": "Jaskinia Trolli",
         "name": "Skarbiec Trolli",
         "desc": (
@@ -1295,8 +1330,8 @@ def build_world_expansion_i():
             "west": "troll_slave_pens",
             "south": "troll_deep_war_camp",
         },
-    }
-    ROOMS["troll_bone_pit"] = {
+    }, 'ROOMS', ROOMS, ("troll_treasure_vault",))
+    _catalog_mut.catalog_assign({
         "zone": "Jaskinia Trolli",
         "name": "Dół Kości",
         "desc": (
@@ -1307,8 +1342,8 @@ def build_world_expansion_i():
             "north": "troll_underground_river",
             "east": "troll_deep_war_camp",
         },
-    }
-    ROOMS["troll_deep_war_camp"] = {
+    }, 'ROOMS', ROOMS, ("troll_bone_pit",))
+    _catalog_mut.catalog_assign({
         "zone": "Jaskinia Trolli",
         "name": "Głęboki Obóz Wojenny",
         "desc": (
@@ -1320,8 +1355,8 @@ def build_world_expansion_i():
             "west": "troll_bone_pit",
             "south": "troll_altar",
         },
-    }
-    ROOMS["troll_altar"] = {
+    }, 'ROOMS', ROOMS, ("troll_deep_war_camp",))
+    _catalog_mut.catalog_assign({
         "zone": "Jaskinia Trolli",
         "name": "Pradawny Ołtarz Trolli",
         "desc": (
@@ -1329,13 +1364,13 @@ def build_world_expansion_i():
             "Najpotężniejszy wojownik głębin strzeże tego miejsca."
         ),
         "exits": {"north": "troll_deep_war_camp"},
-    }
+    }, 'ROOMS', ROOMS, ("troll_altar",))
 
     # ========================================================
     # BAGNA — NOWY TEREN
     # ========================================================
-    ROOMS["deep_grove"]["exits"]["south"] = "swamp_boardwalk"
-    ROOMS["swamp_boardwalk"] = {
+    _catalog_mut.catalog_assign("swamp_boardwalk", 'ROOMS', ROOMS, ("deep_grove", "exits", "south"))
+    _catalog_mut.catalog_assign({
         "zone": "Bagna",
         "name": "Groble Czarnego Bagna",
         "desc": (
@@ -1347,16 +1382,16 @@ def build_world_expansion_i():
             "south": "reed_mire",
             "east": "swamp_hunter_post",
         },
-    }
-    ROOMS["swamp_hunter_post"] = {
+    }, 'ROOMS', ROOMS, ("swamp_boardwalk",))
+    _catalog_mut.catalog_assign({
         "zone": "Bagna",
         "name": "Posterunek Łowców Bagien",
         "desc": (
             "Sucha platforma służy jako bezpieczny hub wypraw na Bagna."
         ),
         "exits": {"west": "swamp_boardwalk"},
-    }
-    ROOMS["reed_mire"] = {
+    }, 'ROOMS', ROOMS, ("swamp_hunter_post",))
+    _catalog_mut.catalog_assign({
         "zone": "Bagna",
         "name": "Trzcinowe Mokradła",
         "desc": (
@@ -1368,8 +1403,8 @@ def build_world_expansion_i():
             "west": "fungal_bog",
             "south": "poison_fen",
         },
-    }
-    ROOMS["blackwater_pool"] = {
+    }, 'ROOMS', ROOMS, ("reed_mire",))
+    _catalog_mut.catalog_assign({
         "zone": "Bagna",
         "name": "Czarne Rozlewisko",
         "desc": (
@@ -1381,8 +1416,8 @@ def build_world_expansion_i():
             "east": "swamp_witch_hut",
             "south": "drowned_ruins",
         },
-    }
-    ROOMS["swamp_witch_hut"] = {
+    }, 'ROOMS', ROOMS, ("blackwater_pool",))
+    _catalog_mut.catalog_assign({
         "zone": "Bagna",
         "name": "Chata Bagiennej Zielarki",
         "desc": (
@@ -1390,8 +1425,8 @@ def build_world_expansion_i():
             "i składniki znajdowane tylko na mokradłach."
         ),
         "exits": {"west": "blackwater_pool"},
-    }
-    ROOMS["fungal_bog"] = {
+    }, 'ROOMS', ROOMS, ("swamp_witch_hut",))
+    _catalog_mut.catalog_assign({
         "zone": "Bagna",
         "name": "Grzybowe Torfowisko",
         "desc": (
@@ -1401,16 +1436,16 @@ def build_world_expansion_i():
             "east": "reed_mire",
             "south": "serpent_nest",
         },
-    }
-    ROOMS["serpent_nest"] = {
+    }, 'ROOMS', ROOMS, ("fungal_bog",))
+    _catalog_mut.catalog_assign({
         "zone": "Bagna",
         "name": "Gniazdo Bagiennych Węży",
         "desc": (
             "W korzeniach starych drzew wiją się ślady wielkich gadów."
         ),
         "exits": {"north": "fungal_bog"},
-    }
-    ROOMS["poison_fen"] = {
+    }, 'ROOMS', ROOMS, ("serpent_nest",))
+    _catalog_mut.catalog_assign({
         "zone": "Bagna",
         "name": "Trujące Mokradło",
         "desc": (
@@ -1421,8 +1456,8 @@ def build_world_expansion_i():
             "north": "reed_mire",
             "east": "sunken_swamp_shrine",
         },
-    }
-    ROOMS["sunken_swamp_shrine"] = {
+    }, 'ROOMS', ROOMS, ("poison_fen",))
+    _catalog_mut.catalog_assign({
         "zone": "Bagna",
         "name": "Zatopiona Kapliczka Bagien",
         "desc": (
@@ -1433,8 +1468,8 @@ def build_world_expansion_i():
             "west": "poison_fen",
             "east": "drowned_ruins",
         },
-    }
-    ROOMS["drowned_ruins"] = {
+    }, 'ROOMS', ROOMS, ("sunken_swamp_shrine",))
+    _catalog_mut.catalog_assign({
         "zone": "Bagna",
         "name": "Zatopione Ruiny",
         "desc": (
@@ -1446,8 +1481,8 @@ def build_world_expansion_i():
             "west": "sunken_swamp_shrine",
             "south": "bog_heart",
         },
-    }
-    ROOMS["bog_heart"] = {
+    }, 'ROOMS', ROOMS, ("drowned_ruins",))
+    _catalog_mut.catalog_assign({
         "zone": "Bagna",
         "name": "Serce Czarnego Bagna",
         "desc": (
@@ -1455,7 +1490,7 @@ def build_world_expansion_i():
             "Hydry Czarnego Bagna."
         ),
         "exits": {"north": "drowned_ruins"},
-    }
+    }, 'ROOMS', ROOMS, ("bog_heart",))
 
     # Bagna są logicznym wysokopoziomowym terenem Zielarstwa.
     HERBALISM_ROOMS.update({
@@ -1467,8 +1502,8 @@ def build_world_expansion_i():
     # ========================================================
     # PUSTYNIA — NOWY TEREN
     # ========================================================
-    ROOMS["ruined_watchtower"]["exits"]["north"] = "dry_canyon"
-    ROOMS["dry_canyon"] = {
+    _catalog_mut.catalog_assign("dry_canyon", 'ROOMS', ROOMS, ("ruined_watchtower", "exits", "north"))
+    _catalog_mut.catalog_assign({
         "zone": "Pustynia",
         "name": "Suchy Kanion",
         "desc": (
@@ -1478,8 +1513,8 @@ def build_world_expansion_i():
             "south": "ruined_watchtower",
             "north": "desert_gate",
         },
-    }
-    ROOMS["desert_gate"] = {
+    }, 'ROOMS', ROOMS, ("dry_canyon",))
+    _catalog_mut.catalog_assign({
         "zone": "Pustynia",
         "name": "Brama Pustyni",
         "desc": (
@@ -1491,8 +1526,8 @@ def build_world_expansion_i():
             "north": "desert_dunes",
             "east": "caravan_camp",
         },
-    }
-    ROOMS["caravan_camp"] = {
+    }, 'ROOMS', ROOMS, ("desert_gate",))
+    _catalog_mut.catalog_assign({
         "zone": "Pustynia",
         "name": "Obóz Karawan",
         "desc": (
@@ -1503,8 +1538,8 @@ def build_world_expansion_i():
             "west": "desert_gate",
             "east": "desert_oasis",
         },
-    }
-    ROOMS["desert_oasis"] = {
+    }, 'ROOMS', ROOMS, ("caravan_camp",))
+    _catalog_mut.catalog_assign({
         "zone": "Pustynia",
         "name": "Oaza Siedmiu Palm",
         "desc": (
@@ -1515,8 +1550,8 @@ def build_world_expansion_i():
             "west": "caravan_camp",
             "north": "sandstone_ruins",
         },
-    }
-    ROOMS["desert_dunes"] = {
+    }, 'ROOMS', ROOMS, ("desert_oasis",))
+    _catalog_mut.catalog_assign({
         "zone": "Pustynia",
         "name": "Morze Wydm",
         "desc": (
@@ -1528,16 +1563,16 @@ def build_world_expansion_i():
             "north": "glass_flats",
             "west": "scorpion_basin",
         },
-    }
-    ROOMS["scorpion_basin"] = {
+    }, 'ROOMS', ROOMS, ("desert_dunes",))
+    _catalog_mut.catalog_assign({
         "zone": "Pustynia",
         "name": "Kotlina Skorpionów",
         "desc": (
             "Kamienista niecka jest pełna nor wielkich pustynnych skorpionów."
         ),
         "exits": {"east": "desert_dunes"},
-    }
-    ROOMS["glass_flats"] = {
+    }, 'ROOMS', ROOMS, ("scorpion_basin",))
+    _catalog_mut.catalog_assign({
         "zone": "Pustynia",
         "name": "Szklane Równiny",
         "desc": (
@@ -1548,8 +1583,8 @@ def build_world_expansion_i():
             "south": "desert_dunes",
             "east": "sun_temple",
         },
-    }
-    ROOMS["sandstone_ruins"] = {
+    }, 'ROOMS', ROOMS, ("glass_flats",))
+    _catalog_mut.catalog_assign({
         "zone": "Pustynia",
         "name": "Piaskowcowe Ruiny",
         "desc": (
@@ -1559,8 +1594,8 @@ def build_world_expansion_i():
             "south": "desert_oasis",
             "north": "buried_temple",
         },
-    }
-    ROOMS["buried_temple"] = {
+    }, 'ROOMS', ROOMS, ("sandstone_ruins",))
+    _catalog_mut.catalog_assign({
         "zone": "Pustynia",
         "name": "Zasypana Świątynia",
         "desc": (
@@ -1571,8 +1606,8 @@ def build_world_expansion_i():
             "south": "sandstone_ruins",
             "north": "sun_temple",
         },
-    }
-    ROOMS["sun_temple"] = {
+    }, 'ROOMS', ROOMS, ("buried_temple",))
+    _catalog_mut.catalog_assign({
         "zone": "Pustynia",
         "name": "Świątynia Płonącego Słońca",
         "desc": (
@@ -1583,12 +1618,12 @@ def build_world_expansion_i():
             "south": "buried_temple",
             "west": "glass_flats",
         },
-    }
+    }, 'ROOMS', ROOMS, ("sun_temple",))
 
     # ========================================================
     # NOWE NPC — KAŻDY W LOGICZNYM HUBIE
     # ========================================================
-    NPCS["wild_ranger_elda"] = {
+    _catalog_mut.catalog_assign({
         "name": "Łowczyni Elda",
         "room": "hunter_clearing",
         "dialogue": (
@@ -1596,8 +1631,8 @@ def build_world_expansion_i():
             "Potrzebuję kogoś do ograniczenia liczby bestii."
         ),
         "quest": "wild_frontier_hunt",
-    }
-    NPCS["wild_cartographer_ivo"] = {
+    }, 'NPCS', NPCS, ("wild_ranger_elda",))
+    _catalog_mut.catalog_assign({
         "name": "Kartograf Ivo",
         "room": "hunter_clearing",
         "dialogue": (
@@ -1605,8 +1640,8 @@ def build_world_expansion_i():
             "orientacyjnym, a Legowisko Rogatego Króla końcem szlaku."
         ),
         "quest": None,
-    }
-    NPCS["mountain_scout_harek"] = {
+    }, 'NPCS', NPCS, ("wild_cartographer_ivo",))
+    _catalog_mut.catalog_assign({
         "name": "Zwiadowca Harek",
         "room": "summit_camp",
         "dialogue": (
@@ -1614,8 +1649,8 @@ def build_world_expansion_i():
             "Oczyść szlak między obozem a Szczytem Burzy."
         ),
         "quest": "high_mountain_patrol",
-    }
-    NPCS["troll_scholar_yorna"] = {
+    }, 'NPCS', NPCS, ("mountain_scout_harek",))
+    _catalog_mut.catalog_assign({
         "name": "Badaczka Trolli Yorna",
         "room": "troll_fungus_cavern",
         "dialogue": (
@@ -1623,8 +1658,8 @@ def build_world_expansion_i():
             "nie tylko drogą do Króla. Zbadaj i oczyść ich wojenny szlak."
         ),
         "quest": "deep_troll_clearance",
-    }
-    NPCS["swamp_hunter_varg"] = {
+    }, 'NPCS', NPCS, ("troll_scholar_yorna",))
+    _catalog_mut.catalog_assign({
         "name": "Łowca Bagien Varg",
         "room": "swamp_hunter_post",
         "dialogue": (
@@ -1632,8 +1667,8 @@ def build_world_expansion_i():
             "Trzymaj się pomostów, dopóki nie poznasz terenu."
         ),
         "quest": "swamp_purge",
-    }
-    NPCS["swamp_herbalist_nela"] = {
+    }, 'NPCS', NPCS, ("swamp_hunter_varg",))
+    _catalog_mut.catalog_assign({
         "name": "Bagienna Zielarka Nela",
         "room": "swamp_witch_hut",
         "dialogue": (
@@ -1641,8 +1676,8 @@ def build_world_expansion_i():
             "Możesz tu korzystać z Zielarstwa, ale uważaj na bestie."
         ),
         "quest": None,
-    }
-    NPCS["caravan_master_samir"] = {
+    }, 'NPCS', NPCS, ("swamp_herbalist_nela",))
+    _catalog_mut.catalog_assign({
         "name": "Mistrz Karawan Samir",
         "room": "caravan_camp",
         "dialogue": (
@@ -1650,8 +1685,8 @@ def build_world_expansion_i():
             "Bramą Pustyni, oazą i ruinami."
         ),
         "quest": "desert_patrol",
-    }
-    NPCS["desert_scholar_amina"] = {
+    }, 'NPCS', NPCS, ("caravan_master_samir",))
+    _catalog_mut.catalog_assign({
         "name": "Badaczka Amina",
         "room": "sandstone_ruins",
         "dialogue": (
@@ -1659,12 +1694,12 @@ def build_world_expansion_i():
             "Świątynia Słońca na północy wciąż jest aktywna."
         ),
         "quest": None,
-    }
+    }, 'NPCS', NPCS, ("desert_scholar_amina",))
 
     # ========================================================
     # QUESTY TERENOWE
     # ========================================================
-    QUESTS["wild_frontier_hunt"] = {
+    _catalog_mut.catalog_assign({
         "name": "Bestie Północnej Dziczy",
         "giver": "Łowczyni Elda",
         "kind": "kill",
@@ -1680,8 +1715,8 @@ def build_world_expansion_i():
         "reward_items": {"healing_potion": 3},
         "repeatable": True,
         "repeat_cooldown": QUEST_REPEAT_COOLDOWN_SECONDS,
-    }
-    QUESTS["high_mountain_patrol"] = {
+    }, 'QUESTS', QUESTS, ("wild_frontier_hunt",))
+    _catalog_mut.catalog_assign({
         "name": "Patrol Wysokich Gór",
         "giver": "Zwiadowca Harek",
         "kind": "kill",
@@ -1697,8 +1732,8 @@ def build_world_expansion_i():
         "reward_items": {"greater_healing_potion": 2},
         "repeatable": True,
         "repeat_cooldown": QUEST_REPEAT_COOLDOWN_SECONDS,
-    }
-    QUESTS["deep_troll_clearance"] = {
+    }, 'QUESTS', QUESTS, ("high_mountain_patrol",))
+    _catalog_mut.catalog_assign({
         "name": "Wojenny Szlak Trolli",
         "giver": "Badaczka Trolli Yorna",
         "kind": "kill",
@@ -1714,8 +1749,8 @@ def build_world_expansion_i():
         "reward_items": {"soul_shard": 2},
         "repeatable": True,
         "repeat_cooldown": QUEST_REPEAT_COOLDOWN_SECONDS,
-    }
-    QUESTS["swamp_purge"] = {
+    }, 'QUESTS', QUESTS, ("deep_troll_clearance",))
+    _catalog_mut.catalog_assign({
         "name": "Oczyszczanie Czarnego Bagna",
         "giver": "Łowca Bagien Varg",
         "kind": "kill",
@@ -1731,8 +1766,8 @@ def build_world_expansion_i():
         "reward_items": {"greater_healing_potion": 2},
         "repeatable": True,
         "repeat_cooldown": QUEST_REPEAT_COOLDOWN_SECONDS,
-    }
-    QUESTS["desert_patrol"] = {
+    }, 'QUESTS', QUESTS, ("swamp_purge",))
+    _catalog_mut.catalog_assign({
         "name": "Bezpieczny Szlak Karawan",
         "giver": "Mistrz Karawan Samir",
         "kind": "kill",
@@ -1748,7 +1783,7 @@ def build_world_expansion_i():
         "reward_items": {"soul_elixir": 1},
         "repeatable": True,
         "repeat_cooldown": QUEST_REPEAT_COOLDOWN_SECONDS,
-    }
+    }, 'QUESTS', QUESTS, ("desert_patrol",))
 
     # ========================================================
     # MOBY I BOSSOWIE NOWYCH TERENÓW
@@ -1914,7 +1949,7 @@ def build_world_expansion_i():
             "iron_guard", "iron_gauntlets", "forge_charm"
         ])
         template.setdefault("corpse_equipment_guaranteed", 1)
-        MOB_TEMPLATES[mob_id] = template
+        _catalog_mut.catalog_assign(template, 'MOB_TEMPLATES', MOB_TEMPLATES, (mob_id,))
 
     MOB_SPAWNS.extend([
         # Dzicz
@@ -2106,7 +2141,7 @@ def build_world_expansion_ii():
             "desc": "Lodowy minerał z Kopalni Głębinowej, dostępny od poziomu 100.",
         },
     }
-    ITEMS.update(field_items)
+    _catalog_mut.catalog_update_path('ITEMS', ITEMS, (), field_items)
     HERB_STORAGE_IDS.update({"field_grave_moss", "field_void_thorn"})
     WOOD_STORAGE_IDS.add("field_ironbark_root")
     ORE_STORAGE_IDS.update({"field_tomb_silver", "field_frost_crystal_ore"})
@@ -2129,9 +2164,9 @@ def build_world_expansion_ii():
     # ========================================================
     # 1. STARY CMENTARZ — expansion of the existing Graveyard
     # ========================================================
-    ROOMS["graveyard"]["zone"] = "Stary Cmentarz"
-    ROOMS["graveyard"]["exits"].update({"north": "cemetery_ossuary_path", "east": "necropolis_gate"})
-    ROOMS.update({
+    _catalog_mut.catalog_assign("Stary Cmentarz", 'ROOMS', ROOMS, ("graveyard", "zone"))
+    _catalog_mut.catalog_update_path('ROOMS', ROOMS, ("graveyard", "exits"), {"north": "cemetery_ossuary_path", "east": "necropolis_gate"})
+    _catalog_mut.catalog_update_path('ROOMS', ROOMS, (), {
         "cemetery_ossuary_path": {"zone":"Stary Cmentarz","name":"Aleja Ossuariów","desc":"Popękane kapliczki i kamienne ossuaria stoją po obu stronach wąskiej alei.","exits":{"south":"graveyard","north":"cemetery_fallen_chapel","west":"cemetery_moon_garden"}},
         "cemetery_moon_garden": {"zone":"Stary Cmentarz","name":"Ogród Księżycowego Mchu","desc":"Wilgotne nagrobki porasta Mech Nagrobny. To terenowe miejsce Zielarstwa.","exits":{"east":"cemetery_ossuary_path","north":"cemetery_bone_field"}},
         "cemetery_fallen_chapel": {"zone":"Stary Cmentarz","name":"Zawalona Kaplica","desc":"Dach kaplicy runął, odsłaniając stare krypty i zbezczeszczony ołtarz.","exits":{"south":"cemetery_ossuary_path","north":"cemetery_bell_tower"}},
@@ -2144,8 +2179,8 @@ def build_world_expansion_ii():
     # ========================================================
     # 2. RUINY KULTYSTÓW
     # ========================================================
-    ROOMS["ruined_watchtower"]["exits"]["north"] = "cult_ruins_gate"
-    ROOMS.update({
+    _catalog_mut.catalog_assign("cult_ruins_gate", 'ROOMS', ROOMS, ("ruined_watchtower", "exits", "north"))
+    _catalog_mut.catalog_update_path('ROOMS', ROOMS, (), {
         "cult_ruins_gate": {"zone":"Ruiny Kultystów","name":"Brama Ruin Kultystów","desc":"Czarne symbole pokrywają resztki kamiennej bramy. Dalej prowadzi zarośnięty dziedziniec.","exits":{"south":"ruined_watchtower","north":"cult_ruins_courtyard"}},
         "cult_ruins_courtyard": {"zone":"Ruiny Kultystów","name":"Zbezczeszczony Dziedziniec","desc":"Rozbite posągi otaczają krąg wypalonej ziemi.","exits":{"south":"cult_ruins_gate","north":"cult_ruins_cloister","east":"cult_ruins_overgrown_garden"}},
         "cult_ruins_overgrown_garden": {"zone":"Ruiny Kultystów","name":"Ogród Cierni Pustki","desc":"Czarne pnącza rodzą Cierń Pustki. To terenowe miejsce Zielarstwa.","exits":{"west":"cult_ruins_courtyard","north":"cult_ruins_library"}},
@@ -2159,8 +2194,8 @@ def build_world_expansion_ii():
     # ========================================================
     # 3. LEGOWISKO BESTII — deeper branch from Beast Den
     # ========================================================
-    ROOMS["beast_den"]["exits"]["west"] = "beast_lair_mouth"
-    ROOMS.update({
+    _catalog_mut.catalog_assign("beast_lair_mouth", 'ROOMS', ROOMS, ("beast_den", "exits", "west"))
+    _catalog_mut.catalog_update_path('ROOMS', ROOMS, (), {
         "beast_lair_mouth": {"zone":"Legowisko Bestii","name":"Szczelina Legowiska Bestii","desc":"Pazury wyżłobiły głębokie ślady w skale. Z wnętrza dochodzi ciężki oddech.","exits":{"east":"beast_den","west":"beast_lair_tracks"}},
         "beast_lair_tracks": {"zone":"Legowisko Bestii","name":"Korytarz Tropów","desc":"Błoto jest pełne nakładających się śladów łap i kopyt.","exits":{"east":"beast_lair_mouth","west":"beast_lair_root_cavern","north":"beast_lair_bone_nest"}},
         "beast_lair_root_cavern": {"zone":"Legowisko Bestii","name":"Grota Żelaznokory","desc":"Pradawne korzenie przebijają strop. Można tu pozyskać Korzeń Żelaznokory.","exits":{"east":"beast_lair_tracks","north":"beast_lair_hunting_ground"}},
@@ -2173,7 +2208,7 @@ def build_world_expansion_ii():
     # ========================================================
     # 4. NEKROPOLIA
     # ========================================================
-    ROOMS.update({
+    _catalog_mut.catalog_update_path('ROOMS', ROOMS, (), {
         "necropolis_gate": {"zone":"Nekropolia","name":"Brama Nekropolii","desc":"Olbrzymie kamienne wrota prowadzą do miasta grobowców.","exits":{"west":"graveyard","east":"necropolis_procession"}},
         "necropolis_procession": {"zone":"Nekropolia","name":"Aleja Procesyjna","desc":"Posągi bez twarzy stoją wzdłuż drogi prowadzącej między mauzoleami.","exits":{"west":"necropolis_gate","east":"necropolis_quarry","north":"necropolis_catacombs"}},
         "necropolis_quarry": {"zone":"Nekropolia","name":"Grobowy Kamieniołom","desc":"Dawny kamieniołom Nekropolii. Wydobycie przeniesiono do Kopalni Głębinowej; miejsce pozostało częścią regionu i questów.","exits":{"west":"necropolis_procession","north":"necropolis_silent_square"}},
@@ -2186,8 +2221,8 @@ def build_world_expansion_ii():
     # ========================================================
     # 5. KANAŁY POD MIASTEM
     # ========================================================
-    ROOMS["south_street"]["exits"]["down"] = "sewer_entrance"
-    ROOMS.update({
+    _catalog_mut.catalog_assign("sewer_entrance", 'ROOMS', ROOMS, ("south_street", "exits", "down"))
+    _catalog_mut.catalog_update_path('ROOMS', ROOMS, (), {
         "sewer_entrance": {"zone":"Kanały Pod Miastem","name":"Krata Kanałów","desc":"Kamienne schody schodzą pod ulicę do wilgotnych kanałów.","exits":{"up":"south_street","down":"sewer_runoff"}},
         "sewer_runoff": {"zone":"Kanały Pod Miastem","name":"Kanał Odpływowy","desc":"Brudna woda płynie płytkim korytem między kamiennymi ścianami.","exits":{"up":"sewer_entrance","east":"sewer_rat_nest","south":"sewer_black_channel"}},
         "sewer_rat_nest": {"zone":"Kanały Pod Miastem","name":"Gniazdo Szczurów","desc":"Resztki skrzyń i tkanin tworzą ogromne gniazdo pod fundamentami.","exits":{"west":"sewer_runoff","south":"sewer_smuggler_den"}},
@@ -2202,8 +2237,8 @@ def build_world_expansion_ii():
     # ========================================================
     # 6. LODOWE JASKINIE
     # ========================================================
-    ROOMS["ice_pass"]["exits"]["east"] = "ice_cave_mouth"
-    ROOMS.update({
+    _catalog_mut.catalog_assign("ice_cave_mouth", 'ROOMS', ROOMS, ("ice_pass", "exits", "east"))
+    _catalog_mut.catalog_update_path('ROOMS', ROOMS, (), {
         "ice_cave_mouth": {"zone":"Lodowe Jaskinie","name":"Wejście do Lodowych Jaskiń","desc":"Szczelina w lodzie prowadzi do błękitnych tuneli pod górą.","exits":{"west":"ice_pass","east":"ice_cave_blue_tunnel"}},
         "ice_cave_blue_tunnel": {"zone":"Lodowe Jaskinie","name":"Błękitny Tunel","desc":"Światło odbija się w tysiącach drobnych kryształów lodu.","exits":{"west":"ice_cave_mouth","east":"ice_cave_frozen_lake","north":"ice_cave_crystal_chamber"}},
         "ice_cave_crystal_chamber": {"zone":"Lodowe Jaskinie","name":"Komnata Lodowego Kryształu","desc":"Komnata lodowych kryształów. Wydobycie przeniesiono do Kopalni Głębinowej; komnata pozostała miejscem eksploracji i walki.","exits":{"south":"ice_cave_blue_tunnel","east":"ice_cave_glacier裂"}},
@@ -2216,7 +2251,7 @@ def build_world_expansion_ii():
     # ========================================================
     # MOBS — 6 AREAS, REGULARS + ELITES + BOSSES
     # ========================================================
-    MOB_TEMPLATES.update({
+    _catalog_mut.catalog_update_path('MOB_TEMPLATES', MOB_TEMPLATES, (), {
         # Cemetery
         "cemetery_restless_dead":{"name":"Niespokojny Zmarły","max_hp":260,"damage":22,"damage_type":"physical","silver":55,"gold":0,"mithril":0,"stat_reward":70,"class_xp_reward":850,"soul_reward":520,"drops":{"soul_shard":0.25},"quest_target":None},
         "cemetery_grave_hound":{"name":"Grobowy Ogar","max_hp":320,"damage":26,"damage_type":"physical","silver":65,"gold":0,"mithril":0,"stat_reward":82,"class_xp_reward":1000,"soul_reward":610,"drops":{"wolf_fang":0.45},"quest_target":None},
@@ -2273,7 +2308,7 @@ def build_world_expansion_ii():
     # ========================================================
     # FIELD PROFESSION QUESTS
     # ========================================================
-    QUESTS.update({
+    _catalog_mut.catalog_update_path('QUESTS', QUESTS, (), {
         "field_grave_moss": {"name":"Terenowe Zielarstwo: Mech Nagrobny","giver":"Mistrzyni Zielarstwa Sena","kind":"collect_resource","target":"field_grave_moss","needed":8,"description":"Zbierz 8 sztuk Mchu Nagrobnego wyłącznie w Ogrodzie Księżycowego Mchu na Starym Cmentarzu. Postęp zaczyna od 0/8 i rośnie przy każdym nowym zbiorze po przyjęciu questa.","progress_label":"Mech Nagrobny","specialist_tool_type":"herbalism","min_tool_level":20,"reward_profession":"Zielarstwo","reward_profession_xp":1400,"reward_tool_type":"herbalism","reward_tool_xp":1100,"reward_silver":260,"reward_gold":1,"reward_mithril":0,"reward_items":{},"repeatable":True,"repeat_cooldown":QUEST_REPEAT_COOLDOWN_SECONDS},
         "field_void_thorn": {"name":"Terenowe Zielarstwo: Cierń Pustki","giver":"Mistrzyni Zielarstwa Sena","kind":"collect_resource","target":"field_void_thorn","needed":8,"description":"Zbierz 8 Cierni Pustki wyłącznie w Ogrodzie Cierni Pustki w Ruinach Kultystów.","specialist_tool_type":"herbalism","min_tool_level":60,"reward_profession":"Zielarstwo","reward_profession_xp":2400,"reward_tool_type":"herbalism","reward_tool_xp":1900,"reward_silver":420,"reward_gold":2,"reward_mithril":0,"reward_items":{},"repeatable":True,"repeat_cooldown":QUEST_REPEAT_COOLDOWN_SECONDS},
         "field_ironbark_root": {"name":"Terenowe Drwalstwo: Korzeń Żelaznokory","giver":"Mistrz Drwalstwa Oren","kind":"collect_resource","target":"field_ironbark_root","needed":8,"description":"Pozyskaj 8 Korzeni Żelaznokory wyłącznie w Grocie Żelaznokory w Legowisku Bestii.","specialist_tool_type":"woodcutting","min_tool_level":40,"reward_profession":"Drwalstwo","reward_profession_xp":1900,"reward_tool_type":"woodcutting","reward_tool_xp":1500,"reward_silver":330,"reward_gold":1,"reward_mithril":0,"reward_items":{},"repeatable":True,"repeat_cooldown":QUEST_REPEAT_COOLDOWN_SECONDS},
@@ -2283,10 +2318,10 @@ def build_world_expansion_ii():
     })
 
     # Specialists list these field quests when spoken to.
-    NPCS["specialist_herbalism"]["specialist_quests"] = tuple(NPCS["specialist_herbalism"].get("specialist_quests", ())) + ("field_grave_moss","field_void_thorn")
-    NPCS["specialist_woodcutting"]["specialist_quests"] = tuple(NPCS["specialist_woodcutting"].get("specialist_quests", ())) + ("field_ironbark_root",)
-    NPCS["specialist_mining"]["specialist_quests"] = tuple(NPCS["specialist_mining"].get("specialist_quests", ())) + ("field_tomb_silver","field_frost_crystal_ore")
-    NPCS["specialist_fishing"]["specialist_quests"] = tuple(NPCS["specialist_fishing"].get("specialist_quests", ())) + ("field_blind_sewer_eel",)
+    _catalog_mut.catalog_assign(tuple(NPCS["specialist_herbalism"].get("specialist_quests", ())) + ("field_grave_moss","field_void_thorn"), 'NPCS', NPCS, ("specialist_herbalism", "specialist_quests"))
+    _catalog_mut.catalog_assign(tuple(NPCS["specialist_woodcutting"].get("specialist_quests", ())) + ("field_ironbark_root",), 'NPCS', NPCS, ("specialist_woodcutting", "specialist_quests"))
+    _catalog_mut.catalog_assign(tuple(NPCS["specialist_mining"].get("specialist_quests", ())) + ("field_tomb_silver","field_frost_crystal_ore"), 'NPCS', NPCS, ("specialist_mining", "specialist_quests"))
+    _catalog_mut.catalog_assign(tuple(NPCS["specialist_fishing"].get("specialist_quests", ())) + ("field_blind_sewer_eel",), 'NPCS', NPCS, ("specialist_fishing", "specialist_quests"))
 
     # ========================================================
     # GUIDE — only entrances; interior remains exploration-only
@@ -2336,8 +2371,8 @@ def build_high_end_mob_pack():
     # ========================================================
     # 5 ODDZIELNYCH ODNÓG WYZWANIA
     # ========================================================
-    ROOMS["beast_den"]["exits"]["down"] = "wild_ancient_path"
-    ROOMS["wild_ancient_path"] = {
+    _catalog_mut.catalog_assign("wild_ancient_path", 'ROOMS', ROOMS, ("beast_den", "exits", "down"))
+    _catalog_mut.catalog_assign({
         "zone": "Dzicz",
         "name": "Pradawny Szlak Bestii",
         "desc": (
@@ -2348,8 +2383,8 @@ def build_high_end_mob_pack():
             "up": "beast_den",
             "north": "wild_primal_hollow",
         },
-    }
-    ROOMS["wild_primal_hollow"] = {
+    }, 'ROOMS', ROOMS, ("wild_ancient_path",))
+    _catalog_mut.catalog_assign({
         "zone": "Dzicz",
         "name": "Pradawna Kotlina Dziczy",
         "desc": (
@@ -2357,10 +2392,10 @@ def build_high_end_mob_pack():
             "To teren wyzwania, nie zwykła ścieżka fabularna."
         ),
         "exits": {"south": "wild_ancient_path"},
-    }
+    }, 'ROOMS', ROOMS, ("wild_primal_hollow",))
 
-    ROOMS["storm_summit"]["exits"]["up"] = "mountain_tempest_path"
-    ROOMS["mountain_tempest_path"] = {
+    _catalog_mut.catalog_assign("mountain_tempest_path", 'ROOMS', ROOMS, ("storm_summit", "exits", "up"))
+    _catalog_mut.catalog_assign({
         "zone": "Góry",
         "name": "Ścieżka Wiecznej Burzy",
         "desc": (
@@ -2371,8 +2406,8 @@ def build_high_end_mob_pack():
             "down": "storm_summit",
             "north": "mountain_tempest_sanctum",
         },
-    }
-    ROOMS["mountain_tempest_sanctum"] = {
+    }, 'ROOMS', ROOMS, ("mountain_tempest_path",))
+    _catalog_mut.catalog_assign({
         "zone": "Góry",
         "name": "Sanktuarium Wiecznej Burzy",
         "desc": (
@@ -2380,10 +2415,10 @@ def build_high_end_mob_pack():
             "najpotężniejszych przeciwników otwartego świata."
         ),
         "exits": {"south": "mountain_tempest_path"},
-    }
+    }, 'ROOMS', ROOMS, ("mountain_tempest_sanctum",))
 
-    ROOMS["troll_altar"]["exits"]["down"] = "troll_abyss"
-    ROOMS["troll_abyss"] = {
+    _catalog_mut.catalog_assign("troll_abyss", 'ROOMS', ROOMS, ("troll_altar", "exits", "down"))
+    _catalog_mut.catalog_assign({
         "zone": "Jaskinia Trolli",
         "name": "Otchłań Trolli",
         "desc": (
@@ -2394,8 +2429,8 @@ def build_high_end_mob_pack():
             "up": "troll_altar",
             "south": "troll_abyss_throne",
         },
-    }
-    ROOMS["troll_abyss_throne"] = {
+    }, 'ROOMS', ROOMS, ("troll_abyss",))
+    _catalog_mut.catalog_assign({
         "zone": "Jaskinia Trolli",
         "name": "Tron Pierwszego Wodza",
         "desc": (
@@ -2403,10 +2438,10 @@ def build_high_end_mob_pack():
             "To końcowe wyzwanie głębin Jaskini Trolli."
         ),
         "exits": {"north": "troll_abyss"},
-    }
+    }, 'ROOMS', ROOMS, ("troll_abyss_throne",))
 
-    ROOMS["bog_heart"]["exits"]["down"] = "swamp_rotten_depths"
-    ROOMS["swamp_rotten_depths"] = {
+    _catalog_mut.catalog_assign("swamp_rotten_depths", 'ROOMS', ROOMS, ("bog_heart", "exits", "down"))
+    _catalog_mut.catalog_assign({
         "zone": "Bagna",
         "name": "Gnijące Głębie Bagna",
         "desc": (
@@ -2417,8 +2452,8 @@ def build_high_end_mob_pack():
             "up": "bog_heart",
             "south": "swamp_primordial_pool",
         },
-    }
-    ROOMS["swamp_primordial_pool"] = {
+    }, 'ROOMS', ROOMS, ("swamp_rotten_depths",))
+    _catalog_mut.catalog_assign({
         "zone": "Bagna",
         "name": "Pradawne Rozlewisko",
         "desc": (
@@ -2426,10 +2461,10 @@ def build_high_end_mob_pack():
             "To legowisko pierwotnej hydry."
         ),
         "exits": {"north": "swamp_rotten_depths"},
-    }
+    }, 'ROOMS', ROOMS, ("swamp_primordial_pool",))
 
-    ROOMS["sun_temple"]["exits"]["down"] = "desert_sun_tomb"
-    ROOMS["desert_sun_tomb"] = {
+    _catalog_mut.catalog_assign("desert_sun_tomb", 'ROOMS', ROOMS, ("sun_temple", "exits", "down"))
+    _catalog_mut.catalog_assign({
         "zone": "Pustynia",
         "name": "Grobowiec Słońca",
         "desc": (
@@ -2440,8 +2475,8 @@ def build_high_end_mob_pack():
             "up": "sun_temple",
             "north": "desert_solar_sanctum",
         },
-    }
-    ROOMS["desert_solar_sanctum"] = {
+    }, 'ROOMS', ROOMS, ("desert_sun_tomb",))
+    _catalog_mut.catalog_assign({
         "zone": "Pustynia",
         "name": "Sanktuarium Wiecznego Słońca",
         "desc": (
@@ -2449,7 +2484,7 @@ def build_high_end_mob_pack():
             "wyzwanie tego pakietu."
         ),
         "exits": {"south": "desert_sun_tomb"},
-    }
+    }, 'ROOMS', ROOMS, ("desert_solar_sanctum",))
 
     # ========================================================
     # ENDGAME ELITY + BOSSOWIE
@@ -2663,7 +2698,7 @@ def build_high_end_mob_pack():
             3 if template.get("world_boss") else 2,
         )
         template["high_end_mob"] = True
-        MOB_TEMPLATES[mob_id] = template
+        _catalog_mut.catalog_assign(template, 'MOB_TEMPLATES', MOB_TEMPLATES, (mob_id,))
 
     MOB_SPAWNS.extend([
         ("wild_ancient_path", "end_wild_ancient_mauler"),
@@ -2707,7 +2742,7 @@ def configure_profession_tool_sellers():
     # v0.8.8: wszystkie narzędzia profesji są przypisane do postaci.
     for _bound_tool_id in CHARACTER_BOUND_TOOL_IDS:
         if _bound_tool_id in ITEMS:
-            ITEMS[_bound_tool_id]["character_bound"] = True
+            _catalog_mut.catalog_assign(True, 'ITEMS', ITEMS, (_bound_tool_id, "character_bound"))
 
     """
     Każde narzędzie jest sprzedawane tylko przez NPC dokładnie
@@ -2717,8 +2752,8 @@ def configure_profession_tool_sellers():
 
     # Osobna kuchnia dla Kucharza Marcela, żeby Karczmarz
     # nie sprzedawał narzędzia profesji Gotowanie.
-    ROOMS["inn"]["exits"]["east"] = "blue_flame_kitchen"
-    ROOMS["blue_flame_kitchen"] = {
+    _catalog_mut.catalog_assign("blue_flame_kitchen", 'ROOMS', ROOMS, ("inn", "exits", "east"))
+    _catalog_mut.catalog_assign({
         "zone": "Miasto Dusz",
         "name": "Kuchnia Błękitnego Płomienia",
         "desc": (
@@ -2727,8 +2762,8 @@ def configure_profession_tool_sellers():
             "sprzedaje Nóż Kucharski."
         ),
         "exits": {"west": "inn"},
-    }
-    NPCS["specialist_cooking"]["room"] = "blue_flame_kitchen"
+    }, 'ROOMS', ROOMS, ("blue_flame_kitchen",))
+    _catalog_mut.catalog_assign("blue_flame_kitchen", 'NPCS', NPCS, ("specialist_cooking", "room"))
 
     profession_tools = {
         "fishing_rod": ("fish_market", "fisher_tomas"),
@@ -2760,17 +2795,17 @@ def configure_profession_tool_sellers():
 
     # Usuń wszystkie narzędzia z dotychczasowych sklepów.
     for room_id in list(SHOPS):
-        SHOPS[room_id] = [
+        _catalog_mut.catalog_assign([
             item_id
             for item_id in SHOPS[room_id]
             if item_id not in tool_ids
-        ]
+        ], 'SHOPS', SHOPS, (room_id,))
         if not SHOPS[room_id]:
-            SHOPS.pop(room_id, None)
+            _catalog_mut.catalog_pop_path('SHOPS', SHOPS, (), room_id, None)
 
     # Dodaj każde narzędzie dokładnie raz.
     for item_id, (room_id, seller_id) in profession_tools.items():
-        SHOPS.setdefault(room_id, [])
+        _catalog_mut.catalog_setdefault_path('SHOPS', SHOPS, (), room_id, [])
         if item_id not in SHOPS[room_id]:
             SHOPS[room_id].append(item_id)
         SHOP_SELLERS[room_id] = seller_id
@@ -2785,45 +2820,27 @@ def configure_profession_tool_sellers():
     SHOP_SELLERS["forge"] = "doran"
 
     # Przejrzyste opisy NPC.
-    NPCS["fisher_tomas"]["shopkeeper"] = True
-    NPCS["fisher_tomas"]["dialogue"] = (
-        "Jeśli chcesz zacząć Wędkarstwo, kupisz u mnie podstawową Wędkę. "
+    _catalog_mut.catalog_assign(True, 'NPCS', NPCS, ("fisher_tomas", "shopkeeper"))
+    _catalog_mut.catalog_assign("Jeśli chcesz zacząć Wędkarstwo, kupisz u mnie podstawową Wędkę. "
         "Przynieś mi także trzydzieści dowolnych ryb, a wynagrodzę twoją pracę. "
-        "Wpisz list albo shop, aby zobaczyć ofertę."
-    )
-    NPCS["specialist_fishing"]["dialogue"] = (
-        "Jestem Mistrzem Wędkarstwa Neris. Uczę rozwoju Wędki, Tierów "
-        "i łowisk wysokiego levelu. Podstawową Wędkę kupisz u Rybaka Borysa na Targu Rybnym."
-    )
-    NPCS["miner_toren"]["dialogue"] = (
-        "Dobra ruda nie wydobędzie się sama. "
+        "Wpisz list albo shop, aby zobaczyć ofertę.", 'NPCS', NPCS, ("fisher_tomas", "dialogue"))
+    _catalog_mut.catalog_assign("Jestem Mistrzem Wędkarstwa Neris. Uczę rozwoju Wędki, Tierów "
+        "i łowisk wysokiego levelu. Podstawową Wędkę kupisz u Rybaka Borysa na Targu Rybnym.", 'NPCS', NPCS, ("specialist_fishing", "dialogue"))
+    _catalog_mut.catalog_assign("Dobra ruda nie wydobędzie się sama. "
         "Tylko u mnie kupisz Kilof do Górnictwa. "
-        "Wpisz list albo shop, aby zobaczyć ofertę."
-    )
-    NPCS["specialist_woodcutting"]["dialogue"] = (
-        "Jestem Mistrzem Drwalstwa. Tylko u mnie kupisz Piłę. "
-        "Uczę pracy z drewnem od levelu 1 do 600."
-    )
-    NPCS["specialist_crafting"]["dialogue"] = (
-        "Prowadzę Rzemiosło i Kowalstwo. "
-        "Tylko u mnie kupisz Młot Rzemieślniczy."
-    )
-    NPCS["specialist_cooking"]["dialogue"] = (
-        "Jestem Kucharzem Błękitnego Płomienia. "
-        "Tylko u mnie kupisz Nóż Kucharski i uczysz się Gotowania."
-    )
-    NPCS["specialist_herbalism"]["dialogue"] = (
-        "Jestem Mistrzynią Zielarstwa. "
-        "Tylko u mnie kupisz Sierp Zielarski."
-    )
-    NPCS["specialist_alchemy"]["dialogue"] = (
-        "Jestem Mistrzem Alchemii. "
-        "Tylko u mnie kupisz Moździerz Alchemiczny."
-    )
-    NPCS["jeweler_mirella"]["dialogue"] = (
-        "Prowadzę Jubilerstwo od levelu 1 do 600. "
-        "Tylko u mnie kupisz Szczypce Jubilerskie."
-    )
+        "Wpisz list albo shop, aby zobaczyć ofertę.", 'NPCS', NPCS, ("miner_toren", "dialogue"))
+    _catalog_mut.catalog_assign("Jestem Mistrzem Drwalstwa. Tylko u mnie kupisz Piłę. "
+        "Uczę pracy z drewnem od levelu 1 do 600.", 'NPCS', NPCS, ("specialist_woodcutting", "dialogue"))
+    _catalog_mut.catalog_assign("Prowadzę Rzemiosło i Kowalstwo. "
+        "Tylko u mnie kupisz Młot Rzemieślniczy.", 'NPCS', NPCS, ("specialist_crafting", "dialogue"))
+    _catalog_mut.catalog_assign("Jestem Kucharzem Błękitnego Płomienia. "
+        "Tylko u mnie kupisz Nóż Kucharski i uczysz się Gotowania.", 'NPCS', NPCS, ("specialist_cooking", "dialogue"))
+    _catalog_mut.catalog_assign("Jestem Mistrzynią Zielarstwa. "
+        "Tylko u mnie kupisz Sierp Zielarski.", 'NPCS', NPCS, ("specialist_herbalism", "dialogue"))
+    _catalog_mut.catalog_assign("Jestem Mistrzem Alchemii. "
+        "Tylko u mnie kupisz Moździerz Alchemiczny.", 'NPCS', NPCS, ("specialist_alchemy", "dialogue"))
+    _catalog_mut.catalog_assign("Prowadzę Jubilerstwo od levelu 1 do 600. "
+        "Tylko u mnie kupisz Szczypce Jubilerskie.", 'NPCS', NPCS, ("jeweler_mirella", "dialogue"))
 
     
     HELP_TOPICS["sprzedawcy_narzedzi"] = [
@@ -3011,7 +3028,7 @@ def build_paid_training_guild_expansion():
     }
     for hub, links in room_links.items():
         for direction, target in links:
-            ROOMS[hub]["exits"][direction] = target
+            _catalog_mut.catalog_assign(target, 'ROOMS', ROOMS, (hub, "exits", direction))
 
     # Return direction is deliberately simple for screen-reader navigation.
     return_direction = {
@@ -3024,16 +3041,14 @@ def build_paid_training_guild_expansion():
     }
 
     for teacher_id, (room_id, room_name, hub, desc) in class_rooms.items():
-        ROOMS[room_id] = {
+        _catalog_mut.catalog_assign({
             "zone": "Gildia Dusz",
             "name": room_name,
             "desc": desc,
             "exits": {return_direction[hub]: hub},
-        }
-        NPCS[teacher_id]["room"] = room_id
-        NPCS[teacher_id]["dialogue"] += (
-            " Nauka umiejętności jest płatna. Cena rośnie wraz z wymaganą Biegłością klasy skilla."
-        )
+        }, 'ROOMS', ROOMS, (room_id,))
+        _catalog_mut.catalog_assign(room_id, 'NPCS', NPCS, (teacher_id, "room"))
+        _catalog_mut.catalog_aug_path('NPCS', NPCS, (teacher_id, "dialogue"), 'Add', " Nauka umiejętności jest płatna. Cena rośnie wraz z wymaganą Biegłością klasy skilla.")
 
     
     HELP_TOPICS["nauka"] = [
@@ -3058,8 +3073,8 @@ def build_forest_wolves_and_quest_balance():
     # --------------------------------------------------------
     # Las Szeptów: osobne, większe expowisko po Głębi Gaju.
     # --------------------------------------------------------
-    ROOMS["deep_grove"]["exits"]["west"] = "forest_edge"
-    ROOMS.update({
+    _catalog_mut.catalog_assign("forest_edge", 'ROOMS', ROOMS, ("deep_grove", "exits", "west"))
+    _catalog_mut.catalog_update_path('ROOMS', ROOMS, (), {
         "forest_edge": {
             "zone": "Las Szeptów", "name": "Skraj Lasu Szeptów",
             "desc": (
@@ -3118,21 +3133,21 @@ def build_forest_wolves_and_quest_balance():
     # --------------------------------------------------------
     # Nowe odmiany wilków. Wszystkie zaliczają quest Cienie w gaju.
     # --------------------------------------------------------
-    MOB_TEMPLATES["shadow_wolf_stalker"] = {
+    _catalog_mut.catalog_assign({
         "name": "Tropiciel Cienia", "max_hp": 95, "damage": 11, "damage_type": "physical",
         "silver": 34, "gold": 0, "mithril": 0,
         "stat_reward": 36, "soul_reward": 175,
         "drops": {"wolf_fang": 0.55, "healing_potion": 0.05},
         "quest_target": "shadow_wolf",
-    }
-    MOB_TEMPLATES["shadow_wolf_howler"] = {
+    }, 'MOB_TEMPLATES', MOB_TEMPLATES, ("shadow_wolf_stalker",))
+    _catalog_mut.catalog_assign({
         "name": "Wyjący Wilk Cienia", "max_hp": 125, "damage": 14, "damage_type": "physical",
         "silver": 46, "gold": 0, "mithril": 0,
         "stat_reward": 44, "soul_reward": 220,
         "drops": {"wolf_fang": 0.65, "mana_potion": 0.04},
         "quest_target": "shadow_wolf",
-    }
-    MOB_TEMPLATES["shadow_wolf_pack_leader"] = {
+    }, 'MOB_TEMPLATES', MOB_TEMPLATES, ("shadow_wolf_howler",))
+    _catalog_mut.catalog_assign({
         "name": "Przywódca Watahy Cienia", "max_hp": 320, "damage": 22, "damage_type": "physical",
         "silver": 150, "gold": 1, "mithril": 0,
         "stat_reward": 120, "class_xp_reward": 1000, "soul_reward": 700,
@@ -3142,7 +3157,7 @@ def build_forest_wolves_and_quest_balance():
         "boss_mechanic_text": (
             "Mini-boss wilczej watahy. Jest znacznie mocniejszy od zwykłych Wilków Cienia."
         ),
-    }
+    }, 'MOB_TEMPLATES', MOB_TEMPLATES, ("shadow_wolf_pack_leader",))
     MOB_DESCRIPTIONS.update({
         "shadow_wolf_stalker": "Szybszy Wilk Cienia, który poluje na skraju watahy.",
         "shadow_wolf_howler": "Silniejszy Wilk Cienia. Jego wycie przyciąga uwagę całej watahy.",
@@ -3208,51 +3223,39 @@ def build_forest_wolves_and_quest_balance():
     # Quest goblinów: 20 zabitych i powtarzalny co godzinę.
     # --------------------------------------------------------
     if "goblin_problem" in QUESTS:
-        QUESTS["goblin_problem"]["needed"] = 20
-        QUESTS["goblin_problem"]["repeatable"] = True
-        QUESTS["goblin_problem"]["repeat_cooldown"] = QUEST_REPEAT_COOLDOWN_SECONDS
-        QUESTS["goblin_problem"]["description"] = (
-            "Pokonaj 20 goblinów w ruinach, obozie i Jaskiniach Goblinów. "
-            "Po ukończeniu zadanie można ponownie przyjąć po 60 minutach."
-        )
+        _catalog_mut.catalog_assign(20, 'QUESTS', QUESTS, ("goblin_problem", "needed"))
+        _catalog_mut.catalog_assign(True, 'QUESTS', QUESTS, ("goblin_problem", "repeatable"))
+        _catalog_mut.catalog_assign(QUEST_REPEAT_COOLDOWN_SECONDS, 'QUESTS', QUESTS, ("goblin_problem", "repeat_cooldown"))
+        _catalog_mut.catalog_assign("Pokonaj 20 goblinów w ruinach, obozie i Jaskiniach Goblinów. "
+            "Po ukończeniu zadanie można ponownie przyjąć po 60 minutach.", 'QUESTS', QUESTS, ("goblin_problem", "description"))
         if "captain_arven" in NPCS:
-            NPCS["captain_arven"]["dialogue"] = (
-                "Gobliny zajęły starą strażnicę i wciąż wracają. "
-                "Zabij 20 goblinów. To zlecenie mogę wystawić ponownie co godzinę."
-            )
+            _catalog_mut.catalog_assign("Gobliny zajęły starą strażnicę i wciąż wracają. "
+                "Zabij 20 goblinów. To zlecenie mogę wystawić ponownie co godzinę.", 'NPCS', NPCS, ("captain_arven", "dialogue"))
 
     # --------------------------------------------------------
     # Cienie w Gaju: powtarzalne co godzinę.
     # --------------------------------------------------------
     if "shadow_wolves" in QUESTS:
-        QUESTS["shadow_wolves"]["repeatable"] = True
-        QUESTS["shadow_wolves"]["repeat_cooldown"] = QUEST_REPEAT_COOLDOWN_SECONDS
-        QUESTS["shadow_wolves"]["description"] = (
-            "Pokonaj 2 Wilki Cienia w Gaju Szeptów lub Lesie Szeptów. "
-            "Po ukończeniu zadanie można ponownie przyjąć po 60 minutach."
-        )
+        _catalog_mut.catalog_assign(True, 'QUESTS', QUESTS, ("shadow_wolves", "repeatable"))
+        _catalog_mut.catalog_assign(QUEST_REPEAT_COOLDOWN_SECONDS, 'QUESTS', QUESTS, ("shadow_wolves", "repeat_cooldown"))
+        _catalog_mut.catalog_assign("Pokonaj 2 Wilki Cienia w Gaju Szeptów lub Lesie Szeptów. "
+            "Po ukończeniu zadanie można ponownie przyjąć po 60 minutach.", 'QUESTS', QUESTS, ("shadow_wolves", "description"))
         if "mira" in NPCS:
-            NPCS["mira"]["dialogue"] = (
-                "Wilki Cienia zakłócają równowagę gaju. Ich obecność jest coraz silniejsza. "
-                "Zlecenie Cienie w Gaju mogę ponownie wystawić co godzinę."
-            )
+            _catalog_mut.catalog_assign("Wilki Cienia zakłócają równowagę gaju. Ich obecność jest coraz silniejsza. "
+                "Zlecenie Cienie w Gaju mogę ponownie wystawić co godzinę.", 'NPCS', NPCS, ("mira", "dialogue"))
 
     # --------------------------------------------------------
     # Główny quest trolli: powtarzalny co godzinę.
     # --------------------------------------------------------
     if "mountain_troll_hunt" in QUESTS:
-        QUESTS["mountain_troll_hunt"]["repeatable"] = True
-        QUESTS["mountain_troll_hunt"]["repeat_cooldown"] = QUEST_REPEAT_COOLDOWN_SECONDS
-        QUESTS["mountain_troll_hunt"]["description"] = (
-            "Pokonaj 12 trolli w Jaskini Trolli i wróć do Strażnika Górskiego Eryka "
-            "w Wiosce Górskiej. Po ukończeniu zadanie można ponownie przyjąć po 60 minutach."
-        )
+        _catalog_mut.catalog_assign(True, 'QUESTS', QUESTS, ("mountain_troll_hunt", "repeatable"))
+        _catalog_mut.catalog_assign(QUEST_REPEAT_COOLDOWN_SECONDS, 'QUESTS', QUESTS, ("mountain_troll_hunt", "repeat_cooldown"))
+        _catalog_mut.catalog_assign("Pokonaj 12 trolli w Jaskini Trolli i wróć do Strażnika Górskiego Eryka "
+            "w Wiosce Górskiej. Po ukończeniu zadanie można ponownie przyjąć po 60 minutach.", 'QUESTS', QUESTS, ("mountain_troll_hunt", "description"))
         if "mountain_guard_eryk" in NPCS:
-            NPCS["mountain_guard_eryk"]["dialogue"] = (
-                "Trolle z południowej jaskini coraz częściej schodzą pod samą wioskę. "
+            _catalog_mut.catalog_assign("Trolle z południowej jaskini coraz częściej schodzą pod samą wioskę. "
                 "Potrzebujemy kogoś, kto przerzedzi ich szeregi. "
-                "Zlecenie Plaga Trolli mogę wystawić ponownie co godzinę."
-            )
+                "Zlecenie Plaga Trolli mogę wystawić ponownie co godzinę.", 'NPCS', NPCS, ("mountain_guard_eryk", "dialogue"))
 
 
 REGIONAL_SET_BONUSES = {
@@ -3289,7 +3292,7 @@ def build_elite_rare_named_loot_expansion():
         for idx,(slot,slot_name) in enumerate(slots):
             item_id=f"regional_{set_id}_{slot}"
             defense=max(1, defense_base + idx//2)
-            ITEMS[item_id]={
+            _catalog_mut.catalog_assign({
                 "name":f"{slot_name} {label}", "type":"armor", "slot":slot,
                 "defense":defense, "price":None, "rarity":"epic", "rarity_name":"Epicki",
                 "affix":affix, "affix_amount":amount,
@@ -3299,7 +3302,7 @@ def build_elite_rare_named_loot_expansion():
                     f"Obrona +{defense}. Bonus statystyki +{amount}. "
                     "Progi: 2 części HP/Mana, 4 części obrażenia, 6 części obrona."
                 ),
-            }
+            }, 'ITEMS', ITEMS, (item_id,))
             ids.append(item_id)
         regional_items[set_id]=ids
 
@@ -3314,9 +3317,9 @@ def build_elite_rare_named_loot_expansion():
         "cistern_king_chain": {"name":"Łańcuch Króla Cysterny","type":"armor","slot":"necklace","defense":6,"price":None,"rarity":"legendary","rarity_name":"Legendarny","affix":"constitution","affix_amount":5,"sockets":2,"desc":"Ciężki łańcuch Króla Podmiejskich Kanałów. Obrona +6, Kondycja +5, 2 gniazda."},
         "eternal_ice_heart": {"name":"Serce Wiecznego Lodu","type":"armor","slot":"charm","defense":11,"price":None,"rarity":"legendary","rarity_name":"Legendarny","affix":"intelligence","affix_amount":8,"desc":"Zamarznięte serce Pradawnego Lodowego Smoka. Obrona +11, Inteligencja +8."},
     }
-    ITEMS.update(named)
+    _catalog_mut.catalog_update_path('ITEMS', ITEMS, (), named)
     for _named_item_id in named:
-        ITEMS[_named_item_id]["named_loot"] = True
+        _catalog_mut.catalog_assign(True, 'ITEMS', ITEMS, (_named_item_id, "named_loot"))
     boss_named = {
         "cemetery_keeper": ("cemetery_keeper_lantern",0.45),
         "cult_archon": ("void_archon_ring",0.45),
@@ -3327,7 +3330,7 @@ def build_elite_rare_named_loot_expansion():
     }
     for boss_id,(item_id,chance) in boss_named.items():
         if boss_id in MOB_TEMPLATES:
-            MOB_TEMPLATES[boss_id].setdefault("drops",{})[item_id]=chance
+            _catalog_mut.catalog_setdefault_path('MOB_TEMPLATES', MOB_TEMPLATES, (boss_id,), "drops",{})[item_id]=chance
 
     # Main regional bosses also yield regional set pieces through corpse loot.
     for boss_id,set_id in (("cult_archon","cultist"),("necro_dead_king","necropolis"),("ice_dragon","ice_caves")):
@@ -3370,7 +3373,7 @@ def build_elite_rare_named_loot_expansion():
         if set_id:
             t["corpse_equipment_pool"]=list(regional_items[set_id])
             t["corpse_equipment_guaranteed"]=1
-        MOB_TEMPLATES[mob_id]=t
+        _catalog_mut.catalog_assign(t, 'MOB_TEMPLATES', MOB_TEMPLATES, (mob_id,))
         MOB_SPAWNS.append((room,mob_id))
 
     # --------------------------------------------------------
@@ -3417,19 +3420,19 @@ def build_elite_rare_named_loot_expansion():
         }
 
 # v0.31.2: sale treningowe nowych klas technologicznych, obecne przed auditami.
-ROOMS.setdefault("guild_mec_chamber", {
+_catalog_mut.catalog_setdefault_path('ROOMS', ROOMS, (), "guild_mec_chamber", {
     "name": "Hangar Meca", "zone": "Gildia Dusz",
     "desc": "Wzmocniony hangar z rdzeniami energetycznymi i stanowiskami ciężkiego pancerza.",
     "exits": {"south": "guild_martial_hall"},
 })
-ROOMS.setdefault("guild_engineer_chamber", {
+_catalog_mut.catalog_setdefault_path('ROOMS', ROOMS, (), "guild_engineer_chamber", {
     "name": "Warsztat Inżyniera", "zone": "Gildia Dusz",
     "desc": "Warsztat pełen narzędzi, działek testowych, skanerów i mechanicznych konstrukcji.",
     "exits": {"east": "guild_shadow_gallery"},
 })
-ROOMS.setdefault("guild_martial_hall", {}).setdefault("exits", {})["east"] = "guild_mec_chamber"
-ROOMS.setdefault("guild_shadow_gallery", {}).setdefault("exits", {})["west"] = "guild_engineer_chamber"
+_catalog_mut.catalog_setdefault_path('ROOMS', ROOMS, (), "guild_martial_hall", {}).setdefault("exits", {})["east"] = "guild_mec_chamber"
+_catalog_mut.catalog_setdefault_path('ROOMS', ROOMS, (), "guild_shadow_gallery", {}).setdefault("exits", {})["west"] = "guild_engineer_chamber"
 if "teacher_mec" in NPCS:
-    NPCS["teacher_mec"]["room"] = "guild_mec_chamber"
+    _catalog_mut.catalog_assign("guild_mec_chamber", 'NPCS', NPCS, ("teacher_mec", "room"))
 if "teacher_engineer" in NPCS:
-    NPCS["teacher_engineer"]["room"] = "guild_engineer_chamber"
+    _catalog_mut.catalog_assign("guild_engineer_chamber", 'NPCS', NPCS, ("teacher_engineer", "room"))

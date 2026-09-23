@@ -1,3 +1,4 @@
+from data import catalog_mutations as _catalog_mut
 
 @dataclass
 class CorpseState:
@@ -140,7 +141,7 @@ class World:
                 clone["max_hp"] = max(1, int(round(int(clone.get("max_hp", 1)) * hp_mult)))
                 clone["base_max_hp"] = clone["max_hp"]
                 clone["damage"] = max(1, int(round(int(clone.get("damage", 1)) * dmg_mult)))
-            MOB_TEMPLATES[runtime_id] = clone
+            _catalog_mut.catalog_assign(clone, 'MOB_TEMPLATES', MOB_TEMPLATES, (runtime_id,))
         return runtime_id
 
     def _register_runtime_spawn(self, room_id, template_id):
@@ -462,8 +463,8 @@ class World:
 
         if not created_room:
             return False
-        ROOMS[created_room]["procedural_dynamic"] = True
-        ROOMS[created_room]["generated_on_demand"] = True
+        _catalog_mut.catalog_assign(True, 'ROOMS', ROOMS, (created_room, "procedural_dynamic"))
+        _catalog_mut.catalog_assign(True, 'ROOMS', ROOMS, (created_room, "generated_on_demand"))
         self._generatorize_runtime_room(created_room)
         # v0.10.0: każde dynamicznie tworzone piętro dostaje ten sam duży,
         # wielopokojowy układ co ręcznie przygotowana część instancji.
@@ -993,11 +994,7 @@ HELP_TOPIC_ALIASES.update({
 
 
 # v0.25.0: publiczny status Global Generator 2.0.
-COMMAND_ALIASES.update({
-    "generator": "globalgenerator", "generatory": "globalgenerator",
-    "worldgen": "globalgenerator", "generatorświata": "globalgenerator",
-    "generatorswiata": "globalgenerator", "losowyswiat": "globalgenerator",
-})
+# v0.49.0: aliasy komend są centralnie zdefiniowane w config/command_aliases.py.
 HELP_TOPICS["global_generator"] = [
     "Global Generator 2.0 używa jednego trwałego seedu serwera. Seed zapisuje się obok bazy i nie zmienia świata po restarcie.",
     "Generator obejmuje profile wszystkich lokacji, Kopalnię Głębinową, proceduralne piętra lochów, hotspoty profesji, pogodę/sezony, wydarzenia, sekrety, mapy skarbów, dynamiczne questy i tablice kontraktów.",
@@ -1257,10 +1254,7 @@ def v0260_museum_rank(percent):
     return "Nowicjusz"
 
 
-COMMAND_ALIASES.update({
-    "muzeum": "museum", "museum": "museum", "kolekcje": "museum",
-    "prestiz": "prestige", "prestiż": "prestige", "prestige": "prestige",
-})
+# v0.49.0: aliasy komend są centralnie zdefiniowane w config/command_aliases.py.
 HELP_TOPIC_ALIASES.update({
     "muzeum": "museum_v026", "museum": "museum_v026", "kolekcje": "museum_v026",
     "prestiz": "prestige_v026", "prestiż": "prestige_v026", "prestige": "prestige_v026",

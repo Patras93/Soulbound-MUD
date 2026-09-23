@@ -1,3 +1,4 @@
+from data import catalog_mutations as _catalog_mut
 V021_WORLD_SEED = f"{V0250_WORLD_SEED}:soulbound-v0210-ascension-world-tiers-mythic"
 V021_ASCENSION_MAX_RANK = 1000
 V021_WORLD_TIER_MAX = 10
@@ -27,7 +28,7 @@ V021_ENDGAME_MATERIALS={
     "v021_eternal_sigil":("Wieczny Sigil","Rzadki materiał z finałów i Endless Gauntletu; wymagany przez artefakty Tier 8-10."),
 }
 for _iid,(_name,_desc) in V021_ENDGAME_MATERIALS.items():
-    ITEMS[_iid]={"name":_name,"type":"material","price":None,"rarity":"mythic","rarity_name":"Mityczny","desc":_desc}
+    _catalog_mut.catalog_assign({"name":_name,"type":"material","price":None,"rarity":"mythic","rarity_name":"Mityczny","desc":_desc}, 'ITEMS', ITEMS, (_iid,))
     UNIQUE_ITEM_COLLECTION_CATALOG.setdefault(_iid,_name)
 
 # Existing v0.20 bosses feed the new material loop.
@@ -58,10 +59,10 @@ for _set_index,(_key,_spec) in enumerate(V020_MEGADUNGEONS.items()):
             "bracers":"strength", "relic":"willpower",
         }.get(_slot, "constitution")
         _amount=max(20,int(round(_stage*0.22)))
-        ITEMS[_iid]={"name":f"{_slot_name} — {_label}","type":"armor","slot":_slot,"defense":_def,"price":None,
+        _catalog_mut.catalog_assign({"name":f"{_slot_name} — {_label}","type":"armor","slot":_slot,"defense":_def,"price":None,
             "rarity":"mythic","rarity_name":"Mityczny","sockets":4,"affix":_affix,"affix_amount":_amount,
             "required_mastery":400,"v021_mythic_set":_key,
-            "desc":f"Część 14-elementowego zestawu {_label}. Progi bonusów pozostają 2/4/6/8. Wymaga Biegłości 600. Bez RNG i bez pułapek."}
+            "desc":f"Część 14-elementowego zestawu {_label}. Progi bonusów pozostają 2/4/6/8. Wymaga Biegłości 600. Bez RNG i bez pułapek."}, 'ITEMS', ITEMS, (_iid,))
         EQUIPMENT_COLLECTION_CATALOG[_iid]=ITEMS[_iid]["name"]; UNIQUE_ITEM_COLLECTION_CATALOG[_iid]=ITEMS[_iid]["name"]; _ids.append(_iid)
     V021_MYTHIC_SET_ITEMS[_key]=tuple(_ids)
 
@@ -81,7 +82,7 @@ def v0210_endless_gauntlet_template(round_no):
     reward_mult=min(400000.0,1.0+(band-1)*0.35)
     base_hp=int(round(v0190_log_curve(400,V019_HP_NORMAL)*12.0*mult))
     base_dmg=int(round(v0190_log_curve(400,V019_DAMAGE_NORMAL)*1.75*(1.0+(band-1)*0.06)))
-    MOB_TEMPLATES[tid]={"name":f"Strażnik Endless Gauntlet — pasmo {band}","max_hp":min(V019_SAFE_INT,max(1,base_hp)),
+    _catalog_mut.catalog_assign({"name":f"Strażnik Endless Gauntlet — pasmo {band}","max_hp":min(V019_SAFE_INT,max(1,base_hp)),
         "damage":min(V019_SAFE_INT,max(1,base_dmg)),"damage_type":"magic" if band%2 else "physical",
         "class_xp_reward":min(V019_SAFE_INT,int(v0190_log_curve(400,V019_CLASS_KILL_BOSS)*reward_mult)),
         "soul_reward":min(V019_SAFE_INT,int(v0190_log_curve(400,V019_SOUL_KILL_BOSS)*reward_mult)),
@@ -89,7 +90,7 @@ def v0210_endless_gauntlet_template(round_no):
         "silver":min(V019_SAFE_INT,int(v0190_log_curve(400,V019_COIN_KILL_BOSS)*reward_mult)),"gold":0,"mithril":0,
         "drops":{"v021_eternal_sigil":1.0,"v021_ascension_crystal":0.75,"v021_world_tier_crest":0.45,"v020_mythic_essence":1.0},
         "auto_aggro":False,"stationary_mob":True,"boss_mechanic":"two_hundred_lord","boss_mechanic_text":"Endless Gauntlet; fazy 75/50/25%. PASSIVE WORLD.",
-        "v017_boss_phases":True,"v021_endless_gauntlet":True,"v021_endless_band":band,"v019_stage":400,"world_boss":True,"respawn_seconds":6*60*60}
+        "v017_boss_phases":True,"v021_endless_gauntlet":True,"v021_endless_band":band,"v019_stage":400,"world_boss":True,"respawn_seconds":6*60*60}, 'MOB_TEMPLATES', MOB_TEMPLATES, (tid,))
     BOSS_COLLECTION_CATALOG[tid]=MOB_TEMPLATES[tid]["name"]
     return tid
 
@@ -100,10 +101,10 @@ def v0210_create_endless_gauntlet_room_definition(room_id):
     prev=V020_GAUNTLET_LOBBY if round_no==1 else v0210_endless_gauntlet_room_id(round_no-1)
     nxt=v0210_endless_gauntlet_room_id(round_no+1)
     band=v0210_endless_gauntlet_band(round_no)
-    ROOMS[room_id]={"zone":"Endless Gauntlet","name":f"Endless Gauntlet — runda {round_no}",
+    _catalog_mut.catalog_assign({"zone":"Endless Gauntlet","name":f"Endless Gauntlet — runda {round_no}",
         "desc":f"Nieskończona próba bossów. Runda {round_no}, pasmo {band}/100. Boss blokuje tylko przejście dalej; nie atakuje pierwszy. Brak pułapek.",
         "exits":{"south":prev,"north":nxt},"recommended_mastery":400,"generated_on_demand":True,
-        "v021_endless_gauntlet_round":round_no,"v021_endless_band":band}
+        "v021_endless_gauntlet_round":round_no,"v021_endless_band":band}, 'ROOMS', ROOMS, (room_id,))
     return room_id,((room_id,v0210_endless_gauntlet_template(round_no)),)
 
 HELP_TOPICS["ascension_v021"]=[
@@ -125,8 +126,7 @@ HELP_TOPICS["endlessgauntlet_v021"]=[
 ]
 HELP_TOPIC_ALIASES.update({"wzniesienie":"ascension_v021","ascension":"ascension_v021","world tier":"worldtier_v021","poziom swiata":"worldtier_v021",
     "sety mityczne":"mythicsets_v021","mythic sets":"mythicsets_v021","wieczny gauntlet":"endlessgauntlet_v021","endless gauntlet":"endlessgauntlet_v021"})
-COMMAND_ALIASES.update({"wzniesienie":"ascension","ascension":"ascension","poziomswiata":"worldtier","worldtier":"worldtier","worldtiers":"worldtier",
-    "setymityczne":"mythicsets","mythicsets":"mythicsets","wiecznagauntlet":"endlessgauntlet","endlessgauntlet":"endlessgauntlet","mythicprogression":"mythicprogression","mitycznaprogresja":"mythicprogression"})
+# v0.49.0: aliasy komend są centralnie zdefiniowane w config/command_aliases.py.
 
 # ============================================================
 # v0.22.0 - WORLD PROJECTS, LEGENDARY CONTRACTS, FISHING RECORDS 2.0
@@ -255,12 +255,7 @@ HELP_TOPICS["pieniadze"] = [
     "Zakupy korzystają z rabatu Charyzmy. Sprzedaż pojedyncza i skup profesyjny dopisują wartość do tego samego salda.",
     "bank obsługuje wpłaty/wypłaty waluty i przedmiotów; wpisz bank bez argumentu, aby usłyszeć składnię.",
 ]
-COMMAND_ALIASES.update({
-    "projekty":"worldprojects","projektyswiata":"worldprojects","worldprojects":"worldprojects",
-    "projekt":"worldproject","worldproject":"worldproject",
-    "legendarnekontrakty":"legendarycontracts","legendarycontracts":"legendarycontracts","legendarycontract":"legendarycontracts",
-    "rekordyryb":"fishrecords","fishrecords":"fishrecords","fishingrecords":"fishrecords",
-})
+# v0.49.0: aliasy komend są centralnie zdefiniowane w config/command_aliases.py.
 
 
 # ============================================================
@@ -337,8 +332,8 @@ def _v028_pick(seq, key):
 
 
 def _v028_connect(a, direction, b, reverse):
-    ROOMS[a].setdefault("exits", {})[direction] = b
-    ROOMS[b].setdefault("exits", {})[reverse] = a
+    _catalog_mut.catalog_setdefault_path('ROOMS', ROOMS, (a,), "exits", {})[direction] = b
+    _catalog_mut.catalog_setdefault_path('ROOMS', ROOMS, (b,), "exits", {})[reverse] = a
 
 
 def _v028_region_room_id(index, x, y):
@@ -360,11 +355,11 @@ def _v028_build_regions():
         height=4 + int(generator_core_v027.stable_unit(f"{V028_WORLD_SEED}:{index}:h") > .52)
         max_distance=max(1,(width-1)+(height-1))
         zone=f"Proceduralny Region: {theme['label']}"
-        ROOMS[gate_id]={
+        _catalog_mut.catalog_assign({
             "zone":"Pracownia Kartografa", "name":f"Brama Ekspedycji {index}: {theme['label']}",
             "desc":f"Stabilna brama do wygenerowanego regionu {theme['label']}. Docelowy etap Generator Core: {stage}.",
             "exits":{}, "safe_hub":True, "procedural_region_stage":stage, "v028_region_gate":index,
-        }
+        }, 'ROOMS', ROOMS, (gate_id,))
         # Create grid rooms first.
         room_ids=[]
         for y in range(height):
@@ -375,12 +370,12 @@ def _v028_build_regions():
                 room_stage=min(CHARACTER_MAX_LEVEL,stage+int(round((dist/max_distance)*span)))
                 title=_v028_pick(theme["titles"],f"r{index}:{x}:{y}:title")
                 feature=_v028_pick(theme["features"],f"r{index}:{x}:{y}:feature")
-                ROOMS[rid]={
+                _catalog_mut.catalog_assign({
                     "zone":zone,"name":f"{title} — sektor {x+1}-{y+1}",
                     "desc":f"Wygenerowany sektor biomu {theme['label']}. Wyróżnia się tu {feature}. Układ, przeciwnicy i zasoby wynikają z trwałego seedu świata.",
                     "exits":{},"procedural_region_v028":index,"procedural_biome_v028":biome_key,
                     "procedural_region_stage":room_stage,"procedural_x":x,"procedural_y":y,
-                }
+                }, 'ROOMS', ROOMS, (rid,))
         # Spanning comb guarantees connectivity; seeded extra edges create loops.
         for y in range(height):
             for x in range(width):
@@ -396,7 +391,7 @@ def _v028_build_regions():
                         _v028_connect(below,"north",rid,"south")
         entry=_v028_region_room_id(index,0,0)
         boss_room=_v028_region_room_id(index,width-1,height-1)
-        ROOMS[gate_id]["exits"]["down"]=entry; ROOMS[entry]["exits"]["up"]=gate_id
+        _catalog_mut.catalog_assign(entry, 'ROOMS', ROOMS, (gate_id, "exits", "down")); _catalog_mut.catalog_assign(gate_id, 'ROOMS', ROOMS, (entry, "exits", "up"))
 
         # Secrets are side rooms chosen by seed, never the entry or boss room.
         secret_candidates=[rid for rid in room_ids if rid not in (entry,boss_room)]
@@ -405,11 +400,11 @@ def _v028_build_regions():
         for sn,base in enumerate(secret_candidates[:2],1):
             sid=f"v028_region_{index:02d}_secret_{sn:02d}"; secret_ids.append(sid)
             sstage=ROOMS[base]["procedural_region_stage"]
-            ROOMS[sid]={"zone":zone,"name":f"Sekret {theme['label']} {sn}",
+            _catalog_mut.catalog_assign({"zone":zone,"name":f"Sekret {theme['label']} {sn}",
                 "desc":f"Ukryta odnoga regionu {theme['label']}. Generator oznaczył to miejsce jako sekret ekspedycji.",
                 "exits":{"up":base},"procedural_region_v028":index,"procedural_secret":True,
-                "procedural_region_stage":sstage}
-            ROOMS[base]["exits"]["down"]=sid
+                "procedural_region_stage":sstage}, 'ROOMS', ROOMS, (sid,))
+            _catalog_mut.catalog_assign(sid, 'ROOMS', ROOMS, (base, "exits", "down"))
 
         # Real gathering locations are generated from biome semantics.
         resource_rooms=[]
@@ -421,31 +416,31 @@ def _v028_build_regions():
 
         # Region-specific relic; Generator Core owns its value/price/drop rate.
         relic_id=f"v028_region_{index:02d}_relic"
-        ITEMS[relic_id]={"name":f"Relikt: {theme['label']}","type":"material","price":1,"currency":"silver",
+        _catalog_mut.catalog_assign({"name":f"Relikt: {theme['label']}","type":"material","price":1,"currency":"silver",
             "desc":f"Relikt znaleziony w proceduralnym regionie {theme['label']}.","procedural_region_stage":stage,
-            "resource_category":"procedural_relic"}
+            "resource_category":"procedural_relic"}, 'ITEMS', ITEMS, (relic_id,))
 
         normal_ids=[]
         for mi in range(4):
             mid=f"v028_region_{index:02d}_mob_{mi+1}"
             word=theme["mob_words"][mi % len(theme["mob_words"])]
-            MOB_TEMPLATES[mid]={"name":f"{word} {theme['label']}","damage_type":theme["damage_type"],
+            _catalog_mut.catalog_assign({"name":f"{word} {theme['label']}","damage_type":theme["damage_type"],
                 "drops":{relic_id:.05},"procedural_region_stage":stage,"quest_targets":(f"v028_region_{index:02d}_threat",),
-                "elite_eligible":True,"rare_eligible":True}
+                "elite_eligible":True,"rare_eligible":True}, 'MOB_TEMPLATES', MOB_TEMPLATES, (mid,))
             normal_ids.append(mid)
         elite_id=f"v028_region_{index:02d}_elite"
-        MOB_TEMPLATES[elite_id]={"name":f"Elitarny Strażnik — {theme['label']}","damage_type":theme["damage_type"],
+        _catalog_mut.catalog_assign({"name":f"Elitarny Strażnik — {theme['label']}","damage_type":theme["damage_type"],
             "drops":{relic_id:.18},"procedural_region_stage":min(CHARACTER_MAX_LEVEL,stage+6),"elite_affix":"procedural",
-            "quest_targets":(f"v028_region_{index:02d}_threat",f"v028_region_{index:02d}_elite_target")}
+            "quest_targets":(f"v028_region_{index:02d}_threat",f"v028_region_{index:02d}_elite_target")}, 'MOB_TEMPLATES', MOB_TEMPLATES, (elite_id,))
         rare_id=f"v028_region_{index:02d}_rare"
-        MOB_TEMPLATES[rare_id]={"name":f"Rzadki Wędrowiec — {theme['label']}","damage_type":theme["damage_type"],
+        _catalog_mut.catalog_assign({"name":f"Rzadki Wędrowiec — {theme['label']}","damage_type":theme["damage_type"],
             "drops":{relic_id:.30},"procedural_region_stage":min(CHARACTER_MAX_LEVEL,stage+10),"rare_mob":True,
-            "quest_targets":(f"v028_region_{index:02d}_threat",f"v028_region_{index:02d}_rare_target")}
+            "quest_targets":(f"v028_region_{index:02d}_threat",f"v028_region_{index:02d}_rare_target")}, 'MOB_TEMPLATES', MOB_TEMPLATES, (rare_id,))
         boss_id=f"v028_region_{index:02d}_boss"
-        MOB_TEMPLATES[boss_id]={"name":f"Władca Regionu — {theme['label']}","damage_type":theme["damage_type"],
+        _catalog_mut.catalog_assign({"name":f"Władca Regionu — {theme['label']}","damage_type":theme["damage_type"],
             "drops":{relic_id:1.0},"procedural_region_stage":min(CHARACTER_MAX_LEVEL,stage+18),"boss_mechanic":"procedural_region",
             "boss_mechanic_text":"Generator regionu wybiera fazę presji na podstawie etapu i biomu.",
-            "quest_targets":(f"v028_region_{index:02d}_boss_target",),"leave_corpse":True}
+            "quest_targets":(f"v028_region_{index:02d}_boss_target",),"leave_corpse":True}, 'MOB_TEMPLATES', MOB_TEMPLATES, (boss_id,))
 
         # Seeded spawn layout: normal population everywhere, one Elite, one Rare and final boss.
         non_boss=[rid for rid in room_ids if rid!=boss_room]
@@ -461,18 +456,18 @@ def _v028_build_regions():
         # Three generated quests per region. Their levels/rewards are recalculated by the final Core pass.
         guide_id=f"v028_region_{index:02d}_guide"; guide_name=f"Przewodnik {theme['label']}"
         q1=f"v028_region_{index:02d}_hunt"; q2=f"v028_region_{index:02d}_elite_quest"; q3=f"v028_region_{index:02d}_boss_quest"
-        QUESTS[q1]={"name":f"Ekspedycja {theme['label']}: Czystka","giver":guide_name,"kind":"kill",
+        _catalog_mut.catalog_assign({"name":f"Ekspedycja {theme['label']}: Czystka","giver":guide_name,"kind":"kill",
             "target":f"v028_region_{index:02d}_threat","needed":generator_core_v027.generated_count(stage,f"v028:{index}:hunt",8,18),
-            "description":f"Pokonaj zagrożenia wygenerowanego regionu {theme['label']}.","reward_items":{},"repeatable":True,"repeat_cooldown":QUEST_REPEAT_COOLDOWN_SECONDS}
-        QUESTS[q2]={"name":f"Ekspedycja {theme['label']}: Elita","giver":guide_name,"kind":"kill",
+            "description":f"Pokonaj zagrożenia wygenerowanego regionu {theme['label']}.","reward_items":{},"repeatable":True,"repeat_cooldown":QUEST_REPEAT_COOLDOWN_SECONDS}, 'QUESTS', QUESTS, (q1,))
+        _catalog_mut.catalog_assign({"name":f"Ekspedycja {theme['label']}: Elita","giver":guide_name,"kind":"kill",
             "target":f"v028_region_{index:02d}_elite_target","needed":1,"requires_quest":q1,
-            "description":f"Pokonaj elitarnego strażnika regionu {theme['label']}.","reward_items":{},"repeatable":True,"repeat_cooldown":QUEST_REPEAT_COOLDOWN_SECONDS}
-        QUESTS[q3]={"name":f"Ekspedycja {theme['label']}: Władca","giver":guide_name,"kind":"kill",
+            "description":f"Pokonaj elitarnego strażnika regionu {theme['label']}.","reward_items":{},"repeatable":True,"repeat_cooldown":QUEST_REPEAT_COOLDOWN_SECONDS}, 'QUESTS', QUESTS, (q2,))
+        _catalog_mut.catalog_assign({"name":f"Ekspedycja {theme['label']}: Władca","giver":guide_name,"kind":"kill",
             "target":boss_id,"needed":1,"requires_quest":q2,
-            "description":f"Pokonaj bossa proceduralnego regionu {theme['label']}.","reward_items":{relic_id:1},"repeatable":True,"repeat_cooldown":QUEST_REPEAT_COOLDOWN_SECONDS}
-        NPCS[guide_id]={"name":guide_name,"room":gate_id,
+            "description":f"Pokonaj bossa proceduralnego regionu {theme['label']}.","reward_items":{relic_id:1},"repeatable":True,"repeat_cooldown":QUEST_REPEAT_COOLDOWN_SECONDS}, 'QUESTS', QUESTS, (q3,))
+        _catalog_mut.catalog_assign({"name":guide_name,"room":gate_id,
             "dialogue":f"Prowadzę wyprawy do regionu {theme['label']}. Generator Core dobiera trudność do etapu tej ekspedycji.",
-            "quest":q1,"quest_chain":(q1,q2,q3)}
+            "quest":q1,"quest_chain":(q1,q2,q3)}, 'NPCS', NPCS, (guide_id,))
         V028_PROCEDURAL_REGIONS[index]={"index":index,"stage":stage,"biome":biome_key,"name":theme["label"],"gate":gate_id,
             "entry":entry,"boss_room":boss_room,"boss":boss_id,"elite":elite_id,"rare":rare_id,"rooms":tuple(room_ids),
             "secrets":tuple(secret_ids),"resource_rooms":tuple(resource_rooms),"quests":(q1,q2,q3),"relic":relic_id}
@@ -480,9 +475,9 @@ def _v028_build_regions():
     # Safe corridor of expedition gates, attached to the Cartographer workshop.
     for i,gate in enumerate(gate_ids):
         if i>0: _v028_connect(gate_ids[i-1],"east",gate,"west")
-    if "east" not in ROOMS["cartographer_house"].setdefault("exits",{}):
-        ROOMS["cartographer_house"]["exits"]["east"]=gate_ids[0]
-        ROOMS[gate_ids[0]]["exits"]["west"]="cartographer_house"
+    if "east" not in _catalog_mut.catalog_setdefault_path('ROOMS', ROOMS, ("cartographer_house",), "exits",{}):
+        _catalog_mut.catalog_assign(gate_ids[0], 'ROOMS', ROOMS, ("cartographer_house", "exits", "east"))
+        _catalog_mut.catalog_assign("cartographer_house", 'ROOMS', ROOMS, (gate_ids[0], "exits", "west"))
 
 
 _v028_build_regions()
@@ -556,7 +551,7 @@ def split_static_npcs_into_private_rooms_v03012():
             private_id = f"npc_room_v03012_{npc_id}"
             # Bez ręcznych poziomych wyjść: generator topologii osadzi pokój
             # logicznie wewnątrz tej samej strefy.
-            ROOMS[private_id] = {
+            _catalog_mut.catalog_assign({
                 "zone": zone,
                 "name": f"Pokój: {npc.get('name', npc_id)}",
                 "desc": (
@@ -568,7 +563,7 @@ def split_static_npcs_into_private_rooms_v03012():
                 "npc_owner_v03012": npc_id,
                 "npc_parent_room_v03012": room_id,
                 "recommended_mastery": base_level,
-            }
+            }, 'ROOMS', ROOMS, (private_id,))
             npc["room"] = private_id
             moved.append((npc_id, room_id, private_id))
             created.append(private_id)
@@ -577,7 +572,7 @@ def split_static_npcs_into_private_rooms_v03012():
             # odziedziczy ofertę sklepu. Nie duplikujemy sklepu dla NPC,
             # którzy nie są sprzedawcami.
             if npc.get("shopkeeper") and room_id in SHOPS:
-                SHOPS[private_id] = list(SHOPS.get(room_id, ()))
+                _catalog_mut.catalog_assign(list(SHOPS.get(room_id, ())), 'SHOPS', SHOPS, (private_id,))
                 SHOP_SELLERS[private_id] = npc_id
 
         base["npc_room_keeper_v03012"] = keeper
@@ -669,7 +664,7 @@ _V03813_UNDERGROUND_ZONE_OVERRIDES = {
 }
 for _rid, _zone in _V03813_UNDERGROUND_ZONE_OVERRIDES.items():
     if _rid in ROOMS:
-        ROOMS[_rid]["zone"] = _zone
+        _catalog_mut.catalog_assign(_zone, 'ROOMS', ROOMS, (_rid, "zone"))
 
 # v0.10.0 utworzył rozszerzenie Podziemi z trwałymi ID v0100_podziemia_*.
 # Jego historyczny authored anchor prowadzi przez Gildię Górników, dlatego
@@ -922,7 +917,7 @@ GENERATOR_CORE_AUDIT = generator_core_v027.apply_generator_core(globals())
 # v0.31.3: Moogle Board jest specjalnym rasowym Boardem Cyborga.
 # Generator Core nie może nadpisywać jego skalowania z Biegłością Meca.
 if "moogle_board" in ITEMS:
-    ITEMS["moogle_board"].update({
+    _catalog_mut.catalog_update_path('ITEMS', ITEMS, ("moogle_board",), {
         "defense": 0,
         "price": 1000,
         "required_mastery": 1,

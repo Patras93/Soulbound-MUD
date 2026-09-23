@@ -1,3 +1,4 @@
+from data import catalog_mutations as _catalog_mut
 COLLECTION_CATEGORY_ALIASES = {
     "fish": "fish", "ryby": "fish", "ryba": "fish",
     "minerals": "minerals", "mineral": "minerals", "mineraly": "minerals", "minerały": "minerals", "rudy": "minerals",
@@ -166,7 +167,7 @@ V0923_ENDGAME_REGIONS = (
 # Zlecenie Haldora: Stalowe Płyty są materiałem rzemieślniczym.
 # v0.30.34: najpierw fizycznie trafiają na ciało moba; po zabraniu z ciała
 # są przenoszone do Szkatułki i dopiero wtedy zaliczają postęp questa.
-ITEMS["salvaged_steel_plate"] = {
+_catalog_mut.catalog_assign({
     "name": "Stalowa Płyta z Pancerza",
     "type": "craft_material",
     "price": None,
@@ -176,20 +177,20 @@ ITEMS["salvaged_steel_plate"] = {
         "Cztery płyty można oddać w godzinnym zleceniu Haldora albo "
         "samodzielnie przetopić w 1 Sztabkę Stali."
     ),
-}
-ITEMS["steel_ingot"] = {
+}, 'ITEMS', ITEMS, ("salvaged_steel_plate",))
+_catalog_mut.catalog_assign({
     "name": "Sztabka Stali",
     "type": "craft_material",
     "price": None,
     "craftbox_category": "blacksmithing",
     "desc": "Sztabka stali odzyskana przez przetopienie czterech Stalowych Płyt z Pancerza.",
-}
+}, 'ITEMS', ITEMS, ("steel_ingot",))
 CRAFT_MATERIAL_STORAGE_IDS = frozenset(
     set(CRAFT_MATERIAL_STORAGE_IDS) | {"salvaged_steel_plate", "steel_ingot"}
 )
 
 # v0.31.12: odłamki żelaza z salvage można ponownie przetopić w pełny materiał.
-CRAFT_RECIPES["recycled_iron_ingot"] = {
+_catalog_mut.catalog_assign({
     "name": "Przetop Odłamków Żelaza",
     "stations": ("forge",),
     "ingredients": {"salvage_iron_scrap": 2},
@@ -200,7 +201,7 @@ CRAFT_RECIPES["recycled_iron_ingot"] = {
     "tool_xp": 10,
     "category": "smithing",
     "desc": "Przetop 2 Odłamki Żelaza ze Szkatułki Rzemieślniczej w 1 Żelazną sztabkę.",
-}
+}, 'CRAFT_RECIPES', CRAFT_RECIPES, ("recycled_iron_ingot",))
 
 # v0.31.13: standardowy `przetop <metal>` potrafi automatycznie sięgnąć
 # do Szkatułki -> Salvage, gdy zabraknie zwykłej rudy w Sakwie Górnika.
@@ -226,7 +227,7 @@ _SALVAGE_SMELT_DEFS_V03113 = (
     ("recycled_eternium_ingot_v03113", "Przetop Fragmentów Eternium", "salvage_eternium_fragment", "eternium_ingot", 200),
 )
 for _rid, _name, _fragment, _output, _level in _SALVAGE_SMELT_DEFS_V03113:
-    CRAFT_RECIPES[_rid] = {
+    _catalog_mut.catalog_assign({
         "name": _name,
         "stations": ("forge",),
         "ingredients": {_fragment: 2},
@@ -238,10 +239,10 @@ for _rid, _name, _fragment, _output, _level in _SALVAGE_SMELT_DEFS_V03113:
         "tool_xp": 10 + max(0, _level // 12),
         "category": "smithing",
         "desc": "Przetop 2 materiały odzyskane z Salvage w 1 właściwą sztabkę.",
-    }
+    }, 'CRAFT_RECIPES', CRAFT_RECIPES, (_rid,))
 
 # v0.31.12: gracz może wykorzystać płyty poza questem Haldora.
-CRAFT_RECIPES["recycled_steel_ingot"] = {
+_catalog_mut.catalog_assign({
     "name": "Przetop Stalowych Płyt",
     "stations": ("forge",),
     "ingredients": {"salvaged_steel_plate": 4},
@@ -252,9 +253,9 @@ CRAFT_RECIPES["recycled_steel_ingot"] = {
     "tool_xp": 14,
     "category": "smithing",
     "desc": "Przetop 4 Stalowe Płyty z Pancerza ze Szkatułki Rzemieślniczej w 1 Sztabkę Stali.",
-}
+}, 'CRAFT_RECIPES', CRAFT_RECIPES, ("recycled_steel_ingot",))
 
-QUESTS["haldor_steel_recycling"] = {
+_catalog_mut.catalog_assign({
     "name": "Zlecenie Haldora: Stal do Przetopu",
     "giver": "Mistrz Rzemiosła Haldor",
     "kind": "collect",
@@ -280,11 +281,11 @@ QUESTS["haldor_steel_recycling"] = {
     "reward_items": {},
     "repeatable": True,
     "repeat_cooldown": 60 * 60,
-}
+}, 'QUESTS', QUESTS, ("haldor_steel_recycling",))
 
 # Osobny cmentarny szkielet daje czytelne źródło Płyt. Stare moby cmentarza
 # również mogą je upuścić, żeby quest nie zależał od jednego respawnu.
-MOB_TEMPLATES["cemetery_steel_skeleton"] = {
+_catalog_mut.catalog_assign({
     "name": "Szkielet w Stalowym Kirysie",
     "max_hp": 390,
     "damage": 29,
@@ -298,15 +299,15 @@ MOB_TEMPLATES["cemetery_steel_skeleton"] = {
     "drops": {"soul_shard": 0.20},
     "corpse_material_chances": {"salvaged_steel_plate": 0.72},
     "quest_target": "cemetery_steel_skeleton",
-}
+}, 'MOB_TEMPLATES', MOB_TEMPLATES, ("cemetery_steel_skeleton",))
 for _mid, _chance in (
     ("cemetery_restless_dead", 0.28),
     ("cemetery_bone_collector", 0.42),
 ):
     if _mid in MOB_TEMPLATES:
         # v0.30.34: płyta ma być widoczna na ciele, nie przyznawana automatycznie.
-        MOB_TEMPLATES[_mid].setdefault("drops", {}).pop("salvaged_steel_plate", None)
-        MOB_TEMPLATES[_mid].setdefault("corpse_material_chances", {})["salvaged_steel_plate"] = _chance
+        _catalog_mut.catalog_setdefault_path('MOB_TEMPLATES', MOB_TEMPLATES, (_mid,), "drops", {}).pop("salvaged_steel_plate", None)
+        _catalog_mut.catalog_setdefault_path('MOB_TEMPLATES', MOB_TEMPLATES, (_mid,), "corpse_material_chances", {})["salvaged_steel_plate"] = _chance
 MOB_SPAWNS.extend([
     ("graveyard", "cemetery_steel_skeleton"),
     ("graveyard", "cemetery_steel_skeleton"),
@@ -315,7 +316,7 @@ MOB_SPAWNS.extend([
 ])
 
 # Endgame world route: z Obozu Szczytowego w górę zaczyna się świat 300-400.
-ROOMS["summit_camp"]["exits"]["up"] = "ashen_frontier"
+_catalog_mut.catalog_assign("ashen_frontier", 'ROOMS', ROOMS, ("summit_camp", "exits", "up"))
 
 _v0923_rooms = {
     # 300-329
@@ -348,7 +349,7 @@ _v0923_rooms = {
     "world_crown_summit": ("Korona Świata", "Szczyt Korony Świata", 390, {"south":"crown_stair","west":"timeless_balcony"}),
 }
 for _rid, (_zone, _name, _req, _exits) in _v0923_rooms.items():
-    ROOMS[_rid] = {
+    _catalog_mut.catalog_assign({
         "zone": _zone,
         "name": _name,
         "desc": (
@@ -357,7 +358,7 @@ for _rid, (_zone, _name, _req, _exits) in _v0923_rooms.items():
         ),
         "exits": dict(_exits),
         "recommended_mastery": int(_req),
-    }
+    }, 'ROOMS', ROOMS, (_rid,))
 
 EXP_AREAS = EXP_AREAS + (
     {
@@ -437,7 +438,7 @@ for _mid, (_name, _hp, _dmg, _dtype, _cxp, _sxp, _mastery) in _v0923_mob_specs.i
         "drops": {"soul_shard": 0.35 + (_mastery - 300) / 600.0},
         "quest_target": None, "endgame_region_mastery": _mastery,
     }
-    MOB_TEMPLATES[_mid] = _tmpl
+    _catalog_mut.catalog_assign(_tmpl, 'MOB_TEMPLATES', MOB_TEMPLATES, (_mid,))
     try:
         _configure_dynamic_corpse_material(_tmpl)
     except Exception:
@@ -462,7 +463,7 @@ for _mid, (_name, _hp, _dmg, _dtype, _cxp, _sxp, _mastery, _room) in _v0923_boss
         "boss_mechanic": "endgame_region_boss",
         "boss_mechanic_text": "Boss endgame ma podwyższone obrażenia i wytrzymałość odpowiednie do regionu.",
     }
-    MOB_TEMPLATES[_mid] = _tmpl
+    _catalog_mut.catalog_assign(_tmpl, 'MOB_TEMPLATES', MOB_TEMPLATES, (_mid,))
     try:
         _configure_dynamic_corpse_material(_tmpl)
     except Exception:
@@ -503,11 +504,7 @@ GUIDE_DESTINATION_ALIASES.update({
 })
 
 # Polecenia rankingów. Jedna komenda udostępnia pięć trwałych rankingów.
-COMMAND_ALIASES.update({
-    "rankingi": "leaderboards", "ranking": "leaderboards",
-    "leaderboard": "leaderboards", "leaderboards": "leaderboards",
-    "tablica rekordow": "leaderboards", "tablica rekordów": "leaderboards",
-})
+# v0.49.0: aliasy komend są centralnie zdefiniowane w config/command_aliases.py.
 HELP_TOPICS["leaderboards"] = [
     "rankingi / leaderboard - skrócone Top 5 wszystkich kategorii.",
     "rankingi krypta - najwyższe odwiedzone piętro Krypty.",
@@ -671,23 +668,23 @@ def build_v0930_large_exploration_regions():
             endgame_recommended = dict(V0923_ENDGAME_REGIONS).get(zone)
             if endgame_recommended is not None:
                 room_data["recommended_mastery"] = int(endgame_recommended)
-            ROOMS[rid] = room_data
+            _catalog_mut.catalog_assign(room_data, 'ROOMS', ROOMS, (rid,))
 
         # Dołącz nową część bez nadpisywania istniejących wyjść.
-        anchor_exits = ROOMS[anchor].setdefault("exits", {})
+        anchor_exits = _catalog_mut.catalog_setdefault_path('ROOMS', ROOMS, (anchor,), "exits", {})
         attach = next((d for d in ("south","east","west","north","down","up") if d not in anchor_exits), None)
         if attach is None:
             attach = "down"
         anchor_exits[attach] = new_ids[0]
-        ROOMS[new_ids[0]]["exits"][reverse[attach]] = anchor
+        _catalog_mut.catalog_assign(anchor, 'ROOMS', ROOMS, (new_ids[0], "exits", reverse[attach]))
 
         # Łącznik + nieregularna siatka 5 kolumn. Pełne poziome rzędy i kilka
         # pionowych łączników dają pętle i alternatywne trasy, ale nie prosty krzyż.
         if len(new_ids) > 1:
             back_from_connector = reverse[attach]
             forward = "south" if back_from_connector != "south" else "east"
-            ROOMS[new_ids[0]]["exits"][forward] = new_ids[1]
-            ROOMS[new_ids[1]]["exits"][reverse[forward]] = new_ids[0]
+            _catalog_mut.catalog_assign(new_ids[1], 'ROOMS', ROOMS, (new_ids[0], "exits", forward))
+            _catalog_mut.catalog_assign(new_ids[0], 'ROOMS', ROOMS, (new_ids[1], "exits", reverse[forward]))
 
             grid = new_ids[1:]
             width = 5
@@ -696,14 +693,14 @@ def build_v0930_large_exploration_regions():
                 # poziome przejścia
                 if col + 1 < width and idx + 1 < len(grid):
                     other = grid[idx + 1]
-                    ROOMS[rid]["exits"]["east"] = other
-                    ROOMS[other]["exits"]["west"] = rid
+                    _catalog_mut.catalog_assign(other, 'ROOMS', ROOMS, (rid, "exits", "east"))
+                    _catalog_mut.catalog_assign(rid, 'ROOMS', ROOMS, (other, "exits", "west"))
                 # pionowe przejścia: kolumny skrajne zawsze, środkowe naprzemiennie
                 down_idx = idx + width
                 if down_idx < len(grid) and (col in (0, width-1) or (row + col) % 2 == 0):
                     other = grid[down_idx]
-                    ROOMS[rid]["exits"]["south"] = other
-                    ROOMS[other]["exits"]["north"] = rid
+                    _catalog_mut.catalog_assign(other, 'ROOMS', ROOMS, (rid, "exits", "south"))
+                    _catalog_mut.catalog_assign(rid, 'ROOMS', ROOMS, (other, "exits", "north"))
 
         # Zaludnij nowe sektory istniejącymi zwykłymi mobami regionu.
         pool = zone_pools.get(zone, [])
@@ -848,8 +845,8 @@ def v0100_copy_resource_membership(canonical_room, subrooms):
 
 
 def v0100_connect_pair(a, direction, b, reverse_direction):
-    ROOMS[a].setdefault("exits", {})[direction] = b
-    ROOMS[b].setdefault("exits", {})[reverse_direction] = a
+    _catalog_mut.catalog_setdefault_path('ROOMS', ROOMS, (a,), "exits", {})[direction] = b
+    _catalog_mut.catalog_setdefault_path('ROOMS', ROOMS, (b,), "exits", {})[reverse_direction] = a
 
 
 def v0100_expand_instance_floor(canonical_room, spawn_pairs=None, runtime=False):
@@ -900,7 +897,7 @@ def v0100_expand_instance_floor(canonical_room, spawn_pairs=None, runtime=False)
                 label = "Komnata Strażnika Kręgu"
             elif spec.get("boss_flag") and spec["kind"] == "giant" and floor % 10 == 0:
                 label = "Sala Strażnika Bastionu"
-        ROOMS[rid] = {
+        _catalog_mut.catalog_assign({
             "zone": zone,
             "name": f"{label} — {floor}",
             "desc": (
@@ -916,13 +913,13 @@ def v0100_expand_instance_floor(canonical_room, spawn_pairs=None, runtime=False)
             "v0100_floor": floor,
             "v0100_floor_room": index + 1,
             "procedural_dynamic": True,
-        }
+        }, 'ROOMS', ROOMS, (rid,))
         if "recommended_mastery" in base:
-            ROOMS[rid]["recommended_mastery"] = base["recommended_mastery"]
+            _catalog_mut.catalog_assign(base["recommended_mastery"], 'ROOMS', ROOMS, (rid, "recommended_mastery"))
         dungeon = spec.get("profession_dungeon")
         if dungeon:
-            ROOMS[rid]["profession_dungeon"] = dungeon
-            ROOMS[rid]["profession_dungeon_floor"] = floor
+            _catalog_mut.catalog_assign(dungeon, 'ROOMS', ROOMS, (rid, "profession_dungeon"))
+            _catalog_mut.catalog_assign(floor, 'ROOMS', ROOMS, (rid, "profession_dungeon_floor"))
 
     # v0.11.0: układ jest proceduralny, ale deterministyczny dla rodzaju i numeru
     # piętra. Restart serwera nie zmienia mapy w trakcie progresji gracza.
@@ -978,13 +975,13 @@ def v0100_expand_instance_floor(canonical_room, spawn_pairs=None, runtime=False)
     else:
         v0100_connect_pair(tail, "east", final_room, "west")
     if next_target:
-        ROOMS[final_room]["exits"][next_dir] = next_target
+        _catalog_mut.catalog_assign(next_target, 'ROOMS', ROOMS, (final_room, "exits", next_dir))
         # Gdy następne piętro istnieje już statycznie, jego droga powrotna
         # wskazuje na tę samą klatkę schodową. Dynamiczne piętro naprawi ten
         # link w chwili utworzenia.
         next_spec = v0100_instance_spec(next_target)
         if next_spec and next_target in ROOMS:
-            ROOMS[next_target].setdefault("exits", {})[vertical_reverse[next_dir]] = final_room
+            _catalog_mut.catalog_setdefault_path('ROOMS', ROOMS, (next_target,), "exits", {})[vertical_reverse[next_dir]] = final_room
 
     v0100_copy_resource_membership(canonical_room, subrooms)
 
@@ -1138,7 +1135,7 @@ def v0100_expand_surface_zone(zone, target):
     words = V0100_SURFACE_WORDS.get(zone, ("Szlak", "Sektor", "Przejście", "Odnoga", "Rejon"))
     for i, rid in enumerate(new_ids):
         word = words[i % len(words)]
-        ROOMS[rid] = {
+        _catalog_mut.catalog_assign({
             "zone": zone,
             "name": f"{word} {zone} {i+1}",
             "desc": (
@@ -1147,13 +1144,13 @@ def v0100_expand_surface_zone(zone, target):
             ),
             "exits": {},
             "procedural_surface_v0100": True,
-        }
+        }, 'ROOMS', ROOMS, (rid,))
         endgame_recommended = dict(V0923_ENDGAME_REGIONS).get(zone)
         if endgame_recommended is not None:
-            ROOMS[rid]["recommended_mastery"] = int(endgame_recommended)
+            _catalog_mut.catalog_assign(int(endgame_recommended), 'ROOMS', ROOMS, (rid, "recommended_mastery"))
 
     reverse = {"east":"west", "west":"east", "north":"south", "south":"north"}
-    anchor_exits = ROOMS[anchor].setdefault("exits", {})
+    anchor_exits = _catalog_mut.catalog_setdefault_path('ROOMS', ROOMS, (anchor,), "exits", {})
     attach = next((d for d in ("east", "south", "west", "north") if d not in anchor_exits), None)
     if attach is None:
         return
@@ -1234,7 +1231,7 @@ def v0110_remove_pregenerated_instance_rooms():
     # Usuń wyłącznie pokoje piętrowych instancji. Bramy, wejścia i huby świata
     # pozostają i nadal wskazują na identyfikator pierwszego dynamicznego piętra.
     for rid in removed:
-        ROOMS.pop(rid, None)
+        _catalog_mut.catalog_pop_path('ROOMS', ROOMS, (), rid, None)
 
     MOB_SPAWNS[:] = [(rid, tid) for rid, tid in MOB_SPAWNS if rid not in removed]
 
@@ -1371,11 +1368,11 @@ def build_v0102_city_and_outskirts():
             "exits":{},
         },
     }
-    ROOMS.update(city_rooms)
+    _catalog_mut.catalog_update_path('ROOMS', ROOMS, (), city_rooms)
 
     def connect(a, da, b, db):
-        ROOMS[a].setdefault("exits", {})[da] = b
-        ROOMS[b].setdefault("exits", {})[db] = a
+        _catalog_mut.catalog_setdefault_path('ROOMS', ROOMS, (a,), "exits", {})[da] = b
+        _catalog_mut.catalog_setdefault_path('ROOMS', ROOMS, (b,), "exits", {})[db] = a
 
     # Dzielnica rzemieślnicza przy Kuźni.
     connect("forge", "east", "artisan_lane", "west")
@@ -1424,11 +1421,11 @@ def build_v0102_city_and_outskirts():
         "outer_wall_path": ("Ścieżka Pod Murami", "Patrolowa droga prowadzi wzdłuż zewnętrznej strony miejskich murów ku północnemu posterunkowi."),
     }
     for rid, (name, desc) in outskirts.items():
-        ROOMS[rid] = {"zone":"Przedmieścia Miasta Dusz", "name":name, "desc":desc, "exits":{}}
+        _catalog_mut.catalog_assign({"zone":"Przedmieścia Miasta Dusz", "name":name, "desc":desc, "exits":{}}, 'ROOMS', ROOMS, (rid,))
 
     # Wstaw przedmieścia pomiędzy miasto i Łąki oraz dodaj boczną pętlę do Starego Traktu.
-    ROOMS["south_gate"]["exits"]["south"] = "city_outskirts_gate"
-    ROOMS["meadow"]["exits"]["north"] = "caravan_road"
+    _catalog_mut.catalog_assign("city_outskirts_gate", 'ROOMS', ROOMS, ("south_gate", "exits", "south"))
+    _catalog_mut.catalog_assign("caravan_road", 'ROOMS', ROOMS, ("meadow", "exits", "north"))
     connect("south_gate", "south", "city_outskirts_gate", "north")
     connect("city_outskirts_gate", "south", "caravan_road", "north")
     connect("caravan_road", "south", "meadow", "north")
@@ -1456,7 +1453,7 @@ build_v0102_city_and_outskirts()
 # ============================================================
 # Mikstury są osobnym asortymentem aptecznym. Karczma zachowuje kuchnię i
 # Gotowanie, ale nie prowadzi już sprzedaży mikstur.
-ROOMS["pharmacy"] = {
+_catalog_mut.catalog_assign({
     "zone": "Miasto Dusz",
     "name": "Apteka Pod Srebrnym Liściem",
     "desc": (
@@ -1464,16 +1461,16 @@ ROOMS["pharmacy"] = {
         "To miejski sklep z podstawowymi miksturami i eliksirami."
     ),
     "exits": {"north": "inn"},
-}
-ROOMS["inn"].setdefault("exits", {})["south"] = "pharmacy"
+}, 'ROOMS', ROOMS, ("pharmacy",))
+_catalog_mut.catalog_setdefault_path('ROOMS', ROOMS, ("inn",), "exits", {})["south"] = "pharmacy"
 
-SHOPS["market"] = [iid for iid in SHOPS.get("market", ()) if iid != "healing_potion"]
-SHOPS["inn"] = [iid for iid in SHOPS.get("inn", ()) if iid != "healing_potion"]
-SHOPS["pharmacy"] = [
+_catalog_mut.catalog_assign([iid for iid in SHOPS.get("market", ()) if iid != "healing_potion"], 'SHOPS', SHOPS, ("market",))
+_catalog_mut.catalog_assign([iid for iid in SHOPS.get("inn", ()) if iid != "healing_potion"], 'SHOPS', SHOPS, ("inn",))
+_catalog_mut.catalog_assign([
     "healing_potion", "mana_potion",
     "greater_healing_potion", "greater_mana_potion",
     "vitality_elixir",
-]
+], 'SHOPS', SHOPS, ("pharmacy",))
 SHOP_SELLERS["pharmacy"] = "pharmacist_neris"
 for _iid, _price in {
     "healing_potion": 100,
@@ -1482,10 +1479,10 @@ for _iid, _price in {
     "greater_mana_potion": 520,
     "vitality_elixir": 800,
 }.items():
-    ITEMS[_iid]["price"] = _price
-    ITEMS[_iid]["currency"] = "silver"
+    _catalog_mut.catalog_assign(_price, 'ITEMS', ITEMS, (_iid, "price"))
+    _catalog_mut.catalog_assign("silver", 'ITEMS', ITEMS, (_iid, "currency"))
 
-NPCS["pharmacist_neris"] = {
+_catalog_mut.catalog_assign({
     "name": "Aptekarka Neris",
     "room": "pharmacy",
     "dialogue": (
@@ -1493,8 +1490,8 @@ NPCS["pharmacist_neris"] = {
         "Jeśli zbierasz zioła, mam też dla ciebie regularne zlecenie."
     ),
     "quest": "v024_pharmacy_herbs",
-}
-QUESTS["v024_pharmacy_herbs"] = {
+}, 'NPCS', NPCS, ("pharmacist_neris",))
+_catalog_mut.catalog_assign({
     "name": "Apteczne zapasy: Świeże zioła",
     "giver": "Aptekarka Neris",
     "kind": "collect_category", "target": "herb", "needed": 8,
@@ -1508,12 +1505,9 @@ QUESTS["v024_pharmacy_herbs"] = {
     "reward_silver": 450, "reward_gold": 0, "reward_mithril": 0,
     "reward_items": {"healing_potion": 1},
     "repeatable": True, "repeat_cooldown": QUEST_REPEAT_COOLDOWN_SECONDS,
-}
+}, 'QUESTS', QUESTS, ("v024_pharmacy_herbs",))
 
-COMMAND_ALIASES.update({
-    "kartografia": "cartography", "kartograf": "cartography",
-    "cartography": "cartography", "mapy": "cartography",
-})
+# v0.49.0: aliasy komend są centralnie zdefiniowane w config/command_aliases.py.
 GUIDE_DESTINATION_ALIASES.update({
     "apteka": "pharmacy",
     "apteka pod srebrnym lisciem": "pharmacy",
@@ -1546,7 +1540,7 @@ if "alchemia" in HELP_TOPICS:
     )
 
 # Nowi mieszkańcy i fachowcy. Są pokojowi i nie są celami walki.
-NPCS.update({
+_catalog_mut.catalog_update_path('NPCS', NPCS, (), {
     "tailor_lysa": {
         "name":"Krawcowa Lysa", "room":"tailor_workshop",
         "dialogue":"Szyję płaszcze, torby i mundury straży. Najwięcej pracy mam wtedy, gdy karawany przywożą nowe tkaniny.",
@@ -1614,7 +1608,7 @@ NPCS.update({
 })
 
 # Przedmioty do krótkich dostaw miejskich.
-ITEMS.update({
+_catalog_mut.catalog_update_path('ITEMS', ITEMS, (), {
     "city_guard_uniform_order": {"name":"Zamówienie na mundury straży", "type":"quest", "price":None, "desc":"Dokument Krawcowej Lysy dla Kwatermistrza Harka."},
     "city_bread_crate": {"name":"Skrzynka świeżego chleba", "type":"quest", "price":None, "desc":"Poranna dostawa Piekarza Oda dla południowej bramy."},
     "city_harbor_repair_list": {"name":"Lista napraw kutrów", "type":"quest", "price":None, "desc":"Lista Szkutnika Marka dla Rybaka Borysa."},
@@ -1623,7 +1617,7 @@ ITEMS.update({
     "city_mine_route_map": {"name":"Mapa trasy do Kopalni Głębinowej", "type":"quest", "price":None, "desc":"Mapa bezpiecznej drogi z Miasta Dusz do kopalni dla Górnika Torena."},
 })
 
-QUESTS.update({
+_catalog_mut.catalog_update_path('QUESTS', QUESTS, (), {
     "city_tailor_guard_delivery": {
         "name":"Miejska przysługa: Mundury dla straży", "giver":"Krawcowa Lysa", "kind":"deliver_npc",
         "target_npc":"guard_quartermaster_harek", "quest_item":"city_guard_uniform_order",
@@ -1732,11 +1726,11 @@ QUESTS.update({
 
 # v0.24.0: pięć dotychczasowych zleceń Erena pozostaje niezależnych i
 # godzinnych. Poniższa seria jest nowym, jednorazowym łańcuchem mistrzowskim.
-ITEMS["v024_eren_master_atlas"] = {
+_catalog_mut.catalog_assign({
     "name": "Wielki Atlas Erena", "type": "quest", "price": None,
     "desc": "Wielki atlas rubieży przygotowany przez Erena dla Kartografki Lysy.",
-}
-QUESTS.update({
+}, 'ITEMS', ITEMS, ("v024_eren_master_atlas",))
+_catalog_mut.catalog_update_path('QUESTS', QUESTS, (), {
     "v024_eren_master_1": {
         "name": "Wielki Atlas I: Dwanaście nowych sektorów", "giver": "Kartograf Eren",
         "kind": "explore_frontier", "target": "any", "needed": 12,
@@ -1789,15 +1783,13 @@ QUESTS.update({
         "repeatable": False, "event_progress_only": True,
     },
 })
-NPCS["cartographer_eren"]["quest_chain"] = tuple(
+_catalog_mut.catalog_assign(tuple(
     f"v024_eren_master_{i}" for i in range(1, 6)
-)
-NPCS["cartographer_eren"]["dialogue"] = (
-    "Mam pięć godzinnych zleceń kartograficznych oraz pięcioetapową serię Wielkiego Atlasu. "
-    "Jeśli chcesz pracować nad mapami dłużej, zapytaj o listę questów."
-)
+), 'NPCS', NPCS, ("cartographer_eren", "quest_chain"))
+_catalog_mut.catalog_assign("Mam pięć godzinnych zleceń kartograficznych oraz pięcioetapową serię Wielkiego Atlasu. "
+    "Jeśli chcesz pracować nad mapami dłużej, zapytaj o listę questów.", 'NPCS', NPCS, ("cartographer_eren", "dialogue"))
 
-MOB_TEMPLATES.update({
+_catalog_mut.catalog_update_path('MOB_TEMPLATES', MOB_TEMPLATES, (), {
     "outskirts_thief": {
         "name":"Rabuś z Przedmieść", "max_hp":70, "damage":7, "damage_type":"physical",
         "silver":28, "gold":0, "mithril":0, "stat_reward":28, "soul_reward":135,
@@ -1991,7 +1983,7 @@ EXPLORATION_REWARD_ITEMS = {}
 for _zone, _room_ids in TRACKED_EXPLORATION_ZONES.items():
     _reward_item_id = f"exploration_relic_{_collection_slug(_zone)}"
     EXPLORATION_REWARD_ITEMS[_zone] = _reward_item_id
-    ITEMS.setdefault(
+    _catalog_mut.catalog_setdefault_path('ITEMS', ITEMS, (), 
         _reward_item_id,
         {
             "name": f"Pamiątka Odkrywcy: {_zone}",
@@ -2441,19 +2433,5 @@ if "gornictwo" in HELP_TOPICS:
 if "profesje" in HELP_TOPICS:
     HELP_TOPICS["profesje"].append("Wędka/Kilof/Piła/Sierp rozwijają się obecnie 1-600; dawna część krzywej 1-400 pozostaje zachowana, a 401-600 jest jej dalszą progresją.")
 
-COMMAND_ALIASES.update({
-    "bestiariusz": "bestiary", "bestiary": "bestiary",
-    "postep": "progress", "postęp": "progress", "progress": "progress",
-    "eksploracja": "exploration", "exploration": "exploration",
-    "osiagniecia": "achievements", "osiągnięcia": "achievements",
-    "achievement": "achievements", "achievements": "achievements",
-    "tytuly": "titles", "tytuły": "titles", "titles": "titles",
-    "tytul": "title", "tytuł": "title", "title": "title",
-    "kolekcja": "collection", "collection": "collection",
-    "collectioncodex": "collection", "collection_codex": "collection",
-    "historiadropow": "drophistory", "historiadropów": "drophistory",
-    "drophistory": "drophistory", "dropy": "drophistory",
-    "lootfilter": "lootfilter", "filtrlootu": "lootfilter",
-    "regionprogress": "regionprogress", "postepregionu": "regionprogress",
-})
+# v0.49.0: aliasy komend są centralnie zdefiniowane w config/command_aliases.py.
 

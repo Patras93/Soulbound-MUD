@@ -1,7 +1,88 @@
+from data import catalog_mutations as _catalog_mut
+
+# v0.44.0: explicit dependencies; no compatibility-global injection.
+import re
+from core.bootstrap_economy_professions import QUEST_REPEAT_COOLDOWN_SECONDS, SOUL_TRIAL_QUEST_IDS, soul_trial_difficulty_band
+from core.classes_skills import ROOMS, validate_complete_resource_atlases
+from core.mines_threat import ITEMS
+from core.progression_600 import (
+    CHARACTER_MAX_LEVEL,
+    CLASS_MASTERY_MAX_LEVEL,
+    PROGRESSION_400_LEVELS,
+    SOUL_MAX_TIER,
+    SOUL_TIER_THRESHOLDS,
+)
+from core.progression_resources import (
+    FISHING_ROOMS,
+    FRESHWATER_FISHING_ROOMS,
+    LAKE_FISHING_ROOMS,
+    MINE_PREGENERATED_MAX_FLOOR,
+    MINING_DEPTH_ROOMS,
+    MINING_ROOMS,
+    RIVER_FISHING_ROOMS,
+    UNIFIED_DEEP_MINE_STATIC_ROOMS,
+    mine_floor_id,
+)
+from systems.content_registry import (
+    CRYPT_PREGENERATED_MAX_FLOOR,
+    HELP_TOPICS,
+    HELP_TOPIC_ALIASES,
+    MOB_SPAWNS,
+    MOB_TEMPLATES,
+    NPCS,
+    QUESTS,
+)
+from systems.dungeons_regions import (
+    ASTRAL_MAX_FLOOR,
+    ASTRAL_REGULAR_NAMES,
+    CRYPT_REGULAR_NAMES,
+    GIANT_FORTRESS_MAX_FLOOR,
+    MYTHIC_MAX_FLOOR,
+    PROF_DUNGEON_MAX_FLOOR,
+    astral_floor_id,
+    build_astral_tower,
+    build_crypt_200_floors,
+    build_crypt_loot_variants,
+    build_mountain_region_and_herb_meadows,
+    build_mythic_endgame,
+    build_profession_dungeons,
+    crypt_floor_id,
+    giant_fortress_floor_id,
+    mythic_astral_floor_id,
+    mythic_crypt_floor_id,
+    profession_dungeon_combat_pack,
+    profession_dungeon_room_id,
+)
+from systems.equipment_crafting import CRAFT_RECIPES, JEWELCRAFT_RECIPES, class_equipment_unlocked_tier
+from systems.items_resources import (
+    BLACKSMITH_TIERS,
+    CLASS_EQUIPMENT_ITEMS_BY_CLASS_TIER,
+    CLASS_EQUIPMENT_SETS,
+    CLASS_EQUIPMENT_SLOT_DEFS,
+    CORPSE_MATERIAL_ITEM_IDS,
+    CORPSE_MATERIAL_MASTERY_BANDS,
+    CORPSE_MATERIAL_REQUIRED_MASTERY,
+    CORPSE_MATERIAL_TIERS,
+    CORPSE_MATERIAL_TIER_BY_KEY,
+    _PROGRESSION_400_NAMES,
+)
+from world.expansions import (
+    build_elite_rare_named_loot_expansion,
+    build_forest_wolves_and_quest_balance,
+    build_high_end_mob_pack,
+    build_mountain_crafting_expansion,
+    build_paid_training_guild_expansion,
+    build_world_expansion_i,
+    build_world_expansion_ii,
+    configure_profession_tool_sellers,
+    configure_v0800_help_info,
+    configure_v081_help_info,
+)
+
 
 
 def configure_base_mob_corpse_equipment():
-    MOB_TEMPLATES["training_dummy"]["leave_corpse"] = False
+    _catalog_mut.catalog_assign(False, 'MOB_TEMPLATES', MOB_TEMPLATES, ("training_dummy", "leave_corpse"))
     configs={
         "goblin":["leather_vest","lucky_charm"],
         "goblin_brute":["leather_vest","iron_gauntlets","iron_boots"],
@@ -12,8 +93,8 @@ def configure_base_mob_corpse_equipment():
         "crystal_guardian":["iron_guard","iron_leggings","forge_charm"],
     }
     for tid,pool in configs.items():
-        MOB_TEMPLATES[tid]["corpse_equipment_pool"]=pool
-        MOB_TEMPLATES[tid]["corpse_equipment_guaranteed"]=1
+        _catalog_mut.catalog_assign(pool, 'MOB_TEMPLATES', MOB_TEMPLATES, (tid, "corpse_equipment_pool"))
+        _catalog_mut.catalog_assign(1, 'MOB_TEMPLATES', MOB_TEMPLATES, (tid, "corpse_equipment_guaranteed"))
 
 
 def _corpse_material_tier_by_index(index):
@@ -243,8 +324,8 @@ build_crypt_loot_variants()
 build_astral_tower()
 build_mythic_endgame()
 # v0.9.12: ręcznie przygotowane piętro 200 prowadzi dalej do części proceduralnej.
-ROOMS[crypt_floor_id(CRYPT_PREGENERATED_MAX_FLOOR)]["exits"]["down"] = crypt_floor_id(CRYPT_PREGENERATED_MAX_FLOOR + 1)
-ROOMS[mythic_crypt_floor_id(MYTHIC_MAX_FLOOR)]["exits"]["down"] = mythic_crypt_floor_id(MYTHIC_MAX_FLOOR + 1)
+_catalog_mut.catalog_assign(crypt_floor_id(CRYPT_PREGENERATED_MAX_FLOOR + 1), 'ROOMS', ROOMS, (crypt_floor_id(CRYPT_PREGENERATED_MAX_FLOOR), "exits", "down"))
+_catalog_mut.catalog_assign(mythic_crypt_floor_id(MYTHIC_MAX_FLOOR + 1), 'ROOMS', ROOMS, (mythic_crypt_floor_id(MYTHIC_MAX_FLOOR), "exits", "down"))
 build_profession_dungeons()
 for _prof_dungeon in ("sunken_grotto", "ancient_forest", "alchemy_garden"):
     for _prof_floor in range(1, PROF_DUNGEON_MAX_FLOOR + 1):
@@ -253,14 +334,14 @@ build_mountain_region_and_herb_meadows()
 build_mountain_crafting_expansion()
 
 # v0.9.13: dawne ostatnie piętra prowadzą dalej do części proceduralnej.
-ROOMS[astral_floor_id(ASTRAL_MAX_FLOOR)]["exits"]["up"] = astral_floor_id(ASTRAL_MAX_FLOOR + 1)
-ROOMS[mythic_astral_floor_id(MYTHIC_MAX_FLOOR)]["exits"]["up"] = mythic_astral_floor_id(MYTHIC_MAX_FLOOR + 1)
-ROOMS[giant_fortress_floor_id(GIANT_FORTRESS_MAX_FLOOR)]["exits"]["up"] = giant_fortress_floor_id(GIANT_FORTRESS_MAX_FLOOR + 1)
-ROOMS[mine_floor_id(MINE_PREGENERATED_MAX_FLOOR)]["exits"]["down"] = mine_floor_id(MINE_PREGENERATED_MAX_FLOOR + 1)
-ROOMS[profession_dungeon_room_id("crystal_mine", PROF_DUNGEON_MAX_FLOOR)]["exits"]["down"] = profession_dungeon_room_id("crystal_mine", PROF_DUNGEON_MAX_FLOOR + 1)
-ROOMS[profession_dungeon_room_id("sunken_grotto", PROF_DUNGEON_MAX_FLOOR)]["exits"]["down"] = profession_dungeon_room_id("sunken_grotto", PROF_DUNGEON_MAX_FLOOR + 1)
-ROOMS[profession_dungeon_room_id("ancient_forest", PROF_DUNGEON_MAX_FLOOR)]["exits"]["south"] = profession_dungeon_room_id("ancient_forest", PROF_DUNGEON_MAX_FLOOR + 1)
-ROOMS[profession_dungeon_room_id("alchemy_garden", PROF_DUNGEON_MAX_FLOOR)]["exits"]["east"] = profession_dungeon_room_id("alchemy_garden", PROF_DUNGEON_MAX_FLOOR + 1)
+_catalog_mut.catalog_assign(astral_floor_id(ASTRAL_MAX_FLOOR + 1), 'ROOMS', ROOMS, (astral_floor_id(ASTRAL_MAX_FLOOR), "exits", "up"))
+_catalog_mut.catalog_assign(mythic_astral_floor_id(MYTHIC_MAX_FLOOR + 1), 'ROOMS', ROOMS, (mythic_astral_floor_id(MYTHIC_MAX_FLOOR), "exits", "up"))
+_catalog_mut.catalog_assign(giant_fortress_floor_id(GIANT_FORTRESS_MAX_FLOOR + 1), 'ROOMS', ROOMS, (giant_fortress_floor_id(GIANT_FORTRESS_MAX_FLOOR), "exits", "up"))
+_catalog_mut.catalog_assign(mine_floor_id(MINE_PREGENERATED_MAX_FLOOR + 1), 'ROOMS', ROOMS, (mine_floor_id(MINE_PREGENERATED_MAX_FLOOR), "exits", "down"))
+_catalog_mut.catalog_assign(profession_dungeon_room_id("crystal_mine", PROF_DUNGEON_MAX_FLOOR + 1), 'ROOMS', ROOMS, (profession_dungeon_room_id("crystal_mine", PROF_DUNGEON_MAX_FLOOR), "exits", "down"))
+_catalog_mut.catalog_assign(profession_dungeon_room_id("sunken_grotto", PROF_DUNGEON_MAX_FLOOR + 1), 'ROOMS', ROOMS, (profession_dungeon_room_id("sunken_grotto", PROF_DUNGEON_MAX_FLOOR), "exits", "down"))
+_catalog_mut.catalog_assign(profession_dungeon_room_id("ancient_forest", PROF_DUNGEON_MAX_FLOOR + 1), 'ROOMS', ROOMS, (profession_dungeon_room_id("ancient_forest", PROF_DUNGEON_MAX_FLOOR), "exits", "south"))
+_catalog_mut.catalog_assign(profession_dungeon_room_id("alchemy_garden", PROF_DUNGEON_MAX_FLOOR + 1), 'ROOMS', ROOMS, (profession_dungeon_room_id("alchemy_garden", PROF_DUNGEON_MAX_FLOOR), "exits", "east"))
 
 build_world_expansion_i()
 build_high_end_mob_pack()
@@ -571,7 +652,7 @@ def densify_static_dungeon_spawns():
             # statystyki nie traktują nazwy typu „A — B” jako osobnego moba.
             variant["dense_dungeon_base_template"] = base_id
             variant["template_id"] = variant_id
-            MOB_TEMPLATES[variant_id] = variant
+            _catalog_mut.catalog_assign(variant, 'MOB_TEMPLATES', MOB_TEMPLATES, (variant_id,))
             additions.append((room_id, variant_id))
     MOB_SPAWNS.extend(additions)
     return len(additions)
@@ -584,7 +665,7 @@ DENSE_DUNGEON_ADDED_SPAWNS = densify_static_dungeon_spawns()
 for _tier in range(21, SOUL_MAX_TIER + 1):
     _level = SOUL_TIER_THRESHOLDS[_tier - 1]
     _qid = SOUL_TRIAL_QUEST_IDS[_tier]
-    QUESTS[_qid] = {
+    _catalog_mut.catalog_assign({
         "name": f"Próba Broni Duszy: Tier {_tier}",
         "giver": "Kapłan Elor", "kind": "kill",
         "target": f"crypt_boss_{_level}", "needed": 1,
@@ -596,7 +677,7 @@ for _tier in range(21, SOUL_MAX_TIER + 1):
         "reward_silver": 2_000 + (_level - 200) * 120,
         "reward_gold": 10 + (_level - 200) // 10,
         "reward_mithril": 0, "reward_items": {},
-    }
+    }, 'QUESTS', QUESTS, (_qid,))
 
 # v0.26.1/v0.38.8 — Soul Trial Balance Pass.
 # Tiery 2-8 prowadzą gracza przez zwykłych, łatwo dostępnych przeciwników.
@@ -701,7 +782,7 @@ def _add_profession_400_quest(npc_id, qid, *, level, profession, tool_type, kind
         quest["track_resource_progress"] = True
     if kind in ("collect", "craft_set"):
         quest["track_craft_progress"] = True
-    QUESTS[qid] = quest
+    _catalog_mut.catalog_assign(quest, 'QUESTS', QUESTS, (qid,))
     old = tuple(npc.get("specialist_quests") or ())
     if qid not in old:
         npc["specialist_quests"] = old + (qid,)

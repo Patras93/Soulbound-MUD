@@ -1,5 +1,25 @@
 # -*- coding: utf-8 -*-
 """Soulbound v0.31.14 Full Crafting Audit 2.0 + HELP refresh."""
+# v0.45.0: explicit imports; no compatibility-runtime injection.
+from network.protocol_gameplay_utils import V0925_RUNE_BY_ID
+from player.session_mixins.crafting import ALCHEMY_RECIPES, COOK_RECIPES
+from player.session_mixins.crafting_expansion import (
+    BLACKSMITH_TIERS,
+    CRAFT_RECIPES,
+    ITEMS,
+    RUNE_CRAFT_COSTS_V03114,
+    SALVAGE3_V03114,
+    SALVAGE_SMELT_FALLBACK_V03113,
+    V0925_RUNES,
+    V0925_SALVAGE_MATERIALS,
+    normalize_lookup_text,
+)
+from player.session_mixins.equipment_stats import TECH_SET_ITEMS_V03114
+from player.session_mixins.professions import JEWELCRAFT_RECIPES
+from systems.crafting_expansion import _REFINED
+from systems.tech_crafting import TECH_SALVAGE_RECIPES
+from world.equipment_help import HELP_TOPICS, HELP_TOPIC_ALIASES
+
 def full_crafting_audit_v03114():
     errors=[]; warnings=[]
     tables={"craft":CRAFT_RECIPES,"cook":COOK_RECIPES,"alchemy":ALCHEMY_RECIPES,"jewel":JEWELCRAFT_RECIPES}

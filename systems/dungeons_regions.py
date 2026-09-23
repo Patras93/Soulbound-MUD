@@ -1,3 +1,24 @@
+from data import catalog_mutations as _catalog_mut
+
+# v0.44.0: explicit dependencies; no compatibility-global injection.
+import random
+import re
+from core.bootstrap_economy_professions import GLOBAL_MOB_HP_MULTIPLIER
+from core.classes_skills import HERB_ATLAS_ROOM_MIN_LEVELS, ROOMS
+from core.mines_threat import ITEMS
+from core.progression_600 import PROFESSION_MAX_LEVEL
+from core.progression_resources import (
+    FISHING_ROOMS,
+    HERBALISM_ROOMS,
+    MARINE_FISHING_ROOMS,
+    MEADOW_HERBALISM_ROOMS,
+    OCEAN_FISHING_ROOMS,
+    SEA_FISHING_ROOMS,
+    WOODCUTTING_ROOMS,
+)
+from systems.content_registry import CRYPT_MAX_FLOOR, INFINITE_CRYPT_STEP_RATE, MOB_SPAWNS, MOB_TEMPLATES, NPCS, QUESTS
+from systems.items_resources import CLASS_EQUIPMENT_SLOT_DEFS
+
 
 def crypt_depth_step(floor):
     return max(0, int(floor) // 10)
@@ -175,7 +196,7 @@ BOSS_RELICS = {
 }
 
 for _floor, (_item_id, _name, _defense, _affix, _amount) in BOSS_RELICS.items():
-    ITEMS[_item_id] = {
+    _catalog_mut.catalog_assign({
         "name": _name,
         "type": "armor",
         "slot": "charm",
@@ -191,9 +212,9 @@ for _floor, (_item_id, _name, _defense, _affix, _amount) in BOSS_RELICS.items():
         "affix": _affix,
         "affix_amount": _amount,
         "boss_relic_floor": _floor,
-    }
+    }, 'ITEMS', ITEMS, (_item_id,))
 
-ITEMS["bandit_chief_signet"] = {
+_catalog_mut.catalog_assign({
     "name": "Sygnet Herszta Bandytów",
     "type": "armor",
     "slot": "charm",
@@ -207,7 +228,7 @@ ITEMS["bandit_chief_signet"] = {
     "rarity_name": "Unikalny",
     "affix": "dexterity",
     "affix_amount": 3,
-}
+}, 'ITEMS', ITEMS, ("bandit_chief_signet",))
 
 WORLD_BOSS_UNIQUES = {
     "goblin_king_crown": {
@@ -259,7 +280,7 @@ WORLD_BOSS_UNIQUES = {
         "affix_amount": 5,
     },
 }
-ITEMS.update(WORLD_BOSS_UNIQUES)
+_catalog_mut.catalog_update_path('ITEMS', ITEMS, (), WORLD_BOSS_UNIQUES)
 
 def crypt_variant_id(base_item_id, rarity_key, affix_key):
     return f"{base_item_id}__{rarity_key}__{affix_key}"
@@ -318,7 +339,7 @@ def build_crypt_loot_variants():
                     f"{base_item['name']} "
                     f"[{rarity['name']}, {affix_name} +{amount}]"
                 )
-                ITEMS[variant_id] = {
+                _catalog_mut.catalog_assign({
                     "name": variant_name,
                     "type": "armor",
                     "slot": slot,
@@ -337,7 +358,7 @@ def build_crypt_loot_variants():
                     "crypt_base_item": base_item_id,
                     "affix": affix_key,
                     "affix_amount": amount,
-                }
+                }, 'ITEMS', ITEMS, (variant_id,))
 
 def roll_crypt_rarity(is_boss=False):
     keys = list(CRYPT_RARITIES)
@@ -461,7 +482,7 @@ def is_astral_boss_floor(floor):
     return floor >= ASTRAL_MIN_FLOOR and floor % 10 == 0
 
 for _floor, (_item_id, _name, _defense, _affix, _amount) in ASTRAL_BOSS_RELICS.items():
-    ITEMS[_item_id] = {
+    _catalog_mut.catalog_assign({
         "name": _name,
         "type": "armor",
         "slot": "charm",
@@ -477,7 +498,7 @@ for _floor, (_item_id, _name, _defense, _affix, _amount) in ASTRAL_BOSS_RELICS.i
         "affix": _affix,
         "affix_amount": _amount,
         "astral_relic_floor": _floor,
-    }
+    }, 'ITEMS', ITEMS, (_item_id,))
 
 MYTHIC_MIN_FLOOR = 1
 MYTHIC_MAX_FLOOR = 200
@@ -608,13 +629,13 @@ def profession_dungeon_combat_pack(dungeon, floor):
             "profession_dungeon_floor": floor,
             "elite_eligible": True,
         }
-        MOB_TEMPLATES[mob_id] = template
+        _catalog_mut.catalog_assign(template, 'MOB_TEMPLATES', MOB_TEMPLATES, (mob_id,))
         spawns.append((room_id, mob_id))
     return spawns
 
 def build_astral_tower():
-    ROOMS["shrine"]["exits"]["east"] = "astral_gate"
-    ROOMS["astral_gate"] = {
+    _catalog_mut.catalog_assign("astral_gate", 'ROOMS', ROOMS, ("shrine", "exits", "east"))
+    _catalog_mut.catalog_assign({
         "zone": "Wieża Astralna",
         "name": "Astralna Brama",
         "desc": (
@@ -625,7 +646,7 @@ def build_astral_tower():
             "west": "shrine",
             "up": astral_floor_id(ASTRAL_MIN_FLOOR),
         },
-    }
+    }, 'ROOMS', ROOMS, ("astral_gate",))
 
     for tier_index, start_floor in enumerate(
         range(ASTRAL_MIN_FLOOR, ASTRAL_MAX_FLOOR + 1, 10),
@@ -655,7 +676,7 @@ def build_astral_tower():
         affix_amount = 5 + tier_index // 2
         for slot, label, defense in defs:
             item_id = f"astral_t{tier_index}_{slot}"
-            ITEMS[item_id] = {
+            _catalog_mut.catalog_assign({
                 "name": f"{label} Kręgu {tier_index}",
                 "type": "armor",
                 "slot": slot,
@@ -671,7 +692,7 @@ def build_astral_tower():
                 "affix": affix,
                 "affix_amount": affix_amount,
                 "astral_set_tier": tier_index,
-            }
+            }, 'ITEMS', ITEMS, (item_id,))
 
     for floor in range(ASTRAL_MIN_FLOOR, ASTRAL_MAX_FLOOR + 1):
         room_id = astral_floor_id(floor)
@@ -688,7 +709,7 @@ def build_astral_tower():
         else:
             note = ""
 
-        ROOMS[room_id] = {
+        _catalog_mut.catalog_assign({
             "zone": "Wieża Astralna",
             "name": f"Wieża Astralna, poziom {floor}",
             "desc": (
@@ -696,7 +717,7 @@ def build_astral_tower():
                 f"mgławice i odległe pasma światła.{note}"
             ),
             "exits": exits,
-        }
+        }, 'ROOMS', ROOMS, (room_id,))
 
         tier_index = min(
             11,
@@ -712,7 +733,7 @@ def build_astral_tower():
             (floor - ASTRAL_MIN_FLOOR) % len(ASTRAL_REGULAR_NAMES)
         ]
         relative = floor - ASTRAL_MIN_FLOOR
-        MOB_TEMPLATES[regular_id] = {
+        _catalog_mut.catalog_assign({
             "name": f"{regular_name}, poziom {floor}",
             "max_hp": 1050 + relative * 12,
             "damage": 42 + relative // 3,
@@ -730,14 +751,14 @@ def build_astral_tower():
             "astral_floor": floor,
             "corpse_equipment_pool": gear,
             "corpse_equipment_guaranteed": 1,
-        }
+        }, 'MOB_TEMPLATES', MOB_TEMPLATES, (regular_id,))
         MOB_SPAWNS.append((room_id, regular_id))
 
         if floor in ASTRAL_BOSS_FLOORS:
             boss_id = f"astral_boss_{floor}"
             pool = list(gear)
             relic_id = ASTRAL_BOSS_RELICS[floor][0]
-            MOB_TEMPLATES[boss_id] = {
+            _catalog_mut.catalog_assign({
                 "name": ASTRAL_BOSS_NAMES[floor],
                 "max_hp": 3300 + relative * 32,
                 "damage": 72 + relative // 2,
@@ -760,14 +781,14 @@ def build_astral_tower():
                 "boss_mechanic_text": ASTRAL_BOSS_MECHANIC_TEXT[floor],
                 "corpse_equipment_pool": pool,
                 "corpse_equipment_guaranteed": 3,
-            }
+            }, 'MOB_TEMPLATES', MOB_TEMPLATES, (boss_id,))
             MOB_SPAWNS.append((room_id, boss_id))
 
 
 def build_crypt_200_floors():
-    ROOMS["crypt_hall"]["exits"]["down"] = crypt_floor_id(1)
-    ROOMS["crypt_hall"]["exits"]["east"] = "crypt_depths"
-    ROOMS["crypt_depths"]["exits"] = {"west": "crypt_hall"}
+    _catalog_mut.catalog_assign(crypt_floor_id(1), 'ROOMS', ROOMS, ("crypt_hall", "exits", "down"))
+    _catalog_mut.catalog_assign("crypt_depths", 'ROOMS', ROOMS, ("crypt_hall", "exits", "east"))
+    _catalog_mut.catalog_assign({"west": "crypt_hall"}, 'ROOMS', ROOMS, ("crypt_depths", "exits"))
 
     crypt_slot_specs = {
         "head": ("Hełm Krypty", 1),
@@ -791,11 +812,11 @@ def build_crypt_200_floors():
             if slot == "body":
                 defense = max(defense, 2 + tier)
             item_id=f"crypt_t{tier}_{slot}"
-            ITEMS[item_id]={
+            _catalog_mut.catalog_assign({
                 "name":f"{label} Tier {tier}","type":"armor","slot":slot,
                 "defense":defense,"price":None,
                 "desc":f"Ekwipunek z Krypty. Tier {tier}. Obrona +{defense}.",
-            }
+            }, 'ITEMS', ITEMS, (item_id,))
 
 
     for floor in range(1, CRYPT_MAX_FLOOR+1):
@@ -806,20 +827,20 @@ def build_crypt_200_floors():
             note=" Przy pierwszym przejściu boss tego progu blokuje zejście do chwili pokonania."
         else:
             note=""
-        ROOMS[room_id]={
+        _catalog_mut.catalog_assign({
             "zone":"Krypta Nieskończona","name":f"Krypta, piętro {floor}",
             "desc":(
                 f"Piętro {floor}. Próg trudności {crypt_depth_step(floor)}. "
                 f"Kamienne korytarze stają się coraz bardziej niebezpieczne.{note}"
             ),
             "exits":exits,
-        }
+        }, 'ROOMS', ROOMS, (room_id,))
         tier=min(40,(floor-1)//10+1)
         gear=[f"crypt_t{tier}_{x}" for x in CLASS_EQUIPMENT_SLOT_DEFS]
         tid=f"crypt_floor_mob_{floor}"
         name=CRYPT_REGULAR_NAMES[(floor-1)%len(CRYPT_REGULAR_NAMES)]
         depth_mult=crypt_depth_multiplier(floor)
-        MOB_TEMPLATES[tid]={
+        _catalog_mut.catalog_assign({
             "name":f"{name}, piętro {floor}",
             "max_hp":max(1,int(round((70+floor*9)*depth_mult))),
             "damage":max(1,int(round((6+floor//3)*depth_mult))),
@@ -830,11 +851,11 @@ def build_crypt_200_floors():
             "soul_reward":max(1,int(round((100+floor*10)*depth_mult))),
             "drops":{"soul_shard":min(0.30,0.08+floor*0.002)},"quest_target":None,
             "crypt_floor":floor,"corpse_equipment_pool":gear,"corpse_equipment_guaranteed":1,
-        }
+        }, 'MOB_TEMPLATES', MOB_TEMPLATES, (tid,))
         MOB_SPAWNS.append((room_id,tid))
         if is_crypt_boss_floor(floor):
             bid=f"crypt_boss_{floor}"; pool=list(gear)
-            MOB_TEMPLATES[bid]={
+            _catalog_mut.catalog_assign({
                 "name":CRYPT_BOSS_NAMES[floor],"max_hp":350+floor*25,
                 "damage":max(1,int(round((16+floor//2)*depth_mult))),
                 "damage_type":"magic" if floor%20==0 else "physical",
@@ -855,13 +876,13 @@ def build_crypt_200_floors():
                 "boss_mechanic":CRYPT_BOSS_MECHANICS[floor],
                 "boss_mechanic_text":CRYPT_BOSS_MECHANIC_TEXT[floor],
                 "corpse_equipment_pool":pool,"corpse_equipment_guaranteed":3,
-            }
+            }, 'MOB_TEMPLATES', MOB_TEMPLATES, (bid,))
             MOB_SPAWNS.append((room_id,bid))
 
 def build_mythic_endgame():
     # Mythic Crypt opens from the old Crypt depths after floor 200 completion.
-    ROOMS["crypt_depths"]["exits"]["east"] = "mythic_crypt_gate"
-    ROOMS["mythic_crypt_gate"] = {
+    _catalog_mut.catalog_assign("mythic_crypt_gate", 'ROOMS', ROOMS, ("crypt_depths", "exits", "east"))
+    _catalog_mut.catalog_assign({
         "zone": "Mityczna Krypta",
         "name": "Brama Mitycznej Krypty",
         "desc": (
@@ -872,11 +893,11 @@ def build_mythic_endgame():
             "west": "crypt_depths",
             "down": mythic_crypt_floor_id(1),
         },
-    }
+    }, 'ROOMS', ROOMS, ("mythic_crypt_gate",))
 
     # Mythic Astral opens from the ordinary Astral Gate.
-    ROOMS["astral_gate"]["exits"]["east"] = "mythic_astral_gate"
-    ROOMS["mythic_astral_gate"] = {
+    _catalog_mut.catalog_assign("mythic_astral_gate", 'ROOMS', ROOMS, ("astral_gate", "exits", "east"))
+    _catalog_mut.catalog_assign({
         "zone": "Mityczna Wieża Astralna",
         "name": "Brama Mitycznej Wieży Astralnej",
         "desc": (
@@ -887,7 +908,7 @@ def build_mythic_endgame():
             "west": "astral_gate",
             "up": mythic_astral_floor_id(1),
         },
-    }
+    }, 'ROOMS', ROOMS, ("mythic_astral_gate",))
 
     crypt_names = (
         "Mityczny Kościany Rycerz",
@@ -918,7 +939,7 @@ def build_mythic_endgame():
             if is_mythic_crypt_boss_floor(floor)
             else ""
         )
-        ROOMS[c_room] = {
+        _catalog_mut.catalog_assign({
             "zone": "Mityczna Krypta",
             "name": f"Mityczna Krypta, piętro {floor}",
             "desc": (
@@ -926,11 +947,11 @@ def build_mythic_endgame():
                 f"Ściany są przesycone ciemną energią.{c_note}"
             ),
             "exits": c_exits,
-        }
+        }, 'ROOMS', ROOMS, (c_room,))
 
         c_regular = f"mythic_crypt_mob_{floor}"
         c_depth_mult = crypt_depth_multiplier(floor)
-        MOB_TEMPLATES[c_regular] = {
+        _catalog_mut.catalog_assign({
             "name": (
                 f"{crypt_names[(floor - 1) % len(crypt_names)]}, "
                 f"piętro {floor}"
@@ -952,12 +973,12 @@ def build_mythic_endgame():
                 for slot in CLASS_EQUIPMENT_SLOT_DEFS
             ],
             "corpse_equipment_guaranteed": 1,
-        }
+        }, 'MOB_TEMPLATES', MOB_TEMPLATES, (c_regular,))
         MOB_SPAWNS.append((c_room, c_regular))
 
         if is_mythic_crypt_boss_floor(floor):
             c_boss = f"mythic_crypt_boss_{floor}"
-            MOB_TEMPLATES[c_boss] = {
+            _catalog_mut.catalog_assign({
                 "name": f"Mityczny Władca Krypty, piętro {floor}",
                 "max_hp": 100000,
                 "damage": max(1, int(round((240 + floor * 2) * c_depth_mult))),
@@ -985,7 +1006,7 @@ def build_mythic_endgame():
                     for slot in CLASS_EQUIPMENT_SLOT_DEFS
                 ],
                 "corpse_equipment_guaranteed": 3,
-            }
+            }, 'MOB_TEMPLATES', MOB_TEMPLATES, (c_boss,))
             MOB_SPAWNS.append((c_room, c_boss))
 
         # Mythic Astral Tower
@@ -1004,7 +1025,7 @@ def build_mythic_endgame():
             if floor in MYTHIC_BOSS_FLOORS
             else ""
         )
-        ROOMS[a_room] = {
+        _catalog_mut.catalog_assign({
             "zone": "Mityczna Wieża Astralna",
             "name": f"Mityczna Wieża Astralna, poziom {floor}",
             "desc": (
@@ -1012,10 +1033,10 @@ def build_mythic_endgame():
                 f"Gwiazdy wydają się nienaturalnie blisko.{a_note}"
             ),
             "exits": a_exits,
-        }
+        }, 'ROOMS', ROOMS, (a_room,))
 
         a_regular = f"mythic_astral_mob_{floor}"
-        MOB_TEMPLATES[a_regular] = {
+        _catalog_mut.catalog_assign({
             "name": (
                 f"{astral_names[(floor - 1) % len(astral_names)]}, "
                 f"poziom {floor}"
@@ -1037,12 +1058,12 @@ def build_mythic_endgame():
                 for slot in CLASS_EQUIPMENT_SLOT_DEFS
             ],
             "corpse_equipment_guaranteed": 1,
-        }
+        }, 'MOB_TEMPLATES', MOB_TEMPLATES, (a_regular,))
         MOB_SPAWNS.append((a_room, a_regular))
 
         if floor in MYTHIC_BOSS_FLOORS:
             a_boss = f"mythic_astral_boss_{floor}"
-            MOB_TEMPLATES[a_boss] = {
+            _catalog_mut.catalog_assign({
                 "name": f"Mityczny Suweren Astralny, poziom {floor}",
                 "max_hp": 120000,
                 "damage": 280 + floor * 2,
@@ -1070,7 +1091,7 @@ def build_mythic_endgame():
                     for slot in CLASS_EQUIPMENT_SLOT_DEFS
                 ],
                 "corpse_equipment_guaranteed": 3,
-            }
+            }, 'MOB_TEMPLATES', MOB_TEMPLATES, (a_boss,))
             MOB_SPAWNS.append((a_room, a_boss))
 
 
@@ -1078,19 +1099,13 @@ def build_profession_dungeons():
     # v0.25.1: istnieje tylko jedna aktywna kopalnia — Kopalnia Głębinowa.
     # Dawna Kopalnia Kryształów pozostaje połączona wyłącznie jako zwykły
     # obszar eksploracyjny "Kryształowe Groty" bez możliwości wydobycia.
-    ROOMS["crystal_chamber"]["exits"]["east"] = profession_dungeon_room_id("crystal_mine", 1)
+    _catalog_mut.catalog_assign(profession_dungeon_room_id("crystal_mine", 1), 'ROOMS', ROOMS, ("crystal_chamber", "exits", "east"))
     # 2. Zatopiona Grota - fishing
-    ROOMS["sea_pier"]["exits"]["down"] = (
-        profession_dungeon_room_id("sunken_grotto", 1)
-    )
+    _catalog_mut.catalog_assign(profession_dungeon_room_id("sunken_grotto", 1), 'ROOMS', ROOMS, ("sea_pier", "exits", "down"))
     # 3. Pradawny Las - woodcutting
-    ROOMS["deep_grove"]["exits"]["south"] = (
-        profession_dungeon_room_id("ancient_forest", 1)
-    )
+    _catalog_mut.catalog_assign(profession_dungeon_room_id("ancient_forest", 1), 'ROOMS', ROOMS, ("deep_grove", "exits", "south"))
     # 4. Ogród Alchemika - herbalism
-    ROOMS["herbalist_hut"]["exits"]["east"] = (
-        profession_dungeon_room_id("alchemy_garden", 1)
-    )
+    _catalog_mut.catalog_assign(profession_dungeon_room_id("alchemy_garden", 1), 'ROOMS', ROOMS, ("herbalist_hut", "exits", "east"))
 
     for floor in range(1, PROF_DUNGEON_MAX_FLOOR + 1):
         required = profession_dungeon_required_tool_level(floor)
@@ -1110,7 +1125,7 @@ def build_profession_dungeons():
             exits["down"] = profession_dungeon_room_id(
                 "crystal_mine", floor + 1
             )
-        ROOMS[rid] = {
+        _catalog_mut.catalog_assign({
             "zone": "Kryształowe Groty",
             "name": f"Kryształowe Groty, komora {floor}",
             "desc": (
@@ -1118,7 +1133,7 @@ def build_profession_dungeons():
                 "Nie prowadzi się tu wydobycia. Wszystkie rudy i Górnictwo są w Kopalni Głębinowej."
             ),
             "exits": exits,
-        }
+        }, 'ROOMS', ROOMS, (rid,))
         # Brak MINING_ROOMS: to nie jest już aktywna kopalnia.
 
         # Sunken Grotto, down = deeper.
@@ -1136,7 +1151,7 @@ def build_profession_dungeons():
             exits["down"] = profession_dungeon_room_id(
                 "sunken_grotto", floor + 1
             )
-        ROOMS[rid] = {
+        _catalog_mut.catalog_assign({
             "zone": "Loch Profesyjny - Zatopiona Grota",
             "name": f"Zatopiona Grota, głębokość {floor}",
             "desc": (
@@ -1146,7 +1161,7 @@ def build_profession_dungeons():
                 "Niższe komory prowadzą do coraz rzadszych ryb."
             ),
             "exits": exits,
-        }
+        }, 'ROOMS', ROOMS, (rid,))
         if floor <= 10:
             SEA_FISHING_ROOMS.add(rid)
         else:
@@ -1169,7 +1184,7 @@ def build_profession_dungeons():
             exits["south"] = profession_dungeon_room_id(
                 "ancient_forest", floor + 1
             )
-        ROOMS[rid] = {
+        _catalog_mut.catalog_assign({
             "zone": "Loch Profesyjny - Pradawny Las",
             "name": f"Pradawny Las, ostęp {floor}",
             "desc": (
@@ -1179,7 +1194,7 @@ def build_profession_dungeons():
                 "Głębsze ostępy dają dostęp do rzadszego drewna."
             ),
             "exits": exits,
-        }
+        }, 'ROOMS', ROOMS, (rid,))
         WOODCUTTING_ROOMS.add(rid)
 
         # Alchemy Garden, east = deeper.
@@ -1197,7 +1212,7 @@ def build_profession_dungeons():
             exits["east"] = profession_dungeon_room_id(
                 "alchemy_garden", floor + 1
             )
-        ROOMS[rid] = {
+        _catalog_mut.catalog_assign({
             "zone": "Loch Profesyjny - Ogród Alchemika",
             "name": f"Ogród Alchemika, sektor {floor}",
             "desc": (
@@ -1207,7 +1222,7 @@ def build_profession_dungeons():
                 "Głębsze sektory zawierają coraz rzadsze rośliny."
             ),
             "exits": exits,
-        }
+        }, 'ROOMS', ROOMS, (rid,))
         HERBALISM_ROOMS.add(rid)
 
 
@@ -1269,9 +1284,9 @@ def build_mountain_region_and_herb_meadows():
     # -----------------------------
     # Wioska Górska i góry
     # -----------------------------
-    ROOMS["hill"]["exits"]["east"] = "mountain_pass"
+    _catalog_mut.catalog_assign("mountain_pass", 'ROOMS', ROOMS, ("hill", "exits", "east"))
 
-    ROOMS["mountain_pass"] = {
+    _catalog_mut.catalog_assign({
         "zone": "Góry",
         "name": "Górska Przełęcz",
         "desc": (
@@ -1282,9 +1297,9 @@ def build_mountain_region_and_herb_meadows():
             "west": "hill",
             "east": "mountain_village",
         },
-    }
+    }, 'ROOMS', ROOMS, ("mountain_pass",))
 
-    ROOMS["mountain_village"] = {
+    _catalog_mut.catalog_assign({
         "zone": "Wioska Górska",
         "name": "Plac Wioski Górskiej",
         "desc": (
@@ -1298,9 +1313,9 @@ def build_mountain_region_and_herb_meadows():
             "east": "mountain_inn",
             "south": "mountain_troll_trail",
         },
-    }
+    }, 'ROOMS', ROOMS, ("mountain_village",))
 
-    ROOMS["mountain_guard_house"] = {
+    _catalog_mut.catalog_assign({
         "zone": "Wioska Górska",
         "name": "Dom Straży Górskiej",
         "desc": (
@@ -1308,9 +1323,9 @@ def build_mountain_region_and_herb_meadows():
             "Na stole leżą mapy szlaków prowadzących do Jaskini Trolli."
         ),
         "exits": {"south": "mountain_village"},
-    }
+    }, 'ROOMS', ROOMS, ("mountain_guard_house",))
 
-    ROOMS["mountain_inn"] = {
+    _catalog_mut.catalog_assign({
         "zone": "Wioska Górska",
         "name": "Górska Gospoda",
         "desc": (
@@ -1318,9 +1333,9 @@ def build_mountain_region_and_herb_meadows():
             "Podróżnicy opowiadają o potężnym Królu Trolli."
         ),
         "exits": {"west": "mountain_village"},
-    }
+    }, 'ROOMS', ROOMS, ("mountain_inn",))
 
-    ROOMS["mountain_troll_trail"] = {
+    _catalog_mut.catalog_assign({
         "zone": "Góry",
         "name": "Szlak Trolli",
         "desc": (
@@ -1331,9 +1346,9 @@ def build_mountain_region_and_herb_meadows():
             "north": "mountain_village",
             "south": "troll_cave_entrance",
         },
-    }
+    }, 'ROOMS', ROOMS, ("mountain_troll_trail",))
 
-    ROOMS["troll_cave_entrance"] = {
+    _catalog_mut.catalog_assign({
         "zone": "Jaskinia Trolli",
         "name": "Wejście do Jaskini Trolli",
         "desc": (
@@ -1344,9 +1359,9 @@ def build_mountain_region_and_herb_meadows():
             "north": "mountain_troll_trail",
             "down": "troll_cave_1",
         },
-    }
+    }, 'ROOMS', ROOMS, ("troll_cave_entrance",))
 
-    ROOMS["troll_cave_1"] = {
+    _catalog_mut.catalog_assign({
         "zone": "Jaskinia Trolli",
         "name": "Jaskinia Trolli - Kamienna Sala",
         "desc": (
@@ -1357,9 +1372,9 @@ def build_mountain_region_and_herb_meadows():
             "up": "troll_cave_entrance",
             "east": "troll_cave_2",
         },
-    }
+    }, 'ROOMS', ROOMS, ("troll_cave_1",))
 
-    ROOMS["troll_cave_2"] = {
+    _catalog_mut.catalog_assign({
         "zone": "Jaskinia Trolli",
         "name": "Jaskinia Trolli - Wilgotny Tunel",
         "desc": (
@@ -1369,9 +1384,9 @@ def build_mountain_region_and_herb_meadows():
             "west": "troll_cave_1",
             "east": "troll_cave_3",
         },
-    }
+    }, 'ROOMS', ROOMS, ("troll_cave_2",))
 
-    ROOMS["troll_cave_3"] = {
+    _catalog_mut.catalog_assign({
         "zone": "Jaskinia Trolli",
         "name": "Jaskinia Trolli - Sala Głazów",
         "desc": (
@@ -1382,9 +1397,9 @@ def build_mountain_region_and_herb_meadows():
             "west": "troll_cave_2",
             "east": "troll_king_den",
         },
-    }
+    }, 'ROOMS', ROOMS, ("troll_cave_3",))
 
-    ROOMS["troll_king_den"] = {
+    _catalog_mut.catalog_assign({
         "zone": "Jaskinia Trolli",
         "name": "Legowisko Króla Trolli",
         "desc": (
@@ -1392,12 +1407,12 @@ def build_mountain_region_and_herb_meadows():
             "otoczony stosami kości i zdobytego żelaza."
         ),
         "exits": {"west": "troll_cave_3"},
-    }
+    }, 'ROOMS', ROOMS, ("troll_king_den",))
 
     # -----------------------------
     # NPC + quest na trolle
     # -----------------------------
-    QUESTS["mountain_troll_hunt"] = {
+    _catalog_mut.catalog_assign({
         "name": "Plaga Trolli",
         "giver": "Strażnik Górski Eryk",
         "kind": "kill",
@@ -1416,9 +1431,9 @@ def build_mountain_region_and_herb_meadows():
             "soul_shard": 1,
         },
         "repeatable": False,
-    }
+    }, 'QUESTS', QUESTS, ("mountain_troll_hunt",))
 
-    NPCS["mountain_guard_eryk"] = {
+    _catalog_mut.catalog_assign({
         "name": "Strażnik Górski Eryk",
         "room": "mountain_guard_house",
         "dialogue": (
@@ -1426,13 +1441,13 @@ def build_mountain_region_and_herb_meadows():
             "pod samą wioskę. Potrzebujemy kogoś, kto przerzedzi ich szeregi."
         ),
         "quest": "mountain_troll_hunt",
-    }
+    }, 'NPCS', NPCS, ("mountain_guard_eryk",))
 
     # -----------------------------
     # Trolle i boss
     # Wartości bazowe są potem mnożone przez globalne x2 HP.
     # -----------------------------
-    ITEMS["troll_king_tusk"] = {
+    _catalog_mut.catalog_assign({
         "name": "Kieł Króla Trolli",
         "type": "armor",
         "slot": "charm",
@@ -1446,9 +1461,9 @@ def build_mountain_region_and_herb_meadows():
         "rarity_name": "Unikalny",
         "affix": "constitution",
         "affix_amount": 6,
-    }
+    }, 'ITEMS', ITEMS, ("troll_king_tusk",))
 
-    MOB_TEMPLATES["mountain_troll"] = {
+    _catalog_mut.catalog_assign({
         "name": "Górski Troll",
         "max_hp": 300,
         "damage": 24,
@@ -1468,9 +1483,9 @@ def build_mountain_region_and_herb_meadows():
             "iron_guard", "iron_gauntlets", "iron_boots"
         ],
         "corpse_equipment_guaranteed": 1,
-    }
+    }, 'MOB_TEMPLATES', MOB_TEMPLATES, ("mountain_troll",))
 
-    MOB_TEMPLATES["troll_brute"] = {
+    _catalog_mut.catalog_assign({
         "name": "Troll Osiłek",
         "max_hp": 420,
         "damage": 31,
@@ -1491,9 +1506,9 @@ def build_mountain_region_and_herb_meadows():
             "iron_gauntlets", "iron_boots"
         ],
         "corpse_equipment_guaranteed": 1,
-    }
+    }, 'MOB_TEMPLATES', MOB_TEMPLATES, ("troll_brute",))
 
-    MOB_TEMPLATES["troll_shaman"] = {
+    _catalog_mut.catalog_assign({
         "name": "Troll Szaman",
         "max_hp": 360,
         "damage": 29,
@@ -1513,9 +1528,9 @@ def build_mountain_region_and_herb_meadows():
             "forge_charm", "lucky_charm"
         ],
         "corpse_equipment_guaranteed": 1,
-    }
+    }, 'MOB_TEMPLATES', MOB_TEMPLATES, ("troll_shaman",))
 
-    MOB_TEMPLATES["troll_king"] = {
+    _catalog_mut.catalog_assign({
         "name": "Król Trolli Grum",
         "max_hp": 900,
         "damage": 48,
@@ -1542,7 +1557,7 @@ def build_mountain_region_and_herb_meadows():
             "iron_leggings", "iron_boots", "forge_charm"
         ],
         "corpse_equipment_guaranteed": 2,
-    }
+    }, 'MOB_TEMPLATES', MOB_TEMPLATES, ("troll_king",))
 
     MOB_SPAWNS.extend([
         ("mountain_troll_trail", "mountain_troll"),
@@ -1559,9 +1574,9 @@ def build_mountain_region_and_herb_meadows():
     # -----------------------------
     # Osobne łąki pod konkretne zioła
     # -----------------------------
-    ROOMS["flower_meadow"]["exits"]["north"] = "herb_meadow_hub"
+    _catalog_mut.catalog_assign("herb_meadow_hub", 'ROOMS', ROOMS, ("flower_meadow", "exits", "north"))
 
-    ROOMS["herb_meadow_hub"] = {
+    _catalog_mut.catalog_assign({
         "zone": "Łąki Zielarskie",
         "name": "Rozdroże Łąk Zielarskich",
         "desc": (
@@ -1574,9 +1589,9 @@ def build_mountain_region_and_herb_meadows():
             "east": "lavender_meadow",
             "west": "yarrow_meadow",
         },
-    }
+    }, 'ROOMS', ROOMS, ("herb_meadow_hub",))
 
-    ROOMS["chamomile_meadow"] = {
+    _catalog_mut.catalog_assign({
         "zone": "Łąki Zielarskie",
         "name": "Łąka Rumianku",
         "desc": "Białe kwiaty rumianku pokrywają niemal całą łąkę.",
@@ -1584,8 +1599,8 @@ def build_mountain_region_and_herb_meadows():
             "south": "herb_meadow_hub",
             "north": "nettle_meadow",
         },
-    }
-    ROOMS["nettle_meadow"] = {
+    }, 'ROOMS', ROOMS, ("chamomile_meadow",))
+    _catalog_mut.catalog_assign({
         "zone": "Łąki Zielarskie",
         "name": "Łąka Pokrzywy",
         "desc": "Gęste kępy pokrzywy rosną między niskimi kamieniami.",
@@ -1593,15 +1608,15 @@ def build_mountain_region_and_herb_meadows():
             "south": "chamomile_meadow",
             "north": "lemon_balm_meadow",
         },
-    }
-    ROOMS["lemon_balm_meadow"] = {
+    }, 'ROOMS', ROOMS, ("nettle_meadow",))
+    _catalog_mut.catalog_assign({
         "zone": "Łąki Zielarskie",
         "name": "Łąka Melisy",
         "desc": "Powietrze wypełnia łagodny cytrynowy zapach melisy.",
         "exits": {"south": "nettle_meadow"},
-    }
+    }, 'ROOMS', ROOMS, ("lemon_balm_meadow",))
 
-    ROOMS["lavender_meadow"] = {
+    _catalog_mut.catalog_assign({
         "zone": "Łąki Zielarskie",
         "name": "Łąka Lawendy",
         "desc": "Fioletowe pasy lawendy ciągną się po łagodnym zboczu.",
@@ -1609,8 +1624,8 @@ def build_mountain_region_and_herb_meadows():
             "west": "herb_meadow_hub",
             "east": "sage_meadow",
         },
-    }
-    ROOMS["sage_meadow"] = {
+    }, 'ROOMS', ROOMS, ("lavender_meadow",))
+    _catalog_mut.catalog_assign({
         "zone": "Łąki Zielarskie",
         "name": "Łąka Szałwii",
         "desc": "Srebrzystozielone liście szałwii rosną w suchszej części łąk.",
@@ -1618,15 +1633,15 @@ def build_mountain_region_and_herb_meadows():
             "west": "lavender_meadow",
             "east": "valerian_meadow",
         },
-    }
-    ROOMS["valerian_meadow"] = {
+    }, 'ROOMS', ROOMS, ("sage_meadow",))
+    _catalog_mut.catalog_assign({
         "zone": "Łąki Zielarskie",
         "name": "Łąka Waleriany",
         "desc": "Wysokie łodygi waleriany rosną w spokojnej kotlinie.",
         "exits": {"west": "sage_meadow"},
-    }
+    }, 'ROOMS', ROOMS, ("valerian_meadow",))
 
-    ROOMS["yarrow_meadow"] = {
+    _catalog_mut.catalog_assign({
         "zone": "Łąki Zielarskie",
         "name": "Łąka Krwawnika",
         "desc": "Drobne białe kwiaty krwawnika tworzą szerokie skupiska.",
@@ -1634,8 +1649,8 @@ def build_mountain_region_and_herb_meadows():
             "east": "herb_meadow_hub",
             "west": "ginseng_meadow",
         },
-    }
-    ROOMS["ginseng_meadow"] = {
+    }, 'ROOMS', ROOMS, ("yarrow_meadow",))
+    _catalog_mut.catalog_assign({
         "zone": "Łąki Zielarskie",
         "name": "Łąka Żeń-szenia",
         "desc": "W zacienionych zagłębieniach rośnie dziki żeń-szeń.",
@@ -1643,8 +1658,8 @@ def build_mountain_region_and_herb_meadows():
             "east": "yarrow_meadow",
             "west": "moonflower_meadow",
         },
-    }
-    ROOMS["moonflower_meadow"] = {
+    }, 'ROOMS', ROOMS, ("ginseng_meadow",))
+    _catalog_mut.catalog_assign({
         "zone": "Łąki Zielarskie",
         "name": "Łąka Księżycowego Kwiatu",
         "desc": (
@@ -1652,14 +1667,12 @@ def build_mountain_region_and_herb_meadows():
             "lekko połyskują nawet w cieniu."
         ),
         "exits": {"east": "ginseng_meadow"},
-    }
+    }, 'ROOMS', ROOMS, ("moonflower_meadow",))
 
     # Istniejąca Łąka Mięty jest także pełną łąką tematyczną.
-    ROOMS["mint_meadow"]["zone"] = "Łąki Zielarskie"
-    ROOMS["mint_meadow"]["desc"] = (
-        "Mięta dominuje na tej łące. Zbieranie tutaj daje Miętę "
-        "jako podstawowy plon."
-    )
+    _catalog_mut.catalog_assign("Łąki Zielarskie", 'ROOMS', ROOMS, ("mint_meadow", "zone"))
+    _catalog_mut.catalog_assign("Mięta dominuje na tej łące. Zbieranie tutaj daje Miętę "
+        "jako podstawowy plon.", 'ROOMS', ROOMS, ("mint_meadow", "desc"))
 
     for room_id in HERB_SPECIFIC_MEADOWS:
         HERBALISM_ROOMS.add(room_id)
@@ -1818,7 +1831,7 @@ def _register_elite_variants(base_ids):
             elite["stat_reward"] = int(round(int(base_template.get("stat_reward", 0)) * 1.25))
             elite["drops"] = dict(base_template.get("drops", {}))
             elite["drops"].setdefault("soul_shard", 0.18)
-            MOB_TEMPLATES[elite_id] = elite
+            _catalog_mut.catalog_assign(elite, 'MOB_TEMPLATES', MOB_TEMPLATES, (elite_id,))
 
 def _register_rare_variants(base_ids):
     for base_id in tuple(base_ids):
@@ -1846,7 +1859,7 @@ def _register_rare_variants(base_ids):
             len(rare.get("corpse_equipment_pool", ())),
             max(1, int(rare.get("corpse_equipment_guaranteed", 0)) + 1),
         ) if rare.get("corpse_equipment_pool") else 0
-        MOB_TEMPLATES[rare_id] = rare
+        _catalog_mut.catalog_assign(rare, 'MOB_TEMPLATES', MOB_TEMPLATES, (rare_id,))
 
 V0866_RARE_TROLL_SPAWN_CHANCE = 0.12
 V0866_RARE_MOB_SPAWN_CHANCE = 0.04

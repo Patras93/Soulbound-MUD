@@ -1,0 +1,313 @@
+# -*- coding: utf-8 -*-
+"""Static Soulbound catalog. Data only; gameplay logic lives elsewhere."""
+MOB_TEMPLATES = {
+    "temple_rat": {
+        "name": "Szczur Świątynny", "max_hp": 28, "damage": 3, "damage_type": "physical",
+        "silver": 6, "gold": 0, "mithril": 0,
+        "stat_reward": 8, "soul_reward": 80,
+        "drops": {}, "quest_target": "temple_rat",
+    },
+    "training_dummy": {
+        "name": "Żywy Manekin", "max_hp": 45, "damage": 4, "damage_type": "physical",
+        "silver": 12, "gold": 0, "mithril": 0, "stat_reward": 18, "soul_reward": 100,
+        "drops": {}, "quest_target": None,
+        "training_dummy": True,
+    },
+    "goblin": {
+        "name": "Goblin", "max_hp": 60, "damage": 7, "damage_type": "physical",
+        "silver": 28, "gold": 0, "mithril": 0, "stat_reward": 30, "soul_reward": 140,
+        "drops": {"healing_potion": 0.08}, "quest_target": "goblin",
+    },
+    "goblin_brute": {
+        "name": "Gobliński Osiłek", "max_hp": 85, "damage": 10, "damage_type": "physical",
+        "silver": 45, "gold": 1, "mithril": 0, "stat_reward": 38, "soul_reward": 180,
+        "drops": {"healing_potion": 0.12}, "quest_target": "goblin",
+    },
+    "goblin_scout": {
+        "name": "Gobliński Zwiadowca", "max_hp": 72, "damage": 8, "damage_type": "physical",
+        "silver": 34, "gold": 0, "mithril": 0, "stat_reward": 33, "soul_reward": 155,
+        "drops": {"healing_potion": 0.07}, "quest_target": "goblin",
+    },
+    "goblin_spearman": {
+        "name": "Gobliński Włócznik", "max_hp": 92, "damage": 11, "damage_type": "physical",
+        "silver": 48, "gold": 0, "mithril": 0, "stat_reward": 40, "soul_reward": 195,
+        "drops": {"healing_potion": 0.10}, "quest_target": "goblin",
+    },
+    "goblin_archer": {
+        "name": "Gobliński Łucznik", "max_hp": 96, "damage": 12, "damage_type": "physical",
+        "silver": 52, "gold": 0, "mithril": 0, "stat_reward": 42, "soul_reward": 205,
+        "drops": {"healing_potion": 0.10}, "quest_target": "goblin",
+    },
+    "goblin_shaman": {
+        "name": "Gobliński Szaman", "max_hp": 108, "damage": 14, "damage_type": "magic",
+        "silver": 58, "gold": 1, "mithril": 0, "stat_reward": 46, "soul_reward": 235,
+        "drops": {"mana_potion": 0.14, "soul_shard": 0.10}, "quest_target": "goblin",
+    },
+    "goblin_bomber": {
+        "name": "Gobliński Bombiarz", "max_hp": 118, "damage": 15, "damage_type": "magic",
+        "silver": 64, "gold": 1, "mithril": 0, "stat_reward": 49, "soul_reward": 250,
+        "drops": {"healing_potion": 0.12}, "quest_target": "goblin",
+    },
+    "goblin_cave_guard": {
+        "name": "Strażnik Jaskiń Goblinów", "max_hp": 138, "damage": 17, "damage_type": "physical",
+        "silver": 76, "gold": 1, "mithril": 0, "stat_reward": 55, "soul_reward": 285,
+        "drops": {"healing_potion": 0.16}, "quest_target": "goblin",
+    },
+    "goblin_warrior": {
+        "name": "Gobliński Wojownik Króla", "max_hp": 160, "damage": 19, "damage_type": "physical",
+        "silver": 90, "gold": 1, "mithril": 0, "stat_reward": 62, "soul_reward": 330,
+        "drops": {"healing_potion": 0.18, "soul_shard": 0.08}, "quest_target": "goblin",
+    },
+    "goblin_warchief": {
+        "name": "Gobliński Wódz Wojenny", "max_hp": 280, "damage": 23, "damage_type": "physical",
+        "silver": 260, "gold": 2, "mithril": 0, "stat_reward": 120,
+        "class_xp_reward": 1500, "soul_reward": 480,
+        "drops": {"healing_potion": 0.45, "soul_shard": 0.30},
+        "quest_target": "goblin", "world_boss": True,
+        "corpse_equipment_pool": ["iron_helmet", "iron_gauntlets", "iron_boots", "lucky_charm"],
+        "corpse_equipment_guaranteed": 1,
+    },
+    "shadow_wolf": {
+        "name": "Wilk Cienia", "max_hp": 70, "damage": 9, "damage_type": "physical",
+        "silver": 32, "gold": 0, "mithril": 0, "stat_reward": 34, "soul_reward": 160,
+        "drops": {"wolf_fang": 0.45}, "quest_target": "shadow_wolf",
+    },
+    "bandit": {
+        "name": "Bandyta", "max_hp": 75, "damage": 9, "damage_type": "physical",
+        "silver": 40, "gold": 0, "mithril": 0, "stat_reward": 35, "soul_reward": 170,
+        "drops": {"healing_potion": 0.10}, "quest_target": "bandit",
+    },
+    "bandit_marauder": {
+        "name": "Bandycki Maruder", "max_hp": 105, "damage": 12, "damage_type": "physical",
+        "silver": 65, "gold": 0, "mithril": 0, "stat_reward": 48, "soul_reward": 220,
+        "drops": {"healing_potion": 0.14}, "quest_target": "bandit",
+    },
+    "bandit_scout": {
+        "name": "Bandycki Zwiadowca", "max_hp": 88, "damage": 10, "damage_type": "physical",
+        "silver": 48, "gold": 0, "mithril": 0, "stat_reward": 38, "soul_reward": 190,
+        "drops": {"healing_potion": 0.08}, "quest_target": "bandit",
+    },
+    "bandit_crossbowman": {
+        "name": "Bandycki Kusznik", "max_hp": 98, "damage": 12, "damage_type": "physical",
+        "silver": 58, "gold": 0, "mithril": 0, "stat_reward": 43, "soul_reward": 215,
+        "drops": {"healing_potion": 0.10}, "quest_target": "bandit",
+    },
+    "bandit_cutthroat": {
+        "name": "Bandycki Rzezimieszek", "max_hp": 112, "damage": 14, "damage_type": "physical",
+        "silver": 70, "gold": 0, "mithril": 0, "stat_reward": 48, "soul_reward": 240,
+        "drops": {"healing_potion": 0.12}, "quest_target": "bandit",
+    },
+    "bandit_raider": {
+        "name": "Bandycki Najeźdźca", "max_hp": 128, "damage": 15, "damage_type": "physical",
+        "silver": 82, "gold": 1, "mithril": 0, "stat_reward": 52, "soul_reward": 270,
+        "drops": {"healing_potion": 0.14}, "quest_target": "bandit",
+    },
+    "bandit_alchemist": {
+        "name": "Bandycki Alchemik", "max_hp": 122, "damage": 16, "damage_type": "magic",
+        "silver": 88, "gold": 1, "mithril": 0, "stat_reward": 54, "soul_reward": 285,
+        "drops": {"healing_potion": 0.16, "mana_potion": 0.12}, "quest_target": "bandit",
+    },
+    "bandit_enforcer": {
+        "name": "Bandycki Egzekutor", "max_hp": 155, "damage": 18, "damage_type": "physical",
+        "silver": 105, "gold": 1, "mithril": 0, "stat_reward": 60, "soul_reward": 320,
+        "drops": {"healing_potion": 0.18}, "quest_target": "bandit",
+    },
+    "bandit_veteran": {
+        "name": "Bandycki Weteran", "max_hp": 180, "damage": 20, "damage_type": "physical",
+        "silver": 125, "gold": 1, "mithril": 0, "stat_reward": 68, "soul_reward": 365,
+        "drops": {"healing_potion": 0.20, "soul_shard": 0.08}, "quest_target": "bandit",
+    },
+    "bandit_captain": {
+        "name": "Kapitan Bandytów", "max_hp": 300, "damage": 24, "damage_type": "physical",
+        "silver": 300, "gold": 2, "mithril": 0, "stat_reward": 130,
+        "class_xp_reward": 1700, "soul_reward": 520,
+        "drops": {"healing_potion": 0.50, "soul_shard": 0.25},
+        "quest_target": "bandit", "world_boss": True,
+        "corpse_equipment_pool": ["iron_helmet", "iron_guard", "iron_gauntlets", "iron_boots", "lucky_charm"],
+        "corpse_equipment_guaranteed": 1,
+    },
+    "bandit_chief": {
+        "name": "Herszt Bandytów",
+        "max_hp": 320,
+        "damage": 24,
+        "damage_type": "physical",
+        "silver": 420,
+        "gold": 0,
+        "mithril": 0,
+        "stat_reward": 180,
+        "class_xp_reward": 2200,
+        "soul_reward": 650,
+        "drops": {
+            "healing_potion": 0.60,
+            "bandit_chief_signet": 0.45,
+        },
+        "quest_target": "bandit",
+        "boss_mechanic": "bandit_combo",
+        "world_boss": True,
+        "corpse_equipment_pool": [
+            "iron_helmet", "iron_guard", "iron_gauntlets",
+            "iron_leggings", "iron_boots", "lucky_charm"
+        ],
+        "corpse_equipment_guaranteed": 2,
+    },
+    "goblin_king": {
+        "name": "Król Goblinów",
+        "max_hp": 360,
+        "damage": 25,
+        "damage_type": "physical",
+        "silver": 500,
+        "gold": 1,
+        "mithril": 0,
+        "stat_reward": 200,
+        "class_xp_reward": 2600,
+        "soul_reward": 720,
+        "drops": {
+            "healing_potion": 0.65,
+            "goblin_king_crown": 0.45,
+        },
+        "quest_target": "goblin",
+        "boss_mechanic": "goblin_king",
+        "world_boss": True,
+        "corpse_equipment_pool": [
+            "iron_helmet", "iron_gauntlets", "iron_boots", "lucky_charm"
+        ],
+        "corpse_equipment_guaranteed": 2,
+    },
+    "shadow_alpha": {
+        "name": "Alfa Wilków Cienia",
+        "max_hp": 390,
+        "damage": 27,
+        "damage_type": "physical",
+        "silver": 480,
+        "gold": 1,
+        "mithril": 0,
+        "stat_reward": 215,
+        "class_xp_reward": 2900,
+        "soul_reward": 780,
+        "drops": {
+            "wolf_fang": 1.0,
+            "shadow_alpha_fang": 0.45,
+        },
+        "quest_target": "shadow_wolf",
+        "boss_mechanic": "shadow_alpha",
+        "world_boss": True,
+        "corpse_equipment_pool": [
+            "leather_vest", "lucky_charm", "iron_boots"
+        ],
+        "corpse_equipment_guaranteed": 2,
+    },
+    "ruin_warden": {
+        "name": "Strażnik Ruin",
+        "max_hp": 430,
+        "damage": 29,
+        "damage_type": "physical",
+        "silver": 550,
+        "gold": 2,
+        "mithril": 0,
+        "stat_reward": 235,
+        "class_xp_reward": 3300,
+        "soul_reward": 860,
+        "drops": {
+            "soul_shard": 0.80,
+            "ruin_warden_plate": 0.45,
+        },
+        "quest_target": None,
+        "boss_mechanic": "ruin_warden",
+        "world_boss": True,
+        "corpse_equipment_pool": [
+            "iron_helmet", "iron_guard", "iron_gauntlets",
+            "iron_leggings", "iron_boots"
+        ],
+        "corpse_equipment_guaranteed": 2,
+    },
+    "ruin_watchman": {
+        "name": "Ożywiony Wartownik", "max_hp": 105, "damage": 12, "damage_type": "physical",
+        "silver": 54, "gold": 0, "mithril": 0, "stat_reward": 44, "soul_reward": 220,
+        "drops": {"healing_potion": 0.10}, "quest_target": None,
+    },
+    "ruin_spearman": {
+        "name": "Włócznik Starej Straży", "max_hp": 125, "damage": 14, "damage_type": "physical",
+        "silver": 64, "gold": 0, "mithril": 0, "stat_reward": 50, "soul_reward": 255,
+        "drops": {"healing_potion": 0.10, "soul_shard": 0.06}, "quest_target": None,
+    },
+    "ruin_crossbowman": {
+        "name": "Kusznik Starej Straży", "max_hp": 112, "damage": 15, "damage_type": "physical",
+        "silver": 68, "gold": 0, "mithril": 0, "stat_reward": 51, "soul_reward": 265,
+        "drops": {"healing_potion": 0.08}, "quest_target": None,
+    },
+    "ruin_shieldbearer": {
+        "name": "Tarczownik Starej Straży", "max_hp": 155, "damage": 15, "damage_type": "physical",
+        "silver": 82, "gold": 1, "mithril": 0, "stat_reward": 60, "soul_reward": 310,
+        "drops": {"healing_potion": 0.14, "soul_shard": 0.08}, "quest_target": None,
+    },
+    "ruin_runekeeper": {
+        "name": "Runiczny Strażnik", "max_hp": 138, "damage": 17, "damage_type": "magic",
+        "silver": 88, "gold": 1, "mithril": 0, "stat_reward": 62, "soul_reward": 330,
+        "drops": {"mana_potion": 0.14, "soul_shard": 0.12}, "quest_target": None,
+    },
+    "ruin_wraith": {
+        "name": "Widmo Strażnicy", "max_hp": 145, "damage": 18, "damage_type": "magic",
+        "silver": 0, "gold": 2, "mithril": 0, "stat_reward": 65, "soul_reward": 350,
+        "drops": {"soul_shard": 0.28}, "quest_target": None,
+    },
+    "ruin_gargoyle": {
+        "name": "Kamienny Obserwator", "max_hp": 175, "damage": 18, "damage_type": "physical",
+        "silver": 96, "gold": 1, "mithril": 0, "stat_reward": 70, "soul_reward": 380,
+        "drops": {"soul_shard": 0.18}, "quest_target": None,
+    },
+    "ruin_goblin_looter": {
+        "name": "Gobliński Łupieżca Ruin", "max_hp": 98, "damage": 12, "damage_type": "physical",
+        "silver": 60, "gold": 0, "mithril": 0, "stat_reward": 43, "soul_reward": 220,
+        "drops": {"healing_potion": 0.10}, "quest_target": "goblin",
+    },
+    "ruin_captain": {
+        "name": "Kapitan Starej Straży", "max_hp": 330, "damage": 23, "damage_type": "physical",
+        "silver": 300, "gold": 2, "mithril": 0, "stat_reward": 135,
+        "class_xp_reward": 1800, "soul_reward": 560,
+        "drops": {"healing_potion": 0.40, "soul_shard": 0.35},
+        "quest_target": None, "mini_boss": True, "respawn_seconds": 180,
+        "boss_mechanic_text": "Mini-boss. Dowódca wewnętrznej straży ruin.",
+        "corpse_equipment_pool": ["iron_helmet", "iron_guard", "iron_gauntlets", "iron_boots"],
+        "corpse_equipment_guaranteed": 1,
+    },
+    "crystal_lord": {
+        "name": "Kryształowy Władca",
+        "max_hp": 500,
+        "damage": 32,
+        "damage_type": "magic",
+        "silver": 0,
+        "gold": 8,
+        "mithril": 1,
+        "stat_reward": 270,
+        "class_xp_reward": 4000,
+        "soul_reward": 1000,
+        "drops": {
+            "soul_elixir": 0.35,
+            "crystal_lord_core": 0.45,
+        },
+        "quest_target": None,
+        "boss_mechanic": "crystal_lord",
+        "world_boss": True,
+        "corpse_equipment_pool": [
+            "iron_guard", "iron_leggings", "forge_charm", "lucky_charm"
+        ],
+        "corpse_equipment_guaranteed": 2,
+    },
+    "skeleton": {
+        "name": "Szkielet Strażnik", "max_hp": 90, "damage": 11, "damage_type": "physical",
+        "silver": 30, "gold": 1, "mithril": 0, "stat_reward": 42, "soul_reward": 240,
+        "drops": {"soul_shard": 0.55}, "quest_target": "skeleton",
+    },
+    "crypt_wraith": {
+        "name": "Upiór Krypty", "max_hp": 120, "damage": 14, "damage_type": "magic",
+        "silver": 0, "gold": 2, "mithril": 1, "stat_reward": 55, "soul_reward": 280,
+        "drops": {"soul_shard": 0.85}, "quest_target": "crypt_wraith",
+    },
+    "crystal_guardian": {
+        "name": "Kryształowy Strażnik", "max_hp": 140, "damage": 15, "damage_type": "magic",
+        "silver": 0, "gold": 4, "mithril": 1, "stat_reward": 60, "soul_reward": 320,
+        "drops": {"soul_elixir": 0.08}, "quest_target": None,
+    },
+}
+
+__all__ = ['MOB_TEMPLATES']

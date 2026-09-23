@@ -1,11 +1,14 @@
 # -*- coding: utf-8 -*-
 #!/usr/bin/env python3
-"""Soulbound v0.38.14 Bounty Abandon."""
+"""Soulbound v0.52.0 World Expansion II."""
 from pathlib import Path
 import os
 import socket
 
+from core.native_runtime import load_native_runtime
+
 _ROOT = Path(__file__).resolve().parent
+
 
 def _boot_port() -> int:
     # Keep exactly the same precedence as core/bootstrap_economy_professions.py.
@@ -20,6 +23,7 @@ def _boot_port() -> int:
                 pass
     return 4000
 
+
 # Railway/TCP health must see a listening socket immediately, before the large
 # world registry and Generator Core finish loading. asyncio adopts this socket
 # later; connections made during boot wait safely in the kernel backlog.
@@ -30,109 +34,24 @@ _BOOT_SOCKET.listen(128)
 _BOOT_SOCKET.setblocking(False)
 print(f"Soulbound bootstrap port open: {_BOOT_SOCKET.getsockname()}", flush=True)
 
-_ROOT = Path(__file__).resolve().parent
-_RUNTIME_MODULES = [
-    "core/bootstrap_economy_professions.py",
-    "core/progression_resources.py",
-    "core/progression_600.py",
-    "core/classes_skills.py",
-    "core/mines_threat.py",
-    "systems/items_resources.py",
-    "systems/equipment_crafting.py",
-    "systems/content_registry.py",
-    "systems/dungeons_regions.py",
-    "world/expansions.py",
-    "world/machine_expansion_v0314.py",
-    "world/magitek_dungeon_v0319.py",
-    "systems/tech_crafting_v03111.py",
-    "world/equipment_help.py",
-    "world/economy_quests.py",
-    "world/dynamic_content.py",
-    "network/protocol_gameplay_utils.py",
-    "network/tech_runes_v03111.py",
-    "systems/crafting_expansion_v03114.py",
-    "systems/milestone_v0320.py",
-    "storage/database.py",
-    "storage/crafting_expansion_v03114.py",
-    "storage/milestone_v0320.py",
-    "player/character.py",
-    "world/generation_systems.py",
-    "world/runtime_progression.py",
-    "world/world_state.py",
-    "systems/professions_v03053.py",
-    "systems/crafting_quality_v03054.py",
-    "player/session_mixins/core_progression.py",
-    "player/session_mixins/io_auth_character.py",
-    "player/session_mixins/equipment_stats.py",
-    "player/session_mixins/perception_maps.py",
-    "player/session_mixins/world_progression.py",
-    "player/session_mixins/help_codex_profile.py",
-    "player/session_mixins/movement_party_social.py",
-    "player/session_mixins/professions_storage_guide.py",
-    "player/session_mixins/admin_gathering_sales.py",
-    "player/session_mixins/crafting_inventory_equipment.py",
-    "player/session_mixins/quests.py",
-    "player/session_mixins/skills_combat.py",
-    "player/session_mixins/forge_guilds.py",
-    "player/session_mixins/social_expansion.py",
-    "player/session_mixins/progression_accessibility_v03052.py",
-    "player/session_mixins/professions_v03053.py",
-    "player/session_mixins/tech_crafting_v03111.py",
-    "player/session_mixins/crafting_expansion_v03114.py",
-    "player/session_mixins/milestone_v0320.py",
-    "player/session_mixins/command_loop.py",
-    "player/session.py",
-    "server/mud_server.py",
-    "admin/help_refresh.py",
-    "admin/audits.py",
-    "systems/economy_audit_v03060.py",
-    "systems/full_systems_audit_v03062.py",
-    "admin/crafting_audit_v03114.py",
-    "world/uoss_superbosses_v0366.py",
-    "world/crypt_party_rebalance_v0368.py",
-    "world/crypt_floor_progression_v03610.py",
-    "world/crypt_overdrive_v0370.py",
-    "world/tower_overdrive_v0381.py",
-    "world/magitek_infinite_v0382.py",
-    "world/magitek_hourly_quests_v0383.py",
-    "world/world_threat_overdrive_v0384.py",
-    "world/troll_shaman_density_v03611.py",
-    "systems/public_records_v0370.py",
-    "admin/party_revive_audit_v0371.py",
-    "world/party_combo_ultimate_summary_v0380.py",
-    "systems/currency_ratio_v0385.py",
-    "world/global_difficulty_overdrive_v0386.py",
-    "admin/bounty_target_audit_v0387.py",
-    "admin/soul_tier8_trial_audit_v0388.py",
-    "admin/quest_kill_credit_audit_v0389.py",
-    "systems/smithing_materials_v03810.py",
-    "systems/server_chronicle_v03811.py",
-    "systems/dungeon_entry_commands_v03812.py",
-    "admin/bounty_abandon_audit_v03814.py",
-    "admin/release_integrity_v0369.py",
-]
+# v0.49.0: runtime catalog writes are routed through controlled ownership while untouched
+# historical modules remain behind a measured compatibility bridge.
+# The manifest keeps load/override policy explicit and server.py never executes
+# project source text into its own globals.
+RUNTIME_ARCHITECTURE_STATE = load_native_runtime(_ROOT, globals())
 
-_missing = [name for name in _RUNTIME_MODULES if not (_ROOT / name).is_file()]
-if _missing:
-    raise RuntimeError("Soulbound runtime incomplete. Missing: " + ", ".join(_missing))
-
-for _name in _RUNTIME_MODULES:
-    _path = _ROOT / _name
-    _source = _path.read_text(encoding="utf-8")
-    exec(compile(_source, str(_path), "exec"), globals(), globals())
-
-# v0.34.4: run the exhaustive gate against the FINAL assembled runtime,
-# after economy/full-system/crafting compatibility layers have finished.
+# Run the exhaustive gate against the FINAL assembled runtime, after all
+# compatibility layers and cumulative milestone guards have finished.
 if os.environ.get("SOULBOUND_FULL_AUDIT", "").strip().lower() in ("1", "true", "yes", "on"):
     FULL_GAME_PREDEPLOY_AUDIT_V0336 = full_game_predeploy_audit_v0336()
     if FULL_GAME_PREDEPLOY_AUDIT_V0336["error_count"]:
         raise RuntimeError(
-            "Full Game Pre-Deploy Audit v0.38.14 failed: "
+            "Full Game Pre-Deploy Audit v0.52.0 failed: "
             + "; ".join(map(str, FULL_GAME_PREDEPLOY_AUDIT_V0336["errors"][:100]))
         )
 else:
     FULL_GAME_PREDEPLOY_AUDIT_V0336 = {
-        "version": "0.38.14", "skipped_at_runtime": True,
+        "version": "0.52.0", "skipped_at_runtime": True,
         "error_count": 0, "warning_count": 0, "errors": [], "warnings": [],
         "reason": "Run before deploy with SOULBOUND_FULL_AUDIT=1; skipped during normal server startup.",
     }

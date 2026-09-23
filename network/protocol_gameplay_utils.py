@@ -1,13 +1,7 @@
+from data import catalog_mutations as _catalog_mut
 
-COMMAND_ALIASES.update({
-    "techsalvage":"techsalvage", "salvagetech":"techsalvage", "rozloztech":"techsalvage", "rozłóżtech":"techsalvage",
-    "techcraft":"techcraft", "technologia":"techcraft", "technology":"techcraft",
-    "vmaxstatus":"vmaxstatus", "vmaxinfo":"vmaxstatus", "v-maxstatus":"vmaxstatus",
-})
-COMMAND_ALIASES.update({
-    "bosskodex": "bosscodex", "bosscodex": "bosscodex",
-    "kodeksbossow": "bosscodex", "kodeksbossów": "bosscodex",
-})
+# v0.49.0: aliasy komend są centralnie zdefiniowane w config/command_aliases.py.
+# v0.49.0: aliasy komend są centralnie zdefiniowane w config/command_aliases.py.
 
 HELP_TOPIC_ALIASES.update({
     "bosskodex": "boss_codex", "bosscodex": "boss_codex",
@@ -437,7 +431,7 @@ def _register_boss_floor_keys():
     rows.extend(("mythic_astral", f) for f in sorted(MYTHIC_BOSS_FLOORS))
     for kind, floor in rows:
         key_id = boss_floor_key_id(kind, floor)
-        ITEMS[key_id] = {
+        _catalog_mut.catalog_assign({
             "name": f"Klucz Bossa {BOSS_CHEST_KIND_NAMES[kind]} {floor}",
             "type": "quest",
             "price": None,
@@ -448,7 +442,7 @@ def _register_boss_floor_keys():
                 f"Jednorazowy klucz z ciała bossa. Otwiera skrzynię na "
                 f"piętrze {floor} w: {BOSS_CHEST_KIND_NAMES[kind]}."
             ),
-        }
+        }, 'ITEMS', ITEMS, (key_id,))
 
 _register_boss_floor_keys()
 
@@ -614,17 +608,15 @@ V0925_SALVAGE_MATERIALS = {
     "eternium": ("salvage_eternium_fragment", "Fragment Eternium"),
 }
 for _mat_key, (_iid, _iname) in V0925_SALVAGE_MATERIALS.items():
-    ITEMS[_iid] = {
+    _catalog_mut.catalog_assign({
         "name": _iname, "type": "craft_material", "price": None,
         "craftbox_category": "salvage",
         "desc": "Materiał odzyskany przez rozkładanie niepotrzebnego EQ u Haldora.",
-    }
+    }, 'ITEMS', ITEMS, (_iid,))
 # v0.31.13: materiały salvage mają także praktyczne zastosowanie w Kuźni.
 if "salvage_iron_scrap" in ITEMS:
-    ITEMS["salvage_iron_scrap"]["desc"] = (
-        "Odłamek żelaza odzyskany przez rozkładanie EQ u Haldora. "
-        "Dwa odłamki można przetopić w Kuźni w 1 Żelazną sztabkę."
-    )
+    _catalog_mut.catalog_assign("Odłamek żelaza odzyskany przez rozkładanie EQ u Haldora. "
+        "Dwa odłamki można przetopić w Kuźni w 1 Żelazną sztabkę.", 'ITEMS', ITEMS, ("salvage_iron_scrap", "desc"))
 _V03113_SALVAGE_SMELT_OUTPUTS = {
     "salvage_steel_scrap": "Sztabkę Stali",
     "salvage_cobalt_fragment": "Kobaltową sztabkę",
@@ -636,21 +628,19 @@ _V03113_SALVAGE_SMELT_OUTPUTS = {
 }
 for _sid, _out_name in _V03113_SALVAGE_SMELT_OUTPUTS.items():
     if _sid in ITEMS:
-        ITEMS[_sid]["desc"] = (
-            ITEMS[_sid].get("desc", "").rstrip(". ")
-            + f". Dwa takie materiały można przetopić w Kuźni w 1 {_out_name}."
-        )
+        _catalog_mut.catalog_assign(ITEMS[_sid].get("desc", "").rstrip(". ")
+            + f". Dwa takie materiały można przetopić w Kuźni w 1 {_out_name}.", 'ITEMS', ITEMS, (_sid, "desc"))
 
-ITEMS["reforge_essence"] = {
+_catalog_mut.catalog_assign({
     "name": "Esencja Przekucia", "type": "craft_material", "price": None,
     "craftbox_category": "salvage",
     "desc": "Esencja używana przez Haldora do zmiany jednego bonusu EQ.",
-}
-ITEMS["rune_dust"] = {
+}, 'ITEMS', ITEMS, ("reforge_essence",))
+_catalog_mut.catalog_assign({
     "name": "Pył Runiczny", "type": "craft_material", "price": None,
     "craftbox_category": "runes",
     "desc": "Pył odzyskiwany z wysokopoziomowego EQ; służy do tworzenia run.",
-}
+}, 'ITEMS', ITEMS, ("rune_dust",))
 V0925_RUNES = {
     "moc": ("rune_power", "Runa Mocy", {"all_damage_pct": 2}),
     "ochrona": ("rune_guard", "Runa Ochrony", {"physical_defense_pct": 2, "magic_defense_pct": 2}),
@@ -663,12 +653,12 @@ V0925_RUNE_BY_ID = {}
 for _rkey, (_rid, _rname, _effects) in V0925_RUNES.items():
     _props = {k:v for k,v in _effects.items() if k.endswith("_pct")}
     _stats = {k:v for k,v in _effects.items() if not k.endswith("_pct")}
-    ITEMS[_rid] = {
+    _catalog_mut.catalog_assign({
         "name": _rname, "type": "craft_material", "price": None,
         "craftbox_category": "runes", "rune_key": _rkey,
         "rune_properties": _props, "rune_stats": _stats,
         "desc": "Runę można osadzić w gnieździe endgame EQ; nie zmienia wymogu Biegłości.",
-    }
+    }, 'ITEMS', ITEMS, (_rid,))
     V0925_RUNE_BY_ID[_rid] = (_rkey, _effects)
 
 CRAFT_MATERIAL_STORAGE_IDS = frozenset(
@@ -984,7 +974,7 @@ def v0927_guild_boss_name(hall_level):
 V0929_HOURLY_QUEST_COOLDOWN = 60 * 60
 
 # Przedmioty questowe wypadają wyłącznie podczas aktywnego zlecenia.
-ITEMS.update({
+_catalog_mut.catalog_update_path('ITEMS', ITEMS, (), {
     "damaged_weapon_v0929": {
         "name": "Uszkodzone Ostrze", "type": "quest", "price": None,
         "desc": "Pęknięta broń zabrana szkieletowi lub strażnikowi podczas zlecenia Haldora.",
@@ -1005,7 +995,7 @@ V0929_RIVER_FISH_STORAGE_IDS = {
     if base_fish_species_id(item_id) in RIVER_FISH_ATLAS
 }
 
-QUESTS.update({
+_catalog_mut.catalog_update_path('QUESTS', QUESTS, (), {
     "haldor_broken_blades_v0929": {
         "name": "Złamane ostrza",
         "giver": "Mistrz Rzemiosła Haldor",
@@ -1166,7 +1156,7 @@ QUESTS.update({
 })
 
 # Dodatkowy NPC stoi bezpośrednio przy wejściu na Stary Cmentarz.
-NPCS["cemetery_watchman_v0929"] = {
+_catalog_mut.catalog_assign({
     "name": "Strażnik Starego Cmentarza",
     "room": "graveyard",
     "dialogue": (
@@ -1174,7 +1164,7 @@ NPCS["cemetery_watchman_v0929"] = {
         "Zlecenie odnawia się co godzinę."
     ),
     "quest": "cemetery_undead_rising_v0929",
-}
+}, 'NPCS', NPCS, ("cemetery_watchman_v0929",))
 
 # Haldor i Orin pokazują nowe zlecenia również w swoich jawnych listach specjalisty.
 def _v0929_append_specialist_quests(npc_id, *quest_ids):
@@ -1205,7 +1195,7 @@ for _mid in (
         _tags = list(MOB_TEMPLATES[_mid].get("quest_targets") or ())
         if "cemetery_undead_v0929" not in _tags:
             _tags.append("cemetery_undead_v0929")
-        MOB_TEMPLATES[_mid]["quest_targets"] = tuple(_tags)
+        _catalog_mut.catalog_assign(tuple(_tags), 'MOB_TEMPLATES', MOB_TEMPLATES, (_mid, "quest_targets"))
 
 V03035_BROKEN_BLADE_SOURCES = frozenset({
     "cemetery_restless_dead",

@@ -1,6 +1,21 @@
 # -*- coding: utf-8 -*-
 """Soulbound v0.30.51 Session mixin: equipment_stats."""
 
+# v0.44.0: explicit dependencies; no compatibility-global injection.
+import random
+from core.bootstrap_economy_professions import generator_core_v027
+from core.mines_threat import ITEMS
+from core.progression_600 import CLASS_MASTERY_MAX_LEVEL
+from core.progression_resources import class_type_for_name
+from network.protocol_gameplay_utils import v03042_upgrade_defense_bonus, v03042_upgrade_primary_stat, v03042_upgrade_stat_bonus
+from systems.crafting_expansion import TECH_SET_ITEMS_V03114
+from systems.equipment_crafting import CLASS_SET_BONUSES, CLASS_SET_STAT_NAMES
+from systems.items_resources import CLASS_EQUIPMENT_SETS
+from world.economy_quests import v0865_dodge_chance_from_dexterity
+from world.expansions import REGIONAL_SET_BONUSES
+from world.runtime_progression import V021_MYTHIC_SET_BONUS, v0210_world_tier_multipliers
+
+
 
 def moogle_board_stat_bonus_v0313(mec_mastery):
     """Bonus Moogle Board do każdego głównego statu, skalowany Biegłością Meca."""

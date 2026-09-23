@@ -1,3 +1,32 @@
+from data import catalog_mutations as _catalog_mut
+
+# v0.44.0: explicit dependencies; no compatibility-global injection.
+import random
+from core.classes_skills import ROOMS
+from core.mines_threat import ITEMS
+from core.progression_600 import CLASS_MASTERY_MAX_LEVEL, PROFESSION_MAX_LEVEL, PROGRESSION_400_LEVELS, TOOL_MAX_LEVEL
+from core.progression_resources import RIVER_FISH_ATLAS, class_type_for_name
+from systems.items_resources import (
+    BLACKSMITH_SLOT_DEFS,
+    BLACKSMITH_TIERS,
+    CLASS_EQUIPMENT_CLASS_PROFILES,
+    CLASS_EQUIPMENT_ITEMS_BY_CLASS_TIER,
+    CLASS_EQUIPMENT_ITEM_IDS,
+    CLASS_EQUIPMENT_MASTERY_LEVELS,
+    CLASS_EQUIPMENT_SETS,
+    CLASS_EQUIPMENT_SLOT_DEFS,
+    CLASS_EQUIPMENT_SLOT_PRIMARY_BIAS,
+    CLASS_EQUIPMENT_SLOT_PROPERTY_SCALE,
+    CLASS_EQUIPMENT_STYLES,
+    CLASS_SHOP_CLASSES_BY_ROOM,
+    CLASS_SHOP_ITEMS_BY_ROOM,
+    FISH_STORAGE_IDS,
+    ORE_STORAGE_IDS,
+    _BLACKSMITH_400_LABELS,
+    _PROGRESSION_400_NAMES,
+    base_fish_species_id,
+)
+
 
 
 def class_equipment_base_stat_pair(class_name):
@@ -176,7 +205,7 @@ def _register_class_equipment_shops():
                     price = max(1, int(base_price) * int(price_multiplier))
                     tier_label = _class_equipment_tier_label(required_mastery)
 
-                    ITEMS[item_id] = {
+                    _catalog_mut.catalog_assign({
                         "name": (
                             f"{slot_name} {style_name}"
                             if required_mastery == 1
@@ -208,7 +237,7 @@ def _register_class_equipment_shops():
                             f"Podstawowe statystyki EQ: "
                             f"{class_equipment_base_stats_text(class_name, legacy_affix_amount, slot)}."
                         ),
-                    }
+                    }, 'ITEMS', ITEMS, (item_id,))
                     CLASS_EQUIPMENT_ITEM_IDS.add(item_id)
                     tier_items.append(item_id)
 
@@ -369,7 +398,7 @@ def _register_legendary_class_loot():
                 primary_stat, primary_amount, secondary_stat, secondary_amount = (
                     class_equipment_split_stat_budget(class_name, legacy_affix_amount)
                 )
-                ITEMS[item_id] = {
+                _catalog_mut.catalog_assign({
                     "name": f"{slot_name} {set_name} +{mastery}",
                     "type": "armor",
                     "slot": slot,
@@ -396,7 +425,7 @@ def _register_legendary_class_loot():
                         f"Podstawowe statystyki EQ: "
                         f"{class_equipment_base_stats_text(class_name, legacy_affix_amount, slot)}."
                     ),
-                }
+                }, 'ITEMS', ITEMS, (item_id,))
                 CLASS_EQUIPMENT_ITEM_IDS.add(item_id)
                 tier_items.append(item_id)
             class_sets[mastery] = tuple(tier_items)
@@ -417,7 +446,7 @@ def _register_legendary_class_loot():
                 properties["max_mana_pct"] = prop_value
             else:
                 properties["max_hp_pct"] = prop_value
-            ITEMS[relic_id] = {
+            _catalog_mut.catalog_assign({
                 "name": f"Relikwiarz Legendy {definition['set_name']} +{mastery}",
                 "type": "armor",
                 "slot": "necklace",
@@ -441,13 +470,13 @@ def _register_legendary_class_loot():
                     f"Podstawowe statystyki EQ: "
                     f"{class_equipment_base_stats_text(class_name, legacy_relic_affix)}."
                 ),
-            }
+            }, 'ITEMS', ITEMS, (relic_id,))
             relics[mastery] = relic_id
 
 
 _register_legendary_class_loot()
 
-ITEMS["jeweler_pliers"] = {
+_catalog_mut.catalog_assign({
     "name": "Szczypce Jubilerskie",
     "type": "tool",
     "tool_type": "jewelcrafting",
@@ -458,28 +487,11 @@ ITEMS["jeweler_pliers"] = {
         "Ma własny level 1-600, XP i 60 Tierów. "
         "Nie ma trwałości i nie zużywa się."
     ),
-}
+}, 'ITEMS', ITEMS, ("jeweler_pliers",))
 
-SHOPS = {
-    "fish_market": ["fishing_rod"],
-    "market": ["healing_potion", "leather_vest", "lucky_charm"],
-    "inn": ["healing_potion", "chef_knife"],
-    "forge": [
-        "iron_helmet",
-        "iron_guard",
-        "iron_gauntlets",
-        "iron_leggings",
-        "iron_boots",
-        "forge_charm",
-        "crafting_hammer",
-    ],
-    "cave_entrance": ["pickaxe"],
-    "lumberjack_camp": ["saw"],
-    "herbalist_hut": ["herbalist_sickle", "alchemy_mortar"],
-    "jeweler_workshop": ["jeweler_pliers"],
-}
+from data.shops import SHOPS
 for _room_id, _items in CLASS_SHOP_ITEMS_BY_ROOM.items():
-    SHOPS[_room_id] = list(_items)
+    _catalog_mut.catalog_assign(list(_items), 'SHOPS', SHOPS, (_room_id,))
 
 
 
@@ -502,114 +514,11 @@ SHOP_SELLERS = {
 
 
 for _room_id in CLASS_SHOP_ITEMS_BY_ROOM:
-    ROOMS[_room_id]["desc"] += (
-        " W tej sali działa także klasowy sklep "
-        "z pełnym 14-elementowym wyposażeniem."
-    )
+    _catalog_mut.catalog_aug_path('ROOMS', ROOMS, (_room_id, "desc"), 'Add', " W tej sali działa także klasowy sklep "
+        "z pełnym 14-elementowym wyposażeniem.")
 
 
-CRAFT_RECIPES = {
-    "iron_ingot": {
-        "name": "Żelazna sztabka", "stations": ("forge",),
-        "ingredients": {"iron_ore": 1}, "output": "iron_ingot", "quantity": 1,
-        "desc": "Przetop 1 Rudę żelaza w 1 Żelazną sztabkę.",
-    },
-    "silver_ingot": {
-        "name": "Srebrna sztabka", "stations": ("forge",),
-        "ingredients": {"silver_ore": 1}, "output": "silver_ingot", "quantity": 1,
-        "desc": "Przetop 1 Rudę srebra w 1 Srebrną sztabkę.",
-    },
-    "gold_ingot": {
-        "name": "Złota sztabka", "stations": ("forge",),
-        "ingredients": {"gold_ore": 1}, "output": "gold_ingot", "quantity": 1,
-        "desc": "Przetop 1 Rudę złota w 1 Złotą sztabkę.",
-    },
-    "oak_plank": {
-        "name": "Deska dębowa", "stations": ("lumberjack_camp",),
-        "ingredients": {"oak_log": 2}, "output": "oak_plank", "quantity": 1,
-        "desc": "Obrób 2 Pnie dębu w 1 Deskę dębową.",
-    },
-    "ash_plank": {
-        "name": "Deska jesionowa", "stations": ("lumberjack_camp",),
-        "ingredients": {"ash_log": 2}, "output": "ash_plank", "quantity": 1,
-        "desc": "Obrób 2 Pnie jesionu w 1 Deskę jesionową.",
-    },
-    "yew_plank": {
-        "name": "Deska cisowa", "stations": ("lumberjack_camp",),
-        "ingredients": {"yew_log": 2}, "output": "yew_plank", "quantity": 1,
-        "desc": "Obrób 2 Pnie cisu w 1 Deskę cisową.",
-    },
-    "ironwood_plank": {
-        "name": "Deska żelaznego drzewa", "stations": ("lumberjack_camp",),
-        "ingredients": {"ironwood_log": 2}, "output": "ironwood_plank", "quantity": 1,
-        "desc": "Obrób 2 Pnie żelaznego drzewa w 1 Deskę.",
-    },
-    "spiritwood_plank": {
-        "name": "Deska drzewa duchów", "stations": ("lumberjack_camp",),
-        "ingredients": {"spiritwood_log": 2}, "output": "spiritwood_plank", "quantity": 1,
-        "desc": "Obrób 2 Pnie drzewa duchów w 1 magiczną Deskę.",
-    },
-    "oak_iron_charm": {
-        "name": "Talizman Dębu i Żelaza", "stations": ("forge",),
-        "ingredients": {"oak_plank": 2, "iron_ingot": 1},
-        "output": "oak_iron_charm", "quantity": 1,
-        "desc": "Talizman obronny +2 z drewna dębowego i żelaza.",
-    },
-    "yew_silver_charm": {
-        "name": "Talizman Cisu i Srebra", "stations": ("forge",),
-        "ingredients": {"yew_plank": 2, "silver_ingot": 1},
-        "output": "yew_silver_charm", "quantity": 1,
-        "desc": "Rzadki talizman obronny +3.",
-    },
-    "spiritwood_gold_charm": {
-        "name": "Talizman Drzewa Dusz", "stations": ("forge",),
-        "ingredients": {"spiritwood_plank": 2, "gold_ingot": 1},
-        "output": "spiritwood_gold_charm", "quantity": 1,
-        "desc": "Zaawansowany talizman obronny +5.",
-    },
-    "runic_guard_charm": {
-        "name": "Runiczny Talizman Straży", "stations": ("forge",),
-        "ingredients": {"cobalt_ingot": 2, "runewood_log": 2},
-        "output": "runic_guard_charm", "quantity": 1,
-        "min_tool_level": 100, "tool_xp": 24,
-        "desc": "Kowalstwo level 100. 2 Kobaltowe sztabki + 2 Runiczne drewno. Obrona +6, Kondycja +2.",
-    },
-    "dragonforge_charm": {
-        "name": "Talizman Smoczej Kuźni", "stations": ("forge",),
-        "ingredients": {"runestone_ingot": 2, "dragonwood_log": 2},
-        "output": "dragonforge_charm", "quantity": 1,
-        "min_tool_level": 120, "tool_xp": 28,
-        "desc": "Kowalstwo level 120. 2 Runiczne sztabki + 2 Smocze drewno. Obrona +7, Siła +3.",
-    },
-    "astral_forge_charm": {
-        "name": "Astralny Talizman Kuźni", "stations": ("forge",),
-        "ingredients": {"dragonsteel_ingot": 2, "astralwood_log": 2},
-        "output": "astral_forge_charm", "quantity": 1,
-        "min_tool_level": 140, "tool_xp": 32,
-        "desc": "Kowalstwo level 140. 2 Sztabki Smoczej Stali + 2 Astralne drewno. Obrona +8, Inteligencja +3.",
-    },
-    "void_guard_charm": {
-        "name": "Talizman Straży Pustki", "stations": ("forge",),
-        "ingredients": {"astral_ingot": 2, "voidwood_log": 2},
-        "output": "void_guard_charm", "quantity": 1,
-        "min_tool_level": 160, "tool_xp": 36,
-        "desc": "Kowalstwo level 160. 2 Astralne sztabki + 2 Drewno Pustki. Obrona +9, Siła Woli +4.",
-    },
-    "worldheart_charm": {
-        "name": "Talizman Serca Świata", "stations": ("forge",),
-        "ingredients": {"void_ingot": 2, "starheart_log": 2},
-        "output": "worldheart_charm", "quantity": 1,
-        "min_tool_level": 180, "tool_xp": 40,
-        "desc": "Kowalstwo level 180. 2 Sztabki Pustki + 2 Drewno Serca Gwiazdy. Obrona +10, HP +60.",
-    },
-    "eternal_soul_charm": {
-        "name": "Talizman Wiecznej Duszy", "stations": ("forge",),
-        "ingredients": {"eternium_ingot": 2, "eternal_worldwood_log": 2},
-        "output": "eternal_soul_charm", "quantity": 1,
-        "min_tool_level": 200, "tool_xp": 50,
-        "desc": "Kowalstwo level 200. 2 Sztabki Eternium + 2 Wieczne drewno. Obrona +12, Zręczność +5.",
-    },
-}
+from data.crafting_recipes import CRAFT_RECIPES
 
 def _register_blacksmith_recipes():
     # Existing first three ingot recipes become proper
@@ -637,7 +546,7 @@ def _register_blacksmith_recipes():
         if ingot_id not in {
             "iron_ingot", "silver_ingot", "gold_ingot"
         }:
-            CRAFT_RECIPES[ingot_id] = {
+            _catalog_mut.catalog_assign({
                 "name": ITEMS[ingot_id]["name"],
                 "stations": ("forge",),
                 "ingredients": {
@@ -661,7 +570,7 @@ def _register_blacksmith_recipes():
                     f"{ITEMS[tier['ore']]['name']} "
                     f"w 1 sztabkę."
                 ),
-            }
+            }, 'CRAFT_RECIPES', CRAFT_RECIPES, (ingot_id,))
 
         for slot, (
             slot_name, _def_delta, ingot_cost
@@ -672,7 +581,7 @@ def _register_blacksmith_recipes():
             recipe_id = (
                 f"forge_{tier['key']}_{slot}"
             )
-            CRAFT_RECIPES[recipe_id] = {
+            _catalog_mut.catalog_assign({
                 "name": ITEMS[output_id]["name"],
                 "stations": ("forge",),
                 "ingredients": {
@@ -697,91 +606,11 @@ def _register_blacksmith_recipes():
                     f"Wymaga Kowalstwa level "
                     f"{tier['profession_level']}."
                 ),
-            }
+            }, 'CRAFT_RECIPES', CRAFT_RECIPES, (recipe_id,))
 
 _register_blacksmith_recipes()
 
-ALCHEMY_RECIPES = {
-    "healing_potion": {
-        "name": "Mikstura leczenia", "stations": ("herbalist_hut",),
-        "ingredients": {"nettle": 1, "chamomile": 1},
-        "output": "healing_potion", "quantity": 1,
-        "min_tool_level": 5,
-        "desc": "Alchemia level 5. Pokrzywa + Rumianek. Przywraca 35 HP.",
-    },
-    "mana_potion": {
-        "name": "Mikstura Many", "stations": ("herbalist_hut",),
-        "ingredients": {"mint": 1, "lemon_balm": 1},
-        "output": "mana_potion", "quantity": 1,
-        "desc": "Mięta + Melisa. Przywraca 35 Many.",
-    },
-    "greater_healing_potion": {
-        "name": "Wielka Mikstura Leczenia", "stations": ("herbalist_hut",),
-        "ingredients": {"yarrow": 1, "ginseng": 1, "mandrake": 1},
-        "output": "greater_healing_potion", "quantity": 1,
-        "desc": "Krwawnik + Żeń-szeń + Mandragora. Przywraca 70 HP.",
-    },
-    "greater_mana_potion": {
-        "name": "Wielka Mikstura Many", "stations": ("herbalist_hut",),
-        "ingredients": {"sage": 1, "moonflower": 1, "star_moss": 1},
-        "output": "greater_mana_potion", "quantity": 1,
-        "desc": "Szałwia + Kwiat księżycowy + Gwiezdny mech. Przywraca 70 Many.",
-    },
-    "vitality_elixir": {
-        "name": "Eliksir Witalności", "stations": ("herbalist_hut",),
-        "ingredients": {"ginseng": 1, "soulroot": 1, "phoenix_leaf": 1},
-        "output": "vitality_elixir", "quantity": 1,
-        "desc": "Przywraca 55 HP i 30 Many.",
-    },
-    "soul_elixir": {
-        "name": "Eliksir Duszy", "stations": ("herbalist_hut",),
-        "ingredients": {"soulroot": 2, "astral_lotus": 1},
-        "output": "soul_elixir", "quantity": 1,
-        "desc": "Daje 80 Soul XP.",
-    },
-    "supreme_healing_potion": {
-        "name": "Najwyższa Mikstura Leczenia", "stations": ("herbalist_hut",),
-        "ingredients": {"sunfire_bloom": 2, "phoenix_leaf": 1},
-        "output": "supreme_healing_potion", "quantity": 1,
-        "min_tool_level": 100, "tool_xp": 24,
-        "desc": "Alchemia level 100. Przywraca do 130 HP.",
-    },
-    "supreme_mana_potion": {
-        "name": "Najwyższa Mikstura Many", "stations": ("herbalist_hut",),
-        "ingredients": {"dragon_sage": 2, "star_moss": 1},
-        "output": "supreme_mana_potion", "quantity": 1,
-        "min_tool_level": 120, "tool_xp": 28,
-        "desc": "Alchemia level 120. Przywraca do 130 Many.",
-    },
-    "grand_vitality_elixir": {
-        "name": "Wielki Eliksir Witalności", "stations": ("herbalist_hut",),
-        "ingredients": {"astral_orchid": 2, "soulroot": 1},
-        "output": "grand_vitality_elixir", "quantity": 1,
-        "min_tool_level": 140, "tool_xp": 32,
-        "desc": "Alchemia level 140. Przywraca do 120 HP i 80 Many.",
-    },
-    "soul_tonic": {
-        "name": "Tonik Duszy", "stations": ("herbalist_hut",),
-        "ingredients": {"void_lotus": 2, "astral_lotus": 1},
-        "output": "soul_tonic", "quantity": 1,
-        "min_tool_level": 160, "tool_xp": 36,
-        "desc": "Alchemia level 160. Daje 180 Soul XP.",
-    },
-    "astral_restoration_elixir": {
-        "name": "Astralny Eliksir Odnowy", "stations": ("herbalist_hut",),
-        "ingredients": {"phoenix_crown": 2, "sunfire_bloom": 1},
-        "output": "astral_restoration_elixir", "quantity": 1,
-        "min_tool_level": 180, "tool_xp": 40,
-        "desc": "Alchemia level 180. Przywraca do 180 HP i 120 Many.",
-    },
-    "eternal_soul_elixir": {
-        "name": "Eliksir Wiecznej Duszy", "stations": ("herbalist_hut",),
-        "ingredients": {"eternal_blossom": 2, "void_lotus": 1},
-        "output": "eternal_soul_elixir", "quantity": 1,
-        "min_tool_level": 200, "tool_xp": 50,
-        "desc": "Alchemia level 200. Daje 400 Soul XP.",
-    },
-}
+from data.alchemy_recipes import ALCHEMY_RECIPES
 
 
 JEWELCRAFTING_TIERS = (
@@ -862,28 +691,28 @@ def _register_jewelcrafting_recipes():
         socket_count = 3 if tier["level"] >= 180 else 2 if tier["level"] >= 100 else 1
         earring_sockets = 2 if tier["level"] >= 180 else 1
 
-        ITEMS[ring_id] = {
+        _catalog_mut.catalog_assign({
             "name": f"{tier['label']} Pierścień Jubilerski", "type": "armor", "slot": "ring",
             "defense": tier["defense"], "price": None, "rarity": "crafted", "rarity_name": "Jubilerski",
             "affix": tier["affix"], "affix_amount": tier["affix_amount"], "jewelcraft_level": tier["level"],
             "sockets": socket_count,
             "desc": f"Pierścień wykonany przez Jubilerstwo. Wymaga Jubilerstwa level {tier['level']}. Obrona +{tier['defense']}.",
-        }
-        ITEMS[necklace_id] = {
+        }, 'ITEMS', ITEMS, (ring_id,))
+        _catalog_mut.catalog_assign({
             "name": f"{tier['label']} Naszyjnik Jubilerski", "type": "armor", "slot": "necklace",
             "defense": tier["defense"] + 1, "price": None, "rarity": "crafted", "rarity_name": "Jubilerski",
             "affix": tier["affix"], "affix_amount": tier["affix_amount"] + 1, "jewelcraft_level": tier["level"],
             "sockets": socket_count,
             "desc": f"Naszyjnik wykonany przez Jubilerstwo. Wymaga Jubilerstwa level {tier['level']}. Obrona +{tier['defense'] + 1}.",
-        }
+        }, 'ITEMS', ITEMS, (necklace_id,))
         # Kolczyk ma inny profil: mniej obrony, więcej ofensywnego affixu. Dwie sztuki można nosić naraz.
-        ITEMS[earring_id] = {
+        _catalog_mut.catalog_assign({
             "name": f"{tier['label']} Kolczyk Jubilerski", "type": "armor", "slot": "earring",
             "defense": max(0, tier["defense"] - 1), "price": None, "rarity": "crafted", "rarity_name": "Jubilerski",
             "affix": tier["affix"], "affix_amount": tier["affix_amount"] + 1, "jewelcraft_level": tier["level"],
             "sockets": earring_sockets,
             "desc": f"Kolczyk wykonany przez Jubilerstwo. Można nosić dwie sztuki. Wymaga Jubilerstwa level {tier['level']}.",
-        }
+        }, 'ITEMS', ITEMS, (earring_id,))
 
         base_xp = 12 + tier["level"] // 8
         JEWELCRAFT_RECIPES[ring_id] = {
@@ -1057,7 +886,7 @@ def _register_gem_system():
             "void_onyx": 280,
             "eternium_prism": 450,
         }
-        ITEMS[raw_id] = {
+        _catalog_mut.catalog_assign({
             "name": definition["raw_name"],
             "type": "gem_raw",
             "price": None,
@@ -1071,8 +900,8 @@ def _register_gem_system():
                 f"Szlifowanie wymaga Jubilerstwa i Szczypiec "
                 f"Jubilerskich level {definition['level']}."
             ),
-        }
-        ITEMS[cut_id] = {
+        }, 'ITEMS', ITEMS, (raw_id,))
+        _catalog_mut.catalog_assign({
             "name": definition["cut_name"],
             "type": "gem",
             "price": None,
@@ -1086,7 +915,7 @@ def _register_gem_system():
                 f"{GEM_AFFIX_NAMES.get(definition['affix'], definition['affix'])} "
                 f"+{definition['amount']}."
             ),
-        }
+        }, 'ITEMS', ITEMS, (cut_id,))
 
         JEWELCRAFT_RECIPES[f"cut_{definition['key']}"] = {
             "name": definition["cut_name"],
@@ -1171,7 +1000,7 @@ def _register_gem_quality_variants():
             cut_name = f"{info['cut_label']} {cut_base_name}"
             RAW_GEM_IDS.add(raw_id)
             CUT_GEM_IDS.add(cut_id)
-            ITEMS[raw_id] = {
+            _catalog_mut.catalog_assign({
                 "name": raw_name, "type": "gem_raw", "price": None,
                 "sell_gold": max(1, int(round(base_sell * info["sell_mult"]))),
                 "gem_key": key, "gem_level": definition["level"],
@@ -1180,9 +1009,9 @@ def _register_gem_quality_variants():
                     f"{info['label']} wariant kamienia z Górnictwa. Trafia do Sakwy Górnika. "
                     f"Szlifowanie wymaga Jubilerstwa level {definition['level']}."
                 ),
-            }
+            }, 'ITEMS', ITEMS, (raw_id,))
             amount = gem_quality_amount(definition["amount"], quality)
-            ITEMS[cut_id] = {
+            _catalog_mut.catalog_assign({
                 "name": cut_name, "type": "gem", "price": None,
                 "gem_key": key, "gem_level": definition["level"],
                 "gem_quality": quality, "affix": definition["affix"],
@@ -1191,7 +1020,7 @@ def _register_gem_quality_variants():
                     f"Klejnot jakości {info['label'].lower()}. Bonus po osadzeniu: "
                     f"{GEM_AFFIX_NAMES.get(definition['affix'], definition['affix'])} +{amount}."
                 ),
-            }
+            }, 'ITEMS', ITEMS, (cut_id,))
             recipe_id = f"cut_{key}_{quality}"
             JEWELCRAFT_RECIPES[recipe_id] = {
                 "name": cut_name,
@@ -1225,7 +1054,7 @@ GEODE_DEFINITIONS = {
 }
 GEODE_IDS = set(GEODE_DEFINITIONS)
 for _geode_id, _geode in GEODE_DEFINITIONS.items():
-    ITEMS[_geode_id] = {
+    _catalog_mut.catalog_assign({
         "name": _geode["name"], "type": "geode", "price": None,
         "sell_gold": _geode["sell_gold"], "mining_bag_resource": True,
         "desc": (
@@ -1233,7 +1062,7 @@ for _geode_id, _geode in GEODE_DEFINITIONS.items():
             f"głębokość {_geode['min_floor']}+. Możesz sprzedać Dagnie albo otworzyć: "
             "open geode / otwórz geodę."
         ),
-    }
+    }, 'ITEMS', ITEMS, (_geode_id,))
 
 def roll_mining_geode(tool_level, profession_level, floor):
     tool_level = max(1, min(TOOL_MAX_LEVEL, int(tool_level)))
@@ -1454,12 +1283,12 @@ for _level in PROGRESSION_400_LEVELS:
     _wood = f"wood_400_{_level}"
 
     _food_id = f"feast_400_{_level}"
-    ITEMS[_food_id] = {
+    _catalog_mut.catalog_assign({
         "name": f"Uczta {_suffix}", "type": "consumable", "price": None,
         "heal": 260 + (_level - 200) // 2,
         "mana": 160 + (_level - 200) // 3,
         "desc": f"Gotowanie level {_level}. Potrawa progresji 201-600.",
-    }
+    }, 'ITEMS', ITEMS, (_food_id,))
     COOK_RECIPES[_food_id] = {
         "name": ITEMS[_food_id]["name"], "stations": ("inn", "fish_market"),
         "ingredients": {_fish: 1, _herb: 1}, "output": _food_id, "quantity": 1,
@@ -1470,31 +1299,31 @@ for _level in PROGRESSION_400_LEVELS:
     }
 
     _potion_id = f"elixir_400_{_level}"
-    ITEMS[_potion_id] = {
+    _catalog_mut.catalog_assign({
         "name": f"Eliksir {_suffix}", "type": "consumable", "price": None,
         "heal": 180 + (_level - 200) // 2,
         "mana": 120 + (_level - 200) // 3,
         "soul_xp": 400 + (_level - 200) * 2,
         "desc": f"Alchemia level {_level}. Eliksir progresji 201-600.",
-    }
-    ALCHEMY_RECIPES[_potion_id] = {
+    }, 'ITEMS', ITEMS, (_potion_id,))
+    _catalog_mut.catalog_assign({
         "name": ITEMS[_potion_id]["name"], "stations": ("herbalist_hut", "alchemy_lab"),
         "ingredients": {_herb: 2}, "output": _potion_id, "quantity": 1,
         "min_tool_level": _level, "min_profession_level": _level,
         "profession_xp": 52 + (_level - 200) // 4,
         "tool_xp": 46 + (_level - 200) // 5,
         "desc": f"Alchemia level {_level}. Dwa zioła progresji {_level}.",
-    }
+    }, 'ALCHEMY_RECIPES', ALCHEMY_RECIPES, (_potion_id,))
 
     _charm_id = f"charm_400_{_level}"
-    ITEMS[_charm_id] = {
+    _catalog_mut.catalog_assign({
         "name": f"Talizman Rzemieślnika {_suffix}", "type": "armor", "slot": "charm",
         "defense": 12 + (_level - 200) // 40, "price": None,
         "rarity": "crafted", "rarity_name": "Rzemieślniczy",
         "affix": "willpower", "affix_amount": 5 + (_level - 200) // 50,
         "desc": f"Kowalstwo level {_level}. Talizman progresji 201-600.",
-    }
-    CRAFT_RECIPES[_charm_id] = {
+    }, 'ITEMS', ITEMS, (_charm_id,))
+    _catalog_mut.catalog_assign({
         "name": ITEMS[_charm_id]["name"], "stations": ("forge",),
         "ingredients": {_ingot: 2, _wood: 2}, "output": _charm_id, "quantity": 1,
         "min_tool_level": _level, "min_profession_level": _level,
@@ -1502,4 +1331,4 @@ for _level in PROGRESSION_400_LEVELS:
         "tool_xp": 50 + (_level - 200) // 5,
         "category": "smithing",
         "desc": f"Kowalstwo level {_level}. Sztabki i drewno progresji {_level}.",
-    }
+    }, 'CRAFT_RECIPES', CRAFT_RECIPES, (_charm_id,))

@@ -1,4 +1,43 @@
 
+# v0.44.0: explicit dependencies; no compatibility-global injection.
+from dataclasses import dataclass
+import json
+from config.balance import STAT_XP_REQUIREMENT_MULTIPLIER
+from core.bootstrap_economy_professions import (
+    CHARISMA_DISCOUNT_STEP,
+    CHARISMA_MAX_DISCOUNT,
+    PARTY_BASE_CAPACITY,
+    PARTY_CHARISMA_STEP,
+    SOUL_MILESTONE_DODGE_BONUS,
+    SOUL_MILESTONE_GUARDIAN_REDUCTION,
+    SOUL_MILESTONE_SPECIALIZATION_BONUS,
+    SOUL_MILESTONE_TIERS,
+    SOUL_TRIAL_QUEST_IDS,
+    generator_core_v027,
+    stat_quality_label,
+)
+from core.progression_600 import (
+    CHARACTER_MAX_LEVEL,
+    SOUL_MAX_LEVEL,
+    SOUL_MAX_TIER,
+    SOUL_TIER_CLASS_BONUS_PERCENT,
+    SOUL_TIER_DODGE_BONUS,
+    SOUL_TIER_GUARDIAN_REDUCTION,
+    SOUL_TIER_POWER_BONUSES,
+    SOUL_TIER_THRESHOLDS,
+    SOUL_WEAPON_MASTERY_MAX_LEVEL,
+)
+from core.progression_resources import (
+    MULTICLASS_MAX_ACTIVE,
+    character_xp_to_next,
+    soul_weapon_mastery_bonuses,
+    soul_weapon_mastery_xp_to_next,
+    v0190_requirement,
+)
+from systems.equipment_crafting import GUILD_REPUTATION_MAX, GUILD_REPUTATION_RANKS
+from world.economy_quests import v0865_dodge_chance_from_dexterity
+
+
 
 @dataclass
 class Character:
@@ -505,7 +544,8 @@ class Character:
         """
         _label, value_field, _progress_field = self.STAT_PROGRESS_FIELDS[stat_name]
         value = max(1, int(getattr(self, value_field)))
-        return v0190_requirement("stat", value)
+        base = v0190_requirement("stat", value)
+        return max(1, int(round(base * STAT_XP_REQUIREMENT_MULTIPLIER)))
 
     def stat_growth_threshold(self):
         """Legacy: zwraca średni próg sześciu statystyk dla zgodności."""

@@ -1,3 +1,48 @@
+from data import catalog_mutations as _catalog_mut
+from config.balance import (
+    CHARACTER_MAX_LEVEL,
+    CHARACTER_XP_REQUIREMENT_MULTIPLIER,
+    CLASS_MASTERY_MAX_LEVEL,
+    CLASS_MASTERY_XP_BASE,
+    CLASS_MASTERY_XP_STEP,
+    MINE_MIN_FLOOR,
+    MINE_PREGENERATED_MAX_FLOOR,
+    MINE_WALL_SCALING_START_FLOOR,
+    MULTICLASS_MAX_ACTIVE,
+    PROFESSION_COOLDOWN,
+    PROFESSION_SPEED_CAP_LEVEL,
+    REST_REGEN_PERCENT,
+    REST_TICK_SECONDS,
+    SKILL_MAX_LEVEL,
+    SKILL_XP_BASE,
+    SKILL_XP_STEP,
+    SOUL_WEAPON_MASTERY_MAX_LEVEL,
+    V019_CLASS_KILL_BOSS,
+    V019_CLASS_KILL_NORMAL,
+    V019_CLASS_REQ,
+    V019_COIN_KILL_BOSS,
+    V019_COIN_KILL_NORMAL,
+    V019_DAMAGE_NORMAL,
+    V019_ECONOMY_SINK,
+    V019_HP_NORMAL,
+    V019_PROF_GAIN,
+    V019_PROF_REQ,
+    V019_QUEST_COIN,
+    V019_RESOURCE_SALE,
+    V019_SKILL_GAIN,
+    V019_SKILL_REQ,
+    V019_SOUL_KILL_BOSS,
+    V019_SOUL_KILL_NORMAL,
+    V019_SOUL_REQ,
+    V019_STAT_KILL_BOSS,
+    V019_STAT_KILL_NORMAL,
+    V019_STAT_REQ,
+    V019_TOOL_GAIN,
+    V019_TOOL_REQ,
+    V095_FISHING_BASE_SECONDS,
+    V095_FISHING_MIN_SECONDS,
+)
+
 
 def v0190_log_curve(value, anchors):
     """v0.27 compatibility adapter for historical curve call sites.
@@ -61,15 +106,6 @@ def v0190_log_curve(value, anchors):
         result = generator_core_v027.system_reward(stage, identity)
     return min(V019_SAFE_INT, max(1, int(result)))
 
-V019_CLASS_REQ = ((1,1000),(10,80000),(20,500000),(30,1200000),(40,2500000),(50,5000000),(75,18000000),(100,60000000),(150,600000000),(200,6000000000),(250,60000000000),(300,600000000000),(350,6000000000000),(399,60000000000000))
-V019_SOUL_REQ = ((1,500),(10,12000),(20,100000),(30,250000),(40,500000),(50,1000000),(75,6000000),(100,25000000),(150,250000000),(200,2500000000),(250,25000000000),(300,250000000000),(350,2500000000000),(399,25000000000000))
-V019_SKILL_REQ = ((1,100),(10,1000),(20,5000),(30,12000),(40,25000),(50,50000),(75,180000),(100,600000),(150,6000000),(200,60000000),(250,500000000),(300,4000000000),(350,25000000000),(399,150000000000))
-V019_PROF_REQ = ((1,200),(10,2000),(20,10000),(30,25000),(40,60000),(50,120000),(75,600000),(100,3000000),(150,30000000),(200,300000000),(250,3000000000),(300,30000000000),(350,300000000000),(399,3000000000000))
-V019_TOOL_REQ = ((1,200),(10,1000),(20,5000),(30,12000),(40,30000),(50,80000),(75,400000),(100,2000000),(150,20000000),(200,200000000),(250,2000000000),(300,20000000000),(350,200000000000),(399,2000000000000))
-V019_STAT_REQ = ((1,100),(10,100),(20,1000),(30,10000),(40,25000),(50,60000),(75,400000),(100,2000000),(150,40000000),(200,800000000),(300,80000000000),(400,8000000000000))
-V019_SKILL_GAIN = ((1,30),(10,75),(20,150),(50,800),(100,10000),(200,1000000),(300,50000000),(399,1000000000))
-V019_PROF_GAIN = ((1,40),(10,100),(20,250),(50,1500),(100,15000),(150,120000),(200,1000000),(250,8000000),(300,60000000),(350,400000000),(399,6000000000))
-V019_TOOL_GAIN = ((1,30),(10,75),(20,180),(50,900),(100,10000),(200,700000),(300,40000000),(399,4000000000))
 
 def v0190_requirement(kind, level):
     # v0.27.0: Generator Core jest jedynym źródłem krzywych progresji.
@@ -85,19 +121,6 @@ def v0190_scaled_gain(raw, level, kind, typical_raw):
 # Centralny generator walki i ekonomii v0.19.0.
 # Nagrody nigdy nie są celowo obniżane poniżej starszych wartości.
 # Balans długości gry wynika przede wszystkim z rosnących wymagań.
-V019_CLASS_KILL_NORMAL = ((1,100),(5,300),(10,1500),(20,10000),(30,25000),(40,60000),(50,120000),(75,500000),(100,2000000),(150,20000000),(200,200000000),(250,2000000000),(300,20000000000),(350,200000000000),(400,2000000000000))
-V019_CLASS_KILL_BOSS = ((1,1500),(10,75000),(20,250000),(30,450000),(40,750000),(50,1250000),(75,4500000),(100,15000000),(150,150000000),(200,1500000000),(250,15000000000),(300,150000000000),(350,1500000000000),(400,15000000000000))
-V019_SOUL_KILL_NORMAL = ((1,40),(10,300),(20,2000),(30,4500),(50,20000),(75,90000),(100,400000),(150,4000000),(200,40000000),(250,400000000),(300,4000000000),(350,40000000000),(400,400000000000))
-V019_SOUL_KILL_BOSS = ((1,300),(10,6000),(20,50000),(30,90000),(50,250000),(75,1500000),(100,6000000),(150,60000000),(200,600000000),(250,6000000000),(300,60000000000),(350,600000000000),(400,6000000000000))
-V019_STAT_KILL_NORMAL = ((1,2),(10,10),(20,50),(30,250),(40,700),(50,3000),(75,20000),(100,100000),(150,2000000),(200,40000000),(250,400000000),(300,4000000000),(350,40000000000),(400,400000000000))
-V019_STAT_KILL_BOSS = ((1,20),(10,100),(20,250),(30,1500),(40,5000),(50,15000),(75,100000),(100,500000),(150,10000000),(200,200000000),(250,2000000000),(300,20000000000),(350,200000000000),(400,2000000000000))
-V019_COIN_KILL_NORMAL = ((1,10),(10,200),(20,2000),(30,7500),(40,20000),(50,50000),(75,250000),(100,1000000),(150,25000000),(200,500000000),(250,10000000000),(300,200000000000),(350,4000000000000),(400,80000000000000))
-V019_COIN_KILL_BOSS = ((1,100),(10,5000),(20,50000),(30,150000),(40,400000),(50,1000000),(75,6000000),(100,30000000),(150,600000000),(200,15000000000),(250,300000000000),(300,6000000000000),(350,120000000000000),(400,2400000000000000))
-V019_HP_NORMAL = ((1,80),(10,300),(20,900),(30,1800),(50,5000),(75,12000),(100,25000),(150,100000),(200,500000),(250,2500000),(300,10000000),(350,50000000),(400,200000000))
-V019_DAMAGE_NORMAL = ((1,5),(10,15),(20,35),(30,60),(50,120),(75,260),(100,500),(150,1600),(200,5000),(250,16000),(300,50000),(350,160000),(400,500000))
-V019_QUEST_COIN = ((1,100),(10,2000),(20,20000),(30,60000),(50,500000),(75,3000000),(100,20000000),(150,500000000),(200,10000000000),(250,200000000000),(300,4000000000000),(350,80000000000000),(400,1600000000000000))
-V019_ECONOMY_SINK = ((1,200),(10,5000),(20,20000),(30,70000),(50,500000),(75,3000000),(100,25000000),(150,500000000),(200,10000000000),(250,200000000000),(300,4000000000000),(350,80000000000000),(400,1600000000000000))
-V019_RESOURCE_SALE = ((1,5),(10,50),(20,200),(30,500),(50,2500),(75,12000),(100,50000),(150,1000000),(200,20000000),(250,400000000),(300,8000000000),(350,160000000000),(400,3200000000000))
 
 def v0190_mob_stage(template):
     template = template or {}
@@ -291,18 +314,14 @@ def v0190_resource_sale_coins(item_id, item=None):
     mult = max(1.0, float(item.get("rare_value_multiplier", 1.0) or 1.0))
     return generator_core_v027.resource_sale_for_stage(stage, mult)
 
-CHARACTER_MAX_LEVEL = 600
 STAT_MAX_LEVEL = None  # v0.27.1: statystyki są bez twardego limitu
 def character_xp_to_next(level):
     level=max(1,min(CHARACTER_MAX_LEVEL,int(level)))
     if level >= CHARACTER_MAX_LEVEL:
         return 0
-    return generator_core_v027.axis_requirement("character", level)
+    base = generator_core_v027.axis_requirement("character", level)
+    return max(1, int(round(base * CHARACTER_XP_REQUIREMENT_MULTIPLIER)))
 
-CLASS_MASTERY_MAX_LEVEL = 600
-CLASS_MASTERY_XP_BASE = 1000
-CLASS_MASTERY_XP_STEP = 250
-MULTICLASS_MAX_ACTIVE = 3
 
 def class_mastery_xp_to_next(level):
     level = max(1, min(CLASS_MASTERY_MAX_LEVEL, int(level)))
@@ -316,12 +335,9 @@ def class_type_for_name(class_name):
             return ctype
     return "physical"
 
-SKILL_MAX_LEVEL = 600
-SKILL_XP_BASE = 50
 # v0.8.64: stara wartość 25 dawała około 50 tysięcy użyć na jeden
 # skill 1-200. Mniejszy krok + większe XP za użycie utrzymują długą,
 # ale osiągalną progresję.
-SKILL_XP_STEP = 8
 
 def skill_xp_to_next(level):
     level = max(1, min(SKILL_MAX_LEVEL, int(level)))
@@ -337,7 +353,6 @@ def skill_cooldown_multiplier(level):
 
 # v0.35.1: osobna biegłość zwykłego ataku Broni Duszy.
 # Nie rozwija skilli/spelli i nie jest Soul Levelem ani Biegłością klasy.
-SOUL_WEAPON_MASTERY_MAX_LEVEL = 600
 
 def soul_weapon_mastery_xp_to_next(level):
     level = max(1, min(SOUL_WEAPON_MASTERY_MAX_LEVEL, int(level)))
@@ -361,7 +376,6 @@ def soul_weapon_mastery_bonuses(level):
 
 BANK_ROOM = "market"
 
-PROFESSION_COOLDOWN = 2.0
 
 # v0.8.66 - realny czas czynności wynika z poziomu UMIEJĘTNOŚCI/PROFESJI.
 # Narzędzie nie skraca czasu; jego level odblokowuje lepszy surowiec/jakość/bonus.
@@ -388,15 +402,10 @@ TOOL_ACTION_MIN_SECONDS = {
     "jewelcrafting": 7,
 }
 
-REST_TICK_SECONDS = 5.0
-REST_REGEN_PERCENT = 10
 
 # v0.9.6: wartości referencyjne z v0.9.5 służą tylko do rebalansu
 # XP/cen/zleceń po zmianie czasu 15->5 na 16->3.
-V095_FISHING_BASE_SECONDS = 15
-V095_FISHING_MIN_SECONDS = 5
 
-PROFESSION_SPEED_CAP_LEVEL = 200
 
 # v0.10.2: Tool XP dla narzędzi zbierackich jest wyrównany względem
 # rzeczywistego czasu jednej akcji. Wcześniej Kilof i Piła dostawały prawie
@@ -502,12 +511,9 @@ FISHING_ECOLOGY_PREFERRED_IDS = {
         "lake_trout", "crystal_whitefish", "starfin_char", "mirror_sturgeon",
     },
 }
-MINE_MIN_FLOOR = 1
 # v0.9.13: 200 oznacza wyłącznie ręcznie przygotowaną część kopalni.
 # Kolejne poziomy są generowane na żądanie bez górnego limitu.
-MINE_PREGENERATED_MAX_FLOOR = 200
 MINE_MAX_FLOOR = MINE_PREGENERATED_MAX_FLOOR  # legacy compatibility only
-MINE_WALL_SCALING_START_FLOOR = 10
 
 def mine_wall_hit_range(floor):
     """Zwraca losowy przedział wytrzymałości ściany dla danego piętra."""
@@ -1126,7 +1132,7 @@ def _register_world_resource_items():
                 ),
             }
             item.update(_world_resource_sell_fields(level))
-            ITEMS[item_id] = item
+            _catalog_mut.catalog_assign(item, 'ITEMS', ITEMS, (item_id,))
 
     for group, rows in WORLD_HERB_UNLOCKS.items():
         for level, item_id, name in rows:
@@ -1140,7 +1146,7 @@ def _register_world_resource_items():
                 ),
             }
             item.update(_world_resource_sell_fields(level))
-            ITEMS[item_id] = item
+            _catalog_mut.catalog_assign(item, 'ITEMS', ITEMS, (item_id,))
 
     for group, rows in WORLD_WOOD_UNLOCKS.items():
         for level, item_id, name in rows:
@@ -1154,7 +1160,7 @@ def _register_world_resource_items():
                 ),
             }
             item.update(_world_resource_sell_fields(level))
-            ITEMS[item_id] = item
+            _catalog_mut.catalog_assign(item, 'ITEMS', ITEMS, (item_id,))
 
     for level, floor, item_id, name in WORLD_ORE_UNLOCKS:
         item = {
@@ -1167,7 +1173,7 @@ def _register_world_resource_items():
             ),
         }
         item.update(_world_resource_sell_fields(level))
-        ITEMS[item_id] = item
+        _catalog_mut.catalog_assign(item, 'ITEMS', ITEMS, (item_id,))
 
 def unlocked_world_ids(rows, tool_level):
     return tuple(

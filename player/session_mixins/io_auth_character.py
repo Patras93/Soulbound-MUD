@@ -1,3 +1,33 @@
+
+# v0.44.0: explicit dependencies; no compatibility-global injection.
+import asyncio
+import re
+from core.bootstrap_economy_professions import (
+    HISTORY_BUFFER_DEFAULT_SHOW,
+    HISTORY_BUFFER_LIMIT,
+    MAX_CHARACTERS_PER_ACCOUNT,
+    VERSION,
+    currency_reading_text,
+)
+from core.classes_skills import (
+    CLASSES,
+    CLASS_DESCRIPTIONS,
+    CLASS_SKILLS,
+    RACES,
+    ROOMS,
+    class_starting_stats_for,
+    race_class_recommendation_text,
+    starting_hp_mana_for,
+)
+from network.protocol_gameplay_utils import (
+    clean_telnet,
+    normalize_lookup_text,
+    safe_name,
+    telnet_charset_offer_bytes,
+    verify_password,
+)
+from player.character import Character
+
 import time
 # -*- coding: utf-8 -*-
 """Soulbound v0.30.51 Session mixin: io_auth_character."""

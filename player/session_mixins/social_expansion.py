@@ -1,5 +1,12 @@
 # -*- coding: utf-8 -*-
 """Soulbound v0.30.51 Social Suite 2.0 and player services."""
+# v0.45.0: explicit imports; no compatibility-runtime injection.
+import time
+from player.session_mixins.inventory_equipment import CURRENCY_SQLITE_SAFE_TOTAL
+from player.session_mixins.quest_npc import player_item_display_name_v0335
+from player.session_mixins.shops_teachers import currency_reading_text
+from player.session_mixins.skill_learning import ROOMS, normalize_lookup_text
+
 
 class SessionSocialExpansionMixin:
     def _social_target_id_v03051(self, name):

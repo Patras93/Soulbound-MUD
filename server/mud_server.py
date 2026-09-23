@@ -1,6 +1,13 @@
+# -*- coding: utf-8 -*-
+from core.runtime_diagnostics import build_runtime_error_report, log_runtime_error
+from events.bootstrap import build_default_event_bus
+
 class MudServer:
     def __init__(self):
         self.db = Database(DB_PATH)
+        # v0.42.0: one central event bus decouples combat/gathering producers
+        # from quest, bounty, chronicle and progression consumers.
+        self.events = build_default_event_bus(self)
         self.crafting_quality_restored_v0332 = 0
         for _item_id in self.db.persisted_crafting_quality_item_ids_v0332():
             if ensure_crafting_quality_variant_v0332(_item_id):
@@ -12,6 +19,13 @@ class MudServer:
         self.party_invites = {}
         # leader_account_id -> protector_account_id. Stan sesyjny; bez migracji DB.
         self.party_protectors = {}
+
+    def report_runtime_error(self, exc, *, command=None, handler=None):
+        report = build_runtime_error_report(
+            exc, root=globals().get("_ROOT"), command=command, handler=handler
+        )
+        log_runtime_error(report)
+        return report
 
     def account_online(self, account_id):
         return self.session_by_master_account(account_id) is not None
@@ -459,11 +473,33 @@ class MudServer:
         try:
             if await session.login_flow():
                 await session.enter_world()
-                await session.command_loop()
+                while not session.closed:
+                    try:
+                        await session.command_loop()
+                        break
+                    except asyncio.CancelledError:
+                        raise
+                    except Exception as exc:
+                        report = self.report_runtime_error(
+                            exc,
+                            command=getattr(session, "_last_command_for_diagnostics", ""),
+                            handler="command_loop",
+                        )
+                        try:
+                            await session.send(
+                                f"Wystąpił błąd komendy [{report['error_id']}]. "
+                                "Możesz dalej grać; identyfikator błędu zapisano w logu serwera."
+                            )
+                        except Exception:
+                            break
+        except asyncio.CancelledError:
+            raise
         except Exception as exc:
-            print(f"[SESSION ERROR] {type(exc).__name__}: {exc}", file=sys.stderr, flush=True)
+            report = self.report_runtime_error(exc, handler="session/login")
             try:
-                await session.send("Wystąpił błąd sesji. Połączenie zostanie zamknięte.")
+                await session.send(
+                    f"Wystąpił błąd sesji [{report['error_id']}]. Połączenie zostanie zamknięte."
+                )
             except Exception:
                 pass
         finally:

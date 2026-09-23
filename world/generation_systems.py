@@ -1,3 +1,4 @@
+from data import catalog_mutations as _catalog_mut
 
 
 def mob_can_auto_aggro(_template=None):
@@ -17,17 +18,17 @@ V012_HERB_ECOLOGY_POOLS = {}
 
 
 def _v012_connect(a, direction_a, b, direction_b):
-    ROOMS[a].setdefault("exits", {})[direction_a] = b
-    ROOMS[b].setdefault("exits", {})[direction_b] = a
+    _catalog_mut.catalog_setdefault_path('ROOMS', ROOMS, (a,), "exits", {})[direction_a] = b
+    _catalog_mut.catalog_setdefault_path('ROOMS', ROOMS, (b,), "exits", {})[direction_b] = a
 
 
 def _v012_add_room(room_id, zone, name, desc):
-    ROOMS[room_id] = {
+    _catalog_mut.catalog_assign({
         "zone": zone,
         "name": name,
         "desc": desc,
         "exits": {},
-    }
+    }, 'ROOMS', ROOMS, (room_id,))
 
 
 def build_v012_living_waters_and_meadows():
@@ -289,7 +290,7 @@ for _rid, _rows in V012_HERB_ECOLOGY_POOLS.items():
 
 # Dodatkowa fauna łąkowa. To zabijalne moby, ale podlegają globalnej zasadzie
 # PASSIVE WORLD i nigdy nie inicjują walki bez decyzji gracza.
-MOB_TEMPLATES.update({
+_catalog_mut.catalog_update_path('MOB_TEMPLATES', MOB_TEMPLATES, (), {
     "meadow_hare": {"name":"Zając Łąkowy","max_hp":32,"damage":4,"damage_type":"physical","silver":8,"gold":0,"mithril":0,"stat_reward":12,"soul_reward":55,"drops":{},"quest_target":None,"auto_aggro":False},
     "meadow_fox": {"name":"Lis Polny","max_hp":48,"damage":5,"damage_type":"physical","silver":13,"gold":0,"mithril":0,"stat_reward":18,"soul_reward":82,"drops":{},"quest_target":None,"auto_aggro":False},
     "meadow_deer": {"name":"Jeleń Łąkowy","max_hp":72,"damage":6,"damage_type":"physical","silver":20,"gold":0,"mithril":0,"stat_reward":24,"soul_reward":112,"drops":{},"quest_target":None,"auto_aggro":False},
@@ -537,13 +538,13 @@ def v0130_build_static_gateways():
         direction = spec["direction"]
         if anchor not in ROOMS:
             raise RuntimeError(f"Brak kotwicy proceduralnego biomu {kind}: {anchor}")
-        if direction in ROOMS[anchor].setdefault("exits", {}):
+        if direction in _catalog_mut.catalog_setdefault_path('ROOMS', ROOMS, (anchor,), "exits", {}):
             raise RuntimeError(f"Zajęty kierunek {direction} w kotwicy {anchor}")
         gateway = v0130_gateway_id(kind)
         reverse = V013_REVERSE_DIRECTION[direction]
         root = v0130_frontier_room_id(kind, 0, 0)
         anchor_zone = ROOMS[anchor].get("zone", "Dzicz")
-        ROOMS[gateway] = {
+        _catalog_mut.catalog_assign({
             "zone": anchor_zone,
             "name": f"Granica: {spec['zone']}",
             "desc": (
@@ -553,8 +554,8 @@ def v0130_build_static_gateways():
             ),
             "exits": {reverse: anchor, direction: root},
             "procedural_gateway": kind,
-        }
-        ROOMS[anchor]["exits"][direction] = gateway
+        }, 'ROOMS', ROOMS, (gateway,))
+        _catalog_mut.catalog_assign(gateway, 'ROOMS', ROOMS, (anchor, "exits", direction))
 
 
 def _v0130_apply_resources(room_id, spec):
@@ -633,7 +634,7 @@ def v0130_create_frontier_room_definition(room_id):
     if "v0180_has_great_ruin" in globals() and v0180_has_great_ruin(kind, x, y):
         exits["up"] = v0180_ruin_room_id(kind, x, y, 1)
 
-    ROOMS[room_id] = {
+    _catalog_mut.catalog_assign({
         "zone": spec["zone"],
         "name": f"{title} — sektor {x + 1}-{y + 1}",
         "desc": (
@@ -648,18 +649,18 @@ def v0130_create_frontier_room_definition(room_id):
         "procedural_biome": kind,
         "procedural_x": x,
         "procedural_y": y,
-    }
+    }, 'ROOMS', ROOMS, (room_id,))
     if "v0140_has_mini_dungeon" in globals() and v0140_has_mini_dungeon(kind, x, y):
-        ROOMS[room_id]["desc"] += " W terenie ukrywa się zejście do proceduralnego mini-lochu."
-        ROOMS[room_id]["v0140_mini_entrance"] = True
+        _catalog_mut.catalog_aug_path('ROOMS', ROOMS, (room_id, "desc"), 'Add', " W terenie ukrywa się zejście do proceduralnego mini-lochu.")
+        _catalog_mut.catalog_assign(True, 'ROOMS', ROOMS, (room_id, "v0140_mini_entrance"))
     if "v0180_has_great_ruin" in globals() and v0180_has_great_ruin(kind, x, y):
-        ROOMS[room_id]["desc"] += " Nad sektorem wznoszą się rozległe ruiny; wejście prowadzi w górę."
-        ROOMS[room_id]["v0180_great_ruin_entrance"] = True
+        _catalog_mut.catalog_aug_path('ROOMS', ROOMS, (room_id, "desc"), 'Add', " Nad sektorem wznoszą się rozległe ruiny; wejście prowadzi w górę.")
+        _catalog_mut.catalog_assign(True, 'ROOMS', ROOMS, (room_id, "v0180_great_ruin_entrance"))
     if "v0140_surface_secret_info" in globals():
         secret_info = v0140_surface_secret_info(room_id)
         if secret_info:
-            ROOMS[room_id]["v0140_surface_secret"] = True
-            ROOMS[room_id]["v0140_secret_name"] = secret_info["name"]
+            _catalog_mut.catalog_assign(True, 'ROOMS', ROOMS, (room_id, "v0140_surface_secret"))
+            _catalog_mut.catalog_assign(secret_info["name"], 'ROOMS', ROOMS, (room_id, "v0140_secret_name"))
     _v0130_apply_resources(room_id, spec)
 
     mob_pool = tuple(t for t in spec.get("mobs", ()) if t in MOB_TEMPLATES)
@@ -691,7 +692,7 @@ def v0130_refresh_exploration_catalog():
     for zone, room_ids in TRACKED_EXPLORATION_ZONES.items():
         reward_item_id = f"exploration_relic_{_collection_slug(zone)}"
         EXPLORATION_REWARD_ITEMS[zone] = reward_item_id
-        ITEMS.setdefault(reward_item_id, {
+        _catalog_mut.catalog_setdefault_path('ITEMS', ITEMS, (), reward_item_id, {
             "name": f"Pamiątka Odkrywcy: {zone}", "type": "collectible",
             "price": None, "rarity": "unique", "rarity_name": "Unikalny",
             "exploration_reward": True,
@@ -757,7 +758,7 @@ V014_TREASURE_MAP_ITEM = "treasure_map_frontier"
 V014_MINI_DENOMINATOR = 18
 V014_SECRET_DENOMINATOR = 17
 
-ITEMS[V014_TREASURE_MAP_ITEM] = {
+_catalog_mut.catalog_assign({
     "name": "Mapa Skarbu Rubieży",
     "type": "consumable",
     "price": None,
@@ -768,10 +769,10 @@ ITEMS[V014_TREASURE_MAP_ITEM] = {
         "Mapa prowadząca do jednego z deterministycznych sekretów proceduralnych rubieży. "
         "Użyj jej, aby zapisać trop; potem wpisz mapa skarbu."
     ),
-}
+}, 'ITEMS', ITEMS, (V014_TREASURE_MAP_ITEM,))
 
 V0243_EREN_SECRET_MAP_ITEM = "quest_map_eren_secret_marks"
-ITEMS[V0243_EREN_SECRET_MAP_ITEM] = {
+_catalog_mut.catalog_assign({
     "name": "Mapa Erena: Znak poza mapą",
     "type": "consumable",
     "price": None,
@@ -783,7 +784,7 @@ ITEMS[V0243_EREN_SECRET_MAP_ITEM] = {
         "Questowa mapa Kartografa Erena. Wpisz użyj mapy, aby zapisać trop, "
         "a następnie prowadz skarb. Po porzuceniu questa mapa i jej aktywny trop znikają."
     ),
-}
+}, 'ITEMS', ITEMS, (V0243_EREN_SECRET_MAP_ITEM,))
 
 V014_EVENT_DEFS = {
     "rare_hunt": {
@@ -1003,7 +1004,7 @@ def _v0140_clone_variant(base_id, *, rare=False, miniboss=False):
     data["auto_aggro"] = False
     data["drops"].setdefault(V014_TREASURE_MAP_ITEM, 0.28 if rare else 0.45)
     data["drops"].setdefault("soul_shard", 0.45 if rare else 0.70)
-    MOB_TEMPLATES[variant_id] = data
+    _catalog_mut.catalog_assign(data, 'MOB_TEMPLATES', MOB_TEMPLATES, (variant_id,))
     return variant_id
 
 
@@ -1070,7 +1071,7 @@ def v0140_create_mini_room_definition(room_id):
         "Podziemna Sala", "Szczelina Korzeni", "Zapomniany Tunel", "Komora Runiczna",
     )
     title = "Komnata Strażnika" if final else rng.choice(room_titles)
-    ROOMS[room_id] = {
+    _catalog_mut.catalog_assign({
         "zone": f"Mini-loch: {spec['zone']}",
         "name": f"{title} — {index}/{size}",
         "desc": (
@@ -1086,7 +1087,7 @@ def v0140_create_mini_room_definition(room_id):
         "v0140_mini_index": index,
         "v0140_mini_size": size,
         "v0140_mini_final": final,
-    }
+    }, 'ROOMS', ROOMS, (room_id,))
     spawns = []
     mob_pool = tuple(base for base in spec.get("mobs", ()) if base in MOB_TEMPLATES)
     if final:
@@ -1117,7 +1118,7 @@ def v0140_create_secret_room_definition(room_id):
     parent = v0130_frontier_room_id(kind, x, y)
     secret = v0140_surface_secret_info(parent)
     spec = V013_FRONTIER_SPECS[kind]
-    ROOMS[room_id] = {
+    _catalog_mut.catalog_assign({
         "zone": f"Sekret: {spec['zone']}",
         "name": secret["name"],
         "desc": (
@@ -1129,7 +1130,7 @@ def v0140_create_secret_room_definition(room_id):
         "v0140_secret_room": True,
         "v0140_secret_parent": parent,
         "recommended_mastery": min(CHARACTER_MAX_LEVEL, int(spec["base_mastery"]) + (x+y)*int(spec["step"])),
-    }
+    }, 'ROOMS', ROOMS, (room_id,))
     TREASURE_CHESTS.setdefault(room_id, {
         "name": f"Ukryty Skarb: {secret['name']}",
         "respawn": 5400,
@@ -1142,7 +1143,7 @@ def v0140_create_secret_room_definition(room_id):
 
 # Kartografka i cztery jednorazowe questy eksploracyjne. Postęp jest zdarzeniowy,
 # więc nic odkrytego przed przyjęciem nie daje darmowych punktów.
-QUESTS.update({
+_catalog_mut.catalog_update_path('QUESTS', QUESTS, (), {
     "v014_frontier_survey": {
         "name": "Mapa Żywych Rubieży", "giver": "Kartografka Lysa",
         "kind": "explore_frontier", "target": "any", "needed": 20,
@@ -1176,7 +1177,7 @@ QUESTS.update({
     },
 })
 
-NPCS["cartographer_lysa"] = {
+_catalog_mut.catalog_assign({
     "name": "Kartografka Lysa", "room": "library",
     "dialogue": (
         "Stałe drogi znamy dobrze, ale rubieże żyją własnym rytmem. "
@@ -1186,7 +1187,7 @@ NPCS["cartographer_lysa"] = {
     "quest_chain": (
         "v014_frontier_survey", "v014_secret_signs", "v014_mini_depths", "v014_living_world",
     ),
-}
+}, 'NPCS', NPCS, ("cartographer_lysa",))
 
 HELP_TOPICS["wydarzenia_swiata"] = [
     "Komenda wydarzenia / events pokazuje pięć aktualnych eventów proceduralnego świata. Zestaw zmienia się co 30 minut.",
@@ -1353,12 +1354,7 @@ HELP_TOPIC_ALIASES.update({
     "biom":"biome_mastery", "mastery":"biome_mastery", "biome mastery":"biome_mastery",
     "zadanie swiata":"dynamiczne_questy", "zadanie świata":"dynamiczne_questy", "worldquest":"dynamiczne_questy",
 })
-COMMAND_ALIASES.update({
-    "pogoda":"weather", "weather":"weather", "pora":"weather", "poradnia":"weather",
-    "biom":"biomemastery", "biome":"biomemastery", "mastery":"biomemastery", "biomemastery":"biomemastery",
-    "worldquest":"worldquest", "worldquests":"worldquest", "zadanieswiata":"worldquest", "zadanieświata":"worldquest",
-    "zadanie_swiata":"worldquest", "dynamicquest":"worldquest",
-})
+# v0.49.0: aliasy komend są centralnie zdefiniowane w config/command_aliases.py.
 
 
 # ============================================================
@@ -1399,7 +1395,7 @@ V016_FACTION_RANKS = (
 
 for _fid, _fdata in V016_FACTIONS.items():
     _badge = f"v016_badge_{_fid}"
-    ITEMS.setdefault(_badge, {
+    _catalog_mut.catalog_setdefault_path('ITEMS', ITEMS, (), _badge, {
         "name": f"Odznaka: {_fdata['name']}", "type": "collectible", "price": None,
         "rarity": "unique", "rarity_name": "Unikalny",
         "desc": f"Pamiątkowa odznaka za wysoką reputację: {_fdata['name']}.",
@@ -1473,21 +1469,21 @@ def v0160_build_settlements():
         if gateway not in ROOMS:
             continue
         if data["branch"] not in ROOMS[gateway]["exits"]:
-            ROOMS[gateway]["exits"][data["branch"]] = first
+            _catalog_mut.catalog_assign(first, 'ROOMS', ROOMS, (gateway, "exits", data["branch"]))
         room_rows = data["rooms"]
-        ROOMS[first] = {
+        _catalog_mut.catalog_assign({
             "zone": data["zone"], "name": room_rows[0][1], "desc": room_rows[0][2],
             "exits": {data["back"]: gateway, "north": second, "east": third},
             "safe_hub": True, "v016_settlement": faction_id,
-        }
-        ROOMS[second] = {
+        }, 'ROOMS', ROOMS, (first,))
+        _catalog_mut.catalog_assign({
             "zone": data["zone"], "name": room_rows[1][1], "desc": room_rows[1][2],
             "exits": {"south": first}, "safe_hub": True, "v016_settlement": faction_id,
-        }
-        ROOMS[third] = {
+        }, 'ROOMS', ROOMS, (second,))
+        _catalog_mut.catalog_assign({
             "zone": data["zone"], "name": room_rows[2][1], "desc": room_rows[2][2],
             "exits": {"west": first}, "safe_hub": True, "v016_settlement": faction_id,
-        }
+        }, 'ROOMS', ROOMS, (third,))
         GUIDE_DESTINATION_ALIASES[normalize_lookup_text(data["name"])] = first
 
 
@@ -1503,15 +1499,15 @@ V016_FACTION_ENVOYS = {
     "frontier_watch": ("v016_envoy_watch", "Herold Rubieży Iren", "v016_watch_hall"),
 }
 for _fid, (_nid, _name, _room) in V016_FACTION_ENVOYS.items():
-    NPCS[_nid] = {
+    _catalog_mut.catalog_assign({
         "name": _name, "room": _room,
         "dialogue": f"Reprezentuję frakcję {V016_FACTIONS[_fid]['name']}. {V016_FACTIONS[_fid]['desc']} Użyj frakcje, aby sprawdzić reputację.",
         "v016_faction": _fid,
-    }
+    }, 'NPCS', NPCS, (_nid,))
 
 # Długi, sześcioczęściowy łańcuch. Każdy etap liczy tylko zdarzenia po przyjęciu,
 # bo korzysta z istniejącego trwałego licznika aktywnego questa.
-QUESTS.update({
+_catalog_mut.catalog_update_path('QUESTS', QUESTS, (), {
     "v016_frontier_oath_1": {
         "name":"Przysięga Rubieży I: Nowe Szlaki", "giver":"Herold Rubieży Iren",
         "kind":"explore_frontier", "target":"any", "needed":25,
@@ -1561,8 +1557,8 @@ QUESTS.update({
         "reward_faction_v016":"frontier_watch", "reward_faction_amount_v016":60,
     },
 })
-NPCS["v016_envoy_watch"]["quest"] = "v016_frontier_oath_1"
-NPCS["v016_envoy_watch"]["quest_chain"] = tuple(f"v016_frontier_oath_{i}" for i in range(1,7))
+_catalog_mut.catalog_assign("v016_frontier_oath_1", 'NPCS', NPCS, ("v016_envoy_watch", "quest"))
+_catalog_mut.catalog_assign(tuple(f"v016_frontier_oath_{i}" for i in range(1,7)), 'NPCS', NPCS, ("v016_envoy_watch", "quest_chain"))
 
 # Wędrujący NPC. Ich trasa jest deterministyczna i zmienia punkt co 15 minut.
 V016_TRAVELERS = {
@@ -1666,7 +1662,7 @@ def _v0160_clone_encounter_template(kind, encounter_type):
         data["drops"].setdefault("soul_elixir", 0.35)
         data["drops"].setdefault(V014_TREASURE_MAP_ITEM, 0.55)
         RARE_MOB_COLLECTION_CATALOG[tid] = data["name"]
-    MOB_TEMPLATES[tid] = data
+    _catalog_mut.catalog_assign(data, 'MOB_TEMPLATES', MOB_TEMPLATES, (tid,))
     return tid
 
 
@@ -1739,12 +1735,7 @@ HELP_TOPIC_ALIASES.update({
     "world bossy":"wielkie_lowy_v016", "worldbossy":"wielkie_lowy_v016", "legendary rare":"wielkie_lowy_v016",
     "podroznicy":"podroznicy_v016", "podróżnicy":"podroznicy_v016", "travelers":"podroznicy_v016",
 })
-COMMAND_ALIASES.update({
-    "frakcje":"factions", "factions":"factions", "fakcje":"factions", "reputacjefrakcji":"factions",
-    "worldbossy":"worldbosses", "worldboss":"worldbosses", "worldbosses":"worldbosses",
-    "legendy":"legendaryrares", "legendary":"legendaryrares", "legendaryrare":"legendaryrares", "legendaryrares":"legendaryrares",
-    "podroznicy":"travelers", "podróżnicy":"travelers", "travelers":"travelers", "wedrowcy":"travelers", "wędrowcy":"travelers",
-})
+# v0.49.0: aliasy komend są centralnie zdefiniowane w config/command_aliases.py.
 
 
 # ============================================================
@@ -1781,7 +1772,7 @@ V017_ARTIFACTS = {
 
 for _fid, _artifact in V017_ARTIFACTS.items():
     _iid = _artifact["item_id"]
-    ITEMS[_iid] = {
+    _catalog_mut.catalog_assign({
         "name": _artifact["name"], "type":"armor", "slot":"charm",
         "defense": int(_artifact["defense_flat"]), "price":None,
         "rarity":"legendary", "rarity_name":"Artefakt", "sockets":3,
@@ -1793,7 +1784,7 @@ for _fid, _artifact in V017_ARTIFACTS.items():
             f"Unikalny artefakt frakcji {V016_FACTIONS[_fid]['name']}. "
             f"{_artifact['effect']} Można mieć założony w slocie talizmanu."
         ),
-    }
+    }, 'ITEMS', ITEMS, (_iid,))
     UNIQUE_ITEM_COLLECTION_CATALOG[_iid] = _artifact["name"]
     EQUIPMENT_COLLECTION_CATALOG[_iid] = _artifact["name"]
 
@@ -1827,7 +1818,7 @@ for _idx, (_kind, _spec) in enumerate(V013_FRONTIER_SPECS.items()):
         _iid = f"v017_set_{_kind}_{_slot}"
         _affix = _v017_affixes[(_idx + _slot_index) % len(_v017_affixes)]
         _amount = 3 + min(7, int(_spec.get("base_mastery", 1)) // 55)
-        ITEMS[_iid] = {
+        _catalog_mut.catalog_assign({
             "name": f"{_slot_label} — {V017_BIOME_SET_NAMES[_kind]}",
             "type":"armor", "slot":_slot,
             "defense": _base_def + _slot_index // 2,
@@ -1839,7 +1830,7 @@ for _idx, (_kind, _spec) in enumerate(V013_FRONTIER_SPECS.items()):
                 "Progi 2/4/6 wzmacniają HP/Mana, obrażenia i obronę. "
                 "Zdobywana z legendary rare i world bossów odpowiedniego biomu."
             ),
-        }
+        }, 'ITEMS', ITEMS, (_iid,))
         EQUIPMENT_COLLECTION_CATALOG[_iid] = ITEMS[_iid]["name"]
         _ids.append(_iid)
     V017_BIOME_SET_ITEMS[_kind] = tuple(_ids)
@@ -1930,14 +1921,14 @@ for _fid, _story in V017_FACTION_STORIES.items():
             _q["reward_mithril"] = 1
         elif _stage_no in (3,5):
             _q["reward_items"] = {V014_TREASURE_MAP_ITEM:1}
-        QUESTS[_qid] = _q
+        _catalog_mut.catalog_assign(_q, 'QUESTS', QUESTS, (_qid,))
         _prev = _qid
     V017_FACTION_STORY_QUESTS[_fid] = tuple(_chain)
     _old_chain = tuple(NPCS[_envoy].get("quest_chain", ()))
-    NPCS[_envoy]["quest_chain"] = _old_chain + tuple(_chain)
+    _catalog_mut.catalog_assign(_old_chain + tuple(_chain), 'NPCS', NPCS, (_envoy, "quest_chain"))
     if not NPCS[_envoy].get("quest"):
-        NPCS[_envoy]["quest"] = _chain[0]
-    NPCS[_envoy]["dialogue"] += f" Mam też dla ciebie historię: {_story['title']}."
+        _catalog_mut.catalog_assign(_chain[0], 'NPCS', NPCS, (_envoy, "quest"))
+    _catalog_mut.catalog_aug_path('NPCS', NPCS, (_envoy, "dialogue"), 'Add', f" Mam też dla ciebie historię: {_story['title']}.")
 
 # v0.24.1: finalny pass po WSZYSTKICH definicjach questów.
 # Część zadań z późniejszych wersji była dopisywana już po historycznych
@@ -1963,11 +1954,7 @@ HELP_TOPIC_ALIASES.update({
     "sety biomowe":"sety_biomowe_v017", "biomesets":"sety_biomowe_v017",
     "historie frakcji":"historie_frakcji_v017", "faction stories":"historie_frakcji_v017",
 })
-COMMAND_ALIASES.update({
-    "artefakty":"artifacts", "artifacts":"artifacts", "artifact":"artifacts",
-    "setybiomowe":"biomesets", "biomesets":"biomesets", "biomeset":"biomesets",
-    "historiefrakcji":"factionstories", "factionstories":"factionstories", "historiefrakcyjne":"factionstories",
-})
+# v0.49.0: aliasy komend są centralnie zdefiniowane w config/command_aliases.py.
 
 
 # ============================================================
@@ -2088,7 +2075,7 @@ def v0180_create_archipelago_room_definition(room_id):
     if x == 0 and y == 0:
         exits["down"] = "harbor"
     title = rng.choice(spec["titles"])
-    ROOMS[room_id] = {
+    _catalog_mut.catalog_assign({
         "zone":spec["zone"], "name":f"{title} — sektor {x+1}-{y+1}",
         "desc":(
             f"Sektor ekspedycji na {spec['name']}. Wyspy są generowane z trwałego seedu; "
@@ -2097,7 +2084,7 @@ def v0180_create_archipelago_room_definition(room_id):
         "exits":exits, "recommended_mastery":int(spec["mastery"]),
         "generated_on_demand":True, "v018_archipelago":eid,
         "v018_arch_x":x, "v018_arch_y":y,
-    }
+    }, 'ROOMS', ROOMS, (room_id,))
     # Island gathering ecology: marine fishing everywhere; some later islands also support herbs/mining.
     FISHING_ROOMS.add(room_id); MARINE_FISHING_ROOMS.add(room_id); OCEAN_FISHING_ROOMS.add(room_id)
     FISHING_WATER_TYPE_OVERRIDES[room_id] = spec["name"]
@@ -2162,7 +2149,7 @@ for _kind, _spec in V013_FRONTIER_SPECS.items():
     _data["world_boss"] = True; _data["mini_boss"] = True
     _data["stationary_mob"] = True; _data["auto_aggro"] = False
     _data["v018_great_ruin_guardian"] = True; _data["v018_biome"] = _kind
-    MOB_TEMPLATES[_tid] = _data
+    _catalog_mut.catalog_assign(_data, 'MOB_TEMPLATES', MOB_TEMPLATES, (_tid,))
     V018_RUIN_GUARDIANS[_kind] = _tid
 
 
@@ -2188,7 +2175,7 @@ def v0180_create_ruin_room_definition(room_id):
     final = index == size
     zone = f"Wielkie Ruiny — {V013_FRONTIER_SPECS[kind]['zone']}"
     names = ("Galeria Run","Zawalona Nawa","Sala Kolumn","Kamienny Dziedziniec","Archiwum Ruin","Korytarz Posągów")
-    ROOMS[room_id] = {
+    _catalog_mut.catalog_assign({
         "zone":zone, "name":f"{rng.choice(names)} {index}/{size}",
         "desc":(
             "Rozległy fragment proceduralnych ruin. Układ jest deterministyczny, ma pętle i alternatywne przejścia. "
@@ -2198,7 +2185,7 @@ def v0180_create_ruin_room_definition(room_id):
         "exits":exits, "recommended_mastery":min(CHARACTER_MAX_LEVEL, int(V013_FRONTIER_SPECS[kind].get("base_mastery",1))+40),
         "generated_on_demand":True, "v018_great_ruin":True, "v018_ruin_final":final,
         "v018_biome":kind, "v018_ruin_parent":v0130_frontier_room_id(kind,x,y),
-    }
+    }, 'ROOMS', ROOMS, (room_id,))
     spawns=[]
     pool=[t for t in V013_FRONTIER_SPECS[kind].get("mobs",()) if t in MOB_TEMPLATES]
     if final and kind in V018_RUIN_GUARDIANS:
@@ -2278,7 +2265,7 @@ for _kind in V013_FRONTIER_SPECS:
     _data["soul_reward"]=max(1,int(int(_base.get("soul_reward",1))*1.50))
     _data["auto_aggro"]=False; _data["stationary_mob"]=True; _data["world_boss"]=True
     _data["v018_legendary_event_boss"]=True; _data["v018_biome"]=_kind
-    MOB_TEMPLATES[_tid]=_data; V018_TITAN_TEMPLATES[_kind]=_tid
+    _catalog_mut.catalog_assign(_data, 'MOB_TEMPLATES', MOB_TEMPLATES, (_tid,)); V018_TITAN_TEMPLATES[_kind]=_tid
 
 
 # ------------------------------------------------------------
@@ -2317,7 +2304,7 @@ def v0180_endless_template(depth):
     data["damage"]=max(1,int(int(base.get("damage",1))*(1.0+min(1.5,(band-1)*0.04))))
     data["soul_reward"]=max(1,int(int(base.get("soul_reward",1))*(1.0+min(2.0,(band-1)*0.06))))
     data["auto_aggro"]=False; data["v018_endless"]=True; data["v018_endless_band"]=band
-    MOB_TEMPLATES[tid]=data
+    _catalog_mut.catalog_assign(data, 'MOB_TEMPLATES', MOB_TEMPLATES, (tid,))
     return tid
 
 
@@ -2330,7 +2317,7 @@ def v0180_create_endless_room_definition(room_id):
     names=("Galeria Końca","Pusty Horyzont","Kamienny Bezmiar","Taras Echa","Droga Poza Koroną","Milcząca Rubież")
     exits={"north":v0180_endless_room_id(depth+1)}
     exits["south"]=V018_ENDLESS_GATE if depth==1 else v0180_endless_room_id(depth-1)
-    ROOMS[room_id]={
+    _catalog_mut.catalog_assign({
         "zone":V018_ENDLESS_ZONE,"name":f"{rng.choice(names)} — sektor {depth}",
         "desc":(
             "Pierwsza warstwa endless endgame. Mapa nie ma sztywnego końca i powstaje przy wejściu, "
@@ -2339,7 +2326,7 @@ def v0180_create_endless_room_definition(room_id):
         ),
         "exits":exits,"recommended_mastery":400,"generated_on_demand":True,
         "v018_endless":True,"v018_endless_depth":depth,"v018_endless_band":v0180_endless_band(depth),
-    }
+    }, 'ROOMS', ROOMS, (room_id,))
     # v0.25.1: Endless nie jest miejscem Górnictwa.
     spawns=[(room_id,v0180_endless_template(depth))]
     if rng.random()<0.35: spawns.append((room_id,v0180_endless_template(depth)))
@@ -2349,13 +2336,13 @@ def v0180_create_endless_room_definition(room_id):
 # Static gate branches from the Crown procedural gateway without replacing its old exits.
 if v0130_gateway_id("crown") in ROOMS:
     _gw=v0130_gateway_id("crown")
-    if "north" not in ROOMS[_gw].setdefault("exits",{}):
-        ROOMS[_gw]["exits"]["north"]=V018_ENDLESS_GATE
-    ROOMS[V018_ENDLESS_GATE]={
+    if "north" not in _catalog_mut.catalog_setdefault_path('ROOMS', ROOMS, (_gw,), "exits",{}):
+        _catalog_mut.catalog_assign(V018_ENDLESS_GATE, 'ROOMS', ROOMS, (_gw, "exits", "north"))
+    _catalog_mut.catalog_assign({
         "zone":V018_ENDLESS_ZONE,"name":"Brama Rubieży Końca",
         "desc":"Stała brama do pierwszej nieskończonej warstwy endgame. Dalej sektory są generowane na żądanie i nigdy nie auto-aggro.",
         "exits":{"south":_gw,"north":v0180_endless_room_id(1)},"safe_hub":True,
-    }
+    }, 'ROOMS', ROOMS, (V018_ENDLESS_GATE,))
     GUIDE_DESTINATION_ALIASES["rubiez konca"]=V018_ENDLESS_GATE
     GUIDE_DESTINATION_ALIASES["rubież końca"]=V018_ENDLESS_GATE
 
@@ -2399,15 +2386,7 @@ HELP_TOPIC_ALIASES.update({
     "legendarne wydarzenia":"legend_event_v018","legendary events":"legend_event_v018",
     "rubiez konca":"endless_v018","rubież końca":"endless_v018","endless":"endless_v018",
 })
-COMMAND_ALIASES.update({
-    "sezon":"season","season":"season","seasons":"season",
-    "ekspedycje":"expeditions","expeditions":"expeditions",
-    "ekspedycja":"expedition","expedition":"expedition",
-    "transport":"transport","podroz":"transport","podróż":"transport","fasttravel":"transport",
-    "wielkieruiny":"greatruins","greatruins":"greatruins",
-    "legendarnewydarzenia":"legendaryevents","legendaryevents":"legendaryevents",
-    "rubiezkonca":"endless","rubieżkońca":"endless","endless":"endless",
-})
+# v0.49.0: aliasy komend są centralnie zdefiniowane w config/command_aliases.py.
 
 HELP_TOPICS["generator_v019"]=[
     "v0.19.0 używa jednego Global Progression & Reward Generator dla całej gry.",
@@ -2452,7 +2431,7 @@ V020_ENDGAME_MATERIALS = {
     "v020_mythic_essence": ("Esencja Mitycznego Bossa", "Esencja pozostawiana przez mityczne world bossy."),
 }
 for _iid, (_name, _desc) in V020_ENDGAME_MATERIALS.items():
-    ITEMS[_iid] = {"name":_name, "type":"material", "price":None, "rarity":"mythic", "rarity_name":"Mityczny", "desc":_desc}
+    _catalog_mut.catalog_assign({"name":_name, "type":"material", "price":None, "rarity":"mythic", "rarity_name":"Mityczny", "desc":_desc}, 'ITEMS', ITEMS, (_iid,))
     UNIQUE_ITEM_COLLECTION_CATALOG.setdefault(_iid, _name)
 
 
@@ -2511,7 +2490,7 @@ def v0200_mega_template(key, index, boss=False):
     if boss:
         mechanic, mechanic_text = V017_BIOME_BOSS_MECHANICS.get(biome,("two_hundred_lord","Wielofazowy profil bossa."))
         pool=list((globals().get("V021_MYTHIC_SET_ITEMS",{}).get(key) or V017_BIOME_SET_ITEMS.get(biome,())))
-        MOB_TEMPLATES[tid]={
+        _catalog_mut.catalog_assign({
             "name":f"Strażnik {spec['name']} — próg {index}",
             "max_hp":1,"damage":1,"damage_type":"magic" if biome in ("void","crown","ocean") else "physical",
             "silver":0,"gold":0,"mithril":0,"stat_reward":1,"soul_reward":1,"class_xp_reward":1,
@@ -2521,17 +2500,17 @@ def v0200_mega_template(key, index, boss=False):
             "v017_boss_phases":True,"v020_megadungeon_boss":True,"v020_mega_key":key,"v020_mega_index":index,
             "v019_stage":stage,"corpse_equipment_pool":pool,"corpse_equipment_guaranteed":min(2 if index==int(spec["size"]) else 1,len(pool)),
             "respawn_seconds":6*60*60,
-        }
+        }, 'MOB_TEMPLATES', MOB_TEMPLATES, (tid,))
         BOSS_COLLECTION_CATALOG[tid]=MOB_TEMPLATES[tid]["name"]
     else:
         names=("Strażnik Korytarza","Wędrowiec Głębi","Opiekun Pieczęci","Echo Dawnej Straży","Bestia Megalochu")
         rng=random.Random(_v0140_hash_int(V020_WORLD_SEED,key,stage))
-        MOB_TEMPLATES[tid]={
+        _catalog_mut.catalog_assign({
             "name":f"{rng.choice(names)} — {spec['name']}","max_hp":1,"damage":1,
             "damage_type":"magic" if rng.random()<0.38 else "physical",
             "silver":0,"gold":0,"mithril":0,"stat_reward":1,"soul_reward":1,"class_xp_reward":1,
             "drops":{"soul_shard":0.10},"auto_aggro":False,"v020_megadungeon":True,"v020_mega_key":key,"v019_stage":stage,
-        }
+        }, 'MOB_TEMPLATES', MOB_TEMPLATES, (tid,))
     v0190_apply_combat_template(MOB_TEMPLATES[tid])
     return tid
 
@@ -2543,7 +2522,7 @@ def v0200_create_mega_room_definition(room_id):
     key,index=ident; spec=V020_MEGADUNGEONS[key]; stage=v0200_mega_stage(key,index)
     rng=random.Random(_v0140_hash_int(V020_WORLD_SEED,key,index))
     labels=("Galeria","Komnata","Korytarz","Sanktuarium","Sala","Krużganek","Archiwum","Przejście")
-    ROOMS[room_id]={
+    _catalog_mut.catalog_assign({
         "zone":spec["name"],"name":f"{rng.choice(labels)} — {index} z {spec['size']}",
         "desc":(
             f"Część megalochu {spec['name']}. Kompleks ma {spec['size']} pokoi i jest generowany na żądanie. "
@@ -2552,7 +2531,7 @@ def v0200_create_mega_room_definition(room_id):
         ),
         "exits":v0200_mega_neighbors(key,index),"recommended_mastery":stage,"generated_on_demand":True,
         "v020_megadungeon":key,"v020_mega_index":index,
-    }
+    }, 'ROOMS', ROOMS, (room_id,))
     spawns=[]
     if v0200_mega_is_boss_index(key,index):
         spawns.append((room_id,v0200_mega_template(key,index,boss=True)))
@@ -2565,10 +2544,10 @@ def v0200_create_mega_room_definition(room_id):
 # Stałe bramy megalochów. Same wnętrza są lazy-generated.
 for _key,_spec in V020_MEGADUNGEONS.items():
     _host=V020_MEGADUNGEON_HOST_ROOMS[_key]; _gate=v0200_mega_gate_id(_key)
-    ROOMS[_gate]={"zone":_spec["name"],"name":f"Brama: {_spec['name']}",
+    _catalog_mut.catalog_assign({"zone":_spec["name"],"name":f"Brama: {_spec['name']}",
         "desc":f"Stałe wejście do megalochu {_spec['name']} ({_spec['size']} pokoi). Wnętrze generuje się dopiero przy wejściu.",
-        "exits":{"up":_host,"down":v0200_mega_room_id(_key,1)},"safe_hub":True,"v020_mega_gate":_key}
-    if _host in ROOMS and "down" not in ROOMS[_host].setdefault("exits",{}): ROOMS[_host]["exits"]["down"]=_gate
+        "exits":{"up":_host,"down":v0200_mega_room_id(_key,1)},"safe_hub":True,"v020_mega_gate":_key}, 'ROOMS', ROOMS, (_gate,))
+    if _host in ROOMS and "down" not in _catalog_mut.catalog_setdefault_path('ROOMS', ROOMS, (_host,), "exits",{}): _catalog_mut.catalog_assign(_gate, 'ROOMS', ROOMS, (_host, "exits", "down"))
     GUIDE_DESTINATION_ALIASES[normalize_lookup_text(_spec["name"])]=_gate
 
 
@@ -2580,23 +2559,23 @@ V020_GAUNTLETS={
     "wieczna":{"name":"Wieczna Próba","stages":(360,370,380,390,400)},
 }
 V020_GAUNTLET_LOBBY="v020_gauntlet_lobby"
-ROOMS[V020_GAUNTLET_LOBBY]={"zone":"Arena Prób","name":"Sala Boss Gauntletów","desc":"Bezpieczny hol czterech wieloetapowych prób bossów. Żaden boss nie atakuje pierwszy.","exits":{"west":"v016_watch_hall","north":"v020_gauntlet_stalowa_1","east":"v020_gauntlet_mityczna_1","up":"v020_gauntlet_astralna_1","down":"v020_gauntlet_wieczna_1"},"safe_hub":True}
-if "v016_watch_hall" in ROOMS and "east" not in ROOMS["v016_watch_hall"].setdefault("exits",{}): ROOMS["v016_watch_hall"]["exits"]["east"]=V020_GAUNTLET_LOBBY
+_catalog_mut.catalog_assign({"zone":"Arena Prób","name":"Sala Boss Gauntletów","desc":"Bezpieczny hol czterech wieloetapowych prób bossów. Żaden boss nie atakuje pierwszy.","exits":{"west":"v016_watch_hall","north":"v020_gauntlet_stalowa_1","east":"v020_gauntlet_mityczna_1","up":"v020_gauntlet_astralna_1","down":"v020_gauntlet_wieczna_1"},"safe_hub":True}, 'ROOMS', ROOMS, (V020_GAUNTLET_LOBBY,))
+if "v016_watch_hall" in ROOMS and "east" not in _catalog_mut.catalog_setdefault_path('ROOMS', ROOMS, ("v016_watch_hall",), "exits",{}): _catalog_mut.catalog_assign(V020_GAUNTLET_LOBBY, 'ROOMS', ROOMS, ("v016_watch_hall", "exits", "east"))
 
 for _gkey,_gdata in V020_GAUNTLETS.items():
     for _round,_stage in enumerate(_gdata["stages"],1):
         _rid=f"v020_gauntlet_{_gkey}_{_round}"
         _prev=V020_GAUNTLET_LOBBY if _round==1 else f"v020_gauntlet_{_gkey}_{_round-1}"
         _next=V020_GAUNTLET_LOBBY if _round==5 else f"v020_gauntlet_{_gkey}_{_round+1}"
-        ROOMS[_rid]={"zone":_gdata["name"],"name":f"{_gdata['name']} — runda {_round}/5",
+        _catalog_mut.catalog_assign({"zone":_gdata["name"],"name":f"{_gdata['name']} — runda {_round}/5",
             "desc":"Arena pojedynczego bossa. Wyjście naprzód otwiera się po pokonaniu aktywnego bossa. PASSIVE WORLD; brak pułapek.",
-            "exits":{"south":_prev,"north":_next},"recommended_mastery":_stage,"v020_gauntlet":_gkey,"v020_gauntlet_round":_round}
+            "exits":{"south":_prev,"north":_next},"recommended_mastery":_stage,"v020_gauntlet":_gkey,"v020_gauntlet_round":_round}, 'ROOMS', ROOMS, (_rid,))
         _tid=f"v020_gauntlet_boss_{_gkey}_{_round}"
         _mechanic=list(V017_BIOME_BOSS_MECHANICS.values())[(_round+list(V020_GAUNTLETS).index(_gkey)*3)%len(V017_BIOME_BOSS_MECHANICS)][0]
-        MOB_TEMPLATES[_tid]={"name":f"{_gdata['name']} — Boss Rundy {_round}","max_hp":1,"damage":1,"damage_type":"physical" if _round%2 else "magic",
+        _catalog_mut.catalog_assign({"name":f"{_gdata['name']} — Boss Rundy {_round}","max_hp":1,"damage":1,"damage_type":"physical" if _round%2 else "magic",
             "silver":0,"gold":0,"mithril":0,"stat_reward":1,"soul_reward":1,"class_xp_reward":1,"drops":({"v020_gauntlet_seal":1.0} if _round==5 else {"soul_elixir":0.25}),
             "auto_aggro":False,"stationary_mob":True,"boss_mechanic":_mechanic,"v017_boss_phases":True,
-            "v020_gauntlet":_gkey,"v020_gauntlet_round":_round,"v019_stage":_stage,"respawn_seconds":6*60*60}
+            "v020_gauntlet":_gkey,"v020_gauntlet_round":_round,"v019_stage":_stage,"respawn_seconds":6*60*60}, 'MOB_TEMPLATES', MOB_TEMPLATES, (_tid,))
         v0190_apply_combat_template(MOB_TEMPLATES[_tid]); BOSS_COLLECTION_CATALOG[_tid]=MOB_TEMPLATES[_tid]["name"]
         MOB_SPAWNS.append((_rid,_tid))
 
@@ -2609,11 +2588,11 @@ def v0200_mythic_template(kind):
     stage=max(250,min(CHARACTER_MAX_LEVEL,int(spec.get("base_mastery",1))+140))
     mechanic, text=V017_BIOME_BOSS_MECHANICS.get(kind,("two_hundred_lord","Wielofazowa mechanika."))
     pool=list(V017_BIOME_SET_ITEMS.get(kind,()))
-    MOB_TEMPLATES[tid]={"name":f"Mityczny Władca — {spec['zone']}","max_hp":1,"damage":1,"damage_type":"magic" if kind in ("void","sky","crown","ocean") else "physical",
+    _catalog_mut.catalog_assign({"name":f"Mityczny Władca — {spec['zone']}","max_hp":1,"damage":1,"damage_type":"magic" if kind in ("void","sky","crown","ocean") else "physical",
         "silver":0,"gold":0,"mithril":0,"stat_reward":1,"soul_reward":1,"class_xp_reward":1,
         "drops":{"v020_mythic_essence":1.0,"v020_ancient_core":0.65,"soul_elixir":0.80},"world_boss":True,"v020_mythic_world_boss":True,"v020_biome":kind,
         "auto_aggro":False,"stationary_mob":True,"boss_mechanic":mechanic,"boss_mechanic_text":text+" Mityczny world boss; fazy 75/50/25%. PASSIVE WORLD.",
-        "v017_boss_phases":True,"v019_stage":stage,"corpse_equipment_pool":pool,"corpse_equipment_guaranteed":min(4,len(pool))}
+        "v017_boss_phases":True,"v019_stage":stage,"corpse_equipment_pool":pool,"corpse_equipment_guaranteed":min(4,len(pool))}, 'MOB_TEMPLATES', MOB_TEMPLATES, (tid,))
     v0190_apply_combat_template(MOB_TEMPLATES[tid]); BOSS_COLLECTION_CATALOG[tid]=MOB_TEMPLATES[tid]["name"]
     return tid
 
@@ -2653,7 +2632,7 @@ for _fid,_data in V017_ARTIFACTS.items():
     for _tier in range(2,V020_ARTIFACT_MAX_TIER+1):
         _iid=f"{_base}_t{_tier}"; _scale=1.0+0.35*(_tier-1)
         _hp=1.0+(float(_data["hp"])-1.0)*_scale; _dmg=1.0+(float(_data["damage"])-1.0)*_scale; _def=1.0+(float(_data["defense"])-1.0)*_scale
-        ITEMS[_iid]=dict(_base_item); ITEMS[_iid].update({"name":f"{_data['name']} +{_tier-1}","rarity":"mythic" if _tier>=4 else "legendary","rarity_name":"Artefakt Rozwinięty",
+        _catalog_mut.catalog_assign(dict(_base_item), 'ITEMS', ITEMS, (_iid,)); _catalog_mut.catalog_update_path('ITEMS', ITEMS, (_iid,), {"name":f"{_data['name']} +{_tier-1}","rarity":"mythic" if _tier>=4 else "legendary","rarity_name":"Artefakt Rozwinięty",
             "defense":int(round(int(_data["defense_flat"])*_scale)),"artifact_hp_multiplier":_hp,"artifact_damage_multiplier":_dmg,"artifact_defense_multiplier":_def,
             "v020_artifact_tier":_tier,"v020_artifact_base":_base,
             "desc":f"Rozwinięcie artefaktu {_data['name']}, poziom {_tier}/{V020_ARTIFACT_MAX_TIER}. Brak losowego faila."})
@@ -2699,9 +2678,7 @@ HELP_TOPICS["endgamegoals_v020"]=["celekonca / endgamegoals pokazuje długotermi
 HELP_TOPIC_ALIASES.update({"megalochy":"megalochy_v020","megadungeons":"megalochy_v020","gauntlety":"gauntlety_v020","gauntlets":"gauntlety_v020",
     "mityczne bossy":"mythicboss_v020","mythic bosses":"mythicboss_v020","ulepsz artefakt":"artifactupgrade_v020","artifact upgrade":"artifactupgrade_v020",
     "cele konca":"endgamegoals_v020","endgame goals":"endgamegoals_v020"})
-COMMAND_ALIASES.update({"megalochy":"megadungeons","megadungeons":"megadungeons","gauntlety":"gauntlets","gauntlets":"gauntlets","gauntlet":"gauntlet",
-    "mitycznebossy":"mythicbosses","mythicbosses":"mythicbosses","mythicworldbosses":"mythicbosses",
-    "ulepszartefakt":"artifactupgrade","artifactupgrade":"artifactupgrade","celekonca":"endgamegoals","endgamegoals":"endgamegoals"})
+# v0.49.0: aliasy komend są centralnie zdefiniowane w config/command_aliases.py.
 
 
 # ============================================================

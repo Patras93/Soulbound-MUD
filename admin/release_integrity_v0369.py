@@ -41,6 +41,23 @@ _RELEASE_AUDITS_V0369 = [
     ("v0.38.12 named dungeon entry/return", "DUNGEON_NAMED_ENTRY_AUDIT_V03812"),
     ("v0.38.13 underground route isolation", "UNDERGROUND_ROUTE_ISOLATION_AUDIT_V03813"),
     ("v0.38.14 bounty abandon aliases", "BOUNTY_ABANDON_AUDIT_V03814"),
+    ("v0.39.0 architecture stabilization", "ARCHITECTURE_STABILIZATION_AUDIT_V0390"),
+    ("v0.40.0 maintenance architecture", "MAINTENANCE_ARCHITECTURE_AUDIT_V0400"),
+    ("v0.41.0 native module architecture", "NATIVE_MODULE_ARCHITECTURE_AUDIT_V0410"),
+    ("v0.42.0 modular services/data/events", "MODULAR_SERVICES_AUDIT_V0420"),
+    ("v0.43.0 explicit dependencies architecture", "EXPLICIT_DEPENDENCIES_AUDIT_V0430"),
+    ("v0.44.0 explicit gameplay dependencies", "EXPLICIT_GAMEPLAY_DEPENDENCIES_AUDIT_V0440"),
+    ("v0.45.0 conservative explicit dependencies", "EXPLICIT_STABLE_DEPENDENCIES_AUDIT_V0450"),
+    ("v0.46.0 explicit persistence/override cleanup", "EXPLICIT_PERSISTENCE_AUDIT_V0460"),
+    ("v0.47.0 focused explicit combat architecture", "COMBAT_ARCHITECTURE_AUDIT_V0470"),
+    ("v0.48.0 controlled world/data ownership", "CATALOG_OWNERSHIP_AUDIT_V0480"),
+    ("v0.49.0 authoritative commands registry", "COMMAND_REGISTRY_AUDIT_V0490"),
+    ("v0.50.0 maintainable core baseline", "MAINTAINABLE_CORE_AUDIT_V0500"),
+    ("v0.50.1 progression pace rebalance", "PROGRESSION_PACE_AUDIT_V0501"),
+    ("v0.50.2 long-term stat/progression balance", "LONG_TERM_BALANCE_AUDIT_V0502"),
+    ("v0.50.3 world/dungeon difficulty pressure", "DIFFICULTY_PRESSURE_AUDIT_V0503"),
+    ("v0.51.0 World Expansion I", "WORLD_EXPANSION_I_AUDIT_V0510"),
+    ("v0.52.0 World Expansion II", "WORLD_EXPANSION_II_AUDIT_V0520"),
 ]
 
 def cumulative_release_integrity_audit_v0369():
@@ -58,13 +75,13 @@ def cumulative_release_integrity_audit_v0369():
         preserved.append(label)
 
     # Direct release-line checks for the exact milestones the user flagged.
-    if str(globals().get("VERSION","")) != "0.38.14":
-        errors.append(f"VERSION={globals().get('VERSION')!r}, expected 0.38.14")
-    if str(globals().get("GENERATOR_CORE_VERSION","")) != "0.38.14":
-        errors.append(f"Generator Core={globals().get('GENERATOR_CORE_VERSION')!r}, expected 0.38.14")
+    if str(globals().get("VERSION","")) != "0.52.0":
+        errors.append(f"VERSION={globals().get('VERSION')!r}, expected 0.52.0")
+    if str(globals().get("GENERATOR_CORE_VERSION","")) != "0.52.0":
+        errors.append(f"Generator Core={globals().get('GENERATOR_CORE_VERSION')!r}, expected 0.52.0")
 
     return {
-        "version":"0.38.14",
+        "version":"0.52.0",
         "checked":len(_RELEASE_AUDITS_V0369),
         "preserved":preserved,
         "preserved_count":len(preserved),
@@ -75,7 +92,7 @@ def cumulative_release_integrity_audit_v0369():
 CUMULATIVE_RELEASE_INTEGRITY_AUDIT_V0369=cumulative_release_integrity_audit_v0369()
 if CUMULATIVE_RELEASE_INTEGRITY_AUDIT_V0369["error_count"]:
     raise RuntimeError(
-        "Cumulative Release Integrity Audit v0.38.14 failed: "
+        "Cumulative Release Integrity Audit v0.52.0 failed: "
         + "; ".join(CUMULATIVE_RELEASE_INTEGRITY_AUDIT_V0369["errors"][:100])
     )
 
@@ -94,4 +111,59 @@ HELP_TOPICS.setdefault("wersja", []).append(
     "v0.38.14: bounty porzuć / bounty porzuc anuluje aktywny kontrakt bez zmiany licznika ukończonych i bez darmowego losowania nowych ofert."
 )
 
-LATEST_CHANGES_TITLE = "Soulbound v0.38.14 - Bounty Abandon"
+LATEST_CHANGES_TITLE = "Soulbound v0.52.0 - World Expansion II"
+LATEST_CHANGES = [
+    "v0.52.0: World Expansion II — dodano zamorski ląd Ardelii ze stolicą Srebrna Korona i trzema osadami.",
+    "Dodano dziesięć nowych expowisk od Brzegów Szeptów po Rubieże Nocy, każde z własnymi mobami i bossem.",
+    "Nowy ląd ma pętle dróg i trzy trasy między osadami, więc podróż nie wymaga ciągłego wracania do stolicy.",
+    "Dodano 20 odnawialnych lokalnych zleceń; stare regiony, progresja i World Expansion I pozostają bez zmian.",
+    "v0.50.1-v0.50.3 nadal obowiązuje: wolniejsza długoterminowa progresja i podniesiona trudność świata/lochów.",
+]
+
+
+
+HELP_TOPICS.setdefault("wersja", []).append(
+    "v0.39.0: uporządkowano architekturę bez zmiany gameplayu: jawny manifest runtime, kontrolowane nadpisania, osobne moduły generatorów i deklaratywny router prostych komend."
+)
+
+HELP_TOPICS.setdefault("wersja", []).append(
+    "v0.40.0: Maintenance Architecture — baza i największe mixiny zostały rozbite według odpowiedzialności; diagnostyka błędów wskazuje subsystem, plik i linię bez zmiany gameplayu."
+)
+
+HELP_TOPICS.setdefault("wersja", []).append(
+    "v0.41.0: Native Module Architecture — cały runtime jest ładowany jako prawdziwe moduły Pythona; usunięto aktywne sklejanie źródeł przez exec, zachowując gameplay v0.40.0."
+)
+
+HELP_TOPICS.setdefault("wersja", []).append(
+    "v0.42.0: Modular Services Architecture — dane i balans są oddzielone od logiki, a kill/gather progression korzysta z centralnego event busa; naprawy prowadzą do data/, config/, events/ lub konkretnego subsystemu."
+)
+
+HELP_TOPICS.setdefault("wersja", []).append(
+    "v0.43.0: Explicit Dependencies Architecture — nowe i zmigrowane moduły używają jawnych importów/eksportów, a compatibility bridge jest mierzalny i nie może się ponownie rozrastać."
+)
+
+HELP_TOPICS.setdefault("wersja", []).append(
+    "v0.44.0: Explicit Gameplay Dependencies — kolejna fala modułów gameplayowych działa bez compatibility injection; ukryte zależności legacy spadły z 2312 do 1553."
+)
+
+HELP_TOPICS.setdefault("wersja", []).append("v0.45.0: Conservative Explicit Dependencies — 20 stabilnych modułów działa bez compatibility injection; dług legacy spadł z 1553 do 1182.")
+
+HELP_TOPICS.setdefault("wersja", []).append("v0.46.0: Explicit Persistence & Override Cleanup — persistence działa przez jawne importy, a historyczne monkey-patche Database zostały zastąpione normalnym mixinem.")
+
+HELP_TOPICS.setdefault("wersja", []).append("v0.47.0: Focused Explicit Combat Architecture — walka jest podzielona na osobne moduły skilli, obrażeń, realtime, nagród i przeżycia; combat.py jest tylko agregatem kompatybilności.")
+
+HELP_TOPICS.setdefault("wersja", []).append("v0.48.0: Controlled World/Data Ownership — runtime nie zapisuje już bezpośrednio do wspólnych katalogów; każda kontrolowana zmiana ma ślad pochodzenia i właściciela.")
+
+HELP_TOPICS.setdefault("wersja", []).append("v0.49.0: Authoritative Commands Registry — aliasy, handlery, HELP i zasady bezpieczeństwa komend są śledzone centralnie; parser nie zawiera już ręcznej drabiny komend.")
+
+HELP_TOPICS.setdefault("wersja", []).append("v0.50.0: Maintainable Core Baseline — aktywne moduły mają nazwy funkcjonalne, historyczne pochodzenie jest centralnie opisane, a legacy compatibility działa wyłącznie z jawnej allowlisty.")
+
+HELP_TOPICS.setdefault("wersja", []).append("v0.50.1: Progression Pace Rebalance — Character Level, Górnictwo i Kilof rozwijają się około 2x wolniej; pozostałe profesje i narzędzia zachowują dotychczasowe tempo.")
+
+HELP_TOPICS.setdefault("wersja", []).append("v0.50.2: Long-Term Stat & Progression Balance — każda bazowa statystyka rośnie około co 120 równorzędnych akcji; statystyki pozostają bez limitu, a pozostałe długie osie progresji są audytowane pod kątem czasu dojścia do 600.")
+
+HELP_TOPICS.setdefault("wersja", []).append("v0.50.3: Harder World & Dungeons — zwiększono HP i obrażenia całego świata oraz jeszcze mocniej instancji/Krypt; nagrody rosną znacznie słabiej niż trudność.")
+
+HELP_TOPICS.setdefault("wersja", []).append("v0.51.0: World Expansion I — cztery nowe osady, osiem nowych expowisk, nowe drogi, moby, bossowie, NPC i 16 lokalnych zleceń.")
+
+HELP_TOPICS.setdefault("wersja", []).append("v0.52.0: World Expansion II — Ardelia, stolica Srebrna Korona, trzy osady, dziesięć nowych expowisk, 40 nowych mobów i 20 lokalnych zleceń.")
