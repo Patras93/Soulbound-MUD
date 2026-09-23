@@ -169,7 +169,9 @@ RUNTIME_MODULES = ['core/bootstrap_economy_professions.py',
  'admin/courier_guild_audit_v0530.py',
  'admin/courier_achievements_audit_v0540.py',
  'admin/courier_prestige_tavern_audit_v0550.py',
+ 'world/living_npcs_finalize.py',
  'admin/living_npcs_activity_audit_v0560.py',
+ 'admin/living_npcs_late_finalize_audit_v0581.py',
  'admin/modular_refactor_audit_v0570.py',
  'admin/titles_progress_audit_v0580.py',
  'admin/release_integrity_v0369.py']
@@ -745,12 +747,19 @@ EXPLICIT_RUNTIME_EXPORTS["world/living_npcs.py"] = (
     "V0560_TAVERN_NPC_IDS", "V0560_TAVERN_QUEST_IDS",
     "V0560_GENERATED_HOURLY_IDS", "V0560_GENERATED_NPC_IDS",
     "V0560_ALL_HOURLY_IDS", "V0560_LIVING_NPCS_STATE",
+    "ensure_hourly_quests_for_idle_npcs",
+)
+EXPLICIT_RUNTIME_EXPORTS["world/living_npcs_finalize.py"] = (
+    "LIVING_NPCS_FINALIZE_STATE",
 )
 EXPLICIT_RUNTIME_EXPORTS["player/session_mixins/activity_guidance.py"] = (
     "SessionActivityGuidanceV0560Mixin",
 )
 EXPLICIT_RUNTIME_EXPORTS["admin/living_npcs_activity_audit_v0560.py"] = (
     "living_npcs_activity_audit_v0560", "LIVING_NPCS_ACTIVITY_AUDIT_V0560",
+)
+EXPLICIT_RUNTIME_EXPORTS["admin/living_npcs_late_finalize_audit_v0581.py"] = (
+    "living_npcs_late_finalize_audit_v0581", "LIVING_NPCS_LATE_FINALIZE_AUDIT_V0581",
 )
 
 # v0.57.0: focused Courier and database-schema modularization.

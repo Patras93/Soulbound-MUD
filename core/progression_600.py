@@ -12,7 +12,7 @@ PROGRESSION_MAX_LEVEL = 600
 # odczytują MAX_LEVEL dynamicznie, więc przełączenie tutaj rozszerza wszystkie
 # krzywe bez kopiowania generatora.
 generator_core_v027.MAX_LEVEL = PROGRESSION_MAX_LEVEL
-generator_core_v027.GENERATOR_VERSION = "0.58.0"
+generator_core_v027.GENERATOR_VERSION = "0.58.1"
 
 # Główne osie postaci.
 CHARACTER_MAX_LEVEL = PROGRESSION_MAX_LEVEL
@@ -169,4 +169,4 @@ def _v0362_runtime_room_level(room_id, room, rooms=None):
 
 generator_core_v027._graph_room_levels = _v0362_graph_room_levels
 generator_core_v027.runtime_room_level = _v0362_runtime_room_level
-generator_core_v027.GENERATOR_VERSION = "0.58.0"
+generator_core_v027.GENERATOR_VERSION = "0.58.1"

@@ -249,26 +249,57 @@ def _add_hourly_quests_for_idle_npcs():
 
 
 V0560_TAVERN_NPC_IDS, V0560_TAVERN_QUEST_IDS = _add_tavern_network()
-V0560_GENERATED_HOURLY_IDS, V0560_GENERATED_NPC_IDS = _add_hourly_quests_for_idle_npcs()
-V0560_ALL_HOURLY_IDS = tuple(dict.fromkeys(V0560_TAVERN_QUEST_IDS + V0560_GENERATED_HOURLY_IDS))
+V0560_GENERATED_HOURLY_IDS = ()
+V0560_GENERATED_NPC_IDS = ()
+V0560_ALL_HOURLY_IDS = tuple(V0560_TAVERN_QUEST_IDS)
+V0560_LIVING_NPCS_STATE = {}
 
-# `quest godzinne` imports this value after this module runs, so publish the
-# final tuple through the canonical content registry before session mixins load.
-_old_hourlies = tuple(getattr(content_registry, "HOURLY_QUEST_IDS", ()) or ())
-content_registry.HOURLY_QUEST_IDS = tuple(dict.fromkeys(_old_hourlies + V0560_ALL_HOURLY_IDS))
 
-V0560_LIVING_NPCS_STATE = {
-    "tavern_count": len(V0560_TAVERN_NPC_IDS),
-    "tavern_hourly_count": len(V0560_TAVERN_QUEST_IDS),
-    "generated_hourly_count": len(V0560_GENERATED_HOURLY_IDS),
-    "generated_npc_count": len(V0560_GENERATED_NPC_IDS),
-    "npc_count": len(NPCS),
-    "npc_without_quest_count": sum(1 for npc in NPCS.values() if not _npc_has_any_quest(npc)),
-}
+def _refresh_living_npcs_state():
+    global V0560_ALL_HOURLY_IDS, V0560_LIVING_NPCS_STATE
+    V0560_ALL_HOURLY_IDS = tuple(dict.fromkeys(V0560_TAVERN_QUEST_IDS + V0560_GENERATED_HOURLY_IDS))
+    old_hourlies = tuple(getattr(content_registry, "HOURLY_QUEST_IDS", ()) or ())
+    content_registry.HOURLY_QUEST_IDS = tuple(dict.fromkeys(old_hourlies + V0560_ALL_HOURLY_IDS))
+    V0560_LIVING_NPCS_STATE = {
+        "tavern_count": len(V0560_TAVERN_NPC_IDS),
+        "tavern_hourly_count": len(V0560_TAVERN_QUEST_IDS),
+        "generated_hourly_count": len(V0560_GENERATED_HOURLY_IDS),
+        "generated_npc_count": len(V0560_GENERATED_NPC_IDS),
+        "npc_count": len(NPCS),
+        "npc_without_quest_count": sum(1 for npc in NPCS.values() if not _npc_has_any_quest(npc)),
+    }
+    return dict(V0560_LIVING_NPCS_STATE)
+
+
+def ensure_hourly_quests_for_idle_npcs():
+    """Idempotently cover NPCs added after the initial world bootstrap.
+
+    Some legacy/runtime layers still append NPCs late in the manifest.  Running
+    this reconciliation again is safe: NPCs already covered by any quest are
+    skipped, while newly-added NPCs receive the same hourly talk quest policy.
+    """
+    global V0560_GENERATED_HOURLY_IDS, V0560_GENERATED_NPC_IDS
+    new_ids, new_npcs = _add_hourly_quests_for_idle_npcs()
+    if new_ids:
+        V0560_GENERATED_HOURLY_IDS = tuple(dict.fromkeys(V0560_GENERATED_HOURLY_IDS + tuple(new_ids)))
+    if new_npcs:
+        V0560_GENERATED_NPC_IDS = tuple(dict.fromkeys(V0560_GENERATED_NPC_IDS + tuple(new_npcs)))
+    state = _refresh_living_npcs_state()
+    return {
+        "new_hourly_ids": tuple(new_ids),
+        "new_npc_ids": tuple(new_npcs),
+        "state": state,
+    }
+
+
+# Initial pass after world expansion/runtime progression. A second reconciliation
+# runs near the end of the runtime manifest for NPCs created by later legacy layers.
+ensure_hourly_quests_for_idle_npcs()
 
 __all__ = [
     "V0560_VERSION", "V0560_HOURLY_COOLDOWN", "V0560_TAVERNS",
     "V0560_TAVERN_NPC_IDS", "V0560_TAVERN_QUEST_IDS",
     "V0560_GENERATED_HOURLY_IDS", "V0560_GENERATED_NPC_IDS",
     "V0560_ALL_HOURLY_IDS", "V0560_LIVING_NPCS_STATE",
+    "ensure_hourly_quests_for_idle_npcs",
 ]

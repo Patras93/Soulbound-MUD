@@ -1,9 +1,20 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v0.58.0
+Aktualna paczka: v0.58.1
 
 Ten plik jest changelogiem narastającym. Kolejne wydania mają dopisywać nowe wpisy na górze, bez usuwania starszej historii.
 Historia poniżej została odtworzona z zachowanych wpisów release, HELP, audytów, komentarzy milestone oraz aktywnego kodu Soulbound.
 Jeżeli stara wersja pozostawiła w obecnej bazie tylko numer bez wiarygodnego opisu, nie dopisuję zmyślonych zmian; takie numery są wymienione na końcu.
+
+
+==============================================================================
+Soulbound v0.58.1 — Living NPC Late Finalize Hotfix
+==============================================================================
+- Naprawiono produkcyjny crash Railway z audytu v0.56.0: 14 klasowych sprzedawców EQ było tworzonych później niż pierwszy generator godzinnych questów NPC.
+- Dodano `world/living_npcs_finalize.py`, który idempotentnie uruchamia końcowe domknięcie questów dla NPC tworzonych przez późne warstwy runtime.
+- Finalizer działa po `admin/audits.py` i przed `admin/living_npcs_activity_audit_v0560.py`; sam audyt nie został osłabiony i nadal wymaga 0 NPC bez questów.
+- Fast Railway Predeploy sprawdza teraz poprawną kolejność finalizera i audytu, aby ten typ regresji zatrzymywał build przed deployem.
+- Dodano osobny Living NPC Late Finalize Audit v0.58.1.
+- Titles 2.0, komenda `postep`, gameplay, ekonomia i schemat SQLite pozostają bez zmian; brak wipe postaci.
 
 ==============================================================================
 Soulbound v0.58.0 — Titles 2.0 & Unified Progress

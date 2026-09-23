@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Soulbound v0.58.0 - fast Railway predeploy audit.
+"""Soulbound v0.58.1 - fast Railway predeploy audit.
 
 This audit intentionally does not assemble the whole gameplay runtime.  It
 checks the deployment-critical surface that can make Railway fail before the
@@ -104,6 +104,26 @@ def fast_predeploy_audit_v0571():
         errors.append(f"runtime manifest duplicate: {rel}")
     errors.extend(f"Python syntax failure: {item}" for item in syntax_errors)
 
+
+    # 2b. Late living-NPC reconciliation must run after late NPC creators and
+    # before the v0.56.0 coverage audit. This protects the Railway regression
+    # fixed in v0.58.1, where class EQ shopkeepers were added after the first
+    # living-NPC pass.
+    try:
+        finalizer = "world/living_npcs_finalize.py"
+        living_audit = "admin/living_npcs_activity_audit_v0560.py"
+        late_creator = "admin/audits.py"
+        if finalizer not in RUNTIME_MODULES:
+            errors.append("living NPC late finalizer missing from runtime manifest")
+        elif living_audit not in RUNTIME_MODULES:
+            errors.append("living NPC coverage audit missing from runtime manifest")
+        elif RUNTIME_MODULES.index(finalizer) > RUNTIME_MODULES.index(living_audit):
+            errors.append("living NPC late finalizer runs after the coverage audit")
+        if finalizer in RUNTIME_MODULES and late_creator in RUNTIME_MODULES and RUNTIME_MODULES.index(finalizer) < RUNTIME_MODULES.index(late_creator):
+            errors.append("living NPC late finalizer runs before admin/audits.py late NPC creation")
+    except Exception as exc:
+        errors.append(f"living NPC runtime-order check failed: {type(exc).__name__}: {exc}")
+
     # 3. Critical import that caused the real Railway crash in v0.52.0.
     critical_import_ok = False
     try:
@@ -170,7 +190,7 @@ def fast_predeploy_audit_v0571():
         errors.append(f"server bootstrap contract check failed: {type(exc).__name__}: {exc}")
 
     return {
-        "version": "0.58.0",
+        "version": "0.58.1",
         "runtime_module_count": len(RUNTIME_MODULES),
         "missing_runtime_packages": missing_packages,
         "missing_manifest_files": missing_manifest_files,
