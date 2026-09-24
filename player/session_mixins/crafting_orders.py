@@ -14,6 +14,9 @@ from core.mines_threat import ITEMS
 
 
 CRAFTING_ORDER_REFRESH_SECONDS_V0600 = 3600
+# v0.61.3: orders accepted before this hotfix may have had their products
+# consumed by the broken turn-in path before the reward_tool_type crash.
+CRAFTING_ORDER_BROKEN_TURNIN_CUTOFF_V0613 = 1790294400
 
 # Product-producing specialists only. Gathering professions keep their own quests.
 CRAFTING_ORDER_NPCS_V0600 = {
@@ -73,20 +76,28 @@ class SessionCraftingOrdersV0600Mixin:
             for recipe_id, recipe in table.items():
                 if not isinstance(recipe, dict):
                     continue
+                stations = tuple(map(str, recipe.get("stations") or ()))
                 if source == "extended" and str(recipe.get("profession") or "") != profession:
                     continue
                 if source == "craft":
                     rprof = str(recipe.get("profession") or "")
                     rtool = str(recipe.get("tool_type") or "")
-                    if rprof != "Kowalstwo" and rtool != "crafting":
-                        continue
                     category = str(recipe.get("category") or "").lower()
+                    # Legacy Kowalstwo recipes predate explicit profession/tool_type fields.
+                    # Their canonical ownership is the Haldor forge/crafting_workshop station.
+                    blacksmith_recipe = (
+                        rprof == "Kowalstwo"
+                        or rtool == "crafting"
+                        or "forge" in stations
+                        or "crafting_workshop" in stations
+                    )
+                    if not blacksmith_recipe:
+                        continue
                     if any(token in category for token in ("salvage", "tech", "refine")):
                         continue
                 required = max(1, int(recipe.get("min_profession_level", recipe.get("min_tool_level", 1)) or 1))
                 if required > level:
                     continue
-                stations = tuple(map(str, recipe.get("stations") or ()))
                 if stations and room_id and room_id not in stations:
                     continue
                 output = str(recipe.get("output") or "")
@@ -214,18 +225,43 @@ class SessionCraftingOrdersV0600Mixin:
             if progress < needed:
                 await self.send(f"Zamówienie nie jest gotowe. Postęp {progress} z {needed}; brakuje {needed-progress}.")
                 return
-            have = int(self.quest_crafted_item_have_v0333(str(active["item_id"])))
-            if have < needed:
+
+            # Preflight every reward field BEFORE removing physical products.
+            # v0.60.0-v0.61.2 used the non-existent SQLite key `tool_type` here,
+            # which consumed the order products and then crashed with IndexError.
+            tool_type = str(active["reward_tool_type"] or "")
+            if not self.valid_tool_type(tool_type):
+                await self.send(
+                    f"Zamówienie ma nieprawidłowy typ narzędzia: {tool_type or 'brak'}. "
+                    "Produkty nie zostały pobrane; zgłoś ten błąd administratorowi."
+                )
+                return
+
+            item_id = str(active["item_id"])
+            have = int(self.quest_crafted_item_have_v0333(item_id))
+            legacy_recovery = (
+                have < needed
+                and progress >= needed
+                and int(active["accepted_at"] or 0) <= CRAFTING_ORDER_BROKEN_TURNIN_CUTOFF_V0613
+            )
+            if have < needed and not legacy_recovery:
                 await self.send(f"Masz tylko {have} z {needed} wymaganych sztuk. Produkty muszą być nadal przy tobie lub w magazynie profesji.")
                 return
-            if not self.consume_quest_crafted_items_v0333(str(active["item_id"]), needed):
-                await self.send("Nie udało się pobrać produktów do zamówienia. Sprawdź ekwipunek i magazyn profesji.")
-                return
+            if not legacy_recovery:
+                if not self.consume_quest_crafted_items_v0333(item_id, needed):
+                    await self.send("Nie udało się pobrać produktów do zamówienia. Sprawdź ekwipunek i magazyn profesji.")
+                    return
+            else:
+                await self.send(
+                    "NAPRAWA ZAMÓWIENIA v0.61.3: wykryto aktywne, ukończone zamówienie przyjęte przed hotfixem. "
+                    "Stara ścieżka mogła już pobrać produkty przed crashem, więc nie pobieram ich ponownie."
+                )
+
             coins = int(active["reward_coins"])
             self.character.silver = min(CURRENCY_SQLITE_SAFE_TOTAL, int(self.character.silver) + coins)
             await self.grant_profession_reward_xp(
                 str(active["profession"]), int(active["reward_profession_xp"]),
-                str(active["tool_type"]), int(active["reward_tool_xp"]),
+                tool_type, int(active["reward_tool_xp"]),
             )
             self.server.db.finish_crafting_order_v0600(self.account_id, int(active["cycle_slot"]))
             self.server.db.add_lifetime_stat(self.account_id, "crafting_orders_completed", 1)
@@ -298,5 +334,10 @@ class SessionCraftingOrdersV0600Mixin:
                 f"{offer['number']}. {offer['item_name']} x{offer['needed']}. Wymaga {spec['profession']} {offer['required_level']}. "
                 f"Nagroda {currency_reading_text(offer['reward_coins'],0,0)}, {offer['reward_profession_xp']} XP profesji, "
                 f"{offer['reward_tool_xp']} XP narzędzia."
+            )
+        if not offers:
+            await self.send(
+                f"Brak ofert dla aktualnego poziomu profesji {spec['profession']}. "
+                "Jeżeli to Kowalstwo poziom 1+, zgłoś błąd administratorowi."
             )
         await self.send("Przyjęcie: zamowienia wez <numer>. Stan: zamowienia status. Oddanie: zamowienia oddaj.")

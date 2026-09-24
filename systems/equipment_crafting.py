@@ -229,14 +229,8 @@ def _register_class_equipment_shops():
                         "class_set_piece": slot,
                         "class_equipment_tier": tier_index + 1,
                         "class_equipment_style": style_index,
-                        "desc": (
-                            f"Wyposażenie klasowe dla {class_name}. "
-                            f"Linia: {style_name}. Wymaga aktywnej klasy {class_name} "
-                            f"i Biegłości {required_mastery}. Tier: {tier_label}. "
-                            f"Obrona +{defense}. "
-                            f"Podstawowe statystyki EQ: "
-                            f"{class_equipment_base_stats_text(class_name, legacy_affix_amount, slot)}."
-                        ),
+                        # v0.61.2: opis zwykłego klasowego EQ jest składany na żądanie
+                        # z istniejących pól. Nie przechowujemy 38k długich kopii tekstu w RAM.
                     }, 'ITEMS', ITEMS, (item_id,))
                     CLASS_EQUIPMENT_ITEM_IDS.add(item_id)
                     tier_items.append(item_id)

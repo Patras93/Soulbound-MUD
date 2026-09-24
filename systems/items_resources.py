@@ -749,11 +749,7 @@ def _register_corpse_material_items():
                     "corpse_random_variant": variant_index,
                     "required_mastery": required_mastery,
                     "mastery_requirement_scope": "active_class",
-                    "desc": (
-                        f"Losowe materiałowe EQ z ciała przeciwnika. Materiał wyznacza poziom mocy, "
-                        f"a slot i wariant mają własny profil statów. Wymaga Levelu postaci {required_mastery}. "
-                        f"Obrona +{defense}. Statystyki: {stat_text}. Właściwości: {prop_text}.{crit_note}"
-                    ),
+                    # v0.61.2: opis materiałowego EQ jest składany na żądanie.
                 }, 'ITEMS', ITEMS, (item_id,))
                 ids.append(item_id)
         CORPSE_MATERIAL_ITEM_IDS[tier["key"]] = tuple(ids)

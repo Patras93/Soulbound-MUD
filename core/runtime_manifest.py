@@ -816,7 +816,7 @@ EXPLICIT_RUNTIME_EXPORTS["admin/courier_prestige_tavern_audit_v0550.py"] = (
     "courier_prestige_tavern_audit_v0550", "COURIER_PRESTIGE_TAVERN_AUDIT_V0550",
 )
 
-LEGACY_IMPLICIT_DEPENDENCY_BUDGET = 1020
+LEGACY_IMPLICIT_DEPENDENCY_BUDGET = 1019
 
 # v0.50.0: legacy compatibility is quarantined. A new runtime module may not
 # silently enter the symbol-injection bridge; it must either be explicit or be
@@ -942,4 +942,5 @@ EXPLICIT_RUNTIME_EXPORTS["player/session_mixins/item_sources.py"] = (
 )
 EXPLICIT_RUNTIME_EXPORTS["admin/item_sources_party_coordination_audit_v0610.py"] = (
     "item_sources_party_coordination_audit_v0610", "ITEM_SOURCES_PARTY_COORDINATION_AUDIT_V0610",
+    "memory_efficiency_audit_v0612", "V0612_MEMORY_EFFICIENCY_AUDIT",
 )

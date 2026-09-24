@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Static architecture audit for Soulbound v0.60.0 crafting orders + EQ compare."""
+"""Cumulative crafting-orders/EQ audit through Soulbound v0.61.3."""
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -13,6 +13,7 @@ def crafting_orders_compare_audit_v0600():
         "storage/schema_world_quests.py",
         "storage/db_quests.py",
         "player/session_mixins/quest_progress.py",
+        "player/session_mixins/profession_storage.py",
         "player/session_mixins/command_registry.py",
         "config/command_aliases.py",
         "systems/content_registry.py",
@@ -66,6 +67,24 @@ def crafting_orders_compare_audit_v0600():
         progress = text("player/session_mixins/quest_progress.py")
         if "await self.announce_crafting_order_progress_v0600(item_id, amount)" not in progress:
             errors.append("craft event is not wired to rotating crafting orders")
+
+        # v0.61.3 regression guards: legacy smithing recipes must be eligible
+        # even when they predate explicit profession/tool_type metadata, and
+        # turn-in must use the real SQLite column before consuming products.
+        for token in (
+            '"forge" in stations', '"crafting_workshop" in stations',
+            'active["reward_tool_type"]', "CRAFTING_ORDER_BROKEN_TURNIN_CUTOFF_V0613",
+            "legacy_recovery",
+        ):
+            if token not in orders:
+                errors.append(f"v0.61.3 crafting-order hotfix contract missing: {token}")
+        if 'active["tool_type"]' in orders:
+            errors.append("broken v0.60.0-v0.61.2 turn-in key active[tool_type] returned")
+
+        profession_storage = text("player/session_mixins/profession_storage.py")
+        for tool_type in ("tailoring", "leatherworking", "carpentry", "enchanting"):
+            if f'"{tool_type}"' not in profession_storage:
+                errors.append(f"extended crafting tool type missing from reward support: {tool_type}")
     except Exception as exc:
         errors.append(f"crafting orders check failed: {exc}")
 
@@ -109,7 +128,7 @@ def crafting_orders_compare_audit_v0600():
         errors.append(f"assembly check failed: {exc}")
 
     return {
-        "version": "0.60.0",
+        "version": "0.61.3",
         "error_count": len(errors),
         "errors": errors,
     }
@@ -118,7 +137,7 @@ def crafting_orders_compare_audit_v0600():
 CRAFTING_ORDERS_COMPARE_AUDIT_V0600 = crafting_orders_compare_audit_v0600()
 if CRAFTING_ORDERS_COMPARE_AUDIT_V0600["error_count"]:
     raise RuntimeError(
-        "Crafting Orders & EQ Compare Audit v0.60.0 failed: "
+        "Crafting Orders Hotfix Audit v0.61.3 failed: "
         + "; ".join(CRAFTING_ORDERS_COMPARE_AUDIT_V0600["errors"][:100])
     )
 

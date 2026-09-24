@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Static feature audit for Soulbound v0.61.0-v0.61.1 item/crafting guidance + party coordination."""
+"""Feature audit for Soulbound v0.61.0-v0.61.2 item guidance, party coordination and memory efficiency."""
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -137,7 +137,39 @@ if ITEM_SOURCES_PARTY_COORDINATION_AUDIT_V0610["error_count"]:
         + "; ".join(ITEM_SOURCES_PARTY_COORDINATION_AUDIT_V0610["errors"][:100])
     )
 
+
+def memory_efficiency_audit_v0612():
+    errors = []
+    def text(rel):
+        return (ROOT / rel).read_text(encoding="utf-8")
+    checks = {
+        "systems/equipment_crafting.py": ("opis zwykłego klasowego EQ jest składany na żądanie",),
+        "systems/dungeons_regions.py": ("opis wariantu Krypty jest generowany przy wyświetleniu",),
+        "systems/items_resources.py": ("opis materiałowego EQ jest składany na żądanie",),
+        "player/session_mixins/atlas_codex.py": ("def item_runtime_description(", "crypt_set_tier", "corpse_random_variant", "class_shop_item"),
+        "admin/help_refresh.py": ("stara nazwa pozostaje w aliases",),
+    }
+    for rel, tokens in checks.items():
+        try:
+            src = text(rel)
+            for token in tokens:
+                if token not in src:
+                    errors.append(f"memory efficiency contract missing in {rel}: {token}")
+        except Exception as exc:
+            errors.append(f"memory efficiency check failed for {rel}: {exc}")
+    return {"version":"0.61.2", "error_count":len(errors), "errors":errors}
+
+
+V0612_MEMORY_EFFICIENCY_AUDIT = memory_efficiency_audit_v0612()
+if V0612_MEMORY_EFFICIENCY_AUDIT["error_count"]:
+    raise RuntimeError(
+        "Memory Efficiency Audit v0.61.2 failed: "
+        + "; ".join(V0612_MEMORY_EFFICIENCY_AUDIT["errors"][:100])
+    )
+
 __all__ = [
     "item_sources_party_coordination_audit_v0610",
     "ITEM_SOURCES_PARTY_COORDINATION_AUDIT_V0610",
+    "memory_efficiency_audit_v0612",
+    "V0612_MEMORY_EFFICIENCY_AUDIT",
 ]

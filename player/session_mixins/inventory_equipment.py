@@ -291,7 +291,7 @@ class SessionInventoryEquipmentMixin:
                 )
                 await self.send(
                     f"{item['name']} x{visible_quantity}. "
-                    f"{item.get('desc','')}{bound_text}"
+                    f"{self.item_runtime_description(str(row['item_id']), item)}{bound_text}"
                 )
 
     async def equipment(self, mode=""):

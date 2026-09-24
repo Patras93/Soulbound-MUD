@@ -472,7 +472,7 @@ def _v03016_add_legacy_item_alias(item, old_name):
         aliases.append(old_name)
     if aliases:
         item["aliases"] = aliases
-    item.setdefault("legacy_display_name_v03015", old_name)
+    # v0.61.2: stara nazwa pozostaje w aliases; osobna kopia stringa nie jest potrzebna w runtime.
 
 
 def _v03016_slot_label(item):

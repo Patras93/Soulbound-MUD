@@ -1,5 +1,28 @@
-﻿SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v0.61.1
+Soulbound v0.61.3 — Crafting Orders Hotfix
+
+- Naprawiono brak ofert u Mistrza Rzemiosła Haldora. Klasyczne receptury Kowalstwa sprzed ery jawnych pól `profession/tool_type` są teraz poprawnie rozpoznawane po kanonicznej stacji `forge` / `crafting_workshop`.
+- Haldor pokazuje do 3 realnych ofert już od Kowalstwa 1, zależnie od aktualnego poziomu profesji i godzinnej rotacji.
+- Naprawiono crash `zamowienia oddaj`: tabela SQLite zapisuje typ narzędzia w `reward_tool_type`, a stary kod błędnie odczytywał nieistniejące `tool_type`.
+- Walidacja nagrody odbywa się teraz przed pobraniem produktów, więc błąd konfiguracji nie może zabrać zamówionych przedmiotów przed zgłoszeniem problemu.
+- Dodano jednorazową ścieżkę odzysku dla aktywnych, ukończonych zamówień przyjętych przed v0.61.3. Jeżeli stary crash zdążył już pobrać produkty, oddanie nie pobiera ich ponownie i kończy zamówienie.
+- Rozszerzono obsługę narzędzi nagród o Krawiectwo (`tailoring`), Garbarstwo (`leatherworking`), Stolarstwo (`carpentry`) i Zaklinanie (`enchanting`), aby analogiczny crash nie występował u pozostałych specjalistów.
+- Test funkcjonalny: Haldor Kowalstwo 1 pokazuje 3 oferty; normalne oddanie PASS; odzysk starego crasha bez produktów PASS; nowe zamówienie bez fizycznych produktów jest prawidłowo blokowane; Lysa/Soren/Edric oddanie PASS.
+- Brak migracji SQLite i brak wipe postaci.
+
+Soulbound v0.61.2 — Memory Efficiency
+
+- Zoptymalizowano zużycie RAM bez usuwania przedmiotów, mobów, lokacji, questów ani mechanik gameplayu.
+- 38 220 zwykłych części klasowego EQ nie przechowuje już pełnego długiego opisu w pamięci; opis jest składany dopiero wtedy, gdy gracz ogląda przedmiot.
+- 20 160 wariantów EQ z Krypty korzysta z tego samego mechanizmu opisu na żądanie.
+- 3 360 materiałowych wariantów EQ z ciał przeciwników również generuje opis dopiero przy wyświetleniu.
+- Stare nazwy klasowego EQ nadal pozostają w aliases dla zgodności komend, ale nie są dodatkowo duplikowane w osobnym polu runtime.
+- Niepotrzebne pochodne pola klasowego EQ nie są materializowane dla zwykłych przedmiotów sklepowych; wszystkie statystyki, wymagania, właściwości i nazwy pozostają bez zmian.
+- Lokalny pomiar pełnego serwera: około 363,9 MB -> 326,3 MB RSS, czyli około 10,4% mniej pamięci. Wynik Railway może różnić się zależnie od wersji Pythona, liczby graczy i aktywności świata.
+- FAST PREDEPLOY: PASS. FULL PREDEPLOY: PASS. Full Game Audit: 0 błędów / 0 ostrzeżeń. Release Integrity: 65/65.
+- Brak zmian schematu SQLite i brak wipe postaci. Gameplay v0.61.1 pozostaje bez zmian.
+
+SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
+Aktualna paczka: v0.61.3
 
 Ten plik jest changelogiem narastającym. Kolejne wydania mają dopisywać nowe wpisy na górze, bez usuwania starszej historii.
 Historia poniżej została odtworzona z zachowanych wpisów release, HELP, audytów, komentarzy milestone oraz aktywnego kodu Soulbound.

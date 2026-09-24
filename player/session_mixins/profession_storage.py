@@ -76,6 +76,10 @@ class SessionProfessionStorageMixin:
                 "herbalism",
                 "alchemy",
                 "jewelcrafting",
+                "tailoring",
+                "leatherworking",
+                "carpentry",
+                "enchanting",
             )
 
     def tool_progress_state(self):
@@ -89,6 +93,10 @@ class SessionProfessionStorageMixin:
                 "herbalism",
                 "alchemy",
                 "jewelcrafting",
+                "tailoring",
+                "leatherworking",
+                "carpentry",
+                "enchanting",
             ):
                 row = self.server.db.tool(self.account_id, tool_type)
                 result[tool_type] = (
@@ -709,6 +717,10 @@ class SessionProfessionStorageMixin:
                 "herbalism": "Sierp Zielarski",
                 "alchemy": "Moździerz Alchemiczny",
                 "jewelcrafting": "Szczypce Jubilerskie",
+                "tailoring": "Zestaw Krawiecki",
+                "leatherworking": "Nóż Garbarski",
+                "carpentry": "Narzędzia Ciesielskie",
+                "enchanting": "Fokus Runiczny",
             }[tool_type]
 
             await self.send(
@@ -803,6 +815,10 @@ class SessionProfessionStorageMixin:
                 "herbalism": "Sierp Zielarski",
                 "alchemy": "Moździerz Alchemiczny",
                 "jewelcrafting": "Szczypce Jubilerskie",
+                "tailoring": "Zestaw Krawiecki",
+                "leatherworking": "Nóż Garbarski",
+                "carpentry": "Narzędzia Ciesielskie",
+                "enchanting": "Fokus Runiczny",
             }[tool_type]
 
             await self.send(f"{tool_name}: nagroda +{tool_xp} XP.")

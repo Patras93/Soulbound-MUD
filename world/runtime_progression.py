@@ -1044,10 +1044,13 @@ def finalize_class_equipment_v03015():
         item["affix"] = primary_stat
         item["affix_amount"] = primary_amount
         item["stats"] = {secondary_stat: secondary_amount}
-        item["class_base_stat_pair"] = (primary_stat, secondary_stat)
+        # v0.61.2: pola pochodne, których gameplay nie odczytuje, nie są materializowane
+        # dla dziesiątek tysięcy zwykłych części klasowego EQ.
+        if not item.get("class_shop_item"):
+            item["class_base_stat_pair"] = (primary_stat, secondary_stat)
+            item["class_equipment_profile"] = class_equipment_profile(class_name).get("identity")
         item["required_class"] = class_name
         item["required_mastery"] = mastery
-        item["class_equipment_profile"] = class_equipment_profile(class_name).get("identity")
         item["properties"] = class_equipment_profile_properties(
             class_name, mastery, item.get("slot")
         )
@@ -1056,7 +1059,7 @@ def finalize_class_equipment_v03015():
             f"{labels[primary_stat]} +{primary_amount}, "
             f"{labels[secondary_stat]} +{secondary_amount}"
         )
-        profile_text = str(item.get("class_equipment_profile") or "")
+        profile_text = str(item.get("class_equipment_profile") or class_equipment_profile(class_name).get("identity") or "")
         defense = int(item.get("defense", 0) or 0)
         set_name = item.get("class_set_name") or "Klasowy"
         if item.get("legendary_class_relic"):
@@ -1074,13 +1077,8 @@ def finalize_class_equipment_v03015():
                 f"Właściwości: {item.get('properties', {})}."
             )
         else:
-            item["desc"] = (
-                f"Wyposażenie klasowe dla {class_name}. Linia: {set_name}. "
-                f"Wymaga aktywnej klasy {class_name} i Biegłości {mastery}. "
-                f"Tier: {_class_equipment_tier_label(mastery)}. Obrona +{defense}. "
-                f"Podstawowe statystyki EQ: {stat_text}. Profil klasy: {profile_text}. "
-                f"Właściwości: {item.get('properties', {})}."
-            )
+            # v0.61.2: zwykłe klasowe EQ dostaje identyczny opis dopiero przy wyświetleniu.
+            item.pop("desc", None)
         touched += 1
 
     # Remove stale seller entries left after moving profession NPCs to private rooms.

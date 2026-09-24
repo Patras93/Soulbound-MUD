@@ -345,13 +345,7 @@ def build_crypt_loot_variants():
                     "slot": slot,
                     "defense": defense,
                     "price": None,
-                    "desc": (
-                        f"Ekwipunek z Krypty. Tier {tier}. "
-                        f"Rzadkość: {rarity['name']}. "
-                        f"Obrona +{defense}. "
-                        f"Bonus: {affix_name} +{amount}. "
-                        f"Zestaw Krypty Tier {tier}."
-                    ),
+                    # v0.61.2: opis wariantu Krypty jest generowany przy wyświetleniu.
                     "rarity": rarity_key,
                     "rarity_name": rarity["name"],
                     "crypt_set_tier": tier,

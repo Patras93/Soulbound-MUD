@@ -3,8 +3,55 @@
 
 class SessionAtlasCodexMixin:
 
+    def item_runtime_description(self, item_id, item):
+            desc = str(item.get("desc") or "").strip()
+            if desc:
+                return desc
+            if item.get("crypt_set_tier") and item.get("crypt_base_item") != item_id:
+                tier = int(item.get("crypt_set_tier", 0) or 0)
+                rarity = str(item.get("rarity_name") or item.get("rarity") or "")
+                affix = CRYPT_AFFIXES.get(item.get("affix"), item.get("affix") or "brak")
+                amount = int(item.get("affix_amount", 0) or 0)
+                defense = int(item.get("defense", 0) or 0)
+                return (f"Ekwipunek z Krypty. Tier {tier}. Rzadkość: {rarity}. "
+                        f"Obrona +{defense}. Bonus: {affix} +{amount}. Zestaw Krypty Tier {tier}.")
+            if item.get("corpse_random_variant") and item.get("corpse_material"):
+                mastery = int(item.get("required_mastery", 1) or 1)
+                defense = int(item.get("defense", 0) or 0)
+                stats = ", ".join(
+                    f"{CLASS_SET_STAT_NAMES.get(stat, stat)} +{amount}"
+                    for stat, amount in (item.get("stats") or {}).items()
+                ) or "brak"
+                props = ", ".join(
+                    f"{MATERIAL_PROPERTY_NAMES.get(prop, prop)} +{amount}%"
+                    for prop, amount in (item.get("properties") or {}).items()
+                ) or "brak"
+                return (
+                    "Losowe materiałowe EQ z ciała przeciwnika. Materiał wyznacza poziom mocy, "
+                    f"a slot i wariant mają własny profil statów. Wymaga Levelu postaci {mastery}. "
+                    f"Obrona +{defense}. Statystyki: {stats}. Właściwości: {props}."
+                )
+            if item.get("class_shop_item") and item.get("required_class"):
+                class_name = str(item.get("required_class") or "")
+                mastery = max(1, int(item.get("required_mastery", 1) or 1))
+                set_name = str(item.get("class_set_name") or "Klasowy")
+                defense = int(item.get("defense", 0) or 0)
+                stats = []
+                if item.get("affix"):
+                    stats.append(f"{CLASS_SET_STAT_NAMES.get(item['affix'], item['affix'])} +{int(item.get('affix_amount', 0) or 0)}")
+                for stat, amount in (item.get("stats") or {}).items():
+                    stats.append(f"{CLASS_SET_STAT_NAMES.get(stat, stat)} +{amount}")
+                stat_text = ", ".join(stats) if stats else "brak"
+                return (
+                    f"Wyposażenie klasowe dla {class_name}. Linia: {set_name}. "
+                    f"Wymaga aktywnej klasy {class_name} i Biegłości {mastery}. "
+                    f"Obrona +{defense}. Podstawowe statystyki EQ: {stat_text}. "
+                    f"Właściwości: {item.get('properties', {})}."
+                )
+            return ""
+
     def format_item_description(self, item_id, item):
-            parts = [f"{item['name']}. Typ: {item.get('type', 'przedmiot')}.", item.get("desc", "")]
+            parts = [f"{item['name']}. Typ: {item.get('type', 'przedmiot')}.", self.item_runtime_description(item_id, item)]
 
             if item.get("type") == "armor":
                 parts.append(
