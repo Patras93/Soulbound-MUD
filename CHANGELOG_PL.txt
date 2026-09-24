@@ -1,9 +1,23 @@
 ﻿SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v0.60.0
+Aktualna paczka: v0.60.1
 
 Ten plik jest changelogiem narastającym. Kolejne wydania mają dopisywać nowe wpisy na górze, bez usuwania starszej historii.
 Historia poniżej została odtworzona z zachowanych wpisów release, HELP, audytów, komentarzy milestone oraz aktywnego kodu Soulbound.
 Jeżeli stara wersja pozostawiła w obecnej bazie tylko numer bez wiarygodnego opisu, nie dopisuję zmyślonych zmian; takie numery są wymienione na końcu.
+
+==============================================================================
+Soulbound v0.60.1 — Full Audit & Railway Packaging Hotfix
+==============================================================================
+
+- Full Game Audit rozpoznaje teraz `talk_npc`, czyli prawidłowy typ godzinnych questów generowanych przez Living NPCs. Usunięto 53 fałszywe błędy `unsupported_quest_kind` bez zmiany działania questów.
+- `predeploy_full.py` raportuje bieżącą wersję v0.60.1 i jawnie sprawdza także Living NPC Late Finalize Audit v0.58.1 oraz Crafting Orders & EQ Compare Audit v0.60.0.
+- Cumulative Release Integrity obejmuje teraz również milestone v0.60.0; po poprawce zachowano 62/62 kontrolowanych milestone'ów.
+- Wzmocniono Railway packaging guard: źródła używane przez instrukcje `COPY` w Dockerfile muszą faktycznie istnieć w paczce DEPLOY_ONLY.
+- Przywrócono `CHANGELOG_PL.txt` do DEPLOY_ONLY, ponieważ Dockerfile kopiuje ten plik do obrazu Railway.
+- Poprawiono metadane wersji i opis SQLite: `crafting_orders_v0600` jest addytywną tabelą tworzoną automatycznie i nie wymaga wipe postaci.
+- Brak zmian gameplayu i balansu względem v0.60.0.
+- FAST PREDEPLOY: PASS — 172 moduły runtime, 0 braków, 0 błędów składni, SQLite 99 tabel / 100 obiektów, 858 aliasów / 233 handlery.
+- FULL PREDEPLOY: PASS — Full Game Audit 0 błędów / 0 ostrzeżeń; Release Integrity 62/62.
 
 ==============================================================================
 Soulbound v0.60.0 — NPC Crafting Orders & EQ Compare

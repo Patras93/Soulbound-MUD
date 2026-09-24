@@ -20,7 +20,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as probe:
     probe.bind(("127.0.0.1", 0))
     os.environ["PORT"] = str(probe.getsockname()[1])
 
-with tempfile.TemporaryDirectory(prefix="soulbound-v0571-full-audit-") as temp_dir:
+with tempfile.TemporaryDirectory(prefix="soulbound-v0601-full-audit-") as temp_dir:
     os.environ["SOULBOUND_DB"] = str(Path(temp_dir) / "audit.db")
     ns = runpy.run_path(str(ROOT / "server.py"), run_name="soulbound_predeploy")
 
@@ -46,16 +46,18 @@ courier_guild = ns["COURIER_GUILD_AUDIT_V0530"]
 courier_achievements = ns["COURIER_ACHIEVEMENTS_AUDIT_V0540"]
 courier_prestige_tavern = ns["COURIER_PRESTIGE_TAVERN_AUDIT_V0550"]
 living_npcs_activity = ns["LIVING_NPCS_ACTIVITY_AUDIT_V0560"]
+living_npcs_late_finalize = ns["LIVING_NPCS_LATE_FINALIZE_AUDIT_V0581"]
 modular_refactor = ns["MODULAR_REFACTOR_AUDIT_V0570"]
 titles_progress = ns["TITLES_PROGRESS_AUDIT_V0580"]
+crafting_orders_compare = ns["CRAFTING_ORDERS_COMPARE_AUDIT_V0600"]
 release = ns["CUMULATIVE_RELEASE_INTEGRITY_AUDIT_V0369"]
 full = ns["full_game_predeploy_audit_v0336"]()
 runtime_state = ns["RUNTIME_ARCHITECTURE_STATE"]
 
-if arch["error_count"] or maintenance["error_count"] or native["error_count"] or modular["error_count"] or explicit["error_count"] or explicit_gameplay["error_count"] or explicit_persistence["error_count"] or combat_arch["error_count"] or catalog_ownership["error_count"] or command_registry["error_count"] or maintainable["error_count"] or progression_pace["error_count"] or long_term_balance["error_count"] or difficulty_pressure["error_count"] or world_expansion["error_count"] or world_expansion_ii["error_count"] or railway_packaging["error_count"] or postal_quest_rewards["error_count"] or courier_guild["error_count"] or courier_achievements["error_count"] or courier_prestige_tavern["error_count"] or living_npcs_activity["error_count"] or modular_refactor["error_count"] or titles_progress["error_count"] or release["error_count"] or full["error_count"]:
+if arch["error_count"] or maintenance["error_count"] or native["error_count"] or modular["error_count"] or explicit["error_count"] or explicit_gameplay["error_count"] or explicit_persistence["error_count"] or combat_arch["error_count"] or catalog_ownership["error_count"] or command_registry["error_count"] or maintainable["error_count"] or progression_pace["error_count"] or long_term_balance["error_count"] or difficulty_pressure["error_count"] or world_expansion["error_count"] or world_expansion_ii["error_count"] or railway_packaging["error_count"] or postal_quest_rewards["error_count"] or courier_guild["error_count"] or courier_achievements["error_count"] or courier_prestige_tavern["error_count"] or living_npcs_activity["error_count"] or living_npcs_late_finalize["error_count"] or modular_refactor["error_count"] or titles_progress["error_count"] or crafting_orders_compare["error_count"] or release["error_count"] or full["error_count"]:
     raise SystemExit(1)
 
-print("Soulbound v0.58.1 FULL PREDEPLOY PASS")
+print("Soulbound v0.60.1 FULL PREDEPLOY PASS")
 print(f"Architecture: {arch['error_count']} errors; {arch['registered_simple_commands']} registered simple commands")
 print(f"Maintenance: {maintenance['error_count']} errors; {maintenance['metrics']['maintenance_area_count']} repair areas")
 print(f"Native modules: {native['error_count']} errors; {native['checked_native_modules']} verified module identities")
@@ -72,14 +74,16 @@ print(f"Long-term balance: {long_term_balance['error_count']} errors; stat targe
 print(f"Difficulty pressure: {difficulty_pressure['error_count']} errors; world HP x{difficulty_pressure['profiles']['world']['hp']:.2f}/DMG x{difficulty_pressure['profiles']['world']['damage']:.2f}; mythic crypt HP x{difficulty_pressure['profiles']['mythic_crypt']['hp']:.2f}/DMG x{difficulty_pressure['profiles']['mythic_crypt']['damage']:.2f}")
 print(f"World Expansion I: {world_expansion['error_count']} errors; {world_expansion['settlement_count']} settlements; {world_expansion['hunting_zone_count']} hunting zones; {world_expansion['new_room_count']} new rooms")
 print(f"World Expansion II: {world_expansion_ii['error_count']} errors; {world_expansion_ii['capital_count']} capital + {world_expansion_ii['village_count']} villages; {world_expansion_ii['hunting_zone_count']} hunting zones; {world_expansion_ii['new_room_count']} new rooms")
-print(f"Railway packaging: {railway_packaging['error_count']} errors; {railway_packaging['required_package_count']} required packages; {len(railway_packaging['missing_docker_copies'])} missing Docker COPY entries")
+print(f"Railway packaging: {railway_packaging['error_count']} errors; {railway_packaging['required_package_count']} required packages; {len(railway_packaging['missing_docker_copies'])} missing Docker COPY entries; {len(railway_packaging['missing_docker_copy_sources'])} missing COPY sources")
 print(f"Postal/quest rewards: {postal_quest_rewards['error_count']} errors; {postal_quest_rewards['settlement_count']} settlements; refresh {postal_quest_rewards['refresh_seconds']} s")
 print(f"Courier Guild: {courier_guild['error_count']} errors; {courier_guild['rank_count']} ranks; {courier_guild['package_class_count']} package classes")
 print(f"Courier achievements: {courier_achievements['error_count']} errors; thresholds {courier_achievements['delivery_thresholds']}; {courier_achievements['city_count']} cities")
 print(f"Courier prestige/tavern: {courier_prestige_tavern['error_count']} errors; {courier_prestige_tavern['city_achievement_count']} city achievements; {courier_prestige_tavern['package_achievement_count']} package achievements; {courier_prestige_tavern['tavern_hourly_count']} tavern hourlies")
 print(f"Living NPCs/activity: {living_npcs_activity['error_count']} errors; {living_npcs_activity['tavern_count']} new taverns; {living_npcs_activity['tavern_hourly_count']} tavern hourlies; {living_npcs_activity['generated_hourly_count']} generated NPC hourlies; {living_npcs_activity['npc_without_quest_count']} NPCs without quests")
+print(f"Living NPC late finalize: {living_npcs_late_finalize['error_count']} errors")
 print(f"Modular refactor: {modular_refactor['error_count']} errors; social {modular_refactor['social_lines']} lines; courier {modular_refactor['courier_lines']} lines; db_schema {modular_refactor['db_schema_lines']} lines; {modular_refactor['focused_schema_module_count']} schema modules")
 print(f"Titles 2.0/progress: {titles_progress['error_count']} errors; {titles_progress['exploration_title_count']} exploration titles; {titles_progress['boss_title_count']} boss titles; {titles_progress['profession_count']} professions")
+print(f"Crafting orders/EQ compare: {crafting_orders_compare['error_count']} errors; version {crafting_orders_compare['version']}")
 print(f"Runtime mode: {runtime_state['runtime_mode']}; {runtime_state['explicit_module_count']} explicit / {runtime_state['legacy_compat_module_count']} legacy-compat")
 print(f"Release integrity: {release['preserved_count']}/{release['checked']} milestones preserved")
 print(f"Full game audit: {full['error_count']} errors, {full.get('warning_count', 0)} warnings")

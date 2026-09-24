@@ -67,6 +67,7 @@ _RELEASE_AUDITS_V0369 = [
     ("v0.57.0 Courier & Schema Modularization", "MODULAR_REFACTOR_AUDIT_V0570"),
     ("v0.58.0 Titles 2.0 & Unified Progress", "TITLES_PROGRESS_AUDIT_V0580"),
     ("v0.58.1 Living NPC Late Finalize Hotfix", "LIVING_NPCS_LATE_FINALIZE_AUDIT_V0581"),
+    ("v0.60.0 NPC Crafting Orders & EQ Compare", "CRAFTING_ORDERS_COMPARE_AUDIT_V0600"),
 ]
 
 def cumulative_release_integrity_audit_v0369():
@@ -84,13 +85,13 @@ def cumulative_release_integrity_audit_v0369():
         preserved.append(label)
 
     # Direct release-line checks for the exact milestones the user flagged.
-    if str(globals().get("VERSION","")) != "0.60.0":
-        errors.append(f"VERSION={globals().get('VERSION')!r}, expected 0.60.0")
-    if str(globals().get("GENERATOR_CORE_VERSION","")) != "0.60.0":
-        errors.append(f"Generator Core={globals().get('GENERATOR_CORE_VERSION')!r}, expected 0.60.0")
+    if str(globals().get("VERSION","")) != "0.60.1":
+        errors.append(f"VERSION={globals().get('VERSION')!r}, expected 0.60.1")
+    if str(globals().get("GENERATOR_CORE_VERSION","")) != "0.60.1":
+        errors.append(f"Generator Core={globals().get('GENERATOR_CORE_VERSION')!r}, expected 0.60.1")
 
     return {
-        "version":"0.60.0",
+        "version":"0.60.1",
         "checked":len(_RELEASE_AUDITS_V0369),
         "preserved":preserved,
         "preserved_count":len(preserved),
@@ -101,7 +102,7 @@ def cumulative_release_integrity_audit_v0369():
 CUMULATIVE_RELEASE_INTEGRITY_AUDIT_V0369=cumulative_release_integrity_audit_v0369()
 if CUMULATIVE_RELEASE_INTEGRITY_AUDIT_V0369["error_count"]:
     raise RuntimeError(
-        "Cumulative Release Integrity Audit v0.60.0 failed: "
+        "Cumulative Release Integrity Audit v0.60.1 failed: "
         + "; ".join(CUMULATIVE_RELEASE_INTEGRITY_AUDIT_V0369["errors"][:100])
     )
 
@@ -122,15 +123,15 @@ HELP_TOPICS.setdefault("wersja", []).append(
 
 HELP_TOPICS.setdefault("wersja", []).append("v0.59.0: braki / gaps / missing pokazuje konkretne wartości brakujące do Levelu, Soul Tieru, profesji, Gildii, kolekcji i aktywnych celów.")
 HELP_TOPICS.setdefault("wersja", []).append("v0.60.0: rotujące Zamówienia Rzemieślnicze NPC co godzinę oraz porownaj <przedmiot> do pełnego porównania posiadanego EQ poza sklepem. Crafting Odłamków Duszy z v0.59.2 pozostaje bez zmian.")
+HELP_TOPICS.setdefault("wersja", []).append("v0.60.1: Full Audit Compatibility Hotfix — pełny audit rozpoznaje talk_npc z Living NPCs; gameplay bez zmian.")
 
-LATEST_CHANGES_TITLE = "Soulbound v0.60.0 - NPC Crafting Orders & EQ Compare"
+LATEST_CHANGES_TITLE = "Soulbound v0.60.1 - Full Audit Compatibility Hotfix"
 LATEST_CHANGES = [
-    "v0.60.0: rotujące zamówienia NPC używają realnych receptur i odnawiają się co 60 minut.",
-    "porownaj <przedmiot> pokazuje zyski i straty względem założonego EQ poza sklepem.",
-    "Eliksiry Duszy zużywają 2/5/10 Odłamków zależnie od tieru.",
-    "Mocniejsze talizmany zużywają 2-8 Odłamków; Rune Crafting 2-6; Rdzeń Gniazda 5.",
-    "Podstawowe receptury pozostają bez kosztu Odłamków; drop 100% w Krypcie z v0.59.1 bez zmian.",
-    "Brak zmian schematu SQLite i save'ów; bez wipe postaci.",
+    "v0.60.1: pełny Full Game Audit rozpoznaje talk_npc używany przez Living NPCs; usunięto 53 fałszywe unsupported_quest_kind.",
+    "predeploy_full.py raportuje bieżącą wersję i jawnie sprawdza Living NPC Late Finalize oraz Crafting Orders & EQ Compare.",
+    "v0.60.0 pozostaje bez zmian gameplayu: rotujące zamówienia NPC oraz porownaj <przedmiot>.",
+    "Tabela crafting_orders_v0600 jest dodawana automatycznie do SQLite; migracja jest addytywna i nie wymaga wipe postaci.",
+    "Brak zmian gameplayu i balansu w v0.60.1; hotfix dotyczy walidacji, predeployu i metadanych wydania.",
 ]
 
 

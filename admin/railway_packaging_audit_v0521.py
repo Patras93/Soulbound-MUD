@@ -33,7 +33,23 @@ def railway_packaging_audit_v0521():
             if expected not in docker:
                 missing_docker_copies.append(name)
                 errors.append(f"Dockerfile missing: {expected}")
+
+        missing_docker_copy_sources = []
+        for raw_line in docker.splitlines():
+            line = raw_line.strip()
+            if not line.upper().startswith("COPY "):
+                continue
+            parts = line.split()
+            if len(parts) < 3 or any(part.startswith("--") for part in parts[1:-1]):
+                continue
+            for source in parts[1:-1]:
+                if any(ch in source for ch in "*?["):
+                    continue
+                if not (ROOT / source).exists():
+                    missing_docker_copy_sources.append(source)
+                    errors.append(f"Dockerfile COPY source missing from release root: {source}")
     else:
+        missing_docker_copy_sources = []
         errors.append("Dockerfile missing from runtime/release root")
 
     return {
@@ -41,6 +57,7 @@ def railway_packaging_audit_v0521():
         "required_package_count": len(REQUIRED_RUNTIME_PACKAGES),
         "missing_runtime_dirs": missing_runtime_dirs,
         "missing_docker_copies": missing_docker_copies,
+        "missing_docker_copy_sources": missing_docker_copy_sources,
         "error_count": len(errors),
         "errors": errors,
     }

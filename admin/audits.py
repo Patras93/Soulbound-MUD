@@ -72,8 +72,8 @@ def generator_whitelist_audit_v03019():
     audit = GENERATOR_CORE_AUDIT or {}
     whitelist = audit.get("whitelist_audit") or {}
     errors = []
-    if GENERATOR_CORE_VERSION != "0.60.0":
-        errors.append(f"Generator Core version={GENERATOR_CORE_VERSION}, expected 0.60.0")
+    if GENERATOR_CORE_VERSION != "0.60.1":
+        errors.append(f"Generator Core version={GENERATOR_CORE_VERSION}, expected 0.60.1")
     if not audit.get("numeric_only"):
         errors.append("numeric_only flag missing")
     runtime_fast = bool(audit.get("runtime_fast_path"))
@@ -759,7 +759,7 @@ def full_release_integrity_audit_v03025():
         errors.append("world logic audit failed")
     if int(WORLD_LOGIC_AUDIT.get("warning_count", 0) or 0):
         errors.append("world logic warnings present")
-    if GENERATOR_CORE_VERSION != "0.60.0":
+    if GENERATOR_CORE_VERSION != "0.60.1":
         errors.append(f"GENERATOR_CORE_VERSION={GENERATOR_CORE_VERSION}")
     return {
         "version": "0.30.25",
@@ -976,7 +976,7 @@ def gameplay_flow_audit_v03026():
         if missing:
             errors.append(f"station {_station}: brak w {missing[:5]}")
 
-    if GENERATOR_CORE_VERSION != "0.60.0":
+    if GENERATOR_CORE_VERSION != "0.60.1":
         errors.append(f"GENERATOR_CORE_VERSION={GENERATOR_CORE_VERSION}")
 
     return {
@@ -2988,7 +2988,7 @@ def full_game_predeploy_audit_v0336():
     # 9) Quests: definitions, items, rewards and supported kinds.
     supported_kinds={
         'collect','collect_category','collect_distinct_category','collect_resource',
-        'collect_resource_set','kill','deliver_npc','talk_class_teacher','craft_set',
+        'collect_resource_set','kill','deliver_npc','talk_npc','talk_class_teacher','craft_set',
         'explore_frontier','discover_secret','mini_dungeon','world_event',
         'legendary_rare','world_boss'
     }

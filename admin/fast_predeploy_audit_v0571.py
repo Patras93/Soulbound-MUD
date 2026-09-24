@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Soulbound v0.60.0 - fast Railway predeploy audit.
+"""Soulbound v0.60.1 - fast Railway predeploy audit.
 
 This audit intentionally does not assemble the whole gameplay runtime.  It
 checks the deployment-critical surface that can make Railway fail before the
@@ -57,6 +57,24 @@ def fast_predeploy_audit_v0571():
         errors.append("Dockerfile does not copy the fast predeploy gate")
     if "RUN python /app/predeploy_check.py" not in docker:
         errors.append("Dockerfile does not execute the fast predeploy gate during build")
+
+    missing_docker_copy_sources = []
+    for raw_line in docker.splitlines():
+        line = raw_line.strip()
+        if not line.upper().startswith("COPY "):
+            continue
+        parts = line.split()
+        # Current Soulbound Dockerfile uses the plain `COPY src /app/dst` form.
+        # Skip option-based/stage copies instead of guessing their build context.
+        if len(parts) < 3 or any(part.startswith("--") for part in parts[1:-1]):
+            continue
+        for source in parts[1:-1]:
+            if any(ch in source for ch in "*?["):
+                continue
+            if not (ROOT / source).exists():
+                missing_docker_copy_sources.append(source)
+                errors.append(f"Dockerfile COPY source missing from release root: {source}")
+
     missing_packages = []
     for package in REQUIRED_RUNTIME_PACKAGES:
         if not (ROOT / package).is_dir():
@@ -223,9 +241,10 @@ def fast_predeploy_audit_v0571():
         errors.append(f"server bootstrap contract check failed: {type(exc).__name__}: {exc}")
 
     return {
-        "version": "0.60.0",
+        "version": "0.60.1",
         "runtime_module_count": len(RUNTIME_MODULES),
         "missing_runtime_packages": missing_packages,
+        "missing_docker_copy_sources": missing_docker_copy_sources,
         "missing_manifest_files": missing_manifest_files,
         "duplicate_manifest_files": duplicate_manifest_files,
         "syntax_error_count": len(syntax_errors),
