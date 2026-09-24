@@ -917,7 +917,7 @@ def full_combat_scaling_audit_v03015():
         errors.append("INT/WIL does not increase mana")
     if int_plus - base != wil_plus - base:
         errors.append("INT/WIL mana contribution is not equal")
-    if GENERATOR_CORE_VERSION != "0.60.1":
+    if GENERATOR_CORE_VERSION != "0.61.0":
         errors.append(f"GENERATOR_CORE_VERSION={GENERATOR_CORE_VERSION}")
     return {
         "version": "0.30.19",
@@ -1141,3 +1141,29 @@ try:
         )
 except Exception:
     pass
+
+# ============================================================
+# v0.61.0 - ITEM SOURCES + PARTY COORDINATION
+# ============================================================
+HELP_TOPICS["itemsource"] = [
+    "gdzie zdobyc <przedmiot> wyszukuje podaną nazwę w aktualnym katalogu gry.",
+    "Wynik pokazuje jawne źródła z realnych danych runtime: sklepy i sprzedawców, receptury i stacje, questy, zwykłe dropy, bossy oraz zasoby profesji.",
+    "Dla jakościowych wariantów craftu i rzadkich wariantów zasobów komenda wskazuje źródło bazowego przedmiotu zamiast zgadywać osobny drop.",
+    "Przykłady: gdzie zdobyc Mikstura leczenia; gdzie zdobyc Ruda żelaza. Przy niejednoznacznej nazwie gra podaje pasujące przedmioty.",
+]
+HELP_TOPIC_ALIASES.update({
+    "gdziezdobyc": "itemsource",
+    "gdziezdobyć": "itemsource",
+    "gdzie zdobyc": "itemsource",
+    "gdzie zdobyć": "itemsource",
+    "itemsource": "itemsource",
+    "whereget": "itemsource",
+})
+HELP_TOPICS.setdefault("druzyny", []).extend([
+    "v0.61.0: druzyna cel <tekst> ustawia wspólny cel drużyny. Samo druzyna cel pokazuje go, a druzyna cel off usuwa. Cel trwa do zmiany lub rozwiązania drużyny i przechodzi przy ręcznym przekazaniu lidera.",
+    "v0.61.0: lider uruchamia kontrolę komendą druzyna gotowi. Każdy członek potwierdza tą samą komendą; druzyna gotowi status pokazuje wszystkich, druzyna niegotowy cofa własne potwierdzenie, a druzyna gotowi reset zaczyna od nowa.",
+    "Zmiana albo usunięcie celu zeruje kontrolę gotowości. Cel i ready-check są stanem sesyjnej drużyny, więc nie przechodzą przez restart serwera po rozwiązaniu samej drużyny.",
+])
+HELP_TOPICS.setdefault("podstawy", []).append(
+    "v0.61.0: gdzie zdobyc <przedmiot> pokazuje realne źródła itemu; drużyna ma wspólny cel i kontrolę gotowości."
+)

@@ -68,6 +68,7 @@ _RELEASE_AUDITS_V0369 = [
     ("v0.58.0 Titles 2.0 & Unified Progress", "TITLES_PROGRESS_AUDIT_V0580"),
     ("v0.58.1 Living NPC Late Finalize Hotfix", "LIVING_NPCS_LATE_FINALIZE_AUDIT_V0581"),
     ("v0.60.0 NPC Crafting Orders & EQ Compare", "CRAFTING_ORDERS_COMPARE_AUDIT_V0600"),
+    ("v0.61.0 Item Sources & Party Coordination", "ITEM_SOURCES_PARTY_COORDINATION_AUDIT_V0610"),
 ]
 
 def cumulative_release_integrity_audit_v0369():
@@ -85,13 +86,13 @@ def cumulative_release_integrity_audit_v0369():
         preserved.append(label)
 
     # Direct release-line checks for the exact milestones the user flagged.
-    if str(globals().get("VERSION","")) != "0.60.1":
-        errors.append(f"VERSION={globals().get('VERSION')!r}, expected 0.60.1")
-    if str(globals().get("GENERATOR_CORE_VERSION","")) != "0.60.1":
-        errors.append(f"Generator Core={globals().get('GENERATOR_CORE_VERSION')!r}, expected 0.60.1")
+    if str(globals().get("VERSION","")) != "0.61.0":
+        errors.append(f"VERSION={globals().get('VERSION')!r}, expected 0.61.0")
+    if str(globals().get("GENERATOR_CORE_VERSION","")) != "0.61.0":
+        errors.append(f"Generator Core={globals().get('GENERATOR_CORE_VERSION')!r}, expected 0.61.0")
 
     return {
-        "version":"0.60.1",
+        "version":"0.61.0",
         "checked":len(_RELEASE_AUDITS_V0369),
         "preserved":preserved,
         "preserved_count":len(preserved),
@@ -102,7 +103,7 @@ def cumulative_release_integrity_audit_v0369():
 CUMULATIVE_RELEASE_INTEGRITY_AUDIT_V0369=cumulative_release_integrity_audit_v0369()
 if CUMULATIVE_RELEASE_INTEGRITY_AUDIT_V0369["error_count"]:
     raise RuntimeError(
-        "Cumulative Release Integrity Audit v0.60.1 failed: "
+        "Cumulative Release Integrity Audit v0.61.0 failed: "
         + "; ".join(CUMULATIVE_RELEASE_INTEGRITY_AUDIT_V0369["errors"][:100])
     )
 
@@ -124,14 +125,15 @@ HELP_TOPICS.setdefault("wersja", []).append(
 HELP_TOPICS.setdefault("wersja", []).append("v0.59.0: braki / gaps / missing pokazuje konkretne wartości brakujące do Levelu, Soul Tieru, profesji, Gildii, kolekcji i aktywnych celów.")
 HELP_TOPICS.setdefault("wersja", []).append("v0.60.0: rotujące Zamówienia Rzemieślnicze NPC co godzinę oraz porownaj <przedmiot> do pełnego porównania posiadanego EQ poza sklepem. Crafting Odłamków Duszy z v0.59.2 pozostaje bez zmian.")
 HELP_TOPICS.setdefault("wersja", []).append("v0.60.1: Full Audit Compatibility Hotfix — pełny audit rozpoznaje talk_npc z Living NPCs; gameplay bez zmian.")
+HELP_TOPICS.setdefault("wersja", []).append("v0.61.0: gdzie zdobyc <przedmiot> przeszukuje realne źródła przedmiotów; drużyna dostała trwały cel sesyjny i kontrolę gotowości.")
 
-LATEST_CHANGES_TITLE = "Soulbound v0.60.1 - Full Audit Compatibility Hotfix"
+LATEST_CHANGES_TITLE = "Soulbound v0.61.0 - Item Sources & Party Coordination"
 LATEST_CHANGES = [
-    "v0.60.1: pełny Full Game Audit rozpoznaje talk_npc używany przez Living NPCs; usunięto 53 fałszywe unsupported_quest_kind.",
-    "predeploy_full.py raportuje bieżącą wersję i jawnie sprawdza Living NPC Late Finalize oraz Crafting Orders & EQ Compare.",
-    "v0.60.0 pozostaje bez zmian gameplayu: rotujące zamówienia NPC oraz porownaj <przedmiot>.",
-    "Tabela crafting_orders_v0600 jest dodawana automatycznie do SQLite; migracja jest addytywna i nie wymaga wipe postaci.",
-    "Brak zmian gameplayu i balansu w v0.60.1; hotfix dotyczy walidacji, predeployu i metadanych wydania.",
+    "gdzie zdobyc <przedmiot> wyszukuje źródła w aktywnych sklepach, recepturach, questach, dropach, bossach i pulach profesji.",
+    "Wyszukiwarka rozpoznaje jakościowe warianty craftu i rzadkie warianty zasobów, wskazując ich prawdziwe źródło bazowe.",
+    "druzyna cel <tekst> ustawia wspólny cel widoczny całej drużynie; cel trwa do zmiany/wyczyszczenia i przechodzi przy przekazaniu lidera.",
+    "druzyna gotowi uruchamia i obsługuje ready-check; druzyna niegotowy cofa własne potwierdzenie, a status pokazuje gotowość każdego członka.",
+    "Zmiana celu resetuje ready-check. Funkcje są sesyjne tak samo jak istniejący system drużyny; brak migracji SQLite i wipe postaci.",
 ]
 
 

@@ -9,6 +9,7 @@ from player.session_mixins.progress_titles import SessionProgressTitlesV0580Mixi
 from player.session_mixins.progress_gaps import SessionProgressGapsV0590Mixin
 from player.session_mixins.crafting_orders import SessionCraftingOrdersV0600Mixin
 from player.session_mixins.equipment_compare import SessionEquipmentCompareV0600Mixin
+from player.session_mixins.item_sources import SessionItemSourcesV0610Mixin
 from player.session_mixins.world_progression import SessionWorldProgressionMixin
 from player.session_mixins.help_codex_profile import SessionHelpCodexProfileMixin
 from player.session_mixins.social_expansion import SessionSocialExpansionMixin
@@ -40,6 +41,7 @@ class Session(
     SessionProgressGapsV0590Mixin,
     SessionCraftingOrdersV0600Mixin,
     SessionEquipmentCompareV0600Mixin,
+    SessionItemSourcesV0610Mixin,
     SessionWorldProgressionMixin,
     SessionHelpCodexProfileMixin,
     SessionSocialExpansionMixin,

@@ -1,0 +1,121 @@
+# -*- coding: utf-8 -*-
+"""Static feature audit for Soulbound v0.61.0 item sources + party coordination."""
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+
+
+def item_sources_party_coordination_audit_v0610():
+    errors = []
+
+    required_files = (
+        "player/session_mixins/item_sources.py",
+        "player/session_mixins/party.py",
+        "player/session_mixins/command_registry.py",
+        "config/command_aliases.py",
+        "player/session.py",
+        "server/mud_server.py",
+        "core/runtime_manifest.py",
+        "admin/help_refresh.py",
+    )
+    for rel in required_files:
+        if not (ROOT / rel).is_file():
+            errors.append(f"missing file: {rel}")
+
+    def text(rel):
+        return (ROOT / rel).read_text(encoding="utf-8")
+
+    try:
+        src = text("player/session_mixins/item_sources.py")
+        for token in (
+            'V0610_ITEM_SOURCE_VERSION = "0.61.0"',
+            "def resolve_item_query_v0610(",
+            "def item_source_entries_v0610(",
+            "async def show_item_sources_v0610(",
+            "SHOPS", "CRAFT_RECIPES", "QUESTS", "MOB_TEMPLATES", "MOB_SPAWNS",
+            "FISH_RESOURCE_IDS", "ORE_RESOURCE_IDS", "WOOD_RESOURCE_IDS", "HERB_RESOURCE_IDS",
+            "crafted_base_id_v03054", "base_resource_id",
+        ):
+            if token not in src:
+                errors.append(f"item source finder contract missing: {token}")
+    except Exception as exc:
+        errors.append(f"item source finder check failed: {exc}")
+
+    try:
+        registry = text("player/session_mixins/command_registry.py")
+        if "'itemsource': ('show_item_sources_v0610'" not in registry:
+            errors.append("itemsource registry handler missing")
+        if 'raw in ("gdzie", "where")' not in registry or 'return "itemsource"' not in registry:
+            errors.append("multi-word gdzie zdobyc resolver missing")
+        aliases = text("config/command_aliases.py")
+        for token in (
+            "'gdziezdobyc': 'itemsource'",
+            "'gdziezdobyć': 'itemsource'",
+            "'whereget': 'itemsource'",
+        ):
+            if token not in aliases:
+                errors.append(f"itemsource alias missing: {token}")
+        session = text("player/session.py")
+        if session.count("SessionItemSourcesV0610Mixin") < 2:
+            errors.append("Session assembly missing SessionItemSourcesV0610Mixin")
+    except Exception as exc:
+        errors.append(f"item source routing check failed: {exc}")
+
+    try:
+        party = text("player/session_mixins/party.py")
+        for token in (
+            "async def set_party_goal_v0610(",
+            "async def show_party_ready_v0610(",
+            "async def handle_party_ready_v0610(",
+            "async def set_party_not_ready_v0610(",
+            "party_goals", "party_ready_checks",
+            'action in ("cel", "goal", "objective")',
+            'action in ("gotowi", "ready", "readycheck")',
+            'action in ("niegotowy", "notready", "unready")',
+            "WSZYSCY GOTOWI",
+        ):
+            if token not in party:
+                errors.append(f"party coordination contract missing: {token}")
+        server = text("server/mud_server.py")
+        for token in ("self.party_goals = {}", "self.party_ready_checks = {}"):
+            if token not in server:
+                errors.append(f"party server state missing: {token}")
+        # Goal/readiness must migrate on leader handoff and be cleared on party teardown.
+        if "goal = self.server.party_goals.pop(key, None)" not in party:
+            errors.append("party goal is not migrated on leader handoff")
+        if party.count("self.server.party_goals.pop(key, None)") < 3:
+            errors.append("party goal cleanup is incomplete")
+        if party.count("self.server.party_ready_checks.pop(key, None)") < 4:
+            errors.append("ready-check cleanup/reset is incomplete")
+    except Exception as exc:
+        errors.append(f"party coordination check failed: {exc}")
+
+    try:
+        manifest = text("core/runtime_manifest.py")
+        for rel in (
+            "player/session_mixins/item_sources.py",
+            "admin/item_sources_party_coordination_audit_v0610.py",
+        ):
+            if rel not in manifest:
+                errors.append(f"runtime manifest missing {rel}")
+    except Exception as exc:
+        errors.append(f"runtime manifest check failed: {exc}")
+
+    return {
+        "version": "0.61.0",
+        "error_count": len(errors),
+        "errors": errors,
+    }
+
+
+ITEM_SOURCES_PARTY_COORDINATION_AUDIT_V0610 = item_sources_party_coordination_audit_v0610()
+if ITEM_SOURCES_PARTY_COORDINATION_AUDIT_V0610["error_count"]:
+    raise RuntimeError(
+        "Item Sources & Party Coordination Audit v0.61.0 failed: "
+        + "; ".join(ITEM_SOURCES_PARTY_COORDINATION_AUDIT_V0610["errors"][:100])
+    )
+
+__all__ = [
+    "item_sources_party_coordination_audit_v0610",
+    "ITEM_SOURCES_PARTY_COORDINATION_AUDIT_V0610",
+]

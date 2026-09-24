@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Maintenance map for Soulbound v0.60.1.
+"""Maintenance map for Soulbound v0.61.0.
 
 This module is intentionally independent from the legacy gameplay namespace.
 It answers one question: where should a bug be fixed?

@@ -20,7 +20,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as probe:
     probe.bind(("127.0.0.1", 0))
     os.environ["PORT"] = str(probe.getsockname()[1])
 
-with tempfile.TemporaryDirectory(prefix="soulbound-v0601-full-audit-") as temp_dir:
+with tempfile.TemporaryDirectory(prefix="soulbound-v0610-full-audit-") as temp_dir:
     os.environ["SOULBOUND_DB"] = str(Path(temp_dir) / "audit.db")
     ns = runpy.run_path(str(ROOT / "server.py"), run_name="soulbound_predeploy")
 
@@ -50,14 +50,15 @@ living_npcs_late_finalize = ns["LIVING_NPCS_LATE_FINALIZE_AUDIT_V0581"]
 modular_refactor = ns["MODULAR_REFACTOR_AUDIT_V0570"]
 titles_progress = ns["TITLES_PROGRESS_AUDIT_V0580"]
 crafting_orders_compare = ns["CRAFTING_ORDERS_COMPARE_AUDIT_V0600"]
+item_sources_party = ns["ITEM_SOURCES_PARTY_COORDINATION_AUDIT_V0610"]
 release = ns["CUMULATIVE_RELEASE_INTEGRITY_AUDIT_V0369"]
 full = ns["full_game_predeploy_audit_v0336"]()
 runtime_state = ns["RUNTIME_ARCHITECTURE_STATE"]
 
-if arch["error_count"] or maintenance["error_count"] or native["error_count"] or modular["error_count"] or explicit["error_count"] or explicit_gameplay["error_count"] or explicit_persistence["error_count"] or combat_arch["error_count"] or catalog_ownership["error_count"] or command_registry["error_count"] or maintainable["error_count"] or progression_pace["error_count"] or long_term_balance["error_count"] or difficulty_pressure["error_count"] or world_expansion["error_count"] or world_expansion_ii["error_count"] or railway_packaging["error_count"] or postal_quest_rewards["error_count"] or courier_guild["error_count"] or courier_achievements["error_count"] or courier_prestige_tavern["error_count"] or living_npcs_activity["error_count"] or living_npcs_late_finalize["error_count"] or modular_refactor["error_count"] or titles_progress["error_count"] or crafting_orders_compare["error_count"] or release["error_count"] or full["error_count"]:
+if arch["error_count"] or maintenance["error_count"] or native["error_count"] or modular["error_count"] or explicit["error_count"] or explicit_gameplay["error_count"] or explicit_persistence["error_count"] or combat_arch["error_count"] or catalog_ownership["error_count"] or command_registry["error_count"] or maintainable["error_count"] or progression_pace["error_count"] or long_term_balance["error_count"] or difficulty_pressure["error_count"] or world_expansion["error_count"] or world_expansion_ii["error_count"] or railway_packaging["error_count"] or postal_quest_rewards["error_count"] or courier_guild["error_count"] or courier_achievements["error_count"] or courier_prestige_tavern["error_count"] or living_npcs_activity["error_count"] or living_npcs_late_finalize["error_count"] or modular_refactor["error_count"] or titles_progress["error_count"] or crafting_orders_compare["error_count"] or item_sources_party["error_count"] or release["error_count"] or full["error_count"]:
     raise SystemExit(1)
 
-print("Soulbound v0.60.1 FULL PREDEPLOY PASS")
+print("Soulbound v0.61.0 FULL PREDEPLOY PASS")
 print(f"Architecture: {arch['error_count']} errors; {arch['registered_simple_commands']} registered simple commands")
 print(f"Maintenance: {maintenance['error_count']} errors; {maintenance['metrics']['maintenance_area_count']} repair areas")
 print(f"Native modules: {native['error_count']} errors; {native['checked_native_modules']} verified module identities")
@@ -84,6 +85,7 @@ print(f"Living NPC late finalize: {living_npcs_late_finalize['error_count']} err
 print(f"Modular refactor: {modular_refactor['error_count']} errors; social {modular_refactor['social_lines']} lines; courier {modular_refactor['courier_lines']} lines; db_schema {modular_refactor['db_schema_lines']} lines; {modular_refactor['focused_schema_module_count']} schema modules")
 print(f"Titles 2.0/progress: {titles_progress['error_count']} errors; {titles_progress['exploration_title_count']} exploration titles; {titles_progress['boss_title_count']} boss titles; {titles_progress['profession_count']} professions")
 print(f"Crafting orders/EQ compare: {crafting_orders_compare['error_count']} errors; version {crafting_orders_compare['version']}")
+print(f"Item sources/party coordination: {item_sources_party['error_count']} errors; version {item_sources_party['version']}")
 print(f"Runtime mode: {runtime_state['runtime_mode']}; {runtime_state['explicit_module_count']} explicit / {runtime_state['legacy_compat_module_count']} legacy-compat")
 print(f"Release integrity: {release['preserved_count']}/{release['checked']} milestones preserved")
 print(f"Full game audit: {full['error_count']} errors, {full.get('warning_count', 0)} warnings")

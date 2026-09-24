@@ -137,6 +137,8 @@ class SessionAdminToolsMixin:
             self.server.parties.clear()
             self.server.party_invites.clear()
             self.server.party_protectors.clear()
+            self.server.party_goals.clear()
+            self.server.party_ready_checks.clear()
             await self.send(f"WIPE POSTACI zakończony. Usunięto postaci: {removed}. Konta i hasła zachowane.")
             selected = await self.character_selection_flow()
             if selected is True:

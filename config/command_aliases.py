@@ -862,7 +862,12 @@ COMMAND_ALIAS_DEFINITIONS = {'accept': 'questaccept',
  'orders': 'craftorders',
  'porownaj': 'compareeq',
  'porównaj': 'compareeq',
- 'compare': 'compareeq'
+ 'compare': 'compareeq',
+ 'gdziezdobyc': 'itemsource',
+ 'gdziezdobyć': 'itemsource',
+ 'itemsource': 'itemsource',
+ 'sourceitem': 'itemsource',
+ 'whereget': 'itemsource'
 }
 
 COMMAND_ALIAS_DEFINITIONS_VERSION = "0.49.0"

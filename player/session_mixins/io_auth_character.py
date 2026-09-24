@@ -753,6 +753,8 @@ class SessionIOAuthCharacterMixin:
             self.server.parties.clear()
             self.server.party_invites.clear()
             self.server.party_protectors.clear()
+            self.server.party_goals.clear()
+            self.server.party_ready_checks.clear()
             await self.send(f"ADMIN: konto {username} — usunięto postaci: {removed}. Konto zachowane.")
 
     async def admin_delete_character_v0301(self):
@@ -834,6 +836,8 @@ class SessionIOAuthCharacterMixin:
             self.server.parties.clear()
             self.server.party_invites.clear()
             self.server.party_protectors.clear()
+            self.server.party_goals.clear()
+            self.server.party_ready_checks.clear()
             await self.send(f"ADMIN: serwerowy wipe zakończony. Usunięto postaci: {removed}. Konta zachowane.")
 
     async def admin_character_menu_v0301(self):

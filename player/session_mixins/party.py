@@ -339,6 +339,8 @@ class SessionPartyMixin:
                 await self.show_party()
                 return False
             self.server.parties[self.account_id] = {self.account_id}
+            self.server.party_goals.pop(self.account_id, None)
+            self.server.party_ready_checks.pop(self.account_id, None)
             await self.send(
                 f"Zakładasz drużynę. Jesteś liderem. "
                 f"Limit: {self.character.party_capacity()} osób."
@@ -368,10 +370,18 @@ class SessionPartyMixin:
                 return False
 
             protector_id = self.server.party_protectors.pop(key, None)
+            goal = self.server.party_goals.pop(key, None)
+            ready = self.server.party_ready_checks.pop(key, None)
             self.server.parties.pop(key, None)
             self.server.parties[target.account_id] = set(members)
             if protector_id in members:
                 self.server.party_protectors[target.account_id] = protector_id
+            if goal:
+                self.server.party_goals[target.account_id] = goal
+            if ready is not None:
+                self.server.party_ready_checks[target.account_id] = {
+                    member_id for member_id in ready if member_id in members
+                }
 
             for invited_id, leader_id in list(self.server.party_invites.items()):
                 if leader_id == key:
@@ -509,6 +519,17 @@ class SessionPartyMixin:
                 )
             else:
                 await self.send("Osłona drużyny: wyłączona.")
+            goal = str(self.server.party_goals.get(key) or "").strip()
+            if goal:
+                await self.send(f"Cel drużyny: {goal}.")
+            else:
+                await self.send("Cel drużyny: nie ustawiono.")
+            if key in self.server.party_ready_checks:
+                ready = self.server.party_ready_checks.get(key, set())
+                await self.send(
+                    f"Gotowość: {len(ready)} z {len(members)}. "
+                    "Użyj: druzyna gotowi albo druzyna niegotowy."
+                )
             for number, session in enumerate(members, 1):
                 marker = " Lider." if session.account_id == key else ""
                 downed = " Powalony — można wskrzesić." if session.is_downed_v0371() else ""
@@ -516,6 +537,146 @@ class SessionPartyMixin:
                     f"{number}. {session.character.name}. "
                     f"Lokacja: {ROOMS[session.character.room_id]['name']}.{marker}{downed}"
                 )
+
+    async def set_party_goal_v0610(self, value=""):
+            key = self.party_key()
+            if key is None:
+                await self.send("Nie należysz do drużyny.")
+                return False
+
+            raw = " ".join(str(value or "").replace("\r", " ").replace("\n", " ").split()).strip()
+            normalized = self.normalize_description_query(raw)
+            if not raw:
+                goal = str(self.server.party_goals.get(key) or "").strip()
+                if goal:
+                    await self.send(f"Cel drużyny: {goal}.")
+                else:
+                    await self.send(
+                        "Cel drużyny: nie ustawiono. Lider używa: druzyna cel <tekst>."
+                    )
+                return True
+
+            if key != self.account_id:
+                await self.send("Tylko lider może ustawić albo wyczyścić cel drużyny.")
+                return False
+
+            if normalized in ("off", "clear", "usun", "wyczysc", "brak", "none"):
+                existed = bool(self.server.party_goals.pop(key, None))
+                self.server.party_ready_checks.pop(key, None)
+                if existed:
+                    await self.server.party_broadcast(
+                        key,
+                        f"{self.character.name} usuwa cel drużyny. Kontrola gotowości została wyzerowana.",
+                    )
+                else:
+                    await self.send("Cel drużyny już nie jest ustawiony.")
+                return True
+
+            goal = raw[:160].strip()
+            if not goal:
+                await self.send("Użycie: druzyna cel <tekst> albo druzyna cel off.")
+                return False
+            self.server.party_goals[key] = goal
+            self.server.party_ready_checks.pop(key, None)
+            await self.server.party_broadcast(
+                key,
+                f"Nowy cel drużyny: {goal}. Kontrola gotowości została wyzerowana.",
+            )
+            return True
+
+    async def show_party_ready_v0610(self):
+            key = self.party_key()
+            if key is None:
+                await self.send("Nie należysz do drużyny.")
+                return False
+            if key not in self.server.party_ready_checks:
+                await self.send(
+                    "Kontrola gotowości nie jest aktywna. Lider uruchamia ją komendą: druzyna gotowi."
+                )
+                return True
+
+            ready = self.server.party_ready_checks.get(key, set())
+            members = sorted(
+                self.server.party_sessions(self.account_id),
+                key=lambda session: session.character.name.lower(),
+            )
+            await self.send(f"GOTOWOŚĆ DRUŻYNY: {len(ready)} z {len(members)}.")
+            for number, session in enumerate(members, 1):
+                status = "gotowy" if session.account_id in ready else "niegotowy"
+                await self.send(f"{number}. {session.character.name}: {status}.")
+            return True
+
+    async def handle_party_ready_v0610(self, value=""):
+            key = self.party_key()
+            if key is None:
+                await self.send("Nie należysz do drużyny.")
+                return False
+
+            mode = self.normalize_description_query(str(value or "").strip())
+            if mode in ("status", "lista", "list"):
+                return await self.show_party_ready_v0610()
+
+            if mode in ("reset", "restart", "odnow"):
+                if key != self.account_id:
+                    await self.send("Tylko lider może zresetować kontrolę gotowości.")
+                    return False
+                self.server.party_ready_checks[key] = {self.account_id}
+                await self.server.party_broadcast(
+                    key,
+                    f"{self.character.name} rozpoczyna nową kontrolę gotowości. "
+                    "Każdy odpowiada: druzyna gotowi.",
+                )
+                return await self.show_party_ready_v0610()
+
+            ready = self.server.party_ready_checks.get(key)
+            if ready is None:
+                if key != self.account_id:
+                    await self.send(
+                        "Kontrola gotowości nie jest aktywna. Musi ją rozpocząć lider drużyny."
+                    )
+                    return False
+                ready = {self.account_id}
+                self.server.party_ready_checks[key] = ready
+                await self.server.party_broadcast(
+                    key,
+                    f"{self.character.name} rozpoczyna kontrolę gotowości. "
+                    "Każdy odpowiada: druzyna gotowi.",
+                )
+            elif self.account_id not in ready:
+                ready.add(self.account_id)
+                await self.server.party_broadcast(
+                    key,
+                    f"{self.character.name}: GOTOWY.",
+                )
+            else:
+                await self.send("Twoja gotowość jest już potwierdzona.")
+
+            members = set(self.server.parties.get(key, set()))
+            ready.intersection_update(members)
+            if members and members.issubset(ready):
+                await self.server.party_broadcast(
+                    key,
+                    "WSZYSCY GOTOWI. Cała drużyna potwierdziła gotowość.",
+                )
+            else:
+                await self.send(f"Gotowi: {len(ready)} z {len(members)}.")
+            return True
+
+    async def set_party_not_ready_v0610(self):
+            key = self.party_key()
+            if key is None:
+                await self.send("Nie należysz do drużyny.")
+                return False
+            ready = self.server.party_ready_checks.get(key)
+            if ready is None:
+                await self.send("Kontrola gotowości nie jest aktywna.")
+                return False
+            if self.account_id not in ready:
+                await self.send("Już masz status: niegotowy.")
+                return True
+            ready.discard(self.account_id)
+            await self.server.party_broadcast(key, f"{self.character.name}: NIEGOTOWY.")
+            return True
 
     async def leave_party(self, announce=True):
             key = self.party_key()
@@ -543,6 +704,8 @@ class SessionPartyMixin:
                         )
                 self.server.parties.pop(key, None)
                 self.server.party_protectors.pop(key, None)
+                self.server.party_goals.pop(key, None)
+                self.server.party_ready_checks.pop(key, None)
                 for invited_id, leader_id in list(self.server.party_invites.items()):
                     if leader_id == key:
                         self.server.party_invites.pop(invited_id, None)
@@ -551,6 +714,9 @@ class SessionPartyMixin:
                 return True
             else:
                 self.server.parties[key] = members
+                ready = self.server.party_ready_checks.get(key)
+                if ready is not None:
+                    ready.discard(self.account_id)
                 await self.server.party_broadcast(
                     key,
                     f"{self.character.name} opuszcza drużynę.",
@@ -583,6 +749,8 @@ class SessionPartyMixin:
                     )
             self.server.parties.pop(key, None)
             self.server.party_protectors.pop(key, None)
+            self.server.party_goals.pop(key, None)
+            self.server.party_ready_checks.pop(key, None)
             for target_id, leader_id in list(self.server.party_invites.items()):
                 if leader_id == key:
                     self.server.party_invites.pop(target_id, None)
@@ -651,6 +819,9 @@ class SessionPartyMixin:
                 return
 
             members.add(self.account_id)
+            ready = self.server.party_ready_checks.get(leader_id)
+            if ready is not None:
+                ready.discard(self.account_id)
             self.server.party_invites.pop(self.account_id, None)
             await self.server.party_broadcast(
                 leader_id,
@@ -693,6 +864,9 @@ class SessionPartyMixin:
                 await target.stop_party_protection(announce=False)
 
             self.server.parties[key].discard(target.account_id)
+            ready = self.server.party_ready_checks.get(key)
+            if ready is not None:
+                ready.discard(target.account_id)
             await target.send(
                 f"{self.character.name} usuwa cię z drużyny."
             )
@@ -881,6 +1055,12 @@ class SessionPartyMixin:
                     await self.assist_party_member(value)
             elif action in ("wskrzes", "wskrześ", "revive"):
                 await self.revive_party_member_v0371(value)
+            elif action in ("cel", "goal", "objective"):
+                await self.set_party_goal_v0610(value)
+            elif action in ("gotowi", "ready", "readycheck"):
+                await self.handle_party_ready_v0610(value)
+            elif action in ("niegotowy", "notready", "unready"):
+                await self.set_party_not_ready_v0610()
             elif action in ("limit", "capacity"):
                 key = self.party_key()
                 leader = self.server.session_by_account(key) if key else self
@@ -893,5 +1073,6 @@ class SessionPartyMixin:
                 await self.send(
                     "Drużyna: zaloz, status, zapros <gracz>, dolacz, odrzuc, "
                     "opusc, wyrzuc <gracz>, rozwiaz, lider <gracz>, "
+                    "cel <tekst>/off, gotowi [status/reset], niegotowy, "
                     "zaslon [off], wspieraj <gracz>, wskrzes <gracz>, limit. Czat: pc <tekst>."
                 )

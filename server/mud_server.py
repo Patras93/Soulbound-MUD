@@ -19,6 +19,11 @@ class MudServer:
         self.party_invites = {}
         # leader_account_id -> protector_account_id. Stan sesyjny; bez migracji DB.
         self.party_protectors = {}
+        # v0.61.0: koordynacja drużyny jest stanem sesyjnym tak samo jak sama
+        # drużyna. Cel trwa do zmiany/wyczyszczenia i przechodzi na nowego
+        # lidera; ready-check przechowuje konta, które potwierdziły gotowość.
+        self.party_goals = {}
+        self.party_ready_checks = {}
 
     def report_runtime_error(self, exc, *, command=None, handler=None):
         report = build_runtime_error_report(

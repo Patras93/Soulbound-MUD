@@ -73,6 +73,7 @@ RUNTIME_MODULES = ['core/bootstrap_economy_professions.py',
  'player/session_mixins/progress_gaps.py',
  'player/session_mixins/crafting_orders.py',
  'player/session_mixins/equipment_compare.py',
+ 'player/session_mixins/item_sources.py',
  'player/session_mixins/help_system.py',
  'player/session_mixins/atlas_codex.py',
  'player/session_mixins/character_profile.py',
@@ -178,6 +179,7 @@ RUNTIME_MODULES = ['core/bootstrap_economy_professions.py',
  'admin/modular_refactor_audit_v0570.py',
  'admin/titles_progress_audit_v0580.py',
  'admin/crafting_orders_compare_audit_v0600.py',
+ 'admin/item_sources_party_coordination_audit_v0610.py',
  'admin/release_integrity_v0369.py']
 
 
@@ -933,4 +935,11 @@ EXPLICIT_RUNTIME_EXPORTS["player/session_mixins/crafting_orders.py"] = (
 )
 EXPLICIT_RUNTIME_EXPORTS["player/session_mixins/equipment_compare.py"] = (
     "SessionEquipmentCompareV0600Mixin",
+)
+EXPLICIT_RUNTIME_EXPORTS["player/session_mixins/item_sources.py"] = (
+    "V0610_ITEM_SOURCE_VERSION", "resolve_item_query_v0610", "item_source_entries_v0610",
+    "SessionItemSourcesV0610Mixin",
+)
+EXPLICIT_RUNTIME_EXPORTS["admin/item_sources_party_coordination_audit_v0610.py"] = (
+    "item_sources_party_coordination_audit_v0610", "ITEM_SOURCES_PARTY_COORDINATION_AUDIT_V0610",
 )

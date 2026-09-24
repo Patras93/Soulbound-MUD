@@ -1,9 +1,27 @@
 ﻿SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v0.60.1
+Aktualna paczka: v0.61.0
 
 Ten plik jest changelogiem narastającym. Kolejne wydania mają dopisywać nowe wpisy na górze, bez usuwania starszej historii.
 Historia poniżej została odtworzona z zachowanych wpisów release, HELP, audytów, komentarzy milestone oraz aktywnego kodu Soulbound.
 Jeżeli stara wersja pozostawiła w obecnej bazie tylko numer bez wiarygodnego opisu, nie dopisuję zmyślonych zmian; takie numery są wymienione na końcu.
+
+==============================================================================
+Soulbound v0.61.0 — Item Sources & Party Coordination
+==============================================================================
+
+- Dodano `gdzie zdobyc <przedmiot>` / `gdzie zdobyć <przedmiot>` jako NVDA-friendly wyszukiwarkę realnych źródeł przedmiotów z aktywnych danych gry.
+- Wyszukiwarka sprawdza sklepy i sprzedawców, receptury i stacje, questy, bossy, zwykłe dropy oraz zasoby profesji: Wędkarstwo, Górnictwo, Drwalstwo i Zielarstwo.
+- Dla jakościowych wariantów craftu i rzadkich wariantów zasobów wskazywane jest prawdziwe źródło bazowego przedmiotu zamiast sztucznego, nieistniejącego dropu.
+- Niejednoznaczna nazwa pokazuje do 10 pasujących przedmiotów; wynik jest numerowany i ogranicza bardzo długie kategorie, żeby nie zalewać NVDA.
+- Dodano `druzyna cel <tekst>` / `party goal <tekst>`. Cel pozostaje ustawiony do zmiany, `druzyna cel` pokazuje bieżący cel, a `druzyna cel off` go usuwa.
+- Cel drużyny przechodzi na nowego lidera przy ręcznym `lider <gracz>` i jest czyszczony przy rozwiązaniu drużyny. Jest stanem sesyjnym tak samo jak istniejąca drużyna; nie dodaje tabeli SQLite.
+- Dodano ready-check: lider rozpoczyna `druzyna gotowi`, członkowie potwierdzają tą samą komendą, `druzyna gotowi status` pokazuje stan każdego gracza, `druzyna niegotowy` cofa własne potwierdzenie, a `druzyna gotowi reset` zaczyna od nowa.
+- Gdy wszyscy członkowie potwierdzą, cała drużyna dostaje komunikat `WSZYSCY GOTOWI`. Dołączenie, wyjście i wyrzucenie gracza aktualizuje kontrolę, a zmiana celu ją zeruje.
+- `druzyna status` pokazuje teraz również wspólny cel oraz licznik gotowości.
+- Dodano Item Sources & Party Coordination Audit v0.61.0 i włączono go do Cumulative Release Integrity.
+- FAST PREDEPLOY: PASS — 174 moduły runtime, 0 braków, 0 błędów składni, 0 brakujących Docker COPY sources, SQLite 99 tabel / 100 obiektów, 863 aliasy / 234 handlery.
+- FULL PREDEPLOY: PASS — Full Game Audit 0 błędów / 0 ostrzeżeń; Release Integrity 63/63.
+- Brak wipe postaci i brak nowej migracji SQLite.
 
 ==============================================================================
 Soulbound v0.60.1 — Full Audit & Railway Packaging Hotfix

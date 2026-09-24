@@ -34,6 +34,7 @@ COMMAND_REGISTRY = {
     'gaps': ('show_progress_gaps_v0590', (COMMAND_TEXT,), {}),
     'craftorders': ('handle_crafting_orders_v0600', (COMMAND_TEXT,), {}),
     'compareeq': ('compare_equipment_v0600', (COMMAND_TEXT,), {}),
+    'itemsource': ('show_item_sources_v0610', (COMMAND_TEXT,), {}),
     'historybuffer': ('show_history_buffer', (COMMAND_TEXT,), {}),
     'regionprogress': ('show_region_progress', (), {}),
     'exploration': ('show_exploration', (COMMAND_TEXT,), {}),
@@ -301,13 +302,13 @@ COMMAND_REGISTRY.update({
 # Command-state policy is metadata, not parser code.  The loop asks the
 # catalog whether the resolved canonical command is safe in a given state.
 DOWNED_SAFE_COMMANDS = {
-    "activityjournal", "whattodo", "gaps", "compareeq",
+    "activityjournal", "whattodo", "gaps", "compareeq", "itemsource",
     "help", "look", "party", "partychat", "say", "tell", "reply", "who",
     "where", "hp", "score", "records", "chronicle", "selfrespawn",
     "historybuffer", "lifetime", "deathrecap", "combatrecap",
 }
 REST_SAFE_COMMANDS = {
-    "activityjournal", "whattodo", "gaps", "compareeq",
+    "activityjournal", "whattodo", "gaps", "compareeq", "itemsource",
     "rest", "help", "encoding", "describe", "changes", "look", "level", "xp", "wimpy", "eventxp",
     "corpse", "cryptinfo", "astralinfo", "consider", "waterinfo", "fishjournal", "exits", "map",
     "worldevents", "atlas", "codex", "bestiary", "where", "who", "gossip", "newbie", "trade",
@@ -327,7 +328,7 @@ REST_SAFE_COMMANDS = {
     "garbuj", "stolarka", "enchants",
 }
 GUIDE_SAFE_COMMANDS = {
-    "activityjournal", "whattodo", "gaps", "compareeq",
+    "activityjournal", "whattodo", "gaps", "compareeq", "itemsource",
     "guide", "route", "help", "encoding", "describe", "changes", "wimpy", "eventxp", "look", "level",
     "xp", "exits", "map", "atlas", "codex", "bestiary", "where", "who", "whois", "terraininfo",
     "location", "stats", "hp", "score", "money", "soul", "skills", "spells", "skillnames", "inventory",
@@ -358,6 +359,9 @@ for _canonical in DOWNED_SAFE_COMMANDS | REST_SAFE_COMMANDS | GUIDE_SAFE_COMMAND
 def resolve_session_command(token, args=""):
     """Resolve one user command through the authoritative v0.49 catalog."""
     raw = str(token or "").strip().lower()
+    arg_words = str(args or "").strip().split(maxsplit=1)
+    if raw in ("gdzie", "where") and arg_words and arg_words[0].strip().lower() in ("zdobyc", "zdobyć", "zdobadz", "zdobądź", "get", "find"):
+        return "itemsource"
     if raw == "loot" and str(args or "").strip().lower() in LOOT_FILTER_INPUTS:
         return "lootfilter"
     return COMMAND_CATALOG.resolve(raw)
