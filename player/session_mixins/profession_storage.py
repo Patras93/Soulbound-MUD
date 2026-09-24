@@ -159,6 +159,15 @@ class SessionProfessionStorageMixin:
             self.server.db.save_profession(
                 self.account_id, profession, plevel, pxp, actions
             )
+            # v0.70.0: mastery contracts count only real profession actions.
+            # Reward XP uses grant_profession_reward_xp(), so it cannot recurse.
+            for quest_id, quest_progress, quest_needed in self.server.db.increment_profession_action_quests_v0700(
+                self.account_id, profession, tool_type, 1
+            ):
+                if int(quest_progress) >= int(quest_needed):
+                    messages.append(
+                        f"QUEST PROFESJI GOTOWY: {quest_id}. Postęp {quest_progress} z {quest_needed}. Wróć do mistrza profesji."
+                    )
 
             new_profession_rank = profession_rank(
                 plevel, profession

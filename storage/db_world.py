@@ -1117,3 +1117,40 @@ class DatabaseWorldMixin:
         return self.save_courier_guild_state_v0530(
             account_id, visited_cities=sorted(visited)
         )
+
+    # v0.71.0 - trwała reputacja osobno dla każdego miasta.
+    def city_reputation_v0710(self, account_id, city_name):
+        row = self.conn.execute(
+            "SELECT reputation FROM city_reputation_v0710 WHERE account_id=? AND city_name=?",
+            (int(account_id), str(city_name)),
+        ).fetchone()
+        return max(1, min(400, int(row["reputation"] or 1))) if row else 1
+
+    def city_reputations_v0710(self, account_id):
+        rows = self.conn.execute(
+            "SELECT city_name,reputation FROM city_reputation_v0710 WHERE account_id=?",
+            (int(account_id),),
+        ).fetchall()
+        return {
+            str(row["city_name"]): max(1, min(400, int(row["reputation"] or 1)))
+            for row in rows
+        }
+
+    def add_city_reputation_v0710(self, account_id, city_name, amount=1):
+        city_name = str(city_name or "").strip()
+        amount = int(amount or 0)
+        if not city_name or amount == 0:
+            return self.city_reputation_v0710(account_id, city_name) if city_name else 1
+        old = self.city_reputation_v0710(account_id, city_name)
+        new = max(1, min(400, old + amount))
+        self.conn.execute(
+            """
+            INSERT INTO city_reputation_v0710(account_id,city_name,reputation,updated_at)
+            VALUES(?,?,?,CURRENT_TIMESTAMP)
+            ON CONFLICT(account_id,city_name) DO UPDATE SET
+                reputation=excluded.reputation,updated_at=CURRENT_TIMESTAMP
+            """,
+            (int(account_id), city_name, new),
+        )
+        self.conn.commit()
+        return new

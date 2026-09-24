@@ -52,6 +52,16 @@ def migrate_social_courier_schema(self):
             updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY(account_id) REFERENCES accounts(id) ON DELETE CASCADE
         );
+        CREATE TABLE IF NOT EXISTS city_reputation_v0710(
+            account_id INTEGER NOT NULL,
+            city_name TEXT NOT NULL,
+            reputation INTEGER NOT NULL DEFAULT 1,
+            updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY(account_id, city_name),
+            FOREIGN KEY(account_id) REFERENCES accounts(id) ON DELETE CASCADE
+        );
+        CREATE INDEX IF NOT EXISTS idx_city_reputation_v0710_account
+            ON city_reputation_v0710(account_id, reputation DESC, city_name);
         CREATE TABLE IF NOT EXISTS activity_journal_v0560(
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             account_id INTEGER NOT NULL,

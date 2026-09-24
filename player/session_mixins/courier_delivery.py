@@ -15,12 +15,15 @@ from config.postal import (
     COURIER_PACKAGE_TYPE_ACHIEVEMENTS_V0550,
     COURIER_RANKS_V0530,
     COURIER_REPUTATION_MAX_V0530,
+    CITY_REPUTATION_MAX_V0710,
+    CITY_REPUTATION_RANKS_V0710,
     POSTAL_CITY_HUBS_V0522,
     POSTAL_OFFERS_PER_CITY_V0522,
     POSTAL_REFRESH_SECONDS_V0522,
     courier_next_rank_v0530,
     courier_rank_for_reputation_v0530,
     courier_unlocked_package_keys_v0530,
+    city_rank_for_reputation_v0710,
 )
 from player.session_mixins.inventory_equipment import CURRENCY_SQLITE_SAFE_TOTAL
 from player.session_mixins.shops_teachers import currency_reading_text
@@ -43,6 +46,47 @@ class SessionCourierDeliveryMixin:
         if city:
             return self.server.db.record_courier_city_visit_v0530(self.account_id, city)
         return self.server.db.courier_guild_state_v0530(self.account_id)
+
+    async def add_city_reputation_v0710(self, city_name, amount=1, reason="", announce=True):
+        city_name = str(city_name or "").strip()
+        if city_name not in POSTAL_CITY_HUBS_V0522:
+            return 1
+        old = self.server.db.city_reputation_v0710(self.account_id, city_name)
+        new = self.server.db.add_city_reputation_v0710(self.account_id, city_name, amount)
+        if announce and new != old:
+            old_rank = city_rank_for_reputation_v0710(old)
+            new_rank = city_rank_for_reputation_v0710(new)
+            msg = f"Reputacja miasta {city_name}: +{max(0, new-old)}, teraz {new}/{CITY_REPUTATION_MAX_V0710}."
+            if new_rank["name"] != old_rank["name"]:
+                msg += f" Nowa ranga: {new_rank['name']}."
+            await self.send(msg)
+        return new
+
+    async def show_city_reputation_v0710(self, args=""):
+        query = normalize_lookup_text(args)
+        reps = self.server.db.city_reputations_v0710(self.account_id)
+        if query:
+            matches = []
+            for city in POSTAL_CITY_HUBS_V0522:
+                if query in normalize_lookup_text(city):
+                    matches.append(city)
+            if not matches:
+                await self.send("Nie znam takiego miasta. Wpisz reputacjamiast bez nazwy, aby zobaczyć wszystkie.")
+                return
+            city = matches[0]
+            rep = int(reps.get(city, 1) or 1)
+            rank = city_rank_for_reputation_v0710(rep)
+            await self.send(
+                f"REPUTACJA MIASTA: {city}. {rep}/{CITY_REPUTATION_MAX_V0710}. "
+                f"Ranga: {rank['name']}. Bonus do wypłat kurierskich kierowanych do tego miasta: +{int(round(rank['courier_bonus']*100))}%."
+            )
+            return
+        await self.send(f"REPUTACJE MIAST: {len(POSTAL_CITY_HUBS_V0522)} miast i osad.")
+        for city in POSTAL_CITY_HUBS_V0522:
+            rep = int(reps.get(city, 1) or 1)
+            rank = city_rank_for_reputation_v0710(rep)
+            await self.send(f"{city}: {rep}/{CITY_REPUTATION_MAX_V0710}, {rank['name']}.")
+        await self.send("Szczegóły: reputacjamiast <miasto>. Reputację zdobywasz lokalnymi questami i dostawami paczek.")
 
     def postal_refresh_slot_v0522(self, now=None):
         now = int(time.time() if now is None else now)
@@ -192,7 +236,13 @@ class SessionCourierDeliveryMixin:
             package_key = eligible_keys[(index - 1) % len(eligible_keys)]
             spec = COURIER_PACKAGE_CLASSES_V0530[package_key]
             base = max(300, 180 + distance * 95)
-            payout_mult = float(spec['reward_mult']) * (1.0 + float(rank['payout_bonus']))
+            city_rep = self.server.db.city_reputation_v0710(self.account_id, destination_city)
+            city_rank = city_rank_for_reputation_v0710(city_rep)
+            payout_mult = (
+                float(spec['reward_mult'])
+                * (1.0 + float(rank['payout_bonus']))
+                * (1.0 + float(city_rank['courier_bonus']))
+            )
             reward = min(CURRENCY_SQLITE_SAFE_TOTAL, max(1, int(round(base * payout_mult))))
             offers.append({
                 'number': index,
@@ -208,6 +258,8 @@ class SessionCourierDeliveryMixin:
                 'reward_coins': reward,
                 'courier_reputation_at_offer': reputation,
                 'courier_rank_at_offer': rank['name'],
+                'destination_city_reputation_at_offer': city_rep,
+                'destination_city_rank_at_offer': city_rank['name'],
             })
         return offers
 
@@ -379,6 +431,13 @@ class SessionCourierDeliveryMixin:
             total_earnings=total_earnings,
             longest_route=longest_route,
         )
+        city_rep_gain = 0
+        new_city_rep = 1
+        if destination_city:
+            city_rep_gain = max(1, min(6, 1 + max(0, int(active.get('distance',0) or 0)) // 30))
+            new_city_rep = await self.add_city_reputation_v0710(
+                destination_city, city_rep_gain, reason="courier_delivery", announce=False
+            )
         try:
             self.server.db.add_lifetime_stat(self.account_id, 'packages_delivered', 1)
             self.server.db.add_lifetime_stat(self.account_id, 'courier_earnings', reward)
@@ -411,7 +470,8 @@ class SessionCourierDeliveryMixin:
             f"Paczka dostarczona do: {destination_city or '?'}. "
             f"Nagroda: {currency_reading_text(reward,0,0)}. "
             f"Reputacja Gildii Kurierów: +{rep_gain}, teraz {new_rep}/400 ({rank['name']}). "
-            f"Łącznie dostarczonych paczek: {completed}."
+            + (f"Reputacja miasta {destination_city}: +{city_rep_gain}, teraz {new_city_rep}/400. " if destination_city else "")
+            + f"Łącznie dostarczonych paczek: {completed}."
         )
         await self.send("Możesz od razu sprawdzić nowe zlecenia: poczta lista.")
 

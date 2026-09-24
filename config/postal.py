@@ -177,3 +177,31 @@ COURIER_CITY_ROOM_TO_NAME_V0530 = {
     **{room_id: city for city, room_id in GUIDE_CITY_HUBS_V0522.items()},
     **{room_id: city for city, room_id in POSTAL_CITY_HUBS_V0522.items()},
 }
+
+# v0.71.0: reputacja poszczególnych miast. Dostawy i lokalne questy budują
+# zaufanie 1-400 niezależnie od reputacji Gildii Kurierów.
+CITY_REPUTATION_MIN_V0710 = 1
+CITY_REPUTATION_MAX_V0710 = 400
+CITY_REPUTATION_RANKS_V0710 = (
+    (1, "Przybysz", 0.00),
+    (40, "Znajomy Miasta", 0.02),
+    (100, "Zaufany Mieszkaniec", 0.04),
+    (180, "Przyjaciel Miasta", 0.06),
+    (260, "Opiekun Miasta", 0.08),
+    (340, "Bohater Miasta", 0.10),
+    (400, "Legenda Miasta", 0.12),
+)
+
+
+def city_rank_for_reputation_v0710(reputation):
+    reputation = max(CITY_REPUTATION_MIN_V0710, min(CITY_REPUTATION_MAX_V0710, int(reputation or 1)))
+    current = CITY_REPUTATION_RANKS_V0710[0]
+    for rank in CITY_REPUTATION_RANKS_V0710:
+        if reputation < rank[0]:
+            break
+        current = rank
+    return {
+        "threshold": current[0],
+        "name": current[1],
+        "courier_bonus": current[2],
+    }

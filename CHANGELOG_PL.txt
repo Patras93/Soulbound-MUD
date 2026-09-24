@@ -1,3 +1,40 @@
+Soulbound v0.71.0 — Profession & City Expansion II
+
+- Dodano 120 jednorazowych questów `Droga Mistrza`: po 10 nowych etapów dla każdej z 12 profesji na progach 25, 75, 100, 200, 250, 350, 400, 450, 550 i 600.
+- Istniejące powtarzalne kontrakty profesyjne 50/150/300/500 pozostają bez zmian i działają równolegle; nowe etapy wypełniają duże luki między nimi.
+- Każde z 21 miast i osad kurierskich dostało własną trzyetapową lokalną historię: łącznie 63 nowe questy miejskie.
+- Dodano 63 lokalnych NPC do historii miast: po jednym Zarządcy Miejskim, Łączniku Poczty i Starszym Rzemieślniku na każde miasto/osadę.
+- Dodano 21 unikalnych pakietów questowych używanych w finałach lokalnych linii miejskich.
+- Każde miasto ma teraz osobną trwałą reputację 1-400. Lokalne questy dają łącznie 50 reputacji miasta, a kolejne punkty zdobywa się również przez dostarczanie paczek do tego miasta.
+- Rangi reputacji miasta rosną od Przybysza do Legendy Miasta. Wyższa reputacja zwiększa wypłatę za paczki kierowane do danego miasta maksymalnie o 12%.
+- Dodano komendy `reputacjamiast`, `reputacjamiast <miasto>`, `miastarep` i `cityrep`.
+- Dodano addytywną tabelę SQLite `city_reputation_v0710`; istniejące konta i postacie zaczynają z reputacją 1 w każdym mieście, bez wipe.
+- Test funkcjonalny: zapis/cap reputacji 1-400 PASS; bonus wypłaty kurierskiej PASS; 120 questów profesyjnych PASS; 63 questy miejskie i wszystkie ich NPC/przesyłki PASS.
+- FAST PREDEPLOY: PASS — 180 modułów, 0 braków, 0 błędów składni, SQLite 102 tabele / 105 obiektów, 239 handlerów.
+- FULL PREDEPLOY: PASS — Full Game Audit 0 błędów / 0 ostrzeżeń; Release Integrity 72/72; 21 miast, 120 nowych questów Drogi Mistrza i 63 questy miejskie.
+
+Soulbound v0.70.1 — Beginner Profession Quests
+
+- Sprawdzono wszystkie 12 profesji pod kątem questów początkujących dostępnych na poziomie profesji 1-10.
+- Osiem profesji już miało taki start i nie dostało duplikatów: Wędkarstwo, Górnictwo, Drwalstwo, Kowalstwo, Gotowanie, Zielarstwo, Alchemia i Jubilerstwo.
+- Dodano cztery brakujące jednorazowe zadania startowe: Krawiectwo u Lysy, Garbarstwo u Sorena, Stolarstwo u Edrica i Zaklinanie u Kwatermistrza Arkanów.
+- Każdy nowy quest jest dostępny od poziomu profesji 1, wymaga 3 prawdziwych akcji wykonanych po przyjęciu i nagradza 300 XP profesji, 200 XP narzędzia oraz 15 złota.
+- Audit v0.70.1 wymaga teraz, aby każda z 12 profesji miała co najmniej jeden quest początkujący; brak któregokolwiek zatrzymuje FULL PREDEPLOY.
+- Brak migracji SQLite, brak wipe postaci i brak zmian istniejących questów startowych.
+
+Soulbound v0.70.0 — Courier & Profession Expansion
+
+- Rozbudowano sieć kurierską z 9 do 21 prawdziwych, połączonych miast i osad.
+- Dodano 12 nowych osad, 72 nowe pokoje i 24 nowych NPC; nowe miasta działają w Poczcie i `walk/prowadz`.
+- Living NPCs automatycznie nadaje nowym poczmistrzom i karczmarzom zadania, więc nowe osady nie są martwymi punktami.
+- Dodano 48 nowych kontraktów profesyjnych: 4 dla każdej z 12 profesji, na progach 50/150/300/500.
+- Kontrakty liczą faktyczne akcje profesji po przyjęciu zadania i nie nabijają się od samego XP z nagród.
+- Zamówienia rzemieślnicze: każdą z 3 ofert można ukończyć raz w danym cyklu godzinowym; ukończenie jednej nie blokuje pozostałych.
+- Lista zamówień oznacza osobno oferty już ukończone w bieżącym cyklu.
+- Receptury są rozdzielone według profesji: samo `receptury` pokazuje wybór 8 grup zamiast jednej pomieszanej listy; `receptury mozliwe` grupuje wyniki per profesja i może być zawężone do konkretnej profesji.
+- Dodano trwałą tabelę SQLite zapamiętującą konkretne ukończone oferty; migracja jest addytywna, bez wipe.
+- Zachowano Memory Efficiency II oraz cały wcześniejszy gameplay.
+
 Soulbound v0.61.6 — Memory Efficiency II
 
 - Drugi etap optymalizacji RAM bez zmiany gameplayu, statystyk, dropów, questów ani save'ów.
@@ -55,7 +92,7 @@ Soulbound v0.61.2 — Memory Efficiency
 - Brak zmian schematu SQLite i brak wipe postaci. Gameplay v0.61.1 pozostaje bez zmian.
 
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v0.61.6
+Aktualna paczka: v0.71.0
 
 Ten plik jest changelogiem narastającym. Kolejne wydania mają dopisywać nowe wpisy na górze, bez usuwania starszej historii.
 Historia poniżej została odtworzona z zachowanych wpisów release, HELP, audytów, komentarzy milestone oraz aktywnego kodu Soulbound.

@@ -217,6 +217,98 @@ class DatabaseQuestMixin:
         self.conn.commit()
         return changed
 
+
+    def increment_profession_action_quests_v0700(self, account_id, profession, tool_type, amount=1):
+        """Count real profession actions for active v0.70.0 mastery contracts."""
+        amount=max(0,int(amount or 0))
+        if amount <= 0:
+            return []
+        rows=self.conn.execute(
+            "SELECT * FROM quests WHERE account_id=? AND status='active'",
+            (account_id,),
+        ).fetchall()
+        changed=[]
+        for row in rows:
+            quest=QUESTS.get(row["quest_id"])
+            if not quest or quest.get("kind") != "profession_action":
+                continue
+            if str(quest.get("target") or quest.get("required_profession") or "") != str(profession):
+                continue
+            qtool=str(quest.get("specialist_tool_type") or "")
+            if qtool and qtool != str(tool_type):
+                continue
+            needed=max(1,int(quest.get("needed",1)))
+            old=max(0,int(row["progress"]))
+            new=min(needed,old+amount)
+            if new == old:
+                continue
+            self.conn.execute(
+                "UPDATE quests SET progress=? WHERE account_id=? AND quest_id=?",
+                (new,account_id,row["quest_id"]),
+            )
+            changed.append((str(row["quest_id"]),new,needed))
+        self.conn.commit()
+        return changed
+
+    @staticmethod
+    def crafting_order_completion_key_v0700(cycle_slot, npc_id, item_id, needed):
+        return f"{int(cycle_slot)}:{str(npc_id)}:{str(item_id)}:{int(needed)}"
+
+    def crafting_order_offer_completed_v0700(self, account_id, cycle_slot, npc_id, item_id, needed):
+        key=self.crafting_order_completion_key_v0700(cycle_slot,npc_id,item_id,needed)
+        row=self.conn.execute(
+            "SELECT 1 FROM crafting_order_cycle_completions_v0700 WHERE account_id=? AND completion_key=?",
+            (account_id,key),
+        ).fetchone()
+        return bool(row)
+
+    def crafting_order_completed_keys_v0700(self, account_id, cycle_slot, npc_id):
+        rows=self.conn.execute(
+            "SELECT completion_key FROM crafting_order_cycle_completions_v0700 WHERE account_id=? AND cycle_slot=? AND npc_id=?",
+            (account_id,int(cycle_slot),str(npc_id)),
+        ).fetchall()
+        return {str(row["completion_key"]) for row in rows}
+
+    def finish_crafting_order_v0700(self, account_id, cycle_slot, npc_id, item_id, needed, profession, coins, profession_xp, tool_xp):
+        """Atomically finish one exact offer while leaving other offers in the cycle available."""
+        profession=str(profession or '')
+        npc_id=str(npc_id or ''); item_id=str(item_id or '')
+        needed=max(1,int(needed or 1))
+        coins=max(0,int(coins or 0)); profession_xp=max(0,int(profession_xp or 0)); tool_xp=max(0,int(tool_xp or 0))
+        completion_key=self.crafting_order_completion_key_v0700(cycle_slot,npc_id,item_id,needed)
+        try:
+            self.conn.execute("BEGIN")
+            already=self.conn.execute(
+                "SELECT 1 FROM crafting_order_cycle_completions_v0700 WHERE account_id=? AND completion_key=?",
+                (account_id,completion_key),
+            ).fetchone()
+            if already:
+                self.conn.rollback()
+                return False
+            self.conn.execute(
+                "INSERT INTO crafting_order_cycle_completions_v0700(account_id,completion_key,cycle_slot,npc_id,item_id,completed_at) VALUES(?,?,?,?,?,?)",
+                (account_id,completion_key,int(cycle_slot),npc_id,item_id,int(time.time())),
+            )
+            self.conn.execute(
+                "UPDATE crafting_orders_v0600 SET npc_id='',profession='',item_id='',item_name='',needed=0,progress=0,"
+                "reward_coins=0,reward_profession_xp=0,reward_tool_type='',reward_tool_xp=0,accepted_at=0,"
+                "completed_cycle_slot=?,completed_count=completed_count+1 WHERE account_id=?",
+                (int(cycle_slot),account_id),
+            )
+            self.conn.execute(
+                "INSERT INTO crafting_order_stats_v0614(account_id,profession,completed_count,total_coins,profession_xp,tool_xp,best_reward_coins) "
+                "VALUES(?,?,1,?,?,?,?) ON CONFLICT(account_id,profession) DO UPDATE SET "
+                "completed_count=completed_count+1,total_coins=total_coins+excluded.total_coins,"
+                "profession_xp=profession_xp+excluded.profession_xp,tool_xp=tool_xp+excluded.tool_xp,"
+                "best_reward_coins=MAX(best_reward_coins,excluded.best_reward_coins)",
+                (account_id,profession,coins,profession_xp,tool_xp,coins),
+            )
+            self.conn.commit()
+            return True
+        except Exception:
+            self.conn.rollback()
+            raise
+
     def crafting_order_v0600(self, account_id):
         return self.conn.execute(
             "SELECT * FROM crafting_orders_v0600 WHERE account_id=?",

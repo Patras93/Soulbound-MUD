@@ -2988,7 +2988,7 @@ def full_game_predeploy_audit_v0336():
     # 9) Quests: definitions, items, rewards and supported kinds.
     supported_kinds={
         'collect','collect_category','collect_distinct_category','collect_resource',
-        'collect_resource_set','kill','deliver_npc','talk_npc','talk_class_teacher','craft_set',
+        'collect_resource_set','kill','deliver_npc','talk_npc','talk_class_teacher','craft_set','profession_action',
         'explore_frontier','discover_secret','mini_dungeon','world_event',
         'legendary_rare','world_boss'
     }

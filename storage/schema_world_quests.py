@@ -160,6 +160,20 @@ def create_world_quests_schema(self):
                         FOREIGN KEY(account_id) REFERENCES accounts(id) ON DELETE CASCADE
                     );
 
+        CREATE TABLE IF NOT EXISTS crafting_order_cycle_completions_v0700 (
+                        account_id INTEGER NOT NULL,
+                        completion_key TEXT NOT NULL,
+                        cycle_slot INTEGER NOT NULL DEFAULT 0,
+                        npc_id TEXT NOT NULL DEFAULT '',
+                        item_id TEXT NOT NULL DEFAULT '',
+                        completed_at INTEGER NOT NULL DEFAULT 0,
+                        PRIMARY KEY(account_id, completion_key),
+                        FOREIGN KEY(account_id) REFERENCES accounts(id) ON DELETE CASCADE
+                    );
+
+        CREATE INDEX IF NOT EXISTS idx_crafting_order_cycle_completions_v0700
+                        ON crafting_order_cycle_completions_v0700(account_id, cycle_slot, npc_id);
+
         CREATE TABLE IF NOT EXISTS dynamic_world_quests_v015 (
                         account_id INTEGER PRIMARY KEY,
                         quest_key TEXT NOT NULL DEFAULT '',

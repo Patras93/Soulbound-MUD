@@ -458,6 +458,15 @@ class SessionQuestTurninMixin:
                         await self.send("Nie udało się pobrać wymaganych próbek rudy.")
                         return
 
+            elif q["kind"] == "profession_action":
+                progress = min(int(row["progress"]), int(q.get("needed", 1)))
+                needed_actions = int(q.get("needed", 1))
+                if progress < needed_actions:
+                    await self.send(
+                        f"Quest aktywny: {q['name']}. Akcje profesji {progress} z {needed_actions}."
+                    )
+                    return
+
             elif q["kind"] == "craft_set":
                 targets = tuple(q.get("targets") or ())
                 crafted = self.craft_set_progress(

@@ -123,6 +123,7 @@ COMMAND_REGISTRY = {
     'whois': ('whois_v03051', (COMMAND_TEXT,), {}),
     'mail': ('handle_mail_v03051', (COMMAND_TEXT,), {}),
     'postal': ('handle_postal_v0522', (COMMAND_TEXT,), {}),
+    'cityreputation': ('show_city_reputation_v0710', (COMMAND_TEXT,), {}),
     'activityjournal': ('show_activity_journal_v0560', (COMMAND_TEXT,), {}),
     'whattodo': ('show_what_to_do_v0560', (COMMAND_TEXT,), {}),
     'board': ('handle_board_v03051', (COMMAND_TEXT,), {}),
@@ -327,7 +328,7 @@ REST_SAFE_COMMANDS = {
     "achievements", "titles", "title", "collection", "bosscodex", "bounty", "drophistory", "lootfilter",
     "regionprogress", "combatlog", "lifetime", "historybuffer", "craftbox", "craftmastery",
     "mistrzostwocraftu", "runes", "clan", "masteryachievements", "friends", "ignore", "unignore", "afk",
-    "whois", "mail", "postal", "board", "lfg", "newbieprotect", "house", "records", "inspect", "inspectprivacy",
+    "whois", "mail", "postal", "cityreputation", "board", "lfg", "newbieprotect", "house", "records", "inspect", "inspectprivacy",
     "emote", "smile", "wave", "cheer", "collection2", "completion", "deathrecap", "combatrecap",
     "loothistory", "chronicle", "nvda", "krawiectwo", "garbarstwo", "stolarstwo", "zaklinanie", "szyj",
     "garbuj", "stolarka", "enchants",
@@ -343,7 +344,7 @@ GUIDE_SAFE_COMMANDS = {
     "artifactupgrade", "endgamegoals", "collection", "museum", "prestige", "bosscodex", "leaderboards",
     "bounty", "chronicle", "legendarycontracts", "worldprojects", "worldproject", "fishrecords",
     "drophistory", "combatlog", "lifetime", "historybuffer", "fishjournal", "say", "gossip", "newbie",
-    "trade", "channels", "mentor", "tell", "reply", "friends", "postal", "craftbox", "craftmastery",
+    "trade", "channels", "mentor", "tell", "reply", "friends", "postal", "cityreputation", "craftbox", "craftmastery",
     "mistrzostwocraftu", "runes", "clan", "masteryachievements", "partychat",
 }
 

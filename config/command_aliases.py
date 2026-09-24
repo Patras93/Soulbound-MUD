@@ -885,3 +885,12 @@ COMMAND_ALIAS_DEFINITIONS = {'accept': 'questaccept',
 }
 
 COMMAND_ALIAS_DEFINITIONS_VERSION = "0.49.0"
+
+# v0.71.0 - reputacja 21 miast i osad.
+COMMAND_ALIAS_DEFINITIONS.update({
+    "reputacjamiast": "cityreputation",
+    "reputacjamiasta": "cityreputation",
+    "miastarep": "cityreputation",
+    "cityrep": "cityreputation",
+    "cityreputation": "cityreputation",
+})

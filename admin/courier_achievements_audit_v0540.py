@@ -45,8 +45,8 @@ def courier_achievements_audit_v0540():
         if active_lines:
             errors.append(f"active legacy risk token remains: {obsolete}")
 
-    if len(POSTAL_CITY_HUBS_V0522) != 9:
-        errors.append("all-cities courier achievement no longer targets 9 settlements")
+    if len(POSTAL_CITY_HUBS_V0522) < 9:
+        errors.append("all-cities courier achievement lost one or more original settlements")
     if not COURIER_ALL_CITIES_ACHIEVEMENT_V0540[0]:
         errors.append("all-cities achievement id missing")
     if not COURIER_ALL_PACKAGE_TYPES_ACHIEVEMENT_V0540[0]:

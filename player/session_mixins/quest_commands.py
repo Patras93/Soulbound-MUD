@@ -118,6 +118,13 @@ class SessionQuestCommandsMixin:
                     str(q.get("reward_faction_v016")), int(q.get("reward_faction_amount_v016", 0) or 0),
                     reason=f"quest:{quest_id}",
                 )
+            if q.get("reward_city_v0710"):
+                await self.add_city_reputation_v0710(
+                    str(q.get("reward_city_v0710")),
+                    int(q.get("reward_city_amount_v0710", 0) or 0),
+                    reason=f"quest:{quest_id}",
+                    announce=True,
+                )
             await self.send(f"Zadanie ukończone: {q['name']}.")
             if q.get("unlocks_soul_tier"):
                 await self.send(

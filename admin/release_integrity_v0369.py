@@ -75,6 +75,9 @@ _RELEASE_AUDITS_V0369 = [
     ("v0.61.4 Crafting Logistics & Mail Escrow", "CRAFTING_LOGISTICS_AUDIT_V0614"),
     ("v0.61.5 Profession Level-Up Announcements", "CRAFTING_LOGISTICS_AUDIT_V0614"),
     ("v0.61.6 Memory Efficiency II", "V0616_MEMORY_EFFICIENCY_AUDIT"),
+    ("v0.70.0 Courier & Profession Expansion", "COURIER_PROFESSION_EXPANSION_AUDIT_V0700"),
+    ("v0.70.1 Beginner Profession Quests", "COURIER_PROFESSION_EXPANSION_AUDIT_V0700"),
+    ("v0.71.0 Profession & City Expansion II", "COURIER_PROFESSION_EXPANSION_AUDIT_V0700"),
 ]
 
 def cumulative_release_integrity_audit_v0369():
@@ -92,13 +95,13 @@ def cumulative_release_integrity_audit_v0369():
         preserved.append(label)
 
     # Direct release-line checks for the exact milestones the user flagged.
-    if str(globals().get("VERSION","")) != "0.61.6":
-        errors.append(f"VERSION={globals().get('VERSION')!r}, expected 0.61.6")
+    if str(globals().get("VERSION","")) != "0.71.0":
+        errors.append(f"VERSION={globals().get('VERSION')!r}, expected 0.71.0")
     if str(globals().get("GENERATOR_CORE_VERSION","")) != "0.61.0":
         errors.append(f"Generator Core={globals().get('GENERATOR_CORE_VERSION')!r}, expected 0.61.0")
 
     return {
-        "version":"0.61.6",
+        "version":"0.71.0",
         "checked":len(_RELEASE_AUDITS_V0369),
         "preserved":preserved,
         "preserved_count":len(preserved),
@@ -109,7 +112,7 @@ def cumulative_release_integrity_audit_v0369():
 CUMULATIVE_RELEASE_INTEGRITY_AUDIT_V0369=cumulative_release_integrity_audit_v0369()
 if CUMULATIVE_RELEASE_INTEGRITY_AUDIT_V0369["error_count"]:
     raise RuntimeError(
-        "Cumulative Release Integrity Audit v0.61.6 failed: "
+        "Cumulative Release Integrity Audit v0.71.0 failed: "
         + "; ".join(CUMULATIVE_RELEASE_INTEGRITY_AUDIT_V0369["errors"][:100])
     )
 
@@ -139,11 +142,14 @@ HELP_TOPICS.setdefault("wersja", []).append("v0.61.5: Profession Level-Up Announ
 HELP_TOPICS.setdefault("wersja", []).append("v0.61.6: Memory Efficiency II współdzieli identyczne pule łupu mobów i usuwa startup-only metadata z masowego klasowego EQ dopiero po audycie; gameplay bez zmian.")
 HELP_TOPICS.setdefault("wersja", []).append("v0.61.4: Crafting Logistics dodaje craft <ilość>/wszystko, historię zamówień, bezpieczne załączniki mailowe, wielopoziomową drogę receptury oraz przywrócone mithrilowe EQ z Fragmentów Mithrilu.")
 
-LATEST_CHANGES_TITLE = "Soulbound v0.61.6 - Memory Efficiency II"
+LATEST_CHANGES_TITLE = "Soulbound v0.71.0 - Profession & City Expansion II"
 LATEST_CHANGES = [
-    "Memory Efficiency II współdzieli identyczne pule corpse loot i usuwa startup-only metadata z masowego klasowego EQ dopiero po audycie.",
-    "Na Linux/glibc malloc_trim zwraca zwolnione strony pamięci do systemu/cgroup; gameplay, statystyki i save'y pozostają bez zmian.",
+    "Dodano 120 jednorazowych etapów Drogi Mistrza: po 10 nowych questów dla każdej z 12 profesji, wypełniających progresję od 25 do 600.",
+    "Każde z 21 miast i osad kurierskich ma teraz własną trzyetapową lokalną historię, zarządcę, łącznika poczty i starszego rzemieślnika — 63 nowe questy miejskie.",
+    "Reputacja każdego miasta działa osobno w skali 1-400; rośnie z lokalnych questów i dostaw, a wyższa ranga zwiększa wypłatę za paczki kierowane do tego miasta.",
+    "Nowa komenda reputacjamiast pokazuje reputację wszystkich 21 miast albo szczegóły konkretnego miasta.",
 ]
+
 
 
 HELP_TOPICS.setdefault("wersja", []).append(
@@ -218,3 +224,19 @@ HELP_TOPICS.setdefault("wersja", []).append("v0.58.0: Titles 2.0 & Unified Progr
 HELP_TOPICS.setdefault("wersja", []).append("v0.58.1: Living NPC Late Finalize Hotfix — późno tworzeni NPC, w tym klasowi sprzedawcy EQ, dostają godzinne questy przed audytem; naprawiono restart loop na Railway bez wyłączania walidacji.")
 HELP_TOPICS.setdefault("wersja", []).append("v0.58.2: Runtime Symbol Collision Hotfix — usunięto kolizję `_has_quest` między audytami i dodano wykrywanie nieoczekiwanych override’ów symboli do Fast Railway Predeploy.")
 HELP_TOPICS.setdefault("wersja", []).append("v0.58.4: Essential Quest Progress Notifications — postęp questów nie znika w zwięzłym logu walki; kill-quest pokazuje zaliczony cel, X/Y i gotowość do oddania.")
+
+HELP_TOPICS.setdefault("wersja", []).append(
+    "v0.70.0: Courier & Profession Expansion — 12 nowych osad, 21 miast kurierskich łącznie, 48 nowych kontraktów profesyjnych oraz niezależne ukończenia wszystkich 3 rotujących zamówień rzemieślniczych w każdym cyklu."
+)
+HELP_TOPICS.setdefault("wersja", []).append(
+    "v0.70.1: Beginner Profession Quests — wszystkie 12 profesji ma teraz co najmniej jeden quest dostępny na poziomie profesji 1-10; dodano brakujące starty dla Krawiectwa, Garbarstwa, Stolarstwa i Zaklinania."
+)
+
+HELP_TOPICS.setdefault("wersja", []).append(
+    "v0.71.0: Profession & City Expansion II — 120 nowych etapów Drogi Mistrza profesji, 63 lokalne questy dla 21 miast oraz osobna reputacja miast 1-400 z bonusem kurierskim."
+)
+HELP_TOPICS.setdefault("reputacja miast", []).extend([
+    "reputacjamiast — pokazuje reputację wszystkich 21 miast i osad w skali 1-400.",
+    "reputacjamiast <miasto> — pokazuje rangę miasta i bonus do wypłat kurierskich kierowanych do tego miasta.",
+    "Reputację miasta zwiększają lokalne questy zarządcy oraz dostawy paczek do danego miasta."
+])

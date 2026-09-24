@@ -116,6 +116,18 @@ class SessionCraftingMixin:
 
     async def show_recipes(self, mode=""):
             _raw_mode = self.normalize_description_query(mode)
+            if not _raw_mode:
+                await self.send("RECEPTURY — WYBIERZ PROFESJĘ")
+                await self.send("receptury kowalstwo")
+                await self.send("receptury gotowanie")
+                await self.send("receptury alchemia")
+                await self.send("receptury jubilerstwo")
+                await self.send("receptury krawiectwo")
+                await self.send("receptury garbarstwo")
+                await self.send("receptury stolarstwo")
+                await self.send("receptury zaklinanie")
+                await self.send("Receptury nie są łączone w jedną mieszaną listę; każda profesja ma osobną sekcję.")
+                return
             if _raw_mode in ("krawiectwo", "tailoring", "garbarstwo", "leatherworking", "stolarstwo", "carpentry", "zaklinanie", "enchanting"):
                 await self.v03053_show_recipes(_raw_mode)
                 return
@@ -135,9 +147,7 @@ class SessionCraftingMixin:
                 "bizuteria", "biżuteria", "jub",
             }
 
-            if not mode:
-                show_craft = show_cook = show_alchemy = show_jewel = True
-            elif mode in craft_modes:
+            if mode in craft_modes:
                 show_craft = True
                 show_cook = False
                 show_alchemy = False
@@ -158,7 +168,8 @@ class SessionCraftingMixin:
                 show_alchemy = False
                 show_jewel = True
             else:
-                show_craft = show_cook = show_alchemy = show_jewel = True
+                await self.send("Nie rozpoznaję grupy receptur. Dostępne: kowalstwo, gotowanie, alchemia, jubilerstwo, krawiectwo, garbarstwo, stolarstwo, zaklinanie.")
+                return
 
             if show_craft:
                 await self.send("RECEPTURY RZEMIOSŁA I KOWALSTWA")

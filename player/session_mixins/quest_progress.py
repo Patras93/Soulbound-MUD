@@ -129,6 +129,9 @@ class SessionQuestProgressMixin:
             if q["kind"] == "craft_set":
                 return self.craft_set_progress(row, q)
 
+            if q["kind"] == "profession_action":
+                return min(int(row["progress"]), int(q.get("needed", 1)))
+
             if q["kind"] in ("deliver_npc", "talk_npc", "talk_class_teacher"):
                 return min(int(row["progress"]), int(q.get("needed", 1)))
 
@@ -542,6 +545,10 @@ class SessionQuestProgressMixin:
             needed = int(q.get("needed", 0))
             if q["kind"] == "kill":
                 progress = int(row["progress"])
+                return progress, progress >= needed
+
+            if q["kind"] == "profession_action":
+                progress = min(int(row["progress"]), needed)
                 return progress, progress >= needed
 
             if q["kind"] == "collect":

@@ -2577,7 +2577,7 @@ HELP_TOPIC_ALIASES.update({
 
 # v0.52.2 - City Courier Network
 HELP_TOPICS["poczta"] = [
-    "Poczta obsługuje dostawy paczek między 9 miastami i osadami Soulbound.",
+    "Poczta obsługuje dostawy paczek między 21 miastami i osadami Soulbound.",
     "W punkcie pocztowym wpisz poczta lista lub paczki. Lista ofert zmienia się automatycznie co 15 minut.",
     "Przyjmij kurs komendą paczka <numer> albo poczta wez <numer>. Jednocześnie możesz nieść jedną paczkę.",
     "poczta status pokazuje aktywną przesyłkę, cel i pełną nagrodę. Przyjęta paczka nie znika po odświeżeniu listy ani reconnect.",
@@ -2621,7 +2621,7 @@ HELP_TOPIC_ALIASES.update({"gaps": "braki", "missing": "braki"})
 # v0.60.0 - rotating crafting orders and inventory EQ comparison.
 HELP_TOPICS["zamowienia_rzemieslnicze"] = [
     "zamowienia / zamówienia / orders - pokaż 3 rotujące oferty lokalnego NPC rzemieślniczego; odświeżanie co 60 minut.",
-    "zamowienia wez <numer> - przyjmij ofertę. Jednocześnie możesz mieć jedno aktywne zamówienie, a w jednym cyklu godzinowym ukończyć jedno.",
+    "zamowienia wez <numer> - przyjmij ofertę. Jednocześnie możesz mieć jedno aktywne zamówienie, ale każdą z 3 ofert możesz ukończyć raz w danym cyklu; ukończenie jednej nie blokuje pozostałych.",
     "Liczą się wyłącznie sztuki wykonane po przyjęciu zamówienia. Przy oddaniu NPC zabiera dokładnie zamówioną liczbę produktów.",
     "zamowienia status - pokaż produkt, postęp, zleceniodawcę i nagrodę; zamowienia oddaj - oddaj gotowe zamówienie u właściwego NPC; zamowienia porzuc - anuluj.",
     "zamowienia historia / zamowienia statystyki - trwała historia ukończeń per profesja, zarobek, XP profesji/narzędzia i rekord nagrody; stare ukończenia sprzed v0.61.4 zachowują tylko pewny licznik.",
@@ -2662,3 +2662,14 @@ HELP_TOPICS["mail"] = [
     "mail odbierz <id> - odbiera załącznik dokładnie raz. Wiadomości z nieodebranym załącznikiem nie można usunąć.",
 ]
 HELP_TOPIC_ALIASES.update({"poczta graczy":"mail", "player mail":"mail", "mail attachments":"mail"})
+
+# v0.70.0 - Courier & Profession Expansion
+HELP_TOPICS["questy_profesji_0700"] = [
+    "Każda z 12 profesji ma 4 nowe kontrakty mistrzowskie na poziomach 50, 150, 300 i 500.",
+    "Kontrakty liczą rzeczywiste akcje profesji wykonane dopiero po przyjęciu zadania; nagrody XP z questów nie nabijają ich ponownie.",
+    "Questy są odnawialne niezależnie i odbiera się je u mistrza danej profesji.",
+]
+HELP_TOPIC_ALIASES.update({
+    "questy profesji":"questy_profesji_0700", "kontrakty profesji":"questy_profesji_0700",
+    "profession quests":"questy_profesji_0700",
+})

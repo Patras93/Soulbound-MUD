@@ -51,10 +51,12 @@ RUNTIME_MODULES = ['core/bootstrap_economy_professions.py',
  'world/generation_systems.py',
  'world/world_expansion_i.py',
  'world/world_expansion_ii.py',
+ 'world/world_expansion_iii.py',
  'world/runtime_progression.py',
  'world/living_npcs.py',
  'world/world_state.py',
  'systems/professions.py',
+ 'systems/profession_quest_expansion.py',
  'systems/crafting_quality.py',
  'player/session_mixins/session_runtime_state.py',
  'player/session_mixins/dungeon_progression.py',
@@ -182,6 +184,7 @@ RUNTIME_MODULES = ['core/bootstrap_economy_professions.py',
  'admin/crafting_orders_compare_audit_v0600.py',
  'admin/item_sources_party_coordination_audit_v0610.py',
  'admin/crafting_logistics_audit_v0614.py',
+ 'admin/courier_profession_expansion_audit_v0700.py',
  'systems/runtime_memory.py',
  'admin/release_integrity_v0369.py']
 
@@ -817,6 +820,28 @@ EXPLICIT_RUNTIME_EXPORTS["admin/courier_achievements_audit_v0540.py"] = (
 )
 EXPLICIT_RUNTIME_EXPORTS["admin/courier_prestige_tavern_audit_v0550.py"] = (
     "courier_prestige_tavern_audit_v0550", "COURIER_PRESTIGE_TAVERN_AUDIT_V0550",
+)
+
+# v0.70.0: new gameplay/content modules stay on the explicit dependency lane.
+EXPLICIT_RUNTIME_EXPORTS["world/world_expansion_iii.py"] = (
+    "WORLD_EXPANSION_III_VERSION", "WORLD_EXPANSION_III_SETTLEMENTS",
+    "WORLD_EXPANSION_III_CITIES", "WORLD_EXPANSION_III_GUIDE_HUBS",
+    "WORLD_EXPANSION_III_NEW_ROOMS", "WORLD_EXPANSION_III_NEW_NPCS",
+    "WORLD_EXPANSION_III_METRICS",
+)
+EXPLICIT_RUNTIME_EXPORTS["systems/profession_quest_expansion.py"] = (
+    "PROFESSION_QUEST_EXPANSION_VERSION", "PROFESSION_QUEST_SPECS_V0700",
+    "PROFESSION_QUEST_STAGES_V0700", "PROFESSION_QUEST_IDS_V0700",
+    "PROFESSION_QUEST_IDS_BY_PROFESSION_V0700",
+    "PROFESSION_QUEST_EXPANSION_METRICS_V0700",
+    "BEGINNER_PROFESSION_QUEST_SPECS_V0701",
+    "BEGINNER_PROFESSION_QUEST_IDS_V0701",
+    "BEGINNER_PROFESSION_QUEST_SKIPPED_V0701",
+    "BEGINNER_PROFESSION_QUEST_METRICS_V0701",
+)
+EXPLICIT_RUNTIME_EXPORTS["admin/courier_profession_expansion_audit_v0700.py"] = (
+    "courier_profession_expansion_audit_v0700",
+    "COURIER_PROFESSION_EXPANSION_AUDIT_V0700",
 )
 
 LEGACY_IMPLICIT_DEPENDENCY_BUDGET = 1019

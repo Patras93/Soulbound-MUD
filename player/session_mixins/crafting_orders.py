@@ -148,9 +148,13 @@ class SessionCraftingOrdersV0600Mixin:
             needed = self.crafting_order_quantity_v0600(item, recipe, cycle, npc_id, offer_no)
             coins, prof_xp, tool_xp = self.crafting_order_reward_v0600(recipe, needed)
             spec = CRAFTING_ORDER_NPCS_V0600[npc_id]
+            completion_key = self.server.db.crafting_order_completion_key_v0700(
+                cycle, npc_id, output, needed
+            )
             offers.append({
                 "number": offer_no,
                 "order_key": f"{cycle}:{npc_id}:{offer_no}:{recipe_id}:{needed}",
+                "completion_key": completion_key,
                 "cycle": cycle,
                 "npc_id": npc_id,
                 "profession": spec["profession"],
@@ -269,6 +273,15 @@ class SessionCraftingOrdersV0600Mixin:
                 return
 
             item_id = str(active["item_id"])
+            if self.server.db.crafting_order_offer_completed_v0700(
+                self.account_id, int(active["cycle_slot"]), str(active["npc_id"]), item_id, needed
+            ):
+                await self.send(
+                    "To konkretne zamówienie zostało już ukończone w tym cyklu. "
+                    "Pozostałe oferty nadal możesz wykonać."
+                )
+                self.server.db.abandon_crafting_order_v0600(self.account_id)
+                return
             have = int(self.quest_crafted_item_have_v0333(item_id))
             legacy_recovery = (
                 have < needed
@@ -294,10 +307,17 @@ class SessionCraftingOrdersV0600Mixin:
                 str(active["profession"]), int(active["reward_profession_xp"]),
                 tool_type, int(active["reward_tool_xp"]),
             )
-            self.server.db.finish_crafting_order_v0614(
-                self.account_id, int(active["cycle_slot"]), str(active["profession"]),
-                coins, int(active["reward_profession_xp"]), int(active["reward_tool_xp"]),
+            completed_ok = self.server.db.finish_crafting_order_v0700(
+                self.account_id, int(active["cycle_slot"]), str(active["npc_id"]),
+                item_id, needed, str(active["profession"]), coins,
+                int(active["reward_profession_xp"]), int(active["reward_tool_xp"]),
             )
+            if not completed_ok:
+                await self.send(
+                    "To konkretne zamówienie zostało już zapisane jako ukończone w tym cyklu. "
+                    "Pozostałe oferty nadal są dostępne."
+                )
+                return
             self.server.db.add_lifetime_stat(self.account_id, "crafting_orders_completed", 1)
             self.server.db.save_character(self.character)
             try:
@@ -331,9 +351,13 @@ class SessionCraftingOrdersV0600Mixin:
                 await self.send(f"Nie ma oferty {number}. Dostępny zakres: 1-{len(offers)}.")
                 return
             offer = offers[number-1]
-            state = self.server.db.crafting_order_v0600(self.account_id)
-            if state and int(state["completed_cycle_slot"] or -1) == int(offer["cycle"]):
-                await self.send("W tym cyklu godzinowym ukończyłeś już zamówienie. Nowe oferty pojawią się po odświeżeniu.")
+            if self.server.db.crafting_order_offer_completed_v0700(
+                self.account_id, offer["cycle"], offer["npc_id"], offer["item_id"], offer["needed"]
+            ):
+                await self.send(
+                    "To konkretne zamówienie zostało już ukończone w tym cyklu. "
+                    "Wybierz jedną z pozostałych ofert."
+                )
                 return
             self.server.db.start_crafting_order_v0600(self.account_id, offer)
             await self.send(
@@ -357,15 +381,20 @@ class SessionCraftingOrdersV0600Mixin:
         offers = self.crafting_order_offers_v0600(npc_id)
         await self.send(
             f"ZAMÓWIENIA RZEMIEŚLNICZE — {npc.get('name', npc_id)}. Profesja: {spec['profession']}. "
-            "Oferty zmieniają się co 60 minut; na jeden cykl można ukończyć jedno zamówienie."
+            "Oferty zmieniają się co 60 minut; każdą z 3 ofert możesz ukończyć raz w danym cyklu. "
+            "Po oddaniu jednej pozostałe nadal są dostępne."
         )
         if active and str(active["item_id"] or ""):
             await self.send(
                 f"Masz aktywne: {active['item_name']} x{int(active['needed'])}; postęp {int(active['progress'])}/{int(active['needed'])}."
             )
         for offer in offers:
+            done = self.server.db.crafting_order_offer_completed_v0700(
+                self.account_id, offer["cycle"], offer["npc_id"], offer["item_id"], offer["needed"]
+            )
+            state_text = "UKOŃCZONE W TYM CYKLU. " if done else ""
             await self.send(
-                f"{offer['number']}. {offer['item_name']} x{offer['needed']}. Wymaga {spec['profession']} {offer['required_level']}. "
+                f"{offer['number']}. {state_text}{offer['item_name']} x{offer['needed']}. Wymaga {spec['profession']} {offer['required_level']}. "
                 f"Nagroda {currency_reading_text(offer['reward_coins'],0,0)}, {offer['reward_profession_xp']} XP profesji, "
                 f"{offer['reward_tool_xp']} XP narzędzia."
             )

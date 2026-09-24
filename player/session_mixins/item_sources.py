@@ -983,25 +983,63 @@ class SessionItemSourcesV0610Mixin:
         if self.combat_mob_key:
             await self.send("RECEPTURY MOŻLIWE: podczas walki nie możesz rozpocząć craftingu.")
             return True
+
+        raw = normalize_lookup_text(str(args or "").strip())
+        words = raw.split()
+        if words and words[0] in ("mozliwe", "możliwe", "possible", "available"):
+            words = words[1:]
+        profession_filter = normalize_lookup_text(" ".join(words)) if words else ""
+        profession_aliases = {
+            "kowalstwo": "kowalstwo", "smithing": "kowalstwo", "blacksmithing": "kowalstwo",
+            "gotowanie": "gotowanie", "cook": "gotowanie", "cooking": "gotowanie",
+            "alchemia": "alchemia", "alchemy": "alchemia",
+            "jubilerstwo": "jubilerstwo", "jewelcrafting": "jubilerstwo", "jewelry": "jubilerstwo",
+            "krawiectwo": "krawiectwo", "tailoring": "krawiectwo",
+            "garbarstwo": "garbarstwo", "leatherworking": "garbarstwo",
+            "stolarstwo": "stolarstwo", "carpentry": "stolarstwo",
+            "zaklinanie": "zaklinanie", "enchanting": "zaklinanie",
+        }
+        requested_profession = profession_aliases.get(profession_filter, "") if profession_filter else ""
+        if profession_filter and not requested_profession:
+            await self.send("Nie rozpoznaję profesji. Użyj: receptury mozliwe <kowalstwo|gotowanie|alchemia|jubilerstwo|krawiectwo|garbarstwo|stolarstwo|zaklinanie>.")
+            return True
+
         ready = []
         for label, table, recipe_id, recipe in live_recipe_rows_v0611():
             state = self._recipe_readiness_v0611(table, recipe)
             if state["ready"]:
-                ready.append((state["profession"], state["required_profession"], str(recipe.get("name") or recipe_id), label, recipe))
+                profession = str(state["profession"])
+                if requested_profession and normalize_lookup_text(profession) != requested_profession:
+                    continue
+                ready.append((profession, state["required_profession"], str(recipe.get("name") or recipe_id), label, recipe))
         ready.sort(key=lambda row: (normalize_lookup_text(row[0]), int(row[1]), normalize_lookup_text(row[2])))
         room_name = str(ROOMS.get(self.character.room_id, {}).get("name") or self.character.room_id)
-        await self.send(f"RECEPTURY MOŻLIWE TERAZ. Lokacja: {room_name}. Liczba: {len(ready)}.")
+        if requested_profession:
+            await self.send(f"RECEPTURY MOŻLIWE TERAZ — {requested_profession.upper()}. Lokacja: {room_name}. Liczba: {len(ready)}.")
+        else:
+            await self.send(f"RECEPTURY MOŻLIWE TERAZ. Lokacja: {room_name}. Łącznie: {len(ready)}. Wyniki są rozdzielone według profesji.")
         if not ready:
             await self.send(
                 "Nie masz tutaj receptury, dla której jednocześnie spełniasz składniki, poziom profesji, narzędzie, Tier narzędzia i wymaganą stację."
             )
             return True
-        for number, (profession, required, name, _label, recipe) in enumerate(ready[:60], 1):
-            output_id = str(recipe.get("output") or "")
-            output_name = ITEMS.get(output_id, {}).get("name", output_id or name)
-            await self.send(f"{number}. {name} -> {output_name}. {profession}, wymagany poziom {required}.")
-        if len(ready) > 60:
-            await self.send(f"Dalsze możliwe receptury w tej lokacji: {len(ready) - 60}.")
+
+        groups = {}
+        for row in ready:
+            groups.setdefault(row[0], []).append(row)
+        shown_total = 0
+        for profession in sorted(groups, key=normalize_lookup_text):
+            rows = groups[profession]
+            await self.send(f"{profession.upper()} — możliwe receptury: {len(rows)}.")
+            # Zachowujemy ochronę przed ogromnym spamem NVDA, ale limit liczymy
+            # osobno dla profesji, żeby jedna duża grupa nie ukrywała innych.
+            for number, (_profession, required, name, _label, recipe) in enumerate(rows[:20], 1):
+                output_id = str(recipe.get("output") or "")
+                output_name = ITEMS.get(output_id, {}).get("name", output_id or name)
+                await self.send(f"{number}. {name} -> {output_name}. Wymagany poziom {required}.")
+                shown_total += 1
+            if len(rows) > 20:
+                await self.send(f"Dalsze możliwe receptury {profession}: {len(rows) - 20}. Użyj receptury lub nazwy profesji, aby zawęzić listę.")
         return True
 
 

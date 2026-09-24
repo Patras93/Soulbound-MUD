@@ -178,7 +178,7 @@ class SessionHelpSystemMixin:
                 "put ore bag / wloz ruda sakwa - przenieś rudy do Sakwy",
                 "take przedmiot net/bag / wyjmij przedmiot siatka/sakwa - wyjmij surowiec",
                 "sell / sprzedaj - sell all / sprzedaj wszystko sprzedaje tylko niezałożone EQ; mikstury i zwykłe przedmioty są chronione. Surowce hurtowo: wszystko siatka/sakwa/stos/torba",
-                "receptury / przepisy / recipes [craft|cook|alchemia|jubilerstwo] - lista receptur; duszo-magiczne receptury mogą zużywać Odłamki Duszy",
+                "receptury / przepisy / recipes <profesja> - receptury osobno dla: kowalstwo, gotowanie, alchemia, jubilerstwo, krawiectwo, garbarstwo, stolarstwo, zaklinanie; `receptury mozliwe` grupuje możliwe receptury według profesji",
                 "zamowienia / zamówienia - rotujące zamówienia rzemieślnicze NPC; wez <nr>, status, oddaj, porzuc",
                 "porownaj / porównaj <przedmiot> - porównanie posiadanego EQ z aktualnie założonym poza sklepem",
                 "craft / stworz / wytworz receptura - rzemiosło z rud i drewna",

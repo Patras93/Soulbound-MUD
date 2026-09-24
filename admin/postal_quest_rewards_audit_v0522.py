@@ -9,6 +9,7 @@ from config.postal import (
     GUIDE_CITY_HUBS_V0522, POSTAL_CITY_HUBS_V0522,
     POSTAL_OFFERS_PER_CITY_V0522, POSTAL_REFRESH_SECONDS_V0522,
 )
+from data.catalogs import ROOMS
 from core.progression_resources import (
     v0522_combat_quest_class_reward, v0522_is_profession_quest,
 )
@@ -23,8 +24,8 @@ def postal_quest_rewards_audit_v0522():
         errors.append(f"postal refresh={POSTAL_REFRESH_SECONDS_V0522}, expected 900")
     if POSTAL_OFFERS_PER_CITY_V0522 != 5:
         errors.append(f"postal offers={POSTAL_OFFERS_PER_CITY_V0522}, expected 5")
-    if len(POSTAL_CITY_HUBS_V0522) != 9:
-        errors.append(f"postal settlements={len(POSTAL_CITY_HUBS_V0522)}, expected 9")
+    if len(POSTAL_CITY_HUBS_V0522) < 9:
+        errors.append(f"postal settlements={len(POSTAL_CITY_HUBS_V0522)}, expected at least original 9")
     if set(POSTAL_CITY_HUBS_V0522) != set(GUIDE_CITY_HUBS_V0522):
         errors.append("postal and guide city catalogs differ")
 
@@ -37,11 +38,11 @@ def postal_quest_rewards_audit_v0522():
         for p in (ROOT / "world").glob("*.py")
     )
     for city, hub in POSTAL_CITY_HUBS_V0522.items():
-        if hub not in world_source:
-            errors.append(f"postal hub is not authored in world sources: {city}->{hub}")
+        if hub not in ROOMS and hub not in world_source:
+            errors.append(f"postal hub is neither loaded nor authored in world sources: {city}->{hub}")
     for city, hub in GUIDE_CITY_HUBS_V0522.items():
-        if hub not in world_source:
-            errors.append(f"guide city hub is not authored in world sources: {city}->{hub}")
+        if hub not in ROOMS and hub not in world_source:
+            errors.append(f"guide city hub is neither loaded nor authored in world sources: {city}->{hub}")
 
     for alias in ("poczta", "paczka", "paczki", "postal", "package", "packages"):
         if COMMAND_ALIAS_DEFINITIONS.get(alias) != "postal":
