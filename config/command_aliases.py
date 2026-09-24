@@ -867,7 +867,18 @@ COMMAND_ALIAS_DEFINITIONS = {'accept': 'questaccept',
  'gdziezdobyć': 'itemsource',
  'itemsource': 'itemsource',
  'sourceitem': 'itemsource',
- 'whereget': 'itemsource'
+ 'whereget': 'itemsource',
+ 'doczego': 'itemuses',
+ 'itemuses': 'itemuses',
+ 'usesitem': 'itemuses',
+ 'brakireceptura': 'recipegaps',
+ 'recipegaps': 'recipegaps',
+ 'recipecheck': 'recipegaps',
+ 'recepturymozliwe': 'availablerecipes',
+ 'recepturymożliwe': 'availablerecipes',
+ 'craftmozliwe': 'availablerecipes',
+ 'craftmożliwe': 'availablerecipes',
+ 'availablerecipes': 'availablerecipes'
 }
 
 COMMAND_ALIAS_DEFINITIONS_VERSION = "0.49.0"

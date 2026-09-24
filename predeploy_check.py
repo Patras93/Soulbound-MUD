@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Fast Railway predeploy gate for Soulbound v0.61.0.
+"""Fast Railway predeploy gate for Soulbound v0.61.1.
 
 This is the normal deploy check.  It intentionally avoids assembling the full
 world/runtime.  Use predeploy_full.py when an exhaustive historical audit is
@@ -11,12 +11,12 @@ from __future__ import annotations
 from admin.fast_predeploy_audit_v0571 import FAST_PREDEPLOY_AUDIT_V0571 as audit
 
 if audit["error_count"]:
-    print("Soulbound v0.61.0 FAST PREDEPLOY FAILED")
+    print("Soulbound v0.61.1 FAST PREDEPLOY FAILED")
     for error in audit["errors"]:
         print(f"ERROR: {error}")
     raise SystemExit(1)
 
-print("Soulbound v0.61.0 FAST PREDEPLOY PASS")
+print("Soulbound v0.61.1 FAST PREDEPLOY PASS")
 print(f"Runtime manifest: {audit['runtime_module_count']} modules; {len(audit['missing_manifest_files'])} missing; {audit['syntax_error_count']} syntax errors")
 print(f"Docker COPY sources: {len(audit['missing_docker_copy_sources'])} missing")
 print(f"Railway critical import: {'PASS' if audit['critical_import_ok'] else 'FAIL'}")

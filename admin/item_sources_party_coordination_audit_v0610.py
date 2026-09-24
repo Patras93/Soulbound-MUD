@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Static feature audit for Soulbound v0.61.0 item sources + party coordination."""
+"""Static feature audit for Soulbound v0.61.0-v0.61.1 item/crafting guidance + party coordination."""
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -29,12 +29,20 @@ def item_sources_party_coordination_audit_v0610():
         src = text("player/session_mixins/item_sources.py")
         for token in (
             'V0610_ITEM_SOURCE_VERSION = "0.61.0"',
+            'V0611_CRAFT_GUIDANCE_VERSION = "0.61.1"',
             "def resolve_item_query_v0610(",
             "def item_source_entries_v0610(",
+            "def item_use_entries_v0611(",
+            "def resolve_recipe_query_v0611(",
+            "def live_recipe_rows_v0611(",
             "async def show_item_sources_v0610(",
+            "async def show_item_uses_v0611(",
+            "async def show_recipe_gaps_v0611(",
+            "async def show_available_recipes_v0611(",
             "SHOPS", "CRAFT_RECIPES", "QUESTS", "MOB_TEMPLATES", "MOB_SPAWNS",
             "FISH_RESOURCE_IDS", "ORE_RESOURCE_IDS", "WOOD_RESOURCE_IDS", "HERB_RESOURCE_IDS",
             "crafted_base_id_v03054", "base_resource_id",
+            "RUNE_CRAFT_COSTS_V03114", "TECH_SET_UPGRADE_COSTS_V0320", "V03053_ENCHANTS",
         ):
             if token not in src:
                 errors.append(f"item source finder contract missing: {token}")
@@ -47,11 +55,25 @@ def item_sources_party_coordination_audit_v0610():
             errors.append("itemsource registry handler missing")
         if 'raw in ("gdzie", "where")' not in registry or 'return "itemsource"' not in registry:
             errors.append("multi-word gdzie zdobyc resolver missing")
+        for token in (
+            "'itemuses': ('show_item_uses_v0611'",
+            "'recipegaps': ('show_recipe_gaps_v0611'",
+            "'availablerecipes': ('show_available_recipes_v0611'",
+            'return "itemuses"',
+            'return "recipegaps"',
+            'return "availablerecipes"',
+        ):
+            if token not in registry:
+                errors.append(f"v0.61.1 command routing missing: {token}")
         aliases = text("config/command_aliases.py")
         for token in (
             "'gdziezdobyc': 'itemsource'",
             "'gdziezdobyć': 'itemsource'",
             "'whereget': 'itemsource'",
+            "'doczego': 'itemuses'",
+            "'brakireceptura': 'recipegaps'",
+            "'recepturymozliwe': 'availablerecipes'",
+            "'craftmozliwe': 'availablerecipes'",
         ):
             if token not in aliases:
                 errors.append(f"itemsource alias missing: {token}")
@@ -102,7 +124,7 @@ def item_sources_party_coordination_audit_v0610():
         errors.append(f"runtime manifest check failed: {exc}")
 
     return {
-        "version": "0.61.0",
+        "version": "0.61.1",
         "error_count": len(errors),
         "errors": errors,
     }
@@ -111,7 +133,7 @@ def item_sources_party_coordination_audit_v0610():
 ITEM_SOURCES_PARTY_COORDINATION_AUDIT_V0610 = item_sources_party_coordination_audit_v0610()
 if ITEM_SOURCES_PARTY_COORDINATION_AUDIT_V0610["error_count"]:
     raise RuntimeError(
-        "Item Sources & Party Coordination Audit v0.61.0 failed: "
+        "Item Sources & Party Coordination Audit v0.61.1 failed: "
         + "; ".join(ITEM_SOURCES_PARTY_COORDINATION_AUDIT_V0610["errors"][:100])
     )
 

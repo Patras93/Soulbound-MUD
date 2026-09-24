@@ -1150,6 +1150,7 @@ HELP_TOPICS["itemsource"] = [
     "Wynik pokazuje jawne źródła z realnych danych runtime: sklepy i sprzedawców, receptury i stacje, questy, zwykłe dropy, bossy oraz zasoby profesji.",
     "Dla jakościowych wariantów craftu i rzadkich wariantów zasobów komenda wskazuje źródło bazowego przedmiotu zamiast zgadywać osobny drop.",
     "Przykłady: gdzie zdobyc Mikstura leczenia; gdzie zdobyc Ruda żelaza. Przy niejednoznacznej nazwie gra podaje pasujące przedmioty.",
+    "v0.61.1: gdzie zdobyc <przedmiot> pelne rozwija recepturę o składniki i pokazuje realne źródła każdego bezpośredniego składnika.",
 ]
 HELP_TOPIC_ALIASES.update({
     "gdziezdobyc": "itemsource",
@@ -1159,6 +1160,32 @@ HELP_TOPIC_ALIASES.update({
     "itemsource": "itemsource",
     "whereget": "itemsource",
 })
+HELP_TOPICS["itemuses"] = [
+    "do czego <przedmiot> pokazuje, gdzie dany przedmiot jest rzeczywiście zużywany.",
+    "Wynik obejmuje receptury, fizyczne oddawanie przedmiotów do questów oraz specjalne systemy: ulepszanie EQ, reforge, runy, sockety, klejnoty, Tech Set Upgrade, V-MAX i zaklinanie.",
+    "Przykład: do czego Odłamek Duszy.",
+]
+HELP_TOPICS["recipegaps"] = [
+    "braki receptura <przedmiot lub receptura> pokazuje składniki masz/potrzeba/brakuje.",
+    "Komenda sprawdza też realny poziom profesji, posiadanie i Tier narzędzia oraz bieżącą stację craftingu.",
+]
+HELP_TOPICS["availablerecipes"] = [
+    "receptury mozliwe / craft mozliwe pokazuje wyłącznie receptury możliwe do wykonania w tej chwili.",
+    "Sprawdzane są składniki, poziom profesji, narzędzie, Tier narzędzia, aktualna stacja oraz blokada craftingu podczas walki.",
+]
+HELP_TOPIC_ALIASES.update({
+    "do czego": "itemuses",
+    "doczego": "itemuses",
+    "itemuses": "itemuses",
+    "braki receptura": "recipegaps",
+    "brakireceptura": "recipegaps",
+    "recipegaps": "recipegaps",
+    "receptury mozliwe": "availablerecipes",
+    "receptury możliwe": "availablerecipes",
+    "craft mozliwe": "availablerecipes",
+    "craft możliwe": "availablerecipes",
+    "availablerecipes": "availablerecipes",
+})
 HELP_TOPICS.setdefault("druzyny", []).extend([
     "v0.61.0: druzyna cel <tekst> ustawia wspólny cel drużyny. Samo druzyna cel pokazuje go, a druzyna cel off usuwa. Cel trwa do zmiany lub rozwiązania drużyny i przechodzi przy ręcznym przekazaniu lidera.",
     "v0.61.0: lider uruchamia kontrolę komendą druzyna gotowi. Każdy członek potwierdza tą samą komendą; druzyna gotowi status pokazuje wszystkich, druzyna niegotowy cofa własne potwierdzenie, a druzyna gotowi reset zaczyna od nowa.",
@@ -1166,4 +1193,7 @@ HELP_TOPICS.setdefault("druzyny", []).extend([
 ])
 HELP_TOPICS.setdefault("podstawy", []).append(
     "v0.61.0: gdzie zdobyc <przedmiot> pokazuje realne źródła itemu; drużyna ma wspólny cel i kontrolę gotowości."
+)
+HELP_TOPICS.setdefault("podstawy", []).append(
+    "v0.61.1: do czego <przedmiot>, braki receptura <przedmiot>, gdzie zdobyc <przedmiot> pelne oraz receptury mozliwe pomagają planować crafting bez ręcznego przeszukiwania HELP."
 )

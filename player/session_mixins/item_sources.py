@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 
+from core.bootstrap_economy_professions import required_tool_tier_for_level, tool_tier
 from core.classes_skills import (
     HERB_ATLAS_ROOM_MIN_LEVELS,
     ORE_ATLAS_LEVELS,
@@ -27,7 +28,8 @@ from core.progression_resources import (
     SEA_FISH_ATLAS,
     WOOD_RESOURCE_IDS,
 )
-from network.protocol_gameplay_utils import normalize_lookup_text
+from network.protocol_gameplay_utils import V0925_RUNES, normalize_lookup_text
+from systems.crafting_expansion import RUNE_CRAFT_COSTS_V03114
 from systems.content_registry import MOB_SPAWNS, MOB_TEMPLATES, NPCS, QUESTS
 from systems.equipment_crafting import (
     ALCHEMY_RECIPES,
@@ -37,10 +39,12 @@ from systems.equipment_crafting import (
     SHOPS,
     SHOP_SELLERS,
 )
-from systems.items_resources import fish_unlock_level
-from systems.professions import V03053_CRAFT_RECIPES
+from systems.items_resources import BLACKSMITH_TIERS, fish_unlock_level
+from systems.milestone import TECH_SET_UPGRADE_COSTS_V0320
+from systems.professions import V03053_CRAFT_RECIPES, V03053_ENCHANTS
 
 V0610_ITEM_SOURCE_VERSION = "0.61.0"
+V0611_CRAFT_GUIDANCE_VERSION = "0.61.1"
 
 
 def _item_search_terms_v0610(item_id, item):
@@ -309,6 +313,281 @@ def item_source_entries_v0610(item_id):
     return unique
 
 
+def _recipe_tables_v0611():
+    """Live recipe tables used by the real crafting handlers."""
+    return (
+        ("Rzemiosło/Kowalstwo", CRAFT_RECIPES),
+        ("Gotowanie", COOK_RECIPES),
+        ("Alchemia", ALCHEMY_RECIPES),
+        ("Jubilerstwo", JEWELCRAFT_RECIPES),
+        ("Rzemiosła rozszerzone", V03053_CRAFT_RECIPES),
+    )
+
+
+def live_recipe_rows_v0611():
+    """Yield deduplicated (label, table, recipe_id, recipe) tuples."""
+    seen = set()
+    for label, table in _recipe_tables_v0611():
+        for recipe_id, recipe in table.items():
+            signature = (
+                str(recipe_id),
+                str(recipe.get("output") or ""),
+                str(recipe.get("name") or ""),
+                str(recipe.get("profession") or label),
+                tuple(sorted((str(k), int(v)) for k, v in (recipe.get("ingredients") or {}).items())),
+                tuple(recipe.get("distinct_ingredient_pool") or ()),
+                int(recipe.get("distinct_ingredient_count", 0) or 0),
+                tuple(recipe.get("pooled_ingredient_pool") or ()),
+                int(recipe.get("pooled_ingredient_count", 0) or 0),
+            )
+            if signature in seen:
+                continue
+            seen.add(signature)
+            yield label, table, str(recipe_id), recipe
+
+
+def _crafted_base_v0611(item_id):
+    item = ITEMS.get(item_id) or {}
+    base = str(item.get("crafted_base_id_v03054") or "")
+    return base if base in ITEMS else str(item_id)
+
+
+def _resource_base_v0611(item_id):
+    item = ITEMS.get(item_id) or {}
+    base = str(item.get("base_resource_id") or "")
+    return base if base in ITEMS else str(item_id)
+
+
+def recipe_rows_for_output_v0611(item_id):
+    output_id = _crafted_base_v0611(item_id)
+    return [row for row in live_recipe_rows_v0611() if str(row[3].get("output") or "") == output_id]
+
+
+def _recipe_use_entries_v0611(item_id):
+    rows = []
+    for label, _table, _recipe_id, recipe in live_recipe_rows_v0611():
+        uses = []
+        direct = recipe.get("ingredients") or {}
+        if item_id in direct:
+            uses.append(f"x{int(direct[item_id])}")
+        if item_id in tuple(recipe.get("distinct_ingredient_pool") or ()):
+            uses.append("jako jeden z różnych składników")
+        if item_id in tuple(recipe.get("pooled_ingredient_pool") or ()):
+            uses.append("jako składnik z puli")
+        if not uses:
+            continue
+        output_id = str(recipe.get("output") or "")
+        output_name = str(ITEMS.get(output_id, {}).get("name") or output_id or recipe.get("name") or "produkt")
+        rows.append(
+            f"Receptura: {recipe.get('name') or output_name}. Produkt: {output_name}. "
+            f"Zużycie: {', '.join(uses)}. System: {recipe.get('profession') or label}."
+        )
+    return rows
+
+
+def _item_matches_quest_category_v0611(item_id, category):
+    base = _resource_base_v0611(item_id)
+    if category == "fish":
+        return base in FISH_RESOURCE_IDS
+    if category == "fish_river":
+        return base in RIVER_FISH_ATLAS
+    if category == "ore":
+        return base in ORE_RESOURCE_IDS
+    if category == "wood":
+        return base in WOOD_RESOURCE_IDS
+    if category == "herb":
+        return base in HERB_RESOURCE_IDS
+    return False
+
+
+def _quest_use_entries_v0611(item_id):
+    rows = []
+    resource_base = _resource_base_v0611(item_id)
+    crafted_base = _crafted_base_v0611(item_id)
+    for quest_id, quest in QUESTS.items():
+        kind = str(quest.get("kind") or "")
+        needed = max(1, int(quest.get("needed", 1) or 1))
+        reason = None
+        if kind == "collect" and str(quest.get("target") or "") == crafted_base:
+            reason = f"oddanie {needed} szt."
+        elif kind == "collect_resource" and str(quest.get("target") or "") == resource_base:
+            reason = f"oddanie {needed} szt. surowca"
+        elif kind == "collect_resource_set":
+            req = dict(quest.get("resource_targets") or {})
+            if resource_base in req:
+                reason = f"oddanie {int(req[resource_base])} szt. jako część zestawu surowców"
+        elif kind == "craft_set" and crafted_base in tuple(quest.get("targets") or ()):
+            reason = "oddanie 1 szt. jako element zestawu"
+        elif kind == "deliver_npc" and str(quest.get("quest_item") or "") == item_id:
+            reason = f"dostarczenie {needed} szt. do NPC"
+        elif kind in ("collect_category", "collect_distinct_category") and _item_matches_quest_category_v0611(
+            item_id, str(quest.get("target") or "")
+        ):
+            if kind == "collect_distinct_category":
+                reason = f"może być jednym z {needed} różnych wymaganych gatunków"
+            else:
+                reason = f"może wejść do wspólnej puli {needed} szt. do oddania"
+        if reason:
+            rows.append(f"Quest: {quest.get('name') or quest_id}. Zastosowanie: {reason}. NPC: {quest.get('giver') or 'brak' }.")
+    return rows
+
+
+def _special_use_entries_v0611(item_id):
+    """Non-recipe systems that really consume the item."""
+    rows = []
+    item = ITEMS.get(item_id) or {}
+
+    # Standard +1..+10 EQ upgrade consumes the canonical smithing ingot ladder.
+    smithing_ingots = {
+        str(tier.get("ingot"))
+        for tier in BLACKSMITH_TIERS
+        if tier.get("ingot")
+    }
+    if item_id in smithing_ingots:
+        rows.append(
+            "Ulepszanie EQ +1..+10 u Haldora: sztabka jest zużywana jako podstawowy materiał "
+            "dla przedmiotów z odpowiedniego przedziału Kowalstwa."
+        )
+
+    milestone_upgrade = {
+        "hardened_steel_ingot": "+4",
+        "astral_alloy": "+7",
+        "eternium_alloy": "+10",
+    }
+    if item_id in milestone_upgrade:
+        rows.append(
+            f"Ulepszanie EQ: materiał dodatkowy wymagany przy przejściu na {milestone_upgrade[item_id]}."
+        )
+
+    if item_id == "reforge_essence":
+        rows.append("Przekuwanie EQ u Haldora: Esencja Przekucia jest pobierana przy każdym reforge.")
+
+    rune_uses = []
+    for rune_key, costs in RUNE_CRAFT_COSTS_V03114.items():
+        if item_id in costs:
+            rune_uses.append(f"{rune_key} x{int(costs[item_id])}")
+    if rune_uses:
+        rows.append("Rune Crafting: materiał zużywają runy: " + ", ".join(rune_uses) + ".")
+
+    rune_ids = {str(data[0]) for data in V0925_RUNES.values()}
+    if item_id in rune_ids:
+        rows.append("Gniazdo runiczne EQ: jedna runa jest pobierana ze Szkatułki przy komendzie `runa <typ> <EQ>`." )
+
+    if str(item.get("type") or "") == "gem":
+        rows.append("Gniazdo klejnotu EQ: jeden oszlifowany klejnot jest zużywany przy `osadz <klejnot> <slot>`." )
+
+    if item_id == "socket_core_v03114":
+        rows.append("Socket Crafting: Rdzeń Gniazda x1 lub x2 dodaje trwałe dodatkowe gniazdo do EQ.")
+    if item_id in ("hardened_steel_ingot", "astral_alloy", "eternium_alloy"):
+        rows.append("Socket Crafting: jeden taki stop jest zużywany razem z Rdzeniem Gniazda, zależnie od poziomu EQ.")
+
+    for target_mark, costs in sorted(TECH_SET_UPGRADE_COSTS_V0320.items()):
+        if item_id in costs:
+            rows.append(
+                f"Tech Set Upgrade do Mk-{'II' if int(target_mark) == 2 else 'III'}: zużywa x{int(costs[item_id])}."
+            )
+
+    if item_id == "engineer_upgrade_kit":
+        rows.append("Upgrade narzędzia Inżyniera: zużywa 1 Zestaw Upgrade Inżyniera na trwałe ulepszenie narzędzia.")
+    if item_id == "vmax_duration_module":
+        rows.append("V-MAX Upgrade: moduł jest zużywany do trwałego zwiększenia czasu działania V-MAX.")
+    if item_id == "vmax_cooling_module":
+        rows.append("V-MAX Upgrade: moduł jest zużywany do trwałego skrócenia chłodzenia V-MAX.")
+
+    enchant_uses = []
+    for key, data in V03053_ENCHANTS.items():
+        label, _stat, _base, mats = data
+        if item_id in mats:
+            enchant_uses.append(f"{label} x{int(mats[item_id])}")
+    if enchant_uses:
+        rows.append("Zaklinanie EQ: materiał zużywają zaklęcia: " + ", ".join(enchant_uses) + ".")
+
+    return rows
+
+
+def item_use_entries_v0611(item_id):
+    entries = []
+    for text in _recipe_use_entries_v0611(item_id):
+        entries.append(("receptura", text))
+    for text in _quest_use_entries_v0611(item_id):
+        entries.append(("quest", text))
+    for text in _special_use_entries_v0611(item_id):
+        entries.append(("system", text))
+    seen = set()
+    result = []
+    for kind, text in entries:
+        sig = normalize_lookup_text(text)
+        if sig in seen:
+            continue
+        seen.add(sig)
+        result.append((kind, text))
+    return result
+
+
+def _extract_full_source_mode_v0611(query):
+    words = str(query or "").strip().split()
+    if words and normalize_lookup_text(words[-1]) in {"pelne", "pelny", "full", "details", "szczegoly"}:
+        return " ".join(words[:-1]).strip(), True
+    return str(query or "").strip(), False
+
+
+def _strip_use_prefix_v0611(args):
+    raw = str(args or "").strip()
+    words = raw.split(maxsplit=1)
+    if words and normalize_lookup_text(words[0]) in {"czego", "what", "uses", "use"}:
+        return words[1].strip() if len(words) > 1 else ""
+    return raw
+
+
+def _strip_recipe_gap_prefix_v0611(args):
+    raw = str(args or "").strip()
+    words = raw.split(maxsplit=1)
+    if words and normalize_lookup_text(words[0]) in {"receptura", "recipe", "przepis"}:
+        return words[1].strip() if len(words) > 1 else ""
+    return raw
+
+
+def _recipe_search_terms_v0611(recipe_id, recipe):
+    terms = {
+        normalize_lookup_text(recipe_id),
+        normalize_lookup_text(recipe.get("name", "")),
+        normalize_lookup_text(ITEMS.get(str(recipe.get("output") or ""), {}).get("name", "")),
+    }
+    for alias in recipe.get("aliases") or ():
+        terms.add(normalize_lookup_text(alias))
+    return {term for term in terms if term}
+
+
+def resolve_recipe_query_v0611(query):
+    """Resolve an output item first, then fall back to recipe name/alias."""
+    item_id, item, item_suggestions = resolve_item_query_v0610(query)
+    if item_id:
+        rows = recipe_rows_for_output_v0611(item_id)
+        if rows:
+            return rows, []
+    q = normalize_lookup_text(query)
+    exact = []
+    partial = []
+    for row in live_recipe_rows_v0611():
+        terms = _recipe_search_terms_v0611(row[2], row[3])
+        if q in terms:
+            exact.append(row)
+        elif q and any(q in term for term in terms):
+            partial.append(row)
+    if exact:
+        return exact, []
+    if len(partial) == 1:
+        return partial, []
+    if partial:
+        return [], partial[:10]
+    # If the item resolver had ambiguous results, surface those as recipe hints.
+    hints = []
+    for sid, candidate in item_suggestions[:10]:
+        for row in recipe_rows_for_output_v0611(sid):
+            hints.append(row)
+    return [], hints[:10]
+
+
 def _strip_lookup_prefix_v0610(args):
     raw = str(args or "").strip()
     words = raw.split(maxsplit=1)
@@ -318,11 +597,131 @@ def _strip_lookup_prefix_v0610(args):
 
 
 class SessionItemSourcesV0610Mixin:
+    def _recipe_readiness_v0611(self, table, recipe):
+        profession = self.recipe_profession_name(table, recipe)
+        required = max(
+            1,
+            int(recipe.get("min_profession_level", recipe.get("min_tool_level", 1)) or 1),
+        )
+        profession_level = int(self.server.db.profession(self.account_id, profession)["level"])
+        tool_type, tool_item_id, tool_name = self.recipe_tool_info(table, recipe)
+        tool_owned = self.server.db.item_qty(self.account_id, tool_item_id) > 0
+        tool_level = int(self.server.db.tool(self.account_id, tool_type)["level"])
+        current_tier = int(tool_tier(tool_level))
+        required_tier = int(required_tool_tier_for_level(required))
+        stations = tuple(recipe.get("stations") or ())
+        station_ok = not stations or self.character.room_id in stations
+
+        missing = []
+        ingredient_rows = []
+        for ingredient_id, quantity in (recipe.get("ingredients") or {}).items():
+            quantity = max(1, int(quantity))
+            have = max(0, int(self.available_recipe_item(ingredient_id)))
+            lack = max(0, quantity - have)
+            ingredient_rows.append((ingredient_id, have, quantity, lack))
+            if lack:
+                missing.append(f"{ITEMS.get(ingredient_id, {}).get('name', ingredient_id)} {have}/{quantity}")
+
+        distinct_pool = tuple(recipe.get("distinct_ingredient_pool") or ())
+        distinct_needed = max(0, int(recipe.get("distinct_ingredient_count", 0) or 0))
+        distinct_have_ids = [iid for iid in distinct_pool if self.available_recipe_item(iid) > 0]
+        distinct_have = len(distinct_have_ids)
+        if distinct_pool and distinct_have < distinct_needed:
+            missing.append(
+                f"{recipe.get('distinct_ingredient_label', 'różne składniki')} {distinct_have}/{distinct_needed}"
+            )
+
+        pooled_pool = tuple(recipe.get("pooled_ingredient_pool") or ())
+        pooled_needed = max(0, int(recipe.get("pooled_ingredient_count", 0) or 0))
+        pooled_have = sum(max(0, int(self.available_recipe_item(iid))) for iid in pooled_pool)
+        if pooled_pool and pooled_have < pooled_needed:
+            missing.append(
+                f"{recipe.get('pooled_ingredient_label', 'składniki z puli')} {pooled_have}/{pooled_needed}"
+            )
+
+        ready = bool(
+            not self.combat_mob_key
+            and profession_level >= required
+            and tool_owned
+            and current_tier >= required_tier
+            and station_ok
+            and not missing
+        )
+        return {
+            "ready": ready,
+            "profession": profession,
+            "profession_level": profession_level,
+            "required_profession": required,
+            "tool_type": tool_type,
+            "tool_item_id": tool_item_id,
+            "tool_name": tool_name,
+            "tool_owned": tool_owned,
+            "tool_level": tool_level,
+            "tool_tier": current_tier,
+            "required_tool_tier": required_tier,
+            "stations": stations,
+            "station_ok": station_ok,
+            "ingredient_rows": ingredient_rows,
+            "distinct_pool": distinct_pool,
+            "distinct_needed": distinct_needed,
+            "distinct_have": distinct_have,
+            "pooled_pool": pooled_pool,
+            "pooled_needed": pooled_needed,
+            "pooled_have": pooled_have,
+            "missing": missing,
+        }
+
+    async def _show_full_source_chain_v0611(self, item_id):
+        rows = recipe_rows_for_output_v0611(item_id)
+        if not rows:
+            await self.send("PEŁNY ŁAŃCUCH: ten przedmiot nie ma aktywnej receptury w katalogu gry.")
+            return
+
+        await self.send("PEŁNY ŁAŃCUCH CRAFTINGU — SKŁADNIKI I ICH ŹRÓDŁA")
+        for recipe_index, (_label, _table, _recipe_id, recipe) in enumerate(rows[:5], 1):
+            output_id = str(recipe.get("output") or item_id)
+            output_name = ITEMS.get(output_id, {}).get("name", output_id)
+            await self.send(f"Receptura {recipe_index}: {recipe.get('name') or output_name} -> {output_name}.")
+
+            ingredient_no = 0
+            for ingredient_id, quantity in (recipe.get("ingredients") or {}).items():
+                ingredient_no += 1
+                ingredient_name = ITEMS.get(ingredient_id, {}).get("name", ingredient_id)
+                await self.send(f"Składnik {ingredient_no}: {ingredient_name} x{int(quantity)}.")
+                sources = item_source_entries_v0610(ingredient_id)
+                if not sources:
+                    await self.send("  Źródło: brak jawnego źródła w aktywnych katalogach.")
+                    continue
+                for _kind, source_text in sources[:4]:
+                    await self.send("  Źródło: " + source_text)
+                if len(sources) > 4:
+                    await self.send(f"  Dalsze źródła: {len(sources) - 4}.")
+
+            distinct_pool = tuple(recipe.get("distinct_ingredient_pool") or ())
+            distinct_needed = max(0, int(recipe.get("distinct_ingredient_count", 0) or 0))
+            if distinct_pool and distinct_needed:
+                await self.send(
+                    f"Pula różnych składników: potrzeba {distinct_needed}. "
+                    + ", ".join(ITEMS.get(iid, {}).get("name", iid) for iid in distinct_pool[:8])
+                    + (f" i jeszcze {len(distinct_pool) - 8}." if len(distinct_pool) > 8 else ".")
+                )
+            pooled_pool = tuple(recipe.get("pooled_ingredient_pool") or ())
+            pooled_needed = max(0, int(recipe.get("pooled_ingredient_count", 0) or 0))
+            if pooled_pool and pooled_needed:
+                await self.send(
+                    f"Wspólna pula składników: potrzeba łącznie {pooled_needed}. "
+                    + ", ".join(ITEMS.get(iid, {}).get("name", iid) for iid in pooled_pool[:8])
+                    + (f" i jeszcze {len(pooled_pool) - 8}." if len(pooled_pool) > 8 else ".")
+                )
+        if len(rows) > 5:
+            await self.send(f"Dodatkowe receptury tego przedmiotu: {len(rows) - 5}.")
+
     async def show_item_sources_v0610(self, args=""):
         query = _strip_lookup_prefix_v0610(args)
+        query, full_mode = _extract_full_source_mode_v0611(query)
         if not query:
             await self.send(
-                "Użycie: gdzie zdobyc <przedmiot>. Przykład: gdzie zdobyc Mikstura leczenia."
+                "Użycie: gdzie zdobyc <przedmiot>. Pełny łańcuch: gdzie zdobyc <przedmiot> pelne."
             )
             return False
 
@@ -363,12 +762,146 @@ class SessionItemSourcesV0610Mixin:
             if len(rows) > 8:
                 emitted += 1
                 await self.send(f"{emitted}. Dodatkowe źródła tej kategorii: {len(rows) - 8}.")
+        if full_mode:
+            await self._show_full_source_chain_v0611(item_id)
+        return True
+
+    async def show_item_uses_v0611(self, args=""):
+        query = _strip_use_prefix_v0611(args)
+        if not query:
+            await self.send("Użycie: do czego <przedmiot>. Przykład: do czego Odłamek Duszy.")
+            return False
+        item_id, item, suggestions = resolve_item_query_v0610(query)
+        if item_id is None:
+            if suggestions:
+                await self.send("Nazwa jest niejednoznaczna. Pasujące przedmioty:")
+                for number, (_sid, candidate) in enumerate(suggestions, 1):
+                    await self.send(f"{number}. {candidate.get('name', _sid)}.")
+                await self.send("Wpisz dokładniejszą nazwę: do czego <przedmiot>.")
+            else:
+                await self.send("Nie znalazłem takiego przedmiotu w aktualnym katalogu gry.")
+            return False
+
+        name = str(item.get("name") or item_id)
+        entries = item_use_entries_v0611(item_id)
+        await self.send(f"DO CZEGO: {name}.")
+        if not entries:
+            await self.send(
+                "Nie znalazłem aktywnej receptury, questa ani specjalnego systemu, który zużywa ten przedmiot."
+            )
+            return True
+        grouped = defaultdict(list)
+        for kind, text in entries:
+            grouped[kind].append(text)
+        labels = (("receptura", "RECEPTURY"), ("quest", "QUESTY"), ("system", "ULEPSZENIA I INNE SYSTEMY"))
+        for kind, label in labels:
+            rows = grouped.get(kind, [])
+            if not rows:
+                continue
+            await self.send(label + f": {len(rows)}.")
+            for number, text in enumerate(rows[:20], 1):
+                await self.send(f"{number}. {text}")
+            if len(rows) > 20:
+                await self.send(f"Dalsze zastosowania tej kategorii: {len(rows) - 20}.")
+        return True
+
+    async def show_recipe_gaps_v0611(self, args=""):
+        query = _strip_recipe_gap_prefix_v0611(args)
+        if not query:
+            await self.send("Użycie: braki receptura <przedmiot lub nazwa receptury>.")
+            return False
+
+        rows, suggestions = resolve_recipe_query_v0611(query)
+        if not rows:
+            if suggestions:
+                await self.send("Nazwa jest niejednoznaczna. Pasujące receptury:")
+                for number, (_label, _table, _recipe_id, recipe) in enumerate(suggestions, 1):
+                    await self.send(f"{number}. {recipe.get('name') or _recipe_id}.")
+            else:
+                await self.send("Nie znalazłem aktywnej receptury dla podanej nazwy.")
+            return False
+
+        await self.send(f"BRAKI RECEPTURY: znaleziono {len(rows)}.")
+        for idx, (_label, table, _recipe_id, recipe) in enumerate(rows[:6], 1):
+            state = self._recipe_readiness_v0611(table, recipe)
+            output_id = str(recipe.get("output") or "")
+            output_name = ITEMS.get(output_id, {}).get("name", output_id or recipe.get("name", "produkt"))
+            await self.send(f"RECEPTURA {idx}: {recipe.get('name') or output_name}. Produkt: {output_name}.")
+            for ingredient_id, have, needed, missing in state["ingredient_rows"]:
+                name = ITEMS.get(ingredient_id, {}).get("name", ingredient_id)
+                await self.send(
+                    f"{name}: masz {have}/{needed}; "
+                    + (f"brakuje {missing}." if missing else "wystarcza.")
+                )
+            if state["distinct_pool"] and state["distinct_needed"]:
+                missing = max(0, state["distinct_needed"] - state["distinct_have"])
+                await self.send(
+                    f"{recipe.get('distinct_ingredient_label', 'Różne składniki')}: masz "
+                    f"{state['distinct_have']}/{state['distinct_needed']}; "
+                    + (f"brakuje {missing} różnych rodzajów." if missing else "wystarcza.")
+                )
+            if state["pooled_pool"] and state["pooled_needed"]:
+                missing = max(0, state["pooled_needed"] - state["pooled_have"])
+                await self.send(
+                    f"{recipe.get('pooled_ingredient_label', 'Składniki z puli')}: masz "
+                    f"{state['pooled_have']}/{state['pooled_needed']}; "
+                    + (f"brakuje {missing}." if missing else "wystarcza.")
+                )
+            await self.send(
+                f"Profesja: {state['profession']} {state['profession_level']}/{state['required_profession']} — "
+                + ("OK." if state["profession_level"] >= state["required_profession"] else "ZA NISKO.")
+            )
+            await self.send(
+                f"Narzędzie: {state['tool_name']}; "
+                + ("masz" if state["tool_owned"] else "BRAK")
+                + f"; Tier {state['tool_tier']}/{state['required_tool_tier']} — "
+                + ("OK." if state["tool_owned"] and state["tool_tier"] >= state["required_tool_tier"] else "NIE GOTOWE.")
+            )
+            station_text = _room_names_v0610(state["stations"]) if state["stations"] else "dowolne miejsce"
+            await self.send(
+                f"Miejsce: {station_text} — " + ("JESTEŚ NA MIEJSCU." if state["station_ok"] else "MUSISZ DOJŚĆ DO STACJI.")
+            )
+            if self.combat_mob_key:
+                await self.send("Stan: walczysz — crafting jest teraz zablokowany.")
+            await self.send("GOTOWOŚĆ: " + ("MOŻESZ WYKONAĆ TERAZ." if state["ready"] else "NIE MOŻESZ JESZCZE WYKONAĆ."))
+        if len(rows) > 6:
+            await self.send(f"Dodatkowe pasujące receptury: {len(rows) - 6}.")
+        return True
+
+    async def show_available_recipes_v0611(self, args=""):
+        if self.combat_mob_key:
+            await self.send("RECEPTURY MOŻLIWE: podczas walki nie możesz rozpocząć craftingu.")
+            return True
+        ready = []
+        for label, table, recipe_id, recipe in live_recipe_rows_v0611():
+            state = self._recipe_readiness_v0611(table, recipe)
+            if state["ready"]:
+                ready.append((state["profession"], state["required_profession"], str(recipe.get("name") or recipe_id), label, recipe))
+        ready.sort(key=lambda row: (normalize_lookup_text(row[0]), int(row[1]), normalize_lookup_text(row[2])))
+        room_name = str(ROOMS.get(self.character.room_id, {}).get("name") or self.character.room_id)
+        await self.send(f"RECEPTURY MOŻLIWE TERAZ. Lokacja: {room_name}. Liczba: {len(ready)}.")
+        if not ready:
+            await self.send(
+                "Nie masz tutaj receptury, dla której jednocześnie spełniasz składniki, poziom profesji, narzędzie, Tier narzędzia i wymaganą stację."
+            )
+            return True
+        for number, (profession, required, name, _label, recipe) in enumerate(ready[:60], 1):
+            output_id = str(recipe.get("output") or "")
+            output_name = ITEMS.get(output_id, {}).get("name", output_id or name)
+            await self.send(f"{number}. {name} -> {output_name}. {profession}, wymagany poziom {required}.")
+        if len(ready) > 60:
+            await self.send(f"Dalsze możliwe receptury w tej lokacji: {len(ready) - 60}.")
         return True
 
 
 __all__ = [
     "V0610_ITEM_SOURCE_VERSION",
+    "V0611_CRAFT_GUIDANCE_VERSION",
     "resolve_item_query_v0610",
     "item_source_entries_v0610",
+    "live_recipe_rows_v0611",
+    "recipe_rows_for_output_v0611",
+    "item_use_entries_v0611",
+    "resolve_recipe_query_v0611",
     "SessionItemSourcesV0610Mixin",
 ]

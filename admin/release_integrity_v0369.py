@@ -69,6 +69,7 @@ _RELEASE_AUDITS_V0369 = [
     ("v0.58.1 Living NPC Late Finalize Hotfix", "LIVING_NPCS_LATE_FINALIZE_AUDIT_V0581"),
     ("v0.60.0 NPC Crafting Orders & EQ Compare", "CRAFTING_ORDERS_COMPARE_AUDIT_V0600"),
     ("v0.61.0 Item Sources & Party Coordination", "ITEM_SOURCES_PARTY_COORDINATION_AUDIT_V0610"),
+    ("v0.61.1 Crafting Guidance", "ITEM_SOURCES_PARTY_COORDINATION_AUDIT_V0610"),
 ]
 
 def cumulative_release_integrity_audit_v0369():
@@ -86,13 +87,13 @@ def cumulative_release_integrity_audit_v0369():
         preserved.append(label)
 
     # Direct release-line checks for the exact milestones the user flagged.
-    if str(globals().get("VERSION","")) != "0.61.0":
-        errors.append(f"VERSION={globals().get('VERSION')!r}, expected 0.61.0")
+    if str(globals().get("VERSION","")) != "0.61.1":
+        errors.append(f"VERSION={globals().get('VERSION')!r}, expected 0.61.1")
     if str(globals().get("GENERATOR_CORE_VERSION","")) != "0.61.0":
         errors.append(f"Generator Core={globals().get('GENERATOR_CORE_VERSION')!r}, expected 0.61.0")
 
     return {
-        "version":"0.61.0",
+        "version":"0.61.1",
         "checked":len(_RELEASE_AUDITS_V0369),
         "preserved":preserved,
         "preserved_count":len(preserved),
@@ -103,7 +104,7 @@ def cumulative_release_integrity_audit_v0369():
 CUMULATIVE_RELEASE_INTEGRITY_AUDIT_V0369=cumulative_release_integrity_audit_v0369()
 if CUMULATIVE_RELEASE_INTEGRITY_AUDIT_V0369["error_count"]:
     raise RuntimeError(
-        "Cumulative Release Integrity Audit v0.61.0 failed: "
+        "Cumulative Release Integrity Audit v0.61.1 failed: "
         + "; ".join(CUMULATIVE_RELEASE_INTEGRITY_AUDIT_V0369["errors"][:100])
     )
 
@@ -126,14 +127,15 @@ HELP_TOPICS.setdefault("wersja", []).append("v0.59.0: braki / gaps / missing pok
 HELP_TOPICS.setdefault("wersja", []).append("v0.60.0: rotujące Zamówienia Rzemieślnicze NPC co godzinę oraz porownaj <przedmiot> do pełnego porównania posiadanego EQ poza sklepem. Crafting Odłamków Duszy z v0.59.2 pozostaje bez zmian.")
 HELP_TOPICS.setdefault("wersja", []).append("v0.60.1: Full Audit Compatibility Hotfix — pełny audit rozpoznaje talk_npc z Living NPCs; gameplay bez zmian.")
 HELP_TOPICS.setdefault("wersja", []).append("v0.61.0: gdzie zdobyc <przedmiot> przeszukuje realne źródła przedmiotów; drużyna dostała trwały cel sesyjny i kontrolę gotowości.")
+HELP_TOPICS.setdefault("wersja", []).append("v0.61.1: do czego <przedmiot>, braki receptura <przedmiot>, gdzie zdobyc <przedmiot> pelne i receptury mozliwe / craft mozliwe rozbudowują nawigację po craftingu.")
 
-LATEST_CHANGES_TITLE = "Soulbound v0.61.0 - Item Sources & Party Coordination"
+LATEST_CHANGES_TITLE = "Soulbound v0.61.1 - Crafting Guidance"
 LATEST_CHANGES = [
-    "gdzie zdobyc <przedmiot> wyszukuje źródła w aktywnych sklepach, recepturach, questach, dropach, bossach i pulach profesji.",
-    "Wyszukiwarka rozpoznaje jakościowe warianty craftu i rzadkie warianty zasobów, wskazując ich prawdziwe źródło bazowe.",
-    "druzyna cel <tekst> ustawia wspólny cel widoczny całej drużynie; cel trwa do zmiany/wyczyszczenia i przechodzi przy przekazaniu lidera.",
-    "druzyna gotowi uruchamia i obsługuje ready-check; druzyna niegotowy cofa własne potwierdzenie, a status pokazuje gotowość każdego członka.",
-    "Zmiana celu resetuje ready-check. Funkcje są sesyjne tak samo jak istniejący system drużyny; brak migracji SQLite i wipe postaci.",
+    "do czego <przedmiot> pokazuje receptury, questy i specjalne systemy, które faktycznie zużywają item.",
+    "braki receptura <przedmiot> pokazuje masz/potrzeba/brakuje oraz stan profesji, narzędzia i stacji.",
+    "gdzie zdobyc <przedmiot> pelne rozwija craftowany przedmiot do bezpośrednich składników i ich źródeł.",
+    "receptury mozliwe / craft mozliwe pokazuje tylko receptury wykonalne teraz przy bieżącej lokacji i stanie postaci.",
+    "Brak migracji SQLite i wipe postaci; v0.61.0 party coordination pozostaje bez zmian.",
 ]
 
 

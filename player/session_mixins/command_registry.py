@@ -8,6 +8,7 @@ command_loop.py. This keeps aliases and direct handler calls easy to audit.
 import asyncio
 
 from core.command_catalog import COMMAND_CATALOG, COMMAND_LOOP_BREAK
+from network.protocol_gameplay_utils import normalize_lookup_text
 from world.economy_quests import LOOT_FILTER_INPUTS
 
 COMMAND_TEXT = object()
@@ -35,6 +36,9 @@ COMMAND_REGISTRY = {
     'craftorders': ('handle_crafting_orders_v0600', (COMMAND_TEXT,), {}),
     'compareeq': ('compare_equipment_v0600', (COMMAND_TEXT,), {}),
     'itemsource': ('show_item_sources_v0610', (COMMAND_TEXT,), {}),
+    'itemuses': ('show_item_uses_v0611', (COMMAND_TEXT,), {}),
+    'recipegaps': ('show_recipe_gaps_v0611', (COMMAND_TEXT,), {}),
+    'availablerecipes': ('show_available_recipes_v0611', (COMMAND_TEXT,), {}),
     'historybuffer': ('show_history_buffer', (COMMAND_TEXT,), {}),
     'regionprogress': ('show_region_progress', (), {}),
     'exploration': ('show_exploration', (COMMAND_TEXT,), {}),
@@ -302,13 +306,13 @@ COMMAND_REGISTRY.update({
 # Command-state policy is metadata, not parser code.  The loop asks the
 # catalog whether the resolved canonical command is safe in a given state.
 DOWNED_SAFE_COMMANDS = {
-    "activityjournal", "whattodo", "gaps", "compareeq", "itemsource",
+    "activityjournal", "whattodo", "gaps", "compareeq", "itemsource", "itemuses", "recipegaps", "availablerecipes",
     "help", "look", "party", "partychat", "say", "tell", "reply", "who",
     "where", "hp", "score", "records", "chronicle", "selfrespawn",
     "historybuffer", "lifetime", "deathrecap", "combatrecap",
 }
 REST_SAFE_COMMANDS = {
-    "activityjournal", "whattodo", "gaps", "compareeq", "itemsource",
+    "activityjournal", "whattodo", "gaps", "compareeq", "itemsource", "itemuses", "recipegaps", "availablerecipes",
     "rest", "help", "encoding", "describe", "changes", "look", "level", "xp", "wimpy", "eventxp",
     "corpse", "cryptinfo", "astralinfo", "consider", "waterinfo", "fishjournal", "exits", "map",
     "worldevents", "atlas", "codex", "bestiary", "where", "who", "gossip", "newbie", "trade",
@@ -328,7 +332,7 @@ REST_SAFE_COMMANDS = {
     "garbuj", "stolarka", "enchants",
 }
 GUIDE_SAFE_COMMANDS = {
-    "activityjournal", "whattodo", "gaps", "compareeq", "itemsource",
+    "activityjournal", "whattodo", "gaps", "compareeq", "itemsource", "itemuses", "recipegaps", "availablerecipes",
     "guide", "route", "help", "encoding", "describe", "changes", "wimpy", "eventxp", "look", "level",
     "xp", "exits", "map", "atlas", "codex", "bestiary", "where", "who", "whois", "terraininfo",
     "location", "stats", "hp", "score", "money", "soul", "skills", "spells", "skillnames", "inventory",
@@ -362,6 +366,13 @@ def resolve_session_command(token, args=""):
     arg_words = str(args or "").strip().split(maxsplit=1)
     if raw in ("gdzie", "where") and arg_words and arg_words[0].strip().lower() in ("zdobyc", "zdobyć", "zdobadz", "zdobądź", "get", "find"):
         return "itemsource"
+    first_arg = normalize_lookup_text(arg_words[0]) if arg_words else ""
+    if raw in ("do", "what") and first_arg in ("czego", "uses", "use"):
+        return "itemuses"
+    if raw in ("braki", "gaps", "missing") and first_arg in ("receptura", "recipe", "przepis"):
+        return "recipegaps"
+    if raw in ("receptury", "recipes", "przepisy", "craft") and first_arg in ("mozliwe", "possible", "available"):
+        return "availablerecipes"
     if raw == "loot" and str(args or "").strip().lower() in LOOT_FILTER_INPUTS:
         return "lootfilter"
     return COMMAND_CATALOG.resolve(raw)

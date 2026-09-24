@@ -1,9 +1,26 @@
 ﻿SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v0.61.0
+Aktualna paczka: v0.61.1
 
 Ten plik jest changelogiem narastającym. Kolejne wydania mają dopisywać nowe wpisy na górze, bez usuwania starszej historii.
 Historia poniżej została odtworzona z zachowanych wpisów release, HELP, audytów, komentarzy milestone oraz aktywnego kodu Soulbound.
 Jeżeli stara wersja pozostawiła w obecnej bazie tylko numer bez wiarygodnego opisu, nie dopisuję zmyślonych zmian; takie numery są wymienione na końcu.
+
+==============================================================================
+Soulbound v0.61.1 — Crafting Guidance
+==============================================================================
+
+- Dodano `do czego <przedmiot>` jako odwrotność `gdzie zdobyc`: komenda pokazuje aktywne receptury, questy oraz specjalne systemy, które rzeczywiście zużywają dany przedmiot.
+- `do czego` obejmuje m.in. zwykłe i rozszerzone receptury, oddawanie przedmiotów do questów, ulepszanie EQ +1..+10, reforge, Rune Crafting, osadzanie run i klejnotów, Socket Crafting, Tech Set Upgrade, ulepszenia narzędzi Inżyniera, V-MAX oraz Zaklinanie.
+- Dodano `braki receptura <przedmiot lub nazwa receptury>`. Dla każdego składnika pokazuje `masz X/Y`, dokładny brak oraz uwzględnia właściwy magazyn profesji i zwykły ekwipunek.
+- `braki receptura` sprawdza również poziom profesji, posiadanie właściwego narzędzia, Tier narzędzia, wymaganą stację/warsztat, składniki z pul oraz blokadę craftingu podczas walki. Kończy wynikiem `MOŻESZ WYKONAĆ TERAZ` albo `NIE MOŻESZ JESZCZE WYKONAĆ`.
+- Rozszerzono `gdzie zdobyc <przedmiot> pelne` / `pełne`: dla craftowanego przedmiotu pokazuje bezpośrednią recepturę, każdy składnik oraz realne źródła tego składnika z aktywnych katalogów gry.
+- Dodano `receptury mozliwe` / `receptury możliwe` / `craft mozliwe` / `craft możliwe`. Lista zawiera wyłącznie receptury, które postać może wykonać w tej chwili: ma wszystkie materiały, wymagany poziom profesji, narzędzie i jego Tier, stoi przy prawidłowej stacji i nie walczy.
+- Wszystkie nowe wyszukiwarki korzystają z tych samych aktywnych tabel receptur i zasobów co właściwe handlery craftingu; nie utrzymują osobnej, ręcznej listy przedmiotów.
+- Dodano walidację Crafting Guidance do istniejącego audytu Item Sources & Party Coordination; Cumulative Release Integrity zachowuje 64/64 milestone'y.
+- FAST PREDEPLOY: PASS — 174 moduły runtime, 0 braków, 0 błędów składni, 0 brakujących Docker COPY sources, SQLite 99 tabel / 100 obiektów, 874 aliasy / 237 handlerów.
+- FULL PREDEPLOY: PASS — Full Game Audit 0 błędów / 0 ostrzeżeń; Release Integrity 64/64.
+- Test funkcjonalny na świeżej bazie: routing wszystkich nowych komend PASS; `do czego Odłamek Duszy` PASS; pełny łańcuch `Eliksir Duszy` PASS; `braki receptura` przed i po dodaniu wymagań PASS; gotowa receptura pojawia się w `receptury mozliwe` PASS.
+- Brak nowej migracji SQLite i brak wipe postaci. Generator Core nie był zmieniany przez ten milestone.
 
 ==============================================================================
 Soulbound v0.61.0 — Item Sources & Party Coordination
