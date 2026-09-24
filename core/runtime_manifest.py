@@ -185,6 +185,7 @@ RUNTIME_MODULES = ['core/bootstrap_economy_professions.py',
  'admin/item_sources_party_coordination_audit_v0610.py',
  'admin/crafting_logistics_audit_v0614.py',
  'admin/courier_profession_expansion_audit_v0700.py',
+ 'systems/soul_shard_finalizer.py',
  'systems/runtime_memory.py',
  'admin/release_integrity_v0369.py']
 
@@ -986,6 +987,12 @@ EXPLICIT_RUNTIME_EXPORTS["admin/crafting_logistics_audit_v0614.py"] = (
     "CRAFTING_LOGISTICS_AUDIT_V0614",
 )
 
+
+EXPLICIT_RUNTIME_EXPORTS["systems/soul_shard_finalizer.py"] = (
+    "SOUL_SHARD_FINALIZER_VERSION",
+    "finalize_crypt_soul_shards_v0711",
+    "SOUL_SHARD_CRYPT_FINAL_AUDIT_V0711",
+)
 
 EXPLICIT_RUNTIME_EXPORTS["systems/runtime_memory.py"] = (
     "V0616_MEMORY_EFFICIENCY_VERSION",

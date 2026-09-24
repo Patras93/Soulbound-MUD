@@ -47,6 +47,35 @@ def _final_boss_floor_identity(*args, **kwargs):
     from world.magitek_infinite import boss_floor_identity
     return boss_floor_identity(*args, **kwargs)
 
+
+def _v0711_crypt_soul_shard_guaranteed(template_id, template):
+    """Return True for Crypt/Mythic Crypt combat templates, including variants."""
+    if not isinstance(template, dict):
+        return False
+    try:
+        if int(template.get("crypt_floor", 0) or 0) > 0:
+            return True
+        if int(template.get("mythic_crypt_floor", 0) or 0) > 0:
+            return True
+    except Exception:
+        pass
+    if template.get("crypt_boss") or template.get("mythic_crypt_boss"):
+        return True
+    if str(template_id) in {"skeleton", "crypt_wraith"}:
+        return True
+    for key in ("elite_base_template", "rare_base_template", "base_template", "template_id"):
+        base_id = str(template.get(key) or "")
+        if base_id in {"skeleton", "crypt_wraith"}:
+            return True
+        base = globals().get("MOB_TEMPLATES", {}).get(base_id)
+        if isinstance(base, dict):
+            try:
+                if int(base.get("crypt_floor", 0) or 0) > 0 or int(base.get("mythic_crypt_floor", 0) or 0) > 0:
+                    return True
+            except Exception:
+                pass
+    return False
+
 class SessionCombatRewardsMixin:
     def class_for_milestone_loot(self):
                 active = self.active_class_names()
@@ -450,6 +479,12 @@ class SessionCombatRewardsMixin:
                     except Exception:
                         pass
                     self.server.db.save_character(session.character)
+
+                # v0.71.1: lazy/infinite Crypt templates can be rebuilt after boot.
+                # Guarantee the authored Soul Shard drop at the actual reward boundary
+                # so no later numeric rebalance can silently reduce it again.
+                if _v0711_crypt_soul_shard_guaranteed(mob.template_id, template):
+                    template.setdefault("drops", {})["soul_shard"] = 1.0
 
                 for item_id, chance in template["drops"].items():
                     if random.random() <= chance:

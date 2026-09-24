@@ -2968,6 +2968,36 @@ def full_game_predeploy_audit_v0336():
             iid=(entry.get('item') or entry.get('id')) if isinstance(entry,dict) else entry
             if iid and iid not in ITEMS: err('mob_missing_drop_item',mid,iid)
 
+    # 7b) v0.71.1 final Crypt Soul Shard guarantee.  This is intentionally
+    # checked after the full runtime has been assembled, because older fixes
+    # could be overwritten by later Generator Core / Crypt balance passes.
+    crypt_shard_checked = 0
+    for mid, mob in MOB_TEMPLATES.items():
+        try:
+            crypt_floor = int(mob.get('crypt_floor', 0) or 0)
+        except Exception:
+            crypt_floor = 0
+        try:
+            mythic_floor = int(mob.get('mythic_crypt_floor', 0) or 0)
+        except Exception:
+            mythic_floor = 0
+        is_crypt = bool(
+            crypt_floor > 0 or mythic_floor > 0
+            or mob.get('crypt_boss') or mob.get('mythic_crypt_boss')
+            or str(mid) in ('skeleton', 'crypt_wraith')
+        )
+        if not is_crypt:
+            continue
+        crypt_shard_checked += 1
+        drops = mob.get('drops') or {}
+        try:
+            chance = float(drops.get('soul_shard', 0) or 0)
+        except Exception:
+            chance = 0.0
+        if chance < 1.0:
+            err('crypt_soul_shard_not_guaranteed', mid, chance)
+    metrics['crypt_soul_shard_templates_checked'] = crypt_shard_checked
+
     # 8) Recipes across every recipe registry.
     recipe_tables={
         'craft':CRAFT_RECIPES,'cook':COOK_RECIPES,'alchemy':ALCHEMY_RECIPES,

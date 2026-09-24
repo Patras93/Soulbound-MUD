@@ -1,3 +1,11 @@
+Soulbound v0.71.1 — Crypt Soul Shard Hotfix
+
+- Naprawiono regresję finalnego runtime: Generator Core i późniejsze warstwy balansu Krypty ponownie obniżały 100% drop Odłamków Duszy do około 4–7% u zwykłych mobów i około 20–35% u części bossów.
+- Po wszystkich generatorach i rebalance'ach każdy przeciwnik zwykłej Krypty oraz Mitycznej Krypty ma teraz finalnie 100% szansy na 1 Odłamek Duszy.
+- Poprawka obejmuje także Elite/Rare, bossów oraz piętra Krypty tworzone dynamicznie po starcie serwera.
+- Dodano końcowy Soul Shard Finalizer i audit finalnych tabel dropu, aby późniejsze warstwy nie mogły ponownie zbić szansy.
+- Brak migracji SQLite, zmian save'ów i wipe.
+
 Soulbound v0.71.0 — Profession & City Expansion II
 
 - Dodano 120 jednorazowych questów `Droga Mistrza`: po 10 nowych etapów dla każdej z 12 profesji na progach 25, 75, 100, 200, 250, 350, 400, 450, 550 i 600.
@@ -92,7 +100,7 @@ Soulbound v0.61.2 — Memory Efficiency
 - Brak zmian schematu SQLite i brak wipe postaci. Gameplay v0.61.1 pozostaje bez zmian.
 
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v0.71.0
+Aktualna paczka: v0.71.1
 
 Ten plik jest changelogiem narastającym. Kolejne wydania mają dopisywać nowe wpisy na górze, bez usuwania starszej historii.
 Historia poniżej została odtworzona z zachowanych wpisów release, HELP, audytów, komentarzy milestone oraz aktywnego kodu Soulbound.

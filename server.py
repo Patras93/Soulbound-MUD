@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #!/usr/bin/env python3
-"""Soulbound v0.71.0 Profession & City Expansion II."""
+"""Soulbound v0.71.1 Crypt Soul Shard Hotfix."""
 from pathlib import Path
 import os
 import socket
@@ -46,7 +46,7 @@ if os.environ.get("SOULBOUND_FULL_AUDIT", "").strip().lower() in ("1", "true", "
     FULL_GAME_PREDEPLOY_AUDIT_V0336 = full_game_predeploy_audit_v0336()
     if FULL_GAME_PREDEPLOY_AUDIT_V0336["error_count"]:
         raise RuntimeError(
-            "Full Game Pre-Deploy Audit v0.71.0 failed: "
+            "Full Game Pre-Deploy Audit v0.71.1 failed: "
             + "; ".join(map(str, FULL_GAME_PREDEPLOY_AUDIT_V0336["errors"][:100]))
         )
 else:
@@ -56,7 +56,7 @@ else:
         "reason": "Run before deploy with SOULBOUND_FULL_AUDIT=1; skipped during normal server startup.",
     }
 
-# v0.71.0: compact only after the complete runtime and optional full audit are valid.
+# v0.71.1: compact only after the complete runtime and optional full audit are valid.
 # predeploy_full can defer this once so it audits the authoring structure first.
 if os.environ.get("SOULBOUND_DEFER_MEMORY_COMPACTION", "").strip().lower() in ("1", "true", "yes", "on"):
     RUNTIME_MEMORY_COMPACTION_V0616 = {"version": "0.70.0", "deferred": True}
