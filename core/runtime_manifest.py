@@ -182,6 +182,7 @@ RUNTIME_MODULES = ['core/bootstrap_economy_professions.py',
  'admin/crafting_orders_compare_audit_v0600.py',
  'admin/item_sources_party_coordination_audit_v0610.py',
  'admin/crafting_logistics_audit_v0614.py',
+ 'systems/runtime_memory.py',
  'admin/release_integrity_v0369.py']
 
 
@@ -960,3 +961,10 @@ EXPLICIT_RUNTIME_EXPORTS["admin/crafting_logistics_audit_v0614.py"] = (
     "CRAFTING_LOGISTICS_AUDIT_V0614",
 )
 
+
+EXPLICIT_RUNTIME_EXPORTS["systems/runtime_memory.py"] = (
+    "V0616_MEMORY_EFFICIENCY_VERSION",
+    "compact_runtime_memory_v0616",
+    "memory_efficiency_ii_audit_v0616",
+    "V0616_MEMORY_EFFICIENCY_AUDIT",
+)

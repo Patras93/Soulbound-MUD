@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #!/usr/bin/env python3
-"""Soulbound v0.61.5 Profession Level-Up Announcements."""
+"""Soulbound v0.61.6 Memory Efficiency II."""
 from pathlib import Path
 import os
 import socket
@@ -46,15 +46,29 @@ if os.environ.get("SOULBOUND_FULL_AUDIT", "").strip().lower() in ("1", "true", "
     FULL_GAME_PREDEPLOY_AUDIT_V0336 = full_game_predeploy_audit_v0336()
     if FULL_GAME_PREDEPLOY_AUDIT_V0336["error_count"]:
         raise RuntimeError(
-            "Full Game Pre-Deploy Audit v0.61.5 failed: "
+            "Full Game Pre-Deploy Audit v0.61.6 failed: "
             + "; ".join(map(str, FULL_GAME_PREDEPLOY_AUDIT_V0336["errors"][:100]))
         )
 else:
     FULL_GAME_PREDEPLOY_AUDIT_V0336 = {
-        "version": "0.61.5", "skipped_at_runtime": True,
+        "version": "0.61.6", "skipped_at_runtime": True,
         "error_count": 0, "warning_count": 0, "errors": [], "warnings": [],
         "reason": "Run before deploy with SOULBOUND_FULL_AUDIT=1; skipped during normal server startup.",
     }
+
+# v0.61.6: compact only after the complete runtime and optional full audit are valid.
+# predeploy_full can defer this once so it audits the authoring structure first.
+if os.environ.get("SOULBOUND_DEFER_MEMORY_COMPACTION", "").strip().lower() in ("1", "true", "yes", "on"):
+    RUNTIME_MEMORY_COMPACTION_V0616 = {"version": "0.61.6", "deferred": True}
+else:
+    RUNTIME_MEMORY_COMPACTION_V0616 = compact_runtime_memory_v0616()
+    _memory_post = memory_efficiency_ii_audit_v0616(require_compacted=True)
+    if _memory_post["error_count"]:
+        raise RuntimeError(
+            "Memory Efficiency II post-compaction audit failed: "
+            + "; ".join(_memory_post["errors"][:100])
+        )
+    RUNTIME_MEMORY_COMPACTION_V0616["post_audit"] = _memory_post
 
 if __name__ == "__main__":
     main()

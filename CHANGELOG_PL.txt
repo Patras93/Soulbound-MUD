@@ -1,3 +1,16 @@
+Soulbound v0.61.6 — Memory Efficiency II
+
+- Drugi etap optymalizacji RAM bez zmiany gameplayu, statystyk, dropów, questów ani save'ów.
+- 25 480 powtarzających się pul łupu mobów (`corpse_material_pool` i `corpse_equipment_pool`) jest po starcie współdzielonych jako tylko 136 niezmiennych obiektów zamiast tysięcy osobnych list.
+- 35 868 zwykłych części klasowego EQ po pełnym audycie traci wyłącznie startup-only metadata: `class_base_stat_pair`, `class_equipment_tier`, `class_equipment_style` i redundantne `class_set_piece`; runtime korzysta z istniejących danych/fallbacków.
+- Ponownie usuwane są eager opisy dla masowego klasowego EQ, wariantów Krypty i materiałowego EQ z ciał po tym, gdy starsze warstwy zgodności użyły ich podczas startu; opis dla gracza nadal powstaje na żądanie.
+- Listy aliases przedmiotów są po finalizacji HELP zamieniane na niezmienne tuple bez zmiany rozpoznawanych nazw.
+- Na Linux/glibc po kompaktowaniu wykonywany jest bezpieczny `malloc_trim(0)`, aby zwolnione strony pamięci rzeczywiście wróciły do systemu/cgroup Railway; na innych platformach krok jest pomijany.
+- Lokalny pomiar pełnego serwera v0.61.5 -> v0.61.6: około 310,3 MB -> 278,0 MB RSS, czyli około 32,3 MB / 10,4% mniej w tym etapie. Wynik Railway może się różnić.
+- FAST PREDEPLOY: PASS — 177 modułów runtime, 0 braków, 0 błędów składni, SQLite 100 tabel / 101 obiektów, 877 aliasów / 238 handlerów.
+- FULL PREDEPLOY: PASS — Full Game Audit 0 błędów / 0 ostrzeżeń; Memory Efficiency II post-audit 0 błędów; Release Integrity 69/69.
+- Brak migracji SQLite i brak wipe postaci.
+
 Soulbound v0.61.5 — Profession Level-Up Announcements
 
 - Każdy awans poziomu profesji ma teraz wyraźny, NVDA-friendly komunikat: `AWANS PROFESJI: <profesja> osiąga poziom <N>.`
@@ -42,7 +55,7 @@ Soulbound v0.61.2 — Memory Efficiency
 - Brak zmian schematu SQLite i brak wipe postaci. Gameplay v0.61.1 pozostaje bez zmian.
 
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v0.61.5
+Aktualna paczka: v0.61.6
 
 Ten plik jest changelogiem narastającym. Kolejne wydania mają dopisywać nowe wpisy na górze, bez usuwania starszej historii.
 Historia poniżej została odtworzona z zachowanych wpisów release, HELP, audytów, komentarzy milestone oraz aktywnego kodu Soulbound.
