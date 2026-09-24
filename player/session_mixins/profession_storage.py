@@ -152,7 +152,7 @@ class SessionProfessionStorageMixin:
                     break
                 pxp -= needed
                 plevel += 1
-                messages.append(f"{profession} osiąga poziom {plevel}.")
+                messages.append(f"AWANS PROFESJI: {profession} osiąga poziom {plevel}.")
             if plevel >= profession_cap:
                 plevel = profession_cap
                 pxp = 0
@@ -792,7 +792,7 @@ class SessionProfessionStorageMixin:
                     break
                 pxp -= needed
                 plevel += 1
-                await self.send(f"{profession} osiąga poziom {plevel}.")
+                await self.send(f"AWANS PROFESJI: {profession} osiąga poziom {plevel}.")
 
             if plevel >= profession_cap:
                 plevel = profession_cap

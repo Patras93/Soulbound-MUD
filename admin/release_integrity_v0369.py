@@ -73,6 +73,7 @@ _RELEASE_AUDITS_V0369 = [
     ("v0.61.2 Memory Efficiency", "V0612_MEMORY_EFFICIENCY_AUDIT"),
     ("v0.61.3 Crafting Orders Hotfix", "CRAFTING_ORDERS_COMPARE_AUDIT_V0600"),
     ("v0.61.4 Crafting Logistics & Mail Escrow", "CRAFTING_LOGISTICS_AUDIT_V0614"),
+    ("v0.61.5 Profession Level-Up Announcements", "CRAFTING_LOGISTICS_AUDIT_V0614"),
 ]
 
 def cumulative_release_integrity_audit_v0369():
@@ -90,13 +91,13 @@ def cumulative_release_integrity_audit_v0369():
         preserved.append(label)
 
     # Direct release-line checks for the exact milestones the user flagged.
-    if str(globals().get("VERSION","")) != "0.61.4":
-        errors.append(f"VERSION={globals().get('VERSION')!r}, expected 0.61.4")
+    if str(globals().get("VERSION","")) != "0.61.5":
+        errors.append(f"VERSION={globals().get('VERSION')!r}, expected 0.61.5")
     if str(globals().get("GENERATOR_CORE_VERSION","")) != "0.61.0":
         errors.append(f"Generator Core={globals().get('GENERATOR_CORE_VERSION')!r}, expected 0.61.0")
 
     return {
-        "version":"0.61.4",
+        "version":"0.61.5",
         "checked":len(_RELEASE_AUDITS_V0369),
         "preserved":preserved,
         "preserved_count":len(preserved),
@@ -107,7 +108,7 @@ def cumulative_release_integrity_audit_v0369():
 CUMULATIVE_RELEASE_INTEGRITY_AUDIT_V0369=cumulative_release_integrity_audit_v0369()
 if CUMULATIVE_RELEASE_INTEGRITY_AUDIT_V0369["error_count"]:
     raise RuntimeError(
-        "Cumulative Release Integrity Audit v0.61.4 failed: "
+        "Cumulative Release Integrity Audit v0.61.5 failed: "
         + "; ".join(CUMULATIVE_RELEASE_INTEGRITY_AUDIT_V0369["errors"][:100])
     )
 
@@ -133,6 +134,7 @@ HELP_TOPICS.setdefault("wersja", []).append("v0.61.0: gdzie zdobyc <przedmiot> p
 HELP_TOPICS.setdefault("wersja", []).append("v0.61.1: do czego <przedmiot>, braki receptura <przedmiot>, gdzie zdobyc <przedmiot> pelne i receptury mozliwe / craft mozliwe rozbudowują nawigację po craftingu.")
 HELP_TOPICS.setdefault("wersja", []).append("v0.61.2: Memory Efficiency zmniejsza RAM przez generowanie opisów masowego EQ dopiero przy wyświetleniu; gameplay i zawartość bez zmian.")
 HELP_TOPICS.setdefault("wersja", []).append("v0.61.3: Crafting Orders Hotfix przywraca oferty Haldora, naprawia oddawanie zamówień i chroni produkty przed ponownym pobraniem po starym crashu.")
+HELP_TOPICS.setdefault("wersja", []).append("v0.61.5: Profession Level-Up Announcements — każdy awans poziomu profesji jest wyraźnie czytany jako AWANS PROFESJI: <profesja> osiąga poziom <N>; bez informacji o brakującym XP.")
 HELP_TOPICS.setdefault("wersja", []).append("v0.61.4: Crafting Logistics dodaje craft <ilość>/wszystko, historię zamówień, bezpieczne załączniki mailowe, wielopoziomową drogę receptury oraz przywrócone mithrilowe EQ z Fragmentów Mithrilu.")
 
 LATEST_CHANGES_TITLE = "Soulbound v0.61.4 - Crafting Logistics & Mail Escrow"

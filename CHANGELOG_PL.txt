@@ -1,3 +1,10 @@
+Soulbound v0.61.5 — Profession Level-Up Announcements
+
+- Każdy awans poziomu profesji ma teraz wyraźny, NVDA-friendly komunikat: `AWANS PROFESJI: <profesja> osiąga poziom <N>.`
+- Komunikat działa we wszystkich trzech kanałach rozwoju profesji: normalne akcje/crafting/zbieranie, nagrody profesyjne z questów i zamówień oraz XP profesji ze sprzedaży zasobów.
+- Nie dodano informacji o tym, ile XP brakuje do następnego poziomu. Zwykłe komunikaty XP, awanse rang profesji i poziomy/Tiery narzędzi pozostają bez zmian.
+- Brak zmian schematu SQLite, balansu i save'ów; bez wipe postaci.
+
 Soulbound v0.61.4 — Crafting Logistics & Mail Escrow
 
 - Dodano hurtowy crafting: `craft <ilość> <receptura>` oraz `craft wszystko <receptura>` / `craft max <receptura>`. Gra oblicza realny limit z aktualnych materiałów, a każde wykonanie nadal przechodzi przez normalny silnik craftingu, więc zachowuje osobny XP, jakość, krytyczny craft, questy, osiągnięcia i bonusy.
@@ -35,7 +42,7 @@ Soulbound v0.61.2 — Memory Efficiency
 - Brak zmian schematu SQLite i brak wipe postaci. Gameplay v0.61.1 pozostaje bez zmian.
 
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v0.61.4
+Aktualna paczka: v0.61.5
 
 Ten plik jest changelogiem narastającym. Kolejne wydania mają dopisywać nowe wpisy na górze, bez usuwania starszej historii.
 Historia poniżej została odtworzona z zachowanych wpisów release, HELP, audytów, komentarzy milestone oraz aktywnego kodu Soulbound.

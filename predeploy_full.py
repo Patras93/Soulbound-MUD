@@ -59,7 +59,7 @@ runtime_state = ns["RUNTIME_ARCHITECTURE_STATE"]
 if arch["error_count"] or maintenance["error_count"] or native["error_count"] or modular["error_count"] or explicit["error_count"] or explicit_gameplay["error_count"] or explicit_persistence["error_count"] or combat_arch["error_count"] or catalog_ownership["error_count"] or command_registry["error_count"] or maintainable["error_count"] or progression_pace["error_count"] or long_term_balance["error_count"] or difficulty_pressure["error_count"] or world_expansion["error_count"] or world_expansion_ii["error_count"] or railway_packaging["error_count"] or postal_quest_rewards["error_count"] or courier_guild["error_count"] or courier_achievements["error_count"] or courier_prestige_tavern["error_count"] or living_npcs_activity["error_count"] or living_npcs_late_finalize["error_count"] or modular_refactor["error_count"] or titles_progress["error_count"] or crafting_orders_compare["error_count"] or item_sources_party["error_count"] or crafting_logistics["error_count"] or release["error_count"] or full["error_count"]:
     raise SystemExit(1)
 
-print("Soulbound v0.61.4 FULL PREDEPLOY PASS")
+print("Soulbound v0.61.5 FULL PREDEPLOY PASS")
 print(f"Architecture: {arch['error_count']} errors; {arch['registered_simple_commands']} registered simple commands")
 print(f"Maintenance: {maintenance['error_count']} errors; {maintenance['metrics']['maintenance_area_count']} repair areas")
 print(f"Native modules: {native['error_count']} errors; {native['checked_native_modules']} verified module identities")

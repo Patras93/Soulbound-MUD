@@ -256,7 +256,7 @@ class SessionSalesMixin:
                     break
                 xp -= needed
                 level += 1
-                messages.append(f"{profession} osiąga poziom {level}.")
+                messages.append(f"AWANS PROFESJI: {profession} osiąga poziom {level}.")
 
             if level >= cap:
                 level = cap
