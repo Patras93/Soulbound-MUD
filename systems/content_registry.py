@@ -2624,6 +2624,7 @@ HELP_TOPICS["zamowienia_rzemieslnicze"] = [
     "zamowienia wez <numer> - przyjmij ofertę. Jednocześnie możesz mieć jedno aktywne zamówienie, a w jednym cyklu godzinowym ukończyć jedno.",
     "Liczą się wyłącznie sztuki wykonane po przyjęciu zamówienia. Przy oddaniu NPC zabiera dokładnie zamówioną liczbę produktów.",
     "zamowienia status - pokaż produkt, postęp, zleceniodawcę i nagrodę; zamowienia oddaj - oddaj gotowe zamówienie u właściwego NPC; zamowienia porzuc - anuluj.",
+    "zamowienia historia / zamowienia statystyki - trwała historia ukończeń per profesja, zarobek, XP profesji/narzędzia i rekord nagrody; stare ukończenia sprzed v0.61.4 zachowują tylko pewny licznik.",
     "Nagrody to waluta oraz dodatkowy XP profesji i narzędzia. Zamówienia rzemieślnicze nie dają Soul XP.",
     "System obejmuje Kowalstwo, Gotowanie, Alchemię, Jubilerstwo, Krawiectwo, Garbarstwo i Stolarstwo i korzysta z realnych receptur dostępnych dla poziomu profesji.",
 ]
@@ -2641,3 +2642,23 @@ HELP_TOPICS["porownaj_eq"] = [
 HELP_TOPIC_ALIASES.update({
     "porownaj": "porownaj_eq", "porównaj": "porownaj_eq", "compare": "porownaj_eq", "compare eq": "porownaj_eq",
 })
+
+
+# v0.61.4 - Crafting Logistics: bulk craft, recipe route and mail attachments.
+HELP_TOPICS["crafting_logistics"] = [
+    "craft <ilość> <receptura> - wykonuje podaną liczbę craftów, ale nie więcej niż pozwalają aktualne materiały; każdy craft zachowuje własny XP, jakość, krytyk, questy i bonusy.",
+    "craft wszystko <receptura> / craft max <receptura> - oblicza maksymalną liczbę wykonań z bezpośrednich, pooled i distinct składników i wykonuje je istniejącym silnikiem craftingu.",
+    "receptura droga <przedmiot> - pokazuje wielopoziomowy łańcuch produkcji od produktu przez półprodukty aż do źródeł surowców.",
+    "Fragment Mithrilu z Salvage nie jest walutowym mithrilem: Kowalstwo 80 może z niego bezpośrednio wykuwać mithrilowe EQ (hełm 6, pancerz 10, rękawice 4, nogawice 8, buty 4, talizman 4). Normalne EQ ze sztabek nadal działa; dodatkowo 2 Fragmenty -> 1 Esencja Przekucia, 3 Fragmenty -> 2 Pyły Runiczne.",
+]
+HELP_TOPIC_ALIASES.update({
+    "craft hurtowy":"crafting_logistics", "bulk craft":"crafting_logistics",
+    "receptura droga":"crafting_logistics", "recipe route":"crafting_logistics",
+})
+HELP_TOPICS["mail"] = [
+    "mail list - skrzynka; mail send <gracz> <tekst> - zwykła wiadomość; mail read <id> - odczyt.",
+    "mail wyslij <gracz> przedmiot <nazwa> - wysyła jedną wolną, przekazywalną sztukę jako bezpieczny załącznik escrow.",
+    "mail wyslij <gracz> waluta <kwota> <nominał> - wysyła walutę do escrow, np. mail wyslij Arven waluta 5 złota.",
+    "mail odbierz <id> - odbiera załącznik dokładnie raz. Wiadomości z nieodebranym załącznikiem nie można usunąć.",
+]
+HELP_TOPIC_ALIASES.update({"poczta graczy":"mail", "player mail":"mail", "mail attachments":"mail"})

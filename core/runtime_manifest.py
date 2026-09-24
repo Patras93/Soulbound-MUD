@@ -113,6 +113,7 @@ RUNTIME_MODULES = ['core/bootstrap_economy_professions.py',
  'player/session_mixins/combat.py',
  'player/session_mixins/skills_combat.py',
  'player/session_mixins/forge_guilds.py',
+ 'player/session_mixins/mail_attachments.py',
  'player/session_mixins/social_expansion.py',
  'player/session_mixins/courier_delivery.py',
  'player/session_mixins/progression_accessibility.py',
@@ -180,6 +181,7 @@ RUNTIME_MODULES = ['core/bootstrap_economy_professions.py',
  'admin/titles_progress_audit_v0580.py',
  'admin/crafting_orders_compare_audit_v0600.py',
  'admin/item_sources_party_coordination_audit_v0610.py',
+ 'admin/crafting_logistics_audit_v0614.py',
  'admin/release_integrity_v0369.py']
 
 
@@ -926,6 +928,10 @@ EXPECTED_SESSION_METHOD_DUPLICATES = {
         "player/session_mixins/forge_guilds.py:SessionForgeGuildsMixin",
         "player/session_mixins/crafting_expansion.py:SessionCraftingExpansionV03114Mixin",
     ],
+    "handle_mail_v03051": [
+        "player/session_mixins/mail_attachments.py:SessionMailAttachmentsV0614Mixin",
+        "player/session_mixins/social_expansion.py:SessionSocialExpansionMixin",
+    ],
 }
 
 # v0.60.0: rotating NPC crafting orders and inventory-wide EQ comparison.
@@ -936,6 +942,10 @@ EXPLICIT_RUNTIME_EXPORTS["player/session_mixins/crafting_orders.py"] = (
 EXPLICIT_RUNTIME_EXPORTS["player/session_mixins/equipment_compare.py"] = (
     "SessionEquipmentCompareV0600Mixin",
 )
+
+EXPLICIT_RUNTIME_EXPORTS["player/session_mixins/mail_attachments.py"] = (
+    "SessionMailAttachmentsV0614Mixin",
+)
 EXPLICIT_RUNTIME_EXPORTS["player/session_mixins/item_sources.py"] = (
     "V0610_ITEM_SOURCE_VERSION", "resolve_item_query_v0610", "item_source_entries_v0610",
     "SessionItemSourcesV0610Mixin",
@@ -944,3 +954,9 @@ EXPLICIT_RUNTIME_EXPORTS["admin/item_sources_party_coordination_audit_v0610.py"]
     "item_sources_party_coordination_audit_v0610", "ITEM_SOURCES_PARTY_COORDINATION_AUDIT_V0610",
     "memory_efficiency_audit_v0612", "V0612_MEMORY_EFFICIENCY_AUDIT",
 )
+EXPLICIT_RUNTIME_EXPORTS["admin/crafting_logistics_audit_v0614.py"] = (
+    "V0614_CRAFTING_LOGISTICS_VERSION",
+    "crafting_logistics_audit_v0614",
+    "CRAFTING_LOGISTICS_AUDIT_V0614",
+)
+

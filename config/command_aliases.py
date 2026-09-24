@@ -878,7 +878,10 @@ COMMAND_ALIAS_DEFINITIONS = {'accept': 'questaccept',
  'recepturymożliwe': 'availablerecipes',
  'craftmozliwe': 'availablerecipes',
  'craftmożliwe': 'availablerecipes',
- 'availablerecipes': 'availablerecipes'
+ 'availablerecipes': 'availablerecipes',
+ 'recepturadroga': 'reciperoute',
+ 'recipedroga': 'reciperoute',
+ 'reciperoute': 'reciperoute',
 }
 
 COMMAND_ALIAS_DEFINITIONS_VERSION = "0.49.0"

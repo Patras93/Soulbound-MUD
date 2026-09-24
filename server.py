@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #!/usr/bin/env python3
-"""Soulbound v0.61.3 Crafting Orders Hotfix."""
+"""Soulbound v0.61.4 Crafting Logistics & Mail Escrow."""
 from pathlib import Path
 import os
 import socket
@@ -46,12 +46,12 @@ if os.environ.get("SOULBOUND_FULL_AUDIT", "").strip().lower() in ("1", "true", "
     FULL_GAME_PREDEPLOY_AUDIT_V0336 = full_game_predeploy_audit_v0336()
     if FULL_GAME_PREDEPLOY_AUDIT_V0336["error_count"]:
         raise RuntimeError(
-            "Full Game Pre-Deploy Audit v0.61.3 failed: "
+            "Full Game Pre-Deploy Audit v0.61.4 failed: "
             + "; ".join(map(str, FULL_GAME_PREDEPLOY_AUDIT_V0336["errors"][:100]))
         )
 else:
     FULL_GAME_PREDEPLOY_AUDIT_V0336 = {
-        "version": "0.61.3", "skipped_at_runtime": True,
+        "version": "0.61.4", "skipped_at_runtime": True,
         "error_count": 0, "warning_count": 0, "errors": [], "warnings": [],
         "reason": "Run before deploy with SOULBOUND_FULL_AUDIT=1; skipped during normal server startup.",
     }

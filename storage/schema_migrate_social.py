@@ -64,6 +64,21 @@ def migrate_social_courier_schema(self):
         CREATE INDEX IF NOT EXISTS idx_activity_journal_v0560_account_time
             ON activity_journal_v0560(account_id,created_at DESC,id DESC);
     """)
+    # v0.61.4: bezpieczne załączniki do poczty graczy. ALTER-y są addytywne
+    # i działają na istniejącej bazie bez wipe.
+    _mail_cols = {str(r[1]) for r in self.conn.execute("PRAGMA table_info(player_mail_v03051)")}
+    for _name, _decl in (
+        ("attachment_kind", "TEXT NOT NULL DEFAULT ''"),
+        ("attachment_item_id", "TEXT NOT NULL DEFAULT ''"),
+        ("attachment_item_name", "TEXT NOT NULL DEFAULT ''"),
+        ("attachment_item_qty", "INTEGER NOT NULL DEFAULT 0"),
+        ("attachment_coins", "INTEGER NOT NULL DEFAULT 0"),
+        ("attachment_meta_json", "TEXT NOT NULL DEFAULT '{}'"),
+        ("attachment_claimed", "INTEGER NOT NULL DEFAULT 0"),
+    ):
+        if _name not in _mail_cols:
+            self.conn.execute(f"ALTER TABLE player_mail_v03051 ADD COLUMN {_name} {_decl}")
+    self.conn.commit()
     # v0.30.51: Mentor System. Jedna aktywna para mentor-uczeń na konto.
     self.conn.executescript("""
         CREATE TABLE IF NOT EXISTS mentor_requests_v03050 (

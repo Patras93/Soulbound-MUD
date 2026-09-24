@@ -3731,7 +3731,7 @@ def bulk_smelting_ingot_smithing_audit_v0357():
             category=str(recipe.get("category") or "")
             # Tech equipment has its own component/alloy economy. This gate covers
             # the normal blacksmith equipment line and the historical forge charms.
-            if category in ("technology","tech_set"):
+            if category in ("technology","tech_set","salvage_forging"):
                 continue
             if "forge" not in tuple(recipe.get("stations") or ()):
                 continue

@@ -12,6 +12,7 @@ from player.session_mixins.equipment_compare import SessionEquipmentCompareV0600
 from player.session_mixins.item_sources import SessionItemSourcesV0610Mixin
 from player.session_mixins.world_progression import SessionWorldProgressionMixin
 from player.session_mixins.help_codex_profile import SessionHelpCodexProfileMixin
+from player.session_mixins.mail_attachments import SessionMailAttachmentsV0614Mixin
 from player.session_mixins.social_expansion import SessionSocialExpansionMixin
 from player.session_mixins.courier_delivery import SessionCourierDeliveryMixin
 from player.session_mixins.movement_party_social import SessionMovementPartySocialMixin
@@ -44,6 +45,7 @@ class Session(
     SessionItemSourcesV0610Mixin,
     SessionWorldProgressionMixin,
     SessionHelpCodexProfileMixin,
+    SessionMailAttachmentsV0614Mixin,
     SessionSocialExpansionMixin,
     SessionCourierDeliveryMixin,
     SessionMovementPartySocialMixin,

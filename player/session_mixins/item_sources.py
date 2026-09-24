@@ -45,6 +45,7 @@ from systems.professions import V03053_CRAFT_RECIPES, V03053_ENCHANTS
 
 V0610_ITEM_SOURCE_VERSION = "0.61.0"
 V0611_CRAFT_GUIDANCE_VERSION = "0.61.1"
+V0614_CRAFTING_LOGISTICS_VERSION = "0.61.4"
 
 
 def _item_search_terms_v0610(item_id, item):
@@ -547,6 +548,14 @@ def _strip_recipe_gap_prefix_v0611(args):
     return raw
 
 
+def _strip_recipe_route_prefix_v0614(args):
+    raw = str(args or "").strip()
+    words = raw.split(maxsplit=1)
+    if words and normalize_lookup_text(words[0]) in {"droga", "route", "path", "sciezka", "ścieżka"}:
+        return words[1].strip() if len(words) > 1 else ""
+    return raw
+
+
 def _recipe_search_terms_v0611(recipe_id, recipe):
     terms = {
         normalize_lookup_text(recipe_id),
@@ -868,6 +877,108 @@ class SessionItemSourcesV0610Mixin:
             await self.send(f"Dodatkowe pasujące receptury: {len(rows) - 6}.")
         return True
 
+    def _primary_recipe_row_v0614(self, item_id):
+        rows = list(recipe_rows_for_output_v0611(item_id))
+        if not rows:
+            return None, []
+        rows.sort(key=lambda row: (
+            max(1, int(row[3].get("min_profession_level", row[3].get("min_tool_level", 1)) or 1)),
+            normalize_lookup_text(str(row[3].get("name") or row[2])),
+        ))
+        return rows[0], rows[1:]
+
+    async def _emit_recipe_route_v0614(self, item_id, needed, depth, stack, state):
+        if state["nodes"] >= 80:
+            if not state.get("limit_announced"):
+                state["limit_announced"] = True
+                await self.send("Dalsza droga została skrócona po 80 węzłach, żeby raport pozostał czytelny dla NVDA.")
+            return
+        state["nodes"] += 1
+        item_id = _crafted_base_v0611(str(item_id))
+        name = str(ITEMS.get(item_id, {}).get("name") or item_id)
+        needed = max(1, int(needed))
+        indent = "  " * max(0, depth - 1)
+        if item_id in stack:
+            await self.send(f"{indent}Poziom {depth}: {name} x{needed} — CYKL RECEPTUR, dalsze rozwijanie zatrzymane.")
+            return
+        if depth > 8:
+            await self.send(f"{indent}Poziom {depth}: {name} x{needed} — osiągnięto limit głębokości 8.")
+            return
+
+        row, alternatives = self._primary_recipe_row_v0614(item_id)
+        if row is None:
+            sources = item_source_entries_v0610(item_id)
+            await self.send(f"{indent}Poziom {depth}: {name} x{needed} — materiał końcowy / bez dalszej aktywnej receptury.")
+            if sources:
+                for _kind, source in sources[:3]:
+                    await self.send(f"{indent}Źródło: {source}")
+                if len(sources) > 3:
+                    await self.send(f"{indent}Dodatkowe źródła: {len(sources)-3}.")
+            else:
+                await self.send(f"{indent}Źródło: brak jawnego źródła w aktywnych katalogach.")
+            return
+
+        _label, _table, _recipe_id, recipe = row
+        output_qty = max(1, int(recipe.get("quantity", 1) or 1))
+        crafts = (needed + output_qty - 1) // output_qty
+        profession = str(recipe.get("profession") or self.recipe_profession_name(_table, recipe))
+        await self.send(
+            f"{indent}Poziom {depth}: {name} x{needed}. Receptura: {recipe.get('name') or name}; "
+            f"wykonaj {crafts} razy; daje x{output_qty} na wykonanie; system: {profession}."
+            + (f" Alternatywnych receptur: {len(alternatives)}." if alternatives else "")
+        )
+        next_stack = tuple(stack) + (item_id,)
+        for ingredient_id, quantity in (recipe.get("ingredients") or {}).items():
+            await self._emit_recipe_route_v0614(
+                ingredient_id, max(1, int(quantity)) * crafts, depth + 1, next_stack, state
+            )
+
+        distinct_pool = tuple(recipe.get("distinct_ingredient_pool") or ())
+        distinct_needed = max(0, int(recipe.get("distinct_ingredient_count", 0) or 0))
+        if distinct_pool and distinct_needed:
+            total = distinct_needed * crafts
+            names = ", ".join(ITEMS.get(iid, {}).get("name", iid) for iid in distinct_pool[:10])
+            await self.send(
+                f"{indent}  Pula różnych składników: potrzeba {distinct_needed} różnych na craft, "
+                f"czyli {total} wyborów dla {crafts} wykonań. Opcje: {names}"
+                + (f" i jeszcze {len(distinct_pool)-10}." if len(distinct_pool)>10 else ".")
+            )
+        pooled_pool = tuple(recipe.get("pooled_ingredient_pool") or ())
+        pooled_needed = max(0, int(recipe.get("pooled_ingredient_count", 0) or 0))
+        if pooled_pool and pooled_needed:
+            total = pooled_needed * crafts
+            names = ", ".join(ITEMS.get(iid, {}).get("name", iid) for iid in pooled_pool[:10])
+            await self.send(
+                f"{indent}  Wspólna pula składników: potrzeba łącznie {total}. Opcje: {names}"
+                + (f" i jeszcze {len(pooled_pool)-10}." if len(pooled_pool)>10 else ".")
+            )
+
+    async def show_recipe_route_v0614(self, args=""):
+        query = _strip_recipe_route_prefix_v0614(args)
+        if not query:
+            await self.send("Użycie: receptura droga <przedmiot>. Pokazuje wielopoziomowy łańcuch produkcji aż do materiałów źródłowych.")
+            return False
+        item_id, item, suggestions = resolve_item_query_v0610(query)
+        if item_id is None:
+            rows, recipe_suggestions = resolve_recipe_query_v0611(query)
+            if rows:
+                item_id = str(rows[0][3].get("output") or "")
+                item = ITEMS.get(item_id, {"name": item_id})
+            else:
+                suggestions = suggestions or [(str(r[3].get("output") or r[2]), ITEMS.get(str(r[3].get("output") or ""), {"name": r[3].get("name") or r[2]})) for r in recipe_suggestions]
+        if not item_id:
+            if suggestions:
+                await self.send("Nazwa jest niejednoznaczna. Doprecyzuj przedmiot lub recepturę:")
+                for number, (_sid, candidate) in enumerate(suggestions[:10], 1):
+                    await self.send(f"{number}. {candidate.get('name', _sid)}.")
+            else:
+                await self.send("Nie znalazłem takiego produktu ani receptury w aktywnych danych gry.")
+            return False
+        name = str((item or ITEMS.get(item_id, {})).get("name") or item_id)
+        await self.send(f"DROGA RECEPTURY: {name}. Cel: 1 sztuka produktu końcowego.")
+        await self._emit_recipe_route_v0614(item_id, 1, 1, (), {"nodes":0})
+        return True
+
     async def show_available_recipes_v0611(self, args=""):
         if self.combat_mob_key:
             await self.send("RECEPTURY MOŻLIWE: podczas walki nie możesz rozpocząć craftingu.")
@@ -897,6 +1008,7 @@ class SessionItemSourcesV0610Mixin:
 __all__ = [
     "V0610_ITEM_SOURCE_VERSION",
     "V0611_CRAFT_GUIDANCE_VERSION",
+    "V0614_CRAFTING_LOGISTICS_VERSION",
     "resolve_item_query_v0610",
     "item_source_entries_v0610",
     "live_recipe_rows_v0611",

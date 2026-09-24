@@ -148,6 +148,18 @@ def create_world_quests_schema(self):
                         FOREIGN KEY(account_id) REFERENCES accounts(id) ON DELETE CASCADE
                     );
 
+        CREATE TABLE IF NOT EXISTS crafting_order_stats_v0614 (
+                        account_id INTEGER NOT NULL,
+                        profession TEXT NOT NULL,
+                        completed_count INTEGER NOT NULL DEFAULT 0,
+                        total_coins INTEGER NOT NULL DEFAULT 0,
+                        profession_xp INTEGER NOT NULL DEFAULT 0,
+                        tool_xp INTEGER NOT NULL DEFAULT 0,
+                        best_reward_coins INTEGER NOT NULL DEFAULT 0,
+                        PRIMARY KEY(account_id, profession),
+                        FOREIGN KEY(account_id) REFERENCES accounts(id) ON DELETE CASCADE
+                    );
+
         CREATE TABLE IF NOT EXISTS dynamic_world_quests_v015 (
                         account_id INTEGER PRIMARY KEY,
                         quest_key TEXT NOT NULL DEFAULT '',
@@ -223,3 +235,10 @@ def create_world_quests_schema(self):
                     );
         """
     )
+    # v0.61.4: zachowaj wcześniejszy łączny licznik zamówień bez zmyślania
+    # historycznych zarobków/profesji. Szczegółowe statystyki liczymy od tej wersji.
+    self.conn.execute(
+        "INSERT OR IGNORE INTO crafting_order_stats_v0614(account_id,profession,completed_count) "
+        "SELECT account_id,'__legacy__',completed_count FROM crafting_orders_v0600 WHERE completed_count>0"
+    )
+    self.conn.commit()

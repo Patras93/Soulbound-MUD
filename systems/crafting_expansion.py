@@ -24,6 +24,90 @@ for iid,(name,base,qty,level) in _REFINED.items():
         "category":"refining","desc":"Refining 2.0 — zaawansowany stop do Forge/Tech Crafting."
     }, 'CRAFT_RECIPES', CRAFT_RECIPES, (f"refine_{iid}",))
 
+# v0.61.4: Fragment Mithrilu z Salvage dostaje stałe zastosowanie. To NIE jest
+# walutowy mithril i nie tworzy sztabki mithrilu; materiał odzyskany z EQ jest
+# rafinowany w istniejące komponenty Forge/Runes.
+if "salvage_mithril_fragment" in ITEMS:
+    _catalog_mut.catalog_assign(
+        "Fragment odzyskany przez rozkładanie mithrilowego EQ. "
+        "W Kuźni można bezpośrednio wykuwać z niego mithrilowe EQ albo przerobić go "
+        "na Esencję Przekucia lub Pył Runiczny. Nie jest walutowym mithrilem ani rudą.",
+        'ITEMS', ITEMS, ("salvage_mithril_fragment", "desc")
+    )
+
+_MITHRIL_FRAGMENT_REFINING_V0614 = {
+    "refine_mithril_reforge_essence_v0614": {
+        "name":"Mithrilowa Esencja Przekucia",
+        "aliases":("esencja z fragmentow mithrilu","esencja z fragmentów mithrilu","mithril reforge essence"),
+        "stations":("forge",),
+        "ingredients":{"salvage_mithril_fragment":2},
+        "output":"reforge_essence",
+        "quantity":1,
+        "min_profession_level":100,
+        "profession_xp":45,
+        "tool_xp":30,
+        "category":"refining",
+        "desc":"Rafinuj 2 Fragmenty Mithrilu z Salvage w 1 Esencję Przekucia.",
+    },
+    "refine_mithril_rune_dust_v0614": {
+        "name":"Mithrilowy Pył Runiczny",
+        "aliases":("pyl z fragmentow mithrilu","pył z fragmentów mithrilu","mithril rune dust"),
+        "stations":("forge",),
+        "ingredients":{"salvage_mithril_fragment":3},
+        "output":"rune_dust",
+        "quantity":2,
+        "min_profession_level":120,
+        "profession_xp":55,
+        "tool_xp":35,
+        "category":"refining",
+        "desc":"Rafinuj 3 Fragmenty Mithrilu z Salvage w 2 Pyły Runiczne.",
+    },
+}
+for _rid,_recipe in _MITHRIL_FRAGMENT_REFINING_V0614.items():
+    _catalog_mut.catalog_assign(_recipe, 'CRAFT_RECIPES', CRAFT_RECIPES, (_rid,))
+
+
+# v0.61.4: przywrócona dawna praktyczna ścieżka Fragment Mithrilu -> EQ.
+# Normalne Kowalstwo ze sztabek pozostaje bez zmian. Fragmenty tworzą osobną
+# linię salvage-forging na poziomie 80, dokładnie pomiędzy złotem i kobaltem.
+# Koszt odpowiada historycznej konwersji Salvage: 2 fragmenty za odpowiednik
+# jednej sztabki, ale bez tworzenia sztabki mithrilu (mithril nadal jest walutą).
+_MITHRIL_FRAGMENT_EQ_V0614 = {
+    "head": ("Hełm", 6),
+    "body": ("Pancerz", 10),
+    "hands": ("Rękawice", 4),
+    "legs": ("Nogawice", 8),
+    "feet": ("Buty", 4),
+    "charm": ("Talizman", 4),
+}
+for _slot, (_slot_name, _fragment_cost) in _MITHRIL_FRAGMENT_EQ_V0614.items():
+    _output = f"corpse_mithril_{_slot}_v01"
+    if _output not in ITEMS:
+        continue
+    _rid = f"forge_mithril_fragment_{_slot}_v0614"
+    _catalog_mut.catalog_assign({
+        "name": f"{_slot_name} z Fragmentów Mithrilu",
+        "aliases": (
+            f"mithrilowy {_slot_name.lower()} z fragmentow",
+            f"mithrilowy {_slot_name.lower()} z fragmentów",
+            f"{_slot_name.lower()} fragment mithrilu",
+        ),
+        "stations": ("forge",),
+        "ingredients": {"salvage_mithril_fragment": _fragment_cost},
+        "output": _output,
+        "quantity": 1,
+        "min_tool_level": 80,
+        "min_profession_level": 80,
+        "profession_xp": 44 + _fragment_cost * 2,
+        "tool_xp": 34 + _fragment_cost,
+        "category": "salvage_forging",
+        "desc": (
+            f"Przywrócone Kowalstwo z Salvage: wykuj {_slot_name.lower()} z "
+            f"{_fragment_cost} Fragmentów Mithrilu. Standardowe EQ ze sztabek "
+            "pozostaje dostępne przez normalne receptury Kowalstwa."
+        ),
+    }, 'CRAFT_RECIPES', CRAFT_RECIPES, (_rid,))
+
 # Socket consumable used by Socket Crafting.
 _catalog_mut.catalog_assign({"name":"Rdzeń Gniazda","type":"craft_material","price":None,
     "craftbox_category":"runes","desc":"Zużywany przez Socket Crafting do dodania trwałego gniazda EQ."}, 'ITEMS', ITEMS, ("socket_core_v03114",))

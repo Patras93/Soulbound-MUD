@@ -39,6 +39,7 @@ COMMAND_REGISTRY = {
     'itemuses': ('show_item_uses_v0611', (COMMAND_TEXT,), {}),
     'recipegaps': ('show_recipe_gaps_v0611', (COMMAND_TEXT,), {}),
     'availablerecipes': ('show_available_recipes_v0611', (COMMAND_TEXT,), {}),
+    'reciperoute': ('show_recipe_route_v0614', (COMMAND_TEXT,), {}),
     'historybuffer': ('show_history_buffer', (COMMAND_TEXT,), {}),
     'regionprogress': ('show_region_progress', (), {}),
     'exploration': ('show_exploration', (COMMAND_TEXT,), {}),
@@ -306,13 +307,13 @@ COMMAND_REGISTRY.update({
 # Command-state policy is metadata, not parser code.  The loop asks the
 # catalog whether the resolved canonical command is safe in a given state.
 DOWNED_SAFE_COMMANDS = {
-    "activityjournal", "whattodo", "gaps", "compareeq", "itemsource", "itemuses", "recipegaps", "availablerecipes",
+    "activityjournal", "whattodo", "gaps", "compareeq", "itemsource", "itemuses", "recipegaps", "availablerecipes", "reciperoute",
     "help", "look", "party", "partychat", "say", "tell", "reply", "who",
     "where", "hp", "score", "records", "chronicle", "selfrespawn",
     "historybuffer", "lifetime", "deathrecap", "combatrecap",
 }
 REST_SAFE_COMMANDS = {
-    "activityjournal", "whattodo", "gaps", "compareeq", "itemsource", "itemuses", "recipegaps", "availablerecipes",
+    "activityjournal", "whattodo", "gaps", "compareeq", "itemsource", "itemuses", "recipegaps", "availablerecipes", "reciperoute",
     "rest", "help", "encoding", "describe", "changes", "look", "level", "xp", "wimpy", "eventxp",
     "corpse", "cryptinfo", "astralinfo", "consider", "waterinfo", "fishjournal", "exits", "map",
     "worldevents", "atlas", "codex", "bestiary", "where", "who", "gossip", "newbie", "trade",
@@ -332,7 +333,7 @@ REST_SAFE_COMMANDS = {
     "garbuj", "stolarka", "enchants",
 }
 GUIDE_SAFE_COMMANDS = {
-    "activityjournal", "whattodo", "gaps", "compareeq", "itemsource", "itemuses", "recipegaps", "availablerecipes",
+    "activityjournal", "whattodo", "gaps", "compareeq", "itemsource", "itemuses", "recipegaps", "availablerecipes", "reciperoute",
     "guide", "route", "help", "encoding", "describe", "changes", "wimpy", "eventxp", "look", "level",
     "xp", "exits", "map", "atlas", "codex", "bestiary", "where", "who", "whois", "terraininfo",
     "location", "stats", "hp", "score", "money", "soul", "skills", "spells", "skillnames", "inventory",
@@ -373,6 +374,8 @@ def resolve_session_command(token, args=""):
         return "recipegaps"
     if raw in ("receptury", "recipes", "przepisy", "craft") and first_arg in ("mozliwe", "possible", "available"):
         return "availablerecipes"
+    if raw in ("receptura", "recipe", "przepis") and first_arg in ("droga", "route", "path", "sciezka"):
+        return "reciperoute"
     if raw == "loot" and str(args or "").strip().lower() in LOOT_FILTER_INPUTS:
         return "lootfilter"
     return COMMAND_CATALOG.resolve(raw)

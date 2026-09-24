@@ -202,6 +202,37 @@ class SessionCraftingOrdersV0600Mixin:
             )
             return
 
+        if mode in ("historia", "history", "statystyki", "stats"):
+            rows = list(self.server.db.crafting_order_stats_v0614(self.account_id))
+            legacy = next((r for r in rows if str(r["profession"]) == "__legacy__"), None)
+            detailed = [r for r in rows if str(r["profession"]) != "__legacy__"]
+            legacy_count = int(legacy["completed_count"] or 0) if legacy else 0
+            completed = legacy_count + sum(int(r["completed_count"] or 0) for r in detailed)
+            coins = sum(int(r["total_coins"] or 0) for r in detailed)
+            prof_xp = sum(int(r["profession_xp"] or 0) for r in detailed)
+            tool_xp = sum(int(r["tool_xp"] or 0) for r in detailed)
+            best = max([int(r["best_reward_coins"] or 0) for r in detailed] or [0])
+            await self.send(
+                f"HISTORIA ZAMÓWIEŃ RZEMIEŚLNICZYCH. Ukończone łącznie: {completed}. "
+                f"Szczegółowo od v0.61.4: zarobek {currency_reading_text(coins,0,0)}, "
+                f"XP profesji {prof_xp}, XP narzędzi {tool_xp}, rekord nagrody {currency_reading_text(best,0,0)}."
+            )
+            if legacy_count:
+                await self.send(
+                    f"Starsze zamówienia sprzed v0.61.4: {legacy_count}. Gra wcześniej nie zapisywała ich profesji, zarobku ani XP, więc nie dopisuję zmyślonych danych."
+                )
+            if not detailed:
+                await self.send("Brak szczegółowych ukończeń od v0.61.4.")
+                return
+            for r in sorted(detailed, key=lambda row: normalize_lookup_text(str(row["profession"]))):
+                await self.send(
+                    f"{r['profession']}: {int(r['completed_count'])} zamówień; "
+                    f"zarobek {currency_reading_text(int(r['total_coins']),0,0)}; "
+                    f"XP profesji {int(r['profession_xp'])}; XP narzędzia {int(r['tool_xp'])}; "
+                    f"najdroższe {currency_reading_text(int(r['best_reward_coins']),0,0)}."
+                )
+            return
+
         if mode in ("porzuc", "porzuć", "abandon"):
             if not active or not str(active["item_id"] or ""):
                 await self.send("Nie masz aktywnego zamówienia rzemieślniczego.")
@@ -263,7 +294,10 @@ class SessionCraftingOrdersV0600Mixin:
                 str(active["profession"]), int(active["reward_profession_xp"]),
                 tool_type, int(active["reward_tool_xp"]),
             )
-            self.server.db.finish_crafting_order_v0600(self.account_id, int(active["cycle_slot"]))
+            self.server.db.finish_crafting_order_v0614(
+                self.account_id, int(active["cycle_slot"]), str(active["profession"]),
+                coins, int(active["reward_profession_xp"]), int(active["reward_tool_xp"]),
+            )
             self.server.db.add_lifetime_stat(self.account_id, "crafting_orders_completed", 1)
             self.server.db.save_character(self.character)
             try:
@@ -340,4 +374,4 @@ class SessionCraftingOrdersV0600Mixin:
                 f"Brak ofert dla aktualnego poziomu profesji {spec['profession']}. "
                 "Jeżeli to Kowalstwo poziom 1+, zgłoś błąd administratorowi."
             )
-        await self.send("Przyjęcie: zamowienia wez <numer>. Stan: zamowienia status. Oddanie: zamowienia oddaj.")
+        await self.send("Przyjęcie: zamowienia wez <numer>. Stan: zamowienia status. Historia: zamowienia historia. Oddanie: zamowienia oddaj.")

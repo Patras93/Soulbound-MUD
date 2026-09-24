@@ -316,26 +316,90 @@ class SessionCraftingExpansionV03114Mixin:
         return True
 
     def max_recipe_crafts_v03114(self, recipe):
+        """Dokładny limit liczby wykonań receptury z aktualnych materiałów."""
         limits=[]
-        for iid,q in recipe.get("ingredients",{}).items():
-            q=max(1,int(q)); limits.append(self.available_recipe_item(iid)//q)
-        if not limits: return 0
+        for iid,q in (recipe.get("ingredients") or {}).items():
+            q=max(1,int(q))
+            limits.append(max(0, int(self.available_recipe_item(iid)))//q)
+
+        pooled_pool=tuple(recipe.get("pooled_ingredient_pool") or ())
+        pooled_needed=max(0,int(recipe.get("pooled_ingredient_count",0) or 0))
+        if pooled_pool and pooled_needed:
+            pooled_have=sum(max(0,int(self.available_recipe_item(iid))) for iid in pooled_pool)
+            limits.append(pooled_have//pooled_needed)
+
+        distinct_pool=tuple(recipe.get("distinct_ingredient_pool") or ())
+        distinct_needed=max(0,int(recipe.get("distinct_ingredient_count",0) or 0))
+        if distinct_pool and distinct_needed:
+            quantities=[max(0,int(self.available_recipe_item(iid))) for iid in distinct_pool]
+            upper=sum(quantities)//distinct_needed if distinct_needed else 0
+            lo,hi=0,max(0,upper)
+            while lo<hi:
+                mid=(lo+hi+1)//2
+                # Dla każdego wykonania potrzeba distinct_needed różnych rodzajów.
+                # Jeden rodzaj może dać najwyżej jedną sztukę na każde wykonanie.
+                possible=sum(min(qty,mid) for qty in quantities)>=mid*distinct_needed
+                if possible: lo=mid
+                else: hi=mid-1
+            limits.append(lo)
+
+        if not limits:
+            return 0
         return max(0,min(limits))
+
+    async def craft_many_v0614(self, recipe_id, recipe, requested=None):
+        """v0.61.4: bezpieczne wielokrotne craftowanie przez istniejący silnik.
+
+        Każde wykonanie nadal przechodzi przez perform_recipe, więc zachowuje
+        losowy XP, jakość, krytyczny craft, bonus Tieru, questy i osiągnięcia.
+        """
+        possible=self.max_recipe_crafts_v03114(recipe)
+        if possible<=0:
+            await self.send("Nie masz składników na ani jedno wykonanie tej receptury.")
+            return False
+        target=possible if requested is None else min(max(1,int(requested)),possible)
+        if requested is not None and int(requested)>possible:
+            await self.send(
+                f"CRAFT HURTOWY: prosisz o {int(requested)}, ale z aktualnych materiałów można wykonać {possible}. "
+                f"Wykonuję maksymalnie {target}."
+            )
+        else:
+            label="wszystko" if requested is None else str(target)
+            await self.send(
+                f"CRAFT HURTOWY: {recipe['name']}. Liczba wykonań: {label}; maksimum z materiałów: {possible}. "
+                "XP, jakość, questy i bonusy są naliczane osobno za każde udane wykonanie."
+            )
+        done=0
+        while done<target:
+            if not await self.perform_recipe(recipe_id,CRAFT_RECIPES,"rzemiosło"):
+                break
+            done+=1
+        await self.send(f"CRAFT HURTOWY zakończony: {done}/{target} udanych wykonań.")
+        return done>0
 
     async def craft_item_v03114(self, query):
         raw=str(query or '').strip(); norm=normalize_lookup_text(raw)
-        if norm.startswith("max "):
-            wanted=raw.split(maxsplit=1)[1]
+        words=raw.split(maxsplit=1)
+        if len(words)>=2 and normalize_lookup_text(words[0]) in ("max","wszystko","all","everything"):
+            wanted=words[1]
             found=find_by_name(CRAFT_RECIPES,wanted)
-            if not found: await self.send("Nie rozpoznaję receptury do craft max."); return False
-            rid,recipe=found; count=self.max_recipe_crafts_v03114(recipe)
-            if count<=0: await self.send("Nie masz składników na ani jedną sztukę tej receptury."); return False
-            await self.send(f"CRAFT MAX: {recipe['name']}. Możliwe teraz: {count}. Wykonuję kolejno do wyczerpania składników.")
-            done=0
-            while done<count:
-                if not await self.perform_recipe(rid,CRAFT_RECIPES,"rzemiosło"): break
-                done+=1
-            await self.send(f"CRAFT MAX zakończony: {done}/{count}."); return done>0
+            if not found:
+                await self.send("Nie rozpoznaję receptury do craft wszystko.")
+                return False
+            rid,recipe=found
+            return await self.craft_many_v0614(rid,recipe,None)
+        if len(words)>=2 and words[0].isdigit():
+            requested=int(words[0])
+            if requested<=0:
+                await self.send("Liczba wykonań craft musi być większa od zera.")
+                return False
+            wanted=words[1]
+            found=find_by_name(CRAFT_RECIPES,wanted)
+            if not found:
+                await self.send("Nie rozpoznaję receptury do craft <ilość>.")
+                return False
+            rid,recipe=found
+            return await self.craft_many_v0614(rid,recipe,requested)
         return await self.perform_recipe(raw,CRAFT_RECIPES,"rzemiosło")
 
     async def material_conversion_v03114(self):

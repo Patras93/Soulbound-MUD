@@ -278,6 +278,39 @@ class DatabaseQuestMixin:
         )
         self.conn.commit()
 
+    def crafting_order_stats_v0614(self, account_id):
+        return self.conn.execute(
+            "SELECT * FROM crafting_order_stats_v0614 WHERE account_id=? ORDER BY profession",
+            (account_id,),
+        ).fetchall()
+
+    def finish_crafting_order_v0614(self, account_id, cycle_slot, profession, coins, profession_xp, tool_xp):
+        """Atomowo kończy zamówienie i dopisuje trwałą historię v0.61.4."""
+        profession=str(profession or '')
+        coins=max(0,int(coins or 0)); profession_xp=max(0,int(profession_xp or 0)); tool_xp=max(0,int(tool_xp or 0))
+        try:
+            self.conn.execute("BEGIN")
+            self.conn.execute(
+                "UPDATE crafting_orders_v0600 SET npc_id='',profession='',item_id='',item_name='',needed=0,progress=0,"
+                "reward_coins=0,reward_profession_xp=0,reward_tool_type='',reward_tool_xp=0,accepted_at=0,"
+                "completed_cycle_slot=?,completed_count=completed_count+1 WHERE account_id=?",
+                (int(cycle_slot), account_id),
+            )
+            self.conn.execute(
+                "INSERT INTO crafting_order_stats_v0614(account_id,profession,completed_count,total_coins,profession_xp,tool_xp,best_reward_coins) "
+                "VALUES(?,?,1,?,?,?,?) "
+                "ON CONFLICT(account_id,profession) DO UPDATE SET "
+                "completed_count=completed_count+1,total_coins=total_coins+excluded.total_coins,"
+                "profession_xp=profession_xp+excluded.profession_xp,tool_xp=tool_xp+excluded.tool_xp,"
+                "best_reward_coins=MAX(best_reward_coins,excluded.best_reward_coins)",
+                (account_id, profession, coins, profession_xp, tool_xp, coins),
+            )
+            self.conn.commit()
+            return True
+        except Exception:
+            self.conn.rollback()
+            raise
+
     def increment_resource_quest(
         self, account_id, item_id, amount=1
     ):

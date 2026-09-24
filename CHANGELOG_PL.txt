@@ -1,3 +1,16 @@
+Soulbound v0.61.4 — Crafting Logistics & Mail Escrow
+
+- Dodano hurtowy crafting: `craft <ilość> <receptura>` oraz `craft wszystko <receptura>` / `craft max <receptura>`. Gra oblicza realny limit z aktualnych materiałów, a każde wykonanie nadal przechodzi przez normalny silnik craftingu, więc zachowuje osobny XP, jakość, krytyczny craft, questy, osiągnięcia i bonusy.
+- Dodano `zamowienia historia` / `zamowienia statystyki`: trwała historia Zamówień Rzemieślniczych per profesja obejmuje liczbę ukończeń, łączny zarobek, zdobyty XP profesji i narzędzia oraz rekord najwyższej nagrody. Starsze ukończenia sprzed v0.61.4 odtwarzają tylko dane, które można ustalić bez zgadywania.
+- Dodano bezpieczne załączniki do poczty graczy: `mail wyslij <gracz> przedmiot <nazwa>` wysyła jedną przekazywalną sztukę, `mail wyslij <gracz> waluta <kwota> <nominał>` wysyła walutę, a `mail odbierz <id>` odbiera załącznik dokładnie raz. Przedmiot/waluta trafiają do escrow atomowo; wiadomości z nieodebranym załącznikiem nie można usunąć.
+- Dodano `receptura droga <przedmiot>`: wielopoziomowe drzewo produkcji schodzi przez półprodukty aż do rzeczywistych źródeł materiałów i chroni się przed pętlami receptur.
+- Przywrócono praktyczne wykorzystanie `Fragment Mithrilu` z Salvage do bezpośredniego wykuwania mithrilowego EQ w Kuźni przy Kowalstwie 80: Hełm x6 fragmentów, Pancerz x10, Rękawice x4, Nogawice x8, Buty x4, Talizman x4.
+- Standardowe Kowalstwo ze sztabek pozostaje bez zmian i działa równolegle; audit potwierdza 54 aktywne receptury smithing oparte na sztabkach. Fragment Mithrilu nie jest walutowym mithrilem i nie tworzy sztabki mithrilu.
+- Fragment Mithrilu ma także dwa dodatkowe zastosowania: 2 Fragmenty -> 1 Esencja Przekucia oraz 3 Fragmenty -> 2 Pyły Runiczne.
+- Dodano addytywną migrację SQLite dla historii zamówień i pól escrow poczty; istniejące konta, postacie, wiadomości i progres są zachowane, bez wipe.
+- FAST PREDEPLOY: PASS — 176 modułów runtime, 0 braków, 0 błędów składni, SQLite 100 tabel / 101 obiektów, 877 aliasów / 238 handlerów.
+- FULL PREDEPLOY: PASS — Full Game Audit 0 błędów / 0 ostrzeżeń; Release Integrity 67/67; audit v0.61.4: 6 receptur EQ z Fragmentów Mithrilu i 54 receptury Kowalstwa ze sztabek.
+
 Soulbound v0.61.3 — Crafting Orders Hotfix
 
 - Naprawiono brak ofert u Mistrza Rzemiosła Haldora. Klasyczne receptury Kowalstwa sprzed ery jawnych pól `profession/tool_type` są teraz poprawnie rozpoznawane po kanonicznej stacji `forge` / `crafting_workshop`.
@@ -22,7 +35,7 @@ Soulbound v0.61.2 — Memory Efficiency
 - Brak zmian schematu SQLite i brak wipe postaci. Gameplay v0.61.1 pozostaje bez zmian.
 
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v0.61.3
+Aktualna paczka: v0.61.4
 
 Ten plik jest changelogiem narastającym. Kolejne wydania mają dopisywać nowe wpisy na górze, bez usuwania starszej historii.
 Historia poniżej została odtworzona z zachowanych wpisów release, HELP, audytów, komentarzy milestone oraz aktywnego kodu Soulbound.
