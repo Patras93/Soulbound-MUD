@@ -79,6 +79,7 @@ _RELEASE_AUDITS_V0369 = [
     ("v0.70.1 Beginner Profession Quests", "COURIER_PROFESSION_EXPANSION_AUDIT_V0700"),
     ("v0.71.0 Profession & City Expansion II", "COURIER_PROFESSION_EXPANSION_AUDIT_V0700"),
     ("v0.71.1 Crypt Soul Shard Hotfix", "SOUL_SHARD_CRYPT_FINAL_AUDIT_V0711"),
+    ("v0.71.2 Hourly Quest Diversity & Rewards", "LIVING_NPCS_ACTIVITY_AUDIT_V0560"),
 ]
 
 def cumulative_release_integrity_audit_v0369():
@@ -96,13 +97,13 @@ def cumulative_release_integrity_audit_v0369():
         preserved.append(label)
 
     # Direct release-line checks for the exact milestones the user flagged.
-    if str(globals().get("VERSION","")) != "0.71.1":
-        errors.append(f"VERSION={globals().get('VERSION')!r}, expected 0.71.1")
+    if str(globals().get("VERSION","")) != "0.71.2":
+        errors.append(f"VERSION={globals().get('VERSION')!r}, expected 0.71.2")
     if str(globals().get("GENERATOR_CORE_VERSION","")) != "0.61.0":
         errors.append(f"Generator Core={globals().get('GENERATOR_CORE_VERSION')!r}, expected 0.61.0")
 
     return {
-        "version":"0.71.1",
+        "version":"0.71.2",
         "checked":len(_RELEASE_AUDITS_V0369),
         "preserved":preserved,
         "preserved_count":len(preserved),
@@ -113,7 +114,7 @@ def cumulative_release_integrity_audit_v0369():
 CUMULATIVE_RELEASE_INTEGRITY_AUDIT_V0369=cumulative_release_integrity_audit_v0369()
 if CUMULATIVE_RELEASE_INTEGRITY_AUDIT_V0369["error_count"]:
     raise RuntimeError(
-        "Cumulative Release Integrity Audit v0.71.1 failed: "
+        "Cumulative Release Integrity Audit v0.71.2 failed: "
         + "; ".join(CUMULATIVE_RELEASE_INTEGRITY_AUDIT_V0369["errors"][:100])
     )
 
@@ -143,13 +144,13 @@ HELP_TOPICS.setdefault("wersja", []).append("v0.61.5: Profession Level-Up Announ
 HELP_TOPICS.setdefault("wersja", []).append("v0.61.6: Memory Efficiency II współdzieli identyczne pule łupu mobów i usuwa startup-only metadata z masowego klasowego EQ dopiero po audycie; gameplay bez zmian.")
 HELP_TOPICS.setdefault("wersja", []).append("v0.61.4: Crafting Logistics dodaje craft <ilość>/wszystko, historię zamówień, bezpieczne załączniki mailowe, wielopoziomową drogę receptury oraz przywrócone mithrilowe EQ z Fragmentów Mithrilu.")
 
-LATEST_CHANGES_TITLE = "Soulbound v0.71.1 - Crypt Soul Shard Hotfix"
+HELP_TOPICS.setdefault("wersja", []).append("v0.71.2: godzinne questy NPC mają różne cele (rozmowa, dostawa, zbieranie, patrol), nie skupiają się na jednym NPC i żaden powtarzalny quest nie daje już tylko 1 EXP postaci.")
+LATEST_CHANGES_TITLE = "Soulbound v0.71.2 - Hourly Quest Diversity & Rewards"
 LATEST_CHANGES = [
-    "v0.71.1: każdy przeciwnik zwykłej i Mitycznej Krypty ma finalnie 100% szansy na Odłamek Duszy po wszystkich generatorach i rebalance'ach.",
-    "Dodano 120 jednorazowych etapów Drogi Mistrza: po 10 nowych questów dla każdej z 12 profesji, wypełniających progresję od 25 do 600.",
-    "Każde z 21 miast i osad kurierskich ma teraz własną trzyetapową lokalną historię, zarządcę, łącznika poczty i starszego rzemieślnika — 63 nowe questy miejskie.",
-    "Reputacja każdego miasta działa osobno w skali 1-400; rośnie z lokalnych questów i dostaw, a wyższa ranga zwiększa wypłatę za paczki kierowane do tego miasta.",
-    "Nowa komenda reputacjamiast pokazuje reputację wszystkich 21 miast albo szczegóły konkretnego miasta.",
+    "v0.71.2: automatyczne godzinne questy NPC są mieszanką rozmów, dostaw, zbierania i patroli zamiast prawie samych rozmów.",
+    "Cele rozmów/dostaw są deterministycznie rozkładane między lokalnych NPC; jeden alfabetycznie pierwszy NPC nie może już przejąć większości zleceń.",
+    "Usunięto 1 EXP z powtarzalnych questów: wszystkie 545 powtarzalnych zadań mają jawny lub wygenerowany Character XP większy niż 1.",
+    "Patrole wybierają najbliższych prawdziwych przeciwników i ignorują manekiny treningowe oraz bossów.",
 ]
 
 

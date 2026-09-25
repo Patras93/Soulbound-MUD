@@ -8,12 +8,13 @@ NPC which still has no quest receives one safe hourly errand.
 """
 from __future__ import annotations
 
+import hashlib
 import math
 import re
 
-from core.generator_core import quest_currency_for_stage
+from core.generator_core import axis_gain, quest_currency_for_stage
 
-from data.catalogs import NPCS, QUESTS, ROOMS
+from data.catalogs import ITEMS, MOB_TEMPLATES, NPCS, QUESTS, ROOMS
 from data.catalog_mutations import catalog_assign
 import systems.content_registry as content_registry
 
@@ -118,6 +119,7 @@ def _add_tavern_network():
                 "reward_profession_xp": max(350, stage * 7),
                 "reward_tool_type": tool_type,
                 "reward_tool_xp": max(300, stage * 5),
+                "character_xp_reward": max(25, int(axis_gain("character", stage, 1.75))),
                 "reward_silver": quest_currency_for_stage(stage, math.sqrt(needed), True, qid),
                 "reward_gold": 0,
                 "reward_mithril": 0,
@@ -144,6 +146,7 @@ def _add_tavern_network():
             "generator_level": stage,
             "reward_stat_progress": max(60, stage * 3),
             "reward_soul_xp": max(250, stage * 16),
+            "character_xp_reward": max(25, int(axis_gain("character", stage, 2.0))),
             "reward_silver": quest_currency_for_stage(stage, math.sqrt(kill_needed), True, kill_qid),
             "reward_gold": 0,
             "reward_mithril": 0,
@@ -191,22 +194,105 @@ def _npc_has_any_quest(npc):
     return any(str(q.get("giver") or "").strip().casefold() == giver for q in QUESTS.values())
 
 
+def _stable_index_v0712(identity, count):
+    count = max(1, int(count))
+    raw = hashlib.sha256(str(identity).encode("utf-8")).digest()
+    return int.from_bytes(raw[:8], "big") % count
+
+
 def _choose_hourly_partner(source_id, source):
+    """Choose a varied, preferably local partner instead of alphabetic-first.
+
+    v0.71.2: the old policy sorted all candidates and always took row zero.  In
+    dense zones this caused dozens of unrelated errands to converge on the same
+    NPC (notably Lyra/Ilyra-like first names).  We now choose deterministically
+    *within the best locality tier*, so the result is stable across restarts but
+    distributed among NPCs from the same zone.
+    """
     source_room = str(source.get("room") or "")
     source_zone = str((ROOMS.get(source_room) or {}).get("zone") or "")
-    candidates = []
+    same_zone_other_room = []
+    same_room = []
+    global_candidates = []
     for npc_id, npc in NPCS.items():
         if npc_id == source_id or not npc.get("room"):
             continue
         target_room = str(npc.get("room") or "")
-        same_room = target_room == source_room
-        same_zone = bool(source_zone) and str((ROOMS.get(target_room) or {}).get("zone") or "") == source_zone
-        score = 0 if same_room else (1 if same_zone else 2)
-        candidates.append((score, str(npc.get("name") or npc_id).casefold(), npc_id, npc))
-    if not candidates:
-        return None, None
-    candidates.sort(key=lambda row: (row[0], row[1], row[2]))
-    return candidates[0][2], candidates[0][3]
+        row = (str(npc_id), npc)
+        global_candidates.append(row)
+        if target_room == source_room:
+            same_room.append(row)
+        elif source_zone and str((ROOMS.get(target_room) or {}).get("zone") or "") == source_zone:
+            same_zone_other_room.append(row)
+
+    for tier_name, candidates in (
+        ("zone", same_zone_other_room),
+        ("room", same_room),
+        ("world", global_candidates),
+    ):
+        if not candidates:
+            continue
+        candidates = sorted(candidates, key=lambda row: row[0])
+        idx = _stable_index_v0712(f"hourly-partner:{tier_name}:{source_id}", len(candidates))
+        return candidates[idx]
+    return None, None
+
+
+def _choose_hourly_kill_target_v0712(source_id, source):
+    """Pick the nearest sensible ordinary mob reachable from the NPC.
+
+    v0.71.2 deliberately ignores training dummies, bosses and instance-only
+    scripted targets.  A short BFS keeps patrols local without forcing every
+    town to have a spawn in the exact same zone.
+    """
+    source_room = str(source.get("room") or "")
+    if source_room not in ROOMS:
+        return None
+
+    mobs_by_room = {}
+    for room_id, mob_id in tuple(getattr(content_registry, "MOB_SPAWNS", ()) or ()):
+        mob = MOB_TEMPLATES.get(str(mob_id)) or {}
+        if not mob:
+            continue
+        rank = str(mob.get("rank") or mob.get("mob_rank") or "normal").casefold()
+        mob_name = str(mob.get("name") or "").casefold()
+        mob_key = str(mob_id).casefold()
+        if rank in {"world_boss", "boss"} or mob.get("crypt_boss") or mob.get("tower_boss"):
+            continue
+        if "dummy" in mob_key or "manekin" in mob_name:
+            continue
+        mobs_by_room.setdefault(str(room_id), set()).add(str(mob_id))
+
+    seen = {source_room}
+    frontier = [source_room]
+    for distance in range(0, 9):
+        candidates = sorted({mob_id for room_id in frontier for mob_id in mobs_by_room.get(room_id, ())})
+        if candidates:
+            idx = _stable_index_v0712(f"hourly-kill:{source_id}:distance:{distance}", len(candidates))
+            return candidates[idx]
+        next_frontier = []
+        for room_id in frontier:
+            exits = (ROOMS.get(room_id) or {}).get("exits") or {}
+            for target_room in exits.values():
+                target_room = str(target_room or "")
+                if target_room in ROOMS and target_room not in seen:
+                    seen.add(target_room)
+                    next_frontier.append(target_room)
+        if not next_frontier:
+            break
+        frontier = next_frontier
+    return None
+
+
+def _hourly_character_xp_v0712(stage, intensity):
+    # Never allow the old 1-XP fallback.  Scale with the same Character Level
+    # curve as the rest of Generator Core so late-game errands remain relevant.
+    return max(25, int(axis_gain("character", stage, intensity)))
+
+
+def _hourly_collect_category_v0712(source_id):
+    categories = tuple(sorted(_CATEGORY_INFO))
+    return categories[_stable_index_v0712(f"hourly-resource:{source_id}", len(categories))]
 
 
 def _add_hourly_quests_for_idle_npcs():
@@ -215,24 +301,26 @@ def _add_hourly_quests_for_idle_npcs():
     for npc_id, npc in list(NPCS.items()):
         if _npc_has_any_quest(npc):
             continue
-        target_id, target = _choose_hourly_partner(npc_id, npc)
-        if not target_id or not target:
-            continue
+
         room = ROOMS.get(str(npc.get("room") or ""), {})
         stage = max(1, int(room.get("generator_level", room.get("recommended_mastery", 1)) or 1))
+        stage = min(400, stage)
         qid = f"v0560_hourly_npc_{_safe_id(npc_id)}"
+        giver = str(npc.get("name") or npc_id)
+        target_id, target = _choose_hourly_partner(npc_id, npc)
+        variant = ("talk", "deliver", "collect", "kill")[_stable_index_v0712(f"hourly-kind:{npc_id}", 4)]
+        kill_target = _choose_hourly_kill_target_v0712(npc_id, npc) if variant == "kill" else None
+
+        # If a locality cannot support the initially selected objective, fall
+        # back to gathering rather than creating a cross-world nonsensical kill.
+        if variant in {"talk", "deliver"} and (not target_id or not target):
+            variant = "collect"
+        if variant == "kill" and not kill_target:
+            variant = "collect"
+
         quest = {
-            "name": f"Godzinne zlecenie: Wieści od {npc.get('name', npc_id)}",
-            "giver": npc.get("name", npc_id),
-            "kind": "talk_npc",
-            "target_npc": target_id,
-            "needed": 1,
-            "description": (
-                f"Porozmawiaj z NPC: {target.get('name', target_id)}. "
-                "To krótkie zlecenie odnawia się po 60 minutach od ukończenia."
-            ),
+            "giver": giver,
             "generator_level": stage,
-            "reward_silver": quest_currency_for_stage(stage, 1.0, True, qid),
             "reward_gold": 0,
             "reward_mithril": 0,
             "reward_items": {},
@@ -240,7 +328,84 @@ def _add_hourly_quests_for_idle_npcs():
             "repeat_cooldown": V0560_HOURLY_COOLDOWN,
             "v0560_generated_hourly": True,
             "v0560_source_npc": npc_id,
+            "v0712_hourly_kind": variant,
         }
+
+        if variant == "talk":
+            quest.update({
+                "name": f"Godzinne zlecenie: Lokalne wieści od {giver}",
+                "kind": "talk_npc",
+                "target_npc": target_id,
+                "needed": 1,
+                "description": (
+                    f"Porozmawiaj z NPC: {target.get('name', target_id)} i wróć z wiadomościami. "
+                    "Zlecenie odnawia się po 60 minutach od ukończenia."
+                ),
+                "character_xp_reward": _hourly_character_xp_v0712(stage, 1.25),
+                "reward_silver": quest_currency_for_stage(stage, 1.0, True, qid),
+            })
+        elif variant == "deliver":
+            item_id = f"v0712_hourly_parcel_{_safe_id(npc_id)}"
+            if item_id not in ITEMS:
+                catalog_assign({
+                    "name": f"Zapieczętowana przesyłka od {giver}",
+                    "type": "quest",
+                    "price": None,
+                    "desc": f"Godzinna przesyłka od {giver} dla {target.get('name', target_id)}.",
+                    "v0712_hourly_delivery": True,
+                }, "ITEMS", ITEMS, (item_id,))
+            quest.update({
+                "name": f"Godzinne zlecenie: Przesyłka od {giver}",
+                "kind": "deliver_npc",
+                "target_npc": target_id,
+                "quest_item": item_id,
+                "accept_items": {item_id: 1},
+                "needed": 1,
+                "description": (
+                    f"Dostarcz zapieczętowaną przesyłkę do NPC: {target.get('name', target_id)}. "
+                    "Zlecenie odnawia się po 60 minutach od ukończenia."
+                ),
+                "character_xp_reward": _hourly_character_xp_v0712(stage, 1.50),
+                "reward_silver": quest_currency_for_stage(stage, 1.25, True, qid),
+            })
+        elif variant == "kill":
+            needed = 5 + _stable_index_v0712(f"hourly-kill-count:{npc_id}", 4)
+            mob_name = str((MOB_TEMPLATES.get(kill_target) or {}).get("name") or kill_target)
+            quest.update({
+                "name": f"Godzinne zlecenie: Patrol dla {giver}",
+                "kind": "kill",
+                "target": kill_target,
+                "needed": needed,
+                "description": (
+                    f"Pokonaj {needed} przeciwników: {mob_name}, a potem wróć do {giver}. "
+                    "Zlecenie odnawia się po 60 minutach od ukończenia."
+                ),
+                "character_xp_reward": _hourly_character_xp_v0712(stage, 2.0),
+                "reward_stat_progress": max(20, int(axis_gain("stat", stage, 1.25))),
+                "reward_soul_xp": max(50, int(axis_gain("soul", stage, 1.50))),
+                "reward_silver": quest_currency_for_stage(stage, math.sqrt(needed), True, qid),
+            })
+        else:
+            category = _hourly_collect_category_v0712(npc_id)
+            label, profession, tool_type = _CATEGORY_INFO[category]
+            needed = 5 + _stable_index_v0712(f"hourly-collect-count:{npc_id}", 5)
+            quest.update({
+                "name": f"Godzinne zlecenie: Zaopatrzenie dla {giver}",
+                "kind": "collect_category",
+                "target": category,
+                "needed": needed,
+                "description": (
+                    f"Zdobądź {needed} {label} dla {giver}. "
+                    "Zlecenie odnawia się po 60 minutach od ukończenia."
+                ),
+                "reward_profession": profession,
+                "reward_profession_xp": max(100, int(axis_gain("profession", stage, 1.50))),
+                "reward_tool_type": tool_type,
+                "reward_tool_xp": max(80, int(axis_gain("tool", stage, 1.25))),
+                "character_xp_reward": max(25, int(axis_gain("character", stage, 1.75))),
+                "reward_silver": quest_currency_for_stage(stage, math.sqrt(needed), True, qid),
+            })
+
         catalog_assign(quest, "QUESTS", QUESTS, (qid,))
         catalog_assign(qid, "NPCS", NPCS, (npc_id, "quest"))
         created.append(qid)
@@ -276,7 +441,7 @@ def ensure_hourly_quests_for_idle_npcs():
 
     Some legacy/runtime layers still append NPCs late in the manifest.  Running
     this reconciliation again is safe: NPCs already covered by any quest are
-    skipped, while newly-added NPCs receive the same hourly talk quest policy.
+    skipped, while newly-added NPCs receive the same varied hourly quest policy.
     """
     global V0560_GENERATED_HOURLY_IDS, V0560_GENERATED_NPC_IDS
     new_ids, new_npcs = _add_hourly_quests_for_idle_npcs()

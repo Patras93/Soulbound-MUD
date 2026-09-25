@@ -1,3 +1,14 @@
+Soulbound v0.71.2 — Hourly Quest Diversity & Reward Hotfix
+
+- Naprawiono monotonię automatycznych godzinnych questów Living NPC: nie są już prawie wszystkie typu „porozmawiaj z NPC”.
+- 119 automatycznie generowanych godzinnych zleceń jest teraz rozdzielanych między cztery typy: rozmowy, dostawy, zbieranie zasobów i patrole bojowe.
+- Partnerzy rozmów i dostaw są wybierani deterministycznie spośród lokalnych NPC, zamiast zawsze brać pierwszego alfabetycznie; finalny audit nie dopuszcza ponownej koncentracji na jednym celu.
+- Patrole szukają najbliższego prawdziwego przeciwnika po połączeniach świata, ignorują manekiny treningowe, bossów i cele instancyjne; jeśli nie ma sensownego celu, generator wybiera zadanie zbierackie.
+- Naprawiono błąd nagrody Character XP: questy z `generator_level`, które nie miały jawnego `character_xp_reward`, wpadały w wartość awaryjną 1 EXP.
+- Poprawiono zarówno 119 automatycznych hourlies, jak i 24 starsze godzinne questy karczm. Finalny runtime ma 545 powtarzalnych questów i 0 z nagrodą Character XP <= 1.
+- `quest info` pokazuje teraz także nagrodę EXP postaci, dzięki czemu wartość jest widoczna przed przyjęciem/oddaniem zadania.
+- Brak migracji SQLite, zmian save'ów i wipe.
+
 Soulbound v0.71.1 — Crypt Soul Shard Hotfix
 
 - Naprawiono regresję finalnego runtime: Generator Core i późniejsze warstwy balansu Krypty ponownie obniżały 100% drop Odłamków Duszy do około 4–7% u zwykłych mobów i około 20–35% u części bossów.
@@ -100,7 +111,7 @@ Soulbound v0.61.2 — Memory Efficiency
 - Brak zmian schematu SQLite i brak wipe postaci. Gameplay v0.61.1 pozostaje bez zmian.
 
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v0.71.1
+Aktualna paczka: v0.71.2
 
 Ten plik jest changelogiem narastającym. Kolejne wydania mają dopisywać nowe wpisy na górze, bez usuwania starszej historii.
 Historia poniżej została odtworzona z zachowanych wpisów release, HELP, audytów, komentarzy milestone oraz aktywnego kodu Soulbound.

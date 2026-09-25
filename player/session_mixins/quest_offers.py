@@ -2,7 +2,7 @@
 """Quest availability, NPC offers, accepting and abandoning."""
 # v0.45.0: explicit imports; no compatibility-runtime injection.
 import re
-from core.progression_resources import v0190_quest_currency_reward, v0190_quest_soul_reward, v0190_quest_stat_reward
+from core.progression_resources import v0190_quest_currency_reward, v0190_quest_soul_reward, v0190_quest_stat_reward, v0270_quest_character_reward
 from player.session_mixins.character_profile import soul_trial_difficulty_band
 from player.session_mixins.exp_terrain import QUESTS
 from player.session_mixins.gathering import profession_for_tool_type
@@ -660,6 +660,9 @@ class SessionQuestOffersMixin:
                 )
             if quest.get("reward_tool_xp"):
                 reward_parts.append(f"XP narzędzia {quest['reward_tool_xp']}")
+            generated_character = v0270_quest_character_reward(quest)
+            if generated_character:
+                reward_parts.append(f"EXP postaci {generated_character}")
             generated_stat=v0190_quest_stat_reward(quest)
             if generated_stat:
                 reward_parts.append(f"EXP każdej statystyki {generated_stat}")
