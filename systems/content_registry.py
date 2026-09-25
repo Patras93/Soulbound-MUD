@@ -2620,13 +2620,14 @@ HELP_TOPIC_ALIASES.update({"gaps": "braki", "missing": "braki"})
 
 # v0.60.0 - rotating crafting orders and inventory EQ comparison.
 HELP_TOPICS["zamowienia_rzemieslnicze"] = [
-    "zamowienia / zamówienia / orders - pokaż 3 rotujące oferty lokalnego NPC rzemieślniczego; odświeżanie co 60 minut.",
-    "zamowienia wez <numer> - przyjmij ofertę. Jednocześnie możesz mieć jedno aktywne zamówienie, ale każdą z 3 ofert możesz ukończyć raz w danym cyklu; ukończenie jednej nie blokuje pozostałych.",
-    "Liczą się wyłącznie sztuki wykonane po przyjęciu zamówienia. Przy oddaniu NPC zabiera dokładnie zamówioną liczbę produktów.",
-    "zamowienia status - pokaż produkt, postęp, zleceniodawcę i nagrodę; zamowienia oddaj - oddaj gotowe zamówienie u właściwego NPC; zamowienia porzuc - anuluj.",
+    "zamowienia / zamówienia / orders - pokaż do 3 rotujących ofert lokalnego specjalisty; od v0.71.3 system obejmuje wszystkie 12 profesji i odświeża się co 60 minut.",
+    "zamowienia wez <numer> - przyjmij ofertę. Jednocześnie możesz mieć jedno aktywne zamówienie, ale każdą dostępną ofertę możesz ukończyć raz w danym cyklu; ukończenie jednej nie blokuje pozostałych.",
+    "Wędkarstwo, Górnictwo, Drwalstwo i Zielarstwo liczą wyłącznie świeżo zebrane surowce po przyjęciu; przy oddaniu wymagana ilość jest pobierana z właściwego magazynu profesji lub ekwipunku.",
+    "Zaklinanie liczy wyłącznie udane akcje zaklinania wykonane po przyjęciu; przy oddaniu nie pobiera się drugiego produktu.",
+    "Kowalstwo, Gotowanie, Alchemia, Jubilerstwo, Krawiectwo, Garbarstwo i Stolarstwo nadal korzystają z prawdziwych receptur i fizycznych produktów.",
+    "zamowienia status - pokaż cel, postęp, zleceniodawcę i nagrodę; zamowienia oddaj - oddaj gotowe zamówienie u właściwego NPC; zamowienia porzuc - anuluj.",
     "zamowienia historia / zamowienia statystyki - trwała historia ukończeń per profesja, zarobek, XP profesji/narzędzia i rekord nagrody; stare ukończenia sprzed v0.61.4 zachowują tylko pewny licznik.",
-    "Nagrody to waluta oraz dodatkowy XP profesji i narzędzia. Zamówienia rzemieślnicze nie dają Soul XP.",
-    "System obejmuje Kowalstwo, Gotowanie, Alchemię, Jubilerstwo, Krawiectwo, Garbarstwo i Stolarstwo i korzysta z realnych receptur dostępnych dla poziomu profesji.",
+    "Nagrody to waluta oraz dodatkowy XP profesji i narzędzia. Zamówienia profesji nie dają Soul XP.",
 ]
 HELP_TOPIC_ALIASES.update({
     "zamowienia": "zamowienia_rzemieslnicze", "zamówienia": "zamowienia_rzemieslnicze",

@@ -86,6 +86,7 @@ class SessionProfessionsV03053Mixin:
         for iid,q in mats.items(): self.server.db.remove_item(self.account_id,iid,q)
         amt=self.v03053_enchant_amount(base,level)
         self.server.db.set_equipment_enchant_v03053(self.account_id,slot,key,stat,amt)
+        await self.announce_profession_action_order_progress_v0713('enchanting', 1)
         messages,*_=self.grant_profession_progress('Zaklinanie',max(25,level*2),'enchanting',max(20,level))
         await self.send(f"Zaklinasz {player_item_display_name_v0335(eq[slot]['item_id'])}: {label} +{amt}.")
         for m in messages: await self.send(m)

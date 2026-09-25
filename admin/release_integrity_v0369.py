@@ -80,6 +80,7 @@ _RELEASE_AUDITS_V0369 = [
     ("v0.71.0 Profession & City Expansion II", "COURIER_PROFESSION_EXPANSION_AUDIT_V0700"),
     ("v0.71.1 Crypt Soul Shard Hotfix", "SOUL_SHARD_CRYPT_FINAL_AUDIT_V0711"),
     ("v0.71.2 Hourly Quest Diversity & Rewards", "LIVING_NPCS_ACTIVITY_AUDIT_V0560"),
+    ("v0.71.3 Orders for All Professions", "CRAFTING_ORDERS_COMPARE_AUDIT_V0600"),
 ]
 
 def cumulative_release_integrity_audit_v0369():
@@ -97,13 +98,13 @@ def cumulative_release_integrity_audit_v0369():
         preserved.append(label)
 
     # Direct release-line checks for the exact milestones the user flagged.
-    if str(globals().get("VERSION","")) != "0.71.2":
-        errors.append(f"VERSION={globals().get('VERSION')!r}, expected 0.71.2")
+    if str(globals().get("VERSION","")) != "0.71.3":
+        errors.append(f"VERSION={globals().get('VERSION')!r}, expected 0.71.3")
     if str(globals().get("GENERATOR_CORE_VERSION","")) != "0.61.0":
         errors.append(f"Generator Core={globals().get('GENERATOR_CORE_VERSION')!r}, expected 0.61.0")
 
     return {
-        "version":"0.71.2",
+        "version":"0.71.3",
         "checked":len(_RELEASE_AUDITS_V0369),
         "preserved":preserved,
         "preserved_count":len(preserved),
@@ -114,7 +115,7 @@ def cumulative_release_integrity_audit_v0369():
 CUMULATIVE_RELEASE_INTEGRITY_AUDIT_V0369=cumulative_release_integrity_audit_v0369()
 if CUMULATIVE_RELEASE_INTEGRITY_AUDIT_V0369["error_count"]:
     raise RuntimeError(
-        "Cumulative Release Integrity Audit v0.71.2 failed: "
+        "Cumulative Release Integrity Audit v0.71.3 failed: "
         + "; ".join(CUMULATIVE_RELEASE_INTEGRITY_AUDIT_V0369["errors"][:100])
     )
 
@@ -145,12 +146,14 @@ HELP_TOPICS.setdefault("wersja", []).append("v0.61.6: Memory Efficiency II wspó
 HELP_TOPICS.setdefault("wersja", []).append("v0.61.4: Crafting Logistics dodaje craft <ilość>/wszystko, historię zamówień, bezpieczne załączniki mailowe, wielopoziomową drogę receptury oraz przywrócone mithrilowe EQ z Fragmentów Mithrilu.")
 
 HELP_TOPICS.setdefault("wersja", []).append("v0.71.2: godzinne questy NPC mają różne cele (rozmowa, dostawa, zbieranie, patrol), nie skupiają się na jednym NPC i żaden powtarzalny quest nie daje już tylko 1 EXP postaci.")
-LATEST_CHANGES_TITLE = "Soulbound v0.71.2 - Hourly Quest Diversity & Rewards"
+HELP_TOPICS.setdefault("wersja", []).append("v0.71.3: rotujące zamówienia działają dla wszystkich 12 profesji; Wędkarstwo, Górnictwo, Drwalstwo i Zielarstwo mają dostawy świeżo zebranych zasobów, a Zaklinanie liczy udane zaklęcia.")
+LATEST_CHANGES_TITLE = "Soulbound v0.71.3 - Orders for All Professions"
 LATEST_CHANGES = [
-    "v0.71.2: automatyczne godzinne questy NPC są mieszanką rozmów, dostaw, zbierania i patroli zamiast prawie samych rozmów.",
-    "Cele rozmów/dostaw są deterministycznie rozkładane między lokalnych NPC; jeden alfabetycznie pierwszy NPC nie może już przejąć większości zleceń.",
-    "Usunięto 1 EXP z powtarzalnych questów: wszystkie 545 powtarzalnych zadań mają jawny lub wygenerowany Character XP większy niż 1.",
-    "Patrole wybierają najbliższych prawdziwych przeciwników i ignorują manekiny treningowe oraz bossów.",
+    "v0.71.3: rotujące zamówienia obejmują wszystkie 12 profesji, nie tylko profesje wytwórcze.",
+    "Wędkarstwo, Górnictwo, Drwalstwo i Zielarstwo mają trzy godzinne dostawy, które liczą wyłącznie świeżo zebrane surowce po przyjęciu zamówienia.",
+    "Zaklinanie ma trzy serie zamówień liczące faktyczne udane akcje Zaklinania; przy oddaniu nie pobiera się produktu drugi raz.",
+    "Każda z trzech ofert nadal może zostać ukończona raz w cyklu, a ukończenie jednej nie blokuje pozostałych.",
+    "Naprawa v0.71.2 różnicująca godzinne questy NPC pozostaje aktywna.",
 ]
 
 

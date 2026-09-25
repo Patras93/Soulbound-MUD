@@ -18,15 +18,22 @@ CRAFTING_ORDER_REFRESH_SECONDS_V0600 = 3600
 # consumed by the broken turn-in path before the reward_tool_type crash.
 CRAFTING_ORDER_BROKEN_TURNIN_CUTOFF_V0613 = 1790294400
 
-# Product-producing specialists only. Gathering professions keep their own quests.
+# v0.71.3: all 12 professions have rotating orders. Product professions use
+# real recipes, gathering professions request fresh category gathers, and
+# Enchanting counts successful enchanting actions.
 CRAFTING_ORDER_NPCS_V0600 = {
+    "specialist_fishing": {"profession": "Wędkarstwo", "tool_type": "fishing", "source": "gather", "gather_category": "fish", "gather_label": "ryb"},
+    "specialist_mining": {"profession": "Górnictwo", "tool_type": "mining", "source": "gather", "gather_category": "ore", "gather_label": "rud"},
+    "specialist_woodcutting": {"profession": "Drwalstwo", "tool_type": "woodcutting", "source": "gather", "gather_category": "wood", "gather_label": "sztuk drewna"},
     "specialist_crafting": {"profession": "Kowalstwo", "tool_type": "crafting", "source": "craft"},
     "specialist_cooking": {"profession": "Gotowanie", "tool_type": "cooking", "source": "cook"},
+    "specialist_herbalism": {"profession": "Zielarstwo", "tool_type": "herbalism", "source": "gather", "gather_category": "herb", "gather_label": "ziół"},
     "specialist_alchemy": {"profession": "Alchemia", "tool_type": "alchemy", "source": "alchemy"},
     "jeweler_mirella": {"profession": "Jubilerstwo", "tool_type": "jewelcrafting", "source": "jewel"},
     "tailor_lysa": {"profession": "Krawiectwo", "tool_type": "tailoring", "source": "extended"},
     "leatherworker_soren": {"profession": "Garbarstwo", "tool_type": "leatherworking", "source": "extended"},
     "carpenter_edric": {"profession": "Stolarstwo", "tool_type": "carpentry", "source": "extended"},
+    "guild_quartermaster_arcane": {"profession": "Zaklinanie", "tool_type": "enchanting", "source": "action", "action_type": "enchanting"},
 }
 
 
@@ -40,6 +47,34 @@ def _stable_index_v0600(seed: str, size: int) -> int:
 class SessionCraftingOrdersV0600Mixin:
     def crafting_order_cycle_v0600(self):
         return int(time.time()) // CRAFTING_ORDER_REFRESH_SECONDS_V0600
+
+    def crafting_order_synthetic_kind_v0713(self, item_id):
+        item_id = str(item_id or "")
+        if item_id.startswith("__gather__:"):
+            parts = item_id.split(":")
+            return ("gather", parts[1] if len(parts) > 1 else "")
+        if item_id.startswith("__action__:"):
+            parts = item_id.split(":")
+            return ("action", parts[1] if len(parts) > 1 else "")
+        return ("product", "")
+
+    async def announce_gathering_order_progress_v0713(self, category, amount=1):
+        active = self.server.db.crafting_order_v0600(self.account_id)
+        if not active or not str(active["item_id"] or ""):
+            return
+        kind, target = self.crafting_order_synthetic_kind_v0713(active["item_id"])
+        if kind != "gather" or target != str(category):
+            return
+        await self.announce_crafting_order_progress_v0600(str(active["item_id"]), amount)
+
+    async def announce_profession_action_order_progress_v0713(self, tool_type, amount=1):
+        active = self.server.db.crafting_order_v0600(self.account_id)
+        if not active or not str(active["item_id"] or ""):
+            return
+        kind, target = self.crafting_order_synthetic_kind_v0713(active["item_id"])
+        if kind != "action" or target != str(tool_type):
+            return
+        await self.announce_crafting_order_progress_v0600(str(active["item_id"]), amount)
 
     def crafting_order_npc_here_v0600(self):
         room_id = str(self.character.room_id)
@@ -58,6 +93,49 @@ class SessionCraftingOrdersV0600Mixin:
         prow = self.server.db.profession(self.account_id, profession)
         level = max(1, int(prow["level"] if prow else 1))
         source = spec["source"]
+        if source == "gather":
+            category = str(spec.get("gather_category") or "")
+            label = str(spec.get("gather_label") or "surowców")
+            rows = []
+            for tier, tier_label in enumerate(("mała", "średnia", "duża"), 1):
+                output = f"__gather__:{category}:{tier}"
+                recipe = {
+                    "min_profession_level": 1,
+                    "order_reward_level": level,
+                    "order_kind": "gather",
+                    "order_tier": tier,
+                    "profession_xp": max(20, level * 3),
+                    "tool_xp": max(15, level * 2),
+                }
+                item = {
+                    "name": f"{tier_label.capitalize()} dostawa: {label}",
+                    "type": "profession_order",
+                    "order_kind": "gather",
+                    "order_tier": tier,
+                }
+                rows.append((f"gather_{category}_{tier}", recipe, output, item, 1))
+            return rows
+        if source == "action":
+            action_type = str(spec.get("action_type") or spec.get("tool_type") or "")
+            rows = []
+            for tier, tier_label in enumerate(("mała", "średnia", "duża"), 1):
+                output = f"__action__:{action_type}:{tier}"
+                recipe = {
+                    "min_profession_level": 1,
+                    "order_reward_level": level,
+                    "order_kind": "action",
+                    "order_tier": tier,
+                    "profession_xp": max(20, level * 3),
+                    "tool_xp": max(15, level * 2),
+                }
+                item = {
+                    "name": f"{tier_label.capitalize()} seria zaklęć",
+                    "type": "profession_order",
+                    "order_kind": "action",
+                    "order_tier": tier,
+                }
+                rows.append((f"action_{action_type}_{tier}", recipe, output, item, 1))
+            return rows
         if source == "cook":
             tables = (COOK_RECIPES,)
         elif source == "alchemy":
@@ -112,6 +190,18 @@ class SessionCraftingOrdersV0600Mixin:
         return rows
 
     def crafting_order_quantity_v0600(self, item, recipe, cycle, npc_id, offer_no):
+        order_kind = str(item.get("order_kind") or recipe.get("order_kind") or "")
+        reward_level = max(1, int(recipe.get("order_reward_level", 1) or 1))
+        if order_kind == "gather":
+            base = min(25, 5 + reward_level // 25)
+            choices = (base, base * 2, base * 3)
+            tier = max(1, min(3, int(item.get("order_tier", recipe.get("order_tier", offer_no)) or offer_no)))
+            return int(choices[tier - 1])
+        if order_kind == "action":
+            base = 1 + min(2, reward_level // 200)
+            choices = (base, base + 1, base + 2)
+            tier = max(1, min(3, int(item.get("order_tier", recipe.get("order_tier", offer_no)) or offer_no)))
+            return int(choices[tier - 1])
         item_type = str(item.get("type") or "")
         if item_type == "armor":
             choices = (1, 2, 3)
@@ -123,7 +213,7 @@ class SessionCraftingOrdersV0600Mixin:
         return int(choices[idx])
 
     def crafting_order_reward_v0600(self, recipe, needed):
-        level = max(1, int(recipe.get("min_profession_level", recipe.get("min_tool_level", 1)) or 1))
+        level = max(1, int(recipe.get("order_reward_level", recipe.get("min_profession_level", recipe.get("min_tool_level", 1))) or 1))
         pseudo = {"min_profession_level": level, "needed": int(needed), "repeatable": True}
         coins = max(50, int(v0190_quest_currency_reward(pseudo)))
         prof_xp = max(25, int(recipe.get("profession_xp", max(20, level * 3)) or 0) * max(1, int(needed)) // 2)
@@ -177,13 +267,13 @@ class SessionCraftingOrdersV0600Mixin:
         progress, needed, item_name = changed
         if progress >= needed:
             await self.send(
-                f"Zamówienie rzemieślnicze: {item_name}. Postęp {progress} z {needed}. "
+                f"Zamówienie profesji: {item_name}. Postęp {progress} z {needed}. "
                 "GOTOWE DO ODDANIA u NPC, który zlecił zamówienie.",
                 combat_detail="essential",
             )
         else:
             await self.send(
-                f"Zamówienie rzemieślnicze: {item_name}. Postęp {progress} z {needed}.",
+                f"Zamówienie profesji: {item_name}. Postęp {progress} z {needed}.",
                 combat_detail="essential",
             )
 
@@ -195,7 +285,7 @@ class SessionCraftingOrdersV0600Mixin:
 
         if mode in ("status", "stan"):
             if not active or not str(active["item_id"] or ""):
-                await self.send("Nie masz aktywnego zamówienia rzemieślniczego.")
+                await self.send("Nie masz aktywnego zamówienia profesji.")
                 return
             npc_name = NPCS.get(str(active["npc_id"]), {}).get("name", str(active["npc_id"]))
             await self.send(
@@ -217,7 +307,7 @@ class SessionCraftingOrdersV0600Mixin:
             tool_xp = sum(int(r["tool_xp"] or 0) for r in detailed)
             best = max([int(r["best_reward_coins"] or 0) for r in detailed] or [0])
             await self.send(
-                f"HISTORIA ZAMÓWIEŃ RZEMIEŚLNICZYCH. Ukończone łącznie: {completed}. "
+                f"HISTORIA ZAMÓWIEŃ PROFESJI. Ukończone łącznie: {completed}. "
                 f"Szczegółowo od v0.61.4: zarobek {currency_reading_text(coins,0,0)}, "
                 f"XP profesji {prof_xp}, XP narzędzi {tool_xp}, rekord nagrody {currency_reading_text(best,0,0)}."
             )
@@ -239,15 +329,15 @@ class SessionCraftingOrdersV0600Mixin:
 
         if mode in ("porzuc", "porzuć", "abandon"):
             if not active or not str(active["item_id"] or ""):
-                await self.send("Nie masz aktywnego zamówienia rzemieślniczego.")
+                await self.send("Nie masz aktywnego zamówienia profesji.")
                 return
             self.server.db.abandon_crafting_order_v0600(self.account_id)
-            await self.send("Porzucasz aktywne zamówienie rzemieślnicze. Wykonany postęp przepada.")
+            await self.send("Porzucasz aktywne zamówienie profesji. Wykonany postęp przepada.")
             return
 
         if mode in ("oddaj", "deliver", "turnin"):
             if not active or not str(active["item_id"] or ""):
-                await self.send("Nie masz aktywnego zamówienia rzemieślniczego.")
+                await self.send("Nie masz aktywnego zamówienia profesji.")
                 return
             here = self.crafting_order_npc_here_v0600()
             if not here or here[0] != str(active["npc_id"]):
@@ -282,24 +372,51 @@ class SessionCraftingOrdersV0600Mixin:
                 )
                 self.server.db.abandon_crafting_order_v0600(self.account_id)
                 return
-            have = int(self.quest_crafted_item_have_v0333(item_id))
-            legacy_recovery = (
-                have < needed
-                and progress >= needed
-                and int(active["accepted_at"] or 0) <= CRAFTING_ORDER_BROKEN_TURNIN_CUTOFF_V0613
-            )
-            if have < needed and not legacy_recovery:
-                await self.send(f"Masz tylko {have} z {needed} wymaganych sztuk. Produkty muszą być nadal przy tobie lub w magazynie profesji.")
-                return
-            if not legacy_recovery:
-                if not self.consume_quest_crafted_items_v0333(item_id, needed):
-                    await self.send("Nie udało się pobrać produktów do zamówienia. Sprawdź ekwipunek i magazyn profesji.")
+            order_kind, order_target = self.crafting_order_synthetic_kind_v0713(item_id)
+            legacy_recovery = False
+            if order_kind == "gather":
+                category = self.quest_collect_category_info(order_target)
+                if not category:
+                    await self.send("Zamówienie ma nieprawidłową kategorię zbieracką. Zgłoś błąd administratorowi.")
                     return
+                ids, container, label = category
+                have = int(self.server.db.total_items_across_storage_and_inventory(
+                    self.account_id, ids, container
+                ))
+                if have < needed:
+                    await self.send(
+                        f"Masz tylko {have} z {needed} wymaganych {label}. "
+                        "Świeży postęp jest zaliczony, ale surowce muszą być nadal w magazynie profesji lub ekwipunku."
+                    )
+                    return
+                if not self.server.db.consume_items_across_storage_and_inventory(
+                    self.account_id, ids, needed, container
+                ):
+                    await self.send("Nie udało się pobrać surowców do zamówienia. Sprawdź magazyn profesji.")
+                    return
+            elif order_kind == "action":
+                # Udana akcja Zaklinania już zużyła swoje materiały; nie pobieramy
+                # drugiego produktu przy oddawaniu zamówienia.
+                pass
             else:
-                await self.send(
-                    "NAPRAWA ZAMÓWIENIA v0.61.3: wykryto aktywne, ukończone zamówienie przyjęte przed hotfixem. "
-                    "Stara ścieżka mogła już pobrać produkty przed crashem, więc nie pobieram ich ponownie."
+                have = int(self.quest_crafted_item_have_v0333(item_id))
+                legacy_recovery = (
+                    have < needed
+                    and progress >= needed
+                    and int(active["accepted_at"] or 0) <= CRAFTING_ORDER_BROKEN_TURNIN_CUTOFF_V0613
                 )
+                if have < needed and not legacy_recovery:
+                    await self.send(f"Masz tylko {have} z {needed} wymaganych sztuk. Produkty muszą być nadal przy tobie lub w magazynie profesji.")
+                    return
+                if not legacy_recovery:
+                    if not self.consume_quest_crafted_items_v0333(item_id, needed):
+                        await self.send("Nie udało się pobrać produktów do zamówienia. Sprawdź ekwipunek i magazyn profesji.")
+                        return
+                else:
+                    await self.send(
+                        "NAPRAWA ZAMÓWIENIA v0.61.3: wykryto aktywne, ukończone zamówienie przyjęte przed hotfixem. "
+                        "Stara ścieżka mogła już pobrać produkty przed crashem, więc nie pobieram ich ponownie."
+                    )
 
             coins = int(active["reward_coins"])
             self.character.silver = min(CURRENCY_SQLITE_SAFE_TOTAL, int(self.character.silver) + coins)
@@ -322,7 +439,7 @@ class SessionCraftingOrdersV0600Mixin:
             self.server.db.save_character(self.character)
             try:
                 self.server.db.record_activity_v0560(
-                    self.account_id, "quest", "Zamówienie rzemieślnicze",
+                    self.account_id, "quest", "Zamówienie profesji",
                     f"{active['item_name']} x{needed}; {active['profession']}.",
                 )
             except Exception:
@@ -340,7 +457,7 @@ class SessionCraftingOrdersV0600Mixin:
                 return
             here = self.crafting_order_npc_here_v0600()
             if not here:
-                await self.send("W tej lokacji nie ma NPC obsługującego rotujące zamówienia rzemieślnicze.")
+                await self.send("W tej lokacji nie ma NPC obsługującego rotujące zamówienia profesji.")
                 return
             if len(words) < 2 or not words[1].isdigit():
                 await self.send("Użycie: zamowienia wez <numer>, na przykład zamowienia wez 2.")
@@ -360,10 +477,17 @@ class SessionCraftingOrdersV0600Mixin:
                 )
                 return
             self.server.db.start_crafting_order_v0600(self.account_id, offer)
+            kind, _target = self.crafting_order_synthetic_kind_v0713(offer["item_id"])
+            if kind == "gather":
+                progress_note = "Liczą się wyłącznie surowce zebrane po przyjęciu; przy oddaniu musisz nadal posiadać wymaganą ilość."
+            elif kind == "action":
+                progress_note = "Liczą się wyłącznie udane akcje Zaklinania wykonane po przyjęciu; przy oddaniu nie pobieram produktu drugi raz."
+            else:
+                progress_note = "Liczą się wyłącznie sztuki wykonane po przyjęciu."
             await self.send(
                 f"Przyjmujesz zamówienie: {offer['item_name']} x{offer['needed']}. Start 0 z {offer['needed']}. "
                 f"Nagroda: {currency_reading_text(offer['reward_coins'],0,0)}, {offer['reward_profession_xp']} XP profesji "
-                f"i {offer['reward_tool_xp']} XP narzędzia. Liczą się wyłącznie sztuki wykonane po przyjęciu."
+                f"i {offer['reward_tool_xp']} XP narzędzia. {progress_note}"
             )
             return
 
@@ -375,13 +499,13 @@ class SessionCraftingOrdersV0600Mixin:
                 npc = NPCS.get(npc_id, {})
                 if npc:
                     names.append(f"{npc.get('name', npc_id)} — {npc.get('room','?')}")
-            await self.send("Rotujące zamówienia rzemieślnicze odbierzesz u specjalistów: " + "; ".join(names) + ".")
+            await self.send("Rotujące zamówienia profesji odbierzesz u specjalistów: " + "; ".join(names) + ".")
             return
         npc_id, npc, spec = here
         offers = self.crafting_order_offers_v0600(npc_id)
         await self.send(
-            f"ZAMÓWIENIA RZEMIEŚLNICZE — {npc.get('name', npc_id)}. Profesja: {spec['profession']}. "
-            "Oferty zmieniają się co 60 minut; każdą z 3 ofert możesz ukończyć raz w danym cyklu. "
+            f"ZAMÓWIENIA PROFESJI — {npc.get('name', npc_id)}. Profesja: {spec['profession']}. "
+            "Oferty zmieniają się co 60 minut; specjalista pokazuje do 3 ofert, a każdą dostępną możesz ukończyć raz w danym cyklu. "
             "Po oddaniu jednej pozostałe nadal są dostępne."
         )
         if active and str(active["item_id"] or ""):

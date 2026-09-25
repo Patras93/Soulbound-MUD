@@ -236,6 +236,7 @@ class SessionGatheringActionsMixin:
                 if global_record_v022.get("new_global_rarest"): parts.append("najrzadszy okaz serwera")
                 await self.send("REKORDY WĘDKARSKIE — " + ", ".join(parts) + ".")
 
+            await self.announce_gathering_order_progress_v0713("fish", resource_quest_quantity)
             await self.server.events.publish(ResourceGatheredEvent(
                 session=self, action="fishing", item_id=item_id, quantity=resource_quest_quantity,
                 category="fish", bounty_kind="fish", dynamic_kind="fish", legendary_kind="fish",
@@ -380,6 +381,7 @@ class SessionGatheringActionsMixin:
                     "Trafia do Sakwy Górnika. Otwórz: open geode / otwórz geodę."
                 )
 
+            await self.announce_gathering_order_progress_v0713("ore", mined_resource_quantity)
             await self.server.events.publish(ResourceGatheredEvent(
                 session=self, action="mining", item_id=item_id, quantity=mined_resource_quantity,
                 category="ore", bounty_kind="mine", dynamic_kind="mine", legendary_kind="gather",
@@ -502,6 +504,7 @@ class SessionGatheringActionsMixin:
             await self.record_item_collection(
                 item_id, source="Drwalstwo", announce=True, record_history=False, amount=resource_quest_quantity
             )
+            await self.announce_gathering_order_progress_v0713("wood", resource_quest_quantity)
             await self.server.events.publish(ResourceGatheredEvent(
                 session=self, action="woodcutting", item_id=item_id, quantity=resource_quest_quantity,
                 category="wood", bounty_kind="wood", dynamic_kind="wood", legendary_kind="gather",
@@ -593,6 +596,7 @@ class SessionGatheringActionsMixin:
             await self.record_item_collection(
                 item_id, source="Zielarstwo", announce=True, record_history=False, amount=resource_quest_quantity
             )
+            await self.announce_gathering_order_progress_v0713("herb", resource_quest_quantity)
             await self.server.events.publish(ResourceGatheredEvent(
                 session=self, action="herbalism", item_id=item_id, quantity=resource_quest_quantity,
                 category="herb", bounty_kind="herb", dynamic_kind="herb", legendary_kind="gather",

@@ -1,3 +1,14 @@
+Soulbound v0.71.3 — Zamówienia dla wszystkich profesji
+
+- Rotujące `zamowienia` obejmują teraz wszystkie 12 profesji.
+- Wędkarstwo, Górnictwo, Drwalstwo i Zielarstwo dostały po trzy godzinne oferty dostaw. Postęp liczy wyłącznie surowce faktycznie zebrane po przyjęciu zamówienia; przy oddaniu wymagana ilość jest pobierana z właściwego magazynu profesji lub ekwipunku.
+- Zaklinanie dostało trzy godzinne serie zamówień. Postęp rośnie wyłącznie po udanym `zaklinaj`; materiały zostały już zużyte przez samo zaklęcie, więc oddanie zamówienia nie pobiera dodatkowego produktu.
+- Kowalstwo, Gotowanie, Alchemia, Jubilerstwo, Krawiectwo, Garbarstwo i Stolarstwo zachowują dotychczasowe zamówienia oparte na prawdziwych recepturach.
+- Wszystkie 12 profesji korzysta z tej samej zasady v0.70.0: każdą z trzech ofert można ukończyć raz w cyklu, a ukończenie jednej nie blokuje pozostałych.
+- Historia/statystyki zamówień zapisują ukończenia również dla nowych profesji.
+- Zachowano naprawę v0.71.2: automatyczne godzinne questy NPC pozostają zróżnicowane i nie skupiają się na Lyrze/Ilyrze.
+- Brak wipe i brak nowej migracji SQLite.
+
 Soulbound v0.71.2 — Hourly Quest Diversity & Reward Hotfix
 
 - Naprawiono monotonię automatycznych godzinnych questów Living NPC: nie są już prawie wszystkie typu „porozmawiaj z NPC”.
@@ -111,7 +122,7 @@ Soulbound v0.61.2 — Memory Efficiency
 - Brak zmian schematu SQLite i brak wipe postaci. Gameplay v0.61.1 pozostaje bez zmian.
 
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v0.71.2
+Aktualna paczka: v0.71.3
 
 Ten plik jest changelogiem narastającym. Kolejne wydania mają dopisywać nowe wpisy na górze, bez usuwania starszej historii.
 Historia poniżej została odtworzona z zachowanych wpisów release, HELP, audytów, komentarzy milestone oraz aktywnego kodu Soulbound.

@@ -57,7 +57,7 @@ courier_profession_expansion = ns["COURIER_PROFESSION_EXPANSION_AUDIT_V0700"]
 soul_shard_final = ns["SOUL_SHARD_CRYPT_FINAL_AUDIT_V0711"]
 release = ns["CUMULATIVE_RELEASE_INTEGRITY_AUDIT_V0369"]
 full = ns["full_game_predeploy_audit_v0336"]()
-# v0.71.2: validate full authoring structures first, then compact exactly as production does.
+# v0.71.3: validate full authoring structures first, then compact exactly as production does.
 memory_contract = ns["V0616_MEMORY_EFFICIENCY_AUDIT"]
 if full["error_count"] == 0 and not memory_contract["error_count"]:
     memory_compaction = ns["compact_runtime_memory_v0616"]()
@@ -70,7 +70,7 @@ runtime_state = ns["RUNTIME_ARCHITECTURE_STATE"]
 if arch["error_count"] or maintenance["error_count"] or native["error_count"] or modular["error_count"] or explicit["error_count"] or explicit_gameplay["error_count"] or explicit_persistence["error_count"] or combat_arch["error_count"] or catalog_ownership["error_count"] or command_registry["error_count"] or maintainable["error_count"] or progression_pace["error_count"] or long_term_balance["error_count"] or difficulty_pressure["error_count"] or world_expansion["error_count"] or world_expansion_ii["error_count"] or railway_packaging["error_count"] or postal_quest_rewards["error_count"] or courier_guild["error_count"] or courier_achievements["error_count"] or courier_prestige_tavern["error_count"] or living_npcs_activity["error_count"] or living_npcs_late_finalize["error_count"] or modular_refactor["error_count"] or titles_progress["error_count"] or crafting_orders_compare["error_count"] or item_sources_party["error_count"] or crafting_logistics["error_count"] or courier_profession_expansion["error_count"] or soul_shard_final["error_count"] or memory_contract["error_count"] or release["error_count"] or full["error_count"] or memory_post["error_count"]:
     raise SystemExit(1)
 
-print("Soulbound v0.71.2 FULL PREDEPLOY PASS")
+print("Soulbound v0.71.3 FULL PREDEPLOY PASS")
 print(f"Architecture: {arch['error_count']} errors; {arch['registered_simple_commands']} registered simple commands")
 print(f"Maintenance: {maintenance['error_count']} errors; {maintenance['metrics']['maintenance_area_count']} repair areas")
 print(f"Native modules: {native['error_count']} errors; {native['checked_native_modules']} verified module identities")

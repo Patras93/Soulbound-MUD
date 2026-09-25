@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Cumulative crafting-orders/EQ audit through Soulbound v0.61.3."""
+"""Cumulative profession-orders/EQ audit through Soulbound v0.71.3."""
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -14,6 +14,8 @@ def crafting_orders_compare_audit_v0600():
         "storage/db_quests.py",
         "player/session_mixins/quest_progress.py",
         "player/session_mixins/profession_storage.py",
+        "player/session_mixins/gathering_actions.py",
+        "player/session_mixins/professions.py",
         "player/session_mixins/command_registry.py",
         "config/command_aliases.py",
         "systems/content_registry.py",
@@ -52,14 +54,19 @@ def crafting_orders_compare_audit_v0600():
     try:
         orders = text("player/session_mixins/crafting_orders.py")
         for npc_id in (
-            "specialist_crafting", "specialist_cooking", "specialist_alchemy",
-            "jeweler_mirella", "tailor_lysa", "leatherworker_soren", "carpenter_edric",
+            "specialist_fishing", "specialist_mining", "specialist_woodcutting",
+            "specialist_crafting", "specialist_cooking", "specialist_herbalism",
+            "specialist_alchemy", "jeweler_mirella", "tailor_lysa",
+            "leatherworker_soren", "carpenter_edric", "guild_quartermaster_arcane",
         ):
             if npc_id not in orders:
                 errors.append(f"missing crafting order NPC: {npc_id}")
         for token in (
             "CRAFTING_ORDER_REFRESH_SECONDS_V0600 = 3600",
             "handle_crafting_orders_v0600", "announce_crafting_order_progress_v0600",
+            "announce_gathering_order_progress_v0713",
+            "announce_profession_action_order_progress_v0713",
+            "__gather__:", "__action__:",
             "zamowienia oddaj", "Zamówienia nie dają Soul XP",
         ):
             if token not in orders:
@@ -67,6 +74,15 @@ def crafting_orders_compare_audit_v0600():
         progress = text("player/session_mixins/quest_progress.py")
         if "await self.announce_crafting_order_progress_v0600(item_id, amount)" not in progress:
             errors.append("craft event is not wired to rotating crafting orders")
+
+        gathering = text("player/session_mixins/gathering_actions.py")
+        for category in ("fish", "ore", "wood", "herb"):
+            token = f'announce_gathering_order_progress_v0713("{category}"'
+            if token not in gathering:
+                errors.append(f"gathering order hook missing for {category}")
+        professions = text("player/session_mixins/professions.py")
+        if "announce_profession_action_order_progress_v0713('enchanting', 1)" not in professions:
+            errors.append("enchanting order hook missing")
 
         # v0.61.3 regression guards: legacy smithing recipes must be eligible
         # even when they predate explicit profession/tool_type metadata, and
@@ -128,7 +144,7 @@ def crafting_orders_compare_audit_v0600():
         errors.append(f"assembly check failed: {exc}")
 
     return {
-        "version": "0.61.3",
+        "version": "0.71.3",
         "error_count": len(errors),
         "errors": errors,
     }
@@ -137,7 +153,7 @@ def crafting_orders_compare_audit_v0600():
 CRAFTING_ORDERS_COMPARE_AUDIT_V0600 = crafting_orders_compare_audit_v0600()
 if CRAFTING_ORDERS_COMPARE_AUDIT_V0600["error_count"]:
     raise RuntimeError(
-        "Crafting Orders Hotfix Audit v0.61.3 failed: "
+        "Profession Orders Audit v0.71.3 failed: "
         + "; ".join(CRAFTING_ORDERS_COMPARE_AUDIT_V0600["errors"][:100])
     )
 
