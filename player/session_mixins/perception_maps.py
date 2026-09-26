@@ -613,10 +613,15 @@ class SessionPerceptionMapsMixin:
                     )
                 else:
                     exits.append(base)
-            # v0.30.28: compatibility/NVDA mode. Send one simple multiline block
-            # instead of a long punctuation-heavy sentence. Some MUD clients only
-            # announced the local echo ("ex") and skipped the old formatted line.
-            await self.send("Wyjścia:\r\n" + "\r\n".join(exits))
+            # v0.71.9: NVDA/client compatibility. Some clients do not reliably expose
+            # every line from one multiline send(). First announce every direction in
+            # one short line, then send each exit as a separate message so no direction
+            # can disappear from the accessibility buffer.
+            direction_labels = [self.route_direction_name(direction) for direction in room["exits"]]
+            await self.send("Kierunki: " + ", ".join(direction_labels) + ".")
+            await self.send("Wyjścia:")
+            for exit_line in exits:
+                await self.send(exit_line)
 
     async def show_instance_map_summary(self):
             await self.send("MAPY INSTANCJI")

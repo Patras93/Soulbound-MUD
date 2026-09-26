@@ -38,7 +38,7 @@ from world import topology_generator as world_topology_generator_v0281
 from world import dynamic_world_generator as dynamic_world_v029
 from world import logic_validator as world_logic_validator_v030
 
-VERSION = "0.71.8"
+VERSION = "0.80.1"
 GLOBAL_SKILL_BUFF_DURATION_SECONDS = 30
 HISTORY_BUFFER_LIMIT = 100
 HISTORY_BUFFER_DEFAULT_SHOW = 20

@@ -7,7 +7,7 @@ fully explicit imports and declared exports while preserving the reviewed histor
 load order and rejecting accidental overrides.
 """
 
-RUNTIME_MODULES = ['core/bootstrap_economy_professions.py',
+_RUNTIME_MODULES_ALL = ['core/bootstrap_economy_professions.py',
  'core/progression_resources.py',
  'core/progression_600.py',
  'core/classes_skills.py',
@@ -52,6 +52,7 @@ RUNTIME_MODULES = ['core/bootstrap_economy_professions.py',
  'world/world_expansion_i.py',
  'world/world_expansion_ii.py',
  'world/world_expansion_iii.py',
+ 'world/world_expansion_iv.py',
  'world/runtime_progression.py',
  'world/living_npcs.py',
  'world/world_state.py',
@@ -185,9 +186,17 @@ RUNTIME_MODULES = ['core/bootstrap_economy_professions.py',
  'admin/item_sources_party_coordination_audit_v0610.py',
  'admin/crafting_logistics_audit_v0614.py',
  'admin/courier_profession_expansion_audit_v0700.py',
+ 'admin/world_expansion_iv_audit_v0800.py',
  'systems/soul_shard_finalizer.py',
  'systems/runtime_memory.py',
  'admin/release_integrity_v0369.py']
+
+
+# v0.80.1 Clean Railway Package: these static developer audits are absent from
+# the production runtime/package. FULL PREDEPLOY keeps the historical list.
+FULL_AUDIT_ONLY_MODULES = frozenset(('admin/maintenance_audit_v0400.py', 'admin/explicit_dependencies_audit_v0430.py', 'admin/explicit_gameplay_dependencies_audit_v0440.py', 'admin/explicit_stable_dependencies_audit_v0450.py', 'admin/explicit_persistence_audit_v0460.py', 'admin/combat_architecture_audit_v0470.py', 'admin/catalog_ownership_audit_v0480.py', 'admin/release_integrity_v0369.py'))
+FULL_RUNTIME_MODULES = tuple(_RUNTIME_MODULES_ALL)
+RUNTIME_MODULES = tuple(m for m in FULL_RUNTIME_MODULES if m not in FULL_AUDIT_ONLY_MODULES)
 
 
 # v0.43.0+: modules in this map are NOT seeded with the compatibility runtime
@@ -830,6 +839,14 @@ EXPLICIT_RUNTIME_EXPORTS["world/world_expansion_iii.py"] = (
     "WORLD_EXPANSION_III_NEW_ROOMS", "WORLD_EXPANSION_III_NEW_NPCS",
     "WORLD_EXPANSION_III_METRICS",
 )
+EXPLICIT_RUNTIME_EXPORTS["world/world_expansion_iv.py"] = (
+    "WORLD_EXPANSION_IV_VERSION", "WORLD_EXPANSION_IV_NAME",
+    "WORLD_EXPANSION_IV_REQUIRED_SOUL_TIER", "WORLD_EXPANSION_IV_STATE",
+    "STORY_QUEST_IDS_V0800", "SIDE_QUEST_IDS_V0800",
+)
+EXPLICIT_RUNTIME_EXPORTS["admin/world_expansion_iv_audit_v0800.py"] = (
+    "world_expansion_iv_audit_v0800", "WORLD_EXPANSION_IV_AUDIT_V0800",
+)
 EXPLICIT_RUNTIME_EXPORTS["systems/profession_quest_expansion.py"] = (
     "PROFESSION_QUEST_EXPANSION_VERSION", "PROFESSION_QUEST_SPECS_V0700",
     "PROFESSION_QUEST_STAGES_V0700", "PROFESSION_QUEST_IDS_V0700",
@@ -893,9 +910,7 @@ LEGACY_COMPATIBILITY_ALLOWLIST = (
     'admin/quest_kill_credit_audit_v0389.py',
     'admin/bounty_abandon_audit_v03814.py',
     'admin/architecture_audit_v0390.py',
-    'admin/maintenance_audit_v0400.py',
     'admin/native_modules_audit_v0410.py',
-    'admin/release_integrity_v0369.py',
 )
 
 EXPECTED_OVERRIDE_ORDER = {'_boss_floor_chest_spec': ['network/protocol_gameplay_utils.py', 'world/magitek_infinite.py'],

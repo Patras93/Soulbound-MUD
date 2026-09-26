@@ -37,6 +37,8 @@ from core.runtime_manifest import (
     EXPECTED_SESSION_METHOD_DUPLICATES,
     EXPLICIT_RUNTIME_EXPORTS,
     RUNTIME_MODULES,
+    FULL_RUNTIME_MODULES,
+    FULL_AUDIT_ONLY_MODULES,
 )
 
 _MODULE_META = {
@@ -44,20 +46,9 @@ _MODULE_META = {
     "__cached__", "__builtins__", "__doc__",
 }
 
-# v0.71.6: these modules are static/developer architecture audits. They inspect
-# source files and ASTs but do not provide gameplay services. Running them on
-# every Railway boot wasted many seconds. predeploy_full.py sets
-# SOULBOUND_FULL_AUDIT=1, which executes them exactly as before.
-_RUNTIME_FULL_AUDIT_ONLY = frozenset({
-    "admin/maintenance_audit_v0400.py",
-    "admin/explicit_dependencies_audit_v0430.py",
-    "admin/explicit_gameplay_dependencies_audit_v0440.py",
-    "admin/explicit_stable_dependencies_audit_v0450.py",
-    "admin/explicit_persistence_audit_v0460.py",
-    "admin/combat_architecture_audit_v0470.py",
-    "admin/catalog_ownership_audit_v0480.py",
-    "admin/release_integrity_v0369.py",
-})
+# v0.80.1: production runtime does not package developer-only static audits.
+_RUNTIME_FULL_AUDIT_ONLY = FULL_AUDIT_ONLY_MODULES
+
 
 
 def module_name_for_path(relative_path: str) -> str:
@@ -207,7 +198,8 @@ def load_native_runtime(root: Path, namespace: MutableMapping[str, object]) -> d
     """
     root = Path(root)
     full_audit_enabled = os.environ.get("SOULBOUND_FULL_AUDIT", "").strip().lower() in ("1", "true", "yes", "on")
-    missing = [name for name in RUNTIME_MODULES if not (root / name).is_file()]
+    active_modules = FULL_RUNTIME_MODULES if full_audit_enabled else RUNTIME_MODULES
+    missing = [name for name in active_modules if not (root / name).is_file()]
     if missing:
         raise RuntimeError("Soulbound runtime incomplete. Missing: " + ", ".join(missing))
 
@@ -226,7 +218,7 @@ def load_native_runtime(root: Path, namespace: MutableMapping[str, object]) -> d
     modules: list[ModuleType] = []
     compatibility_modules: list[ModuleType] = []
 
-    for relative in RUNTIME_MODULES:
+    for relative in active_modules:
         path = root / relative
         source = path.read_text(encoding="utf-8")
         symbols, methods, top_level_functions = _source_definition_index(source, str(path))
@@ -250,23 +242,6 @@ def load_native_runtime(root: Path, namespace: MutableMapping[str, object]) -> d
         module_name = module_name_for_path(relative)
         deferred = {name for name in top_level_functions if name in EXPECTED_OVERRIDE_ORDER and name in runtime}
         explicit_exports = EXPLICIT_RUNTIME_EXPORTS.get(relative)
-
-        if relative in _RUNTIME_FULL_AUDIT_ONLY and not full_audit_enabled:
-            # Keep source-definition indexing and manifest accounting, but do not
-            # execute expensive static analysis during a normal game-server boot.
-            module = ModuleType(module_name)
-            module.__file__ = str(path)
-            module.__package__ = module_name.rpartition(".")[0]
-            sys.modules[module_name] = module
-            changed = set()
-            modules.append(module)
-            module_index[module_name] = {
-                "file": relative,
-                "authored_symbol_count": 0,
-                "dependency_mode": "full-audit-only-skipped",
-                "declared_exports": tuple(explicit_exports or ()),
-            }
-            continue
 
         module, changed = _execute_native_module(
             path, module_name, runtime, compatibility_modules, deferred, explicit_exports
@@ -315,8 +290,8 @@ def load_native_runtime(root: Path, namespace: MutableMapping[str, object]) -> d
     state = {
         "version": "0.61.0",
         "module_count": len(modules),
-        "modules": tuple(RUNTIME_MODULES),
-        "native_module_names": tuple(module_name_for_path(p) for p in RUNTIME_MODULES),
+        "modules": tuple(active_modules),
+        "native_module_names": tuple(module_name_for_path(p) for p in active_modules),
         "override_symbol_count": len(observed),
         "session_method_collision_count": len(observed_method_dupes),
         "indexed_method_count": sum(len(rows) for rows in method_index.values()),

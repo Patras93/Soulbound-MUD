@@ -723,8 +723,8 @@ build_v0930_large_exploration_regions()
 # ============================================================
 # v0.10.0 - MASSIVE WORLD & DUNGEONS
 # ============================================================
-V0100_MAJOR_FLOOR_ROOMS = 15
-V0100_PROF_FLOOR_ROOMS = 10
+V0100_MAJOR_FLOOR_ROOMS = 30
+V0100_PROF_FLOOR_ROOMS = 20
 V0100_RESOURCE_ROOM_SETS = (
     "MINING_ROOMS", "FISHING_ROOMS", "SEA_FISHING_ROOMS",
     "OCEAN_FISHING_ROOMS", "MARINE_FISHING_ROOMS",
@@ -927,11 +927,12 @@ def v0100_expand_instance_floor(canonical_room, spawn_pairs=None, runtime=False)
     floor_seed = int(hashlib.sha256(seed_text.encode("utf-8")).hexdigest()[:16], 16)
     floor_rng = random.Random(floor_seed)
 
-    # Wejście na piętro prowadzi do labiryntu bokiem, a nie od razu dalej.
-    free_attach = [d for d in ("east", "south", "west", "north") if d not in exits]
-    attach_dir = floor_rng.choice(free_attach) if free_attach else "east"
+    # Najpierw budujemy pełną siatkę labiryntu. Wejście z kanonicznego pokoju
+    # podłączamy dopiero po utworzeniu połączeń wewnętrznych. Starszy układ
+    # podpinał wejście do r01 przed siatką i mógł zająć jedyny kierunek, który
+    # miał łączyć r01 z r02 (np. zwykła Krypta piętro 1), odcinając większość
+    # piętra.
     reverse = {"east": "west", "west": "east", "north": "south", "south": "north"}
-    v0100_connect_pair(canonical_room, attach_dir, maze_rooms[0], reverse[attach_dir])
 
     # Różne piętra dostają siatkę o szerokości 3 albo 4. Każdy rząd pozostaje
     # spójny, a między kolejnymi rzędami zawsze istnieje co najmniej jedno
@@ -963,6 +964,20 @@ def v0100_expand_instance_floor(canonical_room, spawn_pairs=None, runtime=False)
             b = maze_rooms[below[c]]
             if "south" not in ROOMS[a]["exits"] and "north" not in ROOMS[b]["exits"]:
                 v0100_connect_pair(a, "south", b, "north")
+
+    # Podepnij lądowanie do dowolnej komnaty brzegowej z wolnym kierunkiem.
+    # Dzięki temu wejście nigdy nie rozrywa spójności siatki.
+    free_attach = [d for d in ("east", "south", "west", "north") if d not in exits]
+    attach_candidates = []
+    for d in free_attach:
+        rev = reverse[d]
+        for rid in maze_rooms:
+            if rev not in ROOMS[rid]["exits"]:
+                attach_candidates.append((d, rid, rev))
+    if not attach_candidates:
+        raise RuntimeError(f"Brak wolnego połączenia wejściowego dla {canonical_room}")
+    attach_dir, attach_room, attach_reverse = floor_rng.choice(attach_candidates)
+    v0100_connect_pair(canonical_room, attach_dir, attach_room, attach_reverse)
 
     # Ostatnia komnata jest za labiryntem i zawiera drogę na kolejne piętro.
     tail = maze_rooms[-1]
@@ -1944,8 +1959,8 @@ HELP_TOPICS["wielkie_lochy"] = [
     "v0.11.0: wszystkie piętrowe Krypty i lochy są generowane dynamicznie od pierwszego poziomu, dopiero gdy gracz do nich wchodzi.",
     "Dotyczy to obu Krypt, obu Wież Astralnych, Twierdzy Gigantów, Kopalni Głębinowej i czterech lochów profesyjnych.",
     "v0.10.0 usuwa małe liniowe piętra z głównych instancji.",
-    "Krypta, Mityczna Krypta, Wieża Astralna, Mityczna Wieża Astralna i Twierdza Gigantów mają po 15 pomieszczeń na piętro.",
-    "Lochy profesyjne mają po 10 pomieszczeń na poziom.",
+    "v0.80.0: Krypta, Mityczna Krypta, Wieża Astralna, Mityczna Wieża Astralna i Twierdza Gigantów mają po 30 pomieszczeń na piętro.",
+    "v0.80.0: Lochy profesyjne mają po 20 pomieszczeń na poziom.",
     "Schody na następne piętro są w końcowej komnacie, a nie przy wejściu.",
     "Na piętrach co 10 boss pilnuje przejścia dalej; po pierwszym trwałym zaliczeniu jego późniejszy respawn nie blokuje postaci.",
     "Dynamiczne piętra ponad dawnym końcem są generowane w tym samym dużym układzie.",

@@ -1,3 +1,43 @@
+Soulbound v0.80.1 — Clean Railway Package
+
+- Rozdzielono produkcyjny runtime Railway od ośmiu statycznych auditów developerskich, które od v0.71.6 i tak nie wykonywały się przy normalnym starcie.
+- FULL release nadal zawiera komplet auditów i zachowuje historyczną kolejność przez FULL_RUNTIME_MODULES / predeploy_full.py.
+- DEPLOY_ONLY fizycznie nie zawiera tych nieużywanych auditów ani niepotrzebnego validation/catalog_ownership.py.
+- Docker nie kopiuje już Dockerfile do obrazu runtime; CHANGELOG_PL.txt pozostaje w obrazie, ponieważ komenda `changes / zmiany / changelog` udostępnia graczom pełną historię zmian.
+- predeploy_check.py działa tylko podczas budowy obrazu i jest po teście usuwany z /app.
+- .dockerignore odrzuca cache Pythona, lokalne pliki SQLite/WAL/SHM, logi, ZIP-y, release notes i predeploy_full.py; produkcyjny CHANGELOG_PL.txt pozostaje dostępny dla graczy.
+- Usunięto przypadkowe soulbound.db-wal / soulbound.db-shm oraz __pycache__ z paczek wydania.
+- FAST PREDEPLOY: PASS — 175 modułów produkcyjnych, 0 braków, 0 błędów składni, Docker COPY 0 braków, Railway import PASS, SQLite 102/105, 877 aliasów / 239 handlerów.
+- Normalny start z fizycznie odchudzonego DEPLOY_ONLY: PASS.
+- Hashe ITEMS, MOB_TEMPLATES, QUESTS, ROOMS, MOB_SPAWNS, HELP_TOPICS, HELP_TOPIC_ALIASES i COMMAND_ALIASES są identyczne z v0.80.0; gameplay, balans i HELP bez zmian.
+- Brak wipe i brak nowej migracji SQLite.
+Soulbound v0.80.0 — Archipelag Pękniętej Gwiazdy
+
+- Dodano nowy Archipelag Pękniętej Gwiazdy połączony z Gwiezdnym Portem.
+- Dodano Przystań Siedmiu Latarni jako główny hub ekspansji.
+- Dodano pięć nowych stref/wysp i ponad 35 nowych lokacji.
+- Dodano pełną, 12-etapową linię fabularną rozpoczynaną u Kapitan Seris (Soul Tier 10).
+- Dodano 15 nowych przeciwników, w tym 5 bossów fabularnych.
+- Dodano 6 nowych NPC oraz 5 powtarzalnych kontraktów godzinnych.
+- Dodano cztery fabularne Odłamki Gwiazdy.
+- Dodano legendarny relikt Kompas Pękniętej Gwiazdy jako nagrodę za finał kampanii.
+- Dodano World Expansion IV Audit v0.80.0.
+- Brak wipe postaci i brak nowej migracji SQLite.
+- Zachowano wszystkie optymalizacje RAM/runtime z v0.71.x.
+
+- Rozbudowano Krypty i główne instancje do 30 pomieszczeń na każde piętro (wcześniej 15).
+- Rozbudowano lochy profesyjne i Kopalnię Głębinową do 20 pomieszczeń na poziom (wcześniej 10).
+- Naprawiono generator wejścia do wielopokojowych pięter: wejście nie może już odciąć części labiryntu przez zajęcie kierunku używanego przez siatkę.
+- Test osiągalności potwierdza 30/30 pokoi dla Krypty i 20/20 dla wszystkich lochów profesyjnych.
+
+Soulbound v0.71.9 — Accessibility Exits Hotfix
+==============================================================================
+- `ex` / `wyjścia` podaje teraz wszystkie dostępne kierunki w jednej krótkiej linii `Kierunki: ...`.
+- Każde wyjście jest następnie wysyłane osobnym komunikatem, aby NVDA i klient MUD nie gubiły linii z wieloliniowego bloku.
+- `ex info` zachowuje szczegółowe informacje o celu i zagrożeniu.
+- Dodano Accessibility Exits Audit v0.71.9.
+- Brak zmian gameplayu, balansu i SQLite; wipe nie jest wymagany.
+
 ==============================================================================
 Soulbound v0.71.8 — Runtime Performance III
 ==============================================================================
@@ -1782,3 +1822,4 @@ Poniższe numery są nadal referencjonowane w aktualnej bazie, ale ich pełne re
 - v0.30.51, v0.30.52, v0.30.59, v0.31.3, v0.31.5, v0.31.6, v0.31.8, v0.31.12
 - v0.31.16, v0.33.1, v0.33.2, v0.33.11, v0.33.16, v0.34.3, v0.34.4, v0.34.6
 - v0.35.1, v0.36.9
+
