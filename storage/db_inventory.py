@@ -187,13 +187,13 @@ class DatabaseInventoryMixin:
         ).fetchone()
         return int(row["quantity"]) if row else 0
 
-    def add_item(self, account_id, item_id, qty=1):
+    def add_item(self, account_id, item_id, qty=1, commit=True):
         qty = max(1, int(qty))
         # v0.9.15: materiały rzemieślnicze nigdy nie zapychają zwykłego
         # inventory. Każde źródło używające add_item automatycznie kieruje
         # je do Szkatułki Rzemieślniczej.
         if item_id in CRAFT_MATERIAL_STORAGE_IDS:
-            self.add_storage_item(account_id, "craftbox", item_id, qty)
+            self.add_storage_item(account_id, "craftbox", item_id, qty, commit=commit)
             return
         self.conn.execute(
             """
@@ -203,7 +203,8 @@ class DatabaseInventoryMixin:
             """,
             (account_id, item_id, qty),
         )
-        self.conn.commit()
+        if commit:
+            self.conn.commit()
 
     def add_drop_history(self, account_id, item_id, item_name, rarity, source, zone):
         self.conn.execute(
@@ -231,7 +232,7 @@ class DatabaseInventoryMixin:
             (account_id, max(1, min(DROP_HISTORY_LIMIT, int(limit)))),
         ).fetchall()
 
-    def remove_item(self, account_id, item_id, qty=1):
+    def remove_item(self, account_id, item_id, qty=1, commit=True):
         current = self.item_qty(account_id, item_id)
         if current < qty:
             return False
@@ -246,7 +247,8 @@ class DatabaseInventoryMixin:
                 "UPDATE inventory SET quantity=? WHERE account_id=? AND item_id=?",
                 (new_qty, account_id, item_id),
             )
-        self.conn.commit()
+        if commit:
+            self.conn.commit()
         return True
 
     def transfer_inventory_item(self, from_account_id, to_account_id, item_id, qty=1):
@@ -475,7 +477,7 @@ class DatabaseInventoryMixin:
         ).fetchone()
         return row["item_id"] if row else None
 
-    def equip(self, account_id, slot, item_id):
+    def equip(self, account_id, slot, item_id, commit=True):
         self.conn.execute(
             """
             INSERT INTO equipment(account_id,slot,item_id) VALUES(?,?,?)
@@ -483,7 +485,8 @@ class DatabaseInventoryMixin:
             """,
             (account_id, slot, item_id),
         )
-        self.conn.commit()
+        if commit:
+            self.conn.commit()
 
     def unequip(self, account_id, slot):
         self.conn.execute(
@@ -607,7 +610,7 @@ class DatabaseInventoryMixin:
         ).fetchone()
         return int(row["quantity"]) if row else 0
 
-    def add_storage_item(self, account_id, container, item_id, qty=1):
+    def add_storage_item(self, account_id, container, item_id, qty=1, commit=True):
         self.conn.execute(
             """
             INSERT INTO profession_storage(account_id,container,item_id,quantity)
@@ -617,9 +620,10 @@ class DatabaseInventoryMixin:
             """,
             (account_id, container, item_id, qty),
         )
-        self.conn.commit()
+        if commit:
+            self.conn.commit()
 
-    def remove_storage_item(self, account_id, container, item_id, qty=1):
+    def remove_storage_item(self, account_id, container, item_id, qty=1, commit=True):
         current = self.storage_qty(account_id, container, item_id)
         if current < qty:
             return False
@@ -636,15 +640,31 @@ class DatabaseInventoryMixin:
                 "WHERE account_id=? AND container=? AND item_id=?",
                 (new_qty, account_id, container, item_id),
             )
-        self.conn.commit()
+        if commit:
+            self.conn.commit()
         return True
 
     def total_items_across_storage_and_inventory(self, account_id, item_ids, container=None):
-        total = 0
-        for item_id in item_ids:
-            total += self.item_qty(account_id, item_id)
-            if container:
-                total += self.storage_qty(account_id, container, item_id)
+        # v0.71.8: one aggregate query per storage location instead of 1-2
+        # SELECTs for every ingredient/resource id. This is hot in crafting and
+        # collection checks with large candidate pools.
+        ids = tuple(dict.fromkeys(str(item_id) for item_id in item_ids if item_id))
+        if not ids:
+            return 0
+        placeholders = ",".join("?" for _ in ids)
+        row = self.conn.execute(
+            f"SELECT COALESCE(SUM(quantity),0) AS total FROM inventory "
+            f"WHERE account_id=? AND item_id IN ({placeholders})",
+            (account_id, *ids),
+        ).fetchone()
+        total = int(row["total"] or 0) if row else 0
+        if container:
+            row = self.conn.execute(
+                f"SELECT COALESCE(SUM(quantity),0) AS total FROM profession_storage "
+                f"WHERE account_id=? AND container=? AND item_id IN ({placeholders})",
+                (account_id, container, *ids),
+            ).fetchone()
+            total += int(row["total"] or 0) if row else 0
         return total
 
     def consume_items_across_storage_and_inventory(self, account_id, item_ids, needed, container=None):

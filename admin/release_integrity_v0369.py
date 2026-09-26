@@ -1,3 +1,4 @@
+from pathlib import Path
 # -*- coding: utf-8 -*-
 """Soulbound v0.36.9 - cumulative release integrity guard.
 
@@ -82,7 +83,90 @@ _RELEASE_AUDITS_V0369 = [
     ("v0.71.2 Hourly Quest Diversity & Rewards", "LIVING_NPCS_ACTIVITY_AUDIT_V0560"),
     ("v0.71.3 Orders for All Professions", "CRAFTING_ORDERS_COMPARE_AUDIT_V0600"),
     ("v0.71.4 Eren Treasure Map Hotfix", "COURIER_PROFESSION_EXPANSION_AUDIT_V0700"),
+    ("v0.71.5 Performance Hotfix", "PERFORMANCE_HOTFIX_AUDIT_V0715"),
+    ("v0.71.6 Startup Performance Hotfix", "STARTUP_PERFORMANCE_AUDIT_V0716"),
+    ("v0.71.7 Runtime Performance II", "RUNTIME_PERFORMANCE_AUDIT_V0717"),
+    ("v0.71.8 Runtime Performance III", "RUNTIME_PERFORMANCE_AUDIT_V0718"),
 ]
+
+PERFORMANCE_HOTFIX_AUDIT_V0715 = {
+    "version": "0.71.5",
+    "error_count": 0,
+    "errors": [],
+}
+try:
+    _world_cls = globals().get("World")
+    _refresh = getattr(_world_cls, "refresh", None)
+    if getattr(_refresh, "__defaults__", None) != (False,):
+        PERFORMANCE_HOTFIX_AUDIT_V0715["errors"].append("World.refresh force/coalescing API missing")
+    _find = globals().get("find_by_name")
+    _find_code = getattr(_find, "__code__", None)
+    if "_v0715_cache" not in tuple(str(x) for x in getattr(_find_code, "co_names", ())):
+        PERFORMANCE_HOTFIX_AUDIT_V0715["errors"].append("ITEMS lookup cache missing")
+    _db_source = (Path(__file__).resolve().parents[1] / "storage" / "database.py").read_text(encoding="utf-8")
+    if "PRAGMA synchronous=NORMAL" not in _db_source:
+        PERFORMANCE_HOTFIX_AUDIT_V0715["errors"].append("SQLite WAL synchronous=NORMAL missing")
+except Exception as exc:
+    PERFORMANCE_HOTFIX_AUDIT_V0715["errors"].append(f"performance audit exception: {type(exc).__name__}: {exc}")
+PERFORMANCE_HOTFIX_AUDIT_V0715["error_count"] = len(PERFORMANCE_HOTFIX_AUDIT_V0715["errors"])
+
+STARTUP_PERFORMANCE_AUDIT_V0716 = {"version":"0.71.6", "error_count":0, "errors":[]}
+try:
+    import core.native_runtime as _nr_v0716
+    if len(getattr(_nr_v0716, "_RUNTIME_FULL_AUDIT_ONLY", ())) < 8:
+        STARTUP_PERFORMANCE_AUDIT_V0716["errors"].append("runtime audit-only startup skip set missing")
+    _gen_src = (Path(__file__).resolve().parents[1] / "core" / "generator_core.py").read_text(encoding="utf-8")
+    if "ordinary class-shop EQ receives its stage" not in _gen_src or "not _plain_class_shop" not in _gen_src:
+        STARTUP_PERFORMANCE_AUDIT_V0716["errors"].append("class-shop Generator fast path missing")
+except Exception as exc:
+    STARTUP_PERFORMANCE_AUDIT_V0716["errors"].append(f"startup performance audit exception: {type(exc).__name__}: {exc}")
+STARTUP_PERFORMANCE_AUDIT_V0716["error_count"] = len(STARTUP_PERFORMANCE_AUDIT_V0716["errors"])
+
+RUNTIME_PERFORMANCE_AUDIT_V0717 = {"version":"0.71.7", "error_count":0, "errors":[]}
+try:
+    _root_v0717 = Path(__file__).resolve().parents[1]
+    _world_src_v0717 = (_root_v0717 / "world" / "world_state.py").read_text(encoding="utf-8")
+    if "_last_live_by_room" not in _world_src_v0717 or "self._last_live_by_room.get(room_id, ())" not in _world_src_v0717:
+        RUNTIME_PERFORMANCE_AUDIT_V0717["errors"].append("per-room live mob index missing")
+    _inv_src_v0717 = (_root_v0717 / "player" / "session_mixins" / "inventory_equipment.py").read_text(encoding="utf-8")
+    if "_owned_inventory_quantities_v0717" not in _inv_src_v0717 or "equip(self.account_id, slot, best_id, commit=False)" not in _inv_src_v0717:
+        RUNTIME_PERFORMANCE_AUDIT_V0717["errors"].append("owned-inventory hot path or batched auto-equip missing")
+    _gather_src_v0717 = (_root_v0717 / "player" / "session_mixins" / "gathering.py").read_text(encoding="utf-8")
+    if "_base_gems_v0717" not in _gather_src_v0717:
+        RUNTIME_PERFORMANCE_AUDIT_V0717["errors"].append("mining gem catalog cache missing")
+    _db_inv_src_v0717 = (_root_v0717 / "storage" / "db_inventory.py").read_text(encoding="utf-8")
+    if "def equip(self, account_id, slot, item_id, commit=True):" not in _db_inv_src_v0717:
+        RUNTIME_PERFORMANCE_AUDIT_V0717["errors"].append("batched equipment commit API missing")
+    _sources_src_v0717 = (_root_v0717 / "player" / "session_mixins" / "item_sources.py").read_text(encoding="utf-8")
+    if "resolve_item_query_v0610._v0717_cache" not in _sources_src_v0717:
+        RUNTIME_PERFORMANCE_AUDIT_V0717["errors"].append("item source lookup cache missing")
+except Exception as exc:
+    RUNTIME_PERFORMANCE_AUDIT_V0717["errors"].append(f"runtime performance audit exception: {type(exc).__name__}: {exc}")
+RUNTIME_PERFORMANCE_AUDIT_V0717["error_count"] = len(RUNTIME_PERFORMANCE_AUDIT_V0717["errors"])
+
+RUNTIME_PERFORMANCE_AUDIT_V0718 = {"version":"0.71.8", "error_count":0, "errors":[]}
+try:
+    _root_v0718 = Path(__file__).resolve().parents[1]
+    _predeploy_src_v0718 = (_root_v0718 / "predeploy_full.py").read_text(encoding="utf-8")
+    if 'full = ns["FULL_GAME_PREDEPLOY_AUDIT_V0336"]' not in _predeploy_src_v0718:
+        RUNTIME_PERFORMANCE_AUDIT_V0718["errors"].append("FULL predeploy still repeats Full Game Audit")
+    _db_inv_src_v0718 = (_root_v0718 / "storage" / "db_inventory.py").read_text(encoding="utf-8")
+    if "def add_item(self, account_id, item_id, qty=1, commit=True):" not in _db_inv_src_v0718:
+        RUNTIME_PERFORMANCE_AUDIT_V0718["errors"].append("batched inventory commit API missing")
+    if "COALESCE(SUM(quantity),0)" not in _db_inv_src_v0718:
+        RUNTIME_PERFORMANCE_AUDIT_V0718["errors"].append("aggregate inventory/storage quantity query missing")
+    _prof_src_v0718 = (_root_v0718 / "player" / "session_mixins" / "profession_storage.py").read_text(encoding="utf-8")
+    if "commit=False" not in _prof_src_v0718 or "if moved:\n                self.server.db.conn.commit()" not in _prof_src_v0718:
+        RUNTIME_PERFORMANCE_AUDIT_V0718["errors"].append("bulk profession storage commit batching missing")
+    _cmd_src_v0718 = (_root_v0718 / "player" / "session_mixins" / "command_loop.py").read_text(encoding="utf-8")
+    if "[PERF SLOW COMMAND]" not in _cmd_src_v0718:
+        RUNTIME_PERFORMANCE_AUDIT_V0718["errors"].append("slow command diagnostics missing")
+    _server_src_v0718 = (_root_v0718 / "server" / "mud_server.py").read_text(encoding="utf-8")
+    if "[PERF SLOW WORLD TICK]" not in _server_src_v0718:
+        RUNTIME_PERFORMANCE_AUDIT_V0718["errors"].append("slow world tick diagnostics missing")
+except Exception as exc:
+    RUNTIME_PERFORMANCE_AUDIT_V0718["errors"].append(f"runtime performance III audit exception: {type(exc).__name__}: {exc}")
+RUNTIME_PERFORMANCE_AUDIT_V0718["error_count"] = len(RUNTIME_PERFORMANCE_AUDIT_V0718["errors"])
 
 def cumulative_release_integrity_audit_v0369():
     errors=[]
@@ -99,13 +183,13 @@ def cumulative_release_integrity_audit_v0369():
         preserved.append(label)
 
     # Direct release-line checks for the exact milestones the user flagged.
-    if str(globals().get("VERSION","")) != "0.71.4":
-        errors.append(f"VERSION={globals().get('VERSION')!r}, expected 0.71.4")
+    if str(globals().get("VERSION","")) != "0.71.8":
+        errors.append(f"VERSION={globals().get('VERSION')!r}, expected 0.71.8")
     if str(globals().get("GENERATOR_CORE_VERSION","")) != "0.61.0":
         errors.append(f"Generator Core={globals().get('GENERATOR_CORE_VERSION')!r}, expected 0.61.0")
 
     return {
-        "version":"0.71.4",
+        "version":"0.71.8",
         "checked":len(_RELEASE_AUDITS_V0369),
         "preserved":preserved,
         "preserved_count":len(preserved),
@@ -116,7 +200,7 @@ def cumulative_release_integrity_audit_v0369():
 CUMULATIVE_RELEASE_INTEGRITY_AUDIT_V0369=cumulative_release_integrity_audit_v0369()
 if CUMULATIVE_RELEASE_INTEGRITY_AUDIT_V0369["error_count"]:
     raise RuntimeError(
-        "Cumulative Release Integrity Audit v0.71.4 failed: "
+        "Cumulative Release Integrity Audit v0.71.8 failed: "
         + "; ".join(CUMULATIVE_RELEASE_INTEGRITY_AUDIT_V0369["errors"][:100])
     )
 
@@ -149,8 +233,14 @@ HELP_TOPICS.setdefault("wersja", []).append("v0.61.4: Crafting Logistics dodaje 
 HELP_TOPICS.setdefault("wersja", []).append("v0.71.2: godzinne questy NPC mają różne cele (rozmowa, dostawa, zbieranie, patrol), nie skupiają się na jednym NPC i żaden powtarzalny quest nie daje już tylko 1 EXP postaci.")
 HELP_TOPICS.setdefault("wersja", []).append("v0.71.3: rotujące zamówienia działają dla wszystkich 12 profesji; Wędkarstwo, Górnictwo, Drwalstwo i Zielarstwo mają dostawy świeżo zebranych zasobów, a Zaklinanie liczy udane zaklęcia.")
 HELP_TOPICS.setdefault("wersja", []).append("v0.71.4: naprawiono `użyj mapy` dla questu Kartografa Erena; aktywny quest potrafi też bezpiecznie odtworzyć brakującą mapę, jeśli trop nie został jeszcze zapisany.")
-LATEST_CHANGES_TITLE = "Soulbound v0.71.4 - Eren Treasure Map Hotfix"
+HELP_TOPICS.setdefault("wersja", []).append("v0.71.7: Runtime Performance II ogranicza skany globalnych katalogów podczas gry, indeksuje żywe moby per pokój i grupuje zapisy Auto EQ; gameplay i balans bez zmian.")
+HELP_TOPICS.setdefault("wersja", []).append("v0.71.8: Runtime Performance III usuwa podwójne wykonanie Full Game Audit, grupuje zapisy przy przenoszeniu surowców i dodaje lekką diagnostykę wolnych komend/ticków; gameplay bez zmian.")
+LATEST_CHANGES_TITLE = "Soulbound v0.71.8 - Runtime Performance III"
 LATEST_CHANGES = [
+    "v0.71.8: Full PREDEPLOY nie uruchamia już drugi raz Full Game Audit; bulk storage używa jednego commita, a wieloelementowe liczenie zasobów używa agregacji SQL; log wskazuje komendy >=0.25 s i ticki świata >=0.10 s.",
+    "v0.71.7: gorące komendy pracują na faktycznie posiadanych przedmiotach zamiast skanować 30k+ ITEMS; świat używa indeksu żywych mobów per pokój; Górnictwo i źródła przedmiotów mają trwałe cache katalogów.",
+    "v0.71.6: ciężkie audyty architektury działają w FULL PREDEPLOY, nie przy zwykłym starcie; Generator Core pomija zbędne obliczenia masowego klasowego EQ.",
+    "v0.71.5: zoptymalizowano gorące ścieżki świata, cache wyszukiwania ITEMS i SQLite WAL bez zmiany balansu ani zawartości.",
     "v0.71.4: `użyj mapy` poprawnie wybiera questową Mapę Erena i zapisuje trop do zadania Znak poza mapą.",
     "v0.71.3: rotujące zamówienia obejmują wszystkie 12 profesji, nie tylko profesje wytwórcze.",
     "Wędkarstwo, Górnictwo, Drwalstwo i Zielarstwo mają trzy godzinne dostawy, które liczą wyłącznie świeżo zebrane surowce po przyjęciu zamówienia.",

@@ -268,12 +268,11 @@ class SessionBankingCharismaMixin:
                 )
                 return False
 
+            inventory_rows_v0717 = self.server.db.inventory(self.account_id)
             owned = {
-                item_id: item
-                for item_id, item in ITEMS.items()
-                if self.server.db.item_qty(
-                    self.account_id, item_id
-                ) > 0
+                str(row["item_id"]): ITEMS.get(str(row["item_id"]), {"name": str(row["item_id"])})
+                for row in inventory_rows_v0717
+                if int(row["quantity"] or 0) > 0
             }
             found = find_by_name(owned, query)
             if not found:
@@ -291,8 +290,9 @@ class SessionBankingCharismaMixin:
                 )
                 return False
 
-            current = self.server.db.item_qty(
-                self.account_id, item_id
+            current = next(
+                (int(row["quantity"] or 0) for row in inventory_rows_v0717 if str(row["item_id"]) == item_id),
+                0,
             )
 
             equipped_ids = {

@@ -1,20 +1,4 @@
 ==============================================================================
-Soulbound v0.71.8 — Runtime Performance III
-==============================================================================
-
-- FULL PREDEPLOY nie wykonuje już drugi raz `full_game_predeploy_audit_v0336()`. `server.py` uruchamia ten audit raz przy `SOULBOUND_FULL_AUDIT=1`, a `predeploy_full.py` wykorzystuje już gotowy wynik.
-- `add_item`, `remove_item`, `add_storage_item` i `remove_storage_item` mają opcjonalny `commit=False`, dzięki czemu bezpieczne operacje zbiorcze mogą zapisać kilka zmian jednym commitem. Domyślne zachowanie nadal commituję natychmiast.
-- Przenoszenie wielu surowców między inventory a Siatką/Sakwą/Stosem/Torbą Zielarską wykonuje jeden końcowy commit zamiast dwóch commitów na każdy typ surowca.
-- `total_items_across_storage_and_inventory()` używa agregacji SQL `SUM(...) ... IN (...)`: jedna operacja na inventory i opcjonalnie jedna na magazyn zamiast 1–2 SELECT-ów dla każdego ID.
-- Dodano lekką diagnostykę runtime bez spamu: log `[PERF SLOW COMMAND]` pojawia się tylko dla komendy trwającej co najmniej 0,25 s, a `[PERF SLOW WORLD TICK]` tylko dla ticka świata co najmniej 0,10 s.
-- Zachowano Memory Efficiency II v0.61.6 oraz wszystkie optymalizacje v0.71.5–v0.71.7.
-- Porównanie finalnych runtime v0.71.7 i v0.71.8 przy identycznym world seed daje identyczne SHA-256 dla ITEMS, MOB_TEMPLATES, QUESTS, ROOMS i MOB_SPAWNS. Gameplay i balans są niezmienione.
-- Normalny runtime dochodzi do `World Core nasłuchuje` poprawnie.
-- FAST PREDEPLOY: PASS — 181 modułów runtime, 0 braków, 0 błędów składni, Railway critical import PASS, SQLite 102 tabel / 105 obiektów, 877 aliasów / 239 handlerów.
-- FULL PREDEPLOY: nadal nie oznaczono PASS — pozostałe historyczne audyty/analizy AST są ciężkie i nie zakończyły się w dostępnym oknie wykonania; przed przerwaniem nie zgłoszono błędu.
-- Brak wipe postaci, brak nowej migracji SQLite i brak zmian gameplayu/balansu.
-
-==============================================================================
 Soulbound v0.71.7 — Runtime Performance II
 ==============================================================================
 

@@ -103,10 +103,12 @@ class SessionEquipmentCompareV0600Mixin:
         if not raw:
             await self.send("Użycie: porownaj <przedmiot>, na przykład porownaj Runiczny Pierścień Harmonii.")
             return
-        owned = {
-            item_id: item for item_id, item in ITEMS.items()
-            if item.get("type") == "armor" and int(self.server.db.item_qty(self.account_id, item_id)) > 0
-        }
+        owned = {}
+        for row in self.server.db.inventory(self.account_id):
+            item_id = str(row["item_id"])
+            item = ITEMS.get(item_id)
+            if item and item.get("type") == "armor" and int(row["quantity"] or 0) > 0:
+                owned[item_id] = item
         found = find_by_name(owned, raw)
         if not found:
             q = normalize_lookup_text(raw)

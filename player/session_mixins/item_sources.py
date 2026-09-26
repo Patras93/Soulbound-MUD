@@ -61,18 +61,29 @@ def resolve_item_query_v0610(query):
     if not q:
         return None, None, []
 
-    exact = []
-    partial = []
-    for item_id, item in ITEMS.items():
-        terms = _item_search_terms_v0610(item_id, item)
-        if q in terms:
-            exact.append((item_id, item))
-        elif any(q in term for term in terms):
-            partial.append((item_id, item))
+    # v0.71.7: item-source lookups no longer normalize 30k+ catalog entries
+    # on every command. Rebuild only if runtime variants changed ITEMS size.
+    cache = getattr(resolve_item_query_v0610, "_v0717_cache", None)
+    if not isinstance(cache, tuple) or cache[0] != len(ITEMS):
+        rows = []
+        exact_map = {}
+        for item_id, item in ITEMS.items():
+            terms = tuple(_item_search_terms_v0610(item_id, item))
+            rows.append((item_id, item, terms))
+            for term in terms:
+                exact_map.setdefault(term, []).append((item_id, item))
+        cache = (len(ITEMS), tuple(rows), exact_map)
+        resolve_item_query_v0610._v0717_cache = cache
 
+    exact = list(cache[2].get(q, ()))
     if exact:
         exact.sort(key=lambda row: (normalize_lookup_text(row[1].get("name", "")), row[0]))
         return exact[0][0], exact[0][1], []
+
+    partial = []
+    for item_id, item, terms in cache[1]:
+        if any(q in term for term in terms):
+            partial.append((item_id, item))
     if len(partial) == 1:
         return partial[0][0], partial[0][1], []
     if partial:

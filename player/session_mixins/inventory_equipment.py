@@ -35,6 +35,30 @@ from world.generation_systems import V014_TREASURE_MAP_ITEM, V0243_EREN_SECRET_M
 
 
 class SessionInventoryEquipmentMixin:
+    # v0.71.7: hot inventory paths operate on the player's small owned set
+    # instead of scanning the 30k+ global ITEMS catalog and issuing item_qty()
+    # once per catalog entry.
+    def _owned_inventory_quantities_v0717(self):
+            return {
+                str(row["item_id"]): int(row["quantity"] or 0)
+                for row in self.server.db.inventory(self.account_id)
+                if int(row["quantity"] or 0) > 0
+            }
+
+    def _equipped_counts_v0717(self):
+            counts = {}
+            for row in self.server.db.equipment(self.account_id):
+                item_id = str(row["item_id"])
+                counts[item_id] = counts.get(item_id, 0) + 1
+            return counts
+
+    def _free_inventory_quantities_v0717(self):
+            quantities = self._owned_inventory_quantities_v0717()
+            for item_id, count in self._equipped_counts_v0717().items():
+                if ITEMS.get(item_id, {}).get("type") == "armor":
+                    quantities[item_id] = max(0, quantities.get(item_id, 0) - count)
+            return quantities
+
     def equipped_quantity_of_item(self, item_id):
             return sum(
                 1 for row in self.server.db.equipment(self.account_id)
@@ -49,13 +73,15 @@ class SessionInventoryEquipmentMixin:
             )
 
     def resolve_transferable_equipment(self, query):
+            free = self._free_inventory_quantities_v0717()
             transferable = {
-                item_id: item
-                for item_id, item in ITEMS.items()
+                item_id: ITEMS[item_id]
+                for item_id, qty in free.items()
                 if (
-                    item.get("type") == "armor"
+                    qty > 0
+                    and item_id in ITEMS
+                    and ITEMS[item_id].get("type") == "armor"
                     and not is_character_bound_item(item_id)
-                    and self.free_equipment_quantity(item_id) > 0
                 )
             }
             return find_by_name(transferable, query)
@@ -68,13 +94,15 @@ class SessionInventoryEquipmentMixin:
             return max(0, int(total))
 
     def resolve_transferable_inventory_item(self, query):
+            free = self._free_inventory_quantities_v0717()
             transferable = {
-                item_id: item
-                for item_id, item in ITEMS.items()
+                item_id: ITEMS[item_id]
+                for item_id, qty in free.items()
                 if (
-                    self.free_transferable_quantity(item_id) > 0
+                    qty > 0
+                    and item_id in ITEMS
                     and not is_character_bound_item(item_id)
-                    and item.get("type") != "quest"
+                    and ITEMS[item_id].get("type") != "quest"
                 )
             }
             return find_by_name(transferable, query)
@@ -177,9 +205,9 @@ class SessionInventoryEquipmentMixin:
             found = self.resolve_transferable_inventory_item(item_query)
             if not found:
                 owned = {
-                    item_id: item
-                    for item_id, item in ITEMS.items()
-                    if self.server.db.item_qty(self.account_id, item_id) > 0
+                    item_id: ITEMS.get(item_id, {"name": item_id})
+                    for item_id, qty in self._owned_inventory_quantities_v0717().items()
+                    if qty > 0
                 }
                 owned_found = find_by_name(owned, item_query)
                 if owned_found:
@@ -557,11 +585,9 @@ class SessionInventoryEquipmentMixin:
 
             active_classes = set(self.active_class_names())
             owned = {}
-            for item_id, item in ITEMS.items():
-                if item.get("type") != "armor":
-                    continue
-                qty = int(self.server.db.item_qty(self.account_id, item_id) or 0)
-                if qty <= 0:
+            for item_id, qty in self._owned_inventory_quantities_v0717().items():
+                item = ITEMS.get(item_id)
+                if not item or item.get("type") != "armor":
                     continue
                 required_class = item.get("required_class")
                 if required_class and required_class not in active_classes:
@@ -579,6 +605,10 @@ class SessionInventoryEquipmentMixin:
 
             changes = []
             returned_gems = []
+            equipped_rows_v0717 = self.server.db.equipment(self.account_id)
+            equipped_by_slot_v0717 = {
+                str(row["slot"]): str(row["item_id"]) for row in equipped_rows_v0717
+            }
             single_slots = (
                 "head", "body", "hands", "legs", "feet", "necklace",
                 "shoulders", "belt", "cloak", "bracers", "relic", "board",
@@ -594,7 +624,7 @@ class SessionInventoryEquipmentMixin:
                     continue
                 candidates.sort(key=lambda row: row[0], reverse=True)
                 _score, best_id, best_item = candidates[0]
-                old_id = self.server.db.equipped_item(self.account_id, slot)
+                old_id = equipped_by_slot_v0717.get(slot)
                 old_item = ITEMS.get(old_id) if old_id else None
                 if old_id == best_id:
                     continue
@@ -602,7 +632,8 @@ class SessionInventoryEquipmentMixin:
                     continue
                 if slot == "necklace" and old_id:
                     returned_gems.extend(await self.return_socketed_gems(slot, old_id))
-                self.server.db.equip(self.account_id, slot, best_id)
+                self.server.db.equip(self.account_id, slot, best_id, commit=False)
+                equipped_by_slot_v0717[slot] = best_id
                 changes.append((slot, old_item.get("name", old_id) if old_item else "pusty", best_item.get("name", best_id)))
 
             duals = {
@@ -627,7 +658,7 @@ class SessionInventoryEquipmentMixin:
                 current_by_slot = {}
                 equipped_counts = {}
                 for slot in pair:
-                    cur = self.server.db.equipped_item(self.account_id, slot)
+                    cur = equipped_by_slot_v0717.get(slot)
                     if not cur:
                         continue
                     current_by_slot[slot] = cur
@@ -688,15 +719,19 @@ class SessionInventoryEquipmentMixin:
                     target_id = desired.get(slot)
                     if not target_id:
                         continue
-                    old_id = self.server.db.equipped_item(self.account_id, slot)
+                    old_id = equipped_by_slot_v0717.get(slot)
                     if old_id == target_id:
                         continue
                     target_item = ITEMS[target_id]
                     old_item = ITEMS.get(old_id) if old_id else None
                     if logical_slot in ("ring", "earring") and old_id:
                         returned_gems.extend(await self.return_socketed_gems(slot, old_id))
-                    self.server.db.equip(self.account_id, slot, target_id)
+                    self.server.db.equip(self.account_id, slot, target_id, commit=False)
+                    equipped_by_slot_v0717[slot] = target_id
                     changes.append((slot, old_item.get("name", old_id) if old_item else "pusty", target_item.get("name", target_id)))
+
+            if changes:
+                self.server.db.conn.commit()
 
             self.current_hp = min(self.current_hp, self.max_hp())
             self.current_mana = min(self.current_mana, self.max_mana())
@@ -729,22 +764,14 @@ class SessionInventoryEquipmentMixin:
                 logical_slot = "earring"
             else:
                 logical_slot = slot
-            for item_id, item in ITEMS.items():
-                if item.get("type") != "armor":
+            for item_id, quantity in self._owned_inventory_quantities_v0717().items():
+                item = ITEMS.get(item_id)
+                if not item or item.get("type") != "armor":
                     continue
                 if item.get("slot") != logical_slot:
                     continue
                 # Lista wyboru pokazuje wszystkie posiadane części tego slotu,
-                # również te jeszcze zablokowane Biegłością/klasą. Dzięki temu
-                # komenda slotowa nigdy nie "wybiera za gracza" tylko dlatego,
-                # że część posiadanych opcji jest chwilowo niedostępna. Walidacja
-                # klasy i Biegłości następuje dopiero po podaniu konkretnej nazwy.
-                quantity = self.server.db.item_qty(
-                    self.account_id, item_id
-                )
-                if quantity <= 0:
-                    continue
-
+                # również te jeszcze zablokowane Biegłością/klasą.
                 score = self.equipment_item_score(item)
                 candidates.append((score, item_id, item))
 
@@ -758,12 +785,9 @@ class SessionInventoryEquipmentMixin:
             Slot-only commands are handled in equip_item so they can list choices.
             """
             owned_armor = {
-                item_id: item
-                for item_id, item in ITEMS.items()
-                if (
-                    item.get("type") == "armor"
-                    and self.server.db.item_qty(self.account_id, item_id) > 0
-                )
+                item_id: ITEMS[item_id]
+                for item_id, qty in self._owned_inventory_quantities_v0717().items()
+                if qty > 0 and item_id in ITEMS and ITEMS[item_id].get("type") == "armor"
             }
             return find_by_name(owned_armor, query)
 
@@ -1573,26 +1597,29 @@ class SessionInventoryEquipmentMixin:
             if item_id:
                 return (item_id, ITEMS[item_id]), []
 
-            consumables = {
-                item_id: item
-                for item_id, item in ITEMS.items()
-                if item.get("type") == "consumable"
-            }
+            # v0.71.7: consumable catalog is static after startup; normalize it
+            # once instead of rebuilding/scanning the full ITEMS catalog per use.
+            cache = getattr(type(self).find_consumable_for_use, "_v0717_cache", None)
+            if not isinstance(cache, tuple) or not cache or cache[0] != len(ITEMS):
+                rows = tuple(
+                    (
+                        item_id,
+                        item,
+                        self.normalize_description_query(item_id),
+                        self.normalize_description_query(item.get("name", "")),
+                    )
+                    for item_id, item in ITEMS.items()
+                    if item.get("type") == "consumable"
+                )
+                type(self).find_consumable_for_use._v0717_cache = (len(ITEMS), rows)
+                cache = (len(ITEMS), rows)
 
             exact = []
             partial = []
-            for item_id, item in consumables.items():
-                names = (
-                    item_id,
-                    item.get("name", ""),
-                )
-                normalized_names = [
-                    self.normalize_description_query(name)
-                    for name in names
-                ]
-                if q in normalized_names:
+            for item_id, item, normalized_id, normalized_name in cache[1]:
+                if q == normalized_id or q == normalized_name:
                     exact.append((item_id, item))
-                elif any(q in name for name in normalized_names):
+                elif q in normalized_id or q in normalized_name:
                     partial.append((item_id, item))
 
             if exact:

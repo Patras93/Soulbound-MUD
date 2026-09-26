@@ -26,6 +26,7 @@ from __future__ import annotations
 
 import ast
 import importlib.util
+import os
 import sys
 from pathlib import Path
 from types import ModuleType
@@ -42,6 +43,21 @@ _MODULE_META = {
     "__name__", "__package__", "__loader__", "__spec__", "__file__",
     "__cached__", "__builtins__", "__doc__",
 }
+
+# v0.71.6: these modules are static/developer architecture audits. They inspect
+# source files and ASTs but do not provide gameplay services. Running them on
+# every Railway boot wasted many seconds. predeploy_full.py sets
+# SOULBOUND_FULL_AUDIT=1, which executes them exactly as before.
+_RUNTIME_FULL_AUDIT_ONLY = frozenset({
+    "admin/maintenance_audit_v0400.py",
+    "admin/explicit_dependencies_audit_v0430.py",
+    "admin/explicit_gameplay_dependencies_audit_v0440.py",
+    "admin/explicit_stable_dependencies_audit_v0450.py",
+    "admin/explicit_persistence_audit_v0460.py",
+    "admin/combat_architecture_audit_v0470.py",
+    "admin/catalog_ownership_audit_v0480.py",
+    "admin/release_integrity_v0369.py",
+})
 
 
 def module_name_for_path(relative_path: str) -> str:
@@ -190,6 +206,7 @@ def load_native_runtime(root: Path, namespace: MutableMapping[str, object]) -> d
     expected by pre-deploy audits and by the tiny bootstrap file.
     """
     root = Path(root)
+    full_audit_enabled = os.environ.get("SOULBOUND_FULL_AUDIT", "").strip().lower() in ("1", "true", "yes", "on")
     missing = [name for name in RUNTIME_MODULES if not (root / name).is_file()]
     if missing:
         raise RuntimeError("Soulbound runtime incomplete. Missing: " + ", ".join(missing))
@@ -233,6 +250,24 @@ def load_native_runtime(root: Path, namespace: MutableMapping[str, object]) -> d
         module_name = module_name_for_path(relative)
         deferred = {name for name in top_level_functions if name in EXPECTED_OVERRIDE_ORDER and name in runtime}
         explicit_exports = EXPLICIT_RUNTIME_EXPORTS.get(relative)
+
+        if relative in _RUNTIME_FULL_AUDIT_ONLY and not full_audit_enabled:
+            # Keep source-definition indexing and manifest accounting, but do not
+            # execute expensive static analysis during a normal game-server boot.
+            module = ModuleType(module_name)
+            module.__file__ = str(path)
+            module.__package__ = module_name.rpartition(".")[0]
+            sys.modules[module_name] = module
+            changed = set()
+            modules.append(module)
+            module_index[module_name] = {
+                "file": relative,
+                "authored_symbol_count": 0,
+                "dependency_mode": "full-audit-only-skipped",
+                "declared_exports": tuple(explicit_exports or ()),
+            }
+            continue
+
         module, changed = _execute_native_module(
             path, module_name, runtime, compatibility_modules, deferred, explicit_exports
         )
@@ -291,6 +326,9 @@ def load_native_runtime(root: Path, namespace: MutableMapping[str, object]) -> d
         "explicit_module_count": len(EXPLICIT_RUNTIME_EXPORTS),
         "legacy_compat_module_count": len(compatibility_modules),
         "explicit_modules": tuple(EXPLICIT_RUNTIME_EXPORTS),
+        "full_audit_enabled": full_audit_enabled,
+        "full_audit_only_module_count": len(_RUNTIME_FULL_AUDIT_ONLY),
+        "full_audit_only_modules": tuple(sorted(_RUNTIME_FULL_AUDIT_ONLY)),
     }
     runtime["RUNTIME_ARCHITECTURE_STATE"] = state
     _sync_modules(compatibility_modules, runtime)

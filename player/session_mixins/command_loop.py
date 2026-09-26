@@ -72,7 +72,14 @@ class SessionCommandLoopMixin:
                 await self.move(direction)
                 continue
 
+            _perf_started_v0718 = time.perf_counter()
             dispatched = await self.dispatch_registered_command(command, args)
+            _perf_elapsed_v0718 = time.perf_counter() - _perf_started_v0718
+            if _perf_elapsed_v0718 >= 0.25:
+                print(
+                    f"[PERF SLOW COMMAND] {command or token}: {_perf_elapsed_v0718:.3f}s",
+                    flush=True,
+                )
             if dispatched is COMMAND_LOOP_BREAK:
                 break
             if dispatched:

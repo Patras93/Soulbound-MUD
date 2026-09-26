@@ -102,14 +102,22 @@ class SessionCraftingExpansionV03114Mixin:
                 return True
             return False
 
+        inventory_qty_v0717 = {
+            str(row["item_id"]): int(row["quantity"] or 0)
+            for row in self.server.db.inventory(self.account_id)
+            if int(row["quantity"] or 0) > 0
+        }
+        equipped_qty_v0717 = {}
+        for row in self.server.db.equipment(self.account_id):
+            equipped_id = str(row["item_id"])
+            equipped_qty_v0717[equipped_id] = equipped_qty_v0717.get(equipped_id, 0) + 1
+
         armor_plan = []
-        for item_id, item in ITEMS.items():
-            if item.get("type") != "armor":
+        for item_id, total in inventory_qty_v0717.items():
+            item = ITEMS.get(item_id)
+            if not item or item.get("type") != "armor":
                 continue
-            total = int(self.server.db.item_qty(self.account_id, item_id) or 0)
-            if total <= 0:
-                continue
-            equipped = min(total, int(self.equipped_quantity_of_item(item_id) or 0))
+            equipped = min(total, int(equipped_qty_v0717.get(item_id, 0)))
             free_qty = max(0, total - equipped)
             equipped_skipped += equipped
             if free_qty <= 0:

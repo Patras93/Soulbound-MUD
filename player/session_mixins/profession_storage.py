@@ -637,11 +637,13 @@ class SessionProfessionStorageMixin:
                 qty = self.server.db.item_qty(self.account_id, item_id)
                 if qty <= 0:
                     continue
-                self.server.db.remove_item(self.account_id, item_id, qty)
+                self.server.db.remove_item(self.account_id, item_id, qty, commit=False)
                 self.server.db.add_storage_item(
-                    self.account_id, container, item_id, qty
+                    self.account_id, container, item_id, qty, commit=False
                 )
                 moved.append((item_id, qty))
+            if moved:
+                self.server.db.conn.commit()
 
             if not moved:
                 await self.send("Nie masz takich surowców w zwykłym ekwipunku.")
@@ -686,10 +688,12 @@ class SessionProfessionStorageMixin:
                 if qty <= 0:
                     continue
                 self.server.db.remove_storage_item(
-                    self.account_id, container, item_id, qty
+                    self.account_id, container, item_id, qty, commit=False
                 )
-                self.server.db.add_item(self.account_id, item_id, qty)
+                self.server.db.add_item(self.account_id, item_id, qty, commit=False)
                 moved.append((item_id, qty))
+            if moved:
+                self.server.db.conn.commit()
 
             if not moved:
                 await self.send("Nie ma tego surowca w tym pojemniku.")

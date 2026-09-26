@@ -546,6 +546,11 @@ def _generate_mobs(ns: dict, levels: dict[str, int]) -> None:
 
 
 def _initial_item_level(item_id: str, item: dict) -> int | None:
+    # v0.71.6: ordinary class-shop EQ receives its stage from the ordinal
+    # class_equipment_tier pass below. Avoid building/searching a description
+    # string for 30k+ generated pieces.
+    if item.get("class_shop_item") and item.get("class_equipment_tier") is not None:
+        return None
     # Only structural world semantics are accepted here. Legacy prices, defense,
     # required mastery and old profession levels are deliberately ignored.
     for key in ("procedural_region_stage", "boss_chest_floor", "boss_relic_floor", "astral_relic_floor"):
@@ -565,29 +570,42 @@ def _initial_item_level(item_id: str, item: dict) -> int | None:
 def _ordinal_hints(items: dict) -> dict[str, int]:
     """Turn content tiers into generated 1-400 stages without trusting their values.
 
-    Tier numbers are treated only as ordering labels. Their old numeric magnitude is
-    never used as a level or power value.
+    v0.71.6 builds every ordinal domain in two catalog passes instead of two
+    full ITEMS scans per field. With 30k+ class-shop pieces this removes a large
+    amount of repeated dictionary work while producing identical stages.
     """
     fields = (
         "class_equipment_tier", "crypt_set_tier", "corpse_material_tier",
         "legendary_loot_tier", "blacksmith_tier", "gem_level",
         "astral_set_tier", "v020_artifact_tier", "jewelcraft_level",
     )
-    hints = {}
-    for field in fields:
-        vals = []
-        for item in items.values():
+    values_by_field = {field: set() for field in fields}
+    for item in items.values():
+        for field in fields:
             value = item.get(field)
             if value is not None:
-                vals.append(value)
-        unique = sorted(set(vals), key=lambda x: (float(x) if str(x).replace('.', '', 1).isdigit() else str(x)))
+                values_by_field[field].add(value)
+
+    positions_by_field = {}
+    for field, values in values_by_field.items():
+        unique = sorted(values, key=lambda x: (float(x) if str(x).replace('.', '', 1).isdigit() else str(x)))
         if not unique:
             continue
-        positions = {v: (1 if len(unique) == 1 else 1 + int(round(i * (MAX_LEVEL - 1) / (len(unique) - 1)))) for i, v in enumerate(unique)}
-        for iid, item in items.items():
-            if item.get(field) in positions:
-                generated = positions[item[field]]
-                hints[iid] = min(hints.get(iid, MAX_LEVEL), generated)
+        positions_by_field[field] = {
+            value: (1 if len(unique) == 1 else 1 + int(round(index * (MAX_LEVEL - 1) / (len(unique) - 1))))
+            for index, value in enumerate(unique)
+        }
+
+    hints = {}
+    for iid, item in items.items():
+        generated = None
+        for field, positions in positions_by_field.items():
+            value = item.get(field)
+            if value in positions:
+                stage = positions[value]
+                generated = stage if generated is None else min(generated, stage)
+        if generated is not None:
+            hints[iid] = generated
     return hints
 
 
@@ -717,17 +735,26 @@ def _generate_items(ns: dict, levels: dict[str, int]) -> None:
             _write_record_numeric("ITEMS", item, "price", tool_price_for_item(item, str(item.get("tool_type") or iid)))
         else:
             _write_record_numeric("ITEMS", item, "price", item_price_for_stage(lvl, rarity_mult))
+        _plain_class_shop = bool(
+            item.get("class_shop_item")
+            and not item.get("legendary_set_loot")
+            and not item.get("legendary_class_relic")
+        )
         if typ == "armor" or item.get("slot"):
             slot = str(item.get("slot", "body"))
             weight = SLOT_DEFENSE_WEIGHT.get(slot, .75)
             _write_record_numeric("ITEMS", item, "defense", max(1, int(round((1.0 + 0.050 * lvl + 0.00045 * (lvl ** 2)) * weight * rarity_mult))))
-            if item.get("affix"):
+            # v0.71.6: ordinary class-shop affixes/stats/properties are rebuilt
+            # deterministically by finalize_class_equipment_v03015 immediately
+            # after Generator Core. Avoid thousands of SHA jitter calculations
+            # whose values would be overwritten before gameplay can observe them.
+            if item.get("affix") and not _plain_class_shop:
                 _write_record_numeric("ITEMS", item, "affix_amount", max(1, int(round((1.0 + 0.035 * lvl + 0.00022 * (lvl ** 2)) * math.sqrt(rarity_mult)))))
-        if isinstance(item.get("stats"), dict):
+        if isinstance(item.get("stats"), dict) and not _plain_class_shop:
             for stat in list(item["stats"]):
                 value = max(1, int(round((1.0 + 0.032 * lvl + 0.00020 * (lvl ** 2)) * math.sqrt(rarity_mult) * stable_jitter(f"{iid}:stat:{stat}", .12))))
                 _write_nested_numeric("ITEMS", item, "stats", stat, value)
-        if isinstance(item.get("properties"), dict):
+        if isinstance(item.get("properties"), dict) and not _plain_class_shop:
             for prop in list(item["properties"]):
                 value = round(clamp((1.0 + 0.025 * lvl + 0.00012 * (lvl ** 2)) * math.sqrt(rarity_mult) * stable_jitter(f"{iid}:prop:{prop}", .10), .5, 36.0), 3)
                 _write_nested_numeric("ITEMS", item, "properties", prop, value)
@@ -830,8 +857,10 @@ def _generate_recipes(ns: dict, item_levels: dict[str, int]) -> int:
 
 
 
-def _giver_stage(ns: dict, quest: dict) -> int:
+def _giver_stage(ns: dict, quest: dict, giver_stages: dict | None = None) -> int:
     giver = str(quest.get("giver") or "")
+    if giver_stages is not None:
+        return clamp(int(giver_stages.get(giver, 1) or 1), 1, MAX_LEVEL)
     rooms = ns.get("ROOMS", {}) or {}
     stages = []
     for npc in (ns.get("NPCS", {}) or {}).values():
@@ -844,10 +873,12 @@ def _giver_stage(ns: dict, quest: dict) -> int:
     return clamp(min(stages) if stages else 1, 1, MAX_LEVEL)
 
 
-def _quest_alias_levels(ns: dict, alias: str, mob_levels: dict[str, int]) -> list[int]:
+def _quest_alias_levels(ns: dict, alias: str, mob_levels: dict[str, int], alias_levels_index: dict | None = None) -> list[int]:
     alias = str(alias or "")
     if not alias:
         return []
+    if alias_levels_index is not None:
+        return alias_levels_index.get(alias, ())
     values = []
     for mid, mob in (ns.get("MOB_TEMPLATES", {}) or {}).items():
         tags = set(map(str, mob.get("quest_targets") or ()))
@@ -859,8 +890,10 @@ def _quest_alias_levels(ns: dict, alias: str, mob_levels: dict[str, int]) -> lis
     return values
 
 
-def _collect_category_stage(ns: dict, category: str, item_levels: dict[str, int]) -> int | None:
+def _collect_category_stage(ns: dict, category: str, item_levels: dict[str, int], category_stages: dict | None = None) -> int | None:
     category = str(category or "").lower()
+    if category_stages is not None and category in category_stages:
+        return category_stages[category]
     set_name = {
         "fish": "FISH_RESOURCE_IDS", "fish_river": "FISH_RESOURCE_IDS",
         "ore": "ORE_RESOURCE_IDS", "wood": "WOOD_RESOURCE_IDS", "herb": "HERB_RESOURCE_IDS",
@@ -871,7 +904,7 @@ def _collect_category_stage(ns: dict, category: str, item_levels: dict[str, int]
     return min(values) if values else None
 
 
-def _quest_stage(ns: dict, qid: str, quest: dict, mob_levels: dict[str, int], item_levels: dict[str, int]) -> int:
+def _quest_stage(ns: dict, qid: str, quest: dict, mob_levels: dict[str, int], item_levels: dict[str, int], giver_stages=None, alias_levels_index=None, category_stages=None) -> int:
     # A starter flag is semantic identity: starter quests must be available to a
     # fresh character regardless of the item they happen to reward.
     if quest.get("starter_quest"):
@@ -885,15 +918,15 @@ def _quest_stage(ns: dict, qid: str, quest: dict, mob_levels: dict[str, int], it
     # to mid/endgame. This is a semantic rule, not a per-quest exception.
     if (quest.get("reward_profession") and not quest.get("requires_quest")
             and kind in ("collect_category", "collect_distinct_category")):
-        category_stage = _collect_category_stage(ns, target, item_levels)
+        category_stage = _collect_category_stage(ns, target, item_levels, category_stages)
         if category_stage is not None:
             return clamp(category_stage, 1, MAX_LEVEL)
 
-    values = [_giver_stage(ns, quest)]
+    values = [_giver_stage(ns, quest, giver_stages)]
     if target in mob_levels:
         values.append(mob_levels[target])
     else:
-        alias_levels = _quest_alias_levels(ns, target, mob_levels)
+        alias_levels = _quest_alias_levels(ns, target, mob_levels, alias_levels_index)
         if alias_levels:
             # A category/alias quest becomes available when its first valid source
             # is reachable; later variants stay valid automatically.
@@ -901,7 +934,7 @@ def _quest_stage(ns: dict, qid: str, quest: dict, mob_levels: dict[str, int], it
     if target in item_levels:
         values.append(item_levels[target])
     if kind in ("collect_category", "collect_distinct_category"):
-        category_stage = _collect_category_stage(ns, target, item_levels)
+        category_stage = _collect_category_stage(ns, target, item_levels, category_stages)
         if category_stage is not None:
             values.append(category_stage)
     for target_id in (quest.get("targets") or ()):
@@ -931,15 +964,88 @@ def _quest_stage(ns: dict, qid: str, quest: dict, mob_levels: dict[str, int], it
 def _generate_quests(ns: dict, mob_levels: dict[str, int], item_levels: dict[str, int]) -> None:
     """Generate whitelisted numeric quest rewards while preserving explicitly authored currency rewards."""
     quests = ns.get("QUESTS", {})
-    levels = {qid: _quest_stage(ns, qid, q, mob_levels, item_levels) for qid, q in quests.items()}
-    for _ in range(max(1, len(quests))):
-        changed = False
-        for qid, q in quests.items():
-            prev = q.get("requires_quest")
-            if prev in levels and levels[qid] < levels[prev]:
-                levels[qid] = levels[prev]; changed = True
-        if not changed:
-            break
+
+    # v0.71.6: build quest lookup indexes once. Historically every quest scanned
+    # all NPCs for its giver and, for alias targets, all mob templates again.
+    # With thousands of quests this dominated Generator Core startup time.
+    rooms = ns.get("ROOMS", {}) or {}
+    giver_stages = {}
+    for npc in (ns.get("NPCS", {}) or {}).values():
+        giver = str(npc.get("name") or "")
+        if not giver:
+            continue
+        room = rooms.get(str(npc.get("room") or ""), {})
+        if not isinstance(room, dict):
+            continue
+        try:
+            stage = clamp(int(room.get("generator_level", 1) or 1), 1, MAX_LEVEL)
+        except Exception:
+            stage = 1
+        previous = giver_stages.get(giver)
+        giver_stages[giver] = stage if previous is None else min(previous, stage)
+
+    alias_levels_index = defaultdict(list)
+    for mid, mob in (ns.get("MOB_TEMPLATES", {}) or {}).items():
+        stage = int(mob_levels.get(mid, mob.get("generator_level", 1) or 1))
+        tags = set(map(str, mob.get("quest_targets") or ()))
+        direct = mob.get("quest_target")
+        if direct is not None:
+            tags.add(str(direct))
+        for alias in tags:
+            alias_levels_index[alias].append(stage)
+    alias_levels_index = {key: tuple(values) for key, values in alias_levels_index.items()}
+
+    category_stages = {}
+    for category, set_name in {
+        "fish":"FISH_RESOURCE_IDS", "fish_river":"FISH_RESOURCE_IDS",
+        "ore":"ORE_RESOURCE_IDS", "wood":"WOOD_RESOURCE_IDS", "herb":"HERB_RESOURCE_IDS",
+    }.items():
+        values = [int(item_levels[iid]) for iid in (ns.get(set_name, set()) or set()) if iid in item_levels]
+        if values:
+            category_stages[category] = min(values)
+
+    levels = {
+        qid: _quest_stage(
+            ns, qid, q, mob_levels, item_levels,
+            giver_stages=giver_stages,
+            alias_levels_index=alias_levels_index,
+            category_stages=category_stages,
+        )
+        for qid, q in quests.items()
+    }
+    # v0.71.6: each quest has at most one requires_quest predecessor. Resolve
+    # prerequisite chains in O(N) instead of repeatedly rescanning all quests.
+    # Cycles (if authored accidentally) are handled safely: every quest in the
+    # cycle receives the maximum initial stage found in that cycle.
+    requires = {qid: q.get("requires_quest") for qid, q in quests.items()}
+    resolved = {}
+    for origin in levels:
+        if origin in resolved:
+            continue
+        path = []
+        positions = {}
+        current = origin
+        while current in levels and current not in resolved and current not in positions:
+            positions[current] = len(path)
+            path.append(current)
+            current = requires.get(current)
+
+        if current in resolved:
+            inherited = resolved[current]
+        elif current in positions:
+            cycle_at = positions[current]
+            cycle_nodes = path[cycle_at:]
+            inherited = max(levels[node] for node in cycle_nodes)
+            for node in cycle_nodes:
+                resolved[node] = inherited
+            path = path[:cycle_at]
+        else:
+            inherited = 0
+
+        for node in reversed(path):
+            inherited = max(levels[node], inherited)
+            resolved[node] = inherited
+    levels = resolved
     for qid, q in quests.items():
         lvl = clamp(int(levels.get(qid, 1)), 1, MAX_LEVEL)
         needed = max(1, int(q.get("needed", 1) or 1))

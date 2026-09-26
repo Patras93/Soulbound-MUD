@@ -3713,7 +3713,10 @@ def salvage_all_audit_v0356():
         source=inspect.getsource(SessionCraftingExpansionV03114Mixin.salvage_equipment_v0925)
         bulk=inspect.getsource(SessionCraftingExpansionV03114Mixin.salvage_all_v0356)
         metrics["has_bulk_command"] = '"wszystko"' in source and 'salvage_all_v0356' in source
-        metrics["protects_equipped"] = 'free_equipment_quantity' in bulk and 'equipped_quantity_of_item' in bulk
+        metrics["protects_equipped"] = (
+            ('free_equipment_quantity' in bulk and 'equipped_quantity_of_item' in bulk)
+            or ('inventory_qty_v0717' in bulk and 'equipped_qty_v0717' in bulk and 'free_qty = max(0, total - equipped)' in bulk)
+        )
         metrics["protects_moogle"] = 'moogle_board' in bulk
         metrics["extended_salvage"] = 'SALVAGE3_V03114' in bulk
         metrics["aggregated_output"] = 'SALVAGE WSZYSTKO' in bulk

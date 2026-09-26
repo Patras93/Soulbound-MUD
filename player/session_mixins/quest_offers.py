@@ -691,10 +691,16 @@ class SessionQuestOffersMixin:
 
     def cleanup_quest_map_artifacts_v0243(self, quest_id, *, allow_legacy_generic=False):
             """Usuwa questowe mapy i tropy przypisane do porzucanego/kończonego questa."""
-            quest_map_ids = [
-                item_id for item_id, item in ITEMS.items()
-                if item.get("quest_treasure_map_for") == quest_id
-            ]
+            cache = getattr(type(self).cleanup_quest_map_artifacts_v0243, "_map_ids_v0717", None)
+            if not isinstance(cache, tuple) or cache[0] != len(ITEMS):
+                grouped = {}
+                for item_id, item in ITEMS.items():
+                    owner = item.get("quest_treasure_map_for")
+                    if owner:
+                        grouped.setdefault(str(owner), []).append(item_id)
+                cache = (len(ITEMS), {key: tuple(values) for key, values in grouped.items()})
+                type(self).cleanup_quest_map_artifacts_v0243._map_ids_v0717 = cache
+            quest_map_ids = cache[1].get(str(quest_id), ())
             removed_items = 0
             for item_id in quest_map_ids:
                 qty = self.server.db.item_qty(self.account_id, item_id)

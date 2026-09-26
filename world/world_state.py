@@ -56,6 +56,13 @@ class World:
         self.corpses = {}
         self.corpse_counter = 0
         self.treasure_chest_opened_at = {}
+        # v0.71.5: repeated combat/command paths used to rescan the entire
+        # world several times per command.  Keep a tiny freshness window; the
+        # dedicated wander loop still forces a refresh every five seconds.
+        self._last_refresh_at = 0.0
+        self._refresh_min_interval = 0.25
+        self._last_live_counts = {}
+        self._last_live_by_room = {}
         counts = {}
         # v0.36.2: initial open-world spawns use the CURRENT room stage, not only
         # the shared base template's earliest spawn. This keeps terrain 100+
@@ -75,6 +82,7 @@ class World:
                     MOB_WANDER_MIN_SECONDS, MOB_WANDER_MAX_SECONDS
                 ),
             )
+            self._last_refresh_at = 0.0
 
     def _terrain_scaled_template_v0362(self, room_id, template_id):
         """Return a room-stage clone for ordinary open-world terrain mobs.
@@ -167,6 +175,7 @@ class World:
             ),
         )
         self.mobs[key] = mob
+        self._last_refresh_at = 0.0
         return mob
 
     def _ensure_v0290_event_spawns(self, room_id, now=None):
@@ -192,6 +201,7 @@ class World:
                 mob.v029_expires_at = float(event["expires_at"])
                 mob.v016_ephemeral = True
                 self.mobs[mob.key] = mob
+                self._last_refresh_at = 0.0
                 created.append(mob)
         return created
 
@@ -201,6 +211,7 @@ class World:
             tmpl = MOB_TEMPLATES.get(mob.template_id, {})
             if int(tmpl.get("v029_nemesis_owner_account_id", 0) or 0) == account_id:
                 self.mobs.pop(key, None)
+                self._last_refresh_at = 0.0
 
     def ensure_v029_nemesis(self, record):
         if not record or not int(record["active"] or 0):
@@ -222,6 +233,7 @@ class World:
         )
         mob.v016_ephemeral = True
         self.mobs[mob.key] = mob
+        self._last_refresh_at = 0.0
         return mob
 
     def _ensure_v0160_encounters(self, room_id, now=None):
@@ -247,6 +259,7 @@ class World:
             mob.v016_ephemeral = True
             mob.v016_encounter_type = encounter["type"]
             self.mobs[key] = mob
+            self._last_refresh_at = 0.0
             created.append(mob)
         return created
 
@@ -261,7 +274,7 @@ class World:
             mob=MobState(key=f"{event_key}:{tid}",room_id=room_id,template_id=tid,hp=MOB_TEMPLATES[tid]["max_hp"],home_room_id=room_id,
                 next_wander_at=time.time()+random.uniform(MOB_WANDER_MIN_SECONDS,MOB_WANDER_MAX_SECONDS))
             mob.v020_event_key=event_key; mob.v016_expires_at=float(encounter["expires_at"]); mob.v016_ephemeral=True
-            self.mobs[mob.key]=mob; created.append(mob)
+            self.mobs[mob.key]=mob; self._last_refresh_at = 0.0; created.append(mob)
         return created
 
     def _ensure_v0140_event_spawn(self, room_id, now=None):
@@ -284,6 +297,7 @@ class World:
         mob.v0140_event_key = event_key
         mob.v0140_event_expires_at = float(event["expires_at"])
         self.mobs[key] = mob
+        self._last_refresh_at = 0.0
         return mob
 
     def _ensure_v0180_legendary_event_spawn(self, room_id, now=None):
@@ -306,6 +320,7 @@ class World:
         # Reuse mature ephemeral cleanup semantics from v0.16.
         mob.v016_expires_at=float(event["expires_at"]); mob.v016_ephemeral=True
         self.mobs[mob.key]=mob
+        self._last_refresh_at = 0.0
         return mob
 
     def ensure_v0180_special_room(self, room_id):
@@ -481,56 +496,70 @@ class World:
         # Zachowany alias dla starszego kodu/testów.
         return self.ensure_infinite_dungeon_floor(room_id)
 
-    def refresh(self):
+    def refresh(self, force=False):
+        """Refresh expirations/respawns with one mob pass.
+
+        v0.71.5: historically this method made four independent full scans of
+        ``self.mobs`` and was called from several hot combat paths.  The result
+        is now coalesced for 250 ms and expiration + respawn + live room counts
+        are handled in one pass.  Callers that need the scheduled world tick
+        immediately (wander_step) use ``force=True``.
+        """
         now = time.time()
-        # v0.16.0: tymczasowe world bossy i legendary rare znikają po rotacji,
-        # ale nigdy w trakcie walki. Po pokonaniu nie respawnują w tym samym oknie.
-        for mob_key, mob in list(self.mobs.items()):
-            expires = float(getattr(mob, "v016_expires_at", 0.0) or 0.0)
-            if expires and expires <= now and not mob.engaged_by:
-                self.mobs.pop(mob_key, None)
+        if not force and (now - self._last_refresh_at) < self._refresh_min_interval:
+            return self._last_live_counts
 
-        # v0.29.0: proceduralne eventy znikają po swojej godzinnej rotacji.
-        for mob_key, mob in list(self.mobs.items()):
-            expires = float(getattr(mob, "v029_expires_at", 0.0) or 0.0)
+        expired_keys = []
+        live_counts = {}
+        live_by_room = {}
+        for mob_key, mob in self.mobs.items():
+            expires = max(
+                float(getattr(mob, "v016_expires_at", 0.0) or 0.0),
+                float(getattr(mob, "v029_expires_at", 0.0) or 0.0),
+                float(getattr(mob, "v0140_event_expires_at", 0.0) or 0.0),
+            )
             if expires and expires <= now and not mob.engaged_by:
-                self.mobs.pop(mob_key, None)
+                expired_keys.append(mob_key)
+                continue
 
-        # v0.14.0: eventowy rare znika po zakończeniu okna eventu, ale nigdy
-        # w połowie aktywnej walki. Nie pozostawia trwałego spawnu.
-        for mob_key, mob in list(self.mobs.items()):
-            expires = float(getattr(mob, "v0140_event_expires_at", 0.0) or 0.0)
-            if expires and expires <= now and not mob.engaged_by:
-                self.mobs.pop(mob_key, None)
-        for corpse_key, corpse in list(self.corpses.items()):
+            if not (getattr(mob, "v016_ephemeral", False) and not mob.alive):
+                if not mob.alive and mob.respawn_at <= now:
+                    mob.alive = True
+                    mob.hp = MOB_TEMPLATES[mob.template_id]["max_hp"]
+                    mob.engaged_by = None
+                    mob.combat_turn = 0
+                    mob.player_hits = 0
+                    mob.phase_stage = 0
+                    mob.engaged_at = 0.0
+                    if mob.home_room_id:
+                        mob.room_id = mob.home_room_id
+                    mob.next_wander_at = now + random.uniform(
+                        MOB_WANDER_MIN_SECONDS, MOB_WANDER_MAX_SECONDS
+                    )
+
+            if mob.alive:
+                live_counts[mob.room_id] = live_counts.get(mob.room_id, 0) + 1
+                live_by_room.setdefault(mob.room_id, []).append(mob)
+
+        for mob_key in expired_keys:
+            self.mobs.pop(mob_key, None)
+
+        for corpse_key, corpse in tuple(self.corpses.items()):
             if corpse.expires_at <= now:
                 self.corpses.pop(corpse_key, None)
-        for mob in self.mobs.values():
-            if getattr(mob, "v016_ephemeral", False) and not mob.alive:
-                continue
-            if not mob.alive and mob.respawn_at <= now:
-                mob.alive = True
-                mob.hp = MOB_TEMPLATES[mob.template_id]["max_hp"]
-                mob.engaged_by = None
-                mob.combat_turn = 0
-                mob.player_hits = 0
-                mob.phase_stage = 0
-                mob.engaged_at = 0.0
-                if mob.home_room_id:
-                    mob.room_id = mob.home_room_id
-                mob.next_wander_at = now + random.uniform(
-                    MOB_WANDER_MIN_SECONDS, MOB_WANDER_MAX_SECONDS
-                )
+
+        self._last_refresh_at = now
+        self._last_live_counts = live_counts
+        self._last_live_by_room = {room_id: tuple(rows) for room_id, rows in live_by_room.items()}
+        return live_counts
 
     def wander_step(self, now=None):
         """Wykonuje pojedynczy bezpieczny tick ruchu zwykłych mobów."""
-        self.refresh()
         now = time.time() if now is None else float(now)
+        # v0.71.5: refresh already calculates per-room live counts, so wander no
+        # longer performs a second full counting pass before its movement pass.
+        live_counts = dict(self.refresh(force=True))
         moves = []
-        live_counts = {}
-        for other in self.mobs.values():
-            if other.alive:
-                live_counts[other.room_id] = live_counts.get(other.room_id, 0) + 1
 
         for mob in self.mobs.values():
             if not mob.alive or mob.engaged_by:
@@ -555,12 +584,24 @@ class World:
             live_counts[old_room] = max(0, live_counts.get(old_room, 1) - 1)
             live_counts[target] = live_counts.get(target, 0) + 1
             moves.append((mob, old_room, target))
+        self._last_live_counts = live_counts
+        if moves:
+            by_room = {room_id: list(rows) for room_id, rows in self._last_live_by_room.items()}
+            for mob, old_room, target in moves:
+                old_rows = by_room.get(old_room, [])
+                if mob in old_rows:
+                    old_rows.remove(mob)
+                if old_rows:
+                    by_room[old_room] = old_rows
+                else:
+                    by_room.pop(old_room, None)
+                by_room.setdefault(target, []).append(mob)
+            self._last_live_by_room = {room_id: tuple(rows) for room_id, rows in by_room.items()}
         return moves
 
     def live_crypt_boss(self, room_id):
-        self.refresh()
-        for mob in self.mobs.values():
-            if mob.alive and mob.room_id == room_id and MOB_TEMPLATES[mob.template_id].get("crypt_boss"):
+        for mob in self.room_mobs(room_id):
+            if MOB_TEMPLATES[mob.template_id].get("crypt_boss"):
                 return mob
         return None
 
@@ -579,13 +620,8 @@ class World:
         return self.live_crypt_boss(room_id) is not None
 
     def live_astral_boss(self, room_id):
-        self.refresh()
-        for mob in self.mobs.values():
-            if (
-                mob.alive
-                and mob.room_id == room_id
-                and MOB_TEMPLATES[mob.template_id].get("astral_boss")
-            ):
+        for mob in self.room_mobs(room_id):
+            if MOB_TEMPLATES[mob.template_id].get("astral_boss"):
                 return mob
         return None
 
@@ -602,15 +638,8 @@ class World:
         return self.live_astral_boss(room_id) is not None
 
     def live_mythic_crypt_boss(self, room_id):
-        self.refresh()
-        for mob in self.mobs.values():
-            if (
-                mob.alive
-                and mob.room_id == room_id
-                and MOB_TEMPLATES[mob.template_id].get(
-                    "mythic_crypt_boss"
-                )
-            ):
+        for mob in self.room_mobs(room_id):
+            if MOB_TEMPLATES[mob.template_id].get("mythic_crypt_boss"):
                 return mob
         return None
 
@@ -629,15 +658,8 @@ class World:
         return self.live_mythic_crypt_boss(room_id) is not None
 
     def live_mythic_astral_boss(self, room_id):
-        self.refresh()
-        for mob in self.mobs.values():
-            if (
-                mob.alive
-                and mob.room_id == room_id
-                and MOB_TEMPLATES[mob.template_id].get(
-                    "mythic_astral_boss"
-                )
-            ):
+        for mob in self.room_mobs(room_id):
+            if MOB_TEMPLATES[mob.template_id].get("mythic_astral_boss"):
                 return mob
         return None
 
@@ -656,15 +678,8 @@ class World:
         return self.live_mythic_astral_boss(room_id) is not None
 
     def live_giant_fortress_boss(self, room_id):
-        self.refresh()
-        for mob in self.mobs.values():
-            if (
-                mob.alive
-                and mob.room_id == room_id
-                and MOB_TEMPLATES[
-                    mob.template_id
-                ].get("giant_fortress_boss")
-            ):
+        for mob in self.room_mobs(room_id):
+            if MOB_TEMPLATES[mob.template_id].get("giant_fortress_boss"):
                 return mob
         return None
 
@@ -838,8 +853,14 @@ class World:
         return partial[0] if partial else None
 
     def room_mobs(self, room_id):
+        # v0.71.7: refresh already builds a live-room index. Combat, look,
+        # targeting and boss gates now read only the current room instead of
+        # rescanning every mob in the world.
         self.refresh()
-        return [m for m in self.mobs.values() if m.room_id == room_id and m.alive]
+        return [
+            mob for mob in self._last_live_by_room.get(room_id, ())
+            if mob.alive and mob.room_id == room_id
+        ]
 
     def find_mob(self, room_id, query):
         """Znajdź dowolnego żywego moba możliwego do walki w pokoju.

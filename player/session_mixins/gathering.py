@@ -1215,10 +1215,13 @@ class SessionGatheringMixin:
             effective = tool_tier_access_level(tool_level)
             if floor is not None:
                 effective = min(effective, max(1, int(floor)))
-            base_gems = tuple(
-                iid for iid, item in ITEMS.items()
-                if item.get("type") == "gem_raw" and not item.get("gem_quality")
-            )
+            base_gems = getattr(type(self).mining_gem_drop, "_base_gems_v0717", None)
+            if base_gems is None:
+                base_gems = tuple(
+                    iid for iid, item in ITEMS.items()
+                    if item.get("type") == "gem_raw" and not item.get("gem_quality")
+                )
+                type(self).mining_gem_drop._base_gems_v0717 = base_gems
             pool = generator_core_v027.resource_pool(
                 base_gems, ITEMS, effective, f"gems:{room_id}"
             )

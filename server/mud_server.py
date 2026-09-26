@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from core.runtime_diagnostics import build_runtime_error_report, log_runtime_error
 from events.bootstrap import build_default_event_bus
+import time
 
 class MudServer:
     def __init__(self):
@@ -443,7 +444,15 @@ class MudServer:
         while True:
             await asyncio.sleep(5.0)
             try:
-                for mob, old_room, new_room in self.world.wander_step():
+                _tick_started_v0718 = time.perf_counter()
+                _moves_v0718 = self.world.wander_step()
+                _tick_elapsed_v0718 = time.perf_counter() - _tick_started_v0718
+                if _tick_elapsed_v0718 >= 0.10:
+                    print(
+                        f"[PERF SLOW WORLD TICK] {_tick_elapsed_v0718:.3f}s; moves={len(_moves_v0718)}; mobs={len(self.world.mobs)}",
+                        flush=True,
+                    )
+                for mob, old_room, new_room in _moves_v0718:
                     name = MOB_TEMPLATES.get(mob.template_id, {}).get(
                         "name", "Wróg"
                     )

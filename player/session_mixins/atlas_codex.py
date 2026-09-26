@@ -685,15 +685,19 @@ class SessionAtlasCodexMixin:
             return result
 
     def codex_relic_ids(self):
-            result = set()
-            for item_id, item in ITEMS.items():
-                if (
-                    item.get("boss_relic_floor") is not None
-                    or item_id.startswith("astral_relic_")
-                    or item.get("rarity") == "unique"
-                ):
-                    result.add(item_id)
-            return result
+            cache = getattr(type(self).codex_relic_ids, "_v0717_cache", None)
+            if not isinstance(cache, tuple) or cache[0] != len(ITEMS):
+                result = frozenset(
+                    item_id for item_id, item in ITEMS.items()
+                    if (
+                        item.get("boss_relic_floor") is not None
+                        or item_id.startswith("astral_relic_")
+                        or item.get("rarity") == "unique"
+                    )
+                )
+                cache = (len(ITEMS), result)
+                type(self).codex_relic_ids._v0717_cache = cache
+            return set(cache[1])
 
     async def send_codex_name_list(
             self, title, names, chunk_size=20
@@ -1011,17 +1015,8 @@ class SessionAtlasCodexMixin:
                 )
                 return
 
-            searchable_items = {
-                item_id: item
-                for item_id, item in ITEMS.items()
-                if (
-                    item_id in FISH_STORAGE_IDS
-                    or item_id in ORE_STORAGE_IDS
-                    or item_id in WOOD_STORAGE_IDS
-                    or item_id in HERB_STORAGE_IDS
-                    or item_id in relics
-                )
-            }
+            searchable_ids = set(FISH_STORAGE_IDS) | set(ORE_STORAGE_IDS) | set(WOOD_STORAGE_IDS) | set(HERB_STORAGE_IDS) | set(relics)
+            searchable_items = {item_id: ITEMS[item_id] for item_id in searchable_ids if item_id in ITEMS}
             found = find_by_name(searchable_items, query)
             if found:
                 item_id, item = found

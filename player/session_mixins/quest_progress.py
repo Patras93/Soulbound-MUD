@@ -473,10 +473,18 @@ class SessionQuestProgressMixin:
 
     def quest_crafted_equivalent_ids_v0333(self, base_id):
             """Return base item plus all Crafting Quality variants representing it."""
-            ids = {str(base_id)}
-            for item_id, item in ITEMS.items():
-                if str(item.get("crafted_base_id_v03054") or "") == str(base_id):
-                    ids.add(str(item_id))
+            base_id = str(base_id)
+            cache = getattr(type(self).quest_crafted_equivalent_ids_v0333, "_v0717_cache", None)
+            if not isinstance(cache, tuple) or cache[0] != len(ITEMS):
+                grouped = {}
+                for item_id, item in ITEMS.items():
+                    crafted_base = str(item.get("crafted_base_id_v03054") or "")
+                    if crafted_base:
+                        grouped.setdefault(crafted_base, []).append(str(item_id))
+                cache = (len(ITEMS), {key: tuple(values) for key, values in grouped.items()})
+                type(self).quest_crafted_equivalent_ids_v0333._v0717_cache = cache
+            ids = {base_id}
+            ids.update(cache[1].get(base_id, ()))
             # Defensive fallback for legacy/persisted variants not yet registered in ITEMS.
             try:
                 for row in self.server.db.inventory(self.account_id):

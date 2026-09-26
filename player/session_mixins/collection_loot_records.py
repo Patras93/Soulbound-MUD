@@ -621,14 +621,19 @@ class SessionCollectionLootRecordsMixin:
                     (int(limit),),
                 ).fetchall()
 
-            legendary_ids = {
-                item_id for item_id, item in ITEMS.items()
-                if item.get("type") in ("armor", "weapon") and (
-                    str(item.get("rarity", "")).lower() == "legendary"
-                    or item.get("legendary_set_loot")
-                    or item.get("legendary_class_relic")
+            legendary_cache = getattr(type(self).show_leaderboards, "_legendary_ids_v0717", None)
+            if not isinstance(legendary_cache, tuple) or legendary_cache[0] != len(ITEMS):
+                legendary_ids = frozenset(
+                    item_id for item_id, item in ITEMS.items()
+                    if item.get("type") in ("armor", "weapon") and (
+                        str(item.get("rarity", "")).lower() == "legendary"
+                        or item.get("legendary_set_loot")
+                        or item.get("legendary_class_relic")
+                    )
                 )
-            }
+                legendary_cache = (len(ITEMS), legendary_ids)
+                type(self).show_leaderboards._legendary_ids_v0717 = legendary_cache
+            legendary_ids = legendary_cache[1]
 
             def collection_rank(kind, limit=10):
                 rows = []

@@ -17,14 +17,20 @@ class SessionForgeGuildsMixin:
             return int(hall["forge_level"] or 0)>=1
 
     def resolve_owned_equipment_v0925(self, query, free_only=False):
-            pool={}
-            for item_id,item in ITEMS.items():
-                if item.get("type") != "armor":
-                    continue
-                qty=self.server.db.item_qty(self.account_id,item_id)
-                if qty <= 0: continue
-                if free_only and self.free_equipment_quantity(item_id) <= 0: continue
-                pool[item_id]=item
+            quantities = {
+                str(row["item_id"]): int(row["quantity"] or 0)
+                for row in self.server.db.inventory(self.account_id)
+                if int(row["quantity"] or 0) > 0
+            }
+            if free_only:
+                for row in self.server.db.equipment(self.account_id):
+                    item_id = str(row["item_id"])
+                    quantities[item_id] = max(0, quantities.get(item_id, 0) - 1)
+            pool = {
+                item_id: ITEMS[item_id]
+                for item_id, qty in quantities.items()
+                if qty > 0 and item_id in ITEMS and ITEMS[item_id].get("type") == "armor"
+            }
             return find_by_name(pool, query)
 
     async def salvage_equipment_v0925(self, args=""):
@@ -39,11 +45,21 @@ class SessionForgeGuildsMixin:
 
             raw = str(args or "").strip()
             norm = normalize_lookup_text(raw)
+            inventory_qty = {
+                str(row["item_id"]): int(row["quantity"] or 0)
+                for row in self.server.db.inventory(self.account_id)
+                if int(row["quantity"] or 0) > 0
+            }
+            equipped_qty = {}
+            for row in self.server.db.equipment(self.account_id):
+                equipped_id = str(row["item_id"])
+                equipped_qty[equipped_id] = equipped_qty.get(equipped_id, 0) + 1
             free_rows = []
-            for item_id, item in ITEMS.items():
-                if item.get("type") != "armor":
+            for item_id, total_qty in inventory_qty.items():
+                item = ITEMS.get(item_id)
+                if not item or item.get("type") != "armor":
                     continue
-                free_qty = int(self.free_equipment_quantity(item_id) or 0)
+                free_qty = max(0, total_qty - equipped_qty.get(item_id, 0))
                 if free_qty <= 0:
                     continue
                 free_rows.append((item_id, item, free_qty))
@@ -195,11 +211,11 @@ class SessionForgeGuildsMixin:
 
     def owned_equipment_upgrade_rows_v03042(self):
             rows = []
-            for item_id, item in ITEMS.items():
-                if item.get("type") != "armor":
-                    continue
-                qty = int(self.server.db.item_qty(self.account_id, item_id) or 0)
-                if qty <= 0:
+            for inv_row in self.server.db.inventory(self.account_id):
+                item_id = str(inv_row["item_id"])
+                qty = int(inv_row["quantity"] or 0)
+                item = ITEMS.get(item_id)
+                if qty <= 0 or not item or item.get("type") != "armor":
                     continue
                 upgrade = self.server.db.equipment_upgrade_level_v03042(self.account_id, item_id)
                 rows.append((item_id, item, qty, upgrade))
@@ -1001,7 +1017,7 @@ class SessionForgeGuildsMixin:
                 if sub in ("wplac","wpłać","deposit"):
                     found=self.resolve_owned_equipment_v0925(query,True)
                     if not found:
-                        pool={iid:item for iid,item in ITEMS.items() if self.server.db.item_qty(self.account_id,iid)>0 and item.get('type') not in ('quest','tool','resource','craft_material') and not is_character_bound_item(iid)}; found=find_by_name(pool,query)
+                        pool={str(r['item_id']):ITEMS.get(str(r['item_id']),{'name':str(r['item_id'])}) for r in self.server.db.inventory(self.account_id) if int(r['quantity'] or 0)>0 and ITEMS.get(str(r['item_id']),{}).get('type') not in ('quest','tool','resource','craft_material') and not is_character_bound_item(str(r['item_id']))}; found=find_by_name(pool,query)
                     if not found: await self.send("Nie rozpoznaję wolnego przedmiotu, który można wpłacić."); return
                     iid,item=found
                     if item.get('type')=='armor' and self.free_equipment_quantity(iid)<=0: await self.send("Założonego EQ nie można wpłacić."); return

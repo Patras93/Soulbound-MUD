@@ -33,7 +33,13 @@ class Database(
         self.conn = sqlite3.connect(path)
         self.conn.row_factory = sqlite3.Row
         self.conn.execute("PRAGMA journal_mode=WAL")
+        # v0.71.5: NORMAL is the recommended WAL durability/performance balance.
+        # It keeps commits durable across normal process crashes while avoiding
+        # an fsync-heavy FULL commit for every tiny character/progression write.
+        self.conn.execute("PRAGMA synchronous=NORMAL")
         self.conn.execute("PRAGMA foreign_keys=ON")
+        self.conn.execute("PRAGMA busy_timeout=5000")
+        self.conn.execute("PRAGMA wal_autocheckpoint=1000")
         self.create_schema()
         self.migrate_schema()
         self.install_crafting_extensions_schema()
