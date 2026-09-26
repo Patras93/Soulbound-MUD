@@ -27,6 +27,7 @@ from player.session_mixins.progression_accessibility import SessionProgressionAc
 from player.session_mixins.professions import SessionProfessionsV03053Mixin
 from player.session_mixins.tech_crafting import SessionTechCraftingV03111Mixin
 from player.session_mixins.milestone import SessionMilestoneV0320Mixin
+from player.session_mixins.ocean import SessionOceanV1000Mixin
 from player.session_mixins.command_special_handlers import SessionCommandSpecialHandlersMixin
 from player.session_mixins.activity_guidance import SessionActivityGuidanceV0560Mixin
 from player.session_mixins.command_registry import SessionCommandRegistryMixin
@@ -60,6 +61,7 @@ class Session(
     SessionProfessionsV03053Mixin,
     SessionTechCraftingV03111Mixin,
     SessionMilestoneV0320Mixin,
+    SessionOceanV1000Mixin,
     SessionCommandSpecialHandlersMixin,
     SessionActivityGuidanceV0560Mixin,
     SessionCommandRegistryMixin,

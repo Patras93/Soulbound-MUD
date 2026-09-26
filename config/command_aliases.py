@@ -894,3 +894,11 @@ COMMAND_ALIAS_DEFINITIONS.update({
     "cityrep": "cityreputation",
     "cityreputation": "cityreputation",
 })
+
+# v1.00.0 - Ocean 2.0.
+COMMAND_ALIAS_DEFINITIONS.update({
+    "statek": "ship", "ship": "ship",
+    "zegluj": "sail", "żegluj": "sail", "sail": "sail",
+    "skarby": "oceantreasure", "skarb": "oceantreasure", "treasuremap": "oceantreasure",
+    "handelmorski": "oceantrade", "oceantrade": "oceantrade",
+})

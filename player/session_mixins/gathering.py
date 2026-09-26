@@ -592,37 +592,45 @@ class SessionGatheringMixin:
             detailed = mode in (
                 "info", "pelne", "pełne", "szczegoly", "szczegóły", "details"
             )
-            professions = (
-                "Wędkarstwo", "Górnictwo", "Drwalstwo", "Zielarstwo",
+            gathering_professions = ("Wędkarstwo", "Górnictwo", "Drwalstwo", "Zielarstwo")
+            crafting_professions = (
                 "Gotowanie", "Alchemia", "Kowalstwo", "Jubilerstwo",
                 "Krawiectwo", "Garbarstwo", "Stolarstwo", "Zaklinanie",
             )
+            if mode in ("zbieractwo", "zbierackie", "gathering"):
+                groups = (("ZBIERACTWO", gathering_professions),)
+            elif mode in ("rzemiosla", "rzemiosła", "rzemioslo", "rzemiosło", "crafting"):
+                groups = (("RZEMIOSŁA", crafting_professions),)
+            else:
+                groups = (("ZBIERACTWO", gathering_professions), ("RZEMIOSŁA", crafting_professions))
             await self.send("PROFESJE INFO" if detailed else "PROFESJE")
-            for name in professions:
-                row = self.server.db.profession(self.account_id, name)
-                level = int(row["level"])
-                max_level = profession_max_level(name)
-                rank = profession_rank(level, name)
-                max_rank = profession_max_rank(name)
-                rank_name = profession_rank_name(name, level)
-                if not detailed:
-                    await self.send(
-                        f"{name}: poziom {level}/{max_level}, ranga {rank}/{max_rank}: {rank_name}."
+            for group_name, professions in groups:
+                await self.send(group_name)
+                for name in professions:
+                    row = self.server.db.profession(self.account_id, name)
+                    level = int(row["level"])
+                    max_level = profession_max_level(name)
+                    rank = profession_rank(level, name)
+                    max_rank = profession_max_rank(name)
+                    rank_name = profession_rank_name(name, level)
+                    if not detailed:
+                        await self.send(
+                            f"{name}: poziom {level}/{max_level}, ranga {rank}/{max_rank}: {rank_name}."
+                        )
+                        continue
+                    thresholds = profession_rank_thresholds(name)
+                    if rank < max_rank:
+                        next_rank = f"Następna ranga od levelu {thresholds[rank]}."
+                    else:
+                        next_rank = "Ranga maksymalna."
+                    xp_text = (
+                        "maksimum" if level >= max_level else
+                        f"{row['xp']} z {self.profession_xp_to_next(level, name)}"
                     )
-                    continue
-                thresholds = profession_rank_thresholds(name)
-                if rank < max_rank:
-                    next_rank = f"Następna ranga od levelu {thresholds[rank]}."
-                else:
-                    next_rank = "Ranga maksymalna."
-                xp_text = (
-                    "maksimum" if level >= max_level else
-                    f"{row['xp']} z {self.profession_xp_to_next(level, name)}"
-                )
-                await self.send(
-                    f"{name}: poziom {level}/{max_level}. Ranga {rank}/{max_rank}: {rank_name}. "
-                    f"XP {xp_text}. Akcje {row['actions']}. {next_rank}"
-                )
+                    await self.send(
+                        f"{name}: poziom {level}/{max_level}. Ranga {rank}/{max_rank}: {rank_name}. "
+                        f"XP {xp_text}. Akcje {row['actions']}. {next_rank}"
+                    )
             if detailed:
                 await self.send(
                     "Maksimum wszystkich dwunastu profesji: poziom 600."
@@ -633,7 +641,7 @@ class SessionGatheringMixin:
                     "Wpisz narzedzia info po Tiery i bonusy."
                 )
             else:
-                await self.send("Wpisz profesje info po XP, akcje, progi rang i zasady.")
+                await self.send("Wpisz profesje info po XP, akcje, progi rang i zasady. Możesz też użyć profesje zbieractwo albo profesje rzemiosla.")
 
     async def show_tool_tiers(self):
             for tool_type, title in (
@@ -963,6 +971,8 @@ class SessionGatheringMixin:
             if room_id in SEA_FISHING_ROOMS:
                 return "Morze"
             if room_id in OCEAN_FISHING_ROOMS:
+                if ROOMS.get(room_id, {}).get("deep_ocean_fishing"):
+                    return "Głęboki ocean"
                 return "Ocean"
             return "Łowisko"
 
@@ -999,8 +1009,24 @@ class SessionGatheringMixin:
             if dungeon == "sunken_grotto":
                 effective_level = min(tool_level, max(1, int(dungeon_floor) * 10))
             # v0.30.39: ekologia łowiska nie wycina już odblokowanych gatunków.
-            # Pula zawsze pozostaje kumulacyjna; preferencje wpływają tylko na wagę.
-            return tuple(self.fishing_available_pool(effective_level, habitat))
+            # v1.00.0: gatunki głębinowe są częścią Wędkarstwa 1-600, ale
+            # występują wyłącznie w sektorach Ocean 2.0 oznaczonych deep_ocean_fishing.
+            pool = tuple(self.fishing_available_pool(effective_level, habitat))
+            is_deep = bool(ROOMS.get(room_id, {}).get("deep_ocean_fishing"))
+            # Deep-ocean unlocks use their authored min_tool_level directly.
+            # Generator Core may normalize economy/generator_level later, but that
+            # must never move Fishing unlock thresholds away from 300-600.
+            base_pool = [item_id for item_id in pool if not ITEMS.get(item_id, {}).get("deep_ocean")]
+            if is_deep:
+                deep_ids = sorted(
+                    item_id for item_id, item in ITEMS.items()
+                    if item.get("deep_ocean")
+                    and effective_level >= int(item.get("min_tool_level", 1) or 1)
+                )
+                for item_id in deep_ids:
+                    if item_id not in base_pool:
+                        base_pool.append(item_id)
+            return tuple(base_pool)
 
     def fishing_loot(self, tool_level, habitat="river"):
             room_id = self.character.room_id

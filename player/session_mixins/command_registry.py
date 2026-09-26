@@ -181,6 +181,10 @@ COMMAND_REGISTRY = {
     'put': ('put_in_container', (COMMAND_TEXT,), {}),
     'take': ('take_from_container', (COMMAND_TEXT,), {}),
     'professions': ('show_professions', (COMMAND_TEXT,), {}),
+    'ship': ('show_ship_v1000', (COMMAND_TEXT,), {}),
+    'sail': ('sail_v1000', (COMMAND_TEXT,), {}),
+    'oceantreasure': ('ocean_treasure_v1000', (COMMAND_TEXT,), {}),
+    'oceantrade': ('ocean_trade_v1000', (COMMAND_TEXT,), {}),
     'ranks': ('show_profession_ranks', (), {}),
     'tools': ('show_tools', (COMMAND_TEXT,), {}),
     'toolinfo_fishing': ('show_single_tool', ('fishing',), {}),
@@ -369,6 +373,8 @@ def resolve_session_command(token, args=""):
     if raw in ("gdzie", "where") and arg_words and arg_words[0].strip().lower() in ("zdobyc", "zdobyć", "zdobadz", "zdobądź", "get", "find"):
         return "itemsource"
     first_arg = normalize_lookup_text(arg_words[0]) if arg_words else ""
+    if raw in ("handel", "trade") and first_arg in ("morski", "ocean", "sea"):
+        return "oceantrade"
     if raw in ("do", "what") and first_arg in ("czego", "uses", "use"):
         return "itemuses"
     if raw in ("braki", "gaps", "missing") and first_arg in ("receptura", "recipe", "przepis"):

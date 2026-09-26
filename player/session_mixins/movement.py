@@ -252,6 +252,21 @@ class SessionMovementMixin:
                 await self.send("Nie możesz iść w tym kierunku.")
                 return
             self.server.world.ensure_runtime_room(target)
+            target_room = ROOMS.get(target, {})
+            if target_room.get("requires_ship"):
+                if not hasattr(self, "ocean_ship_owned_v1000") or not self.ocean_ship_owned_v1000():
+                    await self.send("Na ten morski szlak potrzebujesz własnego statku. Wpisz statek kup w głównym porcie.")
+                    return
+                req_nav = int(target_room.get("ocean_navigation_required", 1) or 1)
+                req_hull = int(target_room.get("ocean_hull_required", 1) or 1)
+                if self.ocean_ship_level_v1000("navigation") < req_nav or self.ocean_ship_level_v1000("hull") < req_hull:
+                    await self.send(f"Ten sektor wymaga Nawigacji {req_nav} i Kadłuba {req_hull}.")
+                    return
+            elif target_room.get("underwater") and hasattr(self, "ocean_ship_level_v1000"):
+                req_hull = int(target_room.get("ocean_hull_required", 1) or 1)
+                if not self.ocean_ship_owned_v1000() or self.ocean_ship_level_v1000("hull") < req_hull:
+                    await self.send(f"Zejście do tych podwodnych ruin wymaga statku z Kadłubem {req_hull}+.")
+                    return
             _newbie_block = self.newbie_entry_block_v03051(target)
             if _newbie_block:
                 await self.send(_newbie_block)

@@ -260,6 +260,18 @@ class SessionGatheringActionsMixin:
             for msg in messages:
                 await self.send(msg)
             await self.sync_extended_achievements()
+            if ITEMS.get(base_item_id, {}).get("deep_ocean") or ROOMS.get(self.character.room_id, {}).get("deep_ocean_fishing"):
+                try:
+                    self.server.db.conn.execute(
+                        "UPDATE ocean_ship_v1000 SET deep_catches=deep_catches+1 WHERE account_id=?",
+                        (self.account_id,),
+                    )
+                    map_name = self.maybe_grant_ocean_treasure_map_v1000() if hasattr(self, "maybe_grant_ocean_treasure_map_v1000") else None
+                    self.server.db.conn.commit()
+                    if map_name:
+                        await self.send(f"MAPA SKARBU: podczas połowu znajdujesz {map_name}. Wpisz skarby.")
+                except Exception:
+                    pass
             if new_tool_level != tool_level:
                 await self.send(
                     f"Wędka ma teraz poziom {new_tool_level}, Tier "

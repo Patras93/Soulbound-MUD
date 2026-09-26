@@ -1,3 +1,25 @@
+SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
+Aktualna paczka: v1.00.0
+
+==============================================================================
+Soulbound v1.00.0 — Ocean 2.0
+==============================================================================
+
+- Dodano statki graczy z trwałym zapisem oraz ulepszeniami: Kadłub, Żagle, Ładownia i Nawigacja, poziomy 1–5.
+- Dodano 4 realne szlaki morskie obejmujące 52 sektory oceanu. Szlaki są normalnymi lokacjami świata; wejście wymaga statku i odpowiednich ulepszeń.
+- Dodano 3 podwodne dungeony po 30 pokoi: Ruiny Koralowego Tronu, Świątynię Zatopionej Burzy i Miasto Czarnego Rowu.
+- Dodano mapy skarbów znajdowane podczas głębinowych połowów oraz komendy `skarby` / `skarby szukaj`.
+- Dodano handel morski: `handel morski`, `handel morski wez <nr>`, `handel morski oddaj`. Wyższa Ładownia odblokowuje bardziej wartościowe kontrakty.
+- Połów Głębinowy pozostaje częścią Wędkarstwa 1–600, nie jest nową profesją. Dodano 8 głębinowych gatunków z progami Wędki 300/340/380/420/460/500/550/600.
+- Dodano podział profesji: ZBIERACTWO = Wędkarstwo, Górnictwo, Drwalstwo, Zielarstwo; RZEMIOSŁA = Gotowanie, Alchemia, Kowalstwo, Jubilerstwo, Krawiectwo, Garbarstwo, Stolarstwo, Zaklinanie.
+- `profesje` pokazuje grupy osobno; `profesje zbieractwo` i `profesje rzemiosla` filtrują listę.
+- Dodano helpy Ocean 2.0 oraz podziału profesji.
+- Łącznie: 142 nowe lokacje, 11 nowych przedmiotów/zasobów, 9 typów mobów, 2 NPC i 201 spawnów.
+- SQLite: 3 nowe addytywne tabele Ocean 2.0. Wipe nie jest wymagany.
+- Ocean v1.00.0 audit: PASS. Głębinowe progi połowu: PASS.
+- FAST PREDEPLOY: PASS — 177 modułów, 0 braków, 0 błędów składni, Docker COPY 0 braków, Railway critical import PASS, SQLite 105/108, 243 handlery.
+- Normalny start: PASS — `Soulbound v1.00.0 World Core nasłuchuje`, 2117 lokacji.
+
 ==============================================================================
 Soulbound v0.90.1 — Reputation Help
 ==============================================================================

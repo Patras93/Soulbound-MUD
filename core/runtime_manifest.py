@@ -54,6 +54,7 @@ _RUNTIME_MODULES_ALL = ['core/bootstrap_economy_professions.py',
  'world/world_expansion_iii.py',
  'world/world_expansion_iv.py',
  'world/world_expansion_v.py',
+ 'world/ocean_expansion.py',
  'world/runtime_progression.py',
  'world/living_npcs.py',
  'world/world_state.py',
@@ -1028,3 +1029,10 @@ EXPLICIT_RUNTIME_EXPORTS["systems/runtime_memory.py"] = (
     "memory_efficiency_ii_audit_v0616",
     "V0616_MEMORY_EFFICIENCY_AUDIT",
 )
+
+# v1.00.0: Ocean 2.0 uses ordinary imports and publishes only reviewed API.
+EXPLICIT_RUNTIME_EXPORTS["world/ocean_expansion.py"] = (
+    "OCEAN_2_VERSION", "OCEAN_2_NAME", "ROUTES", "PORTS",
+    "DEEP_OCEAN_ROOMS", "TREASURE_ROOMS", "UNDERWATER_DUNGEONS",
+)
+EXPLICIT_RUNTIME_EXPORTS["player/session_mixins/ocean.py"] = ("SessionOceanV1000Mixin",)

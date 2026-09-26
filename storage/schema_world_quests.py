@@ -247,6 +247,41 @@ def create_world_quests_schema(self):
                         PRIMARY KEY(account_id, instance_kind, floor),
                         FOREIGN KEY(account_id) REFERENCES accounts(id) ON DELETE CASCADE
                     );
+
+        CREATE TABLE IF NOT EXISTS ocean_ship_v1000 (
+                        account_id INTEGER PRIMARY KEY,
+                        owned INTEGER NOT NULL DEFAULT 0,
+                        hull INTEGER NOT NULL DEFAULT 1,
+                        sails INTEGER NOT NULL DEFAULT 1,
+                        cargo INTEGER NOT NULL DEFAULT 1,
+                        navigation INTEGER NOT NULL DEFAULT 1,
+                        voyages INTEGER NOT NULL DEFAULT 0,
+                        deep_catches INTEGER NOT NULL DEFAULT 0,
+                        treasures INTEGER NOT NULL DEFAULT 0,
+                        updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                        FOREIGN KEY(account_id) REFERENCES accounts(id) ON DELETE CASCADE
+                    );
+
+        CREATE TABLE IF NOT EXISTS ocean_treasure_map_v1000 (
+                        account_id INTEGER PRIMARY KEY,
+                        target_room TEXT NOT NULL DEFAULT '',
+                        map_name TEXT NOT NULL DEFAULT '',
+                        found INTEGER NOT NULL DEFAULT 0,
+                        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                        FOREIGN KEY(account_id) REFERENCES accounts(id) ON DELETE CASCADE
+                    );
+
+        CREATE TABLE IF NOT EXISTS ocean_trade_contract_v1000 (
+                        account_id INTEGER PRIMARY KEY,
+                        contract_key TEXT NOT NULL DEFAULT '',
+                        origin_room TEXT NOT NULL DEFAULT '',
+                        destination_room TEXT NOT NULL DEFAULT '',
+                        cargo_label TEXT NOT NULL DEFAULT '',
+                        reward_silver INTEGER NOT NULL DEFAULT 0,
+                        required_cargo INTEGER NOT NULL DEFAULT 1,
+                        accepted_at INTEGER NOT NULL DEFAULT 0,
+                        FOREIGN KEY(account_id) REFERENCES accounts(id) ON DELETE CASCADE
+                    );
         """
     )
     # v0.61.4: zachowaj wcześniejszy łączny licznik zamówień bez zmyślania
