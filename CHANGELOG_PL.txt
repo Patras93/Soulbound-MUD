@@ -1,3 +1,42 @@
+==============================================================================
+Soulbound v0.90.1 — Reputation Help
+==============================================================================
+
+- Dodano `help reputacja` jako wspólny przewodnik po wszystkich głównych systemach reputacji.
+- Dodano osobne helpy: `help reputacja frakcji`, `help reputacja miast`, `help reputacja kurierow` oraz `help reputacja gildii klasowej`.
+- Helpy podają komendy, pełne progi rang, sposoby zdobywania reputacji i najważniejsze bonusy/nagrody.
+- Dodano aliasy m.in. `help rep`, `help reputation`, `help reputacjamiast`, `help cityrep` i `help courier reputation`.
+- Indeks pomocy społecznej wskazuje teraz `help reputacja`.
+- Brak zmian balansu, danych świata i schematu SQLite; wipe nie jest wymagany.
+
+==============================================================================
+Soulbound v0.90.0 — Deep World & Cities 2.0
+==============================================================================
+
+- Dodano 3-poziomowe Katakumby pod rozbudowaną Piwnicą Świątyni: 72 nowe pomieszczenia (3 x 24), nowe szczury katakumbowe, kościane potwory i plugastwa.
+- Katakumby mają dwa minibossy oraz finałowego bossa `Król Gniazda`; Badacz Kael prowadzi 6-etapową linię zadań zakończoną reliktem Korona Króla Gniazda.
+- Archipelag Pękniętej Gwiazdy otrzymał 3 duże fabularne lochy po 40 pomieszczeń: Głębie Szklanej Rafy, Skarbiec Wiecznej Burzy i Więzienie Pękniętej Gwiazdy.
+- Każdy nowy loch Archipelagu ma trzy skrzydła, dwóch minibossów, finałowego bossa z własną mechaniką oraz unikalny relikt.
+- Kampania Kapitan Seris została rozszerzona o kolejne 12 etapów po oryginalnej historii v0.80.0.
+- Miasta 2.0 rozszerza wszystkie 21 miast sieci kurierskiej. Każde dostaje 8 nowych lokacji: Ratusz, Dzielnicę Mieszkalną, Dzielnicę Warsztatową, lokalną Świątynię, Archiwum, Strażnicę oraz dwie części podziemi.
+- Każde miasto otrzymało Kronikarza, Kapitana Straży, lokalne zagrożenie podziemi i nową 3-etapową linię questową kontynuującą wcześniejsze historie miejskie.
+- Łącznie v0.90.0 dodaje 360 lokacji, 45 nowych typów przeciwników, 43 NPC, 81 questów i 699 spawnów.
+- Audyt ekspansji potwierdza osiągalność 360/360 nowych lokacji, komplet bossów/spawnów, 3 katakumbowe poziomy, 3 lochy Archipelagu po 40 pokoi i 21 rozszerzonych miast.
+- FAST PREDEPLOY: PASS — 176 modułów runtime, 0 braków, 0 błędów składni, Docker COPY 0 braków, Railway critical import PASS, SQLite 102/105, 877 aliasów / 239 handlerów.
+- Normalny start: PASS — `Soulbound v0.90.0 World Core nasłuchuje`, 1975 lokacji.
+- Brak wipe postaci i brak nowej migracji SQLite.
+
+==============================================================================
+Soulbound v0.80.3 — Expanded Temple Basement
+==============================================================================
+
+- Piwnica Świątyni ma teraz 20 połączonych pomieszczeń zamiast jednego.
+- Liczba Szczurów Świątynnych wzrosła z 4 do 100: po 5 spawnów w każdym pomieszczeniu.
+- Dodano odnogi, gniazda, cysternę, kanały, magazyny, kaplicę i głębokie siedlisko.
+- Questy wymagające 10 lub 25 szczurów nie wymagają już oczekiwania na wielokrotne respawny.
+- Audit podziemi liczy teraz faktyczną liczbę pokojów Piwnicy.
+- Brak zmian w statystykach szczurów, ekonomii, schemacie SQLite i zapisach postaci.
+
 Soulbound v0.80.2 — Party Combat & AoE Targeting
 
 - Ujednolicono zasadę AoE: ofensywny skill typu `aoe_damage` zadaje obrażenia wszystkim żywym mobom w bieżącym pokoju, niezależnie od ich aktualnego aggro.

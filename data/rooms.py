@@ -12,9 +12,104 @@ ROOMS = {
         "exits": {"east": "square", "north": "library", "down": "temple_basement"},
     },
     "temple_basement": {
-        "zone": "Podziemia", "name": "Piwnica Świątyni",
-        "desc": "Wilgotna piwnica pod Świątynią Odrodzenia. Między skrzyniami słychać piski szczurów.",
-        "exits": {"up": "temple"},
+        "zone": "Piwnica Świątyni", "name": "Wejście do Piwnicy Świątyni",
+        "desc": "Kamienne schody schodzą do rozległych podziemi pod świątynią. W ciemności słychać dziesiątki szczurów.",
+        "exits": {"up": "temple", "north": "temple_basement_storage", "east": "temple_basement_pantry", "west": "temple_basement_wine"},
+    },
+    "temple_basement_storage": {
+        "zone": "Piwnica Świątyni", "name": "Magazyn Skrzyń",
+        "desc": "Stare skrzynie tworzą wąskie przejścia, a spod desek dobiegają nieustanne piski.",
+        "exits": {"south": "temple_basement", "north": "temple_basement_drain", "east": "temple_basement_moldy"},
+    },
+    "temple_basement_pantry": {
+        "zone": "Piwnica Świątyni", "name": "Stara Spiżarnia",
+        "desc": "Rozbite beczki i worki po ziarnie przyciągnęły całe stado świątynnych szczurów.",
+        "exits": {"west": "temple_basement", "north": "temple_basement_cistern", "east": "temple_basement_flooded"},
+    },
+    "temple_basement_wine": {
+        "zone": "Piwnica Świątyni", "name": "Piwniczka Winna",
+        "desc": "Puste stojaki na beczki ciągną się w półmroku, a między nimi przemykają szczury.",
+        "exits": {"east": "temple_basement", "north": "temple_basement_root", "west": "temple_basement_hidden"},
+    },
+    "temple_basement_drain": {
+        "zone": "Piwnica Świątyni", "name": "Kanał Odpływowy",
+        "desc": "Wilgotny kanał prowadzi głębiej pod fundamenty. Ślady pazurów pokrywają kamienie.",
+        "exits": {"south": "temple_basement_storage", "north": "temple_basement_nest_a", "east": "temple_basement_collapsed"},
+    },
+    "temple_basement_moldy": {
+        "zone": "Piwnica Świątyni", "name": "Zapleśniały Magazyn",
+        "desc": "Wilgoć zniszczyła zapasy. Szczury urządziły sobie legowiska w spleśniałych workach.",
+        "exits": {"west": "temple_basement_storage", "north": "temple_basement_boiler"},
+    },
+    "temple_basement_cistern": {
+        "zone": "Piwnica Świątyni", "name": "Stara Cysterna",
+        "desc": "Kamienny zbiornik jest prawie pusty. W szczelinach ścian kłębią się szczury.",
+        "exits": {"south": "temple_basement_pantry", "east": "temple_basement_sewer_grate"},
+    },
+    "temple_basement_flooded": {
+        "zone": "Piwnica Świątyni", "name": "Zalany Korytarz",
+        "desc": "Płytka woda pokrywa posadzkę. Szczury przeskakują między wystającymi kamieniami.",
+        "exits": {"west": "temple_basement_pantry", "north": "temple_basement_bone_pit"},
+    },
+    "temple_basement_root": {
+        "zone": "Piwnica Świątyni", "name": "Korzeniowa Piwnica",
+        "desc": "Grube korzenie przebiły mur i utworzyły kryjówki dla kolejnych stad szczurów.",
+        "exits": {"south": "temple_basement_wine", "north": "temple_basement_lower_vault"},
+    },
+    "temple_basement_hidden": {
+        "zone": "Piwnica Świątyni", "name": "Ukryta Alkowa",
+        "desc": "Za pękniętym murem znajduje się zapomniana alkowa pełna starych szmat i gniazd.",
+        "exits": {"east": "temple_basement_wine", "north": "temple_basement_chapel"},
+    },
+    "temple_basement_nest_a": {
+        "zone": "Piwnica Świątyni", "name": "Pierwsze Szczurze Gniazdo",
+        "desc": "Podłoga jest zasłana słomą, kośćmi i resztkami. Szczury bronią swojego gniazda agresywnie.",
+        "exits": {"south": "temple_basement_drain", "east": "temple_basement_nest_b", "north": "temple_basement_deep_nest"},
+    },
+    "temple_basement_collapsed": {
+        "zone": "Piwnica Świątyni", "name": "Zawalony Korytarz",
+        "desc": "Zawalony strop zostawił tylko wąskie przejście. Spod kamieni wybiegają kolejne szczury.",
+        "exits": {"west": "temple_basement_drain", "north": "temple_basement_nest_c"},
+    },
+    "temple_basement_boiler": {
+        "zone": "Piwnica Świątyni", "name": "Stara Kotłownia",
+        "desc": "Zardzewiałe rury i zimny piec tworzą labirynt idealny dla szczurzych kryjówek.",
+        "exits": {"south": "temple_basement_moldy", "west": "temple_basement_nest_b"},
+    },
+    "temple_basement_sewer_grate": {
+        "zone": "Piwnica Świątyni", "name": "Krata Kanalizacyjna",
+        "desc": "Ciężka krata odcina stary odpływ. Wokół niej tłoczą się szczury zwabione zapachem kanałów.",
+        "exits": {"west": "temple_basement_cistern", "northeast": "temple_basement_nest_c"},
+    },
+    "temple_basement_bone_pit": {
+        "zone": "Piwnica Świątyni", "name": "Dół Kości",
+        "desc": "W zagłębieniu leżą stare kości zwierząt. To jedno z ulubionych żerowisk szczurów.",
+        "exits": {"south": "temple_basement_flooded", "east": "temple_basement_nest_c"},
+    },
+    "temple_basement_lower_vault": {
+        "zone": "Piwnica Świątyni", "name": "Dolny Skarbiec",
+        "desc": "Dawny magazyn świątynnych zapasów od lat stoi pusty i został przejęty przez szczury.",
+        "exits": {"south": "temple_basement_root", "east": "temple_basement_chapel"},
+    },
+    "temple_basement_chapel": {
+        "zone": "Piwnica Świątyni", "name": "Zapomniana Kaplica",
+        "desc": "Mała podziemna kaplica jest opuszczona. Pod kamiennym ołtarzem rozrosło się szczurze gniazdo.",
+        "exits": {"south": "temple_basement_hidden", "west": "temple_basement_lower_vault"},
+    },
+    "temple_basement_nest_b": {
+        "zone": "Piwnica Świątyni", "name": "Drugie Szczurze Gniazdo",
+        "desc": "Korytarz jest niemal całkowicie zajęty przez gniazda. Szczury pojawiają się ze wszystkich stron.",
+        "exits": {"west": "temple_basement_nest_a", "east": "temple_basement_boiler"},
+    },
+    "temple_basement_nest_c": {
+        "zone": "Piwnica Świątyni", "name": "Trzecie Szczurze Gniazdo",
+        "desc": "Najciemniejsza część bocznych tuneli. W szczelinach błyszczą dziesiątki małych oczu.",
+        "exits": {"south": "temple_basement_collapsed", "west": "temple_basement_bone_pit", "southwest": "temple_basement_sewer_grate"},
+    },
+    "temple_basement_deep_nest": {
+        "zone": "Piwnica Świątyni", "name": "Głębokie Gniazdo",
+        "desc": "Najgłębsza komora piwnicy jest jednym wielkim szczurzym siedliskiem. Pisk odbija się od kamiennych ścian.",
+        "exits": {"south": "temple_basement_nest_a"},
     },
     "library": {
         "zone": "Miasto Dusz", "name": "Biblioteka Kronik",

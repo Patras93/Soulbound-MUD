@@ -63,8 +63,8 @@ def world_expansion_iv_audit_v0800():
 
     captain = NPCS.get("v0800_captain_seris") or {}
     attached = (captain.get("quest"),) + tuple(captain.get("quest_chain") or ())
-    if tuple(attached) != tuple(STORY_QUEST_IDS_V0800):
-        errors.append("Kapitan Seris does not expose the complete story chain")
+    if tuple(attached[:len(STORY_QUEST_IDS_V0800)]) != tuple(STORY_QUEST_IDS_V0800):
+        errors.append("Kapitan Seris does not preserve the original v0.80.0 story-chain prefix")
 
     final_q = QUESTS.get(STORY_QUEST_IDS_V0800[-1]) or {}
     if int((final_q.get("reward_items") or {}).get("v0800_broken_star_compass", 0) or 0) != 1:

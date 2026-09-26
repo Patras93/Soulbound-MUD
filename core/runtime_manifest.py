@@ -53,6 +53,7 @@ _RUNTIME_MODULES_ALL = ['core/bootstrap_economy_professions.py',
  'world/world_expansion_ii.py',
  'world/world_expansion_iii.py',
  'world/world_expansion_iv.py',
+ 'world/world_expansion_v.py',
  'world/runtime_progression.py',
  'world/living_npcs.py',
  'world/world_state.py',
@@ -187,6 +188,7 @@ _RUNTIME_MODULES_ALL = ['core/bootstrap_economy_professions.py',
  'admin/crafting_logistics_audit_v0614.py',
  'admin/courier_profession_expansion_audit_v0700.py',
  'admin/world_expansion_iv_audit_v0800.py',
+ 'admin/world_expansion_v_audit_v0900.py',
  'systems/soul_shard_finalizer.py',
  'systems/runtime_memory.py',
  'admin/release_integrity_v0369.py']
@@ -194,7 +196,7 @@ _RUNTIME_MODULES_ALL = ['core/bootstrap_economy_professions.py',
 
 # v0.80.1 Clean Railway Package: these static developer audits are absent from
 # the production runtime/package. FULL PREDEPLOY keeps the historical list.
-FULL_AUDIT_ONLY_MODULES = frozenset(('admin/maintenance_audit_v0400.py', 'admin/explicit_dependencies_audit_v0430.py', 'admin/explicit_gameplay_dependencies_audit_v0440.py', 'admin/explicit_stable_dependencies_audit_v0450.py', 'admin/explicit_persistence_audit_v0460.py', 'admin/combat_architecture_audit_v0470.py', 'admin/catalog_ownership_audit_v0480.py', 'admin/release_integrity_v0369.py'))
+FULL_AUDIT_ONLY_MODULES = frozenset(('admin/maintenance_audit_v0400.py', 'admin/explicit_dependencies_audit_v0430.py', 'admin/explicit_gameplay_dependencies_audit_v0440.py', 'admin/explicit_stable_dependencies_audit_v0450.py', 'admin/explicit_persistence_audit_v0460.py', 'admin/combat_architecture_audit_v0470.py', 'admin/catalog_ownership_audit_v0480.py', 'admin/release_integrity_v0369.py', 'admin/world_expansion_v_audit_v0900.py'))
 FULL_RUNTIME_MODULES = tuple(_RUNTIME_MODULES_ALL)
 RUNTIME_MODULES = tuple(m for m in FULL_RUNTIME_MODULES if m not in FULL_AUDIT_ONLY_MODULES)
 
@@ -844,9 +846,20 @@ EXPLICIT_RUNTIME_EXPORTS["world/world_expansion_iv.py"] = (
     "WORLD_EXPANSION_IV_REQUIRED_SOUL_TIER", "WORLD_EXPANSION_IV_STATE",
     "STORY_QUEST_IDS_V0800", "SIDE_QUEST_IDS_V0800",
 )
+
+EXPLICIT_RUNTIME_EXPORTS["world/world_expansion_v.py"] = (
+    "WORLD_EXPANSION_V_VERSION", "WORLD_EXPANSION_V_NAME", "WORLD_EXPANSION_V_STATE",
+    "CATACOMB_LEVELS_V0900", "ARCHIPELAGO_DUNGEONS_V0900", "ARCHIPELAGO_STORY_QUESTS_V0900",
+    "CITIES_2_CITIES_V0900", "CITIES_2_QUESTS_V0900",
+)
+
 EXPLICIT_RUNTIME_EXPORTS["admin/world_expansion_iv_audit_v0800.py"] = (
     "world_expansion_iv_audit_v0800", "WORLD_EXPANSION_IV_AUDIT_V0800",
 )
+EXPLICIT_RUNTIME_EXPORTS["admin/world_expansion_v_audit_v0900.py"] = (
+    "world_expansion_v_audit_v0900", "WORLD_EXPANSION_V_AUDIT_V0900",
+)
+
 EXPLICIT_RUNTIME_EXPORTS["systems/profession_quest_expansion.py"] = (
     "PROFESSION_QUEST_EXPANSION_VERSION", "PROFESSION_QUEST_SPECS_V0700",
     "PROFESSION_QUEST_STAGES_V0700", "PROFESSION_QUEST_IDS_V0700",

@@ -1336,7 +1336,7 @@ def audit_underground_route_isolation_v03813():
 
     return {
         "version": "0.38.13",
-        "basement_rooms": 1,
+        "basement_rooms": sum(1 for rid, room in ROOMS.items() if room.get("zone") == "Piwnica Świątyni"),
         "mine_expansion_rooms": len(expansion_ids),
         "error_count": len(errors),
         "errors": errors,
