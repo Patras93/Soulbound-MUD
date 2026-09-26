@@ -1,3 +1,12 @@
+Soulbound v0.71.4 — Eren Treasure Map Hotfix
+
+- Naprawiono `użyj mapy` w powtarzalnym queście Kartografa Erena `Znak poza mapą`. Questowa Mapa Erena była poprawnie przyznawana, ale skrót szukał niezaimportowanego identyfikatora i błędnie próbował zużyć zwykłą Mapę Skarbu Rubieży.
+- `użyj mapy` wybiera teraz w pierwszej kolejności `Mapa Erena: Znak poza mapą`, zapisuje trop i przygotowuje `prowadz skarb`.
+- Aktywny quest bez mapy i bez zapisanego tropu samoodtwarza jedną questową Mapę Erena, dzięki czemu nie trzeba porzucać i ponownie przyjmować zadania po aktualizacji.
+- Nie jest tworzona druga mapa, jeśli quest ma już aktywny trop.
+- Opis zadania podaje dokładną nazwę questowej mapy i wprost mówi `użyj mapy`.
+- Brak migracji SQLite, brak wipe i brak zmian nagród.
+
 Soulbound v0.71.3 — Zamówienia dla wszystkich profesji
 
 - Rotujące `zamowienia` obejmują teraz wszystkie 12 profesji.
@@ -122,7 +131,7 @@ Soulbound v0.61.2 — Memory Efficiency
 - Brak zmian schematu SQLite i brak wipe postaci. Gameplay v0.61.1 pozostaje bez zmian.
 
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v0.71.3
+Aktualna paczka: v0.71.4
 
 Ten plik jest changelogiem narastającym. Kolejne wydania mają dopisywać nowe wpisy na górze, bez usuwania starszej historii.
 Historia poniżej została odtworzona z zachowanych wpisów release, HELP, audytów, komentarzy milestone oraz aktywnego kodu Soulbound.

@@ -10,7 +10,7 @@ from config.postal import (
     COURIER_CITY_DELIVERY_ACHIEVEMENTS_V0550,
     CITY_REPUTATION_RANKS_V0710, CITY_REPUTATION_MAX_V0710,
 )
-from data.catalogs import ROOMS, NPCS
+from data.catalogs import ITEMS, ROOMS, NPCS
 from data.quests import QUESTS
 from world.world_expansion_iii import (
     WORLD_EXPANSION_III_SETTLEMENTS,
@@ -20,10 +20,12 @@ from world.world_expansion_iii import (
     CITY_STORY_NPC_IDS_V0710, CITY_STORY_ITEM_IDS_V0710,
 )
 from player.session_mixins.crafting import SessionCraftingMixin
+from player.session_mixins.inventory_equipment import SessionInventoryEquipmentMixin
 from player.session_mixins.item_sources import SessionItemSourcesV0610Mixin
 from player.session_mixins.courier_delivery import SessionCourierDeliveryMixin
 from storage.db_world import DatabaseWorldMixin
 from storage.schema_migrate_social import migrate_social_courier_schema
+from world.generation_systems import V014_TREASURE_MAP_ITEM, V0243_EREN_SECRET_MAP_ITEM
 from systems.profession_quest_expansion import (
     PROFESSION_QUEST_SPECS_V0700,
     PROFESSION_QUEST_STAGES_V0700,
@@ -208,6 +210,64 @@ def courier_profession_expansion_audit_v0700():
         errors.append("missing city reputation command or courier payout integration")
     if CITY_REPUTATION_MAX_V0710 != 400 or len(CITY_REPUTATION_RANKS_V0710) < 5:
         errors.append("invalid city reputation 1-400 rank configuration")
+
+    # v0.71.4: Eren's repeatable secret quest must grant and resolve its own
+    # quest map before the generic Treasure Map. This protects `użyj mapy`.
+    eren_quest_id = "city_cartographer_secret_marks"
+    eren_quest = QUESTS.get(eren_quest_id) or {}
+    if int((eren_quest.get("accept_items") or {}).get(V0243_EREN_SECRET_MAP_ITEM, 0) or 0) != 1:
+        errors.append("Eren secret quest does not grant exactly one quest map")
+    if not eren_quest.get("accept_items_always"):
+        errors.append("Eren secret quest must always grant its quest map on restart")
+    eren_map = ITEMS.get(V0243_EREN_SECRET_MAP_ITEM) or {}
+    if eren_map.get("quest_treasure_map_for") != eren_quest_id or not eren_map.get("treasure_map"):
+        errors.append("Eren quest map metadata is invalid")
+
+    class _MapAuditDB:
+        def __init__(self, with_map=True, with_target=False):
+            self.qty = {V0243_EREN_SECRET_MAP_ITEM: 1 if with_map else 0, V014_TREASURE_MAP_ITEM: 0}
+            self.entries = {
+                "quest_treasure_targets_v0243": ({f"{eren_quest_id}|dummy"} if with_target else set()),
+                "quest_map_grants_v0243": set(),
+            }
+        def item_qty(self, _account_id, item_id):
+            return int(self.qty.get(item_id, 0))
+        def quest(self, _account_id, quest_id):
+            return {"status":"active"} if quest_id == eren_quest_id else None
+        def collection_entry_ids(self, _account_id, category):
+            return set(self.entries.get(category, set()))
+        def add_item(self, _account_id, item_id, qty):
+            self.qty[item_id] = int(self.qty.get(item_id, 0)) + int(qty)
+        def add_collection_entry(self, _account_id, category, entry):
+            self.entries.setdefault(category, set()).add(entry)
+
+    class _MapAuditServer:
+        def __init__(self, db): self.db = db
+    class _MapAuditSession:
+        def __init__(self, db):
+            self.account_id = 1
+            self.server = _MapAuditServer(db)
+        def normalize_description_query(self, value):
+            return str(value or "").strip().casefold()
+
+    direct_db = _MapAuditDB(with_map=True)
+    direct_session = _MapAuditSession(direct_db)
+    found, ambiguous = SessionInventoryEquipmentMixin.find_consumable_for_use(direct_session, "mapa")
+    if ambiguous or not found or found[0] != V0243_EREN_SECRET_MAP_ITEM:
+        errors.append("`użyj mapy` does not prefer Eren quest map")
+
+    recovery_db = _MapAuditDB(with_map=False, with_target=False)
+    recovery_session = _MapAuditSession(recovery_db)
+    restored = SessionInventoryEquipmentMixin.restore_missing_eren_map_v0714(recovery_session)
+    if not restored or recovery_db.item_qty(1, V0243_EREN_SECRET_MAP_ITEM) != 1:
+        errors.append("active Eren quest does not restore one missing quest map")
+    if SessionInventoryEquipmentMixin.restore_missing_eren_map_v0714(recovery_session):
+        errors.append("Eren map recovery creates duplicate quest maps")
+
+    used_db = _MapAuditDB(with_map=False, with_target=True)
+    used_session = _MapAuditSession(used_db)
+    if SessionInventoryEquipmentMixin.restore_missing_eren_map_v0714(used_session):
+        errors.append("Eren map recovery creates a second map after a quest target already exists")
 
     return {
         "version":"0.71.0",

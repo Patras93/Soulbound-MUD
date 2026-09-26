@@ -1682,7 +1682,7 @@ _catalog_mut.catalog_update_path('QUESTS', QUESTS, (), {
     "city_cartographer_secret_marks": {
         "name":"Kartograf Eren: Znak poza mapą", "giver":"Kartograf Eren",
         "kind":"discover_secret", "target":"any", "needed":1,
-        "description":"Po przyjęciu zadania otrzymasz Mapę Skarbu Rubieży. Użyj jej, dotrzyj do wskazanego sektora, odkryj 1 nowy sekret proceduralnego świata i wróć do Kartografa Erena.",
+        "description":"Po przyjęciu zadania otrzymasz questową Mapę Erena: Znak poza mapą. Wpisz użyj mapy, dotrzyj do wskazanego sektora, odkryj 1 nowy sekret proceduralnego świata i wróć do Kartografa Erena.",
         "accept_items":{"quest_map_eren_secret_marks":1}, "accept_items_always":True,
         "reward_stat_progress":55, "reward_silver":900, "reward_gold":0, "reward_mithril":0,
         "reward_items":{}, "repeatable":True, "repeat_cooldown":QUEST_REPEAT_COOLDOWN_SECONDS,

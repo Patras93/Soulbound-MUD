@@ -31,7 +31,7 @@ from systems.equipment_crafting import (
     jewelry_socket_capacity,
 )
 from systems.items_resources import CLASS_EQUIPMENT_SETS
-from world.generation_systems import V014_TREASURE_MAP_ITEM
+from world.generation_systems import V014_TREASURE_MAP_ITEM, V0243_EREN_SECRET_MAP_ITEM
 
 
 class SessionInventoryEquipmentMixin:
@@ -1547,12 +1547,12 @@ class SessionInventoryEquipmentMixin:
             if not q:
                 return None, []
 
-            # v0.24.3: prosty skrót `użyj mapy`. Jeśli aktywny quest Erena
-            # ma własną mapę, używamy najpierw jej; zwykła Mapa Skarbu nadal działa poza questem.
+            # v0.71.4: skrót `użyj mapy` musi widzieć jawnie importowaną mapę
+            # questową Erena. W v0.71.3 użycie globals().get(...) zawsze zwracało
+            # None w tym jawnym module i komenda błędnie próbowała zużyć zwykłą mapę.
             if q in {"mapa", "mapy", "mape", "mapę", "mapa skarbu", "mape skarbu", "mapę skarbu", "treasure map"}:
-                quest_map_id = globals().get("V0243_EREN_SECRET_MAP_ITEM")
-                if quest_map_id and self.server.db.item_qty(self.account_id, quest_map_id) > 0:
-                    return (quest_map_id, ITEMS[quest_map_id]), []
+                if self.server.db.item_qty(self.account_id, V0243_EREN_SECRET_MAP_ITEM) > 0:
+                    return (V0243_EREN_SECRET_MAP_ITEM, ITEMS[V0243_EREN_SECRET_MAP_ITEM]), []
                 return (V014_TREASURE_MAP_ITEM, ITEMS[V014_TREASURE_MAP_ITEM]), []
 
             # Celowe krótkie aliasy wymagane dla szybkiej obsługi NVDA.
@@ -1603,6 +1603,30 @@ class SessionInventoryEquipmentMixin:
                 return None, partial
             return None, []
 
+    def restore_missing_eren_map_v0714(self):
+            """Odtwarza mapę tylko dla aktywnego questa Erena bez zapisanego tropu.
+
+            Chroni konta, które weszły w v0.71.4 z już aktywnym zadaniem. Nie daje
+            drugiej mapy po prawidłowym użyciu pierwszej.
+            """
+            quest_id = "city_cartographer_secret_marks"
+            row = self.server.db.quest(self.account_id, quest_id)
+            if not row or row["status"] != "active":
+                return False
+            if self.server.db.item_qty(self.account_id, V0243_EREN_SECRET_MAP_ITEM) > 0:
+                return False
+            prefix = f"{quest_id}|"
+            tracked = self.server.db.collection_entry_ids(
+                self.account_id, "quest_treasure_targets_v0243"
+            )
+            if any(str(entry).startswith(prefix) for entry in tracked):
+                return False
+            self.server.db.add_item(self.account_id, V0243_EREN_SECRET_MAP_ITEM, 1)
+            self.server.db.add_collection_entry(
+                self.account_id, "quest_map_grants_v0243", quest_id
+            )
+            return True
+
     async def use_item(self, query):
             raw_query = str(query or "").strip()
             lowered = raw_query.lower()
@@ -1630,6 +1654,14 @@ class SessionInventoryEquipmentMixin:
                         return
                     await self.use_class_skill(skill_query)
                     return
+
+            normalized_use = self.normalize_description_query(raw_query)
+            map_aliases_v0714 = {"mapa", "mapy", "mape", "mapę", "mapa skarbu", "mape skarbu", "mapę skarbu", "treasure map"}
+            restored_eren_map = False
+            if normalized_use in map_aliases_v0714:
+                restored_eren_map = self.restore_missing_eren_map_v0714()
+                if restored_eren_map:
+                    await self.send("Odtworzono brakującą questową Mapę Erena dla aktywnego zadania Znak poza mapą.")
 
             found, ambiguous = self.find_consumable_for_use(raw_query)
 

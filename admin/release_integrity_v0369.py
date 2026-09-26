@@ -81,6 +81,7 @@ _RELEASE_AUDITS_V0369 = [
     ("v0.71.1 Crypt Soul Shard Hotfix", "SOUL_SHARD_CRYPT_FINAL_AUDIT_V0711"),
     ("v0.71.2 Hourly Quest Diversity & Rewards", "LIVING_NPCS_ACTIVITY_AUDIT_V0560"),
     ("v0.71.3 Orders for All Professions", "CRAFTING_ORDERS_COMPARE_AUDIT_V0600"),
+    ("v0.71.4 Eren Treasure Map Hotfix", "COURIER_PROFESSION_EXPANSION_AUDIT_V0700"),
 ]
 
 def cumulative_release_integrity_audit_v0369():
@@ -98,13 +99,13 @@ def cumulative_release_integrity_audit_v0369():
         preserved.append(label)
 
     # Direct release-line checks for the exact milestones the user flagged.
-    if str(globals().get("VERSION","")) != "0.71.3":
-        errors.append(f"VERSION={globals().get('VERSION')!r}, expected 0.71.3")
+    if str(globals().get("VERSION","")) != "0.71.4":
+        errors.append(f"VERSION={globals().get('VERSION')!r}, expected 0.71.4")
     if str(globals().get("GENERATOR_CORE_VERSION","")) != "0.61.0":
         errors.append(f"Generator Core={globals().get('GENERATOR_CORE_VERSION')!r}, expected 0.61.0")
 
     return {
-        "version":"0.71.3",
+        "version":"0.71.4",
         "checked":len(_RELEASE_AUDITS_V0369),
         "preserved":preserved,
         "preserved_count":len(preserved),
@@ -115,7 +116,7 @@ def cumulative_release_integrity_audit_v0369():
 CUMULATIVE_RELEASE_INTEGRITY_AUDIT_V0369=cumulative_release_integrity_audit_v0369()
 if CUMULATIVE_RELEASE_INTEGRITY_AUDIT_V0369["error_count"]:
     raise RuntimeError(
-        "Cumulative Release Integrity Audit v0.71.3 failed: "
+        "Cumulative Release Integrity Audit v0.71.4 failed: "
         + "; ".join(CUMULATIVE_RELEASE_INTEGRITY_AUDIT_V0369["errors"][:100])
     )
 
@@ -147,8 +148,10 @@ HELP_TOPICS.setdefault("wersja", []).append("v0.61.4: Crafting Logistics dodaje 
 
 HELP_TOPICS.setdefault("wersja", []).append("v0.71.2: godzinne questy NPC mają różne cele (rozmowa, dostawa, zbieranie, patrol), nie skupiają się na jednym NPC i żaden powtarzalny quest nie daje już tylko 1 EXP postaci.")
 HELP_TOPICS.setdefault("wersja", []).append("v0.71.3: rotujące zamówienia działają dla wszystkich 12 profesji; Wędkarstwo, Górnictwo, Drwalstwo i Zielarstwo mają dostawy świeżo zebranych zasobów, a Zaklinanie liczy udane zaklęcia.")
-LATEST_CHANGES_TITLE = "Soulbound v0.71.3 - Orders for All Professions"
+HELP_TOPICS.setdefault("wersja", []).append("v0.71.4: naprawiono `użyj mapy` dla questu Kartografa Erena; aktywny quest potrafi też bezpiecznie odtworzyć brakującą mapę, jeśli trop nie został jeszcze zapisany.")
+LATEST_CHANGES_TITLE = "Soulbound v0.71.4 - Eren Treasure Map Hotfix"
 LATEST_CHANGES = [
+    "v0.71.4: `użyj mapy` poprawnie wybiera questową Mapę Erena i zapisuje trop do zadania Znak poza mapą.",
     "v0.71.3: rotujące zamówienia obejmują wszystkie 12 profesji, nie tylko profesje wytwórcze.",
     "Wędkarstwo, Górnictwo, Drwalstwo i Zielarstwo mają trzy godzinne dostawy, które liczą wyłącznie świeżo zebrane surowce po przyjęciu zamówienia.",
     "Zaklinanie ma trzy serie zamówień liczące faktyczne udane akcje Zaklinania; przy oddaniu nie pobiera się produktu drugi raz.",
