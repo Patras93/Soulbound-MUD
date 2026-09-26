@@ -171,6 +171,35 @@ class MudServer:
             result.append(session)
         return result
 
+    def party_engaged_mobs(self, session, room_id=None):
+        """Żywe moby będące wspólnymi celami lokalnej drużyny.
+
+        Cel nie jest zapisywany osobno: wynika z realnego engaged_by któregoś
+        członka tej samej drużyny w tym samym pokoju. Dzięki temu każdy mob
+        zaatakowany przez członka party natychmiast staje się legalnym celem
+        dla pozostałych członków party, bez zombie-targetów po wyjściu.
+        """
+        if not session or not session.character:
+            return []
+        rid = session.character.room_id if room_id is None else room_id
+        members = self.party_sessions(session.account_id, same_room=rid)
+        if not members:
+            return []
+        member_names = {
+            m.character.name for m in members
+            if m.character and not m.closed and m.current_hp > 0
+        }
+        if not member_names:
+            return []
+        result = []
+        for mob in self.world.room_mobs(rid):
+            if not mob.alive:
+                continue
+            self.sanitize_mob_engagement(mob)
+            if mob.engaged_by in member_names:
+                result.append(mob)
+        return result
+
     def party_combat_target(self, owner_session, mob):
         if not owner_session or not mob or not mob.alive:
             return owner_session

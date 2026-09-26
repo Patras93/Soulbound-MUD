@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #!/usr/bin/env python3
-"""Soulbound v0.80.1 — Archipelag Pękniętej Gwiazdy."""
+"""Soulbound v0.80.2 — Party Combat & AoE Targeting."""
 from pathlib import Path
 import os
 import socket
@@ -46,7 +46,7 @@ if os.environ.get("SOULBOUND_FULL_AUDIT", "").strip().lower() in ("1", "true", "
     FULL_GAME_PREDEPLOY_AUDIT_V0336 = full_game_predeploy_audit_v0336()
     if FULL_GAME_PREDEPLOY_AUDIT_V0336["error_count"]:
         raise RuntimeError(
-            "Full Game Pre-Deploy Audit v0.80.1 failed: "
+            "Full Game Pre-Deploy Audit v0.80.2 failed: "
             + "; ".join(map(str, FULL_GAME_PREDEPLOY_AUDIT_V0336["errors"][:100]))
         )
 else:

@@ -272,10 +272,30 @@ class SessionCombatRealtimeMixin:
                 elif current:
                     mob = current
                 else:
+                    # v0.80.2: bez jawnej nazwy najpierw przejmij jednoznaczny
+                    # wspólny cel lokalnej drużyny. Mob zaatakowany przez dowolnego
+                    # członka party jest legalnym celem całej drużyny.
+                    if not wanted:
+                        party_targets = self.server.party_engaged_mobs(
+                            self, self.character.room_id
+                        )
+                        if len(party_targets) == 1:
+                            mob = party_targets[0]
+                        elif len(party_targets) > 1:
+                            await self.send(
+                                "Drużyna walczy z kilkoma przeciwnikami. Podaj cel: "
+                                + ", ".join(
+                                    MOB_TEMPLATES[target.template_id]["name"]
+                                    for target in party_targets
+                                )
+                                + "."
+                            )
+                            return
                     # v0.8.35: najpierw próbujemy znaleźć prawdziwego, żywego moba.
                     # Dzięki temu pokojowy NPC o podobnej nazwie nie blokuje komendy
                     # k <mob>, jeżeli w tym samym pokoju istnieje zabijalny przeciwnik.
-                    mob = self.server.world.find_mob(self.character.room_id, wanted)
+                    if mob is None:
+                        mob = self.server.world.find_mob(self.character.room_id, wanted)
                     if not mob:
                         if await self.reject_player_attack(wanted):
                             return

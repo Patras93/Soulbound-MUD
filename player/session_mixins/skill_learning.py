@@ -690,16 +690,33 @@ class SessionSkillLearningMixin:
 
             if mob is None:
                 if not query.strip():
-                    await self.send("Ta umiejętność wymaga celu. Podaj nazwę przeciwnika.")
-                    return None
-                if await self.reject_player_attack(query):
-                    return None
-                if await self.reject_friendly_npc_attack(query):
-                    return None
-                mob = self.server.world.find_mob(self.character.room_id, query)
-                if not mob:
-                    await self.send("Nie widzę tutaj takiego przeciwnika.")
-                    return None
+                    party_targets = self.server.party_engaged_mobs(
+                        self, self.character.room_id
+                    )
+                    if len(party_targets) == 1:
+                        mob = party_targets[0]
+                    elif len(party_targets) > 1:
+                        await self.send(
+                            "Drużyna walczy z kilkoma przeciwnikami. Podaj nazwę celu: "
+                            + ", ".join(
+                                MOB_TEMPLATES[target.template_id]["name"]
+                                for target in party_targets
+                            )
+                            + "."
+                        )
+                        return None
+                    else:
+                        await self.send("Ta umiejętność wymaga celu. Podaj nazwę przeciwnika.")
+                        return None
+                if mob is None:
+                    if await self.reject_player_attack(query):
+                        return None
+                    if await self.reject_friendly_npc_attack(query):
+                        return None
+                    mob = self.server.world.find_mob(self.character.room_id, query)
+                    if not mob:
+                        await self.send("Nie widzę tutaj takiego przeciwnika.")
+                        return None
                 if not self.server.engagement_allowed(self, mob):
                     await self.send(self.engagement_block_message(mob))
                     return None

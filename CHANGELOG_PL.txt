@@ -1,3 +1,14 @@
+Soulbound v0.80.2 — Party Combat & AoE Targeting
+
+- Ujednolicono zasadę AoE: ofensywny skill typu `aoe_damage` zadaje obrażenia wszystkim żywym mobom w bieżącym pokoju, niezależnie od ich aktualnego aggro.
+- AoE może trafić także moba zaatakowanego wcześniej przez innego gracza; status zaangażowania nie filtruje listy celów obrażeń.
+- Mob zaatakowany przez dowolnego członka drużyny w tej samej lokacji staje się wspólnym legalnym celem całej lokalnej drużyny.
+- `atak` oraz ofensywne skille bez podanej nazwy automatycznie przejmują jedyny wspólny cel drużyny, jeżeli gracz nie ma własnego aktywnego celu.
+- Jeżeli drużyna walczy jednocześnie z kilkoma mobami, gra nie wybiera losowo: prosi o podanie konkretnego celu.
+- Nadal można jawnie przełączać się na moba zaatakowanego przez członka własnej drużyny; blokada engagement dotyczy wyłącznie obcych graczy/drużyn.
+- Nie dodano nowej tabeli SQLite ani trwałego stanu targetów; wspólne cele party są wyliczane na żywo z aktualnej walki w pokoju.
+- Brak wipe postaci i brak zmian balansu obrażeń.
+
 Soulbound v0.80.1 — Clean Railway Package
 
 - Rozdzielono produkcyjny runtime Railway od ośmiu statycznych auditów developerskich, które od v0.71.6 i tak nie wykonywały się przy normalnym starcie.
