@@ -3,8 +3,9 @@ Soulbound v0.80.1 — Clean Railway Package
 - Rozdzielono produkcyjny runtime Railway od ośmiu statycznych auditów developerskich, które od v0.71.6 i tak nie wykonywały się przy normalnym starcie.
 - FULL release nadal zawiera komplet auditów i zachowuje historyczną kolejność przez FULL_RUNTIME_MODULES / predeploy_full.py.
 - DEPLOY_ONLY fizycznie nie zawiera tych nieużywanych auditów ani niepotrzebnego validation/catalog_ownership.py.
-- Docker nie kopiuje już Dockerfile do obrazu runtime; CHANGELOG_PL.txt pozostaje w obrazie, ponieważ komenda `changes / zmiany / changelog` udostępnia graczom pełną historię zmian.
+- Dockerfile jest kopiowany do obrazu tylko tymczasowo na czas `predeploy_check.py`, ponieważ FAST PREDEPLOY audytuje instrukcje `COPY` i `CMD`; po udanym teście Dockerfile oraz `predeploy_check.py` są usuwane z `/app`.
 - predeploy_check.py działa tylko podczas budowy obrazu i jest po teście usuwany z /app.
+- Naprawiono Railway build gate v0.80.1: wcześniejsze czyszczenie usuwało Dockerfile przed uruchomieniem FAST PREDEPLOY, przez co build zgłaszał fałszywe `Dockerfile missing`; gate znów przechodzi wewnątrz obrazu.
 - .dockerignore odrzuca cache Pythona, lokalne pliki SQLite/WAL/SHM, logi, ZIP-y, release notes i predeploy_full.py; produkcyjny CHANGELOG_PL.txt pozostaje dostępny dla graczy.
 - Usunięto przypadkowe soulbound.db-wal / soulbound.db-shm oraz __pycache__ z paczek wydania.
 - FAST PREDEPLOY: PASS — 175 modułów produkcyjnych, 0 braków, 0 błędów składni, Docker COPY 0 braków, Railway import PASS, SQLite 102/105, 877 aliasów / 239 handlerów.
