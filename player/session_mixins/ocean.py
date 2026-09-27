@@ -7,6 +7,7 @@ import time
 from collections import deque
 
 from core.classes_skills import ROOMS
+from core.bootstrap_economy_professions import currency_reading_text
 from systems.crafting_quality import player_item_display_name_v0335
 from world.ocean_expansion import ROUTES, PORTS, DEEP_OCEAN_ROOMS, TREASURE_ROOMS
 
@@ -58,7 +59,7 @@ class SessionOceanV1000Mixin:
         if not args or args in ("info", "status"):
             if not owned:
                 await self.send(
-                    f"STATEK: nie posiadasz statku. Kupno kosztuje {self.V1000_SHIP_BASE_COST} srebra. Wpisz statek kup w porcie."
+                    f"STATEK: nie posiadasz statku. Kupno kosztuje {currency_reading_text(self.V1000_SHIP_BASE_COST)}. Wpisz statek kup w porcie."
                 )
                 return
             await self.send(
@@ -76,7 +77,7 @@ class SessionOceanV1000Mixin:
                 return
             wallet = self.character_wallet_silver_value()
             if wallet < self.V1000_SHIP_BASE_COST:
-                await self.send(f"Potrzebujesz {self.V1000_SHIP_BASE_COST} srebra.")
+                await self.send(f"Potrzebujesz {currency_reading_text(self.V1000_SHIP_BASE_COST)}.")
                 return
             self.character.silver = wallet - self.V1000_SHIP_BASE_COST
             self.character.gold = 0
@@ -110,7 +111,7 @@ class SessionOceanV1000Mixin:
             cost = 12_500 * (level + 1) * (level + 1)
             wallet = self.character_wallet_silver_value()
             if wallet < cost:
-                await self.send(f"Ulepszenie na poziom {level+1} kosztuje {cost} srebra.")
+                await self.send(f"Ulepszenie na poziom {level+1} kosztuje {currency_reading_text(cost)}.")
                 return
             self.character.silver = wallet - cost
             self.character.gold = 0
@@ -250,7 +251,7 @@ class SessionOceanV1000Mixin:
             self.character.mithril = 0
             self.server.db.conn.execute("DELETE FROM ocean_trade_contract_v1000 WHERE account_id=?", (self.account_id,))
             self.server.db.save_character(self.character)
-            await self.send(f"HANDEL MORSKI: dostawa zakończona. Otrzymujesz {reward} srebra.")
+            await self.send(f"HANDEL MORSKI: dostawa zakończona. Otrzymujesz {currency_reading_text(reward)}.")
             return
         if text.startswith("wez ") or text.startswith("weź ") or text.startswith("take "):
             if row and row["contract_key"]:
@@ -280,11 +281,11 @@ class SessionOceanV1000Mixin:
                 (self.account_id,key,origin,dest,cargo_label,reward,required,int(time.time())),
             )
             self.server.db.conn.commit()
-            await self.send(f"Przyjmujesz ładunek: {cargo_label}. Cel: {ROOMS[dest]['name']}. Nagroda: {reward} srebra.")
+            await self.send(f"Przyjmujesz ładunek: {cargo_label}. Cel: {ROOMS[dest]['name']}. Nagroda: {currency_reading_text(reward)}.")
             return
         if row and row["contract_key"]:
             await self.send(
-                f"AKTYWNY HANDEL MORSKI: {row['cargo_label']}. Cel: {ROOMS.get(row['destination_room'],{}).get('name',row['destination_room'])}. Nagroda {row['reward_silver']} srebra."
+                f"AKTYWNY HANDEL MORSKI: {row['cargo_label']}. Cel: {ROOMS.get(row['destination_room'],{}).get('name',row['destination_room'])}. Nagroda {currency_reading_text(row['reward_silver'])}."
             )
         offers = [o for o in self.ocean_trade_offers_v1000() if o[1] == self.character.room_id]
         await self.send("HANDEL MORSKI — OFERTY W TYM PORCIE")
@@ -292,7 +293,7 @@ class SessionOceanV1000Mixin:
             await self.send("W tym miejscu nie ma nowych ładunków. Kontrakty zaczynają się w głównych portach.")
             return
         for i, (_key, _origin, dest, cargo_label, reward, required) in enumerate(offers, 1):
-            await self.send(f"{i}. {cargo_label} -> {ROOMS[dest]['name']}. Ładownia {required}+. Nagroda {reward} srebra.")
+            await self.send(f"{i}. {cargo_label} -> {ROOMS[dest]['name']}. Ładownia {required}+. Nagroda {currency_reading_text(reward)}.")
         await self.send("Przyjęcie: handel morski wez <nr>. Oddanie: handel morski oddaj.")
 
     def maybe_grant_ocean_treasure_map_v1000(self):
@@ -341,7 +342,7 @@ class SessionOceanV1000Mixin:
                 "UPDATE ocean_ship_v1000 SET treasures=treasures+1 WHERE account_id=?", (self.account_id,)
             )
             self.server.db.save_character(self.character)
-            await self.send(f"ODNAJDUJESZ SKARB: {reward} srebra oraz {player_item_display_name_v0335(item_id)}.")
+            await self.send(f"ODNAJDUJESZ SKARB: {currency_reading_text(reward)} oraz {player_item_display_name_v0335(item_id)}.")
             return
         if not row or int(row["found"]):
             await self.send("Nie masz aktywnej mapy skarbu. Mapy mogą wypaść podczas głębinowych połowów na Ocean 2.0.")

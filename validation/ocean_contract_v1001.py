@@ -58,10 +58,13 @@ def audit_ocean_contract_v1001():
         assert len(path) == 12
         first.ocean_contract_step_v1001(path[0], path[1])
         second = session()  # New session reads the persisted route progress.
+        asyncio.run(second.ocean_trade_v1000())
+        assert any("350 złota" in message for message in second.messages)
         for old_room, new_room in zip(path[1:], path[2:]):
             second.ocean_contract_step_v1001(old_room, new_room)
         asyncio.run(second.ocean_trade_v1000("oddaj"))
         assert second.character.silver == 35_100
+        assert any("Otrzymujesz 350 złota" in message for message in second.messages)
         assert conn.execute("SELECT COUNT(*) FROM ocean_trade_contract_v1000").fetchone()[0] == 0
 
         for offer in first.ocean_trade_offers_v1000():
