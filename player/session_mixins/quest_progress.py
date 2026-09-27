@@ -658,6 +658,21 @@ class SessionQuestProgressMixin:
                 ):
                     add(quest_id)
 
+            # v1.10.4: nowi specjaliści eksploracyjni mają zamknięty katalog
+            # własnej profesji. Chroni to przed obcymi questami (np. rybami)
+            # nawet przy historycznych kolizjach giverów lub rozszerzeń katalogu.
+            strict_profession = npc.get("strict_profession_quests")
+            if strict_profession:
+                result = [
+                    qid for qid in result
+                    if (
+                        str(QUESTS[qid].get("required_profession") or "")
+                        == str(strict_profession)
+                        or str(QUESTS[qid].get("reward_profession") or "")
+                        == str(strict_profession)
+                    )
+                ]
+
             # v0.8.53: u Elora Próby są zawsze czytane w naturalnej kolejności
             # Tier 2 -> Tier 20, niezależnie od historycznej kolejności definicji
             # quest_id w pliku. Zwykły quest Szczury pod świątynią zostaje pierwszy.
