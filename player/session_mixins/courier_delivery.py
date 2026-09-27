@@ -288,7 +288,7 @@ class SessionCourierDeliveryMixin:
                 f"Brakuje {max(0, int(next_rank['threshold']) - reputation)}."
             )
         else:
-            await self.send("Osiągnięto maksymalną rangę: Mistrz Szlaków.")
+            await self.send(f"Osiągnięto maksymalną rangę: {rank['name']}.")
         await self.send("Odblokowane przesyłki: " + ", ".join(unlocked) + ".")
 
     async def postal_show_statistics_v0530(self):
@@ -338,7 +338,7 @@ class SessionCourierDeliveryMixin:
         offers = self.postal_offers_v0522(city, now=now)
         await self.send(
             f"POCZTA — {city}. PACZKI DO DOSTARCZENIA. "
-            f"Gildia Kurierów: {rank['name']}, reputacja {guild.get('reputation',1)}/400."
+            f"Gildia Kurierów: {rank['name']}, reputacja {guild.get('reputation',1)}/{COURIER_REPUTATION_MAX_V0530}."
         )
         for offer in offers:
             await self.send(
@@ -472,8 +472,8 @@ class SessionCourierDeliveryMixin:
         await self.send(
             f"Paczka dostarczona do: {destination_city or '?'}. "
             f"Nagroda: {currency_reading_text(reward,0,0)}. "
-            f"Reputacja Gildii Kurierów: +{rep_gain}, teraz {new_rep}/400 ({rank['name']}). "
-            + (f"Reputacja miasta {destination_city}: +{city_rep_gain}, teraz {new_city_rep}/400. " if destination_city else "")
+            f"Reputacja Gildii Kurierów: +{rep_gain}, teraz {new_rep}/{COURIER_REPUTATION_MAX_V0530} ({rank['name']}). "
+            + (f"Reputacja miasta {destination_city}: +{city_rep_gain}, teraz {new_city_rep}/{CITY_REPUTATION_MAX_V0710}. " if destination_city else "")
             + f"Łącznie dostarczonych paczek: {completed}."
         )
         await self.send("Możesz od razu sprawdzić nowe zlecenia: poczta lista.")
