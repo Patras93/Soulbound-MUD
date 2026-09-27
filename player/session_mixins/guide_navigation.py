@@ -298,7 +298,7 @@ class SessionGuideNavigationMixin:
                 await self.send("PROWADZENIE / WALK — KATEGORIE")
                 await self.send("1. miasto — ważne miejsca Miasta Dusz.")
                 await self.send("2. miasta — wszystkie miasta i osady świata.")
-                await self.send("3. gildia — sale 12 nauczycieli klas.")
+                await self.send("3. gildia — sale 14 nauczycieli klas.")
                 await self.send("4. profesje — mistrzowie, warsztaty i sklepy narzędzi.")
                 await self.send("5. eq — sklepy z klasowym wyposażeniem.")
                 await self.send("6. tereny — regiony świata.")
@@ -335,16 +335,36 @@ class SessionGuideNavigationMixin:
                 return
 
             if selected == "profesje":
-                await self.send("PROWADZENIE — PROFESJE")
-                await self.send("Wędkarstwo: Szkoła Wędkarstwa i Mistrz Wędkarstwa Neris — walk Mistrz Wędkarstwa Neris; sklep/narzędzie u Rybaka Borysa — walk Rybak Borys.")
-                await self.send("Górnictwo: Gildia Górników i Mistrz Górnictwa Kordan — walk Mistrz Górnictwa Kordan; Kilof i wejście do Kopalni u Górnika Torena — walk Górnik Toren.")
-                await self.send("Drwalstwo: Leśniczówka i Mistrz Drwalstwa Oren — walk Mistrz Drwalstwa Oren; Obóz Drwala i Bran — walk Drwal Bran.")
-                await self.send("Zielarstwo: Ogród Zielarski i Mistrzyni Zielarstwa Sena — walk Mistrzyni Zielarstwa Sena; Chata Zielarki i Liora — walk Zielarka Liora.")
-                await self.send("Kowalstwo/Rzemiosło: Warsztat Rzemieślniczy i Haldor — walk Mistrz Rzemiosła Haldor; Kuźnia Dusz i Kowal Doran — walk Kowal Doran.")
-                await self.send("Gotowanie: Kuchnia Błękitnego Płomienia i Kucharz Marcel — walk Kucharz Marcel.")
-                await self.send("Alchemia: Laboratorium Alchemiczne i Mistrz Alchemii Orin — walk Mistrz Alchemii Orin; mikstury także w Aptece — walk apteka.")
-                await self.send("Jubilerstwo: Pracownia Jubilerska i Jubilerka Mirella — walk Jubilerka Mirella.")
-                await self.send("Możesz też wpisać np. walk profesje wedkarstwo, walk profesje gornictwo albo walk profesje alchemia.")
+                await self.send("PROWADZENIE — PROFESJE 14/14")
+                profession_npcs = (
+                    ("Wędkarstwo", "specialist_fishing"),
+                    ("Górnictwo", "specialist_mining"),
+                    ("Drwalstwo", "specialist_woodcutting"),
+                    ("Zielarstwo", "specialist_herbalism"),
+                    ("Kowalstwo", "specialist_crafting"),
+                    ("Gotowanie", "specialist_cooking"),
+                    ("Alchemia", "specialist_alchemy"),
+                    ("Jubilerstwo", "jeweler_mirella"),
+                    ("Krawiectwo", "tailor_lysa"),
+                    ("Garbarstwo", "leatherworker_soren"),
+                    ("Stolarstwo", "carpenter_edric"),
+                    ("Zaklinanie", "guild_quartermaster_arcane"),
+                    ("Archeologia", "specialist_archaeology"),
+                    ("Kartografia", "specialist_cartography"),
+                )
+                shown = 0
+                for profession, npc_id in profession_npcs:
+                    npc = NPCS.get(npc_id, {})
+                    room_id = npc.get("room")
+                    name = npc.get("name")
+                    if not name or room_id not in ROOMS:
+                        await self.send(f"{profession}: cel prowadzenia chwilowo niedostępny.")
+                        continue
+                    shown += 1
+                    await self.send(
+                        f"{profession}: {name}, {ROOMS[room_id]['name']}. walk {name}."
+                    )
+                await self.send(f"Pokazano profesje: {shown} z 14.")
                 return
 
             if selected == "eq":
