@@ -19,10 +19,10 @@ POSTAL_CITY_HUBS_V0522 = {
 GUIDE_CITY_HUBS_V0522 = dict(POSTAL_CITY_HUBS_V0522)
 GUIDE_CITY_HUBS_V0522["Miasto Dusz"] = "square"
 
-# v0.53.0+: Courier Guild progression. Reputation is deliberately capped at 400,
-# matching the classic long progression bands used elsewhere in Soulbound.
+# v1.00.20: Courier Guild progression extended from the legacy 1-400 cap
+# to the current long-form 1-600 progression. Existing thresholds stay intact.
 COURIER_REPUTATION_MIN_V0530 = 1
-COURIER_REPUTATION_MAX_V0530 = 400
+COURIER_REPUTATION_MAX_V0530 = 600
 
 COURIER_RANKS_V0530 = (
     # reputation, rank/title, payout bonus
@@ -34,6 +34,10 @@ COURIER_RANKS_V0530 = (
     (300, "Naczelny Kurier",    0.31),
     (360, "Strażnik Szlaków",   0.40),
     (400, "Mistrz Szlaków",     0.50),
+    (450, "Arcymistrz Szlaków", 0.58),
+    (500, "Herold Szlaków",     0.66),
+    (550, "Marszałek Szlaków",  0.75),
+    (600, "Legenda Szlaków",    0.85),
 )
 
 # v0.54.0: package classes are completely risk-free. They differ by unlock
@@ -178,10 +182,10 @@ COURIER_CITY_ROOM_TO_NAME_V0530 = {
     **{room_id: city for city, room_id in POSTAL_CITY_HUBS_V0522.items()},
 }
 
-# v0.71.0: reputacja poszczególnych miast. Dostawy i lokalne questy budują
-# zaufanie 1-400 niezależnie od reputacji Gildii Kurierów.
+# v1.00.20: reputacja poszczególnych miast rozszerzona z 1-400 do 1-600.
+# Dostawy i lokalne questy nadal budują ją niezależnie od Gildii Kurierów.
 CITY_REPUTATION_MIN_V0710 = 1
-CITY_REPUTATION_MAX_V0710 = 400
+CITY_REPUTATION_MAX_V0710 = 600
 CITY_REPUTATION_RANKS_V0710 = (
     (1, "Przybysz", 0.00),
     (40, "Znajomy Miasta", 0.02),
@@ -190,6 +194,10 @@ CITY_REPUTATION_RANKS_V0710 = (
     (260, "Opiekun Miasta", 0.08),
     (340, "Bohater Miasta", 0.10),
     (400, "Legenda Miasta", 0.12),
+    (450, "Protektor Miasta", 0.14),
+    (500, "Strażnik Dziedzictwa", 0.16),
+    (550, "Symbol Miasta", 0.18),
+    (600, "Wieczna Legenda Miasta", 0.20),
 )
 
 
