@@ -1,5 +1,18 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.00.22
+Aktualna paczka: v1.00.23
+
+==============================================================================
+==============================================================================
+Soulbound v1.00.23 — lokalne cele komendy walk
+==============================================================================
+
+- Sama komenda `walk` bez argumentu pokazuje teraz miejsca dostępne w aktualnym mieście lub osadzie.
+- Lista jest budowana dynamicznie z lokacji należących do bieżącej strefy miejskiej, dzięki czemu obejmuje wszystkie istniejące miasta i osady rozpoznawane przez system prowadzenia.
+- Przy każdej pozycji gra podaje gotową komendę `walk <nazwa lokacji>`, wygodną także przy obsłudze przez NVDA.
+- `walk <cel>` zachowuje dotychczasowe działanie automatycznego prowadzenia do wskazanego celu.
+- `prowadz` bez argumentu zachowuje dotychczasową pomoc ogólną i nie został zmieniony.
+- Poza miastem lub osadą samo `walk` informuje, że gracz nie znajduje się w mieście i odsyła do `walk list`.
+- Zmiana nie modyfikuje mapy świata, save'ów ani SQLite; wipe nie jest wymagany.
 
 ==============================================================================
 ==============================================================================
