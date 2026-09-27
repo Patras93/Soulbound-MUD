@@ -277,6 +277,7 @@ QUESTS = {
         "specialist_tool_type": "cooking",
         "min_tool_level": 1,
         "kind": "collect", "target": "grilled_river_fish", "needed": 1,
+        "track_craft_progress": True,
         "description": (
             "Po przyjęciu zadania ugotuj 1 Pieczoną rybę rzeczną i przynieś ją "
             "Kucharzowi Marcelowi. Przepis przyjmuje 2 dowolne ryby rzeczne: "
@@ -295,6 +296,7 @@ QUESTS = {
         "name": "Zlecenie Marcela II: Runiczny Półmisek",
         "giver": "Kucharz Marcel",
         "kind": "collect", "target": "runic_fish_plate", "needed": 1,
+        "track_craft_progress": True,
         "description": (
             "Przygotuj Runiczny Półmisek Rybny i przynieś go "
             "Kucharzowi Marcelowi."
