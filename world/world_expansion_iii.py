@@ -164,7 +164,7 @@ WORLD_EXPANSION_III_METRICS = {
 
 # v0.71.0 - lokalne historie wszystkich miast i osad kurierskich.
 # Każde miasto dostaje własnego zarządcę, łącznika pocztowego i starszego
-# rzemieślnika oraz trzy jednorazowe etapy wprowadzające do lokalnej historii.
+# rzemieślnika oraz trzy godzinne, odnawialne etapy lokalnej historii.
 CITY_STORY_QUEST_IDS_V0710 = []
 CITY_STORY_QUESTS_BY_CITY_V0710 = {}
 CITY_STORY_NPC_IDS_V0710 = []
@@ -272,7 +272,7 @@ for city_index, city in enumerate(tuple(POSTAL_CITY_HUBS_V0522.keys()), 1):
             "description": f"Porozmawiaj z Łącznikiem Poczty w mieście {city}, aby poznać najważniejsze lokalne szlaki i potrzeby.",
             "reward_silver": 1500, "reward_gold": 0, "reward_mithril": 0, "reward_items": {},
             "reward_city_v0710": city, "reward_city_amount_v0710": 10,
-            "repeatable": False, "v0710_city_story": True,
+            "repeatable": True, "repeat_cooldown": 60 * 60, "v0710_city_story": True,
         }),
         (q2, {
             "name": f"Warsztaty {city}: rozmowa ze Starszym Rzemieślnikiem",
@@ -284,7 +284,7 @@ for city_index, city in enumerate(tuple(POSTAL_CITY_HUBS_V0522.keys()), 1):
             "requires_quest": q1,
             "reward_silver": 2000, "reward_gold": 0, "reward_mithril": 0, "reward_items": {},
             "reward_city_v0710": city, "reward_city_amount_v0710": 15,
-            "repeatable": False, "v0710_city_story": True,
+            "repeatable": True, "repeat_cooldown": 60 * 60, "v0710_city_story": True,
         }),
         (q3, {
             "name": f"Sprawy miejskie {city}: dostawa pakietu do Poczty",
@@ -298,7 +298,7 @@ for city_index, city in enumerate(tuple(POSTAL_CITY_HUBS_V0522.keys()), 1):
             "requires_quest": q2,
             "reward_silver": 3000, "reward_gold": 0, "reward_mithril": 0, "reward_items": {},
             "reward_city_v0710": city, "reward_city_amount_v0710": 25,
-            "repeatable": False, "v0710_city_story": True,
+            "repeatable": True, "repeat_cooldown": 60 * 60, "v0710_city_story": True,
         }),
     )
     for quest_id, quest in quests:

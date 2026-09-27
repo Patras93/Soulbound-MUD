@@ -2825,19 +2825,19 @@ HELP_TOPICS["reputacja_frakcji"] = [
 ]
 
 HELP_TOPICS["reputacja_miast"] = [
-    "Każde z 21 miast i osad ma osobną trwałą reputację od 1 do 400.",
+    "Każde z 21 miast i osad ma osobną trwałą reputację od 1 do 600.",
     "Komendy: reputacjamiast / miastarep / cityrep; reputacjamiast <miasto> pokazuje szczegóły jednego miasta.",
-    "Rangi: 1 Przybysz, 40 Znajomy Miasta, 100 Zaufany Mieszkaniec, 180 Przyjaciel Miasta, 260 Opiekun Miasta, 340 Bohater Miasta, 400 Legenda Miasta.",
+    "Rangi: 1 Przybysz, 40 Znajomy Miasta, 100 Zaufany Mieszkaniec, 180 Przyjaciel Miasta, 260 Opiekun Miasta, 340 Bohater Miasta, 400 Legenda Miasta, 450 Protektor Miasta, 500 Strażnik Dziedzictwa, 550 Symbol Miasta, 600 Wieczna Legenda Miasta.",
     "Reputację miasta zdobywasz przez lokalne questy oraz dostarczanie paczek do tego miasta.",
-    "Wyższa ranga zwiększa wypłatę za paczki kierowane do danego miasta: od 0% do maksymalnie +12% przy 400 reputacji.",
-    "Miasta 2.0 dodają lokalne historie i podziemia, ale zachowują ten sam system reputacji 1-400.",
+    "Wyższa ranga zwiększa wypłatę za paczki kierowane do danego miasta: od 0% do maksymalnie +20% przy 600 reputacji.",
+    "Wszystkie lokalne questy miejskie, w tym Miasta 2.0, odnawiają się co 60 minut i pozwalają rozwijać reputację aż do 600.",
 ]
 
 HELP_TOPICS["reputacja_kurierow"] = [
-    "Gildia Kurierów ma trwałą reputację od 1 do 400. Zdobywasz ją głównie przez ukończone dostawy paczek.",
+    "Gildia Kurierów ma trwałą reputację od 1 do 600. Zdobywasz ją głównie przez ukończone dostawy paczek.",
     "Komendy: poczta gildia, poczta reputacja, gildia kurierow, gildia kurierow statystyki.",
-    "Rangi: 1 Posłaniec, 40 Kurier, 80 Kurier Gildyjny, 140 Starszy Kurier, 220 Kurier Królewski, 300 Naczelny Kurier, 360 Strażnik Szlaków, 400 Mistrz Szlaków.",
-    "Wyższa reputacja odblokowuje lepsze klasy paczek i zwiększa bazowy bonus wypłaty aż do +50% na randze Mistrz Szlaków.",
+    "Rangi: 1 Posłaniec, 40 Kurier, 80 Kurier Gildyjny, 140 Starszy Kurier, 220 Kurier Królewski, 300 Naczelny Kurier, 360 Strażnik Szlaków, 400 Mistrz Szlaków, 450 Arcymistrz Szlaków, 500 Herold Szlaków, 550 Marszałek Szlaków, 600 Legenda Szlaków.",
+    "Wyższa reputacja odblokowuje lepsze klasy paczek i zwiększa bazowy bonus wypłaty aż do +85% przy reputacji 600.",
     "Prestiżowa paczka odblokowuje się od reputacji 360 i daje bardzo wysoką wypłatę bez losowego ryzyka utraty przesyłki.",
     "Na przyrost reputacji wpływa m.in. długość trasy i klasa przesyłki; każda ukończona dostawa aktualizuje trwałe statystyki Kuriera.",
 ]
