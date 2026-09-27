@@ -20,6 +20,7 @@ from core.bootstrap_economy_professions import (
     tool_tier_name,
 )
 from core.mines_threat import ITEMS
+from data.quests import QUESTS
 from core.progression_600 import CHARACTER_MAX_LEVEL, PROFESSION_MAX_LEVEL, TOOL_MAX_TIER
 from core.progression_resources import (
     FISH_RESOURCE_IDS,
