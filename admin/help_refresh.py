@@ -766,7 +766,7 @@ def full_game_audit_v03014():
         target = quest.get("target")
         if kind in ("collect", "collect_resource") and target not in (None, "any"):
             require(target in ITEMS, f"quest item target missing {quest_id}:{target}")
-        if kind == "kill" and target not in (None, "any"):
+        if kind == "kill" and target not in (None, "any", "*"):
             target_text = str(target)
             dynamic_crypt = bool(re.fullmatch(r"crypt_boss_\d+", target_text))
             require(target in MOB_TEMPLATES or target_text in virtual_kill_targets or dynamic_crypt,
