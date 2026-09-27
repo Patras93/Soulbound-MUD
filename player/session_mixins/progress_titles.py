@@ -2,7 +2,7 @@
 """Soulbound v0.58.0 - Titles 2.0 and unified progress summary."""
 from __future__ import annotations
 
-from config.postal import COURIER_RANKS_V0530, courier_rank_for_reputation_v0530
+from config.postal import COURIER_RANKS_V0530, COURIER_REPUTATION_MAX_V0530, courier_rank_for_reputation_v0530
 from core.progression_600 import (
     CHARACTER_MAX_LEVEL,
     CLASS_MASTERY_MAX_LEVEL,
@@ -219,7 +219,7 @@ class SessionProgressTitlesV0580Mixin:
         courier = self.server.db.courier_guild_state_v0530(self.account_id)
         courier_rep = max(1, int(courier.get("reputation", 1) or 1))
         courier_rank = courier_rank_for_reputation_v0530(courier_rep)["name"]
-        await self.send(f"Reputacja Kurierów: {courier_rep}/400, ranga {courier_rank}.")
+        await self.send(f"Reputacja Kurierów: {courier_rep}/{COURIER_REPUTATION_MAX_V0530}, ranga {courier_rank}.")
 
         faction_reps = self.server.db.faction_reputations_v016(self.account_id)
         faction_parts = []

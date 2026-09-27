@@ -24,6 +24,8 @@ def audit(runtime):
     items = runtime.ITEMS
     rooms = runtime.ROOMS
     npcs = runtime.NPCS
+    profession_names = set(runtime.PROFESSION_RANK_NAMES)
+    tool_profession_map = dict(runtime.TOOL_PROFESSION_MAP)
     quest_aliases = set(mobs)
     for mob in mobs.values():
         for field in ("quest_target", "canonical_template_id"):
@@ -63,8 +65,34 @@ def audit(runtime):
             errors.append(f"quest {qid}: unknown target_npc {q['target_npc']}")
         for field in ("reward_silver", "reward_gold", "reward_mithril", "character_xp_reward", "reward_soul_xp", "reward_profession_xp", "reward_tool_xp"):
             value = q.get(field, 0)
-            if isinstance(value, (int, float)) and value < 0:
+            if not isinstance(value, (int, float)):
+                errors.append(f"quest {qid}: non-numeric {field}={value!r}")
+            elif value < 0:
                 errors.append(f"quest {qid}: negative {field}={value}")
+
+        reward_profession = q.get("reward_profession")
+        reward_tool_type = q.get("reward_tool_type")
+        raw_profession_xp = q.get("reward_profession_xp", 0)
+        raw_tool_xp = q.get("reward_tool_xp", 0)
+        reward_profession_xp = int(raw_profession_xp or 0) if isinstance(raw_profession_xp, (int, float)) else 0
+        reward_tool_xp = int(raw_tool_xp or 0) if isinstance(raw_tool_xp, (int, float)) else 0
+        if reward_profession and reward_profession not in profession_names:
+            errors.append(f"quest {qid}: unknown reward profession {reward_profession}")
+        if reward_tool_type and reward_tool_type not in tool_profession_map:
+            errors.append(f"quest {qid}: unknown reward tool type {reward_tool_type}")
+        if reward_profession_xp and not reward_profession:
+            mapped = tool_profession_map.get(reward_tool_type)
+            if not mapped:
+                errors.append(f"quest {qid}: profession XP reward has no profession/tool mapping")
+        if reward_profession and reward_tool_type:
+            mapped = tool_profession_map.get(reward_tool_type)
+            if mapped and mapped != reward_profession:
+                errors.append(
+                    f"quest {qid}: reward tool {reward_tool_type} maps to {mapped}, "
+                    f"but reward_profession is {reward_profession}"
+                )
+        if reward_tool_xp and not reward_tool_type:
+            errors.append(f"quest {qid}: tool XP reward missing reward_tool_type")
         prerequisite = q.get("requires_quest")
         if prerequisite and prerequisite not in quests:
             errors.append(f"quest {qid}: missing prerequisite {prerequisite}")
@@ -121,6 +149,7 @@ def audit(runtime):
         progression[stage] = sample
     return {
         "quests": len(quests), "mobs": len(mobs), "items": len(items), "rooms": len(rooms), "npcs": len(npcs),
+        "professions": len(profession_names), "tool_types": len(tool_profession_map),
         "quest_kinds": dict(kinds), "bands": summary,
         "equal_stage_actions_per_level": progression,
         "ocean_economy": {

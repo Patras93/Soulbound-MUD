@@ -23,9 +23,26 @@ def main():
                 print(f"ERROR: {error}")
             if full["error_count"]:
                 raise SystemExit(1)
+            from admin.cross_system_audit_v1001 import audit as audit_cross_system_v1001
+            cross = audit_cross_system_v1001(server)
+            print(
+                f"CROSS SYSTEM: {len(cross['errors'])} errors, "
+                f"{len(cross['warnings'])} warnings; "
+                f"{cross['quests']} quests, {cross['mobs']} mobs, "
+                f"{cross['items']} items, {cross['rooms']} rooms, {cross['npcs']} NPCs"
+            )
+            for error in cross.get("errors", ()):
+                print(f"CROSS ERROR: {error}")
+            for warning in cross.get("warnings", ())[:100]:
+                print(f"CROSS WARNING: {warning}")
+            if cross["errors"]:
+                raise SystemExit(1)
+
             from validation.ocean_contract_v1001 import audit_ocean_contract_v1001
             contract = audit_ocean_contract_v1001()
             print(f"OCEAN CONTRACT: {contract['error_count']} errors, {contract['routes']} routes")
+            if contract["error_count"]:
+                raise SystemExit(1)
         finally:
             server._BOOT_SOCKET.close()
 

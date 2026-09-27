@@ -34,8 +34,19 @@ class SessionQuestCommandsMixin:
                     except Exception:
                         errors.append(f"nieprawidłowa ilość nagrody {item_id}: {qty}")
 
-            reward_prof_xp = int(quest.get("reward_profession_xp", 0) or 0)
-            reward_tool_xp = int(quest.get("reward_tool_xp", 0) or 0)
+            raw_prof_xp = quest.get("reward_profession_xp", 0)
+            raw_tool_xp = quest.get("reward_tool_xp", 0)
+            try:
+                reward_prof_xp = int(raw_prof_xp or 0)
+            except (TypeError, ValueError):
+                reward_prof_xp = 0
+                errors.append(f"nieprawidłowe reward_profession_xp: {raw_prof_xp!r}")
+            try:
+                reward_tool_xp = int(raw_tool_xp or 0)
+            except (TypeError, ValueError):
+                reward_tool_xp = 0
+                errors.append(f"nieprawidłowe reward_tool_xp: {raw_tool_xp!r}")
+
             reward_tool_type = quest.get("reward_tool_type")
             reward_profession = (
                 quest.get("reward_profession")

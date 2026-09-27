@@ -44,6 +44,7 @@ def _assignment_dict_key_count(path: Path, variable: str) -> int:
 
 def fast_predeploy_audit_v0571():
     errors: list[str] = []
+    warnings: list[str] = []
 
     # 1. Runtime/Docker packaging.  This protects the v0.52.1 Railway regression.
     docker_path = ROOT / "Dockerfile"
@@ -122,6 +123,70 @@ def fast_predeploy_audit_v0571():
     for rel in duplicate_manifest_files:
         errors.append(f"runtime manifest duplicate: {rel}")
     errors.extend(f"Python syntax failure: {item}" for item in syntax_errors)
+
+    # 2c. v1.10.7: compile every Python source in the repository, not only
+    # modules that participate in the production runtime manifest. This catches
+    # broken admin/validation/history files before they reach a release.
+    all_python_files = sorted(
+        path for path in ROOT.rglob("*.py")
+        if "__pycache__" not in path.parts
+    )
+    all_source_syntax_errors = []
+    for path in all_python_files:
+        try:
+            compile(path.read_text(encoding="utf-8"), str(path), "exec")
+        except Exception as exc:
+            rel = path.relative_to(ROOT).as_posix()
+            all_source_syntax_errors.append(
+                f"{rel}: {type(exc).__name__}: {exc}"
+            )
+    errors.extend(
+        f"Repository Python syntax failure: {item}"
+        for item in all_source_syntax_errors
+    )
+
+    duplicate_literal_keys = []
+    swallowed_exception_sites = []
+    todo_sites = []
+    for path in all_python_files:
+        rel = path.relative_to(ROOT).as_posix()
+        source = path.read_text(encoding="utf-8")
+        try:
+            tree = ast.parse(source, filename=str(path))
+        except Exception:
+            continue
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Dict):
+                seen_keys = set()
+                for key in node.keys:
+                    if isinstance(key, ast.Constant) and isinstance(key.value, (str, int, float, bytes)):
+                        marker = (type(key.value).__name__, key.value)
+                        if marker in seen_keys:
+                            duplicate_literal_keys.append(f"{rel}:{getattr(key, 'lineno', '?')}: {key.value!r}")
+                        seen_keys.add(marker)
+            if isinstance(node, ast.ExceptHandler):
+                body = list(node.body or ())
+                if len(body) == 1 and isinstance(body[0], ast.Pass):
+                    exc_name = "bare except"
+                    if node.type is not None:
+                        try:
+                            exc_name = ast.unparse(node.type)
+                        except Exception:
+                            exc_name = "except"
+                    swallowed_exception_sites.append(
+                        f"{rel}:{getattr(node, 'lineno', '?')}: {exc_name}: pass"
+                    )
+        for number, line in enumerate(source.splitlines(), 1):
+            upper = line.upper()
+            if "TODO" in upper or "FIXME" in upper:
+                todo_sites.append(f"{rel}:{number}: {line.strip()}")
+
+    for item in duplicate_literal_keys:
+        warnings.append(f"duplicate literal dict key: {item}")
+    for item in swallowed_exception_sites[:200]:
+        warnings.append(f"swallowed exception: {item}")
+    for item in todo_sites[:200]:
+        warnings.append(f"source TODO/FIXME: {item}")
 
     # 2a. Mirror native_runtime's top-level symbol ownership guard without
     # executing the full world. This catches deployment crashes such as v0.58.2
@@ -253,6 +318,46 @@ def fast_predeploy_audit_v0571():
             errors.append("quest reward preflight missing")
         if 'q["reward_items"]' in quest_commands_source:
             errors.append("unsafe direct q[reward_items] access remains in quest completion")
+
+        gathering_source = (ROOT / "player" / "session_mixins" / "gathering.py").read_text(encoding="utf-8")
+        for token in (
+            '"tailoring": ("tailor_kit", "Zestaw Krawiecki")',
+            '"leatherworking": ("tanning_knife", "Nóż Garbarski")',
+            '"carpentry": ("carpenter_tools", "Narzędzia Ciesielskie")',
+            '"enchanting": ("runic_focus", "Fokus Runiczny")',
+            '"archaeology": ("archaeology_brush", "Pędzel Archeologa")',
+            '"cartography_profession": ("surveyor_compass", "Kompas Mierniczy")',
+        ):
+            if token not in gathering_source:
+                errors.append(f"14-tool info definition missing: {token}")
+        if '"Archeolożka Mira"' in gathering_source:
+            errors.append("stale Archaeologist Mira remains in active tool UI")
+        if '"Archeolożka Elara"' not in gathering_source:
+            errors.append("Archaeologist Elara missing from active tool UI")
+
+        registry_source = (ROOT / "player" / "session_mixins" / "command_registry.py").read_text(encoding="utf-8")
+        for command in (
+            "toolinfo_tailoring", "toolinfo_leatherworking",
+            "toolinfo_carpentry", "toolinfo_enchanting",
+            "toolinfo_archaeology", "toolinfo_cartography",
+        ):
+            if f"'{command}'" not in registry_source:
+                errors.append(f"profession tool info command missing: {command}")
+
+        completion_source = (ROOT / "player" / "session_mixins" / "progression_accessibility.py").read_text(encoding="utf-8")
+        if "len(PROFESSIONS_V0580)*PROFESSION_MAX_LEVEL" not in completion_source:
+            errors.append("completion profession denominator is not fixed to all 14 professions")
+
+        help_source = (ROOT / "player" / "session_mixins" / "help_system.py").read_text(encoding="utf-8")
+        for token in ("Archeologia, Kartografia", "wszystkich 14 narzędzi", "Tierów wszystkich 14 narzędzi"):
+            if token not in help_source:
+                errors.append(f"current 14/14 help contract missing: {token}")
+
+        progress_source = (ROOT / "player" / "session_mixins" / "progress_titles.py").read_text(encoding="utf-8")
+        if "COURIER_REPUTATION_MAX_V0530" not in progress_source:
+            errors.append("progress summary does not use current Courier reputation cap")
+        if 'Reputacja Kurierów: {courier_rep}/400' in progress_source:
+            errors.append("stale Courier /400 cap remains in current progress summary")
     except Exception as exc:
         errors.append(f"v1.10.6 regression guard failed: {type(exc).__name__}: {exc}")
 
@@ -277,6 +382,11 @@ def fast_predeploy_audit_v0571():
         "missing_manifest_files": missing_manifest_files,
         "duplicate_manifest_files": duplicate_manifest_files,
         "syntax_error_count": len(syntax_errors),
+        "all_python_source_count": len(all_python_files),
+        "all_source_syntax_error_count": len(all_source_syntax_errors),
+        "duplicate_literal_key_count": len(duplicate_literal_keys),
+        "swallowed_exception_count": len(swallowed_exception_sites),
+        "todo_fixme_count": len(todo_sites),
         "unexpected_symbol_overrides": unexpected_symbol_overrides,
         "expected_override_order_mismatches": expected_order_mismatches,
         "critical_import_ok": critical_import_ok,
@@ -286,6 +396,8 @@ def fast_predeploy_audit_v0571():
         "registered_command_count": registry_count,
         "error_count": len(errors),
         "errors": errors,
+        "warning_count": len(warnings),
+        "warnings": warnings,
     }
 
 
