@@ -208,8 +208,8 @@ def courier_profession_expansion_audit_v0700():
             errors.append(f"missing DB city reputation helper: {token}")
     if "show_city_reputation_v0710" not in courier_source or "destination_city_reputation_at_offer" not in courier_source:
         errors.append("missing city reputation command or courier payout integration")
-    if CITY_REPUTATION_MAX_V0710 != 400 or len(CITY_REPUTATION_RANKS_V0710) < 5:
-        errors.append("invalid city reputation 1-400 rank configuration")
+    if CITY_REPUTATION_MAX_V0710 != 600 or len(CITY_REPUTATION_RANKS_V0710) < 9:
+        errors.append("invalid city reputation 1-600 rank configuration")
 
     # v0.71.4: Eren's repeatable secret quest must grant and resolve its own
     # quest map before the generic Treasure Map. This protects `użyj mapy`.
