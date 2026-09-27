@@ -1,5 +1,21 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.11.1
+Aktualna paczka: v1.11.2
+
+==============================================================================
+==============================================================================
+Soulbound v1.11.2 — zamówienia Archeologii i Kartografii + Railway XP hotfix
+==============================================================================
+
+- Dodano 20 stałych, godzinnych zamówień profesyjnych: 10 dla Archeologii u Elary i 10 dla Kartografii u Aleny.
+- Progi zamówień: 25, 75, 100, 200, 250, 350, 400, 450, 550 i 600 poziom profesji.
+- Zamówienia są niezależne od Drogi Mistrza, Mistrzostwa, rotujących zamówień oraz ekspedycji v1.11.1.
+- Każde zamówienie używa prawdziwej akcji profesji: wykop dla Archeologii i mapuj dla Kartografii.
+- Wszystkie 20 zamówień odnawia się po 60 minutach i daje EXP profesji, EXP narzędzia, Character XP oraz srebro.
+- Naprawiono crash Railway Living NPCs & Activity Journal Audit: 22 odnawialne questy eksploracyjne v1.11.1 dostały skalowany Character XP zamiast fallbacku 1 XP.
+- Audyt wymaga teraz Character XP > 1 dla wszystkich 22 ekspedycji oraz wszystkich 20 nowych zamówień.
+- Audyt pilnuje również liczby zamówień, przypięcia do właściwego NPC, cooldownu 3600 s i poprawnych nagród.
+- Brak zmian SQLite i brak wipe'a save'ów.
+
 
 ==============================================================================
 ==============================================================================
