@@ -207,25 +207,44 @@ class SessionOceanV1000Mixin:
         return ()
 
     def ocean_contract_step_v1001(self, old_room, new_room):
-        """Advance a persisted contract only on the next actual sea-route step."""
+        """Track adjacent sea movement from the origin, including earlier authored lanes."""
         row = self.server.db.conn.execute(
-            "SELECT origin_room,destination_room,route_progress,arrival_verified "
+            "SELECT origin_room,destination_room,route_progress,route_current_room,arrival_verified "
             "FROM ocean_trade_contract_v1000 WHERE account_id=?", (self.account_id,),
         ).fetchone()
         if not row or int(row["arrival_verified"]):
             return
         path = self.ocean_contract_path_v1001(row["origin_room"], row["destination_room"])
-        if not path:
-            return
+        links = {}
+        lanes = [
+            (route["origin"], *route["rooms"], route["destination"])
+            for route in ROUTES.values()
+        ]
+        lanes.extend((
+            ("ocean_platform", *(f"fog_crossing_{i:02d}" for i in range(1, 5)), "fog_dock", "fog_square"),
+            ("fog_dock", *(f"ardelia_crossing_{i:02d}" for i in range(1, 7)), "silver_crown_harbor"),
+            ("star_port_market", "v0800_star_pier", *(f"v0800_open_sea_{i:02d}" for i in range(1, 4)), "v0800_harbor"),
+        ))
+        for lane in lanes:
+            for start, end in zip(lane, lane[1:]):
+                if end in ROOMS.get(start, {}).get("exits", {}).values():
+                    links.setdefault(start, set()).add(end)
+                    links.setdefault(end, set()).add(start)
         progress = int(row["route_progress"])
-        if progress < len(path) - 1 and old_room == path[progress] and new_room == path[progress + 1]:
+        current = row["route_current_room"] or (path[progress] if 0 < progress < len(path) else row["origin_room"])
+        if current == old_room and new_room in links.get(old_room, ()):
             progress += 1
+            current = new_room
+        elif old_room == row["origin_room"] and new_room in links.get(old_room, ()):
+            progress = 1
+            current = new_room
         else:
             progress = 0
-        verified = int(progress == len(path) - 1 and new_room == row["destination_room"])
+            current = ""
+        verified = int(progress > 0 and current == row["destination_room"])
         self.server.db.conn.execute(
-            "UPDATE ocean_trade_contract_v1000 SET route_progress=?,arrival_verified=? WHERE account_id=?",
-            (progress, verified, self.account_id),
+            "UPDATE ocean_trade_contract_v1000 SET route_progress=?,route_current_room=?,arrival_verified=? WHERE account_id=?",
+            (progress, current, verified, self.account_id),
         )
         self.server.db.conn.commit()
 

@@ -279,7 +279,7 @@ HELP_TOPICS["ocean"] = [
     "statek - stan statku; statek kup; statek ulepsz kadlub|zagle|ladownia|nawigacja. Statek gracza obecnego w porcie widać po komendzie rozejrzyj się.",
     "zegluj - lista tras i wymagania. Szlaki są prawdziwymi pokojami świata; po wejściu używaj ex i kierunków.",
     "skarby - aktywna mapa; skarby szukaj - wykop skarb w poprawnym sektorze.",
-    "handel morski - oferty; handel morski wez <nr>; przepłyń szlak od portu nadania do celu i użyj handel morski oddaj. Kwoty są wyświetlane w złocie, z resztą w srebrze.",
+    "handel morski - oferty; handel morski wez <nr>; przepłyń kolejne sektory szlaku od portu nadania do celu i użyj handel morski oddaj. Starszy Szlak Zamorski przez Mglisty Port też zalicza dostawę do Srebrnej Korony. Kwoty są wyświetlane w złocie, z resztą w srebrze.",
     "Połów głębinowy NIE jest osobną profesją. Na głębokich sektorach używaj zwykłej komendy fish/lów; rozwija Wędkarstwo i Wędkę 1-600.",
 ]
 HELP_TOPIC_ALIASES.update({"ocean2":"ocean", "zegluga":"ocean", "żegluga":"ocean", "statek":"ocean", "handel morski":"ocean"})

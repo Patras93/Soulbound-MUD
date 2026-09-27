@@ -293,6 +293,8 @@ def create_world_quests_schema(self):
         self.conn.execute("ALTER TABLE ocean_trade_contract_v1000 ADD COLUMN route_progress INTEGER NOT NULL DEFAULT 0")
     if "arrival_verified" not in ocean_columns:
         self.conn.execute("ALTER TABLE ocean_trade_contract_v1000 ADD COLUMN arrival_verified INTEGER NOT NULL DEFAULT 0")
+    if "route_current_room" not in ocean_columns:
+        self.conn.execute("ALTER TABLE ocean_trade_contract_v1000 ADD COLUMN route_current_room TEXT NOT NULL DEFAULT ''")
     # v0.61.4: zachowaj wcześniejszy łączny licznik zamówień bez zmyślania
     # historycznych zarobków/profesji. Szczegółowe statystyki liczymy od tej wersji.
     self.conn.execute(
