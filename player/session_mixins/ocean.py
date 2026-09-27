@@ -232,6 +232,24 @@ class SessionOceanV1000Mixin:
                     links.setdefault(end, set()).add(start)
         progress = int(row["route_progress"])
         current = row["route_current_room"] or (path[progress] if 0 < progress < len(path) else row["origin_room"])
+        was_underway = progress > 0
+
+        # Każdy rzeczywisty morski sektor może być objazdem. Kontrakt nie ma
+        # zerować się tylko dlatego, że gracz wpłynął na inne wody niż
+        # najkrótsza ścieżka wyliczona dla kontraktu.
+        port_rooms = {room_id for room_id, _label in PORTS.values()}
+        maritime_rooms = set(links)
+        maritime_rooms.update(port_rooms)
+
+        def is_maritime_room(room_id):
+            room = ROOMS.get(room_id, {})
+            return bool(
+                room_id in maritime_rooms
+                or room.get("requires_ship")
+                or room.get("deep_ocean_fishing")
+                or room.get("ocean_route")
+            )
+
         # A visit to the submerged ruins is a detour from a sea sector, not
         # abandonment of the voyage. Returning to that sector resumes it.
         if progress and (
@@ -239,14 +257,22 @@ class SessionOceanV1000Mixin:
             or new_room == current and ROOMS.get(old_room, {}).get("underwater")
         ):
             return None
+
         if current == old_room and new_room in links.get(old_room, ()):
             progress += 1
             current = new_room
         elif old_room == row["origin_room"] and new_room in links.get(old_room, ()):
             progress = 1
             current = new_room
+        elif was_underway and current == old_room and is_maritime_room(new_room):
+            # Legalny morski objazd / przejście na inny akwen: zachowujemy
+            # kontrakt i kontynuujemy liczenie od aktualnego sektora.
+            progress += 1
+            current = new_room
+        elif not was_underway and old_room == row["origin_room"] and is_maritime_room(new_room):
+            progress = 1
+            current = new_room
         else:
-            was_underway = progress > 0
             progress = 0
             current = ""
         verified = int(progress > 0 and current == row["destination_room"])

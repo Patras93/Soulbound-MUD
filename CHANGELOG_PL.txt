@@ -1,8 +1,17 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.00.8
+Aktualna paczka: v1.00.9
 
 ==============================================================================
 ==============================================================================
+Soulbound v1.00.9 — handel morski nie zeruje się na innych wodach
+==============================================================================
+
+- Aktywny kontrakt handlu morskiego nie zeruje już postępu po wpłynięciu na inny poprawny akwen, sektor morski lub port połączony żeglugą.
+- Morski objazd może prowadzić inną drogą niż najkrótsza ścieżka kontraktu; liczy się ciągła żegluga od portu nadania do portu docelowego.
+- Wejście do podwodnych ruin i powrót na ten sam sektor nadal nie zeruje rejsu.
+- Postęp resetuje się dopiero po faktycznym zejściu z rejsu na niemorski obszar; ręczne `handel morski porzuc` nadal anuluje kontrakt natychmiast.
+- `help ocean` opisuje teraz możliwość morskich objazdów. Brak zmian SQLite; wipe nie jest wymagany.
+
 Soulbound v1.00.8 — Moogle Board użyteczny od początku
 ==============================================================================
 
