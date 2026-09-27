@@ -2895,7 +2895,7 @@ def configure_v081_help_info():
         "Wartości są różne dla każdej klasy, np. Berserker i Czarownik mają bardziej ofensywne sety, a Strażnik bardziej defensywny.",
         "Bonus liczy się tylko dla aktywnej klasy.",
         "Komenda sety pokazuje aktywne sety.",
-        "Komenda sety info pokazuje wszystkie 12 zestawów i progi 2/4/6/8.",
+        "Komenda sety info pokazuje wszystkie 14 zestawów i progi 2/4/6/8.",
         "Komenda sety <klasa> pokazuje konkretny zestaw.",
         "eq info i staty info pokazują aktywne bonusy setów klasowych.",
     ]
