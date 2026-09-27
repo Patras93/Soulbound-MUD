@@ -228,6 +228,34 @@ def fast_predeploy_audit_v0571():
     except Exception as exc:
         errors.append(f"command catalog static check failed: {type(exc).__name__}: {exc}")
 
+    # 5a. v1.10.6 cross-feature regression guards for 14 professions and quest rewards.
+    try:
+        orders_source = (ROOT / "player" / "session_mixins" / "crafting_orders.py").read_text(encoding="utf-8")
+        for token in (
+            '"specialist_archaeology"',
+            '"specialist_cartography"',
+            '"tool_type": "archaeology"',
+            '"tool_type": "cartography_profession"',
+        ):
+            if token not in orders_source:
+                errors.append(f"14-profession rotating order contract missing: {token}")
+
+        exploration_source = (ROOT / "player" / "session_mixins" / "exploration_professions.py").read_text(encoding="utf-8")
+        for token in (
+            'announce_profession_action_order_progress_v0713("archaeology", 1)',
+            'announce_profession_action_order_progress_v0713("cartography_profession", 1)',
+        ):
+            if token not in exploration_source:
+                errors.append(f"exploration order progress hook missing: {token}")
+
+        quest_commands_source = (ROOT / "player" / "session_mixins" / "quest_commands.py").read_text(encoding="utf-8")
+        if "validate_quest_rewards_v1106" not in quest_commands_source:
+            errors.append("quest reward preflight missing")
+        if 'q["reward_items"]' in quest_commands_source:
+            errors.append("unsafe direct q[reward_items] access remains in quest completion")
+    except Exception as exc:
+        errors.append(f"v1.10.6 regression guard failed: {type(exc).__name__}: {exc}")
+
     # 6. Bootstrap contract: Railway port is opened before the heavy runtime loader.
     try:
         server_source = (ROOT / "server.py").read_text(encoding="utf-8")
