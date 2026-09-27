@@ -133,7 +133,7 @@ NPCS = {
         ),
     },
     "specialist_archaeology": {
-        "name": "Archeolożka Mira", "room": "library",
+        "name": "Archeolożka Elara", "room": "library",
         "rank_profession": "Archeologia",
         "dialogue": (
             "Prowadzę badania ruin, krypt, cmentarzy, świątyń i dawnych archiwów. "
