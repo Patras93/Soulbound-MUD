@@ -1,8 +1,17 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.00.11
+Aktualna paczka: v1.00.12
 
 ==============================================================================
 ==============================================================================
+Soulbound v1.00.12 — audyt i naprawa ukończenia zadań klasowych
+==============================================================================
+
+- Zweryfikowano cały przepływ zadania klasowego Gildii: przyjęcie od Soul 25, naliczanie zabójstw, zapis postępu, oddanie i nagrody.
+- Naprawiono `guild_class_quest_done()`: przyjęte, ale nieukończone zadanie nie jest już traktowane jako ukończone tylko dlatego, że jego stan jest niepustym słownikiem.
+- Egzamin Soul 50 wymaga teraz faktycznie `completed=true` dla zadania klasowego; zachowano zgodność ze starym formatem `True` dla dawniej ukończonych postaci.
+- Postęp killów nadal zapisuje się na końcu obsługi nagród za zabicie przez `save_character()`.
+- Brak zmian SQLite; wipe nie jest wymagany.
+
 Soulbound v1.00.11 — hotfix `l moogle`
 ==============================================================================
 

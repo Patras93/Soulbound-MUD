@@ -776,7 +776,12 @@ class Character:
 
     def guild_class_quest_done(self, class_name):
         data = self._guild_json("guild_class_quests_json")
-        return bool(data.get(class_name, False))
+        state = data.get(class_name, False)
+        if state is True:
+            return True
+        if isinstance(state, dict):
+            return bool(state.get("completed"))
+        return False
 
     def mark_guild_class_quest_done(self, class_name):
         data = self._guild_json("guild_class_quests_json")
