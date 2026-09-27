@@ -1,5 +1,25 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.10.6
+Aktualna paczka: v1.10.7
+
+==============================================================================
+==============================================================================
+Soulbound v1.10.7 — Full Repository Audit
+==============================================================================
+
+- Rozszerzono audyt z runtime na całe repo: fast predeploy kompiluje teraz każdy plik Python w projekcie, nie tylko moduły z RUNTIME_MODULES.
+- Repo-wide source scan raportuje duplikaty literalnych kluczy słowników, połykane wyjątki typu except: pass oraz TODO/FIXME jako ostrzeżenia audytowe.
+- Full predeploy uruchamia teraz także finalny Cross-System Audit po złożeniu całego runtime oraz Ocean Contract Audit jako twarde bramki błędów.
+- Cross-System Audit sprawdza teraz również nagrody profesji i narzędzi w questach: nieznane profesje, nieznane typy narzędzi, brakujące reward_tool_type i niespójne mapowania.
+- Utwardzono runtime preflight nagród questa: nieprawidłowe tekstowe/liczbowe wartości EXP nie wywalają samego walidatora.
+- Naprawiono aktualny HELP: pełne 14 profesji, pełne 14 narzędzi i 14 zestawów Tierów narzędzi.
+- Dodano bezpośrednie komendy informacji o narzędziach Krawiectwa, Garbarstwa, Stolarstwa i Zaklinania: zestawkrawiecki, nozgarbarski, ciesielskie i fokus.
+- Naprawiono tool_info_definition: brakowało czterech narzędzi profesji rzemieślniczych, mimo że profesje i Tiery już istniały.
+- Naprawiono starą nazwę Archeolożka Mira w komendzie narzedzia; aktywny UI wskazuje teraz poprawnie Archeolożkę Elarę.
+- Naprawiono completion: procent Profesji zawsze liczy pełne 14 profesji x 600, także na starszych postaciach, które nie mają jeszcze rekordu Archeologii/Kartografii.
+- Naprawiono postep: reputacja Gildii Kurierów jest pokazywana względem aktualnego limitu 600 zamiast starego 400.
+- Potwierdzono w modelu persistence, że narzędzia kupowane raz na postać są faktycznie rozdzielone per character_account_id; wspólny dla konta pozostaje tylko portfel.
+- Dodano regresyjne guardy dla 14 narzędzi, Elary, aktualnego HELP-u, limitu Kurierów 600 i poprawnego mianownika completion.
+- Brak zmian schematu SQLite i brak wipe'a save'ów.
 
 ==============================================================================
 ==============================================================================
