@@ -87,7 +87,11 @@ class DatabaseQuestMixin:
         changed = []
         for row in rows:
             q = QUESTS.get(row["quest_id"])
-            if not q or q["kind"] != "kill" or q["target"] != target:
+            if (
+                not q
+                or q["kind"] != "kill"
+                or q.get("target") not in (target, "*")
+            ):
                 continue
             new_progress = min(q["needed"], row["progress"] + 1)
             # v0.30.7: gotowy quest nie ogłasza ponownie tego samego
