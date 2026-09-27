@@ -44,6 +44,13 @@ class SessionCommandLoopMixin:
             parts = raw.split(maxsplit=1)
             token = parts[0].lower() if parts else ""
             args = parts[1] if len(parts) > 1 else ""
+
+            # Samo "walk" działa jak lokalny spis celów w aktualnym mieście.
+            # "prowadz" bez argumentu zachowuje dotychczasową pomoc ogólną.
+            if token == "walk" and not args.strip():
+                await self.show_current_city_walk_destinations()
+                continue
+
             command = resolve_session_command(token, args)
             direction = DIRECTION_ALIASES.get(command)
             self._last_command_for_diagnostics = command

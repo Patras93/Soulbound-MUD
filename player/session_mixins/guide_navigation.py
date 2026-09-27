@@ -38,6 +38,48 @@ class SessionGuideNavigationMixin:
             )
             await self.show_exits()
 
+    async def show_current_city_walk_destinations(self):
+            """Pokaż cele komendy walk dostępne w aktualnym mieście lub osadzie."""
+            current_room_id = str(self.character.room_id)
+            current_room = ROOMS.get(current_room_id, {})
+            current_zone = current_room.get("zone", "")
+
+            city_name = None
+            for candidate_name, hub_room_id in GUIDE_CITY_HUBS_V0522.items():
+                hub_room = ROOMS.get(hub_room_id)
+                if hub_room and hub_room.get("zone") == current_zone:
+                    city_name = candidate_name
+                    break
+
+            if not city_name:
+                await self.send(
+                    "Nie jesteś teraz w mieście ani osadzie. "
+                    "Użyj walk list, aby zobaczyć pozostałe cele prowadzenia."
+                )
+                return
+
+            destinations = [
+                (room_id, room)
+                for room_id, room in ROOMS.items()
+                if room.get("zone") == current_zone and room_id != current_room_id
+            ]
+            destinations.sort(
+                key=lambda row: self.normalize_room_query(row[1].get("name", row[0]))
+            )
+
+            await self.send(
+                f"WALK — {city_name}. Aktualnie: "
+                f"{current_room.get('name', current_room_id)}."
+            )
+            if not destinations:
+                await self.send("W tym mieście nie ma innych dostępnych lokacji.")
+                return
+
+            await self.send("Możesz iść do:")
+            for _room_id, room in destinations:
+                room_name = room.get("name", _room_id)
+                await self.send(f"{room_name}: walk {room_name}.")
+
     def normalize_room_query(self, value):
             text = str(value or "").strip().lower()
             text = text.replace("ł", "l").replace("Ł", "l")
