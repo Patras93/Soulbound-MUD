@@ -68,8 +68,8 @@ def full_systems_audit_v03062():
     check('crafting_mastery_table_code', 'crafting_mastery' in globals() or True) # DB validated at runtime
 
     # Professions/tools
-    expected={"fishing":"Wędkarstwo","mining":"Górnictwo","woodcutting":"Drwalstwo","crafting":"Kowalstwo","cooking":"Gotowanie","herbalism":"Zielarstwo","alchemy":"Alchemia","jewelcrafting":"Jubilerstwo","tailoring":"Krawiectwo","leatherworking":"Garbarstwo","carpentry":"Stolarstwo","enchanting":"Zaklinanie"}
-    check('professions_12', len(PROFESSION_RANK_NAMES)==12, len(PROFESSION_RANK_NAMES))
+    expected={"fishing":"Wędkarstwo","mining":"Górnictwo","woodcutting":"Drwalstwo","crafting":"Kowalstwo","cooking":"Gotowanie","herbalism":"Zielarstwo","alchemy":"Alchemia","jewelcrafting":"Jubilerstwo","tailoring":"Krawiectwo","leatherworking":"Garbarstwo","carpentry":"Stolarstwo","enchanting":"Zaklinanie","archaeology":"Archeologia","cartography_profession":"Kartografia"}
+    check('professions_14', len(PROFESSION_RANK_NAMES)==14, len(PROFESSION_RANK_NAMES))
     check('tool_profession_map', all(TOOL_PROFESSION_MAP.get(k)==v for k,v in expected.items()), TOOL_PROFESSION_MAP)
     check('tool_tiers_60', len(TOOL_TIER_THRESHOLDS)==TOOL_MAX_TIER==60, len(TOOL_TIER_THRESHOLDS))
 
