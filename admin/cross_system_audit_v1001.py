@@ -72,8 +72,10 @@ def audit(runtime):
 
         reward_profession = q.get("reward_profession")
         reward_tool_type = q.get("reward_tool_type")
-        reward_profession_xp = int(q.get("reward_profession_xp", 0) or 0)
-        reward_tool_xp = int(q.get("reward_tool_xp", 0) or 0)
+        raw_profession_xp = q.get("reward_profession_xp", 0)
+        raw_tool_xp = q.get("reward_tool_xp", 0)
+        reward_profession_xp = int(raw_profession_xp or 0) if isinstance(raw_profession_xp, (int, float)) else 0
+        reward_tool_xp = int(raw_tool_xp or 0) if isinstance(raw_tool_xp, (int, float)) else 0
         if reward_profession and reward_profession not in profession_names:
             errors.append(f"quest {qid}: unknown reward profession {reward_profession}")
         if reward_tool_type and reward_tool_type not in tool_profession_map:
