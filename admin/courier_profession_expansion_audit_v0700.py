@@ -97,7 +97,7 @@ def courier_profession_expansion_audit_v0700():
     for profession, tool_type, npc_id, _action in PROFESSION_QUEST_SPECS_V0700:
         ids=tuple(PROFESSION_QUEST_IDS_BY_PROFESSION_V0700.get(profession) or ())
         if len(ids) != 4:
-            errors.append(f"{profession}: quest count={len(ids)}, expected 6")
+            errors.append(f"{profession}: quest count={len(ids)}, expected 4")
         npc=NPCS.get(npc_id) or {}
         attached=set(npc.get("specialist_quests") or ())
         for qid in ids:
@@ -133,7 +133,7 @@ def courier_profession_expansion_audit_v0700():
 
     expected_added = {spec[0] for spec in BEGINNER_PROFESSION_QUEST_SPECS_V0701}
     if len(BEGINNER_PROFESSION_QUEST_IDS_V0701) != 6:
-        errors.append(f"v0.70.1 beginner quests added={len(BEGINNER_PROFESSION_QUEST_IDS_V0701)}, expected 4")
+        errors.append(f"v0.70.1 beginner quests added={len(BEGINNER_PROFESSION_QUEST_IDS_V0701)}, expected 6")
     for qid in BEGINNER_PROFESSION_QUEST_IDS_V0701:
         q = QUESTS.get(qid) or {}
         profession = q.get("required_profession")
