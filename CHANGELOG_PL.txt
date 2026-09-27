@@ -1,7 +1,22 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.00.0
+Aktualna paczka: v1.00.1
 
 ==============================================================================
+==============================================================================
+Soulbound v1.00.1 — Audyt i bezpieczne kontrakty morskie
+==============================================================================
+
+- Przywrócono pełny predeploy z historycznymi audytami oraz audyt zawartości Miast 2.0 i archipelagu. Wynik: 0 błędów i 0 ostrzeżeń.
+- Kontrakt morski wymaga własnego statku i przebycia kolejnych sektorów prawdziwego szlaku od portu nadania do celu. Teleport lub dotarcie lądem nie zalicza rejsu.
+- Postęp szlaku zapisuje się w SQLite także po ponownym zalogowaniu. Istniejące kontrakty pozostają, lecz trzeba rozpocząć rejs od portu nadania. Baza aktualizuje się automatycznie bez wipe.
+- Ujednoznaczniono trzy nazwy lokacji w Piwnicy Świątyni dla czytelnego odczytu w NVDA.
+- Dodano powtarzalny audyt questów, celów, nagród i teoretycznego tempa EXP 1–600. Nie zmieniono stawek EXP, cen ani obrażeń.
+- Kwoty kontraktów morskich, skarbów oraz kosztów statku są pokazywane w złocie (z resztą w srebrze, gdy występuje); wypłaty i ceny pozostają takie same.
+- Rozglądanie się w porcie wymienia statki graczy obecnych przy nabrzeżu, również dla pozostałych graczy w tej lokacji.
+- Ruch na szlaku morskim mówi „Płyniesz” i „Dopływasz”, a inni gracze słyszą o odpływaniu i przypływaniu.
+- Port Dusz i Mały Port Wschodni w Cichej Przystani dołączono do żeglugi: łącznie sześć szlaków między siedmioma punktami, z ofertami handlowymi w nowych portach.
+- Ratusze i lokalne świątynie wszystkich miast objętych Miastami 2.0 mają teraz rozmownych NPC; audyt sprawdza ich obecność.
+
 Soulbound v1.00.0 — Ocean 2.0
 ==============================================================================
 
@@ -1895,4 +1910,3 @@ Poniższe numery są nadal referencjonowane w aktualnej bazie, ale ich pełne re
 - v0.30.51, v0.30.52, v0.30.59, v0.31.3, v0.31.5, v0.31.6, v0.31.8, v0.31.12
 - v0.31.16, v0.33.1, v0.33.2, v0.33.11, v0.33.16, v0.34.3, v0.34.4, v0.34.6
 - v0.35.1, v0.36.9
-

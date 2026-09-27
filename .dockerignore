@@ -7,3 +7,12 @@ __pycache__/
 *.zip
 RELEASE_NOTES*
 predeploy_full.py
+admin/maintenance_audit_v0400.py
+admin/explicit_dependencies_audit_v0430.py
+admin/explicit_gameplay_dependencies_audit_v0440.py
+admin/explicit_stable_dependencies_audit_v0450.py
+admin/explicit_persistence_audit_v0460.py
+admin/combat_architecture_audit_v0470.py
+admin/catalog_ownership_audit_v0480.py
+admin/world_expansion_v_audit_v0900.py
+admin/release_integrity_v0369.py

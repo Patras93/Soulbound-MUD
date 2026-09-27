@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import random
 import time
+from collections import deque
 
 from core.classes_skills import ROOMS
+from core.bootstrap_economy_professions import currency_reading_text
 from systems.crafting_quality import player_item_display_name_v0335
 from world.ocean_expansion import ROUTES, PORTS, DEEP_OCEAN_ROOMS, TREASURE_ROOMS
 
@@ -57,7 +59,7 @@ class SessionOceanV1000Mixin:
         if not args or args in ("info", "status"):
             if not owned:
                 await self.send(
-                    f"STATEK: nie posiadasz statku. Kupno kosztuje {self.V1000_SHIP_BASE_COST} srebra. Wpisz statek kup w porcie."
+                    f"STATEK: nie posiadasz statku. Kupno kosztuje {currency_reading_text(self.V1000_SHIP_BASE_COST)}. Wpisz statek kup w porcie."
                 )
                 return
             await self.send(
@@ -75,7 +77,7 @@ class SessionOceanV1000Mixin:
                 return
             wallet = self.character_wallet_silver_value()
             if wallet < self.V1000_SHIP_BASE_COST:
-                await self.send(f"Potrzebujesz {self.V1000_SHIP_BASE_COST} srebra.")
+                await self.send(f"Potrzebujesz {currency_reading_text(self.V1000_SHIP_BASE_COST)}.")
                 return
             self.character.silver = wallet - self.V1000_SHIP_BASE_COST
             self.character.gold = 0
@@ -109,7 +111,7 @@ class SessionOceanV1000Mixin:
             cost = 12_500 * (level + 1) * (level + 1)
             wallet = self.character_wallet_silver_value()
             if wallet < cost:
-                await self.send(f"Ulepszenie na poziom {level+1} kosztuje {cost} srebra.")
+                await self.send(f"Ulepszenie na poziom {level+1} kosztuje {currency_reading_text(cost)}.")
                 return
             self.character.silver = wallet - cost
             self.character.gold = 0
@@ -164,6 +166,8 @@ class SessionOceanV1000Mixin:
         direction = route["origin_direction"] if room_id == route["origin"] else route["destination_direction"]
         await self.send(f"Rozpoczynasz rejs: {route['name']}. To prawdziwa trasa; po wejściu używaj ex i kierunków.")
         await self.move(direction)
+        if self.character.room_id == room_id:
+            return
         self.server.db.conn.execute(
             "UPDATE ocean_ship_v1000 SET voyages=voyages+1,updated_at=CURRENT_TIMESTAMP WHERE account_id=?",
             (self.account_id,),
@@ -173,12 +177,57 @@ class SessionOceanV1000Mixin:
     def ocean_trade_offers_v1000(self):
         # Static authored routes keep contracts readable and deterministic.
         return (
+            ("dusze", "harbor", "ocean_platform", "Zapasy dla oceanicznych załóg", 25_000, 1),
             ("rafy", "ocean_platform", "fog_square", "Skrzynie soli i lin", 35_000, 1),
             ("mgla", "fog_square", "star_port_market", "Mglisty bursztyn", 65_000, 2),
             ("gwiazda", "star_port_market", "v0800_harbor", "Astralne przyrządy", 120_000, 3),
             ("korona", "ocean_platform", "silver_crown_harbor", "Towary królewskiej kompanii", 220_000, 4),
             ("powrot", "silver_crown_harbor", "star_port_market", "Srebrne mechanizmy portowe", 300_000, 5),
+            ("cicha", "quiet_haven_dock", "silver_crown_harbor", "Towary z Cichej Przystani", 140_000, 3),
         )
+
+    def ocean_contract_path_v1001(self, origin, destination):
+        """Shortest sea-only port path, including every sector of its lanes."""
+        links = {}
+        for route in ROUTES.values():
+            lane = (route["origin"], *route["rooms"], route["destination"])
+            for start, end in zip(lane, lane[1:]):
+                links.setdefault(start, set()).add(end)
+                links.setdefault(end, set()).add(start)
+        queue = deque([(origin,)])
+        visited = {origin}
+        while queue:
+            path = queue.popleft()
+            if path[-1] == destination:
+                return path
+            for next_room in sorted(links.get(path[-1], ())):
+                if next_room not in visited:
+                    visited.add(next_room)
+                    queue.append((*path, next_room))
+        return ()
+
+    def ocean_contract_step_v1001(self, old_room, new_room):
+        """Advance a persisted contract only on the next actual sea-route step."""
+        row = self.server.db.conn.execute(
+            "SELECT origin_room,destination_room,route_progress,arrival_verified "
+            "FROM ocean_trade_contract_v1000 WHERE account_id=?", (self.account_id,),
+        ).fetchone()
+        if not row or int(row["arrival_verified"]):
+            return
+        path = self.ocean_contract_path_v1001(row["origin_room"], row["destination_room"])
+        if not path:
+            return
+        progress = int(row["route_progress"])
+        if progress < len(path) - 1 and old_room == path[progress] and new_room == path[progress + 1]:
+            progress += 1
+        else:
+            progress = 0
+        verified = int(progress == len(path) - 1 and new_room == row["destination_room"])
+        self.server.db.conn.execute(
+            "UPDATE ocean_trade_contract_v1000 SET route_progress=?,arrival_verified=? WHERE account_id=?",
+            (progress, verified, self.account_id),
+        )
+        self.server.db.conn.commit()
 
     async def ocean_trade_v1000(self, args=""):
         text = str(args or "").strip().lower()
@@ -194,6 +243,9 @@ class SessionOceanV1000Mixin:
             if self.character.room_id != row["destination_room"]:
                 await self.send(f"Ładunek trzeba dostarczyć do: {ROOMS.get(row['destination_room'],{}).get('name',row['destination_room'])}.")
                 return
+            if not int(row["arrival_verified"]):
+                await self.send("Kontrakt wymaga przepłynięcia szlaku od portu nadania do celu. Wróć do portu nadania i rozpocznij rejs.")
+                return
             reward = int(row["reward_silver"])
             wallet = self.character_wallet_silver_value()
             self.character.silver = wallet + reward
@@ -201,11 +253,14 @@ class SessionOceanV1000Mixin:
             self.character.mithril = 0
             self.server.db.conn.execute("DELETE FROM ocean_trade_contract_v1000 WHERE account_id=?", (self.account_id,))
             self.server.db.save_character(self.character)
-            await self.send(f"HANDEL MORSKI: dostawa zakończona. Otrzymujesz {reward} srebra.")
+            await self.send(f"HANDEL MORSKI: dostawa zakończona. Otrzymujesz {currency_reading_text(reward)}.")
             return
         if text.startswith("wez ") or text.startswith("weź ") or text.startswith("take "):
             if row and row["contract_key"]:
                 await self.send("Masz już aktywny kontrakt morski.")
+                return
+            if not self.ocean_ship_owned_v1000():
+                await self.send("Do przyjęcia ładunku morskiego potrzebujesz własnego statku. Wpisz statek kup w porcie.")
                 return
             try:
                 number = int(text.split()[-1])
@@ -216,6 +271,9 @@ class SessionOceanV1000Mixin:
                 await self.send("Nie ma takiej oferty w tym porcie. Wpisz handel morski.")
                 return
             key, origin, dest, cargo_label, reward, required = offers[number-1]
+            if not self.ocean_contract_path_v1001(origin, dest):
+                await self.send("Szlak tego kontraktu jest niedostępny. Zgłoś błąd administratorowi.")
+                return
             cargo_level = self.ocean_ship_level_v1000("cargo")
             if cargo_level < required:
                 await self.send(f"Ten kontrakt wymaga Ładowni poziom {required}; masz {cargo_level}.")
@@ -225,11 +283,11 @@ class SessionOceanV1000Mixin:
                 (self.account_id,key,origin,dest,cargo_label,reward,required,int(time.time())),
             )
             self.server.db.conn.commit()
-            await self.send(f"Przyjmujesz ładunek: {cargo_label}. Cel: {ROOMS[dest]['name']}. Nagroda: {reward} srebra.")
+            await self.send(f"Przyjmujesz ładunek: {cargo_label}. Cel: {ROOMS[dest]['name']}. Nagroda: {currency_reading_text(reward)}.")
             return
         if row and row["contract_key"]:
             await self.send(
-                f"AKTYWNY HANDEL MORSKI: {row['cargo_label']}. Cel: {ROOMS.get(row['destination_room'],{}).get('name',row['destination_room'])}. Nagroda {row['reward_silver']} srebra."
+                f"AKTYWNY HANDEL MORSKI: {row['cargo_label']}. Cel: {ROOMS.get(row['destination_room'],{}).get('name',row['destination_room'])}. Nagroda {currency_reading_text(row['reward_silver'])}."
             )
         offers = [o for o in self.ocean_trade_offers_v1000() if o[1] == self.character.room_id]
         await self.send("HANDEL MORSKI — OFERTY W TYM PORCIE")
@@ -237,7 +295,7 @@ class SessionOceanV1000Mixin:
             await self.send("W tym miejscu nie ma nowych ładunków. Kontrakty zaczynają się w głównych portach.")
             return
         for i, (_key, _origin, dest, cargo_label, reward, required) in enumerate(offers, 1):
-            await self.send(f"{i}. {cargo_label} -> {ROOMS[dest]['name']}. Ładownia {required}+. Nagroda {reward} srebra.")
+            await self.send(f"{i}. {cargo_label} -> {ROOMS[dest]['name']}. Ładownia {required}+. Nagroda {currency_reading_text(reward)}.")
         await self.send("Przyjęcie: handel morski wez <nr>. Oddanie: handel morski oddaj.")
 
     def maybe_grant_ocean_treasure_map_v1000(self):
@@ -286,7 +344,7 @@ class SessionOceanV1000Mixin:
                 "UPDATE ocean_ship_v1000 SET treasures=treasures+1 WHERE account_id=?", (self.account_id,)
             )
             self.server.db.save_character(self.character)
-            await self.send(f"ODNAJDUJESZ SKARB: {reward} srebra oraz {player_item_display_name_v0335(item_id)}.")
+            await self.send(f"ODNAJDUJESZ SKARB: {currency_reading_text(reward)} oraz {player_item_display_name_v0335(item_id)}.")
             return
         if not row or int(row["found"]):
             await self.send("Nie masz aktywnej mapy skarbu. Mapy mogą wypaść podczas głębinowych połowów na Ocean 2.0.")

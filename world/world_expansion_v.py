@@ -355,6 +355,17 @@ for city_index, city in enumerate(_city_names, 1):
     _v0900_link(city_rooms[6], "east", city_rooms[7])
     CITIES_2_CITIES_V0900[city] = tuple(city_rooms)
 
+    _v0900_npc(
+        f"v0900_city_{slug}_steward", f"Zarządca Ratusza — {city}", city_rooms[0],
+        f"Witaj w ratuszu miasta {city}. Archiwum gromadzi kroniki, a strażnica przyjmuje meldunki o zagrożeniach.",
+        v0900_city2=True, v0900_city=city,
+    )
+    _v0900_npc(
+        f"v0900_city_{slug}_shrine_keeper", f"Opiekun Świątyni — {city}", city_rooms[3],
+        f"W świątyni miasta {city} możesz odpocząć i poznać historię mieszkańców.",
+        v0900_city2=True, v0900_city=city,
+    )
+
     stage = 70 + city_index * 9
     threat_id = _v0900_mob(f"v0900_city_{slug}_threat", f"Podziemny Szkodnik — {city}", stage, drops={"soul_shard": 0.05}, tags={"v0900_city2": True, "v0900_city": city})
     for _ in range(6):
@@ -394,7 +405,7 @@ HELP_TOPICS.setdefault("lochy archipelagu", []).extend([
 HELP_TOPICS.setdefault("miasta 2.0", []).extend([
     f"Miasta 2.0 rozszerza wszystkie {len(_city_names)} miast sieci kurierskiej.",
     "Każde miasto dostaje Ratusz, Dzielnicę Mieszkalną, Dzielnicę Warsztatową, Świątynię, Archiwum, Strażnicę i dwupoziomowe podziemia.",
-    "Kronikarz i Kapitan Straży prowadzą nową trzyetapową lokalną historię, kontynuując wcześniejsze miejskie questy v0.71.0.",
+    "W Ratuszu spotkasz Zarządcę Ratusza, a w Świątyni Opiekuna Świątyni. Kronikarz w Archiwum i Kapitan Straży w Strażnicy prowadzą trzyetapową lokalną historię.",
 ])
 HELP_TOPIC_ALIASES.update({
     "katakumby pod piwnica": "katakumby", "katakumby pod piwnicą": "katakumby",

@@ -146,6 +146,10 @@ class SessionMovementMixin:
             self.server.world.ensure_runtime_room(target)
             label = DIRECTION_WALK_LABELS.get(direction, str(direction))
             target_name = ROOMS.get(target, {}).get("name", str(target))
+            sailing_v1000 = bool(
+                ROOMS.get(old, {}).get("requires_ship")
+                or ROOMS.get(target, {}).get("requires_ship")
+            ) and not ROOMS.get(target, {}).get("underwater")
             entry_label_v03812 = (
                 str(getattr(self, "_dungeon_entry_label_v03812", "") or "").strip()
                 if not guided else ""
@@ -198,9 +202,9 @@ class SessionMovementMixin:
                         old, f"{self.character.name} wchodzi do {entry_label_v03812}.", exclude=self
                     )
                 else:
-                    await self.send(f"Idziesz {label}. Cel: {target_name}.")
+                    await self.send(f"{'Płyniesz' if sailing_v1000 else 'Idziesz'} {label}. Cel: {target_name}.")
                     await self.server.broadcast_room(
-                        old, f"{self.character.name} rusza {label}.", exclude=self
+                        old, f"{self.character.name} {'odpływa' if sailing_v1000 else 'rusza'} {label}.", exclude=self
                     )
                 await asyncio.sleep(self.movement_delay(direction, guided=guided))
                 if self.closed:
@@ -209,16 +213,18 @@ class SessionMovementMixin:
                 self.previous_room_id = old
                 self.character.room_id = target
                 self.server.db.save_character(self.character)
+                if hasattr(self, "ocean_contract_step_v1001"):
+                    self.ocean_contract_step_v1001(old, target)
                 city_name_v0530 = COURIER_CITY_ROOM_TO_NAME_V0530.get(str(target))
                 if city_name_v0530 and self.account_id is not None:
                     self.server.db.record_courier_city_visit_v0530(self.account_id, city_name_v0530)
                 await self.server.broadcast_room(
-                    target, f"{self.character.name} przychodzi.", exclude=self
+                    target, f"{self.character.name} {'przypływa' if sailing_v1000 else 'przychodzi'}.", exclude=self
                 )
                 if entry_label_v03812:
                     await self.send(f"WEJŚCIE: {target_name}.")
                 else:
-                    await self.send(f"Docierasz do: {target_name}.")
+                    await self.send(f"{'Dopływasz' if sailing_v1000 else 'Docierasz'} do: {target_name}.")
                 if show_room:
                     await self.look()
                 return True

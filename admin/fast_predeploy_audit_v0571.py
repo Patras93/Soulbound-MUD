@@ -25,6 +25,7 @@ ESSENTIAL_TABLES = {
     "accounts", "characters", "inventory", "equipment", "professions", "tools",
     "quests", "achievements", "player_clans", "postal_delivery_state_v0522",
     "courier_guild_state_v0530", "activity_journal_v0560", "crafting_orders_v0600",
+    "ocean_ship_v1000", "ocean_treasure_map_v1000", "ocean_trade_contract_v1000",
 }
 
 

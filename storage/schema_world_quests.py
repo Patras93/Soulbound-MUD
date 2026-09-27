@@ -280,10 +280,19 @@ def create_world_quests_schema(self):
                         reward_silver INTEGER NOT NULL DEFAULT 0,
                         required_cargo INTEGER NOT NULL DEFAULT 1,
                         accepted_at INTEGER NOT NULL DEFAULT 0,
+                        route_progress INTEGER NOT NULL DEFAULT 0,
+                        arrival_verified INTEGER NOT NULL DEFAULT 0,
                         FOREIGN KEY(account_id) REFERENCES accounts(id) ON DELETE CASCADE
                     );
         """
     )
+    # Existing Railway volumes keep their contracts; progress starts at the
+    # origin until the player completes the sea route after this migration.
+    ocean_columns = {row[1] for row in self.conn.execute("PRAGMA table_info(ocean_trade_contract_v1000)")}
+    if "route_progress" not in ocean_columns:
+        self.conn.execute("ALTER TABLE ocean_trade_contract_v1000 ADD COLUMN route_progress INTEGER NOT NULL DEFAULT 0")
+    if "arrival_verified" not in ocean_columns:
+        self.conn.execute("ALTER TABLE ocean_trade_contract_v1000 ADD COLUMN arrival_verified INTEGER NOT NULL DEFAULT 0")
     # v0.61.4: zachowaj wcześniejszy łączny licznik zamówień bez zmyślania
     # historycznych zarobków/profesji. Szczegółowe statystyki liczymy od tej wersji.
     self.conn.execute(

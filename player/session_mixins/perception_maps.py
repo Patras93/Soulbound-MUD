@@ -310,6 +310,23 @@ class SessionPerceptionMapsMixin:
                 f"{room['name']}. Strefa: {room['zone']}."
             )
             await self.send(room["desc"])
+            # A ship is visible while its owner is present in a port or at sea.
+            if hasattr(self, "ocean_port_name_v1000") and self.ocean_port_name_v1000(self.character.room_id):
+                owned_accounts = {
+                    row[0] for row in self.server.db.conn.execute(
+                        "SELECT account_id FROM ocean_ship_v1000 WHERE owned=1"
+                    )
+                }
+                ships = sorted(
+                    session.character.name
+                    for session in self.server.sessions
+                    if session.character
+                    and session.character.room_id == self.character.room_id
+                    and session.account_id is not None
+                    and session.account_id in owned_accounts
+                )
+                if ships:
+                    await self.send("Statki stoją przy nabrzeżu: " + ", ".join(ships) + ".")
             profile_v025 = v0250_room_generator_profile(self.character.room_id)
             await self.send(
                 f"Generator świata: {profile_v025['ambience']}; "
