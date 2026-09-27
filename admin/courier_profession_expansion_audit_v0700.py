@@ -12,6 +12,9 @@ from config.postal import (
 )
 from data.catalogs import ITEMS, ROOMS, NPCS
 from data.quests import QUESTS
+from core.bootstrap_economy_professions import TOOL_PROFESSION_MAP
+from core.mines_threat import CHARACTER_BOUND_TOOL_IDS, TOOL_SHOP_ROOMS
+from systems.equipment_crafting import SHOPS
 from world.world_expansion_iii import (
     WORLD_EXPANSION_III_SETTLEMENTS,
     WORLD_EXPANSION_III_NEW_ROOMS,
@@ -90,6 +93,24 @@ def courier_profession_expansion_audit_v0700():
             errors.append(f"missing separate recipe command: {profession_cmd}")
     if "Wyniki są rozdzielone według profesji" not in available_source or "groups.setdefault" not in available_source:
         errors.append("available recipes are not grouped by profession")
+
+    # v1.10.0: 14 profesji = 14 klas; dwa nowe narzędzia są jednorazowe na postać.
+    if len(PROFESSION_QUEST_SPECS_V0700) != 14:
+        errors.append(f"profession count={len(PROFESSION_QUEST_SPECS_V0700)}, expected 14")
+    for profession, tool_type, item_id, room_id in (
+        ("Archeologia", "archaeology", "archaeology_brush", "library"),
+        ("Kartografia", "cartography_profession", "surveyor_compass", "v016_cartographers_archive"),
+    ):
+        if TOOL_PROFESSION_MAP.get(tool_type) != profession:
+            errors.append(f"{profession}: missing tool/profession mapping")
+        if item_id not in ITEMS:
+            errors.append(f"{profession}: missing tool item {item_id}")
+        if item_id not in CHARACTER_BOUND_TOOL_IDS:
+            errors.append(f"{profession}: tool {item_id} must be character-bound")
+        if TOOL_SHOP_ROOMS.get(item_id) != room_id:
+            errors.append(f"{profession}: wrong tool shop room for {item_id}")
+        if item_id not in (SHOPS.get(room_id) or ()):
+            errors.append(f"{profession}: tool {item_id} missing from shop {room_id}")
 
     expected_quests=len(PROFESSION_QUEST_SPECS_V0700)*len(PROFESSION_QUEST_STAGES_V0700)
     if len(PROFESSION_QUEST_IDS_V0700) != expected_quests or expected_quests != 56:
