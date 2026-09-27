@@ -690,6 +690,10 @@ class SessionGatheringMixin:
                 "herbalism": ("herbalist_sickle", "Sierp Zielarski"),
                 "alchemy": ("alchemy_mortar", "Moździerz Alchemiczny"),
                 "jewelcrafting": ("jeweler_pliers", "Szczypce Jubilerskie"),
+                "tailoring": ("tailor_kit", "Zestaw Krawiecki"),
+                "leatherworking": ("tanning_knife", "Nóż Garbarski"),
+                "carpentry": ("carpenter_tools", "Narzędzia Ciesielskie"),
+                "enchanting": ("runic_focus", "Fokus Runiczny"),
                 "archaeology": ("archaeology_brush", "Pędzel Archeologa"),
                 "cartography_profession": ("surveyor_compass", "Kompas Mierniczy"),
             }
@@ -938,7 +942,7 @@ class SessionGatheringMixin:
                 ("leatherworking", "tanning_knife", "Nóż Garbarski", "Soren", "Warsztat Kaletnika"),
                 ("carpentry", "carpenter_tools", "Narzędzia Ciesielskie", "Edric", "Warsztat Ciesielski"),
                 ("enchanting", "runic_focus", "Fokus Runiczny", "Kwatermistrz Arkanów", "Komnata Arkanów"),
-                ("archaeology", "archaeology_brush", "Pędzel Archeologa", "Archeolożka Mira", "Biblioteka"),
+                ("archaeology", "archaeology_brush", "Pędzel Archeologa", "Archeolożka Elara", "Biblioteka"),
                 ("cartography_profession", "surveyor_compass", "Kompas Mierniczy", "Mistrzyni Kartografii Alena", "Archiwum Rubieży"),
             ]
             await self.send("NARZĘDZIA INFO" if detailed else "NARZĘDZIA")
