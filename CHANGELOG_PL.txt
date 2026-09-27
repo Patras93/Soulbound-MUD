@@ -1,8 +1,18 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.00.7
+Aktualna paczka: v1.00.8
 
 ==============================================================================
 ==============================================================================
+Soulbound v1.00.8 — Moogle Board użyteczny od początku
+==============================================================================
+
+- Moogle Board daje teraz bonus już od Levelu postaci 1, nadal niezależnie od klasy.
+- Level 1-9: +2 do Siły, Zręczności, Kondycji, Inteligencji i Siły Woli.
+- Od Levelu 10 bonus rośnie o +2 co 10 Leveli: 10 = +4, 20 = +6, 30 = +8, 40 = +10, 50 = +12, 60 = +14, 70 = +16, 80 = +18, 90-150 = +20.
+- Od Levelu 151 bonus rośnie o +2 za każdy kolejny Level: 151 = +22, 160 = +40, 175 = +70, 200 = +120.
+- Zachowano zgodność importów `CLASS_MASTERY_MAX_LEVEL`, więc poprawka nie powtarza crasha z v1.00.5.
+- Zaktualizowano `eq info`, opis przedmiotu, runtime version i FAST PREDEPLOY. Brak zmian SQLite; wipe nie jest wymagany.
+
 Soulbound v1.00.7 — Moogle Board: poprawione skalowanie bez regresji startu
 ==============================================================================
 

@@ -18,10 +18,10 @@ from world.runtime_progression import V021_MYTHIC_SET_BONUS, v0210_world_tier_mu
 
 
 def moogle_board_stat_bonus_v0313(character_level):
-    """Bonus Moogle Board: od Levelu postaci 150, +20 i +2 za każdy kolejny Level."""
+    """Bonus Moogle Board: łagodne progi 1-150, potem +2 za każdy Level."""
     level = max(1, min(CHARACTER_MAX_LEVEL, int(character_level or 1)))
-    if level < 150:
-        return 0
+    if level <= 150:
+        return min(20, 2 + 2 * (level // 10))
     return 20 + 2 * (level - 150)
 
 class SessionEquipmentStatsMixin:
@@ -57,7 +57,7 @@ class SessionEquipmentStatsMixin:
                     if stat in totals:
                         totals[stat] += int(amount)
 
-                # v1.00.7: Moogle Board skaluje się Level'em postaci niezależnie od klasy.
+                # v1.00.8: Moogle Board ma łagodne progi 1-150, potem skaluje się co Level.
                 if row["item_id"] == "moogle_board" and item.get("cyborg_board_scaling") == "character_level":
                     board_bonus = moogle_board_stat_bonus_v0313(self.character.character_level)
                     for stat in ("strength", "dexterity", "constitution", "intelligence", "willpower"):
