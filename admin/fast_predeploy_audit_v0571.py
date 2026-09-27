@@ -347,6 +347,17 @@ def fast_predeploy_audit_v0571():
         completion_source = (ROOT / "player" / "session_mixins" / "progression_accessibility.py").read_text(encoding="utf-8")
         if "len(PROFESSIONS_V0580)*PROFESSION_MAX_LEVEL" not in completion_source:
             errors.append("completion profession denominator is not fixed to all 14 professions")
+
+        help_source = (ROOT / "player" / "session_mixins" / "help_system.py").read_text(encoding="utf-8")
+        for token in ("Archeologia, Kartografia", "wszystkich 14 narzędzi", "Tierów wszystkich 14 narzędzi"):
+            if token not in help_source:
+                errors.append(f"current 14/14 help contract missing: {token}")
+
+        progress_source = (ROOT / "player" / "session_mixins" / "progress_titles.py").read_text(encoding="utf-8")
+        if "COURIER_REPUTATION_MAX_V0530" not in progress_source:
+            errors.append("progress summary does not use current Courier reputation cap")
+        if 'Reputacja Kurierów: {courier_rep}/400' in progress_source:
+            errors.append("stale Courier /400 cap remains in current progress summary")
     except Exception as exc:
         errors.append(f"v1.10.6 regression guard failed: {type(exc).__name__}: {exc}")
 
