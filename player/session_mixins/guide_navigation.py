@@ -336,35 +336,35 @@ class SessionGuideNavigationMixin:
 
             if selected == "profesje":
                 await self.send("PROWADZENIE — PROFESJE 14/14")
-                profession_specialists = []
-                for npc in NPCS.values():
-                    profession = npc.get("rank_profession")
-                    tool_type = npc.get("specialist_tool_type")
+                profession_npcs = (
+                    ("Wędkarstwo", "specialist_fishing"),
+                    ("Górnictwo", "specialist_mining"),
+                    ("Drwalstwo", "specialist_woodcutting"),
+                    ("Zielarstwo", "specialist_herbalism"),
+                    ("Kowalstwo", "specialist_crafting"),
+                    ("Gotowanie", "specialist_cooking"),
+                    ("Alchemia", "specialist_alchemy"),
+                    ("Jubilerstwo", "jeweler_mirella"),
+                    ("Krawiectwo", "tailor_lysa"),
+                    ("Garbarstwo", "leatherworker_soren"),
+                    ("Stolarstwo", "carpenter_edric"),
+                    ("Zaklinanie", "guild_quartermaster_arcane"),
+                    ("Archeologia", "specialist_archaeology"),
+                    ("Kartografia", "specialist_cartography"),
+                )
+                shown = 0
+                for profession, npc_id in profession_npcs:
+                    npc = NPCS.get(npc_id, {})
                     room_id = npc.get("room")
                     name = npc.get("name")
-                    if not profession or not tool_type or not name or room_id not in ROOMS:
+                    if not name or room_id not in ROOMS:
+                        await self.send(f"{profession}: cel prowadzenia chwilowo niedostępny.")
                         continue
-                    profession_specialists.append(
-                        (self.normalize_room_query(profession), profession, name, ROOMS[room_id]["name"])
-                    )
-                seen_professions = set()
-                for _sort, profession, name, room_name in sorted(profession_specialists):
-                    if profession in seen_professions:
-                        continue
-                    seen_professions.add(profession)
+                    shown += 1
                     await self.send(
-                        f"{profession}: {name}, {room_name}. walk {name}."
+                        f"{profession}: {name}, {ROOMS[room_id]['name']}. walk {name}."
                     )
-                if len(seen_professions) != 14:
-                    await self.send(
-                        f"Uwaga: katalog prowadzenia wykrył {len(seen_professions)} z 14 profesji."
-                    )
-                await self.send(
-                    "Archeologia: Archeolożka Mira w Bibliotece. walk Archeolożka Mira."
-                )
-                await self.send(
-                    "Kartografia: Mistrzyni Kartografii Alena w Archiwum Rubieży. walk Mistrzyni Kartografii Alena."
-                )
+                await self.send(f"Pokazano profesje: {shown} z 14.")
                 return
 
             if selected == "eq":
