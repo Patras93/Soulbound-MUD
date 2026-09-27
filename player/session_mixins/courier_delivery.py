@@ -26,6 +26,7 @@ from config.postal import (
     city_rank_for_reputation_v0710,
 )
 from player.session_mixins.inventory_equipment import CURRENCY_SQLITE_SAFE_TOTAL
+from player.session_mixins.courier_party import share_courier_package_with_party_v10019
 from player.session_mixins.shops_teachers import currency_reading_text
 from player.session_mixins.skill_learning import normalize_lookup_text
 
@@ -387,67 +388,7 @@ class SessionCourierDeliveryMixin:
             f"Możesz wpisać prowadz {self.postal_guide_query_v0522(offer)}."
         )
 
-        # v1.00.18: lider drużyny dzieli odebraną paczkę kurierską z
-        # żywymi członkami stojącymi w tym samym punkcie pocztowym.
-        # Każdy dostaje własny zapis dostawy i własne nagrody/statystyki.
-        # Istniejącej aktywnej paczki członka nigdy nie nadpisujemy.
-        party_key = self.server.party_key_for_account(self.account_id)
-        if party_key is not None and int(party_key) == int(self.account_id):
-            recipients = [
-                session
-                for session in self.server.party_sessions(
-                    self.account_id, same_room=self.character.room_id
-                )
-                if session is not self
-                and session.character
-                and not session.closed
-                and int(getattr(session, "current_hp", 0) or 0) > 0
-            ]
-            accepted_names = []
-            skipped_names = []
-            for member in sorted(
-                recipients, key=lambda session: session.character.name.lower()
-            ):
-                member_state = member.server.db.postal_delivery_state_v0522(
-                    member.account_id
-                )
-                if member_state.get("active"):
-                    skipped_names.append(member.character.name)
-                    await member.send(
-                        f"Lider {self.character.name} odbiera dla drużyny paczkę "
-                        f"{offer['package_name']}, ale masz już aktywną paczkę."
-                    )
-                    continue
-
-                member_offer = dict(offer)
-                member.server.db.record_courier_city_visit_v0530(
-                    member.account_id, city
-                )
-                member.server.db.save_postal_delivery_state_v0522(
-                    member.account_id, active=member_offer
-                )
-                await member.courier_sync_achievements_v0540(announce=True)
-                accepted_names.append(member.character.name)
-                await member.send(
-                    f"Lider {self.character.name} odbiera dla drużyny: "
-                    f"{member_offer['package_name']}. "
-                    f"Cel: {member_offer['destination_city']}. "
-                    f"Nagroda: {currency_reading_text(member_offer['reward_coins'],0,0)}. "
-                    f"Możesz wpisać prowadz {member.postal_guide_query_v0522(member_offer)}."
-                )
-
-            if accepted_names:
-                await self.send(
-                    "Paczkę otrzymała razem z tobą drużyna: "
-                    + ", ".join(accepted_names)
-                    + "."
-                )
-            if skipped_names:
-                await self.send(
-                    "Nie wszyscy mogli otrzymać paczkę. Pominięto: "
-                    + ", ".join(skipped_names)
-                    + "."
-                )
+        await share_courier_package_with_party_v10019(self, offer, city)
 
     async def postal_deliver_v0522(self):
         state = self.server.db.postal_delivery_state_v0522(self.account_id)
