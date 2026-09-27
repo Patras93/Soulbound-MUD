@@ -1,8 +1,15 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.00.3
+Aktualna paczka: v1.00.4
 
 ==============================================================================
 ==============================================================================
+Soulbound v1.00.4 — poprawny numer wersji przy logowaniu
+==============================================================================
+
+- Naprawiono tekst startowy `SOULBOUND ONLINE`: ekran logowania pobiera wersję z `core/bootstrap_economy_professions.py`, gdzie pozostało stare `VERSION = 1.00.1`.
+- Ustawiono bieżący numer runtime na `1.00.4`, dzięki czemu klient/NVDA pokazuje `SOULBOUND ONLINE v1.00.4` po połączeniu.
+- Brak zmian balansu, świata, SQLite i zapisów postaci; wipe nie jest wymagany.
+
 Soulbound v1.00.3 — Ocean 2.0 audit consistency hotfix
 ==============================================================================
 
