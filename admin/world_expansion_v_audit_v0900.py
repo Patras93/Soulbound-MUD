@@ -25,6 +25,17 @@ def world_expansion_v_audit_v0900():
         for rid, title in ((city_rooms[0], "Ratusz"), (city_rooms[3], "Świątynia")):
             if not any(npc.get("room") == rid for npc in NPCS.values()):
                 errors.append(f"{city}: {title} has no NPC")
+        city_qids = state["cities_2_quests"].get(city, ())
+        for qid in city_qids:
+            quest = QUESTS.get(qid, {})
+            if not quest.get("repeatable") or int(quest.get("repeat_cooldown", 0) or 0) != 60 * 60:
+                errors.append(f"{city}: city quest {qid} must repeat every 60 minutes")
+        threat_spawns = sum(
+            1 for rid, mid in MOB_SPAWNS
+            if rid in city_rooms and MOB_TEMPLATES.get(mid, {}).get("v0900_city") == city
+        )
+        if threat_spawns < 28:
+            errors.append(f"{city}: expected at least 28 city threat spawns, got {threat_spawns}")
     for group in (*levels.values(), *dungeons.values(), *state["cities_2_rooms"].values()):
         for rid in group:
             if rid not in ROOMS:
