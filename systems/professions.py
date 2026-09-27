@@ -11,6 +11,13 @@ V03053_PROFESSIONS = {
     "Zaklinanie": {"tool_type":"enchanting","tool_item_id":"runic_focus","tool_name":"Fokus Runiczny","station":"guild_arcane_chamber"},
 }
 
+# v1.10.0: dwie profesje eksploracyjne domykają katalog do 14 profesji,
+# czyli tyle samo, ile gra ma klas.
+V1100_EXPLORATION_PROFESSIONS = {
+    "Archeologia": {"tool_type":"archaeology","tool_item_id":"archaeology_brush","tool_name":"Pędzel Archeologa","station":"library"},
+    "Kartografia": {"tool_type":"cartography_profession","tool_item_id":"surveyor_compass","tool_name":"Kompas Mierniczy","station":"v016_cartographers_archive"},
+}
+
 # Rangi 1-600. Pierwsze 13 są opisowe, ostatnie 10 zgodne z progresją 201-600.
 def _profession_rank_names(label, master):
     base=(f"Uczeń {label}",f"Adept {label}",f"Czeladnik {label}",f"Specjalista {label}",f"Ekspert {label}",f"Mistrz {label}",f"Arcymistrz {label}",f"Legenda {label}",f"Runiczny {master}",f"Smoczy {master}",f"Astralny {master}",f"{master} Pustki",f"Wieczny {master}")
@@ -20,9 +27,12 @@ PROFESSION_RANK_NAMES["Krawiectwo"] = _profession_rank_names("Krawiectwa", "Kraw
 PROFESSION_RANK_NAMES["Garbarstwo"] = _profession_rank_names("Garbarstwa", "Garbownik")
 PROFESSION_RANK_NAMES["Stolarstwo"] = _profession_rank_names("Stolarstwa", "Stolarz")
 PROFESSION_RANK_NAMES["Zaklinanie"] = _profession_rank_names("Zaklinania", "Zaklinacz")
+PROFESSION_RANK_NAMES["Archeologia"] = _profession_rank_names("Archeologii", "Archeolog")
+PROFESSION_RANK_NAMES["Kartografia"] = _profession_rank_names("Kartografii", "Kartograf")
 TOOL_PROFESSION_MAP.update({
     "tailoring":"Krawiectwo", "leatherworking":"Garbarstwo",
     "carpentry":"Stolarstwo", "enchanting":"Zaklinanie",
+    "archaeology":"Archeologia", "cartography_profession":"Kartografia",
 })
 
 _old_normalize_profession_name_v03053 = normalize_profession_name
@@ -32,7 +42,9 @@ def normalize_profession_name(profession):
       'krawiectwo':'Krawiectwo','tailoring':'Krawiectwo','krawiec':'Krawiectwo',
       'garbarstwo':'Garbarstwo','leatherworking':'Garbarstwo','garbarz':'Garbarstwo','kaletnictwo':'Garbarstwo',
       'stolarstwo':'Stolarstwo','carpentry':'Stolarstwo','stolarz':'Stolarstwo','ciesielstwo':'Stolarstwo',
-      'zaklinanie':'Zaklinanie','enchanting':'Zaklinanie','enchant':'Zaklinanie','enchanting':'Zaklinanie',
+      'zaklinanie':'Zaklinanie','enchanting':'Zaklinanie','enchant':'Zaklinanie',
+      'archeologia':'Archeologia','archeology':'Archeologia','archaeology':'Archeologia','archeolog':'Archeologia',
+      'kartografia':'Kartografia','cartography profession':'Kartografia','cartography_profession':'Kartografia','kartograf':'Kartografia',
     }
     return aliases.get(raw) or _old_normalize_profession_name_v03053(profession)
 
@@ -46,6 +58,8 @@ TOOL_TIER_NAMES["tailoring"]=_tool_names("Zestaw Krawiecki")
 TOOL_TIER_NAMES["leatherworking"]=_tool_names("Nóż Garbarski")
 TOOL_TIER_NAMES["carpentry"]=_tool_names("Narzędzia Ciesielskie")
 TOOL_TIER_NAMES["enchanting"]=_tool_names("Fokus Runiczny")
+TOOL_TIER_NAMES["archaeology"]=_tool_names("Pędzel Archeologa")
+TOOL_TIER_NAMES["cartography_profession"]=_tool_names("Kompas Mierniczy")
 
 # Narzędzia - brak trwałości, jak we wszystkich profesjach Soulbound.
 _catalog_mut.catalog_update_path('ITEMS', ITEMS, (), {
@@ -53,6 +67,9 @@ _catalog_mut.catalog_update_path('ITEMS', ITEMS, (), {
  "tanning_knife":{"name":"Nóż Garbarski","type":"tool","tool_type":"leatherworking","price":1200,"currency":"silver","desc":"Narzędzie Garbarstwa. Level 1-600, 60 Tierów, bez trwałości."},
  "carpenter_tools":{"name":"Narzędzia Ciesielskie","type":"tool","tool_type":"carpentry","price":1200,"currency":"silver","desc":"Dłuta, piła precyzyjna i hebel do Stolarstwa. Level 1-600, 60 Tierów, bez trwałości."},
  "runic_focus":{"name":"Fokus Runiczny","type":"tool","tool_type":"enchanting","price":1200,"currency":"silver","desc":"Fokus do trwałego zaklinania wyposażenia. Level 1-600, 60 Tierów, bez trwałości."},
+ "archaeology_brush":{"name":"Pędzel Archeologa","type":"tool","tool_type":"archaeology","price":1200,"currency":"silver","desc":"Precyzyjne narzędzie do wykopalisk i oczyszczania reliktów. Archeologia 1-600, 60 Tierów, bez trwałości; kupowane tylko raz na postać."},
+ "surveyor_compass":{"name":"Kompas Mierniczy","type":"tool","tool_type":"cartography_profession","price":1200,"currency":"silver","desc":"Kompas, kątomierz i przyrządy pomiarowe Kartografa. Kartografia 1-600, 60 Tierów, bez trwałości; kupowane tylko raz na postać."},
+ "v1100_map_fragment":{"name":"Fragment Mapy Rubieży","type":"resource","price":None,"sell_silver":30,"desc":"Fragment szkicu terenowego znaleziony podczas prac kartograficznych."},
  "beast_hide":{"name":"Surowa Skóra Bestii","type":"resource","price":None,"sell_silver":20,"desc":"Skóra pozyskiwana z bestii. Podstawowy materiał Garbarstwa."},
  "tanned_hide":{"name":"Garbowana Skóra","type":"resource","price":None,"sell_silver":35,"desc":"Oczyszczona skóra do pancerzy, pasów i naramienników."},
  "woven_cloth":{"name":"Tkana Tkanina","type":"resource","price":None,"sell_silver":30,"desc":"Tkanina utkana z włókien roślinnych."},
@@ -140,15 +157,33 @@ for _room,_item,_seller in (
     _catalog_mut.catalog_setdefault_path('SHOPS', SHOPS, (), _room,[])
     if _item not in SHOPS[_room]: SHOPS[_room].append(_item)
     SHOP_SELLERS[_room]=_seller
-TOOL_SHOP_ROOMS.update({'tailor_kit':'tailor_workshop','tanning_knife':'leatherworker_workshop','carpenter_tools':'carpenter_workshop','runic_focus':'guild_arcane_chamber'})
+TOOL_SHOP_ROOMS.update({
+ 'tailor_kit':'tailor_workshop','tanning_knife':'leatherworker_workshop',
+ 'carpenter_tools':'carpenter_workshop','runic_focus':'guild_arcane_chamber',
+ 'archaeology_brush':'library','surveyor_compass':'v016_cartographers_archive',
+})
+for _room,_item,_seller in (
+ ('library','archaeology_brush','specialist_archaeology'),
+ ('v016_cartographers_archive','surveyor_compass','specialist_cartography'),
+):
+    _catalog_mut.catalog_setdefault_path('SHOPS', SHOPS, (), _room, [])
+    if _item not in SHOPS[_room]:
+        SHOPS[_room].append(_item)
+    SHOP_SELLERS[_room]=_seller
 
-# v0.31.7: wszystkie 12 profesji używa tej samej zasady: dokładnie jedno narzędzie na postać.
-CHARACTER_BOUND_TOOL_IDS.update({'tailor_kit','tanning_knife','carpenter_tools','runic_focus'})
+# Wszystkie 14 profesji używają tej samej zasady: dokładnie jedno narzędzie
+# danego typu na postać. Narzędzia nie mają durability i nie trzeba ich kupować ponownie.
+CHARACTER_BOUND_TOOL_IDS.update({
+ 'tailor_kit','tanning_knife','carpenter_tools','runic_focus',
+ 'archaeology_brush','surveyor_compass',
+})
 TOOL_BUY_ALIASES.update({
  'zestaw krawiecki':'tailor_kit','tailor kit':'tailor_kit','sewing kit':'tailor_kit',
  'noz garbarski':'tanning_knife','tanning knife':'tanning_knife','leatherworking knife':'tanning_knife',
  'narzedzia ciesielskie':'carpenter_tools','carpenter tools':'carpenter_tools','carpentry tools':'carpenter_tools',
  'fokus runiczny':'runic_focus','runic focus':'runic_focus','enchanting focus':'runic_focus',
+ 'pedzel archeologa':'archaeology_brush','pędzel archeologa':'archaeology_brush','pedzel':'archaeology_brush','archaeology brush':'archaeology_brush',
+ 'kompas mierniczy':'surveyor_compass','kompas':'surveyor_compass','surveyor compass':'surveyor_compass',
 })
 
 # Receptury wspólnego silnika perform_recipe.
