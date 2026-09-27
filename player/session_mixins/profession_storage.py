@@ -206,6 +206,12 @@ class SessionProfessionStorageMixin:
                     "herbalism": "Sierp Zielarski",
                     "alchemy": "Moździerz Alchemiczny",
                     "jewelcrafting": "Szczypce Jubilerskie",
+                    "tailoring": "Zestaw Krawiecki",
+                    "leatherworking": "Nóż Garbarski",
+                    "carpentry": "Narzędzia Ciesielskie",
+                    "enchanting": "Fokus Runiczny",
+                    "archaeology": "Pędzel Archeologa",
+                    "cartography_profession": "Kompas Mierniczy",
                 }.get(tool_type, tool_type)
                 messages.append(f"{tool_name}: +{tool_xp} XP narzędzia.")
 
@@ -849,6 +855,8 @@ class SessionProfessionStorageMixin:
                 "leatherworking": "Nóż Garbarski",
                 "carpentry": "Narzędzia Ciesielskie",
                 "enchanting": "Fokus Runiczny",
+                "archaeology": "Pędzel Archeologa",
+                "cartography_profession": "Kompas Mierniczy",
             }[tool_type]
 
             await self.send(f"{tool_name}: nagroda +{tool_xp} XP.")
