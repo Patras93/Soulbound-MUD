@@ -6,6 +6,7 @@ import sqlite3
 from types import SimpleNamespace
 
 from player.session_mixins.ocean import SessionOceanV1000Mixin
+from world.ocean_expansion import PORTS, ROUTES
 from storage.schema_world_quests import create_world_quests_schema
 
 
@@ -69,6 +70,9 @@ def audit_ocean_contract_v1001():
 
         for offer in first.ocean_trade_offers_v1000():
             assert len(first.ocean_contract_path_v1001(offer[1], offer[2])) > 2
-        return {"error_count": 0, "routes": 5, "legacy_schema_migrated": True}
+        endpoints = {route[side] for route in ROUTES.values() for side in ("origin", "destination")}
+        assert endpoints == {room_id for room_id, _label in PORTS.values()}
+        assert len(ROUTES) == 6
+        return {"error_count": 0, "routes": len(ROUTES), "legacy_schema_migrated": True}
     finally:
         conn.close()

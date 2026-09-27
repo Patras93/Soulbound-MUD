@@ -14,6 +14,7 @@ Soulbound v1.00.1 — Audyt i bezpieczne kontrakty morskie
 - Kwoty kontraktów morskich, skarbów oraz kosztów statku są pokazywane w złocie (z resztą w srebrze, gdy występuje); wypłaty i ceny pozostają takie same.
 - Rozglądanie się w porcie wymienia statki graczy obecnych przy nabrzeżu, również dla pozostałych graczy w tej lokacji.
 - Ruch na szlaku morskim mówi „Płyniesz” i „Dopływasz”, a inni gracze słyszą o odpływaniu i przypływaniu.
+- Port Dusz i Mały Port Wschodni w Cichej Przystani dołączono do żeglugi: łącznie sześć szlaków między siedmioma punktami, z ofertami handlowymi w nowych portach.
 
 Soulbound v1.00.0 — Ocean 2.0
 ==============================================================================

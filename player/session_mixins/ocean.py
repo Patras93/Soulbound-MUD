@@ -177,11 +177,13 @@ class SessionOceanV1000Mixin:
     def ocean_trade_offers_v1000(self):
         # Static authored routes keep contracts readable and deterministic.
         return (
+            ("dusze", "harbor", "ocean_platform", "Zapasy dla oceanicznych załóg", 25_000, 1),
             ("rafy", "ocean_platform", "fog_square", "Skrzynie soli i lin", 35_000, 1),
             ("mgla", "fog_square", "star_port_market", "Mglisty bursztyn", 65_000, 2),
             ("gwiazda", "star_port_market", "v0800_harbor", "Astralne przyrządy", 120_000, 3),
             ("korona", "ocean_platform", "silver_crown_harbor", "Towary królewskiej kompanii", 220_000, 4),
             ("powrot", "silver_crown_harbor", "star_port_market", "Srebrne mechanizmy portowe", 300_000, 5),
+            ("cicha", "quiet_haven_dock", "silver_crown_harbor", "Towary z Cichej Przystani", 140_000, 3),
         )
 
     def ocean_contract_path_v1001(self, origin, destination):

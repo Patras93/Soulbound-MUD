@@ -145,15 +145,17 @@ v1000_item("v1000_sunken_relic", "Zatopiony Relikt", "Relikt wydobyty z ruin pod
 v1000_item("v1000_navigator_seal", "Pieczęć Nawigatora", "Prestiżowa pieczęć za dalekomorskie odkrycia.", sell_gold=8000)
 
 # ---------------------------------------------------------------------------
-# Four real sea lanes. Route rooms are physically connected to the ports and
+# Real sea lanes. Route rooms are physically connected to the ports and
 # require a player ship in movement.py.
 # ---------------------------------------------------------------------------
 PORTS = {
+    "souls": ("harbor", "Port Dusz"),
     "platform": ("ocean_platform", "Platforma Oceaniczna"),
     "fog": ("fog_square", "Port Mglistych Wysp"),
     "star": ("star_port_market", "Gwiezdny Port"),
     "broken": ("v0800_harbor", "Przystań Siedmiu Latarni"),
     "crown": ("silver_crown_harbor", "Wielki Port Srebrnej Korony"),
+    "quiet": ("quiet_haven_dock", "Mały Port Wschodni"),
 }
 
 ROUTES = {}
@@ -178,7 +180,13 @@ def v1000_sea_lane(key, title, origin_key, destination_key, sectors, navigation_
         v1000_link(a, "east", b)
     d1 = v1000_free(origin, ("east", "west", "north", "south", "northeast", "northwest", "southeast", "southwest"))
     v1000_link(origin, d1, ids[0])
-    d2 = v1000_free(dest, ("west", "east", "south", "north", "southwest", "southeast", "northwest", "northeast"))
+    d2 = next(
+        (direction for direction in ("west", "east", "south", "north", "southwest", "southeast", "northwest", "northeast")
+         if direction not in ROOMS[dest]["exits"] and _OPP[direction] not in ROOMS[ids[-1]]["exits"]),
+        None,
+    )
+    if d2 is None:
+        raise RuntimeError(f"v1.00.1 no free sea-lane exit at {dest}")
     v1000_link(dest, d2, ids[-1])
     ROUTES[key] = {
         "name": title, "origin": origin, "destination": dest, "rooms": tuple(ids),
@@ -188,10 +196,12 @@ def v1000_sea_lane(key, title, origin_key, destination_key, sectors, navigation_
     return ids
 
 
+route_souls = v1000_sea_lane("souls", "Szlak Portu Dusz", "souls", "platform", 6, 1, 1)
 route_reef = v1000_sea_lane("reef", "Szlak Wielkiej Rafy", "platform", "fog", 10, 1, 1)
 route_mist = v1000_sea_lane("mist", "Szlak Mglistego Prądu", "fog", "star", 12, 2, 1)
 route_shattered = v1000_sea_lane("shattered", "Szlak Pękniętej Gwiazdy", "star", "broken", 14, 3, 2)
 route_crown = v1000_sea_lane("crown", "Szlak Srebrnej Korony", "platform", "crown", 16, 4, 3)
+route_quiet = v1000_sea_lane("quiet", "Szlak Cichej Przystani", "crown", "quiet", 10, 4, 3)
 
 FISHING_ROOMS.update(DEEP_OCEAN_ROOMS)
 OCEAN_FISHING_ROOMS.update(DEEP_OCEAN_ROOMS)
@@ -265,7 +275,7 @@ V1000_NEW_NPCS.append("v1000_ocean_merchant_orven")
 
 # Help.
 HELP_TOPICS["ocean"] = [
-    "OCEAN 2.0: statki graczy, realne szlaki morskie, mapy skarbów, handel morski, podwodne ruiny i głębinowe Wędkarstwo.",
+    "OCEAN 2.0: statki graczy, sześć szlaków morskich między siedmioma portami, mapy skarbów, handel morski, podwodne ruiny i głębinowe Wędkarstwo. Port Dusz oraz Mały Port Wschodni w Cichej Przystani są połączone z siecią.",
     "statek - stan statku; statek kup; statek ulepsz kadlub|zagle|ladownia|nawigacja. Statek gracza obecnego w porcie widać po komendzie rozejrzyj się.",
     "zegluj - lista tras i wymagania. Szlaki są prawdziwymi pokojami świata; po wejściu używaj ex i kierunków.",
     "skarby - aktywna mapa; skarby szukaj - wykop skarb w poprawnym sektorze.",
