@@ -597,12 +597,19 @@ class SessionGatheringMixin:
                 "Gotowanie", "Alchemia", "Kowalstwo", "Jubilerstwo",
                 "Krawiectwo", "Garbarstwo", "Stolarstwo", "Zaklinanie",
             )
+            exploration_professions = ("Archeologia", "Kartografia")
             if mode in ("zbieractwo", "zbierackie", "gathering"):
                 groups = (("ZBIERACTWO", gathering_professions),)
             elif mode in ("rzemiosla", "rzemiosła", "rzemioslo", "rzemiosło", "crafting"):
                 groups = (("RZEMIOSŁA", crafting_professions),)
+            elif mode in ("eksploracyjne", "eksploracja", "exploration"):
+                groups = (("EKSPLORACJA", exploration_professions),)
             else:
-                groups = (("ZBIERACTWO", gathering_professions), ("RZEMIOSŁA", crafting_professions))
+                groups = (
+                    ("ZBIERACTWO", gathering_professions),
+                    ("RZEMIOSŁA", crafting_professions),
+                    ("EKSPLORACJA", exploration_professions),
+                )
             await self.send("PROFESJE INFO" if detailed else "PROFESJE")
             for group_name, professions in groups:
                 await self.send(group_name)
@@ -633,7 +640,7 @@ class SessionGatheringMixin:
                     )
             if detailed:
                 await self.send(
-                    "Maksimum wszystkich dwunastu profesji: poziom 600."
+                    "Maksimum wszystkich czternastu profesji: poziom 600."
                 )
                 await self.send(
                     "Poziom profesji skraca czas pracy i blokuje receptury/zlecenia. "
@@ -641,7 +648,7 @@ class SessionGatheringMixin:
                     "Wpisz narzedzia info po Tiery i bonusy."
                 )
             else:
-                await self.send("Wpisz profesje info po XP, akcje, progi rang i zasady. Możesz też użyć profesje zbieractwo albo profesje rzemiosla.")
+                await self.send("Wpisz profesje info po XP, akcje, progi rang i zasady. Możesz też użyć profesje zbieractwo, profesje rzemiosla albo profesje eksploracja.")
 
     async def show_tool_tiers(self):
             for tool_type, title in (
@@ -657,6 +664,8 @@ class SessionGatheringMixin:
                 ("leatherworking", "NOŻA GARBARSKIEGO"),
                 ("carpentry", "NARZĘDZI CIESIELSKICH"),
                 ("enchanting", "FOKUSU RUNICZNEGO"),
+                ("archaeology", "PĘDZLA ARCHEOLOGA"),
+                ("cartography_profession", "KOMPASU MIERNICZEGO"),
             ):
                 await self.send(f"NAZWY TIERÓW {title}")
                 for tier, minimum in enumerate(TOOL_TIER_THRESHOLDS, 1):
@@ -681,6 +690,8 @@ class SessionGatheringMixin:
                 "herbalism": ("herbalist_sickle", "Sierp Zielarski"),
                 "alchemy": ("alchemy_mortar", "Moździerz Alchemiczny"),
                 "jewelcrafting": ("jeweler_pliers", "Szczypce Jubilerskie"),
+                "archaeology": ("archaeology_brush", "Pędzel Archeologa"),
+                "cartography_profession": ("surveyor_compass", "Kompas Mierniczy"),
             }
             return definitions.get(tool_type)
 
@@ -695,6 +706,10 @@ class SessionGatheringMixin:
                 return "Szansa na dodatkowe zioło"
             if tool_type == "jewelcrafting":
                 return "Szansa na dodatkową biżuterię"
+            if tool_type == "archaeology":
+                return "Szansa na dodatkowe znalezisko"
+            if tool_type == "cartography_profession":
+                return "Szansa na Fragment Mapy Rubieży"
             return "Bonus dodatkowego urobku"
 
     def profession_level_for_tool(self, tool_type):
@@ -733,6 +748,8 @@ class SessionGatheringMixin:
                 "leatherworking": "Czas garbowania",
                 "carpentry": "Czas pracy stolarskiej",
                 "enchanting": "Czas zaklinania",
+                "archaeology": "Czas wykopalisk",
+                "cartography_profession": "Czas pomiaru",
             }.get(tool_type, "Czas akcji")
 
     def tool_xp_remaining_to_level(self, level, xp, tool_type=None):
@@ -911,6 +928,8 @@ class SessionGatheringMixin:
                 ("leatherworking", "tanning_knife", "Nóż Garbarski", "Soren", "Warsztat Kaletnika"),
                 ("carpentry", "carpenter_tools", "Narzędzia Ciesielskie", "Edric", "Warsztat Ciesielski"),
                 ("enchanting", "runic_focus", "Fokus Runiczny", "Kwatermistrz Arkanów", "Komnata Arkanów"),
+                ("archaeology", "archaeology_brush", "Pędzel Archeologa", "Archeolożka Mira", "Biblioteka"),
+                ("cartography_profession", "surveyor_compass", "Kompas Mierniczy", "Mistrzyni Kartografii Alena", "Archiwum Rubieży"),
             ]
             await self.send("NARZĘDZIA INFO" if detailed else "NARZĘDZIA")
             for tool_type, item_id, name, seller, location in tools:
