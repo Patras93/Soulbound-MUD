@@ -1135,11 +1135,15 @@ HELP_TOPICS["archeologia"] = [
     "W ruinach, kryptach, na cmentarzach, w świątyniach, archiwach, Magiteku i innych pradawnych miejscach użyj wykop.",
     "archeologia kolekcja pokazuje 21 unikalnych znalezisk od poziomu 1 do 600.",
 ]
-HELP_TOPICS["kartografia_profesja"] = [
+HELP_TOPICS["kartografia"] = [
     "Kartografia jest pełną profesją 1-600. Kompas Mierniczy kupujesz tylko raz na postać u Mistrzyni Kartografii Aleny w Archiwum Rubieży.",
     "Użyj mapuj w dowolnej odwiedzanej lokacji. Pierwszy pomiar lokacji dopisuje ją do Atlasu Kartografa.",
     "kartografia pokazuje profesję i postęp; kartografia świat otwiera starszy system map świata.",
 ]
+HELP_TOPIC_ALIASES.update({
+    "archeologia": "archeologia", "archaeology": "archeologia",
+    "kartografia": "kartografia", "cartography": "kartografia",
+})
 
 # v0.31.8: Mec support semantics + tool migration clarification.
 try:
