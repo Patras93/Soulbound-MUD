@@ -207,6 +207,9 @@ class SessionOceanV1000Mixin:
             if row and row["contract_key"]:
                 await self.send("Masz już aktywny kontrakt morski.")
                 return
+            if not self.ocean_ship_owned_v1000():
+                await self.send("Do przyjęcia ładunku morskiego potrzebujesz własnego statku. Wpisz statek kup w porcie.")
+                return
             try:
                 number = int(text.split()[-1])
             except Exception:
