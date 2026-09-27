@@ -1135,12 +1135,14 @@ HELP_TOPICS["archeologia"] = [
     "W ruinach, kryptach, na cmentarzach, w świątyniach, archiwach, Magiteku i innych pradawnych miejscach użyj wykop.",
     "archeologia kolekcja pokazuje 21 unikalnych znalezisk od poziomu 1 do 600.",
     "v1.11.0: Elara ma gęstą ścieżkę odnawialnych zleceń praktycznie co 25 poziomów profesji; nowe zlecenia odnawiają się co godzinę.",
+    "v1.11.2: Elara ma dodatkowo 10 stałych Zamówień Archeologicznych na progach 25-600; każde odnawia się po 60 minutach.",
 ]
 HELP_TOPICS["kartografia"] = [
     "Kartografia jest pełną profesją 1-600. Kompas Mierniczy kupujesz tylko raz na postać u Mistrzyni Kartografii Aleny w Archiwum Rubieży.",
     "Użyj mapuj w dowolnej odwiedzanej lokacji. Pierwszy pomiar lokacji dopisuje ją do Atlasu Kartografa.",
     "kartografia pokazuje profesję i postęp; kartografia świat otwiera starszy system map świata.",
     "v1.11.0: Alena ma gęstą ścieżkę odnawialnych zleceń praktycznie co 25 poziomów profesji; nowe zlecenia odnawiają się co godzinę.",
+    "v1.11.2: Alena ma dodatkowo 10 stałych Zamówień Kartograficznych na progach 25-600; każde odnawia się po 60 minutach.",
 ]
 HELP_TOPIC_ALIASES.update({
     "archeologia": "archeologia", "archaeology": "archeologia",
