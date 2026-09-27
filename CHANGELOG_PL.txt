@@ -1,8 +1,16 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.00.14
+Aktualna paczka: v1.00.15
 
 ==============================================================================
 ==============================================================================
+Soulbound v1.00.15 — hotfix audytu godzinnych zadań klasowych
+==============================================================================
+
+- Naprawiono Full Game Audit, który błędnie traktował `target: *` w godzinnych zadaniach klasowych jako brakujący template moba.
+- `*` jest teraz poprawnym, świadomym wildcardem oznaczającym dowolnego przeciwnika dla kill-questa.
+- Walidacja zwykłych nazw mobów pozostaje bez zmian; literówki i brakujące konkretne cele nadal są wykrywane.
+- Mechanika godzinnych zadań klasowych i żeglugi party z v1.00.14 pozostaje bez zmian.
+
 Soulbound v1.00.14 — godzinne zadania klasowe + statek lidera dla party
 ==============================================================================
 
