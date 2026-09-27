@@ -487,7 +487,7 @@ class SessionInventoryEquipmentMixin:
                     break
             if not found:
                 await self.send(
-                    "Nie rozpoznaję klasy. Wpisz sety info po listę wszystkich 12 zestawów."
+                    "Nie rozpoznaję klasy. Wpisz sety info po listę wszystkich 14 zestawów."
                 )
                 return
 
