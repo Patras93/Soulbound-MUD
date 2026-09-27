@@ -23,6 +23,9 @@ def main():
                 print(f"ERROR: {error}")
             if full["error_count"]:
                 raise SystemExit(1)
+            from validation.ocean_contract_v1001 import audit_ocean_contract_v1001
+            contract = audit_ocean_contract_v1001()
+            print(f"OCEAN CONTRACT: {contract['error_count']} errors, {contract['routes']} routes")
         finally:
             server._BOOT_SOCKET.close()
 
