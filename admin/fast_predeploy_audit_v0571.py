@@ -44,6 +44,7 @@ def _assignment_dict_key_count(path: Path, variable: str) -> int:
 
 def fast_predeploy_audit_v0571():
     errors: list[str] = []
+    warnings: list[str] = []
 
     # 1. Runtime/Docker packaging.  This protects the v0.52.1 Railway regression.
     docker_path = ROOT / "Dockerfile"
@@ -143,6 +144,49 @@ def fast_predeploy_audit_v0571():
         f"Repository Python syntax failure: {item}"
         for item in all_source_syntax_errors
     )
+
+    duplicate_literal_keys = []
+    swallowed_exception_sites = []
+    todo_sites = []
+    for path in all_python_files:
+        rel = path.relative_to(ROOT).as_posix()
+        source = path.read_text(encoding="utf-8")
+        try:
+            tree = ast.parse(source, filename=str(path))
+        except Exception:
+            continue
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Dict):
+                seen_keys = set()
+                for key in node.keys:
+                    if isinstance(key, ast.Constant) and isinstance(key.value, (str, int, float, bytes)):
+                        marker = (type(key.value).__name__, key.value)
+                        if marker in seen_keys:
+                            duplicate_literal_keys.append(f"{rel}:{getattr(key, 'lineno', '?')}: {key.value!r}")
+                        seen_keys.add(marker)
+            if isinstance(node, ast.ExceptHandler):
+                body = list(node.body or ())
+                if len(body) == 1 and isinstance(body[0], ast.Pass):
+                    exc_name = "bare except"
+                    if node.type is not None:
+                        try:
+                            exc_name = ast.unparse(node.type)
+                        except Exception:
+                            exc_name = "except"
+                    swallowed_exception_sites.append(
+                        f"{rel}:{getattr(node, 'lineno', '?')}: {exc_name}: pass"
+                    )
+        for number, line in enumerate(source.splitlines(), 1):
+            upper = line.upper()
+            if "TODO" in upper or "FIXME" in upper:
+                todo_sites.append(f"{rel}:{number}: {line.strip()}")
+
+    for item in duplicate_literal_keys:
+        warnings.append(f"duplicate literal dict key: {item}")
+    for item in swallowed_exception_sites[:200]:
+        warnings.append(f"swallowed exception: {item}")
+    for item in todo_sites[:200]:
+        warnings.append(f"source TODO/FIXME: {item}")
 
     # 2a. Mirror native_runtime's top-level symbol ownership guard without
     # executing the full world. This catches deployment crashes such as v0.58.2
@@ -300,6 +344,9 @@ def fast_predeploy_audit_v0571():
         "syntax_error_count": len(syntax_errors),
         "all_python_source_count": len(all_python_files),
         "all_source_syntax_error_count": len(all_source_syntax_errors),
+        "duplicate_literal_key_count": len(duplicate_literal_keys),
+        "swallowed_exception_count": len(swallowed_exception_sites),
+        "todo_fixme_count": len(todo_sites),
         "unexpected_symbol_overrides": unexpected_symbol_overrides,
         "expected_override_order_mismatches": expected_order_mismatches,
         "critical_import_ok": critical_import_ok,
@@ -309,6 +356,8 @@ def fast_predeploy_audit_v0571():
         "registered_command_count": registry_count,
         "error_count": len(errors),
         "errors": errors,
+        "warning_count": len(warnings),
+        "warnings": warnings,
     }
 
 
