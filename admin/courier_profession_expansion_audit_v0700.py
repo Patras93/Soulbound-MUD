@@ -230,10 +230,16 @@ def courier_profession_expansion_audit_v0700():
                 errors.append(f"{qid}: exploration profession mismatch")
             if q.get("specialist_tool_type") != tool_type:
                 errors.append(f"{qid}: exploration tool mismatch")
-            if q.get("repeatable"):
-                errors.append(f"{qid}: exploration gap quest must be one-time")
+            if not q.get("repeatable"):
+                errors.append(f"{qid}: exploration gap quest must be repeatable")
+            if int(q.get("repeat_cooldown", 0) or 0) != 60 * 60:
+                errors.append(f"{qid}: exploration gap quest must repeat every 60 minutes")
+            if int(q.get("reward_silver", 0) or 0) < 1001:
+                errors.append(f"{qid}: exploration reward below unified floor")
             if not q.get("v1110_exploration_gap_quest"):
                 errors.append(f"{qid}: missing v1.11.0 exploration marker")
+            if not q.get("v1111_repeatable_exploration"):
+                errors.append(f"{qid}: missing v1.11.1 repeatable marker")
             if int(q.get("reward_silver", 0) or 0) < 1001:
                 errors.append(
                     f"{qid}: exploration reward below unified floor: "

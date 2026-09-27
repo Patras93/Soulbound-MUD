@@ -15,6 +15,18 @@ Soulbound v1.11.1 — hotfix nagród questów eksploracyjnych
 
 ==============================================================================
 ==============================================================================
+Soulbound v1.11.1 — odnawialne questy Archeologii i Kartografii
+==============================================================================
+
+- Wszystkie 22 nowe questy uzupełniające Archeologii i Kartografii z v1.11.0 są teraz odnawialne.
+- Cooldown wynosi 1 godzinę, zgodnie z normalnym QUEST_REPEAT_COOLDOWN_SECONDS używanym przez kontrakty profesyjne.
+- Pierwsze kroki i wspólna Droga Mistrza pozostają jednorazowe, tak samo jak w pozostałych profesjach; odnawialne są nowe zlecenia terenowe wypełniające luki.
+- Naprawiono blocker Railway z Hybrid Quest Reward Audit: próg poziomu 10 ma co najmniej 1500 srebra i audyt pilnuje, aby żadna nowa nagroda nie spadła poniżej wspólnego minimum ekonomii.
+- Audyt wymaga teraz repeatable=True, cooldownu dokładnie 3600 sekund oraz markera v1.11.1 dla wszystkich 22 nowych questów.
+- Brak zmian SQLite i brak wipe'a save'ów.
+
+==============================================================================
+==============================================================================
 Soulbound v1.11.0 — Archeologia i Kartografia: gęsta ścieżka questów
 ==============================================================================
 
