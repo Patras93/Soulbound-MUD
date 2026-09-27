@@ -168,9 +168,14 @@ class SessionProfessionStorageMixin:
             for quest_id, quest_progress, quest_needed in self.server.db.increment_profession_action_quests_v0700(
                 self.account_id, profession, tool_type, 1
             ):
+                quest_name = QUESTS.get(quest_id, {}).get("name", quest_id)
                 if int(quest_progress) >= int(quest_needed):
                     messages.append(
-                        f"QUEST PROFESJI GOTOWY: {quest_id}. Postęp {quest_progress} z {quest_needed}. Wróć do mistrza profesji."
+                        f"Postęp questa: {quest_name}. Postęp {quest_progress} z {quest_needed}. GOTOWE DO ODDANIA."
+                    )
+                else:
+                    messages.append(
+                        f"Postęp questa: {quest_name}. Postęp {quest_progress} z {quest_needed}."
                     )
 
             new_profession_rank = profession_rank(
@@ -255,6 +260,12 @@ class SessionProfessionStorageMixin:
                 "herbalism": "Sierp Zielarski",
                 "alchemy": "Moździerz Alchemiczny",
                 "jewelcrafting": "Szczypce Jubilerskie",
+                "tailoring": "Zestaw Krawiecki",
+                "leatherworking": "Nóż Garbarski",
+                "carpentry": "Narzędzia Ciesielskie",
+                "enchanting": "Fokus Runiczny",
+                "archaeology": "Pędzel Archeologa",
+                "cartography_profession": "Kompas Mierniczy",
             }.get(tool_type, tool_type)
 
             messages = [f"{tool_name}: +{tool_xp} XP narzędzia."]
@@ -738,6 +749,8 @@ class SessionProfessionStorageMixin:
                 "leatherworking": "Nóż Garbarski",
                 "carpentry": "Narzędzia Ciesielskie",
                 "enchanting": "Fokus Runiczny",
+                "archaeology": "Pędzel Archeologa",
+                "cartography_profession": "Kompas Mierniczy",
             }[tool_type]
 
             await self.send(
