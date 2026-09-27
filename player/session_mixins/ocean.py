@@ -359,12 +359,69 @@ class SessionOceanV1000Mixin:
             if cargo_level < required:
                 await self.send(f"Ten kontrakt wymaga Ładowni poziom {required}; masz {cargo_level}.")
                 return
+            accepted_at = int(time.time())
             self.server.db.conn.execute(
                 "INSERT OR REPLACE INTO ocean_trade_contract_v1000(account_id,contract_key,origin_room,destination_room,cargo_label,reward_silver,required_cargo,accepted_at) VALUES(?,?,?,?,?,?,?,?)",
-                (self.account_id,key,origin,dest,cargo_label,reward,required,int(time.time())),
+                (self.account_id,key,origin,dest,cargo_label,reward,required,accepted_at),
             )
             self.server.db.conn.commit()
             await self.send(f"Przyjmujesz ładunek: {cargo_label}. Cel: {ROOMS[dest]['name']}. Nagroda: {currency_reading_text(reward)}.")
+
+            # v1.00.16: tak jak zwykłe questy, lider drużyny dzieli przyjęcie
+            # kontraktu morskiego z żywymi członkami stojącymi w tym samym porcie.
+            # Każdy otrzymuje własny wpis i własny postęp/nagrodę. Istniejącego
+            # aktywnego kontraktu członka nigdy nie nadpisujemy.
+            party_key = self.server.party_key_for_account(self.account_id)
+            if party_key is not None and int(party_key) == int(self.account_id):
+                recipients = [
+                    session
+                    for session in self.server.party_sessions(
+                        self.account_id, same_room=self.character.room_id
+                    )
+                    if session is not self
+                    and session.character
+                    and not session.closed
+                    and int(getattr(session, "current_hp", 0) or 0) > 0
+                ]
+                accepted_names = []
+                skipped_names = []
+                for member in sorted(
+                    recipients, key=lambda session: session.character.name.lower()
+                ):
+                    member_row = self.server.db.conn.execute(
+                        "SELECT contract_key FROM ocean_trade_contract_v1000 WHERE account_id=?",
+                        (member.account_id,),
+                    ).fetchone()
+                    if member_row and member_row["contract_key"]:
+                        skipped_names.append(member.character.name)
+                        await member.send(
+                            f"Lider {self.character.name} przyjmuje handel morski: {cargo_label}, "
+                            "ale masz już własny aktywny kontrakt morski."
+                        )
+                        continue
+                    self.server.db.conn.execute(
+                        "INSERT OR REPLACE INTO ocean_trade_contract_v1000(account_id,contract_key,origin_room,destination_room,cargo_label,reward_silver,required_cargo,accepted_at) VALUES(?,?,?,?,?,?,?,?)",
+                        (member.account_id,key,origin,dest,cargo_label,reward,required,accepted_at),
+                    )
+                    accepted_names.append(member.character.name)
+                    await member.send(
+                        f"Lider {self.character.name} przyjmuje dla drużyny handel morski: "
+                        f"{cargo_label}. Cel: {ROOMS[dest]['name']}. "
+                        f"Nagroda: {currency_reading_text(reward)}."
+                    )
+                self.server.db.conn.commit()
+                if accepted_names:
+                    await self.send(
+                        "Kontrakt morski przyjęła razem z tobą drużyna: "
+                        + ", ".join(accepted_names)
+                        + "."
+                    )
+                if skipped_names:
+                    await self.send(
+                        "Nie wszyscy mogli otrzymać kontrakt morski. Pominięto: "
+                        + ", ".join(skipped_names)
+                        + "."
+                    )
             return
         if row and row["contract_key"]:
             await self.send(
