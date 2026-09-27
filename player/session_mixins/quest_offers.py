@@ -73,6 +73,16 @@ class SessionQuestOffersMixin:
             if required_class and required_class not in self.active_class_names():
                 reasons.append(f"wymaga aktywnej klasy {required_class}")
 
+            required_npc_id = str(quest.get("required_npc_id") or "").strip()
+            if required_npc_id:
+                npc = NPCS.get(required_npc_id)
+                if not npc:
+                    reasons.append("brak wymaganego nauczyciela")
+                elif npc.get("room") != self.character.room_id:
+                    reasons.append(
+                        "wymaga nauczyciela: " + str(npc.get("name") or required_npc_id)
+                    )
+
             required_soul_level = int(quest.get("required_soul_level", 0) or 0)
             if required_soul_level and self.character.soul_level < required_soul_level:
                 reasons.append(f"wymaga Soul Poziom {required_soul_level}")
