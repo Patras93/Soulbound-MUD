@@ -22,6 +22,7 @@ PROFESSIONS_V0580 = (
     "Wędkarstwo", "Górnictwo", "Drwalstwo", "Zielarstwo",
     "Gotowanie", "Alchemia", "Kowalstwo", "Jubilerstwo",
     "Krawiectwo", "Garbarstwo", "Stolarstwo", "Zaklinanie",
+    "Archeologia", "Kartografia",
 )
 
 EXPLORATION_TITLES_V0580 = (

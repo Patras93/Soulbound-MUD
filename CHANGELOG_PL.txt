@@ -1,5 +1,30 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.00.25
+Aktualna paczka: v1.10.0
+
+==============================================================================
+==============================================================================
+Soulbound v1.10.0 — Archeologia i Kartografia / 14 profesji
+==============================================================================
+
+- Liczba profesji rośnie z 12 do 14, czyli dokładnie do liczby klas dostępnych w Soulbound.
+- Dodano pełną profesję Archeologia 1-600 z własnym narzędziem: Pędzel Archeologa 1-600 i 60 Tierów.
+- Dodano pełną profesję Kartografia 1-600 z własnym narzędziem: Kompas Mierniczy 1-600 i 60 Tierów.
+- Oba nowe narzędzia są przypisane do postaci i można je kupić tylko raz na daną postać, zgodnie z zasadą pozostałych narzędzi profesyjnych.
+- Pędzel Archeologa kupuje się u Archeolożki Miry w Bibliotece.
+- Kompas Mierniczy kupuje się u Mistrzyni Kartografii Aleny w Archiwum Rubieży.
+- Archeologia: komenda `wykop` działa w ruinach, kryptach, na cmentarzach, w świątyniach, archiwach, Magiteku i innych pradawnych miejscach.
+- Archeologia ma 21 unikalnych znalezisk rozłożonych na progresję 1-600; `archeologia kolekcja` pokazuje odkryte i brakujące wpisy.
+- Wyższy Tier Pędzla zwiększa dostęp do późniejszych reliktów oraz szansę na dodatkowe znalezisko.
+- Kartografia: komenda `mapuj` wykonuje realny pomiar aktualnej lokacji i rozwija profesję oraz Kompas Mierniczy.
+- Pierwszy pomiar lokacji zapisuje ją trwale w Atlasie Kartografa; kolejne pomiary nadal rozwijają profesję, ale nie dublują wpisu kolekcji.
+- Wyższy Tier Kompasu zwiększa szansę na zdobycie Fragmentu Mapy Rubieży.
+- `kartografia` pokazuje nową profesję; `kartografia świat` zachowuje dostęp do wcześniejszego systemu map świata.
+- Lista `profesje` ma teraz trzy grupy: Zbieractwo, Rzemiosła i Eksploracja. `profesje eksploracja` pokazuje Archeologię i Kartografię.
+- Lista `narzedzia`, Tiery narzędzi, `postep`, `braki` i tytuły progresji uwzględniają obie nowe profesje.
+- System Profesji v0.70/v0.71 został rozszerzony z 12 do 14 profesji: Archeologia i Kartografia mają quest startowy, 4 powtarzalne kontrakty mistrzostwa oraz 10 etapów Drogi Mistrza 1-600.
+- Audyt profesji został rozszerzony do 14 profesji i sprawdza mapowanie nowych narzędzi, sklepy oraz blokadę ponownego zakupu.
+- Doprecyzowano żeglugę: gracz podczas rejsu znajduje się wewnątrz statku; członkowie drużyny płyną wewnątrz statku lidera, nie na zewnętrznym pokładzie.
+- Brak zmian schematu SQLite. Istniejące postacie i save'y pozostają zgodne; wipe nie jest wymagany.
 
 ==============================================================================
 ==============================================================================
@@ -555,7 +580,7 @@ Soulbound v0.61.2 — Memory Efficiency
 - Brak zmian schematu SQLite i brak wipe postaci. Gameplay v0.61.1 pozostaje bez zmian.
 
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v0.71.5
+Historyczna paczka: v0.71.5
 
 Ten plik jest changelogiem narastającym. Kolejne wydania mają dopisywać nowe wpisy na górze, bez usuwania starszej historii.
 Historia poniżej została odtworzona z zachowanych wpisów release, HELP, audytów, komentarzy milestone oraz aktywnego kodu Soulbound.

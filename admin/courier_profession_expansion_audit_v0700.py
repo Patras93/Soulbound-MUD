@@ -12,6 +12,9 @@ from config.postal import (
 )
 from data.catalogs import ITEMS, ROOMS, NPCS
 from data.quests import QUESTS
+from core.bootstrap_economy_professions import TOOL_PROFESSION_MAP
+from core.mines_threat import CHARACTER_BOUND_TOOL_IDS, TOOL_SHOP_ROOMS
+from systems.equipment_crafting import SHOPS
 from world.world_expansion_iii import (
     WORLD_EXPANSION_III_SETTLEMENTS,
     WORLD_EXPANSION_III_NEW_ROOMS,
@@ -91,9 +94,27 @@ def courier_profession_expansion_audit_v0700():
     if "Wyniki są rozdzielone według profesji" not in available_source or "groups.setdefault" not in available_source:
         errors.append("available recipes are not grouped by profession")
 
+    # v1.10.0: 14 profesji = 14 klas; dwa nowe narzędzia są jednorazowe na postać.
+    if len(PROFESSION_QUEST_SPECS_V0700) != 14:
+        errors.append(f"profession count={len(PROFESSION_QUEST_SPECS_V0700)}, expected 14")
+    for profession, tool_type, item_id, room_id in (
+        ("Archeologia", "archaeology", "archaeology_brush", "library"),
+        ("Kartografia", "cartography_profession", "surveyor_compass", "v016_cartographers_archive"),
+    ):
+        if TOOL_PROFESSION_MAP.get(tool_type) != profession:
+            errors.append(f"{profession}: missing tool/profession mapping")
+        if item_id not in ITEMS:
+            errors.append(f"{profession}: missing tool item {item_id}")
+        if item_id not in CHARACTER_BOUND_TOOL_IDS:
+            errors.append(f"{profession}: tool {item_id} must be character-bound")
+        if TOOL_SHOP_ROOMS.get(item_id) != room_id:
+            errors.append(f"{profession}: wrong tool shop room for {item_id}")
+        if item_id not in (SHOPS.get(room_id) or ()):
+            errors.append(f"{profession}: tool {item_id} missing from shop {room_id}")
+
     expected_quests=len(PROFESSION_QUEST_SPECS_V0700)*len(PROFESSION_QUEST_STAGES_V0700)
-    if len(PROFESSION_QUEST_IDS_V0700) != expected_quests or expected_quests != 48:
-        errors.append(f"profession quests={len(PROFESSION_QUEST_IDS_V0700)}, expected 48")
+    if len(PROFESSION_QUEST_IDS_V0700) != expected_quests or expected_quests != 56:
+        errors.append(f"profession quests={len(PROFESSION_QUEST_IDS_V0700)}, expected 56")
     for profession, tool_type, npc_id, _action in PROFESSION_QUEST_SPECS_V0700:
         ids=tuple(PROFESSION_QUEST_IDS_BY_PROFESSION_V0700.get(profession) or ())
         if len(ids) != 4:
@@ -132,8 +153,8 @@ def courier_profession_expansion_audit_v0700():
             errors.append(f"{profession}: missing beginner profession quest level 1-10")
 
     expected_added = {spec[0] for spec in BEGINNER_PROFESSION_QUEST_SPECS_V0701}
-    if len(BEGINNER_PROFESSION_QUEST_IDS_V0701) != 4:
-        errors.append(f"v0.70.1 beginner quests added={len(BEGINNER_PROFESSION_QUEST_IDS_V0701)}, expected 4")
+    if len(BEGINNER_PROFESSION_QUEST_IDS_V0701) != 6:
+        errors.append(f"v0.70.1 beginner quests added={len(BEGINNER_PROFESSION_QUEST_IDS_V0701)}, expected 6")
     for qid in BEGINNER_PROFESSION_QUEST_IDS_V0701:
         q = QUESTS.get(qid) or {}
         profession = q.get("required_profession")
@@ -148,12 +169,12 @@ def courier_profession_expansion_audit_v0700():
         if not q.get("starter_quest") or not q.get("v0701_beginner_profession"):
             errors.append(f"{qid}: missing beginner quest markers")
 
-    # v0.71.0: 10 additional one-time journey stages per profession = 120 quests.
+    # v0.71.0: 10 additional one-time journey stages per profession = 140 quests.
     if len(PROFESSION_JOURNEY_STAGES_V0710) != 10:
         errors.append(f"profession journey stages={len(PROFESSION_JOURNEY_STAGES_V0710)}, expected 10")
     expected_journey = len(PROFESSION_QUEST_SPECS_V0700) * len(PROFESSION_JOURNEY_STAGES_V0710)
-    if len(PROFESSION_JOURNEY_QUEST_IDS_V0710) != expected_journey or expected_journey != 120:
-        errors.append(f"profession journey quests={len(PROFESSION_JOURNEY_QUEST_IDS_V0710)}, expected 120")
+    if len(PROFESSION_JOURNEY_QUEST_IDS_V0710) != expected_journey or expected_journey != 140:
+        errors.append(f"profession journey quests={len(PROFESSION_JOURNEY_QUEST_IDS_V0710)}, expected 140")
     for profession, _tool_type, npc_id, _action in PROFESSION_QUEST_SPECS_V0700:
         ids = tuple(PROFESSION_JOURNEY_IDS_BY_PROFESSION_V0710.get(profession) or ())
         if len(ids) != 10:

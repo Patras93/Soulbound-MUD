@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """Soulbound v0.70.0 - large profession quest expansion.
 
-Adds four repeatable mastery contracts for every one of the twelve professions.
+Adds four repeatable mastery contracts for every one of the fourteen professions.
 Progress counts real profession actions performed after accepting a contract.
 """
 from __future__ import annotations
@@ -27,6 +27,8 @@ PROFESSION_QUEST_SPECS_V0700 = (
     ("Garbarstwo", "leatherworking", "leatherworker_soren", "obrabiaj skóry i wykonuj wyroby"),
     ("Stolarstwo", "carpentry", "carpenter_edric", "wykonuj prace stolarskie"),
     ("Zaklinanie", "enchanting", "guild_quartermaster_arcane", "wykonuj zaklęcia rzemieślnicze"),
+    ("Archeologia", "archaeology", "specialist_archaeology", "prowadź wykopaliska i kataloguj relikty"),
+    ("Kartografia", "cartography_profession", "specialist_cartography", "wykonuj pomiary i dokumentuj odwiedzane lokacje"),
 )
 
 # min profession level, actions, reward profession XP, reward tool XP, silver
@@ -111,6 +113,8 @@ BEGINNER_PROFESSION_QUEST_SPECS_V0701 = (
     ("Garbarstwo", "leatherworking", "leatherworker_soren", "wykonaj 3 prace garbarskie"),
     ("Stolarstwo", "carpentry", "carpenter_edric", "wykonaj 3 prace stolarskie"),
     ("Zaklinanie", "enchanting", "guild_quartermaster_arcane", "wykonaj 3 zaklęcia rzemieślnicze"),
+    ("Archeologia", "archaeology", "specialist_archaeology", "wykonaj 3 wykopaliska"),
+    ("Kartografia", "cartography_profession", "specialist_cartography", "wykonaj 3 pomiary terenu"),
 )
 BEGINNER_PROFESSION_QUEST_IDS_V0701 = []
 BEGINNER_PROFESSION_QUEST_SKIPPED_V0701 = []

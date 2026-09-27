@@ -4051,7 +4051,7 @@ def progression_600_and_leader_disband_audit_v0360():
     check("soul_tiers_60", int(SOUL_MAX_TIER)==60 and len(SOUL_TIER_THRESHOLDS)==60 and int(SOUL_TIER_THRESHOLDS[-1])==600)
     check("tool_tiers_60", int(TOOL_MAX_TIER)==60 and len(TOOL_TIER_THRESHOLDS)==60 and int(TOOL_TIER_THRESHOLDS[-1])==600)
     check("profession_rank_cap_600", int(PROFESSION_RANK_THRESHOLDS[-1])==600)
-    check("profession_count_12", len(PROFESSION_RANK_NAMES)>=12, len(PROFESSION_RANK_NAMES))
+    check("profession_count_14", len(PROFESSION_RANK_NAMES)>=14, len(PROFESSION_RANK_NAMES))
     check("all_tool_name_tables_60", all(len(tuple(v))>=60 for v in TOOL_TIER_NAMES.values()), {k:len(tuple(v)) for k,v in TOOL_TIER_NAMES.items()})
 
     grid=(1,*range(10,601,10))
@@ -4139,7 +4139,7 @@ HELP_TOPICS["progresja600"] = [
     "Główne osie progresji mają zakres 1-600: Level postaci, Biegłość klas, Soul Level, Soul Weapon Mastery, Skill Level, profesje i narzędzia. Sześć statystyk bazowych pozostaje bez twardego limitu.",
     "Każda z 14 klas ma 183 skille/spelle i dochodzi do Biegłości 600. Dwanaście standardowych klas ma dokładnie 3 skille na progach 1, 10, 20 i dalej co 10; Mec i Inżynier zachowują swoje autorskie wczesne progi.",
     "Broń Duszy rozwija się do Soul Level 600 i Soul Tier 60. Tiery 41-60 kontynuują próby co 10 poziomów od 410 do 600.",
-    "Wszystkie 12 profesji i 12 narzędzi rozwijają się do 600. Narzędzia mają 60 Tierów i nie mają trwałości.",
+    "Wszystkie 14 profesji i 14 narzędzi rozwijają się do 600. Narzędzia mają 60 Tierów i nie mają trwałości; każde narzędzie kupuje się tylko raz na postać.",
     "Klasowe EQ ma progi 1, 10, 20, 30 i dalej co 10 aż do 600. Każdy kolejny próg ma wyższy rzeczywisty budżet podstawowych statów, więc niskie Tiery nie powtarzają tych samych wartości. Surowce i receptury mają dalszą zawartość 401-600.",
     "Wzniesienie klas i dostęp do World Tier 2+ zaczynają się po osiągnięciu Biegłości 600, bez resetowania wcześniejszej progresji.",
     "Auto kolejka skilli zaczyna z 10 slotami i rośnie o 1 co 10 Leveli postaci, do 70 slotów na Levelu 600.",
@@ -4156,7 +4156,7 @@ HELP_TOPICS["podstawy"] = [
     "Wpisz help progresja600 po pełny opis obecnego zakresu progresji.",
 ]
 HELP_TOPICS["profesje"] = [
-    "Soulbound ma 12 profesji 1-600: Wędkarstwo, Górnictwo, Drwalstwo, Zielarstwo, Gotowanie, Alchemia, Kowalstwo, Jubilerstwo, Krawiectwo, Garbarstwo, Stolarstwo i Zaklinanie.",
+    "Soulbound ma 14 profesji 1-600: Wędkarstwo, Górnictwo, Drwalstwo, Zielarstwo, Gotowanie, Alchemia, Kowalstwo, Jubilerstwo, Krawiectwo, Garbarstwo, Stolarstwo, Zaklinanie, Archeologia i Kartografia.",
     "Każda profesja ma własny poziom do 600, a odpowiadające narzędzie ma niezależny poziom do 600 i 60 Tierów.",
     "Zakres 401-600 ma dalsze rangi, materiały i receptury; stare progi i zawartość 1-400 pozostają kompatybilne.",
     "Narzędzia nie mają trwałości ani zużycia.",

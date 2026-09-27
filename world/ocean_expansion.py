@@ -277,7 +277,7 @@ V1000_NEW_NPCS.append("v1000_ocean_merchant_orven")
 HELP_TOPICS["ocean"] = [
     "OCEAN 2.0: statki graczy, sześć szlaków morskich między siedmioma portami, mapy skarbów, handel morski, podwodne ruiny i głębinowe Wędkarstwo. Port Dusz oraz Mały Port Wschodni w Cichej Przystani są połączone z siecią.",
     "statek - stan statku; statek kup; statek ulepsz kadlub|zagle|ladownia|nawigacja. Statek gracza obecnego w porcie widać po komendzie rozejrzyj się.",
-    "zegluj - lista tras i wymagania. Szlaki są prawdziwymi pokojami świata; po wejściu używaj ex i kierunków.",
+    "zegluj - lista tras i wymagania. Podczas rejsu postać znajduje się wewnątrz statku; szlaki są prawdziwymi pokojami świata, a kierunki opisują ruch statku po morzu.",
     "skarby - aktywna mapa; skarby szukaj - wykop skarb w poprawnym sektorze.",
     "handel morski - oferty i postęp rejsu; handel morski wez <nr>; dopłyń drogą morską od portu nadania do celu i użyj handel morski oddaj. Możesz wpłynąć na inne wody lub zrobić morski objazd — kontrakt nie zeruje się, dopóki pozostajesz na morzu. Aby anulować aktywny kontrakt użyj handel morski porzuc (działa też porzuć/anuluj). Starszy Szlak Zamorski przez Mglisty Port też zalicza dostawę do Srebrnej Korony. Kwoty są wyświetlane w złocie, z resztą w srebrze.",
     "Połów głębinowy NIE jest osobną profesją. Na głębokich sektorach używaj zwykłej komendy fish/lów; rozwija Wędkarstwo i Wędkę 1-600.",
@@ -285,10 +285,10 @@ HELP_TOPICS["ocean"] = [
 HELP_TOPIC_ALIASES.update({"ocean2":"ocean", "zegluga":"ocean", "żegluga":"ocean", "statek":"ocean", "handel morski":"ocean"})
 if "profesje" in HELP_TOPICS:
     HELP_TOPICS["profesje"].append(
-        "Ocean 2.0 porządkuje listę: ZBIERACTWO to Wędkarstwo, Górnictwo, Drwalstwo i Zielarstwo; RZEMIOSŁA to Gotowanie, Alchemia, Kowalstwo, Jubilerstwo, Krawiectwo, Garbarstwo, Stolarstwo i Zaklinanie."
+        "Soulbound ma 14 profesji: ZBIERACTWO to Wędkarstwo, Górnictwo, Drwalstwo i Zielarstwo; RZEMIOSŁA to Gotowanie, Alchemia, Kowalstwo, Jubilerstwo, Krawiectwo, Garbarstwo, Stolarstwo i Zaklinanie; EKSPLORACJA to Archeologia i Kartografia."
     )
     HELP_TOPICS["profesje"].append(
-        "Użyj profesje zbieractwo albo profesje rzemiosla, aby pokazać tylko wybraną grupę. Połów głębinowy pozostaje częścią Wędkarstwa 1-600."
+        "Użyj profesje zbieractwo, profesje rzemiosla albo profesje eksploracja, aby pokazać wybraną grupę. Połów głębinowy pozostaje częścią Wędkarstwa 1-600."
     )
 
 HELP_TOPICS["profesje podzial"] = [
