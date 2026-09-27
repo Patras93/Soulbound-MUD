@@ -18,8 +18,19 @@ if audit["error_count"]:
 
 print("Soulbound v1.10.6 FAST PREDEPLOY PASS")
 print(f"Runtime manifest: {audit['runtime_module_count']} modules; {len(audit['missing_manifest_files'])} missing; {audit['syntax_error_count']} syntax errors")
+print(
+    f"Whole repo Python: {audit['all_python_source_count']} files; "
+    f"{audit['all_source_syntax_error_count']} syntax errors; "
+    f"{audit['duplicate_literal_key_count']} duplicate dict keys; "
+    f"{audit['swallowed_exception_count']} swallowed exceptions; "
+    f"{audit['todo_fixme_count']} TODO/FIXME"
+)
 print(f"Docker COPY sources: {len(audit['missing_docker_copy_sources'])} missing")
 print(f"Railway critical import: {'PASS' if audit['critical_import_ok'] else 'FAIL'}")
 print(f"SQLite smoke: {audit['schema_table_count']} tables; {audit['schema_object_count']} objects")
 print(f"Commands: {audit['alias_count']} aliases; {audit['registered_command_count']} registered handlers")
+if audit.get("warning_count"):
+    print(f"FAST PREDEPLOY WARNINGS: {audit['warning_count']}")
+    for warning in audit.get("warnings", ())[:50]:
+        print(f"WARNING: {warning}")
 print("Full historical audit remains available with: python predeploy_full.py")
