@@ -107,7 +107,7 @@ class SessionExplorationProfessionsV1100Mixin:
     async def excavate_v1100(self, _args=""):
         if self.server.db.item_qty(self.account_id, "archaeology_brush") <= 0:
             await self.send(
-                "Nie masz Pędzla Archeologa. Kupisz go u Archeolożki Miry w Bibliotece; "
+                "Nie masz Pędzla Archeologa. Kupisz go u Archeolożki Elary w Bibliotece; "
                 "narzędzie kupuje się tylko raz na postać."
             )
             return
