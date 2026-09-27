@@ -270,6 +270,21 @@ class SessionOceanV1000Mixin:
         row = self.server.db.conn.execute(
             "SELECT * FROM ocean_trade_contract_v1000 WHERE account_id=?", (self.account_id,)
         ).fetchone()
+        if text in ("porzuc", "porzuć", "anuluj", "cancel", "abandon"):
+            if not row or not row["contract_key"]:
+                await self.send("Nie masz aktywnego kontraktu morskiego.")
+                return
+            cargo_label = row["cargo_label"]
+            destination_name = ROOMS.get(row["destination_room"], {}).get("name", row["destination_room"])
+            self.server.db.conn.execute(
+                "DELETE FROM ocean_trade_contract_v1000 WHERE account_id=?", (self.account_id,)
+            )
+            self.server.db.conn.commit()
+            await self.send(
+                f"HANDEL MORSKI: porzucasz kontrakt '{cargo_label}' do {destination_name}. "
+                "Ładunek zostaje anulowany; nie otrzymujesz nagrody."
+            )
+            return
         if text in ("oddaj", "dostarcz", "deliver"):
             if not row or not row["contract_key"]:
                 await self.send("Nie masz aktywnego kontraktu morskiego.")
@@ -341,7 +356,7 @@ class SessionOceanV1000Mixin:
             return
         for i, (_key, _origin, dest, cargo_label, reward, required) in enumerate(offers, 1):
             await self.send(f"{i}. {cargo_label} -> {ROOMS[dest]['name']}. Ładownia {required}+. Nagroda {currency_reading_text(reward)}.")
-        await self.send("Przyjęcie: handel morski wez <nr>. Oddanie: handel morski oddaj.")
+        await self.send("Przyjęcie: handel morski wez <nr>. Oddanie: handel morski oddaj. Porzucenie: handel morski porzuc.")
 
     def maybe_grant_ocean_treasure_map_v1000(self):
         if self.character.room_id not in DEEP_OCEAN_ROOMS:

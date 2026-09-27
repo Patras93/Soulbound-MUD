@@ -1,8 +1,16 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.00.1
+Aktualna paczka: v1.00.2
 
 ==============================================================================
 ==============================================================================
+Soulbound v1.00.2 — Handel morski: porzucenie kontraktu
+==============================================================================
+
+- Dodano `handel morski porzuc` do anulowania aktywnego kontraktu morskiego.
+- Dodano aliasy `handel morski porzuć`, `handel morski anuluj`, `oceantrade cancel` i `oceantrade abandon`.
+- Porzucenie usuwa aktywny kontrakt i jego zapisany postęp trasy; nie wypłaca nagrody i nie wpływa na statek ani inne postępy gracza.
+- Lista ofert handlu morskiego podaje teraz także komendę porzucenia kontraktu.
+
 Soulbound v1.00.1 — Audyt i bezpieczne kontrakty morskie
 ==============================================================================
 
