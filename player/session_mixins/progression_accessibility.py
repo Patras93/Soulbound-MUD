@@ -5,6 +5,7 @@ from player.session_mixins.exploration_progress import COLLECTION_CATALOGS
 from player.session_mixins.gathering_actions import PROFESSION_MAX_LEVEL
 from player.session_mixins.inventory_equipment import CURRENCY_SQLITE_SAFE_TOTAL
 from player.session_mixins.museum_bounty import V0260_MUSEUM_CATALOGS
+from player.session_mixins.progress_titles import PROFESSIONS_V0580
 from player.session_mixins.quest_npc import ITEMS
 from player.session_mixins.shops_teachers import currency_reading_text
 from player.session_mixins.skill_learning import MOB_TEMPLATES, ROOMS, normalize_lookup_text
@@ -39,8 +40,15 @@ class SessionProgressionAccessibilityV03052Mixin:
     async def completion_v03052(self):
         db=self.server.db; aid=self.account_id
         discovered=db.discovered_room_ids(aid); world_total=len(ROOMS); world=len(discovered.intersection(ROOMS.keys()))
-        prof_rows=db.conn.execute("SELECT level FROM professions WHERE account_id=?",(aid,)).fetchall()
-        prof_score=sum(min(PROFESSION_MAX_LEVEL,int(r['level'] or 1)) for r in prof_rows); prof_total=max(1,len(prof_rows)*PROFESSION_MAX_LEVEL)
+        prof_rows=db.conn.execute(
+            "SELECT profession,level FROM professions WHERE account_id=?", (aid,)
+        ).fetchall()
+        prof_levels={
+            str(r["profession"]): max(1, min(PROFESSION_MAX_LEVEL, int(r["level"] or 1)))
+            for r in prof_rows
+        }
+        prof_score=sum(prof_levels.get(name, 1) for name in PROFESSIONS_V0580)
+        prof_total=len(PROFESSIONS_V0580)*PROFESSION_MAX_LEVEL
         bosses=set(self.codex_boss_ids()); br=db.conn.execute("SELECT mob_template_id FROM bestiary_stats WHERE account_id=? AND kills>0",(aid,)).fetchall(); boss_score=len({str(r['mob_template_id']) for r in br}&bosses)
         coll_c=coll_t=0
         for cat,catalog in COLLECTION_CATALOGS.items():
