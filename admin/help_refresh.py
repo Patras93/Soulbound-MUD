@@ -1131,7 +1131,7 @@ HELP_TOPICS.setdefault("narzedzia", []).append(
     "v1.10.0: wszystkie 14 profesji ma dokładnie jedno kupowalne, przypisane do postaci narzędzie. Ponowny zakup tej samej postaci jest blokowany."
 )
 HELP_TOPICS["archeologia"] = [
-    "Archeologia jest pełną profesją 1-600. Pędzel Archeologa kupujesz tylko raz na postać u Archeolożki Miry w Bibliotece.",
+    "Archeologia jest pełną profesją 1-600. Pędzel Archeologa kupujesz tylko raz na postać u Archeolożki Elary w Bibliotece.",
     "W ruinach, kryptach, na cmentarzach, w świątyniach, archiwach, Magiteku i innych pradawnych miejscach użyj wykop.",
     "archeologia kolekcja pokazuje 21 unikalnych znalezisk od poziomu 1 do 600.",
 ]
