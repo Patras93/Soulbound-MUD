@@ -1,8 +1,17 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.00.15
+Aktualna paczka: v1.00.16
 
 ==============================================================================
 ==============================================================================
+Soulbound v1.00.16 — handel morski współdzielony z drużyną
+==============================================================================
+
+- Gdy lider drużyny przyjmuje `handel morski wez <nr>`, żywi członkowie party stojący z nim w tym samym porcie automatycznie dostają ten sam kontrakt.
+- Każdy członek dostaje własny zapis kontraktu, własny postęp rejsu oraz własną nagrodę przy oddaniu.
+- Członek nie potrzebuje własnego statku do otrzymania kontraktu; podczas wspólnego rejsu korzysta ze statku lidera.
+- Jeśli członek ma już aktywny kontrakt morski, nie jest on nadpisywany i gracz jest pomijany.
+- Zachowano tę samą zasadę lokalności co przy zwykłych questach: osoby offline, martwe lub stojące w innej lokacji nie dostają kontraktu.
+
 Soulbound v1.00.15 — hotfix audytu godzinnych zadań klasowych
 ==============================================================================
 
