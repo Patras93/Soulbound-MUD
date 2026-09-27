@@ -92,12 +92,12 @@ def courier_profession_expansion_audit_v0700():
         errors.append("available recipes are not grouped by profession")
 
     expected_quests=len(PROFESSION_QUEST_SPECS_V0700)*len(PROFESSION_QUEST_STAGES_V0700)
-    if len(PROFESSION_QUEST_IDS_V0700) != expected_quests or expected_quests != 48:
-        errors.append(f"profession quests={len(PROFESSION_QUEST_IDS_V0700)}, expected 48")
+    if len(PROFESSION_QUEST_IDS_V0700) != expected_quests or expected_quests != 56:
+        errors.append(f"profession quests={len(PROFESSION_QUEST_IDS_V0700)}, expected 56")
     for profession, tool_type, npc_id, _action in PROFESSION_QUEST_SPECS_V0700:
         ids=tuple(PROFESSION_QUEST_IDS_BY_PROFESSION_V0700.get(profession) or ())
         if len(ids) != 4:
-            errors.append(f"{profession}: quest count={len(ids)}, expected 4")
+            errors.append(f"{profession}: quest count={len(ids)}, expected 6")
         npc=NPCS.get(npc_id) or {}
         attached=set(npc.get("specialist_quests") or ())
         for qid in ids:
@@ -132,7 +132,7 @@ def courier_profession_expansion_audit_v0700():
             errors.append(f"{profession}: missing beginner profession quest level 1-10")
 
     expected_added = {spec[0] for spec in BEGINNER_PROFESSION_QUEST_SPECS_V0701}
-    if len(BEGINNER_PROFESSION_QUEST_IDS_V0701) != 4:
+    if len(BEGINNER_PROFESSION_QUEST_IDS_V0701) != 6:
         errors.append(f"v0.70.1 beginner quests added={len(BEGINNER_PROFESSION_QUEST_IDS_V0701)}, expected 4")
     for qid in BEGINNER_PROFESSION_QUEST_IDS_V0701:
         q = QUESTS.get(qid) or {}
@@ -148,12 +148,12 @@ def courier_profession_expansion_audit_v0700():
         if not q.get("starter_quest") or not q.get("v0701_beginner_profession"):
             errors.append(f"{qid}: missing beginner quest markers")
 
-    # v0.71.0: 10 additional one-time journey stages per profession = 120 quests.
+    # v0.71.0: 10 additional one-time journey stages per profession = 140 quests.
     if len(PROFESSION_JOURNEY_STAGES_V0710) != 10:
         errors.append(f"profession journey stages={len(PROFESSION_JOURNEY_STAGES_V0710)}, expected 10")
     expected_journey = len(PROFESSION_QUEST_SPECS_V0700) * len(PROFESSION_JOURNEY_STAGES_V0710)
-    if len(PROFESSION_JOURNEY_QUEST_IDS_V0710) != expected_journey or expected_journey != 120:
-        errors.append(f"profession journey quests={len(PROFESSION_JOURNEY_QUEST_IDS_V0710)}, expected 120")
+    if len(PROFESSION_JOURNEY_QUEST_IDS_V0710) != expected_journey or expected_journey != 140:
+        errors.append(f"profession journey quests={len(PROFESSION_JOURNEY_QUEST_IDS_V0710)}, expected 140")
     for profession, _tool_type, npc_id, _action in PROFESSION_QUEST_SPECS_V0700:
         ids = tuple(PROFESSION_JOURNEY_IDS_BY_PROFESSION_V0710.get(profession) or ())
         if len(ids) != 10:
