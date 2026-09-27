@@ -186,7 +186,7 @@ class SessionMovementMixin:
                             "hull": self.ocean_ship_level_v1000("hull"),
                         }
                         await member.send(
-                            f"Płyniesz na statku lidera {self.character.name}."
+                            f"Płyniesz wewnątrz statku lidera {self.character.name}."
                         )
                     try:
                         await member.move(direction)
