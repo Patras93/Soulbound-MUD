@@ -76,7 +76,7 @@ ENDGAME_PROFESSION_ITEMS = {
 }
 _catalog_mut.catalog_update_path('ITEMS', ITEMS, (), ENDGAME_PROFESSION_ITEMS)
 
-# v0.31.3: specjalny Board tylko dla rasy Cyborga, skalowany Biegłością Meca.
+# v1.00.7: specjalny Board Cyborga, skalowany Level'em postaci niezależnie od klasy.
 _catalog_mut.catalog_assign({
     "name": "Moogle Board",
     "type": "armor",
@@ -87,8 +87,8 @@ _catalog_mut.catalog_assign({
     "rarity_name": "Cyborg",
     "required_race": "Cyborg",
     "stats": {},
-    "cyborg_board_scaling": "mec_mastery",
-    "desc": "Specjalny startowy moduł Cyborga. Może być używany także przez Inżyniera. Bonus do wszystkich pięciu głównych statystyk rośnie wraz z Biegłością Meca: od +2 na początku do +26 przy Biegłości 600.",
+    "cyborg_board_scaling": "character_level",
+    "desc": "Specjalny moduł Cyborga. Działa niezależnie od klasy. Od Levelu postaci 150 daje +20 do Siły, Zręczności, Kondycji, Inteligencji i Siły Woli, a każdy kolejny Level zwiększa ten bonus o +2 do każdej z tych statystyk.",
 }, 'ITEMS', ITEMS, ("moogle_board",))
 
 _PROGRESSION_400_NAMES = {

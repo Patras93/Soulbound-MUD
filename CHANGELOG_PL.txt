@@ -1,8 +1,18 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.00.6
+Aktualna paczka: v1.00.7
 
 ==============================================================================
 ==============================================================================
+Soulbound v1.00.7 — Moogle Board: poprawione skalowanie bez regresji startu
+==============================================================================
+
+- Przywrócono nowe skalowanie Moogle Board względem Levelu postaci, niezależnie od klasy.
+- Level 150 daje +20 do Siły, Zręczności, Kondycji, Inteligencji i Siły Woli; każdy kolejny Level dodaje +2 do każdej z tych statystyk.
+- Poniżej Levelu 150 skalowany bonus Moogle Board wynosi 0.
+- Zachowano `CLASS_MASTERY_MAX_LEVEL` w `equipment_stats.py` dla zgodności z `world_events_endgame.py`, co usuwa przyczynę crasha v1.00.5.
+- `eq info` i opis Moogle Board pokazują nowe skalowanie.
+- Brak zmian SQLite; wipe nie jest wymagany.
+
 Soulbound v1.00.6 — startup recovery hotfix
 ==============================================================================
 
