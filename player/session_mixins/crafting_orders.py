@@ -18,9 +18,9 @@ CRAFTING_ORDER_REFRESH_SECONDS_V0600 = 3600
 # consumed by the broken turn-in path before the reward_tool_type crash.
 CRAFTING_ORDER_BROKEN_TURNIN_CUTOFF_V0613 = 1790294400
 
-# v0.71.3: all 12 professions have rotating orders. Product professions use
+# v1.10.6: all 14 professions have rotating orders. Product professions use
 # real recipes, gathering professions request fresh category gathers, and
-# Enchanting counts successful enchanting actions.
+# Enchanting/Archaeology/Cartography count successful profession actions.
 CRAFTING_ORDER_NPCS_V0600 = {
     "specialist_fishing": {"profession": "Wędkarstwo", "tool_type": "fishing", "source": "gather", "gather_category": "fish", "gather_label": "ryb"},
     "specialist_mining": {"profession": "Górnictwo", "tool_type": "mining", "source": "gather", "gather_category": "ore", "gather_label": "rud"},
@@ -33,7 +33,9 @@ CRAFTING_ORDER_NPCS_V0600 = {
     "tailor_lysa": {"profession": "Krawiectwo", "tool_type": "tailoring", "source": "extended"},
     "leatherworker_soren": {"profession": "Garbarstwo", "tool_type": "leatherworking", "source": "extended"},
     "carpenter_edric": {"profession": "Stolarstwo", "tool_type": "carpentry", "source": "extended"},
-    "guild_quartermaster_arcane": {"profession": "Zaklinanie", "tool_type": "enchanting", "source": "action", "action_type": "enchanting"},
+    "guild_quartermaster_arcane": {"profession": "Zaklinanie", "tool_type": "enchanting", "source": "action", "action_type": "enchanting", "action_label": "seria zaklęć"},
+    "specialist_archaeology": {"profession": "Archeologia", "tool_type": "archaeology", "source": "action", "action_type": "archaeology", "action_label": "seria wykopalisk"},
+    "specialist_cartography": {"profession": "Kartografia", "tool_type": "cartography_profession", "source": "action", "action_type": "cartography_profession", "action_label": "seria pomiarów"},
 }
 
 
@@ -117,6 +119,7 @@ class SessionCraftingOrdersV0600Mixin:
             return rows
         if source == "action":
             action_type = str(spec.get("action_type") or spec.get("tool_type") or "")
+            action_label = str(spec.get("action_label") or "seria akcji profesji")
             rows = []
             for tier, tier_label in enumerate(("mała", "średnia", "duża"), 1):
                 output = f"__action__:{action_type}:{tier}"
@@ -129,7 +132,7 @@ class SessionCraftingOrdersV0600Mixin:
                     "tool_xp": max(15, level * 2),
                 }
                 item = {
-                    "name": f"{tier_label.capitalize()} seria zaklęć",
+                    "name": f"{tier_label.capitalize()} {action_label}",
                     "type": "profession_order",
                     "order_kind": "action",
                     "order_tier": tier,
@@ -481,7 +484,7 @@ class SessionCraftingOrdersV0600Mixin:
             if kind == "gather":
                 progress_note = "Liczą się wyłącznie surowce zebrane po przyjęciu; przy oddaniu musisz nadal posiadać wymaganą ilość."
             elif kind == "action":
-                progress_note = "Liczą się wyłącznie udane akcje Zaklinania wykonane po przyjęciu; przy oddaniu nie pobieram produktu drugi raz."
+                progress_note = "Liczą się wyłącznie udane akcje tej profesji wykonane po przyjęciu; przy oddaniu nie pobieram produktu drugi raz."
             else:
                 progress_note = "Liczą się wyłącznie sztuki wykonane po przyjęciu."
             await self.send(
