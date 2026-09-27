@@ -156,6 +156,7 @@ class SessionExplorationProfessionsV1100Mixin:
         await self.send(f"{prefix}: {name} x{quantity}.")
         if is_new:
             await self.send("Nowy wpis w Kolekcji Archeologii.")
+        await self.announce_profession_action_order_progress_v0713("archaeology", 1)
         for message in messages:
             await self.send(message)
 
@@ -217,6 +218,7 @@ class SessionExplorationProfessionsV1100Mixin:
             await self.send(f"Ponawiasz pomiar lokacji: {name}.")
         if fragment:
             await self.send("Bonus narzędzia: Fragment Mapy Rubieży x1.")
+        await self.announce_profession_action_order_progress_v0713("cartography_profession", 1)
         for message in messages:
             await self.send(message)
 

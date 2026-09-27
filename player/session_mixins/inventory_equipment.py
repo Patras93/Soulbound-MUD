@@ -466,7 +466,7 @@ class SessionInventoryEquipmentMixin:
                 if not any_set:
                     await self.send("Nie masz założonej części aktywnego setu klasowego.")
                 await self.send(
-                    "Wpisz sety info po wszystkie 12 zestawów albo sety <klasa>."
+                    "Wpisz sety info po wszystkie 14 zestawów albo sety <klasa>."
                 )
                 return
 
@@ -487,7 +487,7 @@ class SessionInventoryEquipmentMixin:
                     break
             if not found:
                 await self.send(
-                    "Nie rozpoznaję klasy. Wpisz sety info po listę wszystkich 12 zestawów."
+                    "Nie rozpoznaję klasy. Wpisz sety info po listę wszystkich 14 zestawów."
                 )
                 return
 

@@ -58,6 +58,7 @@ def crafting_orders_compare_audit_v0600():
             "specialist_crafting", "specialist_cooking", "specialist_herbalism",
             "specialist_alchemy", "jeweler_mirella", "tailor_lysa",
             "leatherworker_soren", "carpenter_edric", "guild_quartermaster_arcane",
+            "specialist_archaeology", "specialist_cartography",
         ):
             if npc_id not in orders:
                 errors.append(f"missing crafting order NPC: {npc_id}")
@@ -80,6 +81,14 @@ def crafting_orders_compare_audit_v0600():
             token = f'announce_gathering_order_progress_v0713("{category}"'
             if token not in gathering:
                 errors.append(f"gathering order hook missing for {category}")
+        exploration = text("player/session_mixins/exploration_professions.py")
+        for token in (
+            'announce_profession_action_order_progress_v0713("archaeology", 1)',
+            'announce_profession_action_order_progress_v0713("cartography_profession", 1)',
+        ):
+            if token not in exploration:
+                errors.append(f"exploration rotating-order hook missing: {token}")
+
         professions = text("player/session_mixins/professions.py")
         if "announce_profession_action_order_progress_v0713('enchanting', 1)" not in professions:
             errors.append("enchanting order hook missing")

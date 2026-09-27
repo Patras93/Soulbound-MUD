@@ -1,5 +1,24 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.10.5
+Aktualna paczka: v1.10.6
+
+==============================================================================
+==============================================================================
+Soulbound v1.10.6 — pełny audyt kodu i integracja 14/14
+==============================================================================
+
+- Przejrzano cały kod projektu warstwami: runtime/startup, komendy, storage, questy, profesje, crafting, combat, party, ocean, świat, audyty i pomoc.
+- Dodano preflight nagród questów przed oznaczeniem zadania jako ukończone: błędny reward item, nieznana profesja lub typ narzędzia nie mogą już zapisać questa jako completed i dopiero potem wywalić komendy.
+- Usunięto bezpośrednie `q["reward_items"]` w ścieżce ukończenia; używane jest bezpieczne `.get(...)`.
+- Rotujące godzinne zamówienia profesji rozszerzono z 12 do pełnych 14 profesji.
+- Archeologia dostała rotujące serie wykopalisk u Archeolożki Elary.
+- Kartografia dostała rotujące serie pomiarów u Mistrzyni Kartografii Aleny.
+- `wykop` i `mapuj` przekazują teraz postęp także do aktywnego rotującego zamówienia profesji.
+- Full audit zamówień wymaga teraz obecności obu nowych specjalistów i hooków postępu Archeologii/Kartografii.
+- Fast Railway predeploy dostał regresyjne guardy dla 14 profesji, nowych hooków zamówień oraz bezpiecznego oddawania questów.
+- Poprawiono stare teksty pomocy z 12 do 14 profesji.
+- Poprawiono stare teksty `sety info` z 12 do 14 zestawów klasowych; same zestawy Mec i Inżyniera już istniały poprawnie.
+- Historyczne wpisy changelogu/audytów opisujące stan dawnych wersji z 12 profesjami pozostają historyczne i nie zostały fałszywie przepisane.
+- Brak zmian SQLite; wipe nie jest wymagany.
 
 ==============================================================================
 ==============================================================================
