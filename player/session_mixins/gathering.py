@@ -825,6 +825,16 @@ class SessionGatheringMixin:
                         "Szczypce Jubilerskie kupisz tylko u Jubilerki Mirelli "
                         "w Pracowni Jubilerskiej."
                     )
+                elif tool_type == "archaeology":
+                    await self.send(
+                        "Pędzel Archeologa kupisz tylko u Archeolożki Miry "
+                        "w Bibliotece. Kupuje się go tylko raz na postać."
+                    )
+                elif tool_type == "cartography_profession":
+                    await self.send(
+                        "Kompas Mierniczy kupisz tylko u Mistrzyni Kartografii Aleny "
+                        "w Archiwum Rubieży. Kupuje się go tylko raz na postać."
+                    )
                 return
 
             row = self.server.db.tool(self.account_id, tool_type)
