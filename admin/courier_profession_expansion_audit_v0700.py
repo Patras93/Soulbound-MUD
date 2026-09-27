@@ -234,6 +234,11 @@ def courier_profession_expansion_audit_v0700():
                 errors.append(f"{qid}: exploration gap quest must be one-time")
             if not q.get("v1110_exploration_gap_quest"):
                 errors.append(f"{qid}: missing v1.11.0 exploration marker")
+            if int(q.get("reward_silver", 0) or 0) < 1001:
+                errors.append(
+                    f"{qid}: exploration reward below unified floor: "
+                    f"{int(q.get('reward_silver', 0) or 0)}"
+                )
 
         coverage = set()
         for qid, q in QUESTS.items():
