@@ -20,19 +20,19 @@ def courier_guild_audit_v0530():
     expected_types = {"zwykla", "pilna", "ciezka", "delikatna", "tajna", "wartosciowa"}
     if not expected_types.issubset(set(COURIER_PACKAGE_CLASSES_V0530)):
         errors.append("one or more original six courier package classes are missing")
-    if COURIER_REPUTATION_MAX_V0530 != 400:
-        errors.append(f"courier reputation max={COURIER_REPUTATION_MAX_V0530}, expected 400")
+    if COURIER_REPUTATION_MAX_V0530 != 600:
+        errors.append(f"courier reputation max={COURIER_REPUTATION_MAX_V0530}, expected 600")
     thresholds = [int(row[0]) for row in COURIER_RANKS_V0530]
-    if thresholds != sorted(set(thresholds)) or thresholds[0] != 1 or thresholds[-1] != 400:
-        errors.append("courier rank thresholds must be unique, increasing and span 1..400")
+    if thresholds != sorted(set(thresholds)) or thresholds[0] != 1 or thresholds[-1] != 600:
+        errors.append("courier rank thresholds must be unique, increasing and span 1..600")
     titles = {row[1] for row in COURIER_RANKS_V0530}
     for required in ("Posłaniec", "Kurier Królewski", "Mistrz Szlaków"):
         if required not in titles:
             errors.append(f"missing courier title: {required}")
-    if not set(COURIER_PACKAGE_CLASSES_V0530).issubset(set(courier_unlocked_package_keys_v0530(400))):
-        errors.append("reputation 400 does not unlock all current package classes")
-    if courier_rank_for_reputation_v0530(400)["name"] != "Mistrz Szlaków":
-        errors.append("reputation 400 is not Mistrz Szlaków")
+    if not set(COURIER_PACKAGE_CLASSES_V0530).issubset(set(courier_unlocked_package_keys_v0530(600))):
+        errors.append("reputation 600 does not unlock all current package classes")
+    if courier_rank_for_reputation_v0530(600)["name"] != "Legenda Szlaków":
+        errors.append("reputation 600 is not Legenda Szlaków")
     for key, spec in COURIER_PACKAGE_CLASSES_V0530.items():
         if float(spec.get("reward_mult", 0)) <= 0:
             errors.append(f"{key}: invalid reward multiplier")
