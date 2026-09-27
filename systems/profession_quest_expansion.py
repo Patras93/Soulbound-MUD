@@ -263,7 +263,7 @@ EXPLORATION_GAP_QUEST_SPECS_V1110 = (
 
 # min profession level, actions, profession XP, tool XP, silver
 EXPLORATION_GAP_STAGES_V1110 = (
-    (10, 4, 400, 250, 1000),
+    (10, 4, 400, 250, 1500),
     (125, 10, 3500, 2200, 7000),
     (175, 11, 4800, 3000, 9500),
     (225, 13, 7000, 4500, 14000),
