@@ -192,8 +192,10 @@ def courier_profession_expansion_audit_v0700():
             q = QUESTS.get(qid) or {}
             if q.get("reward_city_v0710") != city or int(q.get("reward_city_amount_v0710",0) or 0) <= 0:
                 errors.append(f"{qid}: invalid city reputation reward")
-            if not q.get("v0710_city_story") or q.get("repeatable"):
-                errors.append(f"{qid}: invalid city story flags")
+            if not q.get("v0710_city_story"):
+                errors.append(f"{qid}: missing city story marker")
+            if not q.get("repeatable") or int(q.get("repeat_cooldown", 0) or 0) != 60 * 60:
+                errors.append(f"{qid}: city story quest must repeat every 60 minutes")
             if index > 1 and q.get("requires_quest") != ids[index-2]:
                 errors.append(f"{qid}: city story chain broken")
 

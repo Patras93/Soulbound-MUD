@@ -1,5 +1,15 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.00.24
+Aktualna paczka: v1.00.25
+
+==============================================================================
+==============================================================================
+Soulbound v1.00.25 — hotfix audytu questów miejskich
+==============================================================================
+
+- Naprawiono błąd startu po v1.00.24.
+- Stary audyt questów miejskich został dostosowany do obecnych questów odnawialnych co 60 minut.
+- Zachowano reputację miast do 600 oraz zwiększoną liczbę Podziemnych Szkodników.
+- Brak zmian SQLite; wipe nie jest wymagany.
 
 ==============================================================================
 ==============================================================================
