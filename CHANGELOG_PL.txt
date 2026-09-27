@@ -1,8 +1,16 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.00.9
+Aktualna paczka: v1.00.10
 
 ==============================================================================
 ==============================================================================
+Soulbound v1.00.10 — aktualne statystyki Moogle Board w `l`
+==============================================================================
+
+- `l board`, `l moogle` i inne dopasowania do Moogle Board pokazują teraz aktualny bonus wynikający z bieżącego Levelu postaci.
+- Komunikat podaje osobno Siłę, Zręczność, Kondycję, Inteligencję i Siłę Woli.
+- Wyświetlane wartości korzystają z tej samej funkcji skalowania co realny bonus EQ, więc opis odpowiada faktycznie naliczanym statystykom.
+- Brak zmian SQLite; wipe nie jest wymagany.
+
 Soulbound v1.00.9 — handel morski nie zeruje się na innych wodach
 ==============================================================================
 

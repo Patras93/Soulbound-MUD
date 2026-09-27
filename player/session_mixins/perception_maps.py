@@ -223,6 +223,15 @@ class SessionPerceptionMapsMixin:
                 self.format_item_description(item_id, item)
             )
 
+            if item_id == "moogle_board":
+                _level = int(self.character.character_level)
+                _bonus = moogle_board_current_bonus_v10010(_level)
+                await self.send(
+                    f"Aktualne statystyki Moogle Board przy Levelu {_level}: "
+                    f"Siła +{_bonus}, Zręczność +{_bonus}, Kondycja +{_bonus}, "
+                    f"Inteligencja +{_bonus}, Siła Woli +{_bonus}."
+                )
+
             context = []
             quantity = int(entry.get("quantity", 0))
             if quantity > 0:

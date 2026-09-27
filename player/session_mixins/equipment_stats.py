@@ -24,6 +24,10 @@ def moogle_board_stat_bonus_v0313(character_level):
         return min(20, 2 + 2 * (level // 10))
     return 20 + 2 * (level - 150)
 
+def moogle_board_current_bonus_v10010(character_level):
+    """Aktualny bonus Moogle Board używany przez EQ i komendę look."""
+    return moogle_board_stat_bonus_v0313(character_level)
+
 class SessionEquipmentStatsMixin:
     def equipped_item_rows(self):
             return list(self.server.db.equipment(self.account_id))
