@@ -27,7 +27,7 @@ def audit_ocean_contract_v1001():
         )
         create_world_quests_schema(SimpleNamespace(conn=conn))
         columns = {row[1] for row in conn.execute("PRAGMA table_info(ocean_trade_contract_v1000)")}
-        assert {"route_progress", "arrival_verified"} <= columns
+        assert {"route_progress", "route_current_room", "arrival_verified"} <= columns
         assert conn.execute("SELECT contract_key FROM ocean_trade_contract_v1000").fetchone()[0] == "rafy"
 
         class Session(SessionOceanV1000Mixin):
@@ -70,6 +70,31 @@ def audit_ocean_contract_v1001():
 
         for offer in first.ocean_trade_offers_v1000():
             assert len(first.ocean_contract_path_v1001(offer[1], offer[2])) > 2
+        # The older authored voyage via Fog Dock and Ardelia is also a real sea route.
+        conn.execute(
+            "INSERT INTO ocean_trade_contract_v1000(account_id,contract_key,origin_room,destination_room,cargo_label,reward_silver,required_cargo,accepted_at) "
+            "VALUES(1,'korona','ocean_platform','silver_crown_harbor','towary',220000,4,1)"
+        )
+        conn.commit()
+        legacy_route = (
+            "ocean_platform", *(f"fog_crossing_{i:02d}" for i in range(1, 5)),
+            "fog_dock", *(f"ardelia_crossing_{i:02d}" for i in range(1, 7)),
+            "silver_crown_harbor",
+        )
+        for old_room, new_room in zip(legacy_route, legacy_route[1:]):
+            second.ocean_contract_step_v1001(old_room, new_room)
+        assert conn.execute("SELECT arrival_verified FROM ocean_trade_contract_v1000").fetchone()[0] == 1
+        second.character.room_id = "silver_crown_harbor"
+        asyncio.run(second.ocean_trade_v1000("oddaj"))
+        assert second.character.silver == 255_100
+        # A land approach to the destination never verifies a contract.
+        conn.execute(
+            "INSERT INTO ocean_trade_contract_v1000(account_id,contract_key,origin_room,destination_room,cargo_label,reward_silver,required_cargo,accepted_at) "
+            "VALUES(1,'korona','ocean_platform','silver_crown_harbor','towary',220000,4,1)"
+        )
+        conn.commit()
+        second.ocean_contract_step_v1001("silver_crown_square", "silver_crown_harbor")
+        assert conn.execute("SELECT arrival_verified FROM ocean_trade_contract_v1000").fetchone()[0] == 0
         endpoints = {route[side] for route in ROUTES.values() for side in ("origin", "destination")}
         assert endpoints == {room_id for room_id, _label in PORTS.values()}
         assert len(ROUTES) == 6
