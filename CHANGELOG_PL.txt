@@ -1,8 +1,16 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.00.18
+Aktualna paczka: v1.00.19
 
 ==============================================================================
 ==============================================================================
+Soulbound v1.00.19 — hotfix modułowości systemu kurierskiego
+==============================================================================
+
+- Naprawiono blokadę startu Modular Refactor Audit: `courier_delivery.py` urósł do 584 linii po dodaniu współdzielenia paczek.
+- Logika współdzielenia paczki przez lidera została wydzielona do osobnego `player/session_mixins/courier_party.py`.
+- `courier_delivery.py` ma ponownie 526 linii, czyli pozostaje poniżej limitu 550 bez podnoszenia ani obchodzenia audytu.
+- Funkcjonalność v1.00.18 pozostaje bez zmian: lider dzieli paczkę z lokalną żywą drużyną, a istniejących aktywnych paczek nie nadpisuje.
+
 Soulbound v1.00.18 — paczki kurierskie współdzielone z drużyną
 ==============================================================================
 
