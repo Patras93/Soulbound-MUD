@@ -1,8 +1,16 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.00.10
+Aktualna paczka: v1.00.11
 
 ==============================================================================
 ==============================================================================
+Soulbound v1.00.11 — hotfix `l moogle`
+==============================================================================
+
+- Naprawiono błąd komendy przy `l moogle` / `l board`, powodowany przez niedostępną funkcję `moogle_board_current_bonus_v10010` w module percepcji.
+- `look` oblicza teraz aktualny bonus Moogle Board lokalnie tą samą formułą co EQ: progi do 150 i +2 za każdy Level powyżej 150.
+- Sesja nie powinna już zwracać identyfikatora błędu SB przy oglądaniu Moogle Board.
+- Brak zmian SQLite; wipe nie jest wymagany.
+
 Soulbound v1.00.10 — aktualne statystyki Moogle Board w `l`
 ==============================================================================
 

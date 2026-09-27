@@ -224,8 +224,11 @@ class SessionPerceptionMapsMixin:
             )
 
             if item_id == "moogle_board":
-                _level = int(self.character.character_level)
-                _bonus = moogle_board_current_bonus_v10010(_level)
+                _level = max(1, int(self.character.character_level or 1))
+                if _level <= 150:
+                    _bonus = min(20, 2 + 2 * (_level // 10))
+                else:
+                    _bonus = 20 + 2 * (_level - 150)
                 await self.send(
                     f"Aktualne statystyki Moogle Board przy Levelu {_level}: "
                     f"Siła +{_bonus}, Zręczność +{_bonus}, Kondycja +{_bonus}, "
