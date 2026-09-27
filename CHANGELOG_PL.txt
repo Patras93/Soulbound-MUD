@@ -1,8 +1,18 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.00.19
+Aktualna paczka: v1.00.20
 
 ==============================================================================
 ==============================================================================
+Soulbound v1.00.20 — unikalne nazwy questów zarządców miast
+==============================================================================
+
+- Zrealizowano GitHub Issue #4.
+- Trzy etapy lokalnych questów każdego Zarządcy Miejskiego mają teraz wyraźnie różne nazwy opisujące cel zadania i miasto.
+- Etap rozmowy z pocztą: `Szlaki <miasto>: rozmowa z Łącznikiem Poczty`.
+- Etap rzemieślniczy: `Warsztaty <miasto>: rozmowa ze Starszym Rzemieślnikiem`.
+- Etap dostawy: `Sprawy miejskie <miasto>: dostawa pakietu do Poczty`.
+- Wszystkie `quest_id`, wymagania, nagrody, progres i zgodność istniejących save'ów pozostają bez zmian.
+
 Soulbound v1.00.19 — hotfix modułowości systemu kurierskiego
 ==============================================================================
 
