@@ -178,9 +178,21 @@ class SessionMovementMixin:
                         await member.send(
                             f"Podążasz za liderem {self.character.name}: {label}."
                         )
+                    party_ship_passage = sailing_v1000 and hasattr(self, "ocean_ship_level_v1000")
+                    if party_ship_passage:
+                        member._party_ship_passage_v10014 = {
+                            "leader": self.account_id,
+                            "navigation": self.ocean_ship_level_v1000("navigation"),
+                            "hull": self.ocean_ship_level_v1000("hull"),
+                        }
+                        await member.send(
+                            f"Płyniesz na statku lidera {self.character.name}."
+                        )
                     try:
                         await member.move(direction)
                     finally:
+                        if party_ship_passage:
+                            member._party_ship_passage_v10014 = None
                         if entry_label_v03812:
                             member._dungeon_entry_label_v03812 = ""
                 except Exception as exc:
@@ -266,12 +278,27 @@ class SessionMovementMixin:
             self.server.world.ensure_runtime_room(target)
             target_room = ROOMS.get(target, {})
             if target_room.get("requires_ship"):
-                if not hasattr(self, "ocean_ship_owned_v1000") or not self.ocean_ship_owned_v1000():
-                    await self.send("Na ten morski szlak potrzebujesz własnego statku. Wpisz statek kup w głównym porcie.")
+                party_ship = getattr(self, "_party_ship_passage_v10014", None) or {}
+                using_party_ship = bool(party_ship)
+                if not using_party_ship and (
+                    not hasattr(self, "ocean_ship_owned_v1000")
+                    or not self.ocean_ship_owned_v1000()
+                ):
+                    await self.send("Na ten morski szlak potrzebujesz własnego statku albo musisz płynąć z liderem drużyny stojącym obok.")
                     return
                 req_nav = int(target_room.get("ocean_navigation_required", 1) or 1)
                 req_hull = int(target_room.get("ocean_hull_required", 1) or 1)
-                if self.ocean_ship_level_v1000("navigation") < req_nav or self.ocean_ship_level_v1000("hull") < req_hull:
+                nav_level = (
+                    int(party_ship.get("navigation", 0))
+                    if using_party_ship
+                    else self.ocean_ship_level_v1000("navigation")
+                )
+                hull_level = (
+                    int(party_ship.get("hull", 0))
+                    if using_party_ship
+                    else self.ocean_ship_level_v1000("hull")
+                )
+                if nav_level < req_nav or hull_level < req_hull:
                     await self.send(f"Ten sektor wymaga Nawigacji {req_nav} i Kadłuba {req_hull}.")
                     return
             elif target_room.get("underwater") and hasattr(self, "ocean_ship_level_v1000"):
