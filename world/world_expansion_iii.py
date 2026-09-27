@@ -170,6 +170,45 @@ CITY_STORY_QUESTS_BY_CITY_V0710 = {}
 CITY_STORY_NPC_IDS_V0710 = []
 CITY_STORY_ITEM_IDS_V0710 = []
 
+_CITY_STORY_DIALOGUES_V10021 = {
+    "steward": (
+        "W {city} pilnuję porządku między mieszkańcami, warsztatami i pocztą. Zacznij od lokalnych spraw, a szybko poznasz nasze potrzeby.",
+        "{city} ma własne problemy i własne szlaki. Jeśli chcesz zdobyć zaufanie mieszkańców, mam dla ciebie kilka spraw do załatwienia.",
+        "Nie zarządza się {city} zza biurka. Potrzebuję ludzi, którzy potrafią rozmawiać z mieszkańcami i doprowadzać sprawy do końca.",
+        "Każde miasto żyje inaczej. W {city} najpierw poznaj pocztę i warsztaty, dopiero potem powierzam ważniejsze dokumenty.",
+        "Witaj w {city}. Reputację zdobywa się tutaj czynami, nie obietnicami. Mam trzy sprawy, które pokażą, czy można na tobie polegać.",
+        "Szlaki, warsztaty i mieszkańcy {city} muszą działać razem. Pomóż mi spiąć te sprawy, a miasto to zapamięta.",
+        "Mam oko na wszystko, co dzieje się w {city}. Jeśli chcesz pomóc, zacznij od ludzi, którzy najlepiej znają lokalne potrzeby.",
+        "{city} nie potrzebuje bohaterów od wielkich słów, tylko kogoś skutecznego. Mam dla ciebie kilka konkretnych zadań.",
+    ),
+    "liaison": (
+        "Poczta w {city} żyje rytmem kurierów. Znam najważniejsze trasy i wiem, gdzie przesyłki najczęściej utykają.",
+        "Każda droga prowadząca do {city} ma swoją historię. Ja pilnuję, żeby listy i paczki trafiały tam, gdzie powinny.",
+        "Tutaj liczy się dobra trasa i pewny kurier. Jeśli Zarządca cię przysłał, opowiem ci, jak działa poczta w {city}.",
+        "W {city} wiadomość spóźniona o dzień potrafi kosztować więcej niż źle sprzedany towar. Dlatego pilnuję każdego szlaku.",
+        "Mam mapy, rozkłady i listę ludzi czekających na przesyłki. Poczta {city} może wyglądać spokojnie, ale pracy nigdy nie brakuje.",
+        "Kurierzy znają miasto od strony dróg. Ja znam {city} od strony listów, pieczęci i terminów.",
+        "Jeśli chcesz zrozumieć {city}, obserwuj pocztę. To tutaj najszybciej widać, czego mieszkańcy naprawdę potrzebują.",
+        "Przesyłki mówią wiele o mieście. W {city} każdego dnia widzę, skąd przychodzą towary i dokąd ruszają dalej.",
+    ),
+    "artisan": (
+        "Warsztaty {city} nie stoją bezczynnie. Zawsze brakuje materiału, narzędzi albo kogoś, kto potrafi zrobić porządną robotę.",
+        "Rzemieślnicy w {city} mają własne metody i własne potrzeby. Posłuchaj ich, zanim uznasz, że każde warsztatowe zlecenie wygląda tak samo.",
+        "Tutaj cenimy dokładność. W {city} dobra robota rozchodzi się szybciej niż najlepsza reklama.",
+        "Reprezentuję ludzi, którzy budują, kują, warzą i naprawiają. Jeśli chcesz pomóc {city}, zacznij od warsztatów.",
+        "Każdy fach zostawia inny ślad, ale wszystkie warsztaty {city} zależą od dostaw i solidnych rąk do pracy.",
+        "Nie interesują mnie puste obietnice. W {city} liczy się materiał, wykonanie i to, czy potrafisz dokończyć rozpoczętą pracę.",
+        "Warsztaty są sercem {city}. Gdy rzemieślnicy stoją, po chwili stoi handel, poczta i pół miasta.",
+        "Zarządca dobrze zrobił, że cię tu skierował. W {city} potrzeby profesji zmieniają się szybciej, niż nadążają za nimi dostawy.",
+    ),
+}
+
+
+def _city_story_dialogue_v10021(city, role, city_index):
+    variants = _CITY_STORY_DIALOGUES_V10021[role]
+    return variants[(int(city_index) - 1) % len(variants)].format(city=city)
+
+
 for city_index, city in enumerate(tuple(POSTAL_CITY_HUBS_V0522.keys()), 1):
     slug = _achievement_slug(city)
     guide_room = GUIDE_CITY_HUBS_V0522[city]
@@ -184,21 +223,21 @@ for city_index, city in enumerate(tuple(POSTAL_CITY_HUBS_V0522.keys()), 1):
         (steward_id, {
             "name": f"Zarządca Miejski — {city}",
             "room": guide_room,
-            "dialogue": f"Dbam o sprawy mieszkańców {city}. Mam dla ciebie lokalną linię zadań i będę śledzić twoją reputację w tym mieście.",
+            "dialogue": _city_story_dialogue_v10021(city, "steward", city_index),
             "v0710_city_story": True,
             "v0710_city": city,
         }),
         (liaison_id, {
             "name": f"Łącznik Poczty — {city}",
             "room": postal_room,
-            "dialogue": f"Koordynuję lokalne przesyłki i sprawy pocztowe miasta {city}.",
+            "dialogue": _city_story_dialogue_v10021(city, "liaison", city_index),
             "v0710_city_story": True,
             "v0710_city": city,
         }),
         (artisan_id, {
             "name": f"Starszy Rzemieślnik — {city}",
             "room": guide_room,
-            "dialogue": f"Reprezentuję warsztaty i profesje miasta {city}. Zarządca często kieruje do mnie nowych pomocników.",
+            "dialogue": _city_story_dialogue_v10021(city, "artisan", city_index),
             "v0710_city_story": True,
             "v0710_city": city,
         }),
