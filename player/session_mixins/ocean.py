@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import random
 import time
+from collections import deque
 
 from core.classes_skills import ROOMS
 from systems.crafting_quality import player_item_display_name_v0335
@@ -164,6 +165,8 @@ class SessionOceanV1000Mixin:
         direction = route["origin_direction"] if room_id == route["origin"] else route["destination_direction"]
         await self.send(f"Rozpoczynasz rejs: {route['name']}. To prawdziwa trasa; po wejściu używaj ex i kierunków.")
         await self.move(direction)
+        if self.character.room_id == room_id:
+            return
         self.server.db.conn.execute(
             "UPDATE ocean_ship_v1000 SET voyages=voyages+1,updated_at=CURRENT_TIMESTAMP WHERE account_id=?",
             (self.account_id,),
@@ -180,6 +183,49 @@ class SessionOceanV1000Mixin:
             ("powrot", "silver_crown_harbor", "star_port_market", "Srebrne mechanizmy portowe", 300_000, 5),
         )
 
+    def ocean_contract_path_v1001(self, origin, destination):
+        """Shortest sea-only port path, including every sector of its lanes."""
+        links = {}
+        for route in ROUTES.values():
+            lane = (route["origin"], *route["rooms"], route["destination"])
+            for start, end in zip(lane, lane[1:]):
+                links.setdefault(start, set()).add(end)
+                links.setdefault(end, set()).add(start)
+        queue = deque([(origin,)])
+        visited = {origin}
+        while queue:
+            path = queue.popleft()
+            if path[-1] == destination:
+                return path
+            for next_room in sorted(links.get(path[-1], ())):
+                if next_room not in visited:
+                    visited.add(next_room)
+                    queue.append((*path, next_room))
+        return ()
+
+    def ocean_contract_step_v1001(self, old_room, new_room):
+        """Advance a persisted contract only on the next actual sea-route step."""
+        row = self.server.db.conn.execute(
+            "SELECT origin_room,destination_room,route_progress,arrival_verified "
+            "FROM ocean_trade_contract_v1000 WHERE account_id=?", (self.account_id,),
+        ).fetchone()
+        if not row or int(row["arrival_verified"]):
+            return
+        path = self.ocean_contract_path_v1001(row["origin_room"], row["destination_room"])
+        if not path:
+            return
+        progress = int(row["route_progress"])
+        if progress < len(path) - 1 and old_room == path[progress] and new_room == path[progress + 1]:
+            progress += 1
+        else:
+            progress = 0
+        verified = int(progress == len(path) - 1 and new_room == row["destination_room"])
+        self.server.db.conn.execute(
+            "UPDATE ocean_trade_contract_v1000 SET route_progress=?,arrival_verified=? WHERE account_id=?",
+            (progress, verified, self.account_id),
+        )
+        self.server.db.conn.commit()
+
     async def ocean_trade_v1000(self, args=""):
         text = str(args or "").strip().lower()
         if text.startswith("morski "):
@@ -193,6 +239,9 @@ class SessionOceanV1000Mixin:
                 return
             if self.character.room_id != row["destination_room"]:
                 await self.send(f"Ładunek trzeba dostarczyć do: {ROOMS.get(row['destination_room'],{}).get('name',row['destination_room'])}.")
+                return
+            if not int(row["arrival_verified"]):
+                await self.send("Kontrakt wymaga przepłynięcia szlaku od portu nadania do celu. Wróć do portu nadania i rozpocznij rejs.")
                 return
             reward = int(row["reward_silver"])
             wallet = self.character_wallet_silver_value()
@@ -219,6 +268,9 @@ class SessionOceanV1000Mixin:
                 await self.send("Nie ma takiej oferty w tym porcie. Wpisz handel morski.")
                 return
             key, origin, dest, cargo_label, reward, required = offers[number-1]
+            if not self.ocean_contract_path_v1001(origin, dest):
+                await self.send("Szlak tego kontraktu jest niedostępny. Zgłoś błąd administratorowi.")
+                return
             cargo_level = self.ocean_ship_level_v1000("cargo")
             if cargo_level < required:
                 await self.send(f"Ten kontrakt wymaga Ładowni poziom {required}; masz {cargo_level}.")

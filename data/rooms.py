@@ -32,7 +32,7 @@ ROOMS = {
         "exits": {"east": "temple_basement", "north": "temple_basement_root", "west": "temple_basement_hidden"},
     },
     "temple_basement_drain": {
-        "zone": "Piwnica Świątyni", "name": "Kanał Odpływowy",
+        "zone": "Piwnica Świątyni", "name": "Świątynny Kanał Odpływowy",
         "desc": "Wilgotny kanał prowadzi głębiej pod fundamenty. Ślady pazurów pokrywają kamienie.",
         "exits": {"south": "temple_basement_storage", "north": "temple_basement_nest_a", "east": "temple_basement_collapsed"},
     },
@@ -42,7 +42,7 @@ ROOMS = {
         "exits": {"west": "temple_basement_storage", "north": "temple_basement_boiler"},
     },
     "temple_basement_cistern": {
-        "zone": "Piwnica Świątyni", "name": "Stara Cysterna",
+        "zone": "Piwnica Świątyni", "name": "Cysterna Piwnicy Świątyni",
         "desc": "Kamienny zbiornik jest prawie pusty. W szczelinach ścian kłębią się szczury.",
         "exits": {"south": "temple_basement_pantry", "east": "temple_basement_sewer_grate"},
     },
@@ -82,7 +82,7 @@ ROOMS = {
         "exits": {"west": "temple_basement_cistern", "northeast": "temple_basement_nest_c"},
     },
     "temple_basement_bone_pit": {
-        "zone": "Piwnica Świątyni", "name": "Dół Kości",
+        "zone": "Piwnica Świątyni", "name": "Szczurzy Dół Kości",
         "desc": "W zagłębieniu leżą stare kości zwierząt. To jedno z ulubionych żerowisk szczurów.",
         "exits": {"south": "temple_basement_flooded", "east": "temple_basement_nest_c"},
     },

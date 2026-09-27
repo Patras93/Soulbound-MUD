@@ -209,6 +209,8 @@ class SessionMovementMixin:
                 self.previous_room_id = old
                 self.character.room_id = target
                 self.server.db.save_character(self.character)
+                if hasattr(self, "ocean_contract_step_v1001"):
+                    self.ocean_contract_step_v1001(old, target)
                 city_name_v0530 = COURIER_CITY_ROOM_TO_NAME_V0530.get(str(target))
                 if city_name_v0530 and self.account_id is not None:
                     self.server.db.record_courier_city_visit_v0530(self.account_id, city_name_v0530)
