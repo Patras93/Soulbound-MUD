@@ -1,5 +1,16 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.10.2
+Aktualna paczka: v1.10.3
+
+==============================================================================
+==============================================================================
+Soulbound v1.10.3 — unikalna Archeolożka Elara
+==============================================================================
+
+- Naprawiono konflikt nazwy NPC: Mira pozostaje istniejącą Zielarką Mirą w Gaju Szeptów z questem Wilków Cienia.
+- Nowa mistrzyni Archeologii nazywa się teraz Archeolożka Elara i pozostaje w Bibliotece.
+- Wszystkie odwołania Archeologii, pomocy, zakupu Pędzla i changelogu wskazują Elarę.
+- Identyfikator systemowy NPC pozostaje `specialist_archaeology`, więc questy i sklep nie tracą powiązań.
+- Brak zmian SQLite; wipe nie jest wymagany.
 
 ==============================================================================
 ==============================================================================
@@ -8,7 +19,7 @@ Soulbound v1.10.2 — pełne prowadzenie do 14 profesji
 
 - Naprawiono listę `prowadz profesje` / `walk profesje`, która nadal była ręcznie wpisana dla starego zestawu profesji i pokazywała tylko 8 pozycji.
 - Lista prowadzenia pokazuje teraz kanoniczne 14 profesji i ich właściwych mistrzów/NPC.
-- Dodano Archeologię: Archeolożka Mira w Bibliotece.
+- Dodano Archeologię: Archeolożka Elara w Bibliotece.
 - Dodano Kartografię: Mistrzyni Kartografii Alena w Archiwum Rubieży.
 - Przy okazji lista obejmuje też Krawiectwo, Garbarstwo, Stolarstwo i Zaklinanie, których brakowało w starej wersji prowadzenia.
 - `walk profesje` i `prowadz profesje` podają gotową komendę `walk <NPC>` dla każdej profesji.
@@ -35,7 +46,7 @@ Soulbound v1.10.0 — Archeologia i Kartografia / 14 profesji
 - Dodano pełną profesję Archeologia 1-600 z własnym narzędziem: Pędzel Archeologa 1-600 i 60 Tierów.
 - Dodano pełną profesję Kartografia 1-600 z własnym narzędziem: Kompas Mierniczy 1-600 i 60 Tierów.
 - Oba nowe narzędzia są przypisane do postaci i można je kupić tylko raz na daną postać, zgodnie z zasadą pozostałych narzędzi profesyjnych.
-- Pędzel Archeologa kupuje się u Archeolożki Miry w Bibliotece.
+- Pędzel Archeologa kupuje się u Archeolożki Elary w Bibliotece.
 - Kompas Mierniczy kupuje się u Mistrzyni Kartografii Aleny w Archiwum Rubieży.
 - Archeologia: komenda `wykop` działa w ruinach, kryptach, na cmentarzach, w świątyniach, archiwach, Magiteku i innych pradawnych miejscach.
 - Archeologia ma 21 unikalnych znalezisk rozłożonych na progresję 1-600; `archeologia kolekcja` pokazuje odkryte i brakujące wpisy.
