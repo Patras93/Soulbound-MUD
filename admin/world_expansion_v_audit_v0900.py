@@ -4,6 +4,7 @@ from __future__ import annotations
 from data.catalogs import ROOMS, NPCS, ITEMS, QUESTS, MOB_TEMPLATES
 from systems.content_registry import MOB_SPAWNS
 from world.world_expansion_v import WORLD_EXPANSION_V_STATE
+from world.world_expansion_iii import CITY_STORY_QUESTS_BY_CITY_V0710
 
 
 def world_expansion_v_audit_v0900():
@@ -21,6 +22,11 @@ def world_expansion_v_audit_v0900():
         errors.append("Cities 2.0 count differs from city registry")
     if len(state["cities_2_quests"]) != state["cities_2_count"]:
         errors.append("Cities 2.0 quest coverage differs from city registry")
+    for city, qids in CITY_STORY_QUESTS_BY_CITY_V0710.items():
+        for qid in qids:
+            quest = QUESTS.get(qid, {})
+            if not quest.get("repeatable") or int(quest.get("repeat_cooldown", 0) or 0) != 60 * 60:
+                errors.append(f"{city}: legacy city quest {qid} must repeat every 60 minutes")
     for city, city_rooms in state["cities_2_rooms"].items():
         for rid, title in ((city_rooms[0], "Ratusz"), (city_rooms[3], "Świątynia")):
             if not any(npc.get("room") == rid for npc in NPCS.values()):
