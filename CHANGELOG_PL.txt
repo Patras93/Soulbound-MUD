@@ -1,8 +1,17 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.00.20
+Aktualna paczka: v1.00.21
 
 ==============================================================================
 ==============================================================================
+Soulbound v1.00.21 — różne dialogi miejskich NPC
+==============================================================================
+
+- Rozszerzono wdrożenie z Issue #4 o zróżnicowanie wypowiedzi NPC powiązanych z lokalnymi historiami miast.
+- Zarządcy Miejscy, Łącznicy Poczty i Starsi Rzemieślnicy nie używają już jednego identycznego szablonu rozmowy we wszystkich miastach.
+- Każda rola ma 8 różnych wariantów wypowiedzi, dobieranych stabilnie według miasta; tekst nie zmienia się losowo po restarcie.
+- Dialogi nadal zawierają nazwę właściwego miasta i pozostają zgodne z istniejącymi questami, `quest_id`, nagrodami i save'ami.
+- Nie zmieniono mechaniki questów ani progresji.
+
 Soulbound v1.00.20 — unikalne nazwy questów zarządców miast
 ==============================================================================
 
