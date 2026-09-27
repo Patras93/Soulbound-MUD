@@ -1,8 +1,19 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.00.13
+Aktualna paczka: v1.00.14
 
 ==============================================================================
 ==============================================================================
+Soulbound v1.00.14 — godzinne zadania klasowe + statek lidera dla party
+==============================================================================
+
+- Dodano po jednym godzinnym zleceniu bojowym dla wszystkich 14 klas. `quest godzinne` pokazuje wyłącznie zlecenie pasujące do aktywnej klasy gracza.
+- Klasowe godzinówki liczą dowolnych przeciwników zabitych po przyjęciu, odnawiają się 60 minut po oddaniu i dają 40-50 reputacji właściwej Gildii klasowej oraz walutę.
+- Zlecenia klasowe korzystają z normalnego systemu questów: `quest godzinne`, `quest accept <nr>`, `quest`, `oddaj quest <nr>`.
+- Jednorazowe `zadanieklasowe` wymagane do egzaminu Soul 50 pozostaje bez zmian i nie resetuje się.
+- Lider drużyny może teraz zabrać na swój statek członków party stojących z nim w tej samej lokacji. Pasażer nie musi posiadać własnego statku.
+- Podczas wspólnej żeglugi wymagania Nawigacji i Kadłuba są sprawdzane według statku lidera; członkowie znajdujący się gdzie indziej nie są przenoszeni.
+- Brak zmian SQLite; wipe nie jest wymagany.
+
 Soulbound v1.00.13 — pasywne protokoły Meca bez kolejki
 ==============================================================================
 
