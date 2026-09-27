@@ -148,7 +148,7 @@ class SessionHelpSystemMixin:
                 "professions / profesje - 14 profesji 1-600: Wędkarstwo, Górnictwo, Drwalstwo, Zielarstwo, Gotowanie, Alchemia, Kowalstwo, Jubilerstwo, Krawiectwo, Garbarstwo, Stolarstwo, Zaklinanie, Archeologia, Kartografia",
                 "rangi / ranks - pełna lista rang profesji",
                 "tools / narzedzia - skrót wszystkich 14 narzędzi",
-                "wedka / kilof / pila / mlot / noz / sierp / mozdzierz / szczypce / zestaw krawiecki / noz garbarski / narzedzia ciesielskie / fokus runiczny / pedzel / kompas - pełne informacje o wybranym narzędziu",
+                "wedka / kilof / pila / mlot / noz / sierp / mozdzierz / szczypce / zestawkrawiecki / nozgarbarski / ciesielskie / fokus / pedzel / kompas - pełne informacje o wybranym narzędziu",
                 "tiers / tiery / nazwytierow - pełna lista Tierów wszystkich 14 narzędzi",
                 "fish / wedkuj / low - pojedynczy połów",
                 "low on / fish on - auto-łowienie",
