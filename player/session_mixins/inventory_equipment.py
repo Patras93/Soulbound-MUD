@@ -5,7 +5,7 @@
 import random
 from core.bootstrap_economy_professions import CURRENCY_SQLITE_SAFE_TOTAL, currency_reading_text, currency_unit_multiplier
 from core.mines_threat import EQUIPMENT_SLOT_ALIASES, EQUIPMENT_SLOT_NAMES, ITEMS, is_character_bound_item
-from core.progression_600 import CHARACTER_MAX_LEVEL, SOUL_MAX_LEVEL, SOUL_MAX_TIER
+from core.progression_600 import CLASS_MASTERY_MAX_LEVEL, SOUL_MAX_LEVEL, SOUL_MAX_TIER
 from network.protocol_gameplay_utils import (
     V03042_EQ_UPGRADE_MAX,
     find_by_name,
@@ -409,10 +409,9 @@ class SessionInventoryEquipmentMixin:
                     )
                     if fixed_stats:
                         extra += f" Statystyki bazowe: {fixed_stats}."
-                if row["item_id"] == "moogle_board" and item and item.get("cyborg_board_scaling") == "character_level":
-                    _level = int(self.character.character_level)
-                    _mb = moogle_board_stat_bonus_v0313(_level)
-                    extra += f" Skalowanie Moogle Board: Level postaci {_level}/{CHARACTER_MAX_LEVEL}, +{_mb} do Siły, Zręczności, Kondycji, Inteligencji i Siły Woli. Bonus zaczyna się od +20 na Levelu 150 i rośnie o +2 za każdy kolejny Level."
+                if row["item_id"] == "moogle_board" and item and item.get("cyborg_board_scaling") == "mec_mastery":
+                    _mb = moogle_board_stat_bonus_v0313(self.class_mastery_level("Mec"))
+                    extra += f" Skalowanie Moogle Board: Biegłość Meca {self.class_mastery_level('Mec')}/{CLASS_MASTERY_MAX_LEVEL}, +{_mb} do Siły, Zręczności, Kondycji, Inteligencji i Siły Woli."
                 if item and item.get("slot") in ("ring", "necklace"):
                     extra += " " + self.jewelry_socket_text(row["slot"], row["item_id"], item)
                 await self.send(f"{slot_name}: {name}. Obrona +{defense}.{extra}")

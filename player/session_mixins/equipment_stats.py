@@ -5,7 +5,7 @@
 import random
 from core.bootstrap_economy_professions import generator_core_v027
 from core.mines_threat import ITEMS
-from core.progression_600 import CHARACTER_MAX_LEVEL
+from core.progression_600 import CLASS_MASTERY_MAX_LEVEL
 from core.progression_resources import class_type_for_name
 from network.protocol_gameplay_utils import v03042_upgrade_defense_bonus, v03042_upgrade_primary_stat, v03042_upgrade_stat_bonus
 from systems.crafting_expansion import TECH_SET_ITEMS_V03114
@@ -17,12 +17,10 @@ from world.runtime_progression import V021_MYTHIC_SET_BONUS, v0210_world_tier_mu
 
 
 
-def moogle_board_stat_bonus_v0313(character_level):
-    """Bonus Moogle Board: od Levelu postaci 150, +20 i +2 za każdy kolejny Level."""
-    level = max(1, min(CHARACTER_MAX_LEVEL, int(character_level or 1)))
-    if level < 150:
-        return 0
-    return 20 + 2 * (level - 150)
+def moogle_board_stat_bonus_v0313(mec_mastery):
+    """Bonus Moogle Board do każdego głównego statu, skalowany Biegłością Meca."""
+    level = max(1, min(CLASS_MASTERY_MAX_LEVEL, int(mec_mastery or 1)))
+    return 2 + 2 * (level // 50)
 
 class SessionEquipmentStatsMixin:
     def equipped_item_rows(self):
@@ -57,9 +55,9 @@ class SessionEquipmentStatsMixin:
                     if stat in totals:
                         totals[stat] += int(amount)
 
-                # v1.00.5: Moogle Board skaluje się Level'em postaci niezależnie od klasy.
-                if row["item_id"] == "moogle_board" and item.get("cyborg_board_scaling") == "character_level":
-                    board_bonus = moogle_board_stat_bonus_v0313(self.character.character_level)
+                # v0.31.3: Moogle Board skaluje wszystkie główne staty z Biegłością Meca.
+                if row["item_id"] == "moogle_board" and item.get("cyborg_board_scaling") == "mec_mastery":
+                    board_bonus = moogle_board_stat_bonus_v0313(self.class_mastery_level("Mec"))
                     for stat in ("strength", "dexterity", "constitution", "intelligence", "willpower"):
                         totals[stat] += board_bonus
 

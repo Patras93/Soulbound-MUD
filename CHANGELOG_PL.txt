@@ -1,8 +1,17 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.00.5
+Aktualna paczka: v1.00.6
 
 ==============================================================================
 ==============================================================================
+Soulbound v1.00.6 — startup recovery hotfix
+==============================================================================
+
+- Railway potwierdził błąd wdrożenia dokładnie po zmianach Moogle Board z v1.00.5; ostatni commit v1.00.4 miał status deployment success.
+- Cofnięto wyłącznie kod Moogle Board z v1.00.5 do ostatniego działającego stanu, aby przywrócić start gry.
+- Zachowano wszystkie wcześniejsze poprawki Ocean 2.0, handlu morskiego, wersji logowania i changelogu.
+- Numer runtime i FAST PREDEPLOY ustawiono na v1.00.6. Brak zmian SQLite; wipe nie jest wymagany.
+- Nowe skalowanie Moogle Board zostanie wprowadzone ponownie osobnym, bezpieczniejszym patchem po ustaleniu dokładnej przyczyny awarii startu.
+
 Soulbound v1.00.5 — Moogle Board: skalowanie poziomem postaci
 ==============================================================================
 
