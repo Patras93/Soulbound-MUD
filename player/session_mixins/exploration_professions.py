@@ -152,8 +152,6 @@ class SessionExplorationProfessionsV1100Mixin:
             "Archeologia", base_xp, "archaeology", max(20, 35 + access)
         )
         self.server.db.add_lifetime_stat(self.account_id, "profession_actions", 1)
-        await self.v1100_profession_quest_progress("Archeologia", "archaeology")
-
         prefix = "NOWE ZNALEZISKO" if is_new else "Znalezisko"
         await self.send(f"{prefix}: {name} x{quantity}.")
         if is_new:
@@ -212,8 +210,6 @@ class SessionExplorationProfessionsV1100Mixin:
             "Kartografia", profession_xp, "cartography_profession", tool_xp
         )
         self.server.db.add_lifetime_stat(self.account_id, "profession_actions", 1)
-        await self.v1100_profession_quest_progress("Kartografia", "cartography_profession")
-
         name = room.get("name", room_id)
         if is_new:
             await self.send(f"NOWY POMIAR: {name}. Lokacja została wpisana do Atlasu Kartografa.")
