@@ -40,6 +40,8 @@ from systems.profession_quest_expansion import (
     PROFESSION_JOURNEY_IDS_BY_PROFESSION_V0710,
     EXPLORATION_GAP_QUEST_SPECS_V1110, EXPLORATION_GAP_STAGES_V1110,
     EXPLORATION_GAP_QUEST_IDS_V1110, EXPLORATION_GAP_IDS_BY_PROFESSION_V1110,
+    EXPLORATION_ORDER_SPECS_V1112, EXPLORATION_ORDER_STAGES_V1112,
+    EXPLORATION_ORDER_QUEST_IDS_V1112, EXPLORATION_ORDER_IDS_BY_PROFESSION_V1112,
 )
 
 
@@ -236,6 +238,8 @@ def courier_profession_expansion_audit_v0700():
                 errors.append(f"{qid}: exploration gap quest must repeat every 60 minutes")
             if int(q.get("reward_silver", 0) or 0) < 1001:
                 errors.append(f"{qid}: exploration reward below unified floor")
+            if int(q.get("character_xp_reward", 0) or 0) <= 1:
+                errors.append(f"{qid}: exploration Character XP must be >1")
             if not q.get("v1110_exploration_gap_quest"):
                 errors.append(f"{qid}: missing v1.11.0 exploration marker")
             if not q.get("v1111_repeatable_exploration"):
@@ -261,6 +265,37 @@ def courier_profession_expansion_audit_v0700():
         gaps = [b - a for a, b in zip(ordered, ordered[1:])]
         if gaps and max(gaps) > 25:
             errors.append(f"{profession}: quest threshold gap too large: {max(gaps)}")
+
+    # v1.11.2: Archeology and Cartography have dedicated permanent hourly orders.
+    if len(EXPLORATION_ORDER_SPECS_V1112) != 2:
+        errors.append(f"exploration order professions={len(EXPLORATION_ORDER_SPECS_V1112)}, expected 2")
+    if len(EXPLORATION_ORDER_STAGES_V1112) != 10:
+        errors.append(f"exploration order stages={len(EXPLORATION_ORDER_STAGES_V1112)}, expected 10")
+    if len(EXPLORATION_ORDER_QUEST_IDS_V1112) != 20:
+        errors.append(f"exploration orders={len(EXPLORATION_ORDER_QUEST_IDS_V1112)}, expected 20")
+    for profession, tool_type, npc_id, _owner, _action in EXPLORATION_ORDER_SPECS_V1112:
+        ids = tuple(EXPLORATION_ORDER_IDS_BY_PROFESSION_V1112.get(profession) or ())
+        if len(ids) != 10:
+            errors.append(f"{profession}: exploration order count={len(ids)}, expected 10")
+        attached = set((NPCS.get(npc_id) or {}).get("specialist_quests") or ())
+        for qid in ids:
+            q = QUESTS.get(qid) or {}
+            if qid not in attached:
+                errors.append(f"{qid}: exploration order not attached to {npc_id}")
+            if q.get("kind") != "profession_action":
+                errors.append(f"{qid}: exploration order kind={q.get('kind')}")
+            if q.get("required_profession") != profession or q.get("specialist_tool_type") != tool_type:
+                errors.append(f"{qid}: exploration order profession/tool mismatch")
+            if not q.get("repeatable") or int(q.get("repeat_cooldown", 0) or 0) != 60 * 60:
+                errors.append(f"{qid}: exploration order must repeat every 60 minutes")
+            if int(q.get("character_xp_reward", 0) or 0) <= 1:
+                errors.append(f"{qid}: exploration order Character XP must be >1")
+            if int(q.get("reward_profession_xp", 0) or 0) <= 0 or int(q.get("reward_tool_xp", 0) or 0) <= 0:
+                errors.append(f"{qid}: exploration order missing profession/tool XP")
+            if int(q.get("reward_silver", 0) or 0) < 1001:
+                errors.append(f"{qid}: exploration order reward below unified floor")
+            if not q.get("v1112_exploration_order"):
+                errors.append(f"{qid}: missing v1.11.2 exploration order marker")
 
     # v0.71.0: every one of 21 courier cities has a 3-stage local story.
     if len(CITY_STORY_QUESTS_BY_CITY_V0710) != 21:
@@ -370,6 +405,7 @@ def courier_profession_expansion_audit_v0700():
         "beginner_quests_added_v0701":len(BEGINNER_PROFESSION_QUEST_IDS_V0701),
         "profession_journey_quests_v0710":len(PROFESSION_JOURNEY_QUEST_IDS_V0710),
         "exploration_gap_quests_v1110":len(EXPLORATION_GAP_QUEST_IDS_V1110),
+        "exploration_orders_v1112":len(EXPLORATION_ORDER_QUEST_IDS_V1112),
         "city_story_quests_v0710":len(CITY_STORY_QUEST_IDS_V0710),
         "city_story_npcs_v0710":len(CITY_STORY_NPC_IDS_V0710),
         "recipe_groups":8,
