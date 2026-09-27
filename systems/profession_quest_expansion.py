@@ -251,11 +251,11 @@ PROFESSION_JOURNEY_METRICS_V0710 = {
 }
 
 
-# v1.11.0 - dense exploration quest coverage for Archeology and Cartography.
-# These one-time field assignments fill the level gaps left between the shared
-# profession journey and repeatable mastery contracts. They are intentionally
-# independent (no prerequisite chain), so an older character can pick up the
-# assignment for their current level without having to replay every earlier gap.
+# v1.11.1 - dense repeatable exploration quest coverage for Archeology and Cartography.
+# These hourly field assignments fill the level gaps left between the shared
+# profession journey and mastery contracts. They are independent (no prerequisite
+# chain), so an older character can take any unlocked assignment and repeat it
+# after the normal profession quest cooldown.
 EXPLORATION_GAP_QUEST_SPECS_V1110 = (
     ("Archeologia", "archaeology", "specialist_archaeology", "prowadź wykopaliska i dokumentuj znaleziska"),
     ("Kartografia", "cartography_profession", "specialist_cartography", "wykonuj pomiary i uzupełniaj atlas"),
@@ -324,8 +324,10 @@ for profession, tool_type, npc_id, action_text in EXPLORATION_GAP_QUEST_SPECS_V1
             "reward_gold": 0,
             "reward_mithril": 0,
             "reward_items": {},
-            "repeatable": False,
+            "repeatable": True,
+            "repeat_cooldown": QUEST_REPEAT_COOLDOWN_SECONDS,
             "v1110_exploration_gap_quest": True,
+            "v1111_repeatable_exploration": True,
         }
         catalog_assign(quest, "QUESTS", QUESTS, (quest_id,))
         generated.append(quest_id)
