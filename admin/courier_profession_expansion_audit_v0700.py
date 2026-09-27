@@ -38,6 +38,8 @@ from systems.profession_quest_expansion import (
     BEGINNER_PROFESSION_QUEST_IDS_V0701,
     PROFESSION_JOURNEY_STAGES_V0710, PROFESSION_JOURNEY_QUEST_IDS_V0710,
     PROFESSION_JOURNEY_IDS_BY_PROFESSION_V0710,
+    EXPLORATION_GAP_QUEST_SPECS_V1110, EXPLORATION_GAP_STAGES_V1110,
+    EXPLORATION_GAP_QUEST_IDS_V1110, EXPLORATION_GAP_IDS_BY_PROFESSION_V1110,
 )
 
 
@@ -195,6 +197,60 @@ def courier_profession_expansion_audit_v0700():
                 errors.append(f"{qid}: journey chain broken, expected requires_quest={previous}")
             previous = qid
 
+    # v1.11.0: Archeology and Cartography get dense gap-filling quests.
+    if len(EXPLORATION_GAP_QUEST_SPECS_V1110) != 2:
+        errors.append(
+            f"exploration professions={len(EXPLORATION_GAP_QUEST_SPECS_V1110)}, expected 2"
+        )
+    if len(EXPLORATION_GAP_STAGES_V1110) != 11:
+        errors.append(
+            f"exploration gap stages={len(EXPLORATION_GAP_STAGES_V1110)}, expected 11"
+        )
+    if len(EXPLORATION_GAP_QUEST_IDS_V1110) != 22:
+        errors.append(
+            f"exploration gap quests={len(EXPLORATION_GAP_QUEST_IDS_V1110)}, expected 22"
+        )
+
+    expected_exploration_levels = {
+        1, 10, 25, 50, 75, 100, 125, 150, 175, 200, 225, 250, 275, 300,
+        325, 350, 375, 400, 425, 450, 475, 500, 525, 550, 575, 600,
+    }
+    for profession, tool_type, npc_id, _action in EXPLORATION_GAP_QUEST_SPECS_V1110:
+        ids = tuple(EXPLORATION_GAP_IDS_BY_PROFESSION_V1110.get(profession) or ())
+        if len(ids) != 11:
+            errors.append(f"{profession}: exploration gap quest count={len(ids)}, expected 11")
+        attached = set((NPCS.get(npc_id) or {}).get("specialist_quests") or ())
+        for qid in ids:
+            q = QUESTS.get(qid) or {}
+            if qid not in attached:
+                errors.append(f"{qid}: exploration gap quest not attached to {npc_id}")
+            if q.get("kind") != "profession_action":
+                errors.append(f"{qid}: exploration gap kind={q.get('kind')}")
+            if q.get("required_profession") != profession:
+                errors.append(f"{qid}: exploration profession mismatch")
+            if q.get("specialist_tool_type") != tool_type:
+                errors.append(f"{qid}: exploration tool mismatch")
+            if q.get("repeatable"):
+                errors.append(f"{qid}: exploration gap quest must be one-time")
+            if not q.get("v1110_exploration_gap_quest"):
+                errors.append(f"{qid}: missing v1.11.0 exploration marker")
+
+        coverage = set()
+        for qid, q in QUESTS.items():
+            qprof = q.get("required_profession") or q.get("reward_profession")
+            if qprof != profession:
+                continue
+            level = int(q.get("min_profession_level", 1) or 1)
+            if 1 <= level <= 600:
+                coverage.add(level)
+        missing_levels = sorted(expected_exploration_levels - coverage)
+        if missing_levels:
+            errors.append(f"{profession}: missing dense quest thresholds {missing_levels}")
+        ordered = sorted(coverage.intersection(expected_exploration_levels))
+        gaps = [b - a for a, b in zip(ordered, ordered[1:])]
+        if gaps and max(gaps) > 25:
+            errors.append(f"{profession}: quest threshold gap too large: {max(gaps)}")
+
     # v0.71.0: every one of 21 courier cities has a 3-stage local story.
     if len(CITY_STORY_QUESTS_BY_CITY_V0710) != 21:
         errors.append(f"city stories={len(CITY_STORY_QUESTS_BY_CITY_V0710)}, expected 21")
@@ -302,6 +358,7 @@ def courier_profession_expansion_audit_v0700():
         "beginner_professions":sum(1 for ids in beginner_by_profession.values() if ids),
         "beginner_quests_added_v0701":len(BEGINNER_PROFESSION_QUEST_IDS_V0701),
         "profession_journey_quests_v0710":len(PROFESSION_JOURNEY_QUEST_IDS_V0710),
+        "exploration_gap_quests_v1110":len(EXPLORATION_GAP_QUEST_IDS_V1110),
         "city_story_quests_v0710":len(CITY_STORY_QUEST_IDS_V0710),
         "city_story_npcs_v0710":len(CITY_STORY_NPC_IDS_V0710),
         "recipe_groups":8,
