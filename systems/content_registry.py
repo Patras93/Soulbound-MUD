@@ -2736,7 +2736,7 @@ HELP_TOPICS["braki"] = [
     "braki / gaps / missing - pokazuje wyłącznie to, czego brakuje do najbliższych ważnych celów progresji.",
     "Level postaci: brakujący EXP do następnego Character Levelu.",
     "Soul Tier: brakujący Soul Level lub dokładny stan właściwej Próby Broni Duszy, a po jej ukończeniu przypomnienie o unlock.",
-    "Profesje: dla każdej z 12 profesji brakujący XP do następnego poziomu albo informacja o maksimum.",
+    "Profesje: dla każdej z 14 profesji brakujący XP do następnego poziomu albo informacja o maksimum.",
     "Gildia gracza: brakująca waluta w skarbcu do następnego poziomu Gildii.",
     "Kolekcje: liczba brakujących wpisów do 100% i trzy kategorie najbliższe ukończenia.",
     "Aktywne cele: do pięciu aktywnych questów oraz aktywna Tablica Zleceń, Legendarny Kontrakt i dostawa kurierska.",
@@ -2746,7 +2746,7 @@ HELP_TOPIC_ALIASES.update({"gaps": "braki", "missing": "braki"})
 
 # v0.60.0 - rotating crafting orders and inventory EQ comparison.
 HELP_TOPICS["zamowienia_rzemieslnicze"] = [
-    "zamowienia / zamówienia / orders - pokaż do 3 rotujących ofert lokalnego specjalisty; od v0.71.3 system obejmuje wszystkie 12 profesji i odświeża się co 60 minut.",
+    "zamowienia / zamówienia / orders - pokaż do 3 rotujących ofert lokalnego specjalisty; system obejmuje wszystkie 14 profesji i odświeża się co 60 minut.",
     "zamowienia wez <numer> - przyjmij ofertę. Jednocześnie możesz mieć jedno aktywne zamówienie, ale każdą dostępną ofertę możesz ukończyć raz w danym cyklu; ukończenie jednej nie blokuje pozostałych.",
     "Wędkarstwo, Górnictwo, Drwalstwo i Zielarstwo liczą wyłącznie świeżo zebrane surowce po przyjęciu; przy oddaniu wymagana ilość jest pobierana z właściwego magazynu profesji lub ekwipunku.",
     "Zaklinanie liczy wyłącznie udane akcje zaklinania wykonane po przyjęciu; przy oddaniu nie pobiera się drugiego produktu.",
@@ -2792,7 +2792,7 @@ HELP_TOPIC_ALIASES.update({"poczta graczy":"mail", "player mail":"mail", "mail a
 
 # v0.70.0 - Courier & Profession Expansion
 HELP_TOPICS["questy_profesji_0700"] = [
-    "Każda z 12 profesji ma 4 nowe kontrakty mistrzowskie na poziomach 50, 150, 300 i 500.",
+    "Każda z 14 profesji ma 4 kontrakty mistrzowskie na poziomach 50, 150, 300 i 500.",
     "Kontrakty liczą rzeczywiste akcje profesji wykonane dopiero po przyjęciu zadania; nagrody XP z questów nie nabijają ich ponownie.",
     "Questy są odnawialne niezależnie i odbiera się je u mistrza danej profesji.",
 ]
