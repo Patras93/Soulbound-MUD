@@ -10,6 +10,12 @@ import os
 import socket
 import tempfile
 from collections import Counter, defaultdict
+from config.balance import (
+    CHARACTER_XP_REQUIREMENT_MULTIPLIER,
+    PROFESSION_XP_REQUIREMENT_MULTIPLIERS,
+    STAT_XP_REQUIREMENT_MULTIPLIER,
+    TOOL_XP_REQUIREMENT_MULTIPLIERS,
+)
 
 
 def audit(runtime):
@@ -98,9 +104,25 @@ def audit(runtime):
     for name, row in by_stage.items():
         summary[name] = {key: (round(sum(value) / len(value), 1) if value else 0) if isinstance(value, list) else value for key, value in row.items()}
     ocean_fish = {key: item for key, item in items.items() if item.get("deep_ocean")}
+    generator = runtime.generator_core_v027
+    progression = {}
+    for stage in (1, 50, 100, 200, 300, 400, 500, 600):
+        sample = {}
+        for axis in ("character", "class", "soul", "profession", "tool", "stat"):
+            multiplier = {
+                "character": CHARACTER_XP_REQUIREMENT_MULTIPLIER,
+                "profession": PROFESSION_XP_REQUIREMENT_MULTIPLIERS.get("Wędkarstwo", 1),
+                "tool": TOOL_XP_REQUIREMENT_MULTIPLIERS.get("fishing", 1),
+                "stat": STAT_XP_REQUIREMENT_MULTIPLIER,
+            }.get(axis, 1)
+            required = generator.axis_requirement(axis, stage) * multiplier
+            gained = generator.axis_gain(axis, stage)
+            sample[axis] = round(required / gained, 2)
+        progression[stage] = sample
     return {
         "quests": len(quests), "mobs": len(mobs), "items": len(items), "rooms": len(rooms), "npcs": len(npcs),
         "quest_kinds": dict(kinds), "bands": summary,
+        "equal_stage_actions_per_level": progression,
         "ocean_economy": {
             "ship_purchase_silver": 25_000,
             "one_module_levels_2_to_5_silver": sum(12_500 * level * level for level in range(2, 6)),
