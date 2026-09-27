@@ -1,8 +1,17 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.00.2
+Aktualna paczka: v1.00.3
 
 ==============================================================================
 ==============================================================================
+Soulbound v1.00.3 — Ocean 2.0 audit consistency hotfix
+==============================================================================
+
+- Sprawdzono routing `handel morski porzuc`: parser poprawnie kieruje `handel morski ...` do modułu Ocean 2.0, a porzucenie usuwa aktywny kontrakt i jego postęp.
+- Sprawdzono integrację ruchu z kontraktami: każdy zwykły krok przez `move()` aktualizuje postęp rejsu, sygnalizuje start/zejście ze szlaku/dopłynięcie i zachowuje wyjątek dla wejścia do podwodnych ruin oraz powrotu na ten sam sektor.
+- Uzupełniono `help ocean` o `handel morski porzuc` oraz aliasy `porzuć` / `anuluj`.
+- Zaktualizowano etykiety wersji FAST PREDEPLOY z v1.00.1 do v1.00.3, aby log Railway pokazywał bieżącą wersję.
+- Nie zmieniono balansu, nagród, tras ani schematu SQLite; wipe nie jest wymagany.
+
 Soulbound v1.00.2 — Handel morski: porzucenie kontraktu
 ==============================================================================
 
