@@ -123,6 +123,27 @@ def fast_predeploy_audit_v0571():
         errors.append(f"runtime manifest duplicate: {rel}")
     errors.extend(f"Python syntax failure: {item}" for item in syntax_errors)
 
+    # 2c. v1.10.7: compile every Python source in the repository, not only
+    # modules that participate in the production runtime manifest. This catches
+    # broken admin/validation/history files before they reach a release.
+    all_python_files = sorted(
+        path for path in ROOT.rglob("*.py")
+        if "__pycache__" not in path.parts
+    )
+    all_source_syntax_errors = []
+    for path in all_python_files:
+        try:
+            compile(path.read_text(encoding="utf-8"), str(path), "exec")
+        except Exception as exc:
+            rel = path.relative_to(ROOT).as_posix()
+            all_source_syntax_errors.append(
+                f"{rel}: {type(exc).__name__}: {exc}"
+            )
+    errors.extend(
+        f"Repository Python syntax failure: {item}"
+        for item in all_source_syntax_errors
+    )
+
     # 2a. Mirror native_runtime's top-level symbol ownership guard without
     # executing the full world. This catches deployment crashes such as v0.58.2
     # defining the same helper function name in two audit modules.
@@ -277,6 +298,8 @@ def fast_predeploy_audit_v0571():
         "missing_manifest_files": missing_manifest_files,
         "duplicate_manifest_files": duplicate_manifest_files,
         "syntax_error_count": len(syntax_errors),
+        "all_python_source_count": len(all_python_files),
+        "all_source_syntax_error_count": len(all_source_syntax_errors),
         "unexpected_symbol_overrides": unexpected_symbol_overrides,
         "expected_override_order_mismatches": expected_order_mismatches,
         "critical_import_ok": critical_import_ok,
