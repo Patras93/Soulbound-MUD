@@ -16,8 +16,18 @@ from world.equipment_help import QUEST_REPEAT_COOLDOWN_SECONDS
 class SessionQuestOffersMixin:
 
     def hourly_quest_ids(self, at_time=None):
-            """Pełna lista godzinnych zleceń; bez rotacji."""
-            return [qid for qid in HOURLY_QUEST_IDS if qid in QUESTS]
+            """Pełna lista godzinnych zleceń + klasowe dla aktywnej klasy."""
+            active_classes = set(self.active_class_names())
+            result = []
+            for qid in HOURLY_QUEST_IDS:
+                quest = QUESTS.get(qid)
+                if not quest:
+                    continue
+                required_class = quest.get("required_class")
+                if required_class and required_class not in active_classes:
+                    continue
+                result.append(qid)
+            return result
 
     async def show_hourly_quests(self):
             quest_ids = self.hourly_quest_ids()
@@ -58,6 +68,10 @@ class SessionQuestOffersMixin:
                     "wymaga ukończenia: "
                     + previous.get("name", required_quest)
                 )
+
+            required_class = str(quest.get("required_class") or "").strip()
+            if required_class and required_class not in self.active_class_names():
+                reasons.append(f"wymaga aktywnej klasy {required_class}")
 
             required_soul_level = int(quest.get("required_soul_level", 0) or 0)
             if required_soul_level and self.character.soul_level < required_soul_level:
