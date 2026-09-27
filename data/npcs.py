@@ -132,6 +132,30 @@ NPCS = {
             "orin_alchemy_order_master",
         ),
     },
+    "specialist_archaeology": {
+        "name": "Archeolożka Mira", "room": "library",
+        "rank_profession": "Archeologia",
+        "dialogue": (
+            "Prowadzę badania ruin, krypt, cmentarzy, świątyń i dawnych archiwów. "
+            "Pędzel Archeologa kupujesz u mnie tylko raz na postać. "
+            "W terenie używaj wykop, a archeologia pokazuje postęp i kolekcję znalezisk."
+        ),
+        "specialist_tool_type": "archaeology",
+        "specialist_topic": "archeologia",
+        "shopkeeper": True,
+    },
+    "specialist_cartography": {
+        "name": "Mistrzyni Kartografii Alena", "room": "v016_cartographers_archive",
+        "rank_profession": "Kartografia",
+        "dialogue": (
+            "Dokumentujemy cały świat: miasta, rubieże, lochy, wyspy i sektory proceduralne. "
+            "Kompas Mierniczy kupujesz tylko raz na postać. "
+            "Używaj mapuj w odwiedzanych lokacjach, aby rozwijać Kartografię 1-600."
+        ),
+        "specialist_tool_type": "cartography_profession",
+        "specialist_topic": "kartografia",
+        "shopkeeper": True,
+    },
     "banker_aldren": {
         "name": "Bankier Aldren", "room": "market",
         "dialogue": (
