@@ -1,5 +1,22 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.10.7
+Aktualna paczka: v1.11.0
+
+==============================================================================
+==============================================================================
+Soulbound v1.11.0 — Archeologia i Kartografia: gęsta ścieżka questów
+==============================================================================
+
+- Dodano 22 nowe jednorazowe questy: 11 dla Archeologii i 11 dla Kartografii.
+- Nowe progi: poziom profesji 10, 125, 175, 225, 275, 325, 375, 425, 475, 525 i 575.
+- W połączeniu z istniejącymi questami progi obu profesji tworzą teraz gęstą ścieżkę: 1, 10, 25, 50, 75, 100, 125, 150, 175, 200, 225, 250, 275, 300, 325, 350, 375, 400, 425, 450, 475, 500, 525, 550, 575 i 600.
+- Archeologia otrzymała serię Badania Archeologiczne u Elary.
+- Kartografia otrzymała serię Ekspedycje Kartograficzne u Aleny.
+- Nowe questy są niezależne od starego łańcucha Drogi Mistrza, więc starsza postać może rozpocząć odpowiedni etap dla swojego poziomu bez nadrabiania wszystkich wcześniejszych etapów.
+- Każdy quest używa prawdziwych akcji profesji: wykop dla Archeologii i mapuj dla Kartografii.
+- Nagrody skalują się z poziomem: EXP profesji, EXP narzędzia oraz srebro.
+- Audyt startowy wymaga dokładnie 22 nowych questów i sprawdza pełne pokrycie progów obu profesji do poziomu 600.
+- Audyt blokuje start, jeśli między kolejnymi progami Archeologii/Kartografii powstanie luka większa niż 25 poziomów.
+- Brak zmian schematu SQLite i brak wipe'a save'ów.
 
 ==============================================================================
 ==============================================================================
