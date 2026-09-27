@@ -1,5 +1,16 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.10.0
+Aktualna paczka: v1.10.1
+
+==============================================================================
+==============================================================================
+Soulbound v1.10.1 — hotfix audytu 14 profesji
+==============================================================================
+
+- Naprawiono crash Railway po v1.10.0.
+- `systems/full_systems_audit_v03062.py` nie oczekuje już starej liczby 12 profesji; audyt wymaga teraz dokładnie 14.
+- Audyt sprawdza też mapowanie nowych typów narzędzi: `archaeology -> Archeologia` oraz `cartography_profession -> Kartografia`.
+- Zachowano Archeologię i Kartografię 1-600, ich narzędzia oraz wszystkie questy/progresję z v1.10.0.
+- Brak zmian SQLite; wipe nie jest wymagany.
 
 ==============================================================================
 ==============================================================================
