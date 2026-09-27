@@ -1,5 +1,17 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.11.0
+Aktualna paczka: v1.11.1
+
+==============================================================================
+==============================================================================
+Soulbound v1.11.1 — hotfix nagród questów eksploracyjnych
+==============================================================================
+
+- Naprawiono crash Railway po v1.11.0.
+- Dwa nowe questy poziomu 10 dla Archeologii i Kartografii miały po 1000 srebra, podczas gdy globalny Hybrid Quest Reward Audit wymaga co najmniej 1001 srebra dla automatycznych nagród.
+- Nagroda obu questów poziomu 10 wynosi teraz 1500 srebra.
+- Dodano dodatkowy audit guard dla wszystkich 22 nowych questów eksploracyjnych: żaden nie może mieć nagrody walutowej poniżej globalnego floor 1001.
+- Pozostałe progi i nagrody v1.11.0 pozostają bez zmian.
+- Brak zmian SQLite i brak wipe'a save'ów.
 
 ==============================================================================
 ==============================================================================
