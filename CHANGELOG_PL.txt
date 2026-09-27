@@ -1,5 +1,17 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.10.4
+Aktualna paczka: v1.10.5
+
+==============================================================================
+==============================================================================
+Soulbound v1.10.5 — postęp questów profesji + naprawa oddawania
+==============================================================================
+
+- Naprawiono brak bieżących komunikatów postępu w questach typu `profession_action`: każda prawdziwa akcja profesji pokazuje teraz nazwę questa oraz `X z Y`, a po osiągnięciu celu komunikat `GOTOWE DO ODDANIA`.
+- Poprawka obejmuje wszystkie 14 profesji, nie tylko Archeologię i Kartografię.
+- Naprawiono crash po oddaniu questów Archeologii/Kartografii z nagrodą XP narzędzia: mapy nazw narzędzi znały tylko stare 12 typów.
+- `Pędzel Archeologa` i `Kompas Mierniczy` są teraz obsługiwane także przy nagrodach questowych i komunikatach XP.
+- Zachowano poprawki v1.10.4 dotyczące `wykop`, `mapuj` oraz filtrowania questów Elary/Aleny.
+- Brak zmian SQLite; wipe nie jest wymagany.
 
 ==============================================================================
 ==============================================================================
