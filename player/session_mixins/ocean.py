@@ -232,6 +232,13 @@ class SessionOceanV1000Mixin:
                     links.setdefault(end, set()).add(start)
         progress = int(row["route_progress"])
         current = row["route_current_room"] or (path[progress] if 0 < progress < len(path) else row["origin_room"])
+        # A visit to the submerged ruins is a detour from a sea sector, not
+        # abandonment of the voyage. Returning to that sector resumes it.
+        if progress and (
+            old_room == current and ROOMS.get(new_room, {}).get("underwater")
+            or new_room == current and ROOMS.get(old_room, {}).get("underwater")
+        ):
+            return None
         if current == old_room and new_room in links.get(old_room, ()):
             progress += 1
             current = new_room
@@ -239,6 +246,7 @@ class SessionOceanV1000Mixin:
             progress = 1
             current = new_room
         else:
+            was_underway = progress > 0
             progress = 0
             current = ""
         verified = int(progress > 0 and current == row["destination_room"])
@@ -247,6 +255,13 @@ class SessionOceanV1000Mixin:
             (progress, current, verified, self.account_id),
         )
         self.server.db.conn.commit()
+        if verified:
+            return "complete"
+        if progress == 1:
+            return "started"
+        if progress == 0 and was_underway:
+            return "lost"
+        return None
 
     async def ocean_trade_v1000(self, args=""):
         text = str(args or "").strip().lower()
@@ -263,7 +278,13 @@ class SessionOceanV1000Mixin:
                 await self.send(f"Ładunek trzeba dostarczyć do: {ROOMS.get(row['destination_room'],{}).get('name',row['destination_room'])}.")
                 return
             if not int(row["arrival_verified"]):
-                await self.send("Kontrakt wymaga przepłynięcia szlaku od portu nadania do celu. Wróć do portu nadania i rozpocznij rejs.")
+                progress = int(row["route_progress"])
+                last_room = row["route_current_room"]
+                await self.send(
+                    f"Kontrakt nie ma potwierdzonego dopłynięcia. Zaliczone kroki: {progress}. "
+                    f"Ostatni zaliczony sektor: {ROOMS.get(last_room, {}).get('name', 'port nadania')}. "
+                    "Jeżeli postęp wynosi 0, wróć do portu nadania i rozpocznij rejs."
+                )
                 return
             reward = int(row["reward_silver"])
             wallet = self.character_wallet_silver_value()
@@ -307,6 +328,11 @@ class SessionOceanV1000Mixin:
         if row and row["contract_key"]:
             await self.send(
                 f"AKTYWNY HANDEL MORSKI: {row['cargo_label']}. Cel: {ROOMS.get(row['destination_room'],{}).get('name',row['destination_room'])}. Nagroda {currency_reading_text(row['reward_silver'])}."
+            )
+            await self.send(
+                f"Postęp rejsu: {int(row['route_progress'])} kroków. "
+                f"Ostatni zaliczony sektor: {ROOMS.get(row['route_current_room'], {}).get('name', 'port nadania')}. "
+                f"Dopłynięcie: {'potwierdzone' if int(row['arrival_verified']) else 'niepotwierdzone'}."
             )
         offers = [o for o in self.ocean_trade_offers_v1000() if o[1] == self.character.room_id]
         await self.send("HANDEL MORSKI — OFERTY W TYM PORCIE")
