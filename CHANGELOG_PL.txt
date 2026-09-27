@@ -1,5 +1,20 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.00.23
+Aktualna paczka: v1.00.24
+
+==============================================================================
+==============================================================================
+Soulbound v1.00.24 — godzinne questy miejskie + więcej szkodników
+==============================================================================
+
+- Reputacja każdego miasta i osady pozostaje rozwijana w pełnym zakresie 1-600.
+- Wszystkie trzy lokalne questy Zarządcy Miejskiego w każdym mieście są teraz powtarzalne i odnawiają się niezależnie 60 minut po ukończeniu.
+- Wszystkie trzy questy linii Miasta 2.0 (Kronikarz / Kapitan Straży) w każdym mieście również odnawiają się co 60 minut.
+- Nagrody reputacji miejskiej pozostają przypisane do właściwego miasta, więc godzinne questy mogą regularnie rozwijać reputację aż do 600.
+- Zwiększono liczbę Podziemnych Szkodników w podziemiach każdego miasta z 9 do 28 aktywnych spawnów.
+- Dwa bojowe etapy miejskie wymagają łącznie 24 zabicia (8 + 16), dlatego nowa liczba spawnów pozwala wykonać pełny cykl bez czekania na respawn.
+- Audyt Miast 2.0 sprawdza teraz godzinny cooldown wszystkich miejskich questów oraz co najmniej 28 spawnów zagrożeń na miasto.
+- Zaktualizowano pomoc reputacji miast: limit 600, nowe rangi 450/500/550/600 i maksymalny bonus kurierski +20%.
+- Brak zmian schematu SQLite; istniejące save'y zachowują reputacje i historię questów. Wipe nie jest wymagany.
 
 ==============================================================================
 ==============================================================================
