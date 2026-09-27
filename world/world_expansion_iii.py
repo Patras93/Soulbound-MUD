@@ -225,7 +225,7 @@ for city_index, city in enumerate(tuple(POSTAL_CITY_HUBS_V0522.keys()), 1):
     q3 = f"v0710_city_{slug}_3"
     quests = (
         (q1, {
-            "name": f"{city}: Poznaj lokalne sprawy",
+            "name": f"Szlaki {city}: rozmowa z Łącznikiem Poczty",
             "giver": f"Zarządca Miejski — {city}",
             "kind": "talk_npc",
             "target_npc": liaison_id,
@@ -236,7 +236,7 @@ for city_index, city in enumerate(tuple(POSTAL_CITY_HUBS_V0522.keys()), 1):
             "repeatable": False, "v0710_city_story": True,
         }),
         (q2, {
-            "name": f"{city}: Głos warsztatów",
+            "name": f"Warsztaty {city}: rozmowa ze Starszym Rzemieślnikiem",
             "giver": f"Zarządca Miejski — {city}",
             "kind": "talk_npc",
             "target_npc": artisan_id,
@@ -248,7 +248,7 @@ for city_index, city in enumerate(tuple(POSTAL_CITY_HUBS_V0522.keys()), 1):
             "repeatable": False, "v0710_city_story": True,
         }),
         (q3, {
-            "name": f"{city}: Pieczęć zaufania",
+            "name": f"Sprawy miejskie {city}: dostawa pakietu do Poczty",
             "giver": f"Zarządca Miejski — {city}",
             "kind": "deliver_npc",
             "target_npc": liaison_id,
