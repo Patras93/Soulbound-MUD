@@ -1128,8 +1128,18 @@ HELP_TOPICS.setdefault("inzynier", []).extend([
     "Hypercharge pasywnie wzmacnia single-target, Lindblum Assembly obszarowe narzędzia, a Improved Kinematics wydłuża efekty statusowe.",
 ])
 HELP_TOPICS.setdefault("narzedzia", []).append(
-    "v0.31.7: wszystkie 12 profesji ma dokładnie jedno kupowalne, przypisane do postaci narzędzie. Ponowny zakup tej samej postaci jest blokowany."
+    "v1.10.0: wszystkie 14 profesji ma dokładnie jedno kupowalne, przypisane do postaci narzędzie. Ponowny zakup tej samej postaci jest blokowany."
 )
+HELP_TOPICS["archeologia"] = [
+    "Archeologia jest pełną profesją 1-600. Pędzel Archeologa kupujesz tylko raz na postać u Archeolożki Miry w Bibliotece.",
+    "W ruinach, kryptach, na cmentarzach, w świątyniach, archiwach, Magiteku i innych pradawnych miejscach użyj wykop.",
+    "archeologia kolekcja pokazuje 21 unikalnych znalezisk od poziomu 1 do 600.",
+]
+HELP_TOPICS["kartografia_profesja"] = [
+    "Kartografia jest pełną profesją 1-600. Kompas Mierniczy kupujesz tylko raz na postać u Mistrzyni Kartografii Aleny w Archiwum Rubieży.",
+    "Użyj mapuj w dowolnej odwiedzanej lokacji. Pierwszy pomiar lokacji dopisuje ją do Atlasu Kartografa.",
+    "kartografia pokazuje profesję i postęp; kartografia świat otwiera starszy system map świata.",
+]
 
 # v0.31.8: Mec support semantics + tool migration clarification.
 try:
