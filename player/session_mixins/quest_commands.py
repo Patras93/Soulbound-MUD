@@ -18,8 +18,52 @@ from events.contracts import QuestCompletedEvent
 
 class SessionQuestCommandsMixin:
 
+    def validate_quest_rewards_v1106(self, quest_id, quest):
+            errors = []
+
+            reward_items = quest.get("reward_items") or {}
+            if not isinstance(reward_items, dict):
+                errors.append("reward_items nie jest słownikiem")
+            else:
+                for item_id, qty in reward_items.items():
+                    if item_id not in ITEMS:
+                        errors.append(f"nieznany przedmiot nagrody: {item_id}")
+                    try:
+                        if int(qty) <= 0:
+                            errors.append(f"nieprawidłowa ilość nagrody {item_id}: {qty}")
+                    except Exception:
+                        errors.append(f"nieprawidłowa ilość nagrody {item_id}: {qty}")
+
+            reward_prof_xp = int(quest.get("reward_profession_xp", 0) or 0)
+            reward_tool_xp = int(quest.get("reward_tool_xp", 0) or 0)
+            reward_tool_type = quest.get("reward_tool_type")
+            reward_profession = (
+                quest.get("reward_profession")
+                or profession_for_tool_type(reward_tool_type)
+            )
+
+            if reward_prof_xp:
+                if not reward_profession:
+                    errors.append("brak profesji dla nagrody EXP profesji")
+                if not reward_tool_type or not self.valid_tool_type(reward_tool_type):
+                    errors.append(f"nieznany typ narzędzia nagrody: {reward_tool_type}")
+
+            if reward_tool_xp and (
+                not reward_tool_type or not self.valid_tool_type(reward_tool_type)
+            ):
+                errors.append(f"nieznany typ narzędzia nagrody: {reward_tool_type}")
+
+            return errors
+
     async def complete_quest(self, quest_id):
             q = QUESTS[quest_id]
+            reward_errors = self.validate_quest_rewards_v1106(quest_id, q)
+            if reward_errors:
+                await self.send(
+                    f"Nie można bezpiecznie ukończyć questa {q.get('name', quest_id)}. "
+                    "Błąd konfiguracji nagrody: " + "; ".join(reward_errors) + "."
+                )
+                return
             self.server.db.complete_quest(self.account_id, quest_id)
             self.cleanup_quest_map_artifacts_v0243(quest_id, allow_legacy_generic=False)
             self.server.db.add_lifetime_stat(self.account_id, "quests_completed", 1)
@@ -104,7 +148,7 @@ class SessionQuestCommandsMixin:
             quest_character_xp=v0270_quest_character_reward(q)
             for _msg in self.add_character_xp_with_event(quest_character_xp):
                 await self.send(_msg)
-            for item_id, qty in q["reward_items"].items():
+            for item_id, qty in (q.get("reward_items") or {}).items():
                 self.server.db.add_item(self.account_id, item_id, qty)
                 await self.record_item_collection(
                     item_id,
@@ -168,7 +212,7 @@ class SessionQuestCommandsMixin:
                     f"{turnin_npc} wręcza ci nagrodę: "
                     + currency_reading_text(quest_coins,0,0) + "."
                 )
-            for item_id, qty in q["reward_items"].items():
+            for item_id, qty in (q.get("reward_items") or {}).items():
                 await self.send(
                     f"{turnin_npc} wręcza ci nagrodę: "
                     f"{ITEMS[item_id]['name']} x{qty}."
