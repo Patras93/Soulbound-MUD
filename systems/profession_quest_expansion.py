@@ -320,6 +320,7 @@ for profession, tool_type, npc_id, action_text in EXPLORATION_GAP_QUEST_SPECS_V1
             "reward_profession_xp": int(prof_xp),
             "reward_tool_type": tool_type,
             "reward_tool_xp": int(tool_xp),
+            "character_xp_reward": max(25, int(prof_xp) // 2),
             "reward_silver": int(silver),
             "reward_gold": 0,
             "reward_mithril": 0,
@@ -340,4 +341,93 @@ EXPLORATION_GAP_METRICS_V1110 = {
     "profession_count": len(EXPLORATION_GAP_QUEST_SPECS_V1110),
     "stages_per_profession": len(EXPLORATION_GAP_STAGES_V1110),
     "quest_count": len(EXPLORATION_GAP_QUEST_IDS_V1110),
+}
+
+
+# v1.11.2 - stałe godzinne zamówienia dla Archeologii i Kartografii.
+# To osobna seria obok Mistrzostwa, Drogi Mistrza, rotujących zamówień i
+# ekspedycji v1.11.1. Każdy etap jest niezależny i odnawia się po godzinie.
+EXPLORATION_ORDER_SPECS_V1112 = (
+    ("Archeologia", "archaeology", "specialist_archaeology", "Elary", "wykopaliska"),
+    ("Kartografia", "cartography_profession", "specialist_cartography", "Aleny", "pomiary terenu"),
+)
+
+# min profession level, actions, profession XP, tool XP, Character XP, silver
+EXPLORATION_ORDER_STAGES_V1112 = (
+    (25, 6, 800, 500, 400, 1800),
+    (75, 8, 1900, 1200, 950, 4000),
+    (100, 9, 2800, 1800, 1400, 5500),
+    (200, 12, 6500, 4200, 3250, 12500),
+    (250, 14, 8800, 5700, 4400, 18000),
+    (350, 16, 14000, 9200, 7000, 32000),
+    (400, 18, 18000, 12000, 9000, 42000),
+    (450, 20, 23000, 15000, 11500, 52000),
+    (550, 24, 36000, 23000, 18000, 78000),
+    (600, 30, 52000, 33000, 26000, 105000),
+)
+
+EXPLORATION_ORDER_QUEST_IDS_V1112 = []
+EXPLORATION_ORDER_IDS_BY_PROFESSION_V1112 = {}
+
+for profession, tool_type, npc_id, owner_word, action_label in EXPLORATION_ORDER_SPECS_V1112:
+    if npc_id not in NPCS:
+        raise RuntimeError(f"v1.11.2 missing exploration order NPC: {npc_id}")
+    npc = NPCS[npc_id]
+    giver = str(npc.get("name") or npc_id)
+    current = list(npc.get("specialist_quests") or ())
+    generated = []
+    for stage_no, (min_level, needed, prof_xp, tool_xp, char_xp, silver) in enumerate(EXPLORATION_ORDER_STAGES_V1112, 1):
+        quest_id = f"v1112_order_{_slug(tool_type)}_{min_level}"
+        if quest_id in QUESTS:
+            raise RuntimeError(f"v1.11.2 duplicate exploration order id: {quest_id}")
+        if profession == "Archeologia":
+            title = f"Zamówienie {owner_word} {stage_no}: dokumentacja wykopalisk"
+            objective = (
+                f"Wykonaj {needed} nowych wykopalisk i przygotuj dokumentację znalezisk "
+                f"dla Archeolożki Elary."
+            )
+        else:
+            title = f"Zamówienie {owner_word} {stage_no}: aktualizacja atlasu"
+            objective = (
+                f"Wykonaj {needed} nowych pomiarów terenu i przygotuj aktualizację Atlasu "
+                f"dla Mistrzyni Kartografii Aleny."
+            )
+        quest = {
+            "name": title,
+            "giver": giver,
+            "kind": "profession_action",
+            "target": profession,
+            "needed": int(needed),
+            "description": (
+                f"{objective} Liczą się wyłącznie {action_label} wykonane po przyjęciu zamówienia. "
+                "Zamówienie odnawia się po 60 minutach od ukończenia."
+            ),
+            "required_profession": profession,
+            "min_profession_level": int(min_level),
+            "generator_level": int(min_level),
+            "specialist_tool_type": tool_type,
+            "reward_profession": profession,
+            "reward_profession_xp": int(prof_xp),
+            "reward_tool_type": tool_type,
+            "reward_tool_xp": int(tool_xp),
+            "character_xp_reward": int(char_xp),
+            "reward_silver": int(silver),
+            "reward_gold": 0,
+            "reward_mithril": 0,
+            "reward_items": {},
+            "repeatable": True,
+            "repeat_cooldown": QUEST_REPEAT_COOLDOWN_SECONDS,
+            "v1112_exploration_order": True,
+        }
+        catalog_assign(quest, "QUESTS", QUESTS, (quest_id,))
+        generated.append(quest_id)
+        EXPLORATION_ORDER_QUEST_IDS_V1112.append(quest_id)
+    catalog_assign(tuple(current + generated), "NPCS", NPCS, (npc_id, "specialist_quests"))
+    EXPLORATION_ORDER_IDS_BY_PROFESSION_V1112[profession] = tuple(generated)
+
+EXPLORATION_ORDER_METRICS_V1112 = {
+    "version": "1.11.2",
+    "profession_count": len(EXPLORATION_ORDER_SPECS_V1112),
+    "orders_per_profession": len(EXPLORATION_ORDER_STAGES_V1112),
+    "quest_count": len(EXPLORATION_ORDER_QUEST_IDS_V1112),
 }
