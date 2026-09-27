@@ -1,5 +1,16 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.00.12
+Aktualna paczka: v1.00.13
+
+==============================================================================
+==============================================================================
+Soulbound v1.00.13 — pasywne protokoły Meca bez kolejki
+==============================================================================
+
+- Strength Protocol, Ranged Protocol, Feedback Protocol i Magic Protocol działają automatycznie po nauczeniu; ich bonus nadal wynika z `knows_skill()` i poziomu skilla.
+- Protokołów Meca nie można już dodawać do auto-kolejki skilli, ponieważ są pasywne i nie wymagają użycia w walce.
+- Stare wpisy tych czterech Protocoli są automatycznie usuwane z kolejki przy jej wyświetleniu, dzięki czemu nie zajmują slotów.
+- Pozostałe aktywne skille Meca zachowują dotychczasowe działanie i kolejkę.
+- Brak zmian SQLite; wipe nie jest wymagany.
 
 ==============================================================================
 ==============================================================================

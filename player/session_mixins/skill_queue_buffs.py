@@ -17,6 +17,35 @@ class SessionSkillQueueBuffsMixin:
                         return skill
             return None
 
+    def is_mec_protocol_v10013(self, skill):
+            return bool(
+                skill
+                and skill.get("mec_authored")
+                and skill.get("mec_special") in {
+                    "strength_protocol",
+                    "ranged_protocol",
+                    "feedback_protocol",
+                    "magic_protocol",
+                }
+            )
+
+    def cleanup_mec_protocols_from_queue_v10013(self):
+            """Protokoły Meca są pasywne i nie zajmują slotów auto-kolejki."""
+            removed = 0
+            for queue_type in ("physical", "magic"):
+                rows = list(self.server.db.skill_queue_rows(self.account_id, queue_type))
+                for row in sorted(rows, key=lambda item: int(item["position"]), reverse=True):
+                    skill = self.skill_by_id(row["skill_id"])
+                    if not self.is_mec_protocol_v10013(skill):
+                        continue
+                    if self.server.db.remove_skill_queue_entry(
+                        self.account_id, queue_type, int(row["position"])
+                    ):
+                        removed += 1
+                if removed:
+                    self.skill_queue_cursors[queue_type] = 0
+            return removed
+
     def skill_queue_type(self, skill):
             class_name = self.skill_class_name(skill)
             return "magic" if class_type_for_name(class_name) == "magic" else "physical"
@@ -102,6 +131,12 @@ class SessionSkillQueueBuffsMixin:
             return None, None, None
 
     async def show_skill_queue(self, queue_type=None):
+            removed_protocols = self.cleanup_mec_protocols_from_queue_v10013()
+            if removed_protocols:
+                await self.send(
+                    f"Usunięto z kolejki {removed_protocols} pasywne protokoły Meca. "
+                    "Po nauczeniu działają stale i nie zajmują slotów."
+                )
             enabled = self.server.db.skill_queue_enabled(self.account_id)
             await self.send(
                 "AUTO KOLEJKA SKILLI: " + ("WŁĄCZONA." if enabled else "WYŁĄCZONA.")
@@ -196,6 +231,12 @@ class SessionSkillQueueBuffsMixin:
                     return
                 if not self.server.db.knows_skill(self.account_id, skill["id"]):
                     await self.send(f"Najpierw musisz nauczyć się umiejętności {skill['name']}.")
+                    return
+                if self.is_mec_protocol_v10013(skill):
+                    await self.send(
+                        f"{skill['name']} jest pasywnym protokołem Meca. "
+                        "Po nauczeniu działa automatycznie cały czas i nie dodaje się go do kolejki."
+                    )
                     return
                 skill_class = self.skill_class_name(skill)
                 mastery = self.class_mastery_level(skill_class)
