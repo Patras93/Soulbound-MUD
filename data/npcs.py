@@ -142,6 +142,7 @@ NPCS = {
         ),
         "specialist_tool_type": "archaeology",
         "specialist_topic": "archeologia",
+        "strict_profession_quests": "Archeologia",
         "shopkeeper": True,
     },
     "specialist_cartography": {
@@ -154,6 +155,7 @@ NPCS = {
         ),
         "specialist_tool_type": "cartography_profession",
         "specialist_topic": "kartografia",
+        "strict_profession_quests": "Kartografia",
         "shopkeeper": True,
     },
     "banker_aldren": {

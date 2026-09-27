@@ -80,6 +80,8 @@ class SessionProfessionStorageMixin:
                 "leatherworking",
                 "carpentry",
                 "enchanting",
+                "archaeology",
+                "cartography_profession",
             )
 
     def tool_progress_state(self):
@@ -97,6 +99,8 @@ class SessionProfessionStorageMixin:
                 "leatherworking",
                 "carpentry",
                 "enchanting",
+                "archaeology",
+                "cartography_profession",
             ):
                 row = self.server.db.tool(self.account_id, tool_type)
                 result[tool_type] = (

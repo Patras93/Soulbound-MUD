@@ -1,5 +1,17 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.10.3
+Aktualna paczka: v1.10.4
+
+==============================================================================
+==============================================================================
+Soulbound v1.10.4 — hotfix Archeologii i Kartografii
+==============================================================================
+
+- Naprawiono crash komend `wykop` i `mapuj`: wspólna walidacja narzędzi nadal akceptowała tylko stare 12 typów narzędzi.
+- `archaeology` i `cartography_profession` są teraz pełnoprawnymi typami narzędzi w progresji oraz stanie narzędzi 14/14.
+- Naprawiono listy questów nowych specjalistów: Archeolożka Elara pokazuje wyłącznie questy Archeologii, a Mistrzyni Kartografii Alena wyłącznie questy Kartografii.
+- Zabezpieczenie filtruje obce questy, np. zadania z rybami, nawet gdy historyczny katalog giverów lub NPC kiedyś się zderzy.
+- Usunięto podwójne naliczanie postępu questów profesyjnych po pojedynczym `wykop` lub `mapuj`; wspólny system progresji nalicza go teraz dokładnie raz.
+- Brak zmian SQLite; wipe nie jest wymagany.
 
 ==============================================================================
 ==============================================================================
