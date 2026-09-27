@@ -368,9 +368,12 @@ for city_index, city in enumerate(_city_names, 1):
 
     stage = 70 + city_index * 9
     threat_id = _v0900_mob(f"v0900_city_{slug}_threat", f"Podziemny Szkodnik — {city}", stage, drops={"soul_shard": 0.05}, tags={"v0900_city2": True, "v0900_city": city})
-    for _ in range(6):
+    # v1.00.24: questy miejskie wymagają łącznie 24 szkodników (8 + 16).
+    # Utrzymujemy 28 aktywnych spawnów na miasto, aby pełny cykl można było
+    # wykonać bez czekania na respawn po przejściu obu etapów.
+    for _ in range(16):
         _v0900_spawn(city_rooms[-1], threat_id, 1)
-    for _ in range(3):
+    for _ in range(12):
         _v0900_spawn(city_rooms[-2], threat_id, 1)
 
     chronicler = f"v0900_city_{slug}_chronicler"
@@ -383,9 +386,9 @@ for city_index, city in enumerate(_city_names, 1):
 
     old_story = tuple(getattr(__import__('world.world_expansion_iii', fromlist=['CITY_STORY_QUESTS_BY_CITY_V0710']), 'CITY_STORY_QUESTS_BY_CITY_V0710', {}).get(city, ()))
     requires = old_story[-1] if old_story else None
-    _v0900_quest(q1, f"{city} 2.0: zapomniane kroniki", f"Kronikarz — {city}", "talk_npc", 1, f"Porozmawiaj z Kapitanem Straży i poznaj problem nowych podziemi miasta {city}.", target_npc=captain, requires=requires, reward_silver=5000 + city_index * 300, extra={"reward_city_v0710": city, "reward_city_amount_v0710": 20, "v0900_city2": True})
-    _v0900_quest(q2, f"{city} 2.0: zagrożenie pod fundamentami", f"Kapitan Straży — {city}", "kill", 8, f"Pokonaj 8 lokalnych zagrożeń w podziemiach miasta {city}.", target=threat_id, requires=q1, reward_silver=8000 + city_index * 500, extra={"reward_city_v0710": city, "reward_city_amount_v0710": 30, "v0900_city2": True})
-    _v0900_quest(q3, f"{city} 2.0: bezpieczne ulice", f"Kapitan Straży — {city}", "kill", 16, f"Oczyść dalsze podziemia: pokonaj 16 kolejnych zagrożeń i zabezpiecz {city}.", target=threat_id, requires=q2, reward_silver=12000 + city_index * 700, reward_items={"soul_shard": 1}, extra={"reward_city_v0710": city, "reward_city_amount_v0710": 50, "v0900_city2": True})
+    _v0900_quest(q1, f"{city} 2.0: zapomniane kroniki", f"Kronikarz — {city}", "talk_npc", 1, f"Porozmawiaj z Kapitanem Straży i poznaj problem nowych podziemi miasta {city}.", target_npc=captain, requires=requires, reward_silver=5000 + city_index * 300, extra={"reward_city_v0710": city, "reward_city_amount_v0710": 20, "repeatable": True, "repeat_cooldown": 60 * 60, "v0900_city2": True})
+    _v0900_quest(q2, f"{city} 2.0: zagrożenie pod fundamentami", f"Kapitan Straży — {city}", "kill", 8, f"Pokonaj 8 lokalnych zagrożeń w podziemiach miasta {city}.", target=threat_id, requires=q1, reward_silver=8000 + city_index * 500, extra={"reward_city_v0710": city, "reward_city_amount_v0710": 30, "repeatable": True, "repeat_cooldown": 60 * 60, "v0900_city2": True})
+    _v0900_quest(q3, f"{city} 2.0: bezpieczne ulice", f"Kapitan Straży — {city}", "kill", 16, f"Oczyść dalsze podziemia: pokonaj 16 kolejnych zagrożeń i zabezpiecz {city}.", target=threat_id, requires=q2, reward_silver=12000 + city_index * 700, reward_items={"soul_shard": 1}, extra={"reward_city_v0710": city, "reward_city_amount_v0710": 50, "repeatable": True, "repeat_cooldown": 60 * 60, "v0900_city2": True})
     CITIES_2_QUESTS_V0900[city] = (q1, q2, q3)
 
 
@@ -405,7 +408,7 @@ HELP_TOPICS.setdefault("lochy archipelagu", []).extend([
 HELP_TOPICS.setdefault("miasta 2.0", []).extend([
     f"Miasta 2.0 rozszerza wszystkie {len(_city_names)} miast sieci kurierskiej.",
     "Każde miasto dostaje Ratusz, Dzielnicę Mieszkalną, Dzielnicę Warsztatową, Świątynię, Archiwum, Strażnicę i dwupoziomowe podziemia.",
-    "W Ratuszu spotkasz Zarządcę Ratusza, a w Świątyni Opiekuna Świątyni. Kronikarz w Archiwum i Kapitan Straży w Strażnicy prowadzą trzyetapową lokalną historię.",
+    "W Ratuszu spotkasz Zarządcę Ratusza, a w Świątyni Opiekuna Świątyni. Kronikarz w Archiwum i Kapitan Straży w Strażnicy prowadzą trzyetapowe lokalne questy odnawialne co 60 minut.",
 ])
 HELP_TOPIC_ALIASES.update({
     "katakumby pod piwnica": "katakumby", "katakumby pod piwnicą": "katakumby",
