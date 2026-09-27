@@ -126,6 +126,7 @@ _RUNTIME_MODULES_ALL = ['core/bootstrap_economy_professions.py',
  'player/session_mixins/tech_crafting.py',
  'player/session_mixins/crafting_expansion.py',
  'player/session_mixins/milestone.py',
+ 'player/session_mixins/exploration_professions.py',
  'player/session_mixins/command_special_handlers.py',
  'player/session_mixins/activity_guidance.py',
  'player/session_mixins/command_registry.py',
@@ -1037,3 +1038,6 @@ EXPLICIT_RUNTIME_EXPORTS["world/ocean_expansion.py"] = (
     "DEEP_OCEAN_ROOMS", "TREASURE_ROOMS", "UNDERWATER_DUNGEONS",
 )
 EXPLICIT_RUNTIME_EXPORTS["player/session_mixins/ocean.py"] = ("SessionOceanV1000Mixin",)
+EXPLICIT_RUNTIME_EXPORTS["player/session_mixins/exploration_professions.py"] = (
+    "V1100_ARCHAEOLOGY_FINDS", "SessionExplorationProfessionsV1100Mixin",
+)
