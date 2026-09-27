@@ -1,8 +1,20 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.00.21
+Aktualna paczka: v1.00.22
 
 ==============================================================================
 ==============================================================================
+Soulbound v1.00.22 — Gildia Kurierów i reputacje miast 1-600
+==============================================================================
+
+- Maksymalna reputacja Gildii Kurierów została zwiększona z 400 do 600.
+- Zachowano wszystkie dotychczasowe rangi do 400; dodano: 450 Arcymistrz Szlaków, 500 Herold Szlaków, 550 Marszałek Szlaków, 600 Legenda Szlaków.
+- Maksymalny bonus wypłaty Gildii Kurierów wynosi teraz +85% przy reputacji 600.
+- Maksymalna reputacja każdego miasta została zwiększona z 400 do 600.
+- Zachowano wszystkie dotychczasowe rangi miast do 400; dodano: 450 Protektor Miasta, 500 Strażnik Dziedzictwa, 550 Symbol Miasta, 600 Wieczna Legenda Miasta.
+- Maksymalny miejski bonus do wypłat kurierskich wynosi teraz +20% przy reputacji 600.
+- Komunikaty reputacji używają dynamicznych limitów zamiast starego wpisanego na sztywno /400.
+- Zaktualizowano audyty do zakresu 1-600. Istniejące save'y nie wymagają migracji i zachowują obecne wartości.
+
 Soulbound v1.00.21 — różne dialogi miejskich NPC
 ==============================================================================
 
