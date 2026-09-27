@@ -1,8 +1,17 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.00.16
+Aktualna paczka: v1.00.17
 
 ==============================================================================
 ==============================================================================
+Soulbound v1.00.17 — godzinne zadania klasowe u nauczycieli
+==============================================================================
+
+- Każde godzinne zadanie klasowe ma teraz właściwego nauczyciela klasy jako givera i odbiorcę.
+- Przyjęcie godzinnego zadania klasowego wymaga stania w lokacji właściwego nauczyciela; `quest godzinne` może nadal służyć jako lista informacyjna.
+- Nauczyciele wszystkich 14 klas pokazują swoje godzinne zadanie na normalnej liście `quest list <NPC>` i przy rozmowie o questach.
+- Oddanie nie jest już zdalne: gotowe godzinne klasowe trzeba rozliczyć u właściwego nauczyciela.
+- Synchronizacja przyjęcia questów z lokalną drużyną pozostaje bez zmian.
+
 Soulbound v1.00.16 — handel morski współdzielony z drużyną
 ==============================================================================
 
