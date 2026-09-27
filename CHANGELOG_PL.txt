@@ -1,8 +1,17 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.00.17
+Aktualna paczka: v1.00.18
 
 ==============================================================================
 ==============================================================================
+Soulbound v1.00.18 — paczki kurierskie współdzielone z drużyną
+==============================================================================
+
+- Gdy lider drużyny odbiera paczkę przez `paczka <nr>` lub `poczta wez <nr>`, żywi członkowie party stojący z nim w tym samym punkcie pocztowym automatycznie dostają tę samą paczkę.
+- Każdy członek otrzymuje własny zapis dostawy, własną nagrodę, reputację Gildii Kurierów, reputację miasta, statystyki i osiągnięcia po dostarczeniu.
+- Współdzielony jest dokładnie ten sam wariant przesyłki, cel i nagroda, które wylosował lider.
+- Jeśli członek ma już aktywną paczkę, nie jest ona nadpisywana i gracz zostaje pominięty.
+- Osoby offline, martwe lub stojące w innej lokacji nie dostają paczki.
+
 Soulbound v1.00.17 — godzinne zadania klasowe u nauczycieli
 ==============================================================================
 
