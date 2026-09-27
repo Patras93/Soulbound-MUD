@@ -112,6 +112,17 @@ class SessionQuestCommandsMixin:
                     announce=True,
                     amount=qty,
                 )
+            reward_guild_class = str(q.get("reward_guild_class") or "").strip()
+            reward_guild_rep = int(q.get("reward_guild_reputation", 0) or 0)
+            if reward_guild_class and reward_guild_rep:
+                new_guild_rep = self.character.add_guild_reputation(
+                    reward_guild_class, reward_guild_rep
+                )
+                await self.send(
+                    f"Reputacja Gildii {reward_guild_class} +{reward_guild_rep}. "
+                    f"Reputacja teraz {new_guild_rep}/1000."
+                )
+
             self.server.db.save_character(self.character)
             if q.get("reward_faction_v016"):
                 await self.add_faction_reputation_v016(
