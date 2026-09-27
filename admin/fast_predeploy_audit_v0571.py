@@ -318,6 +318,35 @@ def fast_predeploy_audit_v0571():
             errors.append("quest reward preflight missing")
         if 'q["reward_items"]' in quest_commands_source:
             errors.append("unsafe direct q[reward_items] access remains in quest completion")
+
+        gathering_source = (ROOT / "player" / "session_mixins" / "gathering.py").read_text(encoding="utf-8")
+        for token in (
+            '"tailoring": ("tailor_kit", "Zestaw Krawiecki")',
+            '"leatherworking": ("tanning_knife", "Nóż Garbarski")',
+            '"carpentry": ("carpenter_tools", "Narzędzia Ciesielskie")',
+            '"enchanting": ("runic_focus", "Fokus Runiczny")',
+            '"archaeology": ("archaeology_brush", "Pędzel Archeologa")',
+            '"cartography_profession": ("surveyor_compass", "Kompas Mierniczy")',
+        ):
+            if token not in gathering_source:
+                errors.append(f"14-tool info definition missing: {token}")
+        if '"Archeolożka Mira"' in gathering_source:
+            errors.append("stale Archaeologist Mira remains in active tool UI")
+        if '"Archeolożka Elara"' not in gathering_source:
+            errors.append("Archaeologist Elara missing from active tool UI")
+
+        registry_source = (ROOT / "player" / "session_mixins" / "command_registry.py").read_text(encoding="utf-8")
+        for command in (
+            "toolinfo_tailoring", "toolinfo_leatherworking",
+            "toolinfo_carpentry", "toolinfo_enchanting",
+            "toolinfo_archaeology", "toolinfo_cartography",
+        ):
+            if f"'{command}'" not in registry_source:
+                errors.append(f"profession tool info command missing: {command}")
+
+        completion_source = (ROOT / "player" / "session_mixins" / "progression_accessibility.py").read_text(encoding="utf-8")
+        if "len(PROFESSIONS_V0580)*PROFESSION_MAX_LEVEL" not in completion_source:
+            errors.append("completion profession denominator is not fixed to all 14 professions")
     except Exception as exc:
         errors.append(f"v1.10.6 regression guard failed: {type(exc).__name__}: {exc}")
 
