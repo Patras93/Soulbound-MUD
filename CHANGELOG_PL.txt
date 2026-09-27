@@ -1,5 +1,19 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.10.1
+Aktualna paczka: v1.10.2
+
+==============================================================================
+==============================================================================
+Soulbound v1.10.2 — pełne prowadzenie do 14 profesji
+==============================================================================
+
+- Naprawiono listę `prowadz profesje` / `walk profesje`, która nadal była ręcznie wpisana dla starego zestawu profesji i pokazywała tylko 8 pozycji.
+- Lista prowadzenia pokazuje teraz kanoniczne 14 profesji i ich właściwych mistrzów/NPC.
+- Dodano Archeologię: Archeolożka Mira w Bibliotece.
+- Dodano Kartografię: Mistrzyni Kartografii Alena w Archiwum Rubieży.
+- Przy okazji lista obejmuje też Krawiectwo, Garbarstwo, Stolarstwo i Zaklinanie, których brakowało w starej wersji prowadzenia.
+- `walk profesje` i `prowadz profesje` podają gotową komendę `walk <NPC>` dla każdej profesji.
+- Zaktualizowano opis kategorii gildii z 12 do 14 nauczycieli klas.
+- Brak zmian SQLite; wipe nie jest wymagany.
 
 ==============================================================================
 ==============================================================================
