@@ -21,6 +21,10 @@ def world_expansion_v_audit_v0900():
         errors.append("Cities 2.0 count differs from city registry")
     if len(state["cities_2_quests"]) != state["cities_2_count"]:
         errors.append("Cities 2.0 quest coverage differs from city registry")
+    for city, city_rooms in state["cities_2_rooms"].items():
+        for rid, title in ((city_rooms[0], "Ratusz"), (city_rooms[3], "Świątynia")):
+            if not any(npc.get("room") == rid for npc in NPCS.values()):
+                errors.append(f"{city}: {title} has no NPC")
     for group in (*levels.values(), *dungeons.values(), *state["cities_2_rooms"].values()):
         for rid in group:
             if rid not in ROOMS:
