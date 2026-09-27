@@ -17,6 +17,7 @@ Soulbound v1.00.1 — Audyt i bezpieczne kontrakty morskie
 - Port Dusz i Mały Port Wschodni w Cichej Przystani dołączono do żeglugi: łącznie sześć szlaków między siedmioma punktami, z ofertami handlowymi w nowych portach.
 - Ratusze i lokalne świątynie wszystkich miast objętych Miastami 2.0 mają teraz rozmownych NPC; audyt sprawdza ich obecność.
 - Kontrakty morskie zaliczają także starsze, rzeczywiste szlaki przez Mglisty Port i Ardelijski Szlak Zamorski; przebyty sektor jest zapisywany w SQLite, a dojście lądem nie zalicza dostawy.
+- `handel morski` pokazuje liczbę zaliczonych kroków i ostatni sektor; gra sygnalizuje start, opuszczenie trasy i potwierdzone dopłynięcie. Wyprawa do podwodnych ruin i powrót na ten sam sektor nie zerują rejsu.
 
 Soulbound v1.00.0 — Ocean 2.0
 ==============================================================================

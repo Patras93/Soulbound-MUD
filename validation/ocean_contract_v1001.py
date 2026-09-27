@@ -6,6 +6,7 @@ import sqlite3
 from types import SimpleNamespace
 
 from player.session_mixins.ocean import SessionOceanV1000Mixin
+from core.classes_skills import ROOMS
 from world.ocean_expansion import PORTS, ROUTES
 from storage.schema_world_quests import create_world_quests_schema
 
@@ -95,6 +96,21 @@ def audit_ocean_contract_v1001():
         conn.commit()
         second.ocean_contract_step_v1001("silver_crown_square", "silver_crown_harbor")
         assert conn.execute("SELECT arrival_verified FROM ocean_trade_contract_v1000").fetchone()[0] == 0
+        # The exact player report: direct Crown route from Ocean Platform,
+        # including a visit to submerged ruins and return to the same sector.
+        crown_lane = ("ocean_platform", *ROUTES["crown"]["rooms"], "silver_crown_harbor")
+        for index, (old_room, new_room) in enumerate(zip(crown_lane, crown_lane[1:])):
+            second.ocean_contract_step_v1001(old_room, new_room)
+            if index == 10:
+                anchor = new_room
+                underwater = next(
+                    room for room in ROOMS[anchor]["exits"].values()
+                    if ROOMS[room].get("underwater")
+                )
+                second.ocean_contract_step_v1001(anchor, underwater)
+                second.ocean_contract_step_v1001(underwater, anchor)
+        row = conn.execute("SELECT route_progress,arrival_verified FROM ocean_trade_contract_v1000").fetchone()
+        assert tuple(row) == (len(crown_lane) - 1, 1)
         endpoints = {route[side] for route in ROUTES.values() for side in ("origin", "destination")}
         assert endpoints == {room_id for room_id, _label in PORTS.values()}
         assert len(ROUTES) == 6
