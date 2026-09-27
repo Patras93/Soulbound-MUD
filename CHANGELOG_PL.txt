@@ -1,8 +1,18 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.00.4
+Aktualna paczka: v1.00.5
 
 ==============================================================================
 ==============================================================================
+Soulbound v1.00.5 — Moogle Board: skalowanie poziomem postaci
+==============================================================================
+
+- Moogle Board nie skaluje się już Biegłością Meca i działa tak samo niezależnie od klasy postaci.
+- Od Levelu postaci 150 Moogle Board daje +20 do Siły, Zręczności, Kondycji, Inteligencji i Siły Woli.
+- Każdy kolejny Level postaci po 150 zwiększa bonus o +2 do każdej z pięciu podstawowych statystyk: 151 = +22, 152 = +24, 200 = +120.
+- Poniżej Levelu 150 skalowany bonus Moogle Board wynosi 0.
+- `eq info` oraz opis przedmiotu pokazują teraz nowe skalowanie zamiast starej Biegłości Meca.
+- Zsynchronizowano numer runtime, FAST PREDEPLOY i changelog do v1.00.5. Brak zmian SQLite; wipe nie jest wymagany.
+
 Soulbound v1.00.4 — poprawny numer wersji przy logowaniu
 ==============================================================================
 
