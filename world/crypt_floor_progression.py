@@ -107,8 +107,8 @@ def _v03610_apply_crypt_threat(template):
             profile = uoss_superboss_profile_v0366("mythic_crypt", floor)
             hp = max(1, int(round(hp * float(profile.get("hp", 1.0) or 1.0))))
             dmg = max(1, int(round(dmg * float(profile.get("damage", 1.0) or 1.0))))
-        except Exception:
-            pass
+        except Exception as exc:
+            print(f"CRYPT_SUPERBOSS_PROFILE_ERROR: {type(exc).__name__}: {exc}", flush=True)
 
     template["max_hp"] = hp
     template["base_max_hp"] = hp
