@@ -86,23 +86,6 @@ class SessionQuestNpcMixin:
             ):
                 return False
 
-            tool_type = quest.get("specialist_tool_type")
-            profession = (
-                quest.get("required_profession")
-                or quest.get("reward_profession")
-                or profession_for_tool_type(tool_type)
-            )
-            if profession:
-                prow = self.server.db.profession(self.account_id, profession)
-                required_profession_level = int(
-                    quest.get("min_profession_level", quest.get("min_tool_level", 1))
-                )
-                if (
-                    int(prow["level"])
-                    < required_profession_level
-                ):
-                    return False
-
             return True
 
     def specialist_current_quest(self, npc):
@@ -119,7 +102,8 @@ class SessionQuestNpcMixin:
                 if row and row["status"] == "active":
                     return quest_id, None
 
-            # Najwyższy odblokowany etap staje się bieżącym.
+            # Poziom profesji nie blokuje żadnego etapu; dostępność wynika wyłącznie
+            # z logicznej kolejności questów (requires_quest).
             available = [
                 quest_id
                 for quest_id in chain
@@ -167,8 +151,6 @@ class SessionQuestNpcMixin:
             for number, quest_id in enumerate(chain, 1):
                 quest = QUESTS[quest_id]
                 row = self.server.db.quest(self.account_id, quest_id)
-                minimum = int(quest.get("min_profession_level", quest.get("min_tool_level", 1)))
-
                 if row and row["status"] == "active":
                     state = "aktywne"
                 elif row and row["status"] == "completed":
@@ -176,8 +158,6 @@ class SessionQuestNpcMixin:
                 elif not self.specialist_quest_available(quest_id):
                     required = quest.get("requires_quest")
                     reasons = []
-                    if profession and profession_level < minimum:
-                        reasons.append(f"wymaga {profession} poziom {minimum}")
                     if required and not self.quest_completed(required):
                         reasons.append("wymaga ukończenia poprzedniego etapu")
                     state = "zablokowane: " + ", ".join(reasons)
