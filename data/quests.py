@@ -317,6 +317,7 @@ QUESTS = {
         "name": "Zlecenie Marcela III: Wieczna Uczta",
         "giver": "Kucharz Marcel",
         "kind": "collect", "target": "eternal_ocean_banquet", "needed": 1,
+        "track_craft_progress": True,
         "description": (
             "Przygotuj Wieczną Ucztę Oceanu i przynieś ją "
             "Marcelowi jako potrawę mistrzowską."
