@@ -53,13 +53,28 @@ def main():
                 f"{fast['todo_fixme_count']} TODO/FIXME; "
                 f"{len(cross['warnings'])} cross-system warnings"
             )
+            from collections import Counter
+            swallowed_hotspots = Counter(
+                site.split(":", 1)[0] for site in fast.get("swallowed_exception_sites", ())
+            )
+            todo_hotspots = Counter(
+                site.split(":", 1)[0] for site in fast.get("todo_sites", ())
+            )
+            swallowed_text = ",".join(
+                f"{path}={count}" for path, count in swallowed_hotspots.most_common(6)
+            ) or "none"
+            todo_text = ",".join(
+                f"{path}={count}" for path, count in todo_hotspots.most_common(6)
+            ) or "none"
             print(
                 "FULL AUDIT PASS: "
                 f"{fast['duplicate_literal_key_count']} duplicate dict keys; "
                 f"{fast['swallowed_exception_count']} swallowed exceptions; "
                 f"{fast.get('intentional_swallowed_exception_count', 0)} intentional passes; "
                 f"{fast['todo_fixme_count']} TODO/FIXME; "
-                f"{len(cross['warnings'])} cross-system warnings"
+                f"{len(cross['warnings'])} cross-system warnings; "
+                f"swallowed hotspots [{swallowed_text}]; "
+                f"TODO hotspots [{todo_text}]"
             )
         finally:
             server._BOOT_SOCKET.close()
