@@ -355,7 +355,7 @@ class SessionSkillQueueBuffsMixin:
                     asyncio.get_running_loop().create_task(
                         self.send(f"Buff wygasł: {name}.")
                     )
-                except RuntimeError:
+                except RuntimeError:  # AUDIT_INTENTIONAL_PASS: static audit/no running event loop
                     # Poza działającą pętlą asyncio (np. statyczny audit) nie ma klienta,
                     # któremu można wysłać komunikat.
                     pass
