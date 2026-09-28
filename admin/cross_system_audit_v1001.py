@@ -5,6 +5,7 @@ separate from the runtime manifest: it measures final catalogs after loading.
 """
 from __future__ import annotations
 
+import inspect
 import json
 import os
 import socket
@@ -34,6 +35,29 @@ def audit(runtime):
         quest_aliases.update(mob.get("quest_targets") or ())
     errors = []
     warnings = []
+
+    # Quest acceptance must never be gated by any numeric level axis.
+    # Level metadata remains valid for staging/rewards, but not availability.
+    from player.session_mixins.quest_offers import SessionQuestOffersMixin
+    from player.session_mixins.quest_npc import SessionQuestNpcMixin
+    level_gate_fields = (
+        "required_level",
+        "required_soul_level",
+        "required_soul_tier",
+        "min_profession_level",
+        "min_tool_level",
+    )
+    for label, method in (
+        ("quest_lock_reasons", SessionQuestOffersMixin.quest_lock_reasons),
+        ("specialist_quest_available", SessionQuestNpcMixin.specialist_quest_available),
+    ):
+        source = inspect.getsource(method)
+        used = [field for field in level_gate_fields if field in source]
+        if used:
+            errors.append(
+                f"{label}: quest availability contains forbidden level gate fields: "
+                + ", ".join(used)
+            )
     kinds = Counter()
     by_stage = defaultdict(lambda: {"quests": 0, "quest_silver": [], "quest_character_xp": [], "mobs": 0, "mob_silver": [], "mob_class_xp": []})
     stage_bands = ((1, 50), (51, 100), (101, 200), (201, 300), (301, 400), (401, 500), (501, 600))
