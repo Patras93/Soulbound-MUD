@@ -404,7 +404,7 @@ def semantic_floor_level(template: dict) -> int | None:
         if template.get(key) is not None:
             try:
                 return clamp(int(round(offset + int(template[key]) * scale)), 1, MAX_LEVEL)
-            except Exception:
+            except (TypeError, ValueError, OverflowError):  # AUDIT_INTENTIONAL_PASS: malformed legacy numeric hint is ignored
                 pass
     return None
 
@@ -558,7 +558,7 @@ def _initial_item_level(item_id: str, item: dict) -> int | None:
         if value:
             try:
                 return clamp(int(value), 1, MAX_LEVEL)
-            except Exception:
+            except (TypeError, ValueError, OverflowError):  # AUDIT_INTENTIONAL_PASS: malformed legacy numeric hint is ignored
                 pass
     text = f"{item_id} {item.get('desc','')}".lower()
     floor_match = re.search(r"(?:floor|pietro|piętro)[ _:+-]*(\d{1,4})", text)
@@ -647,7 +647,7 @@ def _resource_order_hints(ns: dict, items: dict) -> dict[str, int]:
                     try:
                         old_order = float(old_order)
                         mins[iid] = min(mins.get(iid, old_order), old_order)
-                    except Exception:
+                    except (TypeError, ValueError, OverflowError):  # AUDIT_INTENTIONAL_PASS: malformed legacy numeric hint is ignored
                         pass
         # Resources without an old placement still join deterministically after ordered ones.
         ordered = _normalized_order_levels(mins.items())
@@ -844,7 +844,7 @@ def _generate_recipes(ns: dict, item_levels: dict[str, int]) -> int:
                 try:
                     if gate is not None:
                         lvl = max(lvl, int(gate))
-                except Exception:
+                except (TypeError, ValueError, OverflowError):  # AUDIT_INTENTIONAL_PASS: malformed legacy numeric hint is ignored
                     pass
             lvl = clamp(int(lvl), 1, MAX_LEVEL)
             xp = axis_gain("profession", lvl, 1.35)
@@ -956,7 +956,7 @@ def _quest_stage(ns: dict, qid: str, quest: dict, mob_levels: dict[str, int], it
         try:
             tier = clamp(int(quest["soul_trial_tier"]), 1, 40)
             values.append(1 if tier == 1 else (tier - 1) * 10)
-        except Exception:
+        except (TypeError, ValueError, OverflowError):  # AUDIT_INTENTIONAL_PASS: malformed legacy numeric hint is ignored
             pass
     return clamp(max(values or [1]), 1, MAX_LEVEL)
 
