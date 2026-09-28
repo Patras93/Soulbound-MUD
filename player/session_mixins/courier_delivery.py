@@ -445,8 +445,8 @@ class SessionCourierDeliveryMixin:
             self.server.db.add_lifetime_stat(self.account_id, 'packages_delivered', 1)
             self.server.db.add_lifetime_stat(self.account_id, 'courier_earnings', reward)
             self.server.db.set_lifetime_stat_max(self.account_id, 'courier_longest_route', longest_route)
-        except Exception:
-            pass
+        except Exception as exc:
+            print(f"COURIER_LIFETIME_STATS_ERROR: {type(exc).__name__}: {exc}", flush=True)
         package_key = str(active.get('package_key') or 'zwykla')
         self.server.db.set_achievement_metric_max(
             self.account_id, f"courier_package_type:{package_key}", 1
@@ -467,8 +467,8 @@ class SessionCourierDeliveryMixin:
                 self.account_id, "dostawa", f"Paczka do {destination_city or '?'}",
                 f"Typ: {package_name}. Nagroda: {currency_reading_text(reward,0,0)}."
             )
-        except Exception:
-            pass
+        except Exception as exc:
+            print(f"COURIER_ACTIVITY_LOG_ERROR: {type(exc).__name__}: {exc}", flush=True)
         await self.send(
             f"Paczka dostarczona do: {destination_city or '?'}. "
             f"Nagroda: {currency_reading_text(reward,0,0)}. "
