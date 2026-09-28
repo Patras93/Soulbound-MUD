@@ -357,8 +357,8 @@ class SessionCombatRewardsMixin:
                                 f"Czas walki: {max(0, int(fight_duration_ms or 0))} ms. "
                                 f"Tryb: {'drużyna' if count > 1 else 'solo'}."
                             )
-                        except Exception:
-                            pass
+                        except Exception as exc:
+                            print(f"COMBAT_ACTIVITY_LOG_ERROR: {type(exc).__name__}: {exc}", flush=True)
                     # v0.9.27: wspólne kontrakty i osiągnięcia Gildii.
                     _guild=session.guild_row_v0926()
                     if _guild:
