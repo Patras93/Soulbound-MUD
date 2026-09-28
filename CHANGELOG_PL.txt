@@ -15,6 +15,9 @@ Soulbound v1.11.2 — zamówienia Archeologii i Kartografii + Railway XP hotfix
 - Audyt wymaga teraz Character XP > 1 dla wszystkich 22 ekspedycji oraz wszystkich 20 nowych zamówień.
 - Audyt pilnuje również liczby zamówień, przypięcia do właściwego NPC, cooldownu 3600 s i poprawnych nagród.
 - Brak zmian SQLite i brak wipe'a save'ów.
+- Kucharz Marcel: poprawiono naliczanie postępu w trzech zleceniach kulinarnych: Pieczona Ryba Rzeczna, Runiczny Półmisek oraz Wieczna Uczta Oceanu.
+- Potrawa posiadana przed przyjęciem zlecenia Marcela nie nabija postępu; zalicza się dopiero przygotowanie właściwej potrawy po przyjęciu aktywnego questa.
+- Wszystkie trzy zlecenia Marcela używają teraz śledzenia postępu craftingu (`track_craft_progress`).
 
 
 ==============================================================================
