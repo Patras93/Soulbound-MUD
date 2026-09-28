@@ -152,8 +152,8 @@ class DatabaseInventoryMixin:
                 try:
                     rows=self.conn.execute(f"SELECT DISTINCT {col} FROM {table} WHERE {col} LIKE 'craftq_%'").fetchall()
                     found.update(str(row[0]) for row in rows if row[0])
-                except Exception:
-                    pass
+                except Exception as exc:
+                    print(f"CRAFTQ_SCAN_TABLE_ERROR: {type(exc).__name__}: {exc}", flush=True)
         # v0.33.6: Housing 2.0 stores item ids inside JSON rather than an
         # item_id column. Include those ids as well so Crafting Quality variants
         # survive a restart even when every copy is currently in the house chest.
@@ -170,8 +170,8 @@ class DatabaseInventoryMixin:
                         item_id=str(item_id or "")
                         if item_id.startswith("craftq_"):
                             found.add(item_id)
-        except Exception:
-            pass
+        except Exception as exc:
+            print(f"CRAFTQ_HOUSING_SCAN_ERROR: {type(exc).__name__}: {exc}", flush=True)
         return sorted(found)
 
     def inventory(self, account_id):
