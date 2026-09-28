@@ -93,8 +93,8 @@ def v0190_apply_combat_template(template):
             result["max_hp"] = max(1, int(round(int(result.get("max_hp", 1) or 1) * 2.20 * float(profile.get("hp", 1.0) or 1.0))))
             result["base_max_hp"] = int(result["max_hp"])
             result["damage"] = max(1, int(round(int(result.get("damage", 1) or 1) * 1.28 * float(profile.get("damage", 1.0) or 1.0))))
-        except Exception:
-            pass
+        except Exception as exc:
+            print(f"TOWER_SUPERBOSS_PROFILE_ERROR: {type(exc).__name__}: {exc}", flush=True)
 
     hp_boost, dmg_boost, _xp_boost = _v0381_tower_boosts(kind, floor)
     hp = max(1, int(round(int(result.get("max_hp", 1) or 1) * hp_boost)))
