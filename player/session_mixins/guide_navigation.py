@@ -492,7 +492,7 @@ class SessionGuideNavigationMixin:
                 task.cancel()
                 try:
                     await task
-                except asyncio.CancelledError:
+                except asyncio.CancelledError:  # AUDIT_INTENTIONAL_PASS: normal guide-task cancellation
                     pass
             if self.guide_task is task:
                 self.guide_task = None
@@ -540,7 +540,7 @@ class SessionGuideNavigationMixin:
                 self.guide_task = None
             try:
                 task.result()
-            except asyncio.CancelledError:
+            except asyncio.CancelledError:  # AUDIT_INTENTIONAL_PASS: completed callback sees normal cancellation
                 pass
             except Exception as exc:
                 print(
@@ -553,7 +553,7 @@ class SessionGuideNavigationMixin:
                         asyncio.get_running_loop().create_task(
                             self.send("Prowadzenie zostało zatrzymane przez błąd nawigacji.")
                         )
-                    except RuntimeError:
+                    except RuntimeError:  # AUDIT_INTENTIONAL_PASS: event loop may already be shutting down
                         pass
 
     async def start_guide_task(self, args):
