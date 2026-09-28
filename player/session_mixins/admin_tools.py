@@ -125,7 +125,7 @@ class SessionAdminToolsMixin:
                     await session.prepare_character_wipe()
                     session.closed = True
                     session.writer.close()
-                except Exception:
+                except Exception:  # AUDIT_INTENTIONAL_PASS: target session may already be disconnected during wipe
                     pass
 
             await self.prepare_character_wipe()
