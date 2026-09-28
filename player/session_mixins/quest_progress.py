@@ -492,8 +492,8 @@ class SessionQuestProgressMixin:
                     parsed = parse_crafting_quality_variant_v0332(item_id)
                     if parsed and parsed.get("base_id") == str(base_id):
                         ids.add(item_id)
-            except Exception:
-                pass
+            except Exception as exc:
+                print(f"QUEST_CRAFT_QUALITY_SCAN_ERROR: {type(exc).__name__}: {exc}", flush=True)
             return tuple(sorted(ids))
 
     def quest_collect_storage_container_v03310(self, base_id):
