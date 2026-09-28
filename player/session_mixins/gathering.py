@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 """Auto gathering, profession views and gathering loot."""
-
 # v0.44.0: explicit dependencies; no compatibility-global injection.
 import asyncio
 import random
@@ -63,14 +62,10 @@ from systems.items_resources import (
     format_fish_length,
     format_fish_weight,
 )
-
-
 class SessionGatheringMixin:
-
     async def stop_auto_fishing(self, announce=True, immediate=True):
             self.auto_fishing = False
             task = self.auto_fishing_task
-
             if immediate:
                 self.auto_fishing_task = None
                 if task and task is not asyncio.current_task() and not task.done():
@@ -82,7 +77,6 @@ class SessionGatheringMixin:
                 if announce:
                     await self.send("Auto-łowienie wyłączone.")
                 return
-
             if task and not task.done():
                 if announce:
                     await self.send(
@@ -90,11 +84,9 @@ class SessionGatheringMixin:
                         "Trwający połów zostanie dokończony, ale następny już się nie rozpocznie."
                     )
                 return
-
             self.auto_fishing_task = None
             if announce:
                 await self.send("Auto-łowienie wyłączone.")
-
     async def auto_fishing_loop(self):
             try:
                 while self.auto_fishing and not self.closed:
@@ -115,9 +107,7 @@ class SessionGatheringMixin:
                             "Auto-łowienie zatrzymane: nie stoisz przy łowisku."
                         )
                         break
-
                     await self.fish(from_auto=True)
-
             except asyncio.CancelledError:
                 pass
             except Exception as exc:
@@ -137,7 +127,6 @@ class SessionGatheringMixin:
                 self.auto_fishing = False
                 if self.auto_fishing_task is asyncio.current_task():
                     self.auto_fishing_task = None
-
     async def set_auto_fishing(self, enabled):
             if enabled:
                 if self.auto_fishing:
@@ -155,21 +144,18 @@ class SessionGatheringMixin:
                         "Do auto-łowienia potrzebujesz Wędki."
                     )
                     return
-
                 if self.character.room_id not in FISHING_ROOMS:
                     await self.send(
                         "Auto-łowienie możesz włączyć tylko przy łowisku. "
                         "Automat nie chodzi sam."
                     )
                     return
-
                 if self.auto_mining or self.auto_mining_task:
                     await self.stop_auto_mining(announce=False)
                 if self.auto_woodcutting or self.auto_woodcutting_task:
                     await self.stop_auto_woodcutting(announce=False)
                 if self.auto_herbalism or self.auto_herbalism_task:
                     await self.stop_auto_herbalism(announce=False)
-
                 self.auto_fishing = True
                 self.auto_fishing_task = asyncio.create_task(
                     self.auto_fishing_loop()
@@ -180,18 +166,15 @@ class SessionGatheringMixin:
                     "Wpisz low off albo fish off, aby je zatrzymać."
                 )
                 return
-
             if not self.auto_fishing and not self.auto_fishing_task:
                 await self.send("Auto-łowienie jest już wyłączone.")
                 return
             await self.stop_auto_fishing(
                 announce=True, immediate=False
             )
-
     async def stop_auto_mining(self, announce=True, immediate=True):
             self.auto_mining = False
             task = self.auto_mining_task
-
             if immediate:
                 self.auto_mining_task = None
                 if task and task is not asyncio.current_task() and not task.done():
@@ -203,7 +186,6 @@ class SessionGatheringMixin:
                 if announce:
                     await self.send("Auto-kopanie wyłączone.")
                 return
-
             if task and not task.done():
                 if announce:
                     await self.send(
@@ -211,11 +193,9 @@ class SessionGatheringMixin:
                         "Trwające wydobycie zostanie dokończone, ale następne już się nie rozpocznie."
                     )
                 return
-
             self.auto_mining_task = None
             if announce:
                 await self.send("Auto-kopanie wyłączone.")
-
     async def auto_mining_loop(self):
             try:
                 while self.auto_mining and not self.closed:
@@ -236,12 +216,9 @@ class SessionGatheringMixin:
                             "Auto-kopanie zatrzymane: nie stoisz w miejscu wydobycia."
                         )
                         break
-
                     if await self.auto_mine_descend_if_unlocked():
                         continue
-
                     await self.mine(from_auto=True)
-
             except asyncio.CancelledError:
                 pass
             except Exception as exc:
@@ -261,7 +238,6 @@ class SessionGatheringMixin:
                 self.auto_mining = False
                 if self.auto_mining_task is asyncio.current_task():
                     self.auto_mining_task = None
-
     async def set_auto_mining(self, enabled):
             if enabled:
                 if self.auto_mining:
@@ -279,21 +255,18 @@ class SessionGatheringMixin:
                         "Do auto-kopania potrzebujesz Kilofa."
                     )
                     return
-
                 if not is_mining_room(self.character.room_id):
                     await self.send(
                         "Auto-kopanie możesz włączyć tylko w miejscu wydobycia. "
                         "Automat nie chodzi sam."
                     )
                     return
-
                 if self.auto_fishing or self.auto_fishing_task:
                     await self.stop_auto_fishing(announce=False)
                 if self.auto_woodcutting or self.auto_woodcutting_task:
                     await self.stop_auto_woodcutting(announce=False)
                 if self.auto_herbalism or self.auto_herbalism_task:
                     await self.stop_auto_herbalism(announce=False)
-
                 self.auto_mining = True
                 self.auto_mining_task = asyncio.create_task(
                     self.auto_mining_loop()
@@ -305,18 +278,15 @@ class SessionGatheringMixin:
                     "Wpisz kop off albo mine off, aby je zatrzymać."
                 )
                 return
-
             if not self.auto_mining and not self.auto_mining_task:
                 await self.send("Auto-kopanie jest już wyłączone.")
                 return
             await self.stop_auto_mining(
                 announce=True, immediate=False
             )
-
     async def stop_auto_woodcutting(self, announce=True, immediate=True):
             self.auto_woodcutting = False
             task = self.auto_woodcutting_task
-
             if immediate:
                 self.auto_woodcutting_task = None
                 if task and task is not asyncio.current_task() and not task.done():
@@ -328,7 +298,6 @@ class SessionGatheringMixin:
                 if announce:
                     await self.send("Auto-Drwalstwo wyłączone.")
                 return
-
             if task and not task.done():
                 if announce:
                     await self.send(
@@ -336,11 +305,9 @@ class SessionGatheringMixin:
                         "Trwające cięcie zostanie dokończone, ale następne już się nie rozpocznie."
                     )
                 return
-
             self.auto_woodcutting_task = None
             if announce:
                 await self.send("Auto-Drwalstwo wyłączone.")
-
     async def auto_woodcutting_loop(self):
             try:
                 while self.auto_woodcutting and not self.closed:
@@ -361,9 +328,7 @@ class SessionGatheringMixin:
                             "Auto-Drwalstwo zatrzymane: nie stoisz przy drzewach."
                         )
                         break
-
                     await self.woodcut(from_auto=True)
-
             except asyncio.CancelledError:
                 pass
             except Exception as exc:
@@ -383,7 +348,6 @@ class SessionGatheringMixin:
                 self.auto_woodcutting = False
                 if self.auto_woodcutting_task is asyncio.current_task():
                     self.auto_woodcutting_task = None
-
     async def set_auto_woodcutting(self, enabled):
             if enabled:
                 if self.auto_woodcutting:
@@ -403,21 +367,18 @@ class SessionGatheringMixin:
                         "Do auto-Drwalstwa potrzebujesz Piły."
                     )
                     return
-
                 if self.character.room_id not in WOODCUTTING_ROOMS:
                     await self.send(
                         "Auto-Drwalstwo możesz włączyć tylko przy drzewach. "
                         "Automat nie chodzi sam."
                     )
                     return
-
                 if self.auto_fishing or self.auto_fishing_task:
                     await self.stop_auto_fishing(announce=False)
                 if self.auto_mining or self.auto_mining_task:
                     await self.stop_auto_mining(announce=False)
                 if self.auto_herbalism or self.auto_herbalism_task:
                     await self.stop_auto_herbalism(announce=False)
-
                 self.auto_woodcutting = True
                 self.auto_woodcutting_task = asyncio.create_task(
                     self.auto_woodcutting_loop()
@@ -428,7 +389,6 @@ class SessionGatheringMixin:
                     "Wpisz tnij off albo woodcut off, aby je zatrzymać."
                 )
                 return
-
             if not self.auto_woodcutting and not self.auto_woodcutting_task:
                 await self.send(
                     "Auto-Drwalstwo jest już wyłączone."
