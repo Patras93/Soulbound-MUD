@@ -271,8 +271,8 @@ class SessionEquipmentStatsMixin:
                     mult *= float(REGIONAL_SET_BONUSES.get(set_id,{}).get("complete",1.0))
             try:
                 mult *= self.tech_set_equipped_mark_multiplier_v0320()
-            except Exception:
-                pass
+            except Exception as exc:
+                print(f"TECH_SET_HP_MANA_MULTIPLIER_ERROR: {type(exc).__name__}: {exc}", flush=True)
             return mult
 
     def regional_set_damage_multiplier(self):
@@ -284,8 +284,8 @@ class SessionEquipmentStatsMixin:
                     mult *= float(REGIONAL_SET_BONUSES.get(set_id,{}).get("complete",1.0))
             try:
                 mult *= self.tech_set_equipped_mark_multiplier_v0320()
-            except Exception:
-                pass
+            except Exception as exc:
+                print(f"TECH_SET_DAMAGE_MULTIPLIER_ERROR: {type(exc).__name__}: {exc}", flush=True)
             return mult
 
     def regional_set_defense_multiplier(self):
@@ -297,8 +297,8 @@ class SessionEquipmentStatsMixin:
                     mult *= float(REGIONAL_SET_BONUSES.get(set_id,{}).get("complete",1.0))
             try:
                 mult *= self.tech_set_equipped_mark_multiplier_v0320()
-            except Exception:
-                pass
+            except Exception as exc:
+                print(f"TECH_SET_DEFENSE_MULTIPLIER_ERROR: {type(exc).__name__}: {exc}", flush=True)
             return mult
 
     def regional_set_status_lines(self):
