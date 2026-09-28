@@ -445,8 +445,8 @@ class SessionCraftingOrdersV0600Mixin:
                     self.account_id, "quest", "Zamówienie profesji",
                     f"{active['item_name']} x{needed}; {active['profession']}.",
                 )
-            except Exception:
-                pass
+            except Exception as exc:
+                print(f"CRAFTING_ORDER_ACTIVITY_LOG_ERROR: {type(exc).__name__}: {exc}", flush=True)
             await self.send(
                 f"ZAMÓWIENIE WYKONANE: {active['item_name']} x{needed}. "
                 f"Nagroda {currency_reading_text(coins,0,0)}, {int(active['reward_profession_xp'])} XP profesji "
