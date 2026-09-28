@@ -1105,8 +1105,8 @@ try:
       "zaklinanie":"Zaklinanie 1-400. Komnata Arkanów. Komendy: zaklinanie, zaklinaj <slot> <typ>, enchants. Jedno trwałe zaklęcie na slot; nowe zastępuje stare.",
       "jubilerstwo2":"Jubilerstwo 2.0 dodaje nowe kolczyki, pierścienie i naszyjniki w progresji do levelu 400. Użyj receptury jubilerstwo i jub <nazwa>.",
     })
-except Exception:
-    pass
+except Exception as exc:
+    print(f"HELP_REFRESH_PROFESSIONS_ERROR: {type(exc).__name__}: {exc}", flush=True)
 
 
 # v0.30.54 Crafting 2.0 help
@@ -1116,8 +1116,8 @@ try:
       "krytycznycraft":"Krytyczny craft v0.30.54: mała szansa na dodatkowy affix statystyki. Szansa rośnie z levelem profesji oraz Crafting Mastery i ma bezpieczny limit.",
       "craftmastery":"Crafting Mastery v0.30.54 jest osobne od levelu profesji i narzędzia. Rośnie od liczby udanych craftów w konkretnej kategorii. Komenda: craftmastery [filtr]. Maksymalnie 100.",
     })
-except Exception:
-    pass
+except Exception as exc:
+    print(f"HELP_REFRESH_CRAFTING2_ERROR: {type(exc).__name__}: {exc}", flush=True)
 
 
 # v0.31.7 Engineer Toolkit + profession tool audit.
@@ -1157,8 +1157,8 @@ try:
             "\nSupport Effect to dodatkowy tryb/efekt konkretnej umiejętności Meca. "
             "Nie jest osobną bronią. Rdzeń Meca pozostaje jego jedyną Bronią Duszy."
         )
-except Exception:
-    pass
+except Exception as exc:
+    print(f"HELP_REFRESH_MEC_ERROR: {type(exc).__name__}: {exc}", flush=True)
 
 # ============================================================
 # v0.61.0 - ITEM SOURCES + PARTY COORDINATION
