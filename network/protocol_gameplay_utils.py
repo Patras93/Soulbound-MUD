@@ -320,7 +320,7 @@ def decode_polish_telnet_text(
                 encoding,
                 errors="strict",
             )
-        except UnicodeDecodeError:
+        except UnicodeDecodeError:  # AUDIT_INTENTIONAL_PASS: try next supported decoding
             pass
 
     # Nie gubimy bajtów po cichu.
