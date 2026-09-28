@@ -209,7 +209,7 @@ class SessionIOAuthCharacterMixin:
             if len(parts) > 1:
                 try:
                     limit = max(1, min(HISTORY_BUFFER_LIMIT, int(parts[1])))
-                except ValueError:
+                except ValueError:  # AUDIT_INTENTIONAL_PASS: invalid optional history limit keeps the default
                     pass
 
             if category == "all":
@@ -273,8 +273,8 @@ class SessionIOAuthCharacterMixin:
                     )
                     if _value and any(re.match(_pattern, _value, re.IGNORECASE) for _pattern in _promotion_patterns):
                         self.server.db.record_activity_v0560(self.account_id, "awans", _value, "")
-                except Exception:
-                    pass
+                except Exception as exc:
+                    print(f"ACTIVITY_PROMOTION_LOG_ERROR: {type(exc).__name__}: {exc}", flush=True)
             try:
                 self.writer.write(
                     self.encode_session_text(
@@ -289,8 +289,8 @@ class SessionIOAuthCharacterMixin:
             try:
                 if self.account_id:
                     self.server.db.add_combat_event_v0320(self.account_id, str(text), "combat")
-            except Exception:
-                pass
+            except Exception as exc:
+                print(f"COMBAT_EVENT_LOG_ERROR: {type(exc).__name__}: {exc}", flush=True)
             await self.send(text, combat_detail=detail)
 
     async def set_combat_log(self, args=""):
@@ -388,12 +388,12 @@ class SessionIOAuthCharacterMixin:
             """Opcja Wyjdź ma naprawdę zamknąć połączenie klienta."""
             try:
                 await self.send("Do zobaczenia.")
-            except Exception:
+            except Exception:  # AUDIT_INTENTIONAL_PASS: connection may already be gone while saying goodbye
                 pass
             try:
                 self.writer.close()
                 await self.writer.wait_closed()
-            except Exception:
+            except Exception:  # AUDIT_INTENTIONAL_PASS: peer may already have closed the socket
                 pass
             self.closed = True
 
@@ -459,7 +459,7 @@ class SessionIOAuthCharacterMixin:
                     await old_session.send(
                         "To konto zostało przejęte przez nowe logowanie. Ta sesja zostanie zamknięta."
                     )
-                except Exception:
+                except Exception:  # AUDIT_INTENTIONAL_PASS: replaced session may already be disconnected
                     pass
                 await old_session.close()
                 self.server.sessions.discard(old_session)
@@ -704,7 +704,7 @@ class SessionIOAuthCharacterMixin:
                     if session.writer:
                         session.writer.close()
                     disconnected += 1
-                except Exception:
+                except Exception:  # AUDIT_INTENTIONAL_PASS: admin wipe continues even if a target session vanished
                     pass
             return disconnected
 
@@ -1002,7 +1002,7 @@ class SessionIOAuthCharacterMixin:
                     n = int(raw)
                     if 1 <= n <= len(items):
                         return items[n - 1]
-                except ValueError:
+                except ValueError:  # AUDIT_INTENTIONAL_PASS: invalid menu input is handled by the message below
                     pass
                 await self.send("Nieprawidłowy numer.")
 
