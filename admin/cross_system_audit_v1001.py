@@ -52,7 +52,8 @@ def audit(runtime):
         if needed is not None and (not isinstance(needed, int) or needed <= 0):
             errors.append(f"quest {qid}: invalid needed={needed!r}")
         dynamic_kill_target = isinstance(target, str) and (
-            target.startswith("crypt_boss_") and target.removeprefix("crypt_boss_").isdigit()
+            target == "*"
+            or target.startswith("crypt_boss_") and target.removeprefix("crypt_boss_").isdigit()
             or target in ("magitek_infinite", "magitek_elite")
         )
         if kind == "kill" and target and target not in quest_aliases and not dynamic_kill_target:
