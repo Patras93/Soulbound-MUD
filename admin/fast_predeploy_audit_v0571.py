@@ -189,7 +189,7 @@ def fast_predeploy_audit_v0571():
                 upper = token.string.upper()
                 if "TODO" in upper or "FIXME" in upper:
                     todo_sites.append(f"{rel}:{token.start[0]}: {token.string.strip()}")
-        except (tokenize.TokenError, IndentationError):
+        except (tokenize.TokenError, IndentationError):  # AUDIT_INTENTIONAL_PASS: syntax failures are reported separately
             pass
 
     for item in duplicate_literal_keys:
