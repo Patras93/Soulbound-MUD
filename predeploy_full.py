@@ -53,7 +53,14 @@ def main():
                 f"{fast['todo_fixme_count']} TODO/FIXME; "
                 f"{len(cross['warnings'])} cross-system warnings"
             )
-            print("FULL AUDIT PASS")
+            print(
+                "FULL AUDIT PASS: "
+                f"{fast['duplicate_literal_key_count']} duplicate dict keys; "
+                f"{fast['swallowed_exception_count']} swallowed exceptions; "
+                f"{fast.get('intentional_swallowed_exception_count', 0)} intentional passes; "
+                f"{fast['todo_fixme_count']} TODO/FIXME; "
+                f"{len(cross['warnings'])} cross-system warnings"
+            )
         finally:
             server._BOOT_SOCKET.close()
 
