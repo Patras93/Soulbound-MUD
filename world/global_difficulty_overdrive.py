@@ -84,8 +84,8 @@ def _v0386_rank(template):
         generated = str(generator_core_v027.mob_rank(template) or "normal")
         if generated in _V0386_RANK_HP:
             return generated
-    except Exception:
-        pass
+    except Exception as exc:
+        print(f"DIFFICULTY_RANK_FALLBACK_ERROR: {type(exc).__name__}: {exc}", flush=True)
     return "normal"
 
 
@@ -208,8 +208,8 @@ def v0190_apply_combat_template(template):
         result["max_hp"] = max(int(result.get("max_hp", 1) or 1), _canon_hp)
         result["base_max_hp"] = int(result["max_hp"])
         result["damage"] = max(int(result.get("damage", 1) or 1), _canon_dmg)
-    except Exception:
-        pass
+    except Exception as exc:
+        print(f"DIFFICULTY_CANONICAL_STATS_ERROR: {type(exc).__name__}: {exc}", flush=True)
 
     if _v0386_instance_kind(result) == "magitek":
         result["max_hp"] = max(int(result.get("max_hp", 1) or 1), int(result.get("_v0386_authored_hp", 1) or 1))
@@ -266,8 +266,8 @@ def v0190_combat_reward(template, kind):
             axis = {"class": "class", "soul": "soul", "stat": "stat", "character": "character"}.get(str(kind))
             canonical = int(generator_core_v027.axis_gain(axis, stage, generator_core_v027.RANK_REWARD.get(rank, 1.0))) if axis else 0
         base = max(base, canonical)
-    except Exception:
-        pass
+    except Exception as exc:
+        print(f"DIFFICULTY_REWARD_FALLBACK_ERROR: {type(exc).__name__}: {exc}", flush=True)
 
     # Infinite Magitek has intentionally authored depth rewards. Preserve them
     # as a minimum before applying the final v0.38.6 reward multiplier.
