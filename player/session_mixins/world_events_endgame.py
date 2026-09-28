@@ -549,8 +549,8 @@ class SessionWorldEventsEndgameMixin:
                     self.server.db.record_server_project_v03811(
                         self.account_id, self.character.name, key
                     )
-                except Exception:
-                    pass
+                except Exception as exc:
+                    print(f"WORLD_PROJECT_RECORD_ERROR: {type(exc).__name__}: {exc}", flush=True)
                 for ss in list(self.server.sessions):
                     if getattr(ss,"character",None): await ss.send(f"WORLD PROJECT UKOŃCZONY: {spec['name']}! Współtwórcy z wymaganym wkładem mogą użyć projekt odbierz {key}.")
 
