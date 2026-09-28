@@ -143,7 +143,7 @@ def _v0250_load_or_create_world_seed():
             value = handle.read().strip()
             if value:
                 return value
-    except OSError:
+    except OSError:  # AUDIT_INTENTIONAL_PASS: missing/unreadable seed falls back to generated value
         pass
     value = secrets.token_hex(24)
     try:
@@ -152,7 +152,7 @@ def _v0250_load_or_create_world_seed():
         with open(tmp, "w", encoding="utf-8") as handle:
             handle.write(value + "\n")
         os.replace(tmp, path)
-    except OSError:
+    except OSError:  # AUDIT_INTENTIONAL_PASS: read-only deployment cannot persist generated seed
         # Read-only deployment: seed remains stable for the lifetime of process.
         pass
     return value
