@@ -72,7 +72,7 @@ class SessionGatheringMixin:
                     task.cancel()
                     try:
                         await task
-                    except asyncio.CancelledError:
+                    except asyncio.CancelledError:  # AUDIT_INTENTIONAL_PASS: normal auto-action task cancellation
                         pass
                 if announce:
                     await self.send("Auto-łowienie wyłączone.")
@@ -108,7 +108,7 @@ class SessionGatheringMixin:
                         )
                         break
                     await self.fish(from_auto=True)
-            except asyncio.CancelledError:
+            except asyncio.CancelledError:  # AUDIT_INTENTIONAL_PASS: normal auto-action task cancellation
                 pass
             except Exception as exc:
                 try:
@@ -116,12 +116,12 @@ class SessionGatheringMixin:
                         f"Auto-łowienie zatrzymane przez błąd wewnętrzny: "
                         f"{type(exc).__name__}: {exc}."
                     )
-                except Exception:
+                except Exception:  # AUDIT_INTENTIONAL_PASS: secondary error reporting must not mask the original failure
                     pass
                 try:
                     import traceback
                     print("AUTO_FISHING_ERROR\n" + traceback.format_exc(), flush=True)
-                except Exception:
+                except Exception:  # AUDIT_INTENTIONAL_PASS: secondary error reporting must not mask the original failure
                     pass
             finally:
                 self.auto_fishing = False
@@ -181,7 +181,7 @@ class SessionGatheringMixin:
                     task.cancel()
                     try:
                         await task
-                    except asyncio.CancelledError:
+                    except asyncio.CancelledError:  # AUDIT_INTENTIONAL_PASS: normal auto-action task cancellation
                         pass
                 if announce:
                     await self.send("Auto-kopanie wyłączone.")
@@ -219,7 +219,7 @@ class SessionGatheringMixin:
                     if await self.auto_mine_descend_if_unlocked():
                         continue
                     await self.mine(from_auto=True)
-            except asyncio.CancelledError:
+            except asyncio.CancelledError:  # AUDIT_INTENTIONAL_PASS: normal auto-action task cancellation
                 pass
             except Exception as exc:
                 try:
@@ -227,12 +227,12 @@ class SessionGatheringMixin:
                         f"Auto-kopanie zatrzymane przez błąd wewnętrzny: "
                         f"{type(exc).__name__}: {exc}."
                     )
-                except Exception:
+                except Exception:  # AUDIT_INTENTIONAL_PASS: secondary error reporting must not mask the original failure
                     pass
                 try:
                     import traceback
                     print("AUTO_MINING_ERROR\n" + traceback.format_exc(), flush=True)
-                except Exception:
+                except Exception:  # AUDIT_INTENTIONAL_PASS: secondary error reporting must not mask the original failure
                     pass
             finally:
                 self.auto_mining = False
@@ -293,7 +293,7 @@ class SessionGatheringMixin:
                     task.cancel()
                     try:
                         await task
-                    except asyncio.CancelledError:
+                    except asyncio.CancelledError:  # AUDIT_INTENTIONAL_PASS: normal auto-action task cancellation
                         pass
                 if announce:
                     await self.send("Auto-Drwalstwo wyłączone.")
@@ -329,7 +329,7 @@ class SessionGatheringMixin:
                         )
                         break
                     await self.woodcut(from_auto=True)
-            except asyncio.CancelledError:
+            except asyncio.CancelledError:  # AUDIT_INTENTIONAL_PASS: normal auto-action task cancellation
                 pass
             except Exception as exc:
                 try:
@@ -337,12 +337,12 @@ class SessionGatheringMixin:
                         f"Auto-Drwalstwo zatrzymane przez błąd wewnętrzny: "
                         f"{type(exc).__name__}: {exc}."
                     )
-                except Exception:
+                except Exception:  # AUDIT_INTENTIONAL_PASS: secondary error reporting must not mask the original failure
                     pass
                 try:
                     import traceback
                     print("AUTO_WOODCUTTING_ERROR\n" + traceback.format_exc(), flush=True)
-                except Exception:
+                except Exception:  # AUDIT_INTENTIONAL_PASS: secondary error reporting must not mask the original failure
                     pass
             finally:
                 self.auto_woodcutting = False
@@ -408,7 +408,7 @@ class SessionGatheringMixin:
                     task.cancel()
                     try:
                         await task
-                    except asyncio.CancelledError:
+                    except asyncio.CancelledError:  # AUDIT_INTENTIONAL_PASS: normal auto-action task cancellation
                         pass
                 if announce:
                     await self.send("Auto-Zielarstwo wyłączone.")
@@ -449,7 +449,7 @@ class SessionGatheringMixin:
 
                     await self.gather_herb(from_auto=True)
 
-            except asyncio.CancelledError:
+            except asyncio.CancelledError:  # AUDIT_INTENTIONAL_PASS: normal auto-action task cancellation
                 pass
             except Exception as exc:
                 try:
@@ -457,12 +457,12 @@ class SessionGatheringMixin:
                         f"Auto-Zielarstwo zatrzymane przez błąd wewnętrzny: "
                         f"{type(exc).__name__}: {exc}."
                     )
-                except Exception:
+                except Exception:  # AUDIT_INTENTIONAL_PASS: secondary error reporting must not mask the original failure
                     pass
                 try:
                     import traceback
                     print("AUTO_HERBALISM_ERROR\n" + traceback.format_exc(), flush=True)
-                except Exception:
+                except Exception:  # AUDIT_INTENTIONAL_PASS: secondary error reporting must not mask the original failure
                     pass
             finally:
                 self.auto_herbalism = False
