@@ -16,7 +16,7 @@ def _relative_runtime_path(filename: str, root: Path | None) -> str:
     if root is not None:
         try:
             return path.resolve().relative_to(Path(root).resolve()).as_posix()
-        except Exception:
+        except Exception:  # AUDIT_INTENTIONAL_PASS: non-relative paths fall back to absolute/posix form
             pass
     return path.as_posix()
 
