@@ -181,5 +181,5 @@ class SessionCommandLoopMixin:
             try:
                 self.writer.close()
                 await self.writer.wait_closed()
-            except Exception:
+            except Exception:  # AUDIT_INTENTIONAL_PASS: peer may already be disconnected
                 pass
