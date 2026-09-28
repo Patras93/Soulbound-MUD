@@ -14,6 +14,7 @@ from core.bootstrap_economy_professions import (
 )
 from core.classes_skills import ROOMS
 from core.mines_threat import ITEMS
+from data import catalog_mutations as _catalog_mut
 from core.progression_600 import TOOL_MAX_LEVEL, TOOL_MAX_TIER
 from network.protocol_gameplay_utils import normalize_lookup_text
 from systems.content_registry import QUESTS
@@ -44,7 +45,10 @@ V1100_ARCHAEOLOGY_FINDS = (
 )
 
 for _level, _item_id, _name in V1100_ARCHAEOLOGY_FINDS:
-    ITEMS.setdefault(
+    _catalog_mut.catalog_setdefault_path(
+        "ITEMS",
+        ITEMS,
+        (),
         _item_id,
         {
             "name": _name,
