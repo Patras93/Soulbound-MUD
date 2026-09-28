@@ -83,8 +83,8 @@ class SessionQuestCommandsMixin:
                     self.account_id, "quest", str(q.get("name") or quest_id),
                     f"NPC: {q.get('giver', 'nieznany')}."
                 )
-            except Exception:
-                pass
+            except Exception as exc:
+                print(f"QUEST_ACTIVITY_LOG_ERROR: {type(exc).__name__}: {exc}", flush=True)
 
             # v0.9.8: NPC najpierw reaguje na oddanie, potem przekazuje nagrody.
             turnin_npc = self.quest_turnin_npc_name_v098(q)
