@@ -61,8 +61,11 @@ class EventBus:
                             command=f"event:{type(event).__name__}",
                             handler=subscription.name,
                         )
-                    except Exception:
-                        pass
+                    except Exception as reporter_exc:
+                        print(
+                            f"EVENT_ERROR_REPORTER_FAILURE: {type(reporter_exc).__name__}: {reporter_exc}",
+                            flush=True,
+                        )
                 if subscription.critical:
                     raise
         return {"event": type(event).__name__, "delivered": tuple(delivered), "errors": tuple(errors)}
