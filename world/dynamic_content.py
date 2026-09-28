@@ -441,8 +441,8 @@ for _mid, (_name, _hp, _dmg, _dtype, _cxp, _sxp, _mastery) in _v0923_mob_specs.i
     _catalog_mut.catalog_assign(_tmpl, 'MOB_TEMPLATES', MOB_TEMPLATES, (_mid,))
     try:
         _configure_dynamic_corpse_material(_tmpl)
-    except Exception:
-        pass
+    except Exception as exc:
+        print(f"DYNAMIC_CORPSE_MATERIAL_ERROR: {type(exc).__name__}: {exc}", flush=True)
 
 _v0923_boss_specs = {
     "ashen_sovereign": ("Suweren Popielnej Cytadeli", 260000, 300, "magic", 72000, 11500, 320, "ashen_citadel"),
@@ -466,8 +466,8 @@ for _mid, (_name, _hp, _dmg, _dtype, _cxp, _sxp, _mastery, _room) in _v0923_boss
     _catalog_mut.catalog_assign(_tmpl, 'MOB_TEMPLATES', MOB_TEMPLATES, (_mid,))
     try:
         _configure_dynamic_corpse_material(_tmpl)
-    except Exception:
-        pass
+    except Exception as exc:
+        print(f"DYNAMIC_BOSS_CORPSE_MATERIAL_ERROR: {type(exc).__name__}: {exc}", flush=True)
     MOB_SPAWNS.append((_room, _mid))
 
 _v0923_region_spawns = {
