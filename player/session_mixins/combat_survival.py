@@ -77,8 +77,8 @@ class SessionCombatSurvivalMixin:
                     self.server.db.set_recap_summary_v0320(self.account_id,str(killer),f"Śmierć od: {killer}",int(getattr(self,"_recap32_guard_saved",0)),int(getattr(self,"_recap52_heal",0)),"death")
                     self.server.db.add_combat_event_v0320(self.account_id,f"{killer} zadaje finalny cios. {self.character.name} ginie.","final")
                     self.server.db.conn.commit(); self._recap52_start=0
-                except Exception:
-                    pass
+                except Exception as exc:
+                    print(f"DEATH_RECAP_SAVE_ERROR: {type(exc).__name__}: {exc}", flush=True)
                 await self.send(f"Pokonuje cię {killer}.")
                 await self.send(
                     "Śmierć nie powoduje utraty waluty, przedmiotów, EQ ani progresji. "
