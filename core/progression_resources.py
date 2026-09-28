@@ -242,7 +242,8 @@ def v0190_quest_stage(quest):
         try:
             val=int(quest.get(key,0) or 0)
             if val>0: values.append(val)
-        except Exception: pass
+        except (TypeError, ValueError):
+            continue
     target=quest.get("target")
     if target in globals().get("MOB_TEMPLATES",{}):
         values.append(v0190_mob_stage(MOB_TEMPLATES[target]))
@@ -329,8 +330,8 @@ def v0190_resource_stage(item_id, item=None):
             val = int(base_item.get(key, 0) or 0)
             if val > 0:
                 return max(1, min(CHARACTER_MAX_LEVEL, val))
-        except Exception:
-            pass
+        except (TypeError, ValueError):
+            continue
     text = f"{base_id} {base_item.get('desc','')}"
     matches = re.findall(r"(?:level|poziom|lvl)[ _:+-]*(\d{1,4})", text, flags=re.I)
     if not matches:
