@@ -543,7 +543,7 @@ class MudServer:
                 await session.send(
                     f"Wystąpił błąd sesji [{report['error_id']}]. Połączenie zostanie zamknięte."
                 )
-            except Exception:
+            except Exception:  # AUDIT_INTENTIONAL_PASS: broken client connection may prevent final error message
                 pass
         finally:
             await session.close()
@@ -579,5 +579,5 @@ class MudServer:
             for task in (wander_task, xp_event_task):
                 try:
                     await task
-                except asyncio.CancelledError:
+                except asyncio.CancelledError:  # AUDIT_INTENTIONAL_PASS: normal server shutdown task cancellation
                     pass
