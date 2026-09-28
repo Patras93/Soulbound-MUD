@@ -20,7 +20,7 @@ def _v03060_stage(record):
         try:
             if value is not None and int(value) > 0:
                 return max(1, min(PROGRESSION_MAX_LEVEL, int(value)))
-        except Exception:
+        except (TypeError, ValueError, OverflowError):  # AUDIT_INTENTIONAL_PASS: malformed legacy numeric gate is ignored
             pass
     return 1
 
