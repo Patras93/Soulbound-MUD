@@ -23,6 +23,7 @@ print(
     f"{audit['all_source_syntax_error_count']} syntax errors; "
     f"{audit['duplicate_literal_key_count']} duplicate dict keys; "
     f"{audit['swallowed_exception_count']} swallowed exceptions; "
+    f"{audit.get('intentional_swallowed_exception_count', 0)} intentional passes; "
     f"{audit['todo_fixme_count']} TODO/FIXME"
 )
 print(f"Docker COPY sources: {len(audit['missing_docker_copy_sources'])} missing")
