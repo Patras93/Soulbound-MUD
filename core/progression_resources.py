@@ -151,8 +151,8 @@ def v0190_mob_stage(template):
     try:
         if "v0866_mob_progression_power" in globals():
             return max(1,min(CHARACTER_MAX_LEVEL,int(round(v0866_mob_progression_power(template)))))
-    except Exception:
-        pass
+    except Exception as exc:
+        print(f"MOB_PROGRESSION_POWER_FALLBACK_ERROR: {type(exc).__name__}: {exc}", flush=True)
     hp=max(1,float(template.get("max_hp",1) or 1))
     dmg=max(1,float(template.get("damage",1) or 1))
     estimate=max(1.0, ((hp/80.0)**0.45)*8.0 + ((dmg/5.0)**0.55)*4.0)
@@ -323,8 +323,8 @@ def v0190_resource_stage(item_id, item=None):
     try:
         if "fish_unlock_level" in globals() and (base_id in globals().get("FISH_RESOURCE_IDS", set()) or base_id.startswith("fish_400_")):
             return max(1, min(CHARACTER_MAX_LEVEL, int(fish_unlock_level(base_id))))
-    except Exception:
-        pass
+    except Exception as exc:
+        print(f"FISH_UNLOCK_LEVEL_FALLBACK_ERROR: {type(exc).__name__}: {exc}", flush=True)
     for key in ("min_tool_level", "min_profession_level", "required_mastery", "level"):
         try:
             val = int(base_item.get(key, 0) or 0)
