@@ -19,7 +19,7 @@ def _boot_port() -> int:
                 value = int(raw)
                 if 1 <= value <= 65535:
                     return value
-            except ValueError:
+            except ValueError:  # AUDIT_INTENTIONAL_PASS: invalid port value falls through to the next source/default
                 pass
     return 4000
 
