@@ -99,7 +99,7 @@ class SessionRestManaMixin:
                             "HP i Mana są pełne."
                         )
                         break
-            except asyncio.CancelledError:
+            except asyncio.CancelledError:  # AUDIT_INTENTIONAL_PASS: normal rest-task cancellation
                 pass
             except Exception as exc:
                 try:
@@ -107,12 +107,12 @@ class SessionRestManaMixin:
                         f"Odpoczynek został zatrzymany przez błąd wewnętrzny: "
                         f"{type(exc).__name__}: {exc}."
                     )
-                except Exception:
+                except Exception:  # AUDIT_INTENTIONAL_PASS: secondary rest error reporting must not mask original failure
                     pass
                 try:
                     import traceback
                     print("REST_LOOP_ERROR\n" + traceback.format_exc(), flush=True)
-                except Exception:
+                except Exception:  # AUDIT_INTENTIONAL_PASS: secondary rest error reporting must not mask original failure
                     pass
             finally:
                 self.resting = False
@@ -137,7 +137,7 @@ class SessionRestManaMixin:
                 task.cancel()
                 try:
                     await task
-                except asyncio.CancelledError:
+                except asyncio.CancelledError:  # AUDIT_INTENTIONAL_PASS: normal rest-task cancellation
                     pass
 
             if announce and was_resting:
