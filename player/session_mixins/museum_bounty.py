@@ -808,8 +808,8 @@ class SessionMuseumBountyMixin:
                             self.account_id, self.character.name, item_id,
                             item_display_name_v03811, rarity, source, zone,
                         )
-                    except Exception:
-                        pass
+                    except Exception as exc:
+                        print(f"EXCEPTIONAL_DROP_RECORD_ERROR: {type(exc).__name__}: {exc}", flush=True)
 
             base_resource_id = canonical_profession_resource_id(item_id)
             collection_candidates = []
