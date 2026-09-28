@@ -58,9 +58,11 @@ class SessionQuestOffersMixin:
 
             reasons = []
 
-            # v0.30.10: questy nie mają globalnej blokady Levelu postaci.
-            # Zachowujemy wyłącznie wymagania wynikające z treści zadania: poprzedni
-            # quest, Soul Level/Tier oraz specjalistyczną profesję/narzędzie.
+            # Questy nie mają żadnej blokady poziomem.
+            # Level postaci, Soul Level/Tier oraz poziom profesji/narzędzia mogą
+            # opisywać etap/trudność i skalować nagrody, ale nie blokują przyjęcia.
+            # Zostają tylko wymagania logiczne: poprzedni quest, właściwa klasa
+            # oraz wymagany NPC/nauczyciel.
             required_quest = quest.get("requires_quest")
             if required_quest and not self.quest_completed(required_quest):
                 previous = QUESTS.get(required_quest, {})
@@ -82,22 +84,6 @@ class SessionQuestOffersMixin:
                     reasons.append(
                         "wymaga nauczyciela: " + str(npc.get("name") or required_npc_id)
                     )
-
-            required_soul_level = int(quest.get("required_soul_level", 0) or 0)
-            if required_soul_level and self.character.soul_level < required_soul_level:
-                reasons.append(f"wymaga Soul Poziom {required_soul_level}")
-
-            required_soul_tier = int(quest.get("required_soul_tier", 0) or 0)
-            if required_soul_tier and self.character.soul_tier < required_soul_tier:
-                reasons.append(f"wymaga Soul Tier {required_soul_tier}")
-
-            tool_type = quest.get("specialist_tool_type")
-            profession = quest.get("required_profession") or quest.get("reward_profession") or profession_for_tool_type(tool_type)
-            min_prof = int(quest.get("min_profession_level", quest.get("min_tool_level", 0)) or 0)
-            if profession and min_prof:
-                prow = self.server.db.profession(self.account_id, profession)
-                if int(prow["level"]) < min_prof:
-                    reasons.append(f"wymaga {profession} poziom {min_prof}")
 
             return reasons
 
@@ -651,25 +637,14 @@ class SessionQuestOffersMixin:
                 requirements.append(
                     "ukończ quest " + QUESTS.get(required_quest, {}).get("name", required_quest)
                 )
-            tool_type = quest.get("specialist_tool_type")
-            profession = (
-                quest.get("required_profession")
-                or quest.get("reward_profession")
-                or profession_for_tool_type(tool_type)
-            )
-            min_profession = int(
-                quest.get("min_profession_level", quest.get("min_tool_level", 0)) or 0
-            )
-            if profession and min_profession:
-                requirements.append(f"{profession} poziom {min_profession}")
-            if quest.get("required_soul_level"):
-                requirements.append(f"Soul Poziom {quest['required_soul_level']}")
-            if quest.get("required_soul_tier"):
-                requirements.append(f"Soul Tier {quest['required_soul_tier']}")
             if requirements:
-                await self.send("Wymagania: " + ", ".join(requirements) + ".")
+                await self.send("Wymagania logiczne: " + ", ".join(requirements) + ".")
             else:
-                await self.send("Wymagania: brak dodatkowych wymagań.")
+                await self.send("Wymagania: brak blokady poziomem.")
+            await self.send(
+                "Poziomy zapisane przy zadaniu określają etap, trudność lub skalę nagrody; "
+                "nie blokują przyjęcia questa."
+            )
 
             reward_parts = []
             generated_currency=v0190_quest_currency_reward(quest)
