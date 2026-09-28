@@ -23,7 +23,7 @@ class SessionCombatRealtimeMixin:
                     task.cancel()
                     try:
                         await task
-                    except asyncio.CancelledError:
+                    except asyncio.CancelledError:  # AUDIT_INTENTIONAL_PASS: normal task cancellation
                         pass
 
     async def ensure_realtime_combat(self):
@@ -206,14 +206,14 @@ class SessionCombatRealtimeMixin:
 
                         wait_for = min(next_player, next_enemy) - time.monotonic()
                         await asyncio.sleep(max(0.05, min(0.20, wait_for)))
-                except asyncio.CancelledError:
+                except asyncio.CancelledError:  # AUDIT_INTENTIONAL_PASS: normal task cancellation
                     pass
                 except Exception as exc:
                     # Nie zabijaj sesji przez błąd zadania w tle; gracz może ponownie
                     # rozpocząć walkę komendą atakuj/k.
                     try:
                         await self.send(f"Pętla walki została zatrzymana: {exc}")
-                    except Exception:
+                    except Exception:  # AUDIT_INTENTIONAL_PASS: session may already be disconnected while reporting loop failure
                         pass
                 finally:
                     if self.combat_task is this_task:
