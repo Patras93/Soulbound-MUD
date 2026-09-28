@@ -42,8 +42,19 @@ def titles_progress_audit_v0580():
         errors.append("exploration title thresholds changed")
     if len(bosses) < 6 or not bosses or int(bosses[-1][0]) < 1000:
         errors.append("boss title progression is incomplete")
-    if len(professions) != 12:
-        errors.append(f"profession title coverage={len(professions)}, expected 12")
+    expected_professions = (
+        "Wędkarstwo", "Górnictwo", "Drwalstwo", "Zielarstwo",
+        "Gotowanie", "Alchemia", "Kowalstwo", "Jubilerstwo",
+        "Krawiectwo", "Garbarstwo", "Stolarstwo", "Zaklinanie",
+        "Archeologia", "Kartografia",
+    )
+    if tuple(professions) != expected_professions:
+        missing = tuple(name for name in expected_professions if name not in professions)
+        extra = tuple(name for name in professions if name not in expected_professions)
+        errors.append(
+            f"profession title coverage mismatch: count={len(professions)}, "
+            f"expected={len(expected_professions)}, missing={missing}, extra={extra}"
+        )
     if tuple(row[0] for row in profession_thresholds) != (200, 400, 600):
         errors.append("profession title thresholds changed")
     for token in ("def sync_titles_v0580", "async def show_unified_progress_v0580"):
