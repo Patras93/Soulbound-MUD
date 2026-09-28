@@ -349,8 +349,8 @@ def _ensure_infinite_dungeon_floor_v0382(self, room_id):
         try:
             _ROOM_THREAT_CACHE.pop(created_room, None)
             _ZONE_THREAT_CACHE.clear()
-        except Exception:
-            pass
+        except Exception as exc:
+            print(f"MAGITEK_THREAT_CACHE_INVALIDATION_ERROR: {type(exc).__name__}: {exc}", flush=True)
     elif v0100_subroom_id(canonical, 1) not in ROOMS:
         # Static/pre-created canonical room without its expanded layout.
         spawns = [(r, t) for r, t in MOB_SPAWNS if r == canonical]
