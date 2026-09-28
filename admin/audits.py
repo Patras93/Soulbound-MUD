@@ -3097,7 +3097,14 @@ def full_game_predeploy_audit_v0336():
             if tier not in valid_tiers: err('achievement_title_missing_tier',track,tier,title)
 
     # 9c) Professions, tools and progression tables.
-    if len(PROFESSION_RANK_NAMES)!=12: err('profession_count',len(PROFESSION_RANK_NAMES))
+    _expected_professions_v1112 = {
+        'Wędkarstwo', 'Górnictwo', 'Drwalstwo', 'Zielarstwo',
+        'Gotowanie', 'Alchemia', 'Kowalstwo', 'Jubilerstwo',
+        'Krawiectwo', 'Garbarstwo', 'Stolarstwo', 'Zaklinanie',
+        'Archeologia', 'Kartografia',
+    }
+    if set(PROFESSION_RANK_NAMES) != _expected_professions_v1112:
+        err('profession_catalog_mismatch', tuple(sorted(PROFESSION_RANK_NAMES)), tuple(sorted(_expected_professions_v1112)))
     if len(TOOL_TIER_THRESHOLDS)!=TOOL_MAX_TIER or TOOL_MAX_TIER!=60: err('tool_tier_count',len(TOOL_TIER_THRESHOLDS))
 
     # 9d) Deep quest target/dependency validation for every quest.
@@ -3116,7 +3123,10 @@ def full_game_predeploy_audit_v0336():
         if kind in ('collect_category','collect_distinct_category') and target not in valid_collect_categories:
             err('quest_bad_category',qid,target)
         if kind=='kill' and target not in valid_kill_targets:
-            dynamic_ok=False
+            # "*" is the intentional wildcard used by hourly class quests:
+            # storage.db_quests.increment_quest accepts either the killed target
+            # or "*" so these quests advance on any valid mob kill.
+            dynamic_ok = target == "*"
             # v0.38.4: these aliases are authored for lazy-generated Infinite Magitek
             # templates, so they may have no static template before the first floor
             # is materialized. Their dedicated audit verifies runtime tagging.
