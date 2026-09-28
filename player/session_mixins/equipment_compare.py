@@ -50,8 +50,8 @@ class SessionEquipmentCompareV0600Mixin:
                     stats[str(key)] = stats.get(str(key), 0) + int(value or 0)
                 for key, value in (rune.get("rune_properties") or {}).items():
                     props[str(key)] = props.get(str(key), 0.0) + float(value or 0)
-        except Exception:
-            pass
+        except Exception as exc:
+            print(f"EQUIPMENT_COMPARE_RUNES_ERROR: {type(exc).__name__}: {exc}", flush=True)
 
         # Gems are tied to a concrete equipped slot, so only count them for that slot.
         if slot:
@@ -61,12 +61,13 @@ class SessionEquipmentCompareV0600Mixin:
                     gaffix = str(gem.get("affix") or "")
                     if gaffix:
                         stats[gaffix] = stats.get(gaffix, 0) + int(gem.get("affix_amount", 0) or 0)
-            except Exception:
-                pass
+            except Exception as exc:
+                print(f"EQUIPMENT_COMPARE_GEMS_ERROR: {type(exc).__name__}: {exc}", flush=True)
 
         try:
             sockets = int(self.equipment_total_socket_capacity_v03114(item_id, item, "gem"))
-        except Exception:
+        except Exception as exc:
+            print(f"EQUIPMENT_COMPARE_SOCKET_ERROR: {type(exc).__name__}: {exc}", flush=True)
             sockets = 0
         return {"defense": defense, "stats": stats, "properties": props, "sockets": sockets, "upgrade": upgrade_level}
 
