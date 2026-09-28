@@ -382,7 +382,8 @@ class SessionSocialExpansionMixin:
     def record_social_record_v03051(self,key,value,text=''):
         try:
             value=int(value or 0); self.server.db.conn.execute("INSERT INTO player_records_v03051(account_id,record_key,value,text_value) VALUES(?,?,?,?) ON CONFLICT(account_id,record_key) DO UPDATE SET value=MAX(value,excluded.value),text_value=CASE WHEN excluded.value>value THEN excluded.text_value ELSE text_value END,updated_at=CURRENT_TIMESTAMP",(self.account_id,str(key),value,str(text or ''))); self.server.db.conn.commit()
-        except Exception: pass
+        except Exception as exc:
+            print(f"SOCIAL_RECORD_SAVE_ERROR: {type(exc).__name__}: {exc}", flush=True)
 
     async def records_v03051(self,args='',compact=False):
         aid=self._social_target_id_v03051(args) if str(args or '').strip() else self.account_id
