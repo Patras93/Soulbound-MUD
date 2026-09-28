@@ -11,7 +11,9 @@ from __future__ import annotations
 
 import ast
 import importlib
+import io
 import sqlite3
+import tokenize
 import tempfile
 from pathlib import Path
 from types import SimpleNamespace
@@ -180,10 +182,15 @@ def fast_predeploy_audit_v0571():
                         intentional_swallowed_exception_sites.append(site)
                     else:
                         swallowed_exception_sites.append(site)
-        for number, line in enumerate(source.splitlines(), 1):
-            upper = line.upper()
-            if "TODO" in upper or "FIXME" in upper:
-                todo_sites.append(f"{rel}:{number}: {line.strip()}")
+        try:
+            for token in tokenize.generate_tokens(io.StringIO(source).readline):
+                if token.type != tokenize.COMMENT:
+                    continue
+                upper = token.string.upper()
+                if "TODO" in upper or "FIXME" in upper:
+                    todo_sites.append(f"{rel}:{token.start[0]}: {token.string.strip()}")
+        except (tokenize.TokenError, IndentationError):
+            pass
 
     for item in duplicate_literal_keys:
         warnings.append(f"duplicate literal dict key: {item}")
