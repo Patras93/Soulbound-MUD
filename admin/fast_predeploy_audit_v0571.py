@@ -147,6 +147,7 @@ def fast_predeploy_audit_v0571():
 
     duplicate_literal_keys = []
     swallowed_exception_sites = []
+    intentional_swallowed_exception_sites = []
     todo_sites = []
     for path in all_python_files:
         rel = path.relative_to(ROOT).as_posix()
@@ -173,9 +174,12 @@ def fast_predeploy_audit_v0571():
                             exc_name = ast.unparse(node.type)
                         except Exception:
                             exc_name = "except"
-                    swallowed_exception_sites.append(
-                        f"{rel}:{getattr(node, 'lineno', '?')}: {exc_name}: pass"
-                    )
+                    site = f"{rel}:{getattr(node, 'lineno', '?')}: {exc_name}: pass"
+                    handler_line = source.splitlines()[max(0, int(getattr(node, "lineno", 1)) - 1)]
+                    if "AUDIT_INTENTIONAL_PASS" in handler_line:
+                        intentional_swallowed_exception_sites.append(site)
+                    else:
+                        swallowed_exception_sites.append(site)
         for number, line in enumerate(source.splitlines(), 1):
             upper = line.upper()
             if "TODO" in upper or "FIXME" in upper:
@@ -386,6 +390,7 @@ def fast_predeploy_audit_v0571():
         "all_source_syntax_error_count": len(all_source_syntax_errors),
         "duplicate_literal_key_count": len(duplicate_literal_keys),
         "swallowed_exception_count": len(swallowed_exception_sites),
+        "intentional_swallowed_exception_count": len(intentional_swallowed_exception_sites),
         "todo_fixme_count": len(todo_sites),
         "unexpected_symbol_overrides": unexpected_symbol_overrides,
         "expected_override_order_mismatches": expected_order_mismatches,
