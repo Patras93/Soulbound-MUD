@@ -37,7 +37,7 @@ def _is_crypt_soul_shard_template_v0711(template_id, template):
             try:
                 if int(base.get("crypt_floor", 0) or 0) > 0 or int(base.get("mythic_crypt_floor", 0) or 0) > 0:
                     return True
-            except Exception:
+            except (TypeError, ValueError):  # AUDIT_INTENTIONAL_PASS: malformed Crypt floor metadata falls back to other markers
                 pass
     return False
 
