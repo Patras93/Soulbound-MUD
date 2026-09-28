@@ -191,8 +191,8 @@ class SessionGatheringActionsMixin:
                     best_length, best_weight, global_record_v022,
                     had_global_record=(global_record_before_v03811 is not None),
                 )
-            except Exception:
-                pass
+            except Exception as exc:
+                print(f"FISH_SERVER_RECORD_ERROR: {type(exc).__name__}: {exc}", flush=True)
             await self.record_item_collection(
                 species_id, source=self.fishing_water_type() or "łowisko",
                 announce=True, record_history=False, amount=resource_quest_quantity
@@ -270,8 +270,8 @@ class SessionGatheringActionsMixin:
                     self.server.db.conn.commit()
                     if map_name:
                         await self.send(f"MAPA SKARBU: podczas połowu znajdujesz {map_name}. Wpisz skarby.")
-                except Exception:
-                    pass
+                except Exception as exc:
+                    print(f"OCEAN_TREASURE_MAP_GRANT_ERROR: {type(exc).__name__}: {exc}", flush=True)
             if new_tool_level != tool_level:
                 await self.send(
                     f"Wędka ma teraz poziom {new_tool_level}, Tier "
