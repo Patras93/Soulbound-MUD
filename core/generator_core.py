@@ -628,8 +628,10 @@ def _resource_order_hints(ns: dict, items: dict) -> dict[str, int]:
     if callable(fish_unlock):
         pairs = []
         for iid in fish_ids:
-            try: pairs.append((iid, fish_unlock(iid)))
-            except Exception: pass
+            try:
+                pairs.append((iid, fish_unlock(iid)))
+            except Exception as exc:
+                print(f"GENERATOR_FISH_UNLOCK_ERROR: {iid}: {type(exc).__name__}: {exc}", flush=True)
         hints.update(_normalized_order_levels(pairs))
 
     ore_levels = ns.get("ORE_ATLAS_LEVELS", {}) or {}
@@ -868,8 +870,10 @@ def _giver_stage(ns: dict, quest: dict, giver_stages: dict | None = None) -> int
             continue
         room = rooms.get(str(npc.get("room") or ""), {})
         if isinstance(room, dict):
-            try: stages.append(int(room.get("generator_level", 1) or 1))
-            except Exception: pass
+            try:
+                stages.append(int(room.get("generator_level", 1) or 1))
+            except (TypeError, ValueError):  # AUDIT_INTENTIONAL_PASS: malformed room level falls back to other giver rooms
+                pass
     return clamp(min(stages) if stages else 1, 1, MAX_LEVEL)
 
 
