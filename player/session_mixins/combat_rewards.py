@@ -438,8 +438,8 @@ class SessionCombatRewardsMixin:
                                 )
                             else:
                                 await session.send(f"Zadanie Gildii {quest_data[0]}: {new_progress} z {needed}.")
-                    except Exception:
-                        pass
+                    except Exception as exc:
+                        print(f"GUILD_CLASS_QUEST_PROGRESS_ERROR: {type(exc).__name__}: {exc}", flush=True)
 
                     # v0.8.10: bounty zalicza się każdemu uprawnionemu członkowi drużyny.
                     try:
@@ -448,8 +448,8 @@ class SessionCombatRewardsMixin:
                             bounty_state["completed"] = True
                             session.character.set_guild_bounty_state(bounty_state)
                             await session.send("Cel zlecenia Gildii pokonany. Użyj: guildbounty odbierz.")
-                    except Exception:
-                        pass
+                    except Exception as exc:
+                        print(f"GUILD_BOUNTY_PROGRESS_ERROR: {type(exc).__name__}: {exc}", flush=True)
 
                     # v0.8.53: każdy zabijalny mob może być bezpośrednim celem questa
                     # przez własny template_id. Zachowujemy również historyczne aliasy
@@ -476,8 +476,8 @@ class SessionCombatRewardsMixin:
                         session.server.db.set_recap_summary_v0320(session.account_id, self.character.name, f"Pokonano {template.get('name',mob.template_id)}", int(getattr(session,"_recap32_guard_saved",0)), int(getattr(session,"_recap52_heal",0)), "victory")
                         session.server.db.add_combat_event_v0320(session.account_id,f"Finalny cios zadaje {self.character.name}. {template.get('name',mob.template_id)} zostaje pokonany.","final")
                         session.server.db.conn.commit(); session._recap52_start=0
-                    except Exception:
-                        pass
+                    except Exception as exc:
+                        print(f"COMBAT_RECAP_SAVE_ERROR: {type(exc).__name__}: {exc}", flush=True)
                     self.server.db.save_character(session.character)
 
                 # v0.71.1: lazy/infinite Crypt templates can be rebuilt after boot.
