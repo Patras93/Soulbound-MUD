@@ -57,7 +57,7 @@ def _v0711_crypt_soul_shard_guaranteed(template_id, template):
             return True
         if int(template.get("mythic_crypt_floor", 0) or 0) > 0:
             return True
-    except Exception:
+    except (TypeError, ValueError):
         pass
     if template.get("crypt_boss") or template.get("mythic_crypt_boss"):
         return True
@@ -72,7 +72,7 @@ def _v0711_crypt_soul_shard_guaranteed(template_id, template):
             try:
                 if int(base.get("crypt_floor", 0) or 0) > 0 or int(base.get("mythic_crypt_floor", 0) or 0) > 0:
                     return True
-            except Exception:
+            except (TypeError, ValueError):
                 pass
     return False
 
