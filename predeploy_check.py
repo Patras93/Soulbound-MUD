@@ -8,6 +8,14 @@ wanted before a major release.
 """
 from __future__ import annotations
 
+# Railway/admin tools import the database facade directly. Keep this as an
+# explicit smoke test so direct-import regressions fail the deploy gate.
+try:
+    from storage.database import Database as _DatabaseImportSmoke
+except Exception as exc:
+    print(f"Soulbound v1.11.2 FAST PREDEPLOY FAILED: database import: {type(exc).__name__}: {exc}")
+    raise SystemExit(1)
+
 from admin.fast_predeploy_audit_v0571 import FAST_PREDEPLOY_AUDIT_V0571 as audit
 
 if audit["error_count"]:
