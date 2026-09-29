@@ -26,7 +26,7 @@ class MobState:
     engaged_at: float = 0.0
     home_room_id: str = ""
     next_wander_at: float = 0.0
-    # v1.11.3: mob trafiony AoE zachowuje aggro nawet gdy nie jest głównym combat_mob_key.
+    # AoE: mob trafiony obszarówką zachowuje aggro nawet gdy nie jest głównym combat_mob_key.
     aoe_engaged_by: Optional[str] = None
 
 
