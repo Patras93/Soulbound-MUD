@@ -26,6 +26,8 @@ class MobState:
     engaged_at: float = 0.0
     home_room_id: str = ""
     next_wander_at: float = 0.0
+    # v1.11.3: mob trafiony AoE zachowuje aggro nawet gdy nie jest głównym combat_mob_key.
+    aoe_engaged_by: Optional[str] = None
 
 
 # ============================================================
@@ -527,6 +529,7 @@ class World:
                     mob.alive = True
                     mob.hp = MOB_TEMPLATES[mob.template_id]["max_hp"]
                     mob.engaged_by = None
+                    mob.aoe_engaged_by = None
                     mob.combat_turn = 0
                     mob.player_hits = 0
                     mob.phase_stage = 0
