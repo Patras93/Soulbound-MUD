@@ -504,7 +504,7 @@ class SessionIOAuthCharacterMixin:
             for row in rows:
                 await self.send(
                     f"{row['slot']}. {row['name']}. "
-                    f"Rasa: {row['race']}. Klasa: {row['class_name']}. "
+                    f"Rasa: {row['race']}. Płeć: {row['gender']}. Klasa: {row['class_name']}. "
                     f"Soul Level: {row['soul_level']}."
                 )
             return rows
@@ -723,7 +723,7 @@ class SessionIOAuthCharacterMixin:
                 return
             for row in rows:
                 await self.send(
-                    f"{row['slot']}. {row['name']} — Rasa {row['race']}, Klasa {row['class_name']}, "
+                    f"{row['slot']}. {row['name']} — Rasa {row['race']}, płeć {row['gender']}, Klasa {row['class_name']}, "
                     f"Level {int(row['character_level'] or 1)}, Soul {int(row['soul_level'] or 1)}."
                 )
 
