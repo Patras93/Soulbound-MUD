@@ -343,7 +343,7 @@ class DatabaseAccountsMixin:
         )
         return int(cur.lastrowid)
 
-    def create_character_for_master(self, master_account_id, name, race, cls, name_cases):
+    def create_character_for_master(self, master_account_id, name, race, cls, name_cases, gender="nieokreślona"):
         if self.character_count_for_master(master_account_id) >= MAX_CHARACTERS_PER_ACCOUNT:
             raise ValueError("character_limit")
 
@@ -371,7 +371,7 @@ class DatabaseAccountsMixin:
         )
         try:
             self.create_character(
-                character_account_id, name, race, cls, name_cases
+                character_account_id, name, race, cls, name_cases, gender=gender
             )
             wallet_row = self.conn.execute(
                 "SELECT silver,gold,mithril FROM account_wallet "
@@ -460,9 +460,20 @@ class DatabaseAccountsMixin:
             (int(account_id), int(friend_account_id)),
         ).fetchone() is not None
 
-    def create_character(self, account_id, name, race, cls, name_cases):
+    def create_character(self, account_id, name, race, cls, name_cases, gender="nieokreślona"):
         rname, _, _race_strength, _race_dexterity, _race_constitution, _race_intelligence, _race_willpower = race
         cname, ctype, soul_weapon, weapon_base = cls
+        raw_gender = str(gender or "").strip().casefold()
+        if raw_gender in ("kobieta", "k"):
+            gender = "kobieta"
+        elif raw_gender in ("mężczyzna", "mezczyzna", "m"):
+            gender = "mężczyzna"
+        elif raw_gender in ("nieokreślona", "nieokreslona", ""):
+            gender = "nieokreślona"
+        else:
+            raise ValueError("invalid_gender")
+        if rname == "Driada" and gender != "kobieta":
+            raise ValueError("dryad_female_only")
         starting_stats = class_starting_stats_for(race, cls)
         strength = starting_stats["strength"]
         dexterity = starting_stats["dexterity"]
@@ -475,17 +486,17 @@ class DatabaseAccountsMixin:
             INSERT INTO characters(
                 account_id,name,
                 name_nom,name_gen,name_dat,name_acc,name_ins,name_loc,name_voc,
-                race,class_name,class_type,soul_weapon,weapon_base,
+                race,gender,class_name,class_type,soul_weapon,weapon_base,
                 strength,dexterity,constitution,intelligence,willpower,charisma,
                 stat_progress,soul_level,soul_xp,soul_tier,room_id,silver,gold,mithril,deaths
-            ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,0,1,0,1,'square',?,?,?,0)
+            ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,0,1,0,1,'square',?,?,?,0)
             """,
             (
                 account_id, name,
                 name_cases["nom"], name_cases["gen"], name_cases["dat"],
                 name_cases["acc"], name_cases["ins"], name_cases["loc"],
                 name_cases["voc"],
-                rname, cname, ctype, soul_weapon, weapon_base,
+                rname, gender, cname, ctype, soul_weapon, weapon_base,
                 strength, dexterity, constitution, intelligence, willpower, charisma,
                 STARTING_SILVER, STARTING_GOLD, STARTING_MITHRIL,
             ),
