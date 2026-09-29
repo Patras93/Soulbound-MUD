@@ -1,4 +1,6 @@
 import math
+import random
+import re
 from core import generator_core as generator_core_v027
 from data import catalog_mutations as _catalog_mut
 from config.balance import (
@@ -576,7 +578,7 @@ def mine_floor_number(room_id):
     return floor if floor >= MINE_MIN_FLOOR else None
 
 MINING_DEPTH_ROOMS = {
-    mine_floor_id(floor)
+    f"mine_floor_{floor}"
     for floor in range(MINE_MIN_FLOOR, MINE_PREGENERATED_MAX_FLOOR + 1)
 }
 MINING_ROOMS = {
