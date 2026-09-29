@@ -124,7 +124,7 @@ for index, (city, prefix, anchor, direction, flavour) in enumerate(WORLD_EXPANSI
     _v0700_link(square, internal_dirs[2], market)
 
     postmaster_names = (
-        "Mira", "Darek", "Selma", "Aris", "Lena", "Toren",
+        "Mira", "Darek", "Selma", "Aris", "Rimea", "Toren",
         "Neris", "Radan", "Eira", "Korin", "Vela", "Odran",
     )
     innkeeper_names = (
