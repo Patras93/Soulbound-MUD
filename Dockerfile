@@ -8,6 +8,7 @@ ENV PYTHONDONTWRITEBYTECODE=1
 ENV SOULBOUND_HOST=0.0.0.0
 ENV SOULBOUND_MAX_CLIENTS=100
 WORKDIR /app
+# Force fresh source snapshot after Railway queued-build race
 COPY server.py /app/server.py
 COPY core /app/core
 COPY systems /app/systems
