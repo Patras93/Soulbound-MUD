@@ -152,56 +152,105 @@ class SessionCombatRealtimeMixin:
                     await self.mob_defeated(mob)
 
     async def realtime_combat_loop(self):
-                """Niezależne timery gracza i moba; brak tur i ręcznego klikania rund."""
+                """Realtime: jeden główny cel gracza, ale każdy mob z aggro kontratakuje."""
                 this_task = asyncio.current_task()
                 next_player = time.monotonic()
                 # Krótki margines na pierwszą akcję gracza, aby rozpoczęcie walki było
                 # czytelne dla NVDA i nie powodowało natychmiastowego ciosu w tej samej ms.
                 next_enemy = time.monotonic() + 0.75
                 try:
-                    while not self.closed and self.combat_mob_key:
-                        mob = self.server.world.mobs.get(self.combat_mob_key)
+                    while not self.closed:
+                        if self.current_hp <= 0 or not self.character:
+                            break
+
+                        mob = (
+                            self.server.world.mobs.get(self.combat_mob_key)
+                            if self.combat_mob_key
+                            else None
+                        )
                         if (
                             not mob
                             or not mob.alive
                             or mob.room_id != self.character.room_id
                         ):
-                            self.combat_mob_key = None
-                            break
+                            # Po AoE śmierć głównego celu nie kończy walki, jeśli inne
+                            # trafione moby nadal mają aggro na tę postać.
+                            engaged = self.server.session_engaged_mobs(
+                                self, self.character.room_id
+                            )
+                            if not engaged:
+                                self.combat_mob_key = None
+                                break
+                            mob = engaged[0]
+                            self.combat_mob_key = mob.key
 
                         now = time.monotonic()
                         if now >= next_player:
                             await self.realtime_player_action(mob)
                             next_player = time.monotonic() + self.combat_player_interval
-                            if not self.combat_mob_key or self.current_hp <= 0:
+                            if self.current_hp <= 0:
                                 break
-                            mob = self.server.world.mobs.get(self.combat_mob_key)
-                            if not mob or not mob.alive:
-                                break
+
+                            mob = (
+                                self.server.world.mobs.get(self.combat_mob_key)
+                                if self.combat_mob_key
+                                else None
+                            )
+                            if (
+                                not mob
+                                or not mob.alive
+                                or mob.room_id != self.character.room_id
+                            ):
+                                engaged = self.server.session_engaged_mobs(
+                                    self, self.character.room_id
+                                )
+                                if not engaged:
+                                    self.combat_mob_key = None
+                                    break
+                                mob = engaged[0]
+                                self.combat_mob_key = mob.key
 
                         now = time.monotonic()
                         if now >= next_enemy:
-                            # v0.8.65: jeden mob ma jeden aktywny cel aggro. Członkowie
-                            # drużyny mogą zadawać obrażenia temu samemu przeciwnikowi,
-                            # ale nie tworzą własnych pełnych timerów kontrataku bossa.
-                            if not mob.engaged_by:
-                                if mob.engaged_at <= 0:
-                                    mob.engaged_at = time.monotonic()
-                                mob.engaged_by = self.character.name
-                            if mob.engaged_by == self.character.name:
-                                target_session = self.server.party_combat_target(self, mob)
-                                if target_session and not target_session.closed and target_session.current_hp > 0:
-                                    # v0.31.16: party target feed. The victim receives the native
-                                    # detailed damage line from enemy_counterattack; everyone else
-                                    # in the same party/room gets a short NVDA-friendly target line.
+                            # Każdy żywy mob, którego aggro należy do tej postaci,
+                            # wykonuje kontratak. Dla zwykłej walki lista ma jeden mob;
+                            # po AoE może zawierać cały zaatakowany pokój.
+                            enemy_mobs = self.server.session_engaged_mobs(
+                                self, self.character.room_id
+                            )
+                            if not enemy_mobs and mob.alive:
+                                if not mob.engaged_by:
+                                    if mob.engaged_at <= 0:
+                                        mob.engaged_at = time.monotonic()
+                                    mob.engaged_by = self.character.name
+                                if mob.engaged_by == self.character.name:
+                                    enemy_mobs = [mob]
+
+                            for enemy_mob in enemy_mobs:
+                                if (
+                                    self.closed
+                                    or self.current_hp <= 0
+                                    or not enemy_mob.alive
+                                    or enemy_mob.room_id != self.character.room_id
+                                ):
+                                    break
+                                target_session = self.server.party_combat_target(
+                                    self, enemy_mob
+                                )
+                                if (
+                                    target_session
+                                    and not target_session.closed
+                                    and target_session.current_hp > 0
+                                ):
                                     await self.server.party_combat_broadcast(
                                         target_session,
-                                        f"{MOB_TEMPLATES[mob.template_id]['name']} atakuje {target_session.character.name}.",
+                                        f"{MOB_TEMPLATES[enemy_mob.template_id]['name']} atakuje {target_session.character.name}.",
                                         detail="normal",
                                     )
-                                    await target_session.enemy_counterattack(mob)
+                                    await target_session.enemy_counterattack(enemy_mob)
+
                             next_enemy = time.monotonic() + self.combat_enemy_interval
-                            if not self.combat_mob_key or self.current_hp <= 0:
+                            if self.current_hp <= 0:
                                 break
 
                         wait_for = min(next_player, next_enemy) - time.monotonic()
