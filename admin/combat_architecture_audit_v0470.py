@@ -79,6 +79,21 @@ def combat_architecture_audit_v0470():
     if "from world.magitek_infinite import boss_floor_identity" not in reward_source:
         errors.append("final Magitek boss identity override is not lazily resolved")
 
+    # AoE must create persistent multi-mob aggro and every engaged mob must
+    # counterattack, while combat_mob_key remains only the player's main target.
+    skill_source = (root / "player/session_mixins/combat_skills.py").read_text(encoding="utf-8")
+    realtime_source = (root / "player/session_mixins/combat_realtime.py").read_text(encoding="utf-8")
+    server_source = (root / "server/mud_server.py").read_text(encoding="utf-8")
+    world_state_source = (root / "world/world_state.py").read_text(encoding="utf-8")
+    if "candidate.aoe_engaged_by = self.character.name" not in skill_source:
+        errors.append("AoE combat no longer marks every engaged mob for retaliation")
+    if "self.server.session_engaged_mobs(" not in realtime_source:
+        errors.append("realtime combat no longer iterates all session-engaged mobs")
+    if "def session_engaged_mobs(" not in server_source:
+        errors.append("server is missing multi-mob engagement enumeration")
+    if "aoe_engaged_by: Optional[str] = None" not in world_state_source:
+        errors.append("MobState is missing persistent runtime AoE engagement owner")
+
     metrics = legacy_dependency_metrics(root, FULL_RUNTIME_MODULES, EXPLICIT_RUNTIME_EXPORTS)
     total = int(metrics["legacy_implicit_reference_total"])
     if total > int(LEGACY_IMPLICIT_DEPENDENCY_BUDGET):
