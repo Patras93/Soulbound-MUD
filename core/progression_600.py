@@ -6,6 +6,32 @@ do 600 bez resetu save'ów. Nazwy historycznych zmiennych *_400 pozostają
 celowo dla kompatybilności z istniejącymi modułami i ID przedmiotów.
 """
 
+# Ten moduł musi działać także przy bezpośrednim imporcie (np. narzędzia
+# administracyjne przez Railway SSH), a nie tylko w historycznym bootstrapie.
+from core import generator_core as generator_core_v027
+from core.bootstrap_economy_professions import (
+    SOUL_TIER_THRESHOLDS,
+    SOUL_TIER_POWER_BONUSES,
+    SOUL_TIER_CLASS_BONUS_PERCENT,
+    SOUL_TIER_DODGE_BONUS,
+    SOUL_TIER_GUARDIAN_REDUCTION,
+    SOUL_TRIAL_QUEST_IDS,
+    _SOUL_TRAIT_BASE_NAMES,
+    _SOUL_TRAIT_CLASS_PROFILES,
+    _SOUL_TRAIT_EFFECT_DESCRIPTIONS,
+    PROFESSION_RANK_THRESHOLDS,
+    PROFESSION_RANK_NAMES,
+    TOOL_TIER_THRESHOLDS,
+    TOOL_TIER_BONUS_CHANCES,
+    TOOL_TIER_NAMES,
+)
+from core.progression_resources import (
+    ENDGAME_ORE_UNLOCKS,
+    ENDGAME_WOOD_UNLOCKS,
+    ENDGAME_HERB_UNLOCKS,
+    ENDGAME_FISH_UNLOCKS,
+)
+
 PROGRESSION_MAX_LEVEL = 600
 
 # Generator Core jest modułem ładowanym z osadzonego źródła. Jego funkcje
