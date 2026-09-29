@@ -347,12 +347,16 @@ class MudServer:
             return None
 
         owner = self.find_character_session(mob.engaged_by)
+        aoe_owner = getattr(mob, "aoe_engaged_by", None)
         if (
             owner
             and owner.character
             and owner.current_hp > 0
             and owner.character.room_id == mob.room_id
-            and owner.combat_mob_key == mob.key
+            and (
+                owner.combat_mob_key == mob.key
+                or aoe_owner == mob.engaged_by
+            )
         ):
             return owner
 
@@ -373,10 +377,12 @@ class MudServer:
                 candidates, key=lambda s: s.character.name.lower()
             )[0]
             mob.engaged_by = replacement.character.name
+            mob.aoe_engaged_by = None
             return replacement
 
         # Nikt realnie nie walczy: stan aggro był osierocony.
         mob.engaged_by = None
+        mob.aoe_engaged_by = None
         mob.engaged_at = 0.0
         mob.combat_turn = 0
         mob.player_hits = 0
@@ -394,6 +400,7 @@ class MudServer:
             self.reassign_mob_engagement(mob, leaving_session)
             if mob.engaged_by == name:
                 mob.engaged_by = None
+                mob.aoe_engaged_by = None
                 mob.engaged_at = 0.0
                 mob.combat_turn = 0
                 mob.player_hits = 0
@@ -430,6 +437,26 @@ class MudServer:
         mob.engaged_by = (
             candidates[0].character.name if candidates else None
         )
+        # Przekazanie zwykłego aggro kończy specjalne wielo-aggro AoE.
+        mob.aoe_engaged_by = None
+
+    def session_engaged_mobs(self, session, room_id=None):
+        """Żywe moby, których aggro należy dokładnie do tej sesji.
+
+        Obejmuje zarówno zwykły główny cel, jak i dodatkowe moby trafione AoE.
+        """
+        if not session or not session.character:
+            return []
+        rid = session.character.room_id if room_id is None else room_id
+        owner_name = session.character.name
+        result = []
+        for mob in self.world.room_mobs(rid):
+            if not mob.alive:
+                continue
+            self.sanitize_mob_engagement(mob)
+            if mob.engaged_by == owner_name:
+                result.append(mob)
+        return result
 
     async def broadcast_room(self, room_id, text, exclude=None, history_category=None):
         for s in list(self.sessions):
