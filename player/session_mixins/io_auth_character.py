@@ -1147,6 +1147,11 @@ class SessionIOAuthCharacterMixin:
                         "Na jednym koncie można mieć maksymalnie 14 postaci."
                     )
                     return False
+                if str(exc) == "dryad_female_only":
+                    await self.send(
+                        "Nie można utworzyć tej postaci: Driadą może być wyłącznie kobieta."
+                    )
+                    return False
                 raise
             self.account_id = int(character_account_id)
             self.character = Character.from_row(
