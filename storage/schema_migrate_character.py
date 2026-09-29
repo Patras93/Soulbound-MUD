@@ -9,6 +9,7 @@ def migrate_character_columns(self):
         "silver": "INTEGER NOT NULL DEFAULT 30",
         "gold": "INTEGER NOT NULL DEFAULT 2",
         "mithril": "INTEGER NOT NULL DEFAULT 0",
+        "gender": "TEXT NOT NULL DEFAULT 'nieokreślona'",
         "charisma": "INTEGER NOT NULL DEFAULT 10",
         "character_level": "INTEGER NOT NULL DEFAULT 1",
         "character_xp": "INTEGER NOT NULL DEFAULT 0",
@@ -54,6 +55,12 @@ def migrate_character_legacy(self, character_level_was_new):
             f"UPDATE characters SET {column}=name "
             f"WHERE {column} IS NULL OR TRIM({column})=''"
         )
+    # Driady są rasą wyłącznie kobiecą. Stare postacie powstały przed
+    # wprowadzeniem pola płci, więc istniejące Driady migrujemy bezpiecznie.
+    self.conn.execute(
+        "UPDATE characters SET gender='kobieta' WHERE race='Driada'"
+    )
+
     # v0.8.38: Charyzma jest szóstą normalną statystyką.
     # Stare postacie zachowują wypracowaną Charyzmę; wartości 0/brakujące
     # otrzymują bezpieczną wartość startową 10.
