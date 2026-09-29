@@ -58,6 +58,13 @@ def audit(runtime):
                 f"{label}: quest availability contains forbidden level gate fields: "
                 + ", ".join(used)
             )
+
+    # Driada is a female-only playable race. This must be enforced below the UI
+    # so alternate creation paths cannot bypass the rule.
+    from storage.db_accounts import DatabaseAccountsMixin
+    character_create_source = inspect.getsource(DatabaseAccountsMixin.create_character)
+    if 'rname == "Driada"' not in character_create_source or 'gender != "kobieta"' not in character_create_source:
+        errors.append("character creation no longer enforces female-only Dryad race")
     kinds = Counter()
     by_stage = defaultdict(lambda: {"quests": 0, "quest_silver": [], "quest_character_xp": [], "mobs": 0, "mob_silver": [], "mob_class_xp": []})
     stage_bands = ((1, 50), (51, 100), (101, 200), (201, 300), (301, 400), (401, 500), (501, 600))
