@@ -1061,8 +1061,17 @@ class SessionIOAuthCharacterMixin:
                     await self.send("Nieprawidłowa lub zajęta nazwa.")
                     continue
                 break
+
+            genders = ("kobieta", "mężczyzna")
+            await self.send("Wybierz płeć postaci: 1. kobieta. 2. mężczyzna.")
+            gender = await self.choose_number(genders, "Numer płci: ")
+            if gender is None:
+                return False
+            await self.send(f"Wybrana płeć: {gender}.")
+
             await self.send("Wybierz rasę:")
             await self.send(
+                "Driada jest rasą wyłącznie kobiecą. "
                 "Znaczenie statystyk: Siła zwiększa atak fizyczny; "
                 "Zręczność zwiększa szybkość i unik; Kondycja zwiększa HP; "
                 "Inteligencja zwiększa Manę i moc czarów; "
@@ -1072,14 +1081,22 @@ class SessionIOAuthCharacterMixin:
             for i, race in enumerate(RACES, 1):
                 rname, desc, s, d, c, inte, w = race
                 advice = race_class_recommendation_text(rname)
+                restriction = " Tylko kobieta." if rname == "Driada" else ""
                 await self.send(
-                    f"{i}. {rname}. {desc} Siła {s}, Zręczność {d}, Kondycja {c}, "
+                    f"{i}. {rname}.{restriction} {desc} Siła {s}, Zręczność {d}, Kondycja {c}, "
                     f"Inteligencja {inte}, Siła Woli {w}, Charyzma 10. {advice}"
                 )
-            race = await self.choose_number(RACES, "Numer rasy: ")
-            if race is None:
-                return False
-            selected_race_name = race[0]
+            while True:
+                race = await self.choose_number(RACES, "Numer rasy: ")
+                if race is None:
+                    return False
+                selected_race_name = race[0]
+                if selected_race_name == "Driada" and gender != "kobieta":
+                    await self.send(
+                        "Driadą może być wyłącznie kobieta. Wybierz inną rasę albo wróć do kreatora i wybierz płeć kobieta."
+                    )
+                    continue
+                break
             await self.send(
                 f"Wybrana rasa: {selected_race_name}. {race_class_recommendation_text(selected_race_name)} "
                 "To tylko rekomendacja. Możesz wybrać dowolną z 14 klas."
@@ -1122,7 +1139,7 @@ class SessionIOAuthCharacterMixin:
 
             try:
                 character_account_id, slot = self.server.db.create_character_for_master(
-                    self.master_account_id, name, race, cls, name_cases
+                    self.master_account_id, name, race, cls, name_cases, gender=gender
                 )
             except ValueError as exc:
                 if str(exc) == "character_limit":
@@ -1141,7 +1158,7 @@ class SessionIOAuthCharacterMixin:
             self.refresh_guild_bonus_v0926()
             self.server.db.apply_shared_wallet_to_character(self.character)
             await self.send(
-                f"Utworzono postać {self.character.name} w slocie {slot} z "
+                f"Utworzono postać {self.character.name}. Płeć: {self.character.gender}. W slocie {slot} z "
                 f"{MAX_CHARACTERS_PER_ACCOUNT}."
             )
             if _guild_after_create.get("status") in ("joined", "already") and slot > 1:
