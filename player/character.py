@@ -86,6 +86,7 @@ class Character:
     guild_bounty_json: str = "{}"
     loot_filter: str = "all"
     active_title: str = ""
+    gender: str = "nieokreślona"
 
     @classmethod
     def from_row(cls, row):
@@ -122,6 +123,7 @@ class Character:
             guild_bounty_json=(row["guild_bounty_json"] if "guild_bounty_json" in row.keys() else "{}"),
             loot_filter=(row["loot_filter"] if "loot_filter" in row.keys() else "all"),
             active_title=(row["active_title"] if "active_title" in row.keys() else ""),
+            gender=(row["gender"] if "gender" in row.keys() else ("kobieta" if row["race"] == "Driada" else "nieokreślona")),
         )
 
     def soul_weapon_mastery_xp_to_next(self):
