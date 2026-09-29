@@ -2,6 +2,7 @@ from data import catalog_mutations as _catalog_mut
 from core.command_catalog import CommandAliasMap
 from config.command_aliases import COMMAND_ALIAS_DEFINITIONS
 from config.postal import GUIDE_CITY_HUBS_V0522
+from config.character_tools import CHARACTER_BOUND_TOOL_IDS
 
 def build_mine_depth_rooms():
     _catalog_mut.catalog_assign(mine_floor_id(1), 'ROOMS', ROOMS, ("crystal_chamber", "exits", "down"))
@@ -517,17 +518,6 @@ TOOL_BUY_ALIASES = {
     "szczypce jubilerskie": "jeweler_pliers",
     "pliers": "jeweler_pliers",
     "jeweler pliers": "jeweler_pliers",
-}
-
-CHARACTER_BOUND_TOOL_IDS = {
-    "fishing_rod",
-    "pickaxe",
-    "saw",
-    "crafting_hammer",
-    "chef_knife",
-    "herbalist_sickle",
-    "alchemy_mortar",
-    "jeweler_pliers",
 }
 
 def is_character_bound_item(item_id):
