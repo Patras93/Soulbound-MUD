@@ -43,6 +43,7 @@ def create_core_schema(self):
                         name_loc TEXT NOT NULL DEFAULT '',
                         name_voc TEXT NOT NULL DEFAULT '',
                         race TEXT NOT NULL,
+                        gender TEXT NOT NULL DEFAULT 'nieokreślona',
                         class_name TEXT NOT NULL,
                         class_type TEXT NOT NULL,
                         soul_weapon TEXT NOT NULL,
