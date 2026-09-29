@@ -108,6 +108,10 @@ class SessionCombatSkillsMixin:
                             candidate.engaged_by = self.character.name
                             candidate.combat_turn = 0
                             candidate.player_hits = 0
+                        # Każdy mob, który po AoE należy do naszego aggro, ma
+                        # kontratakować niezależnie od głównego combat_mob_key.
+                        if candidate.engaged_by == self.character.name:
+                            candidate.aoe_engaged_by = self.character.name
                     # Realtime target ustawiamy tylko na moba, którego wolno nam normalnie
                     # zaatakować. Samo AoE nadal obejmuje cały pokój.
                     mob = next(
