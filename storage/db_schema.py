@@ -9,7 +9,7 @@ from core.classes_skills import (
     V0876_CLASS_STARTING_STAT_BONUSES,
     V0876_RACE_BASE_STATS,
 )
-from core.mines_threat import CHARACTER_BOUND_TOOL_IDS
+from config.character_tools import CHARACTER_BOUND_TOOL_IDS
 from core.progression_resources import FISH_RESOURCE_IDS
 from network.protocol_gameplay_utils import V0926_GUILD_DEFAULT_ROLES, V0927_GUILD_CONTRACTS, canonical_profession_resource_id
 from systems.content_registry import MOB_TEMPLATES
