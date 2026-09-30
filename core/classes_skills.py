@@ -664,6 +664,20 @@ CLASSES = [
     ("Inżynier", "physical", "Omni-Narzędzie", 7),
 ]
 
+PHYSICAL_MANA_FREE_CLASSES = frozenset(
+    class_name for class_name, class_type, _weapon, _power in CLASSES
+    if class_type == "physical"
+)
+
+def effective_skill_mana_cost(skill, class_name):
+    """Return the gameplay mana cost, enforcing zero mana for physical classes."""
+    if str(class_name) in PHYSICAL_MANA_FREE_CLASSES:
+        return 0
+    try:
+        return max(0, int((skill or {}).get("mana", 0) or 0))
+    except (TypeError, ValueError):
+        return 0
+
 # v0.30.17: Broń Duszy jest aktywną bronią autoataku, nie tylko ukrytym bonusem.
 SOUL_WEAPON_ATTACK_TECHNIQUES = {
     "Wojownik": "Cięcie Przysięgi",
