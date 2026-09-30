@@ -6,7 +6,7 @@ v0.47.0: explicit combat architecture; no compatibility-global injection.
 import random
 import time
 
-from core.classes_skills import CLASS_SKILLS
+from core.classes_skills import CLASS_SKILLS, effective_skill_mana_cost
 from core.progression_600 import SKILL_MAX_LEVEL
 from core.progression_resources import class_type_for_name, skill_power_multiplier
 from core.bootstrap_economy_professions import GLOBAL_SKILL_BUFF_DURATION_SECONDS
@@ -55,7 +55,7 @@ class SessionCombatSkillsMixin:
                         f"{skill['name']} jest na cooldownie jeszcze {int(ready_at - now + 0.999)} sekund."
                     )
                     return
-                mana_cost = skill.get("mana", 0)
+                mana_cost = effective_skill_mana_cost(skill, skill_class)
                 if mana_cost > self.current_mana:
                     await self.send(
                         f"Za mało Many. {skill['name']} wymaga {mana_cost}, a masz {self.current_mana}."
