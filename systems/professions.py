@@ -172,11 +172,18 @@ for _room,_item,_seller in (
     SHOP_SELLERS[_room]=_seller
 
 # Wszystkie 14 profesji używają tej samej zasady: dokładnie jedno narzędzie
-# danego typu na postać. Narzędzia nie mają durability i nie trzeba ich kupować ponownie.
-CHARACTER_BOUND_TOOL_IDS.update({
+# danego typu na postać. Kanoniczna, niemutowalna lista mieszka w
+# config/character_tools.py i jest współdzielona z warstwą bazy.
+_V03053_REQUIRED_BOUND_TOOLS = frozenset({
  'tailor_kit','tanning_knife','carpenter_tools','runic_focus',
  'archaeology_brush','surveyor_compass',
 })
+_missing_bound_tools = _V03053_REQUIRED_BOUND_TOOLS.difference(CHARACTER_BOUND_TOOL_IDS)
+if _missing_bound_tools:
+    raise RuntimeError(
+        "Brak narzędzi profesji w CHARACTER_BOUND_TOOL_IDS: "
+        + ", ".join(sorted(_missing_bound_tools))
+    )
 TOOL_BUY_ALIASES.update({
  'zestaw krawiecki':'tailor_kit','tailor kit':'tailor_kit','sewing kit':'tailor_kit',
  'noz garbarski':'tanning_knife','tanning knife':'tanning_knife','leatherworking knife':'tanning_knife',
