@@ -4,7 +4,7 @@
 import time
 
 from data.quests import QUESTS
-from network.protocol_gameplay_utils import canonical_profession_resource_id
+from storage.db_shared import canonical_profession_resource_id
 
 class DatabaseQuestMixin:
     def quest(self, account_id, quest_id):
