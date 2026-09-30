@@ -5,6 +5,7 @@ import asyncio
 import re
 import time
 from player.session_mixins.equipment_stats import class_type_for_name
+from core.classes_skills import effective_skill_mana_cost
 from player.session_mixins.shops_teachers import CHARACTER_MAX_LEVEL
 from player.session_mixins.skill_learning import CLASS_SKILLS, SKILL_MAX_LEVEL
 
@@ -523,7 +524,8 @@ class SessionSkillQueueBuffsMixin:
                 return False
             if self.skill_cooldown_ready_at_v0364(skill) > time.time():
                 return False
-            if int(skill.get("mana", 0)) > self.current_mana:
+            skill_class = self.skill_class_name(skill)
+            if effective_skill_mana_cost(skill, skill_class) > self.current_mana:
                 return False
 
             kind = skill.get("kind")
