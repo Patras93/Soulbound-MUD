@@ -8,14 +8,43 @@ from config.balance import MINE_MIN_FLOOR
 from core.bootstrap_economy_professions import V019_SAFE_INT
 from core.progression_resources import roll_mine_wall_hits_required
 from data.items import ITEMS
-from systems.dungeons_regions import (
-    ASTRAL_MIN_FLOOR, crypt_floor_number, is_astral_boss_floor, is_crypt_boss_floor,
-)
-from systems.items_resources import base_fish_species_id
+from storage.db_shared import base_fish_species_id
 from world import dynamic_world_generator as dynamic_world_v029
-from world.dynamic_content import (
-    BOSS_COLLECTION_CATALOG, boss_codex_drop_is_unique, canonical_bestiary_template_id,
-)
+
+
+def crypt_floor_number(room_id):
+    from systems.dungeons_regions import crypt_floor_number as _impl
+    return _impl(room_id)
+
+
+def is_astral_boss_floor(floor):
+    from systems.dungeons_regions import is_astral_boss_floor as _impl
+    return _impl(floor)
+
+
+def is_crypt_boss_floor(floor):
+    from systems.dungeons_regions import is_crypt_boss_floor as _impl
+    return _impl(floor)
+
+
+def astral_min_floor():
+    from systems.dungeons_regions import ASTRAL_MIN_FLOOR
+    return int(ASTRAL_MIN_FLOOR)
+
+
+def canonical_bestiary_template_id(value):
+    from world.dynamic_content import canonical_bestiary_template_id as _impl
+    return _impl(value)
+
+
+def boss_codex_drop_is_unique(item_id):
+    from world.dynamic_content import boss_codex_drop_is_unique as _impl
+    return _impl(item_id)
+
+
+def boss_collection_catalog():
+    from world.dynamic_content import BOSS_COLLECTION_CATALOG
+    return BOSS_COLLECTION_CATALOG
 
 class DatabaseWorldMixin:
     def crypt_checkpoint(self, account_id):
@@ -319,7 +348,7 @@ class DatabaseWorldMixin:
 
     def record_boss_codex_kill(self, account_id, boss_id, grouped=False):
         boss_id = canonical_bestiary_template_id(boss_id)
-        if boss_id not in BOSS_COLLECTION_CATALOG:
+        if boss_id not in boss_collection_catalog():
             return None
         solo_inc = 0 if grouped else 1
         group_inc = 1 if grouped else 0
@@ -343,7 +372,7 @@ class DatabaseWorldMixin:
 
     def add_boss_codex_drop(self, account_id, boss_id, item_id):
         boss_id = canonical_bestiary_template_id(boss_id)
-        if boss_id not in BOSS_COLLECTION_CATALOG or item_id not in ITEMS:
+        if boss_id not in boss_collection_catalog() or item_id not in ITEMS:
             return False
         if not boss_codex_drop_is_unique(item_id):
             return False
@@ -561,7 +590,7 @@ class DatabaseWorldMixin:
             result.update(range(10, highest + 1, 10))
         elif kind == "astral":
             highest = self.astral_checkpoint(account_id)
-            start = int(ASTRAL_MIN_FLOOR)
+            start = astral_min_floor()
             if highest >= start:
                 result.update(range(start, highest + 1, 10))
         return result
