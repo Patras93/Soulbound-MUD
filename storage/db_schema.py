@@ -11,18 +11,11 @@ from core.classes_skills import (
 )
 from config.character_tools import CHARACTER_BOUND_TOOL_IDS
 from core.progression_resources import FISH_RESOURCE_IDS
-from network.protocol_gameplay_utils import V0926_GUILD_DEFAULT_ROLES, V0927_GUILD_CONTRACTS, canonical_profession_resource_id
-from systems.content_registry import MOB_TEMPLATES
-from systems.items_resources import base_fish_species_id
-from world.dynamic_content import (
-    BOSS_COLLECTION_CATALOG,
-    FISH_COLLECTION_CATALOG,
-    GEM_COLLECTION_CATALOG,
-    HERB_COLLECTION_CATALOG,
-    MATERIAL_COLLECTION_CATALOG,
-    MINERAL_COLLECTION_CATALOG,
-    UNIQUE_ITEM_COLLECTION_CATALOG,
-    canonical_bestiary_template_id,
+from storage.db_shared import (
+    V0926_GUILD_DEFAULT_ROLES,
+    V0927_GUILD_CONTRACTS,
+    base_fish_species_id,
+    canonical_profession_resource_id,
 )
 
 from storage.schema_core import create_core_schema
@@ -46,6 +39,20 @@ class DatabaseSchemaMixin:
         self.conn.commit()
 
     def migrate_schema(self):
+        # Heavy gameplay catalogs are imported lazily. Importing the Database
+        # facade for admin/CLI tooling must not execute HELP/world runtime.
+        from data.mobs import MOB_TEMPLATES
+        from world.dynamic_content import (
+            BOSS_COLLECTION_CATALOG,
+            FISH_COLLECTION_CATALOG,
+            GEM_COLLECTION_CATALOG,
+            HERB_COLLECTION_CATALOG,
+            MATERIAL_COLLECTION_CATALOG,
+            MINERAL_COLLECTION_CATALOG,
+            UNIQUE_ITEM_COLLECTION_CATALOG,
+            canonical_bestiary_template_id,
+        )
+
         migrate_social_courier_schema(self)
         character_level_was_new = migrate_character_columns(self)
         migrate_guild_schema(self, V0926_GUILD_DEFAULT_ROLES, V0927_GUILD_CONTRACTS)
