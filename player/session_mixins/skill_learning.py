@@ -6,7 +6,7 @@ import math
 import random
 import time
 from core.bootstrap_economy_professions import SOUL_MILESTONE_TIERS, SOUL_TRIAL_QUEST_IDS, soul_weapon_trait_for_tier
-from core.classes_skills import CLASSES, CLASS_SKILLS, NATURAL_SKILL_INTENTS, ROOMS
+from core.classes_skills import CLASSES, CLASS_SKILLS, NATURAL_SKILL_INTENTS, ROOMS, effective_skill_mana_cost
 from core.progression_600 import SKILL_MAX_LEVEL, SOUL_MAX_TIER, SOUL_TIER_THRESHOLDS
 from core.progression_resources import skill_cooldown_multiplier, skill_xp_to_next, v0190_scaled_gain
 from network.protocol_gameplay_utils import find_by_name, normalize_lookup_text
@@ -363,7 +363,7 @@ class SessionSkillLearningMixin:
                     else:
                         cost = self.training_cost_text(final_cost)
 
-                    mana = int(skill.get("mana", 0) or 0)
+                    mana = effective_skill_mana_cost(skill, class_name)
                     mana_text = f" Mana {mana}." if mana else ""
                     await self.send(
                         f"{number}. {skill['name']}. Biegłość {skill['unlock']}. "
@@ -482,10 +482,8 @@ class SessionSkillLearningMixin:
                             f"zablokowana: wymaga Biegłości klasy {skill['unlock']}"
                         )
 
-                    mana = (
-                        f", Mana {skill.get('mana', 0)}"
-                        if skill.get("mana", 0) else ""
-                    )
+                    mana_cost = effective_skill_mana_cost(skill, class_name)
+                    mana = f", Mana {mana_cost}" if mana_cost else ""
                     effective_cd = self.effective_skill_cooldown(
                         skill, skill_level
                     )
