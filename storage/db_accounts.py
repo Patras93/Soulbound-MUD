@@ -9,7 +9,7 @@ from core.bootstrap_economy_professions import (
     normalize_currency_values,
 )
 from core.classes_skills import class_starting_stats_for
-from network.protocol_gameplay_utils import hash_password
+from storage.db_shared import hash_password
 
 class DatabaseAccountsMixin:
     def account_name(self, account_id):
