@@ -2627,6 +2627,32 @@ for _class_name in CLASS_SKILLS:
     )
 
 
+def _physical_skill_mana_audit():
+    errors = []
+    checked = 0
+    for class_name in sorted(PHYSICAL_MANA_FREE_CLASSES):
+        for skill in CLASS_SKILLS.get(class_name, ()):
+            checked += 1
+            try:
+                raw_mana = int(skill.get("mana", 0) or 0)
+            except (TypeError, ValueError):
+                errors.append(f"{class_name}/{skill.get('name', skill.get('id', '?'))}: nieprawidłowa mana")
+                continue
+            if raw_mana != 0:
+                errors.append(
+                    f"{class_name}/{skill.get('name', skill.get('id', '?'))}: mana={raw_mana}, wymagane 0"
+                )
+    return {"checked": checked, "error_count": len(errors), "errors": errors}
+
+
+PHYSICAL_SKILL_MANA_AUDIT = _physical_skill_mana_audit()
+if PHYSICAL_SKILL_MANA_AUDIT["error_count"]:
+    raise RuntimeError(
+        "Physical Skill Mana Audit failed: "
+        + "; ".join(PHYSICAL_SKILL_MANA_AUDIT["errors"][:50])
+    )
+
+
 NATURAL_SKILL_INTENTS = {
     "heal": {"kinds": {"heal"}},
     "healing": {"kinds": {"heal"}},
