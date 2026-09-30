@@ -4,8 +4,7 @@
 import json
 
 from core.bootstrap_economy_professions import CURRENCY_SQLITE_SAFE_TOTAL, normalize_currency_values
-from network.protocol_gameplay_utils import V03042_EQ_UPGRADE_MAX
-from systems.crafting_expansion import CRAFT_MATERIAL_STORAGE_IDS
+from storage.db_shared import V03042_EQ_UPGRADE_MAX, is_craft_material_storage_item
 from world.economy_quests import DROP_HISTORY_LIMIT
 
 class DatabaseInventoryMixin:
@@ -192,7 +191,7 @@ class DatabaseInventoryMixin:
         # v0.9.15: materiały rzemieślnicze nigdy nie zapychają zwykłego
         # inventory. Każde źródło używające add_item automatycznie kieruje
         # je do Szkatułki Rzemieślniczej.
-        if item_id in CRAFT_MATERIAL_STORAGE_IDS:
+        if is_craft_material_storage_item(item_id):
             self.add_storage_item(account_id, "craftbox", item_id, qty, commit=commit)
             return
         self.conn.execute(
