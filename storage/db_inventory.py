@@ -4,8 +4,7 @@
 import json
 
 from core.bootstrap_economy_professions import CURRENCY_SQLITE_SAFE_TOTAL, normalize_currency_values
-from storage.db_shared import V03042_EQ_UPGRADE_MAX, is_craft_material_storage_item
-from world.economy_quests import DROP_HISTORY_LIMIT
+from storage.db_shared import DROP_HISTORY_LIMIT, V03042_EQ_UPGRADE_MAX, is_craft_material_storage_item
 
 class DatabaseInventoryMixin:
     def ensure_bank(self, account_id):
