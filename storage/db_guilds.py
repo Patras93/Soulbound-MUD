@@ -3,7 +3,7 @@
 
 import time
 
-from network.protocol_gameplay_utils import (
+from storage.db_shared import (
     V0926_GUILD_DEFAULT_ROLES, V0927_GUILD_CONTRACTS, normalize_lookup_text,
     v0926_guild_bonus_percent,
 )
