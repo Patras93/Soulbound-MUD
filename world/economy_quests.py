@@ -860,6 +860,27 @@ def create_infinite_crypt_floor_definition(floor, mythic=False):
     spawns = _dynamic_regular_mob_pack(
         room_id, regular_id, template, CRYPT_REGULAR_NAMES, floor, "piętro"
     )
+
+    # v1.00.2: Krypta ma mieć wyraźnie więcej Strażników Szkieletów.
+    # Dodajemy dwa osobne szkielety na każde zwykłe piętro, niezależnie od
+    # rotacji nazw podstawowej trójki. Nie zmienia to statystyk ani balansu
+    # pojedynczego moba; zwiększa wyłącznie dostępność tego typu przeciwnika.
+    for skeleton_no in (1, 2):
+        skeleton_id = f"{regular_id}_skeleton_guard_{skeleton_no}"
+        skeleton = dict(template)
+        if isinstance(template.get("drops"), dict):
+            skeleton["drops"] = dict(template["drops"])
+        if isinstance(template.get("corpse_equipment_pool"), list):
+            skeleton["corpse_equipment_pool"] = list(template["corpse_equipment_pool"])
+        skeleton["name"] = f"Szkielet Strażnik Krypty, piętro {floor}"
+        skeleton["template_id"] = skeleton_id
+        skeleton["crypt_skeleton_guard_v1002"] = True
+        _catalog_mut.catalog_assign(
+            skeleton, 'MOB_TEMPLATES', MOB_TEMPLATES, (skeleton_id,)
+        )
+        _configure_dynamic_corpse_material(skeleton)
+        spawns.append((room_id, skeleton_id))
+
     if is_crypt_boss_floor(floor):
         boss_id = f"crypt_boss_{floor}"
         bname, mechanic, mechanic_text = _infinite_crypt_boss_profile(floor)
