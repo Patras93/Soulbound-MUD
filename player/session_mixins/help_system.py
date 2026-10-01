@@ -2,6 +2,7 @@
 """HELP, changelog and skill help."""
 # v0.45.0: explicit imports; no compatibility-runtime injection.
 import os
+from core.classes_skills import effective_skill_mana_cost
 from core.progression_600 import SKILL_MAX_LEVEL
 from core.progression_resources import skill_xp_to_next
 from player.session_mixins.exploration_progress import ALL_EXPLORATION_ROOMS, ROOMS, normalize_lookup_text
@@ -369,7 +370,7 @@ class SessionHelpSystemMixin:
             mastery_current = self.class_mastery_level(class_name)
             learned = self.server.db.knows_skill(self.account_id, skill["id"])
             active = class_name in self.active_class_names()
-            mana = int(skill.get("mana", 0) or 0)
+            mana = effective_skill_mana_cost(skill, class_name)
             base_cd = int(skill.get("cooldown", 0) or 0)
 
             await self.send(f"HELP SKILL: {skill['name']}.")
@@ -379,8 +380,9 @@ class SessionHelpSystemMixin:
                 f"Kolejka: {self.skill_queue_type_label(queue_type)}."
             )
             await self.send(
-                f"Mana: {mana}. Bazowy cooldown: {base_cd} sekund. "
-                f"Opis: {skill.get('desc', 'Brak opisu.')}"
+                (f"Mana: {mana}. " if mana else "Mana: nie jest używana przez tę umiejętność. ")
+                + f"Bazowy cooldown: {base_cd} sekund. "
+                + f"Opis: {skill.get('desc', 'Brak opisu.')}"
             )
             effect_parts = self.skill_help_effect_details(skill)
             if effect_parts:
