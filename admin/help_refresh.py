@@ -34,14 +34,14 @@ def refresh_generator_help_v0271():
     ]
     HELP_TOPICS["aoe"] = [
         "Skille i spelle obszarowe trafiają dostępne cele zgodnie z wygenerowanym rodzajem umiejętności.",
-        "Odblokowanie 1-400, koszt Many, cooldown i bazowa moc pochodzą z Generator Core.",
+        "Odblokowanie 1-400, cooldown i bazowa moc pochodzą z Generator Core. Koszt Many dotyczy wyłącznie umiejętności klas magicznych; klasy fizyczne nie zużywają Many.",
         "Własny Skill Level 1-400 dalej skaluje końcową moc umiejętności po jej odblokowaniu.",
         "Pełne aktualne wartości: help <nazwa skilla> albo skill info <nazwa>.",
     ]
     HELP_TOPICS["umiejetnosci"] = [
         "Każda z 14 klas ma wygenerowaną linię skilli/spelli rozłożoną po Biegłości 1-400.",
         "Skill Level każdej poznanej umiejętności ma zakres 1-400 i korzysta z jednej wygenerowanej krzywej mocy/cooldownu.",
-        "Damage, heal, guard, drain, boost, Mana i cooldown nie są balansowane ręcznie per skill; wylicza je Generator Core z rodzaju i etapu umiejętności.",
+        "Damage, heal, guard, drain, boost i cooldown są wyliczane przez Generator Core z rodzaju i etapu umiejętności. Mana jest zasobem klas magicznych; skille klas fizycznych mają koszt Many równy 0.",
     ]
     HELP_TOPICS["profesje"] = [
         "Osiem profesji oraz osiem odpowiadających narzędzi rozwijają się 1-400.",
