@@ -1,5 +1,18 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.11.2
+Aktualna paczka: v1.11.3
+
+==============================================================================
+==============================================================================
+Soulbound v1.11.3 — więcej Strażników Szkieletów Krypty + poprawne opisy Many
+==============================================================================
+
+- Zwiększono zagęszczenie Strażników Szkieletów w zwykłej Krypcie Nieskończonej.
+- Każde generowane piętro zwykłej Krypty dostaje dwa dodatkowe spawny Szkieletów Strażników Krypty ponad dotychczasową rotowaną grupę przeciwników.
+- Nie zmieniono statystyk, obrażeń, HP ani nagród pojedynczego szkieletu; zmiana zwiększa wyłącznie dostępność tego typu przeciwnika.
+- Naprawiono opis kosztu Many w help skill: klasy fizyczne korzystają teraz z tego samego efektywnego kosztu co runtime walki i nie są opisywane jako zużywające Manę.
+- Ogólna pomoc umiejętności/AoE wyjaśnia, że Mana jest zasobem klas magicznych, a skille klas fizycznych mają koszt Many równy 0.
+- Zsynchronizowano numer runtime i FAST PREDEPLOY do v1.11.3.
+- Brak zmian schematu SQLite i brak wipe'a save'ów.
 
 ==============================================================================
 ==============================================================================
