@@ -208,17 +208,39 @@ class MudServer:
         )
         if protector and protector.current_hp > 0:
             return protector
+        # v1.11.8: mob walczący z drużyną może uderzyć każdego żywego
+        # członka party, który realnie uczestniczy w tej samej walce. Nie wymagamy
+        # identycznego combat_mob_key dla dodatkowych celów AoE: auto-assist może
+        # przypisać liderowi jeden główny cel, podczas gdy pozostałe moby z Area
+        # nadal należą do wspólnego starcia drużyny.
+        party_engaged_keys = {
+            engaged.key
+            for engaged in self.party_engaged_mobs(
+                owner_session, room_id=mob.room_id
+            )
+        }
         candidates = [
             session for session in self.party_sessions(
                 owner_session.account_id, same_room=mob.room_id
             )
             if session.character and not session.closed and session.current_hp > 0
-            and session.combat_mob_key == mob.key
+            and (
+                session.combat_mob_key == mob.key
+                or (
+                    session.combat_mob_key in party_engaged_keys
+                    and mob.key in party_engaged_keys
+                )
+            )
         ]
         if not candidates:
             return owner_session
         candidates.sort(key=lambda session: session.character.name.lower())
-        return candidates[int(getattr(mob, "combat_turn", 0) or 0) % len(candidates)]
+        turn = int(getattr(mob, "combat_turn", 0) or 0)
+        target = candidates[turn % len(candidates)]
+        # Każdy kolejny kontratak tego moba przechodzi na kolejnego uczestnika,
+        # więc inicjator nie absorbuje wszystkich tur tylko dlatego, że ma aggro.
+        mob.combat_turn = turn + 1
+        return target
 
     async def auto_priest_party_heal(self, damaged_session):
         if (
