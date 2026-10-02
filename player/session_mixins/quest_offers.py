@@ -204,15 +204,45 @@ class SessionQuestOffersMixin:
             if not value.isdigit():
                 return None, "Podaj numer questa z ostatniej listy NPC."
             context = self.quest_list_context
+            # v1.11.5: quest list <NPC> jest opcjonalne. Przy jednym lokalnym
+            # NPC-u numer automatycznie odnosi się do jego aktualnej oferty.
             if not context:
-                return None, (
-                    "Najpierw wyświetl listę: quest, quest ukończone albo quest list <NPC>."
-                )
+                candidates = self.local_quest_npcs()
+                if len(candidates) == 1:
+                    npc_id, npc = next(iter(candidates.items()))
+                    context = {
+                        "source": "npc",
+                        "room_id": self.character.room_id,
+                        "npc_id": npc_id,
+                        "quest_ids": list(self.quest_ids_for_npc(npc_id, npc)),
+                    }
+                    self.quest_list_context = context
+                elif len(candidates) > 1:
+                    return None, (
+                        "W tej lokacji jest kilku NPC z questami. "
+                        "Podaj NPC razem z numerem; quest list <NPC> jest opcjonalne."
+                    )
+                else:
+                    return None, "W tej lokacji nie ma NPC oferującego questy."
             if (
                 context.get("source") == "npc"
                 and context.get("room_id") != self.character.room_id
             ):
-                return None, "Lista NPC jest nieaktualna. Ponownie wpisz quest list <NPC>."
+                candidates = self.local_quest_npcs()
+                if len(candidates) == 1:
+                    npc_id, npc = next(iter(candidates.items()))
+                    context = {
+                        "source": "npc",
+                        "room_id": self.character.room_id,
+                        "npc_id": npc_id,
+                        "quest_ids": list(self.quest_ids_for_npc(npc_id, npc)),
+                    }
+                    self.quest_list_context = context
+                else:
+                    return None, (
+                        "Poprzednia oferta NPC jest nieaktualna. "
+                        "Podaj NPC razem z numerem; quest list <NPC> jest opcjonalne."
+                    )
             quest_ids = list(context.get("quest_ids") or ())
             index = int(value) - 1
             if index < 0 or index >= len(quest_ids):
