@@ -2401,10 +2401,10 @@ def _v0319_install_full_mec_kit():
         ("Maxwell Program",30,"passive",2000,"inherent","maxwell_program","Auto-Mana Regen and increased magic damage."),
         ("Shooting Mastery",30,"passive",1000,"inherent","shooting_mastery","Increases purely Dexterity-based ranged damage."),
         # Passive protocols
-        ("Strength Protocol",1,"passive",2000,"passive","strength_protocol","Increases Mec melee potency."),
-        ("Ranged Protocol",1,"passive",2000,"passive","ranged_protocol","Increases Mec ranged potency."),
-        ("Feedback Protocol",1,"passive",2000,"passive","feedback_protocol","Increases Mec feedback potency."),
-        ("Magic Protocol",1,"passive",2000,"passive","magic_protocol","Increases Mec magic potency."),
+        ("Strength Protocol",1,"passive",2000,"passive","strength_protocol","Passively increases damage of Mec melee/Strength skills. Scales with this skill level."),
+        ("Ranged Protocol",1,"passive",2000,"passive","ranged_protocol","Passively increases damage of Mec ranged/Dexterity shooting skills. Scales with this skill level."),
+        ("Feedback Protocol",1,"passive",2000,"passive","feedback_protocol","Passively increases damage of Mec Feedback skills. Scales with this skill level."),
+        ("Magic Protocol",1,"passive",2000,"passive","magic_protocol","Passively increases damage of Mec magic/Intelligence skills. Scales with this skill level."),
     ]
     if len(rows) < len(specs):
         return
