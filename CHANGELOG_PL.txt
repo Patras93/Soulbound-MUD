@@ -1,5 +1,19 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.11.7
+Aktualna paczka: v1.11.8
+
+==============================================================================
+==============================================================================
+Soulbound v1.11.8 — moby atakują całą zaangażowaną drużynę
+==============================================================================
+
+- Naprawiono wybór celu kontrataków mobów podczas wspólnej walki party.
+- Jeżeli dowolny członek drużyny rozpocznie walkę, żywy lider w tej samej lokacji, który automatycznie dołączył do starcia, jest również prawidłowym celem ataków mobów.
+- Dotyczy to także walk rozpoczętych Area: dodatkowe moby trafione obszarowo nie skupiają już wszystkich kontrataków wyłącznie na inicjatorze.
+- Cel kolejnych kontrataków moba rotuje pomiędzy żywymi, zaangażowanymi członkami drużyny w tej samej lokacji.
+- Zachowano priorytet aktywnego protektora Strażnika; jeśli party ma działającego tanka-protektora, nadal przejmuje on aggro zgodnie z mechaniką ochrony.
+- Gracze poza lokacją, martwi albo nieuczestniczący w walce nie są dodawani do puli celów.
+- Zsynchronizowano runtime i FAST PREDEPLOY do v1.11.8.
+- Brak zmian SQLite i brak wipe'a save'ów.
 
 ==============================================================================
 ==============================================================================
