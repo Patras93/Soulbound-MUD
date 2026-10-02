@@ -1111,13 +1111,9 @@ class SessionIOAuthCharacterMixin:
                     "Kondycja, Inteligencja, Siła Woli i Charyzma. Każda klasa ma HP i Manę; "
                     "Inteligencja zwiększa Manę także klasom fizycznym."
                 )
-                skills = CLASS_SKILLS.get(cname, [])
-                skill_text = "; ".join(
-                    f"{s['name']} do nauki od Biegłości klasy {s['unlock']}" for s in skills
-                )
                 await self.send(
                     f"{i}. {cname}. Typ {kind}. {desc} "
-                    f"{growth} Broń Duszy: {weapon}. Umiejętności: {skill_text}."
+                    f"{growth} Broń Duszy: {weapon}."
                 )
             cls = await self.choose_number(CLASSES, "Numer klasy: ")
             if cls is None:
