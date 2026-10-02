@@ -266,7 +266,7 @@ class SessionQuestCommandsMixin:
             value = self.strip_optional_quest_word(args)
             if not value:
                 await self.send(
-                    "Użycie: accept quest <numer>. Najpierw wpisz quest list <NPC>."
+                    "Użycie: accept quest <numer> albo accept quest <NPC> <numer>. quest list <NPC> jest opcjonalne."
                 )
                 return
             await self.accept_quest_from_context(value)
