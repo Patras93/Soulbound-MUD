@@ -300,7 +300,7 @@ class MudServer:
         )
 
     async def auto_assist_party_combat(self, initiator, mob):
-        """Automatycznie dołącza wolnych członków drużyny z tej samej lokacji."""
+        """Automatycznie dołącza całą żywą drużynę z tej samej lokacji."""
         if not initiator or not initiator.character or not mob or not mob.alive:
             return []
         key = self.party_key_for_account(initiator.account_id)
@@ -316,13 +316,9 @@ class MudServer:
             if session.current_hp <= 0:
                 continue
 
-            # Nie przełączaj osoby, która świadomie walczy już z innym żywym celem.
-            if session.combat_mob_key and session.combat_mob_key != mob.key:
-                current = self.world.mobs.get(session.combat_mob_key)
-                if current and current.alive and current.room_id == mob.room_id:
-                    continue
-                session.combat_mob_key = None
-
+            # v1.11.10: wspólna walka party ma pierwszeństwo przed indywidualnym
+            # targetem. Każdy żywy członek w pokoju przechodzi na cel, który właśnie
+            # rozpoczął wspólną walkę — także jeśli wcześniej bił innego moba.
             if session.combat_mob_key == mob.key:
                 continue
             if not self.engagement_allowed(session, mob):
