@@ -1,5 +1,18 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.11.3
+Aktualna paczka: v1.11.4
+
+==============================================================================
+==============================================================================
+Soulbound v1.11.4 — skille tylko na aktualnym progu progresji
+==============================================================================
+
+- Komenda skills pokazuje teraz wyłącznie skille aktywnych klas, które postać już zna albo może odblokować na swojej aktualnej Biegłości klasy.
+- Przyszłe skille wymagające wyższej Biegłości nie są już wyświetlane jako zablokowane; pojawią się dopiero po osiągnięciu właściwego progu.
+- Lista używana przez learn <numer> jest filtrowana według tej samej zasady, więc numeracja nauki odpowiada aktualnie dostępnym skillom.
+- Podczas tworzenia nowej postaci lista klas nie wypisuje już wszystkich przyszłych umiejętności każdej klasy.
+- Ekran tworzenia nadal pokazuje typ klasy, opis, rozwój i Broń Duszy, ale bez zasypywania NVDA katalogiem skilli.
+- Zsynchronizowano runtime i FAST PREDEPLOY do v1.11.4.
+- Brak zmian SQLite i brak wipe'a save'ów.
 
 ==============================================================================
 ==============================================================================
