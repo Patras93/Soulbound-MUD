@@ -732,6 +732,9 @@ class SessionCombatSkillsMixin:
                     )
                     if counter:
                         self.combat_mob_key = counter.key
+                        # v1.11.6: Area rozpoczyna wspólną walkę tak samo jak
+                        # zwykły atak. Dotyczy to także kierunku członek -> lider.
+                        await self.server.auto_assist_party_combat(self, counter)
                         await self.ensure_realtime_combat()
                     elif self.combat_mob_key and not self.server.engagement_allowed(
                         self, self.server.world.mobs.get(self.combat_mob_key)
