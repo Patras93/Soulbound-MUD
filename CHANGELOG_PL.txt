@@ -1,5 +1,20 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.11.9
+Aktualna paczka: v1.11.10
+
+==============================================================================
+==============================================================================
+Soulbound v1.11.10 — cała lokalna drużyna automatycznie dołącza do walki
+==============================================================================
+
+- Ujednolicono regułę walki party: atak dowolnego członka automatycznie wciąga do wspólnej walki całą żywą drużynę znajdującą się w tej samej lokacji.
+- Usunięto wyjątek, który pomijał członka drużyny, jeśli ten walczył już z innym żywym mobem w pokoju.
+- Wspólna walka drużyny ma teraz pierwszeństwo: taki członek zostaje automatycznie przełączony na wspólny cel.
+- Zasada działa zarówno dla lidera, jak i zwykłych członków party.
+- Automatyczne dołączenie uruchamia realtime combat każdemu dołączonemu członkowi.
+- Martwi, rozłączeni oraz członkowie znajdujący się w innej lokacji nie są dołączani.
+- Moby nadal mogą wybierać całą żywą lokalną drużynę jako cele kontrataków zgodnie z v1.11.9.
+- Zsynchronizowano runtime i FAST PREDEPLOY do v1.11.10.
+- Brak zmian SQLite i brak wipe'a save'ów.
 
 ==============================================================================
 ==============================================================================
