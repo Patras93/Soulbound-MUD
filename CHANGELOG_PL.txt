@@ -1,5 +1,17 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.11.5
+Aktualna paczka: v1.11.6
+
+==============================================================================
+==============================================================================
+Soulbound v1.11.6 — Area automatycznie wciąga drużynę do walki
+==============================================================================
+
+- Naprawiono niesymetryczne automatyczne dołączanie drużyny przy skillach Area.
+- Gdy członek drużyny użyje ofensywnego Area i pozostanie żywy przeciwnik, wolni członkowie party w tej samej lokacji automatycznie dołączają do tej walki.
+- Dotyczy to również lidera: Area rozpoczęte przez zwykłego członka automatycznie wciąga lidera do walki, jeśli lider żyje, jest w tej samej lokacji i może zaatakować cel.
+- Wykorzystano istniejący mechanizm auto_assist_party_combat, więc zachowane są zabezpieczenia przed przełączaniem gracza z innej aktywnej walki oraz istniejące reguły engagement.
+- Zsynchronizowano runtime i FAST PREDEPLOY do v1.11.6.
+- Brak zmian SQLite i brak wipe'a save'ów.
 
 ==============================================================================
 ==============================================================================
