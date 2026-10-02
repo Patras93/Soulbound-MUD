@@ -208,29 +208,14 @@ class MudServer:
         )
         if protector and protector.current_hp > 0:
             return protector
-        # v1.11.8: mob walczący z drużyną może uderzyć każdego żywego
-        # członka party, który realnie uczestniczy w tej samej walce. Nie wymagamy
-        # identycznego combat_mob_key dla dodatkowych celów AoE: auto-assist może
-        # przypisać liderowi jeden główny cel, podczas gdy pozostałe moby z Area
-        # nadal należą do wspólnego starcia drużyny.
-        party_engaged_keys = {
-            engaged.key
-            for engaged in self.party_engaged_mobs(
-                owner_session, room_id=mob.room_id
-            )
-        }
+        # v1.11.9: kiedy mob walczy z party, jego pulą celów jest CAŁA żywa
+        # drużyna obecna w tej lokacji. combat_mob_key określa własny cel ataku
+        # gracza, ale nie ogranicza tego, kogo przeciwnik może zaatakować.
         candidates = [
             session for session in self.party_sessions(
                 owner_session.account_id, same_room=mob.room_id
             )
             if session.character and not session.closed and session.current_hp > 0
-            and (
-                session.combat_mob_key == mob.key
-                or (
-                    session.combat_mob_key in party_engaged_keys
-                    and mob.key in party_engaged_keys
-                )
-            )
         ]
         if not candidates:
             return owner_session
