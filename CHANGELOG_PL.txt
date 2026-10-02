@@ -1,5 +1,19 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.11.4
+Aktualna paczka: v1.11.5
+
+==============================================================================
+==============================================================================
+Soulbound v1.11.5 — quest list <NPC> jest opcjonalne
+==============================================================================
+
+- Usunięto wymóg ciągłego wcześniejszego wyświetlania listy questów przed użyciem numeru zadania.
+- Jeżeli gracz stoi przy dokładnie jednym NPC-u oferującym questy, gra automatycznie używa jego aktualnej oferty jako kontekstu.
+- quest list <NPC> pozostaje dostępne jako opcjonalna komenda do ręcznego przeglądania oferty NPC.
+- Po przejściu do innej lokacji stary kontekst NPC nie wymusza ponownego wpisywania quest list; przy jednym lokalnym NPC-u kontekst jest odbudowywany automatycznie.
+- Gdy w jednej lokacji jest kilku NPC z questami, gra prosi o wskazanie NPC-a zamiast wymuszać wcześniejsze wyświetlenie listy.
+- Komunikat accept quest nie mówi już „Najpierw wpisz quest list <NPC>”.
+- Zsynchronizowano runtime i FAST PREDEPLOY do v1.11.5.
+- Brak zmian SQLite i brak wipe'a save'ów.
 
 ==============================================================================
 ==============================================================================
