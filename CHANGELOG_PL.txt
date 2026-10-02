@@ -1,5 +1,22 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.11.6
+Aktualna paczka: v1.11.7
+
+==============================================================================
+==============================================================================
+Soulbound v1.11.7 — Protokoły Meca wzmacniają właściwe typy ataków
+==============================================================================
+
+- Naprawiono pasywne Protokoły Meca tak, aby wzmacniały ofensywne skille odpowiadającej im gałęzi także w atakach na pojedynczy cel.
+- Magic Protocol wzmacnia magiczne skille Meca oparte na gałęzi magic/Intelligence.
+- Ranged Protocol wzmacnia strzeleckie i zasięgowe skille Meca z gałęzi ranged/Dexterity.
+- Strength Protocol wzmacnia fizyczne, melee i Strength skille Meca.
+- Feedback Protocol wzmacnia ofensywne skille gałęzi Feedback.
+- Bonus Protokołu nadal skaluje się z jego Skill Level: od około 4 procent na początku do około 25 procent przy maksymalnym poziomie.
+- Zachowano osobne pasywne specjalizacje Combat Mastery, Shooting Mastery i Maxwell Program; właściwa gałąź może korzystać z Mastery/Programu oraz odpowiadającego jej Protokołu.
+- Dedykowane ataki obszarowe Meca nadal używają istniejącego branch multiplier; poprawka nie nakłada na nie Protokołu drugi raz.
+- Doprecyzowano opisy czterech Protokołów, aby jasno wskazywały typ wzmacnianych skilli.
+- Zsynchronizowano runtime i FAST PREDEPLOY do v1.11.7.
+- Brak zmian SQLite i brak wipe'a save'ów.
 
 ==============================================================================
 ==============================================================================
