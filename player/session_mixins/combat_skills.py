@@ -759,6 +759,16 @@ class SessionCombatSkillsMixin:
                     "physical" if skill_class_type == "physical" else "magic"
                 )
                 multiplier *= self.skill_buff_multiplier()
+                # v1.11.7: wszystkie ofensywne skille Meca korzystają z pasywnej
+                # specjalizacji swojej gałęzi. Wcześniej branch multiplier działał
+                # głównie w dedykowanej ścieżce AoE, a single-target wpadający do
+                # wspólnego handlera omijał Protocol/Mastery.
+                if skill.get("mec_authored") and skill.get("mec_branch") in {
+                    "melee", "ranged", "feedback", "magic"
+                }:
+                    multiplier *= self.mec_branch_multiplier_v0319(
+                        str(skill.get("mec_branch"))
+                    )
 
                 if kind == "execute":
                     hp_ratio = mob.hp / max(1, template["max_hp"])
