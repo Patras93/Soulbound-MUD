@@ -452,7 +452,18 @@ class SessionSkillLearningMixin:
                     ROOMS[teacher["room"]]["name"] if teacher else "nieznana lokacja"
                 )
                 await self.send(f"Klasa {class_name}:")
-                for skill in CLASS_SKILLS.get(class_name, []):
+                mastery = self.class_mastery_level(class_name)
+                visible_skills = [
+                    skill
+                    for skill in CLASS_SKILLS.get(class_name, [])
+                    if skill["id"] in learned or mastery >= int(skill.get("unlock", 1) or 1)
+                ]
+                if not visible_skills:
+                    await self.send(
+                        "Brak umiejętności dostępnych na aktualnej Biegłości tej klasy."
+                    )
+                    continue
+                for skill in visible_skills:
                     global_number += 1
                     progress_text = ""
                     skill_level = 1
@@ -472,14 +483,10 @@ class SessionSkillLearningMixin:
                                 f"{skill_xp_to_next(skill_level)}, użycia {row['uses']}."
                             )
                         status = "nauczona"
-                    elif self.class_mastery_level(class_name) >= int(skill["unlock"]):
+                    else:
                         status = (
                             f"gotowa do nauki u {teacher['name']} "
                             f"w lokacji {teacher_room}"
-                        )
-                    else:
-                        status = (
-                            f"zablokowana: wymaga Biegłości klasy {skill['unlock']}"
                         )
 
                     mana_cost = effective_skill_mana_cost(skill, class_name)
@@ -512,7 +519,7 @@ class SessionSkillLearningMixin:
             )
             await self.send(
                 "Każdy nauczony skill ma własny Skill Level 1-600 i XP. "
-                "Wpisz skills all, aby usłyszeć pulę wszystkich klas."
+                "Lista pokazuje tylko skille odblokowane na aktualnej Biegłości klasy."
             )
 
     async def show_spells(self, args=""):
@@ -1578,7 +1585,13 @@ class SessionSkillLearningMixin:
                 return
 
             class_name = teacher["teacher_class"]
-            class_skills = CLASS_SKILLS.get(class_name, [])
+            mastery = self.class_mastery_level(class_name)
+            class_skills = [
+                skill
+                for skill in CLASS_SKILLS.get(class_name, [])
+                if skill["id"] in self.server.db.learned_skill_ids(self.account_id)
+                or mastery >= int(skill.get("unlock", 1) or 1)
+            ]
             value = raw.strip()
             normalized = self.normalize_description_query(value)
             if normalized.startswith("sie ") or normalized.startswith("się "):
