@@ -3276,6 +3276,29 @@ TREASURE_CHEST_RARITIES = {
 TREASURE_CHESTS = {}
 
 
+def normalize_authored_mob_names_v11128():
+    """Keep authored mob display names singular and screen-reader friendly."""
+    canonical = {
+        "goblin_scout": "Goblin Zwiadowca",
+        "deep_troll_shaman": "Troll Jaskiniowy",
+    }
+    for mob_id, template in MOB_TEMPLATES.items():
+        if not isinstance(template, dict):
+            continue
+        if mob_id in canonical:
+            template["name"] = canonical[mob_id]
+        name = str(template.get("name") or "").strip()
+        # Procedural Nemesis intentionally uses an em dash as a rank marker.
+        # Authored mobs must expose one name, never two competing names.
+        if " — " in name and "NEMESIS" not in name and not template.get("v029_dynamic_event"):
+            parts = [part.strip() for part in name.split(" — ") if part.strip()]
+            if len(parts) == 2:
+                template["name"] = parts[0]
+
+
+normalize_authored_mob_names_v11128()
+
+
 def build_elite_rare_named_loot_expansion():
     # --------------------------------------------------------
     # Regional sets: 3 x 6 pieces, thresholds 2/4/6.
