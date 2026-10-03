@@ -367,7 +367,7 @@ for city_index, city in enumerate(_city_names, 1):
     )
 
     stage = 70 + city_index * 9
-    threat_id = _v0900_mob(f"v0900_city_{slug}_threat", f"Podziemny Szkodnik — {city}", stage, drops={"soul_shard": 0.05}, tags={"v0900_city2": True, "v0900_city": city})
+    threat_id = _v0900_mob(f"v0900_city_{slug}_threat", "Podziemny Szkodnik", stage, drops={"soul_shard": 0.05}, tags={"v0900_city2": True, "v0900_city": city})
     # v1.00.24: questy miejskie wymagają łącznie 24 szkodników (8 + 16).
     # Utrzymujemy 28 aktywnych spawnów na miasto, aby pełny cykl można było
     # wykonać bez czekania na respawn po przejściu obu etapów.
