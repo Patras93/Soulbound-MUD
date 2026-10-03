@@ -1,8 +1,19 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.11.27
+Aktualna paczka: v1.11.28
 
 ==============================================================================
 ==============================================================================
+==============================================================================
+Soulbound v1.11.28 — globalne porządkowanie nazw mobów
+==============================================================================
+
+- Troll Jaskiniowy ma teraz jedną kanoniczną nazwę; usunięto konflikt z nazwą Szaman Głębin Trolli.
+- Stara nazwa Szaman Głębin Trolli pozostaje aliasem wyszukiwania dla zgodności komend.
+- Goblin Zwiadowca pozostaje kanoniczną nazwą goblin_scout.
+- Dodano globalną normalizację autorskich nazw mobów: zwykły mob nie może prezentować dwóch konkurencyjnych nazw rozdzielonych znakiem „—”.
+- Proceduralny NEMESIS zachowuje separator, ponieważ jest on celowym oznaczeniem rangi, a nie drugą nazwą gatunku.
+- Brak zmian save'ów i brak wipe'a.
+
 ==============================================================================
 Soulbound v1.11.27 — predeploy syntax hotfix
 ==============================================================================
