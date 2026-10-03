@@ -479,9 +479,25 @@ class SessionSkillQueueBuffsMixin:
                 total_bonus += max(0.0, float(data.get("boost", 1.0) or 1.0) - 1.0)
             return min(2.25, 1.0 + total_bonus)
 
+    def permanence_active_v11154(self):
+            """Canonical Permanence: enemy dispels cannot remove beneficial effects."""
+            self.cleanup_skill_buffs()
+            buffs=getattr(self,"active_skill_buffs",{})
+            for skill_id,data in buffs.items():
+                if str(skill_id).endswith("_permanence") and time.time()<float(data.get("until",0.0) or 0.0):
+                    return True
+            # Future selected Auto-Permanence can use the same contract.
+            try:
+                selected=self.selected_job_ability("inherent")
+                if selected and str(selected.get("mec_special",""))=="auto_permanence":
+                    return True
+            except Exception:
+                pass
+            return False
+
     def vmax_permanence_active_v11152(self):
-            """Permanence makes the active V-MAX package immune to dispel/removal."""
-            return self.mec_vmax_active_v0319() and "v0319_mec_vmax" in getattr(self,"active_skill_buffs",{})
+            """Compatibility alias for the canonical Permanence query."""
+            return self.permanence_active_v11154()
 
     def clear_skill_buffs(self, hostile=False):
             buffs=getattr(self,"active_skill_buffs",{})
@@ -489,7 +505,7 @@ class SessionSkillQueueBuffsMixin:
             # dispels cannot remove beneficial effects. V-MAX grants Permanence,
             # so hostile clearing preserves the complete beneficial buff set,
             # not only the V-MAX marker itself.
-            if hostile and self.vmax_permanence_active_v11152():
+            if hostile and self.permanence_active_v11154():
                 return
             buffs.clear()
 
