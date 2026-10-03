@@ -37,7 +37,15 @@ class SessionSkillQueueBuffsMixin:
                 rows = list(self.server.db.skill_queue_rows(self.account_id, queue_type))
                 for row in sorted(rows, key=lambda item: int(item["position"]), reverse=True):
                     skill = self.skill_by_id(row["skill_id"])
-                    if not skill or str(skill.get("kind", "")).lower() != "passive":
+                    if not skill:
+                        continue
+                    passive_kind = str(skill.get("kind", "")).lower() == "passive"
+                    automatic_boost = (
+                        str(skill.get("kind", "")).lower() == "boost"
+                        and not skill.get("active_special")
+                        and str(skill.get("mec_special", "")) != "vmax"
+                    )
+                    if not (passive_kind or automatic_boost):
                         continue
                     if self.server.db.remove_skill_queue_entry(
                         self.account_id, queue_type, int(row["position"])
@@ -580,6 +588,8 @@ class SessionSkillQueueBuffsMixin:
 
             kind = skill.get("kind")
             if kind in ("passive", "utility"):
+                return False
+            if kind == "boost" and not skill.get("active_special") and str(skill.get("mec_special", "")) != "vmax":
                 return False
             if kind in ("damage", "drain", "execute", "aoe_damage"):
                 if not mob or not mob.alive or mob.room_id != self.character.room_id:
