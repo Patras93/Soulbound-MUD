@@ -1,8 +1,18 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.11.12
+Aktualna paczka: v1.11.13
 
 ==============================================================================
 ==============================================================================
+==============================================================================
+Soulbound v1.11.13 — pełne auto-dołączanie drużyny po AoE
+==============================================================================
+
+- Każde ofensywne AoE natychmiast wciąga do walki wszystkich żywych członków drużyny obecnych w tej samej lokacji.
+- Działa identycznie, gdy AoE używa lider oraz gdy używa go zwykły członek drużyny.
+- Auto-dołączanie jest wykonywane przed specjalnymi handlerami skilli, dzięki czemu obejmuje także AoE Meca i Inżyniera, które wcześniej mogły zakończyć obsługę przed party assist.
+- Członkowie drużyny w innych lokacjach nie są dołączani.
+- Brak zmian SQLite i brak wipe'a save'ów.
+
 Soulbound v1.11.12 — czytelne XP za Salvage
 ==============================================================================
 
