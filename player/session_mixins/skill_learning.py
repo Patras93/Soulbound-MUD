@@ -1489,16 +1489,9 @@ class SessionSkillLearningMixin:
                     "full",
                 )
 
-            # v0.31.9 V-MAX Protect/Shell adaptation: reduce incoming physical/magic damage while active.
-            if self.party_vmax_support_active_v03511():
-                before_vmax=incoming
-                incoming=max(1,int(round(incoming*0.80)))
-                if before_vmax>incoming:
-                    await self.send_combat(f"V-MAX Protect/Shell redukuje trafienie o {before_vmax-incoming}.","full")
+            # V-MAX package effects are source-backed statuses. Do not apply
+            # invented Protect/Shell percentages or Regen amounts here.
             self.current_hp -= incoming
-            if self.party_vmax_support_active_v03511():
-                regen=max(1,int(self.max_hp()*0.02))
-                self.current_hp=min(self.max_hp(),self.current_hp+regen)
             self._recap52_taken=int(getattr(self,"_recap52_taken",0))+max(0,int(incoming))
             if time.time() < float(getattr(mob,"v0319_air_anchor_until",0.0) or 0.0) and mob.alive:
                 anchor=max(1,int(getattr(mob,"v0319_air_anchor_power",1) or 1))
@@ -1506,10 +1499,6 @@ class SessionSkillLearningMixin:
                 await self.send_combat(f"Air Anchor odpowiada na atak: {template['name']} otrzymuje {anchor} obrażeń.","normal")
                 if mob.hp<=0:
                     await self.mob_defeated(mob); return
-            # Self-Repair: passive combat regeneration for Mec when learned.
-            if self.mec_skill_known_v0319("v0319_mec_self_repair") and self.current_hp>0:
-                _sr_level=int(self.server.db.skill_progress(self.account_id,"v0319_mec_self_repair")["level"]); _sr_p=(max(1,min(SKILL_MAX_LEVEL,_sr_level))-1)/float(max(1, SKILL_MAX_LEVEL-1))
-                rep=max(1,int(self.max_hp()*(0.005+0.025*(_sr_p**0.82)))); self.current_hp=min(self.max_hp(),self.current_hp+rep)
             await self.send_combat(
                 f"{template['name']} atakuje. Typ obrażeń: "
                 f"{'magiczne' if damage_type == 'magic' else 'fizyczne'}. "
