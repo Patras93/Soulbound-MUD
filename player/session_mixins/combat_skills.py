@@ -1057,10 +1057,12 @@ class SessionCombatSkillsMixin:
                     )
                 damage = await self.apply_boss_defense(mob, damage)
                 damage = self.v0210_adjust_player_damage(damage)
+                _damage_element="physical" if skill_class_type == "physical" else "magic"
+                if skill.get("mec_authored") and skill.get("carries_soul_weapon_elements"):
+                    _sw_element=str(getattr(self.character,"soul_weapon_element","") or "").casefold()
+                    if _sw_element: _damage_element=_sw_element
                 damage, machine_note = v0314_adjust_damage_vs_template(
-                    template, damage,
-                    "physical" if skill_class_type == "physical" else "magic",
-                    skill.get("name", ""),
+                    template, damage, _damage_element, skill.get("name", ""),
                 )
                 mob.hp -= damage
                 # v0.34.6: cechy Broni Duszy nie modyfikują skilli/spelli.
