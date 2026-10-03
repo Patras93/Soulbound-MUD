@@ -2395,9 +2395,7 @@ def _v0319_install_full_mec_kit():
             row["mult"] = 1.0
             if kind=="aoe_damage": row["aoe"]=True
         if kind=="heal": row["heal_pct"] = .22 if special=="cure_beam" else .48
-        if special in ("destroy","robo_tackle"): row["self_damage_pct"]=.04
-        if special=="compress": row["self_damage_pct"]=.06
-        if special=="crush": row.update({"self_damage_pct":.08,"damage_from_missing_hp":True,"level_caps_damage":True,"level_effect":"increases_maximum_possible_damage","single_soul_weapon":True})
+        if special=="crush": row.update({"feedback_cost_source_defined":False,"damage_from_missing_hp":True,"level_caps_damage":True,"level_effect":"increases_maximum_possible_damage","single_soul_weapon":True})
         if special=="kamikaze_crush": row.update({"damage_from_current_hp":True,"vitality_influence":True,"vmax_power_and_feedback":True,"single_soul_weapon":True})
         if special=="maxwell_program": row.update({"magic_attack_augmentation":True,"mp_regen_percent":1.0,"mp_regen_seconds":6.0})
         if special=="combat_mastery": row.update({"ordinary_soul_weapon_attack_only":True,"strength_based_only":True,"requires_soul_weapon":True,"stronger_than":"Attack UP","weaker_than":"Two Hands","single_soul_weapon":True})
@@ -2411,15 +2409,11 @@ def _v0319_install_full_mec_kit():
         if special=="laser_spin": row.update({"aoe_diminishing":True,"element":"dark"})
         if special=="maelstrom": row.update({"aoe_diminishing":True,"element":"water"})
         if special=="shock": row.update({"aoe_diminishing":True,"elements":["lightning","dark"],"source_mp_cost":150})
-                if special=="crush": row["self_damage_pct"]=.08
-        if special=="uzi_punch": row["self_damage_pct"]=.10
-        if special=="kamikaze_crush": row["self_damage_pct"]=.18
-        if special=="dispose": row["self_damage_pct"]=.08
         if special=="tiger_rampage":
             row.update({"scale":"strength","hits":2,"target_mode":"one_enemy",
                         "carries_soul_weapon_elements":True,"single_soul_weapon":True,
                         "extendable":True,"defense_break_physical":True,
-                        "defense_break_magical":True,"defense_break_chance":0.40,
+                        "defense_break_magical":True,"defense_break_chance_source_defined":False,
                         "duration_scales_with_skill_level":True})
         if special=="area_bomb":
             row.update({"scale":"intelligence","element":"fire","uoss_mp_cost":35,
@@ -2427,7 +2421,7 @@ def _v0319_install_full_mec_kit():
         if special=="pop_knight":
             row.update({"scale":"strength","target_mode":"all_non_diminishing",
                         "carries_soul_weapon_elements":True,"single_soul_weapon":True,
-                        "bonus_vs_flying":1.35})
+                        "bonus_vs_flying_source_defined":False})
         if special=="heal_beam":
             row.update({"scale":"willpower","uoss_mp_cost":36,"uoss_support_mp_cost":72,
                         "target_mode":"single_or_support_party","support_heal_multiplier":1.20})
