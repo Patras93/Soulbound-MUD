@@ -143,3 +143,76 @@ def superboss_counterattack_multiplier_v11137(template, mob):
     if phase == 2:
         return 1.25, "Faza 2: Super Boss zwiększa napór."
     return 1.0, "Faza 1."
+
+
+SUPERBOSS_PHASE_TEXT_V11138 = {
+ "asterisks":("Job Shift","Limit Break","Heroes' Finale"),
+ "dad":("MAGI Guard","Guardian Pulse","Final Safeguard"),
+ "diabolos":("Dream Veil","Nightmare Gravity","Dark Dream"),
+ "harle":("Jester Step","Dimensional Trick","Frozen Flame"),
+ "culex":("Crystal Guard","Elemental Crystal","Final Dimension"),
+ "ruby_weapon":("Desert Armor","Tentacle Assault","Ruby Rage"),
+ "emerald_weapon":("Abyss Pressure","Emerald Beam","Ocean Doom"),
+ "ozma":("Sphere Shift","Curse Cycle","Meteor Storm"),
+ "four_fiends":("Fiend Cycle","Elemental Reversal","Fourfold Finale"),
+ "grahf":("Fist of Contact","Power of Id","Alpha Weltall"),
+ "hades":("Forge of Hades","Underworld Craft","Masterwork Doom"),
+ "lunar_trial":("Lunar Eidolon","Moon Trial","Lunar Judgment"),
+ "elementals":("Mana Spirit","Element Shift","Mana Convergence"),
+ "gilgamesh":("Weapon Draw","Legendary Arsenal","Big Bridge Finale"),
+ "war_machines":("Twin Systems","Crossfire","Overdrive"),
+ "black_rabite":("Corrupted Mana","Dark Pounce","Rabite Frenzy"),
+ "serpentarius":("Zodiac Seal","Thirteenth Sign","Deep Dungeon Judgment"),
+ "odin":("Sleipnir Charge","Gungnir","Zantetsuken"),
+ "yiazmat":("Holy Dragon","Godslayer Trial","Cyclone"),
+ "sephiroth":("Masamune","One-Winged Angel","Supernova"),
+ "spekkio":("Mirror Strength","Master of War","Perfect Mirror"),
+}
+
+def superboss_phase_event_v11138(session, template, mob):
+    key=superboss_key_from_template_v11135(template)
+    if not key:
+        return None
+    phase=superboss_phase_v11137(template,mob) or 1
+    seen=getattr(mob,"uoss_announced_phase_v11138",0)
+    if phase <= seen:
+        return None
+    mob.uoss_announced_phase_v11138=phase
+    label=SUPERBOSS_PHASE_TEXT_V11138.get(key,("Faza 1","Faza 2","Faza 3"))[phase-1]
+    return phase,label
+
+def superboss_incoming_multiplier_v11138(session, template, mob):
+    mult,note=superboss_counterattack_multiplier_v11137(template,mob)
+    helper=superboss_helper_profile_v11137(session,template)
+    if helper:
+        mult *= max(0.1,1.0-float(helper.get("damage_reduction",0.0)))
+    key=superboss_key_from_template_v11135(template)
+    if key=="spekkio":
+        # Spekkio remains relevant regardless of level: his pressure tracks the
+        # player's current defensive scale rather than a fixed authored tier.
+        expected=max(1.0,float(session.consider_player_expected_hit()))
+        authored=max(1.0,float(template.get("damage",1)))
+        mult *= max(0.75,min(3.0,expected/authored))
+    return mult,note
+
+def superboss_series_progress_v11138(db, account_id, boss_key):
+    spec=UOSS_SUPERBOSS_ENCOUNTERS_V11134.get(str(boss_key),{})
+    if not spec.get("series"):
+        return None
+    required=int(spec.get("required_wins",4 if boss_key=="four_fiends" else 1) or 1)
+    collection=f"uoss_series_{boss_key}_v11138"
+    current=len(db.collection_entry_ids(account_id,collection))
+    return current,required,collection
+
+def advance_superboss_series_v11138(db, account_id, boss_key):
+    state=superboss_series_progress_v11138(db,account_id,boss_key)
+    if not state:
+        return None
+    current,required,collection=state
+    if current>=required:
+        return current,required,True
+    db.add_collection_entry(account_id,collection,f"stage_{current+1}")
+    now=min(required,current+1)
+    if boss_key=="elementals" and now>=8:
+        db.add_collection_entry(account_id,"uoss_unlocks_v11138","elementals_final_foe")
+    return now,required,now>=required
