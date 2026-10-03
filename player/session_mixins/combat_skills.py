@@ -469,9 +469,30 @@ class SessionCombatSkillsMixin:
                         duration=30
                         if special=="hypno_flash": mob.v0319_sleep_until=time.time()+duration
                         elif special=="jammer":
-                            duration=45 if template.get("machine") else 25
-                            targets=[x for x in aoe_mobs if x.alive] if vmax else [mob]
-                            for t in targets: t.v0319_disabled_until=time.time()+duration
+                            # v1.11.44: Jammer is Will-influenced Stop. Soulbound has one
+                            # Soul Weapon, so Support Effect/V-MAX replaces the old separate
+                            # Cyborg support-weapon requirement and expands Jammer to all enemies.
+                            _p=(max(1,min(SKILL_MAX_LEVEL,skill_level))-1)/float(max(1,SKILL_MAX_LEVEL-1))
+                            _will=max(1,int(self.effective_willpower()))
+                            _support=vmax
+                            targets=[x for x in aoe_mobs if x.alive] if _support else [mob]
+                            affected=0
+                            durations=[]
+                            for t in targets:
+                                tt=MOB_TEMPLATES[t.template_id]
+                                machine=bool(tt.get("machine"))
+                                accuracy=min(0.98,0.52 + min(0.20,_will*0.002) + 0.20*_p + (0.18 if machine else 0.0))
+                                duration=max(8,int(round((18 + min(22,_will//3))*(1.0+0.75*_p))))
+                                if random.random() <= accuracy:
+                                    t.v0319_disabled_until=max(float(getattr(t,"v0319_disabled_until",0.0) or 0.0),time.time()+duration)
+                                    affected+=1; durations.append(duration)
+                            await self.send(
+                                f"Jammer: Stop trafia {affected} z {len(targets)} celów"
+                                + (f", czas do {max(durations)} s." if durations else ".")
+                                + (" Support Effect: wszyscy przeciwnicy." if _support else "")
+                                + (" Machine ma zwiększoną podatność." if any(MOB_TEMPLATES[t.template_id].get("machine") for t in targets) else "")
+                            )
+                            await self.grant_skill_use_xp(skill); return
                         else:
                             mob.v0319_silence_until=time.time()+duration; mob.v0319_slow_until=time.time()+duration
                             if vmax: mob.v0319_blind_until=time.time()+duration; mob.v0319_disabled_until=time.time()+duration
