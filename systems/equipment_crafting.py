@@ -259,21 +259,23 @@ GUILD_REPUTATION_RANKS = (
 GUILD_EXAM_THRESHOLDS = (50, 100, 150, 200)
 GUILD_EXAM_REPUTATION = {50: 100, 100: 250, 150: 450, 200: 700}
 
+# v1.11.32: zadania klasowe sprawdzają różne aktywności, zamiast 14 kopii zabijania.
+# Pola: nazwa, opis, reputacja, srebro, wymagany postęp, rodzaj aktywności.
 GUILD_CLASS_QUESTS = {
-    "Wojownik": ("Próba Ostrza", "Pokonaj 8 przeciwników dla Gildii.", 80, 600, 8),
-    "Berserker": ("Próba Furii", "Pokonaj 10 przeciwników dla Gildii.", 90, 700, 10),
-    "Łotrzyk": ("Próba Cienia", "Pokonaj 8 przeciwników dla Gildii.", 85, 650, 8),
-    "Łowca": ("Próba Tropiciela", "Pokonaj 10 przeciwników dla Gildii.", 80, 600, 10),
-    "Mnich": ("Próba Dyscypliny", "Pokonaj 8 przeciwników dla Gildii.", 90, 700, 8),
-    "Strażnik": ("Próba Bastionu", "Pokonaj 6 przeciwników dla Gildii.", 100, 800, 6),
-    "Mag": ("Próba Arkanów", "Pokonaj 10 przeciwników dla Gildii.", 90, 700, 10),
-    "Nekromanta": ("Próba Dusz", "Pokonaj 10 przeciwników dla Gildii.", 90, 700, 10),
-    "Kapłan": ("Próba Światła", "Pokonaj 6 przeciwników dla Gildii.", 100, 800, 6),
-    "Czarownik": ("Próba Otchłani", "Pokonaj 10 przeciwników dla Gildii.", 95, 750, 10),
-    "Druid": ("Próba Natury", "Pokonaj 8 przeciwników dla Gildii.", 90, 700, 8),
-    "Psionik": ("Próba Umysłu", "Pokonaj 10 przeciwników dla Gildii.", 95, 750, 10),
-    "Mec": ("Próba Rdzenia", "Pokonaj 8 przeciwników dla Gildii.", 100, 800, 8),
-    "Inżynier": ("Próba Konstruktora", "Pokonaj 10 przeciwników dla Gildii.", 90, 700, 10),
+    "Wojownik": ("Próba Ostrza", "Pokonaj 3 bossów lub silnych przywódców.", 80, 600, 3, "boss"),
+    "Berserker": ("Próba Furii", "Pokonaj 12 przeciwników w walce.", 90, 700, 12, "kill"),
+    "Łotrzyk": ("Próba Cienia", "Odkryj 12 nowych lokacji, poruszając się poza utartymi szlakami.", 85, 650, 12, "explore"),
+    "Łowca": ("Próba Tropiciela", "Odkryj 18 nowych lokacji i poznaj teren.", 80, 600, 18, "explore"),
+    "Mnich": ("Próba Dyscypliny", "Odkryj 10 nowych lokacji podczas wędrówki.", 90, 700, 10, "explore"),
+    "Strażnik": ("Próba Bastionu", "Pokonaj 2 bossów, chroniąc szlaki świata.", 100, 800, 2, "boss"),
+    "Mag": ("Próba Arkanów", "Odkryj 14 nowych lokacji i zbadaj źródła mocy świata.", 90, 700, 14, "explore"),
+    "Nekromanta": ("Próba Dusz", "Pokonaj 10 przeciwników i zbierz doświadczenie bojowe.", 90, 700, 10, "kill"),
+    "Kapłan": ("Próba Pielgrzyma", "Odwiedź 12 nowych lokacji świata.", 100, 800, 12, "explore"),
+    "Czarownik": ("Próba Otchłani", "Pokonaj 8 przeciwników w walce.", 95, 750, 8, "kill"),
+    "Druid": ("Próba Natury", "Zbierz 12 zasobów podczas profesyjnych wypraw.", 90, 700, 12, "gather"),
+    "Psionik": ("Próba Umysłu", "Odkryj 15 nowych lokacji i poszerz wiedzę o świecie.", 95, 750, 15, "explore"),
+    "Mec": ("Próba Rdzenia", "Pokonaj 3 bossów i przetestuj systemy bojowe.", 100, 800, 3, "boss"),
+    "Inżynier": ("Próba Konstruktora", "Zbierz 15 zasobów potrzebnych do dalszych konstrukcji.", 90, 700, 15, "gather"),
 }
 
 GUILD_BOUNTY_TARGETS = (
