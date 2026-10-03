@@ -1,8 +1,18 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.11.17
+Aktualna paczka: v1.11.18
 
 ==============================================================================
 ==============================================================================
+==============================================================================
+Soulbound v1.11.18 — naprawa listy znajomych
+==============================================================================
+
+- Przywrócono brakujący handler systemu znajomych.
+- Komendy friend, friends, znajomi i znajomy bez argumentów pokazują tę samą listę znajomych.
+- Lista podaje każdego znajomego osobno oraz jego stan online/offline, dzięki czemu jest czytelna dla NVDA.
+- Obsługiwane są też: friend dodaj <gracz>, friend akceptuj <gracz>, friend usuń <gracz> i friend zaproszenia.
+- Brak zmian SQLite i brak wipe'a save'ów.
+
 ==============================================================================
 Soulbound v1.11.17 — cisza kanałów po zalogowaniu
 ==============================================================================
