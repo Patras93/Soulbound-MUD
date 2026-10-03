@@ -382,8 +382,37 @@ class SessionSkillQueueBuffsMixin:
             self.cleanup_skill_buffs()
             return skill_id in getattr(self, "active_skill_buffs", {})
 
+    def passive_class_boost_multiplier_v11134(self, exclude_skill_id=None):
+            """Stały bonus z nauczonych zwykłych klasowych boostów.
+
+            v1.11.34: authored boosty są Automatic/pasywne. Wyjątki oznaczone
+            active_special (np. V-MAX) pozostają świadomie aktywowanymi stanami.
+            """
+            total_bonus = 0.0
+            for class_name in self.active_class_names():
+                for skill in CLASS_SKILLS.get(class_name, []):
+                    if str(skill.get("kind", "")) != "boost":
+                        continue
+                    if skill.get("active_special") or str(skill.get("mec_special", "")) == "vmax":
+                        continue
+                    if exclude_skill_id and skill.get("id") == exclude_skill_id:
+                        continue
+                    if not self.server.db.knows_skill(self.account_id, skill["id"]):
+                        continue
+                    if not self.skill_mastery_unlocked(skill):
+                        continue
+                    progress = self.server.db.skill_progress(self.account_id, skill["id"])
+                    level = max(1, int(progress["level"]))
+                    authored = max(1.0, float(skill.get("boost", 1.0) or 1.0))
+                    # Zachowujemy dotychczasową skalę poziomu skilla, ale jako
+                    # stały efekt zamiast czasowego buffa.
+                    base_bonus = max(0.0, authored - 1.0)
+                    scaled_bonus = base_bonus * (1.0 + min(1.0, level / float(SKILL_MAX_LEVEL)))
+                    total_bonus += min(0.90, scaled_bonus)
+            return 1.0 + total_bonus
+
     def skill_buff_multiplier(self, exclude_skill_id=None):
-            """Łączny mnożnik wszystkich aktywnych buffów.
+            """Łączny mnożnik pasywnych i specjalnych aktywnych buffów.
 
             Bonusy sumują się addytywnie (+35% i +55% = +90%), więc różne buffy
             nadal mogą działać razem i uniwersalnie wzmacniają wszystkie skille/spelle.
@@ -391,7 +420,7 @@ class SessionSkillQueueBuffsMixin:
             siły kolejnego buffa - zapobiega to pętli multiclass buff->buff.
             """
             self.cleanup_skill_buffs()
-            total_bonus = 0.0
+            total_bonus = max(0.0, self.passive_class_boost_multiplier_v11134(exclude_skill_id) - 1.0)
             for skill_id, data in getattr(self, "active_skill_buffs", {}).items():
                 if exclude_skill_id and skill_id == exclude_skill_id:
                     continue
