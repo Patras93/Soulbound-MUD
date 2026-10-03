@@ -90,7 +90,7 @@ from world.runtime_progression import (
 from world.world_state import v0290_active_world_events
 from world.uoss_superbosses import UOSS_SUPERBOSS_ENCOUNTERS_V11134
 from world.uoss_superboss_runtime import (
-    superboss_cleared_v11135, superboss_series_progress_v11138,
+    superboss_cleared_v11135, superboss_series_progress_v11138, weapon_pair_exchange_ready_v11141,
 )
 
 
@@ -758,6 +758,20 @@ class SessionWorldEventsEndgameMixin:
             key=self.party_key() if self.party_key() is not None else self.account_id
             setattr(self.server,f"_uoss_helper_choice_{key}",q.title())
             await self.server.party_combat_broadcast(self,f"Wybrany pomocnik Black Rabite: {q.title()}.",detail="essential")
+
+    async def exchange_weapon_spoils_v11141(self, args=""):
+            if not weapon_pair_exchange_ready_v11141(self.server.db,self.account_id):
+                await self.send("Traveler w Kalm wymaga obu trofeów: Desert Rose z Ruby WEAPON oraz Earth Harp z Emerald WEAPON.")
+                return
+            marker="ruby_emerald_pair_reward"
+            if marker in self.server.db.collection_entry_ids(self.account_id,"uoss_kalm_exchanges_v11141"):
+                await self.send("Traveler w Kalm już wydał ci nagrodę za tę parę trofeów.")
+                return
+            self.server.db.remove_item(self.account_id,"uoss_desert_rose",1)
+            self.server.db.remove_item(self.account_id,"uoss_earth_harp",1)
+            self.server.db.add_item(self.account_id,"uoss_weapon_pair_reward",1)
+            self.server.db.add_collection_entry(self.account_id,"uoss_kalm_exchanges_v11141",marker)
+            await self.send("Traveler w Kalm odbiera Desert Rose i Earth Harp. Otrzymujesz: Planet's Guardian Relic.")
 
     async def show_mythic_bosses_v020(self):
             now=time.time(); entries=v0200_active_mythic_world_bosses(now); remaining=max(0,int(entries[0]['expires_at']-now)) if entries else 0
