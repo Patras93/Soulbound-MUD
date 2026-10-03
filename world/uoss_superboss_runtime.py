@@ -83,6 +83,12 @@ def superboss_attack_gate_v11137(session, template):
         return False, f"{spec['name']} jest wyzwaniem solo. Opuść drużynę albo walcz sam."
     if mode == "party" and len(party) < 2:
         return False, f"{spec['name']} jest wyzwaniem drużynowym. Potrzebujesz co najmniej 2 graczy."
+    min_players=int(spec.get("min_players",0) or 0)
+    max_players=int(spec.get("max_players",0) or 0)
+    if min_players and len(party)<min_players:
+        return False, f"{spec['name']} wymaga co najmniej {min_players} graczy w tej samej lokacji."
+    if max_players and len(party)>max_players:
+        return False, f"{spec['name']} dopuszcza maksymalnie {max_players} graczy."
     level_req = int(spec.get("unlock_level", 0) or 0)
     for member in party:
         if level_req and int(member.character.character_level) < level_req:
@@ -187,6 +193,15 @@ def superboss_incoming_multiplier_v11138(session, template, mob):
     if helper:
         mult *= max(0.1,1.0-float(helper.get("damage_reduction",0.0)))
     key=superboss_key_from_template_v11135(template)
+    spec=UOSS_SUPERBOSS_ENCOUNTERS_V11134.get(key,{})
+    scale_from=int(spec.get("difficulty_scales_above_players",0) or 0)
+    if scale_from:
+        party_count=len(superboss_local_party_v11137(session))
+        if party_count>scale_from:
+            # Odin/UOSS rule: additional players above the designed minimum
+            # make the encounter harder instead of trivializing it.
+            mult *= 1.0 + 0.20 * (party_count-scale_from)
+            note=(note+" " if note else "")+f"Skalowanie drużyny: {party_count} graczy."
     if key=="spekkio":
         # Spekkio remains relevant regardless of level: his pressure tracks the
         # player's current defensive scale rather than a fixed authored tier.
