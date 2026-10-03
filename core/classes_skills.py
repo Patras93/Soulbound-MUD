@@ -2433,7 +2433,7 @@ def _v0319_install_full_mec_kit():
                         "carries_soul_weapon_elements":True,"single_soul_weapon":True,
                         "extendable":True,"defense_break_physical":True,
                         "defense_break_magical":True,"defense_break_chance":0.40,
-                        "defense_break_duration":30})
+                        "duration_scales_with_skill_level":True})
         if special=="area_bomb":
             row.update({"scale":"intelligence","element":"fire","uoss_mp_cost":35,
                         "target_mode":"all_engaged_enemies","engaged_only":True})
@@ -2457,7 +2457,7 @@ def _v0319_install_full_mec_kit():
             row.update({"scale":"strength", "secondary_scale":"dexterity", "secondary_scale_weight":0.35,
                         "carries_soul_weapon_elements":True, "requires_soul_weapon":"melee",
                         "target_mode":"diminishing_aoe_or_vmax_random"})
-        if special=="vmax": row.update({"boost":1.0,"duration":30,"cooldown":60})
+        if special=="vmax": row.update({"boost":1.0,"cooldown":60,"duration_scales_with_skill_level":True})
     CLASS_SKILLS["Mec"] = rows
 
 _v0319_install_full_mec_kit()
