@@ -103,6 +103,7 @@ COMMAND_REGISTRY = {
     'superbosses': ('show_superbosses_v11135', (COMMAND_TEXT,), {}),
     'superboss': ('enter_superboss_v11138', (COMMAND_TEXT,), {}),
     'pomocnik': ('choose_superboss_helper_v11138', (COMMAND_TEXT,), {}),
+    'weaponspoil': ('exchange_weapon_spoils_v11141', (COMMAND_TEXT,), {}),
     'artifactupgrade': ('artifact_upgrade_v020', (COMMAND_TEXT,), {}),
     'endgamegoals': ('show_endgame_goals_v020', (), {}),
     'ascension': ('show_ascension_v021', (COMMAND_TEXT,), {}),
