@@ -528,7 +528,14 @@ class SessionCombatSkillsMixin:
                             if special in ("pop_knight","shock_soldier","range_fire","dispose","shoot_all"):
                                 _sw_element=str(getattr(self.character,"soul_weapon_element","") or "").casefold()
                                 if _sw_element: element=_sw_element
-                            damage,note=v0314_adjust_damage_vs_template(template,damage,element,skill.get("name",""))
+                            if special=="shock":
+                                # Shock is simultaneously Lightning and Dark. Apply both
+                                # elemental interactions instead of collapsing it to one.
+                                damage,note_light=v0314_adjust_damage_vs_template(template,damage,"lightning",skill.get("name",""))
+                                damage,note_dark=v0314_adjust_damage_vs_template(template,damage,"dark",skill.get("name",""))
+                                note=(note_light or "")+(note_dark or "")
+                            else:
+                                damage,note=v0314_adjust_damage_vs_template(template,damage,element,skill.get("name",""))
                             target.hp-=damage; total+=damage
                             await self.send(f"{skill['name']}: {template['name']} {damage} obrażeń. HP {max(0,target.hp)}.{note}")
                             if target.hp<=0 and target.key not in seen: seen.add(target.key); defeated.append(target)
