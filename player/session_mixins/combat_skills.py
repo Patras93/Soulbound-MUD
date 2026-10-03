@@ -120,6 +120,11 @@ class SessionCombatSkillsMixin:
                     )
                     if mob is not None:
                         self.combat_mob_key = mob.key
+                        # v1.11.13: KAŻDE AoE rozpoczyna wspólną walkę całej lokalnej
+                        # drużyny od razu, zanim dedykowane ścieżki Meca/Engineera
+                        # zdążą zakończyć handler przez return. Nie ma znaczenia,
+                        # czy AoE uruchomił lider czy zwykły członek party.
+                        await self.server.auto_assist_party_combat(self, mob)
                 elif offensive:
                     if self.auto_fishing or self.auto_fishing_task:
                         await self.stop_auto_fishing(announce=False)
