@@ -1,8 +1,19 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.11.20
+Aktualna paczka: v1.11.21
 
 ==============================================================================
 ==============================================================================
+==============================================================================
+Soulbound v1.11.21 — optymalizacja realtime combat
+==============================================================================
+
+- Zmniejszono liczbę pustych wybudzeń pętli walki realtime.
+- Pętla może teraz spać do 1 sekundy do następnej zaplanowanej akcji zamiast budzić każdą walczącą sesję co maksymalnie 0,20 sekundy.
+- Interwały ataków gracza i mobów nie zostały zmienione; zmiana dotyczy tylko oczekiwania pomiędzy akcjami.
+- Ogranicza koszt CPU szczególnie przy wielu jednocześnie walczących graczach i party/AoE.
+- World.refresh pozostaje z istniejącym cache 250 ms i indeksem mobów per pokój.
+- Brak zmian SQLite i brak wipe'a save'ów.
+
 ==============================================================================
 Soulbound v1.11.20 — przełącznik ofensywnego AoE
 ==============================================================================
