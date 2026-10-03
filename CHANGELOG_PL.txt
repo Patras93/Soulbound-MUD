@@ -1,8 +1,21 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.11.33
+Aktualna paczka: v1.11.34
 
 ==============================================================================
 ==============================================================================
+==============================================================================
+Soulbound v1.11.34 — klasowe buffy jako Automatic
+==============================================================================
+
+- Zwykłe klasowe skille typu boost są teraz stałymi pasywkami Automatic po nauczeniu i odblokowaniu Biegłości.
+- Nie trzeba ich ręcznie używać, nie wygasają i nie mają cooldownu.
+- Ich bonus nadal skaluje się z poziomem skilla i łączy z systemem obrażeń/healu korzystającym z skill_buff_multiplier.
+- Automatyczne boosty są usuwane ze starych kolejek skilli i nie mogą być ponownie dodawane przez auto-kolejkę.
+- Ręczne użycie zwykłego boosta informuje, że działa on stale jako pasywka.
+- Specjalne aktywne stany pozostają aktywne; V-MAX nadal ma czas działania, zmienia skille i może wywołać Overheat.
+- Protokoły Meca pozostają stałymi pasywkami Automatic.
+- Brak wipe'a save'ów.
+
 ==============================================================================
 Soulbound v1.11.33 — bez sztucznych cooldownów + UOSS Superbosses 2.0
 ==============================================================================
