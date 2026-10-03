@@ -521,11 +521,8 @@ class SessionSkillQueueBuffsMixin:
             return recipients
 
     def party_vmax_support_active_v03511(self):
-            """V-MAX party support grants Protect/Shell/Regen without granting Mec-only skill rewrites."""
-            return (
-                self.mec_vmax_active_v0319()
-                or time.time() < float(getattr(self, "v03511_party_vmax_until", 0.0) or 0.0)
-            )
+            """Compatibility query: V-MAX is self-only; old party V-MAX state is ignored."""
+            return self.mec_vmax_active_v0319()
 
     def engineer_skill_known_v0317(self, skill_id):
             try:
