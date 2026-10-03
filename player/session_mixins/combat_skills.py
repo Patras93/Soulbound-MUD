@@ -639,8 +639,12 @@ class SessionCombatSkillsMixin:
                         _wis=max(1,int(self.effective_willpower()))
                         _fail=max(0.04,0.30-0.16*_p-min(0.10,_wis*0.001))
                         if random.random()<_fail:
-                            self.v0319_lock_until=time.time()+12
-                            await self.send("Magnify przeciąża Broń Duszy. SYSTEM LOCK: reboot przez 12 sekund.")
+                            # Source specifies a reboot/system lock but no fixed duration.
+                            # Scale the mechanical lock with the skill effect system rather
+                            # than inventing a constant number of seconds.
+                            _lock=self.skill_effect_duration_v11153(skill,skill_level,base_seconds=6)
+                            self.v0319_lock_until=time.time()+_lock
+                            await self.send(f"Magnify przeciąża Broń Duszy. SYSTEM LOCK: reboot przez {_lock} s.")
                     # Other single-target Mec attacks continue through the normal Soulbound damage handler below.
 
                     # Plural Slash Agility scaling is applied to this use only in the
