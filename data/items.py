@@ -450,6 +450,28 @@ ITEMS = {
     "teak_log": {"name": "Pień teku", "type": "resource", "price": None, "sell_gold": 9, "desc": "Bardzo trwałe i odporne drewno."},
     "redwood_log": {"name": "Pień sekwoi", "type": "resource", "price": None, "sell_gold": 18, "desc": "Ogromne i rzadkie drewno ze starych drzew."},
 
+    # v1.11.35 — trwałe nagrody UOSS Super Bossów.
+    "uoss_moogle_steel": {"name":"Moogle Steel","type":"superboss_token","price":None,"desc":"Osobisty token za pokonanie Black Rabite. Przypisany do postaci."},
+    "uoss_serpentarius_emblem": {"name":"Serpentarius Emblem","type":"superboss_token","price":None,"desc":"Osobisty emblemat za pokonanie Serpentariusa. Przypisany do postaci."},
+    "uoss_godslayers_badge": {"name":"Godslayer's Badge","type":"superboss_token","price":None,"desc":"Osobista odznaka za pokonanie Yiazmata. Otwiera jego tier nagród."},
+    "uoss_black_rabite_unique_1": {"name":"Relikt Black Rabite 1","type":"equipment","price":None,"bind_on_pickup":True,"desc":"Unikalny, przypisywany przy podniesieniu drop Black Rabite."},
+    "uoss_black_rabite_unique_2": {"name":"Relikt Black Rabite 2","type":"equipment","price":None,"bind_on_pickup":True,"desc":"Unikalny, przypisywany przy podniesieniu drop Black Rabite."},
+    "uoss_black_rabite_unique_3": {"name":"Relikt Black Rabite 3","type":"equipment","price":None,"bind_on_pickup":True,"desc":"Unikalny, przypisywany przy podniesieniu drop Black Rabite."},
+    "uoss_black_rabite_unique_4": {"name":"Relikt Black Rabite 4","type":"equipment","price":None,"bind_on_pickup":True,"desc":"Unikalny, przypisywany przy podniesieniu drop Black Rabite."},
+    "uoss_black_rabite_unique_5": {"name":"Relikt Black Rabite 5","type":"equipment","price":None,"bind_on_pickup":True,"desc":"Unikalny, przypisywany przy podniesieniu drop Black Rabite."},
+    "uoss_black_rabite_unique_6": {"name":"Relikt Black Rabite 6","type":"equipment","price":None,"bind_on_pickup":True,"desc":"Unikalny, przypisywany przy podniesieniu drop Black Rabite."},
+    "uoss_black_rabite_unique_7": {"name":"Relikt Black Rabite 7","type":"equipment","price":None,"bind_on_pickup":True,"desc":"Unikalny, przypisywany przy podniesieniu drop Black Rabite."},
+    "uoss_black_rabite_unique_8": {"name":"Relikt Black Rabite 8","type":"equipment","price":None,"bind_on_pickup":True,"desc":"Unikalny, przypisywany przy podniesieniu drop Black Rabite."},
+    "uoss_black_rabite_unique_9": {"name":"Relikt Black Rabite 9","type":"equipment","price":None,"bind_on_pickup":True,"desc":"Unikalny, przypisywany przy podniesieniu drop Black Rabite."},
+    "uoss_black_rabite_unique_10": {"name":"Relikt Black Rabite 10","type":"equipment","price":None,"bind_on_pickup":True,"desc":"Unikalny, przypisywany przy podniesieniu drop Black Rabite."},
+    "uoss_yiazmat_unique_1": {"name":"Relikt Yiazmata 1","type":"equipment","price":None,"bind_on_pickup":True,"desc":"Unikalny, przypisywany przy podniesieniu drop Yiazmata."},
+    "uoss_yiazmat_unique_2": {"name":"Relikt Yiazmata 2","type":"equipment","price":None,"bind_on_pickup":True,"desc":"Unikalny, przypisywany przy podniesieniu drop Yiazmata."},
+    "uoss_yiazmat_unique_3": {"name":"Relikt Yiazmata 3","type":"equipment","price":None,"bind_on_pickup":True,"desc":"Unikalny, przypisywany przy podniesieniu drop Yiazmata."},
+    "uoss_yiazmat_unique_4": {"name":"Relikt Yiazmata 4","type":"equipment","price":None,"bind_on_pickup":True,"desc":"Unikalny, przypisywany przy podniesieniu drop Yiazmata."},
+    "uoss_yiazmat_unique_5": {"name":"Relikt Yiazmata 5","type":"equipment","price":None,"bind_on_pickup":True,"desc":"Unikalny, przypisywany przy podniesieniu drop Yiazmata."},
+    "uoss_yiazmat_unique_6": {"name":"Relikt Yiazmata 6","type":"equipment","price":None,"bind_on_pickup":True,"desc":"Unikalny, przypisywany przy podniesieniu drop Yiazmata."},
+    "uoss_yiazmat_unique_7": {"name":"Relikt Yiazmata 7","type":"equipment","price":None,"bind_on_pickup":True,"desc":"Unikalny, przypisywany przy podniesieniu drop Yiazmata."},
+
     "stone_chunk": {
         "name": "Odłamek skały", "type": "resource", "price": None,
         "desc": "Pospolity urobek.", "sell_silver": 3,
