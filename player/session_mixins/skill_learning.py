@@ -1377,13 +1377,13 @@ class SessionSkillLearningMixin:
             # passive. Source: it interrupts the incoming attack and its lasers use
             # the user's highest offensive stat; Skill Level increases damage.
             if self.job_ability_selected("counter","v0319_mec_intercept_system"):
-                _intercept_level=int(self.server.db.skill_progress(self.account_id,"v0319_mec_intercept_system")["level"])
-                _intercept_progress=(max(1,min(SKILL_MAX_LEVEL,_intercept_level))-1)/float(max(1, SKILL_MAX_LEVEL-1))
                 _offense=max(
                     max(1,int(self.physical_power())),
                     max(1,int(self.spell_power())),
                 )
-                counter=max(1,int(round(_offense*(1.0+_intercept_progress))))
+                # Source says Skill Level increases damage but supplies no numeric
+                # progression curve. Highest offensive power is the canonical base.
+                counter=_offense
                 mob.hp-=counter
                 await self.send_combat(f"Intercept System przerywa atak {template['name']} i kontruje laserami za {counter}.","normal")
                 if mob.hp<=0:
