@@ -299,6 +299,38 @@ class DatabaseProgressionMixin:
         self.replace_skill_queue(account_id, queue_type, skill_ids)
         return True
 
+    def job_ability_slot(self, account_id, slot_type):
+        slot_type=str(slot_type or "").strip().casefold()
+        if slot_type not in ("inherent","counter"):
+            return None
+        row=self.conn.execute(
+            "SELECT skill_id FROM job_ability_slots_v11154 WHERE account_id=? AND slot_type=?",
+            (account_id,slot_type),
+        ).fetchone()
+        return str(row["skill_id"]) if row else None
+
+    def set_job_ability_slot(self, account_id, slot_type, skill_id):
+        slot_type=str(slot_type or "").strip().casefold()
+        if slot_type not in ("inherent","counter"):
+            raise ValueError("invalid_job_ability_slot")
+        self.conn.execute(
+            "INSERT INTO job_ability_slots_v11154(account_id,slot_type,skill_id) VALUES(?,?,?) "
+            "ON CONFLICT(account_id,slot_type) DO UPDATE SET skill_id=excluded.skill_id",
+            (account_id,slot_type,str(skill_id)),
+        )
+        self.conn.commit()
+
+    def clear_job_ability_slot(self, account_id, slot_type):
+        slot_type=str(slot_type or "").strip().casefold()
+        if slot_type not in ("inherent","counter"):
+            return False
+        cur=self.conn.execute(
+            "DELETE FROM job_ability_slots_v11154 WHERE account_id=? AND slot_type=?",
+            (account_id,slot_type),
+        )
+        self.conn.commit()
+        return bool(cur.rowcount)
+
     def learned_skill_ids(self, account_id):
         rows = self.conn.execute(
             "SELECT skill_id FROM learned_skills WHERE account_id=? ORDER BY learned_at, skill_id",
