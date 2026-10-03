@@ -396,25 +396,16 @@ class SessionCombatSkillsMixin:
                         _skill_duration_mult=1.0 + 0.80*(_skill_progress**0.90)
                         duration=min(180,int(round((25 + will//8 + 10*_vd)*_skill_duration_mult)))  # v0.33.0: Skill Level V-MAX rozwija czas działania.
                         self.v0319_vmax_until=time.time()+duration
-                        recipients = self.apply_party_boost_v03511(
-                            skill["id"], "V-MAX", 1.30, self.v0319_vmax_until, self.character.name
-                        )
-                        for session in recipients:
-                            session.v03511_party_vmax_until = max(
-                                float(getattr(session, "v03511_party_vmax_until", 0.0) or 0.0),
-                                self.v0319_vmax_until,
-                            )
+                        self.v0319_vmax_support_maintained=bool(support_effect)
+                        self.active_skill_buffs[skill["id"]]={
+                            "name":"V-MAX","boost":1.0,"until":self.v0319_vmax_until,
+                            "source":self.character.name,
+                        }
                         await self.send(
-                            f"V-MAX aktywny przez {duration} s dla {len(recipients)} członków drużyny w tej lokacji. "
-                            "Wszyscy otrzymują +30 procent do skilli/spelli oraz Protect, Shell i Regen. "
-                            "Mec uruchamiający V-MAX zachowuje też swoje specjalne zmiany skilli."
+                            f"V-MAX aktywny przez {duration} s. Protect, Shell, Haste, Regen, "
+                            "Preach, Praise i Permanence działają na Meca; wybrane umiejętności "
+                            "otrzymują swoje zmiany V-MAX."
                         )
-                        for session in recipients:
-                            if session is self:
-                                continue
-                            await session.send(
-                                f"{self.character.name} aktywuje V-MAX. Przez {duration} s otrzymujesz +30 procent do skilli/spelli oraz Protect, Shell i Regen."
-                            )
                         await self.grant_skill_use_xp(skill); return
 
                     if special in ("cure_beam","heal_beam"):
