@@ -255,6 +255,16 @@ class SessionCombatRealtimeMixin:
                         if now >= next_player:
                             await self.realtime_player_action(mob)
                             await self.mec_self_repair_round_v11154()
+                            # Satellite Linker deals repeated minor laser damage while
+                            # its Skill-Level-scaled effect remains on the target.
+                            if mob and mob.alive and time.time()<float(getattr(mob,"v0319_satellite_until",0.0) or 0.0):
+                                _sat=max(1,int(getattr(mob,"v0319_satellite_power",1) or 1))
+                                _sat=await self.apply_boss_defense(mob,_sat)
+                                _sat=self.v0210_adjust_player_damage(_sat)
+                                mob.hp-=_sat
+                                await self.send(f"Satellite Linker: dodatkowy laser zadaje {_sat} obrażeń. HP {max(0,mob.hp)}.")
+                                if mob.hp<=0:
+                                    await self.mob_defeated(mob)
                             next_player = time.monotonic() + self.combat_player_interval
                             if self.current_hp <= 0:
                                 break
