@@ -6,6 +6,7 @@ Persistence is split by responsibility and assembled through normal mixins; Data
 
 import os
 import sqlite3
+from contextlib import contextmanager
 
 from storage.db_schema import DatabaseSchemaMixin
 from storage.db_accounts import DatabaseAccountsMixin
@@ -15,6 +16,46 @@ from storage.db_progression import DatabaseProgressionMixin
 from storage.db_quests import DatabaseQuestMixin
 from storage.db_guilds import DatabaseGuildMixin
 from storage.db_crafting_extensions import DatabaseCraftingExtensionsMixin
+
+
+
+class _DeferredCommitConnection:
+    """Transparent sqlite3 proxy with nestable deferred commits."""
+    def __init__(self, connection):
+        object.__setattr__(self, "_connection", connection)
+        object.__setattr__(self, "_defer_depth", 0)
+        object.__setattr__(self, "_commit_pending", False)
+
+    def __getattr__(self, name):
+        return getattr(self._connection, name)
+
+    def __setattr__(self, name, value):
+        if name.startswith("_"):
+            object.__setattr__(self, name, value)
+        else:
+            setattr(self._connection, name, value)
+
+    def commit(self):
+        if self._defer_depth > 0:
+            self._commit_pending = True
+            return
+        self._connection.commit()
+
+    def flush_deferred_commit(self):
+        if self._commit_pending:
+            self._commit_pending = False
+            self._connection.commit()
+
+    @contextmanager
+    def deferred_commits(self):
+        self._defer_depth += 1
+        try:
+            yield self
+        finally:
+            self._defer_depth -= 1
+            if self._defer_depth <= 0:
+                self._defer_depth = 0
+                self.flush_deferred_commit()
 
 
 class Database(
@@ -30,7 +71,7 @@ class Database(
     def __init__(self, path: str):
         self.path = path
         os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
-        self.conn = sqlite3.connect(path)
+        self.conn = _DeferredCommitConnection(sqlite3.connect(path))
         self.conn.row_factory = sqlite3.Row
         self.conn.execute("PRAGMA journal_mode=WAL")
         # v0.71.5: NORMAL is the recommended WAL durability/performance balance.
