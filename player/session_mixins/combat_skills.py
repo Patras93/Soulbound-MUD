@@ -565,7 +565,35 @@ class SessionCombatSkillsMixin:
 
                     if special=="satellite_linker" and mob:
                         mob.v0319_satellite_until=time.time()+45; mob.v0319_satellite_power=max(1,int(skill.get("base_power",1000)*self.mec_branch_multiplier_v0319(branch)))
-                    if special=="tiger_rampage" and mob: mob.v0319_armor_break_until=time.time()+30
+                    if special=="tiger_rampage" and mob:
+                        # v1.11.50: two heavy blows. One Soul Weapon replaces the
+                        # original melee-weapon gate; its element is carried by both hits.
+                        template=MOB_TEMPLATES[mob.template_id]
+                        base=max(1,int(skill.get("base_power",1800) or 1800))
+                        mult=skill_power*self.mec_branch_multiplier_v0319("melee")*self.skill_buff_multiplier(exclude_skill_id="v0319_mec_vmax")
+                        total=0
+                        _element=str(getattr(self.character,"soul_weapon_element","") or "physical").casefold()
+                        for _hit in range(2):
+                            if not mob.alive: break
+                            damage=max(1,int((base*mult)/2.0)+random.randint(-6,6))
+                            damage,crit=self.roll_critical_hit(damage)
+                            damage=await self.apply_boss_defense(mob,damage); damage=self.v0210_adjust_player_damage(damage)
+                            damage,note=v0314_adjust_damage_vs_template(template,damage,_element,skill.get("name","Tiger Rampage"))
+                            mob.hp-=damage; total+=damage
+                            await self.send(f"Tiger Rampage: {template['name']} otrzymuje {damage} obrażeń. HP {max(0,mob.hp)}.{note}")
+                        broke=False
+                        if mob.alive and random.random()<float(skill.get("defense_break_chance",0.40) or 0.40):
+                            duration=int(skill.get("defense_break_duration",30) or 30)
+                            until=time.time()+duration
+                            # Extendable: reapplication extends, rather than shortens, the debuff.
+                            mob.v0319_armor_break_until=max(float(getattr(mob,"v0319_armor_break_until",0.0) or 0.0),until)
+                            mob.v0319_magic_defense_break_until=max(float(getattr(mob,"v0319_magic_defense_break_until",0.0) or 0.0),until)
+                            broke=True
+                        await self.grant_skill_use_xp(skill)
+                        await self.send(f"Tiger Rampage: 2 ciężkie trafienia, łącznie {total} obrażeń." + (" Obrona fizyczna i magiczna celu spada." if broke else ""))
+                        if mob.hp<=0: await self.mob_defeated(mob)
+                        else: await self.ensure_realtime_combat()
+                        return
                     if special=="mec_sonata" and mob and random.random()<0.40: mob.v0319_level_down_until=time.time()+30
                     if special=="magnify" and random.random()<0.25: self.v0319_lock_until=time.time()+12
                     # Other single-target Mec attacks continue through the normal Soulbound damage handler below.
