@@ -26,6 +26,7 @@ async def credit_resource_progression(event: ResourceGatheredEvent):
     )
     session.server.db.add_lifetime_stat(session.account_id, event.lifetime_stat, qty)
     session.server.db.add_lifetime_stat(session.account_id, "profession_actions", 1)
+    await session.advance_class_guild_quest_v11132("gather", qty)
 
     if event.rare_achievement:
         await session.advance_achievement(event.rare_achievement, qty)
