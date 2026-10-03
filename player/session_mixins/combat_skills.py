@@ -483,7 +483,10 @@ class SessionCombatSkillsMixin:
                             alive=[x for x in alive if x.key in _engaged_keys]
                         if not alive: return
                         if special=="cosmic_rave" and vmax:
-                            targets=random.choices(alive,k=5)
+                            # Canonical help specifies Random Enemies but no fixed hit count.
+                            # One random target is selected per enemy that the normal room-wide
+                            # version could have affected, allowing repeats without inventing k=5.
+                            targets=random.choices(alive,k=max(1,len(alive)))
                         elif special=="starlight_shower" and not vmax:
                             _engaged=set()
                             if self.combat_mob_key: _engaged.add(self.combat_mob_key)
@@ -500,13 +503,17 @@ class SessionCombatSkillsMixin:
                         if special=="area_bomb":
                             # Magic Attack influence in Soulbound is Intelligence.
                             mult*=max(0.75,min(3.0,self.effective_intelligence()/100.0))
+                        if special=="cosmic_rave":
+                            # Attack remains primary; Agility is explicitly a lesser secondary influence.
+                            _agi=max(1.0,float(self.effective_dexterity()))
+                            mult*=1.0+min(0.50,_agi/500.0)
                         if special=="shoot_all" and vmax: mult*=1.35
                         if special=="starlight_shower" and vmax: mult*=1.25
                         for target in targets:
                             if not target.alive: continue
                             template=MOB_TEMPLATES[target.template_id]
                             _local_mult=mult
-                            if special in ("starlight_shower","shock_soldier","laser_spin","maelstrom") and len(targets)>1 and not (special=="starlight_shower" and vmax):
+                            if special in ("starlight_shower","shock_soldier","laser_spin","maelstrom","cosmic_rave") and len(targets)>1 and not ((special=="starlight_shower" or special=="cosmic_rave") and vmax):
                                 # Canonical diminishing AoE: power falls as more enemies are hit.
                                 _local_mult*=max(0.45,1.0-0.12*(len(targets)-1))
                             damage=max(1,int(base*_local_mult)+random.randint(-6,6))
@@ -663,7 +670,7 @@ class SessionCombatSkillsMixin:
                         session.v03511_party_vmax_until = max(
                             float(getattr(session, "v03511_party_vmax_until", 0.0) or 0.0), now + duration
                         )
-                    await self.send(f"V-MAX aktywny drużynowo przez {duration} sekund. Cosmic Rave Meca wykona teraz 5 losowych trafień.")
+                    await self.send(f"V-MAX aktywny drużynowo przez {duration} sekund. Cosmic Rave Meca będzie teraz atakować losowych przeciwników.")
                     await self.grant_skill_use_xp(skill)
                     return
 
