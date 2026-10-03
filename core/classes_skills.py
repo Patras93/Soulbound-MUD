@@ -2426,6 +2426,7 @@ def _v0319_install_full_mec_kit():
         if special=="compress": row["self_damage_pct"]=.06
         if special=="crush": row.update({"self_damage_pct":.08,"damage_from_missing_hp":True,"level_caps_damage":True,"level_effect":"increases_maximum_possible_damage","single_soul_weapon":True})
         if special=="kamikaze_crush": row.update({"damage_from_current_hp":True,"vitality_influence":True,"vmax_power_and_feedback":True,"single_soul_weapon":True})
+        if special=="hammer_crush": row.update({"target_mode":"one_enemy","attack_influence":True,"carries_soul_weapon_elements":True,"single_soul_weapon":True})
         if special=="shock_soldier": row.update({"aoe_diminishing":True,"carries_soul_weapon_elements":True,"single_soul_weapon":True})
         if special=="range_fire": row.update({"aoe_non_diminishing":True,"carries_soul_weapon_elements":True,"single_soul_weapon":True})
         if special=="dispose": row.update({"aoe_non_diminishing":True,"carries_soul_weapon_elements":True,"feedback_damage":True,"single_soul_weapon":True})
