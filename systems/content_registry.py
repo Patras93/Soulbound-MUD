@@ -2621,6 +2621,11 @@ WORLD_SURFACE_EXTRA_SPAWNS = [
 ]
 MOB_SPAWNS.extend(WORLD_SURFACE_EXTRA_SPAWNS)
 
+# v1.11.36 — unique UOSSMUD Super Boss arenas are authored by the world layer,
+# while their canonical spawns are installed here after MOB_SPAWNS exists.
+from world.uoss_superboss_world import install_uoss_superboss_spawns_v11136
+install_uoss_superboss_spawns_v11136(MOB_SPAWNS)
+
 
 # v0.9.12: 200 oznacza wyłącznie zakres ręcznie przygotowanej zawartości.
 # Sama Krypta nie ma maksymalnego piętra; kolejne pokoje powstają na żądanie.
