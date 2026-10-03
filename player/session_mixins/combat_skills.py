@@ -541,7 +541,7 @@ class SessionCombatSkillsMixin:
                         template=MOB_TEMPLATES[mob.template_id]
                         _p=(max(1,min(SKILL_MAX_LEVEL,skill_level))-1)/float(max(1,SKILL_MAX_LEVEL-1))
                         _will=max(1,int(self.effective_willpower()))
-                        duration=max(8,int(round((16+min(24,_will//3))*(1.0+0.75*_p))))
+                        duration=self.skill_effect_duration_v11153(skill,skill_level,base_seconds=16)
                         if special=="hypno_flash":
                             accuracy=min(0.98,0.48+min(0.22,_will*0.002)+0.22*_p+(0.12 if support_effect else 0.0))
                             if random.random()<=accuracy:
@@ -562,7 +562,7 @@ class SessionCombatSkillsMixin:
                                 tt=MOB_TEMPLATES[t.template_id]
                                 machine=bool(tt.get("machine"))
                                 accuracy=min(0.98,0.52 + min(0.20,_will*0.002) + 0.20*_p + (0.18 if machine else 0.0))
-                                duration=max(8,int(round((18 + min(22,_will//3))*(1.0+0.75*_p))))
+                                duration=self.skill_effect_duration_v11153(skill,skill_level,base_seconds=18)
                                 if random.random() <= accuracy:
                                     t.v0319_disabled_until=max(float(getattr(t,"v0319_disabled_until",0.0) or 0.0),time.time()+duration)
                                     affected+=1; durations.append(duration)
@@ -593,7 +593,7 @@ class SessionCombatSkillsMixin:
                     if special=="satellite_linker" and mob:
                         _p=(max(1,min(SKILL_MAX_LEVEL,skill_level))-1)/float(max(1,SKILL_MAX_LEVEL-1))
                         _wis=max(1,int(self.effective_willpower()))
-                        _duration=max(12,int(round(18+30*_p)))
+                        _duration=self.skill_effect_duration_v11153(skill,skill_level,base_seconds=18)
                         mob.v0319_satellite_until=time.time()+_duration
                         mob.v0319_satellite_power=max(1,int(skill.get("base_power",1200)*self.mec_branch_multiplier_v0319(branch)*(0.30+min(0.35,_wis*0.002))))
                     if special=="tiger_rampage" and mob:
@@ -614,7 +614,7 @@ class SessionCombatSkillsMixin:
                             await self.send(f"Tiger Rampage: {template['name']} otrzymuje {damage} obrażeń. HP {max(0,mob.hp)}.{note}")
                         broke=False
                         if mob.alive and random.random()<float(skill.get("defense_break_chance",0.40) or 0.40):
-                            duration=int(skill.get("defense_break_duration",30) or 30)
+                            duration=self.skill_effect_duration_v11153(skill,skill_level,base_seconds=18)
                             until=time.time()+duration
                             # Extendable: reapplication extends, rather than shortens, the debuff.
                             mob.v0319_armor_break_until=max(float(getattr(mob,"v0319_armor_break_until",0.0) or 0.0),until)
@@ -626,7 +626,7 @@ class SessionCombatSkillsMixin:
                         else: await self.ensure_realtime_combat()
                         return
                     if special=="mec_sonata" and mob and random.random()<float(skill.get("level_down_chance",0.40) or 0.40):
-                        mob.v0319_level_down_until=max(float(getattr(mob,"v0319_level_down_until",0.0) or 0.0),time.time()+int(skill.get("level_down_duration",30) or 30))
+                        mob.v0319_level_down_until=max(float(getattr(mob,"v0319_level_down_until",0.0) or 0.0),time.time()+self.skill_effect_duration_v11153(skill,skill_level,base_seconds=18))
                     if special=="magnify":
                         _p=(max(1,min(SKILL_MAX_LEVEL,skill_level))-1)/float(max(1,SKILL_MAX_LEVEL-1))
                         _wis=max(1,int(self.effective_willpower()))
