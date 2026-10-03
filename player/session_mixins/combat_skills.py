@@ -384,6 +384,7 @@ class SessionCombatSkillsMixin:
                 if skill.get("mec_authored"):
                     special=str(skill.get("mec_special","")); branch=str(skill.get("mec_branch",""))
                     vmax=self.mec_vmax_active_v0319()
+                    support_effect=self.mec_support_effect_v11149()
                     if special=="vmax":
                         if vmax:
                             await self.send("V-MAX jest już aktywny."); return
@@ -427,18 +428,18 @@ class SessionCombatSkillsMixin:
                             _p=(max(1,min(SKILL_MAX_LEVEL,skill_level))-1)/float(max(1,SKILL_MAX_LEVEL-1))
                             _will=max(1,int(self.effective_willpower()))
                             heal_pct=min(0.55,0.14 + min(0.18,_will*0.0015) + 0.16*_p)
-                            if vmax: heal_pct*=float(skill.get("support_heal_multiplier",1.20) or 1.20)
+                            if support_effect: heal_pct*=float(skill.get("support_heal_multiplier",1.20) or 1.20)
                             amount=max(1,int(target.max_hp()*min(0.65,heal_pct)))
                             before=target.current_hp; target.current_hp=min(target.max_hp(),target.current_hp+amount); actual=target.current_hp-before
                             cleansed=[]
-                            if vmax:
+                            if support_effect:
                                 for attr,label in (("v0319_blind_until","Blind"),("v0319_poison_until","Poison"),("poison_until","Poison")):
                                     if float(getattr(target,attr,0.0) or 0.0)>time.time():
                                         setattr(target,attr,0.0)
                                         if label not in cleansed: cleansed.append(label)
                             await self.send(
                                 f"Cure Beam: {target.character.name} odzyskuje {actual} HP."
-                                + (f" Support Effect usuwa: {', '.join(cleansed)}." if cleansed else (" Support Effect zwiększa leczenie." if vmax else ""))
+                                + (f" Support Effect usuwa: {', '.join(cleansed)}." if cleansed else (" Support Effect zwiększa leczenie." if support_effect else ""))
                             )
                             if target is not self:
                                 await target.send(f"{self.character.name} używa Cure Beam. Odzyskujesz {actual} HP." + (f" Usunięto: {', '.join(cleansed)}." if cleansed else ""))
@@ -450,7 +451,7 @@ class SessionCombatSkillsMixin:
                             _p=(max(1,min(SKILL_MAX_LEVEL,skill_level))-1)/float(max(1,SKILL_MAX_LEVEL-1))
                             _will=max(1,int(self.effective_willpower()))
                             heal_pct=min(0.72,0.30 + min(0.22,_will*0.0018) + 0.20*_p)
-                            if vmax:
+                            if support_effect:
                                 heal_pct=min(0.80,heal_pct*float(skill.get("support_heal_multiplier",1.20) or 1.20))
                                 recipients=self.server.party_sessions(self.account_id,same_room=self.character.room_id) or [self]
                             else:
@@ -464,7 +465,7 @@ class SessionCombatSkillsMixin:
                                 before=sess.current_hp; sess.current_hp=min(sess.max_hp(),sess.current_hp+amount); actual=sess.current_hp-before; total+=actual
                                 if sess is not self:
                                     await sess.send(f"{self.character.name} używa Heal Beam. Odzyskujesz {actual} HP.")
-                            if vmax:
+                            if support_effect:
                                 await self.send(f"Heal Beam — Support Effect: wzmocnione leczenie całej drużyny, {len(recipients)} celów, łącznie {total} HP.")
                             else:
                                 await self.send(f"Heal Beam: {recipients[0].character.name} odzyskuje {total} HP.")
@@ -537,7 +538,7 @@ class SessionCombatSkillsMixin:
                             # Cyborg support-weapon requirement and expands Jammer to all enemies.
                             _p=(max(1,min(SKILL_MAX_LEVEL,skill_level))-1)/float(max(1,SKILL_MAX_LEVEL-1))
                             _will=max(1,int(self.effective_willpower()))
-                            _support=vmax
+                            _support=support_effect
                             targets=[x for x in aoe_mobs if x.alive] if _support else [mob]
                             affected=0
                             durations=[]
