@@ -1,5 +1,18 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.11.44
+Aktualna paczka: v1.11.45
+
+==============================================================================
+Soulbound v1.11.45 — Mec Cure Beam
+==============================================================================
+
+- Cure Beam ma Reqs: None: w Soulbound jest dostępny od początkowego progu Meca zamiast Level 10.
+- Leczenie pojedynczego celu skaluje się z Willpower oraz Skill Level 1-600.
+- Soulbound używa jednej Broni Duszy: Support Effect zastępuje osobną Cyborg support weapon.
+- Support Effect zwiększa moc Cure Beam o 20% oraz usuwa Blind i Poison z leczonego celu.
+- Cure Beam pozostaje leczeniem pojedynczym: siebie lub jednego członka drużyny w tej samej lokacji.
+- Źródłowy koszt 10 MP zachowano jako metadata UOSS; Mec nie zużywa Many.
+- Cure Beam nie ma cooldownu.
+- Brak wipe'a save'ów.
 
 ==============================================================================
 Soulbound v1.11.44 — Mec Jammer
