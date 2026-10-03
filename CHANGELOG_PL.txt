@@ -1,8 +1,17 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.11.26
+Aktualna paczka: v1.11.27
 
 ==============================================================================
 ==============================================================================
+==============================================================================
+Soulbound v1.11.27 — predeploy syntax hotfix
+==============================================================================
+
+- Naprawiono SyntaxError w admin/audits.py w audycie kompatybilności party drop z dekorowanym mob_defeated.
+- Usunięto literalne sekwencje \\n wstawione do kodu zamiast prawdziwych nowych linii.
+- Zachowano audyt wspólnych dropów oraz optymalizację deferred SQLite commits.
+- Brak zmian save'ów i brak wipe'a.
+
 ==============================================================================
 Soulbound v1.11.26 — hotfix audytu party drop po batchowaniu DB
 ==============================================================================
