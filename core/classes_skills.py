@@ -2399,7 +2399,7 @@ def _v0319_install_full_mec_kit():
         ("Self-Repair",1,"passive",1000,"inherent","self_repair","Auto-Regen and delayed recovery of Feedback self-damage."),
         ("Combat Mastery",30,"passive",1000,"inherent","combat_mastery","Increases purely Strength-based weapon/Mec melee damage."),
         ("Maxwell Program",30,"passive",2000,"inherent","maxwell_program","Auto-Mana Regen and increased magic damage."),
-        ("Shooting Mastery",30,"passive",1000,"inherent","shooting_mastery","Increases purely Dexterity-based ranged damage."),
+        ("Shooting Mastery",30,"passive",1000,"inherent","shooting_mastery","Automatic inherent from Level 30. Increases attack damage with the Mec's purely Dexterity/Agility-based ranged Soul Weapon profile; stronger than ordinary Attack UP."),
         # Passive protocols
         ("Strength Protocol",1,"passive",2000,"passive","strength_protocol","Passively increases damage of Mec melee/Strength skills. Scales with this skill level."),
         ("Ranged Protocol",1,"passive",2000,"passive","ranged_protocol","Passively increases damage of Mec ranged/Dexterity shooting skills. Scales with this skill level."),
