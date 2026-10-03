@@ -255,6 +255,10 @@ class SessionCombatRealtimeMixin:
                         if now >= next_player:
                             await self.realtime_player_action(mob)
                             await self.mec_self_repair_round_v11154()
+                            # Overheat has no source duration. One completed player
+                            # action is the recovery cycle; after it the state clears.
+                            if self.mec_finish_overheat_recovery_v0319():
+                                await self.send("OVERHEAT mija. V-MAX może być ponownie użyty.")
                             # Satellite Linker deals repeated minor laser damage while
                             # its Skill-Level-scaled effect remains on the target.
                             if mob and mob.alive and time.time()<float(getattr(mob,"v0319_satellite_until",0.0) or 0.0):
