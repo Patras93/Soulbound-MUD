@@ -2429,7 +2429,7 @@ def _v0319_install_full_mec_kit():
         if special=="kamikaze_crush": row["self_damage_pct"]=.18
         if special=="dispose": row["self_damage_pct"]=.08
         if special=="starlight_shower":
-            row.update({"mana":225, "vmax_mana":300, "target_mode":"single_or_diminishing_aoe"})
+            row.update({"uoss_mp_cost":225, "uoss_vmax_mp_cost":300, "target_mode":"single_or_diminishing_aoe"})
         if special=="cosmic_rave":
             row.update({"scale":"strength", "secondary_scale":"dexterity", "secondary_scale_weight":0.35,
                         "carries_soul_weapon_elements":True, "requires_soul_weapon":"melee",
