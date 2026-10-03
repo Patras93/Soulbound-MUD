@@ -1,8 +1,17 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.11.30
+Aktualna paczka: v1.11.31
 
 ==============================================================================
 ==============================================================================
+==============================================================================
+Soulbound v1.11.31 — 20 bazowych slotów kolejki skilli
+==============================================================================
+
+- Kolejka fizyczna i magiczna zaczynają od 20 aktywnych slotów, jeśli postać ma aktywną klasę danego typu.
+- Dalszy rozwój pozostaje bez zmian: +1 slot co 10 Leveli postaci.
+- Przykłady: Level 1 = 20, Level 10 = 21, Level 100 = 30, Level 200 = 40, Level 400 = 60, Level 600 = 80 slotów.
+- Brak zmian save'ów i brak wipe'a.
+
 ==============================================================================
 Soulbound v1.11.30 — usuwanie skilla z kolejki po numerze
 ==============================================================================
