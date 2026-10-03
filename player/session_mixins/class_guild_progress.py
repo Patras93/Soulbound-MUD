@@ -116,8 +116,10 @@ class SessionClassGuildProgressMixin:
             self.character._set_guild_json("guild_class_quests_json", states)
             new_rep = self.character.add_guild_reputation(cls, data[2])
             self.character.silver += data[3]
+            objective_kind = str(data[5]) if len(data) >= 6 else "kill"
             combat_quest = {
-                "kind": "kill", "needed": needed, "required_soul_level": 25,
+                "kind": "kill" if objective_kind in ("kill", "boss") else objective_kind,
+                "needed": needed, "required_soul_level": 25,
                 "repeatable": False,
             }
             guild_stat_xp = v0914_combat_quest_stat_reward(combat_quest)
