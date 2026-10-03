@@ -443,6 +443,7 @@ class SessionCombatSkillsMixin:
                             self.active_skill_buffs["v0319_vmax_"+_status]={
                                 "name":_status.capitalize(),"boost":1.0,
                                 "until":self.v0319_vmax_until,"source":"V-MAX",
+                                "beneficial":True,"canonical_status":_status,
                             }
                         self.active_skill_buffs[skill["id"]]={
                             "name":"V-MAX","boost":1.0,"until":self.v0319_vmax_until,
