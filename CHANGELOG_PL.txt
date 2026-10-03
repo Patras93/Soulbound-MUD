@@ -1,5 +1,22 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.11.48
+Aktualna paczka: v1.11.49
+
+==============================================================================
+Soulbound v1.11.49 — pełny kontrakt klasy Mec
+==============================================================================
+
+- Zsynchronizowano pełną kartę Meca: 39 aktywnych, Counter, Inherent i Passive pozycji z podanymi progami i gałęziami.
+- Mec zachowuje model Soulbound: jedna Broń Duszy zamiast osobnych melee/ranged/support weapons.
+- Melee: Strength/Attack, z Dexterity jako możliwą statystyką wtórną.
+- Ranged: Dexterity/Attack, z Willpower jako możliwą statystyką wtórną.
+- Feedback: koszt HP i synergia z wytrzymałością; Feedback Protocol odpowiada za potency tej gałęzi.
+- Magic: Intelligence/Magic Attack, efekty żywiołowe; źródłowe MP pozostaje metadanymi, bo Mec Soulbound nie zużywa Many.
+- Support: Willpower; Support Effect jest osobnym stylem jednej Broni Duszy, aktywnym gdy Willpower jest dominującą statystyką bojową.
+- Support Effect nie jest już błędnie utożsamiany z V-MAX.
+- Strength/Ranged/Feedback/Magic Protocol są jedynymi pasywkami zwiększającymi potency odpowiadających im skilli Meca; inherenty nie są drugi raz doliczane do mnożnika gałęzi.
+- Pełna karta klasy jest nadrzędna wobec wcześniejszego pojedynczego opisu Cure Beam: wymaganie przywrócono do Level 10.
+- Dodano automatyczny Mec Contract Audit kontrolujący kompletność, progi, gałęzie i brak zwykłych cooldownów.
+- Brak wipe'a save'ów.
 
 ==============================================================================
 Soulbound v1.11.48 — Mec Area Bomb
