@@ -68,6 +68,13 @@ NPCS.setdefault("uoss_watts",{
     "dialogue":"Wymieniam Moogle Steel na relikty Black Rabite.","shopkeeper":True,
     "uoss_token_shop":"uoss_moogle_steel",
 })
+NPCS.setdefault("uoss_odin_fur_trader",{
+    "name":"Fur Trader — tier Odina","room":"uoss_superboss_arena_odin_v11136",
+    "dialogue":"Odin's Mantle otwiera tier ośmiu reliktów Odina.","shopkeeper":True,
+    "uoss_token_shop":"uoss_odins_mantle",
+})
+SHOPS.setdefault("uoss_superboss_arena_odin_v11136",[f"uoss_odin_unique_{i}" for i in range(1,9)])
+
 NPCS.setdefault("uoss_yiazmat_fur_trader",{
     "name":"Kupiec Futrzarski — tier Yiazmata","room":"uoss_superboss_arena_yiazmat_v11136",
     "dialogue":"Godslayer's Badge otwiera tier nagród Yiazmata.","shopkeeper":True,
@@ -86,5 +93,5 @@ def install_uoss_superboss_spawns_v11136(mob_spawns):
 
 UOSS_SUPERBOSS_WORLD_STATE_V11136={
  "version":"1.11.36","hub":HUB,"arenas":21,"bosses":21,"helpers":tuple(_HELPERS),
- "black_rabite_shop":10,"yiazmat_shop":7,
+ "black_rabite_shop":10,"odin_shop":8,"yiazmat_shop":7,
 }
