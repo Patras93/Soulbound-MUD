@@ -88,6 +88,8 @@ from world.runtime_progression import (
     v022_project_reward,
 )
 from world.world_state import v0290_active_world_events
+from world.uoss_superbosses import UOSS_SUPERBOSS_ENCOUNTERS_V11134
+from world.uoss_superboss_runtime import superboss_cleared_v11135
 
 
 class SessionWorldEventsEndgameMixin:
@@ -683,6 +685,36 @@ class SessionWorldEventsEndgameMixin:
             if not chosen: await self.show_gauntlets_v020(); return
             target=f"v020_gauntlet_{chosen}_1"; self.previous_room_id=self.character.room_id; self.character.room_id=target; self.server.db.save_character(self.character)
             await self.send(f"Rozpoczynasz: {V020_GAUNTLETS[chosen]['name']}. Boss nie zaatakuje pierwszy."); await self.look()
+
+    async def show_superbosses_v11135(self, args=""):
+            query = normalize_lookup_text(args)
+            rows = []
+            for key, data in UOSS_SUPERBOSS_ENCOUNTERS_V11134.items():
+                name = str(data.get("name", key))
+                if query and query not in normalize_lookup_text(key) and query not in normalize_lookup_text(name):
+                    continue
+                cleared = superboss_cleared_v11135(self.server.db, self.account_id, key)
+                level_req = int(data.get("unlock_level", 0) or 0)
+                unlocked = not level_req or int(self.character.character_level) >= level_req
+                if data.get("unlock") == "explore_deep_dungeon":
+                    # Deep Dungeon-specific access remains an exploration gate; status
+                    # intentionally does not auto-unlock it from character level.
+                    unlocked = bool(self.server.db.collection_entry_ids(self.account_id, "deep_dungeon_discovery"))
+                mode = str(data.get("mode", "solo"))
+                state = "zaliczony" if cleared else ("odblokowany" if unlocked else "zablokowany")
+                rows.append((name, mode, state, data))
+            if not rows:
+                await self.send("Nie znajduję takiego Super Bossa.")
+                return
+            await self.send("SUPER BOSSOWIE UOSSMUD")
+            for name, mode, state, data in rows:
+                extra = []
+                if data.get("recommended_level"): extra.append(f"zalecany Level {data['recommended_level']}")
+                if data.get("personal_token"): extra.append(f"osobista nagroda: {data['personal_token']}")
+                if data.get("helpers"): extra.append("pomocnik: " + " albo ".join(data["helpers"]))
+                elif data.get("helper"): extra.append("pomocnik: " + str(data["helper"]))
+                await self.send(f"{name}: {mode}, {state}" + (". " + "; ".join(extra) if extra else "") + ".")
+            await self.send("Zaliczenia i osobiste nagrody są trwałe; restart/deploy ich nie resetuje.")
 
     async def show_mythic_bosses_v020(self):
             now=time.time(); entries=v0200_active_mythic_world_bosses(now); remaining=max(0,int(entries[0]['expires_at']-now)) if entries else 0
