@@ -253,8 +253,12 @@ class SessionCombatRealtimeMixin:
                             if self.current_hp <= 0:
                                 break
 
+                        # v1.11.21: śpij bezpośrednio do następnej zaplanowanej
+                        # akcji (z limitem 1 s dla responsywnego przerwania walki).
+                        # Poprzedni limit 0.20 s budził każdą walczącą sesję 5 razy
+                        # na sekundę nawet wtedy, gdy żadna akcja nie była gotowa.
                         wait_for = min(next_player, next_enemy) - time.monotonic()
-                        await asyncio.sleep(max(0.05, min(0.20, wait_for)))
+                        await asyncio.sleep(max(0.05, min(1.0, wait_for)))
                 except asyncio.CancelledError:  # AUDIT_INTENTIONAL_PASS: normal task cancellation
                     pass
                 except Exception as exc:
