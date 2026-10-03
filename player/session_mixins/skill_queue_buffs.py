@@ -435,8 +435,19 @@ class SessionSkillQueueBuffsMixin:
                 total_bonus += max(0.0, float(data.get("boost", 1.0) or 1.0) - 1.0)
             return min(2.25, 1.0 + total_bonus)
 
-    def clear_skill_buffs(self):
-            getattr(self, "active_skill_buffs", {}).clear()
+    def vmax_permanence_active_v11152(self):
+            """Permanence makes the active V-MAX package immune to dispel/removal."""
+            return self.mec_vmax_active_v0319() and "v0319_mec_vmax" in getattr(self,"active_skill_buffs",{})
+
+    def clear_skill_buffs(self, hostile=False):
+            buffs=getattr(self,"active_skill_buffs",{})
+            if hostile and self.vmax_permanence_active_v11152():
+                vmax=buffs.get("v0319_mec_vmax")
+                buffs.clear()
+                if vmax is not None:
+                    buffs["v0319_mec_vmax"]=vmax
+                return
+            buffs.clear()
 
     def local_party_buff_recipients_v03511(self):
             """All living party members standing with the caster, including solo self."""
@@ -535,9 +546,15 @@ class SessionSkillQueueBuffsMixin:
                 # so Soulbound uses a short 20-second recovery window.
                 _vd,_vc=self.server.db.vmax_upgrades_v03114(self.account_id)
                 _overheat=max(4,20-8*_vc)
-                self.v0319_overheat_until=max(float(getattr(self,"v0319_overheat_until",0.0) or 0.0),now+_overheat)
+                # Support Effect replaces the source support weapon. It prevents
+                # the end-of-V-MAX Overheat only if maintained through expiration.
+                if not self.mec_support_effect_v11149():
+                    self.v0319_overheat_until=max(float(getattr(self,"v0319_overheat_until",0.0) or 0.0),now+_overheat)
                 self.active_skill_buffs.pop("v0319_mec_vmax",None)
-                await self.send(f"V-MAX wygasa. OVERHEAT: wszystkie statystyki bojowe są osłabione przez {_overheat} sekund i V-MAX nie może być ponownie użyty.")
+                if self.mec_overheat_active_v0319():
+                    await self.send(f"V-MAX wygasa. OVERHEAT: wszystkie statystyki bojowe są osłabione przez {_overheat} sekund i V-MAX nie może być ponownie użyty.")
+                else:
+                    await self.send("V-MAX wygasa. Support Effect utrzymany do końca: brak OVERHEAT.")
 
     def mec_support_effect_v11149(self):
             """Single-Soul-Weapon adaptation of the UOSS Cyborg support weapon."""
