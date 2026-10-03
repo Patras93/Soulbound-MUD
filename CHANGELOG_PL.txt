@@ -1,8 +1,18 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.11.21
+Aktualna paczka: v1.11.22
 
 ==============================================================================
 ==============================================================================
+==============================================================================
+Soulbound v1.11.22 — hotfix globalnych lagów świata
+==============================================================================
+
+- Ograniczono globalny koszt systemu wędrujących mobów działającego niezależnie od liczby graczy.
+- Wander tick nie wymusza już pełnego World.refresh(force=True) przy każdym przebiegu.
+- Częstotliwość globalnego wander ticku zmniejszono z 5 do 15 sekund; indywidualne next_wander_at mobów nadal decyduje, kiedy mob faktycznie może się poruszyć.
+- Ruch mobów pozostaje aktywny; zmiana ogranicza zbędne pełne skany świata i broadcasty.
+- Brak zmian SQLite i brak wipe'a save'ów.
+
 ==============================================================================
 Soulbound v1.11.21 — optymalizacja realtime combat
 ==============================================================================
