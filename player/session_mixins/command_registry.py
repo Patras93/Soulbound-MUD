@@ -59,6 +59,7 @@ COMMAND_REGISTRY = {
     'drophistory': ('loot_history_v03052', (COMMAND_TEXT,), {}),
     'lootfilter': ('set_loot_filter', (COMMAND_TEXT,), {}),
     'combatlog': ('set_combat_log', (COMMAND_TEXT,), {}),
+    'aoe': ('handle_aoe_setting_v11120', (COMMAND_TEXT,), {}),
     'look': ('look', (COMMAND_TEXT,), {}),
     'corpse': ('show_corpses', (COMMAND_TEXT,), {}),
     'lootcorpse': ('loot_corpse', (COMMAND_TEXT,), {}),
