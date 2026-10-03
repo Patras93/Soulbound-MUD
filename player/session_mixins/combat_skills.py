@@ -485,7 +485,12 @@ class SessionCombatSkillsMixin:
                         if special=="cosmic_rave" and vmax:
                             targets=random.choices(alive,k=5)
                         elif special=="starlight_shower" and not vmax:
-                            targets=[mob] if mob else [alive[0]]
+                            _engaged=set()
+                            if self.combat_mob_key: _engaged.add(self.combat_mob_key)
+                            for _sess in (self.server.party_sessions(self.account_id,same_room=self.character.room_id) or [self]):
+                                if getattr(_sess,"combat_mob_key",None): _engaged.add(_sess.combat_mob_key)
+                            _engaged_alive=[x for x in alive if x.key in _engaged]
+                            targets=([mob] if len(_engaged_alive)<=1 and mob else (_engaged_alive or ([mob] if mob else [alive[0]])))
                         elif special=="uzi_punch":
                             targets=random.choices(alive,k=min(5,max(2,len(alive))))
                         else:
@@ -500,7 +505,11 @@ class SessionCombatSkillsMixin:
                         for target in targets:
                             if not target.alive: continue
                             template=MOB_TEMPLATES[target.template_id]
-                            damage=max(1,int(base*mult)+random.randint(-6,6))
+                            _local_mult=mult
+                            if special=="starlight_shower" and not vmax and len(targets)>1:
+                                # Diminishing area damage when several combat targets are engaged.
+                                _local_mult*=max(0.45,1.0-0.12*(len(targets)-1))
+                            damage=max(1,int(base*_local_mult)+random.randint(-6,6))
                             # v1.11.47: Pop Knight keeps full AoE damage and receives
                             # the source ability's anti-Flying bonus. The Mec has one
                             # Soul Weapon, so no separate melee weapon gate is required.
@@ -530,8 +539,15 @@ class SessionCombatSkillsMixin:
                     if special in ("hypno_flash","jammer","logic_bomb"):
                         if not mob: return
                         template=MOB_TEMPLATES[mob.template_id]
-                        duration=30
-                        if special=="hypno_flash": mob.v0319_sleep_until=time.time()+duration
+                        _p=(max(1,min(SKILL_MAX_LEVEL,skill_level))-1)/float(max(1,SKILL_MAX_LEVEL-1))
+                        _will=max(1,int(self.effective_willpower()))
+                        duration=max(8,int(round((16+min(24,_will//3))*(1.0+0.75*_p))))
+                        if special=="hypno_flash":
+                            accuracy=min(0.98,0.48+min(0.22,_will*0.002)+0.22*_p+(0.12 if support_effect else 0.0))
+                            if random.random()<=accuracy:
+                                mob.v0319_sleep_until=max(float(getattr(mob,"v0319_sleep_until",0.0) or 0.0),time.time()+duration)
+                            await self.send(f"Hypno Flash: {'Sleep trafia' if time.time()<float(getattr(mob,'v0319_sleep_until',0.0) or 0.0) else 'Sleep nie trafia'} {template['name']}." + (" Support Effect zwiększa celność." if support_effect else ""))
+                            await self.grant_skill_use_xp(skill); return
                         elif special=="jammer":
                             # v1.11.44: Jammer is Will-influenced Stop. Soulbound has one
                             # Soul Weapon, so Support Effect/V-MAX replaces the old separate
@@ -558,10 +574,21 @@ class SessionCombatSkillsMixin:
                             )
                             await self.grant_skill_use_xp(skill); return
                         else:
-                            mob.v0319_silence_until=time.time()+duration; mob.v0319_slow_until=time.time()+duration
-                            if vmax: mob.v0319_blind_until=time.time()+duration; mob.v0319_disabled_until=time.time()+duration
-                        await self.send(f"{skill['name']}: efekt kontroli na {template['name']} przez {duration} s" + (". Support Effect aktywny." if vmax else "."))
-                        await self.grant_skill_use_xp(skill); return
+                            machine=bool(template.get("machine"))
+                            accuracy=min(0.98,0.50+min(0.20,_will*0.002)+0.20*_p+(0.15 if machine else 0.0))
+                            if random.random()<=accuracy:
+                                until=time.time()+duration
+                                mob.v0319_disabled_until=max(float(getattr(mob,"v0319_disabled_until",0.0) or 0.0),until) # Paralyze
+                                mob.v0319_silence_until=max(float(getattr(mob,"v0319_silence_until",0.0) or 0.0),until)
+                                mob.v0319_slow_until=max(float(getattr(mob,"v0319_slow_until",0.0) or 0.0),until)
+                                if support_effect:
+                                    mob.v0319_blind_until=max(float(getattr(mob,"v0319_blind_until",0.0) or 0.0),until)
+                                    mob.v0319_curse_until=max(float(getattr(mob,"v0319_curse_until",0.0) or 0.0),until)
+                                    mob.v0319_immobilize_until=max(float(getattr(mob,"v0319_immobilize_until",0.0) or 0.0),until)
+                                hit=True
+                            else: hit=False
+                            await self.send(f"Logic Bomb: {'wirus trafia' if hit else 'wirus nie trafia'} {template['name']}." + (" Support Effect: Blind, Curse i Immobilize." if hit and support_effect else "") + (" Machine: zwiększona celność." if machine else ""))
+                            await self.grant_skill_use_xp(skill); return
 
                     if special=="satellite_linker" and mob:
                         mob.v0319_satellite_until=time.time()+45; mob.v0319_satellite_power=max(1,int(skill.get("base_power",1000)*self.mec_branch_multiplier_v0319(branch)))
