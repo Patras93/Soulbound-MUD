@@ -2390,7 +2390,7 @@ def _v0319_install_full_mec_kit():
         ("Cure Beam",1,"heal",100,"support","cure_beam","Single-target healing beam available from the start. Willpower and Skill Level increase healing. Support Effect increases healing and removes Blind and Poison."),
         ("Hypno Flash",16,"damage",300,"support","hypno_flash","Attempts to put one enemy to Sleep; support effect improves chance."),
         ("Jammer",32,"damage",750,"support","jammer","Attempts Stop on one enemy; Willpower influences accuracy and duration, Skill Level increases both, and Machine targets are easier to affect. Support Effect expands Jammer to all enemies."),
-        ("Heal Beam",54,"heal",1000,"support","heal_beam","Large single-target heal; support effect heals entire party."),
+        ("Heal Beam",54,"heal",1000,"support","heal_beam","Significant Willpower-based healing. Normally heals one target; Support Effect heals the entire local party for an enhanced amount."),
         ("Logic Bomb",95,"damage",1200,"support","logic_bomb","Attempts Silence/Don't Act/Slow; support effect can add Curse/Don't Move/Blind."),
         ("V-MAX",130,"boost",2000,"support","vmax","Core overdrive: Protect, Shell, Haste, Regen, Preach, Praise, Permanence; changes several Mec skills. Overheats when it ends unless Support Effect suppresses it."),
         # Counter
@@ -2428,6 +2428,9 @@ def _v0319_install_full_mec_kit():
         if special=="uzi_punch": row["self_damage_pct"]=.10
         if special=="kamikaze_crush": row["self_damage_pct"]=.18
         if special=="dispose": row["self_damage_pct"]=.08
+        if special=="heal_beam":
+            row.update({"scale":"willpower","uoss_mp_cost":36,"uoss_support_mp_cost":72,
+                        "target_mode":"single_or_support_party","support_heal_multiplier":1.20})
         if special=="cure_beam":
             row.update({"scale":"willpower","uoss_mp_cost":10,"target_mode":"self_or_one_ally",
                         "support_heal_multiplier":1.20,"support_cleanses":["blind","poison"]})
