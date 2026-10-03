@@ -475,10 +475,17 @@ class SessionCombatRewardsMixin:
                         session.server.db.conn.execute("INSERT INTO combat_recaps_v03052(account_id,opponent,duration_ms,damage_dealt,damage_taken,healing,crits,skills_used,result) VALUES(?,?,?,?,?,?,?,?,?)",(session.account_id,str(template.get("name",mob.template_id)),_dur,int(getattr(session,"_recap52_dealt",0)),int(getattr(session,"_recap52_taken",0)),int(getattr(session,"_recap52_heal",0)),int(getattr(session,"_recap52_crits",0)),int(getattr(session,"_recap52_skills",0)),"victory"))
                         session.server.db.set_recap_summary_v0320(session.account_id, self.character.name, f"Pokonano {template.get('name',mob.template_id)}", int(getattr(session,"_recap32_guard_saved",0)), int(getattr(session,"_recap52_heal",0)), "victory")
                         session.server.db.add_combat_event_v0320(session.account_id,f"Finalny cios zadaje {self.character.name}. {template.get('name',mob.template_id)} zostaje pokonany.","final")
-                        session.server.db.conn.commit(); session._recap52_start=0
+                        session._recap52_start=0
                     except Exception as exc:
                         print(f"COMBAT_RECAP_SAVE_ERROR: {type(exc).__name__}: {exc}", flush=True)
-                    self.server.db.save_character(session.character)
+                    # v1.11.24: rewardy całego party są jedną transakcją. Poprzednio
+                    # każdy recipient robił COMMIT recapu, a save_character zaraz
+                    # potem wykonywał drugi COMMIT.
+                    self.server.db.save_character(session.character, commit=False)
+
+                # Jeden commit po progresji i zapisach wszystkich odbiorców nagrody.
+                # Zachowuje te same dane, ale usuwa serię fsynców przy każdym killu.
+                self.server.db.conn.commit()
 
                 # v0.71.1: lazy/infinite Crypt templates can be rebuilt after boot.
                 # Guarantee the authored Soul Shard drop at the actual reward boundary
