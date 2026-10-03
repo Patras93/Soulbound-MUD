@@ -2326,33 +2326,6 @@ def _v0310_build_tech_class_skills():
 
 _v0310_build_tech_class_skills()
 
-# v0.31.5: UOSSMUD-inspired Mec abilities. Cosmic Rave keeps the supplied
-# UOSS behavior adapted to Soulbound: base power 2000, requirement 110, all enemies normally,
-# five random hits while V-MAX is active.
-def _v0315_install_cosmic_rave():
-    rows = CLASS_SKILLS.get("Mec", [])
-    by_level = {}
-    for row in rows:
-        by_level.setdefault(int(row.get("unlock", 0) or 0), []).append(row)
-    if by_level.get(100):
-        row = by_level[100][0]
-        row.clear(); row.update({
-            "id":"v0315_mec_vmax", "name":"V-MAX", "aliases":["v-max","vmax","v max"],
-            "unlock":100, "kind":"boost", "cooldown":45, "mana":0,
-            "boost":1.0, "duration":30,
-            "desc":"V-MAX zmienia Cosmic Rave z diminishing AoE na ataki przeciw losowym przeciwnikom; czas V-MAX rozwija Skill Level."
-        })
-    if by_level.get(110):
-        row = by_level[110][0]
-        row.clear(); row.update({
-            "id":"v0315_mec_cosmic_rave", "name":"Cosmic Rave", "aliases":["cosmic rave","kosmiczny rave"],
-            "unlock":110, "kind":"aoe_damage", "cooldown":8, "mana":0,
-            "base_power":2000, "scale":"strength", "mult":1.0,
-            "desc":"Moc bazowa 2000. Normalnie trafia wszystkich przeciwników salwą meteorycznych ładunków. Pod V-MAX wykonuje 5 losowych trafień. Soulbound nie używa AP."
-        })
-_v0315_install_cosmic_rave()
-
-
 # v0.31.9: Full authored Mec kit based on the user-provided UOSSMUD ability list.
 # Soulbound does NOT use AP. Source Base AP is stored only as internal base_power.
 def _v0319_install_full_mec_kit():
