@@ -366,6 +366,23 @@ class SessionSkillQueueBuffsMixin:
                 "kolejka wyczyść, kolejka fizyczna, kolejka magiczna, kolejka on/off."
             )
 
+    def skill_effect_duration_v11153(self, skill, skill_level, base_seconds=None):
+            """Shared non-fixed duration policy for buffs/debuffs.
+            Authored fixed durations survive only when explicitly marked fixed_duration.
+            Otherwise Skill Level drives duration; Will additionally contributes when
+            the effect declares Will/Willpower influence.
+            """
+            if skill.get("fixed_duration"):
+                return max(1,int(skill.get("duration",base_seconds or 1) or 1))
+            level=max(1,min(SKILL_MAX_LEVEL,int(skill_level or 1)))
+            progress=(level-1)/float(max(1,SKILL_MAX_LEVEL-1))
+            base=max(6,int(base_seconds or skill.get("duration_base",12) or 12))
+            stat=str(skill.get("scale","")).casefold()
+            will_bonus=0.0
+            if stat in ("will","willpower"):
+                will_bonus=min(2.0,max(0.0,float(self.effective_willpower()))/250.0)
+            return max(1,int(round(base*(1.0+1.25*progress+will_bonus))))
+
     def cleanup_skill_buffs(self):
             """Usuń wygasłe czasowe buffy i ogłoś naturalne wygaśnięcie dokładnie raz."""
             now = time.time()
