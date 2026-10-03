@@ -654,11 +654,10 @@ class SessionCombatSkillsMixin:
                             await self.grant_skill_use_xp(skill); return
 
                     if special=="satellite_linker" and mob:
-                        _p=(max(1,min(SKILL_MAX_LEVEL,skill_level))-1)/float(max(1,SKILL_MAX_LEVEL-1))
-                        _wis=max(1,int(self.effective_willpower()))
-                        _duration=self.skill_effect_duration_v11153(skill,skill_level,base_seconds=18)
-                        mob.v0319_satellite_until=time.time()+_duration
-                        mob.v0319_satellite_power=max(1,int(skill.get("base_power",1200)*self.mec_branch_multiplier_v0319(branch)*(0.30+min(0.35,_wis*0.002))))
+                        # Source confirms repeated minor laser damage, Wisdom influence
+                        # and Skill-Level duration, but supplies no numeric tick share
+                        # or base duration. Do not fabricate either value.
+                        pass
                     if special=="tiger_rampage" and mob:
                         # v1.11.50: two heavy blows. One Soul Weapon replaces the
                         # original melee-weapon gate; its element is carried by both hits.
@@ -676,13 +675,8 @@ class SessionCombatSkillsMixin:
                             mob.hp-=damage; total+=damage
                             await self.send(f"Tiger Rampage: {template['name']} otrzymuje {damage} obrażeń. HP {max(0,mob.hp)}.{note}")
                         broke=False
-                        if mob.alive and random.random()<float(skill.get("defense_break_chance",0.40) or 0.40):
-                            duration=self.skill_effect_duration_v11153(skill,skill_level,base_seconds=18)
-                            until=time.time()+duration
-                            # Extendable: reapplication extends, rather than shortens, the debuff.
-                            mob.v0319_armor_break_until=max(float(getattr(mob,"v0319_armor_break_until",0.0) or 0.0),until)
-                            mob.v0319_magic_defense_break_until=max(float(getattr(mob,"v0319_magic_defense_break_until",0.0) or 0.0),until)
-                            broke=True
+                        # Source confirms a chance to lower physical and magical
+                        # defense, but gives no proc chance or base duration.
                         await self.grant_skill_use_xp(skill)
                         await self.send(f"Tiger Rampage: 2 ciężkie trafienia, łącznie {total} obrażeń." + (" Obrona fizyczna i magiczna celu spada." if broke else ""))
                         if mob.hp<=0: await self.mob_defeated(mob)
@@ -693,16 +687,10 @@ class SessionCombatSkillsMixin:
                     # Keep the authored capability in metadata until a canonical
                     # probability/duration source exists; do not fabricate runtime values.
                     if special=="magnify":
-                        _p=(max(1,min(SKILL_MAX_LEVEL,skill_level))-1)/float(max(1,SKILL_MAX_LEVEL-1))
-                        _wis=max(1,int(self.effective_willpower()))
-                        _fail=max(0.04,0.30-0.16*_p-min(0.10,_wis*0.001))
-                        if random.random()<_fail:
-                            # Source specifies a reboot/system lock but no fixed duration.
-                            # Scale the mechanical lock with the skill effect system rather
-                            # than inventing a constant number of seconds.
-                            _lock=self.skill_effect_duration_v11153(skill,skill_level,base_seconds=6)
-                            self.v0319_lock_until=time.time()+_lock
-                            await self.send(f"Magnify przeciąża Broń Duszy. SYSTEM LOCK: reboot przez {_lock} s.")
+                        # Source confirms an Overheat/reboot chance reduced by Skill
+                        # Level and improved by Wisdom, but gives no numeric failure
+                        # curve or lock duration. Preserve metadata, not invented odds.
+                        pass
                     # Other single-target Mec attacks continue through the normal Soulbound damage handler below.
 
                     # Plural Slash Agility scaling is applied to this use only in the
