@@ -590,6 +590,8 @@ class SessionSkillQueueBuffsMixin:
     async def mec_refresh_vmax_v0319(self):
             now=time.time()
             until=float(getattr(self,"v0319_vmax_until",0.0) or 0.0)
+            if until and now < until and not self.mec_support_effect_v11149():
+                self.v0319_vmax_support_maintained=False
             if until and now >= until:
                 self.v0319_vmax_until=0.0
                 # UOSS source confirms Overheat after V-MAX; exact duration is not supplied,
@@ -598,8 +600,9 @@ class SessionSkillQueueBuffsMixin:
                 _overheat=max(4,20-8*_vc)
                 # Support Effect replaces the source support weapon. It prevents
                 # the end-of-V-MAX Overheat only if maintained through expiration.
-                if not self.mec_support_effect_v11149():
+                if not bool(getattr(self,"v0319_vmax_support_maintained",False)):
                     self.v0319_overheat_until=max(float(getattr(self,"v0319_overheat_until",0.0) or 0.0),now+_overheat)
+                self.v0319_vmax_support_maintained=False
                 self.active_skill_buffs.pop("v0319_mec_vmax",None)
                 if self.mec_overheat_active_v0319():
                     await self.send(f"V-MAX wygasa. OVERHEAT: wszystkie statystyki bojowe są osłabione przez {_overheat} sekund i V-MAX nie może być ponownie użyty.")
