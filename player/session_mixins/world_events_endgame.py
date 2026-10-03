@@ -89,7 +89,9 @@ from world.runtime_progression import (
 )
 from world.world_state import v0290_active_world_events
 from world.uoss_superbosses import UOSS_SUPERBOSS_ENCOUNTERS_V11134
-from world.uoss_superboss_runtime import superboss_cleared_v11135
+from world.uoss_superboss_runtime import (
+    superboss_cleared_v11135, superboss_series_progress_v11138,
+)
 
 
 class SessionWorldEventsEndgameMixin:
@@ -711,10 +713,51 @@ class SessionWorldEventsEndgameMixin:
                 extra = []
                 if data.get("recommended_level"): extra.append(f"zalecany Level {data['recommended_level']}")
                 if data.get("personal_token"): extra.append(f"osobista nagroda: {data['personal_token']}")
-                if data.get("helpers"): extra.append("pomocnik: " + " albo ".join(data["helpers"]))
+                if data.get("helpers"): extra.append("pomocnik: " + " albo ".join(data["helpers"]) + "; wybór: pomocnik primm/popoi")
                 elif data.get("helper"): extra.append("pomocnik: " + str(data["helper"]))
+                _series=superboss_series_progress_v11138(self.server.db,self.account_id,next((k for k,v in UOSS_SUPERBOSS_ENCOUNTERS_V11134.items() if v is data),""))
+                if _series: extra.append(f"seria {_series[0]}/{_series[1]}")
                 await self.send(f"{name}: {mode}, {state}" + (". " + "; ".join(extra) if extra else "") + ".")
             await self.send("Zaliczenia i osobiste nagrody są trwałe; restart/deploy ich nie resetuje.")
+
+    async def enter_superboss_v11138(self, args=""):
+            query=normalize_lookup_text(args)
+            chosen=None
+            for key,data in UOSS_SUPERBOSS_ENCOUNTERS_V11134.items():
+                if query and (query in normalize_lookup_text(key) or query in normalize_lookup_text(data["name"])):
+                    chosen=(key,data); break
+            if not chosen:
+                await self.send("Użycie: superboss <nazwa>. Listę pokazuje: superbosses.")
+                return
+            key,data=chosen
+            level_req=int(data.get("unlock_level",0) or 0)
+            if level_req and int(self.character.character_level)<level_req:
+                await self.send(f"{data['name']} wymaga Level {level_req}.")
+                return
+            if data.get("unlock")=="explore_deep_dungeon" and not self.server.db.collection_entry_ids(self.account_id,"deep_dungeon_discovery"):
+                await self.send("Serpentarius wymaga wcześniejszego osobistego odkrycia podczas eksploracji Deep Dungeon.")
+                return
+            self.previous_room_id=self.character.room_id
+            self.character.room_id=f"uoss_superboss_arena_{key}_v11136"
+            self.server.db.save_character(self.character)
+            await self.send(f"Wchodzisz na arenę Super Bossa: {data['name']}. Boss nie atakuje pierwszy.")
+            await self.look()
+
+    async def choose_superboss_helper_v11138(self,args=""):
+            if self.character.room_id!="uoss_superboss_arena_black_rabite_v11136":
+                await self.send("Primm/Popoi można wybrać tylko na arenie Black Rabite.")
+                return
+            q=normalize_lookup_text(args)
+            if q not in ("primm","popoi"):
+                await self.send("Użycie: pomocnik primm albo pomocnik popoi.")
+                return
+            members=self.server.party_sessions(self.account_id,same_room=self.character.room_id) or [self]
+            if len(members)>3:
+                await self.send("Pomocnik jest dostępny tylko dla maksymalnie 3 graczy.")
+                return
+            key=self.party_key() if self.party_key() is not None else self.account_id
+            setattr(self.server,f"_uoss_helper_choice_{key}",q.title())
+            await self.server.party_combat_broadcast(self,f"Wybrany pomocnik Black Rabite: {q.title()}.",detail="essential")
 
     async def show_mythic_bosses_v020(self):
             now=time.time(); entries=v0200_active_mythic_world_bosses(now); remaining=max(0,int(entries[0]['expires_at']-now)) if entries else 0
