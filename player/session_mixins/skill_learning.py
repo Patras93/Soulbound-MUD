@@ -1373,15 +1373,19 @@ class SessionSkillLearningMixin:
             if now < float(getattr(mob,"v0319_blind_until",0.0) or 0.0) and random.random()<0.35:
                 await self.send_combat(f"{template['name']} pudłuje przez Blind.","normal"); return
 
-            _intercept_level=1
-            if self.mec_skill_known_v0319("v0319_mec_intercept_system"):
+            # Intercept System is a selected Counter, not an automatic learned
+            # passive. Source: it interrupts the incoming attack and its lasers use
+            # the user's highest offensive stat; Skill Level increases damage.
+            if self.job_ability_selected("counter","v0319_mec_intercept_system"):
                 _intercept_level=int(self.server.db.skill_progress(self.account_id,"v0319_mec_intercept_system")["level"])
-            _intercept_progress=(max(1,min(SKILL_MAX_LEVEL,_intercept_level))-1)/float(max(1, SKILL_MAX_LEVEL-1))
-            _intercept_chance=0.10 + 0.25*(_intercept_progress**0.82)
-            if self.mec_skill_known_v0319("v0319_mec_intercept_system") and profile.get("damage_type")=="physical" and random.random()<_intercept_chance:
-                counter=max(1,int(((self.physical_power()+self.spell_power())/2)*(1.0+1.5*_intercept_progress)))
+                _intercept_progress=(max(1,min(SKILL_MAX_LEVEL,_intercept_level))-1)/float(max(1, SKILL_MAX_LEVEL-1))
+                _offense=max(
+                    max(1,int(self.physical_power())),
+                    max(1,int(self.spell_power())),
+                )
+                counter=max(1,int(round(_offense*(1.0+_intercept_progress))))
                 mob.hp-=counter
-                await self.send_combat(f"Intercept System przerywa atak {template['name']} i kontruje za {counter}.","normal")
+                await self.send_combat(f"Intercept System przerywa atak {template['name']} i kontruje laserami za {counter}.","normal")
                 if mob.hp<=0:
                     await self.mob_defeated(mob); return
                 return
