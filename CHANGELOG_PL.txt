@@ -1,8 +1,18 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.11.25
+Aktualna paczka: v1.11.26
 
 ==============================================================================
 ==============================================================================
+==============================================================================
+Soulbound v1.11.26 — hotfix audytu party drop po batchowaniu DB
+==============================================================================
+
+- Naprawiono crash startowy audytu All Party Mob Drops Shared v0.35.9 po dodaniu dekoratora batchującego SQLite w v1.11.25.
+- Audyt rozpoznaje teraz opakowany mob_defeated i sprawdza właściwe ciało handlera.
+- Zachowano single-roll dropu, wspólne dropy dla lokalnego party, komunikat drużynowy i ograniczenie nagród do członków w tym samym pokoju.
+- Optymalizacja deferred SQLite commits z v1.11.25 pozostaje aktywna.
+- Brak zmian save'ów i brak wipe'a.
+
 ==============================================================================
 Soulbound v1.11.25 — pełne batchowanie SQLite podczas killa
 ==============================================================================
