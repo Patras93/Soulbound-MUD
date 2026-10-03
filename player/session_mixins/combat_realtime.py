@@ -13,7 +13,10 @@ from core.progression_resources import soul_weapon_mastery_bonuses, v0190_scaled
 from core.bootstrap_economy_professions import soul_weapon_trait_totals
 from data.mobs import MOB_TEMPLATES
 from world.machine_expansion import v0314_adjust_damage_vs_template
-from world.uoss_superboss_runtime import superboss_attack_gate_v11137, superboss_helper_profile_v11137
+from world.uoss_superboss_runtime import (
+    superboss_attack_gate_v11137, superboss_helper_profile_v11137,
+    superboss_phase_event_v11138, superboss_incoming_multiplier_v11138,
+)
 
 class SessionCombatRealtimeMixin:
     async def stop_realtime_combat(self):
@@ -246,12 +249,33 @@ class SessionCombatRealtimeMixin:
                                     and not target_session.closed
                                     and target_session.current_hp > 0
                                 ):
+                                    _enemy_template = MOB_TEMPLATES[enemy_mob.template_id]
+                                    _phase_event = superboss_phase_event_v11138(target_session, _enemy_template, enemy_mob)
+                                    if _phase_event:
+                                        _phase, _label = _phase_event
+                                        await self.server.party_combat_broadcast(
+                                            target_session,
+                                            f"{_enemy_template['name']}: FAZA {_phase} — {_label}.",
+                                            detail="essential",
+                                        )
+                                    _uoss_mult, _uoss_note = superboss_incoming_multiplier_v11138(
+                                        target_session, _enemy_template, enemy_mob
+                                    )
                                     await self.server.party_combat_broadcast(
                                         target_session,
-                                        f"{MOB_TEMPLATES[enemy_mob.template_id]['name']} atakuje {target_session.character.name}.",
+                                        f"{_enemy_template['name']} atakuje {target_session.character.name}."
+                                        + (f" {_uoss_note}" if _uoss_note and _uoss_mult != 1.0 else ""),
                                         detail="normal",
                                     )
-                                    await target_session.enemy_counterattack(enemy_mob)
+                                    if _uoss_mult != 1.0:
+                                        _old_damage = _enemy_template.get("damage", 1)
+                                        _enemy_template["damage"] = max(1, int(round(float(_old_damage) * _uoss_mult)))
+                                        try:
+                                            await target_session.enemy_counterattack(enemy_mob)
+                                        finally:
+                                            _enemy_template["damage"] = _old_damage
+                                    else:
+                                        await target_session.enemy_counterattack(enemy_mob)
 
                             next_enemy = time.monotonic() + self.combat_enemy_interval
                             if self.current_hp <= 0:
