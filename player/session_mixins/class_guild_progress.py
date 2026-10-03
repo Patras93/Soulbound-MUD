@@ -10,6 +10,36 @@ from world.economy_quests import v0914_combat_quest_soul_reward
 
 class SessionClassGuildProgressMixin:
 
+    async def advance_class_guild_quest_v11132(self, activity, amount=1):
+            active = self.active_class_names()
+            if not active:
+                return False
+            cls = active[0]
+            data = GUILD_CLASS_QUESTS.get(cls)
+            if not data or len(data) < 6 or str(data[5]) != str(activity):
+                return False
+            states = self.character._guild_json("guild_class_quests_json")
+            state = states.get(cls, {})
+            if not isinstance(state, dict) or not state.get("accepted") or state.get("completed"):
+                return False
+            needed = int(data[4])
+            old = int(state.get("progress", 0))
+            new = min(needed, old + max(0, int(amount)))
+            if new <= old:
+                return False
+            state["progress"] = new
+            states[cls] = state
+            self.character._set_guild_json("guild_class_quests_json", states)
+            self.server.db.save_character(self.character)
+            if new >= needed:
+                await self.send(
+                    f"Zadanie Gildii {data[0]}: {new} z {needed}. "
+                    "Cel wykonany. Użyj zadanieklasowe, aby odebrać nagrodę."
+                )
+            else:
+                await self.send(f"Zadanie Gildii {data[0]}: {new} z {needed}.")
+            return True
+
     async def show_guild(self, args=""):
             active = list(getattr(self.character, "classes", []) or [])
             if not active and getattr(self.character, "class_name", None):
