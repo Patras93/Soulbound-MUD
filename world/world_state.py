@@ -561,7 +561,10 @@ class World:
         now = time.time() if now is None else float(now)
         # v0.71.5: refresh already calculates per-room live counts, so wander no
         # longer performs a second full counting pass before its movement pass.
-        live_counts = dict(self.refresh(force=True))
+        # v1.11.22: zwykłe odświeżenie ma już cache i jest wywoływane
+        # przez aktywność graczy. Wander nie wymusza pełnego skanu świata co
+        # 5 sekund; pełny refresh wykona się tylko gdy cache jest nieaktualny.
+        live_counts = dict(self.refresh())
         moves = []
 
         for mob in self.mobs.values():
