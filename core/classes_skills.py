@@ -2362,7 +2362,7 @@ def _v0319_install_full_mec_kit():
         ("Hammer Crush",1,"damage",200,"melee","hammer_crush","Smashes one enemy with a powerful melee attack."),
         ("Shock Soldier",14,"aoe_damage",600,"melee","shock_soldier","Miniature weapon-wielding clones attack all enemies."),
         ("Plural Slash",32,"damage",900,"melee","plural_slash","Multiple slashes on one enemy. Scales especially with Dexterity."),
-        ("Pop Knight",46,"aoe_damage",1500,"melee","pop_knight","Flying clones attack all enemies."),
+        ("Pop Knight",46,"aoe_damage",1500,"melee","pop_knight","Non-diminishing attack on all enemies. Uses the Mec's single Soul Weapon, carries its elements, and deals extra damage to Flying enemies."),
         ("Tiger Rampage",80,"damage",1800,"melee","tiger_rampage","Powerful single-target attack that lowers Defense."),
         ("Cosmic Rave",110,"aoe_damage",2000,"melee","cosmic_rave","Hits all enemies; during V-MAX performs 5 random hits instead."),
         # Ranged
@@ -2428,6 +2428,10 @@ def _v0319_install_full_mec_kit():
         if special=="uzi_punch": row["self_damage_pct"]=.10
         if special=="kamikaze_crush": row["self_damage_pct"]=.18
         if special=="dispose": row["self_damage_pct"]=.08
+        if special=="pop_knight":
+            row.update({"scale":"strength","target_mode":"all_non_diminishing",
+                        "carries_soul_weapon_elements":True,"single_soul_weapon":True,
+                        "bonus_vs_flying":1.35})
         if special=="heal_beam":
             row.update({"scale":"willpower","uoss_mp_cost":36,"uoss_support_mp_cost":72,
                         "target_mode":"single_or_support_party","support_heal_multiplier":1.20})
