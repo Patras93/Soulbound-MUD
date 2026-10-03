@@ -1,8 +1,18 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.11.22
+Aktualna paczka: v1.11.23
 
 ==============================================================================
 ==============================================================================
+==============================================================================
+Soulbound v1.11.23 — party movement lag + nazwa Goblina
+==============================================================================
+
+- Ruch followerów drużyny nie wykonuje już osobnego SQLite COMMIT dla każdej postaci przy każdym pokoju.
+- Zapisy pozycji followerów są grupowane, a po zakończeniu wspólnego kroku wykonywany jest jeden commit.
+- Zmiana szczególnie odciąża trzy- i większe drużyny przemieszczające się szybko po świecie.
+- Gobliński Zwiadowca został ujednolicony do nazwy Goblin Zwiadowca, aby generator/opis nie tworzył formy „Goblin Zwiadowca — Gobliński Zwiadowca”.
+- Brak wipe'a save'ów.
+
 ==============================================================================
 Soulbound v1.11.22 — hotfix globalnych lagów świata
 ==============================================================================
