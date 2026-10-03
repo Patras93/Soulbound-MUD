@@ -95,6 +95,28 @@ class SessionCombatRealtimeMixin:
                     _dex=max(0.0,float(self.effective_dexterity()))
                     _dex_share=_dex/max(1.0,_str+_dex)
                     damage = max(1, int(round(damage * (1.0 + _shooting_bonus * _dex_share))))
+                # v1.11.55: Combat Mastery is an inherent ordinary-weapon attack
+                # modifier. In Soulbound's one-weapon model it applies only to the
+                # Strength share, preserving the source's purely Strength-based gate.
+                _combat_mastery = None
+                if self.character.class_name == "Mec":
+                    _combat_mastery = next(
+                        (s for s in self.available_class_skills() if s.get("mec_special") == "combat_mastery"),
+                        None,
+                    )
+                if (
+                    _combat_mastery
+                    and self.server.db.knows_skill(self.account_id, _combat_mastery["id"])
+                    and int(self.character.character_level) >= 30
+                    and getattr(self.character,"soul_weapon",None)
+                ):
+                    _row = self.server.db.skill_progress(self.account_id, _combat_mastery["id"])
+                    _lvl = max(1,min(600,int(_row["level"])))
+                    _str=max(0.0,float(self.effective_strength()))
+                    _dex=max(0.0,float(self.effective_dexterity()))
+                    _str_share=_str/max(1.0,_str+_dex)
+                    _combat_bonus=0.20+0.15*((_lvl-1)/599.0)
+                    damage=max(1,int(round(damage*(1.0+_combat_bonus*_str_share))))
                 # v0.35.1: Soul Weapon Mastery wzmacnia wyłącznie zwykły atak broni.
                 mastery = soul_weapon_mastery_bonuses(self.character.soul_weapon_mastery_level)
                 damage = max(1, int(round(damage * (1.0 + mastery["damage_percent"] / 100.0))))
