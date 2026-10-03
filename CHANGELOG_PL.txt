@@ -1,8 +1,18 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.11.15
+Aktualna paczka: v1.11.16
 
 ==============================================================================
 ==============================================================================
+==============================================================================
+Soulbound v1.11.16 — rasa Smok
+==============================================================================
+
+- Grywalna rasa „Smoczy” nazywa się teraz „Smok”.
+- Nowa nazwa jest używana na liście ras, przy tworzeniu postaci, w helpach i rekomendacjach klas.
+- Pasyw rasy Smok zachowuje dotychczasowy bonus do wszystkich obrażeń.
+- Zachowano zgodność z istniejącymi postaciami zapisanymi wcześniej jako „Smoczy”.
+- Brak wipe'a save'ów.
+
 ==============================================================================
 Soulbound v1.11.15 — pojedyncze nazwy przeciwników
 ==============================================================================
