@@ -206,6 +206,7 @@ class SessionForgeGuildsMixin:
             messages, _prof_after, _tool_after = self.grant_profession_progress(
                 "Kowalstwo", salvage_prof_xp, "crafting", 0, tool_progress=False
             )
+            await self.send(f"Kowalstwo: +{salvage_prof_xp} XP za Salvage.")
             for message in messages:
                 await self.send(message)
 
