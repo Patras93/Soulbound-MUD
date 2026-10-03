@@ -2381,7 +2381,7 @@ def _v0319_install_full_mec_kit():
         ("Kamikaze Crush",110,"damage",2000,"feedback","kamikaze_crush","Lethal dive bomb; more HP sacrificed means more damage. V-MAX raises the sacrifice limit."),
         # Magic
         ("Laser Spin",1,"aoe_damage",200,"magic","laser_spin","Dark lasers hit all enemies."),
-        ("Area Bomb",8,"aoe_damage",300,"magic","area_bomb","Fire bomb burns engaged targets."),
+        ("Area Bomb",8,"aoe_damage",300,"magic","area_bomb","Fiery Magic Attack explosion that burns all enemies currently engaged in combat with the Mec."),
         ("Mec Sonata",20,"damage",1000,"magic","mec_sonata","Holy gospel attacks one enemy and may reduce its level-equivalent power."),
         ("Maelstrom",44,"aoe_damage",1500,"magic","maelstrom","Water vortex floods all enemies."),
         ("Shock",95,"aoe_damage",1800,"magic","shock","Dark + Lightning attack on all enemies."),
@@ -2428,6 +2428,9 @@ def _v0319_install_full_mec_kit():
         if special=="uzi_punch": row["self_damage_pct"]=.10
         if special=="kamikaze_crush": row["self_damage_pct"]=.18
         if special=="dispose": row["self_damage_pct"]=.08
+        if special=="area_bomb":
+            row.update({"scale":"intelligence","element":"fire","uoss_mp_cost":35,
+                        "target_mode":"all_engaged_enemies","engaged_only":True})
         if special=="pop_knight":
             row.update({"scale":"strength","target_mode":"all_non_diminishing",
                         "carries_soul_weapon_elements":True,"single_soul_weapon":True,
