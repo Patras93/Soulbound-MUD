@@ -123,6 +123,12 @@ def create_core_schema(self):
                         FOREIGN KEY(account_id) REFERENCES accounts(id) ON DELETE CASCADE
                     );
 
+        CREATE TABLE IF NOT EXISTS player_combat_settings_v11120 (
+                        account_id INTEGER PRIMARY KEY,
+                        offensive_aoe_enabled INTEGER NOT NULL DEFAULT 1,
+                        FOREIGN KEY(account_id) REFERENCES accounts(id) ON DELETE CASCADE
+                    );
+
         CREATE TABLE IF NOT EXISTS player_friends_v0928 (
                         account_id INTEGER NOT NULL,
                         friend_account_id INTEGER NOT NULL,
