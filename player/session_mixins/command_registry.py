@@ -172,6 +172,7 @@ COMMAND_REGISTRY = {
     'skillnames': ('show_all_skill_names', (), {}),
     'skillqueue': ('handle_skill_queue', (COMMAND_TEXT,), {}),
     'learn': ('learn_class_skill', (COMMAND_TEXT,), {}),
+    'job': ('handle_job_set', (COMMAND_TEXT,), {}),
     'soul': ('show_soul', (COMMAND_TEXT,), {}),
     'money': ('show_money', (), {}),
     'bank': ('handle_bank', (COMMAND_TEXT,), {}),
