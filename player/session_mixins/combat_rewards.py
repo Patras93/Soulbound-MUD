@@ -28,6 +28,12 @@ from world.dynamic_content import (
 from world.economy_quests import legendary_loot_mastery_for_floor, milestone_boss_tier
 from world.generation_systems import V020_GAUNTLETS, V020_MYTHIC_WORLD_BOSS_SECONDS
 from world.runtime_progression import v0210_endless_gauntlet_identity
+from world.uoss_superboss_runtime import (
+    mark_superboss_clear_v11135,
+    superboss_key_from_template_v11135,
+    superboss_personal_reward_v11135,
+    superboss_shared_drop_v11135,
+)
 
 
 def party_drop_recipients_v0359(item_id, recipients):
@@ -178,6 +184,32 @@ class SessionCombatRewardsMixin:
                     recipients, key=lambda s: s.character.name.lower()
                 )
                 count = len(recipients)
+
+                # v1.11.35: unique UOSS Super Boss completion/reward runtime.
+                # Party recipients are already filtered to the same room by the canonical
+                # party system above, so every active local participant receives credit.
+                _uoss_key = superboss_key_from_template_v11135(template)
+                if _uoss_key:
+                    _first_clear_sessions = []
+                    for session in recipients:
+                        if mark_superboss_clear_v11135(session.server.db, session.account_id, _uoss_key):
+                            _first_clear_sessions.append(session)
+                        _personal = superboss_personal_reward_v11135(
+                            session.server.db, session.account_id, _uoss_key
+                        )
+                        if _personal:
+                            _iid, _label = _personal
+                            await session.send(f"Super Boss: otrzymujesz {_label}. Nagroda jest osobista i zapisana na stałe.")
+                    _shared = superboss_shared_drop_v11135(self.server.db, recipients, _uoss_key)
+                    if _shared:
+                        _winner, _iid = _shared
+                        await _winner.send(
+                            f"Super Boss: otrzymujesz wspólny unikalny drop drużyny: {_iid}. Przedmiot przypisano do ciebie."
+                        )
+                    for session in _first_clear_sessions:
+                        await session.send(
+                            f"Super Boss zaliczony na stałe: {template.get('name', _uoss_key)}. Restart ani deploy nie cofnie zaliczenia."
+                        )
 
                 # v0.42.0: the combat producer announces one real defeat;
                 # chronicle/analytics consumers subscribe without being embedded here.
