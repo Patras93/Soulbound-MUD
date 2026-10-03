@@ -522,7 +522,7 @@ class DatabaseAccountsMixin:
         )
         self.conn.commit()
 
-    def save_character(self, c):
+    def save_character(self, c, commit=True):
         (
             c.silver,
             c.gold,
@@ -567,4 +567,5 @@ class DatabaseAccountsMixin:
                 c.account_id,
             ),
         )
-        self.conn.commit()
+        if commit:
+            self.conn.commit()
