@@ -2426,6 +2426,7 @@ def _v0319_install_full_mec_kit():
         if special=="compress": row["self_damage_pct"]=.06
         if special=="crush": row.update({"self_damage_pct":.08,"damage_from_missing_hp":True,"level_caps_damage":True,"level_effect":"increases_maximum_possible_damage","single_soul_weapon":True})
         if special=="kamikaze_crush": row.update({"damage_from_current_hp":True,"vitality_influence":True,"vmax_power_and_feedback":True,"single_soul_weapon":True})
+        if special=="combat_mastery": row.update({"ordinary_soul_weapon_attack_only":True,"strength_based_only":True,"requires_soul_weapon":True,"stronger_than":"Attack UP","weaker_than":"Two Hands","single_soul_weapon":True})
         if special=="hammer_crush": row.update({"target_mode":"one_enemy","attack_influence":True,"carries_soul_weapon_elements":True,"single_soul_weapon":True})
         if special=="cosmic_rave": row.update({"aoe_diminishing":True,"vmax_random_enemies":True,"agility_secondary_influence":True,"carries_soul_weapon_elements":True,"single_soul_weapon":True})
         if special=="shock_soldier": row.update({"aoe_diminishing":True,"carries_soul_weapon_elements":True,"single_soul_weapon":True})
