@@ -1,8 +1,20 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.11.28
+Aktualna paczka: v1.11.29
 
 ==============================================================================
 ==============================================================================
+==============================================================================
+Soulbound v1.11.29 — pełny audyt pojedynczych nazw mobów
+==============================================================================
+
+- Naprawa obejmuje cały runtime MOB_TEMPLATES, a nie ręcznie wybrane trolle lub gobliny.
+- Usunięto złożone nazwy mobów z Endless Gauntlet, Miast 2.0, nieskończonego Magitek i rotacji UOSS superbossów.
+- Szaman Głębin Trolli zachowuje własną kanoniczną nazwę; nie jest przemianowywany na Trolla Jaskiniowego.
+- Dodano pełny predeploy audit wszystkich runtime mobów. Każda nazwa moba zawierająca „ — ” zatrzymuje wdrożenie jako błąd.
+- Jedyny świadomy wyjątek to proceduralny NEMESIS, gdzie „— NEMESIS” jest oznaczeniem rangi.
+- Audyt działa po załadowaniu całego serwera, więc obejmuje także moby tworzone przez późne generatory i warstwy świata.
+- Brak zmian save'ów i brak wipe'a.
+
 ==============================================================================
 Soulbound v1.11.28 — globalne porządkowanie nazw mobów
 ==============================================================================
