@@ -714,7 +714,7 @@ class SessionCombatSkillsMixin:
                     base_bonus = max(0.0, base_boost - 1.0)
                     scaled_bonus = base_bonus * (1.0 + max(0.0, skill_power - 1.0) * 0.50)
                     scaled_boost = 1.0 + min(0.90, scaled_bonus)
-                    duration = GLOBAL_SKILL_BUFF_DURATION_SECONDS
+                    duration = self.skill_effect_duration_v11153(skill,skill_level,base_seconds=12)
                     recipients = self.apply_party_boost_v03511(
                         skill["id"], skill["name"], max(1.0, scaled_boost),
                         now + duration, self.character.name
