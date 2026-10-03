@@ -1693,7 +1693,7 @@ AREA_MAGIC_AND_GROUP_HEALING_SKILLS = {
         {"id":"psion_psychic_collapse","name":"Psychiczne Załamanie","aliases":["psychiczne zalamanie","psychiczne załamanie","psychic collapse"],"natural_tags":["aoe","obszar","psychic"],"unlock":160,"kind":"aoe_damage","cooldown":18,"mana":35,"desc":"Potężne obszarowe uderzenie psioniczne na wszystkich przeciwników w lokacji.","scale":"intelligence","mult":2.12},
     ],
     "Kapłan": [
-        {"id":"priest_prayer_of_renewal","name":"Modlitwa Odnowy","aliases":["modlitwa odnowy","prayer of renewal","group heal"],"natural_tags":["heal","leczenie","grupa","druzyna"],"unlock":40,"kind":"group_heal","cooldown":13,"mana":16,"desc":"Obszarowe leczenie Kapłana dla całej drużyny w tej samej lokacji.","heal_pct":0.24},
+        {"id":"priest_healing_wind","name":"Healing Wind","aliases":["healing wind","leczacy wiatr","leczący wiatr"],"natural_tags":["heal","leczenie","grupa","druzyna"],"unlock":1,"kind":"group_heal","cooldown":0,"mana":60,"scale":"willpower","base_ap":1500,"source_properties":["Multicastable","Silenceable"],"desc":"Leczy wszystkich żywych członków drużyny w tej samej lokacji. Will i Skill Level zwiększają moc leczenia."},
         {"id":"priest_mass_restoration","name":"Masowe Uzdrowienie","aliases":["masowe uzdrowienie","mass restoration","mass heal"],"natural_tags":["heal","leczenie","grupa","druzyna"],"unlock":160,"kind":"group_heal","cooldown":20,"mana":34,"desc":"Potężne obszarowe leczenie całej drużyny Kapłana w tej samej lokacji.","heal_pct":0.46},
     ],
 }
