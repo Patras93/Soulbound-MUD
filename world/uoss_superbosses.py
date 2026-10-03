@@ -185,51 +185,41 @@ HELP_TOPIC_ALIASES.update({
 })
 
 
-def uoss_superboss_audit_v0366():
+def uoss_superboss_audit_v11134():
     errors = []
-    names = [entry["name"] for entry in UOSS_SUPERBOSS_ROSTER_V0366]
-    if len(names) != len(set(name.casefold() for name in names)):
-        errors.append("duplicate concrete boss name in UOSS roster")
-    for forbidden in UOSS_SUPERBOSS_FORBIDDEN_CATEGORY_NAMES_V0366:
-        if forbidden.casefold() in {name.casefold() for name in names}:
-            errors.append(f"category/group label used as boss: {forbidden}")
-    for floor in range(10, int(MYTHIC_MAX_FLOOR) + 1, 10):
-        for kind, prefix in (
-            ("mythic_crypt", "mythic_crypt_boss_"),
-            ("mythic_astral", "mythic_astral_boss_"),
-        ):
-            template = MOB_TEMPLATES.get(prefix + str(floor))
-            if not template:
-                errors.append(f"missing {kind} boss floor {floor}")
-                continue
-            expected = uoss_superboss_profile_v0366(kind, floor)["name"]
-            actual = str(template.get("uoss_superboss_name") or "")
-            if actual != expected:
-                errors.append(f"{kind} floor {floor}: {actual!r}, expected {expected!r}")
-            if not template.get("uoss_superboss"):
-                errors.append(f"{kind} floor {floor}: missing uoss_superboss flag")
-            display = str(template.get("name") or "")
-            for forbidden in UOSS_SUPERBOSS_FORBIDDEN_CATEGORY_NAMES_V0366:
-                if display.casefold().startswith(forbidden.casefold()):
-                    errors.append(f"{kind} floor {floor}: forbidden category name {display!r}")
-    return {
-        "version": "0.36.6",
-        "roster_count": len(names),
-        "roster": tuple(names),
-        "error_count": len(errors),
-        "errors": errors,
+    encounters = UOSS_SUPERBOSS_ENCOUNTERS_V11134
+    required = {
+        "spekkio","asterisks","dad","diabolos","harle","culex","ruby_weapon",
+        "emerald_weapon","ozma","four_fiends","grahf","hades","lunar_trial",
+        "elementals","gilgamesh","war_machines","black_rabite","serpentarius",
+        "odin","yiazmat","sephiroth",
     }
+    missing = sorted(required - set(encounters))
+    if missing:
+        errors.append("missing unique encounters: " + ", ".join(missing))
+    for key in ("black_rabite","serpentarius","yiazmat"):
+        row = encounters.get(key, {})
+        if not row.get("once_per_cycle"):
+            errors.append(f"{key}: missing persistent cycle lockout")
+        if not row.get("personal_token"):
+            errors.append(f"{key}: missing personal participation reward")
+    if encounters.get("black_rabite", {}).get("unique_drop_count") != 10:
+        errors.append("black_rabite: expected 10 unique drops")
+    if encounters.get("yiazmat", {}).get("unique_drop_count") != 7:
+        errors.append("yiazmat: expected 7 unique drops")
+    return {"version":"1.11.34","encounter_count":len(encounters),"error_count":len(errors),"errors":errors}
 
 
-UOSS_SUPERBOSS_AUDIT_V0366 = uoss_superboss_audit_v0366()
-if UOSS_SUPERBOSS_AUDIT_V0366["error_count"]:
+UOSS_SUPERBOSS_AUDIT_V11134 = uoss_superboss_audit_v11134()
+UOSS_SUPERBOSS_AUDIT_V0366 = UOSS_SUPERBOSS_AUDIT_V11134
+if UOSS_SUPERBOSS_AUDIT_V11134["error_count"]:
     raise RuntimeError(
-        "UOSSMUD Superboss Audit v0.36.6 failed: "
-        + "; ".join(UOSS_SUPERBOSS_AUDIT_V0366["errors"][:50])
+        "UOSSMUD Superboss Audit v1.11.34 failed: "
+        + "; ".join(UOSS_SUPERBOSS_AUDIT_V11134["errors"][:50])
     )
 
 HELP_TOPICS.setdefault("wersja", []).append(
-    "v0.36.6: poprawiono UOSSMUD Superbosses. Asterisks/Lunar Trials/Elementals/Four Fiends nie są używane jako pojedyncze bossy; Mityczne Lochy rotują konkretne nazwane starcia."
+    "v1.11.34: Superbossy UOSSMUD są unikalnymi wyzwaniami świata; dodano pełny katalog trybów oraz reguły Black Rabite, Serpentariusa i Yiazmata."
 )
 LATEST_CHANGES_TITLE = "Soulbound v0.36.6 - Correct UOSSMUD Named Superbosses"
 LATEST_CHANGES = [
