@@ -125,64 +125,33 @@ def _apply_uoss_superboss_v0366(template, kind, floor, scale_stats=True):
     return template
 
 
-# Patch all already-built Mythic boss thresholds (normally 10..200).
-for _floor in range(10, int(MYTHIC_MAX_FLOOR) + 1, 10):
-    _crypt = MOB_TEMPLATES.get(f"mythic_crypt_boss_{_floor}")
-    if _crypt:
-        _apply_uoss_superboss_v0366(_crypt, "mythic_crypt", _floor, True)
-    _astral = MOB_TEMPLATES.get(f"mythic_astral_boss_{_floor}")
-    if _astral:
-        _apply_uoss_superboss_v0366(_astral, "mythic_astral", _floor, True)
-
-
-# Preserve the concrete UOSS boss identity on lazy-generated milestone floors.
-_milestone_boss_name_before_v0366 = milestone_boss_name
-
-def milestone_boss_name(kind, floor, default_name):
-    if str(kind) in ("mythic_crypt", "mythic_astral") and is_crypt_boss_floor(floor):
-        return uoss_superboss_display_name_v0366(kind, floor)
-    return _milestone_boss_name_before_v0366(kind, floor, default_name)
-
-
-def _infinite_mythic_boss_profile(floor):
-    profile = uoss_superboss_profile_v0366("mythic_crypt", floor)
-    return (
-        uoss_superboss_display_name_v0366("mythic_crypt", floor),
-        profile["mechanic"],
-        profile["text"],
-    )
-
-
-def _dynamic_mythic_astral_boss_profile(floor):
-    profile = uoss_superboss_profile_v0366("mythic_astral", floor)
-    return (
-        uoss_superboss_display_name_v0366("mythic_astral", floor),
-        profile["mechanic"],
-        profile["text"],
-    )
-
-
-_create_infinite_crypt_floor_definition_before_v0366 = create_infinite_crypt_floor_definition
-
-def create_infinite_crypt_floor_definition(floor, mythic=False):
-    result = _create_infinite_crypt_floor_definition_before_v0366(floor, mythic=mythic)
-    if mythic and is_mythic_crypt_boss_floor(floor):
-        template = MOB_TEMPLATES.get(f"mythic_crypt_boss_{int(floor)}")
-        if template:
-            _apply_uoss_superboss_v0366(template, "mythic_crypt", int(floor), True)
-    return result
-
-
-_create_infinite_astral_floor_definition_before_v0366 = create_infinite_astral_floor_definition
-
-def create_infinite_astral_floor_definition(floor, mythic=False):
-    result = _create_infinite_astral_floor_definition_before_v0366(floor, mythic=mythic)
-    if mythic and is_mythic_astral_boss_floor(floor):
-        template = MOB_TEMPLATES.get(f"mythic_astral_boss_{int(floor)}")
-        if template:
-            _apply_uoss_superboss_v0366(template, "mythic_astral", int(floor), True)
-    return result
-
+# v1.11.33: UOSS superbosses are no longer injected into Mythic Crypt/Astral
+# milestone bosses. They are unique world encounters with their own unlock,
+# helper and per-cycle reward rules. Mythic dungeons keep their native scalable
+# bosses instead of borrowing UOSS identities every ten floors.
+UOSS_SUPERBOSS_ENCOUNTERS_V11133 = {
+    "serpentarius": {
+        "name": "Serpentarius",
+        "area": "Deep Dungeon",
+        "unlock": "explore_deep_dungeon",
+        "arena": "Deep Dungeon — piętro 0",
+        "helper": "Byblos",
+        "helper_max_players": 3,
+        "personal_token": "Serpentarius Emblem",
+        "once_per_cycle": True,
+    },
+    "black_rabite": {
+        "name": "Black Rabite",
+        "area": "Rabite Fields",
+        "unlock_level": 100,
+        "helpers": ("Primm", "Popoi"),
+        "helper_choice_limit": 1,
+        "helper_max_players": 3,
+        "personal_token": "Moogle Steel",
+        "shared_unique_drop": True,
+        "once_per_cycle": True,
+    },
+}
 
 # Player-facing help. Category/group page labels are explicitly documented as
 # not being boss names so the mistake cannot silently return later.
