@@ -545,11 +545,9 @@ class SessionCombatSkillsMixin:
                         if special=="area_bomb":
                             # Magic Attack influence in Soulbound is Intelligence.
                             mult*=max(0.75,min(3.0,self.effective_intelligence()/100.0))
-                        if special=="cosmic_rave":
-                            # Attack remains primary; Agility is explicitly a lesser secondary influence.
-                            _agi=max(1.0,float(self.effective_dexterity()))
-                            mult*=1.0+min(0.50,_agi/500.0)
-                        if special=="starlight_shower" and vmax: mult*=1.25
+                        # Cosmic Rave has a lesser Agility influence and V-MAX
+                        # strengthens Starlight Shower, but source help supplies no
+                        # numeric multiplier for either relation.
                         for target in targets:
                             if not target.alive: continue
                             template=MOB_TEMPLATES[target.template_id]
@@ -561,8 +559,6 @@ class SessionCombatSkillsMixin:
                             # v1.11.47: Pop Knight keeps full AoE damage and receives
                             # the source ability's anti-Flying bonus. The Mec has one
                             # Soul Weapon, so no separate melee weapon gate is required.
-                            if special=="pop_knight" and (template.get("flying") or str(template.get("type","")).casefold()=="flying"):
-                                damage=max(1,int(round(damage*float(skill.get("bonus_vs_flying",1.35) or 1.35))))
                             damage,crit=self.roll_critical_hit(damage)
                             # V-MAX source says Shoot-All gains damage and critical
                             # effectiveness, but gives no numeric increase. Do not
