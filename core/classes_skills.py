@@ -2389,7 +2389,7 @@ def _v0319_install_full_mec_kit():
         # Support
         ("Cure Beam",10,"heal",100,"support","cure_beam","Single-target heal; support effect improves healing and clears Poison/Blind."),
         ("Hypno Flash",16,"damage",300,"support","hypno_flash","Attempts to put one enemy to Sleep; support effect improves chance."),
-        ("Jammer",32,"damage",750,"support","jammer","Disables one enemy, stronger on Machine; support effect attempts all enemies."),
+        ("Jammer",32,"damage",750,"support","jammer","Attempts Stop on one enemy; Willpower influences accuracy and duration, Skill Level increases both, and Machine targets are easier to affect. Support Effect expands Jammer to all enemies."),
         ("Heal Beam",54,"heal",1000,"support","heal_beam","Large single-target heal; support effect heals entire party."),
         ("Logic Bomb",95,"damage",1200,"support","logic_bomb","Attempts Silence/Don't Act/Slow; support effect can add Curse/Don't Move/Blind."),
         ("V-MAX",130,"boost",2000,"support","vmax","Core overdrive: Protect, Shell, Haste, Regen, Preach, Praise, Permanence; changes several Mec skills. Overheats when it ends unless Support Effect suppresses it."),
@@ -2428,6 +2428,10 @@ def _v0319_install_full_mec_kit():
         if special=="uzi_punch": row["self_damage_pct"]=.10
         if special=="kamikaze_crush": row["self_damage_pct"]=.18
         if special=="dispose": row["self_damage_pct"]=.08
+        if special=="jammer":
+            row.update({"scale":"willpower","control_effect":"stop","cleanseable":True,"extendable":True,
+                        "uoss_mp_cost":20,"uoss_support_mp_cost":40,
+                        "target_mode":"single_or_support_all","machine_accuracy_bonus":True})
         if special=="starlight_shower":
             row.update({"uoss_mp_cost":225, "uoss_vmax_mp_cost":300, "target_mode":"single_or_diminishing_aoe"})
         if special=="cosmic_rave":
