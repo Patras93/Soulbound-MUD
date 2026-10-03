@@ -1,5 +1,16 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.11.10
+Aktualna paczka: v1.11.11
+
+==============================================================================
+==============================================================================
+Soulbound v1.11.11 — WHO pokazuje rasę i klasę
+==============================================================================
+
+- Poprawiono finalny handler komendy `who` w warstwie social expansion.
+- Każda postać online jest teraz wyświetlana jako: nazwa, rasa, klasa.
+- Multiclass nadal pokazuje wszystkie aktywne klasy.
+- Usunięto z listy WHO zbędne Soul Level, tytuł, gildię, rolę mentora, AFK i party, aby wynik był krótki i czytelny pod NVDA.
+- Brak zmian SQLite i brak wipe'a save'ów.
 
 ==============================================================================
 ==============================================================================
