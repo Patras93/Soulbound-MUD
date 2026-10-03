@@ -2340,7 +2340,7 @@ def _v0315_install_cosmic_rave():
             "id":"v0315_mec_vmax", "name":"V-MAX", "aliases":["v-max","vmax","v max"],
             "unlock":100, "kind":"boost", "cooldown":45, "mana":0,
             "boost":1.0, "duration":30,
-            "desc":"Aktywuje V-MAX na 30 sekund. Cosmic Rave wykonuje wtedy 5 losowych trafień zamiast jednego trafienia we wszystkich przeciwników."
+            "desc":"V-MAX zmienia Cosmic Rave z diminishing AoE na ataki przeciw losowym przeciwnikom; czas V-MAX rozwija Skill Level."
         })
     if by_level.get(110):
         row = by_level[110][0]
@@ -2364,7 +2364,7 @@ def _v0319_install_full_mec_kit():
         ("Plural Slash",32,"damage",900,"melee","plural_slash","Multiple slashes on one enemy. Scales especially with Dexterity."),
         ("Pop Knight",46,"aoe_damage",1500,"melee","pop_knight","Non-diminishing attack on all enemies. Uses the Mec's single Soul Weapon, carries its elements, and deals extra damage to Flying enemies."),
         ("Tiger Rampage",80,"damage",1800,"melee","tiger_rampage","Powerful single-target attack that lowers Defense."),
-        ("Cosmic Rave",110,"aoe_damage",2000,"melee","cosmic_rave","Hits all enemies; during V-MAX performs 5 random hits instead."),
+        ("Cosmic Rave",110,"aoe_damage",2000,"melee","cosmic_rave","Hits all enemies with diminishing damage; during V-MAX targets random enemies instead. Agility provides a lesser secondary damage contribution."),
         # Ranged
         ("Crosshair",1,"damage",200,"ranged","crosshair","Precise shot; benefits strongly from critical chance."),
         ("Range Fire",8,"aoe_damage",500,"ranged","range_fire","Bullets hit all enemies; non-diminishing area attack."),
@@ -2427,6 +2427,7 @@ def _v0319_install_full_mec_kit():
         if special=="crush": row.update({"self_damage_pct":.08,"damage_from_missing_hp":True,"level_caps_damage":True,"level_effect":"increases_maximum_possible_damage","single_soul_weapon":True})
         if special=="kamikaze_crush": row.update({"damage_from_current_hp":True,"vitality_influence":True,"vmax_power_and_feedback":True,"single_soul_weapon":True})
         if special=="hammer_crush": row.update({"target_mode":"one_enemy","attack_influence":True,"carries_soul_weapon_elements":True,"single_soul_weapon":True})
+        if special=="cosmic_rave": row.update({"aoe_diminishing":True,"vmax_random_enemies":True,"agility_secondary_influence":True,"carries_soul_weapon_elements":True,"single_soul_weapon":True})
         if special=="shock_soldier": row.update({"aoe_diminishing":True,"carries_soul_weapon_elements":True,"single_soul_weapon":True})
         if special=="range_fire": row.update({"aoe_non_diminishing":True,"carries_soul_weapon_elements":True,"single_soul_weapon":True})
         if special=="dispose": row.update({"aoe_non_diminishing":True,"carries_soul_weapon_elements":True,"feedback_damage":True,"single_soul_weapon":True})
