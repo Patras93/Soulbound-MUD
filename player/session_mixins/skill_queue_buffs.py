@@ -520,6 +520,24 @@ class SessionSkillQueueBuffsMixin:
                 session.active_skill_buffs[str(skill_id)] = dict(data)
             return recipients
 
+    def beneficial_status_active_v11154(self, status):
+            key="v0319_vmax_"+str(status or "").strip().casefold()
+            buff=getattr(self,"active_skill_buffs",{}).get(key)
+            if not buff:
+                return False
+            return time.time() < float(buff.get("until",0.0) or 0.0)
+
+    def player_action_interval_v11154(self):
+            """Haste increases action frequency; source gives no numeric multiplier.
+            Reuse the engine's existing fast-action interval when available rather
+            than inventing a new percentage.
+            """
+            base=float(getattr(self,"combat_player_interval",1.0) or 1.0)
+            if not self.beneficial_status_active_v11154("haste"):
+                return base
+            fast=float(getattr(self,"combat_fast_player_interval",base) or base)
+            return min(base,fast)
+
     def party_vmax_support_active_v03511(self):
             """Compatibility query: V-MAX is self-only; old party V-MAX state is ignored."""
             return self.mec_vmax_active_v0319()
