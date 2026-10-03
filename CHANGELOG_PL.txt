@@ -1,5 +1,20 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.11.38
+Aktualna paczka: v1.11.39
+
+==============================================================================
+Soulbound v1.11.39 — Odin: pełne reguły encounteru UOSSMUD
+==============================================================================
+
+- Odin jest dostępny od Level 100; znacznie wyższy poziom pozostaje zalecany.
+- Walka wymaga od 3 do 5 graczy obecnych razem na arenie.
+- Czwarty gracz zwiększa presję Odina o 20%, a piąty o 40%, zgodnie z zasadą rosnącej trudności powyżej trzyosobowej drużyny.
+- Odin ma 8 unikalnych przedmiotów w swojej puli wspólnego losowego dropu.
+- Każdy uprawniony uczestnik zwycięstwa otrzymuje osobisty Odin's Mantle.
+- Odin's Mantle jest walutą tieru Odina u Fur Tradera; dodano pulę 8 reliktów.
+- Wspólny drop korzysta z istniejącego systemu przypisania przedmiotu po odbiorze.
+- Limit „raz na reboot” z UOSSMUD jest w Soulbound trwałym once-per-cycle, więc restart/deploy Railway nie resetuje zaliczenia.
+- Zachowano fazy Sleipnir Charge, Gungnir i Zantetsuken.
+- Brak wipe'a save'ów.
 
 ==============================================================================
 Soulbound v1.11.38 — UOSSMUD Super Bosses: duży runtime update
