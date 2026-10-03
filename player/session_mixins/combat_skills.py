@@ -443,17 +443,32 @@ class SessionCombatSkillsMixin:
                             if target is not self:
                                 await target.send(f"{self.character.name} używa Cure Beam. Odzyskujesz {actual} HP." + (f" Usunięto: {', '.join(cleansed)}." if cleansed else ""))
                             await self.grant_skill_use_xp(skill); return
-                        # Reuse Soulbound smart healing. Heal Beam's Support Effect becomes party-wide during V-MAX.
-                        if special=="heal_beam" and vmax:
-                            recipients=self.server.party_sessions(self.account_id,same_room=self.character.room_id) or [self]
+                        # v1.11.46: Heal Beam scales with Will + Skill Level.
+                        # With Soulbound's Support Effect it heals the whole local party
+                        # and receives the enhanced-healing bonus from the source ability.
+                        if special=="heal_beam":
+                            _p=(max(1,min(SKILL_MAX_LEVEL,skill_level))-1)/float(max(1,SKILL_MAX_LEVEL-1))
+                            _will=max(1,int(self.effective_willpower()))
+                            heal_pct=min(0.72,0.30 + min(0.22,_will*0.0018) + 0.20*_p)
+                            if vmax:
+                                heal_pct=min(0.80,heal_pct*float(skill.get("support_heal_multiplier",1.20) or 1.20))
+                                recipients=self.server.party_sessions(self.account_id,same_room=self.character.room_id) or [self]
+                            else:
+                                party=self.server.party_sessions(self.account_id,same_room=self.character.room_id) or [self]
+                                injured=[s for s in party if not s.closed and s.character and s.current_hp>0 and s.current_hp<s.max_hp()]
+                                recipients=[min(injured,key=lambda s:(s.current_hp/max(1,s.max_hp()),s.current_hp,s.character.name.lower()))] if injured else [self]
                             total=0
                             for sess in recipients:
                                 if sess.closed or not sess.character or sess.current_hp<=0: continue
-                                amount=max(1,int(sess.max_hp()*(0.45*skill_power)))
-                                before=sess.current_hp; sess.current_hp=min(sess.max_hp(),sess.current_hp+amount); total+=sess.current_hp-before
-                            await self.send(f"Heal Beam — Support Effect: cała drużyna odzyskuje łącznie {total} HP.")
+                                amount=max(1,int(sess.max_hp()*heal_pct))
+                                before=sess.current_hp; sess.current_hp=min(sess.max_hp(),sess.current_hp+amount); actual=sess.current_hp-before; total+=actual
+                                if sess is not self:
+                                    await sess.send(f"{self.character.name} używa Heal Beam. Odzyskujesz {actual} HP.")
+                            if vmax:
+                                await self.send(f"Heal Beam — Support Effect: wzmocnione leczenie całej drużyny, {len(recipients)} celów, łącznie {total} HP.")
+                            else:
+                                await self.send(f"Heal Beam: {recipients[0].character.name} odzyskuje {total} HP.")
                             await self.grant_skill_use_xp(skill); return
-                        # let generic heal handler below handle single target
 
                     if special in ("cosmic_rave","shoot_all","starlight_shower","shock_soldier","pop_knight","range_fire","dispose","uzi_punch","laser_spin","area_bomb","maelstrom","shock"):
                         alive=[x for x in aoe_mobs if x.alive]
