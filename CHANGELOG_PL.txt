@@ -1,8 +1,20 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.11.19
+Aktualna paczka: v1.11.20
 
 ==============================================================================
 ==============================================================================
+==============================================================================
+Soulbound v1.11.20 — przełącznik ofensywnego AoE
+==============================================================================
+
+- Dodano komendę aoe on/off oraz aoe do sprawdzania aktualnego stanu.
+- aoe on zachowuje dotychczasowe działanie: ofensywne umiejętności obszarowe atakują wszystkie żywe cele w lokacji.
+- aoe off ogranicza ofensywne aoe_damage do jednego aktualnego lub wskazanego celu.
+- Ustawienie jest trwałe dla postaci i pozostaje po ponownym zalogowaniu.
+- Leczenie i inne nieofensywne efekty obszarowe nie są ograniczane przez ten przełącznik.
+- Domyślnie AoE pozostaje włączone, więc istniejące postacie zachowują dotychczasowe zachowanie.
+- Dodano tabelę player_combat_settings_v11120; brak wipe'a save'ów.
+
 ==============================================================================
 Soulbound v1.11.19 — hotfix startu systemu znajomych
 ==============================================================================
