@@ -1,5 +1,17 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.11.51
+Aktualna paczka: v1.11.53
+
+==============================================================================
+Soulbound v1.11.53 — globalny audit czasu buffów i debuffów
+==============================================================================
+
+- Usunięto globalne założenie, że zwykły buff ma zawsze 30 sekund.
+- Dodano wspólną politykę czasu efektów: Skill Level rozwija Duration; Will/Willpower dodatkowo rozwija czas efektów, które są od niego zależne.
+- Stały czas jest dozwolony wyłącznie dla mechaniki jawnie oznaczonej fixed_duration.
+- Mec: Hypno Flash, Jammer, Logic Bomb, Satellite Linker, Tiger Rampage i Mec Sonata nie używają już arbitralnych czasów 30/45 sekund.
+- Extendable zachowuje dłuższy istniejący czas zamiast skracać efekt przy ponownym nałożeniu.
+- V-MAX/Permanence pozostają mechaniką specjalną; V-MAX Duration rozwija Skill Level, a pakiet kończy się razem z V-MAX.
+- Brak wipe'a save'ów.
 
 ==============================================================================
 Soulbound v1.11.51 — Mec canonical help batch
