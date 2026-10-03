@@ -237,7 +237,7 @@ def create_infinite_magitek_floor_definition(floor):
         boss_name = _MAGITEK_BOSS_NAMES[cycle_index]
         mech_id, mech_text = _MAGITEK_BOSS_MECHANICS[cycle_index % len(_MAGITEK_BOSS_MECHANICS)]
         cycle = max(1, (floor - 1) // (len(_MAGITEK_BOSS_NAMES) * 10) + 1)
-        display = f"{boss_name} — piętro {floor}, cykl {cycle}"
+        display = boss_name
         boss = _machine_template(
             display,
             int(round(base_hp * (18.0 + min(10.0, floor / 80.0)))),
