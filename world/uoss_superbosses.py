@@ -157,7 +157,12 @@ UOSS_SUPERBOSS_ENCOUNTERS_V11134 = {
         "arena":"Deep Dungeon — piętro 0","recommended_level":125,"helper":"Byblos","helper_max_players":3,
         "personal_token":"Serpentarius Emblem","party_members_must_unlock":True,"once_per_cycle":True,
     },
-    "odin": {"name":"Odin","mode":"party","unlock_level":125},
+    "odin": {
+        "name":"Odin","mode":"party","unlock_level":100,"recommended_level":125,
+        "min_players":3,"max_players":5,"difficulty_scales_above_players":3,
+        "personal_token":"Odin's Mantle","shared_unique_drop":True,"unique_drop_count":8,
+        "pickup_binds":True,"shop":"Fur Trader w Elsendor — Odin tier","once_per_cycle":True,
+    },
     "yiazmat": {
         "name":"Yiazmat","mode":"party","area":"Latarnia koło Tasnica","unlock_level":100,
         "recommended_level":125,"helper":"Montblanc","helper_max_players":3,
@@ -176,6 +181,7 @@ HELP_TOPICS["superbossy"] = [
     "Dostępne są wyzwania solo, solo/party i party. Minimalny próg nie oznacza zalecanego poziomu.",
     "Black Rabite: wspólny losowy drop z 10 przedmiotów + Moogle Steel dla każdego uczestnika; przy maks. 3 graczach Primm albo Popoi.",
     "Serpentarius: wymaga osobistego odblokowania Deep Dungeon; każdy uczestnik dostaje Serpentarius Emblem; przy maks. 3 graczach pomaga Byblos.",
+    "Odin: Level 100+, drużyna 3-5; 8 unikalnych dropów + Odin's Mantle dla każdego uczestnika; przy 4-5 graczach trudność rośnie.",
     "Yiazmat: 7 unikalnych dropów + Godslayer's Badge dla każdego uczestnika; przy maks. 3 graczach pomaga Montblanc.",
     "Lockouty Super Bossów są trwałe i nie resetują się przez restart ani deploy Railway.",
 ]
@@ -197,7 +203,7 @@ def uoss_superboss_audit_v11134():
     missing = sorted(required - set(encounters))
     if missing:
         errors.append("missing unique encounters: " + ", ".join(missing))
-    for key in ("black_rabite","serpentarius","yiazmat"):
+    for key in ("black_rabite","serpentarius","odin","yiazmat"):
         row = encounters.get(key, {})
         if not row.get("once_per_cycle"):
             errors.append(f"{key}: missing persistent cycle lockout")
