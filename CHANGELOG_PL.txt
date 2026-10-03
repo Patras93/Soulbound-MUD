@@ -1,5 +1,15 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.11.11
+Aktualna paczka: v1.11.12
+
+==============================================================================
+==============================================================================
+Soulbound v1.11.12 — czytelne XP za Salvage
+==============================================================================
+
+- Pojedynczy Salvage zawsze podaje dokładnie, ile XP Kowalstwa przyznano za rozłożenie przedmiotu.
+- Salvage Wszystko sumuje XP Kowalstwa ze wszystkich rozłożonych przedmiotów i podaje łączną wartość na końcu operacji.
+- Komunikat ma prostą formę przyjazną dla NVDA: Kowalstwo: +X XP za Salvage.
+- Brak zmian SQLite i brak wipe'a save'ów.
 
 ==============================================================================
 ==============================================================================
