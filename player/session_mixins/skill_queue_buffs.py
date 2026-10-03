@@ -485,11 +485,11 @@ class SessionSkillQueueBuffsMixin:
 
     def clear_skill_buffs(self, hostile=False):
             buffs=getattr(self,"active_skill_buffs",{})
+            # Auto-Permanence source contract: while Permanence is active, enemy
+            # dispels cannot remove beneficial effects. V-MAX grants Permanence,
+            # so hostile clearing preserves the complete beneficial buff set,
+            # not only the V-MAX marker itself.
             if hostile and self.vmax_permanence_active_v11152():
-                vmax=buffs.get("v0319_mec_vmax")
-                buffs.clear()
-                if vmax is not None:
-                    buffs["v0319_mec_vmax"]=vmax
                 return
             buffs.clear()
 
@@ -579,7 +579,15 @@ class SessionSkillQueueBuffsMixin:
             return time.time() < float(getattr(self, "v0319_vmax_until", 0.0) or 0.0)
 
     def mec_overheat_active_v0319(self):
-            return time.time() < float(getattr(self, "v0319_overheat_until", 0.0) or 0.0)
+            # UOSS specifies a brief Overheat after V-MAX but gives no duration.
+            # Represent it as a recovery action instead of inventing seconds.
+            return bool(getattr(self, "v0319_overheat_recovery_pending", False))
+
+    def mec_finish_overheat_recovery_v0319(self):
+            if bool(getattr(self, "v0319_overheat_recovery_pending", False)):
+                self.v0319_overheat_recovery_pending=False
+                return True
+            return False
 
     async def mec_refresh_vmax_v0319(self):
             now=time.time()
@@ -588,18 +596,15 @@ class SessionSkillQueueBuffsMixin:
                 self.v0319_vmax_support_maintained=False
             if until and now >= until:
                 self.v0319_vmax_until=0.0
-                # UOSS confirms Overheat but does not supply a duration. Use the
-                # V-MAX effect duration as the recovery window instead of inventing
-                # an unrelated fixed number.
-                _overheat=max(1,int(round(max(1.0,until-(until-now)))))
-                # Support Effect replaces the source support weapon. It prevents
-                # the end-of-V-MAX Overheat only if maintained through expiration.
+                # UOSS confirms a brief Overheat but supplies no numeric
+                # duration. Model it as one recovery action, not a fabricated
+                # seconds-based timer.
                 if not bool(getattr(self,"v0319_vmax_support_maintained",False)):
-                    self.v0319_overheat_until=max(float(getattr(self,"v0319_overheat_until",0.0) or 0.0),now+_overheat)
+                    self.v0319_overheat_recovery_pending=True
                 self.v0319_vmax_support_maintained=False
                 self.active_skill_buffs.pop("v0319_mec_vmax",None)
                 if self.mec_overheat_active_v0319():
-                    await self.send(f"V-MAX wygasa. OVERHEAT: wszystkie statystyki bojowe są osłabione przez {_overheat} sekund i V-MAX nie może być ponownie użyty.")
+                    await self.send("V-MAX wygasa. OVERHEAT: wszystkie statystyki bojowe są osłabione do zakończenia następnej akcji regeneracyjnej i V-MAX nie może być ponownie użyty.")
                 else:
                     await self.send("V-MAX wygasa. Support Effect utrzymany do końca: brak OVERHEAT.")
 
