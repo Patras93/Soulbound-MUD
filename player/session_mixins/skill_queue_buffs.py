@@ -371,7 +371,7 @@ class SessionSkillQueueBuffsMixin:
             Feedback damage is restored in full after exactly three owner action rounds.
             Self-Repair also grants passive Auto-Regen.
             """
-            if not self.character or self.character.class_name!="Mec" or not self.mec_skill_known_v0319("v0319_mec_self_repair"):
+            if not self.character or self.character.class_name!="Mec" or not self.job_ability_selected("inherent","v0319_mec_self_repair"):
                 return
             round_no=int(getattr(self,"v0319_mec_round",0) or 0)+1
             self.v0319_mec_round=round_no
