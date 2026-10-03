@@ -451,6 +451,9 @@ ITEMS = {
     "redwood_log": {"name": "Pień sekwoi", "type": "resource", "price": None, "sell_gold": 18, "desc": "Ogromne i rzadkie drewno ze starych drzew."},
 
     # v1.11.35 — trwałe nagrody UOSS Super Bossów.
+    "uoss_desert_rose": {"name":"Desert Rose","type":"superboss_token","price":None,"desc":"Osobisty łup za pokonanie Ruby WEAPON. Traveler w Kalm wymienia go razem z Earth Harp."},
+    "uoss_earth_harp": {"name":"Earth Harp","type":"superboss_token","price":None,"desc":"Osobisty łup za pokonanie Emerald WEAPON. Traveler w Kalm wymienia go razem z Desert Rose."},
+    "uoss_weapon_pair_reward": {"name":"Planet's Guardian Relic","type":"equipment","price":None,"bind_on_pickup":True,"desc":"Potężny ekwipunek otrzymywany od Travelera w Kalm za trofea Ruby i Emerald WEAPON."},
     "uoss_moogle_steel": {"name":"Moogle Steel","type":"superboss_token","price":None,"desc":"Osobisty token za pokonanie Black Rabite. Przypisany do postaci."},
     "uoss_serpentarius_emblem": {"name":"Serpentarius Emblem","type":"superboss_token","price":None,"desc":"Osobisty emblemat za pokonanie Serpentariusa. Przypisany do postaci."},
     "uoss_godslayers_badge": {"name":"Godslayer's Badge","type":"superboss_token","price":None,"desc":"Osobista odznaka za pokonanie Yiazmata. Otwiera jego tier nagród."},
