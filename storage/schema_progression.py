@@ -103,6 +103,15 @@ def create_progression_schema(self):
                         FOREIGN KEY(account_id) REFERENCES accounts(id) ON DELETE CASCADE
                     );
 
+        CREATE TABLE IF NOT EXISTS job_ability_slots_v11154 (
+                        account_id INTEGER NOT NULL,
+                        slot_type TEXT NOT NULL,
+                        skill_id TEXT NOT NULL,
+                        PRIMARY KEY(account_id, slot_type),
+                        CHECK(slot_type IN ('inherent','counter')),
+                        FOREIGN KEY(account_id) REFERENCES accounts(id) ON DELETE CASCADE
+                    );
+
         CREATE TABLE IF NOT EXISTS combat_log_settings (
                         account_id INTEGER PRIMARY KEY,
                         mode TEXT NOT NULL DEFAULT 'normal',
