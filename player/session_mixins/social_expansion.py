@@ -102,7 +102,7 @@ class SessionSocialExpansionMixin:
         for s in online:
             c=s.character; classes=', '.join(c.active_class_names()) or c.class_name; title=f", tytuł {c.active_title}" if c.active_title else ''; guild=self._guild_name_v03051(s.account_id); role=self._mentor_role_v03051(s.account_id); afk=self.server.db.conn.execute("SELECT 1 FROM social_afk_v03051 WHERE account_id=?",(s.account_id,)).fetchone(); party='party' if self.server.party_key_for_account(s.account_id) is not None else ''
             extras=', '.join(x for x in (guild and f"gildia {guild}",role,afk and 'AFK',party) if x)
-            await self.send(f"{c.name}: {classes}, Soul {c.soul_level}{title}" + (f", {extras}" if extras else '') + '.')
+            await self.send(f"{c.name}. Rasa: {c.race}. Klasa: {classes}.")
 
     def _profile_time_v0363(self, ts):
         try:
