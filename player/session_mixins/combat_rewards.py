@@ -89,6 +89,7 @@ def deferred_kill_commits_v11125(callback):
         )
     wrapped.__name__ = callback.__name__
     wrapped.__doc__ = callback.__doc__
+    wrapped.__wrapped__ = callback
     return wrapped
 
 class SessionCombatRewardsMixin:
