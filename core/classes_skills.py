@@ -2387,7 +2387,7 @@ def _v0319_install_full_mec_kit():
         ("Shock",95,"aoe_damage",1800,"magic","shock","Dark + Lightning attack on all enemies."),
         ("Starlight Shower",110,"damage",2000,"magic","starlight_shower","Focused laser barrage; in V-MAX becomes non-diminishing and hits all enemies."),
         # Support
-        ("Cure Beam",10,"heal",100,"support","cure_beam","Single-target heal; support effect improves healing and clears Poison/Blind."),
+        ("Cure Beam",1,"heal",100,"support","cure_beam","Single-target healing beam available from the start. Willpower and Skill Level increase healing. Support Effect increases healing and removes Blind and Poison."),
         ("Hypno Flash",16,"damage",300,"support","hypno_flash","Attempts to put one enemy to Sleep; support effect improves chance."),
         ("Jammer",32,"damage",750,"support","jammer","Attempts Stop on one enemy; Willpower influences accuracy and duration, Skill Level increases both, and Machine targets are easier to affect. Support Effect expands Jammer to all enemies."),
         ("Heal Beam",54,"heal",1000,"support","heal_beam","Large single-target heal; support effect heals entire party."),
@@ -2428,6 +2428,9 @@ def _v0319_install_full_mec_kit():
         if special=="uzi_punch": row["self_damage_pct"]=.10
         if special=="kamikaze_crush": row["self_damage_pct"]=.18
         if special=="dispose": row["self_damage_pct"]=.08
+        if special=="cure_beam":
+            row.update({"scale":"willpower","uoss_mp_cost":10,"target_mode":"self_or_one_ally",
+                        "support_heal_multiplier":1.20,"support_cleanses":["blind","poison"]})
         if special=="jammer":
             row.update({"scale":"willpower","control_effect":"stop","cleanseable":True,"extendable":True,
                         "uoss_mp_cost":20,"uoss_support_mp_cost":40,
