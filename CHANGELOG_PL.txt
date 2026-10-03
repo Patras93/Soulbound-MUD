@@ -1,8 +1,18 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.11.13
+Aktualna paczka: v1.11.14
 
 ==============================================================================
 ==============================================================================
+==============================================================================
+Soulbound v1.11.14 — pasywki poza auto-kolejką
+==============================================================================
+
+- Combat Mastery i Maxwell Program są traktowane jak prawdziwe pasywki: po nauczeniu działają automatycznie i stale.
+- Żadnej umiejętności z kind=passive nie można już dodać komendą kolejka dodaj.
+- Istniejące stare wpisy pasywek są automatycznie usuwane przy wyświetleniu kolejki i nie zajmują slotów.
+- Dotychczasowe pasywne Protokoły Meca zachowują identyczne działanie.
+- Brak zmian SQLite i brak wipe'a save'ów.
+
 ==============================================================================
 Soulbound v1.11.13 — pełne auto-dołączanie drużyny po AoE
 ==============================================================================
