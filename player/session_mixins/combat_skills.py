@@ -427,12 +427,12 @@ class SessionCombatSkillsMixin:
                             await self.send("V-MAX jest już aktywny."); return
                         if self.mec_overheat_active_v0319():
                             await self.send("V-MAX zablokowany przez Overheat do zakończenia akcji regeneracyjnej."); return
-                        will=max(1,int(self.effective_willpower()))
-                        _vd,_vc=self.server.db.vmax_upgrades_v03114(self.account_id)
-                        _skill_progress=(max(1,min(SKILL_MAX_LEVEL,skill_level))-1)/float(max(1, SKILL_MAX_LEVEL-1))
-                        _skill_duration_mult=1.0 + 0.80*(_skill_progress**0.90)
-                        duration=min(180,int(round((25 + will//8 + 10*_vd)*_skill_duration_mult)))  # v0.33.0: Skill Level V-MAX rozwija czas działania.
-                        self.v0319_vmax_until=time.time()+duration
+                        # Source says Skill Level increases V-MAX duration but
+                        # supplies no base duration or numeric curve. Do not invent
+                        # seconds. Keep the state active until a canonical duration
+                        # rule is available.
+                        duration=None
+                        self.v0319_vmax_until=float("inf")
                         self.v0319_vmax_support_maintained=bool(support_effect)
                         # V-MAX grants its named beneficial package to the Mec only.
                         # Keep each status explicit so Permanence protects the whole
@@ -453,7 +453,7 @@ class SessionCombatSkillsMixin:
                         if hasattr(self,"v0319_slow_until"):
                             self.v0319_slow_until=0.0
                         await self.send(
-                            f"V-MAX aktywny przez {duration} s. Protect, Shell, Haste, Regen, "
+                            "V-MAX aktywny. Protect, Shell, Haste, Regen, "
                             "Preach, Praise i Permanence działają na Meca; Haste neguje Slow, "
                             "a Permanence chroni korzystne efekty przed wrogim dispellem."
                         )
