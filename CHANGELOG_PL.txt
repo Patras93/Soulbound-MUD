@@ -1,5 +1,27 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.11.34
+Aktualna paczka: v1.11.38
+
+==============================================================================
+Soulbound v1.11.38 — UOSSMUD Super Bosses: duży runtime update
+==============================================================================
+
+- Dodano 21 unikalnych aren i 21 stałych spawnów Super Bossów poza rotacją Mitycznej Krypty/Wierzy.
+- Dodano komendy superbosses oraz superboss <nazwa>; lista jest krótka i czytelna dla NVDA.
+- Egzekwowane są tryby solo, party i solo/party oraz minimalne progi Level dla wszystkich lokalnych uczestników.
+- Serpentarius wymaga osobistego odkrycia Deep Dungeon przez każdego członka drużyny.
+- Black Rabite, Serpentarius i Yiazmat mają trwałe osobiste tokeny: Moogle Steel, Serpentarius Emblem i Godslayer's Badge.
+- Black Rabite ma pulę 10 unikalnych reliktów, Yiazmat 7; jeden wspólny drop trafia do uprawnionego uczestnika i jest przypisywany.
+- Dodano Primm/Popoi, Byblosa i Montblanca jako realnych pomocników małych drużyn; Black Rabite pozwala wybrać dokładnie Primm albo Popoi.
+- Pomocnicy wzmacniają obrażenia drużyny i zmniejszają presję bossa; są niedostępni powyżej limitu 3 graczy.
+- Każdy z 21 bossów ma trzy nazwane fazy walki z rosnącą presją i komunikatem tylko przy zmianie fazy.
+- Spekkio skaluje presję względem aktualnej siły postaci, zamiast być statycznym bossem do przerośnięcia Levelem.
+- Serie Asterisks, Four Fiends, Lunar Trial i Elementals zapisują trwały progres.
+- Pokonanie wszystkich 8 Elementals zapisuje odblokowanie silniejszego przeciwnika.
+- Zaliczenia i nagrody używają trwałego SQLite/collection persistence i nie resetują się przez restart ani deploy Railway.
+- Skille oraz AoE respektują te same wymagania co zwykły atak; nie można ominąć blokady wejścia atakiem obszarowym.
+- Dodano bazowe skalowanie HP/obrażeń aren według poziomu wyzwania.
+- Brak wipe'a save'ów.
+
 
 ==============================================================================
 ==============================================================================
