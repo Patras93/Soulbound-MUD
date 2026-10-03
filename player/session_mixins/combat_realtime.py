@@ -72,9 +72,9 @@ class SessionCombatRealtimeMixin:
                 template = MOB_TEMPLATES[mob.template_id]
                 self._last_mana_focus_gain = 0
                 damage = self.player_damage()
-                # v1.11.42: UOSSMUD Shooting Mastery is an automatic Mec inherent.
-                # Soulbound's Mec Soul Weapon is the ranged weapon equivalent; the
-                # inherent applies only to a purely Dexterity/Agility-based ranged profile.
+                # v1.11.43: Soulbound has one Soul Weapon per character.
+                # Shooting Mastery therefore augments the Dexterity/ranged component
+                # of the Mec's single Soul Weapon instead of requiring another weapon.
                 _shooting_mastery = None
                 if self.character.class_name == "Mec":
                     _shooting_mastery = next(
@@ -88,10 +88,13 @@ class SessionCombatRealtimeMixin:
                 ):
                     _row = self.server.db.skill_progress(self.account_id, _shooting_mastery["id"])
                     _lvl = max(1, min(600, int(_row["level"])))
-                    # 20-35% automatic ranged damage: deliberately stronger than
-                    # the ordinary Attack UP-style bonus.
                     _shooting_bonus = 0.20 + 0.15 * ((_lvl - 1) / 599.0)
-                    damage = max(1, int(round(damage * (1.0 + _shooting_bonus))))
+                    # One-weapon adaptation: only the Dexterity share receives the
+                    # mastery bonus; no second weapon/equipment type is required.
+                    _str=max(0.0,float(self.effective_strength()))
+                    _dex=max(0.0,float(self.effective_dexterity()))
+                    _dex_share=_dex/max(1.0,_str+_dex)
+                    damage = max(1, int(round(damage * (1.0 + _shooting_bonus * _dex_share))))
                 # v0.35.1: Soul Weapon Mastery wzmacnia wyłącznie zwykły atak broni.
                 mastery = soul_weapon_mastery_bonuses(self.character.soul_weapon_mastery_level)
                 damage = max(1, int(round(damage * (1.0 + mastery["damage_percent"] / 100.0))))
