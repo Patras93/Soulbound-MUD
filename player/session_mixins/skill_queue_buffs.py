@@ -67,11 +67,12 @@ class SessionSkillQueueBuffsMixin:
     def skill_queue_capacity(self, queue_type):
             # v0.30.18: startowa pojemność kolejki to 10 slotów.
             # Sloty nadal rosną wyłącznie z Character Level, nie z Biegłości klasy:
-            # Level 1=10, 10=11, 100=20, 200=30, 400=50, 600=70.
+            # v1.11.31: 20 slotów bazowych od startu, dalej +1 co 10 Leveli.
+            # Level 1=20, 10=21, 100=30, 200=40, 400=60, 600=80.
             if self.skill_queue_active_mastery(queue_type) <= 0:
                 return 0
             character_level = max(1, min(CHARACTER_MAX_LEVEL, int(self.character.character_level)))
-            return min(10 + CHARACTER_MAX_LEVEL // 10, 10 + character_level // 10)
+            return min(20 + CHARACTER_MAX_LEVEL // 10, 20 + character_level // 10)
 
     def skill_queue_entries(self, queue_type, active_only=False):
             rows = list(self.server.db.skill_queue_rows(self.account_id, queue_type))
