@@ -8,12 +8,6 @@ available as authored metadata for command/runtime gates.
 from data.catalogs import ROOMS, MOB_TEMPLATES, NPCS, SHOPS
 from world.uoss_superbosses import UOSS_SUPERBOSS_ENCOUNTERS_V11134
 
-# Imported late from content_registry; obtain its canonical spawn list without a module-level circular import.
-import sys
-_registry = sys.modules.get("systems.content_registry")
-MOB_SPAWNS = getattr(_registry, "MOB_SPAWNS", None)
-if MOB_SPAWNS is None:
-    raise RuntimeError("UOSS Super Boss world must load after content_registry MOB_SPAWNS initialization")
 
 HUB="uoss_superboss_hall_v11136"
 if HUB not in ROOMS:
@@ -50,8 +44,6 @@ for idx,key in enumerate(_ORDER,1):
         "boss_mechanic":f"uoss_{key}",
         "boss_mechanic_text":f"Unikalna walka Super Boss: {spec['name']}. Wymagania sprawdzisz komendą superbosses {spec['name']}.",
     })
-    if (rid,mid) not in MOB_SPAWNS:
-        MOB_SPAWNS.append((rid,mid))
     _prev=rid
 
 # Helpers are real NPCs in the relevant arenas. Hiring behavior is represented
@@ -83,6 +75,14 @@ NPCS.setdefault("uoss_yiazmat_fur_trader",{
 })
 SHOPS.setdefault("uoss_superboss_arena_black_rabite_v11136",[f"uoss_black_rabite_unique_{i}" for i in range(1,11)])
 SHOPS.setdefault("uoss_superboss_arena_yiazmat_v11136",[f"uoss_yiazmat_unique_{i}" for i in range(1,8)])
+
+def install_uoss_superboss_spawns_v11136(mob_spawns):
+    """Idempotently install the 21 canonical boss spawns after content registry exists."""
+    for key in _ORDER:
+        pair=(f"uoss_superboss_arena_{key}_v11136", f"uoss_superboss_{key}_v11136")
+        if pair not in mob_spawns:
+            mob_spawns.append(pair)
+    return 21
 
 UOSS_SUPERBOSS_WORLD_STATE_V11136={
  "version":"1.11.36","hub":HUB,"arenas":21,"bosses":21,"helpers":tuple(_HELPERS),
