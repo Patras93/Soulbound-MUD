@@ -1,5 +1,17 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.11.45
+Aktualna paczka: v1.11.46
+
+==============================================================================
+Soulbound v1.11.46 — Mec Heal Beam
+==============================================================================
+
+- Heal Beam od Level 54 skaluje moc leczenia z Willpower oraz Skill Level 1-600.
+- Bez Support Effect leczy jeden najbardziej ranny żywy cel w lokalnej drużynie albo Meca solo.
+- Support Effect, dostosowany do jednej Broni Duszy Soulbound, rozszerza Heal Beam na całą żywą drużynę w tej samej lokacji.
+- W trybie Support Effect Heal Beam otrzymuje dodatkowe +20% mocy leczenia.
+- Źródłowe koszty 36/72 MP zachowano jako metadata UOSS; Mec pozostaje bez kosztu Many.
+- Heal Beam nie ma cooldownu.
+- Brak wipe'a save'ów.
 
 ==============================================================================
 Soulbound v1.11.45 — Mec Cure Beam
