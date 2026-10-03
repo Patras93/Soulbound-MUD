@@ -1,5 +1,16 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.11.41
+Aktualna paczka: v1.11.42
+
+==============================================================================
+Soulbound v1.11.42 — Mec Shooting Mastery
+==============================================================================
+
+- Shooting Mastery Meca odwzorowuje inherent UOSSMUD od Level 30 i działa automatycznie.
+- Nie wymaga job set, ręcznej aktywacji ani cooldownu.
+- Wzmacnia zwykły dystansowy atak Broni Duszy Meca oparty na czystej Zręczności/Agility.
+- Bonus rośnie ze Skill Level 1-600 od +20% do +35% obrażeń i jest celowo mocniejszy od zwykłego Attack UP.
+- Nie wzmacnia magicznych ani siłowych profili ataku.
+- Brak wipe'a save'ów.
 
 ==============================================================================
 Soulbound v1.11.41 — Ruby & Emerald WEAPON / Kalm Traveler
