@@ -591,7 +591,11 @@ class SessionCombatSkillsMixin:
                             await self.grant_skill_use_xp(skill); return
 
                     if special=="satellite_linker" and mob:
-                        mob.v0319_satellite_until=time.time()+45; mob.v0319_satellite_power=max(1,int(skill.get("base_power",1000)*self.mec_branch_multiplier_v0319(branch)))
+                        _p=(max(1,min(SKILL_MAX_LEVEL,skill_level))-1)/float(max(1,SKILL_MAX_LEVEL-1))
+                        _wis=max(1,int(self.effective_willpower()))
+                        _duration=max(12,int(round(18+30*_p)))
+                        mob.v0319_satellite_until=time.time()+_duration
+                        mob.v0319_satellite_power=max(1,int(skill.get("base_power",1200)*self.mec_branch_multiplier_v0319(branch)*(0.30+min(0.35,_wis*0.002))))
                     if special=="tiger_rampage" and mob:
                         # v1.11.50: two heavy blows. One Soul Weapon replaces the
                         # original melee-weapon gate; its element is carried by both hits.
@@ -621,9 +625,23 @@ class SessionCombatSkillsMixin:
                         if mob.hp<=0: await self.mob_defeated(mob)
                         else: await self.ensure_realtime_combat()
                         return
-                    if special=="mec_sonata" and mob and random.random()<0.40: mob.v0319_level_down_until=time.time()+30
-                    if special=="magnify" and random.random()<0.25: self.v0319_lock_until=time.time()+12
+                    if special=="mec_sonata" and mob and random.random()<float(skill.get("level_down_chance",0.40) or 0.40):
+                        mob.v0319_level_down_until=max(float(getattr(mob,"v0319_level_down_until",0.0) or 0.0),time.time()+int(skill.get("level_down_duration",30) or 30))
+                    if special=="magnify":
+                        _p=(max(1,min(SKILL_MAX_LEVEL,skill_level))-1)/float(max(1,SKILL_MAX_LEVEL-1))
+                        _wis=max(1,int(self.effective_willpower()))
+                        _fail=max(0.04,0.30-0.16*_p-min(0.10,_wis*0.001))
+                        if random.random()<_fail:
+                            self.v0319_lock_until=time.time()+12
+                            await self.send("Magnify przeciąża Broń Duszy. SYSTEM LOCK: reboot przez 12 sekund.")
                     # Other single-target Mec attacks continue through the normal Soulbound damage handler below.
+
+                    if special=="plural_slash" and mob:
+                        # Agility/Dexterity adds damage to every slash even though the
+                        # one Soul Weapon uses the Strength melee style.
+                        _dex=max(1,float(self.effective_dexterity()))
+                        _bonus=1.0+min(0.60,_dex*0.002)
+                        skill["mult"]=float(skill.get("mult",1.0) or 1.0)*_bonus
 
                 # v0.31.5: V-MAX is a dedicated Mec state used by Cosmic Rave.
                 if skill.get("id") == "v0315_mec_vmax":
