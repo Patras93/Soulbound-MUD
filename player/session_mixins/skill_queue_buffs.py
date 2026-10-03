@@ -366,6 +366,39 @@ class SessionSkillQueueBuffsMixin:
                 "kolejka wyczyść, kolejka fizyczna, kolejka magiczna, kolejka on/off."
             )
 
+    async def mec_self_repair_round_v11154(self):
+            """Advance Self-Repair by one Mec combat round.
+            Feedback damage is restored in full after exactly three owner action rounds.
+            Self-Repair also grants passive Auto-Regen.
+            """
+            if not self.character or self.character.class_name!="Mec" or not self.mec_skill_known_v0319("v0319_mec_self_repair"):
+                return
+            round_no=int(getattr(self,"v0319_mec_round",0) or 0)+1
+            self.v0319_mec_round=round_no
+            queue=list(getattr(self,"v0319_feedback_repair_queue",[]) or [])
+            due=[x for x in queue if int(x[0])<=round_no]
+            self.v0319_feedback_repair_queue=[x for x in queue if int(x[0])>round_no]
+            repaired=sum(max(0,int(x[1])) for x in due)
+            if repaired and self.current_hp>0:
+                before=self.current_hp
+                self.current_hp=min(self.max_hp(),self.current_hp+repaired)
+                actual=self.current_hp-before
+                if actual: await self.send(f"Self-Repair: naprawiono {actual} HP obrażeń Feedback po 3 rundach.")
+            if self.current_hp>0 and self.current_hp<self.max_hp():
+                regen=max(1,int(round(self.max_hp()*0.01)))
+                before=self.current_hp
+                self.current_hp=min(self.max_hp(),self.current_hp+regen)
+                actual=self.current_hp-before
+                if actual: await self.send(f"Self-Repair — Auto-Regen: +{actual} HP.")
+
+    def queue_mec_feedback_repair_v11154(self, amount):
+            if not self.character or self.character.class_name!="Mec" or not self.mec_skill_known_v0319("v0319_mec_self_repair"):
+                return
+            round_no=int(getattr(self,"v0319_mec_round",0) or 0)
+            queue=list(getattr(self,"v0319_feedback_repair_queue",[]) or [])
+            queue.append((round_no+3,max(0,int(amount))))
+            self.v0319_feedback_repair_queue=queue
+
     def skill_effect_duration_v11153(self, skill, skill_level, base_seconds=None):
             """Shared non-fixed duration policy for buffs/debuffs.
             Authored fixed durations survive only when explicitly marked fixed_duration.
