@@ -14,6 +14,7 @@ from player.session_mixins.world_progression import SessionWorldProgressionMixin
 from player.session_mixins.help_codex_profile import SessionHelpCodexProfileMixin
 from player.session_mixins.mail_attachments import SessionMailAttachmentsV0614Mixin
 from player.session_mixins.social_expansion import SessionSocialExpansionMixin
+from player.session_mixins.friends import SessionFriendsMixin
 from player.session_mixins.courier_delivery import SessionCourierDeliveryMixin
 from player.session_mixins.movement_party_social import SessionMovementPartySocialMixin
 from player.session_mixins.professions_storage_guide import SessionProfessionsStorageGuideMixin
@@ -49,6 +50,7 @@ class Session(
     SessionHelpCodexProfileMixin,
     SessionMailAttachmentsV0614Mixin,
     SessionSocialExpansionMixin,
+    SessionFriendsMixin,
     SessionCourierDeliveryMixin,
     SessionMovementPartySocialMixin,
     SessionProfessionsStorageGuideMixin,
