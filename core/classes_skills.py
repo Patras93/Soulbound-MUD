@@ -2433,6 +2433,7 @@ def _v0319_install_full_mec_kit():
         if special=="shoot_all": row.update({"aoe_non_diminishing":True,"critical_chance_influence":True,"vmax_increases_critical_and_damage":True,"carries_soul_weapon_elements":True,"single_soul_weapon":True})
         if special=="laser_spin": row.update({"aoe_diminishing":True,"element":"dark"})
         if special=="maelstrom": row.update({"aoe_diminishing":True,"element":"water"})
+        if special=="shock": row.update({"aoe_diminishing":True,"elements":["lightning","dark"],"source_mp_cost":150})
                 if special=="crush": row["self_damage_pct"]=.08
         if special=="uzi_punch": row["self_damage_pct"]=.10
         if special=="kamikaze_crush": row["self_damage_pct"]=.18
