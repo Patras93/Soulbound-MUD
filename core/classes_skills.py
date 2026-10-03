@@ -2369,7 +2369,7 @@ def _v0319_install_full_mec_kit():
         ("Crosshair",1,"damage",200,"ranged","crosshair","Precise shot; benefits strongly from critical chance."),
         ("Range Fire",8,"aoe_damage",500,"ranged","range_fire","Bullets hit all enemies; non-diminishing area attack."),
         ("Dispose",32,"aoe_damage",1200,"ranged","dispose","Lasers hit all enemies at a cost of some HP."),
-        ("Satellite Linker",44,"damage",1000,"ranged","satellite_linker","Attack drones repeatedly damage one enemy over time; scales with Will."),
+        ("Satellite Linker",44,"damage",1200,"ranged","satellite_linker","Attack drones repeatedly damage one enemy over time; scales with Will."),
         ("Magnify",90,"damage",1500,"ranged","magnify","Very strong overload attack; may Lock the user."),
         ("Shoot-All",110,"aoe_damage",2000,"ranged","shoot_all","Fires all ammunition at all enemies; V-MAX increases damage and crit."),
         # Feedback
@@ -2391,7 +2391,7 @@ def _v0319_install_full_mec_kit():
         ("Hypno Flash",16,"damage",300,"support","hypno_flash","Attempts to put one enemy to Sleep; support effect improves chance."),
         ("Jammer",32,"damage",750,"support","jammer","Attempts Stop on one enemy; Willpower influences accuracy and duration, Skill Level increases both, and Machine targets are easier to affect. Support Effect expands Jammer to all enemies."),
         ("Heal Beam",54,"heal",1000,"support","heal_beam","Significant Willpower-based healing. Normally heals one target; Support Effect heals the entire local party for an enhanced amount."),
-        ("Logic Bomb",95,"damage",1200,"support","logic_bomb","Attempts Silence/Don't Act/Slow; support effect can add Curse/Don't Move/Blind."),
+        ("Logic Bomb",92,"damage",1200,"support","logic_bomb","Attempts Silence/Don't Act/Slow; support effect can add Curse/Don't Move/Blind."),
         ("V-MAX",130,"boost",2000,"support","vmax","Core overdrive: Protect, Shell, Haste, Regen, Preach, Praise, Permanence; changes several Mec skills. Overheats when it ends unless Support Effect suppresses it."),
         # Counter
         ("Intercept System",75,"passive",1000,"counter","intercept_system","Counters enemy melee using the user's highest combat stat."),
@@ -2485,7 +2485,7 @@ _MEC_EXPECTED_V11149 = {
     "laser_spin":(1,"magic"),"area_bomb":(8,"magic"),"mec_sonata":(20,"magic"),
     "maelstrom":(44,"magic"),"shock":(95,"magic"),"starlight_shower":(110,"magic"),
     "cure_beam":(10,"support"),"hypno_flash":(16,"support"),"jammer":(32,"support"),
-    "heal_beam":(54,"support"),"logic_bomb":(95,"support"),"vmax":(130,"support"),
+    "heal_beam":(54,"support"),"logic_bomb":(92,"support"),"vmax":(130,"support"),
     "intercept_system":(75,"counter"),"self_repair":(1,"inherent"),"combat_mastery":(30,"inherent"),
     "maxwell_program":(30,"inherent"),"shooting_mastery":(30,"inherent"),
     "strength_protocol":(1,"passive"),"ranged_protocol":(1,"passive"),
