@@ -38,6 +38,17 @@ def main():
             if cross["errors"]:
                 raise SystemExit(1)
 
+            from admin.mob_display_name_audit_v11129 import audit_mob_display_names_v11129
+            mob_names = audit_mob_display_names_v11129(server)
+            print(
+                f"MOB DISPLAY NAMES: {mob_names['error_count']} errors; "
+                f"{mob_names['checked']} runtime mob templates checked"
+            )
+            for error in mob_names.get("errors", ())[:100]:
+                print(f"MOB NAME ERROR: {error}")
+            if mob_names["error_count"]:
+                raise SystemExit(1)
+
             from validation.ocean_contract_v1001 import audit_ocean_contract_v1001
             contract = audit_ocean_contract_v1001()
             print(f"OCEAN CONTRACT: {contract['error_count']} errors, {contract['routes']} routes")
