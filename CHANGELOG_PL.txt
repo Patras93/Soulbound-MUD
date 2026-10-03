@@ -1,8 +1,19 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.11.24
+Aktualna paczka: v1.11.25
 
 ==============================================================================
 ==============================================================================
+==============================================================================
+Soulbound v1.11.25 — pełne batchowanie SQLite podczas killa
+==============================================================================
+
+- Dodano kontrolowany mechanizm deferred commits dla gorącej ścieżki zabicia moba.
+- Podczas mob_defeated wszystkie wewnętrzne SQLite commit() z questów, progresji, bestiariusza, kolekcji, reputacji, dropów i zapisów postaci są odkładane do końca obsługi killa.
+- Po zakończeniu całego killa wykonywany jest jeden fizyczny commit zamiast serii małych commitów.
+- Poza obsługą zabicia moba baza zachowuje dotychczasowe natychmiastowe commity.
+- Dane nadal są utrwalane po każdym zakończonym killu; nie wprowadzono okresowego autosave ani wipe'a save'ów.
+- Optymalizacja jest szczególnie istotna dla kilkuosobowych party szybko zabijających kolejne moby.
+
 ==============================================================================
 Soulbound v1.11.24 — party kill SQLite lag hotfix
 ==============================================================================
