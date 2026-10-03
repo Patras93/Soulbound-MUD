@@ -1,8 +1,23 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.11.32
+Aktualna paczka: v1.11.33
 
 ==============================================================================
 ==============================================================================
+==============================================================================
+Soulbound v1.11.33 — bez sztucznych cooldownów + UOSS Superbosses 2.0
+==============================================================================
+
+- Zwykłe ofensywne skille damage, drain, execute i aoe_damage nie mają już sztucznego cooldownu ponownego użycia.
+- Auto-kolejka nie zatrzymuje już takich skilli przez stare wartości cooldown zapisane w definicjach.
+- Cooldowny pozostają dla zdolności, w których blokada jest częścią mechaniki; V-MAX nadal respektuje aktywny V-MAX i Overheat.
+- Pasywne protokoły Meca pozostają Automatic i nie zajmują kolejki.
+- Usunięto UOSS superbossów z automatycznej rotacji nazw bossów co 10 pięter Mitycznej Krypty i Mitycznej Wieży Astralnej.
+- Serpentarius i Black Rabite otrzymali osobne definicje encounterów UOSS Superbosses 2.0 zamiast bycia losową nazwą skalowanego bossa lochu.
+- Serpentarius: Deep Dungeon, odblokowanie przez eksplorację, arena piętro 0, Byblos przy maksymalnie 3 graczach, Serpentarius Emblem i limit raz na cykl.
+- Black Rabite: Rabite Fields, próg Level 100, wybór Primm albo Popoi przy maksymalnie 3 graczach, Moogle Steel, wspólny unikalny drop i limit raz na cykl.
+- To jest warstwa definicji encounterów; pełne lokacje, wynajem pomocników, sklep/trofea i trwały licznik cyklu będą podpinane jako osobny runtime system bez przywracania rotacji w Mitycznej Krypcie.
+- Brak wipe'a save'ów.
+
 ==============================================================================
 Soulbound v1.11.32 — Explorer Points i różne zadania klasowe
 ==============================================================================
