@@ -76,7 +76,7 @@ class SessionCombatRealtimeMixin:
                 # shared mana resource while Maxwell is learned.
                 if self.character.class_name=="Mec":
                     _maxwell=next((s for s in self.available_class_skills() if s.get("mec_special")=="maxwell_program"),None)
-                    if _maxwell and self.server.db.knows_skill(self.account_id,_maxwell["id"]):
+                    if _maxwell and self.job_ability_selected("inherent",_maxwell["id"]):
                         _now=time.monotonic()
                         _last=float(getattr(self,"v0319_maxwell_mana_tick",0.0) or 0.0)
                         if _last<=0.0:
@@ -98,7 +98,7 @@ class SessionCombatRealtimeMixin:
                     )
                 if (
                     _shooting_mastery
-                    and self.server.db.knows_skill(self.account_id, _shooting_mastery["id"])
+                    and self.job_ability_selected("inherent", _shooting_mastery["id"])
                     and int(self.character.character_level) >= 30
                 ):
                     _row = self.server.db.skill_progress(self.account_id, _shooting_mastery["id"])
@@ -121,7 +121,7 @@ class SessionCombatRealtimeMixin:
                     )
                 if (
                     _combat_mastery
-                    and self.server.db.knows_skill(self.account_id, _combat_mastery["id"])
+                    and self.job_ability_selected("inherent", _combat_mastery["id"])
                     and int(self.character.character_level) >= 30
                     and getattr(self.character,"soul_weapon",None)
                 ):
