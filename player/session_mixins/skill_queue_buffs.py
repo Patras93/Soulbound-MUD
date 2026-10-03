@@ -384,12 +384,6 @@ class SessionSkillQueueBuffsMixin:
                 self.current_hp=min(self.max_hp(),self.current_hp+repaired)
                 actual=self.current_hp-before
                 if actual: await self.send(f"Self-Repair: naprawiono {actual} HP obrażeń Feedback po 3 rundach.")
-            if self.current_hp>0 and self.current_hp<self.max_hp():
-                regen=max(1,int(round(self.max_hp()*0.01)))
-                before=self.current_hp
-                self.current_hp=min(self.max_hp(),self.current_hp+regen)
-                actual=self.current_hp-before
-                if actual: await self.send(f"Self-Repair — Auto-Regen: +{actual} HP.")
 
     def queue_mec_feedback_repair_v11154(self, amount):
             if not self.character or self.character.class_name!="Mec" or not self.mec_skill_known_v0319("v0319_mec_self_repair"):
@@ -594,10 +588,10 @@ class SessionSkillQueueBuffsMixin:
                 self.v0319_vmax_support_maintained=False
             if until and now >= until:
                 self.v0319_vmax_until=0.0
-                # UOSS source confirms Overheat after V-MAX; exact duration is not supplied,
-                # so Soulbound uses a short 20-second recovery window.
-                _vd,_vc=self.server.db.vmax_upgrades_v03114(self.account_id)
-                _overheat=max(4,20-8*_vc)
+                # UOSS confirms Overheat but does not supply a duration. Use the
+                # V-MAX effect duration as the recovery window instead of inventing
+                # an unrelated fixed number.
+                _overheat=max(1,int(round(max(1.0,until-(until-now)))))
                 # Support Effect replaces the source support weapon. It prevents
                 # the end-of-V-MAX Overheat only if maintained through expiration.
                 if not bool(getattr(self,"v0319_vmax_support_maintained",False)):
