@@ -539,8 +539,12 @@ class SessionSkillQueueBuffsMixin:
                 return False
             if not self.skill_mastery_unlocked(skill):
                 return False
-            if self.skill_cooldown_ready_at_v0364(skill) > time.time():
-                return False
+            # v1.11.33: offensive skills intentionally have no reuse cooldown.
+            # Do not let their legacy authored cooldown fields stall auto-queue.
+            kind = str(skill.get("kind", ""))
+            if kind not in ("damage", "drain", "execute", "aoe_damage"):
+                if self.skill_cooldown_ready_at_v0364(skill) > time.time():
+                    return False
             skill_class = self.skill_class_name(skill)
             if effective_skill_mana_cost(skill, skill_class) > self.current_mana:
                 return False
