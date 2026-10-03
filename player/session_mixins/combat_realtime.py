@@ -13,6 +13,7 @@ from core.progression_resources import soul_weapon_mastery_bonuses, v0190_scaled
 from core.bootstrap_economy_professions import soul_weapon_trait_totals
 from data.mobs import MOB_TEMPLATES
 from world.machine_expansion import v0314_adjust_damage_vs_template
+from world.uoss_superboss_runtime import superboss_attack_gate_v11137, superboss_helper_profile_v11137
 
 class SessionCombatRealtimeMixin:
     async def stop_realtime_combat(self):
@@ -102,6 +103,9 @@ class SessionCombatRealtimeMixin:
                         f"Szansa tego ataku: {round(weapon_crit_chance * 100, 1)} procent.",
                         "normal",
                     )
+                _uoss_helper = superboss_helper_profile_v11137(self, template)
+                if _uoss_helper:
+                    damage = max(1, int(round(damage * float(_uoss_helper["damage_multiplier"]))))
                 damage = await self.apply_boss_defense(mob, damage)
                 damage = self.v0210_adjust_player_damage(damage)
                 _basic_kind = "physical" if self.character.class_type == "physical" else "magic"
@@ -360,6 +364,12 @@ class SessionCombatRealtimeMixin:
                         await self.send(self.engagement_block_message(mob))
                         return
 
+                _uoss_template = MOB_TEMPLATES[mob.template_id]
+                _uoss_ok, _uoss_reason = superboss_attack_gate_v11137(self, _uoss_template)
+                if not _uoss_ok:
+                    await self.send(_uoss_reason)
+                    return
+
                 new_fight = self.combat_mob_key != mob.key
                 was_unengaged = not mob.engaged_by
                 protector = await self.server.apply_party_protection(self, mob)
@@ -384,6 +394,11 @@ class SessionCombatRealtimeMixin:
                         "Walka w czasie rzeczywistym rozpoczęta. "
                         "Auto kolejka i zwykłe ataki działają automatycznie; użyj flee, aby się wycofać."
                     )
+                    _uoss_helper = superboss_helper_profile_v11137(self, MOB_TEMPLATES[mob.template_id])
+                    if _uoss_helper:
+                        await self.server.party_combat_broadcast(
+                            self, f"{_uoss_helper['name']} dołącza jako pomocnik do tej walki.", detail="essential"
+                        )
                 else:
                     await self.send(
                         f"Walka trwa. Cel: {MOB_TEMPLATES[mob.template_id]['name']}."
