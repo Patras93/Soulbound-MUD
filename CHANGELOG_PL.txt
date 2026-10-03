@@ -1,5 +1,18 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.11.40
+Aktualna paczka: v1.11.41
+
+==============================================================================
+Soulbound v1.11.41 — Ruby & Emerald WEAPON / Kalm Traveler
+==============================================================================
+
+- Ruby WEAPON i Emerald WEAPON są osobnymi walkami drużynowymi dostępnymi od Level 100; pełna drużyna 100+ pozostaje zalecana.
+- Każdy uczestnik zwycięstwa otrzymuje osobisty spoil: Desert Rose za Ruby WEAPON i Earth Harp za Emerald WEAPON.
+- Oba encountery mają trwały once-per-cycle zamiast resetu zależnego od restartu/deployu.
+- Traveler w Kalm rozpoznaje komplet Desert Rose + Earth Harp i wymienia oba trofea na potężny Planet's Guardian Relic.
+- Dodano komendę weaponspoil do wykonania wymiany.
+- Zachowano indywidualne fazy Ruby WEAPON: Desert Armor, Tentacle Assault, Ruby Rage.
+- Zachowano indywidualne fazy Emerald WEAPON: Abyss Pressure, Emerald Beam, Ocean Doom.
+- Brak wipe'a save'ów.
 
 ==============================================================================
 Soulbound v1.11.40 — Global No-Cooldown Class Skills
