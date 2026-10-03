@@ -71,6 +71,21 @@ class SessionCombatRealtimeMixin:
 
                 template = MOB_TEMPLATES[mob.template_id]
                 self._last_mana_focus_gain = 0
+                # Maxwell Program: exact source regeneration is 1% maximum MP per
+                # six seconds. Mec skills remain mana-free; this only restores the
+                # shared mana resource while Maxwell is learned.
+                if self.character.class_name=="Mec":
+                    _maxwell=next((s for s in self.available_class_skills() if s.get("mec_special")=="maxwell_program"),None)
+                    if _maxwell and self.server.db.knows_skill(self.account_id,_maxwell["id"]):
+                        _now=time.monotonic()
+                        _last=float(getattr(self,"v0319_maxwell_mana_tick",0.0) or 0.0)
+                        if _last<=0.0:
+                            self.v0319_maxwell_mana_tick=_now
+                        elif _now-_last>=6.0:
+                            _ticks=max(1,int((_now-_last)//6.0))
+                            self.v0319_maxwell_mana_tick=_last+6.0*_ticks
+                            _gain=max(1,int(round(self.max_mana()*0.01)))*_ticks
+                            self.current_mana=min(self.max_mana(),self.current_mana+_gain)
                 damage = self.player_damage()
                 # v1.11.43: Soulbound has one Soul Weapon per character.
                 # Shooting Mastery therefore augments the Dexterity/ranged component
