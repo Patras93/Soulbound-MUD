@@ -1,5 +1,22 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.11.50
+Aktualna paczka: v1.11.51
+
+==============================================================================
+Soulbound v1.11.51 — Mec canonical help batch
+==============================================================================
+
+- Satellite Linker poprawiony do Base AP 1200; Wisdom/Will zwiększa obrażenia bitów, Skill Level wydłuża ich działanie.
+- Logic Bomb poprawiony z Level 95 na kanoniczny Level 92.
+- Plural Slash: Attack/Strength + wtórne Agility/Dexterity; Carries Elements przez jedną Broń Duszy.
+- Magnify: Wisdom/Will wzmacnia profil umiejętności i wraz ze Skill Level zmniejsza ryzyko SYSTEM LOCK po overloadzie.
+- Mec Sonata: Holy, 50 MP jako metadata UOSS, Extendable tymczasowy Level Down.
+- Starlight Shower: jeden cel przy pojedynczej walce, diminishing AoE dla wielu zaangażowanych celów, V-MAX = pełne non-diminishing AoE.
+- Hypno Flash: Will + Skill Level zwiększają Accuracy i Duration; Support Effect poprawia celność; Sleep jest Extendable.
+- Logic Bomb: Will + Skill Level zwiększają Accuracy/Duration, Machine ma bonus hitrate; podstawowo Paralyze/Silence/Slow, Support Effect dodaje Blind/Curse/Immobilize.
+- V-MAX metadata obejmuje Protect, Shell, Haste, Regen, Preach, Praise i Permanence oraz mechaniczny Overheat.
+- Intercept System metadata wymaga zatrzymania ataku i użycia najwyższej ofensywnej statystyki.
+- Zwykłe cooldowny nadal są wyłączone; Magnify/V-MAX mają wyłącznie mechaniczne blokady opisane przez swoje helpy.
+- Brak wipe'a save'ów.
 
 ==============================================================================
 Soulbound v1.11.50 — Mec Tiger Rampage
