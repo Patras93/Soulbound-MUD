@@ -549,7 +549,7 @@ RACES = [
      "Bardzo inteligentny, z dobrym zapasem Siły Woli. "
      "Pasyw rasowy: +15 procent maksymalnej Many.",
      7, 10, 8, 14, 11),
-    ("Smoczy",
+    ("Smok",
      "Silny, wytrzymały i wszechstronny w walce. "
      "Pasyw rasowy: +8 procent wszystkich zadawanych obrażeń, fizycznych i magicznych.",
      12, 9, 12, 9, 8),
@@ -612,7 +612,7 @@ RACE_CLASS_RECOMMENDATIONS = {
         "classes": ["Mag", "Psionik", "Nekromanta", "Kapłan", "Czarownik"],
         "reason": "najwyższa startowa Inteligencja wśród ras i większa maksymalna Mana mocno wspierają klasy magiczne",
     },
-    "Smoczy": {
+    "Smok": {
         "classes": ["Wojownik", "Berserker", "Strażnik", "Czarownik", "Mag"],
         "reason": "bonus do wszystkich obrażeń pozwala skutecznie grać zarówno fizycznie, jak i magicznie",
     },
