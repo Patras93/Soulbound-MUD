@@ -78,15 +78,14 @@ class SessionCombatSkillsMixin:
                 progress = self.server.db.skill_progress(self.account_id, skill["id"])
                 skill_level = int(progress["level"])
                 skill_power = skill_power_multiplier(skill_level)
-                # v1.11.33: ordinary offensive techniques are limited by their resource/target
-                # requirements, not by an artificial reuse timer. Special states/buffs keep
-                # their authored cooldown and mechanical lockouts (for example V-MAX/Overheat).
-                no_reuse_lock = str(skill.get("kind", "")) in ("damage", "drain", "execute", "aoe_damage")
-                effective_cooldown = 0 if no_reuse_lock else self.effective_skill_cooldown(skill, skill_level)
+                # v1.11.40: all ordinary class skills are cooldown-free.
+                # Only an explicitly marked mechanic cooldown may block reuse.
+                mechanic_lock = bool(skill.get("mechanic_cooldown"))
+                effective_cooldown = self.effective_skill_cooldown(skill, skill_level) if mechanic_lock else 0
 
                 now = time.time()
                 await self.mec_refresh_vmax_v0319()
-                ready_at = 0.0 if no_reuse_lock else self.skill_cooldown_ready_at_v0364(skill)
+                ready_at = self.skill_cooldown_ready_at_v0364(skill) if mechanic_lock else 0.0
                 if ready_at > now:
                     await self.send(
                         f"{skill['name']} jest na cooldownie jeszcze {int(ready_at - now + 0.999)} sekund."
