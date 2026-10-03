@@ -576,10 +576,10 @@ class SessionSkillQueueBuffsMixin:
                 return False
             if not self.skill_mastery_unlocked(skill):
                 return False
-            # v1.11.33: offensive skills intentionally have no reuse cooldown.
-            # Do not let their legacy authored cooldown fields stall auto-queue.
+            # v1.11.40: ordinary skills of every class are cooldown-free.
+            # Auto-queue respects only explicit special-mechanic timers.
             kind = str(skill.get("kind", ""))
-            if kind not in ("damage", "drain", "execute", "aoe_damage"):
+            if skill.get("mechanic_cooldown"):
                 if self.skill_cooldown_ready_at_v0364(skill) > time.time():
                     return False
             skill_class = self.skill_class_name(skill)
