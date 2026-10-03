@@ -3875,7 +3875,10 @@ def all_party_mob_drops_shared_audit_v0359():
     try:
         import inspect
         helper_source=inspect.getsource(party_drop_recipients_v0359)
-        combat_source=inspect.getsource(SessionSkillsCombatMixin.mob_defeated)\n        wrapped = getattr(SessionSkillsCombatMixin.mob_defeated, "__wrapped__", None)\n        if wrapped is not None:\n            combat_source += "\\n" + inspect.getsource(wrapped)
+        combat_source=inspect.getsource(SessionSkillsCombatMixin.mob_defeated)
+        wrapped = getattr(SessionSkillsCombatMixin.mob_defeated, "__wrapped__", None)
+        if wrapped is not None:
+            combat_source += "\n" + inspect.getsource(wrapped)
         metrics["helper_returns_all"] = "return list(recipients or [])" in helper_source
         metrics["single_roll"] = "for item_id, chance in template[\"drops\"].items()" in combat_source and "if random.random() <= chance" in combat_source
         metrics["all_drop_types_use_helper"] = "drop_recipients = party_drop_recipients_v0359(item_id, recipients)" in combat_source
