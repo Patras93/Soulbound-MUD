@@ -1858,10 +1858,8 @@ def build_world_expansion_i():
             "quest_targets": ("world_exp_troll_depths",),
         },
         "deep_troll_shaman": {
-            # v1.11.28: jedna kanoniczna nazwa w UI. Stara nazwa zostaje
-            # aliasem wyszukiwania, żeby istniejące komendy graczy nadal działały.
-            "name": "Troll Jaskiniowy",
-            "mob_aliases": ("Szaman Głębin Trolli", "Troll Szaman Głębin"),
+            "name": "Szaman Głębin Trolli",
+            "mob_aliases": ("Troll Szaman Głębin",),
             "max_hp": 420, "damage": 37, "damage_type": "magic",
             "silver": 140, "gold": 1, "mithril": 0,
             "stat_reward": 130, "class_xp_reward": 2450, "soul_reward": 570,
