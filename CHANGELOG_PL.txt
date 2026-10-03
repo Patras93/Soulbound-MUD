@@ -1,8 +1,19 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.11.23
+Aktualna paczka: v1.11.24
 
 ==============================================================================
 ==============================================================================
+==============================================================================
+Soulbound v1.11.24 — party kill SQLite lag hotfix
+==============================================================================
+
+- Zoptymalizowano zapis nagród po zabiciu moba przez drużynę.
+- Combat recap i save_character nie wykonują już dwóch osobnych COMMIT-ów dla każdego członka party.
+- Zapisy progresji i postaci wszystkich odbiorców nagrody są domykane jednym wspólnym COMMIT-em po pętli party.
+- Przy trzyosobowej drużynie usuwa to co najmniej sześć końcowych COMMIT-ów na każdego zabitego moba i zastępuje je jednym.
+- EXP, questy, bestiariusz, drop, combat recap i nagrody drużynowe pozostają bez zmian.
+- Brak wipe'a save'ów.
+
 ==============================================================================
 Soulbound v1.11.23 — party movement lag + nazwa Goblina
 ==============================================================================
