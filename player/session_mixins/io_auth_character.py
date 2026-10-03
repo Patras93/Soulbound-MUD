@@ -1322,8 +1322,8 @@ class SessionIOAuthCharacterMixin:
                 "Rozpoczynasz sesję w Świątyni Odrodzenia."
             )
             await self.daily_login_v03051()
-            if self.channel_enabled_v03051("gossip"):
-                await self.show_channel_history_v03051("gossip", 20)
+            # v1.11.17: nie odtwarzaj historii kanałów społecznościowych przy logowaniu.
+            # Gossip/newbie/trade nadal działają na żywo; historię gracz otwiera ręcznie.
             await self.sync_extended_achievements()
             await self.sync_titles_v0580(announce=True)
             if moved_gems:
