@@ -78,9 +78,7 @@ def uoss_superboss_profile_v0366(kind, floor):
 
 def uoss_superboss_display_name_v0366(kind, floor):
     profile = uoss_superboss_profile_v0366(kind, floor)
-    if str(kind) == "mythic_crypt":
-        return f"{profile['name']} — Mityczna Krypta, piętro {int(floor)}"
-    return f"{profile['name']} — Mityczna Wieża Astralna, poziom {int(floor)}"
+    return str(profile["name"])
 
 
 def _apply_uoss_superboss_v0366(template, kind, floor, scale_stats=True):
