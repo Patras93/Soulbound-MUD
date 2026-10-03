@@ -6,8 +6,14 @@ The hub is deliberately connected to Miasto Dusz; access policy remains
 available as authored metadata for command/runtime gates.
 """
 from data.catalogs import ROOMS, MOB_TEMPLATES, NPCS, SHOPS
-from systems.content_registry import MOB_SPAWNS
 from world.uoss_superbosses import UOSS_SUPERBOSS_ENCOUNTERS_V11134
+
+# Imported late from content_registry; obtain its canonical spawn list without a module-level circular import.
+import sys
+_registry = sys.modules.get("systems.content_registry")
+MOB_SPAWNS = getattr(_registry, "MOB_SPAWNS", None)
+if MOB_SPAWNS is None:
+    raise RuntimeError("UOSS Super Boss world must load after content_registry MOB_SPAWNS initialization")
 
 HUB="uoss_superboss_hall_v11136"
 if HUB not in ROOMS:
