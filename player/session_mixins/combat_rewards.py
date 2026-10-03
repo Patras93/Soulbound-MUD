@@ -76,6 +76,21 @@ def _v0711_crypt_soul_shard_guaranteed(template_id, template):
                 pass
     return False
 
+async def _run_with_deferred_kill_commits_v11125(session, callback, *args, **kwargs):
+    """Batch commit-heavy kill progression into one SQLite flush."""
+    with session.server.db.conn.deferred_commits():
+        return await callback(session, *args, **kwargs)
+
+
+def deferred_kill_commits_v11125(callback):
+    async def wrapped(self, *args, **kwargs):
+        return await _run_with_deferred_kill_commits_v11125(
+            self, callback, *args, **kwargs
+        )
+    wrapped.__name__ = callback.__name__
+    wrapped.__doc__ = callback.__doc__
+    return wrapped
+
 class SessionCombatRewardsMixin:
     def class_for_milestone_loot(self):
                 active = self.active_class_names()
@@ -119,6 +134,7 @@ class SessionCombatRewardsMixin:
                         f"Wymaga Biegłości {mastery}."
                     )
 
+    @deferred_kill_commits_v11125
     async def mob_defeated(self, mob):
                 # Zwycięstwo, loot, questy i nagrody są zawsze ważne nawet w trybie
                 # combat concise. Nie dziedziczą wyciszenia rutynowej auto kolejki.
