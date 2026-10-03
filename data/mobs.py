@@ -24,7 +24,7 @@ MOB_TEMPLATES = {
         "drops": {"healing_potion": 0.12}, "quest_target": "goblin",
     },
     "goblin_scout": {
-        "name": "Gobliński Zwiadowca", "max_hp": 72, "damage": 8, "damage_type": "physical",
+        "name": "Goblin Zwiadowca", "max_hp": 72, "damage": 8, "damage_type": "physical",
         "silver": 34, "gold": 0, "mithril": 0, "stat_reward": 33, "soul_reward": 155,
         "drops": {"healing_potion": 0.07}, "quest_target": "goblin",
     },
