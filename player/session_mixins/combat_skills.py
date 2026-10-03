@@ -562,7 +562,14 @@ class SessionCombatSkillsMixin:
                             _p=(max(1,min(SKILL_MAX_LEVEL,skill_level))-1)/float(max(1,SKILL_MAX_LEVEL-1))
                             _will=max(1,int(self.effective_willpower()))
                             _support=support_effect
-                            targets=[x for x in aoe_mobs if x.alive] if _support else [mob]
+                            if _support:
+                                self.server.world.refresh()
+                                targets=[
+                                    x for x in self.server.world.room_mobs(self.character.room_id)
+                                    if x.alive
+                                ]
+                            else:
+                                targets=[mob]
                             affected=0
                             durations=[]
                             for t in targets:
