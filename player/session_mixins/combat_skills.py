@@ -397,14 +397,27 @@ class SessionCombatSkillsMixin:
                         duration=min(180,int(round((25 + will//8 + 10*_vd)*_skill_duration_mult)))  # v0.33.0: Skill Level V-MAX rozwija czas działania.
                         self.v0319_vmax_until=time.time()+duration
                         self.v0319_vmax_support_maintained=bool(support_effect)
+                        # V-MAX grants its named beneficial package to the Mec only.
+                        # Keep each status explicit so Permanence protects the whole
+                        # beneficial set from hostile dispels. No unsourced numeric
+                        # Protect/Shell/Regen/Praise/Preach values are fabricated.
+                        _vmax_statuses=("protect","shell","haste","regen","preach","praise","permanence")
+                        for _status in _vmax_statuses:
+                            self.active_skill_buffs["v0319_vmax_"+_status]={
+                                "name":_status.capitalize(),"boost":1.0,
+                                "until":self.v0319_vmax_until,"source":"V-MAX",
+                            }
                         self.active_skill_buffs[skill["id"]]={
                             "name":"V-MAX","boost":1.0,"until":self.v0319_vmax_until,
                             "source":self.character.name,
                         }
+                        # Source Haste negates Slow when the target is slowed.
+                        if hasattr(self,"v0319_slow_until"):
+                            self.v0319_slow_until=0.0
                         await self.send(
                             f"V-MAX aktywny przez {duration} s. Protect, Shell, Haste, Regen, "
-                            "Preach, Praise i Permanence działają na Meca; wybrane umiejętności "
-                            "otrzymują swoje zmiany V-MAX."
+                            "Preach, Praise i Permanence działają na Meca; Haste neguje Slow, "
+                            "a Permanence chroni korzystne efekty przed wrogim dispellem."
                         )
                         await self.grant_skill_use_xp(skill); return
 
