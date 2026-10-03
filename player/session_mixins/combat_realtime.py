@@ -228,7 +228,14 @@ class SessionCombatRealtimeMixin:
                                 await self.send(f"Satellite Linker: dodatkowy laser zadaje {_sat} obrażeń. HP {max(0,mob.hp)}.")
                                 if mob.hp<=0:
                                     await self.mob_defeated(mob)
-                            next_player = time.monotonic() + self.player_action_interval_v11154()
+                            _interval=self.player_action_interval_v11154()
+                            next_player = time.monotonic() + _interval
+                            # Haste source says attacks/actions occur more frequently,
+                            # but supplies no numeric speed multiplier. Soulbound has no
+                            # canonical fast interval yet, so do not fabricate one.
+                            # The explicit Haste status remains authoritative and also
+                            # negates Slow; cadence will use a canonical fast interval
+                            # once the engine defines one.
                             if self.current_hp <= 0:
                                 break
 
