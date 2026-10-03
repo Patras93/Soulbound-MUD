@@ -600,6 +600,8 @@ class SessionSkillQueueBuffsMixin:
                     self.v0319_overheat_recovery_pending=True
                 self.v0319_vmax_support_maintained=False
                 self.active_skill_buffs.pop("v0319_mec_vmax",None)
+                for _status in ("protect","shell","haste","regen","preach","praise","permanence"):
+                    self.active_skill_buffs.pop("v0319_vmax_"+_status,None)
                 if self.mec_overheat_active_v0319():
                     await self.send("V-MAX wygasa. OVERHEAT: wszystkie statystyki bojowe są osłabione do zakończenia następnej akcji regeneracyjnej i V-MAX nie może być ponownie użyty.")
                 else:
