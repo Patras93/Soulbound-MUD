@@ -1,8 +1,18 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.11.14
+Aktualna paczka: v1.11.15
 
 ==============================================================================
 ==============================================================================
+==============================================================================
+Soulbound v1.11.15 — pojedyncze nazwy przeciwników
+==============================================================================
+
+- Usunięto składane nazwy przeciwników w formacie „rola — obszar” z generowanych megalochów, gauntletów i regionów proceduralnych.
+- Przeciwnik ma jedną właściwą nazwę czytaną przez look, listę Przeciwnicy i komunikaty walki.
+- Nazwy lokacji, stref, NPC i przedmiotów pozostają bez zmian; poprawka dotyczy wyłącznie MOB_TEMPLATES.
+- Klasyczne trolle zachowują pojedyncze nazwy, np. Górski Troll, Troll Osiłek i Troll Szaman.
+- Brak zmian SQLite i brak wipe'a save'ów.
+
 ==============================================================================
 Soulbound v1.11.14 — pasywki poza auto-kolejką
 ==============================================================================
