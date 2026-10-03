@@ -2491,7 +2491,7 @@ def v0200_mega_template(key, index, boss=False):
         mechanic, mechanic_text = V017_BIOME_BOSS_MECHANICS.get(biome,("two_hundred_lord","Wielofazowy profil bossa."))
         pool=list((globals().get("V021_MYTHIC_SET_ITEMS",{}).get(key) or V017_BIOME_SET_ITEMS.get(biome,())))
         _catalog_mut.catalog_assign({
-            "name":f"Strażnik {spec['name']} — próg {index}",
+            "name":f"Strażnik Progu {index}",
             "max_hp":1,"damage":1,"damage_type":"magic" if biome in ("void","crown","ocean") else "physical",
             "silver":0,"gold":0,"mithril":0,"stat_reward":1,"soul_reward":1,"class_xp_reward":1,
             "drops":{"v020_ancient_core":1.0,"v021_ascension_crystal":0.45,"soul_elixir":0.55},
@@ -2506,7 +2506,7 @@ def v0200_mega_template(key, index, boss=False):
         names=("Strażnik Korytarza","Wędrowiec Głębi","Opiekun Pieczęci","Echo Dawnej Straży","Bestia Megalochu")
         rng=random.Random(_v0140_hash_int(V020_WORLD_SEED,key,stage))
         _catalog_mut.catalog_assign({
-            "name":f"{rng.choice(names)} — {spec['name']}","max_hp":1,"damage":1,
+            "name":rng.choice(names),"max_hp":1,"damage":1,
             "damage_type":"magic" if rng.random()<0.38 else "physical",
             "silver":0,"gold":0,"mithril":0,"stat_reward":1,"soul_reward":1,"class_xp_reward":1,
             "drops":{"soul_shard":0.10},"auto_aggro":False,"v020_megadungeon":True,"v020_mega_key":key,"v019_stage":stage,
@@ -2572,7 +2572,7 @@ for _gkey,_gdata in V020_GAUNTLETS.items():
             "exits":{"south":_prev,"north":_next},"recommended_mastery":_stage,"v020_gauntlet":_gkey,"v020_gauntlet_round":_round}, 'ROOMS', ROOMS, (_rid,))
         _tid=f"v020_gauntlet_boss_{_gkey}_{_round}"
         _mechanic=list(V017_BIOME_BOSS_MECHANICS.values())[(_round+list(V020_GAUNTLETS).index(_gkey)*3)%len(V017_BIOME_BOSS_MECHANICS)][0]
-        _catalog_mut.catalog_assign({"name":f"{_gdata['name']} — Boss Rundy {_round}","max_hp":1,"damage":1,"damage_type":"physical" if _round%2 else "magic",
+        _catalog_mut.catalog_assign({"name":f"Boss Rundy {_round}","max_hp":1,"damage":1,"damage_type":"physical" if _round%2 else "magic",
             "silver":0,"gold":0,"mithril":0,"stat_reward":1,"soul_reward":1,"class_xp_reward":1,"drops":({"v020_gauntlet_seal":1.0} if _round==5 else {"soul_elixir":0.25}),
             "auto_aggro":False,"stationary_mob":True,"boss_mechanic":_mechanic,"v017_boss_phases":True,
             "v020_gauntlet":_gkey,"v020_gauntlet_round":_round,"v019_stage":_stage,"respawn_seconds":6*60*60}, 'MOB_TEMPLATES', MOB_TEMPLATES, (_tid,))
@@ -2588,7 +2588,7 @@ def v0200_mythic_template(kind):
     stage=max(250,min(CHARACTER_MAX_LEVEL,int(spec.get("base_mastery",1))+140))
     mechanic, text=V017_BIOME_BOSS_MECHANICS.get(kind,("two_hundred_lord","Wielofazowa mechanika."))
     pool=list(V017_BIOME_SET_ITEMS.get(kind,()))
-    _catalog_mut.catalog_assign({"name":f"Mityczny Władca — {spec['zone']}","max_hp":1,"damage":1,"damage_type":"magic" if kind in ("void","sky","crown","ocean") else "physical",
+    _catalog_mut.catalog_assign({"name":"Mityczny Władca","max_hp":1,"damage":1,"damage_type":"magic" if kind in ("void","sky","crown","ocean") else "physical",
         "silver":0,"gold":0,"mithril":0,"stat_reward":1,"soul_reward":1,"class_xp_reward":1,
         "drops":{"v020_mythic_essence":1.0,"v020_ancient_core":0.65,"soul_elixir":0.80},"world_boss":True,"v020_mythic_world_boss":True,"v020_biome":kind,
         "auto_aggro":False,"stationary_mob":True,"boss_mechanic":mechanic,"boss_mechanic_text":text+" Mityczny world boss; fazy 75/50/25%. PASSIVE WORLD.",
