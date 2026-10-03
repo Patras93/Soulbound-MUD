@@ -177,7 +177,7 @@ class SessionSkillQueueBuffsMixin:
                     )
             await self.send(
                 "Komendy: kolejka lista [fizyczna|magiczna], kolejka dodaj <skill>, "
-                "kolejka usuń fizyczna <slot> / kolejka usuń magiczna <slot>, "
+                "kolejka usuń <numer>, kolejka usuń fizyczna <slot> / kolejka usuń magiczna <slot>, "
                 "kolejka wyczyść [fizyczna|magiczna], kolejka góra fizyczna <slot>, "
                 "kolejka dół magiczna <slot>, kolejka on, kolejka off. Dodanie skilla automatycznie włącza kolejkę."
             )
@@ -279,11 +279,27 @@ class SessionSkillQueueBuffsMixin:
                 return
 
             if action in ("usun", "usuń", "remove", "delete", "-"):
-                queue_type, position, skill = self.skill_queue_find_position(value)
+                # v1.11.30: prosty numer oznacza numer z pełnej listy wyświetlanej
+                # przez `kolejka`: najpierw fizyczne, potem magiczne.
+                # Dzięki temu `kolejka usun 1` usuwa dokładnie pierwszy pokazany skill.
+                if value.isdigit():
+                    global_position = int(value)
+                    all_rows = list(self.server.db.skill_queue_rows(self.account_id))
+                    if global_position < 1 or global_position > len(all_rows):
+                        await self.send(
+                            f"Nie ma wpisu numer {global_position}. Wpisz kolejka, aby zobaczyć aktualną listę."
+                        )
+                        return
+                    selected = all_rows[global_position - 1]
+                    queue_type = selected["queue_type"]
+                    position = int(selected["position"])
+                    skill = self.skill_by_id(selected["skill_id"])
+                else:
+                    queue_type, position, skill = self.skill_queue_find_position(value)
                 if not queue_type or not position:
                     await self.send(
-                        "Nie znajduję takiego wpisu. Użyj np. kolejka usuń fizyczna 1, "
-                        "kolejka usuń magiczna 2 albo kolejka usuń <nazwa skilla>."
+                        "Nie znajduję takiego wpisu. Użyj np. kolejka usuń 1, "
+                        "kolejka usuń fizyczna 1 albo kolejka usuń <nazwa skilla>."
                     )
                     return
                 if skill is None:
