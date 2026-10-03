@@ -2456,6 +2456,57 @@ def _v0319_install_full_mec_kit():
 
 _v0319_install_full_mec_kit()
 
+# v1.11.49: canonical Mec contract adapted to Soulbound's one-Soul-Weapon model.
+MEC_CANONICAL_CONTRACT_V11149 = {
+    "prerequisite_race": "Cyborg",
+    "weapon_model": "single_soul_weapon",
+    "armor": "all",
+    "branches": {
+        "melee": {"primary": "strength", "secondary": "dexterity", "protocol": "v0319_mec_strength_protocol"},
+        "ranged": {"primary": "dexterity", "secondary": "willpower", "protocol": "v0319_mec_ranged_protocol"},
+        "feedback": {"resource": "hp", "defensive_stat": "vitality", "protocol": "v0319_mec_feedback_protocol"},
+        "magic": {"primary": "intelligence", "secondary": "willpower", "protocol": "v0319_mec_magic_protocol"},
+        "support": {"primary": "willpower", "support_effect": "dominant_will_single_soul_weapon"},
+    },
+}
+_MEC_EXPECTED_V11149 = {
+    "hammer_crush":(1,"melee"),"shock_soldier":(14,"melee"),"plural_slash":(32,"melee"),
+    "pop_knight":(46,"melee"),"tiger_rampage":(80,"melee"),"cosmic_rave":(110,"melee"),
+    "crosshair":(1,"ranged"),"range_fire":(8,"ranged"),"dispose":(32,"ranged"),
+    "satellite_linker":(44,"ranged"),"magnify":(90,"ranged"),"shoot_all":(110,"ranged"),
+    "destroy":(1,"feedback"),"robo_tackle":(20,"feedback"),"compress":(30,"feedback"),
+    "crush":(46,"feedback"),"uzi_punch":(95,"feedback"),"kamikaze_crush":(110,"feedback"),
+    "laser_spin":(1,"magic"),"area_bomb":(8,"magic"),"mec_sonata":(20,"magic"),
+    "maelstrom":(44,"magic"),"shock":(95,"magic"),"starlight_shower":(110,"magic"),
+    "cure_beam":(10,"support"),"hypno_flash":(16,"support"),"jammer":(32,"support"),
+    "heal_beam":(54,"support"),"logic_bomb":(95,"support"),"vmax":(130,"support"),
+    "intercept_system":(75,"counter"),"self_repair":(1,"inherent"),"combat_mastery":(30,"inherent"),
+    "maxwell_program":(30,"inherent"),"shooting_mastery":(30,"inherent"),
+    "strength_protocol":(1,"passive"),"ranged_protocol":(1,"passive"),
+    "feedback_protocol":(1,"passive"),"magic_protocol":(1,"passive"),
+}
+# The full job sheet supersedes the earlier isolated Cure Beam excerpt:
+# canonical Mec Cure Beam requirement is Level 10.
+for _s in CLASS_SKILLS["Mec"]:
+    if _s.get("mec_special")=="cure_beam":
+        _s["unlock"]=10
+        _s["desc"]="Level 10 Willpower-based single-target heal. Support Effect increases healing and removes Poison and Blind."
+
+def _mec_contract_audit_v11149():
+    rows={s.get("mec_special"):s for s in CLASS_SKILLS.get("Mec",[]) if s.get("mec_special")}
+    errors=[]
+    for sid,(unlock,branch) in _MEC_EXPECTED_V11149.items():
+        row=rows.get(sid)
+        if not row: errors.append(f"missing:{sid}"); continue
+        if int(row.get("unlock",0))!=unlock: errors.append(f"{sid}:unlock={row.get('unlock')} expected={unlock}")
+        if str(row.get("mec_branch"))!=branch: errors.append(f"{sid}:branch={row.get('mec_branch')} expected={branch}")
+        if int(row.get("cooldown",0) or 0)!=0 and not row.get("mechanic_cooldown"):
+            errors.append(f"{sid}:ordinary cooldown")
+    return {"version":"1.11.49","checked":len(_MEC_EXPECTED_V11149),"errors":errors,"error_count":len(errors)}
+MEC_CONTRACT_AUDIT_V11149=_mec_contract_audit_v11149()
+if MEC_CONTRACT_AUDIT_V11149["error_count"]:
+    raise RuntimeError("Mec Contract Audit v1.11.49 failed: "+"; ".join(MEC_CONTRACT_AUDIT_V11149["errors"]))
+
 
 # v0.31.7: authored Engineer tool kit based on the user-provided UOSSMUD list.
 # Soulbound has no AP. The original Base AP values are represented only as
