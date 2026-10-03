@@ -2413,7 +2413,7 @@ def _v0319_install_full_mec_kit():
         row.clear()
         row.update({
             "id":f"v0319_mec_{special}", "name":name, "aliases":[name.casefold()],
-            "unlock":unlock, "kind":kind, "cooldown":5, "mana":0,
+            "unlock":unlock, "kind":kind, "cooldown":0, "mana":0,
             "base_power":power, "mec_authored":True, "mec_branch":branch,
             "mec_special":special, "desc":desc,
         })
@@ -2428,6 +2428,12 @@ def _v0319_install_full_mec_kit():
         if special=="uzi_punch": row["self_damage_pct"]=.10
         if special=="kamikaze_crush": row["self_damage_pct"]=.18
         if special=="dispose": row["self_damage_pct"]=.08
+        if special=="starlight_shower":
+            row.update({"mana":225, "vmax_mana":300, "target_mode":"single_or_diminishing_aoe"})
+        if special=="cosmic_rave":
+            row.update({"scale":"strength", "secondary_scale":"dexterity", "secondary_scale_weight":0.35,
+                        "carries_soul_weapon_elements":True, "requires_soul_weapon":"melee",
+                        "target_mode":"diminishing_aoe_or_vmax_random"})
         if special=="vmax": row.update({"boost":1.0,"duration":30,"cooldown":60})
     CLASS_SKILLS["Mec"] = rows
 
