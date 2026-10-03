@@ -506,8 +506,8 @@ class SessionCombatSkillsMixin:
                             if not target.alive: continue
                             template=MOB_TEMPLATES[target.template_id]
                             _local_mult=mult
-                            if special=="starlight_shower" and not vmax and len(targets)>1:
-                                # Diminishing area damage when several combat targets are engaged.
+                            if special in ("starlight_shower","shock_soldier","laser_spin","maelstrom") and len(targets)>1 and not (special=="starlight_shower" and vmax):
+                                # Canonical diminishing AoE: power falls as more enemies are hit.
                                 _local_mult*=max(0.45,1.0-0.12*(len(targets)-1))
                             damage=max(1,int(base*_local_mult)+random.randint(-6,6))
                             # v1.11.47: Pop Knight keeps full AoE damage and receives
@@ -516,14 +516,16 @@ class SessionCombatSkillsMixin:
                             if special=="pop_knight" and (template.get("flying") or str(template.get("type","")).casefold()=="flying"):
                                 damage=max(1,int(round(damage*float(skill.get("bonus_vs_flying",1.35) or 1.35))))
                             damage,crit=self.roll_critical_hit(damage)
-                            if special=="shoot_all" and vmax and random.random()<0.20:
-                                damage=int(damage*1.5); crit=True
+                            if special=="shoot_all" and vmax:
+                                # V-MAX explicitly raises both damage and critical chance.
+                                if random.random()<min(0.95,self.critical_chance()+0.20):
+                                    damage=int(damage*1.5); crit=True
                             damage=await self.apply_boss_defense(target,damage); damage=self.v0210_adjust_player_damage(damage)
                             element={"laser_spin":"dark","area_bomb":"fire","maelstrom":"water","shock":"lightning","starlight_shower":"magic"}.get(special,"physical")
                             # Carries Elements is represented through the character's one
                             # Soul Weapon profile; physical remains the safe fallback when
                             # the weapon has no explicit elemental trait.
-                            if special=="pop_knight":
+                            if special in ("pop_knight","shock_soldier","range_fire","dispose","shoot_all"):
                                 _sw_element=str(getattr(self.character,"soul_weapon_element","") or "").casefold()
                                 if _sw_element: element=_sw_element
                             damage,note=v0314_adjust_damage_vs_template(template,damage,element,skill.get("name",""))
@@ -685,7 +687,26 @@ class SessionCombatSkillsMixin:
                             continue
                         template = MOB_TEMPLATES[target.template_id]
                         damage = max(1, int(base_power * multiplier) + random.randint(-10, 10))
-                        damage, critical = self.roll_critical_hit(damage)
+                        if skill.get("mec_authored") and skill.get("mec_special")=="crush":
+                    _missing=max(0,self.max_hp()-self.current_hp)
+                    _level=max(1,int(getattr(self.character,"level",1) or 1))
+                    _progress=(max(1,min(SKILL_MAX_LEVEL,skill_level))-1)/float(max(1,SKILL_MAX_LEVEL-1))
+                    _cap=max(1,int(_level*(20.0+30.0*_progress)))
+                    damage=max(1,min(_missing,_cap))
+                elif skill.get("mec_authored") and skill.get("mec_special")=="kamikaze_crush":
+                    _hp_ratio=max(0.0,min(1.0,self.current_hp/max(1,self.max_hp())))
+                    _vit=max(1.0,float(self.effective_vitality()))
+                    damage=max(1,int(damage*(0.45+0.55*_hp_ratio)*(1.0+min(1.5,_vit/300.0))))
+                    if vmax: damage=max(1,int(damage*1.35))
+                if skill.get("mec_authored") and skill.get("mec_special")=="crosshair":
+                    # Crosshair is explicitly a critical-attempt ability: critical chance
+                    # influences the attack rather than granting a guaranteed critical.
+                    _crosshair_chance=min(0.98,self.critical_chance()+0.25)
+                    critical=random.random()<_crosshair_chance
+                    if critical: damage=max(1,int(round(damage*1.5)))
+                    else: critical=False
+                else:
+                    damage, critical = self.roll_critical_hit(damage)
                         damage = await self.apply_boss_defense(target, damage)
                         damage = self.v0210_adjust_player_damage(damage)
                         damage, _ = v0314_adjust_damage_vs_template(template, damage, "physical", "Cosmic Rave")
