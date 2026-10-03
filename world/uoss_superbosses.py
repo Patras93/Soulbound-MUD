@@ -136,8 +136,16 @@ UOSS_SUPERBOSS_ENCOUNTERS_V11134 = {
     "diabolos": {"name":"Diabolos","mode":"solo","unlock_level":80},
     "harle": {"name":"Harle","mode":"solo_or_party","unlock_level":85},
     "culex": {"name":"Culex","mode":"party","unlock_level":100},
-    "ruby_weapon": {"name":"Ruby Weapon","mode":"party","unlock_level":100},
-    "emerald_weapon": {"name":"Emerald Weapon","mode":"party","unlock_level":100},
+    "ruby_weapon": {
+        "name":"Ruby WEAPON","mode":"party","unlock_level":100,"recommended_level":100,
+        "personal_token":"Desert Rose","weapon_pair":"emerald_weapon",
+        "pair_shop":"Traveler w Kalm","once_per_cycle":True,
+    },
+    "emerald_weapon": {
+        "name":"Emerald WEAPON","mode":"party","unlock_level":100,"recommended_level":100,
+        "personal_token":"Earth Harp","weapon_pair":"ruby_weapon",
+        "pair_shop":"Traveler w Kalm","once_per_cycle":True,
+    },
     "ozma": {"name":"Ozma","mode":"solo","unlock_level":110},
     "four_fiends": {"name":"Four Fiends","mode":"solo","unlock_level":110,"series":True},
     "grahf": {"name":"Grahf","mode":"solo","unlock_level":110},
@@ -203,7 +211,7 @@ def uoss_superboss_audit_v11134():
     missing = sorted(required - set(encounters))
     if missing:
         errors.append("missing unique encounters: " + ", ".join(missing))
-    for key in ("black_rabite","serpentarius","odin","yiazmat"):
+    for key in ("ruby_weapon","emerald_weapon","black_rabite","serpentarius","odin","yiazmat"):
         row = encounters.get(key, {})
         if not row.get("once_per_cycle"):
             errors.append(f"{key}: missing persistent cycle lockout")
