@@ -1,8 +1,19 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.11.29
+Aktualna paczka: v1.11.30
 
 ==============================================================================
 ==============================================================================
+==============================================================================
+Soulbound v1.11.30 — usuwanie skilla z kolejki po numerze
+==============================================================================
+
+- Dodano prostą składnię: kolejka usun 1, kolejka usun 2 itd.
+- Numer odnosi się do kolejności wpisów pokazywanych przez komendę kolejka.
+- Usuwany jest wyłącznie wskazany skill; pozostałe wpisy kolejki zostają zachowane i przesuwają się po usunięciu.
+- Nadal działają kolejka usuń fizyczna <slot>, kolejka usuń magiczna <slot> oraz usuwanie po nazwie skilla.
+- Komenda kolejka wyczyść nadal służy wyłącznie do świadomego wyczyszczenia całej kolejki.
+- Brak zmian save'ów i brak wipe'a.
+
 ==============================================================================
 Soulbound v1.11.29 — pełny audyt pojedynczych nazw mobów
 ==============================================================================
