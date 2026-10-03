@@ -102,6 +102,12 @@ class SessionCombatSkillsMixin:
                 if kind == "passive":
                     await self.send(f"{skill['name']} jest umiejętnością pasywną i działa automatycznie, gdy jest nauczona.")
                     return
+                if kind == "boost" and not skill.get("active_special") and str(skill.get("mec_special", "")) != "vmax":
+                    await self.send(
+                        f"{skill['name']} jest teraz pasywnym wzmocnieniem Automatic. "
+                        "Działa stale po nauczeniu i nie wymaga aktywacji."
+                    )
+                    return
                 if kind == "evade" and self.skill_evade:
                     await self.send("Masz już aktywny gwarantowany unik.")
                     return
