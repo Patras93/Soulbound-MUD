@@ -1,5 +1,17 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.11.47
+Aktualna paczka: v1.11.48
+
+==============================================================================
+Soulbound v1.11.48 — Mec Area Bomb
+==============================================================================
+
+- Area Bomb od Level 8 jest ognistym atakiem obszarowym Meca.
+- Trafia wyłącznie przeciwników aktualnie zaangażowanych w walkę z Mecem lub jego lokalną drużyną (All Targetted Enemies), a nie każdy mob stojący w pokoju.
+- Magic Attack z UOSS jest odwzorowany przez Intelligence Soulbound.
+- Area Bomb korzysta z Magic Protocol i zadaje obrażenia typu Fire.
+- Źródłowy koszt 35 MP zachowano jako metadata UOSS; Mec nie zużywa Many.
+- Bez cooldownu.
+- Brak wipe'a save'ów.
 
 ==============================================================================
 Soulbound v1.11.47 — Mec Pop Knight
