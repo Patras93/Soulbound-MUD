@@ -80,6 +80,44 @@ class SessionSkillLearningMixin:
                 skills.extend(CLASS_SKILLS.get(class_name, []))
             return skills
 
+    def selected_job_ability(self, slot_type):
+            skill_id=self.server.db.job_ability_slot(self.account_id,slot_type)
+            return self.skill_by_id(skill_id) if skill_id else None
+
+    def job_ability_selected(self, slot_type, skill_id):
+            return self.server.db.job_ability_slot(self.account_id,slot_type)==str(skill_id)
+
+    async def handle_job_set(self, raw):
+            parts=str(raw or "").strip().split(maxsplit=2)
+            if len(parts)<2 or parts[0].casefold()!="set":
+                await self.send("Użycie: job set inherent <nazwa> albo job set counter <nazwa>.")
+                return
+            slot=parts[1].casefold()
+            if slot not in ("inherent","counter"):
+                await self.send("Dostępne sloty job: inherent, counter.")
+                return
+            if len(parts)<3:
+                current=self.selected_job_ability(slot)
+                await self.send(f"{slot}: {current['name'] if current else 'brak'}.")
+                return
+            wanted=parts[2].strip()
+            if wanted.casefold() in ("none","brak","off","wyłącz","wylacz"):
+                self.server.db.clear_job_ability_slot(self.account_id,slot)
+                await self.send(f"Slot {slot} wyłączony.")
+                return
+            skill,_target=self.find_skill_from_input(wanted)
+            if not skill or str(skill.get("mec_role","")).casefold()!=slot:
+                await self.send(f"Nie znajduję nauczonej umiejętności typu {slot} o tej nazwie.")
+                return
+            if not self.server.db.knows_skill(self.account_id,skill["id"]):
+                await self.send(f"Najpierw naucz się: {skill['name']}.")
+                return
+            if not self.skill_mastery_unlocked(skill):
+                await self.send(f"Nie spełniasz jeszcze wymagań: {skill['name']}.")
+                return
+            self.server.db.set_job_ability_slot(self.account_id,slot,skill["id"])
+            await self.send(f"Ustawiono {slot}: {skill['name']}.")
+
     def class_teacher(self, class_name=None):
             wanted = class_name or self.character.class_name
             for npc_id, npc in NPCS.items():
