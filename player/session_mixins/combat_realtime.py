@@ -228,7 +228,7 @@ class SessionCombatRealtimeMixin:
                                 await self.send(f"Satellite Linker: dodatkowy laser zadaje {_sat} obrażeń. HP {max(0,mob.hp)}.")
                                 if mob.hp<=0:
                                     await self.mob_defeated(mob)
-                            next_player = time.monotonic() + self.combat_player_interval
+                            next_player = time.monotonic() + self.player_action_interval_v11154()
                             if self.current_hp <= 0:
                                 break
 
