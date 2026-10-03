@@ -1136,7 +1136,7 @@ CLASS_PASSIVE_KIND = {
 RACE_PASSIVE_KIND = {
     "Człowiek": "stat_xp", "Ogr": "physical_damage", "Elf": "dodge",
     "Krasnolud": "damage_reduction", "Ork": "max_hp", "Niziołek": "profession_bonus",
-    "Mroczny Elf": "magic_damage", "Gnom": "max_mana", "Smoczy": "all_damage",
+    "Mroczny Elf": "magic_damage", "Gnom": "max_mana", "Smok": "all_damage", "Smoczy": "all_damage",
     "Troll": "physical_reduction", "Diablę": "soul_xp", "Aasimar": "magic_defense",
     "Driada": "healing", "Cyborg": "damage_reduction",
 }
