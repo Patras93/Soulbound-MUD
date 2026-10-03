@@ -429,15 +429,15 @@ def _v028_build_regions():
                 "elite_eligible":True,"rare_eligible":True}, 'MOB_TEMPLATES', MOB_TEMPLATES, (mid,))
             normal_ids.append(mid)
         elite_id=f"v028_region_{index:02d}_elite"
-        _catalog_mut.catalog_assign({"name":f"Elitarny Strażnik — {theme['label']}","damage_type":theme["damage_type"],
+        _catalog_mut.catalog_assign({"name":"Elitarny Strażnik","damage_type":theme["damage_type"],
             "drops":{relic_id:.18},"procedural_region_stage":min(CHARACTER_MAX_LEVEL,stage+6),"elite_affix":"procedural",
             "quest_targets":(f"v028_region_{index:02d}_threat",f"v028_region_{index:02d}_elite_target")}, 'MOB_TEMPLATES', MOB_TEMPLATES, (elite_id,))
         rare_id=f"v028_region_{index:02d}_rare"
-        _catalog_mut.catalog_assign({"name":f"Rzadki Wędrowiec — {theme['label']}","damage_type":theme["damage_type"],
+        _catalog_mut.catalog_assign({"name":"Rzadki Wędrowiec","damage_type":theme["damage_type"],
             "drops":{relic_id:.30},"procedural_region_stage":min(CHARACTER_MAX_LEVEL,stage+10),"rare_mob":True,
             "quest_targets":(f"v028_region_{index:02d}_threat",f"v028_region_{index:02d}_rare_target")}, 'MOB_TEMPLATES', MOB_TEMPLATES, (rare_id,))
         boss_id=f"v028_region_{index:02d}_boss"
-        _catalog_mut.catalog_assign({"name":f"Władca Regionu — {theme['label']}","damage_type":theme["damage_type"],
+        _catalog_mut.catalog_assign({"name":"Władca Regionu","damage_type":theme["damage_type"],
             "drops":{relic_id:1.0},"procedural_region_stage":min(CHARACTER_MAX_LEVEL,stage+18),"boss_mechanic":"procedural_region",
             "boss_mechanic_text":"Generator regionu wybiera fazę presji na podstawie etapu i biomu.",
             "quest_targets":(f"v028_region_{index:02d}_boss_target",),"leave_corpse":True}, 'MOB_TEMPLATES', MOB_TEMPLATES, (boss_id,))
