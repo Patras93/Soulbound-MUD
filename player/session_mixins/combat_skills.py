@@ -489,11 +489,22 @@ class SessionCombatSkillsMixin:
                             if not target.alive: continue
                             template=MOB_TEMPLATES[target.template_id]
                             damage=max(1,int(base*mult)+random.randint(-6,6))
+                            # v1.11.47: Pop Knight keeps full AoE damage and receives
+                            # the source ability's anti-Flying bonus. The Mec has one
+                            # Soul Weapon, so no separate melee weapon gate is required.
+                            if special=="pop_knight" and (template.get("flying") or str(template.get("type","")).casefold()=="flying"):
+                                damage=max(1,int(round(damage*float(skill.get("bonus_vs_flying",1.35) or 1.35))))
                             damage,crit=self.roll_critical_hit(damage)
                             if special=="shoot_all" and vmax and random.random()<0.20:
                                 damage=int(damage*1.5); crit=True
                             damage=await self.apply_boss_defense(target,damage); damage=self.v0210_adjust_player_damage(damage)
                             element={"laser_spin":"dark","area_bomb":"fire","maelstrom":"water","shock":"lightning","starlight_shower":"magic"}.get(special,"physical")
+                            # Carries Elements is represented through the character's one
+                            # Soul Weapon profile; physical remains the safe fallback when
+                            # the weapon has no explicit elemental trait.
+                            if special=="pop_knight":
+                                _sw_element=str(getattr(self.character,"soul_weapon_element","") or "").casefold()
+                                if _sw_element: element=_sw_element
                             damage,note=v0314_adjust_damage_vs_template(template,damage,element,skill.get("name",""))
                             target.hp-=damage; total+=damage
                             await self.send(f"{skill['name']}: {template['name']} {damage} obrażeń. HP {max(0,target.hp)}.{note}")
