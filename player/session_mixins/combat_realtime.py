@@ -217,6 +217,7 @@ class SessionCombatRealtimeMixin:
                         now = time.monotonic()
                         if now >= next_player:
                             await self.realtime_player_action(mob)
+                            await self.mec_self_repair_round_v11154()
                             next_player = time.monotonic() + self.combat_player_interval
                             if self.current_hp <= 0:
                                 break
