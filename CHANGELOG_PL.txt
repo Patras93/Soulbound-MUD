@@ -1,5 +1,17 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.11.49
+Aktualna paczka: v1.11.50
+
+==============================================================================
+Soulbound v1.11.50 — Mec Tiger Rampage
+==============================================================================
+
+- Tiger Rampage od Level 80 wykonuje dokładnie dwa ciężkie trafienia w jednego przeciwnika.
+- Skaluje się z Attack/Strength i Strength Protocol.
+- Jedna Broń Duszy Soulbound zastępuje wymaganie osobnej melee weapon.
+- Carries Elements: oba trafienia przenoszą element Broni Duszy.
+- Atak ma szansę jednocześnie uszkodzić fizyczną i magiczną obronę celu.
+- Debuff obu obron jest Extendable: ponowne nałożenie przedłuża istniejący czas.
+- Bez zwykłego cooldownu i bez wipe'a save'ów.
 
 ==============================================================================
 Soulbound v1.11.49 — pełny kontrakt klasy Mec
