@@ -188,9 +188,11 @@ class SessionMovementMixin:
                         await member.send(
                             f"Płyniesz wewnątrz statku lidera {self.character.name}."
                         )
+                    member._party_follow_batch_save_v11123 = True
                     try:
                         await member.move(direction)
                     finally:
+                        member._party_follow_batch_save_v11123 = False
                         if party_ship_passage:
                             member._party_ship_passage_v10014 = None
                         if entry_label_v03812:
@@ -224,7 +226,10 @@ class SessionMovementMixin:
 
                 self.previous_room_id = old
                 self.character.room_id = target
-                self.server.db.save_character(self.character)
+                self.server.db.save_character(
+                    self.character,
+                    commit=not bool(getattr(self, "_party_follow_batch_save_v11123", False)),
+                )
                 if hasattr(self, "ocean_contract_step_v1001"):
                     contract_event = self.ocean_contract_step_v1001(old, target)
                     if contract_event == "started":
@@ -250,6 +255,9 @@ class SessionMovementMixin:
                 self.moving = False
                 if follow_tasks:
                     await asyncio.gather(*follow_tasks, return_exceptions=True)
+                    # v1.11.23: followerzy zapisali pozycje w jednej transakcji;
+                    # jeden commit po całym kroku zamiast osobnego fsync dla każdego.
+                    self.server.db.conn.commit()
 
     async def move(self, direction):
             if self.resting or self.rest_task:
