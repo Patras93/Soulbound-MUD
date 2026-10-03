@@ -221,6 +221,26 @@ class SessionExplorationProgressMixin:
 
             self.server.db.add_lifetime_stat(self.account_id, "rooms_discovered", 1)
             room_meta = ROOMS[room_id]
+
+            # v1.11.32: Explorer Points jak w klasycznych MUD-ach.
+            # Każda nowa lokacja w terenie daje 1 EP dokładnie raz oraz Character EXP.
+            zone_for_ep = str(room_meta.get("zone") or "Nieznany teren")
+            ep_xp = max(50, min(5000, 50 + int(self.character.character_level) * 10))
+            for message in self.add_character_xp_with_event(ep_xp):
+                if announce:
+                    await self.send(message)
+            self.server.db.add_lifetime_stat(self.account_id, "explorer_points", 1)
+            await self.advance_class_guild_quest_v11132("explore", 1)
+            if announce:
+                zone_ep_total = len(EXPLORATION_ZONE_ROOMS.get(zone_for_ep, ()))
+                zone_ep_now = sum(
+                    1 for rid in EXPLORATION_ZONE_ROOMS.get(zone_for_ep, ())
+                    if rid in self.server.db.discovered_room_ids(self.account_id)
+                )
+                await self.send(
+                    f"Punkt eksploracji: +1 EP, +{ep_xp} EXP postaci. "
+                    f"{zone_for_ep}: {zone_ep_now} z {zone_ep_total} EP."
+                )
             if room_meta.get("v018_archipelago"):
                 self.server.db.add_collection_entry(self.account_id, "archipelago_sectors_v018", room_id)
             if room_meta.get("v018_ruin_final"):
@@ -349,9 +369,13 @@ class SessionExplorationProgressMixin:
                     return
                 zone = found[0]
             count, total, pct = self.exploration_percent(zone)
-            await self.send(f"{zone}: {pct}% odkryta. {count} z {total} lokacji.")
             await self.send(
-                f"Cały świat: {world_pct}% odkryty. {world_count} z {len(ALL_EXPLORATION_ROOMS)} lokacji."
+                f"{zone}: {pct}% odkryta. {count} z {total} lokacji. "
+                f"Punkty eksploracji: {count} z {total} EP, pozostało {max(0, total-count)}."
+            )
+            await self.send(
+                f"Cały świat: {world_pct}% odkryty. {world_count} z {len(ALL_EXPLORATION_ROOMS)} lokacji. "
+                f"Łączne EP: {world_count}."
             )
 
     async def show_region_progress(self, zone=None):
