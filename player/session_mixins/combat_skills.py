@@ -549,7 +549,6 @@ class SessionCombatSkillsMixin:
                             # Attack remains primary; Agility is explicitly a lesser secondary influence.
                             _agi=max(1.0,float(self.effective_dexterity()))
                             mult*=1.0+min(0.50,_agi/500.0)
-                        if special=="shoot_all" and vmax: mult*=1.35
                         if special=="starlight_shower" and vmax: mult*=1.25
                         for target in targets:
                             if not target.alive: continue
@@ -565,10 +564,9 @@ class SessionCombatSkillsMixin:
                             if special=="pop_knight" and (template.get("flying") or str(template.get("type","")).casefold()=="flying"):
                                 damage=max(1,int(round(damage*float(skill.get("bonus_vs_flying",1.35) or 1.35))))
                             damage,crit=self.roll_critical_hit(damage)
-                            if special=="shoot_all" and vmax:
-                                # V-MAX explicitly raises both damage and critical chance.
-                                if random.random()<min(0.95,self.critical_chance()+0.20):
-                                    damage=int(damage*1.5); crit=True
+                            # V-MAX source says Shoot-All gains damage and critical
+                            # effectiveness, but gives no numeric increase. Do not
+                            # fabricate a percentage here.
                             damage=await self.apply_boss_defense(target,damage); damage=self.v0210_adjust_player_damage(damage)
                             element={"laser_spin":"dark","area_bomb":"fire","maelstrom":"water","shock":"lightning","starlight_shower":"magic"}.get(special,"physical")
                             # Carries Elements is represented through the character's one
@@ -690,8 +688,10 @@ class SessionCombatSkillsMixin:
                         if mob.hp<=0: await self.mob_defeated(mob)
                         else: await self.ensure_realtime_combat()
                         return
-                    if special=="mec_sonata" and mob and random.random()<float(skill.get("level_down_chance",0.40) or 0.40):
-                        mob.v0319_level_down_until=max(float(getattr(mob,"v0319_level_down_until",0.0) or 0.0),time.time()+self.skill_effect_duration_v11153(skill,skill_level,base_seconds=18))
+                    # Mec Sonata may temporarily lower the target's level-equivalent
+                    # power, but source help gives neither proc chance nor base duration.
+                    # Keep the authored capability in metadata until a canonical
+                    # probability/duration source exists; do not fabricate runtime values.
                     if special=="magnify":
                         _p=(max(1,min(SKILL_MAX_LEVEL,skill_level))-1)/float(max(1,SKILL_MAX_LEVEL-1))
                         _wis=max(1,int(self.effective_willpower()))
