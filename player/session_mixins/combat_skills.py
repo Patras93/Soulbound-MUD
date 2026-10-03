@@ -15,6 +15,7 @@ from data.rooms import ROOMS
 from network.protocol_gameplay_utils import normalize_lookup_text
 from world.machine_expansion import v0314_adjust_damage_vs_template
 from world.economy_quests import v0863_execute_threshold
+from world.uoss_superboss_runtime import superboss_attack_gate_v11137
 
 class SessionCombatSkillsMixin:
     def offensive_aoe_enabled_v11120(self):
@@ -129,6 +130,12 @@ class SessionCombatSkillsMixin:
                         candidate for candidate in self.server.world.room_mobs(self.character.room_id)
                         if candidate.alive
                     ]
+                    _allowed_aoe = []
+                    for candidate in aoe_mobs:
+                        _ok, _reason = superboss_attack_gate_v11137(self, MOB_TEMPLATES[candidate.template_id])
+                        if _ok:
+                            _allowed_aoe.append(candidate)
+                    aoe_mobs = _allowed_aoe
                     if not aoe_mobs:
                         await self.send("Nie ma tutaj żywych przeciwników dla czaru obszarowego.")
                         return
@@ -194,6 +201,10 @@ class SessionCombatSkillsMixin:
                         await self.send("Auto-Drwalstwo wyłączone z powodu walki.")
                     mob = await self.skill_combat_target(target_text)
                     if not mob:
+                        return
+                    _uoss_ok, _uoss_reason = superboss_attack_gate_v11137(self, MOB_TEMPLATES[mob.template_id])
+                    if not _uoss_ok:
+                        await self.send(_uoss_reason)
                         return
 
                 self.current_mana -= mana_cost
