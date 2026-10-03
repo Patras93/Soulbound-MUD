@@ -2428,6 +2428,12 @@ def _v0319_install_full_mec_kit():
         if special=="uzi_punch": row["self_damage_pct"]=.10
         if special=="kamikaze_crush": row["self_damage_pct"]=.18
         if special=="dispose": row["self_damage_pct"]=.08
+        if special=="tiger_rampage":
+            row.update({"scale":"strength","hits":2,"target_mode":"one_enemy",
+                        "carries_soul_weapon_elements":True,"single_soul_weapon":True,
+                        "extendable":True,"defense_break_physical":True,
+                        "defense_break_magical":True,"defense_break_chance":0.40,
+                        "defense_break_duration":30})
         if special=="area_bomb":
             row.update({"scale":"intelligence","element":"fire","uoss_mp_cost":35,
                         "target_mode":"all_engaged_enemies","engaged_only":True})
