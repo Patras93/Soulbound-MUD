@@ -41,17 +41,10 @@ class SessionBaseSocialMixin:
                     else character.class_name
                 )
 
-                title_text = (
-                    f" Tytuł: {character.active_title}."
-                    if character.active_title else ""
-                )
                 await self.send(
                     f"{character.name}. "
-                    f"Klasa: {class_text}. "
-                    f"Soul Level {character.soul_level}. "
-                    f"Lokalizacja: {room['name']}. "
-                    f"Strefa: {room['zone']}."
-                    f"{title_text}"
+                    f"Rasa: {character.race}. "
+                    f"Klasa: {class_text}."
                 )
 
     async def say(self, text):
