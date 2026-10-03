@@ -539,19 +539,34 @@ class SessionSkillQueueBuffsMixin:
                 self.active_skill_buffs.pop("v0319_mec_vmax",None)
                 await self.send(f"V-MAX wygasa. OVERHEAT: wszystkie statystyki bojowe są osłabione przez {_overheat} sekund i V-MAX nie może być ponownie użyty.")
 
+    def mec_support_effect_v11149(self):
+            """Single-Soul-Weapon adaptation of the UOSS Cyborg support weapon."""
+            if not self.character or self.character.class_name != "Mec":
+                return False
+            # With one Soul Weapon, support style is determined by Will being the
+            # dominant combat stat. This preserves build choice without a second weapon.
+            will=max(0,float(self.effective_willpower()))
+            return will >= max(
+                max(0,float(self.effective_strength())),
+                max(0,float(self.effective_dexterity())),
+                max(0,float(self.effective_intelligence())),
+            )
+
     def mec_branch_multiplier_v0319(self, branch):
             mult=1.0
-            checks={
-              "melee":("v0319_mec_combat_mastery","v0319_mec_strength_protocol"),
-              "ranged":("v0319_mec_shooting_mastery","v0319_mec_ranged_protocol"),
-              "feedback":(None,"v0319_mec_feedback_protocol"),
-              "magic":("v0319_mec_maxwell_program","v0319_mec_magic_protocol"),
+            # v1.11.49: Protocols increase Mec ability potency. Inherent weapon
+            # masteries are separate and must not be counted a second time here.
+            protocols={
+              "melee":"v0319_mec_strength_protocol",
+              "ranged":"v0319_mec_ranged_protocol",
+              "feedback":"v0319_mec_feedback_protocol",
+              "magic":"v0319_mec_magic_protocol",
             }
-            for sid in checks.get(branch,()):
-                if sid and self.mec_skill_known_v0319(sid):
-                    row=self.server.db.skill_progress(self.account_id,sid)
-                    level=int(row["level"]); progress=(max(1,min(SKILL_MAX_LEVEL,level))-1)/float(max(1, SKILL_MAX_LEVEL-1))
-                    mult*=1.04 + 0.21*(progress**0.82)
+            sid=protocols.get(branch)
+            if sid and self.mec_skill_known_v0319(sid):
+                row=self.server.db.skill_progress(self.account_id,sid)
+                level=int(row["level"]); progress=(max(1,min(SKILL_MAX_LEVEL,level))-1)/float(max(1, SKILL_MAX_LEVEL-1))
+                mult*=1.04 + 0.21*(progress**0.82)
             if self.mec_overheat_active_v0319(): mult*=0.75
             return mult
 
