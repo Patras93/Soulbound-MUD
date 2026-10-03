@@ -1,5 +1,20 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.11.39
+Aktualna paczka: v1.11.40
+
+==============================================================================
+Soulbound v1.11.40 — Global No-Cooldown Class Skills
+==============================================================================
+
+- Usunięto zwykłe cooldowny ze skilli wszystkich klas, nie tylko z ofensywnych technik Meca.
+- Damage, AoE, execute, drain, heal, group heal, guard, evade i zwykłe aktywne techniki nie mają timera ponownego użycia.
+- Centralna polityka zeruje legacy cooldowny w CLASS_SKILLS dla wszystkich klas przy starcie.
+- Dodano audyt startowy: zwykły skill z niezerowym cooldownem powoduje błąd audytu zamiast cichego powrotu starego systemu.
+- Cooldown może istnieć wyłącznie po jawnym oznaczeniu mechanic_cooldown.
+- V-MAX zachowuje specjalny cooldown 60 sekund jako część mechaniki Overheat/V-MAX.
+- Auto-kolejka respektuje tylko mechaniczne cooldowny i nie blokuje już heal/guard/evade przez stare wartości.
+- Lista skills/spells nie pokazuje nieaktualnych legacy cooldownów; zwykłe skille komunikują „Bez cooldownu”.
+- Dla wyjątków lista pokazuje „Mechaniczny cooldown”.
+- Brak wipe'a save'ów.
 
 ==============================================================================
 Soulbound v1.11.39 — Odin: pełne reguły encounteru UOSSMUD
