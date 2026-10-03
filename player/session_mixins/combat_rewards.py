@@ -434,28 +434,13 @@ class SessionCombatRewardsMixin:
                             f"{int(bestiary_row['fastest_kill_ms']) / 1000.0:.2f} s."
                         )
 
-                    # v0.8.10: postęp zadania klasowego Gildii.
+                    # v1.11.32: bojowe zadania klasowe zaliczają tylko właściwy rodzaj celu.
                     try:
-                        active_classes = session.active_class_names()
-                        guild_class = active_classes[0] if active_classes else session.character.class_name
-                        quest_data = GUILD_CLASS_QUESTS.get(guild_class)
-                        states = session.character._guild_json("guild_class_quests_json")
-                        state = states.get(guild_class, {})
-                        if quest_data and isinstance(state, dict) and state.get("accepted") and not state.get("completed"):
-                            needed = int(quest_data[4])
-                            old_progress = int(state.get("progress", 0))
-                            new_progress = min(needed, old_progress + 1)
-                            state["progress"] = new_progress
-                            states[guild_class] = state
-                            session.character._set_guild_json("guild_class_quests_json", states)
-                            if new_progress >= needed:
-                                await session.send(
-                                    f"Zadanie Gildii {quest_data[0]}: {new_progress} z {needed}. "
-                                    "Cel wykonany. Użyj zadanieklasowe, aby odebrać nagrodę."
-                                )
-                            else:
-                                await session.send(f"Zadanie Gildii {quest_data[0]}: {new_progress} z {needed}.")
+                        await session.advance_class_guild_quest_v11132("kill", 1)
+                        if v0866_is_boss_template(template):
+                            await session.advance_class_guild_quest_v11132("boss", 1)
                     except Exception as exc:
+                        print(f"CLASS_GUILD_QUEST_PROGRESS_ERROR: {type(exc).__name__}: {exc}", flush=True)
                         print(f"GUILD_CLASS_QUEST_PROGRESS_ERROR: {type(exc).__name__}: {exc}", flush=True)
 
                     # v0.8.10: bounty zalicza się każdemu uprawnionemu członkowi drużyny.
