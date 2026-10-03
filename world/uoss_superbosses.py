@@ -129,37 +129,55 @@ def _apply_uoss_superboss_v0366(template, kind, floor, scale_stats=True):
 # milestone bosses. They are unique world encounters with their own unlock,
 # helper and per-cycle reward rules. Mythic dungeons keep their native scalable
 # bosses instead of borrowing UOSS identities every ten floors.
-UOSS_SUPERBOSS_ENCOUNTERS_V11133 = {
-    "serpentarius": {
-        "name": "Serpentarius",
-        "area": "Deep Dungeon",
-        "unlock": "explore_deep_dungeon",
-        "arena": "Deep Dungeon — piętro 0",
-        "helper": "Byblos",
-        "helper_max_players": 3,
-        "personal_token": "Serpentarius Emblem",
-        "once_per_cycle": True,
-    },
+UOSS_SUPERBOSS_ENCOUNTERS_V11134 = {
+    "spekkio": {"name":"Spekkio","mode":"solo","scales_to_player":True,"unlock_level":1},
+    "asterisks": {"name":"Asterisks","mode":"solo","unlock_level":80,"series":True},
+    "dad": {"name":"Dad","mode":"solo","unlock_level":80},
+    "diabolos": {"name":"Diabolos","mode":"solo","unlock_level":80},
+    "harle": {"name":"Harle","mode":"solo_or_party","unlock_level":85},
+    "culex": {"name":"Culex","mode":"party","unlock_level":100},
+    "ruby_weapon": {"name":"Ruby Weapon","mode":"party","unlock_level":100},
+    "emerald_weapon": {"name":"Emerald Weapon","mode":"party","unlock_level":100},
+    "ozma": {"name":"Ozma","mode":"solo","unlock_level":110},
+    "four_fiends": {"name":"Four Fiends","mode":"solo","unlock_level":110,"series":True},
+    "grahf": {"name":"Grahf","mode":"solo","unlock_level":110},
+    "hades": {"name":"Hades","mode":"solo","unlock_level":110,"crafting_master":True},
+    "lunar_trial": {"name":"Lunar Trial","mode":"solo","unlock_level":115,"series":True},
+    "elementals": {"name":"Elementals","mode":"solo","unlock_level":120,"series":True,"required_wins":8,"unlocks_final_foe":True},
+    "gilgamesh": {"name":"Gilgamesh","mode":"solo","unlock_level":120},
+    "war_machines": {"name":"War Machines","mode":"solo_or_party","unlock_level":125},
     "black_rabite": {
-        "name": "Black Rabite",
-        "area": "Rabite Fields",
-        "unlock_level": 100,
-        "helpers": ("Primm", "Popoi"),
-        "helper_choice_limit": 1,
-        "helper_max_players": 3,
-        "personal_token": "Moogle Steel",
-        "shared_unique_drop": True,
-        "once_per_cycle": True,
+        "name":"Black Rabite","mode":"party","area":"Rabite Fields","unlock_level":100,
+        "recommended_level":125,"helpers":("Primm","Popoi"),"helper_choice_limit":1,"helper_max_players":3,
+        "personal_token":"Moogle Steel","shared_unique_drop":True,"unique_drop_count":10,
+        "cyborg_conditional_drop":True,"pickup_binds":True,"once_per_cycle":True,
     },
+    "serpentarius": {
+        "name":"Serpentarius","mode":"party","area":"Deep Dungeon","unlock":"explore_deep_dungeon",
+        "arena":"Deep Dungeon — piętro 0","recommended_level":125,"helper":"Byblos","helper_max_players":3,
+        "personal_token":"Serpentarius Emblem","party_members_must_unlock":True,"once_per_cycle":True,
+    },
+    "odin": {"name":"Odin","mode":"party","unlock_level":125},
+    "yiazmat": {
+        "name":"Yiazmat","mode":"party","area":"Latarnia koło Tasnica","unlock_level":100,
+        "recommended_level":125,"helper":"Montblanc","helper_max_players":3,
+        "personal_token":"Godslayer's Badge","shared_unique_drop":True,"unique_drop_count":7,
+        "pickup_binds":True,"shop":"Fur shop w Elsendor — Yiazmat tier","once_per_cycle":True,
+    },
+    "sephiroth": {"name":"Sephiroth","mode":"solo","unlock_level":130},
 }
+# Compatibility alias for code introduced in v1.11.33.
+UOSS_SUPERBOSS_ENCOUNTERS_V11133 = UOSS_SUPERBOSS_ENCOUNTERS_V11134
 
 # Player-facing help. Category/group page labels are explicitly documented as
 # not being boss names so the mistake cannot silently return later.
 HELP_TOPICS["superbossy"] = [
-    "Superbossy UOSSMUD występują na progach co 10 w Mitycznej Krypcie i Mitycznej Wieży Astralnej.",
-    "Używane są wyłącznie konkretne nazwy bossów. Asterisks, Lunar Trials, Elementals i Four Fiends nie są pojedynczymi nazwami mobów i nie występują jako bossowie Soulbound.",
-    "Roster: " + ", ".join(entry["name"] for entry in UOSS_SUPERBOSS_ROSTER_V0366) + ".",
-    "Każdy Superboss zachowuje bramkę pierwszego pokonania, fazy 75/50/25 procent, Boss Codex i drużynowe współdzielenie dropów.",
+    "Superbossy UOSSMUD są unikalnymi wyzwaniami świata, a nie rotacją bossów Mitycznej Krypty/Wierzy.",
+    "Dostępne są wyzwania solo, solo/party i party. Minimalny próg nie oznacza zalecanego poziomu.",
+    "Black Rabite: wspólny losowy drop z 10 przedmiotów + Moogle Steel dla każdego uczestnika; przy maks. 3 graczach Primm albo Popoi.",
+    "Serpentarius: wymaga osobistego odblokowania Deep Dungeon; każdy uczestnik dostaje Serpentarius Emblem; przy maks. 3 graczach pomaga Byblos.",
+    "Yiazmat: 7 unikalnych dropów + Godslayer's Badge dla każdego uczestnika; przy maks. 3 graczach pomaga Montblanc.",
+    "Lockouty Super Bossów są trwałe i nie resetują się przez restart ani deploy Railway.",
 ]
 HELP_TOPIC_ALIASES.update({
     "superboss": "superbossy", "superbosses": "superbossy", "uossbosses": "superbossy",
