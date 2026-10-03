@@ -1,5 +1,18 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.11.43
+Aktualna paczka: v1.11.44
+
+==============================================================================
+Soulbound v1.11.44 — Mec Jammer
+==============================================================================
+
+- Jammer od Level 32 próbuje nałożyć Stop na przeciwnika.
+- Willpower wpływa na celność i czas Stop; Skill Level 1-600 dodatkowo zwiększa oba parametry.
+- Machine ma wyraźnie większą podatność na Jammer.
+- Stop zachowuje właściwości Cleanseable i Extendable w metadanych skilla.
+- Soulbound ma jedną Broń Duszy: zamiast osobnej Cyborg support weapon, Support Effect Meca rozszerza Jammer na wszystkich przeciwników.
+- Źródłowe koszty 20/40 MP są zachowane jako metadata UOSS; Mec pozostaje klasą fizyczną bez kosztu Many.
+- Jammer nie ma cooldownu zgodnie z globalną polityką v1.11.40.
+- Brak wipe'a save'ów.
 
 ==============================================================================
 Soulbound v1.11.43 — Shooting Mastery / jedna Broń Duszy
