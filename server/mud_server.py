@@ -501,7 +501,10 @@ class MudServer:
 
     async def mob_wander_loop(self):
         while True:
-            await asyncio.sleep(5.0)
+            # v1.11.22: ruch świata nie wymaga ticku co 5 s. Same moby mają
+            # własne next_wander_at liczone w znacznie dłuższych interwałach.
+            # Rzadszy tick ogranicza globalne skany i broadcasty bez wyłączania ruchu.
+            await asyncio.sleep(15.0)
             try:
                 _tick_started_v0718 = time.perf_counter()
                 _moves_v0718 = self.world.wander_step()
