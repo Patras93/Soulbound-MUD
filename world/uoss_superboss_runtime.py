@@ -12,6 +12,8 @@ SUPERBOSS_COLLECTION_V11135 = "uoss_superboss_clears_v11135"
 SUPERBOSS_REWARD_COLLECTION_V11135 = "uoss_superboss_rewards_v11135"
 
 SUPERBOSS_TOKEN_ITEMS_V11135 = {
+    "ruby_weapon": ("uoss_desert_rose", "Desert Rose"),
+    "emerald_weapon": ("uoss_earth_harp", "Earth Harp"),
     "black_rabite": ("uoss_moogle_steel", "Moogle Steel"),
     "serpentarius": ("uoss_serpentarius_emblem", "Serpentarius Emblem"),
     "yiazmat": ("uoss_godslayers_badge", "Godslayer's Badge"),
@@ -231,3 +233,14 @@ def advance_superboss_series_v11138(db, account_id, boss_key):
     if boss_key=="elementals" and now>=8:
         db.add_collection_entry(account_id,"uoss_unlocks_v11138","elementals_final_foe")
     return now,required,now>=required
+
+
+def weapon_pair_exchange_ready_v11141(db, account_id):
+    """Both WEAPON spoils are required before the Kalm Traveler exchange."""
+    inv=db.inventory(account_id)
+    def qty(item_id):
+        row=inv.get(item_id) if isinstance(inv,dict) else None
+        if isinstance(row,dict): return int(row.get("quantity",row.get("qty",0)) or 0)
+        try: return int(row or 0)
+        except (TypeError,ValueError): return 0
+    return qty("uoss_desert_rose")>0 and qty("uoss_earth_harp")>0
