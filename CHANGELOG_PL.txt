@@ -1,8 +1,22 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.11.31
+Aktualna paczka: v1.11.32
 
 ==============================================================================
 ==============================================================================
+==============================================================================
+Soulbound v1.11.32 — Explorer Points i różne zadania klasowe
+==============================================================================
+
+- Każdy teren ma własną pulę punktów eksploracji EP opartą na jego odkrywalnych lokacjach.
+- Pierwsze odkrycie lokacji daje 1 EP dokładnie raz; ponowne chodzenie po znanych pokojach nie daje kolejnych punktów.
+- Każdy zdobyty EP daje Character EXP skalowany z Levelem postaci.
+- Komenda eksploracja pokazuje EP zdobyte, całkowitą pulę EP terenu oraz liczbę pozostałych punktów.
+- Łączna eksploracja świata pokazuje również łączną liczbę zdobytych EP.
+- Przebudowano wszystkie 14 zadań klasowych Gildii: nie są już kopiami zadania „zabij przeciwników”.
+- Cele klasowe obejmują eksplorację nowych lokacji, zbieranie zasobów, zwykłą walkę oraz polowanie na bossów zależnie od charakteru klasy.
+- Postęp eksploracyjny nalicza się tylko za nowe lokacje; postęp zbieracki przez wspólny system profesyjnych zdarzeń; boss liczy się wyłącznie jako boss.
+- Brak wipe'a; istniejące odkrycia pozostają zachowane.
+
 ==============================================================================
 Soulbound v1.11.31 — 20 bazowych slotów kolejki skilli
 ==============================================================================
