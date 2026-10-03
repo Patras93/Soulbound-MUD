@@ -537,14 +537,12 @@ class SessionCombatSkillsMixin:
                             _engaged_alive=[x for x in alive if x.key in _engaged]
                             targets=([mob] if len(_engaged_alive)<=1 and mob else (_engaged_alive or ([mob] if mob else [alive[0]])))
                         elif special=="uzi_punch":
-                            targets=random.choices(alive,k=min(5,max(2,len(alive))))
+                            # Source gives no authored hit count.
+                            targets=list(alive)
                         else:
                             targets=list(alive)
                         base=max(1,int(skill.get("base_power",100) or 100)); total=0; defeated=[]; seen=set()
                         mult=skill_power*self.mec_branch_multiplier_v0319(branch)*self.skill_buff_multiplier(exclude_skill_id="v0319_mec_vmax")
-                        if special=="area_bomb":
-                            # Magic Attack influence in Soulbound is Intelligence.
-                            mult*=max(0.75,min(3.0,self.effective_intelligence()/100.0))
                         # Cosmic Rave has a lesser Agility influence and V-MAX
                         # strengthens Starlight Shower, but source help supplies no
                         # numeric multiplier for either relation.
@@ -553,8 +551,7 @@ class SessionCombatSkillsMixin:
                             template=MOB_TEMPLATES[target.template_id]
                             _local_mult=mult
                             if special in ("starlight_shower","shock_soldier","laser_spin","maelstrom","cosmic_rave") and len(targets)>1 and not ((special=="starlight_shower" or special=="cosmic_rave") and vmax):
-                                # Canonical diminishing AoE: power falls as more enemies are hit.
-                                _local_mult*=max(0.45,1.0-0.12*(len(targets)-1))
+                                # Source marks diminishing AoE but gives no numeric falloff.
                             damage=max(1,int(base*_local_mult)+random.randint(-6,6))
                             # v1.11.47: Pop Knight keeps full AoE damage and receives
                             # the source ability's anti-Flying bonus. The Mec has one
