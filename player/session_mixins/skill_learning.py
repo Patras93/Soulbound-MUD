@@ -369,8 +369,9 @@ class SessionSkillLearningMixin:
                         f"{number}. {skill['name']}. Biegłość {skill['unlock']}. "
                         f"Nauczyciel: {teacher_name}, {teacher_room}. "
                         f"Koszt: {cost}. Status: {status}."
-                        f"{mana_text} Cooldown {skill.get('cooldown', 0)} sekund. "
-                        f"{skill.get('desc', '')}"
+                        f"{mana_text}"
+                        + (f" Mechaniczny cooldown {skill.get('cooldown', 0)} sekund." if skill.get("mechanic_cooldown") else " Bez cooldownu.")
+                        + f" {skill.get('desc', '')}"
                     )
 
     async def show_all_skill_names(self):
@@ -491,26 +492,21 @@ class SessionSkillLearningMixin:
 
                     mana_cost = effective_skill_mana_cost(skill, class_name)
                     mana = f", Mana {mana_cost}" if mana_cost else ""
-                    effective_cd = self.effective_skill_cooldown(
-                        skill, skill_level
-                    )
-                    remaining = max(
-                        0,
-                        int(
-                            self.skill_cooldown_ready_at_v0364(skill)
-                            - time.time() + 0.999
-                        ),
-                    )
-                    cd = (
-                        f", pozostały cooldown {remaining} sekund"
-                        if remaining else ""
-                    )
+                    if skill.get("mechanic_cooldown"):
+                        effective_cd = self.effective_skill_cooldown(skill, skill_level)
+                        remaining = max(
+                            0, int(self.skill_cooldown_ready_at_v0364(skill) - time.time() + 0.999)
+                        )
+                        cooldown_text = f" Mechaniczny cooldown {effective_cd} sekund"
+                        if remaining:
+                            cooldown_text += f", pozostało {remaining} sekund"
+                        cooldown_text += "."
+                    else:
+                        cooldown_text = " Bez cooldownu."
 
                     await self.send(
                         f"{global_number}. {skill['name']}. {status}."
-                        f"{progress_text} Cooldown bazowy {skill['cooldown']} sekund, "
-                        f"aktualny {effective_cd} sekund{mana}{cd}. "
-                        f"{skill['desc']}"
+                        f"{progress_text}{mana}{cooldown_text} {skill['desc']}"
                     )
 
             await self.send(
@@ -622,9 +618,11 @@ class SessionSkillLearningMixin:
             }
 
     def effective_skill_cooldown(self, skill, skill_level):
+            if not skill.get("mechanic_cooldown"):
+                return 0
             return max(
                 1,
-                int(round(skill["cooldown"] * skill_cooldown_multiplier(skill_level)))
+                int(round(int(skill.get("cooldown", 0) or 0) * skill_cooldown_multiplier(skill_level)))
             )
 
     async def grant_skill_use_xp(self, skill):
