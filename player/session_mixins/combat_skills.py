@@ -17,6 +17,38 @@ from world.machine_expansion import v0314_adjust_damage_vs_template
 from world.economy_quests import v0863_execute_threshold
 
 class SessionCombatSkillsMixin:
+    def offensive_aoe_enabled_v11120(self):
+        row = self.server.db.conn.execute(
+            "SELECT offensive_aoe_enabled FROM player_combat_settings_v11120 WHERE account_id=?",
+            (self.account_id,),
+        ).fetchone()
+        return True if row is None else bool(row["offensive_aoe_enabled"])
+
+    async def handle_aoe_setting_v11120(self, args=""):
+        raw = normalize_lookup_text(str(args or "").strip())
+        if raw in ("on", "wlacz", "włącz"):
+            enabled = True
+        elif raw in ("off", "wylacz", "wyłącz"):
+            enabled = False
+        elif raw in ("", "status"):
+            state = "włączone" if self.offensive_aoe_enabled_v11120() else "wyłączone"
+            await self.send(f"Ofensywne AoE: {state}. Użyj: aoe on albo aoe off.")
+            return
+        else:
+            await self.send("Użycie: aoe on, aoe off albo aoe.")
+            return
+        self.server.db.conn.execute(
+            "INSERT INTO player_combat_settings_v11120(account_id,offensive_aoe_enabled) VALUES(?,?) "
+            "ON CONFLICT(account_id) DO UPDATE SET offensive_aoe_enabled=excluded.offensive_aoe_enabled",
+            (self.account_id, 1 if enabled else 0),
+        )
+        self.server.db.conn.commit()
+        await self.send(
+            "Ofensywne AoE włączone: umiejętności obszarowe atakują wszystkie cele w lokacji."
+            if enabled else
+            "Ofensywne AoE wyłączone: umiejętności obszarowe atakują tylko jeden cel."
+        )
+
     async def use_class_skill(self, raw):
                 skill, target_text = self.find_skill_from_input(raw)
                 if not skill:
@@ -90,6 +122,21 @@ class SessionCombatSkillsMixin:
                     if not aoe_mobs:
                         await self.send("Nie ma tutaj żywych przeciwników dla czaru obszarowego.")
                         return
+                    if not self.offensive_aoe_enabled_v11120():
+                        selected = next(
+                            (candidate for candidate in aoe_mobs if candidate.key == self.combat_mob_key),
+                            None,
+                        )
+                        if selected is None and target_text:
+                            wanted = normalize_lookup_text(target_text)
+                            selected = next(
+                                (
+                                    candidate for candidate in aoe_mobs
+                                    if wanted in normalize_lookup_text(MOB_TEMPLATES[candidate.template_id]["name"])
+                                ),
+                                None,
+                            )
+                        aoe_mobs = [selected or aoe_mobs[0]]
                     # Najpierw czyścimy osierocone aggro. Dzięki temu mob nie jest
                     # blokowany przez gracza, którego już nie ma w pokoju lub walce.
                     for candidate in aoe_mobs:
