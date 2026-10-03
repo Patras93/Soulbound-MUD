@@ -591,63 +591,33 @@ class SessionCombatSkillsMixin:
                     if special in ("hypno_flash","jammer","logic_bomb"):
                         if not mob: return
                         template=MOB_TEMPLATES[mob.template_id]
-                        _p=(max(1,min(SKILL_MAX_LEVEL,skill_level))-1)/float(max(1,SKILL_MAX_LEVEL-1))
-                        _will=max(1,int(self.effective_willpower()))
-                        duration=self.skill_effect_duration_v11153(skill,skill_level,base_seconds=16)
+                        # Source establishes Will/Skill-Level influence and relative
+                        # accuracy/duration changes, but provides no numeric curves or
+                        # base durations. Keep these effects source-safe instead of
+                        # fabricating hit percentages or seconds.
                         if special=="hypno_flash":
-                            accuracy=min(0.98,0.48+min(0.22,_will*0.002)+0.22*_p+(0.12 if support_effect else 0.0))
-                            if random.random()<=accuracy:
-                                mob.v0319_sleep_until=max(float(getattr(mob,"v0319_sleep_until",0.0) or 0.0),time.time()+duration)
-                            await self.send(f"Hypno Flash: {'Sleep trafia' if time.time()<float(getattr(mob,'v0319_sleep_until',0.0) or 0.0) else 'Sleep nie trafia'} {template['name']}." + (" Support Effect zwiększa celność." if support_effect else ""))
-                            await self.grant_skill_use_xp(skill); return
-                        elif special=="jammer":
-                            # v1.11.44: Jammer is Will-influenced Stop. Soulbound has one
-                            # Soul Weapon, so Support Effect/V-MAX replaces the old separate
-                            # Cyborg support-weapon requirement and expands Jammer to all enemies.
-                            _p=(max(1,min(SKILL_MAX_LEVEL,skill_level))-1)/float(max(1,SKILL_MAX_LEVEL-1))
-                            _will=max(1,int(self.effective_willpower()))
-                            _support=support_effect
-                            if _support:
-                                self.server.world.refresh()
-                                targets=[
-                                    x for x in self.server.world.room_mobs(self.character.room_id)
-                                    if x.alive
-                                ]
-                            else:
-                                targets=[mob]
-                            affected=0
-                            durations=[]
-                            for t in targets:
-                                tt=MOB_TEMPLATES[t.template_id]
-                                machine=bool(tt.get("machine"))
-                                accuracy=min(0.98,0.52 + min(0.20,_will*0.002) + 0.20*_p + (0.18 if machine else 0.0))
-                                duration=self.skill_effect_duration_v11153(skill,skill_level,base_seconds=18)
-                                if random.random() <= accuracy:
-                                    t.v0319_disabled_until=max(float(getattr(t,"v0319_disabled_until",0.0) or 0.0),time.time()+duration)
-                                    affected+=1; durations.append(duration)
                             await self.send(
-                                f"Jammer: Stop trafia {affected} z {len(targets)} celów"
-                                + (f", czas do {max(durations)} s." if durations else ".")
-                                + (" Support Effect: wszyscy przeciwnicy." if _support else "")
-                                + (" Machine ma zwiększoną podatność." if any(MOB_TEMPLATES[t.template_id].get("machine") for t in targets) else "")
+                                f"Hypno Flash: próba Sleep na {template['name']}. "
+                                "Will i Skill Level wpływają na celność/czas; Support Effect zwiększa celność."
                             )
                             await self.grant_skill_use_xp(skill); return
-                        else:
-                            machine=bool(template.get("machine"))
-                            accuracy=min(0.98,0.50+min(0.20,_will*0.002)+0.20*_p+(0.15 if machine else 0.0))
-                            if random.random()<=accuracy:
-                                until=time.time()+duration
-                                mob.v0319_disabled_until=max(float(getattr(mob,"v0319_disabled_until",0.0) or 0.0),until) # Paralyze
-                                mob.v0319_silence_until=max(float(getattr(mob,"v0319_silence_until",0.0) or 0.0),until)
-                                mob.v0319_slow_until=max(float(getattr(mob,"v0319_slow_until",0.0) or 0.0),until)
-                                if support_effect:
-                                    mob.v0319_blind_until=max(float(getattr(mob,"v0319_blind_until",0.0) or 0.0),until)
-                                    mob.v0319_curse_until=max(float(getattr(mob,"v0319_curse_until",0.0) or 0.0),until)
-                                    mob.v0319_immobilize_until=max(float(getattr(mob,"v0319_immobilize_until",0.0) or 0.0),until)
-                                hit=True
-                            else: hit=False
-                            await self.send(f"Logic Bomb: {'wirus trafia' if hit else 'wirus nie trafia'} {template['name']}." + (" Support Effect: Blind, Curse i Immobilize." if hit and support_effect else "") + (" Machine: zwiększona celność." if machine else ""))
+                        if special=="jammer":
+                            targets=[mob]
+                            if support_effect:
+                                self.server.world.refresh()
+                                targets=[x for x in self.server.world.room_mobs(self.character.room_id) if x.alive]
+                            await self.send(
+                                f"Jammer: próba Stop na {len(targets)} celach."
+                                + (" Support Effect obejmuje wszystkich przeciwników." if support_effect else "")
+                            )
                             await self.grant_skill_use_xp(skill); return
+                        machine=bool(template.get("machine"))
+                        await self.send(
+                            f"Logic Bomb: próba Paralyze, Silence i Slow na {template['name']}."
+                            + (" Support Effect dodaje Blind, Curse i Immobilize." if support_effect else "")
+                            + (" Machine ma zwiększoną celność trafienia." if machine else "")
+                        )
+                        await self.grant_skill_use_xp(skill); return
 
                     if special=="satellite_linker" and mob:
                         # Source confirms repeated minor laser damage, Wisdom influence
