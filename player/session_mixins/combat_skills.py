@@ -114,6 +114,43 @@ class SessionCombatSkillsMixin:
                 offensive = kind in ("damage", "drain", "execute", "aoe_damage")
                 mob = None
                 aoe_mobs = []
+                if kind == "group_heal":
+                    recipients=self.server.party_sessions(
+                        self.account_id,same_room=self.character.room_id
+                    ) or [self]
+                    recipients=[
+                        session for session in recipients
+                        if not session.closed and session.character and session.current_hp>0
+                    ]
+                    if not recipients:
+                        await self.send(f"{skill['name']}: brak żywych sojuszników w tej lokacji.")
+                        return
+                    # Healing Wind source gives Will + Skill Level influence but no
+                    # numeric heal amount. Reuse Soulbound's canonical healing power
+                    # calculation instead of adding a new fixed percentage.
+                    healed=[]
+                    for target in recipients:
+                        target_max=target.max_hp()
+                        before=target.current_hp
+                        if before>=target_max:
+                            continue
+                        base=max(1,int(self.effective_willpower()))
+                        heal=max(1,int(round(base*skill_power)))
+                        target.current_hp=min(target_max,before+heal)
+                        actual=target.current_hp-before
+                        if actual:
+                            healed.append((target,actual))
+                            if target is not self:
+                                await target.send(f"{self.character.name} używa {skill['name']}. Odzyskujesz {actual} HP.")
+                    await self.grant_skill_use_xp(skill)
+                    total=sum(amount for _target,amount in healed)
+                    await self.send(f"{skill['name']}: uleczono {len(healed)} członków drużyny w tej lokacji, łącznie {total} HP.")
+                    if mana_cost:
+                        await self.send(f"Mana: {self.current_mana} z {self.max_mana()}.")
+                    if self.combat_mob_key:
+                        await self.ensure_realtime_combat()
+                    return
+
                 if kind == "aoe_damage":
                     if self.auto_fishing or self.auto_fishing_task:
                         await self.stop_auto_fishing(announce=False)
