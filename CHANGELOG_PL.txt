@@ -1,8 +1,18 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.11.18
+Aktualna paczka: v1.11.19
 
 ==============================================================================
 ==============================================================================
+==============================================================================
+Soulbound v1.11.19 — hotfix startu systemu znajomych
+==============================================================================
+
+- Naprawiono crash przy starcie v1.11.18 powodowany przez Modular Refactor Audit.
+- System znajomych przeniesiono z social_expansion.py do osobnego mixina friends.py.
+- social_expansion.py ponownie mieści się w limicie architektury 500 linii; limit audytu nie został zwiększony ani wyłączony.
+- Zachowano obsługę friend, friends, znajomi i znajomy oraz listy online/offline.
+- Brak zmian SQLite i brak wipe'a save'ów.
+
 ==============================================================================
 Soulbound v1.11.18 — naprawa listy znajomych
 ==============================================================================
