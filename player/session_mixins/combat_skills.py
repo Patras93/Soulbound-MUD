@@ -417,6 +417,32 @@ class SessionCombatSkillsMixin:
                         await self.grant_skill_use_xp(skill); return
 
                     if special in ("cure_beam","heal_beam"):
+                        # v1.11.45: Cure Beam is a Will-influenced single-target heal.
+                        # Soulbound's Support Effect replaces the old separate support weapon:
+                        # it heals slightly more and cleanses Blind + Poison.
+                        if special=="cure_beam":
+                            recipients=self.server.party_sessions(self.account_id,same_room=self.character.room_id) or [self]
+                            injured=[s for s in recipients if not s.closed and s.character and s.current_hp>0 and s.current_hp<s.max_hp()]
+                            target=min(injured,key=lambda s:(s.current_hp/max(1,s.max_hp()),s.current_hp,s.character.name.lower())) if injured else self
+                            _p=(max(1,min(SKILL_MAX_LEVEL,skill_level))-1)/float(max(1,SKILL_MAX_LEVEL-1))
+                            _will=max(1,int(self.effective_willpower()))
+                            heal_pct=min(0.55,0.14 + min(0.18,_will*0.0015) + 0.16*_p)
+                            if vmax: heal_pct*=float(skill.get("support_heal_multiplier",1.20) or 1.20)
+                            amount=max(1,int(target.max_hp()*min(0.65,heal_pct)))
+                            before=target.current_hp; target.current_hp=min(target.max_hp(),target.current_hp+amount); actual=target.current_hp-before
+                            cleansed=[]
+                            if vmax:
+                                for attr,label in (("v0319_blind_until","Blind"),("v0319_poison_until","Poison"),("poison_until","Poison")):
+                                    if float(getattr(target,attr,0.0) or 0.0)>time.time():
+                                        setattr(target,attr,0.0)
+                                        if label not in cleansed: cleansed.append(label)
+                            await self.send(
+                                f"Cure Beam: {target.character.name} odzyskuje {actual} HP."
+                                + (f" Support Effect usuwa: {', '.join(cleansed)}." if cleansed else (" Support Effect zwiększa leczenie." if vmax else ""))
+                            )
+                            if target is not self:
+                                await target.send(f"{self.character.name} używa Cure Beam. Odzyskujesz {actual} HP." + (f" Usunięto: {', '.join(cleansed)}." if cleansed else ""))
+                            await self.grant_skill_use_xp(skill); return
                         # Reuse Soulbound smart healing. Heal Beam's Support Effect becomes party-wide during V-MAX.
                         if special=="heal_beam" and vmax:
                             recipients=self.server.party_sessions(self.account_id,same_room=self.character.room_id) or [self]
