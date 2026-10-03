@@ -31,13 +31,13 @@ class SessionSkillQueueBuffsMixin:
             )
 
     def cleanup_mec_protocols_from_queue_v10013(self):
-            """Protokoły Meca są pasywne i nie zajmują slotów auto-kolejki."""
+            """Pasywki działają stale i nigdy nie zajmują slotów auto-kolejki."""
             removed = 0
             for queue_type in ("physical", "magic"):
                 rows = list(self.server.db.skill_queue_rows(self.account_id, queue_type))
                 for row in sorted(rows, key=lambda item: int(item["position"]), reverse=True):
                     skill = self.skill_by_id(row["skill_id"])
-                    if not self.is_mec_protocol_v10013(skill):
+                    if not skill or str(skill.get("kind", "")).lower() != "passive":
                         continue
                     if self.server.db.remove_skill_queue_entry(
                         self.account_id, queue_type, int(row["position"])
@@ -135,7 +135,7 @@ class SessionSkillQueueBuffsMixin:
             removed_protocols = self.cleanup_mec_protocols_from_queue_v10013()
             if removed_protocols:
                 await self.send(
-                    f"Usunięto z kolejki {removed_protocols} pasywne protokoły Meca. "
+                    f"Usunięto z kolejki {removed_protocols} pasywne umiejętności. "
                     "Po nauczeniu działają stale i nie zajmują slotów."
                 )
             enabled = self.server.db.skill_queue_enabled(self.account_id)
@@ -233,10 +233,10 @@ class SessionSkillQueueBuffsMixin:
                 if not self.server.db.knows_skill(self.account_id, skill["id"]):
                     await self.send(f"Najpierw musisz nauczyć się umiejętności {skill['name']}.")
                     return
-                if self.is_mec_protocol_v10013(skill):
+                if str(skill.get("kind", "")).lower() == "passive":
                     await self.send(
-                        f"{skill['name']} jest pasywnym protokołem Meca. "
-                        "Po nauczeniu działa automatycznie cały czas i nie dodaje się go do kolejki."
+                        f"{skill['name']} jest umiejętnością pasywną. "
+                        "Po nauczeniu działa automatycznie cały czas i nie dodaje się jej do kolejki."
                     )
                     return
                 skill_class = self.skill_class_name(skill)
