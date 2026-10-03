@@ -2427,7 +2427,7 @@ def _v0319_install_full_mec_kit():
                         "target_mode":"single_or_support_party","support_heal_multiplier":1.20})
         if special=="cure_beam":
             row.update({"scale":"willpower","uoss_mp_cost":10,"target_mode":"self_or_one_ally",
-                        "support_heal_multiplier":1.20,"support_cleanses":["blind","poison"]})
+                        "support_cleanses":["blind","poison"]})
         if special=="jammer":
             row.update({"scale":"willpower","control_effect":"stop","cleanseable":True,"extendable":True,
                         "uoss_mp_cost":20,"uoss_support_mp_cost":40,
@@ -2435,10 +2435,9 @@ def _v0319_install_full_mec_kit():
         if special=="starlight_shower":
             row.update({"uoss_mp_cost":225, "uoss_vmax_mp_cost":300, "target_mode":"single_or_diminishing_aoe"})
         if special=="cosmic_rave":
-            row.update({"scale":"strength", "secondary_scale":"dexterity", "secondary_scale_weight":0.35,
-                        "carries_soul_weapon_elements":True, "requires_soul_weapon":"melee",
+            row.update({"scale":"strength", "secondary_scale":"dexterity",                         "carries_soul_weapon_elements":True, "requires_soul_weapon":"melee",
                         "target_mode":"diminishing_aoe_or_vmax_random"})
-        if special=="vmax": row.update({"boost":1.0,"cooldown":60,"duration_scales_with_skill_level":True})
+        if special=="vmax": row.update({"boost":1.0,"cooldown":0,"mechanic_cooldown":True,"duration_scales_with_skill_level":True})
     CLASS_SKILLS["Mec"] = rows
 
 _v0319_install_full_mec_kit()
