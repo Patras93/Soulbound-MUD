@@ -1099,10 +1099,8 @@ class SessionCombatSkillsMixin:
                     self_damage += max(1, int(self.max_hp() * skill["self_damage_pct"]))
                 if self_damage:
                     self.current_hp -= self_damage
-                    if skill.get("mec_branch")=="feedback" and self.mec_skill_known_v0319("v0319_mec_self_repair"):
-                        _sr_level=int(self.server.db.skill_progress(self.account_id,"v0319_mec_self_repair")["level"]); _sr_p=(max(1,min(SKILL_MAX_LEVEL,_sr_level))-1)/float(max(1, SKILL_MAX_LEVEL-1))
-                        self.v0319_feedback_repair_pool=int(getattr(self,"v0319_feedback_repair_pool",0) or 0)+max(1,int(self_damage*(0.35+0.45*_sr_p)))
-                        self.v0319_feedback_repair_at=time.time()+8.0
+                    if skill.get("mec_branch")=="feedback":
+                        self.queue_mec_feedback_repair_v11154(self_damage)
                     await self.send(
                         f"Koszt umiejętności: tracisz {self_damage} HP. "
                         f"Masz {max(0, self.current_hp)} z {self.max_hp()} HP."
