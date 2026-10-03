@@ -1,5 +1,17 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.11.46
+Aktualna paczka: v1.11.47
+
+==============================================================================
+Soulbound v1.11.47 — Mec Pop Knight
+==============================================================================
+
+- Pop Knight od Level 46 trafia wszystkich przeciwników w lokacji pełnymi, niediminishing obrażeniami.
+- Skaluje się z fizycznego Attack/Strength i korzysta z pasywnego Strength Protocol.
+- Dostosowano wymóg melee weapon do Soulbound: Mec korzysta ze swojej jednej Broni Duszy i nie potrzebuje drugiej broni.
+- Pop Knight ma Carries Elements: przenosi element Broni Duszy, z fizycznym typem jako fallback.
+- Przeciw przeciwnikom oznaczonym jako Flying zadaje +35% obrażeń.
+- Bez cooldownu.
+- Brak wipe'a save'ów.
 
 ==============================================================================
 Soulbound v1.11.46 — Mec Heal Beam
