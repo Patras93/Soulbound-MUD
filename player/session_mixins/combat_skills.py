@@ -389,7 +389,7 @@ class SessionCombatSkillsMixin:
                         if vmax:
                             await self.send("V-MAX jest już aktywny."); return
                         if self.mec_overheat_active_v0319():
-                            await self.send(f"V-MAX zablokowany przez Overheat jeszcze przez {int(getattr(self,'v0319_overheat_until',0)-time.time()+.999)} s."); return
+                            await self.send("V-MAX zablokowany przez Overheat do zakończenia akcji regeneracyjnej."); return
                         will=max(1,int(self.effective_willpower()))
                         _vd,_vc=self.server.db.vmax_upgrades_v03114(self.account_id)
                         _skill_progress=(max(1,min(SKILL_MAX_LEVEL,skill_level))-1)/float(max(1, SKILL_MAX_LEVEL-1))
