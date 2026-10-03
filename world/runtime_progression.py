@@ -82,7 +82,7 @@ def v0210_endless_gauntlet_template(round_no):
     reward_mult=min(400000.0,1.0+(band-1)*0.35)
     base_hp=int(round(v0190_log_curve(400,V019_HP_NORMAL)*12.0*mult))
     base_dmg=int(round(v0190_log_curve(400,V019_DAMAGE_NORMAL)*1.75*(1.0+(band-1)*0.06)))
-    _catalog_mut.catalog_assign({"name":f"Strażnik Endless Gauntlet — pasmo {band}","max_hp":min(V019_SAFE_INT,max(1,base_hp)),
+    _catalog_mut.catalog_assign({"name":"Strażnik Endless Gauntlet","max_hp":min(V019_SAFE_INT,max(1,base_hp)),
         "damage":min(V019_SAFE_INT,max(1,base_dmg)),"damage_type":"magic" if band%2 else "physical",
         "class_xp_reward":min(V019_SAFE_INT,int(v0190_log_curve(400,V019_CLASS_KILL_BOSS)*reward_mult)),
         "soul_reward":min(V019_SAFE_INT,int(v0190_log_curve(400,V019_SOUL_KILL_BOSS)*reward_mult)),
