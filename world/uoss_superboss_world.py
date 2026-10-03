@@ -37,7 +37,7 @@ for idx,key in enumerate(_ORDER,1):
     # Chain arenas so all are reachable without consuming 21 directions in hub.
     ROOMS.setdefault(_prev,{}).setdefault("exits",{}).setdefault("forward",rid)
     MOB_TEMPLATES.setdefault(mid,{
-        "name":spec["name"],"max_hp":1000,"damage":50,"damage_type":"magic" if key in {"diabolos","ozma","hades","elementals"} else "physical",
+        "name":spec["name"],"max_hp":max(5000, level*250),"damage":max(75, level*3),"damage_type":"magic" if key in {"diabolos","ozma","hades","elementals"} else "physical",
         "silver":0,"gold":0,"mithril":0,"stat_reward":0,"soul_reward":0,"drops":{},"quest_target":None,
         "world_boss":True,"stationary_mob":True,"auto_aggro":False,"generator_level":level,
         "uoss_unique_superboss_key":key,"uoss_superboss_mode":spec.get("mode","solo"),
