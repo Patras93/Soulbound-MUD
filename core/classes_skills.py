@@ -2659,6 +2659,40 @@ if PHYSICAL_SKILL_MANA_AUDIT["error_count"]:
     )
 
 
+
+# v1.11.40: global no-cooldown policy.
+# Ordinary class skills of every class have no reuse timer. A cooldown may
+# survive only when the skill explicitly declares that the timer is part of
+# its special mechanic.
+SPECIAL_MECHANIC_COOLDOWN_IDS_V11140 = {"v0319_mec_vmax"}
+for _class_name, _skills in CLASS_SKILLS.items():
+    for _skill in _skills:
+        _sid=str(_skill.get("id",""))
+        if _sid in SPECIAL_MECHANIC_COOLDOWN_IDS_V11140 or _skill.get("mechanic_cooldown"):
+            _skill["mechanic_cooldown"]=True
+            continue
+        _skill["cooldown"]=0
+
+def _skill_cooldown_audit_v11140():
+    errors=[]
+    checked=0
+    exceptions=[]
+    for class_name,skills in CLASS_SKILLS.items():
+        for skill in skills:
+            checked+=1
+            cd=int(skill.get("cooldown",0) or 0)
+            if skill.get("mechanic_cooldown"):
+                exceptions.append((class_name,skill.get("name"),cd))
+            elif cd!=0:
+                errors.append(f"{class_name}/{skill.get('name')}: cooldown={cd}")
+    return {"version":"1.11.40","checked":checked,"exceptions":exceptions,
+            "error_count":len(errors),"errors":errors}
+
+SKILL_COOLDOWN_AUDIT_V11140=_skill_cooldown_audit_v11140()
+if SKILL_COOLDOWN_AUDIT_V11140["error_count"]:
+    raise RuntimeError("Global Skill Cooldown Audit v1.11.40 failed: "+
+                       "; ".join(SKILL_COOLDOWN_AUDIT_V11140["errors"][:50]))
+
 NATURAL_SKILL_INTENTS = {
     "heal": {"kinds": {"heal"}},
     "healing": {"kinds": {"heal"}},
