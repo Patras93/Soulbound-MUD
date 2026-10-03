@@ -2368,7 +2368,7 @@ def _v0319_install_full_mec_kit():
         # Ranged
         ("Crosshair",1,"damage",200,"ranged","crosshair","Precise shot; benefits strongly from critical chance."),
         ("Range Fire",8,"aoe_damage",500,"ranged","range_fire","Bullets hit all enemies; non-diminishing area attack."),
-        ("Dispose",32,"aoe_damage",1200,"ranged","dispose","Lasers hit all enemies at a cost of some HP."),
+        ("Dispose",32,"aoe_damage",1000,"ranged","dispose","Heavy-duty lasers hit all enemies at full AoE power and cause Feedback damage."),
         ("Satellite Linker",44,"damage",1200,"ranged","satellite_linker","Attack drones repeatedly damage one enemy over time; scales with Will."),
         ("Magnify",90,"damage",1500,"ranged","magnify","Very strong overload attack; may Lock the user."),
         ("Shoot-All",110,"aoe_damage",2000,"ranged","shoot_all","Fires all ammunition at all enemies; V-MAX increases damage and crit."),
@@ -2424,7 +2424,16 @@ def _v0319_install_full_mec_kit():
         if kind=="heal": row["heal_pct"] = .22 if special=="cure_beam" else .48
         if special in ("destroy","robo_tackle"): row["self_damage_pct"]=.04
         if special=="compress": row["self_damage_pct"]=.06
-        if special=="crush": row["self_damage_pct"]=.08
+        if special=="crush": row.update({"self_damage_pct":.08,"damage_from_missing_hp":True,"level_caps_damage":True,"level_effect":"increases_maximum_possible_damage","single_soul_weapon":True})
+        if special=="kamikaze_crush": row.update({"damage_from_current_hp":True,"vitality_influence":True,"vmax_power_and_feedback":True,"single_soul_weapon":True})
+        if special=="shock_soldier": row.update({"aoe_diminishing":True,"carries_soul_weapon_elements":True,"single_soul_weapon":True})
+        if special=="range_fire": row.update({"aoe_non_diminishing":True,"carries_soul_weapon_elements":True,"single_soul_weapon":True})
+        if special=="dispose": row.update({"aoe_non_diminishing":True,"carries_soul_weapon_elements":True,"feedback_damage":True,"single_soul_weapon":True})
+        if special=="crosshair": row.update({"critical_chance_influence":True,"attempts_critical":True,"carries_soul_weapon_elements":True,"single_soul_weapon":True})
+        if special=="shoot_all": row.update({"aoe_non_diminishing":True,"critical_chance_influence":True,"vmax_increases_critical_and_damage":True,"carries_soul_weapon_elements":True,"single_soul_weapon":True})
+        if special=="laser_spin": row.update({"aoe_diminishing":True,"element":"dark"})
+        if special=="maelstrom": row.update({"aoe_diminishing":True,"element":"water"})
+                if special=="crush": row["self_damage_pct"]=.08
         if special=="uzi_punch": row["self_damage_pct"]=.10
         if special=="kamikaze_crush": row["self_damage_pct"]=.18
         if special=="dispose": row["self_damage_pct"]=.08
