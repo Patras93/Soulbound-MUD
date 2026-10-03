@@ -1,8 +1,18 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.11.16
+Aktualna paczka: v1.11.17
 
 ==============================================================================
 ==============================================================================
+==============================================================================
+Soulbound v1.11.17 — cisza kanałów po zalogowaniu
+==============================================================================
+
+- Po wejściu do świata gra nie odczytuje już automatycznie 20 ostatnich wiadomości GOSSIP.
+- Kanały GOSSIP, NEWBIE i TRADE nadal działają normalnie na żywo.
+- Historia kanałów pozostaje dostępna wyłącznie na żądanie przez komendę historii kanału.
+- Poprawka ogranicza zbędny potok tekstu dla NVDA podczas logowania.
+- Brak zmian SQLite i brak wipe'a save'ów.
+
 ==============================================================================
 Soulbound v1.11.16 — rasa Smok
 ==============================================================================
