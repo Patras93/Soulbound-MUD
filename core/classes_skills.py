@@ -2359,7 +2359,7 @@ def _v0319_install_full_mec_kit():
         ("Plural Slash",32,"damage",900,"melee","plural_slash","Multiple slashes on one enemy. Scales especially with Dexterity."),
         ("Pop Knight",46,"aoe_damage",1500,"melee","pop_knight","Non-diminishing attack on all enemies. Uses the Mec's single Soul Weapon, carries its elements, and deals extra damage to Flying enemies."),
         ("Tiger Rampage",80,"damage",1800,"melee","tiger_rampage","Powerful single-target attack that lowers Defense."),
-        ("Cosmic Rave",110,"aoe_damage",2000,"melee","cosmic_rave","Hits all enemies with diminishing damage; during V-MAX targets random enemies instead. Agility provides a lesser secondary damage contribution."),
+        ("Cosmic Rave",110,"aoe_damage",2000,"melee","cosmic_rave","Hits all enemies with diminishing damage; during V-MAX targets random enemies instead. Attack is the primary influence and Agility provides a lesser secondary damage contribution."),
         # Ranged
         ("Crosshair",1,"damage",200,"ranged","crosshair","Precise shot; benefits strongly from critical chance."),
         ("Range Fire",8,"aoe_damage",500,"ranged","range_fire","Bullets hit all enemies; non-diminishing area attack."),
@@ -2387,7 +2387,7 @@ def _v0319_install_full_mec_kit():
         ("Jammer",32,"damage",750,"support","jammer","Attempts Stop on one enemy; Willpower influences accuracy and duration, Skill Level increases both, and Machine targets are easier to affect. Support Effect expands Jammer to all enemies."),
         ("Heal Beam",54,"heal",1000,"support","heal_beam","Significant Willpower-based healing. Normally heals one target; Support Effect heals the entire local party for an enhanced amount."),
         ("Logic Bomb",92,"damage",1200,"support","logic_bomb","Attempts Silence/Don't Act/Slow; support effect can add Curse/Don't Move/Blind."),
-        ("V-MAX",130,"boost",2000,"support","vmax","Core overdrive: Protect, Shell, Haste, Regen, Preach, Praise, Permanence; changes several Mec skills. Overheats when it ends unless Support Effect suppresses it."),
+        ("V-MAX",130,"boost",2000,"support","vmax","Will-influenced core overdrive: Protect, Shell, Haste, Regen, Preach, Praise, Permanence; changes several Mec skills. When it ends, Overheat is prevented while the Mec's Soul Weapon remains the active support weapon."),
         # Counter
         ("Intercept System",75,"passive",1000,"counter","intercept_system","Counters enemy melee using the user's highest combat stat."),
         # Inherent
@@ -2474,9 +2474,16 @@ def _v0319_install_full_mec_kit():
         if special=="starlight_shower":
             row.update({"uoss_mp_cost":225, "uoss_vmax_mp_cost":300, "target_mode":"single_or_diminishing_aoe"})
         if special=="cosmic_rave":
-            row.update({"scale":"strength", "secondary_scale":"dexterity",                         "carries_soul_weapon_elements":True, "requires_soul_weapon":"melee",
+            row.update({"scale":"attack", "secondary_scale":"dexterity",
+                        "source_stat_influence":["attack","agility"],
+                        "secondary_scale_weight":"lesser",
+                        "carries_soul_weapon_elements":True, "requires_soul_weapon":"melee",
                         "target_mode":"diminishing_aoe_or_vmax_random"})
-        if special=="vmax": row.update({"boost":1.0,"cooldown":0,"mechanic_cooldown":True,"duration_scales_with_skill_level":True})
+        if special=="vmax":
+            row.update({"scale":"willpower","source_stat_influence":["will"],
+                        "boost":1.0,"cooldown":0,"mechanic_cooldown":True,
+                        "duration_scales_with_skill_level":True,
+                        "support_weapon_model":"mec_soul_weapon"})
     CLASS_SKILLS["Mec"] = rows
 
 _v0319_install_full_mec_kit()
@@ -2491,7 +2498,7 @@ MEC_CANONICAL_CONTRACT_V11149 = {
         "ranged": {"primary": "dexterity", "secondary": "willpower", "protocol": "v0319_mec_ranged_protocol"},
         "feedback": {"resource": "hp", "defensive_stat": "vitality", "protocol": "v0319_mec_feedback_protocol"},
         "magic": {"primary": "intelligence", "secondary": "willpower", "protocol": "v0319_mec_magic_protocol"},
-        "support": {"primary": "willpower", "support_effect": "dominant_will_single_soul_weapon"},
+        "support": {"primary": "willpower", "support_effect": "mec_soul_weapon", "support_weapon": "soul_weapon"},
     },
 }
 MEC_PROTOCOL_SKILLS_V11155 = {
