@@ -110,6 +110,63 @@ class SessionCombatSkillsMixin:
         )
         return max(1, int(round(core * build_multiplier)))
 
+    def healing_skill_build_multiplier_v11196(self, skill):
+        """Uncapped healing growth from the skill's real effective stats.
+
+        Healing stats level independently from Character Level. Equipment feeds
+        this through effective_*(), exactly like offensive builds. A fixed
+        Level-175 stat anchor keeps the existing midgame scale while allowing
+        unlimited stats to keep improving healing with soft diminishing returns.
+        """
+        scale_name = str(skill.get("scale", "") or "").strip().lower()
+        secondary_name = str(skill.get("secondary_scale", "") or "").strip().lower()
+        if not scale_name:
+            class_name = self.skill_class_name(skill)
+            if class_name in {"Kapłan", "Druid"}:
+                scale_name, secondary_name = "intelligence", "willpower"
+            elif class_name == "Mnich":
+                scale_name, secondary_name = "dexterity", "willpower"
+            else:
+                scale_name = "willpower"
+
+        primary = float(self.offensive_skill_effective_stat_value_v11196(scale_name))
+        primary_growth = max(0.01, primary / 175.0) ** 0.72
+        if not secondary_name:
+            return max(0.20, primary_growth)
+
+        secondary = float(self.offensive_skill_effective_stat_value_v11196(secondary_name))
+        secondary_growth = max(0.01, secondary / 175.0) ** 0.72
+        return max(0.20, 0.70 * primary_growth + 0.30 * secondary_growth)
+
+    def healing_skill_amount_v11196(self, skill, target, skill_power):
+        """Canonical class-heal amount from stats + Skill Level + EQ.
+
+        Authored percentage heals preserve their identity, but their potency is
+        multiplied by the uncapped healing build. Source abilities without an
+        authored percentage (e.g. Healing Wind) use their explicit stat as a
+        flat healing core. Effective stats already include equipment.
+        """
+        racial = float(self.character.racial_healing_multiplier())
+        class_mult = float(self.character.class_healing_multiplier())
+        heal_type = class_type_for_name(self.skill_class_name(skill))
+        buff_mult = float(self.skill_buff_multiplier(target_type=heal_type))
+        build_mult = float(self.healing_skill_build_multiplier_v11196(skill))
+        total_mult = max(0.0, float(skill_power)) * racial * class_mult * buff_mult * build_mult
+
+        authored_pct = skill.get("heal_pct")
+        if authored_pct is not None:
+            return max(1, int(round(target.max_hp() * max(0.0, float(authored_pct)) * total_mult)))
+
+        scale_name = str(skill.get("scale", "willpower") or "willpower").lower()
+        primary = self.offensive_skill_effective_stat_value_v11196(scale_name)
+        secondary_name = str(skill.get("secondary_scale", "") or "").lower()
+        secondary = (
+            self.offensive_skill_effective_stat_value_v11196(secondary_name)
+            if secondary_name else 0
+        )
+        stat_core = primary + int(round(secondary * 0.35))
+        return max(1, int(round(stat_core * total_mult)))
+
     def offensive_skill_damage_multiplier_v11186(self, skill, skill_class_type=None):
         """One global offensive multiplier path for current and future equipment.
 
@@ -302,17 +359,16 @@ class SessionCombatSkillsMixin:
                     if not recipients:
                         await self.send(f"{skill['name']}: brak żywych sojuszników w tej lokacji.")
                         return
-                    # Healing Wind source gives Will + Skill Level influence but no
-                    # numeric heal amount. Reuse Soulbound's canonical healing power
-                    # calculation instead of adding a new fixed percentage.
+                    # Canonical class healing: authored percentage heals use
+                    # INT/WILL (or the class-specific pair), while source abilities
+                    # such as Healing Wind retain their explicit WILL identity.
                     healed=[]
                     for target in recipients:
                         target_max=target.max_hp()
                         before=target.current_hp
                         if before>=target_max:
                             continue
-                        base=max(1,int(self.effective_willpower()))
-                        heal=max(1,int(round(base*skill_power)))
+                        heal=self.healing_skill_amount_v11196(skill,target,skill_power)
                         target.current_hp=min(target_max,before+heal)
                         actual=target.current_hp-before
                         if actual:
@@ -975,17 +1031,8 @@ class SessionCombatSkillsMixin:
                             session.character.name.lower(),
                         ),
                     )
-                    heal_pct = min(
-                        0.65,
-                        skill.get("heal_pct", 0.25)
-                        * skill_power
-                        * self.character.racial_healing_multiplier()
-                        * self.character.class_healing_multiplier()
-                    )
-                    heal_type = class_type_for_name(self.skill_class_name(skill))
-                    heal_pct = min(0.80, heal_pct * self.skill_buff_multiplier(target_type=heal_type))
                     target_max = target.max_hp()
-                    heal = max(1, int(target_max * heal_pct))
+                    heal = self.healing_skill_amount_v11196(skill,target,skill_power)
                     before = target.current_hp
                     target.current_hp = min(target_max, target.current_hp + heal)
                     actual = target.current_hp - before
