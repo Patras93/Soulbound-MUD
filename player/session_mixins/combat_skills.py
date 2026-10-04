@@ -194,6 +194,81 @@ class SessionCombatSkillsMixin:
         class_mult=float(self.character.class_healing_multiplier())
         return max(1,int(round(will*0.10*power*racial*class_mult)))
 
+    def satellite_linker_duration_rounds_v11196(self, skill_level, skill):
+        """Explicit Soulbound duration adaptation for source-defined short duration."""
+        level=max(1,min(SKILL_MAX_LEVEL,int(skill_level)))
+        progress=(level-1)/float(max(1,SKILL_MAX_LEVEL-1))
+        start=max(1,int(skill.get("soulbound_duration_rounds_level1",3) or 3))
+        end=max(start,int(skill.get("soulbound_duration_rounds_level600",8) or 8))
+        return max(1,int(round(start+(end-start)*(progress ** 0.82))))
+
+    async def apply_satellite_linker_round_v11196(self):
+        """Tick the Mec's one active Satellite Linker effect once per owner round."""
+        state=getattr(self,"v11196_satellite_linker",None)
+        if not state or not self.character or self.current_hp<=0:
+            return 0
+        target_key=str(state.get("target_key","") or "")
+        target=self.server.world.mobs.get(target_key) if target_key else None
+        if (
+            not target
+            or not target.alive
+            or target.room_id!=self.character.room_id
+        ):
+            self.v11196_satellite_linker=None
+            return 0
+
+        skill=next(
+            (
+                row for row in CLASS_SKILLS.get("Mec",[])
+                if str(row.get("mec_special",""))=="satellite_linker"
+            ),
+            None,
+        )
+        if not skill:
+            self.v11196_satellite_linker=None
+            return 0
+
+        base=max(1,int(skill.get("base_power",1200) or 1200))
+        tick_mult=max(
+            0.01,float(skill.get("soulbound_tick_damage_multiplier",0.20) or 0.20)
+        )
+        mult=(
+            self.mec_branch_multiplier_v0319("ranged","satellite_linker")
+            * self.offensive_skill_damage_multiplier_v11186(skill,"physical")
+        )
+        damage=max(
+            1,
+            int(round(
+                self.offensive_skill_core_power_v11185(skill,base)
+                * mult
+                * tick_mult
+            )),
+        )
+        damage=await self.apply_boss_defense(target,damage)
+        damage=self.v0210_adjust_player_damage(damage)
+        template=MOB_TEMPLATES[target.template_id]
+        damage,note=v0314_adjust_damage_vs_template(
+            template,damage,"physical",skill.get("name","Satellite Linker")
+        )
+        target.hp-=damage
+        self._recap52_dealt=int(getattr(self,"_recap52_dealt",0) or 0)+max(0,int(damage))
+
+        remaining=max(0,int(state.get("remaining_rounds",1) or 1)-1)
+        state["remaining_rounds"]=remaining
+        await self.send(
+            f"Satellite Linker: bity trafiają {template['name']} za {damage} obrażeń. "
+            f"HP {max(0,target.hp)}.{note}"
+        )
+
+        if target.hp<=0:
+            self.v11196_satellite_linker=None
+            await self.mob_defeated(target)
+            return damage
+        if remaining<=0:
+            self.v11196_satellite_linker=None
+            await self.send("Satellite Linker: bity kończą działanie.")
+        return damage
+
     async def apply_active_regen_round_v11196(self):
         """Advance canonical Regen by one owner combat round.
 
@@ -1127,10 +1202,28 @@ class SessionCombatSkillsMixin:
                         await self.grant_skill_use_xp(skill); return
 
                     if special=="satellite_linker" and mob:
-                        # Source confirms repeated minor laser damage, Wisdom influence
-                        # and Skill-Level duration, but supplies no numeric tick share
-                        # or base duration. Do not fabricate either value.
-                        pass
+                        # Source: one enemy, Attack + Wisdom, repeated minor laser
+                        # damage over a short period; higher Skill Level extends duration.
+                        # Source gives no numeric seconds/tick/cadence, so Soulbound
+                        # uses the documented owner-round adaptation from metadata.
+                        _satellite_rounds=self.satellite_linker_duration_rounds_v11196(
+                            skill_level,skill
+                        )
+                        self.v11196_satellite_linker={
+                            "target_key":mob.key,
+                            "remaining_rounds":_satellite_rounds,
+                            "skill_level":skill_level,
+                        }
+                        template=MOB_TEMPLATES[mob.template_id]
+                        await self.send(
+                            f"Satellite Linker: bity otaczają {template['name']} na "
+                            f"{_satellite_rounds} rund."
+                        )
+                        await self.grant_skill_use_xp(skill)
+                        self.combat_mob_key=mob.key
+                        await self.server.auto_assist_party_combat(self,mob)
+                        await self.ensure_realtime_combat()
+                        return
                     if special=="tiger_rampage" and mob:
                         # v1.11.50: two heavy blows. One Soul Weapon replaces the
                         # original melee-weapon gate; its element is carried by both hits.
