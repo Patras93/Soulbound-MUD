@@ -4,7 +4,6 @@
 v0.47.0: explicit combat architecture; no compatibility-global injection.
 """
 import asyncio
-import math
 import random
 import time
 
@@ -70,18 +69,11 @@ class SessionCombatRealtimeMixin:
                     )
 
     def basic_attack_hit_count_v11196(self):
-                """DEX/AGI-driven Soul Weapon multi-hit; Haste doubles the series.
-
-                Calibrated from supplied UOSS Mec logs:
-                AGI 547 -> 5 base hits, 10 with Haste;
-                AGI 429 + Haste -> 9 hits.
-                sqrt scaling keeps additional DEX meaningful without a hard hit cap.
-                """
-                dex=max(1,int(self.effective_dexterity()))
-                raw_hits=math.sqrt(float(dex))/4.5
-                if self.beneficial_status_active_v11154("haste"):
-                    raw_hits*=2.0
-                return max(1,int(raw_hits))
+                """DEX/AGI-driven Soul Weapon multi-hit; V-MAX Haste doubles the series."""
+                return generator_core_v027.basic_attack_hits_from_dexterity(
+                    self.effective_dexterity(),
+                    haste=self.beneficial_status_active_v11154("haste"),
+                )
 
     async def realtime_player_action(self, mob):
                 if not mob or not mob.alive:
