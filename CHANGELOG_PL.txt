@@ -1,5 +1,16 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.11.76
+Aktualna paczka: v1.11.77
+
+==============================================================================
+Soulbound v1.11.77 — runtime audit walki
+==============================================================================
+
+- Naprawiono licznik rund superbossów: rośnie raz na akcję moba, nie na członka drużyny.
+- Przywrócono jawny enemy_counterattack po modularnym rozdzieleniu walki.
+- Śmierć z kontrataku i dokładnych efektów superbossa przechodzi przez kanoniczne die(), w tym Phoenix Egg.
+- Moogle Board: 0 poniżej Level 150, +20 do każdej bazowej statystyki na 150 i +2 za każdy kolejny Level; Level 175 = +70.
+- Zantetsuken zachowuje źródłowe 0 obrażeń zwykłego melee przez cały pipeline mnożników.
+- Brak wipe'a save'ów.
 
 ==============================================================================
 Soulbound v1.11.76 — końcowy runtime superbossów i reliktów
