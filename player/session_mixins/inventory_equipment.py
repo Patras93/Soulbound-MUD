@@ -402,6 +402,18 @@ class SessionInventoryEquipmentMixin:
                 if item and item.get("affix"):
                     affix_name = CRYPT_AFFIXES.get(item["affix"], item["affix"])
                     extra += f" Bonus: {affix_name} +{item.get('affix_amount', 0)}."
+                if item and item.get("status_proof"):
+                    extra += " Odporności statusowe: " + ", ".join(map(str, item.get("status_proof") or ())) + "."
+                if item and item.get("element_wards"):
+                    _wards = ", ".join(f"{name} {int(round(float(value)*100))}%" for name,value in (item.get("element_wards") or {}).items())
+                    if _wards:
+                        extra += " Wardy: " + _wards + "."
+                if item and float(item.get("mp_cost_multiplier",1.0) or 1.0) != 1.0:
+                    extra += f" Mnożnik kosztu MP x{float(item.get('mp_cost_multiplier')):g}."
+                if item and item.get("reraise_once"):
+                    extra += " Re-raise: jednorazowy; przedmiot znika po aktywacji."
+                if item and item.get("source_effects"):
+                    extra += " Efekty źródłowe: " + ", ".join(map(str,item.get("source_effects") or ())) + "."
                 if item and item.get("stats"):
                     fixed_stats = ", ".join(
                         f"{CLASS_SET_STAT_NAMES.get(stat, stat)} +{amount}"
