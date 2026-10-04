@@ -2501,7 +2501,10 @@ def _v0319_install_full_mec_kit():
                         "duration_balance_model":"soulbound_200_to_600_plus_uncapped_will",
                         "support_weapon_model":"mec_soul_weapon",
                         "vmax_status_sources":{
-                            "praise":{"effect":"attack_power_up","numeric_source_defined":False}
+                            "praise":{"effect":"attack_power_up","numeric_source_defined":False},
+                            "preach":{"effect":"magic_attack_up","numeric_source_defined":False,
+                                      "source_stat_influence":["will"],
+                                      "level_effect":"increases_duration"}
                         }})
     CLASS_SKILLS["Mec"] = rows
 
@@ -2599,6 +2602,11 @@ def _mec_contract_audit_v11149():
         _praise=((vmax.get("vmax_status_sources") or {}).get("praise") or {})
         if str(_praise.get("effect"))!="attack_power_up":
             errors.append("vmax:praise must raise Attack power")
+        _preach=((vmax.get("vmax_status_sources") or {}).get("preach") or {})
+        if str(_preach.get("effect"))!="magic_attack_up":
+            errors.append("vmax:preach must raise Magic Attack")
+        if "will" not in list(_preach.get("source_stat_influence") or []):
+            errors.append("vmax:preach missing WILL influence metadata")
     for protocol_id,specials in MEC_PROTOCOL_SKILLS_V11155.items():
         protocol_row=next((row for row in CLASS_SKILLS.get("Mec",[]) if row.get("id")==protocol_id),None)
         if not protocol_row:
