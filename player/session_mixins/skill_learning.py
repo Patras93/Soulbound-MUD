@@ -811,6 +811,32 @@ class SessionSkillLearningMixin:
             mechanic = template.get("boss_mechanic")
             damage = max(0, int(damage))
 
+            # Tiger Rampage lowers both physical and magical defense. Mobs do not
+            # expose separate mutable defense values, so Soulbound represents the
+            # dual defense loss as increased incoming damage while the break lasts.
+            if (
+                damage>0
+                and int(
+                    getattr(mob,"v11196_tiger_defense_break_rounds",0) or 0
+                )>0
+            ):
+                damage=max(
+                    1,int(round(
+                        damage
+                        * max(
+                            1.0,
+                            float(
+                                getattr(
+                                    mob,
+                                    "v11196_tiger_defense_break_damage_multiplier",
+                                    1.15,
+                                )
+                                or 1.15
+                            ),
+                        )
+                    ))
+                )
+
             elite_affix = template.get("elite_affix")
             if elite_affix == "armored" and damage > 0:
                 reduced = max(
