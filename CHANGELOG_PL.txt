@@ -1,5 +1,16 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.11.81
+Aktualna paczka: v1.11.82
+
+==============================================================================
+Soulbound v1.11.82 — Moogle Board Cyborg drop
+==============================================================================
+
+- Potwierdzono Moogle Board jako unikalny drop Black Rabite przeznaczony dla rasy Cyborg.
+- Nie-Cyborg losuje osobisty drop Black Rabite wyłącznie z pozostałych 9 nagród.
+- Cyborg nadal może wylosować wszystkie 10 nagród, w tym Moogle Board.
+- Już posiadane i założone Moogle Board nie jest usuwane ani zmieniane.
+- Skalowanie Moogle Board pozostaje bez zmian.
+- Brak wipe'a save'ów.
 
 ==============================================================================
 Soulbound v1.11.81 — finalny audit adaptacji UOSS
