@@ -2509,7 +2509,12 @@ def _v0319_install_full_mec_kit():
                                        "numeric_source_defined":False,
                                        "source_stat_influence":["will"],
                                        "level_effect":"increases_duration",
-                                       "properties":["dispelable","extendable","silenceable"]}
+                                       "properties":["dispelable","extendable","silenceable"]},
+                            "shell":{"effect":"incoming_magic_damage_down",
+                                     "numeric_source_defined":False,
+                                     "source_stat_influence":["will"],
+                                     "level_effect":"increases_duration",
+                                     "properties":["dispelable","extendable","silenceable"]}
                         }})
     CLASS_SKILLS["Mec"] = rows
 
@@ -2617,6 +2622,11 @@ def _mec_contract_audit_v11149():
             errors.append("vmax:protect must reduce incoming physical damage")
         if "will" not in list(_protect.get("source_stat_influence") or []):
             errors.append("vmax:protect missing WILL influence metadata")
+        _shell=((vmax.get("vmax_status_sources") or {}).get("shell") or {})
+        if str(_shell.get("effect"))!="incoming_magic_damage_down":
+            errors.append("vmax:shell must reduce incoming magic damage")
+        if "will" not in list(_shell.get("source_stat_influence") or []):
+            errors.append("vmax:shell missing WILL influence metadata")
     for protocol_id,specials in MEC_PROTOCOL_SKILLS_V11155.items():
         protocol_row=next((row for row in CLASS_SKILLS.get("Mec",[]) if row.get("id")==protocol_id),None)
         if not protocol_row:
