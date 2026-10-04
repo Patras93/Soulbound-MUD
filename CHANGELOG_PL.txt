@@ -20,6 +20,14 @@ Soulbound v1.12.0 — Globalny Atlas Odkryć
 - `atlas odkrycia <dział>` pokazuje czytelną dla NVDA numerowaną listę odkrytych i brakujących pozycji.
 - `osiagniecia` synchronizują Atlas retroaktywnie; nowe odkrycie lokacji lub sekretu może natychmiast odblokować osiągnięcie działu.
 - Zaktualizowano `help atlas` i `help atlas_kompletny` o Globalny Atlas Odkryć.
+- Rozbudowano zadania klasowe: każda z 14 klas ma teraz 5 różnych zadań w każdym cyklu godzinnym zamiast jednego zadania na klasę — łącznie 70 zadań.
+- Każda piątka obejmuje różne aktywności: zwykłą walkę, bossów, odkrywanie nowych lokacji, zbieractwo i crafting; nazwy oraz wymagane liczby są zróżnicowane między klasami.
+- `zadanieklasowe` pokazuje pięć aktualnych ofert aktywnej klasy; `zadanieklasowe <numer>` przyjmuje wybraną ofertę, a po odbiorze można wykonać kolejne z tej samej piątki.
+- `zadanieklasowe porzuc` pozwala przełączyć zadanie bez kasowania zdobytego w tej godzinie postępu.
+- O pełnej godzinie cykl klasowych zadań odnawia się. Historyczne ukończenie zostaje zachowane dla wymagań egzaminu Soul 50.
+- Starsze save'y z jednorazowym zadaniem klasowym są migrowane bez zmiany schematu SQLite; istniejący postęp trafia do kompatybilnego pierwszego zadania.
+- Udany craft daje dokładnie 1 punkt do aktywnego celu typu crafting; bonusowa ilość produktu nie skraca zadania.
+- Zaktualizowano HELP dla `zadanieklasowe`, zadań klasowych i Gildii.
 - Brak wipe'a save'ów i brak zmian schematu SQLite.
 
 ==============================================================================
