@@ -595,7 +595,7 @@ class SessionInventoryEquipmentMixin:
             required_level = max(0, int(item.get("required_level", 0) or 0))
             if required_level and int(self.character.character_level) < required_level:
                 return False
-            required_class = item.get("required_class")
+            required_class = None if item.get("universal_all_classes") else item.get("required_class")
             if required_class and required_class not in self.active_class_names():
                 return False
             if not self.equipment_mastery_requirement_met(item):
@@ -624,7 +624,7 @@ class SessionInventoryEquipmentMixin:
                 required_level = max(0, int(item.get("required_level", 0) or 0))
                 if required_level and int(self.character.character_level) < required_level:
                     continue
-                required_class = item.get("required_class")
+                required_class = None if item.get("universal_all_classes") else item.get("required_class")
                 if required_class and required_class not in active_classes:
                     continue
                 required_race = item.get("required_race")
@@ -1462,7 +1462,7 @@ class SessionInventoryEquipmentMixin:
                 await self.send("Tego przedmiotu nie można założyć.")
                 return
 
-            required_class = item.get("required_class")
+            required_class = None if item.get("universal_all_classes") else item.get("required_class")
             if required_class and required_class not in self.active_class_names():
                 await self.send(
                     f"{item['name']} wymaga aktywnej klasy {required_class}."
