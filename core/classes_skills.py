@@ -2361,7 +2361,7 @@ def _v0319_install_full_mec_kit():
     rows = CLASS_SKILLS.get("Mec", [])
     specs = [
         # Melee
-        ("Hammer Crush",1,"damage",200,"melee","hammer_crush","Smashes one enemy with a powerful melee attack."),
+        ("Hammer Crush",1,"damage",200,"melee","hammer_crush","Attack-based heavy smash against one enemy. Carries the active Soul Weapon element and uses the Mec melee Soul Weapon role."),
         ("Shock Soldier",14,"aoe_damage",600,"melee","shock_soldier","Miniature weapon-wielding clones attack all enemies."),
         ("Plural Slash",32,"damage",900,"melee","plural_slash","Multiple slashes on one enemy. Scales especially with Dexterity."),
         ("Pop Knight",46,"aoe_damage",1500,"melee","pop_knight","Non-diminishing attack on all enemies. Uses the Mec's single Soul Weapon, carries its elements, and deals extra damage to Flying enemies."),
@@ -2576,7 +2576,17 @@ def _v0319_install_full_mec_kit():
         if special=="self_repair": row.update({"feedback_repair_rounds":3,"auto_regen_source_defined":True,"auto_regen_amount_source_defined":False})
         if special=="maxwell_program": row.update({"magic_attack_augmentation":True,"mp_regen_percent":1.0,"mp_regen_seconds":6.0})
         if special=="combat_mastery": row.update({"ordinary_soul_weapon_attack_only":True,"strength_based_only":True,"requires_soul_weapon":True,"stronger_than":"Attack UP","weaker_than":"Two Hands","single_soul_weapon":True})
-        if special=="hammer_crush": row.update({"target_mode":"one_enemy","attack_influence":True,"carries_soul_weapon_elements":True,"single_soul_weapon":True})
+        if special=="hammer_crush":
+            row.update({
+                "scale":"attack",
+                "source_stat_influence":["attack"],
+                "source_properties":["carries_elements"],
+                "target_mode":"one_enemy",
+                "attack_influence":True,
+                "carries_soul_weapon_elements":True,
+                "requires_soul_weapon":"melee",
+                "single_soul_weapon":True,
+            })
         if special=="cosmic_rave": row.update({"aoe_diminishing":True,"vmax_random_enemies":True,"agility_secondary_influence":True,"carries_soul_weapon_elements":True,"single_soul_weapon":True})
         if special=="shock_soldier": row.update({"aoe_diminishing":True,"carries_soul_weapon_elements":True,"single_soul_weapon":True})
         if special=="range_fire":
@@ -3001,6 +3011,21 @@ def _mec_contract_audit_v11149():
             errors.append("intercept_system: numeric Skill Level curve must remain marked unsourced")
         if bool(intercept.get("counter_trigger_chance_source_defined")):
             errors.append("intercept_system: no source trigger chance may be invented")
+
+    hammer_crush=rows.get("hammer_crush")
+    if hammer_crush:
+        if str(hammer_crush.get("scale"))!="attack":
+            errors.append("hammer_crush: primary scale must be Attack")
+        if list(hammer_crush.get("source_stat_influence") or [])!=["attack"]:
+            errors.append("hammer_crush: source influence must be Attack")
+        if list(hammer_crush.get("source_properties") or [])!=["carries_elements"]:
+            errors.append("hammer_crush: source Properties must be Carries Elements")
+        if str(hammer_crush.get("target_mode"))!="one_enemy":
+            errors.append("hammer_crush: target mode must be One Enemy")
+        if not bool(hammer_crush.get("carries_soul_weapon_elements")):
+            errors.append("hammer_crush: must carry Soul Weapon elements")
+        if str(hammer_crush.get("requires_soul_weapon"))!="melee":
+            errors.append("hammer_crush: melee weapon requirement must map to Soul Weapon")
 
     dispose=rows.get("dispose")
     if dispose:
