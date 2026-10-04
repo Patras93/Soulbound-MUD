@@ -1,5 +1,18 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.11.85
+Aktualna paczka: v1.11.86
+
+==============================================================================
+Soulbound v1.11.86 — pełny audit nowego EQ superbossów
+==============================================================================
+
+- Przejrzano nowe EQ Black Rabite, Odina, Yiazmata i Culexa razem z reliktami Broni Duszy, Boardem, bransoletką, tarczą, pierścieniami i akcesoriami.
+- Wymagany Level przedmiotu jest teraz realnie egzekwowany przy ręcznym zakładaniu EQ oraz przez EQ AUTO.
+- EQ AUTO uwzględnia potwierdzone specjalne właściwości nowych przedmiotów: Wardy żywiołów, status-proof oraz Re-raise, zamiast patrzeć wyłącznie na surowe statystyki/obronę.
+- EQ INFO czyta wprost status-proof, Wardy, mnożnik kosztu MP, Re-raise i zapisane efekty źródłowe, dzięki czemu nowe EQ jest czytelne także pod NVDA.
+- Statystyki nowych nagród nadal wchodzą do efektywnych STR/DEX/CON/INT/WIL i po Combat 2.0 realnie zwiększają odpowiednie obrażenia, HP, Manę, krytyki i obronę magiczną.
+- Nie dopisano wymyślonych statystyk do Culexowych akcesoriów, Star Fragment ani Opal Ring: źródło nie podało ich wartości/efektów liczbowych.
+- Moogle Board pozostaje osobnym Boardem i nagrodą Black Rabite tylko dla Cyborga; Genji Gloves/Escort Guard pozostają w osobnym slocie bransoletki; Devil King Shield pozostaje tarczą.
+- Brak wipe'a save'ów.
 
 ==============================================================================
 Soulbound v1.11.85 — Combat 2.0: globalne skalowanie buildów

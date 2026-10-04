@@ -402,6 +402,18 @@ class SessionInventoryEquipmentMixin:
                 if item and item.get("affix"):
                     affix_name = CRYPT_AFFIXES.get(item["affix"], item["affix"])
                     extra += f" Bonus: {affix_name} +{item.get('affix_amount', 0)}."
+                if item and item.get("status_proof"):
+                    extra += " Odporności statusowe: " + ", ".join(map(str, item.get("status_proof") or ())) + "."
+                if item and item.get("element_wards"):
+                    _wards = ", ".join(f"{name} {int(round(float(value)*100))}%" for name,value in (item.get("element_wards") or {}).items())
+                    if _wards:
+                        extra += " Wardy: " + _wards + "."
+                if item and float(item.get("mp_cost_multiplier",1.0) or 1.0) != 1.0:
+                    extra += f" Mnożnik kosztu MP x{float(item.get('mp_cost_multiplier')):g}."
+                if item and item.get("reraise_once"):
+                    extra += " Re-raise: jednorazowy; przedmiot znika po aktywacji."
+                if item and item.get("source_effects"):
+                    extra += " Efekty źródłowe: " + ", ".join(map(str,item.get("source_effects") or ())) + "."
                 if item and item.get("stats"):
                     fixed_stats = ", ".join(
                         f"{CLASS_SET_STAT_NAMES.get(stat, stat)} +{amount}"
@@ -548,6 +560,13 @@ class SessionInventoryEquipmentMixin:
             stats = sum(max(0, int(v or 0)) for v in (item.get("stats") or {}).values())
             stats += v03042_upgrade_stat_bonus(upgrade_level)
             props = sum(max(0, int(v or 0)) for v in (item.get("properties") or {}).values())
+            # Source-backed special defenses must participate in AUTO EQ too.
+            # Ward values are fractions (0.65 = 65%), while status proofs are
+            # binary immunities. This affects comparison only; it does not invent
+            # new combat effects for source items whose values are unknown.
+            ward_score = int(round(sum(max(0.0, min(1.0, float(v or 0.0))) for v in (item.get("element_wards") or {}).values()) * 100.0))
+            proof_score = 25 * len(tuple(item.get("status_proof") or ()))
+            special_score = ward_score + proof_score + (25 if item.get("reraise_once") else 0)
             affix = max(0, int(item.get("affix_amount", 0) or 0))
             rarity = rarity_order.get(str(item.get("rarity") or "").lower(), 0)
             sockets = 0
@@ -556,7 +575,7 @@ class SessionInventoryEquipmentMixin:
                     sockets = max(0, int(jewelry_socket_capacity(item)))
                 except Exception:
                     sockets = 0
-            total = defense * 12 + stats * 8 + props * 10 + affix * 8 + rarity * 5 + sockets * 3
+            total = defense * 12 + stats * 8 + props * 10 + affix * 8 + rarity * 5 + sockets * 3 + special_score
             return (
                 total, defense, stats + affix, props, rarity,
                 normalize_lookup_text(item.get("name", "")),
@@ -564,6 +583,16 @@ class SessionInventoryEquipmentMixin:
 
     def auto_equipment_eligible_v03040(self, item):
             if not item or item.get("type") != "armor":
+                return False
+            required_level = max(0, int(item.get("required_level", 0) or 0))
+            if required_level and int(self.character.character_level) < required_level:
+                await self.send(
+                    f"{item['name']} wymaga Level {required_level}. Twój Level: {self.character.character_level}."
+                )
+                return
+
+            required_level = max(0, int(item.get("required_level", 0) or 0))
+            if required_level and int(self.character.character_level) < required_level:
                 return False
             required_class = item.get("required_class")
             if required_class and required_class not in self.active_class_names():
@@ -590,6 +619,9 @@ class SessionInventoryEquipmentMixin:
             for item_id, qty in self._owned_inventory_quantities_v0717().items():
                 item = ITEMS.get(item_id)
                 if not item or item.get("type") != "armor":
+                    continue
+                required_level = max(0, int(item.get("required_level", 0) or 0))
+                if required_level and int(self.character.character_level) < required_level:
                     continue
                 required_class = item.get("required_class")
                 if required_class and required_class not in active_classes:
