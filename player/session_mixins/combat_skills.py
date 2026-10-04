@@ -736,12 +736,15 @@ class SessionCombatSkillsMixin:
                             await self.send("V-MAX jest już aktywny."); return
                         if self.mec_overheat_active_v0319():
                             await self.send("V-MAX zablokowany przez Overheat do zakończenia akcji regeneracyjnej."); return
-                        # Source says Skill Level increases V-MAX duration but
-                        # supplies no base duration or numeric curve. Do not invent
-                        # seconds. Keep the state active until a canonical duration
-                        # rule is available.
-                        duration=None
-                        self.v0319_vmax_until=float("inf")
+                        # Source confirms WILL influence and Skill Level
+                        # increasing duration, but supplies no numeric seconds/curve.
+                        # Soulbound therefore uses its documented balance curve:
+                        # Skill Level 1->600 gives a 30->90 second base and uncapped
+                        # WILL applies a soft duration multiplier.
+                        duration=generator_core_v027.mec_vmax_duration_seconds(
+                            skill_level, self.effective_willpower()
+                        )
+                        self.v0319_vmax_until=time.time()+duration
                         self.v0319_vmax_support_maintained=bool(support_effect)
                         # V-MAX grants its named beneficial package to the Mec only.
                         # Keep each status explicit so Permanence protects the whole
@@ -762,9 +765,10 @@ class SessionCombatSkillsMixin:
                         if hasattr(self,"v0319_slow_until"):
                             self.v0319_slow_until=0.0
                         await self.send(
-                            "V-MAX aktywny. Protect, Shell, Haste, Regen, "
+                            f"V-MAX aktywny przez {duration} s. Protect, Shell, Haste, Regen, "
                             "Preach, Praise i Permanence działają na Meca; Haste neguje Slow, "
-                            "a Permanence chroni korzystne efekty przed wrogim dispellem."
+                            "a Permanence chroni korzystne efekty przed wrogim dispellem. "
+                            f"Czas wynika ze Skill Level {skill_level} i WILL {self.effective_willpower()}."
                         )
                         await self.grant_skill_use_xp(skill); return
 
