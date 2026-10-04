@@ -32,6 +32,22 @@ class SessionEquipmentStatsMixin:
     def equipped_item_rows(self):
             return list(self.server.db.equipment(self.account_id))
 
+    def active_soul_weapon_relic_v11176(self):
+            rows=[]
+            for item_id in ITEMS:
+                item=ITEMS.get(item_id,{})
+                if item.get("type")=="soul_weapon_relic" and self.server.db.item_qty(self.account_id,item_id)>0:
+                    rows.append((item_id,item))
+            if not rows:
+                return None,None
+            # One relic only: prefer the highest required-level relic the character
+            # can use; stable item id breaks ties. This avoids unsourced stacking.
+            level=int(getattr(self.character,"character_level",1) or 1)
+            usable=[row for row in rows if int(row[1].get("required_level",0) or 0)<=level]
+            if not usable:
+                return None,None
+            return sorted(usable,key=lambda row:(int(row[1].get("required_level",0) or 0),row[0]))[-1]
+
     def equipment_bonus_totals(self):
             totals = {
                 "strength": 0,
@@ -89,6 +105,11 @@ class SessionEquipmentStatsMixin:
                 _stat=str(_erow["stat"]); _amount=int(_erow["amount"])
                 if _stat in totals:
                     totals[_stat] += _amount
+            _relic_id,_relic=self.active_soul_weapon_relic_v11176()
+            if _relic:
+                for stat,amount in (_relic.get("stats") or {}).items():
+                    if stat in totals:
+                        totals[stat]+=int(amount)
             class_stats = self.class_set_stat_bonus_totals()
             for stat, amount in class_stats.items():
                 totals[stat] += int(amount)
