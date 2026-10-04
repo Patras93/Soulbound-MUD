@@ -145,7 +145,8 @@ def equipment_expansion_audit_v03020():
         errors.append("missing new slot display names")
     expected_commands = {
         "zp":"equipringauto", "zt":"equipcharmauto", "znar":"equipshoulders",
-        "zpas":"equipbelt", "zpel":"equipcloak", "zkar":"equipbracers", "zrel":"equiprelic",
+        "zpas":"equipbelt", "zpel":"equipcloak", "zkar":"equipbracers",
+        "zbra":"equipbracelet", "zakc":"equipaccessoryauto", "zrel":"equiprelic",
     }
     for alias, command in expected_commands.items():
         if COMMAND_ALIASES.get(alias) != command:
@@ -172,7 +173,7 @@ if EQUIPMENT_EXPANSION_AUDIT_V03020.get("error_count"):
     raise RuntimeError("Equipment Expansion Audit v0.30.20 failed: " + "; ".join(EQUIPMENT_EXPANSION_AUDIT_V03020.get("errors", [])[:20]))
 
 HELP_TOPICS.setdefault("eq", []).extend([
-    "v0.30.20: dodano 5 nowych slotów EQ: naramienniki, pas, peleryna, karwasze, kolczyki i relikt. Klasowe EQ wszystkich 14 klas generuje te sloty na każdym istniejącym progu Biegłości.",
+    "Pełna siatka klasowego EQ ma 17 logicznych slotów. Bransoletka i Akcesorium są generowane dla wszystkich 14 klas na każdym progu Levelu 1/10/20/.../600, obok naramienników, pasa, peleryny, karwaszy, kolczyków i reliktu.",
     "Nowe sloty mają różne role: naramienniki/pas są bardziej defensywne, karwasze bardziej ofensywne, peleryna bardziej utility, relikt ma mocniejszy profil klasowy.",
     "Pierścienie i talizmany nie wymagają już ręcznego wskazywania slotu 1/2: pełna nazwa albo zp/zt + numer używa wolnego slotu, a przy dwóch zajętych zastępuje słabszy.",
     "Ręczne zp1/zp2 oraz zt1/zt2 pozostają dostępne, gdy chcesz wymusić konkretny slot.",
