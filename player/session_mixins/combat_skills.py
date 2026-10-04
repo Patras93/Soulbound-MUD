@@ -1053,6 +1053,18 @@ class SessionCombatSkillsMixin:
                             )
                         )
                         _uzi_feedback_self_damage=0
+                        _dispose_feedback_self_damage=0
+                        if special=="dispose":
+                            _dispose_feedback_self_damage=max(
+                                1,int(round(
+                                    max(1,int(self.max_hp()))
+                                    * float(
+                                        skill.get(
+                                            "soulbound_feedback_max_hp_pct",0.08
+                                        ) or 0.08
+                                    )
+                                ))
+                            )
                         if special=="uzi_punch":
                             # HP influence is inverse here: the attack becomes stronger
                             # as HP decreases. Attack is primary; Vitality maps to CON as
@@ -1157,6 +1169,19 @@ class SessionCombatSkillsMixin:
                         await self.send(f"{skill['name']}: łączne obrażenia {total}, pokonani {len(defeated)}.")
                         for target in defeated:
                             await self.mob_defeated(target)
+                        if special=="dispose" and _dispose_feedback_self_damage:
+                            self.current_hp-=int(_dispose_feedback_self_damage)
+                            self.queue_mec_feedback_repair_v11154(
+                                _dispose_feedback_self_damage
+                            )
+                            await self.send(
+                                f"Dispose Feedback: tracisz "
+                                f"{_dispose_feedback_self_damage} HP po całej salwie. "
+                                f"Masz {max(0,self.current_hp)} z {self.max_hp()} HP."
+                            )
+                            if self.current_hp<=0:
+                                await self.die("Feedback Dispose")
+                                return
                         if special=="uzi_punch" and _uzi_feedback_self_damage:
                             self.current_hp-=int(_uzi_feedback_self_damage)
                             self.queue_mec_feedback_repair_v11154(_uzi_feedback_self_damage)
