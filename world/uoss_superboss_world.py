@@ -120,7 +120,7 @@ for nid,(name,key) in _HELPERS.items():
 # Exact Black Rabite helper contracts supplied by the source.
 if "uoss_helper_popoi" in NPCS:
     NPCS["uoss_helper_popoi"].update({
-        "helper_cost_gold":1000000,
+        "helper_cost_mithril":1,
         "join_phrase":"Join me, Popoi",
         "abilities":("Air Blast","Earth Slide","Acid Storm","Vine Hell","Luna","Faerie Walnut"),
         "aoe_abilities":("Air Blast","Earth Slide","Acid Storm"),
@@ -130,7 +130,7 @@ if "uoss_helper_popoi" in NPCS:
     })
 if "uoss_helper_primm" in NPCS:
     NPCS["uoss_helper_primm"].update({
-        "helper_cost_gold":1000000,
+        "helper_cost_mithril":1,
         "join_phrase":"Join me, Primm",
         "abilities":("Lucent Beam","Cure Water","Bubble","Lumina","Dryad"),
         "lucent_beam_target":"single",
@@ -143,7 +143,7 @@ if "uoss_helper_primm" in NPCS:
 # Exact helper ability metadata where supplied by the source.
 if "uoss_helper_seifer" in NPCS:
     NPCS["uoss_helper_seifer"].update({
-        "helper_cost_gold":1000000,
+        "helper_cost_mithril":1,
         "join_phrase":"Join me, Seifer.",
         "abilities":("Power Breakdown","No Mercy","Zantetsuken Reverse"),
         "power_breakdown":"physical attack reduced at beginning of fight",
