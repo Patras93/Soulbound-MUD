@@ -123,7 +123,10 @@ def superboss_helper_profile_v11137(session, template):
         name = str(helper)
     else:
         return None
-    return {"name":name, "damage_multiplier":1.12, "damage_reduction":0.08}
+    # Source establishes the helper's presence/identity but does not provide
+    # a numeric damage bonus or damage-reduction percentage. Keep the helper
+    # mechanically present without fabricating combat multipliers.
+    return {"name":name, "damage_multiplier":1.0, "damage_reduction":0.0}
 
 
 def superboss_phase_v11137(template, mob):
@@ -146,10 +149,12 @@ def superboss_counterattack_multiplier_v11137(template, mob):
     key = superboss_key_from_template_v11135(template)
     if key == "spekkio":
         return 1.0, "Spekkio dopasowuje siłę do przeciwnika."
+    # Phase identity/text is source-backed, but no universal numeric
+    # phase multiplier is. Do not impose fabricated +25%/+55% damage.
     if phase == 3:
-        return 1.55, "Faza 3: desperacki atak Super Bossa."
+        return 1.0, "Faza 3: desperacki atak Super Bossa."
     if phase == 2:
-        return 1.25, "Faza 2: Super Boss zwiększa napór."
+        return 1.0, "Faza 2: Super Boss zwiększa napór."
     return 1.0, "Faza 1."
 
 
@@ -200,16 +205,18 @@ def superboss_incoming_multiplier_v11138(session, template, mob):
     if scale_from:
         party_count=len(superboss_local_party_v11137(session))
         if party_count>scale_from:
-            # Odin/UOSS rule: additional players above the designed minimum
-            # make the encounter harder instead of trivializing it.
-            mult *= 1.0 + 0.20 * (party_count-scale_from)
-            note=(note+" " if note else "")+f"Skalowanie drużyny: {party_count} graczy."
+            # Source establishes that Odin becomes harder above the designed
+            # party size, but no numeric per-player multiplier is supplied.
+            # Preserve the rule as metadata/text instead of inventing +20%.
+            note=(note+" " if note else "")+f"Skalowanie drużyny aktywne: {party_count} graczy."
     if key=="spekkio":
         # Spekkio remains relevant regardless of level: his pressure tracks the
         # player's current defensive scale rather than a fixed authored tier.
         expected=max(1.0,float(session.consider_player_expected_hit()))
         authored=max(1.0,float(template.get("damage",1)))
-        mult *= max(0.75,min(3.0,expected/authored))
+        # Spekkio scales to the player, but the source contract does not define
+        # a universal clamp/multiplier formula. Keep the encounter flag and
+        # descriptive behavior without inventing 0.75x..3.0x combat math.
     return mult,note
 
 def superboss_series_progress_v11138(db, account_id, boss_key):
