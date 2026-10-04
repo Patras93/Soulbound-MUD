@@ -1,3 +1,4 @@
+- Combat: wszystkie bezpośrednio zadające obrażenia skille klasowe korzystają teraz ze wspólnego rdzenia builda: Soul Power + właściwa statystyka + płaskie Attack/Magic Attack/Weapon Power z EQ, a następnie wspólny mnożnik klasy/rasy/zestawów/EQ/buffów. Specjalne mnożniki Meca i Inżyniera pozostają dodatkową warstwą. Magiczne gałęzie Meca używają kanału magicznego zamiast fizycznego.
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
 Aktualna paczka: v1.11.89
 
