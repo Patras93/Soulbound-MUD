@@ -476,7 +476,6 @@ V045_EXPLICIT_RUNTIME_EXPORTS = {'admin/crafting_audit_v03114.py': ('FULL_CRAFTI
                             '_v03014_unique_generated_skill_names',
                             '_v0310_build_tech_class_skills',
                             '_v0310_tech_skill',
-                            '_v0315_install_cosmic_rave',
                             '_v0317_install_engineer_toolkit',
                             '_v0319_install_full_mec_kit',
                             '_v0922_alt_skill',
