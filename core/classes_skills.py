@@ -2761,6 +2761,61 @@ for _class_name in CLASS_SKILLS:
     )
 
 
+# v1.11.96: class healing uses the same independent stat-build philosophy as
+# damage. Source-authored scales are preserved (e.g. Priest Regen/Healing Wind
+# remain WILL). Only heals without an explicit source scale receive the class
+# default below.
+_CLASS_HEALING_SCALES_V11196 = {
+    "Kapłan": ("intelligence", "willpower"),
+    "Druid": ("intelligence", "willpower"),
+    "Mnich": ("dexterity", "willpower"),
+}
+for _class_name, (_primary, _secondary) in _CLASS_HEALING_SCALES_V11196.items():
+    for _skill in CLASS_SKILLS.get(_class_name, ()):
+        if str(_skill.get("kind", "")) not in {"heal", "group_heal"}:
+            continue
+        if not str(_skill.get("scale", "") or "").strip():
+            _skill["scale"] = _primary
+            _skill["secondary_scale"] = _secondary
+            _skill["healing_stat_identity_v11196"] = True
+
+
+def _class_healing_scale_audit_v11196():
+    errors = []
+    report = {}
+    for class_name, (primary, secondary) in _CLASS_HEALING_SCALES_V11196.items():
+        rows = [
+            skill for skill in CLASS_SKILLS.get(class_name, ())
+            if str(skill.get("kind", "")) in {"heal", "group_heal"}
+        ]
+        missing = [
+            skill.get("name", skill.get("id", "?"))
+            for skill in rows
+            if not str(skill.get("scale", "") or "").strip()
+        ]
+        if missing:
+            errors.append(f"{class_name}: heal bez scale: {', '.join(map(str, missing[:20]))}")
+        report[class_name] = {
+            "heals": len(rows),
+            "default_primary": primary,
+            "default_secondary": secondary,
+        }
+    return {
+        "version": "1.11.96",
+        "report": report,
+        "error_count": len(errors),
+        "errors": errors,
+    }
+
+
+CLASS_HEALING_SCALE_AUDIT_V11196 = _class_healing_scale_audit_v11196()
+if CLASS_HEALING_SCALE_AUDIT_V11196["error_count"]:
+    raise RuntimeError(
+        "Class Healing Scale Audit v1.11.96 failed: "
+        + "; ".join(CLASS_HEALING_SCALE_AUDIT_V11196["errors"][:50])
+    )
+
+
 def _physical_skill_mana_audit():
     errors = []
     checked = 0
