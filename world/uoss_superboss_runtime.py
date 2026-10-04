@@ -14,6 +14,7 @@ SUPERBOSS_REWARD_COLLECTION_V11135 = "uoss_superboss_rewards_v11135"
 SUPERBOSS_LOCKOUT_SECONDS_V11157 = 24 * 60 * 60
 
 SUPERBOSS_TOKEN_ITEMS_V11135 = {
+    "odin": ("uoss_odins_mantle", "Odin's Mantle"),
     "culex": ("quartz_chunk", "Quartz Chunk"),
     "ruby_weapon": ("uoss_desert_rose", "Desert Rose"),
     "emerald_weapon": ("uoss_earth_harp", "Earth Harp"),
