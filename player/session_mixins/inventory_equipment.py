@@ -594,13 +594,6 @@ class SessionInventoryEquipmentMixin:
                 return False
             required_level = max(0, int(item.get("required_level", 0) or 0))
             if required_level and int(self.character.character_level) < required_level:
-                await self.send(
-                    f"{item['name']} wymaga Level {required_level}. Twój Level: {self.character.character_level}."
-                )
-                return
-
-            required_level = max(0, int(item.get("required_level", 0) or 0))
-            if required_level and int(self.character.character_level) < required_level:
                 return False
             required_class = item.get("required_class")
             if required_class and required_class not in self.active_class_names():
