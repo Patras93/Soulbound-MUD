@@ -1,5 +1,17 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.11.73
+Aktualna paczka: v1.11.74
+
+==============================================================================
+Soulbound v1.11.74 — domknięcie kontraktów UOSS w Soulbound
+==============================================================================
+
+- Priest Regen dodany do klasowego runtime: 8 MP, self/jeden lokalny sojusznik, wpływ Will, Extendable/Dispelable/Reflectable/Silenceable jako kontrakt źródłowy.
+- Regen nie otrzymuje wymyślonej bazowej długości ani procentu HoT; korzysta z kanonicznej mocy leczenia Soulbound, a brakującą krzywą czasu pozostawia bez sztucznej liczby.
+- Zarejestrowano komplet nazw zdolności Popoi, Primm, Byblosa, Montblanca i Seifera; mechaniki bez podanych wartości pozostają kontraktami, nie fikcyjnymi obrażeniami.
+- Seifer aktywuje źródłowy Power Breakdown na początku walki z Odinem; bez wymyślonego procentu redukcji.
+- Byblos jest oznaczony jako nietargetowany przez Serpentariusa zgodnie ze źródłem.
+- Black Rabite: Moogle Board jest warunkowym dropem Cyborga i korzysta z istniejącego skalowania Board Soulbound zamiast drugiego, konkurencyjnego systemu.
+- Brak wipe'a save'ów.
 
 ==============================================================================
 Soulbound v1.11.73 — superboss status and Odin reward runtime
