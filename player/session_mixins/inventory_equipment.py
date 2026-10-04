@@ -565,6 +565,16 @@ class SessionInventoryEquipmentMixin:
     def auto_equipment_eligible_v03040(self, item):
             if not item or item.get("type") != "armor":
                 return False
+            required_level = max(0, int(item.get("required_level", 0) or 0))
+            if required_level and int(self.character.character_level) < required_level:
+                await self.send(
+                    f"{item['name']} wymaga Level {required_level}. Twój Level: {self.character.character_level}."
+                )
+                return
+
+            required_level = max(0, int(item.get("required_level", 0) or 0))
+            if required_level and int(self.character.character_level) < required_level:
+                return False
             required_class = item.get("required_class")
             if required_class and required_class not in self.active_class_names():
                 return False
@@ -590,6 +600,9 @@ class SessionInventoryEquipmentMixin:
             for item_id, qty in self._owned_inventory_quantities_v0717().items():
                 item = ITEMS.get(item_id)
                 if not item or item.get("type") != "armor":
+                    continue
+                required_level = max(0, int(item.get("required_level", 0) or 0))
+                if required_level and int(self.character.character_level) < required_level:
                     continue
                 required_class = item.get("required_class")
                 if required_class and required_class not in active_classes:
