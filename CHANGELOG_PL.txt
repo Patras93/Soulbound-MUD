@@ -1,5 +1,15 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.11.67
+Aktualna paczka: v1.11.68
+
+==============================================================================
+Soulbound v1.11.68 — Black Rabite / Moogle Steel shop prices
+==============================================================================
+
+- Dodano dokładne ceny źródłowe nagród Black Rabite do istniejącego sklepu Soulbound.
+- Armageddon, Daedalus Lance, Escort Guard, Mirage Vest, Ninja's Trump, Nova Armor, Renewing Morion, Safe Helm i Time Hat: 5 000 000 złota + 5 Moogle Steel.
+- Moogle Board: 5 000 000 złota + 3 Moogle Steel.
+- Fur Shop pozostaje tylko źródłem zasad/cen; nie tworzymy osobnego obcego miasta ani sklepu poza istniejącą strukturą Soulbound.
+- Brak wipe'a save'ów.
 
 ==============================================================================
 Soulbound v1.11.67 — duża integracja superbossów ze światem Soulbound
