@@ -964,7 +964,7 @@ class SessionCombatSkillsMixin:
                         _mec_damage_type = self.offensive_skill_damage_type_v11190(skill)
                         mult=(
                             skill_power
-                            * self.mec_branch_multiplier_v0319(branch)
+                            * self.mec_branch_multiplier_v0319(branch, special)
                             * self.offensive_skill_damage_multiplier_v11186(
                                 skill, _mec_damage_type
                             )
@@ -1092,7 +1092,7 @@ class SessionCombatSkillsMixin:
                         base=max(1,int(skill.get("base_power",1800) or 1800))
                         mult=(
                             skill_power
-                            * self.mec_branch_multiplier_v0319("melee")
+                            * self.mec_branch_multiplier_v0319("melee", "tiger_rampage")
                             * self.offensive_skill_damage_multiplier_v11186(skill, "physical")
                         )
                         total=0
@@ -1332,7 +1332,7 @@ class SessionCombatSkillsMixin:
                     "melee", "ranged", "feedback", "magic"
                 }:
                     multiplier *= self.mec_branch_multiplier_v0319(
-                        str(skill.get("mec_branch"))
+                        str(skill.get("mec_branch")), str(skill.get("mec_special",""))
                     )
 
                 _mec_feedback_self_damage=0
@@ -1367,7 +1367,7 @@ class SessionCombatSkillsMixin:
                             self.offensive_skill_damage_multiplier_v11186(
                                 skill,skill_class_type
                             )
-                            * self.mec_branch_multiplier_v0319("feedback")
+                            * self.mec_branch_multiplier_v0319("feedback", "crush")
                         )
                         _mec_damage_override=max(
                             0,int(round(_source_crush_damage*_crush_external_mult))
