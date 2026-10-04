@@ -128,6 +128,25 @@ class SessionCombatSkillsMixin:
         )
         return damage
 
+    async def apply_superboss_helper_after_skill_v11192(self, targets):
+        """Let the sourced helper join once per damaging skill action.
+
+        Multi-hit and AoE skills still trigger only one helper strike. The first
+        living target that actually belongs to the helper's Superboss encounter
+        is selected.
+        """
+        seen = set()
+        for target in list(targets or ()):
+            if not target or not target.alive or target.key in seen:
+                continue
+            seen.add(target.key)
+            template = MOB_TEMPLATES[target.template_id]
+            if not superboss_helper_profile_v11137(self, template):
+                continue
+            damage = await self.apply_superboss_helper_skill_damage_v11189(target)
+            return target, damage
+        return None, 0
+
     def offensive_aoe_enabled_v11120(self):
         row = self.server.db.conn.execute(
             "SELECT offensive_aoe_enabled FROM player_combat_settings_v11120 WHERE account_id=?",
@@ -515,6 +534,10 @@ class SessionCombatSkillsMixin:
                             await self.send(f"Launcher: {name} traci połowę bieżącego HP: {damage}. HP {max(0,target.hp)}.")
                             if target.hp<=0 and target.key not in seen:
                                 seen.add(target.key); defeated.append(target)
+                        helper_target, _helper_damage = await self.apply_superboss_helper_after_skill_v11192(alive)
+                        if helper_target is not None and helper_target.hp <= 0 and helper_target.key not in seen:
+                            seen.add(helper_target.key)
+                            defeated.append(helper_target)
                         await self.grant_skill_use_xp(skill)
                         await self.send(f"Launcher: {hits} pocisków, łączne obrażenia {total}.")
                         for target in defeated:
@@ -586,6 +609,10 @@ class SessionCombatSkillsMixin:
                                 target.v0319_air_anchor_power=max(1,int(base*(0.16 if upgraded else 0.10)))
                             if target.hp<=0 and target.key not in seen:
                                 seen.add(target.key); defeated.append(target)
+                        helper_target, _helper_damage = await self.apply_superboss_helper_after_skill_v11192(targets)
+                        if helper_target is not None and helper_target.hp <= 0 and helper_target.key not in seen:
+                            seen.add(helper_target.key)
+                            defeated.append(helper_target)
                         await self.grant_skill_use_xp(skill)
                         await self.send(f"{skill['name']}: łączne obrażenia {total}." + (" ULEPSZONE." if upgraded else ""))
                         for target in defeated: await self.mob_defeated(target)
@@ -766,6 +793,10 @@ class SessionCombatSkillsMixin:
                             target.hp-=damage; total+=damage
                             await self.send(f"{skill['name']}: {template['name']} {damage} obrażeń. HP {max(0,target.hp)}.{note}")
                             if target.hp<=0 and target.key not in seen: seen.add(target.key); defeated.append(target)
+                        helper_target, _helper_damage = await self.apply_superboss_helper_after_skill_v11192(targets)
+                        if helper_target is not None and helper_target.hp <= 0 and helper_target.key not in seen:
+                            seen.add(helper_target.key)
+                            defeated.append(helper_target)
                         await self.grant_skill_use_xp(skill)
                         await self.send(f"{skill['name']}: łączne obrażenia {total}, pokonani {len(defeated)}.")
                         for target in defeated: await self.mob_defeated(target)
@@ -831,6 +862,8 @@ class SessionCombatSkillsMixin:
                         broke=False
                         # Source confirms a chance to lower physical and magical
                         # defense, but gives no proc chance or base duration.
+                        if mob.hp > 0:
+                            await self.apply_superboss_helper_after_skill_v11192([mob])
                         await self.grant_skill_use_xp(skill)
                         await self.send(f"Tiger Rampage: 2 ciężkie trafienia, łącznie {total} obrażeń." + (" Obrona fizyczna i magiczna celu spada." if broke else ""))
                         if mob.hp<=0: await self.mob_defeated(mob)
@@ -985,6 +1018,11 @@ class SessionCombatSkillsMixin:
                         marker = " Krytyk." if critical else ""
                         await self.send(f"{template['name']}: {damage} obrażeń.{marker} HP {max(0, target.hp)} z {template['max_hp']}.")
                         (defeated if target.hp <= 0 else survivors).append(target)
+                    helper_target, _helper_damage = await self.apply_superboss_helper_after_skill_v11192(survivors)
+                    if helper_target is not None and helper_target.hp <= 0:
+                        if helper_target not in defeated:
+                            defeated.append(helper_target)
+                        survivors = [target for target in survivors if target.key != helper_target.key]
                     await self.grant_skill_use_xp(skill)
                     if mana_cost:
                         await self.send(f"Mana: {self.current_mana} z {self.max_mana()}.")
