@@ -4046,6 +4046,22 @@ def _v0317_install_engineer_toolkit():
         if kind in ("damage","aoe_damage"):
             row.update({"scale":"dexterity","mult":1.0})
             if kind=="aoe_damage": row["aoe"]=True
+        _harmful_engineer_effects={
+            "bio_blaster":["poison"],
+            "flash":["blind","guard_break"],
+            "debilitator":["elemental_vulnerability"],
+            "drill":["armor_break"],
+            "napalm":["flammable_oil"],
+            "noise_blaster":["silence","slow"],
+            "chainsaw":["hp_leak"],
+            "air_anchor":["air_anchor"],
+        }
+        if special in _harmful_engineer_effects:
+            row.update({
+                "soulbound_target_scope":"enemy_only",
+                "soulbound_harmful_debuff":True,
+                "enemy_debuffs":list(_harmful_engineer_effects[special]),
+            })
         if special=="upgrade": row.update({"boost":1.0,"duration":1})
     CLASS_SKILLS["Inżynier"] = rows
 
@@ -4067,6 +4083,9 @@ def _v11196_engineer_ap_semantics_audit():
             errors.append(f"{sid}: source AP cannot be damage power")
         if int(row.get("base_power",0) or 0)!=0:
             errors.append(f"{sid}: Engineer base_power must not be sourced from AP")
+        if bool(row.get("soulbound_harmful_debuff")):
+            if str(row.get("soulbound_target_scope",""))!="enemy_only":
+                errors.append(f"{sid}: harmful Engineer effect must be enemy_only")
     return {"checked":len(rows),"errors":errors,"error_count":len(errors)}
 
 ENGINEER_AP_SEMANTICS_AUDIT_V11196=_v11196_engineer_ap_semantics_audit()
@@ -4245,6 +4264,88 @@ for _class_name, (_primary, _secondary) in _CLASS_HEALING_SCALES_V11196.items():
             elif str(_skill.get("kind", "")) == "group_heal":
                 _skill.setdefault("target_mode", "local_party")
                 _skill.setdefault("soulbound_enemy_heal_disabled", True)
+
+
+_TARGET_SCOPE_BY_KIND_V11196 = {
+    "damage":"enemy_only",
+    "aoe_damage":"enemy_only",
+    "execute":"enemy_only",
+    "drain":"enemy_only",
+    "heal":"ally_or_self",
+    "group_heal":"allies_only",
+    "regen":"ally_or_self",
+    "boost":"self_only",
+    "guard":"self_only",
+    "evade":"self_only",
+    "passive":"passive",
+    "utility":"special",
+}
+
+for _class_name,_skills in CLASS_SKILLS.items():
+    for _skill in _skills:
+        _kind=str(_skill.get("kind","") or "")
+        _skill.setdefault(
+            "soulbound_kind_target_scope_v11196",
+            _TARGET_SCOPE_BY_KIND_V11196.get(_kind,"unknown"),
+        )
+
+
+def _all_class_skill_target_audit_v11196():
+    """Target-role audit for every skill in every playable Soulbound class."""
+    errors=[]
+    per_class={}
+    total=0
+    for class_name,skills in CLASS_SKILLS.items():
+        per_class[class_name]=len(skills)
+        total+=len(skills)
+        for skill in skills:
+            sid=str(skill.get("id","") or skill.get("name","?"))
+            kind=str(skill.get("kind","") or "")
+            expected=_TARGET_SCOPE_BY_KIND_V11196.get(kind)
+            actual=str(skill.get("soulbound_kind_target_scope_v11196","") or "")
+            if expected is None:
+                errors.append(f"{class_name}:{sid}: unknown kind={kind}")
+                continue
+            if actual!=expected:
+                errors.append(
+                    f"{class_name}:{sid}: kind target scope={actual} expected={expected}"
+                )
+
+            # Harmful effects may never point at self/allies even when the skill
+            # also deals damage or has a custom authored runtime.
+            if bool(skill.get("soulbound_harmful_debuff")):
+                if str(skill.get("soulbound_target_scope",""))!="enemy_only":
+                    errors.append(
+                        f"{class_name}:{sid}: harmful debuff must be enemy_only"
+                    )
+
+            # Healing is the inverse invariant: never heal a hostile mob.
+            if kind in {"heal","group_heal","regen"}:
+                if bool(skill.get("soulbound_harmful_debuff")):
+                    errors.append(
+                        f"{class_name}:{sid}: healing skill cannot be harmful debuff"
+                    )
+                if str(skill.get("soulbound_target_scope",""))=="enemy_only":
+                    errors.append(
+                        f"{class_name}:{sid}: healing skill cannot be enemy_only"
+                    )
+
+    return {
+        "version":"1.11.96",
+        "classes":len(CLASS_SKILLS),
+        "skills":total,
+        "per_class":per_class,
+        "error_count":len(errors),
+        "errors":errors,
+    }
+
+
+ALL_CLASS_SKILL_TARGET_AUDIT_V11196=_all_class_skill_target_audit_v11196()
+if ALL_CLASS_SKILL_TARGET_AUDIT_V11196["error_count"]:
+    raise RuntimeError(
+        "All Class Skill Target Audit v1.11.96 failed: "
+        + "; ".join(ALL_CLASS_SKILL_TARGET_AUDIT_V11196["errors"][:50])
+    )
 
 
 def _class_healing_scale_audit_v11196():
