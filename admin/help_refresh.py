@@ -1601,6 +1601,13 @@ def refresh_public_help_surface_v11197():
         "Losowe statystyki, rarity, sockety, runy i inne właściwości są oceniane z realnych danych przedmiotu.",
     ]
 
+    HELP_TOPICS["kolczyki"] = [
+        "Kolczyk jest jednym z 17 logicznych typów aktualnego EQ; postać ma dwa fizyczne sloty kolczyków.",
+        "zkol pokazuje/wybiera kolczyki automatycznie, a zkol1 i zkol2 pozwalają wskazać konkretny slot.",
+        "Materiałowe, klasowe i inne bieżące źródła EQ mogą zawierać kolczyki zgodnie z ich aktualnymi tabelami dropu/sklepu.",
+        "eq info oraz porownaj pokazują realne statystyki i porównanie konkretnego kolczyka.",
+    ]
+
     HELP_TOPICS["zakladanie_lootu"] = [
         "Gracz sam wybiera konkretny element EQ; załóż <nazwa> oraz skróty slotów zakładają posiadany przedmiot spełniający jego bieżące wymagania.",
         "Pierścienie, talizmany, kolczyki i akcesoria mają po dwa miejsca. zp, zt, zkol i zakc wybierają wolny lub słabszy slot automatycznie.",
@@ -1679,6 +1686,7 @@ def help_surface_audit_v11197():
         "inzynier": ("1-600", "Omni-Narzędzie"),
         "skille100_200": ("1-600", "80"),
         "materialy_eq": ("17", "akcesorium"),
+        "kolczyki": ("17", "zkol1", "zkol2"),
         "sety_klasowe": ("17", "2/4/6/8"),
         "sklepy": ("17", "bransolet"),
         "ekwipunek": ("17", "zakc"),
