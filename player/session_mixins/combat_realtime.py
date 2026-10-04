@@ -352,6 +352,23 @@ class SessionCombatRealtimeMixin:
                                     or enemy_mob.room_id != self.character.room_id
                                 ):
                                     break
+                                _jammer_rounds=max(
+                                    0,int(getattr(enemy_mob,"v11196_jammer_stop_rounds",0) or 0)
+                                )
+                                if _jammer_rounds>0:
+                                    _jammer_rounds=max(0,_jammer_rounds-1)
+                                    enemy_mob.v11196_jammer_stop_rounds=_jammer_rounds
+                                    await self.server.party_combat_broadcast(
+                                        self,
+                                        f"{MOB_TEMPLATES[enemy_mob.template_id]['name']} jest zatrzymany przez Jammer i pomija akcję."
+                                        + (
+                                            f" Pozostało {_jammer_rounds} akcji Stop."
+                                            if _jammer_rounds>0 else
+                                            " Stop się kończy."
+                                        ),
+                                        detail="normal",
+                                    )
+                                    continue
                                 _hypno_rounds=max(
                                     0,int(getattr(enemy_mob,"v11196_hypno_sleep_rounds",0) or 0)
                                 )
