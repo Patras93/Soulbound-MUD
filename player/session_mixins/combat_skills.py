@@ -65,7 +65,7 @@ class SessionCombatSkillsMixin:
         multiplier *= self.character.racial_all_damage_multiplier()
         multiplier *= self.total_set_damage_multiplier()
         multiplier *= self.equipment_damage_multiplier(damage_type)
-        multiplier *= self.skill_buff_multiplier()
+        multiplier *= self.skill_buff_multiplier(target_type=resolved_type)
         return multiplier
 
     async def apply_superboss_helper_skill_damage_v11189(self, target):
@@ -340,7 +340,8 @@ class SessionCombatSkillsMixin:
                 # standing in the caster's room. Ordinary boost skills remain
                 # passive Automatic and are handled before reaching this point.
                 if kind == "guard":
-                    buff_mult = self.skill_buff_multiplier()
+                    guard_type = class_type_for_name(self.skill_class_name(skill))
+                    buff_mult = self.skill_buff_multiplier(target_type=guard_type)
                     scaled_guard = max(
                         1,
                         int(round(skill.get("guard", 0) * skill_power * buff_mult)),
@@ -509,7 +510,9 @@ class SessionCombatSkillsMixin:
                         for i,target in enumerate(targets):
                             template=MOB_TEMPLATES[target.template_id]
                             # Mega Bomb: full damage main target, reduced splash normally.
-                            local_mult=passive_mult*upgrade_mult*skill_power*self.skill_buff_multiplier()
+                            local_mult=passive_mult*upgrade_mult*skill_power*self.skill_buff_multiplier(
+                                target_type=class_type_for_name(self.skill_class_name(skill))
+                            )
                             if special=="mega_bomb" and i>0 and not upgraded: local_mult*=0.55
                             # Chainsaw can use Demi / upgraded Quarter as a floor effect.
                             if special=="chainsaw":
@@ -682,7 +685,10 @@ class SessionCombatSkillsMixin:
                         else:
                             targets=list(alive)
                         base=max(1,int(skill.get("base_power",100) or 100)); total=0; defeated=[]; seen=set()
-                        mult=skill_power*self.mec_branch_multiplier_v0319(branch)*self.skill_buff_multiplier(exclude_skill_id="v0319_mec_vmax")
+                        _mec_damage_type = "magic" if branch == "magic" else "physical"
+                        mult=skill_power*self.mec_branch_multiplier_v0319(branch)*self.skill_buff_multiplier(
+                            exclude_skill_id="v0319_mec_vmax", target_type=_mec_damage_type
+                        )
                         # Cosmic Rave has a lesser Agility influence and V-MAX
                         # strengthens Starlight Shower, but source help supplies no
                         # numeric multiplier for either relation.
@@ -770,7 +776,9 @@ class SessionCombatSkillsMixin:
                         # original melee-weapon gate; its element is carried by both hits.
                         template=MOB_TEMPLATES[mob.template_id]
                         base=max(1,int(skill.get("base_power",1800) or 1800))
-                        mult=skill_power*self.mec_branch_multiplier_v0319("melee")*self.skill_buff_multiplier(exclude_skill_id="v0319_mec_vmax")
+                        mult=skill_power*self.mec_branch_multiplier_v0319("melee")*self.skill_buff_multiplier(
+                            exclude_skill_id="v0319_mec_vmax", target_type="physical"
+                        )
                         total=0
                         _element=str(getattr(self.character,"soul_weapon_element","") or "physical").casefold()
                         for _hit in range(2):
@@ -860,7 +868,8 @@ class SessionCombatSkillsMixin:
                         * self.character.racial_healing_multiplier()
                         * self.character.class_healing_multiplier()
                     )
-                    heal_pct = min(0.80, heal_pct * self.skill_buff_multiplier())
+                    heal_type = class_type_for_name(self.skill_class_name(skill))
+                    heal_pct = min(0.80, heal_pct * self.skill_buff_multiplier(target_type=heal_type))
                     target_max = target.max_hp()
                     heal = max(1, int(target_max * heal_pct))
                     before = target.current_hp
@@ -909,7 +918,8 @@ class SessionCombatSkillsMixin:
 
                 if kind == "aoe_damage":
                     scale = self.skill_scale_value(skill.get("scale", "intelligence"))
-                    multiplier = self.offensive_skill_damage_multiplier_v11186(skill, "magic") * skill_power
+                    aoe_class_type = class_type_for_name(self.skill_class_name(skill))
+                    multiplier = self.offensive_skill_damage_multiplier_v11186(skill, aoe_class_type) * skill_power
                     await self.send(
                         f"Używasz {skill['name']} na Skill Level {skill_level}. "
                         f"Cele w lokacji: {len(aoe_mobs)}."
