@@ -1385,7 +1385,38 @@ class SessionCombatSkillsMixin:
                 _mec_damage_override=None
                 if skill.get("mec_authored"):
                     _mec_special=str(skill.get("mec_special",""))
-                    if _mec_special=="crush":
+                    if _mec_special=="destroy":
+                        # Source contract: Attack + Vitality + HP, with power rising
+                        # as HP falls. Shield improves damage. Numeric coefficients
+                        # are not supplied by UOSS, so these are explicit Soulbound
+                        # balance values recorded in skill metadata.
+                        _destroy_max_hp=max(1,int(self.max_hp()))
+                        _destroy_current_hp=max(0,int(self.current_hp))
+                        _destroy_missing_ratio=max(
+                            0.0,min(
+                                1.0,
+                                (_destroy_max_hp-_destroy_current_hp)
+                                / float(_destroy_max_hp),
+                            )
+                        )
+                        multiplier *= 1.0 + _destroy_missing_ratio * float(
+                            skill.get("missing_hp_max_damage_bonus",0.50) or 0.50
+                        )
+                        _shield_equipped=bool(
+                            self.server.db.equipped_item(self.account_id,"shield")
+                        )
+                        if _shield_equipped:
+                            multiplier *= float(
+                                skill.get("shield_damage_multiplier",1.10) or 1.10
+                            )
+                            await self.send("Destroy: założona tarcza wzmacnia atak.")
+                        _mec_feedback_self_damage=max(
+                            1,int(round(
+                                _destroy_max_hp
+                                * float(skill.get("feedback_max_hp_pct",0.06) or 0.06)
+                            ))
+                        )
+                    elif _mec_special=="crush":
                         # Source contract: raw attack power is the difference between
                         # max HP and current HP, capped by experience/Character Level;
                         # Skill Level raises the maximum possible damage and a shield
