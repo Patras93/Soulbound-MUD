@@ -780,11 +780,9 @@ class SessionCombatSkillsMixin:
                             recipients=self.server.party_sessions(self.account_id,same_room=self.character.room_id) or [self]
                             injured=[s for s in recipients if not s.closed and s.character and s.current_hp>0 and s.current_hp<s.max_hp()]
                             target=min(injured,key=lambda s:(s.current_hp/max(1,s.max_hp()),s.current_hp,s.character.name.lower())) if injured else self
-                            _p=(max(1,min(SKILL_MAX_LEVEL,skill_level))-1)/float(max(1,SKILL_MAX_LEVEL-1))
-                            _will=max(1,int(self.effective_willpower()))
-                            heal_pct=min(0.55,0.14 + min(0.18,_will*0.0015) + 0.16*_p)
-                            if support_effect: heal_pct*=float(skill.get("support_heal_multiplier",1.20) or 1.20)
-                            amount=max(1,int(target.max_hp()*min(0.65,heal_pct)))
+                            amount=self.healing_skill_amount_v11196(skill,target,skill_power)
+                            if support_effect:
+                                amount=max(1,int(round(amount*float(skill.get("support_heal_multiplier",1.20) or 1.20))))
                             before=target.current_hp; target.current_hp=min(target.max_hp(),target.current_hp+amount); actual=target.current_hp-before
                             cleansed=[]
                             if support_effect:
@@ -803,11 +801,7 @@ class SessionCombatSkillsMixin:
                         # With Soulbound's Support Effect it heals the whole local party
                         # and receives the enhanced-healing bonus from the source ability.
                         if special=="heal_beam":
-                            _p=(max(1,min(SKILL_MAX_LEVEL,skill_level))-1)/float(max(1,SKILL_MAX_LEVEL-1))
-                            _will=max(1,int(self.effective_willpower()))
-                            heal_pct=min(0.72,0.30 + min(0.22,_will*0.0018) + 0.20*_p)
                             if support_effect:
-                                heal_pct=min(0.80,heal_pct*float(skill.get("support_heal_multiplier",1.20) or 1.20))
                                 recipients=self.server.party_sessions(self.account_id,same_room=self.character.room_id) or [self]
                             else:
                                 party=self.server.party_sessions(self.account_id,same_room=self.character.room_id) or [self]
@@ -816,7 +810,9 @@ class SessionCombatSkillsMixin:
                             total=0
                             for sess in recipients:
                                 if sess.closed or not sess.character or sess.current_hp<=0: continue
-                                amount=max(1,int(sess.max_hp()*heal_pct))
+                                amount=self.healing_skill_amount_v11196(skill,sess,skill_power)
+                                if support_effect:
+                                    amount=max(1,int(round(amount*float(skill.get("support_heal_multiplier",1.20) or 1.20))))
                                 before=sess.current_hp; sess.current_hp=min(sess.max_hp(),sess.current_hp+amount); actual=sess.current_hp-before; total+=actual
                                 if sess is not self:
                                     await sess.send(f"{self.character.name} używa Heal Beam. Odzyskujesz {actual} HP.")
