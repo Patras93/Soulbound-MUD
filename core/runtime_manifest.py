@@ -912,6 +912,7 @@ LEGACY_COMPATIBILITY_ALLOWLIST = (
     'admin/audits.py',
     'systems/economy_audit_v03060.py',
     'world/uoss_superbosses.py',
+    'world/uoss_superboss_world.py',
     'world/crypt_party_rebalance.py',
     'world/crypt_floor_progression.py',
     'world/crypt_overdrive.py',
