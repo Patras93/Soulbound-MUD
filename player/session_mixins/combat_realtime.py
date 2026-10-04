@@ -79,8 +79,8 @@ class SessionCombatRealtimeMixin:
                 template = MOB_TEMPLATES[mob.template_id]
                 self._last_mana_focus_gain = 0
                 # Maxwell Program: exact source regeneration is 1% maximum MP per
-                # six seconds. Mec skills remain mana-free; this only restores the
-                # shared mana resource while Maxwell is learned.
+                # six seconds. Authored Mec magic/support skills use their exact
+                # source MP costs, so Maxwell restores that shared mana resource.
                 if self.character.class_name=="Mec":
                     _maxwell=next((s for s in self.available_class_skills() if s.get("mec_special")=="maxwell_program"),None)
                     if _maxwell and self.job_ability_selected("inherent",_maxwell["id"]):
