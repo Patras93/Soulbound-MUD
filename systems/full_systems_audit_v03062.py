@@ -33,9 +33,10 @@ def full_systems_audit_v03062():
     check('world_exits', not bad_exits, str(bad_exits[:10]))
     check('classes_14', len(CLASSES)==14, len(CLASSES))
     base_skills_per_class=len(_V0922_MASTERY_LEVELS)*3
+    class_names=[row[0] for row in CLASSES]
     undersized_skill_classes={
         class_name: len(CLASS_SKILLS.get(class_name, ()))
-        for class_name in CLASSES
+        for class_name in class_names
         if len(CLASS_SKILLS.get(class_name, ())) < base_skills_per_class
     }
     # Generator Core defines a minimum base grid. Source-authored abilities may
