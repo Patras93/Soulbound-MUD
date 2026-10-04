@@ -111,6 +111,11 @@ class SessionSkillLearningMixin:
                 await self.send(f"{slot}: {current['name'] if current else 'brak'}.")
                 return
             wanted=parts[2].strip()
+            # UOSS source syntax includes the job name, e.g.
+            # "job set counter mec Intercept System". Soulbound also accepts
+            # the shorter "job set counter Intercept System".
+            if wanted.casefold().startswith("mec "):
+                wanted=wanted[4:].strip()
             if wanted.casefold() in ("none","brak","off","wyłącz","wylacz"):
                 self.server.db.clear_job_ability_slot(self.account_id,slot)
                 await self.send(f"Slot {slot} wyłączony.")
@@ -1355,6 +1360,87 @@ class SessionSkillLearningMixin:
 
             return profile
 
+    async def mec_intercept_incoming_attack_v11196(self, mob):
+            """Interrupt one incoming enemy attack when Intercept System is selected."""
+            if not mob or not mob.alive:
+                return False
+            if not self.job_ability_selected(
+                "counter","v0319_mec_intercept_system"
+            ):
+                return False
+            _intercept=self.skill_by_id("v0319_mec_intercept_system")
+            if not (
+                _intercept
+                and self.server.db.knows_skill(
+                    self.account_id,_intercept["id"]
+                )
+            ):
+                return False
+
+            _stat_values={
+                "strength":max(1,int(self.effective_strength())),
+                "dexterity":max(1,int(self.effective_dexterity())),
+                "intelligence":max(1,int(self.effective_intelligence())),
+                "willpower":max(1,int(self.effective_willpower())),
+            }
+            _stat_name,_stat_value=max(
+                _stat_values.items(),
+                key=lambda item:(item[1],item[0]),
+            )
+            _counter_skill=dict(_intercept)
+            _counter_skill["scale"]=_stat_name
+            _counter_level=max(
+                1,min(
+                    SKILL_MAX_LEVEL,
+                    int(
+                        self.server.db.skill_progress(
+                            self.account_id,_intercept["id"]
+                        )["level"]
+                    ),
+                )
+            )
+            _counter_type=(
+                "magic"
+                if _stat_name in ("intelligence","willpower")
+                else "physical"
+            )
+            _counter_core=self.offensive_skill_core_power_v11185(
+                _counter_skill,
+                max(1,int(_intercept.get("base_power",1000) or 1000)),
+            )
+            _counter_mult=(
+                skill_power_multiplier(_counter_level)
+                * self.offensive_skill_damage_multiplier_v11186(
+                    _counter_skill,_counter_type
+                )
+            )
+            counter=max(1,int(round(_counter_core*_counter_mult)))
+            counter=await self.apply_boss_defense(mob,counter)
+            counter=self.v0210_adjust_player_damage(counter)
+            counter=min(max(0,int(mob.hp)),max(0,int(counter)))
+            mob.hp-=counter
+            self._recap52_dealt=(
+                int(getattr(self,"_recap52_dealt",0) or 0)+counter
+            )
+            _stat_labels={
+                "strength":"Siła",
+                "dexterity":"Zręczność",
+                "intelligence":"Inteligencja",
+                "willpower":"Siła Woli",
+            }
+            template=MOB_TEMPLATES[mob.template_id]
+            await self.send_combat(
+                f"Intercept System przerywa atak {template['name']} i "
+                f"kontruje laserami za {counter}. Najwyższy stat: "
+                f"{_stat_labels[_stat_name]} {_stat_value}. "
+                f"Skill Level {_counter_level}.",
+                "normal",
+            )
+            await self.grant_skill_use_xp(_intercept)
+            if mob.hp<=0:
+                await self.mob_defeated(mob)
+            return True
+
     async def enemy_counterattack(self, mob):
             if not mob or not mob.alive:
                 return
@@ -1384,78 +1470,11 @@ class SessionSkillLearningMixin:
             if now < float(getattr(mob,"v0319_blind_until",0.0) or 0.0) and random.random()<0.35:
                 await self.send_combat(f"{template['name']} pudłuje przez Blind.","normal"); return
 
-            # Intercept System is a selected Counter, not an automatic
-            # learned passive. Source gives Variable influence: the lasers use the
-            # highest available offensive stat and Skill Level increases damage.
-            # No trigger probability is authored, so selecting the Counter means
-            # the incoming attack is interrupted rather than inventing a miss roll.
-            if self.job_ability_selected("counter","v0319_mec_intercept_system"):
-                _intercept=self.skill_by_id("v0319_mec_intercept_system")
-                if _intercept and self.server.db.knows_skill(
-                    self.account_id,_intercept["id"]
-                ):
-                    _stat_values={
-                        "strength":max(1,int(self.effective_strength())),
-                        "dexterity":max(1,int(self.effective_dexterity())),
-                        "intelligence":max(1,int(self.effective_intelligence())),
-                        "willpower":max(1,int(self.effective_willpower())),
-                    }
-                    _stat_name,_stat_value=max(
-                        _stat_values.items(),
-                        key=lambda item:(item[1],item[0]),
-                    )
-                    _counter_skill=dict(_intercept)
-                    _counter_skill["scale"]=_stat_name
-                    _counter_level=max(
-                        1,min(
-                            SKILL_MAX_LEVEL,
-                            int(
-                                self.server.db.skill_progress(
-                                    self.account_id,_intercept["id"]
-                                )["level"]
-                            ),
-                        )
-                    )
-                    _counter_type=(
-                        "magic"
-                        if _stat_name in ("intelligence","willpower")
-                        else "physical"
-                    )
-                    _counter_core=self.offensive_skill_core_power_v11185(
-                        _counter_skill,
-                        max(1,int(_intercept.get("base_power",1000) or 1000)),
-                    )
-                    _counter_mult=(
-                        skill_power_multiplier(_counter_level)
-                        * self.offensive_skill_damage_multiplier_v11186(
-                            _counter_skill,_counter_type
-                        )
-                    )
-                    counter=max(1,int(round(_counter_core*_counter_mult)))
-                    counter=await self.apply_boss_defense(mob,counter)
-                    counter=self.v0210_adjust_player_damage(counter)
-                    counter=min(max(0,int(mob.hp)),max(0,int(counter)))
-                    mob.hp-=counter
-                    self._recap52_dealt=(
-                        int(getattr(self,"_recap52_dealt",0) or 0)+counter
-                    )
-                    _stat_labels={
-                        "strength":"Siła",
-                        "dexterity":"Zręczność",
-                        "intelligence":"Inteligencja",
-                        "willpower":"Siła Woli",
-                    }
-                    await self.send_combat(
-                        f"Intercept System przerywa atak {template['name']} i "
-                        f"kontruje laserami za {counter}. Najwyższy stat: "
-                        f"{_stat_labels[_stat_name]} {_stat_value}. "
-                        f"Skill Level {_counter_level}.",
-                        "normal",
-                    )
-                    await self.grant_skill_use_xp(_intercept)
-                    if mob.hp<=0:
-                        await self.mob_defeated(mob)
-                    return
+            # Fallback for any direct counterattack call outside the
+            # normal realtime loop. The realtime loop intercepts earlier so sourced
+            # special enemy attacks are cancelled as a whole action as well.
+            if await self.mec_intercept_incoming_attack_v11196(mob):
+                return
 
             if self.skill_evade:
                 self.skill_evade = False
