@@ -195,7 +195,10 @@ def _register_class_equipment_shops():
 
                     if slot in ("necklace", "relic"):
                         base_affix = 3
-                    elif slot in ("ring", "charm", "earring", "shoulders", "belt", "cloak", "bracers"):
+                    elif slot in (
+                        "ring", "charm", "earring", "shoulders", "belt", "cloak",
+                        "bracers", "bracelet", "accessory",
+                    ):
                         base_affix = 2
                     else:
                         base_affix = 1
