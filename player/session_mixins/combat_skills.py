@@ -844,6 +844,19 @@ class SessionCombatSkillsMixin:
                         str(skill.get("mec_branch"))
                     )
 
+                if skill.get("mec_authored"):
+                    _mec_special=str(skill.get("mec_special",""))
+                    if _mec_special=="crush":
+                        # Source: missing HP raises damage and Skill Level raises the
+                        # maximum possible damage. No numeric curve/cap is supplied.
+                        # Preserve that contract in metadata until a canonical formula exists.
+                        pass
+                    elif _mec_special=="kamikaze_crush":
+                        # Source: current HP/Vitality and the HP sacrifice drive damage;
+                        # V-MAX raises both power and Feedback. No numeric sacrifice
+                        # limit or multiplier is supplied, so do not fabricate one.
+                        pass
+
                 if kind == "execute":
                     hp_ratio = mob.hp / max(1, template["max_hp"])
                     execute_threshold = v0863_execute_threshold(template)
