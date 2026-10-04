@@ -5,7 +5,7 @@
 import random
 from core.bootstrap_economy_professions import CURRENCY_SQLITE_SAFE_TOTAL, currency_reading_text, currency_unit_multiplier
 from core.mines_threat import EQUIPMENT_SLOT_ALIASES, EQUIPMENT_SLOT_NAMES, ITEMS, is_character_bound_item
-from core.progression_600 import CHARACTER_MAX_LEVEL, CLASS_MASTERY_MAX_LEVEL, SOUL_MAX_LEVEL, SOUL_MAX_TIER
+from core.progression_600 import CHARACTER_MAX_LEVEL, CLASS_MASTERY_MAX_LEVEL, SOUL_MAX_LEVEL, SOUL_MAX_TIER, soul_tier_title_for_class
 from network.protocol_gameplay_utils import (
     V03042_EQ_UPGRADE_MAX,
     find_by_name,
@@ -337,7 +337,7 @@ class SessionInventoryEquipmentMixin:
             soul_line = (
                 f"Broń Duszy: {c.soul_weapon}. "
                 f"Soul Poziom {c.soul_level}/{SOUL_MAX_LEVEL}. "
-                f"Soul Tier {c.soul_tier}/{SOUL_MAX_TIER}. "
+                f"Soul Tier {c.soul_tier}/{SOUL_MAX_TIER} — {soul_tier_title_for_class(c.soul_tier, c.class_name)}. "
                 f"Moc {c.soul_power()}."
             )
             if detailed:
