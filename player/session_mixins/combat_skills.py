@@ -667,6 +667,50 @@ class SessionCombatSkillsMixin:
                         await self.send(_uoss_reason)
                         return
 
+                _cure_beam_target = None
+                if (
+                    skill.get("mec_authored")
+                    and str(skill.get("mec_special",""))=="cure_beam"
+                ):
+                    # Soulbound rule: Cure Beam never heals a combat enemy.
+                    # No target = self. A named target must be one living local
+                    # party ally; mob names are rejected before MP is spent.
+                    _party = list(
+                        self.server.party_sessions(
+                            self.account_id, same_room=self.character.room_id
+                        ) or []
+                    )
+                    if self not in _party:
+                        _party.append(self)
+                    _party = [
+                        sess for sess in _party
+                        if not sess.closed and sess.character and sess.current_hp>0
+                    ]
+                    if target_text:
+                        _wanted = normalize_lookup_text(target_text)
+                        if _wanted in {"self","me","ja","siebie"}:
+                            _cure_beam_target = self
+                        else:
+                            _cure_beam_target = next(
+                                (
+                                    sess for sess in _party
+                                    if sess is not self
+                                    and (
+                                        _wanted == normalize_lookup_text(sess.character.name)
+                                        or _wanted in normalize_lookup_text(sess.character.name)
+                                    )
+                                ),
+                                None,
+                            )
+                        if _cure_beam_target is None:
+                            await self.send(
+                                "Cure Beam leczy tylko ciebie albo jednego żywego "
+                                "sojusznika w tej lokacji. Przeciwnik nie może być celem."
+                            )
+                            return
+                    else:
+                        _cure_beam_target = self
+
                 self.current_mana -= mana_cost
                 if effective_cooldown > 0:
                     self.start_skill_cooldown_v0364(skill, effective_cooldown, now)
@@ -1023,26 +1067,60 @@ class SessionCombatSkillsMixin:
                         # Soulbound's Support Effect replaces the old separate support weapon:
                         # it heals slightly more and cleanses Blind + Poison.
                         if special=="cure_beam":
-                            recipients=self.server.party_sessions(self.account_id,same_room=self.character.room_id) or [self]
-                            injured=[s for s in recipients if not s.closed and s.character and s.current_hp>0 and s.current_hp<s.max_hp()]
-                            target=min(injured,key=lambda s:(s.current_hp/max(1,s.max_hp()),s.current_hp,s.character.name.lower())) if injured else self
+                            target=_cure_beam_target or self
+                            if superboss_healing_blocked_v11179(target):
+                                await self.send("Nullify Healing blokuje Cure Beam na tym celu.")
+                                return
                             amount=self.healing_skill_amount_v11196(skill,target,skill_power)
                             if support_effect:
-                                amount=max(1,int(round(amount*float(skill.get("support_heal_multiplier",1.20) or 1.20))))
-                            before=target.current_hp; target.current_hp=min(target.max_hp(),target.current_hp+amount); actual=target.current_hp-before
+                                amount=max(
+                                    1,
+                                    int(round(
+                                        amount
+                                        * float(
+                                            skill.get("support_heal_multiplier",1.20)
+                                            or 1.20
+                                        )
+                                    )),
+                                )
+                            before=target.current_hp
+                            target.current_hp=min(
+                                target.max_hp(),target.current_hp+amount
+                            )
+                            actual=target.current_hp-before
                             cleansed=[]
                             if support_effect:
-                                for attr,label in (("v0319_blind_until","Blind"),("v0319_poison_until","Poison"),("poison_until","Poison")):
+                                for attr,label in (
+                                    ("v0319_blind_until","Blind"),
+                                    ("v0319_poison_until","Poison"),
+                                    ("poison_until","Poison"),
+                                ):
                                     if float(getattr(target,attr,0.0) or 0.0)>time.time():
                                         setattr(target,attr,0.0)
-                                        if label not in cleansed: cleansed.append(label)
+                                        if label not in cleansed:
+                                            cleansed.append(label)
                             await self.send(
                                 f"Cure Beam: {target.character.name} odzyskuje {actual} HP."
-                                + (f" Support Effect usuwa: {', '.join(cleansed)}." if cleansed else (" Support Effect zwiększa leczenie." if support_effect else ""))
+                                + (
+                                    f" Support Effect usuwa: {', '.join(cleansed)}."
+                                    if cleansed
+                                    else (
+                                        " Support Effect zwiększa leczenie."
+                                        if support_effect else ""
+                                    )
+                                )
                             )
                             if target is not self:
-                                await target.send(f"{self.character.name} używa Cure Beam. Odzyskujesz {actual} HP." + (f" Usunięto: {', '.join(cleansed)}." if cleansed else ""))
-                            await self.grant_skill_use_xp(skill); return
+                                await target.send(
+                                    f"{self.character.name} używa Cure Beam. "
+                                    f"Odzyskujesz {actual} HP."
+                                    + (
+                                        f" Usunięto: {', '.join(cleansed)}."
+                                        if cleansed else ""
+                                    )
+                                )
+                            await self.grant_skill_use_xp(skill)
+                            return
                         # v1.11.46: Heal Beam scales with Will + Skill Level.
                         # With Soulbound's Support Effect it heals the whole local party
                         # and receives the enhanced-healing bonus from the source ability.
