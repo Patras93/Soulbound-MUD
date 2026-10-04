@@ -10,7 +10,7 @@ from core.progression_resources import class_type_for_name
 from network.protocol_gameplay_utils import v03042_upgrade_defense_bonus, v03042_upgrade_primary_stat, v03042_upgrade_stat_bonus
 from systems.crafting_expansion import TECH_SET_ITEMS_V03114
 from systems.equipment_crafting import CLASS_SET_BONUSES, CLASS_SET_STAT_NAMES
-from systems.items_resources import CLASS_EQUIPMENT_SETS
+from systems.items_resources import CLASS_EQUIPMENT_SETS, CLASS_EQUIPMENT_SLOT_DEFS
 from world.economy_quests import v0865_dodge_chance_from_dexterity
 from world.expansions import REGIONAL_SET_BONUSES
 from world.runtime_progression import V021_MYTHIC_SET_BONUS, v0210_world_tier_multipliers
@@ -257,11 +257,12 @@ class SessionEquipmentStatsMixin:
                 class_name = item.get("required_class")
                 if class_name not in active:
                     continue
-                # ring1/ring2 i charm1/charm2 są dwiema pozycjami użytkowymi,
-                # ale dla progu setu nadal liczą się jako jedna logiczna część.
-                # Shield is full-stat EQ, but it must not silently make historical
-                # 2/4/6/8 class-set thresholds easier after this new slot is added.
-                if item.get("slot")!="shield":
+                # ring1/ring2, charm1/charm2, earring1/2 i accessory1/2
+                # są pozycjami użytkowymi, ale dla progu setu liczy się jeden
+                # logiczny typ części. Shield oraz nowe Bracelet/Accessory są
+                # pełnoprawnym EQ ze statami, lecz nie mogą ułatwić historycznych
+                # progów 2/4/6/8 po rozszerzeniu siatki wyposażenia.
+                if item.get("slot") not in {"shield","bracelet","accessory"}:
                     logical_slots.setdefault(class_name, set()).add(item.get("slot"))
             return {
                 class_name: len(slots)
@@ -368,7 +369,7 @@ class SessionEquipmentStatsMixin:
                 state = "; ".join(active) if active else "brak aktywnego progu"
                 lines.append(
                     f"Set klasowy {class_name}, Zestaw {set_name}: "
-                    f"{count}/13 części. {state}."
+                    f"{count}/{len(set(CLASS_EQUIPMENT_SLOT_DEFS)-{'shield','bracelet','accessory'})} części liczonych do progów. {state}."
                 )
             if not lines:
                 lines.append("Brak założonych części aktywnego zestawu klasowego.")
