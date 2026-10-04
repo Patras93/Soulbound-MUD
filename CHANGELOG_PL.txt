@@ -2,20 +2,25 @@ SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
 Aktualna paczka: v1.11.96
 
 ==============================================================================
-Soulbound v1.11.96 — Kondycja dla fizycznego EQ
+Soulbound v1.11.96 — globalny balans 14 klas, EQ i zasobów
 ==============================================================================
 
-- Fizyczne EQ zachowuje ofensywne statystyki, ale ma też realnie wzmacniać przeżywalność przez Kondycję.
-- Klasowe fizyczne sety nadal generują Siłę + Kondycję; generator ma teraz jawny guard, który zatrzyma start przy regresji odbierającej Kondycję fizycznemu EQ klasowemu.
-- Źródłowe statystyki UOSS nie są nadpisywane. Dla znanych fizycznych reliktów bez VIT/Kondycji dodano osobną warstwę balansu Soulbound równą 25% znanych STR+DEX: Ninja's Trump +106 Kondycji, Zantetsuken +70, Mesa +128, Oborozuki +19.
-- Fizyczne akcesoria Culexa, które po audycie źródeł miały puste staty, dostały jawny balans Soulbound zamiast udawanych danych źródłowych: Hermes Shoes Zręczność +180 i Kondycja +70, Hyper Wrist Siła +190 i Kondycja +90, Tough Ring Siła +110 i Kondycja +190.
-- Poprawiono mapowanie statystyk UOSS: Wisdom odpowiada Inteligencji, a Will odpowiada Sile Woli. Hypno Crown daje więc Inteligencja +50 zamiast Siła Woli +50.
-- Armageddon, Daedalus Lance, Gungnir, Bonebreaker, Brave Suit, Nova Armor, Mirage Vest, Renewing Morion, Safe Helm, Lunar Crystal Armor, Genji Gloves, Devil King Shield, Behemoth Suit, Venetian Shield, Ziedrich i Thief Hat już miały Kondycję i zachowują swoje wartości.
-- EQ INFO rozróżnia teraz Statystyki bazowe od Bonusów Soulbound, a łączne efektywne staty nadal pokazują pełną sumę.
-- AUTO EQ i wewnętrzne porównanie mocy uwzględniają Bonus Soulbound, więc przedmiot nie jest zaniżany tylko dlatego, że dodatkowa Kondycja jest oddzielona od danych źródłowych.
-- Dodano audit fizycznych nagród UOSS wymagający realnej Kondycji po zsumowaniu statystyk źródłowych i warstwy Soulbound.
-- Runtime, server metadata i FAST PREDEPLOY zsynchronizowano do v1.11.96.
-- Zmiana nie wykonuje deployu i nie wymaga wipe'a save'ów.
+- Balans nie jest już robiony wyłącznie pod Meca/Cyborga. Wszystkie 14 klas korzysta z jednego rdzenia progresji HP/MP, ale zachowuje własną tożsamość statów, pasywek, setów i obrażeń.
+- HP skaluje się teraz mocno z Levelem i Kondycją bez niszczenia early game. Level 1 pozostaje blisko starej skali; około Levelu 175 postać z Kondycją równą Levelowi ma około 13,5 tys. bazowego HP, a podwojenie Kondycji daje około 36,5 tys. przed mnożnikami rasy/setów. Powyżej 175 wzrost trwa wolniej zamiast eksplodować wykładniczo.
+- Mana skaluje się równocześnie z Inteligencją i Siłą Woli. Krzywa jest niższa od HP, bo MP jest zasobem wydawanym, ale buildy magiczne/supportowe nie zostają z pulą z early game. Leczenie klasowe oparte na procencie maksymalnego HP automatycznie rośnie razem z nową pulą życia.
+- Klasowe fizyczne EQ zawsze zawiera Kondycję, ale stat ofensywny zależy od klasy: Wojownik, Berserker i Strażnik używają Siła + Kondycja; Łotrzyk, Łowca, Mnich, Mec i Inżynier używają Zręczność + Kondycja.
+- Sześć klas magicznych zachowuje Inteligencja + Siła Woli. Profile Kapłana i Druida nadal przez swój ratio kładą większy nacisk na Siłę Woli, a Mag/Czarownik bardziej na Inteligencję.
+- Mec ma w AUTO EQ dodatkową wagę dla STR/DEX/CON/INT/WILL, bo jego kanoniczne gałęzie korzystają z różnych statów. Mnich nadal docenia Siłę Woli obok DEX/Kondycji.
+- AUTO EQ stało się klasowo świadome: ocenia właściwe staty ofensywne, Kondycję/Siłę Woli, Attack, Magic Attack, Weapon Power, Magic Defense, właściwości procentowe, wardy, status-proof, rarity i sockety. Nie wybiera już przedmiotu tylko dlatego, że ma największą surową sumę statów niepasujących do klasy.
+- Źródłowe płaskie wartości UOSS pozostają bez zmian. Quartz Charm nadal daje Defense +60, Magic Defense +60, Attack +60 i Magic Attack +60, a Ziedrich zachowuje Attack +15; dzięki temu zestaw źródłowy zachowuje realny profil Attack/MAttack/Defense/MDefense.
+- Fizyczne relikty, które miały STR/DEX bez VIT, dostały oddzielny Bonus Soulbound do Kondycji bez nadpisywania danych źródłowych: Ninja's Trump +106, Zantetsuken +70, Mesa +128, Oborozuki +19.
+- Puste źródłowo akcesoria Culexa dostały umiarkowane, jawnie soulboundowe role zamiast setek wymyślonych statów: Hermes Shoes DEX +60 / Kondycja +20; Hyper Wrist STR +60 / Kondycja +20; Tough Ring STR +30 / Kondycja +50; Solomon Ring INT +35 / Siła Woli +45.
+- Star Fragment jest uniwersalnym akcesorium Soulbound po +30 do pięciu głównych statystyk, a Opal Ring daje Kondycja +30, INT +55 i Siła Woli +65. Te liczby są oznaczone jako balans Soulbound, nie jako niepotwierdzone dane UOSS.
+- Poprawiono mapowanie UOSS: Wisdom = Inteligencja, Will = Siła Woli. Hypno Crown daje więc źródłowe Inteligencja +50.
+- EQ INFO oraz komunikat po ręcznym założeniu pokazują osobno Statystyki bazowe i Bonus Soulbound.
+- Audyty pilnują, żeby fizyczne endgame EQ miało realną Kondycję, a każde uniwersalne akcesorium UOSS miało faktyczną wartość bojową.
+- Runtime, server metadata i FAST PREDEPLOY są zsynchronizowane do v1.11.96.
+- Brak wipe'a save'ów. Brak deployu — zmiany pozostają w Pull Request do większej paczki i wyraźnej decyzji o wdrożeniu.
 
 ==============================================================================
 Soulbound v1.11.95 — uniwersalne akcesoria UOSS dla wszystkich klas
