@@ -123,7 +123,10 @@ def superboss_helper_profile_v11137(session, template):
         name = str(helper)
     else:
         return None
-    return {"name":name, "damage_multiplier":1.12, "damage_reduction":0.08}
+    # Source establishes the helper's presence/identity but does not provide
+    # a numeric damage bonus or damage-reduction percentage. Keep the helper
+    # mechanically present without fabricating combat multipliers.
+    return {"name":name, "damage_multiplier":1.0, "damage_reduction":0.0}
 
 
 def superboss_phase_v11137(template, mob):
@@ -200,10 +203,10 @@ def superboss_incoming_multiplier_v11138(session, template, mob):
     if scale_from:
         party_count=len(superboss_local_party_v11137(session))
         if party_count>scale_from:
-            # Odin/UOSS rule: additional players above the designed minimum
-            # make the encounter harder instead of trivializing it.
-            mult *= 1.0 + 0.20 * (party_count-scale_from)
-            note=(note+" " if note else "")+f"Skalowanie drużyny: {party_count} graczy."
+            # Source establishes that Odin becomes harder above the designed
+            # party size, but no numeric per-player multiplier is supplied.
+            # Preserve the rule as metadata/text instead of inventing +20%.
+            note=(note+" " if note else "")+f"Skalowanie drużyny aktywne: {party_count} graczy."
     if key=="spekkio":
         # Spekkio remains relevant regardless of level: his pressure tracks the
         # player's current defensive scale rather than a fixed authored tier.
