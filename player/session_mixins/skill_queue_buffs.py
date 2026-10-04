@@ -645,10 +645,25 @@ class SessionSkillQueueBuffsMixin:
                 return False
             return bool(str(getattr(self.character, "soul_weapon", "") or "").strip())
 
+    def mec_protocol_multiplier_v11196(self, skill_id):
+            """Automatic Mec Protocol potency from its own Skill Level.
+
+            UOSS confirms that Protocol level increases the mapped branch's damage
+            but does not expose a numeric curve. Soulbound uses an explicit balance
+            curve from +5% at Skill Level 1 to +75% at Skill Level 600.
+            """
+            sid=str(skill_id or "")
+            if not sid or not self.mec_skill_known_v0319(sid):
+                return 1.0
+            progress_row=self.server.db.skill_progress(self.account_id,sid)
+            level=max(1,min(SKILL_MAX_LEVEL,int(progress_row["level"])))
+            progress=(level-1)/float(max(1,SKILL_MAX_LEVEL-1))
+            return 1.05 + 0.70*(progress ** 0.82)
+
     def mec_branch_multiplier_v0319(self, branch):
             mult=1.0
-            # v1.11.49: Protocols increase Mec ability potency. Inherent weapon
-            # masteries are separate and must not be counted a second time here.
+            # Protocols are automatic passives and only strengthen their authored
+            # Mec branch. Inherent weapon masteries remain separate.
             protocols={
               "melee":"v0319_mec_strength_protocol",
               "ranged":"v0319_mec_ranged_protocol",
@@ -656,10 +671,8 @@ class SessionSkillQueueBuffsMixin:
               "magic":"v0319_mec_magic_protocol",
             }
             sid=protocols.get(branch)
-            if sid and self.mec_skill_known_v0319(sid):
-                # Protocol is automatic and Skill Level increases the mapped branch
-                # damage, but source help supplies no numeric multiplier curve.
-                pass
+            if sid:
+                mult*=self.mec_protocol_multiplier_v11196(sid)
             # Overheat lowers all combat stats, but its numeric penalty is not
             # specified by source; do not fabricate a 25% reduction.
             return mult
