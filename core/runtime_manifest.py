@@ -252,6 +252,7 @@ V044_EXPLICIT_RUNTIME_EXPORTS = {'systems/equipment_crafting.py': ('ALCHEMY_RECI
                                    'GEODE_DEFINITIONS',
                                    'GEODE_IDS',
                                    'GUILD_BOUNTY_TARGETS',
+                                   'GUILD_CLASS_QUEST_POOLS',
                                    'GUILD_CLASS_QUESTS',
                                    'GUILD_EXAM_REPUTATION',
                                    'GUILD_EXAM_THRESHOLDS',
