@@ -2356,7 +2356,9 @@ def _v0310_build_tech_class_skills():
 _v0310_build_tech_class_skills()
 
 # v0.31.9: Full authored Mec kit based on the user-provided UOSSMUD ability list.
-# Soulbound does NOT use AP. Source Base AP is stored only as internal base_power.
+# Source Base AP is an AP/learning cost from UOSS, NOT an attack-power value.
+# Soulbound stores it only as source_ap_cost metadata; combat power comes from
+# Soul Power, effective stats/EQ, Skill Level, protocols and authored mechanics.
 def _v0319_install_full_mec_kit():
     rows = CLASS_SKILLS.get("Mec", [])
     specs = [
@@ -2410,13 +2412,16 @@ def _v0319_install_full_mec_kit():
     ]
     if len(rows) < len(specs):
         return
-    for idx,(name,unlock,kind,power,branch,special,desc) in enumerate(specs):
+    for idx,(name,unlock,kind,source_ap,branch,special,desc) in enumerate(specs):
         row=rows[idx]
         row.clear()
         row.update({
             "id":f"v0319_mec_{special}", "name":name, "aliases":[name.casefold()],
             "unlock":unlock, "kind":kind, "cooldown":0, "mana":0,
-            "base_power":power, "mec_authored":True, "mec_branch":branch,
+            "base_power":0,
+            "source_ap_cost":source_ap,
+            "source_ap_is_damage_power":False,
+            "mec_authored":True, "mec_branch":branch,
             "mec_special":special, "desc":desc,
         })
         if branch in ("inherent","counter"):
@@ -3071,6 +3076,12 @@ def _mec_contract_audit_v11149():
         "jammer":20,"heal_beam":36,"logic_bomb":155,
     }
     source_support_mp_costs={"jammer":40,"heal_beam":72}
+    for _sid,_row in rows.items():
+        if bool(_row.get("source_ap_is_damage_power")):
+            errors.append(f"{_sid}: source AP cannot be damage power")
+        if "source_ap_cost" in _row and int(_row.get("base_power",0) or 0)!=0:
+            errors.append(f"{_sid}: authored Mec base_power must not be sourced from AP")
+
     feedback_protocol=rows.get("feedback_protocol")
     if feedback_protocol:
         _feedback_expected=["destroy","robo_tackle","uzi_punch","kamikaze_crush"]
@@ -3089,8 +3100,10 @@ def _mec_contract_audit_v11149():
     if shock:
         if int(shock.get("unlock",0) or 0)!=95:
             errors.append("shock: source Level 95 must map to Biegłość Mec 95")
-        if int(shock.get("base_power",0) or 0)!=1800:
-            errors.append("shock: Base AP 1800 must remain internal base_power 1800")
+        if int(shock.get("source_ap_cost",0) or 0)!=1800:
+            errors.append("shock: source Base AP cost must remain 1800 metadata")
+        if bool(shock.get("source_ap_is_damage_power")) or int(shock.get("base_power",0) or 0)!=0:
+            errors.append("shock: source AP must not be used as combat base power")
         if int(shock.get("source_requirement_level",0) or 0)!=95:
             errors.append("shock: source requirement must remain Level 95")
         if str(shock.get("source_requirement_maps_to"))!="class_mastery":
@@ -3114,8 +3127,10 @@ def _mec_contract_audit_v11149():
     if maelstrom:
         if int(maelstrom.get("unlock",0) or 0)!=44:
             errors.append("maelstrom: source Level 44 must map to Biegłość Mec 44")
-        if int(maelstrom.get("base_power",0) or 0)!=1500:
-            errors.append("maelstrom: Base AP 1500 must remain internal base_power 1500")
+        if int(maelstrom.get("source_ap_cost",0) or 0)!=1500:
+            errors.append("maelstrom: source Base AP cost must remain 1500 metadata")
+        if bool(maelstrom.get("source_ap_is_damage_power")) or int(maelstrom.get("base_power",0) or 0)!=0:
+            errors.append("maelstrom: source AP must not be used as combat base power")
         if int(maelstrom.get("source_requirement_level",0) or 0)!=44:
             errors.append("maelstrom: source requirement must remain Level 44")
         if str(maelstrom.get("source_requirement_maps_to"))!="class_mastery":
@@ -3139,8 +3154,10 @@ def _mec_contract_audit_v11149():
     if area_bomb:
         if int(area_bomb.get("unlock",0) or 0)!=8:
             errors.append("area_bomb: source Level 8 must map to Biegłość Mec 8")
-        if int(area_bomb.get("base_power",0) or 0)!=300:
-            errors.append("area_bomb: Base AP 300 must remain internal base_power 300")
+        if int(area_bomb.get("source_ap_cost",0) or 0)!=300:
+            errors.append("area_bomb: source Base AP cost must remain 300 metadata")
+        if bool(area_bomb.get("source_ap_is_damage_power")) or int(area_bomb.get("base_power",0) or 0)!=0:
+            errors.append("area_bomb: source AP must not be used as combat base power")
         if int(area_bomb.get("source_requirement_level",0) or 0)!=8:
             errors.append("area_bomb: source requirement must remain Level 8")
         if str(area_bomb.get("source_requirement_maps_to"))!="class_mastery":
@@ -3164,8 +3181,10 @@ def _mec_contract_audit_v11149():
     if laser_spin:
         if int(laser_spin.get("unlock",0) or 0)!=1:
             errors.append("laser_spin: Reqs None must map to Biegłość Mec 1")
-        if int(laser_spin.get("base_power",0) or 0)!=200:
-            errors.append("laser_spin: Base AP 200 must remain internal base_power 200")
+        if int(laser_spin.get("source_ap_cost",0) or 0)!=200:
+            errors.append("laser_spin: source Base AP cost must remain 200 metadata")
+        if bool(laser_spin.get("source_ap_is_damage_power")) or int(laser_spin.get("base_power",0) or 0)!=0:
+            errors.append("laser_spin: source AP must not be used as combat base power")
         if list(laser_spin.get("source_requirements") or [])!=[] or not bool(laser_spin.get("source_requires_none")):
             errors.append("laser_spin: source requirements must be None")
         if list(laser_spin.get("source_stat_influence") or [])!=["magic_attack"]:
