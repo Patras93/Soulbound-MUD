@@ -175,6 +175,15 @@ if "uoss_helper_seifer" in NPCS:
         "zantetsuken_reverse_timing":"towards half way of fight",
     })
 
+if "uoss_helper_montblanc" in NPCS:
+    NPCS["uoss_helper_montblanc"].update({
+        "helper_cost_mithril":1,
+        "join_phrase":"Join me",
+        "abilities":("Firaga","Blizzaga","Thundaga","Darkra","Bioga","Flare","Drain","Syphon","Bubble"),
+        "ability_elements":{"Firaga":"Fire","Blizzaga":"Ice","Thundaga":"Lightning","Darkra":"Dark","Bioga":"Poison"},
+        "bubble":"source ability; numeric effect not supplied in this excerpt",
+    })
+
 # Token exchange points. The generic shop UI can expose the pools; prices are
 # token metadata because these currencies are items, not silver/gold.
 
