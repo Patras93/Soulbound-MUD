@@ -927,7 +927,13 @@ def full_combat_scaling_audit_v03015():
             checked += 1
             actual = skill.get("scale")
             if class_name in flexible_classes:
-                if actual not in {"strength", "dexterity", "intelligence"}:
+                allowed = {"strength", "dexterity", "intelligence"}
+                if class_name == "Mec":
+                    # Authored Mec support/control abilities use Willpower by
+                    # canonical contract; other Mec branches retain their
+                    # Strength/Dexterity/Intelligence scaling.
+                    allowed.add("willpower")
+                if actual not in allowed:
                     errors.append(f"{class_name}/{skill.get('id')}: invalid branch scale={actual}")
             elif expected is not None and actual != expected:
                 errors.append(f"{class_name}/{skill.get('id')}: scale={actual} expected={expected}")
