@@ -233,20 +233,21 @@ class SessionCharacterProfileMixin:
                 return f"Tier jest maksymalny. Rozwijaj Soul do {SOUL_MAX_LEVEL}."
 
             next_tier = c.soul_tier + 1
+            next_title = soul_tier_title_for_class(next_tier, c.class_name)
             needed = SOUL_TIER_THRESHOLDS[next_tier - 1]
             if c.soul_level < needed:
-                return f"Następny cel: Soul {needed} dla Tieru {next_tier}."
+                return f"Następny cel: Soul {needed} dla Tieru {next_tier} — {next_title}."
 
             quest_id = SOUL_TRIAL_QUEST_IDS.get(next_tier)
             if quest_id:
                 if self.soul_tier_quest_completed(next_tier):
-                    return f"Próba Tieru {next_tier} ukończona. Wpisz unlock."
+                    return f"Próba Tieru {next_tier} — {next_title} ukończona. Wpisz unlock."
                 band = soul_trial_difficulty_band(next_tier)
                 return (
-                    f"Soul wymagany osiągnięty. Tier {next_tier} wymaga "
+                    f"Soul wymagany osiągnięty. Tier {next_tier} — {next_title} wymaga "
                     f"Próby Broni Duszy u Kapłana Elora. Pasmo: {band}."
                 )
-            return f"Tier {next_tier} jest gotowy. Wpisz unlock."
+            return f"Tier {next_tier} — {next_title} jest gotowy. Wpisz unlock."
 
     async def show_soul(self, mode=""):
             mode = self.normalize_description_query(mode)
@@ -333,7 +334,7 @@ class SessionCharacterProfileMixin:
                 "Progi Tierów 11-20: T11 Soul 100; T12 110; T13 120; T14 130; "
                 "T15 140; T16 150; T17 160; T18 170; T19 180; T20 200."
             )
-            await self.send("Każdy Tier od 2 do 40 wymaga własnej jednorazowej Próby Broni Duszy u Kapłana Elora.")
+            await self.send("Każdy Tier od 2 do 60 wymaga własnej jednorazowej Próby Broni Duszy u Kapłana Elora.")
             await self.send("Po ukończeniu Próby wpisz unlock, aby odblokować przygotowany Tier.")
 
             for tier in range(2, SOUL_MAX_TIER + 1):
