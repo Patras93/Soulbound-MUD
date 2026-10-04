@@ -2386,7 +2386,7 @@ def _v0319_install_full_mec_kit():
         ("Area Bomb",8,"aoe_damage",300,"magic","area_bomb","Magic Attack-based Fire explosion against all targeted enemies currently engaged in combat. Source Properties: none; no separate Burn status is specified."),
         ("Mec Sonata",20,"damage",1000,"magic","mec_sonata","One-enemy Magic Attack song with a chance to lower the target level-equivalent power temporarily. The level-lowering effect is Extendable."),
         ("Maelstrom",44,"aoe_damage",1500,"magic","maelstrom","Magic Attack-based Water vortex against all enemies with diminishing damage. Source Properties: none."),
-        ("Shock",95,"aoe_damage",1800,"magic","shock","Dark + Lightning attack on all enemies."),
+        ("Shock",95,"aoe_damage",1800,"magic","shock","Magic Attack-based Lightning + Dark surge against all enemies with diminishing damage. Source Properties: none."),
         ("Starlight Shower",110,"damage",2000,"magic","starlight_shower","Magic Attack laser barrage: one enemy when fighting one target; diminishing damage to all combat targets when fighting several; V-MAX hits all enemies without diminishing."),
         # Support
         ("Cure Beam",1,"heal",100,"support","cure_beam","Single-target healing beam available from the start. Willpower and Skill Level increase healing. Support Effect increases healing and removes Blind and Poison."),
@@ -2767,7 +2767,21 @@ def _v0319_install_full_mec_kit():
                 "element":"water",
                 "uoss_mp_cost":80,
             })
-        if special=="shock": row.update({"aoe_diminishing":True,"elements":["lightning","dark"],"uoss_mp_cost":150})
+        if special=="shock":
+            row.update({
+                "scale":"intelligence",
+                "source_stat_influence":["magic_attack"],
+                "magic_attack_influence":True,
+                "source_properties":[],
+                "source_requirement_level":95,
+                "source_requirement_maps_to":"class_mastery",
+                "target_mode":"all_enemies_diminishing",
+                "aoe_diminishing":True,
+                "diminishing_numeric_source_defined":False,
+                "soulbound_diminishing_model":"inverse_sqrt_target_count",
+                "elements":["lightning","dark"],
+                "uoss_mp_cost":150,
+            })
         if special=="tiger_rampage":
             row.update({
                 "scale":"attack",
@@ -3070,6 +3084,31 @@ def _mec_contract_audit_v11149():
             errors.append("feedback_protocol: runtime mapping must exclude Compress and Crush")
         if bool(feedback_protocol.get("protocol_numeric_source_defined")):
             errors.append("feedback_protocol: numeric curve must remain marked unsourced")
+
+    shock=rows.get("shock")
+    if shock:
+        if int(shock.get("unlock",0) or 0)!=95:
+            errors.append("shock: source Level 95 must map to Biegłość Mec 95")
+        if int(shock.get("base_power",0) or 0)!=1800:
+            errors.append("shock: Base AP 1800 must remain internal base_power 1800")
+        if int(shock.get("source_requirement_level",0) or 0)!=95:
+            errors.append("shock: source requirement must remain Level 95")
+        if str(shock.get("source_requirement_maps_to"))!="class_mastery":
+            errors.append("shock: source Level must map to class mastery")
+        if list(shock.get("source_stat_influence") or [])!=["magic_attack"]:
+            errors.append("shock: source influence must be Magic Attack only")
+        if list(shock.get("source_properties") or [])!=[]:
+            errors.append("shock: source Properties must be None")
+        if str(shock.get("target_mode"))!="all_enemies_diminishing":
+            errors.append("shock: target mode must be All Enemies (Diminishing)")
+        if not bool(shock.get("aoe_diminishing")):
+            errors.append("shock: diminishing flag missing")
+        if bool(shock.get("diminishing_numeric_source_defined")):
+            errors.append("shock: numeric diminishing curve must remain marked unsourced")
+        if str(shock.get("soulbound_diminishing_model"))!="inverse_sqrt_target_count":
+            errors.append("shock: Soulbound diminishing model mismatch")
+        if list(shock.get("elements") or [])!=["lightning","dark"]:
+            errors.append("shock: elements must be Lightning + Dark")
 
     maelstrom=rows.get("maelstrom")
     if maelstrom:
