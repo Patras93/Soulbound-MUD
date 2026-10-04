@@ -556,6 +556,9 @@ class SessionCombatSkillsMixin:
                             # v1.11.47: Pop Knight keeps full AoE damage and receives
                             # the source ability's anti-Flying bonus. The Mec has one
                             # Soul Weapon, so no separate melee weapon gate is required.
+                            # Ranged Mec abilities use Soulbound's canonical critical
+                            # roll. Crosshair/Shoot-All source confirms critical influence
+                            # but supplies no separate bonus chance, so do not roll twice.
                             damage,crit=self.roll_critical_hit(damage)
                             # V-MAX source says Shoot-All gains damage and critical
                             # effectiveness, but gives no numeric increase. Do not
