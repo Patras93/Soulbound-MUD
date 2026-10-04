@@ -2926,6 +2926,9 @@ def _v0319_install_full_mec_kit():
                 "uoss_mp_cost":15,
                 "source_properties":["cleanseable","extendable"],
                 "target_mode":"one_enemy",
+                "soulbound_target_scope":"enemy_only",
+                "soulbound_harmful_debuff":True,
+                "enemy_debuffs":["sleep"],
                 "control_effect":"sleep",
                 "level_effect":"increases_accuracy_and_duration",
                 "support_weapon_improves_accuracy":True,
@@ -2995,6 +2998,9 @@ def _v0319_install_full_mec_kit():
                 "uoss_mp_cost":20,
                 "uoss_support_mp_cost":40,
                 "target_mode":"one_or_support_all_enemies",
+                "soulbound_target_scope":"enemy_only",
+                "soulbound_harmful_debuff":True,
+                "enemy_debuffs":["stop"],
                 "support_weapon_expands_to_all_enemies":True,
                 "machine_accuracy_bonus":True,
                 "level_effect":"increases_accuracy_and_duration",
@@ -4278,7 +4284,7 @@ if CLASS_HEALING_SCALE_AUDIT_V11196["error_count"]:
 
 
 def _harmful_debuff_target_audit_v11196():
-    """All player-authored harmful debuffs must affect enemies, never self/allies."""
+    """All marked harmful player debuffs must affect enemies, never self/allies."""
     errors=[]
     checked=[]
     for class_name, skills in CLASS_SKILLS.items():
