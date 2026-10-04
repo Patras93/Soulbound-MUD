@@ -1,5 +1,20 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.11.97
+Aktualna paczka: v1.11.98
+
+==============================================================================
+Soulbound v1.11.98 — hotfix bramek deployu i pełnego runtime
+==============================================================================
+
+- Naprawiono niespójny audit protokołów Meca: Strength/Ranged/Feedback/Magic Protocol używają aktualnego Level Effect increases_mapped_skill_damage.
+- Fast predeploy przechodzi ponownie wszystkie 8 semantycznych auditów Meca/Inżyniera/targetów/heali/statusów/endgame damage.
+- Naprawiono finalizację klasowego EQ dla klas DEX przez brakującą etykietę Zręczności w runtime.
+- Stary audit klasowego EQ korzysta teraz z aktualnej pary statów konkretnej klasy zamiast wymuszać STR+CON na wszystkich klasach fizycznych; autorskie Tech Sety zachowują własne profile.
+- Stary Combat/Stat Audit akceptuje aktualne źródłowe skale Meca: Attack, Willpower, hp_difference i target_current_hp_percent.
+- Bransoleta i Akcesorium mają odrębne profile klasowego EQ; Akcesorium nie kopiuje już mechanicznie Bransolety ani Hełmu przy reprezentatywnym Tierze.
+- Long-Term Balance Audit jest zgodny z v1.11.96+: Character Level nie daje ukrytej mocy STR/DEX/INT/WILL, a ofensywa zależy od realnych statów i EQ.
+- Końcowa warstwa HELP jest ponownie nakładana po wszystkich historycznych writerach z admin/audits.py, więc stare teksty nie mogą nadpisać aktualnej pomocy 1-600.
+- Zweryfikowano pełny fast predeploy oraz pełny import runtime server.py na Pythonie 3.12 przed ponownym deployem.
+- Brak wipe'a save'ów.
 
 ==============================================================================
 Soulbound v1.11.97 — pełny audyt i synchronizacja HELP
