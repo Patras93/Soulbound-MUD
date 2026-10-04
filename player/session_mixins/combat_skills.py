@@ -640,6 +640,7 @@ class SessionCombatSkillsMixin:
                             _local_mult=mult
                             if special in ("starlight_shower","shock_soldier","laser_spin","maelstrom","cosmic_rave") and len(targets)>1 and not ((special=="starlight_shower" or special=="cosmic_rave") and vmax):
                                 # Source marks diminishing AoE but gives no numeric falloff.
+                                pass
                             damage=max(1,int(self.offensive_skill_core_power_v11185(skill, base)*_local_mult)+random.randint(-6,6))
                             # v1.11.47: Pop Knight keeps full AoE damage and receives
                             # the source ability's anti-Flying bonus. The Mec has one
