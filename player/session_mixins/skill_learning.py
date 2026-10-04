@@ -5,9 +5,12 @@
 import math
 import random
 import time
-from core.bootstrap_economy_professions import SOUL_MILESTONE_TIERS, SOUL_TRIAL_QUEST_IDS, soul_weapon_trait_for_tier
+from core.bootstrap_economy_professions import SOUL_MILESTONE_TIERS, SOUL_TRIAL_QUEST_IDS
 from core.classes_skills import CLASSES, CLASS_SKILLS, NATURAL_SKILL_INTENTS, ROOMS, effective_skill_mana_cost
-from core.progression_600 import SKILL_MAX_LEVEL, SOUL_MAX_TIER, SOUL_TIER_THRESHOLDS
+from core.progression_600 import (
+    SKILL_MAX_LEVEL, SOUL_MAX_TIER, SOUL_TIER_THRESHOLDS,
+    soul_tier_title_for_class, soul_weapon_trait_for_tier,
+)
 from core.progression_resources import skill_cooldown_multiplier, skill_xp_to_next, v0190_scaled_gain
 from network.protocol_gameplay_utils import find_by_name, normalize_lookup_text
 from systems.content_registry import MOB_TEMPLATES, NPCS, QUESTS
@@ -43,8 +46,9 @@ class SessionSkillLearningMixin:
 
             self.character.soul_tier = next_tier
             self.server.db.save_character(self.character)
+            tier_title = soul_tier_title_for_class(next_tier, self.character.class_name)
             await self.send(
-                f"Odblokowano Tier {next_tier} z {SOUL_MAX_TIER}. "
+                f"Odblokowano Soul Tier {next_tier} z {SOUL_MAX_TIER}: {tier_title}. "
                 f"Moc Broni Duszy: {self.character.soul_power()}."
             )
             # v0.36.8: odblokowanie Soul Tieru jest wydarzeniem lokalnym.
@@ -54,7 +58,7 @@ class SessionSkillLearningMixin:
             # broadcastu, aby NVDA nie czytał awansu dwa razy.
             await self.server.broadcast_room(
                 self.character.room_id,
-                f"{self.character.name} odblokował Tier Duszy {next_tier} z {SOUL_MAX_TIER}.",
+                f"{self.character.name} odblokował Soul Tier {next_tier}: {tier_title}.",
                 exclude=self,
                 history_category="system",
             )
