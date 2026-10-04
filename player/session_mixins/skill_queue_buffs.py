@@ -635,17 +635,16 @@ class SessionSkillQueueBuffsMixin:
                     await self.send("V-MAX wygasa. Support Effect utrzymany do końca: brak OVERHEAT.")
 
     def mec_support_effect_v11149(self):
-            """Single-Soul-Weapon adaptation of the UOSS Cyborg support weapon."""
+            """Soulbound adaptation of the UOSS Cyborg support weapon.
+
+            Soulbound has one persistent Soul Weapon instead of separate Mec weapon
+            categories. The Mec's Soul Weapon therefore *is* the support weapon for
+            source mechanics that require one. Do not infer support mode from WILL
+            dominance: V-MAX itself is Will-influenced, but weapon identity is separate.
+            """
             if not self.character or self.character.class_name != "Mec":
                 return False
-            # With one Soul Weapon, support style is determined by Will being the
-            # dominant combat stat. This preserves build choice without a second weapon.
-            will=max(0,float(self.effective_willpower()))
-            return will >= max(
-                max(0,float(self.effective_strength())),
-                max(0,float(self.effective_dexterity())),
-                max(0,float(self.effective_intelligence())),
-            )
+            return bool(str(getattr(self.character, "soul_weapon", "") or "").strip())
 
     def mec_branch_multiplier_v0319(self, branch):
             mult=1.0
