@@ -2281,7 +2281,7 @@ LATEST_CHANGES = [
 def eq_shortcuts_auto_audit_v03040():
     errors = []
     expected_aliases = {
-        "zhel":"equiphead", "zpan":"equipbody", "zrek":"equiphands",
+        "zhel":"equiphead", "zpan":"equipbody", "ztar":"equipshield", "zrek":"equiphands",
         "znog":"equiplegs", "zbut":"equipfeet", "ztal":"equipcharmauto",
         "zpier":"equipringauto", "znasz":"equipnecklace", "zkol":"equipearringauto",
         "znar":"equipshoulders", "zpas":"equipbelt", "zpel":"equipcloak",
@@ -2300,8 +2300,8 @@ def eq_shortcuts_auto_audit_v03040():
     ):
         if token not in src:
             errors.append(f"auto eq missing token: {token}")
-    if len(CLASS_EQUIPMENT_SLOT_DEFS) != 14:
-        errors.append(f"logical EQ slot count {len(CLASS_EQUIPMENT_SLOT_DEFS)}, expected 14")
+    if len(CLASS_EQUIPMENT_SLOT_DEFS) != 15:
+        errors.append(f"logical EQ slot count {len(CLASS_EQUIPMENT_SLOT_DEFS)}, expected 15")
     return {
         "version":"0.30.40",
         "shortcut_count":len(expected_aliases),
@@ -2318,7 +2318,7 @@ if EQ_SHORTCUTS_AUTO_AUDIT_V03040.get("error_count"):
     )
 
 HELP_TOPICS["skroty_eq"] = [
-    "Pełne skróty zakładania EQ: zhel hełm, zpan pancerz, zrek rękawice, znog nogawice, zbut buty.",
+    "Pełne skróty zakładania EQ: zhel hełm, zpan pancerz, ztar tarcza, zrek rękawice, znog nogawice, zbut buty.",
     "Biżuteria: ztal talizmany auto, zpier pierścienie auto, znasz naszyjnik, zkol kolczyki auto. Ręcznie nadal działają zt1/zt2, zp1/zp2 i zkol1/zkol2.",
     "Pozostałe: znar naramienniki, zpas pas, zpel peleryna, zkar karwasze, zrel relikt.",
     "Stare skróty zh, zz, zr, zn, zb, zt, zp, zna itd. nadal działają.",
@@ -2330,7 +2330,7 @@ HELP_TOPIC_ALIASES.update({
     "eq skróty":"skroty_eq", "auto eq":"skroty_eq", "autoeq":"skroty_eq",
 })
 HELP_TOPICS.setdefault("eq", []).extend([
-    "v0.30.40: pełne czytelne skróty: zhel, zpan, zrek, znog, zbut, ztal, zpier, znasz, zkol, znar, zpas, zpel, zkar, zrel. Stare skróty nadal działają.",
+    "v0.30.40: pełne czytelne skróty: zhel, zpan, ztar, zrek, znog, zbut, ztal, zpier, znasz, zkol, znar, zpas, zpel, zkar, zrel. Stare skróty nadal działają.",
     "v0.30.40: eq auto / załóż auto / autoeq / zauto jednym poleceniem wymienia posiadane, dostępne EQ na indywidualnie najmocniejsze części. Auto respektuje Level postaci, aktywną klasę i liczbę posiadanych kopii.",
     "Auto EQ nie klonuje podwójnej biżuterii; do dwóch identycznych pierścieni, talizmanów lub kolczyków potrzebujesz dwóch sztuk. Klejnoty z wymienianej biżuterii wracają do Szkatułki.",
 ])
