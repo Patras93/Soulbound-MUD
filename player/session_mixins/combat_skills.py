@@ -789,6 +789,17 @@ class SessionCombatSkillsMixin:
                                     "properties":["dispelable","extendable","silenceable"],
                                     "numeric_source_defined":False,
                                 })
+                            elif _status=="regen":
+                                _status_data.update({
+                                    "affects":"hp",
+                                    "source_effect":"periodic_small_hp_heal",
+                                    "source_stat_influence":["will"],
+                                    "level_effect":"increases_duration",
+                                    "properties":["dispelable","extendable","reflectable","silenceable"],
+                                    "tick_cadence_source_defined":False,
+                                    "heal_amount_source_defined":False,
+                                    "numeric_source_defined":False,
+                                })
                             self.active_skill_buffs["v0319_vmax_"+_status]=_status_data
                         self.active_skill_buffs[skill["id"]]={
                             "name":"V-MAX","boost":1.0,"until":self.v0319_vmax_until,
@@ -800,8 +811,8 @@ class SessionCombatSkillsMixin:
                         await self.send(
                             f"V-MAX aktywny przez {duration} s. Protect, Shell, Haste, Regen, "
                             "Preach, Praise i Permanence działają na Meca; Protect zmniejsza otrzymywane obrażenia fizyczne, "
-                            "Shell zmniejsza otrzymywane obrażenia magiczne, Preach podnosi Magic Attack, "
-                            "Praise podnosi Attack, Haste neguje Slow, "
+                            "Shell zmniejsza otrzymywane obrażenia magiczne, Regen okresowo odnawia HP, "
+                            "Preach podnosi Magic Attack, Praise podnosi Attack, Haste neguje Slow, "
                             "a Permanence chroni korzystne efekty przed wrogim dispellem. "
                             f"Czas wynika ze Skill Level {skill_level} i WILL {self.effective_willpower()}."
                         )
@@ -1038,21 +1049,34 @@ class SessionCombatSkillsMixin:
                         wanted=normalize_lookup_text(target_text)
                         found=next((s for s in recipients if s.character and wanted in normalize_lookup_text(s.character.name)),None)
                         if found: target=found
-                    # Source gives Will influence and duration growth, but no numeric
-                    # healing amount/base duration. Reuse canonical Soulbound healing
-                    # power as one regen pulse and keep the buff duration open-ended
-                    # rather than inventing seconds.
-                    amount=max(1,int(round(max(1,self.effective_willpower())*skill_power*self.character.racial_healing_multiplier()*self.character.class_healing_multiplier())))
-                    before=target.current_hp
-                    if superboss_healing_blocked_v11179(target):
-                        amount=0
-                    target.current_hp=min(target.max_hp(),target.current_hp+amount)
-                    target.active_skill_buffs["priest_regen"]={"name":"Regen","boost":1.0,"until":float("inf"),"source":self.character.name,"beneficial":True,"canonical_status":"regen","regen_power":amount,"source_duration_scales_with_level":True}
-                    actual=target.current_hp-before
+                    # Source defines periodic small healing over a short duration,
+                    # influenced by WILL with Skill Level increasing duration, but
+                    # does not provide exact HP/tick, cadence, or base seconds.
+                    # Do not fake an immediate heal or an infinite duration.
+                    target.active_skill_buffs["priest_regen"]={
+                        "name":"Regen","boost":1.0,"until":0.0,
+                        "source":self.character.name,"beneficial":True,
+                        "canonical_status":"regen",
+                        "source_effect":"periodic_small_hp_heal",
+                        "source_stat_influence":["will"],
+                        "source_duration_scales_with_level":True,
+                        "properties":["dispelable","extendable","reflectable","silenceable"],
+                        "tick_cadence_source_defined":False,
+                        "heal_amount_source_defined":False,
+                        "base_duration_source_defined":False,
+                        "runtime_quantitative_effect_pending":True,
+                    }
                     await self.grant_skill_use_xp(skill)
-                    await self.send(f"Regen: {target.character.name} odzyskuje {actual} HP i otrzymuje aktywny efekt Regen. Koszt: {mana_cost} MP.")
+                    await self.send(
+                        f"Regen: nakładasz efekt na {target.character.name}. "
+                        "Źródło potwierdza okresowe małe leczenie, lecz nie podaje dokładnej "
+                        "wartości, częstotliwości ani bazowego czasu; Soulbound nie fabrykuje tych liczb."
+                    )
                     if target is not self:
-                        await target.send(f"{self.character.name} nakłada na ciebie Regen. Odzyskujesz {actual} HP.")
+                        await target.send(
+                            f"{self.character.name} nakłada na ciebie Regen. "
+                            "Efekt okresowego leczenia czeka na źródłowe wartości liczbowe."
+                        )
                     if self.combat_mob_key: await self.ensure_realtime_combat()
                     return
 
