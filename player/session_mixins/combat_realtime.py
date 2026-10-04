@@ -352,6 +352,23 @@ class SessionCombatRealtimeMixin:
                                     or enemy_mob.room_id != self.character.room_id
                                 ):
                                     break
+                                _hypno_rounds=max(
+                                    0,int(getattr(enemy_mob,"v11196_hypno_sleep_rounds",0) or 0)
+                                )
+                                if _hypno_rounds>0:
+                                    _hypno_rounds=max(0,_hypno_rounds-1)
+                                    enemy_mob.v11196_hypno_sleep_rounds=_hypno_rounds
+                                    await self.server.party_combat_broadcast(
+                                        self,
+                                        f"{MOB_TEMPLATES[enemy_mob.template_id]['name']} śpi i pomija akcję."
+                                        + (
+                                            f" Pozostało {_hypno_rounds} akcji Sleep."
+                                            if _hypno_rounds>0 else
+                                            " Sleep się kończy."
+                                        ),
+                                        detail="normal",
+                                    )
+                                    continue
                                 _sonata_rounds=max(
                                     0,int(getattr(enemy_mob,"v11196_mec_sonata_rounds",0) or 0)
                                 )
