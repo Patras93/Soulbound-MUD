@@ -22,3 +22,11 @@ jobs:
 
       - name: Run fast predeploy
         run: python predeploy_check.py
+
+      - name: Import full runtime
+        run: |
+          python - <<'PY'
+          import server
+          print("RUNTIME_IMPORT_PASS")
+          server._BOOT_SOCKET.close()
+          PY
