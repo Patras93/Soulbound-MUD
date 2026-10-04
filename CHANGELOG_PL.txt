@@ -1,6 +1,23 @@
-- Combat: wszystkie bezpośrednio zadające obrażenia skille klasowe korzystają teraz ze wspólnego rdzenia builda: Soul Power + właściwa statystyka + płaskie Attack/Magic Attack/Weapon Power z EQ, a następnie wspólny mnożnik klasy/rasy/zestawów/EQ/buffów. Specjalne mnożniki Meca i Inżyniera pozostają dodatkową warstwą. Magiczne gałęzie Meca używają kanału magicznego zamiast fizycznego.
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.11.89
+Aktualna paczka: v1.11.92
+
+==============================================================================
+Soulbound v1.11.92 — wspólny combat core, źródłowa Mana i pełne helpery
+==============================================================================
+
+- Wszystkie bezpośrednio zadające obrażenia skille klasowe korzystają z jednego rdzenia builda: Soul Power + właściwa statystyka + płaskie Attack/Magic Attack/Weapon Power z EQ, a następnie wspólny mnożnik klasy, rasy, setów, EQ i właściwych buffów.
+- Fizyczne boosty wzmacniają tylko fizyczne skille, a magiczne tylko magiczne. Magiczna gałąź Meca korzysta z kanału magicznego i Magic Attack zamiast dziedziczyć fizyczny typ klasy Mec.
+- Specjalne mnożniki Meca (Protokoły/Mastery) i Inżyniera (narzędzia/Upgrade) pozostają dodatkowymi warstwami ponad wspólnym rdzeniem zamiast omijać rozwój postaci.
+- Magiczne i supportowe skille Meca zużywają źródłową Manę: Laser Spin 25, Area Bomb 35, Mec Sonata 50, Maelstrom 80, Shock 150, Starlight Shower 225 lub 300 w V-MAX, Cure Beam 10, Hypno Flash 15, Jammer 20/40, Heal Beam 36/72 i Logic Bomb 155. Devil King Shield nadal podwaja koszty MP przez swój potwierdzony mnożnik.
+- Maxwell Program nadal odnawia dokładnie 1% maksymalnej Many co 6 sekund zgodnie ze źródłem.
+- Pomocnicy Superbossów dołączają teraz także do dedykowanych, wcześnie kończących ścieżek Meca i Inżyniera oraz do AoE. Pomocnik uderza najwyżej raz na jedno użycie skilla, niezależnie od liczby hitów i celów.
+- Ziedrich zajmuje właściwy źródłowy slot Bracelet/bransoletka zamiast akcesorium.
+- Thief Hat korzysta z działającego runtime status-proof: źródłowe statusy zgodne z jego proof są blokowane przez założony przedmiot.
+- Oborozuki pozostaje pojedynczym aktywnym reliktem Broni Duszy: wymagany Level jest sprawdzany przed aktywacją, a statystyki i Weapon Power nie są stackowane przez wiele reliktów.
+- Usunięto martwy czasowy party-boost writer po przejściu zwykłych boostów na pasywne Automatic; lokalny helper party pozostaje dla Guard/Evade.
+- Zsynchronizowano audyty z legalnymi źródłowymi skillami ponad bazową siatkę 183, oddzielnymi UOSSMUD Superboss encounterami oraz aktualną polityką runtime override/compatibility.
+- Runtime, server metadata i FAST PREDEPLOY zsynchronizowano do v1.11.92.
+- Brak wipe'a save'ów.
 
 ==============================================================================
 Soulbound v1.11.89 — źródłowe EQ i pełne skalowanie walki
