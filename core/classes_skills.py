@@ -1531,10 +1531,14 @@ ENDGAME_CLASS_SKILLS = {
             "aliases": ["regen", "white magic regen", "whitemagic regen"],
             "natural_tags": ["heal", "leczenie", "regen", "odnowa"],
             "unlock": 1, "kind": "regen", "cooldown": 0, "mana": 8,
-            "desc": "Regeneracja Kapłana. Cel: siebie albo jeden sojusznik. Siła Woli wpływa na efekt, a poziom umiejętności zwiększa czas działania.",
+            "desc": "Regeneracja Kapłana. Cel: siebie albo jeden sojusznik. Leczy małą liczbę HP co kilka rund i znika po krótkim czasie. Siła Woli wpływa na efekt, a poziom umiejętności zwiększa czas działania.",
             "scale": "willpower", "source_extendable": True, "source_dispellable": True,
             "source_reflectable": True, "source_silenceable": True,
             "source_duration_scales_with_level": True,
+            "source_periodic_heal": True,
+            "source_tick_cadence_defined": False,
+            "source_heal_amount_defined": False,
+            "source_base_duration_defined": False,
         },
         {
             "id": "priest_light_beam",
@@ -2514,7 +2518,14 @@ def _v0319_install_full_mec_kit():
                                      "numeric_source_defined":False,
                                      "source_stat_influence":["will"],
                                      "level_effect":"increases_duration",
-                                     "properties":["dispelable","extendable","silenceable"]}
+                                     "properties":["dispelable","extendable","silenceable"]},
+                            "regen":{"effect":"periodic_small_hp_heal",
+                                     "numeric_source_defined":False,
+                                     "source_stat_influence":["will"],
+                                     "level_effect":"increases_duration",
+                                     "tick_cadence_source_defined":False,
+                                     "heal_amount_source_defined":False,
+                                     "properties":["dispelable","extendable","reflectable","silenceable"]}
                         }})
     CLASS_SKILLS["Mec"] = rows
 
@@ -2627,6 +2638,15 @@ def _mec_contract_audit_v11149():
             errors.append("vmax:shell must reduce incoming magic damage")
         if "will" not in list(_shell.get("source_stat_influence") or []):
             errors.append("vmax:shell missing WILL influence metadata")
+        _regen=((vmax.get("vmax_status_sources") or {}).get("regen") or {})
+        if str(_regen.get("effect"))!="periodic_small_hp_heal":
+            errors.append("vmax:regen must be periodic HP healing")
+        if "will" not in list(_regen.get("source_stat_influence") or []):
+            errors.append("vmax:regen missing WILL influence metadata")
+        if bool(_regen.get("tick_cadence_source_defined")):
+            errors.append("vmax:regen cadence must remain unsourced until exact data exists")
+        if bool(_regen.get("heal_amount_source_defined")):
+            errors.append("vmax:regen heal amount must remain unsourced until exact data exists")
     for protocol_id,specials in MEC_PROTOCOL_SKILLS_V11155.items():
         protocol_row=next((row for row in CLASS_SKILLS.get("Mec",[]) if row.get("id")==protocol_id),None)
         if not protocol_row:
