@@ -1352,8 +1352,6 @@ class SessionSkillLearningMixin:
                 periodic += max(1,int(getattr(mob,"v0319_poison_power",1) or 1))
             if now < float(getattr(mob,"v0319_hp_leak_until",0.0) or 0.0):
                 periodic += max(1,int(template.get("max_hp",1)*0.025))
-            if now < float(getattr(mob,"v0319_satellite_until",0.0) or 0.0):
-                periodic += max(1,int(getattr(mob,"v0319_satellite_power",1) or 1))
             if periodic:
                 mob.hp -= periodic
                 await self.send_combat(f"Efekty technologiczne zadają {periodic} obrażeń {template['name']}. HP {max(0,mob.hp)}.","normal")
