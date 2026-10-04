@@ -93,17 +93,20 @@ def long_term_balance_audit_v0502():
         if actions_to_600[key] < minimum:
             errors.append(f"{key} progression too short: {actions_to_600[key]} < {minimum}")
 
-    # At Character Level 600 the level component contributes +180 attribute power.
-    # With 36 equal-stage rewards/level and 120 rewards/stat point, the same journey
-    # yields about +180 base points in each stat. Neither axis runs away from the other.
+    # v1.11.96+: Character Level no longer grants hidden offensive attribute
+    # power. STR/DEX/INT/WILL are independent progression axes and must remain
+    # valuable on their own. The Character Level journey can still coexist with
+    # substantial stat growth, but parity is no longer measured against free
+    # level-derived power because that contribution must be exactly zero.
     level_power_contribution = generator_core_v027.character_attribute_power(600, 1) - 1
     expected_stat_points_during_character_path = actions_to_600["character"] / float(targets["stat"])
-    parity = expected_stat_points_during_character_path / max(1.0, float(level_power_contribution))
-    if not (0.90 <= parity <= 1.10):
+    parity = 0.0
+    if level_power_contribution != 0:
         errors.append(
-            f"character/stat power pace diverged: level contribution={level_power_contribution}, "
-            f"expected stat points={expected_stat_points_during_character_path:.2f}, ratio={parity:.3f}"
+            f"Character Level grants hidden attribute power again: {level_power_contribution}"
         )
+    if expected_stat_points_during_character_path <= 0:
+        errors.append("stat growth during Character Level progression disappeared")
 
     return {
         "version": "0.50.2",
