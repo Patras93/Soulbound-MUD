@@ -286,3 +286,42 @@ def weapon_pair_exchange_ready_v11141(db, account_id):
         try: return int(row or 0)
         except (TypeError,ValueError): return 0
     return qty("uoss_desert_rose")>0 and qty("uoss_earth_harp")>0
+
+def superboss_source_round_event_v11160(session, template, mob):
+    """Apply only exact numeric source mechanics; unspecified cadence/power stays descriptive."""
+    key=superboss_key_from_template_v11135(template)
+    if not key:
+        return None
+    mob.combat_turn=int(getattr(mob,"combat_turn",0) or 0)+1
+    turn=mob.combat_turn
+    if key=="serpentarius" and turn>100:
+        return {"instant_death":True,"text":"Serpentarius: minęło 100 rund. Próba kończy się śmiercią."}
+    if key=="odin":
+        started=int(getattr(mob,"uoss_shin_zantetsuken_started_v11160",0) or 0)
+        if started and turn-started>=10:
+            return {"instant_death":True,"text":"Odin: Shin-Zantetsuken — upłynęło 10 rund."}
+    return None
+
+
+def superboss_exact_ability_effect_v11160(session, template, mob, ability_name):
+    """Resolve source abilities only when their numeric effect is explicitly known."""
+    key=superboss_key_from_template_v11135(template)
+    name=str(ability_name or "")
+    if key=="serpentarius":
+        if name=="Banish Ray" or name=="Light Pillar":
+            return {"damage":9999}
+        if name=="Resisted Gravija":
+            return {"current_hp_fraction":0.10}
+        if name=="Gravija":
+            return {"current_hp_fraction":1.0/3.0}
+    if key=="odin":
+        if name=="Zantetsuken":
+            return {"current_hp_fraction":2.0/3.0}
+        if name=="Shin-Zantetsuken":
+            mob.uoss_shin_zantetsuken_started_v11160=int(getattr(mob,"combat_turn",0) or 0)
+            return {"countdown_rounds":10}
+    if key=="yiazmat" and name=="Death Strike":
+        gravityproof=bool(getattr(session,"gravityproof",False) or getattr(session.character,"gravityproof",False))
+        return {"current_hp_fraction":0.50 if gravityproof else 0.80}
+    return None
+
