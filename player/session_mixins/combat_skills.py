@@ -716,6 +716,71 @@ class SessionCombatSkillsMixin:
                         )
                         return
 
+                _heal_beam_targets = []
+                if (
+                    skill.get("mec_authored")
+                    and str(skill.get("mec_special",""))=="heal_beam"
+                ):
+                    # Heal Beam never heals combat enemies in Soulbound.
+                    # Normal mode = exactly one chosen ally (default self).
+                    # Support Effect = the whole living local party.
+                    _heal_party = list(
+                        self.server.party_sessions(
+                            self.account_id, same_room=self.character.room_id
+                        ) or []
+                    )
+                    if self not in _heal_party:
+                        _heal_party.append(self)
+                    _heal_party = [
+                        sess for sess in _heal_party
+                        if not sess.closed and sess.character and sess.current_hp>0
+                    ]
+                    if support_effect:
+                        _heal_beam_targets = _heal_party
+                        if not _heal_beam_targets:
+                            await self.send(
+                                "Heal Beam: brak żywych członków drużyny w tej lokacji."
+                            )
+                            return
+                        if all(
+                            superboss_healing_blocked_v11179(sess)
+                            for sess in _heal_beam_targets
+                        ):
+                            await self.send(
+                                "Nullify Healing blokuje Heal Beam na całej drużynie."
+                            )
+                            return
+                    else:
+                        _heal_target = self
+                        if target_text:
+                            _wanted = normalize_lookup_text(target_text)
+                            if _wanted not in {"self","me","ja","siebie"}:
+                                _heal_target = next(
+                                    (
+                                        sess for sess in _heal_party
+                                        if sess is not self
+                                        and (
+                                            _wanted
+                                            == normalize_lookup_text(sess.character.name)
+                                            or _wanted
+                                            in normalize_lookup_text(sess.character.name)
+                                        )
+                                    ),
+                                    None,
+                                )
+                            if _heal_target is None:
+                                await self.send(
+                                    "Heal Beam leczy tylko ciebie albo jednego żywego "
+                                    "sojusznika w tej lokacji. Przeciwnik nie może być celem."
+                                )
+                                return
+                        if superboss_healing_blocked_v11179(_heal_target):
+                            await self.send(
+                                "Nullify Healing blokuje Heal Beam na tym celu."
+                            )
+                            return
+                        _heal_beam_targets = [_heal_target]
+
                 self.current_mana -= mana_cost
                 if effective_cooldown > 0:
                     self.start_skill_cooldown_v0364(skill, effective_cooldown, now)
@@ -1127,26 +1192,61 @@ class SessionCombatSkillsMixin:
                         # With Soulbound's Support Effect it heals the whole local party
                         # and receives the enhanced-healing bonus from the source ability.
                         if special=="heal_beam":
-                            if support_effect:
-                                recipients=self.server.party_sessions(self.account_id,same_room=self.character.room_id) or [self]
-                            else:
-                                party=self.server.party_sessions(self.account_id,same_room=self.character.room_id) or [self]
-                                injured=[s for s in party if not s.closed and s.character and s.current_hp>0 and s.current_hp<s.max_hp()]
-                                recipients=[min(injured,key=lambda s:(s.current_hp/max(1,s.max_hp()),s.current_hp,s.character.name.lower()))] if injured else [self]
+                            recipients=list(_heal_beam_targets or [self])
                             total=0
+                            healed_targets=0
+                            blocked_targets=0
                             for sess in recipients:
-                                if sess.closed or not sess.character or sess.current_hp<=0: continue
-                                amount=self.healing_skill_amount_v11196(skill,sess,skill_power)
+                                if sess.closed or not sess.character or sess.current_hp<=0:
+                                    continue
+                                if superboss_healing_blocked_v11179(sess):
+                                    blocked_targets+=1
+                                    continue
+                                amount=self.healing_skill_amount_v11196(
+                                    skill,sess,skill_power
+                                )
                                 if support_effect:
-                                    amount=max(1,int(round(amount*float(skill.get("support_heal_multiplier",1.20) or 1.20))))
-                                before=sess.current_hp; sess.current_hp=min(sess.max_hp(),sess.current_hp+amount); actual=sess.current_hp-before; total+=actual
+                                    amount=max(
+                                        1,
+                                        int(round(
+                                            amount
+                                            * float(
+                                                skill.get(
+                                                    "support_heal_multiplier",1.20
+                                                ) or 1.20
+                                            )
+                                        )),
+                                    )
+                                before=sess.current_hp
+                                sess.current_hp=min(
+                                    sess.max_hp(),sess.current_hp+amount
+                                )
+                                actual=sess.current_hp-before
+                                total+=actual
+                                healed_targets+=1
                                 if sess is not self:
-                                    await sess.send(f"{self.character.name} używa Heal Beam. Odzyskujesz {actual} HP.")
+                                    await sess.send(
+                                        f"{self.character.name} używa Heal Beam. "
+                                        f"Odzyskujesz {actual} HP."
+                                    )
                             if support_effect:
-                                await self.send(f"Heal Beam — Support Effect: wzmocnione leczenie całej drużyny, {len(recipients)} celów, łącznie {total} HP.")
+                                await self.send(
+                                    "Heal Beam — Support Effect: wzmocnione leczenie "
+                                    f"całej drużyny, {healed_targets} celów, "
+                                    f"łącznie {total} HP."
+                                    + (
+                                        f" Nullify Healing zablokował {blocked_targets} cel(e)."
+                                        if blocked_targets else ""
+                                    )
+                                )
                             else:
-                                await self.send(f"Heal Beam: {recipients[0].character.name} odzyskuje {total} HP.")
-                            await self.grant_skill_use_xp(skill); return
+                                target=recipients[0]
+                                await self.send(
+                                    f"Heal Beam: {target.character.name} odzyskuje "
+                                    f"{total} HP."
+                                )
+                            await self.grant_skill_use_xp(skill)
+                            return
 
                     if special in ("cosmic_rave","shoot_all","starlight_shower","shock_soldier","pop_knight","range_fire","dispose","uzi_punch","laser_spin","area_bomb","maelstrom","shock"):
                         alive=[x for x in aoe_mobs if x.alive]
