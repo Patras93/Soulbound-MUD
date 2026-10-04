@@ -1,5 +1,19 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.11.78
+Aktualna paczka: v1.11.79
+
+==============================================================================
+Soulbound v1.11.79 — source-safe finish
+==============================================================================
+
+- Dodano NVDA-friendly komendy relikt/relic: lista, wybierz <numer lub nazwa>, auto.
+- Relikty Broni Duszy nadal nie stackują się; gracz może teraz jawnie wybrać aktywny.
+- Serpentarius: po rozpoczęciu próby flee jest zablokowane.
+- Serpentarius: Nullify Healing ma dokładnie 3 rundy i blokuje leczenie.
+- Serpentarius: Necrotic Energy ma dokładnie 8 rund; brak wymyślonej wartości redukcji.
+- Dokładne śmierci z umiejętności superbossa przechodzą przez kanoniczne die()/Phoenix Egg.
+- Usunięto pozostałe wymyślone progi i nazwy faz superbossów.
+- Brakujące obrażenia/cadence źródłowych skilli pozostają bez zmyślonych liczb.
+- Brak wipe'a save'ów.
 
 ==============================================================================
 Soulbound v1.11.78 — Moogle Board w progresji Soulbound
