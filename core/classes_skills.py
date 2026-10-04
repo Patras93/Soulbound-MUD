@@ -3887,6 +3887,8 @@ def _v11196_engineer_ap_semantics_audit():
         if row.get("engineer_tool")
     ]
     errors=[]
+    if len(rows)!=19:
+        errors.append(f"Engineer authored toolkit count={len(rows)} expected=19")
     for row in rows:
         sid=str(row.get("engineer_special","") or row.get("id",""))
         if str(row.get("source_ap_semantics",""))!="learning_points":
