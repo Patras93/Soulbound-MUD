@@ -21,6 +21,70 @@ except Exception as exc:
 
 from admin.fast_predeploy_audit_v0571 import FAST_PREDEPLOY_AUDIT_V0571 as audit
 
+# v1.11.96 semantic gameplay gates. These import only the static class/skill
+# catalog and are intentionally kept out of the full world/runtime loader.
+try:
+    from core.classes_skills import (
+        MEC_CONTRACT_AUDIT_V11149,
+        ENGINEER_AP_SEMANTICS_AUDIT_V11196,
+        ALL_CLASS_SKILL_TARGET_AUDIT_V11196,
+        CLASS_HEALING_SCALE_AUDIT_V11196,
+        HARMFUL_DEBUFF_TARGET_AUDIT_V11196,
+        PRIEST_HEALING_CONTRACT_AUDIT_V11196,
+        UOSS_STATUS_SOURCE_CONTRACT_AUDIT_V11196,
+        ALL_CLASS_ENDGAME_DAMAGE_AUDIT_V11196,
+    )
+except Exception as exc:
+    print(
+        "Soulbound v1.11.96 FAST PREDEPLOY FAILED: "
+        f"skill semantic import: {type(exc).__name__}: {exc}"
+    )
+    traceback.print_exc()
+    raise SystemExit(1)
+
+_semantic_audits = {
+    "mec_contract": MEC_CONTRACT_AUDIT_V11149,
+    "engineer_ap": ENGINEER_AP_SEMANTICS_AUDIT_V11196,
+    "all_class_targets": ALL_CLASS_SKILL_TARGET_AUDIT_V11196,
+    "healing_scales": CLASS_HEALING_SCALE_AUDIT_V11196,
+    "harmful_debuff_targets": HARMFUL_DEBUFF_TARGET_AUDIT_V11196,
+    "priest_healing": PRIEST_HEALING_CONTRACT_AUDIT_V11196,
+    "uoss_status_contracts": UOSS_STATUS_SOURCE_CONTRACT_AUDIT_V11196,
+    "endgame_damage": ALL_CLASS_ENDGAME_DAMAGE_AUDIT_V11196,
+}
+_semantic_errors = []
+for _name, _result in _semantic_audits.items():
+    if int(_result.get("error_count", 0) or 0):
+        for _error in _result.get("errors", ()):
+            _semantic_errors.append(f"{_name}: {_error}")
+
+# AP is a learning-point cost, never authored combat power. Keep a small
+# source-level regression guard around the two runtime files that previously
+# leaked UOSS Base AP into Mec/Engineer damage.
+from pathlib import Path as _Path
+_root = _Path(__file__).resolve().parent
+_forbidden_ap_runtime = {
+    "player/session_mixins/combat_skills.py": (
+        'skill.get("base_power"',
+    ),
+    "player/session_mixins/skill_learning.py": (
+        '_intercept.get("base_power"',
+    ),
+}
+for _rel, _needles in _forbidden_ap_runtime.items():
+    _source = (_root / _rel).read_text(encoding="utf-8")
+    for _needle in _needles:
+        if _needle in _source:
+            _semantic_errors.append(
+                f"AP semantics regression: {_rel} contains forbidden {_needle}"
+            )
+
+if _semantic_errors:
+    print("Soulbound v1.11.96 FAST PREDEPLOY FAILED: semantic contracts")
+    for _error in _semantic_errors:
+        print(f"ERROR: {_error}")
+    raise SystemExit(1)
+
 if audit["error_count"]:
     print("Soulbound v1.11.96 FAST PREDEPLOY FAILED")
     for error in audit["errors"]:
@@ -28,6 +92,10 @@ if audit["error_count"]:
     raise SystemExit(1)
 
 print("Soulbound v1.11.96 FAST PREDEPLOY PASS")
+print(
+    "Semantic contracts: "
+    f"{len(_semantic_audits)} audits PASS; AP runtime guards PASS"
+)
 print(f"Runtime manifest: {audit['runtime_module_count']} modules; {len(audit['missing_manifest_files'])} missing; {audit['syntax_error_count']} syntax errors")
 print(
     f"Whole repo Python: {audit['all_python_source_count']} files; "
