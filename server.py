@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #!/usr/bin/env python3
-"""Soulbound v1.11.96 — physical EQ Condition balance."""
+"""Soulbound v1.11.96 — global all-class equipment and resource balance."""
 from pathlib import Path
 import os
 import socket
