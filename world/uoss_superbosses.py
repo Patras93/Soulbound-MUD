@@ -156,7 +156,7 @@ UOSS_SUPERBOSS_ENCOUNTERS_V11134 = {
     "war_machines": {"name":"War Machines","mode":"solo_or_party","unlock_level":125},
     "black_rabite": {
         "name":"Black Rabite","mode":"party","area":"Rabite Field","unlock_level":100,
-        "recommended_level":125,"helpers":("Primm","Popoi"),"helper_choice_limit":1,"helper_max_players":3,"helper_cost_gold":1000000,
+        "recommended_level":125,"helpers":("Primm","Popoi"),"helper_choice_limit":1,"helper_max_players":3,"helper_cost_mithril":1,
         "helper_join_phrases":{"Popoi":"Join me, Popoi","Primm":"Join me, Primm"},
         "personal_token":"Moogle Steel","shared_unique_drop":True,"unique_drop_count":10,
         "cyborg_conditional_drop":True,"pickup_binds":True,"lockout_hours":24,
@@ -189,7 +189,7 @@ UOSS_SUPERBOSS_ENCOUNTERS_V11133 = UOSS_SUPERBOSS_ENCOUNTERS_V11134
 HELP_TOPICS["superbossy"] = [
     "Superbossy UOSSMUD są unikalnymi wyzwaniami świata, a nie rotacją bossów Mitycznej Krypty/Wierzy.",
     "Dostępne są wyzwania solo, solo/party i party. Minimalny próg nie oznacza zalecanego poziomu.",
-    "Black Rabite: każdy uczestnik dostaje własny losowy drop z 10 przedmiotów + Moogle Steel; przy maks. 3 graczach można za 1 000 000 złota zatrudnić Primm albo Popoi.",
+    "Black Rabite: każdy uczestnik dostaje własny losowy drop z 10 przedmiotów + Moogle Steel; przy maks. 3 graczach można za 1 mithril zatrudnić Primm albo Popoi.",
     "Serpentarius: wymaga osobistego odblokowania Deep Dungeon; każdy uczestnik dostaje Serpentarius Emblem; przy maks. 3 graczach pomaga Byblos.",
     "Odin: Level 100+, drużyna 3-5; 8 unikalnych dropów + Odin's Mantle dla każdego uczestnika; przy 4-5 graczach trudność rośnie.",
     "Yiazmat: 7 unikalnych dropów + Godslayer's Badge dla każdego uczestnika; przy maks. 3 graczach pomaga Montblanc.",
