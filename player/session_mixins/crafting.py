@@ -532,6 +532,10 @@ class SessionCraftingMixin:
                 output_id,
                 total_quantity,
             )
+            # v1.12.0: każde udane wykonanie receptury liczy jeden craft do
+            # aktywnego godzinnego zadania klasowego. Bonusowa ilość produktu
+            # nie daje dodatkowych punktów, żeby Tier narzędzia nie skracał celu.
+            await self.advance_class_guild_quest_v11132("craft", 1)
 
             tool_xp = (
                 roll_crafting_xp(recipe["tool_xp"])
