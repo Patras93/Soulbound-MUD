@@ -2380,7 +2380,7 @@ def _v0319_install_full_mec_kit():
         ("Compress",30,"damage",600,"feedback","compress","Gravity percentile damage at a cost of HP."),
         ("Crush",46,"damage",1000,"feedback","crush","Damage increases with HP already lost; costs HP."),
         ("Uzi Punch",95,"aoe_damage",1400,"feedback","uzi_punch","Random fist/shield attacks across enemies at a cost of HP."),
-        ("Kamikaze Crush",110,"damage",2000,"feedback","kamikaze_crush","Lethal dive bomb; more HP sacrificed means more damage. V-MAX raises the sacrifice limit."),
+        ("Kamikaze Crush",110,"damage",2000,"feedback","kamikaze_crush","One-enemy lethal divebomb influenced by HP before use, Vitality and Attack. Damage falls as current HP falls; an equipped shield improves damage. V-MAX increases both attack power and Feedback damage."),
         # Magic
         ("Laser Spin",1,"aoe_damage",200,"magic","laser_spin","Dark lasers hit all enemies."),
         ("Area Bomb",8,"aoe_damage",300,"magic","area_bomb","Fiery Magic Attack explosion that burns all enemies currently engaged in combat with the Mec."),
@@ -2444,7 +2444,26 @@ def _v0319_install_full_mec_kit():
         if special=="compress": row["feedback_cost_source_defined"]=False
         if special=="uzi_punch": row["feedback_cost_source_defined"]=False
         if special=="crush": row.update({"feedback_cost_source_defined":False,"damage_from_missing_hp":True,"level_caps_damage":True,"level_effect":"increases_maximum_possible_damage","single_soul_weapon":True})
-        if special=="kamikaze_crush": row.update({"damage_from_current_hp":True,"vitality_influence":True,"vmax_power_and_feedback":True,"single_soul_weapon":True})
+        if special=="kamikaze_crush":
+            row.update({
+                "scale":"attack",
+                "secondary_scale":"constitution",
+                "source_stat_influence":["hp","vitality","attack"],
+                "source_properties":[],
+                "target_mode":"one_enemy",
+                "damage_from_current_hp":True,
+                "vitality_influence":True,
+                "shield_improves_damage":True,
+                "vmax_power_and_feedback":True,
+                "numeric_source_defined":False,
+                "current_hp_power_ratio":0.20,
+                "shield_damage_multiplier":1.20,
+                "vmax_damage_multiplier":1.30,
+                "feedback_current_hp_pct":0.20,
+                "vmax_feedback_current_hp_pct":0.45,
+                "balance_model":"soulbound_hp20_shield120_vmax130_feedback20_45",
+                "single_soul_weapon":True,
+            })
         if special=="self_repair": row.update({"feedback_repair_rounds":3,"auto_regen_source_defined":True,"auto_regen_amount_source_defined":False})
         if special=="maxwell_program": row.update({"magic_attack_augmentation":True,"mp_regen_percent":1.0,"mp_regen_seconds":6.0})
         if special=="combat_mastery": row.update({"ordinary_soul_weapon_attack_only":True,"strength_based_only":True,"requires_soul_weapon":True,"stronger_than":"Attack UP","weaker_than":"Two Hands","single_soul_weapon":True})
@@ -2657,6 +2676,27 @@ def _mec_contract_audit_v11149():
             errors.append("shoot_all: missing V-MAX crit/damage increase")
         if bool(shoot_all.get("vmax_numeric_source_defined")):
             errors.append("shoot_all: V-MAX numeric bonus must remain marked unsourced")
+    kamikaze=rows.get("kamikaze_crush")
+    if kamikaze:
+        if list(kamikaze.get("source_stat_influence") or [])!=["hp","vitality","attack"]:
+            errors.append("kamikaze_crush: source influence must be HP + Vitality + Attack")
+        if str(kamikaze.get("scale"))!="attack":
+            errors.append("kamikaze_crush: primary scale must be Attack")
+        if str(kamikaze.get("secondary_scale"))!="constitution":
+            errors.append("kamikaze_crush: Vitality must map to Constitution")
+        if str(kamikaze.get("target_mode"))!="one_enemy":
+            errors.append("kamikaze_crush: target mode must be one enemy")
+        if not bool(kamikaze.get("damage_from_current_hp")):
+            errors.append("kamikaze_crush: current HP must influence damage")
+        if not bool(kamikaze.get("shield_improves_damage")):
+            errors.append("kamikaze_crush: equipped shield must improve damage")
+        if not bool(kamikaze.get("vmax_power_and_feedback")):
+            errors.append("kamikaze_crush: V-MAX must increase power and Feedback")
+        if bool(kamikaze.get("numeric_source_defined")):
+            errors.append("kamikaze_crush: numeric modifiers must remain marked unsourced")
+        if list(kamikaze.get("source_properties") or [])!=[]:
+            errors.append("kamikaze_crush: source Properties must remain None")
+
     starlight=rows.get("starlight_shower")
     if starlight:
         if list(starlight.get("source_stat_influence") or [])!=["magic_attack"]:
