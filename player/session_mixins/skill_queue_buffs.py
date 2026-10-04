@@ -537,15 +537,14 @@ class SessionSkillQueueBuffsMixin:
             return time.time() < float(buff.get("until",0.0) or 0.0)
 
     def player_action_interval_v11154(self):
-            """Haste increases action frequency; source gives no numeric multiplier.
-            Reuse the engine's existing fast-action interval when available rather
-            than inventing a new percentage.
+            """Return the normal realtime action cadence.
+
+            UOSS combat logs supplied for Mec show V-MAX Haste as a larger
+            ordinary-attack hit string (5 -> 10 at AGI 547). Soulbound models
+            that in the DEX/AGI multi-hit calculation, so Haste must not also
+            shorten the realtime interval and double-dip total throughput.
             """
-            base=float(getattr(self,"combat_player_interval",1.0) or 1.0)
-            if not self.beneficial_status_active_v11154("haste"):
-                return base
-            fast=float(getattr(self,"combat_fast_player_interval",base) or base)
-            return min(base,fast)
+            return float(getattr(self,"combat_player_interval",1.0) or 1.0)
 
     def party_vmax_support_active_v03511(self):
             """Compatibility query: V-MAX is self-only; old party V-MAX state is ignored."""
