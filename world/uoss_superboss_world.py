@@ -211,7 +211,17 @@ def install_uoss_superboss_spawns_v11136(mob_spawns):
         pair=(room_id, f"uoss_superboss_{key}_v11136")
         if pair not in mob_spawns:
             mob_spawns.append(pair)
-    return 21
+    # Source-backed encounter adds that are present from the start.
+    for boss_key, add_keys in {
+        "culex":("culex_wind_crystal","culex_water_crystal","culex_fire_crystal","culex_earth_crystal"),
+        "ruby_weapon":("ruby_right_tentacle","ruby_left_tentacle"),
+    }.items():
+        room_id=_SOURCE_ROOMS_V11160[boss_key][0]
+        for add_key in add_keys:
+            pair=(room_id,f"uoss_add_{add_key}_v11156")
+            if pair not in mob_spawns:
+                mob_spawns.append(pair)
+    return 27
 
 UOSS_SUPERBOSS_WORLD_STATE_V11136={
  "version":"1.11.36","hub":HUB,"arenas":21,"bosses":21,"helpers":tuple(_HELPERS),
