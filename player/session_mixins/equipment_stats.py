@@ -200,6 +200,10 @@ class SessionEquipmentStatsMixin:
                         ward=max(ward,float(value or 0.0))
             return max(0.0,min(1.0,ward))
 
+    def apply_equipment_element_ward_v11181(self, damage, element):
+            ward=self.equipment_element_ward_v11176(element)
+            return max(0,int(round(float(damage or 0)*(1.0-ward))))
+
     def equipment_auto_veil_v11176(self):
             return any("Auto-Veil" in tuple(ITEMS.get(row["item_id"],{}).get("source_effects",())) for row in self.equipped_item_rows())
 
