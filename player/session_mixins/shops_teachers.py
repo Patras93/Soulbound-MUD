@@ -309,8 +309,17 @@ class SessionShopsTeachersMixin:
                 )
                 return
 
-            unit_price = self.shop_item_base_value_silver(item)
+            token_id = item.get("fur_shop_token")
+            token_cost = max(0, int(item.get("fur_shop_token_cost", 0) or 0)) * quantity
+            source_gold = item.get("fur_shop_gold_cost")
+            unit_price = int(source_gold) * 100 if source_gold is not None else self.shop_item_base_value_silver(item)
             total_price = unit_price * quantity
+            if token_id and token_cost:
+                owned_tokens = self.server.db.item_qty(self.account_id, token_id)
+                if owned_tokens < token_cost:
+                    token_name = ITEMS.get(token_id, {}).get("name", token_id)
+                    await self.send(f"Masz za mało tokenów. Potrzeba {token_cost} x {token_name}; masz {owned_tokens}.")
+                    return
             current = self.character_wallet_silver_value()
             if current < total_price:
                 await self.send(
@@ -323,7 +332,10 @@ class SessionShopsTeachersMixin:
             self.character.silver = current - total_price
             self.character.gold = 0
             self.character.mithril = 0
-            cashback = self.shop_cashback_silver(item) * quantity
+            if token_id and token_cost:
+                self.server.db.remove_item(self.account_id, token_id, token_cost)
+            # Source boss-shop prices are exact and do not receive ordinary shop cashback.
+            cashback = 0 if source_gold is not None else self.shop_cashback_silver(item) * quantity
             if cashback > 0:
                 self.character.silver += cashback
             if item_id in (FISH_STORAGE_IDS | MINING_STORAGE_IDS | WOOD_STORAGE_IDS | HERB_STORAGE_IDS):
@@ -334,7 +346,10 @@ class SessionShopsTeachersMixin:
                 self.server.db.ensure_tool(self.account_id, item["tool_type"])
             self.server.db.save_character(self.character)
             if quantity == 1:
-                await self.send(f"Kupujesz {item['name']} za " + currency_reading_text(total_price, 0, 0) + ".")
+                _token_text = ""
+                if token_id and token_cost:
+                    _token_text = f" + {token_cost} x {ITEMS.get(token_id, {}).get('name', token_id)}"
+                await self.send(f"Kupujesz {item['name']} za " + currency_reading_text(total_price, 0, 0) + _token_text + ".")
             else:
                 await self.send(
                     f"Kupujesz {quantity} szt. {item['name']} za "
