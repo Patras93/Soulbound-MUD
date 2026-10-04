@@ -1323,9 +1323,10 @@ CLASS_SHOP_ITEMS_BY_ROOM = {
 CLASS_EQUIPMENT_ITEM_IDS = set()
 
 
-# v0.30.14: każde klasowe EQ ma DWIE podstawowe statystyki archetypu.
-# Fizyczne: Siła + Kondycja. Magiczne: Inteligencja (Mądrość w sensie
-# archetypu magicznego) + Siła Woli. Zachowujemy łączny budżet starego
+# v0.30.14 / v1.11.96: każde klasowe EQ ma DWIE podstawowe statystyki archetypu.
+# Fizyczne: właściwa ofensywna Siła albo Zręczność + Kondycja.
+# Magiczne: Inteligencja (UOSS Wisdom) + Siła Woli (UOSS Will).
+# Zachowujemy łączny budżet starego
 # pojedynczego affixu; Tier 1 dostaje minimalnie 1+1, aby obie statystyki
 # były faktycznie obecne. Pierwsza statystyka pozostaje affixem możliwym
 # do przekucia, druga jest stałym bonusem bazowym przedmiotu.
@@ -1344,17 +1345,17 @@ CLASS_EQUIPMENT_CLASS_PROFILES = {
     },
     "Łotrzyk": {
         "primary_ratio": 0.64,
-        "identity": "ofensywa z naciskiem na unik",
+        "identity": "Zręczność, unik i fizyczna ofensywa",
         "properties": {"dodge_pct": 0.60, "physical_damage_pct": 0.40},
     },
     "Łowca": {
         "primary_ratio": 0.68,
-        "identity": "wysoka Siła i mobilna ofensywa",
+        "identity": "wysoka Zręczność i mobilna ofensywa",
         "properties": {"physical_damage_pct": 0.65, "dodge_pct": 0.35},
     },
     "Mnich": {
         "primary_ratio": 0.44,
-        "identity": "większa Kondycja i defensywna równowaga",
+        "identity": "Zręczność, Kondycja i defensywna równowaga",
         "properties": {"magic_defense_pct": 0.55, "dodge_pct": 0.45},
     },
     "Strażnik": {
@@ -1394,12 +1395,12 @@ CLASS_EQUIPMENT_CLASS_PROFILES = {
     },
     "Mec": {
         "primary_ratio": 0.42,
-        "identity": "ciężki pancerz i stabilna ofensywa rdzenia",
+        "identity": "Kondycja, Zręczność i stabilna ofensywa rdzenia",
         "properties": {"physical_defense_pct": 0.60, "max_hp_pct": 0.40},
     },
     "Inżynier": {
         "primary_ratio": 0.68,
-        "identity": "zręczność, narzędzia i mobilna ofensywa",
+        "identity": "Zręczność, Kondycja, narzędzia i mobilna ofensywa",
         "properties": {"physical_damage_pct": 0.60, "dodge_pct": 0.40},
     },
 }
