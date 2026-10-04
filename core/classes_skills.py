@@ -2390,6 +2390,8 @@ def _v0319_install_full_mec_kit():
             "base_power":power, "mec_authored":True, "mec_branch":branch,
             "mec_special":special, "desc":desc,
         })
+        if branch in ("inherent","counter"):
+            row["mec_role"]=branch
         if kind in ("damage","aoe_damage"):
             row["scale"] = "intelligence" if branch=="magic" else ("dexterity" if branch=="ranged" else "strength")
             row["mult"] = 1.0
