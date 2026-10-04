@@ -2623,6 +2623,23 @@ MOB_SPAWNS.extend(WORLD_SURFACE_EXTRA_SPAWNS)
 
 # v1.11.36 — unique UOSSMUD Super Boss arenas are authored by the world layer,
 # while their canonical spawns are installed here after MOB_SPAWNS exists.
+# Player-facing help. Category/group page labels are explicitly documented as
+# not being boss names so the mistake cannot silently return later.
+HELP_TOPICS["superbossy"] = [
+    "Superbossy UOSSMUD są unikalnymi wyzwaniami świata, a nie rotacją bossów Mitycznej Krypty/Wierzy.",
+    "Dostępne są wyzwania solo, solo/party i party. Minimalny próg nie oznacza zalecanego poziomu.",
+    "Black Rabite: każdy uczestnik dostaje własny losowy drop z 10 przedmiotów + Moogle Steel; przy maks. 3 graczach można za 1 mithril zatrudnić Primm albo Popoi.",
+    "Serpentarius: wymaga osobistego odblokowania Deep Dungeon; każdy uczestnik dostaje Serpentarius Emblem; przy maks. 3 graczach pomaga Byblos.",
+    "Odin: Level 100+, drużyna 3-5; 8 unikalnych dropów + Odin's Mantle dla każdego uczestnika; przy 4-5 graczach trudność rośnie.",
+    "Yiazmat: 7 unikalnych dropów + Godslayer's Badge dla każdego uczestnika; przy maks. 3 graczach pomaga Montblanc.",
+    "24-godzinny lockout dotyczy Black Rabite, Odina i Yiazmata — adaptacja źródłowej zasady once per reboot. Restart ani deploy Railway nie resetuje czasu.",
+]
+HELP_TOPIC_ALIASES.update({
+    "superboss": "superbossy", "superbosses": "superbossy", "uossbosses": "superbossy",
+    "uoss boss": "superbossy", "uoss bosses": "superbossy",
+})
+
+
 from world.uoss_superboss_world import install_uoss_superboss_spawns_v11136
 install_uoss_superboss_spawns_v11136(MOB_SPAWNS)
 
