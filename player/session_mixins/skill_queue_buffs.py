@@ -529,19 +529,6 @@ class SessionSkillQueueBuffsMixin:
                 valid.append(self)
             return sorted(valid, key=lambda session: session.character.name.casefold())
 
-    def apply_party_boost_v03511(self, skill_id, name, boost, until, source=None):
-            """Apply one combat boost to every living local party member."""
-            recipients = self.local_party_buff_recipients_v03511()
-            data = {
-                "name": str(name),
-                "boost": max(1.0, float(boost or 1.0)),
-                "until": float(until),
-                "source": str(source or self.character.name),
-            }
-            for session in recipients:
-                session.active_skill_buffs[str(skill_id)] = dict(data)
-            return recipients
-
     def beneficial_status_active_v11154(self, status):
             key="v0319_vmax_"+str(status or "").strip().casefold()
             buff=getattr(self,"active_skill_buffs",{}).get(key)
