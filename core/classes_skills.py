@@ -3965,7 +3965,7 @@ def _mec_contract_audit_v11149():
             continue
         if not bool(protocol_row.get("automatic")):
             errors.append(f"{protocol_id}:not automatic")
-        if str(protocol_row.get("level_effect"))!="increases_mapped_branch_damage":
+        if str(protocol_row.get("level_effect"))!="increases_mapped_skill_damage":
             errors.append(f"{protocol_id}:bad level effect")
         if float(protocol_row.get("protocol_multiplier_level1",0.0) or 0.0)!=1.05:
             errors.append(f"{protocol_id}:bad level1 multiplier")

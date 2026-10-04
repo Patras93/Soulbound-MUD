@@ -1989,7 +1989,14 @@ def equipment_completeness_audit_v03037():
             ))
         class_profiles_checked += len(signatures)
         if len(set(signatures)) != len(signatures):
-            errors.append(f"{class_name}: duplicated slot profiles at Level 200")
+            slots_sorted = sorted(expected_slots)
+            grouped = {}
+            for slot, signature in zip(slots_sorted, signatures):
+                grouped.setdefault(signature, []).append(slot)
+            duplicates = [group for group in grouped.values() if len(group) > 1]
+            errors.append(
+                f"{class_name}: duplicated slot profiles at Level 200: {duplicates}"
+            )
 
     return {
         "version": "0.30.37",
@@ -4591,3 +4598,22 @@ LATEST_CHANGES = [
     "Niespokojni Zmarli są teraz w: Starym Cmentarzu, Alei Ossuariów, Ogrodzie Księżycowego Mchu, Zawalonej Kaplicy, Polu Kości i Wieży Martwego Dzwonu.",
     "Dodano audit v0.36.5 pilnujący celu 4/4 i co najmniej sześciu różnych miejsc spawnu.",
 ]
+
+
+# ============================================================
+# FINAL PUBLIC HELP TRUTH PASS v1.11.97
+# admin/audits.py contains historical HELP writers. Re-apply the current
+# audited HELP surface only after every legacy writer in this module ran.
+# ============================================================
+refresh_help_truth_v11197()
+refresh_public_help_surface_v11197()
+
+HELP_TRUTH_AUDIT_V11197 = help_truth_audit_v11197()
+HELP_SURFACE_AUDIT_V11197 = help_surface_audit_v11197()
+_FINAL_HELP_ERRORS_V11197 = list(HELP_TRUTH_AUDIT_V11197.get("errors", ()))
+_FINAL_HELP_ERRORS_V11197.extend(HELP_SURFACE_AUDIT_V11197.get("errors", ()))
+if _FINAL_HELP_ERRORS_V11197:
+    raise RuntimeError(
+        "Final HELP Truth Audit v1.11.97 failed: "
+        + "; ".join(str(error) for error in _FINAL_HELP_ERRORS_V11197[:100])
+    )

@@ -738,7 +738,6 @@ def full_game_audit_v03014():
 
     # Klasowe EQ: dwie bazowe statystyki dla każdego klasowego pancerza.
     class_armor = 0
-    physical = {c for c, kind in class_types.items() if kind == "physical"}
     for item_id, item in ITEMS.items():
         class_name = item.get("required_class")
         if not class_name or item.get("type") != "armor":
@@ -751,9 +750,14 @@ def full_game_audit_v03014():
             stat for stat, amount in (item.get("stats") or {}).items()
             if int(amount or 0) > 0
         )
-        expected = {"strength", "constitution"} if class_name in physical else {"intelligence", "willpower"}
+        # Ręcznie projektowane zestawy technologiczne mają własne profile
+        # (np. Tech Mec: STR+CON+WILL) i nie podlegają generatorowej parze
+        # bazowych statów zwykłego klasowego EQ.
+        if str(item.get("regional_set", "")).startswith("tech_"):
+            continue
+        expected = set(class_equipment_base_stat_pair(class_name))
         require(expected.issubset(present),
-                f"class armor stats {item_id}: {sorted(present)}")
+                f"class armor stats {item_id}: expected {sorted(expected)}, got {sorted(present)}")
 
     # NPC i ich prywatne pokoje/questy.
     room_npcs = {}
@@ -929,10 +933,16 @@ def full_combat_scaling_audit_v03015():
             if class_name in flexible_classes:
                 allowed = {"strength", "dexterity", "intelligence"}
                 if class_name == "Mec":
-                    # Authored Mec support/control abilities use Willpower by
-                    # canonical contract; other Mec branches retain their
-                    # Strength/Dexterity/Intelligence scaling.
-                    allowed.add("willpower")
+                    # Authored Mec abilities use several source-backed scales:
+                    # Willpower for support/control, Attack for many weapon
+                    # techniques, HP difference for Crush and current target HP
+                    # percentage for Compress.
+                    allowed.update({
+                        "willpower",
+                        "attack",
+                        "hp_difference",
+                        "target_current_hp_percent",
+                    })
                 if actual not in allowed:
                     errors.append(f"{class_name}/{skill.get('id')}: invalid branch scale={actual}")
             elif expected is not None and actual != expected:
