@@ -137,12 +137,12 @@ UOSS_SUPERBOSS_ENCOUNTERS_V11134 = {
     "harle": {"name":"Harle","mode":"solo_or_party","unlock_level":85},
     "culex": {"name":"Culex","mode":"party","unlock_level":100},
     "ruby_weapon": {
-        "name":"Ruby WEAPON","mode":"party","unlock_level":100,"recommended_level":100,
+        "name":"Ruby WEAPON","mode":"party","area":"Corel Prison","unlock_level":100,"recommended_level":100,
         "personal_token":"Desert Rose","weapon_pair":"emerald_weapon",
         "pair_shop":"Traveler w Kalm","once_per_cycle":True,
     },
     "emerald_weapon": {
-        "name":"Emerald WEAPON","mode":"party","unlock_level":100,"recommended_level":100,
+        "name":"Emerald WEAPON","mode":"party","area":"On the Sea Floor","access_via":"Submarine on Junon Overland outside Lower Junon","unlock_level":100,"recommended_level":100,
         "personal_token":"Earth Harp","weapon_pair":"ruby_weapon",
         "pair_shop":"Traveler w Kalm","once_per_cycle":True,
     },
@@ -155,13 +155,13 @@ UOSS_SUPERBOSS_ENCOUNTERS_V11134 = {
     "gilgamesh": {"name":"Gilgamesh","mode":"solo","unlock_level":120},
     "war_machines": {"name":"War Machines","mode":"solo_or_party","unlock_level":125},
     "black_rabite": {
-        "name":"Black Rabite","mode":"party","area":"Rabite Fields","unlock_level":100,
+        "name":"Black Rabite","mode":"party","area":"Rabite Field","unlock_level":100,
         "recommended_level":125,"helpers":("Primm","Popoi"),"helper_choice_limit":1,"helper_max_players":3,
         "personal_token":"Moogle Steel","shared_unique_drop":True,"unique_drop_count":10,
         "cyborg_conditional_drop":True,"pickup_binds":True,"once_per_cycle":True,
     },
     "serpentarius": {
-        "name":"Serpentarius","mode":"party","area":"Deep Dungeon","unlock":"explore_deep_dungeon",
+        "name":"Serpentarius","mode":"party","area":"Deep Dungeon","unlock":"explore_deep_dungeon","round_limit":100,"no_exit_after_start":True,"helper_cost_gold":1000000,
         "arena":"Deep Dungeon — piętro 0","recommended_level":125,"helper":"Byblos","helper_max_players":3,
         "personal_token":"Serpentarius Emblem","party_members_must_unlock":True,"once_per_cycle":True,
     },
@@ -172,8 +172,8 @@ UOSS_SUPERBOSS_ENCOUNTERS_V11134 = {
         "pickup_binds":True,"shop":"Fur Trader w Elsendor — Odin tier","once_per_cycle":True,
     },
     "yiazmat": {
-        "name":"Yiazmat","mode":"party","area":"Latarnia koło Tasnica","unlock_level":100,
-        "recommended_level":125,"helper":"Montblanc","helper_max_players":3,
+        "name":"Yiazmat","mode":"party","area":"Ridorana Cataract Colosseum","access_via":"Lighthouse near Tasnica","unlock_level":100,
+        "recommended_level":125,"helper":"Montblanc","helper_max_players":3,"helper_cost_gold":1000000,
         "personal_token":"Godslayer's Badge","shared_unique_drop":True,"unique_drop_count":7,
         "pickup_binds":True,"shop":"Fur shop w Elsendor — Yiazmat tier","once_per_cycle":True,
     },
