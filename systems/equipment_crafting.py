@@ -379,6 +379,32 @@ GUILD_CLASS_QUESTS = {
     for class_name, quests in GUILD_CLASS_QUEST_POOLS.items()
 }
 
+_GUILD_CLASS_REQUIRED_ACTIVITIES_V1120 = {"kill", "boss", "explore", "gather", "craft"}
+_GUILD_CLASS_QUEST_AUDIT_ERRORS_V1120 = []
+for _class_name, _quests in GUILD_CLASS_QUEST_POOLS.items():
+    if len(_quests) != 5:
+        _GUILD_CLASS_QUEST_AUDIT_ERRORS_V1120.append(
+            f"{_class_name}: expected 5 quests, got {len(_quests)}"
+        )
+    _activities = {str(_row[5]) for _row in _quests if len(_row) >= 6}
+    if _activities != _GUILD_CLASS_REQUIRED_ACTIVITIES_V1120:
+        _GUILD_CLASS_QUEST_AUDIT_ERRORS_V1120.append(
+            f"{_class_name}: activities {sorted(_activities)}"
+        )
+    if len({str(_row[0]) for _row in _quests}) != len(_quests):
+        _GUILD_CLASS_QUEST_AUDIT_ERRORS_V1120.append(
+            f"{_class_name}: duplicate quest names"
+        )
+if len(GUILD_CLASS_QUEST_POOLS) != 14:
+    _GUILD_CLASS_QUEST_AUDIT_ERRORS_V1120.append(
+        f"class count: expected 14, got {len(GUILD_CLASS_QUEST_POOLS)}"
+    )
+if _GUILD_CLASS_QUEST_AUDIT_ERRORS_V1120:
+    raise RuntimeError(
+        "Class Guild Quest Audit v1.12.0 failed: "
+        + "; ".join(_GUILD_CLASS_QUEST_AUDIT_ERRORS_V1120)
+    )
+
 GUILD_BOUNTY_TARGETS = (
     # v0.8.61: nagrody są wartościami jednego wspólnego salda w srebrze.
     # 100 srebra = 1 złoto; 1 000 000 złota = 1 mithril.
