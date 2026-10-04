@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 """Soulbound v0.30.51 Session mixin: perception_maps."""
 
+from core.progression_600 import soul_tier_title_for_class
+
 class SessionPerceptionMapsMixin:
     def visible_player_for_look(self, query):
             wanted = self.normalize_description_query(query)
@@ -148,7 +150,7 @@ class SessionPerceptionMapsMixin:
                 f"Rasa: {character.race}. "
                 f"Klasa: {', '.join(classes)}. "
                 f"Soul Level {character.soul_level}. "
-                f"Soul Tier {character.soul_tier}."
+                f"Soul Tier {character.soul_tier} — {soul_tier_title_for_class(character.soul_tier, character.class_name)}."
             )
             await self.send(
                 f"Broń Duszy: {character.soul_weapon}."
