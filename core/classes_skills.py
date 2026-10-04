@@ -2871,10 +2871,25 @@ def _v0319_install_full_mec_kit():
                         "target_mode":"single_or_support_party","support_heal_multiplier":1.20,
                         "healing_balance_model":"uncapped_will_skill_eq"})
         if special=="cure_beam":
-            row.update({"scale":"willpower","uoss_mp_cost":10,"target_mode":"self_or_one_ally",
-                        "heal_pct":0.30,"support_heal_multiplier":1.20,
-                        "support_cleanses":["blind","poison"],
-                        "healing_balance_model":"uncapped_will_skill_eq"})
+            row.update({
+                "scale":"willpower",
+                "source_stat_influence":["will"],
+                "source_properties":[],
+                "source_requirements":[],
+                "source_requires_none":True,
+                "uoss_mp_cost":10,
+                "source_target_mode":["self","one_ally","one_enemy"],
+                "target_mode":"self_or_one_ally",
+                "soulbound_enemy_heal_disabled":True,
+                "level_effect":"increases_healing_power",
+                "heal_pct":0.30,
+                "healing_numeric_source_defined":False,
+                "support_heal_multiplier":1.20,
+                "support_heal_numeric_source_defined":False,
+                "support_cleanses":["blind","poison"],
+                "support_effect_requires_support_weapon":True,
+                "healing_balance_model":"uncapped_will_skill_eq",
+            })
         if special=="jammer":
             row.update({
                 "scale":"willpower",
@@ -3049,20 +3064,13 @@ _MEC_EXPECTED_V11149 = {
     "crush":(46,"feedback"),"uzi_punch":(95,"feedback"),"kamikaze_crush":(110,"feedback"),
     "laser_spin":(1,"magic"),"area_bomb":(8,"magic"),"mec_sonata":(20,"magic"),
     "maelstrom":(44,"magic"),"shock":(95,"magic"),"starlight_shower":(110,"magic"),
-    "cure_beam":(10,"support"),"hypno_flash":(16,"support"),"jammer":(32,"support"),
+    "cure_beam":(1,"support"),"hypno_flash":(16,"support"),"jammer":(32,"support"),
     "heal_beam":(54,"support"),"logic_bomb":(92,"support"),"vmax":(130,"support"),
     "intercept_system":(75,"counter"),"self_repair":(1,"inherent"),"combat_mastery":(30,"inherent"),
     "maxwell_program":(30,"inherent"),"shooting_mastery":(30,"inherent"),
     "strength_protocol":(1,"passive"),"ranged_protocol":(1,"passive"),
     "feedback_protocol":(1,"passive"),"magic_protocol":(1,"passive"),
 }
-# The full job sheet supersedes the earlier isolated Cure Beam excerpt:
-# canonical Mec Cure Beam requirement is Level 10.
-for _s in CLASS_SKILLS["Mec"]:
-    if _s.get("mec_special")=="cure_beam":
-        _s["unlock"]=10
-        _s["desc"]="Level 10 Willpower-based single-target heal. Support Effect increases healing and removes Poison and Blind."
-
 def _mec_contract_audit_v11149():
     rows={s.get("mec_special"):s for s in CLASS_SKILLS.get("Mec",[]) if s.get("mec_special")}
     errors=[]
@@ -3098,6 +3106,31 @@ def _mec_contract_audit_v11149():
             errors.append("feedback_protocol: runtime mapping must exclude Compress and Crush")
         if bool(feedback_protocol.get("protocol_numeric_source_defined")):
             errors.append("feedback_protocol: numeric curve must remain marked unsourced")
+
+    cure_beam=rows.get("cure_beam")
+    if cure_beam:
+        if int(cure_beam.get("unlock",0) or 0)!=1:
+            errors.append("cure_beam: Reqs None must map to Biegłość Mec 1")
+        if int(cure_beam.get("source_ap_cost",0) or 0)!=100:
+            errors.append("cure_beam: source Base AP cost must remain 100 learning points")
+        if str(cure_beam.get("source_ap_semantics",""))!="learning_points":
+            errors.append("cure_beam: AP must remain learning points")
+        if list(cure_beam.get("source_requirements") or [])!=[] or not bool(cure_beam.get("source_requires_none")):
+            errors.append("cure_beam: source requirements must be None")
+        if list(cure_beam.get("source_stat_influence") or [])!=["will"]:
+            errors.append("cure_beam: source influence must be Will only")
+        if list(cure_beam.get("source_properties") or [])!=[]:
+            errors.append("cure_beam: source Properties must be None")
+        if list(cure_beam.get("source_target_mode") or [])!=["self","one_ally","one_enemy"]:
+            errors.append("cure_beam: source target card must remain Self/One Ally/One Enemy")
+        if str(cure_beam.get("target_mode"))!="self_or_one_ally":
+            errors.append("cure_beam: Soulbound target mode must be self or one ally")
+        if not bool(cure_beam.get("soulbound_enemy_heal_disabled")):
+            errors.append("cure_beam: healing combat enemies must remain disabled")
+        if str(cure_beam.get("level_effect"))!="increases_healing_power":
+            errors.append("cure_beam: Level Effect must increase Healing Power")
+        if list(cure_beam.get("support_cleanses") or [])!=["blind","poison"]:
+            errors.append("cure_beam: Support Effect must cleanse Blind and Poison")
 
     shock=rows.get("shock")
     if shock:
