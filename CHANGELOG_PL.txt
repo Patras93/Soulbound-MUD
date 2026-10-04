@@ -6,6 +6,8 @@ Soulbound v1.11.96 — globalny balans 14 klas, EQ i zasobów
 ==============================================================================
 
 - Porządek dokumentacji v1.11.96: skorygowano starsze wpisy changeloga, które po późniejszych poprawkach były już nieprawdziwe (AP jako base_power, MP tylko jako metadata, Magic Attack=tylko INT, Wisdom=Will, Support Effect od dominującego WILL oraz stary +35% Pop Knight vs Flying). Historyczne miejsca są teraz jawnie oznaczone jako superseded/skorygowane.
+- Intercept System: usunięto ostatni runtime fallback `base_power=1000`; 1000 to źródłowy koszt AP/uczenia, nie moc countera. Laserowy counter liczy się teraz wyłącznie ze wspólnego rdzenia Soulbound: najwyższego efektywnego statystyki ofensywnej, EQ/Soul Power i Skill Level.
+- Fast predeploy v1.11.96 importuje i wymusza semantyczne audity: kontrakt Meca, AP Inżyniera, targetowanie wszystkich 14 klas, skalowanie healów, enemy-only dla szkodliwych debuffów, kontrakt leczenia Kapłana, kontrakty statusów UOSS oraz globalny endgame damage. Dodatkowy guard blokuje ponowne odczytywanie `base_power` w runtime Meca/Interceptu jako ochronę przed regresją AP -> damage.
 
 - Balans nie jest już robiony wyłącznie pod Meca/Cyborga. Wszystkie 14 klas korzysta z jednego rdzenia progresji HP/MP, ale zachowuje własną tożsamość statów, pasywek, setów i obrażeń.
 - HP skaluje się teraz mocno z Levelem i Kondycją bez niszczenia early game. Level 1 pozostaje blisko starej skali; około Levelu 175 postać z Kondycją równą Levelowi ma około 13,5 tys. bazowego HP, a podwojenie Kondycji daje około 36,5 tys. przed mnożnikami rasy/setów. Powyżej 175 wzrost trwa wolniej zamiast eksplodować wykładniczo.
