@@ -151,7 +151,9 @@ def superboss_helper_profile_v11137(session, template):
     if helpers:
         party_key=session.party_key() if session.party_key() is not None else session.account_id
         chosen=getattr(session.server,f"_uoss_helper_choice_{party_key}",None)
-        name=chosen if chosen in tuple(helpers) else tuple(helpers)[0]
+        if chosen not in tuple(helpers):
+            return None
+        name=chosen
     elif helper:
         name = str(helper)
     else:
