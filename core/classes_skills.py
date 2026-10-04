@@ -2459,6 +2459,21 @@ MEC_CANONICAL_CONTRACT_V11149 = {
         "support": {"primary": "willpower", "support_effect": "dominant_will_single_soul_weapon"},
     },
 }
+MEC_PROTOCOL_SKILLS_V11155 = {
+    "v0319_mec_strength_protocol": (
+        "hammer_crush","shock_soldier","plural_slash","pop_knight","tiger_rampage","cosmic_rave",
+    ),
+    "v0319_mec_ranged_protocol": (
+        "crosshair","range_fire","dispose","satellite_linker","magnify","shoot_all",
+    ),
+    "v0319_mec_feedback_protocol": (
+        "destroy","robo_tackle","compress","crush","uzi_punch","kamikaze_crush",
+    ),
+    "v0319_mec_magic_protocol": (
+        "laser_spin","area_bomb","mec_sonata","maelstrom","shock","starlight_shower",
+    ),
+}
+
 _MEC_EXPECTED_V11149 = {
     "hammer_crush":(1,"melee"),"shock_soldier":(14,"melee"),"plural_slash":(32,"melee"),
     "pop_knight":(46,"melee"),"tiger_rampage":(80,"melee"),"cosmic_rave":(110,"melee"),
@@ -2485,6 +2500,11 @@ for _s in CLASS_SKILLS["Mec"]:
 def _mec_contract_audit_v11149():
     rows={s.get("mec_special"):s for s in CLASS_SKILLS.get("Mec",[]) if s.get("mec_special")}
     errors=[]
+    protocol_by_special={
+        special:protocol_id
+        for protocol_id,specials in MEC_PROTOCOL_SKILLS_V11155.items()
+        for special in specials
+    }
     for sid,(unlock,branch) in _MEC_EXPECTED_V11149.items():
         row=rows.get(sid)
         if not row: errors.append(f"missing:{sid}"); continue
@@ -2492,6 +2512,11 @@ def _mec_contract_audit_v11149():
         if str(row.get("mec_branch"))!=branch: errors.append(f"{sid}:branch={row.get('mec_branch')} expected={branch}")
         if int(row.get("cooldown",0) or 0)!=0 and not row.get("mechanic_cooldown"):
             errors.append(f"{sid}:ordinary cooldown")
+        expected_protocol=protocol_by_special.get(sid)
+        if expected_protocol:
+            actual=MEC_CANONICAL_CONTRACT_V11149["branches"][branch].get("protocol")
+            if actual!=expected_protocol:
+                errors.append(f"{sid}:protocol={actual} expected={expected_protocol}")
     return {"version":"1.11.49","checked":len(_MEC_EXPECTED_V11149),"errors":errors,"error_count":len(errors)}
 MEC_CONTRACT_AUDIT_V11149=_mec_contract_audit_v11149()
 if MEC_CONTRACT_AUDIT_V11149["error_count"]:
