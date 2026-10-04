@@ -1,0 +1,22 @@
+name: Global Atlas validation
+on:
+  push:
+    branches:
+      - feature/global-discovery-atlas-v1120
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile changed runtime files
+        run: |
+          python -m py_compile player/session_mixins/exploration_progress.py player/session_mixins/atlas_codex.py player/session_mixins/perception_maps.py admin/help_refresh.py
+      - name: Fast predeploy
+        run: python predeploy_check.py
+      - name: Full runtime import
+        env:
+          SOULBOUND_DEFER_MEMORY_COMPACTION: '1'
+        run: python -c "import server; print('FULL RUNTIME IMPORT PASS')"
