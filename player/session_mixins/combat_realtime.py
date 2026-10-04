@@ -78,6 +78,9 @@ class SessionCombatRealtimeMixin:
     async def realtime_player_action(self, mob):
                 if not mob or not mob.alive:
                     return
+                # Timed V-MAX must expire during ordinary realtime combat too,
+                # not only when the player manually invokes another skill.
+                await self.mec_refresh_vmax_v0319()
                 # Kolejka ma pierwszeństwo. Jeśli żaden zapisany skill/spell nie jest
                 # obecnie gotowy, wykonujemy zwykły automatyczny atak Bronią Duszy.
                 if await self.try_auto_skill_queue(mob):
