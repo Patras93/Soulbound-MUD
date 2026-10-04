@@ -137,14 +137,14 @@ def character_hp_base(character_level: int, constitution: int) -> int:
     character_level = clamp(int(character_level), 1, MAX_LEVEL)
     constitution = max(1, int(constitution))
     legacy_base = 48 + constitution * 5.2 + character_level * 3.1
-    # High-level Condition must remain valuable. At equal Level/Condition the
-    # Level-175 curve is about x9 versus the old tiny-HP formula; doubling
-    # Condition gives a clearly super-linear survivability gain without making
-    # early-game characters start with endgame health pools.
+    # Character Level and Condition are independent progression axes.
+    # Level controls the baseline resource curve; Condition is measured against
+    # a fixed balance anchor, never against the current Character Level.
+    # This preserves the Level-175 UOSS benchmark while allowing CON to lag,
+    # match or greatly exceed Character Level without artificial penalties.
     level_scale = _character_resource_level_scale(character_level, 9.0, 0.50)
-    reference_condition = max(10.0, float(character_level))
-    condition_ratio = max(0.01, constitution / reference_condition)
-    condition_scale = clamp(condition_ratio ** 0.75, 0.45, 4.0)
+    condition_ratio = max(0.01, constitution / 175.0)
+    condition_scale = clamp(condition_ratio ** 0.75, 0.45, 6.0)
     return max(1, int(round(legacy_base * level_scale * condition_scale)))
 
 
@@ -153,30 +153,30 @@ def character_mana_base(character_level: int, intelligence: int, willpower: int 
     intelligence = max(1, int(intelligence))
     willpower = intelligence if willpower is None else max(1, int(willpower))
     legacy_base = 22 + intelligence * 2.4 + willpower * 2.4 + character_level * 2.0
-    # Magic/support classes scale from both Intelligence (UOSS Wisdom) and
-    # Willpower. The resource curve is intentionally lower than HP because MP
-    # is a spendable combat resource rather than the full survivability pool.
+    # Intelligence and Willpower level independently from Character Level.
+    # Use a fixed balance anchor rather than dividing by Character Level, so a
+    # stat never becomes weaker merely because the character gained a level.
     level_scale = _character_resource_level_scale(character_level, 3.8, 0.45)
-    reference_stat = max(10.0, float(character_level))
     average_magic_stat = (intelligence + willpower) / 2.0
-    stat_ratio = max(0.01, average_magic_stat / reference_stat)
-    stat_scale = clamp(stat_ratio ** 0.75, 0.50, 3.5)
+    stat_ratio = max(0.01, average_magic_stat / 175.0)
+    stat_scale = clamp(stat_ratio ** 0.75, 0.50, 5.0)
     return max(0, int(round(legacy_base * level_scale * stat_scale)))
 
 
 def character_attribute_power(character_level: int, stat_value: int) -> int:
-    character_level = clamp(int(character_level), 1, MAX_LEVEL)
+    # Kept as a two-argument API for existing callers, but Character Level must
+    # not add free STR/DEX/INT/WILL power: stats are their own progression axes.
+    _ = clamp(int(character_level), 1, MAX_LEVEL)
     stat_value = max(1, int(stat_value))
-    return max(1, int(round(stat_value + 0.30 * character_level)))
+    return stat_value
 
 
 def character_offensive_build_multiplier(stat_value: int | float) -> float:
     """Late-game offense driven by the actual effective combat stat.
 
     This multiplier deliberately does not use Character Level. Level unlocks
-    progression and contributes only the small legacy term inside
-    character_attribute_power(); the large late-game gain comes from the
-    character's real STR/DEX/INT/WILL after equipment and other stat bonuses.
+    progression, while the offensive gain comes from the character's real
+    STR/DEX/INT/WILL after equipment and other stat bonuses.
     Up to 100 the multiplier is neutral, so early game stays intact.
     """
     stat_value = max(1.0, float(stat_value or 1.0))
