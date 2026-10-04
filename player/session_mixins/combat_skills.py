@@ -335,6 +335,58 @@ class SessionCombatSkillsMixin:
                 if effective_cooldown > 0:
                     self.start_skill_cooldown_v0364(skill, effective_cooldown, now)
 
+                # v0.35.11 contract retained after the combat-module split:
+                # one-hit guard/evade skills protect every living party member
+                # standing in the caster's room. Ordinary boost skills remain
+                # passive Automatic and are handled before reaching this point.
+                if kind == "guard":
+                    buff_mult = self.skill_buff_multiplier()
+                    scaled_guard = max(
+                        1,
+                        int(round(skill.get("guard", 0) * skill_power * buff_mult)),
+                    )
+                    recipients = self.local_party_buff_recipients_v03511()
+                    for session in recipients:
+                        session.skill_guard = max(session.skill_guard, scaled_guard)
+                    await self.send(
+                        f"Drużynowy guard {skill['name']} na Skill Level {skill_level}. "
+                        f"{len(recipients)} członków w tej lokacji: następne trafienie każdego "
+                        f"zostanie dodatkowo zredukowane o {scaled_guard}."
+                    )
+                    for session in recipients:
+                        if session is not self:
+                            await session.send(
+                                f"{self.character.name} używa {skill['name']}. "
+                                f"Twój następny otrzymany cios zostanie dodatkowo "
+                                f"zredukowany o {scaled_guard}."
+                            )
+                    await self.grant_skill_use_xp(skill)
+                    if mana_cost:
+                        await self.send(f"Mana: {self.current_mana} z {self.max_mana()}.")
+                    if self.combat_mob_key:
+                        await self.ensure_realtime_combat()
+                    return
+
+                if kind == "evade":
+                    recipients = self.local_party_buff_recipients_v03511()
+                    for session in recipients:
+                        session.skill_evade = True
+                    await self.send(
+                        f"Drużynowy unik {skill['name']} na Skill Level {skill_level}. "
+                        f"{len(recipients)} członków w tej lokacji uniknie swojego "
+                        "następnego ataku przeciwnika."
+                    )
+                    for session in recipients:
+                        if session is not self:
+                            await session.send(
+                                f"{self.character.name} używa {skill['name']}. "
+                                "Twój następny atak przeciwnika zostanie automatycznie uniknięty."
+                            )
+                    await self.grant_skill_use_xp(skill)
+                    if self.combat_mob_key:
+                        await self.ensure_realtime_combat()
+                    return
+
                 # v0.31.7: Engineer authored tool mechanics.
                 if skill.get("engineer_tool"):
                     special = str(skill.get("engineer_special", ""))
