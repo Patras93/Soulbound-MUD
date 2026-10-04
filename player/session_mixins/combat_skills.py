@@ -461,6 +461,15 @@ class SessionCombatSkillsMixin:
 
                 now = time.time()
                 await self.mec_refresh_vmax_v0319()
+                if (
+                    self.player_silenced_v11196()
+                    and self.skill_is_silenceable_v11196(skill)
+                ):
+                    await self.send(
+                        f"Silence blokuje {skill['name']}. "
+                        "Ta umiejętność ma właściwość Silenceable."
+                    )
+                    return
                 ready_at = self.skill_cooldown_ready_at_v0364(skill) if mechanic_lock else 0.0
                 if ready_at > now:
                     await self.send(
