@@ -271,7 +271,13 @@ def crypt_party_rebalance_audit_v0368():
     try:
         import inspect as _inspect_v0368
         _unlock_src_v0368 = _inspect_v0368.getsource(Session.unlock)
-        if "broadcast_room" not in _unlock_src_v0368 or "Tier Duszy" not in _unlock_src_v0368:
+        required_unlock_tokens_v0368 = (
+            "broadcast_room",
+            "self.character.room_id",
+            "exclude=self",
+            "Soul Tier",
+        )
+        if any(token not in _unlock_src_v0368 for token in required_unlock_tokens_v0368):
             errors.append("Soul Tier local-room announcement missing from Session.unlock")
         if "party_sessions" in _unlock_src_v0368:
             errors.append("Soul Tier announcement must not be limited to party members")
