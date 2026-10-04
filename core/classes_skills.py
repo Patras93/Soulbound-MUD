@@ -2394,7 +2394,7 @@ def _v0319_install_full_mec_kit():
             row["scale"] = "intelligence" if branch=="magic" else ("dexterity" if branch=="ranged" else "strength")
             row["mult"] = 1.0
             if kind=="aoe_damage": row["aoe"]=True
-        if kind=="heal": row["heal_pct"] = .22 if special=="cure_beam" else .48
+        if kind=="heal": row["healing_power_from_will_and_skill_level"]=True
         if special=="destroy": row["feedback_cost_source_defined"]=False
         if special=="robo_tackle": row["feedback_cost_source_defined"]=False
         if special=="compress": row["feedback_cost_source_defined"]=False
