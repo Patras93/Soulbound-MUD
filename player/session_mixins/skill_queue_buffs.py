@@ -369,7 +369,8 @@ class SessionSkillQueueBuffsMixin:
     async def mec_self_repair_round_v11154(self):
             """Advance Self-Repair by one Mec combat round.
             Feedback damage is restored in full after exactly three owner action rounds.
-            Self-Repair also grants passive Auto-Regen.
+            Source also grants Auto-Regen, but its numeric amount is not supplied;
+            this runtime therefore implements only the exact 3-round Feedback repair.
             """
             if not self.character or self.character.class_name!="Mec" or not self.job_ability_selected("inherent","v0319_mec_self_repair"):
                 return
