@@ -1,5 +1,17 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.11.79
+Aktualna paczka: v1.11.80
+
+==============================================================================
+Soulbound v1.11.80 — osobny slot bransoletki
+==============================================================================
+
+- Dodano pełnoprawny slot EQ bracelet / bransoletka.
+- Komendy EQ rozpoznają: bransoletka, bransoletki i bracelet.
+- EQ i EQ INFO czytają slot jako Bransoletka.
+- EQ AUTO porównuje i zakłada najlepszą bransoletkę niezależnie od accessory1/accessory2.
+- Escort Guard i Genji Gloves, których źródłowy typ to Bracelet, zajmują teraz slot bransoletki.
+- Bransoletka normalnie wnosi statystyki i efekty EQ.
+- Brak wipe'a save'ów.
 
 ==============================================================================
 Soulbound v1.11.79 — source-safe finish
