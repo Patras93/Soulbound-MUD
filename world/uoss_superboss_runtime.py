@@ -383,6 +383,15 @@ def superboss_element_multiplier_v11173(template, element):
 
 
 
+UOSS_HELPER_DEBUFF_TARGET_CONTRACTS_V11196 = {
+    "Power Breakdown": {
+        "source_effect": "attack_power_down",
+        "soulbound_target_scope": "enemy_only",
+        "numeric_source_defined": False,
+    },
+}
+
+
 UOSS_HELPER_ABILITIES_V11174 = {
     "Popoi": ("Air Blast","Earth Slide","Acid Storm","Vine Hell","Luna Mini","Faerie Walnut"),
     "Primm": ("Lucent Beam","Cure Water","Bubble","Lumina","Dryad Preach"),
@@ -406,12 +415,31 @@ def superboss_helper_passives_v11174(session, template, mob):
     key=superboss_key_from_template_v11135(template)
     effects=[]
     if name=="Seifer" and key=="odin" and not getattr(mob,"uoss_seifer_breakdown_v11174",False):
+        # Power Breakdown is a hostile debuff: it belongs to the enemy mob,
+        # never to the player/party. Source does not provide a numeric reduction.
         mob.uoss_seifer_breakdown_v11174=True
         mob.uoss_power_breakdown_v11174=True
-        effects.append("Seifer: Power Breakdown aktywny na początku walki.")
+        mob.uoss_power_breakdown_target_scope_v11196="enemy_only"
+        effects.append("Seifer: Power Breakdown aktywny na przeciwniku.")
     if name=="Byblos" and key=="serpentarius":
         mob.uoss_ignore_helper_target_v11174=True
     return tuple(effects)
+
+
+def _helper_debuff_target_audit_v11196():
+    errors=[]
+    for name,row in UOSS_HELPER_DEBUFF_TARGET_CONTRACTS_V11196.items():
+        if str(row.get("soulbound_target_scope",""))!="enemy_only":
+            errors.append(f"{name}: helper debuff must be enemy_only")
+    return {"version":"1.11.96","error_count":len(errors),"errors":errors}
+
+
+HELPER_DEBUFF_TARGET_AUDIT_V11196=_helper_debuff_target_audit_v11196()
+if HELPER_DEBUFF_TARGET_AUDIT_V11196["error_count"]:
+    raise RuntimeError(
+        "Helper Debuff Target Audit v1.11.96 failed: "
+        + "; ".join(HELPER_DEBUFF_TARGET_AUDIT_V11196["errors"])
+    )
 
 
 def superboss_combat_start_effects_v11176(session, template, mob):
