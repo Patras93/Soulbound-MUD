@@ -113,17 +113,55 @@ def axis_gain(axis: str, level: int, intensity: float = 1.0) -> int:
     return min(SAFE_INT, max(1, int(round(value))))
 
 
+def _character_resource_level_scale(character_level: int, reference_scale: float, post_reference_growth: float) -> float:
+    """Smooth high-level resource curve shared by every class.
+
+    Level 1 keeps the original early-game scale. Around Level 175 the curve is
+    deliberately large enough for superboss-era combat, then continues more
+    slowly toward the Generator Core cap instead of exploding exponentially.
+    """
+    level = clamp(int(character_level), 1, MAX_LEVEL)
+    reference_level = min(MAX_LEVEL, 175)
+    if reference_level <= 1:
+        return max(1.0, float(reference_scale))
+    if level <= reference_level:
+        progress = (level - 1) / float(reference_level - 1)
+        return 1.0 + (max(1.0, float(reference_scale)) - 1.0) * (progress ** 1.05)
+    post = (level - reference_level) / float(max(1, MAX_LEVEL - reference_level))
+    return max(1.0, float(reference_scale)) * (
+        1.0 + max(0.0, float(post_reference_growth)) * (post ** 0.90)
+    )
+
+
 def character_hp_base(character_level: int, constitution: int) -> int:
     character_level = clamp(int(character_level), 1, MAX_LEVEL)
     constitution = max(1, int(constitution))
-    return max(1, int(round(48 + constitution * 5.2 + character_level * 3.1)))
+    legacy_base = 48 + constitution * 5.2 + character_level * 3.1
+    # High-level Condition must remain valuable. At equal Level/Condition the
+    # Level-175 curve is about x9 versus the old tiny-HP formula; doubling
+    # Condition gives a clearly super-linear survivability gain without making
+    # early-game characters start with endgame health pools.
+    level_scale = _character_resource_level_scale(character_level, 9.0, 0.50)
+    reference_condition = max(10.0, float(character_level))
+    condition_ratio = max(0.01, constitution / reference_condition)
+    condition_scale = clamp(condition_ratio ** 0.75, 0.45, 4.0)
+    return max(1, int(round(legacy_base * level_scale * condition_scale)))
 
 
 def character_mana_base(character_level: int, intelligence: int, willpower: int | None = None) -> int:
     character_level = clamp(int(character_level), 1, MAX_LEVEL)
     intelligence = max(1, int(intelligence))
     willpower = intelligence if willpower is None else max(1, int(willpower))
-    return max(0, int(round(22 + intelligence * 2.4 + willpower * 2.4 + character_level * 2.0)))
+    legacy_base = 22 + intelligence * 2.4 + willpower * 2.4 + character_level * 2.0
+    # Magic/support classes scale from both Intelligence (UOSS Wisdom) and
+    # Willpower. The resource curve is intentionally lower than HP because MP
+    # is a spendable combat resource rather than the full survivability pool.
+    level_scale = _character_resource_level_scale(character_level, 3.8, 0.45)
+    reference_stat = max(10.0, float(character_level))
+    average_magic_stat = (intelligence + willpower) / 2.0
+    stat_ratio = max(0.01, average_magic_stat / reference_stat)
+    stat_scale = clamp(stat_ratio ** 0.75, 0.50, 3.5)
+    return max(0, int(round(legacy_base * level_scale * stat_scale)))
 
 
 def character_attribute_power(character_level: int, stat_value: int) -> int:
