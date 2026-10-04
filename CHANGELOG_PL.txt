@@ -1,5 +1,17 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.11.94
+Aktualna paczka: v1.11.95
+
+==============================================================================
+Soulbound v1.11.95 — uniwersalne akcesoria UOSS dla wszystkich klas
+==============================================================================
+
+- Wszystkie źródłowe akcesoria UOSS obecne w grze są jawnie oznaczone jako dostępne dla wszystkich 14 klas.
+- Dotyczy to Escort Guard, Genji Gloves, Star Fragment, Opal Ring, Ziedrich, Quartz Charm, Hermes Shoes, Hyper Wrist, Hypno Crown, Solomon Ring i Tough Ring.
+- Sklep, ręczne zakładanie i AUTO EQ respektują znacznik universal_all_classes i nie nakładają na te przedmioty blokady klasy.
+- Zachowano dotychczasowe wymagania Levelu, tokeny bossów i źródłowe koszty Fur Shop; zmiana dotyczy wyłącznie dostępności klasowej.
+- Dodano audit wymagający obecności wszystkich tych akcesoriów w market oraz braku required_class.
+- Runtime, server metadata i FAST PREDEPLOY zsynchronizowano do v1.11.95.
+- Brak wipe'a save'ów.
 
 ==============================================================================
 Soulbound v1.11.94 — uniwersalny sklep nowego EQ UOSS
