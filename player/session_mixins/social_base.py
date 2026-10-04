@@ -47,43 +47,47 @@ class SessionBaseSocialMixin:
                     f"Klasa: {class_text}."
                 )
 
-    async def try_hire_black_rabite_helper_v11159(self, message):
+    async def try_hire_uoss_helper_v11160(self, message):
             norm = self.normalize_description_query(message).strip(" .,!?:;")
-            helper = None
-            if norm == "join me popoi":
-                helper = "Popoi"
-            elif norm == "join me primm":
-                helper = "Primm"
-            if helper is None:
+            contracts = {
+                "join me popoi": ("Popoi","black_rabite","uoss_rabite_field_v11160"),
+                "join me primm": ("Primm","black_rabite","uoss_rabite_field_v11160"),
+                "join me byblos": ("Byblos","serpentarius","uoss_deep_dungeon_v11160"),
+                "join me montblanc": ("Montblanc","yiazmat","uoss_ridorana_colosseum_v11160"),
+                "join me seifer": ("Seifer","odin","uoss_misty_forest_clearing_v11160"),
+            }
+            contract=contracts.get(norm)
+            if contract is None:
                 return False
-            if str(self.character.room_id) != "uoss_superboss_arena_black_rabite_v11136":
+            helper,boss_key,room_id=contract
+            if str(self.character.room_id) != room_id:
                 return False
             party = self.server.party_sessions(self.account_id, same_room=self.character.room_id) or [self]
             if len(party) > 3:
-                await self.send("Popoi i Primm pomagają tylko drużynie liczącej 3 lub mniej graczy.")
+                await self.send(f"{helper} pomaga tylko drużynie liczącej 3 lub mniej graczy.")
                 return True
-            cost_mithril = 1
-            cost_silver = cost_mithril * 1000000 * 100
-            master = self.server.db.master_account_for_character(self.account_id)
-            current = int(self.server.db.shared_wallet_for_master(master)[0])
+            cost_mithril=1
+            cost_silver=cost_mithril*1000000*100
+            master=self.server.db.master_account_for_character(self.account_id)
+            current=int(self.server.db.shared_wallet_for_master(master)[0])
             if current < cost_silver:
-                await self.send(f"Potrzebujesz {cost_mithril} mithril, aby zatrudnić {helper}.")
+                await self.send(f"Potrzebujesz 1 mithril, aby zatrudnić {helper}.")
                 return True
-            party_key = self.party_key() if self.party_key() is not None else self.account_id
-            attr = "_uoss_helper_choice_" + str(party_key)
-            if getattr(self.server, attr, None):
-                await self.send("Ta drużyna ma już zatrudnionego pomocnika Black Rabite.")
+            party_key=self.party_key() if self.party_key() is not None else self.account_id
+            attr="_uoss_helper_choice_"+str(party_key)
+            if getattr(self.server,attr,None):
+                await self.send("Ta drużyna ma już zatrudnionego pomocnika Super Bossa.")
                 return True
-            self.server.db.set_shared_wallet_for_master(master, current - cost_silver, 0, 0)
+            self.server.db.set_shared_wallet_for_master(master,current-cost_silver,0,0)
             self.server.db.apply_shared_wallet_to_character(self.character)
-            setattr(self.server, attr, helper)
-            await self.send(f"{helper} dołącza do walki z Black Rabite. Zapłacono {cost_mithril} mithril.")
+            setattr(self.server,attr,helper)
+            await self.send(f"{helper} dołącza do drużyny. Zapłacono 1 mithril.")
             return True
 
     async def say(self, text):
             message = str(text or "").strip()
 
-            if await self.try_hire_black_rabite_helper_v11159(message):
+            if await self.try_hire_uoss_helper_v11160(message):
                 return
 
             if not message:
