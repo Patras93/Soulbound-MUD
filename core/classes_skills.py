@@ -2486,7 +2486,7 @@ def _v0319_install_full_mec_kit():
                         "boost":1.0,"cooldown":0,"mechanic_cooldown":True,
                         "duration_scales_with_skill_level":True,
                         "duration_scales_with_will":True,
-                        "duration_balance_model":"soulbound_30_to_90_plus_uncapped_will",
+                        "duration_balance_model":"soulbound_200_to_600_plus_uncapped_will",
                         "support_weapon_model":"mec_soul_weapon"})
     CLASS_SKILLS["Mec"] = rows
 
