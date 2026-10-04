@@ -225,8 +225,9 @@ def magic_defense_base(character_level: int, willpower: int) -> int:
 
 def skill_level_power(level: int) -> float:
     level = clamp(int(level), 1, MAX_LEVEL)
-    # v0.33.2 Full Progression Rebalance: every Skill Level must be felt.
-    # 1=1.00x, 50~=1.54x, 100~=1.96x, 200~=2.70x, 300~=3.37x, 400=4.00x.
+    # v1.11.96: every Skill Level must be felt through the current 1-600 axis.
+    # With MAX_LEVEL=600: 1=1.00x, 100~=1.69x, 200~=2.22x, 300~=2.70x,
+    # 400~=3.15x, 500~=3.58x, 600=4.00x.
     return round(1.0 + 3.0 * ((level - 1) / (MAX_LEVEL - 1)) ** 0.82, 6)
 
 
