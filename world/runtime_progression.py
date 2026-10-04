@@ -1017,7 +1017,7 @@ def finalize_class_equipment_v03015():
             expected_class[item_id] = class_name
 
     labels = {
-        "strength": "Siła", "constitution": "Kondycja",
+        "strength": "Siła", "dexterity": "Zręczność", "constitution": "Kondycja",
         "intelligence": "Inteligencja", "willpower": "Siła Woli",
     }
     for item_id, mastery in expected_mastery.items():
