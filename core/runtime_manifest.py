@@ -931,8 +931,6 @@ LEGACY_COMPATIBILITY_ALLOWLIST = (
 )
 
 EXPECTED_OVERRIDE_ORDER = {'_boss_floor_chest_spec': ['network/protocol_gameplay_utils.py', 'world/magitek_infinite.py'],
- '_dynamic_mythic_astral_boss_profile': ['world/economy_quests.py', 'world/uoss_superbosses.py'],
- '_infinite_mythic_boss_profile': ['world/economy_quests.py', 'world/uoss_superbosses.py'],
  'boss_floor_identity': ['world/economy_quests.py', 'world/magitek_infinite.py'],
  'boss_key_for_template': ['network/protocol_gameplay_utils.py', 'world/magitek_infinite.py'],
  'create_infinite_astral_floor_definition': ['world/economy_quests.py',
@@ -941,7 +939,6 @@ EXPECTED_OVERRIDE_ORDER = {'_boss_floor_chest_spec': ['network/protocol_gameplay
                                             'world/crypt_party_rebalance.py'],
  'create_infinite_magitek_floor_definition': ['world/magitek_infinite.py',
                                               'world/magitek_hourly_quests.py'],
- 'milestone_boss_name': ['world/economy_quests.py', 'world/uoss_superbosses.py'],
  'normalize_profession_name': ['core/bootstrap_economy_professions.py', 'systems/professions.py'],
  'v0100_instance_spec': ['world/dynamic_content.py', 'world/magitek_infinite.py'],
  'v0150_environment_bonus': ['world/generation_systems.py', 'world/generation_systems.py'],
