@@ -66,9 +66,10 @@ def superboss_personal_reward_v11135(db, account_id, boss_key):
     if not row:
         return None
     item_id, label = row
+    # The encounter lockout already guarantees one legal reward per clear.
+    # Do not permanently suppress the personal token after the first lifetime kill.
     marker = f"{boss_key}:token"
-    if not db.add_collection_entry(account_id, SUPERBOSS_REWARD_COLLECTION_V11135, marker):
-        return None
+    db.touch_collection_entry(account_id, SUPERBOSS_REWARD_COLLECTION_V11135, marker)
     db.add_item(account_id, item_id, 1)
     return item_id, label
 
