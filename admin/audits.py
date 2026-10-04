@@ -2321,8 +2321,8 @@ if EQ_SHORTCUTS_AUTO_AUDIT_V03040.get("error_count"):
 
 HELP_TOPICS["skroty_eq"] = [
     "Pełne skróty zakładania EQ: zhel hełm, zpan pancerz, ztar tarcza, zrek rękawice, znog nogawice, zbut buty.",
-    "Biżuteria: ztal talizmany auto, zpier pierścienie auto, znasz naszyjnik, zkol kolczyki auto. Ręcznie nadal działają zt1/zt2, zp1/zp2 i zkol1/zkol2.",
-    "Pozostałe: znar naramienniki, zpas pas, zpel peleryna, zkar karwasze, zrel relikt.",
+    "Biżuteria: ztal talizmany auto, zpier pierścienie auto, znasz naszyjnik, zkol kolczyki auto, zbra bransoletka, zakc akcesoria auto. Ręcznie nadal działają zt1/zt2, zp1/zp2 i zkol1/zkol2.",
+    "Pozostałe: znar naramienniki, zpas pas, zpel peleryna, zkar karwasze, zrel relikt. Akcesoria używają dwóch slotów: Akcesorium 1 i Akcesorium 2.",
     "Stare skróty zh, zz, zr, zn, zb, zt, zp, zna itd. nadal działają.",
     "Samo wpisanie skrótu pokazuje numerowaną listę posiadanego EQ danego slotu; skrót + numer zakłada wybraną pozycję.",
     "eq auto, załóż auto, autoeq, eqauto albo zauto automatycznie wymienia dostępne części na indywidualnie najmocniejsze posiadane EQ.",
@@ -2332,9 +2332,9 @@ HELP_TOPIC_ALIASES.update({
     "eq skróty":"skroty_eq", "auto eq":"skroty_eq", "autoeq":"skroty_eq",
 })
 HELP_TOPICS.setdefault("eq", []).extend([
-    "v0.30.40: pełne czytelne skróty: zhel, zpan, ztar, zrek, znog, zbut, ztal, zpier, znasz, zkol, znar, zpas, zpel, zkar, zrel. Stare skróty nadal działają.",
+    "Pełne czytelne skróty EQ obejmują także zbra dla bransoletki i zakc dla dwóch slotów akcesoriów. Stare skróty nadal działają.",
     "v0.30.40: eq auto / załóż auto / autoeq / zauto jednym poleceniem wymienia posiadane, dostępne EQ na indywidualnie najmocniejsze części. Auto respektuje Level postaci, aktywną klasę i liczbę posiadanych kopii.",
-    "Auto EQ nie klonuje podwójnej biżuterii; do dwóch identycznych pierścieni, talizmanów lub kolczyków potrzebujesz dwóch sztuk. Klejnoty z wymienianej biżuterii wracają do Szkatułki.",
+    "Auto EQ nie klonuje podwójnej biżuterii; do dwóch identycznych pierścieni, talizmanów, kolczyków lub akcesoriów potrzebujesz dwóch sztuk. Klejnoty z wymienianej biżuterii wracają do Szkatułki.",
 ])
 HELP_TOPICS.setdefault("wersja", []).append(
     "v0.30.40: komplet skrótów całego EQ oraz opcjonalny Auto Equip jednym poleceniem."
@@ -2345,7 +2345,7 @@ LATEST_CHANGES = [
     "v0.30.40: eq auto, załóż auto, autoeq, eqauto i zauto automatycznie dobierają najmocniejsze dostępne indywidualne części.",
     "v0.30.40: Auto EQ respektuje Level postaci, aktywne klasy, podwójne sloty i rzeczywistą liczbę posiadanych kopii.",
     "v0.30.40: przy automatycznej wymianie biżuterii osadzone klejnoty są bezpiecznie zwracane do Szkatułki Rzemieślniczej.",
-    "v0.30.40: komunikaty setów zostały zsynchronizowane z 14 logicznymi typami EQ.",
+    "v1.11.96: główna siatka EQ ma 17 logicznych slotów; Bracelet i Accessory są pełnoprawnym EQ, ale nie ułatwiają historycznych progów setów 2/4/6/8.",
 ]
 
 
