@@ -10,6 +10,7 @@ import time
 from core.classes_skills import SOUL_WEAPON_ATTACK_TECHNIQUES
 from core.progression_600 import SOUL_WEAPON_MASTERY_MAX_LEVEL, soul_weapon_trait_totals_v11193
 from core.progression_resources import soul_weapon_mastery_bonuses, v0190_scaled_gain
+from core.bootstrap_economy_professions import generator_core_v027
 from data.mobs import MOB_TEMPLATES
 from world.machine_expansion import v0314_adjust_damage_vs_template
 from world.uoss_superboss_runtime import (
@@ -143,8 +144,14 @@ class SessionCombatRealtimeMixin:
                     _helper_magic = _helper_name in {"Popoi", "Primm", "Montblanc", "Byblos"}
                     _helper_stat = self.spell_power() if _helper_magic else self.physical_power()
                     _helper_kind = "magic" if _helper_magic else "physical"
+                    _helper_raw_stat = (
+                        max(self.effective_intelligence(), self.effective_willpower())
+                        if _helper_magic else
+                        max(self.effective_strength(), self.effective_dexterity())
+                    )
                     _helper_mult = self.equipment_damage_multiplier(_helper_kind)
                     _helper_mult *= self.total_set_damage_multiplier()
+                    _helper_mult *= generator_core_v027.character_offensive_build_multiplier(_helper_raw_stat)
                     _uoss_helper_damage = max(
                         1,
                         int(round((self.character.soul_power() + _helper_stat) * 0.65 * _helper_mult)),
