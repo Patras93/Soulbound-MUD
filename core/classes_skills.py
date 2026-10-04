@@ -670,11 +670,22 @@ PHYSICAL_MANA_FREE_CLASSES = frozenset(
 )
 
 def effective_skill_mana_cost(skill, class_name):
-    """Return the gameplay mana cost, enforcing zero mana for physical classes."""
+    """Return the gameplay MP cost without discarding source-authored magic costs.
+
+    Physical classes remain mana-free by default, but an authored ability may
+    carry an exact source MP cost (for example the Mec magic/support branches).
+    """
+    row = skill or {}
+    for field in ("uoss_mp_cost", "source_mp_cost"):
+        if row.get(field) is not None:
+            try:
+                return max(0, int(row.get(field) or 0))
+            except (TypeError, ValueError):
+                return 0
     if str(class_name) in PHYSICAL_MANA_FREE_CLASSES:
         return 0
     try:
-        return max(0, int((skill or {}).get("mana", 0) or 0))
+        return max(0, int(row.get("mana", 0) or 0))
     except (TypeError, ValueError):
         return 0
 
@@ -2429,9 +2440,10 @@ def _v0319_install_full_mec_kit():
         if special=="dispose": row.update({"aoe_non_diminishing":True,"carries_soul_weapon_elements":True,"feedback_damage":True,"feedback_cost_source_defined":False,"single_soul_weapon":True})
         if special=="crosshair": row.update({"critical_chance_influence":True,"attempts_critical":True,"carries_soul_weapon_elements":True,"single_soul_weapon":True})
         if special=="shoot_all": row.update({"aoe_non_diminishing":True,"critical_chance_influence":True,"vmax_increases_critical_and_damage":True,"carries_soul_weapon_elements":True,"single_soul_weapon":True})
-        if special=="laser_spin": row.update({"aoe_diminishing":True,"element":"dark"})
-        if special=="maelstrom": row.update({"aoe_diminishing":True,"element":"water"})
-        if special=="shock": row.update({"aoe_diminishing":True,"elements":["lightning","dark"],"source_mp_cost":150})
+        if special=="laser_spin": row.update({"aoe_diminishing":True,"element":"dark","uoss_mp_cost":25})
+        if special=="mec_sonata": row.update({"uoss_mp_cost":50})
+        if special=="maelstrom": row.update({"aoe_diminishing":True,"element":"water","uoss_mp_cost":80})
+        if special=="shock": row.update({"aoe_diminishing":True,"elements":["lightning","dark"],"uoss_mp_cost":150})
         if special=="tiger_rampage":
             row.update({"scale":"strength","hits":2,"target_mode":"one_enemy",
                         "carries_soul_weapon_elements":True,"single_soul_weapon":True,
@@ -2445,6 +2457,8 @@ def _v0319_install_full_mec_kit():
             row.update({"scale":"strength","target_mode":"all_non_diminishing",
                         "carries_soul_weapon_elements":True,"single_soul_weapon":True,
                         "bonus_vs_flying_source_defined":False})
+        if special=="hypno_flash":
+            row.update({"scale":"willpower","uoss_mp_cost":15})
         if special=="heal_beam":
             row.update({"scale":"willpower","uoss_mp_cost":36,"uoss_support_mp_cost":72,
                         "target_mode":"single_or_support_party","support_heal_multiplier":1.20})
@@ -2455,6 +2469,8 @@ def _v0319_install_full_mec_kit():
             row.update({"scale":"willpower","control_effect":"stop","cleanseable":True,"extendable":True,
                         "uoss_mp_cost":20,"uoss_support_mp_cost":40,
                         "target_mode":"single_or_support_all","machine_accuracy_bonus":True})
+        if special=="logic_bomb":
+            row.update({"scale":"willpower","uoss_mp_cost":155})
         if special=="starlight_shower":
             row.update({"uoss_mp_cost":225, "uoss_vmax_mp_cost":300, "target_mode":"single_or_diminishing_aoe"})
         if special=="cosmic_rave":
@@ -2524,6 +2540,12 @@ def _mec_contract_audit_v11149():
         for protocol_id,specials in MEC_PROTOCOL_SKILLS_V11155.items()
         for special in specials
     }
+    source_mp_costs={
+        "laser_spin":25,"area_bomb":35,"mec_sonata":50,"maelstrom":80,
+        "shock":150,"starlight_shower":225,"cure_beam":10,"hypno_flash":15,
+        "jammer":20,"heal_beam":36,"logic_bomb":155,
+    }
+    source_support_mp_costs={"jammer":40,"heal_beam":72}
     for sid,(unlock,branch) in _MEC_EXPECTED_V11149.items():
         row=rows.get(sid)
         if not row: errors.append(f"missing:{sid}"); continue
@@ -2536,6 +2558,10 @@ def _mec_contract_audit_v11149():
             actual=MEC_CANONICAL_CONTRACT_V11149["branches"][branch].get("protocol")
             if actual!=expected_protocol:
                 errors.append(f"{sid}:protocol={actual} expected={expected_protocol}")
+        if sid in source_mp_costs and int(row.get("uoss_mp_cost",0) or 0)!=source_mp_costs[sid]:
+            errors.append(f"{sid}:mp={row.get('uoss_mp_cost')} expected={source_mp_costs[sid]}")
+        if sid in source_support_mp_costs and int(row.get("uoss_support_mp_cost",0) or 0)!=source_support_mp_costs[sid]:
+            errors.append(f"{sid}:support_mp={row.get('uoss_support_mp_cost')} expected={source_support_mp_costs[sid]}")
     return {"version":"1.11.49","checked":len(_MEC_EXPECTED_V11149),"errors":errors,"error_count":len(errors)}
 MEC_CONTRACT_AUDIT_V11149=_mec_contract_audit_v11149()
 if MEC_CONTRACT_AUDIT_V11149["error_count"]:
