@@ -430,10 +430,10 @@ class SessionInventoryEquipmentMixin:
                     )
                     if fixed_stats:
                         extra += f" Statystyki bazowe: {fixed_stats}."
-                if row["item_id"] == "moogle_board" and item and item.get("cyborg_board_scaling") == "character_level":
+                if item and item.get("cyborg_board_scaling") == "character_level":
                     _level = int(self.character.character_level)
                     _mb = moogle_board_stat_bonus_v0313(_level)
-                    extra += f" Skalowanie Moogle Board: Level postaci {_level}/{CHARACTER_MAX_LEVEL}, +{_mb} do Siły, Zręczności, Kondycji, Inteligencji i Siły Woli. Level 1-9 daje +2; od Levelu 10 bonus rośnie o +2 co 10 Leveli aż do +20, a po Levelu 150 rośnie o +2 za każdy kolejny Level."
+                    extra += f" Skalowanie Moogle Board: Level postaci {_level}/{CHARACTER_MAX_LEVEL}, +{_mb} do Siły, Zręczności, Kondycji, Inteligencji i Siły Woli. Level 150 daje +20; od Levelu 151 każdy kolejny Level zwiększa bonus o +2."
                 if item and item.get("slot") in ("ring", "necklace"):
                     extra += " " + self.jewelry_socket_text(row["slot"], row["item_id"], item)
                 await self.send(f"{slot_name}: {name}. Obrona +{defense}.{extra}")
