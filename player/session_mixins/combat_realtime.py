@@ -21,6 +21,7 @@ from world.uoss_superboss_runtime import (
     superboss_source_attack_multiplier_v11162, superboss_source_status_v11162,
     superboss_apply_source_status_v11173, superboss_combat_start_effects_v11176,
     superboss_add_round_event_v11176, superboss_clear_source_statuses_v11176,
+    superboss_source_timed_effect_v11179, superboss_advance_timed_effects_v11179,
 )
 
 class SessionCombatRealtimeMixin:
@@ -309,8 +310,13 @@ class SessionCombatRealtimeMixin:
                                         await self.server.party_combat_broadcast(target_session, _source_round["text"], detail="essential")
                                         await target_session.die(_enemy_template['name'])
                                         continue
+                                    for _ended in superboss_advance_timed_effects_v11179(target_session):
+                                        await self.server.party_combat_broadcast(target_session,f"{target_session.character.name}: kończy się efekt {_ended}.",detail="essential")
                                     _source_ability = superboss_source_ability_v11162(_enemy_template, enemy_mob)
                                     _source_effect = superboss_exact_ability_effect_v11160(target_session, _enemy_template, enemy_mob, _source_ability)
+                                    _timed_effect=superboss_source_timed_effect_v11179(target_session,_enemy_template,_source_ability)
+                                    if _timed_effect:
+                                        await self.server.party_combat_broadcast(target_session,f"{target_session.character.name}: {_source_ability} — {_timed_effect['rounds']} rund.",detail="essential")
                                     if _source_ability:
                                         await self.server.party_combat_broadcast(target_session, f"{_enemy_template['name']} używa: {_source_ability}.", detail="essential")
                                     _source_effect_replaces_attack = False
@@ -322,7 +328,7 @@ class SessionCombatRealtimeMixin:
                                             target_session.current_hp=max(0,target_session.current_hp-int(round(target_session.current_hp*float(_source_effect["current_hp_fraction"]))))
                                             _source_effect_replaces_attack = True
                                         if target_session.current_hp <= 0:
-                                            await target_session.handle_player_defeat(enemy_mob)
+                                            await target_session.die(_enemy_template['name'])
                                             continue
                                     for _summon_tid in superboss_source_summons_v11162(target_session,_enemy_template,enemy_mob,_source_ability):
                                         _summoned=self.server.world._register_runtime_spawn(target_session.character.room_id,_summon_tid)

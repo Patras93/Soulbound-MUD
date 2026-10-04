@@ -6,6 +6,7 @@ v0.47.0: explicit combat architecture; no compatibility-global injection.
 import random
 import time
 
+from world.uoss_superboss_runtime import superboss_healing_blocked_v11179
 from core.classes_skills import CLASS_SKILLS, effective_skill_mana_cost
 from core.progression_600 import SKILL_MAX_LEVEL
 from core.progression_resources import class_type_for_name, skill_power_multiplier
@@ -117,6 +118,10 @@ class SessionCombatSkillsMixin:
                 mob = None
                 aoe_mobs = []
                 if kind == "group_heal":
+                    if superboss_healing_blocked_v11179(self):
+                        await self.send("Nullify Healing blokuje leczenie.")
+                        if self.combat_mob_key: await self.ensure_realtime_combat()
+                        return
                     recipients=self.server.party_sessions(
                         self.account_id,same_room=self.character.room_id
                     ) or [self]
@@ -677,6 +682,8 @@ class SessionCombatSkillsMixin:
                     # rather than inventing seconds.
                     amount=max(1,int(round(max(1,self.effective_willpower())*skill_power*self.character.racial_healing_multiplier()*self.character.class_healing_multiplier())))
                     before=target.current_hp
+                    if superboss_healing_blocked_v11179(target):
+                        amount=0
                     target.current_hp=min(target.max_hp(),target.current_hp+amount)
                     target.active_skill_buffs["priest_regen"]={"name":"Regen","boost":1.0,"until":float("inf"),"source":self.character.name,"beneficial":True,"canonical_status":"regen","regen_power":amount,"source_duration_scales_with_level":True}
                     actual=target.current_hp-before

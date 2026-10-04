@@ -32,21 +32,64 @@ class SessionEquipmentStatsMixin:
     def equipped_item_rows(self):
             return list(self.server.db.equipment(self.account_id))
 
-    def active_soul_weapon_relic_v11176(self):
+    def soul_weapon_relic_rows_v11179(self):
+            level=int(getattr(self.character,"character_level",1) or 1)
             rows=[]
-            for item_id in ITEMS:
-                item=ITEMS.get(item_id,{})
-                if item.get("type")=="soul_weapon_relic" and self.server.db.item_qty(self.account_id,item_id)>0:
-                    rows.append((item_id,item))
+            for item_id,item in ITEMS.items():
+                if item.get("type")!="soul_weapon_relic":
+                    continue
+                if self.server.db.item_qty(self.account_id,item_id)<=0:
+                    continue
+                if int(item.get("required_level",0) or 0)>level:
+                    continue
+                rows.append((item_id,item))
+            return sorted(rows,key=lambda row:(str(row[1].get("name","")).lower(),row[0]))
+
+    def active_soul_weapon_relic_v11176(self):
+            rows=self.soul_weapon_relic_rows_v11179()
             if not rows:
                 return None,None
-            # One relic only: prefer the highest required-level relic the character
-            # can use; stable item id breaks ties. This avoids unsourced stacking.
-            level=int(getattr(self.character,"character_level",1) or 1)
-            usable=[row for row in rows if int(row[1].get("required_level",0) or 0)<=level]
-            if not usable:
-                return None,None
-            return sorted(usable,key=lambda row:(int(row[1].get("required_level",0) or 0),row[0]))[-1]
+            selected=str(getattr(self,"active_soul_weapon_relic_id_v11179","") or "")
+            for row in rows:
+                if row[0]==selected:
+                    return row
+            # Backward-compatible automatic mode: strongest level requirement,
+            # deterministic id tie-break. Never stacks multiple relics.
+            return sorted(rows,key=lambda row:(int(row[1].get("required_level",0) or 0),row[0]))[-1]
+
+    async def handle_soul_weapon_relic_v11179(self, raw=""):
+            rows=self.soul_weapon_relic_rows_v11179()
+            arg=str(raw or "").strip()
+            if not rows:
+                await self.send("Nie masz dostępnego reliktu Broni Duszy.")
+                return
+            if not arg or arg.lower() in ("lista","list","status"):
+                active_id,active=self.active_soul_weapon_relic_v11176()
+                await self.send("Relikty Broni Duszy: "+", ".join(f"{idx}. {item.get('name',item_id)}" for idx,(item_id,item) in enumerate(rows,1))+".")
+                await self.send("Aktywny: "+(active.get("name",active_id) if active else "brak")+". Użycie: relikt wybierz <numer lub nazwa>; relikt auto.")
+                return
+            low=arg.lower()
+            if low in ("auto","automatyczny","automatycznie"):
+                self.active_soul_weapon_relic_id_v11179=None
+                active_id,active=self.active_soul_weapon_relic_v11176()
+                await self.send("Relikt Broni Duszy: tryb automatyczny. Aktywny: "+(active.get("name",active_id) if active else "brak")+".")
+                return
+            if low.startswith("wybierz "):
+                arg=arg.split(maxsplit=1)[1].strip()
+            chosen=None
+            if arg.isdigit() and 1<=int(arg)<=len(rows):
+                chosen=rows[int(arg)-1]
+            else:
+                norm=arg.lower()
+                exact=[row for row in rows if str(row[1].get("name","")).lower()==norm]
+                partial=[row for row in rows if norm in str(row[1].get("name","")).lower()]
+                chosen=(exact or partial or [None])[0]
+            if not chosen:
+                await self.send("Nie znam takiego posiadanego reliktu. Wpisz relikt lista.")
+                return
+            self.active_soul_weapon_relic_id_v11179=chosen[0]
+            await self.send(f"Aktywny relikt Broni Duszy: {chosen[1].get('name',chosen[0])}.")
+
 
     def equipment_bonus_totals(self):
             totals = {

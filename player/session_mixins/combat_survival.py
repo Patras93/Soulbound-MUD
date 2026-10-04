@@ -9,6 +9,12 @@ from events.contracts import PlayerDiedEvent
 
 class SessionCombatSurvivalMixin:
     async def flee(self):
+                if self.combat_mob_key:
+                    _mob=self.server.world.mobs.get(self.combat_mob_key)
+                    _template=MOB_TEMPLATES.get(_mob.template_id,{}) if _mob else {}
+                    if _template.get("uoss_unique_superboss_key")=="serpentarius":
+                        await self.send("Serpentarius zamyka próbę. Nie możesz użyć flee po rozpoczęciu walki.")
+                        return
                 if not self.combat_mob_key:
                     await self.send("Nie jesteś w walce.")
                     return

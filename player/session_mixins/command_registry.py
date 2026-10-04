@@ -60,6 +60,8 @@ COMMAND_REGISTRY = {
     'lootfilter': ('set_loot_filter', (COMMAND_TEXT,), {}),
     'combatlog': ('set_combat_log', (COMMAND_TEXT,), {}),
     'aoe': ('handle_aoe_setting_v11120', (COMMAND_TEXT,), {}),
+    'relic': ('handle_soul_weapon_relic_v11179', (COMMAND_TEXT,), {}),
+    'relikt': ('handle_soul_weapon_relic_v11179', (COMMAND_TEXT,), {}),
     'look': ('look', (COMMAND_TEXT,), {}),
     'corpse': ('show_corpses', (COMMAND_TEXT,), {}),
     'lootcorpse': ('loot_corpse', (COMMAND_TEXT,), {}),

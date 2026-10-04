@@ -179,60 +179,14 @@ def superboss_helper_profile_v11137(session, template):
 
 
 def superboss_phase_v11137(template, mob):
-    key = superboss_key_from_template_v11135(template)
-    if not key:
-        return None
-    max_hp = max(1, int(template.get("max_hp", 1)))
-    pct = max(0.0, min(1.0, float(mob.hp) / max_hp))
-    if pct <= 0.25:
-        return 3
-    if pct <= 0.60:
-        return 2
-    return 1
-
+    return None
 
 def superboss_counterattack_multiplier_v11137(template, mob):
-    phase = superboss_phase_v11137(template, mob)
-    if phase is None:
-        return 1.0, ""
-    key = superboss_key_from_template_v11135(template)
-    if key == "spekkio":
-        return 1.0, "Spekkio dopasowuje siłę do przeciwnika."
-    # Phase identity/text is source-backed, but no universal numeric
-    # phase multiplier is. Do not impose fabricated +25%/+55% damage.
-    if phase == 3:
-        return 1.0, "Faza 3: desperacki atak Super Bossa."
-    if phase == 2:
-        return 1.0, "Faza 2: Super Boss zwiększa napór."
-    return 1.0, "Faza 1."
+    return 1.0, ""
 
-
-SUPERBOSS_PHASE_TEXT_V11138 = {
- "asterisks":("Job Shift","Limit Break","Heroes' Finale"),
- "dad":("MAGI Guard","Guardian Pulse","Final Safeguard"),
- "diabolos":("Dream Veil","Nightmare Gravity","Dark Dream"),
- "harle":("Jester Step","Dimensional Trick","Frozen Flame"),
- "culex":("Crystal Guard","Elemental Crystal","Final Dimension"),
- "ruby_weapon":("Desert Armor","Tentacle Assault","Ruby Rage"),
- "emerald_weapon":("Abyss Pressure","Emerald Beam","Ocean Doom"),
- "ozma":("Sphere Shift","Curse Cycle","Meteor Storm"),
- "four_fiends":("Fiend Cycle","Elemental Reversal","Fourfold Finale"),
- "grahf":("Fist of Contact","Power of Id","Alpha Weltall"),
- "hades":("Forge of Hades","Underworld Craft","Masterwork Doom"),
- "lunar_trial":("Lunar Eidolon","Moon Trial","Lunar Judgment"),
- "elementals":("Mana Spirit","Element Shift","Mana Convergence"),
- "gilgamesh":("Weapon Draw","Legendary Arsenal","Big Bridge Finale"),
- "war_machines":("Twin Systems","Crossfire","Overdrive"),
- "black_rabite":("Corrupted Mana","Dark Pounce","Rabite Frenzy"),
- "serpentarius":("Zodiac Seal","Thirteenth Sign","Deep Dungeon Judgment"),
- "odin":("Sleipnir Charge","Gungnir","Zantetsuken"),
- "yiazmat":("Holy Dragon","Godslayer Trial","Cyclone"),
- "sephiroth":("Masamune","One-Winged Angel","Supernova"),
- "spekkio":("Mirror Strength","Master of War","Perfect Mirror"),
-}
+SUPERBOSS_PHASE_TEXT_V11138 = {}
 
 def superboss_phase_event_v11138(session, template, mob):
-    """Legacy hook retained for callers; no fabricated phase thresholds/text."""
     return None
 
 def superboss_incoming_multiplier_v11138(session, template, mob):
@@ -483,3 +437,31 @@ def superboss_clear_source_statuses_v11176(session):
     active=getattr(session,"uoss_source_statuses_v11173",None)
     if isinstance(active,set):
         active.clear()
+
+
+def superboss_source_timed_effect_v11179(session, template, ability_name):
+    """Exact duration-only effects; no invented damage/cadence."""
+    key=superboss_key_from_template_v11135(template)
+    name=str(ability_name or "")
+    if key=="serpentarius" and name=="Nullify Healing":
+        session.uoss_nullify_healing_rounds_v11179=3
+        return {"effect":"nullify_healing","rounds":3}
+    if key=="serpentarius" and name=="Necrotic Energy":
+        # Source says a specified attribute is reduced for eight rounds but the
+        # supplied data does not identify a universal amount/attribute choice.
+        session.uoss_necrotic_energy_rounds_v11179=8
+        return {"effect":"necrotic_energy","rounds":8}
+    return None
+
+def superboss_advance_timed_effects_v11179(session):
+    ended=[]
+    for attr,label in (("uoss_nullify_healing_rounds_v11179","Nullify Healing"),("uoss_necrotic_energy_rounds_v11179","Necrotic Energy")):
+        left=int(getattr(session,attr,0) or 0)
+        if left>0:
+            left-=1
+            setattr(session,attr,left)
+            if left==0: ended.append(label)
+    return tuple(ended)
+
+def superboss_healing_blocked_v11179(session):
+    return int(getattr(session,"uoss_nullify_healing_rounds_v11179",0) or 0)>0
