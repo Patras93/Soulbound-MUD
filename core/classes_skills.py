@@ -1379,8 +1379,8 @@ ENDGAME_CLASS_SKILLS = {
             "aliases": ["piesc duszy", "pięść duszy", "soul fist"],
             "natural_tags": ["piesc", "fist", "atak"],
             "unlock": 100, "kind": "damage", "cooldown": 6, "mana": 0,
-            "desc": "Skoncentrowane uderzenie skalowane Siłą.",
-            "scale": "strength", "mult": 2.05,
+            "desc": "Skoncentrowane uderzenie skalowane Zręcznością.",
+            "scale": "dexterity", "mult": 2.05,
         },
         {
             "id": "monk_master_meditation",
@@ -1397,8 +1397,8 @@ ENDGAME_CLASS_SKILLS = {
             "aliases": ["smocza seria", "dragon combo"],
             "natural_tags": ["seria", "combo", "smok", "atak"],
             "unlock": 180, "kind": "damage", "cooldown": 10, "mana": 0,
-            "desc": "Szybka seria ciosów o wysokiej sile.",
-            "scale": "strength", "mult": 2.50,
+            "desc": "Szybka seria ciosów skalowana Zręcznością.",
+            "scale": "dexterity", "mult": 2.50,
         },
         {
             "id": "monk_enlightened_strike",
@@ -1406,8 +1406,8 @@ ENDGAME_CLASS_SKILLS = {
             "aliases": ["cios oswiecenia", "cios oświecenia", "enlightened strike"],
             "natural_tags": ["cios", "oswiecenie", "dobij", "egzekucja"],
             "unlock": 200, "kind": "execute", "cooldown": 15, "mana": 0,
-            "desc": "Ostateczny cios Mnicha, silniejszy na osłabionym przeciwniku.",
-            "scale": "strength", "mult": 2.45, "execute_mult": 1.90,
+            "desc": "Ostateczny cios Mnicha skalowany Zręcznością, silniejszy na osłabionym przeciwniku.",
+            "scale": "dexterity", "mult": 2.45, "execute_mult": 1.90,
         },
     ],
     "Strażnik": [
@@ -2820,6 +2820,84 @@ SKILL_COOLDOWN_AUDIT_V11140=_skill_cooldown_audit_v11140()
 if SKILL_COOLDOWN_AUDIT_V11140["error_count"]:
     raise RuntimeError("Global Skill Cooldown Audit v1.11.40 failed: "+
                        "; ".join(SKILL_COOLDOWN_AUDIT_V11140["errors"][:50]))
+
+
+# v1.11.96: every class must remain capable of late-game combat through its
+# own stat identity. Character Level is not a substitute for trained stats.
+_ENDGAME_OFFENSIVE_KINDS_V11196 = {"damage", "aoe_damage", "execute", "drain"}
+_CLASS_OFFENSIVE_SCALES_V11196 = {
+    "Wojownik": {"strength"},
+    "Berserker": {"strength"},
+    "Łotrzyk": {"dexterity"},
+    "Łowca": {"dexterity"},
+    "Mnich": {"dexterity"},
+    "Strażnik": {"strength"},
+    "Mag": {"intelligence"},
+    "Nekromanta": {"intelligence"},
+    "Kapłan": {"intelligence"},
+    "Czarownik": {"intelligence"},
+    "Druid": {"intelligence"},
+    "Psionik": {"intelligence"},
+    # Mec intentionally supports all five combat branches.
+    "Mec": {"strength", "dexterity", "intelligence", "willpower", "constitution"},
+    "Inżynier": {"dexterity"},
+}
+
+
+def _all_class_endgame_damage_audit_v11196():
+    errors = []
+    report = {}
+    endgame_unlock = min(180, CLASS_MASTERY_MAX_LEVEL)
+    for class_name, allowed_scales in _CLASS_OFFENSIVE_SCALES_V11196.items():
+        skills = tuple(CLASS_SKILLS.get(class_name, ()))
+        offensive = [
+            skill for skill in skills
+            if str(skill.get("kind", "")) in _ENDGAME_OFFENSIVE_KINDS_V11196
+        ]
+        endgame = [
+            skill for skill in offensive
+            if int(skill.get("unlock", 1) or 1) >= endgame_unlock
+        ]
+        if not offensive:
+            errors.append(f"{class_name}: brak ofensywnych umiejętności")
+        if not endgame:
+            errors.append(
+                f"{class_name}: brak ofensywnej umiejętności endgame od Biegłości {endgame_unlock}"
+            )
+        bad = []
+        for skill in offensive:
+            scale = str(skill.get("scale", "") or "").strip().lower()
+            if not scale:
+                bad.append(f"{skill.get('name', skill.get('id', '?'))}: brak scale")
+                continue
+            if scale not in allowed_scales:
+                bad.append(
+                    f"{skill.get('name', skill.get('id', '?'))}: scale={scale}, "
+                    f"dozwolone={sorted(allowed_scales)}"
+                )
+        if bad:
+            errors.extend(f"{class_name}: {row}" for row in bad)
+        report[class_name] = {
+            "offensive": len(offensive),
+            "endgame": len(endgame),
+            "allowed_scales": tuple(sorted(allowed_scales)),
+            "top_unlock": max((int(skill.get("unlock", 1) or 1) for skill in offensive), default=0),
+        }
+    return {
+        "version": "1.11.96",
+        "classes": len(_CLASS_OFFENSIVE_SCALES_V11196),
+        "report": report,
+        "error_count": len(errors),
+        "errors": errors,
+    }
+
+
+ALL_CLASS_ENDGAME_DAMAGE_AUDIT_V11196 = _all_class_endgame_damage_audit_v11196()
+if ALL_CLASS_ENDGAME_DAMAGE_AUDIT_V11196["error_count"]:
+    raise RuntimeError(
+        "All Class Endgame Damage Audit v1.11.96 failed: "
+        + "; ".join(ALL_CLASS_ENDGAME_DAMAGE_AUDIT_V11196["errors"][:80])
+    )
 
 NATURAL_SKILL_INTENTS = {
     "heal": {"kinds": {"heal"}},
