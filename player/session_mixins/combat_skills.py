@@ -923,7 +923,7 @@ class SessionCombatSkillsMixin:
                     self_damage += max(1, int(self.max_hp() * skill["self_damage_pct"]))
                 if self_damage:
                     self.current_hp -= self_damage
-                    if skill.get("mec_branch")=="feedback":
+                    if skill.get("mec_branch")=="feedback" or skill.get("feedback_damage"):
                         self.queue_mec_feedback_repair_v11154(self_damage)
                     await self.send(
                         f"Koszt umiejętności: tracisz {self_damage} HP. "
