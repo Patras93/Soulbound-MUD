@@ -1280,6 +1280,7 @@ CLASS_EQUIPMENT_STYLES = {
 CLASS_EQUIPMENT_SLOT_DEFS = {
     "head": ("Hełm", 1, 90),
     "body": ("Pancerz", 3, 160),
+    "shield": ("Tarcza", 2, 145),
     "hands": ("Rękawice", 0, 80),
     "legs": ("Nogawice", 2, 130),
     "feet": ("Buty", 0, 80),
@@ -1398,6 +1399,7 @@ CLASS_EQUIPMENT_CLASS_PROFILES = {
 CLASS_EQUIPMENT_SLOT_PRIMARY_BIAS = {
     "head": -0.01,
     "body": -0.09,
+    "shield": -0.10,
     "hands": 0.09,
     "legs": -0.07,
     "feet": 0.02,
@@ -1413,7 +1415,7 @@ CLASS_EQUIPMENT_SLOT_PRIMARY_BIAS = {
 }
 
 CLASS_EQUIPMENT_SLOT_PROPERTY_SCALE = {
-    "head": 1.00, "body": 1.15, "hands": 0.95, "legs": 1.10,
+    "head": 1.00, "body": 1.15, "shield": 1.10, "hands": 0.95, "legs": 1.10,
     "feet": 0.90, "charm": 0.85, "ring": 0.85, "necklace": 1.00, "earring": 0.82,
     "shoulders": 1.08, "belt": 1.05, "cloak": 0.92, "bracers": 0.95, "relic": 1.20,
 }
