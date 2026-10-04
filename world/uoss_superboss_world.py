@@ -65,27 +65,18 @@ for idx,key in enumerate(_ORDER,1):
     _prev=rid
 
 
-# Canonical source-named encounter rooms. Surrounding source continents are not
-# yet present in Soulbound, so these form a dedicated branch of the world.
+# Source location names remain encounter metadata, but Soulbound does not create
+# duplicate foreign cities/continents or a second chain of source-only rooms.
+# Source-backed bosses use the existing Soulbound superboss arenas.
 _SOURCE_ROOMS_V11160 = {
- "black_rabite":("uoss_rabite_field_v11160","Rabite Field"),
- "culex":("uoss_star_field_v11160","Star Field"),
- "emerald_weapon":("uoss_sea_floor_v11160","On the Sea Floor"),
- "ruby_weapon":("uoss_corel_prison_back_v11160","Back of Corel Prison"),
- "serpentarius":("uoss_deep_dungeon_v11160","Deep Dungeon"),
- "yiazmat":("uoss_ridorana_colosseum_v11160","Ridorana Cataract Colosseum"),
- "odin":("uoss_misty_forest_clearing_v11160","A Clearing in a Misty Forest"),
+ "black_rabite":("uoss_superboss_arena_black_rabite_v11136","Rabite Field"),
+ "culex":("uoss_superboss_arena_culex_v11136","Star Field"),
+ "emerald_weapon":("uoss_superboss_arena_emerald_weapon_v11136","On the Sea Floor"),
+ "ruby_weapon":("uoss_superboss_arena_ruby_weapon_v11136","Back of Corel Prison"),
+ "serpentarius":("uoss_superboss_arena_serpentarius_v11136","Deep Dungeon"),
+ "yiazmat":("uoss_superboss_arena_yiazmat_v11136","Ridorana Cataract Colosseum"),
+ "odin":("uoss_superboss_arena_odin_v11136","A Clearing in a Misty Forest"),
 }
-_source_prev=HUB
-for _key,(_rid,_name) in _SOURCE_ROOMS_V11160.items():
-    _spec=UOSS_SUPERBOSS_ENCOUNTERS_V11134[_key]
-    ROOMS.setdefault(_rid,{
-        "zone":"Super Bossowie UOSSMUD","name":_name,
-        "desc":f"Źródłowa lokacja wyzwania {_spec['name']}.",
-        "exits":{"back":_source_prev},"uoss_superboss_key":_key,"uoss_source_location":True,
-    })
-    ROOMS.setdefault(_source_prev,{}).setdefault("exits",{}).setdefault("source",_rid)
-    _source_prev=_rid
 
 # Exact summoned/companion combatants belonging to sourced encounters.
 _SOURCE_ADDS_V11156 = {
