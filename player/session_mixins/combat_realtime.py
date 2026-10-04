@@ -352,6 +352,25 @@ class SessionCombatRealtimeMixin:
                                     or enemy_mob.room_id != self.character.room_id
                                 ):
                                     break
+                                _sonata_rounds=max(
+                                    0,int(getattr(enemy_mob,"v11196_mec_sonata_rounds",0) or 0)
+                                )
+                                _sonata_power_mult=(
+                                    max(
+                                        0.01,min(
+                                            1.0,
+                                            float(
+                                                getattr(
+                                                    enemy_mob,
+                                                    "v11196_mec_sonata_power_mult",
+                                                    1.0,
+                                                )
+                                                or 1.0
+                                            ),
+                                        )
+                                    )
+                                    if _sonata_rounds>0 else 1.0
+                                )
                                 _party_targets = self.server.party_combat_targets(self, enemy_mob)
                                 # One mob action attacks the whole living local party.
                                 # The existing realtime loop owner remains the sole
@@ -425,6 +444,7 @@ class SessionCombatRealtimeMixin:
                                         target_session, _enemy_template, enemy_mob
                                     )
                                     _uoss_mult *= superboss_source_attack_multiplier_v11162(_enemy_template,_source_ability)
+                                    _uoss_mult *= _sonata_power_mult
                                     await self.server.party_combat_broadcast(
                                         target_session,
                                         f"{_enemy_template['name']} atakuje {target_session.character.name}."
@@ -444,6 +464,18 @@ class SessionCombatRealtimeMixin:
                                             _enemy_template["damage"] = _old_damage
                                     else:
                                         await target_session.enemy_counterattack(enemy_mob)
+
+                                if _sonata_rounds>0:
+                                    _sonata_rounds=max(0,_sonata_rounds-1)
+                                    enemy_mob.v11196_mec_sonata_rounds=_sonata_rounds
+                                    if _sonata_rounds<=0:
+                                        enemy_mob.v11196_mec_sonata_power_mult=1.0
+                                        await self.server.party_combat_broadcast(
+                                            self,
+                                            f"{MOB_TEMPLATES[enemy_mob.template_id]['name']}: "
+                                            "kończy się obniżenie poziomowej mocy z Mec Sonata.",
+                                            detail="normal",
+                                        )
 
                             next_enemy = time.monotonic() + self.combat_enemy_interval
                             if self.current_hp <= 0:
