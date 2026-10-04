@@ -508,6 +508,13 @@ class SessionCombatRealtimeMixin:
                                     for _ended in superboss_advance_timed_effects_v11179(target_session):
                                         await self.server.party_combat_broadcast(target_session,f"{target_session.character.name}: kończy się efekt {_ended}.",detail="essential")
                                     _source_ability = superboss_source_ability_v11162(_enemy_template, enemy_mob)
+                                    if await target_session.mec_intercept_incoming_attack_v11196(
+                                        enemy_mob
+                                    ):
+                                        # Intercept cancels the complete incoming
+                                        # attack action, including sourced special
+                                        # damage/status/summon handling below.
+                                        continue
                                     if (
                                         _source_ability
                                         and _logic_active
