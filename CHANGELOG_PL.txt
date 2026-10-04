@@ -1,5 +1,21 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.11.82
+Aktualna paczka: v1.11.83
+
+==============================================================================
+Soulbound v1.11.83 — domknięcie runtime UOSS / party / Board
+==============================================================================
+
+- Party: automatyczne dołączenie lokalnej drużyny pozostaje, a pojedyncza akcja moba obejmuje teraz całą żywą drużynę w lokacji. Aktywny Strażnik-protector nadal może przejąć atak.
+- Soul Weapon relic: ręczny wybór reliktu jest trwały między sesjami; relikt auto usuwa zapis wyboru.
+- Zantetsuken: fizyczny zwykły atak pozostaje dokładnie 0 także po bonusach bossa, helpera, obronie i Echo.
+- Serpentarius Nullify Healing blokuje również lifesteal Broni Duszy i regenerację HP z odpoczynku; timed markers są czyszczone po walce.
+- Emerald: dodano dokładny kontrakt Red Eye -> Emerald Torpedo na jawnym triggerze; Torpedo zachowuje eksplozję/despawn w trzeciej rundzie bez wymyślonego damage.
+- Helperzy: zapisano dokładne utility Popoi Faerie Walnut 20% MP i Primm Bubble +50% Max HP bez wymyślonej cadence/duration.
+- Junk Parts dodany jako Board: bez statystyk, po założeniu dopisuje do opisu pomieszczenia postaci "is malfunctioning!".
+- Memory Board dodany jako Board z opisowym źródłowym efektem AP; Soulbound nie przywraca obcego Job/AP tylko po to, by go uruchomić.
+- Moogle Board pozostaje Cyborg-only dropem Black Rabite i zachowuje dotychczasowe skalowanie.
+- Brakujące obrażenia/cadence źródłowych umiejętności pozostają niewymyślone.
+- Brak wipe'a save'ów.
 
 ==============================================================================
 Soulbound v1.11.82 — Moogle Board Cyborg drop
