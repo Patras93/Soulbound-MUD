@@ -92,6 +92,8 @@ class SessionCombatSkillsMixin:
                     )
                     return
                 mana_cost = effective_skill_mana_cost(skill, skill_class)
+                if mana_cost > 0:
+                    mana_cost = int(round(mana_cost * self.equipment_mp_cost_multiplier_v11176()))
                 if mana_cost > self.current_mana:
                     await self.send(
                         f"Za mało Many. {skill['name']} wymaga {mana_cost}, a masz {self.current_mana}."
