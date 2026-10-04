@@ -2326,52 +2326,6 @@ def _v0310_build_tech_class_skills():
 
 _v0310_build_tech_class_skills()
 
-# v1.11.56: Generic external job-ability registry.
-# These entries preserve source job metadata without pretending Soulbound already
-# has a complete AP/Job Level progression subsystem.
-JOB_ABILITIES = {
-    "trainer_auto_permanence": {
-        "id": "trainer_auto_permanence",
-        "name": "Auto-Permanence",
-        "aliases": ["auto permanence", "auto-permanence", "autopermanence"],
-        "kind": "passive",
-        "job_name": "Trainer",
-        "job_role": "inherent",
-        "job_level": 15,
-        "source_base_ap": 1000,
-        "usage": "automatic",
-        "mec_special": "auto_permanence",
-        "learned": False,
-        "desc": (
-            "Trainer inherent. Automatic Permanence: beneficial effects cannot "
-            "be dispelled by enemies while this inherent is selected."
-        ),
-    },
-}
-
-def job_ability_contract_audit_v11156():
-    errors=[]
-    auto=JOB_ABILITIES.get("trainer_auto_permanence")
-    if not auto:
-        errors.append("missing:trainer_auto_permanence")
-    else:
-        expected={
-            "job_name":"Trainer","job_role":"inherent","job_level":15,
-            "source_base_ap":1000,"usage":"automatic",
-        }
-        for key,value in expected.items():
-            if auto.get(key)!=value:
-                errors.append(f"trainer_auto_permanence:{key}={auto.get(key)!r} expected={value!r}")
-    return {"version":"1.11.56","checked":1,"errors":errors,"error_count":len(errors)}
-
-JOB_ABILITY_CONTRACT_AUDIT_V11156=job_ability_contract_audit_v11156()
-if JOB_ABILITY_CONTRACT_AUDIT_V11156["error_count"]:
-    raise RuntimeError(
-        "Job Ability Contract Audit v1.11.56 failed: "
-        + "; ".join(JOB_ABILITY_CONTRACT_AUDIT_V11156["errors"])
-    )
-
-
 # v0.31.9: Full authored Mec kit based on the user-provided UOSSMUD ability list.
 # Soulbound does NOT use AP. Source Base AP is stored only as internal base_power.
 def _v0319_install_full_mec_kit():
