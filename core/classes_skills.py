@@ -2363,7 +2363,7 @@ def _v0319_install_full_mec_kit():
         # Melee
         ("Hammer Crush",1,"damage",200,"melee","hammer_crush","Attack-based heavy smash against one enemy. Carries the active Soul Weapon element and uses the Mec melee Soul Weapon role."),
         ("Shock Soldier",14,"aoe_damage",600,"melee","shock_soldier","Attack-based melee barrage against all enemies with diminishing damage. Carries the active Soul Weapon element and uses the Mec melee Soul Weapon role."),
-        ("Plural Slash",32,"damage",900,"melee","plural_slash","Multiple slashes on one enemy. Scales especially with Dexterity."),
+        ("Plural Slash",32,"damage",900,"melee","plural_slash","Attack-led multi-slash against one enemy. Agility/DEX adds a smaller damage contribution to every slash even for strength-oriented melee builds. Carries the active Soul Weapon element."),
         ("Pop Knight",46,"aoe_damage",1500,"melee","pop_knight","Non-diminishing attack on all enemies. Uses the Mec's single Soul Weapon, carries its elements, and deals extra damage to Flying enemies."),
         ("Tiger Rampage",80,"damage",1800,"melee","tiger_rampage","Powerful single-target attack that lowers Defense."),
         ("Cosmic Rave",110,"aoe_damage",2000,"melee","cosmic_rave","Hits all enemies with diminishing damage; during V-MAX targets random enemies instead. Attack is the primary influence and Agility provides a lesser secondary damage contribution."),
@@ -2588,6 +2588,22 @@ def _v0319_install_full_mec_kit():
                 "single_soul_weapon":True,
             })
         if special=="cosmic_rave": row.update({"aoe_diminishing":True,"vmax_random_enemies":True,"agility_secondary_influence":True,"carries_soul_weapon_elements":True,"single_soul_weapon":True})
+        if special=="plural_slash":
+            row.update({
+                "scale":"attack",
+                "secondary_scale":"dexterity",
+                "source_stat_influence":["attack","agility"],
+                "source_properties":["carries_elements"],
+                "target_mode":"one_enemy",
+                "multi_slash":True,
+                "multi_hit_count_source_defined":False,
+                "agility_secondary_influence":True,
+                "secondary_numeric_weight_source_defined":False,
+                "carries_soul_weapon_elements":True,
+                "requires_soul_weapon":"melee",
+                "single_soul_weapon":True,
+                "balance_model":"attack_primary_plus_global_secondary_dex35pct",
+            })
         if special=="shock_soldier":
             row.update({
                 "scale":"attack",
@@ -3023,6 +3039,31 @@ def _mec_contract_audit_v11149():
             errors.append("intercept_system: numeric Skill Level curve must remain marked unsourced")
         if bool(intercept.get("counter_trigger_chance_source_defined")):
             errors.append("intercept_system: no source trigger chance may be invented")
+
+    plural_slash=rows.get("plural_slash")
+    if plural_slash:
+        if str(plural_slash.get("scale"))!="attack":
+            errors.append("plural_slash: primary scale must be Attack")
+        if str(plural_slash.get("secondary_scale"))!="dexterity":
+            errors.append("plural_slash: Agility must map to Dexterity")
+        if list(plural_slash.get("source_stat_influence") or [])!=["attack","agility"]:
+            errors.append("plural_slash: source influence must be Attack + Agility")
+        if list(plural_slash.get("source_properties") or [])!=["carries_elements"]:
+            errors.append("plural_slash: source Properties must be Carries Elements")
+        if str(plural_slash.get("target_mode"))!="one_enemy":
+            errors.append("plural_slash: target mode must be One Enemy")
+        if not bool(plural_slash.get("multi_slash")):
+            errors.append("plural_slash: multi-slash identity missing")
+        if bool(plural_slash.get("multi_hit_count_source_defined")):
+            errors.append("plural_slash: hit count must remain marked unsourced")
+        if not bool(plural_slash.get("agility_secondary_influence")):
+            errors.append("plural_slash: Agility secondary influence missing")
+        if bool(plural_slash.get("secondary_numeric_weight_source_defined")):
+            errors.append("plural_slash: Agility numeric weight must remain marked unsourced")
+        if not bool(plural_slash.get("carries_soul_weapon_elements")):
+            errors.append("plural_slash: must carry Soul Weapon elements")
+        if str(plural_slash.get("requires_soul_weapon"))!="melee":
+            errors.append("plural_slash: melee weapon requirement must map to Soul Weapon")
 
     shock_soldier=rows.get("shock_soldier")
     if shock_soldier:
