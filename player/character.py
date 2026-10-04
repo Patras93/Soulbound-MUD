@@ -782,12 +782,26 @@ class Character:
         if state is True:
             return True
         if isinstance(state, dict):
-            return bool(state.get("completed"))
+            if state.get("ever_completed") or state.get("completed"):
+                return True
+            quests = state.get("quests")
+            if isinstance(quests, dict):
+                return any(
+                    bool(value.get("completed"))
+                    for value in quests.values()
+                    if isinstance(value, dict)
+                )
         return False
 
     def mark_guild_class_quest_done(self, class_name):
         data = self._guild_json("guild_class_quests_json")
-        data[class_name] = True
+        state = data.get(class_name)
+        if isinstance(state, dict):
+            state = dict(state)
+            state["ever_completed"] = True
+            data[class_name] = state
+        else:
+            data[class_name] = {"ever_completed": True}
         self._set_guild_json("guild_class_quests_json", data)
 
     def guild_bounty_state(self):
