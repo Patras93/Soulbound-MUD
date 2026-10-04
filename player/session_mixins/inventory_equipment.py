@@ -414,6 +414,14 @@ class SessionInventoryEquipmentMixin:
                     extra += " Re-raise: jednorazowy; przedmiot znika po aktywacji."
                 if item and item.get("source_effects"):
                     extra += " Efekty źródłowe: " + ", ".join(map(str,item.get("source_effects") or ())) + "."
+                if item:
+                    _flat = []
+                    for _key, _label in (("attack","Attack"),("magic_attack","Magic Attack"),("magic_defense","Magic Defense"),("weapon_power","Weapon Power")):
+                        _value = int(item.get(_key, 0) or 0)
+                        if _value:
+                            _flat.append(f"{_label} +{_value}")
+                    if _flat:
+                        extra += " Power: " + ", ".join(_flat) + "."
                 if item and item.get("stats"):
                     fixed_stats = ", ".join(
                         f"{CLASS_SET_STAT_NAMES.get(stat, stat)} +{amount}"
