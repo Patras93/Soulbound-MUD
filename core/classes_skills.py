@@ -2368,7 +2368,7 @@ def _v0319_install_full_mec_kit():
         ("Tiger Rampage",80,"damage",1800,"melee","tiger_rampage","Powerful single-target attack that lowers Defense."),
         ("Cosmic Rave",110,"aoe_damage",2000,"melee","cosmic_rave","Hits all enemies with diminishing damage; during V-MAX targets random enemies instead. Attack is the primary influence and Agility provides a lesser secondary damage contribution."),
         # Ranged
-        ("Crosshair",1,"damage",200,"ranged","crosshair","Precise shot; benefits strongly from critical chance."),
+        ("Crosshair",1,"damage",200,"ranged","crosshair","One-enemy ranged attack influenced by Attack and Critical Hit Chance. It attempts to deliver a critical hit and carries the active Soul Weapon element."),
         ("Range Fire",8,"aoe_damage",500,"ranged","range_fire","Bullets hit all enemies; non-diminishing area attack."),
         ("Dispose",32,"aoe_damage",1000,"ranged","dispose","Heavy-duty lasers hit all enemies at full AoE power and cause Feedback damage."),
         ("Satellite Linker",44,"damage",1200,"ranged","satellite_linker","Laser bits hover around one enemy and repeatedly deal minor damage for a short period. Attack and Wisdom influence damage; higher Skill Level makes the bits operate longer."),
@@ -2581,7 +2581,19 @@ def _v0319_install_full_mec_kit():
         if special=="shock_soldier": row.update({"aoe_diminishing":True,"carries_soul_weapon_elements":True,"single_soul_weapon":True})
         if special=="range_fire": row.update({"aoe_non_diminishing":True,"carries_soul_weapon_elements":True,"single_soul_weapon":True})
         if special=="dispose": row.update({"aoe_non_diminishing":True,"carries_soul_weapon_elements":True,"feedback_damage":True,"feedback_cost_source_defined":False,"single_soul_weapon":True})
-        if special=="crosshair": row.update({"critical_chance_influence":True,"attempts_critical":True,"carries_soul_weapon_elements":True,"single_soul_weapon":True})
+        if special=="crosshair":
+            row.update({
+                "scale":"attack",
+                "source_stat_influence":["attack","critical_hit_chance"],
+                "source_properties":["carries_elements"],
+                "target_mode":"one_enemy",
+                "critical_chance_influence":True,
+                "attempts_critical":True,
+                "critical_model":"character_critical_hit_chance",
+                "carries_soul_weapon_elements":True,
+                "requires_soul_weapon":"ranged",
+                "single_soul_weapon":True,
+            })
         if special=="magnify":
             row.update({
                 "scale":"attack",
@@ -2963,6 +2975,29 @@ def _mec_contract_audit_v11149():
             errors.append("intercept_system: numeric Skill Level curve must remain marked unsourced")
         if bool(intercept.get("counter_trigger_chance_source_defined")):
             errors.append("intercept_system: no source trigger chance may be invented")
+
+    crosshair=rows.get("crosshair")
+    if crosshair:
+        if str(crosshair.get("scale"))!="attack":
+            errors.append("crosshair: primary scale must be Attack")
+        if list(crosshair.get("source_stat_influence") or [])!=[
+            "attack","critical_hit_chance"
+        ]:
+            errors.append("crosshair: source influence must be Attack + Critical Hit Chance")
+        if list(crosshair.get("source_properties") or [])!=["carries_elements"]:
+            errors.append("crosshair: source Properties must be Carries Elements")
+        if str(crosshair.get("target_mode"))!="one_enemy":
+            errors.append("crosshair: target mode must be One Enemy")
+        if not bool(crosshair.get("critical_chance_influence")):
+            errors.append("crosshair: Critical Hit Chance influence missing")
+        if not bool(crosshair.get("attempts_critical")):
+            errors.append("crosshair: critical attempt contract missing")
+        if str(crosshair.get("critical_model"))!="character_critical_hit_chance":
+            errors.append("crosshair: must roll the character's real Critical Hit Chance")
+        if not bool(crosshair.get("carries_soul_weapon_elements")):
+            errors.append("crosshair: must carry Soul Weapon elements")
+        if str(crosshair.get("requires_soul_weapon"))!="ranged":
+            errors.append("crosshair: ranged weapon requirement must map to Soul Weapon")
 
     logic_bomb=rows.get("logic_bomb")
     if logic_bomb:
