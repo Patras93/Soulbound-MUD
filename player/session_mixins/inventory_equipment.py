@@ -1697,6 +1697,22 @@ class SessionInventoryEquipmentMixin:
                     + ", ".join(ITEMS[g]["name"] for g in returned_gems) + "."
                 )
 
+    def consumable_resource_restore_v11196(self, flat_amount, maximum):
+            """Late-game-safe HP/MP consumable restoration.
+
+            Existing flat values remain the early-game minimum. At large HP/MP
+            pools the same item also restores a share proportional to its authored
+            flat strength: flat/3500 of the relevant maximum resource. There is no
+            maximum-resource ceiling, so consumables do not become irrelevant as
+            Constitution/INT/WILL continue growing.
+            """
+            flat=max(0,int(flat_amount or 0))
+            maximum=max(0,int(maximum or 0))
+            if flat<=0 or maximum<=0:
+                return 0
+            scaled=int(round(maximum*(flat/3500.0)))
+            return max(flat,scaled)
+
     def find_consumable_for_use(self, query):
             q = self.normalize_description_query(query)
             if not q:
@@ -1894,13 +1910,19 @@ class SessionInventoryEquipmentMixin:
 
                 if can_restore_hp:
                     healed = min(
-                        item.get("heal", 0), missing_hp
+                        self.consumable_resource_restore_v11196(
+                            item.get("heal", 0), max_hp
+                        ),
+                        missing_hp,
                     )
                     self.current_hp += healed
 
                 if can_restore_mana:
                     restored_mana = min(
-                        item.get("mana", 0), missing_mana
+                        self.consumable_resource_restore_v11196(
+                            item.get("mana", 0), max_mana
+                        ),
+                        missing_mana,
                     )
                     self.current_mana += restored_mana
 
