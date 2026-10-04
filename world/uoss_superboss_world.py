@@ -187,31 +187,40 @@ if "uoss_helper_montblanc" in NPCS:
 # Token exchange points. The generic shop UI can expose the pools; prices are
 # token metadata because these currencies are items, not silver/gold.
 
-# Source service locations used by known reward exchanges.
-ROOMS.setdefault("uoss_dwarf_village_v11160",{"zone":"UOSSMUD","name":"Dwarf Village","desc":"Dwarf Village.","exits":{"armory":"uoss_dwarven_armory_v11160"}})
-ROOMS.setdefault("uoss_dwarven_armory_v11160",{"zone":"UOSSMUD","name":"Dwarven Armory","desc":"Kuźnia i zbrojownia Wattsa.","exits":{"out":"uoss_dwarf_village_v11160"}})
-ROOMS.setdefault("uoss_elsendor_v11160",{"zone":"UOSSMUD","name":"Elsendor","desc":"Elsendor.","exits":{"fur":"uoss_elsendor_fur_shop_v11160"}})
-ROOMS.setdefault("uoss_elsendor_fur_shop_v11160",{"zone":"UOSSMUD","name":"Fur Shop","desc":"Fur Shop w Elsendor.","exits":{"out":"uoss_elsendor_v11160"}})
-
+# Soulbound adaptation: source reward shops live in existing Soulbound locations.
+# We preserve source currencies/catalogs without creating foreign cities only to host vendors.
 NPCS.setdefault("uoss_watts",{
-    "name":"Watts","room":"uoss_dwarven_armory_v11160",
+    "name":"Watts","room":"forge",
     "dialogue":"Wymieniam Moogle Steel na relikty Black Rabite.","shopkeeper":True,
     "uoss_token_shop":"uoss_moogle_steel",
 })
+NPCS.setdefault("uoss_culex_fur_trader",{
+    "name":"Kupiec nagród Culexa","room":"market",
+    "dialogue":"Wymieniam Quartz Chunk i złoto na nagrody Culexa.","shopkeeper":True,
+    "uoss_token_shop":"quartz_chunk",
+})
 NPCS.setdefault("uoss_odin_fur_trader",{
-    "name":"Fur Trader — tier Odina","room":"uoss_superboss_arena_odin_v11136",
-    "dialogue":"Odin's Mantle otwiera tier ośmiu reliktów Odina.","shopkeeper":True,
+    "name":"Kupiec nagród Odina","room":"market",
+    "dialogue":"Wymieniam Odin's Mantle i złoto na nagrody Odina.","shopkeeper":True,
     "uoss_token_shop":"uoss_odins_mantle",
 })
-SHOPS.setdefault("uoss_superboss_arena_odin_v11136",[f"uoss_odin_unique_{i}" for i in range(1,9)])
-
 NPCS.setdefault("uoss_yiazmat_fur_trader",{
-    "name":"Kupiec Futrzarski — tier Yiazmata","room":"uoss_elsendor_fur_shop_v11160",
+    "name":"Kupiec nagród Yiazmata","room":"market",
     "dialogue":"Godslayer's Badge otwiera tier nagród Yiazmata.","shopkeeper":True,
     "uoss_token_shop":"uoss_godslayers_badge",
 })
-SHOPS.setdefault("uoss_superboss_arena_black_rabite_v11136",[f"uoss_black_rabite_unique_{i}" for i in range(1,11)])
-SHOPS.setdefault("uoss_superboss_arena_yiazmat_v11136",[f"uoss_yiazmat_unique_{i}" for i in range(1,8)])
+SHOPS.setdefault("market",[])
+for _iid in (
+    "culex_quartz_charm","culex_hermes_shoes","culex_hyper_wrist","culex_hypno_crown","culex_solomon_ring","culex_tough_ring",
+    *(f"uoss_odin_unique_{i}" for i in range(1,9)),
+    *(f"uoss_yiazmat_unique_{i}" for i in range(1,8)),
+):
+    if _iid not in SHOPS["market"]:
+        SHOPS["market"].append(_iid)
+SHOPS.setdefault("forge",[])
+for _iid in (f"uoss_black_rabite_unique_{i}" for i in range(1,11)):
+    if _iid not in SHOPS["forge"]:
+        SHOPS["forge"].append(_iid)
 
 def install_uoss_superboss_spawns_v11136(mob_spawns):
     """Install bosses; sourced encounters spawn in their canonical named rooms."""
