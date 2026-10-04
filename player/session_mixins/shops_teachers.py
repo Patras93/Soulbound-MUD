@@ -126,8 +126,9 @@ class SessionShopsTeachersMixin:
                 return
 
             number, item_id, item = found
-            base_price = self.shop_item_base_value_silver(item)
-            cashback = self.shop_cashback_silver(item)
+            source_gold = item.get("fur_shop_gold_cost")
+            base_price = int(source_gold) * 100 if source_gold is not None else self.shop_item_base_value_silver(item)
+            cashback = 0 if source_gold is not None else self.shop_cashback_silver(item)
             final_price = max(0, base_price - cashback)
             await self.send(f"INFORMACJE O SKLEPIE {number}. {item['name']}.")
             await self.send(self.format_item_description(item_id, item))
@@ -138,7 +139,12 @@ class SessionShopsTeachersMixin:
                     + ". Efektywny koszt: " + currency_reading_text(final_price, 0, 0) + "."
                 )
             else:
-                await self.send("Koszt zakupu: " + currency_reading_text(base_price, 0, 0) + ".")
+                _cost_text = currency_reading_text(base_price, 0, 0)
+                _token_id = item.get("fur_shop_token")
+                _token_cost = int(item.get("fur_shop_token_cost", 0) or 0)
+                if _token_id and _token_cost:
+                    _cost_text += f" + {_token_cost} x {ITEMS.get(_token_id, {}).get('name', _token_id)}"
+                await self.send("Koszt zakupu: " + _cost_text + ".")
 
             lock_text = self.shop_offer_lock_text(item_id, item)
             if lock_text:
@@ -198,10 +204,19 @@ class SessionShopsTeachersMixin:
             )
             for number, item_id in enumerate(offers, 1):
                 item = ITEMS[item_id]
-                price_coins = self.shop_item_base_value_silver(item)
-                cashback = self.shop_cashback_silver(item)
-                effective = max(0, price_coins - cashback)
-                price_text = currency_reading_text(effective, 0, 0)
+                source_gold = item.get("fur_shop_gold_cost")
+                if source_gold is not None:
+                    effective = int(source_gold) * 100
+                    price_text = currency_reading_text(effective, 0, 0)
+                    token_id = item.get("fur_shop_token")
+                    token_cost = int(item.get("fur_shop_token_cost", 0) or 0)
+                    if token_id and token_cost:
+                        price_text += f" + {token_cost} x {ITEMS.get(token_id, {}).get('name', token_id)}"
+                else:
+                    price_coins = self.shop_item_base_value_silver(item)
+                    cashback = self.shop_cashback_silver(item)
+                    effective = max(0, price_coins - cashback)
+                    price_text = currency_reading_text(effective, 0, 0)
                 lock_text = self.shop_offer_lock_text(item_id, item)
                 state = f" — {lock_text}" if lock_text else ""
                 await self.send(f"{number}. {item['name']} — cena {price_text}{state}.")
@@ -273,7 +288,7 @@ class SessionShopsTeachersMixin:
 
             item_id, item = found
 
-            if is_character_bound_item(item_id):
+            if item.get("type") == "tool" and is_character_bound_item(item_id):
                 if quantity != 1:
                     await self.send(
                         f"{item['name']} jest przypisany do postaci i można kupić tylko jedną sztukę."
