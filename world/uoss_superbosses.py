@@ -220,9 +220,6 @@ if UOSS_SUPERBOSS_AUDIT_V11134["error_count"]:
         + "; ".join(UOSS_SUPERBOSS_AUDIT_V11134["errors"][:50])
     )
 
-HELP_TOPICS.setdefault("wersja", []).append(
-    "v1.11.34: Superbossy UOSSMUD są unikalnymi wyzwaniami świata; dodano pełny katalog trybów oraz reguły Black Rabite, Serpentariusa i Yiazmata."
-)
 LATEST_CHANGES_TITLE = "Soulbound v0.36.6 - Correct UOSSMUD Named Superbosses"
 LATEST_CHANGES = [
     "Dodano prawidłową rotację konkretnych nazwanych Superbossów UOSSMUD do Mitycznej Krypty i Mitycznej Wieży Astralnej.",
