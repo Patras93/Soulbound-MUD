@@ -485,13 +485,8 @@ class SessionSkillQueueBuffsMixin:
             for skill_id,data in buffs.items():
                 if str(skill_id).endswith("_permanence") and time.time()<float(data.get("until",0.0) or 0.0):
                     return True
-            # Future selected Auto-Permanence can use the same contract.
-            try:
-                selected=self.selected_job_ability("inherent")
-                if selected and str(selected.get("mec_special",""))=="auto_permanence":
-                    return True
-            except Exception:
-                pass
+            # Soulbound currently keeps Permanence as a buff/V-MAX mechanic.
+            # No external Job/Trainer progression is installed.
             return False
 
     def vmax_permanence_active_v11152(self):
@@ -500,8 +495,8 @@ class SessionSkillQueueBuffsMixin:
 
     def clear_skill_buffs(self, hostile=False):
             buffs=getattr(self,"active_skill_buffs",{})
-            # Auto-Permanence source contract: while Permanence is active, enemy
-            # dispels cannot remove beneficial effects. V-MAX grants Permanence,
+            # Permanence contract: while Permanence is active, enemy dispels
+            # cannot remove beneficial effects. V-MAX grants Permanence,
             # so hostile clearing preserves the complete beneficial buff set,
             # not only the V-MAX marker itself.
             if hostile and self.permanence_active_v11154():
