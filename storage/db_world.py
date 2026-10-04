@@ -407,6 +407,22 @@ class DatabaseWorldMixin:
         ).fetchall()
         return {str(row["entry_id"]) for row in rows}
 
+    def collection_entry_discovered_at(self, account_id, category, entry_id):
+        row = self.conn.execute(
+            "SELECT discovered_at FROM collection_codex WHERE account_id=? AND category=? AND entry_id=?",
+            (account_id, category, entry_id),
+        ).fetchone()
+        return str(row["discovered_at"]) if row and row["discovered_at"] is not None else None
+
+    def touch_collection_entry(self, account_id, category, entry_id):
+        self.conn.execute(
+            "INSERT INTO collection_codex(account_id,category,entry_id,discovered_at) VALUES(?,?,?,CURRENT_TIMESTAMP) "
+            "ON CONFLICT(account_id,category,entry_id) DO UPDATE SET discovered_at=CURRENT_TIMESTAMP",
+            (account_id, category, entry_id),
+        )
+        self.conn.commit()
+        return True
+
     def remove_collection_entry(self, account_id, category, entry_id):
         cur = self.conn.execute(
             "DELETE FROM collection_codex WHERE account_id=? AND category=? AND entry_id=?",
