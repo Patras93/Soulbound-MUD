@@ -419,13 +419,26 @@ class SessionAtlasCodexMixin:
     async def show_atlas(self, query=""):
             q = self.normalize_description_query(query)
 
+            discovery_roots = (
+                "odkrycia", "odkrycie", "globalny", "globalny atlas",
+                "discovery", "discoveries", "world discovery",
+            )
+            if q in discovery_roots:
+                await self.show_global_discovery_atlas_v1120("")
+                return
+            for prefix in ("odkrycia ", "odkrycie ", "globalny ", "discovery ", "discoveries "):
+                if q.startswith(prefix):
+                    raw = str(query or "").strip()
+                    rest = raw.split(maxsplit=1)[1] if " " in raw else ""
+                    await self.show_global_discovery_atlas_v1120(rest)
+                    return
+
             if not q:
-                await self.send("ATLAS SUROWCÓW")
-                await self.send("Działy: ryby, drewno, rudy, geody, zioła.")
+                await self.send("ATLAS")
+                await self.send("Działy: odkrycia świata, ryby, drewno, rudy, geody, zioła.")
                 await self.send(
-                    "Atlas pokazuje teraz wymagany level profesji i prawdziwe miejsce występowania. "
-                    "Użycie: atlas ryby, atlas rzeka, atlas drewno, atlas rudy, atlas geody, atlas zioła "
-                    "albo atlas <nazwa surowca>."
+                    "Globalny Atlas: atlas odkrycia. Surowce: atlas ryby, atlas rzeka, "
+                    "atlas drewno, atlas rudy, atlas geody, atlas zioła albo atlas <nazwa surowca>."
                 )
                 return
 

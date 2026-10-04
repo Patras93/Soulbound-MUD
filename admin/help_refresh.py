@@ -1522,6 +1522,24 @@ def refresh_public_help_surface_v11197():
         "kodeksklasowy <klasa> pokazuje pełny katalog umiejętności, wymagania, nauczyciela i status nauki.",
     ]
 
+    HELP_TOPICS["zadania klasowe"] = [
+        "Każda z 14 klas ma 5 różnych zadań klasowych w każdym cyklu godzinnym: walka, bossowie, eksploracja, zbieractwo i crafting.",
+        "Wpisz zadanieklasowe, aby zobaczyć pięć ofert aktywnej klasy. Przyjmij przez zadanieklasowe <numer>; jednocześnie aktywne jest jedno zadanie.",
+        "Po wykonaniu celu wpisz zadanieklasowe, aby odebrać nagrodę. Potem możesz wybrać kolejne zadanie z tej samej piątki.",
+        "zadanieklasowe porzuc wstrzymuje aktywne zadanie bez kasowania jego postępu do końca bieżącej godziny.",
+        "O pełnej godzinie cykl zadań klasowych odnawia się i postępy bieżącego cyklu startują od nowa. Ukończenie dowolnego zadania zachowuje historyczne wymaganie do egzaminu Soul 50.",
+        "Postęp liczy wyłącznie właściwą aktywność aktywnego zadania: kill, boss, nowe lokacje, zebrane zasoby albo udane crafty.",
+    ]
+    HELP_TOPICS["zadanieklasowe"] = list(HELP_TOPICS["zadania klasowe"])
+    HELP_TOPICS["class quests"] = list(HELP_TOPICS["zadania klasowe"])
+    HELP_TOPIC_ALIASES.update({
+        "zadania klasowe": "zadania klasowe",
+        "zadanie klasowe": "zadania klasowe",
+        "zadanieklasowe": "zadania klasowe",
+        "class quest": "zadania klasowe",
+        "class quests": "zadania klasowe",
+    })
+
     HELP_TOPICS["rasy"] = [
         "Soulbound ma 14 grywalnych ras. Każda może wybrać każdą z 14 klas; rekomendacje rasowo-klasowe są wskazówką, nie blokadą.",
         "Rasy różnią się rozkładem pięciu głównych statystyk oraz pasywem rasowym.",
@@ -1583,11 +1601,26 @@ def refresh_public_help_surface_v11197():
         "Alchemia jest pełną profesją 1-600. Zlecenia Orina korzystają z bieżących mikstur, składników i wymagań.",
         "Każde przyjęte zlecenie liczy postęp od 0/x zgodnie z aktualną logiką questa.",
     ]
+    HELP_TOPICS["atlas"] = [
+        "atlas bez argumentu pokazuje działy Atlasu. atlas odkrycia otwiera Globalny Atlas Odkryć.",
+        "Globalny Atlas śledzi miasta, wyspy, lochy, platformy oceaniczne, ruiny, areny Super Bossów i sekretne lokacje na podstawie realnej historii odkrywania postaci.",
+        "Każdy dział ma osobne osiągnięcie za 100 procent. Ukończenie wszystkich działów odblokowuje osiągnięcie Globalny Atlas: cały odkryty świat oraz tytuł Kartograf Całego Świata.",
+        "Szczegóły: atlas odkrycia miasta / wyspy / lochy / platformy / ruiny / superbossy / sekrety. Nieodkryte sekrety, proceduralne mini-lochy i Wielkie Ruiny są ukrywane jako ???.",
+        "Atlas działa retroaktywnie dla starszych save'ów: wcześniej odwiedzone miejsca są zaliczane z istniejącej historii odkrytych lokacji.",
+        "Atlas zasobów pozostaje dostępny przez atlas ryby, atlas rudy, atlas drewno, atlas ziola, atlas geody albo atlas <zasób>.",
+    ]
     HELP_TOPICS["atlas_kompletny"] = [
-        "Atlas pokazuje aktualne progi i miejsca występowania ryb, rud, drewna, ziół i innych zasobów.",
-        "Użyj atlas ryby, atlas rudy, atlas drewno, atlas ziola albo atlas <zasób>; wynik jest czytany z bieżących danych.",
+        "Globalny Atlas Odkryć: atlas odkrycia. Śledzi wszystkie skończone kategorie długoterminowej eksploracji i daje osobne osiągnięcia za ich ukończenie.",
+        "Atlas zasobów pokazuje aktualne progi i miejsca występowania ryb, rud, drewna, ziół, geod i innych zasobów.",
+        "Użyj atlas odkrycia albo atlas ryby, atlas rudy, atlas drewno, atlas ziola, atlas geody i atlas <zasób>; wynik jest czytany z bieżących danych.",
         "Profesje i narzędzia rozwijają się do 600, więc stary opis kończący atlas na 400 nie jest aktualny.",
     ]
+    HELP_TOPIC_ALIASES.update({
+        "atlas odkryc": "atlas",
+        "atlas odkryć": "atlas",
+        "atlas odkrycia": "atlas",
+        "globalny atlas": "atlas",
+    })
     for _legacy_balance_topic in ("balans 0865", "balans 0866", "balans 0874"):
         if _legacy_balance_topic in HELP_TOPICS:
             HELP_TOPICS[_legacy_balance_topic] = [

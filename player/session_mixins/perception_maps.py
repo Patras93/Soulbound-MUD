@@ -753,6 +753,7 @@ class SessionPerceptionMapsMixin:
                     self.server.db.add_collection_entry(self.account_id, "secrets_v015", self.character.room_id)
                     self.server.db.add_collection_entry(self.account_id, "museum_secrets_v026", self.character.room_id)
                     await self.v0260_check_museum_rewards(announce=True)
+                    await self.sync_global_discovery_atlas_v1120(announce=True)
                     await self.send(
                         f"ODKRYWASZ SEKRET: {surface['name']}. Ukryte przejście zostało zapamiętane. "
                         "Wpisz sekret ponownie, aby wejść do środka."

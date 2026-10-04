@@ -1,5 +1,34 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.11.99
+Aktualna paczka: v1.12.0
+
+==============================================================================
+Soulbound v1.12.0 — Globalny Atlas Odkryć
+==============================================================================
+
+- Dodano długoterminowy Globalny Atlas Odkryć dostępny przez `atlas odkrycia`.
+- Atlas ma siedem osobnych działów: miasta, wyspy, lochy, platformy oceaniczne, ruiny, superbossy i sekretne lokacje.
+- Każdy dział ma własne osiągnięcie za odkrycie 100 procent zawartości.
+- Ukończenie wszystkich siedmiu działów daje osiągnięcie `Globalny Atlas: cały odkryty świat` oraz tytuł `Kartograf Całego Świata`.
+- Atlas korzysta z istniejącej historii odkrytych pokojów i kolekcji sekretów, dlatego działa retroaktywnie dla starszych save'ów bez resetu progresu.
+- Miasta są pobierane z aktualnego rejestru miejskich i pocztowych hubów; kolejne rozszerzenia miast mogą automatycznie wejść do Atlasu.
+- Wyspy obejmują pięć fabularnych wysp Archipelagu Pękniętej Gwiazdy oraz deterministyczne archipelagi ekspedycyjne.
+- Lochy obejmują główne kompleksy świata, Katakumby, lochy Archipelagu, megalochy oraz wszystkie deterministyczne proceduralne mini-lochy.
+- Ruiny obejmują stałe strefy ruin, trzy podwodne ruiny Ocean 2.0 oraz wszystkie deterministyczne Wielkie Ruiny proceduralnych rubieży.
+- Areny Super Bossów są wykrywane z rzeczywistych metadanych `uoss_superboss_key`, bez ręcznego dublowania listy bossów.
+- Sekretne lokacje korzystają z pełnego skończonego katalogu sekretów powierzchni; nieskończone sekrety instancji pozostają w mapie instancji i nie blokują 100 procent Globalnego Atlasu.
+- Nieodkryte sekrety, proceduralne mini-lochy i Wielkie Ruiny są pokazywane jako `???`, aby Atlas nie zdradzał ich nazw ani położenia.
+- `atlas odkrycia <dział>` pokazuje czytelną dla NVDA numerowaną listę odkrytych i brakujących pozycji.
+- `osiagniecia` synchronizują Atlas retroaktywnie; nowe odkrycie lokacji lub sekretu może natychmiast odblokować osiągnięcie działu.
+- Zaktualizowano `help atlas` i `help atlas_kompletny` o Globalny Atlas Odkryć.
+- Rozbudowano zadania klasowe: każda z 14 klas ma teraz 5 różnych zadań w każdym cyklu godzinnym zamiast jednego zadania na klasę — łącznie 70 zadań.
+- Każda piątka obejmuje różne aktywności: zwykłą walkę, bossów, odkrywanie nowych lokacji, zbieractwo i crafting; nazwy oraz wymagane liczby są zróżnicowane między klasami.
+- `zadanieklasowe` pokazuje pięć aktualnych ofert aktywnej klasy; `zadanieklasowe <numer>` przyjmuje wybraną ofertę, a po odbiorze można wykonać kolejne z tej samej piątki.
+- `zadanieklasowe porzuc` pozwala przełączyć zadanie bez kasowania zdobytego w tej godzinie postępu.
+- O pełnej godzinie cykl klasowych zadań odnawia się. Historyczne ukończenie zostaje zachowane dla wymagań egzaminu Soul 50.
+- Starsze save'y z jednorazowym zadaniem klasowym są migrowane bez zmiany schematu SQLite; istniejący postęp trafia do kompatybilnego pierwszego zadania.
+- Udany craft daje dokładnie 1 punkt do aktywnego celu typu crafting; bonusowa ilość produktu nie skraca zadania.
+- Zaktualizowano HELP dla `zadanieklasowe`, zadań klasowych i Gildii.
+- Brak wipe'a save'ów i brak zmian schematu SQLite.
 
 ==============================================================================
 Soulbound v1.11.99 — questy bez obowiązkowego quest list
