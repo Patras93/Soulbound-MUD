@@ -621,6 +621,11 @@ EQUIPMENT_SLOT_ALIASES = {
     "relikt": "relic",
     "relic": "relic",
 
+    "accessory": "accessory",
+    "akcesorium": "accessory", "akcesoria": "accessory",
+    "accessory 1": "accessory1", "accessory1": "accessory1", "akcesorium 1": "accessory1", "akcesorium1": "accessory1",
+    "accessory 2": "accessory2", "accessory2": "accessory2", "akcesorium 2": "accessory2", "akcesorium2": "accessory2",
+
     "board": "board",
     "moogle board": "board",
     "modul": "board",
@@ -650,6 +655,9 @@ EQUIPMENT_SLOT_NAMES = {
     "cloak": "peleryna",
     "bracers": "karwasze",
     "relic": "relikt",
+    "accessory": "akcesorium",
+    "accessory1": "akcesorium 1",
+    "accessory2": "akcesorium 2",
     "board": "Board",
 }
 
