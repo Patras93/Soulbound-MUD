@@ -2404,7 +2404,12 @@ def _v0319_install_full_mec_kit():
         if branch in ("inherent","counter"):
             row["mec_role"]=branch
         if kind in ("damage","aoe_damage"):
-            row["scale"] = "intelligence" if branch=="magic" else ("dexterity" if branch=="ranged" else "strength")
+            row["scale"] = (
+                "intelligence" if branch=="magic"
+                else "dexterity" if branch=="ranged"
+                else "willpower" if branch=="support"
+                else "strength"
+            )
             row["mult"] = 1.0
             if kind=="aoe_damage": row["aoe"]=True
         if kind=="heal": row["healing_power_from_will_and_skill_level"]=True
