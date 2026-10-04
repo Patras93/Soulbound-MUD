@@ -2478,7 +2478,9 @@ def _v0319_install_full_mec_kit():
                         "source_stat_influence":["attack","agility"],
                         "secondary_scale_weight":"lesser",
                         "carries_soul_weapon_elements":True, "requires_soul_weapon":"melee",
-                        "target_mode":"diminishing_aoe_or_vmax_random"})
+                        "target_mode":"diminishing_aoe_or_vmax_random",
+                        "vmax_random_hits":5,
+                        "vmax_random_hits_evidence":"user_uoss_combat_log"})
         if special=="vmax":
             row.update({"scale":"willpower","source_stat_influence":["will"],
                         "boost":1.0,"cooldown":0,"mechanic_cooldown":True,
@@ -2560,6 +2562,10 @@ def _mec_contract_audit_v11149():
         if str(cosmic.get("secondary_scale"))!="dexterity":
             errors.append(
                 f"cosmic_rave:secondary={cosmic.get('secondary_scale')} expected=dexterity"
+            )
+        if int(cosmic.get("vmax_random_hits",0) or 0)!=5:
+            errors.append(
+                f"cosmic_rave:vmax_random_hits={cosmic.get('vmax_random_hits')} expected=5"
             )
     vmax=rows.get("vmax")
     if vmax:
