@@ -8,7 +8,7 @@ import random
 import time
 
 from core.classes_skills import SOUL_WEAPON_ATTACK_TECHNIQUES
-from core.progression_600 import SOUL_WEAPON_MASTERY_MAX_LEVEL, soul_weapon_trait_totals
+from core.progression_600 import SOUL_WEAPON_MASTERY_MAX_LEVEL, soul_weapon_trait_totals_v11193
 from core.progression_resources import soul_weapon_mastery_bonuses, v0190_scaled_gain
 from data.mobs import MOB_TEMPLATES
 from world.machine_expansion import v0314_adjust_damage_vs_template
@@ -104,7 +104,7 @@ class SessionCombatRealtimeMixin:
                 damage = max(0, int(round(damage * (1.0 + mastery["damage_percent"] / 100.0))))
                 # v0.33.16: właściwości Soul Tier działają tylko na zwykły atak
                 # Broni Duszy. Nie modyfikują skilli ani spelli.
-                trait_totals = soul_weapon_trait_totals(self.character.soul_tier, self.character.class_name)
+                trait_totals = soul_weapon_trait_totals_v11193(self.character.soul_tier, self.character.class_name)
                 damage = max(0, int(round(damage * (1.0 + trait_totals["damage_percent"] / 100.0))))
                 if mob.hp <= max(1, int(round(template["max_hp"] * 0.35))):
                     damage = max(0, int(round(damage * (1.0 + trait_totals["execute_damage_percent"] / 100.0))))
