@@ -80,6 +80,19 @@ class SessionCombatSurvivalMixin:
                 except Exception as exc:
                     print(f"DEATH_RECAP_SAVE_ERROR: {type(exc).__name__}: {exc}", flush=True)
                 await self.send(f"Pokonuje cię {killer}.")
+                # Phoenix Egg: source grants Re-raise once and then disappears.
+                # Soulbound reuses its existing full local revival state instead of
+                # inventing a separate HP percentage.
+                try:
+                    if self.server.db.item_qty(self.account_id, "uoss_odin_unique_8") > 0:
+                        self.server.db.remove_item(self.account_id, "uoss_odin_unique_8", 1)
+                        self.current_hp = self.max_hp()
+                        self.current_mana = self.max_mana()
+                        self.server.db.save_character(self.character)
+                        await self.send("Phoenix Egg pęka. Re-raise przywraca cię do walki; jajko znika.")
+                        return
+                except Exception as exc:
+                    print(f"PHOENIX_EGG_RERAISE_ERROR: {type(exc).__name__}: {exc}", flush=True)
                 await self.send(
                     "Śmierć nie powoduje utraty waluty, przedmiotów, EQ ani progresji. "
                     "Aktywne buffy zachowują pozostały czas działania."
