@@ -16,7 +16,7 @@ from data.rooms import ROOMS
 from network.protocol_gameplay_utils import normalize_lookup_text
 from world.machine_expansion import v0314_adjust_damage_vs_template
 from world.economy_quests import v0863_execute_threshold
-from world.uoss_superboss_runtime import superboss_attack_gate_v11137
+from world.uoss_superboss_runtime import superboss_attack_gate_v11137, superboss_helper_profile_v11137
 
 class SessionCombatSkillsMixin:
     def offensive_skill_core_stat_power_v11188(self, skill):
@@ -67,6 +67,38 @@ class SessionCombatSkillsMixin:
         multiplier *= self.equipment_damage_multiplier(damage_type)
         multiplier *= self.skill_buff_multiplier()
         return multiplier
+
+    async def apply_superboss_helper_skill_damage_v11189(self, target):
+        """Helper joins damaging skill actions against its sourced superboss.
+
+        Uses the same build-scaled helper strike as realtime combat. No cadence,
+        ability multiplier or source percentage is invented.
+        """
+        if not target or not target.alive:
+            return 0
+        template = MOB_TEMPLATES[target.template_id]
+        profile = superboss_helper_profile_v11137(self, template)
+        if not profile:
+            return 0
+        name = str(profile.get("name", "Pomocnik"))
+        magic = name in {"Popoi", "Primm", "Montblanc", "Byblos"}
+        kind = "magic" if magic else "physical"
+        stat = self.spell_power() if magic else self.physical_power()
+        mult = self.equipment_damage_multiplier(kind) * self.total_set_damage_multiplier()
+        damage = max(1, int(round((self.character.soul_power() + stat) * 0.65 * mult)))
+        damage = await self.apply_boss_defense(target, damage)
+        damage = self.v0210_adjust_player_damage(damage)
+        damage, note = v0314_adjust_damage_vs_template(template, damage, kind, name)
+        damage = min(max(0, target.hp), max(0, int(damage)))
+        if damage <= 0:
+            return 0
+        target.hp -= damage
+        self._recap52_dealt = int(getattr(self, "_recap52_dealt", 0) or 0) + damage
+        await self.send(
+            f"{name} dołącza do umiejętności: {damage} obrażeń. "
+            f"Przeciwnik: {max(0, target.hp)} z {template['max_hp']} HP." + note
+        )
+        return damage
 
     def offensive_aoe_enabled_v11120(self):
         row = self.server.db.conn.execute(
@@ -959,6 +991,9 @@ class SessionCombatSkillsMixin:
                     template, damage, _damage_element, skill.get("name", ""),
                 )
                 mob.hp -= damage
+                _helper_skill_damage = 0
+                if mob.hp > 0:
+                    _helper_skill_damage = await self.apply_superboss_helper_skill_damage_v11189(mob)
                 # v0.34.6: cechy Broni Duszy nie modyfikują skilli/spelli.
                 # Lifesteal/Mana/execute/boss bonus z Soul Weapon Traits działa wyłącznie
                 # w realtime_player_action(), czyli na zwykłym ataku Broni Duszy.
