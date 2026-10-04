@@ -2,6 +2,7 @@
 """Soulbound v0.30.51 Social Suite 2.0 and player services."""
 # v0.45.0: explicit imports; no compatibility-runtime injection.
 import time
+from core.progression_600 import soul_tier_title_for_class
 from player.session_mixins.inventory_equipment import CURRENCY_SQLITE_SAFE_TOTAL
 from player.session_mixins.quest_npc import player_item_display_name_v0335
 from player.session_mixins.shops_teachers import currency_reading_text
@@ -193,7 +194,9 @@ class SessionSocialExpansionMixin:
         await self.send(f"PROFIL {name}. Status: {status}.")
         await self.send(f"Tożsamość: rasa {row['race']}; główna klasa {row['class_name']}; tytuł {title}; Gildia: {guild}.")
         await self.send(f"Level postaci: {int(row['character_level'])}/600; Character XP {int(row['character_xp'])}. Klasy/Biegłość: {class_text}.")
-        await self.send(f"Broń Duszy: {row['soul_weapon']}; Soul Level {int(row['soul_level'])}/600; Soul Tier {int(row['soul_tier'])}/60; Soul Weapon Mastery {int(row['soul_weapon_mastery_level'])}/600.")
+        _soul_tier=int(row['soul_tier'])
+        _soul_title=soul_tier_title_for_class(_soul_tier, str(row['class_name']))
+        await self.send(f"Broń Duszy: {row['soul_weapon']}; Soul Level {int(row['soul_level'])}/600; Soul Tier {_soul_tier}/60 — {_soul_title}; Soul Weapon Mastery {int(row['soul_weapon_mastery_level'])}/600.")
         await self.send(
             "Statystyki: "
             f"Siła {int(row['strength'])}; Zręczność {int(row['dexterity'])}; Kondycja {int(row['constitution'])}; "
