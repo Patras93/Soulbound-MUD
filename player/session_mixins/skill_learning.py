@@ -1344,12 +1344,8 @@ class SessionSkillLearningMixin:
             template = MOB_TEMPLATES[mob.template_id]
             profile = await self.boss_attack_profile(mob, template)
             now=time.time()
-            if now >= float(getattr(self,"v0319_feedback_repair_at",0.0) or 0.0) and int(getattr(self,"v0319_feedback_repair_pool",0) or 0)>0 and self.current_hp>0:
-                repaired=min(int(getattr(self,"v0319_feedback_repair_pool",0)), max(0,self.max_hp()-self.current_hp))
-                if repaired>0:
-                    self.current_hp+=repaired
-                    await self.send_combat(f"Self-Repair odzyskuje {repaired} HP po Feedback damage.","normal")
-                self.v0319_feedback_repair_pool=0; self.v0319_feedback_repair_at=0.0
+            # Legacy seconds-based Feedback repair removed. Self-Repair recovery is
+            # handled only by the exact source rule: full Feedback damage after 3 owner rounds.
             # v0.31.9: runtime status effects used by Mec/Engineer authored kits.
             periodic=0
             if now < float(getattr(mob,"v0319_poison_until",0.0) or 0.0):
