@@ -2369,7 +2369,7 @@ def _v0319_install_full_mec_kit():
         # Counter
         ("Intercept System",75,"passive",1000,"counter","intercept_system","Counters enemy melee using the user's highest combat stat."),
         # Inherent
-        ("Self-Repair",1,"passive",1000,"inherent","self_repair","Auto-Regen and delayed recovery of Feedback self-damage."),
+        ("Self-Repair",1,"passive",1000,"inherent","self_repair","Automatically restores Feedback self-damage after 3 owner rounds. Source also grants Auto-Regen, but no numeric Auto-Regen amount is supplied, so Soulbound does not fabricate one."),
         ("Combat Mastery",30,"passive",1000,"inherent","combat_mastery","Increases purely Strength-based weapon/Mec melee damage."),
         ("Maxwell Program",30,"passive",1000,"inherent","maxwell_program","Augments Magic Attack and regenerates 1% of maximum MP every 6 seconds."),
         ("Shooting Mastery",30,"passive",1000,"inherent","shooting_mastery","Automatic inherent from Level 30. Soulbound uses one Soul Weapon: Shooting Mastery strengthens its Dexterity/ranged damage component without requiring a separate ranged weapon; stronger than ordinary Attack UP."),
@@ -2403,6 +2403,7 @@ def _v0319_install_full_mec_kit():
         if special=="uzi_punch": row["feedback_cost_source_defined"]=False
         if special=="crush": row.update({"feedback_cost_source_defined":False,"damage_from_missing_hp":True,"level_caps_damage":True,"level_effect":"increases_maximum_possible_damage","single_soul_weapon":True})
         if special=="kamikaze_crush": row.update({"damage_from_current_hp":True,"vitality_influence":True,"vmax_power_and_feedback":True,"single_soul_weapon":True})
+        if special=="self_repair": row.update({"feedback_repair_rounds":3,"auto_regen_source_defined":True,"auto_regen_amount_source_defined":False})
         if special=="maxwell_program": row.update({"magic_attack_augmentation":True,"mp_regen_percent":1.0,"mp_regen_seconds":6.0})
         if special=="combat_mastery": row.update({"ordinary_soul_weapon_attack_only":True,"strength_based_only":True,"requires_soul_weapon":True,"stronger_than":"Attack UP","weaker_than":"Two Hands","single_soul_weapon":True})
         if special=="hammer_crush": row.update({"target_mode":"one_enemy","attack_influence":True,"carries_soul_weapon_elements":True,"single_soul_weapon":True})
