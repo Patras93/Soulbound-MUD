@@ -653,6 +653,7 @@ def build_astral_tower():
         defs = (
             ("head", "Astralny Hełm", 6 + tier_index // 2),
             ("body", "Astralny Pancerz", 9 + tier_index),
+            ("shield", "Astralna Tarcza", 7 + tier_index // 2),
             ("hands", "Astralne Rękawice", 5 + tier_index // 2),
             ("legs", "Astralne Nogawice", 7 + tier_index // 2),
             ("feet", "Astralne Buty", 5 + tier_index // 2),
@@ -787,6 +788,7 @@ def build_crypt_200_floors():
     crypt_slot_specs = {
         "head": ("Hełm Krypty", 1),
         "body": ("Napierśnik Krypty", 3),
+        "shield": ("Tarcza Krypty", 2),
         "hands": ("Rękawice Krypty", 0),
         "legs": ("Nogawice Krypty", 2),
         "feet": ("Buty Krypty", 0),
