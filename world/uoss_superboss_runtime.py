@@ -24,7 +24,7 @@ SUPERBOSS_TOKEN_ITEMS_V11135 = {
     "yiazmat": ("uoss_godslayers_badge", "Godslayer's Badge"),
 }
 
-BLACK_RABITE_UNIQUE_DROPS_V11135 = tuple(f"uoss_black_rabite_unique_{i}" for i in range(1, 11))
+BLACK_RABITE_UNIQUE_DROPS_V11135 = tuple(f"uoss_black_rabite_unique_{i}" for i in range(1, 10)) + ("moogle_board",)
 YIAZMAT_UNIQUE_DROPS_V11135 = tuple(f"uoss_yiazmat_unique_{i}" for i in range(1, 8))
 ODIN_UNIQUE_DROPS_V11158 = tuple(f"uoss_odin_unique_{i}" for i in range(1, 9))
 
@@ -94,8 +94,8 @@ def superboss_personal_unique_drops_v11158(db, recipients, boss_key):
         if str(boss_key)=="black_rabite" and str(getattr(session.character,"race",""))!="Cyborg":
             # Confirmed project rule: Moogle Board is Black Rabite's
             # Cyborg-only unique reward.
-            eligible=[item_id for item_id in eligible if item_id!="uoss_black_rabite_unique_10"]
-            fallback=[item_id for item_id in pool if item_id!="uoss_black_rabite_unique_10"]
+            eligible=[item_id for item_id in eligible if item_id!="moogle_board"]
+            fallback=[item_id for item_id in pool if item_id!="moogle_board"]
         else:
             fallback=list(pool)
         item_id = random.choice(eligible or fallback)
