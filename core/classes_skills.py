@@ -2393,7 +2393,7 @@ def _v0319_install_full_mec_kit():
         ("Hypno Flash",16,"damage",300,"support","hypno_flash","Attempts to put one enemy to Sleep. Will and Skill Level improve accuracy and duration; the Mec support weapon improves hit chance. Sleep is Cleanseable and Extendable."),
         ("Jammer",32,"damage",750,"support","jammer","Attempts to Stop one enemy, or all enemies while the Mec support weapon is active. Will and Skill Level improve accuracy and duration; mechanical enemies are easier to affect. Stop is Cleanseable and Extendable."),
         ("Heal Beam",54,"heal",1000,"support","heal_beam","Significant Willpower-based healing. Normally heals one target; Support Effect heals the entire local party for an enhanced amount."),
-        ("Logic Bomb",92,"damage",1200,"support","logic_bomb","Attempts Silence/Don't Act/Slow; support effect can add Curse/Don't Move/Blind."),
+        ("Logic Bomb",92,"damage",1200,"support","logic_bomb","Attempts to infect one enemy with Paralyze, Silence and Slow. With the Mec support weapon it also attempts Blind, Curse and Immobilize. Will and Skill Level improve accuracy and duration; Machine targets are easier to affect."),
         ("V-MAX",130,"boost",2000,"support","vmax","Will-influenced core overdrive: Protect, Shell, Haste, Regen, Preach, Praise, Permanence; changes several Mec skills. When it ends, Overheat is prevented while the Mec's Soul Weapon remains the active support weapon."),
         # Counter
         ("Intercept System",75,"passive",1000,"counter","intercept_system","Counters enemy melee using the user's highest combat stat."),
@@ -2742,7 +2742,37 @@ def _v0319_install_full_mec_kit():
                 "balance_model":"user_anchor_skill9_about8_then_soulbound_8_to_16_plus_will4",
             })
         if special=="logic_bomb":
-            row.update({"scale":"willpower","uoss_mp_cost":155})
+            row.update({
+                "scale":"willpower",
+                "source_stat_influence":["will"],
+                "uoss_mp_cost":155,
+                "source_properties":["cleanseable","extendable"],
+                "target_mode":"one_enemy",
+                "control_effects":["paralyze","silence","slow"],
+                "support_weapon_extra_effects":["blind","curse","immobilize"],
+                "support_weapon_adds_extra_effects":True,
+                "machine_accuracy_bonus":True,
+                "level_effect":"increases_accuracy_and_duration",
+                "cleanseable":True,
+                "extendable":True,
+                "accuracy_numeric_source_defined":False,
+                "duration_numeric_source_defined":False,
+                "machine_bonus_numeric_source_defined":False,
+                "status_numeric_source_defined":False,
+                "soulbound_base_accuracy":0.45,
+                "soulbound_skill_accuracy_bonus_max":0.30,
+                "soulbound_will_accuracy_bonus_max":0.15,
+                "soulbound_machine_accuracy_bonus":0.15,
+                "soulbound_accuracy_cap":0.98,
+                "soulbound_duration_rounds_level1":3,
+                "soulbound_duration_rounds_level600":10,
+                "soulbound_will_duration_bonus_max":2,
+                "soulbound_paralyze_skip_chance":0.50,
+                "soulbound_slow_skip_every_actions":2,
+                "soulbound_blind_miss_chance":0.35,
+                "soulbound_curse_damage_multiplier":0.80,
+                "balance_model":"soulbound_acc45_skill30_will15_machine15_duration3_to_10_statuses",
+            })
         if special=="starlight_shower":
             row.update({
                 "scale":"intelligence",
@@ -2894,6 +2924,35 @@ def _mec_contract_audit_v11149():
             errors.append(
                 f"cosmic_rave:vmax_random_hits={cosmic.get('vmax_random_hits')} expected=5"
             )
+    logic_bomb=rows.get("logic_bomb")
+    if logic_bomb:
+        if list(logic_bomb.get("source_stat_influence") or [])!=["will"]:
+            errors.append("logic_bomb: source influence must be Will")
+        if str(logic_bomb.get("scale"))!="willpower":
+            errors.append("logic_bomb: scale must be Willpower")
+        if int(logic_bomb.get("uoss_mp_cost",0) or 0)!=155:
+            errors.append("logic_bomb: MP cost must be 155")
+        if str(logic_bomb.get("target_mode"))!="one_enemy":
+            errors.append("logic_bomb: target mode must be One Enemy")
+        if list(logic_bomb.get("source_properties") or [])!=["cleanseable","extendable"]:
+            errors.append("logic_bomb: source Properties must be Cleanseable + Extendable")
+        if list(logic_bomb.get("control_effects") or [])!=["paralyze","silence","slow"]:
+            errors.append("logic_bomb: base statuses must be Paralyze + Silence + Slow")
+        if list(logic_bomb.get("support_weapon_extra_effects") or [])!=["blind","curse","immobilize"]:
+            errors.append("logic_bomb: support statuses must be Blind + Curse + Immobilize")
+        if str(logic_bomb.get("level_effect"))!="increases_accuracy_and_duration":
+            errors.append("logic_bomb: Skill Level must increase Accuracy and Duration")
+        if not bool(logic_bomb.get("machine_accuracy_bonus")):
+            errors.append("logic_bomb: Machine targets must have increased hit rate")
+        if bool(logic_bomb.get("accuracy_numeric_source_defined")):
+            errors.append("logic_bomb: accuracy curve must remain marked unsourced")
+        if bool(logic_bomb.get("duration_numeric_source_defined")):
+            errors.append("logic_bomb: duration curve must remain marked unsourced")
+        if bool(logic_bomb.get("machine_bonus_numeric_source_defined")):
+            errors.append("logic_bomb: Machine bonus must remain marked unsourced")
+        if bool(logic_bomb.get("status_numeric_source_defined")):
+            errors.append("logic_bomb: status numeric behavior must remain marked unsourced")
+
     jammer=rows.get("jammer")
     if jammer:
         if list(jammer.get("source_stat_influence") or [])!=["will"]:
