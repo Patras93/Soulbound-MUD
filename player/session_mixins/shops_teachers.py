@@ -57,7 +57,7 @@ class SessionShopsTeachersMixin:
             states = []
             if is_character_bound_item(item_id) and self.server.db.item_qty(self.account_id, item_id) > 0:
                 states.append("już posiadasz")
-            required_class = item.get("required_class")
+            required_class = None if item.get("universal_all_classes") else item.get("required_class")
             if required_class and required_class not in self.active_class_names():
                 states.append(f"wymaga aktywnej klasy {required_class}")
             if item.get("universal_endgame_shop"):
@@ -319,7 +319,7 @@ class SessionShopsTeachersMixin:
                     )
                     return
 
-            required_class = item.get("required_class")
+            required_class = None if item.get("universal_all_classes") else item.get("required_class")
             if (
                 required_class
                 and required_class
