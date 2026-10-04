@@ -108,12 +108,25 @@ _HELPERS={
  "uoss_helper_popoi":("Popoi","black_rabite"),
  "uoss_helper_byblos":("Byblos","serpentarius"),
  "uoss_helper_montblanc":("Montblanc","yiazmat"),
+ "uoss_helper_seifer":("Seifer","odin"),
 }
 for nid,(name,key) in _HELPERS.items():
     NPCS.setdefault(nid,{
         "name":name,"room":f"uoss_superboss_arena_{key}_v11136",
         "dialogue":f"{name} może wesprzeć drużynę liczącą maksymalnie 3 graczy podczas walki z {UOSS_SUPERBOSS_ENCOUNTERS_V11134[key]['name']}.",
         "uoss_superboss_helper":key,"helper_max_players":3,
+    })
+
+# Exact helper ability metadata where supplied by the source.
+if "uoss_helper_seifer" in NPCS:
+    NPCS["uoss_helper_seifer"].update({
+        "helper_cost_gold":1000000,
+        "join_phrase":"Join me, Seifer.",
+        "abilities":("Power Breakdown","No Mercy","Zantetsuken Reverse"),
+        "power_breakdown":"physical attack reduced at beginning of fight",
+        "no_mercy_frequency":"once per round",
+        "zantetsuken_reverse_damage":1500000,
+        "zantetsuken_reverse_timing":"towards half way of fight",
     })
 
 # Token exchange points. The generic shop UI can expose the pools; prices are
