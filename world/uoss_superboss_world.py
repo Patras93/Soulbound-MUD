@@ -6,6 +6,7 @@ The hub is deliberately connected to Miasto Dusz; access policy remains
 available as authored metadata for command/runtime gates.
 """
 from data.catalogs import ROOMS, MOB_TEMPLATES, NPCS, SHOPS
+from data.items import ITEMS
 from world.uoss_superbosses import UOSS_SUPERBOSS_ENCOUNTERS_V11134
 
 
@@ -227,6 +228,30 @@ _BLACK_RABITE_SHOP_ITEMS_V11190 = (
 for _iid in _BLACK_RABITE_SHOP_ITEMS_V11190:
     if _iid not in SHOPS["market"]:
         SHOPS["market"].append(_iid)
+
+_UNIVERSAL_UOSS_ACCESSORIES_V11195 = (
+    "uoss_black_rabite_unique_5",
+    "uoss_odin_unique_4",
+    "uoss_yiazmat_unique_3",
+    "uoss_yiazmat_unique_7",
+    "uoss_ziedrich",
+    "culex_quartz_charm",
+    "culex_hermes_shoes",
+    "culex_hyper_wrist",
+    "culex_hypno_crown",
+    "culex_solomon_ring",
+    "culex_tough_ring",
+)
+for _iid in _UNIVERSAL_UOSS_ACCESSORIES_V11195:
+    _item = ITEMS.get(_iid)
+    if not _item:
+        raise RuntimeError(f"UOSS accessory audit failed: missing item {_iid}")
+    if _iid not in SHOPS["market"]:
+        SHOPS["market"].append(_iid)
+    if _item.get("required_class"):
+        raise RuntimeError(f"UOSS accessory audit failed: {_iid} must be available to every class")
+    if not _item.get("universal_all_classes"):
+        raise RuntimeError(f"UOSS accessory audit failed: {_iid} missing universal_all_classes marker")
 
 def install_uoss_superboss_spawns_v11136(mob_spawns):
     """Install bosses; sourced encounters spawn in their canonical named rooms."""
