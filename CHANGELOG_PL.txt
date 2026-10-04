@@ -8,6 +8,7 @@ Soulbound v1.11.96 — Kondycja dla fizycznego EQ
 - Fizyczne EQ zachowuje ofensywne statystyki, ale ma też realnie wzmacniać przeżywalność przez Kondycję.
 - Klasowe fizyczne sety nadal generują Siłę + Kondycję; generator ma teraz jawny guard, który zatrzyma start przy regresji odbierającej Kondycję fizycznemu EQ klasowemu.
 - Źródłowe statystyki UOSS nie są nadpisywane. Dla znanych fizycznych reliktów bez VIT/Kondycji dodano osobną warstwę balansu Soulbound równą 25% znanych STR+DEX: Ninja's Trump +106 Kondycji, Zantetsuken +70, Mesa +128, Oborozuki +19.
+- Fizyczne akcesoria Culexa, które po audycie źródeł miały puste staty, dostały jawny balans Soulbound zamiast udawanych danych źródłowych: Hermes Shoes Zręczność +180 i Kondycja +70, Hyper Wrist Siła +190 i Kondycja +90, Tough Ring Siła +110 i Kondycja +190.
 - Armageddon, Daedalus Lance, Gungnir, Bonebreaker, Brave Suit, Nova Armor, Mirage Vest, Renewing Morion, Safe Helm, Lunar Crystal Armor, Genji Gloves, Devil King Shield, Behemoth Suit, Venetian Shield, Ziedrich i Thief Hat już miały Kondycję i zachowują swoje wartości.
 - EQ INFO rozróżnia teraz Statystyki bazowe od Bonusów Soulbound, a łączne efektywne staty nadal pokazują pełną sumę.
 - AUTO EQ i wewnętrzne porównanie mocy uwzględniają Bonus Soulbound, więc przedmiot nie jest zaniżany tylko dlatego, że dodatkowa Kondycja jest oddzielona od danych źródłowych.
