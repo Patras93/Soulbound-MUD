@@ -665,6 +665,8 @@ def build_astral_tower():
             ("belt", "Astralny Pas", 6 + tier_index // 2),
             ("cloak", "Astralna Peleryna", 5 + tier_index // 2),
             ("bracers", "Astralne Karwasze", 5 + tier_index // 2),
+            ("bracelet", "Astralna Bransoletka", 4 + tier_index // 2),
+            ("accessory", "Astralne Akcesorium", 4 + tier_index // 2),
             ("relic", "Astralny Relikt", 6 + tier_index // 2),
         )
         affix = stat_cycle[(tier_index - 1) % len(stat_cycle)]
@@ -800,6 +802,8 @@ def build_crypt_200_floors():
         "belt": ("Pas Krypty", 1),
         "cloak": ("Peleryna Krypty", 0),
         "bracers": ("Karwasze Krypty", 0),
+        "bracelet": ("Bransoletka Krypty", -1),
+        "accessory": ("Akcesorium Krypty", -1),
         "relic": ("Relikt Krypty", 1),
     }
     for tier in range(1, 41):
