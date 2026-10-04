@@ -322,7 +322,7 @@ class SessionCombatRealtimeMixin:
                                             target_session.current_hp=max(0,target_session.current_hp-int(round(target_session.current_hp*float(_source_effect["current_hp_fraction"]))))
                                             _source_effect_replaces_attack = True
                                         if target_session.current_hp <= 0:
-                                            await target_session.handle_player_defeat(enemy_mob)
+                                            await target_session.die(_enemy_template['name'])
                                             continue
                                     for _summon_tid in superboss_source_summons_v11162(target_session,_enemy_template,enemy_mob,_source_ability):
                                         _summoned=self.server.world._register_runtime_spawn(target_session.character.room_id,_summon_tid)
