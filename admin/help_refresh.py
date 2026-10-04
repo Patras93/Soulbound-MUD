@@ -1576,10 +1576,19 @@ def refresh_public_help_surface_v11197():
         "Od Levelu 151 każdy kolejny Character Level zwiększa każdy z tych pięciu bonusów o +2.",
         "eq info Moogle Board pokazuje bieżący bonus wyliczony dla aktualnego Levelu postaci.",
     ]
+
+    HELP_TOPICS["silence"] = [
+        "Silence jest szkodliwym statusem kierowanym wyłącznie w przeciwnika; nie powinien być nakładany na rzucającego ani sojusznika.",
+        "Kontrakt źródłowy Temple Knight: One Enemy, koszt MP 32, Stat Influence: Will, Properties: Cleanseable i Extendable.",
+        "Skill Level zwiększa celność i czas działania. Efekt blokuje przeciwnikowi możliwość rzucania magii.",
+        "Temple Knight nie jest piętnastą grywalną klasą Soulbound; ten wpis dokumentuje źródłowy kontrakt statusu używany przez istniejące mechaniki.",
+    ]
     HELP_TOPIC_ALIASES.update({
         "moogle board": "moogle_board",
         "moogleboard": "moogle_board",
         "board moogle": "moogle_board",
+        "silence": "silence",
+        "cisza": "silence",
     })
 
     equipment = HELP_TOPICS.get("ekwipunek", [])
@@ -1622,6 +1631,7 @@ def help_surface_audit_v11197():
         "sklepy": ("17", "bransolet"),
         "ekwipunek": ("17", "zakc"),
         "moogle_board": ("Black Rabite", "150"),
+        "silence": ("One Enemy", "Cleanseable", "Extendable"),
     }
     for topic, needles in expected.items():
         text = text_of(topic)
