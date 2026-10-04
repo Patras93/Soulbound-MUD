@@ -1112,9 +1112,11 @@ class SessionCombatSkillsMixin:
                                 # total output still grows sub-linearly with target count.
                                 _local_mult *= 1.0 / (float(len(targets)) ** 0.5)
                             elif special in ("shock_soldier","laser_spin","maelstrom","cosmic_rave") and len(targets)>1 and not (special=="cosmic_rave" and vmax):
-                                # These source-marked diminishing skills still have no
-                                # separately confirmed numeric falloff in this pass.
-                                pass
+                                # Source marks these as Diminishing but does not publish
+                                # a numeric curve. Soulbound uses an explicit inverse-
+                                # sqrt target-count adaptation so every target receives
+                                # the same reduced hit while total output grows sub-linearly.
+                                _local_mult *= 1.0 / (float(len(targets)) ** 0.5)
                             damage=max(1,int(self.offensive_skill_core_power_v11185(skill, base)*_local_mult)+random.randint(-6,6))
                             # Shoot-All source is Attack + Critical Hit Chance and
                             # explicitly gains both damage and crit chance in V-MAX.
