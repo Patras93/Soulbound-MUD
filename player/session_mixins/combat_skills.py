@@ -493,41 +493,77 @@ class SessionCombatSkillsMixin:
                 mob = None
                 aoe_mobs = []
                 if kind == "group_heal":
-                    if superboss_healing_blocked_v11179(self):
-                        await self.send("Nullify Healing blokuje leczenie.")
-                        if self.combat_mob_key: await self.ensure_realtime_combat()
-                        return
-                    recipients=self.server.party_sessions(
-                        self.account_id,same_room=self.character.room_id
-                    ) or [self]
+                    recipients=list(
+                        self.server.party_sessions(
+                            self.account_id,same_room=self.character.room_id
+                        ) or []
+                    )
+                    if self not in recipients:
+                        recipients.append(self)
                     recipients=[
                         session for session in recipients
-                        if not session.closed and session.character and session.current_hp>0
+                        if not session.closed and session.character
+                        and session.current_hp>0
                     ]
-                    if not recipients:
-                        await self.send(f"{skill['name']}: brak żywych sojuszników w tej lokacji.")
+                    injured=[
+                        session for session in recipients
+                        if session.current_hp<session.max_hp()
+                    ]
+                    if not injured:
+                        await self.send(
+                            f"{skill['name']}: nikt w drużynie w tej lokacji "
+                            "nie potrzebuje leczenia."
+                        )
                         return
+                    healable=[
+                        session for session in injured
+                        if not superboss_healing_blocked_v11179(session)
+                    ]
+                    if not healable:
+                        await self.send(
+                            f"{skill['name']}: Nullify Healing blokuje leczenie "
+                            "wszystkich rannych celów."
+                        )
+                        return
+
+                    # This branch returns before the shared mana deduction below,
+                    # so group healing must pay its MP here exactly once.
+                    self.current_mana -= mana_cost
+
                     # Canonical class healing: authored percentage heals use
                     # INT/WILL (or the class-specific pair), while source abilities
                     # such as Healing Wind retain their explicit WILL identity.
                     healed=[]
-                    for target in recipients:
+                    blocked_count=len(injured)-len(healable)
+                    for target in healable:
                         target_max=target.max_hp()
                         before=target.current_hp
-                        if before>=target_max:
-                            continue
-                        heal=self.healing_skill_amount_v11196(skill,target,skill_power)
+                        heal=self.healing_skill_amount_v11196(
+                            skill,target,skill_power
+                        )
                         target.current_hp=min(target_max,before+heal)
                         actual=target.current_hp-before
                         if actual:
                             healed.append((target,actual))
                             if target is not self:
-                                await target.send(f"{self.character.name} używa {skill['name']}. Odzyskujesz {actual} HP.")
+                                await target.send(
+                                    f"{self.character.name} używa {skill['name']}. "
+                                    f"Odzyskujesz {actual} HP."
+                                )
                     await self.grant_skill_use_xp(skill)
                     total=sum(amount for _target,amount in healed)
-                    await self.send(f"{skill['name']}: uleczono {len(healed)} członków drużyny w tej lokacji, łącznie {total} HP.")
+                    await self.send(
+                        f"{skill['name']}: uleczono {len(healed)} członków drużyny "
+                        f"w tej lokacji, łącznie {total} HP."
+                        + (
+                            f" Nullify Healing zablokował {blocked_count} cel(e)."
+                            if blocked_count else ""
+                        )
+                    )
                     if mana_cost:
-                        await self.send(f"Mana: {self.current_mana} z {self.max_mana()}.")
+                        await self.send(
+                            f"Mana: {self.current_mana} z {self.max_mana()}."
+                        )
                     if self.combat_mob_key:
                         await self.ensure_realtime_combat()
                     return
@@ -665,6 +701,115 @@ class SessionCombatSkillsMixin:
                     _uoss_ok, _uoss_reason = superboss_attack_gate_v11137(self, MOB_TEMPLATES[mob.template_id])
                     if not _uoss_ok:
                         await self.send(_uoss_reason)
+                        return
+
+                _generic_heal_target = None
+                if kind == "heal" and not skill.get("mec_authored"):
+                    _heal_party=list(
+                        self.server.party_sessions(
+                            self.account_id,same_room=self.character.room_id
+                        ) or []
+                    )
+                    if self not in _heal_party:
+                        _heal_party.append(self)
+                    _heal_party=[
+                        sess for sess in _heal_party
+                        if not sess.closed and sess.character and sess.current_hp>0
+                    ]
+                    if target_text:
+                        _wanted=normalize_lookup_text(target_text)
+                        if _wanted in {"self","me","ja","siebie"}:
+                            _generic_heal_target=self
+                        else:
+                            _generic_heal_target=next(
+                                (
+                                    sess for sess in _heal_party
+                                    if sess is not self
+                                    and (
+                                        _wanted==normalize_lookup_text(sess.character.name)
+                                        or _wanted in normalize_lookup_text(sess.character.name)
+                                    )
+                                ),
+                                None,
+                            )
+                        if _generic_heal_target is None:
+                            await self.send(
+                                f"{skill['name']} leczy tylko ciebie albo żywego "
+                                "sojusznika w tej lokacji. Przeciwnik nie może być celem."
+                            )
+                            return
+                        if _generic_heal_target.current_hp>=_generic_heal_target.max_hp():
+                            await self.send(
+                                f"{skill['name']}: "
+                                f"{_generic_heal_target.character.name} ma już pełne HP."
+                            )
+                            return
+                    else:
+                        _injured=[
+                            sess for sess in _heal_party
+                            if sess.current_hp<sess.max_hp()
+                        ]
+                        if not _injured:
+                            await self.send(
+                                f"{skill['name']}: nikt w drużynie w tej lokacji "
+                                "nie potrzebuje leczenia."
+                            )
+                            return
+                        _generic_heal_target=min(
+                            _injured,
+                            key=lambda sess: (
+                                sess.current_hp/max(1,sess.max_hp()),
+                                sess.current_hp,
+                                sess.character.name.lower(),
+                            ),
+                        )
+                    if superboss_healing_blocked_v11179(_generic_heal_target):
+                        await self.send(
+                            f"Nullify Healing blokuje {skill['name']} na tym celu."
+                        )
+                        return
+
+                _regen_target = None
+                if kind == "regen":
+                    _regen_party=list(
+                        self.server.party_sessions(
+                            self.account_id,same_room=self.character.room_id
+                        ) or []
+                    )
+                    if self not in _regen_party:
+                        _regen_party.append(self)
+                    _regen_party=[
+                        sess for sess in _regen_party
+                        if not sess.closed and sess.character and sess.current_hp>0
+                    ]
+                    if target_text:
+                        _wanted=normalize_lookup_text(target_text)
+                        if _wanted in {"self","me","ja","siebie"}:
+                            _regen_target=self
+                        else:
+                            _regen_target=next(
+                                (
+                                    sess for sess in _regen_party
+                                    if sess is not self
+                                    and (
+                                        _wanted==normalize_lookup_text(sess.character.name)
+                                        or _wanted in normalize_lookup_text(sess.character.name)
+                                    )
+                                ),
+                                None,
+                            )
+                        if _regen_target is None:
+                            await self.send(
+                                "Regen działa tylko na ciebie albo jednego żywego "
+                                "sojusznika w tej lokacji. Przeciwnik nie może być celem."
+                            )
+                            return
+                    else:
+                        _regen_target=self
+                    if superboss_healing_blocked_v11179(_regen_target):
+                        await self.send(
+                            "Nullify Healing blokuje Regen na tym celu."
+                        )
                         return
 
                 _cure_beam_target = None
@@ -1916,12 +2061,7 @@ class SessionCombatSkillsMixin:
                     # normal damage calculation below; never mutate the shared skill row.
 
                 if kind == "regen":
-                    recipients=self.server.party_sessions(self.account_id,same_room=self.character.room_id) or [self]
-                    target=self
-                    if target_text:
-                        wanted=normalize_lookup_text(target_text)
-                        found=next((s for s in recipients if s.character and wanted in normalize_lookup_text(s.character.name)),None)
-                        if found: target=found
+                    target=_regen_target or self
                     # UOSS does not expose the exact cadence, HP/tick or seconds.
                     # Soulbound adaptation: small WILL-based pulse every 3 owner
                     # combat rounds, with 30->90 s duration from Skill Level 1->600.
@@ -1957,31 +2097,16 @@ class SessionCombatSkillsMixin:
                     if self.combat_mob_key: await self.ensure_realtime_combat()
                     return
 
-                # v0.31.6: zwykły heal pozostaje single-target, ale automatycznie
-                    # wybiera najbardziej rannego żywego członka party w tej samej
-                    # lokacji. Solo wybiera gracza. Skill nie marnuje się, gdy nikt
-                    # nie potrzebuje leczenia. group_heal nadal leczy całą drużynę.
-                    recipients = self.server.party_sessions(
-                        self.account_id, same_room=self.character.room_id
-                    ) or [self]
-                    injured = [
-                        session for session in recipients
-                        if not session.closed and session.character and session.current_hp > 0
-                        and session.current_hp < session.max_hp()
-                    ]
-                    if not injured:
+                if kind == "heal":
+                    # Zwykły heal pozostaje single-target. Jawny cel wskazuje
+                    # konkretnego żywego sojusznika; bez celu zachowujemy wygodny
+                    # wybór najbardziej rannego żywego członka lokalnej drużyny.
+                    target=_generic_heal_target
+                    if target is None:
                         await self.send(
-                            f"{skill['name']}: nikt w drużynie w tej lokacji nie potrzebuje leczenia."
+                            f"{skill['name']}: brak prawidłowego celu leczenia."
                         )
                         return
-                    target = min(
-                        injured,
-                        key=lambda session: (
-                            session.current_hp / max(1, session.max_hp()),
-                            session.current_hp,
-                            session.character.name.lower(),
-                        ),
-                    )
                     target_max = target.max_hp()
                     heal = self.healing_skill_amount_v11196(skill,target,skill_power)
                     before = target.current_hp
