@@ -32,6 +32,11 @@ from systems.items_resources import (
 def class_equipment_base_stat_pair(class_name):
     if class_type_for_name(class_name) == "magic":
         return "intelligence", "willpower"
+    # Physical classes are not all Strength archetypes. Rogue/Hunter/Monk,
+    # Mec and Engineer use Dexterity heavily in their authored kits, while
+    # Constitution remains the universal physical survivability stat.
+    if class_name in {"Łotrzyk", "Łowca", "Mnich", "Mec", "Inżynier"}:
+        return "dexterity", "constitution"
     return "strength", "constitution"
 
 
@@ -78,6 +83,7 @@ def class_equipment_base_stats_text(class_name, legacy_amount, slot=None):
     )
     labels = {
         "strength": "Siła",
+        "dexterity": "Zręczność",
         "constitution": "Kondycja",
         "intelligence": "Inteligencja",
         "willpower": "Siła Woli",
@@ -134,7 +140,10 @@ def class_equipment_stat_budget(required_mastery, slot=None):
     slot = str(slot or "")
     if slot in ("necklace", "relic"):
         base_affix = 3
-    elif slot in ("ring", "charm", "earring", "shoulders", "belt", "cloak", "bracers"):
+    elif slot in (
+        "ring", "charm", "earring", "shoulders", "belt", "cloak", "bracers",
+        "bracelet", "accessory",
+    ):
         base_affix = 2
     else:
         base_affix = 1
@@ -186,7 +195,10 @@ def _register_class_equipment_shops():
 
                     if slot in ("necklace", "relic"):
                         base_affix = 3
-                    elif slot in ("ring", "charm", "earring", "shoulders", "belt", "cloak", "bracers"):
+                    elif slot in (
+                        "ring", "charm", "earring", "shoulders", "belt", "cloak",
+                        "bracers", "bracelet", "accessory",
+                    ):
                         base_affix = 2
                     else:
                         base_affix = 1
@@ -197,6 +209,15 @@ def _register_class_equipment_shops():
                     primary_stat, primary_amount, secondary_stat, secondary_amount = (
                         class_equipment_split_stat_budget(class_name, legacy_affix_amount, slot)
                     )
+                    if class_type_for_name(class_name) != "magic":
+                        if secondary_stat != "constitution" or primary_stat not in {"strength", "dexterity"}:
+                            raise RuntimeError(
+                                f"Physical class EQ must include offensive stat + Condition: {class_name} {slot}"
+                            )
+                    elif {primary_stat, secondary_stat} != {"intelligence", "willpower"}:
+                        raise RuntimeError(
+                            f"Magic class EQ must include Intelligence + Willpower: {class_name} {slot}"
+                        )
                     defense = max(
                         1,
                         int(definition["base_defense"]) + int(defense_delta) + defense_step,
@@ -329,7 +350,9 @@ CLASS_SET_BONUSES = {
         "damage": 1.14, "defense": 1.10, "vitality": 1.16,
     },
     "Kapłan": {
-        "stats": {"willpower": 5},
+        # Kapłan leczy z INT + WILL, a ofensywne skille używają INT.
+        # Set wspiera oba osie zamiast pompować wyłącznie WILL.
+        "stats": {"intelligence": 3, "willpower": 2},
         "damage": 1.09, "defense": 1.15, "vitality": 1.20,
     },
     "Czarownik": {

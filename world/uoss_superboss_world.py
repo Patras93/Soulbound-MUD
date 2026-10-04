@@ -253,6 +253,52 @@ for _iid in _UNIVERSAL_UOSS_ACCESSORIES_V11195:
     if not _item.get("universal_all_classes"):
         raise RuntimeError(f"UOSS accessory audit failed: {_iid} missing universal_all_classes marker")
 
+for _iid in _UNIVERSAL_UOSS_ACCESSORIES_V11195:
+    _item = ITEMS[_iid]
+    _combat_value = 0
+    _combat_value += sum(abs(int(v or 0)) for v in (_item.get("stats") or {}).values())
+    _combat_value += sum(abs(int(v or 0)) for v in (_item.get("soulbound_balance_stats") or {}).values())
+    for _field in ("attack", "magic_attack", "defense", "magic_defense", "weapon_power"):
+        _combat_value += abs(int(_item.get(_field, 0) or 0))
+    _combat_value += 25 * len(tuple(_item.get("status_proof") or ()))
+    _combat_value += 10 * len(tuple(_item.get("source_wards") or ()))
+    if _combat_value <= 0:
+        raise RuntimeError(f"UOSS accessory audit failed: {_iid} has no real combat value")
+
+_PHYSICAL_UOSS_CONDITION_ITEMS_V11196 = (
+    "uoss_black_rabite_unique_1",
+    "uoss_black_rabite_unique_2",
+    "uoss_black_rabite_unique_3",
+    "uoss_black_rabite_unique_4",
+    "uoss_black_rabite_unique_6",
+    "uoss_black_rabite_unique_7",
+    "uoss_black_rabite_unique_9",
+    "uoss_odin_unique_1",
+    "uoss_odin_unique_2",
+    "uoss_odin_unique_3",
+    "uoss_odin_unique_4",
+    "uoss_odin_unique_7",
+    "uoss_yiazmat_unique_1",
+    "uoss_yiazmat_unique_2",
+    "uoss_yiazmat_unique_4",
+    "uoss_behemoth_suit",
+    "uoss_venetian_shield",
+    "uoss_ziedrich",
+    "uoss_thief_hat",
+    "uoss_oborozuki",
+    "culex_hermes_shoes",
+    "culex_hyper_wrist",
+    "culex_tough_ring",
+)
+for _iid in _PHYSICAL_UOSS_CONDITION_ITEMS_V11196:
+    _item = ITEMS.get(_iid)
+    if not _item:
+        raise RuntimeError(f"UOSS physical EQ audit failed: missing item {_iid}")
+    _condition = int((_item.get("stats") or {}).get("constitution", 0) or 0)
+    _condition += int((_item.get("soulbound_balance_stats") or {}).get("constitution", 0) or 0)
+    if _condition <= 0:
+        raise RuntimeError(f"UOSS physical EQ audit failed: {_iid} has no Condition")
+
 def install_uoss_superboss_spawns_v11136(mob_spawns):
     """Install bosses; sourced encounters spawn in their canonical named rooms."""
     for key in _ORDER:

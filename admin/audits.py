@@ -138,19 +138,20 @@ LATEST_CHANGES = [
 # ============================================================
 def equipment_expansion_audit_v03020():
     errors = []
-    required_slots = {"shoulders", "belt", "cloak", "bracers", "relic"}
+    required_slots = {"shoulders", "belt", "cloak", "bracers", "bracelet", "accessory", "relic"}
     if not required_slots.issubset(CLASS_EQUIPMENT_SLOT_DEFS):
         errors.append("missing new class EQ slots: " + ", ".join(sorted(required_slots - set(CLASS_EQUIPMENT_SLOT_DEFS))))
     if not required_slots.issubset(EQUIPMENT_SLOT_NAMES):
         errors.append("missing new slot display names")
     expected_commands = {
         "zp":"equipringauto", "zt":"equipcharmauto", "znar":"equipshoulders",
-        "zpas":"equipbelt", "zpel":"equipcloak", "zkar":"equipbracers", "zrel":"equiprelic",
+        "zpas":"equipbelt", "zpel":"equipcloak", "zkar":"equipbracers",
+        "zbra":"equipbracelet", "zakc":"equipaccessoryauto", "zrel":"equiprelic",
     }
     for alias, command in expected_commands.items():
         if COMMAND_ALIASES.get(alias) != command:
             errors.append(f"shortcut {alias} -> {COMMAND_ALIASES.get(alias)!r}, expected {command!r}")
-    # Every class/tier should now expose all 14 logical equipment pieces per style.
+    # Every class/tier should expose the complete logical equipment grid per style.
     logical_slots = set(CLASS_EQUIPMENT_SLOT_DEFS)
     for class_name, tiers in CLASS_EQUIPMENT_ITEMS_BY_CLASS_TIER.items():
         for mastery in (1, 100, 200, 400, 600):
@@ -172,7 +173,7 @@ if EQUIPMENT_EXPANSION_AUDIT_V03020.get("error_count"):
     raise RuntimeError("Equipment Expansion Audit v0.30.20 failed: " + "; ".join(EQUIPMENT_EXPANSION_AUDIT_V03020.get("errors", [])[:20]))
 
 HELP_TOPICS.setdefault("eq", []).extend([
-    "v0.30.20: dodano 5 nowych slotów EQ: naramienniki, pas, peleryna, karwasze, kolczyki i relikt. Klasowe EQ wszystkich 14 klas generuje te sloty na każdym istniejącym progu Biegłości.",
+    "Pełna siatka klasowego EQ ma 17 logicznych slotów. Bransoletka i Akcesorium są generowane dla wszystkich 14 klas na każdym progu Levelu 1/10/20/.../600, obok naramienników, pasa, peleryny, karwaszy, kolczyków i reliktu.",
     "Nowe sloty mają różne role: naramienniki/pas są bardziej defensywne, karwasze bardziej ofensywne, peleryna bardziej utility, relikt ma mocniejszy profil klasowy.",
     "Pierścienie i talizmany nie wymagają już ręcznego wskazywania slotu 1/2: pełna nazwa albo zp/zt + numer używa wolnego slotu, a przy dwóch zajętych zastępuje słabszy.",
     "Ręczne zp1/zp2 oraz zt1/zt2 pozostają dostępne, gdy chcesz wymusić konkretny slot.",
@@ -303,10 +304,10 @@ if FULL_HELP_AUDIT_V03021["error_count"]:
 def eq_shop_audit_v03021():
     errors=[]
     slots=set(CLASS_EQUIPMENT_SLOT_DEFS)
-    # v1.11.x: shields are now a full stat-bearing class-EQ progression slot.
-    # The canonical class shop set therefore contains 15 logical slots.
-    if len(slots)!=15:
-        errors.append(f"logical EQ slots={len(slots)}, expected 15")
+    # v1.11.x: shields, bracelets and accessories are full stat-bearing
+    # class-EQ progression slots. The canonical class shop grid has 17 slots.
+    if len(slots)!=17:
+        errors.append(f"logical EQ slots={len(slots)}, expected 17")
     if "shield" not in slots:
         errors.append("logical EQ slots missing shield")
     for class_name,definition in CLASS_EQUIPMENT_SETS.items():
@@ -1885,7 +1886,7 @@ def equipment_completeness_audit_v03037():
     logical_slots = set(CLASS_EQUIPMENT_SLOT_DEFS)
     expected_slots = {
         "head", "body", "shield", "hands", "legs", "feet", "charm", "ring", "necklace",
-        "earring", "shoulders", "belt", "cloak", "bracers", "relic",
+        "earring", "shoulders", "belt", "cloak", "bracers", "bracelet", "accessory", "relic",
     }
     if logical_slots != expected_slots:
         errors.append(f"class logical slots={sorted(logical_slots)} expected={sorted(expected_slots)}")
@@ -1938,7 +1939,7 @@ def equipment_completeness_audit_v03037():
         if alias not in COMMAND_ALIASES:
             errors.append(f"missing earring shortcut {alias}")
 
-    # Krypta i Wieża Astralna również muszą używać pełnych 15 slotów.
+    # Krypta i Wieża Astralna również muszą używać pełnych 17 slotów.
     for tier in (1, 20, 40):
         crypt_slots = {ITEMS.get(f"crypt_t{tier}_{slot}", {}).get("slot") for slot in expected_slots}
         if crypt_slots != expected_slots:
@@ -2032,7 +2033,7 @@ LATEST_CHANGES = [
     "v0.30.37: materiałowe EQ z ciał obejmuje teraz wszystkie 15 logicznych slotów dla wszystkich 10 materiałów od Żelaza do Eternium.",
     "v0.30.37: 24 warianty każdego materiału/slotu mają niepowtarzalne profile statów; nazwy materiałowego EQ są globalnie unikalne.",
     "v0.30.37: sloty mają własne preferencje statów/właściwości, więc np. korpus, karwasze, peleryna i kolczyki nie są statystycznymi kopiami.",
-    "v0.30.37: Krypta i Wieża Astralna zostały podniesione do pełnych 15 slotów; stare sześcioslotowe pule nie ograniczają już nowych dropów.",
+    "v1.11.96: pełna siatka EQ ma 17 logicznych slotów; Bransoletka i Akcesorium są obecne w klasowym EQ, dropach materiałowych, Krypcie i Wieży Astralnej.",
     "v0.30.37: globalny audit wymaga unikalnej nazwy każdego EQ typu armor i rozróżnia pełne profile klasowych slotów.",
     "v0.30.37: po dodaniu kolczyków podstawowe sloty wearable są kompletne; Broń Duszy pozostaje osobnym systemem broni i nie jest dublowana zwykłym main-hand/off-hand.",
 ] + LATEST_CHANGES
@@ -2285,7 +2286,8 @@ def eq_shortcuts_auto_audit_v03040():
         "znog":"equiplegs", "zbut":"equipfeet", "ztal":"equipcharmauto",
         "zpier":"equipringauto", "znasz":"equipnecklace", "zkol":"equipearringauto",
         "znar":"equipshoulders", "zpas":"equipbelt", "zpel":"equipcloak",
-        "zkar":"equipbracers", "zrel":"equiprelic",
+        "zkar":"equipbracers", "zbra":"equipbracelet", "zakc":"equipaccessoryauto",
+        "zrel":"equiprelic",
         "autoeq":"autoequip", "eqauto":"autoequip", "zauto":"autoequip",
     }
     for alias, expected in expected_aliases.items():
@@ -2296,12 +2298,12 @@ def eq_shortcuts_auto_audit_v03040():
     for token in (
         "required_class", "equipment_mastery_requirement_met",
         "ring1", "ring2", "charm1", "charm2", "earring1", "earring2",
-        "return_socketed_gems", "AUTO EQ",
+        "accessory1", "accessory2", "return_socketed_gems", "AUTO EQ",
     ):
         if token not in src:
             errors.append(f"auto eq missing token: {token}")
-    if len(CLASS_EQUIPMENT_SLOT_DEFS) != 15:
-        errors.append(f"logical EQ slot count {len(CLASS_EQUIPMENT_SLOT_DEFS)}, expected 15")
+    if len(CLASS_EQUIPMENT_SLOT_DEFS) != 17:
+        errors.append(f"logical EQ slot count {len(CLASS_EQUIPMENT_SLOT_DEFS)}, expected 17")
     return {
         "version":"0.30.40",
         "shortcut_count":len(expected_aliases),
@@ -2319,8 +2321,8 @@ if EQ_SHORTCUTS_AUTO_AUDIT_V03040.get("error_count"):
 
 HELP_TOPICS["skroty_eq"] = [
     "Pełne skróty zakładania EQ: zhel hełm, zpan pancerz, ztar tarcza, zrek rękawice, znog nogawice, zbut buty.",
-    "Biżuteria: ztal talizmany auto, zpier pierścienie auto, znasz naszyjnik, zkol kolczyki auto. Ręcznie nadal działają zt1/zt2, zp1/zp2 i zkol1/zkol2.",
-    "Pozostałe: znar naramienniki, zpas pas, zpel peleryna, zkar karwasze, zrel relikt.",
+    "Biżuteria: ztal talizmany auto, zpier pierścienie auto, znasz naszyjnik, zkol kolczyki auto, zbra bransoletka, zakc akcesoria auto. Ręcznie nadal działają zt1/zt2, zp1/zp2 i zkol1/zkol2.",
+    "Pozostałe: znar naramienniki, zpas pas, zpel peleryna, zkar karwasze, zrel relikt. Akcesoria używają dwóch slotów: Akcesorium 1 i Akcesorium 2.",
     "Stare skróty zh, zz, zr, zn, zb, zt, zp, zna itd. nadal działają.",
     "Samo wpisanie skrótu pokazuje numerowaną listę posiadanego EQ danego slotu; skrót + numer zakłada wybraną pozycję.",
     "eq auto, załóż auto, autoeq, eqauto albo zauto automatycznie wymienia dostępne części na indywidualnie najmocniejsze posiadane EQ.",
@@ -2330,9 +2332,9 @@ HELP_TOPIC_ALIASES.update({
     "eq skróty":"skroty_eq", "auto eq":"skroty_eq", "autoeq":"skroty_eq",
 })
 HELP_TOPICS.setdefault("eq", []).extend([
-    "v0.30.40: pełne czytelne skróty: zhel, zpan, ztar, zrek, znog, zbut, ztal, zpier, znasz, zkol, znar, zpas, zpel, zkar, zrel. Stare skróty nadal działają.",
+    "Pełne czytelne skróty EQ obejmują także zbra dla bransoletki i zakc dla dwóch slotów akcesoriów. Stare skróty nadal działają.",
     "v0.30.40: eq auto / załóż auto / autoeq / zauto jednym poleceniem wymienia posiadane, dostępne EQ na indywidualnie najmocniejsze części. Auto respektuje Level postaci, aktywną klasę i liczbę posiadanych kopii.",
-    "Auto EQ nie klonuje podwójnej biżuterii; do dwóch identycznych pierścieni, talizmanów lub kolczyków potrzebujesz dwóch sztuk. Klejnoty z wymienianej biżuterii wracają do Szkatułki.",
+    "Auto EQ nie klonuje podwójnej biżuterii; do dwóch identycznych pierścieni, talizmanów, kolczyków lub akcesoriów potrzebujesz dwóch sztuk. Klejnoty z wymienianej biżuterii wracają do Szkatułki.",
 ])
 HELP_TOPICS.setdefault("wersja", []).append(
     "v0.30.40: komplet skrótów całego EQ oraz opcjonalny Auto Equip jednym poleceniem."
@@ -2343,7 +2345,7 @@ LATEST_CHANGES = [
     "v0.30.40: eq auto, załóż auto, autoeq, eqauto i zauto automatycznie dobierają najmocniejsze dostępne indywidualne części.",
     "v0.30.40: Auto EQ respektuje Level postaci, aktywne klasy, podwójne sloty i rzeczywistą liczbę posiadanych kopii.",
     "v0.30.40: przy automatycznej wymianie biżuterii osadzone klejnoty są bezpiecznie zwracane do Szkatułki Rzemieślniczej.",
-    "v0.30.40: komunikaty setów zostały zsynchronizowane z 14 logicznymi typami EQ.",
+    "v1.11.96: główna siatka EQ ma 17 logicznych slotów; Bracelet i Accessory są pełnoprawnym EQ, ale nie ułatwiają historycznych progów setów 2/4/6/8.",
 ]
 
 

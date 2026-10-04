@@ -6,12 +6,18 @@ import math
 import random
 import time
 from core.bootstrap_economy_professions import SOUL_MILESTONE_TIERS, SOUL_TRIAL_QUEST_IDS
-from core.classes_skills import CLASSES, CLASS_SKILLS, NATURAL_SKILL_INTENTS, ROOMS, effective_skill_mana_cost
+from core.classes_skills import (
+    CLASSES, CLASS_SKILLS, NATURAL_SKILL_INTENTS, ROOMS, effective_skill_mana_cost,
+    MEC_PROTOCOL_SKILLS_V11155,
+)
 from core.progression_600 import (
     SKILL_MAX_LEVEL, SOUL_MAX_TIER, SOUL_TIER_THRESHOLDS,
     soul_tier_title_for_class, soul_weapon_trait_for_tier_v11193,
 )
-from core.progression_resources import skill_cooldown_multiplier, skill_xp_to_next, v0190_scaled_gain
+from core.progression_resources import (
+    skill_cooldown_multiplier, skill_xp_to_next, v0190_scaled_gain,
+    skill_power_multiplier,
+)
 from network.protocol_gameplay_utils import find_by_name, normalize_lookup_text
 from systems.content_registry import MOB_TEMPLATES, NPCS, QUESTS
 from systems.equipment_crafting import GUILD_REPUTATION_MAX
@@ -105,6 +111,11 @@ class SessionSkillLearningMixin:
                 await self.send(f"{slot}: {current['name'] if current else 'brak'}.")
                 return
             wanted=parts[2].strip()
+            # UOSS source syntax includes the job name, e.g.
+            # "job set counter mec Intercept System". Soulbound also accepts
+            # the shorter "job set counter Intercept System".
+            if wanted.casefold().startswith("mec "):
+                wanted=wanted[4:].strip()
             if wanted.casefold() in ("none","brak","off","wyłącz","wylacz"):
                 self.server.db.clear_job_ability_slot(self.account_id,slot)
                 await self.send(f"Slot {slot} wyłączony.")
@@ -702,6 +713,13 @@ class SessionSkillLearningMixin:
                         continue
                     if not self.server.db.knows_skill(self.account_id, passive["id"]):
                         continue
+                    # Mec Protocols level from real use of their own authored branch,
+                    # not from unrelated Mec actions. Other passive/inherent skills
+                    # preserve the existing class-wide passive XP behavior.
+                    protocol_specials=MEC_PROTOCOL_SKILLS_V11155.get(passive["id"])
+                    if protocol_specials is not None:
+                        if str(skill.get("mec_special","")) not in set(protocol_specials):
+                            continue
                     self.server.db.add_skill_xp(self.account_id, passive["id"], passive_gain)
             return result
 
@@ -792,6 +810,32 @@ class SessionSkillLearningMixin:
             template = MOB_TEMPLATES[mob.template_id]
             mechanic = template.get("boss_mechanic")
             damage = max(0, int(damage))
+
+            # Tiger Rampage lowers both physical and magical defense. Mobs do not
+            # expose separate mutable defense values, so Soulbound represents the
+            # dual defense loss as increased incoming damage while the break lasts.
+            if (
+                damage>0
+                and int(
+                    getattr(mob,"v11196_tiger_defense_break_rounds",0) or 0
+                )>0
+            ):
+                damage=max(
+                    1,int(round(
+                        damage
+                        * max(
+                            1.0,
+                            float(
+                                getattr(
+                                    mob,
+                                    "v11196_tiger_defense_break_damage_multiplier",
+                                    1.15,
+                                )
+                                or 1.15
+                            ),
+                        )
+                    ))
+                )
 
             elite_affix = template.get("elite_affix")
             if elite_affix == "armored" and damage > 0:
@@ -1342,6 +1386,90 @@ class SessionSkillLearningMixin:
 
             return profile
 
+    async def mec_intercept_incoming_attack_v11196(self, mob):
+            """Interrupt one incoming enemy attack when Intercept System is selected."""
+            if not mob or not mob.alive:
+                return False
+            if not self.job_ability_selected(
+                "counter","v0319_mec_intercept_system"
+            ):
+                return False
+            _intercept=self.skill_by_id("v0319_mec_intercept_system")
+            if not (
+                _intercept
+                and self.server.db.knows_skill(
+                    self.account_id,_intercept["id"]
+                )
+            ):
+                return False
+
+            _stat_values={
+                "strength":max(1,int(self.effective_strength())),
+                "dexterity":max(1,int(self.effective_dexterity())),
+                "intelligence":max(1,int(self.effective_intelligence())),
+                "willpower":max(1,int(self.effective_willpower())),
+            }
+            _stat_name,_stat_value=max(
+                _stat_values.items(),
+                key=lambda item:(item[1],item[0]),
+            )
+            _counter_skill=dict(_intercept)
+            _counter_skill["scale"]=_stat_name
+            _counter_level=max(
+                1,min(
+                    SKILL_MAX_LEVEL,
+                    int(
+                        self.server.db.skill_progress(
+                            self.account_id,_intercept["id"]
+                        )["level"]
+                    ),
+                )
+            )
+            _counter_type=(
+                "magic"
+                if _stat_name in ("intelligence","willpower")
+                else "physical"
+            )
+            # UOSS Base AP 1000 is a learning cost, not counter damage.
+            # Intercept power comes from the selected effective offensive stat,
+            # EQ/Soul Power and Skill Level through the shared combat core.
+            _counter_core=self.offensive_skill_core_power_v11185(
+                _counter_skill,
+                0,
+            )
+            _counter_mult=(
+                skill_power_multiplier(_counter_level)
+                * self.offensive_skill_damage_multiplier_v11186(
+                    _counter_skill,_counter_type
+                )
+            )
+            counter=max(1,int(round(_counter_core*_counter_mult)))
+            counter=await self.apply_boss_defense(mob,counter)
+            counter=self.v0210_adjust_player_damage(counter)
+            counter=min(max(0,int(mob.hp)),max(0,int(counter)))
+            mob.hp-=counter
+            self._recap52_dealt=(
+                int(getattr(self,"_recap52_dealt",0) or 0)+counter
+            )
+            _stat_labels={
+                "strength":"Siła",
+                "dexterity":"Zręczność",
+                "intelligence":"Inteligencja",
+                "willpower":"Siła Woli",
+            }
+            template=MOB_TEMPLATES[mob.template_id]
+            await self.send_combat(
+                f"Intercept System przerywa atak {template['name']} i "
+                f"kontruje laserami za {counter}. Najwyższy stat: "
+                f"{_stat_labels[_stat_name]} {_stat_value}. "
+                f"Skill Level {_counter_level}.",
+                "normal",
+            )
+            await self.grant_skill_use_xp(_intercept)
+            if mob.hp<=0:
+                await self.mob_defeated(mob)
+            return True
+
     async def enemy_counterattack(self, mob):
             if not mob or not mob.alive:
                 return
@@ -1371,21 +1499,10 @@ class SessionSkillLearningMixin:
             if now < float(getattr(mob,"v0319_blind_until",0.0) or 0.0) and random.random()<0.35:
                 await self.send_combat(f"{template['name']} pudłuje przez Blind.","normal"); return
 
-            # Intercept System is a selected Counter, not an automatic learned
-            # passive. Source: it interrupts the incoming attack and its lasers use
-            # the user's highest offensive stat; Skill Level increases damage.
-            if self.job_ability_selected("counter","v0319_mec_intercept_system"):
-                _offense=max(
-                    max(1,int(self.physical_power())),
-                    max(1,int(self.spell_power())),
-                )
-                # Source says Skill Level increases damage but supplies no numeric
-                # progression curve. Highest offensive power is the canonical base.
-                counter=_offense
-                mob.hp-=counter
-                await self.send_combat(f"Intercept System przerywa atak {template['name']} i kontruje laserami za {counter}.","normal")
-                if mob.hp<=0:
-                    await self.mob_defeated(mob); return
+            # Fallback for any direct counterattack call outside the
+            # normal realtime loop. The realtime loop intercepts earlier so sourced
+            # special enemy attacks are cancelled as a whole action as well.
+            if await self.mec_intercept_incoming_attack_v11196(mob):
                 return
 
             if self.skill_evade:

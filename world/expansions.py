@@ -1816,7 +1816,7 @@ def build_world_expansion_i():
             "world_boss": True,
         },
         "mountain_harpy": {
-            "name": "Harpia Szczytowa",
+            "name": "Harpia Szczytowa", "flying": True,
             "max_hp": 300, "damage": 25, "damage_type": "physical",
             "silver": 90, "gold": 1, "mithril": 0,
             "stat_reward": 90, "class_xp_reward": 1550, "soul_reward": 390,
@@ -1840,7 +1840,7 @@ def build_world_expansion_i():
             "quest_target": "world_exp_mountain_threat",
         },
         "mountain_storm_eagle": {
-            "name": "Orzeł Burzy",
+            "name": "Orzeł Burzy", "flying": True,
             "max_hp": 3200, "damage": 55, "damage_type": "magic",
             "silver": 1200, "gold": 5, "mithril": 0,
             "stat_reward": 480, "class_xp_reward": 9000, "soul_reward": 2400,
@@ -2288,7 +2288,7 @@ def build_world_expansion_ii():
         "ice_crystal_golem":{"name":"Golem Lodowego Kryształu","max_hp":980,"damage":60,"damage_type":"magic","silver":135,"gold":2,"mithril":0,"stat_reward":170,"class_xp_reward":2900,"soul_reward":1850,"drops":{"soul_shard":0.50},"quest_target":None},
         "ice_wraith":{"name":"Upiór Szronu","max_hp":860,"damage":65,"damage_type":"magic","silver":145,"gold":2,"mithril":0,"stat_reward":180,"class_xp_reward":3150,"soul_reward":2050,"drops":{"soul_shard":0.65},"quest_target":None},
         "ice_glacier_guard":{"name":"Strażnik Lodowca","max_hp":1200,"damage":74,"damage_type":"physical","silver":170,"gold":3,"mithril":0,"stat_reward":205,"class_xp_reward":3700,"soul_reward":2450,"drops":{},"quest_target":None},
-        "ice_dragon":{"name":"Pradawny Lodowy Smok","max_hp":5000,"damage":118,"damage_type":"magic","silver":520,"gold":10,"mithril":1,"stat_reward":380,"class_xp_reward":10500,"soul_reward":8200,"drops":{"soul_elixir":0.42},"quest_target":None,"boss_mechanic":"ice_dragon","world_boss":True},
+        "ice_dragon":{"name":"Pradawny Lodowy Smok","flying":True,"max_hp":5000,"damage":118,"damage_type":"magic","silver":520,"gold":10,"mithril":1,"stat_reward":380,"class_xp_reward":10500,"soul_reward":8200,"drops":{"soul_elixir":0.42},"quest_target":None,"boss_mechanic":"ice_dragon","world_boss":True},
     })
 
     MOB_SPAWNS.extend([

@@ -492,6 +492,8 @@ CORPSE_MATERIAL_SLOT_DEFS = {
     "belt": ("Pas", 1),
     "cloak": ("Peleryna", 0),
     "bracers": ("Karwasze", 0),
+    "bracelet": ("Bransoletka", -1),
+    "accessory": ("Akcesorium", -1),
     "relic": ("Relikt", 0),
 }
 
@@ -563,6 +565,8 @@ MATERIAL_SLOT_NAME_FOR_TITLE = {
     "belt": "Pas",
     "cloak": "Peleryna",
     "bracers": "Karwasze",
+    "bracelet": "Bransoletka",
+    "accessory": "Akcesorium",
     "relic": "Relikt",
 }
 
@@ -584,6 +588,8 @@ MATERIAL_SLOT_STAT_PREFERENCES = {
     "belt": ("constitution", "strength", "willpower", "dexterity", "intelligence"),
     "cloak": ("dexterity", "willpower", "intelligence", "constitution", "strength"),
     "bracers": ("strength", "dexterity", "constitution", "intelligence", "willpower"),
+    "bracelet": ("dexterity", "strength", "constitution", "willpower", "intelligence"),
+    "accessory": ("willpower", "intelligence", "dexterity", "strength", "constitution"),
     "relic": ("willpower", "intelligence", "strength", "constitution", "dexterity"),
 }
 
@@ -602,6 +608,8 @@ MATERIAL_SLOT_PROPERTY_PREFERENCES = {
     "belt": ("max_hp_pct", "physical_defense_pct", "magic_defense_pct", "dodge_pct", "physical_damage_pct", "magic_damage_pct", "max_mana_pct"),
     "cloak": ("dodge_pct", "magic_defense_pct", "max_mana_pct", "magic_damage_pct", "physical_defense_pct", "physical_damage_pct", "max_hp_pct"),
     "bracers": ("physical_damage_pct", "dodge_pct", "physical_defense_pct", "magic_damage_pct", "max_hp_pct", "magic_defense_pct", "max_mana_pct"),
+    "bracelet": ("physical_damage_pct", "dodge_pct", "magic_damage_pct", "physical_defense_pct", "magic_defense_pct", "max_hp_pct", "max_mana_pct"),
+    "accessory": ("magic_damage_pct", "physical_damage_pct", "max_mana_pct", "max_hp_pct", "dodge_pct", "magic_defense_pct", "physical_defense_pct"),
     "relic": ("max_mana_pct", "max_hp_pct", "magic_damage_pct", "physical_damage_pct", "magic_defense_pct", "physical_defense_pct", "dodge_pct"),
 }
 
@@ -1302,6 +1310,8 @@ CLASS_EQUIPMENT_SLOT_DEFS = {
     "belt": ("Pas", 1, 115),
     "cloak": ("Peleryna", 0, 150),
     "bracers": ("Karwasze", 0, 105),
+    "bracelet": ("Bransoletka", 0, 125),
+    "accessory": ("Akcesorium", 0, 170),
     "relic": ("Relikt", 0, 200),
 }
 
@@ -1323,9 +1333,10 @@ CLASS_SHOP_ITEMS_BY_ROOM = {
 CLASS_EQUIPMENT_ITEM_IDS = set()
 
 
-# v0.30.14: każde klasowe EQ ma DWIE podstawowe statystyki archetypu.
-# Fizyczne: Siła + Kondycja. Magiczne: Inteligencja (Mądrość w sensie
-# archetypu magicznego) + Siła Woli. Zachowujemy łączny budżet starego
+# v0.30.14 / v1.11.96: każde klasowe EQ ma DWIE podstawowe statystyki archetypu.
+# Fizyczne: właściwa ofensywna Siła albo Zręczność + Kondycja.
+# Magiczne: Inteligencja (UOSS Wisdom) + Siła Woli (UOSS Will).
+# Zachowujemy łączny budżet starego
 # pojedynczego affixu; Tier 1 dostaje minimalnie 1+1, aby obie statystyki
 # były faktycznie obecne. Pierwsza statystyka pozostaje affixem możliwym
 # do przekucia, druga jest stałym bonusem bazowym przedmiotu.
@@ -1344,17 +1355,17 @@ CLASS_EQUIPMENT_CLASS_PROFILES = {
     },
     "Łotrzyk": {
         "primary_ratio": 0.64,
-        "identity": "ofensywa z naciskiem na unik",
+        "identity": "Zręczność, unik i fizyczna ofensywa",
         "properties": {"dodge_pct": 0.60, "physical_damage_pct": 0.40},
     },
     "Łowca": {
         "primary_ratio": 0.68,
-        "identity": "wysoka Siła i mobilna ofensywa",
+        "identity": "wysoka Zręczność i mobilna ofensywa",
         "properties": {"physical_damage_pct": 0.65, "dodge_pct": 0.35},
     },
     "Mnich": {
         "primary_ratio": 0.44,
-        "identity": "większa Kondycja i defensywna równowaga",
+        "identity": "Zręczność, Kondycja i defensywna równowaga",
         "properties": {"magic_defense_pct": 0.55, "dodge_pct": 0.45},
     },
     "Strażnik": {
@@ -1394,12 +1405,12 @@ CLASS_EQUIPMENT_CLASS_PROFILES = {
     },
     "Mec": {
         "primary_ratio": 0.42,
-        "identity": "ciężki pancerz i stabilna ofensywa rdzenia",
+        "identity": "Kondycja, Zręczność i stabilna ofensywa rdzenia",
         "properties": {"physical_defense_pct": 0.60, "max_hp_pct": 0.40},
     },
     "Inżynier": {
         "primary_ratio": 0.68,
-        "identity": "zręczność, narzędzia i mobilna ofensywa",
+        "identity": "Zręczność, Kondycja, narzędzia i mobilna ofensywa",
         "properties": {"physical_damage_pct": 0.60, "dodge_pct": 0.40},
     },
 }
@@ -1421,11 +1432,14 @@ CLASS_EQUIPMENT_SLOT_PRIMARY_BIAS = {
     "belt": -0.10,
     "cloak": 0.03,
     "bracers": 0.10,
+    "bracelet": 0.08,
+    "accessory": 0.04,
     "relic": 0.05,
 }
 
 CLASS_EQUIPMENT_SLOT_PROPERTY_SCALE = {
     "head": 1.00, "body": 1.15, "shield": 1.10, "hands": 0.95, "legs": 1.10,
     "feet": 0.90, "charm": 0.85, "ring": 0.85, "necklace": 1.00, "earring": 0.82,
-    "shoulders": 1.08, "belt": 1.05, "cloak": 0.92, "bracers": 0.95, "relic": 1.20,
+    "shoulders": 1.08, "belt": 1.05, "cloak": 0.92, "bracers": 0.95,
+    "bracelet": 0.90, "accessory": 0.90, "relic": 1.20,
 }

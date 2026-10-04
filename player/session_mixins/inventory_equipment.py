@@ -20,6 +20,7 @@ from systems.crafting_quality import ensure_crafting_quality_variant_v0332, play
 from systems.dungeons_regions import CRYPT_AFFIXES
 from systems.equipment_crafting import (
     CLASS_SET_STAT_NAMES,
+    class_equipment_base_stat_pair,
     CUT_GEM_IDS,
     GEM_AFFIX_NAMES,
     GEM_DEFINITIONS,
@@ -430,6 +431,14 @@ class SessionInventoryEquipmentMixin:
                     )
                     if fixed_stats:
                         extra += f" Statystyki bazowe: {fixed_stats}."
+                if item and item.get("soulbound_balance_stats"):
+                    balance_stats = ", ".join(
+                        f"{CLASS_SET_STAT_NAMES.get(stat, stat)} +{amount}"
+                        for stat, amount in item.get("soulbound_balance_stats", {}).items()
+                        if int(amount or 0) != 0
+                    )
+                    if balance_stats:
+                        extra += f" Bonus Soulbound: {balance_stats}."
                 if item and item.get("cyborg_board_scaling") == "character_level":
                     _level = int(self.character.character_level)
                     _mb = moogle_board_stat_bonus_v0313(_level)
@@ -539,6 +548,8 @@ class SessionInventoryEquipmentMixin:
             }
             stat_power = int(item.get("affix_amount", 0) or 0) + sum(
                 max(0, int(v or 0)) for v in (item.get("stats") or {}).values()
+            ) + sum(
+                max(0, int(v or 0)) for v in (item.get("soulbound_balance_stats") or {}).values()
             )
             return (
                 int(item.get("defense", 0) or 0),
@@ -546,6 +557,51 @@ class SessionInventoryEquipmentMixin:
                 stat_power,
                 normalize_lookup_text(item.get("name", "")),
             )
+
+    def auto_equipment_stat_weight_v11196(self, stat):
+            """Class-aware AUTO EQ weighting without changing item stats."""
+            stat = str(stat or "")
+            active = tuple(self.active_class_names())
+            best = 0.20
+            for class_name in active:
+                primary, secondary = class_equipment_base_stat_pair(class_name)
+                if stat == primary:
+                    best = max(best, 1.00)
+                elif stat == secondary:
+                    best = max(best, 0.85)
+                elif stat == "constitution":
+                    best = max(best, 0.55)
+                elif stat == "dexterity":
+                    best = max(best, 0.45)
+                elif stat == "willpower":
+                    best = max(best, 0.35)
+                elif stat == "intelligence":
+                    best = max(best, 0.30)
+                elif stat == "strength":
+                    best = max(best, 0.30)
+                if class_name == "Mec":
+                    best = max(best, {
+                        "strength": 0.75, "dexterity": 1.00, "constitution": 0.90,
+                        "intelligence": 0.70, "willpower": 0.70,
+                    }.get(stat, 0.20))
+                elif class_name == "Mnich" and stat == "willpower":
+                    best = max(best, 0.60)
+            return best
+
+    def auto_equipment_property_weight_v11196(self, prop):
+            prop = str(prop or "")
+            active = tuple(self.active_class_names())
+            physical = any(class_equipment_base_stat_pair(name)[0] in {"strength", "dexterity"} for name in active)
+            magic = any(class_equipment_base_stat_pair(name)[0] == "intelligence" for name in active)
+            if prop == "physical_damage_pct":
+                return 1.0 if physical else 0.20
+            if prop == "magic_damage_pct":
+                return 1.0 if magic or "Mec" in active else 0.20
+            if prop == "max_mana_pct":
+                return 1.0 if magic or "Mec" in active else 0.35
+            if prop in {"max_hp_pct", "physical_defense_pct", "magic_defense_pct", "dodge_pct", "all_damage_pct"}:
+                return 1.0
+            return 0.50
 
     def auto_equipment_score_v03040(self, item, item_id=None):
             """Porównanie indywidualnej mocy EQ dla opcjonalnego trybu auto.
@@ -565,9 +621,30 @@ class SessionInventoryEquipmentMixin:
                 if item_id else 0
             )
             defense = max(0, int(item.get("defense", 0) or 0)) + v03042_upgrade_defense_bonus(item, upgrade_level)
-            stats = sum(max(0, int(v or 0)) for v in (item.get("stats") or {}).values())
-            stats += v03042_upgrade_stat_bonus(upgrade_level)
-            props = sum(max(0, int(v or 0)) for v in (item.get("properties") or {}).values())
+            stats = sum(
+                max(0, int(v or 0)) * self.auto_equipment_stat_weight_v11196(stat)
+                for stat, v in (item.get("stats") or {}).items()
+            )
+            stats += sum(
+                max(0, int(v or 0)) * self.auto_equipment_stat_weight_v11196(stat)
+                for stat, v in (item.get("soulbound_balance_stats") or {}).items()
+            )
+            affix_stat = str(item.get("affix") or "")
+            affix = max(0, int(item.get("affix_amount", 0) or 0)) * self.auto_equipment_stat_weight_v11196(affix_stat)
+            upgrade_stat = v03042_upgrade_primary_stat(item, affix_stat)
+            stats += v03042_upgrade_stat_bonus(upgrade_level) * self.auto_equipment_stat_weight_v11196(upgrade_stat)
+            props = sum(
+                max(0.0, float(v or 0.0)) * self.auto_equipment_property_weight_v11196(prop)
+                for prop, v in (item.get("properties") or {}).items()
+            )
+            active = tuple(self.active_class_names())
+            physical = any(class_equipment_base_stat_pair(name)[0] in {"strength", "dexterity"} for name in active)
+            magic = any(class_equipment_base_stat_pair(name)[0] == "intelligence" for name in active)
+            flat_power = 0.0
+            flat_power += max(0, int(item.get("attack", 0) or 0)) * (1.0 if physical else 0.30)
+            flat_power += max(0, int(item.get("weapon_power", 0) or 0)) * (1.0 if physical else 0.30)
+            flat_power += max(0, int(item.get("magic_attack", 0) or 0)) * (1.0 if magic or "Mec" in active else 0.30)
+            flat_power += max(0, int(item.get("magic_defense", 0) or 0)) * 0.65
             # Source-backed special defenses must participate in AUTO EQ too.
             # Ward values are fractions (0.65 = 65%), while status proofs are
             # binary immunities. This affects comparison only; it does not invent
@@ -575,7 +652,6 @@ class SessionInventoryEquipmentMixin:
             ward_score = int(round(sum(max(0.0, min(1.0, float(v or 0.0))) for v in (item.get("element_wards") or {}).values()) * 100.0))
             proof_score = 25 * len(tuple(item.get("status_proof") or ()))
             special_score = ward_score + proof_score + (25 if item.get("reraise_once") else 0)
-            affix = max(0, int(item.get("affix_amount", 0) or 0))
             rarity = rarity_order.get(str(item.get("rarity") or "").lower(), 0)
             sockets = 0
             if item.get("slot") in ("ring", "earring", "necklace"):
@@ -583,9 +659,9 @@ class SessionInventoryEquipmentMixin:
                     sockets = max(0, int(jewelry_socket_capacity(item)))
                 except Exception:
                     sockets = 0
-            total = defense * 12 + stats * 8 + props * 10 + affix * 8 + rarity * 5 + sockets * 3 + special_score
+            total = defense * 12 + stats * 8 + props * 10 + affix * 8 + flat_power * 8 + rarity * 5 + sockets * 3 + special_score
             return (
-                total, defense, stats + affix, props, rarity,
+                total, defense, stats + affix + flat_power, props, rarity,
                 normalize_lookup_text(item.get("name", "")),
             )
 
@@ -786,7 +862,8 @@ class SessionInventoryEquipmentMixin:
                     f"Z wymienionej biżuterii zwrócono {len(returned_gems)} klejnotów do Szkatułki Rzemieślniczej."
                 )
             await self.send(
-                "Auto EQ porównuje indywidualną moc części: obronę, statystyki, właściwości, affix, rarity i gniazda. "
+                "Auto EQ porównuje moc części pod aktywne klasy: właściwe statystyki ofensywne, Kondycję/Siłę Woli, "
+                "Attack, Magic Attack, Weapon Power, obronę, właściwości, affix, rarity i gniazda. "
                 "Nie zmienia przedmiotów niedostępnych przez Poziom postaci lub klasę."
             )
 
@@ -1252,6 +1329,7 @@ class SessionInventoryEquipmentMixin:
                 "ring": ("ring1", "ring2"),
                 "charm": ("charm1", "charm2"),
                 "earring": ("earring1", "earring2"),
+                "accessory": ("accessory1", "accessory2"),
             }
             paired = pairs[logical_slot]
             for slot in paired:
@@ -1261,7 +1339,7 @@ class SessionInventoryEquipmentMixin:
             for order, slot in enumerate(paired):
                 item_id = self.server.db.equipped_item(self.account_id, slot)
                 item = ITEMS.get(item_id, {})
-                scored.append((self.equipment_item_score(item), order, slot))
+                scored.append((self.auto_equipment_score_v03040(item, item_id), order, slot))
             scored.sort(key=lambda row: (row[0], row[1]))
             return scored[0][2]
 
@@ -1556,10 +1634,19 @@ class SessionInventoryEquipmentMixin:
                 )
                 if fixed_text:
                     fixed_stats = f" Statystyki bazowe: {fixed_text}."
+            balance_stats = ""
+            if item.get("soulbound_balance_stats"):
+                balance_text = ", ".join(
+                    f"{CLASS_SET_STAT_NAMES.get(stat, stat)} +{amount}"
+                    for stat, amount in item.get("soulbound_balance_stats", {}).items()
+                    if int(amount or 0) != 0
+                )
+                if balance_text:
+                    balance_stats = f" Bonus Soulbound: {balance_text}."
             await self.send(
                 f"Zakładasz: {item['name']}. "
                 f"Slot: {EQUIPMENT_SLOT_NAMES.get(actual_slot, actual_slot)}. "
-                f"Obrona przedmiotu +{item.get('defense', 0)}.{rarity}{affix}{fixed_stats}"
+                f"Obrona przedmiotu +{item.get('defense', 0)}.{rarity}{affix}{fixed_stats}{balance_stats}"
             )
             if returned_gems:
                 await self.send(
@@ -1610,6 +1697,22 @@ class SessionInventoryEquipmentMixin:
                     "Wyjęte klejnoty wracają do Szkatułki Rzemieślniczej: "
                     + ", ".join(ITEMS[g]["name"] for g in returned_gems) + "."
                 )
+
+    def consumable_resource_restore_v11196(self, flat_amount, maximum):
+            """Late-game-safe HP/MP consumable restoration.
+
+            Existing flat values remain the early-game minimum. At large HP/MP
+            pools the same item also restores a share proportional to its authored
+            flat strength: flat/3500 of the relevant maximum resource. There is no
+            maximum-resource ceiling, so consumables do not become irrelevant as
+            Constitution/INT/WILL continue growing.
+            """
+            flat=max(0,int(flat_amount or 0))
+            maximum=max(0,int(maximum or 0))
+            if flat<=0 or maximum<=0:
+                return 0
+            scaled=int(round(maximum*(flat/3500.0)))
+            return max(flat,scaled)
 
     def find_consumable_for_use(self, query):
             q = self.normalize_description_query(query)
@@ -1808,13 +1911,19 @@ class SessionInventoryEquipmentMixin:
 
                 if can_restore_hp:
                     healed = min(
-                        item.get("heal", 0), missing_hp
+                        self.consumable_resource_restore_v11196(
+                            item.get("heal", 0), max_hp
+                        ),
+                        missing_hp,
                     )
                     self.current_hp += healed
 
                 if can_restore_mana:
                     restored_mana = min(
-                        item.get("mana", 0), missing_mana
+                        self.consumable_resource_restore_v11196(
+                            item.get("mana", 0), max_mana
+                        ),
+                        missing_mana,
                     )
                     self.current_mana += restored_mana
 

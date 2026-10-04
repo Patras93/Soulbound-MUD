@@ -113,28 +113,163 @@ def axis_gain(axis: str, level: int, intensity: float = 1.0) -> int:
     return min(SAFE_INT, max(1, int(round(value))))
 
 
+def _character_resource_level_scale(character_level: int, reference_scale: float, post_reference_growth: float) -> float:
+    """Smooth high-level resource curve shared by every class.
+
+    Level 1 keeps the original early-game scale. Around Level 175 the curve is
+    deliberately large enough for superboss-era combat, then continues more
+    slowly toward the Generator Core cap instead of exploding exponentially.
+    """
+    level = clamp(int(character_level), 1, MAX_LEVEL)
+    reference_level = min(MAX_LEVEL, 175)
+    if reference_level <= 1:
+        return max(1.0, float(reference_scale))
+    if level <= reference_level:
+        progress = (level - 1) / float(reference_level - 1)
+        return 1.0 + (max(1.0, float(reference_scale)) - 1.0) * (progress ** 1.05)
+    post = (level - reference_level) / float(max(1, MAX_LEVEL - reference_level))
+    return max(1.0, float(reference_scale)) * (
+        1.0 + max(0.0, float(post_reference_growth)) * (post ** 0.90)
+    )
+
+
 def character_hp_base(character_level: int, constitution: int) -> int:
     character_level = clamp(int(character_level), 1, MAX_LEVEL)
     constitution = max(1, int(constitution))
-    return max(1, int(round(48 + constitution * 5.2 + character_level * 3.1)))
+    legacy_base = 48 + constitution * 5.2 + character_level * 3.1
+    # Character Level and Condition are independent progression axes.
+    # Level controls the baseline resource curve; Condition is measured against
+    # a fixed balance anchor, never against the current Character Level.
+    # This preserves the Level-175 UOSS benchmark while allowing CON to lag,
+    # match or greatly exceed Character Level without artificial penalties.
+    level_scale = _character_resource_level_scale(character_level, 9.0, 0.50)
+    condition_ratio = max(0.01, constitution / 175.0)
+    # No upper cap: stats in Soulbound are unlimited. The exponent below 1.0
+    # gives soft diminishing returns to the multiplier while every extra point
+    # of Condition continues to increase maximum HP forever.
+    condition_scale = max(0.45, condition_ratio ** 0.75)
+    return max(1, int(round(legacy_base * level_scale * condition_scale)))
 
 
 def character_mana_base(character_level: int, intelligence: int, willpower: int | None = None) -> int:
     character_level = clamp(int(character_level), 1, MAX_LEVEL)
     intelligence = max(1, int(intelligence))
     willpower = intelligence if willpower is None else max(1, int(willpower))
-    return max(0, int(round(22 + intelligence * 2.4 + willpower * 2.4 + character_level * 2.0)))
+    legacy_base = 22 + intelligence * 2.4 + willpower * 2.4 + character_level * 2.0
+    # Intelligence and Willpower level independently from Character Level.
+    # Use a fixed balance anchor rather than dividing by Character Level, so a
+    # stat never becomes weaker merely because the character gained a level.
+    level_scale = _character_resource_level_scale(character_level, 3.8, 0.45)
+    average_magic_stat = (intelligence + willpower) / 2.0
+    stat_ratio = max(0.01, average_magic_stat / 175.0)
+    # No upper cap: INT/WILL can grow without limit. Diminishing returns come
+    # from the sub-linear exponent, not from a hidden ceiling.
+    stat_scale = max(0.50, stat_ratio ** 0.75)
+    return max(0, int(round(legacy_base * level_scale * stat_scale)))
 
 
 def character_attribute_power(character_level: int, stat_value: int) -> int:
-    character_level = clamp(int(character_level), 1, MAX_LEVEL)
+    # Kept as a two-argument API for existing callers, but Character Level must
+    # not add free STR/DEX/INT/WILL power: stats are their own progression axes.
+    _ = clamp(int(character_level), 1, MAX_LEVEL)
     stat_value = max(1, int(stat_value))
-    return max(1, int(round(stat_value + 0.30 * character_level)))
+    return stat_value
+
+
+def character_offensive_build_multiplier(stat_value: int | float) -> float:
+    """Late-game offense driven by the actual effective combat stat.
+
+    This multiplier deliberately does not use Character Level. Level unlocks
+    progression, while the offensive gain comes from the character's real
+    STR/DEX/INT/WILL after equipment and other stat bonuses.
+    Up to 100 the multiplier is neutral, so early game stays intact. There
+    is deliberately no upper cap because Soulbound stats themselves are unlimited.
+    """
+    stat_value = max(1.0, float(stat_value or 1.0))
+    if stat_value <= 100.0:
+        return 1.0
+    growth = 1.0 + 0.45 * (((stat_value - 100.0) / 100.0) ** 0.72)
+    # Stats are unlimited: never flatten late-game offense at an arbitrary x5.
+    # The 0.72 exponent supplies soft diminishing returns while preserving
+    # meaningful growth at 1,000, 5,000 and beyond.
+    return round(max(1.0, growth), 6)
 
 
 def speed_from_dexterity(dexterity: int) -> int:
     dexterity = max(1, int(dexterity))
     return max(1, int(round(8 + dexterity * 1.65)))
+
+
+def basic_attack_hits_from_dexterity(dexterity: int, haste: bool = False) -> int:
+    """Uncapped AGI/DEX multi-hit curve for ordinary Soul Weapon attacks.
+
+    Calibrated from user-supplied UOSS Mec combat logs:
+    AGI 547 -> 5 hits, AGI 547 + Haste -> 10 hits,
+    AGI 429 + Haste -> 9 hits.
+    sqrt growth keeps very high DEX meaningful without a hard hit-count cap.
+    """
+    dexterity = max(1, int(dexterity))
+    raw_hits = math.sqrt(float(dexterity)) / 4.5
+    if haste:
+        raw_hits *= 2.0
+    return max(1, int(raw_hits))
+
+
+def mec_vmax_duration_seconds(skill_level: int, willpower: int) -> int:
+    """Soulbound V-MAX duration adaptation from source-confirmed influences.
+
+    Source confirms both:
+    - Skill Level increases duration;
+    - WILL influences V-MAX.
+
+    A user-supplied UOSS benchmark places V-MAX Skill Level ~8 with WILL ~344
+    at about five minutes. Soulbound therefore uses a multi-minute base:
+    200s -> 600s from Skill Level 1 -> 600 at WILL 175, multiplied by an
+    uncapped square-root WILL curve. This keeps low-level V-MAX boss-usable
+    while preserving meaningful long-term WILL and Skill Level growth.
+    """
+    level = clamp(int(skill_level), 1, MAX_LEVEL)
+    willpower = max(1, int(willpower))
+    progress = (level - 1) / float(max(1, MAX_LEVEL - 1))
+    skill_seconds = 200.0 + 400.0 * (progress ** 0.82)
+    will_multiplier = max(0.35, (willpower / 175.0) ** 0.50)
+    return max(1, int(round(skill_seconds * will_multiplier)))
+
+
+
+_BASIC_ATTACK_HIT_AUDIT_V11196 = {
+    "agi_547": basic_attack_hits_from_dexterity(547, False),
+    "agi_547_haste": basic_attack_hits_from_dexterity(547, True),
+    "agi_429_haste": basic_attack_hits_from_dexterity(429, True),
+}
+if _BASIC_ATTACK_HIT_AUDIT_V11196 != {
+    "agi_547": 5,
+    "agi_547_haste": 10,
+    "agi_429_haste": 9,
+}:
+    raise RuntimeError(
+        "Basic attack multi-hit audit failed: "
+        + repr(_BASIC_ATTACK_HIT_AUDIT_V11196)
+    )
+
+
+_VMAX_DURATION_AUDIT_V11196 = {
+    "level1_will175": mec_vmax_duration_seconds(1, 175),
+    "level600_will175": mec_vmax_duration_seconds(MAX_LEVEL, 175),
+    "level8_will344": mec_vmax_duration_seconds(8, 344),
+    "level1_will350": mec_vmax_duration_seconds(1, 350),
+}
+if not (
+    _VMAX_DURATION_AUDIT_V11196["level1_will175"] == 200
+    and _VMAX_DURATION_AUDIT_V11196["level600_will175"] == 600
+    and 285 <= _VMAX_DURATION_AUDIT_V11196["level8_will344"] <= 310
+    and _VMAX_DURATION_AUDIT_V11196["level1_will350"]
+        > _VMAX_DURATION_AUDIT_V11196["level1_will175"]
+):
+    raise RuntimeError(
+        "V-MAX duration audit failed: "
+        + repr(_VMAX_DURATION_AUDIT_V11196)
+    )
 
 
 def dodge_from_dexterity(dexterity: int) -> float:
@@ -162,8 +297,9 @@ def magic_defense_base(character_level: int, willpower: int) -> int:
 
 def skill_level_power(level: int) -> float:
     level = clamp(int(level), 1, MAX_LEVEL)
-    # v0.33.2 Full Progression Rebalance: every Skill Level must be felt.
-    # 1=1.00x, 50~=1.54x, 100~=1.96x, 200~=2.70x, 300~=3.37x, 400=4.00x.
+    # v1.11.96: every Skill Level must be felt through the current 1-600 axis.
+    # With MAX_LEVEL=600: 1=1.00x, 100~=1.69x, 200~=2.22x, 300~=2.70x,
+    # 400~=3.15x, 500~=3.58x, 600=4.00x.
     return round(1.0 + 3.0 * ((level - 1) / (MAX_LEVEL - 1)) ** 0.82, 6)
 
 

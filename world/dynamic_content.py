@@ -1821,7 +1821,7 @@ _catalog_mut.catalog_update_path('MOB_TEMPLATES', MOB_TEMPLATES, (), {
         "drops":{}, "quest_target":None,
     },
     "outskirts_wasp": {
-        "name":"Osa Sadowa", "max_hp":44, "damage":5, "damage_type":"physical",
+        "name":"Osa Sadowa", "flying":True, "max_hp":44, "damage":5, "damage_type":"physical",
         "silver":15, "gold":0, "mithril":0, "stat_reward":19, "soul_reward":100,
         "drops":{}, "quest_target":None,
     },

@@ -537,15 +537,14 @@ class SessionSkillQueueBuffsMixin:
             return time.time() < float(buff.get("until",0.0) or 0.0)
 
     def player_action_interval_v11154(self):
-            """Haste increases action frequency; source gives no numeric multiplier.
-            Reuse the engine's existing fast-action interval when available rather
-            than inventing a new percentage.
+            """Return the normal realtime action cadence.
+
+            UOSS combat logs supplied for Mec show V-MAX Haste as a larger
+            ordinary-attack hit string (5 -> 10 at AGI 547). Soulbound models
+            that in the DEX/AGI multi-hit calculation, so Haste must not also
+            shorten the realtime interval and double-dip total throughput.
             """
-            base=float(getattr(self,"combat_player_interval",1.0) or 1.0)
-            if not self.beneficial_status_active_v11154("haste"):
-                return base
-            fast=float(getattr(self,"combat_fast_player_interval",base) or base)
-            return min(base,fast)
+            return float(getattr(self,"combat_player_interval",1.0) or 1.0)
 
     def party_vmax_support_active_v03511(self):
             """Compatibility query: V-MAX is self-only; old party V-MAX state is ignored."""
@@ -635,22 +634,36 @@ class SessionSkillQueueBuffsMixin:
                     await self.send("V-MAX wygasa. Support Effect utrzymany do końca: brak OVERHEAT.")
 
     def mec_support_effect_v11149(self):
-            """Single-Soul-Weapon adaptation of the UOSS Cyborg support weapon."""
+            """Soulbound adaptation of the UOSS Cyborg support weapon.
+
+            Soulbound has one persistent Soul Weapon instead of separate Mec weapon
+            categories. The Mec's Soul Weapon therefore *is* the support weapon for
+            source mechanics that require one. Do not infer support mode from WILL
+            dominance: V-MAX itself is Will-influenced, but weapon identity is separate.
+            """
             if not self.character or self.character.class_name != "Mec":
                 return False
-            # With one Soul Weapon, support style is determined by Will being the
-            # dominant combat stat. This preserves build choice without a second weapon.
-            will=max(0,float(self.effective_willpower()))
-            return will >= max(
-                max(0,float(self.effective_strength())),
-                max(0,float(self.effective_dexterity())),
-                max(0,float(self.effective_intelligence())),
-            )
+            return bool(str(getattr(self.character, "soul_weapon", "") or "").strip())
 
-    def mec_branch_multiplier_v0319(self, branch):
+    def mec_protocol_multiplier_v11196(self, skill_id):
+            """Automatic Mec Protocol potency from its own Skill Level.
+
+            UOSS confirms that Protocol level increases the mapped branch's damage
+            but does not expose a numeric curve. Soulbound uses an explicit balance
+            curve from +5% at Skill Level 1 to +75% at Skill Level 600.
+            """
+            sid=str(skill_id or "")
+            if not sid or not self.mec_skill_known_v0319(sid):
+                return 1.0
+            progress_row=self.server.db.skill_progress(self.account_id,sid)
+            level=max(1,min(SKILL_MAX_LEVEL,int(progress_row["level"])))
+            progress=(level-1)/float(max(1,SKILL_MAX_LEVEL-1))
+            return 1.05 + 0.70*(progress ** 0.82)
+
+    def mec_branch_multiplier_v0319(self, branch, special=None):
             mult=1.0
-            # v1.11.49: Protocols increase Mec ability potency. Inherent weapon
-            # masteries are separate and must not be counted a second time here.
+            # Protocols are Automatic passives, but source contracts map them to
+            # explicit skill lists rather than blindly to every skill in a branch.
             protocols={
               "melee":"v0319_mec_strength_protocol",
               "ranged":"v0319_mec_ranged_protocol",
@@ -658,10 +671,13 @@ class SessionSkillQueueBuffsMixin:
               "magic":"v0319_mec_magic_protocol",
             }
             sid=protocols.get(branch)
-            if sid and self.mec_skill_known_v0319(sid):
-                # Protocol is automatic and Skill Level increases the mapped branch
-                # damage, but source help supplies no numeric multiplier curve.
-                pass
+            mapped=tuple(MEC_PROTOCOL_SKILLS_V11155.get(sid,())) if sid else ()
+            if sid and special and str(special) in mapped:
+                mult*=self.mec_protocol_multiplier_v11196(sid)
+            # Legacy callers without a special keep branch behavior only where the
+            # source map is not needed for correctness. Combat callers pass special.
+            elif sid and special is None and branch!="feedback":
+                mult*=self.mec_protocol_multiplier_v11196(sid)
             # Overheat lowers all combat stats, but its numeric penalty is not
             # specified by source; do not fabricate a 25% reduction.
             return mult

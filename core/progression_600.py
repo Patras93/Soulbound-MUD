@@ -45,6 +45,24 @@ CHARACTER_MAX_LEVEL = PROGRESSION_MAX_LEVEL
 CLASS_MASTERY_MAX_LEVEL = PROGRESSION_MAX_LEVEL
 SKILL_MAX_LEVEL = PROGRESSION_MAX_LEVEL
 SOUL_WEAPON_MASTERY_MAX_LEVEL = PROGRESSION_MAX_LEVEL
+
+# v1.11.96: Skill Level is currently a real 1-600 axis. The combat multiplier
+# must continue increasing through 600 and reach its authored endpoint there.
+_SKILL_POWER_600_POINTS_V11196 = {
+    level: generator_core_v027.skill_level_power(level)
+    for level in (1, 100, 200, 300, 400, 500, 600)
+}
+if SKILL_MAX_LEVEL != 600:
+    raise RuntimeError(f"Skill Level audit failed: expected cap 600, got {SKILL_MAX_LEVEL}")
+if abs(_SKILL_POWER_600_POINTS_V11196[1] - 1.0) > 0.000001:
+    raise RuntimeError("Skill Level audit failed: Level 1 power must be 1.0x")
+if abs(_SKILL_POWER_600_POINTS_V11196[600] - 4.0) > 0.000001:
+    raise RuntimeError("Skill Level audit failed: Level 600 power must be 4.0x")
+if any(
+    _SKILL_POWER_600_POINTS_V11196[b] <= _SKILL_POWER_600_POINTS_V11196[a]
+    for a, b in zip((1, 100, 200, 300, 400, 500), (100, 200, 300, 400, 500, 600))
+):
+    raise RuntimeError("Skill Level audit failed: power curve must increase through 600")
 SOUL_MAX_LEVEL = PROGRESSION_MAX_LEVEL
 
 # Broń Duszy: stare Tiery 1-40 zostają w tych samych miejscach, 41-60

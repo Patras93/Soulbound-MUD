@@ -10,6 +10,7 @@ import time
 from core.classes_skills import SOUL_WEAPON_ATTACK_TECHNIQUES
 from core.progression_600 import SOUL_WEAPON_MASTERY_MAX_LEVEL, soul_weapon_trait_totals_v11193
 from core.progression_resources import soul_weapon_mastery_bonuses, v0190_scaled_gain
+from core.bootstrap_economy_professions import generator_core_v027
 from data.mobs import MOB_TEMPLATES
 from world.machine_expansion import v0314_adjust_damage_vs_template
 from world.uoss_superboss_runtime import (
@@ -67,9 +68,19 @@ class SessionCombatRealtimeMixin:
                         combat_detail="essential",
                     )
 
+    def basic_attack_hit_count_v11196(self):
+                """DEX/AGI-driven Soul Weapon multi-hit; V-MAX Haste doubles the series."""
+                return generator_core_v027.basic_attack_hits_from_dexterity(
+                    self.effective_dexterity(),
+                    haste=self.beneficial_status_active_v11154("haste"),
+                )
+
     async def realtime_player_action(self, mob):
                 if not mob or not mob.alive:
                     return
+                # Timed V-MAX must expire during ordinary realtime combat too,
+                # not only when the player manually invokes another skill.
+                await self.mec_refresh_vmax_v0319()
                 # Kolejka ma pierwszeństwo. Jeśli żaden zapisany skill/spell nie jest
                 # obecnie gotowy, wykonujemy zwykły automatyczny atak Bronią Duszy.
                 if await self.try_auto_skill_queue(mob):
@@ -143,8 +154,14 @@ class SessionCombatRealtimeMixin:
                     _helper_magic = _helper_name in {"Popoi", "Primm", "Montblanc", "Byblos"}
                     _helper_stat = self.spell_power() if _helper_magic else self.physical_power()
                     _helper_kind = "magic" if _helper_magic else "physical"
+                    _helper_raw_stat = (
+                        max(self.effective_intelligence(), self.effective_willpower())
+                        if _helper_magic else
+                        max(self.effective_strength(), self.effective_dexterity())
+                    )
                     _helper_mult = self.equipment_damage_multiplier(_helper_kind)
                     _helper_mult *= self.total_set_damage_multiplier()
+                    _helper_mult *= generator_core_v027.character_offensive_build_multiplier(_helper_raw_stat)
                     _uoss_helper_damage = max(
                         1,
                         int(round((self.character.soul_power() + _helper_stat) * 0.65 * _helper_mult)),
@@ -155,7 +172,22 @@ class SessionCombatRealtimeMixin:
                 damage = self.v0210_adjust_player_damage(damage)
                 _basic_kind = "physical" if self.character.class_type == "physical" else "magic"
                 damage, machine_note = v0314_adjust_damage_vs_template(template, damage, _basic_kind, "")
-                mob.hp -= damage
+
+                # v1.11.96: UOSS logs show ordinary weapon attacks as AGI-driven
+                # multi-hit strings. Haste doubles the available string. Resolve
+                # hits sequentially and stop immediately when the target dies,
+                # matching logs where a nearly dead target receives fewer hits.
+                _potential_hits = 1 if _zantetsuken_no_melee else self.basic_attack_hit_count_v11196()
+                _actual_hits = 0
+                _per_hit_damage = max(0, int(damage))
+                _total_basic_damage = 0
+                for _ in range(_potential_hits):
+                    if mob.hp <= 0:
+                        break
+                    mob.hp -= _per_hit_damage
+                    _total_basic_damage += _per_hit_damage
+                    _actual_hits += 1
+                damage = _total_basic_damage
                 if _uoss_helper_damage > 0 and mob.hp > 0:
                     _uoss_helper_damage = await self.apply_boss_defense(mob, _uoss_helper_damage)
                     _uoss_helper_damage = self.v0210_adjust_player_damage(_uoss_helper_damage)
@@ -195,8 +227,13 @@ class SessionCombatRealtimeMixin:
                 )
                 await self.send_combat(
                     f"Broń Duszy {self.character.soul_weapon}: {technique}. "
-                    f"Cel {template['name']}. Zadajesz {damage} obrażeń. "
-                    f"Przeciwnik: {max(0, mob.hp)} z {template['max_hp']} życia."
+                    f"Cel {template['name']}. "
+                    + (
+                        f"Atakujesz {_actual_hits} razy i zadajesz łącznie {damage} obrażeń. "
+                        if _actual_hits > 1 else
+                        f"Zadajesz {damage} obrażeń. "
+                    )
+                    + f"Przeciwnik: {max(0, mob.hp)} z {template['max_hp']} życia."
                     + (f" Właściwość Broni Duszy leczy {soul_heal}." if soul_heal > 0 else "")
                     + (f" Odzyskujesz {_mana_restore} Many." if _mana_restore > 0 else "")
                     + (f" Echo Broni Duszy zadaje dodatkowo {echo_damage} obrażeń." if echo_damage > 0 else "")
@@ -204,7 +241,8 @@ class SessionCombatRealtimeMixin:
                     "normal",
                 )
                 _party_attack = (
-                    f"{self.character.name}: {technique}, {damage + echo_damage} obrażeń w {template['name']}"
+                    f"{self.character.name}: {technique}, {_actual_hits} trafień, "
+                    f"{damage + echo_damage} obrażeń w {template['name']}"
                 )
                 if critical:
                     _party_attack += ". Krytyk"
@@ -250,14 +288,13 @@ class SessionCombatRealtimeMixin:
                         now = time.monotonic()
                         if now >= next_player:
                             await self.realtime_player_action(mob)
+                            await self.apply_active_regen_round_v11196()
                             await self.mec_self_repair_round_v11154()
+                            await self.apply_satellite_linker_round_v11196()
                             # Overheat has no source duration. One completed player
                             # action is the recovery cycle; after it the state clears.
                             if self.mec_finish_overheat_recovery_v0319():
                                 await self.send("OVERHEAT mija. V-MAX może być ponownie użyty.")
-                            # Satellite Linker source confirms repeated minor laser
-                            # damage, but no tick power/cadence/duration values. Runtime
-                            # ticks stay disabled until those values are source-backed.
                             _interval=self.player_action_interval_v11154()
                             next_player = time.monotonic() + _interval
                             # Haste source says attacks/actions occur more frequently,
@@ -315,6 +352,154 @@ class SessionCombatRealtimeMixin:
                                     or enemy_mob.room_id != self.character.room_id
                                 ):
                                     break
+                                _tiger_break_rounds=max(
+                                    0,int(
+                                        getattr(
+                                            enemy_mob,
+                                            "v11196_tiger_defense_break_rounds",
+                                            0,
+                                        )
+                                        or 0
+                                    )
+                                )
+                                if _tiger_break_rounds>0:
+                                    _tiger_break_rounds=max(0,_tiger_break_rounds-1)
+                                    enemy_mob.v11196_tiger_defense_break_rounds=(
+                                        _tiger_break_rounds
+                                    )
+                                    if _tiger_break_rounds<=0:
+                                        await self.server.party_combat_broadcast(
+                                            self,
+                                            f"{MOB_TEMPLATES[enemy_mob.template_id]['name']}: "
+                                            "uszkodzenie obrony z Tiger Rampage wygasa.",
+                                            detail="normal",
+                                        )
+
+                                _logic_rounds=max(
+                                    0,int(getattr(enemy_mob,"v11196_logic_bomb_rounds",0) or 0)
+                                )
+                                _logic_effects=set(
+                                    getattr(enemy_mob,"v11196_logic_bomb_effects",set()) or set()
+                                ) if _logic_rounds>0 else set()
+                                _logic_active=bool(_logic_rounds>0 and _logic_effects)
+                                if _logic_active:
+                                    enemy_mob.v11196_logic_bomb_rounds=max(
+                                        0,_logic_rounds-1
+                                    )
+                                    if enemy_mob.v11196_logic_bomb_rounds<=0:
+                                        # Effects remain active for this attempted mob
+                                        # action and expire immediately afterward.
+                                        _logic_expires_after_action=True
+                                    else:
+                                        _logic_expires_after_action=False
+                                else:
+                                    _logic_expires_after_action=False
+
+                                _jammer_rounds=max(
+                                    0,int(getattr(enemy_mob,"v11196_jammer_stop_rounds",0) or 0)
+                                )
+                                if _jammer_rounds>0:
+                                    _jammer_rounds=max(0,_jammer_rounds-1)
+                                    enemy_mob.v11196_jammer_stop_rounds=_jammer_rounds
+                                    await self.server.party_combat_broadcast(
+                                        self,
+                                        f"{MOB_TEMPLATES[enemy_mob.template_id]['name']} jest zatrzymany przez Jammer i pomija akcję."
+                                        + (
+                                            f" Pozostało {_jammer_rounds} akcji Stop."
+                                            if _jammer_rounds>0 else
+                                            " Stop się kończy."
+                                        ),
+                                        detail="normal",
+                                    )
+                                    continue
+                                _hypno_rounds=max(
+                                    0,int(getattr(enemy_mob,"v11196_hypno_sleep_rounds",0) or 0)
+                                )
+                                if _hypno_rounds>0:
+                                    _hypno_rounds=max(0,_hypno_rounds-1)
+                                    enemy_mob.v11196_hypno_sleep_rounds=_hypno_rounds
+                                    await self.server.party_combat_broadcast(
+                                        self,
+                                        f"{MOB_TEMPLATES[enemy_mob.template_id]['name']} śpi i pomija akcję."
+                                        + (
+                                            f" Pozostało {_hypno_rounds} akcji Sleep."
+                                            if _hypno_rounds>0 else
+                                            " Sleep się kończy."
+                                        ),
+                                        detail="normal",
+                                    )
+                                    continue
+                                if _logic_active and "paralyze" in _logic_effects:
+                                    _paralyze_chance=max(
+                                        0.0,min(
+                                            1.0,
+                                            float(
+                                                getattr(
+                                                    enemy_mob,
+                                                    "v11196_logic_paralyze_skip_chance",
+                                                    0.50,
+                                                )
+                                                or 0.50
+                                            ),
+                                        )
+                                    )
+                                    if random.random() < _paralyze_chance:
+                                        await self.server.party_combat_broadcast(
+                                            self,
+                                            f"{MOB_TEMPLATES[enemy_mob.template_id]['name']} jest sparaliżowany przez Logic Bomb i traci akcję.",
+                                            detail="normal",
+                                        )
+                                        if _logic_expires_after_action:
+                                            enemy_mob.v11196_logic_bomb_effects=set()
+                                        continue
+                                if _logic_active and "slow" in _logic_effects:
+                                    _slow_every=max(
+                                        2,int(
+                                            getattr(
+                                                enemy_mob,
+                                                "v11196_logic_slow_skip_every_actions",
+                                                2,
+                                            )
+                                            or 2
+                                        )
+                                    )
+                                    _slow_counter=int(
+                                        getattr(
+                                            enemy_mob,
+                                            "v11196_logic_slow_counter",
+                                            0,
+                                        )
+                                        or 0
+                                    )+1
+                                    enemy_mob.v11196_logic_slow_counter=_slow_counter
+                                    if _slow_counter % _slow_every==0:
+                                        await self.server.party_combat_broadcast(
+                                            self,
+                                            f"{MOB_TEMPLATES[enemy_mob.template_id]['name']} jest spowolniony przez Logic Bomb i traci tę akcję.",
+                                            detail="normal",
+                                        )
+                                        if _logic_expires_after_action:
+                                            enemy_mob.v11196_logic_bomb_effects=set()
+                                        continue
+                                _sonata_rounds=max(
+                                    0,int(getattr(enemy_mob,"v11196_mec_sonata_rounds",0) or 0)
+                                )
+                                _sonata_power_mult=(
+                                    max(
+                                        0.01,min(
+                                            1.0,
+                                            float(
+                                                getattr(
+                                                    enemy_mob,
+                                                    "v11196_mec_sonata_power_mult",
+                                                    1.0,
+                                                )
+                                                or 1.0
+                                            ),
+                                        )
+                                    )
+                                    if _sonata_rounds>0 else 1.0
+                                )
                                 _party_targets = self.server.party_combat_targets(self, enemy_mob)
                                 # One mob action attacks the whole living local party.
                                 # The existing realtime loop owner remains the sole
@@ -346,6 +531,28 @@ class SessionCombatRealtimeMixin:
                                     for _ended in superboss_advance_timed_effects_v11179(target_session):
                                         await self.server.party_combat_broadcast(target_session,f"{target_session.character.name}: kończy się efekt {_ended}.",detail="essential")
                                     _source_ability = superboss_source_ability_v11162(_enemy_template, enemy_mob)
+                                    if await target_session.mec_intercept_incoming_attack_v11196(
+                                        enemy_mob
+                                    ):
+                                        # Intercept cancels the complete incoming
+                                        # attack action for this target, including
+                                        # sourced special damage/status/summon handling.
+                                        # If the counterlaser killed the mob, stop the
+                                        # party-target loop so a dead enemy cannot
+                                        # finish the same action on later members.
+                                        if not enemy_mob.alive:
+                                            break
+                                        continue
+                                    _logic_silenced=bool(
+                                        _logic_active and "silence" in _logic_effects
+                                    )
+                                    if _source_ability and _logic_silenced:
+                                        await self.server.party_combat_broadcast(
+                                            target_session,
+                                            f"{_enemy_template['name']}: Silence z Logic Bomb blokuje {_source_ability}.",
+                                            detail="normal",
+                                        )
+                                        _source_ability=None
                                     _source_effect = superboss_exact_ability_effect_v11160(target_session, _enemy_template, enemy_mob, _source_ability)
                                     _timed_effect=superboss_source_timed_effect_v11179(target_session,_enemy_template,_source_ability)
                                     if _timed_effect:
@@ -388,6 +595,35 @@ class SessionCombatRealtimeMixin:
                                         target_session, _enemy_template, enemy_mob
                                     )
                                     _uoss_mult *= superboss_source_attack_multiplier_v11162(_enemy_template,_source_ability)
+                                    _uoss_mult *= _sonata_power_mult
+                                    if _logic_active and "curse" in _logic_effects:
+                                        _uoss_mult *= max(
+                                            0.01,min(
+                                                1.0,
+                                                float(
+                                                    getattr(
+                                                        enemy_mob,
+                                                        "v11196_logic_curse_damage_multiplier",
+                                                        0.80,
+                                                    )
+                                                    or 0.80
+                                                ),
+                                            )
+                                        )
+                                    _silence_blocks_basic_magic=bool(
+                                        _logic_silenced
+                                        and str(
+                                            _enemy_template.get("damage_type","")
+                                            or ""
+                                        ).strip().casefold()=="magic"
+                                    )
+                                    if _silence_blocks_basic_magic:
+                                        await self.server.party_combat_broadcast(
+                                            target_session,
+                                            f"{_enemy_template['name']}: Silence blokuje magiczny atak.",
+                                            detail="normal",
+                                        )
+                                        continue
                                     await self.server.party_combat_broadcast(
                                         target_session,
                                         f"{_enemy_template['name']} atakuje {target_session.character.name}."
@@ -398,6 +634,29 @@ class SessionCombatRealtimeMixin:
                                         # A sourced fixed/current-HP ability is the enemy action.
                                         # Do not append an unsourced ordinary hit on top of it.
                                         continue
+                                    if (
+                                        _logic_active
+                                        and "blind" in _logic_effects
+                                        and random.random() < max(
+                                            0.0,min(
+                                                0.95,
+                                                float(
+                                                    getattr(
+                                                        enemy_mob,
+                                                        "v11196_logic_blind_miss_chance",
+                                                        0.35,
+                                                    )
+                                                    or 0.35
+                                                ),
+                                            )
+                                        )
+                                    ):
+                                        await self.server.party_combat_broadcast(
+                                            target_session,
+                                            f"{_enemy_template['name']} chybia przez Blind z Logic Bomb.",
+                                            detail="normal",
+                                        )
+                                        continue
                                     if _uoss_mult != 1.0:
                                         _old_damage = _enemy_template.get("damage", 1)
                                         _enemy_template["damage"] = max(1, int(round(float(_old_damage) * _uoss_mult)))
@@ -407,6 +666,27 @@ class SessionCombatRealtimeMixin:
                                             _enemy_template["damage"] = _old_damage
                                     else:
                                         await target_session.enemy_counterattack(enemy_mob)
+
+                                if _logic_active and _logic_expires_after_action:
+                                    enemy_mob.v11196_logic_bomb_effects=set()
+                                    enemy_mob.v11196_logic_slow_counter=0
+                                    await self.server.party_combat_broadcast(
+                                        self,
+                                        f"{MOB_TEMPLATES[enemy_mob.template_id]['name']}: efekty Logic Bomb wygasają.",
+                                        detail="normal",
+                                    )
+
+                                if _sonata_rounds>0:
+                                    _sonata_rounds=max(0,_sonata_rounds-1)
+                                    enemy_mob.v11196_mec_sonata_rounds=_sonata_rounds
+                                    if _sonata_rounds<=0:
+                                        enemy_mob.v11196_mec_sonata_power_mult=1.0
+                                        await self.server.party_combat_broadcast(
+                                            self,
+                                            f"{MOB_TEMPLATES[enemy_mob.template_id]['name']}: "
+                                            "kończy się obniżenie poziomowej mocy z Mec Sonata.",
+                                            detail="normal",
+                                        )
 
                             next_enemy = time.monotonic() + self.combat_enemy_interval
                             if self.current_hp <= 0:

@@ -7,20 +7,47 @@ import math
 import random
 
 from core.progression_600 import CHARACTER_MAX_LEVEL
+from core.bootstrap_economy_professions import generator_core_v027
+from systems.equipment_crafting import class_equipment_base_stat_pair
 from data.mobs import MOB_TEMPLATES
 
 class SessionCombatDamageMixin:
+    def basic_attack_build_v11196(self):
+                """Return (power, raw stat, channel) for the active class build."""
+                c = self.character
+                flat = self.equipment_flat_power_totals_v11187()
+                if c.class_type == "physical":
+                    primary, _secondary = class_equipment_base_stat_pair(c.class_name)
+                    if primary == "dexterity":
+                        raw_stat = max(1, int(self.effective_dexterity()))
+                        power = (
+                            generator_core_v027.character_attribute_power(
+                                c.character_level, raw_stat
+                            )
+                            + int(flat["attack"])
+                            + int(flat["weapon_power"])
+                        )
+                    else:
+                        raw_stat = max(1, int(self.effective_strength()))
+                        power = self.physical_power()
+                    return max(1, int(power)), raw_stat, "physical"
+
+                raw_stat = max(1, int(self.effective_intelligence()))
+                return max(1, int(self.spell_power())), raw_stat, "magic"
+
     def player_damage(self):
                 c = self.character
 
                 if c.class_type == "physical":
-                    # Siła odpowiada za atak fizyczny.
-                    base_damage = c.soul_power() + self.physical_power() + random.randint(-3, 4)
+                    build_power, build_stat, _channel = self.basic_attack_build_v11196()
+                    base_damage = c.soul_power() + build_power + random.randint(-3, 4)
+                    build_multiplier = generator_core_v027.character_offensive_build_multiplier(build_stat)
                     return max(
                         1,
                         int(
                             round(
                                 base_damage
+                                * build_multiplier
                                 * c.class_physical_damage_multiplier()
                                 * c.racial_physical_damage_multiplier()
                                 * c.racial_all_damage_multiplier()
@@ -34,16 +61,19 @@ class SessionCombatDamageMixin:
                 # nie z Siłą. Soul Power jest rdzeniem broni, spell_power wkładem INT.
                 if self.current_mana >= 4:
                     self.current_mana -= 4
+                    build_power, build_stat, _channel = self.basic_attack_build_v11196()
                     base_damage = (
                         c.soul_power()
-                        + self.spell_power()
+                        + build_power
                         + random.randint(-3, 4)
                     )
+                    build_multiplier = generator_core_v027.character_offensive_build_multiplier(build_stat)
                     return max(
                         1,
                         int(
                             round(
                                 base_damage
+                                * build_multiplier
                                 * c.class_magic_damage_multiplier()
                                 * c.racial_magic_damage_multiplier()
                                 * c.racial_all_damage_multiplier()
@@ -58,11 +88,13 @@ class SessionCombatDamageMixin:
                 # odzyskuje niewielką część Many. Zapobiega to wielominutowemu
                 # utknięciu magicznych klas na słabym autoataku w długich walkach,
                 # ale nie daje darmowej regeneracji dopóki Mana nie jest wyczerpana.
+                build_power, build_stat, _channel = self.basic_attack_build_v11196()
                 base_damage = (
                     c.soul_power()
-                    + self.spell_power() // 2
+                    + build_power // 2
                     + random.randint(-2, 2)
                 )
+                build_multiplier = generator_core_v027.character_offensive_build_multiplier(build_stat)
                 max_mana = self.max_mana()
                 mana_focus = min(40, max(4, int(round(max_mana * 0.05))))
                 self.current_mana = min(max_mana, self.current_mana + mana_focus)
@@ -72,6 +104,7 @@ class SessionCombatDamageMixin:
                         int(
                             round(
                                 base_damage
+                                * build_multiplier
                                 * c.class_magic_damage_multiplier()
                                 * c.racial_magic_damage_multiplier()
                                 * c.racial_all_damage_multiplier()
@@ -82,15 +115,18 @@ class SessionCombatDamageMixin:
 
     def consider_player_expected_hit(self):
                 c = self.character
+                build_power, build_stat, _channel = self.basic_attack_build_v11196()
+                build_multiplier = generator_core_v027.character_offensive_build_multiplier(build_stat)
 
                 if c.class_type == "physical":
                     base_damage = (
                         c.soul_power()
-                        + self.physical_power()
+                        + build_power
                         + 0.5
                     )
                     value = (
                         base_damage
+                        * build_multiplier
                         * c.class_physical_damage_multiplier()
                         * c.racial_physical_damage_multiplier()
                         * c.racial_all_damage_multiplier()
@@ -100,11 +136,12 @@ class SessionCombatDamageMixin:
                 elif self.current_mana >= 4:
                     base_damage = (
                         c.soul_power()
-                        + self.spell_power()
+                        + build_power
                         + 0.5
                     )
                     value = (
                         base_damage
+                        * build_multiplier
                         * c.class_magic_damage_multiplier()
                         * c.racial_magic_damage_multiplier()
                         * c.racial_all_damage_multiplier()
@@ -114,10 +151,11 @@ class SessionCombatDamageMixin:
                 else:
                     base_damage = (
                         c.soul_power()
-                        + self.spell_power() / 2.0
+                        + build_power / 2.0
                     )
                     value = (
                         base_damage
+                        * build_multiplier
                         * c.class_magic_damage_multiplier()
                         * c.racial_magic_damage_multiplier()
                         * c.racial_all_damage_multiplier()
