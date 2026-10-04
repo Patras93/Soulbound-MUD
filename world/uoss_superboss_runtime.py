@@ -329,3 +329,53 @@ def superboss_exact_ability_effect_v11160(session, template, mob, ability_name):
         return {"current_hp_fraction":0.50 if gravityproof else 0.80}
     return None
 
+
+def superboss_source_ability_v11162(template, mob):
+    """Deterministic rotation over source-listed abilities; no fabricated proc odds."""
+    key=superboss_key_from_template_v11135(template)
+    contract=template.get("source_ability_contract") if isinstance(template,dict) else None
+    abilities=tuple((contract or {}).get("abilities") or ())
+    if not key or not abilities:
+        return None
+    turn=max(1,int(getattr(mob,"combat_turn",1) or 1))
+    return abilities[(turn-1)%len(abilities)]
+
+def superboss_source_summons_v11162(session, template, mob, ability_name):
+    """Return exact source summon templates for abilities that explicitly summon."""
+    key=superboss_key_from_template_v11135(template)
+    name=str(ability_name or "")
+    if key=="black_rabite" and not getattr(mob,"uoss_greater_demon_summoned_v11162",False):
+        mob.uoss_greater_demon_summoned_v11162=True
+        return ("uoss_add_greater_demon_v11156",)
+    if key=="emerald_weapon" and name=="Open Eye":
+        eyes=("emerald_white_eye","emerald_blue_eye","emerald_red_eye")
+        pick=eyes[(max(1,int(getattr(mob,"combat_turn",1)))-1)%len(eyes)]
+        return (f"uoss_add_{pick}_v11156",)
+    if key=="odin" and name=="Gungnir":
+        return ("uoss_add_odin_gungnir_v11156",)*3
+    return ()
+
+def superboss_source_attack_multiplier_v11162(template, ability_name):
+    key=superboss_key_from_template_v11135(template)
+    name=str(ability_name or "")
+    if key=="odin" and name in ("Einherjar","Gungnir"):
+        return 3.0
+    return 1.0
+
+def superboss_source_status_v11162(template, ability_name):
+    key=superboss_key_from_template_v11135(template)
+    name=str(ability_name or "")
+    exact={
+        ("odin","Hall of Stone"):"Petrify",
+        ("odin","Hall of Lead"):"Slow",
+        ("odin","Disease"):"Disease",
+        ("yiazmat","Ice Breath"):"Immobilize",
+        ("yiazmat","Stone Breath"):"Petrify",
+        ("culex","Petal Blast"):"Don't Move",
+        ("culex","Light Beam"):"Sleep",
+        ("culex","Sand Storm"):"Curse",
+        ("ruby_weapon","Big Swing"):"Noact",
+        ("ruby_weapon","Imp"):"Imp",
+        ("ruby_weapon","Mini"):"Mini",
+    }
+    return exact.get((key,name))
