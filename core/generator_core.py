@@ -144,7 +144,10 @@ def character_hp_base(character_level: int, constitution: int) -> int:
     # match or greatly exceed Character Level without artificial penalties.
     level_scale = _character_resource_level_scale(character_level, 9.0, 0.50)
     condition_ratio = max(0.01, constitution / 175.0)
-    condition_scale = clamp(condition_ratio ** 0.75, 0.45, 6.0)
+    # No upper cap: stats in Soulbound are unlimited. The exponent below 1.0
+    # gives soft diminishing returns to the multiplier while every extra point
+    # of Condition continues to increase maximum HP forever.
+    condition_scale = max(0.45, condition_ratio ** 0.75)
     return max(1, int(round(legacy_base * level_scale * condition_scale)))
 
 
@@ -159,7 +162,9 @@ def character_mana_base(character_level: int, intelligence: int, willpower: int 
     level_scale = _character_resource_level_scale(character_level, 3.8, 0.45)
     average_magic_stat = (intelligence + willpower) / 2.0
     stat_ratio = max(0.01, average_magic_stat / 175.0)
-    stat_scale = clamp(stat_ratio ** 0.75, 0.50, 5.0)
+    # No upper cap: INT/WILL can grow without limit. Diminishing returns come
+    # from the sub-linear exponent, not from a hidden ceiling.
+    stat_scale = max(0.50, stat_ratio ** 0.75)
     return max(0, int(round(legacy_base * level_scale * stat_scale)))
 
 
@@ -177,13 +182,17 @@ def character_offensive_build_multiplier(stat_value: int | float) -> float:
     This multiplier deliberately does not use Character Level. Level unlocks
     progression, while the offensive gain comes from the character's real
     STR/DEX/INT/WILL after equipment and other stat bonuses.
-    Up to 100 the multiplier is neutral, so early game stays intact.
+    Up to 100 the multiplier is neutral, so early game stays intact. There
+    is deliberately no upper cap because Soulbound stats themselves are unlimited.
     """
     stat_value = max(1.0, float(stat_value or 1.0))
     if stat_value <= 100.0:
         return 1.0
     growth = 1.0 + 0.45 * (((stat_value - 100.0) / 100.0) ** 0.72)
-    return round(clamp(growth, 1.0, 5.0), 6)
+    # Stats are unlimited: never flatten late-game offense at an arbitrary x5.
+    # The 0.72 exponent supplies soft diminishing returns while preserving
+    # meaningful growth at 1,000, 5,000 and beyond.
+    return round(max(1.0, growth), 6)
 
 
 def speed_from_dexterity(dexterity: int) -> int:
