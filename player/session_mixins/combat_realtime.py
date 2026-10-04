@@ -91,12 +91,9 @@ class SessionCombatRealtimeMixin:
                             self.v0319_maxwell_mana_tick=_last+6.0*_ticks
                             _gain=max(1,int(round(self.max_mana()*0.01)))*_ticks
                             self.current_mana=min(self.max_mana(),self.current_mana+_gain)
-                damage = self.player_damage()
                 _relic_id,_relic=self.active_soul_weapon_relic_v11176()
-                if _relic_id=="uoss_odin_unique_2":
-                    # Zantetsuken source: ordinary melee attacks deal no damage.
-                    # Applies only when this is the active Soul Weapon relic.
-                    damage=0
+                _zantetsuken_no_melee=(_relic_id=="uoss_odin_unique_2" and self.character.class_type=="physical")
+                damage = 0 if _zantetsuken_no_melee else self.player_damage()
                 # Combat Mastery / Shooting Mastery are selected inherents. Their
                 # source helps establish weapon/stat gates and relative strength,
                 # but provide no numeric bonus. Until the real hand/weapon model
@@ -107,9 +104,9 @@ class SessionCombatRealtimeMixin:
                 # v0.33.16: właściwości Soul Tier działają tylko na zwykły atak
                 # Broni Duszy. Nie modyfikują skilli ani spelli.
                 trait_totals = soul_weapon_trait_totals(self.character.soul_tier, self.character.class_name)
-                damage = max(1, int(round(damage * (1.0 + trait_totals["damage_percent"] / 100.0))))
+                damage = max(0, int(round(damage * (1.0 + trait_totals["damage_percent"] / 100.0))))
                 if mob.hp <= max(1, int(round(template["max_hp"] * 0.35))):
-                    damage = max(1, int(round(damage * (1.0 + trait_totals["execute_damage_percent"] / 100.0))))
+                    damage = max(0, int(round(damage * (1.0 + trait_totals["execute_damage_percent"] / 100.0))))
                 _is_boss_target = any(template.get(flag) for flag in (
                     "world_boss", "mini_boss", "crypt_boss", "astral_boss",
                     "mythic_crypt_boss", "mythic_astral_boss", "giant_fortress_boss",
@@ -129,7 +126,7 @@ class SessionCombatRealtimeMixin:
                 critical = random.random() < weapon_crit_chance
                 if critical:
                     weapon_crit_multiplier = self.critical_multiplier() * (1.0 + (trait_totals["crit_damage_percent"] + mastery["crit_damage_percent"]) / 100.0)
-                    damage = max(1, int(round(damage * weapon_crit_multiplier)))
+                    damage = max(0, int(round(damage * weapon_crit_multiplier)))
                     await self.send_combat(
                         f"TRAFIENIE KRYTYCZNE BRONI DUSZY! Zręczność {self.effective_dexterity()}. "
                         f"Szansa tego ataku: {round(weapon_crit_chance * 100, 1)} procent.",
@@ -278,6 +275,9 @@ class SessionCombatRealtimeMixin:
                                     enemy_mobs = [mob]
 
                             for enemy_mob in enemy_mobs:
+                                # One combat round belongs to the mob action, not to
+                                # each party member selected as its target.
+                                enemy_mob.combat_turn=int(getattr(enemy_mob,"combat_turn",0) or 0)+1
                                 if (
                                     self.closed
                                     or self.current_hp <= 0
@@ -307,7 +307,7 @@ class SessionCombatRealtimeMixin:
                                     if _source_round and _source_round.get("instant_death"):
                                         target_session.current_hp = 0
                                         await self.server.party_combat_broadcast(target_session, _source_round["text"], detail="essential")
-                                        await target_session.handle_player_defeat(enemy_mob)
+                                        await target_session.die(_enemy_template['name'])
                                         continue
                                     _source_ability = superboss_source_ability_v11162(_enemy_template, enemy_mob)
                                     _source_effect = superboss_exact_ability_effect_v11160(target_session, _enemy_template, enemy_mob, _source_ability)
@@ -395,6 +395,27 @@ class SessionCombatRealtimeMixin:
                         pass
                     if self.combat_task is this_task:
                         self.combat_task = None
+
+    async def enemy_counterattack(self, mob):
+                if not mob or not mob.alive or not self.character or self.current_hp<=0:
+                    return
+                template=MOB_TEMPLATES[mob.template_id]
+                damage_type=str(template.get("damage_type","physical"))
+                raw=max(1,int(template.get("damage",1) or 1))
+                defense=self.magic_defense() if damage_type=="magic" else self.defense()
+                damage=max(1,int(round(raw-float(defense))))
+                if damage_type=="physical":
+                    damage=max(1,int(round(damage*max(0.0,1.0-self.character.racial_physical_damage_reduction_percent()/100.0))))
+                damage=max(1,int(round(damage*max(0.0,1.0-self.character.racial_damage_reduction_percent()/100.0))))
+                damage=max(1,int(round(damage*max(0.0,1.0-self.character.class_damage_reduction_percent()/100.0))))
+                if random.random()<self.dodge_chance():
+                    await self.send_combat(f"Unikasz ataku: {template['name']}.","normal")
+                    return
+                self.current_hp=max(0,self.current_hp-damage)
+                self._recap52_taken=int(getattr(self,"_recap52_taken",0) or 0)+damage
+                await self.send_combat(f"{template['name']} zadaje ci {damage} obrażeń. HP {self.current_hp} z {self.max_hp()}.","normal")
+                if self.current_hp<=0:
+                    await self.die(template['name'])
 
     async def attack(self, query):
                 wanted = (query or "").strip()
