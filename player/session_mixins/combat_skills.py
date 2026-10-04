@@ -45,8 +45,8 @@ class SessionCombatSkillsMixin:
     def offensive_skill_core_power_v11185(self, skill, authored_base=0):
         """Global Combat 2.0 offensive core shared by authored skill paths.
 
-        Every damaging class skill must feel the character build: STR for physical
-        melee/feedback, DEX for ranged/agility techniques and INT for magic.  The
+        Every direct damaging class skill must feel the character build: STR for
+        physical melee/feedback, DEX for ranged/agility techniques and INT for magic. The
         effective stat already includes equipment, runes, enchants, class sets and
         the active Soul Weapon relic, so superboss equipment feeds the same formula.
         Authored base_power remains the identity of special Mec/Engineer attacks;
@@ -1011,7 +1011,6 @@ class SessionCombatSkillsMixin:
                     return
 
                 template = MOB_TEMPLATES[mob.template_id]
-                skill_class = self.skill_class_name(skill)
                 skill_class_type = self.offensive_skill_damage_type_v11190(skill)
                 multiplier = self.offensive_skill_damage_multiplier_v11186(skill, skill_class_type) * skill_power
                 core_power = self.offensive_skill_core_power_v11185(skill)
