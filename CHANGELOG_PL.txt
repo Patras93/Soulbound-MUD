@@ -1,5 +1,21 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.11.86
+Aktualna paczka: v1.11.89
+
+==============================================================================
+Soulbound v1.11.89 — źródłowe EQ i pełne skalowanie walki
+==============================================================================
+
+- Wszystkie klasy mogą korzystać z nowego wysokopoziomowego EQ; źródłowe wymagania Cyborg Level zostały przełożone na ogólny wymagany Level Soulbound, bez blokady klasy/rasy.
+- Quartz Charm zachowuje źródłowe Defense +60, Magic Defense +60, Attack +60 i Magic Attack +60. Dwa sloty akcesoriów pozwalają nosić dwie fizycznie posiadane sztuki i sumować bonusy.
+- Dodano źródłowe Behemoth Suit, Venetian Shield, Ziedrich, Thief Hat i Oborozuki z podanymi statystykami; Oborozuki działa jako relikt/wzmocnienie Broni Duszy i zachowuje Weapon Power 200.
+- Attack, Magic Attack i Weapon Power są rzeczywistymi płaskimi składnikami mocy i wchodzą do ofensywnych skilli odpowiednich skal STR/DEX/INT/WIL. Soul Power pozostaje centralnym składnikiem obrażeń.
+- Magic Defense z EQ wchodzi bezpośrednio do obrony magicznej; Defense nadal działa przez wspólną fizyczną obronę EQ.
+- Thief Hat zapisuje Immobilizeproof i Paralyzeproof w formacie używanym przez runtime statusów.
+- Wardy i Evade Up bez podanych wartości liczbowych pozostają wiernymi znacznikami źródłowymi. Nie wymyślono procentów ani szans.
+- Pomocnicy superbossów dołączają także do normalnych ofensywnych skilli i skalują się z Soul Power oraz buildem/EQ właściciela, tak jak ich uderzenie przy zwykłym ataku.
+- EQ INFO pokazuje płaskie Attack, Magic Attack, Magic Defense i Weapon Power.
+- Usunięto wcześniejsze niepotwierdzone, wymyślone bonusy Star Fragment, Opal Ring i pozostałych akcesoriów Culexa bez dostarczonych danych źródłowych.
+- Brak wipe'a save'ów.
 
 ==============================================================================
 Soulbound v1.11.86 — pełny audit nowego EQ superbossów
