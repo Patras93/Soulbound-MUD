@@ -2454,7 +2454,23 @@ def _v0319_install_full_mec_kit():
         if special=="range_fire": row.update({"aoe_non_diminishing":True,"carries_soul_weapon_elements":True,"single_soul_weapon":True})
         if special=="dispose": row.update({"aoe_non_diminishing":True,"carries_soul_weapon_elements":True,"feedback_damage":True,"feedback_cost_source_defined":False,"single_soul_weapon":True})
         if special=="crosshair": row.update({"critical_chance_influence":True,"attempts_critical":True,"carries_soul_weapon_elements":True,"single_soul_weapon":True})
-        if special=="shoot_all": row.update({"aoe_non_diminishing":True,"critical_chance_influence":True,"vmax_increases_critical_and_damage":True,"carries_soul_weapon_elements":True,"single_soul_weapon":True})
+        if special=="shoot_all":
+            row.update({
+                "scale":"attack",
+                "source_stat_influence":["attack","critical_hit_chance"],
+                "target_mode":"all_enemies_non_diminishing",
+                "aoe_non_diminishing":True,
+                "critical_chance_influence":True,
+                "attempts_critical":True,
+                "vmax_increases_critical_and_damage":True,
+                "vmax_numeric_source_defined":False,
+                "vmax_damage_multiplier":1.25,
+                "vmax_critical_chance_bonus":0.15,
+                "vmax_balance_model":"soulbound_damage_x1.25_crit_plus15pp",
+                "carries_soul_weapon_elements":True,
+                "requires_soul_weapon":"ranged",
+                "single_soul_weapon":True,
+            })
         if special=="laser_spin": row.update({"aoe_diminishing":True,"element":"dark","uoss_mp_cost":25})
         if special=="mec_sonata": row.update({"uoss_mp_cost":50})
         if special=="maelstrom": row.update({"aoe_diminishing":True,"element":"water","uoss_mp_cost":80})
@@ -2614,6 +2630,20 @@ def _mec_contract_audit_v11149():
             errors.append(
                 f"cosmic_rave:vmax_random_hits={cosmic.get('vmax_random_hits')} expected=5"
             )
+    shoot_all=rows.get("shoot_all")
+    if shoot_all:
+        if str(shoot_all.get("scale"))!="attack":
+            errors.append(f"shoot_all:scale={shoot_all.get('scale')} expected=attack")
+        if list(shoot_all.get("source_stat_influence") or [])!=["attack","critical_hit_chance"]:
+            errors.append("shoot_all: source influence must be Attack + Critical Hit Chance")
+        if str(shoot_all.get("target_mode"))!="all_enemies_non_diminishing":
+            errors.append("shoot_all: target mode must be all enemies non-diminishing")
+        if not bool(shoot_all.get("carries_soul_weapon_elements")):
+            errors.append("shoot_all: must carry Soul Weapon elements")
+        if not bool(shoot_all.get("vmax_increases_critical_and_damage")):
+            errors.append("shoot_all: missing V-MAX crit/damage increase")
+        if bool(shoot_all.get("vmax_numeric_source_defined")):
+            errors.append("shoot_all: V-MAX numeric bonus must remain marked unsourced")
     vmax=rows.get("vmax")
     if vmax:
         if str(vmax.get("scale"))!="willpower":
