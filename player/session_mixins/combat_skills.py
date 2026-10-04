@@ -118,6 +118,10 @@ class SessionCombatSkillsMixin:
                 mob = None
                 aoe_mobs = []
                 if kind == "group_heal":
+                    if superboss_healing_blocked_v11179(self):
+                        await self.send("Nullify Healing blokuje leczenie.")
+                        if self.combat_mob_key: await self.ensure_realtime_combat()
+                        return
                     recipients=self.server.party_sessions(
                         self.account_id,same_room=self.character.room_id
                     ) or [self]
