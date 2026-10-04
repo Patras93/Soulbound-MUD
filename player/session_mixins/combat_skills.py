@@ -1104,6 +1104,14 @@ class SessionCombatSkillsMixin:
                             if not target or not target.alive: continue
                             template=MOB_TEMPLATES[target.template_id]
                             _local_mult=mult
+                            _pop_knight_flying=False
+                            if special=="pop_knight" and bool(template.get("flying")):
+                                _pop_knight_flying=True
+                                _local_mult *= float(
+                                    skill.get(
+                                        "soulbound_flying_damage_multiplier",1.25
+                                    ) or 1.25
+                                )
                             if special=="starlight_shower" and len(targets)>1 and not vmax:
                                 # Source requires diminishing area damage but does not
                                 # publish the numeric falloff. Soulbound therefore uses
@@ -1158,9 +1166,14 @@ class SessionCombatSkillsMixin:
                             target.hp-=damage; total+=damage
                             _crit_note=" KRYTYK." if crit else ""
                             _vmax_note=" V-MAX." if special=="shoot_all" and vmax else ""
+                            _flying_note=(
+                                " BONUS przeciw Flying."
+                                if special=="pop_knight" and _pop_knight_flying
+                                else ""
+                            )
                             await self.send(
                                 f"{skill['name']}: {template['name']} {damage} obrażeń. "
-                                f"HP {max(0,target.hp)}.{note}{_crit_note}{_vmax_note}"
+                                f"HP {max(0,target.hp)}.{note}{_crit_note}{_vmax_note}{_flying_note}"
                             )
                             if target.hp<=0 and target.key not in seen: seen.add(target.key); defeated.append(target)
                         helper_target, _helper_damage = await self.apply_superboss_helper_after_skill_v11192(targets)
