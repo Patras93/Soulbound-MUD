@@ -1,5 +1,19 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.11.95
+Aktualna paczka: v1.11.96
+
+==============================================================================
+Soulbound v1.11.96 — Kondycja dla fizycznego EQ
+==============================================================================
+
+- Fizyczne EQ zachowuje ofensywne statystyki, ale ma też realnie wzmacniać przeżywalność przez Kondycję.
+- Klasowe fizyczne sety nadal generują Siłę + Kondycję; generator ma teraz jawny guard, który zatrzyma start przy regresji odbierającej Kondycję fizycznemu EQ klasowemu.
+- Źródłowe statystyki UOSS nie są nadpisywane. Dla znanych fizycznych reliktów bez VIT/Kondycji dodano osobną warstwę balansu Soulbound równą 25% znanych STR+DEX: Ninja's Trump +106 Kondycji, Zantetsuken +70, Mesa +128, Oborozuki +19.
+- Armageddon, Daedalus Lance, Gungnir, Bonebreaker, Brave Suit, Nova Armor, Mirage Vest, Renewing Morion, Safe Helm, Lunar Crystal Armor, Genji Gloves, Devil King Shield, Behemoth Suit, Venetian Shield, Ziedrich i Thief Hat już miały Kondycję i zachowują swoje wartości.
+- EQ INFO rozróżnia teraz Statystyki bazowe od Bonusów Soulbound, a łączne efektywne staty nadal pokazują pełną sumę.
+- AUTO EQ i wewnętrzne porównanie mocy uwzględniają Bonus Soulbound, więc przedmiot nie jest zaniżany tylko dlatego, że dodatkowa Kondycja jest oddzielona od danych źródłowych.
+- Dodano audit fizycznych nagród UOSS wymagający realnej Kondycji po zsumowaniu statystyk źródłowych i warstwy Soulbound.
+- Runtime, server metadata i FAST PREDEPLOY zsynchronizowano do v1.11.96.
+- Zmiana nie wykonuje deployu i nie wymaga wipe'a save'ów.
 
 ==============================================================================
 Soulbound v1.11.95 — uniwersalne akcesoria UOSS dla wszystkich klas
