@@ -2,6 +2,7 @@
 """Treasure maps, exploration, progress, achievements and titles."""
 
 # v0.44.0: explicit dependencies; no compatibility-global injection.
+from config.postal import GUIDE_CITY_HUBS_V0522, POSTAL_CITY_HUBS_V0522
 from core.bootstrap_economy_professions import currency_reading_text
 from core.classes_skills import ROOMS
 from core.mines_threat import ITEMS
@@ -26,17 +27,385 @@ from world.economy_quests import (
     instance_secret_index,
 )
 from world.generation_systems import (
+    V013_FRONTIER_SIDE,
     V013_FRONTIER_SPECS,
+    V018_EXPEDITIONS,
+    V020_MEGADUNGEONS,
     _v0140_hash_int,
     v0130_frontier_room_id,
     v0130_frontier_room_identity,
     v0130_frontier_room_ids,
+    v0140_has_mini_dungeon,
+    v0140_mini_room_id,
     v0140_surface_secret_info,
     v0140_surface_secret_room_ids,
+    v0180_archipelago_room_ids,
+    v0180_has_great_ruin,
+    v0180_ruin_room_id,
 )
+from world.ocean_expansion import UNDERWATER_DUNGEONS
+from world.world_expansion_iv import ZONE_ROOM_IDS as V0800_ZONE_ROOM_IDS
+from world.world_expansion_v import ARCHIPELAGO_DUNGEONS_V0900, CATACOMB_LEVELS_V0900
+
+
+GLOBAL_DISCOVERY_ATLAS_CATEGORIES_V1120 = {
+    "cities": {
+        "label": "Miasta",
+        "aliases": ("miasta", "miasto", "cities", "city"),
+        "achievement": ("global_atlas_cities_v1120", "Globalny Atlas: wszystkie miasta", "Gold"),
+    },
+    "islands": {
+        "label": "Wyspy",
+        "aliases": ("wyspy", "wyspa", "islands", "island", "archipelagi", "archipelag"),
+        "achievement": ("global_atlas_islands_v1120", "Globalny Atlas: wszystkie wyspy", "Gold"),
+    },
+    "dungeons": {
+        "label": "Lochy",
+        "aliases": ("lochy", "loch", "dungeons", "dungeon", "podziemia"),
+        "achievement": ("global_atlas_dungeons_v1120", "Globalny Atlas: wszystkie lochy", "Platinum"),
+    },
+    "platforms": {
+        "label": "Platformy oceaniczne",
+        "aliases": ("platformy", "platforma", "platformy oceaniczne", "platforma oceaniczna", "platforms"),
+        "achievement": ("global_atlas_platforms_v1120", "Globalny Atlas: wszystkie platformy oceaniczne", "Silver"),
+    },
+    "ruins": {
+        "label": "Ruiny",
+        "aliases": ("ruiny", "ruina", "ruins", "ruin"),
+        "achievement": ("global_atlas_ruins_v1120", "Globalny Atlas: wszystkie ruiny", "Platinum"),
+    },
+    "superbosses": {
+        "label": "Superbossowie",
+        "aliases": ("superbossy", "superboss", "superbossowie", "superbosses", "bossowie specjalni"),
+        "achievement": ("global_atlas_superbosses_v1120", "Globalny Atlas: wszystkie areny superbossów", "Platinum"),
+    },
+    "secrets": {
+        "label": "Sekretne lokacje",
+        "aliases": ("sekrety", "sekret", "sekretne lokacje", "secrets", "secret"),
+        "achievement": ("global_atlas_secrets_v1120", "Globalny Atlas: wszystkie sekretne lokacje", "Platinum"),
+    },
+}
+GLOBAL_DISCOVERY_ATLAS_MASTER_V1120 = (
+    "global_atlas_complete_v1120",
+    "Globalny Atlas: cały odkryty świat",
+    "Platinum",
+)
+GLOBAL_DISCOVERY_ATLAS_MASTER_TITLE_V1120 = "Kartograf Całego Świata"
 
 
 class SessionExplorationProgressMixin:
+
+    def global_discovery_place_v1120(self, key, name, room_ids=(), prefixes=(), hidden=False, collection=None, collection_key=None):
+            return {
+                "key": str(key),
+                "name": str(name),
+                "room_ids": tuple(str(value) for value in room_ids if value),
+                "prefixes": tuple(str(value) for value in prefixes if value),
+                "hidden": bool(hidden),
+                "collection": collection,
+                "collection_key": collection_key,
+            }
+
+    def global_discovery_atlas_catalog_v1120(self):
+            """Finite, source-backed discovery catalog built from the live world registries."""
+            catalog = {key: [] for key in GLOBAL_DISCOVERY_ATLAS_CATEGORIES_V1120}
+
+            # Miasta: one discovery per actual courier/city hub. Expansions extend
+            # these registries, so new cities automatically join the atlas.
+            city_names = tuple(dict.fromkeys(
+                tuple(GUIDE_CITY_HUBS_V0522) + tuple(POSTAL_CITY_HUBS_V0522)
+            ))
+            for city in city_names:
+                rooms = tuple(dict.fromkeys((
+                    GUIDE_CITY_HUBS_V0522.get(city),
+                    POSTAL_CITY_HUBS_V0522.get(city),
+                )))
+                catalog["cities"].append(self.global_discovery_place_v1120(
+                    f"city:{normalize_lookup_text(city)}", city, room_ids=rooms
+                ))
+
+            # Fixed Broken Star islands.
+            for zone, room_ids in sorted(V0800_ZONE_ROOM_IDS.items(), key=lambda row: normalize_lookup_text(row[0])):
+                if "wyspa" not in normalize_lookup_text(zone):
+                    continue
+                catalog["islands"].append(self.global_discovery_place_v1120(
+                    f"island:v0800:{normalize_lookup_text(zone)}", zone, room_ids=room_ids
+                ))
+
+            # Deterministic expedition archipelagos.
+            for expedition_id, spec in V018_EXPEDITIONS.items():
+                catalog["islands"].append(self.global_discovery_place_v1120(
+                    f"island:v018:{expedition_id}",
+                    spec["name"],
+                    room_ids=v0180_archipelago_room_ids(expedition_id),
+                ))
+
+            # Major persistent dungeon complexes. A complex is discovered on the
+            # first visited room; the atlas does not require clearing every floor.
+            dungeon_defs = (
+                ("deep_mine", "Kopalnia Głębinowa", (), ("mine_floor_",)),
+                ("crypt", "Krypta Nieskończona", (), ("crypt_floor_",)),
+                ("astral", "Wieża Astralna", (), ("astral_floor_",)),
+                ("mythic_crypt", "Mityczna Krypta", (), ("mythic_crypt_floor_",)),
+                ("mythic_astral", "Mityczna Wieża Astralna", (), ("mythic_astral_floor_",)),
+                ("giant_fortress", "Twierdza Gigantów", (), ("giant_fortress_",)),
+                ("crystal_grotto", "Kryształowe Groty", (), ("prof_crystal_mine_",)),
+                ("sunken_grotto", "Zatopiona Grota", (), ("prof_sunken_grotto_",)),
+                ("ancient_forest", "Pradawny Las", (), ("prof_ancient_forest_",)),
+                ("alchemy_garden", "Ogród Alchemika", (), ("prof_alchemy_garden_",)),
+                ("magitek", "Kompleks Magitek 2.0", (), ("magitek_",)),
+            )
+            for key, name, room_ids, prefixes in dungeon_defs:
+                catalog["dungeons"].append(self.global_discovery_place_v1120(
+                    f"dungeon:{key}", name, room_ids=room_ids, prefixes=prefixes
+                ))
+
+            troll_rooms = tuple(
+                rid for rid, room in ROOMS.items()
+                if str(room.get("zone") or "") == "Jaskinia Trolli"
+            )
+            if troll_rooms:
+                catalog["dungeons"].append(self.global_discovery_place_v1120(
+                    "dungeon:troll_cave", "Jaskinia Trolli", room_ids=troll_rooms
+                ))
+
+            catacomb_rooms = tuple(
+                rid for floor_rooms in CATACOMB_LEVELS_V0900.values() for rid in floor_rooms
+            )
+            if catacomb_rooms:
+                catalog["dungeons"].append(self.global_discovery_place_v1120(
+                    "dungeon:catacombs_v0900", "Katakumby pod Świątynią", room_ids=catacomb_rooms
+                ))
+
+            for key, room_ids in ARCHIPELAGO_DUNGEONS_V0900.items():
+                first = next(iter(room_ids), None)
+                name = str(ROOMS.get(first, {}).get("zone") or key.replace("_", " ").title())
+                catalog["dungeons"].append(self.global_discovery_place_v1120(
+                    f"dungeon:archipelago:{key}", name, room_ids=room_ids
+                ))
+
+            for key, spec in V020_MEGADUNGEONS.items():
+                catalog["dungeons"].append(self.global_discovery_place_v1120(
+                    f"dungeon:mega:{key}", spec["name"], prefixes=(f"v020_mega_{key}_",)
+                ))
+
+            # Every deterministic procedural mini-dungeon is a long-term discovery.
+            for kind, spec in V013_FRONTIER_SPECS.items():
+                for y in range(V013_FRONTIER_SIDE):
+                    for x in range(V013_FRONTIER_SIDE):
+                        if not v0140_has_mini_dungeon(kind, x, y):
+                            continue
+                        prefix = f"v0140_mini_{kind}_{x:02d}_{y:02d}_"
+                        catalog["dungeons"].append(self.global_discovery_place_v1120(
+                            f"dungeon:mini:{kind}:{x}:{y}",
+                            f"Ukryty mini-loch — {spec['zone']}, sektor {x+1}-{y+1}",
+                            prefixes=(prefix,), hidden=True,
+                        ))
+
+            # Ocean platforms are future-proofed by metadata/name rather than one hardcoded ID.
+            for rid, room in ROOMS.items():
+                rid_norm = normalize_lookup_text(rid)
+                name = str(room.get("name") or rid)
+                name_norm = normalize_lookup_text(name)
+                zone_norm = normalize_lookup_text(str(room.get("zone") or ""))
+                if rid == "ocean_platform" or (
+                    "platform" in name_norm
+                    and ("ocean" in rid_norm or "ocean" in zone_norm or "wybrzez" in zone_norm)
+                ):
+                    catalog["platforms"].append(self.global_discovery_place_v1120(
+                        f"platform:{rid}", name, room_ids=(rid,)
+                    ))
+
+            # Fixed ruin zones (procedural/ocean ruins are catalogued below).
+            fixed_ruin_zones = {}
+            for rid, room in ROOMS.items():
+                if rid.startswith("v018_ruin_") or rid.startswith("v1000_ruin_"):
+                    continue
+                zone = str(room.get("zone") or "")
+                if "ruin" in normalize_lookup_text(zone):
+                    fixed_ruin_zones.setdefault(zone, []).append(rid)
+            for zone, room_ids in sorted(fixed_ruin_zones.items(), key=lambda row: normalize_lookup_text(row[0])):
+                catalog["ruins"].append(self.global_discovery_place_v1120(
+                    f"ruin:zone:{normalize_lookup_text(zone)}", zone, room_ids=room_ids
+                ))
+
+            # Ocean 2.0 submerged ruins.
+            for key, spec in UNDERWATER_DUNGEONS.items():
+                catalog["ruins"].append(self.global_discovery_place_v1120(
+                    f"ruin:ocean:{key}", spec["name"], room_ids=spec["rooms"]
+                ))
+
+            # Deterministic Great Ruins on the procedural frontier.
+            for kind, spec in V013_FRONTIER_SPECS.items():
+                for y in range(V013_FRONTIER_SIDE):
+                    for x in range(V013_FRONTIER_SIDE):
+                        if not v0180_has_great_ruin(kind, x, y):
+                            continue
+                        prefix = f"v018_ruin_{kind}_{x:02d}_{y:02d}_"
+                        catalog["ruins"].append(self.global_discovery_place_v1120(
+                            f"ruin:great:{kind}:{x}:{y}",
+                            f"Wielkie Ruiny — {spec['zone']}, sektor {x+1}-{y+1}",
+                            prefixes=(prefix,), hidden=True,
+                        ))
+
+            # UOSSMUD superboss arenas are authored later in the runtime, so scan
+            # the final live ROOMS registry instead of importing a later module.
+            for rid, room in ROOMS.items():
+                key = room.get("uoss_superboss_key")
+                if not key:
+                    continue
+                catalog["superbosses"].append(self.global_discovery_place_v1120(
+                    f"superboss:{key}",
+                    str(room.get("name") or key),
+                    room_ids=(rid,),
+                ))
+
+            # Finite surface secrets. Instance secrets remain in the instance map
+            # because endless instances do not have a finite "all" target.
+            for surface_room in v0140_surface_secret_room_ids():
+                info = v0140_surface_secret_info(surface_room)
+                if not info:
+                    continue
+                catalog["secrets"].append(self.global_discovery_place_v1120(
+                    f"secret:{surface_room}",
+                    info["name"],
+                    hidden=True,
+                    collection="surface_secrets_v0140",
+                    collection_key=surface_room,
+                ))
+
+            # Stable ordering and de-duplication make NVDA numbering deterministic.
+            for key, rows in catalog.items():
+                unique = {}
+                for row in rows:
+                    unique.setdefault(row["key"], row)
+                catalog[key] = sorted(
+                    unique.values(), key=lambda row: normalize_lookup_text(row["name"])
+                )
+            return catalog
+
+    def global_discovery_atlas_state_v1120(self):
+            catalog = self.global_discovery_atlas_catalog_v1120()
+            discovered = set(self.server.db.discovered_room_ids(self.account_id))
+            collection_cache = {}
+
+            def found(place):
+                collection = place.get("collection")
+                if collection:
+                    if collection not in collection_cache:
+                        collection_cache[collection] = set(
+                            self.server.db.collection_entry_ids(self.account_id, collection)
+                        )
+                    return str(place.get("collection_key")) in collection_cache[collection]
+                if any(rid in discovered for rid in place.get("room_ids", ())):
+                    return True
+                prefixes = place.get("prefixes", ())
+                if prefixes:
+                    return any(
+                        any(rid.startswith(prefix) for prefix in prefixes)
+                        for rid in discovered
+                    )
+                return False
+
+            state = {}
+            for key, places in catalog.items():
+                rows = []
+                for place in places:
+                    row = dict(place)
+                    row["found"] = found(place)
+                    rows.append(row)
+                count = sum(1 for row in rows if row["found"])
+                state[key] = {
+                    "label": GLOBAL_DISCOVERY_ATLAS_CATEGORIES_V1120[key]["label"],
+                    "rows": rows,
+                    "found": count,
+                    "total": len(rows),
+                    "complete": bool(rows) and count == len(rows),
+                }
+            return state
+
+    async def sync_global_discovery_atlas_v1120(self, announce=False):
+            """Retroactive achievement sync; safe for old saves and new discoveries."""
+            state = self.global_discovery_atlas_state_v1120()
+            for key, category in state.items():
+                if not category["complete"]:
+                    continue
+                achievement_id, name, tier = GLOBAL_DISCOVERY_ATLAS_CATEGORIES_V1120[key]["achievement"]
+                if self.server.db.unlock_achievement(self.account_id, achievement_id, name, tier):
+                    if announce:
+                        await self.send(f"Osiągnięcie: {name}, {tier}.")
+
+            all_complete = bool(state) and all(
+                category["complete"] for category in state.values()
+            )
+            if all_complete:
+                achievement_id, name, tier = GLOBAL_DISCOVERY_ATLAS_MASTER_V1120
+                if self.server.db.unlock_achievement(
+                    self.account_id, achievement_id, name, tier
+                ):
+                    if announce:
+                        await self.send(f"Osiągnięcie: {name}, {tier}.")
+                title_id = "global_atlas:master:v1120"
+                if self.server.db.unlock_title(
+                    self.account_id, title_id, GLOBAL_DISCOVERY_ATLAS_MASTER_TITLE_V1120
+                ):
+                    if announce:
+                        await self.send(
+                            f"Nowy tytuł: {GLOBAL_DISCOVERY_ATLAS_MASTER_TITLE_V1120}."
+                        )
+            return state
+
+    def global_discovery_category_key_v1120(self, query):
+            norm = normalize_lookup_text(query)
+            for key, definition in GLOBAL_DISCOVERY_ATLAS_CATEGORIES_V1120.items():
+                aliases = {normalize_lookup_text(value) for value in definition["aliases"]}
+                if norm == normalize_lookup_text(definition["label"]) or norm in aliases:
+                    return key
+            return None
+
+    async def show_global_discovery_atlas_v1120(self, args=""):
+            state = await self.sync_global_discovery_atlas_v1120(announce=False)
+            raw = str(args or "").strip()
+            if raw:
+                key = self.global_discovery_category_key_v1120(raw)
+                if not key:
+                    await self.send(
+                        "Nie rozpoznaję działu Globalnego Atlasu. "
+                        "Działy: miasta, wyspy, lochy, platformy, ruiny, superbossy, sekrety."
+                    )
+                    return
+                category = state[key]
+                await self.send(
+                    f"GLOBALNY ATLAS — {category['label'].upper()}: "
+                    f"{category['found']} z {category['total']}."
+                )
+                for number, row in enumerate(category["rows"], 1):
+                    if row["found"]:
+                        await self.send(f"{number}. Odkryte: {row['name']}.")
+                    elif row.get("hidden"):
+                        await self.send(f"{number}. Nieodkryte: ???.")
+                    else:
+                        await self.send(f"{number}. Nieodkryte: {row['name']}.")
+                return
+
+            total_found = sum(category["found"] for category in state.values())
+            total_places = sum(category["total"] for category in state.values())
+            complete_count = sum(1 for category in state.values() if category["complete"])
+            await self.send("GLOBALNY ATLAS ODKRYĆ")
+            await self.send(
+                f"Łącznie: {total_found} z {total_places} odkryć. "
+                f"Ukończone działy: {complete_count} z {len(state)}."
+            )
+            for category in state.values():
+                marker = " UKOŃCZONE." if category["complete"] else ""
+                await self.send(
+                    f"{category['label']}: {category['found']} z {category['total']}.{marker}"
+                )
+            await self.send(
+                "Szczegóły: atlas odkrycia miasta / wyspy / lochy / platformy / "
+                "ruiny / superbossy / sekrety. Nieodkryte sekrety i proceduralne "
+                "ruiny/mini-lochy nie zdradzają nazw ani położenia."
+            )
 
     def v0140_treasure_map_target(self):
             discovered = self.server.db.collection_entry_ids(self.account_id, "surface_secrets_v0140")
@@ -287,6 +656,10 @@ class SessionExplorationProgressMixin:
                 len(discovered.intersection(ALL_EXPLORATION_ROOMS)),
             )
 
+            # v1.12.0: Globalny Atlas Odkryć korzysta z istniejącej historii
+            # odkrytych pokojów, więc działa również dla starszych save'ów.
+            await self.sync_global_discovery_atlas_v1120(announce=announce)
+
             if (
                 zone in TRACKED_EXPLORATION_ZONES
                 and current >= total
@@ -406,6 +779,7 @@ class SessionExplorationProgressMixin:
 
     async def show_achievements(self):
             await self.sync_extended_achievements()
+            await self.sync_global_discovery_atlas_v1120(announce=False)
             rows = self.server.db.achievement_rows(self.account_id)
             await self.send(f"ACHIEVEMENTY. Odblokowane: {len(rows)}.")
             for metric, definition in ACHIEVEMENT_TRACKS.items():
