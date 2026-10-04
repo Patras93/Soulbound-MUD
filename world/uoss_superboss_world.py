@@ -63,6 +63,41 @@ for idx,key in enumerate(_ORDER,1):
     })
     _prev=rid
 
+# Exact summoned/companion combatants belonging to sourced encounters.
+_SOURCE_ADDS_V11156 = {
+ "greater_demon":{"name":"Greater Demon","level":175,"max_hp":325000,"max_mp":65000,"source_xp":300000,"source_xp_exact":True,"parent":"black_rabite","location":"Black Rabite","abilities":(),"elements":("Fire","Dark")},
+ "culex_wind_crystal":{"name":"Wind Crystal","level":130,"max_hp":100000,"max_mp":20000,"source_xp":74000,"source_xp_exact":True,"parent":"culex","weak":("Earth",),"resist":("Weapon","Magic"),"immune":("Status_all",),"absorb":("Wind","Lightning"),"abilities":("Petal Blast","Electroshock","Static Electricity","Light Beam")},
+ "culex_water_crystal":{"name":"Water Crystal","level":130,"max_hp":100000,"max_mp":20000,"source_xp":74000,"source_xp_exact":True,"parent":"culex","weak":("Fire",),"resist":("Weapon","Magic"),"immune":("Status_all",),"absorb":("Water","Ice"),"abilities":("Diamond Saw","Ice Rock","Blizzard","Crystal")},
+ "culex_fire_crystal":{"name":"Fire Crystal","level":130,"max_hp":100000,"max_mp":20000,"source_xp":74000,"source_xp_exact":True,"parent":"culex","weak":("Ice","Water"),"resist":("Weapon","Magic"),"immune":("Status_all",),"absorb":("Fire",),"abilities":("Corona","Flame","Flame Wall","Mega Drain")},
+ "culex_earth_crystal":{"name":"Earth Crystal","level":130,"max_hp":100000,"max_mp":20000,"source_xp":74000,"source_xp_exact":True,"parent":"culex","weak":("Wind","Lightning"),"resist":("Weapon","Magic"),"immune":("Status_all",),"absorb":("Earth",),"abilities":("Storm","Blast","Water Blast","Sand Storm")},
+ "emerald_white_eye":{"name":"White Eye","level":140,"max_hp":80000,"max_mp":0,"source_xp":100000,"source_xp_exact":True,"parent":"emerald_weapon","combat_types":("Machine",),"weak":("Fire",),"immune":("Noact","Engulf","Earth","Silence","Stop","Berserk","Sleep"),"absorb":("Ice","Water"),"abilities":("Emerald Absorber","Emerald Cure","Blessing of the Planet")},
+ "emerald_blue_eye":{"name":"Blue Eye","level":140,"max_hp":80000,"max_mp":3000,"source_xp":100000,"source_xp_exact":True,"parent":"emerald_weapon","combat_types":("Machine",),"weak":("Fire",),"immune":("Noact","Engulf","Earth","Silence","Stop","Berserk","Sleep"),"absorb":("Ice","Water"),"abilities":("Osmose","Gather MP","The Planet's Cleansing")},
+ "emerald_red_eye":{"name":"Red Eye","level":140,"max_hp":80000,"max_mp":0,"source_xp":100000,"source_xp_exact":True,"parent":"emerald_weapon","combat_types":("Machine",),"weak":("Fire",),"immune":("Noact","Engulf","Earth","Silence","Stop","Berserk","Sleep"),"absorb":("Ice","Water"),"abilities":("Emerald Laser","Emerald Torpedo")},
+ "emerald_torpedo":{"name":"Emerald Torpedo","level":83,"max_hp":12000,"max_mp":0,"source_xp":0,"source_xp_exact":True,"parent":"emerald_red_eye","combat_types":("Machine",),"immune":("Status_all",),"explode_round":3,"abilities":("Emerald Torpedo",)},
+ "ruby_right_tentacle":{"name":"Right Tentacle","level":140,"max_hp":150000,"max_mp":30000,"source_xp":0,"source_xp_exact":True,"parent":"ruby_weapon","combat_types":("Machine",),"immune":("Small","Noact","Gravity","Petrify","Imp","Stop","Berserk","Water","Engulf","Silence","Sleep"),"abilities":("Right Thrust",)},
+ "ruby_left_tentacle":{"name":"Left Tentacle","level":140,"max_hp":150000,"max_mp":30000,"source_xp":0,"source_xp_exact":True,"parent":"ruby_weapon","combat_types":("Machine",),"immune":("Small","Noact","Gravity","Petrify","Imp","Stop","Berserk","Water","Engulf","Silence","Sleep"),"abilities":("Left Revenge",)},
+}
+for _add_key,_add in _SOURCE_ADDS_V11156.items():
+    _mid=f"uoss_add_{_add_key}_v11156"
+    _row=dict(_add)
+    _row.update({"silver":0,"gold":0,"mithril":0,"stat_reward":0,"soul_reward":0,"drops":{},"quest_target":None,"stationary_mob":True,"auto_aggro":False,"uoss_superboss_add":True})
+    MOB_TEMPLATES.setdefault(_mid,_row)
+
+# Source-authored boss ability contracts. Numeric effects are included only
+# where the supplied source gives an exact value.
+SOURCE_BOSS_ABILITIES_V11156 = {
+ "black_rabite":{"summons":"greater_demon","elements":("Fire","Dark"),"status_immunity":"all","special_status_exception":"Vanish a Paralyze attack may inflict Don't Act"},
+ "culex":{"abilities":("Crash Strike","Dark Star","Meteor Blast","Flame Stone","Dispel"),"summons":("culex_wind_crystal","culex_water_crystal","culex_fire_crystal","culex_earth_crystal")},
+ "emerald_weapon":{"abilities":("Stamp","Dissolving Ray","Emerald Beam","Aqua Beam","Deep Life Water","Open Eye","Revenge Stamp"),"open_eye_random":("emerald_white_eye","emerald_blue_eye","emerald_red_eye")},
+ "ruby_weapon":{"abilities":("Big Claw","Big Swing","Comet2","Ruby Ray","Ruby Flame","Shadow Flare","Ultima","Wrap","Imp","Mini"),"summons":("ruby_right_tentacle","ruby_left_tentacle"),"wrap_removes_player_when_party_gt":1},
+ "serpentarius":{"abilities":("Snake Carrier","Poison Frog","Resisted Gravija","Gravija","Midgar Swarm","Banish Ray","Firaja","Blizzaja","Thundaja","Comet","Light Pillar","Necrotic Energy","Nullify Healing","Zodiac"),"banish_ray_damage":9999,"light_pillar_damage":9999,"resisted_gravija_fraction":"1/10","gravija_fraction":"1/3","necrotic_energy_rounds":8,"nullify_healing_rounds":3},
+ "yiazmat":{"abilities":("Rake","Death Strike","Magnetic Lysis","Dust Storm","Ice Breath","Gust Front","Cyclone","Stone Breath"),"death_strike_hp_fraction":0.80,"death_strike_gravityproof_fraction":0.50},
+}
+for _boss_key,_contract in SOURCE_BOSS_ABILITIES_V11156.items():
+    _mid=f"uoss_superboss_{_boss_key}_v11136"
+    if _mid in MOB_TEMPLATES:
+        MOB_TEMPLATES[_mid]["source_ability_contract"]=dict(_contract)
+
 # Helpers are real NPCs in the relevant arenas. Hiring behavior is represented
 # explicitly and can be consumed by combat-party logic without inventing dialogue.
 _HELPERS={
