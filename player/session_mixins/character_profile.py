@@ -10,8 +10,6 @@ from core.bootstrap_economy_professions import (
     SOUL_TRIAL_QUEST_IDS,
     currency_reading_text,
     soul_trial_difficulty_band,
-    soul_weapon_trait_for_tier,
-    soul_weapon_trait_totals,
     stat_quality_label,
 )
 from core.classes_skills import ROOMS
@@ -22,6 +20,9 @@ from core.progression_600 import (
     SOUL_MAX_TIER,
     SOUL_TIER_THRESHOLDS,
     SOUL_WEAPON_MASTERY_MAX_LEVEL,
+    soul_tier_title_for_class,
+    soul_weapon_trait_for_tier,
+    soul_weapon_trait_totals,
 )
 from core.progression_resources import character_xp_to_next
 from systems.content_registry import QUESTS
@@ -77,7 +78,7 @@ class SessionCharacterProfileMixin:
                 )
             await self.send(f"Broń Duszy: {c.soul_weapon}.")
             await self.send(f"Soul Level: {c.soul_level}/{SOUL_MAX_LEVEL}.")
-            await self.send(f"Soul Tier: {c.soul_tier}/{SOUL_MAX_TIER}.")
+            await self.send(f"Soul Tier: {c.soul_tier}/{SOUL_MAX_TIER} — {soul_tier_title_for_class(c.soul_tier, c.class_name)}.")
             await self.send(f"Soul Weapon Mastery: {c.soul_weapon_mastery_level}/{SOUL_WEAPON_MASTERY_MAX_LEVEL}. XP: {c.soul_weapon_mastery_xp} z {c.soul_weapon_mastery_xp_to_next() if c.soul_weapon_mastery_level < SOUL_WEAPON_MASTERY_MAX_LEVEL else 0}.")
             await self.send(f"HP: {self.current_hp} z {self.max_hp()}.")
             await self.send(f"Mana: {self.current_mana} z {self.max_mana()}.")
@@ -259,7 +260,7 @@ class SessionCharacterProfileMixin:
                 await self.send("DUSZA")
                 await self.send(f"Broń Duszy: {c.soul_weapon}.")
                 await self.send(f"Soul Level: {c.soul_level}/{SOUL_MAX_LEVEL}.")
-                await self.send(f"Soul Tier: {c.soul_tier}/{SOUL_MAX_TIER}.")
+                await self.send(f"Soul Tier: {c.soul_tier}/{SOUL_MAX_TIER} — {soul_tier_title_for_class(c.soul_tier, c.class_name)}.")
                 await self.send(f"Soul Weapon Mastery: {c.soul_weapon_mastery_level}/{SOUL_WEAPON_MASTERY_MAX_LEVEL}.")
                 if c.soul_weapon_mastery_level < SOUL_WEAPON_MASTERY_MAX_LEVEL:
                     await self.send(f"Mastery XP: {c.soul_weapon_mastery_xp} z {c.soul_weapon_mastery_xp_to_next()}.")
@@ -288,7 +289,7 @@ class SessionCharacterProfileMixin:
             await self.send("Stare progi skilli do 200 odblokuje Biegłość właściwej klasy; sama Biegłość rozwija się do 600, nie Soul Level.")
             await self.send(f"Broń Duszy: {c.soul_weapon}.")
             await self.send(f"Soul Level: {c.soul_level}/{SOUL_MAX_LEVEL}.")
-            await self.send(f"Soul Tier: {c.soul_tier}/{SOUL_MAX_TIER}.")
+            await self.send(f"Soul Tier: {c.soul_tier}/{SOUL_MAX_TIER} — {soul_tier_title_for_class(c.soul_tier, c.class_name)}.")
             await self.send(f"Soul Weapon Mastery: {c.soul_weapon_mastery_level}/{SOUL_WEAPON_MASTERY_MAX_LEVEL}.")
             if c.soul_weapon_mastery_level < SOUL_WEAPON_MASTERY_MAX_LEVEL:
                 await self.send(f"Mastery XP: {c.soul_weapon_mastery_xp} z {c.soul_weapon_mastery_xp_to_next()}. XP wpada tylko za zwykłe trafienia Bronią Duszy.")
@@ -357,7 +358,8 @@ class SessionCharacterProfileMixin:
                 band = quest.get("trial_band", soul_trial_difficulty_band(tier))
                 trait = soul_weapon_trait_for_tier(tier, c.class_name)
                 trait_text = f" Właściwość: {trait['name']} - {trait['description']}." if trait else ""
-                await self.send(f"Tier {tier}. Wymaga Soul {required_soul}. Próba: {band}. {state}." + trait_text)
+                tier_title = soul_tier_title_for_class(tier, c.class_name)
+                await self.send(f"Tier {tier}: {tier_title}. Wymaga Soul {required_soul}. Próba: {band}. {state}." + trait_text)
 
             await self.send("KAMIENIE MILOWE BRONI DUSZY")
             for milestone_tier in SOUL_MILESTONE_TIERS:
