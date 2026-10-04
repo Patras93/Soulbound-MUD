@@ -3412,8 +3412,14 @@ def build_elite_rare_named_loot_expansion():
             or t.get("giant_fortress_boss") or "__elite_" in mob_id or mob_id.endswith("__rare")
         ):
             continue
-        # Actual spawned ordinary opponents only.
-        if any(tid == mob_id for _room,tid in MOB_SPAWNS):
+        # Actual spawned ordinary combat opponents only. Some spawned
+        # world/content templates are non-combat objects and intentionally
+        # have no classic damage field; elite/rare variants require both.
+        if (
+            "max_hp" in t
+            and "damage" in t
+            and any(tid == mob_id for _room,tid in MOB_SPAWNS)
+        ):
             t["elite_eligible"]=True
             t["rare_eligible"]=True
             eligible.append(mob_id)
