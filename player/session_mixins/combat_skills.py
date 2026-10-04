@@ -1265,8 +1265,12 @@ class SessionCombatSkillsMixin:
                         # reboot duration, so the values below are explicit Soulbound
                         # balance metadata, not claimed source numbers.
                         if self.mec_overheat_active_v0319():
+                            _recovered=self.mec_finish_overheat_recovery_v0319()
                             await self.send(
-                                "Magnify niedostępne: broń jest w Overheat i kończy reboot."
+                                "Magnify: ta akcja zostaje zużyta na reboot broni. "
+                                + ("Overheat zakończony; następne użycie Magnify jest możliwe."
+                                   if _recovered else
+                                   "Broń nadal pozostaje w Overheat.")
                             )
                             return
                         _magnify_level=max(1,min(SKILL_MAX_LEVEL,int(skill_level)))
