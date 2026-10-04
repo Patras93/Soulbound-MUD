@@ -752,11 +752,18 @@ class SessionCombatSkillsMixin:
                         # Protect/Shell/Regen/Praise/Preach values are fabricated.
                         _vmax_statuses=("protect","shell","haste","regen","preach","praise","permanence")
                         for _status in _vmax_statuses:
-                            self.active_skill_buffs["v0319_vmax_"+_status]={
+                            _status_data={
                                 "name":_status.capitalize(),"boost":1.0,
                                 "until":self.v0319_vmax_until,"source":"V-MAX",
                                 "beneficial":True,"canonical_status":_status,
                             }
+                            if _status=="praise":
+                                _status_data.update({
+                                    "affects":"attack",
+                                    "source_effect":"raises_attack_power",
+                                    "numeric_source_defined":False,
+                                })
+                            self.active_skill_buffs["v0319_vmax_"+_status]=_status_data
                         self.active_skill_buffs[skill["id"]]={
                             "name":"V-MAX","boost":1.0,"until":self.v0319_vmax_until,
                             "source":self.character.name,
@@ -766,8 +773,8 @@ class SessionCombatSkillsMixin:
                             self.v0319_slow_until=0.0
                         await self.send(
                             f"V-MAX aktywny przez {duration} s. Protect, Shell, Haste, Regen, "
-                            "Preach, Praise i Permanence działają na Meca; Haste neguje Slow, "
-                            "a Permanence chroni korzystne efekty przed wrogim dispellem. "
+                            "Preach, Praise i Permanence działają na Meca; Praise podnosi Attack, "
+                            "Haste neguje Slow, a Permanence chroni korzystne efekty przed wrogim dispellem. "
                             f"Czas wynika ze Skill Level {skill_level} i WILL {self.effective_willpower()}."
                         )
                         await self.grant_skill_use_xp(skill); return
