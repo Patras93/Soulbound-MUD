@@ -1215,7 +1215,7 @@ class SessionCombatSkillsMixin:
                                 )
                             )
                             _hypno_start=max(
-                                1,int(skill.get("soulbound_duration_rounds_level1",8) or 8)
+                                1,int(skill.get("soulbound_duration_rounds_level1",2) or 2)
                             )
                             _hypno_end=max(
                                 _hypno_start,
@@ -1229,7 +1229,7 @@ class SessionCombatSkillsMixin:
                                 ))
                             )
                             _hypno_rounds += min(
-                                int(skill.get("soulbound_will_duration_bonus_max",4) or 4),
+                                int(skill.get("soulbound_will_duration_bonus_max",2) or 2),
                                 max(0,int(round((_hypno_will_ratio ** 0.50)-1.0))),
                             )
                             if random.random() < _hypno_accuracy:
@@ -1289,7 +1289,7 @@ class SessionCombatSkillsMixin:
                                 )
                             )
                             _jammer_start=max(
-                                1,int(skill.get("soulbound_duration_rounds_level1",2) or 2)
+                                1,int(skill.get("soulbound_duration_rounds_level1",8) or 8)
                             )
                             _jammer_end=max(
                                 _jammer_start,
@@ -1303,7 +1303,7 @@ class SessionCombatSkillsMixin:
                                 ))
                             )
                             _jammer_rounds += min(
-                                int(skill.get("soulbound_will_duration_bonus_max",2) or 2),
+                                int(skill.get("soulbound_will_duration_bonus_max",4) or 4),
                                 max(0,int(round((_jammer_will_ratio ** 0.50)-1.0))),
                             )
                             _jammer_hits=0
