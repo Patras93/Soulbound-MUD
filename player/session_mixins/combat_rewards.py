@@ -377,6 +377,10 @@ class SessionCombatRewardsMixin:
                     # v0.23.0: NIE podbijamy mnożnika do minimum 1.0. To był błąd,
                     # przez który słabsze moby nigdy nie traciły EXP podczas farmy.
                     xp_mult=float(xp_profile["multiplier"]) * session.v0210_reward_multiplier()
+                    # Scanner-authored UOSSMUD XP is an exact reward, not an
+                    # input to Soulbound's dynamic mob reward generator.
+                    source_xp_exact = bool(template.get("source_xp_exact"))
+                    source_xp = max(0,int(template.get("source_xp",0) or 0))
                     _party_bonus=dungeon_party_bonus_v0320(session)
                     xp_mult*=float(_party_bonus.get("multiplier",1.0))
                     if int(_party_bonus.get("bonus_pct",0))>0:
@@ -403,7 +407,7 @@ class SessionCombatRewardsMixin:
                         detail="full",
                     )
                     await session.grant_class_xp(class_xp_reward)
-                    character_xp_reward=min(V019_SAFE_INT,max(0,int(round(_final_combat_reward(template,"character")*xp_mult))))
+                    character_xp_reward=min(V019_SAFE_INT, source_xp if source_xp_exact else max(0,int(round(_final_combat_reward(template,"character")*xp_mult))))
                     for _msg in session.add_character_xp_with_event(character_xp_reward):
                         await session.send(_msg)
                     await self.server.events.publish(
