@@ -512,8 +512,13 @@ class SessionCombatRealtimeMixin:
                                         enemy_mob
                                     ):
                                         # Intercept cancels the complete incoming
-                                        # attack action, including sourced special
-                                        # damage/status/summon handling below.
+                                        # attack action for this target, including
+                                        # sourced special damage/status/summon handling.
+                                        # If the counterlaser killed the mob, stop the
+                                        # party-target loop so a dead enemy cannot
+                                        # finish the same action on later members.
+                                        if not enemy_mob.alive:
+                                            break
                                         continue
                                     if (
                                         _source_ability
