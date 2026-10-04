@@ -1,5 +1,15 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.11.77
+Aktualna paczka: v1.11.78
+
+==============================================================================
+Soulbound v1.11.78 — Moogle Board w progresji Soulbound
+==============================================================================
+
+- Moogle Board ponownie daje bonus statystyk także przed Level 150, więc istniejący Board w EQ nie staje się martwym przedmiotem.
+- Na Level 150 bonus wynosi +20 do każdej bazowej statystyki.
+- Od Level 151 bonus rośnie o +2 do każdej statystyki za każdy Level; Level 175 = +70.
+- Board pozostaje w EQ; nie jest automatycznie zdejmowany ani kasowany.
+- Brak wipe'a save'ów.
 
 ==============================================================================
 Soulbound v1.11.77 — runtime audit walki
