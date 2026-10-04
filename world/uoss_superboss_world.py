@@ -21,11 +21,23 @@ ROOMS.setdefault("square",{}).setdefault("exits",{}).setdefault("northwest",HUB)
 _ORDER=tuple(UOSS_SUPERBOSS_ENCOUNTERS_V11134)
 _DIRS=("north","northeast","east","southeast","southwest","west","up","down")
 _prev=HUB
+
+# Exact Scanner Data supplied from UOSSMUD. Unknown source fields are omitted
+# rather than inferred. XP is authored source XP and must not be regenerated.
+SOURCE_SCANNER_V11156 = {
+    "black_rabite": {"level":300,"max_hp":3300000,"max_mp":800000,"xp":18900000,"immune":("Status_all",),"location":"Rabite Field"},
+    "culex": {"level":130,"max_hp":400000,"max_mp":200000,"xp":1000000,"resist":("Weapon","Magic"),"immune":("Status_all",),"drop":"Quartz Chunk","location":"Star Field"},
+    "emerald_weapon": {"level":150,"max_hp":1000000,"max_mp":0,"xp":500000,"types":("Machine",),"weak":("Lightning",),"immune":("Status_all","Earth"),"absorb":("Ice","Water"),"drop":"Earth Harp","location":"On the Sea Floor"},
+    "ruby_weapon": {"level":140,"max_hp":1000000,"max_mp":200000,"xp":500000,"types":("Machine",),"immune":("Berserk","Engulf","Silence","Poison","Sleep","Small","Noact","Gravity","Curse","Petrify","Imp","Stop","Water"),"absorb":("Fire","Ice","Lightning","Earth"),"drop":"Desert Rose","location":"Corel Prison"},
+    "serpentarius": {"level":250,"max_hp":1300000,"xp":18900000,"types":("Demon",),"immune":("Curse","Poison","Silence","Stop"),"drop":"Serpentarius Emblem","location":"Deep Dungeon","round_limit":100,"no_exit_after_start":True},
+    "yiazmat": {"level":300,"max_hp":4000000,"max_mp":300000,"xp":18900000,"types":("Dragon",),"weak":("Dark",),"resist":("Earth","Fire","Ice","Lightning","Water","Wind"),"immune":("Status_all",),"absorb":("Holy",),"drop":"Godslayer's Badge","location":"Ridorana Cataract Colosseum"},
+}
 for idx,key in enumerate(_ORDER,1):
     spec=UOSS_SUPERBOSS_ENCOUNTERS_V11134[key]
     rid=f"uoss_superboss_arena_{key}_v11136"
     mid=f"uoss_superboss_{key}_v11136"
-    level=max(1,int(spec.get("recommended_level") or spec.get("unlock_level") or 100))
+    scanner=SOURCE_SCANNER_V11156.get(key,{})
+    level=max(1,int(scanner.get("level") or spec.get("recommended_level") or spec.get("unlock_level") or 100))
     ROOMS.setdefault(rid,{
         "zone":"Super Bossowie UOSSMUD","name":f"Arena — {spec['name']}",
         "desc":f"Unikalna arena wyzwania {spec['name']}. Boss jest pasywny do chwili rozpoczęcia walki.",
@@ -37,8 +49,13 @@ for idx,key in enumerate(_ORDER,1):
     # Chain arenas so all are reachable without consuming 21 directions in hub.
     ROOMS.setdefault(_prev,{}).setdefault("exits",{}).setdefault("forward",rid)
     MOB_TEMPLATES.setdefault(mid,{
-        "name":spec["name"],"max_hp":max(5000, level*250),"damage":max(75, level*3),"damage_type":"magic" if key in {"diabolos","ozma","hades","elementals"} else "physical",
+        "name":spec["name"],"max_hp":int(scanner.get("max_hp") or max(5000, level*250)),
+        "max_mp":scanner.get("max_mp"),"source_xp":scanner.get("xp"),"source_xp_exact":bool(scanner.get("xp") is not None),
+        "damage":max(75, level*3),"damage_type":"magic" if key in {"diabolos","ozma","hades","elementals"} else "physical",
         "silver":0,"gold":0,"mithril":0,"stat_reward":0,"soul_reward":0,"drops":{},"quest_target":None,
+        "combat_types":scanner.get("types",()),"weak":scanner.get("weak",()),"resist":scanner.get("resist",()),
+        "immune":scanner.get("immune",()),"absorb":scanner.get("absorb",()),"source_drop":scanner.get("drop"),
+        "source_location":scanner.get("location"),"round_limit":scanner.get("round_limit"),"no_exit_after_start":bool(scanner.get("no_exit_after_start",False)),
         "world_boss":True,"stationary_mob":True,"auto_aggro":False,"generator_level":level,
         "uoss_unique_superboss_key":key,"uoss_superboss_mode":spec.get("mode","solo"),
         "boss_mechanic":f"uoss_{key}",
