@@ -209,7 +209,11 @@ for _iid in (
     if _iid not in SHOPS["market"]:
         SHOPS["market"].append(_iid)
 SHOPS.setdefault("market",[])
-for _iid in (f"uoss_black_rabite_unique_{i}" for i in range(1,11)):
+_BLACK_RABITE_SHOP_ITEMS_V11190 = (
+    *(f"uoss_black_rabite_unique_{i}" for i in range(1,10)),
+    "moogle_board",
+)
+for _iid in _BLACK_RABITE_SHOP_ITEMS_V11190:
     if _iid not in SHOPS["market"]:
         SHOPS["market"].append(_iid)
 
