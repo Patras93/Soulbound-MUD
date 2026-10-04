@@ -1335,6 +1335,7 @@ class SessionCombatSkillsMixin:
                         str(skill.get("mec_branch"))
                     )
 
+                _mec_feedback_self_damage=0
                 if skill.get("mec_authored"):
                     _mec_special=str(skill.get("mec_special",""))
                     if _mec_special=="crush":
@@ -1343,10 +1344,37 @@ class SessionCombatSkillsMixin:
                         # Preserve that contract in metadata until a canonical formula exists.
                         pass
                     elif _mec_special=="kamikaze_crush":
-                        # Source: current HP/Vitality and the HP sacrifice drive damage;
-                        # V-MAX raises both power and Feedback. No numeric sacrifice
-                        # limit or multiplier is supplied, so do not fabricate one.
-                        pass
+                        # Source contract: HP before use + Vitality + Attack determine
+                        # damage; lower current HP means lower power. A shield improves
+                        # damage, while V-MAX raises both attack power and Feedback.
+                        #
+                        # UOSS supplies no numeric coefficients. The values below are
+                        # explicit Soulbound balance adaptations recorded in metadata,
+                        # not claimed source numbers.
+                        _hp_before=max(1,int(self.current_hp))
+                        _hp_power_ratio=float(skill.get("current_hp_power_ratio",0.20) or 0.20)
+                        core_power += max(0,int(round(_hp_before*_hp_power_ratio)))
+                        _shield_equipped=bool(
+                            self.server.db.equipped_item(self.account_id,"shield")
+                        )
+                        if _shield_equipped:
+                            multiplier *= float(skill.get("shield_damage_multiplier",1.20) or 1.20)
+                        if vmax:
+                            multiplier *= float(skill.get("vmax_damage_multiplier",1.30) or 1.30)
+                        _feedback_pct=float(
+                            skill.get(
+                                "vmax_feedback_current_hp_pct" if vmax else "feedback_current_hp_pct",
+                                0.45 if vmax else 0.20,
+                            )
+                            or (0.45 if vmax else 0.20)
+                        )
+                        _mec_feedback_self_damage=max(
+                            1,int(round(_hp_before*_feedback_pct))
+                        )
+                        if _shield_equipped:
+                            await self.send("Kamikaze Crush: założona tarcza wzmacnia atak.")
+                        if vmax:
+                            await self.send("Kamikaze Crush: V-MAX zwiększa moc ataku i obrażenia Feedback.")
 
                 if kind == "execute":
                     hp_ratio = mob.hp / max(1, template["max_hp"])
@@ -1423,7 +1451,7 @@ class SessionCombatSkillsMixin:
                         f"Wysysanie przywraca {actual} HP. Masz {self.current_hp} z {self.max_hp()} HP."
                     )
 
-                self_damage = skill.get("self_damage", 0)
+                self_damage = int(_mec_feedback_self_damage or 0) + skill.get("self_damage", 0)
                 if skill.get("self_damage_pct"):
                     self_damage += max(1, int(self.max_hp() * skill["self_damage_pct"]))
                 if self_damage:
