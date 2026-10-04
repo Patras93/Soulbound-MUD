@@ -6,7 +6,7 @@ import math
 import random
 import time
 from core.bootstrap_economy_professions import SOUL_MILESTONE_TIERS, SOUL_TRIAL_QUEST_IDS, soul_weapon_trait_for_tier
-from core.classes_skills import CLASSES, CLASS_SKILLS, JOB_ABILITIES, NATURAL_SKILL_INTENTS, ROOMS, effective_skill_mana_cost
+from core.classes_skills import CLASSES, CLASS_SKILLS, NATURAL_SKILL_INTENTS, ROOMS, effective_skill_mana_cost
 from core.progression_600 import SKILL_MAX_LEVEL, SOUL_MAX_TIER, SOUL_TIER_THRESHOLDS
 from core.progression_resources import skill_cooldown_multiplier, skill_xp_to_next, v0190_scaled_gain
 from network.protocol_gameplay_utils import find_by_name, normalize_lookup_text
@@ -80,51 +80,12 @@ class SessionSkillLearningMixin:
                 skills.extend(CLASS_SKILLS.get(class_name, []))
             return skills
 
-    def job_ability_by_id(self, ability_id):
-            ability_id=str(ability_id or "")
-            if not ability_id:
-                return None
-            skill=self.skill_by_id(ability_id)
-            if skill:
-                return skill
-            return JOB_ABILITIES.get(ability_id)
-
     def selected_job_ability(self, slot_type):
             skill_id=self.server.db.job_ability_slot(self.account_id,slot_type)
-            return self.job_ability_by_id(skill_id) if skill_id else None
+            return self.skill_by_id(skill_id) if skill_id else None
 
     def job_ability_selected(self, slot_type, skill_id):
             return self.server.db.job_ability_slot(self.account_id,slot_type)==str(skill_id)
-
-    def job_ability_role(self, ability):
-            return str((ability or {}).get("job_role") or (ability or {}).get("mec_role") or "").casefold()
-
-    def job_ability_candidates(self):
-            rows=list(self.class_skills())
-            rows.extend(JOB_ABILITIES.values())
-            return rows
-
-    def find_job_ability_from_input(self, raw):
-            wanted=self.normalize_description_query(raw)
-            if not wanted:
-                return None
-            matches=[]
-            for ability in self.job_ability_candidates():
-                names=[ability.get("name",""),ability.get("id","")]+list(ability.get("aliases",[]))
-                if any(wanted==self.normalize_description_query(name) for name in names if name):
-                    matches.append(ability)
-            return matches[0] if len(matches)==1 else None
-
-    def job_ability_requirements_met(self, ability):
-            if ability.get("source_class"):
-                if ability["id"] not in self.server.db.learned_skill_ids(self.account_id):
-                    return False
-                return self.skill_mastery_unlocked(ability)
-            # External job abilities carry their source Job Level requirement as
-            # metadata. Soulbound currently has no AP/job-progression subsystem,
-            # so learned=True is the explicit import/unlock gate.
-            return bool(ability.get("learned",False))
-
 
     async def handle_job_set(self, raw):
             parts=str(raw or "").strip().split(maxsplit=2)
@@ -144,22 +105,15 @@ class SessionSkillLearningMixin:
                 self.server.db.clear_job_ability_slot(self.account_id,slot)
                 await self.send(f"Slot {slot} wyłączony.")
                 return
-            skill=self.find_job_ability_from_input(wanted)
-            if not skill or self.job_ability_role(skill)!=slot:
-                await self.send(f"Nie znajduję dostępnej umiejętności typu {slot} o tej nazwie.")
+            skill,_target=self.find_skill_from_input(wanted)
+            if not skill or str(skill.get("mec_role","")).casefold()!=slot:
+                await self.send(f"Nie znajduję nauczonej umiejętności typu {slot} o tej nazwie.")
                 return
-            if skill.get("source_class"):
-                if not self.server.db.knows_skill(self.account_id,skill["id"]):
-                    await self.send(f"Najpierw naucz się: {skill['name']}.")
-                    return
-                if not self.skill_mastery_unlocked(skill):
-                    await self.send(f"Nie spełniasz jeszcze wymagań: {skill['name']}.")
-                    return
-            elif not self.job_ability_requirements_met(skill):
-                level=skill.get("job_level")
-                job=skill.get("job_name","Job")
-                req=f" Job Level {level}." if level else "."
-                await self.send(f"{skill['name']} wymaga odblokowania w jobie {job}.{req}")
+            if not self.server.db.knows_skill(self.account_id,skill["id"]):
+                await self.send(f"Najpierw naucz się: {skill['name']}.")
+                return
+            if not self.skill_mastery_unlocked(skill):
+                await self.send(f"Nie spełniasz jeszcze wymagań: {skill['name']}.")
                 return
             self.server.db.set_job_ability_slot(self.account_id,slot,skill["id"])
             await self.send(f"Ustawiono {slot}: {skill['name']}.")
