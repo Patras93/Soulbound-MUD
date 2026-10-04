@@ -184,23 +184,6 @@ UOSS_SUPERBOSS_ENCOUNTERS_V11134 = {
 # Compatibility alias for code introduced in v1.11.33.
 UOSS_SUPERBOSS_ENCOUNTERS_V11133 = UOSS_SUPERBOSS_ENCOUNTERS_V11134
 
-# Player-facing help. Category/group page labels are explicitly documented as
-# not being boss names so the mistake cannot silently return later.
-HELP_TOPICS["superbossy"] = [
-    "Superbossy UOSSMUD są unikalnymi wyzwaniami świata, a nie rotacją bossów Mitycznej Krypty/Wierzy.",
-    "Dostępne są wyzwania solo, solo/party i party. Minimalny próg nie oznacza zalecanego poziomu.",
-    "Black Rabite: każdy uczestnik dostaje własny losowy drop z 10 przedmiotów + Moogle Steel; przy maks. 3 graczach można za 1 mithril zatrudnić Primm albo Popoi.",
-    "Serpentarius: wymaga osobistego odblokowania Deep Dungeon; każdy uczestnik dostaje Serpentarius Emblem; przy maks. 3 graczach pomaga Byblos.",
-    "Odin: Level 100+, drużyna 3-5; 8 unikalnych dropów + Odin's Mantle dla każdego uczestnika; przy 4-5 graczach trudność rośnie.",
-    "Yiazmat: 7 unikalnych dropów + Godslayer's Badge dla każdego uczestnika; przy maks. 3 graczach pomaga Montblanc.",
-    "24-godzinny lockout dotyczy Black Rabite, Odina i Yiazmata — adaptacja źródłowej zasady once per reboot. Restart ani deploy Railway nie resetuje czasu.",
-]
-HELP_TOPIC_ALIASES.update({
-    "superboss": "superbossy", "superbosses": "superbossy", "uossbosses": "superbossy",
-    "uoss boss": "superbossy", "uoss bosses": "superbossy",
-})
-
-
 def uoss_superboss_audit_v11134():
     errors = []
     encounters = UOSS_SUPERBOSS_ENCOUNTERS_V11134
