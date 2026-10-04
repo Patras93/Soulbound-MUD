@@ -2375,7 +2375,7 @@ def _v0319_install_full_mec_kit():
         ("Magnify",90,"damage",1500,"ranged","magnify","Very strong overload attack; may Lock the user."),
         ("Shoot-All",110,"aoe_damage",2000,"ranged","shoot_all","Fires all ammunition at all enemies; V-MAX increases damage and crit."),
         # Feedback
-        ("Destroy",1,"damage",200,"feedback","destroy","Single-target smash at a cost of HP."),
+        ("Destroy",1,"damage",200,"feedback","destroy","One-enemy Feedback attack influenced by HP, Vitality and Attack. A shield improves damage and the attack becomes stronger as HP decreases."),
         ("Robo Tackle",20,"damage",500,"feedback","robo_tackle","One-enemy tackle influenced by HP before use, Vitality and Attack. Damage falls as current HP falls; a shield improves damage. V-MAX increases both attack power and Feedback damage."),
         ("Compress",30,"damage",600,"feedback","compress","Gravity percentile damage at a cost of HP."),
         ("Crush",46,"damage",1000,"feedback","crush","One-enemy Feedback attack based on the difference between maximum and current HP. Character Level limits the damage capacity, Skill Level raises the maximum possible damage, and an equipped shield increases that capacity."),
@@ -2446,7 +2446,24 @@ def _v0319_install_full_mec_kit():
                     "destroy","robo_tackle","uzi_punch","kamikaze_crush"
                 ],
             })
-        if special=="destroy": row["feedback_cost_source_defined"]=False
+        if special=="destroy":
+            row.update({
+                "scale":"attack",
+                "secondary_scale":"constitution",
+                "source_stat_influence":["hp","vitality","attack"],
+                "source_properties":[],
+                "target_mode":"one_enemy",
+                "feedback_damage":True,
+                "feedback_cost_source_defined":False,
+                "shield_improves_damage":True,
+                "power_increases_as_hp_decreases":True,
+                "numeric_source_defined":False,
+                "missing_hp_max_damage_bonus":0.50,
+                "shield_damage_multiplier":1.10,
+                "feedback_max_hp_pct":0.06,
+                "balance_model":"soulbound_missinghp50_shield110_feedback6pct",
+                "single_soul_weapon":True,
+            })
         if special=="robo_tackle":
             row.update({
                 "scale":"attack",
@@ -2756,6 +2773,29 @@ def _mec_contract_audit_v11149():
             errors.append("shoot_all: missing V-MAX crit/damage increase")
         if bool(shoot_all.get("vmax_numeric_source_defined")):
             errors.append("shoot_all: V-MAX numeric bonus must remain marked unsourced")
+    destroy=rows.get("destroy")
+    if destroy:
+        if list(destroy.get("source_stat_influence") or [])!=["hp","vitality","attack"]:
+            errors.append("destroy: source influence must be HP + Vitality + Attack")
+        if str(destroy.get("scale"))!="attack":
+            errors.append("destroy: primary scale must be Attack")
+        if str(destroy.get("secondary_scale"))!="constitution":
+            errors.append("destroy: Vitality must map to Constitution")
+        if str(destroy.get("target_mode"))!="one_enemy":
+            errors.append("destroy: target mode must be One Enemy")
+        if not bool(destroy.get("feedback_damage")):
+            errors.append("destroy: Feedback self-damage missing")
+        if not bool(destroy.get("shield_improves_damage")):
+            errors.append("destroy: equipped shield must improve damage")
+        if not bool(destroy.get("power_increases_as_hp_decreases")):
+            errors.append("destroy: lower HP must increase attack power")
+        if bool(destroy.get("feedback_cost_source_defined")):
+            errors.append("destroy: Feedback numeric cost must remain marked unsourced")
+        if bool(destroy.get("numeric_source_defined")):
+            errors.append("destroy: numeric modifiers must remain marked unsourced")
+        if list(destroy.get("source_properties") or [])!=[]:
+            errors.append("destroy: source Properties must remain None")
+
     robo_tackle=rows.get("robo_tackle")
     if robo_tackle:
         if list(robo_tackle.get("source_stat_influence") or [])!=["hp","vitality","attack"]:
