@@ -19,7 +19,8 @@ from world.uoss_superboss_runtime import (
     superboss_source_round_event_v11160, superboss_exact_ability_effect_v11160,
     superboss_source_ability_v11162, superboss_source_summons_v11162,
     superboss_source_attack_multiplier_v11162, superboss_source_status_v11162,
-    superboss_apply_source_status_v11173,
+    superboss_apply_source_status_v11173, superboss_combat_start_effects_v11176,
+    superboss_add_round_event_v11176, superboss_clear_source_statuses_v11176,
 )
 
 class SessionCombatRealtimeMixin:
@@ -91,13 +92,18 @@ class SessionCombatRealtimeMixin:
                             _gain=max(1,int(round(self.max_mana()*0.01)))*_ticks
                             self.current_mana=min(self.max_mana(),self.current_mana+_gain)
                 damage = self.player_damage()
+                _relic_id,_relic=self.active_soul_weapon_relic_v11176()
+                if _relic_id=="uoss_odin_unique_2":
+                    # Zantetsuken source: ordinary melee attacks deal no damage.
+                    # Applies only when this is the active Soul Weapon relic.
+                    damage=0
                 # Combat Mastery / Shooting Mastery are selected inherents. Their
                 # source helps establish weapon/stat gates and relative strength,
                 # but provide no numeric bonus. Until the real hand/weapon model
                 # supplies a canonical mastery modifier, do not fabricate one here.
                 # v0.35.1: Soul Weapon Mastery wzmacnia wyłącznie zwykły atak broni.
                 mastery = soul_weapon_mastery_bonuses(self.character.soul_weapon_mastery_level)
-                damage = max(1, int(round(damage * (1.0 + mastery["damage_percent"] / 100.0))))
+                damage = max(0, int(round(damage * (1.0 + mastery["damage_percent"] / 100.0))))
                 # v0.33.16: właściwości Soul Tier działają tylko na zwykły atak
                 # Broni Duszy. Nie modyfikują skilli ani spelli.
                 trait_totals = soul_weapon_trait_totals(self.character.soul_tier, self.character.class_name)
@@ -288,6 +294,15 @@ class SessionCombatRealtimeMixin:
                                     and target_session.current_hp > 0
                                 ):
                                     _enemy_template = MOB_TEMPLATES[enemy_mob.template_id]
+                                    if not getattr(enemy_mob,"uoss_start_effects_done_v11176",False):
+                                        enemy_mob.uoss_start_effects_done_v11176=True
+                                        for _msg in superboss_combat_start_effects_v11176(target_session,_enemy_template,enemy_mob):
+                                            await self.server.party_combat_broadcast(target_session,_msg,detail="essential")
+                                    _add_event=superboss_add_round_event_v11176(_enemy_template,enemy_mob)
+                                    if _add_event:
+                                        await self.server.party_combat_broadcast(target_session,_add_event["text"],detail="essential")
+                                        if _add_event.get("despawn"):
+                                            continue
                                     _source_round = superboss_source_round_event_v11160(target_session, _enemy_template, enemy_mob)
                                     if _source_round and _source_round.get("instant_death"):
                                         target_session.current_hp = 0
@@ -374,6 +389,10 @@ class SessionCombatRealtimeMixin:
                     except Exception:  # AUDIT_INTENTIONAL_PASS: session may already be disconnected while reporting loop failure
                         pass
                 finally:
+                    try:
+                        superboss_clear_source_statuses_v11176(self)
+                    except Exception:
+                        pass
                     if self.combat_task is this_task:
                         self.combat_task = None
 
