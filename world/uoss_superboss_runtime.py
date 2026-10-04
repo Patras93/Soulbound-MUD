@@ -5,6 +5,7 @@ This module deliberately uses the existing collection_entries persistence for
 per-account clears/lockouts. No new SQLite migration is required.
 """
 import random
+from data.items import ITEMS
 from datetime import datetime, timezone
 import world.uoss_superboss_world as _uoss_superboss_world_v11136
 from world.uoss_superbosses import UOSS_SUPERBOSS_ENCOUNTERS_V11134
