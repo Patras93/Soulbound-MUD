@@ -2364,7 +2364,7 @@ def _v0319_install_full_mec_kit():
         ("Hammer Crush",1,"damage",200,"melee","hammer_crush","Attack-based heavy smash against one enemy. Carries the active Soul Weapon element and uses the Mec melee Soul Weapon role."),
         ("Shock Soldier",14,"aoe_damage",600,"melee","shock_soldier","Attack-based melee barrage against all enemies with diminishing damage. Carries the active Soul Weapon element and uses the Mec melee Soul Weapon role."),
         ("Plural Slash",32,"damage",900,"melee","plural_slash","Attack-led multi-slash against one enemy. Agility/DEX adds a smaller damage contribution to every slash even for strength-oriented melee builds. Carries the active Soul Weapon element."),
-        ("Pop Knight",46,"aoe_damage",1500,"melee","pop_knight","Non-diminishing attack on all enemies. Uses the Mec's single Soul Weapon, carries its elements, and deals extra damage to Flying enemies."),
+        ("Pop Knight",46,"aoe_damage",1500,"melee","pop_knight","Attack-based non-diminishing melee attack on all enemies. Carries the active Soul Weapon element and deals extra damage to enemies explicitly marked Flying."),
         ("Tiger Rampage",80,"damage",1800,"melee","tiger_rampage","Powerful single-target attack that lowers Defense."),
         ("Cosmic Rave",110,"aoe_damage",2000,"melee","cosmic_rave","Hits all enemies with diminishing damage; during V-MAX targets random enemies instead. Attack is the primary influence and Agility provides a lesser secondary damage contribution."),
         # Ranged
@@ -2752,9 +2752,22 @@ def _v0319_install_full_mec_kit():
             row.update({"scale":"intelligence","element":"fire","uoss_mp_cost":35,
                         "target_mode":"all_engaged_enemies","engaged_only":True})
         if special=="pop_knight":
-            row.update({"scale":"strength","target_mode":"all_non_diminishing",
-                        "carries_soul_weapon_elements":True,"single_soul_weapon":True,
-                        "bonus_vs_flying_source_defined":False})
+            row.update({
+                "scale":"attack",
+                "source_stat_influence":["attack"],
+                "source_properties":["carries_elements"],
+                "target_mode":"all_enemies_non_diminishing",
+                "aoe_non_diminishing":True,
+                "carries_soul_weapon_elements":True,
+                "requires_soul_weapon":"melee",
+                "bonus_vs_flying":True,
+                "flying_template_flag":"flying",
+                "bonus_vs_flying_source_defined":True,
+                "flying_bonus_numeric_source_defined":False,
+                "soulbound_flying_damage_multiplier":1.25,
+                "single_soul_weapon":True,
+                "balance_model":"soulbound_flying_x1.25",
+            })
         if special=="hypno_flash":
             row.update({
                 "scale":"willpower",
@@ -3039,6 +3052,31 @@ def _mec_contract_audit_v11149():
             errors.append("intercept_system: numeric Skill Level curve must remain marked unsourced")
         if bool(intercept.get("counter_trigger_chance_source_defined")):
             errors.append("intercept_system: no source trigger chance may be invented")
+
+    pop_knight=rows.get("pop_knight")
+    if pop_knight:
+        if str(pop_knight.get("scale"))!="attack":
+            errors.append("pop_knight: primary scale must be Attack")
+        if list(pop_knight.get("source_stat_influence") or [])!=["attack"]:
+            errors.append("pop_knight: source influence must be Attack")
+        if list(pop_knight.get("source_properties") or [])!=["carries_elements"]:
+            errors.append("pop_knight: source Properties must be Carries Elements")
+        if str(pop_knight.get("target_mode"))!="all_enemies_non_diminishing":
+            errors.append("pop_knight: target mode must be All Enemies non-diminishing")
+        if not bool(pop_knight.get("aoe_non_diminishing")):
+            errors.append("pop_knight: non-diminishing AoE flag missing")
+        if not bool(pop_knight.get("bonus_vs_flying")):
+            errors.append("pop_knight: Flying bonus missing")
+        if str(pop_knight.get("flying_template_flag"))!="flying":
+            errors.append("pop_knight: Flying detection must use canonical template flag")
+        if not bool(pop_knight.get("bonus_vs_flying_source_defined")):
+            errors.append("pop_knight: source confirms extra damage against Flying")
+        if bool(pop_knight.get("flying_bonus_numeric_source_defined")):
+            errors.append("pop_knight: numeric Flying bonus must remain marked unsourced")
+        if not bool(pop_knight.get("carries_soul_weapon_elements")):
+            errors.append("pop_knight: must carry Soul Weapon elements")
+        if str(pop_knight.get("requires_soul_weapon"))!="melee":
+            errors.append("pop_knight: melee weapon requirement must map to Soul Weapon")
 
     plural_slash=rows.get("plural_slash")
     if plural_slash:
