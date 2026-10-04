@@ -139,12 +139,12 @@ UOSS_SUPERBOSS_ENCOUNTERS_V11134 = {
     "ruby_weapon": {
         "name":"Ruby WEAPON","mode":"party","area":"Corel Prison","unlock_level":100,"recommended_level":100,
         "personal_token":"Desert Rose","weapon_pair":"emerald_weapon",
-        "pair_shop":"Traveler w Kalm","once_per_cycle":True,
+        "pair_shop":"Traveler w Kalm","lockout_hours":24,
     },
     "emerald_weapon": {
         "name":"Emerald WEAPON","mode":"party","area":"On the Sea Floor","access_via":"Submarine on Junon Overland outside Lower Junon","unlock_level":100,"recommended_level":100,
         "personal_token":"Earth Harp","weapon_pair":"ruby_weapon",
-        "pair_shop":"Traveler w Kalm","once_per_cycle":True,
+        "pair_shop":"Traveler w Kalm","lockout_hours":24,
     },
     "ozma": {"name":"Ozma","mode":"solo","unlock_level":110},
     "four_fiends": {"name":"Four Fiends","mode":"solo","unlock_level":110,"series":True},
@@ -158,25 +158,25 @@ UOSS_SUPERBOSS_ENCOUNTERS_V11134 = {
         "name":"Black Rabite","mode":"party","area":"Rabite Field","unlock_level":100,
         "recommended_level":125,"helpers":("Primm","Popoi"),"helper_choice_limit":1,"helper_max_players":3,
         "personal_token":"Moogle Steel","shared_unique_drop":True,"unique_drop_count":10,
-        "cyborg_conditional_drop":True,"pickup_binds":True,"once_per_cycle":True,
+        "cyborg_conditional_drop":True,"pickup_binds":True,"lockout_hours":24,
     },
     "serpentarius": {
         "name":"Serpentarius","mode":"party","area":"Deep Dungeon","unlock":"explore_deep_dungeon","round_limit":100,"no_exit_after_start":True,"helper_cost_gold":1000000,
         "arena":"Deep Dungeon — piętro 0","recommended_level":125,"helper":"Byblos","helper_max_players":3,
-        "personal_token":"Serpentarius Emblem","party_members_must_unlock":True,"once_per_cycle":True,
+        "personal_token":"Serpentarius Emblem","party_members_must_unlock":True,"lockout_hours":24,
     },
     "odin": {
         "name":"Odin","mode":"party","area":"A Clearing in a Misty Forest","unlock_level":100,"recommended_level":125,
         "min_players":3,"max_players":5,"difficulty_scales_above_players":3,
         "helper":"Seifer","helper_max_players":3,"helper_cost_gold":1000000,"helper_join_phrase":"Join me, Seifer.",
         "personal_token":"Odin's Mantle","shared_unique_drop":True,"unique_drop_count":8,
-        "pickup_binds":True,"shop":"Fur Trader w Elsendor — Odin tier","once_per_cycle":True,
+        "pickup_binds":True,"shop":"Fur Trader w Elsendor — Odin tier","lockout_hours":24,
     },
     "yiazmat": {
         "name":"Yiazmat","mode":"party","area":"Ridorana Cataract Colosseum","access_via":"Lighthouse near Tasnica","unlock_level":100,
         "recommended_level":125,"helper":"Montblanc","helper_max_players":3,"helper_cost_gold":1000000,
         "personal_token":"Godslayer's Badge","shared_unique_drop":True,"unique_drop_count":7,
-        "pickup_binds":True,"shop":"Fur shop w Elsendor — Yiazmat tier","once_per_cycle":True,
+        "pickup_binds":True,"shop":"Fur shop w Elsendor — Yiazmat tier","lockout_hours":24,
     },
     "sephiroth": {"name":"Sephiroth","mode":"solo","unlock_level":130},
 }
@@ -192,7 +192,7 @@ HELP_TOPICS["superbossy"] = [
     "Serpentarius: wymaga osobistego odblokowania Deep Dungeon; każdy uczestnik dostaje Serpentarius Emblem; przy maks. 3 graczach pomaga Byblos.",
     "Odin: Level 100+, drużyna 3-5; 8 unikalnych dropów + Odin's Mantle dla każdego uczestnika; przy 4-5 graczach trudność rośnie.",
     "Yiazmat: 7 unikalnych dropów + Godslayer's Badge dla każdego uczestnika; przy maks. 3 graczach pomaga Montblanc.",
-    "Lockouty Super Bossów są trwałe i nie resetują się przez restart ani deploy Railway.",
+    "Każdy źródłowy Super Boss ma 24-godzinny lockout liczony od pokonania; restart ani deploy Railway nie resetuje czasu.",
 ]
 HELP_TOPIC_ALIASES.update({
     "superboss": "superbossy", "superbosses": "superbossy", "uossbosses": "superbossy",
@@ -214,8 +214,8 @@ def uoss_superboss_audit_v11134():
         errors.append("missing unique encounters: " + ", ".join(missing))
     for key in ("ruby_weapon","emerald_weapon","black_rabite","serpentarius","odin","yiazmat"):
         row = encounters.get(key, {})
-        if not row.get("once_per_cycle"):
-            errors.append(f"{key}: missing persistent cycle lockout")
+        if not row.get("lockout_hours"):
+            errors.append(f"{key}: missing 24-hour lockout")
         if not row.get("personal_token"):
             errors.append(f"{key}: missing personal participation reward")
     if encounters.get("black_rabite", {}).get("unique_drop_count") != 10:
