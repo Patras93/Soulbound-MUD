@@ -1989,7 +1989,14 @@ def equipment_completeness_audit_v03037():
             ))
         class_profiles_checked += len(signatures)
         if len(set(signatures)) != len(signatures):
-            errors.append(f"{class_name}: duplicated slot profiles at Level 200")
+            slots_sorted = sorted(expected_slots)
+            grouped = {}
+            for slot, signature in zip(slots_sorted, signatures):
+                grouped.setdefault(signature, []).append(slot)
+            duplicates = [group for group in grouped.values() if len(group) > 1]
+            errors.append(
+                f"{class_name}: duplicated slot profiles at Level 200: {duplicates}"
+            )
 
     return {
         "version": "0.30.37",
