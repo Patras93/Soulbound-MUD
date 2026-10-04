@@ -662,6 +662,29 @@ class SessionCombatSkillsMixin:
                     # Plural Slash Agility scaling is applied to this use only in the
                     # normal damage calculation below; never mutate the shared skill row.
 
+                if kind == "regen":
+                    recipients=self.server.party_sessions(self.account_id,same_room=self.character.room_id) or [self]
+                    target=self
+                    if target_text:
+                        wanted=normalize_lookup_text(target_text)
+                        found=next((s for s in recipients if s.character and wanted in normalize_lookup_text(s.character.name)),None)
+                        if found: target=found
+                    # Source gives Will influence and duration growth, but no numeric
+                    # healing amount/base duration. Reuse canonical Soulbound healing
+                    # power as one regen pulse and keep the buff duration open-ended
+                    # rather than inventing seconds.
+                    amount=max(1,int(round(max(1,self.effective_willpower())*skill_power*self.character.racial_healing_multiplier()*self.character.class_healing_multiplier())))
+                    before=target.current_hp
+                    target.current_hp=min(target.max_hp(),target.current_hp+amount)
+                    target.active_skill_buffs["priest_regen"]={"name":"Regen","boost":1.0,"until":float("inf"),"source":self.character.name,"beneficial":True,"canonical_status":"regen","regen_power":amount,"source_duration_scales_with_level":True}
+                    actual=target.current_hp-before
+                    await self.grant_skill_use_xp(skill)
+                    await self.send(f"Regen: {target.character.name} odzyskuje {actual} HP i otrzymuje aktywny efekt Regen. Koszt: {mana_cost} MP.")
+                    if target is not self:
+                        await target.send(f"{self.character.name} nakłada na ciebie Regen. Odzyskujesz {actual} HP.")
+                    if self.combat_mob_key: await self.ensure_realtime_combat()
+                    return
+
                 # v0.31.6: zwykły heal pozostaje single-target, ale automatycznie
                     # wybiera najbardziej rannego żywego członka party w tej samej
                     # lokacji. Solo wybiera gracza. Skill nie marnuje się, gdy nikt
