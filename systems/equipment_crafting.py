@@ -280,23 +280,103 @@ GUILD_REPUTATION_RANKS = (
 GUILD_EXAM_THRESHOLDS = (50, 100, 150, 200)
 GUILD_EXAM_REPUTATION = {50: 100, 100: 250, 150: 450, 200: 700}
 
-# v1.11.32: zadania klasowe sprawdzają różne aktywności, zamiast 14 kopii zabijania.
-# Pola: nazwa, opis, reputacja, srebro, wymagany postęp, rodzaj aktywności.
+# v1.12.0: każda z 14 klas ma pięć różnych zadań godzinnych.
+# Format pojedynczego zadania pozostaje zgodny ze starszym runtime:
+# nazwa, opis, reputacja, srebro, wymagany postęp, rodzaj aktywności.
+#
+# Pierwsze zadanie każdej klasy zachowuje dawny kontrakt v1.11.32, aby
+# nie zerwać kompatybilności ze starszymi save'ami i audytami.
+_GUILD_CLASS_QUEST_LEGACY_V11132 = {
+    "Wojownik": ("Próba Ostrza", "Pokonaj 3 bossów lub silnych przywódców.", 35, 700, 3, "boss"),
+    "Berserker": ("Próba Furii", "Pokonaj 12 przeciwników w walce.", 30, 700, 12, "kill"),
+    "Łotrzyk": ("Próba Cienia", "Odkryj 12 nowych lokacji, poruszając się poza utartymi szlakami.", 30, 650, 12, "explore"),
+    "Łowca": ("Próba Tropiciela", "Odkryj 18 nowych lokacji i poznaj teren.", 30, 650, 18, "explore"),
+    "Mnich": ("Próba Dyscypliny", "Odkryj 10 nowych lokacji podczas wędrówki.", 30, 700, 10, "explore"),
+    "Strażnik": ("Próba Bastionu", "Pokonaj 2 bossów, chroniąc szlaki świata.", 35, 800, 2, "boss"),
+    "Mag": ("Próba Arkanów", "Odkryj 14 nowych lokacji i zbadaj źródła mocy świata.", 30, 700, 14, "explore"),
+    "Nekromanta": ("Próba Dusz", "Pokonaj 10 przeciwników i zbierz doświadczenie bojowe.", 30, 700, 10, "kill"),
+    "Kapłan": ("Próba Pielgrzyma", "Odwiedź 12 nowych lokacji świata.", 35, 800, 12, "explore"),
+    "Czarownik": ("Próba Otchłani", "Pokonaj 8 przeciwników w walce.", 30, 750, 8, "kill"),
+    "Druid": ("Próba Natury", "Zbierz 12 zasobów podczas profesyjnych wypraw.", 30, 700, 12, "gather"),
+    "Psionik": ("Próba Umysłu", "Odkryj 15 nowych lokacji i poszerz wiedzę o świecie.", 30, 750, 15, "explore"),
+    "Mec": ("Próba Rdzenia", "Pokonaj 3 bossów i przetestuj systemy bojowe.", 35, 800, 3, "boss"),
+    "Inżynier": ("Próba Konstruktora", "Zbierz 15 zasobów potrzebnych do dalszych konstrukcji.", 30, 700, 15, "gather"),
+}
+
+_GUILD_CLASS_QUEST_IDENTITIES_V1120 = {
+    "Wojownik": "Kodeks Ostrza",
+    "Berserker": "Szlak Furii",
+    "Łotrzyk": "Kodeks Cienia",
+    "Łowca": "Szlak Tropiciela",
+    "Mnich": "Droga Dyscypliny",
+    "Strażnik": "Przysięga Bastionu",
+    "Mag": "Krąg Arkanów",
+    "Nekromanta": "Kronika Dusz",
+    "Kapłan": "Droga Światła",
+    "Czarownik": "Pakt Otchłani",
+    "Druid": "Krąg Natury",
+    "Psionik": "Ścieżka Umysłu",
+    "Mec": "Protokół Rdzenia",
+    "Inżynier": "Projekt Konstruktora",
+}
+
+_GUILD_CLASS_ACTIVITY_V1120 = {
+    "kill": ("Próba Starcia", "Pokonaj {needed} przeciwników podczas zwykłej walki."),
+    "boss": ("Próba Mistrza", "Pokonaj {needed} bossów lub silnych przywódców."),
+    "explore": ("Próba Szlaku", "Odkryj {needed} nowych lokacji świata."),
+    "gather": ("Próba Zaopatrzenia", "Zbierz {needed} zasobów podczas profesyjnych wypraw."),
+    "craft": ("Próba Warsztatu", "Wykonaj {needed} udanych craftów z dowolnej profesji rzemieślniczej."),
+}
+
+_GUILD_CLASS_ACTIVITY_BASE_V1120 = {
+    "kill": (10, 28, 700),
+    "boss": (2, 35, 850),
+    "explore": (12, 30, 700),
+    "gather": (14, 30, 700),
+    "craft": (4, 32, 800),
+}
+
+
+def _guild_class_quest_pool_v1120(class_name, class_index):
+    legacy = _GUILD_CLASS_QUEST_LEGACY_V11132[class_name]
+    identity = _GUILD_CLASS_QUEST_IDENTITIES_V1120[class_name]
+    rows = [legacy]
+    legacy_activity = str(legacy[5])
+    for activity in ("kill", "boss", "explore", "gather", "craft"):
+        if activity == legacy_activity:
+            continue
+        base_needed, base_rep, base_silver = _GUILD_CLASS_ACTIVITY_BASE_V1120[activity]
+        # Lekka różnica liczb między klasami zapobiega 14 identycznym kopiom.
+        if activity == "boss":
+            needed = base_needed + (class_index % 2)
+        elif activity == "craft":
+            needed = base_needed + (class_index % 2)
+        else:
+            needed = base_needed + (class_index % 4)
+        rep = base_rep + (class_index % 3) * 2
+        silver = base_silver + (class_index % 4) * 50
+        suffix, description = _GUILD_CLASS_ACTIVITY_V1120[activity]
+        rows.append((
+            f"{identity}: {suffix}",
+            description.format(needed=needed),
+            rep,
+            silver,
+            needed,
+            activity,
+        ))
+    return tuple(rows)
+
+
+GUILD_CLASS_QUEST_POOLS = {
+    class_name: _guild_class_quest_pool_v1120(class_name, class_index)
+    for class_index, class_name in enumerate(_GUILD_CLASS_QUEST_LEGACY_V11132)
+}
+
+# Kompatybilność: starsze audyty/importy oczekują jednego 6-polowego wpisu
+# pod GUILD_CLASS_QUESTS. Pierwsza pozycja to dawny kontrakt każdej klasy.
 GUILD_CLASS_QUESTS = {
-    "Wojownik": ("Próba Ostrza", "Pokonaj 3 bossów lub silnych przywódców.", 80, 600, 3, "boss"),
-    "Berserker": ("Próba Furii", "Pokonaj 12 przeciwników w walce.", 90, 700, 12, "kill"),
-    "Łotrzyk": ("Próba Cienia", "Odkryj 12 nowych lokacji, poruszając się poza utartymi szlakami.", 85, 650, 12, "explore"),
-    "Łowca": ("Próba Tropiciela", "Odkryj 18 nowych lokacji i poznaj teren.", 80, 600, 18, "explore"),
-    "Mnich": ("Próba Dyscypliny", "Odkryj 10 nowych lokacji podczas wędrówki.", 90, 700, 10, "explore"),
-    "Strażnik": ("Próba Bastionu", "Pokonaj 2 bossów, chroniąc szlaki świata.", 100, 800, 2, "boss"),
-    "Mag": ("Próba Arkanów", "Odkryj 14 nowych lokacji i zbadaj źródła mocy świata.", 90, 700, 14, "explore"),
-    "Nekromanta": ("Próba Dusz", "Pokonaj 10 przeciwników i zbierz doświadczenie bojowe.", 90, 700, 10, "kill"),
-    "Kapłan": ("Próba Pielgrzyma", "Odwiedź 12 nowych lokacji świata.", 100, 800, 12, "explore"),
-    "Czarownik": ("Próba Otchłani", "Pokonaj 8 przeciwników w walce.", 95, 750, 8, "kill"),
-    "Druid": ("Próba Natury", "Zbierz 12 zasobów podczas profesyjnych wypraw.", 90, 700, 12, "gather"),
-    "Psionik": ("Próba Umysłu", "Odkryj 15 nowych lokacji i poszerz wiedzę o świecie.", 95, 750, 15, "explore"),
-    "Mec": ("Próba Rdzenia", "Pokonaj 3 bossów i przetestuj systemy bojowe.", 100, 800, 3, "boss"),
-    "Inżynier": ("Próba Konstruktora", "Zbierz 15 zasobów potrzebnych do dalszych konstrukcji.", 90, 700, 15, "gather"),
+    class_name: quests[0]
+    for class_name, quests in GUILD_CLASS_QUEST_POOLS.items()
 }
 
 GUILD_BOUNTY_TARGETS = (
