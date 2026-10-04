@@ -355,6 +355,7 @@ class SessionInventoryEquipmentMixin:
                 "head": "Głowa", "body": "Korpus", "hands": "Dłonie",
                 "legs": "Nogi", "feet": "Stopy", "charm": "Talizman",
                 "charm1": "Talizman 1", "charm2": "Talizman 2",
+                "shield": "Tarcza",
                 "ring": "Pierścień", "ring1": "Pierścień 1",
                 "ring2": "Pierścień 2", "necklace": "Naszyjnik",
                 "earring1": "Kolczyk 1", "earring2": "Kolczyk 2",
