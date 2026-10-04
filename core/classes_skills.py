@@ -2385,7 +2385,7 @@ def _v0319_install_full_mec_kit():
         ("Laser Spin",1,"aoe_damage",200,"magic","laser_spin","Magic Attack-based Dark laser assault against all enemies with diminishing damage. Source requirements: none; Properties: none."),
         ("Area Bomb",8,"aoe_damage",300,"magic","area_bomb","Magic Attack-based Fire explosion against all targeted enemies currently engaged in combat. Source Properties: none; no separate Burn status is specified."),
         ("Mec Sonata",20,"damage",1000,"magic","mec_sonata","One-enemy Magic Attack song with a chance to lower the target level-equivalent power temporarily. The level-lowering effect is Extendable."),
-        ("Maelstrom",44,"aoe_damage",1500,"magic","maelstrom","Water vortex floods all enemies."),
+        ("Maelstrom",44,"aoe_damage",1500,"magic","maelstrom","Magic Attack-based Water vortex against all enemies with diminishing damage. Source Properties: none."),
         ("Shock",95,"aoe_damage",1800,"magic","shock","Dark + Lightning attack on all enemies."),
         ("Starlight Shower",110,"damage",2000,"magic","starlight_shower","Magic Attack laser barrage: one enemy when fighting one target; diminishing damage to all combat targets when fighting several; V-MAX hits all enemies without diminishing."),
         # Support
@@ -2752,7 +2752,21 @@ def _v0319_install_full_mec_kit():
                 "soulbound_level_reduction_rounds":3,
                 "balance_model":"soulbound_proc30_levelpower90_3rounds_extendable",
             })
-        if special=="maelstrom": row.update({"aoe_diminishing":True,"element":"water","uoss_mp_cost":80})
+        if special=="maelstrom":
+            row.update({
+                "scale":"intelligence",
+                "source_stat_influence":["magic_attack"],
+                "magic_attack_influence":True,
+                "source_properties":[],
+                "source_requirement_level":44,
+                "source_requirement_maps_to":"class_mastery",
+                "target_mode":"all_enemies_diminishing",
+                "aoe_diminishing":True,
+                "diminishing_numeric_source_defined":False,
+                "soulbound_diminishing_model":"inverse_sqrt_target_count",
+                "element":"water",
+                "uoss_mp_cost":80,
+            })
         if special=="shock": row.update({"aoe_diminishing":True,"elements":["lightning","dark"],"uoss_mp_cost":150})
         if special=="tiger_rampage":
             row.update({
@@ -3056,6 +3070,31 @@ def _mec_contract_audit_v11149():
             errors.append("feedback_protocol: runtime mapping must exclude Compress and Crush")
         if bool(feedback_protocol.get("protocol_numeric_source_defined")):
             errors.append("feedback_protocol: numeric curve must remain marked unsourced")
+
+    maelstrom=rows.get("maelstrom")
+    if maelstrom:
+        if int(maelstrom.get("unlock",0) or 0)!=44:
+            errors.append("maelstrom: source Level 44 must map to Biegłość Mec 44")
+        if int(maelstrom.get("base_power",0) or 0)!=1500:
+            errors.append("maelstrom: Base AP 1500 must remain internal base_power 1500")
+        if int(maelstrom.get("source_requirement_level",0) or 0)!=44:
+            errors.append("maelstrom: source requirement must remain Level 44")
+        if str(maelstrom.get("source_requirement_maps_to"))!="class_mastery":
+            errors.append("maelstrom: source Level must map to class mastery")
+        if list(maelstrom.get("source_stat_influence") or [])!=["magic_attack"]:
+            errors.append("maelstrom: source influence must be Magic Attack only")
+        if list(maelstrom.get("source_properties") or [])!=[]:
+            errors.append("maelstrom: source Properties must be None")
+        if str(maelstrom.get("target_mode"))!="all_enemies_diminishing":
+            errors.append("maelstrom: target mode must be All Enemies (Diminishing)")
+        if not bool(maelstrom.get("aoe_diminishing")):
+            errors.append("maelstrom: diminishing flag missing")
+        if bool(maelstrom.get("diminishing_numeric_source_defined")):
+            errors.append("maelstrom: numeric diminishing curve must remain marked unsourced")
+        if str(maelstrom.get("soulbound_diminishing_model"))!="inverse_sqrt_target_count":
+            errors.append("maelstrom: Soulbound diminishing model mismatch")
+        if str(maelstrom.get("element","")).casefold()!="water":
+            errors.append("maelstrom: element must be Water")
 
     area_bomb=rows.get("area_bomb")
     if area_bomb:
