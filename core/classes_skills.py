@@ -2383,7 +2383,7 @@ def _v0319_install_full_mec_kit():
         ("Kamikaze Crush",110,"damage",2000,"feedback","kamikaze_crush","One-enemy lethal divebomb influenced by HP before use, Vitality and Attack. Damage falls as current HP falls; an equipped shield improves damage. V-MAX increases both attack power and Feedback damage."),
         # Magic
         ("Laser Spin",1,"aoe_damage",200,"magic","laser_spin","Magic Attack-based Dark laser assault against all enemies with diminishing damage. Source requirements: none; Properties: none."),
-        ("Area Bomb",8,"aoe_damage",300,"magic","area_bomb","Fiery Magic Attack explosion that burns all enemies currently engaged in combat with the Mec."),
+        ("Area Bomb",8,"aoe_damage",300,"magic","area_bomb","Magic Attack-based Fire explosion against all targeted enemies currently engaged in combat. Source Properties: none; no separate Burn status is specified."),
         ("Mec Sonata",20,"damage",1000,"magic","mec_sonata","One-enemy Magic Attack song with a chance to lower the target level-equivalent power temporarily. The level-lowering effect is Extendable."),
         ("Maelstrom",44,"aoe_damage",1500,"magic","maelstrom","Water vortex floods all enemies."),
         ("Shock",95,"aoe_damage",1800,"magic","shock","Dark + Lightning attack on all enemies."),
@@ -2776,8 +2776,20 @@ def _v0319_install_full_mec_kit():
                 "balance_model":"soulbound_proc35_break4_incoming_damage_x1.15_extendable",
             })
         if special=="area_bomb":
-            row.update({"scale":"intelligence","element":"fire","uoss_mp_cost":35,
-                        "target_mode":"all_engaged_enemies","engaged_only":True})
+            row.update({
+                "scale":"intelligence",
+                "source_stat_influence":["magic_attack"],
+                "magic_attack_influence":True,
+                "source_properties":[],
+                "source_requirement_level":8,
+                "source_requirement_maps_to":"class_mastery",
+                "target_mode":"all_targetted_enemies",
+                "engaged_only":True,
+                "aoe_diminishing":False,
+                "element":"fire",
+                "uoss_mp_cost":35,
+                "burn_status_source_defined":False,
+            })
         if special=="pop_knight":
             row.update({
                 "scale":"attack",
@@ -3044,6 +3056,31 @@ def _mec_contract_audit_v11149():
             errors.append("feedback_protocol: runtime mapping must exclude Compress and Crush")
         if bool(feedback_protocol.get("protocol_numeric_source_defined")):
             errors.append("feedback_protocol: numeric curve must remain marked unsourced")
+
+    area_bomb=rows.get("area_bomb")
+    if area_bomb:
+        if int(area_bomb.get("unlock",0) or 0)!=8:
+            errors.append("area_bomb: source Level 8 must map to Biegłość Mec 8")
+        if int(area_bomb.get("base_power",0) or 0)!=300:
+            errors.append("area_bomb: Base AP 300 must remain internal base_power 300")
+        if int(area_bomb.get("source_requirement_level",0) or 0)!=8:
+            errors.append("area_bomb: source requirement must remain Level 8")
+        if str(area_bomb.get("source_requirement_maps_to"))!="class_mastery":
+            errors.append("area_bomb: source Level must map to class mastery")
+        if list(area_bomb.get("source_stat_influence") or [])!=["magic_attack"]:
+            errors.append("area_bomb: source influence must be Magic Attack only")
+        if list(area_bomb.get("source_properties") or [])!=[]:
+            errors.append("area_bomb: source Properties must be None")
+        if str(area_bomb.get("target_mode"))!="all_targetted_enemies":
+            errors.append("area_bomb: target mode must be All Targetted Enemies")
+        if not bool(area_bomb.get("engaged_only")):
+            errors.append("area_bomb: must hit engaged targets only")
+        if bool(area_bomb.get("aoe_diminishing")):
+            errors.append("area_bomb: source does not mark this attack Diminishing")
+        if str(area_bomb.get("element","")).casefold()!="fire":
+            errors.append("area_bomb: element must be Fire")
+        if bool(area_bomb.get("burn_status_source_defined")):
+            errors.append("area_bomb: no separate Burn status may be invented")
 
     laser_spin=rows.get("laser_spin")
     if laser_spin:
