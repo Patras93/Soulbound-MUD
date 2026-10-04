@@ -88,6 +88,9 @@ class SessionCombatSkillsMixin:
         progression step comes from the effective primary stat after equipment,
         runes, set bonuses and relics. Skills that explicitly declare a secondary
         stat also receive a smaller Soulbound contribution from that stat.
+
+        authored_base is reserved for an explicit Soulbound/source damage value.
+        AP/learning costs must never be passed here as attack power.
         """
         scale_name = str(skill.get("scale", "strength") or "strength").lower()
         primary_value = self.offensive_skill_effective_stat_value_v11196(scale_name)
@@ -228,7 +231,10 @@ class SessionCombatSkillsMixin:
             self.v11196_satellite_linker=None
             return 0
 
-        base=max(1,int(skill.get("base_power",1200) or 1200))
+        # UOSS Base AP is a learning/AP cost, not damage power.
+        # Satellite Linker damage comes from Soulbound stats/EQ/Soul Power,
+        # Skill Level, Ranged Protocol and its authored tick multiplier.
+        base=0
         tick_mult=max(
             0.01,float(skill.get("soulbound_tick_damage_multiplier",0.20) or 0.20)
         )
@@ -1082,7 +1088,9 @@ class SessionCombatSkillsMixin:
                             targets=random.sample(list(alive),_uzi_count)
                         else:
                             targets=list(alive)
-                        base=max(1,int(skill.get("base_power",100) or 100)); total=0; defeated=[]; seen=set()
+                        # Source Base AP never enters damage. The authored Mec AoE core
+                        # is driven by Soulbound stats/EQ/Soul Power + Skill Level + protocol.
+                        base=0; total=0; defeated=[]; seen=set()
                         _mec_damage_type = self.offensive_skill_damage_type_v11190(skill)
                         mult=(
                             skill_power
@@ -1585,7 +1593,9 @@ class SessionCombatSkillsMixin:
                         # v1.11.50: two heavy blows. One Soul Weapon replaces the
                         # original melee-weapon gate; its element is carried by both hits.
                         template=MOB_TEMPLATES[mob.template_id]
-                        base=max(1,int(skill.get("base_power",1800) or 1800))
+                        # Source Base AP 1800 is AP metadata only, never damage power.
+                        # Total two-hit power comes from the normal Soulbound combat core.
+                        base=0
                         mult=(
                             skill_power
                             * self.mec_branch_multiplier_v0319("melee", "tiger_rampage")
