@@ -1,5 +1,18 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.11.84
+Aktualna paczka: v1.11.85
+
+==============================================================================
+Soulbound v1.11.85 — Combat 2.0: globalne skalowanie buildów
+==============================================================================
+
+- Ujednolicono rdzeń obrażeń ofensywnych: rozwój postaci ma wpływać na realny damage wszystkich klas, a dedykowane ścieżki nie mogą omijać statystyk.
+- Fizyczne/melee/feedback korzystają z Siły, ranged i techniki zręcznościowe ze Zręczności, magia z Inteligencji zgodnie z polem scale konkretnego skilla.
+- Efektywna statystyka zawiera EQ, runy, enchanty, bonusy setów i aktywny relikt Broni Duszy, więc nowe endgame EQ realnie zwiększa obrażenia.
+- Dedykowane ataki Meca i Inżyniera zachowują własny base_power, ale dodają do niego Broń Duszy i właściwą statystykę postaci przed Skill Level, buffami i pozostałymi mnożnikami.
+- Cosmic Rave, Tiger Rampage oraz ofensywne narzędzia Inżyniera nie są już odcięte od podstawowego wzrostu builda.
+- Procentowe mechaniki źródłowe (np. Launcher/Chainsaw) zachowują swoje specjalne zasady; nie zamieniono ich w sztuczne stałe obrażenia.
+- Nie zmieniono HP superbossów i nie wpisano na sztywno wyniku 18 000 obrażeń: benchmark ma wynikać ze statów, Skill Level, EQ i buffów.
+- Brak wipe'a save'ów.
 
 ==============================================================================
 Soulbound v1.11.84 — korekta Boardów
