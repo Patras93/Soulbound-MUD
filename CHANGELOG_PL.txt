@@ -1,5 +1,13 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.11.71
+Aktualna paczka: v1.11.72
+
+==============================================================================
+Soulbound v1.11.72 — Charyzma obniża koszt towarzyszy
+==============================================================================
+
+- Wynajęcie Popoi, Primm, Byblosa, Montblanca i Seifera korzysta z normalnego rabatu Charyzmy Soulbound.
+- Cena bazowa pozostaje 1 mithril; faktycznie pobierana kwota jest obniżana o rabat Charyzmy postaci zatrudniającej pomocnika.
+- Brak wipe'a save'ów.
 
 ==============================================================================
 Soulbound v1.11.71 — Soulbound rules over UOSS penalties
