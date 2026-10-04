@@ -835,7 +835,10 @@ class SessionCombatSkillsMixin:
                         return
 
                     if special in ("auto_crossbow","mako_gun","bio_blaster","flash","drill","napalm","noise_blaster","chainsaw","mega_bomb","air_anchor"):
-                        base=max(1,int(skill.get("base_power",100) or 100))
+                        # Source Base AP is a learning-point cost, never damage power.
+                        # Engineer tool damage is therefore built from the normal
+                        # Soulbound offensive core plus Skill Level, Upgrade and passives.
+                        base=0
                         upgrade_mult=1.30 if upgraded else 1.0
                         if special in ("drill","chainsaw","air_anchor"): upgrade_mult=1.35 if upgraded else 1.0
                         if special=="mako_gun":
@@ -882,7 +885,12 @@ class SessionCombatSkillsMixin:
                             if special=="bio_blaster":
                                 duration=(40 if upgraded else 25) + (15 if self.engineer_skill_known_v0317("v0317_engineer_kinematics") else 0)
                                 target.v0319_poison_until=time.time()+duration
-                                target.v0319_poison_power=max(1,int(base*(0.12 if upgraded else 0.07)))
+                                _effect_core=max(
+                                    1,self.offensive_skill_core_power_v11185(skill,0)
+                                )
+                                target.v0319_poison_power=max(
+                                    1,int(_effect_core*(0.12 if upgraded else 0.07))
+                                )
                             if special=="flash" and upgraded:
                                 target.v0319_blind_until=time.time()+45
                                 target.v0319_guard_break_until=time.time()+25
@@ -895,7 +903,12 @@ class SessionCombatSkillsMixin:
                                 target.v0319_hp_leak_until=time.time()+30
                             if special=="air_anchor":
                                 target.v0319_air_anchor_until=time.time()+(45 if upgraded else 30)
-                                target.v0319_air_anchor_power=max(1,int(base*(0.16 if upgraded else 0.10)))
+                                _effect_core=max(
+                                    1,self.offensive_skill_core_power_v11185(skill,0)
+                                )
+                                target.v0319_air_anchor_power=max(
+                                    1,int(_effect_core*(0.16 if upgraded else 0.10))
+                                )
                             if target.hp<=0 and target.key not in seen:
                                 seen.add(target.key); defeated.append(target)
                         helper_target, _helper_damage = await self.apply_superboss_helper_after_skill_v11192(targets)
