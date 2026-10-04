@@ -322,6 +322,11 @@ class SessionPerceptionMapsMixin:
                 f"{room['name']}. Strefa: {room['zone']}."
             )
             await self.send(room["desc"])
+            if any(
+                ITEMS.get(row["item_id"],{}).get("board_effect")=="malfunctioning_room_text"
+                for row in self.server.db.equipment(self.account_id)
+            ):
+                await self.send(f"{self.character.name} is malfunctioning!")
             # A ship is visible while its owner is present in a port or at sea.
             if hasattr(self, "ocean_port_name_v1000") and self.ocean_port_name_v1000(self.character.room_id):
                 owned_accounts = {
