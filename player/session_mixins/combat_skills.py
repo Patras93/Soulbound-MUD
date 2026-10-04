@@ -1254,15 +1254,128 @@ class SessionCombatSkillsMixin:
                             await self.ensure_realtime_combat()
                             return
                         if special=="jammer":
+                            self.server.world.refresh()
                             targets=[mob]
                             if support_effect:
-                                self.server.world.refresh()
-                                targets=[x for x in self.server.world.room_mobs(self.character.room_id) if x.alive]
-                            await self.send(
-                                f"Jammer: próba Stop na {len(targets)} celach."
-                                + (" Support Effect obejmuje wszystkich przeciwników." if support_effect else "")
+                                targets=[
+                                    x for x in self.server.world.room_mobs(
+                                        self.character.room_id
+                                    )
+                                    if x.alive
+                                ]
+                            targets=[x for x in targets if x and x.alive]
+                            if not targets:
+                                return
+                            _jammer_level=max(1,min(SKILL_MAX_LEVEL,int(skill_level)))
+                            _jammer_progress=(
+                                (_jammer_level-1)/float(max(1,SKILL_MAX_LEVEL-1))
                             )
-                            await self.grant_skill_use_xp(skill); return
+                            _jammer_will=max(1,int(self.effective_willpower()))
+                            _jammer_will_ratio=max(0.01,_jammer_will/175.0)
+                            _jammer_base_accuracy=(
+                                float(skill.get("soulbound_base_accuracy",0.50) or 0.50)
+                                + _jammer_progress
+                                * float(
+                                    skill.get("soulbound_skill_accuracy_bonus_max",0.25)
+                                    or 0.25
+                                )
+                                + min(
+                                    float(
+                                        skill.get(
+                                            "soulbound_will_accuracy_bonus_max",0.15
+                                        ) or 0.15
+                                    ),
+                                    0.075*(_jammer_will_ratio ** 0.50),
+                                )
+                            )
+                            _jammer_start=max(
+                                1,int(skill.get("soulbound_duration_rounds_level1",2) or 2)
+                            )
+                            _jammer_end=max(
+                                _jammer_start,
+                                int(skill.get("soulbound_duration_rounds_level600",5) or 5),
+                            )
+                            _jammer_rounds=max(
+                                1,int(round(
+                                    _jammer_start
+                                    + (_jammer_end-_jammer_start)
+                                    * (_jammer_progress ** 0.82)
+                                ))
+                            )
+                            _jammer_rounds += min(
+                                int(skill.get("soulbound_will_duration_bonus_max",2) or 2),
+                                max(0,int(round((_jammer_will_ratio ** 0.50)-1.0))),
+                            )
+                            _jammer_hits=0
+                            _jammer_misses=0
+                            for _jam_target in targets:
+                                _jam_template=MOB_TEMPLATES[_jam_target.template_id]
+                                _jam_accuracy=_jammer_base_accuracy
+                                _jam_machine=bool(
+                                    _jam_template.get("machine")
+                                    or str(
+                                        _jam_template.get("creature_type","")
+                                    ).casefold()=="machine"
+                                )
+                                if _jam_machine:
+                                    _jam_accuracy += float(
+                                        skill.get(
+                                            "soulbound_machine_accuracy_bonus",0.15
+                                        ) or 0.15
+                                    )
+                                _jam_accuracy=max(
+                                    0.05,min(
+                                        float(skill.get("soulbound_accuracy_cap",0.98) or 0.98),
+                                        _jam_accuracy,
+                                    )
+                                )
+                                if random.random() < _jam_accuracy:
+                                    _existing=max(
+                                        0,int(
+                                            getattr(
+                                                _jam_target,
+                                                "v11196_jammer_stop_rounds",
+                                                0,
+                                            ) or 0
+                                        )
+                                    )
+                                    _jam_target.v11196_jammer_stop_rounds=(
+                                        _existing+_jammer_rounds
+                                    )
+                                    _jam_target.v11196_jammer_stop_cleanseable=True
+                                    _jammer_hits+=1
+                                    await self.send(
+                                        f"Jammer: {_jam_template['name']} otrzymuje Stop na "
+                                        f"{_jam_target.v11196_jammer_stop_rounds} akcji. "
+                                        f"Celność {int(round(_jam_accuracy*100))} procent."
+                                        + (" Bonus Machine." if _jam_machine else "")
+                                    )
+                                else:
+                                    _jammer_misses+=1
+                                    await self.send(
+                                        f"Jammer: {_jam_template['name']} opiera się Stop. "
+                                        f"Celność {int(round(_jam_accuracy*100))} procent."
+                                        + (" Bonus Machine." if _jam_machine else "")
+                                    )
+                                if _jam_target.engaged_at<=0:
+                                    _jam_target.engaged_at=time.monotonic()
+                                if not _jam_target.engaged_by:
+                                    _jam_target.engaged_by=self.character.name
+                                await self.server.auto_assist_party_combat(
+                                    self,_jam_target
+                                )
+                            await self.send(
+                                f"Jammer: {_jammer_hits} celów zatrzymanych, "
+                                f"{_jammer_misses} oparło się."
+                                + (
+                                    " Support weapon obejmuje wszystkich przeciwników."
+                                    if support_effect else ""
+                                )
+                            )
+                            await self.grant_skill_use_xp(skill)
+                            self.combat_mob_key=mob.key
+                            await self.ensure_realtime_combat()
+                            return
                         machine=bool(template.get("machine"))
                         await self.send(
                             f"Logic Bomb: próba Paralyze, Silence i Slow na {template['name']}."
