@@ -698,15 +698,23 @@ def full_game_audit_v03014():
         # skills (for example Priest Regen), so total length must not be exact.
         expected_min = len(_V0922_MASTERY_LEVELS) * 3
         require(len(rows) >= expected_min, f"{class_name}: skills={len(rows)} minimum={expected_min}")
-        for mastery_level in _V0922_MASTERY_LEVELS:
-            at_level = [
-                skill for skill in rows
-                if int(skill.get("unlock", 1) or 1) == int(mastery_level)
-            ]
-            require(
-                len(at_level) >= 3,
-                f"{class_name}: mastery {mastery_level} has {len(at_level)} skills; minimum=3",
-            )
+        # The generic Soul grid uses 1/10/20/... mastery thresholds.
+        # Mec and Engineer deliberately replace part of that generated grid
+        # with source-authored UOSSMUD unlocks (8, 12, 14, 16, 18, 21, 23,
+        # 32, 44, 46, etc.), so threshold-by-threshold counts do not apply.
+        # Their total catalogue still has to meet the generated minimum, while
+        # IDs/names/unlocks are validated below and Mec has its own strict
+        # MEC_CONTRACT_AUDIT_V11149.
+        if class_name not in {"Mec", "Inżynier"}:
+            for mastery_level in _V0922_MASTERY_LEVELS:
+                at_level = [
+                    skill for skill in rows
+                    if int(skill.get("unlock", 1) or 1) == int(mastery_level)
+                ]
+                require(
+                    len(at_level) >= 3,
+                    f"{class_name}: mastery {mastery_level} has {len(at_level)} skills; minimum=3",
+                )
         for skill in rows:
             all_skills.append((class_name, skill))
             sid = str(skill.get("id", ""))
