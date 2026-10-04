@@ -750,6 +750,11 @@ def full_game_audit_v03014():
             stat for stat, amount in (item.get("stats") or {}).items()
             if int(amount or 0) > 0
         )
+        # Ręcznie projektowane zestawy technologiczne mają własne profile
+        # (np. Tech Mec: STR+CON+WILL) i nie podlegają generatorowej parze
+        # bazowych statów zwykłego klasowego EQ.
+        if str(item.get("regional_set", "")).startswith("tech_"):
+            continue
         expected = set(class_equipment_base_stat_pair(class_name))
         require(expected.issubset(present),
                 f"class armor stats {item_id}: expected {sorted(expected)}, got {sorted(present)}")
