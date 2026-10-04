@@ -32,7 +32,23 @@ def full_systems_audit_v03062():
             if t not in ROOMS and not str(t).startswith(dyn_prefixes): bad_exits.append((rid,d,t))
     check('world_exits', not bad_exits, str(bad_exits[:10]))
     check('classes_14', len(CLASSES)==14, len(CLASSES))
-    check('skills_progression_grid', sum(len(v) for v in CLASS_SKILLS.values())==len(CLASSES)*len(_V0922_MASTERY_LEVELS)*3, sum(len(v) for v in CLASS_SKILLS.values()))
+    base_skills_per_class=len(_V0922_MASTERY_LEVELS)*3
+    undersized_skill_classes={
+        class_name: len(CLASS_SKILLS.get(class_name, ()))
+        for class_name in CLASSES
+        if len(CLASS_SKILLS.get(class_name, ())) < base_skills_per_class
+    }
+    # Generator Core defines a minimum base grid. Source-authored abilities may
+    # extend a class beyond that grid (for example Priest Regen) and must not be
+    # rejected as corruption.
+    check(
+        'skills_progression_grid',
+        not undersized_skill_classes,
+        undersized_skill_classes or {
+            'minimum_per_class': base_skills_per_class,
+            'total': sum(len(v) for v in CLASS_SKILLS.values()),
+        },
+    )
     check('items_present', bool(ITEMS), len(ITEMS))
     check('mobs_present', bool(MOB_TEMPLATES), len(MOB_TEMPLATES))
     check('quests_present', bool(QUESTS), len(QUESTS))
