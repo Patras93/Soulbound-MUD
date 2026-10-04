@@ -50,6 +50,9 @@ class SessionEquipmentStatsMixin:
             if not rows:
                 return None,None
             selected=str(getattr(self,"active_soul_weapon_relic_id_v11179","") or "")
+            if not selected:
+                persisted=self.server.db.collection_entry_ids(self.account_id,"active_soul_weapon_relic_v11183")
+                selected=next(iter(sorted(persisted)), "")
             for row in rows:
                 if row[0]==selected:
                     return row
@@ -71,6 +74,8 @@ class SessionEquipmentStatsMixin:
             low=arg.lower()
             if low in ("auto","automatyczny","automatycznie"):
                 self.active_soul_weapon_relic_id_v11179=None
+                for _old in tuple(self.server.db.collection_entry_ids(self.account_id,"active_soul_weapon_relic_v11183")):
+                    self.server.db.remove_collection_entry(self.account_id,"active_soul_weapon_relic_v11183",_old)
                 active_id,active=self.active_soul_weapon_relic_v11176()
                 await self.send("Relikt Broni Duszy: tryb automatyczny. Aktywny: "+(active.get("name",active_id) if active else "brak")+".")
                 return
@@ -88,7 +93,10 @@ class SessionEquipmentStatsMixin:
                 await self.send("Nie znam takiego posiadanego reliktu. Wpisz relikt lista.")
                 return
             self.active_soul_weapon_relic_id_v11179=chosen[0]
-            await self.send(f"Aktywny relikt Broni Duszy: {chosen[1].get('name',chosen[0])}.")
+            for _old in tuple(self.server.db.collection_entry_ids(self.account_id,"active_soul_weapon_relic_v11183")):
+                self.server.db.remove_collection_entry(self.account_id,"active_soul_weapon_relic_v11183",_old)
+            self.server.db.add_collection_entry(self.account_id,"active_soul_weapon_relic_v11183",chosen[0])
+            await self.send(f"Aktywny relikt Broni Duszy: {chosen[1].get('name',chosen[0])}. Wybór zapisany na stałe.")
 
 
     def equipment_bonus_totals(self):
