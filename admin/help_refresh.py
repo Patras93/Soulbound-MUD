@@ -1243,3 +1243,499 @@ HELP_TOPICS.setdefault("podstawy", []).append(
 HELP_TOPICS.setdefault("podstawy", []).append(
     "v0.61.1: do czego <przedmiot>, braki receptura <przedmiot>, gdzie zdobyc <przedmiot> pelne oraz receptury mozliwe pomagają planować crafting bez ręcznego przeszukiwania HELP."
 )
+
+
+# ============================================================
+# v1.11.97 - FINAL HELP TRUTH LAYER
+# This block intentionally runs after all historical HELP patches.
+# It makes the public help describe the current 1-600 runtime instead of
+# preserving obsolete 1-400 / old-cooldown wording from older milestones.
+# ============================================================
+def refresh_help_truth_v11197():
+    HELP_TOPICS["podstawy"] = [
+        "Soulbound v1.11.97: główna progresja postaci działa w zakresie 1-600. Statystyki bazowe nie mają twardego limitu.",
+        "Level postaci, Biegłość klas, Soul Level, Soul Weapon Mastery, Skill Level, profesje i narzędzia rozwijają się do 600.",
+        "Soulbound ma 14 klas i 14 profesji. Szczegóły: help klasy, help profesje, help umiejetnosci, help ekwipunek.",
+        "Najważniejsze komendy startowe: help, look/l, exits, hp, score, staty, dusza, eq, quest, atlas, prowadz/walk.",
+        "k <mob> / atakuj <mob> rozpoczyna walkę realtime; con <mob> ocenia przeciwnika bez rozpoczynania walki.",
+        "Dokładne wartości skilli, EQ, przeciwników i progresji są czytane z bieżących danych runtime, a nie ze starej tabeli HELP.",
+    ]
+
+    HELP_TOPICS["statystyki"] = [
+        "Sześć automatycznych statystyk to Siła, Zręczność, Kondycja, Inteligencja, Siła Woli i Charyzma.",
+        "Statystyki nie mają twardego limitu. EQ, runy, sety i relikty zwiększają wartości efektywne używane przez walkę.",
+        "Ofensywne skille używają właściwych statystyk klasy; leczenie korzysta z własnych skalowań zapisanych przy konkretnym skillu.",
+        "staty info pokazuje bazę, wartości efektywne, postęp oraz bonusy wyposażenia.",
+    ]
+
+    HELP_TOPICS["score"] = [
+        "score pokazuje Level postaci, EXP, aktywne klasy i Biegłość, Duszę, HP/Manę, statystyki, portfel, EQ i bieżący teren.",
+        "Level postaci i główne osie progresji kończą się na 600; statystyki bazowe pozostają bez twardego limitu.",
+        "con <mob> jest właściwą komendą do bieżącej oceny konkretnego przeciwnika.",
+    ]
+
+    HELP_TOPICS["level"] = [
+        "level / lvl pokazuje Level postaci 1-600, aktualny EXP i dokładnie ile brakuje do następnego Levelu.",
+        "Na Levelu 600 komenda informuje o osiągniętym maksimum.",
+        "Biegłość klasy, Soul Level, Skill Level, profesje i narzędzia są osobnymi osiami progresji.",
+    ]
+
+    HELP_TOPICS["xp"] = [
+        "xp pokazuje aktualny Character XP oraz ile brakuje do następnego Levelu postaci.",
+        "Character Level ma zakres 1-600. Na 600 osiąga maksimum.",
+        "Event x2 EXP obejmuje Character, Class, Soul, Skill, stat, profession i tool XP; eventxp pokazuje status eventu.",
+    ]
+
+    skill_help = [
+        "Każda z 14 klas ma własne skille/spelle odblokowywane przez Biegłość klasy 1-600.",
+        "Każdy nauczony skill ma osobny Skill Level 1-600. Wspólna krzywa mocy rośnie przez cały zakres i na Skill Level 600 osiąga końcowy punkt 4.00x.",
+        "Zwykłe skille klasowe nie mają cooldownu ponownego użycia. Wyjątek stanowią zdolności, których timer jest częścią specjalnej mechaniki, np. V-MAX.",
+        "Pasywne umiejętności po nauczeniu działają automatycznie i nie zajmują slotów auto-kolejki.",
+        "help skill <nazwa>, help <nazwa skilla> i skill info <nazwa> czytają bieżące dane skilla: klasę, próg Biegłości, Manę, target, skalowanie, właściwości źródłowe, Skill Level i mechaniczny cooldown, jeśli istnieje.",
+        "skills pokazuje skille aktywnych klas; skills all, skillnames oraz kodeksklasowy <klasa> pozwalają przejrzeć pełny katalog.",
+    ]
+    HELP_TOPICS["umiejetnosci"] = list(skill_help)
+    HELP_TOPICS["skille"] = list(skill_help)
+
+    HELP_TOPICS["aoe"] = [
+        "Ofensywne AoE trafia wszystkie dostępne żywe cele w lokacji zgodnie z mechaniką konkretnej umiejętności.",
+        "Niektóre źródłowe skille mają własne zasady: diminishing, non-diminishing albo losowe trafienia. help skill <nazwa> pokazuje opis konkretnej zdolności.",
+        "AoE nie przepisuje właściciela nagród cudzego moba; party credit działa według aktualnej logiki drużyny.",
+        "Zwykłe AoE nie ma globalnego cooldownu; specjalny timer występuje tylko tam, gdzie jest częścią mechaniki skilla.",
+    ]
+
+    HELP_TOPICS["kolejka"] = [
+        "Auto-kolejka ma osobne listy fizyczne i magiczne. Pasywki nie zajmują slotów.",
+        "Na Character Level 1 każda kolejka ma 20 aktywnych slotów; co 10 Leveli dochodzi +1 slot, aż do 80 na Levelu 600.",
+        "kolejka dodaj <skill> zapisuje aktywny skill i automatycznie włącza rotację.",
+        "kolejka lista [fizyczna|magiczna], kolejka usuń <numer>, kolejka wyczyść [typ], kolejka góra/dół oraz kolejka on/off zarządzają rotacją.",
+    ]
+
+    HELP_TOPICS["dusza"] = [
+        "Broń Duszy ma Soul Level 1-600 oraz osobną Soul Weapon Mastery 1-600.",
+        "Soul Weapon Mastery rozwija zwykły autoatak Broni Duszy; skille klasowe rozwijają własny Skill Level 1-600.",
+        "System Soul Tierów został rozszerzony razem z progresją do 600; dusza info pokazuje bieżący Tier, wymagania, Próby i następny cel.",
+        "Relikty Broni Duszy są wybierane przez relic / relikt; EQ i aktywny relikt wpływają na realne parametry walki.",
+    ]
+
+    HELP_TOPICS["profesje"] = [
+        "Soulbound ma 14 profesji 1-600.",
+        "Zbieractwo: Wędkarstwo, Górnictwo, Drwalstwo i Zielarstwo.",
+        "Rzemiosła: Gotowanie, Alchemia, Kowalstwo, Jubilerstwo, Krawiectwo, Garbarstwo, Stolarstwo i Zaklinanie.",
+        "Eksploracja: Archeologia i Kartografia.",
+        "Każda profesja ma własny poziom 1-600; jej narzędzie rozwija się osobno 1-600. Wszystkie 14 narzędzi kupuje się tylko raz na postać.",
+        "zamowienia / zamówienia obsługuje zamówienia wszystkich 14 profesji; zlecenia odnawiają się niezależnie zgodnie z ich godzinnym cooldownem.",
+        "Archeologia: wykop. Kartografia: mapuj. Szczegóły: help archeologia i help kartografia.",
+    ]
+
+    HELP_TOPICS["tempo_profesji"] = [
+        "Czas aktywności profesyjnych zależy od bieżącej profesji, narzędzia i konkretnej czynności.",
+        "Profesje i narzędzia rozwijają się 1-600; szczegółowy stan pokazują profesje info i narzedzia info.",
+    ]
+    HELP_TOPICS["narzedzia200"] = [
+        "Narzędzia wszystkich 14 profesji mają progresję 1-600 i nie mają trwałości.",
+        "narzedzia / tools pokazuje stan; narzedzia info pokazuje XP, Tiery, bonusy i sprzedawców.",
+        "Każde przypisane narzędzie profesji można kupić tylko raz na postać.",
+    ]
+    HELP_TOPICS["wiecej_ryb"] = [
+        "Wędkarstwo i Wędka mają progresję 1-600. Kolejne gatunki odblokowują się wraz z narzędziem i właściwym łowiskiem.",
+        "atlas ryby oraz woda / łowisko pokazują bieżące źródła i wymagania.",
+    ]
+
+    HELP_TOPICS["generator"] = [
+        "Generator Core i warstwa progresji 600 są źródłem bieżących wartości balansu tam, gdzie system korzysta z generowanych danych.",
+        "Główne osie progresji kończą się na 600; bazowe statystyki postaci nie mają twardego limitu.",
+        "Dokładne liczby sprawdzaj przez komendy runtime: con, score, staty info, skill info, eq info, atlas i receptury.",
+        "HELP nie powinien kopiować historycznych limitów 400 ani zwykłych cooldownów skilli.",
+    ]
+    HELP_TOPICS["progresja600"] = [
+        "Aktualna główna progresja Soulbound to 1-600: Character Level, Biegłość klas, Soul Level, Soul Weapon Mastery, Skill Level, profesje i narzędzia.",
+        "Statystyki bazowe są rozwijane bez twardego limitu.",
+        "Historyczne nazwy wewnętrzne zawierające 400 mogą pozostać dla kompatybilności save'ów i ID, ale nie oznaczają aktualnego limitu gracza.",
+    ]
+    HELP_TOPICS["progresja400"] = [
+        "To historyczna nazwa starszej warstwy progresji. Aktualna gra używa progresji 1-600.",
+        "Wpisz help progresja600, aby usłyszeć bieżące zasady.",
+    ]
+
+    for topic, profession in (
+        ("krawiectwo", "Krawiectwo"),
+        ("garbarstwo", "Garbarstwo"),
+        ("stolarstwo", "Stolarstwo"),
+        ("zaklinanie", "Zaklinanie"),
+    ):
+        old = HELP_TOPICS.get(topic, [])
+        if isinstance(old, str):
+            old = [old]
+        cleaned = [
+            str(line).replace("1-400", "1-600").replace("1–400", "1–600")
+            for line in old
+            if str(line).strip()
+        ]
+        if not cleaned:
+            cleaned = [f"{profession} ma progresję 1-600."]
+        HELP_TOPICS[topic] = cleaned
+
+    old_jewel = HELP_TOPICS.get("jubilerstwo2", [])
+    if isinstance(old_jewel, str):
+        old_jewel = [old_jewel]
+    HELP_TOPICS["jubilerstwo2"] = [
+        str(line).replace("do levelu 400", "do levelu 600").replace("1-400", "1-600")
+        for line in old_jewel
+    ] or ["Jubilerstwo ma progresję 1-600; receptury sprawdzisz przez receptury jubilerstwo."]
+
+    equipment = HELP_TOPICS.get("ekwipunek", [])
+    if isinstance(equipment, str):
+        equipment = [equipment]
+    equipment = list(equipment)
+    equipment.extend([
+        "Aktualne sloty obejmują także tarczę i bransoletę. Skróty: ztar / ztarcza dla tarczy oraz zbra dla bransolety.",
+        "AUTO EQ ocenia sprzęt pod aktywne klasy: właściwe STR/DEX/INT, Kondycję/Siłę Woli, Attack/Magic Attack/Weapon Power, obrony, właściwości procentowe, wardy, status-proof, rarity i sockety.",
+        "eq info pokazuje realne bonusy, sety, sockety oraz oddziela potwierdzone dane źródłowe od Bonusów Soulbound tam, gdzie taki podział istnieje.",
+    ])
+    HELP_TOPICS["ekwipunek"] = equipment
+    HELP_TOPICS["eq"] = list(equipment)
+
+    HELP_TOPICS["statusy"] = [
+        "Efekty ofensywne takie jak Silence, Slow, Paralyze i obniżenie obrony są nakładane na przeciwników, nie na rzucającego.",
+        "Heale i buffy używają celu zapisanego przy konkretnej umiejętności: siebie, sojusznika, drużynę albo inny dozwolony cel.",
+        "Źródłowy Silence oznacza One Enemy, skaluje celność/czas z poziomem umiejętności i blokuje rzucanie magii; jest Cleanseable i Extendable.",
+        "help skill <nazwa> pokazuje zapisany target, wpływ statystyk, właściwości i efekt Skill Level tam, gdzie dane źródłowe są znane.",
+    ]
+
+    HELP_TOPICS["mec"] = [
+        "Mec korzysta z jednej Broni Duszy; role melee, ranged, magic, feedback i support są gałęziami tej klasy, nie osobnymi broniami do noszenia.",
+        "Strength Protocol, Ranged Protocol, Feedback Protocol i Magic Protocol są pasywne. Po nauczeniu działają automatycznie i wzmacniają odpowiadające im gałęzie wraz ze Skill Level.",
+        "Cure Beam i Heal Beam skalują leczenie z Siłą Woli, Skill Level i aktualną ścieżką EQ leczenia. Support Effect zmienia ich zachowanie zgodnie z opisem skilla.",
+        "V-MAX jest specjalnym overdrive'em zależnym od Siły Woli: daje Protect, Shell, Haste, Regen, Preach, Praise i Permanence oraz zmienia wybrane skille. Jego timer jest mechaniką specjalną, więc pozostaje wyjątkiem od globalnego braku cooldownów.",
+        "Cosmic Rave normalnie trafia wszystkie cele z diminishing; podczas V-MAX wykonuje losowe trafienia. Shoot-All trafia wszystkie cele bez diminishing i w V-MAX zyskuje damage oraz crit.",
+    ]
+
+    HELP_TOPICS["superbossy"] = [
+        "superbosses pokazuje unikalne wyzwania Super Bossów, wymagania i zaliczenia.",
+        "superbosses <nazwa> pokazuje informacje o konkretnym bossie; superboss <nazwa> obsługuje wejście do jego encounteru.",
+        "Black Rabite pozwala wybrać Primm albo Popoi komendą pomocnik primm / pomocnik popoi; wybór działa na jego arenie i dla drużyny maksymalnie 3 graczy.",
+        "Nagrody, sklepy bossów, relikty i specjalne właściwości EQ są częścią aktualnego runtime Soulbound; eq info i shop info pokazują bieżące dane.",
+    ]
+
+    HELP_TOPIC_ALIASES.update({
+        "progresja600": "progresja600",
+        "progression600": "progresja600",
+        "statusy": "statusy",
+        "status": "statusy",
+        "debuffy": "statusy",
+        "superbossy": "superbossy",
+        "superboss": "superbossy",
+        "superbosses": "superbossy",
+    })
+
+
+refresh_help_truth_v11197()
+
+
+def help_truth_audit_v11197():
+    errors = []
+
+    def topic_text(name):
+        value = HELP_TOPICS.get(name, [])
+        if isinstance(value, str):
+            return value
+        return " ".join(str(line) for line in value)
+
+    canonical_600 = (
+        "podstawy", "score", "level", "xp", "umiejetnosci", "skille",
+        "kolejka", "dusza", "profesje", "generator",
+    )
+    for name in canonical_600:
+        text = topic_text(name)
+        if not text:
+            errors.append(f"HELP {name}: empty")
+        if "1-400" in text or "1–400" in text:
+            errors.append(f"HELP {name}: stale 1-400 limit")
+        if "1-600" not in text and "600" not in text:
+            errors.append(f"HELP {name}: missing current 600 progression")
+
+    professions = topic_text("profesje")
+    if "14 profesji" not in professions:
+        errors.append("HELP profesje: must state 14 professions")
+
+    queue = topic_text("kolejka")
+    if "20" not in queue or "80" not in queue:
+        errors.append("HELP kolejka: must state current 20->80 slot curve")
+    if "50 na Levelu 400" in queue or "70" in queue:
+        errors.append("HELP kolejka: stale queue capacity")
+
+    skills = topic_text("umiejetnosci")
+    if "nie mają cooldownu" not in skills or "V-MAX" not in skills:
+        errors.append("HELP umiejetnosci: global no-cooldown policy / mechanic exception missing")
+
+    equipment = topic_text("ekwipunek")
+    if "tarc" not in equipment.casefold() or "bransolet" not in equipment.casefold():
+        errors.append("HELP ekwipunek: shield/bracelet missing")
+
+    statuses = topic_text("statusy")
+    if "przeciwn" not in statuses.casefold() or "Silence" not in statuses:
+        errors.append("HELP statusy: enemy debuff contract missing")
+
+    aliases = ("superbosses", "statusy", "progresja600")
+    for alias in aliases:
+        target = HELP_TOPIC_ALIASES.get(alias, alias)
+        if target not in HELP_TOPICS:
+            errors.append(f"HELP alias missing target: {alias}->{target}")
+
+    return {
+        "version": "1.11.97",
+        "canonical_topics_checked": len(canonical_600),
+        "error_count": len(errors),
+        "errors": errors,
+    }
+
+
+HELP_TRUTH_AUDIT_V11197 = help_truth_audit_v11197()
+if HELP_TRUTH_AUDIT_V11197["error_count"]:
+    raise RuntimeError(
+        "HELP Truth Audit v1.11.97 failed: "
+        + "; ".join(HELP_TRUTH_AUDIT_V11197["errors"][:50])
+    )
+
+
+# ============================================================
+# v1.11.97 - PUBLIC HELP SURFACE CLEANUP
+# Covers older, still-addressable topic names that survived previous milestones.
+# Historical changelog entries are not rewritten; live HELP topics are.
+# ============================================================
+def refresh_public_help_surface_v11197():
+    HELP_TOPICS["klasy"] = [
+        "Soulbound ma 14 grywalnych klas. Każda ma osobną Biegłość 1-600, własną Broń Duszy, skille/spelle i profil statystyk.",
+        "Biegłość właściwej klasy odblokowuje jej umiejętności; Skill Level rozwija każdą nauczoną umiejętność osobno.",
+        "Multiclass pozwala utrzymywać do 3 aktywnych klas bez kasowania progresji klas wyłączonych.",
+        "kodeksklasowy <klasa> pokazuje pełny katalog umiejętności, wymagania, nauczyciela i status nauki.",
+    ]
+
+    HELP_TOPICS["rasy"] = [
+        "Soulbound ma 14 grywalnych ras. Każda może wybrać każdą z 14 klas; rekomendacje rasowo-klasowe są wskazówką, nie blokadą.",
+        "Rasy różnią się rozkładem pięciu głównych statystyk oraz pasywem rasowym.",
+        "Cyborg jest rasą technologiczną szczególnie pasującą do Meca i Inżyniera, ale nie otrzymuje Moogle Board na starcie.",
+        "Pełne statystyki i pasyw konkretnej rasy są czytane przy tworzeniu postaci oraz w jej opisie.",
+    ]
+
+    HELP_TOPICS["cyborg"] = [
+        "Cyborg: technologiczna rasa z wysoką Kondycją i dobrą Zręcznością. Pasyw rasowy zmniejsza wszystkie otrzymywane obrażenia.",
+        "Polecane klasy to m.in. Mec, Inżynier, Strażnik i Łowca, ale Cyborg może wybrać dowolną z 14 klas.",
+        "Moogle Board NIE jest przedmiotem startowym. Jest unikalną osobistą nagrodą Black Rabite i może wypaść tylko Cyborgowi.",
+        "Moogle Board od Levelu postaci 150 daje +20 do Siły, Zręczności, Kondycji, Inteligencji i Siły Woli; od 151 każdy kolejny Level zwiększa ten bonus o +2.",
+    ]
+
+    engineer_help = [
+        "Inżynier jest technologiczną klasą fizyczną z Biegłością 1-600. Broń Duszy: Omni-Narzędzie.",
+        "Autorski zestaw obejmuje m.in. Auto Crossbow, Mako Gun, Bio Blaster, Scanner, Flash, Debilitator, Drill, Napalm, Launcher, Noise Blaster, Chainsaw, Mega Bomb i Air Anchor.",
+        "Upgrade <narzędzie> zapisuje trwałe ulepszenie Inżyniera; Hypercharge, Lindblum Assembly i Improved Kinematics działają zgodnie z aktualną mechaniką klasy.",
+        "help skill <nazwa> pokazuje bieżący target, skalowanie, wymagania i właściwości konkretnej umiejętności.",
+    ]
+    HELP_TOPICS["inzynier"] = list(engineer_help)
+    HELP_TOPICS["inżynier"] = list(engineer_help)
+
+    HELP_TOPICS["skille100_200"] = [
+        "To historyczna nazwa tematu. Aktualnie Biegłość klas i Skill Level rozwijają się 1-600.",
+        "Standardowe klasy mają dalsze odblokowania aż do 600; Mec i Inżynier zachowują autorskie progi swoich źródłowych zestawów.",
+        "Auto-kolejka zaczyna od 20 aktywnych slotów na Character Level 1 i rośnie do 80 na Levelu 600.",
+        "Zwykłe skille klasowe nie mają cooldownu ponownego użycia; specjalny timer zostaje tylko tam, gdzie jest częścią mechaniki.",
+    ]
+
+    HELP_TOPICS["hp_mobow"] = [
+        "HP, obrażenia i nagrody przeciwników są liczone z ich aktualnego profilu runtime, rangi, regionu i warstwy progresji.",
+        "Główna progresja świata dochodzi do 600; nieskończone instancje i Super Bossowie mają własne dalsze zasady skalowania.",
+        "con <mob> pokazuje bieżącą ocenę konkretnego przeciwnika i jest właściwym źródłem aktualnych liczb.",
+    ]
+    HELP_TOPICS["soul_xp_bloki"] = [
+        "Soul Level rozwija się 1-600. Soul XP i progi kolejnych Tierów korzystają z aktualnej warstwy progresji 600.",
+        "dusza info pokazuje bieżący Soul XP, Tier, blokadę Próby i dokładny następny cel.",
+    ]
+    HELP_TOPICS["hp_bossow_lochow"] = [
+        "Bossowie lochów korzystają z aktualnych danych konkretnej instancji i jej bieżącego skalowania, a nie ze starego limitu etapu 400.",
+        "Główna progresja kończy się na 600; nieskończone lochy zachowują własne zasady dalszego wzrostu.",
+        "consider / con pokazuje aktualną ocenę bossa przed rozpoczęciem walki.",
+    ]
+    HELP_TOPICS["expowiska"] = [
+        "Dobór zwykłych terenów i expowisk opiera się na Character Levelu oraz realnym zagrożeniu regionu w aktualnej progresji 1-600.",
+        "Biegłość klasy rozwija klasę i odblokowuje jej umiejętności; nie zastępuje Character Levelu przy ocenie terenu.",
+        "teren info <nazwa>, con <mob> i progress region pokazują bieżące informacje zamiast historycznej tabeli 1-400.",
+    ]
+    HELP_TOPICS["questy_kowalstwa_1_200"] = [
+        "To historyczna nazwa tematu. Kowalstwo jest pełną profesją 1-600.",
+        "Aktualne zlecenia czytają wymagane materiały, produkty, postęp i nagrody z bieżących danych runtime.",
+    ]
+    HELP_TOPICS["questy_gotowania_1_200"] = [
+        "To historyczna nazwa tematu. Gotowanie jest pełną profesją 1-600.",
+        "Aktualne zlecenia korzystają z bieżących potraw, składników i wymagań; stare ograniczenie 1-400 nie obowiązuje.",
+    ]
+    HELP_TOPICS["questy_mikstur_orina"] = [
+        "Alchemia jest pełną profesją 1-600. Zlecenia Orina korzystają z bieżących mikstur, składników i wymagań.",
+        "Każde przyjęte zlecenie liczy postęp od 0/x zgodnie z aktualną logiką questa.",
+    ]
+    HELP_TOPICS["atlas_kompletny"] = [
+        "Atlas pokazuje aktualne progi i miejsca występowania ryb, rud, drewna, ziół i innych zasobów.",
+        "Użyj atlas ryby, atlas rudy, atlas drewno, atlas ziola albo atlas <zasób>; wynik jest czytany z bieżących danych.",
+        "Profesje i narzędzia rozwijają się do 600, więc stary opis kończący atlas na 400 nie jest aktualny.",
+    ]
+    for _legacy_balance_topic in ("balans 0865", "balans 0866", "balans 0874"):
+        if _legacy_balance_topic in HELP_TOPICS:
+            HELP_TOPICS[_legacy_balance_topic] = [
+                "To historyczny temat dawnego wydania. Nie opisuje aktywnego balansu.",
+                "Aktualna główna progresja dochodzi do 600, a bazowe statystyki postaci nie mają twardego limitu.",
+                "Bieżące liczby sprawdzaj przez con, score, staty info, skill info, eq info i atlas.",
+            ]
+
+    HELP_TOPICS["walka"] = [
+        "k <mob> / atakuj <mob> rozpoczyna walkę realtime; uciekaj / flee wycofuje z walki, a wimpy może robić to automatycznie przy ustawionym progu HP.",
+        "Zwykły autoatak korzysta z Broni Duszy i aktualnego buildu postaci. Dokładne skalowanie skilla wynika z jego własnego stat/scale, np. STR, DEX, INT, WILL albo Attack.",
+        "Ofensywne skille nie są globalnie dzielone na zasadę fizyczne=tylko Siła i magiczne=tylko Inteligencja; help skill <nazwa> pokazuje właściwe skalowanie konkretnej zdolności.",
+        "Zwykłe skille klasowe są bez cooldownu ponownego użycia; specjalne timery pozostają tylko tam, gdzie są elementem mechaniki, np. V-MAX.",
+        "combatlog concise/normal/full oraz bufor walka sterują szczegółowością i pozwalają wrócić do ostatnich komunikatów.",
+    ]
+
+    HELP_TOPICS["materialy_eq"] = [
+        "Materiałowe EQ obejmuje pełną aktualną siatkę 17 logicznych typów: głowę, korpus, tarczę, dłonie, nogi, stopy, talizman, pierścień, naszyjnik, kolczyk, naramienniki, pas, pelerynę, karwasze, bransoletę, akcesorium i relikt.",
+        "Pierścienie, talizmany, kolczyki i akcesoria mają po dwa fizyczne sloty 1/2.",
+        "Materiały i warianty EQ rozciągają się przez aktualną progresję 1-600; dokładne wymaganie konkretnego przedmiotu pokazuje eq info.",
+        "Losowe statystyki, rarity, sockety, runy i inne właściwości są oceniane z realnych danych przedmiotu.",
+    ]
+
+    HELP_TOPICS["kolczyki"] = [
+        "Kolczyk jest jednym z 17 logicznych typów aktualnego EQ; postać ma dwa fizyczne sloty kolczyków.",
+        "zkol pokazuje/wybiera kolczyki automatycznie, a zkol1 i zkol2 pozwalają wskazać konkretny slot.",
+        "Materiałowe, klasowe i inne bieżące źródła EQ mogą zawierać kolczyki zgodnie z ich aktualnymi tabelami dropu/sklepu.",
+        "eq info oraz porownaj pokazują realne statystyki i porównanie konkretnego kolczyka.",
+    ]
+
+    HELP_TOPICS["zakladanie_lootu"] = [
+        "Gracz sam wybiera konkretny element EQ; załóż <nazwa> oraz skróty slotów zakładają posiadany przedmiot spełniający jego bieżące wymagania.",
+        "Pierścienie, talizmany, kolczyki i akcesoria mają po dwa miejsca. zp, zt, zkol i zakc wybierają wolny lub słabszy slot automatycznie.",
+        "Tarcza używa ztar / ztarcza, a bransoleta zbra. Ręczne sloty 1/2 pozostają dostępne dla podwójnych kategorii.",
+        "Zmiana EQ podczas aktywnej walki jest blokowana. Założonego EQ nie można sprzedać ani przekazać.",
+    ]
+
+    HELP_TOPICS["sety_klasowe"] = [
+        "Każda z 14 klas ma klasowe EQ w pełnej aktualnej siatce 17 logicznych typów wyposażenia.",
+        "Bonusy setów pozostają na progach 2/4/6/8 części; nowe sloty, w tym Bransoletka i Akcesorium, nie tworzą łatwiejszych progów setowych.",
+        "sety / sety info / sety <klasa> pokazuje bieżące składniki i aktywne bonusy.",
+        "Bieżące wymagania konkretnej części sprawdzaj przez shop info albo eq info.",
+    ]
+
+    HELP_TOPICS["sklepy"] = [
+        "shop / sklep / list / lista pokazuje numerowaną ofertę aktualnego sprzedawcy; shop info <numer> pokazuje pełny opis i porównanie.",
+        "Każda z 14 klas ma własną linię klasowego EQ w pełnej siatce 17 logicznych typów, w tym tarczę, bransoletę i akcesorium.",
+        "Zakup i założenie respektują aktualne wymagania konkretnego przedmiotu oraz wymaganą aktywną klasę/rasę, jeśli przedmiot je posiada.",
+        "sell all / sprzedaj wszystko sprzedaje tylko dozwolone niezałożone EQ; chronione przedmioty są pomijane.",
+    ]
+
+    HELP_TOPICS["moogle_board"] = [
+        "Moogle Board jest unikalną osobistą nagrodą Black Rabite przeznaczoną wyłącznie dla Cyborga. Nie jest startowym Boardem rasy.",
+        "Od Character Level 150 daje +20 do Siły, Zręczności, Kondycji, Inteligencji i Siły Woli.",
+        "Od Levelu 151 każdy kolejny Character Level zwiększa każdy z tych pięciu bonusów o +2.",
+        "eq info Moogle Board pokazuje bieżący bonus wyliczony dla aktualnego Levelu postaci.",
+    ]
+
+    HELP_TOPICS["silence"] = [
+        "Silence jest szkodliwym statusem kierowanym wyłącznie w przeciwnika; nie powinien być nakładany na rzucającego ani sojusznika.",
+        "Kontrakt źródłowy Temple Knight: One Enemy, koszt MP 32, Stat Influence: Will, Properties: Cleanseable i Extendable.",
+        "Skill Level zwiększa celność i czas działania. Efekt blokuje przeciwnikowi możliwość rzucania magii.",
+        "Temple Knight nie jest piętnastą grywalną klasą Soulbound; ten wpis dokumentuje źródłowy kontrakt statusu używany przez istniejące mechaniki.",
+    ]
+    HELP_TOPIC_ALIASES.update({
+        "moogle board": "moogle_board",
+        "moogleboard": "moogle_board",
+        "board moogle": "moogle_board",
+        "silence": "silence",
+        "cisza": "silence",
+    })
+
+    equipment = HELP_TOPICS.get("ekwipunek", [])
+    if isinstance(equipment, str):
+        equipment = [equipment]
+    equipment = [
+        line for line in equipment
+        if "Aktualne sloty obejmują także tarczę i bransoletę." not in str(line)
+    ]
+    equipment.append(
+        "Aktualna siatka ma 17 logicznych typów EQ, w tym tarczę, bransoletę i akcesorium; podwójne są pierścienie, talizmany, kolczyki i akcesoria."
+    )
+    equipment.append(
+        "Skróty nowych slotów: ztar / ztarcza — tarcza, zbra — bransoleta, zakc — akcesoria auto."
+    )
+    HELP_TOPICS["ekwipunek"] = equipment
+    HELP_TOPICS["eq"] = list(equipment)
+
+
+refresh_public_help_surface_v11197()
+
+
+def help_surface_audit_v11197():
+    errors = []
+
+    def text_of(name):
+        value = HELP_TOPICS.get(name, [])
+        if isinstance(value, str):
+            return value
+        return " ".join(str(line) for line in value)
+
+    expected = {
+        "klasy": ("14", "1-600"),
+        "rasy": ("14", "Cyborg"),
+        "cyborg": ("Black Rabite", "NIE jest"),
+        "inzynier": ("1-600", "Omni-Narzędzie"),
+        "skille100_200": ("1-600", "80"),
+        "materialy_eq": ("17", "akcesorium"),
+        "kolczyki": ("17", "zkol1", "zkol2"),
+        "sety_klasowe": ("17", "2/4/6/8"),
+        "sklepy": ("17", "bransolet"),
+        "ekwipunek": ("17", "zakc"),
+        "moogle_board": ("Black Rabite", "150"),
+        "silence": ("One Enemy", "Cleanseable", "Extendable"),
+        "hp_mobow": ("600", "con"),
+        "soul_xp_bloki": ("1-600", "dusza info"),
+        "hp_bossow_lochow": ("600", "consider"),
+        "expowiska": ("1-600", "teren info"),
+        "questy_gotowania_1_200": ("1-600", "historyczna"),
+        "questy_mikstur_orina": ("1-600", "Alchemia"),
+        "atlas_kompletny": ("600", "atlas"),
+        "walka": ("help skill", "V-MAX"),
+    }
+    for topic, needles in expected.items():
+        text = text_of(topic)
+        if not text:
+            errors.append(f"HELP {topic}: empty")
+            continue
+        for needle in needles:
+            if needle.casefold() not in text.casefold():
+                errors.append(f"HELP {topic}: missing {needle}")
+
+    forbidden_current = {
+        "klasy": ("Level postaci 1-400", "Biegłość 1-400"),
+        "cyborg": ("dostaje Moogle Board na starcie",),
+        "inzynier": ("klasa fizyczna 1-400",),
+        "skille100_200": ("10 slotów", "50 na Levelu 400"),
+        "materialy_eq": ("15 logicznych",),
+        "sety_klasowe": ("14 logicznych",),
+        "ekwipunek": ("13 logicznych", "14 logicznych", "15 logicznych"),
+    }
+    for topic, bad_values in forbidden_current.items():
+        text = text_of(topic)
+        for bad in bad_values:
+            if bad.casefold() in text.casefold():
+                errors.append(f"HELP {topic}: stale phrase {bad}")
+
+    return {
+        "version": "1.11.97",
+        "topics_checked": len(expected),
+        "error_count": len(errors),
+        "errors": errors,
+    }
+
+
+HELP_SURFACE_AUDIT_V11197 = help_surface_audit_v11197()
+if HELP_SURFACE_AUDIT_V11197["error_count"]:
+    raise RuntimeError(
+        "HELP Surface Audit v1.11.97 failed: "
+        + "; ".join(HELP_SURFACE_AUDIT_V11197["errors"][:50])
+    )
