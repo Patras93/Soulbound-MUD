@@ -2382,7 +2382,7 @@ def _v0319_install_full_mec_kit():
         ("Uzi Punch",95,"aoe_damage",1400,"feedback","uzi_punch","Random-enemy machinegun punch influenced by HP, Vitality and Attack. Feedback damages the Mec, a shield improves damage, and the attack becomes stronger as HP decreases."),
         ("Kamikaze Crush",110,"damage",2000,"feedback","kamikaze_crush","One-enemy lethal divebomb influenced by HP before use, Vitality and Attack. Damage falls as current HP falls; an equipped shield improves damage. V-MAX increases both attack power and Feedback damage."),
         # Magic
-        ("Laser Spin",1,"aoe_damage",200,"magic","laser_spin","Dark lasers hit all enemies."),
+        ("Laser Spin",1,"aoe_damage",200,"magic","laser_spin","Magic Attack-based Dark laser assault against all enemies with diminishing damage. Source requirements: none; Properties: none."),
         ("Area Bomb",8,"aoe_damage",300,"magic","area_bomb","Fiery Magic Attack explosion that burns all enemies currently engaged in combat with the Mec."),
         ("Mec Sonata",20,"damage",1000,"magic","mec_sonata","One-enemy Magic Attack song with a chance to lower the target level-equivalent power temporarily. The level-lowering effect is Extendable."),
         ("Maelstrom",44,"aoe_damage",1500,"magic","maelstrom","Water vortex floods all enemies."),
@@ -2721,7 +2721,19 @@ def _v0319_install_full_mec_kit():
                 "requires_soul_weapon":"ranged",
                 "single_soul_weapon":True,
             })
-        if special=="laser_spin": row.update({"aoe_diminishing":True,"element":"dark","uoss_mp_cost":25})
+        if special=="laser_spin":
+            row.update({
+                "scale":"intelligence",
+                "source_stat_influence":["magic_attack"],
+                "magic_attack_influence":True,
+                "source_properties":[],
+                "source_requirements":[],
+                "source_requires_none":True,
+                "target_mode":"all_enemies_diminishing",
+                "aoe_diminishing":True,
+                "element":"dark",
+                "uoss_mp_cost":25,
+            })
         if special=="mec_sonata":
             row.update({
                 "scale":"intelligence",
@@ -3032,6 +3044,25 @@ def _mec_contract_audit_v11149():
             errors.append("feedback_protocol: runtime mapping must exclude Compress and Crush")
         if bool(feedback_protocol.get("protocol_numeric_source_defined")):
             errors.append("feedback_protocol: numeric curve must remain marked unsourced")
+
+    laser_spin=rows.get("laser_spin")
+    if laser_spin:
+        if int(laser_spin.get("unlock",0) or 0)!=1:
+            errors.append("laser_spin: Reqs None must map to Biegłość Mec 1")
+        if int(laser_spin.get("base_power",0) or 0)!=200:
+            errors.append("laser_spin: Base AP 200 must remain internal base_power 200")
+        if list(laser_spin.get("source_requirements") or [])!=[] or not bool(laser_spin.get("source_requires_none")):
+            errors.append("laser_spin: source requirements must be None")
+        if list(laser_spin.get("source_stat_influence") or [])!=["magic_attack"]:
+            errors.append("laser_spin: source influence must be Magic Attack only")
+        if list(laser_spin.get("source_properties") or [])!=[]:
+            errors.append("laser_spin: source Properties must be None")
+        if str(laser_spin.get("target_mode"))!="all_enemies_diminishing":
+            errors.append("laser_spin: target mode must be All Enemies (Diminishing)")
+        if not bool(laser_spin.get("aoe_diminishing")):
+            errors.append("laser_spin: diminishing flag missing")
+        if str(laser_spin.get("element","")).casefold()!="dark":
+            errors.append("laser_spin: element must be Dark")
 
     cosmic=rows.get("cosmic_rave")
     if cosmic:
