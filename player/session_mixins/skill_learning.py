@@ -1430,9 +1430,12 @@ class SessionSkillLearningMixin:
                 if _stat_name in ("intelligence","willpower")
                 else "physical"
             )
+            # UOSS Base AP 1000 is a learning cost, not counter damage.
+            # Intercept power comes from the selected effective offensive stat,
+            # EQ/Soul Power and Skill Level through the shared combat core.
             _counter_core=self.offensive_skill_core_power_v11185(
                 _counter_skill,
-                max(1,int(_intercept.get("base_power",1000) or 1000)),
+                0,
             )
             _counter_mult=(
                 skill_power_multiplier(_counter_level)
