@@ -1433,7 +1433,9 @@ CLASS_EQUIPMENT_SLOT_PRIMARY_BIAS = {
     "cloak": 0.03,
     "bracers": 0.10,
     "bracelet": 0.08,
-    "accessory": 0.00,
+    # Accessory intentionally leans away from the offensive bracelet profile.
+    # This keeps the two new slots mechanically distinct after integer rounding.
+    "accessory": -0.04,
     "relic": 0.05,
 }
 
