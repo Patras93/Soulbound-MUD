@@ -117,10 +117,33 @@ for nid,(name,key) in _HELPERS.items():
         "uoss_superboss_helper":key,"helper_max_players":3,
     })
 
+# Exact Black Rabite helper contracts supplied by the source.
+if "uoss_helper_popoi" in NPCS:
+    NPCS["uoss_helper_popoi"].update({
+        "helper_cost_mithril":1,
+        "join_phrase":"Join me, Popoi",
+        "abilities":("Air Blast","Earth Slide","Acid Storm","Vine Hell","Luna","Faerie Walnut"),
+        "aoe_abilities":("Air Blast","Earth Slide","Acid Storm"),
+        "vine_hell_status_all":"Slow",
+        "luna_status_all":"Mini",
+        "faerie_walnut_mp_restore_fraction":0.20,
+    })
+if "uoss_helper_primm" in NPCS:
+    NPCS["uoss_helper_primm"].update({
+        "helper_cost_mithril":1,
+        "join_phrase":"Join me, Primm",
+        "abilities":("Lucent Beam","Cure Water","Bubble","Lumina","Dryad"),
+        "lucent_beam_target":"single",
+        "cure_water":"restores HP",
+        "bubble_max_hp_multiplier":1.50,
+        "lumina":"holy strike",
+        "dryad":"preach",
+    })
+
 # Exact helper ability metadata where supplied by the source.
 if "uoss_helper_seifer" in NPCS:
     NPCS["uoss_helper_seifer"].update({
-        "helper_cost_gold":1000000,
+        "helper_cost_mithril":1,
         "join_phrase":"Join me, Seifer.",
         "abilities":("Power Breakdown","No Mercy","Zantetsuken Reverse"),
         "power_breakdown":"physical attack reduced at beginning of fight",
