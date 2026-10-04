@@ -2499,7 +2499,10 @@ def _v0319_install_full_mec_kit():
                         "duration_scales_with_skill_level":True,
                         "duration_scales_with_will":True,
                         "duration_balance_model":"soulbound_200_to_600_plus_uncapped_will",
-                        "support_weapon_model":"mec_soul_weapon"})
+                        "support_weapon_model":"mec_soul_weapon",
+                        "vmax_status_sources":{
+                            "praise":{"effect":"attack_power_up","numeric_source_defined":False}
+                        }})
     CLASS_SKILLS["Mec"] = rows
 
 _v0319_install_full_mec_kit()
@@ -2593,6 +2596,9 @@ def _mec_contract_audit_v11149():
             errors.append("vmax:missing skill-level duration scaling")
         if not bool(vmax.get("duration_scales_with_will")):
             errors.append("vmax:missing WILL duration scaling")
+        _praise=((vmax.get("vmax_status_sources") or {}).get("praise") or {})
+        if str(_praise.get("effect"))!="attack_power_up":
+            errors.append("vmax:praise must raise Attack power")
     for protocol_id,specials in MEC_PROTOCOL_SKILLS_V11155.items():
         protocol_row=next((row for row in CLASS_SKILLS.get("Mec",[]) if row.get("id")==protocol_id),None)
         if not protocol_row:
