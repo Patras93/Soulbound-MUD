@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from core.bootstrap_economy_professions import SOUL_TRIAL_QUEST_IDS, currency_reading_text
-from core.progression_600 import CHARACTER_MAX_LEVEL, PROFESSION_MAX_LEVEL, SOUL_MAX_TIER
+from core.progression_600 import CHARACTER_MAX_LEVEL, PROFESSION_MAX_LEVEL, SOUL_MAX_TIER, soul_tier_title_for_class
 from core.progression_resources import character_xp_to_next
 from network.protocol_gameplay_utils import V0926_GUILD_MAX_LEVEL, v0926_guild_upgrade_cost
 from player.session_mixins.progress_titles import PROFESSIONS_V0580
@@ -35,6 +35,7 @@ class SessionProgressGapsV0590Mixin:
             return f"Soul Tier: maksimum {SOUL_MAX_TIER}/{SOUL_MAX_TIER}."
 
         next_tier = current_tier + 1
+        next_title = soul_tier_title_for_class(next_tier, c.class_name)
         required_level = int(c.soul_level_cap_for_current_tier())
         soul_level = int(c.soul_level)
         if soul_level < required_level:
@@ -43,7 +44,7 @@ class SessionProgressGapsV0590Mixin:
             xp_now = max(0, int(c.soul_xp))
             xp_missing = max(0, xp_need - xp_now)
             return (
-                f"Soul Tier {next_tier}: najpierw osiągnij Soul Level {required_level}. "
+                f"Soul Tier {next_tier} — {next_title}: najpierw osiągnij Soul Level {required_level}. "
                 f"Brakuje {levels_missing} poziomów; do najbliższego Soul Levelu brakuje "
                 f"{xp_missing} Soul XP ({xp_now}/{xp_need})."
             )
@@ -51,28 +52,28 @@ class SessionProgressGapsV0590Mixin:
         quest_id = SOUL_TRIAL_QUEST_IDS.get(next_tier)
         quest = QUESTS.get(quest_id) if quest_id else None
         if not quest:
-            return f"Soul Tier {next_tier}: próg Soul Level {required_level} osiągnięty; użyj unlock, jeśli Tier jest gotowy."
+            return f"Soul Tier {next_tier} — {next_title}: próg Soul Level {required_level} osiągnięty; użyj unlock, jeśli Tier jest gotowy."
 
         row = self.server.db.quest(self.account_id, quest_id)
         giver = str(quest.get("giver") or "Kapłan Elor")
         needed = max(1, int(quest.get("needed", 1) or 1))
         if row and str(row["status"]) == "completed":
-            return f"Soul Tier {next_tier}: Próba ukończona. Brakuje tylko użycia komendy unlock."
+            return f"Soul Tier {next_tier} — {next_title}: Próba ukończona. Brakuje tylko użycia komendy unlock."
         if row and str(row["status"]) == "active":
             progress = self.quest_progress_value(quest_id)
             progress = max(0, int(row["progress"] if progress is None else progress))
             remaining = max(0, needed - progress)
             if remaining <= 0:
                 return (
-                    f"Soul Tier {next_tier}: Próba {quest['name']} ma wykonany cel {progress}/{needed}. "
+                    f"Soul Tier {next_tier} — {next_title}: Próba {quest['name']} ma wykonany cel {progress}/{needed}. "
                     f"Brakuje oddania zadania. NPC: {giver}; potem użyj unlock."
                 )
             return (
-                f"Soul Tier {next_tier}: aktywna Próba {quest['name']}. "
+                f"Soul Tier {next_tier} — {next_title}: aktywna Próba {quest['name']}. "
                 f"Postęp {progress}/{needed}; brakuje {remaining}. NPC: {giver}."
             )
         return (
-            f"Soul Tier {next_tier}: wymagany Soul Level {required_level} masz osiągnięty. "
+            f"Soul Tier {next_tier} — {next_title}: wymagany Soul Level {required_level} masz osiągnięty. "
             f"Brakuje przyjęcia Próby {quest['name']}. NPC: {giver}."
         )
 
