@@ -92,27 +92,6 @@ class SessionEquipmentStatsMixin:
             class_stats = self.class_set_stat_bonus_totals()
             for stat, amount in class_stats.items():
                 totals[stat] += int(amount)
-            relic_stats = self.soul_weapon_relic_stat_totals()
-            for stat, amount in relic_stats.items():
-                totals[stat] += int(amount)
-            return totals
-
-    def soul_weapon_relic_stat_totals(self):
-            """Stats from owned source weapons adapted to the character-bound Soul Weapon.
-
-            A source weapon is not a second equipment slot in Soulbound. To avoid
-            passive stacking of every trophy, only the strongest owned relic bonus
-            per Soulbound stat is active.
-            """
-            totals = {"strength":0,"dexterity":0,"constitution":0,"intelligence":0,"willpower":0}
-            for item_id, item in ITEMS.items():
-                if not item.get("soul_weapon_bound_reward"):
-                    continue
-                if self.server.db.item_qty(self.account_id, item_id) <= 0:
-                    continue
-                for stat, amount in item.get("stats", {}).items():
-                    if stat in totals:
-                        totals[stat] = max(totals[stat], int(amount))
             return totals
 
     def equipment_property_totals(self):
