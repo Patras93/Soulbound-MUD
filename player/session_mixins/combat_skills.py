@@ -1383,9 +1383,90 @@ class SessionCombatSkillsMixin:
 
                 _mec_feedback_self_damage=0
                 _mec_damage_override=None
+                _mec_disable_critical=False
+                _mec_compress_missed=False
+                _mec_percent_damage_exact=False
                 if skill.get("mec_authored"):
                     _mec_special=str(skill.get("mec_special",""))
-                    if _mec_special=="destroy":
+                    if _mec_special=="compress":
+                        # Source contract: percentage damage based on target HP.
+                        # Vitality/HP influence compression power, Skill Level raises
+                        # Accuracy, full HP and a shield improve compression power.
+                        # UOSS supplies no numeric formula, so all values below are
+                        # explicit Soulbound balance metadata.
+                        _compress_max_hp=max(1,int(self.max_hp()))
+                        _compress_current_hp=max(0,int(self.current_hp))
+                        _compress_hp_ratio=max(
+                            0.0,min(1.0,_compress_current_hp/float(_compress_max_hp))
+                        )
+                        _compress_vit=max(1,int(self.effective_constitution()))
+                        _compress_vit_ratio=max(0.01,_compress_vit/175.0)
+                        _compress_level=max(1,min(SKILL_MAX_LEVEL,int(skill_level)))
+                        _compress_progress=(
+                            (_compress_level-1)/float(max(1,SKILL_MAX_LEVEL-1))
+                        )
+                        _compress_accuracy=(
+                            float(skill.get("base_accuracy",0.65) or 0.65)
+                            + _compress_progress
+                            * float(skill.get("skill_level_accuracy_bonus_max",0.30) or 0.30)
+                            + min(
+                                0.10,
+                                float(skill.get("vitality_accuracy_bonus_anchor",0.05) or 0.05)
+                                * (_compress_vit_ratio ** 0.50),
+                            )
+                        )
+                        _compress_accuracy=max(0.05,min(0.98,_compress_accuracy))
+                        _compress_pct=float(
+                            skill.get("base_target_current_hp_pct",0.20) or 0.20
+                        )
+                        if _compress_hp_ratio>=0.999999:
+                            _compress_pct += float(
+                                skill.get("full_hp_damage_pct_bonus",0.10) or 0.10
+                            )
+                        _compress_shield=bool(
+                            self.server.db.equipped_item(self.account_id,"shield")
+                        )
+                        if _compress_shield:
+                            _compress_pct += float(
+                                skill.get("shield_damage_pct_bonus",0.10) or 0.10
+                            )
+                            await self.send(
+                                "Compress: założona tarcza zwiększa siłę kompresji."
+                            )
+                        _compress_pct += min(
+                            0.15,
+                            float(skill.get("vitality_damage_pct_anchor",0.05) or 0.05)
+                            * (_compress_vit_ratio ** 0.50),
+                        )
+                        _compress_pct=min(
+                            float(skill.get("max_target_current_hp_pct",0.60) or 0.60),
+                            max(0.01,_compress_pct),
+                        )
+                        _mec_disable_critical=True
+                        _mec_percent_damage_exact=True
+                        if random.random() < _compress_accuracy:
+                            _mec_damage_override=max(
+                                1,int(round(max(1,int(mob.hp))*_compress_pct))
+                            )
+                            await self.send(
+                                f"Compress trafia. Siła kompresji: "
+                                f"{int(round(_compress_pct*100))} procent bieżącego HP celu. "
+                                f"Celność: {int(round(_compress_accuracy*100))} procent."
+                            )
+                        else:
+                            _mec_damage_override=0
+                            _mec_compress_missed=True
+                            await self.send(
+                                f"Compress nie trafia. Celność: "
+                                f"{int(round(_compress_accuracy*100))} procent."
+                            )
+                        _mec_feedback_self_damage=max(
+                            1,int(round(
+                                _compress_max_hp
+                                * float(skill.get("feedback_max_hp_pct",0.08) or 0.08)
+                            ))
+                        )
+                    elif _mec_special=="destroy":
                         # Source contract: Attack + Vitality + HP, with power rising
                         # as HP falls. Shield improves damage. Numeric coefficients
                         # are not supplied by UOSS, so these are explicit Soulbound
@@ -1539,7 +1620,7 @@ class SessionCombatSkillsMixin:
 
                 if _mec_damage_override is not None:
                     damage=max(0,int(_mec_damage_override))
-                    if damage>0:
+                    if damage>0 and not _mec_disable_critical:
                         damage, critical = self.roll_critical_hit(damage)
                     else:
                         critical=False
@@ -1558,7 +1639,7 @@ class SessionCombatSkillsMixin:
                         f"Szansa: "
                         f"{int(round(self.critical_chance() * 100))} procent."
                     )
-                if damage>0:
+                if damage>0 and not _mec_percent_damage_exact:
                     damage = await self.apply_boss_defense(mob, damage)
                     damage = self.v0210_adjust_player_damage(damage)
                     _damage_element="physical" if skill_class_type == "physical" else "magic"
@@ -1568,6 +1649,10 @@ class SessionCombatSkillsMixin:
                     damage, machine_note = v0314_adjust_damage_vs_template(
                         template, damage, _damage_element, skill.get("name", ""),
                     )
+                elif damage>0:
+                    # Compress is explicitly percentage-of-target-HP damage. Do not
+                    # turn that percentage into ordinary STR/Attack damage afterward.
+                    machine_note=""
                 else:
                     machine_note=""
                 mob.hp -= damage
