@@ -200,6 +200,37 @@ def speed_from_dexterity(dexterity: int) -> int:
     return max(1, int(round(8 + dexterity * 1.65)))
 
 
+def basic_attack_hits_from_dexterity(dexterity: int, haste: bool = False) -> int:
+    """Uncapped AGI/DEX multi-hit curve for ordinary Soul Weapon attacks.
+
+    Calibrated from user-supplied UOSS Mec combat logs:
+    AGI 547 -> 5 hits, AGI 547 + Haste -> 10 hits,
+    AGI 429 + Haste -> 9 hits.
+    sqrt growth keeps very high DEX meaningful without a hard hit-count cap.
+    """
+    dexterity = max(1, int(dexterity))
+    raw_hits = math.sqrt(float(dexterity)) / 4.5
+    if haste:
+        raw_hits *= 2.0
+    return max(1, int(raw_hits))
+
+
+_BASIC_ATTACK_HIT_AUDIT_V11196 = {
+    "agi_547": basic_attack_hits_from_dexterity(547, False),
+    "agi_547_haste": basic_attack_hits_from_dexterity(547, True),
+    "agi_429_haste": basic_attack_hits_from_dexterity(429, True),
+}
+if _BASIC_ATTACK_HIT_AUDIT_V11196 != {
+    "agi_547": 5,
+    "agi_547_haste": 10,
+    "agi_429_haste": 9,
+}:
+    raise RuntimeError(
+        "Basic attack multi-hit audit failed: "
+        + repr(_BASIC_ATTACK_HIT_AUDIT_V11196)
+    )
+
+
 def dodge_from_dexterity(dexterity: int) -> float:
     dexterity = max(1, int(dexterity))
     value = 0.25 * (1.0 - math.exp(-max(0.0, dexterity - 10.0) / 78.0))
