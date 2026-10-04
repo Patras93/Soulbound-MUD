@@ -166,6 +166,23 @@ class SessionEquipmentStatsMixin:
                 totals[stat] += int(amount)
             return totals
 
+    def equipment_flat_power_totals_v11187(self):
+            """Źródłowe płaskie Power z EQ: Attack/Magic Attack/Defense/Magic Defense/Weapon Power."""
+            totals = {"attack": 0, "magic_attack": 0, "magic_defense": 0, "weapon_power": 0}
+            for row in self.equipped_item_rows():
+                item = ITEMS.get(row["item_id"], {})
+                totals["attack"] += int(item.get("attack", 0) or 0)
+                totals["magic_attack"] += int(item.get("magic_attack", 0) or 0)
+                totals["magic_defense"] += int(item.get("magic_defense", 0) or 0)
+                totals["weapon_power"] += int(item.get("weapon_power", 0) or 0)
+            _relic_id, _relic = self.active_soul_weapon_relic_v11176()
+            if _relic:
+                totals["attack"] += int(_relic.get("attack", 0) or 0)
+                totals["magic_attack"] += int(_relic.get("magic_attack", 0) or 0)
+                totals["magic_defense"] += int(_relic.get("magic_defense", 0) or 0)
+                totals["weapon_power"] += int(_relic.get("weapon_power", 0) or 0)
+            return totals
+
     def equipment_property_totals(self):
             totals = {
                 "physical_damage_pct": 0,
@@ -692,8 +709,13 @@ class SessionEquipmentStatsMixin:
             return max(0, value)
 
     def physical_power(self):
-            return generator_core_v027.character_attribute_power(
-                self.character.character_level, self.effective_strength()
+            flat = self.equipment_flat_power_totals_v11187()
+            return (
+                generator_core_v027.character_attribute_power(
+                    self.character.character_level, self.effective_strength()
+                )
+                + int(flat["attack"])
+                + int(flat["weapon_power"])
             )
 
     def speed(self):
@@ -712,14 +734,19 @@ class SessionEquipmentStatsMixin:
             )
 
     def spell_power(self):
-            return generator_core_v027.character_attribute_power(
-                self.character.character_level, self.effective_intelligence()
+            flat = self.equipment_flat_power_totals_v11187()
+            return (
+                generator_core_v027.character_attribute_power(
+                    self.character.character_level, self.effective_intelligence()
+                )
+                + int(flat["magic_attack"])
             )
 
     def magic_defense(self):
             base = generator_core_v027.magic_defense_base(
                 self.character.character_level, self.effective_willpower()
             )
+            base += int(self.equipment_flat_power_totals_v11187()["magic_defense"])
             value = int(
                 round(
                     base
