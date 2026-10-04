@@ -339,6 +339,9 @@ class SessionEquipmentStatsMixin:
 
     def class_set_status_lines(self):
             counts = self.class_set_counts()
+            threshold_slot_count=len(
+                set(CLASS_EQUIPMENT_SLOT_DEFS)-{"shield","bracelet","accessory"}
+            )
             lines = []
             for class_name in self.active_class_names():
                 count = int(counts.get(class_name, 0))
@@ -369,7 +372,7 @@ class SessionEquipmentStatsMixin:
                 state = "; ".join(active) if active else "brak aktywnego progu"
                 lines.append(
                     f"Set klasowy {class_name}, Zestaw {set_name}: "
-                    f"{count}/{len(set(CLASS_EQUIPMENT_SLOT_DEFS)-{'shield','bracelet','accessory'})} części liczonych do progów. {state}."
+                    f"{count}/{threshold_slot_count} części liczonych do progów. {state}."
                 )
             if not lines:
                 lines.append("Brak założonych części aktywnego zestawu klasowego.")
