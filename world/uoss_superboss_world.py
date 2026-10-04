@@ -30,6 +30,7 @@ SOURCE_SCANNER_V11156 = {
     "emerald_weapon": {"level":150,"max_hp":1000000,"max_mp":0,"xp":500000,"types":("Machine",),"weak":("Lightning",),"immune":("Status_all","Earth"),"absorb":("Ice","Water"),"drop":"Earth Harp","location":"On the Sea Floor"},
     "ruby_weapon": {"level":140,"max_hp":1000000,"max_mp":200000,"xp":500000,"types":("Machine",),"immune":("Berserk","Engulf","Silence","Poison","Sleep","Small","Noact","Gravity","Curse","Petrify","Imp","Stop","Water"),"absorb":("Fire","Ice","Lightning","Earth"),"drop":"Desert Rose","location":"Corel Prison"},
     "serpentarius": {"level":250,"max_hp":1300000,"xp":18900000,"types":("Demon",),"immune":("Curse","Poison","Silence","Stop"),"drop":"Serpentarius Emblem","location":"Deep Dungeon","round_limit":100,"no_exit_after_start":True},
+    "odin": {"level":300,"max_hp":3000000,"max_mp":300000,"xp":18900000,"types":("Humanoid","Magical"),"resist":("Drain",),"immune":("Status_all","Launch"),"drop":"Odin's Mantle","location":"A Clearing in a Misty Forest"},
     "yiazmat": {"level":300,"max_hp":4000000,"max_mp":300000,"xp":18900000,"types":("Dragon",),"weak":("Dark",),"resist":("Earth","Fire","Ice","Lightning","Water","Wind"),"immune":("Status_all",),"absorb":("Holy",),"drop":"Godslayer's Badge","location":"Ridorana Cataract Colosseum"},
 }
 for idx,key in enumerate(_ORDER,1):
@@ -75,6 +76,7 @@ _SOURCE_ADDS_V11156 = {
  "emerald_red_eye":{"name":"Red Eye","level":140,"max_hp":80000,"max_mp":0,"source_xp":100000,"source_xp_exact":True,"parent":"emerald_weapon","combat_types":("Machine",),"weak":("Fire",),"immune":("Noact","Engulf","Earth","Silence","Stop","Berserk","Sleep"),"absorb":("Ice","Water"),"abilities":("Emerald Laser","Emerald Torpedo")},
  "emerald_torpedo":{"name":"Emerald Torpedo","level":83,"max_hp":12000,"max_mp":0,"source_xp":0,"source_xp_exact":True,"parent":"emerald_red_eye","combat_types":("Machine",),"immune":("Status_all",),"explode_round":3,"abilities":("Emerald Torpedo",)},
  "ruby_right_tentacle":{"name":"Right Tentacle","level":140,"max_hp":150000,"max_mp":30000,"source_xp":0,"source_xp_exact":True,"parent":"ruby_weapon","combat_types":("Machine",),"immune":("Small","Noact","Gravity","Petrify","Imp","Stop","Berserk","Water","Engulf","Silence","Sleep"),"abilities":("Right Thrust",)},
+ "odin_gungnir":{"name":"Gungnir","level":120,"max_hp":250000,"max_mp":0,"source_xp":0,"source_xp_exact":True,"parent":"odin","combat_types":("Magical",),"immune":("Status_all","Gravity"),"abilities":("melee",)},
  "ruby_left_tentacle":{"name":"Left Tentacle","level":140,"max_hp":150000,"max_mp":30000,"source_xp":0,"source_xp_exact":True,"parent":"ruby_weapon","combat_types":("Machine",),"immune":("Small","Noact","Gravity","Petrify","Imp","Stop","Berserk","Water","Engulf","Silence","Sleep"),"abilities":("Left Revenge",)},
 }
 for _add_key,_add in _SOURCE_ADDS_V11156.items():
@@ -91,6 +93,7 @@ SOURCE_BOSS_ABILITIES_V11156 = {
  "emerald_weapon":{"abilities":("Stamp","Dissolving Ray","Emerald Beam","Aqua Beam","Deep Life Water","Open Eye","Revenge Stamp"),"open_eye_random":("emerald_white_eye","emerald_blue_eye","emerald_red_eye")},
  "ruby_weapon":{"abilities":("Big Claw","Big Swing","Comet2","Ruby Ray","Ruby Flame","Shadow Flare","Ultima","Wrap","Imp","Mini"),"summons":("ruby_right_tentacle","ruby_left_tentacle"),"wrap_removes_player_when_party_gt":1},
  "serpentarius":{"abilities":("Snake Carrier","Poison Frog","Resisted Gravija","Gravija","Midgar Swarm","Banish Ray","Firaja","Blizzaja","Thundaja","Comet","Light Pillar","Necrotic Energy","Nullify Healing","Zodiac"),"banish_ray_damage":9999,"light_pillar_damage":9999,"resisted_gravija_fraction":"1/10","gravija_fraction":"1/3","necrotic_energy_rounds":8,"nullify_healing_rounds":3},
+ "odin":{"abilities":("Valknut","Zantetsuken","Einherjar","Gungnir","#-Gungnir Pulse of Magic","Hall of Stone","Hall of Lead","Disease","Shin-Zantetsuken"),"zantetsuken_current_hp_fraction":"2/3","einherjar_attack_multiplier":3,"gungnir_attack_multiplier":3,"gungnir_summon_count":3,"summons":"odin_gungnir","hall_of_stone_status":"Petrify","hall_of_lead_status":"Slow","shin_zantetsuken_instant_death_rounds":10},
  "yiazmat":{"abilities":("Rake","Death Strike","Magnetic Lysis","Dust Storm","Ice Breath","Gust Front","Cyclone","Stone Breath"),"death_strike_hp_fraction":0.80,"death_strike_gravityproof_fraction":0.50},
 }
 for _boss_key,_contract in SOURCE_BOSS_ABILITIES_V11156.items():
@@ -105,12 +108,25 @@ _HELPERS={
  "uoss_helper_popoi":("Popoi","black_rabite"),
  "uoss_helper_byblos":("Byblos","serpentarius"),
  "uoss_helper_montblanc":("Montblanc","yiazmat"),
+ "uoss_helper_seifer":("Seifer","odin"),
 }
 for nid,(name,key) in _HELPERS.items():
     NPCS.setdefault(nid,{
         "name":name,"room":f"uoss_superboss_arena_{key}_v11136",
         "dialogue":f"{name} może wesprzeć drużynę liczącą maksymalnie 3 graczy podczas walki z {UOSS_SUPERBOSS_ENCOUNTERS_V11134[key]['name']}.",
         "uoss_superboss_helper":key,"helper_max_players":3,
+    })
+
+# Exact helper ability metadata where supplied by the source.
+if "uoss_helper_seifer" in NPCS:
+    NPCS["uoss_helper_seifer"].update({
+        "helper_cost_gold":1000000,
+        "join_phrase":"Join me, Seifer.",
+        "abilities":("Power Breakdown","No Mercy","Zantetsuken Reverse"),
+        "power_breakdown":"physical attack reduced at beginning of fight",
+        "no_mercy_frequency":"once per round",
+        "zantetsuken_reverse_damage":1500000,
+        "zantetsuken_reverse_timing":"towards half way of fight",
     })
 
 # Token exchange points. The generic shop UI can expose the pools; prices are
