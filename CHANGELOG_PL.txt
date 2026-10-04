@@ -1,5 +1,22 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.11.53
+Aktualna paczka: v1.11.67
+
+==============================================================================
+Soulbound v1.11.67 — duża integracja superbossów ze światem Soulbound
+==============================================================================
+
+- Usunięto pole CY z nowych nagród superbossów. Soulbound nie używa obcego systemu CY.
+- Poprawiono rozdzielenie źródłowego LVL od usuniętego CY w nagrodach Odina i Yiazmata.
+- 24-godzinny lockout pozostaje wyłącznie dla Black Rabite, Odina i Yiazmata jako adaptacja źródłowego once per reboot.
+- Ruby WEAPON, Emerald WEAPON i Serpentarius nie otrzymują już wymyślonego 24-godzinnego lockoutu.
+- Usunięto sztuczną deterministyczną rotację ataków superbossów. Sama lista zdolności nie definiuje ich kolejności ani częstotliwości.
+- Usunięto wymyślony moment przyzwania Greater Demona przez Black Rabite.
+- Open Eye zachowuje źródłową losowość wyboru Eye zamiast stałego cyklu.
+- Dokładne ataki procentowe lub fixed-damage nie dokładają już automatycznie zwykłego ciosu w tej samej akcji.
+- Usunięto drugi łańcuch source-only lokacji bossów. Nazwy miejsc ze źródła pozostają metadanymi encounterów, a walki korzystają z istniejącej gałęzi superbossów Soulbound.
+- Sklepy/tokeny superbossów pozostają w istniejących lokacjach Soulbound; nie tworzymy Elsendor, Dwarf Village ani innych obcych miast tylko dla vendorów.
+- Fur Shop Odin: siedem głównych nagród kosztuje 5 000 000 złota + 5 Odin's Mantles; Phoenix Egg 0 złota + 1 Odin's Mantle.
+- Brak wipe'a save'ów.
 
 ==============================================================================
 Soulbound v1.11.53 — globalny audit czasu buffów i debuffów
