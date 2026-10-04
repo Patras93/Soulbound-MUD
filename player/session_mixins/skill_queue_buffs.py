@@ -660,10 +660,10 @@ class SessionSkillQueueBuffsMixin:
             progress=(level-1)/float(max(1,SKILL_MAX_LEVEL-1))
             return 1.05 + 0.70*(progress ** 0.82)
 
-    def mec_branch_multiplier_v0319(self, branch):
+    def mec_branch_multiplier_v0319(self, branch, special=None):
             mult=1.0
-            # Protocols are automatic passives and only strengthen their authored
-            # Mec branch. Inherent weapon masteries remain separate.
+            # Protocols are Automatic passives, but source contracts map them to
+            # explicit skill lists rather than blindly to every skill in a branch.
             protocols={
               "melee":"v0319_mec_strength_protocol",
               "ranged":"v0319_mec_ranged_protocol",
@@ -671,7 +671,12 @@ class SessionSkillQueueBuffsMixin:
               "magic":"v0319_mec_magic_protocol",
             }
             sid=protocols.get(branch)
-            if sid:
+            mapped=tuple(MEC_PROTOCOL_SKILLS_V11155.get(sid,())) if sid else ()
+            if sid and special and str(special) in mapped:
+                mult*=self.mec_protocol_multiplier_v11196(sid)
+            # Legacy callers without a special keep branch behavior only where the
+            # source map is not needed for correctness. Combat callers pass special.
+            elif sid and special is None and branch!="feedback":
                 mult*=self.mec_protocol_multiplier_v11196(sid)
             # Overheat lowers all combat stats, but its numeric penalty is not
             # specified by source; do not fabricate a 25% reduction.
