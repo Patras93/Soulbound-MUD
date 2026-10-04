@@ -1376,13 +1376,108 @@ class SessionCombatSkillsMixin:
                             self.combat_mob_key=mob.key
                             await self.ensure_realtime_combat()
                             return
-                        machine=bool(template.get("machine"))
-                        await self.send(
-                            f"Logic Bomb: próba Paralyze, Silence i Slow na {template['name']}."
-                            + (" Support Effect dodaje Blind, Curse i Immobilize." if support_effect else "")
-                            + (" Machine ma zwiększoną celność trafienia." if machine else "")
+                        machine=bool(
+                            template.get("machine")
+                            or str(template.get("creature_type","")).casefold()=="machine"
                         )
-                        await self.grant_skill_use_xp(skill); return
+                        _logic_level=max(1,min(SKILL_MAX_LEVEL,int(skill_level)))
+                        _logic_progress=(
+                            (_logic_level-1)/float(max(1,SKILL_MAX_LEVEL-1))
+                        )
+                        _logic_will=max(1,int(self.effective_willpower()))
+                        _logic_will_ratio=max(0.01,_logic_will/175.0)
+                        _logic_accuracy=(
+                            float(skill.get("soulbound_base_accuracy",0.45) or 0.45)
+                            + _logic_progress
+                            * float(
+                                skill.get("soulbound_skill_accuracy_bonus_max",0.30)
+                                or 0.30
+                            )
+                            + min(
+                                float(
+                                    skill.get(
+                                        "soulbound_will_accuracy_bonus_max",0.15
+                                    ) or 0.15
+                                ),
+                                0.075*(_logic_will_ratio ** 0.50),
+                            )
+                        )
+                        if machine:
+                            _logic_accuracy += float(
+                                skill.get("soulbound_machine_accuracy_bonus",0.15)
+                                or 0.15
+                            )
+                        _logic_accuracy=max(
+                            0.05,min(
+                                float(skill.get("soulbound_accuracy_cap",0.98) or 0.98),
+                                _logic_accuracy,
+                            )
+                        )
+                        _logic_start=max(
+                            1,int(skill.get("soulbound_duration_rounds_level1",3) or 3)
+                        )
+                        _logic_end=max(
+                            _logic_start,
+                            int(skill.get("soulbound_duration_rounds_level600",10) or 10),
+                        )
+                        _logic_rounds=max(
+                            1,int(round(
+                                _logic_start
+                                + (_logic_end-_logic_start)
+                                * (_logic_progress ** 0.82)
+                            ))
+                        )
+                        _logic_rounds += min(
+                            int(skill.get("soulbound_will_duration_bonus_max",2) or 2),
+                            max(0,int(round((_logic_will_ratio ** 0.50)-1.0))),
+                        )
+                        if random.random() < _logic_accuracy:
+                            _logic_effects={"paralyze","silence","slow"}
+                            if support_effect:
+                                _logic_effects.update({"blind","curse","immobilize"})
+                            _existing=max(
+                                0,int(getattr(mob,"v11196_logic_bomb_rounds",0) or 0)
+                            )
+                            _existing_effects=set(
+                                getattr(mob,"v11196_logic_bomb_effects",set()) or set()
+                            )
+                            mob.v11196_logic_bomb_rounds=_existing+_logic_rounds
+                            mob.v11196_logic_bomb_effects=_existing_effects|_logic_effects
+                            mob.v11196_logic_bomb_cleanseable=True
+                            mob.v11196_logic_paralyze_skip_chance=float(
+                                skill.get("soulbound_paralyze_skip_chance",0.50) or 0.50
+                            )
+                            mob.v11196_logic_slow_skip_every_actions=max(
+                                2,int(skill.get("soulbound_slow_skip_every_actions",2) or 2)
+                            )
+                            mob.v11196_logic_blind_miss_chance=float(
+                                skill.get("soulbound_blind_miss_chance",0.35) or 0.35
+                            )
+                            mob.v11196_logic_curse_damage_multiplier=float(
+                                skill.get("soulbound_curse_damage_multiplier",0.80) or 0.80
+                            )
+                            await self.send(
+                                f"Logic Bomb trafia {template['name']}. "
+                                f"Statusy: {', '.join(sorted(mob.v11196_logic_bomb_effects))}. "
+                                f"Czas: {mob.v11196_logic_bomb_rounds} akcji. "
+                                f"Celność: {int(round(_logic_accuracy*100))} procent."
+                                + (" Bonus Machine." if machine else "")
+                            )
+                        else:
+                            await self.send(
+                                f"Logic Bomb: {template['name']} odpiera wirusa. "
+                                f"Celność: {int(round(_logic_accuracy*100))} procent."
+                                + (" Bonus Machine." if machine else "")
+                            )
+                        if mob.engaged_at<=0:
+                            mob.engaged_at=time.monotonic()
+                        if not mob.engaged_by:
+                            mob.engaged_by=self.character.name
+                        await self.server.auto_assist_party_combat(self,mob)
+                        await self.grant_skill_use_xp(skill)
+                        self.combat_mob_key=mob.key
+                        await self.ensure_realtime_combat()
+                        return
 
                     if special=="satellite_linker" and mob:
                         # Source: one enemy, Attack + Wisdom, repeated minor laser
