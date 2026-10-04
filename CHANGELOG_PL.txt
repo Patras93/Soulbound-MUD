@@ -12,8 +12,9 @@ Soulbound v1.11.97 — pełny audyt i synchronizacja HELP
 - Pełny help skilla rozpoznaje teraz także Regen i pasywki, poprawnie nazywa Siłę Woli/Attack i dodatkowe skale oraz pokazuje znane targety, Stat Influence, Properties i Level Effect bez wymyślania brakujących liczb.
 - Pasywne skille nie sugerują już dodawania do kolejki. Help informuje, że po nauczeniu działają automatycznie.
 - Dodano aktualną pomoc statusów/debuffów: szkodliwe efekty, w tym Silence i obniżenia obrony, są kierowane w przeciwników; heal/buff używa celu zapisanego przy konkretnej umiejętności.
-- Uzupełniono HELP EQ o tarczę i bransoletę oraz skróty ztar/ztarcza i zbra. Dodano opis klasowo świadomego AUTO EQ oraz rozdzielenia danych źródłowych i Bonusów Soulbound w eq info.
-- Uzupełniono indeks pomocy o Archeologię, Kartografię, Ocean 2.0, Super Bossy i relikty Broni Duszy. Dodano osobne tematy help statusy, help superbossy i help progresja600.
+- Uzupełniono HELP EQ o tarczę, bransoletę i akcesoria oraz skróty ztar/ztarcza, zbra i zakc. Dodano opis pełnej siatki 17 logicznych typów EQ, klasowo świadomego AUTO EQ oraz rozdzielenia danych źródłowych i Bonusów Soulbound w eq info.
+- Uzupełniono indeks pomocy o Archeologię, Kartografię, Ocean 2.0, Super Bossy i relikty Broni Duszy. Dodano osobne tematy help statusy, help silence, help superbossy i help progresja600.
+- Naprawiono stare tematy Cyborg/Mec/Inżynier oraz Moogle Board. Pomoc nie twierdzi już, że Cyborg dostaje Moogle Board na starcie: zgodnie z runtime'em jest to unikalna osobista nagroda Black Rabite dostępna wyłącznie dla Cyborga.
 - Zaktualizowano główne tematy profesji: wszystkie 14 profesji i ich narzędzia mają progresję 1-600; Archeologia i Kartografia są pełnymi profesjami eksploracyjnymi.
 - Dodano HELP_TRUTH_AUDIT_V11197. Audit blokuje regresję kluczowych tematów do limitu 1-400, starej liczby profesji, starej pojemności kolejki, błędnych cooldownów oraz pominięcia tarczy/bransolety.
 - Brak wipe'a save'ów. Ten PR nie wykonuje deployu; wdrożenie pozostaje osobną decyzją po większej paczce zmian.
