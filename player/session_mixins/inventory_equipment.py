@@ -430,6 +430,14 @@ class SessionInventoryEquipmentMixin:
                     )
                     if fixed_stats:
                         extra += f" Statystyki bazowe: {fixed_stats}."
+                if item and item.get("soulbound_balance_stats"):
+                    balance_stats = ", ".join(
+                        f"{CLASS_SET_STAT_NAMES.get(stat, stat)} +{amount}"
+                        for stat, amount in item.get("soulbound_balance_stats", {}).items()
+                        if int(amount or 0) != 0
+                    )
+                    if balance_stats:
+                        extra += f" Bonus Soulbound: {balance_stats}."
                 if item and item.get("cyborg_board_scaling") == "character_level":
                     _level = int(self.character.character_level)
                     _mb = moogle_board_stat_bonus_v0313(_level)
@@ -539,6 +547,8 @@ class SessionInventoryEquipmentMixin:
             }
             stat_power = int(item.get("affix_amount", 0) or 0) + sum(
                 max(0, int(v or 0)) for v in (item.get("stats") or {}).values()
+            ) + sum(
+                max(0, int(v or 0)) for v in (item.get("soulbound_balance_stats") or {}).values()
             )
             return (
                 int(item.get("defense", 0) or 0),
@@ -566,6 +576,7 @@ class SessionInventoryEquipmentMixin:
             )
             defense = max(0, int(item.get("defense", 0) or 0)) + v03042_upgrade_defense_bonus(item, upgrade_level)
             stats = sum(max(0, int(v or 0)) for v in (item.get("stats") or {}).values())
+            stats += sum(max(0, int(v or 0)) for v in (item.get("soulbound_balance_stats") or {}).values())
             stats += v03042_upgrade_stat_bonus(upgrade_level)
             props = sum(max(0, int(v or 0)) for v in (item.get("properties") or {}).values())
             # Source-backed special defenses must participate in AUTO EQ too.
