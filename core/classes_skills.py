@@ -2553,6 +2553,27 @@ def _mec_contract_audit_v11149():
         "jammer":20,"heal_beam":36,"logic_bomb":155,
     }
     source_support_mp_costs={"jammer":40,"heal_beam":72}
+    cosmic=rows.get("cosmic_rave")
+    if cosmic:
+        if str(cosmic.get("scale"))!="attack":
+            errors.append(f"cosmic_rave:scale={cosmic.get('scale')} expected=attack")
+        if str(cosmic.get("secondary_scale"))!="dexterity":
+            errors.append(
+                f"cosmic_rave:secondary={cosmic.get('secondary_scale')} expected=dexterity"
+            )
+    vmax=rows.get("vmax")
+    if vmax:
+        if str(vmax.get("scale"))!="willpower":
+            errors.append(f"vmax:scale={vmax.get('scale')} expected=willpower")
+        if str(vmax.get("support_weapon_model"))!="mec_soul_weapon":
+            errors.append(
+                f"vmax:support_weapon_model={vmax.get('support_weapon_model')} expected=mec_soul_weapon"
+            )
+    support_contract=MEC_CANONICAL_CONTRACT_V11149["branches"]["support"]
+    if str(support_contract.get("support_weapon"))!="soul_weapon":
+        errors.append(
+            f"support:weapon={support_contract.get('support_weapon')} expected=soul_weapon"
+        )
     for sid,(unlock,branch) in _MEC_EXPECTED_V11149.items():
         row=rows.get(sid)
         if not row: errors.append(f"missing:{sid}"); continue
