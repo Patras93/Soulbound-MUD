@@ -62,7 +62,7 @@ class SessionEquipmentStatsMixin:
                         totals[stat] += int(amount)
 
                 # v1.00.8: Moogle Board ma łagodne progi 1-150, potem skaluje się co Level.
-                if row["item_id"] == "moogle_board" and item.get("cyborg_board_scaling") == "character_level":
+                if item.get("cyborg_board_scaling") == "character_level":
                     board_bonus = moogle_board_stat_bonus_v0313(self.character.character_level)
                     for stat in ("strength", "dexterity", "constitution", "intelligence", "willpower"):
                         totals[stat] += board_bonus

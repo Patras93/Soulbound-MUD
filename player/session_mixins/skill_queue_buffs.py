@@ -707,7 +707,7 @@ class SessionSkillQueueBuffsMixin:
             if kind in ("damage", "drain", "execute", "aoe_damage"):
                 if not mob or not mob.alive or mob.room_id != self.character.room_id:
                     return False
-            elif kind == "heal":
+            elif kind in ("heal", "regen"):
                 recipients = self.server.party_sessions(
                     self.account_id, same_room=self.character.room_id
                 ) or [self]

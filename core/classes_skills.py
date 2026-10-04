@@ -1515,6 +1515,17 @@ ENDGAME_CLASS_SKILLS = {
     ],
     "Kapłan": [
         {
+            "id": "priest_regen",
+            "name": "Regen",
+            "aliases": ["regen", "white magic regen", "whitemagic regen"],
+            "natural_tags": ["heal", "leczenie", "regen", "odnowa"],
+            "unlock": 1, "kind": "regen", "cooldown": 0, "mana": 8,
+            "desc": "Regeneracja Kapłana. Cel: siebie albo jeden sojusznik. Siła Woli wpływa na efekt, a poziom umiejętności zwiększa czas działania.",
+            "scale": "willpower", "source_extendable": True, "source_dispellable": True,
+            "source_reflectable": True, "source_silenceable": True,
+            "source_duration_scales_with_level": True,
+        },
+        {
             "id": "priest_light_beam",
             "name": "Promień Światła",
             "aliases": ["promien swiatla", "promień światła", "light beam"],

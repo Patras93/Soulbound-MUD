@@ -91,7 +91,14 @@ def superboss_personal_unique_drops_v11158(db, recipients, boss_key):
     for session in recipients:
         owned = session.server.db.collection_entry_ids(session.account_id, "equipment")
         eligible = [item_id for item_id in pool if item_id not in owned]
-        item_id = random.choice(eligible or pool)
+        if str(boss_key)=="black_rabite" and str(getattr(session.character,"race",""))!="Cyborg":
+            # The source has one Cyborg-conditional reward. In Soulbound the
+            # Moogle Board is the existing Cyborg-oriented Board reward.
+            eligible=[item_id for item_id in eligible if item_id!="uoss_black_rabite_unique_10"]
+            fallback=[item_id for item_id in pool if item_id!="uoss_black_rabite_unique_10"]
+        else:
+            fallback=list(pool)
+        item_id = random.choice(eligible or fallback)
         db.add_item(session.account_id, item_id, 1)
         awards.append((session, item_id))
     return awards
@@ -422,3 +429,34 @@ def superboss_element_multiplier_v11173(template, element):
     # multiplier in the supplied contract. Keep it queryable without fabricating math.
     return 1.0,False
 
+
+
+UOSS_HELPER_ABILITIES_V11174 = {
+    "Popoi": ("Air Blast","Earth Slide","Acid Storm","Vine Hell","Luna Mini","Faerie Walnut"),
+    "Primm": ("Lucent Beam","Cure Water","Bubble","Lumina","Dryad Preach"),
+    "Byblos": ("Parasite","Pollute Soul","Cure","X-Ether"),
+    "Montblanc": ("Firaga","Blizzaga","Thundaga","Darkra","Bioga","Flare","Drain","Syphon","Bubble"),
+    "Seifer": ("Power Breakdown","No Mercy","Zantetsuken Reverse"),
+}
+
+def superboss_helper_ability_names_v11174(session, template):
+    profile=superboss_helper_profile_v11137(session,template)
+    if not profile:
+        return ()
+    return UOSS_HELPER_ABILITIES_V11174.get(str(profile.get("name")),())
+
+def superboss_helper_passives_v11174(session, template, mob):
+    """Exact helper mechanics that do not require inventing power/cadence."""
+    profile=superboss_helper_profile_v11137(session,template)
+    if not profile:
+        return ()
+    name=str(profile.get("name"))
+    key=superboss_key_from_template_v11135(template)
+    effects=[]
+    if name=="Seifer" and key=="odin" and not getattr(mob,"uoss_seifer_breakdown_v11174",False):
+        mob.uoss_seifer_breakdown_v11174=True
+        mob.uoss_power_breakdown_v11174=True
+        effects.append("Seifer: Power Breakdown aktywny na początku walki.")
+    if name=="Byblos" and key=="serpentarius":
+        mob.uoss_ignore_helper_target_v11174=True
+    return tuple(effects)
