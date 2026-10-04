@@ -10,6 +10,7 @@ from core.progression_600 import (
     SOUL_MAX_LEVEL,
     SOUL_MAX_TIER,
     SOUL_WEAPON_MASTERY_MAX_LEVEL,
+    soul_tier_title_for_class,
 )
 from core.progression_resources import character_xp_to_next, class_mastery_xp_to_next
 from network.protocol_gameplay_utils import normalize_lookup_text
@@ -198,7 +199,7 @@ class SessionProgressTitlesV0580Mixin:
         else:
             soul_xp = f"Soul XP {c.soul_xp}/{c.soul_xp_to_next()}"
         await self.send(
-            f"Dusza: Soul Level {c.soul_level}/{SOUL_MAX_LEVEL}; Tier {c.soul_tier}/{SOUL_MAX_TIER}; {soul_xp}."
+            f"Dusza: Soul Level {c.soul_level}/{SOUL_MAX_LEVEL}; Tier {c.soul_tier}/{SOUL_MAX_TIER} — {soul_tier_title_for_class(c.soul_tier, c.class_name)}; {soul_xp}."
         )
         if int(c.soul_weapon_mastery_level) >= SOUL_WEAPON_MASTERY_MAX_LEVEL:
             swm = "maksimum"
