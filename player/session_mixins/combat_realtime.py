@@ -543,11 +543,10 @@ class SessionCombatRealtimeMixin:
                                         if not enemy_mob.alive:
                                             break
                                         continue
-                                    if (
-                                        _source_ability
-                                        and _logic_active
-                                        and "silence" in _logic_effects
-                                    ):
+                                    _logic_silenced=bool(
+                                        _logic_active and "silence" in _logic_effects
+                                    )
+                                    if _source_ability and _logic_silenced:
                                         await self.server.party_combat_broadcast(
                                             target_session,
                                             f"{_enemy_template['name']}: Silence z Logic Bomb blokuje {_source_ability}.",
@@ -611,6 +610,20 @@ class SessionCombatRealtimeMixin:
                                                 ),
                                             )
                                         )
+                                    _silence_blocks_basic_magic=bool(
+                                        _logic_silenced
+                                        and str(
+                                            _enemy_template.get("damage_type","")
+                                            or ""
+                                        ).strip().casefold()=="magic"
+                                    )
+                                    if _silence_blocks_basic_magic:
+                                        await self.server.party_combat_broadcast(
+                                            target_session,
+                                            f"{_enemy_template['name']}: Silence blokuje magiczny atak.",
+                                            detail="normal",
+                                        )
+                                        continue
                                     await self.server.party_combat_broadcast(
                                         target_session,
                                         f"{_enemy_template['name']} atakuje {target_session.character.name}."
