@@ -1,5 +1,15 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.11.80
+Aktualna paczka: v1.11.81
+
+==============================================================================
+Soulbound v1.11.81 — finalny audit adaptacji UOSS
+==============================================================================
+
+- Usunięto pozostałe bind_on_pickup i stare opisy przypisania do postaci z nagród UOSS.
+- Black Rabite: usunięto niepotwierdzone założenie, że Moogle Board jest nagrodą tylko dla Cyborga. Źródło nie identyfikuje konkretnego z 10 dropów, więc gra tego nie zgaduje.
+- Dodano wspólny helper runtime dla źródłowych Wardów EQ; Devil King Shield zachowuje 65% Fire/Ice/Lightning bez zmiany danych źródłowych.
+- Brakujące obrażenia i częstotliwości umiejętności superbossów/helperów uznajemy za niedostępne; nie są wymyślane.
+- Brak wipe'a save'ów.
 
 ==============================================================================
 Soulbound v1.11.80 — osobny slot bransoletki
