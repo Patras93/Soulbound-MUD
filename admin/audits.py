@@ -303,8 +303,12 @@ if FULL_HELP_AUDIT_V03021["error_count"]:
 def eq_shop_audit_v03021():
     errors=[]
     slots=set(CLASS_EQUIPMENT_SLOT_DEFS)
-    if len(slots)!=14:
-        errors.append(f"logical EQ slots={len(slots)}, expected 14")
+    # v1.11.x: shields are now a full stat-bearing class-EQ progression slot.
+    # The canonical class shop set therefore contains 15 logical slots.
+    if len(slots)!=15:
+        errors.append(f"logical EQ slots={len(slots)}, expected 15")
+    if "shield" not in slots:
+        errors.append("logical EQ slots missing shield")
     for class_name,definition in CLASS_EQUIPMENT_SETS.items():
         room=definition.get("room")
         if room not in SHOPS:
