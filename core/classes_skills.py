@@ -2370,7 +2370,7 @@ def _v0319_install_full_mec_kit():
         # Ranged
         ("Crosshair",1,"damage",200,"ranged","crosshair","One-enemy ranged attack influenced by Attack and Critical Hit Chance. It attempts to deliver a critical hit and carries the active Soul Weapon element."),
         ("Range Fire",8,"aoe_damage",500,"ranged","range_fire","Attack-based ranged barrage against all enemies at full non-diminishing power. Carries the active Soul Weapon element."),
-        ("Dispose",32,"aoe_damage",1000,"ranged","dispose","Heavy-duty lasers hit all enemies at full AoE power and cause Feedback damage."),
+        ("Dispose",32,"aoe_damage",1000,"ranged","dispose","Attack-based heavy-duty laser barrage against all enemies at full non-diminishing power. Carries the active Soul Weapon element and inflicts Feedback damage on the Mec after the attack."),
         ("Satellite Linker",44,"damage",1200,"ranged","satellite_linker","Laser bits hover around one enemy and repeatedly deal minor damage for a short period. Attack and Wisdom influence damage; higher Skill Level makes the bits operate longer."),
         ("Magnify",90,"damage",1500,"ranged","magnify","One-enemy weapon-overload attack influenced by Attack and Wisdom. Wisdom magnifies damage; Skill Level and Wisdom reduce the chance of systems failure. Failure causes weapon Overheat/reboot. Requires the Mec ranged Soul Weapon role."),
         ("Shoot-All",110,"aoe_damage",2000,"ranged","shoot_all","Fires all ammunition at all enemies; V-MAX increases damage and crit."),
@@ -2590,7 +2590,23 @@ def _v0319_install_full_mec_kit():
                 "requires_soul_weapon":"ranged",
                 "single_soul_weapon":True,
             })
-        if special=="dispose": row.update({"aoe_non_diminishing":True,"carries_soul_weapon_elements":True,"feedback_damage":True,"feedback_cost_source_defined":False,"single_soul_weapon":True})
+        if special=="dispose":
+            row.update({
+                "scale":"attack",
+                "source_stat_influence":["attack"],
+                "source_properties":["carries_elements"],
+                "target_mode":"all_enemies_non_diminishing",
+                "aoe_non_diminishing":True,
+                "carries_soul_weapon_elements":True,
+                "requires_soul_weapon":"ranged",
+                "feedback_damage":True,
+                "feedback_cost_source_defined":False,
+                "soulbound_feedback_max_hp_pct":0.08,
+                "feedback_once_per_cast":True,
+                "feedback_repair_eligible":True,
+                "single_soul_weapon":True,
+                "balance_model":"soulbound_feedback_8pct_maxhp_once_per_cast",
+            })
         if special=="crosshair":
             row.update({
                 "scale":"attack",
@@ -2985,6 +3001,31 @@ def _mec_contract_audit_v11149():
             errors.append("intercept_system: numeric Skill Level curve must remain marked unsourced")
         if bool(intercept.get("counter_trigger_chance_source_defined")):
             errors.append("intercept_system: no source trigger chance may be invented")
+
+    dispose=rows.get("dispose")
+    if dispose:
+        if str(dispose.get("scale"))!="attack":
+            errors.append("dispose: primary scale must be Attack")
+        if list(dispose.get("source_stat_influence") or [])!=["attack"]:
+            errors.append("dispose: source influence must be Attack")
+        if list(dispose.get("source_properties") or [])!=["carries_elements"]:
+            errors.append("dispose: source Properties must be Carries Elements")
+        if str(dispose.get("target_mode"))!="all_enemies_non_diminishing":
+            errors.append("dispose: target mode must be All Enemies non-diminishing")
+        if not bool(dispose.get("aoe_non_diminishing")):
+            errors.append("dispose: area damage must remain non-diminishing")
+        if not bool(dispose.get("carries_soul_weapon_elements")):
+            errors.append("dispose: must carry Soul Weapon elements")
+        if str(dispose.get("requires_soul_weapon"))!="ranged":
+            errors.append("dispose: ranged weapon requirement must map to Soul Weapon")
+        if not bool(dispose.get("feedback_damage")):
+            errors.append("dispose: Feedback self-damage missing")
+        if bool(dispose.get("feedback_cost_source_defined")):
+            errors.append("dispose: Feedback numeric cost must remain marked unsourced")
+        if not bool(dispose.get("feedback_once_per_cast")):
+            errors.append("dispose: Feedback must be applied once per cast")
+        if not bool(dispose.get("feedback_repair_eligible")):
+            errors.append("dispose: Feedback must be eligible for Self-Repair")
 
     range_fire=rows.get("range_fire")
     if range_fire:
