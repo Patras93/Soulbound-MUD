@@ -2865,7 +2865,7 @@ def _all_class_endgame_damage_audit_v11196():
                 f"{class_name}: brak ofensywnej umiejętności endgame od Biegłości {endgame_unlock}"
             )
         bad = []
-        for skill in offensive:
+        for skill in endgame:
             scale = str(skill.get("scale", "") or "").strip().lower()
             if not scale:
                 bad.append(f"{skill.get('name', skill.get('id', '?'))}: brak scale")
