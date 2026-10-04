@@ -62,12 +62,12 @@ class SessionBaseSocialMixin:
             if len(party) > 3:
                 await self.send("Popoi i Primm pomagają tylko drużynie liczącej 3 lub mniej graczy.")
                 return True
-            cost_gold = 1000000
-            cost_silver = cost_gold * 100
+            cost_mithril = 1
+            cost_silver = cost_mithril * 1000000 * 100
             master = self.server.db.master_account_for_character(self.account_id)
             current = int(self.server.db.shared_wallet_for_master(master)[0])
             if current < cost_silver:
-                await self.send(f"Potrzebujesz {cost_gold} złota, aby zatrudnić {helper}.")
+                await self.send(f"Potrzebujesz {cost_mithril} mithril, aby zatrudnić {helper}.")
                 return True
             party_key = self.party_key() if self.party_key() is not None else self.account_id
             attr = "_uoss_helper_choice_" + str(party_key)
@@ -77,7 +77,7 @@ class SessionBaseSocialMixin:
             self.server.db.set_shared_wallet_for_master(master, current - cost_silver, 0, 0)
             self.server.db.apply_shared_wallet_to_character(self.character)
             setattr(self.server, attr, helper)
-            await self.send(f"{helper} dołącza do walki z Black Rabite. Zapłacono {cost_gold} złota.")
+            await self.send(f"{helper} dołącza do walki z Black Rabite. Zapłacono {cost_mithril} mithril.")
             return True
 
     async def say(self, text):
