@@ -4,6 +4,7 @@
 v0.47.0: explicit combat architecture; no compatibility-global injection.
 """
 import asyncio
+import math
 import random
 import time
 
@@ -67,6 +68,20 @@ class SessionCombatRealtimeMixin:
                         f"Soul Weapon Mastery wzrasta do {result['level']}/{SOUL_WEAPON_MASTERY_MAX_LEVEL}.",
                         combat_detail="essential",
                     )
+
+    def basic_attack_hit_count_v11196(self):
+                """DEX/AGI-driven Soul Weapon multi-hit; Haste doubles the series.
+
+                Calibrated from supplied UOSS Mec logs:
+                AGI 547 -> 5 base hits, 10 with Haste;
+                AGI 429 + Haste -> 9 hits.
+                sqrt scaling keeps additional DEX meaningful without a hard hit cap.
+                """
+                dex=max(1,int(self.effective_dexterity()))
+                raw_hits=math.sqrt(float(dex))/4.5
+                if self.beneficial_status_active_v11154("haste"):
+                    raw_hits*=2.0
+                return max(1,int(raw_hits))
 
     async def realtime_player_action(self, mob):
                 if not mob or not mob.alive:
@@ -162,7 +177,22 @@ class SessionCombatRealtimeMixin:
                 damage = self.v0210_adjust_player_damage(damage)
                 _basic_kind = "physical" if self.character.class_type == "physical" else "magic"
                 damage, machine_note = v0314_adjust_damage_vs_template(template, damage, _basic_kind, "")
-                mob.hp -= damage
+
+                # v1.11.96: UOSS logs show ordinary weapon attacks as AGI-driven
+                # multi-hit strings. Haste doubles the available string. Resolve
+                # hits sequentially and stop immediately when the target dies,
+                # matching logs where a nearly dead target receives fewer hits.
+                _potential_hits = 1 if _zantetsuken_no_melee else self.basic_attack_hit_count_v11196()
+                _actual_hits = 0
+                _per_hit_damage = max(0, int(damage))
+                _total_basic_damage = 0
+                for _ in range(_potential_hits):
+                    if mob.hp <= 0:
+                        break
+                    mob.hp -= _per_hit_damage
+                    _total_basic_damage += _per_hit_damage
+                    _actual_hits += 1
+                damage = _total_basic_damage
                 if _uoss_helper_damage > 0 and mob.hp > 0:
                     _uoss_helper_damage = await self.apply_boss_defense(mob, _uoss_helper_damage)
                     _uoss_helper_damage = self.v0210_adjust_player_damage(_uoss_helper_damage)
@@ -202,8 +232,13 @@ class SessionCombatRealtimeMixin:
                 )
                 await self.send_combat(
                     f"Broń Duszy {self.character.soul_weapon}: {technique}. "
-                    f"Cel {template['name']}. Zadajesz {damage} obrażeń. "
-                    f"Przeciwnik: {max(0, mob.hp)} z {template['max_hp']} życia."
+                    f"Cel {template['name']}. "
+                    + (
+                        f"Atakujesz {_actual_hits} razy i zadajesz łącznie {damage} obrażeń. "
+                        if _actual_hits > 1 else
+                        f"Zadajesz {damage} obrażeń. "
+                    )
+                    + f"Przeciwnik: {max(0, mob.hp)} z {template['max_hp']} życia."
                     + (f" Właściwość Broni Duszy leczy {soul_heal}." if soul_heal > 0 else "")
                     + (f" Odzyskujesz {_mana_restore} Many." if _mana_restore > 0 else "")
                     + (f" Echo Broni Duszy zadaje dodatkowo {echo_damage} obrażeń." if echo_damage > 0 else "")
@@ -211,7 +246,8 @@ class SessionCombatRealtimeMixin:
                     "normal",
                 )
                 _party_attack = (
-                    f"{self.character.name}: {technique}, {damage + echo_damage} obrażeń w {template['name']}"
+                    f"{self.character.name}: {technique}, {_actual_hits} trafień, "
+                    f"{damage + echo_damage} obrażeń w {template['name']}"
                 )
                 if critical:
                     _party_attack += ". Krytyk"
