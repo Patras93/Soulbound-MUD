@@ -5,6 +5,8 @@ Aktualna paczka: v1.11.96
 Soulbound v1.11.96 — globalny balans 14 klas, EQ i zasobów
 ==============================================================================
 
+- Porządek dokumentacji v1.11.96: skorygowano starsze wpisy changeloga, które po późniejszych poprawkach były już nieprawdziwe (AP jako base_power, MP tylko jako metadata, Magic Attack=tylko INT, Wisdom=Will, Support Effect od dominującego WILL oraz stary +35% Pop Knight vs Flying). Historyczne miejsca są teraz jawnie oznaczone jako superseded/skorygowane.
+
 - Balans nie jest już robiony wyłącznie pod Meca/Cyborga. Wszystkie 14 klas korzysta z jednego rdzenia progresji HP/MP, ale zachowuje własną tożsamość statów, pasywek, setów i obrażeń.
 - HP skaluje się teraz mocno z Levelem i Kondycją bez niszczenia early game. Level 1 pozostaje blisko starej skali; około Levelu 175 postać z Kondycją równą Levelowi ma około 13,5 tys. bazowego HP, a podwojenie Kondycji daje około 36,5 tys. przed mnożnikami rasy/setów. Powyżej 175 wzrost trwa wolniej zamiast eksplodować wykładniczo.
 - Mana skaluje się równocześnie z Inteligencją i Siłą Woli. Krzywa jest niższa od HP, bo MP jest zasobem wydawanym, ale buildy magiczne/supportowe nie zostają z pulą z early game. Leczenie klasowe oparte na procencie maksymalnego HP automatycznie rośnie razem z nową pulą życia.
@@ -190,7 +192,7 @@ Soulbound v1.11.85 — Combat 2.0: globalne skalowanie buildów
 - Ujednolicono rdzeń obrażeń ofensywnych: rozwój postaci ma wpływać na realny damage wszystkich klas, a dedykowane ścieżki nie mogą omijać statystyk.
 - Fizyczne/melee/feedback korzystają z Siły, ranged i techniki zręcznościowe ze Zręczności, magia z Inteligencji zgodnie z polem scale konkretnego skilla.
 - Efektywna statystyka zawiera EQ, runy, enchanty, bonusy setów i aktywny relikt Broni Duszy, więc nowe endgame EQ realnie zwiększa obrażenia.
-- Dedykowane ataki Meca i Inżyniera zachowują własny base_power, ale dodają do niego Broń Duszy i właściwą statystykę postaci przed Skill Level, buffami i pozostałymi mnożnikami.
+- [Historyczne, skorygowane w v1.11.96] Authored skille Meca i Inżyniera nie używają źródłowego AP jako `base_power`. Ich damage wynika z rdzenia Soulbound: statów/EQ, Soul Power, Skill Level, protokołów/pasywek i jawnych mechanik skilla.
 - Cosmic Rave, Tiger Rampage oraz ofensywne narzędzia Inżyniera nie są już odcięte od podstawowego wzrostu builda.
 - Procentowe mechaniki źródłowe (np. Launcher/Chainsaw) zachowują swoje specjalne zasady; nie zamieniono ich w sztuczne stałe obrażenia.
 - Nie zmieniono HP superbossów i nie wpisano na sztywno wyniku 18 000 obrażeń: benchmark ma wynikać ze statów, Skill Level, EQ i buffów.
@@ -424,11 +426,11 @@ Soulbound v1.11.53 — globalny audit czasu buffów i debuffów
 Soulbound v1.11.51 — Mec canonical help batch
 ==============================================================================
 
-- Satellite Linker poprawiony do Base AP 1200; Wisdom/Will zwiększa obrażenia bitów, Skill Level wydłuża ich działanie.
+- Satellite Linker: źródłowy Base AP 1200 oznacza punkty nauki, nie damage. Wisdom mapuje się w Soulbound na INT jako stat poboczny; Skill Level wydłuża działanie bitów.
 - Logic Bomb poprawiony z Level 95 na kanoniczny Level 92.
 - Plural Slash: Attack/Strength + wtórne Agility/Dexterity; Carries Elements przez jedną Broń Duszy.
-- Magnify: Wisdom/Will wzmacnia profil umiejętności i wraz ze Skill Level zmniejsza ryzyko SYSTEM LOCK po overloadzie.
-- Mec Sonata: Holy, 50 MP jako metadata UOSS, Extendable tymczasowy Level Down.
+- Magnify: Wisdom mapuje się w Soulbound na INT; wraz ze Skill Level wzmacnia profil i zmniejsza ryzyko Systems Failure/Overheat. Nie jest to Will.
+- Mec Sonata: wcześniejsze oznaczenie Holy/MP-only-metadata zostało skorygowane. Aktualny kontrakt to 50 MP faktycznie pobierane, Stat Influence Magic Attack, Properties Extendable i tymczasowe obniżenie level-equivalent power przeciwnika; bez wymyślonego elementu Holy.
 - Starlight Shower: jeden cel przy pojedynczej walce, diminishing AoE dla wielu zaangażowanych celów, V-MAX = pełne non-diminishing AoE.
 - Hypno Flash: Will + Skill Level zwiększają Accuracy i Duration; Support Effect poprawia celność; Sleep jest Extendable.
 - Logic Bomb: Will + Skill Level zwiększają Accuracy/Duration, Machine ma bonus hitrate; podstawowo Paralyze/Silence/Slow, Support Effect dodaje Blind/Curse/Immobilize.
@@ -458,8 +460,8 @@ Soulbound v1.11.49 — pełny kontrakt klasy Mec
 - Melee: Strength/Attack, z Dexterity jako możliwą statystyką wtórną.
 - Ranged: Dexterity/Attack, z Willpower jako możliwą statystyką wtórną.
 - Feedback: koszt HP i synergia z wytrzymałością; Feedback Protocol odpowiada za potency tej gałęzi.
-- Magic: Intelligence/Magic Attack, efekty żywiołowe; źródłowe MP pozostaje metadanymi, bo Mec Soulbound nie zużywa Many.
-- Support: Willpower; Support Effect jest osobnym stylem jednej Broni Duszy, aktywnym gdy Willpower jest dominującą statystyką bojową.
+- [Historyczne, skorygowane w v1.11.92+ / v1.11.96] Magic Meca używa źródłowych kosztów MP jako realnego zasobu runtime; Magic Attack korzysta ze wspólnego rdzenia magicznego, INT oraz płaskiego Magic Attack z EQ.
+- [Historyczne, skorygowane później] Support Effect nie zależy od dominującego WILL. Jedna Broń Duszy Meca przejmuje rolę źródłowego support weapon i jej aktywny profil support uruchamia efekty wsparcia.
 - Support Effect nie jest już błędnie utożsamiany z V-MAX.
 - Strength/Ranged/Feedback/Magic Protocol są jedynymi pasywkami zwiększającymi potency odpowiadających im skilli Meca; inherenty nie są drugi raz doliczane do mnożnika gałęzi.
 - Cure Beam: potwierdzone Reqs None; wcześniejsze wymuszenie Level 10 było błędne i zostało usunięte. W Soulbound oznacza to Biegłość Meca 1.
@@ -472,9 +474,9 @@ Soulbound v1.11.48 — Mec Area Bomb
 
 - Area Bomb od Level 8 jest ognistym atakiem obszarowym Meca.
 - Trafia wyłącznie przeciwników aktualnie zaangażowanych w walkę z Mecem lub jego lokalną drużyną (All Targetted Enemies), a nie każdy mob stojący w pokoju.
-- Magic Attack z UOSS jest odwzorowany przez Intelligence Soulbound.
+- [Historyczne, skorygowane w v1.11.96] Magic Attack nie jest sprowadzany wyłącznie do INT: skille używają wspólnego rdzenia magicznego, efektywnego INT oraz płaskiego Magic Attack z EQ zgodnie ze źródłowym Stat Influence.
 - Area Bomb korzysta z Magic Protocol i zadaje obrażenia typu Fire.
-- Źródłowy koszt 35 MP zachowano jako metadata UOSS; Mec nie zużywa Many.
+- [Historyczne, skorygowane w v1.11.92+] Area Bomb faktycznie zużywa 35 MP; koszt nie jest już wyłącznie metadanymi.
 - Bez cooldownu.
 - Brak wipe'a save'ów.
 
@@ -486,7 +488,7 @@ Soulbound v1.11.47 — Mec Pop Knight
 - Skaluje się z fizycznego Attack/Strength i korzysta z pasywnego Strength Protocol.
 - Dostosowano wymóg melee weapon do Soulbound: Mec korzysta ze swojej jednej Broni Duszy i nie potrzebuje drugiej broni.
 - Pop Knight ma Carries Elements: przenosi element Broni Duszy, z fizycznym typem jako fallback.
-- Przeciw przeciwnikom oznaczonym jako Flying zadaje +35% obrażeń.
+- [Historyczne, skorygowane w v1.11.96] Źródło nie podaje liczbowego bonusu przeciw Flying. Soulbound używa jawnej adaptacji x1.25 damage, a nie wcześniejszego +35%.
 - Bez cooldownu.
 - Brak wipe'a save'ów.
 
