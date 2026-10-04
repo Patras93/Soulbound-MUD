@@ -278,6 +278,9 @@ class SessionCombatRealtimeMixin:
                                     enemy_mobs = [mob]
 
                             for enemy_mob in enemy_mobs:
+                                # One combat round belongs to the mob action, not to
+                                # each party member selected as its target.
+                                enemy_mob.combat_turn=int(getattr(enemy_mob,"combat_turn",0) or 0)+1
                                 if (
                                     self.closed
                                     or self.current_hp <= 0
