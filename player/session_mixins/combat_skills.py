@@ -396,7 +396,7 @@ class SessionCombatSkillsMixin:
                             # Chainsaw can use Demi / upgraded Quarter as a floor effect.
                             if special=="chainsaw":
                                 remaining_fraction=0.25 if upgraded else 0.50
-                                damage=max(int(base*local_mult), int(max(1,target.hp)*(1.0-remaining_fraction)))
+                                damage=max(int(self.offensive_skill_core_power_v11185(skill, base)*local_mult), int(max(1,target.hp)*(1.0-remaining_fraction)))
                             else:
                                 damage=max(1,int(self.offensive_skill_core_power_v11185(skill, base)*local_mult)+random.randint(-3,3))
                             # Drill bypasses boss defense/protect-shell equivalent.
