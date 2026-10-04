@@ -69,6 +69,9 @@ class SessionRuntimeStateMixin:
             # Aktywne buffy wzmacniają wszystkie skille i spelle o mierzalnej sile
             # (obrażenia, leczenie i guard), także przy multiclassie.
             self.active_skill_buffs = {}
+            # Session-local choice: Soul Weapon relics are inventory upgrades,
+            # not separate equipment slots. None means automatic best available.
+            self.active_soul_weapon_relic_id_v11179 = None
             self._party_auto_heal_busy = False
             # v0.37.1: po śmierci w lokalnej drużynie postać może przez chwilę
             # pozostać powalona w pokoju i zostać wskrzeszona przez członka party.
