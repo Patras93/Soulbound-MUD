@@ -22,6 +22,7 @@ from world.uoss_superboss_runtime import (
     superboss_apply_source_status_v11173, superboss_combat_start_effects_v11176,
     superboss_add_round_event_v11176, superboss_clear_source_statuses_v11176,
     superboss_source_timed_effect_v11179, superboss_advance_timed_effects_v11179,
+    superboss_healing_blocked_v11179,
 )
 
 class SessionCombatRealtimeMixin:
@@ -114,7 +115,7 @@ class SessionCombatRealtimeMixin:
                 ))
                 if _is_boss_target:
                     _boss_bonus = float(trait_totals["boss_damage_percent"]) + float(mastery["boss_damage_percent"])
-                    if _boss_bonus > 0:
+                    if _boss_bonus > 0 and not _zantetsuken_no_melee:
                         damage = max(1, int(round(damage * (1.0 + _boss_bonus / 100.0))))
                 mana_focus_gain = int(getattr(self, "_last_mana_focus_gain", 0) or 0)
                 if mana_focus_gain > 0:
@@ -134,9 +135,11 @@ class SessionCombatRealtimeMixin:
                         "normal",
                     )
                 _uoss_helper = superboss_helper_profile_v11137(self, template)
-                if _uoss_helper:
+                if _uoss_helper and not _zantetsuken_no_melee:
                     damage = max(1, int(round(damage * float(_uoss_helper["damage_multiplier"]))))
                 damage = await self.apply_boss_defense(mob, damage)
+                if _zantetsuken_no_melee:
+                    damage = 0
                 damage = self.v0210_adjust_player_damage(damage)
                 _basic_kind = "physical" if self.character.class_type == "physical" else "magic"
                 damage, machine_note = v0314_adjust_damage_vs_template(template, damage, _basic_kind, "")
@@ -144,13 +147,13 @@ class SessionCombatRealtimeMixin:
                 self._recap52_dealt=int(getattr(self,"_recap52_dealt",0))+max(0,int(damage))
                 await self.grant_soul_weapon_mastery_hit_xp()
                 echo_damage = 0
-                if mob.hp > 0 and mastery["echo_chance"] > 0 and random.random() < mastery["echo_chance"]:
+                if not _zantetsuken_no_melee and mob.hp > 0 and mastery["echo_chance"] > 0 and random.random() < mastery["echo_chance"]:
                     echo_damage = max(1, int(round(damage * mastery["echo_damage_percent"] / 100.0)))
                     mob.hp -= echo_damage
                     self._recap52_dealt = int(getattr(self, "_recap52_dealt", 0)) + echo_damage
                 soul_heal = 0
                 _lifesteal = float(trait_totals.get("lifesteal_percent", 0.0) or 0.0)
-                if _lifesteal > 0 and self.current_hp < self.max_hp():
+                if _lifesteal > 0 and self.current_hp < self.max_hp() and not superboss_healing_blocked_v11179(self):
                     soul_heal = min(self.max_hp() - self.current_hp, max(1, int(round(damage * _lifesteal / 100.0))))
                     if soul_heal > 0:
                         self.current_hp += soul_heal
