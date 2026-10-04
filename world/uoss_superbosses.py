@@ -222,9 +222,9 @@ if UOSS_SUPERBOSS_AUDIT_V11134["error_count"]:
 
 LATEST_CHANGES_TITLE = "Soulbound v0.36.6 - Correct UOSSMUD Named Superbosses"
 LATEST_CHANGES = [
-    "Dodano prawidłową rotację konkretnych nazwanych Superbossów UOSSMUD do Mitycznej Krypty i Mitycznej Wieży Astralnej.",
+    "Nazwane Superbossy UOSSMUD są osobnymi unikalnymi encounterami świata; od v1.11.33 nie są wstrzykiwane do bossów Mitycznej Krypty ani Mitycznej Wieży Astralnej.",
     "Asterisks, Lunar Trials, Elementals i Four Fiends są traktowane jako strony/grupy/serie, a nie jako nazwy pojedynczych bossów.",
     "Lunar Trials rozbito na konkretnych bossów: Lunar Ifrit, Shiva, Ramuh, Asura, Leviathan, Dragon, Titan, Odin i Bahamut.",
-    "Superbossy występują co 10 poziomów również powyżej ręcznie przygotowanej części lochów, zachowując bramki, fazy, Boss Codex i drużynowy loot.",
+    "Mityczna Krypta i Mityczna Wieża zachowują własnych skalowalnych bossów; UOSSMUD Superbossy mają osobne bramki, helperów i zasady nagród w swoich encounterach.",
     "Dodano audit v0.36.6, który blokuje powrót zbiorczych nazw jako pojedynczych mobów.",
 ]
