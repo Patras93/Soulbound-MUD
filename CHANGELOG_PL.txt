@@ -1,5 +1,18 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.11.93
+Aktualna paczka: v1.11.94
+
+==============================================================================
+Soulbound v1.11.94 — uniwersalny sklep nowego EQ UOSS
+==============================================================================
+
+- Behemoth Suit, Venetian Shield, Ziedrich, Thief Hat i Oborozuki są dostępne w zwykłym sklepie na Rynku dla wszystkich klas.
+- Nie dodano blokad klasowych ani rasowych. Każdy przedmiot zachowuje swój wymagany Level postaci: Behemoth Suit 133, Venetian Shield 121, Ziedrich 130, Thief Hat 113, Oborozuki 125.
+- Ceny tych pięciu przedmiotów nie są wymyślonymi stałymi: sklep wylicza je z istniejącej krzywej ekonomii Soulbound dla wymaganego Levelu.
+- Zakup przed wymaganym Levelem jest blokowany i sklep pokazuje wymagany Level na liście.
+- Oborozuki pozostaje uniwersalnym reliktem Broni Duszy, nie osobną bronią: aktywny relikt wzmacnia istniejącą Broń Duszy o potwierdzone Weapon Power 200, STR +35 i DEX +40.
+- Źródłowe markery efektów pozostają zachowane bez dopisywania niepotwierdzonych procentów.
+- Runtime, server metadata i FAST PREDEPLOY zsynchronizowano do v1.11.94.
+- Brak wipe'a save'ów.
 
 ==============================================================================
 Soulbound v1.11.93 — unikalne nazwy Soul Tierów dla 14 klas
