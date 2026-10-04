@@ -16,6 +16,7 @@ from world.machine_expansion import v0314_adjust_damage_vs_template
 from world.uoss_superboss_runtime import (
     superboss_attack_gate_v11137, superboss_helper_profile_v11137,
     superboss_phase_event_v11138, superboss_incoming_multiplier_v11138,
+    superboss_source_round_event_v11160,
 )
 
 class SessionCombatRealtimeMixin:
@@ -284,6 +285,12 @@ class SessionCombatRealtimeMixin:
                                     and target_session.current_hp > 0
                                 ):
                                     _enemy_template = MOB_TEMPLATES[enemy_mob.template_id]
+                                    _source_round = superboss_source_round_event_v11160(target_session, _enemy_template, enemy_mob)
+                                    if _source_round and _source_round.get("instant_death"):
+                                        target_session.current_hp = 0
+                                        await self.server.party_combat_broadcast(target_session, _source_round["text"], detail="essential")
+                                        await target_session.handle_player_defeat(enemy_mob)
+                                        continue
                                     _phase_event = superboss_phase_event_v11138(target_session, _enemy_template, enemy_mob)
                                     if _phase_event:
                                         _phase, _label = _phase_event

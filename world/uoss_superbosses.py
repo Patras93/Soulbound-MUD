@@ -162,20 +162,20 @@ UOSS_SUPERBOSS_ENCOUNTERS_V11134 = {
         "cyborg_conditional_drop":True,"pickup_binds":True,"lockout_hours":24,
     },
     "serpentarius": {
-        "name":"Serpentarius","mode":"party","area":"Deep Dungeon","unlock":"explore_deep_dungeon","round_limit":100,"no_exit_after_start":True,"helper_cost_gold":1000000,
+        "name":"Serpentarius","mode":"party","area":"Deep Dungeon","unlock":"explore_deep_dungeon","round_limit":100,"no_exit_after_start":True,"helper_cost_mithril":1,"helper_join_phrase":"Join me, Byblos",
         "arena":"Deep Dungeon — piętro 0","recommended_level":125,"helper":"Byblos","helper_max_players":3,
         "personal_token":"Serpentarius Emblem","party_members_must_unlock":True,"lockout_hours":24,
     },
     "odin": {
         "name":"Odin","mode":"party","area":"A Clearing in a Misty Forest","unlock_level":100,"recommended_level":125,
         "min_players":3,"max_players":5,"difficulty_scales_above_players":3,
-        "helper":"Seifer","helper_max_players":3,"helper_cost_gold":1000000,"helper_join_phrase":"Join me, Seifer.",
+        "helper":"Seifer","helper_max_players":3,"helper_cost_mithril":1,"helper_join_phrase":"Join me, Seifer.",
         "personal_token":"Odin's Mantle","shared_unique_drop":True,"unique_drop_count":8,
         "pickup_binds":True,"shop":"Fur Trader w Elsendor — Odin tier","lockout_hours":24,
     },
     "yiazmat": {
         "name":"Yiazmat","mode":"party","area":"Ridorana Cataract Colosseum","access_via":"Lighthouse near Tasnica","unlock_level":100,
-        "recommended_level":125,"helper":"Montblanc","helper_max_players":3,"helper_cost_gold":1000000,
+        "recommended_level":125,"helper":"Montblanc","helper_max_players":3,"helper_cost_mithril":1,
         "personal_token":"Godslayer's Badge","shared_unique_drop":True,"unique_drop_count":7,
         "pickup_binds":True,"shop":"Fur shop w Elsendor — Yiazmat tier","lockout_hours":24,
     },
