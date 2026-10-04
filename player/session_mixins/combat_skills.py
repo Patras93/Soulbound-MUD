@@ -1178,11 +1178,81 @@ class SessionCombatSkillsMixin:
                         # base durations. Keep these effects source-safe instead of
                         # fabricating hit percentages or seconds.
                         if special=="hypno_flash":
-                            await self.send(
-                                f"Hypno Flash: próba Sleep na {template['name']}. "
-                                "Will i Skill Level wpływają na celność/czas; Support Effect zwiększa celność."
+                            # Source: Will; Cleanseable + Extendable; Skill Level
+                            # increases Accuracy and Duration; support weapon improves
+                            # chance to hit. Numeric curves are explicit Soulbound balance.
+                            _hypno_level=max(1,min(SKILL_MAX_LEVEL,int(skill_level)))
+                            _hypno_progress=(
+                                (_hypno_level-1)/float(max(1,SKILL_MAX_LEVEL-1))
                             )
-                            await self.grant_skill_use_xp(skill); return
+                            _hypno_will=max(1,int(self.effective_willpower()))
+                            _hypno_will_ratio=max(0.01,_hypno_will/175.0)
+                            _hypno_accuracy=(
+                                float(skill.get("soulbound_base_accuracy",0.55) or 0.55)
+                                + _hypno_progress
+                                * float(
+                                    skill.get("soulbound_skill_accuracy_bonus_max",0.25)
+                                    or 0.25
+                                )
+                                + min(
+                                    float(
+                                        skill.get(
+                                            "soulbound_will_accuracy_bonus_max",0.15
+                                        ) or 0.15
+                                    ),
+                                    0.075*(_hypno_will_ratio ** 0.50),
+                                )
+                            )
+                            if self.mec_support_effect_v11149():
+                                _hypno_accuracy += float(
+                                    skill.get("soulbound_support_accuracy_bonus",0.10)
+                                    or 0.10
+                                )
+                            _hypno_accuracy=max(
+                                0.05,min(
+                                    float(skill.get("soulbound_accuracy_cap",0.98) or 0.98),
+                                    _hypno_accuracy,
+                                )
+                            )
+                            _hypno_start=max(
+                                1,int(skill.get("soulbound_duration_rounds_level1",2) or 2)
+                            )
+                            _hypno_end=max(
+                                _hypno_start,
+                                int(skill.get("soulbound_duration_rounds_level600",6) or 6),
+                            )
+                            _hypno_rounds=max(
+                                1,int(round(
+                                    _hypno_start
+                                    + (_hypno_end-_hypno_start)
+                                    * (_hypno_progress ** 0.82)
+                                ))
+                            )
+                            _hypno_rounds += min(
+                                int(skill.get("soulbound_will_duration_bonus_max",2) or 2),
+                                max(0,int(round((_hypno_will_ratio ** 0.50)-1.0))),
+                            )
+                            if random.random() < _hypno_accuracy:
+                                _existing=max(
+                                    0,int(getattr(mob,"v11196_hypno_sleep_rounds",0) or 0)
+                                )
+                                mob.v11196_hypno_sleep_rounds=_existing+_hypno_rounds
+                                mob.v11196_hypno_sleep_cleanseable=True
+                                await self.send(
+                                    f"Hypno Flash: {template['name']} zasypia na "
+                                    f"{mob.v11196_hypno_sleep_rounds} akcji przeciwnika. "
+                                    f"Celność: {int(round(_hypno_accuracy*100))} procent."
+                                )
+                            else:
+                                await self.send(
+                                    f"Hypno Flash: {template['name']} opiera się Sleep. "
+                                    f"Celność: {int(round(_hypno_accuracy*100))} procent."
+                                )
+                            await self.grant_skill_use_xp(skill)
+                            self.combat_mob_key=mob.key
+                            await self.server.auto_assist_party_combat(self,mob)
+                            await self.ensure_realtime_combat()
+                            return
                         if special=="jammer":
                             targets=[mob]
                             if support_effect:
