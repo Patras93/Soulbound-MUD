@@ -80,14 +80,14 @@ for _class_name, _profile in _SOUL_TRAIT_CLASS_PROFILES.items():
         }
     SOUL_TIER_TRAITS_BY_CLASS[_class_name] = _rows
 
-def soul_weapon_trait_for_tier(tier, class_name=None):
+def soul_weapon_trait_for_tier_v11193(tier, class_name=None):
     """Canonical Soul Weapon trait lookup for the full 1-60 progression."""
     tier = max(1, min(SOUL_MAX_TIER, int(tier)))
     class_name = class_name or "Wojownik"
     rows = SOUL_TIER_TRAITS_BY_CLASS.get(class_name) or SOUL_TIER_TRAITS_BY_CLASS["Wojownik"]
     return rows.get(tier)
 
-def soul_weapon_trait_totals(tier, class_name=None):
+def soul_weapon_trait_totals_v11193(tier, class_name=None):
     """Accumulate all class-specific Soul Weapon traits through the selected Tier."""
     tier = max(1, min(SOUL_MAX_TIER, int(tier)))
     class_name = class_name or "Wojownik"
@@ -104,7 +104,7 @@ def soul_weapon_trait_totals(tier, class_name=None):
 
 def soul_tier_title_for_class(tier, class_name=None):
     """Unique class-specific title for every Soul Tier 1-60."""
-    row = soul_weapon_trait_for_tier(tier, class_name)
+    row = soul_weapon_trait_for_tier_v11193(tier, class_name)
     return row["name"] if row else f"Tier Duszy {int(tier)}"
 
 _SOUL_TIER_TITLE_AUDIT = [
