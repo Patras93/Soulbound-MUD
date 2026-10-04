@@ -138,7 +138,7 @@ LATEST_CHANGES = [
 # ============================================================
 def equipment_expansion_audit_v03020():
     errors = []
-    required_slots = {"shoulders", "belt", "cloak", "bracers", "relic"}
+    required_slots = {"shoulders", "belt", "cloak", "bracers", "bracelet", "accessory", "relic"}
     if not required_slots.issubset(CLASS_EQUIPMENT_SLOT_DEFS):
         errors.append("missing new class EQ slots: " + ", ".join(sorted(required_slots - set(CLASS_EQUIPMENT_SLOT_DEFS))))
     if not required_slots.issubset(EQUIPMENT_SLOT_NAMES):
@@ -150,7 +150,7 @@ def equipment_expansion_audit_v03020():
     for alias, command in expected_commands.items():
         if COMMAND_ALIASES.get(alias) != command:
             errors.append(f"shortcut {alias} -> {COMMAND_ALIASES.get(alias)!r}, expected {command!r}")
-    # Every class/tier should now expose all 14 logical equipment pieces per style.
+    # Every class/tier should expose the complete logical equipment grid per style.
     logical_slots = set(CLASS_EQUIPMENT_SLOT_DEFS)
     for class_name, tiers in CLASS_EQUIPMENT_ITEMS_BY_CLASS_TIER.items():
         for mastery in (1, 100, 200, 400, 600):
@@ -303,10 +303,10 @@ if FULL_HELP_AUDIT_V03021["error_count"]:
 def eq_shop_audit_v03021():
     errors=[]
     slots=set(CLASS_EQUIPMENT_SLOT_DEFS)
-    # v1.11.x: shields are now a full stat-bearing class-EQ progression slot.
-    # The canonical class shop set therefore contains 15 logical slots.
-    if len(slots)!=15:
-        errors.append(f"logical EQ slots={len(slots)}, expected 15")
+    # v1.11.x: shields, bracelets and accessories are full stat-bearing
+    # class-EQ progression slots. The canonical class shop grid has 17 slots.
+    if len(slots)!=17:
+        errors.append(f"logical EQ slots={len(slots)}, expected 17")
     if "shield" not in slots:
         errors.append("logical EQ slots missing shield")
     for class_name,definition in CLASS_EQUIPMENT_SETS.items():
@@ -1885,7 +1885,7 @@ def equipment_completeness_audit_v03037():
     logical_slots = set(CLASS_EQUIPMENT_SLOT_DEFS)
     expected_slots = {
         "head", "body", "shield", "hands", "legs", "feet", "charm", "ring", "necklace",
-        "earring", "shoulders", "belt", "cloak", "bracers", "relic",
+        "earring", "shoulders", "belt", "cloak", "bracers", "bracelet", "accessory", "relic",
     }
     if logical_slots != expected_slots:
         errors.append(f"class logical slots={sorted(logical_slots)} expected={sorted(expected_slots)}")
@@ -1938,7 +1938,7 @@ def equipment_completeness_audit_v03037():
         if alias not in COMMAND_ALIASES:
             errors.append(f"missing earring shortcut {alias}")
 
-    # Krypta i Wieża Astralna również muszą używać pełnych 15 slotów.
+    # Krypta i Wieża Astralna również muszą używać pełnych 17 slotów.
     for tier in (1, 20, 40):
         crypt_slots = {ITEMS.get(f"crypt_t{tier}_{slot}", {}).get("slot") for slot in expected_slots}
         if crypt_slots != expected_slots:
@@ -2032,7 +2032,7 @@ LATEST_CHANGES = [
     "v0.30.37: materiałowe EQ z ciał obejmuje teraz wszystkie 15 logicznych slotów dla wszystkich 10 materiałów od Żelaza do Eternium.",
     "v0.30.37: 24 warianty każdego materiału/slotu mają niepowtarzalne profile statów; nazwy materiałowego EQ są globalnie unikalne.",
     "v0.30.37: sloty mają własne preferencje statów/właściwości, więc np. korpus, karwasze, peleryna i kolczyki nie są statystycznymi kopiami.",
-    "v0.30.37: Krypta i Wieża Astralna zostały podniesione do pełnych 15 slotów; stare sześcioslotowe pule nie ograniczają już nowych dropów.",
+    "v1.11.96: pełna siatka EQ ma 17 logicznych slotów; Bransoletka i Akcesorium są obecne w klasowym EQ, dropach materiałowych, Krypcie i Wieży Astralnej.",
     "v0.30.37: globalny audit wymaga unikalnej nazwy każdego EQ typu armor i rozróżnia pełne profile klasowych slotów.",
     "v0.30.37: po dodaniu kolczyków podstawowe sloty wearable są kompletne; Broń Duszy pozostaje osobnym systemem broni i nie jest dublowana zwykłym main-hand/off-hand.",
 ] + LATEST_CHANGES
@@ -2285,7 +2285,8 @@ def eq_shortcuts_auto_audit_v03040():
         "znog":"equiplegs", "zbut":"equipfeet", "ztal":"equipcharmauto",
         "zpier":"equipringauto", "znasz":"equipnecklace", "zkol":"equipearringauto",
         "znar":"equipshoulders", "zpas":"equipbelt", "zpel":"equipcloak",
-        "zkar":"equipbracers", "zrel":"equiprelic",
+        "zkar":"equipbracers", "zbra":"equipbracelet", "zakc":"equipaccessoryauto",
+        "zrel":"equiprelic",
         "autoeq":"autoequip", "eqauto":"autoequip", "zauto":"autoequip",
     }
     for alias, expected in expected_aliases.items():
@@ -2296,12 +2297,12 @@ def eq_shortcuts_auto_audit_v03040():
     for token in (
         "required_class", "equipment_mastery_requirement_met",
         "ring1", "ring2", "charm1", "charm2", "earring1", "earring2",
-        "return_socketed_gems", "AUTO EQ",
+        "accessory1", "accessory2", "return_socketed_gems", "AUTO EQ",
     ):
         if token not in src:
             errors.append(f"auto eq missing token: {token}")
-    if len(CLASS_EQUIPMENT_SLOT_DEFS) != 15:
-        errors.append(f"logical EQ slot count {len(CLASS_EQUIPMENT_SLOT_DEFS)}, expected 15")
+    if len(CLASS_EQUIPMENT_SLOT_DEFS) != 17:
+        errors.append(f"logical EQ slot count {len(CLASS_EQUIPMENT_SLOT_DEFS)}, expected 17")
     return {
         "version":"0.30.40",
         "shortcut_count":len(expected_aliases),
