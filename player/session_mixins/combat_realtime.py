@@ -135,8 +135,21 @@ class SessionCombatRealtimeMixin:
                         "normal",
                     )
                 _uoss_helper = superboss_helper_profile_v11137(self, template)
+                _uoss_helper_damage = 0
                 if _uoss_helper and not _zantetsuken_no_melee:
-                    damage = max(1, int(round(damage * float(_uoss_helper["damage_multiplier"]))))
+                    # v1.11.86: helpers are real combatants, not a cosmetic x1.0 marker.
+                    # Their strike follows the player's current build, so shop/drop/crafted
+                    # and future EQ that raises effective stats also raises helper output.
+                    _helper_name = str(_uoss_helper.get("name", "Pomocnik"))
+                    _helper_magic = _helper_name in {"Popoi", "Primm", "Montblanc", "Byblos"}
+                    _helper_stat = self.spell_power() if _helper_magic else self.physical_power()
+                    _helper_kind = "magic" if _helper_magic else "physical"
+                    _helper_mult = self.equipment_damage_multiplier(_helper_kind)
+                    _helper_mult *= self.total_set_damage_multiplier()
+                    _uoss_helper_damage = max(
+                        1,
+                        int(round((self.character.soul_power() + _helper_stat) * 0.65 * _helper_mult)),
+                    )
                 damage = await self.apply_boss_defense(mob, damage)
                 if _zantetsuken_no_melee:
                     damage = 0
@@ -144,7 +157,21 @@ class SessionCombatRealtimeMixin:
                 _basic_kind = "physical" if self.character.class_type == "physical" else "magic"
                 damage, machine_note = v0314_adjust_damage_vs_template(template, damage, _basic_kind, "")
                 mob.hp -= damage
-                self._recap52_dealt=int(getattr(self,"_recap52_dealt",0))+max(0,int(damage))
+                if _uoss_helper_damage > 0 and mob.hp > 0:
+                    _uoss_helper_damage = await self.apply_boss_defense(mob, _uoss_helper_damage)
+                    _uoss_helper_damage = self.v0210_adjust_player_damage(_uoss_helper_damage)
+                    _uoss_helper_damage, _helper_machine_note = v0314_adjust_damage_vs_template(
+                        template, _uoss_helper_damage, _helper_kind, _helper_name
+                    )
+                    _uoss_helper_damage = min(max(0, mob.hp), _uoss_helper_damage)
+                    mob.hp -= _uoss_helper_damage
+                    if _uoss_helper_damage:
+                        await self.send_combat(
+                            f"{_helper_name} pomaga: {_uoss_helper_damage} obrażeń. "
+                            f"Przeciwnik: {max(0, mob.hp)} z {template['max_hp']} HP.",
+                            "normal",
+                        )
+                self._recap52_dealt=int(getattr(self,"_recap52_dealt",0))+max(0,int(damage))+max(0,int(_uoss_helper_damage))
                 await self.grant_soul_weapon_mastery_hit_xp()
                 echo_damage = 0
                 if not _zantetsuken_no_melee and mob.hp > 0 and mastery["echo_chance"] > 0 and random.random() < mastery["echo_chance"]:
