@@ -222,15 +222,17 @@ def mec_vmax_duration_seconds(skill_level: int, willpower: int) -> int:
     - Skill Level increases duration;
     - WILL influences V-MAX.
 
-    The original numeric seconds/curve are unavailable, so Soulbound uses a
-    transparent 30s -> 90s Skill-Level base (1 -> 600), multiplied by an
-    uncapped soft WILL curve anchored at WILL 175 = x1.0.
+    A user-supplied UOSS benchmark places V-MAX Skill Level ~8 with WILL ~344
+    at about five minutes. Soulbound therefore uses a multi-minute base:
+    200s -> 600s from Skill Level 1 -> 600 at WILL 175, multiplied by an
+    uncapped square-root WILL curve. This keeps low-level V-MAX boss-usable
+    while preserving meaningful long-term WILL and Skill Level growth.
     """
     level = clamp(int(skill_level), 1, MAX_LEVEL)
     willpower = max(1, int(willpower))
     progress = (level - 1) / float(max(1, MAX_LEVEL - 1))
-    skill_seconds = 30.0 + 60.0 * (progress ** 0.82)
-    will_multiplier = max(0.35, (willpower / 175.0) ** 0.35)
+    skill_seconds = 200.0 + 400.0 * (progress ** 0.82)
+    will_multiplier = max(0.35, (willpower / 175.0) ** 0.50)
     return max(1, int(round(skill_seconds * will_multiplier)))
 
 
@@ -254,11 +256,13 @@ if _BASIC_ATTACK_HIT_AUDIT_V11196 != {
 _VMAX_DURATION_AUDIT_V11196 = {
     "level1_will175": mec_vmax_duration_seconds(1, 175),
     "level600_will175": mec_vmax_duration_seconds(MAX_LEVEL, 175),
+    "level8_will344": mec_vmax_duration_seconds(8, 344),
     "level1_will350": mec_vmax_duration_seconds(1, 350),
 }
 if not (
-    _VMAX_DURATION_AUDIT_V11196["level1_will175"] == 30
-    and _VMAX_DURATION_AUDIT_V11196["level600_will175"] == 90
+    _VMAX_DURATION_AUDIT_V11196["level1_will175"] == 200
+    and _VMAX_DURATION_AUDIT_V11196["level600_will175"] == 600
+    and 285 <= _VMAX_DURATION_AUDIT_V11196["level8_will344"] <= 310
     and _VMAX_DURATION_AUDIT_V11196["level1_will350"]
         > _VMAX_DURATION_AUDIT_V11196["level1_will175"]
 ):
