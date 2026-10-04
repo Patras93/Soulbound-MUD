@@ -986,16 +986,27 @@ class SessionCombatSkillsMixin:
                                 # Source marks diminishing AoE but gives no numeric falloff.
                                 pass
                             damage=max(1,int(self.offensive_skill_core_power_v11185(skill, base)*_local_mult)+random.randint(-6,6))
-                            # v1.11.47: Pop Knight keeps full AoE damage and receives
-                            # the source ability's anti-Flying bonus. The Mec has one
-                            # Soul Weapon, so no separate melee weapon gate is required.
-                            # Ranged Mec abilities use Soulbound's canonical critical
-                            # roll. Crosshair/Shoot-All source confirms critical influence
-                            # but supplies no separate bonus chance, so do not roll twice.
-                            damage,crit=self.roll_critical_hit(damage)
-                            # V-MAX source says Shoot-All gains damage and critical
-                            # effectiveness, but gives no numeric increase. Do not
-                            # fabricate a percentage here.
+                            # Shoot-All source is Attack + Critical Hit Chance and
+                            # explicitly gains both damage and crit chance in V-MAX.
+                            # UOSS supplies no numeric increase, so the 1.25x damage
+                            # and +15 percentage-point crit values below are explicit
+                            # Soulbound balance adaptation, not claimed source numbers.
+                            if special=="shoot_all":
+                                _shootall_crit_chance=float(self.critical_chance())
+                                if vmax:
+                                    damage=max(1,int(round(
+                                        damage*float(skill.get("vmax_damage_multiplier",1.25) or 1.25)
+                                    )))
+                                    _shootall_crit_chance=min(
+                                        0.75,
+                                        _shootall_crit_chance
+                                        + float(skill.get("vmax_critical_chance_bonus",0.15) or 0.15),
+                                    )
+                                crit=random.random() < _shootall_crit_chance
+                                if crit:
+                                    damage=max(1,int(round(damage*self.critical_multiplier())))
+                            else:
+                                damage,crit=self.roll_critical_hit(damage)
                             damage=await self.apply_boss_defense(target,damage); damage=self.v0210_adjust_player_damage(damage)
                             element={"laser_spin":"dark","area_bomb":"fire","maelstrom":"water","shock":"lightning","starlight_shower":"magic"}.get(special,"physical")
                             # Carries Elements is represented through the character's one
@@ -1013,7 +1024,12 @@ class SessionCombatSkillsMixin:
                             else:
                                 damage,note=v0314_adjust_damage_vs_template(template,damage,element,skill.get("name",""))
                             target.hp-=damage; total+=damage
-                            await self.send(f"{skill['name']}: {template['name']} {damage} obrażeń. HP {max(0,target.hp)}.{note}")
+                            _crit_note=" KRYTYK." if crit else ""
+                            _vmax_note=" V-MAX." if special=="shoot_all" and vmax else ""
+                            await self.send(
+                                f"{skill['name']}: {template['name']} {damage} obrażeń. "
+                                f"HP {max(0,target.hp)}.{note}{_crit_note}{_vmax_note}"
+                            )
                             if target.hp<=0 and target.key not in seen: seen.add(target.key); defeated.append(target)
                         helper_target, _helper_damage = await self.apply_superboss_helper_after_skill_v11192(targets)
                         if helper_target is not None and helper_target.hp <= 0 and helper_target.key not in seen:
