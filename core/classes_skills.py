@@ -2376,7 +2376,7 @@ def _v0319_install_full_mec_kit():
         ("Shoot-All",110,"aoe_damage",2000,"ranged","shoot_all","Fires all ammunition at all enemies; V-MAX increases damage and crit."),
         # Feedback
         ("Destroy",1,"damage",200,"feedback","destroy","Single-target smash at a cost of HP."),
-        ("Robo Tackle",20,"damage",500,"feedback","robo_tackle","Body/shield charge at a cost of HP."),
+        ("Robo Tackle",20,"damage",500,"feedback","robo_tackle","One-enemy tackle influenced by HP before use, Vitality and Attack. Damage falls as current HP falls; a shield improves damage. V-MAX increases both attack power and Feedback damage."),
         ("Compress",30,"damage",600,"feedback","compress","Gravity percentile damage at a cost of HP."),
         ("Crush",46,"damage",1000,"feedback","crush","One-enemy Feedback attack based on the difference between maximum and current HP. Character Level limits the damage capacity, Skill Level raises the maximum possible damage, and an equipped shield increases that capacity."),
         ("Uzi Punch",95,"aoe_damage",1400,"feedback","uzi_punch","Random-enemy machinegun punch influenced by HP, Vitality and Attack. Feedback damages the Mec, a shield improves damage, and the attack becomes stronger as HP decreases."),
@@ -2447,7 +2447,28 @@ def _v0319_install_full_mec_kit():
                 ],
             })
         if special=="destroy": row["feedback_cost_source_defined"]=False
-        if special=="robo_tackle": row["feedback_cost_source_defined"]=False
+        if special=="robo_tackle":
+            row.update({
+                "scale":"attack",
+                "secondary_scale":"constitution",
+                "source_stat_influence":["hp","vitality","attack"],
+                "source_properties":[],
+                "target_mode":"one_enemy",
+                "damage_from_current_hp":True,
+                "vitality_influence":True,
+                "feedback_damage":True,
+                "feedback_cost_source_defined":False,
+                "shield_improves_damage":True,
+                "vmax_power_and_feedback":True,
+                "numeric_source_defined":False,
+                "current_hp_power_ratio":0.12,
+                "shield_damage_multiplier":1.15,
+                "vmax_damage_multiplier":1.20,
+                "feedback_current_hp_pct":0.10,
+                "vmax_feedback_current_hp_pct":0.25,
+                "balance_model":"soulbound_hp12_shield115_vmax120_feedback10_25",
+                "single_soul_weapon":True,
+            })
         if special=="compress": row["feedback_cost_source_defined"]=False
         if special=="uzi_punch":
             row.update({
@@ -2735,6 +2756,31 @@ def _mec_contract_audit_v11149():
             errors.append("shoot_all: missing V-MAX crit/damage increase")
         if bool(shoot_all.get("vmax_numeric_source_defined")):
             errors.append("shoot_all: V-MAX numeric bonus must remain marked unsourced")
+    robo_tackle=rows.get("robo_tackle")
+    if robo_tackle:
+        if list(robo_tackle.get("source_stat_influence") or [])!=["hp","vitality","attack"]:
+            errors.append("robo_tackle: source influence must be HP + Vitality + Attack")
+        if str(robo_tackle.get("scale"))!="attack":
+            errors.append("robo_tackle: primary scale must be Attack")
+        if str(robo_tackle.get("secondary_scale"))!="constitution":
+            errors.append("robo_tackle: Vitality must map to Constitution")
+        if str(robo_tackle.get("target_mode"))!="one_enemy":
+            errors.append("robo_tackle: target mode must be One Enemy")
+        if not bool(robo_tackle.get("damage_from_current_hp")):
+            errors.append("robo_tackle: current HP must influence damage")
+        if not bool(robo_tackle.get("shield_improves_damage")):
+            errors.append("robo_tackle: equipped shield must improve damage")
+        if not bool(robo_tackle.get("vmax_power_and_feedback")):
+            errors.append("robo_tackle: V-MAX must increase power and Feedback")
+        if not bool(robo_tackle.get("feedback_damage")):
+            errors.append("robo_tackle: Feedback self-damage missing")
+        if bool(robo_tackle.get("feedback_cost_source_defined")):
+            errors.append("robo_tackle: Feedback numeric cost must remain marked unsourced")
+        if bool(robo_tackle.get("numeric_source_defined")):
+            errors.append("robo_tackle: numeric modifiers must remain marked unsourced")
+        if list(robo_tackle.get("source_properties") or [])!=[]:
+            errors.append("robo_tackle: source Properties must remain None")
+
     uzi=rows.get("uzi_punch")
     if uzi:
         if list(uzi.get("source_stat_influence") or [])!=["hp","vitality","attack"]:
