@@ -665,10 +665,11 @@ class SessionSkillQueueBuffsMixin:
             }
             sid=protocols.get(branch)
             if sid and self.mec_skill_known_v0319(sid):
-                row=self.server.db.skill_progress(self.account_id,sid)
-                level=int(row["level"]); progress=(max(1,min(SKILL_MAX_LEVEL,level))-1)/float(max(1, SKILL_MAX_LEVEL-1))
-                mult*=1.04 + 0.21*(progress**0.82)
-            if self.mec_overheat_active_v0319(): mult*=0.75
+                # Protocol is automatic and Skill Level increases the mapped branch
+                # damage, but source help supplies no numeric multiplier curve.
+                pass
+            # Overheat lowers all combat stats, but its numeric penalty is not
+            # specified by source; do not fabricate a 25% reduction.
             return mult
 
     def engineer_upgrade_effect_text_v0319(self, special, upgraded):
