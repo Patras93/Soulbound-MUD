@@ -2384,7 +2384,7 @@ def _v0319_install_full_mec_kit():
         # Magic
         ("Laser Spin",1,"aoe_damage",200,"magic","laser_spin","Dark lasers hit all enemies."),
         ("Area Bomb",8,"aoe_damage",300,"magic","area_bomb","Fiery Magic Attack explosion that burns all enemies currently engaged in combat with the Mec."),
-        ("Mec Sonata",20,"damage",1000,"magic","mec_sonata","Holy gospel attacks one enemy and may reduce its level-equivalent power."),
+        ("Mec Sonata",20,"damage",1000,"magic","mec_sonata","One-enemy Magic Attack song with a chance to lower the target level-equivalent power temporarily. The level-lowering effect is Extendable."),
         ("Maelstrom",44,"aoe_damage",1500,"magic","maelstrom","Water vortex floods all enemies."),
         ("Shock",95,"aoe_damage",1800,"magic","shock","Dark + Lightning attack on all enemies."),
         ("Starlight Shower",110,"damage",2000,"magic","starlight_shower","Magic Attack laser barrage: one enemy when fighting one target; diminishing damage to all combat targets when fighting several; V-MAX hits all enemies without diminishing."),
@@ -2646,7 +2646,24 @@ def _v0319_install_full_mec_kit():
                 "single_soul_weapon":True,
             })
         if special=="laser_spin": row.update({"aoe_diminishing":True,"element":"dark","uoss_mp_cost":25})
-        if special=="mec_sonata": row.update({"uoss_mp_cost":50})
+        if special=="mec_sonata":
+            row.update({
+                "scale":"intelligence",
+                "source_stat_influence":["magic_attack"],
+                "magic_attack_influence":True,
+                "uoss_mp_cost":50,
+                "source_properties":["extendable"],
+                "target_mode":"one_enemy",
+                "temporary_level_reduction_chance":True,
+                "level_reduction_extendable":True,
+                "level_reduction_numeric_source_defined":False,
+                "level_reduction_duration_source_defined":False,
+                "level_reduction_chance_source_defined":False,
+                "soulbound_level_reduction_proc_chance":0.30,
+                "soulbound_level_equivalent_power_multiplier":0.90,
+                "soulbound_level_reduction_rounds":3,
+                "balance_model":"soulbound_proc30_levelpower90_3rounds_extendable",
+            })
         if special=="maelstrom": row.update({"aoe_diminishing":True,"element":"water","uoss_mp_cost":80})
         if special=="shock": row.update({"aoe_diminishing":True,"elements":["lightning","dark"],"uoss_mp_cost":150})
         if special=="tiger_rampage":
@@ -2831,6 +2848,29 @@ def _mec_contract_audit_v11149():
             errors.append(
                 f"cosmic_rave:vmax_random_hits={cosmic.get('vmax_random_hits')} expected=5"
             )
+    mec_sonata=rows.get("mec_sonata")
+    if mec_sonata:
+        if list(mec_sonata.get("source_stat_influence") or [])!=["magic_attack"]:
+            errors.append("mec_sonata: source influence must be Magic Attack only")
+        if str(mec_sonata.get("scale"))!="intelligence":
+            errors.append("mec_sonata: Magic Attack must use the magic/INT core")
+        if int(mec_sonata.get("uoss_mp_cost",0) or 0)!=50:
+            errors.append("mec_sonata: MP cost must be 50")
+        if str(mec_sonata.get("target_mode"))!="one_enemy":
+            errors.append("mec_sonata: target mode must be One Enemy")
+        if list(mec_sonata.get("source_properties") or [])!=["extendable"]:
+            errors.append("mec_sonata: source Properties must be Extendable")
+        if not bool(mec_sonata.get("temporary_level_reduction_chance")):
+            errors.append("mec_sonata: temporary level reduction chance missing")
+        if not bool(mec_sonata.get("level_reduction_extendable")):
+            errors.append("mec_sonata: level reduction must be Extendable")
+        if bool(mec_sonata.get("level_reduction_numeric_source_defined")):
+            errors.append("mec_sonata: level reduction amount must remain marked unsourced")
+        if bool(mec_sonata.get("level_reduction_duration_source_defined")):
+            errors.append("mec_sonata: duration must remain marked unsourced")
+        if bool(mec_sonata.get("level_reduction_chance_source_defined")):
+            errors.append("mec_sonata: proc chance must remain marked unsourced")
+
     magnify=rows.get("magnify")
     if magnify:
         if list(magnify.get("source_stat_influence") or [])!=["attack","wisdom"]:
