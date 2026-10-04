@@ -2390,7 +2390,7 @@ def _v0319_install_full_mec_kit():
         ("Starlight Shower",110,"damage",2000,"magic","starlight_shower","Magic Attack laser barrage: one enemy when fighting one target; diminishing damage to all combat targets when fighting several; V-MAX hits all enemies without diminishing."),
         # Support
         ("Cure Beam",1,"heal",100,"support","cure_beam","Single-target healing beam available from the start. Willpower and Skill Level increase healing. Support Effect increases healing and removes Blind and Poison."),
-        ("Hypno Flash",16,"damage",300,"support","hypno_flash","Attempts to put one enemy to Sleep; support effect improves chance."),
+        ("Hypno Flash",16,"damage",300,"support","hypno_flash","Attempts to put one enemy to Sleep. Will and Skill Level improve accuracy and duration; the Mec support weapon improves hit chance. Sleep is Cleanseable and Extendable."),
         ("Jammer",32,"damage",750,"support","jammer","Attempts Stop on one enemy; Willpower influences accuracy and duration, Skill Level increases both, and Machine targets are easier to affect. Support Effect expands Jammer to all enemies."),
         ("Heal Beam",54,"heal",1000,"support","heal_beam","Significant Willpower-based healing. Normally heals one target; Support Effect heals the entire local party for an enhanced amount."),
         ("Logic Bomb",92,"damage",1200,"support","logic_bomb","Attempts Silence/Don't Act/Slow; support effect can add Curse/Don't Move/Blind."),
@@ -2680,7 +2680,29 @@ def _v0319_install_full_mec_kit():
                         "carries_soul_weapon_elements":True,"single_soul_weapon":True,
                         "bonus_vs_flying_source_defined":False})
         if special=="hypno_flash":
-            row.update({"scale":"willpower","uoss_mp_cost":15})
+            row.update({
+                "scale":"willpower",
+                "source_stat_influence":["will"],
+                "uoss_mp_cost":15,
+                "source_properties":["cleanseable","extendable"],
+                "target_mode":"one_enemy",
+                "control_effect":"sleep",
+                "level_effect":"increases_accuracy_and_duration",
+                "support_weapon_improves_accuracy":True,
+                "cleanseable":True,
+                "extendable":True,
+                "accuracy_numeric_source_defined":False,
+                "duration_numeric_source_defined":False,
+                "soulbound_base_accuracy":0.55,
+                "soulbound_skill_accuracy_bonus_max":0.25,
+                "soulbound_will_accuracy_bonus_max":0.15,
+                "soulbound_support_accuracy_bonus":0.10,
+                "soulbound_accuracy_cap":0.98,
+                "soulbound_duration_rounds_level1":2,
+                "soulbound_duration_rounds_level600":6,
+                "soulbound_will_duration_bonus_max":2,
+                "balance_model":"soulbound_acc55_skill25_will15_support10_cap98_duration2_to_6_plus_will2",
+            })
         if special=="heal_beam":
             row.update({"scale":"willpower","uoss_mp_cost":36,"uoss_support_mp_cost":72,
                         "heal_pct":0.50,
@@ -2848,6 +2870,29 @@ def _mec_contract_audit_v11149():
             errors.append(
                 f"cosmic_rave:vmax_random_hits={cosmic.get('vmax_random_hits')} expected=5"
             )
+    hypno=rows.get("hypno_flash")
+    if hypno:
+        if list(hypno.get("source_stat_influence") or [])!=["will"]:
+            errors.append("hypno_flash: source influence must be Will")
+        if str(hypno.get("scale"))!="willpower":
+            errors.append("hypno_flash: scale must be Willpower")
+        if int(hypno.get("uoss_mp_cost",0) or 0)!=15:
+            errors.append("hypno_flash: MP cost must be 15")
+        if str(hypno.get("target_mode"))!="one_enemy":
+            errors.append("hypno_flash: target mode must be One Enemy")
+        if list(hypno.get("source_properties") or [])!=["cleanseable","extendable"]:
+            errors.append("hypno_flash: source Properties must be Cleanseable + Extendable")
+        if str(hypno.get("control_effect"))!="sleep":
+            errors.append("hypno_flash: control effect must be Sleep")
+        if str(hypno.get("level_effect"))!="increases_accuracy_and_duration":
+            errors.append("hypno_flash: Skill Level must increase Accuracy and Duration")
+        if not bool(hypno.get("support_weapon_improves_accuracy")):
+            errors.append("hypno_flash: support weapon must improve hit chance")
+        if bool(hypno.get("accuracy_numeric_source_defined")):
+            errors.append("hypno_flash: accuracy curve must remain marked unsourced")
+        if bool(hypno.get("duration_numeric_source_defined")):
+            errors.append("hypno_flash: duration curve must remain marked unsourced")
+
     mec_sonata=rows.get("mec_sonata")
     if mec_sonata:
         if list(mec_sonata.get("source_stat_influence") or [])!=["magic_attack"]:
