@@ -2424,6 +2424,14 @@ def _v0319_install_full_mec_kit():
             row["mult"] = 1.0
             if kind=="aoe_damage": row["aoe"]=True
         if kind=="heal": row["healing_power_from_will_and_skill_level"]=True
+        if special in {"strength_protocol","ranged_protocol","feedback_protocol","magic_protocol"}:
+            row.update({
+                "automatic":True,
+                "level_effect":"increases_mapped_branch_damage",
+                "protocol_multiplier_level1":1.05,
+                "protocol_multiplier_level600":1.75,
+                "protocol_balance_curve":"soulbound_1.05_to_1.75_power_0.82",
+            })
         if special=="destroy": row["feedback_cost_source_defined"]=False
         if special=="robo_tackle": row["feedback_cost_source_defined"]=False
         if special=="compress": row["feedback_cost_source_defined"]=False
@@ -2581,6 +2589,19 @@ def _mec_contract_audit_v11149():
             errors.append("vmax:missing skill-level duration scaling")
         if not bool(vmax.get("duration_scales_with_will")):
             errors.append("vmax:missing WILL duration scaling")
+    for protocol_id,specials in MEC_PROTOCOL_SKILLS_V11155.items():
+        protocol_row=next((row for row in CLASS_SKILLS.get("Mec",[]) if row.get("id")==protocol_id),None)
+        if not protocol_row:
+            errors.append(f"missing protocol row:{protocol_id}")
+            continue
+        if not bool(protocol_row.get("automatic")):
+            errors.append(f"{protocol_id}:not automatic")
+        if str(protocol_row.get("level_effect"))!="increases_mapped_branch_damage":
+            errors.append(f"{protocol_id}:bad level effect")
+        if float(protocol_row.get("protocol_multiplier_level1",0.0) or 0.0)!=1.05:
+            errors.append(f"{protocol_id}:bad level1 multiplier")
+        if float(protocol_row.get("protocol_multiplier_level600",0.0) or 0.0)!=1.75:
+            errors.append(f"{protocol_id}:bad level600 multiplier")
     support_contract=MEC_CANONICAL_CONTRACT_V11149["branches"]["support"]
     if str(support_contract.get("support_weapon"))!="soul_weapon":
         errors.append(
