@@ -216,9 +216,6 @@ _UNIVERSAL_UOSS_ENDGAME_SHOP_ITEMS_V11194 = (
     "uoss_ziedrich",
     "uoss_thief_hat",
     "uoss_oborozuki",
-    "culex_hermes_shoes",
-    "culex_hyper_wrist",
-    "culex_tough_ring",
 )
 for _iid in _UNIVERSAL_UOSS_ENDGAME_SHOP_ITEMS_V11194:
     if _iid not in SHOPS["market"]:
@@ -277,6 +274,9 @@ _PHYSICAL_UOSS_CONDITION_ITEMS_V11196 = (
     "uoss_ziedrich",
     "uoss_thief_hat",
     "uoss_oborozuki",
+    "culex_hermes_shoes",
+    "culex_hyper_wrist",
+    "culex_tough_ring",
 )
 for _iid in _PHYSICAL_UOSS_CONDITION_ITEMS_V11196:
     _item = ITEMS.get(_iid)
