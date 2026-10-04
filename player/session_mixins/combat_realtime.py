@@ -288,6 +288,7 @@ class SessionCombatRealtimeMixin:
                         now = time.monotonic()
                         if now >= next_player:
                             await self.realtime_player_action(mob)
+                            await self.apply_active_regen_round_v11196()
                             await self.mec_self_repair_round_v11154()
                             # Overheat has no source duration. One completed player
                             # action is the recovery cycle; after it the state clears.
