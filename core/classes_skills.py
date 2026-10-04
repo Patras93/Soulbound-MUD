@@ -2365,7 +2365,7 @@ def _v0319_install_full_mec_kit():
         ("Shock Soldier",14,"aoe_damage",600,"melee","shock_soldier","Attack-based melee barrage against all enemies with diminishing damage. Carries the active Soul Weapon element and uses the Mec melee Soul Weapon role."),
         ("Plural Slash",32,"damage",900,"melee","plural_slash","Attack-led multi-slash against one enemy. Agility/DEX adds a smaller damage contribution to every slash even for strength-oriented melee builds. Carries the active Soul Weapon element."),
         ("Pop Knight",46,"aoe_damage",1500,"melee","pop_knight","Attack-based non-diminishing melee attack on all enemies. Carries the active Soul Weapon element and deals extra damage to enemies explicitly marked Flying."),
-        ("Tiger Rampage",80,"damage",1800,"melee","tiger_rampage","Powerful single-target attack that lowers Defense."),
+        ("Tiger Rampage",80,"damage",1800,"melee","tiger_rampage","Attack-based two-hit melee assault against one enemy. Carries the active Soul Weapon element and can lower both physical and magical defenses; the defense break is Extendable."),
         ("Cosmic Rave",110,"aoe_damage",2000,"melee","cosmic_rave","Hits all enemies with diminishing damage; during V-MAX targets random enemies instead. Attack is the primary influence and Agility provides a lesser secondary damage contribution."),
         # Ranged
         ("Crosshair",1,"damage",200,"ranged","crosshair","One-enemy ranged attack influenced by Attack and Critical Hit Chance. It attempts to deliver a critical hit and carries the active Soul Weapon element."),
@@ -2743,11 +2743,26 @@ def _v0319_install_full_mec_kit():
         if special=="maelstrom": row.update({"aoe_diminishing":True,"element":"water","uoss_mp_cost":80})
         if special=="shock": row.update({"aoe_diminishing":True,"elements":["lightning","dark"],"uoss_mp_cost":150})
         if special=="tiger_rampage":
-            row.update({"scale":"strength","hits":2,"target_mode":"one_enemy",
-                        "carries_soul_weapon_elements":True,"single_soul_weapon":True,
-                        "extendable":True,"defense_break_physical":True,
-                        "defense_break_magical":True,"defense_break_chance_source_defined":False,
-                        "duration_scales_with_skill_level":True})
+            row.update({
+                "scale":"attack",
+                "source_stat_influence":["attack"],
+                "source_properties":["carries_elements","extendable"],
+                "hits":2,
+                "target_mode":"one_enemy",
+                "carries_soul_weapon_elements":True,
+                "requires_soul_weapon":"melee",
+                "single_soul_weapon":True,
+                "extendable":True,
+                "defense_break_physical":True,
+                "defense_break_magical":True,
+                "defense_break_chance_source_defined":False,
+                "defense_break_duration_source_defined":False,
+                "defense_break_amount_source_defined":False,
+                "soulbound_defense_break_proc_chance":0.35,
+                "soulbound_defense_break_rounds":4,
+                "soulbound_defense_break_damage_multiplier":1.15,
+                "balance_model":"soulbound_proc35_break4_incoming_damage_x1.15_extendable",
+            })
         if special=="area_bomb":
             row.update({"scale":"intelligence","element":"fire","uoss_mp_cost":35,
                         "target_mode":"all_engaged_enemies","engaged_only":True})
@@ -3052,6 +3067,35 @@ def _mec_contract_audit_v11149():
             errors.append("intercept_system: numeric Skill Level curve must remain marked unsourced")
         if bool(intercept.get("counter_trigger_chance_source_defined")):
             errors.append("intercept_system: no source trigger chance may be invented")
+
+    tiger_rampage=rows.get("tiger_rampage")
+    if tiger_rampage:
+        if str(tiger_rampage.get("scale"))!="attack":
+            errors.append("tiger_rampage: primary scale must be Attack")
+        if list(tiger_rampage.get("source_stat_influence") or [])!=["attack"]:
+            errors.append("tiger_rampage: source influence must be Attack")
+        if list(tiger_rampage.get("source_properties") or [])!=["carries_elements","extendable"]:
+            errors.append("tiger_rampage: source Properties must be Carries Elements + Extendable")
+        if int(tiger_rampage.get("hits",0) or 0)!=2:
+            errors.append("tiger_rampage: source requires exactly two heavy blows")
+        if str(tiger_rampage.get("target_mode"))!="one_enemy":
+            errors.append("tiger_rampage: target mode must be One Enemy")
+        if not bool(tiger_rampage.get("defense_break_physical")):
+            errors.append("tiger_rampage: physical defense break missing")
+        if not bool(tiger_rampage.get("defense_break_magical")):
+            errors.append("tiger_rampage: magical defense break missing")
+        if not bool(tiger_rampage.get("extendable")):
+            errors.append("tiger_rampage: defense break must be Extendable")
+        if bool(tiger_rampage.get("defense_break_chance_source_defined")):
+            errors.append("tiger_rampage: proc chance must remain marked unsourced")
+        if bool(tiger_rampage.get("defense_break_duration_source_defined")):
+            errors.append("tiger_rampage: break duration must remain marked unsourced")
+        if bool(tiger_rampage.get("defense_break_amount_source_defined")):
+            errors.append("tiger_rampage: defense reduction amount must remain marked unsourced")
+        if not bool(tiger_rampage.get("carries_soul_weapon_elements")):
+            errors.append("tiger_rampage: must carry Soul Weapon elements")
+        if str(tiger_rampage.get("requires_soul_weapon"))!="melee":
+            errors.append("tiger_rampage: melee weapon requirement must map to Soul Weapon")
 
     pop_knight=rows.get("pop_knight")
     if pop_knight:
