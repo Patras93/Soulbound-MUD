@@ -360,7 +360,7 @@ class SessionInventoryEquipmentMixin:
                 "ring2": "Pierścień 2", "necklace": "Naszyjnik",
                 "earring1": "Kolczyk 1", "earring2": "Kolczyk 2",
                 "shoulders": "Naramienniki", "belt": "Pas", "cloak": "Peleryna",
-                "bracers": "Karwasze", "relic": "Relikt", "board": "Board",
+                "bracers": "Karwasze", "relic": "Relikt", "accessory1": "Akcesorium 1", "accessory2": "Akcesorium 2", "board": "Board",
             }
             for row in rows:
                 item = ITEMS.get(row["item_id"]) or ensure_crafting_quality_variant_v0332(row["item_id"])
@@ -642,6 +642,7 @@ class SessionInventoryEquipmentMixin:
                 "ring": ("ring1", "ring2"),
                 "charm": ("charm1", "charm2"),
                 "earring": ("earring1", "earring2"),
+                "accessory": ("accessory1", "accessory2"),
             }
             for logical_slot, pair in duals.items():
                 # v0.33.11: dual-slot auto-equip must compare the two currently
@@ -758,7 +759,9 @@ class SessionInventoryEquipmentMixin:
 
     def owned_armor_for_slot(self, slot):
             candidates = []
-            if slot in ("ring1", "ring2"):
+            if slot in ("accessory1", "accessory2"):
+                logical_slot = "accessory"
+            elif slot in ("ring1", "ring2"):
                 logical_slot = "ring"
             elif slot in ("charm1", "charm2"):
                 logical_slot = "charm"
@@ -794,7 +797,7 @@ class SessionInventoryEquipmentMixin:
             return find_by_name(owned_armor, query)
 
     def explicit_dual_slot_and_item_query(self, query):
-            """Return (slot, remaining item query) for numbered ring/charm/earring syntax.
+            """Return (slot, remaining item query) for numbered ring/charm/earring/accessory syntax.
 
             Accepted examples:
             - załóż pierścień 1 <nazwa>
@@ -813,6 +816,8 @@ class SessionInventoryEquipmentMixin:
                 ("talizman 2", "charm2"), ("charm 2", "charm2"), ("charm2", "charm2"),
                 ("kolczyk 1", "earring1"), ("earring 1", "earring1"), ("earring1", "earring1"),
                 ("kolczyk 2", "earring2"), ("earring 2", "earring2"), ("earring2", "earring2"),
+                ("akcesorium 1", "accessory1"), ("accessory 1", "accessory1"), ("accessory1", "accessory1"),
+                ("akcesorium 2", "accessory2"), ("accessory 2", "accessory2"), ("accessory2", "accessory2"),
             )
             for alias, slot in aliases:
                 alias_norm = self.normalize_description_query(alias)
@@ -1232,6 +1237,7 @@ class SessionInventoryEquipmentMixin:
                 "ring": ("ring1", "ring2", "pierścienie", "zp"),
                 "charm": ("charm1", "charm2", "talizmany", "zt"),
                 "earring": ("earring1", "earring2", "kolczyki", "zkol"),
+                "accessory": ("accessory1", "accessory2", "akcesoria", "zakc"),
             }
             s1, s2, noun, shortcut = pairs[logical_slot]
             candidates = self.owned_armor_for_slot(s1)
@@ -1335,7 +1341,7 @@ class SessionInventoryEquipmentMixin:
             normalized = self.normalize_description_query(raw_query)
             if not normalized:
                 await self.send(
-                    "Użycie: załóż <pełna nazwa EQ>. Pierścienie, talizmany i kolczyki wybierają wolny slot automatycznie; "
+                    "Użycie: załóż <pełna nazwa EQ>. Pierścienie, talizmany, kolczyki i akcesoria wybierają wolny slot automatycznie; "
                     "ręczny slot 1/2 nadal działa. Skróty: zp, zt i zkol. Całość automatycznie: załóż auto albo eq auto."
                 )
                 return
@@ -1346,7 +1352,7 @@ class SessionInventoryEquipmentMixin:
             # Slot-only commands never choose the best item automatically.
             requested_slot = EQUIPMENT_SLOT_ALIASES.get(normalized)
             if requested_slot:
-                if requested_slot in ("ring", "charm", "earring"):
+                if requested_slot in ("ring", "charm", "earring", "accessory"):
                     await self.equip_shortcut_dual_v03020(requested_slot)
                     return
 
@@ -1449,7 +1455,9 @@ class SessionInventoryEquipmentMixin:
                 return
 
             logical_slot = item["slot"]
-            if logical_slot == "ring":
+            if logical_slot == "accessory":
+                actual_slot = explicit_slot if explicit_slot in ("accessory1", "accessory2") else self.automatic_dual_slot_v03020("accessory")
+            elif logical_slot == "ring":
                 actual_slot = explicit_slot if explicit_slot in ("ring1", "ring2") else self.automatic_dual_slot_v03020("ring")
             elif logical_slot == "charm":
                 actual_slot = explicit_slot if explicit_slot in ("charm1", "charm2") else self.automatic_dual_slot_v03020("charm")
@@ -1463,11 +1471,12 @@ class SessionInventoryEquipmentMixin:
                     )
                     return
 
-            if logical_slot in ("ring", "charm", "earring"):
+            if logical_slot in ("ring", "charm", "earring", "accessory"):
                 paired = {
                     "ring": ("ring1", "ring2"),
                     "charm": ("charm1", "charm2"),
                     "earring": ("earring1", "earring2"),
+                    "accessory": ("accessory1", "accessory2"),
                 }[logical_slot]
                 already_equipped = sum(
                     1 for row in self.equipped_item_rows()
