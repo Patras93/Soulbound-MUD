@@ -1,5 +1,17 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.11.92
+Aktualna paczka: v1.11.93
+
+==============================================================================
+Soulbound v1.11.93 — unikalne nazwy Soul Tierów dla 14 klas
+==============================================================================
+
+- Każda z 14 klas ma własną nazwę dla każdego z 60 Soul Tierów: łącznie 840 unikalnych tytułów bez zmiany numerów Tierów, progów ani save'ów.
+- Po użyciu unlock gracz dostaje komunikat z numerem nowego Tieru i jego klasową nazwą; ta sama nazwa jest pokazywana lokalnym graczom.
+- Nazwy Soul Tierów są widoczne w DUSZA, DUSZA INFO, SCORE, POSTĘP, EQ, profilu gracza, LOOK na graczu oraz w podsumowaniu braków do kolejnego Tieru.
+- Naprawiono stary most 1-40: cechy Broni Duszy i ich sumowanie korzystają teraz z kanonicznej progresji 1-60, więc Tiery 41-60 mają własne nazwy i realne klasowe właściwości zamiast wracać do starego zakresu.
+- Pomoc DUSZA została poprawiona z 2-40 na 2-60 Prób Broni Duszy.
+- Runtime, server metadata i FAST PREDEPLOY zsynchronizowano do v1.11.93.
+- Brak wipe'a save'ów.
 
 ==============================================================================
 Soulbound v1.11.92 — wspólny combat core, źródłowa Mana i pełne helpery
