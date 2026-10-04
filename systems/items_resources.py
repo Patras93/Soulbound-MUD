@@ -492,6 +492,8 @@ CORPSE_MATERIAL_SLOT_DEFS = {
     "belt": ("Pas", 1),
     "cloak": ("Peleryna", 0),
     "bracers": ("Karwasze", 0),
+    "bracelet": ("Bransoletka", -1),
+    "accessory": ("Akcesorium", -1),
     "relic": ("Relikt", 0),
 }
 
@@ -563,6 +565,8 @@ MATERIAL_SLOT_NAME_FOR_TITLE = {
     "belt": "Pas",
     "cloak": "Peleryna",
     "bracers": "Karwasze",
+    "bracelet": "Bransoletka",
+    "accessory": "Akcesorium",
     "relic": "Relikt",
 }
 
@@ -584,6 +588,8 @@ MATERIAL_SLOT_STAT_PREFERENCES = {
     "belt": ("constitution", "strength", "willpower", "dexterity", "intelligence"),
     "cloak": ("dexterity", "willpower", "intelligence", "constitution", "strength"),
     "bracers": ("strength", "dexterity", "constitution", "intelligence", "willpower"),
+    "bracelet": ("dexterity", "strength", "constitution", "willpower", "intelligence"),
+    "accessory": ("willpower", "intelligence", "dexterity", "strength", "constitution"),
     "relic": ("willpower", "intelligence", "strength", "constitution", "dexterity"),
 }
 
@@ -602,6 +608,8 @@ MATERIAL_SLOT_PROPERTY_PREFERENCES = {
     "belt": ("max_hp_pct", "physical_defense_pct", "magic_defense_pct", "dodge_pct", "physical_damage_pct", "magic_damage_pct", "max_mana_pct"),
     "cloak": ("dodge_pct", "magic_defense_pct", "max_mana_pct", "magic_damage_pct", "physical_defense_pct", "physical_damage_pct", "max_hp_pct"),
     "bracers": ("physical_damage_pct", "dodge_pct", "physical_defense_pct", "magic_damage_pct", "max_hp_pct", "magic_defense_pct", "max_mana_pct"),
+    "bracelet": ("physical_damage_pct", "dodge_pct", "magic_damage_pct", "physical_defense_pct", "magic_defense_pct", "max_hp_pct", "max_mana_pct"),
+    "accessory": ("magic_damage_pct", "physical_damage_pct", "max_mana_pct", "max_hp_pct", "dodge_pct", "magic_defense_pct", "physical_defense_pct"),
     "relic": ("max_mana_pct", "max_hp_pct", "magic_damage_pct", "physical_damage_pct", "magic_defense_pct", "physical_defense_pct", "dodge_pct"),
 }
 
@@ -1302,6 +1310,8 @@ CLASS_EQUIPMENT_SLOT_DEFS = {
     "belt": ("Pas", 1, 115),
     "cloak": ("Peleryna", 0, 150),
     "bracers": ("Karwasze", 0, 105),
+    "bracelet": ("Bransoletka", 0, 125),
+    "accessory": ("Akcesorium", 0, 170),
     "relic": ("Relikt", 0, 200),
 }
 
@@ -1422,11 +1432,14 @@ CLASS_EQUIPMENT_SLOT_PRIMARY_BIAS = {
     "belt": -0.10,
     "cloak": 0.03,
     "bracers": 0.10,
+    "bracelet": 0.08,
+    "accessory": 0.04,
     "relic": 0.05,
 }
 
 CLASS_EQUIPMENT_SLOT_PROPERTY_SCALE = {
     "head": 1.00, "body": 1.15, "shield": 1.10, "hands": 0.95, "legs": 1.10,
     "feet": 0.90, "charm": 0.85, "ring": 0.85, "necklace": 1.00, "earring": 0.82,
-    "shoulders": 1.08, "belt": 1.05, "cloak": 0.92, "bracers": 0.95, "relic": 1.20,
+    "shoulders": 1.08, "belt": 1.05, "cloak": 0.92, "bracers": 0.95,
+    "bracelet": 0.90, "accessory": 0.90, "relic": 1.20,
 }
