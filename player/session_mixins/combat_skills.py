@@ -780,6 +780,15 @@ class SessionCombatSkillsMixin:
                                     "properties":["dispelable","extendable","silenceable"],
                                     "numeric_source_defined":False,
                                 })
+                            elif _status=="shell":
+                                _status_data.update({
+                                    "affects":"incoming_magic_damage",
+                                    "source_effect":"reduces_magic_damage_taken",
+                                    "source_stat_influence":["will"],
+                                    "level_effect":"increases_duration",
+                                    "properties":["dispelable","extendable","silenceable"],
+                                    "numeric_source_defined":False,
+                                })
                             self.active_skill_buffs["v0319_vmax_"+_status]=_status_data
                         self.active_skill_buffs[skill["id"]]={
                             "name":"V-MAX","boost":1.0,"until":self.v0319_vmax_until,
@@ -791,7 +800,8 @@ class SessionCombatSkillsMixin:
                         await self.send(
                             f"V-MAX aktywny przez {duration} s. Protect, Shell, Haste, Regen, "
                             "Preach, Praise i Permanence działają na Meca; Protect zmniejsza otrzymywane obrażenia fizyczne, "
-                            "Preach podnosi Magic Attack, Praise podnosi Attack, Haste neguje Slow, "
+                            "Shell zmniejsza otrzymywane obrażenia magiczne, Preach podnosi Magic Attack, "
+                            "Praise podnosi Attack, Haste neguje Slow, "
                             "a Permanence chroni korzystne efekty przed wrogim dispellem. "
                             f"Czas wynika ze Skill Level {skill_level} i WILL {self.effective_willpower()}."
                         )
