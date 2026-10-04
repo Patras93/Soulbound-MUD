@@ -2387,7 +2387,7 @@ def _v0319_install_full_mec_kit():
         ("Mec Sonata",20,"damage",1000,"magic","mec_sonata","Holy gospel attacks one enemy and may reduce its level-equivalent power."),
         ("Maelstrom",44,"aoe_damage",1500,"magic","maelstrom","Water vortex floods all enemies."),
         ("Shock",95,"aoe_damage",1800,"magic","shock","Dark + Lightning attack on all enemies."),
-        ("Starlight Shower",110,"damage",2000,"magic","starlight_shower","Focused laser barrage; in V-MAX becomes non-diminishing and hits all enemies."),
+        ("Starlight Shower",110,"damage",2000,"magic","starlight_shower","Magic Attack laser barrage: one enemy when fighting one target; diminishing damage to all combat targets when fighting several; V-MAX hits all enemies without diminishing."),
         # Support
         ("Cure Beam",1,"heal",100,"support","cure_beam","Single-target healing beam available from the start. Willpower and Skill Level increase healing. Support Effect increases healing and removes Blind and Poison."),
         ("Hypno Flash",16,"damage",300,"support","hypno_flash","Attempts to put one enemy to Sleep; support effect improves chance."),
@@ -2507,7 +2507,20 @@ def _v0319_install_full_mec_kit():
         if special=="logic_bomb":
             row.update({"scale":"willpower","uoss_mp_cost":155})
         if special=="starlight_shower":
-            row.update({"uoss_mp_cost":225, "uoss_vmax_mp_cost":300, "target_mode":"single_or_diminishing_aoe"})
+            row.update({
+                "scale":"intelligence",
+                "source_stat_influence":["magic_attack"],
+                "magic_attack_influence":True,
+                "uoss_mp_cost":225,
+                "uoss_vmax_mp_cost":300,
+                "source_properties":[],
+                "target_mode":"single_or_diminishing_aoe",
+                "aoe_diminishing":True,
+                "vmax_target_mode":"all_enemies_non_diminishing",
+                "vmax_aoe_non_diminishing":True,
+                "diminishing_numeric_source_defined":False,
+                "diminishing_balance_model":"soulbound_inverse_sqrt_target_count",
+            })
         if special=="cosmic_rave":
             row.update({"scale":"attack", "secondary_scale":"dexterity",
                         "source_stat_influence":["attack","agility"],
@@ -2644,6 +2657,27 @@ def _mec_contract_audit_v11149():
             errors.append("shoot_all: missing V-MAX crit/damage increase")
         if bool(shoot_all.get("vmax_numeric_source_defined")):
             errors.append("shoot_all: V-MAX numeric bonus must remain marked unsourced")
+    starlight=rows.get("starlight_shower")
+    if starlight:
+        if list(starlight.get("source_stat_influence") or [])!=["magic_attack"]:
+            errors.append("starlight_shower: source influence must be Magic Attack")
+        if int(starlight.get("uoss_mp_cost",0) or 0)!=225:
+            errors.append("starlight_shower: normal MP cost must be 225")
+        if int(starlight.get("uoss_vmax_mp_cost",0) or 0)!=300:
+            errors.append("starlight_shower: V-MAX MP cost must be 300")
+        if str(starlight.get("target_mode"))!="single_or_diminishing_aoe":
+            errors.append("starlight_shower: normal target mode must be single or diminishing AoE")
+        if not bool(starlight.get("aoe_diminishing")):
+            errors.append("starlight_shower: normal multi-target mode must diminish")
+        if str(starlight.get("vmax_target_mode"))!="all_enemies_non_diminishing":
+            errors.append("starlight_shower: V-MAX must target all enemies non-diminishing")
+        if not bool(starlight.get("vmax_aoe_non_diminishing")):
+            errors.append("starlight_shower: V-MAX non-diminishing flag missing")
+        if bool(starlight.get("diminishing_numeric_source_defined")):
+            errors.append("starlight_shower: diminishing numeric curve must remain marked unsourced")
+        if list(starlight.get("source_properties") or [])!=[]:
+            errors.append("starlight_shower: source Properties must remain None")
+
     vmax=rows.get("vmax")
     if vmax:
         if str(vmax.get("scale"))!="willpower":
