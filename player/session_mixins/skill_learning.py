@@ -9,7 +9,7 @@ from core.bootstrap_economy_professions import SOUL_MILESTONE_TIERS, SOUL_TRIAL_
 from core.classes_skills import CLASSES, CLASS_SKILLS, NATURAL_SKILL_INTENTS, ROOMS, effective_skill_mana_cost
 from core.progression_600 import (
     SKILL_MAX_LEVEL, SOUL_MAX_TIER, SOUL_TIER_THRESHOLDS,
-    soul_tier_title_for_class, soul_weapon_trait_for_tier,
+    soul_tier_title_for_class, soul_weapon_trait_for_tier_v11193,
 )
 from core.progression_resources import skill_cooldown_multiplier, skill_xp_to_next, v0190_scaled_gain
 from network.protocol_gameplay_utils import find_by_name, normalize_lookup_text
@@ -66,7 +66,7 @@ class SessionSkillLearningMixin:
                 f"Nowy bonus klasowy Broni Duszy: "
                 f"{self.character.soul_weapon_class_bonus_text()}."
             )
-            trait = soul_weapon_trait_for_tier(next_tier, self.character.class_name)
+            trait = soul_weapon_trait_for_tier_v11193(next_tier, self.character.class_name)
             if trait:
                 await self.send(
                     f"Nowa właściwość Broni Duszy: {trait['name']}. {trait['description']}."
