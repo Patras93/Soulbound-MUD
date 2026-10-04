@@ -480,6 +480,7 @@ def corpse_material_variant_mastery(material_key, variant_index):
 CORPSE_MATERIAL_SLOT_DEFS = {
     "head": ("Hełm", 0),
     "body": ("Pancerz", 3),
+    "shield": ("Tarcza", 2),
     "hands": ("Rękawice", -1),
     "legs": ("Nogawice", 1),
     "feet": ("Buty", -1),
@@ -550,6 +551,7 @@ MATERIAL_STAT_EPITHETS = {
 MATERIAL_SLOT_NAME_FOR_TITLE = {
     "head": "Hełm",
     "body": "Pancerz",
+    "shield": "Tarcza",
     "hands": "Rękawice",
     "legs": "Nogawice",
     "feet": "Buty",
@@ -570,6 +572,7 @@ MATERIAL_SLOT_NAME_FOR_TITLE = {
 MATERIAL_SLOT_STAT_PREFERENCES = {
     "head": ("willpower", "constitution", "intelligence", "strength", "dexterity"),
     "body": ("constitution", "willpower", "strength", "intelligence", "dexterity"),
+    "shield": ("constitution", "strength", "willpower", "intelligence", "dexterity"),
     "hands": ("strength", "dexterity", "intelligence", "constitution", "willpower"),
     "legs": ("constitution", "dexterity", "strength", "willpower", "intelligence"),
     "feet": ("dexterity", "constitution", "strength", "willpower", "intelligence"),
@@ -587,6 +590,7 @@ MATERIAL_SLOT_STAT_PREFERENCES = {
 MATERIAL_SLOT_PROPERTY_PREFERENCES = {
     "head": ("magic_defense_pct", "max_mana_pct", "physical_defense_pct", "max_hp_pct", "magic_damage_pct", "physical_damage_pct", "dodge_pct"),
     "body": ("physical_defense_pct", "max_hp_pct", "magic_defense_pct", "max_mana_pct", "physical_damage_pct", "magic_damage_pct", "dodge_pct"),
+    "shield": ("physical_defense_pct", "max_hp_pct", "magic_defense_pct", "physical_damage_pct", "max_mana_pct", "magic_damage_pct", "dodge_pct"),
     "hands": ("physical_damage_pct", "magic_damage_pct", "dodge_pct", "physical_defense_pct", "magic_defense_pct", "max_hp_pct", "max_mana_pct"),
     "legs": ("physical_defense_pct", "max_hp_pct", "dodge_pct", "magic_defense_pct", "physical_damage_pct", "magic_damage_pct", "max_mana_pct"),
     "feet": ("dodge_pct", "physical_defense_pct", "magic_defense_pct", "physical_damage_pct", "magic_damage_pct", "max_hp_pct", "max_mana_pct"),
