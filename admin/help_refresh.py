@@ -1522,6 +1522,24 @@ def refresh_public_help_surface_v11197():
         "kodeksklasowy <klasa> pokazuje pełny katalog umiejętności, wymagania, nauczyciela i status nauki.",
     ]
 
+    HELP_TOPICS["zadania klasowe"] = [
+        "Każda z 14 klas ma 5 różnych zadań klasowych w każdym cyklu godzinnym: walka, bossowie, eksploracja, zbieractwo i crafting.",
+        "Wpisz zadanieklasowe, aby zobaczyć pięć ofert aktywnej klasy. Przyjmij przez zadanieklasowe <numer>; jednocześnie aktywne jest jedno zadanie.",
+        "Po wykonaniu celu wpisz zadanieklasowe, aby odebrać nagrodę. Potem możesz wybrać kolejne zadanie z tej samej piątki.",
+        "zadanieklasowe porzuc wstrzymuje aktywne zadanie bez kasowania jego postępu do końca bieżącej godziny.",
+        "O pełnej godzinie cykl zadań klasowych odnawia się i postępy bieżącego cyklu startują od nowa. Ukończenie dowolnego zadania zachowuje historyczne wymaganie do egzaminu Soul 50.",
+        "Postęp liczy wyłącznie właściwą aktywność aktywnego zadania: kill, boss, nowe lokacje, zebrane zasoby albo udane crafty.",
+    ]
+    HELP_TOPICS["zadanieklasowe"] = list(HELP_TOPICS["zadania klasowe"])
+    HELP_TOPICS["class quests"] = list(HELP_TOPICS["zadania klasowe"])
+    HELP_TOPIC_ALIASES.update({
+        "zadania klasowe": "zadania klasowe",
+        "zadanie klasowe": "zadania klasowe",
+        "zadanieklasowe": "zadania klasowe",
+        "class quest": "zadania klasowe",
+        "class quests": "zadania klasowe",
+    })
+
     HELP_TOPICS["rasy"] = [
         "Soulbound ma 14 grywalnych ras. Każda może wybrać każdą z 14 klas; rekomendacje rasowo-klasowe są wskazówką, nie blokadą.",
         "Rasy różnią się rozkładem pięciu głównych statystyk oraz pasywem rasowym.",
