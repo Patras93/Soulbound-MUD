@@ -374,6 +374,19 @@ class SessionQuestNpcMixin:
             # z zadaniem aktywnym lub gotowym do oddania.
             await self.announce_npc_quest_context_v099(npc_id, npc)
 
+            # v1.11.99: sama rozmowa z NPC ustawia kontekst jego oferty.
+            # Dzięki temu `przyjmij 1` / `accept quest 1` działa od razu
+            # także u NPC, których obsługa kończy się wcześniej (np. nauczyciel
+            # klasy). `quest list <NPC>` pozostaje tylko opcjonalnym podglądem.
+            quest_ids = self.quest_ids_for_npc(npc_id, npc)
+            if quest_ids:
+                self.quest_list_context = {
+                    "source": "npc",
+                    "room_id": self.character.room_id,
+                    "npc_id": npc_id,
+                    "quest_ids": list(quest_ids),
+                }
+
             if npc.get("teacher_class"):
                 await self.teacher_lesson(npc)
                 return
@@ -381,7 +394,6 @@ class SessionQuestNpcMixin:
             if npc.get("specialist_tool_type"):
                 await self.show_profession_specialist(npc)
 
-            quest_ids = self.quest_ids_for_npc(npc_id, npc)
             if quest_ids:
                 # v0.8.31: rozmowa pokazuje ofertę, ale niczego nie przyjmuje
                 # automatycznie. Gracz wybiera konkretny numer.
