@@ -4094,9 +4094,12 @@ def progression_600_and_leader_disband_audit_v0360():
     for class_name,rows in CLASS_SKILLS.items():
         unlocks=[int(row.get("unlock",0) or 0) for row in rows]
         counts={level:unlocks.count(level) for level in grid}
-        if len(rows)!=183 or min(unlocks or [0])!=1 or max(unlocks or [0])!=600:
+        # Generator Core guarantees the 183-skill base grid through 600.
+        # Source-authored abilities may legally extend that catalogue, so the
+        # release contract is a minimum rather than an exact total.
+        if len(rows)<183 or min(unlocks or [0])!=1 or max(unlocks or [0])!=600:
             skill_errors.append(f"{class_name}:{len(rows)}:{min(unlocks or [0])}-{max(unlocks or [0])}")
-        if class_name not in ("Mec","Inżynier") and any(counts[level]!=3 for level in grid):
+        if class_name not in ("Mec","Inżynier") and any(counts[level]<3 for level in grid):
             skill_errors.append(f"{class_name}:grid")
     check("skill_grid_183_per_class", not skill_errors, skill_errors[:10])
     metrics["classes"]=len(CLASS_SKILLS)
@@ -4172,7 +4175,7 @@ if PROGRESSION_600_AND_LEADER_DISBAND_AUDIT_V0360["error_count"]:
 # Final truth layer: old HELP aliases remain accepted, but describe current 600 progression.
 HELP_TOPICS["progresja600"] = [
     "Główne osie progresji mają zakres 1-600: Level postaci, Biegłość klas, Soul Level, Soul Weapon Mastery, Skill Level, profesje i narzędzia. Sześć statystyk bazowych pozostaje bez twardego limitu.",
-    "Każda z 14 klas ma 183 skille/spelle i dochodzi do Biegłości 600. Dwanaście standardowych klas ma dokładnie 3 skille na progach 1, 10, 20 i dalej co 10; Mec i Inżynier zachowują swoje autorskie wczesne progi.",
+    "Każda z 14 klas ma bazową siatkę minimum 183 skilli/spelli i dochodzi do Biegłości 600. Dwanaście standardowych klas ma minimum 3 skille na progach 1, 10, 20 i dalej co 10; źródłowe umiejętności mogą rozszerzać te progi. Mec i Inżynier zachowują swoje autorskie wczesne progi.",
     "Broń Duszy rozwija się do Soul Level 600 i Soul Tier 60. Tiery 41-60 kontynuują próby co 10 poziomów od 410 do 600.",
     "Wszystkie 14 profesji i 14 narzędzi rozwijają się do 600. Narzędzia mają 60 Tierów i nie mają trwałości; każde narzędzie kupuje się tylko raz na postać.",
     "Klasowe EQ ma progi 1, 10, 20, 30 i dalej co 10 aż do 600. Każdy kolejny próg ma wyższy rzeczywisty budżet podstawowych statów, więc niskie Tiery nie powtarzają tych samych wartości. Surowce i receptury mają dalszą zawartość 401-600.",
