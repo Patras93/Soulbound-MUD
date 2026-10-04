@@ -200,16 +200,17 @@ class SessionCombatRewardsMixin:
                         )
                         if _personal:
                             _iid, _label = _personal
-                            await session.send(f"Super Boss: otrzymujesz {_label}. Nagroda jest osobista i zapisana na stałe.")
+                            await session.send(f"Super Boss: otrzymujesz {_label}. Nagroda jest osobista.")
                     if _first_clear_sessions:
-                        _shared = superboss_shared_drop_v11135(self.server.db, _first_clear_sessions, _uoss_key)
-                        if _shared:
-                            _winner, _iid = _shared
+                        _personal_drops = superboss_shared_drop_v11135(
+                            self.server.db, _first_clear_sessions, _uoss_key
+                        )
+                        for _winner, _iid in _personal_drops:
                             await _winner.record_item_collection(
                                 _iid, source=template.get("name", "Super Boss"), announce=False
                             )
                             await _winner.send(
-                                f"Super Boss: otrzymujesz wspólny unikalny drop drużyny: {ITEMS.get(_iid, {}).get('name', _iid)}. Przedmiot przypisano do ciebie."
+                                f"Super Boss: otrzymujesz własny unikalny drop: {ITEMS.get(_iid, {}).get('name', _iid)}."
                             )
                     for session in _first_clear_sessions:
                         _series = advance_superboss_series_v11138(
@@ -226,7 +227,7 @@ class SessionCombatRewardsMixin:
                                     "Pokonałeś wszystkie osiem Duchów Many. Odblokowano silniejszego przeciwnika."
                                 )
                         await session.send(
-                            f"Super Boss zaliczony na stałe: {template.get('name', _uoss_key)}. Restart ani deploy nie cofnie zaliczenia."
+                            f"Super Boss pokonany: {template.get('name', _uoss_key)}. Kolejna nagroda będzie dostępna po 24 godzinach."
                         )
 
                 # v0.42.0: the combat producer announces one real defeat;
