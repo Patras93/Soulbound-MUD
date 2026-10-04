@@ -956,8 +956,16 @@ class SessionCombatSkillsMixin:
                             _engaged_alive=[x for x in alive if x.key in _engaged]
                             targets=([mob] if len(_engaged_alive)<=1 and mob else (_engaged_alive or ([mob] if mob else [alive[0]])))
                         elif special=="uzi_punch":
-                            # Source gives no authored hit count.
-                            targets=list(alive)
+                            # Source target is Random Enemies but supplies no hit count.
+                            # Soulbound adaptation: choose a random half of living enemies,
+                            # rounded up, with a minimum of one distinct target.
+                            _uzi_fraction=max(0.01,min(1.0,float(
+                                skill.get("random_target_fraction",0.50) or 0.50
+                            )))
+                            _uzi_count=max(
+                                1,min(len(alive),int((len(alive)*_uzi_fraction)+0.999999))
+                            )
+                            targets=random.sample(list(alive),_uzi_count)
                         else:
                             targets=list(alive)
                         base=max(1,int(skill.get("base_power",100) or 100)); total=0; defeated=[]; seen=set()
@@ -969,6 +977,33 @@ class SessionCombatSkillsMixin:
                                 skill, _mec_damage_type
                             )
                         )
+                        _uzi_feedback_self_damage=0
+                        if special=="uzi_punch":
+                            # HP influence is inverse here: the attack becomes stronger
+                            # as HP decreases. Attack is primary; Vitality maps to CON as
+                            # the declared secondary stat in the shared offensive core.
+                            _uzi_max_hp=max(1,int(self.max_hp()))
+                            _uzi_current_hp=max(0,int(self.current_hp))
+                            _uzi_missing_ratio=max(
+                                0.0,min(1.0,(_uzi_max_hp-_uzi_current_hp)/float(_uzi_max_hp))
+                            )
+                            mult *= 1.0 + _uzi_missing_ratio * float(
+                                skill.get("missing_hp_max_damage_bonus",0.75) or 0.75
+                            )
+                            _uzi_shield=bool(
+                                self.server.db.equipped_item(self.account_id,"shield")
+                            )
+                            if _uzi_shield:
+                                mult *= float(
+                                    skill.get("shield_damage_multiplier",1.20) or 1.20
+                                )
+                                await self.send("Uzi Punch: założona tarcza wzmacnia atak.")
+                            _uzi_feedback_self_damage=max(
+                                1,int(round(
+                                    _uzi_max_hp
+                                    * float(skill.get("feedback_max_hp_pct",0.12) or 0.12)
+                                ))
+                            )
                         # Cosmic Rave has a lesser Agility influence. A supplied
                         # UOSS combat log confirms that its V-MAX Random Enemies form
                         # performs five separate strikes. Starlight Shower's V-MAX
@@ -1045,7 +1080,18 @@ class SessionCombatSkillsMixin:
                             defeated.append(helper_target)
                         await self.grant_skill_use_xp(skill)
                         await self.send(f"{skill['name']}: łączne obrażenia {total}, pokonani {len(defeated)}.")
-                        for target in defeated: await self.mob_defeated(target)
+                        for target in defeated:
+                            await self.mob_defeated(target)
+                        if special=="uzi_punch" and _uzi_feedback_self_damage:
+                            self.current_hp-=int(_uzi_feedback_self_damage)
+                            self.queue_mec_feedback_repair_v11154(_uzi_feedback_self_damage)
+                            await self.send(
+                                f"Uzi Punch Feedback: tracisz {_uzi_feedback_self_damage} HP. "
+                                f"Masz {max(0,self.current_hp)} z {self.max_hp()} HP."
+                            )
+                            if self.current_hp<=0:
+                                await self.die("Feedback Uzi Punch")
+                                return
                         if any(x.alive for x in alive): await self.ensure_realtime_combat()
                         return
 
