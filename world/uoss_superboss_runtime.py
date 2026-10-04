@@ -232,16 +232,8 @@ SUPERBOSS_PHASE_TEXT_V11138 = {
 }
 
 def superboss_phase_event_v11138(session, template, mob):
-    key=superboss_key_from_template_v11135(template)
-    if not key:
-        return None
-    phase=superboss_phase_v11137(template,mob) or 1
-    seen=getattr(mob,"uoss_announced_phase_v11138",0)
-    if phase <= seen:
-        return None
-    mob.uoss_announced_phase_v11138=phase
-    label=SUPERBOSS_PHASE_TEXT_V11138.get(key,("Faza 1","Faza 2","Faza 3"))[phase-1]
-    return phase,label
+    """Legacy hook retained for callers; no fabricated phase thresholds/text."""
+    return None
 
 def superboss_incoming_multiplier_v11138(session, template, mob):
     mult,note=superboss_counterattack_multiplier_v11137(template,mob)
@@ -306,8 +298,12 @@ def superboss_source_round_event_v11160(session, template, mob):
     key=superboss_key_from_template_v11135(template)
     if not key:
         return None
-    mob.combat_turn=int(getattr(mob,"combat_turn",0) or 0)+1
-    turn=mob.combat_turn
+    # One source round per enemy action, not once per party target.
+    marker=int(getattr(mob,"uoss_round_marker_v11176",0) or 0)
+    current=int(getattr(mob,"combat_turn",0) or 0)
+    if marker!=current:
+        mob.uoss_round_marker_v11176=current
+    turn=current
     if key=="serpentarius" and turn>100:
         return {"instant_death":True,"text":"Serpentarius: minęło 100 rund. Próba kończy się śmiercią."}
     if key=="odin":
@@ -460,3 +456,30 @@ def superboss_helper_passives_v11174(session, template, mob):
     if name=="Byblos" and key=="serpentarius":
         mob.uoss_ignore_helper_target_v11174=True
     return tuple(effects)
+
+
+def superboss_combat_start_effects_v11176(session, template, mob):
+    """Exact always-on/start-of-fight effects only."""
+    key=superboss_key_from_template_v11135(template)
+    out=[]
+    if key=="black_rabite":
+        mob.uoss_permanent_protect_v11176=True
+        mob.uoss_permanent_shell_v11176=True
+        out.append("Black Rabite: permanent Protect i Shell.")
+    out.extend(superboss_helper_passives_v11174(session,template,mob))
+    return tuple(out)
+
+def superboss_add_round_event_v11176(template, mob):
+    """Exact add timing that does not require an invented damage value."""
+    tid=str(getattr(mob,"template_id",""))
+    if tid=="uoss_add_emerald_torpedo_v11156":
+        turn=int(getattr(mob,"combat_turn",0) or 0)
+        if turn>=3:
+            mob.hp=0
+            return {"despawn":True,"text":"Emerald Torpedo eksploduje w trzeciej rundzie."}
+    return None
+
+def superboss_clear_source_statuses_v11176(session):
+    active=getattr(session,"uoss_source_statuses_v11173",None)
+    if isinstance(active,set):
+        active.clear()
