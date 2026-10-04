@@ -18,10 +18,10 @@ from world.runtime_progression import V021_MYTHIC_SET_BONUS, v0210_world_tier_mu
 
 
 def moogle_board_stat_bonus_v0313(character_level):
-    """Moogle Board: użyteczny przez całą progresję; +20 na 150, potem +2/Level."""
+    """Moogle Board: +20 na Levelu 150, potem +2 za każdy kolejny Level."""
     level = max(1, min(CHARACTER_MAX_LEVEL, int(character_level or 1)))
-    if level <= 150:
-        return min(20, 2 + 2 * (level // 10))
+    if level < 150:
+        return 0
     return 20 + 2 * (level - 150)
 
 def moogle_board_current_bonus_v10010(character_level):
