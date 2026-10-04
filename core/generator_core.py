@@ -170,6 +170,22 @@ def character_attribute_power(character_level: int, stat_value: int) -> int:
     return max(1, int(round(stat_value + 0.30 * character_level)))
 
 
+def character_offensive_build_multiplier(stat_value: int | float) -> float:
+    """Late-game offense driven by the actual effective combat stat.
+
+    This multiplier deliberately does not use Character Level. Level unlocks
+    progression and contributes only the small legacy term inside
+    character_attribute_power(); the large late-game gain comes from the
+    character's real STR/DEX/INT/WILL after equipment and other stat bonuses.
+    Up to 100 the multiplier is neutral, so early game stays intact.
+    """
+    stat_value = max(1.0, float(stat_value or 1.0))
+    if stat_value <= 100.0:
+        return 1.0
+    growth = 1.0 + 0.45 * (((stat_value - 100.0) / 100.0) ** 0.72)
+    return round(clamp(growth, 1.0, 5.0), 6)
+
+
 def speed_from_dexterity(dexterity: int) -> int:
     dexterity = max(1, int(dexterity))
     return max(1, int(round(8 + dexterity * 1.65)))
