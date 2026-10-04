@@ -6,7 +6,10 @@ import math
 import random
 import time
 from core.bootstrap_economy_professions import SOUL_MILESTONE_TIERS, SOUL_TRIAL_QUEST_IDS
-from core.classes_skills import CLASSES, CLASS_SKILLS, NATURAL_SKILL_INTENTS, ROOMS, effective_skill_mana_cost
+from core.classes_skills import (
+    CLASSES, CLASS_SKILLS, NATURAL_SKILL_INTENTS, ROOMS, effective_skill_mana_cost,
+    MEC_PROTOCOL_SKILLS_V11155,
+)
 from core.progression_600 import (
     SKILL_MAX_LEVEL, SOUL_MAX_TIER, SOUL_TIER_THRESHOLDS,
     soul_tier_title_for_class, soul_weapon_trait_for_tier_v11193,
@@ -702,6 +705,13 @@ class SessionSkillLearningMixin:
                         continue
                     if not self.server.db.knows_skill(self.account_id, passive["id"]):
                         continue
+                    # Mec Protocols level from real use of their own authored branch,
+                    # not from unrelated Mec actions. Other passive/inherent skills
+                    # preserve the existing class-wide passive XP behavior.
+                    protocol_specials=MEC_PROTOCOL_SKILLS_V11155.get(passive["id"])
+                    if protocol_specials is not None:
+                        if str(skill.get("mec_special","")) not in set(protocol_specials):
+                            continue
                     self.server.db.add_skill_xp(self.account_id, passive["id"], passive_gain)
             return result
 
