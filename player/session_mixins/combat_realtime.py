@@ -19,7 +19,8 @@ from world.uoss_superboss_runtime import (
     superboss_source_round_event_v11160, superboss_exact_ability_effect_v11160,
     superboss_source_ability_v11162, superboss_source_summons_v11162,
     superboss_source_attack_multiplier_v11162, superboss_source_status_v11162,
-    superboss_apply_source_status_v11173,
+    superboss_apply_source_status_v11173, superboss_combat_start_effects_v11176,
+    superboss_add_round_event_v11176, superboss_clear_source_statuses_v11176,
 )
 
 class SessionCombatRealtimeMixin:
@@ -288,6 +289,15 @@ class SessionCombatRealtimeMixin:
                                     and target_session.current_hp > 0
                                 ):
                                     _enemy_template = MOB_TEMPLATES[enemy_mob.template_id]
+                                    if not getattr(enemy_mob,"uoss_start_effects_done_v11176",False):
+                                        enemy_mob.uoss_start_effects_done_v11176=True
+                                        for _msg in superboss_combat_start_effects_v11176(target_session,_enemy_template,enemy_mob):
+                                            await self.server.party_combat_broadcast(target_session,_msg,detail="essential")
+                                    _add_event=superboss_add_round_event_v11176(_enemy_template,enemy_mob)
+                                    if _add_event:
+                                        await self.server.party_combat_broadcast(target_session,_add_event["text"],detail="essential")
+                                        if _add_event.get("despawn"):
+                                            continue
                                     _source_round = superboss_source_round_event_v11160(target_session, _enemy_template, enemy_mob)
                                     if _source_round and _source_round.get("instant_death"):
                                         target_session.current_hp = 0
@@ -374,6 +384,10 @@ class SessionCombatRealtimeMixin:
                     except Exception:  # AUDIT_INTENTIONAL_PASS: session may already be disconnected while reporting loop failure
                         pass
                 finally:
+                    try:
+                        superboss_clear_source_statuses_v11176(self)
+                    except Exception:
+                        pass
                     if self.combat_task is this_task:
                         self.combat_task = None
 
