@@ -1542,6 +1542,58 @@ def refresh_public_help_surface_v11197():
         "Zwykłe skille klasowe nie mają cooldownu ponownego użycia; specjalny timer zostaje tylko tam, gdzie jest częścią mechaniki.",
     ]
 
+    HELP_TOPICS["hp_mobow"] = [
+        "HP, obrażenia i nagrody przeciwników są liczone z ich aktualnego profilu runtime, rangi, regionu i warstwy progresji.",
+        "Główna progresja świata dochodzi do 600; nieskończone instancje i Super Bossowie mają własne dalsze zasady skalowania.",
+        "con <mob> pokazuje bieżącą ocenę konkretnego przeciwnika i jest właściwym źródłem aktualnych liczb.",
+    ]
+    HELP_TOPICS["soul_xp_bloki"] = [
+        "Soul Level rozwija się 1-600. Soul XP i progi kolejnych Tierów korzystają z aktualnej warstwy progresji 600.",
+        "dusza info pokazuje bieżący Soul XP, Tier, blokadę Próby i dokładny następny cel.",
+    ]
+    HELP_TOPICS["hp_bossow_lochow"] = [
+        "Bossowie lochów korzystają z aktualnych danych konkretnej instancji i jej bieżącego skalowania, a nie ze starego limitu etapu 400.",
+        "Główna progresja kończy się na 600; nieskończone lochy zachowują własne zasady dalszego wzrostu.",
+        "consider / con pokazuje aktualną ocenę bossa przed rozpoczęciem walki.",
+    ]
+    HELP_TOPICS["expowiska"] = [
+        "Dobór zwykłych terenów i expowisk opiera się na Character Levelu oraz realnym zagrożeniu regionu w aktualnej progresji 1-600.",
+        "Biegłość klasy rozwija klasę i odblokowuje jej umiejętności; nie zastępuje Character Levelu przy ocenie terenu.",
+        "teren info <nazwa>, con <mob> i progress region pokazują bieżące informacje zamiast historycznej tabeli 1-400.",
+    ]
+    HELP_TOPICS["questy_kowalstwa_1_200"] = [
+        "To historyczna nazwa tematu. Kowalstwo jest pełną profesją 1-600.",
+        "Aktualne zlecenia czytają wymagane materiały, produkty, postęp i nagrody z bieżących danych runtime.",
+    ]
+    HELP_TOPICS["questy_gotowania_1_200"] = [
+        "To historyczna nazwa tematu. Gotowanie jest pełną profesją 1-600.",
+        "Aktualne zlecenia korzystają z bieżących potraw, składników i wymagań; stare ograniczenie 1-400 nie obowiązuje.",
+    ]
+    HELP_TOPICS["questy_mikstur_orina"] = [
+        "Alchemia jest pełną profesją 1-600. Zlecenia Orina korzystają z bieżących mikstur, składników i wymagań.",
+        "Każde przyjęte zlecenie liczy postęp od 0/x zgodnie z aktualną logiką questa.",
+    ]
+    HELP_TOPICS["atlas_kompletny"] = [
+        "Atlas pokazuje aktualne progi i miejsca występowania ryb, rud, drewna, ziół i innych zasobów.",
+        "Użyj atlas ryby, atlas rudy, atlas drewno, atlas ziola albo atlas <zasób>; wynik jest czytany z bieżących danych.",
+        "Profesje i narzędzia rozwijają się do 600, więc stary opis kończący atlas na 400 nie jest aktualny.",
+    ]
+    for _legacy_balance_topic in ("balans 0865", "balans 0866", "balans 0874"):
+        if _legacy_balance_topic in HELP_TOPICS:
+            HELP_TOPICS[_legacy_balance_topic] = [
+                "To historyczny temat dawnego wydania. Nie opisuje aktywnego balansu.",
+                "Aktualna główna progresja dochodzi do 600, a bazowe statystyki postaci nie mają twardego limitu.",
+                "Bieżące liczby sprawdzaj przez con, score, staty info, skill info, eq info i atlas.",
+            ]
+
+    HELP_TOPICS["walka"] = [
+        "k <mob> / atakuj <mob> rozpoczyna walkę realtime; uciekaj / flee wycofuje z walki, a wimpy może robić to automatycznie przy ustawionym progu HP.",
+        "Zwykły autoatak korzysta z Broni Duszy i aktualnego buildu postaci. Dokładne skalowanie skilla wynika z jego własnego stat/scale, np. STR, DEX, INT, WILL albo Attack.",
+        "Ofensywne skille nie są globalnie dzielone na zasadę fizyczne=tylko Siła i magiczne=tylko Inteligencja; help skill <nazwa> pokazuje właściwe skalowanie konkretnej zdolności.",
+        "Zwykłe skille klasowe są bez cooldownu ponownego użycia; specjalne timery pozostają tylko tam, gdzie są elementem mechaniki, np. V-MAX.",
+        "combatlog concise/normal/full oraz bufor walka sterują szczegółowością i pozwalają wrócić do ostatnich komunikatów.",
+    ]
+
     HELP_TOPICS["materialy_eq"] = [
         "Materiałowe EQ obejmuje pełną aktualną siatkę 17 logicznych typów: głowę, korpus, tarczę, dłonie, nogi, stopy, talizman, pierścień, naszyjnik, kolczyk, naramienniki, pas, pelerynę, karwasze, bransoletę, akcesorium i relikt.",
         "Pierścienie, talizmany, kolczyki i akcesoria mają po dwa fizyczne sloty 1/2.",
@@ -1632,6 +1684,14 @@ def help_surface_audit_v11197():
         "ekwipunek": ("17", "zakc"),
         "moogle_board": ("Black Rabite", "150"),
         "silence": ("One Enemy", "Cleanseable", "Extendable"),
+        "hp_mobow": ("600", "con"),
+        "soul_xp_bloki": ("1-600", "dusza info"),
+        "hp_bossow_lochow": ("600", "consider"),
+        "expowiska": ("1-600", "teren info"),
+        "questy_gotowania_1_200": ("1-600", "historyczna"),
+        "questy_mikstur_orina": ("1-600", "Alchemia"),
+        "atlas_kompletny": ("600", "atlas"),
+        "walka": ("help skill", "V-MAX"),
     }
     for topic, needles in expected.items():
         text = text_of(topic)
