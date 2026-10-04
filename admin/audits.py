@@ -3997,15 +3997,19 @@ def all_local_party_buffs_audit_v03511():
         import inspect
         combat_source=inspect.getsource(SessionSkillsCombatMixin.use_class_skill)
         helper_source=inspect.getsource(SessionSkillsCombatMixin.local_party_buff_recipients_v03511)
-        boost_source=inspect.getsource(SessionSkillsCombatMixin.apply_party_boost_v03511)
+        passive_boost_source=inspect.getsource(SessionSkillsCombatMixin.passive_class_boost_multiplier_v11134)
+        skill_buff_source=inspect.getsource(SessionSkillsCombatMixin.skill_buff_multiplier)
+        offensive_multiplier_source=inspect.getsource(SessionSkillsCombatMixin.offensive_skill_damage_multiplier_v11186)
         vmax_support_source=inspect.getsource(SessionSkillsCombatMixin.party_vmax_support_active_v03511)
         metrics["same_room_party_helper"] = "party_sessions" in helper_source and "same_room=self.character.room_id" in helper_source
         metrics["living_local_only"] = "session.current_hp > 0" in helper_source and "session.character.room_id == self.character.room_id" in helper_source
         metrics["generic_boost_passive"] = "pasywnym wzmocnieniem Automatic" in combat_source and "apply_party_boost_v03511" not in combat_source
         metrics["typed_physical_magic_boosts"] = (
-            "target_type" in boost_source
-            and "class_type_for_name(class_name)" in boost_source
-            and "skill_buff_multiplier(target_type=resolved_type)" in combat_source
+            "target_type" in passive_boost_source
+            and "class_type_for_name(class_name)" in passive_boost_source
+            and 'wanted_type in {"physical", "magic"}' in passive_boost_source
+            and "target_type" in skill_buff_source
+            and "skill_buff_multiplier(target_type=resolved_type)" in offensive_multiplier_source
         )
         metrics["guard_shared"] = "for session in recipients:" in combat_source and "session.skill_guard" in combat_source
         metrics["evade_shared"] = "for session in recipients:" in combat_source and "session.skill_evade = True" in combat_source
