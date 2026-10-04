@@ -557,11 +557,11 @@ class SessionHelpSystemMixin:
 
             if not key or key == "kategorie":
                 await self.send("POMOC — KATEGORIE")
-                await self.send("START: help podstawy, help informacje, help komendy, help nawigacja.")
-                await self.send("POSTAĆ: help statystyki, help hp, help score, help dusza, help ekwipunek, help klasy, help rasy, help multiclass.")
-                await self.send("WALKA: help walka, help wimpy, help bossowie, help krytyki, help umiejetnosci, help druzyny, help skrzynie_bossow.")
-                await self.send("ŚWIAT: help questy, help nawigacja, help event_exp, help eksploracja, help bestiariusz, help teren_info, help atlas, help krypta, help portale, help zwloki, help pojemniki, help sklepy.")
-                await self.send("PROFESJE: help profesje, help wedkarstwo, help gornictwo, help geody, help drwalstwo, help zielarstwo, help alchemia, help rzemioslo, help gotowanie, help jubilerstwo2, help krawiectwo/tailoring, help garbarstwo/leatherworking, help stolarstwo/carpentry, help zaklinanie/enchanting, help craftmastery.")
+                await self.send("START: help podstawy, help progresja600, help informacje, help komendy, help nawigacja.")
+                await self.send("POSTAĆ: help statystyki, help hp, help score, help dusza, help ekwipunek, help klasy, help rasy, help multiclass, help moogle_board.")
+                await self.send("WALKA: help walka, help statusy, help wimpy, help bossowie, help superbossy, help krytyki, help umiejetnosci, help druzyny, help skrzynie_bossow.")
+                await self.send("ŚWIAT: help questy, help nawigacja, help ocean, help event_exp, help eksploracja, help bestiariusz, help teren_info, help atlas, help krypta, help portale, help zwloki, help pojemniki, help sklepy.")
+                await self.send("PROFESJE: help profesje, help wedkarstwo, help gornictwo, help geody, help drwalstwo, help zielarstwo, help alchemia, help rzemioslo, help gotowanie, help jubilerstwo2, help krawiectwo/tailoring, help garbarstwo/leatherworking, help stolarstwo/carpentry, help zaklinanie/enchanting, help archeologia, help kartografia, help craftmastery.")
                 await self.send("SPOŁECZNE: help gracze, help druzyny, help przekazywanie, help reputacja, help social2, help mentor2, help housing2, help leaderboards2, help bufory, help pieniadze, help charyzma.")
                 await self.send("SYSTEM: help logowanie, help smierc, help recaps, help loothistory2, help accessibility_presets, help audyt_v03055, help opisy, help zmiany.")
                 if self.is_admin():
