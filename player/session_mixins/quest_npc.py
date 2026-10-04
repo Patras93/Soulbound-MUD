@@ -370,11 +370,7 @@ class SessionQuestNpcMixin:
 
             await self.process_starter_talk_quests(npc_id, npc)
 
-            # v0.9.9: NPC sam informuje o nowych zadaniach i rozpoznaje powrót
-            # z zadaniem aktywnym lub gotowym do oddania.
-            await self.announce_npc_quest_context_v099(npc_id, npc)
-
-            # v1.11.99: sama rozmowa z NPC ustawia kontekst jego oferty.
+            # Sama rozmowa z NPC ustawia kontekst jego oferty.
             # Dzięki temu `przyjmij 1` / `accept quest 1` działa od razu
             # także u NPC, których obsługa kończy się wcześniej (np. nauczyciel
             # klasy). `quest list <NPC>` pozostaje tylko opcjonalnym podglądem.
@@ -386,6 +382,10 @@ class SessionQuestNpcMixin:
                     "npc_id": npc_id,
                     "quest_ids": list(quest_ids),
                 }
+
+            # v0.9.9: NPC sam informuje o nowych zadaniach i rozpoznaje powrót
+            # z zadaniem aktywnym lub gotowym do oddania.
+            await self.announce_npc_quest_context_v099(npc_id, npc)
 
             if npc.get("teacher_class"):
                 await self.teacher_lesson(npc)
