@@ -352,6 +352,29 @@ class SessionCombatRealtimeMixin:
                                     or enemy_mob.room_id != self.character.room_id
                                 ):
                                     break
+                                _tiger_break_rounds=max(
+                                    0,int(
+                                        getattr(
+                                            enemy_mob,
+                                            "v11196_tiger_defense_break_rounds",
+                                            0,
+                                        )
+                                        or 0
+                                    )
+                                )
+                                if _tiger_break_rounds>0:
+                                    _tiger_break_rounds=max(0,_tiger_break_rounds-1)
+                                    enemy_mob.v11196_tiger_defense_break_rounds=(
+                                        _tiger_break_rounds
+                                    )
+                                    if _tiger_break_rounds<=0:
+                                        await self.server.party_combat_broadcast(
+                                            self,
+                                            f"{MOB_TEMPLATES[enemy_mob.template_id]['name']}: "
+                                            "uszkodzenie obrony z Tiger Rampage wygasa.",
+                                            detail="normal",
+                                        )
+
                                 _logic_rounds=max(
                                     0,int(getattr(enemy_mob,"v11196_logic_bomb_rounds",0) or 0)
                                 )
