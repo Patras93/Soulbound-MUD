@@ -64,6 +64,29 @@ for idx,key in enumerate(_ORDER,1):
     })
     _prev=rid
 
+
+# Canonical source-named encounter rooms. Surrounding source continents are not
+# yet present in Soulbound, so these form a dedicated branch of the world.
+_SOURCE_ROOMS_V11160 = {
+ "black_rabite":("uoss_rabite_field_v11160","Rabite Field"),
+ "culex":("uoss_star_field_v11160","Star Field"),
+ "emerald_weapon":("uoss_sea_floor_v11160","On the Sea Floor"),
+ "ruby_weapon":("uoss_corel_prison_back_v11160","Back of Corel Prison"),
+ "serpentarius":("uoss_deep_dungeon_v11160","Deep Dungeon"),
+ "yiazmat":("uoss_ridorana_colosseum_v11160","Ridorana Cataract Colosseum"),
+ "odin":("uoss_misty_forest_clearing_v11160","A Clearing in a Misty Forest"),
+}
+_source_prev=HUB
+for _key,(_rid,_name) in _SOURCE_ROOMS_V11160.items():
+    _spec=UOSS_SUPERBOSS_ENCOUNTERS_V11134[_key]
+    ROOMS.setdefault(_rid,{
+        "zone":"Super Bossowie UOSSMUD","name":_name,
+        "desc":f"Źródłowa lokacja wyzwania {_spec['name']}.",
+        "exits":{"back":_source_prev},"uoss_superboss_key":_key,"uoss_source_location":True,
+    })
+    ROOMS.setdefault(_source_prev,{}).setdefault("exits",{}).setdefault("source",_rid)
+    _source_prev=_rid
+
 # Exact summoned/companion combatants belonging to sourced encounters.
 _SOURCE_ADDS_V11156 = {
  "greater_demon":{"name":"Greater Demon","level":175,"max_hp":325000,"max_mp":65000,"source_xp":300000,"source_xp_exact":True,"parent":"black_rabite","location":"Black Rabite","abilities":(),"elements":("Fire","Dark")},
@@ -112,7 +135,7 @@ _HELPERS={
 }
 for nid,(name,key) in _HELPERS.items():
     NPCS.setdefault(nid,{
-        "name":name,"room":f"uoss_superboss_arena_{key}_v11136",
+        "name":name,"room":_SOURCE_ROOMS_V11160.get(key,(f"uoss_superboss_arena_{key}_v11136",""))[0],
         "dialogue":f"{name} może wesprzeć drużynę liczącą maksymalnie 3 graczy podczas walki z {UOSS_SUPERBOSS_ENCOUNTERS_V11134[key]['name']}.",
         "uoss_superboss_helper":key,"helper_max_players":3,
     })
@@ -154,8 +177,15 @@ if "uoss_helper_seifer" in NPCS:
 
 # Token exchange points. The generic shop UI can expose the pools; prices are
 # token metadata because these currencies are items, not silver/gold.
+
+# Source service locations used by known reward exchanges.
+ROOMS.setdefault("uoss_dwarf_village_v11160",{"zone":"UOSSMUD","name":"Dwarf Village","desc":"Dwarf Village.","exits":{"armory":"uoss_dwarven_armory_v11160"}})
+ROOMS.setdefault("uoss_dwarven_armory_v11160",{"zone":"UOSSMUD","name":"Dwarven Armory","desc":"Kuźnia i zbrojownia Wattsa.","exits":{"out":"uoss_dwarf_village_v11160"}})
+ROOMS.setdefault("uoss_elsendor_v11160",{"zone":"UOSSMUD","name":"Elsendor","desc":"Elsendor.","exits":{"fur":"uoss_elsendor_fur_shop_v11160"}})
+ROOMS.setdefault("uoss_elsendor_fur_shop_v11160",{"zone":"UOSSMUD","name":"Fur Shop","desc":"Fur Shop w Elsendor.","exits":{"out":"uoss_elsendor_v11160"}})
+
 NPCS.setdefault("uoss_watts",{
-    "name":"Watts","room":"uoss_superboss_arena_black_rabite_v11136",
+    "name":"Watts","room":"uoss_dwarven_armory_v11160",
     "dialogue":"Wymieniam Moogle Steel na relikty Black Rabite.","shopkeeper":True,
     "uoss_token_shop":"uoss_moogle_steel",
 })
@@ -167,7 +197,7 @@ NPCS.setdefault("uoss_odin_fur_trader",{
 SHOPS.setdefault("uoss_superboss_arena_odin_v11136",[f"uoss_odin_unique_{i}" for i in range(1,9)])
 
 NPCS.setdefault("uoss_yiazmat_fur_trader",{
-    "name":"Kupiec Futrzarski — tier Yiazmata","room":"uoss_superboss_arena_yiazmat_v11136",
+    "name":"Kupiec Futrzarski — tier Yiazmata","room":"uoss_elsendor_fur_shop_v11160",
     "dialogue":"Godslayer's Badge otwiera tier nagród Yiazmata.","shopkeeper":True,
     "uoss_token_shop":"uoss_godslayers_badge",
 })
@@ -175,9 +205,10 @@ SHOPS.setdefault("uoss_superboss_arena_black_rabite_v11136",[f"uoss_black_rabite
 SHOPS.setdefault("uoss_superboss_arena_yiazmat_v11136",[f"uoss_yiazmat_unique_{i}" for i in range(1,8)])
 
 def install_uoss_superboss_spawns_v11136(mob_spawns):
-    """Idempotently install the 21 canonical boss spawns after content registry exists."""
+    """Install bosses; sourced encounters spawn in their canonical named rooms."""
     for key in _ORDER:
-        pair=(f"uoss_superboss_arena_{key}_v11136", f"uoss_superboss_{key}_v11136")
+        room_id=_SOURCE_ROOMS_V11160.get(key,(f"uoss_superboss_arena_{key}_v11136",""))[0]
+        pair=(room_id, f"uoss_superboss_{key}_v11136")
         if pair not in mob_spawns:
             mob_spawns.append(pair)
     return 21
