@@ -2052,13 +2052,23 @@ class SessionCombatSkillsMixin:
                     damage, critical = self.roll_critical_hit(damage)
                 if critical:
                     self.record_social_record_v03051("biggest_crit", damage)
-                    await self.send(
-                        f"TRAFIENIE KRYTYCZNE umiejętnością "
-                        f"{skill['name']}! Zręczność "
-                        f"{self.effective_dexterity()}. "
-                        f"Szansa: "
-                        f"{int(round(self.critical_chance() * 100))} procent."
-                    )
+                    if (
+                        skill.get("mec_authored")
+                        and str(skill.get("mec_special",""))=="crosshair"
+                    ):
+                        await self.send(
+                            f"TRAFIENIE KRYTYCZNE umiejętnością Crosshair! "
+                            f"Szansa krytyka: "
+                            f"{int(round(self.critical_chance() * 100))} procent."
+                        )
+                    else:
+                        await self.send(
+                            f"TRAFIENIE KRYTYCZNE umiejętnością "
+                            f"{skill['name']}! Zręczność "
+                            f"{self.effective_dexterity()}. "
+                            f"Szansa: "
+                            f"{int(round(self.critical_chance() * 100))} procent."
+                        )
                 if damage>0 and not _mec_percent_damage_exact:
                     damage = await self.apply_boss_defense(mob, damage)
                     damage = self.v0210_adjust_player_damage(damage)
