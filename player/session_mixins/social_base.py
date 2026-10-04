@@ -47,8 +47,44 @@ class SessionBaseSocialMixin:
                     f"Klasa: {class_text}."
                 )
 
+    async def try_hire_black_rabite_helper_v11159(self, message):
+            norm = self.normalize_description_query(message).strip(" .,!?:;")
+            helper = None
+            if norm == "join me popoi":
+                helper = "Popoi"
+            elif norm == "join me primm":
+                helper = "Primm"
+            if helper is None:
+                return False
+            if str(self.character.room_id) != "uoss_superboss_arena_black_rabite_v11136":
+                return False
+            party = self.server.party_sessions(self.account_id, same_room=self.character.room_id) or [self]
+            if len(party) > 3:
+                await self.send("Popoi i Primm pomagają tylko drużynie liczącej 3 lub mniej graczy.")
+                return True
+            cost_gold = 1000000
+            cost_silver = cost_gold * 100
+            master = self.server.db.master_account_for_character(self.account_id)
+            current = int(self.server.db.shared_wallet_for_master(master)[0])
+            if current < cost_silver:
+                await self.send(f"Potrzebujesz {cost_gold} złota, aby zatrudnić {helper}.")
+                return True
+            party_key = self.party_key() if self.party_key() is not None else self.account_id
+            attr = "_uoss_helper_choice_" + str(party_key)
+            if getattr(self.server, attr, None):
+                await self.send("Ta drużyna ma już zatrudnionego pomocnika Black Rabite.")
+                return True
+            self.server.db.set_shared_wallet_for_master(master, current - cost_silver, 0, 0)
+            self.server.db.apply_shared_wallet_to_character(self.character)
+            setattr(self.server, attr, helper)
+            await self.send(f"{helper} dołącza do walki z Black Rabite. Zapłacono {cost_gold} złota.")
+            return True
+
     async def say(self, text):
             message = str(text or "").strip()
+
+            if await self.try_hire_black_rabite_helper_v11159(message):
+                return
 
             if not message:
                 await self.send("Użycie: say tekst")
