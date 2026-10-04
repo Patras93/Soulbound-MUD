@@ -34,6 +34,28 @@ class SessionCombatSkillsMixin:
         soul_power = max(0, int(self.character.soul_power()))
         return max(1, int(authored_base or 0) + soul_power + stat_power)
 
+    def offensive_skill_damage_multiplier_v11186(self, skill, skill_class_type=None):
+        """One global offensive multiplier path for current and future equipment.
+
+        Equipment source is deliberately irrelevant: shop, drop, crafting and future
+        catalog items all contribute through equipment_property_totals() while their
+        primary stats already feed skill_scale_value() via effective_*().
+        """
+        resolved_type = skill_class_type or class_type_for_name(self.skill_class_name(skill))
+        damage_type = "physical" if resolved_type == "physical" else "magic"
+        multiplier = float(skill.get("mult", 1.0))
+        if resolved_type == "physical":
+            multiplier *= self.character.class_physical_damage_multiplier()
+            multiplier *= self.character.racial_physical_damage_multiplier()
+        else:
+            multiplier *= self.character.class_magic_damage_multiplier()
+            multiplier *= self.character.racial_magic_damage_multiplier()
+        multiplier *= self.character.racial_all_damage_multiplier()
+        multiplier *= self.total_set_damage_multiplier()
+        multiplier *= self.equipment_damage_multiplier(damage_type)
+        multiplier *= self.skill_buff_multiplier()
+        return multiplier
+
     def offensive_aoe_enabled_v11120(self):
         row = self.server.db.conn.execute(
             "SELECT offensive_aoe_enabled FROM player_combat_settings_v11120 WHERE account_id=?",
@@ -790,13 +812,7 @@ class SessionCombatSkillsMixin:
 
                 if kind == "aoe_damage":
                     scale = self.skill_scale_value(skill.get("scale", "intelligence"))
-                    multiplier = skill.get("mult", 1.0) * skill_power
-                    multiplier *= self.character.class_magic_damage_multiplier()
-                    multiplier *= self.character.racial_magic_damage_multiplier()
-                    multiplier *= self.character.racial_all_damage_multiplier()
-                    multiplier *= self.total_set_damage_multiplier()
-                    multiplier *= self.equipment_damage_multiplier("magic")
-                    multiplier *= self.skill_buff_multiplier()
+                    multiplier = self.offensive_skill_damage_multiplier_v11186(skill, "magic") * skill_power
                     await self.send(
                         f"Używasz {skill['name']} na Skill Level {skill_level}. "
                         f"Cele w lokacji: {len(aoe_mobs)}."
@@ -868,21 +884,9 @@ class SessionCombatSkillsMixin:
 
                 template = MOB_TEMPLATES[mob.template_id]
                 scale = self.skill_scale_value(skill.get("scale", "strength"))
-                multiplier = skill.get("mult", 1.0) * skill_power
                 skill_class = self.skill_class_name(skill)
                 skill_class_type = class_type_for_name(skill_class)
-                if skill_class_type == "physical":
-                    multiplier *= self.character.class_physical_damage_multiplier()
-                    multiplier *= self.character.racial_physical_damage_multiplier()
-                else:
-                    multiplier *= self.character.class_magic_damage_multiplier()
-                    multiplier *= self.character.racial_magic_damage_multiplier()
-                multiplier *= self.character.racial_all_damage_multiplier()
-                multiplier *= self.total_set_damage_multiplier()
-                multiplier *= self.equipment_damage_multiplier(
-                    "physical" if skill_class_type == "physical" else "magic"
-                )
-                multiplier *= self.skill_buff_multiplier()
+                multiplier = self.offensive_skill_damage_multiplier_v11186(skill, skill_class_type) * skill_power
                 # v1.11.7: wszystkie ofensywne skille Meca korzystają z pasywnej
                 # specjalizacji swojej gałęzi. Wcześniej branch multiplier działał
                 # głównie w dedykowanej ścieżce AoE, a single-target wpadający do
