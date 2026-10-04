@@ -1,5 +1,14 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.11.83
+Aktualna paczka: v1.11.84
+
+==============================================================================
+Soulbound v1.11.84 — korekta Boardów
+==============================================================================
+
+- Usunięto dodane w v1.11.83 Junk Parts i Memory Board oraz ich runtime.
+- Moogle Board pozostaje bez zmian: jest nagrodą Black Rabite tylko dla Cyborga i zachowuje skalowanie Soulbound.
+- Sklep/nagrody Yiazmata pozostają bez zmian.
+- Brak wipe'a save'ów.
 
 ==============================================================================
 Soulbound v1.11.83 — domknięcie runtime UOSS / party / Board
