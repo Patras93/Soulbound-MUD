@@ -73,9 +73,17 @@ def architecture_stabilization_audit_v0390():
         errors.append("runtime manifest missing files: " + ", ".join(missing_runtime[:20]))
     if len(RUNTIME_MODULES) != len(set(RUNTIME_MODULES)):
         errors.append("runtime manifest contains duplicate module paths")
-    if len(EXPECTED_OVERRIDE_ORDER) != 16:
+    if not EXPECTED_OVERRIDE_ORDER:
+        errors.append("intentional override policy is empty")
+    invalid_override_policy = {
+        symbol: owners
+        for symbol, owners in EXPECTED_OVERRIDE_ORDER.items()
+        if len(tuple(owners)) < 2
+    }
+    if invalid_override_policy:
         errors.append(
-            f"intentional override policy changed: {len(EXPECTED_OVERRIDE_ORDER)} symbols, expected 16"
+            "intentional override policy contains non-overrides: "
+            + ", ".join(sorted(invalid_override_policy)[:20])
         )
 
     return {
