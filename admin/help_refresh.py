@@ -1497,3 +1497,167 @@ if HELP_TRUTH_AUDIT_V11197["error_count"]:
         "HELP Truth Audit v1.11.97 failed: "
         + "; ".join(HELP_TRUTH_AUDIT_V11197["errors"][:50])
     )
+
+
+# ============================================================
+# v1.11.97 - PUBLIC HELP SURFACE CLEANUP
+# Covers older, still-addressable topic names that survived previous milestones.
+# Historical changelog entries are not rewritten; live HELP topics are.
+# ============================================================
+def refresh_public_help_surface_v11197():
+    HELP_TOPICS["klasy"] = [
+        "Soulbound ma 14 grywalnych klas. Każda ma osobną Biegłość 1-600, własną Broń Duszy, skille/spelle i profil statystyk.",
+        "Biegłość właściwej klasy odblokowuje jej umiejętności; Skill Level rozwija każdą nauczoną umiejętność osobno.",
+        "Multiclass pozwala utrzymywać do 3 aktywnych klas bez kasowania progresji klas wyłączonych.",
+        "kodeksklasowy <klasa> pokazuje pełny katalog umiejętności, wymagania, nauczyciela i status nauki.",
+    ]
+
+    HELP_TOPICS["rasy"] = [
+        "Soulbound ma 14 grywalnych ras. Każda może wybrać każdą z 14 klas; rekomendacje rasowo-klasowe są wskazówką, nie blokadą.",
+        "Rasy różnią się rozkładem pięciu głównych statystyk oraz pasywem rasowym.",
+        "Cyborg jest rasą technologiczną szczególnie pasującą do Meca i Inżyniera, ale nie otrzymuje Moogle Board na starcie.",
+        "Pełne statystyki i pasyw konkretnej rasy są czytane przy tworzeniu postaci oraz w jej opisie.",
+    ]
+
+    HELP_TOPICS["cyborg"] = [
+        "Cyborg: technologiczna rasa z wysoką Kondycją i dobrą Zręcznością. Pasyw rasowy zmniejsza wszystkie otrzymywane obrażenia.",
+        "Polecane klasy to m.in. Mec, Inżynier, Strażnik i Łowca, ale Cyborg może wybrać dowolną z 14 klas.",
+        "Moogle Board NIE jest przedmiotem startowym. Jest unikalną osobistą nagrodą Black Rabite i może wypaść tylko Cyborgowi.",
+        "Moogle Board od Levelu postaci 150 daje +20 do Siły, Zręczności, Kondycji, Inteligencji i Siły Woli; od 151 każdy kolejny Level zwiększa ten bonus o +2.",
+    ]
+
+    engineer_help = [
+        "Inżynier jest technologiczną klasą fizyczną z Biegłością 1-600. Broń Duszy: Omni-Narzędzie.",
+        "Autorski zestaw obejmuje m.in. Auto Crossbow, Mako Gun, Bio Blaster, Scanner, Flash, Debilitator, Drill, Napalm, Launcher, Noise Blaster, Chainsaw, Mega Bomb i Air Anchor.",
+        "Upgrade <narzędzie> zapisuje trwałe ulepszenie Inżyniera; Hypercharge, Lindblum Assembly i Improved Kinematics działają zgodnie z aktualną mechaniką klasy.",
+        "help skill <nazwa> pokazuje bieżący target, skalowanie, wymagania i właściwości konkretnej umiejętności.",
+    ]
+    HELP_TOPICS["inzynier"] = list(engineer_help)
+    HELP_TOPICS["inżynier"] = list(engineer_help)
+
+    HELP_TOPICS["skille100_200"] = [
+        "To historyczna nazwa tematu. Aktualnie Biegłość klas i Skill Level rozwijają się 1-600.",
+        "Standardowe klasy mają dalsze odblokowania aż do 600; Mec i Inżynier zachowują autorskie progi swoich źródłowych zestawów.",
+        "Auto-kolejka zaczyna od 20 aktywnych slotów na Character Level 1 i rośnie do 80 na Levelu 600.",
+        "Zwykłe skille klasowe nie mają cooldownu ponownego użycia; specjalny timer zostaje tylko tam, gdzie jest częścią mechaniki.",
+    ]
+
+    HELP_TOPICS["materialy_eq"] = [
+        "Materiałowe EQ obejmuje pełną aktualną siatkę 17 logicznych typów: głowę, korpus, tarczę, dłonie, nogi, stopy, talizman, pierścień, naszyjnik, kolczyk, naramienniki, pas, pelerynę, karwasze, bransoletę, akcesorium i relikt.",
+        "Pierścienie, talizmany, kolczyki i akcesoria mają po dwa fizyczne sloty 1/2.",
+        "Materiały i warianty EQ rozciągają się przez aktualną progresję 1-600; dokładne wymaganie konkretnego przedmiotu pokazuje eq info.",
+        "Losowe statystyki, rarity, sockety, runy i inne właściwości są oceniane z realnych danych przedmiotu.",
+    ]
+
+    HELP_TOPICS["zakladanie_lootu"] = [
+        "Gracz sam wybiera konkretny element EQ; załóż <nazwa> oraz skróty slotów zakładają posiadany przedmiot spełniający jego bieżące wymagania.",
+        "Pierścienie, talizmany, kolczyki i akcesoria mają po dwa miejsca. zp, zt, zkol i zakc wybierają wolny lub słabszy slot automatycznie.",
+        "Tarcza używa ztar / ztarcza, a bransoleta zbra. Ręczne sloty 1/2 pozostają dostępne dla podwójnych kategorii.",
+        "Zmiana EQ podczas aktywnej walki jest blokowana. Założonego EQ nie można sprzedać ani przekazać.",
+    ]
+
+    HELP_TOPICS["sety_klasowe"] = [
+        "Każda z 14 klas ma klasowe EQ w pełnej aktualnej siatce 17 logicznych typów wyposażenia.",
+        "Bonusy setów pozostają na progach 2/4/6/8 części; nowe sloty, w tym Bransoletka i Akcesorium, nie tworzą łatwiejszych progów setowych.",
+        "sety / sety info / sety <klasa> pokazuje bieżące składniki i aktywne bonusy.",
+        "Bieżące wymagania konkretnej części sprawdzaj przez shop info albo eq info.",
+    ]
+
+    HELP_TOPICS["sklepy"] = [
+        "shop / sklep / list / lista pokazuje numerowaną ofertę aktualnego sprzedawcy; shop info <numer> pokazuje pełny opis i porównanie.",
+        "Każda z 14 klas ma własną linię klasowego EQ w pełnej siatce 17 logicznych typów, w tym tarczę, bransoletę i akcesorium.",
+        "Zakup i założenie respektują aktualne wymagania konkretnego przedmiotu oraz wymaganą aktywną klasę/rasę, jeśli przedmiot je posiada.",
+        "sell all / sprzedaj wszystko sprzedaje tylko dozwolone niezałożone EQ; chronione przedmioty są pomijane.",
+    ]
+
+    HELP_TOPICS["moogle_board"] = [
+        "Moogle Board jest unikalną osobistą nagrodą Black Rabite przeznaczoną wyłącznie dla Cyborga. Nie jest startowym Boardem rasy.",
+        "Od Character Level 150 daje +20 do Siły, Zręczności, Kondycji, Inteligencji i Siły Woli.",
+        "Od Levelu 151 każdy kolejny Character Level zwiększa każdy z tych pięciu bonusów o +2.",
+        "eq info Moogle Board pokazuje bieżący bonus wyliczony dla aktualnego Levelu postaci.",
+    ]
+    HELP_TOPIC_ALIASES.update({
+        "moogle board": "moogle_board",
+        "moogleboard": "moogle_board",
+        "board moogle": "moogle_board",
+    })
+
+    equipment = HELP_TOPICS.get("ekwipunek", [])
+    if isinstance(equipment, str):
+        equipment = [equipment]
+    equipment = [
+        line for line in equipment
+        if "Aktualne sloty obejmują także tarczę i bransoletę." not in str(line)
+    ]
+    equipment.append(
+        "Aktualna siatka ma 17 logicznych typów EQ, w tym tarczę, bransoletę i akcesorium; podwójne są pierścienie, talizmany, kolczyki i akcesoria."
+    )
+    equipment.append(
+        "Skróty nowych slotów: ztar / ztarcza — tarcza, zbra — bransoleta, zakc — akcesoria auto."
+    )
+    HELP_TOPICS["ekwipunek"] = equipment
+    HELP_TOPICS["eq"] = list(equipment)
+
+
+refresh_public_help_surface_v11197()
+
+
+def help_surface_audit_v11197():
+    errors = []
+
+    def text_of(name):
+        value = HELP_TOPICS.get(name, [])
+        if isinstance(value, str):
+            return value
+        return " ".join(str(line) for line in value)
+
+    expected = {
+        "klasy": ("14", "1-600"),
+        "rasy": ("14", "Cyborg"),
+        "cyborg": ("Black Rabite", "NIE jest"),
+        "inzynier": ("1-600", "Omni-Narzędzie"),
+        "skille100_200": ("1-600", "80"),
+        "materialy_eq": ("17", "akcesorium"),
+        "sety_klasowe": ("17", "2/4/6/8"),
+        "sklepy": ("17", "bransolet"),
+        "ekwipunek": ("17", "zakc"),
+        "moogle_board": ("Black Rabite", "150"),
+    }
+    for topic, needles in expected.items():
+        text = text_of(topic)
+        if not text:
+            errors.append(f"HELP {topic}: empty")
+            continue
+        for needle in needles:
+            if needle.casefold() not in text.casefold():
+                errors.append(f"HELP {topic}: missing {needle}")
+
+    forbidden_current = {
+        "klasy": ("Level postaci 1-400", "Biegłość 1-400"),
+        "cyborg": ("dostaje Moogle Board na starcie",),
+        "inzynier": ("klasa fizyczna 1-400",),
+        "skille100_200": ("10 slotów", "50 na Levelu 400"),
+        "materialy_eq": ("15 logicznych",),
+        "sety_klasowe": ("14 logicznych",),
+        "ekwipunek": ("13 logicznych", "14 logicznych", "15 logicznych"),
+    }
+    for topic, bad_values in forbidden_current.items():
+        text = text_of(topic)
+        for bad in bad_values:
+            if bad.casefold() in text.casefold():
+                errors.append(f"HELP {topic}: stale phrase {bad}")
+
+    return {
+        "version": "1.11.97",
+        "topics_checked": len(expected),
+        "error_count": len(errors),
+        "errors": errors,
+    }
+
+
+HELP_SURFACE_AUDIT_V11197 = help_surface_audit_v11197()
+if HELP_SURFACE_AUDIT_V11197["error_count"]:
+    raise RuntimeError(
+        "HELP Surface Audit v1.11.97 failed: "
+        + "; ".join(HELP_SURFACE_AUDIT_V11197["errors"][:50])
+    )
