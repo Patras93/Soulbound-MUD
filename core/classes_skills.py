@@ -2820,6 +2820,9 @@ def _v0319_install_full_mec_kit():
                 "uoss_mp_cost":50,
                 "source_properties":["extendable"],
                 "target_mode":"one_enemy",
+                "soulbound_target_scope":"enemy_only",
+                "soulbound_harmful_debuff":True,
+                "enemy_debuffs":["level_equivalent_power_down"],
                 "temporary_level_reduction_chance":True,
                 "level_reduction_extendable":True,
                 "level_reduction_numeric_source_defined":False,
@@ -2867,6 +2870,9 @@ def _v0319_install_full_mec_kit():
                 "source_properties":["carries_elements","extendable"],
                 "hits":2,
                 "target_mode":"one_enemy",
+                "soulbound_target_scope":"enemy_only",
+                "soulbound_harmful_debuff":True,
+                "enemy_debuffs":["physical_defense_down","magic_defense_down"],
                 "carries_soul_weapon_elements":True,
                 "requires_soul_weapon":"melee",
                 "single_soul_weapon":True,
@@ -3013,6 +3019,12 @@ def _v0319_install_full_mec_kit():
                 "uoss_mp_cost":155,
                 "source_properties":["cleanseable","extendable"],
                 "target_mode":"one_enemy",
+                "soulbound_target_scope":"enemy_only",
+                "soulbound_harmful_debuff":True,
+                "enemy_debuffs":[
+                    "paralyze","silence","slow","blind",
+                    "curse_damage_down","immobilize"
+                ],
                 "control_effects":["paralyze","silence","slow"],
                 "support_weapon_extra_effects":["blind","curse","immobilize"],
                 "support_weapon_adds_extra_effects":True,
@@ -4262,6 +4274,43 @@ if CLASS_HEALING_SCALE_AUDIT_V11196["error_count"]:
     raise RuntimeError(
         "Class Healing Scale Audit v1.11.96 failed: "
         + "; ".join(CLASS_HEALING_SCALE_AUDIT_V11196["errors"][:50])
+    )
+
+
+def _harmful_debuff_target_audit_v11196():
+    """All player-authored harmful debuffs must affect enemies, never self/allies."""
+    errors=[]
+    checked=[]
+    for class_name, skills in CLASS_SKILLS.items():
+        for skill in skills:
+            if not bool(skill.get("soulbound_harmful_debuff")):
+                continue
+            sid=str(skill.get("id","") or skill.get("name",""))
+            checked.append(f"{class_name}:{sid}")
+            if str(skill.get("soulbound_target_scope",""))!="enemy_only":
+                errors.append(f"{class_name}:{sid}: harmful debuff must be enemy_only")
+            target_mode=str(skill.get("target_mode","") or "")
+            if target_mode in {
+                "self","self_or_one_ally","one_ally","local_party",
+                "party","all_allies","single_or_support_party",
+                "one_ally_or_support_party",
+            }:
+                errors.append(
+                    f"{class_name}:{sid}: harmful debuff cannot target self/allies"
+                )
+    return {
+        "version":"1.11.96",
+        "checked":checked,
+        "error_count":len(errors),
+        "errors":errors,
+    }
+
+
+HARMFUL_DEBUFF_TARGET_AUDIT_V11196=_harmful_debuff_target_audit_v11196()
+if HARMFUL_DEBUFF_TARGET_AUDIT_V11196["error_count"]:
+    raise RuntimeError(
+        "Harmful Debuff Target Audit v1.11.96 failed: "
+        + "; ".join(HARMFUL_DEBUFF_TARGET_AUDIT_V11196["errors"][:50])
     )
 
 
