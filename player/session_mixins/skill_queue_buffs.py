@@ -386,7 +386,7 @@ class SessionSkillQueueBuffsMixin:
                 if actual: await self.send(f"Self-Repair: naprawiono {actual} HP obrażeń Feedback po 3 rundach.")
 
     def queue_mec_feedback_repair_v11154(self, amount):
-            if not self.character or self.character.class_name!="Mec" or not self.mec_skill_known_v0319("v0319_mec_self_repair"):
+            if not self.character or self.character.class_name!="Mec" or not self.job_ability_selected("inherent","v0319_mec_self_repair"):
                 return
             round_no=int(getattr(self,"v0319_mec_round",0) or 0)
             queue=list(getattr(self,"v0319_feedback_repair_queue",[]) or [])
