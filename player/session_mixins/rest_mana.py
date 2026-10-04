@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """Rest and mana regeneration."""
+from world.uoss_superboss_runtime import superboss_healing_blocked_v11179
 
 class SessionRestManaMixin:
 
@@ -46,10 +47,11 @@ class SessionRestManaMixin:
                 1,
                 (max_hp * REST_REGEN_PERCENT + 99) // 100,
             )
-            self.current_hp = min(
-                max_hp,
-                self.current_hp + hp_gain,
-            )
+            if not superboss_healing_blocked_v11179(self):
+                self.current_hp = min(
+                    max_hp,
+                    self.current_hp + hp_gain,
+                )
 
             if max_mana > 0:
                 mana_gain = max(

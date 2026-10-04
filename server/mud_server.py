@@ -200,32 +200,32 @@ class MudServer:
                 result.append(mob)
         return result
 
-    def party_combat_target(self, owner_session, mob):
+    def party_combat_targets(self, owner_session, mob):
+        """All living local party members are targets of one mob action.
+
+        A Guardian protector remains a special case: while protection is active,
+        the protector takes the party-facing attack. Otherwise every living party
+        member in the room is attacked once by that mob action.
+        """
         if not owner_session or not mob or not mob.alive:
-            return owner_session
+            return [owner_session] if owner_session else []
         protector = self.party_protector_session(
             owner_session.account_id, same_room=mob.room_id
         )
         if protector and protector.current_hp > 0:
-            return protector
-        # v1.11.9: kiedy mob walczy z party, jego pulą celów jest CAŁA żywa
-        # drużyna obecna w tej lokacji. combat_mob_key określa własny cel ataku
-        # gracza, ale nie ogranicza tego, kogo przeciwnik może zaatakować.
+            return [protector]
         candidates = [
             session for session in self.party_sessions(
                 owner_session.account_id, same_room=mob.room_id
             )
             if session.character and not session.closed and session.current_hp > 0
         ]
-        if not candidates:
-            return owner_session
-        candidates.sort(key=lambda session: session.character.name.lower())
-        turn = int(getattr(mob, "combat_turn", 0) or 0)
-        target = candidates[turn % len(candidates)]
-        # Każdy kolejny kontratak tego moba przechodzi na kolejnego uczestnika,
-        # więc inicjator nie absorbuje wszystkich tur tylko dlatego, że ma aggro.
-        mob.combat_turn = turn + 1
-        return target
+        return sorted(candidates or [owner_session], key=lambda session: session.character.name.lower())
+
+    def party_combat_target(self, owner_session, mob):
+        # Compatibility for callers that still need one target.
+        targets=self.party_combat_targets(owner_session,mob)
+        return targets[0] if targets else owner_session
 
     async def auto_priest_party_heal(self, damaged_session):
         if (

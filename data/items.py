@@ -485,6 +485,10 @@ ITEMS = {
 
     "uoss_odins_mantle": {"name":"Odin's Mantle","type":"currency_item","price":None,"desc":"Osobisty token za pokonanie Odina; służy do jego tieru sklepu bossów."},
 
+    "uoss_junk_parts_board": {"name":"Junk Parts","type":"armor","slot":"board","price":None,"stats":{},"board_effect":"malfunctioning_room_text","desc":"Board. Nie daje statystyk; gdy jest założony, opis pomieszczenia postaci dodaje: is malfunctioning!"},
+    "uoss_memory_board": {"name":"Memory Board","type":"armor","slot":"board","price":None,"stats":{},"source_effect":"machine_ap_bonus","desc":"Board. Źródłowo zwiększa rasowy bonus AP za Machines z +10% do +100%. Soulbound nie używa zewnętrznego systemu Job/AP, więc efekt pozostaje opisowy do czasu istnienia rodzimego odpowiednika AP."},
+
+
     "quartz_chunk": {"name":"Quartz Chunk","type":"currency_item","price":None,"desc":"Źródłowy drop Culexa i waluta jego tieru Fur Shop."},
     "culex_quartz_charm": {"name":"Quartz Charm","type":"armor","slot":"accessory","price":None,"required_level":110,"stats":{},"source_item_type":"Accessory","fur_shop_gold_cost":2000000,"fur_shop_token":"quartz_chunk","fur_shop_token_cost":2,"desc":"Fur Shop Culex: 2 000 000 złota i 2 Quartz Chunk."},
     "culex_hermes_shoes": {"name":"Hermes Shoes","type":"armor","slot":"accessory","price":None,"required_level":100,"stats":{},"source_item_type":"Accessory","fur_shop_gold_cost":1000000,"fur_shop_token":"quartz_chunk","fur_shop_token_cost":1,"desc":"Fur Shop Culex: 1 000 000 złota i 1 Quartz Chunk."},
