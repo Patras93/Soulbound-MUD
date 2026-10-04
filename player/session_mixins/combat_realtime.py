@@ -296,11 +296,11 @@ class SessionCombatRealtimeMixin:
                                 # preventing duplicate party-wide attacks.
                                 for target_session in _party_targets:
                                     if not (
-                                    target_session
-                                    and not target_session.closed
-                                    and target_session.current_hp > 0
+                                        target_session
+                                        and not target_session.closed
+                                        and target_session.current_hp > 0
                                     ):
-                                    continue
+                                        continue
                                     _enemy_template = MOB_TEMPLATES[enemy_mob.template_id]
                                     if not getattr(enemy_mob,"uoss_start_effects_done_v11176",False):
                                         enemy_mob.uoss_start_effects_done_v11176=True
