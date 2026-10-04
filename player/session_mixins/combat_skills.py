@@ -1336,13 +1336,49 @@ class SessionCombatSkillsMixin:
                     )
 
                 _mec_feedback_self_damage=0
+                _mec_damage_override=None
                 if skill.get("mec_authored"):
                     _mec_special=str(skill.get("mec_special",""))
                     if _mec_special=="crush":
-                        # Source: missing HP raises damage and Skill Level raises the
-                        # maximum possible damage. No numeric curve/cap is supplied.
-                        # Preserve that contract in metadata until a canonical formula exists.
-                        pass
+                        # Source contract: raw attack power is the difference between
+                        # max HP and current HP, capped by experience/Character Level;
+                        # Skill Level raises the maximum possible damage and a shield
+                        # increases that capacity. The source supplies no numeric curve.
+                        _missing_hp=max(0,int(self.max_hp())-int(self.current_hp))
+                        _capacity=(
+                            int(self.character.character_level)
+                            * int(skill.get("capacity_per_character_level",100) or 100)
+                            + int(skill_level)
+                            * int(skill.get("capacity_per_skill_level",25) or 25)
+                        )
+                        _shield_equipped=bool(
+                            self.server.db.equipped_item(self.account_id,"shield")
+                        )
+                        if _shield_equipped:
+                            _capacity=max(
+                                1,int(round(
+                                    _capacity
+                                    * float(skill.get("shield_capacity_multiplier",1.25) or 1.25)
+                                ))
+                            )
+                            await self.send("Crush: założona tarcza zwiększa limit obrażeń.")
+                        _source_crush_damage=min(_missing_hp,max(0,_capacity))
+                        _crush_external_mult=(
+                            self.offensive_skill_damage_multiplier_v11186(
+                                skill,skill_class_type
+                            )
+                            * self.mec_branch_multiplier_v0319("feedback")
+                        )
+                        _mec_damage_override=max(
+                            0,int(round(_source_crush_damage*_crush_external_mult))
+                        )
+                        if _source_crush_damage>0:
+                            _mec_feedback_self_damage=max(
+                                1,int(round(
+                                    _source_crush_damage
+                                    * float(skill.get("feedback_source_damage_pct",0.15) or 0.15)
+                                ))
+                            )
                     elif _mec_special=="kamikaze_crush":
                         # Source contract: HP before use + Vitality + Attack determine
                         # damage; lower current HP means lower power. A shield improves
@@ -1386,11 +1422,18 @@ class SessionCombatSkillsMixin:
                             f"{int(round(execute_threshold * 100))} procent HP."
                         )
 
-                damage = max(
-                    1,
-                    int(core_power * multiplier) + random.randint(-2, 3),
-                )
-                damage, critical = self.roll_critical_hit(damage)
+                if _mec_damage_override is not None:
+                    damage=max(0,int(_mec_damage_override))
+                    if damage>0:
+                        damage, critical = self.roll_critical_hit(damage)
+                    else:
+                        critical=False
+                else:
+                    damage = max(
+                        1,
+                        int(core_power * multiplier) + random.randint(-2, 3),
+                    )
+                    damage, critical = self.roll_critical_hit(damage)
                 if critical:
                     self.record_social_record_v03051("biggest_crit", damage)
                     await self.send(
@@ -1400,15 +1443,18 @@ class SessionCombatSkillsMixin:
                         f"Szansa: "
                         f"{int(round(self.critical_chance() * 100))} procent."
                     )
-                damage = await self.apply_boss_defense(mob, damage)
-                damage = self.v0210_adjust_player_damage(damage)
-                _damage_element="physical" if skill_class_type == "physical" else "magic"
-                if skill.get("mec_authored") and skill.get("carries_soul_weapon_elements"):
-                    _sw_element=str(getattr(self.character,"soul_weapon_element","") or "").casefold()
-                    if _sw_element: _damage_element=_sw_element
-                damage, machine_note = v0314_adjust_damage_vs_template(
-                    template, damage, _damage_element, skill.get("name", ""),
-                )
+                if damage>0:
+                    damage = await self.apply_boss_defense(mob, damage)
+                    damage = self.v0210_adjust_player_damage(damage)
+                    _damage_element="physical" if skill_class_type == "physical" else "magic"
+                    if skill.get("mec_authored") and skill.get("carries_soul_weapon_elements"):
+                        _sw_element=str(getattr(self.character,"soul_weapon_element","") or "").casefold()
+                        if _sw_element: _damage_element=_sw_element
+                    damage, machine_note = v0314_adjust_damage_vs_template(
+                        template, damage, _damage_element, skill.get("name", ""),
+                    )
+                else:
+                    machine_note=""
                 mob.hp -= damage
                 _helper_skill_damage = 0
                 if mob.hp > 0:
