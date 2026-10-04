@@ -548,6 +548,13 @@ class SessionInventoryEquipmentMixin:
             stats = sum(max(0, int(v or 0)) for v in (item.get("stats") or {}).values())
             stats += v03042_upgrade_stat_bonus(upgrade_level)
             props = sum(max(0, int(v or 0)) for v in (item.get("properties") or {}).values())
+            # Source-backed special defenses must participate in AUTO EQ too.
+            # Ward values are fractions (0.65 = 65%), while status proofs are
+            # binary immunities. This affects comparison only; it does not invent
+            # new combat effects for source items whose values are unknown.
+            ward_score = int(round(sum(max(0.0, min(1.0, float(v or 0.0))) for v in (item.get("element_wards") or {}).values()) * 100.0))
+            proof_score = 25 * len(tuple(item.get("status_proof") or ()))
+            special_score = ward_score + proof_score + (25 if item.get("reraise_once") else 0)
             affix = max(0, int(item.get("affix_amount", 0) or 0))
             rarity = rarity_order.get(str(item.get("rarity") or "").lower(), 0)
             sockets = 0
@@ -556,7 +563,7 @@ class SessionInventoryEquipmentMixin:
                     sockets = max(0, int(jewelry_socket_capacity(item)))
                 except Exception:
                     sockets = 0
-            total = defense * 12 + stats * 8 + props * 10 + affix * 8 + rarity * 5 + sockets * 3
+            total = defense * 12 + stats * 8 + props * 10 + affix * 8 + rarity * 5 + sockets * 3 + special_score
             return (
                 total, defense, stats + affix, props, rarity,
                 normalize_lookup_text(item.get("name", "")),
