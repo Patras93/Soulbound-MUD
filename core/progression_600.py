@@ -80,6 +80,43 @@ for _class_name, _profile in _SOUL_TRAIT_CLASS_PROFILES.items():
         }
     SOUL_TIER_TRAITS_BY_CLASS[_class_name] = _rows
 
+def soul_weapon_trait_for_tier(tier, class_name=None):
+    """Canonical Soul Weapon trait lookup for the full 1-60 progression."""
+    tier = max(1, min(SOUL_MAX_TIER, int(tier)))
+    class_name = class_name or "Wojownik"
+    rows = SOUL_TIER_TRAITS_BY_CLASS.get(class_name) or SOUL_TIER_TRAITS_BY_CLASS["Wojownik"]
+    return rows.get(tier)
+
+def soul_weapon_trait_totals(tier, class_name=None):
+    """Accumulate all class-specific Soul Weapon traits through the selected Tier."""
+    tier = max(1, min(SOUL_MAX_TIER, int(tier)))
+    class_name = class_name or "Wojownik"
+    rows = SOUL_TIER_TRAITS_BY_CLASS.get(class_name) or SOUL_TIER_TRAITS_BY_CLASS["Wojownik"]
+    totals = {
+        "damage_percent": 0.0, "crit_chance": 0.0, "crit_damage_percent": 0.0,
+        "lifesteal_percent": 0.0, "execute_damage_percent": 0.0,
+        "mana_restore_percent": 0.0, "boss_damage_percent": 0.0,
+    }
+    for _t in range(1, tier + 1):
+        row = rows[_t]
+        totals[row["effect"]] += float(row["value"])
+    return totals
+
+def soul_tier_title_for_class(tier, class_name=None):
+    """Unique class-specific title for every Soul Tier 1-60."""
+    row = soul_weapon_trait_for_tier(tier, class_name)
+    return row["name"] if row else f"Tier Duszy {int(tier)}"
+
+_SOUL_TIER_TITLE_AUDIT = [
+    soul_tier_title_for_class(_tier, _class_name)
+    for _class_name in _SOUL_TRAIT_CLASS_PROFILES
+    for _tier in range(1, SOUL_MAX_TIER + 1)
+]
+if len(_SOUL_TIER_TITLE_AUDIT) != len(set(_SOUL_TIER_TITLE_AUDIT)):
+    raise RuntimeError("Soul Tier title audit failed: class/tier names are not globally unique")
+if len(_SOUL_TIER_TITLE_AUDIT) != len(_SOUL_TRAIT_CLASS_PROFILES) * SOUL_MAX_TIER:
+    raise RuntimeError("Soul Tier title audit failed: incomplete class/tier title grid")
+
 # Profesje i narzędzia 1-600.
 PROFESSION_MAX_LEVEL = PROGRESSION_MAX_LEVEL
 BLACKSMITHING_MAX_LEVEL = PROGRESSION_MAX_LEVEL
