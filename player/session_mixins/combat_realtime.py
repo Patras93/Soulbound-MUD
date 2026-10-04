@@ -218,16 +218,9 @@ class SessionCombatRealtimeMixin:
                             # action is the recovery cycle; after it the state clears.
                             if self.mec_finish_overheat_recovery_v0319():
                                 await self.send("OVERHEAT mija. V-MAX może być ponownie użyty.")
-                            # Satellite Linker deals repeated minor laser damage while
-                            # its Skill-Level-scaled effect remains on the target.
-                            if mob and mob.alive and time.time()<float(getattr(mob,"v0319_satellite_until",0.0) or 0.0):
-                                _sat=max(1,int(getattr(mob,"v0319_satellite_power",1) or 1))
-                                _sat=await self.apply_boss_defense(mob,_sat)
-                                _sat=self.v0210_adjust_player_damage(_sat)
-                                mob.hp-=_sat
-                                await self.send(f"Satellite Linker: dodatkowy laser zadaje {_sat} obrażeń. HP {max(0,mob.hp)}.")
-                                if mob.hp<=0:
-                                    await self.mob_defeated(mob)
+                            # Satellite Linker source confirms repeated minor laser
+                            # damage, but no tick power/cadence/duration values. Runtime
+                            # ticks stay disabled until those values are source-backed.
                             _interval=self.player_action_interval_v11154()
                             next_player = time.monotonic() + _interval
                             # Haste source says attacks/actions occur more frequently,
