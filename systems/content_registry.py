@@ -2638,6 +2638,9 @@ HELP_TOPIC_ALIASES.update({
     "superboss": "superbossy", "superbosses": "superbossy", "uossbosses": "superbossy",
     "uoss boss": "superbossy", "uoss bosses": "superbossy",
 })
+HELP_TOPICS.setdefault("wersja", []).append(
+    "v1.11.34: Superbossy UOSSMUD są unikalnymi wyzwaniami świata; dodano pełny katalog trybów oraz reguły Black Rabite, Serpentariusa i Yiazmata."
+)
 
 
 from world.uoss_superboss_world import install_uoss_superboss_spawns_v11136
