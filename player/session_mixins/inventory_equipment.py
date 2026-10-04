@@ -612,7 +612,7 @@ class SessionInventoryEquipmentMixin:
                 str(row["slot"]): str(row["item_id"]) for row in equipped_rows_v0717
             }
             single_slots = (
-                "head", "body", "hands", "legs", "feet", "necklace",
+                "head", "body", "hands", "legs", "feet", "shield", "necklace",
                 "shoulders", "belt", "cloak", "bracers", "relic", "board",
             )
 
@@ -1084,6 +1084,7 @@ class SessionInventoryEquipmentMixin:
                 ("naszyjnik", "necklace"), ("necklace", "necklace"),
                 ("głowa", "head"), ("glowa", "head"), ("head", "head"),
                 ("ciało", "body"), ("cialo", "body"), ("body", "body"),
+                ("tarcza", "shield"), ("tarczy", "shield"), ("shield", "shield"),
                 ("ręce", "hands"), ("rece", "hands"), ("hands", "hands"),
                 ("nogi", "legs"), ("legs", "legs"), ("stopy", "feet"), ("feet", "feet"),
                 ("barki", "shoulders"), ("shoulders", "shoulders"), ("pas", "belt"), ("belt", "belt"),
