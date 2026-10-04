@@ -5,6 +5,7 @@ This module deliberately uses the existing collection_entries persistence for
 per-account clears/lockouts. No new SQLite migration is required.
 """
 import random
+from data.items import ITEMS
 from datetime import datetime, timezone
 import world.uoss_superboss_world as _uoss_superboss_world_v11136
 from world.uoss_superbosses import UOSS_SUPERBOSS_ENCOUNTERS_V11134
@@ -376,3 +377,48 @@ def superboss_source_status_v11162(template, ability_name):
         ("ruby_weapon","Mini"):"Mini",
     }
     return exact.get((key,name))
+
+def superboss_apply_source_status_v11173(session, template, ability_name):
+    """Apply a sourced status without inventing a duration.
+
+    The status lasts until combat cleanup/cure because the supplied source data
+    names the status but does not give a duration.
+    """
+    status=superboss_source_status_v11162(template, ability_name)
+    if not status:
+        return None
+    normalized=str(status).lower().replace("'", "").replace(" ", "_")
+    proofs=set()
+    try:
+        for row in session.equipped_item_rows():
+            item=ITEMS.get(row["item_id"],{})
+            proofs.update(str(x).lower().replace("'", "").replace(" ", "_") for x in item.get("status_proof",()))
+    except Exception:
+        pass
+    if normalized in proofs:
+        return {"status":status,"blocked":True}
+    active=getattr(session,"uoss_source_statuses_v11173",None)
+    if not isinstance(active,set):
+        active=set()
+        session.uoss_source_statuses_v11173=active
+    active.add(normalized)
+    return {"status":status,"blocked":False}
+
+def superboss_element_multiplier_v11173(template, element):
+    """Resolve only explicit source weakness/resist/immune/absorb declarations."""
+    key=superboss_key_from_template_v11135(template)
+    spec=UOSS_SUPERBOSS_ENCOUNTERS_V11134.get(key,{})
+    elem=str(element or "").strip().lower()
+    if not elem:
+        return 1.0,False
+    def norm(values):
+        if isinstance(values,str): values=(values,)
+        return {str(v).strip().lower() for v in (values or ())}
+    if elem in norm(spec.get("absorb")):
+        return -1.0,True
+    if elem in norm(spec.get("immune")):
+        return 0.0,False
+    # Source gives category identity but no universal numeric resistance/weakness
+    # multiplier in the supplied contract. Keep it queryable without fabricating math.
+    return 1.0,False
+

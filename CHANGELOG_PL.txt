@@ -1,5 +1,19 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.11.72
+Aktualna paczka: v1.11.73
+
+==============================================================================
+Soulbound v1.11.73 — superboss status and Odin reward runtime
+==============================================================================
+
+- Statusy źródłowe superbossów są zapisywane w runtime zamiast być wyłącznie komunikatem.
+- Nie wymyślamy czasu trwania statusu, jeśli źródło go nie podaje; pozostaje aktywny do oczyszczenia/końca walki.
+- Lunar Crystal Armor: Blindproof, Silenceproof i Berserkproof są aktywnymi proofami.
+- Genji Gloves: Impproof i DAproof są aktywnymi proofami.
+- Demon Hat: Impproof i Miniproof są aktywnymi proofami.
+- Stardust Robe: Sleepproof i DAproof są aktywnymi proofami.
+- Phoenix Egg faktycznie wykonuje jednorazowy Re-raise i znika. Używa istniejącego modelu odrodzenia Soulbound zamiast wymyślać źródłowy procent HP.
+- Dodano fundament obsługi jawnych źródłowych immune/absorb bez wymyślania mnożników weak/resist.
+- Brak wipe'a save'ów.
 
 ==============================================================================
 Soulbound v1.11.72 — Charyzma obniża koszt towarzyszy
