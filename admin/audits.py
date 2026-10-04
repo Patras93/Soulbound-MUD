@@ -4001,11 +4001,11 @@ def all_local_party_buffs_audit_v03511():
         vmax_support_source=inspect.getsource(SessionSkillsCombatMixin.party_vmax_support_active_v03511)
         metrics["same_room_party_helper"] = "party_sessions" in helper_source and "same_room=self.character.room_id" in helper_source
         metrics["living_local_only"] = "session.current_hp > 0" in helper_source and "session.character.room_id == self.character.room_id" in helper_source
-        metrics["generic_boost_shared"] = "apply_party_boost_v03511" in combat_source and "session.active_skill_buffs" in boost_source
+        metrics["generic_boost_passive"] = "pasywnym wzmocnieniem Automatic" in combat_source and "apply_party_boost_v03511" not in combat_source
         metrics["guard_shared"] = "for session in recipients:" in combat_source and "session.skill_guard" in combat_source
         metrics["evade_shared"] = "for session in recipients:" in combat_source and "session.skill_evade = True" in combat_source
-        metrics["vmax_shared"] = '"V-MAX", 1.30' in combat_source and "v03511_party_vmax_until" in combat_source
-        metrics["vmax_defense_party_support"] = "mec_vmax_active_v0319" in vmax_support_source and "v03511_party_vmax_until" in vmax_support_source
+        metrics["vmax_self_only"] = "_vmax_statuses=" in combat_source and "self.active_skill_buffs" in combat_source and "v03511_party_vmax_until" not in combat_source
+        metrics["vmax_support_self_only"] = "return self.mec_vmax_active_v0319()" in vmax_support_source and "v03511_party_vmax_until" not in vmax_support_source
         engineer_upgrade = next((x for x in CLASS_SKILLS.get("Inżynier",[]) if x.get("id")=="v0317_engineer_upgrade"), None)
         metrics["engineer_upgrade_not_fake_buff"] = bool(engineer_upgrade and engineer_upgrade.get("kind")=="utility")
         boost_skills=[(cls,sk.get("id")) for cls,rows in CLASS_SKILLS.items() for sk in rows if sk.get("kind")=="boost"]
@@ -4029,23 +4029,23 @@ if ALL_LOCAL_PARTY_BUFFS_AUDIT_V03511["error_count"]:
     )
 
 HELP_TOPICS.setdefault("party", []).extend([
-    "v0.35.11: wszystkie bojowe buffy klasowe działają na wszystkich żywych członków drużyny stojących w tej samej lokacji co rzucający.",
-    "Boosty, guardy i gwarantowane uniki są nakładane osobno na każdego obecnego członka drużyny. Osoby w innych lokacjach nie dostają efektu.",
-    "V-MAX daje lokalnej drużynie +30 procent do skilli/spelli oraz Protect, Shell i Regen. Specjalne zmiany konkretnych skilli Meca pozostają mechaniką Meca uruchamiającego V-MAX.",
+    "v0.35.11 po aktualizacji kontraktu: aktywne guardy i gwarantowane uniki działają na wszystkich żywych członków drużyny stojących w tej samej lokacji co rzucający.",
+    "Zwykłe skille typu boost są pasywne Automatic po nauczeniu i nie wymagają aktywacji ani kopiowania jako czasowy status drużynowy.",
+    "V-MAX jest mechaniką Meca i nakłada swój korzystny pakiet wyłącznie na Meca; nie tworzy sztucznego drużynowego +30 procent.",
 ])
 HELP_TOPICS.setdefault("druzyna", []).extend(HELP_TOPICS.get("party", [])[-3:])
 HELP_TOPICS.setdefault("walka", []).extend([
-    "v0.35.11: guard i evade są efektami drużynowymi w bieżącej lokacji, tak samo jak zwykłe boosty.",
+    "v0.35.11: guard i evade są aktywnymi efektami drużynowymi w bieżącej lokacji; zwykłe boosty działają pasywnie Automatic.",
     "Inżynierski Upgrade jest trwałym narzędziem użytkowym, nie buffem bojowym; dlatego nie jest kopiowany na drużynę jako status czasowy.",
 ])
 HELP_TOPICS.setdefault("wersja", []).append(
-    "v0.35.11: wszystkie prawdziwe buffy bojowe są lokalnie drużynowe; obejmuje to boost, guard, evade oraz drużynową warstwę V-MAX."
+    "v0.35.11: guard i evade pozostają lokalnie drużynowe; boosty są pasywne Automatic, a V-MAX pozostaje własnym efektem Meca."
 )
 LATEST_CHANGES_TITLE = "Soulbound v0.35.11 - All Local Party Combat Buffs"
 LATEST_CHANGES = [
-    "v0.35.11: każdy prawdziwy boost bojowy trafia do wszystkich żywych członków drużyny stojących razem w tej samej lokacji.",
+    "v0.35.11: zwykłe boosty są pasywne Automatic po nauczeniu; nie tworzą czasowego buffa drużynowego.",
     "Guard daje każdemu obecnemu członkowi własną ochronę następnego trafienia, a evade daje każdemu własny gwarantowany unik następnego ataku.",
-    "V-MAX Meca daje lokalnej drużynie +30 procent do skilli/spelli oraz Protect/Shell/Regen; Mec uruchamiający V-MAX zachowuje dodatkowo swoje specjalne transformacje skilli.",
+    "V-MAX Meca działa na Meca i jego źródłowy pakiet korzystnych statusów; nie daje sztucznego +30 procent całej drużynie.",
     "Upgrade Inżyniera został poprawnie sklasyfikowany jako utility, ponieważ jest trwałym ulepszeniem narzędzia, a nie czasowym buffem bojowym.",
     "Dodano stały audit wszystkich lokalnych buffów drużynowych.",
 ]
