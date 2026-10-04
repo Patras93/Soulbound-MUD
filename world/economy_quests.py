@@ -1917,3 +1917,77 @@ COLLECTION_CATEGORY_LABELS = {
     "sets": "Sety",
     "chests": "Skrzynie",
 }
+
+# ============================================================
+# v1.11.61 - ENDGAME ECONOMY NORMALIZATION
+# ============================================================
+# 1 mithril = 100,000,000 silver. Endgame income must make a one-mithril
+# helper a meaningful purchase without forcing one specific profession.
+def v11161_endgame_mob_coin_floor(template):
+    hp=max(1,int(template.get("max_hp",1) or 1))
+    level=max(1,int(template.get("level",template.get("generator_level",1)) or 1))
+    if hp >= 3_000_000:
+        return 25_000_000
+    if hp >= 1_000_000:
+        return 10_000_000
+    if hp >= 500_000:
+        return 5_000_000
+    if level >= 300:
+        return 1_000_000
+    if level >= 200:
+        return 250_000
+    if level >= 150:
+        return 100_000
+    if level >= 100:
+        return 25_000
+    return 0
+
+def normalize_endgame_mob_income_v11161():
+    changed=0
+    for template in MOB_TEMPLATES.values():
+        if template.get("training_dummy"):
+            continue
+        floor=v11161_endgame_mob_coin_floor(template)
+        if floor <= 0:
+            continue
+        current=legacy_currency_to_coins(
+            template.get("silver",0),template.get("gold",0),template.get("mithril",0)
+        )
+        if current < floor:
+            template["silver"]=floor
+            template["gold"]=0
+            template["mithril"]=0
+            template["v11161_endgame_income_floor"]=True
+            changed+=1
+    return changed
+
+V11161_ENDGAME_MOB_INCOME_REPAIRS=normalize_endgame_mob_income_v11161()
+
+# Repeatable profession work remains one of several viable routes, not the only
+# practical way to finance endgame helpers.
+V11161_PROFESSION_REWARD_FLOORS = {
+    100:500_000, 150:5_000_000, 200:25_000_000,
+    300:50_000_000, 400:75_000_000, 500:100_000_000, 600:125_000_000,
+}
+def v11161_progression_income_floor(level):
+    level=max(1,int(level or 1))
+    eligible=[k for k in V11161_PROFESSION_REWARD_FLOORS if k <= level]
+    return V11161_PROFESSION_REWARD_FLOORS[max(eligible)] if eligible else 0
+
+def normalize_repeatable_quest_income_v11161():
+    changed=0
+    for quest in QUESTS.values():
+        level=max(int(quest.get("min_profession_level",0) or 0),int(quest.get("required_soul_level",0) or 0))
+        floor=v11161_progression_income_floor(level)
+        if floor <= 0:
+            continue
+        current=legacy_currency_to_coins(quest.get("reward_silver",0),quest.get("reward_gold",0),quest.get("reward_mithril",0))
+        if current < floor:
+            quest["reward_silver"]=floor
+            quest["reward_gold"]=0
+            quest["reward_mithril"]=0
+            quest["v11161_income_floor"]=True
+            changed+=1
+    return changed
+
+V11161_REPEATABLE_QUEST_INCOME_REPAIRS=normalize_repeatable_quest_income_v11161()

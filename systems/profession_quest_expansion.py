@@ -33,10 +33,10 @@ PROFESSION_QUEST_SPECS_V0700 = (
 
 # min profession level, actions, reward profession XP, reward tool XP, silver
 PROFESSION_QUEST_STAGES_V0700 = (
-    (50, 10, 1400, 900, 2500),
-    (150, 15, 4200, 2800, 9000),
-    (300, 20, 10500, 7000, 25000),
-    (500, 25, 26000, 17000, 60000),
+    (50, 10, 1400, 900, 100_000),
+    (150, 15, 4200, 2800, 5_000_000),
+    (300, 20, 10500, 7000, 50_000_000),
+    (500, 25, 26000, 17000, 100_000_000),
 )
 
 PROFESSION_QUEST_IDS_V0700 = []
