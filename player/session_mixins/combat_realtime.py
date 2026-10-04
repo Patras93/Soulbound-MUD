@@ -19,6 +19,7 @@ from world.uoss_superboss_runtime import (
     superboss_source_round_event_v11160, superboss_exact_ability_effect_v11160,
     superboss_source_ability_v11162, superboss_source_summons_v11162,
     superboss_source_attack_multiplier_v11162, superboss_source_status_v11162,
+    superboss_apply_source_status_v11173,
 )
 
 class SessionCombatRealtimeMixin:
@@ -314,11 +315,13 @@ class SessionCombatRealtimeMixin:
                                             if _summoned.engaged_at <= 0: _summoned.engaged_at=time.monotonic()
                                             if not _summoned.engaged_by: _summoned.engaged_by=target_session.character.name
                                             await self.server.party_combat_broadcast(target_session,f"{_enemy_template['name']} przyzywa {MOB_TEMPLATES[_summon_tid]['name']}.",detail="essential")
-                                    _source_status=superboss_source_status_v11162(_enemy_template,_source_ability)
-                                    if _source_status:
-                                        # Status is announced from the source contract, but is not stored until
-                                        # the shared player-status engine exposes a canonical duration/application API.
-                                        await self.server.party_combat_broadcast(target_session,f"Efekt źródłowy: {_source_status}.",detail="essential")
+                                    _source_status_result=superboss_apply_source_status_v11173(target_session,_enemy_template,_source_ability)
+                                    if _source_status_result:
+                                        _source_status=_source_status_result["status"]
+                                        if _source_status_result.get("blocked"):
+                                            await self.server.party_combat_broadcast(target_session,f"{target_session.character.name}: {_source_status} zablokowany przez EQ.",detail="essential")
+                                        else:
+                                            await self.server.party_combat_broadcast(target_session,f"{target_session.character.name} otrzymuje status: {_source_status}.",detail="essential")
                                     _phase_event = superboss_phase_event_v11138(target_session, _enemy_template, enemy_mob)
                                     if _phase_event:
                                         _phase, _label = _phase_event
