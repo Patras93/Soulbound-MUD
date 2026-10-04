@@ -10,7 +10,7 @@ from world.uoss_superboss_runtime import superboss_healing_blocked_v11179
 from core.classes_skills import CLASS_SKILLS, effective_skill_mana_cost
 from core.progression_600 import SKILL_MAX_LEVEL
 from core.progression_resources import class_type_for_name, skill_power_multiplier
-from core.bootstrap_economy_professions import GLOBAL_SKILL_BUFF_DURATION_SECONDS
+from core.bootstrap_economy_professions import GLOBAL_SKILL_BUFF_DURATION_SECONDS, generator_core_v027
 from data.mobs import MOB_TEMPLATES
 from data.rooms import ROOMS
 from network.protocol_gameplay_utils import normalize_lookup_text
@@ -47,32 +47,68 @@ class SessionCombatSkillsMixin:
                 return "physical"
         return class_type_for_name(self.skill_class_name(skill))
 
+    def offensive_skill_effective_stat_value_v11196(self, scale_name):
+        """Raw effective combat stat after equipment; this is the late-game driver."""
+        scale_name = str(scale_name or "strength").lower()
+        if scale_name in ("intelligence", "wisdom", "magic"):
+            return max(1, int(self.effective_intelligence()))
+        if scale_name in ("dexterity", "agility", "ranged"):
+            return max(1, int(self.effective_dexterity()))
+        if scale_name in ("will", "willpower"):
+            return max(1, int(self.effective_willpower()))
+        if scale_name in ("constitution", "vitality", "vit"):
+            return max(1, int(self.effective_constitution()))
+        return max(1, int(self.effective_strength()))
+
     def offensive_skill_core_stat_power_v11188(self, skill):
         """Effective offensive stat power including source-faithful flat EQ power."""
         scale_name = str(skill.get("scale", "strength") or "strength").lower()
-        if scale_name in ("intelligence", "wisdom", "magic"):
-            return max(1, int(self.spell_power()))
-        if scale_name in ("dexterity", "agility", "ranged"):
-            # Ranged/agility skills keep DEX identity; direct Attack still matters.
-            flat = self.equipment_flat_power_totals_v11187()
-            return max(1, int(self.skill_scale_value("dexterity")) + int(flat["attack"]) + int(flat["weapon_power"]))
-        if scale_name in ("will", "willpower"):
-            return max(1, int(self.effective_willpower()) + int(self.equipment_flat_power_totals_v11187()["magic_attack"]))
-        return max(1, int(self.physical_power()))
+        flat = self.equipment_flat_power_totals_v11187()
+        level = int(self.character.character_level)
+        raw_stat = self.offensive_skill_effective_stat_value_v11196(scale_name)
+        stat_power = generator_core_v027.character_attribute_power(level, raw_stat)
+        if scale_name in ("intelligence", "wisdom", "magic", "will", "willpower"):
+            stat_power += int(flat["magic_attack"])
+        else:
+            stat_power += int(flat["attack"]) + int(flat["weapon_power"])
+        return max(1, int(stat_power))
 
     def offensive_skill_core_power_v11185(self, skill, authored_base=0):
-        """Global Combat 2.0 offensive core shared by authored skill paths.
+        """Global offensive core driven primarily by real character stats + EQ.
 
-        Every direct damaging class skill must feel the character build: STR for
-        physical melee/feedback, DEX for ranged/agility techniques and INT for magic. The
-        effective stat already includes equipment, runes, enchants, class sets and
-        the active Soul Weapon relic, so superboss equipment feeds the same formula.
-        Authored base_power remains the identity of special Mec/Engineer attacks;
-        it no longer replaces character progression.
+        Character Level alone never grants the late-game multiplier. The large
+        progression step comes from the effective primary stat after equipment,
+        runes, set bonuses and relics. Skills that explicitly declare a secondary
+        stat also receive a smaller Soulbound contribution from that stat.
         """
+        scale_name = str(skill.get("scale", "strength") or "strength").lower()
+        primary_value = self.offensive_skill_effective_stat_value_v11196(scale_name)
         stat_power = self.offensive_skill_core_stat_power_v11188(skill)
+
+        secondary_name = str(skill.get("secondary_scale", "") or "").lower()
+        secondary_value = 0
+        secondary_power = 0
+        if secondary_name:
+            secondary_value = self.offensive_skill_effective_stat_value_v11196(secondary_name)
+            secondary_power = generator_core_v027.character_attribute_power(
+                int(self.character.character_level), secondary_value
+            )
+
+        # A secondary source influence is deliberately smaller than the primary.
+        # Cosmic Rave, for example, remains Strength-led while Agility/DEX from
+        # the actual build and equipment still matters substantially.
+        secondary_weight = 0.35 if secondary_name else 0.0
+        weighted_stat = primary_value + secondary_value * secondary_weight
+        build_multiplier = generator_core_v027.character_offensive_build_multiplier(weighted_stat)
+
         soul_power = max(0, int(self.character.soul_power()))
-        return max(1, int(authored_base or 0) + soul_power + stat_power)
+        core = (
+            int(authored_base or 0)
+            + soul_power
+            + stat_power
+            + int(round(secondary_power * secondary_weight))
+        )
+        return max(1, int(round(core * build_multiplier)))
 
     def offensive_skill_damage_multiplier_v11186(self, skill, skill_class_type=None):
         """One global offensive multiplier path for current and future equipment.
