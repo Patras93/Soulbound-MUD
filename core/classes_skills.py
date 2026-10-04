@@ -1710,6 +1710,65 @@ for _class_name, _skills in ENDGAME_CLASS_SKILLS.items():
     CLASS_SKILLS.setdefault(_class_name, []).extend(_skills)
 
 
+# v1.11.96: canonical UOSS status contract supplied from Temple Knight.
+# Temple Knight is not one of Soulbound's 14 playable classes, so this does not
+# install a fifteenth class. It defines the sourced meaning of Silence for
+# existing/future effects that apply that status.
+UOSS_STATUS_SOURCE_CONTRACTS_V11196 = {
+    "silence": {
+        "source_job": "Temple Knight",
+        "source_ability": "Silence",
+        "source_ap_cost": 270,
+        "source_ap_semantics": "learning_points",
+        "source_ap_is_damage_power": False,
+        "source_requirements": [],
+        "source_requires_none": True,
+        "source_usage": "use magicsword silence [at target]",
+        "source_target_mode": "one_enemy",
+        "source_mp_cost": 32,
+        "source_stat_influence": ["will"],
+        "source_properties": ["cleanseable", "extendable"],
+        "level_effect": "increases_accuracy_and_duration",
+        "source_effect": "prevents_magic_casting",
+        "source_weapon_requirement": ["sword", "greatsword"],
+        "accuracy_numeric_source_defined": False,
+        "duration_numeric_source_defined": False,
+    },
+}
+
+
+def _uoss_status_source_contract_audit_v11196():
+    errors=[]
+    silence=UOSS_STATUS_SOURCE_CONTRACTS_V11196.get("silence",{})
+    if int(silence.get("source_ap_cost",0) or 0)!=270:
+        errors.append("silence: Base AP 270 must remain learning points")
+    if str(silence.get("source_ap_semantics",""))!="learning_points":
+        errors.append("silence: AP semantics must be learning_points")
+    if list(silence.get("source_requirements") or [])!=[] or not bool(silence.get("source_requires_none")):
+        errors.append("silence: Reqs must remain None")
+    if str(silence.get("source_target_mode",""))!="one_enemy":
+        errors.append("silence: target must remain One Enemy")
+    if int(silence.get("source_mp_cost",0) or 0)!=32:
+        errors.append("silence: MP cost must remain 32")
+    if list(silence.get("source_stat_influence") or [])!=["will"]:
+        errors.append("silence: Stat Influence must remain Will")
+    if list(silence.get("source_properties") or [])!=["cleanseable","extendable"]:
+        errors.append("silence: source Properties mismatch")
+    if str(silence.get("level_effect",""))!="increases_accuracy_and_duration":
+        errors.append("silence: Level Effect must increase Accuracy and Duration")
+    if str(silence.get("source_effect",""))!="prevents_magic_casting":
+        errors.append("silence: effect must prevent magic casting")
+    return {"version":"1.11.96","error_count":len(errors),"errors":errors}
+
+
+UOSS_STATUS_SOURCE_CONTRACT_AUDIT_V11196=_uoss_status_source_contract_audit_v11196()
+if UOSS_STATUS_SOURCE_CONTRACT_AUDIT_V11196["error_count"]:
+    raise RuntimeError(
+        "UOSS Status Source Contract Audit v1.11.96 failed: "
+        + "; ".join(UOSS_STATUS_SOURCE_CONTRACT_AUDIT_V11196["errors"])
+    )
+
+
 AREA_MAGIC_AND_GROUP_HEALING_SKILLS = {
     "Mag": [
         {"id":"mage_arcane_explosion","name":"Eksplozja Arkanów","aliases":["eksplozja arkanow","eksplozja arkanów","arcane explosion"],"natural_tags":["aoe","obszar","arkany"],"unlock":40,"kind":"aoe_damage","cooldown":10,"mana":18,"desc":"Obszarowy czar Maga trafiający wszystkich dostępnych przeciwników w lokacji.","scale":"intelligence","mult":1.35},
