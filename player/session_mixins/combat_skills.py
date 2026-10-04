@@ -50,6 +50,10 @@ class SessionCombatSkillsMixin:
     def offensive_skill_effective_stat_value_v11196(self, scale_name):
         """Raw effective combat stat after equipment; this is the late-game driver."""
         scale_name = str(scale_name or "strength").lower()
+        if scale_name in ("attack", "physical_attack"):
+            # Source-facing Attack influence maps to Soulbound's complete derived
+            # physical attack power: trained STR plus flat Attack/Weapon Power EQ.
+            return max(1, int(self.physical_power()))
         if scale_name in ("intelligence", "wisdom", "magic"):
             return max(1, int(self.effective_intelligence()))
         if scale_name in ("dexterity", "agility", "ranged"):
@@ -66,6 +70,10 @@ class SessionCombatSkillsMixin:
         flat = self.equipment_flat_power_totals_v11187()
         level = int(self.character.character_level)
         raw_stat = self.offensive_skill_effective_stat_value_v11196(scale_name)
+        if scale_name in ("attack", "physical_attack"):
+            # physical_power() already contains trained STR + flat Attack +
+            # Weapon Power, so never add those flat values a second time.
+            return max(1, int(raw_stat))
         stat_power = generator_core_v027.character_attribute_power(level, raw_stat)
         if scale_name in ("intelligence", "wisdom", "magic", "will", "willpower"):
             stat_power += int(flat["magic_attack"])
@@ -95,8 +103,8 @@ class SessionCombatSkillsMixin:
             )
 
         # A secondary source influence is deliberately smaller than the primary.
-        # Cosmic Rave, for example, remains Strength-led while Agility/DEX from
-        # the actual build and equipment still matters substantially.
+        # Cosmic Rave, for example, is Attack-led per source while Agility/DEX
+        # from the actual build and equipment contributes to a lesser degree.
         secondary_weight = 0.35 if secondary_name else 0.0
         weighted_stat = primary_value + secondary_value * secondary_weight
         build_multiplier = generator_core_v027.character_offensive_build_multiplier(weighted_stat)
