@@ -297,11 +297,14 @@ class SessionCombatRealtimeMixin:
                                     _source_effect = superboss_exact_ability_effect_v11160(target_session, _enemy_template, enemy_mob, _source_ability)
                                     if _source_ability:
                                         await self.server.party_combat_broadcast(target_session, f"{_enemy_template['name']} używa: {_source_ability}.", detail="essential")
+                                    _source_effect_replaces_attack = False
                                     if _source_effect:
                                         if "damage" in _source_effect:
                                             target_session.current_hp=max(0,target_session.current_hp-int(_source_effect["damage"]))
+                                            _source_effect_replaces_attack = True
                                         elif "current_hp_fraction" in _source_effect:
                                             target_session.current_hp=max(0,target_session.current_hp-int(round(target_session.current_hp*float(_source_effect["current_hp_fraction"]))))
+                                            _source_effect_replaces_attack = True
                                         if target_session.current_hp <= 0:
                                             await target_session.handle_player_defeat(enemy_mob)
                                             continue
@@ -334,6 +337,10 @@ class SessionCombatRealtimeMixin:
                                         + (f" {_uoss_note}" if _uoss_note and _uoss_mult != 1.0 else ""),
                                         detail="normal",
                                     )
+                                    if _source_effect_replaces_attack:
+                                        # A sourced fixed/current-HP ability is the enemy action.
+                                        # Do not append an unsourced ordinary hit on top of it.
+                                        continue
                                     if _uoss_mult != 1.0:
                                         _old_damage = _enemy_template.get("damage", 1)
                                         _enemy_template["damage"] = max(1, int(round(float(_old_damage) * _uoss_mult)))
