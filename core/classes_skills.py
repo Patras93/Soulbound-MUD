@@ -2866,10 +2866,26 @@ def _v0319_install_full_mec_kit():
                 "balance_model":"soulbound_acc55_skill25_will15_support10_cap98_duration2_to_6_plus_will2",
             })
         if special=="heal_beam":
-            row.update({"scale":"willpower","uoss_mp_cost":36,"uoss_support_mp_cost":72,
-                        "heal_pct":0.50,
-                        "target_mode":"single_or_support_party","support_heal_multiplier":1.20,
-                        "healing_balance_model":"uncapped_will_skill_eq"})
+            row.update({
+                "scale":"willpower",
+                "source_stat_influence":["will"],
+                "source_properties":[],
+                "source_requirement_level":54,
+                "source_requirement_maps_to":"class_mastery",
+                "source_target_mode":["one_target","party"],
+                "uoss_mp_cost":36,
+                "uoss_support_mp_cost":72,
+                "target_mode":"one_ally_or_support_party",
+                "soulbound_enemy_heal_disabled":True,
+                "level_effect":"increases_healing_power",
+                "heal_pct":0.50,
+                "healing_numeric_source_defined":False,
+                "support_weapon_expands_to_party":True,
+                "support_heal_multiplier":1.20,
+                "support_heal_numeric_source_defined":False,
+                "support_effect_requires_support_weapon":True,
+                "healing_balance_model":"uncapped_will_skill_eq",
+            })
         if special=="cure_beam":
             row.update({
                 "scale":"willpower",
@@ -3106,6 +3122,37 @@ def _mec_contract_audit_v11149():
             errors.append("feedback_protocol: runtime mapping must exclude Compress and Crush")
         if bool(feedback_protocol.get("protocol_numeric_source_defined")):
             errors.append("feedback_protocol: numeric curve must remain marked unsourced")
+
+    heal_beam=rows.get("heal_beam")
+    if heal_beam:
+        if int(heal_beam.get("unlock",0) or 0)!=54:
+            errors.append("heal_beam: source Level 54 must map to Biegłość Mec 54")
+        if int(heal_beam.get("source_ap_cost",0) or 0)!=1000:
+            errors.append("heal_beam: source Base AP cost must remain 1000 learning points")
+        if str(heal_beam.get("source_ap_semantics",""))!="learning_points":
+            errors.append("heal_beam: AP must remain learning points")
+        if int(heal_beam.get("source_requirement_level",0) or 0)!=54:
+            errors.append("heal_beam: source requirement must remain Level 54")
+        if str(heal_beam.get("source_requirement_maps_to"))!="class_mastery":
+            errors.append("heal_beam: source Level must map to class mastery")
+        if list(heal_beam.get("source_stat_influence") or [])!=["will"]:
+            errors.append("heal_beam: source influence must be Will only")
+        if list(heal_beam.get("source_properties") or [])!=[]:
+            errors.append("heal_beam: source Properties must be None")
+        if list(heal_beam.get("source_target_mode") or [])!=["one_target","party"]:
+            errors.append("heal_beam: source target must remain One Target or Party")
+        if str(heal_beam.get("target_mode"))!="one_ally_or_support_party":
+            errors.append("heal_beam: Soulbound target mode must be one ally or support party")
+        if not bool(heal_beam.get("soulbound_enemy_heal_disabled")):
+            errors.append("heal_beam: healing combat enemies must remain disabled")
+        if int(heal_beam.get("uoss_mp_cost",0) or 0)!=36:
+            errors.append("heal_beam: normal MP cost must remain 36")
+        if int(heal_beam.get("uoss_support_mp_cost",0) or 0)!=72:
+            errors.append("heal_beam: support MP cost must remain 72")
+        if str(heal_beam.get("level_effect"))!="increases_healing_power":
+            errors.append("heal_beam: Level Effect must increase Healing Power")
+        if not bool(heal_beam.get("support_weapon_expands_to_party")):
+            errors.append("heal_beam: Support Effect must expand healing to party")
 
     cure_beam=rows.get("cure_beam")
     if cure_beam:
