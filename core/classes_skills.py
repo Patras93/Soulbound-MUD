@@ -1532,7 +1532,17 @@ ENDGAME_CLASS_SKILLS = {
             "natural_tags": ["heal", "leczenie", "regen", "odnowa"],
             "unlock": 1, "kind": "regen", "cooldown": 0, "mana": 8,
             "desc": "Regeneracja Kapłana. Cel: siebie albo jeden sojusznik. Leczy małą liczbę HP co kilka rund i znika po krótkim czasie. Siła Woli wpływa na efekt, a poziom umiejętności zwiększa czas działania.",
-            "scale": "willpower", "source_extendable": True, "source_dispellable": True,
+            "source_ap_cost": 300,
+            "source_ap_semantics": "learning_points",
+            "source_ap_is_damage_power": False,
+            "source_requirements": [],
+            "source_requires_none": True,
+            "source_target_mode": ["self", "one_ally"],
+            "source_stat_influence": ["will"],
+            "source_properties": ["dispelable", "extendable", "reflectable", "silenceable"],
+            "level_effect": "increases_duration",
+            "scale": "willpower",
+            "source_extendable": True, "source_dispellable": True,
             "source_reflectable": True, "source_silenceable": True,
             "source_duration_scales_with_level": True,
             "source_periodic_heal": True,
@@ -1722,7 +1732,7 @@ AREA_MAGIC_AND_GROUP_HEALING_SKILLS = {
         {"id":"psion_psychic_collapse","name":"Psychiczne Załamanie","aliases":["psychiczne zalamanie","psychiczne załamanie","psychic collapse"],"natural_tags":["aoe","obszar","psychic"],"unlock":160,"kind":"aoe_damage","cooldown":18,"mana":35,"desc":"Potężne obszarowe uderzenie psioniczne na wszystkich przeciwników w lokacji.","scale":"intelligence","mult":2.12},
     ],
     "Kapłan": [
-        {"id":"priest_healing_wind","name":"Healing Wind","aliases":["healing wind","leczacy wiatr","leczący wiatr"],"natural_tags":["heal","leczenie","grupa","druzyna"],"unlock":1,"kind":"group_heal","cooldown":0,"mana":60,"scale":"willpower","base_ap":1500,"source_properties":["Multicastable","Silenceable"],"desc":"Leczy wszystkich żywych członków drużyny w tej samej lokacji. Will i Skill Level zwiększają moc leczenia."},
+        {"id":"priest_healing_wind","name":"Healing Wind","aliases":["healing wind","leczacy wiatr","leczący wiatr"],"natural_tags":["heal","leczenie","grupa","druzyna"],"unlock":1,"kind":"group_heal","cooldown":0,"mana":60,"scale":"willpower","source_ap_cost":1500,"source_ap_semantics":"learning_points","source_ap_is_damage_power":False,"source_requirements":[],"source_requires_none":True,"source_target_mode":"all_allies","source_stat_influence":["will"],"source_properties":["multicastable","silenceable"],"level_effect":"increases_healing_power","healing_numeric_source_defined":False,"desc":"Leczy wszystkich żywych członków drużyny w tej samej lokacji. Will i Skill Level zwiększają moc leczenia."},
         {"id":"priest_mass_restoration","name":"Masowe Uzdrowienie","aliases":["masowe uzdrowienie","mass restoration","mass heal"],"natural_tags":["heal","leczenie","grupa","druzyna"],"unlock":160,"kind":"group_heal","cooldown":20,"mana":34,"desc":"Potężne obszarowe leczenie całej drużyny Kapłana w tej samej lokacji.","heal_pct":0.46},
     ],
 }
@@ -4148,6 +4158,13 @@ for _class_name, (_primary, _secondary) in _CLASS_HEALING_SCALES_V11196.items():
             _skill["scale"] = _primary
             _skill["secondary_scale"] = _secondary
             _skill["healing_stat_identity_v11196"] = True
+        if _class_name == "Kapłan":
+            if str(_skill.get("kind", "")) == "heal":
+                _skill.setdefault("target_mode", "self_or_one_ally")
+                _skill.setdefault("soulbound_enemy_heal_disabled", True)
+            elif str(_skill.get("kind", "")) == "group_heal":
+                _skill.setdefault("target_mode", "local_party")
+                _skill.setdefault("soulbound_enemy_heal_disabled", True)
 
 
 def _class_healing_scale_audit_v11196():
@@ -4183,6 +4200,88 @@ if CLASS_HEALING_SCALE_AUDIT_V11196["error_count"]:
     raise RuntimeError(
         "Class Healing Scale Audit v1.11.96 failed: "
         + "; ".join(CLASS_HEALING_SCALE_AUDIT_V11196["errors"][:50])
+    )
+
+
+def _priest_healing_contract_audit_v11196():
+    rows = {
+        str(skill.get("id", "")): skill
+        for skill in CLASS_SKILLS.get("Kapłan", ())
+        if str(skill.get("kind", "")) in {"heal", "group_heal", "regen"}
+    }
+    errors = []
+
+    regen = rows.get("priest_regen")
+    if not regen:
+        errors.append("priest_regen: missing")
+    else:
+        if int(regen.get("unlock", 0) or 0) != 1:
+            errors.append("priest_regen: Reqs None must map to Biegłość Kapłana 1")
+        if int(regen.get("source_ap_cost", 0) or 0) != 300:
+            errors.append("priest_regen: Base AP 300 must remain learning points")
+        if str(regen.get("source_ap_semantics", "")) != "learning_points":
+            errors.append("priest_regen: AP semantics must be learning_points")
+        if list(regen.get("source_target_mode") or []) != ["self", "one_ally"]:
+            errors.append("priest_regen: target must remain Self/One Ally")
+        if list(regen.get("source_stat_influence") or []) != ["will"]:
+            errors.append("priest_regen: Stat Influence must remain Will")
+        if list(regen.get("source_properties") or []) != [
+            "dispelable", "extendable", "reflectable", "silenceable"
+        ]:
+            errors.append("priest_regen: source Properties mismatch")
+        if str(regen.get("level_effect", "")) != "increases_duration":
+            errors.append("priest_regen: Level Effect must increase Duration")
+
+    wind = rows.get("priest_healing_wind")
+    if not wind:
+        errors.append("priest_healing_wind: missing")
+    else:
+        if int(wind.get("unlock", 0) or 0) != 1:
+            errors.append("priest_healing_wind: Reqs None must map to Biegłość Kapłana 1")
+        if int(wind.get("source_ap_cost", 0) or 0) != 1500:
+            errors.append("priest_healing_wind: Base AP 1500 must remain learning points")
+        if str(wind.get("source_ap_semantics", "")) != "learning_points":
+            errors.append("priest_healing_wind: AP semantics must be learning_points")
+        if int(wind.get("mana", 0) or 0) != 60:
+            errors.append("priest_healing_wind: MP cost must remain 60")
+        if str(wind.get("source_target_mode", "")) != "all_allies":
+            errors.append("priest_healing_wind: target must remain All Allies")
+        if list(wind.get("source_stat_influence") or []) != ["will"]:
+            errors.append("priest_healing_wind: Stat Influence must remain Will")
+        if list(wind.get("source_properties") or []) != ["multicastable", "silenceable"]:
+            errors.append("priest_healing_wind: source Properties mismatch")
+        if str(wind.get("level_effect", "")) != "increases_healing_power":
+            errors.append("priest_healing_wind: Level Effect must increase Healing Power")
+        if wind.get("heal_pct") is not None:
+            errors.append("priest_healing_wind: no invented source healing percentage allowed")
+
+    for sid, row in rows.items():
+        kind = str(row.get("kind", ""))
+        if kind == "heal":
+            if str(row.get("target_mode", "")) != "self_or_one_ally":
+                errors.append(f"{sid}: single heal target must be self_or_one_ally")
+            if not bool(row.get("soulbound_enemy_heal_disabled")):
+                errors.append(f"{sid}: enemy healing must remain disabled")
+        elif kind == "group_heal":
+            if str(row.get("target_mode", "")) != "local_party":
+                errors.append(f"{sid}: group heal target must be local_party")
+            if not bool(row.get("soulbound_enemy_heal_disabled")):
+                errors.append(f"{sid}: enemy healing must remain disabled")
+
+    return {
+        "version": "1.11.96",
+        "checked": len(rows),
+        "ids": sorted(rows),
+        "error_count": len(errors),
+        "errors": errors,
+    }
+
+
+PRIEST_HEALING_CONTRACT_AUDIT_V11196 = _priest_healing_contract_audit_v11196()
+if PRIEST_HEALING_CONTRACT_AUDIT_V11196["error_count"]:
+    raise RuntimeError(
+        "Priest Healing Contract Audit v1.11.96 failed: "
+        + "; ".join(PRIEST_HEALING_CONTRACT_AUDIT_V11196["errors"][:50])
     )
 
 
