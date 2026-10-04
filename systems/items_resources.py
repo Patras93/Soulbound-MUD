@@ -1433,7 +1433,7 @@ CLASS_EQUIPMENT_SLOT_PRIMARY_BIAS = {
     "cloak": 0.03,
     "bracers": 0.10,
     "bracelet": 0.08,
-    "accessory": 0.04,
+    "accessory": 0.00,
     "relic": 0.05,
 }
 
@@ -1441,5 +1441,5 @@ CLASS_EQUIPMENT_SLOT_PROPERTY_SCALE = {
     "head": 1.00, "body": 1.15, "shield": 1.10, "hands": 0.95, "legs": 1.10,
     "feet": 0.90, "charm": 0.85, "ring": 0.85, "necklace": 1.00, "earring": 0.82,
     "shoulders": 1.08, "belt": 1.05, "cloak": 0.92, "bracers": 0.95,
-    "bracelet": 0.90, "accessory": 0.90, "relic": 1.20,
+    "bracelet": 0.90, "accessory": 1.00, "relic": 1.20,
 }
