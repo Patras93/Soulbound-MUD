@@ -703,6 +703,13 @@ class SessionCombatSkillsMixin:
                         await self.send(_uoss_reason)
                         return
 
+                if bool(skill.get("soulbound_harmful_debuff")) and mob is None:
+                    await self.send(
+                        f"{skill['name']} jest szkodliwym debuffem i może być "
+                        "użyte wyłącznie na przeciwniku."
+                    )
+                    return
+
                 _generic_heal_target = None
                 if kind == "heal" and not skill.get("mec_authored"):
                     _heal_party=list(
