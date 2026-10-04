@@ -19,6 +19,21 @@ from world.economy_quests import v0863_execute_threshold
 from world.uoss_superboss_runtime import superboss_attack_gate_v11137
 
 class SessionCombatSkillsMixin:
+    def offensive_skill_core_power_v11185(self, skill, authored_base=0):
+        """Global Combat 2.0 offensive core shared by authored skill paths.
+
+        Every damaging class skill must feel the character build: STR for physical
+        melee/feedback, DEX for ranged/agility techniques and INT for magic.  The
+        effective stat already includes equipment, runes, enchants, class sets and
+        the active Soul Weapon relic, so superboss equipment feeds the same formula.
+        Authored base_power remains the identity of special Mec/Engineer attacks;
+        it no longer replaces character progression.
+        """
+        scale_name = str(skill.get("scale", "strength") or "strength").lower()
+        stat_power = max(1, int(self.skill_scale_value(scale_name)))
+        soul_power = max(0, int(self.character.soul_power()))
+        return max(1, int(authored_base or 0) + soul_power + stat_power)
+
     def offensive_aoe_enabled_v11120(self):
         row = self.server.db.conn.execute(
             "SELECT offensive_aoe_enabled FROM player_combat_settings_v11120 WHERE account_id=?",
@@ -383,7 +398,7 @@ class SessionCombatSkillsMixin:
                                 remaining_fraction=0.25 if upgraded else 0.50
                                 damage=max(int(base*local_mult), int(max(1,target.hp)*(1.0-remaining_fraction)))
                             else:
-                                damage=max(1,int(base*local_mult)+random.randint(-3,3))
+                                damage=max(1,int(self.offensive_skill_core_power_v11185(skill, base)*local_mult)+random.randint(-3,3))
                             # Drill bypasses boss defense/protect-shell equivalent.
                             if special!="drill": damage=await self.apply_boss_defense(target,damage)
                             damage=self.v0210_adjust_player_damage(damage)
@@ -559,7 +574,7 @@ class SessionCombatSkillsMixin:
                             _local_mult=mult
                             if special in ("starlight_shower","shock_soldier","laser_spin","maelstrom","cosmic_rave") and len(targets)>1 and not ((special=="starlight_shower" or special=="cosmic_rave") and vmax):
                                 # Source marks diminishing AoE but gives no numeric falloff.
-                            damage=max(1,int(base*_local_mult)+random.randint(-6,6))
+                            damage=max(1,int(self.offensive_skill_core_power_v11185(skill, base)*_local_mult)+random.randint(-6,6))
                             # v1.11.47: Pop Knight keeps full AoE damage and receives
                             # the source ability's anti-Flying bonus. The Mec has one
                             # Soul Weapon, so no separate melee weapon gate is required.
@@ -641,7 +656,7 @@ class SessionCombatSkillsMixin:
                         _element=str(getattr(self.character,"soul_weapon_element","") or "physical").casefold()
                         for _hit in range(2):
                             if not mob.alive: break
-                            damage=max(1,int((base*mult)/2.0)+random.randint(-6,6))
+                            damage=max(1,int((self.offensive_skill_core_power_v11185(skill, base)*mult)/2.0)+random.randint(-6,6))
                             damage,crit=self.roll_critical_hit(damage)
                             damage=await self.apply_boss_defense(mob,damage); damage=self.v0210_adjust_player_damage(damage)
                             damage,note=v0314_adjust_damage_vs_template(template,damage,_element,skill.get("name","Tiger Rampage"))
