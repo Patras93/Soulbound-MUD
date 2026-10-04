@@ -5,7 +5,7 @@ import asyncio
 import re
 import time
 from player.session_mixins.equipment_stats import class_type_for_name
-from core.classes_skills import effective_skill_mana_cost
+from core.classes_skills import effective_skill_mana_cost, MEC_PROTOCOL_SKILLS_V11155
 from player.session_mixins.shops_teachers import CHARACTER_MAX_LEVEL
 from player.session_mixins.skill_learning import CLASS_SKILLS, SKILL_MAX_LEVEL
 
