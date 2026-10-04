@@ -483,3 +483,31 @@ def superboss_clear_source_statuses_v11176(session):
     active=getattr(session,"uoss_source_statuses_v11173",None)
     if isinstance(active,set):
         active.clear()
+
+
+def superboss_source_timed_effect_v11179(session, template, ability_name):
+    """Exact duration-only effects; no invented damage/cadence."""
+    key=superboss_key_from_template_v11135(template)
+    name=str(ability_name or "")
+    if key=="serpentarius" and name=="Nullify Healing":
+        session.uoss_nullify_healing_rounds_v11179=3
+        return {"effect":"nullify_healing","rounds":3}
+    if key=="serpentarius" and name=="Necrotic Energy":
+        # Source says a specified attribute is reduced for eight rounds but the
+        # supplied data does not identify a universal amount/attribute choice.
+        session.uoss_necrotic_energy_rounds_v11179=8
+        return {"effect":"necrotic_energy","rounds":8}
+    return None
+
+def superboss_advance_timed_effects_v11179(session):
+    ended=[]
+    for attr,label in (("uoss_nullify_healing_rounds_v11179","Nullify Healing"),("uoss_necrotic_energy_rounds_v11179","Necrotic Energy")):
+        left=int(getattr(session,attr,0) or 0)
+        if left>0:
+            left-=1
+            setattr(session,attr,left)
+            if left==0: ended.append(label)
+    return tuple(ended)
+
+def superboss_healing_blocked_v11179(session):
+    return int(getattr(session,"uoss_nullify_healing_rounds_v11179",0) or 0)>0
