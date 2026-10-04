@@ -1,5 +1,17 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.11.98
+Aktualna paczka: v1.11.99
+
+==============================================================================
+Soulbound v1.11.99 — questy bez obowiązkowego quest list
+==============================================================================
+
+- Po wejściu do pokoju można od razu użyć `przyjmij <numer>` bez wcześniejszej rozmowy z NPC i bez `quest list`.
+- Jeśli numer jest jednoznaczny wśród lokalnych ofert, gra sama rozpoznaje właściwego NPC i questa.
+- W pokoju z wieloma NPC można użyć bezpośrednio `przyjmij <NPC> <numer>`; komenda nie wyświetla już po drodze listy.
+- Przy rzeczywiście niejednoznacznym numerze gra prosi o wskazanie NPC, a nie o wykonanie `quest list`.
+- Rozmowa z NPC nadal zapamiętuje jego ofertę jako wygodny dodatkowy kontekst.
+- `quest list <NPC>` pozostaje wyłącznie opcjonalnym podglądem numeracji, stanu i szczegółów zadań.
+- Brak wipe'a save'ów.
 
 ==============================================================================
 Soulbound v1.11.98 — hotfix bramek deployu i pełnego runtime
