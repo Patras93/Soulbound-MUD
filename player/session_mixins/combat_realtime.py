@@ -16,7 +16,9 @@ from world.machine_expansion import v0314_adjust_damage_vs_template
 from world.uoss_superboss_runtime import (
     superboss_attack_gate_v11137, superboss_helper_profile_v11137,
     superboss_phase_event_v11138, superboss_incoming_multiplier_v11138,
-    superboss_source_round_event_v11160,
+    superboss_source_round_event_v11160, superboss_exact_ability_effect_v11160,
+    superboss_source_ability_v11162, superboss_source_summons_v11162,
+    superboss_source_attack_multiplier_v11162, superboss_source_status_v11162,
 )
 
 class SessionCombatRealtimeMixin:
@@ -291,6 +293,27 @@ class SessionCombatRealtimeMixin:
                                         await self.server.party_combat_broadcast(target_session, _source_round["text"], detail="essential")
                                         await target_session.handle_player_defeat(enemy_mob)
                                         continue
+                                    _source_ability = superboss_source_ability_v11162(_enemy_template, enemy_mob)
+                                    _source_effect = superboss_exact_ability_effect_v11160(target_session, _enemy_template, enemy_mob, _source_ability)
+                                    if _source_ability:
+                                        await self.server.party_combat_broadcast(target_session, f"{_enemy_template['name']} używa: {_source_ability}.", detail="essential")
+                                    if _source_effect:
+                                        if "damage" in _source_effect:
+                                            target_session.current_hp=max(0,target_session.current_hp-int(_source_effect["damage"]))
+                                        elif "current_hp_fraction" in _source_effect:
+                                            target_session.current_hp=max(0,target_session.current_hp-int(round(target_session.current_hp*float(_source_effect["current_hp_fraction"]))))
+                                        if target_session.current_hp <= 0:
+                                            await target_session.handle_player_defeat(enemy_mob)
+                                            continue
+                                    for _summon_tid in superboss_source_summons_v11162(target_session,_enemy_template,enemy_mob,_source_ability):
+                                        _summoned=self.server.world._register_runtime_spawn(target_session.character.room_id,_summon_tid)
+                                        if _summoned:
+                                            if _summoned.engaged_at <= 0: _summoned.engaged_at=time.monotonic()
+                                            if not _summoned.engaged_by: _summoned.engaged_by=target_session.character.name
+                                            await self.server.party_combat_broadcast(target_session,f"{_enemy_template['name']} przyzywa {MOB_TEMPLATES[_summon_tid]['name']}.",detail="essential")
+                                    _source_status=superboss_source_status_v11162(_enemy_template,_source_ability)
+                                    if _source_status:
+                                        await self.server.party_combat_broadcast(target_session,f"Efekt źródłowy: {_source_status}.",detail="essential")
                                     _phase_event = superboss_phase_event_v11138(target_session, _enemy_template, enemy_mob)
                                     if _phase_event:
                                         _phase, _label = _phase_event
@@ -302,6 +325,7 @@ class SessionCombatRealtimeMixin:
                                     _uoss_mult, _uoss_note = superboss_incoming_multiplier_v11138(
                                         target_session, _enemy_template, enemy_mob
                                     )
+                                    _uoss_mult *= superboss_source_attack_multiplier_v11162(_enemy_template,_source_ability)
                                     await self.server.party_combat_broadcast(
                                         target_session,
                                         f"{_enemy_template['name']} atakuje {target_session.character.name}."
