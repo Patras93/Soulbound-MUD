@@ -296,91 +296,91 @@ class SessionCombatRealtimeMixin:
                                 # preventing duplicate party-wide attacks.
                                 for target_session in _party_targets:
                                     if not (
-                                        target_session
-                                        and not target_session.closed
-                                        and target_session.current_hp > 0
+                                    target_session
+                                    and not target_session.closed
+                                    and target_session.current_hp > 0
                                     ):
+                                    continue
+                                    _enemy_template = MOB_TEMPLATES[enemy_mob.template_id]
+                                    if not getattr(enemy_mob,"uoss_start_effects_done_v11176",False):
+                                        enemy_mob.uoss_start_effects_done_v11176=True
+                                        for _msg in superboss_combat_start_effects_v11176(target_session,_enemy_template,enemy_mob):
+                                            await self.server.party_combat_broadcast(target_session,_msg,detail="essential")
+                                    _add_event=superboss_add_round_event_v11176(_enemy_template,enemy_mob)
+                                    if _add_event:
+                                        await self.server.party_combat_broadcast(target_session,_add_event["text"],detail="essential")
+                                        if _add_event.get("despawn"):
+                                            continue
+                                    _source_round = superboss_source_round_event_v11160(target_session, _enemy_template, enemy_mob)
+                                    if _source_round and _source_round.get("instant_death"):
+                                        target_session.current_hp = 0
+                                        await self.server.party_combat_broadcast(target_session, _source_round["text"], detail="essential")
+                                        await target_session.die(_enemy_template['name'])
                                         continue
-                                        _enemy_template = MOB_TEMPLATES[enemy_mob.template_id]
-                                        if not getattr(enemy_mob,"uoss_start_effects_done_v11176",False):
-                                            enemy_mob.uoss_start_effects_done_v11176=True
-                                            for _msg in superboss_combat_start_effects_v11176(target_session,_enemy_template,enemy_mob):
-                                                await self.server.party_combat_broadcast(target_session,_msg,detail="essential")
-                                        _add_event=superboss_add_round_event_v11176(_enemy_template,enemy_mob)
-                                        if _add_event:
-                                            await self.server.party_combat_broadcast(target_session,_add_event["text"],detail="essential")
-                                            if _add_event.get("despawn"):
-                                                continue
-                                        _source_round = superboss_source_round_event_v11160(target_session, _enemy_template, enemy_mob)
-                                        if _source_round and _source_round.get("instant_death"):
-                                            target_session.current_hp = 0
-                                            await self.server.party_combat_broadcast(target_session, _source_round["text"], detail="essential")
+                                    for _ended in superboss_advance_timed_effects_v11179(target_session):
+                                        await self.server.party_combat_broadcast(target_session,f"{target_session.character.name}: kończy się efekt {_ended}.",detail="essential")
+                                    _source_ability = superboss_source_ability_v11162(_enemy_template, enemy_mob)
+                                    _source_effect = superboss_exact_ability_effect_v11160(target_session, _enemy_template, enemy_mob, _source_ability)
+                                    _timed_effect=superboss_source_timed_effect_v11179(target_session,_enemy_template,_source_ability)
+                                    if _timed_effect:
+                                        await self.server.party_combat_broadcast(target_session,f"{target_session.character.name}: {_source_ability} — {_timed_effect['rounds']} rund.",detail="essential")
+                                    if _source_ability:
+                                        await self.server.party_combat_broadcast(target_session, f"{_enemy_template['name']} używa: {_source_ability}.", detail="essential")
+                                    _source_effect_replaces_attack = False
+                                    if _source_effect:
+                                        if "damage" in _source_effect:
+                                            target_session.current_hp=max(0,target_session.current_hp-int(_source_effect["damage"]))
+                                            _source_effect_replaces_attack = True
+                                        elif "current_hp_fraction" in _source_effect:
+                                            target_session.current_hp=max(0,target_session.current_hp-int(round(target_session.current_hp*float(_source_effect["current_hp_fraction"]))))
+                                            _source_effect_replaces_attack = True
+                                        if target_session.current_hp <= 0:
                                             await target_session.die(_enemy_template['name'])
                                             continue
-                                        for _ended in superboss_advance_timed_effects_v11179(target_session):
-                                            await self.server.party_combat_broadcast(target_session,f"{target_session.character.name}: kończy się efekt {_ended}.",detail="essential")
-                                        _source_ability = superboss_source_ability_v11162(_enemy_template, enemy_mob)
-                                        _source_effect = superboss_exact_ability_effect_v11160(target_session, _enemy_template, enemy_mob, _source_ability)
-                                        _timed_effect=superboss_source_timed_effect_v11179(target_session,_enemy_template,_source_ability)
-                                        if _timed_effect:
-                                            await self.server.party_combat_broadcast(target_session,f"{target_session.character.name}: {_source_ability} — {_timed_effect['rounds']} rund.",detail="essential")
-                                        if _source_ability:
-                                            await self.server.party_combat_broadcast(target_session, f"{_enemy_template['name']} używa: {_source_ability}.", detail="essential")
-                                        _source_effect_replaces_attack = False
-                                        if _source_effect:
-                                            if "damage" in _source_effect:
-                                                target_session.current_hp=max(0,target_session.current_hp-int(_source_effect["damage"]))
-                                                _source_effect_replaces_attack = True
-                                            elif "current_hp_fraction" in _source_effect:
-                                                target_session.current_hp=max(0,target_session.current_hp-int(round(target_session.current_hp*float(_source_effect["current_hp_fraction"]))))
-                                                _source_effect_replaces_attack = True
-                                            if target_session.current_hp <= 0:
-                                                await target_session.die(_enemy_template['name'])
-                                                continue
-                                        for _summon_tid in superboss_source_summons_v11162(target_session,_enemy_template,enemy_mob,_source_ability):
-                                            _summoned=self.server.world._register_runtime_spawn(target_session.character.room_id,_summon_tid)
-                                            if _summoned:
-                                                if _summoned.engaged_at <= 0: _summoned.engaged_at=time.monotonic()
-                                                if not _summoned.engaged_by: _summoned.engaged_by=target_session.character.name
-                                                await self.server.party_combat_broadcast(target_session,f"{_enemy_template['name']} przyzywa {MOB_TEMPLATES[_summon_tid]['name']}.",detail="essential")
-                                        _source_status_result=superboss_apply_source_status_v11173(target_session,_enemy_template,_source_ability)
-                                        if _source_status_result:
-                                            _source_status=_source_status_result["status"]
-                                            if _source_status_result.get("blocked"):
-                                                await self.server.party_combat_broadcast(target_session,f"{target_session.character.name}: {_source_status} zablokowany przez EQ.",detail="essential")
-                                            else:
-                                                await self.server.party_combat_broadcast(target_session,f"{target_session.character.name} otrzymuje status: {_source_status}.",detail="essential")
-                                        _phase_event = superboss_phase_event_v11138(target_session, _enemy_template, enemy_mob)
-                                        if _phase_event:
-                                            _phase, _label = _phase_event
-                                            await self.server.party_combat_broadcast(
-                                                target_session,
-                                                f"{_enemy_template['name']}: FAZA {_phase} — {_label}.",
-                                                detail="essential",
-                                            )
-                                        _uoss_mult, _uoss_note = superboss_incoming_multiplier_v11138(
-                                            target_session, _enemy_template, enemy_mob
-                                        )
-                                        _uoss_mult *= superboss_source_attack_multiplier_v11162(_enemy_template,_source_ability)
+                                    for _summon_tid in superboss_source_summons_v11162(target_session,_enemy_template,enemy_mob,_source_ability):
+                                        _summoned=self.server.world._register_runtime_spawn(target_session.character.room_id,_summon_tid)
+                                        if _summoned:
+                                            if _summoned.engaged_at <= 0: _summoned.engaged_at=time.monotonic()
+                                            if not _summoned.engaged_by: _summoned.engaged_by=target_session.character.name
+                                            await self.server.party_combat_broadcast(target_session,f"{_enemy_template['name']} przyzywa {MOB_TEMPLATES[_summon_tid]['name']}.",detail="essential")
+                                    _source_status_result=superboss_apply_source_status_v11173(target_session,_enemy_template,_source_ability)
+                                    if _source_status_result:
+                                        _source_status=_source_status_result["status"]
+                                        if _source_status_result.get("blocked"):
+                                            await self.server.party_combat_broadcast(target_session,f"{target_session.character.name}: {_source_status} zablokowany przez EQ.",detail="essential")
+                                        else:
+                                            await self.server.party_combat_broadcast(target_session,f"{target_session.character.name} otrzymuje status: {_source_status}.",detail="essential")
+                                    _phase_event = superboss_phase_event_v11138(target_session, _enemy_template, enemy_mob)
+                                    if _phase_event:
+                                        _phase, _label = _phase_event
                                         await self.server.party_combat_broadcast(
                                             target_session,
-                                            f"{_enemy_template['name']} atakuje {target_session.character.name}."
-                                            + (f" {_uoss_note}" if _uoss_note and _uoss_mult != 1.0 else ""),
-                                            detail="normal",
+                                            f"{_enemy_template['name']}: FAZA {_phase} — {_label}.",
+                                            detail="essential",
                                         )
-                                        if _source_effect_replaces_attack:
-                                            # A sourced fixed/current-HP ability is the enemy action.
-                                            # Do not append an unsourced ordinary hit on top of it.
-                                            continue
-                                        if _uoss_mult != 1.0:
-                                            _old_damage = _enemy_template.get("damage", 1)
-                                            _enemy_template["damage"] = max(1, int(round(float(_old_damage) * _uoss_mult)))
-                                            try:
-                                                await target_session.enemy_counterattack(enemy_mob)
-                                            finally:
-                                                _enemy_template["damage"] = _old_damage
-                                        else:
+                                    _uoss_mult, _uoss_note = superboss_incoming_multiplier_v11138(
+                                        target_session, _enemy_template, enemy_mob
+                                    )
+                                    _uoss_mult *= superboss_source_attack_multiplier_v11162(_enemy_template,_source_ability)
+                                    await self.server.party_combat_broadcast(
+                                        target_session,
+                                        f"{_enemy_template['name']} atakuje {target_session.character.name}."
+                                        + (f" {_uoss_note}" if _uoss_note and _uoss_mult != 1.0 else ""),
+                                        detail="normal",
+                                    )
+                                    if _source_effect_replaces_attack:
+                                        # A sourced fixed/current-HP ability is the enemy action.
+                                        # Do not append an unsourced ordinary hit on top of it.
+                                        continue
+                                    if _uoss_mult != 1.0:
+                                        _old_damage = _enemy_template.get("damage", 1)
+                                        _enemy_template["damage"] = max(1, int(round(float(_old_damage) * _uoss_mult)))
+                                        try:
                                             await target_session.enemy_counterattack(enemy_mob)
+                                        finally:
+                                            _enemy_template["damage"] = _old_damage
+                                    else:
+                                        await target_session.enemy_counterattack(enemy_mob)
 
                             next_enemy = time.monotonic() + self.combat_enemy_interval
                             if self.current_hp <= 0:
