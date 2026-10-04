@@ -834,10 +834,10 @@ class SessionCombatSkillsMixin:
                             alive=[x for x in alive if x.key in _engaged_keys]
                         if not alive: return
                         if special=="cosmic_rave" and vmax:
-                            # Canonical help specifies Random Enemies but no fixed hit count.
-                            # One random target is selected per enemy that the normal room-wide
-                            # version could have affected, allowing repeats without inventing k=5.
-                            targets=random.choices(alive,k=max(1,len(alive)))
+                            # User-provided UOSS combat log confirms five separate
+                            # V-MAX : Cosmic Rave strikes. Each strike selects a random
+                            # enemy and repeat targets are allowed.
+                            targets=random.choices(alive,k=5)
                         elif special=="starlight_shower" and not vmax:
                             _engaged=set()
                             if self.combat_mob_key: _engaged.add(self.combat_mob_key)
@@ -859,9 +859,10 @@ class SessionCombatSkillsMixin:
                                 skill, _mec_damage_type
                             )
                         )
-                        # Cosmic Rave has a lesser Agility influence and V-MAX
-                        # strengthens Starlight Shower, but source help supplies no
-                        # numeric multiplier for either relation.
+                        # Cosmic Rave has a lesser Agility influence. A supplied
+                        # UOSS combat log confirms that its V-MAX Random Enemies form
+                        # performs five separate strikes. Starlight Shower's V-MAX
+                        # numeric damage increase remains unspecified by source.
                         for target in targets:
                             if not target.alive: continue
                             template=MOB_TEMPLATES[target.template_id]
