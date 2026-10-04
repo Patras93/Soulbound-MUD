@@ -1563,12 +1563,50 @@ class SessionCombatSkillsMixin:
                             mob.hp-=damage; total+=damage
                             await self.send(f"Tiger Rampage: {template['name']} otrzymuje {damage} obrażeń. HP {max(0,mob.hp)}.{note}")
                         broke=False
-                        # Source confirms a chance to lower physical and magical
-                        # defense, but gives no proc chance or base duration.
+                        # Source confirms a chance to lower both physical and magical
+                        # defense and marks the effect Extendable. UOSS gives no numeric
+                        # proc chance, duration or reduction amount, so the values below
+                        # are explicit Soulbound balance metadata.
+                        if mob.hp > 0 and random.random() < float(
+                            skill.get("soulbound_defense_break_proc_chance",0.35) or 0.35
+                        ):
+                            _break_rounds=max(
+                                1,int(skill.get("soulbound_defense_break_rounds",4) or 4)
+                            )
+                            _existing=max(
+                                0,int(
+                                    getattr(
+                                        mob,"v11196_tiger_defense_break_rounds",0
+                                    ) or 0
+                                )
+                            )
+                            mob.v11196_tiger_defense_break_rounds=_existing+_break_rounds
+                            mob.v11196_tiger_defense_break_damage_multiplier=max(
+                                1.0,
+                                float(
+                                    skill.get(
+                                        "soulbound_defense_break_damage_multiplier",
+                                        1.15,
+                                    ) or 1.15
+                                ),
+                            )
+                            broke=True
+                            await self.send(
+                                f"Tiger Rampage uszkadza fizyczną i magiczną obronę "
+                                f"{template['name']}. Pozostało "
+                                f"{mob.v11196_tiger_defense_break_rounds} akcji osłabienia."
+                            )
                         if mob.hp > 0:
                             await self.apply_superboss_helper_after_skill_v11192([mob])
                         await self.grant_skill_use_xp(skill)
-                        await self.send(f"Tiger Rampage: 2 ciężkie trafienia, łącznie {total} obrażeń." + (" Obrona fizyczna i magiczna celu spada." if broke else ""))
+                        await self.send(
+                            f"Tiger Rampage: 2 ciężkie trafienia, łącznie {total} obrażeń."
+                            + (
+                                " Obrona fizyczna i magiczna celu spada."
+                                if broke else
+                                " Obrona celu wytrzymuje uderzenie."
+                            )
+                        )
                         if mob.hp<=0: await self.mob_defeated(mob)
                         else: await self.ensure_realtime_combat()
                         return
