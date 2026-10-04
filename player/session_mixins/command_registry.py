@@ -307,6 +307,7 @@ COMMAND_REGISTRY.update({
     'alchemy': ('command_alchemy_v0490', (COMMAND_TEXT,), {}),
     'equiphead': ('equip_shortcut_slot_v03016', ('head', COMMAND_TEXT), {}),
     'equipbody': ('equip_shortcut_slot_v03016', ('body', COMMAND_TEXT), {}),
+    'equipshield': ('equip_shortcut_slot_v03016', ('shield', COMMAND_TEXT), {}),
     'equiphands': ('equip_shortcut_slot_v03016', ('hands', COMMAND_TEXT), {}),
     'equiplegs': ('equip_shortcut_slot_v03016', ('legs', COMMAND_TEXT), {}),
     'equipfeet': ('equip_shortcut_slot_v03016', ('feet', COMMAND_TEXT), {}),
