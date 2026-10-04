@@ -2485,6 +2485,8 @@ def _v0319_install_full_mec_kit():
             row.update({"scale":"willpower","source_stat_influence":["will"],
                         "boost":1.0,"cooldown":0,"mechanic_cooldown":True,
                         "duration_scales_with_skill_level":True,
+                        "duration_scales_with_will":True,
+                        "duration_balance_model":"soulbound_30_to_90_plus_uncapped_will",
                         "support_weapon_model":"mec_soul_weapon"})
     CLASS_SKILLS["Mec"] = rows
 
@@ -2575,6 +2577,10 @@ def _mec_contract_audit_v11149():
             errors.append(
                 f"vmax:support_weapon_model={vmax.get('support_weapon_model')} expected=mec_soul_weapon"
             )
+        if not bool(vmax.get("duration_scales_with_skill_level")):
+            errors.append("vmax:missing skill-level duration scaling")
+        if not bool(vmax.get("duration_scales_with_will")):
+            errors.append("vmax:missing WILL duration scaling")
     support_contract=MEC_CANONICAL_CONTRACT_V11149["branches"]["support"]
     if str(support_contract.get("support_weapon"))!="soul_weapon":
         errors.append(
