@@ -215,6 +215,26 @@ def basic_attack_hits_from_dexterity(dexterity: int, haste: bool = False) -> int
     return max(1, int(raw_hits))
 
 
+def mec_vmax_duration_seconds(skill_level: int, willpower: int) -> int:
+    """Soulbound V-MAX duration adaptation from source-confirmed influences.
+
+    Source confirms both:
+    - Skill Level increases duration;
+    - WILL influences V-MAX.
+
+    The original numeric seconds/curve are unavailable, so Soulbound uses a
+    transparent 30s -> 90s Skill-Level base (1 -> 600), multiplied by an
+    uncapped soft WILL curve anchored at WILL 175 = x1.0.
+    """
+    level = clamp(int(skill_level), 1, MAX_LEVEL)
+    willpower = max(1, int(willpower))
+    progress = (level - 1) / float(max(1, MAX_LEVEL - 1))
+    skill_seconds = 30.0 + 60.0 * (progress ** 0.82)
+    will_multiplier = max(0.35, (willpower / 175.0) ** 0.35)
+    return max(1, int(round(skill_seconds * will_multiplier)))
+
+
+
 _BASIC_ATTACK_HIT_AUDIT_V11196 = {
     "agi_547": basic_attack_hits_from_dexterity(547, False),
     "agi_547_haste": basic_attack_hits_from_dexterity(547, True),
@@ -228,6 +248,23 @@ if _BASIC_ATTACK_HIT_AUDIT_V11196 != {
     raise RuntimeError(
         "Basic attack multi-hit audit failed: "
         + repr(_BASIC_ATTACK_HIT_AUDIT_V11196)
+    )
+
+
+_VMAX_DURATION_AUDIT_V11196 = {
+    "level1_will175": mec_vmax_duration_seconds(1, 175),
+    "level600_will175": mec_vmax_duration_seconds(MAX_LEVEL, 175),
+    "level1_will350": mec_vmax_duration_seconds(1, 350),
+}
+if not (
+    _VMAX_DURATION_AUDIT_V11196["level1_will175"] == 30
+    and _VMAX_DURATION_AUDIT_V11196["level600_will175"] == 90
+    and _VMAX_DURATION_AUDIT_V11196["level1_will350"]
+        > _VMAX_DURATION_AUDIT_V11196["level1_will175"]
+):
+    raise RuntimeError(
+        "V-MAX duration audit failed: "
+        + repr(_VMAX_DURATION_AUDIT_V11196)
     )
 
 
