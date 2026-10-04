@@ -306,6 +306,8 @@ def superboss_source_summons_v11162(session, template, mob, ability_name):
         # Source says random Eye; selection is intentionally random rather than
         # a fabricated fixed cycle.
         return (f"uoss_add_{random.choice(('emerald_white_eye','emerald_blue_eye','emerald_red_eye'))}_v11156",)
+    if str(getattr(mob,"template_id",""))=="uoss_add_emerald_red_eye_v11156" and name=="Emerald Torpedo":
+        return ("uoss_add_emerald_torpedo_v11156",)
     if key=="odin" and name=="Gungnir":
         return ("uoss_add_odin_gungnir_v11156",)*3
     return ()
@@ -437,7 +439,29 @@ def superboss_clear_source_statuses_v11176(session):
     active=getattr(session,"uoss_source_statuses_v11173",None)
     if isinstance(active,set):
         active.clear()
+    session.uoss_nullify_healing_rounds_v11179=0
+    session.uoss_necrotic_energy_rounds_v11179=0
 
+
+
+def superboss_helper_exact_utility_v11183(session, template, ability_name):
+    """Exact helper utility values only; caller supplies an explicit ability trigger."""
+    profile=superboss_helper_profile_v11137(session,template)
+    if not profile:
+        return None
+    helper=str(profile.get("name"))
+    name=str(ability_name or "")
+    if helper=="Popoi" and name=="Faerie Walnut":
+        amount=max(0,int(round(session.max_mana()*0.20)))
+        before=session.current_mana
+        session.current_mana=min(session.max_mana(),session.current_mana+amount)
+        return {"mana_restored":session.current_mana-before}
+    if helper=="Primm" and name=="Bubble":
+        # Source gives +50% Max HP but no duration. Keep the exact magnitude as
+        # an active marker; no fabricated expiry.
+        session.uoss_primm_bubble_max_hp_multiplier_v11183=1.50
+        return {"max_hp_multiplier":1.50}
+    return None
 
 def superboss_source_timed_effect_v11179(session, template, ability_name):
     """Exact duration-only effects; no invented damage/cadence."""
