@@ -8,9 +8,8 @@ import random
 import time
 
 from core.classes_skills import SOUL_WEAPON_ATTACK_TECHNIQUES
-from core.progression_600 import SOUL_WEAPON_MASTERY_MAX_LEVEL
+from core.progression_600 import SOUL_WEAPON_MASTERY_MAX_LEVEL, soul_weapon_trait_totals
 from core.progression_resources import soul_weapon_mastery_bonuses, v0190_scaled_gain
-from core.bootstrap_economy_professions import soul_weapon_trait_totals
 from data.mobs import MOB_TEMPLATES
 from world.machine_expansion import v0314_adjust_damage_vs_template
 from world.uoss_superboss_runtime import (
