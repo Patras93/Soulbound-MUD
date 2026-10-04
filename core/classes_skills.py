@@ -4293,6 +4293,18 @@ for _class_name,_skills in CLASS_SKILLS.items():
 def _all_class_skill_target_audit_v11196():
     """Target-role audit for every skill in every playable Soulbound class."""
     errors=[]
+    expected_classes={
+        "Wojownik","Berserker","Łotrzyk","Łowca","Mnich","Strażnik",
+        "Mag","Nekromanta","Kapłan","Czarownik","Druid","Psionik",
+        "Inżynier","Mec",
+    }
+    actual_classes=set(CLASS_SKILLS)
+    if actual_classes!=expected_classes:
+        errors.append(
+            "playable class set mismatch: "
+            f"missing={sorted(expected_classes-actual_classes)} "
+            f"extra={sorted(actual_classes-expected_classes)}"
+        )
     per_class={}
     total=0
     for class_name,skills in CLASS_SKILLS.items():
