@@ -569,6 +569,49 @@ class SessionCombatSkillsMixin:
                     # blokowany przez gracza, którego już nie ma w pokoju lub walce.
                     for candidate in aoe_mobs:
                         self.server.sanitize_mob_engagement(candidate)
+
+                    # Area Bomb ma źródłowy target "All Targetted Enemies": nie może
+                    # tworzyć nowego aggro na mobach tylko dlatego, że stoją w pokoju.
+                    # W Soulbound lokalna drużyna automatycznie współdzieli walkę, więc
+                    # za targetted uznajemy cele już związane z Mecem lub jego lokalnym
+                    # party PRZED użyciem Area Bomb.
+                    _area_bomb_targeted_only = (
+                        str(skill.get("mec_special", "") or "") == "area_bomb"
+                    )
+                    if _area_bomb_targeted_only:
+                        _local_party = (
+                            self.server.party_sessions(
+                                self.account_id, same_room=self.character.room_id
+                            )
+                            or [self]
+                        )
+                        _party_names = {
+                            str(sess.character.name)
+                            for sess in _local_party
+                            if not sess.closed and sess.character
+                        }
+                        _targetted_keys = {
+                            str(sess.combat_mob_key)
+                            for sess in _local_party
+                            if getattr(sess, "combat_mob_key", None)
+                        }
+                        for candidate in aoe_mobs:
+                            if (
+                                str(candidate.engaged_by or "") in _party_names
+                                or str(getattr(candidate, "aoe_engaged_by", "") or "") in _party_names
+                            ):
+                                _targetted_keys.add(str(candidate.key))
+                        aoe_mobs = [
+                            candidate for candidate in aoe_mobs
+                            if str(candidate.key) in _targetted_keys
+                        ]
+                        if not aoe_mobs:
+                            await self.send(
+                                "Area Bomb: brak już zaangażowanych przeciwników. "
+                                "Ten skill nie rozpoczyna nowej walki."
+                            )
+                            return
+
                     # Zachowujemy właściciela aggro sprzed AoE. Obszarówka może zranić
                     # moba walczącego z obcym graczem, ale nie kradnie jego aggro/nagród.
                     aoe_reward_owner = {candidate.key: candidate.engaged_by for candidate in aoe_mobs}
@@ -577,7 +620,7 @@ class SessionCombatSkillsMixin:
                         if self.server.engagement_allowed(self, candidate)
                     ]
                     for candidate in available_for_aggro:
-                        if not candidate.engaged_by:
+                        if not _area_bomb_targeted_only and not candidate.engaged_by:
                             if candidate.engaged_at <= 0:
                                 candidate.engaged_at = time.monotonic()
                             candidate.engaged_by = self.character.name
@@ -1008,14 +1051,10 @@ class SessionCombatSkillsMixin:
 
                     if special in ("cosmic_rave","shoot_all","starlight_shower","shock_soldier","pop_knight","range_fire","dispose","uzi_punch","laser_spin","area_bomb","maelstrom","shock"):
                         alive=[x for x in aoe_mobs if x.alive]
-                        # v1.11.48: Area Bomb affects only enemies already engaged
-                        # in the current combat, matching "All Targetted Enemies".
-                        if special=="area_bomb":
-                            _engaged_keys=set()
-                            if self.combat_mob_key: _engaged_keys.add(self.combat_mob_key)
-                            for _sess in (self.server.party_sessions(self.account_id,same_room=self.character.room_id) or [self]):
-                                if getattr(_sess,"combat_mob_key",None): _engaged_keys.add(_sess.combat_mob_key)
-                            alive=[x for x in alive if x.key in _engaged_keys]
+                        # Area Bomb został już ograniczony do źródłowych
+                        # "All Targetted Enemies" przed wspólnym etapem nadawania aggro.
+                        # Nie filtrujemy go drugi raz po samych combat_mob_key, bo cele
+                        # AoE mogą być legalnie oznaczone także przez istniejące aggro.
                         if not alive: return
                         if special=="cosmic_rave" and vmax:
                             # User-provided UOSS combat log confirms five separate
