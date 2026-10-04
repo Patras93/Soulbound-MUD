@@ -399,6 +399,27 @@ class SessionCombatRealtimeMixin:
                     if self.combat_task is this_task:
                         self.combat_task = None
 
+    async def enemy_counterattack(self, mob):
+                if not mob or not mob.alive or not self.character or self.current_hp<=0:
+                    return
+                template=MOB_TEMPLATES[mob.template_id]
+                damage_type=str(template.get("damage_type","physical"))
+                raw=max(1,int(template.get("damage",1) or 1))
+                defense=self.magic_defense() if damage_type=="magic" else self.defense()
+                damage=max(1,int(round(raw-float(defense))))
+                if damage_type=="physical":
+                    damage=max(1,int(round(damage*max(0.0,1.0-self.character.racial_physical_damage_reduction_percent()/100.0))))
+                damage=max(1,int(round(damage*max(0.0,1.0-self.character.racial_damage_reduction_percent()/100.0))))
+                damage=max(1,int(round(damage*max(0.0,1.0-self.character.class_damage_reduction_percent()/100.0))))
+                if random.random()<self.dodge_chance():
+                    await self.send_combat(f"Unikasz ataku: {template['name']}.","normal")
+                    return
+                self.current_hp=max(0,self.current_hp-damage)
+                self._recap52_taken=int(getattr(self,"_recap52_taken",0) or 0)+damage
+                await self.send_combat(f"{template['name']} zadaje ci {damage} obrażeń. HP {self.current_hp} z {self.max_hp()}.","normal")
+                if self.current_hp<=0:
+                    await self.handle_player_defeat(mob)
+
     async def attack(self, query):
                 wanted = (query or "").strip()
                 if wanted and await self.reject_player_attack(wanted):
