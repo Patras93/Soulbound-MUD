@@ -19,6 +19,16 @@ from world.economy_quests import v0863_execute_threshold
 from world.uoss_superboss_runtime import superboss_attack_gate_v11137, superboss_helper_profile_v11137
 
 class SessionCombatSkillsMixin:
+    def offensive_skill_damage_type_v11190(self, skill):
+        """Canonical physical/magic channel for every damaging class skill."""
+        if skill.get("mec_authored"):
+            branch = str(skill.get("mec_branch", "") or "").strip().lower()
+            if branch == "magic":
+                return "magic"
+            if branch in {"melee", "ranged", "feedback"}:
+                return "physical"
+        return class_type_for_name(self.skill_class_name(skill))
+
     def offensive_skill_core_stat_power_v11188(self, skill):
         """Effective offensive stat power including source-faithful flat EQ power."""
         scale_name = str(skill.get("scale", "strength") or "strength").lower()
@@ -53,7 +63,7 @@ class SessionCombatSkillsMixin:
         catalog items all contribute through equipment_property_totals() while their
         primary stats already feed skill_scale_value() via effective_*().
         """
-        resolved_type = skill_class_type or class_type_for_name(self.skill_class_name(skill))
+        resolved_type = skill_class_type or self.offensive_skill_damage_type_v11190(skill)
         damage_type = "physical" if resolved_type == "physical" else "magic"
         multiplier = float(skill.get("mult", 1.0))
         if resolved_type == "physical":
@@ -510,8 +520,13 @@ class SessionCombatSkillsMixin:
                         for i,target in enumerate(targets):
                             template=MOB_TEMPLATES[target.template_id]
                             # Mega Bomb: full damage main target, reduced splash normally.
-                            local_mult=passive_mult*upgrade_mult*skill_power*self.skill_buff_multiplier(
-                                target_type=class_type_for_name(self.skill_class_name(skill))
+                            local_mult=(
+                                passive_mult
+                                * upgrade_mult
+                                * skill_power
+                                * self.offensive_skill_damage_multiplier_v11186(
+                                    skill, self.offensive_skill_damage_type_v11190(skill)
+                                )
                             )
                             if special=="mega_bomb" and i>0 and not upgraded: local_mult*=0.55
                             # Chainsaw can use Demi / upgraded Quarter as a floor effect.
@@ -685,9 +700,13 @@ class SessionCombatSkillsMixin:
                         else:
                             targets=list(alive)
                         base=max(1,int(skill.get("base_power",100) or 100)); total=0; defeated=[]; seen=set()
-                        _mec_damage_type = "magic" if branch == "magic" else "physical"
-                        mult=skill_power*self.mec_branch_multiplier_v0319(branch)*self.skill_buff_multiplier(
-                            exclude_skill_id="v0319_mec_vmax", target_type=_mec_damage_type
+                        _mec_damage_type = self.offensive_skill_damage_type_v11190(skill)
+                        mult=(
+                            skill_power
+                            * self.mec_branch_multiplier_v0319(branch)
+                            * self.offensive_skill_damage_multiplier_v11186(
+                                skill, _mec_damage_type
+                            )
                         )
                         # Cosmic Rave has a lesser Agility influence and V-MAX
                         # strengthens Starlight Shower, but source help supplies no
@@ -776,8 +795,10 @@ class SessionCombatSkillsMixin:
                         # original melee-weapon gate; its element is carried by both hits.
                         template=MOB_TEMPLATES[mob.template_id]
                         base=max(1,int(skill.get("base_power",1800) or 1800))
-                        mult=skill_power*self.mec_branch_multiplier_v0319("melee")*self.skill_buff_multiplier(
-                            exclude_skill_id="v0319_mec_vmax", target_type="physical"
+                        mult=(
+                            skill_power
+                            * self.mec_branch_multiplier_v0319("melee")
+                            * self.offensive_skill_damage_multiplier_v11186(skill, "physical")
                         )
                         total=0
                         _element=str(getattr(self.character,"soul_weapon_element","") or "physical").casefold()
@@ -917,9 +938,9 @@ class SessionCombatSkillsMixin:
                     return
 
                 if kind == "aoe_damage":
-                    scale = self.skill_scale_value(skill.get("scale", "intelligence"))
-                    aoe_class_type = class_type_for_name(self.skill_class_name(skill))
+                    aoe_class_type = self.offensive_skill_damage_type_v11190(skill)
                     multiplier = self.offensive_skill_damage_multiplier_v11186(skill, aoe_class_type) * skill_power
+                    core_power = self.offensive_skill_core_power_v11185(skill)
                     await self.send(
                         f"Używasz {skill['name']} na Skill Level {skill_level}. "
                         f"Cele w lokacji: {len(aoe_mobs)}."
@@ -931,7 +952,7 @@ class SessionCombatSkillsMixin:
                         if not target.alive:
                             continue
                         template = MOB_TEMPLATES[target.template_id]
-                        damage = max(1, int((self.character.soul_power() + scale) * multiplier) + random.randint(-2, 3))
+                        damage = max(1, int(core_power * multiplier) + random.randint(-2, 3))
                         damage, critical = self.roll_critical_hit(damage)
                         if critical:
                             self.record_social_record_v03051("biggest_crit", damage)
@@ -939,7 +960,7 @@ class SessionCombatSkillsMixin:
                         damage = await self.apply_boss_defense(target, damage)
                         damage = self.v0210_adjust_player_damage(damage)
                         damage, machine_note = v0314_adjust_damage_vs_template(
-                            template, damage, "magic", skill.get("name", "")
+                            template, damage, aoe_class_type, skill.get("name", "")
                         )
                         target.hp -= damage
                         total_damage += damage
@@ -990,10 +1011,10 @@ class SessionCombatSkillsMixin:
                     return
 
                 template = MOB_TEMPLATES[mob.template_id]
-                scale = self.skill_scale_value(skill.get("scale", "strength"))
                 skill_class = self.skill_class_name(skill)
-                skill_class_type = class_type_for_name(skill_class)
+                skill_class_type = self.offensive_skill_damage_type_v11190(skill)
                 multiplier = self.offensive_skill_damage_multiplier_v11186(skill, skill_class_type) * skill_power
+                core_power = self.offensive_skill_core_power_v11185(skill)
                 # v1.11.7: wszystkie ofensywne skille Meca korzystają z pasywnej
                 # specjalizacji swojej gałęzi. Wcześniej branch multiplier działał
                 # głównie w dedykowanej ścieżce AoE, a single-target wpadający do
@@ -1030,9 +1051,7 @@ class SessionCombatSkillsMixin:
 
                 damage = max(
                     1,
-                    int(
-                        (self.character.soul_power() + scale) * multiplier
-                    ) + random.randint(-2, 3),
+                    int(core_power * multiplier) + random.randint(-2, 3),
                 )
                 damage, critical = self.roll_critical_hit(damage)
                 if critical:
