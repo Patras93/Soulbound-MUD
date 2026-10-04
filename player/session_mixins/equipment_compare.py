@@ -22,6 +22,8 @@ class SessionEquipmentCompareV0600Mixin:
             return {"charm", "charm1", "charm2"}
         if logical == "earring":
             return {"earring", "earring1", "earring2"}
+        if logical == "accessory":
+            return {"accessory", "accessory1", "accessory2"}
         return {logical}
 
     def _comparison_snapshot_v0600(self, item_id, item, slot=None):
