@@ -1254,10 +1254,6 @@ class SessionCombatSkillsMixin:
                         if mob.hp<=0: await self.mob_defeated(mob)
                         else: await self.ensure_realtime_combat()
                         return
-                    # Mec Sonata may temporarily lower the target's level-equivalent
-                    # power, but source help gives neither proc chance nor base duration.
-                    # Keep the authored capability in metadata until a canonical
-                    # probability/duration source exists; do not fabricate runtime values.
                     if special=="magnify":
                         # Source contract: Attack + Wisdom single-target overload.
                         # Skill Level and Wisdom reduce systems-failure chance; failure
@@ -1802,6 +1798,39 @@ class SessionCombatSkillsMixin:
                 else:
                     machine_note=""
                 mob.hp -= damage
+                if (
+                    skill.get("mec_authored")
+                    and str(skill.get("mec_special",""))=="mec_sonata"
+                    and mob.hp>0
+                ):
+                    # Source confirms only a chance to temporarily lower target level
+                    # and Extendable. Chance, amount and duration are not numeric in
+                    # UOSS, so these are explicit Soulbound balance values.
+                    _sonata_proc=float(
+                        skill.get("soulbound_level_reduction_proc_chance",0.30) or 0.30
+                    )
+                    if random.random() < _sonata_proc:
+                        _sonata_rounds=max(
+                            1,int(skill.get("soulbound_level_reduction_rounds",3) or 3)
+                        )
+                        _existing=max(
+                            0,int(getattr(mob,"v11196_mec_sonata_rounds",0) or 0)
+                        )
+                        mob.v11196_mec_sonata_rounds=_existing+_sonata_rounds
+                        mob.v11196_mec_sonata_power_mult=max(
+                            0.01,min(
+                                1.0,
+                                float(
+                                    skill.get(
+                                        "soulbound_level_equivalent_power_multiplier",0.90
+                                    ) or 0.90
+                                ),
+                            )
+                        )
+                        await self.send(
+                            f"Mec Sonata: poziomowa moc {template['name']} spada tymczasowo. "
+                            f"Efekt potrwa {mob.v11196_mec_sonata_rounds} akcji przeciwnika."
+                        )
                 _helper_skill_damage = 0
                 if mob.hp > 0:
                     _helper_skill_damage = await self.apply_superboss_helper_skill_damage_v11189(mob)
