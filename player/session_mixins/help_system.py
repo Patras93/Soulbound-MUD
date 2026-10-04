@@ -136,7 +136,7 @@ class SessionHelpSystemMixin:
                 "skillnames / nazwyskilli - wszystkie nazwy skilli wszystkich klas",
                 "skill / umiejetnosc / cast <nazwa lub numer> [cel] - użyj umiejętności",
                 "help skill <nazwa> / help <nazwa skilla> / skill info <nazwa> - pełny help każdej umiejętności/spella w grze",
-                "kolejka / kolejka lista - pokaż zapisane skille i czary; sloty są numerowane zwyczajnie jako Slot 1, Slot 2 itd. osobno dla fizycznych i magicznych; kolejka dodaj automatycznie włącza rotację",
+                "kolejka / kolejka lista - pokaż zapisane skille i czary; każda kolejka ma 20 aktywnych slotów na Levelu 1 i +1 slot co 10 Leveli, do 80 na Levelu 600; sloty są numerowane zwyczajnie jako Slot 1, Slot 2 itd. osobno dla fizycznych i magicznych; kolejka dodaj automatycznie włącza rotację",
                 "użyj umiejętność <nazwa> [cel] / use skill <name> [target] - alternatywne użycie skilla",
                 "learn / naucz / ucz <nazwa, numer lub naturalna kategoria> - np. naucz leczenie, tarcza, ciecie, pocisk, ogien",
                 "soul / dusza - szybki stan Duszy; dusza info - Soul XP, Tiery, Próby i następny cel",
@@ -147,6 +147,10 @@ class SessionHelpSystemMixin:
                 "professions / profesje - szybki stan profesji; profesje info - XP, rangi i zasady",
                 "narzedzia / tools - szybki stan narzędzi; narzedzia info - XP, Tiery, bonusy i sprzedawcy",
                 "professions / profesje - 14 profesji 1-600: Wędkarstwo, Górnictwo, Drwalstwo, Zielarstwo, Gotowanie, Alchemia, Kowalstwo, Jubilerstwo, Krawiectwo, Garbarstwo, Stolarstwo, Zaklinanie, Archeologia, Kartografia",
+                "archeologia / wykop - profesja eksploracyjna 1-600; kartografia / mapuj - profesja eksploracyjna 1-600",
+                "statek / zegluj / skarby / handel morski - Ocean 2.0; help ocean pokazuje pełną składnię",
+                "superbosses - lista unikalnych Super Bossów i wymagania; superboss <nazwa> - wejście do wybranego wyzwania; help superbossy - zasady",
+                "relic / relikt - obsługa aktywnego reliktu Broni Duszy; użyj samej komendy, aby sprawdzić dostępne opcje",
                 "rangi / ranks - pełna lista rang profesji",
                 "tools / narzedzia - skrót wszystkich 14 narzędzi",
                 "wedka / kilof / pila / mlot / noz / sierp / mozdzierz / szczypce / zestawkrawiecki / nozgarbarski / ciesielskie / fokus / pedzel / kompas - pełne informacje o wybranym narzędziu",
@@ -188,9 +192,9 @@ class SessionHelpSystemMixin:
                 "equipment / eq - szybkie EQ zawsze pokazuje też Broń Duszy; eq info - Soul XP, pełne bonusy, sockety i aktywne sety",
                 "sety / sety info / sety <klasa> - zestawy klasowe 2/4/6/8 dla 14 klas",
                 "help loot_krypty - rarity, losowe statystyki i sety Krypty",
-                "equip / załóż przedmiot albo slot - m.in. hełm, zbroja, rękawice, nogi, buty, naramienniki, pas, peleryna, karwasze, kolczyki, relikt, pierścienie, talizmany, naszyjnik",
+                "equip / załóż przedmiot albo slot - m.in. hełm, zbroja, rękawice, nogi, buty, tarcza, naramienniki, pas, peleryna, karwasze, bransoleta, kolczyki, relikt, pierścienie, talizmany, naszyjnik",
                 "Biżuteria v0.30.21: załóż <nazwa pierścienia/talizmanu> wybiera wolny slot automatycznie, a gdy oba są zajęte zastępuje słabszy; ręczne sloty 1/2 nadal działają.",
-                "Skróty EQ: zh hełm, zz zbroja, zr rękawice, zn nogi, zb buty, zp pierścienie auto, zt talizmany auto, zp1/zp2 i zt1/zt2 ręcznie, zna naszyjnik, zkol kolczyki auto, zkol1/zkol2 ręcznie, znar naramienniki, zpas pas, zpel peleryna, zkar karwasze, zrel relikt.",
+                "Skróty EQ: zh hełm, zz zbroja, zr rękawice, zn nogi, zb buty, ztar tarcza, zp pierścienie auto, zt talizmany auto, zp1/zp2 i zt1/zt2 ręcznie, zna naszyjnik, zkol kolczyki auto, zkol1/zkol2 ręcznie, znar naramienniki, zpas pas, zpel peleryna, zkar karwasze, zbra bransoleta, zrel relikt.",
                 "use / użyj - przedmioty, skille i czary; np. użyj ciecie goblin albo użyj pocisk goblin",
                 "shop / sklep / list / lista - krótka numerowana oferta: numer, nazwa i cena",
                 "shop info <numer> / sklep info <numer> - pełny opis i porównanie EQ przed zakupem",
@@ -302,6 +306,8 @@ class SessionHelpSystemMixin:
                 "evade": "unik",
                 "heal": "leczenie",
                 "group_heal": "leczenie drużynowe",
+                "regen": "regeneracja okresowa",
+                "passive": "pasywna / automatyczna",
                 "utility": "narzędzie użytkowe / trwałe ulepszenie",
             }.get(kind, str(kind or "nieznany"))
 
@@ -310,7 +316,11 @@ class SessionHelpSystemMixin:
                 "strength": "Siła",
                 "dexterity": "Zręczność",
                 "intelligence": "Inteligencja",
-            }.get(scale, "brak bezpośredniego skalowania statystyką")
+                "willpower": "Siła Woli",
+                "attack": "Atak",
+                "hp_difference": "różnica maksymalnego i bieżącego HP",
+                "target_current_hp_percent": "procent bieżącego HP celu",
+            }.get(scale, str(scale or "brak bezpośredniego skalowania statystyką"))
 
     def skill_help_effect_details(self, skill):
             parts = []
@@ -327,7 +337,7 @@ class SessionHelpSystemMixin:
                 if duration:
                     parts.append(f"Bazowe wzmocnienie: +{pct} procent przez {int(duration)} sekund")
                 else:
-                    parts.append(f"Bazowe wzmocnienie: +{pct} procent; czas działania odpowiada efektywnemu cooldownowi")
+                    parts.append(f"Bazowe wzmocnienie: +{pct} procent; czas działania wynika z mechaniki tej umiejętności")
             if kind == "guard" and "guard" in skill:
                 parts.append(f"Bazowa redukcja następnego trafienia: {int(skill['guard'])}")
             if kind in ("heal", "group_heal") and "heal_pct" in skill:
@@ -338,6 +348,80 @@ class SessionHelpSystemMixin:
                 parts.append(f"Koszt własnego HP: {int(skill['self_damage'])}")
             if skill.get("self_damage_pct"):
                 parts.append(f"Koszt własnego HP: {int(round(float(skill['self_damage_pct']) * 100))} procent")
+
+            target_labels = {
+                "self": "siebie",
+                "one_ally": "jeden sojusznik",
+                "one_enemy": "jeden przeciwnik",
+                "one_target": "jeden cel",
+                "all_allies": "wszyscy sojusznicy w lokacji",
+                "party": "drużyna w lokacji",
+            }
+            source_target = skill.get("source_target_mode")
+            if source_target:
+                raw_targets = source_target if isinstance(source_target, (list, tuple)) else [source_target]
+                parts.append(
+                    "Cel źródłowy: " + ", ".join(
+                        target_labels.get(str(value), str(value).replace("_", " "))
+                        for value in raw_targets
+                    )
+                )
+
+            stat_labels = {
+                "attack": "Atak",
+                "agi": "Zręczność/AGI",
+                "agility": "Zręczność/AGI",
+                "dexterity": "Zręczność",
+                "int": "Inteligencja",
+                "intelligence": "Inteligencja",
+                "will": "Siła Woli",
+                "willpower": "Siła Woli",
+                "vitality": "Kondycja",
+                "vit": "Kondycja",
+                "critical_hit_chance": "szansa na trafienie krytyczne",
+                "hp": "HP",
+            }
+            influences = skill.get("source_stat_influence")
+            if influences:
+                raw_stats = influences if isinstance(influences, (list, tuple)) else [influences]
+                parts.append(
+                    "Wpływ statystyk źródłowych: " + ", ".join(
+                        stat_labels.get(str(value), str(value).replace("_", " "))
+                        for value in raw_stats
+                    )
+                )
+
+            properties = skill.get("source_properties")
+            if properties:
+                prop_labels = {
+                    "cleanseable": "Cleanseable",
+                    "dispelable": "Dispelable",
+                    "dispellable": "Dispellable",
+                    "extendable": "Extendable",
+                    "reflectable": "Reflectable",
+                    "silenceable": "Silenceable",
+                    "multicastable": "Multicastable",
+                }
+                parts.append(
+                    "Właściwości źródłowe: " + ", ".join(
+                        prop_labels.get(str(value), str(value).replace("_", " "))
+                        for value in properties
+                    )
+                )
+
+            level_effect = skill.get("level_effect")
+            if level_effect:
+                level_effect_labels = {
+                    "increases_duration": "Skill Level zwiększa czas działania",
+                    "increases_healing_power": "Skill Level zwiększa moc leczenia",
+                    "increases_accuracy_and_duration": "Skill Level zwiększa celność i czas działania",
+                }
+                parts.append(
+                    level_effect_labels.get(
+                        str(level_effect),
+                        "Efekt Skill Level: " + str(level_effect).replace("_", " "),
+                    )
+                )
             return parts
 
     async def show_skill_help(self, query):
@@ -379,9 +463,14 @@ class SessionHelpSystemMixin:
                 f"Wymagana Biegłość klasy: {mastery_needed}. "
                 f"Kolejka: {self.skill_queue_type_label(queue_type)}."
             )
+            cooldown_text = (
+                f"Mechaniczny cooldown bazowy: {base_cd} sekund. "
+                if skill.get("mechanic_cooldown")
+                else "Cooldown zwykłego ponownego użycia: brak. "
+            )
             await self.send(
                 (f"Mana: {mana}. " if mana else "Mana: nie jest używana przez tę umiejętność. ")
-                + f"Bazowy cooldown: {base_cd} sekund. "
+                + cooldown_text
                 + f"Opis: {skill.get('desc', 'Brak opisu.')}"
             )
             effect_parts = self.skill_help_effect_details(skill)
@@ -409,9 +498,13 @@ class SessionHelpSystemMixin:
                         f"Skill Poziom {level}, XP {progress.get('xp', 0)} z "
                         f"{skill_xp_to_next(level)}, użycia {progress.get('uses', 0)}"
                     )
+                learned_cd_text = (
+                    f" Mechaniczny cooldown przy tym Skill Level: {effective_cd} sekund."
+                    if skill.get("mechanic_cooldown")
+                    else " Bez cooldownu zwykłego ponownego użycia."
+                )
                 await self.send(
-                    f"Status: nauczona. {progress_text}. "
-                    f"Aktualny cooldown przy tym Skill Level: {effective_cd} sekund."
+                    f"Status: nauczona. {progress_text}." + learned_cd_text
                 )
             elif not active:
                 await self.send(
@@ -426,9 +519,14 @@ class SessionHelpSystemMixin:
                     f"Status: odblokowana do nauki. Biegłość {class_name}: {mastery_current}."
                 )
 
-            await self.send(
-                f"Komendy: skill {skill['name']} [cel]; kolejka dodaj {skill['name']}."
-            )
+            if kind == "passive":
+                await self.send(
+                    f"Komendy: help skill {skill['name']}. Umiejętność działa automatycznie po nauczeniu i nie zajmuje slotu kolejki."
+                )
+            else:
+                await self.send(
+                    f"Komendy: skill {skill['name']} [cel]; kolejka dodaj {skill['name']}."
+                )
             return True
 
     async def show_help(self, topic=""):
