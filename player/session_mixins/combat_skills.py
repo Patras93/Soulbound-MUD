@@ -1259,10 +1259,59 @@ class SessionCombatSkillsMixin:
                     # Keep the authored capability in metadata until a canonical
                     # probability/duration source exists; do not fabricate runtime values.
                     if special=="magnify":
-                        # Source confirms an Overheat/reboot chance reduced by Skill
-                        # Level and improved by Wisdom, but gives no numeric failure
-                        # curve or lock duration. Preserve metadata, not invented odds.
-                        pass
+                        # Source contract: Attack + Wisdom single-target overload.
+                        # Skill Level and Wisdom reduce systems-failure chance; failure
+                        # causes weapon Overheat/reboot. UOSS gives no numeric curve or
+                        # reboot duration, so the values below are explicit Soulbound
+                        # balance metadata, not claimed source numbers.
+                        if self.mec_overheat_active_v0319():
+                            await self.send(
+                                "Magnify niedostępne: broń jest w Overheat i kończy reboot."
+                            )
+                            return
+                        _magnify_level=max(1,min(SKILL_MAX_LEVEL,int(skill_level)))
+                        _magnify_progress=(
+                            (_magnify_level-1)/float(max(1,SKILL_MAX_LEVEL-1))
+                        )
+                        _magnify_wis=max(1,int(self.effective_intelligence()))
+                        _magnify_wis_ratio=max(0.01,_magnify_wis/175.0)
+                        _magnify_failure=(
+                            float(skill.get("soulbound_failure_base_chance",0.35) or 0.35)
+                            - _magnify_progress
+                            * float(
+                                skill.get(
+                                    "soulbound_skill_failure_reduction_max",0.20
+                                ) or 0.20
+                            )
+                            - min(
+                                float(
+                                    skill.get(
+                                        "soulbound_wisdom_failure_reduction_max",0.12
+                                    ) or 0.12
+                                ),
+                                float(
+                                    skill.get(
+                                        "soulbound_wisdom_failure_reduction_anchor",0.06
+                                    ) or 0.06
+                                ) * (_magnify_wis_ratio ** 0.50),
+                            )
+                        )
+                        _magnify_failure=max(
+                            float(skill.get("soulbound_failure_chance_floor",0.02) or 0.02),
+                            min(0.95,_magnify_failure),
+                        )
+                        if random.random() < _magnify_failure:
+                            self.v0319_overheat_recovery_pending=True
+                            await self.send(
+                                f"Magnify: SYSTEMS FAILURE. Broń przechodzi w Overheat/reboot. "
+                                f"Ryzyko awarii przy tym użyciu: "
+                                f"{int(round(_magnify_failure*100))} procent."
+                            )
+                        else:
+                            await self.send(
+                                f"Magnify: przeciążenie stabilne. Ryzyko awarii przy tym użyciu: "
+                                f"{int(round(_magnify_failure*100))} procent."
+                            )
                     # Other single-target Mec attacks continue through the normal Soulbound damage handler below.
 
                     # Plural Slash Agility scaling is applied to this use only in the
