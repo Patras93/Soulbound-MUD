@@ -21,8 +21,8 @@ from core.progression_600 import (
     SOUL_TIER_THRESHOLDS,
     SOUL_WEAPON_MASTERY_MAX_LEVEL,
     soul_tier_title_for_class,
-    soul_weapon_trait_for_tier,
-    soul_weapon_trait_totals,
+    soul_weapon_trait_for_tier_v11193,
+    soul_weapon_trait_totals_v11193,
 )
 from core.progression_resources import character_xp_to_next
 from systems.content_registry import QUESTS
@@ -316,8 +316,8 @@ class SessionCharacterProfileMixin:
             else:
                 await self.send("Soul XP: maksimum. Soul Level 600.")
             await self.send(f"Bonus klasowy Broni Duszy: {c.soul_weapon_class_bonus_text()}.")
-            trait = soul_weapon_trait_for_tier(c.soul_tier, c.class_name)
-            totals = soul_weapon_trait_totals(c.soul_tier, c.class_name)
+            trait = soul_weapon_trait_for_tier_v11193(c.soul_tier, c.class_name)
+            totals = soul_weapon_trait_totals_v11193(c.soul_tier, c.class_name)
             if trait:
                 await self.send(f"Najnowsza właściwość T{c.soul_tier}: {trait['name']}. {trait['description']}.")
             await self.send(
@@ -357,7 +357,7 @@ class SessionCharacterProfileMixin:
                 else:
                     state = "dostępna u Kapłana Elora"
                 band = quest.get("trial_band", soul_trial_difficulty_band(tier))
-                trait = soul_weapon_trait_for_tier(tier, c.class_name)
+                trait = soul_weapon_trait_for_tier_v11193(tier, c.class_name)
                 trait_text = f" Właściwość: {trait['name']} - {trait['description']}." if trait else ""
                 tier_title = soul_tier_title_for_class(tier, c.class_name)
                 await self.send(f"Tier {tier}: {tier_title}. Wymaga Soul {required_soul}. Próba: {band}. {state}." + trait_text)
