@@ -835,9 +835,10 @@ class SessionCombatSkillsMixin:
                         if not alive: return
                         if special=="cosmic_rave" and vmax:
                             # User-provided UOSS combat log confirms five separate
-                            # V-MAX : Cosmic Rave strikes. Each strike selects a random
-                            # enemy and repeat targets are allowed.
-                            targets=random.choices(alive,k=5)
+                            # V-MAX : Cosmic Rave strikes. Resolve the random target
+                            # again before every strike so later meteors can retarget
+                            # another living enemy if an earlier strike kills its target.
+                            targets=[None]*5
                         elif special=="starlight_shower" and not vmax:
                             _engaged=set()
                             if self.combat_mob_key: _engaged.add(self.combat_mob_key)
@@ -864,7 +865,12 @@ class SessionCombatSkillsMixin:
                         # performs five separate strikes. Starlight Shower's V-MAX
                         # numeric damage increase remains unspecified by source.
                         for target in targets:
-                            if not target.alive: continue
+                            if special=="cosmic_rave" and vmax:
+                                _living_random=[candidate for candidate in alive if candidate.alive]
+                                if not _living_random:
+                                    break
+                                target=random.choice(_living_random)
+                            if not target or not target.alive: continue
                             template=MOB_TEMPLATES[target.template_id]
                             _local_mult=mult
                             if special in ("starlight_shower","shock_soldier","laser_spin","maelstrom","cosmic_rave") and len(targets)>1 and not ((special=="starlight_shower" or special=="cosmic_rave") and vmax):
@@ -886,7 +892,7 @@ class SessionCombatSkillsMixin:
                             # Carries Elements is represented through the character's one
                             # Soul Weapon profile; physical remains the safe fallback when
                             # the weapon has no explicit elemental trait.
-                            if special in ("pop_knight","shock_soldier","range_fire","dispose","shoot_all"):
+                            if special in ("pop_knight","shock_soldier","cosmic_rave","range_fire","dispose","shoot_all"):
                                 _sw_element=str(getattr(self.character,"soul_weapon_element","") or "").casefold()
                                 if _sw_element: element=_sw_element
                             if special=="shock":
