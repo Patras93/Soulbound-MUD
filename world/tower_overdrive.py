@@ -84,18 +84,9 @@ def v0190_apply_combat_template(template):
     floor = _v0381_tower_floor(result)
     depth = _v0381_tower_depth(kind, floor)
 
-    # Canonical refresh strips the numeric UOSSMUD Superbossa multiplier while
-    # preserving its identity flags. Restore that individual profile before the
-    # new Mythic Tower layer so named Superbosses remain distinct.
-    if kind == "mythic_tower_boss" and result.get("uoss_superboss") and "uoss_superboss_profile_v0366" in globals():
-        try:
-            profile = uoss_superboss_profile_v0366("mythic_astral", floor)
-            result["max_hp"] = max(1, int(round(int(result.get("max_hp", 1) or 1) * 2.20 * float(profile.get("hp", 1.0) or 1.0))))
-            result["base_max_hp"] = int(result["max_hp"])
-            result["damage"] = max(1, int(round(int(result.get("damage", 1) or 1) * 1.28 * float(profile.get("damage", 1.0) or 1.0))))
-        except Exception as exc:
-            print(f"TOWER_SUPERBOSS_PROFILE_ERROR: {type(exc).__name__}: {exc}", flush=True)
-
+    # v1.11.33+: Mythic Tower milestone bosses are native scalable tower bosses.
+    # UOSSMUD Superbosses are separate unique world encounters and are not
+    # injected into every tenth Mythic Astral floor.
     hp_boost, dmg_boost, _xp_boost = _v0381_tower_boosts(kind, floor)
     hp = max(1, int(round(int(result.get("max_hp", 1) or 1) * hp_boost)))
     dmg = max(1, int(round(int(result.get("damage", 1) or 1) * dmg_boost)))
@@ -159,7 +150,7 @@ def create_infinite_astral_floor_definition(floor, mythic=False):
 HELP_TOPICS.setdefault("wieza", []).extend([
     "v0.38.1: Wieża Astralna i Mityczna Wieża Astralna mają Tower Overdrive. Każdy kolejny poziom jest mocniejszy i bardziej nagradzający od poprzedniego.",
     "Zwykła Wieża zaczyna się od poziomu 100: 101 jest mocniejszy od 100, 102 od 101 itd. Mityczna Wieża rośnie od poziomu 1 bez płaskich przedziałów.",
-    "Na każdym poziomie rosną HP, obrażenia oraz Class/Soul/stat EXP. Boss co 10 poziomów jest dodatkowym skokiem, a Mityczni Superbossowie zachowują indywidualne profile UOSSMUD.",
+    "Na każdym poziomie rosną HP, obrażenia oraz Class/Soul/stat EXP. Boss co 10 poziomów jest dodatkowym skokiem. UOSSMUD Superbossy są osobnymi unikalnymi encounterami świata, nie bossami co 10 pięter Mitycznej Wieży.",
     "Tower Overdrive działa także dla poziomów tworzonych dynamicznie ponad 200 i nie zatrzymuje wzrostu na 600.",
 ])
 HELP_TOPIC_ALIASES.update({
@@ -218,7 +209,8 @@ def tower_overdrive_audit_v0381():
                     errors.append(f"mythic_astral: level {floor} {field}={row[idx]} not above level {floor-1}={previous[idx]}")
         previous = row
 
-    # Every static boss/Superboss must remain a clear spike over same-level regular mob.
+    # Every static tower boss must remain a clear spike over the same-level regular mob.
+    # Since v1.11.33 UOSSMUD Superbosses are separate world encounters.
     for floor in range(100, int(ASTRAL_MAX_FLOOR) + 1, 10):
         boss = MOB_TEMPLATES.get(f"astral_boss_{floor}")
         reg = MOB_TEMPLATES.get(f"astral_floor_mob_{floor}")
@@ -240,8 +232,6 @@ def tower_overdrive_audit_v0381():
             errors.append(f"mythic_astral: boss {floor} HP not above regular")
         if int(v0190_combat_reward(boss, "class")) <= int(v0190_combat_reward(reg, "class")):
             errors.append(f"mythic_astral: boss {floor} XP not above regular")
-        if not boss.get("uoss_superboss"):
-            errors.append(f"mythic_astral: boss {floor} lost UOSSMUD Superboss identity")
 
     return {
         "version": V0381_TOWER_OVERDRIVE_VERSION,
@@ -261,5 +251,5 @@ if TOWER_OVERDRIVE_AUDIT_V0381["error_count"]:
     )
 
 HELP_TOPICS.setdefault("wersja", []).append(
-    "v0.38.1: Tower Overdrive — zwykła i Mityczna Wieża Astralna rosną w HP, obrażeniach i EXP na każdym kolejnym poziomie, z dodatkowymi skokami bossów/Superbossów."
+    "v0.38.1: Tower Overdrive — zwykła i Mityczna Wieża Astralna rosną w HP, obrażeniach i EXP na każdym kolejnym poziomie, z dodatkowymi skokami natywnych bossów Wieży."
 )
