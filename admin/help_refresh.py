@@ -1583,11 +1583,26 @@ def refresh_public_help_surface_v11197():
         "Alchemia jest pełną profesją 1-600. Zlecenia Orina korzystają z bieżących mikstur, składników i wymagań.",
         "Każde przyjęte zlecenie liczy postęp od 0/x zgodnie z aktualną logiką questa.",
     ]
+    HELP_TOPICS["atlas"] = [
+        "atlas bez argumentu pokazuje działy Atlasu. atlas odkrycia otwiera Globalny Atlas Odkryć.",
+        "Globalny Atlas śledzi miasta, wyspy, lochy, platformy oceaniczne, ruiny, areny Super Bossów i sekretne lokacje na podstawie realnej historii odkrywania postaci.",
+        "Każdy dział ma osobne osiągnięcie za 100 procent. Ukończenie wszystkich działów odblokowuje osiągnięcie Globalny Atlas: cały odkryty świat oraz tytuł Kartograf Całego Świata.",
+        "Szczegóły: atlas odkrycia miasta / wyspy / lochy / platformy / ruiny / superbossy / sekrety. Nieodkryte sekrety, proceduralne mini-lochy i Wielkie Ruiny są ukrywane jako ???.",
+        "Atlas działa retroaktywnie dla starszych save'ów: wcześniej odwiedzone miejsca są zaliczane z istniejącej historii odkrytych lokacji.",
+        "Atlas zasobów pozostaje dostępny przez atlas ryby, atlas rudy, atlas drewno, atlas ziola, atlas geody albo atlas <zasób>.",
+    ]
     HELP_TOPICS["atlas_kompletny"] = [
-        "Atlas pokazuje aktualne progi i miejsca występowania ryb, rud, drewna, ziół i innych zasobów.",
-        "Użyj atlas ryby, atlas rudy, atlas drewno, atlas ziola albo atlas <zasób>; wynik jest czytany z bieżących danych.",
+        "Globalny Atlas Odkryć: atlas odkrycia. Śledzi wszystkie skończone kategorie długoterminowej eksploracji i daje osobne osiągnięcia za ich ukończenie.",
+        "Atlas zasobów pokazuje aktualne progi i miejsca występowania ryb, rud, drewna, ziół, geod i innych zasobów.",
+        "Użyj atlas odkrycia albo atlas ryby, atlas rudy, atlas drewno, atlas ziola, atlas geody i atlas <zasób>; wynik jest czytany z bieżących danych.",
         "Profesje i narzędzia rozwijają się do 600, więc stary opis kończący atlas na 400 nie jest aktualny.",
     ]
+    HELP_TOPIC_ALIASES.update({
+        "atlas odkryc": "atlas",
+        "atlas odkryć": "atlas",
+        "atlas odkrycia": "atlas",
+        "globalny atlas": "atlas",
+    })
     for _legacy_balance_topic in ("balans 0865", "balans 0866", "balans 0874"):
         if _legacy_balance_topic in HELP_TOPICS:
             HELP_TOPICS[_legacy_balance_topic] = [
