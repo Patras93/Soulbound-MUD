@@ -91,12 +91,9 @@ class SessionCombatRealtimeMixin:
                             self.v0319_maxwell_mana_tick=_last+6.0*_ticks
                             _gain=max(1,int(round(self.max_mana()*0.01)))*_ticks
                             self.current_mana=min(self.max_mana(),self.current_mana+_gain)
-                damage = self.player_damage()
                 _relic_id,_relic=self.active_soul_weapon_relic_v11176()
-                if _relic_id=="uoss_odin_unique_2":
-                    # Zantetsuken source: ordinary melee attacks deal no damage.
-                    # Applies only when this is the active Soul Weapon relic.
-                    damage=0
+                _zantetsuken_no_melee=(_relic_id=="uoss_odin_unique_2" and self.character.class_type=="physical")
+                damage = 0 if _zantetsuken_no_melee else self.player_damage()
                 # Combat Mastery / Shooting Mastery are selected inherents. Their
                 # source helps establish weapon/stat gates and relative strength,
                 # but provide no numeric bonus. Until the real hand/weapon model
@@ -107,9 +104,9 @@ class SessionCombatRealtimeMixin:
                 # v0.33.16: właściwości Soul Tier działają tylko na zwykły atak
                 # Broni Duszy. Nie modyfikują skilli ani spelli.
                 trait_totals = soul_weapon_trait_totals(self.character.soul_tier, self.character.class_name)
-                damage = max(1, int(round(damage * (1.0 + trait_totals["damage_percent"] / 100.0))))
+                damage = max(0, int(round(damage * (1.0 + trait_totals["damage_percent"] / 100.0))))
                 if mob.hp <= max(1, int(round(template["max_hp"] * 0.35))):
-                    damage = max(1, int(round(damage * (1.0 + trait_totals["execute_damage_percent"] / 100.0))))
+                    damage = max(0, int(round(damage * (1.0 + trait_totals["execute_damage_percent"] / 100.0))))
                 _is_boss_target = any(template.get(flag) for flag in (
                     "world_boss", "mini_boss", "crypt_boss", "astral_boss",
                     "mythic_crypt_boss", "mythic_astral_boss", "giant_fortress_boss",
@@ -129,7 +126,7 @@ class SessionCombatRealtimeMixin:
                 critical = random.random() < weapon_crit_chance
                 if critical:
                     weapon_crit_multiplier = self.critical_multiplier() * (1.0 + (trait_totals["crit_damage_percent"] + mastery["crit_damage_percent"]) / 100.0)
-                    damage = max(1, int(round(damage * weapon_crit_multiplier)))
+                    damage = max(0, int(round(damage * weapon_crit_multiplier)))
                     await self.send_combat(
                         f"TRAFIENIE KRYTYCZNE BRONI DUSZY! Zręczność {self.effective_dexterity()}. "
                         f"Szansa tego ataku: {round(weapon_crit_chance * 100, 1)} procent.",
