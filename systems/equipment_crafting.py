@@ -344,7 +344,9 @@ CLASS_SET_BONUSES = {
         "damage": 1.14, "defense": 1.10, "vitality": 1.16,
     },
     "Kapłan": {
-        "stats": {"willpower": 5},
+        # Kapłan leczy z INT + WILL, a ofensywne skille używają INT.
+        # Set wspiera oba osie zamiast pompować wyłącznie WILL.
+        "stats": {"intelligence": 3, "willpower": 2},
         "damage": 1.09, "defense": 1.15, "vitality": 1.20,
     },
     "Czarownik": {
