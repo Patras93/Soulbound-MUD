@@ -1425,6 +1425,44 @@ class SessionCombatSkillsMixin:
                                     * float(skill.get("feedback_source_damage_pct",0.15) or 0.15)
                                 ))
                             )
+                    elif _mec_special=="robo_tackle":
+                        # Source contract: HP before use + Vitality + Attack determine
+                        # damage. Lower current HP means lower power; a shield improves
+                        # damage; V-MAX raises both attack power and Feedback.
+                        #
+                        # UOSS supplies no numeric coefficients. These are explicit
+                        # Soulbound balance values, intentionally below Kamikaze Crush.
+                        _hp_before=max(1,int(self.current_hp))
+                        _hp_power_ratio=float(
+                            skill.get("current_hp_power_ratio",0.12) or 0.12
+                        )
+                        core_power += max(0,int(round(_hp_before*_hp_power_ratio)))
+                        _shield_equipped=bool(
+                            self.server.db.equipped_item(self.account_id,"shield")
+                        )
+                        if _shield_equipped:
+                            multiplier *= float(
+                                skill.get("shield_damage_multiplier",1.15) or 1.15
+                            )
+                            await self.send("Robo Tackle: założona tarcza wzmacnia atak.")
+                        if vmax:
+                            multiplier *= float(
+                                skill.get("vmax_damage_multiplier",1.20) or 1.20
+                            )
+                        _feedback_pct=float(
+                            skill.get(
+                                "vmax_feedback_current_hp_pct" if vmax else "feedback_current_hp_pct",
+                                0.25 if vmax else 0.10,
+                            )
+                            or (0.25 if vmax else 0.10)
+                        )
+                        _mec_feedback_self_damage=max(
+                            1,int(round(_hp_before*_feedback_pct))
+                        )
+                        if vmax:
+                            await self.send(
+                                "Robo Tackle: V-MAX zwiększa moc ataku i obrażenia Feedback."
+                            )
                     elif _mec_special=="kamikaze_crush":
                         # Source contract: HP before use + Vitality + Attack determine
                         # damage; lower current HP means lower power. A shield improves
