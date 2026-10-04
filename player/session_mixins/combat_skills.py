@@ -493,41 +493,74 @@ class SessionCombatSkillsMixin:
                 mob = None
                 aoe_mobs = []
                 if kind == "group_heal":
-                    if superboss_healing_blocked_v11179(self):
-                        await self.send("Nullify Healing blokuje leczenie.")
-                        if self.combat_mob_key: await self.ensure_realtime_combat()
-                        return
-                    recipients=self.server.party_sessions(
-                        self.account_id,same_room=self.character.room_id
-                    ) or [self]
+                    recipients=list(
+                        self.server.party_sessions(
+                            self.account_id,same_room=self.character.room_id
+                        ) or []
+                    )
+                    if self not in recipients:
+                        recipients.append(self)
                     recipients=[
                         session for session in recipients
-                        if not session.closed and session.character and session.current_hp>0
+                        if not session.closed and session.character
+                        and session.current_hp>0
                     ]
-                    if not recipients:
-                        await self.send(f"{skill['name']}: brak żywych sojuszników w tej lokacji.")
+                    injured=[
+                        session for session in recipients
+                        if session.current_hp < session.max_hp()
+                    ]
+                    if not injured:
+                        await self.send(
+                            f"{skill['name']}: nikt w drużynie w tej lokacji "
+                            "nie potrzebuje leczenia."
+                        )
                         return
-                    # Canonical class healing: authored percentage heals use
-                    # INT/WILL (or the class-specific pair), while source abilities
-                    # such as Healing Wind retain their explicit WILL identity.
+                    healable=[
+                        session for session in injured
+                        if not superboss_healing_blocked_v11179(session)
+                    ]
+                    if not healable:
+                        await self.send(
+                            f"{skill['name']}: Nullify Healing blokuje leczenie "
+                            "wszystkich rannych celów."
+                        )
+                        return
+
+                    # Group-heal used to return before the shared mana deduction,
+                    # making Healing Wind / Mass Restoration effectively free.
+                    self.current_mana -= mana_cost
+
                     healed=[]
-                    for target in recipients:
+                    blocked_count=len(injured)-len(healable)
+                    for target in healable:
                         target_max=target.max_hp()
                         before=target.current_hp
-                        if before>=target_max:
-                            continue
-                        heal=self.healing_skill_amount_v11196(skill,target,skill_power)
+                        heal=self.healing_skill_amount_v11196(
+                            skill,target,skill_power
+                        )
                         target.current_hp=min(target_max,before+heal)
                         actual=target.current_hp-before
                         if actual:
                             healed.append((target,actual))
                             if target is not self:
-                                await target.send(f"{self.character.name} używa {skill['name']}. Odzyskujesz {actual} HP.")
+                                await target.send(
+                                    f"{self.character.name} używa {skill['name']}. "
+                                    f"Odzyskujesz {actual} HP."
+                                )
                     await self.grant_skill_use_xp(skill)
                     total=sum(amount for _target,amount in healed)
-                    await self.send(f"{skill['name']}: uleczono {len(healed)} członków drużyny w tej lokacji, łącznie {total} HP.")
+                    await self.send(
+                        f"{skill['name']}: uleczono {len(healed)} członków drużyny "
+                        f"w tej lokacji, łącznie {total} HP."
+                        + (
+                            f" Nullify Healing zablokował {blocked_count} cel(e)."
+                            if blocked_count else ""
+                        )
+                    )
                     if mana_cost:
-                        await self.send(f"Mana: {self.current_mana} z {self.max_mana()}.")
+                        await self.send(
+                            f"Mana: {self.current_mana} z {self.max_mana()}."
+                        )
                     if self.combat_mob_key:
                         await self.ensure_realtime_combat()
                     return
@@ -667,1261 +700,75 @@ class SessionCombatSkillsMixin:
                         await self.send(_uoss_reason)
                         return
 
-                _cure_beam_target = None
-                if (
-                    skill.get("mec_authored")
-                    and str(skill.get("mec_special",""))=="cure_beam"
-                ):
-                    # Soulbound rule: Cure Beam never heals a combat enemy.
-                    # No target = self. A named target must be one living local
-                    # party ally; mob names are rejected before MP is spent.
-                    _party = list(
+                _generic_heal_target = None
+                if kind == "heal" and not skill.get("mec_authored"):
+                    _heal_party=list(
                         self.server.party_sessions(
-                            self.account_id, same_room=self.character.room_id
+                            self.account_id,same_room=self.character.room_id
                         ) or []
                     )
-                    if self not in _party:
-                        _party.append(self)
-                    _party = [
-                        sess for sess in _party
+                    if self not in _heal_party:
+                        _heal_party.append(self)
+                    _heal_party=[
+                        sess for sess in _heal_party
                         if not sess.closed and sess.character and sess.current_hp>0
                     ]
                     if target_text:
-                        _wanted = normalize_lookup_text(target_text)
+                        _wanted=normalize_lookup_text(target_text)
                         if _wanted in {"self","me","ja","siebie"}:
-                            _cure_beam_target = self
+                            _generic_heal_target=self
                         else:
-                            _cure_beam_target = next(
+                            _generic_heal_target=next(
                                 (
-                                    sess for sess in _party
+                                    sess for sess in _heal_party
                                     if sess is not self
                                     and (
-                                        _wanted == normalize_lookup_text(sess.character.name)
+                                        _wanted==normalize_lookup_text(sess.character.name)
                                         or _wanted in normalize_lookup_text(sess.character.name)
                                     )
                                 ),
                                 None,
                             )
-                        if _cure_beam_target is None:
+                        if _generic_heal_target is None:
                             await self.send(
-                                "Cure Beam leczy tylko ciebie albo jednego żywego "
+                                f"{skill['name']} leczy tylko ciebie albo żywego "
                                 "sojusznika w tej lokacji. Przeciwnik nie może być celem."
                             )
                             return
-                    else:
-                        _cure_beam_target = self
-                    if superboss_healing_blocked_v11179(_cure_beam_target):
-                        await self.send(
-                            "Nullify Healing blokuje Cure Beam na tym celu."
-                        )
-                        return
-
-                _heal_beam_targets = []
-                if (
-                    skill.get("mec_authored")
-                    and str(skill.get("mec_special",""))=="heal_beam"
-                ):
-                    # Heal Beam never heals combat enemies in Soulbound.
-                    # Normal mode = exactly one chosen ally (default self).
-                    # Support Effect = the whole living local party.
-                    _heal_party = list(
-                        self.server.party_sessions(
-                            self.account_id, same_room=self.character.room_id
-                        ) or []
-                    )
-                    if self not in _heal_party:
-                        _heal_party.append(self)
-                    _heal_party = [
-                        sess for sess in _heal_party
-                        if not sess.closed and sess.character and sess.current_hp>0
-                    ]
-                    if support_effect:
-                        _heal_beam_targets = _heal_party
-                        if not _heal_beam_targets:
+                        if _generic_heal_target.current_hp>=_generic_heal_target.max_hp():
                             await self.send(
-                                "Heal Beam: brak żywych członków drużyny w tej lokacji."
-                            )
-                            return
-                        if all(
-                            superboss_healing_blocked_v11179(sess)
-                            for sess in _heal_beam_targets
-                        ):
-                            await self.send(
-                                "Nullify Healing blokuje Heal Beam na całej drużynie."
+                                f"{skill['name']}: {_generic_heal_target.character.name} "
+                                "ma już pełne HP."
                             )
                             return
                     else:
-                        _heal_target = self
-                        if target_text:
-                            _wanted = normalize_lookup_text(target_text)
-                            if _wanted not in {"self","me","ja","siebie"}:
-                                _heal_target = next(
-                                    (
-                                        sess for sess in _heal_party
-                                        if sess is not self
-                                        and (
-                                            _wanted
-                                            == normalize_lookup_text(sess.character.name)
-                                            or _wanted
-                                            in normalize_lookup_text(sess.character.name)
-                                        )
-                                    ),
-                                    None,
-                                )
-                            if _heal_target is None:
-                                await self.send(
-                                    "Heal Beam leczy tylko ciebie albo jednego żywego "
-                                    "sojusznika w tej lokacji. Przeciwnik nie może być celem."
-                                )
-                                return
-                        if superboss_healing_blocked_v11179(_heal_target):
+                        _injured=[
+                            sess for sess in _heal_party
+                            if sess.current_hp<sess.max_hp()
+                        ]
+                        if not _injured:
                             await self.send(
-                                "Nullify Healing blokuje Heal Beam na tym celu."
+                                f"{skill['name']}: nikt w drużynie w tej lokacji "
+                                "nie potrzebuje leczenia."
                             )
                             return
-                        _heal_beam_targets = [_heal_target]
-
-                self.current_mana -= mana_cost
-                if effective_cooldown > 0:
-                    self.start_skill_cooldown_v0364(skill, effective_cooldown, now)
-
-                # v0.35.11 contract retained after the combat-module split:
-                # one-hit guard/evade skills protect every living party member
-                # standing in the caster's room. Ordinary boost skills remain
-                # passive Automatic and are handled before reaching this point.
-                if kind == "guard":
-                    guard_type = class_type_for_name(self.skill_class_name(skill))
-                    buff_mult = self.skill_buff_multiplier(target_type=guard_type)
-                    scaled_guard = max(
-                        1,
-                        int(round(skill.get("guard", 0) * skill_power * buff_mult)),
-                    )
-                    recipients = self.local_party_buff_recipients_v03511()
-                    for session in recipients:
-                        session.skill_guard = max(session.skill_guard, scaled_guard)
-                    await self.send(
-                        f"Drużynowy guard {skill['name']} na Skill Level {skill_level}. "
-                        f"{len(recipients)} członków w tej lokacji: następne trafienie każdego "
-                        f"zostanie dodatkowo zredukowane o {scaled_guard}."
-                    )
-                    for session in recipients:
-                        if session is not self:
-                            await session.send(
-                                f"{self.character.name} używa {skill['name']}. "
-                                f"Twój następny otrzymany cios zostanie dodatkowo "
-                                f"zredukowany o {scaled_guard}."
-                            )
-                    await self.grant_skill_use_xp(skill)
-                    if mana_cost:
-                        await self.send(f"Mana: {self.current_mana} z {self.max_mana()}.")
-                    if self.combat_mob_key:
-                        await self.ensure_realtime_combat()
-                    return
-
-                if kind == "evade":
-                    recipients = self.local_party_buff_recipients_v03511()
-                    for session in recipients:
-                        session.skill_evade = True
-                    await self.send(
-                        f"Drużynowy unik {skill['name']} na Skill Level {skill_level}. "
-                        f"{len(recipients)} członków w tej lokacji uniknie swojego "
-                        "następnego ataku przeciwnika."
-                    )
-                    for session in recipients:
-                        if session is not self:
-                            await session.send(
-                                f"{self.character.name} używa {skill['name']}. "
-                                "Twój następny atak przeciwnika zostanie automatycznie uniknięty."
-                            )
-                    await self.grant_skill_use_xp(skill)
-                    if self.combat_mob_key:
-                        await self.ensure_realtime_combat()
-                    return
-
-                # v0.31.7: Engineer authored tool mechanics.
-                if skill.get("engineer_tool"):
-                    special = str(skill.get("engineer_special", ""))
-                    upgraded = self.engineer_tool_is_upgraded_v0317(skill)
-                    passive_mult = self.engineer_passive_multiplier_v0317(skill)
-
-                    if special == "upgrade":
-                        query = (target_text or "").strip()
-                        if not query:
-                            active = self.engineer_upgraded_tools_v0317()
-                            names = [row["name"] for row in CLASS_SKILLS.get("Inżynier", []) if row.get("id") in active]
-                            details=[]
-                            for row in CLASS_SKILLS.get("Inżynier", []):
-                                if row.get("id") in active:
-                                    details.append(f"{row['name']} ({self.engineer_upgrade_effect_text_v0319(row.get('engineer_special',''), True)})")
-                            await self.send(
-                                f"Upgrade 2.0: sloty {len(active)}/{self.engineer_upgrade_slots_v0317()}. " +
-                                ("Ulepszone: " + "; ".join(details) + "." if details else "Brak ulepszonych narzędzi.") +
-                                " Użyj: Upgrade <nazwa narzędzia> albo Upgrade reset."
-                            )
-                            return
-                        if normalize_lookup_text(query) in ("reset","clear","wyczysc","wyczyść"):
-                            self.server.db.conn.execute("DELETE FROM engineer_tool_upgrades_v0317 WHERE account_id=?",(int(self.account_id),))
-                            self.server.db.conn.commit()
-                            await self.send("Upgrade: wyczyszczono wszystkie sloty ulepszeń Inżyniera.")
-                            await self.grant_skill_use_xp(skill)
-                            return
-                        candidates=[row for row in CLASS_SKILLS.get("Inżynier", []) if row.get("engineer_tool") and row.get("engineer_special") not in ("upgrade","scanner") and row.get("kind") != "passive"]
-                        target=None
-                        qn=normalize_lookup_text(query)
-                        for row in candidates:
-                            if qn in {normalize_lookup_text(row.get("name","")), normalize_lookup_text(row.get("id","")), *[normalize_lookup_text(a) for a in row.get("aliases",[])]}:
-                                target=row; break
-                        if not target:
-                            await self.send("Upgrade: nie rozpoznaję narzędzia Inżyniera do ulepszenia.")
-                            return
-                        current=self.engineer_upgraded_tools_v0317()
-                        if target["id"] in current:
-                            await self.send(f"{target['name']} jest już ulepszone.")
-                            return
-                        if len(current) >= self.engineer_upgrade_slots_v0317():
-                            await self.send(f"Brak wolnego slotu Upgrade. Masz {len(current)}/{self.engineer_upgrade_slots_v0317()}. Użyj Upgrade reset albo naucz się Silver Gear / Gold Battery.")
-                            return
-                        if self.available_recipe_item("engineer_upgrade_kit") <= 0:
-                            await self.send("Ulepszenie wymaga 1 Zestawu Upgrade Inżyniera. Wykonaj go przez techcraft zestaw upgrade.")
-                            return
-                        if not self.consume_recipe_item("engineer_upgrade_kit", 1):
-                            await self.send("Nie udało się pobrać Zestawu Upgrade Inżyniera.")
-                            return
-                        self.server.db.conn.execute("INSERT OR IGNORE INTO engineer_tool_upgrades_v0317(account_id,skill_id) VALUES(?,?)",(int(self.account_id),target["id"]))
-                        self.server.db.conn.commit()
-                        await self.send(f"Upgrade: {target['name']} zostało ulepszone. Zużyto 1 Zestaw Upgrade Inżyniera. Sloty {len(current)+1}/{self.engineer_upgrade_slots_v0317()}.")
-                        await self.grant_skill_use_xp(skill)
-                        return
-
-                    if special == "scanner":
-                        if not mob:
-                            return
-                        template=MOB_TEMPLATES[mob.template_id]
-                        weaknesses=template.get("weaknesses") or template.get("machine_weaknesses") or ("brak jawnych",)
-                        resistances=template.get("resistances") or template.get("machine_resistances") or ("brak jawnych",)
+                        _generic_heal_target=min(
+                            _injured,
+                            key=lambda sess: (
+                                sess.current_hp/max(1,sess.max_hp()),
+                                sess.current_hp,
+                                sess.character.name.lower(),
+                            ),
+                        )
+                    if superboss_healing_blocked_v11179(_generic_heal_target):
                         await self.send(
-                            f"Scanner: {template.get('name',mob.template_id)}. HP {max(0,mob.hp)} z {template.get('max_hp',0)}. "
-                            f"Typ: {'Machine' if template.get('machine') else template.get('type','organic')}. "
-                            f"Ranga: {template.get('rank','normal')}. Słabości: {', '.join(map(str,weaknesses))}. "
-                            f"Odporności: {', '.join(map(str,resistances))}."
+                            f"Nullify Healing blokuje {skill['name']} na tym celu."
                         )
-                        await self.grant_skill_use_xp(skill)
                         return
 
-                    if special == "debilitator":
-                        if not mob:
-                            return
-                        elements=("fire","ice","lightning","water","holy","dark")
-                        count=3 if upgraded else 1
-                        picked=random.sample(elements,count)
-                        duration=45 if self.engineer_skill_known_v0317("v0317_engineer_kinematics") else 30
-                        mob.v0317_vulnerabilities=set(picked)
-                        mob.v0317_vulnerability_until=time.time()+duration
-                        await self.send(f"Debilitator: {MOB_TEMPLATES[mob.template_id]['name']} otrzymuje słabość: {', '.join(picked)} na {duration} s.")
-                        await self.grant_skill_use_xp(skill)
-                        return
-
-                    if special == "launcher":
-                        alive=[target for target in aoe_mobs if target.alive]
-                        if not alive:
-                            return
-                        hits=6 if upgraded else 4
-                        targets=random.choices(alive,k=hits)
-                        total=0; defeated=[]; seen=set()
-                        for target in targets:
-                            if not target.alive: continue
-                            before=max(1,target.hp)
-                            damage=max(1,before//2)
-                            target.hp-=damage; total+=damage
-                            name=MOB_TEMPLATES[target.template_id]['name']
-                            await self.send(f"Launcher: {name} traci połowę bieżącego HP: {damage}. HP {max(0,target.hp)}.")
-                            if target.hp<=0 and target.key not in seen:
-                                seen.add(target.key); defeated.append(target)
-                        helper_target, _helper_damage = await self.apply_superboss_helper_after_skill_v11192(alive)
-                        if helper_target is not None and helper_target.hp <= 0 and helper_target.key not in seen:
-                            seen.add(helper_target.key)
-                            defeated.append(helper_target)
-                        await self.grant_skill_use_xp(skill)
-                        await self.send(f"Launcher: {hits} pocisków, łączne obrażenia {total}.")
-                        for target in defeated:
-                            await self.mob_defeated(target)
-                        if any(x.alive for x in alive): await self.ensure_realtime_combat()
-                        return
-
-                    if special in ("auto_crossbow","mako_gun","bio_blaster","flash","drill","napalm","noise_blaster","chainsaw","mega_bomb","air_anchor"):
-                        # Source Base AP is a learning-point cost, never damage power.
-                        # Engineer tool damage is therefore built from the normal
-                        # Soulbound offensive core plus Skill Level, Upgrade and passives.
-                        base=0
-                        upgrade_mult=1.30 if upgraded else 1.0
-                        if special in ("drill","chainsaw","air_anchor"): upgrade_mult=1.35 if upgraded else 1.0
-                        if special=="mako_gun":
-                            element="lightning" if upgraded and mob and MOB_TEMPLATES[mob.template_id].get("machine") else random.choice(("fire","ice","lightning","water","holy","dark"))
-                        else:
-                            element={"bio_blaster":"bio poison","flash":"holy","napalm":"fire","noise_blaster":"sound"}.get(special,"")
-                        if special in ("auto_crossbow","bio_blaster","flash","napalm","noise_blaster","mega_bomb"):
-                            targets=[x for x in aoe_mobs if x.alive]
-                        else:
-                            targets=[mob] if mob else []
-                        total=0; defeated=[]; seen=set()
-                        for i,target in enumerate(targets):
-                            template=MOB_TEMPLATES[target.template_id]
-                            # Mega Bomb: full damage main target, reduced splash normally.
-                            local_mult=(
-                                passive_mult
-                                * upgrade_mult
-                                * skill_power
-                                * self.offensive_skill_damage_multiplier_v11186(
-                                    skill, self.offensive_skill_damage_type_v11190(skill)
-                                )
-                            )
-                            if special=="mega_bomb" and i>0 and not upgraded: local_mult*=0.55
-                            # Chainsaw can use Demi / upgraded Quarter as a floor effect.
-                            if special=="chainsaw":
-                                remaining_fraction=0.25 if upgraded else 0.50
-                                damage=max(int(self.offensive_skill_core_power_v11185(skill, base)*local_mult), int(max(1,target.hp)*(1.0-remaining_fraction)))
-                            else:
-                                damage=max(1,int(self.offensive_skill_core_power_v11185(skill, base)*local_mult)+random.randint(-3,3))
-                            # Drill bypasses boss defense/protect-shell equivalent.
-                            if special!="drill": damage=await self.apply_boss_defense(target,damage)
-                            damage=self.v0210_adjust_player_damage(damage)
-                            # Debilitator vulnerabilities apply to matching elemental tools.
-                            if time.time() < float(getattr(target,"v0317_vulnerability_until",0.0) or 0.0) and element in set(getattr(target,"v0317_vulnerabilities",set()) or set()):
-                                damage=int(round(damage*1.50))
-                            if time.time() < float(getattr(target,"v0317_oiled_until",0.0) or 0.0) and "fire" in element:
-                                damage=int(round(damage*1.25))
-                            damage,mnote=v0314_adjust_damage_vs_template(template,damage,element or "physical",skill.get("name",""))
-                            target.hp-=damage; total+=damage
-                            await self.send(f"{skill['name']}: {template['name']} otrzymuje {damage} obrażeń. HP {max(0,target.hp)}.{mnote}")
-                            if special=="napalm" and upgraded:
-                                duration=45 if self.engineer_skill_known_v0317("v0317_engineer_kinematics") else 30
-                                target.v0317_oiled_until=time.time()+duration
-                            if special=="bio_blaster":
-                                duration=(40 if upgraded else 25) + (15 if self.engineer_skill_known_v0317("v0317_engineer_kinematics") else 0)
-                                target.v0319_poison_until=time.time()+duration
-                                _effect_core=max(
-                                    1,self.offensive_skill_core_power_v11185(skill,0)
-                                )
-                                target.v0319_poison_power=max(
-                                    1,int(_effect_core*(0.12 if upgraded else 0.07))
-                                )
-                            if special=="flash" and upgraded:
-                                target.v0319_blind_until=time.time()+45
-                                target.v0319_guard_break_until=time.time()+25
-                            if special=="drill" and upgraded:
-                                target.v0319_armor_break_until=time.time()+30
-                            if special=="noise_blaster" and upgraded:
-                                target.v0319_silence_until=time.time()+45
-                                target.v0319_slow_until=time.time()+30
-                            if special=="chainsaw" and upgraded:
-                                target.v0319_hp_leak_until=time.time()+30
-                            if special=="air_anchor":
-                                target.v0319_air_anchor_until=time.time()+(45 if upgraded else 30)
-                                _effect_core=max(
-                                    1,self.offensive_skill_core_power_v11185(skill,0)
-                                )
-                                target.v0319_air_anchor_power=max(
-                                    1,int(_effect_core*(0.16 if upgraded else 0.10))
-                                )
-                            if target.hp<=0 and target.key not in seen:
-                                seen.add(target.key); defeated.append(target)
-                        helper_target, _helper_damage = await self.apply_superboss_helper_after_skill_v11192(targets)
-                        if helper_target is not None and helper_target.hp <= 0 and helper_target.key not in seen:
-                            seen.add(helper_target.key)
-                            defeated.append(helper_target)
-                        await self.grant_skill_use_xp(skill)
-                        await self.send(f"{skill['name']}: łączne obrażenia {total}." + (" ULEPSZONE." if upgraded else ""))
-                        for target in defeated: await self.mob_defeated(target)
-                        if any(x.alive for x in targets if x): await self.ensure_realtime_combat()
-                        return
-
-
-                # v0.31.9: Full authored Mec mechanics from the supplied UOSSMUD ability list.
-                if skill.get("mec_authored"):
-                    special=str(skill.get("mec_special","")); branch=str(skill.get("mec_branch",""))
-                    vmax=self.mec_vmax_active_v0319()
-                    support_effect=self.mec_support_effect_v11149()
-                    if special=="vmax":
-                        if vmax:
-                            await self.send("V-MAX jest już aktywny."); return
-                        if self.mec_overheat_active_v0319():
-                            await self.send("V-MAX zablokowany przez Overheat do zakończenia akcji regeneracyjnej."); return
-                        # Source confirms WILL influence and Skill Level
-                        # increasing duration, but supplies no numeric seconds/curve.
-                        # Soulbound therefore uses its documented multi-minute curve:
-                        # Skill Level 1->600 gives a 200->600 second base at WILL 175,
-                        # while uncapped WILL applies an additional soft multiplier.
-                        duration=generator_core_v027.mec_vmax_duration_seconds(
-                            skill_level, self.effective_willpower()
-                        )
-                        self.v0319_vmax_until=time.time()+duration
-                        self.v0319_vmax_support_maintained=bool(support_effect)
-                        # V-MAX grants its named beneficial package to the Mec only.
-                        # Keep each status explicit so Permanence protects the whole
-                        # beneficial set from hostile dispels. No unsourced numeric
-                        # Protect/Shell/Regen/Praise/Preach values are fabricated.
-                        _vmax_statuses=("protect","shell","haste","regen","preach","praise","permanence")
-                        for _status in _vmax_statuses:
-                            _status_data={
-                                "name":_status.capitalize(),"boost":1.0,
-                                "until":self.v0319_vmax_until,"source":"V-MAX",
-                                "beneficial":True,"canonical_status":_status,
-                            }
-                            if _status=="praise":
-                                _status_data.update({
-                                    "affects":"attack",
-                                    "source_effect":"raises_attack_power",
-                                    "numeric_source_defined":False,
-                                })
-                            elif _status=="preach":
-                                _status_data.update({
-                                    "affects":"magic_attack",
-                                    "source_effect":"raises_magic_attack",
-                                    "source_stat_influence":["will"],
-                                    "level_effect":"increases_duration",
-                                    "numeric_source_defined":False,
-                                })
-                            elif _status=="protect":
-                                _status_data.update({
-                                    "affects":"incoming_physical_damage",
-                                    "source_effect":"reduces_physical_damage_taken",
-                                    "source_stat_influence":["will"],
-                                    "level_effect":"increases_duration",
-                                    "properties":["dispelable","extendable","silenceable"],
-                                    "numeric_source_defined":False,
-                                })
-                            elif _status=="shell":
-                                _status_data.update({
-                                    "affects":"incoming_magic_damage",
-                                    "source_effect":"reduces_magic_damage_taken",
-                                    "source_stat_influence":["will"],
-                                    "level_effect":"increases_duration",
-                                    "properties":["dispelable","extendable","silenceable"],
-                                    "numeric_source_defined":False,
-                                })
-                            elif _status=="regen":
-                                _status_data.update({
-                                    "affects":"hp",
-                                    "source_effect":"periodic_small_hp_heal",
-                                    "source_stat_influence":["will"],
-                                    "level_effect":"increases_duration",
-                                    "properties":["dispelable","extendable","reflectable","silenceable"],
-                                    "tick_cadence_source_defined":False,
-                                    "heal_amount_source_defined":False,
-                                    "numeric_source_defined":False,
-                                    "tick_every_rounds":3,
-                                    "regen_power":self.regen_tick_power_v11196(skill_level),
-                                    "regen_round_counter":0,
-                                    "soulbound_balance_adaptation":True,
-                                })
-                            self.active_skill_buffs["v0319_vmax_"+_status]=_status_data
-                        self.active_skill_buffs[skill["id"]]={
-                            "name":"V-MAX","boost":1.0,"until":self.v0319_vmax_until,
-                            "source":self.character.name,
-                        }
-                        # Source Haste negates Slow when the target is slowed.
-                        if hasattr(self,"v0319_slow_until"):
-                            self.v0319_slow_until=0.0
-                        await self.send(
-                            f"V-MAX aktywny przez {duration} s. Protect, Shell, Haste, Regen, "
-                            "Preach, Praise i Permanence działają na Meca; Protect zmniejsza otrzymywane obrażenia fizyczne, "
-                            "Shell zmniejsza otrzymywane obrażenia magiczne, Regen okresowo odnawia HP, "
-                            "Preach podnosi Magic Attack, Praise podnosi Attack, Haste neguje Slow, "
-                            "a Permanence chroni korzystne efekty przed wrogim dispellem. "
-                            f"Czas wynika ze Skill Level {skill_level} i WILL {self.effective_willpower()}."
-                        )
-                        await self.grant_skill_use_xp(skill); return
-
-                    if special in ("cure_beam","heal_beam"):
-                        # v1.11.45: Cure Beam is a Will-influenced single-target heal.
-                        # Soulbound's Support Effect replaces the old separate support weapon:
-                        # it heals slightly more and cleanses Blind + Poison.
-                        if special=="cure_beam":
-                            target=_cure_beam_target or self
-                            amount=self.healing_skill_amount_v11196(skill,target,skill_power)
-                            if support_effect:
-                                amount=max(
-                                    1,
-                                    int(round(
-                                        amount
-                                        * float(
-                                            skill.get("support_heal_multiplier",1.20)
-                                            or 1.20
-                                        )
-                                    )),
-                                )
-                            before=target.current_hp
-                            target.current_hp=min(
-                                target.max_hp(),target.current_hp+amount
-                            )
-                            actual=target.current_hp-before
-                            cleansed=[]
-                            if support_effect:
-                                for attr,label in (
-                                    ("v0319_blind_until","Blind"),
-                                    ("v0319_poison_until","Poison"),
-                                    ("poison_until","Poison"),
-                                ):
-                                    if float(getattr(target,attr,0.0) or 0.0)>time.time():
-                                        setattr(target,attr,0.0)
-                                        if label not in cleansed:
-                                            cleansed.append(label)
-                            await self.send(
-                                f"Cure Beam: {target.character.name} odzyskuje {actual} HP."
-                                + (
-                                    f" Support Effect usuwa: {', '.join(cleansed)}."
-                                    if cleansed
-                                    else (
-                                        " Support Effect zwiększa leczenie."
-                                        if support_effect else ""
-                                    )
-                                )
-                            )
-                            if target is not self:
-                                await target.send(
-                                    f"{self.character.name} używa Cure Beam. "
-                                    f"Odzyskujesz {actual} HP."
-                                    + (
-                                        f" Usunięto: {', '.join(cleansed)}."
-                                        if cleansed else ""
-                                    )
-                                )
-                            await self.grant_skill_use_xp(skill)
-                            return
-                        # v1.11.46: Heal Beam scales with Will + Skill Level.
-                        # With Soulbound's Support Effect it heals the whole local party
-                        # and receives the enhanced-healing bonus from the source ability.
-                        if special=="heal_beam":
-                            recipients=list(_heal_beam_targets or [self])
-                            total=0
-                            healed_targets=0
-                            blocked_targets=0
-                            for sess in recipients:
-                                if sess.closed or not sess.character or sess.current_hp<=0:
-                                    continue
-                                if superboss_healing_blocked_v11179(sess):
-                                    blocked_targets+=1
-                                    continue
-                                amount=self.healing_skill_amount_v11196(
-                                    skill,sess,skill_power
-                                )
-                                if support_effect:
-                                    amount=max(
-                                        1,
-                                        int(round(
-                                            amount
-                                            * float(
-                                                skill.get(
-                                                    "support_heal_multiplier",1.20
-                                                ) or 1.20
-                                            )
-                                        )),
-                                    )
-                                before=sess.current_hp
-                                sess.current_hp=min(
-                                    sess.max_hp(),sess.current_hp+amount
-                                )
-                                actual=sess.current_hp-before
-                                total+=actual
-                                healed_targets+=1
-                                if sess is not self:
-                                    await sess.send(
-                                        f"{self.character.name} używa Heal Beam. "
-                                        f"Odzyskujesz {actual} HP."
-                                    )
-                            if support_effect:
-                                await self.send(
-                                    "Heal Beam — Support Effect: wzmocnione leczenie "
-                                    f"całej drużyny, {healed_targets} celów, "
-                                    f"łącznie {total} HP."
-                                    + (
-                                        f" Nullify Healing zablokował {blocked_targets} cel(e)."
-                                        if blocked_targets else ""
-                                    )
-                                )
-                            else:
-                                target=recipients[0]
-                                await self.send(
-                                    f"Heal Beam: {target.character.name} odzyskuje "
-                                    f"{total} HP."
-                                )
-                            await self.grant_skill_use_xp(skill)
-                            return
-
-                    if special in ("cosmic_rave","shoot_all","starlight_shower","shock_soldier","pop_knight","range_fire","dispose","uzi_punch","laser_spin","area_bomb","maelstrom","shock"):
-                        alive=[x for x in aoe_mobs if x.alive]
-                        # Area Bomb został już ograniczony do źródłowych
-                        # "All Targetted Enemies" przed wspólnym etapem nadawania aggro.
-                        # Nie filtrujemy go drugi raz po samych combat_mob_key, bo cele
-                        # AoE mogą być legalnie oznaczone także przez istniejące aggro.
-                        if not alive: return
-                        if special=="cosmic_rave" and vmax:
-                            # User-provided UOSS combat log confirms five separate
-                            # V-MAX : Cosmic Rave strikes. Resolve the random target
-                            # again before every strike so later meteors can retarget
-                            # another living enemy if an earlier strike kills its target.
-                            targets=[None]*5
-                        elif special=="starlight_shower" and not vmax:
-                            _engaged=set()
-                            if self.combat_mob_key: _engaged.add(self.combat_mob_key)
-                            for _sess in (self.server.party_sessions(self.account_id,same_room=self.character.room_id) or [self]):
-                                if getattr(_sess,"combat_mob_key",None): _engaged.add(_sess.combat_mob_key)
-                            _engaged_alive=[x for x in alive if x.key in _engaged]
-                            targets=([mob] if len(_engaged_alive)<=1 and mob else (_engaged_alive or ([mob] if mob else [alive[0]])))
-                        elif special=="uzi_punch":
-                            # Source target is Random Enemies but supplies no hit count.
-                            # Soulbound adaptation: choose a random half of living enemies,
-                            # rounded up, with a minimum of one distinct target.
-                            _uzi_fraction=max(0.01,min(1.0,float(
-                                skill.get("random_target_fraction",0.50) or 0.50
-                            )))
-                            _uzi_count=max(
-                                1,min(len(alive),int((len(alive)*_uzi_fraction)+0.999999))
-                            )
-                            targets=random.sample(list(alive),_uzi_count)
-                        else:
-                            targets=list(alive)
-                        # Source Base AP never enters damage. The authored Mec AoE core
-                        # is driven by Soulbound stats/EQ/Soul Power + Skill Level + protocol.
-                        base=0; total=0; defeated=[]; seen=set()
-                        _mec_damage_type = self.offensive_skill_damage_type_v11190(skill)
-                        mult=(
-                            skill_power
-                            * self.mec_branch_multiplier_v0319(branch, special)
-                            * self.offensive_skill_damage_multiplier_v11186(
-                                skill, _mec_damage_type
-                            )
-                        )
-                        _uzi_feedback_self_damage=0
-                        _dispose_feedback_self_damage=0
-                        if special=="dispose":
-                            _dispose_feedback_self_damage=max(
-                                1,int(round(
-                                    max(1,int(self.max_hp()))
-                                    * float(
-                                        skill.get(
-                                            "soulbound_feedback_max_hp_pct",0.08
-                                        ) or 0.08
-                                    )
-                                ))
-                            )
-                        if special=="uzi_punch":
-                            # HP influence is inverse here: the attack becomes stronger
-                            # as HP decreases. Attack is primary; Vitality maps to CON as
-                            # the declared secondary stat in the shared offensive core.
-                            _uzi_max_hp=max(1,int(self.max_hp()))
-                            _uzi_current_hp=max(0,int(self.current_hp))
-                            _uzi_missing_ratio=max(
-                                0.0,min(1.0,(_uzi_max_hp-_uzi_current_hp)/float(_uzi_max_hp))
-                            )
-                            mult *= 1.0 + _uzi_missing_ratio * float(
-                                skill.get("missing_hp_max_damage_bonus",0.75) or 0.75
-                            )
-                            _uzi_shield=bool(
-                                self.server.db.equipped_item(self.account_id,"shield")
-                            )
-                            if _uzi_shield:
-                                mult *= float(
-                                    skill.get("shield_damage_multiplier",1.20) or 1.20
-                                )
-                                await self.send("Uzi Punch: założona tarcza wzmacnia atak.")
-                            _uzi_feedback_self_damage=max(
-                                1,int(round(
-                                    _uzi_max_hp
-                                    * float(skill.get("feedback_max_hp_pct",0.12) or 0.12)
-                                ))
-                            )
-                        # Cosmic Rave has a lesser Agility influence. A supplied
-                        # UOSS combat log confirms that its V-MAX Random Enemies form
-                        # performs five separate strikes. Starlight Shower's V-MAX
-                        # numeric damage increase remains unspecified by source.
-                        for target in targets:
-                            if special=="cosmic_rave" and vmax:
-                                _living_random=[candidate for candidate in alive if candidate.alive]
-                                if not _living_random:
-                                    break
-                                target=random.choice(_living_random)
-                            if not target or not target.alive: continue
-                            template=MOB_TEMPLATES[target.template_id]
-                            _local_mult=mult
-                            _pop_knight_flying=False
-                            if special=="pop_knight" and bool(template.get("flying")):
-                                _pop_knight_flying=True
-                                _local_mult *= float(
-                                    skill.get(
-                                        "soulbound_flying_damage_multiplier",1.25
-                                    ) or 1.25
-                                )
-                            if special=="starlight_shower" and len(targets)>1 and not vmax:
-                                # Source requires diminishing area damage but does not
-                                # publish the numeric falloff. Soulbound therefore uses
-                                # an explicit inverse-sqrt target-count adaptation: every
-                                # engaged target receives the same reduced hit, while
-                                # total output still grows sub-linearly with target count.
-                                _local_mult *= 1.0 / (float(len(targets)) ** 0.5)
-                            elif special in ("shock_soldier","laser_spin","maelstrom","shock","cosmic_rave") and len(targets)>1 and not (special=="cosmic_rave" and vmax):
-                                # Source marks these as Diminishing but does not publish
-                                # a numeric curve. Soulbound uses an explicit inverse-
-                                # sqrt target-count adaptation so every target receives
-                                # the same reduced hit while total output grows sub-linearly.
-                                _local_mult *= 1.0 / (float(len(targets)) ** 0.5)
-                            damage=max(1,int(self.offensive_skill_core_power_v11185(skill, base)*_local_mult)+random.randint(-6,6))
-                            # Shoot-All source is Attack + Critical Hit Chance and
-                            # explicitly gains both damage and crit chance in V-MAX.
-                            # UOSS supplies no numeric increase, so the 1.25x damage
-                            # and +15 percentage-point crit values below are explicit
-                            # Soulbound balance adaptation, not claimed source numbers.
-                            if special=="shoot_all":
-                                _shootall_crit_chance=float(self.critical_chance())
-                                if vmax:
-                                    damage=max(1,int(round(
-                                        damage*float(skill.get("vmax_damage_multiplier",1.25) or 1.25)
-                                    )))
-                                    _shootall_crit_chance=min(
-                                        0.75,
-                                        _shootall_crit_chance
-                                        + float(skill.get("vmax_critical_chance_bonus",0.15) or 0.15),
-                                    )
-                                crit=random.random() < _shootall_crit_chance
-                                if crit:
-                                    damage=max(1,int(round(damage*self.critical_multiplier())))
-                            else:
-                                damage,crit=self.roll_critical_hit(damage)
-                            damage=await self.apply_boss_defense(target,damage); damage=self.v0210_adjust_player_damage(damage)
-                            element={"laser_spin":"dark","area_bomb":"fire","maelstrom":"water","shock":"lightning","starlight_shower":"magic"}.get(special,"physical")
-                            # Carries Elements is represented through the character's one
-                            # Soul Weapon profile; physical remains the safe fallback when
-                            # the weapon has no explicit elemental trait.
-                            if special in ("pop_knight","shock_soldier","cosmic_rave","range_fire","dispose","shoot_all"):
-                                _sw_element=str(getattr(self.character,"soul_weapon_element","") or "").casefold()
-                                if _sw_element: element=_sw_element
-                            if special=="shock":
-                                # Shock is simultaneously Lightning and Dark. Apply both
-                                # elemental interactions instead of collapsing it to one.
-                                damage,note_light=v0314_adjust_damage_vs_template(template,damage,"lightning",skill.get("name",""))
-                                damage,note_dark=v0314_adjust_damage_vs_template(template,damage,"dark",skill.get("name",""))
-                                note=(note_light or "")+(note_dark or "")
-                            else:
-                                damage,note=v0314_adjust_damage_vs_template(template,damage,element,skill.get("name",""))
-                            target.hp-=damage; total+=damage
-                            _crit_note=" KRYTYK." if crit else ""
-                            _vmax_note=" V-MAX." if special=="shoot_all" and vmax else ""
-                            _flying_note=(
-                                " BONUS przeciw Flying."
-                                if special=="pop_knight" and _pop_knight_flying
-                                else ""
-                            )
-                            await self.send(
-                                f"{skill['name']}: {template['name']} {damage} obrażeń. "
-                                f"HP {max(0,target.hp)}.{note}{_crit_note}{_vmax_note}{_flying_note}"
-                            )
-                            if target.hp<=0 and target.key not in seen: seen.add(target.key); defeated.append(target)
-                        helper_target, _helper_damage = await self.apply_superboss_helper_after_skill_v11192(targets)
-                        if helper_target is not None and helper_target.hp <= 0 and helper_target.key not in seen:
-                            seen.add(helper_target.key)
-                            defeated.append(helper_target)
-                        await self.grant_skill_use_xp(skill)
-                        await self.send(f"{skill['name']}: łączne obrażenia {total}, pokonani {len(defeated)}.")
-                        for target in defeated:
-                            await self.mob_defeated(target)
-                        if special=="dispose" and _dispose_feedback_self_damage:
-                            self.current_hp-=int(_dispose_feedback_self_damage)
-                            self.queue_mec_feedback_repair_v11154(
-                                _dispose_feedback_self_damage
-                            )
-                            await self.send(
-                                f"Dispose Feedback: tracisz "
-                                f"{_dispose_feedback_self_damage} HP po całej salwie. "
-                                f"Masz {max(0,self.current_hp)} z {self.max_hp()} HP."
-                            )
-                            if self.current_hp<=0:
-                                await self.die("Feedback Dispose")
-                                return
-                        if special=="uzi_punch" and _uzi_feedback_self_damage:
-                            self.current_hp-=int(_uzi_feedback_self_damage)
-                            self.queue_mec_feedback_repair_v11154(_uzi_feedback_self_damage)
-                            await self.send(
-                                f"Uzi Punch Feedback: tracisz {_uzi_feedback_self_damage} HP. "
-                                f"Masz {max(0,self.current_hp)} z {self.max_hp()} HP."
-                            )
-                            if self.current_hp<=0:
-                                await self.die("Feedback Uzi Punch")
-                                return
-                        if any(x.alive for x in alive): await self.ensure_realtime_combat()
-                        return
-
-                    if special in ("hypno_flash","jammer","logic_bomb"):
-                        if not mob: return
-                        template=MOB_TEMPLATES[mob.template_id]
-                        # Source establishes Will/Skill-Level influence and relative
-                        # accuracy/duration changes, but provides no numeric curves or
-                        # base durations. Keep these effects source-safe instead of
-                        # fabricating hit percentages or seconds.
-                        if special=="hypno_flash":
-                            # Source: Will; Cleanseable + Extendable; Skill Level
-                            # increases Accuracy and Duration; support weapon improves
-                            # chance to hit. Numeric curves are explicit Soulbound balance.
-                            _hypno_level=max(1,min(SKILL_MAX_LEVEL,int(skill_level)))
-                            _hypno_progress=(
-                                (_hypno_level-1)/float(max(1,SKILL_MAX_LEVEL-1))
-                            )
-                            _hypno_will=max(1,int(self.effective_willpower()))
-                            _hypno_will_ratio=max(0.01,_hypno_will/175.0)
-                            _hypno_accuracy=(
-                                float(skill.get("soulbound_base_accuracy",0.55) or 0.55)
-                                + _hypno_progress
-                                * float(
-                                    skill.get("soulbound_skill_accuracy_bonus_max",0.25)
-                                    or 0.25
-                                )
-                                + min(
-                                    float(
-                                        skill.get(
-                                            "soulbound_will_accuracy_bonus_max",0.15
-                                        ) or 0.15
-                                    ),
-                                    0.075*(_hypno_will_ratio ** 0.50),
-                                )
-                            )
-                            if self.mec_support_effect_v11149():
-                                _hypno_accuracy += float(
-                                    skill.get("soulbound_support_accuracy_bonus",0.10)
-                                    or 0.10
-                                )
-                            _hypno_accuracy=max(
-                                0.05,min(
-                                    float(skill.get("soulbound_accuracy_cap",0.98) or 0.98),
-                                    _hypno_accuracy,
-                                )
-                            )
-                            _hypno_start=max(
-                                1,int(skill.get("soulbound_duration_rounds_level1",2) or 2)
-                            )
-                            _hypno_end=max(
-                                _hypno_start,
-                                int(skill.get("soulbound_duration_rounds_level600",6) or 6),
-                            )
-                            _hypno_rounds=max(
-                                1,int(round(
-                                    _hypno_start
-                                    + (_hypno_end-_hypno_start)
-                                    * (_hypno_progress ** 0.82)
-                                ))
-                            )
-                            _hypno_rounds += min(
-                                int(skill.get("soulbound_will_duration_bonus_max",2) or 2),
-                                max(0,int(round((_hypno_will_ratio ** 0.50)-1.0))),
-                            )
-                            if random.random() < _hypno_accuracy:
-                                _existing=max(
-                                    0,int(getattr(mob,"v11196_hypno_sleep_rounds",0) or 0)
-                                )
-                                mob.v11196_hypno_sleep_rounds=_existing+_hypno_rounds
-                                mob.v11196_hypno_sleep_cleanseable=True
-                                await self.send(
-                                    f"Hypno Flash: {template['name']} zasypia na "
-                                    f"{mob.v11196_hypno_sleep_rounds} akcji przeciwnika. "
-                                    f"Celność: {int(round(_hypno_accuracy*100))} procent."
-                                )
-                            else:
-                                await self.send(
-                                    f"Hypno Flash: {template['name']} opiera się Sleep. "
-                                    f"Celność: {int(round(_hypno_accuracy*100))} procent."
-                                )
-                            await self.grant_skill_use_xp(skill)
-                            self.combat_mob_key=mob.key
-                            await self.server.auto_assist_party_combat(self,mob)
-                            await self.ensure_realtime_combat()
-                            return
-                        if special=="jammer":
-                            self.server.world.refresh()
-                            targets=[mob]
-                            if support_effect:
-                                targets=[
-                                    x for x in self.server.world.room_mobs(
-                                        self.character.room_id
-                                    )
-                                    if x.alive
-                                ]
-                            targets=[x for x in targets if x and x.alive]
-                            if not targets:
-                                return
-                            _jammer_level=max(1,min(SKILL_MAX_LEVEL,int(skill_level)))
-                            _jammer_progress=(
-                                (_jammer_level-1)/float(max(1,SKILL_MAX_LEVEL-1))
-                            )
-                            _jammer_will=max(1,int(self.effective_willpower()))
-                            _jammer_will_ratio=max(0.01,_jammer_will/175.0)
-                            _jammer_base_accuracy=(
-                                float(skill.get("soulbound_base_accuracy",0.50) or 0.50)
-                                + _jammer_progress
-                                * float(
-                                    skill.get("soulbound_skill_accuracy_bonus_max",0.25)
-                                    or 0.25
-                                )
-                                + min(
-                                    float(
-                                        skill.get(
-                                            "soulbound_will_accuracy_bonus_max",0.15
-                                        ) or 0.15
-                                    ),
-                                    0.075*(_jammer_will_ratio ** 0.50),
-                                )
-                            )
-                            _jammer_start=max(
-                                1,int(skill.get("soulbound_duration_rounds_level1",8) or 8)
-                            )
-                            _jammer_end=max(
-                                _jammer_start,
-                                int(skill.get("soulbound_duration_rounds_level600",16) or 16),
-                            )
-                            _jammer_rounds=max(
-                                1,int(round(
-                                    _jammer_start
-                                    + (_jammer_end-_jammer_start)
-                                    * (_jammer_progress ** 0.82)
-                                ))
-                            )
-                            _jammer_rounds += min(
-                                int(skill.get("soulbound_will_duration_bonus_max",4) or 4),
-                                max(0,int(round((_jammer_will_ratio ** 0.50)-1.0))),
-                            )
-                            _jammer_hits=0
-                            _jammer_misses=0
-                            for _jam_target in targets:
-                                _jam_template=MOB_TEMPLATES[_jam_target.template_id]
-                                _jam_accuracy=_jammer_base_accuracy
-                                _jam_machine=bool(
-                                    _jam_template.get("machine")
-                                    or str(
-                                        _jam_template.get("creature_type","")
-                                    ).casefold()=="machine"
-                                )
-                                if _jam_machine:
-                                    _jam_accuracy += float(
-                                        skill.get(
-                                            "soulbound_machine_accuracy_bonus",0.15
-                                        ) or 0.15
-                                    )
-                                _jam_accuracy=max(
-                                    0.05,min(
-                                        float(skill.get("soulbound_accuracy_cap",0.98) or 0.98),
-                                        _jam_accuracy,
-                                    )
-                                )
-                                if random.random() < _jam_accuracy:
-                                    _existing=max(
-                                        0,int(
-                                            getattr(
-                                                _jam_target,
-                                                "v11196_jammer_stop_rounds",
-                                                0,
-                                            ) or 0
-                                        )
-                                    )
-                                    _jam_target.v11196_jammer_stop_rounds=(
-                                        _existing+_jammer_rounds
-                                    )
-                                    _jam_target.v11196_jammer_stop_cleanseable=True
-                                    _jammer_hits+=1
-                                    await self.send(
-                                        f"Jammer: {_jam_template['name']} otrzymuje Stop na "
-                                        f"{_jam_target.v11196_jammer_stop_rounds} akcji. "
-                                        f"Celność {int(round(_jam_accuracy*100))} procent."
-                                        + (" Bonus Machine." if _jam_machine else "")
-                                    )
-                                else:
-                                    _jammer_misses+=1
-                                    await self.send(
-                                        f"Jammer: {_jam_template['name']} opiera się Stop. "
-                                        f"Celność {int(round(_jam_accuracy*100))} procent."
-                                        + (" Bonus Machine." if _jam_machine else "")
-                                    )
-                                if _jam_target.engaged_at<=0:
-                                    _jam_target.engaged_at=time.monotonic()
-                                if not _jam_target.engaged_by:
-                                    _jam_target.engaged_by=self.character.name
-                                await self.server.auto_assist_party_combat(
-                                    self,_jam_target
-                                )
-                            await self.send(
-                                f"Jammer: {_jammer_hits} celów zatrzymanych, "
-                                f"{_jammer_misses} oparło się."
-                                + (
-                                    " Support weapon obejmuje wszystkich przeciwników."
-                                    if support_effect else ""
-                                )
-                            )
-                            await self.grant_skill_use_xp(skill)
-                            self.combat_mob_key=mob.key
-                            await self.ensure_realtime_combat()
-                            return
-                        machine=bool(
-                            template.get("machine")
-                            or str(template.get("creature_type","")).casefold()=="machine"
-                        )
-                        _logic_level=max(1,min(SKILL_MAX_LEVEL,int(skill_level)))
-                        _logic_progress=(
-                            (_logic_level-1)/float(max(1,SKILL_MAX_LEVEL-1))
-                        )
-                        _logic_will=max(1,int(self.effective_willpower()))
-                        _logic_will_ratio=max(0.01,_logic_will/175.0)
-                        _logic_accuracy=(
-                            float(skill.get("soulbound_base_accuracy",0.45) or 0.45)
-                            + _logic_progress
-                            * float(
-                                skill.get("soulbound_skill_accuracy_bonus_max",0.30)
-                                or 0.30
-                            )
-                            + min(
-                                float(
-                                    skill.get(
-                                        "soulbound_will_accuracy_bonus_max",0.15
-                                    ) or 0.15
-                                ),
-                                0.075*(_logic_will_ratio ** 0.50),
-                            )
-                        )
-                        if machine:
-                            _logic_accuracy += float(
-                                skill.get("soulbound_machine_accuracy_bonus",0.15)
-                                or 0.15
-                            )
-                        _logic_accuracy=max(
-                            0.05,min(
-                                float(skill.get("soulbound_accuracy_cap",0.98) or 0.98),
-                                _logic_accuracy,
-                            )
-                        )
-                        _logic_start=max(
-                            1,int(skill.get("soulbound_duration_rounds_level1",3) or 3)
-                        )
-                        _logic_end=max(
-                            _logic_start,
-                            int(skill.get("soulbound_duration_rounds_level600",10) or 10),
-                        )
-                        _logic_rounds=max(
-                            1,int(round(
-                                _logic_start
-                                + (_logic_end-_logic_start)
-                                * (_logic_progress ** 0.82)
-                            ))
-                        )
-                        _logic_rounds += min(
-                            int(skill.get("soulbound_will_duration_bonus_max",2) or 2),
-                            max(0,int(round((_logic_will_ratio ** 0.50)-1.0))),
-                        )
-                        if random.random() < _logic_accuracy:
-                            _logic_effects={"paralyze","silence","slow"}
-                            if support_effect:
-                                _logic_effects.update({"blind","curse","immobilize"})
-                            _existing=max(
-                                0,int(getattr(mob,"v11196_logic_bomb_rounds",0) or 0)
-                            )
-                            _existing_effects=set(
-                                getattr(mob,"v11196_logic_bomb_effects",set()) or set()
-                            )
-                            mob.v11196_logic_bomb_rounds=_existing+_logic_rounds
-                            mob.v11196_logic_bomb_effects=_existing_effects|_logic_effects
-                            mob.v11196_logic_bomb_cleanseable=True
-                            mob.v11196_logic_paralyze_skip_chance=float(
-                                skill.get("soulbound_paralyze_skip_chance",0.50) or 0.50
-                            )
-                            mob.v11196_logic_slow_skip_every_actions=max(
-                                2,int(skill.get("soulbound_slow_skip_every_actions",2) or 2)
-                            )
-                            mob.v11196_logic_blind_miss_chance=float(
-                                skill.get("soulbound_blind_miss_chance",0.35) or 0.35
-                            )
-                            mob.v11196_logic_curse_damage_multiplier=float(
-                                skill.get("soulbound_curse_damage_multiplier",0.80) or 0.80
-                            )
-                            await self.send(
-                                f"Logic Bomb trafia {template['name']}. "
-                                f"Statusy: {', '.join(sorted(mob.v11196_logic_bomb_effects))}. "
-                                f"Czas: {mob.v11196_logic_bomb_rounds} akcji. "
-                                f"Celność: {int(round(_logic_accuracy*100))} procent."
-                                + (" Bonus Machine." if machine else "")
-                            )
-                        else:
-                            await self.send(
-                                f"Logic Bomb: {template['name']} odpiera wirusa. "
-                                f"Celność: {int(round(_logic_accuracy*100))} procent."
-                                + (" Bonus Machine." if machine else "")
-                            )
-                        if mob.engaged_at<=0:
-                            mob.engaged_at=time.monotonic()
-                        if not mob.engaged_by:
-                            mob.engaged_by=self.character.name
-                        await self.server.auto_assist_party_combat(self,mob)
-                        await self.grant_skill_use_xp(skill)
-                        self.combat_mob_key=mob.key
-                        await self.ensure_realtime_combat()
-                        return
-
-                    if special=="satellite_linker" and mob:
-                        # Source: one enemy, Attack + Wisdom, repeated minor laser
-                        # damage over a short period; higher Skill Level extends duration.
-                        # Source gives no numeric seconds/tick/cadence, so Soulbound
-                        # uses the documented owner-round adaptation from metadata.
-                        _satellite_rounds=self.satellite_linker_duration_rounds_v11196(
-                            skill_level,skill
-                        )
-                        self.v11196_satellite_linker={
-                            "target_key":mob.key,
-                            "remaining_rounds":_satellite_rounds,
-                            "skill_level":skill_level,
-                        }
-                        template=MOB_TEMPLATES[mob.template_id]
-                        await self.send(
-                            f"Satellite Linker: bity otaczają {template['name']} na "
-                            f"{_satellite_rounds} rund."
-                        )
-                        await self.grant_skill_use_xp(skill)
-                        self.combat_mob_key=mob.key
-                        await self.server.auto_assist_party_combat(self,mob)
-                        await self.ensure_realtime_combat()
-                        return
-                    if special=="tiger_rampage" and mob:
-                        # v1.11.50: two heavy blows. One Soul Weapon replaces the
-                        # original melee-weapon gate; its element is carried by both hits.
-                        template=MOB_TEMPLATES[mob.template_id]
-                        # Source Base AP 1800 is AP metadata only, never damage power.
-                        # Total two-hit power comes from the normal Soulbound combat core.
-                        base=0
-                        mult=(
-                            skill_power
-                            * self.mec_branch_multiplier_v0319("melee", "tiger_rampage")
-                            * self.offensive_skill_damage_multiplier_v11186(skill, "physical")
-                        )
-                        total=0
-                        _element=str(getattr(self.character,"soul_weapon_element","") or "physical").casefold()
-                        for _hit in range(2):
-                            if not mob.alive: break
-                            damage=max(1,int((self.offensive_skill_core_power_v11185(skill, base)*mult)/2.0)+random.randint(-6,6))
-                            damage,crit=self.roll_critical_hit(damage)
-                            damage=await self.apply_boss_defense(mob,damage); damage=self.v0210_adjust_player_damage(damage)
-                            damage,note=v0314_adjust_damage_vs_template(template,damage,_element,skill.get("name","Tiger Rampage"))
-                            mob.hp-=damage; total+=damage
-                            await self.send(f"Tiger Rampage: {template['name']} otrzymuje {damage} obrażeń. HP {max(0,mob.hp)}.{note}")
-                        broke=False
-                        # Source confirms a chance to lower both physical and magical
-                        # defense and marks the effect Extendable. UOSS gives no numeric
-                        # proc chance, duration or reduction amount, so the values below
-                        # are explicit Soulbound balance metadata.
-                        if mob.hp > 0 and random.random() < float(
-                            skill.get("soulbound_defense_break_proc_chance",0.35) or 0.35
-                        ):
-                            _break_rounds=max(
-                                1,int(skill.get("soulbound_defense_break_rounds",4) or 4)
-                            )
-                            _existing=max(
-                                0,int(
-                                    getattr(
-                                        mob,"v11196_tiger_defense_break_rounds",0
-                                    ) or 0
-                                )
-                            )
-                            mob.v11196_tiger_defense_break_rounds=_existing+_break_rounds
-                            mob.v11196_tiger_defense_break_damage_multiplier=max(
-                                1.0,
-                                float(
-                                    skill.get(
-                                        "soulbound_defense_break_damage_multiplier",
-                                        1.15,
-                                    ) or 1.15
-                                ),
-                            )
-                            broke=True
-                            await self.send(
-                                f"Tiger Rampage uszkadza fizyczną i magiczną obronę "
-                                f"{template['name']}. Pozostało "
-                                f"{mob.v11196_tiger_defense_break_rounds} akcji osłabienia."
-                            )
-                        if mob.hp > 0:
-                            await self.apply_superboss_helper_after_skill_v11192([mob])
-                        await self.grant_skill_use_xp(skill)
-                        await self.send(
-                            f"Tiger Rampage: 2 ciężkie trafienia, łącznie {total} obrażeń."
-                            + (
-                                " Obrona fizyczna i magiczna celu spada."
-                                if broke else
-                                " Obrona celu wytrzymuje uderzenie."
-                            )
-                        )
-                        if mob.hp<=0: await self.mob_defeated(mob)
-                        else: await self.ensure_realtime_combat()
-                        return
-                    if special=="magnify":
-                        # Source contract: Attack + Wisdom single-target overload.
-                        # Skill Level and Wisdom reduce systems-failure chance; failure
-                        # causes weapon Overheat/reboot. UOSS gives no numeric curve or
-                        # reboot duration, so the values below are explicit Soulbound
-                        # balance metadata, not claimed source numbers.
-                        if self.mec_overheat_active_v0319():
-                            _recovered=self.mec_finish_overheat_recovery_v0319()
-                            await self.send(
-                                "Magnify: ta akcja zostaje zużyta na reboot broni. "
-                                + ("Overheat zakończony; następne użycie Magnify jest możliwe."
-                                   if _recovered else
-                                   "Broń nadal pozostaje w Overheat.")
-                            )
-                            return
-                        _magnify_level=max(1,min(SKILL_MAX_LEVEL,int(skill_level)))
-                        _magnify_progress=(
-                            (_magnify_level-1)/float(max(1,SKILL_MAX_LEVEL-1))
-                        )
-                        _magnify_wis=max(1,int(self.effective_intelligence()))
-                        _magnify_wis_ratio=max(0.01,_magnify_wis/175.0)
-                        _magnify_failure=(
-                            float(skill.get("soulbound_failure_base_chance",0.35) or 0.35)
-                            - _magnify_progress
-                            * float(
-                                skill.get(
-                                    "soulbound_skill_failure_reduction_max",0.20
-                                ) or 0.20
-                            )
-                            - min(
-                                float(
-                                    skill.get(
-                                        "soulbound_wisdom_failure_reduction_max",0.12
-                                    ) or 0.12
-                                ),
-                                float(
-                                    skill.get(
-                                        "soulbound_wisdom_failure_reduction_anchor",0.06
-                                    ) or 0.06
-                                ) * (_magnify_wis_ratio ** 0.50),
-                            )
-                        )
-                        _magnify_failure=max(
-                            float(skill.get("soulbound_failure_chance_floor",0.02) or 0.02),
-                            min(0.95,_magnify_failure),
-                        )
-                        if random.random() < _magnify_failure:
-                            self.v0319_overheat_recovery_pending=True
-                            await self.send(
-                                f"Magnify: SYSTEMS FAILURE. Broń przechodzi w Overheat/reboot. "
-                                f"Ryzyko awarii przy tym użyciu: "
-                                f"{int(round(_magnify_failure*100))} procent."
-                            )
-                        else:
-                            await self.send(
-                                f"Magnify: przeciążenie stabilne. Ryzyko awarii przy tym użyciu: "
-                                f"{int(round(_magnify_failure*100))} procent."
-                            )
-                    # Other single-target Mec attacks continue through the normal Soulbound damage handler below.
-
-                    # Plural Slash Agility scaling is applied to this use only in the
-                    # normal damage calculation below; never mutate the shared skill row.
-
+                _regen_target = None
                 if kind == "regen":
-                    recipients=self.server.party_sessions(self.account_id,same_room=self.character.room_id) or [self]
-                    target=self
-                    if target_text:
-                        wanted=normalize_lookup_text(target_text)
-                        found=next((s for s in recipients if s.character and wanted in normalize_lookup_text(s.character.name)),None)
-                        if found: target=found
+                    target=_regen_target or self
                     # UOSS does not expose the exact cadence, HP/tick or seconds.
                     # Soulbound adaptation: small WILL-based pulse every 3 owner
                     # combat rounds, with 30->90 s duration from Skill Level 1->600.
@@ -1952,50 +799,39 @@ class SessionCombatSkillsMixin:
                     )
                     if target is not self:
                         await target.send(
-                            f"{self.character.name} nakłada na ciebie Regen na {_regen_duration} s."
+                            f"{self.character.name} nakłada na ciebie Regen "
+                            f"na {_regen_duration} s."
                         )
-                    if self.combat_mob_key: await self.ensure_realtime_combat()
+                    if self.combat_mob_key:
+                        await self.ensure_realtime_combat()
                     return
 
-                # v0.31.6: zwykły heal pozostaje single-target, ale automatycznie
-                    # wybiera najbardziej rannego żywego członka party w tej samej
-                    # lokacji. Solo wybiera gracza. Skill nie marnuje się, gdy nikt
-                    # nie potrzebuje leczenia. group_heal nadal leczy całą drużynę.
-                    recipients = self.server.party_sessions(
-                        self.account_id, same_room=self.character.room_id
-                    ) or [self]
-                    injured = [
-                        session for session in recipients
-                        if not session.closed and session.character and session.current_hp > 0
-                        and session.current_hp < session.max_hp()
-                    ]
-                    if not injured:
+
+                if kind == "heal":
+                    target=_generic_heal_target
+                    if target is None:
                         await self.send(
-                            f"{skill['name']}: nikt w drużynie w tej lokacji nie potrzebuje leczenia."
+                            f"{skill['name']}: brak prawidłowego celu leczenia."
                         )
                         return
-                    target = min(
-                        injured,
-                        key=lambda session: (
-                            session.current_hp / max(1, session.max_hp()),
-                            session.current_hp,
-                            session.character.name.lower(),
-                        ),
+                    target_max=target.max_hp()
+                    heal=self.healing_skill_amount_v11196(
+                        skill,target,skill_power
                     )
-                    target_max = target.max_hp()
-                    heal = self.healing_skill_amount_v11196(skill,target,skill_power)
-                    before = target.current_hp
-                    target.current_hp = min(target_max, target.current_hp + heal)
-                    actual = target.current_hp - before
+                    before=target.current_hp
+                    target.current_hp=min(target_max,target.current_hp+heal)
+                    actual=target.current_hp-before
                     if target is self:
                         await self.send(
                             f"Używasz {skill['name']} na Skill Level {skill_level}. "
-                            f"Odzyskujesz {actual} HP. Masz teraz {target.current_hp} z {target_max} HP."
+                            f"Odzyskujesz {actual} HP. Masz teraz "
+                            f"{target.current_hp} z {target_max} HP."
                         )
                     else:
                         await target.send(
                             f"{self.character.name} używa {skill['name']} na tobie. "
-                            f"Odzyskujesz {actual} HP. Masz {target.current_hp} z {target_max} HP."
+                            f"Odzyskujesz {actual} HP. Masz teraz "
+                            f"{target.current_hp} z {target_max} HP."
                         )
                         await self.send(
                             f"Używasz {skill['name']} na {target.character.name}. "
@@ -2003,30 +839,35 @@ class SessionCombatSkillsMixin:
                         )
                     await self.server.party_nearby_broadcast(
                         self,
-                        f"{self.character.name}: {skill['name']} leczy {target.character.name} za {actual} HP.",
-                        exclude=[self, target],
+                        f"{self.character.name}: {skill['name']} leczy "
+                        f"{target.character.name} za {actual} HP.",
+                        exclude=[self,target],
                         detail="normal",
                         history_category="combat",
                     )
-                    if self.character.racial_healing_bonus_percent() > 0:
+                    if self.character.racial_healing_bonus_percent()>0:
                         await self.send(
                             f"Bonus rasy {self.character.race}: "
-                            f"+{self.character.racial_healing_bonus_percent()} procent mocy leczenia."
+                            f"+{self.character.racial_healing_bonus_percent()} procent "
+                            "mocy leczenia."
                         )
-                    class_heal_bonus = int(
-                        round((self.character.class_healing_multiplier() - 1.0) * 100)
+                    class_heal_bonus=int(
+                        round((self.character.class_healing_multiplier()-1.0)*100)
                     )
-                    if class_heal_bonus > 0:
+                    if class_heal_bonus>0:
                         await self.send(
                             f"Bonus aktywnych klas: +{class_heal_bonus} procent "
                             "mocy leczenia."
                         )
                     await self.grant_skill_use_xp(skill)
                     if mana_cost:
-                        await self.send(f"Mana: {self.current_mana} z {self.max_mana()}.")
+                        await self.send(
+                            f"Mana: {self.current_mana} z {self.max_mana()}."
+                        )
                     if self.combat_mob_key:
                         await self.ensure_realtime_combat()
                     return
+
 
                 if kind == "aoe_damage":
                     aoe_class_type = self.offensive_skill_damage_type_v11190(skill)
