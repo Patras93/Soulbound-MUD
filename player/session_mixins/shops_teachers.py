@@ -128,7 +128,7 @@ class SessionShopsTeachersMixin:
             number, item_id, item = found
             source_gold = item.get("fur_shop_gold_cost")
             base_price = int(source_gold) * 100 if source_gold is not None else self.shop_item_base_value_silver(item)
-            cashback = 0 if source_gold is not None else self.shop_cashback_silver(item)
+            cashback = self.shop_cashback_silver({"price": base_price}) if source_gold is not None else self.shop_cashback_silver(item)
             final_price = max(0, base_price - cashback)
             await self.send(f"INFORMACJE O SKLEPIE {number}. {item['name']}.")
             await self.send(self.format_item_description(item_id, item))
@@ -206,7 +206,9 @@ class SessionShopsTeachersMixin:
                 item = ITEMS[item_id]
                 source_gold = item.get("fur_shop_gold_cost")
                 if source_gold is not None:
-                    effective = int(source_gold) * 100
+                    price_coins = int(source_gold) * 100
+                    cashback = self.shop_cashback_silver({"price": price_coins})
+                    effective = max(0, price_coins - cashback)
                     price_text = currency_reading_text(effective, 0, 0)
                     token_id = item.get("fur_shop_token")
                     token_cost = int(item.get("fur_shop_token_cost", 0) or 0)
@@ -328,7 +330,8 @@ class SessionShopsTeachersMixin:
             token_cost = max(0, int(item.get("fur_shop_token_cost", 0) or 0)) * quantity
             source_gold = item.get("fur_shop_gold_cost")
             unit_price = int(source_gold) * 100 if source_gold is not None else self.shop_item_base_value_silver(item)
-            total_price = unit_price * quantity
+            unit_cashback = self.shop_cashback_silver({"price": unit_price}) if source_gold is not None else self.shop_cashback_silver(item)
+            total_price = max(0, unit_price - unit_cashback) * quantity
             if token_id and token_cost:
                 owned_tokens = self.server.db.item_qty(self.account_id, token_id)
                 if owned_tokens < token_cost:
@@ -349,10 +352,8 @@ class SessionShopsTeachersMixin:
             self.character.mithril = 0
             if token_id and token_cost:
                 self.server.db.remove_item(self.account_id, token_id, token_cost)
-            # Source boss-shop prices are exact and do not receive ordinary shop cashback.
-            cashback = 0 if source_gold is not None else self.shop_cashback_silver(item) * quantity
-            if cashback > 0:
-                self.character.silver += cashback
+            # Soulbound rule: Charisma affects boss-shop prices too.
+            cashback = 0
             if item_id in (FISH_STORAGE_IDS | MINING_STORAGE_IDS | WOOD_STORAGE_IDS | HERB_STORAGE_IDS):
                 self.store_profession_resource(item_id, quantity)
             else:
