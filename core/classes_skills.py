@@ -2378,7 +2378,7 @@ def _v0319_install_full_mec_kit():
         ("Destroy",1,"damage",200,"feedback","destroy","Single-target smash at a cost of HP."),
         ("Robo Tackle",20,"damage",500,"feedback","robo_tackle","Body/shield charge at a cost of HP."),
         ("Compress",30,"damage",600,"feedback","compress","Gravity percentile damage at a cost of HP."),
-        ("Crush",46,"damage",1000,"feedback","crush","Damage increases with HP already lost; costs HP."),
+        ("Crush",46,"damage",1000,"feedback","crush","One-enemy Feedback attack based on the difference between maximum and current HP. Character Level limits the damage capacity, Skill Level raises the maximum possible damage, and an equipped shield increases that capacity."),
         ("Uzi Punch",95,"aoe_damage",1400,"feedback","uzi_punch","Random fist/shield attacks across enemies at a cost of HP."),
         ("Kamikaze Crush",110,"damage",2000,"feedback","kamikaze_crush","One-enemy lethal divebomb influenced by HP before use, Vitality and Attack. Damage falls as current HP falls; an equipped shield improves damage. V-MAX increases both attack power and Feedback damage."),
         # Magic
@@ -2443,7 +2443,26 @@ def _v0319_install_full_mec_kit():
         if special=="robo_tackle": row["feedback_cost_source_defined"]=False
         if special=="compress": row["feedback_cost_source_defined"]=False
         if special=="uzi_punch": row["feedback_cost_source_defined"]=False
-        if special=="crush": row.update({"feedback_cost_source_defined":False,"damage_from_missing_hp":True,"level_caps_damage":True,"level_effect":"increases_maximum_possible_damage","single_soul_weapon":True})
+        if special=="crush":
+            row.update({
+                "scale":"hp_difference",
+                "source_stat_influence":["hp","level"],
+                "source_properties":[],
+                "target_mode":"one_enemy",
+                "damage_from_missing_hp":True,
+                "level_caps_damage":True,
+                "level_effect":"increases_maximum_possible_damage",
+                "shield_increases_capacity":True,
+                "feedback_damage":True,
+                "feedback_cost_source_defined":False,
+                "numeric_source_defined":False,
+                "capacity_per_character_level":100,
+                "capacity_per_skill_level":25,
+                "shield_capacity_multiplier":1.25,
+                "feedback_source_damage_pct":0.15,
+                "balance_model":"soulbound_cap_level100_skill25_shield125_feedback15pct",
+                "single_soul_weapon":True,
+            })
         if special=="kamikaze_crush":
             row.update({
                 "scale":"attack",
@@ -2676,6 +2695,31 @@ def _mec_contract_audit_v11149():
             errors.append("shoot_all: missing V-MAX crit/damage increase")
         if bool(shoot_all.get("vmax_numeric_source_defined")):
             errors.append("shoot_all: V-MAX numeric bonus must remain marked unsourced")
+    crush=rows.get("crush")
+    if crush:
+        if list(crush.get("source_stat_influence") or [])!=["hp","level"]:
+            errors.append("crush: source influence must be HP + Level")
+        if str(crush.get("scale"))!="hp_difference":
+            errors.append("crush: damage source must be max HP minus current HP")
+        if str(crush.get("target_mode"))!="one_enemy":
+            errors.append("crush: target mode must be one enemy")
+        if not bool(crush.get("damage_from_missing_hp")):
+            errors.append("crush: missing HP must drive damage")
+        if not bool(crush.get("level_caps_damage")):
+            errors.append("crush: Character Level must limit damage capacity")
+        if str(crush.get("level_effect"))!="increases_maximum_possible_damage":
+            errors.append("crush: Skill Level must increase maximum possible damage")
+        if not bool(crush.get("shield_increases_capacity")):
+            errors.append("crush: equipped shield must increase capacity")
+        if not bool(crush.get("feedback_damage")):
+            errors.append("crush: Feedback self-damage missing")
+        if bool(crush.get("feedback_cost_source_defined")):
+            errors.append("crush: Feedback numeric cost must remain marked unsourced")
+        if bool(crush.get("numeric_source_defined")):
+            errors.append("crush: numeric cap curve must remain marked unsourced")
+        if list(crush.get("source_properties") or [])!=[]:
+            errors.append("crush: source Properties must remain None")
+
     kamikaze=rows.get("kamikaze_crush")
     if kamikaze:
         if list(kamikaze.get("source_stat_influence") or [])!=["hp","vitality","attack"]:
