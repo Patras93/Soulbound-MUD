@@ -139,12 +139,12 @@ UOSS_SUPERBOSS_ENCOUNTERS_V11134 = {
     "ruby_weapon": {
         "name":"Ruby WEAPON","mode":"party","area":"Corel Prison","unlock_level":100,"recommended_level":100,
         "personal_token":"Desert Rose","weapon_pair":"emerald_weapon",
-        "pair_shop":"Traveler w Kalm","lockout_hours":24,
+        "pair_shop":"Traveler w Kalm",
     },
     "emerald_weapon": {
         "name":"Emerald WEAPON","mode":"party","area":"On the Sea Floor","access_via":"Submarine on Junon Overland outside Lower Junon","unlock_level":100,"recommended_level":100,
         "personal_token":"Earth Harp","weapon_pair":"ruby_weapon",
-        "pair_shop":"Traveler w Kalm","lockout_hours":24,
+        "pair_shop":"Traveler w Kalm",
     },
     "ozma": {"name":"Ozma","mode":"solo","unlock_level":110},
     "four_fiends": {"name":"Four Fiends","mode":"solo","unlock_level":110,"series":True},
@@ -164,7 +164,7 @@ UOSS_SUPERBOSS_ENCOUNTERS_V11134 = {
     "serpentarius": {
         "name":"Serpentarius","mode":"party","area":"Deep Dungeon","unlock":"explore_deep_dungeon","round_limit":100,"no_exit_after_start":True,"helper_cost_mithril":1,"helper_join_phrase":"Join me, Byblos",
         "arena":"Deep Dungeon — piętro 0","recommended_level":125,"helper":"Byblos","helper_max_players":3,
-        "personal_token":"Serpentarius Emblem","party_members_must_unlock":True,"lockout_hours":24,
+        "personal_token":"Serpentarius Emblem","party_members_must_unlock":True,
     },
     "odin": {
         "name":"Odin","mode":"party","area":"A Clearing in a Misty Forest","unlock_level":100,"recommended_level":125,
@@ -193,7 +193,7 @@ HELP_TOPICS["superbossy"] = [
     "Serpentarius: wymaga osobistego odblokowania Deep Dungeon; każdy uczestnik dostaje Serpentarius Emblem; przy maks. 3 graczach pomaga Byblos.",
     "Odin: Level 100+, drużyna 3-5; 8 unikalnych dropów + Odin's Mantle dla każdego uczestnika; przy 4-5 graczach trudność rośnie.",
     "Yiazmat: 7 unikalnych dropów + Godslayer's Badge dla każdego uczestnika; przy maks. 3 graczach pomaga Montblanc.",
-    "Każdy źródłowy Super Boss ma 24-godzinny lockout liczony od pokonania; restart ani deploy Railway nie resetuje czasu.",
+    "24-godzinny lockout dotyczy Black Rabite, Odina i Yiazmata — adaptacja źródłowej zasady once per reboot. Restart ani deploy Railway nie resetuje czasu.",
 ]
 HELP_TOPIC_ALIASES.update({
     "superboss": "superbossy", "superbosses": "superbossy", "uossbosses": "superbossy",
@@ -213,12 +213,15 @@ def uoss_superboss_audit_v11134():
     missing = sorted(required - set(encounters))
     if missing:
         errors.append("missing unique encounters: " + ", ".join(missing))
-    for key in ("ruby_weapon","emerald_weapon","black_rabite","serpentarius","odin","yiazmat"):
+    for key in ("black_rabite","odin","yiazmat"):
         row = encounters.get(key, {})
-        if not row.get("lockout_hours"):
-            errors.append(f"{key}: missing 24-hour lockout")
+        if int(row.get("lockout_hours", 0) or 0) != 24:
+            errors.append(f"{key}: expected 24-hour lockout")
         if not row.get("personal_token"):
             errors.append(f"{key}: missing personal participation reward")
+    for key in ("ruby_weapon","emerald_weapon","serpentarius"):
+        if encounters.get(key, {}).get("lockout_hours"):
+            errors.append(f"{key}: source does not define once-per-reboot lockout")
     if encounters.get("black_rabite", {}).get("unique_drop_count") != 10:
         errors.append("black_rabite: expected 10 unique drops")
     if encounters.get("yiazmat", {}).get("unique_drop_count") != 7:
