@@ -738,7 +738,6 @@ def full_game_audit_v03014():
 
     # Klasowe EQ: dwie bazowe statystyki dla każdego klasowego pancerza.
     class_armor = 0
-    physical = {c for c, kind in class_types.items() if kind == "physical"}
     for item_id, item in ITEMS.items():
         class_name = item.get("required_class")
         if not class_name or item.get("type") != "armor":
@@ -751,9 +750,9 @@ def full_game_audit_v03014():
             stat for stat, amount in (item.get("stats") or {}).items()
             if int(amount or 0) > 0
         )
-        expected = {"strength", "constitution"} if class_name in physical else {"intelligence", "willpower"}
+        expected = set(class_equipment_base_stat_pair(class_name))
         require(expected.issubset(present),
-                f"class armor stats {item_id}: {sorted(present)}")
+                f"class armor stats {item_id}: expected {sorted(expected)}, got {sorted(present)}")
 
     # NPC i ich prywatne pokoje/questy.
     room_npcs = {}
