@@ -32,6 +32,11 @@ from systems.items_resources import (
 def class_equipment_base_stat_pair(class_name):
     if class_type_for_name(class_name) == "magic":
         return "intelligence", "willpower"
+    # Physical classes are not all Strength archetypes. Rogue/Hunter/Monk,
+    # Mec and Engineer use Dexterity heavily in their authored kits, while
+    # Constitution remains the universal physical survivability stat.
+    if class_name in {"Łotrzyk", "Łowca", "Mnich", "Mec", "Inżynier"}:
+        return "dexterity", "constitution"
     return "strength", "constitution"
 
 
@@ -78,6 +83,7 @@ def class_equipment_base_stats_text(class_name, legacy_amount, slot=None):
     )
     labels = {
         "strength": "Siła",
+        "dexterity": "Zręczność",
         "constitution": "Kondycja",
         "intelligence": "Inteligencja",
         "willpower": "Siła Woli",
@@ -197,9 +203,14 @@ def _register_class_equipment_shops():
                     primary_stat, primary_amount, secondary_stat, secondary_amount = (
                         class_equipment_split_stat_budget(class_name, legacy_affix_amount, slot)
                     )
-                    if class_type_for_name(class_name) != "magic" and secondary_stat != "constitution":
+                    if class_type_for_name(class_name) != "magic":
+                        if secondary_stat != "constitution" or primary_stat not in {"strength", "dexterity"}:
+                            raise RuntimeError(
+                                f"Physical class EQ must include offensive stat + Condition: {class_name} {slot}"
+                            )
+                    elif {primary_stat, secondary_stat} != {"intelligence", "willpower"}:
                         raise RuntimeError(
-                            f"Physical class EQ must include Condition: {class_name} {slot}"
+                            f"Magic class EQ must include Intelligence + Willpower: {class_name} {slot}"
                         )
                     defense = max(
                         1,
