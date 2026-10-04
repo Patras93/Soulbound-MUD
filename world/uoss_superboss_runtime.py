@@ -422,3 +422,34 @@ def superboss_element_multiplier_v11173(template, element):
     # multiplier in the supplied contract. Keep it queryable without fabricating math.
     return 1.0,False
 
+
+
+UOSS_HELPER_ABILITIES_V11174 = {
+    "Popoi": ("Air Blast","Earth Slide","Acid Storm","Vine Hell","Luna Mini","Faerie Walnut"),
+    "Primm": ("Lucent Beam","Cure Water","Bubble","Lumina","Dryad Preach"),
+    "Byblos": ("Parasite","Pollute Soul","Cure","X-Ether"),
+    "Montblanc": ("Firaga","Blizzaga","Thundaga","Darkra","Bioga","Flare","Drain","Syphon","Bubble"),
+    "Seifer": ("Power Breakdown","No Mercy","Zantetsuken Reverse"),
+}
+
+def superboss_helper_ability_names_v11174(session, template):
+    profile=superboss_helper_profile_v11137(session,template)
+    if not profile:
+        return ()
+    return UOSS_HELPER_ABILITIES_V11174.get(str(profile.get("name")),())
+
+def superboss_helper_passives_v11174(session, template, mob):
+    """Exact helper mechanics that do not require inventing power/cadence."""
+    profile=superboss_helper_profile_v11137(session,template)
+    if not profile:
+        return ()
+    name=str(profile.get("name"))
+    key=superboss_key_from_template_v11135(template)
+    effects=[]
+    if name=="Seifer" and key=="odin" and not getattr(mob,"uoss_seifer_breakdown_v11174",False):
+        mob.uoss_seifer_breakdown_v11174=True
+        mob.uoss_power_breakdown_v11174=True
+        effects.append("Seifer: Power Breakdown aktywny na początku walki.")
+    if name=="Byblos" and key=="serpentarius":
+        mob.uoss_ignore_helper_target_v11174=True
+    return tuple(effects)
