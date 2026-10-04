@@ -982,8 +982,16 @@ class SessionCombatSkillsMixin:
                             if not target or not target.alive: continue
                             template=MOB_TEMPLATES[target.template_id]
                             _local_mult=mult
-                            if special in ("starlight_shower","shock_soldier","laser_spin","maelstrom","cosmic_rave") and len(targets)>1 and not ((special=="starlight_shower" or special=="cosmic_rave") and vmax):
-                                # Source marks diminishing AoE but gives no numeric falloff.
+                            if special=="starlight_shower" and len(targets)>1 and not vmax:
+                                # Source requires diminishing area damage but does not
+                                # publish the numeric falloff. Soulbound therefore uses
+                                # an explicit inverse-sqrt target-count adaptation: every
+                                # engaged target receives the same reduced hit, while
+                                # total output still grows sub-linearly with target count.
+                                _local_mult *= 1.0 / (float(len(targets)) ** 0.5)
+                            elif special in ("shock_soldier","laser_spin","maelstrom","cosmic_rave") and len(targets)>1 and not (special=="cosmic_rave" and vmax):
+                                # These source-marked diminishing skills still have no
+                                # separately confirmed numeric falloff in this pass.
                                 pass
                             damage=max(1,int(self.offensive_skill_core_power_v11185(skill, base)*_local_mult)+random.randint(-6,6))
                             # Shoot-All source is Attack + Critical Hit Chance and
