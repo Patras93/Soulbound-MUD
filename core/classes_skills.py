@@ -2735,10 +2735,11 @@ def _v0319_install_full_mec_kit():
                 "soulbound_will_accuracy_bonus_max":0.15,
                 "soulbound_machine_accuracy_bonus":0.15,
                 "soulbound_accuracy_cap":0.98,
-                "soulbound_duration_rounds_level1":2,
-                "soulbound_duration_rounds_level600":5,
-                "soulbound_will_duration_bonus_max":2,
-                "balance_model":"soulbound_acc50_skill25_will15_machine15_cap98_duration2_to_5_plus_will2",
+                "soulbound_duration_rounds_level1":8,
+                "soulbound_duration_rounds_level600":16,
+                "soulbound_will_duration_bonus_max":4,
+                "duration_user_benchmark":{"skill_level":9,"observed_actions":8},
+                "balance_model":"user_anchor_skill9_about8_then_soulbound_8_to_16_plus_will4",
             })
         if special=="logic_bomb":
             row.update({"scale":"willpower","uoss_mp_cost":155})
