@@ -19,6 +19,24 @@ from world.economy_quests import v0863_execute_threshold
 from world.uoss_superboss_runtime import superboss_attack_gate_v11137, superboss_helper_profile_v11137
 
 class SessionCombatSkillsMixin:
+    def combat_skill_mana_cost_v11191(self, skill, class_name):
+        """Resolve exact skill MP, including authored Mec state-dependent costs."""
+        cost = effective_skill_mana_cost(skill, class_name)
+        if skill.get("mec_authored"):
+            if (
+                str(skill.get("mec_special", "")) == "starlight_shower"
+                and self.mec_vmax_active_v0319()
+                and skill.get("uoss_vmax_mp_cost") is not None
+            ):
+                cost = max(0, int(skill.get("uoss_vmax_mp_cost") or 0))
+            elif (
+                str(skill.get("mec_branch", "")) == "support"
+                and self.mec_support_effect_v11149()
+                and skill.get("uoss_support_mp_cost") is not None
+            ):
+                cost = max(0, int(skill.get("uoss_support_mp_cost") or 0))
+        return cost
+
     def offensive_skill_damage_type_v11190(self, skill):
         """Canonical physical/magic channel for every damaging class skill."""
         if skill.get("mec_authored"):
@@ -183,7 +201,7 @@ class SessionCombatSkillsMixin:
                         f"{skill['name']} jest na cooldownie jeszcze {int(ready_at - now + 0.999)} sekund."
                     )
                     return
-                mana_cost = effective_skill_mana_cost(skill, skill_class)
+                mana_cost = self.combat_skill_mana_cost_v11191(skill, skill_class)
                 if mana_cost > 0:
                     mana_cost = int(round(mana_cost * self.equipment_mp_cost_multiplier_v11176()))
                 if mana_cost > self.current_mana:
