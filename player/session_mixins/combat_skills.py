@@ -710,6 +710,11 @@ class SessionCombatSkillsMixin:
                             return
                     else:
                         _cure_beam_target = self
+                    if superboss_healing_blocked_v11179(_cure_beam_target):
+                        await self.send(
+                            "Nullify Healing blokuje Cure Beam na tym celu."
+                        )
+                        return
 
                 self.current_mana -= mana_cost
                 if effective_cooldown > 0:
@@ -1068,9 +1073,6 @@ class SessionCombatSkillsMixin:
                         # it heals slightly more and cleanses Blind + Poison.
                         if special=="cure_beam":
                             target=_cure_beam_target or self
-                            if superboss_healing_blocked_v11179(target):
-                                await self.send("Nullify Healing blokuje Cure Beam na tym celu.")
-                                return
                             amount=self.healing_skill_amount_v11196(skill,target,skill_power)
                             if support_effect:
                                 amount=max(
