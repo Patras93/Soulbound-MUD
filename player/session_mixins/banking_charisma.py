@@ -23,6 +23,9 @@ class SessionBankingCharismaMixin:
     def shop_item_base_value_silver(self, item):
             price = int(item.get("price") or 0)
             currency = item.get("currency", "silver")
+            if price <= 0 and item.get("universal_endgame_shop"):
+                stage = max(1, int(item.get("required_level", 1) or 1))
+                return min(V019_SAFE_INT, max(1, int(v0190_economy_sink(stage, "equipment"))))
             if currency == "silver":
                 base = price
             elif currency == "gold":
