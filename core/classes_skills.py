@@ -2395,6 +2395,10 @@ def _v0319_install_full_mec_kit():
             row["mult"] = 1.0
             if kind=="aoe_damage": row["aoe"]=True
         if kind=="heal": row["heal_pct"] = .22 if special=="cure_beam" else .48
+        if special=="destroy": row["feedback_cost_source_defined"]=False
+        if special=="robo_tackle": row["feedback_cost_source_defined"]=False
+        if special=="compress": row["feedback_cost_source_defined"]=False
+        if special=="uzi_punch": row["feedback_cost_source_defined"]=False
         if special=="crush": row.update({"feedback_cost_source_defined":False,"damage_from_missing_hp":True,"level_caps_damage":True,"level_effect":"increases_maximum_possible_damage","single_soul_weapon":True})
         if special=="kamikaze_crush": row.update({"damage_from_current_hp":True,"vitality_influence":True,"vmax_power_and_feedback":True,"single_soul_weapon":True})
         if special=="maxwell_program": row.update({"magic_attack_augmentation":True,"mp_regen_percent":1.0,"mp_regen_seconds":6.0})
@@ -2403,7 +2407,7 @@ def _v0319_install_full_mec_kit():
         if special=="cosmic_rave": row.update({"aoe_diminishing":True,"vmax_random_enemies":True,"agility_secondary_influence":True,"carries_soul_weapon_elements":True,"single_soul_weapon":True})
         if special=="shock_soldier": row.update({"aoe_diminishing":True,"carries_soul_weapon_elements":True,"single_soul_weapon":True})
         if special=="range_fire": row.update({"aoe_non_diminishing":True,"carries_soul_weapon_elements":True,"single_soul_weapon":True})
-        if special=="dispose": row.update({"aoe_non_diminishing":True,"carries_soul_weapon_elements":True,"feedback_damage":True,"single_soul_weapon":True})
+        if special=="dispose": row.update({"aoe_non_diminishing":True,"carries_soul_weapon_elements":True,"feedback_damage":True,"feedback_cost_source_defined":False,"single_soul_weapon":True})
         if special=="crosshair": row.update({"critical_chance_influence":True,"attempts_critical":True,"carries_soul_weapon_elements":True,"single_soul_weapon":True})
         if special=="shoot_all": row.update({"aoe_non_diminishing":True,"critical_chance_influence":True,"vmax_increases_critical_and_damage":True,"carries_soul_weapon_elements":True,"single_soul_weapon":True})
         if special=="laser_spin": row.update({"aoe_diminishing":True,"element":"dark"})
