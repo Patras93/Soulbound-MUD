@@ -310,7 +310,7 @@ class SessionCombatRealtimeMixin:
                                     if _source_round and _source_round.get("instant_death"):
                                         target_session.current_hp = 0
                                         await self.server.party_combat_broadcast(target_session, _source_round["text"], detail="essential")
-                                        await target_session.handle_player_defeat(enemy_mob)
+                                        await target_session.die(_enemy_template['name'])
                                         continue
                                     _source_ability = superboss_source_ability_v11162(_enemy_template, enemy_mob)
                                     _source_effect = superboss_exact_ability_effect_v11160(target_session, _enemy_template, enemy_mob, _source_ability)
@@ -418,7 +418,7 @@ class SessionCombatRealtimeMixin:
                 self._recap52_taken=int(getattr(self,"_recap52_taken",0) or 0)+damage
                 await self.send_combat(f"{template['name']} zadaje ci {damage} obrażeń. HP {self.current_hp} z {self.max_hp()}.","normal")
                 if self.current_hp<=0:
-                    await self.handle_player_defeat(mob)
+                    await self.die(template['name'])
 
     async def attack(self, query):
                 wanted = (query or "").strip()
