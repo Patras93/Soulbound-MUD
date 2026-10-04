@@ -1,5 +1,14 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.11.69
+Aktualna paczka: v1.11.70
+
+==============================================================================
+Soulbound v1.11.70 — boss-shop runtime polish
+==============================================================================
+
+- Lista shop i shop info pokazują pełną cenę superbossa: złoto + token, zamiast zwykłej ceny sklepowej.
+- bind_on_pickup blokuje transfer, ale nie jest już błędnie utożsamiany z zasadą unique/one-per-character podczas zakupu.
+- Jednorazowość narzędzi profesji pozostaje bez zmian.
+- Brak wipe'a save'ów.
 
 ==============================================================================
 Soulbound v1.11.69 — superboss rewards become real gameplay
