@@ -2372,7 +2372,7 @@ def _v0319_install_full_mec_kit():
         ("Range Fire",8,"aoe_damage",500,"ranged","range_fire","Bullets hit all enemies; non-diminishing area attack."),
         ("Dispose",32,"aoe_damage",1000,"ranged","dispose","Heavy-duty lasers hit all enemies at full AoE power and cause Feedback damage."),
         ("Satellite Linker",44,"damage",1200,"ranged","satellite_linker","Laser bits hover around one enemy and repeatedly deal minor damage for a short period. Attack and Wisdom influence damage; higher Skill Level makes the bits operate longer."),
-        ("Magnify",90,"damage",1500,"ranged","magnify","Very strong overload attack; may Lock the user."),
+        ("Magnify",90,"damage",1500,"ranged","magnify","One-enemy weapon-overload attack influenced by Attack and Wisdom. Wisdom magnifies damage; Skill Level and Wisdom reduce the chance of systems failure. Failure causes weapon Overheat/reboot. Requires the Mec ranged Soul Weapon role."),
         ("Shoot-All",110,"aoe_damage",2000,"ranged","shoot_all","Fires all ammunition at all enemies; V-MAX increases damage and crit."),
         # Feedback
         ("Destroy",1,"damage",200,"feedback","destroy","One-enemy Feedback attack influenced by HP, Vitality and Attack. A shield improves damage and the attack becomes stronger as HP decreases."),
@@ -2582,6 +2582,30 @@ def _v0319_install_full_mec_kit():
         if special=="range_fire": row.update({"aoe_non_diminishing":True,"carries_soul_weapon_elements":True,"single_soul_weapon":True})
         if special=="dispose": row.update({"aoe_non_diminishing":True,"carries_soul_weapon_elements":True,"feedback_damage":True,"feedback_cost_source_defined":False,"single_soul_weapon":True})
         if special=="crosshair": row.update({"critical_chance_influence":True,"attempts_critical":True,"carries_soul_weapon_elements":True,"single_soul_weapon":True})
+        if special=="magnify":
+            row.update({
+                "scale":"attack",
+                "secondary_scale":"intelligence",
+                "source_stat_influence":["attack","wisdom"],
+                "source_properties":["cooldown"],
+                "target_mode":"one_enemy",
+                "wisdom_magnifies_damage":True,
+                "skill_level_reduces_system_failure":True,
+                "wisdom_reduces_system_failure":True,
+                "systems_failure_causes_overheat_reboot":True,
+                "requires_soul_weapon":"ranged",
+                "single_soul_weapon":True,
+                "mechanic_cooldown":True,
+                "numeric_cooldown_source_defined":False,
+                "systems_failure_numeric_source_defined":False,
+                "soulbound_failure_base_chance":0.35,
+                "soulbound_skill_failure_reduction_max":0.20,
+                "soulbound_wisdom_failure_reduction_anchor":0.06,
+                "soulbound_wisdom_failure_reduction_max":0.12,
+                "soulbound_failure_chance_floor":0.02,
+                "soulbound_reboot_recovery_actions":1,
+                "balance_model":"soulbound_failure35_skillminus20_wisminus12_floor2_one_recovery_action",
+            })
         if special=="satellite_linker":
             row.update({
                 "scale":"attack",
@@ -2807,6 +2831,33 @@ def _mec_contract_audit_v11149():
             errors.append(
                 f"cosmic_rave:vmax_random_hits={cosmic.get('vmax_random_hits')} expected=5"
             )
+    magnify=rows.get("magnify")
+    if magnify:
+        if list(magnify.get("source_stat_influence") or [])!=["attack","wisdom"]:
+            errors.append("magnify: source influence must be Attack + Wisdom")
+        if str(magnify.get("scale"))!="attack":
+            errors.append("magnify: primary scale must be Attack")
+        if str(magnify.get("secondary_scale"))!="intelligence":
+            errors.append("magnify: Wisdom must map to Intelligence")
+        if str(magnify.get("target_mode"))!="one_enemy":
+            errors.append("magnify: target mode must be One Enemy")
+        if list(magnify.get("source_properties") or [])!=["cooldown"]:
+            errors.append("magnify: source Properties must be Cooldown")
+        if not bool(magnify.get("wisdom_magnifies_damage")):
+            errors.append("magnify: Wisdom must magnify damage")
+        if not bool(magnify.get("skill_level_reduces_system_failure")):
+            errors.append("magnify: Skill Level must reduce systems failure")
+        if not bool(magnify.get("wisdom_reduces_system_failure")):
+            errors.append("magnify: Wisdom must reduce systems failure")
+        if not bool(magnify.get("systems_failure_causes_overheat_reboot")):
+            errors.append("magnify: systems failure must cause Overheat/reboot")
+        if str(magnify.get("requires_soul_weapon"))!="ranged":
+            errors.append("magnify: ranged weapon requirement must map to Soul Weapon")
+        if bool(magnify.get("numeric_cooldown_source_defined")):
+            errors.append("magnify: numeric cooldown duration must remain marked unsourced")
+        if bool(magnify.get("systems_failure_numeric_source_defined")):
+            errors.append("magnify: numeric failure curve must remain marked unsourced")
+
     satellite=rows.get("satellite_linker")
     if satellite:
         if list(satellite.get("source_stat_influence") or [])!=["attack","wisdom"]:
