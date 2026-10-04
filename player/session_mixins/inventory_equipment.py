@@ -1329,6 +1329,7 @@ class SessionInventoryEquipmentMixin:
                 "ring": ("ring1", "ring2"),
                 "charm": ("charm1", "charm2"),
                 "earring": ("earring1", "earring2"),
+                "accessory": ("accessory1", "accessory2"),
             }
             paired = pairs[logical_slot]
             for slot in paired:
