@@ -1539,6 +1539,9 @@ ENDGAME_CLASS_SKILLS = {
             "source_tick_cadence_defined": False,
             "source_heal_amount_defined": False,
             "source_base_duration_defined": False,
+            "soulbound_tick_every_rounds": 3,
+            "soulbound_duration_model": "30_to_90_seconds_by_skill_level",
+            "soulbound_heal_model": "small_will_scaled_periodic_heal",
         },
         {
             "id": "priest_light_beam",
@@ -2525,6 +2528,9 @@ def _v0319_install_full_mec_kit():
                                      "level_effect":"increases_duration",
                                      "tick_cadence_source_defined":False,
                                      "heal_amount_source_defined":False,
+                                     "soulbound_tick_every_rounds":3,
+                                     "soulbound_heal_model":"small_will_scaled_periodic_heal",
+                                     "duration_source":"vmax_timer",
                                      "properties":["dispelable","extendable","reflectable","silenceable"]}
                         }})
     CLASS_SKILLS["Mec"] = rows
