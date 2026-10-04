@@ -2362,7 +2362,7 @@ def _v0319_install_full_mec_kit():
     specs = [
         # Melee
         ("Hammer Crush",1,"damage",200,"melee","hammer_crush","Attack-based heavy smash against one enemy. Carries the active Soul Weapon element and uses the Mec melee Soul Weapon role."),
-        ("Shock Soldier",14,"aoe_damage",600,"melee","shock_soldier","Miniature weapon-wielding clones attack all enemies."),
+        ("Shock Soldier",14,"aoe_damage",600,"melee","shock_soldier","Attack-based melee barrage against all enemies with diminishing damage. Carries the active Soul Weapon element and uses the Mec melee Soul Weapon role."),
         ("Plural Slash",32,"damage",900,"melee","plural_slash","Multiple slashes on one enemy. Scales especially with Dexterity."),
         ("Pop Knight",46,"aoe_damage",1500,"melee","pop_knight","Non-diminishing attack on all enemies. Uses the Mec's single Soul Weapon, carries its elements, and deals extra damage to Flying enemies."),
         ("Tiger Rampage",80,"damage",1800,"melee","tiger_rampage","Powerful single-target attack that lowers Defense."),
@@ -2588,7 +2588,19 @@ def _v0319_install_full_mec_kit():
                 "single_soul_weapon":True,
             })
         if special=="cosmic_rave": row.update({"aoe_diminishing":True,"vmax_random_enemies":True,"agility_secondary_influence":True,"carries_soul_weapon_elements":True,"single_soul_weapon":True})
-        if special=="shock_soldier": row.update({"aoe_diminishing":True,"carries_soul_weapon_elements":True,"single_soul_weapon":True})
+        if special=="shock_soldier":
+            row.update({
+                "scale":"attack",
+                "source_stat_influence":["attack"],
+                "source_properties":["carries_elements"],
+                "target_mode":"all_enemies_diminishing",
+                "aoe_diminishing":True,
+                "diminishing_numeric_source_defined":False,
+                "soulbound_diminishing_model":"inverse_sqrt_target_count",
+                "carries_soul_weapon_elements":True,
+                "requires_soul_weapon":"melee",
+                "single_soul_weapon":True,
+            })
         if special=="range_fire":
             row.update({
                 "scale":"attack",
@@ -3011,6 +3023,27 @@ def _mec_contract_audit_v11149():
             errors.append("intercept_system: numeric Skill Level curve must remain marked unsourced")
         if bool(intercept.get("counter_trigger_chance_source_defined")):
             errors.append("intercept_system: no source trigger chance may be invented")
+
+    shock_soldier=rows.get("shock_soldier")
+    if shock_soldier:
+        if str(shock_soldier.get("scale"))!="attack":
+            errors.append("shock_soldier: primary scale must be Attack")
+        if list(shock_soldier.get("source_stat_influence") or [])!=["attack"]:
+            errors.append("shock_soldier: source influence must be Attack")
+        if list(shock_soldier.get("source_properties") or [])!=["carries_elements"]:
+            errors.append("shock_soldier: source Properties must be Carries Elements")
+        if str(shock_soldier.get("target_mode"))!="all_enemies_diminishing":
+            errors.append("shock_soldier: target mode must be All Enemies diminishing")
+        if not bool(shock_soldier.get("aoe_diminishing")):
+            errors.append("shock_soldier: diminishing AoE flag missing")
+        if bool(shock_soldier.get("diminishing_numeric_source_defined")):
+            errors.append("shock_soldier: numeric diminishing curve must remain marked unsourced")
+        if str(shock_soldier.get("soulbound_diminishing_model"))!="inverse_sqrt_target_count":
+            errors.append("shock_soldier: Soulbound diminishing model mismatch")
+        if not bool(shock_soldier.get("carries_soul_weapon_elements")):
+            errors.append("shock_soldier: must carry Soul Weapon elements")
+        if str(shock_soldier.get("requires_soul_weapon"))!="melee":
+            errors.append("shock_soldier: melee weapon requirement must map to Soul Weapon")
 
     hammer_crush=rows.get("hammer_crush")
     if hammer_crush:
