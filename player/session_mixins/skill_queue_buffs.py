@@ -693,30 +693,6 @@ class SessionSkillQueueBuffsMixin:
               "mega_bomb":"zwiększone obrażenia wszystkim celom", "air_anchor":"większy proc damage",
             }.get(special,"ulepszony efekt")
 
-    def player_silenced_v11196(self):
-            """Canonical Silence: prevents casting skills explicitly marked Silenceable."""
-            active=getattr(self,"uoss_source_statuses_v11173",set())
-            if isinstance(active,set) and "silence" in {
-                str(x).strip().casefold().replace(" ","_") for x in active
-            }:
-                return True
-            until=float(getattr(self,"v11196_silence_until",0.0) or 0.0)
-            return until>time.time()
-
-    def skill_is_silenceable_v11196(self, skill):
-            if not skill:
-                return False
-            if bool(skill.get("source_silenceable")):
-                return True
-            props=skill.get("source_properties") or skill.get("properties") or ()
-            if isinstance(props,str):
-                props=(props,)
-            normalized={
-                str(x).strip().casefold().replace(" ","_")
-                for x in props
-            }
-            return "silenceable" in normalized
-
     def auto_queue_skill_usable(self, skill, mob):
             if not skill:
                 return False
@@ -726,8 +702,6 @@ class SessionSkillQueueBuffsMixin:
             if not self.server.db.knows_skill(self.account_id, skill["id"]):
                 return False
             if not self.skill_mastery_unlocked(skill):
-                return False
-            if self.player_silenced_v11196() and self.skill_is_silenceable_v11196(skill):
                 return False
             # v1.11.40: ordinary skills of every class are cooldown-free.
             # Auto-queue respects only explicit special-mechanic timers.
