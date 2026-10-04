@@ -521,7 +521,8 @@ TOOL_BUY_ALIASES = {
 }
 
 def is_character_bound_item(item_id):
-    return item_id in CHARACTER_BOUND_TOOL_IDS
+    item = ITEMS.get(item_id, {})
+    return item_id in CHARACTER_BOUND_TOOL_IDS or bool(item.get("bind_on_pickup"))
 
 TOOL_SHOP_ROOMS = {
     "fishing_rod": "fish_market",

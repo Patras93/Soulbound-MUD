@@ -1,5 +1,18 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.11.68
+Aktualna paczka: v1.11.69
+
+==============================================================================
+Soulbound v1.11.69 — superboss rewards become real gameplay
+==============================================================================
+
+- bind_on_pickup jest teraz egzekwowane przez wspólną blokadę transferu; przypisanych nagród nie można wysyłać pocztą ani przekazywać graczom.
+- Sklepy superbossów pobierają jednocześnie dokładną źródłową cenę w złocie oraz wymagany token.
+- Źródłowe ceny boss-shop nie otrzymują zwykłego rabatu/cashbacku Charyzmy.
+- Statystyki źródłowe AGI/VIT/WIS zostały dostosowane do statystyk Soulbound: Dexterity/Constitution/Intelligence.
+- Armageddon, Daedalus Lance i Ninja's Trump, podobnie jak Gungnir/Zantetsuken/Bonebreaker/Mesa, nie tworzą osobnych slotów broni; są reliktami przypisanej Broni Duszy.
+- Nie wprowadzono automatycznego stackowania statystyk reliktów Broni Duszy: źródło nie określa zasad dla posiadania wielu takich adaptowanych broni jednocześnie.
+- Wszystkie noszone nagrody superbossów korzystają z istniejącego pipeline'u type=armor, dzięki czemu działają sloty, EQ, auto-EQ i statystyki.
+- Brak wipe'a save'ów.
 
 ==============================================================================
 Soulbound v1.11.68 — Black Rabite / Moogle Steel shop prices
