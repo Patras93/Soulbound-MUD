@@ -140,7 +140,10 @@ class SessionEquipmentStatsMixin:
                     continue
                 # ring1/ring2 i charm1/charm2 są dwiema pozycjami użytkowymi,
                 # ale dla progu setu nadal liczą się jako jedna logiczna część.
-                logical_slots.setdefault(class_name, set()).add(item.get("slot"))
+                # Shield is full-stat EQ, but it must not silently make historical
+                # 2/4/6/8 class-set thresholds easier after this new slot is added.
+                if item.get("slot")!="shield":
+                    logical_slots.setdefault(class_name, set()).add(item.get("slot"))
             return {
                 class_name: len(slots)
                 for class_name, slots in logical_slots.items()
