@@ -76,19 +76,25 @@ ENDGAME_PROFESSION_ITEMS = {
 }
 _catalog_mut.catalog_update_path('ITEMS', ITEMS, (), ENDGAME_PROFESSION_ITEMS)
 
-# v1.00.8: specjalny Board Cyborga, użyteczny od początku i skalowany Level'em postaci.
+# Kanoniczny Moogle Board. Jedyny Moogle Board w katalogu:
+# nagroda Black Rabite dla Cyborga oraz pozycja sklepu Moogle Steel.
 _catalog_mut.catalog_assign({
     "name": "Moogle Board",
     "type": "armor",
     "slot": "board",
     "defense": 0,
-    "price": 1000,
+    "price": None,
+    "required_level": 150,
+    "required_race": "Cyborg",
     "rarity": "cyborg",
     "rarity_name": "Cyborg",
-    "required_race": "Cyborg",
     "stats": {},
+    "source_item_type": "Board",
     "cyborg_board_scaling": "character_level",
-    "desc": "Specjalny moduł Cyborga. Działa niezależnie od klasy. Level 1-9 daje +2 do każdej z pięciu głównych statystyk; od Levelu 10 bonus rośnie o +2 co 10 Leveli aż do +20. Od Levelu 151 każdy kolejny Level zwiększa bonus o +2 do Siły, Zręczności, Kondycji, Inteligencji i Siły Woli.",
+    "fur_shop_gold_cost": 5000000,
+    "fur_shop_token": "uoss_moogle_steel",
+    "fur_shop_token_cost": 3,
+    "desc": "Moogle Board — unikalna nagroda Black Rabite dla Cyborga. Na Levelu 150 daje +20 do pięciu głównych statystyk; od 151 rośnie o +2 za każdy Level.",
 }, 'ITEMS', ITEMS, ("moogle_board",))
 
 _PROGRESSION_400_NAMES = {
