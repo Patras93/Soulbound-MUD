@@ -197,6 +197,10 @@ def _register_class_equipment_shops():
                     primary_stat, primary_amount, secondary_stat, secondary_amount = (
                         class_equipment_split_stat_budget(class_name, legacy_affix_amount, slot)
                     )
+                    if class_type_for_name(class_name) != "magic" and secondary_stat != "constitution":
+                        raise RuntimeError(
+                            f"Physical class EQ must include Condition: {class_name} {slot}"
+                        )
                     defense = max(
                         1,
                         int(definition["base_defense"]) + int(defense_delta) + defense_step,
