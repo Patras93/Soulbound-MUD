@@ -2405,7 +2405,7 @@ def _v0319_install_full_mec_kit():
         # Passive protocols
         ("Strength Protocol",1,"passive",2000,"passive","strength_protocol","Passively increases damage of Mec melee/Strength skills. Scales with this skill level."),
         ("Ranged Protocol",1,"passive",2000,"passive","ranged_protocol","Passively increases damage of Mec ranged/Dexterity shooting skills. Scales with this skill level."),
-        ("Feedback Protocol",1,"passive",2000,"passive","feedback_protocol","Passively increases damage of Mec Feedback skills. Scales with this skill level."),
+        ("Feedback Protocol",1,"passive",2000,"passive","feedback_protocol","Automatic protocol. Skill Level increases damage of Destroy, Robo Tackle, Uzi Punch and Kamikaze Crush."),
         ("Magic Protocol",1,"passive",2000,"passive","magic_protocol","Passively increases damage of Mec magic/Intelligence skills. Scales with this skill level."),
     ]
     if len(rows) < len(specs):
@@ -2434,10 +2434,17 @@ def _v0319_install_full_mec_kit():
         if special in {"strength_protocol","ranged_protocol","feedback_protocol","magic_protocol"}:
             row.update({
                 "automatic":True,
-                "level_effect":"increases_mapped_branch_damage",
+                "level_effect":"increases_mapped_skill_damage",
                 "protocol_multiplier_level1":1.05,
                 "protocol_multiplier_level600":1.75,
+                "protocol_numeric_source_defined":False,
                 "protocol_balance_curve":"soulbound_1.05_to_1.75_power_0.82",
+            })
+        if special=="feedback_protocol":
+            row.update({
+                "source_level_effect_skills":[
+                    "destroy","robo_tackle","uzi_punch","kamikaze_crush"
+                ],
             })
         if special=="destroy": row["feedback_cost_source_defined"]=False
         if special=="robo_tackle": row["feedback_cost_source_defined"]=False
@@ -2625,7 +2632,7 @@ MEC_PROTOCOL_SKILLS_V11155 = {
         "crosshair","range_fire","dispose","satellite_linker","magnify","shoot_all",
     ),
     "v0319_mec_feedback_protocol": (
-        "destroy","robo_tackle","compress","crush","uzi_punch","kamikaze_crush",
+        "destroy","robo_tackle","uzi_punch","kamikaze_crush",
     ),
     "v0319_mec_magic_protocol": (
         "laser_spin","area_bomb","mec_sonata","maelstrom","shock","starlight_shower",
@@ -2669,6 +2676,20 @@ def _mec_contract_audit_v11149():
         "jammer":20,"heal_beam":36,"logic_bomb":155,
     }
     source_support_mp_costs={"jammer":40,"heal_beam":72}
+    feedback_protocol=rows.get("feedback_protocol")
+    if feedback_protocol:
+        _feedback_expected=["destroy","robo_tackle","uzi_punch","kamikaze_crush"]
+        if not bool(feedback_protocol.get("automatic")):
+            errors.append("feedback_protocol: must be Automatic")
+        if str(feedback_protocol.get("level_effect"))!="increases_mapped_skill_damage":
+            errors.append("feedback_protocol: Level Effect must increase mapped skill damage")
+        if list(feedback_protocol.get("source_level_effect_skills") or [])!=_feedback_expected:
+            errors.append("feedback_protocol: source skill list mismatch")
+        if list(MEC_PROTOCOL_SKILLS_V11155.get("v0319_mec_feedback_protocol") or ())!=_feedback_expected:
+            errors.append("feedback_protocol: runtime mapping must exclude Compress and Crush")
+        if bool(feedback_protocol.get("protocol_numeric_source_defined")):
+            errors.append("feedback_protocol: numeric curve must remain marked unsourced")
+
     cosmic=rows.get("cosmic_rave")
     if cosmic:
         if str(cosmic.get("scale"))!="attack":
