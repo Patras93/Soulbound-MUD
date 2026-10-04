@@ -2391,7 +2391,7 @@ def _v0319_install_full_mec_kit():
         # Support
         ("Cure Beam",1,"heal",100,"support","cure_beam","Single-target healing beam available from the start. Willpower and Skill Level increase healing. Support Effect increases healing and removes Blind and Poison."),
         ("Hypno Flash",16,"damage",300,"support","hypno_flash","Attempts to put one enemy to Sleep. Will and Skill Level improve accuracy and duration; the Mec support weapon improves hit chance. Sleep is Cleanseable and Extendable."),
-        ("Jammer",32,"damage",750,"support","jammer","Attempts Stop on one enemy; Willpower influences accuracy and duration, Skill Level increases both, and Machine targets are easier to affect. Support Effect expands Jammer to all enemies."),
+        ("Jammer",32,"damage",750,"support","jammer","Attempts to Stop one enemy, or all enemies while the Mec support weapon is active. Will and Skill Level improve accuracy and duration; mechanical enemies are easier to affect. Stop is Cleanseable and Extendable."),
         ("Heal Beam",54,"heal",1000,"support","heal_beam","Significant Willpower-based healing. Normally heals one target; Support Effect heals the entire local party for an enhanced amount."),
         ("Logic Bomb",92,"damage",1200,"support","logic_bomb","Attempts Silence/Don't Act/Slow; support effect can add Curse/Don't Move/Blind."),
         ("V-MAX",130,"boost",2000,"support","vmax","Will-influenced core overdrive: Protect, Shell, Haste, Regen, Preach, Praise, Permanence; changes several Mec skills. When it ends, Overheat is prevented while the Mec's Soul Weapon remains the active support weapon."),
@@ -2714,9 +2714,32 @@ def _v0319_install_full_mec_kit():
                         "support_cleanses":["blind","poison"],
                         "healing_balance_model":"uncapped_will_skill_eq"})
         if special=="jammer":
-            row.update({"scale":"willpower","control_effect":"stop","cleanseable":True,"extendable":True,
-                        "uoss_mp_cost":20,"uoss_support_mp_cost":40,
-                        "target_mode":"single_or_support_all","machine_accuracy_bonus":True})
+            row.update({
+                "scale":"willpower",
+                "source_stat_influence":["will"],
+                "control_effect":"stop",
+                "source_properties":["cleanseable","extendable"],
+                "cleanseable":True,
+                "extendable":True,
+                "uoss_mp_cost":20,
+                "uoss_support_mp_cost":40,
+                "target_mode":"one_or_support_all_enemies",
+                "support_weapon_expands_to_all_enemies":True,
+                "machine_accuracy_bonus":True,
+                "level_effect":"increases_accuracy_and_duration",
+                "accuracy_numeric_source_defined":False,
+                "duration_numeric_source_defined":False,
+                "machine_bonus_numeric_source_defined":False,
+                "soulbound_base_accuracy":0.50,
+                "soulbound_skill_accuracy_bonus_max":0.25,
+                "soulbound_will_accuracy_bonus_max":0.15,
+                "soulbound_machine_accuracy_bonus":0.15,
+                "soulbound_accuracy_cap":0.98,
+                "soulbound_duration_rounds_level1":2,
+                "soulbound_duration_rounds_level600":5,
+                "soulbound_will_duration_bonus_max":2,
+                "balance_model":"soulbound_acc50_skill25_will15_machine15_cap98_duration2_to_5_plus_will2",
+            })
         if special=="logic_bomb":
             row.update({"scale":"willpower","uoss_mp_cost":155})
         if special=="starlight_shower":
@@ -2870,6 +2893,35 @@ def _mec_contract_audit_v11149():
             errors.append(
                 f"cosmic_rave:vmax_random_hits={cosmic.get('vmax_random_hits')} expected=5"
             )
+    jammer=rows.get("jammer")
+    if jammer:
+        if list(jammer.get("source_stat_influence") or [])!=["will"]:
+            errors.append("jammer: source influence must be Will")
+        if str(jammer.get("scale"))!="willpower":
+            errors.append("jammer: scale must be Willpower")
+        if int(jammer.get("uoss_mp_cost",0) or 0)!=20:
+            errors.append("jammer: normal MP cost must be 20")
+        if int(jammer.get("uoss_support_mp_cost",0) or 0)!=40:
+            errors.append("jammer: support MP cost must be 40")
+        if str(jammer.get("target_mode"))!="one_or_support_all_enemies":
+            errors.append("jammer: target mode must be one or support-all enemies")
+        if list(jammer.get("source_properties") or [])!=["cleanseable","extendable"]:
+            errors.append("jammer: source Properties must be Cleanseable + Extendable")
+        if str(jammer.get("control_effect"))!="stop":
+            errors.append("jammer: control effect must be Stop")
+        if str(jammer.get("level_effect"))!="increases_accuracy_and_duration":
+            errors.append("jammer: Skill Level must increase Accuracy and Duration")
+        if not bool(jammer.get("machine_accuracy_bonus")):
+            errors.append("jammer: mechanical enemies must be easier to affect")
+        if not bool(jammer.get("support_weapon_expands_to_all_enemies")):
+            errors.append("jammer: support weapon must expand effect to all enemies")
+        if bool(jammer.get("accuracy_numeric_source_defined")):
+            errors.append("jammer: accuracy curve must remain marked unsourced")
+        if bool(jammer.get("duration_numeric_source_defined")):
+            errors.append("jammer: duration curve must remain marked unsourced")
+        if bool(jammer.get("machine_bonus_numeric_source_defined")):
+            errors.append("jammer: machine accuracy bonus must remain marked unsourced")
+
     hypno=rows.get("hypno_flash")
     if hypno:
         if list(hypno.get("source_stat_influence") or [])!=["will"]:
