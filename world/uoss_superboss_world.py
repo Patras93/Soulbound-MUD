@@ -26,7 +26,7 @@ _prev=HUB
 # rather than inferred. XP is authored source XP and must not be regenerated.
 SOURCE_SCANNER_V11156 = {
     "black_rabite": {"level":300,"max_hp":3300000,"max_mp":800000,"xp":18900000,"immune":("Status_all",),"location":"Rabite Field"},
-    "culex": {"level":130,"max_hp":400000,"max_mp":200000,"xp":1000000,"resist":("Weapon","Magic"),"immune":("Status_all",),"drop":"Quartz Chunk","location":"Star Field"},
+    "culex": {"level":130,"max_hp":400000,"max_mp":200000,"xp":1000000,"resist":("Weapon","Magic"),"immune":("Status_all",),"drop":"Quartz Chunk","drop_item_id":"quartz_chunk","location":"Star Field"},
     "emerald_weapon": {"level":150,"max_hp":1000000,"max_mp":0,"xp":500000,"types":("Machine",),"weak":("Lightning",),"immune":("Status_all","Earth"),"absorb":("Ice","Water"),"drop":"Earth Harp","location":"On the Sea Floor"},
     "ruby_weapon": {"level":140,"max_hp":1000000,"max_mp":200000,"xp":500000,"types":("Machine",),"immune":("Berserk","Engulf","Silence","Poison","Sleep","Small","Noact","Gravity","Curse","Petrify","Imp","Stop","Water"),"absorb":("Fire","Ice","Lightning","Earth"),"drop":"Desert Rose","location":"Corel Prison"},
     "serpentarius": {"level":250,"max_hp":1300000,"xp":18900000,"types":("Demon",),"immune":("Curse","Poison","Silence","Stop"),"drop":"Serpentarius Emblem","location":"Deep Dungeon","round_limit":100,"no_exit_after_start":True},
