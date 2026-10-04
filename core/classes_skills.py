@@ -2396,7 +2396,7 @@ def _v0319_install_full_mec_kit():
         ("Logic Bomb",92,"damage",1200,"support","logic_bomb","Attempts to infect one enemy with Paralyze, Silence and Slow. With the Mec support weapon it also attempts Blind, Curse and Immobilize. Will and Skill Level improve accuracy and duration; Machine targets are easier to affect."),
         ("V-MAX",130,"boost",2000,"support","vmax","Will-influenced core overdrive: Protect, Shell, Haste, Regen, Preach, Praise, Permanence; changes several Mec skills. When it ends, Overheat is prevented while the Mec's Soul Weapon remains the active support weapon."),
         # Counter
-        ("Intercept System",75,"passive",1000,"counter","intercept_system","Counters enemy melee using the user's highest combat stat."),
+        ("Intercept System",75,"passive",1000,"counter","intercept_system","Selected Counter that interrupts an incoming enemy attack and answers with laser-guided damage using the highest available offensive stat. Skill Level increases counter damage."),
         # Inherent
         ("Self-Repair",1,"passive",1000,"inherent","self_repair","Automatically restores Feedback self-damage after 3 owner rounds. Source also grants Auto-Regen, but no numeric Auto-Regen amount is supplied, so Soulbound does not fabricate one."),
         ("Combat Mastery",30,"passive",1000,"inherent","combat_mastery","Increases purely Strength-based weapon/Mec melee damage."),
@@ -2796,6 +2796,23 @@ def _v0319_install_full_mec_kit():
                         "target_mode":"diminishing_aoe_or_vmax_random",
                         "vmax_random_hits":5,
                         "vmax_random_hits_evidence":"user_uoss_combat_log"})
+        if special=="intercept_system":
+            row.update({
+                "source_stat_influence":["variable"],
+                "source_properties":[],
+                "usage_mode":"job_set_counter",
+                "interrupts_incoming_attack":True,
+                "counter_damage":True,
+                "highest_offensive_stat":True,
+                "offensive_stat_candidates":[
+                    "strength","dexterity","intelligence","willpower"
+                ],
+                "level_effect":"increases_damage",
+                "numeric_damage_curve_source_defined":False,
+                "skill_level_damage_curve":"global_soulbound_skill_power_1_to_600",
+                "counter_trigger_chance_source_defined":False,
+                "counter_trigger_model":"selected_counter_interrupts_incoming_attack",
+            })
         if special=="vmax":
             row.update({"scale":"willpower","source_stat_influence":["will"],
                         "boost":1.0,"cooldown":0,"mechanic_cooldown":True,
@@ -2924,6 +2941,29 @@ def _mec_contract_audit_v11149():
             errors.append(
                 f"cosmic_rave:vmax_random_hits={cosmic.get('vmax_random_hits')} expected=5"
             )
+    intercept=rows.get("intercept_system")
+    if intercept:
+        if list(intercept.get("source_stat_influence") or [])!=["variable"]:
+            errors.append("intercept_system: source influence must be Variable")
+        if list(intercept.get("source_properties") or [])!=[]:
+            errors.append("intercept_system: source Properties must be None")
+        if str(intercept.get("usage_mode"))!="job_set_counter":
+            errors.append("intercept_system: must use job set counter")
+        if not bool(intercept.get("interrupts_incoming_attack")):
+            errors.append("intercept_system: must interrupt incoming attack")
+        if not bool(intercept.get("highest_offensive_stat")):
+            errors.append("intercept_system: must use highest offensive stat")
+        if list(intercept.get("offensive_stat_candidates") or [])!=[
+            "strength","dexterity","intelligence","willpower"
+        ]:
+            errors.append("intercept_system: offensive stat candidates mismatch")
+        if str(intercept.get("level_effect"))!="increases_damage":
+            errors.append("intercept_system: Skill Level must increase Damage")
+        if bool(intercept.get("numeric_damage_curve_source_defined")):
+            errors.append("intercept_system: numeric Skill Level curve must remain marked unsourced")
+        if bool(intercept.get("counter_trigger_chance_source_defined")):
+            errors.append("intercept_system: no source trigger chance may be invented")
+
     logic_bomb=rows.get("logic_bomb")
     if logic_bomb:
         if list(logic_bomb.get("source_stat_influence") or [])!=["will"]:
