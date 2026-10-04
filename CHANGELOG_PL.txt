@@ -1,5 +1,15 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.11.70
+Aktualna paczka: v1.11.71
+
+==============================================================================
+Soulbound v1.11.71 — Soulbound rules over UOSS penalties
+==============================================================================
+
+- Nagrody i EQ superbossów UOSS nie są bindowane w Soulbound: można nimi handlować, przekazywać je i wysyłać pocztą zgodnie z normalnymi zasadami.
+- Charyzma ponownie obniża złotową część ceny w sklepach superbossów.
+- Token bossowy nadal jest wymagany zgodnie z systemem nagród, ale nie podlega rabatowi.
+- UOSS pozostaje źródłem zawartości, nazw, statystyk i sensu mechanik; jego kary/ograniczenia nie są kopiowane automatycznie do Soulbound.
+- Brak wipe'a save'ów.
 
 ==============================================================================
 Soulbound v1.11.70 — boss-shop runtime polish
