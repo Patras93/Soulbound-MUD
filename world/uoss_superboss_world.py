@@ -181,8 +181,8 @@ if "uoss_helper_montblanc" in NPCS:
 # Soulbound adaptation: source reward shops live in existing Soulbound locations.
 # We preserve source currencies/catalogs without creating foreign cities only to host vendors.
 NPCS.setdefault("uoss_watts",{
-    "name":"Watts","room":"forge",
-    "dialogue":"Wymieniam Moogle Steel na relikty Black Rabite.","shopkeeper":True,
+    "name":"Kupiec nagród Black Rabite","room":"market",
+    "dialogue":"Wymieniam Moogle Steel i złoto na nagrody Black Rabite.","shopkeeper":True,
     "uoss_token_shop":"uoss_moogle_steel",
 })
 NPCS.setdefault("uoss_culex_fur_trader",{
@@ -208,10 +208,10 @@ for _iid in (
 ):
     if _iid not in SHOPS["market"]:
         SHOPS["market"].append(_iid)
-SHOPS.setdefault("forge",[])
+SHOPS.setdefault("market",[])
 for _iid in (f"uoss_black_rabite_unique_{i}" for i in range(1,11)):
-    if _iid not in SHOPS["forge"]:
-        SHOPS["forge"].append(_iid)
+    if _iid not in SHOPS["market"]:
+        SHOPS["market"].append(_iid)
 
 def install_uoss_superboss_spawns_v11136(mob_spawns):
     """Install bosses; sourced encounters spawn in their canonical named rooms."""
