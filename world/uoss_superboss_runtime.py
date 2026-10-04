@@ -5,11 +5,13 @@ This module deliberately uses the existing collection_entries persistence for
 per-account clears/lockouts. No new SQLite migration is required.
 """
 import random
+from datetime import datetime, timezone
 import world.uoss_superboss_world as _uoss_superboss_world_v11136
 from world.uoss_superbosses import UOSS_SUPERBOSS_ENCOUNTERS_V11134
 
 SUPERBOSS_COLLECTION_V11135 = "uoss_superboss_clears_v11135"
 SUPERBOSS_REWARD_COLLECTION_V11135 = "uoss_superboss_rewards_v11135"
+SUPERBOSS_LOCKOUT_SECONDS_V11157 = 24 * 60 * 60
 
 SUPERBOSS_TOKEN_ITEMS_V11135 = {
     "ruby_weapon": ("uoss_desert_rose", "Desert Rose"),
@@ -30,12 +32,33 @@ def superboss_key_from_template_v11135(template):
     return key if key in UOSS_SUPERBOSS_ENCOUNTERS_V11134 else None
 
 
+def _superboss_clear_age_seconds_v11157(db, account_id, boss_key):
+    raw = db.collection_entry_discovered_at(account_id, SUPERBOSS_COLLECTION_V11135, str(boss_key))
+    if not raw:
+        return None
+    try:
+        stamp = datetime.fromisoformat(str(raw).replace("Z", "+00:00"))
+        if stamp.tzinfo is None:
+            stamp = stamp.replace(tzinfo=timezone.utc)
+        return max(0.0, (datetime.now(timezone.utc) - stamp.astimezone(timezone.utc)).total_seconds())
+    except (TypeError, ValueError):
+        # Legacy malformed timestamps must not create a permanent lockout.
+        return None
+
+
+def superboss_lockout_remaining_v11157(db, account_id, boss_key):
+    age = _superboss_clear_age_seconds_v11157(db, account_id, boss_key)
+    if age is None or age >= SUPERBOSS_LOCKOUT_SECONDS_V11157:
+        return 0
+    return max(1, int(SUPERBOSS_LOCKOUT_SECONDS_V11157 - age))
+
+
 def superboss_cleared_v11135(db, account_id, boss_key):
-    return str(boss_key) in db.collection_entry_ids(account_id, SUPERBOSS_COLLECTION_V11135)
+    return superboss_lockout_remaining_v11157(db, account_id, boss_key) > 0
 
 
 def mark_superboss_clear_v11135(db, account_id, boss_key):
-    return db.add_collection_entry(account_id, SUPERBOSS_COLLECTION_V11135, str(boss_key))
+    return db.touch_collection_entry(account_id, SUPERBOSS_COLLECTION_V11135, str(boss_key))
 
 
 def superboss_personal_reward_v11135(db, account_id, boss_key):
@@ -100,8 +123,11 @@ def superboss_attack_gate_v11137(session, template):
             unlocked = bool(member.server.db.collection_entry_ids(member.account_id, "deep_dungeon_discovery"))
             if not unlocked:
                 return False, f"{member.character.name} nie odblokował jeszcze Serpentariusa przez eksplorację Deep Dungeon."
-    if superboss_cleared_v11135(session.server.db, session.account_id, key) and spec.get("once_per_cycle"):
-        return False, f"{spec['name']} jest już przez ciebie zaliczony w trwałym cyklu."
+    if spec.get("lockout_hours") and superboss_cleared_v11135(session.server.db, session.account_id, key):
+        remaining=superboss_lockout_remaining_v11157(session.server.db, session.account_id, key)
+        hours=remaining//3600
+        minutes=(remaining%3600)//60
+        return False, f"{spec['name']} możesz ponownie pokonać za {hours} godz. {minutes} min."
     return True, ""
 
 
