@@ -1158,7 +1158,7 @@ class SessionCombatSkillsMixin:
                                 # engaged target receives the same reduced hit, while
                                 # total output still grows sub-linearly with target count.
                                 _local_mult *= 1.0 / (float(len(targets)) ** 0.5)
-                            elif special in ("shock_soldier","laser_spin","maelstrom","cosmic_rave") and len(targets)>1 and not (special=="cosmic_rave" and vmax):
+                            elif special in ("shock_soldier","laser_spin","maelstrom","shock","cosmic_rave") and len(targets)>1 and not (special=="cosmic_rave" and vmax):
                                 # Source marks these as Diminishing but does not publish
                                 # a numeric curve. Soulbound uses an explicit inverse-
                                 # sqrt target-count adaptation so every target receives
