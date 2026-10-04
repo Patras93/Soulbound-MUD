@@ -2377,7 +2377,7 @@ def _v0319_install_full_mec_kit():
         # Feedback
         ("Destroy",1,"damage",200,"feedback","destroy","One-enemy Feedback attack influenced by HP, Vitality and Attack. A shield improves damage and the attack becomes stronger as HP decreases."),
         ("Robo Tackle",20,"damage",500,"feedback","robo_tackle","One-enemy tackle influenced by HP before use, Vitality and Attack. Damage falls as current HP falls; a shield improves damage. V-MAX increases both attack power and Feedback damage."),
-        ("Compress",30,"damage",600,"feedback","compress","Gravity percentile damage at a cost of HP."),
+        ("Compress",30,"damage",600,"feedback","compress","One-enemy compression attempt influenced by Vitality and HP. On success it deals a percentage of the target current HP; full HP and an equipped shield increase compression power. Skill Level increases accuracy and the attack causes Feedback."),
         ("Crush",46,"damage",1000,"feedback","crush","One-enemy Feedback attack based on the difference between maximum and current HP. Character Level limits the damage capacity, Skill Level raises the maximum possible damage, and an equipped shield increases that capacity."),
         ("Uzi Punch",95,"aoe_damage",1400,"feedback","uzi_punch","Random-enemy machinegun punch influenced by HP, Vitality and Attack. Feedback damages the Mec, a shield improves damage, and the attack becomes stronger as HP decreases."),
         ("Kamikaze Crush",110,"damage",2000,"feedback","kamikaze_crush","One-enemy lethal divebomb influenced by HP before use, Vitality and Attack. Damage falls as current HP falls; an equipped shield improves damage. V-MAX increases both attack power and Feedback damage."),
@@ -2486,7 +2486,33 @@ def _v0319_install_full_mec_kit():
                 "balance_model":"soulbound_hp12_shield115_vmax120_feedback10_25",
                 "single_soul_weapon":True,
             })
-        if special=="compress": row["feedback_cost_source_defined"]=False
+        if special=="compress":
+            row.update({
+                "scale":"target_current_hp_percent",
+                "source_stat_influence":["vitality","hp"],
+                "source_properties":[],
+                "target_mode":"one_enemy",
+                "percentage_target_hp_damage":True,
+                "percentage_uses_current_hp":True,
+                "level_effect":"increases_accuracy",
+                "vitality_influence":True,
+                "full_hp_increases_power":True,
+                "shield_increases_compressing_power":True,
+                "feedback_damage":True,
+                "feedback_cost_source_defined":False,
+                "numeric_source_defined":False,
+                "base_accuracy":0.65,
+                "skill_level_accuracy_bonus_max":0.30,
+                "vitality_accuracy_bonus_anchor":0.05,
+                "base_target_current_hp_pct":0.20,
+                "full_hp_damage_pct_bonus":0.10,
+                "shield_damage_pct_bonus":0.10,
+                "vitality_damage_pct_anchor":0.05,
+                "max_target_current_hp_pct":0.60,
+                "feedback_max_hp_pct":0.08,
+                "balance_model":"soulbound_currenthp20_fullhp10_shield10_vit5_cap60_acc65_95_feedback8",
+                "single_soul_weapon":True,
+            })
         if special=="uzi_punch":
             row.update({
                 "scale":"attack",
@@ -2773,6 +2799,31 @@ def _mec_contract_audit_v11149():
             errors.append("shoot_all: missing V-MAX crit/damage increase")
         if bool(shoot_all.get("vmax_numeric_source_defined")):
             errors.append("shoot_all: V-MAX numeric bonus must remain marked unsourced")
+    compress=rows.get("compress")
+    if compress:
+        if list(compress.get("source_stat_influence") or [])!=["vitality","hp"]:
+            errors.append("compress: source influence must be Vitality + HP")
+        if str(compress.get("scale"))!="target_current_hp_percent":
+            errors.append("compress: damage must be percentage of target current HP")
+        if str(compress.get("target_mode"))!="one_enemy":
+            errors.append("compress: target mode must be One Enemy")
+        if str(compress.get("level_effect"))!="increases_accuracy":
+            errors.append("compress: Skill Level must increase Accuracy")
+        if not bool(compress.get("percentage_target_hp_damage")):
+            errors.append("compress: percentage HP damage flag missing")
+        if not bool(compress.get("full_hp_increases_power")):
+            errors.append("compress: full HP must increase compressing power")
+        if not bool(compress.get("shield_increases_compressing_power")):
+            errors.append("compress: shield must increase compressing power")
+        if not bool(compress.get("feedback_damage")):
+            errors.append("compress: Feedback self-damage missing")
+        if bool(compress.get("feedback_cost_source_defined")):
+            errors.append("compress: Feedback numeric cost must remain marked unsourced")
+        if bool(compress.get("numeric_source_defined")):
+            errors.append("compress: numeric percentage/accuracy curve must remain marked unsourced")
+        if list(compress.get("source_properties") or [])!=[]:
+            errors.append("compress: source Properties must remain None")
+
     destroy=rows.get("destroy")
     if destroy:
         if list(destroy.get("source_stat_influence") or [])!=["hp","vitality","attack"]:
