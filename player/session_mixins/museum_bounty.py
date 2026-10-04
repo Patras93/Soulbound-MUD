@@ -405,6 +405,10 @@ class SessionMuseumBountyMixin:
                 soul_xp=max(1,int(round(v0190_log_curve(reward_stage,V019_SOUL_KILL_NORMAL)*max(2.0,math.sqrt(reward_needed)))))
                 reward_coins=max(1,int(round(v0190_log_curve(reward_stage,V019_QUEST_COIN)*0.75)))
                 gold=max(1,reward_coins//SILVER_PER_GOLD)
+                if reward_stage >= 300: gold=max(gold,500_000)
+                elif reward_stage >= 200: gold=max(gold,250_000)
+                elif reward_stage >= 150: gold=max(gold,100_000)
+                elif reward_stage >= 100: gold=max(gold,25_000)
                 offers.append({
                     "kind": kind,
                     "target": target,
