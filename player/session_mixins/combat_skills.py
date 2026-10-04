@@ -19,6 +19,19 @@ from world.economy_quests import v0863_execute_threshold
 from world.uoss_superboss_runtime import superboss_attack_gate_v11137
 
 class SessionCombatSkillsMixin:
+    def offensive_skill_core_stat_power_v11188(self, skill):
+        """Effective offensive stat power including source-faithful flat EQ power."""
+        scale_name = str(skill.get("scale", "strength") or "strength").lower()
+        if scale_name in ("intelligence", "wisdom", "magic"):
+            return max(1, int(self.spell_power()))
+        if scale_name in ("dexterity", "agility", "ranged"):
+            # Ranged/agility skills keep DEX identity; direct Attack still matters.
+            flat = self.equipment_flat_power_totals_v11187()
+            return max(1, int(self.skill_scale_value("dexterity")) + int(flat["attack"]) + int(flat["weapon_power"]))
+        if scale_name in ("will", "willpower"):
+            return max(1, int(self.effective_willpower()) + int(self.equipment_flat_power_totals_v11187()["magic_attack"]))
+        return max(1, int(self.physical_power()))
+
     def offensive_skill_core_power_v11185(self, skill, authored_base=0):
         """Global Combat 2.0 offensive core shared by authored skill paths.
 
@@ -29,8 +42,7 @@ class SessionCombatSkillsMixin:
         Authored base_power remains the identity of special Mec/Engineer attacks;
         it no longer replaces character progression.
         """
-        scale_name = str(skill.get("scale", "strength") or "strength").lower()
-        stat_power = max(1, int(self.skill_scale_value(scale_name)))
+        stat_power = self.offensive_skill_core_stat_power_v11188(skill)
         soul_power = max(0, int(self.character.soul_power()))
         return max(1, int(authored_base or 0) + soul_power + stat_power)
 
