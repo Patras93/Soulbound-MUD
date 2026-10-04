@@ -2371,7 +2371,7 @@ def _v0319_install_full_mec_kit():
         ("Crosshair",1,"damage",200,"ranged","crosshair","Precise shot; benefits strongly from critical chance."),
         ("Range Fire",8,"aoe_damage",500,"ranged","range_fire","Bullets hit all enemies; non-diminishing area attack."),
         ("Dispose",32,"aoe_damage",1000,"ranged","dispose","Heavy-duty lasers hit all enemies at full AoE power and cause Feedback damage."),
-        ("Satellite Linker",44,"damage",1200,"ranged","satellite_linker","Attack drones repeatedly damage one enemy over time; scales with Will."),
+        ("Satellite Linker",44,"damage",1200,"ranged","satellite_linker","Laser bits hover around one enemy and repeatedly deal minor damage for a short period. Attack and Wisdom influence damage; higher Skill Level makes the bits operate longer."),
         ("Magnify",90,"damage",1500,"ranged","magnify","Very strong overload attack; may Lock the user."),
         ("Shoot-All",110,"aoe_damage",2000,"ranged","shoot_all","Fires all ammunition at all enemies; V-MAX increases damage and crit."),
         # Feedback
@@ -2582,6 +2582,28 @@ def _v0319_install_full_mec_kit():
         if special=="range_fire": row.update({"aoe_non_diminishing":True,"carries_soul_weapon_elements":True,"single_soul_weapon":True})
         if special=="dispose": row.update({"aoe_non_diminishing":True,"carries_soul_weapon_elements":True,"feedback_damage":True,"feedback_cost_source_defined":False,"single_soul_weapon":True})
         if special=="crosshair": row.update({"critical_chance_influence":True,"attempts_critical":True,"carries_soul_weapon_elements":True,"single_soul_weapon":True})
+        if special=="satellite_linker":
+            row.update({
+                "scale":"attack",
+                "secondary_scale":"intelligence",
+                "source_stat_influence":["attack","wisdom"],
+                "source_properties":[],
+                "target_mode":"one_enemy",
+                "periodic_damage":True,
+                "minor_damage_over_time":True,
+                "wisdom_increases_damage":True,
+                "level_effect":"increases_duration",
+                "duration_source_defined":False,
+                "tick_cadence_source_defined":False,
+                "tick_damage_source_defined":False,
+                "soulbound_tick_every_owner_rounds":1,
+                "soulbound_duration_rounds_level1":3,
+                "soulbound_duration_rounds_level600":8,
+                "soulbound_tick_damage_multiplier":0.20,
+                "soulbound_single_active_link":True,
+                "balance_model":"soulbound_tick20pct_every_round_duration3_to_8",
+                "single_soul_weapon":True,
+            })
         if special=="shoot_all":
             row.update({
                 "scale":"attack",
@@ -2785,6 +2807,29 @@ def _mec_contract_audit_v11149():
             errors.append(
                 f"cosmic_rave:vmax_random_hits={cosmic.get('vmax_random_hits')} expected=5"
             )
+    satellite=rows.get("satellite_linker")
+    if satellite:
+        if list(satellite.get("source_stat_influence") or [])!=["attack","wisdom"]:
+            errors.append("satellite_linker: source influence must be Attack + Wisdom")
+        if str(satellite.get("scale"))!="attack":
+            errors.append("satellite_linker: primary scale must be Attack")
+        if str(satellite.get("secondary_scale"))!="intelligence":
+            errors.append("satellite_linker: Wisdom must map to Intelligence")
+        if str(satellite.get("target_mode"))!="one_enemy":
+            errors.append("satellite_linker: target mode must be One Enemy")
+        if not bool(satellite.get("periodic_damage")):
+            errors.append("satellite_linker: periodic damage missing")
+        if str(satellite.get("level_effect"))!="increases_duration":
+            errors.append("satellite_linker: Skill Level must increase duration")
+        if bool(satellite.get("duration_source_defined")):
+            errors.append("satellite_linker: numeric duration must remain marked unsourced")
+        if bool(satellite.get("tick_cadence_source_defined")):
+            errors.append("satellite_linker: tick cadence must remain marked unsourced")
+        if bool(satellite.get("tick_damage_source_defined")):
+            errors.append("satellite_linker: tick damage must remain marked unsourced")
+        if list(satellite.get("source_properties") or [])!=[]:
+            errors.append("satellite_linker: source Properties must remain None")
+
     shoot_all=rows.get("shoot_all")
     if shoot_all:
         if str(shoot_all.get("scale"))!="attack":
