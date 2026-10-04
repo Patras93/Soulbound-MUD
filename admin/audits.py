@@ -4002,6 +4002,11 @@ def all_local_party_buffs_audit_v03511():
         metrics["same_room_party_helper"] = "party_sessions" in helper_source and "same_room=self.character.room_id" in helper_source
         metrics["living_local_only"] = "session.current_hp > 0" in helper_source and "session.character.room_id == self.character.room_id" in helper_source
         metrics["generic_boost_passive"] = "pasywnym wzmocnieniem Automatic" in combat_source and "apply_party_boost_v03511" not in combat_source
+        metrics["typed_physical_magic_boosts"] = (
+            "target_type" in boost_source
+            and "class_type_for_name(class_name)" in boost_source
+            and "skill_buff_multiplier(target_type=resolved_type)" in combat_source
+        )
         metrics["guard_shared"] = "for session in recipients:" in combat_source and "session.skill_guard" in combat_source
         metrics["evade_shared"] = "for session in recipients:" in combat_source and "session.skill_evade = True" in combat_source
         metrics["vmax_self_only"] = "_vmax_statuses=" in combat_source and "self.active_skill_buffs" in combat_source and "v03511_party_vmax_until" not in combat_source
@@ -4030,7 +4035,7 @@ if ALL_LOCAL_PARTY_BUFFS_AUDIT_V03511["error_count"]:
 
 HELP_TOPICS.setdefault("party", []).extend([
     "v0.35.11 po aktualizacji kontraktu: aktywne guardy i gwarantowane uniki działają na wszystkich żywych członków drużyny stojących w tej samej lokacji co rzucający.",
-    "Zwykłe skille typu boost są pasywne Automatic po nauczeniu i nie wymagają aktywacji ani kopiowania jako czasowy status drużynowy.",
+    "Zwykłe skille typu boost są pasywne Automatic po nauczeniu: fizyczne boosty wzmacniają tylko fizyczne skille, a magiczne tylko magiczne.",
     "V-MAX jest mechaniką Meca i nakłada swój korzystny pakiet wyłącznie na Meca; nie tworzy sztucznego drużynowego +30 procent.",
 ])
 HELP_TOPICS.setdefault("druzyna", []).extend(HELP_TOPICS.get("party", [])[-3:])
@@ -4043,7 +4048,7 @@ HELP_TOPICS.setdefault("wersja", []).append(
 )
 LATEST_CHANGES_TITLE = "Soulbound v0.35.11 - All Local Party Combat Buffs"
 LATEST_CHANGES = [
-    "v0.35.11: zwykłe boosty są pasywne Automatic po nauczeniu; nie tworzą czasowego buffa drużynowego.",
+    "v0.35.11: zwykłe boosty są pasywne Automatic; fizyczne wzmacniają fizyczne skille, a magiczne magiczne.",
     "Guard daje każdemu obecnemu członkowi własną ochronę następnego trafienia, a evade daje każdemu własny gwarantowany unik następnego ataku.",
     "V-MAX Meca działa na Meca i jego źródłowy pakiet korzystnych statusów; nie daje sztucznego +30 procent całej drużynie.",
     "Upgrade Inżyniera został poprawnie sklasyfikowany jako utility, ponieważ jest trwałym ulepszeniem narzędzia, a nie czasowym buffem bojowym.",
