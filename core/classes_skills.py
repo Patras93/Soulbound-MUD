@@ -1725,6 +1725,7 @@ UOSS_STATUS_SOURCE_CONTRACTS_V11196 = {
         "source_requires_none": True,
         "source_usage": "use magicsword silence [at target]",
         "source_target_mode": "one_enemy",
+        "soulbound_target_scope": "enemy_only",
         "source_mp_cost": 32,
         "source_stat_influence": ["will"],
         "source_properties": ["cleanseable", "extendable"],
@@ -1748,6 +1749,8 @@ def _uoss_status_source_contract_audit_v11196():
         errors.append("silence: Reqs must remain None")
     if str(silence.get("source_target_mode",""))!="one_enemy":
         errors.append("silence: target must remain One Enemy")
+    if str(silence.get("soulbound_target_scope",""))!="enemy_only":
+        errors.append("silence: Soulbound scope must remain enemy_only")
     if int(silence.get("source_mp_cost",0) or 0)!=32:
         errors.append("silence: MP cost must remain 32")
     if list(silence.get("source_stat_influence") or [])!=["will"]:
