@@ -127,6 +127,9 @@ class SessionEquipmentStatsMixin:
                 for stat, amount in item.get("stats", {}).items():
                     if stat in totals:
                         totals[stat] += int(amount)
+                for stat, amount in item.get("soulbound_balance_stats", {}).items():
+                    if stat in totals:
+                        totals[stat] += int(amount)
 
                 # v1.11.78: Soulbound zachowuje użyteczną progresję Board przed 150; od 150 +20, potem +2/Level.
                 if item.get("cyborg_board_scaling") == "character_level":
@@ -159,6 +162,9 @@ class SessionEquipmentStatsMixin:
             _relic_id,_relic=self.active_soul_weapon_relic_v11176()
             if _relic:
                 for stat,amount in (_relic.get("stats") or {}).items():
+                    if stat in totals:
+                        totals[stat]+=int(amount)
+                for stat,amount in (_relic.get("soulbound_balance_stats") or {}).items():
                     if stat in totals:
                         totals[stat]+=int(amount)
             class_stats = self.class_set_stat_bonus_totals()
