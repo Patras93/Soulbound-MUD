@@ -693,7 +693,20 @@ def full_game_audit_v03014():
     skill_names = {}
     for class_name in class_types:
         rows = CLASS_SKILLS.get(class_name, [])
-        require(len(rows) == len(_V0922_MASTERY_LEVELS) * 3, f"{class_name}: skills={len(rows)}")
+        # v0.9.22 guarantees at least three choices on every authored mastery
+        # threshold. Later source-faithful abilities may legally add extra
+        # skills (for example Priest Regen), so total length must not be exact.
+        expected_min = len(_V0922_MASTERY_LEVELS) * 3
+        require(len(rows) >= expected_min, f"{class_name}: skills={len(rows)} minimum={expected_min}")
+        for mastery_level in _V0922_MASTERY_LEVELS:
+            at_level = [
+                skill for skill in rows
+                if int(skill.get("unlock", 1) or 1) == int(mastery_level)
+            ]
+            require(
+                len(at_level) >= 3,
+                f"{class_name}: mastery {mastery_level} has {len(at_level)} skills; minimum=3",
+            )
         for skill in rows:
             all_skills.append((class_name, skill))
             sid = str(skill.get("id", ""))
