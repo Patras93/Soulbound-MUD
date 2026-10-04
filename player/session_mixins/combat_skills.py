@@ -148,7 +148,13 @@ class SessionCombatSkillsMixin:
         magic = name in {"Popoi", "Primm", "Montblanc", "Byblos"}
         kind = "magic" if magic else "physical"
         stat = self.spell_power() if magic else self.physical_power()
+        raw_stat = (
+            max(self.effective_intelligence(), self.effective_willpower())
+            if magic else
+            max(self.effective_strength(), self.effective_dexterity())
+        )
         mult = self.equipment_damage_multiplier(kind) * self.total_set_damage_multiplier()
+        mult *= generator_core_v027.character_offensive_build_multiplier(raw_stat)
         damage = max(1, int(round((self.character.soul_power() + stat) * 0.65 * mult)))
         damage = await self.apply_boss_defense(target, damage)
         damage = self.v0210_adjust_player_damage(damage)
