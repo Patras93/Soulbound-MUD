@@ -149,10 +149,12 @@ def superboss_counterattack_multiplier_v11137(template, mob):
     key = superboss_key_from_template_v11135(template)
     if key == "spekkio":
         return 1.0, "Spekkio dopasowuje siłę do przeciwnika."
+    # Phase identity/text is source-backed, but no universal numeric
+    # phase multiplier is. Do not impose fabricated +25%/+55% damage.
     if phase == 3:
-        return 1.55, "Faza 3: desperacki atak Super Bossa."
+        return 1.0, "Faza 3: desperacki atak Super Bossa."
     if phase == 2:
-        return 1.25, "Faza 2: Super Boss zwiększa napór."
+        return 1.0, "Faza 2: Super Boss zwiększa napór."
     return 1.0, "Faza 1."
 
 
@@ -212,7 +214,9 @@ def superboss_incoming_multiplier_v11138(session, template, mob):
         # player's current defensive scale rather than a fixed authored tier.
         expected=max(1.0,float(session.consider_player_expected_hit()))
         authored=max(1.0,float(template.get("damage",1)))
-        mult *= max(0.75,min(3.0,expected/authored))
+        # Spekkio scales to the player, but the source contract does not define
+        # a universal clamp/multiplier formula. Keep the encounter flag and
+        # descriptive behavior without inventing 0.75x..3.0x combat math.
     return mult,note
 
 def superboss_series_progress_v11138(db, account_id, boss_key):
