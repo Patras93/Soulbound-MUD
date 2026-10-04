@@ -14,7 +14,10 @@ from core.progression_600 import (
     SKILL_MAX_LEVEL, SOUL_MAX_TIER, SOUL_TIER_THRESHOLDS,
     soul_tier_title_for_class, soul_weapon_trait_for_tier_v11193,
 )
-from core.progression_resources import skill_cooldown_multiplier, skill_xp_to_next, v0190_scaled_gain
+from core.progression_resources import (
+    skill_cooldown_multiplier, skill_xp_to_next, v0190_scaled_gain,
+    skill_power_multiplier,
+)
 from network.protocol_gameplay_utils import find_by_name, normalize_lookup_text
 from systems.content_registry import MOB_TEMPLATES, NPCS, QUESTS
 from systems.equipment_crafting import GUILD_REPUTATION_MAX
@@ -1381,22 +1384,78 @@ class SessionSkillLearningMixin:
             if now < float(getattr(mob,"v0319_blind_until",0.0) or 0.0) and random.random()<0.35:
                 await self.send_combat(f"{template['name']} pudłuje przez Blind.","normal"); return
 
-            # Intercept System is a selected Counter, not an automatic learned
-            # passive. Source: it interrupts the incoming attack and its lasers use
-            # the user's highest offensive stat; Skill Level increases damage.
+            # Intercept System is a selected Counter, not an automatic
+            # learned passive. Source gives Variable influence: the lasers use the
+            # highest available offensive stat and Skill Level increases damage.
+            # No trigger probability is authored, so selecting the Counter means
+            # the incoming attack is interrupted rather than inventing a miss roll.
             if self.job_ability_selected("counter","v0319_mec_intercept_system"):
-                _offense=max(
-                    max(1,int(self.physical_power())),
-                    max(1,int(self.spell_power())),
-                )
-                # Source says Skill Level increases damage but supplies no numeric
-                # progression curve. Highest offensive power is the canonical base.
-                counter=_offense
-                mob.hp-=counter
-                await self.send_combat(f"Intercept System przerywa atak {template['name']} i kontruje laserami za {counter}.","normal")
-                if mob.hp<=0:
-                    await self.mob_defeated(mob); return
-                return
+                _intercept=self.skill_by_id("v0319_mec_intercept_system")
+                if _intercept and self.server.db.knows_skill(
+                    self.account_id,_intercept["id"]
+                ):
+                    _stat_values={
+                        "strength":max(1,int(self.effective_strength())),
+                        "dexterity":max(1,int(self.effective_dexterity())),
+                        "intelligence":max(1,int(self.effective_intelligence())),
+                        "willpower":max(1,int(self.effective_willpower())),
+                    }
+                    _stat_name,_stat_value=max(
+                        _stat_values.items(),
+                        key=lambda item:(item[1],item[0]),
+                    )
+                    _counter_skill=dict(_intercept)
+                    _counter_skill["scale"]=_stat_name
+                    _counter_level=max(
+                        1,min(
+                            SKILL_MAX_LEVEL,
+                            int(
+                                self.server.db.skill_progress(
+                                    self.account_id,_intercept["id"]
+                                )["level"]
+                            ),
+                        )
+                    )
+                    _counter_type=(
+                        "magic"
+                        if _stat_name in ("intelligence","willpower")
+                        else "physical"
+                    )
+                    _counter_core=self.offensive_skill_core_power_v11185(
+                        _counter_skill,
+                        max(1,int(_intercept.get("base_power",1000) or 1000)),
+                    )
+                    _counter_mult=(
+                        skill_power_multiplier(_counter_level)
+                        * self.offensive_skill_damage_multiplier_v11186(
+                            _counter_skill,_counter_type
+                        )
+                    )
+                    counter=max(1,int(round(_counter_core*_counter_mult)))
+                    counter=await self.apply_boss_defense(mob,counter)
+                    counter=self.v0210_adjust_player_damage(counter)
+                    counter=min(max(0,int(mob.hp)),max(0,int(counter)))
+                    mob.hp-=counter
+                    self._recap52_dealt=(
+                        int(getattr(self,"_recap52_dealt",0) or 0)+counter
+                    )
+                    _stat_labels={
+                        "strength":"Siła",
+                        "dexterity":"Zręczność",
+                        "intelligence":"Inteligencja",
+                        "willpower":"Siła Woli",
+                    }
+                    await self.send_combat(
+                        f"Intercept System przerywa atak {template['name']} i "
+                        f"kontruje laserami za {counter}. Najwyższy stat: "
+                        f"{_stat_labels[_stat_name]} {_stat_value}. "
+                        f"Skill Level {_counter_level}.",
+                        "normal",
+                    )
+                    await self.grant_skill_use_xp(_intercept)
+                    if mob.hp<=0:
+                        await self.mob_defeated(mob)
+                    return
 
             if self.skill_evade:
                 self.skill_evade = False
