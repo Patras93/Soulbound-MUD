@@ -1326,13 +1326,21 @@ def v03035_broken_blades_and_death_audit():
         "self.character.silver -=",
         "self.character.gold -=",
         "self.character.mithril -=",
-        "remove_item(",
         "remove_storage_item(",
         "clear_skill_buffs()",
     )
     for token in forbidden:
         if token in die_src:
             errors.append(f"death still removes state: {token}")
+    # Phoenix Egg is not a death penalty: its source-authored Re-raise consumes
+    # the egg only when it prevents the normal death/respawn flow. Any other
+    # inventory removal from Session.die remains forbidden.
+    for line in die_src.splitlines():
+        if "remove_item(" not in line:
+            continue
+        if '"uoss_odin_unique_8"' in line or "'uoss_odin_unique_8'" in line:
+            continue
+        errors.append("death still removes state: remove_item(")
     return {
         "version": "0.30.35",
         "broken_blade_sources": len(V03035_BROKEN_BLADE_SOURCES),
@@ -1350,6 +1358,7 @@ if V03035_AUDIT.get("error_count"):
 HELP_TOPICS["śmierć"] = (
     "Po śmierci postać odradza się w Świątyni Odrodzenia z pełnym HP i Maną. "
     "Nie traci waluty, przedmiotów, EQ, XP, Biegłości, Soul XP, profesji ani poziomów narzędzi. "
+    "Wyjątkiem niebędącym karą śmierci jest Phoenix Egg: gdy uruchamia Re-raise, samo jajko zostaje zużyte zgodnie z jego źródłową mechaniką. "
     "Aktywne buffy zachowują pozostały czas działania."
 )
 HELP_TOPICS["smierc"] = HELP_TOPICS["śmierć"]
