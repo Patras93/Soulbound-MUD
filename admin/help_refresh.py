@@ -1059,12 +1059,13 @@ def progression_combat_audit_v03017():
                 counts[unlock] += 1
             elif not (1 <= unlock <= CLASS_MASTERY_MAX_LEVEL):
                 errors.append(f"{class_name}/{skill.get('id')}: nieprawidłowy próg {unlock}")
-        if len(rows) != len(grid) * 3:
-            errors.append(f"{class_name}: {len(rows)} skilli, oczekiwano {len(grid)*3}")
+        expected_min = len(grid) * 3
+        if len(rows) < expected_min:
+            errors.append(f"{class_name}: {len(rows)} skilli, minimum {expected_min}")
         if class_name not in ("Inżynier","Mec"):
             for level in grid:
-                if counts[level] != 3:
-                    errors.append(f"{class_name}: próg {level} ma {counts[level]} skilli, oczekiwano 3")
+                if counts[level] < 3:
+                    errors.append(f"{class_name}: próg {level} ma {counts[level]} skilli, minimum 3")
 
     expected_slots = {1: 10, 10: 11, 100: 20, 200: 30, 400: 50, 600: 70}
     for level, expected in expected_slots.items():
@@ -1102,7 +1103,7 @@ if PROGRESSION_COMBAT_AUDIT_V03017.get("error_count"):
     )
 
 HELP_TOPICS.setdefault("skille", []).extend([
-    "Większość klas zachowuje siatkę 1, 10, 20...400 po 3 skille. Inżynier i Mec mają autorskie progi wynikające z ich projektów klasowych.",
+    "Większość klas zachowuje siatkę 1, 10, 20...400 z minimum 3 skillami na próg; źródłowe umiejętności mogą dodawać kolejne. Inżynier i Mec mają autorskie progi wynikające z ich projektów klasowych.",
     "Generator Core nie rozciąga już 123 skilli po przypadkowych poziomach 1-400; zachowuje zaprojektowane progi Biegłości.",
 ])
 HELP_TOPICS.setdefault("walka", []).extend([
