@@ -2469,10 +2469,14 @@ def _v0319_install_full_mec_kit():
             row.update({"scale":"willpower","uoss_mp_cost":15})
         if special=="heal_beam":
             row.update({"scale":"willpower","uoss_mp_cost":36,"uoss_support_mp_cost":72,
-                        "target_mode":"single_or_support_party","support_heal_multiplier":1.20})
+                        "heal_pct":0.50,
+                        "target_mode":"single_or_support_party","support_heal_multiplier":1.20,
+                        "healing_balance_model":"uncapped_will_skill_eq"})
         if special=="cure_beam":
             row.update({"scale":"willpower","uoss_mp_cost":10,"target_mode":"self_or_one_ally",
-                        "support_cleanses":["blind","poison"]})
+                        "heal_pct":0.30,"support_heal_multiplier":1.20,
+                        "support_cleanses":["blind","poison"],
+                        "healing_balance_model":"uncapped_will_skill_eq"})
         if special=="jammer":
             row.update({"scale":"willpower","control_effect":"stop","cleanseable":True,"extendable":True,
                         "uoss_mp_cost":20,"uoss_support_mp_cost":40,
