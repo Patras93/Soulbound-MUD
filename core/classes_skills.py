@@ -2379,7 +2379,7 @@ def _v0319_install_full_mec_kit():
         ("Robo Tackle",20,"damage",500,"feedback","robo_tackle","Body/shield charge at a cost of HP."),
         ("Compress",30,"damage",600,"feedback","compress","Gravity percentile damage at a cost of HP."),
         ("Crush",46,"damage",1000,"feedback","crush","One-enemy Feedback attack based on the difference between maximum and current HP. Character Level limits the damage capacity, Skill Level raises the maximum possible damage, and an equipped shield increases that capacity."),
-        ("Uzi Punch",95,"aoe_damage",1400,"feedback","uzi_punch","Random fist/shield attacks across enemies at a cost of HP."),
+        ("Uzi Punch",95,"aoe_damage",1400,"feedback","uzi_punch","Random-enemy machinegun punch influenced by HP, Vitality and Attack. Feedback damages the Mec, a shield improves damage, and the attack becomes stronger as HP decreases."),
         ("Kamikaze Crush",110,"damage",2000,"feedback","kamikaze_crush","One-enemy lethal divebomb influenced by HP before use, Vitality and Attack. Damage falls as current HP falls; an equipped shield improves damage. V-MAX increases both attack power and Feedback damage."),
         # Magic
         ("Laser Spin",1,"aoe_damage",200,"magic","laser_spin","Dark lasers hit all enemies."),
@@ -2449,7 +2449,26 @@ def _v0319_install_full_mec_kit():
         if special=="destroy": row["feedback_cost_source_defined"]=False
         if special=="robo_tackle": row["feedback_cost_source_defined"]=False
         if special=="compress": row["feedback_cost_source_defined"]=False
-        if special=="uzi_punch": row["feedback_cost_source_defined"]=False
+        if special=="uzi_punch":
+            row.update({
+                "scale":"attack",
+                "secondary_scale":"constitution",
+                "source_stat_influence":["hp","vitality","attack"],
+                "source_properties":[],
+                "target_mode":"random_enemies",
+                "feedback_damage":True,
+                "feedback_cost_source_defined":False,
+                "shield_improves_damage":True,
+                "power_increases_as_hp_decreases":True,
+                "numeric_source_defined":False,
+                "random_target_count_source_defined":False,
+                "random_target_fraction":0.50,
+                "missing_hp_max_damage_bonus":0.75,
+                "shield_damage_multiplier":1.20,
+                "feedback_max_hp_pct":0.12,
+                "balance_model":"soulbound_random_half_missinghp75_shield120_feedback12pct",
+                "single_soul_weapon":True,
+            })
         if special=="crush":
             row.update({
                 "scale":"hp_difference",
@@ -2716,6 +2735,31 @@ def _mec_contract_audit_v11149():
             errors.append("shoot_all: missing V-MAX crit/damage increase")
         if bool(shoot_all.get("vmax_numeric_source_defined")):
             errors.append("shoot_all: V-MAX numeric bonus must remain marked unsourced")
+    uzi=rows.get("uzi_punch")
+    if uzi:
+        if list(uzi.get("source_stat_influence") or [])!=["hp","vitality","attack"]:
+            errors.append("uzi_punch: source influence must be HP + Vitality + Attack")
+        if str(uzi.get("scale"))!="attack":
+            errors.append("uzi_punch: primary scale must be Attack")
+        if str(uzi.get("secondary_scale"))!="constitution":
+            errors.append("uzi_punch: Vitality must map to Constitution")
+        if str(uzi.get("target_mode"))!="random_enemies":
+            errors.append("uzi_punch: target mode must be Random Enemies")
+        if not bool(uzi.get("feedback_damage")):
+            errors.append("uzi_punch: Feedback self-damage missing")
+        if not bool(uzi.get("shield_improves_damage")):
+            errors.append("uzi_punch: equipped shield must improve damage")
+        if not bool(uzi.get("power_increases_as_hp_decreases")):
+            errors.append("uzi_punch: lower HP must increase attack power")
+        if bool(uzi.get("feedback_cost_source_defined")):
+            errors.append("uzi_punch: Feedback numeric cost must remain marked unsourced")
+        if bool(uzi.get("numeric_source_defined")):
+            errors.append("uzi_punch: numeric modifiers must remain marked unsourced")
+        if bool(uzi.get("random_target_count_source_defined")):
+            errors.append("uzi_punch: Random Enemies hit count must remain marked unsourced")
+        if list(uzi.get("source_properties") or [])!=[]:
+            errors.append("uzi_punch: source Properties must remain None")
+
     crush=rows.get("crush")
     if crush:
         if list(crush.get("source_stat_influence") or [])!=["hp","level"]:
