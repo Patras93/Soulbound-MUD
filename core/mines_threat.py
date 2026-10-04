@@ -550,6 +550,10 @@ EQUIPMENT_SLOT_ALIASES = {
     "armor": "body",
     "body": "body",
 
+    "tarcza": "shield",
+    "tarczy": "shield",
+    "shield": "shield",
+
     "rekawice": "hands",
     "rękawice": "hands",
     "dlonie": "hands",
@@ -627,6 +631,7 @@ EQUIPMENT_SLOT_ALIASES = {
 EQUIPMENT_SLOT_NAMES = {
     "head": "głowa",
     "body": "korpus",
+    "shield": "tarcza",
     "hands": "dłonie",
     "legs": "nogi",
     "feet": "stopy",
