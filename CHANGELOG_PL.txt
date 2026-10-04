@@ -1,5 +1,26 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.11.99
+Aktualna paczka: v1.12.0
+
+==============================================================================
+Soulbound v1.12.0 — Globalny Atlas Odkryć
+==============================================================================
+
+- Dodano długoterminowy Globalny Atlas Odkryć dostępny przez `atlas odkrycia`.
+- Atlas ma siedem osobnych działów: miasta, wyspy, lochy, platformy oceaniczne, ruiny, superbossy i sekretne lokacje.
+- Każdy dział ma własne osiągnięcie za odkrycie 100 procent zawartości.
+- Ukończenie wszystkich siedmiu działów daje osiągnięcie `Globalny Atlas: cały odkryty świat` oraz tytuł `Kartograf Całego Świata`.
+- Atlas korzysta z istniejącej historii odkrytych pokojów i kolekcji sekretów, dlatego działa retroaktywnie dla starszych save'ów bez resetu progresu.
+- Miasta są pobierane z aktualnego rejestru miejskich i pocztowych hubów; kolejne rozszerzenia miast mogą automatycznie wejść do Atlasu.
+- Wyspy obejmują pięć fabularnych wysp Archipelagu Pękniętej Gwiazdy oraz deterministyczne archipelagi ekspedycyjne.
+- Lochy obejmują główne kompleksy świata, Katakumby, lochy Archipelagu, megalochy oraz wszystkie deterministyczne proceduralne mini-lochy.
+- Ruiny obejmują stałe strefy ruin, trzy podwodne ruiny Ocean 2.0 oraz wszystkie deterministyczne Wielkie Ruiny proceduralnych rubieży.
+- Areny Super Bossów są wykrywane z rzeczywistych metadanych `uoss_superboss_key`, bez ręcznego dublowania listy bossów.
+- Sekretne lokacje korzystają z pełnego skończonego katalogu sekretów powierzchni; nieskończone sekrety instancji pozostają w mapie instancji i nie blokują 100 procent Globalnego Atlasu.
+- Nieodkryte sekrety, proceduralne mini-lochy i Wielkie Ruiny są pokazywane jako `???`, aby Atlas nie zdradzał ich nazw ani położenia.
+- `atlas odkrycia <dział>` pokazuje czytelną dla NVDA numerowaną listę odkrytych i brakujących pozycji.
+- `osiagniecia` synchronizują Atlas retroaktywnie; nowe odkrycie lokacji lub sekretu może natychmiast odblokować osiągnięcie działu.
+- Zaktualizowano `help atlas` i `help atlas_kompletny` o Globalny Atlas Odkryć.
+- Brak wipe'a save'ów i brak zmian schematu SQLite.
 
 ==============================================================================
 Soulbound v1.11.99 — questy bez obowiązkowego quest list
