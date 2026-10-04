@@ -2642,10 +2642,10 @@ _old_help_commands_v03055 = Session.help_commands
 def _help_commands_v03055(self):
     rows = list(_old_help_commands_v03055(self))
     extras = [
-        "tailoring / krawiectwo; sew / szyj <recipe> - Krawiectwo 1-400",
-        "leatherworking / garbarstwo; tan / garbuj <recipe> - Garbarstwo 1-400",
-        "carpentry / stolarstwo; woodcraft / stolarka <recipe> - Stolarstwo 1-400",
-        "enchanting / zaklinanie; enchantitem / zaklinaj <slot> <type>; enchants - Zaklinanie 1-400",
+        "tailoring / krawiectwo; sew / szyj <recipe> - Krawiectwo 1-600",
+        "leatherworking / garbarstwo; tan / garbuj <recipe> - Garbarstwo 1-600",
+        "carpentry / stolarstwo; woodcraft / stolarka <recipe> - Stolarstwo 1-600",
+        "enchanting / zaklinanie; enchantitem / zaklinaj <slot> <type>; enchants - Zaklinanie 1-600",
         "craftmastery / craftingmastery [filter] - mastery kategorii craftu 1-100",
         "collection2 [missing/braki]; completion - Collection/Completion 2.0",
         "leaderboards / leaderboard / rankings [professions|bosses|collection|records|guilds|mentor] - rankingi 2.0",
