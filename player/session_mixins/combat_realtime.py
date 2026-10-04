@@ -313,6 +313,8 @@ class SessionCombatRealtimeMixin:
                                             await self.server.party_combat_broadcast(target_session,f"{_enemy_template['name']} przyzywa {MOB_TEMPLATES[_summon_tid]['name']}.",detail="essential")
                                     _source_status=superboss_source_status_v11162(_enemy_template,_source_ability)
                                     if _source_status:
+                                        # Status is announced from the source contract, but is not stored until
+                                        # the shared player-status engine exposes a canonical duration/application API.
                                         await self.server.party_combat_broadcast(target_session,f"Efekt źródłowy: {_source_status}.",detail="essential")
                                     _phase_event = superboss_phase_event_v11138(target_session, _enemy_template, enemy_mob)
                                     if _phase_event:
