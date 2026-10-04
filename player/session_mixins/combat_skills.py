@@ -175,6 +175,65 @@ class SessionCombatSkillsMixin:
         stat_core = primary + int(round(secondary * 0.35))
         return max(1, int(round(stat_core * total_mult)))
 
+    def regen_duration_seconds_v11196(self, skill_level):
+        """Soulbound adaptation for source-defined 'short period' Regen duration.
+
+        UOSS supplies no seconds. Keep the existing 30-second buff scale as the
+        low-level anchor and extend it to 90 seconds at Skill Level 600.
+        This is Soulbound balance, not a claimed UOSS number.
+        """
+        level=max(1,min(SKILL_MAX_LEVEL,int(skill_level)))
+        progress=(level-1)/float(max(1,SKILL_MAX_LEVEL-1))
+        return max(1,int(round(30.0+60.0*(progress ** 0.82))))
+
+    def regen_tick_power_v11196(self, skill_level):
+        """Small periodic WILL heal for Regen; explicit Soulbound balance."""
+        will=max(1,int(self.effective_willpower()))
+        power=float(skill_power_multiplier(max(1,min(SKILL_MAX_LEVEL,int(skill_level)))))
+        racial=float(self.character.racial_healing_multiplier())
+        class_mult=float(self.character.class_healing_multiplier())
+        return max(1,int(round(will*0.10*power*racial*class_mult)))
+
+    async def apply_active_regen_round_v11196(self):
+        """Advance canonical Regen by one owner combat round.
+
+        UOSS says 'every few rounds' without an exact cadence. Soulbound uses
+        every 3 owner rounds as an explicit balance adaptation. Multiple Regen
+        sources do not stack their healing; the strongest due pulse wins.
+        """
+        now=time.time()
+        due=[]
+        expired=[]
+        for key,buff in list(self.active_skill_buffs.items()):
+            if str(buff.get("canonical_status",""))!="regen":
+                continue
+            until=float(buff.get("until",0.0) or 0.0)
+            if until and now>=until:
+                expired.append(key)
+                continue
+            cadence=max(1,int(buff.get("tick_every_rounds",3) or 3))
+            rounds=int(buff.get("regen_round_counter",0) or 0)+1
+            buff["regen_round_counter"]=rounds
+            if rounds % cadence == 0:
+                due.append(max(0,int(buff.get("regen_power",0) or 0)))
+        for key in expired:
+            self.active_skill_buffs.pop(key,None)
+        if not due or self.current_hp<=0 or self.current_hp>=self.max_hp():
+            return 0
+        if superboss_healing_blocked_v11179(self):
+            return 0
+        amount=max(due)
+        actual=min(max(0,self.max_hp()-self.current_hp),amount)
+        if actual<=0:
+            return 0
+        self.current_hp+=actual
+        self._recap52_heal=int(getattr(self,"_recap52_heal",0) or 0)+actual
+        await self.send_combat(
+            f"Regen odnawia {actual} HP. HP {self.current_hp} z {self.max_hp()}.",
+            "full",
+        )
+        return actual
+
     def offensive_skill_damage_multiplier_v11186(self, skill, skill_class_type=None):
         """One global offensive multiplier path for current and future equipment.
 
@@ -799,6 +858,10 @@ class SessionCombatSkillsMixin:
                                     "tick_cadence_source_defined":False,
                                     "heal_amount_source_defined":False,
                                     "numeric_source_defined":False,
+                                    "tick_every_rounds":3,
+                                    "regen_power":self.regen_tick_power_v11196(skill_level),
+                                    "regen_round_counter":0,
+                                    "soulbound_balance_adaptation":True,
                                 })
                             self.active_skill_buffs["v0319_vmax_"+_status]=_status_data
                         self.active_skill_buffs[skill["id"]]={
@@ -1049,12 +1112,14 @@ class SessionCombatSkillsMixin:
                         wanted=normalize_lookup_text(target_text)
                         found=next((s for s in recipients if s.character and wanted in normalize_lookup_text(s.character.name)),None)
                         if found: target=found
-                    # Source defines periodic small healing over a short duration,
-                    # influenced by WILL with Skill Level increasing duration, but
-                    # does not provide exact HP/tick, cadence, or base seconds.
-                    # Do not fake an immediate heal or an infinite duration.
+                    # UOSS does not expose the exact cadence, HP/tick or seconds.
+                    # Soulbound adaptation: small WILL-based pulse every 3 owner
+                    # combat rounds, with 30->90 s duration from Skill Level 1->600.
+                    _regen_duration=self.regen_duration_seconds_v11196(skill_level)
+                    _regen_power=self.regen_tick_power_v11196(skill_level)
                     target.active_skill_buffs["priest_regen"]={
-                        "name":"Regen","boost":1.0,"until":0.0,
+                        "name":"Regen","boost":1.0,
+                        "until":time.time()+_regen_duration,
                         "source":self.character.name,"beneficial":True,
                         "canonical_status":"regen",
                         "source_effect":"periodic_small_hp_heal",
@@ -1064,18 +1129,20 @@ class SessionCombatSkillsMixin:
                         "tick_cadence_source_defined":False,
                         "heal_amount_source_defined":False,
                         "base_duration_source_defined":False,
-                        "runtime_quantitative_effect_pending":True,
+                        "tick_every_rounds":3,
+                        "regen_power":_regen_power,
+                        "regen_round_counter":0,
+                        "soulbound_balance_adaptation":True,
                     }
                     await self.grant_skill_use_xp(skill)
                     await self.send(
-                        f"Regen: nakładasz efekt na {target.character.name}. "
-                        "Źródło potwierdza okresowe małe leczenie, lecz nie podaje dokładnej "
-                        "wartości, częstotliwości ani bazowego czasu; Soulbound nie fabrykuje tych liczb."
+                        f"Regen: {target.character.name} otrzymuje okresową regenerację "
+                        f"na {_regen_duration} s. Soulbound: impuls co 3 rundy; "
+                        "dokładne liczby UOSS nie są dostępne."
                     )
                     if target is not self:
                         await target.send(
-                            f"{self.character.name} nakłada na ciebie Regen. "
-                            "Efekt okresowego leczenia czeka na źródłowe wartości liczbowe."
+                            f"{self.character.name} nakłada na ciebie Regen na {_regen_duration} s."
                         )
                     if self.combat_mob_key: await self.ensure_realtime_combat()
                     return
