@@ -352,6 +352,26 @@ class SessionCombatRealtimeMixin:
                                     or enemy_mob.room_id != self.character.room_id
                                 ):
                                     break
+                                _logic_rounds=max(
+                                    0,int(getattr(enemy_mob,"v11196_logic_bomb_rounds",0) or 0)
+                                )
+                                _logic_effects=set(
+                                    getattr(enemy_mob,"v11196_logic_bomb_effects",set()) or set()
+                                ) if _logic_rounds>0 else set()
+                                _logic_active=bool(_logic_rounds>0 and _logic_effects)
+                                if _logic_active:
+                                    enemy_mob.v11196_logic_bomb_rounds=max(
+                                        0,_logic_rounds-1
+                                    )
+                                    if enemy_mob.v11196_logic_bomb_rounds<=0:
+                                        # Effects remain active for this attempted mob
+                                        # action and expire immediately afterward.
+                                        _logic_expires_after_action=True
+                                    else:
+                                        _logic_expires_after_action=False
+                                else:
+                                    _logic_expires_after_action=False
+
                                 _jammer_rounds=max(
                                     0,int(getattr(enemy_mob,"v11196_jammer_stop_rounds",0) or 0)
                                 )
@@ -386,6 +406,58 @@ class SessionCombatRealtimeMixin:
                                         detail="normal",
                                     )
                                     continue
+                                if _logic_active and "paralyze" in _logic_effects:
+                                    _paralyze_chance=max(
+                                        0.0,min(
+                                            1.0,
+                                            float(
+                                                getattr(
+                                                    enemy_mob,
+                                                    "v11196_logic_paralyze_skip_chance",
+                                                    0.50,
+                                                )
+                                                or 0.50
+                                            ),
+                                        )
+                                    )
+                                    if random.random() < _paralyze_chance:
+                                        await self.server.party_combat_broadcast(
+                                            self,
+                                            f"{MOB_TEMPLATES[enemy_mob.template_id]['name']} jest sparaliżowany przez Logic Bomb i traci akcję.",
+                                            detail="normal",
+                                        )
+                                        if _logic_expires_after_action:
+                                            enemy_mob.v11196_logic_bomb_effects=set()
+                                        continue
+                                if _logic_active and "slow" in _logic_effects:
+                                    _slow_every=max(
+                                        2,int(
+                                            getattr(
+                                                enemy_mob,
+                                                "v11196_logic_slow_skip_every_actions",
+                                                2,
+                                            )
+                                            or 2
+                                        )
+                                    )
+                                    _slow_counter=int(
+                                        getattr(
+                                            enemy_mob,
+                                            "v11196_logic_slow_counter",
+                                            0,
+                                        )
+                                        or 0
+                                    )+1
+                                    enemy_mob.v11196_logic_slow_counter=_slow_counter
+                                    if _slow_counter % _slow_every==0:
+                                        await self.server.party_combat_broadcast(
+                                            self,
+                                            f"{MOB_TEMPLATES[enemy_mob.template_id]['name']} jest spowolniony przez Logic Bomb i traci tę akcję.",
+                                            detail="normal",
+                                        )
+                                        if _logic_expires_after_action:
+                                            enemy_mob.v11196_logic_bomb_effects=set()
+                                        continue
                                 _sonata_rounds=max(
                                     0,int(getattr(enemy_mob,"v11196_mec_sonata_rounds",0) or 0)
                                 )
@@ -436,6 +508,17 @@ class SessionCombatRealtimeMixin:
                                     for _ended in superboss_advance_timed_effects_v11179(target_session):
                                         await self.server.party_combat_broadcast(target_session,f"{target_session.character.name}: kończy się efekt {_ended}.",detail="essential")
                                     _source_ability = superboss_source_ability_v11162(_enemy_template, enemy_mob)
+                                    if (
+                                        _source_ability
+                                        and _logic_active
+                                        and "silence" in _logic_effects
+                                    ):
+                                        await self.server.party_combat_broadcast(
+                                            target_session,
+                                            f"{_enemy_template['name']}: Silence z Logic Bomb blokuje {_source_ability}.",
+                                            detail="normal",
+                                        )
+                                        _source_ability=None
                                     _source_effect = superboss_exact_ability_effect_v11160(target_session, _enemy_template, enemy_mob, _source_ability)
                                     _timed_effect=superboss_source_timed_effect_v11179(target_session,_enemy_template,_source_ability)
                                     if _timed_effect:
@@ -479,6 +562,20 @@ class SessionCombatRealtimeMixin:
                                     )
                                     _uoss_mult *= superboss_source_attack_multiplier_v11162(_enemy_template,_source_ability)
                                     _uoss_mult *= _sonata_power_mult
+                                    if _logic_active and "curse" in _logic_effects:
+                                        _uoss_mult *= max(
+                                            0.01,min(
+                                                1.0,
+                                                float(
+                                                    getattr(
+                                                        enemy_mob,
+                                                        "v11196_logic_curse_damage_multiplier",
+                                                        0.80,
+                                                    )
+                                                    or 0.80
+                                                ),
+                                            )
+                                        )
                                     await self.server.party_combat_broadcast(
                                         target_session,
                                         f"{_enemy_template['name']} atakuje {target_session.character.name}."
@@ -489,6 +586,29 @@ class SessionCombatRealtimeMixin:
                                         # A sourced fixed/current-HP ability is the enemy action.
                                         # Do not append an unsourced ordinary hit on top of it.
                                         continue
+                                    if (
+                                        _logic_active
+                                        and "blind" in _logic_effects
+                                        and random.random() < max(
+                                            0.0,min(
+                                                0.95,
+                                                float(
+                                                    getattr(
+                                                        enemy_mob,
+                                                        "v11196_logic_blind_miss_chance",
+                                                        0.35,
+                                                    )
+                                                    or 0.35
+                                                ),
+                                            )
+                                        )
+                                    ):
+                                        await self.server.party_combat_broadcast(
+                                            target_session,
+                                            f"{_enemy_template['name']} chybia przez Blind z Logic Bomb.",
+                                            detail="normal",
+                                        )
+                                        continue
                                     if _uoss_mult != 1.0:
                                         _old_damage = _enemy_template.get("damage", 1)
                                         _enemy_template["damage"] = max(1, int(round(float(_old_damage) * _uoss_mult)))
@@ -498,6 +618,15 @@ class SessionCombatRealtimeMixin:
                                             _enemy_template["damage"] = _old_damage
                                     else:
                                         await target_session.enemy_counterattack(enemy_mob)
+
+                                if _logic_active and _logic_expires_after_action:
+                                    enemy_mob.v11196_logic_bomb_effects=set()
+                                    enemy_mob.v11196_logic_slow_counter=0
+                                    await self.server.party_combat_broadcast(
+                                        self,
+                                        f"{MOB_TEMPLATES[enemy_mob.template_id]['name']}: efekty Logic Bomb wygasają.",
+                                        detail="normal",
+                                    )
 
                                 if _sonata_rounds>0:
                                     _sonata_rounds=max(0,_sonata_rounds-1)
