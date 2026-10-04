@@ -119,6 +119,26 @@ class SessionEquipmentStatsMixin:
                             totals[_prop] += float(_amount)
             return totals
 
+    def equipment_mp_cost_multiplier_v11176(self):
+            mult=1.0
+            for row in self.equipped_item_rows():
+                item=ITEMS.get(row["item_id"],{})
+                mult*=float(item.get("mp_cost_multiplier",1.0) or 1.0)
+            return max(0.0,mult)
+
+    def equipment_element_ward_v11176(self, element):
+            elem=str(element or "").strip().lower()
+            ward=0.0
+            for row in self.equipped_item_rows():
+                item=ITEMS.get(row["item_id"],{})
+                for name,value in (item.get("element_wards") or {}).items():
+                    if str(name).strip().lower()==elem:
+                        ward=max(ward,float(value or 0.0))
+            return max(0.0,min(1.0,ward))
+
+    def equipment_auto_veil_v11176(self):
+            return any("Auto-Veil" in tuple(ITEMS.get(row["item_id"],{}).get("source_effects",())) for row in self.equipped_item_rows())
+
     def equipment_damage_multiplier(self, damage_type):
             props = self.equipment_property_totals()
             bonus = float(props.get("all_damage_pct", 0.0))
