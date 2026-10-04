@@ -91,10 +91,13 @@ def superboss_personal_unique_drops_v11158(db, recipients, boss_key):
     for session in recipients:
         owned = session.server.db.collection_entry_ids(session.account_id, "equipment")
         eligible = [item_id for item_id in pool if item_id not in owned]
-        # The supplied source confirms one Cyborg-conditional Black Rabite
-        # reward but does not identify which of the ten drops it is. Do not guess
-        # that Moogle Board is that item; keep all ten eligible until identified.
-        fallback=list(pool)
+        if str(boss_key)=="black_rabite" and str(getattr(session.character,"race",""))!="Cyborg":
+            # Confirmed project rule: Moogle Board is Black Rabite's
+            # Cyborg-only unique reward.
+            eligible=[item_id for item_id in eligible if item_id!="uoss_black_rabite_unique_10"]
+            fallback=[item_id for item_id in pool if item_id!="uoss_black_rabite_unique_10"]
+        else:
+            fallback=list(pool)
         item_id = random.choice(eligible or fallback)
         db.add_item(session.account_id, item_id, 1)
         awards.append((session, item_id))
