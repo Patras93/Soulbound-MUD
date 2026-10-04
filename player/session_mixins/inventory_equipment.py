@@ -360,7 +360,7 @@ class SessionInventoryEquipmentMixin:
                 "ring2": "Pierścień 2", "necklace": "Naszyjnik",
                 "earring1": "Kolczyk 1", "earring2": "Kolczyk 2",
                 "shoulders": "Naramienniki", "belt": "Pas", "cloak": "Peleryna",
-                "bracers": "Karwasze", "relic": "Relikt", "accessory1": "Akcesorium 1", "accessory2": "Akcesorium 2", "board": "Board",
+                "bracers": "Karwasze", "bracelet": "Bransoletka", "relic": "Relikt", "accessory1": "Akcesorium 1", "accessory2": "Akcesorium 2", "board": "Board",
             }
             for row in rows:
                 item = ITEMS.get(row["item_id"]) or ensure_crafting_quality_variant_v0332(row["item_id"])
@@ -613,7 +613,7 @@ class SessionInventoryEquipmentMixin:
             }
             single_slots = (
                 "head", "body", "hands", "legs", "feet", "shield", "necklace",
-                "shoulders", "belt", "cloak", "bracers", "relic", "board",
+                "shoulders", "belt", "cloak", "bracers", "bracelet", "relic", "board",
             )
 
             for slot in single_slots:

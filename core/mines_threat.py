@@ -619,6 +619,10 @@ EQUIPMENT_SLOT_ALIASES = {
     "karwasz": "bracers",
     "bracers": "bracers",
 
+    "bransoletka": "bracelet",
+    "bransoletki": "bracelet",
+    "bracelet": "bracelet",
+
     "relikt": "relic",
     "relic": "relic",
 
@@ -655,6 +659,7 @@ EQUIPMENT_SLOT_NAMES = {
     "belt": "pas",
     "cloak": "peleryna",
     "bracers": "karwasze",
+    "bracelet": "bransoletka",
     "relic": "relikt",
     "accessory": "akcesorium",
     "accessory1": "akcesorium 1",
