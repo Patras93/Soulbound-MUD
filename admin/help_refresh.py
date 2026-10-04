@@ -1414,7 +1414,7 @@ def refresh_help_truth_v11197():
     HELP_TOPICS["superbossy"] = [
         "superbosses pokazuje unikalne wyzwania Super Bossów, wymagania i zaliczenia.",
         "superbosses <nazwa> pokazuje informacje o konkretnym bossie; superboss <nazwa> obsługuje wejście do jego encounteru.",
-        "Niektóre encountery mają dedykowanego pomocnika; komenda pomocnik obsługuje jego wybór zgodnie z zasadami danego bossa.",
+        "Black Rabite pozwala wybrać Primm albo Popoi komendą pomocnik primm / pomocnik popoi; wybór działa na jego arenie i dla drużyny maksymalnie 3 graczy.",
         "Nagrody, sklepy bossów, relikty i specjalne właściwości EQ są częścią aktualnego runtime Soulbound; eq info i shop info pokazują bieżące dane.",
     ]
 
