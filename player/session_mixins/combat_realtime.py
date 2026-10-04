@@ -290,13 +290,11 @@ class SessionCombatRealtimeMixin:
                             await self.realtime_player_action(mob)
                             await self.apply_active_regen_round_v11196()
                             await self.mec_self_repair_round_v11154()
+                            await self.apply_satellite_linker_round_v11196()
                             # Overheat has no source duration. One completed player
                             # action is the recovery cycle; after it the state clears.
                             if self.mec_finish_overheat_recovery_v0319():
                                 await self.send("OVERHEAT mija. V-MAX może być ponownie użyty.")
-                            # Satellite Linker source confirms repeated minor laser
-                            # damage, but no tick power/cadence/duration values. Runtime
-                            # ticks stay disabled until those values are source-backed.
                             _interval=self.player_action_interval_v11154()
                             next_player = time.monotonic() + _interval
                             # Haste source says attacks/actions occur more frequently,
