@@ -862,7 +862,8 @@ class SessionInventoryEquipmentMixin:
                     f"Z wymienionej biżuterii zwrócono {len(returned_gems)} klejnotów do Szkatułki Rzemieślniczej."
                 )
             await self.send(
-                "Auto EQ porównuje indywidualną moc części: obronę, statystyki, właściwości, affix, rarity i gniazda. "
+                "Auto EQ porównuje moc części pod aktywne klasy: właściwe statystyki ofensywne, Kondycję/Siłę Woli, "
+                "Attack, Magic Attack, Weapon Power, obronę, właściwości, affix, rarity i gniazda. "
                 "Nie zmienia przedmiotów niedostępnych przez Poziom postaci lub klasę."
             )
 
@@ -1337,7 +1338,7 @@ class SessionInventoryEquipmentMixin:
             for order, slot in enumerate(paired):
                 item_id = self.server.db.equipped_item(self.account_id, slot)
                 item = ITEMS.get(item_id, {})
-                scored.append((self.equipment_item_score(item), order, slot))
+                scored.append((self.auto_equipment_score_v03040(item, item_id), order, slot))
             scored.sort(key=lambda row: (row[0], row[1]))
             return scored[0][2]
 
@@ -1632,10 +1633,19 @@ class SessionInventoryEquipmentMixin:
                 )
                 if fixed_text:
                     fixed_stats = f" Statystyki bazowe: {fixed_text}."
+            balance_stats = ""
+            if item.get("soulbound_balance_stats"):
+                balance_text = ", ".join(
+                    f"{CLASS_SET_STAT_NAMES.get(stat, stat)} +{amount}"
+                    for stat, amount in item.get("soulbound_balance_stats", {}).items()
+                    if int(amount or 0) != 0
+                )
+                if balance_text:
+                    balance_stats = f" Bonus Soulbound: {balance_text}."
             await self.send(
                 f"Zakładasz: {item['name']}. "
                 f"Slot: {EQUIPMENT_SLOT_NAMES.get(actual_slot, actual_slot)}. "
-                f"Obrona przedmiotu +{item.get('defense', 0)}.{rarity}{affix}{fixed_stats}"
+                f"Obrona przedmiotu +{item.get('defense', 0)}.{rarity}{affix}{fixed_stats}{balance_stats}"
             )
             if returned_gems:
                 await self.send(
