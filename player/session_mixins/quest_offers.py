@@ -596,9 +596,95 @@ class SessionQuestOffersMixin:
                         )
             return True
 
+    def direct_local_quest_for_number(self, raw_number):
+            """Rozwiąż numer questa bez wymuszania `quest list`.
+
+            Po wejściu do pokoju `przyjmij 1` ma działać od razu, jeśli numer
+            wskazuje jednoznacznie ofertę lokalnego NPC. Gdy kilku NPC ma ten sam
+            numer, gracz może wskazać NPC wprost: `przyjmij <NPC> <numer>`.
+            """
+            value = str(raw_number or "").strip()
+            if not value.isdigit():
+                return None, None, None
+
+            index = int(value) - 1
+            if index < 0:
+                return None, None, f"Nie ma questa numer {value}."
+
+            matches = []
+            for npc_id, npc in self.local_quest_npcs().items():
+                quest_ids = list(self.quest_ids_for_npc(npc_id, npc))
+                if index >= len(quest_ids):
+                    continue
+                quest_id = quest_ids[index]
+                matches.append((npc_id, npc, quest_id, quest_ids))
+
+            if not matches:
+                return None, None, None
+
+            # Jeśli tylko jeden lokalny NPC ma taki numer, wybór jest jednoznaczny.
+            if len(matches) == 1:
+                npc_id, npc, quest_id, quest_ids = matches[0]
+                self.quest_list_context = {
+                    "source": "npc",
+                    "room_id": self.character.room_id,
+                    "npc_id": npc_id,
+                    "quest_ids": list(quest_ids),
+                }
+                return quest_id, npc_id, None
+
+            # Jeśli wielu NPC ma ten numer, ale tylko jeden faktycznie może teraz
+            # przyjąć odpowiadający mu quest, wybierz właśnie jego.
+            available = [
+                entry for entry in matches
+                if self.quest_is_available_to_accept_v099(entry[2])
+            ]
+            if len(available) == 1:
+                npc_id, npc, quest_id, quest_ids = available[0]
+                self.quest_list_context = {
+                    "source": "npc",
+                    "room_id": self.character.room_id,
+                    "npc_id": npc_id,
+                    "quest_ids": list(quest_ids),
+                }
+                return quest_id, npc_id, None
+
+            # Ten sam quest wystawiony przez kilku NPC nadal jest jednoznaczny.
+            quest_ids_seen = {entry[2] for entry in matches}
+            if len(quest_ids_seen) == 1:
+                npc_id, npc, quest_id, quest_ids = matches[0]
+                self.quest_list_context = {
+                    "source": "npc",
+                    "room_id": self.character.room_id,
+                    "npc_id": npc_id,
+                    "quest_ids": list(quest_ids),
+                }
+                return quest_id, npc_id, None
+
+            names = ", ".join(entry[1].get("name", entry[0]) for entry in matches)
+            example = matches[0][1].get("name", matches[0][0])
+            return None, None, (
+                f"Numer {value} występuje u kilku NPC w tym pokoju: {names}. "
+                f"Wpisz bezpośrednio np. przyjmij {example} {value}. "
+                "quest list nie jest potrzebne."
+            )
+
     async def accept_quest_from_context(self, args):
             text = str(args or "").strip()
-            # Wygodny wariant bez kontekstu: quest accept Orin 2.
+
+            # Najkrótsza ścieżka: po samym wejściu do pokoju `przyjmij 1`.
+            # Nie wymaga rozmowy ani wcześniejszego `quest list`.
+            if text.isdigit():
+                quest_id, npc_id, direct_error = self.direct_local_quest_for_number(text)
+                if direct_error:
+                    await self.send(direct_error)
+                    return
+                if quest_id:
+                    await self.accept_quest_id(quest_id, npc_id=npc_id)
+                    return
+
+            # Bezpośredni wariant dla pokoi z wieloma questowymi NPC:
+            # `przyjmij Orin 2`. Ustawiamy kontekst po cichu — nie drukujemy listy.
             match = re.match(r"^(.*?)(\d+)$", text)
             if match and match.group(1).strip():
                 npc_query = match.group(1).strip()
@@ -609,11 +695,26 @@ class SessionQuestOffersMixin:
                     await self.send("Nie rozpoznaję tutaj tego NPC z questami.")
                     return
                 npc_id, npc = found
-                await self.show_npc_quest_offers(npc_id, npc, remember=True)
-                quest_id, error = self.quest_from_context(number)
-            else:
-                quest_id, error = self.quest_from_context(text)
+                quest_ids = list(self.quest_ids_for_npc(npc_id, npc))
+                index = int(number) - 1
+                if index < 0 or index >= len(quest_ids):
+                    await self.send(
+                        f"{npc.get('name', npc_id)} nie ma questa numer {number}. "
+                        "quest list <NPC> jest tylko opcjonalnym podglądem."
+                    )
+                    return
+                self.quest_list_context = {
+                    "source": "npc",
+                    "room_id": self.character.room_id,
+                    "npc_id": npc_id,
+                    "quest_ids": quest_ids,
+                }
+                await self.accept_quest_id(quest_ids[index], npc_id=npc_id)
+                return
 
+            # Pozostałe konteksty (np. jawnie pokazana lista godzinnych zleceń)
+            # zachowują dotychczasowe działanie.
+            quest_id, error = self.quest_from_context(text)
             if error:
                 await self.send(error)
                 return
