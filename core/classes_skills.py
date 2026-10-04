@@ -2420,6 +2420,7 @@ def _v0319_install_full_mec_kit():
             "unlock":unlock, "kind":kind, "cooldown":0, "mana":0,
             "base_power":0,
             "source_ap_cost":source_ap,
+            "source_ap_semantics":"learning_points",
             "source_ap_is_damage_power":False,
             "mec_authored":True, "mec_branch":branch,
             "mec_special":special, "desc":desc,
@@ -3077,6 +3078,8 @@ def _mec_contract_audit_v11149():
     }
     source_support_mp_costs={"jammer":40,"heal_beam":72}
     for _sid,_row in rows.items():
+        if str(_row.get("source_ap_semantics",""))!="learning_points":
+            errors.append(f"{_sid}: source AP must mean learning points")
         if bool(_row.get("source_ap_is_damage_power")):
             errors.append(f"{_sid}: source AP cannot be damage power")
         if "source_ap_cost" in _row and int(_row.get("base_power",0) or 0)!=0:
@@ -3826,14 +3829,15 @@ if MEC_CONTRACT_AUDIT_V11149["error_count"]:
 
 
 # v0.31.7: authored Engineer tool kit based on the user-provided UOSSMUD list.
-# Soulbound has no AP. The original Base AP values are represented only as
-# internal base_power values for relative skill strength.
+# Source Base AP means AP/learning points in UOSS. It is metadata only here and
+# must never be reused as combat power. Soulbound damage is driven by stats/EQ,
+# Soul Power, Skill Level, Upgrade/passives and each tool's authored mechanics.
 def _v0317_install_engineer_toolkit():
     rows = CLASS_SKILLS.get("Inżynier", [])
     if len(rows) < 19:
         return
     specs = [
-      # name, unlock, kind, base_power, special, category, description
+      # name, unlock, kind, source_ap_cost, special, category, description
       ("Auto Crossbow",1,"aoe_damage",100,"auto_crossbow","area","Automatyczna kusza ostrzeliwuje wszystkich przeciwników. Ulepszenie zwiększa obrażenia."),
       ("Mako Gun",1,"damage",100,"mako_gun","single","Losowy atak żywiołowy. Ulepszenie zwiększa obrażenia i dobiera skuteczniejszy element."),
       ("Bio Blaster",1,"aoe_damage",200,"bio_blaster","area","Fala toksycznego gazu na wszystkich przeciwników. Ulepszenie zwiększa obrażenia i siłę efektu biologicznego."),
@@ -3856,13 +3860,17 @@ def _v0317_install_engineer_toolkit():
     ]
     # Replace only 19 generated entries so total class skill count remains 123.
     for index, spec in enumerate(specs):
-        name,unlock,kind,power,special,category,desc = spec
+        name,unlock,kind,source_ap,special,category,desc = spec
         row=rows[index]
         row.clear()
         row.update({
           "id":f"v0317_engineer_{special}","name":name,
           "aliases":[name.casefold()],"unlock":unlock,"kind":kind,"cooldown":4,"mana":0,
-          "base_power":power,"engineer_tool":True,"engineer_special":special,
+          "base_power":0,
+          "source_ap_cost":source_ap,
+          "source_ap_semantics":"learning_points",
+          "source_ap_is_damage_power":False,
+          "engineer_tool":True,"engineer_special":special,
           "engineer_category":category,"desc":desc,
         })
         if kind in ("damage","aoe_damage"):
@@ -3872,6 +3880,29 @@ def _v0317_install_engineer_toolkit():
     CLASS_SKILLS["Inżynier"] = rows
 
 _v0317_install_engineer_toolkit()
+
+def _v11196_engineer_ap_semantics_audit():
+    rows=[
+        row for row in CLASS_SKILLS.get("Inżynier",[])
+        if row.get("engineer_tool")
+    ]
+    errors=[]
+    for row in rows:
+        sid=str(row.get("engineer_special","") or row.get("id",""))
+        if str(row.get("source_ap_semantics",""))!="learning_points":
+            errors.append(f"{sid}: source AP must mean learning points")
+        if bool(row.get("source_ap_is_damage_power")):
+            errors.append(f"{sid}: source AP cannot be damage power")
+        if int(row.get("base_power",0) or 0)!=0:
+            errors.append(f"{sid}: Engineer base_power must not be sourced from AP")
+    return {"checked":len(rows),"errors":errors,"error_count":len(errors)}
+
+ENGINEER_AP_SEMANTICS_AUDIT_V11196=_v11196_engineer_ap_semantics_audit()
+if ENGINEER_AP_SEMANTICS_AUDIT_V11196["error_count"]:
+    raise RuntimeError(
+        "Engineer AP semantics audit v1.11.96 failed: "
+        + "; ".join(ENGINEER_AP_SEMANTICS_AUDIT_V11196["errors"])
+    )
 
 def _v03014_unique_generated_skill_names():
     renamed = 0
