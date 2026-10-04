@@ -738,9 +738,9 @@ class SessionCombatSkillsMixin:
                             await self.send("V-MAX zablokowany przez Overheat do zakończenia akcji regeneracyjnej."); return
                         # Source confirms WILL influence and Skill Level
                         # increasing duration, but supplies no numeric seconds/curve.
-                        # Soulbound therefore uses its documented balance curve:
-                        # Skill Level 1->600 gives a 30->90 second base and uncapped
-                        # WILL applies a soft duration multiplier.
+                        # Soulbound therefore uses its documented multi-minute curve:
+                        # Skill Level 1->600 gives a 200->600 second base at WILL 175,
+                        # while uncapped WILL applies an additional soft multiplier.
                         duration=generator_core_v027.mec_vmax_duration_seconds(
                             skill_level, self.effective_willpower()
                         )
