@@ -1,5 +1,21 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.11.75
+Aktualna paczka: v1.11.76
+
+==============================================================================
+Soulbound v1.11.76 — końcowy runtime superbossów i reliktów
+==============================================================================
+
+- Usunięto aktywne, wymyślone progi/nazwy faz superbossów; źródło nie definiuje uniwersalnej rotacji 60/25%.
+- Black Rabite dostaje permanent Protect/Shell jako jawny efekt startowy.
+- Seifer/Byblos uruchamiają dokładne startowe/pasywne kontrakty bez wymyślonych mnożników.
+- Emerald Torpedo ma kontrakt eksplozji/despawnu w trzeciej rundzie; brak wymyślonych obrażeń eksplozji.
+- Statusy źródłowe superbossów są czyszczone po zakończeniu pętli walki.
+- Devil King Shield: podwójny koszt MP klasowych umiejętności, odczyt 65% Ward Fire/Ice/Lightning oraz Auto-Veil w runtime EQ.
+- Relikty Broni Duszy nie stackują się; dokładnie jeden dostępny relikt wnosi statystyki.
+- Zantetsuken jako aktywny relikt zeruje zwykłe melee Broni Duszy zgodnie ze źródłem.
+- Usunięto stare pola/opisy sugerujące bind reliktów superbossów.
+- Phoenix Egg pozostaje jednorazowym Re-raise i zużywa jedną sztukę.
+- Brak wipe'a save'ów.
 
 ==============================================================================
 Soulbound v1.11.75 — źródłowe ceny sklepu Yiazmata
