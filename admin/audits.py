@@ -1528,7 +1528,7 @@ HELP_TOPIC_ALIASES.update({
 })
 HELP_TOPICS["materialy_eq"] = [
     "Materiałowe EQ z ciał występuje jako Żelazne, Stalowe, Mithrilowe, Adamantytowe, Kobaltowe, Runiczne, ze Smoczej Stali, Astralne, Pustki i Eternium.",
-    "Każdy z 10 materiałów obejmuje wszystkie 14 logicznych slotów: głowę, korpus, dłonie, nogi, stopy, talizman, pierścień, naszyjnik, kolczyk, naramienniki, pas, pelerynę, karwasze i relikt.",
+    "Każdy z 10 materiałów obejmuje wszystkie 15 logicznych slotów: głowę, korpus, dłonie, nogi, stopy, talizman, pierścień, naszyjnik, kolczyk, naramienniki, pas, pelerynę, karwasze i relikt.",
     "Każdy materiał i slot ma 24 warianty. Nazwy nie powtarzają się, a profile statów nie powtarzają się w obrębie tego samego materiału i slotu.",
     "EQ wymaga Levelu postaci, nie Biegłości klasy. Materiałowe przedmioty można zdobyć wcześniej i przechować, ale nie założyć przed wymaganym Levelem.",
     "Zwykły świat jest ograniczony do niższych materiałów; wysokie materiały zdobywa się głównie w Kryptach, Wieżach, Twierdzy i bojowych lochach.",
@@ -1884,7 +1884,7 @@ def equipment_completeness_audit_v03037():
     errors = []
     logical_slots = set(CLASS_EQUIPMENT_SLOT_DEFS)
     expected_slots = {
-        "head", "body", "hands", "legs", "feet", "charm", "ring", "necklace",
+        "head", "body", "shield", "hands", "legs", "feet", "charm", "ring", "necklace",
         "earring", "shoulders", "belt", "cloak", "bracers", "relic",
     }
     if logical_slots != expected_slots:
@@ -1917,7 +1917,7 @@ def equipment_completeness_audit_v03037():
     if duplicate_profiles:
         errors.append("duplicate material stat profiles: " + ", ".join(duplicate_profiles[:20]))
 
-    # Class EQ must expose earrings on representative levels for all 12 classes.
+    # Class EQ must expose earrings on representative levels for all 14 classes.
     for class_name, tiers in CLASS_EQUIPMENT_ITEMS_BY_CLASS_TIER.items():
         for level in (1, 100, 200, 300, 400, 600):
             ids = tiers.get(class_equipment_unlocked_tier(level), ())
@@ -1938,7 +1938,7 @@ def equipment_completeness_audit_v03037():
         if alias not in COMMAND_ALIASES:
             errors.append(f"missing earring shortcut {alias}")
 
-    # Krypta i Wieża Astralna również muszą używać pełnych 14 slotów.
+    # Krypta i Wieża Astralna również muszą używać pełnych 15 slotów.
     for tier in (1, 20, 40):
         crypt_slots = {ITEMS.get(f"crypt_t{tier}_{slot}", {}).get("slot") for slot in expected_slots}
         if crypt_slots != expected_slots:
@@ -2017,22 +2017,22 @@ HELP_TOPICS["kolczyki"] = [
     "Materiałowe kolczyki istnieją dla Żelaza, Stali, Mithrilu, Adamantytu, Kobaltu, Runicznego metalu, Smoczej Stali, Astralu, Pustki i Eternium.",
 ]
 HELP_TOPICS.setdefault("materialy_eq", []).append(
-    "v0.30.37: materiałowe EQ obejmuje wszystkie 14 logicznych slotów, w tym naramienniki, pas, pelerynę, karwasze, relikt i nowe kolczyki. Każdy wariant ma niepowtarzalną nazwę i profil statów w obrębie materiału/slotu."
+    "v0.30.37: materiałowe EQ obejmuje wszystkie 15 logicznych slotów, w tym naramienniki, pas, pelerynę, karwasze, relikt i nowe kolczyki. Każdy wariant ma niepowtarzalną nazwę i profil statów w obrębie materiału/slotu."
 )
 HELP_TOPICS.setdefault("jubilerstwo", []).append(
     "v0.30.37: Jubilerstwo tworzy też kolczyki. Jedna receptura daje jedną sztukę; do obu uszu potrzebujesz dwóch. Kolczyki obsługują gniazda klejnotów."
 )
 HELP_TOPICS.setdefault("wersja", []).append(
-    "v0.30.37: pełny pass EQ: 14 logicznych slotów, dwa miejsca na kolczyki, pełne materiałowe dropy wszystkich slotów i audit braku powtórek nazw/profili statów."
+    "v0.30.37: pełny pass EQ: 15 logicznych slotów, dwa miejsca na kolczyki, pełne materiałowe dropy wszystkich slotów i audit braku powtórek nazw/profili statów."
 )
 LATEST_CHANGES_TITLE = "Soulbound v0.30.37 - Complete EQ Slots + Earrings + Unique Material Stats"
 LATEST_CHANGES = [
     "v0.30.37: dodano kolczyki jako pełnoprawne dwa sloty użytkowe: kolczyk 1 i kolczyk 2, z automatycznym zkol oraz ręcznym zkol1/zkol2.",
     "v0.30.37: kolczyki są dostępne w klasowym EQ, materiale z mobów oraz Jubilerstwie i obsługują gniazda klejnotów.",
-    "v0.30.37: materiałowe EQ z ciał obejmuje teraz wszystkie 14 logicznych slotów dla wszystkich 10 materiałów od Żelaza do Eternium.",
+    "v0.30.37: materiałowe EQ z ciał obejmuje teraz wszystkie 15 logicznych slotów dla wszystkich 10 materiałów od Żelaza do Eternium.",
     "v0.30.37: 24 warianty każdego materiału/slotu mają niepowtarzalne profile statów; nazwy materiałowego EQ są globalnie unikalne.",
     "v0.30.37: sloty mają własne preferencje statów/właściwości, więc np. korpus, karwasze, peleryna i kolczyki nie są statystycznymi kopiami.",
-    "v0.30.37: Krypta i Wieża Astralna zostały podniesione do pełnych 14 slotów; stare sześcioslotowe pule nie ograniczają już nowych dropów.",
+    "v0.30.37: Krypta i Wieża Astralna zostały podniesione do pełnych 15 slotów; stare sześcioslotowe pule nie ograniczają już nowych dropów.",
     "v0.30.37: globalny audit wymaga unikalnej nazwy każdego EQ typu armor i rozróżnia pełne profile klasowych slotów.",
     "v0.30.37: po dodaniu kolczyków podstawowe sloty wearable są kompletne; Broń Duszy pozostaje osobnym systemem broni i nie jest dublowana zwykłym main-hand/off-hand.",
 ] + LATEST_CHANGES
