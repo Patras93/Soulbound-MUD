@@ -60,7 +60,11 @@ class SessionShopsTeachersMixin:
             required_class = item.get("required_class")
             if required_class and required_class not in self.active_class_names():
                 states.append(f"wymaga aktywnej klasy {required_class}")
-            if item.get("type") == "armor" and not self.equipment_mastery_requirement_met(item):
+            if item.get("universal_endgame_shop"):
+                required_level = max(1, int(item.get("required_level", 1) or 1))
+                if int(self.character.character_level) < required_level:
+                    states.append(f"wymaga Levelu postaci {required_level}")
+            elif item.get("type") == "armor" and not self.equipment_mastery_requirement_met(item):
                 required_level = self.equipment_character_level_requirement(item)
                 states.append(f"wymaga Levelu postaci {required_level}")
             return "; ".join(states)
@@ -303,6 +307,15 @@ class SessionShopsTeachersMixin:
                     await self.send(
                         f"{item['name']} jest już przypisany do tej postaci. "
                         "Każde narzędzie profesji można kupić tylko raz."
+                    )
+                    return
+
+            if item.get("universal_endgame_shop"):
+                required_level = max(1, int(item.get("required_level", 1) or 1))
+                if int(self.character.character_level) < required_level:
+                    await self.send(
+                        f"{item['name']} wymaga Levelu postaci {required_level}. "
+                        f"Masz Level postaci {int(self.character.character_level)}."
                     )
                     return
 
