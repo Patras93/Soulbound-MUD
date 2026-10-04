@@ -422,14 +422,24 @@ class SessionQuestOffersMixin:
 
             if available:
                 if len(available) == 1:
+                    if len(offer_ids) == 1:
+                        hint = (
+                            "Możesz od razu wpisać: przyjmij 1. "
+                            "quest list <NPC> jest tylko opcjonalnym podglądem."
+                        )
+                    else:
+                        hint = (
+                            "Możesz od razu użyć: przyjmij <numer>. "
+                            "quest list <NPC> jest tylko opcjonalnym podglądem numeracji."
+                        )
                     await self.send(
-                        f"{name}: Mam dla ciebie zadanie: {available[0]}. "
-                        "Jeśli chcesz, wybierz je z listy zadań."
+                        f"{name}: Mam dla ciebie zadanie: {available[0]}. {hint}"
                     )
                 else:
                     await self.send(
                         f"{name}: Mam dla ciebie {len(available)} dostępne zadania. "
-                        "Wybierz interesujące cię z listy zadań."
+                        "Po rozmowie możesz od razu użyć: przyjmij <numer>. "
+                        "quest list <NPC> jest tylko opcjonalnym podglądem numeracji i szczegółów."
                     )
             elif not ready and not active and cooldowns:
                 qname, remaining = min(cooldowns, key=lambda x: x[1])
