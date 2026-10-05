@@ -1,24 +1,91 @@
-name: Inspect regen constants
+name: Standing and rest regen validation
 on:
   push:
     branches:
       - feature/standing-rest-regen-v1124
 jobs:
-  inspect:
+  validate:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Inspect runtime regen
+      - name: Compile changed files
+        run: python -m py_compile player/session_mixins/rest_mana.py player/session_mixins/session_runtime_state.py player/session_mixins/io_auth_character.py player/session_mixins/command_loop.py admin/help_refresh.py server.py
+      - name: Fast predeploy
+        run: python predeploy_check.py
+      - name: Full runtime and regen contract
         env:
           SOULBOUND_DEFER_MEMORY_COMPACTION: '1'
         run: |
           python - <<'PY'
+          import asyncio
+          import inspect
           import server
-          print('REST_REGEN_PERCENT=', getattr(server,'REST_REGEN_PERCENT',None))
-          print('REST_TICK_SECONDS=', getattr(server,'REST_TICK_SECONDS',None))
-          print('REST_TICK_MODULE=', server.Session.rest_tick.__module__)
-          print('ENTER_WORLD_MODULE=', server.Session.enter_world.__module__)
+          import player.session_mixins.rest_mana as rest_mod
+
+          assert server.REST_REGEN_PERCENT == 10
+          assert float(server.REST_TICK_SECONDS) == 5.0
+          assert rest_mod.STANDING_REGEN_PERCENT_V1124 == 2
+          assert float(rest_mod.STANDING_REGEN_TICK_SECONDS_V1124) == 5.0
+          assert hasattr(server.Session, 'standing_regen_tick_v1124')
+          assert hasattr(server.Session, 'ensure_standing_regen_v1124')
+
+          async def check():
+              s = server.Session(None, None, None)
+              s.character = object()
+              s.current_hp = 500
+              s.current_mana = 250
+              s.max_hp = lambda: 1000
+              s.max_mana = lambda: 500
+              async def quiet_send(*args, **kwargs):
+                  return None
+              s.send = quiet_send
+              rest_mod.superboss_healing_blocked_v11179 = lambda _s: False
+
+              await s.standing_regen_tick_v1124()
+              assert s.current_hp == 520, s.current_hp
+              assert s.current_mana == 260, s.current_mana
+
+              s.current_hp = 500
+              s.current_mana = 250
+              await s.rest_tick()
+              assert s.current_hp == 600, s.current_hp
+              assert s.current_mana == 300, s.current_mana
+
+              s.current_hp = 500
+              s.current_mana = 250
+              s.combat_mob_key = 'mob'
+              assert not s.standing_regen_allowed_v1124()
+              s.combat_mob_key = None
+              s.resting = True
+              assert not s.standing_regen_allowed_v1124()
+              s.resting = False
+              s.moving = True
+              assert not s.standing_regen_allowed_v1124()
+              s.moving = False
+              assert s.standing_regen_allowed_v1124()
+
+              task = s.ensure_standing_regen_v1124()
+              assert task is s.standing_regen_task_v1124
+              await s.stop_standing_regen_v1124()
+              assert s.standing_regen_task_v1124 is None
+
+          asyncio.run(check())
+
+          enter_src = inspect.getsource(server.Session.enter_world)
+          assert 'self.ensure_standing_regen_v1124()' in enter_src
+          leave_src = inspect.getsource(server.Session.leave_current_character_for_selection)
+          close_src = inspect.getsource(server.Session.close)
+          assert 'await self.stop_standing_regen_v1124()' in leave_src
+          assert 'await self.stop_standing_regen_v1124()' in close_src
+
+          help_text = ' '.join(server.HELP_TOPICS.get('odpoczynek', []))
+          assert '2 procent' in help_text and '10 procent' in help_text
+          print('STANDING REGEN 2%/5s PASS')
+          print('REST REGEN 10%/5s PASS')
+          print('LIFECYCLE PASS')
+          print('HELP PASS')
+          print('FULL RUNTIME IMPORT PASS')
           PY
