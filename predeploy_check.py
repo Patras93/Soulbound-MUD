@@ -159,6 +159,23 @@ for _needle in ('baseline_key = f"_v1138_authored_{key}"', "procedural_no_limit"
     if _needle not in _runtime_progression_source:
         _semantic_errors.append("runtime progression feel regression: missing " + _needle)
 
+_equipment_stats_source = (_root / "player/session_mixins/equipment_stats.py").read_text(encoding="utf-8")
+_combat_feedback_source = (_root / "player/session_mixins/skill_learning.py").read_text(encoding="utf-8")
+for _needle in (
+    "def physical_defense_base(",
+    "constitution * 0.42",
+):
+    if _needle not in _generator_source:
+        _semantic_errors.append("physical defense progression regression: missing " + _needle)
+if "generator_core_v027.physical_defense_base(" not in _equipment_stats_source:
+    _semantic_errors.append("equipment CON defense regression: physical_defense_base not used")
+for _needle in (
+    "defense_cap_ratio = 0.60 if v0863_is_boss_template(template) else 0.75",
+    'f"{defense_name.capitalize()} zatrzymuje {reduction} obrażeń. "',
+):
+    if _needle not in _combat_feedback_source:
+        _semantic_errors.append("defense feel regression: missing " + _needle)
+
 # Smoczy Świat v1.13.0 feature contract retained by v1.13.2. Fast predeploy stays source-only,
 # while the module itself performs the full assembled-world runtime audit.
 _manifest_source = (_root / "core/runtime_manifest.py").read_text(encoding="utf-8")
