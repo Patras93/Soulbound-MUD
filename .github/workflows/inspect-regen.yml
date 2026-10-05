@@ -1,0 +1,24 @@
+name: Inspect regen constants
+on:
+  push:
+    branches:
+      - feature/standing-rest-regen-v1124
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Inspect runtime regen
+        env:
+          SOULBOUND_DEFER_MEMORY_COMPACTION: '1'
+        run: |
+          python - <<'PY'
+          import server
+          print('REST_REGEN_PERCENT=', getattr(server,'REST_REGEN_PERCENT',None))
+          print('REST_TICK_SECONDS=', getattr(server,'REST_TICK_SECONDS',None))
+          print('REST_TICK_MODULE=', server.Session.rest_tick.__module__)
+          print('ENTER_WORLD_MODULE=', server.Session.enter_world.__module__)
+          PY
