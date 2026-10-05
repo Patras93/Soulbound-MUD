@@ -1,0 +1,63 @@
+name: Equipment role audit
+on:
+  push:
+    branches:
+      - balance/equipment-role-scaling-v1125
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Audit equipment role power
+        env:
+          SOULBOUND_DEFER_MEMORY_COMPACTION: '1'
+        run: |
+          python - <<'PY'
+          import statistics
+          import server
+
+          def stats(item):
+              out={'strength':0,'dexterity':0,'constitution':0,'intelligence':0,'willpower':0}
+              aff=item.get('affix')
+              if aff in out: out[aff]+=int(item.get('affix_amount',0) or 0)
+              for src in ('stats','soulbound_balance_stats'):
+                  for k,v in (item.get(src) or {}).items():
+                      if k in out: out[k]+=int(v)
+              return out
+
+          def phys(item):
+              s=stats(item); p=item.get('properties') or {}
+              return s['strength']+0.65*s['dexterity']+int(item.get('attack',0) or 0)+int(item.get('weapon_power',0) or 0)+10*float(p.get('physical_damage_pct',0) or 0)
+          def magic(item):
+              s=stats(item); p=item.get('properties') or {}
+              return s['intelligence']+0.65*s['willpower']+int(item.get('magic_attack',0) or 0)+10*float(p.get('magic_damage_pct',0) or 0)
+          def heal(item):
+              s=stats(item)
+              return 0.55*s['intelligence']+0.45*s['willpower']+int(item.get('magic_attack',0) or 0)
+
+          print('=== UOSS BLACK RABITE ===')
+          for iid,item in server.ITEMS.items():
+              if iid.startswith('uoss_black_rabite_unique_'):
+                  print('UOSS',iid,item.get('name'),item.get('slot'),'stats',stats(item),'phys',round(phys(item),1),'magic',round(magic(item),1),'heal',round(heal(item),1))
+
+          print('=== CLASS EQ BY MASTERY ===')
+          for m in (100,150,200,300,400,500,600):
+              rows=[]
+              for iid,item in server.ITEMS.items():
+                  if item.get('class_shop_item') and int(item.get('required_mastery',0) or 0)==m:
+                      rows.append((phys(item),magic(item),heal(item),sum(stats(item).values())))
+              if rows:
+                  print('CLASS',m,'n',len(rows),'phys_max',round(max(x[0] for x in rows),1),'magic_max',round(max(x[1] for x in rows),1),'heal_max',round(max(x[2] for x in rows),1),'stats_med',round(statistics.median(x[3] for x in rows),1))
+
+          print('=== MATERIAL EQ BY MASTERY ===')
+          for m in (100,150,200,300,400,500,600):
+              rows=[]
+              for iid,item in server.ITEMS.items():
+                  if item.get('corpse_material') and int(item.get('required_mastery',0) or 0)==m:
+                      rows.append((phys(item),magic(item),heal(item),sum(stats(item).values())))
+              if rows:
+                  print('MATERIAL',m,'n',len(rows),'phys_max',round(max(x[0] for x in rows),1),'magic_max',round(max(x[1] for x in rows),1),'heal_max',round(max(x[2] for x in rows),1),'stats_med',round(statistics.median(x[3] for x in rows),1))
+          PY
