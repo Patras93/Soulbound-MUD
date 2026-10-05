@@ -1,5 +1,16 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.12.0
+Aktualna paczka: v1.12.1
+
+==============================================================================
+Soulbound v1.12.1 — niezależny autoatak Broni Duszy
+==============================================================================
+
+- Naprawiono konflikt auto-kolejki z Bronią Duszy: skill z kolejki nie zastępuje już zwykłego ataku Bronią Duszy.
+- W każdej rundzie gracza auto-kolejka może wykonać maksymalnie jeden gotowy skill/spell, a następnie Broń Duszy wykonuje własny zwykły atak, jeśli główny cel nadal żyje.
+- Pełna kolejka zwykłych skilli bez cooldownu nie może już blokować Soul Weapon Mastery, właściwości Soul Tier ani efektów zwykłego ataku Broni Duszy.
+- Jeśli skill z kolejki zabije główny cel, Broń Duszy nie wykonuje pustego ataku na martwy cel; pętla wybiera kolejny prawidłowy cel zgodnie z istniejącą logiką walki.
+- Zaktualizowano HELP walki, auto-kolejki i Broni Duszy.
+- Brak wipe'a save'ów i brak zmian schematu SQLite.
 
 ==============================================================================
 Soulbound v1.12.0 — Globalny Atlas Odkryć

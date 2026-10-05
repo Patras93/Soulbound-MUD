@@ -1317,6 +1317,7 @@ def refresh_help_truth_v11197():
     HELP_TOPICS["kolejka"] = [
         "Auto-kolejka ma osobne listy fizyczne i magiczne. Pasywki nie zajmują slotów.",
         "Na Character Level 1 każda kolejka ma 20 aktywnych slotów; co 10 Leveli dochodzi +1 slot, aż do 80 na Levelu 600.",
+        "W każdej rundzie kolejka może uruchomić maksymalnie jeden gotowy skill, ale nie zastępuje zwykłego autoataku Bronią Duszy. Pełna kolejka nie blokuje Soul Weapon Mastery ani właściwości Broni Duszy.",
         "kolejka dodaj <skill> zapisuje aktywny skill i automatycznie włącza rotację.",
         "kolejka lista [fizyczna|magiczna], kolejka usuń <numer>, kolejka wyczyść [typ], kolejka góra/dół oraz kolejka on/off zarządzają rotacją.",
     ]
@@ -1324,6 +1325,7 @@ def refresh_help_truth_v11197():
     HELP_TOPICS["dusza"] = [
         "Broń Duszy ma Soul Level 1-600 oraz osobną Soul Weapon Mastery 1-600.",
         "Soul Weapon Mastery rozwija zwykły autoatak Broni Duszy; skille klasowe rozwijają własny Skill Level 1-600.",
+        "Zwykły atak Broni Duszy działa w każdej rundzie walki niezależnie od auto-kolejki. Skill z kolejki może wykonać się w tej samej rundzie i nie zabiera ataku Broni Duszy.",
         "System Soul Tierów został rozszerzony razem z progresją do 600; dusza info pokazuje bieżący Tier, wymagania, Próby i następny cel.",
         "Relikty Broni Duszy są wybierane przez relic / relikt; EQ i aktywny relikt wpływają na realne parametry walki.",
     ]
@@ -1631,7 +1633,7 @@ def refresh_public_help_surface_v11197():
 
     HELP_TOPICS["walka"] = [
         "k <mob> / atakuj <mob> rozpoczyna walkę realtime; uciekaj / flee wycofuje z walki, a wimpy może robić to automatycznie przy ustawionym progu HP.",
-        "Zwykły autoatak korzysta z Broni Duszy i aktualnego buildu postaci. Dokładne skalowanie skilla wynika z jego własnego stat/scale, np. STR, DEX, INT, WILL albo Attack.",
+        "Zwykły autoatak korzysta z Broni Duszy i aktualnego buildu postaci. Auto-kolejka nie zastępuje tego ataku: w tej samej rundzie może wykonać się skill oraz zwykły atak Bronią Duszy.",
         "Ofensywne skille nie są globalnie dzielone na zasadę fizyczne=tylko Siła i magiczne=tylko Inteligencja; help skill <nazwa> pokazuje właściwe skalowanie konkretnej zdolności.",
         "Zwykłe skille klasowe są bez cooldownu ponownego użycia; specjalne timery pozostają tylko tam, gdzie są elementem mechaniki, np. V-MAX.",
         "combatlog concise/normal/full oraz bufor walka sterują szczegółowością i pozwalają wrócić do ostatnich komunikatów.",
