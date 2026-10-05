@@ -104,11 +104,14 @@ class SessionRestManaMixin:
                 return (
                     f"HP {self.current_hp} z {max_hp}. "
                     f"Mana {self.current_mana} z {max_mana}. "
-                    f"Odpoczynek: {'aktywny' if self.resting else 'wyłączony'}."
+                    f"Odpoczynek: {'aktywny' if self.resting else 'wyłączony'}. "
+                    "Stanie: 2 procent HP i Many co 5 sekund; "
+                    "rest: 10 procent co 5 sekund."
                 )
             return (
                 f"HP {self.current_hp} z {max_hp}. "
-                f"Odpoczynek: {'aktywny' if self.resting else 'wyłączony'}."
+                f"Odpoczynek: {'aktywny' if self.resting else 'wyłączony'}. "
+                "Stanie: 2 procent HP co 5 sekund; rest: 10 procent co 5 sekund."
             )
 
     def rest_needs_regeneration(self):
