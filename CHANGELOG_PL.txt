@@ -1,5 +1,26 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.13.0
+Aktualna paczka: v1.13.1
+
+==============================================================================
+Soulbound v1.13.1 — dużo więcej EXP dla statystyk bez limitu
+==============================================================================
+
+- Bazowe statystyki pozostają bez twardego limitu i mają teraz dużo szybsze, wyraźnie odczuwalne tempo rozwoju.
+- Każde źródło stat EXP dostaje globalny mnożnik x4 przed bonusem rasy, Gildii i przed skalowaniem statów powyżej 400.
+- Usunięto dawny sztuczny mnożnik x2 wymaganego EXP statystyk: aktywne STAT_XP_REQUIREMENT_MULTIPLIER wynosi teraz 1.0 zamiast 2.0.
+- Łącznie oznacza to około 8x szybszą progresję statów względem v1.13.0 przy tym samym źródle.
+- Generator Core zachowuje bazowy cel 60 akcji, ale x4 nagrody i naturalny próg dają efektywnie około 15 równorzędnych zwykłych akcji na kolejny punkt każdej statystyki.
+- Rare, minibossowie, bossowie, mocniejsze questy, bonusy rasy/Gildii i cykliczne x2 EXP przyspieszają rozwój dalej.
+- Ręcznie balansowane questy również korzystają z globalnego x4. Trollowe bazowe 15000-25000 daje obecnie 60000-100000 EXP każdej statystyki przed dodatkowymi bonusami.
+- Smoczy Świat zachowuje ręczną bazę 30000-75000, co po globalnym x4 daje obecnie 120000-300000 EXP każdej statystyki przed rasą, Gildią i x2 EXP.
+- Powyżej 400 wymagania nadal rosną bez końca, a uncapped source scaling podnosi nagrody wraz z poziomem statystyki, więc progresja nie zatrzymuje się.
+- Niskopoziomowe źródła nadal pozostają słabsze od właściwego endgame; globalny x4 nie usuwa dynamicznej jakości źródła.
+- Poprawiono obliczanie komunikatu bonusu rasy: globalny x4 nie jest błędnie przedstawiany jako bonus rasowy.
+- HELP statystyk, trolli i Smoczego Świata opisuje aktualne tempo i efektywne nagrody.
+- Fast predeploy pilnuje mnożników 1.0/4.0 oraz matematycznie blokuje regresję powyżej około 15 równorzędnych akcji na punkt statystyki.
+- Podbito canonical VERSION i runtime do v1.13.1.
+- Brak wipe'a save'ów i brak zmian schematu SQLite.
+
 
 ==============================================================================
 Soulbound v1.13.0 — Smoczy Świat
