@@ -2,7 +2,7 @@ SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
 Aktualna paczka: v1.12.4
 
 ==============================================================================
-Soulbound v1.12.4 — naturalna regeneracja stojąc
+Soulbound v1.12.4 — regeneracja, przetop stop i ekonomia 1–600
 ==============================================================================
 
 - Postać poza walką naturalnie regeneruje HP i Manę podczas stania: 2 procent wartości maksymalnej co 5 sekund.
@@ -14,6 +14,14 @@ Soulbound v1.12.4 — naturalna regeneracja stojąc
 - Dodano `przetop stop` i `przetop status`. Przetapianie działa jako osobny task, więc długie `przetop max` / `przetop wszystko` można przerwać bez zamykania sesji.
 - Zatrzymanie podczas czasu oczekiwania następuje przed pobraniem materiałów; jeśli trwa już zapis wyniku, bieżący przetop kończy się bezpiecznie i kolejny nie startuje.
 - Podczas aktywnego przetapiania inne akcje są blokowane, a naturalny regen stojąc jest wstrzymany.
+- Przeprowadzono pełny audyt zarobków 1–600: walka, bossowie, questy, sprzedaż zasobów, Ocean i późne sinki.
+- Naprawiono stary Economy Audit 2.0, który zaniżał 289 questów i powodował, że przy poziomie 400+ typowe zadania płaciły około 1 tys. Gold mimo wielomilionowych cen późnego EQ.
+- Finalny balans obejmuje wszystkie dodatnie nagrody questowe po załadowaniu całej zawartości. Poziom celu jest wyliczany z questa, moba, przedmiotu i progów profesji/Soul.
+- Docelowa baza zadania rośnie płynnie: poziom 300 około 25 tys. Gold, 350 około 75 tys., 400 około 150 tys., 500 około 250 tys., 600 około 400 tys.; rodzaj, liczba celów, powtarzalność i próby Soul modyfikują wypłatę.
+- Audyt finalny: 1066 questów z walutą; 773 podniesiono, 8 zbyt wysokich obniżono, 285 pozostawiono bez zmian. Questy item-only pozostają bez waluty.
+- Handel morski pozostaje 5 tys.–150 tys. Gold za kontrakt. Walka, bossowie i sprzedaż surowców zachowują dotychczasowe krzywe.
+- Ceny źródłowe Wattsa/UOSSMUD pozostają bez zmian, w tym Moogle Board i pozostałe przedmioty za 5 000 000 Gold oraz wymagany Moogle Steel.
+- Dodano HELP `ekonomia` / `zarobki`.
 - Brak wipe'a save'ów i brak zmian schematu SQLite.
 
 ==============================================================================
