@@ -106,6 +106,7 @@ class SessionCommandLoopMixin:
                 await self.cancel_guide(announce=False)
             if self.resting or self.rest_task:
                 await self.stop_rest(announce=False)
+            await self.stop_standing_regen_v1124()
             if self.auto_fishing or self.auto_fishing_task:
                 await self.stop_auto_fishing(announce=False)
             if self.auto_mining or self.auto_mining_task:
@@ -158,6 +159,7 @@ class SessionCommandLoopMixin:
             self.clear_downed_v0371(cancel_task=True)
             if self.resting or self.rest_task:
                 await self.stop_rest(announce=False)
+            await self.stop_standing_regen_v1124()
             if self.auto_fishing or self.auto_fishing_task:
                 await self.stop_auto_fishing(announce=False)
             if self.auto_mining or self.auto_mining_task:
