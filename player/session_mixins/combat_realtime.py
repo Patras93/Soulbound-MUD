@@ -81,9 +81,17 @@ class SessionCombatRealtimeMixin:
                 # Timed V-MAX must expire during ordinary realtime combat too,
                 # not only when the player manually invokes another skill.
                 await self.mec_refresh_vmax_v0319()
-                # Kolejka ma pierwszeństwo. Jeśli żaden zapisany skill/spell nie jest
-                # obecnie gotowy, wykonujemy zwykły automatyczny atak Bronią Duszy.
-                if await self.try_auto_skill_queue(mob):
+                # v1.12.1: auto-kolejka i Broń Duszy są niezależnymi warstwami
+                # tej samej rundy gracza. Kolejka może wykonać maksymalnie jeden
+                # gotowy skill/spell, ale nie zużywa już zwykłego ataku Bronią Duszy.
+                # Dzięki temu pełna kolejka bez cooldownów nie blokuje Soul Weapon
+                # Mastery, właściwości Broni Duszy ani samego autoataku.
+                await self.try_auto_skill_queue(mob)
+                if (
+                    not mob
+                    or not mob.alive
+                    or mob.room_id != self.character.room_id
+                ):
                     return
 
                 template = MOB_TEMPLATES[mob.template_id]
