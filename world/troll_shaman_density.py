@@ -4,7 +4,8 @@
 The repeatable Troll Shaman quest requires 5 kills. Older generic quest-density
 logic could leave only three concurrent ordinary troll_shaman spawns, all in a
 single room. This layer makes the authored Jaskinia Trolli layout match the
-quest requirement without changing the quest target or reward.
+quest requirement. v1.12.8 also keeps the troll quest line's stat progression
+meaningful against the modern long-term level curve.
 """
 from data import catalog_mutations as _catalog_mut
 from data.mobs import MOB_TEMPLATES
@@ -38,11 +39,40 @@ if isinstance(QUESTS.get("troll_shaman_hunt"), dict):
     _catalog_mut.catalog_assign("Pokonaj 5 Trolli Szamanów w Jaskini Trolli. "
         "Szamani występują w kilku komorach jaskini jednocześnie.", 'QUESTS', QUESTS, ("troll_shaman_hunt", "description"))
 
+# v1.12.8: stat progression had fallen far behind character progression.
+# These are intentional per-stat rewards, not a shared pool: completing one
+# quest grants the listed amount separately to each of the six base stats.
+# manual_stat_progress is read before Generator Core reward fields, keeping
+# these authored values stable across future numeric regeneration.
+V1128_TROLL_QUEST_STAT_REWARDS = {
+    "mountain_troll_hunt": 15_000,
+    "mountain_trail_patrol": 15_000,
+    "stolen_mountain_ores": 15_000,
+    "troll_shaman_hunt": 18_000,
+    "deep_troll_clearance": 20_000,
+    "troll_king_hunt": 25_000,
+}
+V1128_TROLL_QUEST_STAT_REPAIRS = {}
+for _quest_id, _stat_reward in V1128_TROLL_QUEST_STAT_REWARDS.items():
+    _quest = QUESTS.get(_quest_id)
+    if not isinstance(_quest, dict):
+        continue
+    _catalog_mut.catalog_assign(
+        int(_stat_reward), 'QUESTS', QUESTS, (_quest_id, "manual_stat_progress")
+    )
+    _catalog_mut.catalog_assign(
+        int(_stat_reward), 'QUESTS', QUESTS, (_quest_id, "reward_stat_progress")
+    )
+    V1128_TROLL_QUEST_STAT_REPAIRS[_quest_id] = int(_stat_reward)
+
 HELP_TOPICS.setdefault("questy", []).append(
     "v0.36.11: Polowanie na Trolli Szamanów ma 8 równoczesnych zwykłych Trolli Szamanów rozmieszczonych w kilku komorach Jaskini Trolli; quest nadal wymaga 5 zabójstw."
 )
 HELP_TOPICS.setdefault("trolle", []).append(
     "Polowanie na Trolli Szamanów: szukaj ich w Jaskini Trolli, szczególnie w Galerii Szamanów; v0.36.11 utrzymuje 8 równoczesnych spawnów dla celu 5 zabójstw."
+)
+HELP_TOPICS.setdefault("trolle", []).append(
+    "v1.12.8: trollowe zlecenia dają od 15000 EXP do każdej z sześciu statystyk osobno; Polowanie na Trolli Szamanów daje 18000, Wojenny Szlak Trolli 20000, a Król Trolli 25000 do każdej statystyki."
 )
 HELP_TOPIC_ALIASES.update({
     "troll szaman": "trolle",
@@ -85,6 +115,38 @@ def troll_shaman_density_audit_v03611():
         "error_count": len(errors),
         "errors": errors,
     }
+
+
+def troll_quest_stat_rewards_audit_v1128():
+    errors = []
+    for quest_id, expected in V1128_TROLL_QUEST_STAT_REWARDS.items():
+        quest = QUESTS.get(quest_id)
+        # mountain_troll_hunt is legacy-authored outside this module; all IDs are
+        # expected in the assembled runtime, but report absence clearly.
+        if not isinstance(quest, dict):
+            errors.append(f"missing troll quest: {quest_id}")
+            continue
+        manual = int(quest.get("manual_stat_progress", 0) or 0)
+        visible = int(quest.get("reward_stat_progress", 0) or 0)
+        if manual != expected:
+            errors.append(f"{quest_id}: manual stat reward {manual}, expected {expected}")
+        if visible != expected:
+            errors.append(f"{quest_id}: visible stat reward {visible}, expected {expected}")
+    return {
+        "version": "1.12.8",
+        "quests_checked": len(V1128_TROLL_QUEST_STAT_REWARDS),
+        "minimum_per_stat": min(V1128_TROLL_QUEST_STAT_REWARDS.values()),
+        "error_count": len(errors),
+        "errors": errors,
+    }
+
+
+TROLL_QUEST_STAT_REWARDS_AUDIT_V1128 = troll_quest_stat_rewards_audit_v1128()
+if TROLL_QUEST_STAT_REWARDS_AUDIT_V1128["error_count"]:
+    raise RuntimeError(
+        "Troll Quest Stat Rewards Audit v1.12.8 failed: "
+        + "; ".join(TROLL_QUEST_STAT_REWARDS_AUDIT_V1128["errors"][:100])
+    )
 
 
 TROLL_SHAMAN_DENSITY_AUDIT_V03611 = troll_shaman_density_audit_v03611()
