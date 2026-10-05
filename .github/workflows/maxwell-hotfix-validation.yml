@@ -1,0 +1,32 @@
+name: Maxwell combat hotfix validation
+on:
+  push:
+    branches:
+      - fix/maxwell-class-skills-v1122
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile
+        run: python -m py_compile player/session_mixins/combat_realtime.py player/session_mixins/skill_learning.py server.py
+      - name: Fast predeploy
+        run: python predeploy_check.py
+      - name: Full runtime and Session contract
+        env:
+          SOULBOUND_DEFER_MEMORY_COMPACTION: '1'
+        run: |
+          python - <<'PY'
+          import inspect
+          import server
+          assert hasattr(server.Session, 'class_skills')
+          assert not hasattr(server.Session, 'available_class_skills')
+          src = inspect.getsource(server.Session.realtime_player_action)
+          assert 'self.class_skills()' in src
+          assert 'self.available_class_skills()' not in src
+          print('SESSION CLASS_SKILLS CONTRACT PASS')
+          print('FULL RUNTIME IMPORT PASS')
+          PY
