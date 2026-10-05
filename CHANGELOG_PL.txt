@@ -1,5 +1,21 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.13.3
+Aktualna paczka: v1.13.4
+
+==============================================================================
+Soulbound v1.13.4 — Smoczy Świat jako explicit runtime module
+==============================================================================
+
+- Naprawiono crash kontenera po przejściu wcześniejszych audytów:
+  Maintainable Core Audit v0.50.0 zgłaszał world/dragon_world.py jako new/unreviewed legacy compatibility module.
+- Smoczy Świat został przeniesiony na właściwą dla nowego kodu ścieżkę EXPLICIT_RUNTIME_EXPORTS.
+- Moduł korzysta z normalnych importów i publikuje tylko cztery jawne eksporty:
+  DRAGON_WORLD_VERSION, DRAGON_WORLD_NAME, DRAGON_WORLD_STATE i DRAGON_WORLD_AUDIT_V1130.
+- Nie dodawano Smoczego Świata do starego LEGACY_COMPATIBILITY_ALLOWLIST; legacy bridge pozostaje zamrożony zgodnie z Maintainable Core.
+- Fast Predeploy pilnuje od teraz, że world/dragon_world.py pozostaje explicit i nie trafia do legacy allowlist.
+- Zachowano namespacing helperów v1.13.2, finalny HELP statystyk v1.13.3 oraz globalne x4 stat EXP v1.13.1.
+- Podbito canonical VERSION i runtime do v1.13.4.
+- Brak wipe'a save'ów i brak zmian schematu SQLite.
+
 
 ==============================================================================
 Soulbound v1.13.3 — finalny HELP statystyk nie wywala runtime
