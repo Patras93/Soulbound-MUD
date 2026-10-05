@@ -181,8 +181,9 @@ class SessionCombatRealtimeMixin:
                 _basic_kind = "physical" if self.character.class_type == "physical" else "magic"
                 damage, machine_note = v0314_adjust_damage_vs_template(template, damage, _basic_kind, "")
 
-                # v1.11.96: UOSS logs show ordinary weapon attacks as AGI-driven
-                # multi-hit strings. Haste doubles the available string. Resolve
+                # v1.12.5: ordinary Soul Weapon multi-hit reads final Speed.
+                # DEX/AGI builds Speed, while Haste separately doubles the available
+                # hit string. Resolve
                 # hits sequentially and stop immediately when the target dies,
                 # matching logs where a nearly dead target receives fewer hits.
                 _potential_hits = 1 if _zantetsuken_no_melee else self.basic_attack_hit_count_v11196()
