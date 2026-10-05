@@ -1,5 +1,19 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.13.2
+Aktualna paczka: v1.13.3
+
+==============================================================================
+Soulbound v1.13.3 — finalny HELP statystyk nie wywala runtime
+==============================================================================
+
+- Naprawiono crash kontenera po poprawnym zbudowaniu obrazu Railway:
+  HELP Surface Audit v1.11.97 zgłaszał brak fraz "bez twardego limitu", "x4" i "15 akcji".
+- Przyczyną było późniejsze refresh_help_truth_v11197(), które nadpisywało wcześniejszy, aktualny temat HELP statystyki starszą treścią.
+- Finalna warstwa HELP statystyki zawiera teraz aktualne zasady: brak twardego limitu, globalne x4 stat EXP i około 15 równorzędnych akcji na kolejny punkt.
+- Fast Predeploy sprawdza teraz dokładnie finalny blok refresh_help_truth_v11197 przed buildem, więc ten typ regresji powinien zatrzymać się przed uruchomieniem kontenera.
+- Zachowano poprawkę namespacingu Smoczego Świata z v1.13.2 oraz cały balans stat EXP z v1.13.1.
+- Podbito canonical VERSION i runtime do v1.13.3.
+- Brak wipe'a save'ów i brak zmian schematu SQLite.
+
 
 ==============================================================================
 Soulbound v1.13.2 — Smoczy Świat Railway runtime hotfix
