@@ -2,7 +2,7 @@
 # v0.44.0: explicit dependencies; no compatibility-global injection.
 from dataclasses import dataclass
 import json
-from config.balance import STAT_XP_REQUIREMENT_MULTIPLIER
+from config.balance import STAT_XP_REQUIREMENT_MULTIPLIER, STAT_XP_REWARD_MULTIPLIER
 from core.bootstrap_economy_professions import (
     CHARISMA_DISCOUNT_STEP,
     CHARISMA_MAX_DISCOUNT,
@@ -576,9 +576,16 @@ class Character:
         ilość EXP każdej statystyce, ale każda ma własny licznik i próg.
         """
         base_amount = max(0, int(amount))
+        # v1.13.1: wszystkie źródła stat XP są celowo hojne, bo statystyki
+        # bazowe nie mają limitu. Generator nadal pilnuje jakości źródła,
+        # a próg kolejnego punktu rośnie bez końca.
+        accelerated_amount = max(
+            0,
+            int(round(base_amount * STAT_XP_REWARD_MULTIPLIER))
+        )
         racial_amount = max(
             0,
-            int(round(base_amount * self.racial_stat_progress_multiplier()))
+            int(round(accelerated_amount * self.racial_stat_progress_multiplier()))
         )
         _guild_pct=max(0,int(getattr(self,"_guild_bonus_percent",0) or 0))
         amount=max(0,int(round(racial_amount*(1.0+_guild_pct/100.0))))
@@ -587,7 +594,7 @@ class Character:
         else:
             target_names = [name for name in targets if name in self.STAT_PROGRESS_FIELDS]
         messages = []
-        bonus = max(0, racial_amount - base_amount)
+        bonus = max(0, racial_amount - accelerated_amount)
         guild_bonus=max(0, amount - racial_amount)
         for stat_name in target_names:
             label, value_field, progress_field = self.STAT_PROGRESS_FIELDS[stat_name]

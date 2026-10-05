@@ -49,12 +49,16 @@ MINE_MIN_FLOOR = 1
 MINE_PREGENERATED_MAX_FLOOR = 200
 MINE_WALL_SCALING_START_FLOOR = 10
 
-# v0.50.1: progression pace rebalance. These multipliers affect XP requirements,
-# not rewards, so all existing reward sources and bonuses keep their proportions.
+# v0.50.1: progression pace rebalance for capped Character Level.
 CHARACTER_XP_REQUIREMENT_MULTIPLIER = 2.0
-# v0.50.2: base stats are uncapped, but should be a long-term axis rather than
-# outrunning Character Level; requirements are doubled globally, rewards unchanged.
-STAT_XP_REQUIREMENT_MULTIPLIER = 2.0
+
+# v1.13.1: base stats are intentionally uncapped. Their curve itself already
+# grows forever, so an extra x2 requirement tax only made the axis lag behind
+# the rest of the character. Keep the natural generated requirement and make
+# every stat-XP source generous. This multiplier applies before race/guild
+# bonuses and before the post-400 uncapped source scaling.
+STAT_XP_REQUIREMENT_MULTIPLIER = 1.0
+STAT_XP_REWARD_MULTIPLIER = 4.0
 PROFESSION_XP_REQUIREMENT_MULTIPLIERS = {
     "Górnictwo": 2.0,
 }
@@ -121,6 +125,7 @@ __all__ = [
     'V095_FISHING_MIN_SECONDS',
     'CHARACTER_XP_REQUIREMENT_MULTIPLIER',
     'STAT_XP_REQUIREMENT_MULTIPLIER',
+    'STAT_XP_REWARD_MULTIPLIER',
     'PROFESSION_XP_REQUIREMENT_MULTIPLIERS',
     'TOOL_XP_REQUIREMENT_MULTIPLIERS',
     'V0503_DIFFICULTY_PRESSURE',

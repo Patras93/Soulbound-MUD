@@ -72,7 +72,7 @@ HELP_TOPICS.setdefault("trolle", []).append(
     "Polowanie na Trolli Szamanów: szukaj ich w Jaskini Trolli, szczególnie w Galerii Szamanów; v0.36.11 utrzymuje 8 równoczesnych spawnów dla celu 5 zabójstw."
 )
 HELP_TOPICS.setdefault("trolle", []).append(
-    "v1.12.8: trollowe zlecenia dają od 15000 EXP do każdej z sześciu statystyk osobno; Polowanie na Trolli Szamanów daje 18000, Wojenny Szlak Trolli 20000, a Król Trolli 25000 do każdej statystyki."
+    "v1.13.1: trollowe zlecenia zachowują ręczną bazę 15000-25000 EXP każdej statystyki, a globalny mnożnik stat EXP x4 daje obecnie 60000-100000 do każdej statystyki przed rasą, Gildią i x2 EXP."
 )
 HELP_TOPIC_ALIASES.update({
     "troll szaman": "trolle",
