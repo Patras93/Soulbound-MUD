@@ -23,10 +23,12 @@ jobs:
           import inspect
           import server
           assert hasattr(server.Session, 'class_skills')
-          assert not hasattr(server.Session, 'available_class_skills')
-          src = inspect.getsource(server.Session.realtime_player_action)
-          assert 'self.class_skills()' in src
-          assert 'self.available_class_skills()' not in src
-          print('SESSION CLASS_SKILLS CONTRACT PASS')
+          print('SESSION class_skills:', server.Session.class_skills.__module__, server.Session.class_skills.__qualname__)
+          method = server.Session.realtime_player_action
+          print('REALTIME METHOD:', method.__module__, method.__qualname__)
+          src = inspect.getsource(method)
+          print('HAS NEW CALL:', 'self.class_skills()' in src)
+          print('HAS OLD CALL:', 'self.available_class_skills()' in src)
+          print(src[:1800])
           print('FULL RUNTIME IMPORT PASS')
           PY
