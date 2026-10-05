@@ -20,6 +20,25 @@ class SessionCommandLoopMixin:
             raw = await self.read_line()
             if raw is None:
                 break
+
+            if self.smelt_task_active_v1124():
+                _busy_parts = raw.split(maxsplit=1)
+                _busy_token = _busy_parts[0].lower() if _busy_parts else ""
+                _busy_args = _busy_parts[1] if len(_busy_parts) > 1 else ""
+                _busy_command = resolve_session_command(_busy_token, _busy_args)
+                _busy_control = (
+                    _busy_command == "smelt"
+                    and self.normalize_description_query(_busy_args) in {
+                        "stop", "off", "przerwij", "koniec", "status", "stan"
+                    }
+                )
+                if not _busy_control:
+                    await self.send(
+                        "Trwa przetapianie. Wpisz przetop status albo przetop stop "
+                        "przed wykonaniem innej akcji."
+                    )
+                    continue
+
             if raw.startswith("'"):
                 await self.say(raw[1:])
                 continue
@@ -106,6 +125,8 @@ class SessionCommandLoopMixin:
                 await self.cancel_guide(announce=False)
             if self.resting or self.rest_task:
                 await self.stop_rest(announce=False)
+            await self.stop_smelt_v1124(announce=False)
+            await self.stop_standing_regen_v1124()
             if self.auto_fishing or self.auto_fishing_task:
                 await self.stop_auto_fishing(announce=False)
             if self.auto_mining or self.auto_mining_task:
@@ -158,6 +179,8 @@ class SessionCommandLoopMixin:
             self.clear_downed_v0371(cancel_task=True)
             if self.resting or self.rest_task:
                 await self.stop_rest(announce=False)
+            await self.stop_smelt_v1124(announce=False)
+            await self.stop_standing_regen_v1124()
             if self.auto_fishing or self.auto_fishing_task:
                 await self.stop_auto_fishing(announce=False)
             if self.auto_mining or self.auto_mining_task:

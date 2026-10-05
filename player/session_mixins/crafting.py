@@ -364,7 +364,13 @@ class SessionCraftingMixin:
                 f"{self.tool_action_label(tool_type)}: "
                 f"{action_seconds} sekund."
             )
-            await asyncio.sleep(action_seconds)
+            if (
+                normalize_lookup_text(action_name) == "przetapianie"
+                and hasattr(self, "smelt_wait_v1124")
+            ):
+                await self.smelt_wait_v1124(action_seconds)
+            else:
+                await asyncio.sleep(action_seconds)
 
             for item_id, quantity in recipe["ingredients"].items():
                 if not self.consume_recipe_item(item_id, quantity):
@@ -648,7 +654,8 @@ class SessionCraftingMixin:
                 "i kucia przedmiotów w Kuźni Dusz."
             )
             await self.send(
-                "Komendy: kowalstwo, przetop <metal>, "
+                "Komendy: kowalstwo, przetop <metal>, przetop max <metal>, "
+                "przetop wszystko, przetop status, przetop stop, "
                 "kuj <receptura>, craft <receptura>, ulepsz <EQ>, "
                 "ulepsz lista, receptury kowalstwo."
             )

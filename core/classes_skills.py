@@ -2473,7 +2473,7 @@ def _v0319_install_full_mec_kit():
         ("Intercept System",75,"passive",1000,"counter","intercept_system","Selected Counter that interrupts an incoming enemy attack and answers with laser-guided damage using the highest available offensive stat. Skill Level increases counter damage."),
         # Inherent
         ("Self-Repair",1,"passive",1000,"inherent","self_repair","Automatically restores Feedback self-damage after 3 owner rounds. Source also grants Auto-Regen, but no numeric Auto-Regen amount is supplied, so Soulbound does not fabricate one."),
-        ("Combat Mastery",30,"passive",1000,"inherent","combat_mastery","Increases purely Strength-based weapon/Mec melee damage."),
+        ("Combat Mastery",30,"passive",1000,"inherent","combat_mastery","Selected inherent. Increases ordinary Mec Soul Weapon attack damage in its pure Strength/melee role; does not work unarmed. Source: stronger than Attack UP but weaker than Two Hands."),
         ("Maxwell Program",30,"passive",1000,"inherent","maxwell_program","Augments Magic Attack and regenerates 1% of maximum MP every 6 seconds."),
         ("Shooting Mastery",30,"passive",1000,"inherent","shooting_mastery","Automatic inherent from Level 30. Soulbound uses one Soul Weapon: Shooting Mastery strengthens its Dexterity/ranged damage component without requiring a separate ranged weapon; stronger than ordinary Attack UP."),
         # Passive protocols
@@ -2653,7 +2653,24 @@ def _v0319_install_full_mec_kit():
             })
         if special=="self_repair": row.update({"feedback_repair_rounds":3,"auto_regen_source_defined":True,"auto_regen_amount_source_defined":False})
         if special=="maxwell_program": row.update({"magic_attack_augmentation":True,"mp_regen_percent":1.0,"mp_regen_seconds":6.0})
-        if special=="combat_mastery": row.update({"ordinary_soul_weapon_attack_only":True,"strength_based_only":True,"requires_soul_weapon":True,"stronger_than":"Attack UP","weaker_than":"Two Hands","single_soul_weapon":True})
+        if special=="combat_mastery":
+            row.update({
+                "ordinary_soul_weapon_attack_only":True,
+                "strength_based_only":True,
+                "requires_soul_weapon":True,
+                "source_weapon_types":[
+                    "axe","claw","greatsword","hammer","katana",
+                    "lance","rod","staff","sword"
+                ],
+                "does_not_work_unarmed":True,
+                "stronger_than":"Attack UP",
+                "weaker_than":"Two Hands",
+                "numeric_source_defined":False,
+                "soulbound_damage_multiplier":1.20,
+                "soulbound_weapon_model":"mec_soul_weapon_melee_strength_role",
+                "balance_model":"soulbound_x1.20_relative_between_attack_up_and_two_hands",
+                "single_soul_weapon":True,
+            })
         if special=="hammer_crush":
             row.update({
                 "scale":"attack",

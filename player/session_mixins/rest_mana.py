@@ -1,8 +1,104 @@
 # -*- coding: utf-8 -*-
 """Rest and mana regeneration."""
+import asyncio
+
 from world.uoss_superboss_runtime import superboss_healing_blocked_v11179
 
+STANDING_REGEN_PERCENT_V1124 = 2
+STANDING_REGEN_TICK_SECONDS_V1124 = 5.0
+
 class SessionRestManaMixin:
+
+    def standing_regen_allowed_v1124(self):
+            """Naturalny, cichy regen tylko podczas faktycznego stania poza walką."""
+            if not self.character or self.closed or self.current_hp <= 0:
+                return False
+            if self.resting or self.combat_mob_key:
+                return False
+            if (
+                hasattr(self, "smelt_task_active_v1124")
+                and self.smelt_task_active_v1124()
+            ):
+                return False
+            if bool(getattr(self, "moving", False)) or bool(getattr(self, "guiding", False)):
+                return False
+            if (
+                self.auto_fishing or self.auto_fishing_task
+                or self.auto_mining or self.auto_mining_task
+                or self.auto_woodcutting or self.auto_woodcutting_task
+                or self.auto_herbalism or self.auto_herbalism_task
+            ):
+                return False
+            if hasattr(self, "is_downed_v0371") and self.is_downed_v0371():
+                return False
+            return self.rest_needs_regeneration()
+
+    async def standing_regen_tick_v1124(self):
+            if not self.standing_regen_allowed_v1124():
+                return False
+
+            max_hp = self.max_hp()
+            max_mana = self.max_mana()
+            hp_gain = max(
+                1,
+                (max_hp * STANDING_REGEN_PERCENT_V1124 + 99) // 100,
+            )
+            mana_gain = (
+                max(
+                    1,
+                    (max_mana * STANDING_REGEN_PERCENT_V1124 + 99) // 100,
+                )
+                if max_mana > 0 else 0
+            )
+
+            # Naturalny regen HP respektuje te same blokady leczenia co rest.
+            if (
+                self.current_hp < max_hp
+                and not superboss_healing_blocked_v11179(self)
+            ):
+                self.current_hp = min(max_hp, self.current_hp + hp_gain)
+
+            if max_mana > 0 and self.current_mana < max_mana:
+                self.current_mana = min(max_mana, self.current_mana + mana_gain)
+            elif max_mana <= 0:
+                self.current_mana = 0
+
+            # Regen stojąc jest celowo cichy, żeby nie spamować NVDA co 5 sekund.
+            return self.rest_needs_regeneration()
+
+    async def standing_regen_loop_v1124(self):
+            try:
+                while not self.closed:
+                    await asyncio.sleep(STANDING_REGEN_TICK_SECONDS_V1124)
+                    if self.standing_regen_allowed_v1124():
+                        await self.standing_regen_tick_v1124()
+            except asyncio.CancelledError:
+                pass
+            finally:
+                if self.standing_regen_task_v1124 is asyncio.current_task():
+                    self.standing_regen_task_v1124 = None
+
+    def ensure_standing_regen_v1124(self):
+            task = getattr(self, "standing_regen_task_v1124", None)
+            if task is None or task.done():
+                self.standing_regen_task_v1124 = asyncio.create_task(
+                    self.standing_regen_loop_v1124()
+                )
+            return self.standing_regen_task_v1124
+
+    async def stop_standing_regen_v1124(self):
+            task = getattr(self, "standing_regen_task_v1124", None)
+            self.standing_regen_task_v1124 = None
+            if (
+                task
+                and task is not asyncio.current_task()
+                and not task.done()
+            ):
+                task.cancel()
+                try:
+                    await task
+                except asyncio.CancelledError:
+                    pass
 
     def rest_status_text(self):
             if not self.character:
@@ -13,11 +109,14 @@ class SessionRestManaMixin:
                 return (
                     f"HP {self.current_hp} z {max_hp}. "
                     f"Mana {self.current_mana} z {max_mana}. "
-                    f"Odpoczynek: {'aktywny' if self.resting else 'wyłączony'}."
+                    f"Odpoczynek: {'aktywny' if self.resting else 'wyłączony'}. "
+                    "Stanie: 2 procent HP i Many co 5 sekund; "
+                    "rest: 10 procent co 5 sekund."
                 )
             return (
                 f"HP {self.current_hp} z {max_hp}. "
-                f"Odpoczynek: {'aktywny' if self.resting else 'wyłączony'}."
+                f"Odpoczynek: {'aktywny' if self.resting else 'wyłączony'}. "
+                "Stanie: 2 procent HP co 5 sekund; rest: 10 procent co 5 sekund."
             )
 
     def rest_needs_regeneration(self):
@@ -189,7 +288,8 @@ class SessionRestManaMixin:
 
             await self.send(
                 "Rozpoczynasz odpoczynek. "
-                "Co 5 sekund regenerujesz HP i Manę."
+                "Co 5 sekund regenerujesz 10 procent maksymalnego HP i Many. "
+                "Zwykłe stanie regeneruje 2 procent co 5 sekund."
             )
             await self.send(self.rest_status_text())
 

@@ -1308,6 +1308,7 @@ class SessionIOAuthCharacterMixin:
 
             self.current_hp = self.max_hp()
             self.current_mana = self.max_mana()
+            self.ensure_standing_regen_v1124()
 
             await self.server.broadcast_room(
                 self.character.room_id,

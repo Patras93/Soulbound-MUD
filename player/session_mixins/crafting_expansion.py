@@ -431,14 +431,115 @@ class SessionCraftingExpansionV03114Mixin:
             if qty: anyrow=True; await self.send(f"Refining: {rec['name']} x{qty} możliwe.")
         if not anyrow: await self.send("Brak materiałów wystarczających do konwersji.")
 
+    def smelt_task_active_v1124(self):
+        task = getattr(self, "smelt_task_v1124", None)
+        return bool(task and not task.done())
+
+    async def smelt_wait_v1124(self, seconds):
+        if bool(getattr(self, "smelt_cancel_requested_v1124", False)):
+            raise asyncio.CancelledError
+        self.smelt_interruptible_v1124 = True
+        try:
+            await asyncio.sleep(seconds)
+        finally:
+            self.smelt_interruptible_v1124 = False
+        if bool(getattr(self, "smelt_cancel_requested_v1124", False)):
+            raise asyncio.CancelledError
+
+    async def _smelt_task_runner_v1124(self, raw):
+        try:
+            return await self._smelt_execute_v1124(raw)
+        except asyncio.CancelledError:
+            return False
+        finally:
+            if self.smelt_task_v1124 is asyncio.current_task():
+                self.smelt_task_v1124 = None
+            self.smelt_interruptible_v1124 = False
+            self.smelt_cancel_requested_v1124 = False
+            self.smelt_label_v1124 = ""
+
+    async def stop_smelt_v1124(self, announce=True):
+        task = getattr(self, "smelt_task_v1124", None)
+        if not task or task.done():
+            self.smelt_task_v1124 = None
+            self.smelt_cancel_requested_v1124 = False
+            self.smelt_interruptible_v1124 = False
+            self.smelt_label_v1124 = ""
+            if announce:
+                await self.send("Przetapianie nie jest aktywne.")
+            return False
+
+        self.smelt_cancel_requested_v1124 = True
+        label = str(getattr(self, "smelt_label_v1124", "") or "przetapianie")
+        if bool(getattr(self, "smelt_interruptible_v1124", False)):
+            task.cancel()
+            try:
+                await task
+            except asyncio.CancelledError:
+                pass
+            if announce:
+                await self.send(f"Przetapianie zatrzymane: {label}.")
+        else:
+            if announce:
+                await self.send(
+                    f"Zatrzymuję przetapianie: {label}. "
+                    "Bieżący zapis wyniku zostanie bezpiecznie dokończony."
+                )
+            try:
+                await task
+            except asyncio.CancelledError:
+                pass
+            if announce:
+                await self.send("Przetapianie zatrzymane.")
+        return True
+
     async def smelt_item_v03114(self, query):
+        raw = str(query or "").strip()
+        norm = normalize_lookup_text(raw)
+
+        if norm in ("stop", "off", "przerwij", "koniec"):
+            return await self.stop_smelt_v1124(announce=True)
+
+        if norm in ("status", "stan"):
+            if self.smelt_task_active_v1124():
+                await self.send(
+                    f"Przetapianie aktywne: {self.smelt_label_v1124 or 'w toku'}. "
+                    "Aby zatrzymać wpisz: przetop stop."
+                )
+                return True
+            await self.send("Przetapianie nie jest aktywne.")
+            return False
+
+        if not raw:
+            return await self._smelt_execute_v1124(raw)
+
+        if self.smelt_task_active_v1124():
+            await self.send(
+                f"Przetapianie już trwa: {self.smelt_label_v1124 or 'w toku'}. "
+                "Najpierw wpisz: przetop stop."
+            )
+            return False
+
+        self.smelt_cancel_requested_v1124 = False
+        self.smelt_label_v1124 = raw
+        self.smelt_task_v1124 = asyncio.create_task(
+            self._smelt_task_runner_v1124(raw)
+        )
+        await self.send(
+            f"Rozpoczynasz przetapianie: {raw}. "
+            "Możesz je zatrzymać komendą: przetop stop."
+        )
+        return True
+
+    async def _smelt_execute_v1124(self, query):
         raw=str(query or '').strip(); norm=normalize_lookup_text(raw)
         if not raw:
             await self.send(
                 "Użycie: przetop <metal albo ruda>. "
                 "Dostępne: żelazo, odłamki żelaza, srebro, złoto, stal, stalowe płyty, "
                 "kobalt, runa, smocza stal, astral, pustka, Eternium. "
-                "Dodatkowo: przetop max <metal> oraz przetop wszystko."
+                "Dodatkowo: przetop max <metal>, przetop wszystko, "
+                "przetop status oraz przetop stop."
             )
             return False
         if norm in ("wszystko","all"):
@@ -508,7 +609,7 @@ class SessionCraftingExpansionV03114Mixin:
                 f"PRZETOP WSZYSTKO: {total_crafts} przetopów w jednej akcji. "
                 f"{self.tool_action_label(tool_type)}: {action_seconds} sekund."
             )
-            await asyncio.sleep(action_seconds)
+            await self.smelt_wait_v1124(action_seconds)
 
             outputs = {}
             total_output_items = 0
@@ -633,8 +734,13 @@ class SessionCraftingExpansionV03114Mixin:
             await self.send(f"PRZETOP MAX: {input_text} -> {output_name} x{output_count}.")
             done=0
             for _ in range(n):
-                if not await self.perform_recipe(rid,CRAFT_RECIPES,"przetapianie"): break
+                if bool(getattr(self, "smelt_cancel_requested_v1124", False)):
+                    break
+                if not await self.perform_recipe(rid,CRAFT_RECIPES,"przetapianie"):
+                    break
                 done+=1
+                if bool(getattr(self, "smelt_cancel_requested_v1124", False)):
+                    break
             await self.send(f"PRZETOP MAX zakończony: {done}/{n}."); return done>0
         found=self.resolve_smelt_recipe(raw)
         if not found:
