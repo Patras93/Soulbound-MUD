@@ -1,0 +1,55 @@
+name: Inspect Soul equipment progression
+on:
+  push:
+    branches:
+      - feature/standing-rest-regen-v1124
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Inspect equipment
+        env:
+          SOULBOUND_DEFER_MEMORY_COMPACTION: '1'
+        run: |
+          python - <<'PY'
+          import server
+
+          stat_keys=('strength','dexterity','constitution','intelligence','willpower')
+          def score(item):
+              s=dict(item.get('stats') or {})
+              b=dict(item.get('soulbound_balance_stats') or {})
+              return sum(int(s.get(k,0) or 0)+int(b.get(k,0) or 0) for k in stat_keys)
+
+          print('=== SOUL-RELATED FIELD KEYS ===')
+          keys=set()
+          for item in server.ITEMS.values():
+              for k in item:
+                  if 'soul' in str(k).lower(): keys.add(k)
+          print(sorted(keys))
+
+          print('=== SOUL RELATED ITEMS ===')
+          rows=[]
+          for iid,item in server.ITEMS.items():
+              blob=' '.join([iid,str(item.get('name','')),str(item.get('desc',''))]).lower()
+              soul_fields={k:v for k,v in item.items() if 'soul' in str(k).lower()}
+              if 'soul' in blob or soul_fields:
+                  rows.append((iid,item.get('name'),item.get('type'),item.get('slot'),item.get('required_level'),item.get('required_soul_level'),item.get('required_soul_tier'),score(item),item.get('stats'),item.get('soulbound_balance_stats')))
+          for row in sorted(rows,key=lambda x:(int(x[4] or 0),x[7]),reverse=True)[:120]: print('SOULITEM',row)
+
+          print('=== HIGH LEVEL EQUIPMENT ===')
+          rows=[]
+          for iid,item in server.ITEMS.items():
+              if item.get('type') not in ('armor','weapon','soul_weapon_relic','accessory','shield'): continue
+              req=int(item.get('required_level',item.get('required_character_level',0)) or 0)
+              rows.append((req,score(item),iid,item.get('name'),item.get('type'),item.get('slot'),item.get('stats'),item.get('soulbound_balance_stats')))
+          for row in sorted(rows,reverse=True)[:120]: print('HIGHEQ',row)
+
+          print('=== UOSS BLACK RABITE ===')
+          for iid,item in server.ITEMS.items():
+              if iid.startswith('uoss_black_rabite_unique_') or iid=='moogle_board':
+                  print('UOSS',iid,item.get('name'),item.get('type'),item.get('slot'),item.get('required_level'),score(item),item.get('stats'),item.get('soulbound_balance_stats'))
+          PY
