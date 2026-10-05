@@ -743,6 +743,29 @@ class SessionEquipmentStatsMixin:
                 + self.equipment_property_totals()["dodge_pct"] / 100.0,
             )
 
+    def healing_power_v1125(self):
+            """Kanoniczna moc leczenia z INT + WILL + płaskiego Magic Attack EQ.
+
+            INT i WILL mają własne niezależne znaczenie, a Magic Attack z EQ
+            jest pełnoprawnym statem leczenia zamiast działać wyłącznie na damage.
+            """
+            level = int(self.character.character_level)
+            flat = self.equipment_flat_power_totals_v11187()
+            int_power = generator_core_v027.character_attribute_power(
+                level, self.effective_intelligence()
+            )
+            will_power = generator_core_v027.character_attribute_power(
+                level, self.effective_willpower()
+            )
+            return max(
+                1,
+                int(round(
+                    int_power * 0.55
+                    + will_power * 0.45
+                    + int(flat["magic_attack"])
+                )),
+            )
+
     def spell_power(self):
             flat = self.equipment_flat_power_totals_v11187()
             return (
