@@ -482,6 +482,14 @@ class SessionCombatSkillsMixin:
                 if kind == "evade" and self.skill_evade:
                     await self.send("Masz już aktywny gwarantowany unik.")
                     return
+
+                # v1.12.7: support identity is needed during Mec target selection,
+                # especially Heal Beam, before the later authored-Mec execution block.
+                # Resolve it once here so support Heal Beam can safely expand to the
+                # whole local party without an UnboundLocalError.
+                support_effect = bool(
+                    skill.get("mec_authored") and self.mec_support_effect_v11149()
+                )
                 offensive = kind in ("damage", "drain", "execute", "aoe_damage")
                 # v1.12.3: nie każdy źródłowy skill wielocelowy ma kind=aoe_damage.
                 # Starlight Shower zachowuje source-faithful kind=damage, ale jego
@@ -1194,7 +1202,6 @@ class SessionCombatSkillsMixin:
                 if skill.get("mec_authored"):
                     special=str(skill.get("mec_special","")); branch=str(skill.get("mec_branch",""))
                     vmax=self.mec_vmax_active_v0319()
-                    support_effect=self.mec_support_effect_v11149()
                     if special=="vmax":
                         if vmax:
                             await self.send("V-MAX jest już aktywny."); return

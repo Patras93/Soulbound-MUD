@@ -1,5 +1,17 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.12.6
+Aktualna paczka: v1.12.7
+
+==============================================================================
+Soulbound v1.12.7 — Heal Beam Support Effect hotfix
+==============================================================================
+
+- Naprawiono crash pętli walki: `cannot access local variable 'support_effect' where it is not associated with a value`.
+- Support Effect Meca jest teraz wyliczany przed przygotowaniem celu Heal Beam, więc skill nie odwołuje się do niezainicjalizowanej zmiennej.
+- W Soulbound Broń Duszy Meca pozostaje jego aktywną bronią supportową dla mechanik źródłowych, więc Heal Beam z Support Effect obejmuje całą żywą lokalną drużynę.
+- Dodano fast-predeploy regression guard pilnujący, żeby inicjalizacja Support Effect pozostała przed logiką targetowania Heal Beam.
+- Podbito canonical VERSION, runtime i predeploy do v1.12.7.
+- Brak wipe'a save'ów i brak zmian schematu SQLite.
+
 
 ==============================================================================
 Soulbound v1.12.6 — brak kar za grę w drużynie

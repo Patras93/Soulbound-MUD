@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Fast Railway predeploy gate for Soulbound v1.12.6.
+"""Fast Railway predeploy gate for Soulbound v1.12.7.
 
 This is the normal deploy check.  It intentionally avoids assembling the full
 world/runtime.  Use predeploy_full.py when an exhaustive historical audit is
@@ -16,7 +16,7 @@ import traceback
 try:
     from storage.database import Database as _DatabaseImportSmoke
 except Exception as exc:
-    print(f"Soulbound v1.12.6 FAST PREDEPLOY FAILED: database import: {type(exc).__name__}: {exc}")
+    print(f"Soulbound v1.12.7 FAST PREDEPLOY FAILED: database import: {type(exc).__name__}: {exc}")
     traceback.print_exc()
     raise SystemExit(1)
 
@@ -37,7 +37,7 @@ try:
     )
 except Exception as exc:
     print(
-        "Soulbound v1.12.6 FAST PREDEPLOY FAILED: "
+        "Soulbound v1.12.7 FAST PREDEPLOY FAILED: "
         f"skill semantic import: {type(exc).__name__}: {exc}"
     )
     traceback.print_exc()
@@ -97,19 +97,36 @@ for _rel, _needles in _forbidden_ap_runtime.items():
                 f"AP semantics regression: {_rel} contains forbidden {_needle}"
             )
 
+# v1.12.7 regression guard: Heal Beam target preparation checks support_effect
+# before the authored-Mec execution block. The variable must therefore be
+# resolved earlier in use_class_skill, otherwise combat crashes at runtime.
+_combat_skills_source = (_root / "player/session_mixins/combat_skills.py").read_text(encoding="utf-8")
+_support_init_pos = _combat_skills_source.find(
+    "support_effect = bool(\n                    skill.get(\"mec_authored\")"
+)
+_heal_beam_precheck_pos = _combat_skills_source.find("_heal_beam_targets = []")
+if (
+    _support_init_pos < 0
+    or _heal_beam_precheck_pos < 0
+    or _support_init_pos > _heal_beam_precheck_pos
+):
+    _semantic_errors.append(
+        "Heal Beam support regression: support_effect must be initialized before target preparation"
+    )
+
 if _semantic_errors:
-    print("Soulbound v1.12.6 FAST PREDEPLOY FAILED: semantic contracts")
+    print("Soulbound v1.12.7 FAST PREDEPLOY FAILED: semantic contracts")
     for _error in _semantic_errors:
         print(f"ERROR: {_error}")
     raise SystemExit(1)
 
 if audit["error_count"]:
-    print("Soulbound v1.12.6 FAST PREDEPLOY FAILED")
+    print("Soulbound v1.12.7 FAST PREDEPLOY FAILED")
     for error in audit["errors"]:
         print(f"ERROR: {error}")
     raise SystemExit(1)
 
-print("Soulbound v1.12.6 FAST PREDEPLOY PASS")
+print("Soulbound v1.12.7 FAST PREDEPLOY PASS")
 print(
     "Semantic contracts: "
     f"{len(_semantic_audits)} audits PASS; AP runtime guards PASS"
