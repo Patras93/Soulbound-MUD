@@ -122,13 +122,24 @@ class SessionCombatSkillsMixin:
         return max(1, int(round(core * build_multiplier)))
 
     def healing_skill_build_multiplier_v11196(self, skill):
-        """Uncapped healing growth from the skill's real effective stats.
+        """Uncapped heal scaling from INT + WILL + Magic Attack and source stat.
 
-        Healing stats level independently from Character Level. Equipment feeds
-        this through effective_*(), exactly like offensive builds. A fixed
-        Level-175 stat anchor keeps the existing midgame scale while allowing
-        unlimited stats to keep improving healing with soft diminishing returns.
+        v1.12.5: every heal has one canonical magical support core:
+        Intelligence, Willpower and flat Magic Attack from equipment.  The
+        source-authored stat influence is still preserved as a smaller part of
+        the multiplier, so e.g. WILL-influenced or Monk healing keeps its own
+        identity without making magic-support EQ irrelevant.
         """
+        level = int(self.character.character_level)
+        anchor_power = max(
+            1,
+            int(generator_core_v027.character_attribute_power(level, 175)),
+        )
+        canonical_power = max(1, int(self.healing_power_v1125()))
+        canonical_growth = max(
+            0.01, float(canonical_power) / float(anchor_power)
+        ) ** 0.72
+
         scale_name = str(skill.get("scale", "") or "").strip().lower()
         secondary_name = str(skill.get("secondary_scale", "") or "").strip().lower()
         if not scale_name:
@@ -142,12 +153,19 @@ class SessionCombatSkillsMixin:
 
         primary = float(self.offensive_skill_effective_stat_value_v11196(scale_name))
         primary_growth = max(0.01, primary / 175.0) ** 0.72
-        if not secondary_name:
-            return max(0.20, primary_growth)
+        if secondary_name:
+            secondary = float(
+                self.offensive_skill_effective_stat_value_v11196(secondary_name)
+            )
+            secondary_growth = max(0.01, secondary / 175.0) ** 0.72
+            source_growth = 0.70 * primary_growth + 0.30 * secondary_growth
+        else:
+            source_growth = primary_growth
 
-        secondary = float(self.offensive_skill_effective_stat_value_v11196(secondary_name))
-        secondary_growth = max(0.01, secondary / 175.0) ** 0.72
-        return max(0.20, 0.70 * primary_growth + 0.30 * secondary_growth)
+        return max(
+            0.20,
+            0.75 * canonical_growth + 0.25 * source_growth,
+        )
 
     def healing_skill_amount_v11196(self, skill, target, skill_power):
         """Canonical class-heal amount from stats + Skill Level + EQ.
@@ -168,14 +186,9 @@ class SessionCombatSkillsMixin:
         if authored_pct is not None:
             return max(1, int(round(target.max_hp() * max(0.0, float(authored_pct)) * total_mult)))
 
-        scale_name = str(skill.get("scale", "willpower") or "willpower").lower()
-        primary = self.offensive_skill_effective_stat_value_v11196(scale_name)
-        secondary_name = str(skill.get("secondary_scale", "") or "").lower()
-        secondary = (
-            self.offensive_skill_effective_stat_value_v11196(secondary_name)
-            if secondary_name else 0
-        )
-        stat_core = primary + int(round(secondary * 0.35))
+        # Flat heals use the same canonical support power as percentage heals:
+        # INT + WILL + flat Magic Attack from all equipped sources.
+        stat_core = max(1, int(self.healing_power_v1125()))
         return max(1, int(round(stat_core * total_mult)))
 
     def regen_duration_seconds_v11196(self, skill_level):
@@ -190,12 +203,12 @@ class SessionCombatSkillsMixin:
         return max(1,int(round(30.0+60.0*(progress ** 0.82))))
 
     def regen_tick_power_v11196(self, skill_level):
-        """Small periodic WILL heal for Regen; explicit Soulbound balance."""
-        will=max(1,int(self.effective_willpower()))
+        """Small periodic support heal from INT + WILL + Magic Attack."""
+        healing_power=max(1,int(self.healing_power_v1125()))
         power=float(skill_power_multiplier(max(1,min(SKILL_MAX_LEVEL,int(skill_level)))))
         racial=float(self.character.racial_healing_multiplier())
         class_mult=float(self.character.class_healing_multiplier())
-        return max(1,int(round(will*0.10*power*racial*class_mult)))
+        return max(1,int(round(healing_power*0.10*power*racial*class_mult)))
 
     def satellite_linker_duration_rounds_v11196(self, skill_level, skill):
         """Explicit Soulbound duration adaptation for source-defined short duration."""
