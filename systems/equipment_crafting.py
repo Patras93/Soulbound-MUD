@@ -229,20 +229,26 @@ def _register_class_equipment_shops():
                     else:
                         base_affix = 1
 
-                    # Minimalny Tier zawsze ma obie statystyki (budżet >= 2),
+                    # Minimalny Tier zawsze ma trzy statystyki (budżet >= 3),
                     # a każdy następny próg dodaje kolejny pełny punkt budżetu.
                     legacy_affix_amount = class_equipment_stat_budget(required_mastery, slot)
-                    primary_stat, primary_amount, secondary_stat, secondary_amount = (
-                        class_equipment_split_stat_budget(class_name, legacy_affix_amount, slot)
+                    (
+                        primary_stat, primary_amount,
+                        secondary_stat, secondary_amount,
+                        tertiary_stat, tertiary_amount,
+                    ) = class_equipment_split_stat_budget(
+                        class_name, legacy_affix_amount, slot
                     )
-                    if class_type_for_name(class_name) != "magic":
-                        if secondary_stat != "constitution" or primary_stat not in {"strength", "dexterity"}:
-                            raise RuntimeError(
-                                f"Physical class EQ must include offensive stat + Condition: {class_name} {slot}"
-                            )
-                    elif {primary_stat, secondary_stat} != {"intelligence", "willpower"}:
+                    expected_stats = (
+                        {"intelligence", "willpower", "constitution"}
+                        if class_type_for_name(class_name) == "magic"
+                        else {"strength", "dexterity", "constitution"}
+                    )
+                    actual_stats = {primary_stat, secondary_stat, tertiary_stat}
+                    if actual_stats != expected_stats:
                         raise RuntimeError(
-                            f"Magic class EQ must include Intelligence + Willpower: {class_name} {slot}"
+                            f"Class EQ stat triplet mismatch: {class_name} {slot}: "
+                            f"{sorted(actual_stats)} != {sorted(expected_stats)}"
                         )
                     defense = max(
                         1,
@@ -267,8 +273,14 @@ def _register_class_equipment_shops():
                         "rarity_name": _class_equipment_rarity_name(required_mastery),
                         "affix": primary_stat,
                         "affix_amount": primary_amount,
-                        "stats": {secondary_stat: secondary_amount},
+                        "stats": {
+                            secondary_stat: secondary_amount,
+                            tertiary_stat: tertiary_amount,
+                        },
                         "class_base_stat_pair": (primary_stat, secondary_stat),
+                        "class_base_stat_triplet": (
+                            primary_stat, secondary_stat, tertiary_stat,
+                        ),
                         "required_class": class_name,
                         "required_mastery": required_mastery,
                         "class_shop_item": True,
@@ -525,7 +537,7 @@ LEGENDARY_CLASS_RELIC_BY_CLASS_TIER = {}
 
 def _legendary_class_loot_stat_profile(class_name):
     definition = CLASS_EQUIPMENT_SETS[class_name]
-    return class_equipment_base_stat_pair(class_name)[0], int(definition["base_defense"])
+    return class_equipment_base_stat_triplet(class_name)[0], int(definition["base_defense"])
 
 
 def _register_legendary_class_loot():
@@ -546,8 +558,12 @@ def _register_legendary_class_loot():
                 defense = max(1, base_defense + int(defense_delta) + defense_step + 1)
                 base_affix = 3 if slot in ("necklace", "relic") else 2 if slot in ("ring", "charm", "earring", "shoulders", "belt", "cloak", "bracers") else 1
                 legacy_affix_amount = base_affix + affix_step + 1
-                primary_stat, primary_amount, secondary_stat, secondary_amount = (
-                    class_equipment_split_stat_budget(class_name, legacy_affix_amount)
+                (
+                    primary_stat, primary_amount,
+                    secondary_stat, secondary_amount,
+                    tertiary_stat, tertiary_amount,
+                ) = class_equipment_split_stat_budget(
+                    class_name, legacy_affix_amount, slot
                 )
                 _catalog_mut.catalog_assign({
                     "name": f"{slot_name} {set_name} +{mastery}",
@@ -559,8 +575,14 @@ def _register_legendary_class_loot():
                     "rarity_name": "Legendarny Setowy",
                     "affix": primary_stat,
                     "affix_amount": primary_amount,
-                    "stats": {secondary_stat: secondary_amount},
+                    "stats": {
+                        secondary_stat: secondary_amount,
+                        tertiary_stat: tertiary_amount,
+                    },
                     "class_base_stat_pair": (primary_stat, secondary_stat),
+                    "class_base_stat_triplet": (
+                        primary_stat, secondary_stat, tertiary_stat,
+                    ),
                     "required_class": class_name,
                     "required_mastery": mastery,
                     # Celowo korzysta z istniejących progów 2/4/6/8 klasy.
@@ -584,8 +606,12 @@ def _register_legendary_class_loot():
             relic_id = f"legendrelic_{class_slug}_m{mastery}"
             relic_defense = max(1, base_defense + 4 + defense_step + 2)
             legacy_relic_affix = 4 + affix_step + 2
-            relic_primary_stat, relic_primary_amount, relic_secondary_stat, relic_secondary_amount = (
-                class_equipment_split_stat_budget(class_name, legacy_relic_affix)
+            (
+                relic_primary_stat, relic_primary_amount,
+                relic_secondary_stat, relic_secondary_amount,
+                relic_tertiary_stat, relic_tertiary_amount,
+            ) = class_equipment_split_stat_budget(
+                class_name, legacy_relic_affix, "necklace"
             )
             prop_value = max(1, min(5, mastery // 100 + 1))
             properties = {
@@ -607,8 +633,14 @@ def _register_legendary_class_loot():
                 "rarity_name": "Legendarny Klasowy",
                 "affix": relic_primary_stat,
                 "affix_amount": relic_primary_amount,
-                "stats": {relic_secondary_stat: relic_secondary_amount},
+                "stats": {
+                    relic_secondary_stat: relic_secondary_amount,
+                    relic_tertiary_stat: relic_tertiary_amount,
+                },
                 "class_base_stat_pair": (relic_primary_stat, relic_secondary_stat),
+                "class_base_stat_triplet": (
+                    relic_primary_stat, relic_secondary_stat, relic_tertiary_stat,
+                ),
                 "required_class": class_name,
                 "required_mastery": mastery,
                 "properties": properties,
