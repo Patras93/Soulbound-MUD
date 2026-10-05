@@ -1294,7 +1294,9 @@ def refresh_help_truth_v11197():
 
     HELP_TOPICS["statystyki"] = [
         "Sześć automatycznych statystyk to Siła, Zręczność, Kondycja, Inteligencja, Siła Woli i Charyzma.",
-        "Statystyki nie mają twardego limitu. EQ, runy, sety i relikty zwiększają wartości efektywne używane przez walkę.",
+        "Bazowe statystyki są bez twardego limitu. EQ, runy, sety i relikty zwiększają wartości efektywne używane przez walkę.",
+        "v1.13.1+: każde źródło stat EXP dostaje globalnie x4 przed bonusem rasy i Gildii, a dawny sztuczny mnożnik x2 wymagań statów został usunięty.",
+        "Dla równorzędnego zwykłego źródła generator celuje efektywnie w około 15 akcji na kolejny punkt każdej statystyki zamiast około 120; rare, minibossy, bossy, questy i x2 EXP przyspieszają to dalej.",
         "Ofensywne skille używają właściwych statystyk klasy. Każde leczenie w Soulbound skaluje się z Inteligencją i Siłą Woli; Magic Attack zwiększa obrażenia magiczne, ale nie leczenie.",
         "Zręczność buduje końcową Szybkość. Liczba trafień zwykłego autoataku Broni Duszy wynika z końcowej Szybkości, a aktywny Haste osobno zwiększa długość serii trafień.",
         "staty info pokazuje bazę, wartości efektywne, postęp oraz bonusy wyposażenia.",
