@@ -155,7 +155,7 @@ for _needle in ("(50, 38)", "(100, 100)", "(200, 240)", "(600, 1200)"):
 for _needle in ("(50, 15_000)", "(100, 100_000)", "(200, 1_250_000)", "(600, 100_000_000)"):
     if _needle not in _economy_source:
         _semantic_errors.append("quest income progression regression: missing " + _needle)
-for _needle in ("_v1138_authored_max_hp", "procedural_no_limit", '"world_boss": 3.00'):
+for _needle in ('baseline_key = f"_v1138_authored_{key}"', "procedural_no_limit", '"world_boss": 3.00'):
     if _needle not in _runtime_progression_source:
         _semantic_errors.append("runtime progression feel regression: missing " + _needle)
 
