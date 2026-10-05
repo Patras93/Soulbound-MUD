@@ -1293,7 +1293,7 @@ def refresh_help_truth_v11197():
     HELP_TOPICS["statystyki"] = [
         "Sześć automatycznych statystyk to Siła, Zręczność, Kondycja, Inteligencja, Siła Woli i Charyzma.",
         "Statystyki nie mają twardego limitu. EQ, runy, sety i relikty zwiększają wartości efektywne używane przez walkę.",
-        "Ofensywne skille używają właściwych statystyk klasy; leczenie korzysta z własnych skalowań zapisanych przy konkretnym skillu.",
+        "Ofensywne skille używają właściwych statystyk klasy. Każde leczenie w Soulbound skaluje się z Inteligencją i Siłą Woli; Magic Attack zwiększa obrażenia magiczne, ale nie leczenie.",
         "staty info pokazuje bazę, wartości efektywne, postęp oraz bonusy wyposażenia.",
     ]
 
@@ -1428,6 +1428,14 @@ def refresh_help_truth_v11197():
     HELP_TOPICS["ekwipunek"] = equipment
     HELP_TOPICS["eq"] = list(equipment)
 
+    HELP_TOPICS["leczenie"] = [
+        "Każdy heal w Soulbound używa wspólnego rdzenia leczenia: Inteligencja + Siła Woli.",
+        "INT i WILL mają równy udział w bazowej mocy leczenia, więc EQ podnoszące którykolwiek z tych statów zwiększa healing.",
+        "Magic Attack zwiększa obrażenia magiczne, ale nie zwiększa leczenia.",
+        "Skill Level, rasa, klasa i specjalne efekty konkretnej umiejętności nadal modyfikują końcową wartość leczenia.",
+        "Dotyczy to zwykłych healów, Cure Beam, Heal Beam oraz okresowego Regen.",
+    ]
+
     HELP_TOPICS["statusy"] = [
         "Efekty ofensywne takie jak Silence, Slow, Paralyze i obniżenie obrony są nakładane na przeciwników, nie na rzucającego.",
         "Heale i buffy używają celu zapisanego przy konkretnej umiejętności: siebie, sojusznika, drużynę albo inny dozwolony cel.",
@@ -1438,7 +1446,7 @@ def refresh_help_truth_v11197():
     HELP_TOPICS["mec"] = [
         "Mec korzysta z jednej Broni Duszy; role melee, ranged, magic, feedback i support są gałęziami tej klasy, nie osobnymi broniami do noszenia.",
         "Strength Protocol, Ranged Protocol, Feedback Protocol i Magic Protocol są pasywne. Po nauczeniu działają automatycznie i wzmacniają odpowiadające im gałęzie wraz ze Skill Level.",
-        "Cure Beam i Heal Beam skalują leczenie z Siłą Woli, Skill Level i aktualną ścieżką EQ leczenia. Support Effect zmienia ich zachowanie zgodnie z opisem skilla.",
+        "Cure Beam i Heal Beam skalują leczenie z Inteligencją i Siłą Woli oraz Skill Levelem. Magic Attack nie zwiększa leczenia. Support Effect zmienia ich zachowanie zgodnie z opisem skilla.",
         "V-MAX jest specjalnym overdrive'em zależnym od Siły Woli: daje Protect, Shell, Haste, Regen, Preach, Praise i Permanence oraz zmienia wybrane skille. Jego timer jest mechaniką specjalną, więc pozostaje wyjątkiem od globalnego braku cooldownów.",
         "Cosmic Rave normalnie trafia wszystkie cele z diminishing; podczas V-MAX wykonuje losowe trafienia. Shoot-All trafia wszystkie cele bez diminishing i w V-MAX zyskuje damage oraz crit.",
     ]
@@ -1766,6 +1774,7 @@ def help_surface_audit_v11197():
         "atlas_kompletny": ("600", "atlas"),
         "walka": ("help skill", "V-MAX"),
         "odpoczynek": ("2 procent", "10 procent", "5 sekund"),
+        "leczenie": ("Inteligencja", "Siła Woli", "Magic Attack"),
     }
     for topic, needles in expected.items():
         text = text_of(topic)
