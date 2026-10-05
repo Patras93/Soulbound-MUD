@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Fast Railway predeploy gate for Soulbound v1.13.6.
+"""Fast Railway predeploy gate for Soulbound v1.13.7.
 
 This is the normal deploy check.  It intentionally avoids assembling the full
 world/runtime.  Use predeploy_full.py when an exhaustive historical audit is
@@ -16,7 +16,7 @@ import traceback
 try:
     from storage.database import Database as _DatabaseImportSmoke
 except Exception as exc:
-    print(f"Soulbound v1.13.6 FAST PREDEPLOY FAILED: database import: {type(exc).__name__}: {exc}")
+    print(f"Soulbound v1.13.7 FAST PREDEPLOY FAILED: database import: {type(exc).__name__}: {exc}")
     traceback.print_exc()
     raise SystemExit(1)
 
@@ -37,7 +37,7 @@ try:
     )
 except Exception as exc:
     print(
-        "Soulbound v1.13.6 FAST PREDEPLOY FAILED: "
+        "Soulbound v1.13.7 FAST PREDEPLOY FAILED: "
         f"skill semantic import: {type(exc).__name__}: {exc}"
     )
     traceback.print_exc()
@@ -269,6 +269,27 @@ else:
                 "final stat HELP regression: missing " + _needle
             )
 
+_runtime_progression_source = (_root / "world/runtime_progression.py").read_text(encoding="utf-8")
+_runtime_triplet_needles = (
+    "tertiary_stat, tertiary_amount",
+    "tertiary_stat: tertiary_amount",
+    "class EQ stat triplet mismatch",
+    "generated_budget = max(3",
+)
+for _needle in _runtime_triplet_needles:
+    if _needle not in _runtime_progression_source:
+        _semantic_errors.append(
+            "runtime class EQ triplet regression: missing " + _needle
+        )
+if "primary_stat, primary_amount, secondary_stat, secondary_amount = (" in _runtime_progression_source:
+    _semantic_errors.append(
+        "runtime class EQ triplet regression: stale four-value unpack remains"
+    )
+if 'item["stats"] = {secondary_stat: secondary_amount}' in _runtime_progression_source:
+    _semantic_errors.append(
+        "runtime class EQ triplet regression: tertiary stat would be discarded"
+    )
+
 _class_eq_source = (_root / "systems/equipment_crafting.py").read_text(encoding="utf-8")
 _class_eq_three_stat_needles = (
     "def class_equipment_base_stat_triplet(class_name):",
@@ -341,18 +362,18 @@ except Exception as exc:
     )
 
 if _semantic_errors:
-    print("Soulbound v1.13.6 FAST PREDEPLOY FAILED: semantic contracts")
+    print("Soulbound v1.13.7 FAST PREDEPLOY FAILED: semantic contracts")
     for _error in _semantic_errors:
         print(f"ERROR: {_error}")
     raise SystemExit(1)
 
 if audit["error_count"]:
-    print("Soulbound v1.13.6 FAST PREDEPLOY FAILED")
+    print("Soulbound v1.13.7 FAST PREDEPLOY FAILED")
     for error in audit["errors"]:
         print(f"ERROR: {error}")
     raise SystemExit(1)
 
-print("Soulbound v1.13.6 FAST PREDEPLOY PASS")
+print("Soulbound v1.13.7 FAST PREDEPLOY PASS")
 print(
     "Semantic contracts: "
     f"{len(_semantic_audits)} audits PASS; AP runtime guards PASS"
