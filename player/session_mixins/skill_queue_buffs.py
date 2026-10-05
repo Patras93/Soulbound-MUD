@@ -438,10 +438,13 @@ class SessionSkillQueueBuffsMixin:
             """Stały bonus z nauczonych zwykłych klasowych boostów.
 
             Fizyczne boosty wzmacniają wyłącznie fizyczne skille, a magiczne
-            wyłącznie magiczne. Bez target_type zachowujemy neutralny odczyt
-            używany poza konkretną akcją bojową.
+            wyłącznie magiczne. Mec Feedback jest osobnym kanałem i nie dziedziczy
+            zwykłych boostów physical/magic. Bez target_type zachowujemy neutralny
+            odczyt używany poza konkretną akcją bojową.
             """
             wanted_type = str(target_type or "").strip().lower()
+            if wanted_type == "feedback":
+                return 1.0
             total_bonus = 0.0
             for class_name in self.active_class_names():
                 boost_type = class_type_for_name(class_name)
@@ -485,8 +488,9 @@ class SessionSkillQueueBuffsMixin:
                 if exclude_skill_id and skill_id == exclude_skill_id:
                     continue
                 buff_type = str(data.get("buff_type", "") or "").strip().lower()
-                if wanted_type in {"physical", "magic"} and buff_type in {"physical", "magic"} and buff_type != wanted_type:
-                    continue
+                if wanted_type in {"physical", "magic", "feedback"} and buff_type in {"physical", "magic"}:
+                    if wanted_type == "feedback" or buff_type != wanted_type:
+                        continue
                 total_bonus += max(0.0, float(data.get("boost", 1.0) or 1.0) - 1.0)
             return min(2.25, 1.0 + total_bonus)
 
