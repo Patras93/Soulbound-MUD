@@ -20,7 +20,7 @@ from data.quests import QUESTS
 from world.equipment_help import HELP_TOPICS, HELP_TOPIC_ALIASES
 
 
-V1124_ECONOMY_INCOME_VERSION = "1.12.4"
+V1124_ECONOMY_INCOME_VERSION = "1.13.8"
 V1124_ECONOMY_MAX_STAGE = 600
 
 # Values are internal silver. 100 silver = 1 Gold.
@@ -193,11 +193,15 @@ ECONOMY_INCOME_BALANCE_V1124 = v1124_rebalance_positive_quest_currency()
 
 def economy_income_audit_v1124():
     errors = []
-    if v1124_income_anchor(300) != 2_500_000:
+    if v1124_income_anchor(50) != 15_000:
+        errors.append("stage 50 anchor changed")
+    if v1124_income_anchor(100) != 100_000:
+        errors.append("stage 100 anchor changed")
+    if v1124_income_anchor(300) != 7_500_000:
         errors.append("stage 300 anchor changed")
-    if v1124_income_anchor(400) != 15_000_000:
+    if v1124_income_anchor(400) != 30_000_000:
         errors.append("stage 400 anchor changed")
-    if v1124_income_anchor(600) != 40_000_000:
+    if v1124_income_anchor(600) != 100_000_000:
         errors.append("stage 600 anchor changed")
 
     board = ITEMS.get("moogle_board") or {}
@@ -235,7 +239,7 @@ def economy_income_audit_v1124():
 ECONOMY_INCOME_AUDIT_V1124 = economy_income_audit_v1124()
 if ECONOMY_INCOME_AUDIT_V1124["error_count"]:
     raise RuntimeError(
-        "Economy Income Audit v1.12.4 failed: "
+        "Economy Income Audit v1.13.8 failed: "
         + "; ".join(ECONOMY_INCOME_AUDIT_V1124["errors"])
     )
 
@@ -243,7 +247,7 @@ if ECONOMY_INCOME_AUDIT_V1124["error_count"]:
 HELP_TOPICS["ekonomia"] = [
     "Ekonomia 1-600 ma kilka równoległych dróg zarobku: walka, bossowie, questy, profesje, sprzedaż zasobów i handel morski.",
     "Zwykła walka daje stały dochód, bossowie większe jednorazowe wypłaty, a powtarzalne zadania rosną wraz z poziomem celu zamiast zatrzymywać się na starej niskiej skali.",
-    "Docelowa baza zadania wynosi około: poziom 300 — 25 000 Gold, 350 — 75 000 Gold, 400 — 150 000 Gold, 500 — 250 000 Gold, 600 — 400 000 Gold; rodzaj i trudność zadania modyfikują tę wartość.",
+    "Docelowa baza zadania wynosi około: poziom 50 — 150 Gold, 100 — 1 000 Gold, 150 — 3 500 Gold, 200 — 12 500 Gold, 300 — 75 000 Gold, 400 — 300 000 Gold, 500 — 600 000 Gold, 600 — 1 000 000 Gold; rodzaj i trudność zadania modyfikują tę wartość.",
     "Handel morski pozostaje mocną aktywnością zarobkową, ale nie jest już jedyną sensowną drogą do wielomilionowych zakupów.",
     "Questy celowo bez waluty, dające przedmioty lub nagrody progresji, pozostają bez wypłaty pieniężnej.",
     "Ceny źródłowego wyposażenia UOSSMUD, np. 5 000 000 Gold u Wattsa, nie są automatycznie obniżane przez ten balans.",
