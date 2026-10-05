@@ -665,31 +665,43 @@ def runtime_mob_balance(template_id: str, template: dict, level: int, rank: str 
 
 
 def _generate_mobs(ns: dict, levels: dict[str, int]) -> None:
+    """Attach Generator metadata and fill only missing mob numbers.
+
+    Authored combat/reward/economy values are design decisions. Generator Core
+    may provide a fallback for incomplete templates, but must not erase tuned
+    HP, damage, rewards, currency or authored drop chances.
+    """
     mobs = ns.get("MOB_TEMPLATES", {})
     for mid, t in mobs.items():
         lvl = levels[mid]
-        rank = mob_rank(t)  # derived from authored flags; never stored back as identity.
+        rank = mob_rank(t)
         _write_record_numeric("MOB_TEMPLATES", t, "generator_level", lvl)
         _write_record_numeric("MOB_TEMPLATES", t, "v019_stage", lvl)
         hp = mob_hp(lvl, rank)
-        _write_record_numeric("MOB_TEMPLATES", t, "max_hp", hp)
-        _write_record_numeric("MOB_TEMPLATES", t, "base_max_hp", hp)
-        _write_record_numeric("MOB_TEMPLATES", t, "damage", mob_damage(lvl, rank))
+        _write_record_numeric_fallback("MOB_TEMPLATES", t, "max_hp", hp, minimum=1)
+        _write_record_numeric_fallback("MOB_TEMPLATES", t, "base_max_hp", int(t.get("max_hp", hp) or hp), minimum=1)
+        _write_record_numeric_fallback("MOB_TEMPLATES", t, "damage", mob_damage(lvl, rank), minimum=1)
         reward_mult = RANK_REWARD.get(rank, 1.0)
-        _write_record_numeric("MOB_TEMPLATES", t, "character_xp_reward", axis_gain("character", lvl, reward_mult))
-        _write_record_numeric("MOB_TEMPLATES", t, "class_xp_reward", axis_gain("class", lvl, reward_mult))
-        _write_record_numeric("MOB_TEMPLATES", t, "soul_reward", axis_gain("soul", lvl, reward_mult))
-        _write_record_numeric("MOB_TEMPLATES", t, "stat_reward", axis_gain("stat", lvl, reward_mult))
-        _write_record_numeric("MOB_TEMPLATES", t, "silver", currency_for_stage(lvl, rank))
-        _write_record_numeric("MOB_TEMPLATES", t, "gold", 0)
-        _write_record_numeric("MOB_TEMPLATES", t, "mithril", 0)
+        _write_record_numeric_fallback("MOB_TEMPLATES", t, "character_xp_reward", axis_gain("character", lvl, reward_mult), minimum=0)
+        _write_record_numeric_fallback("MOB_TEMPLATES", t, "class_xp_reward", axis_gain("class", lvl, reward_mult), minimum=0)
+        _write_record_numeric_fallback("MOB_TEMPLATES", t, "soul_reward", axis_gain("soul", lvl, reward_mult), minimum=0)
+        _write_record_numeric_fallback("MOB_TEMPLATES", t, "stat_reward", axis_gain("stat", lvl, reward_mult), minimum=0)
+
+        # Preserve authored denominations. Generate silver only when a template
+        # has no currency fields at all.
+        has_authored_currency = any(key in t for key in ("silver", "gold", "mithril"))
+        if not has_authored_currency:
+            _write_record_numeric("MOB_TEMPLATES", t, "silver", currency_for_stage(lvl, rank))
+            _write_record_numeric("MOB_TEMPLATES", t, "gold", 0)
+            _write_record_numeric("MOB_TEMPLATES", t, "mithril", 0)
+
         drops = t.get("drops")
         if isinstance(drops, dict) and drops:
             base_chance = {"normal": .055, "elite": .09, "rare": .14, "mini": .22, "boss": .34, "world_boss": .48}.get(rank, .055)
             count = max(1, len(drops))
             for item_id in list(drops):
                 chance = base_chance * stable_jitter(f"{mid}:{item_id}", .22) / (count ** .20)
-                _write_nested_numeric("MOB_TEMPLATES", t, "drops", item_id, round(clamp(chance, .005, .85), 5))
+                _write_nested_numeric_fallback("MOB_TEMPLATES", t, "drops", item_id, round(clamp(chance, .005, .85), 5))
 
 
 
@@ -1555,6 +1567,40 @@ def _write_record_numeric(domain: str, record: dict, field: str, value) -> None:
     record[field] = value
     _GENERATOR_WHITELIST_WRITE_COUNT += 1
 
+def _write_record_numeric_fallback(
+    domain: str,
+    record: dict,
+    field: str,
+    value,
+    minimum=None,
+    preserve_none: bool = False,
+):
+    """Fill a numeric field only when design/runtime did not already author it."""
+    if field in record:
+        current = record.get(field)
+        if current is None and preserve_none:
+            return current
+        if (
+            isinstance(current, (int, float))
+            and not isinstance(current, bool)
+            and math.isfinite(float(current))
+            and (minimum is None or float(current) >= float(minimum))
+        ):
+            return current
+    _write_record_numeric(domain, record, field, value)
+    return value
+
+
+def _write_nested_numeric_fallback(domain: str, record: dict, field: str, leaf, value):
+    """Keep authored nested numeric values such as item stats and drop chances."""
+    mapping = record.get(field)
+    if isinstance(mapping, dict) and leaf in mapping:
+        current = mapping.get(leaf)
+        if isinstance(current, (int, float)) and not isinstance(current, bool) and math.isfinite(float(current)):
+            return current
+    _write_nested_numeric(domain, record, field, leaf, value)
+    return value
+
 
 def _write_nested_numeric(domain: str, record: dict, field: str, leaf, value) -> None:
     global _GENERATOR_WHITELIST_WRITE_COUNT
@@ -1851,12 +1897,14 @@ def validate(ns: dict) -> dict:
         lvl = int(t.get("generator_level", 0) or 0)
         if not 1 <= lvl <= MAX_LEVEL: errors.append(f"mob level {mid}")
         rank = mob_rank(t)
-        if int(t.get("max_hp",0) or 0) != mob_hp(lvl, rank): errors.append(f"mob hp {mid}")
-        if int(t.get("damage",0) or 0) != mob_damage(lvl, rank): errors.append(f"mob damage {mid}")
-        if int(t.get("character_xp_reward",0) or 0) != axis_gain("character", lvl, RANK_REWARD.get(rank,1.0)): errors.append(f"mob charxp {mid}")
-        if int(t.get("class_xp_reward",0) or 0) != axis_gain("class", lvl, RANK_REWARD.get(rank,1.0)): errors.append(f"mob classxp {mid}")
-        if int(t.get("soul_reward",0) or 0) != axis_gain("soul", lvl, RANK_REWARD.get(rank,1.0)): errors.append(f"mob soulxp {mid}")
-        if int(t.get("silver",0) or 0) != currency_for_stage(lvl, rank): errors.append(f"mob currency {mid}")
+        if int(t.get("max_hp",0) or 0) <= 0: errors.append(f"mob hp {mid}")
+        if int(t.get("damage",0) or 0) <= 0: errors.append(f"mob damage {mid}")
+        if int(t.get("character_xp_reward",0) or 0) < 0: errors.append(f"mob charxp {mid}")
+        if int(t.get("class_xp_reward",0) or 0) < 0: errors.append(f"mob classxp {mid}")
+        if int(t.get("soul_reward",0) or 0) < 0: errors.append(f"mob soulxp {mid}")
+        if int(t.get("stat_reward",0) or 0) < 0: errors.append(f"mob statxp {mid}")
+        if any(int(t.get(key,0) or 0) < 0 for key in ("silver", "gold", "mithril")):
+            errors.append(f"mob currency {mid}")
     for iid, item in items.items():
         lvl = int(item.get("generator_level",0) or 0)
         if not 1 <= lvl <= MAX_LEVEL: errors.append(f"item level {iid}")
