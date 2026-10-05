@@ -184,6 +184,26 @@ if "racial_amount - accelerated_amount" not in _character_source:
         "stat XP pace regression: global boost would be misreported as racial bonus"
     )
 
+try:
+    from config.balance import (
+        STAT_XP_REQUIREMENT_MULTIPLIER as _stat_req_mult,
+        STAT_XP_REWARD_MULTIPLIER as _stat_reward_mult,
+    )
+    from core.generator_core import AXIS_TARGET_ACTIONS as _axis_target_actions
+    _effective_stat_actions = (
+        float(_axis_target_actions["stat"])
+        * float(_stat_req_mult)
+        / max(0.000001, float(_stat_reward_mult))
+    )
+    if _effective_stat_actions > 15.01:
+        _semantic_errors.append(
+            f"stat XP pace regression: effective actions per point {_effective_stat_actions:.2f} > 15"
+        )
+except Exception as exc:
+    _semantic_errors.append(
+        f"stat XP pace audit failed: {type(exc).__name__}: {exc}"
+    )
+
 if _semantic_errors:
     print("Soulbound v1.13.1 FAST PREDEPLOY FAILED: semantic contracts")
     for _error in _semantic_errors:
