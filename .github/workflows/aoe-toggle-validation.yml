@@ -1,0 +1,63 @@
+name: AoE toggle validation
+on:
+  push:
+    branches:
+      - fix/aoe-toggle-all-offensive-v1123
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile changed files
+        run: python -m py_compile player/session_mixins/combat_skills.py admin/help_refresh.py server.py
+      - name: Fast predeploy
+        run: python predeploy_check.py
+      - name: Full runtime and AoE contract
+        env:
+          SOULBOUND_DEFER_MEMORY_COMPACTION: '1'
+        run: |
+          python - <<'PY'
+          import inspect
+          import server
+          from core.classes_skills import CLASS_SKILLS
+
+          src = inspect.getsource(server.Session.use_class_skill)
+          # Final runtime may wrap use_class_skill, so also inspect the concrete
+          # combat mixin method that the wrapper chain ultimately delegates to.
+          from player.session_mixins.combat_skills import SessionCombatSkillsMixin
+          combat_src = inspect.getsource(SessionCombatSkillsMixin.use_class_skill)
+          assert '_uses_offensive_aoe_pool_v1123' in combat_src
+          assert '_mec_special == "starlight_shower"' in combat_src
+          assert 'support_effect and self.offensive_aoe_enabled_v11120()' in combat_src
+
+          multi = []
+          exceptions = []
+          for class_name, skills in CLASS_SKILLS.items():
+              for skill in skills:
+                  kind = str(skill.get('kind',''))
+                  tm = str(skill.get('target_mode','') or '')
+                  special = str(skill.get('mec_special','') or '')
+                  is_multi = (
+                      kind == 'aoe_damage'
+                      or 'all_enemies' in tm
+                      or 'all_targetted_enemies' in tm
+                      or 'diminishing_aoe' in tm
+                      or tm == 'one_or_support_all_enemies'
+                  )
+                  if not is_multi:
+                      continue
+                  multi.append((class_name, skill.get('id'), kind, tm, special))
+                  if kind != 'aoe_damage':
+                      exceptions.append((class_name, skill.get('id'), kind, tm, special))
+
+          allowed = {'starlight_shower', 'jammer'}
+          bad = [row for row in exceptions if row[4] not in allowed]
+          assert not bad, f'unhandled non-aoe_damage multi-target skills: {bad}'
+          assert any(row[4] == 'starlight_shower' for row in exceptions)
+          assert any(row[4] == 'jammer' for row in exceptions)
+          print('AOE CATALOG PASS:', len(multi), 'multi-target entries; exceptions:', exceptions)
+          print('FULL RUNTIME IMPORT PASS')
+          PY
