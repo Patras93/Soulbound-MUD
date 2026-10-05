@@ -1,5 +1,28 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.12.8
+Aktualna paczka: v1.13.0
+
+==============================================================================
+Soulbound v1.13.0 — Smoczy Świat
+==============================================================================
+
+- Dodano pełną, stałą krainę Smoczy Świat przeznaczoną do późnego, długoterminowego expienia. Nie jest to pojedynczy loch ani klasyczny endgame.
+- Wejście prowadzi z Doliny Tytanów do Bramy Smoczego Świata. Komenda prowadzenia rozpoznaje: prowadz smoczy swiat / prowadz smoczy świat / dragon world.
+- Kraina ma 64 stałe pomieszczenia: 6-pokojowy bezpieczny Bastion, sześć stref po 8 pomieszczeń oraz 10-pokojową Smoczą Cytadelę.
+- Strefy progresji: Popielne Równiny 520, Smocze Kaniony 540, Kryształowe Gniazda 560, Wulkaniczna Otchłań 580, Szczyty Burzowych Smoków 600, Cmentarzysko Pradawnych Smoków 600 i Smocza Cytadela 600.
+- Każda strefa ma własne zwykłe smoki, osobnego rare i minibossa. Cała kraina ma pięciu Smoczych Władców: Aureliusza Kryształowych Skrzydeł, Ignivara Serce Wulkanu, Vaelthrę Królową Burz, Morgratha Kościanego oraz Azharyona Władcę Smoczego Świata.
+- Dodano 12 godzinnych questów walki. Wszystkie odnawiają się niezależnie po 60 minutach i korzystają z normalnych Character XP, Class XP, Soul XP oraz waluty.
+- Ręczny EXP statystyk rośnie wraz z głębokością krainy: od 30000 do 75000 EXP do każdej z sześciu statystyk osobno. Finałowy quest Azharyona daje 75000 do każdej statystyki przed aktywnym x2 EXP.
+- Brak blokady levelem. Etapy 520-600 są rekomendacją i źródłem skalowania przeciwników/nagród; wcześniejsze wejście pozostaje decyzją gracza.
+- Party zachowuje aktualne zasady bez kar: EXP i waluta nie są dzielone tylko dlatego, że walczy drużyna.
+- Dodano siedem smoczych materiałów: Łuska Smoczego Świata, Popielny Rdzeń, Kryształ Smoczego Gniazda, Serce Wulkanicznego Smoka, Serce Burzowego Smoka, Kość Pradawnego Smoka i Pieczęć Smoczego Suwerena.
+- Smocze materiały są rejestrowane jako materiały kolekcji i przygotowane pod późniejszą osobną linię smoczego rzemiosła; v1.13.0 nie dodaje jeszcze receptur, więc zdobytych materiałów nie trzeba będzie resetować.
+- Nowe smoki są pasywne zgodnie z globalną zasadą PASSIVE WORLD i nie rozpoczynają walki same.
+- Nowe rare, minibossowie i Smoczy Władcy trafiają do odpowiednich katalogów Bestiariusza/Boss Codex po załadowaniu modułu.
+- Dodano wewnętrzny Dragon World Audit: kontroluje 64 pokoje, rozmiary stref, 5 Władców, 12 questów, godzinne cooldowny, spawny, wejście z Doliny Tytanów i minimalne 30000 EXP każdej statystyki.
+- Fast predeploy pilnuje obecności modułu w runtime manifest, wersji 1.13.0, liczby pokoi/Władców/questów, prowadzenia oraz progów 30000 i 75000 stat XP.
+- Podbito canonical VERSION, runtime i predeploy do v1.13.0.
+- Brak wipe'a save'ów i brak zmian schematu SQLite.
+
 
 ==============================================================================
 Soulbound v1.12.8 — trollowe questy przyspieszają rozwój statów
