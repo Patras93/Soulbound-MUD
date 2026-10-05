@@ -55,6 +55,20 @@ class SessionCommandLoopMixin:
             direction = DIRECTION_ALIASES.get(command)
             self._last_command_for_diagnostics = command
 
+            if self.smelt_task_active_v1124():
+                _smelt_control = (
+                    command == "smelt"
+                    and self.normalize_description_query(args) in {
+                        "stop", "off", "przerwij", "koniec", "status", "stan"
+                    }
+                )
+                if not _smelt_control:
+                    await self.send(
+                        "Trwa przetapianie. Wpisz przetop status albo przetop stop "
+                        "przed wykonaniem innej akcji."
+                    )
+                    continue
+
             if self.is_downed_v0371():
                 if direction or not command_state_safe(command, "downed"):
                     remaining = max(0, int(round(self.party_downed_until_v0371 - time.time())))
@@ -106,6 +120,7 @@ class SessionCommandLoopMixin:
                 await self.cancel_guide(announce=False)
             if self.resting or self.rest_task:
                 await self.stop_rest(announce=False)
+            await self.stop_smelt_v1124(announce=False)
             await self.stop_standing_regen_v1124()
             if self.auto_fishing or self.auto_fishing_task:
                 await self.stop_auto_fishing(announce=False)
@@ -159,6 +174,7 @@ class SessionCommandLoopMixin:
             self.clear_downed_v0371(cancel_task=True)
             if self.resting or self.rest_task:
                 await self.stop_rest(announce=False)
+            await self.stop_smelt_v1124(announce=False)
             await self.stop_standing_regen_v1124()
             if self.auto_fishing or self.auto_fishing_task:
                 await self.stop_auto_fishing(announce=False)
