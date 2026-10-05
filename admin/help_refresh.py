@@ -1294,6 +1294,7 @@ def refresh_help_truth_v11197():
         "Sześć automatycznych statystyk to Siła, Zręczność, Kondycja, Inteligencja, Siła Woli i Charyzma.",
         "Statystyki nie mają twardego limitu. EQ, runy, sety i relikty zwiększają wartości efektywne używane przez walkę.",
         "Ofensywne skille używają właściwych statystyk klasy. Każde leczenie w Soulbound skaluje się z Inteligencją i Siłą Woli; Magic Attack zwiększa obrażenia magiczne, ale nie leczenie.",
+        "Zręczność buduje końcową Szybkość. Liczba trafień zwykłego autoataku Broni Duszy wynika z końcowej Szybkości, a aktywny Haste osobno zwiększa długość serii trafień.",
         "staty info pokazuje bazę, wartości efektywne, postęp oraz bonusy wyposażenia.",
     ]
 
@@ -1448,7 +1449,7 @@ def refresh_help_truth_v11197():
         "Mec korzysta z jednej Broni Duszy; role melee, ranged, magic, feedback i support są gałęziami tej klasy, nie osobnymi broniami do noszenia.",
         "Strength Protocol, Ranged Protocol, Feedback Protocol i Magic Protocol są pasywne. Po nauczeniu działają automatycznie i wzmacniają odpowiadające im gałęzie wraz ze Skill Level.",
         "Cure Beam i Heal Beam skalują leczenie z Inteligencją i Siłą Woli oraz Skill Levelem. Magic Attack nie zwiększa leczenia. Support Effect zmienia ich zachowanie zgodnie z opisem skilla.",
-        "V-MAX jest specjalnym overdrive'em zależnym od Siły Woli: daje Protect, Shell, Haste, Regen, Preach, Praise i Permanence oraz zmienia wybrane skille. Jego timer jest mechaniką specjalną, więc pozostaje wyjątkiem od globalnego braku cooldownów.",
+        "V-MAX jest specjalnym overdrive'em zależnym od Siły Woli: daje Protect, Shell, Haste, Regen, Preach, Praise i Permanence oraz zmienia wybrane skille. Haste osobno zwiększa serię trafień zwykłego autoataku, którego baza zależy od końcowej Szybkości. Timer V-MAX jest mechaniką specjalną, więc pozostaje wyjątkiem od globalnego braku cooldownów.",
         "Cosmic Rave normalnie trafia wszystkie cele z diminishing; podczas V-MAX wykonuje losowe trafienia. Shoot-All trafia wszystkie cele bez diminishing i w V-MAX zyskuje damage oraz crit.",
     ]
 
