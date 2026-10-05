@@ -24,8 +24,8 @@ V1124_ECONOMY_INCOME_VERSION = "1.13.8"
 V1124_ECONOMY_MAX_STAGE = 600
 
 # Values are internal silver. 100 silver = 1 Gold.
-# The late curve is intentionally comparable to Ocean contracts:
-# stage 300 ~= 25k Gold, 400 ~= 150k, 600 ~= 400k before quest modifiers.
+# v1.13.8: midgame starts paying meaningfully and late game keeps scaling.
+# stage 100 ~= 1k Gold, 300 ~= 75k, 400 ~= 300k, 600 ~= 1M before quest modifiers.
 V1124_QUEST_INCOME_ANCHORS = (
     # Internal silver. The midgame is deliberately rewarding: a player should
     # feel a payout at 50-100 instead of waiting for endgame economy to start.
