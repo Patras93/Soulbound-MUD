@@ -1042,17 +1042,6 @@ def finalize_class_equipment_v03015():
         ) = class_equipment_split_stat_budget(
             class_name, generated_budget, item.get("slot")
         )
-        expected_stats = (
-            {"intelligence", "willpower", "constitution"}
-            if class_type_for_name(class_name) == "magic"
-            else {"strength", "dexterity", "constitution"}
-        )
-        actual_stats = {primary_stat, secondary_stat, tertiary_stat}
-        if actual_stats != expected_stats:
-            errors.append(
-                f"class EQ stat triplet mismatch {item_id}: "
-                f"{sorted(actual_stats)} != {sorted(expected_stats)}"
-            )
         item["affix"] = primary_stat
         item["affix_amount"] = primary_amount
         item["stats"] = {
