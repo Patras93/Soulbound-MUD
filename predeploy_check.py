@@ -147,9 +147,32 @@ if 'EXPLICIT_RUNTIME_EXPORTS["world/dragon_world.py"]' not in _manifest_source:
     _semantic_errors.append(
         "dragon world architecture regression: module must stay on explicit runtime lane"
     )
-if "'world/dragon_world.py'," in _manifest_source:
+try:
+    from core.runtime_manifest import (
+        RUNTIME_MODULES as _runtime_modules,
+        EXPLICIT_RUNTIME_EXPORTS as _explicit_runtime_exports,
+        LEGACY_COMPATIBILITY_ALLOWLIST as _legacy_compatibility_allowlist,
+    )
+    _observed_legacy = tuple(
+        _path for _path in _runtime_modules
+        if _path not in _explicit_runtime_exports
+    )
+    if _observed_legacy != tuple(_legacy_compatibility_allowlist):
+        _missing_legacy_review = [
+            _path for _path in _observed_legacy
+            if _path not in _legacy_compatibility_allowlist
+        ]
+        _stale_legacy_review = [
+            _path for _path in _legacy_compatibility_allowlist
+            if _path not in _observed_legacy
+        ]
+        _semantic_errors.append(
+            "maintainable-core compatibility regression: "
+            f"unreviewed={_missing_legacy_review}; stale={_stale_legacy_review}"
+        )
+except Exception as exc:
     _semantic_errors.append(
-        "dragon world architecture regression: module must not enter legacy compatibility allowlist"
+        f"maintainable-core compatibility precheck failed: {type(exc).__name__}: {exc}"
     )
 _dragon_world_needles = (
     'DRAGON_WORLD_VERSION = "1.13.0"',
