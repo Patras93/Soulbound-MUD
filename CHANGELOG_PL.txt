@@ -1,5 +1,28 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.13.6
+Aktualna paczka: v1.13.7
+
+==============================================================================
+Soulbound v1.13.7 — runtime finalizer obsługuje trzy statystyki klasowego EQ
+==============================================================================
+
+- Naprawiono crash kontenera po wdrożeniu v1.13.6:
+  ValueError: too many values to unpack (expected 4) w finalize_class_equipment_v03015().
+- Przyczyną było stare rozpakowanie czterech wartości z class_equipment_split_stat_budget(),
+  podczas gdy v1.13.6 poprawnie zwraca już sześć wartości dla trzech statystyk.
+- world/runtime_progression.py obsługuje teraz pełny triplet:
+  primary, secondary i tertiary wraz z trzema wartościami bonusów.
+- Finalizer nie kasuje już trzeciej statystyki po Generator Core:
+  item["stats"] zachowuje teraz zarówno secondary, jak i tertiary.
+- Minimalny budżet finalizera dla klasowego EQ wynosi 3 zamiast 2.
+- Opisy legendarnych części i reliktów pokazują wszystkie trzy statystyki.
+- Generator klasowego EQ nadal waliduje wymagany zestaw statów:
+  fizyczne STR + DEX + CON, magiczne INT + WILL + CON.
+- Fast Predeploy blokuje powrót starego czteropolowego unpacku oraz zapis
+  item["stats"] bez trzeciej statystyki.
+- Zachowano cały balans v1.13.6 bez zmian wartości i bez zmian schematu save.
+- Podbito canonical VERSION i runtime do v1.13.7.
+- Brak wipe'a save'ów i brak zmian schematu SQLite.
+
 
 ==============================================================================
 Soulbound v1.13.6 — pełne trzy statystyki na klasowym EQ
