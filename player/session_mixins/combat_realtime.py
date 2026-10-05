@@ -69,9 +69,9 @@ class SessionCombatRealtimeMixin:
                     )
 
     def basic_attack_hit_count_v11196(self):
-                """DEX/AGI-driven Soul Weapon multi-hit; V-MAX Haste doubles the series."""
-                return generator_core_v027.basic_attack_hits_from_dexterity(
-                    self.effective_dexterity(),
+                """Final Speed drives Soul Weapon multi-hit; Haste doubles the series."""
+                return generator_core_v027.basic_attack_hits_from_speed(
+                    self.speed(),
                     haste=self.beneficial_status_active_v11154("haste"),
                 )
 
