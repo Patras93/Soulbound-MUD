@@ -15,7 +15,7 @@ Soulbound v1.13.7 — runtime finalizer obsługuje trzy statystyki klasowego EQ
   item["stats"] zachowuje teraz zarówno secondary, jak i tertiary.
 - Minimalny budżet finalizera dla klasowego EQ wynosi 3 zamiast 2.
 - Opisy legendarnych części i reliktów pokazują wszystkie trzy statystyki.
-- Finalizer waliduje wymagany zestaw statów:
+- Generator klasowego EQ nadal waliduje wymagany zestaw statów:
   fizyczne STR + DEX + CON, magiczne INT + WILL + CON.
 - Fast Predeploy blokuje powrót starego czteropolowego unpacku oraz zapis
   item["stats"] bez trzeciej statystyki.
