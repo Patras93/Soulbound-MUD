@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Fast Railway predeploy gate for Soulbound v1.13.0.
+"""Fast Railway predeploy gate for Soulbound v1.13.1.
 
 This is the normal deploy check.  It intentionally avoids assembling the full
 world/runtime.  Use predeploy_full.py when an exhaustive historical audit is
@@ -16,7 +16,7 @@ import traceback
 try:
     from storage.database import Database as _DatabaseImportSmoke
 except Exception as exc:
-    print(f"Soulbound v1.13.0 FAST PREDEPLOY FAILED: database import: {type(exc).__name__}: {exc}")
+    print(f"Soulbound v1.13.1 FAST PREDEPLOY FAILED: database import: {type(exc).__name__}: {exc}")
     traceback.print_exc()
     raise SystemExit(1)
 
@@ -37,7 +37,7 @@ try:
     )
 except Exception as exc:
     print(
-        "Soulbound v1.13.0 FAST PREDEPLOY FAILED: "
+        "Soulbound v1.13.1 FAST PREDEPLOY FAILED: "
         f"skill semantic import: {type(exc).__name__}: {exc}"
     )
     traceback.print_exc()
@@ -97,7 +97,7 @@ for _rel, _needles in _forbidden_ap_runtime.items():
                 f"AP semantics regression: {_rel} contains forbidden {_needle}"
             )
 
-# v1.13.0 regression guard: Heal Beam target preparation checks support_effect
+# v1.13.1 regression guard: Heal Beam target preparation checks support_effect
 # before the authored-Mec execution block. The variable must therefore be
 # resolved earlier in use_class_skill, otherwise combat crashes at runtime.
 _combat_skills_source = (_root / "player/session_mixins/combat_skills.py").read_text(encoding="utf-8")
@@ -114,7 +114,7 @@ if (
         "Heal Beam support regression: support_effect must be initialized before target preparation"
     )
 
-# v1.13.0 regression guard: authored troll quest stat rewards must bypass
+# v1.13.1 regression guard: authored troll quest stat rewards must bypass
 # Generator Core's generated reward_stat_progress so the explicit balance
 # values remain exact and visible to players.
 _progression_source = (_root / "core/progression_resources.py").read_text(encoding="utf-8")
@@ -137,7 +137,7 @@ for _needle in _troll_reward_needles:
             "troll stat reward regression: missing " + _needle
         )
 
-# v1.13.0 Smoczy Świat release contract. Fast predeploy stays source-only,
+# Smoczy Świat v1.13.0 feature contract retained by v1.13.1. Fast predeploy stays source-only,
 # while the module itself performs the full assembled-world runtime audit.
 _manifest_source = (_root / "core/runtime_manifest.py").read_text(encoding="utf-8")
 _dragon_world_source = (_root / "world/dragon_world.py").read_text(encoding="utf-8")
@@ -161,19 +161,42 @@ for _needle in _dragon_world_needles:
             "dragon world regression: missing " + _needle
         )
 
+# v1.13.1: uncapped stats must stay generous globally. The natural stat
+# requirement curve is used without the old x2 tax and every source is
+# accelerated x4 before race/guild bonuses and uncapped post-400 scaling.
+_balance_source = (_root / "config/balance.py").read_text(encoding="utf-8")
+_character_source = (_root / "player/character.py").read_text(encoding="utf-8")
+_stat_pace_needles = (
+    "STAT_XP_REQUIREMENT_MULTIPLIER = 1.0",
+    "STAT_XP_REWARD_MULTIPLIER = 4.0",
+)
+for _needle in _stat_pace_needles:
+    if _needle not in _balance_source:
+        _semantic_errors.append(
+            "stat XP pace regression: missing " + _needle
+        )
+if "base_amount * STAT_XP_REWARD_MULTIPLIER" not in _character_source:
+    _semantic_errors.append(
+        "stat XP pace regression: global reward multiplier not applied in add_stat_progress"
+    )
+if "racial_amount - accelerated_amount" not in _character_source:
+    _semantic_errors.append(
+        "stat XP pace regression: global boost would be misreported as racial bonus"
+    )
+
 if _semantic_errors:
-    print("Soulbound v1.13.0 FAST PREDEPLOY FAILED: semantic contracts")
+    print("Soulbound v1.13.1 FAST PREDEPLOY FAILED: semantic contracts")
     for _error in _semantic_errors:
         print(f"ERROR: {_error}")
     raise SystemExit(1)
 
 if audit["error_count"]:
-    print("Soulbound v1.13.0 FAST PREDEPLOY FAILED")
+    print("Soulbound v1.13.1 FAST PREDEPLOY FAILED")
     for error in audit["errors"]:
         print(f"ERROR: {error}")
     raise SystemExit(1)
 
-print("Soulbound v1.13.0 FAST PREDEPLOY PASS")
+print("Soulbound v1.13.1 FAST PREDEPLOY PASS")
 print(
     "Semantic contracts: "
     f"{len(_semantic_audits)} audits PASS; AP runtime guards PASS"
