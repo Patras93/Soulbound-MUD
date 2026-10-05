@@ -11,12 +11,104 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Audit equipment role power
+      - name: Compile
+        run: python -m py_compile player/session_mixins/equipment_stats.py player/session_mixins/combat_skills.py admin/help_refresh.py server.py
+      - name: Fast predeploy
+        run: python predeploy_check.py
+      - name: Runtime role contracts
         env:
           SOULBOUND_DEFER_MEMORY_COMPACTION: '1'
         run: |
           python - <<'PY'
-          import statistics
+          from types import SimpleNamespace
+          import inspect
+          import server
+
+          s = server.Session(None, None, None)
+          s.character = SimpleNamespace(
+              character_level=200,
+              strength=100, dexterity=100, constitution=100,
+              intelligence=100, willpower=100,
+              racial_healing_multiplier=lambda: 1.0,
+              class_healing_multiplier=lambda: 1.0,
+          )
+          s.equipment_bonus_totals = lambda: {
+              'strength':0,'dexterity':0,'constitution':0,
+              'intelligence':0,'willpower':0,'hp':0,'mana':0
+          }
+          s.skill_buff_multiplier = lambda target_type=None: 1.0
+          s.skill_class_name = lambda skill: 'Kapłan'
+
+          # Healing: INT and WILL each increase power.
+          base = s.healing_power_v1125()
+          s.character.intelligence = 200
+          int_up = s.healing_power_v1125()
+          s.character.intelligence = 100
+          s.character.willpower = 200
+          will_up = s.healing_power_v1125()
+          assert int_up > base, (base, int_up)
+          assert will_up > base, (base, will_up)
+
+          # Equal contribution: same increase to INT or WILL gives same result.
+          assert int_up == will_up, (int_up, will_up)
+
+          # Magic Attack must not enter healing power.
+          heal_src = inspect.getsource(server.Session.healing_power_v1125)
+          assert 'magic_attack' not in heal_src
+          s.character.willpower = 100
+          s.equipment_flat_power_totals_v11187 = lambda: {
+              'attack':0,'magic_attack':999999,'magic_defense':0,'weapon_power':0
+          }
+          assert s.healing_power_v1125() == base
+
+          # Percentage heal also rises from INT/WILL through canonical build.
+          target = SimpleNamespace(max_hp=lambda: 10000)
+          skill = {'kind':'heal','heal_pct':0.25}
+          s.character.intelligence = 100; s.character.willpower = 100
+          h0 = s.healing_skill_amount_v11196(skill,target,1.0)
+          s.character.intelligence = 200
+          h_int = s.healing_skill_amount_v11196(skill,target,1.0)
+          s.character.intelligence = 100; s.character.willpower = 200
+          h_will = s.healing_skill_amount_v11196(skill,target,1.0)
+          assert h_int > h0 and h_will > h0
+          assert h_int == h_will
+
+          # Physical channel: Attack + Weapon Power matter.
+          s.character.intelligence = 100; s.character.willpower = 100
+          s.equipment_flat_power_totals_v11187 = lambda: {
+              'attack':0,'magic_attack':0,'magic_defense':0,'weapon_power':0
+          }
+          p0 = s.physical_power(); m0 = s.spell_power()
+          s.equipment_flat_power_totals_v11187 = lambda: {
+              'attack':100,'magic_attack':0,'magic_defense':0,'weapon_power':50
+          }
+          assert s.physical_power() > p0
+
+          # Magic channel: Magic Attack matters, without changing heal.
+          s.equipment_flat_power_totals_v11187 = lambda: {
+              'attack':0,'magic_attack':100,'magic_defense':0,'weapon_power':0
+          }
+          assert s.spell_power() > m0
+          assert s.healing_power_v1125() == base
+
+          # HELP truth.
+          help_heal = ' '.join(server.HELP_TOPICS.get('leczenie', []))
+          assert 'Inteligencja' in help_heal and 'Siła Woli' in help_heal
+          assert 'Magic Attack' in help_heal and 'nie zwiększa leczenia' in help_heal
+
+          print('HEAL INT PASS', base, int_up)
+          print('HEAL WILL PASS', base, will_up)
+          print('HEAL MAGIC ATTACK EXCLUDED PASS')
+          print('PHYSICAL ATTACK/WP PASS')
+          print('MAGIC ATTACK DAMAGE PASS')
+          print('HELP PASS')
+          print('FULL RUNTIME IMPORT PASS')
+          PY
+      - name: Audit later equipment progression
+        env:
+          SOULBOUND_DEFER_MEMORY_COMPACTION: '1'
+        run: |
+          python - <<'PY'
           import server
 
           def stats(item):
@@ -36,28 +128,16 @@ jobs:
               return s['intelligence']+0.65*s['willpower']+int(item.get('magic_attack',0) or 0)+10*float(p.get('magic_damage_pct',0) or 0)
           def heal(item):
               s=stats(item)
-              return 0.55*s['intelligence']+0.45*s['willpower']+int(item.get('magic_attack',0) or 0)
+              return 0.5*s['intelligence']+0.5*s['willpower']
 
-          print('=== UOSS BLACK RABITE ===')
-          for iid,item in server.ITEMS.items():
-              if iid.startswith('uoss_black_rabite_unique_'):
-                  print('UOSS',iid,item.get('name'),item.get('slot'),'stats',stats(item),'phys',round(phys(item),1),'magic',round(magic(item),1),'heal',round(heal(item),1))
-
-          print('=== CLASS EQ BY MASTERY ===')
-          for m in (100,150,200,300,400,500,600):
-              rows=[]
-              for iid,item in server.ITEMS.items():
-                  if item.get('class_shop_item') and int(item.get('required_mastery',0) or 0)==m:
-                      rows.append((phys(item),magic(item),heal(item),sum(stats(item).values())))
-              if rows:
-                  print('CLASS',m,'n',len(rows),'phys_max',round(max(x[0] for x in rows),1),'magic_max',round(max(x[1] for x in rows),1),'heal_max',round(max(x[2] for x in rows),1),'stats_med',round(statistics.median(x[3] for x in rows),1))
-
-          print('=== MATERIAL EQ BY MASTERY ===')
-          for m in (100,150,200,300,400,500,600):
-              rows=[]
-              for iid,item in server.ITEMS.items():
-                  if item.get('corpse_material') and int(item.get('required_mastery',0) or 0)==m:
-                      rows.append((phys(item),magic(item),heal(item),sum(stats(item).values())))
-              if rows:
-                  print('MATERIAL',m,'n',len(rows),'phys_max',round(max(x[0] for x in rows),1),'magic_max',round(max(x[1] for x in rows),1),'heal_max',round(max(x[2] for x in rows),1),'stats_med',round(statistics.median(x[3] for x in rows),1))
+          uoss=[item for iid,item in server.ITEMS.items() if iid.startswith('uoss_black_rabite_unique_')]
+          u_phys=max(phys(x) for x in uoss); u_magic=max(magic(x) for x in uoss); u_heal=max(heal(x) for x in uoss)
+          late=[item for item in server.ITEMS.values() if int(item.get('required_mastery',0) or 0)>=500 and (item.get('class_shop_item') or item.get('corpse_material'))]
+          assert late
+          assert max(phys(x) for x in late) > u_phys
+          assert max(magic(x) for x in late) > u_magic
+          assert max(heal(x) for x in late) > u_heal
+          print('UOSS MAX',round(u_phys,1),round(u_magic,1),round(u_heal,1))
+          print('LATE SOUL MAX',round(max(phys(x) for x in late),1),round(max(magic(x) for x in late),1),round(max(heal(x) for x in late),1))
+          print('LATE EQ PROGRESSION PASS')
           PY
