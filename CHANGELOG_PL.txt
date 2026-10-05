@@ -1,5 +1,17 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.12.3
+Aktualna paczka: v1.12.4
+
+==============================================================================
+Soulbound v1.12.4 — naturalna regeneracja stojąc
+==============================================================================
+
+- Postać poza walką naturalnie regeneruje HP i Manę podczas stania: 2 procent wartości maksymalnej co 5 sekund.
+- `rest` / `odpoczywaj` pozostaje szybszym trybem: 10 procent maksymalnego HP i Many co 5 sekund, czyli 5 razy szybciej niż zwykłe stanie.
+- Regen stojąc jest cichy dla NVDA i nie spamuje komunikatami co tick.
+- Naturalny regen nie działa podczas walki, ruchu, prowadzenia ani aktywnego auto-zbierania.
+- Nullify Healing nadal blokuje odzyskiwanie HP, ale nie naturalną regenerację Many.
+- `rest status` oraz HELP odpoczynek/rest/regen pokazują nowe zasady.
+- Brak wipe'a save'ów i brak zmian schematu SQLite.
 
 ==============================================================================
 Soulbound v1.12.3 — pełny przełącznik AoE
