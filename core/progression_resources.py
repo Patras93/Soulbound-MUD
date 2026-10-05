@@ -189,7 +189,13 @@ def v0190_combat_reward(template, kind):
     return v0190_generated_combat_reward(template, kind)
 
 def v0190_apply_combat_template(template):
-    """Nadaj wygenerowane statystyki także mobom tworzonym w runtime."""
+    """Restore an authored runtime baseline and fill only missing combat numbers.
+
+    Later dungeon/world wrappers may safely call this repeatedly: the first call
+    snapshots the authored/generated baseline, and every later call restores it
+    before applying its own multipliers. This keeps runtime refresh idempotent
+    without letting Generator Core erase hand-tuned combat/economy values.
+    """
     if not isinstance(template, dict):
         return template
     stage = template.get("generator_level")
@@ -208,33 +214,51 @@ def v0190_apply_combat_template(template):
     rank = generator_core_v027.mob_rank(template)
     template["generator_level"] = stage
     template["v019_stage"] = stage
-    template["max_hp"] = generator_core_v027.mob_hp(stage, rank)
-    template["base_max_hp"] = template["max_hp"]
-    template["damage"] = generator_core_v027.mob_damage(stage, rank)
-    template["character_xp_reward"] = generator_core_v027.axis_gain("character", stage, generator_core_v027.RANK_REWARD.get(rank,1.0))
-    template["class_xp_reward"] = generator_core_v027.axis_gain("class", stage, generator_core_v027.RANK_REWARD.get(rank,1.0))
-    template["soul_reward"] = generator_core_v027.axis_gain("soul", stage, generator_core_v027.RANK_REWARD.get(rank,1.0))
-    template["stat_reward"] = generator_core_v027.axis_gain("stat", stage, generator_core_v027.RANK_REWARD.get(rank,1.0))
-    template["silver"] = generator_core_v027.currency_for_stage(stage, rank)
-    template["gold"] = 0
-    template["mithril"] = 0
-    # v0.36.2: runtime terrain clones intentionally receive an additional
-    # open-world threat multiplier after the canonical Generator Core numbers.
-    # This block is idempotent because every call above first restores the
-    # canonical stage HP/damage before applying the multiplier again.
+
+    generated = {
+        "max_hp": generator_core_v027.mob_hp(stage, rank),
+        "damage": generator_core_v027.mob_damage(stage, rank),
+        "character_xp_reward": generator_core_v027.axis_gain("character", stage, generator_core_v027.RANK_REWARD.get(rank,1.0)),
+        "class_xp_reward": generator_core_v027.axis_gain("class", stage, generator_core_v027.RANK_REWARD.get(rank,1.0)),
+        "soul_reward": generator_core_v027.axis_gain("soul", stage, generator_core_v027.RANK_REWARD.get(rank,1.0)),
+        "stat_reward": generator_core_v027.axis_gain("stat", stage, generator_core_v027.RANK_REWARD.get(rank,1.0)),
+    }
+
+    for key, fallback in generated.items():
+        baseline_key = f"_v1138_authored_{key}"
+        if baseline_key not in template:
+            current = template.get(key)
+            valid = isinstance(current, (int, float)) and not isinstance(current, bool)
+            if key in ("max_hp", "damage"):
+                valid = valid and float(current) > 0
+            elif valid:
+                valid = float(current) >= 0
+            template[baseline_key] = int(current) if valid else int(fallback)
+        template[key] = int(template[baseline_key])
+
+    template["base_max_hp"] = int(template["max_hp"])
+
+    # Preserve authored denominations. If no currency existed at all, snapshot
+    # Generator silver once as a fallback. Runtime refresh never changes it.
+    currency_keys = ("silver", "gold", "mithril")
+    if "_v1138_authored_currency" not in template:
+        had_currency = any(key in template for key in currency_keys)
+        template["_v1138_authored_currency"] = tuple(
+            int(template.get(key, 0) or 0) for key in currency_keys
+        ) if had_currency else (int(generator_core_v027.currency_for_stage(stage, rank)), 0, 0)
+    template["silver"], template["gold"], template["mithril"] = template["_v1138_authored_currency"]
+
+    # v0.36.2 terrain clones remain a deliberate generated layer, but start
+    # from the restored authored baseline on every refresh.
     if template.get("terrain_runtime_clone_v0362"):
         hp_mult = float(template.get("terrain_hp_multiplier_v0362", 1.0) or 1.0)
         dmg_mult = float(template.get("terrain_damage_multiplier_v0362", 1.0) or 1.0)
         template["max_hp"] = max(1, int(round(template["max_hp"] * hp_mult)))
         template["base_max_hp"] = template["max_hp"]
         template["damage"] = max(1, int(round(template["damage"] * dmg_mult)))
-    drops=template.get("drops")
-    if isinstance(drops,dict) and drops:
-        base_chance={"normal":.055,"elite":.09,"rare":.14,"mini":.22,"boss":.34,"world_boss":.48}.get(rank,.055)
-        count=max(1,len(drops))
-        for item_id in list(drops):
-            chance=base_chance*generator_core_v027.stable_jitter(f"{template.get('name','mob')}:{item_id}",.22)/(count**.20)
-            drops[item_id]=round(generator_core_v027.clamp(chance,.005,.85),5)
+
+    # Drop chances are authored content. Runtime refresh must never reroll or
+    # normalize them behind the designer's back.
     return template
 
 def v0190_quest_stage(quest):
