@@ -79,9 +79,11 @@ class SessionRuntimeStateMixin:
             self.party_downed_task_v0371 = None
             self.party_downed_killer_v0371 = ""
             self.party_downed_room_v0371 = None
-            # v0.8.26: automatyczna rotacja dwóch kolejek skilli.
+            # v1.12.5: automatyczna rotacja rozróżnia kanały skilli.
+            # Mec ma osobne kolejki physical / magic / feedback; pozostałe klasy
+            # nadal trafiają do physical albo magic zgodnie ze swoim typem.
             # Konfiguracja kolejki jest trwała w SQLite, a kursory rotacji są sesyjne.
-            self.skill_queue_cursors = {"physical": 0, "magic": 0}
+            self.skill_queue_cursors = {"physical": 0, "magic": 0, "feedback": 0}
             self.skill_queue_next_type = "physical"
             self.auto_queue_casting = False
             self.resting = False
