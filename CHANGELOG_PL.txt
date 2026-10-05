@@ -1,5 +1,25 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.13.4
+Aktualna paczka: v1.13.5
+
+==============================================================================
+Soulbound v1.13.5 — Long-Term Balance Audit zgodny z szybkim stat EXP
+==============================================================================
+
+- Naprawiono kolejny crash runtime po starcie kontenera Railway:
+  Long-Term Balance Audit v0.50.2 nadal wymuszał stary kontrakt statystyk 2.0 / około 120 akcji na punkt.
+- Audyt został zaktualizowany do aktualnego balansu v1.13.1+:
+  STAT_XP_REQUIREMENT_MULTIPLIER = 1.0,
+  STAT_XP_REWARD_MULTIPLIER = 4.0,
+  około 15 efektywnych równorzędnych akcji na kolejny punkt statystyki.
+- _effective_stat_actions uwzględnia teraz globalny mnożnik nagród stat EXP, dzięki czemu audyt mierzy rzeczywiste tempo widziane przez gracza.
+- Efektywny target statów w długoterminowym modelu zmieniono ze 120 na 15.
+- Próbki wartości 10, 100, 300, 599, 800 i 1200 są sprawdzane w paśmie 14-16 akcji, więc działa to również dla statów powyżej 600.
+- Nie zmieniono tempa Character Level, klas, Soul, skilli, profesji ani narzędzi.
+- Fast Predeploy sprawdza teraz również źródło Long-Term Balance Audit i blokuje powrót starego kontraktu 2.0 / 120.
+- Zachowano Smoczy Świat explicit-runtime z v1.13.4, finalny HELP z v1.13.3 i globalne x4 stat EXP z v1.13.1.
+- Podbito canonical VERSION i runtime do v1.13.5.
+- Brak wipe'a save'ów i brak zmian schematu SQLite.
+
 
 ==============================================================================
 Soulbound v1.13.4 — Smoczy Świat jako explicit runtime module
