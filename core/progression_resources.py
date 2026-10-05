@@ -288,15 +288,40 @@ def v0190_quest_currency_reward(quest):
 
 def v0190_quest_stat_reward(quest):
     quest = quest or {}
-    # v1.12.8: authored/manual stat rewards are an explicit balance override.
-    # They are resolved before Generator Core values so a deliberately tuned
-    # quest cannot be silently pushed back down by later numeric regeneration.
+    # Authored/manual stat rewards remain exact overrides.
     manual_reward = quest.get("manual_stat_progress")
     if manual_reward is not None:
         return max(0, int(manual_reward or 0))
+
     if quest.get("generator_level") is not None:
-        return max(0, int(quest.get("reward_stat_progress", 0) or 0))
-    return generator_core_v027.axis_gain("stat", v0190_quest_stage(quest), 2.0)
+        base = max(0, int(quest.get("reward_stat_progress", 0) or 0))
+    else:
+        base = generator_core_v027.axis_gain("stat", v0190_quest_stage(quest), 2.0)
+
+    # v1.13.8: ordinary quests move stats a little faster, while memorable
+    # objectives pay a clearly stronger stat-progress burst.
+    kind = str(quest.get("kind") or "").strip().lower()
+    mult = {
+        "talk_npc": 1.05,
+        "talk_class_teacher": 1.10,
+        "deliver_npc": 1.10,
+        "collect": 1.12,
+        "collect_resource": 1.12,
+        "collect_category": 1.15,
+        "collect_distinct_category": 1.18,
+        "collect_resource_set": 1.22,
+        "craft_set": 1.25,
+        "kill": 1.25,
+        "explore_frontier": 1.20,
+        "discover_secret": 1.50,
+        "mini_dungeon": 1.85,
+        "legendary_rare": 2.25,
+        "world_event": 2.10,
+        "world_boss": 3.00,
+    }.get(kind, 1.12)
+    if int(quest.get("required_soul_level", 0) or 0) > 0:
+        mult = max(mult, 2.25)
+    return max(0, int(round(base * mult)))
 
 def v0190_quest_soul_reward(quest):
     quest = quest or {}
