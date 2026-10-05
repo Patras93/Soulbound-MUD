@@ -1,5 +1,31 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.13.5
+Aktualna paczka: v1.13.6
+
+==============================================================================
+Soulbound v1.13.6 — pełne trzy statystyki na klasowym EQ
+==============================================================================
+
+- Każdy element klasowego EQ klas fizycznych daje teraz jednocześnie:
+  Siłę + Zręczność + Kondycję.
+- Każdy element klasowego EQ klas magicznych daje teraz jednocześnie:
+  Inteligencję + Siłę Woli + Kondycję.
+- Zasada obejmuje zwykłe klasowe EQ ze sklepów, legendarne zestawy z bossów
+  co 50 pięter oraz legendarne relikty klasowe z bossów co 100 pięter.
+- Żadna z trzech wymaganych statystyk nie może mieć wartości 0 nawet na Tierze 1.
+- Minimalny budżet statów pojedynczego klasowego elementu wynosi 3, aby każdy
+  z wymaganych bonusów był realny.
+- Profil klasy nadal wpływa na proporcje. Wojownik/Berserker preferują Siłę,
+  Łotrzyk/Łowca/Mnich/Mec/Inżynier preferują Zręczność, a klasy magiczne
+  zachowują własne proporcje INT/WILL. Kondycja jest zawsze obecna.
+- Łączny budżet pozostaje kontrolowany i jest rozdzielany pomiędzy trzy osie;
+  zmiana nie dokłada trzech pełnych dawnych budżetów naraz.
+- Runtime EQ już sumuje wszystkie wpisy pola stats, więc trzeci bonus realnie
+  wpływa na efektywną Kondycję/HP bez zmiany schematu zapisu postaci.
+- HELP ekwipunku opisuje nowy kontrakt, a Fast Predeploy blokuje regresję do
+  starego dwu-statowego klasowego EQ.
+- Podbito canonical VERSION i runtime do v1.13.6.
+- Brak wipe'a save'ów i brak zmian schematu SQLite.
+
 
 ==============================================================================
 Soulbound v1.13.5 — Long-Term Balance Audit zgodny z szybkim stat EXP
