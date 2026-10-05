@@ -825,8 +825,14 @@ class SessionSkillQueueBuffsMixin:
             if not self.server.db.skill_queue_enabled(self.account_id):
                 return False
 
+            # Existing pre-v1.12.5 Mec entries are corrected lazily before use.
+            self.normalize_skill_queue_types_v1125()
+            queue_types = ("physical", "magic", "feedback")
             preferred = self.skill_queue_next_type
-            order = [preferred, "magic" if preferred == "physical" else "physical"]
+            if preferred not in queue_types:
+                preferred = "physical"
+            preferred_index = queue_types.index(preferred)
+            order = list(queue_types[preferred_index:]) + list(queue_types[:preferred_index])
             for queue_type in order:
                 rows = self.skill_queue_entries(queue_type, active_only=True)
                 if not rows:
@@ -840,9 +846,10 @@ class SessionSkillQueueBuffsMixin:
                     if not self.auto_queue_skill_usable(skill, mob):
                         continue
                     self.skill_queue_cursors[queue_type] = (index + 1) % count
-                    self.skill_queue_next_type = (
-                        "magic" if queue_type == "physical" else "physical"
-                    )
+                    used_index = queue_types.index(queue_type)
+                    self.skill_queue_next_type = queue_types[
+                        (used_index + 1) % len(queue_types)
+                    ]
                     # combat_mob_key jest już ustawiony przez attack(), więc skille
                     # ofensywne automatycznie trafiają bieżący cel.
                     self.auto_queue_casting = True
