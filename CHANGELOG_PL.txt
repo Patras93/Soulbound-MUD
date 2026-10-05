@@ -12,6 +12,11 @@ Soulbound v1.13.8 — odczuwalna progresja + Generator Core jako fallback
   zarówno kasowaniu ręcznego balansu, jak i wielokrotnemu stackowaniu mnożników.
 - Ręcznie ustawione liczby itemów i skilli wygrywają z Generator Core;
   generator wypełnia wyłącznie brakujące pola. price=None nadal oznacza brak sprzedaży.
+- Przycięto dwie późniejsze warstwy trudności, które wcześniej nakładały się na
+  Generator Core: World Threat i Global Difficulty Overdrive startują łagodnie
+  i dochodzą do pełnej presji dopiero w late game zamiast pompować midgame.
+- Proceduralne piętra 201+ zachowują pojedynczą kontrolowaną bazę Generator Core,
+  aby authored depth formula i overdrive nie mnożyły się podwójnie na 1000/10000+.
 - Klasowe EQ ma nową krzywą trzech statystyk: Tier 1 = 9 punktów na część,
   10 = 14, 50 = 38, 60 = 48, 100 = 100, 200 = 240, 400 = 650, 600 = 1200.
 - Fizyczne EQ nadal daje STR + DEX + CON, magiczne INT + WILL + CON.
