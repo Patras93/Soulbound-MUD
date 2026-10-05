@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Fast Railway predeploy gate for Soulbound v1.13.3.
+"""Fast Railway predeploy gate for Soulbound v1.13.4.
 
 This is the normal deploy check.  It intentionally avoids assembling the full
 world/runtime.  Use predeploy_full.py when an exhaustive historical audit is
@@ -16,7 +16,7 @@ import traceback
 try:
     from storage.database import Database as _DatabaseImportSmoke
 except Exception as exc:
-    print(f"Soulbound v1.13.3 FAST PREDEPLOY FAILED: database import: {type(exc).__name__}: {exc}")
+    print(f"Soulbound v1.13.4 FAST PREDEPLOY FAILED: database import: {type(exc).__name__}: {exc}")
     traceback.print_exc()
     raise SystemExit(1)
 
@@ -37,7 +37,7 @@ try:
     )
 except Exception as exc:
     print(
-        "Soulbound v1.13.3 FAST PREDEPLOY FAILED: "
+        "Soulbound v1.13.4 FAST PREDEPLOY FAILED: "
         f"skill semantic import: {type(exc).__name__}: {exc}"
     )
     traceback.print_exc()
@@ -143,6 +143,14 @@ _manifest_source = (_root / "core/runtime_manifest.py").read_text(encoding="utf-
 _dragon_world_source = (_root / "world/dragon_world.py").read_text(encoding="utf-8")
 if "'world/dragon_world.py'" not in _manifest_source:
     _semantic_errors.append("dragon world regression: module missing from runtime manifest")
+if 'EXPLICIT_RUNTIME_EXPORTS["world/dragon_world.py"]' not in _manifest_source:
+    _semantic_errors.append(
+        "dragon world architecture regression: module must stay on explicit runtime lane"
+    )
+if "'world/dragon_world.py'," in _manifest_source:
+    _semantic_errors.append(
+        "dragon world architecture regression: module must not enter legacy compatibility allowlist"
+    )
 _dragon_world_needles = (
     'DRAGON_WORLD_VERSION = "1.13.0"',
     'if len(DRAGON_WORLD_ROOMS) != 64:',
@@ -259,18 +267,18 @@ except Exception as exc:
     )
 
 if _semantic_errors:
-    print("Soulbound v1.13.3 FAST PREDEPLOY FAILED: semantic contracts")
+    print("Soulbound v1.13.4 FAST PREDEPLOY FAILED: semantic contracts")
     for _error in _semantic_errors:
         print(f"ERROR: {_error}")
     raise SystemExit(1)
 
 if audit["error_count"]:
-    print("Soulbound v1.13.3 FAST PREDEPLOY FAILED")
+    print("Soulbound v1.13.4 FAST PREDEPLOY FAILED")
     for error in audit["errors"]:
         print(f"ERROR: {error}")
     raise SystemExit(1)
 
-print("Soulbound v1.13.3 FAST PREDEPLOY PASS")
+print("Soulbound v1.13.4 FAST PREDEPLOY PASS")
 print(
     "Semantic contracts: "
     f"{len(_semantic_audits)} audits PASS; AP runtime guards PASS"
