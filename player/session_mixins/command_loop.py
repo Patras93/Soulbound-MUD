@@ -20,6 +20,25 @@ class SessionCommandLoopMixin:
             raw = await self.read_line()
             if raw is None:
                 break
+
+            if self.smelt_task_active_v1124():
+                _busy_parts = raw.split(maxsplit=1)
+                _busy_token = _busy_parts[0].lower() if _busy_parts else ""
+                _busy_args = _busy_parts[1] if len(_busy_parts) > 1 else ""
+                _busy_command = resolve_session_command(_busy_token, _busy_args)
+                _busy_control = (
+                    _busy_command == "smelt"
+                    and self.normalize_description_query(_busy_args) in {
+                        "stop", "off", "przerwij", "koniec", "status", "stan"
+                    }
+                )
+                if not _busy_control:
+                    await self.send(
+                        "Trwa przetapianie. Wpisz przetop status albo przetop stop "
+                        "przed wykonaniem innej akcji."
+                    )
+                    continue
+
             if raw.startswith("'"):
                 await self.say(raw[1:])
                 continue
@@ -54,20 +73,6 @@ class SessionCommandLoopMixin:
             command = resolve_session_command(token, args)
             direction = DIRECTION_ALIASES.get(command)
             self._last_command_for_diagnostics = command
-
-            if self.smelt_task_active_v1124():
-                _smelt_control = (
-                    command == "smelt"
-                    and self.normalize_description_query(args) in {
-                        "stop", "off", "przerwij", "koniec", "status", "stan"
-                    }
-                )
-                if not _smelt_control:
-                    await self.send(
-                        "Trwa przetapianie. Wpisz przetop status albo przetop stop "
-                        "przed wykonaniem innej akcji."
-                    )
-                    continue
 
             if self.is_downed_v0371():
                 if direction or not command_state_safe(command, "downed"):
