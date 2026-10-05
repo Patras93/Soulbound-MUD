@@ -302,6 +302,18 @@ def critical_multiplier(character_level: int) -> float:
     return round(1.45 + 0.20 * ((level - 1) / (MAX_LEVEL - 1)) ** 0.75, 6)
 
 
+def physical_defense_base(character_level: int, constitution: int) -> int:
+    """Natural physical mitigation from CON, separate from equipped armor.
+
+    Equipment remains the main visible source of Defense, but investing in CON
+    must also make incoming physical hits feel smaller. The coefficient is kept
+    below magic WILL scaling because armor contributes an additional large pool.
+    """
+    character_level = clamp(int(character_level), 1, MAX_LEVEL)
+    constitution = max(1, int(constitution))
+    return max(0, int(round(constitution * 0.42 + character_level * 0.08)))
+
+
 def magic_defense_base(character_level: int, willpower: int) -> int:
     character_level = clamp(int(character_level), 1, MAX_LEVEL)
     willpower = max(1, int(willpower))
