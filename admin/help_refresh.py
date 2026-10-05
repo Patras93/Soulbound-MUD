@@ -185,6 +185,14 @@ def refresh_help_v03010():
         "Sam znak / i Enter przerywa aktywności i teleportuje do Świątyni Odrodzenia. Jeśli jesteś w drużynie, teleport obejmuje tylko członków stojących razem z tobą w tej samej lokacji.",
         "prowadz lista / walk list pokazuje kategorie celów; trasa <cel> planuje drogę bez wykonywania ruchu.",
     ]
+    HELP_TOPICS["przetop"] = [
+        "przetop <metal> rozpoczyna pojedyncze przetapianie w Kuźni.",
+        "przetop max <metal> wykonuje kolejne przetopy aż do wyczerpania dostępnego materiału; przetop wszystko wykonuje hurtowy plan dla wszystkich dostępnych metali.",
+        "przetop status pokazuje, czy przetapianie jest aktywne.",
+        "przetop stop zatrzymuje aktywne przetapianie. Jeżeli trwa jeszcze czas oczekiwania, zatrzymanie następuje przed pobraniem materiałów; jeśli wynik jest już zapisywany, bieżący przetop kończy się bezpiecznie i kolejny nie startuje.",
+        "Podczas aktywnego przetapiania inne akcje są blokowane, aby postać nie opuściła Kuźni w połowie operacji.",
+    ]
+
     regen_help = [
         "Poza walką postać naturalnie regeneruje HP i Manę podczas stania: 2 procent wartości maksymalnej co 5 sekund.",
         "Komenda rest / odpoczywaj uruchamia szybszą regenerację: 10 procent maksymalnego HP i Many co 5 sekund, czyli pięć razy szybciej niż zwykłe stanie.",
