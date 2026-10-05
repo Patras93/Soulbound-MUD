@@ -264,6 +264,12 @@ def v0190_quest_currency_reward(quest):
 
 def v0190_quest_stat_reward(quest):
     quest = quest or {}
+    # v1.12.8: authored/manual stat rewards are an explicit balance override.
+    # They are resolved before Generator Core values so a deliberately tuned
+    # quest cannot be silently pushed back down by later numeric regeneration.
+    manual_reward = quest.get("manual_stat_progress")
+    if manual_reward is not None:
+        return max(0, int(manual_reward or 0))
     if quest.get("generator_level") is not None:
         return max(0, int(quest.get("reward_stat_progress", 0) or 0))
     return generator_core_v027.axis_gain("stat", v0190_quest_stage(quest), 2.0)

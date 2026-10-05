@@ -1,5 +1,24 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.12.7
+Aktualna paczka: v1.12.8
+
+==============================================================================
+Soulbound v1.12.8 — trollowe questy przyspieszają rozwój statów
+==============================================================================
+
+- Trollowe questy dostały mocno podniesiony EXP każdej statystyki, ponieważ rozwój bazowych statów zostawał wyraźnie za Character Levelem.
+- Plaga Trolli: 15000 EXP do każdej z sześciu statystyk.
+- Patrol Górskiego Szlaku: 15000 EXP do każdej statystyki.
+- Skradzione Skrzynie Rudy: 15000 EXP do każdej statystyki.
+- Polowanie na Trolli Szamanów: 18000 EXP do każdej statystyki.
+- Wojenny Szlak Trolli: 20000 EXP do każdej statystyki.
+- Polowanie na Króla Trolli: 25000 EXP do każdej statystyki.
+- Nagroda nie jest wspólną pulą: każda statystyka dostaje pełną podaną wartość osobno.
+- Aktywne wydarzenie x2 EXP nadal działa na tę nagrodę normalnie, więc np. 15000 staje się 30000 EXP każdej statystyki podczas x2.
+- Dodano chronione pole manual_stat_progress. Ręcznie zbalansowane questy korzystają z niego przed wartością wygenerowaną przez Generator Core, dzięki czemu późniejsze przeliczenie katalogu nie zaniży tych nagród.
+- HELP trolli pokazuje nowe wartości, a fast predeploy pilnuje obecności ręcznego override'u i wszystkich sześciu nagród.
+- Podbito canonical VERSION, runtime i predeploy do v1.12.8.
+- Brak wipe'a save'ów i brak zmian schematu SQLite.
+
 
 ==============================================================================
 Soulbound v1.12.7 — Heal Beam Support Effect hotfix

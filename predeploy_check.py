@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Fast Railway predeploy gate for Soulbound v1.12.7.
+"""Fast Railway predeploy gate for Soulbound v1.12.8.
 
 This is the normal deploy check.  It intentionally avoids assembling the full
 world/runtime.  Use predeploy_full.py when an exhaustive historical audit is
@@ -16,7 +16,7 @@ import traceback
 try:
     from storage.database import Database as _DatabaseImportSmoke
 except Exception as exc:
-    print(f"Soulbound v1.12.7 FAST PREDEPLOY FAILED: database import: {type(exc).__name__}: {exc}")
+    print(f"Soulbound v1.12.8 FAST PREDEPLOY FAILED: database import: {type(exc).__name__}: {exc}")
     traceback.print_exc()
     raise SystemExit(1)
 
@@ -37,7 +37,7 @@ try:
     )
 except Exception as exc:
     print(
-        "Soulbound v1.12.7 FAST PREDEPLOY FAILED: "
+        "Soulbound v1.12.8 FAST PREDEPLOY FAILED: "
         f"skill semantic import: {type(exc).__name__}: {exc}"
     )
     traceback.print_exc()
@@ -97,7 +97,7 @@ for _rel, _needles in _forbidden_ap_runtime.items():
                 f"AP semantics regression: {_rel} contains forbidden {_needle}"
             )
 
-# v1.12.7 regression guard: Heal Beam target preparation checks support_effect
+# v1.12.8 regression guard: Heal Beam target preparation checks support_effect
 # before the authored-Mec execution block. The variable must therefore be
 # resolved earlier in use_class_skill, otherwise combat crashes at runtime.
 _combat_skills_source = (_root / "player/session_mixins/combat_skills.py").read_text(encoding="utf-8")
@@ -114,19 +114,42 @@ if (
         "Heal Beam support regression: support_effect must be initialized before target preparation"
     )
 
+# v1.12.8 regression guard: authored troll quest stat rewards must bypass
+# Generator Core's generated reward_stat_progress so the explicit balance
+# values remain exact and visible to players.
+_progression_source = (_root / "core/progression_resources.py").read_text(encoding="utf-8")
+_troll_rewards_source = (_root / "world/troll_shaman_density.py").read_text(encoding="utf-8")
+if 'manual_reward = quest.get("manual_stat_progress")' not in _progression_source:
+    _semantic_errors.append(
+        "troll stat reward regression: manual_stat_progress override missing"
+    )
+_troll_reward_needles = (
+    '"mountain_troll_hunt": 15_000',
+    '"mountain_trail_patrol": 15_000',
+    '"stolen_mountain_ores": 15_000',
+    '"troll_shaman_hunt": 18_000',
+    '"deep_troll_clearance": 20_000',
+    '"troll_king_hunt": 25_000',
+)
+for _needle in _troll_reward_needles:
+    if _needle not in _troll_rewards_source:
+        _semantic_errors.append(
+            "troll stat reward regression: missing " + _needle
+        )
+
 if _semantic_errors:
-    print("Soulbound v1.12.7 FAST PREDEPLOY FAILED: semantic contracts")
+    print("Soulbound v1.12.8 FAST PREDEPLOY FAILED: semantic contracts")
     for _error in _semantic_errors:
         print(f"ERROR: {_error}")
     raise SystemExit(1)
 
 if audit["error_count"]:
-    print("Soulbound v1.12.7 FAST PREDEPLOY FAILED")
+    print("Soulbound v1.12.8 FAST PREDEPLOY FAILED")
     for error in audit["errors"]:
         print(f"ERROR: {error}")
     raise SystemExit(1)
 
-print("Soulbound v1.12.7 FAST PREDEPLOY PASS")
+print("Soulbound v1.12.8 FAST PREDEPLOY PASS")
 print(
     "Semantic contracts: "
     f"{len(_semantic_audits)} audits PASS; AP runtime guards PASS"
