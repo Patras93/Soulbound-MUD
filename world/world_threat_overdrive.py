@@ -36,12 +36,13 @@ def world_threat_multipliers_v0384(stage, rank="normal", nemesis=False):
     x = min(stage, cap) / float(cap)
     rank = str(rank or "normal")
 
-    # ~1.55x HP / 1.18x damage at the beginning, growing continuously to
-    # 2.75x HP / 1.80x damage at stage 600 before rank-specific pressure.
-    hp = (1.55 + 1.20 * (x ** 0.75)) * _V0384_RANK_HP.get(rank, 1.0)
-    damage = (1.18 + 0.62 * (x ** 0.78)) * _V0384_RANK_DAMAGE.get(rank, 1.0)
-    reward = (1.30 + 0.90 * (x ** 0.72)) * _V0384_RANK_REWARD.get(rank, 1.0)
-    coin = (1.25 + 0.75 * (x ** 0.72)) * _V0384_RANK_REWARD.get(rank, 1.0)
+    # v1.13.8: early/midgame no longer receives an endgame-sized blanket wall.
+    # The layer starts gently and grows toward late game, preserving rank identity
+    # without turning level 50-100 mobs into inflated HP sponges.
+    hp = (1.10 + 0.65 * (x ** 0.80)) * _V0384_RANK_HP.get(rank, 1.0)
+    damage = (1.05 + 0.35 * (x ** 0.82)) * _V0384_RANK_DAMAGE.get(rank, 1.0)
+    reward = (1.15 + 0.75 * (x ** 0.72)) * _V0384_RANK_REWARD.get(rank, 1.0)
+    coin = (1.10 + 0.60 * (x ** 0.72)) * _V0384_RANK_REWARD.get(rank, 1.0)
 
     if nemesis:
         hp *= 1.35
