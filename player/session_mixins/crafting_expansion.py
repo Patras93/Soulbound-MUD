@@ -482,9 +482,15 @@ class SessionCraftingExpansionV03114Mixin:
         else:
             if announce:
                 await self.send(
-                    f"Zatrzymanie przetapiania zapisane: {label}. "
-                    "Bieżący zapis wyniku dokończy się, ale kolejny przetop nie wystartuje."
+                    f"Zatrzymuję przetapianie: {label}. "
+                    "Bieżący zapis wyniku zostanie bezpiecznie dokończony."
                 )
+            try:
+                await task
+            except asyncio.CancelledError:
+                pass
+            if announce:
+                await self.send("Przetapianie zatrzymane.")
         return True
 
     async def smelt_item_v03114(self, query):
@@ -532,7 +538,8 @@ class SessionCraftingExpansionV03114Mixin:
                 "Użycie: przetop <metal albo ruda>. "
                 "Dostępne: żelazo, odłamki żelaza, srebro, złoto, stal, stalowe płyty, "
                 "kobalt, runa, smocza stal, astral, pustka, Eternium. "
-                "Dodatkowo: przetop max <metal> oraz przetop wszystko."
+                "Dodatkowo: przetop max <metal>, przetop wszystko, "
+                "przetop status oraz przetop stop."
             )
             return False
         if norm in ("wszystko","all"):
