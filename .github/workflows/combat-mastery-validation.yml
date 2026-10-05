@@ -1,0 +1,83 @@
+name: Combat Mastery validation
+on:
+  push:
+    branches:
+      - feature/standing-rest-regen-v1124
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile
+        run: python -m py_compile player/session_mixins/combat_damage.py core/classes_skills.py server.py
+      - name: Fast predeploy
+        run: python predeploy_check.py
+      - name: Full runtime and Combat Mastery contract
+        env:
+          SOULBOUND_DEFER_MEMORY_COMPACTION: '1'
+        run: |
+          python - <<'PY'
+          from types import SimpleNamespace
+          import server
+          from core.classes_skills import CLASS_SKILLS
+          from player.session_mixins.combat_damage import MEC_COMBAT_MASTERY_DAMAGE_MULTIPLIER_V1124
+
+          skill=next(s for s in CLASS_SKILLS["Mec"] if s.get("mec_special")=="combat_mastery")
+          assert skill["unlock"] == 30
+          assert skill["source_ap_cost"] == 1000
+          assert skill["mec_role"] == "inherent"
+          assert skill["strength_based_only"] is True
+          assert skill["does_not_work_unarmed"] is True
+          assert skill["stronger_than"] == "Attack UP"
+          assert skill["weaker_than"] == "Two Hands"
+          assert skill["source_weapon_types"] == [
+              "axe","claw","greatsword","hammer","katana",
+              "lance","rod","staff","sword"
+          ]
+          assert skill["numeric_source_defined"] is False
+          assert abs(skill["soulbound_damage_multiplier"] - 1.20) < 1e-9
+          assert abs(MEC_COMBAT_MASTERY_DAMAGE_MULTIPLIER_V1124 - 1.20) < 1e-9
+
+          s=server.Session(None,None,None)
+          s.character=SimpleNamespace(
+              class_name="Mec", class_type="physical",
+              soul_weapon="Rdzeń Meca", character_level=100
+          )
+          s.equipment_flat_power_totals_v11187=lambda: {
+              "attack":0,"weapon_power":0,"magic_attack":0
+          }
+          s.effective_strength=lambda: 200
+          s.effective_dexterity=lambda: 500
+          s.physical_power=lambda: 777
+
+          s.job_ability_selected=lambda slot,skill_id: (
+              slot=="inherent" and skill_id=="v0319_mec_combat_mastery"
+          )
+          assert s.mec_combat_mastery_active_v1124() is True
+          power,stat,channel=s.basic_attack_build_v11196()
+          assert channel=="physical"
+          assert stat==200
+          assert power==777
+          assert abs(s.basic_attack_inherent_multiplier_v1124()-1.20)<1e-9
+
+          s.job_ability_selected=lambda *_: False
+          assert s.mec_combat_mastery_active_v1124() is False
+          _power,stat,_channel=s.basic_attack_build_v11196()
+          assert stat==500
+          assert abs(s.basic_attack_inherent_multiplier_v1124()-1.0)<1e-9
+
+          s.job_ability_selected=lambda *_: True
+          s.character.soul_weapon=""
+          assert s.mec_combat_mastery_active_v1124() is False
+          _power,stat,_channel=s.basic_attack_build_v11196()
+          assert stat==500
+
+          print("COMBAT MASTERY SOURCE CONTRACT PASS")
+          print("COMBAT MASTERY STR STANCE PASS")
+          print("COMBAT MASTERY x1.20 PASS")
+          print("COMBAT MASTERY UNARMED OFF PASS")
+          print("FULL RUNTIME IMPORT PASS")
+          PY
