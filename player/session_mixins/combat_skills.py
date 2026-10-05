@@ -38,12 +38,19 @@ class SessionCombatSkillsMixin:
         return cost
 
     def offensive_skill_damage_type_v11190(self, skill):
-        """Canonical physical/magic channel for every damaging class skill."""
+        """Canonical physical/magic/feedback scaling channel for damaging skills.
+
+        Mec Feedback is intentionally independent from ordinary physical damage:
+        it keeps its own HP/Vitality/Attack mechanics, Feedback Protocol and
+        shield interactions instead of inheriting physical-only multipliers.
+        """
         if skill.get("mec_authored"):
             branch = str(skill.get("mec_branch", "") or "").strip().lower()
             if branch == "magic":
                 return "magic"
-            if branch in {"melee", "ranged", "feedback"}:
+            if branch == "feedback":
+                return "feedback"
+            if branch in {"melee", "ranged"}:
                 return "physical"
         return class_type_for_name(self.skill_class_name(skill))
 
@@ -301,24 +308,25 @@ class SessionCombatSkillsMixin:
         return actual
 
     def offensive_skill_damage_multiplier_v11186(self, skill, skill_class_type=None):
-        """One global offensive multiplier path for current and future equipment.
+        """Global multiplier path with separate physical, magic and Feedback roles.
 
-        Equipment source is deliberately irrelevant: shop, drop, crafting and future
-        catalog items all contribute through equipment_property_totals() while their
-        primary stats already feed skill_scale_value() via effective_*().
+        Physical receives physical-only class/race/EQ bonuses. Magic receives
+        magic-only class/race/EQ bonuses. Mec Feedback is a third channel: its
+        authored HP/Vitality/Attack/shield mechanics remain primary, while only
+        all-damage/set/general buffs apply here. This prevents Feedback from
+        silently becoming ordinary physical damage.
         """
         resolved_type = skill_class_type or self.offensive_skill_damage_type_v11190(skill)
-        damage_type = "physical" if resolved_type == "physical" else "magic"
         multiplier = float(skill.get("mult", 1.0))
         if resolved_type == "physical":
             multiplier *= self.character.class_physical_damage_multiplier()
             multiplier *= self.character.racial_physical_damage_multiplier()
-        else:
+        elif resolved_type == "magic":
             multiplier *= self.character.class_magic_damage_multiplier()
             multiplier *= self.character.racial_magic_damage_multiplier()
         multiplier *= self.character.racial_all_damage_multiplier()
         multiplier *= self.total_set_damage_multiplier()
-        multiplier *= self.equipment_damage_multiplier(damage_type)
+        multiplier *= self.equipment_damage_multiplier(resolved_type)
         multiplier *= self.skill_buff_multiplier(target_type=resolved_type)
         return multiplier
 
