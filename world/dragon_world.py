@@ -16,7 +16,7 @@ from __future__ import annotations
 from data.catalogs import ROOMS, NPCS, ITEMS, QUESTS, MOB_TEMPLATES
 from data.catalog_mutations import catalog_assign, catalog_set_path
 from systems.content_registry import MOB_SPAWNS, HELP_TOPICS, HELP_TOPIC_ALIASES
-from world.generation_systems import v0130_refresh_exploration_catalog
+from world.generation_systems import GUIDE_DESTINATION_ALIASES, v0130_refresh_exploration_catalog
 from world import dynamic_content as _dynamic_content
 
 DRAGON_WORLD_VERSION = "1.13.0"
@@ -53,6 +53,7 @@ def _room(room_id, zone, name, desc, *, stage=0, safe=False):
     }
     if safe:
         payload["safe_room"] = True
+        payload["safe_hub"] = True
         payload["dragon_safe_hub"] = True
     catalog_assign(payload, "ROOMS", ROOMS, (room_id,))
     DRAGON_WORLD_ROOMS.append(room_id)
@@ -279,6 +280,9 @@ observatory = _room(
 
 anchor_dir = _first_free_direction("titan_valley_throne", ("up", "north", "east"))
 _link("titan_valley_throne", anchor_dir, gate)
+GUIDE_DESTINATION_ALIASES["smoczy swiat"] = gate
+GUIDE_DESTINATION_ALIASES["smoczy świat"] = gate
+GUIDE_DESTINATION_ALIASES["dragon world"] = gate
 _link(gate, "north", square)
 _link(square, "east", hall)
 _link(square, "west", inn)
