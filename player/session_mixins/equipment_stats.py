@@ -239,11 +239,18 @@ class SessionEquipmentStatsMixin:
             return any("Auto-Veil" in tuple(ITEMS.get(row["item_id"],{}).get("source_effects",())) for row in self.equipped_item_rows())
 
     def equipment_damage_multiplier(self, damage_type):
+            """Typed EQ damage bonuses.
+
+            Feedback is a separate Mec channel: it receives generic all-damage
+            bonuses, but not physical-only or magic-only percentage bonuses.
+            Its Attack/Vitality/HP/shield scaling is handled by the skill itself.
+            """
             props = self.equipment_property_totals()
             bonus = float(props.get("all_damage_pct", 0.0))
+            damage_type = str(damage_type or "").strip().lower()
             if damage_type == "magic":
                 bonus += float(props.get("magic_damage_pct", 0.0))
-            else:
+            elif damage_type == "physical":
                 bonus += float(props.get("physical_damage_pct", 0.0))
             return max(0.0, 1.0 + bonus / 100.0)
 
