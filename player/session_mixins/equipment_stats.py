@@ -841,7 +841,13 @@ class SessionEquipmentStatsMixin:
             return max(0, value)
 
     def defense(self):
-            total = 0
+            # v1.13.8: armor and Constitution both matter. New EQ therefore
+            # improves survivability twice in a readable way: its explicit
+            # Defense and its CON bonus both reduce incoming physical damage.
+            total = generator_core_v027.physical_defense_base(
+                self.character.character_level,
+                self.effective_constitution(),
+            )
             for row in self.server.db.equipment(self.account_id):
                 item = ITEMS.get(row["item_id"])
                 if item:
