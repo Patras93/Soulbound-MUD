@@ -18,6 +18,7 @@ jobs:
           python - <<'PY'
           import statistics
           import server
+          import systems.economy_income_balance as e
           from core import generator_core as g
           from world.global_difficulty_overdrive import v0190_combat_reward
 
@@ -41,15 +42,9 @@ jobs:
               print('GENQUEST',lv,round(q1,2),round(qrep,2),round(qhard,2))
 
           print('=== FINAL QUEST DATA BY STAGE BUCKET ===')
-          buckets=[(1,49),(50,99),(100,149),(150,199),(200,249),(250,299),(300,349),(350,399),(400,9999)]
+          buckets=[(1,49),(50,99),(100,149),(150,199),(200,249),(250,299),(300,349),(350,399),(400,449),(450,499),(500,549),(550,600)]
           def stage(q):
-              for key in ('level','required_soul_level','min_profession_level','required_profession_level','min_tool_level','required_mastery'):
-                  try:
-                      v=int(q.get(key,0) or 0)
-                  except Exception:
-                      v=0
-                  if v>0:return v
-              return 1
+              return e.v1124_quest_stage(q)
           for lo,hi in buckets:
               vals=[]; reps=[]
               for q in server.QUESTS.values():
@@ -88,6 +83,18 @@ jobs:
                       found.append((iid,price/100.0,item.get('currency'),item.get('fur_shop_gold_cost'),item.get('fur_shop_material_costs')))
               print('SINK',name,found)
 
+          print('=== ZERO-CURRENCY HIGH-STAGE QUESTS ===')
+          zero=[]
+          for qid,q in server.QUESTS.items():
+              st=stage(q)
+              silver=int(q.get('reward_silver',0) or 0)+int(q.get('reward_gold',0) or 0)*100+int(q.get('reward_mithril',0) or 0)*100_000_000
+              if st>=200 and silver<=0:
+                  zero.append((st,qid,str(q.get('kind') or ''),bool(q.get('repeatable')),list((q.get('reward_items') or {}).keys())[:3]))
+          print('ZERO_HIGH_COUNT',len(zero))
+          for row in sorted(zero, reverse=True)[:40]:
+              print('ZERO_HIGH',row)
+
           print('=== ECONOMY AUDIT SUMMARY ===')
-          print(server.economy_audit_summary_v03060())
+          print('OLD_AUDIT',server.economy_audit_summary_v03060())
+          print('FINAL_BALANCE',e.ECONOMY_INCOME_AUDIT_V1124)
           PY
