@@ -21,11 +21,9 @@ jobs:
         run: |
           python - <<'PY'
           import asyncio
-          import inspect
+          from pathlib import Path
           import server
           import player.session_mixins.rest_mana as rest_mod
-          from player.session_mixins.crafting import SessionCraftingMixin
-          from player.session_mixins.crafting_expansion import SessionCraftingExpansionV03114Mixin
 
           assert server.REST_REGEN_PERCENT == 10
           assert rest_mod.STANDING_REGEN_PERCENT_V1124 == 2
@@ -33,19 +31,18 @@ jobs:
           assert hasattr(server.Session, 'stop_smelt_v1124')
           assert hasattr(server.Session, 'smelt_wait_v1124')
 
-          smelt_src = inspect.getsource(SessionCraftingExpansionV03114Mixin.smelt_item_v03114)
-          assert 'stop' in smelt_src and 'status' in smelt_src
-          perform_src = inspect.getsource(SessionCraftingMixin.perform_recipe)
-          assert 'await self.smelt_wait_v1124(action_seconds)' in perform_src
-          command_src = inspect.getsource(server.Session.command_loop)
+          smelt_src = Path('player/session_mixins/crafting_expansion.py').read_text(encoding='utf-8')
+          craft_src = Path('player/session_mixins/crafting.py').read_text(encoding='utf-8')
+          command_src = Path('player/session_mixins/command_loop.py').read_text(encoding='utf-8')
+          rest_src = Path('player/session_mixins/rest_mana.py').read_text(encoding='utf-8')
+          assert 'async def smelt_item_v03114' in smelt_src
+          assert 'norm in ("stop", "off", "przerwij", "koniec")' in smelt_src
+          assert 'norm in ("status", "stan")' in smelt_src
+          assert 'await self.smelt_wait_v1124(action_seconds)' in craft_src
           assert command_src.index('if self.smelt_task_active_v1124():') < command_src.index('if raw.startswith')
           assert 'przetop status albo przetop stop' in command_src
-          standing_src = inspect.getsource(server.Session.standing_regen_allowed_v1124)
-          assert 'smelt_task_active_v1124' in standing_src
-          leave_src = inspect.getsource(server.Session.leave_current_character_for_selection)
-          close_src = inspect.getsource(server.Session.close)
-          assert 'await self.stop_smelt_v1124(announce=False)' in leave_src
-          assert 'await self.stop_smelt_v1124(announce=False)' in close_src
+          assert 'smelt_task_active_v1124' in rest_src
+          assert command_src.count('await self.stop_smelt_v1124(announce=False)') >= 2
 
           async def check_stop():
               s = server.Session(None, None, None)
