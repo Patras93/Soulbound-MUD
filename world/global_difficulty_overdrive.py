@@ -130,10 +130,13 @@ def global_difficulty_multipliers_v0386(template):
     capped = min(stage, cap) / float(cap)
     overflow = max(0, stage - cap)
 
-    hp = 1.70 + 1.00 * (capped ** 0.80) + min(1.50, overflow / 1200.0)
-    damage = 1.22 + 0.58 * (capped ** 0.85) + min(0.55, overflow / 2200.0)
-    reward = 1.45 + 0.95 * (capped ** 0.75) + min(1.10, overflow / 1600.0)
-    coin = 1.20 + 0.55 * (capped ** 0.75) + min(0.60, overflow / 2000.0)
+    # v1.13.8: this is a finishing layer, not a second full difficulty curve.
+    # Midgame starts close to authored values; late game still ramps strongly,
+    # and infinite overflow keeps growing without another explosive multiplier.
+    hp = 1.10 + 0.65 * (capped ** 0.80) + min(0.80, overflow / 2500.0)
+    damage = 1.05 + 0.35 * (capped ** 0.85) + min(0.30, overflow / 3500.0)
+    reward = 1.15 + 0.85 * (capped ** 0.75) + min(0.80, overflow / 2200.0)
+    coin = 1.10 + 0.65 * (capped ** 0.75) + min(0.45, overflow / 2600.0)
 
     rank = _v0386_rank(template)
     hp *= _V0386_RANK_HP.get(rank, 1.0)
@@ -158,10 +161,13 @@ def global_difficulty_multipliers_v0386(template):
     # v0.50.3 final pressure. This deliberately raises survival/combat pressure
     # much more than rewards so harder content does not accelerate progression.
     pressure = V0503_DIFFICULTY_PRESSURE.get(instance, V0503_DIFFICULTY_PRESSURE["world"])
-    hp *= float(pressure["hp"])
-    damage *= float(pressure["damage"])
-    reward *= float(pressure["reward"])
-    coin *= float(pressure["coin"])
+    # Apply only a fraction of the old final pressure in early/midgame. The full
+    # profile is reached at 600; this removes the old "double overdrive" feel.
+    pressure_progress = 0.20 + 0.80 * (capped ** 0.85)
+    hp *= 1.0 + (float(pressure["hp"]) - 1.0) * pressure_progress
+    damage *= 1.0 + (float(pressure["damage"]) - 1.0) * pressure_progress
+    reward *= 1.0 + (float(pressure["reward"]) - 1.0) * pressure_progress
+    coin *= 1.0 + (float(pressure["coin"]) - 1.0) * pressure_progress
 
     return {
         "hp": round(hp, 6),
