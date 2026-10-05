@@ -1,5 +1,19 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.13.1
+Aktualna paczka: v1.13.2
+
+==============================================================================
+Soulbound v1.13.2 — Smoczy Świat Railway runtime hotfix
+==============================================================================
+
+- Naprawiono build Railway blokowany przez Fast Predeploy po dodaniu Smoczego Świata.
+- Przyczyną były kolizje symboli helperów runtime pomiędzy world/world_expansion_i.py i world/dragon_world.py: _room, _link, _mob, _spawn, _quest i _npc.
+- Helpery Smoczego Świata zostały przenazwane na jednoznaczne: _dragon_room, _dragon_link, _dragon_mob, _dragon_spawn, _dragon_quest i _dragon_npc.
+- Nie zmienia to mapy, mobów, questów, dropów ani balansu Smoczego Świata; jest to naprawa integracji modułów native runtime.
+- Fast Predeploy dostał osobny regression guard zabraniający ponownego użycia sześciu kolizyjnych nazw i wymagający nazw namespacowanych.
+- Zachowano globalne x4 stat EXP i naturalny mnożnik wymagań statów 1.0 z v1.13.1.
+- Podbito canonical VERSION i runtime do v1.13.2.
+- Brak wipe'a save'ów i brak zmian schematu SQLite.
+
 
 ==============================================================================
 Soulbound v1.13.1 — dużo więcej EXP dla statystyk bez limitu
