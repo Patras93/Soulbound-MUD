@@ -654,7 +654,8 @@ class SessionCraftingMixin:
                 "i kucia przedmiotów w Kuźni Dusz."
             )
             await self.send(
-                "Komendy: kowalstwo, przetop <metal>, "
+                "Komendy: kowalstwo, przetop <metal>, przetop max <metal>, "
+                "przetop wszystko, przetop status, przetop stop, "
                 "kuj <receptura>, craft <receptura>, ulepsz <EQ>, "
                 "ulepsz lista, receptury kowalstwo."
             )
