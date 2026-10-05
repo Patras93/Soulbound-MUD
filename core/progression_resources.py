@@ -224,6 +224,23 @@ def v0190_apply_combat_template(template):
         "stat_reward": generator_core_v027.axis_gain("stat", stage, generator_core_v027.RANK_REWARD.get(rank,1.0)),
     }
 
+    # Procedural no-limit floors have separate depth curves. Their temporary
+    # authoring formulas are not a second combat baseline, otherwise floor
+    # scaling would be multiplied twice and explode at 1000/10000+. Static and
+    # normal-world authored content keeps its hand-tuned baseline.
+    depth_hints = []
+    for floor_key in (
+        "crypt_floor", "mythic_crypt_floor", "astral_floor",
+        "mythic_astral_floor", "giant_fortress_floor",
+        "profession_dungeon_floor",
+    ):
+        try:
+            if template.get(floor_key) is not None:
+                depth_hints.append(int(template.get(floor_key) or 0))
+        except (TypeError, ValueError, OverflowError):
+            pass
+    procedural_no_limit = bool(depth_hints and max(depth_hints) > 200)
+
     for key, fallback in generated.items():
         baseline_key = f"_v1138_authored_{key}"
         if baseline_key not in template:
@@ -233,6 +250,8 @@ def v0190_apply_combat_template(template):
                 valid = valid and float(current) > 0
             elif valid:
                 valid = float(current) >= 0
+            if procedural_no_limit:
+                valid = False
             template[baseline_key] = int(current) if valid else int(fallback)
         template[key] = int(template[baseline_key])
 
