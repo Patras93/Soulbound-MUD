@@ -565,6 +565,15 @@ def _register_legendary_class_loot():
                 ) = class_equipment_split_stat_budget(
                     class_name, legacy_affix_amount, slot
                 )
+                expected_stats = (
+                    {"intelligence", "willpower", "constitution"}
+                    if class_type_for_name(class_name) == "magic"
+                    else {"strength", "dexterity", "constitution"}
+                )
+                if {primary_stat, secondary_stat, tertiary_stat} != expected_stats:
+                    raise RuntimeError(
+                        f"Legendary class EQ stat triplet mismatch: {class_name} {slot}"
+                    )
                 _catalog_mut.catalog_assign({
                     "name": f"{slot_name} {set_name} +{mastery}",
                     "type": "armor",
@@ -613,6 +622,17 @@ def _register_legendary_class_loot():
             ) = class_equipment_split_stat_budget(
                 class_name, legacy_relic_affix, "necklace"
             )
+            expected_stats = (
+                {"intelligence", "willpower", "constitution"}
+                if class_type_for_name(class_name) == "magic"
+                else {"strength", "dexterity", "constitution"}
+            )
+            if {
+                relic_primary_stat, relic_secondary_stat, relic_tertiary_stat
+            } != expected_stats:
+                raise RuntimeError(
+                    f"Legendary class relic stat triplet mismatch: {class_name}"
+                )
             prop_value = max(1, min(5, mastery // 100 + 1))
             properties = {
                 "all_damage_pct": prop_value,
