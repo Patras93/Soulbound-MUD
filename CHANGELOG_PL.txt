@@ -1,5 +1,16 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.12.2
+Aktualna paczka: v1.12.3
+
+==============================================================================
+Soulbound v1.12.3 — pełny przełącznik AoE
+==============================================================================
+
+- `aoe off` ogranicza teraz do jednego przeciwnika wszystkie ofensywne efekty wielocelowe, nie tylko skille z kind=aoe_damage.
+- Starlight Shower Meca korzysta z tej samej puli celów AoE co pozostałe obszarówki: przy `aoe off` uderza jeden cel, przy `aoe on` zachowuje source-faithful single/diminishing/V-MAX targetowanie.
+- Jammer z Support Effect przy `aoe on` może objąć wszystkich przeciwników zgodnie ze źródłem, a przy `aoe off` pozostaje na jednym celu.
+- Zwykłe AoE, Area Bomb, losowe i diminishing/non-diminishing warianty zachowują własne zasady targetowania.
+- Zaktualizowano HELP `aoe`.
+- Brak wipe'a save'ów i brak zmian schematu SQLite.
 
 ==============================================================================
 Soulbound v1.12.2 — hotfix pętli walki Meca
