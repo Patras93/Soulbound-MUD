@@ -15,6 +15,11 @@ class SessionRestManaMixin:
                 return False
             if self.resting or self.combat_mob_key:
                 return False
+            if (
+                hasattr(self, "smelt_task_active_v1124")
+                and self.smelt_task_active_v1124()
+            ):
+                return False
             if bool(getattr(self, "moving", False)) or bool(getattr(self, "guiding", False)):
                 return False
             if (
