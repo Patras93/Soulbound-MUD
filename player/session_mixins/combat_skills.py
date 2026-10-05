@@ -122,13 +122,12 @@ class SessionCombatSkillsMixin:
         return max(1, int(round(core * build_multiplier)))
 
     def healing_skill_build_multiplier_v11196(self, skill):
-        """Uncapped heal scaling from INT + WILL + Magic Attack and source stat.
+        """Uncapped healing growth from the canonical INT + WILL support build.
 
-        v1.12.5: every heal has one canonical magical support core:
-        Intelligence, Willpower and flat Magic Attack from equipment.  The
-        source-authored stat influence is still preserved as a smaller part of
-        the multiplier, so e.g. WILL-influenced or Monk healing keeps its own
-        identity without making magic-support EQ irrelevant.
+        v1.12.5: every healing ability uses the same two healing stats.
+        Skill-specific identity still comes from authored heal_pct/base behavior,
+        Skill Level, class/race multipliers and special effects; Magic Attack
+        remains exclusive to magic damage.
         """
         level = int(self.character.character_level)
         anchor_power = max(
@@ -136,44 +135,17 @@ class SessionCombatSkillsMixin:
             int(generator_core_v027.character_attribute_power(level, 175)),
         )
         canonical_power = max(1, int(self.healing_power_v1125()))
-        canonical_growth = max(
-            0.01, float(canonical_power) / float(anchor_power)
-        ) ** 0.72
-
-        scale_name = str(skill.get("scale", "") or "").strip().lower()
-        secondary_name = str(skill.get("secondary_scale", "") or "").strip().lower()
-        if not scale_name:
-            class_name = self.skill_class_name(skill)
-            if class_name in {"Kapłan", "Druid"}:
-                scale_name, secondary_name = "intelligence", "willpower"
-            elif class_name == "Mnich":
-                scale_name, secondary_name = "dexterity", "willpower"
-            else:
-                scale_name = "willpower"
-
-        primary = float(self.offensive_skill_effective_stat_value_v11196(scale_name))
-        primary_growth = max(0.01, primary / 175.0) ** 0.72
-        if secondary_name:
-            secondary = float(
-                self.offensive_skill_effective_stat_value_v11196(secondary_name)
-            )
-            secondary_growth = max(0.01, secondary / 175.0) ** 0.72
-            source_growth = 0.70 * primary_growth + 0.30 * secondary_growth
-        else:
-            source_growth = primary_growth
-
         return max(
             0.20,
-            0.75 * canonical_growth + 0.25 * source_growth,
+            (float(canonical_power) / float(anchor_power)) ** 0.72,
         )
 
     def healing_skill_amount_v11196(self, skill, target, skill_power):
-        """Canonical class-heal amount from stats + Skill Level + EQ.
+        """Canonical class-heal amount from INT + WILL + Skill Level + EQ.
 
         Authored percentage heals preserve their identity, but their potency is
-        multiplied by the uncapped healing build. Source abilities without an
-        authored percentage (e.g. Healing Wind) use their explicit stat as a
-        flat healing core. Effective stats already include equipment.
+        multiplied by the uncapped INT+WILL healing build. Source abilities
+        without an authored percentage use the same canonical INT+WILL core.
         """
         racial = float(self.character.racial_healing_multiplier())
         class_mult = float(self.character.class_healing_multiplier())
@@ -187,7 +159,7 @@ class SessionCombatSkillsMixin:
             return max(1, int(round(target.max_hp() * max(0.0, float(authored_pct)) * total_mult)))
 
         # Flat heals use the same canonical support power as percentage heals:
-        # INT + WILL + flat Magic Attack from all equipped sources.
+        # INT + WILL from character progression and all equipped stat bonuses.
         stat_core = max(1, int(self.healing_power_v1125()))
         return max(1, int(round(stat_core * total_mult)))
 
@@ -203,7 +175,7 @@ class SessionCombatSkillsMixin:
         return max(1,int(round(30.0+60.0*(progress ** 0.82))))
 
     def regen_tick_power_v11196(self, skill_level):
-        """Small periodic support heal from INT + WILL + Magic Attack."""
+        """Small periodic support heal from INT + WILL."""
         healing_power=max(1,int(self.healing_power_v1125()))
         power=float(skill_power_multiplier(max(1,min(SKILL_MAX_LEVEL,int(skill_level)))))
         racial=float(self.character.racial_healing_multiplier())
