@@ -29,15 +29,22 @@ from systems.items_resources import (
 
 
 
-def class_equipment_base_stat_pair(class_name):
+def class_equipment_base_stat_triplet(class_name):
+    """Trzy obowiązkowe statystyki bazowe każdego klasowego elementu EQ."""
     if class_type_for_name(class_name) == "magic":
-        return "intelligence", "willpower"
-    # Physical classes are not all Strength archetypes. Rogue/Hunter/Monk,
-    # Mec and Engineer use Dexterity heavily in their authored kits, while
-    # Constitution remains the universal physical survivability stat.
+        # Każda klasa magiczna dostaje pełne INT + WILL + CON.
+        return "intelligence", "willpower", "constitution"
+    # Każda klasa fizyczna dostaje pełne STR + DEX + CON. Kolejność dwóch
+    # ofensywnych statów zachowuje profil archetypu i steruje proporcjami.
     if class_name in {"Łotrzyk", "Łowca", "Mnich", "Mec", "Inżynier"}:
-        return "dexterity", "constitution"
-    return "strength", "constitution"
+        return "dexterity", "strength", "constitution"
+    return "strength", "dexterity", "constitution"
+
+
+def class_equipment_base_stat_pair(class_name):
+    """Legacy helper: zachowuje pierwsze dwie osie dla starszych wywołań."""
+    first, second, _third = class_equipment_base_stat_triplet(class_name)
+    return first, second
 
 
 def class_equipment_profile(class_name):
@@ -48,17 +55,35 @@ def class_equipment_profile(class_name):
 
 
 def class_equipment_split_stat_budget(class_name, legacy_amount, slot=None):
-    budget = max(2, int(legacy_amount or 0))
+    # v1.13.6: każdy klasowy element ma trzy realne statystyki bazowe.
+    # Łączny budżet pozostaje kontrolowany; minimalnie 3, aby żadna oś nie
+    # mogła spaść do zera nawet na Tierze 1.
+    budget = max(3, int(legacy_amount or 0))
     profile = class_equipment_profile(class_name)
     ratio = float(profile.get("primary_ratio", 0.50))
     ratio += float(CLASS_EQUIPMENT_SLOT_PRIMARY_BIAS.get(str(slot or ""), 0.0))
     ratio = max(0.20, min(0.80, ratio))
-    # Obie statystyki muszą zawsze pozostać realne.
-    primary_amount = int(round(budget * ratio))
-    primary_amount = max(1, min(budget - 1, primary_amount))
-    secondary_amount = budget - primary_amount
-    primary_stat, secondary_stat = class_equipment_base_stat_pair(class_name)
-    return primary_stat, primary_amount, secondary_stat, secondary_amount
+
+    primary_stat, secondary_stat, tertiary_stat = class_equipment_base_stat_triplet(class_name)
+
+    # Najpierw gwarantujemy po 1 dla wszystkich trzech osi. Pozostały budżet
+    # wzmacnia profil klasy: primary_ratio rozdziela dodatkowe punkty między
+    # dwie główne osie, a Kondycja zawsze pozostaje pełnoprawną trzecią osią.
+    remaining = budget - 3
+    constitution_extra = int(round(remaining * 0.25))
+    main_pool = remaining - constitution_extra
+    primary_extra = int(round(main_pool * ratio))
+    primary_extra = max(0, min(main_pool, primary_extra))
+    secondary_extra = main_pool - primary_extra
+
+    primary_amount = 1 + primary_extra
+    secondary_amount = 1 + secondary_extra
+    tertiary_amount = 1 + constitution_extra
+    return (
+        primary_stat, primary_amount,
+        secondary_stat, secondary_amount,
+        tertiary_stat, tertiary_amount,
+    )
 
 
 def class_equipment_profile_properties(class_name, mastery, slot=None):
@@ -78,7 +103,7 @@ def class_equipment_profile_properties(class_name, mastery, slot=None):
     }
 
 def class_equipment_base_stats_text(class_name, legacy_amount, slot=None):
-    pstat, pamount, sstat, samount = class_equipment_split_stat_budget(
+    pstat, pamount, sstat, samount, tstat, tamount = class_equipment_split_stat_budget(
         class_name, legacy_amount, slot
     )
     labels = {
@@ -90,7 +115,8 @@ def class_equipment_base_stats_text(class_name, legacy_amount, slot=None):
     }
     return (
         f"{labels.get(pstat, pstat)} +{pamount}, "
-        f"{labels.get(sstat, sstat)} +{samount}"
+        f"{labels.get(sstat, sstat)} +{samount}, "
+        f"{labels.get(tstat, tstat)} +{tamount}"
     )
 
 
@@ -125,7 +151,7 @@ def _class_equipment_rarity_name(required_mastery):
 
 
 def class_equipment_stat_budget(required_mastery, slot=None):
-    """Łączny budżet dwóch bazowych statów klasowego EQ.
+    """Łączny budżet trzech bazowych statów klasowego EQ.
 
     Każdy próg 1/10/20/.../600 zwiększa budżet dokładnie o 1, dzięki czemu
     nawet niskie Tiery mają realnie inne statystyki. Sloty biżuterii zachowują
@@ -147,7 +173,7 @@ def class_equipment_stat_budget(required_mastery, slot=None):
         base_affix = 2
     else:
         base_affix = 1
-    return max(2, int(base_affix)) + int(tier_index)
+    return max(3, int(base_affix)) + int(tier_index)
 
 
 def class_equipment_unlocked_tier(mastery_level):
