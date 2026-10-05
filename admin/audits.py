@@ -3777,11 +3777,22 @@ def bulk_smelting_ingot_smithing_audit_v0357():
     try:
         import inspect
         source=inspect.getsource(SessionCraftingExpansionV03114Mixin.smelt_item_v03114)
-        metrics["bulk_single_action"] = "przetopów w jednej akcji" in source and "await asyncio.sleep(action_seconds)" in source
-        metrics["pooled_xp"] = "pooled_profession_xp" in source and "pooled_tool_xp" in source
-        metrics["includes_direct_ore"] = 'recipe_ids = [tier["ingot"] for tier in BLACKSMITH_TIERS]' in source
-        metrics["includes_steel_plates"] = 'recipe_ids.append("recycled_steel_ingot")' in source
-        metrics["includes_salvage"] = "SALVAGE_SMELT_FALLBACK_V03113.values()" in source
+        executor=inspect.getsource(SessionCraftingExpansionV03114Mixin._smelt_execute_v1124)
+        combined=source + "\n" + executor
+        # v1.12.4: public handler manages status/stop and delegates the actual
+        # bulk contract to a task executor. Keep the historical v0.35.7 guarantees,
+        # but accept the interruptible wait that replaces a raw asyncio.sleep.
+        metrics["bulk_single_action"] = (
+            "przetopów w jednej akcji" in combined
+            and (
+                "await asyncio.sleep(action_seconds)" in combined
+                or "await self.smelt_wait_v1124(action_seconds)" in combined
+            )
+        )
+        metrics["pooled_xp"] = "pooled_profession_xp" in combined and "pooled_tool_xp" in combined
+        metrics["includes_direct_ore"] = 'recipe_ids = [tier["ingot"] for tier in BLACKSMITH_TIERS]' in combined
+        metrics["includes_steel_plates"] = 'recipe_ids.append("recycled_steel_ingot")' in combined
+        metrics["includes_salvage"] = "SALVAGE_SMELT_FALLBACK_V03113.values()" in combined
         for key,value in metrics.items():
             if not value:
                 errors.append(f"bulk smelting audit failed: {key}")
