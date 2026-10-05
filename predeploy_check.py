@@ -137,6 +137,28 @@ for _needle in _troll_reward_needles:
             "troll stat reward regression: missing " + _needle
         )
 
+# v1.13.8: Generator Core is a fallback, not an unconditional overwrite layer.
+_generator_source = (_root / "core/generator_core.py").read_text(encoding="utf-8")
+_equipment_source = (_root / "systems/equipment_crafting.py").read_text(encoding="utf-8")
+_economy_source = (_root / "systems/economy_income_balance.py").read_text(encoding="utf-8")
+_runtime_progression_source = (_root / "core/progression_resources.py").read_text(encoding="utf-8")
+for _needle in (
+    "def _write_record_numeric_fallback(",
+    "Authored combat/reward/economy values are design decisions.",
+    "authored_numeric = {",
+):
+    if _needle not in _generator_source:
+        _semantic_errors.append("generator restraint regression: missing " + _needle)
+for _needle in ("(50, 38)", "(100, 100)", "(200, 240)", "(600, 1200)"):
+    if _needle not in _equipment_source:
+        _semantic_errors.append("class EQ progression regression: missing " + _needle)
+for _needle in ("(50, 15_000)", "(100, 100_000)", "(200, 1_250_000)", "(600, 100_000_000)"):
+    if _needle not in _economy_source:
+        _semantic_errors.append("quest income progression regression: missing " + _needle)
+for _needle in ("_v1138_authored_max_hp", "procedural_no_limit", '"world_boss": 3.00'):
+    if _needle not in _runtime_progression_source:
+        _semantic_errors.append("runtime progression feel regression: missing " + _needle)
+
 # Smoczy Świat v1.13.0 feature contract retained by v1.13.2. Fast predeploy stays source-only,
 # while the module itself performs the full assembled-world runtime audit.
 _manifest_source = (_root / "core/runtime_manifest.py").read_text(encoding="utf-8")
