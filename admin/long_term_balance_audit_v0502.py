@@ -6,6 +6,7 @@ from config.balance import (
     CHARACTER_XP_REQUIREMENT_MULTIPLIER,
     PROFESSION_XP_REQUIREMENT_MULTIPLIERS,
     STAT_XP_REQUIREMENT_MULTIPLIER,
+    STAT_XP_REWARD_MULTIPLIER,
     TOOL_XP_REQUIREMENT_MULTIPLIERS,
 )
 from core import generator_core as generator_core_v027
@@ -24,14 +25,23 @@ def _effective_stat_actions(level: int) -> float:
     else:
         anchor_gain = generator_core_v027.axis_gain("stat", generator_core_v027.MAX_LEVEL, 1.0)
         gain = generator_core_v027.uncapped_stat_xp_gain(anchor_gain, level)
-    return float(threshold) / max(1.0, float(gain))
+    # v1.13.5: Character.add_stat_progress applies the global stat reward
+    # accelerator before race/guild bonuses and uncapped scaling. Long-term
+    # balance must audit the effective player-facing pace, not the pre-boost
+    # Generator Core source amount.
+    effective_gain = float(gain) * float(STAT_XP_REWARD_MULTIPLIER)
+    return float(threshold) / max(1.0, effective_gain)
 
 
 def long_term_balance_audit_v0502():
     errors = []
 
-    if float(STAT_XP_REQUIREMENT_MULTIPLIER) != 2.0:
-        errors.append("stat requirement multiplier must be 2.0")
+    # v1.13.1+: uncapped stats intentionally use the natural requirement
+    # curve plus a generous global x4 reward multiplier.
+    if float(STAT_XP_REQUIREMENT_MULTIPLIER) != 1.0:
+        errors.append("stat requirement multiplier must be 1.0")
+    if float(STAT_XP_REWARD_MULTIPLIER) != 4.0:
+        errors.append("stat reward multiplier must be 4.0")
     if float(CHARACTER_XP_REQUIREMENT_MULTIPLIER) != 2.0:
         errors.append("character requirement multiplier regressed from 2.0")
     if float(PROFESSION_XP_REQUIREMENT_MULTIPLIERS.get("Górnictwo", 0.0)) != 2.0:
@@ -46,25 +56,31 @@ def long_term_balance_audit_v0502():
         "skill": int(generator_core_v027.AXIS_TARGET_ACTIONS["skill"]),
         "profession": int(generator_core_v027.AXIS_TARGET_ACTIONS["profession"]),
         "tool": int(generator_core_v027.AXIS_TARGET_ACTIONS["tool"]),
-        "stat": int(generator_core_v027.AXIS_TARGET_ACTIONS["stat"] * STAT_XP_REQUIREMENT_MULTIPLIER),
+        "stat": int(round(
+            generator_core_v027.AXIS_TARGET_ACTIONS["stat"]
+            * STAT_XP_REQUIREMENT_MULTIPLIER
+            / max(0.000001, float(STAT_XP_REWARD_MULTIPLIER))
+        )),
         "mining_profession": int(generator_core_v027.AXIS_TARGET_ACTIONS["profession"] * PROFESSION_XP_REQUIREMENT_MULTIPLIERS["Górnictwo"]),
         "pickaxe": int(generator_core_v027.AXIS_TARGET_ACTIONS["tool"] * TOOL_XP_REQUIREMENT_MULTIPLIERS["mining"]),
     }
     expected = {
         "character": 36, "class": 16, "soul": 25, "skill": 18,
-        "profession": 50, "tool": 65, "stat": 120,
+        "profession": 50, "tool": 65, "stat": 15,
         "mining_profession": 100, "pickaxe": 130,
     }
     if targets != expected:
         errors.append(f"unexpected long-term action targets: {targets}")
 
-    # Stats are uncapped. A matching-stage source should stay around 120 actions
-    # per point both inside and beyond the 1-600 capped progression space.
+    # Stats are uncapped. Since v1.13.1 a matching-stage source should stay
+    # around 15 effective actions per point both inside and beyond the 1-600
+    # capped progression space. The underlying Generator Core source remains
+    # ~60 actions, then the global x4 reward accelerator makes it ~15.
     stat_action_samples = {}
     for level in (10, 100, 300, 599, 800, 1200):
         actions = _effective_stat_actions(level)
         stat_action_samples[level] = round(actions, 3)
-        if not (117.0 <= actions <= 123.0):
+        if not (14.0 <= actions <= 16.0):
             errors.append(f"stat pace mismatch at value {level}: {actions:.3f} actions")
 
     # Long-form axes: approximate equal-stage actions from level 1 to 600.
