@@ -1,5 +1,22 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.12.4
+Aktualna paczka: v1.12.5
+
+==============================================================================
+Soulbound v1.12.5 — sensowne role EQ i leczenie INT + WILL
+==============================================================================
+
+- Ujednolicono skalowanie leczenia: każdy heal korzysta z Inteligencji i Siły Woli.
+- INT i WILL mają równy udział w bazowej mocy leczenia; bonusy tych statów z EQ, run, setów i reliktów zwiększają healing.
+- Magic Attack pozostaje statem obrażeń magicznych i nie zwiększa leczenia.
+- Zmiana obejmuje zwykłe heale, Cure Beam, Heal Beam i okresowy Regen.
+- Fizyczne skille nadal korzystają z właściwych statów fizycznych oraz Attack/Weapon Power, a magiczne skille z właściwych statów magicznych oraz Magic Attack.
+- Audyt EQ potwierdził, że późniejsze Soul/Class/Material EQ ma realną progresję względem źródłowego UOSS EQ; nie podbijano sztucznie całego katalogu.
+- Zaktualizowano HELP `leczenie`, `statystyki` i `mec`.
+- Autoatak Broni Duszy liczy serię trafień z końcowej statystyki Szybkości; DEX buduje Szybkość, a Haste jest osobnym efektem zwiększającym długość serii. Krzywa pozostaje bez twardego limitu.
+- Auto-kolejka rozróżnia teraz role fizyczne, magiczne i Feedback; wpisy Meca są automatycznie przenoszone do właściwej kolejki bez kasowania konfiguracji.
+- Bronie typu Oborozuki, Armageddon czy Daedalus Lance są prezentowane jako przełączalne formy Broni Duszy: kupione formy zostają w kolekcji, ale statystyki daje tylko jedna aktywna forma naraz.
+- Dodano komendy `forma lista`, `forma wybierz <nazwa/numer>` i `forma auto`; stare `relikt` / `relic` pozostają aliasami dla zgodności.
+- Brak wipe'a save'ów i brak zmian schematu SQLite.
 
 ==============================================================================
 Soulbound v1.12.4 — regeneracja, przetop stop i ekonomia 1–600

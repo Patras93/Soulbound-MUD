@@ -200,19 +200,32 @@ def speed_from_dexterity(dexterity: int) -> int:
     return max(1, int(round(8 + dexterity * 1.65)))
 
 
-def basic_attack_hits_from_dexterity(dexterity: int, haste: bool = False) -> int:
-    """Uncapped AGI/DEX multi-hit curve for ordinary Soul Weapon attacks.
+def basic_attack_hits_from_speed(speed: int, haste: bool = False) -> int:
+    """Uncapped Speed-driven multi-hit curve for ordinary Soul Weapon attacks.
 
-    Calibrated from user-supplied UOSS Mec combat logs:
-    AGI 547 -> 5 hits, AGI 547 + Haste -> 10 hits,
-    AGI 429 + Haste -> 9 hits.
-    sqrt growth keeps very high DEX meaningful without a hard hit-count cap.
+    The hit count reads the final combat Speed stat rather than raw DEX/AGI.
+    DEX/AGI still matters because it builds Speed, while future equipment,
+    buffs or effects that modify Speed can naturally affect the attack string.
+    Haste is a separate state and doubles the available hit string.
+
+    Calibrated to the user-supplied UOSS Mec benchmarks after converting their
+    AGI to Soulbound Speed:
+    AGI 547 -> Speed 911 -> 5 hits, Haste -> 10 hits;
+    AGI 429 -> Speed 716, Haste -> 9 hits.
     """
-    dexterity = max(1, int(dexterity))
-    raw_hits = math.sqrt(float(dexterity)) / 4.5
+    speed = max(1, int(speed))
+    raw_hits = math.sqrt(float(speed)) / 5.8
     if haste:
         raw_hits *= 2.0
     return max(1, int(raw_hits))
+
+
+def basic_attack_hits_from_dexterity(dexterity: int, haste: bool = False) -> int:
+    """Compatibility wrapper for older callers; final scaling is Speed-based."""
+    return basic_attack_hits_from_speed(
+        speed_from_dexterity(dexterity),
+        haste=haste,
+    )
 
 
 def mec_vmax_duration_seconds(skill_level: int, willpower: int) -> int:
@@ -238,14 +251,14 @@ def mec_vmax_duration_seconds(skill_level: int, willpower: int) -> int:
 
 
 _BASIC_ATTACK_HIT_AUDIT_V11196 = {
-    "agi_547": basic_attack_hits_from_dexterity(547, False),
-    "agi_547_haste": basic_attack_hits_from_dexterity(547, True),
-    "agi_429_haste": basic_attack_hits_from_dexterity(429, True),
+    "speed_911": basic_attack_hits_from_speed(911, False),
+    "speed_911_haste": basic_attack_hits_from_speed(911, True),
+    "speed_716_haste": basic_attack_hits_from_speed(716, True),
 }
 if _BASIC_ATTACK_HIT_AUDIT_V11196 != {
-    "agi_547": 5,
-    "agi_547_haste": 10,
-    "agi_429_haste": 9,
+    "speed_911": 5,
+    "speed_911_haste": 10,
+    "speed_716_haste": 9,
 }:
     raise RuntimeError(
         "Basic attack multi-hit audit failed: "
