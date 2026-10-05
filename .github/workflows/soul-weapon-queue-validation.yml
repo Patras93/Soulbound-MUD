@@ -1,0 +1,46 @@
+name: Soul Weapon queue validation
+on:
+  push:
+    branches:
+      - fix/soul-weapon-independent-autoattack-v1121
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile changed files
+        run: python -m py_compile player/session_mixins/combat_realtime.py admin/help_refresh.py
+      - name: Fast predeploy
+        run: python predeploy_check.py
+      - name: Full runtime import
+        env:
+          SOULBOUND_DEFER_MEMORY_COMPACTION: '1'
+        run: python -c "import server; print('FULL RUNTIME IMPORT PASS')"
+      - name: Soul Weapon queue contract
+        run: |
+          python - <<'PY'
+          import ast
+          from pathlib import Path
+
+          source = Path('player/session_mixins/combat_realtime.py').read_text(encoding='utf-8')
+          tree = ast.parse(source)
+          method = None
+          for node in ast.walk(tree):
+              if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name == 'realtime_player_action':
+                  method = node
+                  break
+          assert method is not None
+          segment = ast.get_source_segment(source, method)
+          assert 'await self.try_auto_skill_queue(mob)' in segment
+          assert 'if await self.try_auto_skill_queue(mob):' not in segment
+          queue_pos = segment.index('await self.try_auto_skill_queue(mob)')
+          template_pos = segment.index('template = MOB_TEMPLATES[mob.template_id]')
+          assert queue_pos < template_pos
+          between = segment[queue_pos:template_pos]
+          assert 'not mob.alive' in between
+          assert 'return' in between
+          print('SOUL WEAPON QUEUE CONTRACT PASS')
+          PY
