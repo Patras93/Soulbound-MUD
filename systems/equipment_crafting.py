@@ -153,27 +153,39 @@ def _class_equipment_rarity_name(required_mastery):
 def class_equipment_stat_budget(required_mastery, slot=None):
     """Łączny budżet trzech bazowych statów klasowego EQ.
 
-    Każdy próg 1/10/20/.../600 zwiększa budżet dokładnie o 1, dzięki czemu
-    nawet niskie Tiery mają realnie inne statystyki. Sloty biżuterii zachowują
-    lekko wyższy punkt startowy, ale progresja między Tierami jest zawsze
-    ścisła i monotoniczna.
+    v1.13.8: progression is intentionally felt, not cosmetic. Early tiers grow
+    calmly, then the curve accelerates from mastery 30-50 onward so every new
+    set is a meaningful upgrade instead of +1 total point per tier.
     """
-    try:
-        tier_index = CLASS_EQUIPMENT_MASTERY_LEVELS.index(int(required_mastery))
-    except ValueError:
-        unlocked = class_equipment_unlocked_tier(required_mastery)
-        tier_index = CLASS_EQUIPMENT_MASTERY_LEVELS.index(int(unlocked))
-    slot = str(slot or "")
-    if slot in ("necklace", "relic"):
-        base_affix = 3
-    elif slot in (
-        "ring", "charm", "earring", "shoulders", "belt", "cloak", "bracers",
-        "bracelet", "accessory",
-    ):
-        base_affix = 2
-    else:
-        base_affix = 1
-    return max(3, int(base_affix)) + int(tier_index)
+    mastery = class_equipment_unlocked_tier(required_mastery)
+    anchors = (
+        (1, 9),
+        (10, 14),
+        (20, 19),
+        (30, 25),
+        (40, 31),
+        (50, 38),
+        (60, 48),
+        (70, 58),
+        (80, 70),
+        (90, 82),
+        (100, 100),
+        (150, 160),
+        (200, 240),
+        (300, 420),
+        (400, 650),
+        (500, 900),
+        (600, 1200),
+    )
+    if mastery <= anchors[0][0]:
+        return anchors[0][1]
+    if mastery >= anchors[-1][0]:
+        return anchors[-1][1]
+    for (m0, b0), (m1, b1) in zip(anchors, anchors[1:]):
+        if m0 <= mastery <= m1:
+            ratio = (mastery - m0) / float(m1 - m0)
+            return max(3, int(round(b0 + (b1 - b0) * ratio)))
+    return anchors[-1][1]
 
 
 def class_equipment_unlocked_tier(mastery_level):
