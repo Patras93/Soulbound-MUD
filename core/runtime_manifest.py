@@ -194,7 +194,7 @@ _RUNTIME_MODULES_ALL = ['core/bootstrap_economy_professions.py',
  'admin/world_expansion_iv_audit_v0800.py',
  'admin/world_expansion_v_audit_v0900.py',
  'systems/soul_shard_finalizer.py',
- 'systems/economy_income_balance_v1124.py',
+ 'systems/economy_income_balance.py',
  'systems/runtime_memory.py',
  'admin/release_integrity_v0369.py']
 
@@ -229,6 +229,7 @@ EXPLICIT_RUNTIME_EXPORTS = {
         "party_drop_recipients_v0359", "SessionSkillsCombatMixin",
     ),
     "player/session.py": ("Session",),
+    "systems/economy_income_balance.py": (),
     "admin/modular_services_audit_v0420.py": (
         "modular_services_audit_v0420", "MODULAR_SERVICES_AUDIT_V0420",
     ),
