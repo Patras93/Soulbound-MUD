@@ -22,6 +22,9 @@ Soulbound v1.12.4 — regeneracja, przetop stop i ekonomia 1–600
 - Handel morski pozostaje 5 tys.–150 tys. Gold za kontrakt. Walka, bossowie i sprzedaż surowców zachowują dotychczasowe krzywe.
 - Ceny źródłowe Wattsa/UOSSMUD pozostają bez zmian, w tym Moogle Board i pozostałe przedmioty za 5 000 000 Gold oraz wymagany Moogle Steel.
 - Dodano HELP `ekonomia` / `zarobki`.
+- Naprawiono Mec `Combat Mastery`: wybrany przez `job set inherent mec Combat Mastery` faktycznie wzmacnia zwykły atak Broni Duszy zamiast być tylko opisem bez efektu.
+- Soulboundowa adaptacja modelu jednej Broni Duszy: aktywne Combat Mastery przełącza zwykły autoatak Meca na czyste skalowanie STR/melee i daje mnożnik x1.20. Źródło podaje wyłącznie relację „mocniejsze niż Attack UP, słabsze niż Two Hands”, bez konkretnej liczby, więc x1.20 jest jawnym balansem Soulbound.
+- Combat Mastery nie działa bez Broni Duszy i nie wzmacnia ranged, magii ani klasowych skilli; Strength Protocol pozostaje osobną automatyczną warstwą dla skilli melee.
 - Brak wipe'a save'ów i brak zmian schematu SQLite.
 
 ==============================================================================
