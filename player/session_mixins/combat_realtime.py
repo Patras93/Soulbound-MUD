@@ -100,7 +100,7 @@ class SessionCombatRealtimeMixin:
                 # six seconds. Authored Mec magic/support skills use their exact
                 # source MP costs, so Maxwell restores that shared mana resource.
                 if self.character.class_name=="Mec":
-                    _maxwell=next((s for s in self.available_class_skills() if s.get("mec_special")=="maxwell_program"),None)
+                    _maxwell=next((s for s in self.class_skills() if s.get("mec_special")=="maxwell_program"),None)
                     if _maxwell and self.job_ability_selected("inherent",_maxwell["id"]):
                         _now=time.monotonic()
                         _last=float(getattr(self,"v0319_maxwell_mana_tick",0.0) or 0.0)

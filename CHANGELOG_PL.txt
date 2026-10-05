@@ -1,5 +1,14 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.12.1
+Aktualna paczka: v1.12.2
+
+==============================================================================
+Soulbound v1.12.2 — hotfix pętli walki Meca
+==============================================================================
+
+- Naprawiono crash pętli walki: `Session` nie posiada już historycznej metody `available_class_skills()`.
+- Maxwell Program korzysta teraz z aktualnej metody `class_skills()` udostępnianej przez SessionSkillLearningMixin.
+- Poprawka przywraca realtime combat Meca i nie zmienia balansu HP, obrażeń, kolejki ani mechaniki Broni Duszy.
+- Brak wipe'a save'ów i brak zmian schematu SQLite.
 
 ==============================================================================
 Soulbound v1.12.1 — niezależny autoatak Broni Duszy
