@@ -347,14 +347,14 @@ class SessionCombatRewardsMixin:
                     else:
                         await session.send(f"Pokonujesz: {template['name']}.")
 
-                # v0.19: jedna wspólna pula monet z generatora całej gry.
+                # v1.12.6: brak kary za grę w drużynie.
+                # Każdy obecny członek drużyny otrzymuje pełną pulę monet za moba,
+                # tak samo jak każdy otrzymuje własne pełne nagrody EXP/progresji.
                 generated_coins=_final_combat_reward(template,"coins")
                 currency_rewards={currency:{s.account_id:0 for s in recipients} for currency in ("silver","gold","mithril")}
                 if generated_coins>0:
-                    base_share,remainder=divmod(generated_coins,count)
                     for session in recipients:
-                        currency_rewards["silver"][session.account_id]=base_share
-                    currency_rewards["silver"][self.account_id]+=remainder
+                        currency_rewards["silver"][session.account_id]=generated_coins
 
                 _v0927_guild_progressed = set()
                 for session in recipients:
@@ -367,7 +367,7 @@ class SessionCombatRewardsMixin:
 
                     if silver or gold or mithril:
                         await session.send(
-                            "Twój udział waluty: "
+                            "Nagroda walutowa: "
                             + currency_reading_text(silver, gold, mithril) + "."
                         )
 

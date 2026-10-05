@@ -1,5 +1,19 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.12.5
+Aktualna paczka: v1.12.6
+
+==============================================================================
+Soulbound v1.12.6 — brak kar za grę w drużynie
+==============================================================================
+
+- Usunięto dzielenie waluty z zabitego przeciwnika przez liczbę członków drużyny.
+- Każdy uprawniony członek drużyny obecny w tej samej lokacji otrzymuje teraz pełną bazową pulę monet za pokonanego moba; osobiste mnożniki nagród nadal są stosowane indywidualnie.
+- Character XP, Class XP, Soul XP i EXP statystyk już wcześniej były przyznawane każdemu członkowi osobno w pełnej wartości i pozostają bez dzielenia.
+- Udane dropy drużynowe pozostają osobiste dla każdego uprawnionego odbiorcy zgodnie z bieżącą logiką dropu.
+- Dungeon Party Bonus do EXP pozostaje premią za wspólną grę; party nie obniża już ani EXP, ani waluty tylko z powodu liczby członków.
+- Komunikat waluty zmieniono z „Twój udział waluty” na „Nagroda walutowa”, ponieważ nie jest to już podział wspólnej puli.
+- Zaktualizowano HELP drużyny/party i etykietę runtime do v1.12.6.
+- Brak wipe'a save'ów i brak zmian schematu SQLite.
+
 
 ==============================================================================
 Soulbound v1.12.5 — sensowne role EQ i leczenie INT + WILL
