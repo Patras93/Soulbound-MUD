@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Fast Railway predeploy gate for Soulbound v1.13.1.
+"""Fast Railway predeploy gate for Soulbound v1.13.2.
 
 This is the normal deploy check.  It intentionally avoids assembling the full
 world/runtime.  Use predeploy_full.py when an exhaustive historical audit is
@@ -16,7 +16,7 @@ import traceback
 try:
     from storage.database import Database as _DatabaseImportSmoke
 except Exception as exc:
-    print(f"Soulbound v1.13.1 FAST PREDEPLOY FAILED: database import: {type(exc).__name__}: {exc}")
+    print(f"Soulbound v1.13.2 FAST PREDEPLOY FAILED: database import: {type(exc).__name__}: {exc}")
     traceback.print_exc()
     raise SystemExit(1)
 
@@ -37,7 +37,7 @@ try:
     )
 except Exception as exc:
     print(
-        "Soulbound v1.13.1 FAST PREDEPLOY FAILED: "
+        "Soulbound v1.13.2 FAST PREDEPLOY FAILED: "
         f"skill semantic import: {type(exc).__name__}: {exc}"
     )
     traceback.print_exc()
@@ -137,7 +137,7 @@ for _needle in _troll_reward_needles:
             "troll stat reward regression: missing " + _needle
         )
 
-# Smoczy Świat v1.13.0 feature contract retained by v1.13.1. Fast predeploy stays source-only,
+# Smoczy Świat v1.13.0 feature contract retained by v1.13.2. Fast predeploy stays source-only,
 # while the module itself performs the full assembled-world runtime audit.
 _manifest_source = (_root / "core/runtime_manifest.py").read_text(encoding="utf-8")
 _dragon_world_source = (_root / "world/dragon_world.py").read_text(encoding="utf-8")
@@ -159,6 +159,36 @@ for _needle in _dragon_world_needles:
     if _needle not in _dragon_world_source:
         _semantic_errors.append(
             "dragon world regression: missing " + _needle
+        )
+
+# v1.13.2: modules loaded through native_runtime share a compatibility namespace.
+# Generic helper names from world_expansion_i.py must therefore never be
+# redefined by dragon_world.py, even when they start with an underscore.
+_dragon_forbidden_runtime_helpers = (
+    "def _room(",
+    "def _link(",
+    "def _mob(",
+    "def _spawn(",
+    "def _quest(",
+    "def _npc(",
+)
+for _needle in _dragon_forbidden_runtime_helpers:
+    if _needle in _dragon_world_source:
+        _semantic_errors.append(
+            "dragon runtime symbol collision regression: " + _needle
+        )
+_dragon_required_namespaced_helpers = (
+    "def _dragon_room(",
+    "def _dragon_link(",
+    "def _dragon_mob(",
+    "def _dragon_spawn(",
+    "def _dragon_quest(",
+    "def _dragon_npc(",
+)
+for _needle in _dragon_required_namespaced_helpers:
+    if _needle not in _dragon_world_source:
+        _semantic_errors.append(
+            "dragon runtime helper namespace regression: missing " + _needle
         )
 
 # v1.13.1: uncapped stats must stay generous globally. The natural stat
@@ -205,18 +235,18 @@ except Exception as exc:
     )
 
 if _semantic_errors:
-    print("Soulbound v1.13.1 FAST PREDEPLOY FAILED: semantic contracts")
+    print("Soulbound v1.13.2 FAST PREDEPLOY FAILED: semantic contracts")
     for _error in _semantic_errors:
         print(f"ERROR: {_error}")
     raise SystemExit(1)
 
 if audit["error_count"]:
-    print("Soulbound v1.13.1 FAST PREDEPLOY FAILED")
+    print("Soulbound v1.13.2 FAST PREDEPLOY FAILED")
     for error in audit["errors"]:
         print(f"ERROR: {error}")
     raise SystemExit(1)
 
-print("Soulbound v1.13.1 FAST PREDEPLOY PASS")
+print("Soulbound v1.13.2 FAST PREDEPLOY PASS")
 print(
     "Semantic contracts: "
     f"{len(_semantic_audits)} audits PASS; AP runtime guards PASS"
