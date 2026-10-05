@@ -61,23 +61,63 @@ class SessionEquipmentStatsMixin:
             return sorted(rows,key=lambda row:(int(row[1].get("required_level",0) or 0),row[0]))[-1]
 
     async def handle_soul_weapon_relic_v11179(self, raw=""):
+            """Manage one active Soul Weapon form; legacy relikt/relic commands remain aliases."""
             rows=self.soul_weapon_relic_rows_v11179()
             arg=str(raw or "").strip()
             if not rows:
-                await self.send("Nie masz dostępnego reliktu Broni Duszy.")
-                return
-            if not arg or arg.lower() in ("lista","list","status"):
-                active_id,active=self.active_soul_weapon_relic_v11176()
-                await self.send("Relikty Broni Duszy: "+", ".join(f"{idx}. {item.get('name',item_id)}" for idx,(item_id,item) in enumerate(rows,1))+".")
-                await self.send("Aktywny: "+(active.get("name",active_id) if active else "brak")+". Użycie: relikt wybierz <numer lub nazwa>; relikt auto.")
+                await self.send("Nie masz jeszcze żadnej dostępnej formy Broni Duszy.")
                 return
             low=arg.lower()
+            if not arg or low in ("lista","list","status","aktywna","aktywna forma","active"):
+                active_id,active=self.active_soul_weapon_relic_v11176()
+                rendered=[]
+                for idx,(item_id,item) in enumerate(rows,1):
+                    source_type=str(item.get("source_item_type") or "").strip()
+                    stats=[]
+                    for stat,label in (
+                        ("strength","STR"),("dexterity","DEX"),
+                        ("constitution","KON"),("intelligence","INT"),
+                        ("willpower","WILL"),
+                    ):
+                        value=int((item.get("stats") or {}).get(stat,0) or 0)
+                        value+=int((item.get("soulbound_balance_stats") or {}).get(stat,0) or 0)
+                        if value:
+                            stats.append(f"{label} +{value}")
+                    for key,label in (
+                        ("attack","Attack"),("magic_attack","Magic Attack"),
+                        ("weapon_power","Weapon Power"),
+                    ):
+                        value=int(item.get(key,0) or 0)
+                        if value:
+                            stats.append(f"{label} +{value}")
+                    suffix=[]
+                    if source_type:
+                        suffix.append(f"typ {source_type}")
+                    if stats:
+                        suffix.append(", ".join(stats))
+                    marker=" [AKTYWNA]" if active_id==item_id else ""
+                    rendered.append(
+                        f"{idx}. {item.get('name',item_id)}{marker}"
+                        + (f" — {'; '.join(suffix)}" if suffix else "")
+                    )
+                await self.send("Formy Broni Duszy: " + " | ".join(rendered) + ".")
+                await self.send(
+                    "Aktywna forma: "
+                    +(active.get("name",active_id) if active else "brak")
+                    +". Użycie: forma wybierz <numer lub nazwa>; forma auto. "
+                    "Tylko jedna forma naraz przekazuje swoje statystyki i Weapon Power do Broni Duszy."
+                )
+                return
             if low in ("auto","automatyczny","automatycznie"):
                 self.active_soul_weapon_relic_id_v11179=None
                 for _old in tuple(self.server.db.collection_entry_ids(self.account_id,"active_soul_weapon_relic_v11183")):
                     self.server.db.remove_collection_entry(self.account_id,"active_soul_weapon_relic_v11183",_old)
                 active_id,active=self.active_soul_weapon_relic_v11176()
-                await self.send("Relikt Broni Duszy: tryb automatyczny. Aktywny: "+(active.get("name",active_id) if active else "brak")+".")
+                await self.send(
+                    "Forma Broni Duszy: tryb automatyczny. Aktywna: "
+                    +(active.get("name",active_id) if active else "brak")
+                    +". Gra wybiera najwyższą dostępną formę według wymaganego poziomu."
+                )
                 return
             if low.startswith("wybierz "):
                 arg=arg.split(maxsplit=1)[1].strip()
@@ -90,13 +130,16 @@ class SessionEquipmentStatsMixin:
                 partial=[row for row in rows if norm in str(row[1].get("name","")).lower()]
                 chosen=(exact or partial or [None])[0]
             if not chosen:
-                await self.send("Nie znam takiego posiadanego reliktu. Wpisz relikt lista.")
+                await self.send("Nie znam takiej posiadanej formy. Wpisz forma lista.")
                 return
             self.active_soul_weapon_relic_id_v11179=chosen[0]
             for _old in tuple(self.server.db.collection_entry_ids(self.account_id,"active_soul_weapon_relic_v11183")):
                 self.server.db.remove_collection_entry(self.account_id,"active_soul_weapon_relic_v11183",_old)
             self.server.db.add_collection_entry(self.account_id,"active_soul_weapon_relic_v11183",chosen[0])
-            await self.send(f"Aktywny relikt Broni Duszy: {chosen[1].get('name',chosen[0])}. Wybór zapisany na stałe.")
+            await self.send(
+                f"Aktywna forma Broni Duszy: {chosen[1].get('name',chosen[0])}. "
+                "Wybór zapisany na stałe; pozostałe kupione formy pozostają w kolekcji."
+            )
 
 
     def equipment_bonus_totals(self):
