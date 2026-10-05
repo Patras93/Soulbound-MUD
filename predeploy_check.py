@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Fast Railway predeploy gate for Soulbound v1.13.5.
+"""Fast Railway predeploy gate for Soulbound v1.13.6.
 
 This is the normal deploy check.  It intentionally avoids assembling the full
 world/runtime.  Use predeploy_full.py when an exhaustive historical audit is
@@ -16,7 +16,7 @@ import traceback
 try:
     from storage.database import Database as _DatabaseImportSmoke
 except Exception as exc:
-    print(f"Soulbound v1.13.5 FAST PREDEPLOY FAILED: database import: {type(exc).__name__}: {exc}")
+    print(f"Soulbound v1.13.6 FAST PREDEPLOY FAILED: database import: {type(exc).__name__}: {exc}")
     traceback.print_exc()
     raise SystemExit(1)
 
@@ -37,7 +37,7 @@ try:
     )
 except Exception as exc:
     print(
-        "Soulbound v1.13.5 FAST PREDEPLOY FAILED: "
+        "Soulbound v1.13.6 FAST PREDEPLOY FAILED: "
         f"skill semantic import: {type(exc).__name__}: {exc}"
     )
     traceback.print_exc()
@@ -269,6 +269,35 @@ else:
                 "final stat HELP regression: missing " + _needle
             )
 
+_class_eq_source = (_root / "systems/equipment_crafting.py").read_text(encoding="utf-8")
+_class_eq_three_stat_needles = (
+    "def class_equipment_base_stat_triplet(class_name):",
+    'return "intelligence", "willpower", "constitution"',
+    'return "dexterity", "strength", "constitution"',
+    'return "strength", "dexterity", "constitution"',
+    "budget = max(3, int(legacy_amount or 0))",
+    '"class_base_stat_triplet": (',
+    "Class EQ stat triplet mismatch",
+    "Legendary class EQ stat triplet mismatch",
+    "Legendary class relic stat triplet mismatch",
+)
+for _needle in _class_eq_three_stat_needles:
+    if _needle not in _class_eq_source:
+        _semantic_errors.append(
+            "class EQ three-stat regression: missing " + _needle
+        )
+
+_final_help_source = (_root / "admin/help_refresh.py").read_text(encoding="utf-8")
+for _needle in (
+    "Siłę + Zręczność + Kondycję",
+    "Inteligencję + Siłę Woli + Kondycję",
+    "legendarnych setów i reliktów klasowych",
+):
+    if _needle not in _final_help_source:
+        _semantic_errors.append(
+            "class EQ HELP regression: missing " + _needle
+        )
+
 _long_term_balance_source = (_root / "admin/long_term_balance_audit_v0502.py").read_text(encoding="utf-8")
 _long_term_stat_needles = (
     "STAT_XP_REWARD_MULTIPLIER",
@@ -312,18 +341,18 @@ except Exception as exc:
     )
 
 if _semantic_errors:
-    print("Soulbound v1.13.5 FAST PREDEPLOY FAILED: semantic contracts")
+    print("Soulbound v1.13.6 FAST PREDEPLOY FAILED: semantic contracts")
     for _error in _semantic_errors:
         print(f"ERROR: {_error}")
     raise SystemExit(1)
 
 if audit["error_count"]:
-    print("Soulbound v1.13.5 FAST PREDEPLOY FAILED")
+    print("Soulbound v1.13.6 FAST PREDEPLOY FAILED")
     for error in audit["errors"]:
         print(f"ERROR: {error}")
     raise SystemExit(1)
 
-print("Soulbound v1.13.5 FAST PREDEPLOY PASS")
+print("Soulbound v1.13.6 FAST PREDEPLOY PASS")
 print(
     "Semantic contracts: "
     f"{len(_semantic_audits)} audits PASS; AP runtime guards PASS"
