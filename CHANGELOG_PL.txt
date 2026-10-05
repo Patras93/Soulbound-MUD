@@ -11,6 +11,9 @@ Soulbound v1.12.4 — naturalna regeneracja stojąc
 - Naturalny regen nie działa podczas walki, ruchu, prowadzenia ani aktywnego auto-zbierania.
 - Nullify Healing nadal blokuje odzyskiwanie HP, ale nie naturalną regenerację Many.
 - `rest status` oraz HELP odpoczynek/rest/regen pokazują nowe zasady.
+- Dodano `przetop stop` i `przetop status`. Przetapianie działa jako osobny task, więc długie `przetop max` / `przetop wszystko` można przerwać bez zamykania sesji.
+- Zatrzymanie podczas czasu oczekiwania następuje przed pobraniem materiałów; jeśli trwa już zapis wyniku, bieżący przetop kończy się bezpiecznie i kolejny nie startuje.
+- Podczas aktywnego przetapiania inne akcje są blokowane, a naturalny regen stojąc jest wstrzymany.
 - Brak wipe'a save'ów i brak zmian schematu SQLite.
 
 ==============================================================================
