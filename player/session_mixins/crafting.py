@@ -364,7 +364,13 @@ class SessionCraftingMixin:
                 f"{self.tool_action_label(tool_type)}: "
                 f"{action_seconds} sekund."
             )
-            await asyncio.sleep(action_seconds)
+            if (
+                normalize_lookup_text(action_name) == "przetapianie"
+                and hasattr(self, "smelt_wait_v1124")
+            ):
+                await self.smelt_wait_v1124(action_seconds)
+            else:
+                await asyncio.sleep(action_seconds)
 
             for item_id, quantity in recipe["ingredients"].items():
                 if not self.consume_recipe_item(item_id, quantity):
