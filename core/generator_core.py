@@ -1938,7 +1938,10 @@ def validate(ns: dict) -> dict:
     for iid, item in items.items():
         lvl = int(item.get("generator_level",0) or 0)
         if not 1 <= lvl <= MAX_LEVEL: errors.append(f"item level {iid}")
-        if int(item.get("price",0) or 0) <= 0: errors.append(f"item price {iid}")
+        # price=None is an authored "not sold" contract and must survive the
+        # restrained generator. Missing prices still receive a generated value.
+        if item.get("price") is not None and int(item.get("price",0) or 0) <= 0:
+            errors.append(f"item price {iid}")
     for qid, q in quests.items():
         lvl = int(q.get("generator_level",0) or 0)
         if not 1 <= lvl <= MAX_LEVEL: errors.append(f"quest level {qid}")
