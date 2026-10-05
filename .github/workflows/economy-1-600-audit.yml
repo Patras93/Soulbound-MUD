@@ -1,0 +1,93 @@
+name: Economy 1-600 audit
+on:
+  push:
+    branches:
+      - feature/standing-rest-regen-v1124
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Runtime economy audit
+        env:
+          SOULBOUND_DEFER_MEMORY_COMPACTION: '1'
+        run: |
+          python - <<'PY'
+          import statistics
+          import server
+          from core import generator_core as g
+          from world.global_difficulty_overdrive import v0190_combat_reward
+
+          levels=(1,25,50,100,150,200,250,300,350,400,500,600)
+          ranks=('normal','elite','rare','mini','boss','world_boss')
+          print('=== MOB COINS IN GOLD ===')
+          for lv in levels:
+              vals=[]
+              for rank in ranks:
+                  t={'generator_level':lv,'rank':rank,'drops':{}}
+                  if rank=='boss': t['boss']=True
+                  if rank=='world_boss': t['world_boss']=True
+                  vals.append(round(v0190_combat_reward(t,'coins')/100.0,2))
+              print('MOB',lv,*vals)
+
+          print('=== GENERATED QUEST COINS IN GOLD ===')
+          for lv in levels:
+              q1=g.quest_currency_for_stage(lv,1.0,False,f'audit-{lv}')/100.0
+              qrep=g.quest_currency_for_stage(lv,1.0,True,f'audit-r-{lv}')/100.0
+              qhard=g.quest_currency_for_stage(lv,4.0,False,f'audit-h-{lv}')/100.0
+              print('GENQUEST',lv,round(q1,2),round(qrep,2),round(qhard,2))
+
+          print('=== FINAL QUEST DATA BY STAGE BUCKET ===')
+          buckets=[(1,49),(50,99),(100,149),(150,199),(200,249),(250,299),(300,349),(350,399),(400,9999)]
+          def stage(q):
+              for key in ('level','required_soul_level','min_profession_level','required_profession_level','min_tool_level','required_mastery'):
+                  try:
+                      v=int(q.get(key,0) or 0)
+                  except Exception:
+                      v=0
+                  if v>0:return v
+              return 1
+          for lo,hi in buckets:
+              vals=[]; reps=[]
+              for q in server.QUESTS.values():
+                  st=stage(q)
+                  if lo<=st<=hi:
+                      silver=int(q.get('reward_silver',0) or 0)+int(q.get('reward_gold',0) or 0)*100+int(q.get('reward_mithril',0) or 0)*100_000_000
+                      vals.append(silver/100.0)
+                      if q.get('repeatable'): reps.append(silver/100.0)
+              if vals:
+                  print('QUESTBUCKET',f'{lo}-{hi}','n',len(vals),'median',round(statistics.median(vals),2),'max',round(max(vals),2),'repeat_med',round(statistics.median(reps),2) if reps else 0,'repeat_max',round(max(reps),2) if reps else 0)
+
+          print('=== SELL VALUES BY STAGE BUCKET (GOLD) ===')
+          for lo,hi in buckets:
+              vals=[]
+              for item in server.ITEMS.values():
+                  try: st=int(item.get('generator_level',item.get('level',1)) or 1)
+                  except Exception: st=1
+                  if lo<=st<=hi:
+                      silver=int(item.get('sell_silver',0) or 0)+int(item.get('sell_gold',0) or 0)*100+int(item.get('sell_mithril',0) or 0)*100_000_000
+                      if silver>0: vals.append(silver/100.0)
+              if vals:
+                  print('SELLBUCKET',f'{lo}-{hi}','n',len(vals),'median',round(statistics.median(vals),2),'max',round(max(vals),2))
+
+          print('=== OCEAN TRADE OFFERS (GOLD) ===')
+          # Unbound method doesn't use instance state.
+          for row in server.Session.ocean_trade_offers_v1000(None):
+              print('OCEAN',row[0],row[4]/100.0,'cargo',row[5])
+
+          print('=== KEY SINKS ===')
+          names=('Moogle Board','Armageddon','Daedalus Lance','Nova Armor','Time Hat')
+          for name in names:
+              found=[]
+              for iid,item in server.ITEMS.items():
+                  if str(item.get('name',''))==name:
+                      price=int(item.get('price',0) or 0)
+                      found.append((iid,price/100.0,item.get('currency'),item.get('fur_shop_gold_cost'),item.get('fur_shop_material_costs')))
+              print('SINK',name,found)
+
+          print('=== ECONOMY AUDIT SUMMARY ===')
+          print(server.economy_audit_summary_v03060())
+          PY
