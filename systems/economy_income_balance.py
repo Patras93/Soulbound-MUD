@@ -27,36 +27,39 @@ V1124_ECONOMY_MAX_STAGE = 600
 # The late curve is intentionally comparable to Ocean contracts:
 # stage 300 ~= 25k Gold, 400 ~= 150k, 600 ~= 400k before quest modifiers.
 V1124_QUEST_INCOME_ANCHORS = (
+    # Internal silver. The midgame is deliberately rewarding: a player should
+    # feel a payout at 50-100 instead of waiting for endgame economy to start.
     (1, 1_200),
-    (50, 7_500),
-    (100, 25_000),
-    (150, 75_000),
-    (200, 250_000),
-    (250, 750_000),
-    (300, 2_500_000),
-    (350, 7_500_000),
-    (400, 15_000_000),
-    (500, 25_000_000),
-    (600, 40_000_000),
+    (50, 15_000),
+    (100, 100_000),
+    (150, 350_000),
+    (200, 1_250_000),
+    (250, 3_500_000),
+    (300, 7_500_000),
+    (350, 15_000_000),
+    (400, 30_000_000),
+    (500, 60_000_000),
+    (600, 100_000_000),
 )
 
 V1124_QUEST_KIND_MULTIPLIER = {
-    "talk_npc": 0.55,
-    "talk_class_teacher": 0.55,
-    "deliver_npc": 0.75,
+    "talk_npc": 0.65,
+    "talk_class_teacher": 0.65,
+    "deliver_npc": 0.90,
     "collect": 1.00,
     "collect_resource": 1.00,
     "collect_category": 1.10,
-    "collect_distinct_category": 1.15,
-    "collect_resource_set": 1.20,
-    "craft_set": 1.25,
-    "kill": 1.15,
-    "explore_frontier": 1.10,
-    "discover_secret": 1.30,
-    "mini_dungeon": 1.50,
-    "legendary_rare": 1.70,
-    "world_event": 1.80,
-    "world_boss": 2.20,
+    "collect_distinct_category": 1.18,
+    "collect_resource_set": 1.25,
+    "craft_set": 1.35,
+    "kill": 1.25,
+    "explore_frontier": 1.20,
+    "discover_secret": 1.55,
+    # These are the "worth waiting for" payouts.
+    "mini_dungeon": 2.00,
+    "legendary_rare": 2.50,
+    "world_event": 2.75,
+    "world_boss": 3.50,
 }
 
 
@@ -137,7 +140,7 @@ def v1124_quest_income_target(quest) -> int:
     # Soul trials are milestone progression and should feel more valuable than
     # ordinary jobs at the same stage, while still respecting the global band.
     if int(quest.get("required_soul_level", 0) or 0) > 0:
-        base *= 1.65
+        base *= 2.25
 
     return max(1, int(round(base)))
 
