@@ -709,7 +709,7 @@ HELP_TOPICS["smoczy_swiat"] = [
     "Kolejność stref: Popielne Równiny 520, Smocze Kaniony 540, Kryształowe Gniazda 560, Wulkaniczna Otchłań 580, Szczyty Burzy 600, Cmentarzysko Pradawnych 600, Smocza Cytadela 600.",
     "Kraina ma 64 stałe pomieszczenia: 6 w hubie, sześć stref po 8 pomieszczeń i 10 pomieszczeń Cytadeli.",
     "Każda strefa ma zwykłe smoki, osobnego rare i minibossa. Kryształ, Wulkan, Burza, Cmentarzysko oraz Cytadela mają łącznie pięciu Smoczych Władców.",
-    "Zadania odnawiają się co 60 minut. Dają od 30000 do 75000 EXP każdej z sześciu statystyk osobno oraz normalne Character, Class i Soul XP.",
+    "Zadania odnawiają się co 60 minut. Ich ręczna baza to 30000-75000 EXP każdej z sześciu statystyk; przy globalnym mnożniku stat EXP x4 daje to obecnie 120000-300000 do każdej statystyki przed rasą, Gildią i x2 EXP.",
     "Party nie dzieli nagród: każdy obecny członek drużyny zachowuje własne pełne EXP i walutę zgodnie z aktualnym systemem drużyny.",
     "Nie ma blokady levelem. Liczby 520-600 oznaczają rekomendowany etap i skalowanie przeciwników.",
     "Smocze materiały zachowuj; są przygotowane jako osobna baza przyszłego smoczego rzemiosła.",
