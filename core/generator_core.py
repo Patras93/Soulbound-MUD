@@ -884,6 +884,18 @@ def _generate_items(ns: dict, levels: dict[str, int]) -> None:
     for key in ("FISH_RESOURCE_IDS", "ORE_RESOURCE_IDS", "WOOD_RESOURCE_IDS", "HERB_RESOURCE_IDS"):
         resource_ids.update(ns.get(key, set()) or set())
     for iid, item in items.items():
+        # Generator may fill incomplete items, but authored numbers remain the
+        # source of truth. Keep an exact snapshot (including price=None, which
+        # intentionally means "not sold").
+        authored_numeric = {
+            key: item[key] for key in NUMERIC_ITEM_FIELDS
+            if key != "generator_level" and key in item
+        }
+        authored_nested = {
+            field: dict(item.get(field) or {})
+            for field in ("stats", "properties", "rune_stats", "rune_properties")
+            if isinstance(item.get(field), dict)
+        }
         lvl = levels[iid]
         _write_record_numeric("ITEMS", item, "generator_level", lvl)
         rarity_mult = _rarity_multiplier(item)
@@ -935,6 +947,16 @@ def _generate_items(ns: dict, levels: dict[str, int]) -> None:
             _write_record_numeric("ITEMS", item, "soul_xp", axis_gain("soul", lvl, 2.0))
 
 
+
+        # Restore authored item balance after generated fallbacks. This also
+        # protects UOSSMUD imports, hand-tuned equipment, shop prices and
+        # intentionally unsold crafted/loot-only items.
+        for key, value in authored_numeric.items():
+            item[key] = value
+        for field, values in authored_nested.items():
+            current = item.get(field)
+            if isinstance(current, dict):
+                current.update(values)
 
 
 def _recipe_stage(recipe: dict, item_levels: dict[str, int]) -> int:
@@ -1279,8 +1301,16 @@ def _generate_skills(ns: dict) -> int:
             except Exception:
                 unlock = 1
             balance_level = clamp(unlock, 1, MAX_LEVEL)
+            authored_numeric = {
+                key: skill[key] for key in NUMERIC_SKILL_FIELDS
+                if key != "generator_level" and key in skill
+            }
             _write_record_numeric("CLASS_SKILLS", skill, "generator_level", balance_level)
             _skill_kind_fields(skill, balance_level, str(skill.get("id") or f"{class_name}:{idx}"))
+            # Hand-authored cooldown=0, mana, damage/heal multipliers etc. win.
+            # Generator values remain useful only for fields the skill omitted.
+            for key, value in authored_numeric.items():
+                skill[key] = value
     return count
 
 
