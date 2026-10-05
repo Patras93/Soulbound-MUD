@@ -18,6 +18,15 @@ Soulbound v1.13.8 — odczuwalna progresja + Generator Core jako fallback
 - Filozofia balansu pozostaje wymagająca: zwykłe moby nie mają być papierem,
   a Krypty zachowują własny, wyższy profil HP/damage. Nagrodą za czas ma być
   realnie rosnąca siła gracza dzięki EQ, statom, skillom i Soul progresji.
+- Kondycja daje teraz naturalną obronę fizyczną oprócz zwiększania HP;
+  pancerz z EQ nadal dodaje własne Defense i oba źródła sumują się.
+- Klasowe sety dostają wyraźniejszy przyrost Defense na kolejnych progach,
+  szczególnie od Biegłości 50+, więc nowy komplet realnie zmniejsza otrzymywane ciosy.
+- Magiczna obrona nadal rośnie z Siłą Woli; magiczne klasowe EQ daje WILL + CON,
+  więc inwestycja w set poprawia zarówno przeżywalność fizyczną, jak i magiczną.
+- Płaska obrona nadal ma bezpieczne limity: maks. 75% bazowego ciosu zwykłego
+  moba i 60% ciosu bossa. Sprzęt ma być odczuwalny, ale przeciwnicy nie stają się papierem.
+- Komunikat walki podaje teraz, ile obrażeń zatrzymała obrona fizyczna lub magiczna.
 - Proceduralne piętra 201+ zachowują pojedynczą kontrolowaną bazę Generator Core,
   aby authored depth formula i overdrive nie mnożyły się podwójnie na 1000/10000+.
 - Klasowe EQ ma nową krzywą trzech statystyk: Tier 1 = 9 punktów na część,
