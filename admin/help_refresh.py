@@ -1445,6 +1445,15 @@ def refresh_help_truth_v11197():
         "help skill <nazwa> pokazuje zapisany target, wpływ statystyk, właściwości i efekt Skill Level tam, gdzie dane źródłowe są znane.",
     ]
 
+    HELP_TOPICS["forma"] = [
+        "Bronie zdobywane lub kupowane jako wzmocnienia Broni Duszy działają jako jej formy, a nie jako drugi osobny slot broni.",
+        "Kupiona forma zostaje na stałe w kolekcji. Tylko jedna forma może być aktywna naraz i tylko ona przekazuje swoje statystyki, Attack/Magic Attack/Weapon Power oraz zapisane efekty do Broni Duszy.",
+        "forma lista pokazuje wszystkie dostępne formy, ich typ źródłowy i najważniejsze bonusy; aktywna forma jest oznaczona.",
+        "forma wybierz <numer lub nazwa> ustawia konkretną formę na stałe. forma auto wraca do automatycznego wyboru najwyższej dostępnej formy według wymaganego poziomu.",
+        "Przełączenie formy nie resetuje Soul Level, Soul Tier ani Soul Weapon Mastery. Starsze komendy relikt/relic pozostają zgodnymi aliasami.",
+    ]
+    HELP_TOPICS["formy"] = list(HELP_TOPICS["forma"])
+
     HELP_TOPICS["mec"] = [
         "Mec korzysta z jednej Broni Duszy; role melee, ranged, magic, feedback i support są gałęziami tej klasy, nie osobnymi broniami do noszenia.",
         "Strength Protocol, Ranged Protocol, Feedback Protocol i Magic Protocol są pasywne. Po nauczeniu działają automatycznie i wzmacniają odpowiadające im gałęzie wraz ze Skill Level.",
@@ -1461,6 +1470,9 @@ def refresh_help_truth_v11197():
     ]
 
     HELP_TOPIC_ALIASES.update({
+        "forma broni duszy": "forma",
+        "formy broni duszy": "forma",
+        "formy": "forma",
         "progresja600": "progresja600",
         "progression600": "progresja600",
         "statusy": "statusy",
