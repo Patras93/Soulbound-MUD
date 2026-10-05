@@ -11,25 +11,52 @@ from core.bootstrap_economy_professions import generator_core_v027
 from systems.equipment_crafting import class_equipment_base_stat_pair
 from data.mobs import MOB_TEMPLATES
 
+MEC_COMBAT_MASTERY_DAMAGE_MULTIPLIER_V1124 = 1.20
+
 class SessionCombatDamageMixin:
+    def mec_combat_mastery_active_v1124(self):
+                """Selected Mec inherent adapted to Soulbound's one-Soul-Weapon model."""
+                c = self.character
+                if not c or c.class_name != "Mec":
+                    return False
+                # Source explicitly says Combat Mastery does not work unarmed.
+                if not str(getattr(c, "soul_weapon", "") or "").strip():
+                    return False
+                return self.job_ability_selected(
+                    "inherent", "v0319_mec_combat_mastery"
+                )
+
+    def basic_attack_inherent_multiplier_v1124(self):
+                if self.mec_combat_mastery_active_v1124():
+                    return MEC_COMBAT_MASTERY_DAMAGE_MULTIPLIER_V1124
+                return 1.0
+
     def basic_attack_build_v11196(self):
                 """Return (power, raw stat, channel) for the active class build."""
                 c = self.character
                 flat = self.equipment_flat_power_totals_v11187()
                 if c.class_type == "physical":
-                    primary, _secondary = class_equipment_base_stat_pair(c.class_name)
-                    if primary == "dexterity":
-                        raw_stat = max(1, int(self.effective_dexterity()))
-                        power = (
-                            generator_core_v027.character_attribute_power(
-                                c.character_level, raw_stat
-                            )
-                            + int(flat["attack"])
-                            + int(flat["weapon_power"])
-                        )
-                    else:
+                    # UOSS Combat Mastery only works with a purely STR melee weapon.
+                    # Soulbound has one persistent Mec Soul Weapon instead of separate
+                    # axe/claw/greatsword/etc. slots, so selecting Combat Mastery makes
+                    # the ordinary Mec Soul Weapon attack use its melee/STR role.
+                    if self.mec_combat_mastery_active_v1124():
                         raw_stat = max(1, int(self.effective_strength()))
                         power = self.physical_power()
+                    else:
+                        primary, _secondary = class_equipment_base_stat_pair(c.class_name)
+                        if primary == "dexterity":
+                            raw_stat = max(1, int(self.effective_dexterity()))
+                            power = (
+                                generator_core_v027.character_attribute_power(
+                                    c.character_level, raw_stat
+                                )
+                                + int(flat["attack"])
+                                + int(flat["weapon_power"])
+                            )
+                        else:
+                            raw_stat = max(1, int(self.effective_strength()))
+                            power = self.physical_power()
                     return max(1, int(power)), raw_stat, "physical"
 
                 raw_stat = max(1, int(self.effective_intelligence()))
@@ -53,6 +80,7 @@ class SessionCombatDamageMixin:
                                 * c.racial_all_damage_multiplier()
                                 * self.total_set_damage_multiplier()
                                 * self.equipment_damage_multiplier("physical")
+                                * self.basic_attack_inherent_multiplier_v1124()
                             )
                         )
                     )
@@ -132,6 +160,7 @@ class SessionCombatDamageMixin:
                         * c.racial_all_damage_multiplier()
                         * self.total_set_damage_multiplier()
                         * self.equipment_damage_multiplier("physical")
+                        * self.basic_attack_inherent_multiplier_v1124()
                     )
                 elif self.current_mana >= 4:
                     base_damage = (
