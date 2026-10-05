@@ -86,6 +86,8 @@ class SessionRuntimeStateMixin:
             self.auto_queue_casting = False
             self.resting = False
             self.rest_task = None
+            # v1.12.4: cichy task naturalnej regeneracji podczas stania.
+            self.standing_regen_task_v1124 = None
             # Ostatnia zwykła lokacja do komendy cofnij/back.
             self.previous_room_id = None
             # v0.9.28: ostatni nadawca prywatnej wiadomości dla reply/odpisz.
