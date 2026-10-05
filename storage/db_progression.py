@@ -143,7 +143,9 @@ class DatabaseProgressionMixin:
         if queue_type is None:
             return self.conn.execute(
                 "SELECT queue_type,position,skill_id FROM skill_queue "
-                "WHERE account_id=? ORDER BY CASE queue_type WHEN 'physical' THEN 0 ELSE 1 END, position",
+                "WHERE account_id=? ORDER BY CASE queue_type "
+                "WHEN 'physical' THEN 0 WHEN 'magic' THEN 1 "
+                "WHEN 'feedback' THEN 2 ELSE 3 END, position",
                 (account_id,),
             ).fetchall()
         return self.conn.execute(
