@@ -22,13 +22,13 @@ jobs:
           python - <<'PY'
           import inspect
           import server
+          import world.party_combo_ultimate_summary as party_wrap
           assert hasattr(server.Session, 'class_skills')
-          print('SESSION class_skills:', server.Session.class_skills.__module__, server.Session.class_skills.__qualname__)
-          method = server.Session.realtime_player_action
-          print('REALTIME METHOD:', method.__module__, method.__qualname__)
-          src = inspect.getsource(method)
-          print('HAS NEW CALL:', 'self.class_skills()' in src)
-          print('HAS OLD CALL:', 'self.available_class_skills()' in src)
-          print(src[:1800])
+          wrapped = party_wrap._realtime_player_action_before_v0380
+          src = inspect.getsource(wrapped)
+          assert 'self.class_skills()' in src
+          assert 'self.available_class_skills()' not in src
+          assert server.Session.realtime_player_action.__module__ == 'world.party_combo_ultimate_summary'
+          print('FINAL WRAPPER CAPTURES FIXED REALTIME ACTION PASS')
           print('FULL RUNTIME IMPORT PASS')
           PY
