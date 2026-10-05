@@ -1429,6 +1429,15 @@ def refresh_help_truth_v11197():
     ])
     HELP_TOPICS["ekwipunek"] = equipment
     HELP_TOPICS["eq"] = list(equipment)
+    party_help = list(HELP_TOPICS.get("druzyny", []))
+    party_help.extend([
+        "Nagrody za wspólne zabicie nie mają kary drużynowej: każdy obecny członek drużyny dostaje własne pełne Character XP, Class XP, Soul XP i EXP statystyk.",
+        "Waluta z pokonanego przeciwnika również nie jest dzielona przez liczbę graczy: każdy obecny członek dostaje pełną bazową pulę monet, a jego własne mnożniki nagród są stosowane osobno.",
+        "Udane dropy drużynowe i osobiste nagrody bossów zachowują własne zasady; samo dołączenie do party nie obniża wartości EXP ani monet.",
+        "W lochach drużyna może dodatkowo uzyskać Dungeon Party Bonus do EXP, więc wspólna gra nie jest karana za liczbę członków.",
+    ])
+    HELP_TOPICS["druzyny"] = party_help
+    HELP_TOPICS["party"] = list(party_help)
 
     HELP_TOPICS["leczenie"] = [
         "Każdy heal w Soulbound używa wspólnego rdzenia leczenia: Inteligencja + Siła Woli.",
