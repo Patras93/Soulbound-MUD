@@ -11,45 +11,45 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Inspect equipment
+      - name: Inspect effective equipment
         env:
           SOULBOUND_DEFER_MEMORY_COMPACTION: '1'
         run: |
           python - <<'PY'
           import server
+          from systems.equipment_crafting import CLASS_SET_BONUSES
 
           stat_keys=('strength','dexterity','constitution','intelligence','willpower')
-          def score(item):
-              s=dict(item.get('stats') or {})
-              b=dict(item.get('soulbound_balance_stats') or {})
-              return sum(int(s.get(k,0) or 0)+int(b.get(k,0) or 0) for k in stat_keys)
+          def eff(item):
+              out={k:0 for k in stat_keys}
+              for src in (item.get('stats') or {}, item.get('soulbound_balance_stats') or {}):
+                  for k,v in src.items():
+                      if k in out: out[k]+=int(v or 0)
+              aff=str(item.get('affix') or '')
+              if aff in out: out[aff]+=int(item.get('affix_amount',0) or 0)
+              return {k:v for k,v in out.items() if v}
+          def score(item): return sum(eff(item).values())
 
-          print('=== SOUL-RELATED FIELD KEYS ===')
-          keys=set()
-          for item in server.ITEMS.values():
-              for k in item:
-                  if 'soul' in str(k).lower(): keys.add(k)
-          print(sorted(keys))
-
-          print('=== SOUL RELATED ITEMS ===')
-          rows=[]
-          for iid,item in server.ITEMS.items():
-              blob=' '.join([iid,str(item.get('name','')),str(item.get('desc',''))]).lower()
-              soul_fields={k:v for k,v in item.items() if 'soul' in str(k).lower()}
-              if 'soul' in blob or soul_fields:
-                  rows.append((iid,item.get('name'),item.get('type'),item.get('slot'),item.get('required_level'),item.get('required_soul_level'),item.get('required_soul_tier'),score(item),item.get('stats'),item.get('soulbound_balance_stats')))
-          for row in sorted(rows,key=lambda x:(int(x[4] or 0),x[7]),reverse=True)[:120]: print('SOULITEM',row)
-
-          print('=== HIGH LEVEL EQUIPMENT ===')
-          rows=[]
-          for iid,item in server.ITEMS.items():
-              if item.get('type') not in ('armor','weapon','soul_weapon_relic','accessory','shield'): continue
-              req=int(item.get('required_level',item.get('required_character_level',0)) or 0)
-              rows.append((req,score(item),iid,item.get('name'),item.get('type'),item.get('slot'),item.get('stats'),item.get('soulbound_balance_stats')))
-          for row in sorted(rows,reverse=True)[:120]: print('HIGHEQ',row)
-
-          print('=== UOSS BLACK RABITE ===')
+          print('=== UOSS BLACK RABITE EFFECTIVE ===')
           for iid,item in server.ITEMS.items():
               if iid.startswith('uoss_black_rabite_unique_') or iid=='moogle_board':
-                  print('UOSS',iid,item.get('name'),item.get('type'),item.get('slot'),item.get('required_level'),score(item),item.get('stats'),item.get('soulbound_balance_stats'))
+                  print('UOSS',iid,item.get('name'),'slot',item.get('slot'),'req',item.get('required_level'),'score',score(item),'def',item.get('defense',0),'eff',eff(item),'props',item.get('properties'))
+
+          print('=== LEVEL 600 LEGENDARY SAME SLOTS ===')
+          for cls in ('Wojownik','Berserker','Łotrzyk','Łowca','Mnich','Strażnik','Mag','Nekromanta','Kapłan','Czarownik','Druid','Psionik','Mec','Inżynier'):
+              rows=[]
+              for iid,item in server.ITEMS.items():
+                  if item.get('legendary_loot_tier')!=600 or item.get('required_class')!=cls: continue
+                  rows.append((item.get('slot'),iid,item.get('name'),score(item),item.get('defense',0),eff(item),item.get('properties')))
+              print('CLASS',cls,'SETBONUS',CLASS_SET_BONUSES.get(cls))
+              for row in sorted(rows): print('L600',cls,row)
+
+          print('=== SLOT MAX SCORE AT 600 ===')
+          by={}
+          for iid,item in server.ITEMS.items():
+              if item.get('legendary_loot_tier')!=600: continue
+              slot=str(item.get('slot') or '')
+              row=(score(item),iid,item.get('name'),item.get('required_class'),item.get('defense',0),eff(item),item.get('properties'))
+              if slot not in by or row[0]>by[slot][0]: by[slot]=row
+          for slot,row in sorted(by.items()): print('SLOTMAX',slot,row)
           PY
