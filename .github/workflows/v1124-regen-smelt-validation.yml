@@ -24,6 +24,8 @@ jobs:
           import inspect
           import server
           import player.session_mixins.rest_mana as rest_mod
+          from player.session_mixins.crafting import SessionCraftingMixin
+          from player.session_mixins.crafting_expansion import SessionCraftingExpansionV03114Mixin
 
           assert server.REST_REGEN_PERCENT == 10
           assert rest_mod.STANDING_REGEN_PERCENT_V1124 == 2
@@ -31,9 +33,9 @@ jobs:
           assert hasattr(server.Session, 'stop_smelt_v1124')
           assert hasattr(server.Session, 'smelt_wait_v1124')
 
-          smelt_src = inspect.getsource(server.Session.smelt_item_v03114)
+          smelt_src = inspect.getsource(SessionCraftingExpansionV03114Mixin.smelt_item_v03114)
           assert 'stop' in smelt_src and 'status' in smelt_src
-          perform_src = inspect.getsource(server.Session.perform_recipe)
+          perform_src = inspect.getsource(SessionCraftingMixin.perform_recipe)
           assert 'await self.smelt_wait_v1124(action_seconds)' in perform_src
           command_src = inspect.getsource(server.Session.command_loop)
           assert command_src.index('if self.smelt_task_active_v1124():') < command_src.index('if raw.startswith')
