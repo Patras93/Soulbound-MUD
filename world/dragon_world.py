@@ -282,7 +282,7 @@ _link("titan_valley_throne", anchor_dir, gate)
 _link(gate, "north", square)
 _link(square, "east", hall)
 _link(square, "west", inn)
-_link(square, "south", forge)
+_link(square, "down", forge)
 _link(square, "north", observatory)
 
 MAT_SCALE = _item(
