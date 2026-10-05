@@ -8,6 +8,7 @@ wanted before a major release.
 """
 from __future__ import annotations
 
+import re
 import traceback
 
 # Railway/admin tools import the database facade directly. Keep this as an
@@ -69,8 +70,8 @@ _root = _Path(__file__).resolve().parent
 # sources drift apart so the public banner cannot lag behind the shipped build.
 _bootstrap_source = (_root / "core/bootstrap_economy_professions.py").read_text(encoding="utf-8")
 _changelog_source = (_root / "CHANGELOG_PL.txt").read_text(encoding="utf-8")
-_version_match = __import__("re").search(r'^VERSION\s*=\s*"([^"]+)"', _bootstrap_source, __import__("re").MULTILINE)
-_package_match = __import__("re").search(r'^Aktualna paczka:\s*v([^\s]+)', _changelog_source, __import__("re").MULTILINE)
+_version_match = re.search(r'^VERSION\s*=\s*"([^"]+)"', _bootstrap_source, re.MULTILINE)
+_package_match = re.search(r'^Aktualna paczka:\s*v([^\s]+)', _changelog_source, re.MULTILINE)
 if not _version_match:
     _semantic_errors.append("release identity: missing canonical VERSION in bootstrap")
 elif not _package_match:
