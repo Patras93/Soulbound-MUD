@@ -18,6 +18,7 @@ from data.catalog_mutations import catalog_assign, catalog_set_path
 from systems.content_registry import MOB_SPAWNS, HELP_TOPICS, HELP_TOPIC_ALIASES
 from world.generation_systems import GUIDE_DESTINATION_ALIASES, v0130_refresh_exploration_catalog
 from world import dynamic_content as _dynamic_content
+from world import generation_systems as _generation_systems
 
 DRAGON_WORLD_VERSION = "1.13.0"
 DRAGON_WORLD_NAME = "Smoczy Świat"
@@ -629,7 +630,78 @@ for mob_id in DRAGON_WORLD_MOBS:
 for room_id, mob_id in DRAGON_WORLD_SPAWNS:
     _dynamic_content.BESTIARY_SPAWN_ROOMS.setdefault(mob_id, set()).add(room_id)
 
+# This module loads before player session mixins. Refresh the mutable and
+# immutable exploration snapshots now, so imported player-facing views include
+# Smoczy Świat from their first import instead of keeping the old tuple.
 v0130_refresh_exploration_catalog()
+for zone, room_ids in DRAGON_WORLD_ZONE_ROOMS.items():
+    ordered = sorted(set(room_ids))
+    _dynamic_content.EXPLORATION_ZONE_ROOMS[zone] = ordered
+    if len(ordered) >= 3:
+        _dynamic_content.TRACKED_EXPLORATION_ZONES[zone] = tuple(ordered)
+    reward_item = _generation_systems.EXPLORATION_REWARD_ITEMS.get(zone)
+    if reward_item:
+        _dynamic_content.EXPLORATION_REWARD_ITEMS[zone] = reward_item
+
+_dynamic_content.ALL_EXPLORATION_ROOMS = tuple(sorted(ROOMS))
+_exploration_tiers = list(
+    _dynamic_content.ACHIEVEMENT_TRACKS.get("exploration_rooms", {}).get("tiers", ())
+)
+if _exploration_tiers:
+    _exploration_tiers = [
+        (required, tier)
+        for required, tier in _exploration_tiers
+        if tier != "Platinum"
+    ]
+    _exploration_tiers.append(
+        (len(_dynamic_content.ALL_EXPLORATION_ROOMS), "Platinum")
+    )
+    _dynamic_content.ACHIEVEMENT_TRACKS["exploration_rooms"]["tiers"] = tuple(
+        _exploration_tiers
+    )
+
+_dynamic_content.MINI_BOSS_IDS = frozenset(
+    mob_id
+    for mob_id, template in MOB_TEMPLATES.items()
+    if template.get("mini_boss")
+)
+_bestiary_tiers = list(
+    _dynamic_content.ACHIEVEMENT_TRACKS.get("bestiary_unique", {}).get("tiers", ())
+)
+if _bestiary_tiers:
+    _bestiary_tiers = [
+        (required, tier)
+        for required, tier in _bestiary_tiers
+        if tier != "Platinum"
+    ]
+    _bestiary_tiers.append(
+        (len(_dynamic_content.BESTIARY_CATALOG), "Platinum")
+    )
+    _dynamic_content.ACHIEVEMENT_TRACKS["bestiary_unique"]["tiers"] = tuple(
+        _bestiary_tiers
+    )
+
+for zone in DRAGON_WORLD_ZONE_ROOMS:
+    region = _dynamic_content.REGION_COLLECTION_ENTRIES.setdefault(
+        zone, {"named": set(), "bosses": set(), "rare": set(), "chests": set()}
+    )
+    region.setdefault("bosses", set())
+    region.setdefault("rare", set())
+    region.setdefault("named", set())
+    region.setdefault("chests", set())
+
+for room_id, mob_id in DRAGON_WORLD_SPAWNS:
+    zone = str(ROOMS.get(room_id, {}).get("zone") or "")
+    if not zone:
+        continue
+    region = _dynamic_content.REGION_COLLECTION_ENTRIES.setdefault(
+        zone, {"named": set(), "bosses": set(), "rare": set(), "chests": set()}
+    )
+    template = MOB_TEMPLATES.get(mob_id, {})
+    if template.get("mini_boss") or template.get("world_boss"):
+        region.setdefault("bosses", set()).add(mob_id)
+    if template.get("rare_mob"):
+        region.setdefault("rare", set()).add(mob_id)
 
 HELP_TOPICS["smoczy_swiat"] = [
     "Smoczy Świat jest stałą wysokopoziomową krainą do długiego expienia, a nie pojedynczym lochem.",
