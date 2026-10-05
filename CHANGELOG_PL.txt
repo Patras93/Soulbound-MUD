@@ -1,5 +1,30 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.13.7
+Aktualna paczka: v1.13.8
+
+==============================================================================
+Soulbound v1.13.8 — odczuwalna progresja + Generator Core jako fallback
+==============================================================================
+
+- Generator Core nie nadpisuje już ręcznie zaprojektowanych HP, obrażeń, nagród,
+  waluty i dropów mobów podczas globalnego passu.
+- Runtime combat zapisuje bazową wartość authored/generated raz i przy każdym
+  odświeżeniu przywraca ją przed kolejnymi warstwami trudności. Zapobiega to
+  zarówno kasowaniu ręcznego balansu, jak i wielokrotnemu stackowaniu mnożników.
+- Ręcznie ustawione liczby itemów i skilli wygrywają z Generator Core;
+  generator wypełnia wyłącznie brakujące pola. price=None nadal oznacza brak sprzedaży.
+- Klasowe EQ ma nową krzywą trzech statystyk: Tier 1 = 9 punktów na część,
+  10 = 14, 50 = 38, 60 = 48, 100 = 100, 200 = 240, 400 = 650, 600 = 1200.
+- Fizyczne EQ nadal daje STR + DEX + CON, magiczne INT + WILL + CON.
+- Ceny klasowego EQ zostały powiązane z realnym zarobkiem na tym samym etapie;
+  pełny set pozostaje celem grindowym, ale nie wymaga tysięcy zwykłych zadań.
+- Bazowe zarobki questów rosną mocniej już od midgame: około 150 Gold na 50,
+  1 000 Gold na 100, 3 500 Gold na 150, 12 500 Gold na 200 i dalej do 1 000 000 Gold na 600.
+- Mini-lochy, Legendary Rare, eventy, World Bossy i Soul triale mają wyraźnie
+  mocniejszy mnożnik zarobku niż zwykłe zadania.
+- Stat EXP z normalnych questów jest lekko wyższy, a ważne questy dają mocny,
+  odczuwalny zastrzyk progresji statystyk; manual_stat_progress nadal ma pełny priorytet.
+- Brak wipe'a save'ów i brak zmian schematu SQLite.
+
 
 ==============================================================================
 Soulbound v1.13.7 — runtime finalizer obsługuje trzy statystyki klasowego EQ
