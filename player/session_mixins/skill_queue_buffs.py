@@ -33,7 +33,8 @@ class SessionSkillQueueBuffsMixin:
     def cleanup_mec_protocols_from_queue_v10013(self):
             """Pasywki działają stale i nigdy nie zajmują slotów auto-kolejki."""
             removed = 0
-            for queue_type in ("physical", "magic"):
+            for queue_type in ("physical", "magic", "feedback"):
+                removed_here = 0
                 rows = list(self.server.db.skill_queue_rows(self.account_id, queue_type))
                 for row in sorted(rows, key=lambda item: int(item["position"]), reverse=True):
                     skill = self.skill_by_id(row["skill_id"])
@@ -51,31 +52,80 @@ class SessionSkillQueueBuffsMixin:
                         self.account_id, queue_type, int(row["position"])
                     ):
                         removed += 1
-                if removed:
+                        removed_here += 1
+                if removed_here:
                     self.skill_queue_cursors[queue_type] = 0
             return removed
 
     def skill_queue_type(self, skill):
+            """Queue by the concrete skill role, not only by the owning class."""
+            if skill and skill.get("mec_authored"):
+                branch = str(skill.get("mec_branch", "") or "").strip().lower()
+                if branch in {"magic", "support"}:
+                    return "magic"
+                if branch == "feedback":
+                    return "feedback"
+                if branch in {"melee", "ranged"}:
+                    return "physical"
             class_name = self.skill_class_name(skill)
             return "magic" if class_type_for_name(class_name) == "magic" else "physical"
 
+    def normalize_skill_queue_types_v1125(self):
+            """Move legacy Mec queue entries to their role-specific queue.
+
+            Older builds classified the whole Mec class as physical, so magic and
+            Feedback skills could remain stored in the wrong queue. Normalize them
+            lazily without wiping the user's configured rotation.
+            """
+            moved = 0
+            for row in list(self.server.db.skill_queue_rows(self.account_id)):
+                skill = self.skill_by_id(row["skill_id"])
+                if not skill:
+                    continue
+                desired = self.skill_queue_type(skill)
+                current = str(row["queue_type"])
+                if desired == current:
+                    continue
+                removed = self.server.db.remove_skill_queue_skill(
+                    self.account_id, row["skill_id"]
+                )
+                if not removed:
+                    continue
+                ok, _position = self.server.db.add_skill_queue_entry(
+                    self.account_id, desired, row["skill_id"]
+                )
+                if ok:
+                    moved += 1
+            if moved:
+                self.skill_queue_cursors = {"physical": 0, "magic": 0, "feedback": 0}
+                if self.skill_queue_next_type not in self.skill_queue_cursors:
+                    self.skill_queue_next_type = "physical"
+            return moved
+
     def skill_queue_type_label(self, queue_type):
-            return "magiczna" if queue_type == "magic" else "fizyczna"
+            if queue_type == "magic":
+                return "magiczna"
+            if queue_type == "feedback":
+                return "feedback"
+            return "fizyczna"
 
     def skill_queue_active_mastery(self, queue_type):
             levels = []
             for row in self.server.db.active_class_rows(
                 self.account_id, self.character.class_name
             ):
-                wanted_type = class_type_for_name(row["class_name"])
+                class_name = str(row["class_name"])
+                # Mec owns all three offensive/support channels.
+                if class_name == "Mec" and queue_type in {"physical", "magic", "feedback"}:
+                    levels.append(int(row["level"]))
+                    continue
+                wanted_type = class_type_for_name(class_name)
                 if wanted_type == queue_type:
                     levels.append(int(row["level"]))
             return max(levels) if levels else 0
 
     def skill_queue_capacity(self, queue_type):
-            # v0.30.18: startowa pojemność kolejki to 10 slotów.
-            # Sloty nadal rosną wyłącznie z Character Level, nie z Biegłości klasy:
-            # v1.11.31: 20 slotów bazowych od startu, dalej +1 co 10 Leveli.
+            # Sloty rosną wyłącznie z Character Level, nie z Biegłości klasy:
             # Level 1=20, 10=21, 100=30, 200=40, 400=60, 600=80.
             if self.skill_queue_active_mastery(queue_type) <= 0:
                 return 0
@@ -94,13 +144,16 @@ class SessionSkillQueueBuffsMixin:
             if not raw:
                 return None, None, None
 
-            # v0.8.36: publiczna składnia używa zwykłych numerów slotów,
-            # np. `fizyczna 1`, `magiczna 2`, `slot 1 fizyczna`.
-            # Dawne F1/M1 pozostają akceptowane wyłącznie dla kompatybilności.
+            # Dawne F1/M1 pozostają akceptowane; B/FB oznacza Feedback.
             short = normalized.replace(" ", "")
-            match = re.fullmatch(r"([fm])(\d+)", short)
+            match = re.fullmatch(r"(fb|[fmb])(\d+)", short)
             if match:
-                queue_type = "physical" if match.group(1) == "f" else "magic"
+                prefix = match.group(1)
+                queue_type = (
+                    "physical" if prefix == "f"
+                    else "magic" if prefix == "m"
+                    else "feedback"
+                )
                 return queue_type, int(match.group(2)), None
 
             type_map = {
@@ -108,26 +161,23 @@ class SessionSkillQueueBuffsMixin:
                 "fizyczne": "physical", "physical": "physical",
                 "m": "magic", "mag": "magic", "magiczna": "magic",
                 "magiczne": "magic", "magic": "magic",
+                "b": "feedback", "fb": "feedback", "feedback": "feedback",
+                "feetback": "feedback", "sprzezenie": "feedback",
             }
 
             tokens = raw.split()
             norm_tokens = [self.normalize_description_query(token) for token in tokens]
 
-            # fizyczna 1 / magiczna 2
             if len(tokens) >= 2 and norm_tokens[0] in type_map and tokens[1].isdigit():
                 return type_map[norm_tokens[0]], int(tokens[1]), None
 
-            # slot 1 fizyczna / slot 2 magiczna
             if len(tokens) >= 3 and norm_tokens[0] in ("slot", "miejsce") and tokens[1].isdigit():
                 if norm_tokens[2] in type_map:
                     return type_map[norm_tokens[2]], int(tokens[1]), None
 
-            # fizyczna slot 1 / magiczna slot 2
             if len(tokens) >= 3 and norm_tokens[0] in type_map and norm_tokens[1] in ("slot", "miejsce") and tokens[2].isdigit():
                 return type_map[norm_tokens[0]], int(tokens[2]), None
 
-            # Nazwa skilla: szukamy także w nieaktywnych wpisach, aby można było
-            # usunąć skill z kolejki po wyłączeniu klasy multiclass.
             for row in self.server.db.skill_queue_rows(self.account_id):
                 skill = self.skill_by_id(row["skill_id"])
                 if not skill:
@@ -142,16 +192,26 @@ class SessionSkillQueueBuffsMixin:
 
     async def show_skill_queue(self, queue_type=None):
             removed_protocols = self.cleanup_mec_protocols_from_queue_v10013()
+            moved = self.normalize_skill_queue_types_v1125()
             if removed_protocols:
                 await self.send(
                     f"Usunięto z kolejki {removed_protocols} pasywne umiejętności. "
                     "Po nauczeniu działają stale i nie zajmują slotów."
                 )
+            if moved:
+                await self.send(
+                    f"Uporządkowano {moved} wpisów Meca według typu skilla: "
+                    "fizyczne, magiczne i Feedback."
+                )
             enabled = self.server.db.skill_queue_enabled(self.account_id)
             await self.send(
                 "AUTO KOLEJKA SKILLI: " + ("WŁĄCZONA." if enabled else "WYŁĄCZONA.")
             )
-            types = [queue_type] if queue_type in ("physical", "magic") else ["physical", "magic"]
+            types = (
+                [queue_type]
+                if queue_type in ("physical", "magic", "feedback")
+                else ["physical", "magic", "feedback"]
+            )
             for current_type in types:
                 mastery = self.skill_queue_active_mastery(current_type)
                 capacity = self.skill_queue_capacity(current_type)
@@ -160,7 +220,7 @@ class SessionSkillQueueBuffsMixin:
                 if mastery <= 0:
                     await self.send(
                         f"Kolejka {label}: 0 aktywnych slotów. "
-                        "Nie masz aktywnej klasy tego typu."
+                        "Nie masz aktywnej klasy lub gałęzi tego typu."
                     )
                 else:
                     await self.send(
@@ -185,13 +245,14 @@ class SessionSkillQueueBuffsMixin:
                         f"Slot {position}. {name}. Typ {label.lower()}. Klasa {class_name}. {active_text}."
                     )
             await self.send(
-                "Komendy: kolejka lista [fizyczna|magiczna], kolejka dodaj <skill>, "
-                "kolejka usuń <numer>, kolejka usuń fizyczna <slot> / kolejka usuń magiczna <slot>, "
-                "kolejka wyczyść [fizyczna|magiczna], kolejka góra fizyczna <slot>, "
-                "kolejka dół magiczna <slot>, kolejka on, kolejka off. Dodanie skilla automatycznie włącza kolejkę."
+                "Komendy: kolejka lista [fizyczna|magiczna|feedback], kolejka dodaj <skill>, "
+                "kolejka usuń <numer>, kolejka usuń fizyczna <slot> / magiczna <slot> / feedback <slot>, "
+                "kolejka wyczyść [fizyczna|magiczna|feedback], kolejka góra <typ> <slot>, "
+                "kolejka dół <typ> <slot>, kolejka on, kolejka off. Dodanie skilla automatycznie włącza kolejkę."
             )
 
     async def handle_skill_queue(self, raw):
+            self.normalize_skill_queue_types_v1125()
             text = str(raw or "").strip()
             if not text:
                 await self.show_skill_queue()
@@ -219,6 +280,8 @@ class SessionSkillQueueBuffsMixin:
                     await self.show_skill_queue("physical")
                 elif list_type in ("m", "mag", "magiczna", "magiczne", "magic"):
                     await self.show_skill_queue("magic")
+                elif list_type in ("b", "fb", "feedback", "feetback", "sprzezenie"):
+                    await self.show_skill_queue("feedback")
                 else:
                     await self.show_skill_queue()
                 return
@@ -227,6 +290,9 @@ class SessionSkillQueueBuffsMixin:
                 return
             if action in ("magiczna", "magiczne", "magic"):
                 await self.show_skill_queue("magic")
+                return
+            if action in ("feedback", "feetback", "fb", "sprzezenie"):
+                await self.show_skill_queue("feedback")
                 return
 
             if action in ("dodaj", "add", "+"):
@@ -277,8 +343,6 @@ class SessionSkillQueueBuffsMixin:
                 if not ok:
                     await self.send(str(result))
                     return
-                # v0.8.34: kolejka ma działać natychmiast po dodaniu skilla/spella.
-                # Użytkownik nie musi już wykonywać osobnego `kolejka on`.
                 self.server.db.set_skill_queue_enabled(self.account_id, True)
                 await self.send(
                     f"Dodano do kolejki {self.skill_queue_type_label(queue_type)}: "
@@ -288,9 +352,6 @@ class SessionSkillQueueBuffsMixin:
                 return
 
             if action in ("usun", "usuń", "remove", "delete", "-"):
-                # v1.11.30: prosty numer oznacza numer z pełnej listy wyświetlanej
-                # przez `kolejka`: najpierw fizyczne, potem magiczne.
-                # Dzięki temu `kolejka usun 1` usuwa dokładnie pierwszy pokazany skill.
                 if value.isdigit():
                     global_position = int(value)
                     all_rows = list(self.server.db.skill_queue_rows(self.account_id))
@@ -308,7 +369,7 @@ class SessionSkillQueueBuffsMixin:
                 if not queue_type or not position:
                     await self.send(
                         "Nie znajduję takiego wpisu. Użyj np. kolejka usuń 1, "
-                        "kolejka usuń fizyczna 1 albo kolejka usuń <nazwa skilla>."
+                        "kolejka usuń fizyczna 1, magiczna 1, feedback 1 albo nazwę skilla."
                     )
                     return
                 if skill is None:
@@ -339,16 +400,23 @@ class SessionSkillQueueBuffsMixin:
                     self.server.db.clear_skill_queue(self.account_id, "magic")
                     self.skill_queue_cursors["magic"] = 0
                     await self.send("Wyczyszczono kolejkę magiczną.")
+                elif normalized_value in ("b", "fb", "feedback", "feetback", "sprzezenie"):
+                    self.server.db.clear_skill_queue(self.account_id, "feedback")
+                    self.skill_queue_cursors["feedback"] = 0
+                    await self.send("Wyczyszczono kolejkę Feedback.")
                 else:
                     self.server.db.clear_skill_queue(self.account_id)
-                    self.skill_queue_cursors = {"physical": 0, "magic": 0}
-                    await self.send("Wyczyszczono obie kolejki skilli.")
+                    self.skill_queue_cursors = {"physical": 0, "magic": 0, "feedback": 0}
+                    await self.send("Wyczyszczono wszystkie trzy kolejki skilli.")
                 return
 
             if action in ("gora", "góra", "up", "dol", "dół", "down"):
                 queue_type, position, _skill = self.skill_queue_find_position(value)
                 if not queue_type or not position:
-                    await self.send("Użycie: kolejka góra fizyczna 2 albo kolejka dół magiczna 1.")
+                    await self.send(
+                        "Użycie: kolejka góra fizyczna 2, kolejka dół magiczna 1 "
+                        "albo kolejka góra feedback 2."
+                    )
                     return
                 delta = -1 if action in ("gora", "góra", "up") else 1
                 if not self.server.db.move_skill_queue_entry(
@@ -361,9 +429,9 @@ class SessionSkillQueueBuffsMixin:
                 return
 
             await self.send(
-                "Użycie: kolejka, kolejka lista [fizyczna|magiczna], kolejka dodaj <skill>, "
-                "kolejka usuń fizyczna <slot> / kolejka usuń magiczna <slot>, "
-                "kolejka wyczyść, kolejka fizyczna, kolejka magiczna, kolejka on/off."
+                "Użycie: kolejka, kolejka lista [fizyczna|magiczna|feedback], "
+                "kolejka dodaj <skill>, kolejka usuń <typ> <slot>, kolejka wyczyść [typ], "
+                "kolejka fizyczna, kolejka magiczna, kolejka feedback, kolejka on/off."
             )
 
     async def mec_self_repair_round_v11154(self):
