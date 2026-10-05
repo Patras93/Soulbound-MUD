@@ -490,6 +490,15 @@ class SessionCombatSkillsMixin:
                     await self.send("Masz już aktywny gwarantowany unik.")
                     return
                 offensive = kind in ("damage", "drain", "execute", "aoe_damage")
+                # v1.12.3: nie każdy źródłowy skill wielocelowy ma kind=aoe_damage.
+                # Starlight Shower zachowuje source-faithful kind=damage, ale jego
+                # target mode przechodzi między single / diminishing AoE / V-MAX
+                # all-enemies. Musi więc korzystać z tej samej puli celów i tego
+                # samego globalnego przełącznika aoe on/off co zwykłe AoE.
+                _mec_special = str(skill.get("mec_special", "") or "")
+                _uses_offensive_aoe_pool_v1123 = (
+                    kind == "aoe_damage" or _mec_special == "starlight_shower"
+                )
                 mob = None
                 aoe_mobs = []
                 if kind == "group_heal":
@@ -568,7 +577,7 @@ class SessionCombatSkillsMixin:
                         await self.ensure_realtime_combat()
                     return
 
-                if kind == "aoe_damage":
+                if _uses_offensive_aoe_pool_v1123:
                     if self.auto_fishing or self.auto_fishing_task:
                         await self.stop_auto_fishing(announce=False)
                         await self.send("Auto-łowienie wyłączone z powodu walki.")
@@ -1688,7 +1697,10 @@ class SessionCombatSkillsMixin:
                         if special=="jammer":
                             self.server.world.refresh()
                             targets=[mob]
-                            if support_effect:
+                            # Support Effect źródłowo rozszerza Jammer na wszystkich
+                            # przeciwników, ale globalne "aoe off" ma pierwszeństwo
+                            # jako świadomy bezpiecznik gracza przed multi-target.
+                            if support_effect and self.offensive_aoe_enabled_v11120():
                                 targets=[
                                     x for x in self.server.world.room_mobs(
                                         self.character.room_id
@@ -1801,7 +1813,13 @@ class SessionCombatSkillsMixin:
                                 f"{_jammer_misses} oparło się."
                                 + (
                                     " Support weapon obejmuje wszystkich przeciwników."
-                                    if support_effect else ""
+                                    if (
+                                        support_effect
+                                        and self.offensive_aoe_enabled_v11120()
+                                    ) else (
+                                        " AoE jest wyłączone — Support Effect pozostaje na jednym celu."
+                                        if support_effect else ""
+                                    )
                                 )
                             )
                             await self.grant_skill_use_xp(skill)

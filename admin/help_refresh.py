@@ -1308,8 +1308,9 @@ def refresh_help_truth_v11197():
     HELP_TOPICS["skille"] = list(skill_help)
 
     HELP_TOPICS["aoe"] = [
-        "Ofensywne AoE trafia wszystkie dostępne żywe cele w lokacji zgodnie z mechaniką konkretnej umiejętności.",
-        "Niektóre źródłowe skille mają własne zasady: diminishing, non-diminishing albo losowe trafienia. help skill <nazwa> pokazuje opis konkretnej zdolności.",
+        "aoe on włącza ofensywne efekty wielocelowe; aoe off ogranicza je do jednego przeciwnika.",
+        "Dotyczy to wszystkich zwykłych skilli aoe_damage oraz źródłowych wyjątków wielocelowych, m.in. Starlight Shower i Jammer z aktywnym Support Effect.",
+        "Przy aoe on umiejętność zachowuje własne zasady targetowania: diminishing, non-diminishing, losowe trafienia albo tylko już zaangażowane cele. help skill <nazwa> pokazuje opis konkretnej zdolności.",
         "AoE nie przepisuje właściciela nagród cudzego moba; party credit działa według aktualnej logiki drużyny.",
         "Zwykłe AoE nie ma globalnego cooldownu; specjalny timer występuje tylko tam, gdzie jest częścią mechaniki skilla.",
     ]
