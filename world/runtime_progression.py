@@ -992,7 +992,7 @@ if GENERATOR_CORE_AUDIT.get("error_count"):
 # v0.30.16 - CLASS EQ POST-GENERATOR CONSISTENCY FIX
 # Generator Core owns generated numeric power, but class mastery gates are
 # authored progression semantics. After generation, split the generated
-# single-stat budget across the two requested archetype stats and refresh
+# single-stat budget across the three required class-EQ stats and refresh
 # descriptions so displayed values equal runtime values.
 # ============================================================
 def finalize_class_equipment_v03015():
@@ -1026,7 +1026,6 @@ def finalize_class_equipment_v03015():
             errors.append(f"brak class EQ {item_id}")
             continue
         class_name = expected_class[item_id]
-        primary_stat, secondary_stat = class_equipment_base_stat_pair(class_name)
         # Dla zwykłego klasowego EQ finalna warstwa wymusza progresję statów
         # na KAŻDYM progu 1/10/20/.../600. Generator Core może wcześniej
         # przeliczyć affix_amount, ale nie może spłaszczyć dwóch sąsiednich
@@ -1035,19 +1034,38 @@ def finalize_class_equipment_v03015():
         if item.get("class_shop_item") and not item.get("legendary_set_loot") and not item.get("legendary_class_relic"):
             generated_budget = class_equipment_stat_budget(mastery, item.get("slot"))
         else:
-            generated_budget = max(2, int(item.get("affix_amount", 1) or 1))
-        primary_stat, primary_amount, secondary_stat, secondary_amount = (
-            class_equipment_split_stat_budget(
-                class_name, generated_budget, item.get("slot")
-            )
+            generated_budget = max(3, int(item.get("affix_amount", 1) or 1))
+        (
+            primary_stat, primary_amount,
+            secondary_stat, secondary_amount,
+            tertiary_stat, tertiary_amount,
+        ) = class_equipment_split_stat_budget(
+            class_name, generated_budget, item.get("slot")
         )
+        expected_stats = (
+            {"intelligence", "willpower", "constitution"}
+            if class_type_for_name(class_name) == "magic"
+            else {"strength", "dexterity", "constitution"}
+        )
+        actual_stats = {primary_stat, secondary_stat, tertiary_stat}
+        if actual_stats != expected_stats:
+            errors.append(
+                f"class EQ stat triplet mismatch {item_id}: "
+                f"{sorted(actual_stats)} != {sorted(expected_stats)}"
+            )
         item["affix"] = primary_stat
         item["affix_amount"] = primary_amount
-        item["stats"] = {secondary_stat: secondary_amount}
+        item["stats"] = {
+            secondary_stat: secondary_amount,
+            tertiary_stat: tertiary_amount,
+        }
         # v0.61.2: pola pochodne, których gameplay nie odczytuje, nie są materializowane
         # dla dziesiątek tysięcy zwykłych części klasowego EQ.
         if not item.get("class_shop_item"):
             item["class_base_stat_pair"] = (primary_stat, secondary_stat)
+            item["class_base_stat_triplet"] = (
+                primary_stat, secondary_stat, tertiary_stat,
+            )
             item["class_equipment_profile"] = class_equipment_profile(class_name).get("identity")
         item["required_class"] = class_name
         item["required_mastery"] = mastery
@@ -1057,7 +1075,8 @@ def finalize_class_equipment_v03015():
 
         stat_text = (
             f"{labels[primary_stat]} +{primary_amount}, "
-            f"{labels[secondary_stat]} +{secondary_amount}"
+            f"{labels[secondary_stat]} +{secondary_amount}, "
+            f"{labels[tertiary_stat]} +{tertiary_amount}"
         )
         profile_text = str(item.get("class_equipment_profile") or class_equipment_profile(class_name).get("identity") or "")
         defense = int(item.get("defense", 0) or 0)
