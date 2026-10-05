@@ -22,6 +22,8 @@ def refresh_generator_help_v0271():
     HELP_TOPICS["statystyki"] = [
         "Sześć automatycznych statystyk to Siła, Zręczność, Kondycja, Inteligencja, Siła Woli i Charyzma.",
         "Statystyki nie mają twardego limitu. Każda ma własny EXP i wygenerowany próg rosnący także powyżej 400; nie rozdzielasz punktów ręcznie.",
+        "v1.13.1: każde źródło stat EXP dostaje globalnie x4 przed bonusem rasy i Gildii, a dawny sztuczny mnożnik x2 wymagań statów został usunięty.",
+        "Dla równorzędnego zwykłego źródła generator celuje teraz efektywnie w około 15 akcji na kolejny punkt każdej statystyki zamiast około 120; rare, minibossy, bossy, questy i x2 EXP przyspieszają to dalej.",
         "Powyżej 400 Generator Core skaluje wymagany EXP i nagrodę statystyczną z zachowaniem jakości źródła: endgame pozostaje opłacalny, a słabe moby nie stają się dobrym farmem.",
         "Level postaci, wyposażenie, rasa, klasa i statystyki wspólnie wpływają na parametry bojowe.",
         "staty info pokazuje bazę, wartość efektywną, bieżący EXP do następnego punktu i bonusy wyposażenia.",
@@ -1798,6 +1800,7 @@ def help_surface_audit_v11197():
         "walka": ("help skill", "V-MAX"),
         "odpoczynek": ("2 procent", "10 procent", "5 sekund"),
         "leczenie": ("Inteligencja", "Siła Woli", "Magic Attack"),
+        "statystyki": ("bez twardego limitu", "x4", "15 akcji"),
     }
     for topic, needles in expected.items():
         text = text_of(topic)
