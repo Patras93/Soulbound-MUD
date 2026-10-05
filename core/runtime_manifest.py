@@ -860,6 +860,15 @@ EXPLICIT_RUNTIME_EXPORTS["world/world_expansion_v.py"] = (
     "CITIES_2_CITIES_V0900", "CITIES_2_QUESTS_V0900",
 )
 
+# v1.13.4: Smoczy Świat is new code with ordinary imports, so it belongs
+# on the explicit runtime lane instead of the legacy compatibility namespace.
+EXPLICIT_RUNTIME_EXPORTS["world/dragon_world.py"] = (
+    "DRAGON_WORLD_VERSION",
+    "DRAGON_WORLD_NAME",
+    "DRAGON_WORLD_STATE",
+    "DRAGON_WORLD_AUDIT_V1130",
+)
+
 EXPLICIT_RUNTIME_EXPORTS["admin/world_expansion_iv_audit_v0800.py"] = (
     "world_expansion_iv_audit_v0800", "WORLD_EXPANSION_IV_AUDIT_V0800",
 )
