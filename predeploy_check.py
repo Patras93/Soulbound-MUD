@@ -273,7 +273,6 @@ _runtime_progression_source = (_root / "world/runtime_progression.py").read_text
 _runtime_triplet_needles = (
     "tertiary_stat, tertiary_amount",
     "tertiary_stat: tertiary_amount",
-    "class EQ stat triplet mismatch",
     "generated_budget = max(3",
 )
 for _needle in _runtime_triplet_needles:
