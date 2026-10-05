@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Fast Railway predeploy gate for Soulbound v1.12.5.
+"""Fast Railway predeploy gate for Soulbound v1.12.6.
 
 This is the normal deploy check.  It intentionally avoids assembling the full
 world/runtime.  Use predeploy_full.py when an exhaustive historical audit is
@@ -15,7 +15,7 @@ import traceback
 try:
     from storage.database import Database as _DatabaseImportSmoke
 except Exception as exc:
-    print(f"Soulbound v1.12.5 FAST PREDEPLOY FAILED: database import: {type(exc).__name__}: {exc}")
+    print(f"Soulbound v1.12.6 FAST PREDEPLOY FAILED: database import: {type(exc).__name__}: {exc}")
     traceback.print_exc()
     raise SystemExit(1)
 
@@ -36,7 +36,7 @@ try:
     )
 except Exception as exc:
     print(
-        "Soulbound v1.12.5 FAST PREDEPLOY FAILED: "
+        "Soulbound v1.12.6 FAST PREDEPLOY FAILED: "
         f"skill semantic import: {type(exc).__name__}: {exc}"
     )
     traceback.print_exc()
@@ -63,6 +63,23 @@ for _name, _result in _semantic_audits.items():
 # leaked UOSS Base AP into Mec/Engineer damage.
 from pathlib import Path as _Path
 _root = _Path(__file__).resolve().parent
+
+# Release identity guard: the login banner uses VERSION from bootstrap, while
+# CHANGELOG_PL.txt announces the current package. Reject deploys when those two
+# sources drift apart so the public banner cannot lag behind the shipped build.
+_bootstrap_source = (_root / "core/bootstrap_economy_professions.py").read_text(encoding="utf-8")
+_changelog_source = (_root / "CHANGELOG_PL.txt").read_text(encoding="utf-8")
+_version_match = __import__("re").search(r'^VERSION\s*=\s*"([^"]+)"', _bootstrap_source, __import__("re").MULTILINE)
+_package_match = __import__("re").search(r'^Aktualna paczka:\s*v([^\s]+)', _changelog_source, __import__("re").MULTILINE)
+if not _version_match:
+    _semantic_errors.append("release identity: missing canonical VERSION in bootstrap")
+elif not _package_match:
+    _semantic_errors.append("release identity: missing current package in CHANGELOG_PL.txt")
+elif _version_match.group(1) != _package_match.group(1):
+    _semantic_errors.append(
+        "release identity mismatch: "
+        f"VERSION={_version_match.group(1)} vs changelog={_package_match.group(1)}"
+    )
 _forbidden_ap_runtime = {
     "player/session_mixins/combat_skills.py": (
         'skill.get("base_power"',
@@ -80,18 +97,18 @@ for _rel, _needles in _forbidden_ap_runtime.items():
             )
 
 if _semantic_errors:
-    print("Soulbound v1.12.5 FAST PREDEPLOY FAILED: semantic contracts")
+    print("Soulbound v1.12.6 FAST PREDEPLOY FAILED: semantic contracts")
     for _error in _semantic_errors:
         print(f"ERROR: {_error}")
     raise SystemExit(1)
 
 if audit["error_count"]:
-    print("Soulbound v1.12.5 FAST PREDEPLOY FAILED")
+    print("Soulbound v1.12.6 FAST PREDEPLOY FAILED")
     for error in audit["errors"]:
         print(f"ERROR: {error}")
     raise SystemExit(1)
 
-print("Soulbound v1.12.5 FAST PREDEPLOY PASS")
+print("Soulbound v1.12.6 FAST PREDEPLOY PASS")
 print(
     "Semantic contracts: "
     f"{len(_semantic_audits)} audits PASS; AP runtime guards PASS"
