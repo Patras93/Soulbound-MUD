@@ -1335,11 +1335,12 @@ def refresh_help_truth_v11197():
     ]
 
     HELP_TOPICS["kolejka"] = [
-        "Auto-kolejka ma osobne listy fizyczne i magiczne. Pasywki nie zajmują slotów.",
-        "Na Character Level 1 każda kolejka ma 20 aktywnych slotów; co 10 Leveli dochodzi +1 slot, aż do 80 na Levelu 600.",
+        "Auto-kolejka rozdziela skille według ich realnej roli: fizyczne, magiczne i Feedback. Pasywki nie zajmują slotów.",
+        "Mec: melee i ranged trafiają do kolejki fizycznej, magic i support do magicznej, a skille gałęzi Feedback do osobnej kolejki Feedback. Starsze wpisy są przenoszone automatycznie bez kasowania konfiguracji.",
+        "Na Character Level 1 każda dostępna kolejka ma 20 aktywnych slotów; co 10 Leveli dochodzi +1 slot, aż do 80 na Levelu 600.",
         "W każdej rundzie kolejka może uruchomić maksymalnie jeden gotowy skill, ale nie zastępuje zwykłego autoataku Bronią Duszy. Pełna kolejka nie blokuje Soul Weapon Mastery ani właściwości Broni Duszy.",
-        "kolejka dodaj <skill> zapisuje aktywny skill i automatycznie włącza rotację.",
-        "kolejka lista [fizyczna|magiczna], kolejka usuń <numer>, kolejka wyczyść [typ], kolejka góra/dół oraz kolejka on/off zarządzają rotacją.",
+        "kolejka dodaj <skill> zapisuje aktywny skill w prawidłowej kolejce i automatycznie włącza rotację.",
+        "kolejka lista [fizyczna|magiczna|feedback], kolejka usuń <numer>, kolejka wyczyść [typ], kolejka góra/dół oraz kolejka on/off zarządzają rotacją.",
     ]
 
     HELP_TOPICS["dusza"] = [
