@@ -1763,6 +1763,9 @@ def refresh_public_help_surface_v11197():
     equipment.append(
         "Skróty nowych slotów: ztar / ztarcza — tarcza, zbra — bransoleta, zakc — akcesoria auto."
     )
+    equipment.append(
+        "v1.13.6: każdy element klasowego EQ klas fizycznych daje Siłę + Zręczność + Kondycję, a każdy element klasowego EQ klas magicznych daje Inteligencję + Siłę Woli + Kondycję. Dotyczy także legendarnych setów i reliktów klasowych."
+    )
     HELP_TOPICS["ekwipunek"] = equipment
     HELP_TOPICS["eq"] = list(equipment)
 
@@ -1789,7 +1792,7 @@ def help_surface_audit_v11197():
         "kolczyki": ("17", "zkol1", "zkol2"),
         "sety_klasowe": ("17", "2/4/6/8"),
         "sklepy": ("17", "bransolet"),
-        "ekwipunek": ("17", "zakc"),
+        "ekwipunek": ("17", "zakc", "Siłę + Zręczność + Kondycję", "Inteligencję + Siłę Woli + Kondycję"),
         "moogle_board": ("Black Rabite", "150"),
         "silence": ("One Enemy", "Cleanseable", "Extendable"),
         "hp_mobow": ("600", "con"),
