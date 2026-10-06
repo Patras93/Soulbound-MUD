@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""Run the complete historical runtime and game audit on a disposable database."""
+"""Run the complete production-runtime gameplay audit on a disposable database.
+
+SOULBOUND_FULL_AUDIT enables expensive semantic verification, while historical
+developer/style audit modules remain a separate opt-in lane.
+"""
 from __future__ import annotations
 
 import os
@@ -11,6 +15,7 @@ def main():
     with tempfile.TemporaryDirectory(prefix="soulbound-full-audit-") as directory:
         os.environ["SOULBOUND_DB"] = os.path.join(directory, "audit.db")
         os.environ["SOULBOUND_FULL_AUDIT"] = "1"
+        os.environ.pop("SOULBOUND_HISTORICAL_AUDITS", None)
         with socket.socket() as probe:
             probe.bind(("127.0.0.1", 0))
             os.environ["SOULBOUND_PORT"] = str(probe.getsockname()[1])
