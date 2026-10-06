@@ -36,12 +36,13 @@ def world_threat_multipliers_v0384(stage, rank="normal", nemesis=False):
     x = min(stage, cap) / float(cap)
     rank = str(rank or "normal")
 
-    # ~1.55x HP / 1.18x damage at the beginning, growing continuously to
-    # 2.75x HP / 1.80x damage at stage 600 before rank-specific pressure.
-    hp = (1.55 + 1.20 * (x ** 0.75)) * _V0384_RANK_HP.get(rank, 1.0)
-    damage = (1.18 + 0.62 * (x ** 0.78)) * _V0384_RANK_DAMAGE.get(rank, 1.0)
-    reward = (1.30 + 0.90 * (x ** 0.72)) * _V0384_RANK_REWARD.get(rank, 1.0)
-    coin = (1.25 + 0.75 * (x ** 0.72)) * _V0384_RANK_REWARD.get(rank, 1.0)
+    # v1.13.8: keep the world threatening without an endgame-sized blanket wall.
+    # Midgame remains clearly durable; player investment, not a blanket nerf,
+    # should be what makes familiar enemies feel easier over time.
+    hp = (1.25 + 0.85 * (x ** 0.80)) * _V0384_RANK_HP.get(rank, 1.0)
+    damage = (1.08 + 0.45 * (x ** 0.82)) * _V0384_RANK_DAMAGE.get(rank, 1.0)
+    reward = (1.18 + 0.82 * (x ** 0.72)) * _V0384_RANK_REWARD.get(rank, 1.0)
+    coin = (1.12 + 0.68 * (x ** 0.72)) * _V0384_RANK_REWARD.get(rank, 1.0)
 
     if nemesis:
         hp *= 1.35

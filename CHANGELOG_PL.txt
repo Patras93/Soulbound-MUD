@@ -1,5 +1,107 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.13.7
+Aktualna paczka: v1.13.8
+
+==============================================================================
+Soulbound v1.13.8 — odczuwalna progresja + Generator Core jako fallback
+==============================================================================
+
+- Generator Core nie nadpisuje już ręcznie zaprojektowanych HP, obrażeń, nagród,
+  waluty i dropów mobów podczas globalnego passu.
+- Runtime combat zapisuje bazową wartość authored/generated raz i przy każdym
+  odświeżeniu przywraca ją przed kolejnymi warstwami trudności. Zapobiega to
+  zarówno kasowaniu ręcznego balansu, jak i wielokrotnemu stackowaniu mnożników.
+- Ręcznie ustawione liczby itemów i skilli wygrywają z Generator Core;
+  generator wypełnia wyłącznie brakujące pola. price=None nadal oznacza brak sprzedaży.
+- Uporządkowano dwie późniejsze warstwy trudności, które wcześniej nakładały się
+  na Generator Core: World Threat i Global Difficulty Overdrive nadal zostawiają
+  moby twarde, ale nie pompują midgame kilkoma pełnymi mnożnikami naraz.
+- Filozofia balansu pozostaje wymagająca: zwykłe moby nie mają być papierem,
+  a Krypty zachowują własny, wyższy profil HP/damage. Nagrodą za czas ma być
+  realnie rosnąca siła gracza dzięki EQ, statom, skillom i Soul progresji.
+- Kondycja daje teraz naturalną obronę fizyczną oprócz zwiększania HP;
+  pancerz z EQ nadal dodaje własne Defense i oba źródła sumują się.
+- Klasowe sety dostają wyraźniejszy przyrost Defense na kolejnych progach,
+  szczególnie od Biegłości 50+, więc nowy komplet realnie zmniejsza otrzymywane ciosy.
+- Magiczna obrona nadal rośnie z Siłą Woli; magiczne klasowe EQ daje WILL + CON,
+  więc inwestycja w set poprawia zarówno przeżywalność fizyczną, jak i magiczną.
+- Płaska obrona nadal ma bezpieczne limity: maks. 75% bazowego ciosu zwykłego
+  moba i 60% ciosu bossa. Sprzęt ma być odczuwalny, ale przeciwnicy nie stają się papierem.
+- Komunikat walki podaje teraz, ile obrażeń zatrzymała obrona fizyczna lub magiczna.
+- Proceduralne piętra 201+ zachowują pojedynczą kontrolowaną bazę Generator Core,
+  aby authored depth formula i overdrive nie mnożyły się podwójnie na 1000/10000+.
+- Klasowe EQ ma nową krzywą trzech statystyk: Tier 1 = 9 punktów na część,
+  10 = 14, 50 = 38, 60 = 48, 100 = 100, 200 = 240, 400 = 650, 600 = 1200.
+- Fizyczne EQ nadal daje STR + DEX + CON, magiczne INT + WILL + CON.
+- Trzy linie klasowego EQ na tym samym progu nie są już kosmetycznymi kopiami:
+  wariant zbalansowany zachowuje środek, ofensywny oddaje część obrony/CON za
+  większy Attack lub Magic Attack, a pancerny robi odwrotnie.
+- Style można dowolnie mieszać między slotami. Progi klasowego seta 2/4/6/8
+  nadal liczą logiczne części tej samej aktywnej klasy, niezależnie od nazwy linii.
+- Sloty ofensywne klasowego EQ dają płaski Attack albo Magic Attack; ciężkie sloty
+  pozostają bardziej defensywne. Mec jako hybryda dostaje jednocześnie Attack
+  i Magic Attack, każdy słabszy niż pojedynczy kanał czystej klasy.
+- Lista sklepu czyta profil części pod NVDA, a porównanie EQ pokazuje także różnice
+  Attack, Magic Attack, Magic Defense i Weapon Power.
+- Sklep, crafting i drop nie są już trzema kopiami tej samej drabinki:
+  sklep klasowy daje pewny, klasowo dopasowany baseline i bonusy 2/4/6/8;
+  Kowalstwo daje Masterwork z mocniejszą obroną, wyspecjalizowanymi statami,
+  właściwością materiałową i od 1 do 5 gniazd do dalszego dopracowania;
+  materiałowe dropy mają losowy budżet około 80-110% sprzętu tego samego etapu,
+  losowy rozkład statów/właściwości, Attack/Magic Attack i sockety przy lepszych rollach.
+- Właściwe sety Krypty również skalują się z etapem: wyższa rzadkość zwiększa
+  affix, obronę, Attack/Magic Attack, właściwość procentową oraz liczbę gniazd.
+- Unikalne relikty bossów Krypty zostały przeskalowane z piętrem, aby np. relikt
+  z piętra 200 nie przegrywał automatycznie ze zwykłym sklepem tego samego etapu.
+- Wspólna krzywa mocy EQ jest teraz jednym kontraktem dla sklepu, craftingu i dropu,
+  co utrudnia ponowne rozjechanie tych źródeł w przyszłych wersjach.
+- Ekonomia zwykłych zasobów została podniesiona do sensownej wartości dla etapu:
+  pojedynczy zwykły zasób nadal jest grindem, ale nie jest już ekonomicznie zerowy.
+- Rzadkie warianty profesji są prawdziwymi jackpotami. Ryby: Albinos x3,
+  Olbrzymi x5, Złoty x8, Pradawny x15 wartości; rzadkie drewno i zioła dochodzą
+  do x20. Jackpot zwiększa też Profession/Tool XP łagodniejszym mnożnikiem.
+- Wędkarstwo ma osobną wartość trofealną gatunku: rzadkość podnosi cenę, a rekiny
+  i lewiatany dostają dodatkową premię. Dzięki temu złowienie rekina/legendarnej
+  ryby jest nagrodą samo w sobie, nawet bez rzadkiego wariantu.
+- Górnictwo: bogate/kryształowe/legendarne żyły dają większy bonus XP,
+  a Geody mają realne wypłaty złota; Doskonały i Perfekcyjny klejnot dostają
+  wyraźny komunikat jackpotu pod NVDA.
+- Archeologia: znaleziska mają etapową wartość kolekcjonerską, a pierwszy wpis
+  kolekcji daje x2 Profession XP i zwiększony Tool XP.
+- Kartografia: pierwszy pomiar nowej lokacji daje jednorazową premię odkrywcy
+  zależną od etapu terenu; ponowne pomiary nie duplikują tej premii.
+- Skrzynie bossów korzystają z etapowej krzywej złota zamiast starych wypłat
+  rzędu kilku Gold. Trudniejsze rodzaje instancji mają wyższy mnożnik.
+- Zwykłe trofea z mobów również skalują wartość z etapem i rzadkością:
+  Common pozostaje zwykłym lootem, Rare/Epic/Legendary/Mythic/Unique są coraz
+  wyraźniej warte sprzedaży.
+- Pojedyncza i hurtowa sprzedaż zasobów korzystają z tej samej wyceny, więc
+  premia rekina lub rzadkiego wariantu działa tak samo dla sprzedaj <ryba>
+  oraz sprzedaj wszystko siatka.
+- Dodano wspólny kontrakt wypłat dla aktywności, które omijały statyczny
+  quest finalizer: Kurierzy, 100% eksploracji strefy, dynamiczne zadania świata
+  oraz Ocean 2.0 korzystają teraz z tej samej etapowej ekonomii.
+- Kurierzy nadal są aktywnością powtarzalną, więc nie płacą jak wielki milestone,
+  ale nagroda rośnie z etapem postaci, długością trasy, typem paczki i reputacją.
+- Ukończenie 100% strefy jest dużą jednorazową wypłatą. Jej etap wynika ze
+  strefy, a nie z wysokiego levelu postaci wracającej po latach do starter zone.
+- Dynamiczne zadania świata korzystają z aktualnej krzywej pieniędzy, ponieważ
+  są tworzone runtime i nie przechodzą przez zwykły rebalans statycznych QUESTS.
+- Handel morski ma etapową minimalną wypłatę zależną od rozwoju postaci oraz
+  wymagań ładowni, a stara ręcznie wpisana kwota pozostaje minimum.
+- Mapa skarbu Ocean 2.0 jest prawdziwym jackpotem: wypłata skaluje się z etapem
+  postaci i Nawigacją statku zamiast zatrzymywać się na starych kilkuset Gold.
+- HELP ekonomii opisuje teraz docelową pętlę Soulbound:
+  graj/zdobywaj -> sprzedawaj/odbieraj nagrody -> odkładaj -> kupuj/craftuj/farm lepsze EQ.
+- Ceny klasowego EQ zostały powiązane z realnym zarobkiem na tym samym etapie;
+  pełny set pozostaje celem grindowym, ale nie wymaga tysięcy zwykłych zadań.
+- Bazowe zarobki questów rosną mocniej już od midgame: około 150 Gold na 50,
+  1 000 Gold na 100, 3 500 Gold na 150, 12 500 Gold na 200 i dalej do 1 000 000 Gold na 600.
+- Mini-lochy, Legendary Rare, eventy, World Bossy i Soul triale mają wyraźnie
+  mocniejszy mnożnik zarobku niż zwykłe zadania.
+- Stat EXP z normalnych questów jest lekko wyższy, a ważne questy dają mocny,
+  odczuwalny zastrzyk progresji statystyk; manual_stat_progress nadal ma pełny priorytet.
+- Brak wipe'a save'ów i brak zmian schematu SQLite.
+
 
 ==============================================================================
 Soulbound v1.13.7 — runtime finalizer obsługuje trzy statystyki klasowego EQ

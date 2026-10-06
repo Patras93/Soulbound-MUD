@@ -1,4 +1,6 @@
 from data import catalog_mutations as _catalog_mut
+import math
+import random
 ENDGAME_PROFESSION_ITEMS = {
     # Ryby endgame - Rzeka
     "soulfin_trout": {"name": "Pstrąg Duszopłetwy", "type": "resource", "price": None, "sell_gold": 25, "desc": "Rzadka ryba rzeczna. Wędka level 100+."},
@@ -162,6 +164,47 @@ _catalog_mut.catalog_update_path('ITEMS', ITEMS, (), {
     },
 })
 
+# v1.13.8: wspólna skala jakości EQ dla sklepu, craftingu i dropów.
+# Źródła mają różne profile, ale sprzęt z tego samego etapu nie może dzielić
+# przepaść typu "sklep 30 statów, drop 3 staty".
+def equipment_progression_budget_v1138(level):
+    level = max(1, min(600, int(level or 1)))
+    anchors = (
+        (1, 9), (10, 14), (20, 19), (30, 25), (40, 31),
+        (50, 38), (60, 48), (70, 58), (80, 70), (90, 82),
+        (100, 100), (150, 160), (200, 240), (300, 420),
+        (400, 650), (500, 900), (600, 1200),
+    )
+    if level <= anchors[0][0]:
+        return anchors[0][1]
+    if level >= anchors[-1][0]:
+        return anchors[-1][1]
+    for (l0, b0), (l1, b1) in zip(anchors, anchors[1:]):
+        if l0 <= level <= l1:
+            ratio = (level - l0) / float(l1 - l0)
+            return max(3, int(round(b0 + (b1 - b0) * ratio)))
+    return anchors[-1][1]
+
+
+def equipment_defense_step_v1138(level):
+    level = max(1, min(600, int(level or 1)))
+    anchors = (
+        (1, 0), (10, 1), (20, 2), (30, 3), (40, 4),
+        (50, 5), (60, 6), (70, 7), (80, 8), (90, 9),
+        (100, 10), (150, 14), (200, 18), (300, 26),
+        (400, 34), (500, 42), (600, 50),
+    )
+    if level <= anchors[0][0]:
+        return anchors[0][1]
+    if level >= anchors[-1][0]:
+        return anchors[-1][1]
+    for (l0, d0), (l1, d1) in zip(anchors, anchors[1:]):
+        if l0 <= level <= l1:
+            ratio = (level - l0) / float(l1 - l0)
+            return max(0, int(round(d0 + (d1 - d0) * ratio)))
+    return anchors[-1][1]
+
+
 BLACKSMITH_TIERS = (
     {
         "key": "iron",
@@ -279,6 +322,72 @@ BLACKSMITH_TIERS += tuple(
     for level in PROGRESSION_400_LEVELS
 )
 
+BLACKSMITH_MASTERWORK_STAT_PROFILE = {
+    "head": ("willpower", "constitution"),
+    "body": ("constitution", "willpower"),
+    "hands": ("strength", "dexterity"),
+    "legs": ("constitution", "dexterity"),
+    "feet": ("dexterity", "constitution"),
+    "charm": ("intelligence", "willpower"),
+}
+
+BLACKSMITH_MASTERWORK_PROPERTY = {
+    "head": "magic_defense_pct",
+    "body": "physical_defense_pct",
+    "hands": "physical_damage_pct",
+    "legs": "max_hp_pct",
+    "feet": "dodge_pct",
+    "charm": "magic_damage_pct",
+}
+
+
+def _blacksmith_masterwork_profile_v1138(level, slot):
+    level = max(1, min(600, int(level or 1)))
+    base_budget = equipment_progression_budget_v1138(level)
+    stat_budget = max(2, int(round(base_budget * 0.65)))
+    first, second = BLACKSMITH_MASTERWORK_STAT_PROFILE[slot]
+    first_amount = max(1, int(round(stat_budget * 0.55)))
+    second_amount = max(1, stat_budget - first_amount)
+    stats = {first: first_amount, second: second_amount}
+
+    prop = BLACKSMITH_MASTERWORK_PROPERTY[slot]
+    prop_value = round(
+        0.50 + 2.50 * ((level - 1) / 599.0) ** 0.80,
+        2,
+    )
+    properties = {prop: prop_value}
+
+    attack = 0
+    magic_attack = 0
+    if slot == "hands":
+        attack = max(1, int(round(base_budget * 0.10)))
+    elif slot == "feet":
+        attack = max(0, int(round(base_budget * 0.04)))
+    elif slot == "charm":
+        magic_attack = max(1, int(round(base_budget * 0.10)))
+    elif slot == "head":
+        magic_attack = max(0, int(round(base_budget * 0.04)))
+
+    if level >= 500:
+        sockets = 5
+    elif level >= 360:
+        sockets = 4
+    elif level >= 200:
+        sockets = 3
+    elif level >= 100:
+        sockets = 2
+    else:
+        sockets = 1
+
+    return {
+        "stats": stats,
+        "properties": properties,
+        "attack": attack,
+        "magic_attack": magic_attack,
+        "sockets": sockets,
+    }
+
+
 def _register_blacksmith_items():
     extra_ingots = (
         ("cobalt_ingot", "Kobaltowa sztabka"),
@@ -306,11 +415,14 @@ def _register_blacksmith_items():
             item_id = (
                 f"smith_{tier['key']}_{slot}"
             )
+            level = int(tier["profession_level"])
             defense = max(
                 1,
                 int(tier["base_defense"])
-                + int(defense_delta),
+                + int(defense_delta)
+                + int(round(equipment_defense_step_v1138(level) * 1.10)),
             )
+            masterwork = _blacksmith_masterwork_profile_v1138(level, slot)
             _catalog_mut.catalog_assign({
                 "name": (
                     f"{slot_name} - {tier['name']} "
@@ -319,6 +431,12 @@ def _register_blacksmith_items():
                 "type": "armor",
                 "slot": slot,
                 "defense": defense,
+                "attack": int(masterwork["attack"]),
+                "magic_attack": int(masterwork["magic_attack"]),
+                "stats": dict(masterwork["stats"]),
+                "properties": dict(masterwork["properties"]),
+                "sockets": int(masterwork["sockets"]),
+                "crafted_masterwork": True,
                 "price": None,
                 "desc": (
                     f"Wyposażenie wykute przez Kowala. "
@@ -326,7 +444,8 @@ def _register_blacksmith_items():
                     "Młot Rzemieślniczy wpływa na dostęp do lepszych materiałów "
                     "i bonus produktu. Tier Młota musi spełniać próg receptury; "
                     "pojedynczy level Młota wewnątrz Tieru nie skraca czasu. "
-                    f"Obrona +{defense}."
+                    f"Obrona +{defense}. Masterwork: statystyki, właściwość materiałowa "
+                    f"i {int(masterwork['sockets'])} gniazd(a) do dalszego dopracowania."
                 ),
                 "blacksmith_tier": tier_number,
                 "blacksmith_material": tier["key"],
@@ -593,6 +712,14 @@ MATERIAL_SLOT_STAT_PREFERENCES = {
     "relic": ("willpower", "intelligence", "strength", "constitution", "dexterity"),
 }
 
+MATERIAL_SLOT_POWER_SCALE = {
+    "head": 0.55, "body": 0.25, "shield": 0.15, "hands": 0.95,
+    "legs": 0.25, "feet": 0.45, "charm": 0.70, "ring": 0.90,
+    "necklace": 0.75, "earring": 0.85, "shoulders": 0.35, "belt": 0.30,
+    "cloak": 0.50, "bracers": 0.80, "bracelet": 0.75,
+    "accessory": 0.95, "relic": 1.10,
+}
+
 MATERIAL_SLOT_PROPERTY_PREFERENCES = {
     "head": ("magic_defense_pct", "max_mana_pct", "physical_defense_pct", "max_hp_pct", "magic_damage_pct", "physical_damage_pct", "dodge_pct"),
     "body": ("physical_defense_pct", "max_hp_pct", "magic_defense_pct", "max_mana_pct", "physical_damage_pct", "magic_damage_pct", "dodge_pct"),
@@ -615,10 +742,15 @@ MATERIAL_SLOT_PROPERTY_PREFERENCES = {
 
 
 def _material_budget_split(rng, budget, count):
+    """Losowy podział dużego budżetu bez pętli po każdym punkcie statystyki."""
     budget = max(count, int(budget))
-    values = [1] * count
-    for _ in range(budget - count):
-        values[rng.randrange(count)] += 1
+    if count <= 1:
+        return [budget]
+    # Losujemy miejsca cięcia kompozycji dodatnich liczb. Koszt zależy od liczby
+    # statów (maks. 5), a nie od budżetu, który w no-limit progression może być duży.
+    cuts = sorted(rng.sample(range(1, budget), count - 1))
+    points = [0] + cuts + [budget]
+    values = [points[i + 1] - points[i] for i in range(count)]
     rng.shuffle(values)
     return values
 
@@ -638,13 +770,22 @@ def _material_random_profile(tier, slot, variant_index, salt=0):
         f"soulbound-v0.30.37:{tier['key']}:{slot}:{int(variant_index)}:{int(salt)}"
     )
 
-    stat_budgets = (2, 3, 4, 5, 7, 9, 12, 13, 16, 20)
     property_budgets = (1, 1, 2, 3, 4, 5, 7, 8, 10, 12)
     required_mastery = corpse_material_variant_mastery(tier["key"], variant_index)
     band_levels = CORPSE_MATERIAL_MASTERY_BANDS[tier["key"]]
     substep = band_levels.index(required_mastery)
-    stat_budget = max(2, stat_budgets[tier_index - 1] + substep)
-    property_budget = property_budgets[tier_index - 1]
+
+    # Drop nie jest już ubogim kuzynem sklepu. Ten sam etap korzysta z tej samej
+    # ogólnej skali mocy, ale roll ma 80-110% budżetu i losowy rozkład statów.
+    # Dzięki temu dobry egzemplarz może być lepszy dla konkretnego buildu,
+    # podczas gdy sklep pozostaje pewnym, klasowo dopasowanym wyborem.
+    quality = 0.80 + rng.random() * 0.30
+    progression_budget = equipment_progression_budget_v1138(required_mastery)
+    stat_budget = max(2, int(round(progression_budget * quality)))
+    property_budget = (
+        property_budgets[tier_index - 1]
+        + max(0, int(round((quality - 0.80) * 8.0)))
+    )
 
     if tier_index <= 4:
         stat_count = 2
@@ -690,8 +831,59 @@ def _material_random_profile(tier, slot, variant_index, salt=0):
     properties = dict(zip(chosen_properties, property_values))
 
     _slot_label, defense_delta = CORPSE_MATERIAL_SLOT_DEFS[slot]
-    defense = max(1, int(tier["base_defense"]) + int(defense_delta) + substep // 2)
-    return defense, stats, properties
+    defense = max(
+        1,
+        int(tier["base_defense"])
+        + int(defense_delta)
+        + int(round(
+            equipment_defense_step_v1138(required_mastery)
+            * (0.88 + (quality - 0.80) * 0.55)
+        )),
+    )
+
+    # Losowy profil ofensywny może mieć Attack, Magic Attack albo oba.
+    slot_scale = float(MATERIAL_SLOT_POWER_SCALE.get(slot, 0.50))
+    flat_pool = max(
+        0,
+        int(round(progression_budget * 0.11 * slot_scale * quality)),
+    )
+    physical_score = (
+        int(stats.get("strength", 0))
+        + int(stats.get("dexterity", 0))
+        + int(round(float(properties.get("physical_damage_pct", 0)) * 2.0))
+    )
+    magic_score = (
+        int(stats.get("intelligence", 0))
+        + int(stats.get("willpower", 0))
+        + int(round(float(properties.get("magic_damage_pct", 0)) * 2.0))
+    )
+    score_total = physical_score + magic_score
+    attack = 0
+    magic_attack = 0
+    if flat_pool > 0 and score_total > 0:
+        attack = int(round(flat_pool * physical_score / float(score_total)))
+        magic_attack = max(0, flat_pool - attack)
+        if physical_score > 0 and attack <= 0:
+            attack = 1
+        if magic_score > 0 and magic_attack <= 0:
+            magic_attack = 1
+
+    if required_mastery >= 500:
+        sockets = 4
+    elif required_mastery >= 360:
+        sockets = 3
+    elif required_mastery >= 240:
+        sockets = 2
+    elif required_mastery >= 120:
+        sockets = 1
+    else:
+        sockets = 0
+    if quality >= 1.04:
+        sockets = min(5, sockets + 1)
+
+    return (
+        defense, stats, properties, attack, magic_attack, sockets, quality
+    )
 
 
 MATERIAL_TITLE_PHRASE = {
@@ -726,16 +918,27 @@ def _register_corpse_material_items():
                 item_id = f"corpse_{tier['key']}_{slot}_v{variant_index:02d}"
                 profile = None
                 for salt in range(512):
-                    defense, stats, properties = _material_random_profile(tier, slot, variant_index, salt=salt)
+                    (
+                        defense, stats, properties,
+                        attack, magic_attack, sockets, quality,
+                    ) = _material_random_profile(
+                        tier, slot, variant_index, salt=salt
+                    )
                     stat_sig = tuple(sorted((str(k), int(v)) for k, v in stats.items()))
                     if stat_sig not in seen_stats:
-                        profile = (defense, stats, properties, stat_sig)
+                        profile = (
+                            defense, stats, properties, attack,
+                            magic_attack, sockets, quality, stat_sig,
+                        )
                         break
                 if profile is None:
                     raise RuntimeError(
                         f"v0.30.37: nie udało się utworzyć unikalnych statów {tier['key']} {slot} wariant {variant_index}"
                     )
-                defense, stats, properties, stat_sig = profile
+                (
+                    defense, stats, properties, attack,
+                    magic_attack, sockets, quality, stat_sig,
+                ) = profile
                 seen_stats.add(stat_sig)
                 required_mastery = corpse_material_variant_mastery(tier["key"], variant_index)
                 name = _material_variant_title(tier, slot, stats, variant_index, required_mastery)
@@ -757,6 +960,10 @@ def _register_corpse_material_items():
                     "type": "armor",
                     "slot": slot,
                     "defense": defense,
+                    "attack": int(attack),
+                    "magic_attack": int(magic_attack),
+                    "sockets": int(sockets),
+                    "drop_quality": round(float(quality), 3),
                     "price": None,
                     "rarity": tier["rarity"],
                     "rarity_name": tier["rarity_name"],
@@ -779,28 +986,28 @@ FISH_RARE_VARIANTS = {
     "albino": {
         "label": "Albinos",
         "name_prefix": "Albinos - ",
-        "value_mult": 2,
+        "value_mult": 3,
         "weight": 50,
         "desc": "Rzadki albinos danego gatunku.",
     },
     "golden": {
         "label": "Złoty",
         "name_prefix": "Złoty okaz - ",
-        "value_mult": 4,
+        "value_mult": 8,
         "weight": 25,
         "desc": "Bardzo rzadki złoty wariant.",
     },
     "giant": {
         "label": "Olbrzymi",
         "name_prefix": "Olbrzymi okaz - ",
-        "value_mult": 3,
+        "value_mult": 5,
         "weight": 18,
         "desc": "Nienaturalnie duży okaz gatunku.",
     },
     "ancient": {
         "label": "Pradawny",
         "name_prefix": "Pradawny okaz - ",
-        "value_mult": 8,
+        "value_mult": 15,
         "weight": 7,
         "desc": "Ekstremalnie rzadki pradawny okaz.",
     },
@@ -810,28 +1017,28 @@ WOOD_RARE_VARIANTS = {
     "lush": {
         "label": "Bujne",
         "name_prefix": "Bujne drewno - ",
-        "value_mult": 2,
+        "value_mult": 3,
         "weight": 50,
         "desc": "Wyjątkowo zdrowe i gęste drewno.",
     },
     "ancient": {
         "label": "Pradawne",
         "name_prefix": "Pradawne drewno - ",
-        "value_mult": 4,
+        "value_mult": 7,
         "weight": 30,
         "desc": "Drewno pochodzące z bardzo starego drzewa.",
     },
     "crystal": {
         "label": "Kryształowe",
         "name_prefix": "Kryształowe drewno - ",
-        "value_mult": 6,
+        "value_mult": 12,
         "weight": 15,
         "desc": "Rzadkie drewno przesiąknięte kryształową energią.",
     },
     "legendary": {
         "label": "Legendarne",
         "name_prefix": "Legendarne drewno - ",
-        "value_mult": 10,
+        "value_mult": 20,
         "weight": 5,
         "desc": "Najrzadszy wariant drewna.",
     },
@@ -841,28 +1048,28 @@ HERB_RARE_VARIANTS = {
     "lush": {
         "label": "Bujna",
         "name_prefix": "Bujna roślina - ",
-        "value_mult": 2,
+        "value_mult": 3,
         "weight": 50,
         "desc": "Wyjątkowo dorodny okaz rośliny.",
     },
     "glowing": {
         "label": "Lśniąca",
         "name_prefix": "Lśniąca roślina - ",
-        "value_mult": 4,
+        "value_mult": 7,
         "weight": 25,
         "desc": "Rzadki okaz emanujący delikatnym blaskiem.",
     },
     "ancient": {
         "label": "Pradawna",
         "name_prefix": "Pradawna roślina - ",
-        "value_mult": 6,
+        "value_mult": 12,
         "weight": 18,
         "desc": "Bardzo stary i wyjątkowo silny okaz.",
     },
     "legendary": {
         "label": "Legendarna",
         "name_prefix": "Legendarna roślina - ",
-        "value_mult": 10,
+        "value_mult": 20,
         "weight": 7,
         "desc": "Najrzadszy wariant rośliny.",
     },
@@ -1032,6 +1239,39 @@ def fish_species_rarity(item_id):
 
 def fish_rarity_label(item_id):
     return FISH_RARITY_LABELS_PL[fish_species_rarity(item_id)]
+
+
+def fish_trophy_value_multiplier_v1138(item_id):
+    """Dodatkowa wartość gatunku niezależna od rzadkiego wariantu okazu."""
+    base_id = base_fish_species_id(item_id)
+    rarity = fish_species_rarity(base_id)
+    mult = {
+        "common": 1.00,
+        "uncommon": 1.25,
+        "rare": 1.75,
+        "epic": 2.75,
+        "legendary": 4.50,
+    }.get(rarity, 1.0)
+    name = normalize_lookup_text(ITEMS.get(base_id, {}).get("name", base_id))
+    if "rekin" in name or "shark" in name or "żarłacz" in name or "zarlacz" in name:
+        mult *= 1.50
+    if any(word in name for word in ("lewiatan", "leviathan", "serpent", "smok", "drake")):
+        mult *= 2.00
+    return max(1.0, float(mult))
+
+
+def fish_jackpot_xp_multiplier_v1138(item_id):
+    item = ITEMS.get(item_id, {})
+    variant_mult = max(1.0, float(item.get("rare_value_multiplier", 1.0) or 1.0))
+    trophy_mult = fish_trophy_value_multiplier_v1138(item_id)
+    # XP rośnie dużo łagodniej niż wartość sprzedaży, żeby jackpot nie omijał grindu.
+    return min(4.0, 1.0 + (math.sqrt(variant_mult * trophy_mult) - 1.0) * 0.55)
+
+
+def rare_resource_xp_multiplier_v1138(item_id):
+    item = ITEMS.get(item_id, {})
+    value_mult = max(1.0, float(item.get("rare_value_multiplier", 1.0) or 1.0))
+    return min(3.5, 1.0 + (math.sqrt(value_mult) - 1.0) * 0.50)
 
 def fish_species_habitats(item_id):
     item_id = base_fish_species_id(item_id)
@@ -1274,10 +1514,10 @@ CLASS_EQUIPMENT_SETS = {
     },
 }
 
-# v0.9.11: każda klasa ma kilka odrębnych linii stylistycznych EQ.
-# Pierwsza linia zachowuje stare ID/nazwy dla zgodności save'ów; pozostałe
-# mają identyczny budżet statystyk i obrony, więc zwiększają różnorodność
-# bez power creepu.
+# v0.9.11 / v1.13.8: każda klasa ma trzy odrębne linie EQ.
+# Pierwsza linia zachowuje stare ID/nazwy dla zgodności save'ów. Od v1.13.8
+# linie mają realne profile pojedynczych części: zbalansowany, ofensywny i
+# pancerny. Można je dowolnie mieszać; progi setu są liczone po klasie/slotach.
 CLASS_EQUIPMENT_STYLES = {
     "Wojownik": ("Przysięgi", "Żelaznej Straży", "Lwiego Serca"),
     "Berserker": ("Krwawej Furii", "Rozbitego Łańcucha", "Wojennego Szału"),

@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 """Soulbound v1.12.4 - final income balance for the 1-600 economy.
 
-This pass runs after authored world/quest expansions.  It does not create money
-for item-only quests and does not change combat drops, Ocean contracts or item
-sell values.  It only keeps positive quest currency inside a progression band
-that remains competitive with those systems without making 5,000,000 Gold
-late-game equipment trivial.
+This pass runs after authored world/quest expansions. It keeps positive quest
+currency inside a progression band and also exposes shared payout floors for
+runtime systems that bypass the static quest finalizer (Courier, exploration
+milestones, dynamic world tasks and Ocean 2.0). Item-only quests still remain
+item-only. The goal is a coherent loop: play -> earn/sell -> afford meaningful
+equipment, without making 5,000,000 Gold late-game equipment trivial.
 """
 from __future__ import annotations
 
@@ -20,43 +21,65 @@ from data.quests import QUESTS
 from world.equipment_help import HELP_TOPICS, HELP_TOPIC_ALIASES
 
 
-V1124_ECONOMY_INCOME_VERSION = "1.12.4"
+V1124_ECONOMY_INCOME_VERSION = "1.13.8"
 V1124_ECONOMY_MAX_STAGE = 600
 
 # Values are internal silver. 100 silver = 1 Gold.
-# The late curve is intentionally comparable to Ocean contracts:
-# stage 300 ~= 25k Gold, 400 ~= 150k, 600 ~= 400k before quest modifiers.
+# v1.13.8: midgame starts paying meaningfully and late game keeps scaling.
+# stage 100 ~= 1k Gold, 300 ~= 75k, 400 ~= 300k, 600 ~= 1M before quest modifiers.
 V1124_QUEST_INCOME_ANCHORS = (
+    # Internal silver. The midgame is deliberately rewarding: a player should
+    # feel a payout at 50-100 instead of waiting for endgame economy to start.
     (1, 1_200),
-    (50, 7_500),
-    (100, 25_000),
-    (150, 75_000),
-    (200, 250_000),
-    (250, 750_000),
-    (300, 2_500_000),
-    (350, 7_500_000),
-    (400, 15_000_000),
-    (500, 25_000_000),
-    (600, 40_000_000),
+    (50, 15_000),
+    (100, 100_000),
+    (150, 350_000),
+    (200, 1_250_000),
+    (250, 3_500_000),
+    (300, 7_500_000),
+    (350, 15_000_000),
+    (400, 30_000_000),
+    (500, 60_000_000),
+    (600, 100_000_000),
 )
 
+V1138_ACTIVITY_INCOME_MULTIPLIER = {
+    # Repeatable/small activities stay below a full quest payout.
+    "courier": 0.30,
+    "dynamic_world": 0.85,
+    # Milestones and treasure are supposed to feel like a jackpot.
+    "exploration100": 3.00,
+    "ocean_trade": 0.55,
+    "ocean_treasure": 2.50,
+}
+
+
+def v1138_activity_income(stage: int, kind: str, difficulty: float = 1.0) -> int:
+    """Shared payout floor for systems that bypass the normal quest finalizer."""
+    stage = max(1, min(V1124_ECONOMY_MAX_STAGE, int(stage or 1)))
+    mult = float(V1138_ACTIVITY_INCOME_MULTIPLIER.get(str(kind), 1.0))
+    difficulty = max(0.10, float(difficulty or 1.0))
+    return max(1, int(round(v1124_income_anchor(stage) * mult * difficulty)))
+
+
 V1124_QUEST_KIND_MULTIPLIER = {
-    "talk_npc": 0.55,
-    "talk_class_teacher": 0.55,
-    "deliver_npc": 0.75,
+    "talk_npc": 0.65,
+    "talk_class_teacher": 0.65,
+    "deliver_npc": 0.90,
     "collect": 1.00,
     "collect_resource": 1.00,
     "collect_category": 1.10,
-    "collect_distinct_category": 1.15,
-    "collect_resource_set": 1.20,
-    "craft_set": 1.25,
-    "kill": 1.15,
-    "explore_frontier": 1.10,
-    "discover_secret": 1.30,
-    "mini_dungeon": 1.50,
-    "legendary_rare": 1.70,
-    "world_event": 1.80,
-    "world_boss": 2.20,
+    "collect_distinct_category": 1.18,
+    "collect_resource_set": 1.25,
+    "craft_set": 1.35,
+    "kill": 1.25,
+    "explore_frontier": 1.20,
+    "discover_secret": 1.55,
+    # These are the "worth waiting for" payouts.
+    "mini_dungeon": 2.00,
+    "legendary_rare": 2.50,
+    "world_event": 2.75,
+    "world_boss": 3.50,
 }
 
 
@@ -137,7 +160,7 @@ def v1124_quest_income_target(quest) -> int:
     # Soul trials are milestone progression and should feel more valuable than
     # ordinary jobs at the same stage, while still respecting the global band.
     if int(quest.get("required_soul_level", 0) or 0) > 0:
-        base *= 1.65
+        base *= 2.25
 
     return max(1, int(round(base)))
 
@@ -190,12 +213,20 @@ ECONOMY_INCOME_BALANCE_V1124 = v1124_rebalance_positive_quest_currency()
 
 def economy_income_audit_v1124():
     errors = []
-    if v1124_income_anchor(300) != 2_500_000:
+    if v1124_income_anchor(50) != 15_000:
+        errors.append("stage 50 anchor changed")
+    if v1124_income_anchor(100) != 100_000:
+        errors.append("stage 100 anchor changed")
+    if v1124_income_anchor(300) != 7_500_000:
         errors.append("stage 300 anchor changed")
-    if v1124_income_anchor(400) != 15_000_000:
+    if v1124_income_anchor(400) != 30_000_000:
         errors.append("stage 400 anchor changed")
-    if v1124_income_anchor(600) != 40_000_000:
+    if v1124_income_anchor(600) != 100_000_000:
         errors.append("stage 600 anchor changed")
+    if v1138_activity_income(100, "courier") != 30_000:
+        errors.append("courier activity income floor changed")
+    if v1138_activity_income(100, "exploration100") != 300_000:
+        errors.append("exploration jackpot income floor changed")
 
     board = ITEMS.get("moogle_board") or {}
     if int(board.get("fur_shop_gold_cost", 0) or 0) != 5_000_000:
@@ -232,16 +263,18 @@ def economy_income_audit_v1124():
 ECONOMY_INCOME_AUDIT_V1124 = economy_income_audit_v1124()
 if ECONOMY_INCOME_AUDIT_V1124["error_count"]:
     raise RuntimeError(
-        "Economy Income Audit v1.12.4 failed: "
+        "Economy Income Audit v1.13.8 failed: "
         + "; ".join(ECONOMY_INCOME_AUDIT_V1124["errors"])
     )
 
 
 HELP_TOPICS["ekonomia"] = [
-    "Ekonomia 1-600 ma kilka równoległych dróg zarobku: walka, bossowie, questy, profesje, sprzedaż zasobów i handel morski.",
-    "Zwykła walka daje stały dochód, bossowie większe jednorazowe wypłaty, a powtarzalne zadania rosną wraz z poziomem celu zamiast zatrzymywać się na starej niskiej skali.",
-    "Docelowa baza zadania wynosi około: poziom 300 — 25 000 Gold, 350 — 75 000 Gold, 400 — 150 000 Gold, 500 — 250 000 Gold, 600 — 400 000 Gold; rodzaj i trudność zadania modyfikują tę wartość.",
-    "Handel morski pozostaje mocną aktywnością zarobkową, ale nie jest już jedyną sensowną drogą do wielomilionowych zakupów.",
+    "Ekonomia 1-600 ma kilka równoległych dróg zarobku: walka, bossowie, questy, profesje, sprzedaż zasobów, Kurierzy, eksploracja i handel morski.",
+    "Główna pętla gry to: grasz i zdobywasz rzeczy -> sprzedajesz lub kończysz aktywności -> odkładasz realną sumę -> kupujesz, craftujesz albo farmisz wyraźnie lepsze EQ.",
+    "Zwykła aktywność daje sensowny dochód, ale rzadkie sukcesy są jackpotami: rzadki połów, legendarna żyła, wyjątkowy drop, skarb, boss albo 100 procent strefy mają być wyraźnie odczuwalne.",
+    "Docelowa baza pełnego zadania wynosi około: poziom 50 — 150 Gold, 100 — 1 000 Gold, 150 — 3 500 Gold, 200 — 12 500 Gold, 300 — 75 000 Gold, 400 — 300 000 Gold, 500 — 600 000 Gold, 600 — 1 000 000 Gold; rodzaj i trudność zadania modyfikują tę wartość.",
+    "Powtarzalne aktywności, np. Kurierzy i handel morski, płacą mniej niż duży jednorazowy milestone, ale mają realnie finansować kolejne zakupy zamiast dawać symboliczne grosze.",
+    "100 procent strefy oraz mapy skarbów są milestone/jackpot payouts; ich nagroda skaluje się z etapem zawartości, nie z przypadkowo wysokim levelem po powrocie do starej strefy.",
     "Questy celowo bez waluty, dające przedmioty lub nagrody progresji, pozostają bez wypłaty pieniężnej.",
     "Ceny źródłowego wyposażenia UOSSMUD, np. 5 000 000 Gold u Wattsa, nie są automatycznie obniżane przez ten balans.",
 ]

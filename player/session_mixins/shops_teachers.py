@@ -10,7 +10,13 @@ from core.progression_600 import CHARACTER_MAX_LEVEL, SKILL_MAX_LEVEL
 from core.progression_resources import skill_xp_to_next
 from network.protocol_gameplay_utils import find_by_name, normalize_lookup_text
 from systems.content_registry import NPCS
-from systems.equipment_crafting import MINING_STORAGE_IDS, SHOPS, SHOP_SELLERS, class_equipment_unlocked_tier
+from systems.equipment_crafting import (
+    MINING_STORAGE_IDS,
+    SHOPS,
+    SHOP_SELLERS,
+    class_equipment_style_role,
+    class_equipment_unlocked_tier,
+)
 from systems.items_resources import (
     CLASS_EQUIPMENT_ITEMS_BY_CLASS_TIER,
     CLASS_SHOP_CLASSES_BY_ROOM,
@@ -135,6 +141,17 @@ class SessionShopsTeachersMixin:
             cashback = self.shop_cashback_silver({"price": base_price}) if source_gold is not None else self.shop_cashback_silver(item)
             final_price = max(0, base_price - cashback)
             await self.send(f"INFORMACJE O SKLEPIE {number}. {item['name']}.")
+            if item.get("class_shop_item"):
+                style_index = (
+                    2 if "_s2_" in str(item_id)
+                    else 3 if "_s3_" in str(item_id)
+                    else 1
+                )
+                await self.send(
+                    "Profil klasowego EQ: "
+                    + class_equipment_style_role(item.get("required_class"), style_index)
+                    + ". Style tej samej klasy można mieszać bez utraty progów setu 2/4/6/8."
+                )
             await self.send(self.format_item_description(item_id, item))
             if cashback > 0:
                 await self.send(
@@ -225,7 +242,20 @@ class SessionShopsTeachersMixin:
                     price_text = currency_reading_text(effective, 0, 0)
                 lock_text = self.shop_offer_lock_text(item_id, item)
                 state = f" — {lock_text}" if lock_text else ""
-                await self.send(f"{number}. {item['name']} — cena {price_text}{state}.")
+                style_role = ""
+                if item.get("class_shop_item"):
+                    style_index = (
+                        2 if "_s2_" in str(item_id)
+                        else 3 if "_s3_" in str(item_id)
+                        else 1
+                    )
+                    style_role = class_equipment_style_role(
+                        item.get("required_class"), style_index
+                    )
+                style_text = f" — profil {style_role}" if style_role else ""
+                await self.send(
+                    f"{number}. {item['name']}{style_text} — cena {price_text}{state}."
+                )
             await self.send(
                 "Podgląd przed zakupem: shop info <numer>, np. shop info 1. "
                 "Kupno: kup <numer> lub kup <numer> <ilość>. "

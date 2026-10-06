@@ -1617,7 +1617,8 @@ class SessionSkillLearningMixin:
             await self.send_combat(
                 f"{template['name']} atakuje. Typ obrażeń: "
                 f"{'magiczne' if damage_type == 'magic' else 'fizyczne'}. "
-                f"Otrzymujesz {incoming} obrażeń po redukcji przez {defense_name}. "
+                f"{defense_name.capitalize()} zatrzymuje {reduction} obrażeń. "
+                f"Otrzymujesz {incoming}. "
                 f"Twoje życie: {max(0, self.current_hp)} z {self.max_hp()}.",
                 "normal",
             )

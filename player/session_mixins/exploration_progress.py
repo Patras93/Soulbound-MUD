@@ -8,6 +8,7 @@ from core.classes_skills import ROOMS
 from core.mines_threat import ITEMS
 from network.protocol_gameplay_utils import find_by_name, normalize_lookup_text
 from systems.content_registry import NPCS, QUESTS
+from systems.economy_income_balance import v1138_activity_income
 from world.dynamic_content import (
     ACHIEVEMENT_TRACKS,
     ALL_EXPLORATION_ROOMS,
@@ -677,13 +678,35 @@ class SessionExplorationProgressMixin:
             title_name = _zone_title(zone)
             reward_item = EXPLORATION_REWARD_ITEMS[zone]
             soul_xp = max(250, min(5000, room_count * 50))
-            silver = max(500, room_count * 100)
-            gold = max(1, room_count // 10)
+            zone_rooms = EXPLORATION_ZONE_ROOMS.get(zone, ())
+            stages = []
+            for room_id in zone_rooms:
+                room = ROOMS.get(room_id, {})
+                for key in (
+                    "recommended_mastery", "recommended_level",
+                    "generator_level", "level",
+                ):
+                    try:
+                        value = int(room.get(key, 0) or 0)
+                    except (TypeError, ValueError):
+                        value = 0
+                    if value > 0:
+                        stages.append(value)
+            fallback_stage = max(
+                1,
+                int(getattr(self.character, "character_level", 1) or 1),
+                int(getattr(self.character, "soul_level", 1) or 1),
+            )
+            stage = max(stages) if stages else fallback_stage
+            room_factor = 1.0 + min(0.50, max(0, room_count - 10) / 100.0)
+            silver = v1138_activity_income(
+                stage, "exploration100", room_factor
+            )
+            gold = 0
 
             await self.send(f"Eksploracja ukończona: {zone}, 100 procent.")
             await self.grant_soul_xp(soul_xp)
             self.character.silver += silver
-            self.character.gold += gold
             self.server.db.add_item(self.account_id, reward_item, 1)
             self.server.db.save_character(self.character)
             await self.send(

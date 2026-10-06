@@ -29,6 +29,7 @@ from player.session_mixins.inventory_equipment import CURRENCY_SQLITE_SAFE_TOTAL
 from player.session_mixins.courier_party import share_courier_package_with_party_v10019
 from player.session_mixins.shops_teachers import currency_reading_text
 from player.session_mixins.skill_learning import normalize_lookup_text
+from systems.economy_income_balance import v1138_activity_income
 
 
 class SessionCourierDeliveryMixin:
@@ -236,7 +237,28 @@ class SessionCourierDeliveryMixin:
             distance = len(route) if route is not None else 0
             package_key = eligible_keys[(index - 1) % len(eligible_keys)]
             spec = COURIER_PACKAGE_CLASSES_V0530[package_key]
-            base = max(300, 180 + distance * 95)
+            # v1.13.8: stara kwota 180+95/pokój była symboliczna wobec
+            # bieżącej ekonomii. Kurier pozostaje repeatable, więc płaci mniej
+            # niż pełny quest, ale realnie zasila budżet na zakupy/EQ.
+            try:
+                stage = max(
+                    1,
+                    int(getattr(self.character, "character_level", 1) or 1),
+                    int(getattr(self.character, "soul_level", 1) or 1),
+                    int(self.highest_active_class_mastery()),
+                )
+            except Exception:
+                stage = max(
+                    1,
+                    int(getattr(self.character, "character_level", 1) or 1),
+                    int(getattr(self.character, "soul_level", 1) or 1),
+                )
+            route_factor = 1.0 + min(0.75, max(0, distance) / 80.0)
+            base = max(
+                300,
+                180 + distance * 95,
+                v1138_activity_income(stage, "courier", route_factor),
+            )
             city_rep = self.server.db.city_reputation_v0710(self.account_id, destination_city)
             city_rank = city_rank_for_reputation_v0710(city_rep)
             payout_mult = (

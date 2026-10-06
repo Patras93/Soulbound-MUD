@@ -13,7 +13,12 @@ from core.bootstrap_economy_professions import (
     profession_rank_name,
 )
 from core.mines_threat import EQUIPMENT_SLOT_ALIASES, ITEMS, is_character_bound_item
-from core.progression_resources import v0190_resource_sale_coins, v096_fishing_reward_scale
+from core.progression_resources import (
+    v0190_resource_sale_coins,
+    v0190_resource_stage,
+    v096_fishing_reward_scale,
+    v1138_resource_sale_base_coins,
+)
 from network.protocol_gameplay_utils import find_by_name, normalize_lookup_text
 from systems.content_registry import NPCS
 from systems.crafting_expansion import CRAFT_MATERIAL_STORAGE_IDS
@@ -24,12 +29,26 @@ from systems.items_resources import (
     FISH_STORAGE_IDS,
     HERB_STORAGE_IDS,
     WOOD_STORAGE_IDS,
+    fish_trophy_value_multiplier_v1138,
     v096_fish_price_scale,
 )
 from world.economy_quests import V0863_MATERIAL_SALE_BASE_SILVER
 
 
 class SessionSalesMixin:
+
+    def profession_resource_sale_value_v1138(self, item_id, item):
+            total = int(v0190_resource_sale_coins(item_id, item))
+            if item_id in FISH_STORAGE_IDS:
+                total = max(
+                    1,
+                    int(round(
+                        total
+                        * v096_fish_price_scale(item_id)
+                        * fish_trophy_value_multiplier_v1138(item_id)
+                    )),
+                )
+            return max(1, total)
 
     def generic_item_sale_allowed_here(self):
             # Zwykłe przedmioty można odsprzedawać w każdej lokacji z normalnym sklepem.
@@ -114,13 +133,36 @@ class SessionSalesMixin:
                     if smith_cap is not None:
                         total = min(total, smith_cap)
                     return {"silver": total, "gold": 0, "mithril": 0}
-                if item_id in FISH_STORAGE_IDS:
-                    total = legacy_currency_to_coins(
+
+                profession_storage_ids = (
+                    FISH_STORAGE_IDS
+                    | MINING_STORAGE_IDS
+                    | WOOD_STORAGE_IDS
+                    | HERB_STORAGE_IDS
+                )
+                if item_id in profession_storage_ids:
+                    authored_total = legacy_currency_to_coins(
                         explicit["silver"], explicit["gold"], explicit["mithril"]
                     )
-                    total = max(1, int(round(total * v096_fish_price_scale(item_id))))
+                    if item_id in FISH_STORAGE_IDS:
+                        authored_total = max(
+                            1,
+                            int(round(
+                                authored_total
+                                * v096_fish_price_scale(item_id)
+                                * fish_trophy_value_multiplier_v1138(item_id)
+                            )),
+                        )
+                    total = max(
+                        authored_total,
+                        self.profession_resource_sale_value_v1138(item_id, item),
+                    )
                     return {"silver": total, "gold": 0, "mithril": 0}
                 return explicit
+
+            if item.get("type") in {"resource", "craft_material"}:
+                total = self.profession_resource_sale_value_v1138(item_id, item)
+                return {"silver": total, "gold": 0, "mithril": 0}
 
             # Przedmiot kupny: sklep odkupuje za 50% ceny bazowej.
             price = item.get("price")
@@ -138,12 +180,26 @@ class SessionSalesMixin:
             # v0.9.15: zwykły loot z mobów (np. kły i trofea) można
             # sprzedać w każdym normalnym sklepie. Jawne sell_* nadal ma pierwszeństwo.
             if item.get("type") == "loot":
-                rarity_bonus = {
-                    "common": 0, "rare": 20, "epic": 60,
-                    "legendary": 150, "mythic": 350, "unique": 600,
-                }.get(str(item.get("rarity") or "common"), 0)
-                loot_value = max(1, int(item.get("loot_sell_silver", 25) or 25))
-                return {"silver": loot_value + rarity_bonus, "gold": 0, "mithril": 0}
+                stage = v0190_resource_stage(item_id, item)
+                rarity_mult = {
+                    "common": 0.50,
+                    "uncommon": 0.75,
+                    "rare": 1.25,
+                    "epic": 2.25,
+                    "legendary": 4.00,
+                    "mythic": 7.00,
+                    "unique": 10.00,
+                }.get(str(item.get("rarity") or "common"), 0.50)
+                progression_value = max(
+                    1,
+                    int(round(v1138_resource_sale_base_coins(stage) * rarity_mult)),
+                )
+                authored_value = max(1, int(item.get("loot_sell_silver", 25) or 25))
+                return {
+                    "silver": max(authored_value, progression_value),
+                    "gold": 0,
+                    "mithril": 0,
+                }
 
             # v0.8.61: zdobyty/craftowany ekwipunek bez ceny sklepowej ma
             # wartość zgodną z materiałem, statystykami i właściwościami.
@@ -820,8 +876,12 @@ class SessionSalesMixin:
                 await self.send("Nie masz tego surowca.")
                 return
 
-            # v0.19: sprzedaż zasobów skaluje się razem z globalną ekonomią.
-            reward_coins = v0190_resource_sale_coins(item_id, item)
+            # v1.13.8: pojedyncza i hurtowa sprzedaż korzystają z tej samej
+            # wartości, łącznie z jackpotem rzadkiego wariantu i premią gatunku ryby.
+            values = self.generic_item_sale_value(item_id, item)
+            reward_coins = legacy_currency_to_coins(
+                values["silver"], values["gold"], values["mithril"]
+            )
             self.character.silver += reward_coins
             await self.gain_charisma_from_sale(reward_coins)
             await self.announce_profession_sale_xp(source_container, 1)

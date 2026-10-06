@@ -210,6 +210,20 @@ class SessionCombatDamageMixin:
                 else:
                     reduction = float(self.defense())
 
+                # Match real combat: flat Defense can strongly reward equipment,
+                # but cannot erase enemy attacks completely. Bosses retain the
+                # stricter 60% cap; ordinary enemies can be reduced by up to 75%.
+                is_boss = bool(
+                    template.get("boss")
+                    or template.get("world_boss")
+                    or template.get("crypt_boss")
+                    or template.get("mythic_crypt_boss")
+                    or template.get("astral_boss")
+                    or template.get("mythic_astral_boss")
+                    or template.get("boss_mechanic")
+                )
+                defense_cap_ratio = 0.60 if is_boss else 0.75
+                reduction = min(reduction, raw * defense_cap_ratio)
                 incoming = max(1.0, raw - reduction)
 
                 if damage_type == "physical":

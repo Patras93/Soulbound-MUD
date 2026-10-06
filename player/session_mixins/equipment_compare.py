@@ -30,6 +30,12 @@ class SessionEquipmentCompareV0600Mixin:
         defense = int(item.get("defense", 0) or 0)
         stats = {str(k): int(v or 0) for k, v in (item.get("stats") or {}).items()}
         props = {str(k): float(v or 0) for k, v in (item.get("properties") or {}).items()}
+        power = {
+            "attack": int(item.get("attack", 0) or 0),
+            "magic_attack": int(item.get("magic_attack", 0) or 0),
+            "magic_defense": int(item.get("magic_defense", 0) or 0),
+            "weapon_power": int(item.get("weapon_power", 0) or 0),
+        }
 
         reforge = self.server.db.equipment_reforge(self.account_id, item_id)
         affix = str(reforge["affix"]) if reforge else str(item.get("affix") or "")
@@ -71,7 +77,14 @@ class SessionEquipmentCompareV0600Mixin:
         except Exception as exc:
             print(f"EQUIPMENT_COMPARE_SOCKET_ERROR: {type(exc).__name__}: {exc}", flush=True)
             sockets = 0
-        return {"defense": defense, "stats": stats, "properties": props, "sockets": sockets, "upgrade": upgrade_level}
+        return {
+            "defense": defense,
+            "stats": stats,
+            "properties": props,
+            "power": power,
+            "sockets": sockets,
+            "upgrade": upgrade_level,
+        }
 
     def _format_delta_v0600(self, value, percent=False):
         if abs(float(value)) < 1e-9:
@@ -91,6 +104,16 @@ class SessionEquipmentCompareV0600Mixin:
             diff = int(new["stats"].get(key, 0)) - int(old["stats"].get(key, 0))
             if diff:
                 parts.append(f"{CLASS_SET_STAT_NAMES.get(key, key)} {self._format_delta_v0600(diff)}")
+        power_labels = {
+            "attack": "Attack",
+            "magic_attack": "Magic Attack",
+            "magic_defense": "Magic Defense",
+            "weapon_power": "Weapon Power",
+        }
+        for key in sorted(set(new.get("power", {})) | set(old.get("power", {}))):
+            diff = int(new.get("power", {}).get(key, 0)) - int(old.get("power", {}).get(key, 0))
+            if diff:
+                parts.append(f"{power_labels.get(key, key)} {self._format_delta_v0600(diff)}")
         pkeys = sorted(set(new["properties"]) | set(old["properties"]))
         for key in pkeys:
             diff = float(new["properties"].get(key, 0.0)) - float(old["properties"].get(key, 0.0))
@@ -130,7 +153,10 @@ class SessionEquipmentCompareV0600Mixin:
         await self.send(self.format_item_description(item_id, item))
         if not equipped_rows:
             new = self._comparison_snapshot_v0600(item_id, item, None)
-            zero = {"defense": 0, "stats": {}, "properties": {}, "sockets": 0, "upgrade": 0}
+            zero = {
+                "defense": 0, "stats": {}, "properties": {}, "power": {},
+                "sockets": 0, "upgrade": 0,
+            }
             parts = self._comparison_delta_parts_v0600(new, zero)
             await self.send("W tym slocie nic nie masz założonego. Zysk po założeniu: " + (", ".join(parts) if parts else "brak liczbowych statystyk") + ".")
             return

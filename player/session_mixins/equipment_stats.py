@@ -307,6 +307,8 @@ class SessionEquipmentStatsMixin:
                 class_name = item.get("required_class")
                 if class_name not in active:
                     continue
+                # Styl/linię celowo ignorujemy: gracz może mieszać zbalansowane,
+                # ofensywne i pancerne części tej samej klasy bez utraty progów setu.
                 # ring1/ring2, charm1/charm2, earring1/2 i accessory1/2
                 # są pozycjami użytkowymi, ale dla progu setu liczy się jeden
                 # logiczny typ części. Shield oraz nowe Bracelet/Accessory są
@@ -397,7 +399,6 @@ class SessionEquipmentStatsMixin:
                 count = int(counts.get(class_name, 0))
                 if count <= 0:
                     continue
-                set_name = CLASS_EQUIPMENT_SETS[class_name]["set_name"]
                 active = []
                 if count >= 2:
                     stats = CLASS_SET_BONUSES[class_name]["stats"]
@@ -421,8 +422,8 @@ class SessionEquipmentStatsMixin:
                     )
                 state = "; ".join(active) if active else "brak aktywnego progu"
                 lines.append(
-                    f"Set klasowy {class_name}, Zestaw {set_name}: "
-                    f"{count}/{threshold_slot_count} części liczonych do progów. {state}."
+                    f"Set klasowy {class_name}: {count}/{threshold_slot_count} części "
+                    f"liczonych do progów. Linie można mieszać. {state}."
                 )
             if not lines:
                 lines.append("Brak założonych części aktywnego zestawu klasowego.")
@@ -841,7 +842,13 @@ class SessionEquipmentStatsMixin:
             return max(0, value)
 
     def defense(self):
-            total = 0
+            # v1.13.8: armor and Constitution both matter. New EQ therefore
+            # improves survivability twice in a readable way: its explicit
+            # Defense and its CON bonus both reduce incoming physical damage.
+            total = generator_core_v027.physical_defense_base(
+                self.character.character_level,
+                self.effective_constitution(),
+            )
             for row in self.server.db.equipment(self.account_id):
                 item = ITEMS.get(row["item_id"])
                 if item:

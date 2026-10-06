@@ -26,13 +26,16 @@ from systems.equipment_crafting import GEM_QUALITY_INFO, roll_mining_geode
 from systems.items_resources import (
     RARE_FISH_VARIANT_IDS,
     base_fish_species_id,
+    fish_jackpot_xp_multiplier_v1138,
     fish_rarity_label,
     fish_species_rarity,
+    fish_trophy_value_multiplier_v1138,
     format_fish_length,
     format_fish_weight,
     roll_fish_measurement,
     roll_fish_variant,
     roll_herb_variant,
+    rare_resource_xp_multiplier_v1138,
     roll_mining_vein,
     roll_wood_variant,
 )
@@ -148,8 +151,8 @@ class SessionGatheringActionsMixin:
             resource_quest_quantity = base_quantity
             if item_id != base_item_id:
                 await self.send(
-                    f"RZADKI WARIANT RYBY: "
-                    f"{item.get('rare_resource_label', 'rzadki')}."
+                    f"RZADKI POŁÓW: {item.get('rare_resource_label', 'rzadki')}. "
+                    f"Wartość wariantu x{int(item.get('rare_value_multiplier', 1) or 1)}."
                 )
             await self.send(
                 f"Łowisz: {item['name']} x{base_quantity}. "
@@ -171,6 +174,12 @@ class SessionGatheringActionsMixin:
                 )
 
             species_id = base_fish_species_id(item_id)
+            trophy_value_mult = fish_trophy_value_multiplier_v1138(item_id)
+            if trophy_value_mult >= 1.50:
+                await self.send(
+                    f"TROFEUM WĘDKARSKIE: {ITEMS[species_id]['name']}. "
+                    f"Premia wartości gatunku x{trophy_value_mult:.2f}."
+                )
             measurements = [
                 roll_fish_measurement(item_id)
                 for _ in range(max(1, resource_quest_quantity))
@@ -249,11 +258,32 @@ class SessionGatheringActionsMixin:
 
             fish_xp_scale = v096_fishing_reward_scale(profession_level)
             floor_xp_mult = gather_feature["xp_mult"]
-            profession_xp = max(1, int(round((10 + random.randint(0, 5)) * fish_xp_scale * floor_xp_mult)))
+            jackpot_xp_mult = fish_jackpot_xp_multiplier_v1138(item_id)
+            profession_xp = max(
+                1,
+                int(round(
+                    (10 + random.randint(0, 5))
+                    * fish_xp_scale
+                    * floor_xp_mult
+                    * jackpot_xp_mult
+                )),
+            )
             tool_xp = balanced_gather_tool_xp(
                 "fishing",
-                max(1, int(round((8 + random.randint(0, 4)) * fish_xp_scale * floor_xp_mult))),
+                max(
+                    1,
+                    int(round(
+                        (8 + random.randint(0, 4))
+                        * fish_xp_scale
+                        * floor_xp_mult
+                        * min(2.75, jackpot_xp_mult)
+                    )),
+                ),
             )
+            if jackpot_xp_mult >= 1.35:
+                await self.send(
+                    f"BONUS ZA WYJĄTKOWY POŁÓW: Wędkarstwo i Wędka x{jackpot_xp_mult:.2f} XP."
+                )
             messages, profession_level, new_tool_level = self.grant_profession_progress(
                 "Wędkarstwo", profession_xp, "fishing", tool_xp,
             )
@@ -401,13 +431,37 @@ class SessionGatheringActionsMixin:
             ))
 
             floor_xp_mult = gather_feature["xp_mult"]
+            vein_xp_mult = {
+                "common": 1.00,
+                "rich": 1.25,
+                "crystal": 1.70,
+                "legendary": 2.75,
+            }.get(str(vein.get("key") or "common"), 1.00)
+            if vein_xp_mult >= 1.50:
+                await self.send(
+                    f"JACKPOT GÓRNICZY: {vein['name']}. Profession/Tool XP x{vein_xp_mult:.2f}."
+                )
             messages, profession_level, new_tool_level = self.grant_profession_progress(
                 "Górnictwo",
-                max(1, int(round((10 + random.randint(0, 5)) * floor_xp_mult))),
+                max(
+                    1,
+                    int(round(
+                        (10 + random.randint(0, 5))
+                        * floor_xp_mult
+                        * vein_xp_mult
+                    )),
+                ),
                 "mining",
                 balanced_gather_tool_xp(
                     "mining",
-                    max(1, int(round((8 + random.randint(0, 4)) * floor_xp_mult))),
+                    max(
+                        1,
+                        int(round(
+                            (8 + random.randint(0, 4))
+                            * floor_xp_mult
+                            * vein_xp_mult
+                        )),
+                    ),
                 ),
             )
             for msg in messages:
@@ -524,13 +578,32 @@ class SessionGatheringActionsMixin:
             ))
 
             floor_xp_mult = gather_feature["xp_mult"]
+            rare_xp_mult = rare_resource_xp_multiplier_v1138(item_id)
+            if rare_xp_mult >= 1.35:
+                await self.send(
+                    f"BONUS ZA WYJĄTKOWE DREWNO: Drwalstwo i Piła x{rare_xp_mult:.2f} XP."
+                )
             messages, profession_level, new_tool_level = self.grant_profession_progress(
                 "Drwalstwo",
-                max(1, int(round((10 + random.randint(0, 5)) * floor_xp_mult))),
+                max(
+                    1,
+                    int(round(
+                        (10 + random.randint(0, 5))
+                        * floor_xp_mult
+                        * rare_xp_mult
+                    )),
+                ),
                 "woodcutting",
                 balanced_gather_tool_xp(
                     "woodcutting",
-                    max(1, int(round((8 + random.randint(0, 4)) * floor_xp_mult))),
+                    max(
+                        1,
+                        int(round(
+                            (8 + random.randint(0, 4))
+                            * floor_xp_mult
+                            * rare_xp_mult
+                        )),
+                    ),
                 ),
             )
             for msg in messages:
@@ -616,13 +689,32 @@ class SessionGatheringActionsMixin:
             ))
 
             floor_xp_mult = gather_feature["xp_mult"]
+            rare_xp_mult = rare_resource_xp_multiplier_v1138(item_id)
+            if rare_xp_mult >= 1.35:
+                await self.send(
+                    f"BONUS ZA WYJĄTKOWĄ ROŚLINĘ: Zielarstwo i Sierp x{rare_xp_mult:.2f} XP."
+                )
             messages, profession_level, new_tool_level = self.grant_profession_progress(
                 "Zielarstwo",
-                max(1, int(round((10 + random.randint(0, 5)) * floor_xp_mult))),
+                max(
+                    1,
+                    int(round(
+                        (10 + random.randint(0, 5))
+                        * floor_xp_mult
+                        * rare_xp_mult
+                    )),
+                ),
                 "herbalism",
                 balanced_gather_tool_xp(
                     "herbalism",
-                    max(1, int(round((8 + random.randint(0, 4)) * floor_xp_mult))),
+                    max(
+                        1,
+                        int(round(
+                            (8 + random.randint(0, 4))
+                            * floor_xp_mult
+                            * rare_xp_mult
+                        )),
+                    ),
                 ),
             )
             for msg in messages:

@@ -5,6 +5,7 @@ import asyncio
 import random
 
 from core.bootstrap_economy_professions import (
+    currency_reading_text,
     profession_for_tool_type,
     profession_max_level,
     tool_tier,
@@ -16,6 +17,7 @@ from core.classes_skills import ROOMS
 from core.mines_threat import ITEMS
 from data import catalog_mutations as _catalog_mut
 from core.progression_600 import TOOL_MAX_LEVEL, TOOL_MAX_TIER
+from core.progression_resources import v1138_resource_sale_base_coins
 from network.protocol_gameplay_utils import normalize_lookup_text
 from systems.content_registry import QUESTS
 
@@ -54,7 +56,10 @@ for _level, _item_id, _name in V1100_ARCHAEOLOGY_FINDS:
             "name": _name,
             "type": "archaeology_find",
             "price": None,
-            "sell_silver": max(20, int(_level) * 4),
+            "sell_silver": int(round(
+                v1138_resource_sale_base_coins(_level)
+                * (5.0 if _level < 300 else (15.0 if _level < 500 else 30.0))
+            )),
             "rarity": "rare" if _level < 300 else ("legendary" if _level < 500 else "mythic"),
             "rarity_name": "Znalezisko Archeologiczne",
             "archaeology_level": int(_level),
@@ -152,14 +157,21 @@ class SessionExplorationProfessionsV1100Mixin:
         is_new = self.server.db.add_collection_entry(self.account_id, "archaeology_v1100", item_id)
 
         base_xp = max(30, 50 + access * 2)
+        discovery_mult = 2.00 if is_new else 1.00
         messages, *_ = self.grant_profession_progress(
-            "Archeologia", base_xp, "archaeology", max(20, 35 + access)
+            "Archeologia",
+            max(1, int(round(base_xp * discovery_mult))),
+            "archaeology",
+            max(20, int(round((35 + access) * (1.50 if is_new else 1.00)))),
         )
         self.server.db.add_lifetime_stat(self.account_id, "profession_actions", 1)
         prefix = "NOWE ZNALEZISKO" if is_new else "Znalezisko"
         await self.send(f"{prefix}: {name} x{quantity}.")
         if is_new:
-            await self.send("Nowy wpis w Kolekcji Archeologii.")
+            await self.send(
+                "NOWE ODKRYCIE ARCHEOLOGICZNE: podwójny Profession XP i zwiększony Tool XP. "
+                "Znalezisko ma także wysoką wartość kolekcjonerską przy sprzedaży."
+            )
         await self.announce_profession_action_order_progress_v0713("archaeology", 1)
         for message in messages:
             await self.send(message)
@@ -207,6 +219,15 @@ class SessionExplorationProfessionsV1100Mixin:
         profession_xp = max(25, 40 + effective * (2 if is_new else 1))
         tool_xp = max(20, 30 + effective)
 
+        discovery_reward_silver = 0
+        if is_new:
+            discovery_reward_silver = max(
+                100,
+                int(round(v1138_resource_sale_base_coins(effective) * 10.0)),
+            )
+            self.character.silver += discovery_reward_silver
+            self.server.db.save_character(self.character)
+
         fragment = random.random() < tool_tier_bonus_chance(tool_level)
         if fragment:
             self.server.db.add_item(self.account_id, "v1100_map_fragment", 1)
@@ -217,7 +238,10 @@ class SessionExplorationProfessionsV1100Mixin:
         self.server.db.add_lifetime_stat(self.account_id, "profession_actions", 1)
         name = room.get("name", room_id)
         if is_new:
-            await self.send(f"NOWY POMIAR: {name}. Lokacja została wpisana do Atlasu Kartografa.")
+            await self.send(
+                f"NOWY POMIAR: {name}. Lokacja została wpisana do Atlasu Kartografa. "
+                f"Premia odkrywcy: {currency_reading_text(discovery_reward_silver, 0, 0)}."
+            )
         else:
             await self.send(f"Ponawiasz pomiar lokacji: {name}.")
         if fragment:

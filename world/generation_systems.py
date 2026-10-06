@@ -1328,7 +1328,14 @@ def v0150_dynamic_world_offer(account_id, now=None):
     stage=max(1,min(CHARACTER_MAX_LEVEL,int(V013_FRONTIER_SPECS[kind].get("base_mastery",1) or 1)))
     complexity=1.5 if qtype in {"event","secret","mini"} else 1.0
     reward_soul=max(1,int(round(v0190_log_curve(stage,V019_SOUL_KILL_NORMAL)*max(2.0,math.sqrt(needed))*complexity)))
-    reward_coins=max(1,int(round(v0190_log_curve(stage,V019_QUEST_COIN)*complexity)))
+    # v1.13.8: dynamic world quests bypass the static QUESTS finalizer, so
+    # they need the same modern economy floor explicitly.
+    from systems.economy_income_balance import v1138_activity_income
+    reward_coins=max(
+        1,
+        int(round(v0190_log_curve(stage,V019_QUEST_COIN)*complexity)),
+        v1138_activity_income(stage, "dynamic_world", complexity),
+    )
     reward_gold=max(1,reward_coins//SILVER_PER_GOLD)
     return {
         "quest_key":f"v015:{slot}:{qtype}:{kind}", "quest_type":qtype, "target":target,

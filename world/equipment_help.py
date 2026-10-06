@@ -1236,36 +1236,45 @@ V0861_BASE_SHOP_PRICES_SILVER = {
     "jeweler_pliers": 500,
 }
 
-V0861_CLASS_TIER_BASE_SILVER = {
-    1: 1_000,
-    10: 2_500,
-    20: 5_000,
-    30: 10_000,
-    40: 20_000,
-    50: 40_000,
-    60: 80_000,
-    70: 160_000,
-    80: 320_000,
-    90: 640_000,
-    100: 1_250_000,
-    110: 2_500_000,
-    120: 5_000_000,
-    130: 10_000_000,
-    140: 20_000_000,
-    150: 40_000_000,
-    160: 80_000_000,
-    170: 160_000_000,
-    180: 320_000_000,
-    190: 600_000_000,
-    200: 900_000_000,
-}
+V1138_CLASS_TIER_PRICE_ANCHORS = (
+    # Internal silver. A regular piece should cost roughly a handful of useful
+    # quests at the same progression point; a full set is a goal, not a wall.
+    (1, 1_000),
+    (10, 5_000),
+    (20, 10_000),
+    (30, 20_000),
+    (40, 40_000),
+    (50, 75_000),
+    (100, 500_000),
+    (150, 1_750_000),
+    (200, 6_250_000),
+    (300, 37_500_000),
+    (400, 150_000_000),
+    (500, 300_000_000),
+    (600, 500_000_000),
+)
 
-# v0.9.12: ceny klasowego EQ 210-400 rosną łagodnie od starego progu 200.
-# 200 pozostaje dokładnie 900 000 000 srebra bazowo; każdy kolejny próg
-# co 10 Biegłości to +8%, więc EQ 400 jest droższe, ale ekonomia nie eksploduje.
-for _mastery in range(210, CLASS_MASTERY_MAX_LEVEL + 1, 10):
-    _steps = (_mastery - 200) // 10
-    V0861_CLASS_TIER_BASE_SILVER[_mastery] = int(round(900_000_000 * (1.08 ** _steps)))
+
+def _v1138_class_tier_price(master):
+    master = max(1, min(CLASS_MASTERY_MAX_LEVEL, int(master or 1)))
+    if master <= V1138_CLASS_TIER_PRICE_ANCHORS[0][0]:
+        return V1138_CLASS_TIER_PRICE_ANCHORS[0][1]
+    if master >= V1138_CLASS_TIER_PRICE_ANCHORS[-1][0]:
+        return V1138_CLASS_TIER_PRICE_ANCHORS[-1][1]
+    for (m0, p0), (m1, p1) in zip(
+        V1138_CLASS_TIER_PRICE_ANCHORS,
+        V1138_CLASS_TIER_PRICE_ANCHORS[1:],
+    ):
+        if m0 <= master <= m1:
+            ratio = (master - m0) / float(m1 - m0)
+            return max(1, int(round(p0 + (p1 - p0) * ratio)))
+    return V1138_CLASS_TIER_PRICE_ANCHORS[-1][1]
+
+
+V0861_CLASS_TIER_BASE_SILVER = {
+    mastery: _v1138_class_tier_price(mastery)
+    for mastery in (1, *range(10, CLASS_MASTERY_MAX_LEVEL + 1, 10))
+}
 
 V0861_CLASS_SLOT_PRICE_FACTOR = {
     "head": 1.00,

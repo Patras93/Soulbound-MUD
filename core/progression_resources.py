@@ -189,7 +189,13 @@ def v0190_combat_reward(template, kind):
     return v0190_generated_combat_reward(template, kind)
 
 def v0190_apply_combat_template(template):
-    """Nadaj wygenerowane statystyki także mobom tworzonym w runtime."""
+    """Restore an authored runtime baseline and fill only missing combat numbers.
+
+    Later dungeon/world wrappers may safely call this repeatedly: the first call
+    snapshots the authored/generated baseline, and every later call restores it
+    before applying its own multipliers. This keeps runtime refresh idempotent
+    without letting Generator Core erase hand-tuned combat/economy values.
+    """
     if not isinstance(template, dict):
         return template
     stage = template.get("generator_level")
@@ -208,33 +214,70 @@ def v0190_apply_combat_template(template):
     rank = generator_core_v027.mob_rank(template)
     template["generator_level"] = stage
     template["v019_stage"] = stage
-    template["max_hp"] = generator_core_v027.mob_hp(stage, rank)
-    template["base_max_hp"] = template["max_hp"]
-    template["damage"] = generator_core_v027.mob_damage(stage, rank)
-    template["character_xp_reward"] = generator_core_v027.axis_gain("character", stage, generator_core_v027.RANK_REWARD.get(rank,1.0))
-    template["class_xp_reward"] = generator_core_v027.axis_gain("class", stage, generator_core_v027.RANK_REWARD.get(rank,1.0))
-    template["soul_reward"] = generator_core_v027.axis_gain("soul", stage, generator_core_v027.RANK_REWARD.get(rank,1.0))
-    template["stat_reward"] = generator_core_v027.axis_gain("stat", stage, generator_core_v027.RANK_REWARD.get(rank,1.0))
-    template["silver"] = generator_core_v027.currency_for_stage(stage, rank)
-    template["gold"] = 0
-    template["mithril"] = 0
-    # v0.36.2: runtime terrain clones intentionally receive an additional
-    # open-world threat multiplier after the canonical Generator Core numbers.
-    # This block is idempotent because every call above first restores the
-    # canonical stage HP/damage before applying the multiplier again.
+
+    generated = {
+        "max_hp": generator_core_v027.mob_hp(stage, rank),
+        "damage": generator_core_v027.mob_damage(stage, rank),
+        "character_xp_reward": generator_core_v027.axis_gain("character", stage, generator_core_v027.RANK_REWARD.get(rank,1.0)),
+        "class_xp_reward": generator_core_v027.axis_gain("class", stage, generator_core_v027.RANK_REWARD.get(rank,1.0)),
+        "soul_reward": generator_core_v027.axis_gain("soul", stage, generator_core_v027.RANK_REWARD.get(rank,1.0)),
+        "stat_reward": generator_core_v027.axis_gain("stat", stage, generator_core_v027.RANK_REWARD.get(rank,1.0)),
+    }
+
+    # Procedural no-limit floors have separate depth curves. Their temporary
+    # authoring formulas are not a second combat baseline, otherwise floor
+    # scaling would be multiplied twice and explode at 1000/10000+. Static and
+    # normal-world authored content keeps its hand-tuned baseline.
+    depth_hints = []
+    for floor_key in (
+        "crypt_floor", "mythic_crypt_floor", "astral_floor",
+        "mythic_astral_floor", "giant_fortress_floor",
+        "profession_dungeon_floor",
+    ):
+        try:
+            if template.get(floor_key) is not None:
+                depth_hints.append(int(template.get(floor_key) or 0))
+        except (TypeError, ValueError, OverflowError):
+            pass
+    procedural_no_limit = bool(depth_hints and max(depth_hints) > 200)
+
+    for key, fallback in generated.items():
+        baseline_key = f"_v1138_authored_{key}"
+        if baseline_key not in template:
+            current = template.get(key)
+            valid = isinstance(current, (int, float)) and not isinstance(current, bool)
+            if key in ("max_hp", "damage"):
+                valid = valid and float(current) > 0
+            elif valid:
+                valid = float(current) >= 0
+            if procedural_no_limit:
+                valid = False
+            template[baseline_key] = int(current) if valid else int(fallback)
+        template[key] = int(template[baseline_key])
+
+    template["base_max_hp"] = int(template["max_hp"])
+
+    # Preserve authored denominations. If no currency existed at all, snapshot
+    # Generator silver once as a fallback. Runtime refresh never changes it.
+    currency_keys = ("silver", "gold", "mithril")
+    if "_v1138_authored_currency" not in template:
+        had_currency = any(key in template for key in currency_keys)
+        template["_v1138_authored_currency"] = tuple(
+            int(template.get(key, 0) or 0) for key in currency_keys
+        ) if had_currency else (int(generator_core_v027.currency_for_stage(stage, rank)), 0, 0)
+    template["silver"], template["gold"], template["mithril"] = template["_v1138_authored_currency"]
+
+    # v0.36.2 terrain clones remain a deliberate generated layer, but start
+    # from the restored authored baseline on every refresh.
     if template.get("terrain_runtime_clone_v0362"):
         hp_mult = float(template.get("terrain_hp_multiplier_v0362", 1.0) or 1.0)
         dmg_mult = float(template.get("terrain_damage_multiplier_v0362", 1.0) or 1.0)
         template["max_hp"] = max(1, int(round(template["max_hp"] * hp_mult)))
         template["base_max_hp"] = template["max_hp"]
         template["damage"] = max(1, int(round(template["damage"] * dmg_mult)))
-    drops=template.get("drops")
-    if isinstance(drops,dict) and drops:
-        base_chance={"normal":.055,"elite":.09,"rare":.14,"mini":.22,"boss":.34,"world_boss":.48}.get(rank,.055)
-        count=max(1,len(drops))
-        for item_id in list(drops):
-            chance=base_chance*generator_core_v027.stable_jitter(f"{template.get('name','mob')}:{item_id}",.22)/(count**.20)
-            drops[item_id]=round(generator_core_v027.clamp(chance,.005,.85),5)
+
+    # Drop chances are authored content. Runtime refresh must never reroll or
+    # normalize them behind the designer's back.
     return template
 
 def v0190_quest_stage(quest):
@@ -264,15 +307,40 @@ def v0190_quest_currency_reward(quest):
 
 def v0190_quest_stat_reward(quest):
     quest = quest or {}
-    # v1.12.8: authored/manual stat rewards are an explicit balance override.
-    # They are resolved before Generator Core values so a deliberately tuned
-    # quest cannot be silently pushed back down by later numeric regeneration.
+    # Authored/manual stat rewards remain exact overrides.
     manual_reward = quest.get("manual_stat_progress")
     if manual_reward is not None:
         return max(0, int(manual_reward or 0))
+
     if quest.get("generator_level") is not None:
-        return max(0, int(quest.get("reward_stat_progress", 0) or 0))
-    return generator_core_v027.axis_gain("stat", v0190_quest_stage(quest), 2.0)
+        base = max(0, int(quest.get("reward_stat_progress", 0) or 0))
+    else:
+        base = generator_core_v027.axis_gain("stat", v0190_quest_stage(quest), 2.0)
+
+    # v1.13.8: ordinary quests move stats a little faster, while memorable
+    # objectives pay a clearly stronger stat-progress burst.
+    kind = str(quest.get("kind") or "").strip().lower()
+    mult = {
+        "talk_npc": 1.05,
+        "talk_class_teacher": 1.10,
+        "deliver_npc": 1.10,
+        "collect": 1.12,
+        "collect_resource": 1.12,
+        "collect_category": 1.15,
+        "collect_distinct_category": 1.18,
+        "collect_resource_set": 1.22,
+        "craft_set": 1.25,
+        "kill": 1.25,
+        "explore_frontier": 1.20,
+        "discover_secret": 1.50,
+        "mini_dungeon": 1.85,
+        "legendary_rare": 2.25,
+        "world_event": 2.10,
+        "world_boss": 3.00,
+    }.get(kind, 1.12)
+    if int(quest.get("required_soul_level", 0) or 0) > 0:
+        mult = max(mult, 2.25)
+    return max(0, int(round(base * mult)))
 
 def v0190_quest_soul_reward(quest):
     quest = quest or {}
@@ -348,11 +416,57 @@ def v0190_resource_stage(item_id, item=None):
         return max(1, min(CHARACTER_MAX_LEVEL, max(int(x) for x in matches)))
     return 1
 
+V1138_RESOURCE_SALE_ANCHORS = (
+    # Internal silver; 100 silver = 1 Gold.
+    (1, 10),
+    (20, 40),
+    (50, 150),
+    (80, 350),
+    (100, 700),
+    (150, 1_500),
+    (200, 3_000),
+    (300, 10_000),
+    (400, 25_000),
+    (500, 50_000),
+    (600, 90_000),
+)
+
+
+def v1138_resource_sale_base_coins(stage):
+    """Sensowna cena pojedynczego zwykłego zasobu na danym etapie.
+
+    Profesje są grindem, więc zwykła akcja nie daje wypłaty jak cały quest,
+    ale surowiec nie może też być ekonomicznie zerowy. Interpolacja logarytmiczna
+    daje płynny wzrost między kamieniami milowymi.
+    """
+    stage = max(1, min(CHARACTER_MAX_LEVEL, int(stage or 1)))
+    if stage <= V1138_RESOURCE_SALE_ANCHORS[0][0]:
+        return V1138_RESOURCE_SALE_ANCHORS[0][1]
+    if stage >= V1138_RESOURCE_SALE_ANCHORS[-1][0]:
+        return V1138_RESOURCE_SALE_ANCHORS[-1][1]
+    for (s0, v0), (s1, v1) in zip(
+        V1138_RESOURCE_SALE_ANCHORS,
+        V1138_RESOURCE_SALE_ANCHORS[1:],
+    ):
+        if s0 <= stage <= s1:
+            ratio = (stage - s0) / float(s1 - s0)
+            if v0 > 0 and v1 > 0:
+                value = math.exp(math.log(v0) + (math.log(v1) - math.log(v0)) * ratio)
+            else:
+                value = v0 + (v1 - v0) * ratio
+            return max(1, int(round(value)))
+    return V1138_RESOURCE_SALE_ANCHORS[-1][1]
+
+
 def v0190_resource_sale_coins(item_id, item=None):
     item = item or globals().get("ITEMS", {}).get(item_id, {}) or {}
     stage = v0190_resource_stage(item_id, item)
     mult = max(1.0, float(item.get("rare_value_multiplier", 1.0) or 1.0))
-    return generator_core_v027.resource_sale_for_stage(stage, mult)
+    # v1.13.8: old Generator Core prices were useful as fallback, but became
+    # tiny relative to the current quest/EQ economy. Keep the larger of both.
+    generated = generator_core_v027.resource_sale_for_stage(stage, mult)
+    progression = int(round(v1138_resource_sale_base_coins(stage) * mult))
+    return max(1, generated, progression)
 
 STAT_MAX_LEVEL = None  # v0.27.1: statystyki są bez twardego limitu
 def character_xp_to_next(level):

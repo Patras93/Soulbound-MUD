@@ -103,6 +103,22 @@ def refresh_generator_help_v0271():
         "Zmiana balansu liczbowego generatora nie zmienia wymagań ani kolejności odblokowania zasobów.",
         "Użyj atlas ryby, atlas rudy, atlas drewno albo atlas ziola; szczegóły zasobu pokazują jego aktualny wygenerowany próg.",
     ]
+    archaeology = HELP_TOPICS.get("archeologia", [])
+    if isinstance(archaeology, str):
+        archaeology = [archaeology]
+    archaeology.append(
+        "v1.13.8: znaleziska mają etapową wartość sprzedaży; nowy wpis kolekcji daje x2 Profession XP i zwiększony Tool XP."
+    )
+    HELP_TOPICS["archeologia"] = archaeology
+
+    cartography = HELP_TOPICS.get("kartografia", [])
+    if isinstance(cartography, str):
+        cartography = [cartography]
+    cartography.append(
+        "v1.13.8: pierwszy pomiar nowej lokacji daje jednorazową premię odkrywcy zależną od etapu terenu; ponowne pomiary rozwijają profesję bez ponownego bonusu."
+    )
+    HELP_TOPICS["kartografia"] = cartography
+
     HELP_TOPICS["generator"] = [
         f"Generator Core {GENERATOR_CORE_VERSION} działa w trybie NUMERIC-ONLY: zarządza tylko liczbami balansu.",
         f"Po starcie waliduje {GENERATOR_CORE_AUDIT['mobs']} mobów, {GENERATOR_CORE_AUDIT['items']} przedmiotów, {GENERATOR_CORE_AUDIT['quests']} questów, {GENERATOR_CORE_AUDIT['skills']} skilli/spelli, {GENERATOR_CORE_AUDIT['recipes']} receptur i {GENERATOR_CORE_AUDIT['rooms']} lokacji.",
@@ -1364,6 +1380,10 @@ def refresh_help_truth_v11197():
         "Każda profesja ma własny poziom 1-600; jej narzędzie rozwija się osobno 1-600. Wszystkie 14 narzędzi kupuje się tylko raz na postać.",
         "zamowienia / zamówienia obsługuje zamówienia wszystkich 14 profesji; zlecenia odnawiają się niezależnie zgodnie z ich godzinnym cooldownem.",
         "Archeologia: wykop. Kartografia: mapuj. Szczegóły: help archeologia i help kartografia.",
+        "v1.13.8: zwykłe zbieractwo daje sensowny zarobek względem etapu, a rzadkie warianty są jackpotami: rośnie wartość sprzedaży oraz Profession/Tool XP.",
+        "Wędkarstwo dodatkowo wycenia trofealność gatunku. Rekiny, legendarne ryby i lewiatany są warte wyraźnie więcej nawet bez rzadkiego wariantu; Albinos/Złoty/Olbrzymi/Pradawny mnożą wartość dalej.",
+        "Górnictwo nagradza bogate, kryształowe i legendarne żyły większą ilością oraz XP; Geody mają realne złoto i szansę na Doskonałe/Perfekcyjne klejnoty.",
+        "Pierwsze odkrycia Archeologii mają premię XP i wysoką wartość kolekcjonerską; pierwszy pomiar lokacji w Kartografii daje dodatkową premię odkrywcy.",
     ]
 
     HELP_TOPICS["tempo_profesji"] = [
@@ -1378,6 +1398,8 @@ def refresh_help_truth_v11197():
     HELP_TOPICS["wiecej_ryb"] = [
         "Wędkarstwo i Wędka mają progresję 1-600. Kolejne gatunki odblokowują się wraz z narzędziem i właściwym łowiskiem.",
         "atlas ryby oraz woda / łowisko pokazują bieżące źródła i wymagania.",
+        "Gatunki trofealne mają własną premię wartości: im rzadszy gatunek, tym większa cena; rekiny i lewiatany dostają dodatkową premię.",
+        "Rzadkie warianty są jackpotami: Albinos x3, Olbrzymi x5, Złoty x8, Pradawny x15 wartości bazowej. Jackpot zwiększa też Wędkarstwo/Tool XP, ale łagodniej niż cenę.",
     ]
 
     HELP_TOPICS["generator"] = [
@@ -1525,6 +1547,14 @@ def help_truth_audit_v11197():
     professions = topic_text("profesje")
     if "14 profesji" not in professions:
         errors.append("HELP profesje: must state 14 professions")
+    for needle in (
+        "sensowny zarobek",
+        "Rekiny",
+        "Geody",
+        "premię odkrywcy",
+    ):
+        if needle not in professions:
+            errors.append(f"HELP profesje: missing reward identity {needle}")
 
     queue = topic_text("kolejka")
     if "20" not in queue or "80" not in queue:
@@ -1766,6 +1796,18 @@ def refresh_public_help_surface_v11197():
     equipment.append(
         "v1.13.6: każdy element klasowego EQ klas fizycznych daje Siłę + Zręczność + Kondycję, a każdy element klasowego EQ klas magicznych daje Inteligencję + Siłę Woli + Kondycję. Dotyczy także legendarnych setów i reliktów klasowych."
     )
+    equipment.append(
+        "v1.13.8: trzy linie klasowego EQ na tym samym progu są realnymi wariantami pojedynczych części: zbalansowanym, ofensywnym i pancernym. Możesz dowolnie mieszać style w różnych slotach."
+    )
+    equipment.append(
+        "Mieszane style tej samej aktywnej klasy nadal liczą się wspólnie do progów setu 2/4/6/8. Klasowe EQ daje też płaski Attack albo Magic Attack na slotach ofensywnych; Mec jako hybryda dostaje oba kanały."
+    )
+    equipment.append(
+        "Źródła EQ mają różne role: sklep klasowy daje pewny, klasowo dopasowany set; Kowalstwo tworzy Masterwork z mocną obroną, wyspecjalizowanymi statami i rosnącą liczbą gniazd; dropy materiałowe są losowe i dobry roll może przebić sklep w konkretnym buildzie."
+    )
+    equipment.append(
+        "Krypta ma własną ścieżkę łupu: rzadkość zwiększa affix, obronę, Attack lub Magic Attack, właściwość procentową i liczbę gniazd. Relikty bossów Krypty skalują się z piętrem i mają pozostać warte polowania."
+    )
     HELP_TOPICS["ekwipunek"] = equipment
     HELP_TOPICS["eq"] = list(equipment)
 
@@ -1792,7 +1834,17 @@ def help_surface_audit_v11197():
         "kolczyki": ("17", "zkol1", "zkol2"),
         "sety_klasowe": ("17", "2/4/6/8"),
         "sklepy": ("17", "bransolet"),
-        "ekwipunek": ("17", "zakc", "Siłę + Zręczność + Kondycję", "Inteligencję + Siłę Woli + Kondycję"),
+        "ekwipunek": (
+            "17", "zakc",
+            "Siłę + Zręczność + Kondycję",
+            "Inteligencję + Siłę Woli + Kondycję",
+            "mieszać style",
+            "Attack",
+            "Magic Attack",
+            "Masterwork",
+            "dobry roll",
+            "Relikty bossów Krypty",
+        ),
         "moogle_board": ("Black Rabite", "150"),
         "silence": ("One Enemy", "Cleanseable", "Extendable"),
         "hp_mobow": ("600", "con"),

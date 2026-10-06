@@ -473,18 +473,50 @@ def roll_crafting_xp(base_value, variance=0.15):
     # variance is kept only for API compatibility; Generator Core owns the spread.
     return generator_core_v027.crafting_xp_roll(base_value, random.random())
 
+def v1138_boss_chest_gold_anchor(power):
+    power = max(1, min(CHARACTER_MAX_LEVEL, int(power or 1)))
+    anchors = (
+        (1, 1),
+        (20, 10),
+        (50, 100),
+        (100, 750),
+        (150, 2_500),
+        (200, 8_000),
+        (300, 40_000),
+        (400, 150_000),
+        (500, 350_000),
+        (600, 700_000),
+    )
+    if power <= anchors[0][0]:
+        return anchors[0][1]
+    if power >= anchors[-1][0]:
+        return anchors[-1][1]
+    for (p0, g0), (p1, g1) in zip(anchors, anchors[1:]):
+        if p0 <= power <= p1:
+            ratio = (power - p0) / float(p1 - p0)
+            return max(1, int(round(g0 + (g1 - g0) * ratio)))
+    return anchors[-1][1]
+
+
 def boss_chest_reward_roll(kind, floor, power):
     power = max(1, min(CHARACTER_MAX_LEVEL, int(power)))
     floor = int(floor)
-    # Gwarantowane złoto, ale kwota pozostaje umiarkowana względem bossa.
-    base_gold = {
-        "giant": max(1, floor // 10),
-        "crypt": max(1, floor // 20 + 1),
-        "astral": max(5, (floor - 80) // 15),
-        "mythic_crypt": max(6, floor // 10 + 4),
-        "mythic_astral": max(7, floor // 10 + 5),
-    }.get(kind, 1)
-    gold = random.randint(base_gold, max(base_gold, int(round(base_gold * 1.5))))
+    # v1.13.8: skrzynia bossa ma być nagrodą, nie kilkoma symbolicznymi Gold.
+    kind_mult = {
+        "giant": 0.90,
+        "crypt": 1.00,
+        "astral": 1.20,
+        "mythic_crypt": 1.60,
+        "mythic_astral": 1.75,
+    }.get(kind, 1.0)
+    base_gold = max(
+        1,
+        int(round(v1138_boss_chest_gold_anchor(power) * kind_mult)),
+    )
+    gold = random.randint(
+        base_gold,
+        max(base_gold, int(round(base_gold * 1.50))),
+    )
 
     items = []
     # Fragmenty Duszy są użyteczne na każdym etapie.

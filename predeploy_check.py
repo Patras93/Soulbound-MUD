@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Fast Railway predeploy gate for Soulbound v1.13.7.
+"""Fast Railway predeploy gate for Soulbound v1.13.8.
 
 This is the normal deploy check.  It intentionally avoids assembling the full
 world/runtime.  Use predeploy_full.py when an exhaustive historical audit is
@@ -16,7 +16,7 @@ import traceback
 try:
     from storage.database import Database as _DatabaseImportSmoke
 except Exception as exc:
-    print(f"Soulbound v1.13.7 FAST PREDEPLOY FAILED: database import: {type(exc).__name__}: {exc}")
+    print(f"Soulbound v1.13.8 FAST PREDEPLOY FAILED: database import: {type(exc).__name__}: {exc}")
     traceback.print_exc()
     raise SystemExit(1)
 
@@ -37,7 +37,7 @@ try:
     )
 except Exception as exc:
     print(
-        "Soulbound v1.13.7 FAST PREDEPLOY FAILED: "
+        "Soulbound v1.13.8 FAST PREDEPLOY FAILED: "
         f"skill semantic import: {type(exc).__name__}: {exc}"
     )
     traceback.print_exc()
@@ -136,6 +136,191 @@ for _needle in _troll_reward_needles:
         _semantic_errors.append(
             "troll stat reward regression: missing " + _needle
         )
+
+# v1.13.8: Generator Core is a fallback, not an unconditional overwrite layer.
+_generator_source = (_root / "core/generator_core.py").read_text(encoding="utf-8")
+_equipment_source = (_root / "systems/equipment_crafting.py").read_text(encoding="utf-8")
+_items_resource_source = (_root / "systems/items_resources.py").read_text(encoding="utf-8")
+_dungeon_source = (_root / "systems/dungeons_regions.py").read_text(encoding="utf-8")
+_economy_source = (_root / "systems/economy_income_balance.py").read_text(encoding="utf-8")
+_runtime_progression_source = (_root / "core/progression_resources.py").read_text(encoding="utf-8")
+_sales_source = (_root / "player/session_mixins/sales.py").read_text(encoding="utf-8")
+_gathering_source = (_root / "player/session_mixins/gathering_actions.py").read_text(encoding="utf-8")
+_protocol_utils_source = (_root / "network/protocol_gameplay_utils.py").read_text(encoding="utf-8")
+_exploration_prof_source = (_root / "player/session_mixins/exploration_professions.py").read_text(encoding="utf-8")
+_inventory_equipment_source = (_root / "player/session_mixins/inventory_equipment.py").read_text(encoding="utf-8")
+_courier_source = (_root / "player/session_mixins/courier_delivery.py").read_text(encoding="utf-8")
+_exploration_progress_source = (_root / "player/session_mixins/exploration_progress.py").read_text(encoding="utf-8")
+_ocean_session_source = (_root / "player/session_mixins/ocean.py").read_text(encoding="utf-8")
+_generation_systems_source = (_root / "world/generation_systems.py").read_text(encoding="utf-8")
+for _needle in (
+    "def _write_record_numeric_fallback(",
+    "Authored combat/reward/economy values are design decisions.",
+    "authored_numeric = {",
+):
+    if _needle not in _generator_source:
+        _semantic_errors.append("generator restraint regression: missing " + _needle)
+for _needle in (
+    "def equipment_progression_budget_v1138(level):",
+    "(50, 38)", "(100, 100)", "(200, 240)", "(600, 1200)",
+    "def equipment_defense_step_v1138(level):",
+):
+    if _needle not in _items_resource_source:
+        _semantic_errors.append("shared EQ progression regression: missing " + _needle)
+if "return equipment_progression_budget_v1138(mastery)" not in _equipment_source:
+    _semantic_errors.append(
+        "class EQ progression regression: shop no longer uses shared progression budget"
+    )
+for _needle in ("(50, 15_000)", "(100, 100_000)", "(200, 1_250_000)", "(600, 100_000_000)"):
+    if _needle not in _economy_source:
+        _semantic_errors.append("quest income progression regression: missing " + _needle)
+for _needle in ('baseline_key = f"_v1138_authored_{key}"', "procedural_no_limit", '"world_boss": 3.00'):
+    if _needle not in _runtime_progression_source:
+        _semantic_errors.append("runtime progression feel regression: missing " + _needle)
+
+for _needle in (
+    "V1138_RESOURCE_SALE_ANCHORS = (",
+    "(100, 700)",
+    "(200, 3_000)",
+    "(600, 90_000)",
+    "def v1138_resource_sale_base_coins(stage):",
+):
+    if _needle not in _runtime_progression_source:
+        _semantic_errors.append(
+            "profession income progression regression: missing " + _needle
+        )
+
+for _needle in (
+    "def fish_trophy_value_multiplier_v1138(",
+    "def fish_jackpot_xp_multiplier_v1138(",
+    "def rare_resource_xp_multiplier_v1138(",
+    '"value_mult": 15',
+    '"value_mult": 20',
+):
+    if _needle not in _items_resource_source:
+        _semantic_errors.append(
+            "profession jackpot resource regression: missing " + _needle
+        )
+
+for _needle in (
+    "def profession_resource_sale_value_v1138(",
+    "fish_trophy_value_multiplier_v1138(item_id)",
+    "values = self.generic_item_sale_value(item_id, item)",
+):
+    if _needle not in _sales_source:
+        _semantic_errors.append(
+            "profession sale jackpot regression: missing " + _needle
+        )
+
+for _needle in (
+    "TROFEUM WĘDKARSKIE",
+    "BONUS ZA WYJĄTKOWY POŁÓW",
+    "JACKPOT GÓRNICZY",
+    "BONUS ZA WYJĄTKOWE DREWNO",
+    "BONUS ZA WYJĄTKOWĄ ROŚLINĘ",
+):
+    if _needle not in _gathering_source:
+        _semantic_errors.append(
+            "profession jackpot feedback regression: missing " + _needle
+        )
+
+for _needle in (
+    "def v1138_boss_chest_gold_anchor(power):",
+    "(200, 8_000)",
+    "(600, 700_000)",
+):
+    if _needle not in _protocol_utils_source:
+        _semantic_errors.append(
+            "boss chest income regression: missing " + _needle
+        )
+
+for _needle in (
+    "discovery_mult = 2.00 if is_new else 1.00",
+    "discovery_reward_silver",
+    "v1138_resource_sale_base_coins(_level)",
+):
+    if _needle not in _exploration_prof_source:
+        _semantic_errors.append(
+            "exploration profession reward regression: missing " + _needle
+        )
+
+for _needle in (
+    '"sell_gold": 900',
+    '"gold": (400, 1_500)',
+):
+    if _needle not in _equipment_source:
+        _semantic_errors.append(
+            "geode reward regression: missing " + _needle
+        )
+if "JACKPOT GEODY" not in _inventory_equipment_source:
+    _semantic_errors.append("geode jackpot feedback regression: missing JACKPOT GEODY")
+
+for _needle in (
+    '"courier": 0.30',
+    '"dynamic_world": 0.85',
+    '"exploration100": 3.00',
+    '"ocean_trade": 0.55',
+    '"ocean_treasure": 2.50',
+    "def v1138_activity_income(",
+):
+    if _needle not in _economy_source:
+        _semantic_errors.append(
+            "global activity income loop regression: missing " + _needle
+        )
+
+for _needle in (
+    'v1138_activity_income(stage, "courier", route_factor)',
+    "route_factor = 1.0 + min(0.75",
+):
+    if _needle not in _courier_source:
+        _semantic_errors.append(
+            "courier income loop regression: missing " + _needle
+        )
+
+for _needle in (
+    'v1138_activity_income(',
+    '"exploration100"',
+    "stage = max(stages) if stages else fallback_stage",
+):
+    if _needle not in _exploration_progress_source:
+        _semantic_errors.append(
+            "exploration milestone income regression: missing " + _needle
+        )
+
+for _needle in (
+    'v1138_activity_income(stage, "dynamic_world", complexity)',
+):
+    if _needle not in _generation_systems_source:
+        _semantic_errors.append(
+            "dynamic world income loop regression: missing " + _needle
+        )
+
+for _needle in (
+    "def ocean_economy_stage_v1138(",
+    'v1138_activity_income(stage, "ocean_trade", difficulty)',
+    '"ocean_treasure"',
+):
+    if _needle not in _ocean_session_source:
+        _semantic_errors.append(
+            "ocean income loop regression: missing " + _needle
+        )
+
+_equipment_stats_source = (_root / "player/session_mixins/equipment_stats.py").read_text(encoding="utf-8")
+_combat_feedback_source = (_root / "player/session_mixins/skill_learning.py").read_text(encoding="utf-8")
+for _needle in (
+    "def physical_defense_base(",
+    "constitution * 0.42",
+):
+    if _needle not in _generator_source:
+        _semantic_errors.append("physical defense progression regression: missing " + _needle)
+if "generator_core_v027.physical_defense_base(" not in _equipment_stats_source:
+    _semantic_errors.append("equipment CON defense regression: physical_defense_base not used")
+for _needle in (
+    "defense_cap_ratio = 0.60 if v0863_is_boss_template(template) else 0.75",
+    'f"{defense_name.capitalize()} zatrzymuje {reduction} obrażeń. "',
+):
+    if _needle not in _combat_feedback_source:
+        _semantic_errors.append("defense feel regression: missing " + _needle)
 
 # Smoczy Świat v1.13.0 feature contract retained by v1.13.2. Fast predeploy stays source-only,
 # while the module itself performs the full assembled-world runtime audit.
@@ -307,11 +492,111 @@ for _needle in _class_eq_three_stat_needles:
             "class EQ three-stat regression: missing " + _needle
         )
 
+for _needle in (
+    "CLASS_EQUIPMENT_STYLE_PROFILES = {",
+    '"role": "zbalansowany"',
+    '"role": "ofensywny"',
+    '"role": "pancerny"',
+    "def class_equipment_flat_power_channels(",
+    'if class_name == "Mec":',
+    'return {"attack": hybrid, "magic_attack": hybrid}',
+    "class_name, legacy_affix_amount, slot, style_index",
+):
+    if _needle not in _class_eq_source:
+        _semantic_errors.append(
+            "class EQ style/power regression: missing " + _needle
+        )
+
+for _needle in (
+    'int(item.get("class_equipment_style", 1) or 1)',
+    "linie stylu nadal identyczne",
+    "nie ma obu kanałów Attack/Magic Attack",
+):
+    if _needle not in _runtime_progression_source:
+        _semantic_errors.append(
+            "runtime class EQ style regression: missing " + _needle
+        )
+
+_equipment_stats_source = (_root / "player/session_mixins/equipment_stats.py").read_text(encoding="utf-8")
+if "Linie można mieszać." not in _equipment_stats_source:
+    _semantic_errors.append(
+        "class EQ mixed-style set regression: set status no longer confirms mixing"
+    )
+
+_class_set_start = _equipment_stats_source.find("    def class_set_counts(self):")
+_class_set_end = _equipment_stats_source.find(
+    "    def class_set_stat_bonus_totals(self):",
+    _class_set_start,
+)
+if _class_set_start < 0 or _class_set_end < 0:
+    _semantic_errors.append("class EQ mixed-style set regression: class_set_counts block missing")
+else:
+    _class_set_block = _equipment_stats_source[_class_set_start:_class_set_end]
+    if "class_set_name" in _class_set_block:
+        _semantic_errors.append(
+            "class EQ mixed-style set regression: set thresholds depend on style name"
+        )
+    if "logical_slots.setdefault(class_name, set()).add(item.get(\"slot\"))" not in _class_set_block:
+        _semantic_errors.append(
+            "class EQ mixed-style set regression: thresholds no longer count class logical slots"
+        )
+
+_shops_source = (_root / "player/session_mixins/shops_teachers.py").read_text(encoding="utf-8")
+for _needle in (
+    "class_equipment_style_role",
+    "Style tej samej klasy można mieszać bez utraty progów setu 2/4/6/8",
+):
+    if _needle not in _shops_source:
+        _semantic_errors.append(
+            "class EQ shop style regression: missing " + _needle
+        )
+
+_equipment_compare_source = (_root / "player/session_mixins/equipment_compare.py").read_text(encoding="utf-8")
+for _needle in ('"attack": "Attack"', '"magic_attack": "Magic Attack"'):
+    if _needle not in _equipment_compare_source:
+        _semantic_errors.append(
+            "EQ compare flat-power regression: missing " + _needle
+        )
+
+# v1.13.8: sklep, crafting i drop mają różne role, ale wspólną epokę mocy.
+for _needle in (
+    "BLACKSMITH_MASTERWORK_STAT_PROFILE = {",
+    "def _blacksmith_masterwork_profile_v1138(",
+    '"crafted_masterwork": True',
+    '"sockets": int(masterwork["sockets"])',
+    "progression_budget = equipment_progression_budget_v1138(required_mastery)",
+    "quality = 0.80 + rng.random() * 0.30",
+    '"drop_quality": round(float(quality), 3)',
+):
+    if _needle not in _items_resource_source:
+        _semantic_errors.append(
+            "craft/drop EQ identity regression: missing " + _needle
+        )
+
+for _needle in (
+    "def crypt_affix_amount(tier, rarity_key, affix_key):",
+    "budget = equipment_progression_budget_v1138(mastery)",
+    '"mythic": 0.38',
+    '"Unikalny Bossowy"',
+    '"sockets": sockets',
+):
+    if _needle not in _dungeon_source:
+        _semantic_errors.append(
+            "crypt loot progression regression: missing " + _needle
+        )
+
+
 _final_help_source = (_root / "admin/help_refresh.py").read_text(encoding="utf-8")
 for _needle in (
     "Siłę + Zręczność + Kondycję",
     "Inteligencję + Siłę Woli + Kondycję",
     "legendarnych setów i reliktów klasowych",
+    "trzy linie klasowego EQ",
+    "Możesz dowolnie mieszać style",
+    "Mec jako hybryda dostaje oba kanały",
+    "zwykłe zbieractwo daje sensowny zarobek",
+    "Rekiny, legendarne ryby i lewiatany",
+    "Jackpot",
 ):
     if _needle not in _final_help_source:
         _semantic_errors.append(
@@ -361,18 +646,18 @@ except Exception as exc:
     )
 
 if _semantic_errors:
-    print("Soulbound v1.13.7 FAST PREDEPLOY FAILED: semantic contracts")
+    print("Soulbound v1.13.8 FAST PREDEPLOY FAILED: semantic contracts")
     for _error in _semantic_errors:
         print(f"ERROR: {_error}")
     raise SystemExit(1)
 
 if audit["error_count"]:
-    print("Soulbound v1.13.7 FAST PREDEPLOY FAILED")
+    print("Soulbound v1.13.8 FAST PREDEPLOY FAILED")
     for error in audit["errors"]:
         print(f"ERROR: {error}")
     raise SystemExit(1)
 
-print("Soulbound v1.13.7 FAST PREDEPLOY PASS")
+print("Soulbound v1.13.8 FAST PREDEPLOY PASS")
 print(
     "Semantic contracts: "
     f"{len(_semantic_audits)} audits PASS; AP runtime guards PASS"
