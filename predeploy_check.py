@@ -1849,6 +1849,22 @@ for _needle in (
     if _needle not in _protocol_source_rewards_v11330:
         _semantic_errors.append("boss chest reward regression: missing " + _needle)
 
+_admin_tools_boss_chest_party_source_v11330 = (
+    _root / "player/session_mixins/admin_tools.py"
+).read_text(encoding="utf-8")
+for _needle in (
+    "party_key = self.party_key()",
+    "party_key != self.account_id",
+    "self.server.party_sessions(",
+    "same_room=self.character.room_id",
+    "unique_recipients",
+    "await member.record_item_collection(",
+    "self.server.db.remove_item(member.account_id, key_id, 1)",
+    "Wspólne otwarcie drużyny",
+):
+    if _needle not in _admin_tools_boss_chest_party_source_v11330:
+        _semantic_errors.append("party boss chest regression: missing " + _needle)
+
 _economy_quests_source_v11330 = (_root / "world/economy_quests.py").read_text(
     encoding="utf-8"
 )

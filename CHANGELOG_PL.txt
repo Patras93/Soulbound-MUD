@@ -24,6 +24,8 @@ Aktualna paczka: v1.13.30
 Soulbound v1.13.30 — POST-600 INFINITE REWARD & EQUIPMENT PROGRESSION
 ==============================================================================
 
+- GLOBAL NO-COOLDOWN DOMKNIĘTY: V-MAX i Magnify nie są już wyjątkami od zasady braku reuse cooldownów. V-MAX zachowuje wyłącznie własny czas działania zależny od Skill Levelu i Will oraz blokadę podczas aktywnego V-MAX/Overheat; Magnify zachowuje źródłową właściwość "Cooldown" tylko jako metadane, bez timera ponownego użycia. Audit blokuje powrót mechanic_cooldown do dowolnego skilla.
+- SKRZYNIE BOSSÓW W DRUŻYNIE: nie są już odbierane osobno przez każdego gracza. Lider otwiera jedną skrzynię, a każdy członek tej samej drużyny stojący przy skrzyni dostaje własny roll złota i przedmiotów. Odpowiadający klucz członka jest zużywany, jeśli go posiada, aby nie zostawić podwójnego odbioru tej samej party-run skrzyni. Członkowie poza lokacją nie dostają nagrody.
 - AUTO KOLEJKA SKILLI: bazowa pojemność każdej aktywnej kolejki wzrosła z 20 do 40 slotów na starcie. Dalej rośnie o 1 slot co 10 Character Leveli: 50 przy 100, 60 przy 200, 80 przy 400 i 100 przy 600.
 - Nieskończone lochy nie kończą już progresji jakości EQ na etapie źródła 600.
   Character/Class/Soul/profesje nadal zachowują normalny cap 600.

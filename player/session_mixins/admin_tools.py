@@ -153,27 +153,103 @@ class SessionAdminToolsMixin:
                 return False
             kind, floor, power = spec
             key_id = boss_floor_key_id(kind, floor)
+            chest_name = boss_floor_chest_name(kind, floor)
+
+            party_key = self.party_key()
+            if party_key is not None and party_key != self.account_id:
+                leader = self.server.session_by_account(party_key)
+                leader_name = (
+                    leader.character.name
+                    if leader and getattr(leader, "character", None)
+                    else "lider drużyny"
+                )
+                await self.send(
+                    f"W drużynie tę skrzynię otwiera lider: {leader_name}. "
+                    "Stań przy skrzyni razem z liderem, aby dostać nagrodę z jednego wspólnego otwarcia."
+                )
+                return True
+
             if self.server.db.item_qty(self.account_id, key_id) <= 0:
                 await self.send(
-                    f"{boss_floor_chest_name(kind, floor)} jest zamknięta. "
+                    f"{chest_name} jest zamknięta. "
                     f"Nie masz właściwego klucza. Klucz znajduje się w ciele bossa tego piętra."
                 )
                 return True
             if not self.server.db.remove_item(self.account_id, key_id, 1):
                 await self.send("Nie udało się zużyć klucza.")
                 return True
-            reward = boss_chest_reward_roll(kind, floor, power)
-            self.character.gold += int(reward["gold"])
-            for item_id in reward["items"]:
-                self.server.db.add_item(self.account_id, item_id, 1)
-                await self.record_item_collection(item_id, source=boss_floor_chest_name(kind, floor), announce=True)
-            self.server.db.save_character(self.character)
-            await self.send(
-                f"Odkluczasz i otwierasz: {boss_floor_chest_name(kind, floor)}. "
-                f"Klucz zostaje zużyty. Złoto: +{reward['gold']}."
-            )
-            if reward["items"]:
-                await self.send("Nagrody: " + ", ".join(ITEMS[i]["name"] for i in reward["items"]) + ".")
+
+            recipients = [self]
+            if party_key is not None:
+                recipients = [
+                    member
+                    for member in self.server.party_sessions(
+                        self.account_id, same_room=self.character.room_id
+                    )
+                    if getattr(member, "character", None) is not None
+                    and member.account_id is not None
+                ]
+                if self not in recipients:
+                    recipients.append(self)
+
+            # Jedno fizyczne otwarcie skrzyni daje osobny loot roll każdemu
+            # obecnemu członkowi drużyny. Jeżeli członek ma własny klucz z tego
+            # samego bossa, zużywamy jedną sztukę, żeby nie zostawić podwójnego
+            # odbioru tej samej party-run skrzyni.
+            unique_recipients = {}
+            for member in recipients:
+                unique_recipients[int(member.account_id)] = member
+            recipients = [
+                unique_recipients[account_id]
+                for account_id in sorted(unique_recipients)
+            ]
+
+            leader_name = self.character.name
+            rewarded = []
+            for member in recipients:
+                consumed_member_key = False
+                if member is not self and self.server.db.item_qty(member.account_id, key_id) > 0:
+                    consumed_member_key = bool(
+                        self.server.db.remove_item(member.account_id, key_id, 1)
+                    )
+
+                reward = boss_chest_reward_roll(kind, floor, power)
+                member.character.gold += int(reward["gold"])
+                for item_id in reward["items"]:
+                    self.server.db.add_item(member.account_id, item_id, 1)
+                    await member.record_item_collection(
+                        item_id, source=chest_name, announce=True
+                    )
+                self.server.db.save_character(member.character)
+                rewarded.append(member.character.name)
+
+                if member is self:
+                    await member.send(
+                        f"Odkluczasz i otwierasz: {chest_name}. "
+                        f"Klucz zostaje zużyty. Złoto: +{reward['gold']}."
+                    )
+                else:
+                    key_text = (
+                        " Twój odpowiadający Klucz Bossa również zostaje zużyty."
+                        if consumed_member_key
+                        else ""
+                    )
+                    await member.send(
+                        f"{leader_name} odklucza i otwiera: {chest_name}. "
+                        f"Otrzymujesz Złoto: +{reward['gold']}.{key_text}"
+                    )
+                if reward["items"]:
+                    await member.send(
+                        "Nagrody: "
+                        + ", ".join(ITEMS[i]["name"] for i in reward["items"])
+                        + "."
+                    )
+
+            if len(rewarded) > 1:
+                await self.send(
+                    f"Wspólne otwarcie drużyny: nagrody otrzymało {len(rewarded)} osób "
+                    "stojących przy skrzyni: " + ", ".join(rewarded) + "."
+                )
             return True
 
     async def unlock_context(self, args=""):
