@@ -320,6 +320,72 @@ BLACKSMITH_TIERS += tuple(
     for level in PROGRESSION_400_LEVELS
 )
 
+BLACKSMITH_MASTERWORK_STAT_PROFILE = {
+    "head": ("willpower", "constitution"),
+    "body": ("constitution", "willpower"),
+    "hands": ("strength", "dexterity"),
+    "legs": ("constitution", "dexterity"),
+    "feet": ("dexterity", "constitution"),
+    "charm": ("intelligence", "willpower"),
+}
+
+BLACKSMITH_MASTERWORK_PROPERTY = {
+    "head": "magic_defense_pct",
+    "body": "physical_defense_pct",
+    "hands": "physical_damage_pct",
+    "legs": "max_hp_pct",
+    "feet": "dodge_pct",
+    "charm": "magic_damage_pct",
+}
+
+
+def _blacksmith_masterwork_profile_v1138(level, slot):
+    level = max(1, min(600, int(level or 1)))
+    base_budget = equipment_progression_budget_v1138(level)
+    stat_budget = max(2, int(round(base_budget * 0.65)))
+    first, second = BLACKSMITH_MASTERWORK_STAT_PROFILE[slot]
+    first_amount = max(1, int(round(stat_budget * 0.55)))
+    second_amount = max(1, stat_budget - first_amount)
+    stats = {first: first_amount, second: second_amount}
+
+    prop = BLACKSMITH_MASTERWORK_PROPERTY[slot]
+    prop_value = round(
+        0.50 + 2.50 * ((level - 1) / 599.0) ** 0.80,
+        2,
+    )
+    properties = {prop: prop_value}
+
+    attack = 0
+    magic_attack = 0
+    if slot == "hands":
+        attack = max(1, int(round(base_budget * 0.10)))
+    elif slot == "feet":
+        attack = max(0, int(round(base_budget * 0.04)))
+    elif slot == "charm":
+        magic_attack = max(1, int(round(base_budget * 0.10)))
+    elif slot == "head":
+        magic_attack = max(0, int(round(base_budget * 0.04)))
+
+    if level >= 500:
+        sockets = 5
+    elif level >= 360:
+        sockets = 4
+    elif level >= 200:
+        sockets = 3
+    elif level >= 100:
+        sockets = 2
+    else:
+        sockets = 1
+
+    return {
+        "stats": stats,
+        "properties": properties,
+        "attack": attack,
+        "magic_attack": magic_attack,
+        "sockets": sockets,
+    }
+
+
 def _register_blacksmith_items():
     extra_ingots = (
         ("cobalt_ingot", "Kobaltowa sztabka"),
@@ -347,11 +413,14 @@ def _register_blacksmith_items():
             item_id = (
                 f"smith_{tier['key']}_{slot}"
             )
+            level = int(tier["profession_level"])
             defense = max(
                 1,
                 int(tier["base_defense"])
-                + int(defense_delta),
+                + int(defense_delta)
+                + int(round(equipment_defense_step_v1138(level) * 1.10)),
             )
+            masterwork = _blacksmith_masterwork_profile_v1138(level, slot)
             _catalog_mut.catalog_assign({
                 "name": (
                     f"{slot_name} - {tier['name']} "
@@ -360,6 +429,12 @@ def _register_blacksmith_items():
                 "type": "armor",
                 "slot": slot,
                 "defense": defense,
+                "attack": int(masterwork["attack"]),
+                "magic_attack": int(masterwork["magic_attack"]),
+                "stats": dict(masterwork["stats"]),
+                "properties": dict(masterwork["properties"]),
+                "sockets": int(masterwork["sockets"]),
+                "crafted_masterwork": True,
                 "price": None,
                 "desc": (
                     f"Wyposażenie wykute przez Kowala. "
@@ -367,7 +442,8 @@ def _register_blacksmith_items():
                     "Młot Rzemieślniczy wpływa na dostęp do lepszych materiałów "
                     "i bonus produktu. Tier Młota musi spełniać próg receptury; "
                     "pojedynczy level Młota wewnątrz Tieru nie skraca czasu. "
-                    f"Obrona +{defense}."
+                    f"Obrona +{defense}. Masterwork: statystyki, właściwość materiałowa "
+                    f"i {int(masterwork['sockets'])} gniazd(a) do dalszego dopracowania."
                 ),
                 "blacksmith_tier": tier_number,
                 "blacksmith_material": tier["key"],
