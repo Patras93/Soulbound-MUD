@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 """Legacy/base social methods used by the newer social layer."""
 # v0.45.0: explicit imports; no compatibility-runtime injection.
-from player.session_mixins.exp_terrain import ROOMS
+from player.session_mixins.exp_terrain import NPCS, ROOMS
 from player.session_mixins.exploration_progress import normalize_lookup_text
+from world.uoss_superbosses import UOSS_SUPERBOSS_ENCOUNTERS_V11134
 
 
 class SessionBaseSocialMixin:
@@ -47,42 +48,156 @@ class SessionBaseSocialMixin:
                     f"Klasa: {class_text}."
                 )
 
-    async def try_hire_uoss_helper_v11160(self, message):
+    def uoss_helper_contract_here_v11331(self, message):
+            """Resolve a source join phrase against the helper NPC actually in this room."""
             norm = self.normalize_description_query(message).strip(" .,!?:;")
-            contracts = {
-                "join me popoi": ("Popoi","black_rabite","uoss_rabite_field_v11160"),
-                "join me primm": ("Primm","black_rabite","uoss_rabite_field_v11160"),
-                "join me byblos": ("Byblos","serpentarius","uoss_deep_dungeon_v11160"),
-                "join me montblanc": ("Montblanc","yiazmat","uoss_ridorana_colosseum_v11160"),
-                "join me seifer": ("Seifer","odin","uoss_misty_forest_clearing_v11160"),
-            }
-            contract=contracts.get(norm)
+            if not norm:
+                return None
+
+            candidates = []
+            for npc_id, npc in NPCS.items():
+                if str(npc.get("room") or "") != str(self.character.room_id):
+                    continue
+                boss_key = str(npc.get("uoss_superboss_helper") or "")
+                if not boss_key:
+                    continue
+                helper = str(npc.get("name") or "").strip()
+                if not helper:
+                    continue
+                spec = UOSS_SUPERBOSS_ENCOUNTERS_V11134.get(boss_key, {})
+                phrases = {
+                    self.normalize_description_query(f"join me {helper}").strip(" .,!?:;")
+                }
+                exact = str(npc.get("join_phrase") or spec.get("helper_join_phrase") or "").strip()
+                if exact:
+                    phrases.add(self.normalize_description_query(exact).strip(" .,!?:;"))
+                helper_phrases = spec.get("helper_join_phrases") or {}
+                if isinstance(helper_phrases, dict):
+                    source_phrase = str(helper_phrases.get(helper) or "").strip()
+                    if source_phrase:
+                        phrases.add(
+                            self.normalize_description_query(source_phrase).strip(" .,!?:;")
+                        )
+                # Some source helpers use the generic "Join me" phrase. Accept it
+                # only when a single helper NPC is present in the current room.
+                candidates.append((npc_id, helper, boss_key, npc, spec, phrases))
+
+            if len(candidates) == 1:
+                candidates[0][5].add("join me")
+
+            for npc_id, helper, boss_key, npc, spec, phrases in candidates:
+                if norm in phrases:
+                    return {
+                        "npc_id": npc_id,
+                        "helper": helper,
+                        "boss_key": boss_key,
+                        "npc": npc,
+                        "spec": spec,
+                    }
+            return None
+
+    async def try_hire_uoss_helper_v11160(self, message):
+            contract = self.uoss_helper_contract_here_v11331(message)
             if contract is None:
                 return False
-            helper,boss_key,room_id=contract
-            if str(self.character.room_id) != room_id:
-                return False
-            party = self.server.party_sessions(self.account_id, same_room=self.character.room_id) or [self]
-            if len(party) > 3:
-                await self.send(f"{helper} pomaga tylko drużynie liczącej 3 lub mniej graczy.")
+
+            helper = contract["helper"]
+            boss_key = contract["boss_key"]
+            npc = contract["npc"]
+            spec = contract["spec"]
+
+            party_key = self.party_key()
+            if party_key is not None and party_key != self.account_id:
+                leader = self.server.session_by_account(party_key)
+                leader_name = (
+                    leader.character.name
+                    if leader and getattr(leader, "character", None)
+                    else "lider drużyny"
+                )
+                await self.send(
+                    f"Tylko lider drużyny może zatrudnić pomocnika Super Bossa. "
+                    f"Lider: {leader_name}."
+                )
                 return True
-            base_cost_silver=1*1000000*100
-            discount=max(0.0,min(1.0,float(self.character.shop_discount_percent())/100.0))
-            cost_silver=max(0,int(round(base_cost_silver*(1.0-discount))))
-            master=self.server.db.master_account_for_character(self.account_id)
-            current=int(self.server.db.shared_wallet_for_master(master)[0])
-            if current < cost_silver:
-                await self.send(f"Potrzebujesz {cost_silver} srebra po rabacie Charyzmy, aby zatrudnić {helper}.")
+
+            party = (
+                self.server.party_sessions(
+                    self.account_id, same_room=self.character.room_id
+                )
+                or [self]
+            )
+            max_players = int(
+                npc.get("helper_max_players")
+                or spec.get("helper_max_players")
+                or 0
+            )
+            if max_players and len(party) > max_players:
+                await self.send(
+                    f"{helper} pomaga tylko drużynie liczącej "
+                    f"{max_players} lub mniej graczy."
+                )
                 return True
-            party_key=self.party_key() if self.party_key() is not None else self.account_id
-            attr="_uoss_helper_choice_"+str(party_key)
-            if getattr(self.server,attr,None):
-                await self.send("Ta drużyna ma już zatrudnionego pomocnika Super Bossa.")
+
+            effective_party_key = (
+                party_key if party_key is not None else self.account_id
+            )
+            attr = "_uoss_helper_choice_" + str(effective_party_key)
+            current_helper = getattr(self.server, attr, None)
+            if current_helper:
+                await self.send(
+                    f"Ta drużyna ma już zatrudnionego pomocnika Super Bossa: "
+                    f"{current_helper}."
+                )
                 return True
-            self.server.db.set_shared_wallet_for_master(master,current-cost_silver,0,0)
-            self.server.db.apply_shared_wallet_to_character(self.character)
-            setattr(self.server,attr,helper)
-            await self.send(f"{helper} dołącza do drużyny. Cena bazowa: 1 mithril. Zapłacono po rabacie Charyzmy: {cost_silver} srebra.")
+
+            cost_mithril = int(
+                npc.get("helper_cost_mithril")
+                or spec.get("helper_cost_mithril")
+                or 0
+            )
+            # Canonical economy: 1 mithril = 1,000,000 gold = 100,000,000 silver.
+            base_cost_silver = max(0, cost_mithril) * 100_000_000
+            discount = max(
+                0.0,
+                min(
+                    1.0,
+                    float(self.character.shop_discount_percent()) / 100.0,
+                ),
+            )
+            cost_silver = max(
+                0, int(round(base_cost_silver * (1.0 - discount)))
+            )
+
+            if cost_silver:
+                master = self.server.db.master_account_for_character(
+                    self.account_id
+                )
+                current = int(
+                    self.server.db.shared_wallet_for_master(master)[0]
+                )
+                if current < cost_silver:
+                    await self.send(
+                        f"Potrzebujesz {cost_silver} srebra po rabacie Charyzmy, "
+                        f"aby zatrudnić {helper}. Cena bazowa: {cost_mithril} mithril."
+                    )
+                    return True
+                self.server.db.set_shared_wallet_for_master(
+                    master, current - cost_silver, 0, 0
+                )
+                self.server.db.apply_shared_wallet_to_character(self.character)
+
+            setattr(self.server, attr, helper)
+            cost_text = (
+                f"Cena bazowa: {cost_mithril} mithril. "
+                f"Zapłacono po rabacie Charyzmy: {cost_silver} srebra."
+                if cost_mithril
+                else "Ten pomocnik nie ma kosztu zatrudnienia."
+            )
+            for member in party:
+                await member.send(
+                    f"{helper} dołącza do drużyny na walkę z "
+                    f"{spec.get('name', boss_key)}. {cost_text}"
+                )
             return True
 
     async def say(self, text):
