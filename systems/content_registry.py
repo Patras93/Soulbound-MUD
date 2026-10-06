@@ -373,8 +373,11 @@ SYSTEM_DESCRIPTIONS = {
 }
 
 
-LATEST_CHANGES_TITLE = "Soulbound v0.22.0 - World Projects, Legendary Contracts & Fishing Records 2.0"
+LATEST_CHANGES_TITLE = "Soulbound v1.13.31 - Version Sync & Adaptive Consider"
 LATEST_CHANGES = [
+    "v1.13.31: zsynchronizowano numer gry, CHANGELOG i fallback changes; predeploy pilnuje, aby te trzy źródła wersji nie rozjechały się ponownie.",
+    "v1.13.31: consider/con/ocen prognozuje encounter-local Adaptive Combat przed atakiem: skalowane HP, obrażenia odpowiedzi, wielkość lokalnej drużyny i rekompensatę EXP/waluty.",
+    "v1.13.31: consider liczy zwykłą akcję z realnym multi-hit/Speed oraz łączną zwykłą akcję lokalnej drużyny, więc ocena nie traktuje skalowanego party-moba jak celu bitego solo.",
     "v0.22.0: dodano wspólne World Projects, Legendary Contracts z ogromnymi nagrodami oraz Fishing Records 2.0 z rekordami serwera dla każdego gatunku.",
     "v0.22.0: projekty świata mają ogromne wymagania materiałów i waluty, kontrakty zawsze startują 0/x, a rekordy ryb przechowują masę, długość, właściciela i najrzadszy okaz.",
     "v0.15.0: dodano deterministyczną pogodę i cykl świt/dzień/zmierzch/noc; warunki nigdy nie blokują questów, profesji ani eksploracji i dają tylko małe opcjonalne bonusy XP.",
@@ -1484,15 +1487,15 @@ HELP_TOPICS = {
     ],
     "consider": [
         "consider <mob>, con <mob> albo ocen <mob> ocenia przeciwnika bez rozpoczynania walki.",
-        "Jeśli w lokacji jest dokładnie jeden mob, samo consider oceni właśnie jego.",
-        "Przy wielu mobach podaj nazwę przeciwnika.",
+        "Jeśli w lokacji jest dokładnie jeden mob, samo consider oceni właśnie jego; przy wielu mobach podaj nazwę lub numer wystąpienia.",
+        "Od v1.13.31 consider używa tej samej prognozy Adaptive Combat co realne starcie: uwzględnia aktualną postać, Speed/multi-hit oraz wszystkich żywych członków drużyny stojących w tej samej lokacji.",
+        "Pokazuje prognozowane skalowane HP moba, bazowe max HP, mnożnik HP, rangę Adaptive Combat i liczbę członków lokalnej drużyny.",
+        "Pokazuje szacowane obrażenia odpowiedzi już po adaptacyjnym skalowaniu względem twojego HP, obrony, redukcji i uniku.",
+        "Twój zwykły atak jest liczony jako hit oraz pełna akcja z aktualną liczbą trafień; w drużynie consider pokazuje też łączną zwykłą akcję lokalnej drużyny.",
         "Ocena może być: bardzo słaby, słaby, korzystny, porównywalny, niebezpieczny, bardzo niebezpieczny albo śmiertelnie groźny.",
-        "Consider podaje aktualne HP moba, bazowy atak, typ obrażeń oraz orientacyjny normalny cios gracza.",
-        "Podaje również orientacyjną liczbę trafień potrzebnych obu stronom przy obecnym HP gracza.",
-        "Uwzględnia obronę fizyczną lub magiczną, unik, redukcje rasowe i klasowe oraz krytyki w średnim wyniku.",
-        "Bossowie są oceniani ostrożniej, ponieważ specjalne mechaniki zwiększają ryzyko.",
-        "Jeśli boss ma opis mechaniki, consider go przeczyta.",
-        "Consider nie angażuje moba, nie wykonuje ataku, nie zużywa Many i nie uruchamia walki.",
+        "Bossowie są oceniani ostrożniej, ponieważ specjalne mechaniki zwiększają ryzyko; jeśli boss ma opis mechaniki, consider go przeczyta.",
+        "Consider pokazuje również prognozowany mnożnik rekompensaty EXP/waluty Adaptive Combat; drop chance i unikalne dropy nie są przez niego mnożone.",
+        "Consider nie angażuje moba, nie wykonuje ataku, nie zużywa Many i nie mutuje skali przeciwnika. To bezpieczna prognoza przed walką.",
     ],
     "wolniejsze_staty": [
         "Każda z sześciu statystyk ma własny licznik EXP i własny próg.",
