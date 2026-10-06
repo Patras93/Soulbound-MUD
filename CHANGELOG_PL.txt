@@ -1,5 +1,5 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.13.22
+Aktualna paczka: v1.13.23
 
 
 
@@ -12,6 +12,29 @@ Aktualna paczka: v1.13.22
 
 
 
+
+
+==============================================================================
+Soulbound v1.13.23 — Global Mob Feel: trudność + łup „o kurde”
+==============================================================================
+
+- Zwykłe moby nie są już traktowane jak bezpieczne zapychacze. Obecne warstwy
+  Terrain/World/Global Difficulty nadal odpowiadają za ich HP, a v1.13.23
+  dodaje umiarkowaną końcową presję OBRAŻEŃ zamiast kolejnego blanket HP wall.
+- Dodatkowa presja obrażeń rośnie z rangą: Normal x1.08, Elite x1.10,
+  Rare x1.12, miniboss x1.14, boss x1.16, World Boss x1.20.
+- Każdy prawdziwy mob ma jeden niezależny rzut na skalowane Trofeum z potyczki:
+  Normal 8%, Elite 18%, Rare 32%, miniboss 50%, boss 75%, World Boss 100%.
+- Trofea mają 8 progów etapu (1/50/100/200/300/400/500/600) i realną wartość
+  sprzedaży od 1 Gold na początku do 5 500 Gold na etapie 600+.
+- Trofeum jest DODATKIEM: nie zastępuje authored dropów, materiałów, unikatów,
+  Soul Shardów, EQ ani specjalnych nagród bossów.
+- Udany rzut jest współdzielony z całą obecną drużyną tak jak zwykły drop;
+  nie ma kary za party.
+- Training Dummy nie rzuca trofeów.
+- Dodano Global Mob Feel Audit oraz fast-predeploy guards dla trudności,
+  szans rangowych, ośmiu tierów trofeów i właściwej granicy przyznawania łupu.
+- Brak wipe i migracji bazy.
 
 ==============================================================================
 Soulbound v1.13.22 — hotfix Terrain Threat Rebalance Audit
