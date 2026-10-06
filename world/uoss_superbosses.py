@@ -135,7 +135,7 @@ UOSS_SUPERBOSS_ENCOUNTERS_V11134 = {
     "dad": {"name":"Dad","mode":"solo","unlock_level":80},
     "diabolos": {"name":"Diabolos","mode":"solo","unlock_level":80},
     "harle": {"name":"Harle","mode":"solo_or_party","unlock_level":85},
-    "culex": {"name":"Culex","mode":"party","unlock_level":100},
+    "culex": {"name":"Culex","mode":"party","unlock_level":100,"personal_token":"Quartz Chunk"},
     "ruby_weapon": {
         "name":"Ruby WEAPON","mode":"party","area":"Corel Prison","unlock_level":100,"recommended_level":100,
         "personal_token":"Desert Rose","weapon_pair":"emerald_weapon",
