@@ -128,6 +128,65 @@ class SessionSalesMixin:
 
     def generic_item_sale_value(self, item_id, item):
             smith_cap = self.blacksmith_crafted_sale_cap_v0341(item_id, item)
+
+            # v1.13.30: Rezonans Głębi is a new physical item instance, not the
+            # historical shop/sell contract of its base item. Always value it
+            # from real mechanical power plus uncapped depth rank, before old
+            # explicit sell_* / price shortcuts can flatten the reward.
+            if item.get("infinite_depth_variant"):
+                defense = max(0, int(item.get("defense", 0) or 0))
+                attack = max(0, int(item.get("attack", 0) or 0))
+                magic_attack = max(0, int(item.get("magic_attack", 0) or 0))
+                flat_power = attack + magic_attack
+                affix = max(0, abs(int(item.get("affix_amount", 0) or 0)))
+                sockets = max(0, int(item.get("sockets", 0) or 0))
+                stat_power = sum(
+                    max(0, int(v or 0))
+                    for v in (item.get("stats") or {}).values()
+                )
+                property_power = sum(
+                    max(0.0, float(v or 0))
+                    for v in (item.get("properties") or {}).values()
+                )
+                material_key = str(
+                    item.get("corpse_material")
+                    or item.get("blacksmith_material")
+                    or ""
+                )
+                material_base = V0863_MATERIAL_SALE_BASE_SILVER.get(
+                    material_key, 0
+                )
+                mechanical_silver = max(
+                    25,
+                    material_base + defense * 40 + flat_power * 140
+                    + affix * 30 + sockets * 150
+                    + 600 * 20 + stat_power * 120
+                    + int(property_power * 250),
+                )
+                depth_rank = max(
+                    1, int(item.get("infinite_depth_rank", 1) or 1)
+                )
+                rarity = str(
+                    item.get("rarity") or "common"
+                ).strip().lower()
+                resale_fraction = V11314_ARMOR_RESALE_QUEST_FRACTION.get(
+                    rarity, 0.035
+                )
+                depth_factor = 1.0 + 0.030 * (depth_rank ** 0.82)
+                depth_floor = max(
+                    1,
+                    int(round(
+                        economy_stage_anchor_v11314(600)
+                        * resale_fraction
+                        * depth_factor
+                    )),
+                )
+                return {
+                    "silver": max(mechanical_silver, depth_floor),
+                    "gold": 0,
+                    "mithril": 0,
+                }
+
             # Jawna cena sprzedaży ma pierwszeństwo.
             explicit = {
                 "silver": int(item.get("sell_silver", 0) or 0),
