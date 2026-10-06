@@ -62,9 +62,7 @@ def infinite_source_profile(template):
         except (TypeError, ValueError, OverflowError):
             floor = 1
         source = "magitek"
-        # The authored Magitek stage is 110 + floor*7, currently clamped to 600
-        # for player-facing mastery. Here we deliberately retain the uncapped
-        # source strength used only for reward quality.
+        # Existing authored formula, but without its player-facing cap.
         raw_stage = 110 + floor * 7
     elif template.get("mythic_crypt_floor") is not None:
         try:
@@ -72,29 +70,35 @@ def infinite_source_profile(template):
         except (TypeError, ValueError, OverflowError):
             floor = 1
         source = "mythiccrypt"
-        # Static floors 1..200 map naturally to source stages 401..600.
-        raw_stage = 400 + floor
+        # Extend the existing mythic Crypt gear formula:
+        # tier = 20 + (floor-1)//10, required mastery = tier*10.
+        raw_stage = max(200, (20 + (floor - 1) // 10) * 10)
     elif template.get("mythic_astral_floor") is not None:
         try:
             floor = max(1, int(template.get("mythic_astral_floor") or 1))
         except (TypeError, ValueError, OverflowError):
             floor = 1
         source = "mythictower"
-        raw_stage = 400 + floor
+        # Mythic Astral uses the highest ordinary Astral gear as its baseline.
+        # Continue from effective stage 200 by +10 every 10 mythic floors.
+        raw_stage = 200 + max(0, (floor - 1) // 10) * 10
     elif template.get("crypt_floor") is not None:
         try:
             floor = max(1, int(template.get("crypt_floor") or 1))
         except (TypeError, ValueError, OverflowError):
             floor = 1
         source = "crypt"
-        raw_stage = floor
+        # Existing Crypt gear is one tier per 10 floors, tier*10 mastery.
+        raw_stage = max(10, ((floor - 1) // 10 + 1) * 10)
     elif template.get("astral_floor") is not None:
         try:
             floor = max(1, int(template.get("astral_floor") or 1))
         except (TypeError, ValueError, OverflowError):
             floor = 1
         source = "tower"
-        raw_stage = floor
+        # Ordinary Astral starts at floor/mastery 100 and advances one gear
+        # circle every 10 floors: 100..109 => 100, 110..119 => 110, etc.
+        raw_stage = 100 + max(0, (floor - 100) // 10) * 10
     else:
         return None
 
@@ -301,8 +305,17 @@ def register_infinite_equipment_variant(
     data["infinite_depth_power_multiplier"] = round(multiplier, 6)
     data["source_progression_stage"] = effective_stage
 
-    # Critically: never invent required_mastery > 600. The copy preserves the
-    # base item's existing equip requirements exactly.
+    # Never invent mastery 601+, but a genuinely post-600 item is endgame gear.
+    # Keep all other authored requirements and raise only an existing mastery
+    # requirement to the canonical cap so trading cannot bypass the deep source.
+    if "required_mastery" in data:
+        data["required_mastery"] = min(
+            INFINITE_EQUIPMENT_BASE_STAGE,
+            max(
+                int(data.get("required_mastery", 0) or 0),
+                INFINITE_EQUIPMENT_BASE_STAGE,
+            ),
+        )
     data["price"] = base.get("price")
     _catalog_mut.catalog_assign(data, "ITEMS", ITEMS, (vid,))
     return vid
@@ -352,12 +365,12 @@ def infinite_equipment_audit_v11330():
     boundary_cases = (
         ({"crypt_floor": 600}, False),
         ({"crypt_floor": 601}, True),
-        ({"mythic_crypt_floor": 200}, False),
-        ({"mythic_crypt_floor": 201}, True),
+        ({"mythic_crypt_floor": 401}, False),
+        ({"mythic_crypt_floor": 411}, True),
         ({"astral_floor": 600}, False),
-        ({"astral_floor": 601}, True),
-        ({"mythic_astral_floor": 200}, False),
-        ({"mythic_astral_floor": 201}, True),
+        ({"astral_floor": 610}, True),
+        ({"mythic_astral_floor": 401}, False),
+        ({"mythic_astral_floor": 411}, True),
         ({"magitek_floor": 70, "magitek_infinite": True}, False),
         ({"magitek_floor": 71, "magitek_infinite": True}, True),
     )
