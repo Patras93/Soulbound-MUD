@@ -133,7 +133,9 @@ class DatabaseInventoryMixin:
         self.conn.commit()
         return True
 
-    def persisted_crafting_quality_item_ids_v0332(self):
+    def _persisted_dynamic_item_ids(self, prefix, log_label):
+        """Find self-describing dynamic item IDs across inventory-like storage."""
+        prefix=str(prefix or "")
         found=set()
         tables=self.conn.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()
         for table_row in tables:
@@ -145,16 +147,17 @@ class DatabaseInventoryMixin:
             except Exception:
                 continue
             for col in cols:
-                if col not in ("item_id","jewelry_item_id"):
+                if col not in ("item_id","jewelry_item_id","attachment_item_id"):
                     continue
                 try:
-                    rows=self.conn.execute(f"SELECT DISTINCT {col} FROM {table} WHERE {col} LIKE 'craftq_%'").fetchall()
+                    rows=self.conn.execute(
+                        f"SELECT DISTINCT {col} FROM {table} WHERE {col} LIKE ?",
+                        (prefix+"%",),
+                    ).fetchall()
                     found.update(str(row[0]) for row in rows if row[0])
                 except Exception as exc:
-                    print(f"CRAFTQ_SCAN_TABLE_ERROR: {type(exc).__name__}: {exc}", flush=True)
-        # v0.33.6: Housing 2.0 stores item ids inside JSON rather than an
-        # item_id column. Include those ids as well so Crafting Quality variants
-        # survive a restart even when every copy is currently in the house chest.
+                    print(f"{log_label}_SCAN_TABLE_ERROR: {type(exc).__name__}: {exc}", flush=True)
+        # Housing 2.0 stores item IDs inside JSON rather than a normal item_id column.
         try:
             import json as _json
             rows=self.conn.execute("SELECT storage_json FROM player_housing_v03051").fetchall()
@@ -166,11 +169,17 @@ class DatabaseInventoryMixin:
                 if isinstance(box,dict):
                     for item_id in box:
                         item_id=str(item_id or "")
-                        if item_id.startswith("craftq_"):
+                        if item_id.startswith(prefix):
                             found.add(item_id)
         except Exception as exc:
-            print(f"CRAFTQ_HOUSING_SCAN_ERROR: {type(exc).__name__}: {exc}", flush=True)
+            print(f"{log_label}_HOUSING_SCAN_ERROR: {type(exc).__name__}: {exc}", flush=True)
         return sorted(found)
+
+    def persisted_crafting_quality_item_ids_v0332(self):
+        return self._persisted_dynamic_item_ids("craftq_", "CRAFTQ")
+
+    def persisted_infinite_equipment_item_ids_v11330(self):
+        return self._persisted_dynamic_item_ids("deepq_", "DEEPQ")
 
     def inventory(self, account_id):
         return self.conn.execute(
