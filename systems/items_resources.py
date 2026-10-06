@@ -740,10 +740,15 @@ MATERIAL_SLOT_PROPERTY_PREFERENCES = {
 
 
 def _material_budget_split(rng, budget, count):
+    """Losowy podział dużego budżetu bez pętli po każdym punkcie statystyki."""
     budget = max(count, int(budget))
-    values = [1] * count
-    for _ in range(budget - count):
-        values[rng.randrange(count)] += 1
+    if count <= 1:
+        return [budget]
+    # Losujemy miejsca cięcia kompozycji dodatnich liczb. Koszt zależy od liczby
+    # statów (maks. 5), a nie od budżetu, który w no-limit progression może być duży.
+    cuts = sorted(rng.sample(range(1, budget), count - 1))
+    points = [0] + cuts + [budget]
+    values = [points[i + 1] - points[i] for i in range(count)]
     rng.shuffle(values)
     return values
 
