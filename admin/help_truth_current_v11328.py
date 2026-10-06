@@ -47,14 +47,15 @@ def _normalize_help_line_v11328(line, slot_count):
 
     # Safe current-progression replacements for old milestone prose.
     replacements = (
+        # Specific capacity phrases must run before the generic Level 400 swap.
+        ("maksymalnie 50 na Levelu 400", "maksymalnie 80 na Levelu 600"),
+        ("50 na Levelu 400", "80 na Levelu 600"),
+        ("10 na Levelu 1", "20 na Levelu 1"),
         ("1-400", "1-600"),
         ("1–400", "1–600"),
         ("do levelu 400", "do levelu 600"),
         ("do Levelu 400", "do Levelu 600"),
         ("na Levelu 400", "na Levelu 600"),
-        ("maksymalnie 50 na Levelu 400", "maksymalnie 80 na Levelu 600"),
-        ("10 na Levelu 1", "20 na Levelu 1"),
-        ("50 na Levelu 400", "80 na Levelu 600"),
     )
     for old, new in replacements:
         text = text.replace(old, new)
@@ -444,6 +445,7 @@ def help_freshness_audit_v11328():
     # Scan every public topic, not only a hand-picked shortlist.
     forbidden = (
         "50 na Levelu 400",
+        "50 na Levelu 600",
         "10 na Levelu 1",
         "cooldown i bazowa moc pochodzą z Generator Core",
         "krzywej mocy/cooldownu",
