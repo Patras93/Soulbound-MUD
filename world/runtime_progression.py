@@ -1071,16 +1071,6 @@ def finalize_class_equipment_v03015():
             f"{labels[tertiary_stat]} +{tertiary_amount}"
         )
         profile_text = str(item.get("class_equipment_profile") or class_equipment_profile(class_name).get("identity") or "")
-        style_index = int(item.get("class_equipment_style", 1) or 1)
-        style_role = {
-            1: "zbalansowany",
-            2: "ofensywny",
-            3: "pancerny",
-        }.get(style_index, "zbalansowany")
-        profile_text = (
-            f"{profile_text}; wariant {style_role}"
-            if profile_text else f"wariant {style_role}"
-        )
         defense = int(item.get("defense", 0) or 0)
         set_name = item.get("class_set_name") or "Klasowy"
         if item.get("legendary_class_relic"):
