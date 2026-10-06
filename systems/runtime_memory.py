@@ -191,12 +191,7 @@ def memory_efficiency_ii_audit_v0616(*, require_compacted: bool = False):
 
 
 V0616_MEMORY_EFFICIENCY_AUDIT = memory_efficiency_ii_audit_v0616(require_compacted=False)
-if V0616_MEMORY_EFFICIENCY_AUDIT["error_count"]:
-    raise RuntimeError(
-        "Memory Efficiency II Audit v0.61.6 failed: "
-        + "; ".join(V0616_MEMORY_EFFICIENCY_AUDIT["errors"][:100])
-    )
-
+# v1.13.30: audit failure is enforced by predeploy_full.py, not production startup.
 __all__ = [
     "V0616_MEMORY_EFFICIENCY_VERSION",
     "compact_runtime_memory_v0616",
