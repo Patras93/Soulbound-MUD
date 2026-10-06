@@ -10,14 +10,14 @@ from __future__ import annotations
 
 import re
 
-from core.bootstrap_economy_professions import TOOL_PROFESSION_MAP
+from core.bootstrap_economy_professions import TOOL_PROFESSION_MAP, VERSION
 from core.classes_skills import CLASSES, RACES
 from core.command_catalog import COMMAND_CATALOG
 from core.profession_timing import TOOL_ACTION_BASE_SECONDS, TOOL_ACTION_MIN_SECONDS
 from systems.items_resources import CLASS_EQUIPMENT_SLOT_DEFS
 from world.equipment_help import HELP_TOPICS, HELP_TOPIC_ALIASES
 
-HELP_TRUTH_CURRENT_VERSION_V11328 = "1.13.28"
+HELP_TRUTH_CURRENT_VERSION_V11328 = str(VERSION)
 
 
 def _help_lines_v11328(value):
@@ -137,7 +137,7 @@ def refresh_help_truth_current_v11328():
         HELP_TOPICS[topic] = cleaned
 
     HELP_TOPICS["wersja"] = [
-        "Aktualna wersja gameplay HELP: Soulbound v1.13.28.",
+        f"Aktualna wersja gameplay HELP: Soulbound v{VERSION}.",
         "HELP opisuje bieżący runtime; pełną historię zmian pokazuje changes / zmiany / changelog.",
         "Dokładne liczby konkretnego moba, skilla, EQ, receptury lub źródła sprawdzaj komendą runtime zamiast historycznej tabeli.",
     ]
@@ -277,10 +277,11 @@ def refresh_help_truth_current_v11328():
 
     HELP_TOPICS["loot"] = [
         "Każdy prawdziwy mob ma dodatkowy roll Trofeum z potyczki zależny od rangi: Normal 8%, Elite 18%, Rare 32%, miniboss 50%, boss 75%, World Boss 100%.",
+        "Losowe klasowe EQ z ciała ma osobną hierarchię v1.13.29: Normal 7%, Elite 18%, Rare 28%, miniboss 40%, boss 55%, World Boss 70%. Rare generowany jako rare_mob jest poprawnie rozpoznawany jako Rare.",
         "Trofeum skaluje się z etapem i ma sensowną wartość sprzedaży; nie zastępuje authored dropów, Soul Shardów, EQ ani nagród bossowych.",
         "Stare zwykłe rodziny z pustym/potionowym lootem mogą mieć charakterystyczny materiał, np. szczur, goblin, bandyta lub ruiny.",
-        "Named world-boss uniques są skalowane do progresji źródłowego bossa zamiast pozostawać na historycznych +3/+4/+5.",
-        "Krypta zachowuje własną drabinę rarity, losowych affixów, power/properties i socketów.",
+        "Named world-boss uniques są skalowane do progresji źródłowego bossa, a ich bezpośredni authored drop ma co najmniej 60% szansy dla World Bossa. Zwykłe materiały i mikstury zachowują własne authored chance.",
+        "Krypta zachowuje własną drabinę rarity, losowych affixów, power/properties i socketów; od v1.13.29 głębsze źródło zwiększa również samą szansę na Epic/Legendary/Mythic.",
         "historiadropow / drophistory oraz loot rare+/epic+/legendary/all/off pomagają śledzić wartościowe dropy pod NVDA.",
     ]
 
@@ -349,6 +350,7 @@ def refresh_help_truth_current_v11328():
         "Zwykła i Mityczna Krypta rosną na każdym kolejnym piętrze; boss co 10 pięter jest dodatkowym skokiem.",
         "Trudność, EXP i nagrody korzystają z aktualnych warstw Crypt Overdrive + Global Difficulty; con pokazuje bieżącą ocenę konkretnego przeciwnika.",
         "Loot Krypty ma rarity i losowy affix; wyższa rarity zwiększa affix, obronę/power, properties i sockety. Głębsze źródło ma jawny Etap źródła EQ.",
+        "Od v1.13.29 rarity chance rośnie z etapem źródła. Przy etapie 600 zwykły drop używa wag 30/30/20/13/7 dla Common/Rare/Epic/Legendary/Mythic, a boss 3/17/30/28/22.",
         "Bossowie Krypty mają unikalne relikty skalowane z piętrem. Po runie może pojawić się Dungeon Summary.",
         "Nieskończona część może skalować zagrożenie dalej niż główna progresja 600.",
     ]
@@ -372,6 +374,7 @@ def refresh_help_truth_current_v11328():
         "superbosses pokazuje unikalne wyzwania UOSS, wymagania i zaliczenia; superboss <nazwa> obsługuje wejście.",
         "Superbossowie mają własne mechaniki, lockouty, tokeny, named uniques i sklepy; nie są zwykłą rotacją bossów Krypty/Wieży.",
         "Black Rabite: osobisty Moogle Steel, pula unikalnych dropów i warunkowy Moogle Board dla Cyborga. Moogle Board nie jest startowym itemem.",
+        "Każdy legalny clear UOSS zachowuje osobistą nagrodę tokenową; Black Rabite, Yiazmat i Odin zachowują też osobisty unique roll dla uprawnionych uczestników zgodnie z lockoutem.",
         "Odin/Yiazmat/Culex i inne UOSS źródła zachowują specjalne tokeny oraz własne efekty EQ. shop info / eq info pokazują realny koszt i właściwości.",
         "Token-only jest wyświetlany jako koszt tokenu bez fałszywego 0 srebra.",
     ]
@@ -525,14 +528,14 @@ def help_freshness_audit_v11328():
         "crafting": ("3-6%", "x2"),
         "quest": ("2%", "6%", "8%", "manual"),
         "druzyny": ("Nie ma kary drużynowej", "pełne"),
-        "loot": ("Normal 8%", "World Boss 100%", "named"),
+        "loot": ("Normal 8%", "World Boss 100%", "Rare 28%", "World Boss 70%", "60%"),
         "gamefeel": ("2.5%", "8%", "x1.75"),
         "ekwipunek": (str(slot_count), "Tożsamość EQ", "Etap źródła EQ"),
         "zrodla_eq": ("Kowalstwo", "Krypta", "UOSS"),
         "sklepy": ("NIE oznacza darmowego", "token-only", "kanonicznej"),
-        "krypta": ("rarity", "Etap źródła EQ"),
+        "krypta": ("rarity", "Etap źródła EQ", "30/30/20/13/7", "3/17/30/28/22"),
         "ocean": ("handel morski porzuc", "nie zeruje"),
-        "superbossy": ("Moogle Board nie jest startowym", "Token-only"),
+        "superbossy": ("Moogle Board nie jest startowym", "Token-only", "osobistą nagrodę tokenową"),
     }
     for topic, needles in expected.items():
         text = topic_text(topic)

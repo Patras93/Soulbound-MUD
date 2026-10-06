@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Fast Railway predeploy gate for Soulbound v1.13.28.
+"""Fast Railway predeploy gate for Soulbound v1.13.29.
 
 This is the normal deploy check.  It intentionally avoids assembling the full
 world/runtime.  Use predeploy_full.py when an exhaustive historical audit is
@@ -16,7 +16,7 @@ import traceback
 try:
     from storage.database import Database as _DatabaseImportSmoke
 except Exception as exc:
-    print(f"Soulbound v1.13.28 FAST PREDEPLOY FAILED: database import: {type(exc).__name__}: {exc}")
+    print(f"Soulbound v1.13.29 FAST PREDEPLOY FAILED: database import: {type(exc).__name__}: {exc}")
     traceback.print_exc()
     raise SystemExit(1)
 
@@ -37,7 +37,7 @@ try:
     )
 except Exception as exc:
     print(
-        "Soulbound v1.13.28 FAST PREDEPLOY FAILED: "
+        "Soulbound v1.13.29 FAST PREDEPLOY FAILED: "
         f"skill semantic import: {type(exc).__name__}: {exc}"
     )
     traceback.print_exc()
@@ -293,6 +293,80 @@ for _needle in (
         _semantic_errors.append(
             "terrain recommended mastery floor regression: missing " + _needle
         )
+
+# v1.13.29: drop chance / reward excitement contracts.
+_drop_excitement_source_v11329 = (_root / "systems/drop_excitement.py").read_text(encoding="utf-8")
+_equipment_help_source_v11329 = (_root / "world/equipment_help.py").read_text(encoding="utf-8")
+_combat_rewards_source_v11329 = (_root / "player/session_mixins/combat_rewards.py").read_text(encoding="utf-8")
+_dungeons_source_v11329 = (_root / "systems/dungeons_regions.py").read_text(encoding="utf-8")
+_uoss_runtime_source_v11329 = (_root / "world/uoss_superboss_runtime.py").read_text(encoding="utf-8")
+_help_truth_source_v11329 = (_root / "admin/help_truth_current_v11328.py").read_text(encoding="utf-8")
+
+for _needle in (
+    '"normal": 0.07',
+    '"elite": 0.18',
+    '"rare": 0.28',
+    '"mini_boss": 0.40',
+    '"boss": 0.55',
+    '"world_boss": 0.70',
+    '"world_boss": 0.60',
+    "rare_mob",
+    "v016_legendary_rare",
+    "v016_world_boss",
+    "def authored_drop_chance_v11329",
+    "DROP_EXCITEMENT_AUDIT_V11329",
+):
+    if _needle not in _drop_excitement_source_v11329:
+        _semantic_errors.append("drop excitement v1.13.29 regression: missing " + _needle)
+
+for _needle in (
+    "class_equipment_drop_chance_v11329",
+    "return class_equipment_drop_chance_v11329(template)",
+):
+    if _needle not in _equipment_help_source_v11329:
+        _semantic_errors.append("rank-aware corpse EQ v1.13.29 regression: missing " + _needle)
+
+for _needle in (
+    "authored_drop_chance_v11329",
+    "_effective_drop_chance_v11329",
+):
+    if _needle not in _combat_rewards_source_v11329:
+        _semantic_errors.append("named boss drop floor v1.13.29 regression: missing " + _needle)
+
+for _needle in (
+    "V11329_CRYPT_END_WEIGHTS",
+    "def crypt_rarity_weights_v11329",
+    "def crypt_rarity_progression_audit_v11329",
+    "CRYPT_RARITY_PROGRESSION_AUDIT_V11329",
+    '"common": 30.0',
+    '"mythic": 7.0',
+    '"common": 3.0',
+    '"mythic": 22.0',
+):
+    if _needle not in _dungeons_source_v11329:
+        _semantic_errors.append("Crypt rarity v1.13.29 regression: missing " + _needle)
+
+# UOSS already has the desired high-value reward loop. v1.13.29 must not
+# accidentally replace it with generic boss RNG.
+for _needle in (
+    "def superboss_personal_reward_v11135",
+    "db.add_item(account_id, item_id, 1)",
+    "def superboss_personal_unique_drops_v11158",
+    "def superboss_shared_drop_v11135",
+    "SUPERBOSS_LOCKOUT_SECONDS_V11157 = 24 * 60 * 60",
+):
+    if _needle not in _uoss_runtime_source_v11329:
+        _semantic_errors.append("UOSS reward contract regression: missing " + _needle)
+
+for _needle in (
+    "Rare 28%",
+    "World Boss 70%",
+    "30/30/20/13/7",
+    "3/17/30/28/22",
+    "osobistą nagrodę tokenową",
+):
+    if _needle not in _help_truth_source_v11329:
+        _semantic_errors.append("HELP drop excitement v1.13.29 regression: missing " + _needle)
 
 # v1.13.28: HELP must describe the final runtime, not historical milestone prose.
 _help_truth_source_v11328 = (_root / "admin/help_truth_current_v11328.py").read_text(encoding="utf-8")
@@ -1391,18 +1465,18 @@ except Exception as exc:
     )
 
 if _semantic_errors:
-    print("Soulbound v1.13.28 FAST PREDEPLOY FAILED: semantic contracts")
+    print("Soulbound v1.13.29 FAST PREDEPLOY FAILED: semantic contracts")
     for _error in _semantic_errors:
         print(f"ERROR: {_error}")
     raise SystemExit(1)
 
 if audit["error_count"]:
-    print("Soulbound v1.13.28 FAST PREDEPLOY FAILED")
+    print("Soulbound v1.13.29 FAST PREDEPLOY FAILED")
     for error in audit["errors"]:
         print(f"ERROR: {error}")
     raise SystemExit(1)
 
-print("Soulbound v1.13.28 FAST PREDEPLOY PASS")
+print("Soulbound v1.13.29 FAST PREDEPLOY PASS")
 print(
     "Semantic contracts: "
     f"{len(_semantic_audits)} audits PASS; AP runtime guards PASS"

@@ -20,6 +20,7 @@ from systems.equipment_crafting import (
     GUILD_CLASS_QUESTS, LEGENDARY_CLASS_RELIC_BY_CLASS_TIER,
     LEGENDARY_CLASS_SET_ITEMS_BY_CLASS_TIER,
 )
+from systems.drop_excitement import authored_drop_chance_v11329
 from systems.milestone import dungeon_party_bonus_v0320
 from world.dynamic_content import (
     BESTIARY_CATALOG, BOSS_COLLECTION_CATALOG, canonical_bestiary_template_id,
@@ -563,7 +564,10 @@ class SessionCombatRewardsMixin:
                     template.setdefault("drops", {})["soul_shard"] = 1.0
 
                 for item_id, chance in template["drops"].items():
-                    if random.random() <= chance:
+                    _effective_drop_chance_v11329 = authored_drop_chance_v11329(
+                        template, item_id, chance
+                    )
+                    if random.random() <= _effective_drop_chance_v11329:
                         # v0.35.9: every normal mob drop is shared locally with the
                         # whole eligible party. Roll the configured chance exactly once
                         # per defeated mob; on success each present reward recipient gets
