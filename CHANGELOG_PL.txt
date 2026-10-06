@@ -49,6 +49,35 @@ Soulbound v1.13.30 — POST-600 INFINITE REWARD & EQUIPMENT PROGRESSION
   przedmiotu, więc głęboki dobry drop nie staje się ekonomicznie śmieciem.
 - Dodano diagnostyczny Infinite Equipment Audit v1.13.30 i fast-predeploy
   kontrakty. Audit behawioralny nie jest nowym production startup gate.
+- REWARD CONSISTENCY: statyczne questy nadal przechodzą wspólny finalizer
+  ekonomii; Kurier, handel morski, skarby Oceanu i dynamiczne questy świata
+  zachowują wspólne stage-based payout floors zamiast symbolicznych nagród.
+  Bossowe skrzynie zachowują własną rosnącą drabinę złota do 700 000 Gold
+  przy power 600 oraz Soul Shardy/consumable/klejnoty. Endgame moby i
+  powtarzalne profesyjne questy zachowują osobne minimalne floory dochodu.
+- GENERATOR OWNERSHIP: full audit chroni authored Soul Tiery, bazę Broni Duszy,
+  CLASS_SET_BONUSES, quest rewardy i recipe XP, a od v1.13.30 również wszystkie
+  ręcznie wpisane liczbowe parametry skilli (m.in. mult/mana/cooldown/heal).
+  Generator może uzupełniać fallbacki, ale nie może przepisywać authored balansu.
+- CLASS COMPLETION: audit obejmuje wszystkie 14 aktywnych klas, nie historyczne
+  12. Sprawdza każdy skill pod kątem damage/heal/debuff/target/scaling/stat,
+  many, cooldownu, pasywek i endgame signature. Pasywki są normalizowane do
+  automatic=True i cooldown=0.
+- UOSS HELPERS: Popoi, Primm, Byblos, Montblanc i Seifer dostali ograniczone,
+  różne role ofensywne/ochronne. Helperowy cios nadal skaluje się z buildem
+  gracza, ale ma twarde limity, więc pomocnik jest odczuwalny bez auto-win.
+  UOSS completion audit pilnuje helper cost/party limits, osobistych tokenów,
+  unique pools i 24h lockoutów Black Rabite/Yiazmat/Odin.
+- AUDIT AUDYTÓW / STARTUP SAFETY: developer/admin audity są wyjęte z normalnego
+  production RUNTIME_MODULES. HELP freshness, ekonomia, klasy, loot/EQ, Krypty,
+  Wieże, Magitek, World Threat, UOSS i Soul Shard audity pozostają raportami
+  diagnostycznymi zamiast powodować restart-loop przez RuntimeError przy starcie.
+- Fast predeploy zabrania wzorca named AUDIT -> RuntimeError w produkcyjnym
+  runtime oraz pilnuje Generator/reward/helper/HELP contracts. Full predeploy
+  składa całą grę na jednorazowej bazie, zbiera wszystkie runtime *AUDIT*
+  reporty i blokuje obraz przy dowolnym error_count > 0.
+- Docker/Railway uruchamia teraz najpierw fast predeploy, potem full predeploy.
+  Ten sam zestaw jest zapisany jako GitHub Actions workflow dla PR-ów/main.
 - HELP opisuje post-600 Rezonans Głębi i zachowanie capu 600.
 - Brak wipe, migracji bazy i nowych blokad poziomowych.
 
