@@ -1,5 +1,5 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.13.19
+Aktualna paczka: v1.13.20
 
 
 
@@ -9,6 +9,21 @@ Aktualna paczka: v1.13.19
 
 
 
+
+
+==============================================================================
+Soulbound v1.13.20 — hotfix nagród Smoczego Świata
+==============================================================================
+
+- Naprawiono crash-loop Railway powodowany przez Currency Economy Audit v0.30.21.
+- Wszystkie 12 godzinnych questów Smoczego Świata dostaje teraz realną
+  nagrodę pieniężną zamiast 0; wypłata wynika ze wspólnej krzywej ekonomii
+  1-600, rodzaju kill, liczby wymaganych celów i charakteru repeatable.
+- Nagrody pozostają authored poza Generator Core; późny economy income
+  finalizer nie musi ratować zerowych wartości i nie jest warunkiem startu.
+- Dragon World Audit pilnuje od teraz zarówno godzinnego cooldownu, jak i
+  dokładnej nagrody walutowej oraz normalizacji wypłaty do wspólnego salda.
+- Brak migracji bazy i brak resetu postaci, ekwipunku, questów lub świata.
 
 ==============================================================================
 Soulbound v1.13.19 — audity zachowania, nie numeru Generatora

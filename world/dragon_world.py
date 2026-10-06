@@ -14,6 +14,7 @@ skalowania nagród; gracz może wejść wcześniej na własne ryzyko.
 from __future__ import annotations
 
 from data.catalogs import ROOMS, NPCS, ITEMS, QUESTS, MOB_TEMPLATES
+from core.economy_curve import economy_stage_anchor
 from data.catalog_mutations import catalog_assign, catalog_set_path
 from systems.content_registry import MOB_SPAWNS, HELP_TOPICS, HELP_TOPIC_ALIASES
 from world.generation_systems import GUIDE_DESTINATION_ALIASES, v0130_refresh_exploration_catalog
@@ -198,21 +199,39 @@ def _dragon_spawn(room_id, mob_id, count=1):
         DRAGON_WORLD_SPAWNS.append(row)
 
 
+def _dragon_quest_currency(stage, needed):
+    """Authored dragon-quest payout on the shared 1-600 economy curve.
+
+    Dragon quests are repeatable kill quests, so keep their authored payout
+    aligned with the normal quest-income target without delegating reward
+    ownership to Generator Core or a later runtime finalizer.
+    """
+    stage = max(1, min(600, int(stage)))
+    needed = max(1, int(needed))
+    workload = 1.0 + min(0.54, 0.06 * (needed - 1))
+    return max(
+        100,
+        int(round(economy_stage_anchor(stage) * 1.25 * workload * 0.85)),
+    )
+
+
 def _dragon_quest(qid, name, giver, target, needed, description, stage, stat_xp,
            *, requires=None, reward_items=None):
     if qid in QUESTS:
         raise RuntimeError(f"v1.13.0 duplicate dragon quest id: {qid}")
+    stage = max(1, min(600, int(stage)))
+    needed = max(1, int(needed))
     payload = {
         "name": name,
         "giver": giver,
         "kind": "kill",
         "target": target,
-        "needed": int(needed),
+        "needed": needed,
         "description": description,
-        "level": max(1, min(600, int(stage))),
+        "level": stage,
         "manual_stat_progress": int(stat_xp),
         "reward_stat_progress": int(stat_xp),
-        "reward_silver": 0,
+        "reward_silver": _dragon_quest_currency(stage, needed),
         "reward_gold": 0,
         "reward_mithril": 0,
         "reward_items": dict(reward_items or {}),
@@ -752,6 +771,15 @@ def dragon_world_audit_v1130():
         quest = QUESTS.get(qid, {})
         if not quest.get("repeatable") or int(quest.get("repeat_cooldown", 0) or 0) != 60 * 60:
             errors.append(f"{qid}: must repeat every 60 minutes")
+        expected_currency = _dragon_quest_currency(
+            quest.get("level", 1), quest.get("needed", 1)
+        )
+        if int(quest.get("reward_silver", 0) or 0) != expected_currency:
+            errors.append(
+                f"{qid}: currency {quest.get('reward_silver', 0)} != {expected_currency}"
+            )
+        if int(quest.get("reward_gold", 0) or 0) or int(quest.get("reward_mithril", 0) or 0):
+            errors.append(f"{qid}: dragon currency must stay normalized to silver")
     for rid in DRAGON_WORLD_ROOMS:
         if rid not in ROOMS:
             errors.append(f"missing dragon room: {rid}")
