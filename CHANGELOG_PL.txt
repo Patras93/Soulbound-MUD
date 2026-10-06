@@ -62,6 +62,9 @@ Soulbound v1.13.28 — GLOBAL HELP TRUTH SWEEP
 - HELP Freshness Audit v1.13.28 skanuje wszystkie publiczne tematy oraz
   krytyczne powiązania COMMAND_CATALOG zamiast tylko kilkunastu ręcznie
   wybranych tematów.
+- HOTFIX Railway: finalny moduł HELP jest jawnie zarejestrowany w
+  EXPLICIT_RUNTIME_EXPORTS. Naprawia build odrzucony przez maintainable-core
+  compatibility precheck; bez zmian gameplayu i save'ów.
 - Brak wipe i migracji bazy.
 
 ==============================================================================
