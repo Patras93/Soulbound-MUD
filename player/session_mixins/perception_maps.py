@@ -895,7 +895,11 @@ class SessionPerceptionMapsMixin:
                 "Zwykłe moby Krypty zostawiają 1 element ekwipunku na ciele, "
                 "bossowie 3."
             )
-            await self.send("Na każdym piętrze bossa co 10 stoi Skrzynia Bossa. Właściwy klucz jest gwarantowany w ciele bossa; bez klucza skrzyni nie otworzysz. Użyj unlock / odklucz.")
+            await self.send(
+                "Skrzynia Bossa stoi tylko w dokładnym pokoju bossa checkpointu, "
+                "nie przy zejściu ani w innych pokojach piętra. Klucz jest w ciele "
+                "bossa. Po otwarciu skrzynia znika aż do kolejnego zabicia tego bossa."
+            )
             await self.send(
                 "Moby nie są agresywne. Nie atakują gracza same."
             )
@@ -949,7 +953,11 @@ class SessionPerceptionMapsMixin:
                 "Zwykłe moby Wieży zostawiają 1 element Astralnego ekwipunku, "
                 "bossowie 3. Bossowie mają także własne unikalne relikty."
             )
-            await self.send("Co 10 poziomów przy bossie stoi Skrzynia Bossa. Klucz jest w ciele tego bossa; bez klucza skrzyni nie otworzysz. Użyj unlock / odklucz.")
+            await self.send(
+                "Skrzynia Bossa stoi tylko w dokładnym pokoju bossa checkpointu. "
+                "Klucz jest w ciele tego bossa; po otwarciu skrzynia znika aż do "
+                "kolejnego zabicia bossa."
+            )
             await self.send(
                 "Moby i bossowie Wieży nie są agresywni."
             )

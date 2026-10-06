@@ -1,5 +1,5 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.13.31
+Aktualna paczka: v1.13.32
 
 
 
@@ -19,6 +19,16 @@ Aktualna paczka: v1.13.31
 
 
 
+
+==============================================================================
+Soulbound v1.13.32 — BOSS CHEST ROOM STATE
+==============================================================================
+
+- SKRZYNIA TYLKO PRZY BOSSIE: bossowa skrzynia jest rozpoznawana wyłącznie w dokładnym kanonicznym pokoju, w którym stoi boss danego checkpointu. Parser numeru piętra nie wystarcza już do pokazania skrzyni, więc nie pojawia się przy zejściu ani w innych pokojach _r... tego samego piętra.
+- SKRZYNIA ZNIKA PO OTWARCIU: po solo lub wspólnym party-open każda nagrodzona postać dostaje trwały marker otwarcia. Skrzynia przestaje być widoczna w look i nie da się jej ponownie otworzyć nawet zapasowym starym kluczem.
+- NOWY KILL = NOWA SKRZYNIA: trwały marker otwarcia jest resetowany dopiero przy kolejnym prawidłowym zabiciu właściwego bossa przez tę postać/drużynę. Restart i deploy nie odtwarzają już wcześniej otwartej skrzyni.
+- PARTY: lider nadal otwiera jedną skrzynię dla obecnej drużyny; wszyscy nagrodzeni gracze dostają własny roll oraz ten sam stan „skrzynia otwarta/zniknięta”.
+- Brak migracji bazy i brak wipe — stan korzysta z istniejącego trwałego Collection Codex.
 
 ==============================================================================
 Soulbound v1.13.31 — VERSION SYNC, PARTY CHESTS & ADAPTIVE CONSIDER

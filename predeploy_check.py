@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Fast Railway predeploy gate for Soulbound v1.13.31.
+"""Fast Railway predeploy gate for Soulbound v1.13.32.
 
 This is the normal deploy check.  It intentionally avoids assembling the full
 world/runtime.  Use predeploy_full.py when an exhaustive historical audit is
@@ -17,7 +17,7 @@ import traceback
 try:
     from storage.database import Database as _DatabaseImportSmoke
 except Exception as exc:
-    print(f"Soulbound v1.13.31 FAST PREDEPLOY FAILED: database import: {type(exc).__name__}: {exc}")
+    print(f"Soulbound v1.13.32 FAST PREDEPLOY FAILED: database import: {type(exc).__name__}: {exc}")
     traceback.print_exc()
     raise SystemExit(1)
 
@@ -42,7 +42,7 @@ try:
     )
 except Exception as exc:
     print(
-        "Soulbound v1.13.31 FAST PREDEPLOY FAILED: "
+        "Soulbound v1.13.32 FAST PREDEPLOY FAILED: "
         f"skill semantic import: {type(exc).__name__}: {exc}"
     )
     traceback.print_exc()
@@ -149,6 +149,49 @@ if (
     _semantic_errors.append(
         "release version sync regression: " + repr(_release_versions_v11331)
     )
+
+_boss_chest_protocol_source_v11332 = (
+    _root / "network/protocol_gameplay_utils.py"
+).read_text(encoding="utf-8")
+_boss_chest_session_source_v11332 = (
+    _root / "player/session_mixins/admin_tools.py"
+).read_text(encoding="utf-8")
+_boss_chest_rewards_source_v11332 = (
+    _root / "player/session_mixins/combat_rewards.py"
+).read_text(encoding="utf-8")
+for _needle in (
+    'BOSS_CHEST_OPENED_CATEGORY_V11332 = "boss_floor_chest_opened_v11332"',
+    "def boss_floor_chest_room_id(",
+    'room_id == boss_floor_chest_room_id("crypt", floor)',
+    'room_id == boss_floor_chest_room_id("astral", floor)',
+    'room_id == boss_floor_chest_room_id("mythic_crypt", floor)',
+    'room_id == boss_floor_chest_room_id("mythic_astral", floor)',
+    'room_id == boss_floor_chest_room_id("giant", floor)',
+):
+    if _needle not in _boss_chest_protocol_source_v11332:
+        _semantic_errors.append(
+            "boss chest exact-room regression: missing " + _needle
+        )
+for _needle in (
+    "BOSS_CHEST_OPENED_CATEGORY_V11332",
+    "boss_floor_chest_state_id(kind, floor)",
+    "self.server.db.item_qty(self.account_id, key_id) > 0",
+    "self.server.world.room_corpses(",
+    "Po otwarciu skrzynia znika.",
+):
+    if _needle not in _boss_chest_session_source_v11332:
+        _semantic_errors.append(
+            "boss chest disappear regression: missing " + _needle
+        )
+for _needle in (
+    "remove_collection_entry(",
+    "BOSS_CHEST_OPENED_CATEGORY_V11332",
+    "boss_floor_chest_state_id(",
+):
+    if _needle not in _boss_chest_rewards_source_v11332:
+        _semantic_errors.append(
+            "boss chest new-kill reset regression: missing " + _needle
+        )
 
 _consider_source_v11331 = (
     _root / "player/session_mixins/combat_damage.py"
@@ -2260,18 +2303,18 @@ for _needle in (
         _semantic_errors.append("UOSS helper runtime regression: missing " + _needle)
 
 if _semantic_errors:
-    print("Soulbound v1.13.31 FAST PREDEPLOY FAILED: semantic contracts")
+    print("Soulbound v1.13.32 FAST PREDEPLOY FAILED: semantic contracts")
     for _error in _semantic_errors:
         print(f"ERROR: {_error}")
     raise SystemExit(1)
 
 if audit["error_count"]:
-    print("Soulbound v1.13.31 FAST PREDEPLOY FAILED")
+    print("Soulbound v1.13.32 FAST PREDEPLOY FAILED")
     for error in audit["errors"]:
         print(f"ERROR: {error}")
     raise SystemExit(1)
 
-print("Soulbound v1.13.31 FAST PREDEPLOY PASS")
+print("Soulbound v1.13.32 FAST PREDEPLOY PASS")
 print(
     "Semantic contracts: "
     f"{len(_semantic_audits)} audits PASS; AP runtime guards PASS"
