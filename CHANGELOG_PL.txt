@@ -32,6 +32,16 @@ Soulbound v1.13.8 — odczuwalna progresja + Generator Core jako fallback
 - Klasowe EQ ma nową krzywą trzech statystyk: Tier 1 = 9 punktów na część,
   10 = 14, 50 = 38, 60 = 48, 100 = 100, 200 = 240, 400 = 650, 600 = 1200.
 - Fizyczne EQ nadal daje STR + DEX + CON, magiczne INT + WILL + CON.
+- Trzy linie klasowego EQ na tym samym progu nie są już kosmetycznymi kopiami:
+  wariant zbalansowany zachowuje środek, ofensywny oddaje część obrony/CON za
+  większy Attack lub Magic Attack, a pancerny robi odwrotnie.
+- Style można dowolnie mieszać między slotami. Progi klasowego seta 2/4/6/8
+  nadal liczą logiczne części tej samej aktywnej klasy, niezależnie od nazwy linii.
+- Sloty ofensywne klasowego EQ dają płaski Attack albo Magic Attack; ciężkie sloty
+  pozostają bardziej defensywne. Mec jako hybryda dostaje jednocześnie Attack
+  i Magic Attack, każdy słabszy niż pojedynczy kanał czystej klasy.
+- Lista sklepu czyta profil części pod NVDA, a porównanie EQ pokazuje także różnice
+  Attack, Magic Attack, Magic Defense i Weapon Power.
 - Ceny klasowego EQ zostały powiązane z realnym zarobkiem na tym samym etapie;
   pełny set pozostaje celem grindowym, ale nie wymaga tysięcy zwykłych zadań.
 - Bazowe zarobki questów rosną mocniej już od midgame: około 150 Gold na 50,
