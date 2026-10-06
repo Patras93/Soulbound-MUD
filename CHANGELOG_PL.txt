@@ -113,6 +113,10 @@ Soulbound v1.13.30 — POST-600 INFINITE REWARD & EQUIPMENT PROGRESSION
   0 blocking failures; CROSS SYSTEM 0/0; 14 694 nazw mobów 0 błędów;
   OCEAN CONTRACT 0 błędów / 6 tras; 0 duplicate dict keys i 0 TODO/FIXME.
 - HELP opisuje post-600 Rezonans Głębi i zachowanie capu 600.
+- WIEŻE BEZ LEVEL-GATE: zwykła Wieża Astralna i Mityczna Wieża Astralna
+  nie wymagają już minimalnego Levelu ani Soul Levelu do wejścia. Usunięto blokadę
+  z normalnego ruchu, prowadzenia, nazwanych wejść i Astralnego Portalu.
+  Bossy pięter, checkpointy i realna trudność pozostają właściwą barierą progresji.
 - Brak wipe, migracji bazy i nowych blokad poziomowych.
 
 ==============================================================================
