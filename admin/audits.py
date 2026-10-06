@@ -4352,8 +4352,18 @@ def terrain_threat_rebalance_audit_v0362():
         metrics["recommended_rooms_checked"]=checked
         check("recommended_mastery_is_balance_floor", not bad, str(bad[:10]))
 
-        gsrc=inspect.getsource(generator_core_v027.runtime_room_level)
-        check("runtime_room_recommended_floor", "_v0362_recommended_room_floor" in gsrc and "_v0362" in generator_core_v027.runtime_room_level.__name__)
+        # v1.13.22: validate behavior, not the historical wrapper/function name.
+        # The recommended mastery floor is now native to Generator Core's
+        # runtime_room_level(), so old _v0362 marker/name checks are obsolete.
+        _probe_room={"recommended_mastery":137}
+        _probe_stage=generator_core_v027.runtime_room_level(
+            "__audit_v0362_recommended_floor__", _probe_room, {}
+        )
+        check(
+            "runtime_room_recommended_floor",
+            int(_probe_stage) >= 137 and int(_probe_room.get("generator_level",0) or 0) >= 137,
+            f"stage={_probe_stage}, stored={_probe_room.get('generator_level')}",
+        )
 
         wsrc=inspect.getsource(World._terrain_scaled_template_v0362)
         check("room_stage_runtime_clone", "stage > base_stage" in wsrc and "runtime_mob_balance" in wsrc)
