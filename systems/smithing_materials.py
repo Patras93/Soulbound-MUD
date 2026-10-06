@@ -94,12 +94,7 @@ def smithing_materials_audit_v03810():
 
 
 SMITHING_MATERIALS_AUDIT_V03810 = smithing_materials_audit_v03810()
-if SMITHING_MATERIALS_AUDIT_V03810["error_count"]:
-    raise RuntimeError(
-        "Smithing Materials Audit v0.38.10 failed: "
-        + "; ".join(SMITHING_MATERIALS_AUDIT_V03810["errors"][:100])
-    )
-
+# v1.13.30: audit failure is enforced by predeploy_full.py, not production startup.
 HELP_TOPICS.setdefault("kowalstwo", []).append(
     "v0.38.10: ulepszanie EQ +1..+10 korzysta z normalnych sztabek Kowalstwa. "
     "Mithril pozostaje walutą i nie jest składnikiem receptur ani materiałem kosztu ulepszania EQ."
