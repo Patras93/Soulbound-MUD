@@ -533,6 +533,50 @@ ITEMS = {
         "name": "Kieł Wilka Cienia", "type": "loot", "price": None,
         "desc": "Ciemny kieł pulsujący słabą energią.",
     },
+
+    # v1.13.23: dodatkowy "o kurde" łup z normalnej walki.
+    # Jedyną funkcją trofeów jest wartościowa sprzedaż; nie zastępują one
+    # authored materiałów, unikalnych dropów, EQ ani nagród bossów.
+    "mob_trophy_t1": {
+        "name": "Trofeum z potyczki I", "type": "loot", "price": None,
+        "sell_silver": 100,
+        "desc": "Rzadki łup z wczesnej walki. Warto sprzedać kupcowi.",
+    },
+    "mob_trophy_t2": {
+        "name": "Trofeum z potyczki II", "type": "loot", "price": None,
+        "sell_silver": 3_000,
+        "desc": "Rzadki łup z niebezpieczniejszego terenu. Ma realną wartość handlową.",
+    },
+    "mob_trophy_t3": {
+        "name": "Trofeum z potyczki III", "type": "loot", "price": None,
+        "sell_silver": 12_500,
+        "desc": "Cenne trofeum bojowe z terenów około etapu 100+.",
+    },
+    "mob_trophy_t4": {
+        "name": "Trofeum z potyczki IV", "type": "loot", "price": None,
+        "sell_silver": 50_000,
+        "desc": "Cenne trofeum bojowe z terenów około etapu 200+.",
+    },
+    "mob_trophy_t5": {
+        "name": "Trofeum z potyczki V", "type": "loot", "price": None,
+        "sell_silver": 125_000,
+        "desc": "Wartościowy łup z późniejszych terenów świata.",
+    },
+    "mob_trophy_t6": {
+        "name": "Trofeum z potyczki VI", "type": "loot", "price": None,
+        "sell_silver": 225_000,
+        "desc": "Rzadkie trofeum wysokopoziomowej walki.",
+    },
+    "mob_trophy_t7": {
+        "name": "Trofeum z potyczki VII", "type": "loot", "price": None,
+        "sell_silver": 375_000,
+        "desc": "Bardzo cenne trofeum z terenów około etapu 500+.",
+    },
+    "mob_trophy_t8": {
+        "name": "Trofeum z potyczki VIII", "type": "loot", "price": None,
+        "sell_silver": 550_000,
+        "desc": "Szczytowe trofeum z walk etapu 600+. Sprzedaż daje odczuwalną nagrodę.",
+    },
 }
 
 __all__ = ['ITEMS']
