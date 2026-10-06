@@ -702,9 +702,10 @@ class SessionWorldEventsEndgameMixin:
                 level_req = int(data.get("unlock_level", 0) or 0)
                 unlocked = not level_req or int(self.character.character_level) >= level_req
                 if data.get("unlock") == "explore_deep_dungeon":
-                    # Deep Dungeon-specific access remains an exploration gate; status
-                    # intentionally does not auto-unlock it from character level.
-                    unlocked = bool(self.server.db.collection_entry_ids(self.account_id, "deep_dungeon_discovery"))
+                    unlock_entries = self.server.db.collection_entry_ids(
+                        self.account_id, "deep_dungeon_discovery"
+                    )
+                    unlocked = "floor_100" in unlock_entries
                 mode = str(data.get("mode", "solo"))
                 state = "zaliczony" if cleared else ("odblokowany" if unlocked else "zablokowany")
                 rows.append((name, mode, state, data))
@@ -715,6 +716,13 @@ class SessionWorldEventsEndgameMixin:
             for name, mode, state, data in rows:
                 extra = []
                 if data.get("recommended_level"): extra.append(f"zalecany Level {data['recommended_level']}")
+                if data.get("deep_dungeon_unlock_floor"):
+                    extra.append(
+                        f"wymaga osobistego dotarcia do Deep Dungeon "
+                        f"piętro {data['deep_dungeon_unlock_floor']}"
+                    )
+                if data.get("lockout_hours"):
+                    extra.append(f"lockout {data['lockout_hours']} h po zabiciu")
                 if data.get("personal_token"): extra.append(f"osobista nagroda: {data['personal_token']}")
                 if data.get("helpers"): extra.append("pomocnik: " + " albo ".join(data["helpers"]) + "; wybór: pomocnik primm/popoi")
                 elif data.get("helper"): extra.append("pomocnik: " + str(data["helper"]))
