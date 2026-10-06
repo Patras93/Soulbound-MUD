@@ -61,6 +61,30 @@ for _name, _result in _semantic_audits.items():
         for _error in _result.get("errors", ()):
             _semantic_errors.append(f"{_name}: {_error}")
 
+# v1.13.30: execute the two completion audits that can be imported without
+# assembling the server/database. Their failures block deployment, not runtime.
+try:
+    from systems.economy_income_balance import (
+        REWARD_CONSISTENCY_AUDIT_V11330 as _reward_consistency_audit_v11330,
+    )
+    for _error in _reward_consistency_audit_v11330.get("errors", ()):
+        _semantic_errors.append("reward_consistency: " + str(_error))
+except Exception as exc:
+    _semantic_errors.append(
+        f"reward consistency audit import failed: {type(exc).__name__}: {exc}"
+    )
+
+try:
+    from world.uoss_superboss_runtime import (
+        SUPERBOSS_COMPLETION_AUDIT_V11330 as _superboss_completion_audit_v11330,
+    )
+    for _error in _superboss_completion_audit_v11330.get("errors", ()):
+        _semantic_errors.append("superboss_completion: " + str(_error))
+except Exception as exc:
+    _semantic_errors.append(
+        f"superboss completion audit import failed: {type(exc).__name__}: {exc}"
+    )
+
 # AP is a learning-point cost, never authored combat power. Keep a small
 # source-level regression guard around the two runtime files that previously
 # leaked UOSS Base AP into Mec/Engineer damage.
