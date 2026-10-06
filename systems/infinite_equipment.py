@@ -387,49 +387,44 @@ def infinite_equipment_audit_v11330():
     if any(b <= a for a, b in zip(coin_factors, coin_factors[1:])):
         errors.append("infinite coin multiplier is not strictly increasing")
 
-    test_base_id = next(
-        (
-            item_id for item_id, item in ITEMS.items()
-            if isinstance(item, dict)
-            and (
-                item.get("type") in {"armor", "weapon", "equipment"}
-                or item.get("slot")
-            )
-            and any(
-                isinstance(item.get(key), (int, float))
-                and float(item.get(key) or 0) > 0
-                for key in (
-                    "defense", "attack", "magic_attack", "power",
-                    "damage", "affix_amount",
-                )
-            )
-        ),
-        None,
+    # Isolated synthetic item: fast predeploy deliberately does not assemble
+    # the whole runtime catalog, so this audit must not depend on generated EQ.
+    test_base_id = "__v11330_deep_audit_base__"
+    _catalog_mut.catalog_assign({
+        "name": "Audit Pancerz",
+        "type": "armor",
+        "slot": "head",
+        "defense": 100,
+        "stats": {"strength": 10, "constitution": 8},
+        "properties": {"physical_resist_pct": 1.0},
+        "sockets": 0,
+        "required_mastery": 600,
+        "source_progression_stage": 600,
+        "price": None,
+    }, "ITEMS", ITEMS, (test_base_id,))
+
+    test_variant_id = register_infinite_equipment_variant(
+        test_base_id, "crypt", "b", 10
     )
-    test_variant_id = None
-    if test_base_id:
-        base = ITEMS[test_base_id]
-        original_req = base.get("required_mastery")
-        test_variant_id = register_infinite_equipment_variant(
-            test_base_id, "crypt", "b", 10
-        )
+    try:
+        base = ITEMS.get(test_base_id, {})
         variant = ITEMS.get(test_variant_id, {})
         if not variant.get("infinite_depth_variant"):
             errors.append("test deep variant was not registered")
         if int(variant.get("source_progression_stage", 0) or 0) != 700:
             errors.append("test deep variant source stage is not 700")
-        if variant.get("required_mastery") != original_req:
+        if variant.get("required_mastery") != base.get("required_mastery"):
             errors.append("deep variant changed equip mastery requirement")
+        if int(variant.get("defense", 0) or 0) <= int(base.get("defense", 0) or 0):
+            errors.append("deep variant did not increase mechanical power")
         if str(variant.get("name") or "").find("Rezonans Głębi") < 0:
             errors.append("deep variant player name missing Rezonans Głębi")
         parsed = parse_infinite_equipment_variant(test_variant_id)
         if not parsed or parsed.get("base_id") != test_base_id:
             errors.append("deep variant ID is not self-describing")
-        _catalog_mut.catalog_pop_path(
-            "ITEMS", ITEMS, (), test_variant_id, None
-        )
-    else:
-        errors.append("no mechanical equipment base available for audit")
+    finally:
+        _catalog_mut.catalog_pop_path("ITEMS", ITEMS, (), test_variant_id, None)
+        _catalog_mut.catalog_pop_path("ITEMS", ITEMS, (), test_base_id, None)
 
     return {
         "version": INFINITE_EQUIPMENT_VERSION,
