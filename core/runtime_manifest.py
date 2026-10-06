@@ -1042,6 +1042,14 @@ EXPLICIT_RUNTIME_EXPORTS["systems/runtime_memory.py"] = (
     "V0616_MEMORY_EFFICIENCY_AUDIT",
 )
 
+EXPLICIT_RUNTIME_EXPORTS["admin/help_truth_current_v11328.py"] = (
+    "HELP_TRUTH_CURRENT_VERSION_V11328",
+    "HELP_TRUTH_REFRESH_V11328",
+    "HELP_FRESHNESS_AUDIT_V11328",
+    "refresh_help_truth_current_v11328",
+    "help_freshness_audit_v11328",
+)
+
 # v1.00.0: Ocean 2.0 uses ordinary imports and publishes only reviewed API.
 EXPLICIT_RUNTIME_EXPORTS["world/ocean_expansion.py"] = (
     "OCEAN_2_VERSION", "OCEAN_2_NAME", "ROUTES", "PORTS",
