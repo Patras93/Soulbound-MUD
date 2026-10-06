@@ -42,6 +42,25 @@ V1124_QUEST_INCOME_ANCHORS = (
     (600, 100_000_000),
 )
 
+V1138_ACTIVITY_INCOME_MULTIPLIER = {
+    # Repeatable/small activities stay below a full quest payout.
+    "courier": 0.30,
+    "dynamic_world": 0.85,
+    # Milestones and treasure are supposed to feel like a jackpot.
+    "exploration100": 3.00,
+    "ocean_trade": 0.55,
+    "ocean_treasure": 2.50,
+}
+
+
+def v1138_activity_income(stage: int, kind: str, difficulty: float = 1.0) -> int:
+    """Shared payout floor for systems that bypass the normal quest finalizer."""
+    stage = max(1, min(V1124_ECONOMY_MAX_STAGE, int(stage or 1)))
+    mult = float(V1138_ACTIVITY_INCOME_MULTIPLIER.get(str(kind), 1.0))
+    difficulty = max(0.10, float(difficulty or 1.0))
+    return max(1, int(round(v1124_income_anchor(stage) * mult * difficulty)))
+
+
 V1124_QUEST_KIND_MULTIPLIER = {
     "talk_npc": 0.65,
     "talk_class_teacher": 0.65,
@@ -203,6 +222,10 @@ def economy_income_audit_v1124():
         errors.append("stage 400 anchor changed")
     if v1124_income_anchor(600) != 100_000_000:
         errors.append("stage 600 anchor changed")
+    if v1138_activity_income(100, "courier") != 30_000:
+        errors.append("courier activity income floor changed")
+    if v1138_activity_income(100, "exploration100") != 300_000:
+        errors.append("exploration jackpot income floor changed")
 
     board = ITEMS.get("moogle_board") or {}
     if int(board.get("fur_shop_gold_cost", 0) or 0) != 5_000_000:
