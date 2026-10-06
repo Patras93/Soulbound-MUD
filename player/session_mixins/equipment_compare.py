@@ -150,6 +150,11 @@ class SessionEquipmentCompareV0600Mixin:
         valid_slots = self._comparison_valid_slots_v0600(item)
         equipped_rows = [row for row in self.server.db.equipment(self.account_id) if str(row["slot"]) in valid_slots]
         await self.send(f"PORÓWNANIE EQ: {item.get('name', item_id)}. Slot: {EQUIPMENT_SLOT_NAMES.get(item.get('slot'), item.get('slot','?'))}.")
+        _identity_label_v11326 = item.get("equipment_identity_label")
+        if _identity_label_v11326:
+            await self.send(
+                "Tożsamość EQ: " + str(_identity_label_v11326) + "."
+            )
         await self.send(self.format_item_description(item_id, item))
         if not equipped_rows:
             new = self._comparison_snapshot_v0600(item_id, item, None)
