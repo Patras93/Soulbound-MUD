@@ -697,7 +697,7 @@ class SessionExplorationProgressMixin:
                 int(getattr(self.character, "character_level", 1) or 1),
                 int(getattr(self.character, "soul_level", 1) or 1),
             )
-            stage = max([fallback_stage, *stages])
+            stage = max(stages) if stages else fallback_stage
             room_factor = 1.0 + min(0.50, max(0, room_count - 10) / 100.0)
             silver = v1138_activity_income(
                 stage, "exploration100", room_factor
