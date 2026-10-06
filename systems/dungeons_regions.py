@@ -17,7 +17,12 @@ from core.progression_resources import (
     WOODCUTTING_ROOMS,
 )
 from systems.content_registry import CRYPT_MAX_FLOOR, INFINITE_CRYPT_STEP_RATE, MOB_SPAWNS, MOB_TEMPLATES, NPCS, QUESTS
-from systems.items_resources import CLASS_EQUIPMENT_SLOT_DEFS
+from systems.items_resources import (
+    CLASS_EQUIPMENT_SLOT_DEFS,
+    MATERIAL_SLOT_POWER_SCALE,
+    equipment_defense_step_v1138,
+    equipment_progression_budget_v1138,
+)
 
 
 def crypt_depth_step(floor):
@@ -196,21 +201,57 @@ BOSS_RELICS = {
 }
 
 for _floor, (_item_id, _name, _defense, _affix, _amount) in BOSS_RELICS.items():
+    _budget = equipment_progression_budget_v1138(_floor)
+    _scaled_stat = max(1, int(round(_budget * 0.32)))
+    if _affix == "hp":
+        _scaled_amount = max(int(_amount), _scaled_stat * 10)
+    elif _affix == "mana":
+        _scaled_amount = max(int(_amount), _scaled_stat * 8)
+    else:
+        _scaled_amount = max(int(_amount), _scaled_stat)
+    _scaled_defense = max(
+        int(_defense),
+        int(_defense) + equipment_defense_step_v1138(_floor),
+    )
+    _attack = (
+        max(1, int(round(_budget * 0.10)))
+        if _affix in {"strength", "dexterity"} else 0
+    )
+    _magic_attack = (
+        max(1, int(round(_budget * 0.10)))
+        if _affix in {"intelligence", "willpower"} else 0
+    )
+    _prop_key = {
+        "strength": "physical_damage_pct",
+        "dexterity": "physical_damage_pct",
+        "constitution": "physical_defense_pct",
+        "intelligence": "magic_damage_pct",
+        "willpower": "magic_defense_pct",
+        "hp": "max_hp_pct",
+        "mana": "max_mana_pct",
+    }.get(_affix)
+    _prop_value = round(1.0 + 4.0 * (min(200, _floor) / 200.0) ** 0.80, 2)
+    _sockets = min(5, 1 + max(0, int(_floor) // 50))
     _catalog_mut.catalog_assign({
         "name": _name,
         "type": "armor",
         "slot": "charm",
-        "defense": _defense,
+        "defense": _scaled_defense,
+        "attack": _attack,
+        "magic_attack": _magic_attack,
+        "sockets": _sockets,
+        "properties": {_prop_key: _prop_value} if _prop_key else {},
         "price": None,
         "desc": (
             f"Unikalny relikt bossa Krypty z piętra {_floor}. "
-            f"Obrona +{_defense}. "
-            f"Bonus: {CRYPT_AFFIXES.get(_affix, _affix)} +{_amount}."
+            f"Obrona +{_scaled_defense}. "
+            f"Bonus: {CRYPT_AFFIXES.get(_affix, _affix)} +{_scaled_amount}. "
+            f"Gniazda: {_sockets}."
         ),
         "rarity": "unique",
-        "rarity_name": "Unikalny",
+        "rarity_name": "Unikalny Bossowy",
         "affix": _affix,
-        "affix_amount": _amount,
+        "affix_amount": _scaled_amount,
         "boss_relic_floor": _floor,
     }, 'ITEMS', ITEMS, (_item_id,))
 
@@ -286,8 +327,16 @@ def crypt_variant_id(base_item_id, rarity_key, affix_key):
     return f"{base_item_id}__{rarity_key}__{affix_key}"
 
 def crypt_affix_amount(tier, rarity_key, affix_key):
-    rarity = CRYPT_RARITIES[rarity_key]
-    stat_value = int(rarity["stat_base"]) + (max(1, int(tier)) - 1) // 4
+    mastery = max(1, min(600, int(tier) * 10))
+    budget = equipment_progression_budget_v1138(mastery)
+    scale = {
+        "common": 0.16,
+        "rare": 0.20,
+        "epic": 0.24,
+        "legendary": 0.30,
+        "mythic": 0.38,
+    }.get(str(rarity_key), 0.16)
+    stat_value = max(1, int(round(budget * scale)))
     if affix_key == "hp":
         return stat_value * 10
     if affix_key == "mana":
@@ -331,10 +380,69 @@ def build_crypt_loot_variants():
                 variant_id = crypt_variant_id(
                     base_item_id, rarity_key, affix_key
                 )
+                mastery = max(1, min(600, tier * 10))
+                budget = equipment_progression_budget_v1138(mastery)
+                rarity_power = {
+                    "common": 0.03,
+                    "rare": 0.045,
+                    "epic": 0.06,
+                    "legendary": 0.08,
+                    "mythic": 0.11,
+                }.get(rarity_key, 0.03)
+                rarity_defense = {
+                    "common": 0.00,
+                    "rare": 0.08,
+                    "epic": 0.12,
+                    "legendary": 0.18,
+                    "mythic": 0.25,
+                }.get(rarity_key, 0.00)
                 defense = (
                     int(base_item.get("defense", 0))
                     + int(rarity["defense_bonus"])
+                    + int(round(
+                        equipment_defense_step_v1138(mastery)
+                        * rarity_defense
+                    ))
                 )
+                flat_power = max(
+                    0,
+                    int(round(
+                        budget
+                        * rarity_power
+                        * float(MATERIAL_SLOT_POWER_SCALE.get(slot, 0.50))
+                    )),
+                )
+                attack = (
+                    flat_power if affix_key in {"strength", "dexterity"} else 0
+                )
+                magic_attack = (
+                    flat_power if affix_key in {"intelligence", "willpower"} else 0
+                )
+                sockets = {
+                    "common": 0,
+                    "rare": 1,
+                    "epic": 2,
+                    "legendary": 3,
+                    "mythic": 4,
+                }.get(rarity_key, 0)
+                if mastery >= 300 and rarity_key in {"legendary", "mythic"}:
+                    sockets = min(5, sockets + 1)
+                prop_key = {
+                    "strength": "physical_damage_pct",
+                    "dexterity": "physical_damage_pct",
+                    "constitution": "physical_defense_pct",
+                    "intelligence": "magic_damage_pct",
+                    "willpower": "magic_defense_pct",
+                    "hp": "max_hp_pct",
+                    "mana": "max_mana_pct",
+                }.get(affix_key)
+                prop_value = {
+                    "common": 0.5,
+                    "rare": 1.0,
+                    "epic": 1.5,
+                    "legendary": 2.5,
+                    "mythic": 4.0,
+                }.get(rarity_key, 0.5)
                 variant_name = (
                     f"{base_item['name']} "
                     f"[{rarity['name']}, {affix_name} +{amount}]"
@@ -344,6 +452,10 @@ def build_crypt_loot_variants():
                     "type": "armor",
                     "slot": slot,
                     "defense": defense,
+                    "attack": attack,
+                    "magic_attack": magic_attack,
+                    "sockets": sockets,
+                    "properties": {prop_key: prop_value} if prop_key else {},
                     "price": None,
                     # v0.61.2: opis wariantu Krypty jest generowany przy wyświetleniu.
                     "rarity": rarity_key,
