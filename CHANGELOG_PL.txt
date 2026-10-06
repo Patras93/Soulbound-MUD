@@ -32,10 +32,12 @@ Soulbound v1.13.30 — POST-600 INFINITE REWARD & EQUIPMENT PROGRESSION
 - Rezonans Głębi skaluje istniejące staty, Attack/Magic Attack, obronę,
   affixy, properties i z czasem sockety. Boss/Elite zachowują mocniejszą
   jakość źródła, ale nie tworzą nowego wymogu poziomu.
-- Wymaganie Biegłości/poziomu założenia NIE rośnie ponad 600. Głębia wzmacnia
-  konkretny egzemplarz; nie powstają niemożliwe gate'y 601+.
-- Źródła: zwykła Krypta i Wieża po swoim etapie 600, Mityczna Krypta/Wieża
-  po statycznym zakresie odpowiadającym 600 oraz Magitek po authored stage 600.
+- Każdy Rezonans Głębi wymaga Biegłości 600 i nigdy 601+. Głębia wzmacnia
+  konkretny egzemplarz; handel nie pozwala ominąć endgame wymagań.
+- Źródła przedłużają własne istniejące drabiny: zwykła Krypta i Wieża
+  kontynuują 10-piętrowe tiery ponad efektywny etap 600; Mityczna Krypta/Wieża
+  kontynuują swój baseline 200 + kolejne tiery co 10 pięter; Magitek zachowuje
+  authored stage 110 + floor*7 i przechodzi w Rezonans po przekroczeniu 600.
 - Corpse EQ i losowy class-EQ z tych źródeł korzystają z jednego wspólnego
   hooka. UOSS jest jawnie wyłączony i zachowuje własne tokeny/unikaty.
 - Warianty deepq_* są odbudowywane po restarcie/deployu z inventory, EQ,
