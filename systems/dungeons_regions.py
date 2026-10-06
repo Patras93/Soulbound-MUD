@@ -184,7 +184,7 @@ def dungeon_mob_display_name_v11335(
     slot = (floor - 1 + max(0, int(variant))) % len(themes)
     cycle = (floor - 1) // len(themes) + 1
     return (
-        f"{base_name} — {themes[slot]} {cycle}, "
+        f"{base_name}, {themes[slot]} {cycle}, "
         f"{floor_word} {floor}"
     )
 
