@@ -1763,11 +1763,21 @@ def authored_reward_snapshot(ns: dict) -> dict:
                 for field in recipe_fields
                 if field in recipe
             }
-    return {"quests": quests, "recipes": recipes}
+    skills = {}
+    for class_name, rows in (ns.get("CLASS_SKILLS", {}) or {}).items():
+        skills[str(class_name)] = {}
+        for index, skill in enumerate(rows):
+            sid = str(skill.get("id") or f"index:{index}")
+            skills[str(class_name)][sid] = {
+                field: _freeze_semantic(skill[field])
+                for field in NUMERIC_SKILL_FIELDS
+                if field in skill
+            }
+    return {"quests": quests, "recipes": recipes, "skills": skills}
 
 
 def authored_rewards_preserved(ns: dict, before: dict) -> bool:
-    """New fallback fields may appear, but every pre-existing authored value is immutable."""
+    """Every pre-existing authored quest/recipe/skill numeric value is immutable."""
     if not isinstance(before, dict):
         return False
     quests_now = ns.get("QUESTS", {}) or {}
@@ -1782,6 +1792,20 @@ def authored_rewards_preserved(ns: dict, before: dict) -> bool:
         table_now = ns.get(table_name, {}) or {}
         for rid, fields in rows.items():
             current = table_now.get(rid)
+            if not isinstance(current, dict):
+                return False
+            for field, expected in fields.items():
+                if field not in current or _freeze_semantic(current[field]) != expected:
+                    return False
+
+    skills_now = ns.get("CLASS_SKILLS", {}) or {}
+    for class_name, rows in (before.get("skills") or {}).items():
+        current_rows = {
+            str(skill.get("id") or f"index:{index}"): skill
+            for index, skill in enumerate(skills_now.get(class_name, ()) or ())
+        }
+        for sid, fields in rows.items():
+            current = current_rows.get(sid)
             if not isinstance(current, dict):
                 return False
             for field, expected in fields.items():
@@ -1925,7 +1949,7 @@ def apply_generator_core(ns: dict) -> dict:
             audit["errors"].append("Generator Core changed protected authored semantics")
         if not authored_rewards_ok:
             audit["errors"].append(
-                "Generator Core changed pre-existing authored quest/recipe rewards"
+                "Generator Core changed pre-existing authored quest/recipe/skill numeric values"
             )
         if not whitelist_audit.get("passed"):
             audit["errors"].extend(whitelist_audit.get("errors", []))
