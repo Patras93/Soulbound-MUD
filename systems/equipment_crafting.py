@@ -54,7 +54,62 @@ def class_equipment_profile(class_name):
     )
 
 
-def class_equipment_split_stat_budget(class_name, legacy_amount, slot=None):
+# v1.13.8: trzy linie w sklepie nie są już kosmetycznymi kopiami.
+# Każdy element można mieszać z innymi stylami tej samej klasy; progi 2/4/6/8
+# liczą klasę i logiczny slot, nie nazwę linii.
+CLASS_EQUIPMENT_STYLE_PROFILES = {
+    1: {
+        "role": "zbalansowany",
+        "defense_multiplier": 1.00,
+        "power_multiplier": 0.85,
+        "stat_shift": 0.00,
+    },
+    2: {
+        "role": "ofensywny",
+        "defense_multiplier": 0.88,
+        "power_multiplier": 1.25,
+        "stat_shift": 0.10,
+    },
+    3: {
+        "role": "pancerny",
+        "defense_multiplier": 1.18,
+        "power_multiplier": 0.45,
+        "stat_shift": -0.10,
+    },
+}
+
+# Attack/Magic Attack siedzi przede wszystkim na slotach ofensywnych.
+# Ciężki pancerz dalej ma sens, ale nie konkuruje z rękawicami/relictem
+# jako najlepsze źródło mocy ataku.
+CLASS_EQUIPMENT_SLOT_POWER_SCALE = {
+    "head": 0.55,
+    "body": 0.25,
+    "shield": 0.15,
+    "hands": 0.95,
+    "legs": 0.25,
+    "feet": 0.45,
+    "charm": 0.70,
+    "ring": 0.90,
+    "necklace": 0.75,
+    "earring": 0.85,
+    "shoulders": 0.35,
+    "belt": 0.30,
+    "cloak": 0.50,
+    "bracers": 0.80,
+    "bracelet": 0.75,
+    "accessory": 0.95,
+    "relic": 1.10,
+}
+
+
+def class_equipment_style_profile(style_index):
+    return CLASS_EQUIPMENT_STYLE_PROFILES.get(
+        int(style_index or 1),
+        CLASS_EQUIPMENT_STYLE_PROFILES[1],
+    )
+
+
+def class_equipment_split_stat_budget(class_name, legacy_amount, slot=None, style_index=1):
     # v1.13.6: każdy klasowy element ma trzy realne statystyki bazowe.
     # Łączny budżet pozostaje kontrolowany; minimalnie 3, aby żadna oś nie
     # mogła spaść do zera nawet na Tierze 1.
@@ -79,11 +134,76 @@ def class_equipment_split_stat_budget(class_name, legacy_amount, slot=None):
     primary_amount = 1 + primary_extra
     secondary_amount = 1 + secondary_extra
     tertiary_amount = 1 + constitution_extra
+
+    # Style 2 przenosi część CON w ofensywne osie; style 3 robi odwrotnie.
+    # Łączny budżet pozostaje identyczny, więc wybór jest buildem, nie prostym
+    # "numer 3 ma więcej wszystkiego".
+    style = class_equipment_style_profile(style_index)
+    shift_ratio = float(style.get("stat_shift", 0.0) or 0.0)
+    shift_points = max(0, int(round(budget * abs(shift_ratio))))
+    if shift_ratio > 0.0 and shift_points > 0:
+        moved = min(max(0, tertiary_amount - 1), shift_points)
+        primary_gain = int(round(moved * 0.70))
+        secondary_gain = moved - primary_gain
+        tertiary_amount -= moved
+        primary_amount += primary_gain
+        secondary_amount += secondary_gain
+    elif shift_ratio < 0.0 and shift_points > 0:
+        movable_primary = max(0, primary_amount - 1)
+        movable_secondary = max(0, secondary_amount - 1)
+        wanted_primary = int(round(shift_points * 0.60))
+        moved_primary = min(movable_primary, wanted_primary)
+        moved_secondary = min(
+            movable_secondary,
+            max(0, shift_points - moved_primary),
+        )
+        # Jeżeli jedna oś nie miała wystarczającej liczby punktów, dobierz resztę
+        # z drugiej, nadal nigdy nie schodząc poniżej 1.
+        remaining_shift = shift_points - moved_primary - moved_secondary
+        if remaining_shift > 0:
+            extra_primary = min(
+                max(0, movable_primary - moved_primary),
+                remaining_shift,
+            )
+            moved_primary += extra_primary
+            remaining_shift -= extra_primary
+        if remaining_shift > 0:
+            extra_secondary = min(
+                max(0, movable_secondary - moved_secondary),
+                remaining_shift,
+            )
+            moved_secondary += extra_secondary
+        moved = moved_primary + moved_secondary
+        primary_amount -= moved_primary
+        secondary_amount -= moved_secondary
+        tertiary_amount += moved
+
     return (
         primary_stat, primary_amount,
         secondary_stat, secondary_amount,
         tertiary_stat, tertiary_amount,
     )
+
+
+def class_equipment_flat_power_channels(class_name, mastery, slot=None, style_index=1):
+    """Attack/Magic Attack z klasowego EQ bez zamiany każdego slotu w broń.
+
+    Czyste klasy dostają jeden kanał. Mec jest hybrydą i dostaje oba, ale każdy
+    z nich jest słabszy niż pojedynczy kanał wyspecjalizowanej klasy.
+    """
+    budget = class_equipment_stat_budget(mastery, slot)
+    slot_scale = float(CLASS_EQUIPMENT_SLOT_POWER_SCALE.get(str(slot or ""), 0.50))
+    style = class_equipment_style_profile(style_index)
+    style_mult = float(style.get("power_multiplier", 1.0) or 1.0)
+    power = max(0, int(round(budget * 0.18 * slot_scale * style_mult)))
+    if power <= 0:
+        return {"attack": 0, "magic_attack": 0}
+    if class_name == "Mec":
+        hybrid = max(1, int(round(power * 0.60)))
+        return {"attack": hybrid, "magic_attack": hybrid}
+    if class_type_for_name(class_name) == "magic":
+        return {"attack": 0, "magic_attack": power}
+    return {"attack": power, "magic_attack": 0}
 
 
 def class_equipment_profile_properties(class_name, mastery, slot=None):
@@ -102,9 +222,9 @@ def class_equipment_profile_properties(class_name, mastery, slot=None):
         if float(weight) > 0
     }
 
-def class_equipment_base_stats_text(class_name, legacy_amount, slot=None):
+def class_equipment_base_stats_text(class_name, legacy_amount, slot=None, style_index=1):
     pstat, pamount, sstat, samount, tstat, tamount = class_equipment_split_stat_budget(
-        class_name, legacy_amount, slot
+        class_name, legacy_amount, slot, style_index
     )
     labels = {
         "strength": "Siła",
