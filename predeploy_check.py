@@ -377,6 +377,34 @@ if "Linie można mieszać." not in _equipment_stats_source:
         "class EQ mixed-style set regression: set status no longer confirms mixing"
     )
 
+_class_set_start = _equipment_stats_source.find("    def class_set_counts(self):")
+_class_set_end = _equipment_stats_source.find(
+    "    def class_set_stat_bonus_totals(self):",
+    _class_set_start,
+)
+if _class_set_start < 0 or _class_set_end < 0:
+    _semantic_errors.append("class EQ mixed-style set regression: class_set_counts block missing")
+else:
+    _class_set_block = _equipment_stats_source[_class_set_start:_class_set_end]
+    if "class_set_name" in _class_set_block:
+        _semantic_errors.append(
+            "class EQ mixed-style set regression: set thresholds depend on style name"
+        )
+    if "logical_slots.setdefault(class_name, set()).add(item.get(\"slot\"))" not in _class_set_block:
+        _semantic_errors.append(
+            "class EQ mixed-style set regression: thresholds no longer count class logical slots"
+        )
+
+_shops_source = (_root / "player/session_mixins/shops_teachers.py").read_text(encoding="utf-8")
+for _needle in (
+    "class_equipment_style_role",
+    "Style tej samej klasy można mieszać bez utraty progów setu 2/4/6/8",
+):
+    if _needle not in _shops_source:
+        _semantic_errors.append(
+            "class EQ shop style regression: missing " + _needle
+        )
+
 _equipment_compare_source = (_root / "player/session_mixins/equipment_compare.py").read_text(encoding="utf-8")
 for _needle in ('"attack": "Attack"', '"magic_attack": "Magic Attack"'):
     if _needle not in _equipment_compare_source:
