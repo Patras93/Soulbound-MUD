@@ -346,11 +346,52 @@ for _needle in _class_eq_three_stat_needles:
             "class EQ three-stat regression: missing " + _needle
         )
 
+for _needle in (
+    "CLASS_EQUIPMENT_STYLE_PROFILES = {",
+    '"role": "zbalansowany"',
+    '"role": "ofensywny"',
+    '"role": "pancerny"',
+    "def class_equipment_flat_power_channels(",
+    'if class_name == "Mec":',
+    'return {"attack": hybrid, "magic_attack": hybrid}',
+    "class_name, legacy_affix_amount, slot, style_index",
+):
+    if _needle not in _class_eq_source:
+        _semantic_errors.append(
+            "class EQ style/power regression: missing " + _needle
+        )
+
+for _needle in (
+    'int(item.get("class_equipment_style", 1) or 1)',
+    "linie stylu nadal identyczne",
+    "nie ma obu kanałów Attack/Magic Attack",
+):
+    if _needle not in _runtime_progression_source:
+        _semantic_errors.append(
+            "runtime class EQ style regression: missing " + _needle
+        )
+
+_equipment_stats_source = (_root / "player/session_mixins/equipment_stats.py").read_text(encoding="utf-8")
+if "Linie można mieszać." not in _equipment_stats_source:
+    _semantic_errors.append(
+        "class EQ mixed-style set regression: set status no longer confirms mixing"
+    )
+
+_equipment_compare_source = (_root / "player/session_mixins/equipment_compare.py").read_text(encoding="utf-8")
+for _needle in ('"attack": "Attack"', '"magic_attack": "Magic Attack"'):
+    if _needle not in _equipment_compare_source:
+        _semantic_errors.append(
+            "EQ compare flat-power regression: missing " + _needle
+        )
+
 _final_help_source = (_root / "admin/help_refresh.py").read_text(encoding="utf-8")
 for _needle in (
     "Siłę + Zręczność + Kondycję",
     "Inteligencję + Siłę Woli + Kondycję",
     "legendarnych setów i reliktów klasowych",
+    "trzy linie klasowego EQ",
+    "Możesz dowolnie mieszać style",
+    "Mec jako hybryda dostaje oba kanały",
 ):
     if _needle not in _final_help_source:
         _semantic_errors.append(
