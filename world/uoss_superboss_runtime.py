@@ -148,6 +148,65 @@ def superboss_attack_gate_v11137(session, template):
     return True, ""
 
 
+# v1.13.30: Soulbound helper balance layer. These are deliberately modest
+# gameplay roles, not claimed source-exact UOSSMUD percentages. A helper must
+# be noticeable, but never replace a player or turn a superboss into auto-win.
+SUPERBOSS_HELPER_ROLES_V11330 = {
+    "Popoi": {
+        "role": "magiczny ofensywny",
+        "damage_multiplier": 1.20,
+        "damage_reduction": 0.03,
+    },
+    "Primm": {
+        "role": "zbalansowany support",
+        "damage_multiplier": 1.00,
+        "damage_reduction": 0.08,
+    },
+    "Byblos": {
+        "role": "ochronny support",
+        "damage_multiplier": 0.95,
+        "damage_reduction": 0.10,
+    },
+    "Montblanc": {
+        "role": "taktyczny magiczny",
+        "damage_multiplier": 1.10,
+        "damage_reduction": 0.06,
+    },
+    "Seifer": {
+        "role": "fizyczny ofensywny",
+        "damage_multiplier": 1.20,
+        "damage_reduction": 0.03,
+    },
+}
+
+
+def superboss_helper_balance_audit_v11330():
+    errors = []
+    for name, row in SUPERBOSS_HELPER_ROLES_V11330.items():
+        damage = float(row.get("damage_multiplier", 0.0) or 0.0)
+        reduction = float(row.get("damage_reduction", 0.0) or 0.0)
+        if not 0.90 <= damage <= 1.20:
+            errors.append(f"{name}: helper damage multiplier out of 0.90..1.20")
+        if not 0.03 <= reduction <= 0.10:
+            errors.append(f"{name}: helper reduction out of 0.03..0.10")
+        # Runtime helper strike starts at 65% of the player's current build.
+        # Even the most offensive helper must stay below 80% of that build.
+        if 0.65 * damage > 0.80:
+            errors.append(f"{name}: helper strike can exceed 80% player-build baseline")
+    expected = {"Popoi", "Primm", "Byblos", "Montblanc", "Seifer"}
+    if set(SUPERBOSS_HELPER_ROLES_V11330) != expected:
+        errors.append("helper role roster mismatch")
+    return {
+        "version": "1.13.30",
+        "helper_count": len(SUPERBOSS_HELPER_ROLES_V11330),
+        "error_count": len(errors),
+        "errors": errors,
+    }
+
+
+SUPERBOSS_HELPER_BALANCE_AUDIT_V11330 = superboss_helper_balance_audit_v11330()
+
+
 def superboss_helper_profile_v11137(session, template):
     key = superboss_key_from_template_v11135(template)
     if not key:
@@ -172,10 +231,15 @@ def superboss_helper_profile_v11137(session, template):
         name = str(helper)
     else:
         return None
-    # Source establishes the helper's presence/identity but does not provide
-    # a numeric damage bonus or damage-reduction percentage. Keep the helper
-    # mechanically present without fabricating combat multipliers.
-    return {"name":name, "damage_multiplier":1.0, "damage_reduction":0.0}
+    role = dict(SUPERBOSS_HELPER_ROLES_V11330.get(name) or {})
+    if not role:
+        return None
+    return {
+        "name": name,
+        "role": role["role"],
+        "damage_multiplier": float(role["damage_multiplier"]),
+        "damage_reduction": float(role["damage_reduction"]),
+    }
 
 
 def superboss_phase_v11137(template, mob):
