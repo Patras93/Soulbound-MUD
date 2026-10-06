@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Fast Railway predeploy gate for Soulbound v1.13.25.
+"""Fast Railway predeploy gate for Soulbound v1.13.26.
 
 This is the normal deploy check.  It intentionally avoids assembling the full
 world/runtime.  Use predeploy_full.py when an exhaustive historical audit is
@@ -16,7 +16,7 @@ import traceback
 try:
     from storage.database import Database as _DatabaseImportSmoke
 except Exception as exc:
-    print(f"Soulbound v1.13.25 FAST PREDEPLOY FAILED: database import: {type(exc).__name__}: {exc}")
+    print(f"Soulbound v1.13.26 FAST PREDEPLOY FAILED: database import: {type(exc).__name__}: {exc}")
     traceback.print_exc()
     raise SystemExit(1)
 
@@ -37,7 +37,7 @@ try:
     )
 except Exception as exc:
     print(
-        "Soulbound v1.13.25 FAST PREDEPLOY FAILED: "
+        "Soulbound v1.13.26 FAST PREDEPLOY FAILED: "
         f"skill semantic import: {type(exc).__name__}: {exc}"
     )
     traceback.print_exc()
@@ -293,6 +293,55 @@ for _needle in (
         _semantic_errors.append(
             "terrain recommended mastery floor regression: missing " + _needle
         )
+
+# v1.13.26: Equipment Identity 2.0 keeps acquisition sources materially distinct.
+_equipment_identity_source_v11326 = (_root / "systems/equipment_crafting.py").read_text(encoding="utf-8")
+_items_resources_identity_source_v11326 = (_root / "systems/items_resources.py").read_text(encoding="utf-8")
+_dungeons_identity_source_v11326 = (_root / "systems/dungeons_regions.py").read_text(encoding="utf-8")
+_uoss_identity_source_v11326 = (_root / "world/uoss_superboss_world.py").read_text(encoding="utf-8")
+_shop_identity_ui_source_v11326 = (_root / "player/session_mixins/shops_teachers.py").read_text(encoding="utf-8")
+_compare_identity_ui_source_v11326 = (_root / "player/session_mixins/equipment_compare.py").read_text(encoding="utf-8")
+
+for _needle in (
+    "def class_equipment_style_properties_v11326",
+    "def legendary_class_set_properties_v11326",
+    '"equipment_identity_source": "class_shop"',
+    '"equipment_identity_source": "boss_set"',
+    '"equipment_identity_source": "boss_relic"',
+    "EQUIPMENT_IDENTITY_AUDIT_V11326",
+):
+    if _needle not in _equipment_identity_source_v11326:
+        _semantic_errors.append("equipment identity shop/boss regression: missing " + _needle)
+
+for _needle in (
+    '"equipment_identity_source": "blacksmith"',
+    '"equipment_identity_role": "masterwork_customization"',
+    '"sockets": int(masterwork["sockets"])',
+):
+    if _needle not in _items_resources_identity_source_v11326:
+        _semantic_errors.append("equipment identity craft regression: missing " + _needle)
+
+for _needle in (
+    '"equipment_identity_source": "crypt"',
+    '"equipment_identity_role": "random_affix"',
+    '"equipment_identity_source": "crypt_boss"',
+):
+    if _needle not in _dungeons_identity_source_v11326:
+        _semantic_errors.append("equipment identity crypt regression: missing " + _needle)
+
+for _needle in (
+    '"equipment_identity_source", "uoss_unique"',
+    '"equipment_identity_role", "special_effects"',
+):
+    if _needle not in _uoss_identity_source_v11326:
+        _semantic_errors.append("equipment identity UOSS regression: missing " + _needle)
+
+for _source, _needle, _label in (
+    (_shop_identity_ui_source_v11326, '"Tożsamość EQ: "', "shop info"),
+    (_compare_identity_ui_source_v11326, '"Tożsamość EQ: "', "equipment compare"),
+):
+    if _needle not in _source:
+        _semantic_errors.append(f"equipment identity UI regression: {_label}")
 
 # v1.13.25: old authored values may not bypass current loot/EQ value floors.
 _legacy_value_source_v11325 = (_root / "systems/legacy_value_sweep.py").read_text(encoding="utf-8")
@@ -1243,18 +1292,18 @@ except Exception as exc:
     )
 
 if _semantic_errors:
-    print("Soulbound v1.13.25 FAST PREDEPLOY FAILED: semantic contracts")
+    print("Soulbound v1.13.26 FAST PREDEPLOY FAILED: semantic contracts")
     for _error in _semantic_errors:
         print(f"ERROR: {_error}")
     raise SystemExit(1)
 
 if audit["error_count"]:
-    print("Soulbound v1.13.25 FAST PREDEPLOY FAILED")
+    print("Soulbound v1.13.26 FAST PREDEPLOY FAILED")
     for error in audit["errors"]:
         print(f"ERROR: {error}")
     raise SystemExit(1)
 
-print("Soulbound v1.13.25 FAST PREDEPLOY PASS")
+print("Soulbound v1.13.26 FAST PREDEPLOY PASS")
 print(
     "Semantic contracts: "
     f"{len(_semantic_audits)} audits PASS; AP runtime guards PASS"
