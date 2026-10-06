@@ -16,7 +16,11 @@ from core.progression_600 import CHARACTER_MAX_LEVEL
 from config.postal import COURIER_CITY_ROOM_TO_NAME_V0530
 from core.progression_resources import mine_floor_number
 from systems.content_registry import MOB_TEMPLATES
-from world.uoss_superboss_world import uoss_deep_dungeon_floor_number_v11331
+from world.uoss_superboss_world import (
+    UOSS_DEEP_DUNGEON_ENTRY_V11331,
+    UOSS_DEEP_DUNGEON_FLOOR0_V11331,
+    uoss_deep_dungeon_floor_number_v11331,
+)
 from systems.dungeons_regions import (
     astral_floor_number,
     crypt_floor_number,
@@ -32,6 +36,13 @@ class SessionMovementMixin:
     def dungeon_exit_destination(self, room_id=None):
             """Zwraca bezpieczny punkt wyjścia z rozpoznanego lochu."""
             room_id = str(room_id or self.character.room_id)
+
+            # UOSS Deep Dungeon jest nieskończony; Floor 0 jest progiem Serpentariusa.
+            if (
+                uoss_deep_dungeon_floor_number_v11331(room_id) is not None
+                or room_id == UOSS_DEEP_DUNGEON_FLOOR0_V11331
+            ):
+                return UOSS_DEEP_DUNGEON_ENTRY_V11331, "UOSS Deep Dungeon"
 
             # Kopalnia Głębinowa 1-200.
             if mine_floor_number(room_id) is not None:
