@@ -1871,7 +1871,7 @@ def _authored_rewards_preserved_legacy_removed(ns: dict, before: dict) -> bool:
                     return False
     return True
 
-def validate(ns: dict) -> dict:
+def validate(ns: dict, authored_rewards_before: dict | None = None) -> dict:
     errors = []
     mobs = ns.get("MOB_TEMPLATES", {})
     items = ns.get("ITEMS", {})
@@ -1913,11 +1913,21 @@ def validate(ns: dict) -> dict:
         if min(silver, gold, mithril) < 0:
             errors.append(f"quest negative currency {qid}")
         manual = q.get("manual_currency_reward_coins")
-        if manual is not None:
+        before_quest = (
+            ((authored_rewards_before or {}).get("quests") or {}).get(str(qid), {})
+        )
+        had_authored_currency = any(
+            key in before_quest
+            for key in ("reward_silver", "reward_gold", "reward_mithril")
+        )
+        # Legacy V03024 manual values are fallback-only in v1.13.30.
+        # Exact equality is required only when Generator had to create currency
+        # because the quest did not already contain a newer authored reward.
+        if manual is not None and not had_authored_currency:
             expected = clamp(int(manual), 0, SAFE_INT)
             if silver != expected or gold != 0 or mithril != 0:
                 errors.append(
-                    f"quest manual currency changed {qid}: "
+                    f"quest manual fallback not applied {qid}: "
                     f"{silver}/{gold}/{mithril}!={expected}/0/0"
                 )
     skill_count = 0
@@ -2010,7 +2020,7 @@ def apply_generator_core(ns: dict) -> dict:
     if full_audit:
         semantic_after = semantic_fingerprint(ns)
         whitelist_audit = generator_whitelist_validate(ns, whitelist_before)
-        audit = validate(ns)
+        audit = validate(ns, authored_rewards_before)
         semantic_ok = semantic_before == semantic_after
         authored_reward_differences_v11330 = authored_reward_differences(
             ns, authored_rewards_before
