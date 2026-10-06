@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Fast Railway predeploy gate for Soulbound v1.13.27.
+"""Fast Railway predeploy gate for Soulbound v1.13.28.
 
 This is the normal deploy check.  It intentionally avoids assembling the full
 world/runtime.  Use predeploy_full.py when an exhaustive historical audit is
@@ -16,7 +16,7 @@ import traceback
 try:
     from storage.database import Database as _DatabaseImportSmoke
 except Exception as exc:
-    print(f"Soulbound v1.13.27 FAST PREDEPLOY FAILED: database import: {type(exc).__name__}: {exc}")
+    print(f"Soulbound v1.13.28 FAST PREDEPLOY FAILED: database import: {type(exc).__name__}: {exc}")
     traceback.print_exc()
     raise SystemExit(1)
 
@@ -37,7 +37,7 @@ try:
     )
 except Exception as exc:
     print(
-        "Soulbound v1.13.27 FAST PREDEPLOY FAILED: "
+        "Soulbound v1.13.28 FAST PREDEPLOY FAILED: "
         f"skill semantic import: {type(exc).__name__}: {exc}"
     )
     traceback.print_exc()
@@ -293,6 +293,61 @@ for _needle in (
         _semantic_errors.append(
             "terrain recommended mastery floor regression: missing " + _needle
         )
+
+# v1.13.28: HELP must describe the final runtime, not historical milestone prose.
+_help_truth_source_v11328 = (_root / "admin/help_truth_current_v11328.py").read_text(encoding="utf-8")
+_help_system_source_v11328 = (_root / "player/session_mixins/help_system.py").read_text(encoding="utf-8")
+_runtime_manifest_source_v11328 = (_root / "core/runtime_manifest.py").read_text(encoding="utf-8")
+
+for _needle in (
+    "def refresh_help_truth_current_v11328",
+    "def help_freshness_audit_v11328",
+    "HELP_FRESHNESS_AUDIT_V11328",
+    "Scan every public topic",
+    "COMMAND_CATALOG.bind_help",
+    '"tempo_profesji"',
+    '"gamefeel"',
+    '"zrodla_eq"',
+    '"Brakujące price=None/0',
+    '"Etap źródła EQ',
+):
+    if _needle not in _help_truth_source_v11328:
+        _semantic_errors.append("HELP truth v1.13.28 regression: missing " + _needle)
+
+for _needle in (
+    "aoe on / aoe off",
+    "kolejka usuń <nr>",
+    "handel morski wez <nr> / oddaj / porzuc",
+    "Tożsamość EQ",
+    "Etap źródła",
+    "Brak price=None/0",
+    "gdzie zdobyc <przedmiot> [pelne]",
+    "przetop stop",
+):
+    if _needle not in _help_system_source_v11328:
+        _semantic_errors.append("HELP command index v1.13.28 regression: missing " + _needle)
+
+_manifest_help = "'admin/help_truth_current_v11328.py'"
+_manifest_late_layers = (
+    "'world/uoss_superboss_world.py'",
+    "'world/global_difficulty_overdrive.py'",
+    "'systems/smithing_materials.py'",
+    "'systems/runtime_memory.py'",
+    "'admin/release_integrity_v0369.py'",
+)
+if _manifest_help not in _runtime_manifest_source_v11328:
+    _semantic_errors.append("HELP truth v1.13.28 missing from runtime manifest")
+else:
+    _help_index_v11328 = _runtime_manifest_source_v11328.index(_manifest_help)
+    for _late_layer_v11328 in _manifest_late_layers:
+        if (
+            _late_layer_v11328 in _runtime_manifest_source_v11328
+            and _help_index_v11328
+            < _runtime_manifest_source_v11328.index(_late_layer_v11328)
+        ):
+            _semantic_errors.append(
+                "HELP truth v1.13.28 is not final after " + _late_layer_v11328
+            )
 
 # v1.13.27: loot source progression must remain monotonic and source-aware.
 _equipment_source_progression_v11327 = (_root / "systems/equipment_crafting.py").read_text(encoding="utf-8")
@@ -1332,18 +1387,18 @@ except Exception as exc:
     )
 
 if _semantic_errors:
-    print("Soulbound v1.13.27 FAST PREDEPLOY FAILED: semantic contracts")
+    print("Soulbound v1.13.28 FAST PREDEPLOY FAILED: semantic contracts")
     for _error in _semantic_errors:
         print(f"ERROR: {_error}")
     raise SystemExit(1)
 
 if audit["error_count"]:
-    print("Soulbound v1.13.27 FAST PREDEPLOY FAILED")
+    print("Soulbound v1.13.28 FAST PREDEPLOY FAILED")
     for error in audit["errors"]:
         print(f"ERROR: {error}")
     raise SystemExit(1)
 
-print("Soulbound v1.13.27 FAST PREDEPLOY PASS")
+print("Soulbound v1.13.28 FAST PREDEPLOY PASS")
 print(
     "Semantic contracts: "
     f"{len(_semantic_audits)} audits PASS; AP runtime guards PASS"

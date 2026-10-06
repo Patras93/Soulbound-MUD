@@ -1,5 +1,5 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.13.27
+Aktualna paczka: v1.13.28
 
 
 
@@ -17,6 +17,52 @@ Aktualna paczka: v1.13.27
 
 
 
+
+
+==============================================================================
+Soulbound v1.13.28 — GLOBAL HELP TRUTH SWEEP
+==============================================================================
+
+- Przejrzano architekturę całej publicznej pomocy. HELP był warstwowo
+  nadpisywany od starych wydań, a dotychczasowy „finalny” refresh v1.11.97
+  uruchamiał się przed częścią późnych modułów (Krypta, Wieże, UOSS,
+  Global Difficulty). To pozwalało później dopisać historyczny tekst.
+- Dodano admin/help_truth_current_v11328.py jako faktycznie późną warstwę
+  prawdy HELP, ładowaną po późnych systemach gameplay.
+- Finalny refresh skanuje KAŻDY temat pomocy, normalizuje stare niehistoryczne
+  limity 1-400 / starą pojemność kolejki / stare liczby slotów EQ oraz usuwa
+  historyczne Generator-cooldown contracts, które nie opisują obecnej gry.
+- Główne tematy są zbudowane ponownie z aktualnych zasad: podstawy,
+  progresja, statystyki, walka, AoE, skille, kolejka, Dusza, profesje,
+  crafting, questy, party, loot, EQ, sklepy, Krypta, Wieża, Ocean,
+  Superbossy, Archeologia i Kartografia.
+- help tempo_profesji czyta bieżące authored timery 14 narzędzi. Wprost
+  dokumentuje m.in. Wędkarstwo 16 s -> 3 s i Górnictwo 40 s -> 10 s.
+- help gamefeel opisuje obecne rzadkie momenty nagród: gathering 4-8%,
+  Mistrzowską Inspirację craftu ~3-6%, premie questów i ukryte znaleziska.
+- help loot opisuje Trofea z potyczki (Normal 8%, Elite 18%, Rare 32%,
+  miniboss 50%, boss 75%, World Boss 100%), characteristic legacy loot,
+  named boss uniques oraz rarity Krypty.
+- help sklepy opisuje naprawę price=None/0, progression price floor,
+  prawdziwe token-only, rabat Charyzmy i wspólną ścieżkę shop/info/kup.
+- help ekwipunek oraz nowy help zrodla_eq opisują Equipment Identity 2.0
+  i Loot Source Progression: sklep, craft, corpse drop, Krypta, bossy i UOSS.
+  Tożsamość EQ i Etap źródła EQ są jawnie dokumentowane.
+- help quest dokumentuje obecne rzadkie bonusy wykonania oraz ochronę
+  ręcznych/manualnych wypłat.
+- help party dokumentuje brak kary drużynowej do pełnego XP/waluty.
+- help ocean dokumentuje handel morski wez/oddaj/porzuc oraz brak resetu
+  kontraktu przy morskim objeździe.
+- Uaktualniono wirtualne help komendy: AoE, kolejka usuń/wyczyść, formy
+  Broni Duszy, handel morski porzuc, Tożsamość/Etap źródła EQ, bezpieczne
+  ceny sklepu, gdzie zdobyc/do czego/braki receptura i przetop stop.
+- Dodano finalne aliasy HELP dla canonical commands, dzięki czemu m.in.
+  help shop, help buy, help sell, help craft, help oceantrade, help
+  compareeq i help superboss prowadzą do aktualnego działu.
+- HELP Freshness Audit v1.13.28 skanuje wszystkie publiczne tematy oraz
+  krytyczne powiązania COMMAND_CATALOG zamiast tylko kilkunastu ręcznie
+  wybranych tematów.
+- Brak wipe i migracji bazy.
 
 ==============================================================================
 Soulbound v1.13.27 — LOOT & SOURCE PROGRESSION PASS
