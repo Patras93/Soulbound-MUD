@@ -11,6 +11,42 @@ from config.balance import V0503_DIFFICULTY_PRESSURE
 
 V0386_GLOBAL_DIFFICULTY_VERSION = "0.38.6"
 
+# v1.13.23 - Global Mob Feel: ordinary mobs must be worth fighting and capable
+# of hurting an under-geared player, without becoming another blanket HP wall.
+V11323_MOB_FEEL_VERSION = "1.13.23"
+
+V11323_RANK_DAMAGE_PRESSURE = {
+    "normal": 1.08,
+    "elite": 1.10,
+    "rare": 1.12,
+    "mini": 1.14,
+    "boss": 1.16,
+    "world_boss": 1.20,
+}
+
+# One extra "o kurde" roll per defeated mob. The trophy is shared with every
+# eligible local party member exactly like ordinary mob drops.
+V11323_TROPHY_CHANCE = {
+    "normal": 0.08,
+    "elite": 0.18,
+    "rare": 0.32,
+    "mini": 0.50,
+    "boss": 0.75,
+    "world_boss": 1.00,
+}
+
+# min stage -> item id. Sell values live in data/items.py.
+V11323_TROPHY_TIERS = (
+    (600, "mob_trophy_t8"),
+    (500, "mob_trophy_t7"),
+    (400, "mob_trophy_t6"),
+    (300, "mob_trophy_t5"),
+    (200, "mob_trophy_t4"),
+    (100, "mob_trophy_t3"),
+    (50, "mob_trophy_t2"),
+    (1, "mob_trophy_t1"),
+)
+
 _V0386_RANK_HP = {
     "normal": 1.00,
     "elite": 1.15,
@@ -89,6 +125,20 @@ def _v0386_rank(template):
     return "normal"
 
 
+
+def mob_trophy_spec_v11323(template):
+    """Return (item_id, chance) for the extra stage-scaled combat trophy roll."""
+    if not isinstance(template, dict) or template.get("training_dummy"):
+        return None
+    stage = _v0386_stage(template)
+    rank = _v0386_rank(template)
+    chance = float(V11323_TROPHY_CHANCE.get(rank, V11323_TROPHY_CHANCE["normal"]))
+    for minimum, item_id in V11323_TROPHY_TIERS:
+        if stage >= minimum:
+            return item_id, chance
+    return "mob_trophy_t1", chance
+
+
 def _v0386_instance_kind(template):
     template = template or {}
     if template.get("mythic_crypt_floor") is not None:
@@ -141,6 +191,11 @@ def global_difficulty_multipliers_v0386(template):
     rank = _v0386_rank(template)
     hp *= _V0386_RANK_HP.get(rank, 1.0)
     damage *= _V0386_RANK_DAMAGE.get(rank, 1.0)
+    # v1.13.23: make ordinary combat matter through damage pressure, not HP sponge.
+    damage_pressure = 1.0 if template.get("training_dummy") else float(
+        V11323_RANK_DAMAGE_PRESSURE.get(rank, 1.08)
+    )
+    damage *= damage_pressure
     reward *= _V0386_RANK_REWARD.get(rank, 1.0)
     coin *= _V0386_RANK_REWARD.get(rank, 1.0)
 
@@ -178,6 +233,7 @@ def global_difficulty_multipliers_v0386(template):
         "instance": instance,
         "stage": stage,
         "nemesis": nemesis,
+        "v11323_damage_pressure": round(damage_pressure, 6),
         "v0503_pressure": dict(pressure),
     }
 
@@ -421,6 +477,55 @@ def global_difficulty_overdrive_audit_v0386():
     }
 
 
+
+def global_mob_feel_audit_v11323():
+    errors = []
+    normal = global_difficulty_multipliers_v0386({"generator_level": 100})
+    elite = global_difficulty_multipliers_v0386({"generator_level": 100, "rank": "elite", "elite": True})
+    boss = global_difficulty_multipliers_v0386({"generator_level": 100, "rank": "boss", "boss": True})
+    if float(normal.get("v11323_damage_pressure", 0)) < 1.08:
+        errors.append("normal mob damage pressure missing")
+    if elite["damage"] <= normal["damage"]:
+        errors.append("elite damage not above normal")
+    if boss["damage"] <= elite["damage"]:
+        errors.append("boss damage not above elite")
+    if mob_trophy_spec_v11323({"generator_level": 1, "training_dummy": True}) is not None:
+        errors.append("training dummy must not drop combat trophies")
+    expected = (
+        (1, "normal", "mob_trophy_t1", 0.08),
+        (50, "elite", "mob_trophy_t2", 0.18),
+        (100, "rare", "mob_trophy_t3", 0.32),
+        (200, "mini", "mob_trophy_t4", 0.50),
+        (300, "boss", "mob_trophy_t5", 0.75),
+        (600, "world_boss", "mob_trophy_t8", 1.00),
+    )
+    for stage, rank, item_id, chance in expected:
+        probe = {"generator_level": stage, "rank": rank}
+        if rank == "world_boss":
+            probe["world_boss"] = True
+        spec = mob_trophy_spec_v11323(probe)
+        if not spec or spec[0] != item_id or abs(float(spec[1]) - chance) > 1e-9:
+            errors.append(f"trophy spec {stage}/{rank}: {spec}")
+        if item_id not in ITEMS:
+            errors.append(f"missing trophy item: {item_id}")
+    return {
+        "version": V11323_MOB_FEEL_VERSION,
+        "normal_stage_100": dict(normal),
+        "elite_stage_100": dict(elite),
+        "boss_stage_100": dict(boss),
+        "error_count": len(errors),
+        "errors": errors,
+    }
+
+
+GLOBAL_MOB_FEEL_AUDIT_V11323 = global_mob_feel_audit_v11323()
+if GLOBAL_MOB_FEEL_AUDIT_V11323["error_count"]:
+    raise RuntimeError(
+        "Global Mob Feel Audit v1.13.23 failed: "
+        + "; ".join(GLOBAL_MOB_FEEL_AUDIT_V11323["errors"][:50])
+    )
+
+
 GLOBAL_DIFFICULTY_OVERDRIVE_AUDIT_V0386 = global_difficulty_overdrive_audit_v0386()
 if GLOBAL_DIFFICULTY_OVERDRIVE_AUDIT_V0386["error_count"]:
     raise RuntimeError(
@@ -430,6 +535,16 @@ if GLOBAL_DIFFICULTY_OVERDRIVE_AUDIT_V0386["error_count"]:
 
 HELP_TOPICS.setdefault("wersja", []).append(
     "v0.38.6: Global Difficulty Overdrive II — ponownie wzmocniono wszystkie moby całej gry, wszystkie lochy, obie Wieże, Magitek, bossów, World Bossów i Nemesis; EXP rośnie razem z trudnością."
+)
+
+HELP_TOPICS.setdefault("walka", []).append(
+    "v1.13.23: zwykłe moby nie są papierem. Dostają dodatkową końcową presję obrażeń bez kolejnego blanket mnożnika HP; Elite, Rare, minibossy i bossowie naciskają coraz mocniej."
+)
+HELP_TOPICS.setdefault("loot", []).append(
+    "v1.13.23: każdy prawdziwy mob ma dodatkową szansę na Trofeum z potyczki zależne od etapu. Normal 8%, Elite 18%, Rare 32%, miniboss 50%, boss 75%, World Boss 100%. Trofeum można sprzedać za sensowną kwotę."
+)
+HELP_TOPICS.setdefault("wersja", []).append(
+    "v1.13.23: Global Mob Feel — zwykłe moby zyskują realną presję obrażeń i rzadki, skalowany łup sprzedażowy; wyższe rangi są wyraźnie groźniejsze i bardziej opłacalne."
 )
 
 
