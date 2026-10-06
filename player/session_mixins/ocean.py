@@ -9,11 +9,24 @@ from collections import deque
 from core.classes_skills import ROOMS
 from core.bootstrap_economy_professions import currency_reading_text
 from systems.crafting_quality import player_item_display_name_v0335
+from systems.economy_income_balance import v1138_activity_income
 from world.ocean_expansion import ROUTES, PORTS, DEEP_OCEAN_ROOMS, TREASURE_ROOMS
 
 
 class SessionOceanV1000Mixin:
     V1000_SHIP_BASE_COST = 25_000
+
+    def ocean_economy_stage_v1138(self):
+        try:
+            mastery = int(self.highest_active_class_mastery())
+        except Exception:
+            mastery = 1
+        return max(
+            1,
+            int(getattr(self.character, "character_level", 1) or 1),
+            int(getattr(self.character, "soul_level", 1) or 1),
+            mastery,
+        )
     V1000_SHIP_MAX_LEVEL = 5
 
     def ocean_ship_row_v1000(self):
@@ -175,8 +188,11 @@ class SessionOceanV1000Mixin:
         self.server.db.conn.commit()
 
     def ocean_trade_offers_v1000(self):
-        # Static authored routes keep contracts readable and deterministic.
-        return (
+        # Static authored routes keep contracts readable and deterministic,
+        # but the payout floor follows current progression so Ocean 2.0
+        # does not become obsolete economically.
+        stage = self.ocean_economy_stage_v1138()
+        rows = (
             ("dusze", "harbor", "ocean_platform", "Zapasy dla oceanicznych załóg", 500_000, 1),
             ("rafy", "ocean_platform", "fog_square", "Skrzynie soli i lin", 1_000_000, 1),
             ("mgla", "fog_square", "star_port_market", "Mglisty bursztyn", 2_500_000, 2),
@@ -185,6 +201,15 @@ class SessionOceanV1000Mixin:
             ("powrot", "silver_crown_harbor", "star_port_market", "Srebrne mechanizmy portowe", 15_000_000, 5),
             ("cicha", "quiet_haven_dock", "silver_crown_harbor", "Towary z Cichej Przystani", 6_000_000, 3),
         )
+        offers = []
+        for key, origin, dest, label, authored, required in rows:
+            difficulty = 0.85 + required * 0.18
+            reward = max(
+                int(authored),
+                v1138_activity_income(stage, "ocean_trade", difficulty),
+            )
+            offers.append((key, origin, dest, label, reward, required))
+        return tuple(offers)
 
     def ocean_contract_path_v1001(self, origin, destination):
         """Shortest sea-only port path, including every sector of its lanes."""
@@ -473,7 +498,16 @@ class SessionOceanV1000Mixin:
             if self.character.room_id != row["target_room"]:
                 await self.send("Mapa wskazuje inne miejsce. Wpisz skarby, aby odczytać wskazówkę.")
                 return
-            reward = 45_000 + self.ocean_ship_level_v1000("navigation") * 20_000
+            navigation = self.ocean_ship_level_v1000("navigation")
+            stage = self.ocean_economy_stage_v1138()
+            reward = max(
+                45_000 + navigation * 20_000,
+                v1138_activity_income(
+                    stage,
+                    "ocean_treasure",
+                    1.0 + navigation * 0.12,
+                ),
+            )
             wallet = self.character_wallet_silver_value()
             self.character.silver = wallet + reward
             self.character.gold = 0
