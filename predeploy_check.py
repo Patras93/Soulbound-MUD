@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Fast Railway predeploy gate for Soulbound v1.13.29.
+"""Fast Railway predeploy gate for Soulbound v1.13.30.
 
 This is the normal deploy check.  It intentionally avoids assembling the full
 world/runtime.  Use predeploy_full.py when an exhaustive historical audit is
@@ -37,7 +37,7 @@ try:
     )
 except Exception as exc:
     print(
-        "Soulbound v1.13.29 FAST PREDEPLOY FAILED: "
+        "Soulbound v1.13.30 FAST PREDEPLOY FAILED: "
         f"skill semantic import: {type(exc).__name__}: {exc}"
     )
     traceback.print_exc()
@@ -1535,7 +1535,7 @@ if _semantic_errors:
     raise SystemExit(1)
 
 if audit["error_count"]:
-    print("Soulbound v1.13.29 FAST PREDEPLOY FAILED")
+    print("Soulbound v1.13.30 FAST PREDEPLOY FAILED")
     for error in audit["errors"]:
         print(f"ERROR: {error}")
     raise SystemExit(1)
