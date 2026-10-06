@@ -373,8 +373,10 @@ SYSTEM_DESCRIPTIONS = {
 }
 
 
-LATEST_CHANGES_TITLE = "Soulbound v1.13.33 - QoL & Boss Chest Hotfixes"
+LATEST_CHANGES_TITLE = "Soulbound v1.13.34 - Boss Chest Real Room Fix"
 LATEST_CHANGES = [
+    "v1.13.34: skrzynia bossowa jest przypisywana do rzeczywistego pokoju spawnu bossa po rozbudowie piętra v0.10, więc w Krypcie stoi razem z bossem w końcowej komnacie _rXX zamiast na starym lądowaniu crypt_floor_N.",
+    "v1.13.34: ta sama poprawka obejmuje zwykłą i Mityczną Kryptę, zwykłą i Mityczną Wieżę Astralną oraz Twierdzę Gigantów; exact-room nadal obowiązuje.",
     "v1.13.33: dodano zdejmij wszystko / zdejmij all — zdejmuje całe zwykłe EQ naraz, zwraca osadzone klejnoty i nie rusza Broni Duszy.",
     "v1.13.33: walk wieża góra prowadzi po bieżącym poziomie Wieży Astralnej do wyjścia up i zatrzymuje się przed wejściem na następny poziom; ostatni krok wykonujesz ręcznie.",
     "v1.13.33: naprawiono runtime NameError BOSS_CHEST_OPENED_CATEGORY_V11332 po zabiciu bossa oraz jawne importy helperów skrzyń.",
