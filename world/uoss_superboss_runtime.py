@@ -132,15 +132,14 @@ def superboss_member_entry_error_v11331(session, boss_key):
         spec.get("unlock") == "explore_deep_dungeon"
         or spec.get("party_members_must_unlock")
     ):
-        unlocked = bool(
-            session.server.db.collection_entry_ids(
-                session.account_id, "deep_dungeon_discovery"
-            )
+        unlock_entries = session.server.db.collection_entry_ids(
+            session.account_id, "deep_dungeon_discovery"
         )
+        unlocked = "floor_100" in unlock_entries
         if not unlocked:
             return (
-                f"{session.character.name} nie odblokował jeszcze "
-                f"{spec['name']} przez eksplorację Deep Dungeon."
+                f"{session.character.name} nie dotarł jeszcze do piętra 100 "
+                f"Deep Dungeon i nie odblokował {spec['name']}."
             )
 
     if spec.get("lockout_hours") and superboss_cleared_v11135(
