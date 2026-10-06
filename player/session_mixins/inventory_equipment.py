@@ -1080,9 +1080,11 @@ class SessionInventoryEquipmentMixin:
             low_qty, high_qty = cfg["gem_qty"]
             quantity = random.randint(int(low_qty), int(high_qty))
             rewards = []
+            rolled_qualities = []
             for _ in range(quantity):
                 definition = random.choices(eligible, weights=weights, k=1)[0]
                 quality = random.choices(GEM_QUALITY_ORDER, weights=cfg["quality_weights"], k=1)[0]
+                rolled_qualities.append(quality)
                 gem_id = gem_quality_item_id("raw", definition["key"], quality)
                 self.store_profession_resource(gem_id, 1)
                 await self.record_item_collection(
@@ -1099,6 +1101,14 @@ class SessionInventoryEquipmentMixin:
                 shard = True
             self.server.db.save_character(self.character)
             await self.send(f"Otwierasz {cfg['name']}. Klejnoty: " + ", ".join(rewards) + ".")
+            if "perfect" in rolled_qualities:
+                await self.send(
+                    "JACKPOT GEODY: trafiasz Perfekcyjny klejnot — najwyższą jakość tego systemu."
+                )
+            elif "excellent" in rolled_qualities:
+                await self.send(
+                    "ŚWIETNY WYNIK GEODY: trafiasz Doskonały klejnot."
+                )
             if gold > 0:
                 await self.send("W geodzie znajdujesz także " + currency_reading_text(0, gold, 0) + ".")
             if shard:
