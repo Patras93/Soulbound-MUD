@@ -1,5 +1,5 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.13.20
+Aktualna paczka: v1.13.21
 
 
 
@@ -10,6 +10,23 @@ Aktualna paczka: v1.13.20
 
 
 
+
+
+==============================================================================
+Soulbound v1.13.21 — hotfix Hybrid Quest Reward Audit
+==============================================================================
+
+- Naprawiono drugi crash-loop Railway ujawniony po v1.13.20:
+  Hybrid Quest Reward Audit v0.30.24 nadal wymagał minimum 1001 srebra od
+  każdego questu bez ręcznego markera.
+- Reguła 1001 pochodziła ze starego modelu, w którym Generator Core był
+  właścicielem automatycznych nagród questów. Od v1.13.15 obowiązuje
+  authored-wins i Generator uzupełnia tylko brakującą walutę.
+- Audit respektuje teraz wspólne minimum ekonomii: 1 Gold = 100 srebra.
+  Istniejące authored nagrody 790-956 srebra pozostają bez sztucznego buffa.
+- Zaktualizowano HELP Hybrid Quest Rewards i dodano fast-predeploy guard,
+  który blokuje powrót starego warunku reward < 1001.
+- Brak zmian balansu, save'ów, quest progressu, EQ i świata; brak wipe.
 
 ==============================================================================
 Soulbound v1.13.20 — hotfix nagród Smoczego Świata

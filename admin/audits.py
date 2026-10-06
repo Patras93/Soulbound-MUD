@@ -579,8 +579,13 @@ def quest_reward_hybrid_audit_v03024():
         else:
             if quest.get("manual_currency_reward_coins") is not None:
                 errors.append(f"unexpected manual marker: {quest_id}")
-            if reward < 1001:
-                errors.append(f"automatic reward below unified floor: {quest_id}={reward}")
+            # v1.13.21: since Generator Core v0.62.0/v1.13.15, authored
+            # quest currency wins even without a manual marker. The old 1001
+            # minimum belonged to Generator-owned fallback rewards and must not
+            # reject valid authored payouts. Global quest economy only requires
+            # the shared minimum of 1 Gold = SILVER_PER_GOLD.
+            if reward < SILVER_PER_GOLD:
+                errors.append(f"quest reward below unified economy floor: {quest_id}={reward}")
 
     # Critical hand-authored anchors.
     anchors = {
@@ -634,15 +639,15 @@ if QUEST_REWARD_HYBRID_AUDIT_V03024.get("error_count"):
 
 HELP_TOPICS.setdefault("quest", []).extend([
     "v0.30.24: ważne questy fabularne, próby profesji, wybrane duże zadania świata i Próby Broni Duszy mają ręcznie zbalansowaną, chronioną nagrodę walutową.",
-    "Pozostałe questy nadal otrzymują walutę automatycznie z Generator Core. Wszystkie wypłaty trafiają do jednego wspólnego salda.",
+    "Pozostałe questy zachowują authored walutę, jeśli ją mają; Generator Core uzupełnia tylko brakującą walutę fallbackową. Wszystkie wypłaty trafiają do jednego wspólnego salda.",
     "quest list <NPC> pokazuje teraz również nagrodę walutową przed przyjęciem zadania; quest info <numer> pokazuje pełny zestaw nagród.",
 ])
 HELP_TOPICS.setdefault("waluta", []).extend([
-    "v0.30.24: nagrody questów używają systemu hybrydowego. Ręcznie oznaczone questy zachowują dokładną kwotę, a pozostałe są skalowane automatycznie.",
+    "v0.30.24 + v1.13.21: ręcznie oznaczone questy zachowują dokładną kwotę; pozostałe authored nagrody także są chronione, a Generator uzupełnia wyłącznie brakujące wartości.",
     "Generator Core nie może już nadpisać manual_currency_reward_coins. Złoto i mithril są nadal tylko sposobem prezentacji jednego salda w srebrze.",
 ])
 HELP_TOPICS.setdefault("wersja", []).append(
-    "v0.30.24: Hybrid Quest Rewards. 64 ważne questy mają chronione ręczne nagrody walutowe; 243 pozostałe nadal skaluje Generator Core. Quest list pokazuje nagrodę przed przyjęciem."
+    "v0.30.24 + v1.13.21: Hybrid Quest Rewards respektuje authored-wins; ręczne markery są chronione dokładnie, authored nagrody pozostają własnością danych, a Generator uzupełnia tylko brakującą walutę. Quest list pokazuje nagrodę przed przyjęciem."
 )
 
 LATEST_CHANGES_TITLE = "Soulbound v0.30.24 - Hybrid Quest Rewards"
