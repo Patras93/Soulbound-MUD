@@ -22,9 +22,13 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Run Railway-equivalent predeploy
+      - name: Run fast Railway predeploy
         env:
           PYTHONUTF8: "1"
           PYTHONIOENCODING: "utf-8"
-          SOULBOUND_FULL_AUDIT: "0"
         run: python predeploy_check.py
+      - name: Assemble full runtime and run every audit
+        env:
+          PYTHONUTF8: "1"
+          PYTHONIOENCODING: "utf-8"
+        run: python predeploy_full.py
