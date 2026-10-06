@@ -26,6 +26,15 @@ V11329_NAMED_EQUIPMENT_DROP_FLOOR = {
     "world_boss": 0.60,
 }
 
+V11329_LEGACY_NAMED_BOSS_UNIQUES = frozenset({
+    "bandit_chief_signet",
+    "goblin_king_crown",
+    "shadow_alpha_fang",
+    "ruin_warden_plate",
+    "crystal_lord_core",
+})
+
+
 
 def combat_rank_v11329(template):
     template = template or {}
@@ -75,12 +84,15 @@ def authored_drop_chance_v11329(template, item_id, authored_chance):
 
     item = ITEMS.get(str(item_id)) or {}
     source = str(item.get("equipment_identity_source") or "")
-    if source not in {
-        "world_boss",
-        "boss_set",
-        "boss_relic",
-        "crypt_boss",
-    }:
+    if (
+        str(item_id) not in V11329_LEGACY_NAMED_BOSS_UNIQUES
+        and source not in {
+            "world_boss",
+            "boss_set",
+            "boss_relic",
+            "crypt_boss",
+        }
+    ):
         return chance
 
     rank = combat_rank_v11329(template)
@@ -103,22 +115,17 @@ def drop_excitement_audit_v11329():
     if class_equipment_drop_chance_v11329({"world_boss": True}) != 0.70:
         errors.append("World Boss class-EQ chance mismatch")
 
-    # Use an existing named world-boss unique if present.
-    named = next(
-        (
-            (item_id, item)
-            for item_id, item in ITEMS.items()
-            if item.get("equipment_identity_source") == "world_boss"
-        ),
-        None,
-    )
-    if named:
-        item_id, _item = named
+    for item_id in V11329_LEGACY_NAMED_BOSS_UNIQUES:
+        if item_id not in ITEMS:
+            errors.append(f"missing legacy named boss unique {item_id}")
+            continue
         effective = authored_drop_chance_v11329(
             {"world_boss": True}, item_id, 0.10
         )
         if effective < 0.60:
-            errors.append("named World Boss equipment floor missing")
+            errors.append(
+                f"named World Boss equipment floor missing for {item_id}"
+            )
 
     # Non-equipment authored loot must remain exact.
     if authored_drop_chance_v11329(
