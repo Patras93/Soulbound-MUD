@@ -710,6 +710,14 @@ MATERIAL_SLOT_STAT_PREFERENCES = {
     "relic": ("willpower", "intelligence", "strength", "constitution", "dexterity"),
 }
 
+MATERIAL_SLOT_POWER_SCALE = {
+    "head": 0.55, "body": 0.25, "shield": 0.15, "hands": 0.95,
+    "legs": 0.25, "feet": 0.45, "charm": 0.70, "ring": 0.90,
+    "necklace": 0.75, "earring": 0.85, "shoulders": 0.35, "belt": 0.30,
+    "cloak": 0.50, "bracers": 0.80, "bracelet": 0.75,
+    "accessory": 0.95, "relic": 1.10,
+}
+
 MATERIAL_SLOT_PROPERTY_PREFERENCES = {
     "head": ("magic_defense_pct", "max_mana_pct", "physical_defense_pct", "max_hp_pct", "magic_damage_pct", "physical_damage_pct", "dodge_pct"),
     "body": ("physical_defense_pct", "max_hp_pct", "magic_defense_pct", "max_mana_pct", "physical_damage_pct", "magic_damage_pct", "dodge_pct"),
@@ -755,13 +763,22 @@ def _material_random_profile(tier, slot, variant_index, salt=0):
         f"soulbound-v0.30.37:{tier['key']}:{slot}:{int(variant_index)}:{int(salt)}"
     )
 
-    stat_budgets = (2, 3, 4, 5, 7, 9, 12, 13, 16, 20)
     property_budgets = (1, 1, 2, 3, 4, 5, 7, 8, 10, 12)
     required_mastery = corpse_material_variant_mastery(tier["key"], variant_index)
     band_levels = CORPSE_MATERIAL_MASTERY_BANDS[tier["key"]]
     substep = band_levels.index(required_mastery)
-    stat_budget = max(2, stat_budgets[tier_index - 1] + substep)
-    property_budget = property_budgets[tier_index - 1]
+
+    # Drop nie jest już ubogim kuzynem sklepu. Ten sam etap korzysta z tej samej
+    # ogólnej skali mocy, ale roll ma 80-110% budżetu i losowy rozkład statów.
+    # Dzięki temu dobry egzemplarz może być lepszy dla konkretnego buildu,
+    # podczas gdy sklep pozostaje pewnym, klasowo dopasowanym wyborem.
+    quality = 0.80 + rng.random() * 0.30
+    progression_budget = equipment_progression_budget_v1138(required_mastery)
+    stat_budget = max(2, int(round(progression_budget * quality)))
+    property_budget = (
+        property_budgets[tier_index - 1]
+        + max(0, int(round((quality - 0.80) * 8.0)))
+    )
 
     if tier_index <= 4:
         stat_count = 2
@@ -807,8 +824,59 @@ def _material_random_profile(tier, slot, variant_index, salt=0):
     properties = dict(zip(chosen_properties, property_values))
 
     _slot_label, defense_delta = CORPSE_MATERIAL_SLOT_DEFS[slot]
-    defense = max(1, int(tier["base_defense"]) + int(defense_delta) + substep // 2)
-    return defense, stats, properties
+    defense = max(
+        1,
+        int(tier["base_defense"])
+        + int(defense_delta)
+        + int(round(
+            equipment_defense_step_v1138(required_mastery)
+            * (0.88 + (quality - 0.80) * 0.55)
+        )),
+    )
+
+    # Losowy profil ofensywny może mieć Attack, Magic Attack albo oba.
+    slot_scale = float(MATERIAL_SLOT_POWER_SCALE.get(slot, 0.50))
+    flat_pool = max(
+        0,
+        int(round(progression_budget * 0.11 * slot_scale * quality)),
+    )
+    physical_score = (
+        int(stats.get("strength", 0))
+        + int(stats.get("dexterity", 0))
+        + int(round(float(properties.get("physical_damage_pct", 0)) * 2.0))
+    )
+    magic_score = (
+        int(stats.get("intelligence", 0))
+        + int(stats.get("willpower", 0))
+        + int(round(float(properties.get("magic_damage_pct", 0)) * 2.0))
+    )
+    score_total = physical_score + magic_score
+    attack = 0
+    magic_attack = 0
+    if flat_pool > 0 and score_total > 0:
+        attack = int(round(flat_pool * physical_score / float(score_total)))
+        magic_attack = max(0, flat_pool - attack)
+        if physical_score > 0 and attack <= 0:
+            attack = 1
+        if magic_score > 0 and magic_attack <= 0:
+            magic_attack = 1
+
+    if required_mastery >= 500:
+        sockets = 4
+    elif required_mastery >= 360:
+        sockets = 3
+    elif required_mastery >= 240:
+        sockets = 2
+    elif required_mastery >= 120:
+        sockets = 1
+    else:
+        sockets = 0
+    if quality >= 1.04:
+        sockets = min(5, sockets + 1)
+
+    return (
+        defense, stats, properties, attack, magic_attack, sockets, quality
+    )
 
 
 MATERIAL_TITLE_PHRASE = {
@@ -843,16 +911,27 @@ def _register_corpse_material_items():
                 item_id = f"corpse_{tier['key']}_{slot}_v{variant_index:02d}"
                 profile = None
                 for salt in range(512):
-                    defense, stats, properties = _material_random_profile(tier, slot, variant_index, salt=salt)
+                    (
+                        defense, stats, properties,
+                        attack, magic_attack, sockets, quality,
+                    ) = _material_random_profile(
+                        tier, slot, variant_index, salt=salt
+                    )
                     stat_sig = tuple(sorted((str(k), int(v)) for k, v in stats.items()))
                     if stat_sig not in seen_stats:
-                        profile = (defense, stats, properties, stat_sig)
+                        profile = (
+                            defense, stats, properties, attack,
+                            magic_attack, sockets, quality, stat_sig,
+                        )
                         break
                 if profile is None:
                     raise RuntimeError(
                         f"v0.30.37: nie udało się utworzyć unikalnych statów {tier['key']} {slot} wariant {variant_index}"
                     )
-                defense, stats, properties, stat_sig = profile
+                (
+                    defense, stats, properties, attack,
+                    magic_attack, sockets, quality, stat_sig,
+                ) = profile
                 seen_stats.add(stat_sig)
                 required_mastery = corpse_material_variant_mastery(tier["key"], variant_index)
                 name = _material_variant_title(tier, slot, stats, variant_index, required_mastery)
@@ -874,6 +953,10 @@ def _register_corpse_material_items():
                     "type": "armor",
                     "slot": slot,
                     "defense": defense,
+                    "attack": int(attack),
+                    "magic_attack": int(magic_attack),
+                    "sockets": int(sockets),
+                    "drop_quality": round(float(quality), 3),
                     "price": None,
                     "rarity": tier["rarity"],
                     "rarity_name": tier["rarity_name"],
