@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Fast Railway predeploy gate for Soulbound v1.13.10.
+"""Fast Railway predeploy gate for Soulbound v1.13.11.
 
 This is the normal deploy check.  It intentionally avoids assembling the full
 world/runtime.  Use predeploy_full.py when an exhaustive historical audit is
@@ -16,7 +16,7 @@ import traceback
 try:
     from storage.database import Database as _DatabaseImportSmoke
 except Exception as exc:
-    print(f"Soulbound v1.13.10 FAST PREDEPLOY FAILED: database import: {type(exc).__name__}: {exc}")
+    print(f"Soulbound v1.13.11 FAST PREDEPLOY FAILED: database import: {type(exc).__name__}: {exc}")
     traceback.print_exc()
     raise SystemExit(1)
 
@@ -37,7 +37,7 @@ try:
     )
 except Exception as exc:
     print(
-        "Soulbound v1.13.10 FAST PREDEPLOY FAILED: "
+        "Soulbound v1.13.11 FAST PREDEPLOY FAILED: "
         f"skill semantic import: {type(exc).__name__}: {exc}"
     )
     traceback.print_exc()
@@ -234,6 +234,19 @@ if "return equipment_progression_budget_v1138(mastery)" not in _equipment_source
 for _needle in ("(50, 15_000)", "(100, 100_000)", "(200, 1_250_000)", "(600, 100_000_000)"):
     if _needle not in _economy_source:
         _semantic_errors.append("quest income progression regression: missing " + _needle)
+
+# v1.13.11: the late 1-600 income finalizer must never rewrite quests marked
+# by Hybrid Quest Rewards as manually balanced.
+for _needle in (
+    'manual_marker = quest.get("manual_currency_reward_coins")',
+    'manual_mode = quest.get("currency_reward_mode") == "manual"',
+    'result["manual_protected"] += 1',
+    'if manual_marker is not None or manual_mode:',
+):
+    if _needle not in _economy_source:
+        _semantic_errors.append(
+            "manual quest currency protection regression: missing " + _needle
+        )
 for _needle in ('baseline_key = f"_v1138_authored_{key}"', "procedural_no_limit", '"world_boss": 3.00'):
     if _needle not in _runtime_progression_source:
         _semantic_errors.append("runtime progression feel regression: missing " + _needle)
@@ -706,18 +719,18 @@ except Exception as exc:
     )
 
 if _semantic_errors:
-    print("Soulbound v1.13.10 FAST PREDEPLOY FAILED: semantic contracts")
+    print("Soulbound v1.13.11 FAST PREDEPLOY FAILED: semantic contracts")
     for _error in _semantic_errors:
         print(f"ERROR: {_error}")
     raise SystemExit(1)
 
 if audit["error_count"]:
-    print("Soulbound v1.13.10 FAST PREDEPLOY FAILED")
+    print("Soulbound v1.13.11 FAST PREDEPLOY FAILED")
     for error in audit["errors"]:
         print(f"ERROR: {error}")
     raise SystemExit(1)
 
-print("Soulbound v1.13.10 FAST PREDEPLOY PASS")
+print("Soulbound v1.13.11 FAST PREDEPLOY PASS")
 print(
     "Semantic contracts: "
     f"{len(_semantic_audits)} audits PASS; AP runtime guards PASS"

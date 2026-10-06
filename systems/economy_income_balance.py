@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Soulbound v1.12.4 - final income balance for the 1-600 economy.
+"""Soulbound v1.13.11 - final income balance for the 1-600 economy.
 
 This pass runs after authored world/quest expansions. It keeps positive quest
 currency inside a progression band and also exposes shared payout floors for
@@ -21,7 +21,7 @@ from data.quests import QUESTS
 from world.equipment_help import HELP_TOPICS, HELP_TOPIC_ALIASES
 
 
-V1124_ECONOMY_INCOME_VERSION = "1.13.8"
+V1124_ECONOMY_INCOME_VERSION = "1.13.11"
 V1124_ECONOMY_MAX_STAGE = 600
 
 # Values are internal silver. 100 silver = 1 Gold.
@@ -172,6 +172,7 @@ def v1124_rebalance_positive_quest_currency():
         "raised": 0,
         "lowered": 0,
         "unchanged": 0,
+        "manual_protected": 0,
         "max_before_silver": 0,
         "max_after_silver": 0,
     }
@@ -181,6 +182,31 @@ def v1124_rebalance_positive_quest_currency():
             quest.get("reward_gold", 0),
             quest.get("reward_mithril", 0),
         )
+
+        # v1.13.11: Hybrid Quest Rewards are an authored contract. This income
+        # finalizer may rebalance automatic quests only; a manual marker must
+        # win exactly, even when this module is imported after Generator Core.
+        manual_marker = quest.get("manual_currency_reward_coins")
+        manual_mode = quest.get("currency_reward_mode") == "manual"
+        if manual_marker is not None or manual_mode:
+            result["manual_protected"] += 1
+            if current > 0:
+                result["positive_quests"] += 1
+                result["max_before_silver"] = max(
+                    result["max_before_silver"], int(current)
+                )
+            if manual_marker is not None:
+                manual = max(0, int(manual_marker))
+                quest["reward_silver"] = manual
+                quest["reward_gold"] = 0
+                quest["reward_mithril"] = 0
+                result["max_after_silver"] = max(
+                    result["max_after_silver"], int(manual)
+                )
+            # If mode=manual is malformed and lacks a marker, leave it untouched
+            # so the audit below can fail loudly instead of silently rebalancing it.
+            continue
+
         if current <= 0:
             # Deliberately item-only / progression-only quests stay item-only.
             continue
@@ -239,6 +265,25 @@ def economy_income_audit_v1124():
             quest.get("reward_gold", 0),
             quest.get("reward_mithril", 0),
         )
+        manual_marker = quest.get("manual_currency_reward_coins")
+        manual_mode = quest.get("currency_reward_mode") == "manual"
+        if manual_marker is not None or manual_mode:
+            if not manual_mode:
+                errors.append(f"{quest_id}: manual currency marker without manual mode")
+            if manual_marker is None:
+                errors.append(f"{quest_id}: manual currency mode without marker")
+            else:
+                expected = max(0, int(manual_marker))
+                if current != expected:
+                    errors.append(
+                        f"{quest_id}: manual reward changed {current}!={expected}"
+                    )
+                if (
+                    int(quest.get("reward_gold", 0) or 0) != 0
+                    or int(quest.get("reward_mithril", 0) or 0) != 0
+                ):
+                    errors.append(f"{quest_id}: manual reward uses split currency")
+            continue
         if current <= 0:
             continue
         target = v1124_quest_income_target(quest)

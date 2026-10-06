@@ -1,5 +1,26 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.13.10
+Aktualna paczka: v1.13.11
+
+
+==============================================================================
+Soulbound v1.13.11 — hotfix ochrony ręcznych nagród questów
+==============================================================================
+
+- Naprawiono kolejny restart-loop Railway po przejściu wcześniejszych auditów.
+- Generator Core prawidłowo respektował manual_currency_reward_coins, ale późny
+  systems/economy_income_balance.py uruchamiał globalny finalizer dochodu przy
+  imporcie z modułów sesji i ponownie wciskał także ręczne questy w pasmo
+  60-160 procent automatycznego targetu.
+- Finalizer dochodu rozpoznaje teraz manual_currency_reward_coins oraz
+  currency_reward_mode=manual i przywraca dokładnie ręcznie zaprojektowaną kwotę
+  zamiast ją przeliczać.
+- Własny audit ekonomii traktuje questy manualne jako osobny kontrakt: wymaga
+  dokładnej wartości markera i zerowych reward_gold/reward_mithril, a pasmo
+  automatycznego dochodu sprawdza wyłącznie dla questów automatycznych.
+- Automatyczna ekonomia 1-600, jackpoty, Kurierzy, eksploracja i Ocean 2.0
+  zachowują balans v1.13.8; hotfix nie obniża ani nie podnosi ich wypłat.
+- Fast predeploy ma guard źródłowy blokujący ponowne usunięcie ochrony
+  manualnych nagród questów.
 
 ==============================================================================
 Soulbound v1.13.10 — finalny hotfix późnego override cen narzędzi
