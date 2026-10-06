@@ -3919,7 +3919,25 @@ def all_party_mob_drops_shared_audit_v0359():
         if wrapped is not None:
             combat_source += "\n" + inspect.getsource(wrapped)
         metrics["helper_returns_all"] = "return list(recipients or [])" in helper_source
-        metrics["single_roll"] = "for item_id, chance in template[\"drops\"].items()" in combat_source and "if random.random() <= chance" in combat_source
+        # v1.13.29: authored drop chance may be transformed by a rank/source
+        # helper before the roll. The party contract is unchanged: exactly one
+        # random roll happens before recipients are expanded, so all eligible
+        # local party members share the same success/failure result.
+        _drop_loop = 'for item_id, chance in template["drops"].items()'
+        _effective_helper = "authored_drop_chance_v11329("
+        _effective_roll = "if random.random() <= _effective_drop_chance_v11329:"
+        _recipient_expand = "drop_recipients = party_drop_recipients_v0359(item_id, recipients)"
+        _loop_pos = combat_source.find(_drop_loop)
+        _helper_pos = combat_source.find(_effective_helper, _loop_pos)
+        _roll_pos = combat_source.find(_effective_roll, _helper_pos)
+        _recipients_pos = combat_source.find(_recipient_expand, _roll_pos)
+        metrics["single_roll"] = (
+            _loop_pos >= 0
+            and _helper_pos > _loop_pos
+            and _roll_pos > _helper_pos
+            and _recipients_pos > _roll_pos
+            and combat_source[_helper_pos:_recipients_pos].count("random.random()") == 1
+        )
         metrics["all_drop_types_use_helper"] = "drop_recipients = party_drop_recipients_v0359(item_id, recipients)" in combat_source
         metrics["no_random_winner"] = "random.choice(recipients)" not in helper_source and "winner = drop_recipients[0]" not in combat_source
         metrics["shared_message"] = "każdy obecny członek otrzymuje" in combat_source
