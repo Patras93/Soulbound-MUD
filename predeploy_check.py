@@ -144,6 +144,11 @@ _items_resource_source = (_root / "systems/items_resources.py").read_text(encodi
 _dungeon_source = (_root / "systems/dungeons_regions.py").read_text(encoding="utf-8")
 _economy_source = (_root / "systems/economy_income_balance.py").read_text(encoding="utf-8")
 _runtime_progression_source = (_root / "core/progression_resources.py").read_text(encoding="utf-8")
+_sales_source = (_root / "player/session_mixins/sales.py").read_text(encoding="utf-8")
+_gathering_source = (_root / "player/session_mixins/gathering_actions.py").read_text(encoding="utf-8")
+_protocol_utils_source = (_root / "network/protocol_gameplay_utils.py").read_text(encoding="utf-8")
+_exploration_prof_source = (_root / "player/session_mixins/exploration_professions.py").read_text(encoding="utf-8")
+_inventory_equipment_source = (_root / "player/session_mixins/inventory_equipment.py").read_text(encoding="utf-8")
 for _needle in (
     "def _write_record_numeric_fallback(",
     "Authored combat/reward/economy values are design decisions.",
@@ -168,6 +173,83 @@ for _needle in ("(50, 15_000)", "(100, 100_000)", "(200, 1_250_000)", "(600, 100
 for _needle in ('baseline_key = f"_v1138_authored_{key}"', "procedural_no_limit", '"world_boss": 3.00'):
     if _needle not in _runtime_progression_source:
         _semantic_errors.append("runtime progression feel regression: missing " + _needle)
+
+for _needle in (
+    "V1138_RESOURCE_SALE_ANCHORS = (",
+    "(100, 700)",
+    "(200, 3_000)",
+    "(600, 90_000)",
+    "def v1138_resource_sale_base_coins(stage):",
+):
+    if _needle not in _runtime_progression_source:
+        _semantic_errors.append(
+            "profession income progression regression: missing " + _needle
+        )
+
+for _needle in (
+    "def fish_trophy_value_multiplier_v1138(",
+    "def fish_jackpot_xp_multiplier_v1138(",
+    "def rare_resource_xp_multiplier_v1138(",
+    '"value_mult": 15',
+    '"value_mult": 20',
+):
+    if _needle not in _items_resource_source:
+        _semantic_errors.append(
+            "profession jackpot resource regression: missing " + _needle
+        )
+
+for _needle in (
+    "def profession_resource_sale_value_v1138(",
+    "fish_trophy_value_multiplier_v1138(item_id)",
+    "values = self.generic_item_sale_value(item_id, item)",
+):
+    if _needle not in _sales_source:
+        _semantic_errors.append(
+            "profession sale jackpot regression: missing " + _needle
+        )
+
+for _needle in (
+    "TROFEUM WĘDKARSKIE",
+    "BONUS ZA WYJĄTKOWY POŁÓW",
+    "JACKPOT GÓRNICZY",
+    "BONUS ZA WYJĄTKOWE DREWNO",
+    "BONUS ZA WYJĄTKOWĄ ROŚLINĘ",
+):
+    if _needle not in _gathering_source:
+        _semantic_errors.append(
+            "profession jackpot feedback regression: missing " + _needle
+        )
+
+for _needle in (
+    "def v1138_boss_chest_gold_anchor(power):",
+    "(200, 8_000)",
+    "(600, 700_000)",
+):
+    if _needle not in _protocol_utils_source:
+        _semantic_errors.append(
+            "boss chest income regression: missing " + _needle
+        )
+
+for _needle in (
+    "discovery_mult = 2.00 if is_new else 1.00",
+    "discovery_reward_silver",
+    "v1138_resource_sale_base_coins(_level)",
+):
+    if _needle not in _exploration_prof_source:
+        _semantic_errors.append(
+            "exploration profession reward regression: missing " + _needle
+        )
+
+for _needle in (
+    '"sell_gold": 900',
+    '"gold": (400, 1_500)',
+):
+    if _needle not in _equipment_source:
+        _semantic_errors.append(
+            "geode reward regression: missing " + _needle
+        )
+if "JACKPOT GEODY" not in _inventory_equipment_source:
+    _semantic_errors.append("geode jackpot feedback regression: missing JACKPOT GEODY")
 
 _equipment_stats_source = (_root / "player/session_mixins/equipment_stats.py").read_text(encoding="utf-8")
 _combat_feedback_source = (_root / "player/session_mixins/skill_learning.py").read_text(encoding="utf-8")
@@ -458,6 +540,9 @@ for _needle in (
     "trzy linie klasowego EQ",
     "Możesz dowolnie mieszać style",
     "Mec jako hybryda dostaje oba kanały",
+    "zwykłe zbieractwo daje sensowny zarobek",
+    "Rekiny, legendarne ryby i lewiatany",
+    "JACKPOT",
 ):
     if _needle not in _final_help_source:
         _semantic_errors.append(
