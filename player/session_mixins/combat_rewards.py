@@ -412,11 +412,24 @@ class SessionCombatRewardsMixin:
                     # input to Soulbound's dynamic mob reward generator.
                     source_xp_exact = bool(template.get("source_xp_exact"))
                     source_xp = max(0,int(template.get("source_xp",0) or 0))
+                    uoss_full_progression_source_xp_exact = bool(
+                        template.get("uoss_full_progression_source_xp_exact")
+                    ) and source_xp_exact and source_xp > 0
                     _party_bonus=dungeon_party_bonus_v0320(session)
                     xp_mult*=float(_party_bonus.get("multiplier",1.0))
                     if int(_party_bonus.get("bonus_pct",0))>0:
                         await session.send_combat(f"Dungeon Party Bonus: +{int(_party_bonus['bonus_pct'])}% EXP; członków obok {_party_bonus['members']}; różne klasy {_party_bonus['diverse']}.",detail="full")
-                    raw_stat_reward=min(V019_SAFE_INT,max(0,int(round(_final_combat_reward(template,"stat")*xp_mult))))
+                    raw_stat_reward = min(
+                        V019_SAFE_INT,
+                        source_xp
+                        if uoss_full_progression_source_xp_exact
+                        else max(
+                            0,
+                            int(round(
+                                _final_combat_reward(template,"stat") * xp_mult
+                            )),
+                        ),
+                    )
                     raw_stat_reward=session.apply_double_xp(raw_stat_reward)
                     stat_rewards=[]
                     for stat_name in session.character.STAT_PROGRESS_FIELDS:
@@ -425,21 +438,57 @@ class SessionCombatRewardsMixin:
                             await session.send(msg)
                     stat_reward_text=str(raw_stat_reward)
 
-                    soul_xp_reward=min(V019_SAFE_INT,max(0,int(round(_final_combat_reward(template,"soul")*xp_mult))))
+                    soul_xp_reward = min(
+                        V019_SAFE_INT,
+                        source_xp
+                        if uoss_full_progression_source_xp_exact
+                        else max(
+                            0,
+                            int(round(
+                                _final_combat_reward(template,"soul") * xp_mult
+                            )),
+                        ),
+                    )
                     await session.grant_soul_xp(soul_xp_reward)
 
-                    class_xp_reward=min(V019_SAFE_INT,max(0,int(round(_final_combat_reward(template,"class")*xp_mult))))
+                    class_xp_reward = min(
+                        V019_SAFE_INT,
+                        source_xp
+                        if uoss_full_progression_source_xp_exact
+                        else max(
+                            0,
+                            int(round(
+                                _final_combat_reward(template,"class") * xp_mult
+                            )),
+                        ),
+                    )
+                    character_xp_reward=min(
+                        V019_SAFE_INT,
+                        source_xp
+                        if source_xp_exact
+                        else max(
+                            0,
+                            int(round(
+                                _final_combat_reward(template,"character")
+                                * xp_mult
+                            )),
+                        ),
+                    )
+                    reward_model_text = (
+                        f"UOSS source EXP exact na wszystkie osie: {source_xp}"
+                        if uoss_full_progression_source_xp_exact
+                        else "Generator v0.19 + dynamiczny EXP v0.23"
+                    )
                     await session.send_combat(
-                        f"Generator v0.19 + dynamiczny EXP v0.23: etap {v0190_mob_stage(template)}, "
+                        f"{reward_model_text}: etap {v0190_mob_stage(template)}, "
                         f"ranga {v0190_mob_rank(template)}, siła postaci {xp_profile['power']}/{CHARACTER_MAX_LEVEL}, "
                         f"siła moba {xp_profile['target']}/{CHARACTER_MAX_LEVEL}, mnożnik x{xp_profile['multiplier']:.2f}; "
                         f"adaptive reward x{_adaptive_reward_mult_v11330:.2f}; "
-                        f"bazowy EXP statów {stat_reward_text}; Soul XP {soul_xp_reward}; Class XP {class_xp_reward}; "
-                        f"EXP postaci {character_xp_reward if 'character_xp_reward' in locals() else _final_combat_reward(template,'character')}.",
+                        f"bazowy EXP każdego statu {stat_reward_text}; Soul XP {soul_xp_reward}; "
+                        f"Class XP {class_xp_reward}; EXP postaci {character_xp_reward}.",
                         detail="full",
                     )
                     await session.grant_class_xp(class_xp_reward)
-                    character_xp_reward=min(V019_SAFE_INT, source_xp if source_xp_exact else max(0,int(round(_final_combat_reward(template,"character")*xp_mult))))
                     for _msg in session.add_character_xp_with_event(character_xp_reward):
                         await session.send(_msg)
                     await self.server.events.publish(
