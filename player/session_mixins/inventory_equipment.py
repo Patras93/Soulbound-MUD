@@ -1676,6 +1676,52 @@ class SessionInventoryEquipmentMixin:
                 return
 
             normalized = self.normalize_description_query(str(query or "").strip())
+
+            # Wygodna komenda zbiorcza: `zdejmij wszystko` opróżnia wszystkie
+            # zwykłe sloty EQ jednym poleceniem. Broń Duszy nie jest rekordem
+            # equipment i pozostaje bez zmian.
+            if normalized in ("wszystko", "all", "cale", "całe", "calosc", "całość"):
+                rows = list(self.server.db.equipment(self.account_id))
+                if not rows:
+                    await self.send("Nie masz założonego dodatkowego wyposażenia.")
+                    return
+
+                removed_names = []
+                returned_gems = []
+                for row in rows:
+                    slot = str(row["slot"])
+                    item_id = str(row["item_id"])
+                    item = (
+                        ITEMS.get(item_id)
+                        or ensure_crafting_quality_variant_v0332(item_id)
+                        or {"name": player_item_display_name_v0335(item_id)}
+                    )
+                    if slot in ("ring1", "ring2", "earring1", "earring2", "necklace"):
+                        returned_gems.extend(
+                            await self.return_socketed_gems(slot, item_id)
+                        )
+                    self.server.db.unequip(self.account_id, slot)
+                    removed_names.append(item.get("name", player_item_display_name_v0335(item_id)))
+
+                self.current_hp = min(self.current_hp, self.max_hp())
+                self.current_mana = min(self.current_mana, self.max_mana())
+                await self.send(
+                    f"Zdejmujesz całe EQ: {len(removed_names)} elementów. "
+                    "Wszystkie dodatkowe sloty EQ są teraz puste."
+                )
+                if returned_gems:
+                    await self.send(
+                        "Wyjęte klejnoty wracają do Szkatułki Rzemieślniczej: "
+                        + ", ".join(
+                            (ITEMS.get(gem_id) or {}).get(
+                                "name", player_item_display_name_v0335(gem_id)
+                            )
+                            for gem_id in returned_gems
+                        )
+                        + "."
+                    )
+                return
+
             slot = EQUIPMENT_SLOT_ALIASES.get(normalized)
             if slot in ("ring", "charm", "earring"):
                 noun = {"ring":"pierścień", "charm":"talizman", "earring":"kolczyk"}[slot]
@@ -1683,8 +1729,8 @@ class SessionInventoryEquipmentMixin:
                 return
             if slot not in EQUIPMENT_SLOT_NAMES:
                 await self.send(
-                    "Użycie: zdejmij <slot>, np. zdejmij hełm, zdejmij pierścień 1, "
-                    "zdejmij kolczyk 2, zdejmij talizman 2 albo zdejmij naszyjnik."
+                    "Użycie: zdejmij <slot> albo zdejmij wszystko, np. zdejmij hełm, "
+                    "zdejmij pierścień 1, zdejmij kolczyk 2, zdejmij talizman 2 albo zdejmij naszyjnik."
                 )
                 return
 

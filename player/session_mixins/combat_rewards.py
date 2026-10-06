@@ -14,7 +14,11 @@ from core.progression_resources import v0190_mob_rank, v0190_mob_stage
 from data.items import ITEMS
 from data.mobs import MOB_TEMPLATES
 from events.contracts import MobDefeatedEvent, PlayerMobKillProgressionEvent, PlayerMobKillQuestEvent
-from network.protocol_gameplay_utils import mob_respawn_seconds
+from network.protocol_gameplay_utils import (
+    BOSS_CHEST_OPENED_CATEGORY_V11332,
+    boss_floor_chest_state_id,
+    mob_respawn_seconds,
+)
 from systems.dungeons_regions import is_astral_boss_floor, is_crypt_boss_floor
 from systems.equipment_crafting import (
     GUILD_CLASS_QUESTS, LEGENDARY_CLASS_RELIC_BY_CLASS_TIER,
