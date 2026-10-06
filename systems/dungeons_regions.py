@@ -489,13 +489,7 @@ def loot_source_progression_audit_v11327():
 
 
 LOOT_SOURCE_PROGRESSION_AUDIT_V11327 = loot_source_progression_audit_v11327()
-if LOOT_SOURCE_PROGRESSION_AUDIT_V11327["error_count"]:
-    raise RuntimeError(
-        "Loot Source Progression Audit v1.13.27 failed: "
-        + "; ".join(LOOT_SOURCE_PROGRESSION_AUDIT_V11327["errors"][:50])
-    )
-
-
+# v1.13.30: audit failure is enforced by predeploy_full.py, not production startup.
 for _world_boss_unique_id in WORLD_BOSS_UNIQUES:
     _world_boss_unique_item = ITEMS[_world_boss_unique_id]
     _world_boss_unique_item.setdefault(
@@ -779,13 +773,7 @@ def crypt_rarity_progression_audit_v11329():
 
 
 CRYPT_RARITY_PROGRESSION_AUDIT_V11329 = crypt_rarity_progression_audit_v11329()
-if CRYPT_RARITY_PROGRESSION_AUDIT_V11329["error_count"]:
-    raise RuntimeError(
-        "Crypt Rarity Progression Audit v1.13.29 failed: "
-        + "; ".join(CRYPT_RARITY_PROGRESSION_AUDIT_V11329["errors"][:50])
-    )
-
-
+# v1.13.30: audit failure is enforced by predeploy_full.py, not production startup.
 ASTRAL_MIN_SOUL_LEVEL = 100
 ASTRAL_MIN_FLOOR = 100
 ASTRAL_MAX_FLOOR = 200
