@@ -375,6 +375,7 @@ SYSTEM_DESCRIPTIONS = {
 
 LATEST_CHANGES_TITLE = "Soulbound v1.13.31 - Version Sync & Adaptive Consider"
 LATEST_CHANGES = [
+    "v1.13.31: Black Rabite, Serpentarius, Odin i Yiazmat — oraz każdy UOSS Super Boss z dokładnym source XP 18 900 000 — daje bazowo 18 900 000 EXP do każdego statu, Soul XP, Class XP i Character XP.",
     "v1.13.31: lider przenosi kwalifikującą się lokalną drużynę na arenę party Super Bossa; wymagania i lockout są sprawdzane osobno dla każdego członka.",
     "v1.13.31: naprawiono najemników Super Bossów: say Join me, Popoi/Primm/Byblos/Montblanc/Seifer działa przy realnym NPC, a pomocnik <nazwa> używa tego samego płatnego systemu.",
     "v1.13.31: Jammer nie może już nałożyć Stop na UOSS Super Bossa; także Support Effect/AoE respektuje tę odporność.",
