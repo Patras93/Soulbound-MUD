@@ -659,12 +659,7 @@ def equipment_name_audit_v03016():
 
 
 EQUIPMENT_NAME_AUDIT_V03016 = equipment_name_audit_v03016()
-if EQUIPMENT_NAME_AUDIT_V03016.get("error_count"):
-    raise RuntimeError(
-        "Equipment Name Audit v0.30.16 failed: " +
-        "; ".join(EQUIPMENT_NAME_AUDIT_V03016.get("errors", [])[:20])
-    )
-
+# v1.13.30: audit failure is enforced by predeploy_full.py, not production startup.
 HELP_TOPICS.setdefault("eq", []).append(
     "v0.30.16: klasowe EQ wszystkich 14 klas ma unikalne nazwy progresji. Nazwa nie jest już tym samym przedmiotem z +10/+20/+30; Biegłość pozostaje w wymaganiu i opisie."
 )
@@ -924,19 +919,10 @@ def full_game_audit_v03014():
     }
 
 FULL_GAME_AUDIT_V03014 = full_game_audit_v03014()
-if FULL_GAME_AUDIT_V03014.get("error_count"):
-    raise RuntimeError(
-        "Full Game Audit v0.30.14 failed: " +
-        "; ".join(FULL_GAME_AUDIT_V03014.get("errors", [])[:20])
-    )
-
+# v1.13.30: audit failure is enforced by predeploy_full.py, not production startup.
 # v0.30.14: końcowy audyt po przejściu Generator Core.
 V03014_SKILL_NAME_AUDIT = _v03014_skill_name_audit()
-if V03014_SKILL_NAME_AUDIT.get("error_count"):
-    raise RuntimeError(
-        "Final Skill/Spell Name Audit v0.30.14 failed: " +
-        "; ".join(V03014_SKILL_NAME_AUDIT.get("errors", [])[:20])
-    )
+# v1.13.30: audit failure is enforced by predeploy_full.py, not production startup.
 HELP_TOPICS.setdefault("skille", []).append(
     "v0.30.14: pełny audyt nazw 14 klas usunął numerowane serie skilli/spelli; każda umiejętność ma unikalną nazwę, a dawne nazwy pozostają aliasami kompatybilności."
 )
@@ -1004,12 +990,7 @@ def full_combat_scaling_audit_v03015():
     }
 
 FULL_COMBAT_SCALING_AUDIT_V03015 = full_combat_scaling_audit_v03015()
-if FULL_COMBAT_SCALING_AUDIT_V03015.get("error_count"):
-    raise RuntimeError(
-        "Combat/Stat Audit v0.30.16 failed: " +
-        "; ".join(FULL_COMBAT_SCALING_AUDIT_V03015.get("errors", [])[:20])
-    )
-
+# v1.13.30: audit failure is enforced by predeploy_full.py, not production startup.
 def aggro_cleanup_audit_v03015():
     errors = []
     room_id = next(iter(ROOMS))
@@ -1064,12 +1045,7 @@ def aggro_cleanup_audit_v03015():
     }
 
 AGGRO_CLEANUP_AUDIT_V03015 = aggro_cleanup_audit_v03015()
-if AGGRO_CLEANUP_AUDIT_V03015.get("error_count"):
-    raise RuntimeError(
-        "Aggro Cleanup Audit v0.30.16 failed: " +
-        "; ".join(AGGRO_CLEANUP_AUDIT_V03015.get("errors", [])[:20])
-    )
-
+# v1.13.30: audit failure is enforced by predeploy_full.py, not production startup.
 # v0.30.16 - STAT-BASED DAMAGE / MANA + ROOM-WIDE AOE
 HELP_TOPICS.setdefault("statystyki", []).extend([
     "v0.30.16: Siła bezpośrednio zwiększa moc wszystkich fizycznych skilli ofensywnych.",
@@ -1142,12 +1118,7 @@ def progression_combat_audit_v03017():
 
 
 PROGRESSION_COMBAT_AUDIT_V03017 = progression_combat_audit_v03017()
-if PROGRESSION_COMBAT_AUDIT_V03017.get("error_count"):
-    raise RuntimeError(
-        "Progression/Combat Audit v0.30.17 failed: " +
-        "; ".join(PROGRESSION_COMBAT_AUDIT_V03017.get("errors", [])[:30])
-    )
-
+# v1.13.30: audit failure is enforced by predeploy_full.py, not production startup.
 HELP_TOPICS.setdefault("skille", []).extend([
     "Większość klas zachowuje siatkę 1, 10, 20...400 z minimum 3 skillami na próg; źródłowe umiejętności mogą dodawać kolejne. Inżynier i Mec mają autorskie progi wynikające z ich projektów klasowych.",
     "Generator Core nie rozciąga już 123 skilli po przypadkowych poziomach 1-400; zachowuje zaprojektowane progi Biegłości.",
@@ -1588,13 +1559,7 @@ def help_truth_audit_v11197():
 
 
 HELP_TRUTH_AUDIT_V11197 = help_truth_audit_v11197()
-if HELP_TRUTH_AUDIT_V11197["error_count"]:
-    raise RuntimeError(
-        "HELP Truth Audit v1.11.97 failed: "
-        + "; ".join(HELP_TRUTH_AUDIT_V11197["errors"][:50])
-    )
-
-
+# v1.13.30: audit failure is enforced by predeploy_full.py, not production startup.
 # ============================================================
 # v1.11.97 - PUBLIC HELP SURFACE CLEANUP
 # Covers older, still-addressable topic names that survived previous milestones.
@@ -1891,8 +1856,4 @@ def help_surface_audit_v11197():
 
 
 HELP_SURFACE_AUDIT_V11197 = help_surface_audit_v11197()
-if HELP_SURFACE_AUDIT_V11197["error_count"]:
-    raise RuntimeError(
-        "HELP Surface Audit v1.11.97 failed: "
-        + "; ".join(HELP_SURFACE_AUDIT_V11197["errors"][:50])
-    )
+# v1.13.30: audit failure is enforced by predeploy_full.py, not production startup.
