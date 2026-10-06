@@ -27,9 +27,238 @@ from systems.dungeons_regions import (
     profession_dungeon_required_tool_level,
 )
 from world.economy_quests import v0874_quest_stat_progress_base_grant
+from world.uoss_superboss_runtime import superboss_member_entry_error_v11331
+from world.uoss_superboss_world import (
+    UOSS_DEEP_DUNGEON_APANDA_CLEARS_V11331,
+    UOSS_DEEP_DUNGEON_ENTRY_V11331,
+    UOSS_DEEP_DUNGEON_FLOOR0_V11331,
+    UOSS_DEEP_DUNGEON_SERPENTARIUS_UNLOCK_FLOOR_V11331,
+    UOSS_DEEP_DUNGEON_VISITS_V11331,
+    uoss_deep_dungeon_floor_id_v11331,
+    uoss_deep_dungeon_floor_number_v11331,
+)
 
 
 class SessionDungeonProgressionMixin:
+
+    def uoss_deep_dungeon_max_floor_v11331(self):
+            entries = self.server.db.collection_entry_ids(
+                self.account_id, UOSS_DEEP_DUNGEON_VISITS_V11331
+            )
+            floors = []
+            for entry in entries:
+                try:
+                    floors.append(int(entry))
+                except (TypeError, ValueError):
+                    continue
+            return max(floors) if floors else 0
+
+    def uoss_deep_dungeon_apanda_cleared_v11331(self, floor):
+            return str(int(floor)) in self.server.db.collection_entry_ids(
+                self.account_id, UOSS_DEEP_DUNGEON_APANDA_CLEARS_V11331
+            )
+
+    async def register_uoss_deep_dungeon_visit_v11331(self, room_id=None):
+            floor = uoss_deep_dungeon_floor_number_v11331(
+                room_id if room_id is not None else self.character.room_id
+            )
+            if floor is None:
+                return False
+
+            was_new = self.server.db.add_collection_entry(
+                self.account_id,
+                UOSS_DEEP_DUNGEON_VISITS_V11331,
+                str(floor),
+            )
+            if was_new:
+                await self.send(
+                    f"Deep Dungeon: odkrywasz piętro {floor}. "
+                    f"Najgłębszy zapisany poziom: {self.uoss_deep_dungeon_max_floor_v11331()}."
+                )
+
+            if floor >= UOSS_DEEP_DUNGEON_SERPENTARIUS_UNLOCK_FLOOR_V11331:
+                unlocked = self.server.db.add_collection_entry(
+                    self.account_id,
+                    "deep_dungeon_discovery",
+                    "floor_100",
+                )
+                if unlocked:
+                    await self.send(
+                        "Deep Dungeon: dotarcie do piętra 100 odblokowuje Floor 0 "
+                        "i Super Bossa Serpentarius. Winda: deepelevator 0."
+                    )
+            return True
+
+    def uoss_deep_dungeon_descent_blocked_v11331(
+            self, room_id, direction="down"
+    ):
+            if direction != "down":
+                return False
+            floor = uoss_deep_dungeon_floor_number_v11331(room_id)
+            if floor is None or floor % 25 != 0:
+                return False
+            return not self.uoss_deep_dungeon_apanda_cleared_v11331(floor)
+
+    def uoss_serpentarius_room_entry_error_v11331(self, target_room):
+            if str(target_room or "") != "uoss_superboss_arena_serpentarius_v11136":
+                return ""
+            return superboss_member_entry_error_v11331(self, "serpentarius")
+
+    async def show_uoss_deep_dungeon_status_v11331(self, args=""):
+            highest = self.uoss_deep_dungeon_max_floor_v11331()
+            unlock_floor = UOSS_DEEP_DUNGEON_SERPENTARIUS_UNLOCK_FLOOR_V11331
+            unlocks = self.server.db.collection_entry_ids(
+                self.account_id, "deep_dungeon_discovery"
+            )
+            serpentarius_unlocked = "floor_100" in unlocks
+
+            await self.send("UOSS DEEP DUNGEON — BEZ LIMITU")
+            await self.send(
+                f"Najgłębsze odwiedzone piętro: {highest if highest else 'brak'}."
+            )
+            if highest:
+                next_apanda = ((highest // 25) + 1) * 25
+                await self.send(
+                    f"Apanda występuje co 25 pięter. Następny próg: {next_apanda}."
+                )
+            else:
+                await self.send("Apanda występuje co 25 pięter: 25, 50, 75, 100 i dalej.")
+
+            if serpentarius_unlocked:
+                error = superboss_member_entry_error_v11331(
+                    self, "serpentarius"
+                )
+                if error:
+                    await self.send(
+                        "Serpentarius: odblokowany przez piętro 100, "
+                        f"ale wejście jest teraz niedostępne. {error}"
+                    )
+                else:
+                    await self.send(
+                        "Serpentarius: odblokowany. Użyj deepelevator 0 "
+                        "albo superboss serpentarius."
+                    )
+            else:
+                await self.send(
+                    f"Serpentarius: zablokowany. Musisz osobiście dotrzeć "
+                    f"co najmniej do piętra {unlock_floor}."
+                )
+            await self.send(
+                "Wejście: Sala Super Bossów, kierunek down. "
+                "Winda: deepelevator <odwiedzone piętro>; Floor 0: deepelevator 0."
+            )
+
+    async def use_uoss_deep_dungeon_elevator_v11331(self, raw=""):
+            if self.combat_mob_key:
+                await self.send("Nie możesz użyć windy Deep Dungeon podczas walki.")
+                return
+
+            current = str(self.character.room_id)
+            current_floor = uoss_deep_dungeon_floor_number_v11331(current)
+            if (
+                current != UOSS_DEEP_DUNGEON_ENTRY_V11331
+                and current != UOSS_DEEP_DUNGEON_FLOOR0_V11331
+                and current_floor is None
+            ):
+                await self.send(
+                    "Winda Deep Dungeon działa tylko wewnątrz Deep Dungeon."
+                )
+                return
+
+            value = self.normalize_room_query(raw)
+            if not value or value in ("status", "lista", "list"):
+                await self.show_uoss_deep_dungeon_status_v11331()
+                return
+
+            match = re.search(r"(\d+)", value)
+            if not match:
+                await self.send(
+                    "Użycie: deepelevator <odwiedzone piętro> albo deepelevator 0."
+                )
+                return
+            floor = int(match.group(1))
+
+            party_key = self.party_key()
+            if party_key is not None and party_key != self.account_id:
+                leader = self.server.session_by_account(party_key)
+                leader_name = (
+                    leader.character.name
+                    if leader and getattr(leader, "character", None)
+                    else "lider drużyny"
+                )
+                await self.send(
+                    f"Tylko lider uruchamia windę dla drużyny. Lider: {leader_name}."
+                )
+                return
+
+            candidates = (
+                list(
+                    self.server.party_sessions(
+                        self.account_id,
+                        same_room=self.character.room_id,
+                    )
+                )
+                if party_key == self.account_id
+                else [self]
+            )
+            if self not in candidates:
+                candidates.append(self)
+
+            target = (
+                UOSS_DEEP_DUNGEON_FLOOR0_V11331
+                if floor == 0
+                else uoss_deep_dungeon_floor_id_v11331(floor)
+            )
+            if floor > 0:
+                self.server.world.ensure_runtime_room(target)
+
+            moved = []
+            skipped = []
+            for member in candidates:
+                if not member or not getattr(member, "character", None):
+                    continue
+                if member.combat_mob_key:
+                    skipped.append(f"{member.character.name}: trwa walka")
+                    continue
+
+                member_highest = member.uoss_deep_dungeon_max_floor_v11331()
+                if floor == 0:
+                    error = superboss_member_entry_error_v11331(
+                        member, "serpentarius"
+                    )
+                    if error:
+                        skipped.append(
+                            f"{member.character.name}: {error}"
+                        )
+                        continue
+                elif floor < 1 or floor > member_highest:
+                    skipped.append(
+                        f"{member.character.name}: najwyższe odwiedzone piętro "
+                        f"{member_highest if member_highest else 'brak'}"
+                    )
+                    continue
+
+                member.previous_room_id = member.character.room_id
+                member.character.room_id = target
+                member.server.db.save_character(member.character)
+                moved.append(member)
+
+            if moved:
+                destination = "Floor 0" if floor == 0 else f"piętro {floor}"
+                for member in moved:
+                    await member.send(
+                        f"Lider {self.character.name} uruchamia windę Deep Dungeon. "
+                        f"Cel: {destination}."
+                    )
+                    await member.look()
+                if len(moved) > 1:
+                    await self.send(
+                        f"Winda przenosi razem {len(moved)} graczy."
+                    )
+            if skipped:
+                await self.send(
+                    "Nie przeniesiono: " + "; ".join(skipped) + "."
+                )
 
     def mine_progress(self):
             return self.server.db.mine_progress(self.account_id)
