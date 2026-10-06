@@ -72,8 +72,8 @@ def generator_whitelist_audit_v03019():
     audit = GENERATOR_CORE_AUDIT or {}
     whitelist = audit.get("whitelist_audit") or {}
     errors = []
-    if GENERATOR_CORE_VERSION != "0.61.0":
-        errors.append(f"Generator Core version={GENERATOR_CORE_VERSION}, expected 0.61.0")
+    if GENERATOR_CORE_VERSION != generator_core_v027.GENERATOR_VERSION:
+        errors.append(f"Generator Core version={GENERATOR_CORE_VERSION}, expected {generator_core_v027.GENERATOR_VERSION}")
     if not audit.get("numeric_only"):
         errors.append("numeric_only flag missing")
     runtime_fast = bool(audit.get("runtime_fast_path"))
@@ -117,9 +117,9 @@ if GENERATOR_WHITELIST_AUDIT_V03019.get("error_count"):
 HELP_TOPICS.setdefault("generator", []).extend([
     "v0.30.19: Generator Core działa z jawną białą listą zapisu. Może zmienić wyłącznie konkretne pola liczbowego balansu.",
     "Mob: tylko generator_level/stage, HP, damage, EXP, waluta oraz prawdopodobieństwa istniejących dropów. Nie może zmienić rangi, nazw, quest-targetów ani listy dropów.",
-    "Przedmiot/EQ: tylko liczby ceny, obrony i wartości istniejących stats/properties/runes. Nie może dodać nowego statystyku, właściwości, slotu, klasy ani wymagania.",
-    "Skill/spell: tylko generator_level, cooldown, mana i wartości istniejącego rodzaju efektu. ID, nazwa, kind, scale i próg unlock są chronione.",
-    "Quest/receptura: generator liczy wyłącznie dozwolone nagrody/XP i generator_level; cele, wymagania, składniki, produkty i ilości pozostają ręcznie projektowane.",
+    "Przedmiot/EQ: authored liczby są nadrzędne; Generator może tylko uzupełnić brakujące wartości liczbowe. Nie może dodać nowego statystyku, właściwości, slotu, klasy ani wymagania.",
+    "Skill/spell: authored cooldown, mana i siła efektu są nadrzędne; Generator wypełnia tylko brakujące liczby. ID, nazwa, kind, scale i próg unlock są chronione.",
+    "Quest/receptura: authored nagrody/XP są nadrzędne; Generator uzupełnia tylko braki i generator_level. Cele, wymagania, składniki, produkty i ilości pozostają ręcznie projektowane.",
     "Whitelist Guard obejmuje wszystkie dane projektowe UPPERCASE. Zapis poza białą listą zmienia fingerprint i blokuje start serwera.",
 ])
 
@@ -764,7 +764,7 @@ def full_release_integrity_audit_v03025():
         errors.append("world logic audit failed")
     if int(WORLD_LOGIC_AUDIT.get("warning_count", 0) or 0):
         errors.append("world logic warnings present")
-    if GENERATOR_CORE_VERSION != "0.61.0":
+    if GENERATOR_CORE_VERSION != generator_core_v027.GENERATOR_VERSION:
         errors.append(f"GENERATOR_CORE_VERSION={GENERATOR_CORE_VERSION}")
     return {
         "version": "0.30.25",
@@ -981,7 +981,7 @@ def gameplay_flow_audit_v03026():
         if missing:
             errors.append(f"station {_station}: brak w {missing[:5]}")
 
-    if GENERATOR_CORE_VERSION != "0.61.0":
+    if GENERATOR_CORE_VERSION != generator_core_v027.GENERATOR_VERSION:
         errors.append(f"GENERATOR_CORE_VERSION={GENERATOR_CORE_VERSION}")
 
     return {

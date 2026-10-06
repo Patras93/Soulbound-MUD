@@ -241,7 +241,7 @@ class SessionCombatRealtimeMixin:
                     f"Broń Duszy {self.character.soul_weapon}: {technique}. "
                     f"Cel {template['name']}. "
                     + (
-                        f"Atakujesz {_actual_hits} razy i zadajesz łącznie {damage} obrażeń. "
+                        f"Trafiasz {_actual_hits} razy po {_per_hit_damage} obrażeń. Łącznie {damage}. "
                         if _actual_hits > 1 else
                         f"Zadajesz {damage} obrażeń. "
                     )
