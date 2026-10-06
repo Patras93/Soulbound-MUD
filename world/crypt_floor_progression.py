@@ -82,14 +82,43 @@ def _v03610_apply_crypt_threat(template):
         return template
     floor = _v03610_floor(template)
 
-    # Canonical values are already in template at this point. Add a floor-linear
-    # term after multiplication so integer rounding can NEVER make two adjacent
-    # floors equal when the canonical value itself is non-decreasing.
+    # v1.13.13: the generic refresher now restores authored values by design,
+    # but Crypt v0.36.10 is a dedicated harder-than-world layer. Reconstruct
+    # its canonical floor from max(authored, Generator Core) before applying
+    # the per-floor multiplier. This keeps hand-tuned stronger content and
+    # prevents weak legacy HP from undercutting the dungeon curve.
+    try:
+        stage = max(
+            1,
+            min(
+                CHARACTER_MAX_LEVEL,
+                int(template.get("generator_level", template.get("v019_stage", floor)) or floor),
+            ),
+        )
+    except Exception:
+        stage = max(1, int(floor))
+    rank = generator_core_v027.mob_rank(template)
+    authored_hp = max(
+        1,
+        int(template.get("_v1138_authored_max_hp", template.get("max_hp", 1)) or 1),
+    )
+    authored_damage = max(
+        1,
+        int(template.get("_v1138_authored_damage", template.get("damage", 1)) or 1),
+    )
+    generator_hp = generator_core_v027.mob_hp(stage, rank)
+    generator_damage = generator_core_v027.mob_damage(stage, rank)
+    base_hp = max(authored_hp, generator_hp)
+    base_damage = max(authored_damage, generator_damage)
+
+    # Add a floor-linear term after multiplication so integer rounding can
+    # NEVER make two adjacent floors equal when the canonical value itself is
+    # non-decreasing.
     hp_mult = _v03610_hp_mult(kind, floor)
     dmg_mult = _v03610_damage_mult(kind, floor)
 
-    hp = max(1, int(round(int(template.get("max_hp", 1) or 1) * hp_mult)))
-    dmg = max(1, int(round(int(template.get("damage", 1) or 1) * dmg_mult)))
+    hp = max(1, int(round(base_hp * hp_mult)))
+    dmg = max(1, int(round(base_damage * dmg_mult)))
 
     # Strict per-floor component. Mythic gets a larger absolute floor term.
     if kind.startswith("mythic_"):
@@ -113,6 +142,8 @@ def _v03610_apply_crypt_threat(template):
     template["max_hp"] = hp
     template["base_max_hp"] = hp
     template["damage"] = dmg
+    template["crypt_generator_floor_hp_v11313"] = int(generator_hp)
+    template["crypt_generator_floor_damage_v11313"] = int(generator_damage)
     template["crypt_floor_progression_v03610"] = True
     template["crypt_floor_hp_mult_v03610"] = round(float(hp_mult), 6)
     template["crypt_floor_damage_mult_v03610"] = round(float(dmg_mult), 6)

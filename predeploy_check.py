@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Fast Railway predeploy gate for Soulbound v1.13.12.
+"""Fast Railway predeploy gate for Soulbound v1.13.13.
 
 This is the normal deploy check.  It intentionally avoids assembling the full
 world/runtime.  Use predeploy_full.py when an exhaustive historical audit is
@@ -16,7 +16,7 @@ import traceback
 try:
     from storage.database import Database as _DatabaseImportSmoke
 except Exception as exc:
-    print(f"Soulbound v1.13.12 FAST PREDEPLOY FAILED: database import: {type(exc).__name__}: {exc}")
+    print(f"Soulbound v1.13.13 FAST PREDEPLOY FAILED: database import: {type(exc).__name__}: {exc}")
     traceback.print_exc()
     raise SystemExit(1)
 
@@ -37,7 +37,7 @@ try:
     )
 except Exception as exc:
     print(
-        "Soulbound v1.13.12 FAST PREDEPLOY FAILED: "
+        "Soulbound v1.13.13 FAST PREDEPLOY FAILED: "
         f"skill semantic import: {type(exc).__name__}: {exc}"
     )
     traceback.print_exc()
@@ -260,6 +260,28 @@ for _needle in (
         _semantic_errors.append(
             "equipment completeness full-profile regression: missing " + _needle
         )
+
+# v1.13.13: dedicated Crypt difficulty must be based on at least the current
+# Generator Core stage/rank baseline even though generic runtime refresh now
+# preserves authored combat numbers.
+_crypt_party_source_v11313 = (_root / "world/crypt_party_rebalance.py").read_text(encoding="utf-8")
+_crypt_floor_source_v11313 = (_root / "world/crypt_floor_progression.py").read_text(encoding="utf-8")
+for _label, _source in (
+    ("crypt_party", _crypt_party_source_v11313),
+    ("crypt_floor", _crypt_floor_source_v11313),
+):
+    for _needle in (
+        'template.get("_v1138_authored_max_hp"',
+        'template.get("_v1138_authored_damage"',
+        "generator_core_v027.mob_hp(stage, rank)",
+        "generator_core_v027.mob_damage(stage, rank)",
+        "base_hp = max(authored_hp, generator_hp)",
+        "base_damage = max(authored_damage, generator_damage)",
+    ):
+        if _needle not in _source:
+            _semantic_errors.append(
+                f"crypt Generator baseline regression ({_label}): missing {_needle}"
+            )
 for _needle in ('baseline_key = f"_v1138_authored_{key}"', "procedural_no_limit", '"world_boss": 3.00'):
     if _needle not in _runtime_progression_source:
         _semantic_errors.append("runtime progression feel regression: missing " + _needle)
@@ -732,18 +754,18 @@ except Exception as exc:
     )
 
 if _semantic_errors:
-    print("Soulbound v1.13.12 FAST PREDEPLOY FAILED: semantic contracts")
+    print("Soulbound v1.13.13 FAST PREDEPLOY FAILED: semantic contracts")
     for _error in _semantic_errors:
         print(f"ERROR: {_error}")
     raise SystemExit(1)
 
 if audit["error_count"]:
-    print("Soulbound v1.13.12 FAST PREDEPLOY FAILED")
+    print("Soulbound v1.13.13 FAST PREDEPLOY FAILED")
     for error in audit["errors"]:
         print(f"ERROR: {error}")
     raise SystemExit(1)
 
-print("Soulbound v1.13.12 FAST PREDEPLOY PASS")
+print("Soulbound v1.13.13 FAST PREDEPLOY PASS")
 print(
     "Semantic contracts: "
     f"{len(_semantic_audits)} audits PASS; AP runtime guards PASS"

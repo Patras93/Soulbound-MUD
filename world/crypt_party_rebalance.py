@@ -40,6 +40,26 @@ def _v0368_apply_crypt_threat(template):
     except Exception:
         stage = 1
 
+    # v1.13.13: v1.13.8 intentionally made the generic runtime refresher
+    # preserve authored HP/damage. Crypt difficulty, however, was designed on
+    # top of the Generator Core same-stage baseline. Use the stronger of the
+    # authored baseline and Generator Core so hand-tuned bosses are never
+    # nerfed, while old weak templates cannot make the dungeon easier than the
+    # open-world curve it is explicitly supposed to exceed.
+    rank = generator_core_v027.mob_rank(template)
+    authored_hp = max(
+        1,
+        int(template.get("_v1138_authored_max_hp", template.get("max_hp", 1)) or 1),
+    )
+    authored_damage = max(
+        1,
+        int(template.get("_v1138_authored_damage", template.get("damage", 1)) or 1),
+    )
+    generator_hp = generator_core_v027.mob_hp(stage, rank)
+    generator_damage = generator_core_v027.mob_damage(stage, rank)
+    base_hp = max(authored_hp, generator_hp)
+    base_damage = max(authored_damage, generator_damage)
+
     if kind.startswith("crypt_"):
         # ~2.14x HP at stage 10, ~3.43x at 100, cap 4.8x from ~200+.
         hp_mult = min(4.80, 2.00 + stage / 70.0)
@@ -68,9 +88,11 @@ def _v0368_apply_crypt_threat(template):
                 except Exception as exc:
                     print(f"CRYPT_PARTY_SUPERBOSS_PROFILE_ERROR: {type(exc).__name__}: {exc}", flush=True)
 
-    template["max_hp"] = max(1, int(round(int(template.get("max_hp", 1) or 1) * hp_mult)))
+    template["max_hp"] = max(1, int(round(base_hp * hp_mult)))
     template["base_max_hp"] = int(template["max_hp"])
-    template["damage"] = max(1, int(round(int(template.get("damage", 1) or 1) * dmg_mult)))
+    template["damage"] = max(1, int(round(base_damage * dmg_mult)))
+    template["crypt_generator_floor_hp_v11313"] = int(generator_hp)
+    template["crypt_generator_floor_damage_v11313"] = int(generator_damage)
     template["crypt_threat_rebalance_v0368"] = True
     template["crypt_threat_hp_mult_v0368"] = round(float(hp_mult), 4)
     template["crypt_threat_damage_mult_v0368"] = round(float(dmg_mult), 4)
