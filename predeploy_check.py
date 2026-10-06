@@ -153,6 +153,46 @@ if (
 _consider_source_v11331 = (
     _root / "player/session_mixins/combat_damage.py"
 ).read_text(encoding="utf-8")
+_superboss_entry_source_v11331 = (
+    _root / "player/session_mixins/world_events_endgame.py"
+).read_text(encoding="utf-8")
+_superboss_runtime_source_v11331 = (
+    _root / "world/uoss_superboss_runtime.py"
+).read_text(encoding="utf-8")
+_superboss_social_source_v11331 = (
+    _root / "player/session_mixins/social_base.py"
+).read_text(encoding="utf-8")
+for _needle in (
+    "superboss_member_entry_error_v11331(member,key)",
+    "same_room=self.character.room_id",
+    "party_key != self.account_id",
+    "Przeniesiono razem {len(entrants)} graczy",
+    'try_hire_uoss_helper_v11160(f"join me {q}")',
+):
+    if _needle not in _superboss_entry_source_v11331:
+        _semantic_errors.append(
+            "superboss party travel/helper regression: missing " + _needle
+        )
+for _needle in (
+    "def superboss_member_entry_error_v11331",
+    "superboss_lockout_remaining_v11157",
+    "deep_dungeon_discovery",
+):
+    if _needle not in _superboss_runtime_source_v11331:
+        _semantic_errors.append(
+            "superboss personal eligibility regression: missing " + _needle
+        )
+for _needle in (
+    "def uoss_helper_contract_here_v11331",
+    'str(npc.get("room") or "") != str(self.character.room_id)',
+    '"join me {helper}"',
+    "Tylko lider drużyny może zatrudnić pomocnika Super Bossa",
+):
+    if _needle not in _superboss_social_source_v11331:
+        _semantic_errors.append(
+            "superboss helper phrase regression: missing " + _needle
+        )
+
 _jammer_runtime_source_v11331 = (
     _root / "player/session_mixins/combat_skills.py"
 ).read_text(encoding="utf-8")
