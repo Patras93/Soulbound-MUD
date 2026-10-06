@@ -74,12 +74,14 @@ HELP_TOPIC_ALIASES.update({
 })
 
 HELP_TOPICS["boss_chests"] = [
-    "Skrzynie Bossów stoją na piętrach bossów co 10 w Krypcie, Wieży Astralnej, Mitycznej Krypcie, Mitycznej Wieży i Twierdzy Gigantów.",
-    "Właściwy Klucz Bossa jest gwarantowany w ciele pokonanego bossa danego piętra.",
+    "Skrzynia Bossa istnieje wyłącznie w dokładnym pokoju, w którym stoi boss checkpointu. Nie pojawia się przy zejściu ani w innych pokojach tego samego piętra.",
+    "Właściwy Klucz Bossa jest gwarantowany w ciele pokonanego bossa danego checkpointu.",
     "Bez właściwego klucza skrzynia pozostaje zamknięta.",
     "Solo: unlock / odklucz / odblokuj zużywa twój klucz i otwiera skrzynię.",
-    "Drużyna: skrzynię otwiera lider. Każdy członek tej samej drużyny stojący przy skrzyni dostaje własny roll złota i przedmiotów z jednego wspólnego otwarcia.",
-    "Jeżeli nagrodzony członek drużyny ma własny odpowiadający Klucz Bossa, jedna sztuka jest zużywana razem ze wspólnym otwarciem, aby nie powstał podwójny odbiór tej samej party-run skrzyni.",
+    "Drużyna: skrzynię otwiera lider. Każdy członek tej samej drużyny stojący przy bossie dostaje własny roll złota i przedmiotów z jednego wspólnego otwarcia.",
+    "Po wspólnym otwarciu skrzynia znika dla nagrodzonej drużyny/postaci i nie może zostać otwarta drugi raz z zapasowym kluczem.",
+    "Skrzynia wraca dopiero po kolejnym prawidłowym zabiciu tego bossa; restart ani deploy nie przywraca już otwartej skrzyni.",
+    "Jeżeli nagrodzony członek drużyny ma własny odpowiadający Klucz Bossa, jedna sztuka jest zużywana razem ze wspólnym otwarciem.",
     "Członkowie drużyny w innych lokacjach nie dostają nagrody ze skrzyni.",
     "Skrzynia daje gwarantowane złoto oraz losowe użyteczne przedmioty zależne od poziomu zawartości.",
 ]
@@ -392,23 +394,70 @@ def verify_password(password: str, salt_hex: str, hash_hex: str) -> bool:
 # v0.8.72 — bossowe skrzynie piętrowe, klucze i losowy urobek
 # ================================================================
 
+BOSS_CHEST_OPENED_CATEGORY_V11332 = "boss_floor_chest_opened_v11332"
+
+
+def boss_floor_chest_state_id(kind, floor):
+    return f"{str(kind)}:{int(floor)}"
+
+
+def boss_floor_chest_room_id(kind, floor):
+    floor = int(floor)
+    return {
+        "giant": f"giant_fortress_{floor}",
+        "crypt": f"crypt_floor_{floor}",
+        "astral": f"astral_floor_{floor}",
+        "mythic_crypt": f"mythic_crypt_floor_{floor}",
+        "mythic_astral": f"mythic_astral_floor_{floor}",
+    }.get(str(kind), "")
+
+
 def _boss_floor_chest_spec(room_id):
-    """Zwraca opis skrzyni bossowej dla piętra co 10 lub None."""
+    """Boss chest exists only in the exact canonical room containing the boss."""
+    room_id = str(room_id or "")
+
     floor = giant_fortress_floor_number(room_id)
-    if is_giant_fortress_boss_floor(floor):
+    if (
+        is_giant_fortress_boss_floor(floor)
+        and room_id == boss_floor_chest_room_id("giant", floor)
+    ):
         return ("giant", floor, min(CHARACTER_MAX_LEVEL, max(20, floor * 2)))
+
     floor = crypt_floor_number(room_id)
-    if is_crypt_boss_floor(floor):
+    if (
+        is_crypt_boss_floor(floor)
+        and room_id == boss_floor_chest_room_id("crypt", floor)
+    ):
         return ("crypt", floor, min(CHARACTER_MAX_LEVEL, floor))
+
     floor = astral_floor_number(room_id)
-    if is_astral_boss_floor(floor):
+    if (
+        is_astral_boss_floor(floor)
+        and room_id == boss_floor_chest_room_id("astral", floor)
+    ):
         return ("astral", floor, min(CHARACTER_MAX_LEVEL, floor))
+
     floor = mythic_crypt_floor_number(room_id)
-    if is_mythic_crypt_boss_floor(floor):
-        return ("mythic_crypt", floor, min(CHARACTER_MAX_LEVEL, 100 + floor // 2))
+    if (
+        is_mythic_crypt_boss_floor(floor)
+        and room_id == boss_floor_chest_room_id("mythic_crypt", floor)
+    ):
+        return (
+            "mythic_crypt",
+            floor,
+            min(CHARACTER_MAX_LEVEL, 100 + floor // 2),
+        )
+
     floor = mythic_astral_floor_number(room_id)
-    if is_mythic_astral_boss_floor(floor):
-        return ("mythic_astral", floor, min(CHARACTER_MAX_LEVEL, 110 + floor // 2))
+    if (
+        is_mythic_astral_boss_floor(floor)
+        and room_id == boss_floor_chest_room_id("mythic_astral", floor)
+    ):
+        return (
+            "mythic_astral",
+            floor,
+            min(CHARACTER_MAX_LEVEL, 110 + floor // 2),
+        )
     return None
 
 BOSS_CHEST_KIND_NAMES = {
@@ -442,8 +491,8 @@ def _register_boss_floor_keys():
             "boss_chest_kind": kind,
             "boss_chest_floor": int(floor),
             "desc": (
-                f"Jednorazowy klucz z ciała bossa. Otwiera skrzynię na "
-                f"piętrze {floor} w: {BOSS_CHEST_KIND_NAMES[kind]}."
+                f"Jednorazowy klucz z ciała bossa. Otwiera skrzynię stojącą "
+                f"przy bossie checkpointu {floor} w: {BOSS_CHEST_KIND_NAMES[kind]}."
             ),
         }, 'ITEMS', ITEMS, (key_id,))
 
