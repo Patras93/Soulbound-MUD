@@ -16,6 +16,7 @@ from core.progression_600 import CHARACTER_MAX_LEVEL
 from config.postal import COURIER_CITY_ROOM_TO_NAME_V0530
 from core.progression_resources import mine_floor_number
 from systems.content_registry import MOB_TEMPLATES
+from world.uoss_superboss_world import uoss_deep_dungeon_floor_number_v11331
 from systems.dungeons_regions import (
     astral_floor_number,
     crypt_floor_number,
