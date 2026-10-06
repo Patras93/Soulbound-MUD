@@ -363,7 +363,20 @@ class SessionCombatRewardsMixin:
                 # v1.12.6: brak kary za grę w drużynie.
                 # Każdy obecny członek drużyny otrzymuje pełną pulę monet za moba,
                 # tak samo jak każdy otrzymuje własne pełne nagrody EXP/progresji.
-                generated_coins=_final_combat_reward(template,"coins")
+                _adaptive_reward_mult_v11330=max(
+                    1.0,
+                    float(getattr(mob,"adaptive_reward_multiplier_v11330",1.0) or 1.0),
+                )
+                generated_coins=min(
+                    V019_SAFE_INT,
+                    max(
+                        0,
+                        int(round(
+                            _final_combat_reward(template,"coins")
+                            * _adaptive_reward_mult_v11330
+                        )),
+                    ),
+                )
                 currency_rewards={currency:{s.account_id:0 for s in recipients} for currency in ("silver","gold","mithril")}
                 if generated_coins>0:
                     for session in recipients:
@@ -390,7 +403,11 @@ class SessionCombatRewardsMixin:
                     xp_profile=session.dynamic_kill_xp_profile(template,room_id=session.character.room_id)
                     # v0.23.0: NIE podbijamy mnożnika do minimum 1.0. To był błąd,
                     # przez który słabsze moby nigdy nie traciły EXP podczas farmy.
-                    xp_mult=float(xp_profile["multiplier"]) * session.v0210_reward_multiplier()
+                    xp_mult=(
+                        float(xp_profile["multiplier"])
+                        * session.v0210_reward_multiplier()
+                        * _adaptive_reward_mult_v11330
+                    )
                     # Scanner-authored UOSSMUD XP is an exact reward, not an
                     # input to Soulbound's dynamic mob reward generator.
                     source_xp_exact = bool(template.get("source_xp_exact"))
@@ -416,6 +433,7 @@ class SessionCombatRewardsMixin:
                         f"Generator v0.19 + dynamiczny EXP v0.23: etap {v0190_mob_stage(template)}, "
                         f"ranga {v0190_mob_rank(template)}, siła postaci {xp_profile['power']}/{CHARACTER_MAX_LEVEL}, "
                         f"siła moba {xp_profile['target']}/{CHARACTER_MAX_LEVEL}, mnożnik x{xp_profile['multiplier']:.2f}; "
+                        f"adaptive reward x{_adaptive_reward_mult_v11330:.2f}; "
                         f"bazowy EXP statów {stat_reward_text}; Soul XP {soul_xp_reward}; Class XP {class_xp_reward}; "
                         f"EXP postaci {character_xp_reward if 'character_xp_reward' in locals() else _final_combat_reward(template,'character')}.",
                         detail="full",
