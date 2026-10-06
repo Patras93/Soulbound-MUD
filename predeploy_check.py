@@ -337,6 +337,10 @@ _manifest_late_layers = (
 )
 if _manifest_help not in _runtime_manifest_source_v11328:
     _semantic_errors.append("HELP truth v1.13.28 missing from runtime manifest")
+elif 'EXPLICIT_RUNTIME_EXPORTS["admin/help_truth_current_v11328.py"]' not in _runtime_manifest_source_v11328:
+    _semantic_errors.append(
+        "HELP truth v1.13.28 must stay on explicit runtime lane"
+    )
 else:
     _help_index_v11328 = _runtime_manifest_source_v11328.index(_manifest_help)
     for _late_layer_v11328 in _manifest_late_layers:
