@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Fast Railway predeploy gate for Soulbound v1.13.22.
+"""Fast Railway predeploy gate for Soulbound v1.13.23.
 
 This is the normal deploy check.  It intentionally avoids assembling the full
 world/runtime.  Use predeploy_full.py when an exhaustive historical audit is
@@ -16,7 +16,7 @@ import traceback
 try:
     from storage.database import Database as _DatabaseImportSmoke
 except Exception as exc:
-    print(f"Soulbound v1.13.22 FAST PREDEPLOY FAILED: database import: {type(exc).__name__}: {exc}")
+    print(f"Soulbound v1.13.23 FAST PREDEPLOY FAILED: database import: {type(exc).__name__}: {exc}")
     traceback.print_exc()
     raise SystemExit(1)
 
@@ -37,7 +37,7 @@ try:
     )
 except Exception as exc:
     print(
-        "Soulbound v1.13.22 FAST PREDEPLOY FAILED: "
+        "Soulbound v1.13.23 FAST PREDEPLOY FAILED: "
         f"skill semantic import: {type(exc).__name__}: {exc}"
     )
     traceback.print_exc()
@@ -293,6 +293,30 @@ for _needle in (
         _semantic_errors.append(
             "terrain recommended mastery floor regression: missing " + _needle
         )
+
+# v1.13.23: ordinary mobs must keep real danger and a rare stage-scaled payout.
+_global_difficulty_source_v11323 = (_root / "world/global_difficulty_overdrive.py").read_text(encoding="utf-8")
+_combat_rewards_source_v11323 = (_root / "player/session_mixins/combat_rewards.py").read_text(encoding="utf-8")
+_items_source_v11323 = (_root / "data/items.py").read_text(encoding="utf-8")
+for _needle in (
+    '"normal": 1.08',
+    '"world_boss": 1.20',
+    '"normal": 0.08',
+    '"world_boss": 1.00',
+    'def mob_trophy_spec_v11323(template):',
+    'GLOBAL_MOB_FEEL_AUDIT_V11323',
+):
+    if _needle not in _global_difficulty_source_v11323:
+        _semantic_errors.append("global mob feel regression: missing " + _needle)
+for _needle in (
+    'def _v11323_mob_trophy_spec(template):',
+    'Rzadki łup bojowy: otrzymujesz',
+):
+    if _needle not in _combat_rewards_source_v11323:
+        _semantic_errors.append("mob trophy reward boundary regression: missing " + _needle)
+for _tier in range(1, 9):
+    if f'"mob_trophy_t{_tier}"' not in _items_source_v11323:
+        _semantic_errors.append(f"mob trophy catalog regression: missing tier {_tier}")
 for _needle in (
     'int(item.get("attack", 0) or 0)',
     'int(item.get("magic_attack", 0) or 0)',
@@ -1108,18 +1132,18 @@ except Exception as exc:
     )
 
 if _semantic_errors:
-    print("Soulbound v1.13.22 FAST PREDEPLOY FAILED: semantic contracts")
+    print("Soulbound v1.13.23 FAST PREDEPLOY FAILED: semantic contracts")
     for _error in _semantic_errors:
         print(f"ERROR: {_error}")
     raise SystemExit(1)
 
 if audit["error_count"]:
-    print("Soulbound v1.13.22 FAST PREDEPLOY FAILED")
+    print("Soulbound v1.13.23 FAST PREDEPLOY FAILED")
     for error in audit["errors"]:
         print(f"ERROR: {error}")
     raise SystemExit(1)
 
-print("Soulbound v1.13.22 FAST PREDEPLOY PASS")
+print("Soulbound v1.13.23 FAST PREDEPLOY PASS")
 print(
     "Semantic contracts: "
     f"{len(_semantic_audits)} audits PASS; AP runtime guards PASS"
