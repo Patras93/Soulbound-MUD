@@ -934,6 +934,82 @@ def _register_legendary_class_loot():
 
 _register_legendary_class_loot()
 
+
+def equipment_identity_audit_v11326():
+    errors = []
+
+    class_shop_items = [
+        item
+        for item in ITEMS.values()
+        if item.get("class_shop_item") and not item.get("legendary_set_loot")
+    ]
+    if not class_shop_items:
+        errors.append("missing class shop items")
+    else:
+        for item in class_shop_items[:200]:
+            if item.get("equipment_identity_source") != "class_shop":
+                errors.append("class shop identity source missing")
+                break
+            if not item.get("properties"):
+                errors.append("class shop item has no identity properties")
+                break
+
+    roles = {}
+    for item in class_shop_items:
+        key = (
+            item.get("required_class"),
+            item.get("required_mastery"),
+            item.get("slot"),
+        )
+        role = item.get("equipment_identity_role")
+        if role:
+            roles.setdefault(key, {})[role] = dict(item.get("properties") or {})
+    if not any(
+        len(group) >= 3 and len({tuple(sorted(v.items())) for v in group.values()}) >= 3
+        for group in roles.values()
+    ):
+        errors.append("shop styles are not materially distinct")
+
+    legendary_sets = [
+        item for item in ITEMS.values() if item.get("legendary_set_loot")
+    ]
+    if not legendary_sets:
+        errors.append("missing legendary boss sets")
+    else:
+        if not all(item.get("equipment_identity_source") == "boss_set" for item in legendary_sets[:100]):
+            errors.append("boss set identity source missing")
+        if not all(item.get("properties") for item in legendary_sets[:100]):
+            errors.append("boss set identity properties missing")
+
+    blacksmith = [
+        item for item in ITEMS.values() if item.get("crafted_masterwork")
+    ]
+    if blacksmith and not all(
+        item.get("equipment_identity_source") == "blacksmith"
+        and int(item.get("sockets", 0) or 0) >= 1
+        and bool(item.get("properties"))
+        for item in blacksmith[:100]
+    ):
+        errors.append("blacksmith masterwork identity incomplete")
+
+    return {
+        "version": "1.13.26",
+        "class_shop_count": len(class_shop_items),
+        "legendary_set_count": len(legendary_sets),
+        "blacksmith_count": len(blacksmith),
+        "error_count": len(errors),
+        "errors": errors,
+    }
+
+
+EQUIPMENT_IDENTITY_AUDIT_V11326 = equipment_identity_audit_v11326()
+if EQUIPMENT_IDENTITY_AUDIT_V11326["error_count"]:
+    raise RuntimeError(
+        "Equipment Identity Audit v1.13.26 failed: "
+        + "; ".join(EQUIPMENT_IDENTITY_AUDIT_V11326["errors"][:50])
+    )
+
+
 _catalog_mut.catalog_assign({
     "name": "Szczypce Jubilerskie",
     "type": "tool",
