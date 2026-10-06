@@ -175,13 +175,14 @@ for _needle in (
 for _needle in (
     "BOSS_CHEST_OPENED_CATEGORY_V11332",
     "boss_floor_chest_state_id(kind, floor)",
-    "self.server.db.item_qty(self.account_id, key_id) > 0",
-    "self.server.world.room_corpses(",
+    "if opened:",
+    "# Skrzynia fizycznie stoi w dokładnym pokoju bossa od razu.",
+    "return spec",
     "Po otwarciu skrzynia znika.",
 ):
     if _needle not in _boss_chest_session_source_v11332:
         _semantic_errors.append(
-            "boss chest disappear regression: missing " + _needle
+            "boss chest visibility/disappear regression: missing " + _needle
         )
 for _needle in (
     "remove_collection_entry(",
