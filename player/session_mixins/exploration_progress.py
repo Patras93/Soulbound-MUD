@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """Treasure maps, exploration, progress, achievements and titles."""
 
+import random
 # v0.44.0: explicit dependencies; no compatibility-global injection.
 from config.postal import GUIDE_CITY_HUBS_V0522, POSTAL_CITY_HUBS_V0522
 from core.bootstrap_economy_professions import currency_reading_text
@@ -9,6 +10,7 @@ from core.mines_threat import ITEMS
 from network.protocol_gameplay_utils import find_by_name, normalize_lookup_text
 from systems.content_registry import NPCS, QUESTS
 from systems.economy_income_balance import v1138_activity_income
+from systems.game_feel_rewards import exploration_find_v11324
 from world.dynamic_content import (
     ACHIEVEMENT_TRACKS,
     ALL_EXPLORATION_ROOMS,
@@ -611,6 +613,28 @@ class SessionExplorationProgressMixin:
                     f"Punkt eksploracji: +1 EP, +{ep_xp} EXP postaci. "
                     f"{zone_for_ep}: {zone_ep_now} z {zone_ep_total} EP."
                 )
+
+            _o_kurde_find_v11324 = exploration_find_v11324(
+                room_meta,
+                int(getattr(self.character, "character_level", 1) or 1),
+                random.random(),
+            )
+            if _o_kurde_find_v11324:
+                _o_kurde_coins_v11324 = int(_o_kurde_find_v11324["coins"])
+                self.character.silver += _o_kurde_coins_v11324
+                self.server.db.save_character(self.character)
+                self.server.db.add_lifetime_stat(
+                    self.account_id, "exploration_jackpots_v11324", 1
+                )
+                if announce:
+                    await self.send(
+                        "O KURDE — UKRYTE ZNALEZISKO: "
+                        + currency_reading_text(_o_kurde_coins_v11324, 0, 0)
+                        + (
+                            ". Sekretna lokacja podwoiła wartość znaleziska."
+                            if _o_kurde_find_v11324.get("hidden") else "."
+                        )
+                    )
             if room_meta.get("v018_archipelago"):
                 self.server.db.add_collection_entry(self.account_id, "archipelago_sectors_v018", room_id)
             if room_meta.get("v018_ruin_final"):
