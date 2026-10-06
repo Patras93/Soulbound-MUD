@@ -360,6 +360,7 @@ def refresh_help_truth_current_v11328():
     ]
 
     HELP_TOPICS["wieza"] = [
+        "Wieża Astralna i Mityczna Wieża nie mają minimalnego Levelu ani Soul Levelu wejścia; barierą jest realna trudność przeciwników, bossów i checkpointów.",
         "Wieża Astralna i Mityczna Wieża rosną poziom po poziomie; boss co 10 poziomów jest dodatkowym skokiem.",
         "Tower Overdrive i Global Difficulty działają razem; zagrożenie może rosnąć dalej niż główna progresja 600.",
         "Po etapie źródła 600 EQ z Wieży dostaje Rezonans Głębi, a waluta z nieskończonych poziomów dalej rośnie zamiast zatrzymywać się na ekonomii stage 600.",
