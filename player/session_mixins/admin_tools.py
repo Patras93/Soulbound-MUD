@@ -8,7 +8,6 @@ from network.protocol_gameplay_utils import (
     boss_floor_chest_name,
     boss_floor_chest_state_id,
     boss_floor_key_id,
-    boss_key_for_template,
 )
 
 class SessionAdminToolsMixin:
@@ -168,19 +167,11 @@ class SessionAdminToolsMixin:
             if opened:
                 return None
 
-            key_id = boss_floor_key_id(kind, floor)
-            if self.server.db.item_qty(self.account_id, key_id) > 0:
-                return spec
-
-            # Skrzynia pojawia się dopiero po pokonaniu bossa: albo jego
-            # ciało nadal leży w dokładnym pokoju bossa, albo gracz ma już
-            # właściwy klucz zabrany z tego ciała. Żywy boss sam nie tworzy
-            # widocznej skrzyni.
-            for corpse in self.server.world.room_corpses(self.character.room_id):
-                template = MOB_TEMPLATES.get(corpse.mob_template_id, {})
-                if boss_key_for_template(template) == key_id:
-                    return spec
-            return None
+            # Skrzynia fizycznie stoi w dokładnym pokoju bossa od razu.
+            # Klucz nadal wypada dopiero z ciała bossa i unlock bez klucza
+            # pozostaje niemożliwy. Po otwarciu marker ukrywa skrzynię aż
+            # do kolejnego prawidłowego zabicia tego bossa.
+            return spec
 
     async def unlock_boss_floor_chest(self):
             spec = self.boss_floor_chest_here()
