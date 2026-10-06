@@ -224,7 +224,7 @@ for _needle in (
 for _needle in (
     "UOSS_DEEP_DUNGEON_APANDA_CLEARS_V11331",
     "uoss_deep_dungeon_apanda_floor",
-    "Zejście niżej jest odblokowane",
+    "odblokowane dla tej postaci.",
 ):
     if _needle not in _deep_dungeon_rewards_source_v11331:
         _semantic_errors.append(
@@ -248,6 +248,7 @@ for _needle in (
         )
 
 try:
+    from data.catalogs import ROOMS as _deep_rooms_v11331, MOB_TEMPLATES as _deep_mobs_v11331
     from world.uoss_superboss_world import (
         create_infinite_uoss_deep_dungeon_floor_definition_v11331
         as _create_deep_floor_v11331,
@@ -259,13 +260,13 @@ try:
             _semantic_errors.append(
                 f"Deep Dungeon floor {_floor}: wrong generated room id"
             )
-        _room = ROOMS.get(_created, {})
+        _room = _deep_rooms_v11331.get(_created, {})
         if _room.get("exits", {}).get("down") != _deep_floor_id_v11331(_floor + 1):
             _semantic_errors.append(
                 f"Deep Dungeon floor {_floor}: no-limit down exit regression"
             )
         _has_apanda = any(
-            int(MOB_TEMPLATES.get(_tid, {}).get(
+            int(_deep_mobs_v11331.get(_tid, {}).get(
                 "uoss_deep_dungeon_apanda_floor", 0
             ) or 0) == _floor
             for _spawn_room, _tid in _spawns
