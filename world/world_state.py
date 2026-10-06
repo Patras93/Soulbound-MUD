@@ -3,6 +3,10 @@ from core.bootstrap_economy_professions import SILVER_PER_GOLD
 from core.mines_threat import v0866_room_threat_profile
 from systems.items_resources import economy_stage_anchor_v11314
 from systems.infinite_equipment import infinite_equipment_variant_for_drop
+from world.uoss_superboss_world import (
+    create_infinite_uoss_deep_dungeon_floor_definition_v11331,
+    uoss_deep_dungeon_floor_number_v11331,
+)
 
 @dataclass
 class CorpseState:
@@ -485,49 +489,57 @@ class World:
         created_room = None
         spawns = []
 
-        floor = crypt_floor_number(room_id)
+        floor = uoss_deep_dungeon_floor_number_v11331(room_id)
         if floor is not None:
-            created_room, spawns = create_infinite_crypt_floor_definition(
-                floor, mythic=False
+            created_room, spawns = (
+                create_infinite_uoss_deep_dungeon_floor_definition_v11331(
+                    floor
+                )
             )
         else:
-            floor = mythic_crypt_floor_number(room_id)
+            floor = crypt_floor_number(room_id)
             if floor is not None:
                 created_room, spawns = create_infinite_crypt_floor_definition(
-                    floor, mythic=True
+                    floor, mythic=False
                 )
             else:
-                floor = astral_floor_number(room_id)
+                floor = mythic_crypt_floor_number(room_id)
                 if floor is not None:
-                    created_room, spawns = create_infinite_astral_floor_definition(
-                        floor, mythic=False
+                    created_room, spawns = create_infinite_crypt_floor_definition(
+                        floor, mythic=True
                     )
                 else:
-                    floor = mythic_astral_floor_number(room_id)
+                    floor = astral_floor_number(room_id)
                     if floor is not None:
                         created_room, spawns = create_infinite_astral_floor_definition(
-                            floor, mythic=True
+                            floor, mythic=False
                         )
                     else:
-                        floor = giant_fortress_floor_number(room_id)
+                        floor = mythic_astral_floor_number(room_id)
                         if floor is not None:
-                            created_room, spawns = create_infinite_giant_fortress_floor_definition(
-                                floor
+                            created_room, spawns = create_infinite_astral_floor_definition(
+                                floor, mythic=True
                             )
                         else:
-                            floor = mine_floor_number(room_id)
+                            floor = giant_fortress_floor_number(room_id)
                             if floor is not None:
-                                created_room, spawns = create_infinite_mine_floor_definition(
+                                created_room, spawns = create_infinite_giant_fortress_floor_definition(
                                     floor
                                 )
                             else:
-                                dungeon, floor = profession_dungeon_floor(room_id)
-                                if dungeon is not None:
-                                    created_room, spawns = (
-                                        create_infinite_profession_dungeon_floor_definition(
-                                            dungeon, floor
-                                        )
+                                floor = mine_floor_number(room_id)
+                                if floor is not None:
+                                    created_room, spawns = create_infinite_mine_floor_definition(
+                                        floor
                                     )
+                                else:
+                                    dungeon, floor = profession_dungeon_floor(room_id)
+                                    if dungeon is not None:
+                                        created_room, spawns = (
+                                            create_infinite_profession_dungeon_floor_definition(
+                                                dungeon, floor
+                                            )
+                                        )
 
         if not created_room:
             return False
