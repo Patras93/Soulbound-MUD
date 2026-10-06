@@ -24,6 +24,7 @@ Aktualna paczka: v1.13.31
 Soulbound v1.13.31 — VERSION SYNC, PARTY CHESTS & ADAPTIVE CONSIDER
 ==============================================================================
 
+- AKTYWNE EFEKTY DLA WSZYSTKICH KLAS: komendy hp i score pokazują po HP/Manie wspólną linię z aktywnymi czasowymi buffami i pozostałym czasem. Nowe buffs / effects / efekty daje szybki osobny podgląd pod NVDA. V-MAX pokazuje V-MAX oraz Protect/Shell/Haste/Regen/Preach/Praise/Permanence; wspólny status obejmuje też Regen innych klas, Guard, Evade i Overheat. Stałe pasywki nie zaśmiecają tej listy.
 - PODBITO WERSJĘ GRY do v1.13.31. Kanoniczny runtime VERSION, nagłówek CHANGELOG_PL.txt i fallback komendy changes są ponownie zgodne.
 - PREDEPLOY VERSION SYNC pilnuje od tej wersji zgodności numeru runtime, nagłówka changeloga i LATEST_CHANGES_TITLE, żeby kolejny release nie został częściowo na starej wersji.
 - CONSIDER / CON / OCEN został dopięty do Global Adaptive Combat. Bez rozpoczynania walki prognozuje encounter-local HP moba dla realnej siły postaci i całej żywej drużyny stojącej w pokoju.
