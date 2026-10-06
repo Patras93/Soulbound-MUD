@@ -74,7 +74,7 @@ HELP_TOPIC_ALIASES.update({
 })
 
 HELP_TOPICS["boss_chests"] = [
-    "Skrzynia Bossa istnieje wyłącznie w dokładnym pokoju, w którym stoi boss checkpointu. Nie pojawia się przy zejściu ani w innych pokojach tego samego piętra.",
+    "Skrzynia Bossa pojawia się dopiero po pokonaniu bossa checkpointu i wyłącznie w dokładnym pokoju tego bossa. Nie pojawia się przy zejściu ani w innych pokojach tego samego piętra.",
     "Właściwy Klucz Bossa jest gwarantowany w ciele pokonanego bossa danego checkpointu.",
     "Bez właściwego klucza skrzynia pozostaje zamknięta.",
     "Solo: unlock / odklucz / odblokuj zużywa twój klucz i otwiera skrzynię.",
