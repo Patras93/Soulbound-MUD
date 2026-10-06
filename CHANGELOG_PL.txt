@@ -1,5 +1,5 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.13.26
+Aktualna paczka: v1.13.27
 
 
 
@@ -16,6 +16,39 @@ Aktualna paczka: v1.13.26
 
 
 
+
+
+==============================================================================
+Soulbound v1.13.27 — LOOT & SOURCE PROGRESSION PASS
+==============================================================================
+
+- Domknięto zasadę: trudniejsze/późniejsze źródło nie może dawać przedmiotu,
+  który jest zwykłą historyczną pamiątką słabszą od wcześniejszej ścieżki.
+- STARE NAMED WORLD-BOSS UNIQUES: Sygnet Herszta Bandytów, Korona Króla
+  Goblinów, Kieł Alfy Cienia, Płyta Strażnika Ruin i Rdzeń Kryształowego
+  Władcy są skalowane do progresji bossa, który je faktycznie dropi.
+- Etap starego named unique jest wyprowadzany najpierw z jawnego stage/level
+  źródła, a dla legacy bossów bez tych pól z ich authored stat/class XP
+  rewards. Dzięki temu nie jest to losowy blanket buff.
+- Named unique dostaje floor affixu, obrony, co najmniej 1 socket oraz
+  charakterystyczną property zgodną z istniejącym affixem. Zachowuje swój
+  build zamiast dostawać „więcej wszystkiego”.
+- BOSS SET vs SKLEP: audit porównuje sumę properties dla tej samej klasy,
+  mastery i slotu. Bossowy set musi mieć mocniejszy pakiet właściwości niż
+  najmocniejszy sklepowy styl przy tym samym progu.
+- SKLEP KLASOWY i BOSS SET/RELIKT mają jawny source_progression_stage równy
+  ich mastery.
+- KOWALSTWO: source progression stage odpowiada poziomowi receptury/masterwork;
+  audit pilnuje zachowania socketów.
+- CORPSE DROP EQ: każdy losowy materiałowy wariant ma source progression stage
+  równy required_mastery i osobną tożsamość „drop z moba”.
+- KRYPTA: zwykły set, wariant rarity/affix i bossowy relikt mają jawny etap
+  źródła wynikający z piętra/tieru.
+- shop info oraz porownaj czytają przez NVDA „Etap źródła EQ: ...” obok
+  istniejącej linii „Tożsamość EQ”.
+- Dodano Loot Source Progression Audit v1.13.27, Loot Source Equipment Audit
+  v1.13.27 oraz fast-predeploy guards dla całej drabiny źródeł.
+- Brak wipe, migracji bazy i nowych blokad poziomowych.
 
 ==============================================================================
 Soulbound v1.13.26 — EQUIPMENT IDENTITY PASS 2.0

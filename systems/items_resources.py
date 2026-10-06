@@ -456,6 +456,7 @@ def _register_blacksmith_items():
                 "sockets": int(masterwork["sockets"]),
                 "crafted_masterwork": True,
                 "equipment_identity_source": "blacksmith",
+                "source_progression_stage": level,
                 "equipment_identity_role": "masterwork_customization",
                 "equipment_identity_label": (
                     "Kowalstwo — masterwork, właściwość materiałowa i sockety"
@@ -996,6 +997,13 @@ def _register_corpse_material_items():
                     "corpse_material_tier": tier_index,
                     "corpse_random_variant": variant_index,
                     "required_mastery": required_mastery,
+                    "source_progression_stage": required_mastery,
+                    "equipment_identity_source": "corpse_drop",
+                    "equipment_identity_role": "random_material_variant",
+                    "equipment_identity_label": (
+                        "Drop z moba — losowy materiał, wariant i profil "
+                        + str(tier["identity"])
+                    ),
                     "mastery_requirement_scope": "active_class",
                     # v0.61.2: opis materiałowego EQ jest składany na żądanie.
                 }, 'ITEMS', ITEMS, (item_id,))
@@ -1004,6 +1012,57 @@ def _register_corpse_material_items():
 
 
 _register_corpse_material_items()
+
+
+def loot_source_equipment_audit_v11327():
+    errors = []
+
+    crafted = [
+        item for item in ITEMS.values() if item.get("crafted_masterwork")
+    ]
+    if not crafted:
+        errors.append("missing blacksmith masterwork items")
+    else:
+        for item in crafted[:200]:
+            if int(item.get("source_progression_stage", 0) or 0) <= 0:
+                errors.append("blacksmith item missing source progression stage")
+                break
+            if int(item.get("sockets", 0) or 0) < 1:
+                errors.append("blacksmith item lost socket identity")
+                break
+
+    corpse = [
+        item for item in ITEMS.values() if item.get("corpse_material")
+    ]
+    if not corpse:
+        errors.append("missing corpse material equipment")
+    else:
+        for item in corpse[:500]:
+            mastery = int(item.get("required_mastery", 0) or 0)
+            stage = int(item.get("source_progression_stage", 0) or 0)
+            if stage != mastery or stage <= 0:
+                errors.append("corpse drop source stage mismatch")
+                break
+            if item.get("equipment_identity_source") != "corpse_drop":
+                errors.append("corpse drop identity source missing")
+                break
+
+    return {
+        "version": "1.13.27",
+        "blacksmith_count": len(crafted),
+        "corpse_drop_count": len(corpse),
+        "error_count": len(errors),
+        "errors": errors,
+    }
+
+
+LOOT_SOURCE_EQUIPMENT_AUDIT_V11327 = loot_source_equipment_audit_v11327()
+if LOOT_SOURCE_EQUIPMENT_AUDIT_V11327["error_count"]:
+    raise RuntimeError(
+        "Loot Source Equipment Audit v1.13.27 failed: "
+        + "; ".join(LOOT_SOURCE_EQUIPMENT_AUDIT_V11327["errors"][:50])
+    )
+
 
 FISH_RARE_VARIANTS = {
     "albino": {

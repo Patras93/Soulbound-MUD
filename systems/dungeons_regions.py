@@ -253,6 +253,7 @@ for _floor, (_item_id, _name, _defense, _affix, _amount) in BOSS_RELICS.items():
         "affix": _affix,
         "affix_amount": _scaled_amount,
         "boss_relic_floor": _floor,
+        "source_progression_stage": min(600, int(_floor)),
         "equipment_identity_source": "crypt_boss",
         "equipment_identity_role": "unique_relic",
         "equipment_identity_label": (
@@ -328,6 +329,173 @@ WORLD_BOSS_UNIQUES = {
 }
 _catalog_mut.catalog_update_path('ITEMS', ITEMS, (), WORLD_BOSS_UNIQUES)
 
+# v1.13.27: old named world-boss uniques must scale with the source that drops
+# them. We derive a conservative stage from the boss's authored progression
+# rewards when no explicit generator/recommended stage exists.
+LEGACY_NAMED_UNIQUE_SOURCES_V11327 = {
+    "bandit_chief_signet": "bandit_chief",
+    "goblin_king_crown": "goblin_king",
+    "shadow_alpha_fang": "shadow_alpha",
+    "ruin_warden_plate": "ruin_warden",
+    "crystal_lord_core": "crystal_lord",
+}
+
+
+def _boss_source_stage_v11327(template):
+    template = template or {}
+    explicit = []
+    for key in (
+        "generator_level", "recommended_mastery", "recommended_level", "level"
+    ):
+        try:
+            value = int(template.get(key, 0) or 0)
+        except (TypeError, ValueError, OverflowError):
+            value = 0
+        if value > 0:
+            explicit.append(value)
+    if explicit:
+        return max(1, min(600, max(explicit)))
+
+    proxies = [1]
+    try:
+        proxies.append(int(template.get("stat_reward", 0) or 0) // 4)
+    except (TypeError, ValueError, OverflowError):
+        pass
+    try:
+        proxies.append(int(template.get("class_xp_reward", 0) or 0) // 50)
+    except (TypeError, ValueError, OverflowError):
+        pass
+    return max(1, min(600, max(proxies)))
+
+
+def _named_unique_property_v11327(affix, stage):
+    affix = str(affix or "")
+    key = {
+        "strength": "physical_damage_pct",
+        "dexterity": "physical_damage_pct",
+        "constitution": "physical_defense_pct",
+        "intelligence": "magic_damage_pct",
+        "willpower": "magic_defense_pct",
+        "hp": "max_hp_pct",
+        "mana": "max_mana_pct",
+    }.get(affix, "all_damage_pct")
+    amount = round(0.75 + 3.25 * ((max(1, stage) / 600.0) ** 0.72), 2)
+    return {key: amount}
+
+
+def _upgrade_named_unique_from_source_v11327(item_id, mob_id):
+    item = ITEMS.get(item_id)
+    template = MOB_TEMPLATES.get(mob_id)
+    if not item or not template:
+        return None
+
+    stage = _boss_source_stage_v11327(template)
+    budget = equipment_progression_budget_v1138(stage)
+    affix = str(item.get("affix") or "")
+    current_amount = max(0, int(item.get("affix_amount", 0) or 0))
+    if affix == "hp":
+        target_amount = max(current_amount, int(round(budget * 0.45)) * 10)
+    elif affix == "mana":
+        target_amount = max(current_amount, int(round(budget * 0.45)) * 8)
+    else:
+        target_amount = max(current_amount, int(round(budget * 0.45)))
+    item["affix_amount"] = target_amount
+
+    current_defense = max(0, int(item.get("defense", 0) or 0))
+    item["defense"] = max(
+        current_defense,
+        current_defense + max(1, int(round(equipment_defense_step_v1138(stage) * 0.75))),
+    )
+
+    properties = dict(item.get("properties") or {})
+    for key, value in _named_unique_property_v11327(affix, stage).items():
+        properties[key] = max(float(properties.get(key, 0.0) or 0.0), float(value))
+    item["properties"] = properties
+
+    sockets = 1
+    if stage >= 50:
+        sockets = 2
+    if stage >= 100:
+        sockets = 3
+    item["sockets"] = max(int(item.get("sockets", 0) or 0), sockets)
+
+    item["source_progression_stage"] = stage
+    item["source_progression_floor_v11327"] = True
+    item["equipment_identity_source"] = "world_boss"
+    item["equipment_identity_role"] = "named_unique"
+    item["equipment_identity_label"] = (
+        f"World Boss — nazwany unikat skalowany do źródła (etap {stage})"
+    )
+    return stage
+
+
+for _legacy_unique_id_v11327, _source_mob_id_v11327 in (
+    LEGACY_NAMED_UNIQUE_SOURCES_V11327.items()
+):
+    _upgrade_named_unique_from_source_v11327(
+        _legacy_unique_id_v11327, _source_mob_id_v11327
+    )
+
+
+def loot_source_progression_audit_v11327():
+    errors = []
+    rows = {}
+    for item_id, mob_id in LEGACY_NAMED_UNIQUE_SOURCES_V11327.items():
+        item = ITEMS.get(item_id) or {}
+        template = MOB_TEMPLATES.get(mob_id) or {}
+        stage = _boss_source_stage_v11327(template)
+        budget = equipment_progression_budget_v1138(stage)
+        affix = str(item.get("affix") or "")
+        amount = int(item.get("affix_amount", 0) or 0)
+        expected = int(round(budget * 0.45))
+        if affix == "hp":
+            expected *= 10
+        elif affix == "mana":
+            expected *= 8
+        if amount < max(1, expected):
+            errors.append(f"{item_id}: affix {amount} < source floor {expected}")
+        if int(item.get("source_progression_stage", 0) or 0) != stage:
+            errors.append(f"{item_id}: missing source stage {stage}")
+        if not item.get("properties"):
+            errors.append(f"{item_id}: missing source-scaled property")
+        if int(item.get("sockets", 0) or 0) < 1:
+            errors.append(f"{item_id}: missing boss-unique socket")
+        rows[item_id] = {
+            "stage": stage,
+            "affix_amount": amount,
+            "defense": int(item.get("defense", 0) or 0),
+            "sockets": int(item.get("sockets", 0) or 0),
+            "properties": dict(item.get("properties") or {}),
+        }
+
+    # Crypt rarity must remain a real progression ladder.
+    _rarity_order = ("common", "rare", "epic", "legendary", "mythic")
+    _prop_floor = {
+        "common": 0.5, "rare": 1.0, "epic": 1.5,
+        "legendary": 2.5, "mythic": 4.0,
+    }
+    if any(
+        _prop_floor[_rarity_order[i]] >= _prop_floor[_rarity_order[i + 1]]
+        for i in range(len(_rarity_order) - 1)
+    ):
+        errors.append("crypt rarity property ladder is not strictly increasing")
+
+    return {
+        "version": "1.13.27",
+        "legacy_named_uniques": rows,
+        "error_count": len(errors),
+        "errors": errors,
+    }
+
+
+LOOT_SOURCE_PROGRESSION_AUDIT_V11327 = loot_source_progression_audit_v11327()
+if LOOT_SOURCE_PROGRESSION_AUDIT_V11327["error_count"]:
+    raise RuntimeError(
+        "Loot Source Progression Audit v1.13.27 failed: "
+        + "; ".join(LOOT_SOURCE_PROGRESSION_AUDIT_V11327["errors"][:50])
+    )
+
+
 for _world_boss_unique_id in WORLD_BOSS_UNIQUES:
     _world_boss_unique_item = ITEMS[_world_boss_unique_id]
     _world_boss_unique_item.setdefault(
@@ -387,6 +555,7 @@ def build_crypt_loot_variants():
         base_item["rarity_name"] = "Zwykły"
         base_item["crypt_set_tier"] = tier
         base_item["crypt_base_item"] = base_item_id
+        base_item["source_progression_stage"] = max(1, min(600, tier * 10))
         base_item["affix"] = None
         base_item["affix_amount"] = 0
         base_item["equipment_identity_source"] = "crypt"
@@ -485,6 +654,7 @@ def build_crypt_loot_variants():
                     "rarity_name": rarity["name"],
                     "crypt_set_tier": tier,
                     "crypt_base_item": base_item_id,
+                    "source_progression_stage": mastery,
                     "affix": affix_key,
                     "affix_amount": amount,
                     "equipment_identity_source": "crypt",

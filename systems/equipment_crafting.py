@@ -498,6 +498,7 @@ def _register_class_equipment_shops():
                         "magic_attack": int(flat_power["magic_attack"]),
                         "properties": dict(item_properties),
                         "equipment_identity_source": "class_shop",
+                        "source_progression_stage": required_mastery,
                         "equipment_identity_role": class_equipment_style_role(
                             class_name, style_index
                         ),
@@ -833,6 +834,7 @@ def _register_legendary_class_loot():
                     },
                     "properties": dict(legendary_properties_v11326),
                     "equipment_identity_source": "boss_set",
+                    "source_progression_stage": mastery,
                     "equipment_identity_role": "boss_upgrade",
                     "equipment_identity_label": (
                         "Bossowy set klasowy — mocniejsze właściwości "
@@ -915,6 +917,7 @@ def _register_legendary_class_loot():
                 "required_mastery": mastery,
                 "properties": properties,
                 "equipment_identity_source": "boss_relic",
+                "source_progression_stage": mastery,
                 "equipment_identity_role": "unique_power",
                 "equipment_identity_label": (
                     "Relikt bossa — unikalna alternatywa dla części setowej"
@@ -970,6 +973,18 @@ def equipment_identity_audit_v11326():
     ):
         errors.append("shop styles are not materially distinct")
 
+    # v1.13.27: a boss-set source must not lose to the strongest shop
+    # style at the same class/mastery/slot on total percentage properties.
+    _shop_prop_by_key = {}
+    for item in class_shop_items:
+        key = (
+            item.get("required_class"),
+            int(item.get("required_mastery", 1) or 1),
+            item.get("slot"),
+        )
+        prop_sum = sum(float(v or 0.0) for v in (item.get("properties") or {}).values())
+        _shop_prop_by_key[key] = max(_shop_prop_by_key.get(key, 0.0), prop_sum)
+
     legendary_sets = [
         item for item in ITEMS.values() if item.get("legendary_set_loot")
     ]
@@ -980,6 +995,28 @@ def equipment_identity_audit_v11326():
             errors.append("boss set identity source missing")
         if not all(item.get("properties") for item in legendary_sets[:100]):
             errors.append("boss set identity properties missing")
+        for item in legendary_sets:
+            key = (
+                item.get("required_class"),
+                int(item.get("required_mastery", 1) or 1),
+                item.get("slot"),
+            )
+            shop_sum = float(_shop_prop_by_key.get(key, 0.0))
+            boss_sum = sum(
+                float(v or 0.0)
+                for v in (item.get("properties") or {}).values()
+            )
+            if shop_sum > 0.0 and boss_sum <= shop_sum:
+                errors.append(
+                    f"boss set source regression: {item.get('name')} "
+                    f"properties {boss_sum:.2f} <= shop {shop_sum:.2f}"
+                )
+                break
+            if int(item.get("source_progression_stage", 0) or 0) != int(
+                item.get("required_mastery", 1) or 1
+            ):
+                errors.append("boss set source stage mismatch")
+                break
 
     blacksmith = [
         item for item in ITEMS.values() if item.get("crafted_masterwork")

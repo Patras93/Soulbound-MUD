@@ -190,6 +190,11 @@ class SessionShopsTeachersMixin:
                 await self.send(
                     "Tożsamość EQ: " + str(_identity_label_v11326) + "."
                 )
+            _source_stage_v11327 = int(item.get("source_progression_stage", 0) or 0)
+            if _source_stage_v11327 > 0:
+                await self.send(
+                    f"Etap źródła EQ: {_source_stage_v11327}."
+                )
             if cashback > 0:
                 _catalog_text = currency_reading_text(base_price, 0, 0)
                 _token_id, _token_cost, _token_text = self.shop_offer_token_parts(item)
