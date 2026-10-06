@@ -97,7 +97,6 @@ class SessionCharacterProfileMixin:
             await self.send(f"HP: {self.current_hp} z {self.max_hp()}.")
             await self.send(f"Mana: {self.current_mana} z {self.max_mana()}.")
             await self.send(await self.active_effects_status_text_v11331())
-            await self.send(await self.active_effects_status_text_v11331())
 
     async def show_character_level(self):
             """Krótki Poziom postaci 1-600, niezależny od Soul Levelu."""
@@ -146,6 +145,7 @@ class SessionCharacterProfileMixin:
             await self.send(f"Soul Weapon Mastery: {c.soul_weapon_mastery_level}/{SOUL_WEAPON_MASTERY_MAX_LEVEL}. XP: {c.soul_weapon_mastery_xp} z {c.soul_weapon_mastery_xp_to_next() if c.soul_weapon_mastery_level < SOUL_WEAPON_MASTERY_MAX_LEVEL else 0}.")
             await self.send(f"HP: {self.current_hp} z {self.max_hp()}.")
             await self.send(f"Mana: {self.current_mana} z {self.max_mana()}.")
+            await self.send(await self.active_effects_status_text_v11331())
             await self.send(f"Siła: {self.effective_strength()}.")
             await self.send(f"Zręczność: {self.effective_dexterity()}.")
             await self.send(f"Kondycja: {self.effective_constitution()}.")
