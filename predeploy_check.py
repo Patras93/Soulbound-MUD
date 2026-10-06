@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Fast Railway predeploy gate for Soulbound v1.13.23.
+"""Fast Railway predeploy gate for Soulbound v1.13.24.
 
 This is the normal deploy check.  It intentionally avoids assembling the full
 world/runtime.  Use predeploy_full.py when an exhaustive historical audit is
@@ -16,7 +16,7 @@ import traceback
 try:
     from storage.database import Database as _DatabaseImportSmoke
 except Exception as exc:
-    print(f"Soulbound v1.13.23 FAST PREDEPLOY FAILED: database import: {type(exc).__name__}: {exc}")
+    print(f"Soulbound v1.13.24 FAST PREDEPLOY FAILED: database import: {type(exc).__name__}: {exc}")
     traceback.print_exc()
     raise SystemExit(1)
 
@@ -37,7 +37,7 @@ try:
     )
 except Exception as exc:
     print(
-        "Soulbound v1.13.23 FAST PREDEPLOY FAILED: "
+        "Soulbound v1.13.24 FAST PREDEPLOY FAILED: "
         f"skill semantic import: {type(exc).__name__}: {exc}"
     )
     traceback.print_exc()
@@ -293,6 +293,43 @@ for _needle in (
         _semantic_errors.append(
             "terrain recommended mastery floor regression: missing " + _needle
         )
+
+# v1.13.24: Global "O Kurde" Game Feel must remain activity-specific and
+# preserve exact authored/manual rewards.
+_game_feel_source_v11324 = (_root / "systems/game_feel_rewards.py").read_text(encoding="utf-8")
+_combat_realtime_source_v11324 = (_root / "player/session_mixins/combat_realtime.py").read_text(encoding="utf-8")
+_gathering_source_v11324 = (_root / "player/session_mixins/gathering_actions.py").read_text(encoding="utf-8")
+_crafting_source_v11324 = (_root / "player/session_mixins/crafting.py").read_text(encoding="utf-8")
+_quest_commands_source_v11324 = (_root / "player/session_mixins/quest_commands.py").read_text(encoding="utf-8")
+_exploration_source_v11324 = (_root / "player/session_mixins/exploration_progress.py").read_text(encoding="utf-8")
+
+for _needle in (
+    "def gather_jackpot_v11324",
+    "def craft_inspiration_v11324",
+    "def quest_completion_bonus_v11324",
+    "def exploration_find_v11324",
+    "def mob_attack_flavor_v11324",
+    'quest.get("manual_currency_reward_coins") is not None',
+    'quest.get("currency_reward_mode") == "manual"',
+    "GAME_FEEL_AUDIT_V11324",
+):
+    if _needle not in _game_feel_source_v11324:
+        _semantic_errors.append("global game feel helper regression: missing " + _needle)
+
+if _gathering_source_v11324.count("gather_jackpot_v11324(") < 4:
+    _semantic_errors.append("global game feel regression: not all four core gathering actions have jackpot rolls")
+if _gathering_source_v11324.count("* _o_kurde_gather_xp_v11324") < 8:
+    _semantic_errors.append("global game feel regression: gathering jackpot XP not applied to profession+tool")
+
+for _source, _needles, _label in (
+    (_combat_realtime_source_v11324, ("mob_attack_flavor_v11324", "_enemy_action_mult_v11324"), "combat identity"),
+    (_crafting_source_v11324, ("craft_inspiration_v11324", "_o_kurde_craft_xp_v11324"), "craft inspiration"),
+    (_quest_commands_source_v11324, ("quest_completion_bonus_v11324", "quest_bonus_coins_v11324"), "quest bonus"),
+    (_exploration_source_v11324, ("exploration_find_v11324", "exploration_jackpots_v11324"), "exploration find"),
+):
+    for _needle in _needles:
+        if _needle not in _source:
+            _semantic_errors.append(f"global game feel regression: {_label} missing {_needle}")
 
 # v1.13.23: ordinary mobs must keep real danger and a rare stage-scaled payout.
 _global_difficulty_source_v11323 = (_root / "world/global_difficulty_overdrive.py").read_text(encoding="utf-8")
@@ -1132,18 +1169,18 @@ except Exception as exc:
     )
 
 if _semantic_errors:
-    print("Soulbound v1.13.23 FAST PREDEPLOY FAILED: semantic contracts")
+    print("Soulbound v1.13.24 FAST PREDEPLOY FAILED: semantic contracts")
     for _error in _semantic_errors:
         print(f"ERROR: {_error}")
     raise SystemExit(1)
 
 if audit["error_count"]:
-    print("Soulbound v1.13.23 FAST PREDEPLOY FAILED")
+    print("Soulbound v1.13.24 FAST PREDEPLOY FAILED")
     for error in audit["errors"]:
         print(f"ERROR: {error}")
     raise SystemExit(1)
 
-print("Soulbound v1.13.23 FAST PREDEPLOY PASS")
+print("Soulbound v1.13.24 FAST PREDEPLOY PASS")
 print(
     "Semantic contracts: "
     f"{len(_semantic_audits)} audits PASS; AP runtime guards PASS"
