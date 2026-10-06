@@ -210,8 +210,11 @@ _RUNTIME_MODULES_ALL = ['core/bootstrap_economy_professions.py',
 FULL_AUDIT_ONLY_MODULES = frozenset(
     m for m in _RUNTIME_MODULES_ALL
     if (
-        (m.startswith("admin/") and "audit" in m.rsplit("/", 1)[-1].lower())
-        or m.startswith("admin/release_integrity_")
+        (
+            (m.startswith("admin/") and "audit" in m.rsplit("/", 1)[-1].lower())
+            or m.startswith("admin/release_integrity_")
+        )
+        and m != "admin/audits.py"
     )
 )
 FULL_RUNTIME_MODULES = tuple(_RUNTIME_MODULES_ALL)
