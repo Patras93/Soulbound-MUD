@@ -303,7 +303,7 @@ def refresh_help_truth_current_v11328():
         "Źródła EQ mają osobną tożsamość: sklep = przewidywalny set, Kowalstwo = masterwork/customizacja, Krypta = rarity+losowy affix, boss = mocniejszy/unikalny drop, UOSS = specjalne efekty/wardy/status-proof.",
         "shop info i porownaj czytają linię Tożsamość EQ. Gdy przedmiot ma określony etap źródła, czytają też Etap źródła EQ.",
         "Bossowy set klasowy przy tym samym mastery ma mocniejszy pakiet properties niż sklepowy odpowiednik; named boss uniques mają floor mocy zależny od źródła.",
-        "Rezonans Głębi działa ponad etapem źródła 600 w nieskończonych instancjach. Nie tworzy wymagania Biegłości 601+: wymaganie założenia pozostaje w normalnej progresji 1-600, a rośnie moc konkretnego dropu.",
+        "Rezonans Głębi działa ponad etapem źródła 600 w nieskończonych instancjach. Każdy taki wariant wymaga Biegłości 600, nigdy 601+, a dalsza głębokość zwiększa moc konkretnego dropu.",
         "EQ nie jest automatycznie bindowane tylko dlatego, że zostało zdobyte; konkretne wyjątki UOSS mogą mieć własne zasady pickup/bind.",
     ]
     HELP_TOPICS["eq"] = list(HELP_TOPICS["ekwipunek"])
@@ -315,7 +315,7 @@ def refresh_help_truth_current_v11328():
         "Corpse drop: losowy materiał, wariant i profil; dobry roll może być atrakcyjny dla konkretnego buildu.",
         "Krypta: rarity + losowy affix + rosnące properties/sockety; boss Krypty daje unikalny relikt.",
         "Boss/world boss: named unique lub boss-set skalowany do źródła; trudniejsze źródło nie powinno przegrywać z wcześniejszą drabiną tylko przez historyczne wartości.",
-        "Post-600: Krypta, Wieża i Magitek mogą nadać EQ Rezonans Głębi. Etap źródła może wtedy rosnąć ponad 600, ale required_mastery/poziom gracza nie rośnie ponad istniejący cap.",
+        "Post-600: Krypta, Wieża i Magitek mogą nadać EQ Rezonans Głębi. Etap źródła może rosnąć ponad 600, ale sam wariant pozostaje na wymaganiu Biegłości 600.",
         "UOSS Superboss: specjalne efekty, wardy, odporności/status-proof i relikty. shop info / eq info / porownaj pokazują realne dane.",
     ]
 
