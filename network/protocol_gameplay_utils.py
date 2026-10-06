@@ -77,7 +77,10 @@ HELP_TOPICS["boss_chests"] = [
     "Skrzynie Bossów stoją na piętrach bossów co 10 w Krypcie, Wieży Astralnej, Mitycznej Krypcie, Mitycznej Wieży i Twierdzy Gigantów.",
     "Właściwy Klucz Bossa jest gwarantowany w ciele pokonanego bossa danego piętra.",
     "Bez właściwego klucza skrzynia pozostaje zamknięta.",
-    "unlock / odklucz / odblokuj - zużyj klucz i otwórz skrzynię.",
+    "Solo: unlock / odklucz / odblokuj zużywa twój klucz i otwiera skrzynię.",
+    "Drużyna: skrzynię otwiera lider. Każdy członek tej samej drużyny stojący przy skrzyni dostaje własny roll złota i przedmiotów z jednego wspólnego otwarcia.",
+    "Jeżeli nagrodzony członek drużyny ma własny odpowiadający Klucz Bossa, jedna sztuka jest zużywana razem ze wspólnym otwarciem, aby nie powstał podwójny odbiór tej samej party-run skrzyni.",
+    "Członkowie drużyny w innych lokacjach nie dostają nagrody ze skrzyni.",
     "Skrzynia daje gwarantowane złoto oraz losowe użyteczne przedmioty zależne od poziomu zawartości.",
 ]
 HELP_TOPICS["admin_owner"] = [
