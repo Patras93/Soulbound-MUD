@@ -1267,6 +1267,12 @@ def fish_jackpot_xp_multiplier_v1138(item_id):
     # XP rośnie dużo łagodniej niż wartość sprzedaży, żeby jackpot nie omijał grindu.
     return min(4.0, 1.0 + (math.sqrt(variant_mult * trophy_mult) - 1.0) * 0.55)
 
+
+def rare_resource_xp_multiplier_v1138(item_id):
+    item = ITEMS.get(item_id, {})
+    value_mult = max(1.0, float(item.get("rare_value_multiplier", 1.0) or 1.0))
+    return min(3.5, 1.0 + (math.sqrt(value_mult) - 1.0) * 0.50)
+
 def fish_species_habitats(item_id):
     item_id = base_fish_species_id(item_id)
     labels = []
