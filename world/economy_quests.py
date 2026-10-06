@@ -509,6 +509,18 @@ def _dynamic_regular_mob_pack(room_id, base_id, template, names, floor, floor_wo
     spawns = [(room_id, base_id)]
     names = tuple(names or ())
     base_index = (max(1, int(floor)) - 1) % len(names) if names else 0
+    if template.get("mythic_crypt_floor") is not None:
+        name_kind = "mythic_crypt"
+    elif template.get("crypt_floor") is not None:
+        name_kind = "crypt"
+    elif template.get("mythic_astral_floor") is not None:
+        name_kind = "mythic_astral"
+    elif template.get("astral_floor") is not None:
+        name_kind = "astral"
+    elif template.get("giant_fortress_floor") is not None:
+        name_kind = "giant"
+    else:
+        name_kind = str(template.get("profession_dungeon") or "")
     for offset in (1, 2):
         variant_id = f"{base_id}_v{offset + 1}"
         variant = dict(template)
@@ -517,7 +529,13 @@ def _dynamic_regular_mob_pack(room_id, base_id, template, names, floor, floor_wo
         if isinstance(template.get("corpse_equipment_pool"), list):
             variant["corpse_equipment_pool"] = list(template["corpse_equipment_pool"])
         if names:
-            variant["name"] = f"{names[(base_index + offset) % len(names)]}, {floor_word} {floor}"
+            variant["name"] = dungeon_mob_display_name_v11335(
+                name_kind,
+                names[(base_index + offset) % len(names)],
+                floor,
+                floor_word,
+                variant=offset,
+            )
         else:
             variant["name"] = f"{template.get('name', 'Przeciwnik')} — wariant {offset + 1}"
         if offset == 1:
@@ -725,7 +743,13 @@ def _infinite_crypt_boss_profile(floor):
     cycle = (110, 120, 130, 140, 150, 160, 170, 180, 190, 200)
     source = cycle[((int(floor) // 10) - 21) % len(cycle)]
     return (
-        milestone_boss_name("crypt", floor, f"Władca Nieskończonej Krypty, piętro {floor}"),
+        milestone_boss_name(
+            "crypt",
+            floor,
+            dungeon_mob_display_name_v11335(
+                "crypt", "Władca Nieskończonej Krypty", floor, "piętro", variant=5
+            ),
+        ),
         CRYPT_BOSS_MECHANICS[source],
         CRYPT_BOSS_MECHANIC_TEXT[source],
     )
@@ -740,7 +764,17 @@ def _infinite_mythic_boss_profile(floor):
         "phantom_emperor": "Boss ma Widmowy Unik i okresowo wzmacnia magię.",
         "final_guardian": "Poniżej połowy HP boss staje się znacznie bardziej niebezpieczny.",
     }[mechanic]
-    return milestone_boss_name("mythic_crypt", floor, f"Mityczny Władca Nieskończonej Krypty, piętro {floor}"), mechanic, text
+    return milestone_boss_name(
+        "mythic_crypt",
+        floor,
+        dungeon_mob_display_name_v11335(
+            "mythic_crypt",
+            "Mityczny Władca Nieskończonej Krypty",
+            floor,
+            "piętro",
+            variant=5,
+        ),
+    ), mechanic, text
 
 def create_infinite_crypt_floor_definition(floor, mythic=False):
     floor = max(1, int(floor))
@@ -768,7 +802,12 @@ def create_infinite_crypt_floor_definition(floor, mythic=False):
         regular_id = f"mythic_crypt_mob_{floor}"
         base_hp = max(1, int(round((4000 + floor * 100) * mult)))
         template = {
-            "name": f"Mityczny Strażnik Głębi, piętro {floor}",
+            "name": dungeon_mob_display_name_v11335(
+                "mythic_crypt",
+                "Mityczny Strażnik Głębi",
+                floor,
+                "piętro",
+            ),
             "max_hp": max(1, int(round(base_hp * GLOBAL_MOB_HP_MULTIPLIER))),
             "base_max_hp": base_hp,
             "damage": max(1, int(round((120 + floor) * mult))),
@@ -838,7 +877,12 @@ def create_infinite_crypt_floor_definition(floor, mythic=False):
     regular_id = f"crypt_floor_mob_{floor}"
     base_hp = max(1, int(round((70 + floor * 9) * mult)))
     template = {
-        "name": f"{CRYPT_REGULAR_NAMES[(floor - 1) % len(CRYPT_REGULAR_NAMES)]}, piętro {floor}",
+        "name": dungeon_mob_display_name_v11335(
+            "crypt",
+            CRYPT_REGULAR_NAMES[(floor - 1) % len(CRYPT_REGULAR_NAMES)],
+            floor,
+            "piętro",
+        ),
         "max_hp": max(1, int(round(base_hp * GLOBAL_MOB_HP_MULTIPLIER))),
         "base_max_hp": base_hp,
         "damage": max(1, int(round((6 + floor // 3) * mult))),
@@ -865,6 +909,10 @@ def create_infinite_crypt_floor_definition(floor, mythic=False):
     # Dodajemy dwa osobne szkielety na każde zwykłe piętro, niezależnie od
     # rotacji nazw podstawowej trójki. Nie zmienia to statystyk ani balansu
     # pojedynczego moba; zwiększa wyłącznie dostępność tego typu przeciwnika.
+    _skeleton_guard_names = (
+        "Szkielet Strażnik Kościanej Warty",
+        "Szkielet Strażnik Grobowej Warty",
+    )
     for skeleton_no in (1, 2):
         skeleton_id = f"{regular_id}_skeleton_guard_{skeleton_no}"
         skeleton = dict(template)
@@ -872,7 +920,13 @@ def create_infinite_crypt_floor_definition(floor, mythic=False):
             skeleton["drops"] = dict(template["drops"])
         if isinstance(template.get("corpse_equipment_pool"), list):
             skeleton["corpse_equipment_pool"] = list(template["corpse_equipment_pool"])
-        skeleton["name"] = f"Szkielet Strażnik Krypty, piętro {floor}"
+        skeleton["name"] = dungeon_mob_display_name_v11335(
+            "crypt",
+            _skeleton_guard_names[skeleton_no - 1],
+            floor,
+            "piętro",
+            variant=6 + skeleton_no,
+        )
         skeleton["template_id"] = skeleton_id
         skeleton["crypt_skeleton_guard_v1002"] = True
         _catalog_mut.catalog_assign(
@@ -1025,7 +1079,17 @@ def _dynamic_astral_boss_profile(floor):
     source_floors = tuple(sorted(ASTRAL_BOSS_NAMES))
     source = source_floors[((int(floor) // 10) - 1) % len(source_floors)]
     return (
-        milestone_boss_name("astral", floor, f"Władca Nieskończonej Wieży Astralnej, poziom {floor}"),
+        milestone_boss_name(
+            "astral",
+            floor,
+            dungeon_mob_display_name_v11335(
+                "astral",
+                "Władca Nieskończonej Wieży Astralnej",
+                floor,
+                "poziom",
+                variant=5,
+            ),
+        ),
         ASTRAL_BOSS_MECHANICS[source],
         ASTRAL_BOSS_MECHANIC_TEXT[source],
     )
@@ -1034,7 +1098,17 @@ def _dynamic_mythic_astral_boss_profile(floor):
     source_floors = tuple(sorted(ASTRAL_BOSS_MECHANICS))
     source = source_floors[((int(floor) // 10) - 1) % len(source_floors)]
     return (
-        milestone_boss_name("mythic_astral", floor, f"Mityczny Suweren Nieskończonej Wieży, poziom {floor}"),
+        milestone_boss_name(
+            "mythic_astral",
+            floor,
+            dungeon_mob_display_name_v11335(
+                "mythic_astral",
+                "Mityczny Suweren Nieskończonej Wieży",
+                floor,
+                "poziom",
+                variant=5,
+            ),
+        ),
         ASTRAL_BOSS_MECHANICS[source],
         ASTRAL_BOSS_MECHANIC_TEXT[source],
     )
@@ -1043,7 +1117,17 @@ def _dynamic_giant_boss_profile(floor):
     source_floors = tuple(sorted(GIANT_FORTRESS_BOSS_NAMES))
     source = source_floors[((int(floor) // 10) - 1) % len(source_floors)]
     return (
-        milestone_boss_name("giant", floor, f"Władca Nieskończonej Twierdzy, poziom {floor}"),
+        milestone_boss_name(
+            "giant",
+            floor,
+            dungeon_mob_display_name_v11335(
+                "giant",
+                "Władca Nieskończonej Twierdzy",
+                floor,
+                "poziom",
+                variant=5,
+            ),
+        ),
         GIANT_FORTRESS_BOSS_MECHANICS[source],
         {
             10: "Co trzecią odpowiedź używa Miażdżenia Giganta.",
@@ -1080,7 +1164,12 @@ def create_infinite_astral_floor_definition(floor, mythic=False):
         regular_id = f"mythic_astral_mob_{floor}"
         base_hp = max(1, int(round((5000 + floor * 120) * mult)))
         template = {
-            "name": f"Mityczny Strażnik Nieskończonego Astralu, poziom {floor}",
+            "name": dungeon_mob_display_name_v11335(
+                "mythic_astral",
+                "Mityczny Strażnik Nieskończonego Astralu",
+                floor,
+                "poziom",
+            ),
             "max_hp": max(1, int(round(base_hp * GLOBAL_MOB_HP_MULTIPLIER))),
             "base_max_hp": base_hp,
             "damage": max(1, int(round((145 + floor) * mult))),
@@ -1175,7 +1264,12 @@ def create_infinite_astral_floor_definition(floor, mythic=False):
     regular_id = f"astral_floor_mob_{floor}"
     base_hp = max(1, int(round((1050 + relative * 12) * mult)))
     template = {
-        "name": f"{ASTRAL_REGULAR_NAMES[relative % len(ASTRAL_REGULAR_NAMES)]}, poziom {floor}",
+        "name": dungeon_mob_display_name_v11335(
+            "astral",
+            ASTRAL_REGULAR_NAMES[relative % len(ASTRAL_REGULAR_NAMES)],
+            floor,
+            "poziom",
+        ),
         "max_hp": max(1, int(round(base_hp * GLOBAL_MOB_HP_MULTIPLIER))),
         "base_max_hp": base_hp,
         "damage": max(1, int(round((42 + relative // 3) * mult))),
@@ -1271,7 +1365,12 @@ def create_infinite_giant_fortress_floor_definition(floor):
     mob_id = f"giant_fortress_mob_{floor}"
     base_hp = max(1, int(round((450 + floor * 55) * mult)))
     template = {
-        "name": f"{names[(floor - 1) % len(names)]}, poziom {floor}",
+        "name": dungeon_mob_display_name_v11335(
+            "giant",
+            names[(floor - 1) % len(names)],
+            floor,
+            "poziom",
+        ),
         "max_hp": max(1, int(round(base_hp * GLOBAL_MOB_HP_MULTIPLIER))),
         "base_max_hp": base_hp,
         "damage": max(1, int(round((18 + floor * 2) * mult))),
