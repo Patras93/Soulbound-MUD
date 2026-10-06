@@ -196,6 +196,7 @@ _RUNTIME_MODULES_ALL = ['core/bootstrap_economy_professions.py',
  'admin/world_expansion_v_audit_v0900.py',
  'systems/soul_shard_finalizer.py',
  'systems/economy_income_balance.py',
+ 'admin/help_truth_current_v11328.py',
  'systems/runtime_memory.py',
  'admin/release_integrity_v0369.py']
 
