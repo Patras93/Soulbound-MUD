@@ -198,7 +198,14 @@ def load_native_runtime(root: Path, namespace: MutableMapping[str, object]) -> d
     """
     root = Path(root)
     full_audit_enabled = os.environ.get("SOULBOUND_FULL_AUDIT", "").strip().lower() in ("1", "true", "yes", "on")
-    active_modules = FULL_RUNTIME_MODULES if full_audit_enabled else RUNTIME_MODULES
+    historical_audits_enabled = os.environ.get(
+        "SOULBOUND_HISTORICAL_AUDITS", ""
+    ).strip().lower() in ("1", "true", "yes", "on")
+    # SOULBOUND_FULL_AUDIT controls expensive semantic/gameplay verification
+    # (Generator fingerprints etc.). Historical developer audit modules are a
+    # separate opt-in lane: stale style/size budgets must not be executed as
+    # part of the assembled production runtime used for deploy validation.
+    active_modules = FULL_RUNTIME_MODULES if historical_audits_enabled else RUNTIME_MODULES
     missing = [name for name in active_modules if not (root / name).is_file()]
     if missing:
         raise RuntimeError("Soulbound runtime incomplete. Missing: " + ", ".join(missing))
