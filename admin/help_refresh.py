@@ -1547,6 +1547,14 @@ def help_truth_audit_v11197():
     professions = topic_text("profesje")
     if "14 profesji" not in professions:
         errors.append("HELP profesje: must state 14 professions")
+    for needle in (
+        "sensowny zarobek",
+        "Rekiny",
+        "Geody",
+        "premię odkrywcy",
+    ):
+        if needle not in professions:
+            errors.append(f"HELP profesje: missing reward identity {needle}")
 
     queue = topic_text("kolejka")
     if "20" not in queue or "80" not in queue:
