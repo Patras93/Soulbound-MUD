@@ -207,6 +207,71 @@ def superboss_helper_balance_audit_v11330():
 SUPERBOSS_HELPER_BALANCE_AUDIT_V11330 = superboss_helper_balance_audit_v11330()
 
 
+def superboss_completion_audit_v11330():
+    """Final UOSS reward/helper contract; diagnostic, never a startup raise."""
+    errors = list(SUPERBOSS_HELPER_BALANCE_AUDIT_V11330.get("errors", ()))
+
+    for boss_key, (_item_id, label) in SUPERBOSS_TOKEN_ITEMS_V11135.items():
+        spec = UOSS_SUPERBOSS_ENCOUNTERS_V11134.get(boss_key)
+        if not isinstance(spec, dict):
+            errors.append(f"{boss_key}: personal token has no encounter")
+            continue
+        if str(spec.get("personal_token") or "") != str(label):
+            errors.append(
+                f"{boss_key}: encounter personal_token does not match reward mapping"
+            )
+
+    unique_contracts = {
+        "black_rabite": (BLACK_RABITE_UNIQUE_DROPS_V11135, 10),
+        "yiazmat": (YIAZMAT_UNIQUE_DROPS_V11135, 7),
+        "odin": (ODIN_UNIQUE_DROPS_V11158, 8),
+    }
+    for boss_key, (pool, expected_count) in unique_contracts.items():
+        spec = UOSS_SUPERBOSS_ENCOUNTERS_V11134.get(boss_key, {})
+        if len(tuple(pool)) != expected_count:
+            errors.append(
+                f"{boss_key}: unique pool {len(tuple(pool))}!={expected_count}"
+            )
+        if int(spec.get("unique_drop_count", 0) or 0) != expected_count:
+            errors.append(
+                f"{boss_key}: encounter unique_drop_count mismatch"
+            )
+        if int(spec.get("lockout_hours", 0) or 0) != 24:
+            errors.append(f"{boss_key}: personal reward lockout must remain 24h")
+        if not bool(spec.get("shared_unique_drop")):
+            errors.append(f"{boss_key}: personal unique reward contract missing")
+
+    helper_names = set()
+    for boss_key, spec in UOSS_SUPERBOSS_ENCOUNTERS_V11134.items():
+        if spec.get("helpers"):
+            helper_names.update(map(str, spec.get("helpers") or ()))
+        if spec.get("helper"):
+            helper_names.add(str(spec.get("helper")))
+        if spec.get("helper") or spec.get("helpers"):
+            if int(spec.get("helper_max_players", 0) or 0) <= 0:
+                errors.append(f"{boss_key}: helper has no party-size limit")
+            if int(spec.get("helper_cost_mithril", 0) or 0) != 1:
+                errors.append(f"{boss_key}: helper cost must remain 1 mithril")
+
+    missing_roles = sorted(
+        helper_names - set(SUPERBOSS_HELPER_ROLES_V11330)
+    )
+    if missing_roles:
+        errors.append("helpers without Soulbound combat role: " + ", ".join(missing_roles))
+
+    return {
+        "version": "1.13.30",
+        "token_bosses": len(SUPERBOSS_TOKEN_ITEMS_V11135),
+        "unique_bosses": len(unique_contracts),
+        "helper_names": tuple(sorted(helper_names)),
+        "error_count": len(errors),
+        "errors": errors,
+    }
+
+
+SUPERBOSS_COMPLETION_AUDIT_V11330 = superboss_completion_audit_v11330()
+
+
 def superboss_helper_profile_v11137(session, template):
     key = superboss_key_from_template_v11135(template)
     if not key:
