@@ -185,6 +185,11 @@ class SessionShopsTeachersMixin:
                     + ". Style tej samej klasy można mieszać bez utraty progów setu 2/4/6/8."
                 )
             await self.send(self.format_item_description(item_id, item))
+            _identity_label_v11326 = item.get("equipment_identity_label")
+            if _identity_label_v11326:
+                await self.send(
+                    "Tożsamość EQ: " + str(_identity_label_v11326) + "."
+                )
             if cashback > 0:
                 _catalog_text = currency_reading_text(base_price, 0, 0)
                 _token_id, _token_cost, _token_text = self.shop_offer_token_parts(item)
