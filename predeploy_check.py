@@ -140,6 +140,8 @@ for _needle in _troll_reward_needles:
 # v1.13.8: Generator Core is a fallback, not an unconditional overwrite layer.
 _generator_source = (_root / "core/generator_core.py").read_text(encoding="utf-8")
 _equipment_source = (_root / "systems/equipment_crafting.py").read_text(encoding="utf-8")
+_items_resource_source = (_root / "systems/items_resources.py").read_text(encoding="utf-8")
+_dungeon_source = (_root / "systems/dungeons_regions.py").read_text(encoding="utf-8")
 _economy_source = (_root / "systems/economy_income_balance.py").read_text(encoding="utf-8")
 _runtime_progression_source = (_root / "core/progression_resources.py").read_text(encoding="utf-8")
 for _needle in (
@@ -149,9 +151,17 @@ for _needle in (
 ):
     if _needle not in _generator_source:
         _semantic_errors.append("generator restraint regression: missing " + _needle)
-for _needle in ("(50, 38)", "(100, 100)", "(200, 240)", "(600, 1200)"):
-    if _needle not in _equipment_source:
-        _semantic_errors.append("class EQ progression regression: missing " + _needle)
+for _needle in (
+    "def equipment_progression_budget_v1138(level):",
+    "(50, 38)", "(100, 100)", "(200, 240)", "(600, 1200)",
+    "def equipment_defense_step_v1138(level):",
+):
+    if _needle not in _items_resource_source:
+        _semantic_errors.append("shared EQ progression regression: missing " + _needle)
+if "return equipment_progression_budget_v1138(mastery)" not in _equipment_source:
+    _semantic_errors.append(
+        "class EQ progression regression: shop no longer uses shared progression budget"
+    )
 for _needle in ("(50, 15_000)", "(100, 100_000)", "(200, 1_250_000)", "(600, 100_000_000)"):
     if _needle not in _economy_source:
         _semantic_errors.append("quest income progression regression: missing " + _needle)
@@ -411,6 +421,34 @@ for _needle in ('"attack": "Attack"', '"magic_attack": "Magic Attack"'):
         _semantic_errors.append(
             "EQ compare flat-power regression: missing " + _needle
         )
+
+# v1.13.8: sklep, crafting i drop mają różne role, ale wspólną epokę mocy.
+for _needle in (
+    "BLACKSMITH_MASTERWORK_STAT_PROFILE = {",
+    "def _blacksmith_masterwork_profile_v1138(",
+    '"crafted_masterwork": True',
+    '"sockets": int(masterwork["sockets"])',
+    "progression_budget = equipment_progression_budget_v1138(required_mastery)",
+    "quality = 0.80 + rng.random() * 0.30",
+    '"drop_quality": round(float(quality), 3)',
+):
+    if _needle not in _items_resource_source:
+        _semantic_errors.append(
+            "craft/drop EQ identity regression: missing " + _needle
+        )
+
+for _needle in (
+    "def crypt_affix_amount(tier, rarity_key, affix_key):",
+    "budget = equipment_progression_budget_v1138(mastery)",
+    '"mythic": 0.38',
+    '"Unikalny Bossowy"',
+    '"sockets": sockets',
+):
+    if _needle not in _dungeon_source:
+        _semantic_errors.append(
+            "crypt loot progression regression: missing " + _needle
+        )
+
 
 _final_help_source = (_root / "admin/help_refresh.py").read_text(encoding="utf-8")
 for _needle in (
