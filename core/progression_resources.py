@@ -416,11 +416,57 @@ def v0190_resource_stage(item_id, item=None):
         return max(1, min(CHARACTER_MAX_LEVEL, max(int(x) for x in matches)))
     return 1
 
+V1138_RESOURCE_SALE_ANCHORS = (
+    # Internal silver; 100 silver = 1 Gold.
+    (1, 10),
+    (20, 40),
+    (50, 150),
+    (80, 350),
+    (100, 700),
+    (150, 1_500),
+    (200, 3_000),
+    (300, 10_000),
+    (400, 25_000),
+    (500, 50_000),
+    (600, 90_000),
+)
+
+
+def v1138_resource_sale_base_coins(stage):
+    """Sensowna cena pojedynczego zwykłego zasobu na danym etapie.
+
+    Profesje są grindem, więc zwykła akcja nie daje wypłaty jak cały quest,
+    ale surowiec nie może też być ekonomicznie zerowy. Interpolacja logarytmiczna
+    daje płynny wzrost między kamieniami milowymi.
+    """
+    stage = max(1, min(CHARACTER_MAX_LEVEL, int(stage or 1)))
+    if stage <= V1138_RESOURCE_SALE_ANCHORS[0][0]:
+        return V1138_RESOURCE_SALE_ANCHORS[0][1]
+    if stage >= V1138_RESOURCE_SALE_ANCHORS[-1][0]:
+        return V1138_RESOURCE_SALE_ANCHORS[-1][1]
+    for (s0, v0), (s1, v1) in zip(
+        V1138_RESOURCE_SALE_ANCHORS,
+        V1138_RESOURCE_SALE_ANCHORS[1:],
+    ):
+        if s0 <= stage <= s1:
+            ratio = (stage - s0) / float(s1 - s0)
+            if v0 > 0 and v1 > 0:
+                value = math.exp(math.log(v0) + (math.log(v1) - math.log(v0)) * ratio)
+            else:
+                value = v0 + (v1 - v0) * ratio
+            return max(1, int(round(value)))
+    return V1138_RESOURCE_SALE_ANCHORS[-1][1]
+
+
 def v0190_resource_sale_coins(item_id, item=None):
     item = item or globals().get("ITEMS", {}).get(item_id, {}) or {}
     stage = v0190_resource_stage(item_id, item)
     mult = max(1.0, float(item.get("rare_value_multiplier", 1.0) or 1.0))
-    return generator_core_v027.resource_sale_for_stage(stage, mult)
+    # v1.13.8: old Generator Core prices were useful as fallback, but became
+    # tiny relative to the current quest/EQ economy. Keep the larger of both.
+    generated = generator_core_v027.resource_sale_for_stage(stage, mult)
+    progression = int(round(v1138_resource_sale_base_coins(stage) * mult))
+    return max(1, generated, progression)
 
 STAT_MAX_LEVEL = None  # v0.27.1: statystyki są bez twardego limitu
 def character_xp_to_next(level):
