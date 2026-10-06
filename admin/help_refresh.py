@@ -1772,6 +1772,12 @@ def refresh_public_help_surface_v11197():
     equipment.append(
         "Mieszane style tej samej aktywnej klasy nadal liczą się wspólnie do progów setu 2/4/6/8. Klasowe EQ daje też płaski Attack albo Magic Attack na slotach ofensywnych; Mec jako hybryda dostaje oba kanały."
     )
+    equipment.append(
+        "Źródła EQ mają różne role: sklep klasowy daje pewny, klasowo dopasowany set; Kowalstwo tworzy Masterwork z mocną obroną, wyspecjalizowanymi statami i rosnącą liczbą gniazd; dropy materiałowe są losowe i dobry roll może przebić sklep w konkretnym buildzie."
+    )
+    equipment.append(
+        "Krypta ma własną ścieżkę łupu: rzadkość zwiększa affix, obronę, Attack lub Magic Attack, właściwość procentową i liczbę gniazd. Relikty bossów Krypty skalują się z piętrem i mają pozostać warte polowania."
+    )
     HELP_TOPICS["ekwipunek"] = equipment
     HELP_TOPICS["eq"] = list(equipment)
 
@@ -1805,6 +1811,9 @@ def help_surface_audit_v11197():
             "mieszać style",
             "Attack",
             "Magic Attack",
+            "Masterwork",
+            "dobry roll",
+            "Relikty bossów Krypty",
         ),
         "moogle_board": ("Black Rabite", "150"),
         "silence": ("One Enemy", "Cleanseable", "Extendable"),
