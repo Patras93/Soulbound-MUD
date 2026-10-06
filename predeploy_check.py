@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Fast Railway predeploy gate for Soulbound v1.13.8.
+"""Fast Railway predeploy gate for Soulbound v1.13.9.
 
 This is the normal deploy check.  It intentionally avoids assembling the full
 world/runtime.  Use predeploy_full.py when an exhaustive historical audit is
@@ -16,7 +16,7 @@ import traceback
 try:
     from storage.database import Database as _DatabaseImportSmoke
 except Exception as exc:
-    print(f"Soulbound v1.13.8 FAST PREDEPLOY FAILED: database import: {type(exc).__name__}: {exc}")
+    print(f"Soulbound v1.13.9 FAST PREDEPLOY FAILED: database import: {type(exc).__name__}: {exc}")
     traceback.print_exc()
     raise SystemExit(1)
 
@@ -37,7 +37,7 @@ try:
     )
 except Exception as exc:
     print(
-        "Soulbound v1.13.8 FAST PREDEPLOY FAILED: "
+        "Soulbound v1.13.9 FAST PREDEPLOY FAILED: "
         f"skill semantic import: {type(exc).__name__}: {exc}"
     )
     traceback.print_exc()
@@ -64,6 +64,50 @@ for _name, _result in _semantic_audits.items():
 # leaked UOSS Base AP into Mec/Engineer damage.
 from pathlib import Path as _Path
 _root = _Path(__file__).resolve().parent
+
+# v1.13.9 hotfix: Generator Core now preserves authored item prices, so all
+# one-time starter profession tools must carry the same canonical authored
+# price instead of relying on a later generator rewrite.
+_data_items_source = (_root / "data/items.py").read_text(encoding="utf-8")
+_equipment_crafting_source_v1139 = (_root / "systems/equipment_crafting.py").read_text(encoding="utf-8")
+_professions_source_v1139 = (_root / "systems/professions.py").read_text(encoding="utf-8")
+for _tool_id in (
+    "fishing_rod", "pickaxe", "saw", "crafting_hammer", "chef_knife",
+    "herbalist_sickle", "alchemy_mortar",
+):
+    _match = re.search(
+        rf'"{re.escape(_tool_id)}"\s*:\s*\{{.*?"price"\s*:\s*(\d+)',
+        _data_items_source,
+        re.DOTALL,
+    )
+    if not _match or int(_match.group(1)) != 1200:
+        _semantic_errors.append(
+            f"starter tool authored price regression: {_tool_id} != 1200"
+        )
+_match = re.search(
+    r'"jeweler_pliers"\s*,?\s*\)\s*\)',
+    _equipment_crafting_source_v1139,
+)
+_jeweler_block = re.search(
+    r'"name"\s*:\s*"Szczypce Jubilerskie".*?"price"\s*:\s*(\d+)',
+    _equipment_crafting_source_v1139,
+    re.DOTALL,
+)
+if not _match or not _jeweler_block or int(_jeweler_block.group(1)) != 1200:
+    _semantic_errors.append("starter tool authored price regression: jeweler_pliers != 1200")
+for _tool_id in (
+    "tailor_kit", "tanning_knife", "carpenter_tools", "runic_focus",
+    "archaeology_brush", "surveyor_compass",
+):
+    _match = re.search(
+        rf'"{re.escape(_tool_id)}"\s*:\s*\{{.*?"price"\s*:\s*(\d+)',
+        _professions_source_v1139,
+        re.DOTALL,
+    )
+    if not _match or int(_match.group(1)) != 1200:
+        _semantic_errors.append(
+            f"starter tool authored price regression: {_tool_id} != 1200"
+        )
 
 # Release identity guard: the login banner uses VERSION from bootstrap, while
 # CHANGELOG_PL.txt announces the current package. Reject deploys when those two
@@ -137,7 +181,7 @@ for _needle in _troll_reward_needles:
             "troll stat reward regression: missing " + _needle
         )
 
-# v1.13.8: Generator Core is a fallback, not an unconditional overwrite layer.
+# v1.13.9: Generator Core is a fallback, not an unconditional overwrite layer.
 _generator_source = (_root / "core/generator_core.py").read_text(encoding="utf-8")
 _equipment_source = (_root / "systems/equipment_crafting.py").read_text(encoding="utf-8")
 _items_resource_source = (_root / "systems/items_resources.py").read_text(encoding="utf-8")
@@ -558,7 +602,7 @@ for _needle in ('"attack": "Attack"', '"magic_attack": "Magic Attack"'):
             "EQ compare flat-power regression: missing " + _needle
         )
 
-# v1.13.8: sklep, crafting i drop mają różne role, ale wspólną epokę mocy.
+# v1.13.9: sklep, crafting i drop mają różne role, ale wspólną epokę mocy.
 for _needle in (
     "BLACKSMITH_MASTERWORK_STAT_PROFILE = {",
     "def _blacksmith_masterwork_profile_v1138(",
@@ -646,18 +690,18 @@ except Exception as exc:
     )
 
 if _semantic_errors:
-    print("Soulbound v1.13.8 FAST PREDEPLOY FAILED: semantic contracts")
+    print("Soulbound v1.13.9 FAST PREDEPLOY FAILED: semantic contracts")
     for _error in _semantic_errors:
         print(f"ERROR: {_error}")
     raise SystemExit(1)
 
 if audit["error_count"]:
-    print("Soulbound v1.13.8 FAST PREDEPLOY FAILED")
+    print("Soulbound v1.13.9 FAST PREDEPLOY FAILED")
     for error in audit["errors"]:
         print(f"ERROR: {error}")
     raise SystemExit(1)
 
-print("Soulbound v1.13.8 FAST PREDEPLOY PASS")
+print("Soulbound v1.13.9 FAST PREDEPLOY PASS")
 print(
     "Semantic contracts: "
     f"{len(_semantic_audits)} audits PASS; AP runtime guards PASS"
