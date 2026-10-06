@@ -32,6 +32,13 @@ class MobState:
     next_wander_at: float = 0.0
     # AoE: mob trafiony obszarówką zachowuje aggro nawet gdy nie jest głównym combat_mob_key.
     aoe_engaged_by: Optional[str] = None
+    # v1.13.30: encounter-local adaptive scaling. Template identity stays intact.
+    adaptive_max_hp_v11330: int = 0
+    adaptive_hp_multiplier_v11330: float = 1.0
+    adaptive_reward_multiplier_v11330: float = 1.0
+    adaptive_party_size_v11330: int = 1
+    adaptive_party_dps_v11330: float = 0.0
+    adaptive_rank_v11330: str = ""
 
 
 # ============================================================
@@ -578,6 +585,12 @@ class World:
                     mob.player_hits = 0
                     mob.phase_stage = 0
                     mob.engaged_at = 0.0
+                    mob.adaptive_max_hp_v11330 = 0
+                    mob.adaptive_hp_multiplier_v11330 = 1.0
+                    mob.adaptive_reward_multiplier_v11330 = 1.0
+                    mob.adaptive_party_size_v11330 = 1
+                    mob.adaptive_party_dps_v11330 = 0.0
+                    mob.adaptive_rank_v11330 = ""
                     if mob.home_room_id:
                         mob.room_id = mob.home_room_id
                     mob.next_wander_at = now + random.uniform(
