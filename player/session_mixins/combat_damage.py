@@ -399,16 +399,108 @@ class SessionCombatDamageMixin:
 
                 return max(1.0, incoming)
 
-    def consider_rating(self, mob, template):
-                player_hit = self.consider_player_expected_hit() / max(1.0,self.v0210_world_tier_multipliers()["effective_hp"])
-                enemy_hit = self.consider_enemy_expected_hit(template) * self.v0210_enemy_damage_multiplier()
+    def consider_adaptive_preview_v11331(self, mob, template):
+                """Preview encounter-local Adaptive Combat without starting or mutating combat."""
+                members = self.adaptive_party_members_v11330(mob)
+                party_size = max(1, len(members))
+                party_dps = sum(
+                    self.adaptive_member_dps_v11330(member)
+                    for member in members
+                )
 
-                mob_hp = max(1, int(mob.hp))
+                base_max_hp = max(1, int(template.get("max_hp", 1) or 1))
+                projected_max_hp = adaptive_target_max_hp_v11330(
+                    base_max_hp, party_dps, template
+                )
+                active_max_hp = max(
+                    0, int(getattr(mob, "adaptive_max_hp_v11330", 0) or 0)
+                )
+                effective_max_hp = max(
+                    base_max_hp, projected_max_hp, active_max_hp
+                )
+
+                # If the encounter is already scaled, preserve the real current HP.
+                # Otherwise preview the same missing-HP amount against projected max
+                # without mutating the mob or engaging it.
+                live_hp = max(0, int(getattr(mob, "hp", base_max_hp) or 0))
+                if active_max_hp > 0:
+                    effective_current_hp = min(effective_max_hp, live_hp)
+                else:
+                    missing_hp = max(0, base_max_hp - min(base_max_hp, live_hp))
+                    effective_current_hp = max(0, effective_max_hp - missing_hp)
+
+                world_tier = self.v0210_world_tier_multipliers()
+                player_hit = (
+                    self.consider_player_expected_hit()
+                    / max(1.0, float(world_tier["effective_hp"]))
+                )
+                player_hits = max(1, int(self.basic_attack_hit_count_v11196()))
+                player_action = max(1.0, player_hit * player_hits)
+
+                party_action = 0.0
+                for member in members:
+                    try:
+                        member_tier = member.v0210_world_tier_multipliers()
+                        member_hit = (
+                            member.consider_player_expected_hit()
+                            / max(1.0, float(member_tier["effective_hp"]))
+                        )
+                        member_hits = max(
+                            1, int(member.basic_attack_hit_count_v11196())
+                        )
+                        party_action += max(1.0, member_hit * member_hits)
+                    except Exception:
+                        party_action += 1.0
+                party_action = max(1.0, party_action)
+
+                base_enemy_hit = self.consider_enemy_expected_hit(template)
+                adaptive_floor = max(
+                    1.0,
+                    float(self.max_hp())
+                    * adaptive_target_incoming_fraction_v11330(
+                        template, party_size
+                    ),
+                )
+                enemy_hit = (
+                    max(base_enemy_hit, adaptive_floor)
+                    * self.v0210_enemy_damage_multiplier()
+                )
+
+                return {
+                    "base_max_hp": base_max_hp,
+                    "max_hp": effective_max_hp,
+                    "current_hp": effective_current_hp,
+                    "hp_multiplier": effective_max_hp / float(base_max_hp),
+                    "reward_multiplier": adaptive_reward_multiplier_v11330(
+                        base_max_hp, effective_max_hp
+                    ),
+                    "rank": adaptive_combat_rank_v11330(template),
+                    "party_size": party_size,
+                    "party_dps": max(1.0, float(party_dps)),
+                    "player_hit": max(1.0, float(player_hit)),
+                    "player_hits": player_hits,
+                    "player_action": player_action,
+                    "party_action": party_action,
+                    "enemy_hit": max(1.0, float(enemy_hit)),
+                    "already_scaled": active_max_hp > 0,
+                }
+
+    def consider_rating(self, mob, template):
+                preview = self.consider_adaptive_preview_v11331(mob, template)
+                player_hit = preview["player_hit"]
+                player_action = preview["player_action"]
+                party_action = preview["party_action"]
+                enemy_hit = preview["enemy_hit"]
+
+                mob_hp = max(1, int(preview["current_hp"]))
                 player_hp = max(1, int(self.current_hp))
 
-                turns_to_kill = mob_hp / player_hit
-                turns_to_die = player_hp / enemy_hit
-                ratio = turns_to_die / max(0.01, turns_to_kill)
+                # In party play the encounter scales from total local party output,
+                # so danger must be judged against the same local party rather than
+                # pretending that the player fights the scaled target alone.
+                actions_to_kill = mob_hp / max(1.0, party_action)
+                enemy_actions_to_die = player_hp / max(1.0, enemy_hit)
+                ratio = enemy_actions_to_die / max(0.01, actions_to_kill)
 
                 # Boss mechanics are deliberately treated as extra danger.
                 if template.get("boss_mechanic"):
@@ -449,9 +541,13 @@ class SessionCombatDamageMixin:
                     "label": label,
                     "advice": advice,
                     "player_hit": max(1, int(round(player_hit))),
+                    "player_hits": int(preview["player_hits"]),
+                    "player_action": max(1, int(round(player_action))),
+                    "party_action": max(1, int(round(party_action))),
                     "enemy_hit": max(1, int(round(enemy_hit))),
-                    "turns_to_kill": max(1, int(math.ceil(turns_to_kill))),
-                    "turns_to_die": max(1, int(math.ceil(turns_to_die))),
+                    "turns_to_kill": max(1, int(math.ceil(actions_to_kill))),
+                    "turns_to_die": max(1, int(math.ceil(enemy_actions_to_die))),
+                    "adaptive": preview,
                 }
 
     async def consider_mob(self, query):
@@ -517,23 +613,46 @@ class SessionCombatDamageMixin:
                 await self.send(
                     f"Ocena zagrożenia: {rating['label']}."
                 )
-                await self.send(
-                    f"Przeciwnik ma {max(0, mob.hp)} z "
-                    f"{template['max_hp']} HP. "
-                    f"Bazowy atak: {template['damage']}. "
-                    f"Typ obrażeń: {damage_type}."
+                adaptive = rating["adaptive"]
+                adaptive_state = (
+                    "aktualna skala aktywnego starcia"
+                    if adaptive["already_scaled"]
+                    else "prognoza przed rozpoczęciem walki"
                 )
                 await self.send(
-                    f"Szacowany twój normalny cios: około "
-                    f"{rating['player_hit']}. "
-                    f"Szacowane otrzymane obrażenia na odpowiedź: około "
+                    f"Adaptive Combat, {adaptive_state}: HP "
+                    f"{adaptive['current_hp']} z {adaptive['max_hp']}; "
+                    f"bazowe max HP {adaptive['base_max_hp']}; "
+                    f"mnożnik HP x{adaptive['hp_multiplier']:.2f}; "
+                    f"ranga {adaptive['rank']}; lokalna drużyna {adaptive['party_size']}."
+                )
+                await self.send(
+                    f"Bazowy atak szablonu: {template['damage']}. "
+                    f"Typ obrażeń: {damage_type}. "
+                    f"Szacowane obrażenia odpowiedzi po skalowaniu: około "
                     f"{rating['enemy_hit']}."
                 )
                 await self.send(
-                    f"Orientacyjnie: około {rating['turns_to_kill']} twoich "
-                    f"normalnych trafień do pokonania przeciwnika i około "
-                    f"{rating['turns_to_die']} jego skutecznych odpowiedzi "
-                    f"do pokonania ciebie przy obecnym HP."
+                    f"Twój zwykły hit: około {rating['player_hit']}; "
+                    f"zwykła akcja: około {rating['player_action']} "
+                    f"przy {rating['player_hits']} trafieniach. "
+                    f"Łączna zwykła akcja lokalnej drużyny: około "
+                    f"{rating['party_action']}."
+                )
+                action_owner = (
+                    "pełnych akcji lokalnej drużyny"
+                    if adaptive["party_size"] > 1
+                    else "twoich pełnych normalnych akcji"
+                )
+                await self.send(
+                    f"Orientacyjnie: około {rating['turns_to_kill']} {action_owner} "
+                    f"do pokonania przeciwnika i około {rating['turns_to_die']} "
+                    f"jego skutecznych odpowiedzi do pokonania ciebie przy obecnym HP."
+                )
+                await self.send(
+                    f"Prognozowana rekompensata Adaptive Combat do EXP i waluty: "
+                    f"x{adaptive['reward_multiplier']:.2f}. "
+                    "Drop chance i unikalne dropy nie są przez ten mnożnik zwiększane."
                 )
 
                 elite_text = template.get(
