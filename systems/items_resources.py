@@ -1,4 +1,6 @@
 from data import catalog_mutations as _catalog_mut
+import math
+import random
 ENDGAME_PROFESSION_ITEMS = {
     # Ryby endgame - Rzeka
     "soulfin_trout": {"name": "Pstrąg Duszopłetwy", "type": "resource", "price": None, "sell_gold": 25, "desc": "Rzadka ryba rzeczna. Wędka level 100+."},
