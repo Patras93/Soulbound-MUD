@@ -68,6 +68,11 @@ Soulbound v1.13.29 — DROP CHANCE & REWARD EXCITEMENT PASS
   Runtime manifest, explicit exports i predeploy czytają teraz tę samą bezwersyjną
   ścieżkę, zgodną z Maintainable Core Audit v0.50.0. Bez zmian gameplayu/save'ów.
 
+- HOTFIX Railway: finalny HELP Ocean pokazuje pełne formy komend `handel morski wez`,
+  `handel morski oddaj` i `handel morski porzuc`. Naprawia restart-loop wywołany
+  przez HELP Freshness Audit, który poprawnie wymagał jawnej komendy porzucenia.
+  Dodano predeploy guard dla tego kontraktu; gameplay handlu morskiego bez zmian.
+
 - Brak wipe, migracji bazy i nowych gate'ów.
 
 ==============================================================================
