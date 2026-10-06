@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Fast Railway predeploy gate for Soulbound v1.13.30.
+"""Fast Railway predeploy gate for Soulbound v1.13.31.
 
 This is the normal deploy check.  It intentionally avoids assembling the full
 world/runtime.  Use predeploy_full.py when an exhaustive historical audit is
@@ -17,7 +17,7 @@ import traceback
 try:
     from storage.database import Database as _DatabaseImportSmoke
 except Exception as exc:
-    print(f"Soulbound v1.13.30 FAST PREDEPLOY FAILED: database import: {type(exc).__name__}: {exc}")
+    print(f"Soulbound v1.13.31 FAST PREDEPLOY FAILED: database import: {type(exc).__name__}: {exc}")
     traceback.print_exc()
     raise SystemExit(1)
 
@@ -42,7 +42,7 @@ try:
     )
 except Exception as exc:
     print(
-        "Soulbound v1.13.30 FAST PREDEPLOY FAILED: "
+        "Soulbound v1.13.31 FAST PREDEPLOY FAILED: "
         f"skill semantic import: {type(exc).__name__}: {exc}"
     )
     traceback.print_exc()
@@ -99,6 +99,73 @@ except Exception as exc:
 # leaked UOSS Base AP into Mec/Engineer damage.
 from pathlib import Path as _Path
 _root = _Path(__file__).resolve().parent
+
+# v1.13.31: release identity must have one truth across runtime and player-facing
+# changelog surfaces. This is generic: future releases only need to update the
+# three source values consistently.
+_bootstrap_release_source_v11331 = (
+    _root / "core/bootstrap_economy_professions.py"
+).read_text(encoding="utf-8")
+_changelog_release_source_v11331 = (
+    _root / "CHANGELOG_PL.txt"
+).read_text(encoding="utf-8")
+_content_registry_release_source_v11331 = (
+    _root / "systems/content_registry.py"
+).read_text(encoding="utf-8")
+
+_runtime_version_match_v11331 = re.search(
+    r'^VERSION\s*=\s*"([^"]+)"',
+    _bootstrap_release_source_v11331,
+    flags=re.MULTILINE,
+)
+_changelog_version_match_v11331 = re.search(
+    r'^Aktualna paczka:\s*v([^\s]+)',
+    _changelog_release_source_v11331,
+    flags=re.MULTILINE,
+)
+_latest_title_version_match_v11331 = re.search(
+    r'^LATEST_CHANGES_TITLE\s*=\s*"Soulbound v([^\s]+)',
+    _content_registry_release_source_v11331,
+    flags=re.MULTILINE,
+)
+_release_versions_v11331 = {
+    "runtime": (
+        _runtime_version_match_v11331.group(1)
+        if _runtime_version_match_v11331 else ""
+    ),
+    "changelog": (
+        _changelog_version_match_v11331.group(1)
+        if _changelog_version_match_v11331 else ""
+    ),
+    "latest_changes": (
+        _latest_title_version_match_v11331.group(1)
+        if _latest_title_version_match_v11331 else ""
+    ),
+}
+if (
+    not all(_release_versions_v11331.values())
+    or len(set(_release_versions_v11331.values())) != 1
+):
+    _semantic_errors.append(
+        "release version sync regression: " + repr(_release_versions_v11331)
+    )
+
+_consider_source_v11331 = (
+    _root / "player/session_mixins/combat_damage.py"
+).read_text(encoding="utf-8")
+for _needle in (
+    "def consider_adaptive_preview_v11331",
+    "adaptive_target_max_hp_v11330(",
+    "adaptive_target_incoming_fraction_v11330(",
+    "adaptive_reward_multiplier_v11330(",
+    "party_action",
+    "Adaptive Combat, {adaptive_state}",
+    "Prognozowana rekompensata Adaptive Combat",
+):
+    if _needle not in _consider_source_v11331:
+        _semantic_errors.append(
+            "adaptive consider regression: missing " + _needle
+        )
 
 # v1.13.30: every combat route must keep encounter-local scaling wired in.
 _adaptive_damage_source_v11330 = (
@@ -1905,18 +1972,18 @@ for _needle in (
         _semantic_errors.append("UOSS helper runtime regression: missing " + _needle)
 
 if _semantic_errors:
-    print("Soulbound v1.13.30 FAST PREDEPLOY FAILED: semantic contracts")
+    print("Soulbound v1.13.31 FAST PREDEPLOY FAILED: semantic contracts")
     for _error in _semantic_errors:
         print(f"ERROR: {_error}")
     raise SystemExit(1)
 
 if audit["error_count"]:
-    print("Soulbound v1.13.30 FAST PREDEPLOY FAILED")
+    print("Soulbound v1.13.31 FAST PREDEPLOY FAILED")
     for error in audit["errors"]:
         print(f"ERROR: {error}")
     raise SystemExit(1)
 
-print("Soulbound v1.13.30 FAST PREDEPLOY PASS")
+print("Soulbound v1.13.31 FAST PREDEPLOY PASS")
 print(
     "Semantic contracts: "
     f"{len(_semantic_audits)} audits PASS; AP runtime guards PASS"
