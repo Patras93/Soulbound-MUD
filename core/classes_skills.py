@@ -2468,7 +2468,7 @@ def _v0319_install_full_mec_kit():
         # Support
         ("Cure Beam",1,"heal",100,"support","cure_beam","Single-target healing beam available from the start. Willpower and Skill Level increase healing. Support Effect increases healing and removes Blind and Poison."),
         ("Hypno Flash",16,"damage",300,"support","hypno_flash","Attempts to put one enemy to Sleep. Will and Skill Level improve accuracy and duration; the Mec support weapon improves hit chance. Sleep is Cleanseable and Extendable."),
-        ("Jammer",32,"damage",750,"support","jammer","Attempts to Stop one enemy, or all enemies while the Mec support weapon is active. Will and Skill Level improve accuracy and duration; mechanical enemies are easier to affect. Stop is Cleanseable and Extendable."),
+        ("Jammer",32,"damage",750,"support","jammer","Attempts to Stop one enemy, or all enemies while the Mec support weapon is active. Will and Skill Level improve accuracy and duration; mechanical enemies are easier to affect. Stop is Cleanseable and Extendable. Soulbound UOSS Super Bosses are immune to Jammer Stop."),
         ("Heal Beam",54,"heal",1000,"support","heal_beam","Significant Willpower-based healing. Normally heals one target; Support Effect heals the entire local party for an enhanced amount."),
         ("Logic Bomb",92,"damage",1200,"support","logic_bomb","Attempts to infect one enemy with Paralyze, Silence and Slow. With the Mec support weapon it also attempts Blind, Curse and Immobilize. Will and Skill Level improve accuracy and duration; Machine targets are easier to affect."),
         ("V-MAX",130,"boost",2000,"support","vmax","Will-influenced core overdrive: Protect, Shell, Haste, Regen, Preach, Praise, Permanence; changes several Mec skills. When it ends, Overheat is prevented while the Mec's Soul Weapon remains the active support weapon."),
@@ -3022,6 +3022,7 @@ def _v0319_install_full_mec_kit():
                 "soulbound_harmful_debuff":True,
                 "enemy_debuffs":["stop"],
                 "support_weapon_expands_to_all_enemies":True,
+                "uoss_superboss_stop_immune":True,
                 "machine_accuracy_bonus":True,
                 "level_effect":"increases_accuracy_and_duration",
                 "accuracy_numeric_source_defined":False,
@@ -3657,6 +3658,8 @@ def _mec_contract_audit_v11149():
             errors.append("jammer: mechanical enemies must be easier to affect")
         if not bool(jammer.get("support_weapon_expands_to_all_enemies")):
             errors.append("jammer: support weapon must expand effect to all enemies")
+        if not bool(jammer.get("uoss_superboss_stop_immune")):
+            errors.append("jammer: UOSS Super Bosses must remain immune to Stop")
         if bool(jammer.get("accuracy_numeric_source_defined")):
             errors.append("jammer: accuracy curve must remain marked unsourced")
         if bool(jammer.get("duration_numeric_source_defined")):
