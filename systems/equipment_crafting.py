@@ -58,24 +58,44 @@ def class_equipment_profile(class_name):
 # Każdy element można mieszać z innymi stylami tej samej klasy; progi 2/4/6/8
 # liczą klasę i logiczny slot, nie nazwę linii.
 CLASS_EQUIPMENT_STYLE_PROFILES = {
-    1: {
+    "zbalansowany": {
         "role": "zbalansowany",
         "defense_multiplier": 1.00,
         "power_multiplier": 0.85,
         "stat_shift": 0.00,
     },
-    2: {
+    "ofensywny": {
         "role": "ofensywny",
         "defense_multiplier": 0.88,
         "power_multiplier": 1.25,
         "stat_shift": 0.10,
     },
-    3: {
+    "pancerny": {
         "role": "pancerny",
         "defense_multiplier": 1.18,
         "power_multiplier": 0.45,
         "stat_shift": -0.10,
     },
+}
+
+# Nazwy istniejących linii sugerują różny charakter zależnie od klasy.
+# Pierwsza linia pozostaje zbalansowana dla zgodności; 2/3 są przypisane tak,
+# aby np. Tytanowa Rama była pancerna, a Reaktor Bojowy ofensywny.
+CLASS_EQUIPMENT_STYLE_ROLES_BY_CLASS = {
+    "Wojownik": ("zbalansowany", "pancerny", "ofensywny"),
+    "Berserker": ("zbalansowany", "pancerny", "ofensywny"),
+    "Łotrzyk": ("zbalansowany", "ofensywny", "pancerny"),
+    "Łowca": ("zbalansowany", "pancerny", "ofensywny"),
+    "Mnich": ("zbalansowany", "ofensywny", "pancerny"),
+    "Strażnik": ("zbalansowany", "pancerny", "ofensywny"),
+    "Mag": ("zbalansowany", "ofensywny", "pancerny"),
+    "Nekromanta": ("zbalansowany", "pancerny", "ofensywny"),
+    "Kapłan": ("zbalansowany", "ofensywny", "pancerny"),
+    "Czarownik": ("zbalansowany", "ofensywny", "pancerny"),
+    "Druid": ("zbalansowany", "ofensywny", "pancerny"),
+    "Psionik": ("zbalansowany", "pancerny", "ofensywny"),
+    "Mec": ("zbalansowany", "pancerny", "ofensywny"),
+    "Inżynier": ("zbalansowany", "pancerny", "ofensywny"),
 }
 
 # Attack/Magic Attack siedzi przede wszystkim na slotach ofensywnych.
@@ -102,11 +122,18 @@ CLASS_EQUIPMENT_SLOT_POWER_SCALE = {
 }
 
 
-def class_equipment_style_profile(style_index):
-    return CLASS_EQUIPMENT_STYLE_PROFILES.get(
-        int(style_index or 1),
-        CLASS_EQUIPMENT_STYLE_PROFILES[1],
+def class_equipment_style_role(class_name, style_index):
+    roles = CLASS_EQUIPMENT_STYLE_ROLES_BY_CLASS.get(
+        class_name,
+        ("zbalansowany", "ofensywny", "pancerny"),
     )
+    index = max(1, min(3, int(style_index or 1))) - 1
+    return roles[index]
+
+
+def class_equipment_style_profile(class_name, style_index):
+    role = class_equipment_style_role(class_name, style_index)
+    return CLASS_EQUIPMENT_STYLE_PROFILES[role]
 
 
 def class_equipment_split_stat_budget(class_name, legacy_amount, slot=None, style_index=1):
@@ -138,7 +165,7 @@ def class_equipment_split_stat_budget(class_name, legacy_amount, slot=None, styl
     # Style 2 przenosi część CON w ofensywne osie; style 3 robi odwrotnie.
     # Łączny budżet pozostaje identyczny, więc wybór jest buildem, nie prostym
     # "numer 3 ma więcej wszystkiego".
-    style = class_equipment_style_profile(style_index)
+    style = class_equipment_style_profile(class_name, style_index)
     shift_ratio = float(style.get("stat_shift", 0.0) or 0.0)
     shift_points = max(0, int(round(budget * abs(shift_ratio))))
     if shift_ratio > 0.0 and shift_points > 0:
@@ -193,7 +220,7 @@ def class_equipment_flat_power_channels(class_name, mastery, slot=None, style_in
     """
     budget = class_equipment_stat_budget(mastery, slot)
     slot_scale = float(CLASS_EQUIPMENT_SLOT_POWER_SCALE.get(str(slot or ""), 0.50))
-    style = class_equipment_style_profile(style_index)
+    style = class_equipment_style_profile(class_name, style_index)
     style_mult = float(style.get("power_multiplier", 1.0) or 1.0)
     power = max(0, int(round(budget * 0.18 * slot_scale * style_mult)))
     if power <= 0:
@@ -394,7 +421,7 @@ def _register_class_equipment_shops():
                             f"Class EQ stat triplet mismatch: {class_name} {slot}: "
                             f"{sorted(actual_stats)} != {sorted(expected_stats)}"
                         )
-                    style_profile = class_equipment_style_profile(style_index)
+                    style_profile = class_equipment_style_profile(class_name, style_index)
                     raw_defense = (
                         int(definition["base_defense"])
                         + int(defense_delta)
