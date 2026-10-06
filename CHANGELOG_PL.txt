@@ -1,5 +1,5 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.13.30
+Aktualna paczka: v1.13.31
 
 
 
@@ -19,6 +19,22 @@ Aktualna paczka: v1.13.30
 
 
 
+
+==============================================================================
+Soulbound v1.13.31 — VERSION SYNC, PARTY CHESTS & ADAPTIVE CONSIDER
+==============================================================================
+
+- PODBITO WERSJĘ GRY do v1.13.31. Kanoniczny runtime VERSION, nagłówek CHANGELOG_PL.txt i fallback komendy changes są ponownie zgodne.
+- PREDEPLOY VERSION SYNC pilnuje od tej wersji zgodności numeru runtime, nagłówka changeloga i LATEST_CHANGES_TITLE, żeby kolejny release nie został częściowo na starej wersji.
+- CONSIDER / CON / OCEN został dopięty do Global Adaptive Combat. Bez rozpoczynania walki prognozuje encounter-local HP moba dla realnej siły postaci i całej żywej drużyny stojącej w pokoju.
+- CONSIDER pokazuje bazowe i prognozowane max HP, mnożnik HP, rangę Adaptive Combat, wielkość lokalnej drużyny oraz prognozowaną rekompensatę EXP/waluty do x3.
+- Ocena zagrożenia używa przewidywanych obrażeń moba po adaptacyjnym skalowaniu względem aktualnego HP, Defense/Magic Defense, redukcji i uniku gracza.
+- Zwykły atak gracza w CONSIDER uwzględnia aktualny Speed/multi-hit. W party liczona jest również łączna zwykła akcja lokalnej drużyny, więc skalowany mob nie jest oceniany tak, jakby walczył z nim tylko lider.
+- CONSIDER pozostaje czystą prognozą: nie angażuje moba, nie zmienia jego HP/skali i nie uruchamia pętli walki.
+- AUTO KOLEJKA SKILLI: bazowa pojemność każdej aktywnej kolejki wzrosła z 20 do 40 slotów na starcie. Dalej rośnie o 1 slot co 10 Character Leveli: 50 przy 100, 60 przy 200, 80 przy 400 i 100 przy 600.
+- SKRZYNIE BOSSÓW W DRUŻYNIE: lider otwiera jedną skrzynię, a każdy członek tej samej drużyny stojący przy skrzyni dostaje własny roll złota i przedmiotów. Odpowiadający klucz członka jest zużywany, jeśli go posiada, aby nie zostawić podwójnego odbioru tej samej party-run skrzyni.
+- GLOBAL NO-COOLDOWN DOMKNIĘTY: V-MAX i Magnify nie są wyjątkami od zasady braku reuse cooldownów. V-MAX zachowuje czas działania zależny od Skill Levelu i Will oraz własny Overheat, ale nie ma timera ponownego użycia.
+- Brak wipe i brak migracji bazy.
 
 ==============================================================================
 Soulbound v1.13.30 — POST-600 INFINITE REWARD & EQUIPMENT PROGRESSION
