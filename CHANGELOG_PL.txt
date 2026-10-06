@@ -42,6 +42,18 @@ Soulbound v1.13.8 — odczuwalna progresja + Generator Core jako fallback
   i Magic Attack, każdy słabszy niż pojedynczy kanał czystej klasy.
 - Lista sklepu czyta profil części pod NVDA, a porównanie EQ pokazuje także różnice
   Attack, Magic Attack, Magic Defense i Weapon Power.
+- Sklep, crafting i drop nie są już trzema kopiami tej samej drabinki:
+  sklep klasowy daje pewny, klasowo dopasowany baseline i bonusy 2/4/6/8;
+  Kowalstwo daje Masterwork z mocniejszą obroną, wyspecjalizowanymi statami,
+  właściwością materiałową i od 1 do 5 gniazd do dalszego dopracowania;
+  materiałowe dropy mają losowy budżet około 80-110% sprzętu tego samego etapu,
+  losowy rozkład statów/właściwości, Attack/Magic Attack i sockety przy lepszych rollach.
+- Właściwe sety Krypty również skalują się z etapem: wyższa rzadkość zwiększa
+  affix, obronę, Attack/Magic Attack, właściwość procentową oraz liczbę gniazd.
+- Unikalne relikty bossów Krypty zostały przeskalowane z piętrem, aby np. relikt
+  z piętra 200 nie przegrywał automatycznie ze zwykłym sklepem tego samego etapu.
+- Wspólna krzywa mocy EQ jest teraz jednym kontraktem dla sklepu, craftingu i dropu,
+  co utrudnia ponowne rozjechanie tych źródeł w przyszłych wersjach.
 - Ceny klasowego EQ zostały powiązane z realnym zarobkiem na tym samym etapie;
   pełny set pozostaje celem grindowym, ale nie wymaga tysięcy zwykłych zadań.
 - Bazowe zarobki questów rosną mocniej już od midgame: około 150 Gold na 50,
