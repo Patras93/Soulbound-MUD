@@ -153,6 +153,28 @@ if (
 _consider_source_v11331 = (
     _root / "player/session_mixins/combat_damage.py"
 ).read_text(encoding="utf-8")
+_jammer_runtime_source_v11331 = (
+    _root / "player/session_mixins/combat_skills.py"
+).read_text(encoding="utf-8")
+_jammer_skill_source_v11331 = (
+    _root / "core/classes_skills.py"
+).read_text(encoding="utf-8")
+for _needle in (
+    '_jam_template.get("uoss_unique_superboss_key")',
+    '_jam_template.get("uoss_superboss_key")',
+    '_jam_template.get("uoss_superboss")',
+    "jest odporny na Stop",
+    "_jammer_immune",
+):
+    if _needle not in _jammer_runtime_source_v11331:
+        _semantic_errors.append(
+            "Jammer superboss immunity regression: missing " + _needle
+        )
+if '"uoss_superboss_stop_immune":True' not in _jammer_skill_source_v11331:
+    _semantic_errors.append(
+        "Jammer superboss immunity regression: skill contract missing"
+    )
+
 _active_effects_source_v11331 = (
     _root / "player/session_mixins/character_profile.py"
 ).read_text(encoding="utf-8")
