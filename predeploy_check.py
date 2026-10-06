@@ -83,11 +83,89 @@ except Exception as exc:
         f"superboss completion audit import failed: {type(exc).__name__}: {exc}"
     )
 
+try:
+    from systems.adaptive_combat import (
+        ADAPTIVE_COMBAT_AUDIT_V11330 as _adaptive_combat_audit_v11330,
+    )
+    for _error in _adaptive_combat_audit_v11330.get("errors", ()):
+        _semantic_errors.append("adaptive_combat: " + str(_error))
+except Exception as exc:
+    _semantic_errors.append(
+        f"adaptive combat audit import failed: {type(exc).__name__}: {exc}"
+    )
+
 # AP is a learning-point cost, never authored combat power. Keep a small
 # source-level regression guard around the two runtime files that previously
 # leaked UOSS Base AP into Mec/Engineer damage.
 from pathlib import Path as _Path
 _root = _Path(__file__).resolve().parent
+
+# v1.13.30: every combat route must keep encounter-local scaling wired in.
+_adaptive_damage_source_v11330 = (
+    _root / "player/session_mixins/combat_damage.py"
+).read_text(encoding="utf-8")
+_adaptive_realtime_source_v11330 = (
+    _root / "player/session_mixins/combat_realtime.py"
+).read_text(encoding="utf-8")
+_adaptive_skills_source_v11330 = (
+    _root / "player/session_mixins/combat_skills.py"
+).read_text(encoding="utf-8")
+_adaptive_rewards_source_v11330 = (
+    _root / "player/session_mixins/combat_rewards.py"
+).read_text(encoding="utf-8")
+_adaptive_server_source_v11330 = (
+    _root / "server/mud_server.py"
+).read_text(encoding="utf-8")
+for _label, _source, _needles in (
+    (
+        "damage",
+        _adaptive_damage_source_v11330,
+        (
+            "def apply_adaptive_mob_scale_v11330",
+            "def adaptive_enemy_damage_multiplier_v11330",
+            "adaptive_target_max_hp_v11330",
+        ),
+    ),
+    (
+        "realtime",
+        _adaptive_realtime_source_v11330,
+        (
+            "self.apply_adaptive_mob_scale_v11330(mob)",
+            "adaptive_enemy_damage_multiplier_v11330",
+            "mob_effective_max_hp_v11330",
+        ),
+    ),
+    (
+        "skills",
+        _adaptive_skills_source_v11330,
+        (
+            "self.apply_adaptive_mob_scale_v11330(_adaptive_target_v11330)",
+            "self.apply_adaptive_mob_scale_v11330(mob)",
+            "mob_effective_max_hp_v11330",
+        ),
+    ),
+    (
+        "rewards",
+        _adaptive_rewards_source_v11330,
+        (
+            "adaptive_reward_multiplier_v11330",
+            "_adaptive_reward_mult_v11330",
+        ),
+    ),
+    (
+        "disengage",
+        _adaptive_server_source_v11330,
+        (
+            "def reset_adaptive_mob_encounter_v11330",
+            "self.reset_adaptive_mob_encounter_v11330(mob)",
+        ),
+    ),
+):
+    for _needle in _needles:
+        if _needle not in _source:
+            _semantic_errors.append(
+                f"adaptive combat wiring regression ({_label}): missing {_needle}"
+            )
 
 # v1.13.10 hotfix: Generator Core now preserves authored item prices, so all
 # one-time starter profession tools must carry the same canonical authored
