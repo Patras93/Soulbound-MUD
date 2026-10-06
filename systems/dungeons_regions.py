@@ -1343,7 +1343,9 @@ def build_mythic_endgame():
         }
         c_exits["down"] = mythic_crypt_floor_id(floor + 1)
         c_note = (
-            " Przy pierwszym przejściu mityczny boss blokuje zejście do chwili pokonania."
+            " Przy pierwszym przejściu mityczny boss blokuje zejście do chwili "
+            "pokonania. Po zaliczeniu checkpointu Mityczny Portal Krypty na "
+            "tym piętrze pozwala wrócić do Bramy Mitycznej Krypty."
             if is_mythic_crypt_boss_floor(floor)
             else ""
         )
@@ -1429,7 +1431,10 @@ def build_mythic_endgame():
         if floor < MYTHIC_MAX_FLOOR:
             a_exits["up"] = mythic_astral_floor_id(floor + 1)
         a_note = (
-            " Przy pierwszym przejściu mityczny boss blokuje drogę w górę; po pokonaniu próg zostaje odblokowany na stałe."
+            " Przy pierwszym przejściu mityczny boss blokuje drogę w górę; po "
+            "pokonaniu próg zostaje odblokowany na stałe. Po zaliczeniu checkpointu "
+            "Mityczny Astralny Portal na tym poziomie pozwala wrócić do "
+            "Mitycznej Astralnej Bramy."
             if floor in MYTHIC_BOSS_FLOORS
             else ""
         )
