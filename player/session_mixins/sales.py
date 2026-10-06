@@ -13,7 +13,12 @@ from core.bootstrap_economy_professions import (
     profession_rank_name,
 )
 from core.mines_threat import EQUIPMENT_SLOT_ALIASES, ITEMS, is_character_bound_item
-from core.progression_resources import v0190_resource_sale_coins, v096_fishing_reward_scale
+from core.progression_resources import (
+    v0190_resource_sale_coins,
+    v0190_resource_stage,
+    v096_fishing_reward_scale,
+    v1138_resource_sale_base_coins,
+)
 from network.protocol_gameplay_utils import find_by_name, normalize_lookup_text
 from systems.content_registry import NPCS
 from systems.crafting_expansion import CRAFT_MATERIAL_STORAGE_IDS
@@ -173,12 +178,26 @@ class SessionSalesMixin:
             # v0.9.15: zwykły loot z mobów (np. kły i trofea) można
             # sprzedać w każdym normalnym sklepie. Jawne sell_* nadal ma pierwszeństwo.
             if item.get("type") == "loot":
-                rarity_bonus = {
-                    "common": 0, "rare": 20, "epic": 60,
-                    "legendary": 150, "mythic": 350, "unique": 600,
-                }.get(str(item.get("rarity") or "common"), 0)
-                loot_value = max(1, int(item.get("loot_sell_silver", 25) or 25))
-                return {"silver": loot_value + rarity_bonus, "gold": 0, "mithril": 0}
+                stage = v0190_resource_stage(item_id, item)
+                rarity_mult = {
+                    "common": 0.50,
+                    "uncommon": 0.75,
+                    "rare": 1.25,
+                    "epic": 2.25,
+                    "legendary": 4.00,
+                    "mythic": 7.00,
+                    "unique": 10.00,
+                }.get(str(item.get("rarity") or "common"), 0.50)
+                progression_value = max(
+                    1,
+                    int(round(v1138_resource_sale_base_coins(stage) * rarity_mult)),
+                )
+                authored_value = max(1, int(item.get("loot_sell_silver", 25) or 25))
+                return {
+                    "silver": max(authored_value, progression_value),
+                    "gold": 0,
+                    "mithril": 0,
+                }
 
             # v0.8.61: zdobyty/craftowany ekwipunek bez ceny sklepowej ma
             # wartość zgodną z materiałem, statystykami i właściwościami.
