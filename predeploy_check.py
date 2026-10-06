@@ -301,6 +301,8 @@ _combat_rewards_source_v11325 = (_root / "player/session_mixins/combat_rewards.p
 _items_source_v11325 = (_root / "data/items.py").read_text(encoding="utf-8")
 
 for _needle in (
+    "def shop_money_price_v11325",
+    "explicit token-only contract",
     "def legacy_explicit_sale_floor_v11325",
     "def legacy_explicit_sale_value_v11325",
     "def legacy_identity_drop_spec_v11325",
@@ -336,6 +338,35 @@ for _item_id in (
 ):
     if f'"{_item_id}"' not in _items_source_v11325:
         _semantic_errors.append("legacy mob material regression: missing " + _item_id)
+
+_banking_shop_source_v11325 = (_root / "player/session_mixins/banking_charisma.py").read_text(encoding="utf-8")
+_shop_runtime_source_v11325 = (_root / "player/session_mixins/shops_teachers.py").read_text(encoding="utf-8")
+
+for _needle in (
+    "from systems.legacy_value_sweep import shop_money_price_v11325",
+    "return shop_money_price_v11325(item)",
+):
+    if _needle not in _banking_shop_source_v11325:
+        _semantic_errors.append("shop zero-price regression: banking helper missing " + _needle)
+
+for _needle in (
+    "def shop_offer_unit_cashback_silver",
+    "def shop_offer_effective_money_silver",
+    "def shop_offer_token_parts",
+    "def shop_offer_cost_text",
+    "price_text = self.shop_offer_cost_text(item)",
+    "purchase_cost_text = self.shop_offer_cost_text(item, quantity)",
+):
+    if _needle not in _shop_runtime_source_v11325:
+        _semantic_errors.append("shop price parity regression: missing " + _needle)
+
+for _forbidden in (
+    'price = int(item.get("price") or 0)\n            currency = item.get("currency", "silver")',
+    'price_text = currency_reading_text(effective, 0, 0)',
+    'unit_price = int(source_gold) * 100 if source_gold is not None',
+):
+    if _forbidden in _shop_runtime_source_v11325 or _forbidden in _banking_shop_source_v11325:
+        _semantic_errors.append("shop zero-price regression: stale pricing path " + _forbidden)
 
 # v1.13.24: Global "O Kurde" Game Feel must remain activity-specific and
 # preserve exact authored/manual rewards.
