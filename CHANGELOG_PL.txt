@@ -24,6 +24,7 @@ Aktualna paczka: v1.13.30
 Soulbound v1.13.30 — POST-600 INFINITE REWARD & EQUIPMENT PROGRESSION
 ==============================================================================
 
+- AUTO KOLEJKA SKILLI: bazowa pojemność każdej aktywnej kolejki wzrosła z 20 do 40 slotów na starcie. Dalej rośnie o 1 slot co 10 Character Leveli: 50 przy 100, 60 przy 200, 80 przy 400 i 100 przy 600.
 - Nieskończone lochy nie kończą już progresji jakości EQ na etapie źródła 600.
   Character/Class/Soul/profesje nadal zachowują normalny cap 600.
 - Dodano trwałe warianty "Rezonans Głębi". Po przekroczeniu efektywnego etapu
