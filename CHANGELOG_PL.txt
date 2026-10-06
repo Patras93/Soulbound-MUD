@@ -24,6 +24,8 @@ Aktualna paczka: v1.13.31
 Soulbound v1.13.31 — VERSION SYNC, PARTY CHESTS & ADAPTIVE CONSIDER
 ==============================================================================
 
+- SUPERBOSS PARTY TRAVEL: dla bossów party/solo-or-party lider komendą superboss <nazwa> przenosi razem wszystkich żywych członków party stojących w jego lokacji. Przed ruchem sprawdzane są wymagania każdego członka: Level, osobiste odblokowanie Deep Dungeon/Serpentariusa, lockout oraz min/max liczby graczy. Non-leader nie może rozdzielić party własnym teleportem; członkowie poza lokacją lidera zostają na miejscu.
+- SUPERBOSS HELPERS: naprawiono source phrases typu say Join me, Popoi. System wyszukuje teraz rzeczywistego helpera NPC w bieżącej arenie zamiast starych nieużywanych ID pokoi. pomocnik <nazwa> korzysta z tego samego płatnego mechanizmu, więc nie omija kosztu, limitu party ani zasady, że zatrudnia lider.
 - JAMMER vs SUPER BOSS: UOSS Super Bossowie są teraz twardo odporni na Stop z Jammera. Jammer nadal działa normalnie na zwykłych, Elite/Rare i innych dozwolonych przeciwników; Support Effect nie omija tej odporności przy AoE. Komunikat jasno mówi, że Super Boss jest odporny na Stop.
 - AKTYWNE EFEKTY DLA WSZYSTKICH KLAS: komendy hp i score pokazują po HP/Manie wspólną linię z aktywnymi czasowymi buffami i pozostałym czasem. Nowe buffs / effects / efekty daje szybki osobny podgląd pod NVDA. V-MAX pokazuje V-MAX oraz Protect/Shell/Haste/Regen/Preach/Praise/Permanence; wspólny status obejmuje też Regen innych klas, Guard, Evade i Overheat. Stałe pasywki nie zaśmiecają tej listy.
 - PODBITO WERSJĘ GRY do v1.13.31. Kanoniczny runtime VERSION, nagłówek CHANGELOG_PL.txt i fallback komendy changes są ponownie zgodne.
