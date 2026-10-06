@@ -37,6 +37,19 @@ from world.economy_quests import V0863_MATERIAL_SALE_BASE_SILVER
 
 class SessionSalesMixin:
 
+    def profession_resource_sale_value_v1138(self, item_id, item):
+            total = int(v0190_resource_sale_coins(item_id, item))
+            if item_id in FISH_STORAGE_IDS:
+                total = max(
+                    1,
+                    int(round(
+                        total
+                        * v096_fish_price_scale(item_id)
+                        * fish_trophy_value_multiplier_v1138(item_id)
+                    )),
+                )
+            return max(1, total)
+
     def generic_item_sale_allowed_here(self):
             # Zwykłe przedmioty można odsprzedawać w każdej lokacji z normalnym sklepem.
             return self.character.room_id in SHOPS
@@ -128,38 +141,27 @@ class SessionSalesMixin:
                     | HERB_STORAGE_IDS
                 )
                 if item_id in profession_storage_ids:
-                    total = legacy_currency_to_coins(
+                    authored_total = legacy_currency_to_coins(
                         explicit["silver"], explicit["gold"], explicit["mithril"]
                     )
-                    # v1.13.8: stare ręczne ceny nie mogą zepchnąć profesji do
-                    # symbolicznego zarobku względem aktualnej ekonomii.
-                    total = max(
-                        total,
-                        int(v0190_resource_sale_coins(item_id, item)),
-                    )
                     if item_id in FISH_STORAGE_IDS:
-                        total = max(
+                        authored_total = max(
                             1,
                             int(round(
-                                total
+                                authored_total
                                 * v096_fish_price_scale(item_id)
                                 * fish_trophy_value_multiplier_v1138(item_id)
                             )),
                         )
+                    total = max(
+                        authored_total,
+                        self.profession_resource_sale_value_v1138(item_id, item),
+                    )
                     return {"silver": total, "gold": 0, "mithril": 0}
                 return explicit
 
             if item.get("type") in {"resource", "craft_material"}:
-                total = int(v0190_resource_sale_coins(item_id, item))
-                if item_id in FISH_STORAGE_IDS:
-                    total = max(
-                        1,
-                        int(round(
-                            total
-                            * v096_fish_price_scale(item_id)
-                            * fish_trophy_value_multiplier_v1138(item_id)
-                        )),
-                    )
+                total = self.profession_resource_sale_value_v1138(item_id, item)
                 return {"silver": total, "gold": 0, "mithril": 0}
 
             # Przedmiot kupny: sklep odkupuje za 50% ceny bazowej.
@@ -874,8 +876,12 @@ class SessionSalesMixin:
                 await self.send("Nie masz tego surowca.")
                 return
 
-            # v0.19: sprzedaż zasobów skaluje się razem z globalną ekonomią.
-            reward_coins = v0190_resource_sale_coins(item_id, item)
+            # v1.13.8: pojedyncza i hurtowa sprzedaż korzystają z tej samej
+            # wartości, łącznie z jackpotem rzadkiego wariantu i premią gatunku ryby.
+            values = self.generic_item_sale_value(item_id, item)
+            reward_coins = legacy_currency_to_coins(
+                values["silver"], values["gold"], values["mithril"]
+            )
             self.character.silver += reward_coins
             await self.gain_charisma_from_sale(reward_coins)
             await self.announce_profession_sale_xp(source_container, 1)
