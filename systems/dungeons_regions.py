@@ -253,6 +253,7 @@ for _floor, (_item_id, _name, _defense, _affix, _amount) in BOSS_RELICS.items():
         "affix": _affix,
         "affix_amount": _scaled_amount,
         "boss_relic_floor": _floor,
+        "source_progression_stage": min(600, int(_floor)),
         "equipment_identity_source": "crypt_boss",
         "equipment_identity_role": "unique_relic",
         "equipment_identity_label": (
@@ -554,6 +555,7 @@ def build_crypt_loot_variants():
         base_item["rarity_name"] = "Zwykły"
         base_item["crypt_set_tier"] = tier
         base_item["crypt_base_item"] = base_item_id
+        base_item["source_progression_stage"] = max(1, min(600, tier * 10))
         base_item["affix"] = None
         base_item["affix_amount"] = 0
         base_item["equipment_identity_source"] = "crypt"
@@ -652,6 +654,7 @@ def build_crypt_loot_variants():
                     "rarity_name": rarity["name"],
                     "crypt_set_tier": tier,
                     "crypt_base_item": base_item_id,
+                    "source_progression_stage": mastery,
                     "affix": affix_key,
                     "affix_amount": amount,
                     "equipment_identity_source": "crypt",
