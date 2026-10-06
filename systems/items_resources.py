@@ -1274,10 +1274,10 @@ CLASS_EQUIPMENT_SETS = {
     },
 }
 
-# v0.9.11: każda klasa ma kilka odrębnych linii stylistycznych EQ.
-# Pierwsza linia zachowuje stare ID/nazwy dla zgodności save'ów; pozostałe
-# mają identyczny budżet statystyk i obrony, więc zwiększają różnorodność
-# bez power creepu.
+# v0.9.11 / v1.13.8: każda klasa ma trzy odrębne linie EQ.
+# Pierwsza linia zachowuje stare ID/nazwy dla zgodności save'ów. Od v1.13.8
+# linie mają realne profile pojedynczych części: zbalansowany, ofensywny i
+# pancerny. Można je dowolnie mieszać; progi setu są liczone po klasie/slotach.
 CLASS_EQUIPMENT_STYLES = {
     "Wojownik": ("Przysięgi", "Żelaznej Straży", "Lwiego Serca"),
     "Berserker": ("Krwawej Furii", "Rozbitego Łańcucha", "Wojennego Szału"),
