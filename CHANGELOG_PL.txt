@@ -1,5 +1,5 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.13.34
+Aktualna paczka: v1.13.35
 
 
 
@@ -19,6 +19,21 @@ Aktualna paczka: v1.13.34
 
 
 
+
+==============================================================================
+Soulbound v1.13.35 — DUNGEON MOB IDENTITY PASS
+==============================================================================
+
+- KRYPTA — KONIEC IDENTYCZNYCH NAZW: zwykła Krypta nie opiera już całego nieskończonego lochu wyłącznie na rotacji 8 tych samych nazw. Każdy mob dostaje krótki, deterministyczny motyw zależny od piętra i cyklu głębokości.
+- PODWÓJNE SZKIELETY: dwa dodatkowe Szkielety Strażnicy tworzone na tym samym piętrze Krypty mają teraz różne archetypy Warty Kościanej i Warty Grobowej. Nie ma dwóch identycznie brzmiących celów w tym samym pokoju.
+- MITYCZNA KRYPTA: regularne moby i mityczni bossowie dostają własny motyw głębokości zamiast powtarzać cztery regularne nazwy oraz jednego Mitycznego Władcę przez setki pięter.
+- WIEŻE ASTRALNE: zwykła i Mityczna Wieża zachowują rozpoznawalne archetypy, ale nazwa zawiera motyw danego poziomu/cyklu. Dotyczy części ręcznej i nieskończonych lazy-generated poziomów.
+- TWIERDZA GIGANTÓW: trzy podstawowe archetypy nie są już jedyną informacją w nazwie; kolejne poziomy dostają motywy garnizonu/bastionu/cyklopów i numer cyklu.
+- LOCHY PROFESYJNE: Zatopiona Grota, Pradawny Las i Ogród Alchemika zachowują swoje trzy archetypy na piętro, ale dostają zróżnicowany motyw głębokości. Kryształowe Groty pozostają świadomie bez mobów.
+- MAGITEK: zwykłe i elitarne jednostki podają w nazwie bieżący sektor, a boss dodatkowo cykl i piętro, więc powracający po wielu piętrach prototyp nie wygląda jak dokładnie ten sam przeciwnik.
+- DEEP DUNGEON: bez zmian w nazewnictwie i mechanice. Ma osobny system oraz nie generuje dwóch identycznie nazwanych regularnych mobów w jednym pokoju.
+- Zmiana dotyczy wyłącznie czytelności/tożsamości przeciwników. HP, damage, Adaptive Combat, dropy, EXP i ekonomia pozostają bez zmian.
+- Brak migracji bazy i brak wipe.
 
 ==============================================================================
 Soulbound v1.13.34 — BOSS CHEST REAL ROOM FIX
