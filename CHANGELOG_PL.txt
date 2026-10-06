@@ -1,5 +1,5 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.13.32
+Aktualna paczka: v1.13.33
 
 
 
@@ -19,6 +19,18 @@ Aktualna paczka: v1.13.32
 
 
 
+
+==============================================================================
+Soulbound v1.13.33 — QOL NAVIGATION, EQUIPMENT & BOSS CHEST HOTFIXES
+==============================================================================
+
+- ZDEJMIJ WSZYSTKO: dodano komendę `zdejmij wszystko` / `zdejmij all`, która jednym poleceniem zdejmuje całe zwykłe EQ ze wszystkich zajętych slotów. Broń Duszy pozostaje bez zmian. Osadzone klejnoty z biżuterii wracają do Szkatułki Rzemieślniczej, a HP/Mana są przycinane do nowych maksimów. W walce nadal nie można zmieniać EQ.
+- WALK WIEŻA GÓRA: wewnątrz zwykłej Wieży Astralnej `walk wieża góra` działa analogicznie do `walk krypta dół`: prowadzi do komnaty z wyjściem `up` na następny poziom i zatrzymuje się przed przejściem. Ostatnie wejście gracz wykonuje ręcznie. Obsługiwane są też warianty `wieża astralna góra`, `astral up`, `tower up` i literówka `wierza góra`.
+- BOSS CHEST RUNTIME HOTFIX: naprawiono błąd `name 'BOSS_CHEST_OPENED_CATEGORY_V11332' is not defined`, który mógł zatrzymać pętlę walki przy zabiciu bossa. Importy stanu skrzyń i helperów są teraz jawne zarówno w nagrodach z walki, jak i przy obsłudze skrzyni.
+- SKRZYNIA STOI W POKOJU BOSSA: skrzynia jest widoczna od razu w dokładnym kanonicznym pokoju bossa checkpointu, także gdy boss jeszcze żyje. Nie pojawia się przy zejściu ani w innych pokojach tego samego piętra.
+- KLUCZ I OTWARCIE BEZ ZMIAN: bez właściwego klucza skrzynia pozostaje zamknięta; klucz nadal wypada z ciała bossa. Po otwarciu skrzynia znika dla nagrodzonej postaci/drużyny i wraca dopiero po kolejnym prawidłowym zabiciu tego bossa.
+- Zasada widoczności skrzyń obowiązuje wspólnie dla zwykłej Krypty, Wieży Astralnej, Mitycznej Krypty, Mitycznej Wieży Astralnej i Twierdzy Gigantów.
+- PREDEPLOY: zaktualizowano semantyczny guard skrzyń oraz numer release do v1.13.33. Brak migracji bazy i brak wipe.
 
 ==============================================================================
 Soulbound v1.13.32 — BOSS CHEST ROOM STATE
