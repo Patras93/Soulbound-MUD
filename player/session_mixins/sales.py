@@ -23,6 +23,7 @@ from network.protocol_gameplay_utils import find_by_name, normalize_lookup_text
 from systems.content_registry import NPCS
 from systems.crafting_expansion import CRAFT_MATERIAL_STORAGE_IDS
 from systems.equipment_crafting import MINING_STORAGE_IDS, SHOPS, SHOP_SELLERS
+from systems.legacy_value_sweep import legacy_explicit_sale_value_v11325
 from systems.items_resources import (
     BLACKSMITH_SLOT_DEFS,
     BLACKSMITH_TIERS,
@@ -165,6 +166,15 @@ class SessionSalesMixin:
                         authored_total,
                         self.profession_resource_sale_value_v1138(item_id, item),
                     )
+                    return {"silver": total, "gold": 0, "mithril": 0}
+
+                # v1.13.25: old explicit sell_* values are no longer allowed to
+                # make otherwise useful loot/EQ worthless. Exact/manual sale
+                # contracts can opt out through the helper.
+                if item.get("type") in {"loot", "armor"}:
+                    total = legacy_explicit_sale_value_v11325(item_id, item)
+                    if smith_cap is not None:
+                        total = min(total, smith_cap)
                     return {"silver": total, "gold": 0, "mithril": 0}
                 return explicit
 
