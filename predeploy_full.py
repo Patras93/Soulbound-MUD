@@ -23,6 +23,44 @@ def main():
                 print(f"ERROR: {error}")
             if full["error_count"]:
                 raise SystemExit(1)
+            # v1.13.30 — audit audytów. Runtime modules may expose diagnostics
+            # without raising during production startup. Full predeploy collects every
+            # audit report from the assembled compatibility namespace and rejects the
+            # image here instead.
+            audit_failures = []
+            audit_reports = 0
+            for name, value in sorted(ns.items()):
+                if "AUDIT" not in str(name).upper() or not isinstance(value, dict):
+                    continue
+                if "error_count" not in value:
+                    continue
+                audit_reports += 1
+                try:
+                    error_count = int(value.get("error_count", 0) or 0)
+                except (TypeError, ValueError, OverflowError):
+                    audit_failures.append(
+                        f"{name}: invalid error_count={value.get('error_count')!r}"
+                    )
+                    continue
+                if error_count:
+                    errors = tuple(value.get("errors", ()) or ())
+                    if errors:
+                        audit_failures.extend(
+                            f"{name}: {error}" for error in errors[:100]
+                        )
+                    else:
+                        audit_failures.append(
+                            f"{name}: error_count={error_count} without error details"
+                        )
+            print(
+                f"RUNTIME AUDIT REGISTRY: {audit_reports} reports, "
+                f"{len(audit_failures)} failures"
+            )
+            for error in audit_failures[:300]:
+                print(f"RUNTIME AUDIT ERROR: {error}")
+            if audit_failures:
+                raise SystemExit(1)
+
             from admin.cross_system_audit_v1001 import audit as audit_cross_system_v1001
             cross = audit_cross_system_v1001(server)
             print(
