@@ -23,6 +23,7 @@ from network.protocol_gameplay_utils import find_by_name, normalize_lookup_text
 from systems.content_registry import NPCS
 from systems.crafting_expansion import CRAFT_MATERIAL_STORAGE_IDS
 from systems.equipment_crafting import MINING_STORAGE_IDS, SHOPS, SHOP_SELLERS
+from systems.legacy_value_sweep import legacy_explicit_sale_value_v11325
 from systems.items_resources import (
     BLACKSMITH_SLOT_DEFS,
     BLACKSMITH_TIERS,
@@ -166,6 +167,15 @@ class SessionSalesMixin:
                         self.profession_resource_sale_value_v1138(item_id, item),
                     )
                     return {"silver": total, "gold": 0, "mithril": 0}
+
+                # v1.13.25: old explicit sell_* values are no longer allowed to
+                # make otherwise useful loot/EQ worthless. Exact/manual sale
+                # contracts can opt out through the helper.
+                if item.get("type") in {"loot", "armor"}:
+                    total = legacy_explicit_sale_value_v11325(item_id, item)
+                    if smith_cap is not None:
+                        total = min(total, smith_cap)
+                    return {"silver": total, "gold": 0, "mithril": 0}
                 return explicit
 
             if item.get("type") in {"resource", "craft_material"}:
@@ -173,15 +183,25 @@ class SessionSalesMixin:
                 return {"silver": total, "gold": 0, "mithril": 0}
 
             # Przedmiot kupny: sklep odkupuje za 50% ceny bazowej.
+            # v1.13.25: legacy armor cannot get stuck at half of an ancient,
+            # pre-rebalance shop price; current progression floor still applies.
             price = item.get("price")
             currency = item.get("currency", "silver")
             if isinstance(price, (int, float)) and price > 0 and currency in explicit:
                 value = max(1, int(price) // 2)
                 result = {"silver": 0, "gold": 0, "mithril": 0}
                 result[currency] = value
+                total = legacy_currency_to_coins(
+                    result["silver"], result["gold"], result["mithril"]
+                )
+                if item.get("type") == "armor":
+                    total = max(
+                        total,
+                        legacy_explicit_sale_value_v11325(item_id, item),
+                    )
                 if smith_cap is not None:
-                    total = legacy_currency_to_coins(result["silver"], result["gold"], result["mithril"])
                     total = min(total, smith_cap)
+                if item.get("type") == "armor" or smith_cap is not None:
                     return {"silver": total, "gold": 0, "mithril": 0}
                 return result
 

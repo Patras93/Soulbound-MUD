@@ -534,6 +534,30 @@ ITEMS = {
         "desc": "Ciemny kieł pulsujący słabą energią.",
     },
 
+    # v1.13.25: charakterystyczne materiały starych rodzin mobów.
+    # To nie są kolejne globalne trofea — wypadają tylko z legacy mobów,
+    # których authored drop był pusty lub praktycznie samą miksturą.
+    "legacy_rat_tail": {
+        "name": "Ogon Szczura Świątynnego", "type": "loot", "price": None,
+        "sell_silver": 25, "generator_level": 1, "rarity": "common",
+        "desc": "Niewielkie trofeum ze Szczura Świątynnego. Ma realną wartość handlową.",
+    },
+    "legacy_goblin_salvage": {
+        "name": "Goblińskie Znalezisko", "type": "loot", "price": None,
+        "sell_silver": 100, "generator_level": 10, "rarity": "uncommon",
+        "desc": "Użyteczny łup z goblińskich kieszeni i ekwipunku.",
+    },
+    "legacy_bandit_purse": {
+        "name": "Sakiewka Bandyty", "type": "loot", "price": None,
+        "sell_silver": 250, "generator_level": 20, "rarity": "uncommon",
+        "desc": "Zdobyczna sakiewka po bandycie. Warto ją sprzedać.",
+    },
+    "legacy_ancient_fragment": {
+        "name": "Fragment Starej Straży", "type": "loot", "price": None,
+        "sell_silver": 400, "generator_level": 30, "rarity": "rare",
+        "desc": "Fragment uzbrojenia lub run z dawnych ruin. Cenny dla handlarzy.",
+    },
+
     # v1.13.23: dodatkowy "o kurde" łup z normalnej walki.
     # Jedyną funkcją trofeów jest wartościowa sprzedaż; nie zastępują one
     # authored materiałów, unikalnych dropów, EQ ani nagród bossów.

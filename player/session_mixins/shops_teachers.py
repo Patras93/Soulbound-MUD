@@ -97,6 +97,39 @@ class SessionShopsTeachersMixin:
                     results.append((row["slot"], row["item_id"], equipped))
             return results
 
+    def shop_offer_unit_cashback_silver(self, item):
+            base = self.shop_item_base_value_silver(item)
+            if base <= 0:
+                return 0
+            return (base * self.character.shop_discount_percent()) // 100
+
+    def shop_offer_effective_money_silver(self, item):
+            base = self.shop_item_base_value_silver(item)
+            return max(0, base - self.shop_offer_unit_cashback_silver(item))
+
+    def shop_offer_token_parts(self, item, quantity=1):
+            token_id = item.get("fur_shop_token")
+            token_cost = max(0, int(item.get("fur_shop_token_cost", 0) or 0))
+            token_cost *= max(1, int(quantity or 1))
+            if not token_id or token_cost <= 0:
+                return None, 0, ""
+            token_name = ITEMS.get(token_id, {}).get("name", token_id)
+            return token_id, token_cost, f"{token_cost} x {token_name}"
+
+    def shop_offer_cost_text(self, item, quantity=1):
+            quantity = max(1, int(quantity or 1))
+            money = self.shop_offer_effective_money_silver(item) * quantity
+            _token_id, _token_cost, token_text = self.shop_offer_token_parts(
+                item, quantity
+            )
+            parts = []
+            if money > 0:
+                parts.append(currency_reading_text(money, 0, 0))
+            if token_text:
+                parts.append(token_text)
+            # Safe pricing makes this unreachable for real non-token offers.
+            return " + ".join(parts) if parts else "bez kosztu"
+
     async def shop_info(self, query, class_filter=""):
             """Pełny podgląd pozycji sklepu przed zakupem, szczególnie wygodny dla NVDA."""
             room_id = self.character.room_id
@@ -136,10 +169,9 @@ class SessionShopsTeachersMixin:
                 return
 
             number, item_id, item = found
-            source_gold = item.get("fur_shop_gold_cost")
-            base_price = int(source_gold) * 100 if source_gold is not None else self.shop_item_base_value_silver(item)
-            cashback = self.shop_cashback_silver({"price": base_price}) if source_gold is not None else self.shop_cashback_silver(item)
-            final_price = max(0, base_price - cashback)
+            base_price = self.shop_item_base_value_silver(item)
+            cashback = self.shop_offer_unit_cashback_silver(item)
+            final_price = self.shop_offer_effective_money_silver(item)
             await self.send(f"INFORMACJE O SKLEPIE {number}. {item['name']}.")
             if item.get("class_shop_item"):
                 style_index = (
@@ -154,18 +186,19 @@ class SessionShopsTeachersMixin:
                 )
             await self.send(self.format_item_description(item_id, item))
             if cashback > 0:
+                _catalog_text = currency_reading_text(base_price, 0, 0)
+                _token_id, _token_cost, _token_text = self.shop_offer_token_parts(item)
+                if _token_text:
+                    _catalog_text += " + " + _token_text
                 await self.send(
-                    "Cena katalogowa: " + currency_reading_text(base_price, 0, 0)
-                    + ". Zwrot z rabatu Charyzmy: " + currency_reading_text(cashback, 0, 0)
-                    + ". Efektywny koszt: " + currency_reading_text(final_price, 0, 0) + "."
+                    "Cena katalogowa: " + _catalog_text
+                    + ". Rabat Charyzmy: -" + currency_reading_text(cashback, 0, 0)
+                    + ". Efektywny koszt: " + self.shop_offer_cost_text(item) + "."
                 )
             else:
-                _cost_text = currency_reading_text(base_price, 0, 0)
-                _token_id = item.get("fur_shop_token")
-                _token_cost = int(item.get("fur_shop_token_cost", 0) or 0)
-                if _token_id and _token_cost:
-                    _cost_text += f" + {_token_cost} x {ITEMS.get(_token_id, {}).get('name', _token_id)}"
-                await self.send("Koszt zakupu: " + _cost_text + ".")
+                await self.send(
+                    "Koszt zakupu: " + self.shop_offer_cost_text(item) + "."
+                )
 
             lock_text = self.shop_offer_lock_text(item_id, item)
             if lock_text:
@@ -225,21 +258,10 @@ class SessionShopsTeachersMixin:
             )
             for number, item_id in enumerate(offers, 1):
                 item = ITEMS[item_id]
-                source_gold = item.get("fur_shop_gold_cost")
-                if source_gold is not None:
-                    price_coins = int(source_gold) * 100
-                    cashback = self.shop_cashback_silver({"price": price_coins})
-                    effective = max(0, price_coins - cashback)
-                    price_text = currency_reading_text(effective, 0, 0)
-                    token_id = item.get("fur_shop_token")
-                    token_cost = int(item.get("fur_shop_token_cost", 0) or 0)
-                    if token_id and token_cost:
-                        price_text += f" + {token_cost} x {ITEMS.get(token_id, {}).get('name', token_id)}"
-                else:
-                    price_coins = self.shop_item_base_value_silver(item)
-                    cashback = self.shop_cashback_silver(item)
-                    effective = max(0, price_coins - cashback)
-                    price_text = currency_reading_text(effective, 0, 0)
+                price_coins = self.shop_item_base_value_silver(item)
+                cashback = self.shop_offer_unit_cashback_silver(item)
+                effective = self.shop_offer_effective_money_silver(item)
+                price_text = self.shop_offer_cost_text(item)
                 lock_text = self.shop_offer_lock_text(item_id, item)
                 state = f" — {lock_text}" if lock_text else ""
                 style_role = ""
@@ -369,12 +391,13 @@ class SessionShopsTeachersMixin:
                 )
                 return
 
-            token_id = item.get("fur_shop_token")
-            token_cost = max(0, int(item.get("fur_shop_token_cost", 0) or 0)) * quantity
-            source_gold = item.get("fur_shop_gold_cost")
-            unit_price = int(source_gold) * 100 if source_gold is not None else self.shop_item_base_value_silver(item)
-            unit_cashback = self.shop_cashback_silver({"price": unit_price}) if source_gold is not None else self.shop_cashback_silver(item)
-            total_price = max(0, unit_price - unit_cashback) * quantity
+            token_id, token_cost, _token_text = self.shop_offer_token_parts(
+                item, quantity
+            )
+            unit_price = self.shop_item_base_value_silver(item)
+            unit_cashback = self.shop_offer_unit_cashback_silver(item)
+            total_price = self.shop_offer_effective_money_silver(item) * quantity
+            purchase_cost_text = self.shop_offer_cost_text(item, quantity)
             if token_id and token_cost:
                 owned_tokens = self.server.db.item_qty(self.account_id, token_id)
                 if owned_tokens < token_cost:
@@ -405,14 +428,13 @@ class SessionShopsTeachersMixin:
                 self.server.db.ensure_tool(self.account_id, item["tool_type"])
             self.server.db.save_character(self.character)
             if quantity == 1:
-                _token_text = ""
-                if token_id and token_cost:
-                    _token_text = f" + {token_cost} x {ITEMS.get(token_id, {}).get('name', token_id)}"
-                await self.send(f"Kupujesz {item['name']} za " + currency_reading_text(total_price, 0, 0) + _token_text + ".")
+                await self.send(
+                    f"Kupujesz {item['name']} za {purchase_cost_text}."
+                )
             else:
                 await self.send(
                     f"Kupujesz {quantity} szt. {item['name']} za "
-                    + currency_reading_text(total_price, 0, 0) + "."
+                    + purchase_cost_text + "."
                 )
             if cashback > 0:
                 await self.send(

@@ -16,28 +16,13 @@ from core.bootstrap_economy_professions import (
 from core.mines_threat import ITEMS, is_character_bound_item
 from core.progression_resources import BANK_ROOM, v0190_economy_sink
 from network.protocol_gameplay_utils import find_by_name, normalize_lookup_text
+from systems.legacy_value_sweep import shop_money_price_v11325
 
 
 class SessionBankingCharismaMixin:
 
     def shop_item_base_value_silver(self, item):
-            price = int(item.get("price") or 0)
-            currency = item.get("currency", "silver")
-            if price <= 0 and item.get("universal_endgame_shop"):
-                stage = max(1, int(item.get("required_level", 1) or 1))
-                return min(V019_SAFE_INT, max(1, int(v0190_economy_sink(stage, "equipment"))))
-            if currency == "silver":
-                base = price
-            elif currency == "gold":
-                base = price * SILVER_PER_GOLD
-            elif currency == "mithril":
-                base = price * GOLD_PER_MITHRIL * SILVER_PER_GOLD
-            else:
-                base = 0
-            required=max(1,int(item.get("required_mastery",1) or 1))
-            if required >= 10 and base > 0:
-                base=max(base,v0190_economy_sink(required,"equipment"))
-            return min(V019_SAFE_INT,max(0,int(base)))
+            return shop_money_price_v11325(item)
 
     def shop_cashback_silver(self, item):
             base = self.shop_item_base_value_silver(item)

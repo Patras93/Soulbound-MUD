@@ -1,5 +1,5 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.13.24
+Aktualna paczka: v1.13.25
 
 
 
@@ -14,6 +14,45 @@ Aktualna paczka: v1.13.24
 
 
 
+
+
+==============================================================================
+Soulbound v1.13.25 — GLOBAL LEGACY VALUE SWEEP
+==============================================================================
+
+- Przeskanowano stare ścieżki wartości po v1.13.24. Nowoczesne questy,
+  profesje, klasowe EQ i jackpoty były już skalowane; największą pozostałą
+  luką były stare jawne ceny sprzedaży oraz stare rodziny mobów z dropem
+  praktycznie ograniczonym do mikstury.
+- SPRZEDAŻ LOOTU/EQ: stare sell_silver/sell_gold/sell_mithril nie mogą już
+  zaniżyć wartości loot/armor poniżej aktualnego progression flooru.
+- STARE EQ ZE SKLEPU: ścieżka price -> 50% nie omija już flooru odsprzedaży
+  EQ. Stara kamizelka/hełm/talizman nie zostają ekonomicznie na wartościach
+  sprzed wielkich rebalance'ów tylko dlatego, że mają dawną cenę katalogową.
+- NAPRAWA CEN ZAKUPU: brakujące price=None/0 w prawdziwej ofercie sklepu
+  nie oznacza już darmowego przedmiotu. Cena pieniężna dostaje bezpieczny
+  progression floor zależny od etapu i rodzaju przedmiotu.
+- shop, shop info i kup używają jednej kanonicznej ścieżki ceny, więc lista,
+  podgląd i faktycznie pobrana kwota nie mogą się rozjechać.
+- Token-only pozostaje legalne tylko jako jawny kontrakt: fur_shop_gold_cost=0
+  + dodatni fur_shop_token_cost. Taka oferta jest czytana np. „1 x Odin's
+  Mantle”, bez mylącego „0 srebra”.
+- Phoenix Egg u Odina pozostaje więc poprawnie token-only; przypadkowy wpis
+  0 Gold bez tokenu dostaje normalną cenę zamiast stawać się darmowy.
+- Ręcznie chronione wyjątki mogą zachować dokładną cenę przez
+  manual_sale_value_exact albo sale_value_mode=manual.
+- MOBY LEGACY: zwykłe stare rodziny, których authored drop jest pusty lub
+  praktycznie samą miksturą, mogą dostać charakterystyczny materiał:
+  Ogon Szczura Świątynnego, Goblińskie Znalezisko, Sakiewkę Bandyty albo
+  Fragment Starej Straży.
+- Characteristic material jest dodatkiem do authored dropu i trofeum
+  v1.13.23; nie zastępuje mikstur, Soul Shardów, EQ ani jackpotów.
+- Bossowie, minibossowie, przeciwnicy z własnymi mechanikami, Training Dummy
+  oraz moby z sensownym authored dropem są wyłączone z legacy-drop fixa.
+- Party zachowuje pełny wspólny drop bez kary, tak samo jak w reszcie walki.
+- Dodano deterministyczny Global Legacy Value Sweep Audit i fast-predeploy
+  guards dla floorów sprzedaży, manualnych wyjątków oraz materiałów legacy.
+- Brak wipe, migracji bazy i nowych sztucznych gate'ów.
 
 ==============================================================================
 Soulbound v1.13.24 — GLOBALNY „O KURDE” GAME FEEL PASS
