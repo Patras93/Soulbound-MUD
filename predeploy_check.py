@@ -328,12 +328,26 @@ for _needle in (
         _semantic_errors.append("HELP command index v1.13.28 regression: missing " + _needle)
 
 _manifest_help = "'admin/help_truth_current_v11328.py'"
-_manifest_memory = "'systems/runtime_memory.py'"
+_manifest_late_layers = (
+    "'world/uoss_superboss_world.py'",
+    "'world/global_difficulty_overdrive.py'",
+    "'systems/smithing_materials.py'",
+    "'systems/runtime_memory.py'",
+    "'admin/release_integrity_v0369.py'",
+)
 if _manifest_help not in _runtime_manifest_source_v11328:
     _semantic_errors.append("HELP truth v1.13.28 missing from runtime manifest")
-elif _manifest_memory in _runtime_manifest_source_v11328:
-    if _runtime_manifest_source_v11328.index(_manifest_help) > _runtime_manifest_source_v11328.index(_manifest_memory):
-        _semantic_errors.append("HELP truth v1.13.28 must load before runtime_memory at manifest tail")
+else:
+    _help_index_v11328 = _runtime_manifest_source_v11328.index(_manifest_help)
+    for _late_layer_v11328 in _manifest_late_layers:
+        if (
+            _late_layer_v11328 in _runtime_manifest_source_v11328
+            and _help_index_v11328
+            < _runtime_manifest_source_v11328.index(_late_layer_v11328)
+        ):
+            _semantic_errors.append(
+                "HELP truth v1.13.28 is not final after " + _late_layer_v11328
+            )
 
 # v1.13.27: loot source progression must remain monotonic and source-aware.
 _equipment_source_progression_v11327 = (_root / "systems/equipment_crafting.py").read_text(encoding="utf-8")
