@@ -1,5 +1,5 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.13.29
+Aktualna paczka: v1.13.30
 
 
 
@@ -19,6 +19,36 @@ Aktualna paczka: v1.13.29
 
 
 
+
+==============================================================================
+Soulbound v1.13.30 — POST-600 INFINITE REWARD & EQUIPMENT PROGRESSION
+==============================================================================
+
+- Nieskończone lochy nie kończą już progresji jakości EQ na etapie źródła 600.
+  Character/Class/Soul/profesje nadal zachowują normalny cap 600.
+- Dodano trwałe warianty "Rezonans Głębi". Po przekroczeniu efektywnego etapu
+  źródła 600 dropowane EQ dostaje self-describing ID deepq_* i łagodną,
+  nieskończoną krzywą mocy zależną od dalszej głębokości.
+- Rezonans Głębi skaluje istniejące staty, Attack/Magic Attack, obronę,
+  affixy, properties i z czasem sockety. Boss/Elite zachowują mocniejszą
+  jakość źródła, ale nie tworzą nowego wymogu poziomu.
+- Wymaganie Biegłości/poziomu założenia NIE rośnie ponad 600. Głębia wzmacnia
+  konkretny egzemplarz; nie powstają niemożliwe gate'y 601+.
+- Źródła: zwykła Krypta i Wieża po swoim etapie 600, Mityczna Krypta/Wieża
+  po statycznym zakresie odpowiadającym 600 oraz Magitek po authored stage 600.
+- Corpse EQ i losowy class-EQ z tych źródeł korzystają z jednego wspólnego
+  hooka. UOSS jest jawnie wyłączony i zachowuje własne tokeny/unikaty.
+- Warianty deepq_* są odbudowywane po restarcie/deployu z inventory, EQ,
+  banku, maila i Housing; NVDA dostaje normalną nazwę, nie techniczny ID.
+- Waluta z nieskończonej Krypty i Wieży po 600 rośnie łagodnie dalej wraz
+  z głębokością. Magitek nie dostaje podwójnego mnożnika monet, bo jego
+  authored silver już rośnie bez limitu przez floor/depth.
+- Wartość sprzedaży Rezonansu Głębi rośnie przez realne mechaniczne staty
+  przedmiotu, więc głęboki dobry drop nie staje się ekonomicznie śmieciem.
+- Dodano diagnostyczny Infinite Equipment Audit v1.13.30 i fast-predeploy
+  kontrakty. Audit behawioralny nie jest nowym production startup gate.
+- HELP opisuje post-600 Rezonans Głębi i zachowanie capu 600.
+- Brak wipe, migracji bazy i nowych blokad poziomowych.
 
 ==============================================================================
 Soulbound v1.13.29 — DROP CHANCE & REWARD EXCITEMENT PASS
