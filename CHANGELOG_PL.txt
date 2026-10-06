@@ -57,6 +57,12 @@ Soulbound v1.13.29 — DROP CHANCE & REWARD EXCITEMENT PASS
 - HELP loot/Krypta/Superbossy opisuje aktualne szanse i zachowane UOSS rewardy.
 - Dodano Drop Excitement Audit v1.13.29, Crypt Rarity Progression Audit
   v1.13.29 oraz fast-predeploy guards.
+- HOTFIX Railway: naprawiono przestarzały All Party Mob Drops Shared Audit
+  v0.35.9. Po wprowadzeniu authored_drop_chance_v11329 audit nadal szukał
+  dosłownie starego warunku random.random() <= chance i powodował restart-loop.
+  Mechanika party dropu pozostaje bez zmian: jeden roll na drop, potem kopia
+  wyniku dla każdego uprawnionego członka lokalnej drużyny.
+
 - Brak wipe, migracji bazy i nowych gate'ów.
 
 ==============================================================================

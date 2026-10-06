@@ -294,6 +294,24 @@ for _needle in (
             "terrain recommended mastery floor regression: missing " + _needle
         )
 
+# v1.13.29 hotfix: the historical party-drop audit must validate the
+# single shared roll contract after authored_drop_chance_v11329 transforms
+# the configured chance. Do not regress to matching the pre-v1.13.29 source.
+_party_drop_audit_source_v11329 = (_root / "admin/audits.py").read_text(encoding="utf-8")
+for _needle in (
+    "_effective_roll = \"if random.random() <= _effective_drop_chance_v11329:\"",
+    "_recipient_expand = \"drop_recipients = party_drop_recipients_v0359(item_id, recipients)\"",
+    'count("random.random()") == 1',
+):
+    if _needle not in _party_drop_audit_source_v11329:
+        _semantic_errors.append(
+            "party drop single-roll audit v1.13.29 regression: missing " + _needle
+        )
+if '"if random.random() <= chance" in combat_source' in _party_drop_audit_source_v11329:
+    _semantic_errors.append(
+        "party drop single-roll audit v1.13.29 still matches stale pre-transform roll"
+    )
+
 # v1.13.29: drop chance / reward excitement contracts.
 _drop_excitement_source_v11329 = (_root / "systems/drop_excitement.py").read_text(encoding="utf-8")
 _equipment_help_source_v11329 = (_root / "world/equipment_help.py").read_text(encoding="utf-8")
