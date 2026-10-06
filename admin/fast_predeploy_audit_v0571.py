@@ -90,9 +90,12 @@ def fast_predeploy_audit_v0571():
 
     # 2. Explicit runtime manifest: every declared file must exist and compile.
     try:
-        from core.runtime_manifest import RUNTIME_MODULES, EXPECTED_OVERRIDE_ORDER
+        from core.runtime_manifest import (
+            RUNTIME_MODULES, FULL_RUNTIME_MODULES, EXPECTED_OVERRIDE_ORDER,
+        )
     except Exception as exc:  # pragma: no cover - fatal deployment guard
         RUNTIME_MODULES = []
+        FULL_RUNTIME_MODULES = []
         errors.append(f"runtime manifest import failed: {type(exc).__name__}: {exc}")
 
     missing_manifest_files = []
@@ -242,13 +245,15 @@ def fast_predeploy_audit_v0571():
         living_audit = "admin/living_npcs_activity_audit_v0560.py"
         late_creator = "admin/audits.py"
         if finalizer not in RUNTIME_MODULES:
-            errors.append("living NPC late finalizer missing from runtime manifest")
-        elif living_audit not in RUNTIME_MODULES:
-            errors.append("living NPC coverage audit missing from runtime manifest")
-        elif RUNTIME_MODULES.index(finalizer) > RUNTIME_MODULES.index(living_audit):
-            errors.append("living NPC late finalizer runs after the coverage audit")
-        if finalizer in RUNTIME_MODULES and late_creator in RUNTIME_MODULES and RUNTIME_MODULES.index(finalizer) < RUNTIME_MODULES.index(late_creator):
+            errors.append("living NPC late finalizer missing from production runtime manifest")
+        if late_creator not in RUNTIME_MODULES:
+            errors.append("admin/audits.py functional late NPC creator missing from production runtime")
+        elif finalizer in RUNTIME_MODULES and RUNTIME_MODULES.index(finalizer) < RUNTIME_MODULES.index(late_creator):
             errors.append("living NPC late finalizer runs before admin/audits.py late NPC creation")
+        if living_audit not in FULL_RUNTIME_MODULES:
+            errors.append("living NPC coverage audit missing from full predeploy manifest")
+        elif finalizer in FULL_RUNTIME_MODULES and FULL_RUNTIME_MODULES.index(finalizer) > FULL_RUNTIME_MODULES.index(living_audit):
+            errors.append("living NPC late finalizer runs after the full-predeploy coverage audit")
     except Exception as exc:
         errors.append(f"living NPC runtime-order check failed: {type(exc).__name__}: {exc}")
 
