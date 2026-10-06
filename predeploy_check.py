@@ -149,6 +149,10 @@ _gathering_source = (_root / "player/session_mixins/gathering_actions.py").read_
 _protocol_utils_source = (_root / "network/protocol_gameplay_utils.py").read_text(encoding="utf-8")
 _exploration_prof_source = (_root / "player/session_mixins/exploration_professions.py").read_text(encoding="utf-8")
 _inventory_equipment_source = (_root / "player/session_mixins/inventory_equipment.py").read_text(encoding="utf-8")
+_courier_source = (_root / "player/session_mixins/courier_delivery.py").read_text(encoding="utf-8")
+_exploration_progress_source = (_root / "player/session_mixins/exploration_progress.py").read_text(encoding="utf-8")
+_ocean_session_source = (_root / "player/session_mixins/ocean.py").read_text(encoding="utf-8")
+_generation_systems_source = (_root / "world/generation_systems.py").read_text(encoding="utf-8")
 for _needle in (
     "def _write_record_numeric_fallback(",
     "Authored combat/reward/economy values are design decisions.",
@@ -250,6 +254,56 @@ for _needle in (
         )
 if "JACKPOT GEODY" not in _inventory_equipment_source:
     _semantic_errors.append("geode jackpot feedback regression: missing JACKPOT GEODY")
+
+for _needle in (
+    '"courier": 0.30',
+    '"dynamic_world": 0.85',
+    '"exploration100": 3.00',
+    '"ocean_trade": 0.55',
+    '"ocean_treasure": 2.50',
+    "def v1138_activity_income(",
+):
+    if _needle not in _economy_source:
+        _semantic_errors.append(
+            "global activity income loop regression: missing " + _needle
+        )
+
+for _needle in (
+    'v1138_activity_income(stage, "courier", route_factor)',
+    "route_factor = 1.0 + min(0.75",
+):
+    if _needle not in _courier_source:
+        _semantic_errors.append(
+            "courier income loop regression: missing " + _needle
+        )
+
+for _needle in (
+    'v1138_activity_income(',
+    '"exploration100"',
+    "stage = max(stages) if stages else fallback_stage",
+):
+    if _needle not in _exploration_progress_source:
+        _semantic_errors.append(
+            "exploration milestone income regression: missing " + _needle
+        )
+
+for _needle in (
+    'v1138_activity_income(stage, "dynamic_world", complexity)',
+):
+    if _needle not in _generation_systems_source:
+        _semantic_errors.append(
+            "dynamic world income loop regression: missing " + _needle
+        )
+
+for _needle in (
+    "def ocean_economy_stage_v1138(",
+    'v1138_activity_income(stage, "ocean_trade", difficulty)',
+    '"ocean_treasure"',
+):
+    if _needle not in _ocean_session_source:
+        _semantic_errors.append(
+            "ocean income loop regression: missing " + _needle
+        )
 
 _equipment_stats_source = (_root / "player/session_mixins/equipment_stats.py").read_text(encoding="utf-8")
 _combat_feedback_source = (_root / "player/session_mixins/skill_learning.py").read_text(encoding="utf-8")
