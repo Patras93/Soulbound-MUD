@@ -446,7 +446,6 @@ def _register_class_equipment_shops():
                         "class_set_piece": slot,
                         "class_equipment_tier": tier_index + 1,
                         "class_equipment_style": style_index,
-                        "class_style_role": style_profile["role"],
                         # v0.61.2: opis zwykłego klasowego EQ jest składany na żądanie
                         # z istniejących pól. Nie przechowujemy 38k długich kopii tekstu w RAM.
                     }, 'ITEMS', ITEMS, (item_id,))
