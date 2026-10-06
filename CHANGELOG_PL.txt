@@ -77,6 +77,21 @@ Soulbound v1.13.8 — odczuwalna progresja + Generator Core jako fallback
 - Pojedyncza i hurtowa sprzedaż zasobów korzystają z tej samej wyceny, więc
   premia rekina lub rzadkiego wariantu działa tak samo dla sprzedaj <ryba>
   oraz sprzedaj wszystko siatka.
+- Dodano wspólny kontrakt wypłat dla aktywności, które omijały statyczny
+  quest finalizer: Kurierzy, 100% eksploracji strefy, dynamiczne zadania świata
+  oraz Ocean 2.0 korzystają teraz z tej samej etapowej ekonomii.
+- Kurierzy nadal są aktywnością powtarzalną, więc nie płacą jak wielki milestone,
+  ale nagroda rośnie z etapem postaci, długością trasy, typem paczki i reputacją.
+- Ukończenie 100% strefy jest dużą jednorazową wypłatą. Jej etap wynika ze
+  strefy, a nie z wysokiego levelu postaci wracającej po latach do starter zone.
+- Dynamiczne zadania świata korzystają z aktualnej krzywej pieniędzy, ponieważ
+  są tworzone runtime i nie przechodzą przez zwykły rebalans statycznych QUESTS.
+- Handel morski ma etapową minimalną wypłatę zależną od rozwoju postaci oraz
+  wymagań ładowni, a stara ręcznie wpisana kwota pozostaje minimum.
+- Mapa skarbu Ocean 2.0 jest prawdziwym jackpotem: wypłata skaluje się z etapem
+  postaci i Nawigacją statku zamiast zatrzymywać się na starych kilkuset Gold.
+- HELP ekonomii opisuje teraz docelową pętlę Soulbound:
+  graj/zdobywaj -> sprzedawaj/odbieraj nagrody -> odkładaj -> kupuj/craftuj/farm lepsze EQ.
 - Ceny klasowego EQ zostały powiązane z realnym zarobkiem na tym samym etapie;
   pełny set pozostaje celem grindowym, ale nie wymaga tysięcy zwykłych zadań.
 - Bazowe zarobki questów rosną mocniej już od midgame: około 150 Gold na 50,
