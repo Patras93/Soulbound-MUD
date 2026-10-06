@@ -375,6 +375,8 @@ SYSTEM_DESCRIPTIONS = {
 
 LATEST_CHANGES_TITLE = "Soulbound v1.13.31 - Version Sync & Adaptive Consider"
 LATEST_CHANGES = [
+    "v1.13.31: UOSS Deep Dungeon jest nieskończony i generowany na żądanie; Apanda blokuje zejście co 25 pięter, piętro 100 odblokowuje Serpentariusa/Floor 0, a po zabiciu Serpentariusa Floor 0 ma 24 h lockout.",
+    "v1.13.31: Portal Krypty i Astralny Portal są party-aware: lider przenosi stojących obok członków tylko wtedy, gdy każdy ma wskazany checkpoint odblokowany; niekwalifikowani zostają na miejscu.",
     "v1.13.31: Black Rabite, Serpentarius, Odin i Yiazmat — oraz każdy UOSS Super Boss z dokładnym source XP 18 900 000 — daje bazowo 18 900 000 EXP do każdego statu, Soul XP, Class XP i Character XP.",
     "v1.13.31: lider przenosi kwalifikującą się lokalną drużynę na arenę party Super Bossa; wymagania i lockout są sprawdzane osobno dla każdego członka.",
     "v1.13.31: naprawiono najemników Super Bossów: say Join me, Popoi/Primm/Byblos/Montblanc/Seifer działa przy realnym NPC, a pomocnik <nazwa> używa tego samego płatnego systemu.",
@@ -2637,14 +2639,18 @@ HELP_TOPICS["superbossy"] = [
     "Superbossy UOSSMUD są unikalnymi wyzwaniami świata, a nie rotacją bossów Mitycznej Krypty/Wierzy.",
     "Dostępne są wyzwania solo, solo/party i party. Minimalny próg nie oznacza zalecanego poziomu.",
     "Black Rabite: każdy uczestnik dostaje własny losowy drop z 10 przedmiotów + Moogle Steel; przy maks. 3 graczach można za 1 mithril zatrudnić Primm albo Popoi.",
-    "Serpentarius: wymaga osobistego odblokowania Deep Dungeon; każdy uczestnik dostaje Serpentarius Emblem; przy maks. 3 graczach pomaga Byblos.",
+    "Deep Dungeon UOSS: loch nie ma limitu pięter. Apanda blokuje zejście co 25 pięter; progres jest osobisty, a deepelevator wraca do wcześniej odwiedzonych pięter.",
+    "Serpentarius: każdy uczestnik musi osobiście dotrzeć co najmniej do Deep Dungeon piętro 100. To odblokowuje Floor 0; po zabiciu Serpentariusa ponowne wejście do Floor 0/starcia jest zablokowane przez 24 godziny. Sam Deep Dungeon pozostaje dostępny i można schodzić dalej bez limitu.",
+    "Portale Krypty i Astralne w drużynie uruchamia lider. Razem przenoszeni są tylko członkowie stojący obok, którzy mają wybrany checkpoint odblokowany u siebie.",
+    "Każdy uczestnik Serpentariusa dostaje Serpentarius Emblem; przy maks. 3 graczach pomaga Byblos.",
     "Odin: Level 100+, drużyna 3-5; 8 unikalnych dropów + Odin's Mantle dla każdego uczestnika; przy 4-5 graczach trudność rośnie.",
     "Yiazmat: 7 unikalnych dropów + Godslayer's Badge dla każdego uczestnika; przy maks. 3 graczach pomaga Montblanc.",
-    "24-godzinny lockout dotyczy Black Rabite, Odina i Yiazmata — adaptacja źródłowej zasady once per reboot. Restart ani deploy Railway nie resetuje czasu.",
+    "24-godzinny lockout dotyczy Black Rabite, Serpentariusa, Odina i Yiazmata. Restart ani deploy Railway nie resetuje czasu.",
 ]
 HELP_TOPIC_ALIASES.update({
     "superboss": "superbossy", "superbosses": "superbossy", "uossbosses": "superbossy",
     "uoss boss": "superbossy", "uoss bosses": "superbossy",
+    "deep dungeon": "superbossy", "deepdungeon": "superbossy",
 })
 HELP_TOPICS.setdefault("wersja", []).append(
     "v1.11.34: Superbossy UOSSMUD są unikalnymi wyzwaniami świata; dodano pełny katalog trybów oraz reguły Black Rabite, Serpentariusa i Yiazmata."
