@@ -416,6 +416,7 @@ def full_release_integrity_audit_v03022():
                     "v0130_frontier_", "v018_endless_", "v020_mega_", "magitek_floor_",
                     "v021_gauntlet_", "v0140_mini_", "v0140_secret_",
                     "v018_archipelago_", "v018_ruin_",
+                    "uoss_deep_dungeon_floor_",
                 ))
                 if not known:
                     errors.append(f"unknown lazy exit: {rid}.{direction}->{target}")
@@ -2568,6 +2569,7 @@ def full_game_audit_v03055():
         "prof_", "mine_floor_", "crypt_floor_", "astral_floor_",
         "mythic_crypt_floor_", "mythic_astral_floor_", "giant_fortress_",
         "v0130_frontier_", "v018_endless_", "v020_mega_", "magitek_floor_",
+        "uoss_deep_dungeon_floor_",
     )
     exit_count = 0
     for room_id, room in ROOMS.items():
