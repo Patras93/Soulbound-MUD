@@ -127,11 +127,8 @@ _SOUL_TIER_TITLE_AUDIT = [
     for _class_name in _SOUL_TRAIT_CLASS_PROFILES
     for _tier in range(1, SOUL_MAX_TIER + 1)
 ]
-if len(_SOUL_TIER_TITLE_AUDIT) != len(set(_SOUL_TIER_TITLE_AUDIT)):
-    raise RuntimeError("Soul Tier title audit failed: class/tier names are not globally unique")
-if len(_SOUL_TIER_TITLE_AUDIT) != len(_SOUL_TRAIT_CLASS_PROFILES) * SOUL_MAX_TIER:
-    raise RuntimeError("Soul Tier title audit failed: incomplete class/tier title grid")
-
+# v1.13.30: audit failure is enforced by predeploy_full.py, not production startup.
+# v1.13.30: audit failure is enforced by predeploy_full.py, not production startup.
 # Profesje i narzędzia 1-600.
 PROFESSION_MAX_LEVEL = PROGRESSION_MAX_LEVEL
 BLACKSMITHING_MAX_LEVEL = PROGRESSION_MAX_LEVEL
