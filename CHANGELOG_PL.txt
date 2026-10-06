@@ -68,6 +68,26 @@ Soulbound v1.13.30 — POST-600 INFINITE REWARD & EQUIPMENT PROGRESSION
   gracza, ale ma twarde limity, więc pomocnik jest odczuwalny bez auto-win.
   UOSS completion audit pilnuje helper cost/party limits, osobistych tokenów,
   unique pools i 24h lockoutów Black Rabite/Yiazmat/Odin.
+- GLOBAL ADAPTIVE COMBAT: każdy mob całego świata skaluje konkretne starcie do
+  realnej siły postaci i lokalnej drużyny, zamiast pozostawać statyczną gąbką
+  lub ginąć od jednej salwy. Skaler liczy realny DPS, w tym Speed/multi-hit,
+  a HP rośnie encounter-lokalnie; template, quest target, Bestiariusz i loot
+  zachowują oryginalną tożsamość.
+- Rangi zachowują różne czasy walki: zwykły mob ma przetrwać kilka akcji,
+  Elite/Rare dłużej, miniboss wyraźnie dłużej, boss i World/Superboss dostają
+  najmocniejszy profil. Skala nigdy nie obniża authored/base HP aktywnego moba.
+- Obrażenia przeciwnika są dobierane do HP i realnej redukcji obrażeń konkretnej
+  trafianej postaci. Pancerz, magia obronna, rasa, klasa i unik nadal działają,
+  ale nie mogą już sprowadzić całego świata do symbolicznych 1 obrażeń.
+- Party zwiększa HP według sumy realnego DPS wszystkich żywych członków w pokoju;
+  dołączenie mocniejszego członka może tylko podnieść skalę aktywnego starcia.
+  Po pełnym disengage/flee mob wraca do bazowej formy, więc skala nie przecieka
+  na następną drużynę.
+- Skalowane starcia dostają umiarkowaną rekompensatę waluty/EXP do maks. x3;
+  istniejące pełne nagrody party pozostają, a drop chance/unikaty/UOSS lockouty
+  nie są sztucznie mnożone.
+- Ręczne skille, AoE, auto-kolejka i zwykły atak korzystają z tego samego skalera,
+  więc nie da się ominąć systemu pierwszym Cosmic Rave/Execute/AoE.
 - AUDIT AUDYTÓW / STARTUP SAFETY: developer/admin audity są wyjęte z normalnego
   production RUNTIME_MODULES. HELP freshness, ekonomia, klasy, loot/EQ, Krypty,
   Wieże, Magitek, World Threat, UOSS i Soul Shard audity pozostają raportami
