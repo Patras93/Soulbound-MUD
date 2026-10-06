@@ -13,7 +13,6 @@ from core.progression_resources import MINE_MIN_FLOOR, mine_floor_id, mine_floor
 from systems.content_registry import MOB_TEMPLATES, NPCS
 from systems.dungeons_regions import (
     ASTRAL_MIN_FLOOR,
-    ASTRAL_MIN_SOUL_LEVEL,
     MYTHIC_MIN_FLOOR,
     astral_floor_number,
     crypt_floor_id,
@@ -1288,12 +1287,6 @@ class SessionGuideNavigationMixin:
                         )
                         break
 
-                    if self.astral_entry_blocked(next_room):
-                        await self.send(
-                            f"Prowadzenie zatrzymane. Wieża Astralna wymaga "
-                            f"Soul Poziom {ASTRAL_MIN_SOUL_LEVEL}."
-                        )
-                        break
                     if self.mine_descent_blocked_for_player(old, direction):
                         progress = self.mine_progress()
                         floor = mine_floor_number(old)
