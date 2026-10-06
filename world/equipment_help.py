@@ -23,6 +23,7 @@ from core.progression_resources import (
     UNIFIED_DEEP_MINE_STATIC_ROOMS,
     mine_floor_id,
 )
+from systems.drop_excitement import class_equipment_drop_chance_v11329
 from systems.content_registry import (
     CRYPT_PREGENERATED_MAX_FLOOR,
     HELP_TOPICS,
@@ -190,26 +191,12 @@ def class_equipment_drop_mastery_for_template(template):
 
 
 def class_equipment_drop_chance(template):
-    """Rzadki dodatkowy drop klasowego EQ, bez gwarancji na zwykłych mobach."""
-    boss = bool(
-        template.get("world_boss")
-        or template.get("mini_boss")
-        or template.get("crypt_boss")
-        or template.get("astral_boss")
-        or template.get("mythic_crypt_boss")
-        or template.get("mythic_astral_boss")
-        or template.get("boss_mechanic")
-    )
-    elite = bool(
-        template.get("elite_affix")
-        or template.get("rare_variant")
-        or template.get("rare_troll")
-    )
-    if boss:
-        return 0.35
-    if elite:
-        return 0.18
-    return 0.07
+    """Rank-aware random class-EQ drop chance.
+
+    v1.13.29 fixes generated rare_mob variants that previously fell through
+    to the ordinary 7% path because the legacy helper only knew older flags.
+    """
+    return class_equipment_drop_chance_v11329(template)
 
 
 def class_equipment_drop_pool(template):
