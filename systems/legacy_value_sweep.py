@@ -9,8 +9,17 @@ This layer fixes old authored values without replacing modern authored systems:
 """
 from __future__ import annotations
 
-from core.bootstrap_economy_professions import legacy_currency_to_coins
-from core.progression_resources import v0190_resource_stage, v1138_resource_sale_base_coins
+from core.bootstrap_economy_professions import (
+    GOLD_PER_MITHRIL,
+    SILVER_PER_GOLD,
+    V019_SAFE_INT,
+    legacy_currency_to_coins,
+)
+from core.progression_resources import (
+    v0190_economy_sink,
+    v0190_resource_stage,
+    v1138_resource_sale_base_coins,
+)
 from systems.items_resources import economy_stage_anchor_v11314
 
 V11325_LEGACY_VALUE_SWEEP_VERSION = "1.13.25"
@@ -44,6 +53,79 @@ V11325_POTION_IDS = frozenset({
     "greater_healing_potion",
     "greater_mana_potion",
 })
+
+
+def shop_money_price_v11325(item) -> int:
+    """Canonical money part of any shop offer, in internal silver.
+
+    Missing/zero authored price is never silently free. The sole zero-money
+    case is an explicit token-only contract: fur_shop_gold_cost=0 together
+    with a positive fur_shop_token_cost and token id.
+    """
+    item = item or {}
+
+    token_id = item.get("fur_shop_token")
+    token_cost = max(0, int(item.get("fur_shop_token_cost", 0) or 0))
+    source_gold = item.get("fur_shop_gold_cost")
+    if source_gold is not None:
+        source_gold = max(0, int(source_gold or 0))
+        if source_gold > 0:
+            return min(V019_SAFE_INT, source_gold * SILVER_PER_GOLD)
+        if token_id and token_cost > 0:
+            return 0
+        # Malformed "0 Gold" without a token is not a free-item contract.
+        # Fall through to the normal progression floor.
+
+    price = max(0, int(item.get("price") or 0))
+    currency = str(item.get("currency") or "silver").strip().lower()
+    if currency == "silver":
+        base = price
+    elif currency == "gold":
+        base = price * SILVER_PER_GOLD
+    elif currency == "mithril":
+        base = price * GOLD_PER_MITHRIL * SILVER_PER_GOLD
+    else:
+        base = 0
+
+    stage_candidates = []
+    for key in (
+        "generator_level",
+        "required_mastery",
+        "required_level",
+        "jewelcraft_level",
+        "blacksmith_tier",
+    ):
+        try:
+            value = int(item.get(key, 0) or 0)
+        except (TypeError, ValueError, OverflowError):
+            value = 0
+        if key == "blacksmith_tier" and value > 0:
+            value *= 10
+        if value > 0:
+            stage_candidates.append(value)
+    stage = max(stage_candidates) if stage_candidates else 1
+    stage = max(1, min(600, stage))
+
+    equipment_like = bool(
+        item.get("type") in {"armor", "soul_weapon_relic"}
+        or item.get("class_shop_item")
+        or item.get("universal_endgame_shop")
+    )
+
+    if base <= 0:
+        base = v0190_economy_sink(
+            stage,
+            "equipment" if equipment_like else "generic",
+        )
+
+    required_mastery = max(1, int(item.get("required_mastery", 1) or 1))
+    if equipment_like and required_mastery >= 10:
+        base = max(
+            base,
+            v0190_economy_sink(required_mastery, "equipment"),
+        )
+
+    return min(V019_SAFE_INT, max(1, int(base)))
 
 
 def _manual_sale_value_v11325(item) -> bool:
@@ -155,6 +237,32 @@ def legacy_identity_drop_spec_v11325(template, roll):
 
 def legacy_value_sweep_audit_v11325():
     errors = []
+
+    if shop_money_price_v11325(
+        {"type": "armor", "price": None, "required_level": 100}
+    ) <= 0:
+        errors.append("missing shop price still becomes free")
+    if shop_money_price_v11325({
+        "type": "consumable",
+        "price": None,
+        "fur_shop_gold_cost": 0,
+        "fur_shop_token": "audit_token",
+        "fur_shop_token_cost": 1,
+    }) != 0:
+        errors.append("explicit token-only shop contract lost zero-money semantics")
+    if shop_money_price_v11325({
+        "type": "armor",
+        "price": None,
+        "fur_shop_gold_cost": 0,
+        "required_level": 100,
+    }) <= 0:
+        errors.append("malformed zero-gold shop offer still becomes free")
+    if shop_money_price_v11325({
+        "type": "armor",
+        "price": None,
+        "fur_shop_gold_cost": 5_000_000,
+    }) != 500_000_000:
+        errors.append("fur shop Gold conversion mismatch")
 
     low_loot = {
         "type": "loot", "sell_silver": 1, "generator_level": 100,
