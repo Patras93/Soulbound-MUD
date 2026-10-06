@@ -68,39 +68,9 @@ for _name, _result in _semantic_audits.items():
         for _error in _result.get("errors", ()):
             _semantic_errors.append(f"{_name}: {_error}")
 
-# v1.13.30: equipment/source audits are deploy gates, not runtime crash gates.
-try:
-    from systems.items_resources import (
-        LOOT_SOURCE_EQUIPMENT_AUDIT_V11327 as _loot_source_equipment_audit_v11327,
-    )
-    from systems.equipment_crafting import (
-        EQUIPMENT_IDENTITY_AUDIT_V11326 as _equipment_identity_audit_v11326,
-        GUILD_CLASS_QUEST_AUDIT_V1120 as _guild_class_quest_audit_v1120,
-    )
-    for _label, _result in (
-        ("loot_source_equipment", _loot_source_equipment_audit_v11327),
-        ("equipment_identity", _equipment_identity_audit_v11326),
-        ("guild_class_quests", _guild_class_quest_audit_v1120),
-    ):
-        for _error in _result.get("errors", ()):
-            _semantic_errors.append(f"{_label}: {_error}")
-except Exception as exc:
-    _semantic_errors.append(
-        f"equipment/source audit import failed: {type(exc).__name__}: {exc}"
-    )
-
-# v1.13.30: execute the two completion audits that can be imported without
-# assembling the server/database. Their failures block deployment, not runtime.
-try:
-    from systems.economy_income_balance import (
-        REWARD_CONSISTENCY_AUDIT_V11330 as _reward_consistency_audit_v11330,
-    )
-    for _error in _reward_consistency_audit_v11330.get("errors", ()):
-        _semantic_errors.append("reward_consistency: " + str(_error))
-except Exception as exc:
-    _semantic_errors.append(
-        f"reward consistency audit import failed: {type(exc).__name__}: {exc}"
-    )
+# Legacy compatibility modules such as items_resources/equipment_crafting/economy
+# need the assembled runtime namespace. Their audit reports are therefore
+# evaluated by predeploy_full.py, not imported standalone here.
 
 try:
     from world.uoss_superboss_runtime import (
