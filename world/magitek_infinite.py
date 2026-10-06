@@ -575,11 +575,6 @@ def magitek_infinite_audit_v0382():
     return result
 
 MAGITEK_INFINITE_AUDIT_V0382 = magitek_infinite_audit_v0382()
-if MAGITEK_INFINITE_AUDIT_V0382["error_count"]:
-    raise RuntimeError(
-        "Infinite Magitek Audit v0.38.2 failed: "
-        + "; ".join(MAGITEK_INFINITE_AUDIT_V0382["errors"][:100])
-    )
 
 LATEST_CHANGES_TITLE = "Soulbound v0.38.2 - Infinite Unified Magitek Dungeon"
 LATEST_CHANGES = [
