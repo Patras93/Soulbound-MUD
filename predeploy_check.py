@@ -153,6 +153,133 @@ if (
 _consider_source_v11331 = (
     _root / "player/session_mixins/combat_damage.py"
 ).read_text(encoding="utf-8")
+_deep_dungeon_world_source_v11331 = (
+    _root / "world/uoss_superboss_world.py"
+).read_text(encoding="utf-8")
+_deep_dungeon_state_source_v11331 = (
+    _root / "world/world_state.py"
+).read_text(encoding="utf-8")
+_deep_dungeon_session_source_v11331 = (
+    _root / "player/session_mixins/dungeon_progression.py"
+).read_text(encoding="utf-8")
+_deep_dungeon_movement_source_v11331 = (
+    _root / "player/session_mixins/movement.py"
+).read_text(encoding="utf-8")
+_deep_dungeon_rewards_source_v11331 = (
+    _root / "player/session_mixins/combat_rewards.py"
+).read_text(encoding="utf-8")
+_deep_dungeon_commands_source_v11331 = (
+    _root / "player/session_mixins/command_registry.py"
+).read_text(encoding="utf-8")
+_deep_dungeon_spec_source_v11331 = (
+    _root / "world/uoss_superbosses.py"
+).read_text(encoding="utf-8")
+
+for _needle in (
+    "def create_infinite_uoss_deep_dungeon_floor_definition_v11331",
+    "Loch nie ma ostatniego piętra",
+    "UOSS_DEEP_DUNGEON_SERPENTARIUS_UNLOCK_FLOOR_V11331 = 100",
+    "UOSS_DEEP_DUNGEON_APANDA_STEP_V11331 = 25",
+    "uoss_deep_dungeon_apanda_floor",
+):
+    if _needle not in _deep_dungeon_world_source_v11331:
+        _semantic_errors.append(
+            "UOSS Deep Dungeon world regression: missing " + _needle
+        )
+for _needle in (
+    "uoss_deep_dungeon_floor_number_v11331(room_id)",
+    "create_infinite_uoss_deep_dungeon_floor_definition_v11331(",
+):
+    if _needle not in _deep_dungeon_state_source_v11331:
+        _semantic_errors.append(
+            "UOSS Deep Dungeon on-demand generation regression: missing "
+            + _needle
+        )
+for _needle in (
+    "def register_uoss_deep_dungeon_visit_v11331",
+    '"floor_100"',
+    "def uoss_deep_dungeon_descent_blocked_v11331",
+    "def use_uoss_deep_dungeon_elevator_v11331",
+    "member.uoss_deep_dungeon_max_floor_v11331()",
+    "Winda przenosi razem",
+    "W drużynie Portal Krypty uruchamia lider",
+    "W drużynie Astralny Portal uruchamia lider",
+    "member.crypt_portal()",
+    "member.astral_portal()",
+):
+    if _needle not in _deep_dungeon_session_source_v11331:
+        _semantic_errors.append(
+            "Deep Dungeon/party portal session regression: missing " + _needle
+        )
+for _needle in (
+    "uoss_deep_dungeon_descent_blocked_v11331(",
+    "uoss_serpentarius_room_entry_error_v11331(target)",
+    "register_uoss_deep_dungeon_visit_v11331(target)",
+    '"UOSS Deep Dungeon"',
+):
+    if _needle not in _deep_dungeon_movement_source_v11331:
+        _semantic_errors.append(
+            "Deep Dungeon movement regression: missing " + _needle
+        )
+for _needle in (
+    "UOSS_DEEP_DUNGEON_APANDA_CLEARS_V11331",
+    "uoss_deep_dungeon_apanda_floor",
+    "Zejście niżej jest odblokowane",
+):
+    if _needle not in _deep_dungeon_rewards_source_v11331:
+        _semantic_errors.append(
+            "Deep Dungeon Apanda credit regression: missing " + _needle
+        )
+for _needle in (
+    "'deepdungeon': ('show_uoss_deep_dungeon_status_v11331'",
+    "'deepelevator': ('use_uoss_deep_dungeon_elevator_v11331'",
+):
+    if _needle not in _deep_dungeon_commands_source_v11331:
+        _semantic_errors.append(
+            "Deep Dungeon command regression: missing " + _needle
+        )
+for _needle in (
+    '"deep_dungeon_unlock_floor":100',
+    '"lockout_hours":24',
+):
+    if _needle not in _deep_dungeon_spec_source_v11331:
+        _semantic_errors.append(
+            "Serpentarius Deep Dungeon contract regression: missing " + _needle
+        )
+
+try:
+    from world.uoss_superboss_world import (
+        create_infinite_uoss_deep_dungeon_floor_definition_v11331
+        as _create_deep_floor_v11331,
+        uoss_deep_dungeon_floor_id_v11331 as _deep_floor_id_v11331,
+    )
+    for _floor in (1, 25, 100, 101, 1000):
+        _created, _spawns = _create_deep_floor_v11331(_floor)
+        if _created != _deep_floor_id_v11331(_floor):
+            _semantic_errors.append(
+                f"Deep Dungeon floor {_floor}: wrong generated room id"
+            )
+        _room = ROOMS.get(_created, {})
+        if _room.get("exits", {}).get("down") != _deep_floor_id_v11331(_floor + 1):
+            _semantic_errors.append(
+                f"Deep Dungeon floor {_floor}: no-limit down exit regression"
+            )
+        _has_apanda = any(
+            int(MOB_TEMPLATES.get(_tid, {}).get(
+                "uoss_deep_dungeon_apanda_floor", 0
+            ) or 0) == _floor
+            for _spawn_room, _tid in _spawns
+        )
+        if (_floor % 25 == 0) != _has_apanda:
+            _semantic_errors.append(
+                f"Deep Dungeon floor {_floor}: Apanda cadence regression"
+            )
+except Exception as exc:
+    _semantic_errors.append(
+        "Deep Dungeon functional audit failed: "
+        + f"{type(exc).__name__}: {exc}"
+    )
+
 _uoss_world_reward_source_v11331 = (
     _root / "world/uoss_superboss_world.py"
 ).read_text(encoding="utf-8")
