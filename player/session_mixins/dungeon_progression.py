@@ -21,15 +21,248 @@ from systems.dungeons_regions import (
     giant_fortress_floor_number,
     is_astral_boss_floor,
     is_crypt_boss_floor,
+    is_mythic_astral_boss_floor,
+    is_mythic_crypt_boss_floor,
+    mythic_astral_floor_id,
     mythic_astral_floor_number,
+    mythic_crypt_floor_id,
     mythic_crypt_floor_number,
     profession_dungeon_floor,
     profession_dungeon_required_tool_level,
 )
 from world.economy_quests import v0874_quest_stat_progress_base_grant
+from world.uoss_superboss_runtime import superboss_member_entry_error_v11331
+from world.uoss_superboss_world import (
+    UOSS_DEEP_DUNGEON_APANDA_CLEARS_V11331,
+    UOSS_DEEP_DUNGEON_ENTRY_V11331,
+    UOSS_DEEP_DUNGEON_FLOOR0_V11331,
+    UOSS_DEEP_DUNGEON_SERPENTARIUS_UNLOCK_FLOOR_V11331,
+    UOSS_DEEP_DUNGEON_VISITS_V11331,
+    uoss_deep_dungeon_floor_id_v11331,
+    uoss_deep_dungeon_floor_number_v11331,
+)
 
 
 class SessionDungeonProgressionMixin:
+
+    def uoss_deep_dungeon_max_floor_v11331(self):
+            entries = self.server.db.collection_entry_ids(
+                self.account_id, UOSS_DEEP_DUNGEON_VISITS_V11331
+            )
+            floors = []
+            for entry in entries:
+                try:
+                    floors.append(int(entry))
+                except (TypeError, ValueError):
+                    continue
+            return max(floors) if floors else 0
+
+    def uoss_deep_dungeon_apanda_cleared_v11331(self, floor):
+            return str(int(floor)) in self.server.db.collection_entry_ids(
+                self.account_id, UOSS_DEEP_DUNGEON_APANDA_CLEARS_V11331
+            )
+
+    async def register_uoss_deep_dungeon_visit_v11331(self, room_id=None):
+            floor = uoss_deep_dungeon_floor_number_v11331(
+                room_id if room_id is not None else self.character.room_id
+            )
+            if floor is None:
+                return False
+
+            was_new = self.server.db.add_collection_entry(
+                self.account_id,
+                UOSS_DEEP_DUNGEON_VISITS_V11331,
+                str(floor),
+            )
+            if was_new:
+                await self.send(
+                    f"Deep Dungeon: odkrywasz piętro {floor}. "
+                    f"Najgłębszy zapisany poziom: {self.uoss_deep_dungeon_max_floor_v11331()}."
+                )
+
+            if floor >= UOSS_DEEP_DUNGEON_SERPENTARIUS_UNLOCK_FLOOR_V11331:
+                unlocked = self.server.db.add_collection_entry(
+                    self.account_id,
+                    "deep_dungeon_discovery",
+                    "floor_100",
+                )
+                if unlocked:
+                    await self.send(
+                        "Deep Dungeon: dotarcie do piętra 100 odblokowuje Floor 0 "
+                        "i Super Bossa Serpentarius. Winda: deepelevator 0."
+                    )
+            return True
+
+    def uoss_deep_dungeon_descent_blocked_v11331(
+            self, room_id, direction="down"
+    ):
+            if direction != "down":
+                return False
+            floor = uoss_deep_dungeon_floor_number_v11331(room_id)
+            if floor is None or floor % 25 != 0:
+                return False
+            return not self.uoss_deep_dungeon_apanda_cleared_v11331(floor)
+
+    def uoss_serpentarius_room_entry_error_v11331(self, target_room):
+            if str(target_room or "") != "uoss_superboss_arena_serpentarius_v11136":
+                return ""
+            return superboss_member_entry_error_v11331(self, "serpentarius")
+
+    async def show_uoss_deep_dungeon_status_v11331(self, args=""):
+            highest = self.uoss_deep_dungeon_max_floor_v11331()
+            unlock_floor = UOSS_DEEP_DUNGEON_SERPENTARIUS_UNLOCK_FLOOR_V11331
+            unlocks = self.server.db.collection_entry_ids(
+                self.account_id, "deep_dungeon_discovery"
+            )
+            serpentarius_unlocked = "floor_100" in unlocks
+
+            await self.send("UOSS DEEP DUNGEON — BEZ LIMITU")
+            await self.send(
+                f"Najgłębsze odwiedzone piętro: {highest if highest else 'brak'}."
+            )
+            if highest:
+                next_apanda = ((highest // 25) + 1) * 25
+                await self.send(
+                    f"Apanda występuje co 25 pięter. Następny próg: {next_apanda}."
+                )
+            else:
+                await self.send("Apanda występuje co 25 pięter: 25, 50, 75, 100 i dalej.")
+
+            if serpentarius_unlocked:
+                error = superboss_member_entry_error_v11331(
+                    self, "serpentarius"
+                )
+                if error:
+                    await self.send(
+                        "Serpentarius: odblokowany przez piętro 100, "
+                        f"ale wejście jest teraz niedostępne. {error}"
+                    )
+                else:
+                    await self.send(
+                        "Serpentarius: odblokowany. Użyj deepelevator 0 "
+                        "albo superboss serpentarius."
+                    )
+            else:
+                await self.send(
+                    f"Serpentarius: zablokowany. Musisz osobiście dotrzeć "
+                    f"co najmniej do piętra {unlock_floor}."
+                )
+            await self.send(
+                "Wejście: Sala Super Bossów, kierunek down. "
+                "Winda: deepelevator <odwiedzone piętro>; Floor 0: deepelevator 0."
+            )
+
+    async def use_uoss_deep_dungeon_elevator_v11331(self, raw=""):
+            if self.combat_mob_key:
+                await self.send("Nie możesz użyć windy Deep Dungeon podczas walki.")
+                return
+
+            current = str(self.character.room_id)
+            current_floor = uoss_deep_dungeon_floor_number_v11331(current)
+            if (
+                current != UOSS_DEEP_DUNGEON_ENTRY_V11331
+                and current != UOSS_DEEP_DUNGEON_FLOOR0_V11331
+                and current_floor is None
+            ):
+                await self.send(
+                    "Winda Deep Dungeon działa tylko wewnątrz Deep Dungeon."
+                )
+                return
+
+            value = self.normalize_room_query(raw)
+            if not value or value in ("status", "lista", "list"):
+                await self.show_uoss_deep_dungeon_status_v11331()
+                return
+
+            match = re.search(r"(\d+)", value)
+            if not match:
+                await self.send(
+                    "Użycie: deepelevator <odwiedzone piętro> albo deepelevator 0."
+                )
+                return
+            floor = int(match.group(1))
+
+            party_key = self.party_key()
+            if party_key is not None and party_key != self.account_id:
+                leader = self.server.session_by_account(party_key)
+                leader_name = (
+                    leader.character.name
+                    if leader and getattr(leader, "character", None)
+                    else "lider drużyny"
+                )
+                await self.send(
+                    f"Tylko lider uruchamia windę dla drużyny. Lider: {leader_name}."
+                )
+                return
+
+            candidates = (
+                list(
+                    self.server.party_sessions(
+                        self.account_id,
+                        same_room=self.character.room_id,
+                    )
+                )
+                if party_key == self.account_id
+                else [self]
+            )
+            if self not in candidates:
+                candidates.append(self)
+
+            target = (
+                UOSS_DEEP_DUNGEON_FLOOR0_V11331
+                if floor == 0
+                else uoss_deep_dungeon_floor_id_v11331(floor)
+            )
+            if floor > 0:
+                self.server.world.ensure_runtime_room(target)
+
+            moved = []
+            skipped = []
+            for member in candidates:
+                if not member or not getattr(member, "character", None):
+                    continue
+                if member.combat_mob_key:
+                    skipped.append(f"{member.character.name}: trwa walka")
+                    continue
+
+                member_highest = member.uoss_deep_dungeon_max_floor_v11331()
+                if floor == 0:
+                    error = superboss_member_entry_error_v11331(
+                        member, "serpentarius"
+                    )
+                    if error:
+                        skipped.append(
+                            f"{member.character.name}: {error}"
+                        )
+                        continue
+                elif floor < 1 or floor > member_highest:
+                    skipped.append(
+                        f"{member.character.name}: najwyższe odwiedzone piętro "
+                        f"{member_highest if member_highest else 'brak'}"
+                    )
+                    continue
+
+                member.previous_room_id = member.character.room_id
+                member.character.room_id = target
+                member.server.db.save_character(member.character)
+                moved.append(member)
+
+            if moved:
+                destination = "Floor 0" if floor == 0 else f"piętro {floor}"
+                for member in moved:
+                    await member.send(
+                        f"Lider {self.character.name} uruchamia windę Deep Dungeon. "
+                        f"Cel: {destination}."
+                    )
+                    await member.look()
+                if len(moved) > 1:
+                    await self.send(
+                        f"Winda przenosi razem {len(moved)} graczy."
+                    )
+            if skipped:
+                await self.send(
+                    "Nie przeniesiono: " + "; ".join(skipped) + "."
+                )
 
     def mine_progress(self):
             return self.server.db.mine_progress(self.account_id)
@@ -472,152 +705,414 @@ class SessionDungeonProgressionMixin:
 
             return self.character.soul_level > old_level
 
-    async def show_astral_portal_status(self):
-            highest = self.astral_portal()
-            unlocked = self.astral_portal_floors()
-            if not highest:
+    def checkpoint_portal_floors_v11331(self, kind):
+            floors = self.server.db.instance_checkpoint_floors(
+                self.account_id, kind
+            )
+            if kind == "astral":
+                floors = {f for f in floors if f >= ASTRAL_MIN_FLOOR}
+            else:
+                floors = {f for f in floors if f >= 10}
+            return sorted(
+                int(f) for f in floors
+                if int(f) % 10 == 0
+            )
+
+    def checkpoint_portal_unlocked_v11331(self, kind, floor):
+            return int(floor) in set(
+                self.checkpoint_portal_floors_v11331(kind)
+            )
+
+    async def show_checkpoint_portal_status_v11331(
+            self, *, kind, label, start_floor
+    ):
+            floors = self.checkpoint_portal_floors_v11331(kind)
+            if not floors:
                 await self.send(
-                    "Astralny Portal nie ma jeszcze odblokowanych checkpointów. "
-                    "Pokonaj Strażnika Gwiezdnej Bramy na poziomie 100."
+                    f"{label}: brak odblokowanych checkpointów. "
+                    f"Pierwszy portal jest na piętrze/poziomie {start_floor}."
                 )
                 return
-
             await self.send(
-                f"Najwyższy checkpoint Wieży Astralnej: poziom {highest}."
+                f"{label}: najwyższy checkpoint {max(floors)}."
             )
             await self.send(
-                "Odblokowane Astralne Portale: "
-                + ", ".join(str(floor) for floor in unlocked)
+                "Odblokowane checkpointy: "
+                + ", ".join(str(floor) for floor in floors)
                 + "."
             )
             await self.send(
-                "Użycie: astralportal <100/110/120/... bez górnego limitu>. "
-                "Portal uruchamia się przy Astralnej Bramie."
+                "Checkpointy są co 10 pięter/poziomów i działają w obie strony."
+            )
+
+    async def party_checkpoint_portal_exit_v11331(
+            self, *, kind, floor, target_room, label
+    ):
+            """Exit a cleared 10-floor checkpoint with eligible local party."""
+            party_key = self.party_key()
+            if party_key is not None and party_key != self.account_id:
+                leader = self.server.session_by_account(party_key)
+                leader_name = (
+                    leader.character.name
+                    if leader and getattr(leader, "character", None)
+                    else "lider drużyny"
+                )
+                await self.send(
+                    f"W drużynie portal checkpointu uruchamia lider: {leader_name}."
+                )
+                return True
+
+            old = self.character.room_id
+            candidates = (
+                list(
+                    self.server.party_sessions(
+                        self.account_id, same_room=old
+                    )
+                )
+                if party_key == self.account_id
+                else [self]
+            )
+            if self not in candidates:
+                candidates.append(self)
+
+            moved = []
+            skipped = []
+            for member in candidates:
+                if not member or not getattr(member, "character", None):
+                    continue
+                if member.combat_mob_key:
+                    skipped.append(f"{member.character.name}: trwa walka")
+                    continue
+
+                if not member.checkpoint_portal_unlocked_v11331(
+                    kind, floor
+                ):
+                    skipped.append(
+                        f"{member.character.name}: checkpoint {floor} "
+                        "nie jest odblokowany"
+                    )
+                    continue
+
+                member.previous_room_id = member.character.room_id
+                member.character.room_id = target_room
+                member.server.db.save_character(member.character)
+                moved.append(member)
+
+            if moved:
+                for member in moved:
+                    await member.send(
+                        f"{label} checkpointu {floor} przenosi cię do wyjścia lochu."
+                    )
+                    await member.look()
+                if len(moved) > 1:
+                    await self.send(
+                        f"Portal checkpointu przenosi razem {len(moved)} graczy."
+                    )
+            if skipped:
+                await self.send(
+                    "Nie przeniesiono: " + "; ".join(skipped) + "."
+                )
+            return True
+
+    async def show_astral_portal_status(self, kind="astral"):
+            if kind == "mythic_astral":
+                await self.show_checkpoint_portal_status_v11331(
+                    kind="mythic_astral",
+                    label="Mityczny Astralny Portal",
+                    start_floor=10,
+                )
+                await self.send(
+                    "Przy Mitycznej Astralnej Bramie: astralportal <10/20/30/...>. "
+                    "Na checkpointcie: astralportal albo astralportal wyjdz."
+                )
+                return
+
+            await self.show_checkpoint_portal_status_v11331(
+                kind="astral",
+                label="Astralny Portal",
+                start_floor=ASTRAL_MIN_FLOOR,
+            )
+            await self.send(
+                f"Przy Astralnej Bramie: astralportal "
+                f"<{ASTRAL_MIN_FLOOR}/{ASTRAL_MIN_FLOOR + 10}/...>. "
+                "Na checkpointcie: astralportal albo astralportal wyjdz."
             )
 
     async def use_astral_portal(self, raw):
+            party_key = self.party_key()
+            if party_key is not None and party_key != self.account_id:
+                leader = self.server.session_by_account(party_key)
+                leader_name = (
+                    leader.character.name
+                    if leader and getattr(leader, "character", None)
+                    else "lider drużyny"
+                )
+                await self.send(
+                    f"W drużynie Astralny Portal uruchamia lider: {leader_name}."
+                )
+                return
             if self.combat_mob_key:
                 await self.send(
                     "Nie możesz użyć Astralnego Portalu podczas walki."
                 )
                 return
 
+            room_id = str(self.character.room_id)
+            normal_floor = astral_floor_number(room_id)
+            mythic_floor = mythic_astral_floor_number(room_id)
+            mythic_context = (
+                room_id == "mythic_astral_gate"
+                or mythic_floor is not None
+            )
+            kind = "mythic_astral" if mythic_context else "astral"
+            current_floor = mythic_floor if mythic_context else normal_floor
+            gate = "mythic_astral_gate" if mythic_context else "astral_gate"
+            floor_id = (
+                mythic_astral_floor_id
+                if mythic_context else astral_floor_id
+            )
+            is_checkpoint = (
+                is_mythic_astral_boss_floor
+                if mythic_context else is_astral_boss_floor
+            )
+            label = (
+                "Mityczny Astralny Portal"
+                if mythic_context else "Astralny Portal"
+            )
+            start_floor = 10 if mythic_context else ASTRAL_MIN_FLOOR
+
             value = self.normalize_room_query(raw)
+            if (
+                current_floor is not None
+                and is_checkpoint(current_floor)
+                and self.checkpoint_portal_unlocked_v11331(
+                    kind, current_floor
+                )
+                and (
+                    not value
+                    or value in (
+                        "wyjdz", "wyjdź", "exit", "out",
+                        "wyjscie", "wyjście",
+                    )
+                )
+            ):
+                await self.party_checkpoint_portal_exit_v11331(
+                    kind=kind,
+                    floor=current_floor,
+                    target_room=gate,
+                    label=label,
+                )
+                return
+
             if not value or value in ("status", "lista", "list"):
-                await self.show_astral_portal_status()
+                await self.show_astral_portal_status(kind=kind)
                 return
 
             match = re.search(r"(\d+)", value)
             if not match:
                 await self.send(
-                    "Użycie: astralportal 100, 110, 120, ... bez górnego limitu."
+                    f"Użycie: astralportal {start_floor}, "
+                    f"astralportal {start_floor + 10}, ... bez górnego limitu."
                 )
                 return
 
             floor = int(match.group(1))
-            if not is_astral_boss_floor(floor):
+            if not is_checkpoint(floor):
                 await self.send(
-                    f"Checkpointy Wieży są co 10 poziomów od {ASTRAL_MIN_FLOOR} bez górnego limitu."
+                    f"Checkpointy tej Wieży są co 10 poziomów od "
+                    f"{start_floor} bez górnego limitu."
                 )
                 return
-
-            highest = self.astral_portal()
-            if floor > highest:
+            if not self.checkpoint_portal_unlocked_v11331(kind, floor):
+                floors = self.checkpoint_portal_floors_v11331(kind)
                 await self.send(
                     f"Checkpoint poziomu {floor} jest zablokowany. "
-                    f"Najwyższy odblokowany: {highest if highest else 'brak'}."
+                    f"Najwyższy odblokowany: "
+                    f"{max(floors) if floors else 'brak'}."
                 )
                 return
-
-            if self.character.room_id != "astral_gate":
+            if room_id != gate:
                 await self.send(
-                    "Astralny Portal działa tylko przy Astralnej Bramie. "
-                    "Wpisz prowadz wieza astralna."
+                    f"{label} do wybranego checkpointu działa przy bramie tej Wieży. "
+                    "Na checkpointcie użyj astralportal wyjdz."
                 )
                 return
 
-            target = astral_floor_id(floor)
+            target = floor_id(floor)
             self.server.world.ensure_infinite_dungeon_floor(target)
-            old = self.character.room_id
-            await self.server.broadcast_room(
-                old,
-                f"{self.character.name} wchodzi w Astralny Portal.",
-                exclude=self,
+            old = room_id
+            candidates = (
+                list(
+                    self.server.party_sessions(
+                        self.account_id, same_room=old
+                    )
+                )
+                if party_key == self.account_id
+                else [self]
             )
-            self.character.room_id = target
-            self.server.db.save_character(self.character)
-            await self.server.broadcast_room(
-                target,
-                f"{self.character.name} wychodzi z Astralnego Portalu.",
-                exclude=self,
-            )
-            await self.send(
-                f"Astralny Portal przenosi cię na poziom {floor}."
-            )
-            await self.look()
+            if self not in candidates:
+                candidates.append(self)
 
-    async def show_portal_status(self):
-            highest = self.crypt_portal()
-            unlocked = self.crypt_portal_floors()
-            if not unlocked:
+            moved = []
+            skipped = []
+            for member in candidates:
+                if not member or not getattr(member, "character", None):
+                    continue
+                if member.combat_mob_key:
+                    skipped.append(f"{member.character.name}: trwa walka")
+                    continue
+                if not member.checkpoint_portal_unlocked_v11331(
+                    kind, floor
+                ):
+                    skipped.append(
+                        f"{member.character.name}: checkpoint {floor} "
+                        "nie jest odblokowany"
+                    )
+                    continue
+                member.character.room_id = target
+                member.server.db.save_character(member.character)
+                moved.append(member)
+
+            if moved:
+                for member in moved:
+                    await member.send(
+                        f"Lider {self.character.name} uruchamia {label}. "
+                        f"Cel: checkpoint {floor}."
+                    )
+                    await member.look()
+                if len(moved) > 1:
+                    await self.send(
+                        f"{label} przenosi razem {len(moved)} graczy."
+                    )
+            if skipped:
                 await self.send(
-                    "Portale Krypty: brak. "
-                    "Pokonaj bossa piętra 10, aby odblokować pierwszy portal."
+                    "Nie przeniesiono: " + "; ".join(skipped) + "."
+                )
+
+    async def show_portal_status(self, kind="crypt"):
+            if kind == "mythic_crypt":
+                await self.show_checkpoint_portal_status_v11331(
+                    kind="mythic_crypt",
+                    label="Mityczny Portal Krypty",
+                    start_floor=10,
+                )
+                await self.send(
+                    "Przy Bramie Mitycznej Krypty: portal <10/20/30/...>. "
+                    "Na checkpointcie: portal albo portal wyjdz."
                 )
                 return
 
-            await self.send(
-                f"Najwyższy odblokowany Portal Krypty: piętro {highest}."
+            await self.show_checkpoint_portal_status_v11331(
+                kind="crypt",
+                label="Portal Krypty",
+                start_floor=10,
             )
             await self.send(
-                "Odblokowane Portale Krypty: "
-                + ", ".join(str(floor) for floor in unlocked)
-                + "."
-            )
-            await self.send(
-                "Użycie: portal <10/20/30/...>. "
-                "Portal można uruchomić w Sali Krypty albo w Przedsionku Krypty."
+                "Przy wejściu Krypty: portal <10/20/30/...>. "
+                "Na checkpointcie: portal albo portal wyjdz."
             )
 
     async def use_crypt_portal(self, raw):
+            party_key = self.party_key()
+            if party_key is not None and party_key != self.account_id:
+                leader = self.server.session_by_account(party_key)
+                leader_name = (
+                    leader.character.name
+                    if leader and getattr(leader, "character", None)
+                    else "lider drużyny"
+                )
+                await self.send(
+                    f"W drużynie Portal Krypty uruchamia lider: {leader_name}."
+                )
+                return
             if self.combat_mob_key:
                 await self.send(
                     "Nie możesz użyć Portalu Krypty podczas walki."
                 )
                 return
 
+            room_id = str(self.character.room_id)
+            normal_floor = crypt_floor_number(room_id)
+            mythic_floor = mythic_crypt_floor_number(room_id)
+            mythic_context = (
+                room_id == "mythic_crypt_gate"
+                or mythic_floor is not None
+            )
+            kind = "mythic_crypt" if mythic_context else "crypt"
+            current_floor = mythic_floor if mythic_context else normal_floor
+            gate = "mythic_crypt_gate" if mythic_context else "crypt_hall"
+            floor_id = (
+                mythic_crypt_floor_id
+                if mythic_context else crypt_floor_id
+            )
+            is_checkpoint = (
+                is_mythic_crypt_boss_floor
+                if mythic_context else is_crypt_boss_floor
+            )
+            label = (
+                "Mityczny Portal Krypty"
+                if mythic_context else "Portal Krypty"
+            )
+
             value = self.normalize_room_query(raw)
+            if (
+                current_floor is not None
+                and is_checkpoint(current_floor)
+                and self.checkpoint_portal_unlocked_v11331(
+                    kind, current_floor
+                )
+                and (
+                    not value
+                    or value in (
+                        "wyjdz", "wyjdź", "exit", "out",
+                        "wyjscie", "wyjście",
+                    )
+                )
+            ):
+                await self.party_checkpoint_portal_exit_v11331(
+                    kind=kind,
+                    floor=current_floor,
+                    target_room=gate,
+                    label=label,
+                )
+                return
+
             if not value or value in ("status", "lista", "list"):
-                await self.show_portal_status()
+                await self.show_portal_status(kind=kind)
                 return
 
             match = re.search(r"(\d+)", value)
             if not match:
                 await self.send(
-                    "Użycie: portal 10, portal 20, portal 30, ... bez górnego limitu."
+                    "Użycie: portal 10, portal 20, portal 30, ... "
+                    "bez górnego limitu."
                 )
                 return
-
             floor = int(match.group(1))
-            if not is_crypt_boss_floor(floor):
+            if not is_checkpoint(floor):
                 await self.send(
-                    "Portale są co 10 pięter: 10, 20, 30, ... bez górnego limitu."
+                    "Portale są co 10 pięter: 10, 20, 30, ... "
+                    "bez górnego limitu."
+                )
+                return
+            if not self.checkpoint_portal_unlocked_v11331(kind, floor):
+                floors = self.checkpoint_portal_floors_v11331(kind)
+                await self.send(
+                    f"Portal piętra {floor} jest zablokowany. "
+                    f"Najwyższy odblokowany: "
+                    f"{max(floors) if floors else 'brak'}."
                 )
                 return
 
-            highest = self.crypt_portal()
-            if floor > highest:
+            allowed_gates = (
+                ("mythic_crypt_gate",)
+                if mythic_context
+                else ("crypt_hall", "crypt_entrance")
+            )
+            if room_id not in allowed_gates:
                 await self.send(
-                    f"Portal piętra {floor} jest jeszcze zablokowany. "
-                    f"Najwyższy odblokowany portal: "
-                    f"{highest if highest else 'brak'}."
-                )
-                return
-
-            if self.character.room_id not in ("crypt_hall", "crypt_entrance"):
-                await self.send(
-                    "Portal Krypty można uruchomić tylko w Sali Krypty "
-                    "albo w Przedsionku Krypty. Użyj prowadz Sala Krypty."
+                    f"{label} do wybranego checkpointu działa przy wejściu tej Krypty. "
+                    "Na checkpointcie użyj portal wyjdz."
                 )
                 return
 
@@ -632,23 +1127,65 @@ class SessionDungeonProgressionMixin:
             if self.auto_herbalism or self.auto_herbalism_task:
                 await self.stop_auto_herbalism(announce=False)
 
-            target = crypt_floor_id(floor)
+            target = floor_id(floor)
             self.server.world.ensure_infinite_dungeon_floor(target)
-            old = self.character.room_id
+            old = room_id
+            candidates = (
+                list(
+                    self.server.party_sessions(
+                        self.account_id, same_room=old
+                    )
+                )
+                if party_key == self.account_id
+                else [self]
+            )
+            if self not in candidates:
+                candidates.append(self)
 
-            await self.server.broadcast_room(
-                old,
-                f"{self.character.name} wchodzi w Portal Krypty.",
-                exclude=self,
-            )
-            self.character.room_id = target
-            self.server.db.save_character(self.character)
-            await self.server.broadcast_room(
-                target,
-                f"{self.character.name} wychodzi z Portalu Krypty.",
-                exclude=self,
-            )
-            await self.send(
-                f"Portal Krypty przenosi cię na piętro {floor}."
-            )
-            await self.look()
+            moved = []
+            skipped = []
+            for member in candidates:
+                if not member or not getattr(member, "character", None):
+                    continue
+                if member.combat_mob_key:
+                    skipped.append(f"{member.character.name}: trwa walka")
+                    continue
+                if not member.checkpoint_portal_unlocked_v11331(
+                    kind, floor
+                ):
+                    skipped.append(
+                        f"{member.character.name}: checkpoint {floor} "
+                        "nie jest odblokowany"
+                    )
+                    continue
+                if member.resting or member.rest_task:
+                    await member.stop_rest(announce=False)
+                if member.auto_fishing or member.auto_fishing_task:
+                    await member.stop_auto_fishing(announce=False)
+                if member.auto_mining or member.auto_mining_task:
+                    await member.stop_auto_mining(announce=False)
+                if member.auto_woodcutting or member.auto_woodcutting_task:
+                    await member.stop_auto_woodcutting(announce=False)
+                if member.auto_herbalism or member.auto_herbalism_task:
+                    await member.stop_auto_herbalism(announce=False)
+
+                member.character.room_id = target
+                member.server.db.save_character(member.character)
+                moved.append(member)
+
+            if moved:
+                for member in moved:
+                    await member.send(
+                        f"Lider {self.character.name} uruchamia {label}. "
+                        f"Cel: checkpoint {floor}."
+                    )
+                    await member.look()
+                if len(moved) > 1:
+                    await self.send(
+                        f"{label} przenosi razem {len(moved)} graczy."
+                    )
+            if skipped:
+                await self.send(
+                    "Nie przeniesiono: " + "; ".join(skipped) + "."
+                )
+

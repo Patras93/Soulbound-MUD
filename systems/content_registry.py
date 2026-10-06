@@ -373,8 +373,19 @@ SYSTEM_DESCRIPTIONS = {
 }
 
 
-LATEST_CHANGES_TITLE = "Soulbound v0.22.0 - World Projects, Legendary Contracts & Fishing Records 2.0"
+LATEST_CHANGES_TITLE = "Soulbound v1.13.31 - Version Sync & Adaptive Consider"
 LATEST_CHANGES = [
+    "v1.13.31: portale checkpointów co 10 pięter/poziomów działają dwukierunkowo w zwykłej i Mitycznej Krypcie oraz zwykłej i Mitycznej Wieży Astralnej; Deep Dungeon pozostaje bez zmian na własnym systemie.",
+    "v1.13.31: UOSS Deep Dungeon jest nieskończony i generowany na żądanie; Apanda blokuje zejście co 25 pięter, piętro 100 odblokowuje Serpentariusa/Floor 0, a po zabiciu Serpentariusa Floor 0 ma 24 h lockout.",
+    "v1.13.31: Portal Krypty i Astralny Portal są party-aware: lider przenosi stojących obok członków tylko wtedy, gdy każdy ma wskazany checkpoint odblokowany; niekwalifikowani zostają na miejscu.",
+    "v1.13.31: Black Rabite, Serpentarius, Odin i Yiazmat — oraz każdy UOSS Super Boss z dokładnym source XP 18 900 000 — daje bazowo 18 900 000 EXP do każdego statu, Soul XP, Class XP i Character XP.",
+    "v1.13.31: lider przenosi kwalifikującą się lokalną drużynę na arenę party Super Bossa; wymagania i lockout są sprawdzane osobno dla każdego członka.",
+    "v1.13.31: naprawiono najemników Super Bossów: say Join me, Popoi/Primm/Byblos/Montblanc/Seifer działa przy realnym NPC, a pomocnik <nazwa> używa tego samego płatnego systemu.",
+    "v1.13.31: Jammer nie może już nałożyć Stop na UOSS Super Bossa; także Support Effect/AoE respektuje tę odporność.",
+    "v1.13.31: hp i score pokazują wspólną linię Aktywne efekty dla każdej klasy; buffs/effects/efekty daje szybki NVDA-friendly podgląd czasu buffów oraz Guard/Evade/Overheat.",
+    "v1.13.31: zsynchronizowano numer gry, CHANGELOG i fallback changes; predeploy pilnuje, aby te trzy źródła wersji nie rozjechały się ponownie.",
+    "v1.13.31: consider/con/ocen prognozuje encounter-local Adaptive Combat przed atakiem: skalowane HP, obrażenia odpowiedzi, wielkość lokalnej drużyny i rekompensatę EXP/waluty.",
+    "v1.13.31: consider liczy zwykłą akcję z realnym multi-hit/Speed oraz łączną zwykłą akcję lokalnej drużyny, więc ocena nie traktuje skalowanego party-moba jak celu bitego solo.",
     "v0.22.0: dodano wspólne World Projects, Legendary Contracts z ogromnymi nagrodami oraz Fishing Records 2.0 z rekordami serwera dla każdego gatunku.",
     "v0.22.0: projekty świata mają ogromne wymagania materiałów i waluty, kontrakty zawsze startują 0/x, a rekordy ryb przechowują masę, długość, właściciela i najrzadszy okaz.",
     "v0.15.0: dodano deterministyczną pogodę i cykl świt/dzień/zmierzch/noc; warunki nigdy nie blokują questów, profesji ani eksploracji i dają tylko małe opcjonalne bonusy XP.",
@@ -1484,15 +1495,15 @@ HELP_TOPICS = {
     ],
     "consider": [
         "consider <mob>, con <mob> albo ocen <mob> ocenia przeciwnika bez rozpoczynania walki.",
-        "Jeśli w lokacji jest dokładnie jeden mob, samo consider oceni właśnie jego.",
-        "Przy wielu mobach podaj nazwę przeciwnika.",
+        "Jeśli w lokacji jest dokładnie jeden mob, samo consider oceni właśnie jego; przy wielu mobach podaj nazwę lub numer wystąpienia.",
+        "Od v1.13.31 consider używa tej samej prognozy Adaptive Combat co realne starcie: uwzględnia aktualną postać, Speed/multi-hit oraz wszystkich żywych członków drużyny stojących w tej samej lokacji.",
+        "Pokazuje prognozowane skalowane HP moba, bazowe max HP, mnożnik HP, rangę Adaptive Combat i liczbę członków lokalnej drużyny.",
+        "Pokazuje szacowane obrażenia odpowiedzi już po adaptacyjnym skalowaniu względem twojego HP, obrony, redukcji i uniku.",
+        "Twój zwykły atak jest liczony jako hit oraz pełna akcja z aktualną liczbą trafień; w drużynie consider pokazuje też łączną zwykłą akcję lokalnej drużyny.",
         "Ocena może być: bardzo słaby, słaby, korzystny, porównywalny, niebezpieczny, bardzo niebezpieczny albo śmiertelnie groźny.",
-        "Consider podaje aktualne HP moba, bazowy atak, typ obrażeń oraz orientacyjny normalny cios gracza.",
-        "Podaje również orientacyjną liczbę trafień potrzebnych obu stronom przy obecnym HP gracza.",
-        "Uwzględnia obronę fizyczną lub magiczną, unik, redukcje rasowe i klasowe oraz krytyki w średnim wyniku.",
-        "Bossowie są oceniani ostrożniej, ponieważ specjalne mechaniki zwiększają ryzyko.",
-        "Jeśli boss ma opis mechaniki, consider go przeczyta.",
-        "Consider nie angażuje moba, nie wykonuje ataku, nie zużywa Many i nie uruchamia walki.",
+        "Bossowie są oceniani ostrożniej, ponieważ specjalne mechaniki zwiększają ryzyko; jeśli boss ma opis mechaniki, consider go przeczyta.",
+        "Consider pokazuje również prognozowany mnożnik rekompensaty EXP/waluty Adaptive Combat; drop chance i unikalne dropy nie są przez niego mnożone.",
+        "Consider nie angażuje moba, nie wykonuje ataku, nie zużywa Many i nie mutuje skali przeciwnika. To bezpieczna prognoza przed walką.",
     ],
     "wolniejsze_staty": [
         "Każda z sześciu statystyk ma własny licznik EXP i własny próg.",
@@ -2629,14 +2640,18 @@ HELP_TOPICS["superbossy"] = [
     "Superbossy UOSSMUD są unikalnymi wyzwaniami świata, a nie rotacją bossów Mitycznej Krypty/Wierzy.",
     "Dostępne są wyzwania solo, solo/party i party. Minimalny próg nie oznacza zalecanego poziomu.",
     "Black Rabite: każdy uczestnik dostaje własny losowy drop z 10 przedmiotów + Moogle Steel; przy maks. 3 graczach można za 1 mithril zatrudnić Primm albo Popoi.",
-    "Serpentarius: wymaga osobistego odblokowania Deep Dungeon; każdy uczestnik dostaje Serpentarius Emblem; przy maks. 3 graczach pomaga Byblos.",
+    "Deep Dungeon UOSS: loch nie ma limitu pięter. Apanda blokuje zejście co 25 pięter; progres jest osobisty, a deepelevator wraca do wcześniej odwiedzonych pięter.",
+    "Serpentarius: każdy uczestnik musi osobiście dotrzeć co najmniej do Deep Dungeon piętro 100. To odblokowuje Floor 0; po zabiciu Serpentariusa ponowne wejście do Floor 0/starcia jest zablokowane przez 24 godziny. Sam Deep Dungeon pozostaje dostępny i można schodzić dalej bez limitu.",
+    "Portale Krypty i Astralne w drużynie uruchamia lider. Razem przenoszeni są tylko członkowie stojący obok, którzy mają wybrany checkpoint odblokowany u siebie.",
+    "Każdy uczestnik Serpentariusa dostaje Serpentarius Emblem; przy maks. 3 graczach pomaga Byblos.",
     "Odin: Level 100+, drużyna 3-5; 8 unikalnych dropów + Odin's Mantle dla każdego uczestnika; przy 4-5 graczach trudność rośnie.",
     "Yiazmat: 7 unikalnych dropów + Godslayer's Badge dla każdego uczestnika; przy maks. 3 graczach pomaga Montblanc.",
-    "24-godzinny lockout dotyczy Black Rabite, Odina i Yiazmata — adaptacja źródłowej zasady once per reboot. Restart ani deploy Railway nie resetuje czasu.",
+    "24-godzinny lockout dotyczy Black Rabite, Serpentariusa, Odina i Yiazmata. Restart ani deploy Railway nie resetuje czasu.",
 ]
 HELP_TOPIC_ALIASES.update({
     "superboss": "superbossy", "superbosses": "superbossy", "uossbosses": "superbossy",
     "uoss boss": "superbossy", "uoss bosses": "superbossy",
+    "deep dungeon": "superbossy", "deepdungeon": "superbossy",
 })
 HELP_TOPICS.setdefault("wersja", []).append(
     "v1.11.34: Superbossy UOSSMUD są unikalnymi wyzwaniami świata; dodano pełny katalog trybów oraz reguły Black Rabite, Serpentariusa i Yiazmata."

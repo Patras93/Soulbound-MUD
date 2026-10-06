@@ -16,6 +16,11 @@ from core.progression_600 import CHARACTER_MAX_LEVEL
 from config.postal import COURIER_CITY_ROOM_TO_NAME_V0530
 from core.progression_resources import mine_floor_number
 from systems.content_registry import MOB_TEMPLATES
+from world.uoss_superboss_world import (
+    UOSS_DEEP_DUNGEON_ENTRY_V11331,
+    UOSS_DEEP_DUNGEON_FLOOR0_V11331,
+    uoss_deep_dungeon_floor_number_v11331,
+)
 from systems.dungeons_regions import (
     astral_floor_number,
     crypt_floor_number,
@@ -31,6 +36,13 @@ class SessionMovementMixin:
     def dungeon_exit_destination(self, room_id=None):
             """Zwraca bezpieczny punkt wyjścia z rozpoznanego lochu."""
             room_id = str(room_id or self.character.room_id)
+
+            # UOSS Deep Dungeon jest nieskończony; Floor 0 jest progiem Serpentariusa.
+            if (
+                uoss_deep_dungeon_floor_number_v11331(room_id) is not None
+                or room_id == UOSS_DEEP_DUNGEON_FLOOR0_V11331
+            ):
+                return UOSS_DEEP_DUNGEON_ENTRY_V11331, "UOSS Deep Dungeon"
 
             # Kopalnia Głębinowa 1-200.
             if mine_floor_number(room_id) is not None:
@@ -229,6 +241,7 @@ class SessionMovementMixin:
                     self.character,
                     commit=not bool(getattr(self, "_party_follow_batch_save_v11123", False)),
                 )
+                await self.register_uoss_deep_dungeon_visit_v11331(target)
                 if hasattr(self, "ocean_contract_step_v1001"):
                     contract_event = self.ocean_contract_step_v1001(old, target)
                     if contract_event == "started":
@@ -283,6 +296,26 @@ class SessionMovementMixin:
                 await self.send("Nie możesz iść w tym kierunku.")
                 return
             self.server.world.ensure_runtime_room(target)
+
+            if self.uoss_deep_dungeon_descent_blocked_v11331(
+                self.character.room_id, direction
+            ):
+                floor = uoss_deep_dungeon_floor_number_v11331(
+                    self.character.room_id
+                )
+                await self.send(
+                    f"Nie możesz zejść niżej z piętra {floor}. "
+                    "Apanda tego progu nie została jeszcze zaliczona przez ciebie."
+                )
+                return
+
+            serpentarius_error = (
+                self.uoss_serpentarius_room_entry_error_v11331(target)
+            )
+            if serpentarius_error:
+                await self.send(serpentarius_error)
+                return
+
             target_room = ROOMS.get(target, {})
             if target_room.get("requires_ship"):
                 party_ship = getattr(self, "_party_ship_passage_v10014", None) or {}

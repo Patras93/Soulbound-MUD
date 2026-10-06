@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #!/usr/bin/env python3
-"""Soulbound v1.13.29 — Drop Chance & Reward Excitement Pass."""
+"""Soulbound runtime bootstrap. Canonical release version lives in core/bootstrap_economy_professions.py."""
 from pathlib import Path
 import os
 import socket

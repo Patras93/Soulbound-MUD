@@ -90,7 +90,10 @@ from world.runtime_progression import (
 from world.world_state import v0290_active_world_events
 from world.uoss_superbosses import UOSS_SUPERBOSS_ENCOUNTERS_V11134
 from world.uoss_superboss_runtime import (
-    superboss_cleared_v11135, superboss_series_progress_v11138, weapon_pair_exchange_ready_v11141,
+    superboss_cleared_v11135,
+    superboss_member_entry_error_v11331,
+    superboss_series_progress_v11138,
+    weapon_pair_exchange_ready_v11141,
 )
 
 
@@ -699,9 +702,10 @@ class SessionWorldEventsEndgameMixin:
                 level_req = int(data.get("unlock_level", 0) or 0)
                 unlocked = not level_req or int(self.character.character_level) >= level_req
                 if data.get("unlock") == "explore_deep_dungeon":
-                    # Deep Dungeon-specific access remains an exploration gate; status
-                    # intentionally does not auto-unlock it from character level.
-                    unlocked = bool(self.server.db.collection_entry_ids(self.account_id, "deep_dungeon_discovery"))
+                    unlock_entries = self.server.db.collection_entry_ids(
+                        self.account_id, "deep_dungeon_discovery"
+                    )
+                    unlocked = "floor_100" in unlock_entries
                 mode = str(data.get("mode", "solo"))
                 state = "zaliczony" if cleared else ("odblokowany" if unlocked else "zablokowany")
                 rows.append((name, mode, state, data))
@@ -712,6 +716,13 @@ class SessionWorldEventsEndgameMixin:
             for name, mode, state, data in rows:
                 extra = []
                 if data.get("recommended_level"): extra.append(f"zalecany Level {data['recommended_level']}")
+                if data.get("deep_dungeon_unlock_floor"):
+                    extra.append(
+                        f"wymaga osobistego dotarcia do Deep Dungeon "
+                        f"piętro {data['deep_dungeon_unlock_floor']}"
+                    )
+                if data.get("lockout_hours"):
+                    extra.append(f"lockout {data['lockout_hours']} h po zabiciu")
                 if data.get("personal_token"): extra.append(f"osobista nagroda: {data['personal_token']}")
                 if data.get("helpers"): extra.append("pomocnik: " + " albo ".join(data["helpers"]) + "; wybór: pomocnik primm/popoi")
                 elif data.get("helper"): extra.append("pomocnik: " + str(data["helper"]))
@@ -719,45 +730,158 @@ class SessionWorldEventsEndgameMixin:
                 if _series: extra.append(f"seria {_series[0]}/{_series[1]}")
                 await self.send(f"{name}: {mode}, {state}" + (". " + "; ".join(extra) if extra else "") + ".")
             await self.send("Zaliczenia i osobiste nagrody są trwałe; restart/deploy ich nie resetuje.")
+            await self.send(
+                "W party lider używa superboss <nazwa>. Kwalifikujący się członkowie "
+                "stojący razem z liderem są przenoszeni na arenę wspólnie."
+            )
 
     async def enter_superboss_v11138(self, args=""):
             query=normalize_lookup_text(args)
             chosen=None
             for key,data in UOSS_SUPERBOSS_ENCOUNTERS_V11134.items():
-                if query and (query in normalize_lookup_text(key) or query in normalize_lookup_text(data["name"])):
-                    chosen=(key,data); break
+                if query and (
+                    query in normalize_lookup_text(key)
+                    or query in normalize_lookup_text(data["name"])
+                ):
+                    chosen=(key,data)
+                    break
             if not chosen:
-                await self.send("Użycie: superboss <nazwa>. Listę pokazuje: superbosses.")
+                await self.send(
+                    "Użycie: superboss <nazwa>. Listę pokazuje: superbosses."
+                )
                 return
+
             key,data=chosen
-            level_req=int(data.get("unlock_level",0) or 0)
-            if level_req and int(self.character.character_level)<level_req:
-                await self.send(f"{data['name']} wymaga Level {level_req}.")
-                return
-            if data.get("unlock")=="explore_deep_dungeon" and not self.server.db.collection_entry_ids(self.account_id,"deep_dungeon_discovery"):
-                await self.send("Serpentarius wymaga wcześniejszego osobistego odkrycia podczas eksploracji Deep Dungeon.")
-                return
-            self.previous_room_id=self.character.room_id
-            self.character.room_id=f"uoss_superboss_arena_{key}_v11136"
-            self.server.db.save_character(self.character)
-            await self.send(f"Wchodzisz na arenę Super Bossa: {data['name']}. Boss nie atakuje pierwszy.")
-            await self.look()
+            mode=str(data.get("mode","solo"))
+            party_key=self.party_key()
+
+            if mode=="solo":
+                entrants=[self]
+            else:
+                if party_key is not None and party_key != self.account_id:
+                    leader=self.server.session_by_account(party_key)
+                    leader_name=(
+                        leader.character.name
+                        if leader and getattr(leader,"character",None)
+                        else "lider drużyny"
+                    )
+                    await self.send(
+                        "Tylko lider może przenieść drużynę na arenę Super Bossa. "
+                        f"Lider: {leader_name}."
+                    )
+                    return
+
+                if party_key is None:
+                    entrants=[self]
+                else:
+                    entrants=[
+                        member
+                        for member in self.server.party_sessions(
+                            self.account_id,
+                            same_room=self.character.room_id,
+                        )
+                        if (
+                            member
+                            and not member.closed
+                            and getattr(member,"character",None)
+                            and member.current_hp>0
+                        )
+                    ]
+                    if self not in entrants and self.current_hp>0:
+                        entrants.append(self)
+
+                if mode=="party" and len(entrants)<2:
+                    await self.send(
+                        f"{data['name']} jest wyzwaniem drużynowym. "
+                        "Potrzebujesz co najmniej 2 żywych graczy stojących razem z liderem."
+                    )
+                    return
+
+                min_players=int(data.get("min_players",0) or 0)
+                max_players=int(data.get("max_players",0) or 0)
+                if min_players and len(entrants)<min_players:
+                    await self.send(
+                        f"{data['name']} wymaga co najmniej {min_players} "
+                        "graczy stojących razem z liderem."
+                    )
+                    return
+                if max_players and len(entrants)>max_players:
+                    await self.send(
+                        f"{data['name']} dopuszcza maksymalnie "
+                        f"{max_players} graczy."
+                    )
+                    return
+
+            for member in entrants:
+                entry_error=superboss_member_entry_error_v11331(member,key)
+                if entry_error:
+                    await self.send(
+                        "Nie przenoszę na arenę, ponieważ wymagania nie są "
+                        f"spełnione: {entry_error}"
+                    )
+                    return
+
+            target=f"uoss_superboss_arena_{key}_v11136"
+            self.server.world.ensure_runtime_room(target)
+            origin=self.character.room_id
+            moved=[]
+            for member in entrants:
+                member.previous_room_id=member.character.room_id
+                member.character.room_id=target
+                member.server.db.save_character(member.character)
+                moved.append(member.character.name)
+
+            if len(entrants)>1:
+                for member in entrants:
+                    await member.send(
+                        f"{self.character.name} jako lider przenosi drużynę "
+                        f"na arenę Super Bossa: {data['name']}. "
+                        "Boss nie atakuje pierwszy."
+                    )
+                await self.send(
+                    f"Przeniesiono razem {len(entrants)} graczy: "
+                    + ", ".join(moved) + "."
+                )
+            else:
+                await self.send(
+                    f"Wchodzisz na arenę Super Bossa: {data['name']}. "
+                    "Boss nie atakuje pierwszy."
+                )
+
+            if party_key is not None and mode!="solo":
+                all_party=list(self.server.party_sessions(self.account_id))
+                elsewhere=[
+                    member.character.name
+                    for member in all_party
+                    if (
+                        member
+                        and getattr(member,"character",None)
+                        and member.character.room_id not in (origin,target)
+                    )
+                ]
+                if elsewhere:
+                    await self.send(
+                        "Nie przeniesiono członków poza lokacją lidera: "
+                        + ", ".join(elsewhere) + "."
+                    )
+
+            for member in entrants:
+                await member.look()
 
     async def choose_superboss_helper_v11138(self,args=""):
-            if self.character.room_id!="uoss_superboss_arena_black_rabite_v11136":
-                await self.send("Primm/Popoi można wybrać tylko na arenie Black Rabite.")
-                return
             q=normalize_lookup_text(args)
-            if q not in ("primm","popoi"):
-                await self.send("Użycie: pomocnik primm albo pomocnik popoi.")
+            if not q:
+                await self.send(
+                    "Użycie: pomocnik <nazwa>, np. pomocnik popoi. "
+                    "Możesz też powiedzieć źródłową frazę, np. say Join me, Popoi."
+                )
                 return
-            members=self.server.party_sessions(self.account_id,same_room=self.character.room_id) or [self]
-            if len(members)>3:
-                await self.send("Pomocnik jest dostępny tylko dla maksymalnie 3 graczy.")
-                return
-            key=self.party_key() if self.party_key() is not None else self.account_id
-            setattr(self.server,f"_uoss_helper_choice_{key}",q.title())
-            await self.server.party_combat_broadcast(self,f"Wybrany pomocnik Black Rabite: {q.title()}.",detail="essential")
+            hired=await self.try_hire_uoss_helper_v11160(f"join me {q}")
+            if not hired:
+                await self.send(
+                    "Nie ma tutaj takiego pomocnika Super Bossa albo ten pomocnik "
+                    "nie odpowiada na tę frazę. Sprawdź NPC w lokacji."
+                )
 
     async def exchange_weapon_spoils_v11141(self, args=""):
             if not weapon_pair_exchange_ready_v11141(self.server.db,self.account_id):

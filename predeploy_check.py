@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Fast Railway predeploy gate for Soulbound v1.13.30.
+"""Fast Railway predeploy gate for Soulbound v1.13.31.
 
 This is the normal deploy check.  It intentionally avoids assembling the full
 world/runtime.  Use predeploy_full.py when an exhaustive historical audit is
@@ -17,7 +17,7 @@ import traceback
 try:
     from storage.database import Database as _DatabaseImportSmoke
 except Exception as exc:
-    print(f"Soulbound v1.13.30 FAST PREDEPLOY FAILED: database import: {type(exc).__name__}: {exc}")
+    print(f"Soulbound v1.13.31 FAST PREDEPLOY FAILED: database import: {type(exc).__name__}: {exc}")
     traceback.print_exc()
     raise SystemExit(1)
 
@@ -42,7 +42,7 @@ try:
     )
 except Exception as exc:
     print(
-        "Soulbound v1.13.30 FAST PREDEPLOY FAILED: "
+        "Soulbound v1.13.31 FAST PREDEPLOY FAILED: "
         f"skill semantic import: {type(exc).__name__}: {exc}"
     )
     traceback.print_exc()
@@ -99,6 +99,361 @@ except Exception as exc:
 # leaked UOSS Base AP into Mec/Engineer damage.
 from pathlib import Path as _Path
 _root = _Path(__file__).resolve().parent
+
+# v1.13.31: release identity must have one truth across runtime and player-facing
+# changelog surfaces. This is generic: future releases only need to update the
+# three source values consistently.
+_bootstrap_release_source_v11331 = (
+    _root / "core/bootstrap_economy_professions.py"
+).read_text(encoding="utf-8")
+_changelog_release_source_v11331 = (
+    _root / "CHANGELOG_PL.txt"
+).read_text(encoding="utf-8")
+_content_registry_release_source_v11331 = (
+    _root / "systems/content_registry.py"
+).read_text(encoding="utf-8")
+
+_runtime_version_match_v11331 = re.search(
+    r'^VERSION\s*=\s*"([^"]+)"',
+    _bootstrap_release_source_v11331,
+    flags=re.MULTILINE,
+)
+_changelog_version_match_v11331 = re.search(
+    r'^Aktualna paczka:\s*v([^\s]+)',
+    _changelog_release_source_v11331,
+    flags=re.MULTILINE,
+)
+_latest_title_version_match_v11331 = re.search(
+    r'^LATEST_CHANGES_TITLE\s*=\s*"Soulbound v([^\s]+)',
+    _content_registry_release_source_v11331,
+    flags=re.MULTILINE,
+)
+_release_versions_v11331 = {
+    "runtime": (
+        _runtime_version_match_v11331.group(1)
+        if _runtime_version_match_v11331 else ""
+    ),
+    "changelog": (
+        _changelog_version_match_v11331.group(1)
+        if _changelog_version_match_v11331 else ""
+    ),
+    "latest_changes": (
+        _latest_title_version_match_v11331.group(1)
+        if _latest_title_version_match_v11331 else ""
+    ),
+}
+if (
+    not all(_release_versions_v11331.values())
+    or len(set(_release_versions_v11331.values())) != 1
+):
+    _semantic_errors.append(
+        "release version sync regression: " + repr(_release_versions_v11331)
+    )
+
+_consider_source_v11331 = (
+    _root / "player/session_mixins/combat_damage.py"
+).read_text(encoding="utf-8")
+_checkpoint_portal_source_v11331 = (
+    _root / "player/session_mixins/dungeon_progression.py"
+).read_text(encoding="utf-8")
+for _needle in (
+    "def checkpoint_portal_floors_v11331",
+    '"mythic_crypt"',
+    '"mythic_astral"',
+    "mythic_crypt_floor_id",
+    "mythic_astral_floor_id",
+    "Mityczny Portal Krypty",
+    "Mityczny Astralny Portal",
+    "checkpoint_portal_unlocked_v11331",
+    "party_checkpoint_portal_exit_v11331",
+):
+    if _needle not in _checkpoint_portal_source_v11331:
+        _semantic_errors.append(
+            "all-dungeon checkpoint portal regression: missing " + _needle
+        )
+
+_deep_dungeon_world_source_v11331 = (
+    _root / "world/uoss_superboss_world.py"
+).read_text(encoding="utf-8")
+_deep_dungeon_state_source_v11331 = (
+    _root / "world/world_state.py"
+).read_text(encoding="utf-8")
+_deep_dungeon_session_source_v11331 = (
+    _root / "player/session_mixins/dungeon_progression.py"
+).read_text(encoding="utf-8")
+_deep_dungeon_movement_source_v11331 = (
+    _root / "player/session_mixins/movement.py"
+).read_text(encoding="utf-8")
+_deep_dungeon_rewards_source_v11331 = (
+    _root / "player/session_mixins/combat_rewards.py"
+).read_text(encoding="utf-8")
+_deep_dungeon_commands_source_v11331 = (
+    _root / "player/session_mixins/command_registry.py"
+).read_text(encoding="utf-8")
+_deep_dungeon_spec_source_v11331 = (
+    _root / "world/uoss_superbosses.py"
+).read_text(encoding="utf-8")
+
+for _needle in (
+    "def create_infinite_uoss_deep_dungeon_floor_definition_v11331",
+    "Loch nie ma ostatniego piętra",
+    "UOSS_DEEP_DUNGEON_SERPENTARIUS_UNLOCK_FLOOR_V11331 = 100",
+    "UOSS_DEEP_DUNGEON_APANDA_STEP_V11331 = 25",
+    "uoss_deep_dungeon_apanda_floor",
+):
+    if _needle not in _deep_dungeon_world_source_v11331:
+        _semantic_errors.append(
+            "UOSS Deep Dungeon world regression: missing " + _needle
+        )
+for _needle in (
+    "uoss_deep_dungeon_floor_number_v11331(room_id)",
+    "create_infinite_uoss_deep_dungeon_floor_definition_v11331(",
+):
+    if _needle not in _deep_dungeon_state_source_v11331:
+        _semantic_errors.append(
+            "UOSS Deep Dungeon on-demand generation regression: missing "
+            + _needle
+        )
+for _needle in (
+    "def register_uoss_deep_dungeon_visit_v11331",
+    '"floor_100"',
+    "def uoss_deep_dungeon_descent_blocked_v11331",
+    "def use_uoss_deep_dungeon_elevator_v11331",
+    "member.uoss_deep_dungeon_max_floor_v11331()",
+    "Winda przenosi razem",
+    "W drużynie Portal Krypty uruchamia lider",
+    "W drużynie Astralny Portal uruchamia lider",
+    "member.checkpoint_portal_unlocked_v11331(",
+):
+    if _needle not in _deep_dungeon_session_source_v11331:
+        _semantic_errors.append(
+            "Deep Dungeon/party portal session regression: missing " + _needle
+        )
+for _needle in (
+    "uoss_deep_dungeon_descent_blocked_v11331(",
+    "uoss_serpentarius_room_entry_error_v11331(target)",
+    "register_uoss_deep_dungeon_visit_v11331(target)",
+    '"UOSS Deep Dungeon"',
+):
+    if _needle not in _deep_dungeon_movement_source_v11331:
+        _semantic_errors.append(
+            "Deep Dungeon movement regression: missing " + _needle
+        )
+for _needle in (
+    "UOSS_DEEP_DUNGEON_APANDA_CLEARS_V11331",
+    "uoss_deep_dungeon_apanda_floor",
+    "odblokowane dla tej postaci.",
+):
+    if _needle not in _deep_dungeon_rewards_source_v11331:
+        _semantic_errors.append(
+            "Deep Dungeon Apanda credit regression: missing " + _needle
+        )
+for _needle in (
+    "'deepdungeon': ('show_uoss_deep_dungeon_status_v11331'",
+    "'deepelevator': ('use_uoss_deep_dungeon_elevator_v11331'",
+):
+    if _needle not in _deep_dungeon_commands_source_v11331:
+        _semantic_errors.append(
+            "Deep Dungeon command regression: missing " + _needle
+        )
+for _needle in (
+    '"deep_dungeon_unlock_floor":100',
+    '"lockout_hours":24',
+):
+    if _needle not in _deep_dungeon_spec_source_v11331:
+        _semantic_errors.append(
+            "Serpentarius Deep Dungeon contract regression: missing " + _needle
+        )
+
+try:
+    from data.catalogs import ROOMS as _deep_rooms_v11331, MOB_TEMPLATES as _deep_mobs_v11331
+    from world.uoss_superboss_world import (
+        create_infinite_uoss_deep_dungeon_floor_definition_v11331
+        as _create_deep_floor_v11331,
+        uoss_deep_dungeon_floor_id_v11331 as _deep_floor_id_v11331,
+    )
+    for _floor in (1, 25, 100, 101, 1000):
+        _created, _spawns = _create_deep_floor_v11331(_floor)
+        if _created != _deep_floor_id_v11331(_floor):
+            _semantic_errors.append(
+                f"Deep Dungeon floor {_floor}: wrong generated room id"
+            )
+        _room = _deep_rooms_v11331.get(_created, {})
+        if _room.get("exits", {}).get("down") != _deep_floor_id_v11331(_floor + 1):
+            _semantic_errors.append(
+                f"Deep Dungeon floor {_floor}: no-limit down exit regression"
+            )
+        _has_apanda = any(
+            int(_deep_mobs_v11331.get(_tid, {}).get(
+                "uoss_deep_dungeon_apanda_floor", 0
+            ) or 0) == _floor
+            for _spawn_room, _tid in _spawns
+        )
+        if (_floor % 25 == 0) != _has_apanda:
+            _semantic_errors.append(
+                f"Deep Dungeon floor {_floor}: Apanda cadence regression"
+            )
+except Exception as exc:
+    _semantic_errors.append(
+        "Deep Dungeon functional audit failed: "
+        + f"{type(exc).__name__}: {exc}"
+    )
+
+_uoss_world_reward_source_v11331 = (
+    _root / "world/uoss_superboss_world.py"
+).read_text(encoding="utf-8")
+_uoss_combat_reward_source_v11331 = (
+    _root / "player/session_mixins/combat_rewards.py"
+).read_text(encoding="utf-8")
+for _needle in (
+    "UOSS_FULL_PROGRESSION_SOURCE_XP_V11331 = 18_900_000",
+    '"uoss_full_progression_source_xp_exact"',
+    "UOSS_FULL_PROGRESSION_XP_AUDIT_V11331",
+):
+    if _needle not in _uoss_world_reward_source_v11331:
+        _semantic_errors.append(
+            "18.9m UOSS progression reward regression: missing world marker "
+            + _needle
+        )
+for _needle in (
+    "uoss_full_progression_source_xp_exact = bool(",
+    "if uoss_full_progression_source_xp_exact",
+    "bazowy EXP każdego statu",
+):
+    if _needle not in _uoss_combat_reward_source_v11331:
+        _semantic_errors.append(
+            "18.9m UOSS progression reward regression: missing runtime rule "
+            + _needle
+        )
+try:
+    from world.uoss_superboss_world import (
+        UOSS_FULL_PROGRESSION_XP_AUDIT_V11331
+        as _uoss_full_progression_xp_audit_v11331,
+    )
+    _expected_uoss_18m_v11331 = {
+        "black_rabite", "serpentarius", "odin", "yiazmat"
+    }
+    _actual_uoss_18m_v11331 = set(
+        _uoss_full_progression_xp_audit_v11331.get("bosses", ())
+    )
+    if _actual_uoss_18m_v11331 != _expected_uoss_18m_v11331:
+        _semantic_errors.append(
+            "18.9m UOSS progression boss set mismatch: "
+            + repr(sorted(_actual_uoss_18m_v11331))
+        )
+    for _error in _uoss_full_progression_xp_audit_v11331.get("errors", ()):
+        _semantic_errors.append(
+            "18.9m UOSS progression audit: " + str(_error)
+        )
+except Exception as exc:
+    _semantic_errors.append(
+        "18.9m UOSS progression audit import failed: "
+        + f"{type(exc).__name__}: {exc}"
+    )
+
+_superboss_entry_source_v11331 = (
+    _root / "player/session_mixins/world_events_endgame.py"
+).read_text(encoding="utf-8")
+_superboss_runtime_source_v11331 = (
+    _root / "world/uoss_superboss_runtime.py"
+).read_text(encoding="utf-8")
+_superboss_social_source_v11331 = (
+    _root / "player/session_mixins/social_base.py"
+).read_text(encoding="utf-8")
+for _needle in (
+    "superboss_member_entry_error_v11331(member,key)",
+    "same_room=self.character.room_id",
+    "party_key != self.account_id",
+    "Przeniesiono razem {len(entrants)} graczy",
+    'try_hire_uoss_helper_v11160(f"join me {q}")',
+):
+    if _needle not in _superboss_entry_source_v11331:
+        _semantic_errors.append(
+            "superboss party travel/helper regression: missing " + _needle
+        )
+for _needle in (
+    "def superboss_member_entry_error_v11331",
+    "superboss_lockout_remaining_v11157",
+    "deep_dungeon_discovery",
+):
+    if _needle not in _superboss_runtime_source_v11331:
+        _semantic_errors.append(
+            "superboss personal eligibility regression: missing " + _needle
+        )
+for _needle in (
+    "def uoss_helper_contract_here_v11331",
+    'str(npc.get("room") or "") != str(self.character.room_id)',
+    '"join me {helper}"',
+    "Tylko lider drużyny może zatrudnić pomocnika Super Bossa",
+):
+    if _needle not in _superboss_social_source_v11331:
+        _semantic_errors.append(
+            "superboss helper phrase regression: missing " + _needle
+        )
+
+_jammer_runtime_source_v11331 = (
+    _root / "player/session_mixins/combat_skills.py"
+).read_text(encoding="utf-8")
+_jammer_skill_source_v11331 = (
+    _root / "core/classes_skills.py"
+).read_text(encoding="utf-8")
+for _needle in (
+    '_jam_template.get("uoss_unique_superboss_key")',
+    '_jam_template.get("uoss_superboss_key")',
+    '_jam_template.get("uoss_superboss")',
+    "jest odporny na Stop",
+    "_jammer_immune",
+):
+    if _needle not in _jammer_runtime_source_v11331:
+        _semantic_errors.append(
+            "Jammer superboss immunity regression: missing " + _needle
+        )
+if '"uoss_superboss_stop_immune":True' not in _jammer_skill_source_v11331:
+    _semantic_errors.append(
+        "Jammer superboss immunity regression: skill contract missing"
+    )
+
+_active_effects_source_v11331 = (
+    _root / "player/session_mixins/character_profile.py"
+).read_text(encoding="utf-8")
+_active_effects_registry_v11331 = (
+    _root / "player/session_mixins/command_registry.py"
+).read_text(encoding="utf-8")
+for _needle in (
+    "def active_effects_status_text_v11331",
+    "Aktywne efekty:",
+    "await self.active_effects_status_text_v11331()",
+    "skill_guard",
+    "skill_evade",
+    "mec_overheat_active_v0319",
+):
+    if _needle not in _active_effects_source_v11331:
+        _semantic_errors.append(
+            "active effects status regression: missing " + _needle
+        )
+for _needle in (
+    "'buffs': ('show_active_effects_v11331'",
+    "'effects': ('show_active_effects_v11331'",
+    "'efekty': ('show_active_effects_v11331'",
+):
+    if _needle not in _active_effects_registry_v11331:
+        _semantic_errors.append(
+            "active effects command regression: missing " + _needle
+        )
+
+for _needle in (
+    "def consider_adaptive_preview_v11331",
+    "adaptive_target_max_hp_v11330(",
+    "adaptive_target_incoming_fraction_v11330(",
+    "adaptive_reward_multiplier_v11330(",
+    "party_action",
+    "Adaptive Combat, {adaptive_state}",
+    "Prognozowana rekompensata Adaptive Combat",
+):
+    if _needle not in _consider_source_v11331:
+        _semantic_errors.append(
+            "adaptive consider regression: missing " + _needle
+        )
 
 # v1.13.30: every combat route must keep encounter-local scaling wired in.
 _adaptive_damage_source_v11330 = (
@@ -1905,18 +2260,18 @@ for _needle in (
         _semantic_errors.append("UOSS helper runtime regression: missing " + _needle)
 
 if _semantic_errors:
-    print("Soulbound v1.13.30 FAST PREDEPLOY FAILED: semantic contracts")
+    print("Soulbound v1.13.31 FAST PREDEPLOY FAILED: semantic contracts")
     for _error in _semantic_errors:
         print(f"ERROR: {_error}")
     raise SystemExit(1)
 
 if audit["error_count"]:
-    print("Soulbound v1.13.30 FAST PREDEPLOY FAILED")
+    print("Soulbound v1.13.31 FAST PREDEPLOY FAILED")
     for error in audit["errors"]:
         print(f"ERROR: {error}")
     raise SystemExit(1)
 
-print("Soulbound v1.13.30 FAST PREDEPLOY PASS")
+print("Soulbound v1.13.31 FAST PREDEPLOY PASS")
 print(
     "Semantic contracts: "
     f"{len(_semantic_audits)} audits PASS; AP runtime guards PASS"

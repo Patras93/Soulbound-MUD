@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 """HP, level, XP, score, stats and Soul profile."""
 
+import time
+
 # v0.44.0: explicit dependencies; no compatibility-global injection.
 from core.bootstrap_economy_professions import (
     SOUL_MILESTONE_GUARDIAN_REDUCTION,
@@ -30,10 +32,71 @@ from systems.content_registry import QUESTS
 
 class SessionCharacterProfileMixin:
 
+    async def active_effects_status_text_v11331(self):
+            """NVDA-friendly live temporary effect summary for every class."""
+            # V-MAX has its own expiry/Overheat transition; refresh it before
+            # reading the generic active buff container so the status is truthful.
+            await self.mec_refresh_vmax_v0319()
+            self.cleanup_skill_buffs()
+
+            now = time.time()
+            buffs = getattr(self, "active_skill_buffs", {}) or {}
+            entries = []
+
+            def _priority(row):
+                key, data = row
+                name = str(data.get("name") or key)
+                if name.casefold() == "v-max":
+                    return (0, name.casefold())
+                if str(data.get("source") or "").casefold() == "v-max":
+                    return (1, name.casefold())
+                return (2, name.casefold())
+
+            for skill_id, data in sorted(buffs.items(), key=_priority):
+                until = float(data.get("until", 0.0) or 0.0)
+                if until and until <= now:
+                    continue
+                name = str(data.get("name") or skill_id).strip()
+                if not name:
+                    continue
+                remaining = max(0, int(until - now + 0.999)) if until else 0
+                label = f"{name} {remaining} s" if remaining else name
+                source = str(data.get("source") or "").strip()
+                if (
+                    source
+                    and source.casefold() != "v-max"
+                    and self.character
+                    and source.casefold() != str(self.character.name).casefold()
+                ):
+                    label += f" od {source}"
+                entries.append(label)
+
+            if int(getattr(self, "skill_guard", 0) or 0) > 0:
+                entries.append(
+                    f"Guard {int(self.skill_guard)} redukcji, następne trafienie"
+                )
+            if bool(getattr(self, "skill_evade", False)):
+                entries.append("Evade, następny atak")
+            if self.mec_overheat_active_v0319():
+                entries.append("Overheat, do zakończenia akcji regeneracyjnej")
+
+            if not entries:
+                return "Aktywne efekty: brak."
+            return "Aktywne efekty: " + "; ".join(entries) + "."
+
+    async def show_active_effects_v11331(self):
+            await self.send("AKTYWNE EFEKTY")
+            await self.send(await self.active_effects_status_text_v11331())
+            await self.send(
+                "Pokazywane są bieżące czasowe buffy i stany bojowe. "
+                "Stałe pasywki klasowe nie są tu powtarzane."
+            )
+
     async def show_hp(self):
-            """Krótki stan zasobów bez podwójnego nagłówka HP pod NVDA."""
+            """Krótki stan zasobów i aktywnych efektów pod NVDA."""
             await self.send(f"HP: {self.current_hp} z {self.max_hp()}.")
             await self.send(f"Mana: {self.current_mana} z {self.max_mana()}.")
+            await self.send(await self.active_effects_status_text_v11331())
 
     async def show_character_level(self):
             """Krótki Poziom postaci 1-600, niezależny od Soul Levelu."""
@@ -82,6 +145,7 @@ class SessionCharacterProfileMixin:
             await self.send(f"Soul Weapon Mastery: {c.soul_weapon_mastery_level}/{SOUL_WEAPON_MASTERY_MAX_LEVEL}. XP: {c.soul_weapon_mastery_xp} z {c.soul_weapon_mastery_xp_to_next() if c.soul_weapon_mastery_level < SOUL_WEAPON_MASTERY_MAX_LEVEL else 0}.")
             await self.send(f"HP: {self.current_hp} z {self.max_hp()}.")
             await self.send(f"Mana: {self.current_mana} z {self.max_mana()}.")
+            await self.send(await self.active_effects_status_text_v11331())
             await self.send(f"Siła: {self.effective_strength()}.")
             await self.send(f"Zręczność: {self.effective_dexterity()}.")
             await self.send(f"Kondycja: {self.effective_constitution()}.")

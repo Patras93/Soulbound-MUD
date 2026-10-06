@@ -1766,8 +1766,28 @@ class SessionCombatSkillsMixin:
                             )
                             _jammer_hits=0
                             _jammer_misses=0
+                            _jammer_immune=0
                             for _jam_target in targets:
                                 _jam_template=MOB_TEMPLATES[_jam_target.template_id]
+                                _jam_superboss=bool(
+                                    _jam_template.get("uoss_unique_superboss_key")
+                                    or _jam_template.get("uoss_superboss_key")
+                                    or _jam_template.get("uoss_superboss")
+                                )
+                                if _jam_superboss:
+                                    _jammer_immune+=1
+                                    await self.send(
+                                        f"Jammer: {_jam_template['name']} jest Super Bossem "
+                                        "i jest odporny na Stop."
+                                    )
+                                    if _jam_target.engaged_at<=0:
+                                        _jam_target.engaged_at=time.monotonic()
+                                    if not _jam_target.engaged_by:
+                                        _jam_target.engaged_by=self.character.name
+                                    await self.server.auto_assist_party_combat(
+                                        self,_jam_target
+                                    )
+                                    continue
                                 _jam_accuracy=_jammer_base_accuracy
                                 _jam_machine=bool(
                                     _jam_template.get("machine")
@@ -1824,7 +1844,8 @@ class SessionCombatSkillsMixin:
                                 )
                             await self.send(
                                 f"Jammer: {_jammer_hits} celów zatrzymanych, "
-                                f"{_jammer_misses} oparło się."
+                                f"{_jammer_misses} oparło się, "
+                                f"{_jammer_immune} Super Bossów odpornych na Stop."
                                 + (
                                     " Support weapon obejmuje wszystkich przeciwników."
                                     if (

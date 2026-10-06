@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
 """UOSSMUD Super Boss world layer v1.11.36.
 
-Creates one stable arena and one stationary boss spawn per encounter.
-The hub is deliberately connected to Miasto Dusz; access policy remains
-available as authored metadata for command/runtime gates.
+Creates stable superboss arenas plus the on-demand UOSS Deep Dungeon.
 """
+import re
 from data.catalogs import ROOMS, MOB_TEMPLATES, NPCS, SHOPS
 from data.items import ITEMS
 from world.uoss_superbosses import UOSS_SUPERBOSS_ENCOUNTERS_V11134
@@ -19,12 +18,201 @@ if HUB not in ROOMS:
     }
 ROOMS.setdefault("square",{}).setdefault("exits",{}).setdefault("northwest",HUB)
 
+UOSS_DEEP_DUNGEON_ENTRY_V11331 = "uoss_deep_dungeon_entry_v11331"
+UOSS_DEEP_DUNGEON_FLOOR0_V11331 = "uoss_deep_dungeon_floor_0_v11331"
+UOSS_DEEP_DUNGEON_VISITS_V11331 = "uoss_deep_dungeon_floors_v11331"
+UOSS_DEEP_DUNGEON_APANDA_CLEARS_V11331 = "uoss_deep_dungeon_apanda_v11331"
+UOSS_DEEP_DUNGEON_SERPENTARIUS_UNLOCK_FLOOR_V11331 = 100
+UOSS_DEEP_DUNGEON_APANDA_STEP_V11331 = 25
+
+
+def uoss_deep_dungeon_floor_id_v11331(floor):
+    return f"uoss_deep_dungeon_floor_{max(1, int(floor))}_v11331"
+
+
+def uoss_deep_dungeon_floor_number_v11331(room_id):
+    match = re.fullmatch(
+        r"uoss_deep_dungeon_floor_(\d+)_v11331",
+        str(room_id or ""),
+    )
+    if not match:
+        return None
+    floor = int(match.group(1))
+    return floor if floor >= 1 else None
+
+
+def create_infinite_uoss_deep_dungeon_floor_definition_v11331(floor):
+    """Create one Deep Dungeon floor on demand. There is deliberately no max floor."""
+    floor = max(1, int(floor))
+    room_id = uoss_deep_dungeon_floor_id_v11331(floor)
+    if room_id in ROOMS:
+        return room_id, []
+
+    exits = {
+        "up": (
+            UOSS_DEEP_DUNGEON_ENTRY_V11331
+            if floor == 1
+            else uoss_deep_dungeon_floor_id_v11331(floor - 1)
+        ),
+        "down": uoss_deep_dungeon_floor_id_v11331(floor + 1),
+    }
+    is_apanda = floor % UOSS_DEEP_DUNGEON_APANDA_STEP_V11331 == 0
+    depth_power = max(1, floor)
+    base_hp = (
+        2_500
+        + depth_power * 120
+        + int((depth_power ** 1.22) * 80)
+    )
+    base_damage = (
+        85
+        + depth_power * 2
+        + int(depth_power ** 1.08)
+    )
+
+    ROOMS[room_id] = {
+        "zone": "UOSS Deep Dungeon",
+        "name": f"Deep Dungeon, piętro {floor}",
+        "desc": (
+            f"Nieskończony Deep Dungeon, piętro {floor}. "
+            + (
+                "To próg Apandy; pokonanie jej odblokowuje zejście dla tej postaci. "
+                if is_apanda else
+                "Im głębiej schodzisz, tym silniejsi stają się przeciwnicy. "
+            )
+            + (
+                "Dotarcie tutaj odblokowuje Floor 0 i Serpentariusa. "
+                if floor == UOSS_DEEP_DUNGEON_SERPENTARIUS_UNLOCK_FLOOR_V11331
+                else ""
+            )
+            + "Loch nie ma ostatniego piętra."
+        ),
+        "exits": exits,
+        "uoss_deep_dungeon": True,
+        "uoss_deep_dungeon_floor": floor,
+        "recommended_level": 95 + floor,
+        "generator_level": 95 + floor,
+        "procedural_dynamic": True,
+        "generated_on_demand": True,
+    }
+
+    regular_names = (
+        "Deep Dungeon Fiend",
+        "Deep Dungeon Wraith",
+        "Deep Dungeon Behemoth",
+        "Deep Dungeon Chimera",
+        "Deep Dungeon Revenant",
+    )
+    regular_id = f"uoss_deep_dungeon_mob_{floor}_v11331"
+    MOB_TEMPLATES.setdefault(
+        regular_id,
+        {
+            "name": f"{regular_names[(floor - 1) % len(regular_names)]}, piętro {floor}",
+            "max_hp": base_hp,
+            "damage": base_damage,
+            "damage_type": "magic" if floor % 3 == 0 else "physical",
+            "silver": 350 + floor * 14,
+            "gold": max(0, floor // 40),
+            "mithril": 0,
+            "stat_reward": 800 + floor * 35,
+            "class_xp_reward": 12_000 + floor * 850,
+            "soul_reward": 3_000 + floor * 180,
+            "drops": {},
+            "quest_target": None,
+            "stationary_mob": False,
+            "auto_aggro": False,
+            "uoss_deep_dungeon": True,
+            "uoss_deep_dungeon_floor": floor,
+            "infinite_dungeon": True,
+            "source_progression_floor_v11331": floor,
+        },
+    )
+    spawns = [(room_id, regular_id)]
+
+    if is_apanda:
+        apanda_id = f"uoss_deep_dungeon_apanda_{floor}_v11331"
+        MOB_TEMPLATES.setdefault(
+            apanda_id,
+            {
+                "name": f"Apanda, piętro {floor}",
+                "max_hp": max(12_000, base_hp * 5),
+                "damage": max(180, int(base_damage * 1.7)),
+                "damage_type": "physical",
+                "silver": 4_000 + floor * 60,
+                "gold": 25 + floor // 20,
+                "mithril": 0,
+                "stat_reward": 4_000 + floor * 120,
+                "class_xp_reward": 80_000 + floor * 3_500,
+                "soul_reward": 20_000 + floor * 700,
+                "drops": {},
+                "quest_target": None,
+                "boss": True,
+                "mini_boss": True,
+                "stationary_mob": True,
+                "auto_aggro": False,
+                "uoss_deep_dungeon": True,
+                "uoss_deep_dungeon_floor": floor,
+                "uoss_deep_dungeon_apanda_floor": floor,
+                "infinite_dungeon": True,
+                "boss_mechanic": "uoss_deep_dungeon_apanda",
+                "boss_mechanic_text": (
+                    f"Apanda blokuje zejście z piętra {floor}, dopóki "
+                    "nie pokonasz jej dla własnego checkpointu."
+                ),
+                "source_progression_floor_v11331": floor,
+            },
+        )
+        spawns.append((room_id, apanda_id))
+
+    return room_id, spawns
+
+
+ROOMS.setdefault(
+    UOSS_DEEP_DUNGEON_ENTRY_V11331,
+    {
+        "zone": "UOSS Deep Dungeon",
+        "name": "Deep Dungeon — Winda",
+        "desc": (
+            "Wejście do nieskończonego Deep Dungeon. Schody prowadzą na piętro 1. "
+            "Komenda deepelevator pozwala wracać na wcześniej odwiedzone piętra. "
+            "Apanda czeka co 25 pięter. Piętro 100 odblokowuje Floor 0 i Serpentariusa."
+        ),
+        "exits": {
+            "up": HUB,
+            "down": uoss_deep_dungeon_floor_id_v11331(1),
+        },
+        "uoss_deep_dungeon_entry": True,
+    },
+)
+ROOMS.setdefault(
+    UOSS_DEEP_DUNGEON_FLOOR0_V11331,
+    {
+        "zone": "UOSS Deep Dungeon",
+        "name": "Deep Dungeon — Floor 0",
+        "desc": (
+            "Ukryty poziom Super Bossa. Dostęp wymaga osobistego dotarcia "
+            "co najmniej do piętra 100. Po pokonaniu Serpentariusa wejście "
+            "jest blokowane na 24 godziny."
+        ),
+        "exits": {
+            "up": UOSS_DEEP_DUNGEON_ENTRY_V11331,
+            "forward": "uoss_superboss_arena_serpentarius_v11136",
+        },
+        "uoss_deep_dungeon_floor_zero": True,
+        "uoss_superboss_key": "serpentarius",
+    },
+)
+ROOMS.setdefault(HUB, {}).setdefault("exits", {}).setdefault(
+    "down", UOSS_DEEP_DUNGEON_ENTRY_V11331
+)
+
 _ORDER=tuple(UOSS_SUPERBOSS_ENCOUNTERS_V11134)
 _DIRS=("north","northeast","east","southeast","southwest","west","up","down")
 _prev=HUB
 
 # Exact Scanner Data supplied from UOSSMUD. Unknown source fields are omitted
 # rather than inferred. XP is authored source XP and must not be regenerated.
+UOSS_FULL_PROGRESSION_SOURCE_XP_V11331 = 18_900_000
+
 SOURCE_SCANNER_V11156 = {
     "black_rabite": {"level":300,"max_hp":3300000,"max_mp":800000,"xp":18900000,"immune":("Status_all",),"location":"Rabite Field"},
     "culex": {"level":130,"max_hp":400000,"max_mp":200000,"xp":1000000,"resist":("Weapon","Magic"),"immune":("Status_all",),"drop":"Quartz Chunk","drop_item_id":"quartz_chunk","location":"Star Field"},
@@ -53,6 +241,9 @@ for idx,key in enumerate(_ORDER,1):
     MOB_TEMPLATES.setdefault(mid,{
         "name":spec["name"],"max_hp":int(scanner.get("max_hp") or max(5000, level*250)),
         "max_mp":scanner.get("max_mp"),"source_xp":scanner.get("xp"),"source_xp_exact":bool(scanner.get("xp") is not None),
+        "uoss_full_progression_source_xp_exact":bool(
+            int(scanner.get("xp") or 0) == UOSS_FULL_PROGRESSION_SOURCE_XP_V11331
+        ),
         "damage":max(75, level*3),"damage_type":"magic" if key in {"diabolos","ozma","hades","elementals"} else "physical",
         "silver":0,"gold":0,"mithril":0,"stat_reward":0,"soul_reward":0,"drops":{},"quest_target":None,
         "combat_types":scanner.get("types",()),"weak":scanner.get("weak",()),"resist":scanner.get("resist",()),
@@ -337,7 +528,44 @@ def install_uoss_superboss_spawns_v11136(mob_spawns):
                 mob_spawns.append(pair)
     return 27
 
+def uoss_full_progression_xp_audit_v11331():
+    expected = {
+        key
+        for key, row in SOURCE_SCANNER_V11156.items()
+        if int(row.get("xp") or 0) == UOSS_FULL_PROGRESSION_SOURCE_XP_V11331
+    }
+    actual = {
+        key
+        for key in expected
+        if bool(
+            MOB_TEMPLATES.get(
+                f"uoss_superboss_{key}_v11136", {}
+            ).get("uoss_full_progression_source_xp_exact")
+        )
+    }
+    errors = []
+    if actual != expected:
+        errors.append(
+            "18.9m full-progression UOSS marker mismatch: "
+            + repr({"expected": sorted(expected), "actual": sorted(actual)})
+        )
+    return {
+        "version": "1.13.31",
+        "source_xp": UOSS_FULL_PROGRESSION_SOURCE_XP_V11331,
+        "bosses": tuple(sorted(expected)),
+        "error_count": len(errors),
+        "errors": errors,
+    }
+
+
+UOSS_FULL_PROGRESSION_XP_AUDIT_V11331 = (
+    uoss_full_progression_xp_audit_v11331()
+)
+
+
 UOSS_SUPERBOSS_WORLD_STATE_V11136={
- "version":"1.11.36","hub":HUB,"arenas":21,"bosses":21,"helpers":tuple(_HELPERS),
+ "version":"1.13.31","hub":HUB,"arenas":21,"bosses":21,"helpers":tuple(_HELPERS),
  "black_rabite_shop":10,"odin_shop":8,"yiazmat_shop":7,
+ "deep_dungeon":"infinite","deep_dungeon_serpentarius_unlock_floor":100,
+ "deep_dungeon_apanda_step":25,
 }

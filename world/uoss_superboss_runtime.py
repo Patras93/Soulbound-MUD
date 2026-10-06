@@ -114,6 +114,49 @@ def superboss_local_party_v11137(session):
     return list(members) if members else [session]
 
 
+def superboss_member_entry_error_v11331(session, boss_key):
+    """Return why this specific player cannot enter a named UOSS Super Boss."""
+    key = str(boss_key or "")
+    spec = UOSS_SUPERBOSS_ENCOUNTERS_V11134.get(key)
+    if not spec or not session or not getattr(session, "character", None):
+        return "Nieprawidłowy Super Boss albo brak aktywnej postaci."
+
+    level_req = int(spec.get("unlock_level", 0) or 0)
+    if level_req and int(session.character.character_level) < level_req:
+        return (
+            f"{session.character.name} nie spełnia wymogu Level "
+            f"{level_req} dla {spec['name']}."
+        )
+
+    if (
+        spec.get("unlock") == "explore_deep_dungeon"
+        or spec.get("party_members_must_unlock")
+    ):
+        unlock_entries = session.server.db.collection_entry_ids(
+            session.account_id, "deep_dungeon_discovery"
+        )
+        unlocked = "floor_100" in unlock_entries
+        if not unlocked:
+            return (
+                f"{session.character.name} nie dotarł jeszcze do piętra 100 "
+                f"Deep Dungeon i nie odblokował {spec['name']}."
+            )
+
+    if spec.get("lockout_hours") and superboss_cleared_v11135(
+        session.server.db, session.account_id, key
+    ):
+        remaining = superboss_lockout_remaining_v11157(
+            session.server.db, session.account_id, key
+        )
+        hours = remaining // 3600
+        minutes = (remaining % 3600) // 60
+        return (
+            f"{session.character.name} ma jeszcze blokadę {spec['name']}: "
+            f"{hours} godz. {minutes} min."
+        )
+    return ""
+
+
 def superboss_attack_gate_v11137(session, template):
     key = superboss_key_from_template_v11135(template)
     if not key:
@@ -131,20 +174,10 @@ def superboss_attack_gate_v11137(session, template):
         return False, f"{spec['name']} wymaga co najmniej {min_players} graczy w tej samej lokacji."
     if max_players and len(party)>max_players:
         return False, f"{spec['name']} dopuszcza maksymalnie {max_players} graczy."
-    level_req = int(spec.get("unlock_level", 0) or 0)
     for member in party:
-        if level_req and int(member.character.character_level) < level_req:
-            return False, f"{member.character.name} nie spełnia wymogu Level {level_req} dla {spec['name']}."
-    if spec.get("party_members_must_unlock"):
-        for member in party:
-            unlocked = bool(member.server.db.collection_entry_ids(member.account_id, "deep_dungeon_discovery"))
-            if not unlocked:
-                return False, f"{member.character.name} nie odblokował jeszcze Serpentariusa przez eksplorację Deep Dungeon."
-    if spec.get("lockout_hours") and superboss_cleared_v11135(session.server.db, session.account_id, key):
-        remaining=superboss_lockout_remaining_v11157(session.server.db, session.account_id, key)
-        hours=remaining//3600
-        minutes=(remaining%3600)//60
-        return False, f"{spec['name']} możesz ponownie pokonać za {hours} godz. {minutes} min."
+        entry_error = superboss_member_entry_error_v11331(member, key)
+        if entry_error:
+            return False, entry_error
     return True, ""
 
 

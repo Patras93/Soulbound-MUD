@@ -1,5 +1,5 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.13.30
+Aktualna paczka: v1.13.31
 
 
 
@@ -19,6 +19,32 @@ Aktualna paczka: v1.13.30
 
 
 
+
+==============================================================================
+Soulbound v1.13.31 — VERSION SYNC, PARTY CHESTS & ADAPTIVE CONSIDER
+==============================================================================
+
+- PORTALE CHECKPOINTÓW CO 10 PIĘTER — WSZYSTKIE KRYPTY I WIEŻE: zwykła Krypta, Mityczna Krypta, zwykła Wieża Astralna i Mityczna Wieża Astralna mają dwukierunkowy portal na każdym bossowym checkpointcie co 10 pięter/poziomów bez górnego limitu. Z odpowiedniej Bramy/Sali wybierasz odblokowany checkpoint, a stojąc na checkpointcie wpisujesz portal / portal wyjdz albo astralportal / astralportal wyjdz, aby wrócić do właściwego wejścia. W party portal uruchamia lider i zabiera tylko członków mających dokładnie ten checkpoint odblokowany. Deep Dungeon pozostaje na swoim osobnym systemie windy/progresu i nie jest zmieniany przez tę zasadę.
+- UOSS DEEP DUNGEON — NO LIMIT: dodano prawdziwy, generowany na żądanie Deep Dungeon bez maksymalnego piętra. Wejście znajduje się pod Salą Super Bossów. Zwykłe piętra rosną z głębokością, a Apanda pojawia się co 25 pięter i blokuje zejście dla postaci, która nie ma jeszcze zaliczonego tego progu.
+- DEEP DUNGEON PROGRES: każda postać zapisuje osobno odwiedzone piętra i checkpointy Apandy. deepelevator <piętro> wraca do wcześniej odwiedzonego piętra. Dotarcie do piętra 100 zapisuje dokładny unlock floor_100 i odblokowuje Floor 0/Serpentariusa; loch dalej działa na 101, 102, 103... bez końca.
+- SERPENTARIUS 24 H: po zabiciu Serpentariusa Floor 0 i ponowne wejście do starcia są zablokowane przez 24 godziny dla danej postaci. Sam Deep Dungeon nie jest blokowany — można dalej eksplorować bez limitu.
+- PARTY PORTALE: Portal Krypty i Astralny Portal uruchamia w drużynie lider. Przenoszeni są tylko członkowie stojący przy liderze, którzy mają wybrane piętro/checkpoint odblokowane na własnej postaci; pozostali zostają z czytelnym komunikatem. Solo zachowanie pozostaje bez zmian.
+- UOSS 18,9 MLN EXP NA WSZYSTKIE OSIE: każdy źródłowy UOSS Super Boss z dokładnym source XP 18 900 000 daje bazowo po 18 900 000 EXP do każdego z sześciu statów osobno, 18 900 000 Soul XP, 18 900 000 Class XP i 18 900 000 Character XP. Obecnie obejmuje Black Rabite, Serpentariusa, Odina i Yiazmata. Ta dokładna nagroda omija zwykły generator/dynamiczny mnożnik moba; globalne systemy bonusowe danej osi nadal mogą działać nad bazą zgodnie ze swoimi zasadami.
+- SUPERBOSS PARTY TRAVEL: dla bossów party/solo-or-party lider komendą superboss <nazwa> przenosi razem wszystkich żywych członków party stojących w jego lokacji. Przed ruchem sprawdzane są wymagania każdego członka: Level, osobiste odblokowanie Deep Dungeon/Serpentariusa, lockout oraz min/max liczby graczy. Non-leader nie może rozdzielić party własnym teleportem; członkowie poza lokacją lidera zostają na miejscu.
+- SUPERBOSS HELPERS: naprawiono source phrases typu say Join me, Popoi. System wyszukuje teraz rzeczywistego helpera NPC w bieżącej arenie zamiast starych nieużywanych ID pokoi. pomocnik <nazwa> korzysta z tego samego płatnego mechanizmu, więc nie omija kosztu, limitu party ani zasady, że zatrudnia lider.
+- JAMMER vs SUPER BOSS: UOSS Super Bossowie są teraz twardo odporni na Stop z Jammera. Jammer nadal działa normalnie na zwykłych, Elite/Rare i innych dozwolonych przeciwników; Support Effect nie omija tej odporności przy AoE. Komunikat jasno mówi, że Super Boss jest odporny na Stop.
+- AKTYWNE EFEKTY DLA WSZYSTKICH KLAS: komendy hp i score pokazują po HP/Manie wspólną linię z aktywnymi czasowymi buffami i pozostałym czasem. Nowe buffs / effects / efekty daje szybki osobny podgląd pod NVDA. V-MAX pokazuje V-MAX oraz Protect/Shell/Haste/Regen/Preach/Praise/Permanence; wspólny status obejmuje też Regen innych klas, Guard, Evade i Overheat. Stałe pasywki nie zaśmiecają tej listy.
+- PODBITO WERSJĘ GRY do v1.13.31. Kanoniczny runtime VERSION, nagłówek CHANGELOG_PL.txt i fallback komendy changes są ponownie zgodne.
+- PREDEPLOY VERSION SYNC pilnuje od tej wersji zgodności numeru runtime, nagłówka changeloga i LATEST_CHANGES_TITLE, żeby kolejny release nie został częściowo na starej wersji.
+- CONSIDER / CON / OCEN został dopięty do Global Adaptive Combat. Bez rozpoczynania walki prognozuje encounter-local HP moba dla realnej siły postaci i całej żywej drużyny stojącej w pokoju.
+- CONSIDER pokazuje bazowe i prognozowane max HP, mnożnik HP, rangę Adaptive Combat, wielkość lokalnej drużyny oraz prognozowaną rekompensatę EXP/waluty do x3.
+- Ocena zagrożenia używa przewidywanych obrażeń moba po adaptacyjnym skalowaniu względem aktualnego HP, Defense/Magic Defense, redukcji i uniku gracza.
+- Zwykły atak gracza w CONSIDER uwzględnia aktualny Speed/multi-hit. W party liczona jest również łączna zwykła akcja lokalnej drużyny, więc skalowany mob nie jest oceniany tak, jakby walczył z nim tylko lider.
+- CONSIDER pozostaje czystą prognozą: nie angażuje moba, nie zmienia jego HP/skali i nie uruchamia pętli walki.
+- AUTO KOLEJKA SKILLI: bazowa pojemność każdej aktywnej kolejki wzrosła z 20 do 40 slotów na starcie. Dalej rośnie o 1 slot co 10 Character Leveli: 50 przy 100, 60 przy 200, 80 przy 400 i 100 przy 600.
+- SKRZYNIE BOSSÓW W DRUŻYNIE: lider otwiera jedną skrzynię, a każdy członek tej samej drużyny stojący przy skrzyni dostaje własny roll złota i przedmiotów. Odpowiadający klucz członka jest zużywany, jeśli go posiada, aby nie zostawić podwójnego odbioru tej samej party-run skrzyni.
+- GLOBAL NO-COOLDOWN DOMKNIĘTY: V-MAX i Magnify nie są wyjątkami od zasady braku reuse cooldownów. V-MAX zachowuje czas działania zależny od Skill Levelu i Will oraz własny Overheat, ale nie ma timera ponownego użycia.
+- Brak wipe i brak migracji bazy.
 
 ==============================================================================
 Soulbound v1.13.30 — POST-600 INFINITE REWARD & EQUIPMENT PROGRESSION
