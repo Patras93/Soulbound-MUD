@@ -197,20 +197,23 @@ def uoss_superboss_audit_v11134():
     missing = sorted(required - set(encounters))
     if missing:
         errors.append("missing unique encounters: " + ", ".join(missing))
-    for key in ("black_rabite","odin","yiazmat"):
+    for key in ("black_rabite","serpentarius","odin","yiazmat"):
         row = encounters.get(key, {})
         if int(row.get("lockout_hours", 0) or 0) != 24:
-            errors.append(f"{key}: expected 24-hour lockout")
+            errors.append(f"{key}: expected 24-hour Soulbound lockout")
         if not row.get("personal_token"):
             errors.append(f"{key}: missing personal participation reward")
-    for key in ("ruby_weapon","emerald_weapon","serpentarius"):
+    for key in ("ruby_weapon","emerald_weapon"):
         if encounters.get(key, {}).get("lockout_hours"):
-            errors.append(f"{key}: source does not define once-per-reboot lockout")
+            errors.append(f"{key}: source does not define a repeat lockout")
+    serpentarius = encounters.get("serpentarius", {})
+    if int(serpentarius.get("deep_dungeon_unlock_floor", 0) or 0) != 100:
+        errors.append("serpentarius: expected Deep Dungeon floor 100 unlock")
     if encounters.get("black_rabite", {}).get("unique_drop_count") != 10:
         errors.append("black_rabite: expected 10 unique drops")
     if encounters.get("yiazmat", {}).get("unique_drop_count") != 7:
         errors.append("yiazmat: expected 7 unique drops")
-    return {"version":"1.11.34","encounter_count":len(encounters),"error_count":len(errors),"errors":errors}
+    return {"version":"1.13.31","encounter_count":len(encounters),"error_count":len(errors),"errors":errors}
 
 
 UOSS_SUPERBOSS_AUDIT_V11134 = uoss_superboss_audit_v11134()
