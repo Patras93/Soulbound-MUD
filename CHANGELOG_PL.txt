@@ -1,5 +1,5 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.13.33
+Aktualna paczka: v1.13.34
 
 
 
@@ -19,6 +19,17 @@ Aktualna paczka: v1.13.33
 
 
 
+
+==============================================================================
+Soulbound v1.13.34 — BOSS CHEST REAL ROOM FIX
+==============================================================================
+
+- NAPRAWA WŁAŚCIWEJ KOMNATY BOSSA: rozbudowa dużych pięter v0.10 przenosi bossów z kanonicznego lądowania `crypt_floor_N` / `astral_floor_N` do końcowej komnaty `_rXX`. Skrzynia nadal wskazywała stare lądowanie, dlatego przy realnym bossie w Krypcie jej nie było.
+- SKRZYNIA PODĄŻA ZA SPAWNEM BOSSA: pokój skrzyni jest teraz wyliczany z faktycznego `MOB_SPAWNS` i metadanych konkretnego bossa/floora. Dzięki temu skrzynia stoi dokładnie tam, gdzie boss rzeczywiście został umieszczony po rozbudowie piętra.
+- EXACT ROOM ZOSTAJE: skrzynia nie pojawia się przy wejściu, zejściu ani w innych komnatach tego samego piętra — wyłącznie w realnej komnacie bossa.
+- POPRAWKA SYSTEMOWA: obejmuje zwykłą Kryptę, Mityczną Kryptę, zwykłą Wieżę Astralną, Mityczną Wieżę Astralną i Twierdzę Gigantów, także piętra tworzone dynamicznie.
+- Zasady klucza, party-open, znikania po otwarciu i resetu przy kolejnym prawidłowym zabiciu bossa pozostają bez zmian.
+- Brak migracji bazy i brak wipe.
 
 ==============================================================================
 Soulbound v1.13.33 — QOL NAVIGATION, EQUIPMENT & BOSS CHEST HOTFIXES
