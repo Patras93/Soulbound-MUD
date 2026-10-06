@@ -1,6 +1,16 @@
 # -*- coding: utf-8 -*-
 """Admin commands, wipe and unlock helpers."""
 
+from network.protocol_gameplay_utils import (
+    BOSS_CHEST_OPENED_CATEGORY_V11332,
+    _boss_floor_chest_spec,
+    boss_chest_reward_roll,
+    boss_floor_chest_name,
+    boss_floor_chest_state_id,
+    boss_floor_key_id,
+    boss_key_for_template,
+)
+
 class SessionAdminToolsMixin:
 
     def is_admin(self):
