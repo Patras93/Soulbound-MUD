@@ -375,6 +375,7 @@ SYSTEM_DESCRIPTIONS = {
 
 LATEST_CHANGES_TITLE = "Soulbound v1.13.31 - Version Sync & Adaptive Consider"
 LATEST_CHANGES = [
+    "v1.13.31: portale checkpointów co 10 pięter/poziomów działają dwukierunkowo w zwykłej i Mitycznej Krypcie oraz zwykłej i Mitycznej Wieży Astralnej; Deep Dungeon pozostaje bez zmian na własnym systemie.",
     "v1.13.31: UOSS Deep Dungeon jest nieskończony i generowany na żądanie; Apanda blokuje zejście co 25 pięter, piętro 100 odblokowuje Serpentariusa/Floor 0, a po zabiciu Serpentariusa Floor 0 ma 24 h lockout.",
     "v1.13.31: Portal Krypty i Astralny Portal są party-aware: lider przenosi stojących obok członków tylko wtedy, gdy każdy ma wskazany checkpoint odblokowany; niekwalifikowani zostają na miejscu.",
     "v1.13.31: Black Rabite, Serpentarius, Odin i Yiazmat — oraz każdy UOSS Super Boss z dokładnym source XP 18 900 000 — daje bazowo 18 900 000 EXP do każdego statu, Soul XP, Class XP i Character XP.",
