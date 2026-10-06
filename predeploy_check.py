@@ -223,8 +223,7 @@ for _needle in (
     "Winda przenosi razem",
     "W drużynie Portal Krypty uruchamia lider",
     "W drużynie Astralny Portal uruchamia lider",
-    "member.crypt_portal()",
-    "member.astral_portal()",
+    "member.checkpoint_portal_unlocked_v11331(",
 ):
     if _needle not in _deep_dungeon_session_source_v11331:
         _semantic_errors.append(
