@@ -1,5 +1,19 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.13.9
+Aktualna paczka: v1.13.10
+
+==============================================================================
+Soulbound v1.13.10 — finalny hotfix późnego override cen narzędzi
+==============================================================================
+
+- Naprawiono restart-loop Railway, który pozostał po v1.13.9.
+- Właściwą przyczyną był późny rebalance v0.8.61 w world/equipment_help.py:
+  V0861_BASE_SHOP_PRICES_SILVER nadal ustawiał osiem starszych narzędzi na
+  500 srebra już po załadowaniu kanonicznych cen 1200.
+- Wszystkie osiem wpisów legacy rebalansu jest teraz zgodnych z ceną 1200 srebra,
+  więc runtime nie cofa poprawnych danych z data/items.py i equipment_crafting.py.
+- Fast predeploy sprawdza teraz także późną tabelę V0861, a nie tylko źródłowe
+  definicje narzędzi. Dzięki temu identyczny override zostanie zatrzymany przed deployem.
+- Audit Currency Economy v0.30.21 pozostaje rygorystyczny i nie został wyłączony.
 
 ==============================================================================
 Soulbound v1.13.9 — hotfix cen narzędzi startowych po Generator Core fallback

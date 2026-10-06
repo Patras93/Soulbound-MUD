@@ -1226,14 +1226,14 @@ V0861_BASE_SHOP_PRICES_SILVER = {
     "forge_charm": 1_500,
     "iron_leggings": 1_800,
     "iron_guard": 2_800,
-    "fishing_rod": 500,
-    "pickaxe": 500,
-    "saw": 500,
-    "crafting_hammer": 500,
-    "chef_knife": 500,
-    "herbalist_sickle": 500,
-    "alchemy_mortar": 500,
-    "jeweler_pliers": 500,
+    "fishing_rod": 1200,
+    "pickaxe": 1200,
+    "saw": 1200,
+    "crafting_hammer": 1200,
+    "chef_knife": 1200,
+    "herbalist_sickle": 1200,
+    "alchemy_mortar": 1200,
+    "jeweler_pliers": 1200,
 }
 
 V1138_CLASS_TIER_PRICE_ANCHORS = (
