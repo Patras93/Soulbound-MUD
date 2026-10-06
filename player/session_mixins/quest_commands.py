@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """Quest completion and player-facing quest commands."""
+import random
 # v0.45.0: explicit imports; no compatibility-runtime injection.
 from core.progression_resources import (
     v0190_quest_currency_reward,
@@ -11,6 +12,7 @@ from player.session_mixins.dungeon_progression import v0874_quest_stat_progress_
 from player.session_mixins.museum_bounty import v0914_combat_quest_stat_reward
 from player.session_mixins.quest_npc import ITEMS, QUESTS, profession_for_tool_type
 from player.session_mixins.shops_teachers import currency_reading_text
+from systems.game_feel_rewards import quest_completion_bonus_v11324
 from world.economy_quests import v0914_combat_quest_soul_reward
 from world.equipment_help import QUEST_REPEAT_COOLDOWN_SECONDS
 
@@ -155,7 +157,10 @@ class SessionQuestCommandsMixin:
                 await self.grant_soul_xp(reward_soul_xp)
 
             quest_coins=v0190_quest_currency_reward(q)
-            self.character.silver += quest_coins
+            quest_bonus_coins_v11324 = quest_completion_bonus_v11324(
+                q, quest_coins, random.random()
+            )
+            self.character.silver += quest_coins + quest_bonus_coins_v11324
             quest_character_xp=v0270_quest_character_reward(q)
             for _msg in self.add_character_xp_with_event(quest_character_xp):
                 await self.send(_msg)
@@ -222,6 +227,12 @@ class SessionQuestCommandsMixin:
                 await self.send(
                     f"{turnin_npc} wręcza ci nagrodę: "
                     + currency_reading_text(quest_coins,0,0) + "."
+                )
+            if quest_bonus_coins_v11324:
+                await self.send(
+                    "O KURDE — PREMIA ZA WYKONANIE: dodatkowo "
+                    + currency_reading_text(quest_bonus_coins_v11324, 0, 0)
+                    + "."
                 )
             for item_id, qty in (q.get("reward_items") or {}).items():
                 await self.send(
