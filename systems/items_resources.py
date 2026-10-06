@@ -984,28 +984,28 @@ FISH_RARE_VARIANTS = {
     "albino": {
         "label": "Albinos",
         "name_prefix": "Albinos - ",
-        "value_mult": 2,
+        "value_mult": 3,
         "weight": 50,
         "desc": "Rzadki albinos danego gatunku.",
     },
     "golden": {
         "label": "Złoty",
         "name_prefix": "Złoty okaz - ",
-        "value_mult": 4,
+        "value_mult": 8,
         "weight": 25,
         "desc": "Bardzo rzadki złoty wariant.",
     },
     "giant": {
         "label": "Olbrzymi",
         "name_prefix": "Olbrzymi okaz - ",
-        "value_mult": 3,
+        "value_mult": 5,
         "weight": 18,
         "desc": "Nienaturalnie duży okaz gatunku.",
     },
     "ancient": {
         "label": "Pradawny",
         "name_prefix": "Pradawny okaz - ",
-        "value_mult": 8,
+        "value_mult": 15,
         "weight": 7,
         "desc": "Ekstremalnie rzadki pradawny okaz.",
     },
@@ -1015,28 +1015,28 @@ WOOD_RARE_VARIANTS = {
     "lush": {
         "label": "Bujne",
         "name_prefix": "Bujne drewno - ",
-        "value_mult": 2,
+        "value_mult": 3,
         "weight": 50,
         "desc": "Wyjątkowo zdrowe i gęste drewno.",
     },
     "ancient": {
         "label": "Pradawne",
         "name_prefix": "Pradawne drewno - ",
-        "value_mult": 4,
+        "value_mult": 7,
         "weight": 30,
         "desc": "Drewno pochodzące z bardzo starego drzewa.",
     },
     "crystal": {
         "label": "Kryształowe",
         "name_prefix": "Kryształowe drewno - ",
-        "value_mult": 6,
+        "value_mult": 12,
         "weight": 15,
         "desc": "Rzadkie drewno przesiąknięte kryształową energią.",
     },
     "legendary": {
         "label": "Legendarne",
         "name_prefix": "Legendarne drewno - ",
-        "value_mult": 10,
+        "value_mult": 20,
         "weight": 5,
         "desc": "Najrzadszy wariant drewna.",
     },
@@ -1046,28 +1046,28 @@ HERB_RARE_VARIANTS = {
     "lush": {
         "label": "Bujna",
         "name_prefix": "Bujna roślina - ",
-        "value_mult": 2,
+        "value_mult": 3,
         "weight": 50,
         "desc": "Wyjątkowo dorodny okaz rośliny.",
     },
     "glowing": {
         "label": "Lśniąca",
         "name_prefix": "Lśniąca roślina - ",
-        "value_mult": 4,
+        "value_mult": 7,
         "weight": 25,
         "desc": "Rzadki okaz emanujący delikatnym blaskiem.",
     },
     "ancient": {
         "label": "Pradawna",
         "name_prefix": "Pradawna roślina - ",
-        "value_mult": 6,
+        "value_mult": 12,
         "weight": 18,
         "desc": "Bardzo stary i wyjątkowo silny okaz.",
     },
     "legendary": {
         "label": "Legendarna",
         "name_prefix": "Legendarna roślina - ",
-        "value_mult": 10,
+        "value_mult": 20,
         "weight": 7,
         "desc": "Najrzadszy wariant rośliny.",
     },
@@ -1237,6 +1237,33 @@ def fish_species_rarity(item_id):
 
 def fish_rarity_label(item_id):
     return FISH_RARITY_LABELS_PL[fish_species_rarity(item_id)]
+
+
+def fish_trophy_value_multiplier_v1138(item_id):
+    """Dodatkowa wartość gatunku niezależna od rzadkiego wariantu okazu."""
+    base_id = base_fish_species_id(item_id)
+    rarity = fish_species_rarity(base_id)
+    mult = {
+        "common": 1.00,
+        "uncommon": 1.25,
+        "rare": 1.75,
+        "epic": 2.75,
+        "legendary": 4.50,
+    }.get(rarity, 1.0)
+    name = normalize_lookup_text(ITEMS.get(base_id, {}).get("name", base_id))
+    if "rekin" in name or "shark" in name or "żarłacz" in name or "zarlacz" in name:
+        mult *= 1.50
+    if any(word in name for word in ("lewiatan", "leviathan", "serpent", "smok", "drake")):
+        mult *= 2.00
+    return max(1.0, float(mult))
+
+
+def fish_jackpot_xp_multiplier_v1138(item_id):
+    item = ITEMS.get(item_id, {})
+    variant_mult = max(1.0, float(item.get("rare_value_multiplier", 1.0) or 1.0))
+    trophy_mult = fish_trophy_value_multiplier_v1138(item_id)
+    # XP rośnie dużo łagodniej niż wartość sprzedaży, żeby jackpot nie omijał grindu.
+    return min(4.0, 1.0 + (math.sqrt(variant_mult * trophy_mult) - 1.0) * 0.55)
 
 def fish_species_habitats(item_id):
     item_id = base_fish_species_id(item_id)
