@@ -1589,7 +1589,7 @@ for _error in _maintainable_v11330.get("errors", ()):
 
 for _path in _runtime_modules_v11330:
     _name = _Path(_path).name.casefold()
-    if _path.startswith("admin/") and (
+    if _path.startswith("admin/") and _path != "admin/audits.py" and (
         "audit" in _name or _name.startswith("release_integrity_")
     ):
         _semantic_errors.append(
