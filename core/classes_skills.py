@@ -2769,8 +2769,8 @@ def _v0319_install_full_mec_kit():
                 "systems_failure_causes_overheat_reboot":True,
                 "requires_soul_weapon":"ranged",
                 "single_soul_weapon":True,
-                "mechanic_cooldown":True,
                 "numeric_cooldown_source_defined":False,
+                "source_cooldown_property_runtime_reuse_timer":False,
                 "systems_failure_numeric_source_defined":False,
                 "soulbound_failure_base_chance":0.35,
                 "soulbound_skill_failure_reduction_max":0.20,
@@ -3118,7 +3118,7 @@ def _v0319_install_full_mec_kit():
             })
         if special=="vmax":
             row.update({"scale":"willpower","source_stat_influence":["will"],
-                        "boost":1.0,"cooldown":0,"mechanic_cooldown":True,
+                        "boost":1.0,"cooldown":0,
                         "duration_scales_with_skill_level":True,
                         "duration_scales_with_will":True,
                         "duration_balance_model":"soulbound_200_to_600_plus_uncapped_will",
@@ -3734,6 +3734,8 @@ def _mec_contract_audit_v11149():
             errors.append("magnify: ranged weapon requirement must map to Soul Weapon")
         if bool(magnify.get("numeric_cooldown_source_defined")):
             errors.append("magnify: numeric cooldown duration must remain marked unsourced")
+        if bool(magnify.get("mechanic_cooldown")) or int(magnify.get("cooldown",0) or 0)!=0:
+            errors.append("magnify: source Cooldown property must not become a Soulbound reuse timer")
         if bool(magnify.get("systems_failure_numeric_source_defined")):
             errors.append("magnify: numeric failure curve must remain marked unsourced")
 
@@ -3951,6 +3953,8 @@ def _mec_contract_audit_v11149():
             errors.append("vmax:missing skill-level duration scaling")
         if not bool(vmax.get("duration_scales_with_will")):
             errors.append("vmax:missing WILL duration scaling")
+        if int(vmax.get("cooldown",0) or 0)!=0 or bool(vmax.get("mechanic_cooldown")):
+            errors.append("vmax: reuse cooldown must remain disabled")
         _praise=((vmax.get("vmax_status_sources") or {}).get("praise") or {})
         if str(_praise.get("effect"))!="attack_power_up":
             errors.append("vmax:praise must raise Attack power")
@@ -4001,8 +4005,10 @@ def _mec_contract_audit_v11149():
         if not row: errors.append(f"missing:{sid}"); continue
         if int(row.get("unlock",0))!=unlock: errors.append(f"{sid}:unlock={row.get('unlock')} expected={unlock}")
         if str(row.get("mec_branch"))!=branch: errors.append(f"{sid}:branch={row.get('mec_branch')} expected={branch}")
-        if int(row.get("cooldown",0) or 0)!=0 and not row.get("mechanic_cooldown"):
-            errors.append(f"{sid}:ordinary cooldown")
+        if int(row.get("cooldown",0) or 0)!=0:
+            errors.append(f"{sid}:cooldown={row.get('cooldown')} expected=0")
+        if row.get("mechanic_cooldown"):
+            errors.append(f"{sid}:mechanic cooldown flag is forbidden")
         expected_protocol=protocol_by_special.get(sid)
         if expected_protocol:
             actual=MEC_CANONICAL_CONTRACT_V11149["branches"][branch].get("protocol")
@@ -4541,18 +4547,15 @@ PHYSICAL_SKILL_MANA_AUDIT = _physical_skill_mana_audit()
 
 
 
-# v1.11.40: global no-cooldown policy.
-# Ordinary class skills of every class have no reuse timer. A cooldown may
-# survive only when the skill explicitly declares that the timer is part of
-# its special mechanic.
-SPECIAL_MECHANIC_COOLDOWN_IDS_V11140 = {"v0319_mec_vmax"}
+# v1.11.40 / v1.13.30: global no-cooldown policy.
+# Every class skill has zero ordinary reuse cooldown. Timed effects, V-MAX
+# duration and Overheat/reboot are separate mechanics and must never be exposed
+# or enforced as a skill reuse cooldown.
+SPECIAL_MECHANIC_COOLDOWN_IDS_V11140 = set()
 for _class_name, _skills in CLASS_SKILLS.items():
     for _skill in _skills:
-        _sid=str(_skill.get("id",""))
-        if _sid in SPECIAL_MECHANIC_COOLDOWN_IDS_V11140 or _skill.get("mechanic_cooldown"):
-            _skill["mechanic_cooldown"]=True
-            continue
         _skill["cooldown"]=0
+        _skill.pop("mechanic_cooldown", None)
 
 def _skill_cooldown_audit_v11140():
     errors=[]
@@ -4562,11 +4565,11 @@ def _skill_cooldown_audit_v11140():
         for skill in skills:
             checked+=1
             cd=int(skill.get("cooldown",0) or 0)
-            if skill.get("mechanic_cooldown"):
-                exceptions.append((class_name,skill.get("name"),cd))
-            elif cd!=0:
+            if cd!=0:
                 errors.append(f"{class_name}/{skill.get('name')}: cooldown={cd}")
-    return {"version":"1.11.40","checked":checked,"exceptions":exceptions,
+            if skill.get("mechanic_cooldown"):
+                errors.append(f"{class_name}/{skill.get('name')}: mechanic cooldown flag present")
+    return {"version":"1.13.30","checked":checked,"exceptions":exceptions,
             "error_count":len(errors),"errors":errors}
 
 SKILL_COOLDOWN_AUDIT_V11140=_skill_cooldown_audit_v11140()
