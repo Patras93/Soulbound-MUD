@@ -373,8 +373,12 @@ SYSTEM_DESCRIPTIONS = {
 }
 
 
-LATEST_CHANGES_TITLE = "Soulbound v1.13.32 - Boss Chest Room State"
+LATEST_CHANGES_TITLE = "Soulbound v1.13.33 - QoL & Boss Chest Hotfixes"
 LATEST_CHANGES = [
+    "v1.13.33: dodano zdejmij wszystko / zdejmij all — zdejmuje całe zwykłe EQ naraz, zwraca osadzone klejnoty i nie rusza Broni Duszy.",
+    "v1.13.33: walk wieża góra prowadzi po bieżącym poziomie Wieży Astralnej do wyjścia up i zatrzymuje się przed wejściem na następny poziom; ostatni krok wykonujesz ręcznie.",
+    "v1.13.33: naprawiono runtime NameError BOSS_CHEST_OPENED_CATEGORY_V11332 po zabiciu bossa oraz jawne importy helperów skrzyń.",
+    "v1.13.33: skrzynia bossowa stoi od razu w dokładnym pokoju bossa checkpointu; bez klucza jest zamknięta, po otwarciu znika, a nowy prawidłowy kill odtwarza ją dla kolejnego runu.",
     "v1.13.32: Skrzynia Bossa istnieje tylko w dokładnym pokoju bossa checkpointu, nie przy zejściu ani w innych pokojach tego samego piętra.",
     "v1.13.32: po wspólnym otwarciu skrzynia znika trwale dla nagrodzonej postaci/drużyny i wraca dopiero po kolejnym prawidłowym zabiciu tego bossa; restart/deploy jej nie przywraca.",
     "v1.13.31: portale checkpointów co 10 pięter/poziomów działają dwukierunkowo w zwykłej i Mitycznej Krypcie oraz zwykłej i Mitycznej Wieży Astralnej; Deep Dungeon pozostaje bez zmian na własnym systemie.",
