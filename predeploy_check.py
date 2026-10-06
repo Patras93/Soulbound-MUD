@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Fast Railway predeploy gate for Soulbound v1.13.21.
+"""Fast Railway predeploy gate for Soulbound v1.13.22.
 
 This is the normal deploy check.  It intentionally avoids assembling the full
 world/runtime.  Use predeploy_full.py when an exhaustive historical audit is
@@ -16,7 +16,7 @@ import traceback
 try:
     from storage.database import Database as _DatabaseImportSmoke
 except Exception as exc:
-    print(f"Soulbound v1.13.21 FAST PREDEPLOY FAILED: database import: {type(exc).__name__}: {exc}")
+    print(f"Soulbound v1.13.22 FAST PREDEPLOY FAILED: database import: {type(exc).__name__}: {exc}")
     traceback.print_exc()
     raise SystemExit(1)
 
@@ -37,7 +37,7 @@ try:
     )
 except Exception as exc:
     print(
-        "Soulbound v1.13.21 FAST PREDEPLOY FAILED: "
+        "Soulbound v1.13.22 FAST PREDEPLOY FAILED: "
         f"skill semantic import: {type(exc).__name__}: {exc}"
     )
     traceback.print_exc()
@@ -277,6 +277,22 @@ if 'if reward < SILVER_PER_GOLD:' not in _audits_source_v11312:
     _semantic_errors.append(
         "hybrid quest audit regression: missing shared 1 Gold economy floor"
     )
+
+# v1.13.22: Terrain Threat Audit must verify the actual runtime-room floor,
+# not the historical v0.36.2 wrapper/function identity that was later folded
+# into Generator Core.
+if '"_v0362_recommended_room_floor" in gsrc' in _audits_source_v11312:
+    _semantic_errors.append(
+        "terrain threat audit regression: obsolete wrapper-name release gate"
+    )
+for _needle in (
+    'recommended = int(room.get("recommended_mastery", 0) or 0)',
+    'lvl = max(lvl, recommended)',
+):
+    if _needle not in _generator_source:
+        _semantic_errors.append(
+            "terrain recommended mastery floor regression: missing " + _needle
+        )
 for _needle in (
     'int(item.get("attack", 0) or 0)',
     'int(item.get("magic_attack", 0) or 0)',
@@ -1092,18 +1108,18 @@ except Exception as exc:
     )
 
 if _semantic_errors:
-    print("Soulbound v1.13.21 FAST PREDEPLOY FAILED: semantic contracts")
+    print("Soulbound v1.13.22 FAST PREDEPLOY FAILED: semantic contracts")
     for _error in _semantic_errors:
         print(f"ERROR: {_error}")
     raise SystemExit(1)
 
 if audit["error_count"]:
-    print("Soulbound v1.13.21 FAST PREDEPLOY FAILED")
+    print("Soulbound v1.13.22 FAST PREDEPLOY FAILED")
     for error in audit["errors"]:
         print(f"ERROR: {error}")
     raise SystemExit(1)
 
-print("Soulbound v1.13.21 FAST PREDEPLOY PASS")
+print("Soulbound v1.13.22 FAST PREDEPLOY PASS")
 print(
     "Semantic contracts: "
     f"{len(_semantic_audits)} audits PASS; AP runtime guards PASS"
