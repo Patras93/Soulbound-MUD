@@ -402,6 +402,7 @@ for _needle in (
     '"zrodla_eq"',
     '"Brakujące price=None/0',
     '"Etap źródła EQ',
+    '"handel morski pokazuje oferty; handel morski wez <nr>, handel morski oddaj, handel morski porzuc obsługują kontrakt.',
 ):
     if _needle not in _help_truth_source_v11328:
         _semantic_errors.append("HELP truth v1.13.28 regression: missing " + _needle)

@@ -365,7 +365,7 @@ def refresh_help_truth_current_v11328():
     HELP_TOPICS["ocean"] = [
         "Ocean 2.0 obejmuje statki graczy, szlaki morskie, mapy skarbów, handel morski, podwodne ruiny i głębinowe Wędkarstwo.",
         "statek pokazuje/rozwija Kadłub, Żagle, Ładownię i Nawigację; zegluj / sail obsługuje ruch po sektorach.",
-        "handel morski pokazuje oferty; handel morski wez <nr>, oddaj i porzuc obsługują kontrakt. Zmiana wód/objazd nie zeruje aktywnego handlu, dopóki pozostajesz na morzu.",
+        "handel morski pokazuje oferty; handel morski wez <nr>, handel morski oddaj, handel morski porzuc obsługują kontrakt. Zmiana wód/objazd nie zeruje aktywnego handlu, dopóki pozostajesz na morzu.",
         "Lider może przekazać przyjęty handel obecnym członkom drużyny zgodnie z aktualną logiką party.",
         "Połów głębinowy używa zwykłego Wędkarstwa/Wędki 1-600, nie jest osobną profesją.",
     ]
