@@ -3,6 +3,7 @@
 from core.progression_600 import PROFESSION_MAX_LEVEL, TOOL_MAX_LEVEL
 from data.items import ITEMS
 from network.protocol_gameplay_utils import normalize_lookup_text
+from systems.infinite_equipment import ensure_infinite_equipment_variant
 
 from data import catalog_mutations as _catalog_mut
 import copy
@@ -155,7 +156,11 @@ def ensure_crafting_quality_variant_v0332(item_id):
 
 
 def crafting_item_display_name_v0332(item_id):
-    item=ITEMS.get(item_id) or ensure_crafting_quality_variant_v0332(item_id)
+    item=(
+        ITEMS.get(item_id)
+        or ensure_crafting_quality_variant_v0332(item_id)
+        or ensure_infinite_equipment_variant(item_id)
+    )
     if item:
         name=str(item.get("name") or "").strip()
         if name:
@@ -170,7 +175,11 @@ def player_item_display_name_v0335(item_id):
     ids remain available internally for diagnostics, but UI receives a neutral
     label instead of e.g. craftq_* / internal database keys.
     """
-    item=ITEMS.get(item_id) or ensure_crafting_quality_variant_v0332(item_id)
+    item=(
+        ITEMS.get(item_id)
+        or ensure_crafting_quality_variant_v0332(item_id)
+        or ensure_infinite_equipment_variant(item_id)
+    )
     if item:
         name=str(item.get("name") or "").strip()
         if name:

@@ -43,12 +43,7 @@ def generator_numeric_only_audit_v03018():
     }
 
 GENERATOR_NUMERIC_ONLY_AUDIT_V03018 = generator_numeric_only_audit_v03018()
-if GENERATOR_NUMERIC_ONLY_AUDIT_V03018.get("error_count"):
-    raise RuntimeError(
-        "Generator Numeric-Only Audit v0.30.18 failed: " +
-        "; ".join(GENERATOR_NUMERIC_ONLY_AUDIT_V03018.get("errors", [])[:20])
-    )
-
+# v1.13.30: audit report is enforced by predeploy_full.py; runtime stays diagnostic.
 HELP_TOPICS.setdefault("generator", []).extend([
     "v0.30.18: Generator Core ma twardą granicę NUMERIC-ONLY. Semantyka jest hashowana przed i po generatorze; jakakolwiek zmiana chronionych pól blokuje start serwera.",
     "Chronione są m.in. nazwy/ID, unlocki skilli, Soul Milestones, wymagania EQ, questy, receptury, atlasy, gate'y świata, klasy/rasy i klucze statystyk/properties.",
@@ -107,12 +102,7 @@ def generator_whitelist_audit_v03019():
 
 
 GENERATOR_WHITELIST_AUDIT_V03019 = generator_whitelist_audit_v03019()
-if GENERATOR_WHITELIST_AUDIT_V03019.get("error_count"):
-    raise RuntimeError(
-        "Generator Whitelist Audit v0.30.19 failed: " +
-        "; ".join(GENERATOR_WHITELIST_AUDIT_V03019.get("errors", [])[:30])
-    )
-
+# v1.13.30: audit report is enforced by predeploy_full.py; runtime stays diagnostic.
 HELP_TOPICS.setdefault("generator", []).extend([
     "v0.30.19: Generator Core działa z jawną białą listą zapisu. Może zmienić wyłącznie konkretne pola liczbowego balansu.",
     "Mob: tylko generator_level/stage, HP, damage, EXP, waluta oraz prawdopodobieństwa istniejących dropów. Nie może zmienić rangi, nazw, quest-targetów ani listy dropów.",
@@ -168,9 +158,7 @@ def equipment_expansion_audit_v03020():
     }
 
 EQUIPMENT_EXPANSION_AUDIT_V03020 = equipment_expansion_audit_v03020()
-if EQUIPMENT_EXPANSION_AUDIT_V03020.get("error_count"):
-    raise RuntimeError("Equipment Expansion Audit v0.30.20 failed: " + "; ".join(EQUIPMENT_EXPANSION_AUDIT_V03020.get("errors", [])[:20]))
-
+# v1.13.30: audit report is enforced by predeploy_full.py; runtime stays diagnostic.
 HELP_TOPICS.setdefault("eq", []).extend([
     "Pełna siatka klasowego EQ ma 17 logicznych slotów. Bransoletka i Akcesorium są generowane dla wszystkich 14 klas na każdym progu Levelu 1/10/20/.../600, obok naramienników, pasa, peleryny, karwaszy, kolczyków i reliktu.",
     "Nowe sloty mają różne role: naramienniki/pas są bardziej defensywne, karwasze bardziej ofensywne, peleryna bardziej utility, relikt ma mocniejszy profil klasowy.",
@@ -296,10 +284,7 @@ def full_help_audit_v03021():
     }
 
 FULL_HELP_AUDIT_V03021=full_help_audit_v03021()
-if FULL_HELP_AUDIT_V03021["error_count"]:
-    raise RuntimeError("Full HELP Audit v0.30.21 failed: "+"; ".join(FULL_HELP_AUDIT_V03021["errors"][:30]))
-
-
+# v1.13.30: audit report is enforced by predeploy_full.py; runtime stays diagnostic.
 def eq_shop_audit_v03021():
     errors=[]
     slots=set(CLASS_EQUIPMENT_SLOT_DEFS)
@@ -322,10 +307,7 @@ def eq_shop_audit_v03021():
     return {"version":"0.30.21","shops":len(CLASS_SHOP_ITEMS_BY_ROOM),"slot_count":len(slots),"error_count":len(errors),"errors":errors}
 
 EQ_SHOP_AUDIT_V03021=eq_shop_audit_v03021()
-if EQ_SHOP_AUDIT_V03021["error_count"]:
-    raise RuntimeError("EQ Shop Audit v0.30.21 failed: "+"; ".join(EQ_SHOP_AUDIT_V03021["errors"][:30]))
-
-
+# v1.13.30: audit report is enforced by predeploy_full.py; runtime stays diagnostic.
 def currency_economy_audit_v03021():
     errors=[]
     formatter_tests={
@@ -363,9 +345,7 @@ def currency_economy_audit_v03021():
     }
 
 CURRENCY_ECONOMY_AUDIT_V03021=currency_economy_audit_v03021()
-if CURRENCY_ECONOMY_AUDIT_V03021["error_count"]:
-    raise RuntimeError("Currency Economy Audit v0.30.21 failed: "+"; ".join(CURRENCY_ECONOMY_AUDIT_V03021["errors"][:30]))
-
+# v1.13.30: audit report is enforced by predeploy_full.py; runtime stays diagnostic.
 LATEST_CHANGES_TITLE = "Soulbound v0.30.21 - Full HELP + Unified Currency Economy"
 LATEST_CHANGES = [
     "Pełny audit finalnego HELP: wszystkie tematy i aliasy są sprawdzane po nałożeniu wszystkich historycznych warstw pomocy.",
@@ -509,12 +489,7 @@ def full_release_integrity_audit_v03022():
     }
 
 FULL_RELEASE_INTEGRITY_AUDIT_V03022 = full_release_integrity_audit_v03022()
-if FULL_RELEASE_INTEGRITY_AUDIT_V03022.get("error_count"):
-    raise RuntimeError(
-        "Full Release Integrity Audit v0.30.22 failed: " +
-        "; ".join(FULL_RELEASE_INTEGRITY_AUDIT_V03022.get("errors",[])[:30])
-    )
-
+# v1.13.30: audit report is enforced by predeploy_full.py; runtime stays diagnostic.
 HELP_TOPICS.setdefault("wersja", []).append(
     "v0.30.22: pełny regression pass całej gry i świata. Statyczna topologia, powroty, lazy-exity, profesje, sklepy, zasoby, spawny, NPC, EQ, Generator Core, HELP i ekonomia przechodzą wspólny release gate."
 )
@@ -631,12 +606,7 @@ def quest_reward_hybrid_audit_v03024():
     }
 
 QUEST_REWARD_HYBRID_AUDIT_V03024 = quest_reward_hybrid_audit_v03024()
-if QUEST_REWARD_HYBRID_AUDIT_V03024.get("error_count"):
-    raise RuntimeError(
-        "Hybrid Quest Reward Audit v0.30.24 failed: " +
-        "; ".join(QUEST_REWARD_HYBRID_AUDIT_V03024.get("errors", [])[:30])
-    )
-
+# v1.13.30: audit report is enforced by predeploy_full.py; runtime stays diagnostic.
 HELP_TOPICS.setdefault("quest", []).extend([
     "v0.30.24: ważne questy fabularne, próby profesji, wybrane duże zadania świata i Próby Broni Duszy mają ręcznie zbalansowaną, chronioną nagrodę walutową.",
     "Pozostałe questy zachowują authored walutę, jeśli ją mają; Generator Core uzupełnia tylko brakującą walutę fallbackową. Wszystkie wypłaty trafiają do jednego wspólnego salda.",
@@ -751,12 +721,7 @@ def profession_tool_xp_audit_v03025():
 
 
 PROFESSION_TOOL_XP_AUDIT_V03025 = profession_tool_xp_audit_v03025()
-if PROFESSION_TOOL_XP_AUDIT_V03025.get("error_count"):
-    raise RuntimeError(
-        "Profession + Tool XP Audit v0.30.25 failed: "
-        + "; ".join(PROFESSION_TOOL_XP_AUDIT_V03025.get("errors", [])[:30])
-    )
-
+# v1.13.30: audit report is enforced by predeploy_full.py; runtime stays diagnostic.
 def full_release_integrity_audit_v03025():
     errors = []
     previous = globals().get("FULL_RELEASE_INTEGRITY_AUDIT_V03022") or {}
@@ -780,12 +745,7 @@ def full_release_integrity_audit_v03025():
     }
 
 FULL_RELEASE_INTEGRITY_AUDIT_V03025 = full_release_integrity_audit_v03025()
-if FULL_RELEASE_INTEGRITY_AUDIT_V03025.get("error_count"):
-    raise RuntimeError(
-        "Full Release Integrity Audit v0.30.25 failed: "
-        + "; ".join(FULL_RELEASE_INTEGRITY_AUDIT_V03025.get("errors", [])[:30])
-    )
-
+# v1.13.30: audit report is enforced by predeploy_full.py; runtime stays diagnostic.
 HELP_TOPICS.setdefault("kowalstwo", []).extend([
     "v0.30.25: każde przetopienie rudy w sztabkę daje jednocześnie XP Kowalstwa i XP Młota Rzemieślniczego.",
     "Ta sama zasada obowiązuje każde kucie: akcja rozwija profesję Kowalstwo oraz Młot Rzemieślniczy.",
@@ -997,12 +957,7 @@ def gameplay_flow_audit_v03026():
     }
 
 GAMEPLAY_FLOW_AUDIT_V03026 = gameplay_flow_audit_v03026()
-if GAMEPLAY_FLOW_AUDIT_V03026["error_count"]:
-    raise RuntimeError(
-        "Gameplay Flow Audit v0.30.26 failed: "
-        + "; ".join(GAMEPLAY_FLOW_AUDIT_V03026["errors"][:30])
-    )
-
+# v1.13.30: audit report is enforced by predeploy_full.py; runtime stays diagnostic.
 HELP_TOPICS.setdefault("wersja", []).append(
     "v0.30.26: gameplay flow pass. Naprawiono ex->exits, Tier-gating zasobów i receptur, stanowiska specjalistów oraz deski Drwalstwo+Piła."
 )
@@ -1099,12 +1054,7 @@ def buff_duration_audit_v03030():
     }
 
 BUFF_DURATION_AUDIT_V03030 = buff_duration_audit_v03030()
-if BUFF_DURATION_AUDIT_V03030["error_count"]:
-    raise RuntimeError(
-        "Buff Duration Audit v0.30.30 failed: "
-        + "; ".join(BUFF_DURATION_AUDIT_V03030["errors"][:20])
-    )
-
+# v1.13.30: audit report is enforced by predeploy_full.py; runtime stays diagnostic.
 HELP_TOPICS.setdefault("wersja", []).append(
     "v0.30.30: wszystkie bojowe buffy typu boost trwają 30 sekund; NVDA informuje o aktywacji i naturalnym wygaśnięciu."
 )
@@ -1151,12 +1101,7 @@ def party_combat_feed_audit_v03031():
     }
 
 PARTY_COMBAT_FEED_AUDIT_V03031 = party_combat_feed_audit_v03031()
-if PARTY_COMBAT_FEED_AUDIT_V03031.get("error_count"):
-    raise RuntimeError(
-        "Party Combat Feed Audit v0.30.31 failed: "
-        + "; ".join(PARTY_COMBAT_FEED_AUDIT_V03031.get("errors", [])[:20])
-    )
-
+# v1.13.30: audit report is enforced by predeploy_full.py; runtime stays diagnostic.
 # ============================================================
 # v0.30.32 - PARTY ROLES: TARGETING, PRIEST AUTO-HEAL, PARTY BUFFS
 # ============================================================
@@ -1195,12 +1140,7 @@ def party_roles_audit_v03032():
     return {"version": "0.30.32", "error_count": len(errors), "errors": errors}
 
 PARTY_ROLES_AUDIT_V03032 = party_roles_audit_v03032()
-if PARTY_ROLES_AUDIT_V03032.get("error_count"):
-    raise RuntimeError(
-        "Party Roles Audit v0.30.32 failed: "
-        + "; ".join(PARTY_ROLES_AUDIT_V03032.get("errors", [])[:20])
-    )
-
+# v1.13.30: audit report is enforced by predeploy_full.py; runtime stays diagnostic.
 # ============================================================
 # v0.30.33 - UNIQUE TOOL TIER NAMES + RENEWABLE TAILOR QUEST
 # ============================================================
@@ -1235,12 +1175,7 @@ def tool_tier_name_audit_v03033():
     }
 
 TOOL_TIER_NAME_AUDIT_V03033 = tool_tier_name_audit_v03033()
-if TOOL_TIER_NAME_AUDIT_V03033.get("error_count"):
-    raise RuntimeError(
-        "Tool Tier Name Audit v0.30.33 failed: "
-        + "; ".join(TOOL_TIER_NAME_AUDIT_V03033.get("errors", [])[:20])
-    )
-
+# v1.13.30: audit report is enforced by predeploy_full.py; runtime stays diagnostic.
 HELP_TOPICS.setdefault("narzedzia", []).append(
     "v0.30.33: wszystkie 40 Tierów każdego z 8 narzędzi ma własną unikalną nazwę; usunięto powtarzanie nazwy Tieru 20 z dopiskami +210, +220 itd."
 )
@@ -1286,9 +1221,7 @@ def haldor_steel_plate_corpse_audit_v03034():
     return {"version":"0.30.34","sources":len(sources),"error_count":len(errors),"errors":errors}
 
 HALDOR_STEEL_PLATE_CORPSE_AUDIT_V03034 = haldor_steel_plate_corpse_audit_v03034()
-if HALDOR_STEEL_PLATE_CORPSE_AUDIT_V03034.get("error_count"):
-    raise RuntimeError("Haldor Steel Plate Corpse Audit v0.30.34 failed: " + "; ".join(HALDOR_STEEL_PLATE_CORPSE_AUDIT_V03034["errors"]))
-
+# v1.13.30: audit report is enforced by predeploy_full.py; runtime stays diagnostic.
 HELP_TOPICS.setdefault("kowalstwo", []).extend([
     "v0.30.34: quest Stal do Przetopu wymaga odzyskania Stalowych Płyt z ciał opancerzonych nieumarłych.",
     "Płyta pojawia się na ciele. Użyj ciało, przeszukaj ciało albo weź Stalową Płytę z ciała. Dopiero zabranie płyty zalicza postęp 0/4 i przenosi ją do Szkatułki Rzemieślniczej.",
@@ -1352,12 +1285,7 @@ def v03035_broken_blades_and_death_audit():
     }
 
 V03035_AUDIT = v03035_broken_blades_and_death_audit()
-if V03035_AUDIT.get("error_count"):
-    raise RuntimeError(
-        "Broken Blades + Lossless Death Audit v0.30.35 failed: "
-        + "; ".join(V03035_AUDIT.get("errors", [])[:30])
-    )
-
+# v1.13.30: audit report is enforced by predeploy_full.py; runtime stays diagnostic.
 HELP_TOPICS["śmierć"] = (
     "Po śmierci postać odradza się w Świątyni Odrodzenia z pełnym HP i Maną. "
     "Nie traci waluty, przedmiotów, EQ, XP, Biegłości, Soul XP, profesji ani poziomów narzędzi. "
@@ -1478,13 +1406,7 @@ def v03035_related_quest_flow_audit():
     }
 
 V03035_RELATED_QUEST_FLOW_AUDIT = v03035_related_quest_flow_audit()
-if V03035_RELATED_QUEST_FLOW_AUDIT.get("error_count"):
-    raise RuntimeError(
-        "Related Quest Flow Audit v0.30.35 failed: "
-        + "; ".join(V03035_RELATED_QUEST_FLOW_AUDIT.get("errors", [])[:40])
-    )
-
-
+# v1.13.30: audit report is enforced by predeploy_full.py; runtime stays diagnostic.
 def v03035_equipment_level_audit():
     errors = []
     armor = 0
@@ -1501,12 +1423,7 @@ def v03035_equipment_level_audit():
     return {"version":"0.30.35","armor_checked":armor,"error_count":len(errors),"errors":errors}
 
 V03035_EQUIPMENT_LEVEL_AUDIT = v03035_equipment_level_audit()
-if V03035_EQUIPMENT_LEVEL_AUDIT.get("error_count"):
-    raise RuntimeError(
-        "Equipment Character Level Audit v0.30.35 failed: "
-        + "; ".join(V03035_EQUIPMENT_LEVEL_AUDIT.get("errors", [])[:40])
-    )
-
+# v1.13.30: audit report is enforced by predeploy_full.py; runtime stays diagnostic.
 HELP_TOPICS["smierc"] = [
     "Po śmierci postać odradza się w Świątyni Odrodzenia z pełnym HP i Maną.",
     "Śmierć nie zabiera waluty, przedmiotów, EQ, EXP postaci, Biegłości, Soul XP, profesji ani poziomów narzędzi.",
@@ -1801,12 +1718,7 @@ def class_shop_audit_v03036():
 
 
 CLASS_SHOP_AUDIT_V03036 = class_shop_audit_v03036()
-if CLASS_SHOP_AUDIT_V03036.get("error_count"):
-    raise RuntimeError(
-        "Class Shop Audit v0.30.36 failed: "
-        + "; ".join(CLASS_SHOP_AUDIT_V03036.get("errors", [])[:40])
-    )
-
+# v1.13.30: audit report is enforced by predeploy_full.py; runtime stays diagnostic.
 LATEST_CHANGES_TITLE = "Soulbound v0.30.36 - Separate Class EQ Shops"
 LATEST_CHANGES = [
     "v0.30.36: każda z 14 klas ma własny, osobny sklep EQ w swojej sali klasowej.",
@@ -2018,12 +1930,7 @@ def equipment_completeness_audit_v03037():
     }
 
 V03037_EQUIPMENT_COMPLETENESS_AUDIT = equipment_completeness_audit_v03037()
-if V03037_EQUIPMENT_COMPLETENESS_AUDIT.get("error_count"):
-    raise RuntimeError(
-        "Equipment Completeness Audit v0.30.37 failed: "
-        + "; ".join(V03037_EQUIPMENT_COMPLETENESS_AUDIT.get("errors", [])[:50])
-    )
-
+# v1.13.30: audit report is enforced by predeploy_full.py; runtime stays diagnostic.
 HELP_TOPICS["kolczyki"] = [
     "Kolczyki są pełnoprawnym EQ. Możesz nosić dwa naraz: kolczyk 1 i kolczyk 2.",
     "zkol pokazuje posiadane kolczyki i automatycznie wybiera wolne/słabsze miejsce; zkol1 i zkol2 wymuszają konkretny slot.",
@@ -2078,12 +1985,7 @@ def broken_blades_spoken_progress_audit_v03038():
     }
 
 BROKEN_BLADES_SPOKEN_PROGRESS_AUDIT_V03038 = broken_blades_spoken_progress_audit_v03038()
-if BROKEN_BLADES_SPOKEN_PROGRESS_AUDIT_V03038.get("error_count"):
-    raise RuntimeError(
-        "Broken Blades Spoken Progress Audit v0.30.38 failed: "
-        + "; ".join(BROKEN_BLADES_SPOKEN_PROGRESS_AUDIT_V03038["errors"])
-    )
-
+# v1.13.30: audit report is enforced by predeploy_full.py; runtime stays diagnostic.
 HELP_TOPICS.setdefault("questy godzinne", []).append(
     "v0.30.38: Złamane ostrza, Pancerz do przetopu i Toksyczne gruczoły podają postęp X/Y natychmiast przy każdym kwalifikującym się dropie; licznik nie jest już zależny od pośredniej warstwy kolekcji."
 )
@@ -2270,12 +2172,7 @@ def profession_carryover_audit_v03039():
     }
 
 PROFESSION_CARRYOVER_AUDIT_V03039 = profession_carryover_audit_v03039()
-if PROFESSION_CARRYOVER_AUDIT_V03039.get("error_count"):
-    raise RuntimeError(
-        "Profession Carryover Audit v0.30.39 failed: "
-        + "; ".join(PROFESSION_CARRYOVER_AUDIT_V03039.get("errors", [])[:50])
-    )
-
+# v1.13.30: audit report is enforced by predeploy_full.py; runtime stays diagnostic.
 HELP_TOPICS.setdefault("wersja", []).append(
     "v0.30.39: dodano pełne pomoce 14 ras, kumulacyjny audit zasobów/profesji oraz dowolne ryby rzeczne w pierwszym zleceniu Gotowania Marcela."
 )
@@ -2326,12 +2223,7 @@ def eq_shortcuts_auto_audit_v03040():
     }
 
 EQ_SHORTCUTS_AUTO_AUDIT_V03040 = eq_shortcuts_auto_audit_v03040()
-if EQ_SHORTCUTS_AUTO_AUDIT_V03040.get("error_count"):
-    raise RuntimeError(
-        "EQ Shortcuts/Auto Audit v0.30.40 failed: "
-        + "; ".join(EQ_SHORTCUTS_AUTO_AUDIT_V03040.get("errors", [])[:30])
-    )
-
+# v1.13.30: audit report is enforced by predeploy_full.py; runtime stays diagnostic.
 HELP_TOPICS["skroty_eq"] = [
     "Pełne skróty zakładania EQ: zhel hełm, zpan pancerz, ztar tarcza, zrek rękawice, znog nogawice, zbut buty.",
     "Biżuteria: ztal talizmany auto, zpier pierścienie auto, znasz naszyjnik, zkol kolczyki auto, zbra bransoletka, zakc akcesoria auto. Ręcznie nadal działają zt1/zt2, zp1/zp2 i zkol1/zkol2.",
@@ -2412,12 +2304,7 @@ def universal_salvage_audit_v03041():
     }
 
 UNIVERSAL_SALVAGE_AUDIT_V03041 = universal_salvage_audit_v03041()
-if UNIVERSAL_SALVAGE_AUDIT_V03041.get("error_count"):
-    raise RuntimeError(
-        "Universal Salvage Audit v0.30.41 failed: "
-        + "; ".join(UNIVERSAL_SALVAGE_AUDIT_V03041.get("errors", [])[:50])
-    )
-
+# v1.13.30: audit report is enforced by predeploy_full.py; runtime stays diagnostic.
 HELP_TOPICS["rozkladanie_eq"] = [
     "rozloz / rozłóż działa u Haldora w Kuźni/Warsztacie Rzemieślniczym na każdym niezałożonym armor EQ: materiałowym, klasowym, bossowym, setowym, crafted, Krypta, Astral i innych liniach.",
     "Wpisz samo rozloz albo rozloz lista, aby dostać numerowaną listę wolnego EQ; potem rozloz <numer> albo rozloz <pełna nazwa>.",
@@ -2498,12 +2385,7 @@ def equipment_upgrade_audit_v03042():
     }
 
 EQUIPMENT_UPGRADE_AUDIT_V03042 = equipment_upgrade_audit_v03042()
-if EQUIPMENT_UPGRADE_AUDIT_V03042.get("error_count"):
-    raise RuntimeError(
-        "Equipment Upgrade Audit v0.30.42 failed: "
-        + "; ".join(EQUIPMENT_UPGRADE_AUDIT_V03042.get("errors", [])[:50])
-    )
-
+# v1.13.30: audit report is enforced by predeploy_full.py; runtime stays diagnostic.
 HELP_TOPICS["ulepszanie_eq"] = [
     "Ulepszanie EQ jest częścią Kowalstwa i wykonuje je Haldor w Kuźni/Warsztacie Rzemieślniczym.",
     "Komendy: ulepsz / ulepsz lista pokazuje numerowane EQ; ulepsz <numer> albo ulepsz <pełna nazwa> podnosi wybraną część o jeden poziom.",
@@ -2812,11 +2694,7 @@ def full_game_audit_v03055():
     }
 
 FULL_GAME_AUDIT_V03055 = full_game_audit_v03055()
-if FULL_GAME_AUDIT_V03055["error_count"]:
-    raise RuntimeError(
-        "Full Game Audit v0.30.55 failed: " + "; ".join(FULL_GAME_AUDIT_V03055["errors"][:80])
-    )
-
+# v1.13.30: audit report is enforced by predeploy_full.py; runtime stays diagnostic.
 HELP_TOPICS["audyt_v03055"] = [
     "v0.30.55 wykonuje finalny audyt świata, przejść, klas/skilli, itemów, mobów, questów, receptur, profesji, komend PL/EN i HELP.",
     "Błędy integralności zatrzymują start serwera zamiast pozwalać wdrożyć uszkodzony build.",
@@ -3720,12 +3598,7 @@ def party_temple_shard_audit_v0355():
     return {"version":"0.35.5","error_count":len(errors),"errors":errors,"metrics":metrics}
 
 PARTY_TEMPLE_SHARD_AUDIT_V0355 = party_temple_shard_audit_v0355()
-if PARTY_TEMPLE_SHARD_AUDIT_V0355.get("error_count"):
-    raise RuntimeError(
-        "Party Temple/Shard Audit v0.35.5 failed: "
-        + "; ".join(PARTY_TEMPLE_SHARD_AUDIT_V0355.get("errors", [])[:20])
-    )
-
+# v1.13.30: audit report is enforced by predeploy_full.py; runtime stays diagnostic.
 HELP_TOPICS.setdefault("party", []).extend([
     "Teleport do Świątyni przez / albo Enter obejmuje tylko członków drużyny stojących razem w tej samej lokacji; członkowie drużyny gdzie indziej pozostają na miejscu.",
     "Odłamek Duszy jest wspólnym dropem drużynowym: gdy jego rzut się powiedzie, każdy obecny w tej samej lokacji członek drużyny dostaje własny Odłamek.",
@@ -3765,9 +3638,7 @@ def salvage_all_audit_v0356():
     return {"version":"0.35.6","error_count":len(errors),"errors":errors,"metrics":metrics}
 
 SALVAGE_ALL_AUDIT_V0356 = salvage_all_audit_v0356()
-if SALVAGE_ALL_AUDIT_V0356["error_count"]:
-    raise RuntimeError("Salvage Wszystko Audit v0.35.6 failed: " + "; ".join(SALVAGE_ALL_AUDIT_V0356["errors"]))
-
+# v1.13.30: audit report is enforced by predeploy_full.py; runtime stays diagnostic.
 LATEST_CHANGES_TITLE = "Soulbound v0.35.6 - Salvage Wszystko"
 LATEST_CHANGES = [
     "v0.35.6: dodano salvage wszystko / rozloz wszystko — hurtowe rozkładanie wszystkich wolnych przedmiotów obsługiwanych przez Salvage.",
@@ -3836,12 +3707,7 @@ def bulk_smelting_ingot_smithing_audit_v0357():
     return {"version":"0.35.7","error_count":len(errors),"errors":errors,"metrics":metrics}
 
 BULK_SMELTING_INGOT_SMITHING_AUDIT_V0357 = bulk_smelting_ingot_smithing_audit_v0357()
-if BULK_SMELTING_INGOT_SMITHING_AUDIT_V0357["error_count"]:
-    raise RuntimeError(
-        "Bulk Smelting/Ingot Smithing Audit v0.35.7 failed: "
-        + "; ".join(BULK_SMELTING_INGOT_SMITHING_AUDIT_V0357["errors"][:30])
-    )
-
+# v1.13.30: audit report is enforced by predeploy_full.py; runtime stays diagnostic.
 HELP_TOPICS.setdefault("kowalstwo", []).extend([
     "v0.35.7: metalowe EQ z normalnej linii Kowalstwa powstaje ze sztabek. Ruda jest najpierw przetapiana, a dopiero sztabki są zużywane do kucia EQ.",
     "przetop wszystko wykonuje cały dostępny przetop jako jedną akcję: rudy, Stalowe Płyty i zgodne materiały Salvage. XP Kowalstwa i Młota jest sumowane i przyznawane wspólnie raz.",
@@ -3886,12 +3752,7 @@ def no_pvp_player_safety_audit_v0358():
     return {"version":"0.35.8","error_count":len(errors),"errors":errors,"metrics":metrics}
 
 NO_PVP_PLAYER_SAFETY_AUDIT_V0358 = no_pvp_player_safety_audit_v0358()
-if NO_PVP_PLAYER_SAFETY_AUDIT_V0358["error_count"]:
-    raise RuntimeError(
-        "No-PvP Player Safety Audit v0.35.8 failed: "
-        + "; ".join(NO_PVP_PLAYER_SAFETY_AUDIT_V0358["errors"][:20])
-    )
-
+# v1.13.30: audit report is enforced by predeploy_full.py; runtime stays diagnostic.
 HELP_TOPICS.setdefault("walka", []).extend([
     "v0.35.8: PvP jest całkowicie wyłączone. Gracze nie mogą atakować, ranić ani zabijać innych graczy ani własnej postaci.",
     "atakuj/k oraz ofensywne skille odrzucają nazwę gracza jako cel. AoE obejmuje wyłącznie żywe moby w lokacji.",
@@ -3950,12 +3811,7 @@ def all_party_mob_drops_shared_audit_v0359():
     return {"version":"0.35.9","error_count":len(errors),"errors":errors,"metrics":metrics}
 
 ALL_PARTY_MOB_DROPS_SHARED_AUDIT_V0359 = all_party_mob_drops_shared_audit_v0359()
-if ALL_PARTY_MOB_DROPS_SHARED_AUDIT_V0359["error_count"]:
-    raise RuntimeError(
-        "All Party Mob Drops Shared Audit v0.35.9 failed: "
-        + "; ".join(ALL_PARTY_MOB_DROPS_SHARED_AUDIT_V0359["errors"][:20])
-    )
-
+# v1.13.30: audit report is enforced by predeploy_full.py; runtime stays diagnostic.
 HELP_TOPICS.setdefault("party", []).extend([
     "v0.35.9: każdy zwykły drop z pokonanego moba jest kopiowany do wszystkich członków drużyny obecnych razem przy zabiciu.",
     "Szansa dropu jest losowana raz na moba. Jeśli przedmiot wypadnie, każdy obecny członek dostaje własną kopię — dotyczy eliksirów, mikstur, materiałów, run, klejnotów, komponentów i Odłamków Duszy.",
@@ -4003,12 +3859,7 @@ def all_party_corpse_loot_shared_audit_v03510():
     return {"version":"0.35.10","error_count":len(errors),"errors":errors,"metrics":metrics}
 
 ALL_PARTY_CORPSE_LOOT_SHARED_AUDIT_V03510 = all_party_corpse_loot_shared_audit_v03510()
-if ALL_PARTY_CORPSE_LOOT_SHARED_AUDIT_V03510["error_count"]:
-    raise RuntimeError(
-        "All Party Corpse Loot Shared Audit v0.35.10 failed: "
-        + "; ".join(ALL_PARTY_CORPSE_LOOT_SHARED_AUDIT_V03510["errors"][:20])
-    )
-
+# v1.13.30: audit report is enforced by predeploy_full.py; runtime stays diagnostic.
 HELP_TOPICS.setdefault("party", []).extend([
     "v0.35.10: loot leżący na ciele moba także jest współdzielony — gdy ktoś z drużyny przeszuka ciało lub zabierze z niego przedmiot, każdy członek drużyny stojący przy tym samym ciele w tej lokacji dostaje własną kopię.",
     "Ciało jest opróżniane tylko raz, więc współdzielonego EQ, materiału ani przedmiotu nie da się rozdawać ponownie przez wielokrotne przeszukiwanie.",
@@ -4075,12 +3926,7 @@ def all_local_party_buffs_audit_v03511():
     return {"version":"0.35.11","error_count":len(errors),"errors":errors,"metrics":metrics}
 
 ALL_LOCAL_PARTY_BUFFS_AUDIT_V03511 = all_local_party_buffs_audit_v03511()
-if ALL_LOCAL_PARTY_BUFFS_AUDIT_V03511["error_count"]:
-    raise RuntimeError(
-        "All Local Party Buffs Audit v0.35.11 failed: "
-        + "; ".join(ALL_LOCAL_PARTY_BUFFS_AUDIT_V03511["errors"][:30])
-    )
-
+# v1.13.30: audit report is enforced by predeploy_full.py; runtime stays diagnostic.
 HELP_TOPICS.setdefault("party", []).extend([
     "v0.35.11 po aktualizacji kontraktu: aktywne guardy i gwarantowane uniki działają na wszystkich żywych członków drużyny stojących w tej samej lokacji co rzucający.",
     "Zwykłe skille typu boost są pasywne Automatic po nauczeniu: fizyczne boosty wzmacniają tylko fizyczne skille, a magiczne tylko magiczne.",
@@ -4210,12 +4056,7 @@ def progression_600_and_leader_disband_audit_v0360():
     return {"version":"0.36.0","error_count":len(errors),"errors":errors,"metrics":metrics}
 
 PROGRESSION_600_AND_LEADER_DISBAND_AUDIT_V0360=progression_600_and_leader_disband_audit_v0360()
-if PROGRESSION_600_AND_LEADER_DISBAND_AUDIT_V0360["error_count"]:
-    raise RuntimeError(
-        "Progression 600 + Leader Disband Audit v0.36.0 failed: "
-        + "; ".join(PROGRESSION_600_AND_LEADER_DISBAND_AUDIT_V0360["errors"][:50])
-    )
-
+# v1.13.30: audit report is enforced by predeploy_full.py; runtime stays diagnostic.
 # Final truth layer: old HELP aliases remain accepted, but describe current 600 progression.
 HELP_TOPICS["progresja600"] = [
     "Główne osie progresji mają zakres 1-600: Level postaci, Biegłość klas, Soul Level, Soul Weapon Mastery, Skill Level, profesje i narzędzia. Sześć statystyk bazowych pozostaje bez twardego limitu.",
@@ -4314,12 +4155,7 @@ def party_quest_accept_sync_audit_v0361():
     return {"version":"0.36.1","error_count":len(errors),"errors":errors,"metrics":metrics}
 
 PARTY_QUEST_ACCEPT_SYNC_AUDIT_V0361=party_quest_accept_sync_audit_v0361()
-if PARTY_QUEST_ACCEPT_SYNC_AUDIT_V0361["error_count"]:
-    raise RuntimeError(
-        "Party Quest Accept Sync Audit v0.36.1 failed: "
-        + "; ".join(PARTY_QUEST_ACCEPT_SYNC_AUDIT_V0361["errors"][:50])
-    )
-
+# v1.13.30: audit report is enforced by predeploy_full.py; runtime stays diagnostic.
 HELP_TOPICS.setdefault("questy", []).append(
     "v0.36.1: gdy lider przyjmuje zwykły quest, wszyscy żywi członkowie drużyny stojący z nim w tej samej lokacji automatycznie próbują przyjąć ten sam quest. Każdy zaczyna własny postęp od 0/x i musi spełniać własne wymagania."
 )
@@ -4403,12 +4239,7 @@ def terrain_threat_rebalance_audit_v0362():
     return {"version":"0.36.2","error_count":len(errors),"errors":errors,"metrics":metrics}
 
 TERRAIN_THREAT_REBALANCE_AUDIT_V0362=terrain_threat_rebalance_audit_v0362()
-if TERRAIN_THREAT_REBALANCE_AUDIT_V0362["error_count"]:
-    raise RuntimeError(
-        "Terrain Threat Rebalance Audit v0.36.2 failed: "
-        + "; ".join(TERRAIN_THREAT_REBALANCE_AUDIT_V0362["errors"][:50])
-    )
-
+# v1.13.30: audit report is enforced by predeploy_full.py; runtime stays diagnostic.
 HELP_TOPICS.setdefault("walka", []).append(
     "v0.36.2: zwykłe moby terenowe od etapu 50+ są wyraźnie mocniejsze. Teren około 100 ma około 2x bazowego HP moba i +10 procent obrażeń; wzrost trwa dalej na późnych terenach. Bossowie zachowują własne reguły rang i nie dostają dodatkowego mnożnika terenowego."
 )
@@ -4467,12 +4298,7 @@ def offline_player_profiles_audit_v0363():
     return {"version":"0.36.3","error_count":len(errors),"errors":errors,"metrics":metrics}
 
 OFFLINE_PLAYER_PROFILES_AUDIT_V0363=offline_player_profiles_audit_v0363()
-if OFFLINE_PLAYER_PROFILES_AUDIT_V0363["error_count"]:
-    raise RuntimeError(
-        "Offline Player Profiles Audit v0.36.3 failed: "
-        + "; ".join(OFFLINE_PLAYER_PROFILES_AUDIT_V0363["errors"][:50])
-    )
-
+# v1.13.30: audit report is enforced by predeploy_full.py; runtime stays diagnostic.
 HELP_TOPICS["profil"] = [
     "profil <nazwa gracza> działa dla postaci online i offline. Alias angielski: profile <nazwa>; starsze whois <nazwa> działa tak samo.",
     "Profil pokazuje publiczną progresję postaci: status i ostatnią obecność, Level, wszystkie klasy/Biegłości, Broń Duszy, statystyki, profesje, narzędzia, Gildię, World Tier/Wzniesienie, osiągnięcia, questy, Bestiariusz, zgony, rekordy i postęp lochów.",
@@ -4565,12 +4391,7 @@ def independent_skill_cooldowns_audit_v0364():
     return {"version":"0.36.4","error_count":len(errors),"errors":errors,"metrics":metrics}
 
 INDEPENDENT_SKILL_COOLDOWNS_AUDIT_V0364=independent_skill_cooldowns_audit_v0364()
-if INDEPENDENT_SKILL_COOLDOWNS_AUDIT_V0364["error_count"]:
-    raise RuntimeError(
-        "Independent Skill Cooldowns Audit v0.36.4 failed: "
-        + "; ".join(INDEPENDENT_SKILL_COOLDOWNS_AUDIT_V0364["errors"][:50])
-    )
-
+# v1.13.30: audit report is enforced by predeploy_full.py; runtime stays diagnostic.
 HELP_TOPICS.setdefault("skills", []).append(
     "v0.36.4: każdy skill i spell ma własny niezależny cooldown. Użycie jednej umiejętności nie uruchamia, nie resetuje i nie przedłuża cooldownu żadnej innej umiejętności."
 )
@@ -4624,12 +4445,7 @@ def soul_tier7_cemetery_spawn_audit_v0365():
     }
 
 SOUL_TIER7_CEMETERY_SPAWN_AUDIT_V0365 = soul_tier7_cemetery_spawn_audit_v0365()
-if SOUL_TIER7_CEMETERY_SPAWN_AUDIT_V0365["error_count"]:
-    raise RuntimeError(
-        "Soul Tier 7 Cemetery Spawn Audit v0.36.5 failed: "
-        + "; ".join(SOUL_TIER7_CEMETERY_SPAWN_AUDIT_V0365["errors"][:50])
-    )
-
+# v1.13.30: audit report is enforced by predeploy_full.py; runtime stays diagnostic.
 HELP_TOPICS.setdefault("wersja", []).append(
     "v0.36.5: Próba Broni Duszy Tier 7 ma sześć stałych Niespokojnych Zmarłych rozłożonych po Starym Cmentarzu przy wymaganiu 4 zabójstw."
 )
@@ -4657,8 +4473,4 @@ HELP_TRUTH_AUDIT_V11197 = help_truth_audit_v11197()
 HELP_SURFACE_AUDIT_V11197 = help_surface_audit_v11197()
 _FINAL_HELP_ERRORS_V11197 = list(HELP_TRUTH_AUDIT_V11197.get("errors", ()))
 _FINAL_HELP_ERRORS_V11197.extend(HELP_SURFACE_AUDIT_V11197.get("errors", ()))
-if _FINAL_HELP_ERRORS_V11197:
-    raise RuntimeError(
-        "Final HELP Truth Audit v1.11.97 failed: "
-        + "; ".join(str(error) for error in _FINAL_HELP_ERRORS_V11197[:100])
-    )
+# v1.13.30: audit report is enforced by predeploy_full.py; runtime stays diagnostic.

@@ -676,11 +676,12 @@ if len(GUILD_CLASS_QUEST_POOLS) != 14:
     _GUILD_CLASS_QUEST_AUDIT_ERRORS_V1120.append(
         f"class count: expected 14, got {len(GUILD_CLASS_QUEST_POOLS)}"
     )
-if _GUILD_CLASS_QUEST_AUDIT_ERRORS_V1120:
-    raise RuntimeError(
-        "Class Guild Quest Audit v1.12.0 failed: "
-        + "; ".join(_GUILD_CLASS_QUEST_AUDIT_ERRORS_V1120)
-    )
+GUILD_CLASS_QUEST_AUDIT_V1120 = {
+    "version": "1.12.0",
+    "class_count": len(GUILD_CLASS_QUEST_POOLS),
+    "error_count": len(_GUILD_CLASS_QUEST_AUDIT_ERRORS_V1120),
+    "errors": tuple(_GUILD_CLASS_QUEST_AUDIT_ERRORS_V1120),
+}
 
 GUILD_BOUNTY_TARGETS = (
     # v0.8.61: nagrody są wartościami jednego wspólnego salda w srebrze.
@@ -1040,11 +1041,6 @@ def equipment_identity_audit_v11326():
 
 
 EQUIPMENT_IDENTITY_AUDIT_V11326 = equipment_identity_audit_v11326()
-if EQUIPMENT_IDENTITY_AUDIT_V11326["error_count"]:
-    raise RuntimeError(
-        "Equipment Identity Audit v1.13.26 failed: "
-        + "; ".join(EQUIPMENT_IDENTITY_AUDIT_V11326["errors"][:50])
-    )
 
 
 _catalog_mut.catalog_assign({

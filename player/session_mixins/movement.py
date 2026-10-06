@@ -17,7 +17,6 @@ from config.postal import COURIER_CITY_ROOM_TO_NAME_V0530
 from core.progression_resources import mine_floor_number
 from systems.content_registry import MOB_TEMPLATES
 from systems.dungeons_regions import (
-    ASTRAL_MIN_SOUL_LEVEL,
     astral_floor_number,
     crypt_floor_number,
     giant_fortress_floor_number,
@@ -340,13 +339,6 @@ class SessionMovementMixin:
                     f"masz Level {character_level}. Wchodzisz na własne ryzyko."
                 )
 
-            if self.astral_entry_blocked(target):
-                await self.send(
-                    f"Wieża Astralna wymaga Soul Level "
-                    f"{ASTRAL_MIN_SOUL_LEVEL}. "
-                    f"Masz Soul Level {self.character.soul_level}."
-                )
-                return
             if self.mine_descent_blocked_for_player(
                 self.character.room_id, direction
             ):

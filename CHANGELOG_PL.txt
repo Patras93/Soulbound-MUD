@@ -1,5 +1,5 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.13.29
+Aktualna paczka: v1.13.30
 
 
 
@@ -19,6 +19,105 @@ Aktualna paczka: v1.13.29
 
 
 
+
+==============================================================================
+Soulbound v1.13.30 — POST-600 INFINITE REWARD & EQUIPMENT PROGRESSION
+==============================================================================
+
+- Nieskończone lochy nie kończą już progresji jakości EQ na etapie źródła 600.
+  Character/Class/Soul/profesje nadal zachowują normalny cap 600.
+- Dodano trwałe warianty "Rezonans Głębi". Po przekroczeniu efektywnego etapu
+  źródła 600 dropowane EQ dostaje self-describing ID deepq_* i łagodną,
+  nieskończoną krzywą mocy zależną od dalszej głębokości.
+- Rezonans Głębi skaluje istniejące staty, Attack/Magic Attack, obronę,
+  affixy, properties i z czasem sockety. Boss/Elite zachowują mocniejszą
+  jakość źródła, ale nie tworzą nowego wymogu poziomu.
+- Każdy Rezonans Głębi wymaga Biegłości 600 i nigdy 601+. Głębia wzmacnia
+  konkretny egzemplarz; handel nie pozwala ominąć endgame wymagań.
+- Źródła przedłużają własne istniejące drabiny: zwykła Krypta i Wieża
+  kontynuują 10-piętrowe tiery ponad efektywny etap 600; Mityczna Krypta/Wieża
+  kontynuują swój baseline 200 + kolejne tiery co 10 pięter; Magitek zachowuje
+  authored stage 110 + floor*7 i przechodzi w Rezonans po przekroczeniu 600.
+- Corpse EQ i losowy class-EQ z tych źródeł korzystają z jednego wspólnego
+  hooka. UOSS jest jawnie wyłączony i zachowuje własne tokeny/unikaty.
+- Warianty deepq_* są odbudowywane po restarcie/deployu z inventory, EQ,
+  banku, maila i Housing; NVDA dostaje normalną nazwę, nie techniczny ID.
+- Waluta z nieskończonej Krypty i Wieży po 600 rośnie łagodnie dalej wraz
+  z głębokością. Magitek nie dostaje podwójnego mnożnika monet, bo jego
+  authored silver już rośnie bez limitu przez floor/depth.
+- Wartość sprzedaży Rezonansu Głębi rośnie przez realne mechaniczne staty
+  przedmiotu, więc głęboki dobry drop nie staje się ekonomicznie śmieciem.
+- Dodano diagnostyczny Infinite Equipment Audit v1.13.30 i fast-predeploy
+  kontrakty. Audit behawioralny nie jest nowym production startup gate.
+- REWARD CONSISTENCY: statyczne questy nadal przechodzą wspólny finalizer
+  ekonomii; Kurier, handel morski, skarby Oceanu i dynamiczne questy świata
+  zachowują wspólne stage-based payout floors zamiast symbolicznych nagród.
+  Bossowe skrzynie zachowują własną rosnącą drabinę złota do 700 000 Gold
+  przy power 600 oraz Soul Shardy/consumable/klejnoty. Endgame moby i
+  powtarzalne profesyjne questy zachowują osobne minimalne floory dochodu.
+- GENERATOR OWNERSHIP: full audit chroni authored Soul Tiery, bazę Broni Duszy,
+  CLASS_SET_BONUSES, quest rewardy i recipe XP, a od v1.13.30 również wszystkie
+  ręcznie wpisane liczbowe parametry skilli (m.in. mult/mana/cooldown/heal).
+  Generator może uzupełniać fallbacki, ale nie może przepisywać authored balansu.
+- CLASS COMPLETION: audit obejmuje wszystkie 14 aktywnych klas, nie historyczne
+  12. Sprawdza każdy skill pod kątem damage/heal/debuff/target/scaling/stat,
+  many, cooldownu, pasywek i endgame signature. Pasywki są normalizowane do
+  automatic=True i cooldown=0.
+- UOSS HELPERS: Popoi, Primm, Byblos, Montblanc i Seifer dostali ograniczone,
+  różne role ofensywne/ochronne. Helperowy cios nadal skaluje się z buildem
+  gracza, ale ma twarde limity, więc pomocnik jest odczuwalny bez auto-win.
+  UOSS completion audit pilnuje helper cost/party limits, osobistych tokenów,
+  unique pools i 24h lockoutów Black Rabite/Yiazmat/Odin.
+- GLOBAL ADAPTIVE COMBAT: każdy mob całego świata skaluje konkretne starcie do
+  realnej siły postaci i lokalnej drużyny, zamiast pozostawać statyczną gąbką
+  lub ginąć od jednej salwy. Skaler liczy realny DPS, w tym Speed/multi-hit,
+  a HP rośnie encounter-lokalnie; template, quest target, Bestiariusz i loot
+  zachowują oryginalną tożsamość.
+- Rangi zachowują różne czasy walki: zwykły mob ma przetrwać kilka akcji,
+  Elite/Rare dłużej, miniboss wyraźnie dłużej, boss i World/Superboss dostają
+  najmocniejszy profil. Skala nigdy nie obniża authored/base HP aktywnego moba.
+- Obrażenia przeciwnika są dobierane do HP i realnej redukcji obrażeń konkretnej
+  trafianej postaci. Pancerz, magia obronna, rasa, klasa i unik nadal działają,
+  ale nie mogą już sprowadzić całego świata do symbolicznych 1 obrażeń.
+- Party zwiększa HP według sumy realnego DPS wszystkich żywych członków w pokoju;
+  dołączenie mocniejszego członka może tylko podnieść skalę aktywnego starcia.
+  Po pełnym disengage/flee mob wraca do bazowej formy, więc skala nie przecieka
+  na następną drużynę.
+- Skalowane starcia dostają umiarkowaną rekompensatę waluty/EXP do maks. x3;
+  istniejące pełne nagrody party pozostają, a drop chance/unikaty/UOSS lockouty
+  nie są sztucznie mnożone.
+- Ręczne skille, AoE, auto-kolejka i zwykły atak korzystają z tego samego skalera,
+  więc nie da się ominąć systemu pierwszym Cosmic Rave/Execute/AoE.
+- AUDIT AUDYTÓW / STARTUP SAFETY: developer/admin audity są wyjęte z normalnego
+  production RUNTIME_MODULES. HELP freshness, ekonomia, klasy, loot/EQ, Krypty,
+  Wieże, Magitek, World Threat, UOSS i Soul Shard audity pozostają raportami
+  diagnostycznymi zamiast powodować restart-loop przez RuntimeError przy starcie.
+- Fast predeploy zabrania wzorca named AUDIT -> RuntimeError w produkcyjnym
+  runtime oraz pilnuje Generator/reward/helper/HELP contracts. Full predeploy
+  składa całą grę na jednorazowej bazie, zbiera wszystkie runtime *AUDIT*
+  reporty i blokuje obraz przy dowolnym error_count > 0.
+- Docker/Railway uruchamia teraz najpierw fast predeploy, potem full predeploy.
+  Ten sam zestaw jest zapisany jako GitHub Actions workflow dla PR-ów/main.
+- GENERATOR QUEST OWNERSHIP: historyczny marker manual_currency_reward_coins z
+  v0.30.24 jest od teraz wyłącznie fallbackiem. Nie może nadpisywać nowszej
+  ręcznej reward_silver/gold/mithril ani obniżać późnych nagród Soul Trial.
+  Full audit pokazuje dokładny diff domain/id/field przy każdej przyszłej próbie
+  nadpisania authored quest/recipe/skill numeric values.
+- MOB DISPLAY NAMES: późne warianty zagęszczające _v915_* nie składają już
+  dwóch nazw typu „A — B”. Zachowują różnorodność archetypów i profil walki,
+  ale look/NVDA/combat feed dostają jedną nazwę zgodną z kontraktem v1.11.29.
+- CROSS SYSTEM OCEAN AUDIT: oferty handlu morskiego są mierzone na
+  deterministycznym profilu etapu 600 zamiast błędnego wywołania metody
+  instancji z self=None.
+- Walidacja końcowa PR: FAST PREDEPLOY PASS; 83 runtime audit reports i
+  0 blocking failures; CROSS SYSTEM 0/0; 14 694 nazw mobów 0 błędów;
+  OCEAN CONTRACT 0 błędów / 6 tras; 0 duplicate dict keys i 0 TODO/FIXME.
+- HELP opisuje post-600 Rezonans Głębi i zachowanie capu 600.
+- WIEŻE BEZ LEVEL-GATE: zwykła Wieża Astralna i Mityczna Wieża Astralna
+  nie wymagają już minimalnego Levelu ani Soul Levelu do wejścia. Usunięto blokadę
+  z normalnego ruchu, prowadzenia, nazwanych wejść i Astralnego Portalu.
+  Bossy pięter, checkpointy i realna trudność pozostają właściwą barierą progresji.
+- Brak wipe, migracji bazy i nowych blokad poziomowych.
 
 ==============================================================================
 Soulbound v1.13.29 — DROP CHANCE & REWARD EXCITEMENT PASS

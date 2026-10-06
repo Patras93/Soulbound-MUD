@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Fast Railway predeploy gate for Soulbound v1.13.29.
+"""Fast Railway predeploy gate for Soulbound v1.13.30.
 
 This is the normal deploy check.  It intentionally avoids assembling the full
 world/runtime.  Use predeploy_full.py when an exhaustive historical audit is
@@ -8,6 +8,7 @@ wanted before a major release.
 """
 from __future__ import annotations
 
+import ast
 import re
 import traceback
 
@@ -16,7 +17,7 @@ import traceback
 try:
     from storage.database import Database as _DatabaseImportSmoke
 except Exception as exc:
-    print(f"Soulbound v1.13.29 FAST PREDEPLOY FAILED: database import: {type(exc).__name__}: {exc}")
+    print(f"Soulbound v1.13.30 FAST PREDEPLOY FAILED: database import: {type(exc).__name__}: {exc}")
     traceback.print_exc()
     raise SystemExit(1)
 
@@ -34,10 +35,14 @@ try:
         PRIEST_HEALING_CONTRACT_AUDIT_V11196,
         UOSS_STATUS_SOURCE_CONTRACT_AUDIT_V11196,
         ALL_CLASS_ENDGAME_DAMAGE_AUDIT_V11196,
+        ALL_CLASS_GAMEFEEL_AUDIT_V11330,
+        V03014_SKILL_NAME_AUDIT_PREGEN,
+        PHYSICAL_SKILL_MANA_AUDIT,
+        SKILL_COOLDOWN_AUDIT_V11140,
     )
 except Exception as exc:
     print(
-        "Soulbound v1.13.29 FAST PREDEPLOY FAILED: "
+        "Soulbound v1.13.30 FAST PREDEPLOY FAILED: "
         f"skill semantic import: {type(exc).__name__}: {exc}"
     )
     traceback.print_exc()
@@ -52,6 +57,10 @@ _semantic_audits = {
     "priest_healing": PRIEST_HEALING_CONTRACT_AUDIT_V11196,
     "uoss_status_contracts": UOSS_STATUS_SOURCE_CONTRACT_AUDIT_V11196,
     "endgame_damage": ALL_CLASS_ENDGAME_DAMAGE_AUDIT_V11196,
+    "all_14_class_gamefeel": ALL_CLASS_GAMEFEEL_AUDIT_V11330,
+    "skill_names": V03014_SKILL_NAME_AUDIT_PREGEN,
+    "physical_skill_mana": PHYSICAL_SKILL_MANA_AUDIT,
+    "skill_cooldowns": SKILL_COOLDOWN_AUDIT_V11140,
 }
 _semantic_errors = []
 for _name, _result in _semantic_audits.items():
@@ -59,11 +68,139 @@ for _name, _result in _semantic_audits.items():
         for _error in _result.get("errors", ()):
             _semantic_errors.append(f"{_name}: {_error}")
 
+# Legacy compatibility modules such as items_resources/equipment_crafting/economy
+# need the assembled runtime namespace. Their audit reports are therefore
+# evaluated by predeploy_full.py, not imported standalone here.
+
+try:
+    from world.uoss_superboss_runtime import (
+        SUPERBOSS_COMPLETION_AUDIT_V11330 as _superboss_completion_audit_v11330,
+    )
+    for _error in _superboss_completion_audit_v11330.get("errors", ()):
+        _semantic_errors.append("superboss_completion: " + str(_error))
+except Exception as exc:
+    _semantic_errors.append(
+        f"superboss completion audit import failed: {type(exc).__name__}: {exc}"
+    )
+
+try:
+    from systems.adaptive_combat import (
+        ADAPTIVE_COMBAT_AUDIT_V11330 as _adaptive_combat_audit_v11330,
+    )
+    for _error in _adaptive_combat_audit_v11330.get("errors", ()):
+        _semantic_errors.append("adaptive_combat: " + str(_error))
+except Exception as exc:
+    _semantic_errors.append(
+        f"adaptive combat audit import failed: {type(exc).__name__}: {exc}"
+    )
+
 # AP is a learning-point cost, never authored combat power. Keep a small
 # source-level regression guard around the two runtime files that previously
 # leaked UOSS Base AP into Mec/Engineer damage.
 from pathlib import Path as _Path
 _root = _Path(__file__).resolve().parent
+
+# v1.13.30: every combat route must keep encounter-local scaling wired in.
+_adaptive_damage_source_v11330 = (
+    _root / "player/session_mixins/combat_damage.py"
+).read_text(encoding="utf-8")
+_adaptive_realtime_source_v11330 = (
+    _root / "player/session_mixins/combat_realtime.py"
+).read_text(encoding="utf-8")
+_adaptive_skills_source_v11330 = (
+    _root / "player/session_mixins/combat_skills.py"
+).read_text(encoding="utf-8")
+_adaptive_rewards_source_v11330 = (
+    _root / "player/session_mixins/combat_rewards.py"
+).read_text(encoding="utf-8")
+_adaptive_server_source_v11330 = (
+    _root / "server/mud_server.py"
+).read_text(encoding="utf-8")
+for _label, _source, _needles in (
+    (
+        "damage",
+        _adaptive_damage_source_v11330,
+        (
+            "def apply_adaptive_mob_scale_v11330",
+            "def adaptive_enemy_damage_multiplier_v11330",
+            "adaptive_target_max_hp_v11330",
+        ),
+    ),
+    (
+        "realtime",
+        _adaptive_realtime_source_v11330,
+        (
+            "self.apply_adaptive_mob_scale_v11330(mob)",
+            "adaptive_enemy_damage_multiplier_v11330",
+            "mob_effective_max_hp_v11330",
+        ),
+    ),
+    (
+        "skills",
+        _adaptive_skills_source_v11330,
+        (
+            "self.apply_adaptive_mob_scale_v11330(_adaptive_target_v11330)",
+            "self.apply_adaptive_mob_scale_v11330(mob)",
+            "mob_effective_max_hp_v11330",
+        ),
+    ),
+    (
+        "rewards",
+        _adaptive_rewards_source_v11330,
+        (
+            "adaptive_reward_multiplier_v11330",
+            "_adaptive_reward_mult_v11330",
+        ),
+    ),
+    (
+        "disengage",
+        _adaptive_server_source_v11330,
+        (
+            "def reset_adaptive_mob_encounter_v11330",
+            "self.reset_adaptive_mob_encounter_v11330(mob)",
+        ),
+    ),
+):
+    for _needle in _needles:
+        if _needle not in _source:
+            _semantic_errors.append(
+                f"adaptive combat wiring regression ({_label}): missing {_needle}"
+            )
+
+# v1.13.30: Astral towers have no artificial Level/Soul Level entry gate.
+_tower_regions_source_v11330 = (
+    _root / "systems/dungeons_regions.py"
+).read_text(encoding="utf-8")
+_tower_progress_source_v11330 = (
+    _root / "player/session_mixins/dungeon_progression.py"
+).read_text(encoding="utf-8")
+_tower_movement_source_v11330 = (
+    _root / "player/session_mixins/movement.py"
+).read_text(encoding="utf-8")
+for _needle in (
+    "ASTRAL_MIN_SOUL_LEVEL = 1",
+    "MYTHIC_ASTRAL_MIN_SOUL_LEVEL = 1",
+):
+    if _needle not in _tower_regions_source_v11330:
+        _semantic_errors.append(
+            "tower level-gate regression: missing " + _needle
+        )
+if "def astral_entry_blocked(self, target_room):\n            # v1.13.30: brak minimalnego Soul Level dla Wieży Astralnej.\n            return False" not in _tower_progress_source_v11330:
+    _semantic_errors.append(
+        "tower level-gate regression: astral_entry_blocked is not unconditional False"
+    )
+if "def mythic_entry_error(self, target_room):\n            # v1.13.30: Mityczna Krypta i Mityczna Wieża nie mają level-gate." not in _tower_progress_source_v11330:
+    _semantic_errors.append(
+        "tower level-gate regression: mythic tower entry gate returned"
+    )
+for _stale in (
+    "Wieża Astralna wymaga Soul Level",
+    "Mityczna Wieża Astralna jest zablokowana",
+):
+    if _stale in _tower_movement_source_v11330 or _stale in _tower_progress_source_v11330:
+        _semantic_errors.append(
+            "tower level-gate regression: stale blocking message " + _stale
+        )
 
 # v1.13.10 hotfix: Generator Core now preserves authored item prices, so all
 # one-time starter profession tools must carry the same canonical authored
@@ -780,7 +917,9 @@ for _needle in (
     "def authored_reward_snapshot(ns: dict) -> dict:",
     'audit["authored_rewards_preserved"] = authored_rewards_ok',
     "def authored_rewards_preserved(ns: dict, before: dict) -> bool:",
-    "authored_rewards_ok = authored_rewards_preserved(",
+    "def authored_reward_differences(ns: dict, before: dict) -> list[str]:",
+    'skill_fields = tuple(sorted(NUMERIC_SKILL_FIELDS - {"generator_level"}))',
+    "authored_rewards_ok = not authored_reward_differences_v11330",
     "Generator Core cannot mutate authored CLASS_SET_BONUSES",
     "Generator Core cannot mutate authored CLASSES Soul Weapon bases",
     'if field in q and int(q.get(field, 0) or 0) < 0:',
@@ -1483,19 +1622,285 @@ except Exception as exc:
         f"stat XP pace audit failed: {type(exc).__name__}: {exc}"
     )
 
+# v1.13.30: post-600 infinite rewards must be stable, persistent and explicit.
+_infinite_eq_source_v11330 = (_root / "systems/infinite_equipment.py").read_text(encoding="utf-8")
+_world_state_source_v11330 = (_root / "world/world_state.py").read_text(encoding="utf-8")
+_db_inventory_source_v11330 = (_root / "storage/db_inventory.py").read_text(encoding="utf-8")
+_server_source_v11330 = (_root / "server/mud_server.py").read_text(encoding="utf-8")
+_global_difficulty_source_v11330 = (_root / "world/global_difficulty_overdrive.py").read_text(encoding="utf-8")
+_sales_source_v11330 = (_root / "player/session_mixins/sales.py").read_text(encoding="utf-8")
+_runtime_manifest_source_v11330 = (_root / "core/runtime_manifest.py").read_text(encoding="utf-8")
+
+for _needle in (
+    "def infinite_source_profile(",
+    "def register_infinite_equipment_variant(",
+    "def ensure_infinite_equipment_variant(",
+    "def infinite_equipment_variant_for_drop(",
+    "def infinite_coin_multiplier(",
+    "Rezonans Głębi",
+    'data["source_progression_stage"] = effective_stage',
+    'data["required_mastery"] = INFINITE_EQUIPMENT_BASE_STAGE',
+    'template.get("uoss_superboss")',
+):
+    if _needle not in _infinite_eq_source_v11330:
+        _semantic_errors.append("post-600 infinite EQ regression: missing " + _needle)
+
+if "'systems/infinite_equipment.py'" not in _runtime_manifest_source_v11330:
+    _semantic_errors.append("post-600 infinite EQ missing from runtime manifest")
+if 'EXPLICIT_RUNTIME_EXPORTS["systems/infinite_equipment.py"]' not in _runtime_manifest_source_v11330:
+    _semantic_errors.append("post-600 infinite EQ must stay on explicit runtime lane")
+if "infinite_equipment_variant_for_drop(" not in _world_state_source_v11330:
+    _semantic_errors.append("post-600 corpse EQ hook missing")
+if "persisted_infinite_equipment_item_ids_v11330" not in _db_inventory_source_v11330:
+    _semantic_errors.append("post-600 EQ persistence scanner missing")
+if "ensure_infinite_equipment_variant(_item_id)" not in _server_source_v11330:
+    _semantic_errors.append("post-600 EQ startup restore missing")
+if "factor *= infinite_coin_multiplier(template)" not in _global_difficulty_source_v11330:
+    _semantic_errors.append("post-600 infinite coin continuation missing")
+
+for _needle in (
+    'if item.get("infinite_depth_variant"):',
+    'depth_rank = max(',
+    'economy_stage_anchor_v11314(600)',
+    'depth_factor = 1.0 + 0.030 * (depth_rank ** 0.82)',
+):
+    if _needle not in _sales_source_v11330:
+        _semantic_errors.append(
+            "post-600 deep EQ sale progression regression: missing " + _needle
+        )
+
+try:
+    from systems.infinite_equipment import INFINITE_EQUIPMENT_AUDIT_V11330 as _infinite_eq_audit_v11330
+    if _infinite_eq_audit_v11330.get("error_count"):
+        _semantic_errors.extend(
+            "post-600 infinite EQ audit: " + str(error)
+            for error in _infinite_eq_audit_v11330.get("errors", ())
+        )
+except Exception as exc:
+    _semantic_errors.append(
+        f"post-600 infinite EQ audit import failed: {type(exc).__name__}: {exc}"
+    )
+
+# v1.13.30 O-KURDE completion: source/static contracts live here, not in
+# production startup. These checks may reject a deployment but must never
+# create a Railway restart loop after the service starts.
+from core.runtime_manifest import (
+    RUNTIME_MODULES as _runtime_modules_v11330,
+    EXPLICIT_RUNTIME_EXPORTS as _explicit_exports_v11330,
+    LEGACY_COMPATIBILITY_ALLOWLIST as _legacy_allowlist_v11330,
+    LEGACY_IMPLICIT_DEPENDENCY_BUDGET as _legacy_budget_v11330,
+)
+from validation.maintainable_core import validate_maintainable_core as _validate_maintainable_core_v11330
+
+_maintainable_v11330 = _validate_maintainable_core_v11330(
+    _root,
+    _runtime_modules_v11330,
+    _explicit_exports_v11330,
+    _legacy_allowlist_v11330,
+    _legacy_budget_v11330,
+)
+for _error in _maintainable_v11330.get("errors", ()):
+    _semantic_errors.append("maintainable-core: " + str(_error))
+
+for _path in _runtime_modules_v11330:
+    _name = _Path(_path).name.casefold()
+    if _path.startswith("admin/") and _path != "admin/audits.py" and (
+        "audit" in _name or _name.startswith("release_integrity_")
+    ):
+        _semantic_errors.append(
+            "startup safety regression: developer audit in production runtime: "
+            + _path
+        )
+
+    # Named audit reports are deploy-time gates. They may remain available as
+    # runtime diagnostics, but a normal production module may not turn one into
+    # a boot-time RuntimeError. Full predeploy evaluates the reports instead.
+    _source = (_root / _path).read_text(encoding="utf-8")
+    try:
+        _tree = ast.parse(_source, filename=_path)
+    except SyntaxError as exc:
+        _semantic_errors.append(
+            f"startup safety regression: cannot parse {_path}: {exc}"
+        )
+        continue
+    for _node in ast.walk(_tree):
+        if not isinstance(_node, ast.If):
+            continue
+        try:
+            _test_text = ast.unparse(_node.test).upper()
+        except Exception:
+            _test_text = ""
+        if "AUDIT" not in _test_text:
+            continue
+        for _child in ast.walk(_node):
+            if not isinstance(_child, ast.Raise) or _child.exc is None:
+                continue
+            _exc = _child.exc
+            _is_runtime_error = (
+                isinstance(_exc, ast.Call)
+                and isinstance(_exc.func, ast.Name)
+                and _exc.func.id == "RuntimeError"
+            )
+            if _is_runtime_error:
+                _semantic_errors.append(
+                    "startup safety regression: runtime audit raises RuntimeError: "
+                    f"{_path}:{getattr(_child, 'lineno', '?')}"
+                )
+
+_help_truth_source_v11330 = (_root / "admin/help_truth_current.py").read_text(
+    encoding="utf-8"
+)
+if 'HELP_FRESHNESS_RUNTIME_WARNING_V11330' not in _help_truth_source_v11330:
+    _semantic_errors.append(
+        "startup safety regression: HELP freshness is not runtime-diagnostic"
+    )
+if (
+    'HELP_FRESHNESS_AUDIT_V11328["error_count"]' in _help_truth_source_v11330
+    and "raise RuntimeError" in _help_truth_source_v11330[
+        _help_truth_source_v11330.find('HELP_FRESHNESS_AUDIT_V11328 ='):
+    ]
+):
+    _semantic_errors.append(
+        "startup safety regression: HELP freshness can still raise at runtime"
+    )
+
+_native_runtime_source_v11330 = (_root / "core/native_runtime.py").read_text(
+    encoding="utf-8"
+)
+for _needle in (
+    '"SOULBOUND_HISTORICAL_AUDITS"',
+    "active_modules = FULL_RUNTIME_MODULES if historical_audits_enabled else RUNTIME_MODULES",
+):
+    if _needle not in _native_runtime_source_v11330:
+        _semantic_errors.append(
+            "startup safety regression: full semantic audit is coupled to historical runtime modules"
+        )
+
+_generator_source_v11330 = (_root / "core/generator_core.py").read_text(
+    encoding="utf-8"
+)
+for _needle in (
+    'def _generate_soul(ns: dict) -> None:',
+    'def _generate_class_set_bonuses(ns: dict) -> None:',
+    'def _generate_class_race_numeric(ns: dict) -> None:',
+    'Generator Core cannot mutate authored CLASS_SET_BONUSES',
+    'Generator Core cannot mutate authored CLASSES Soul Weapon bases',
+    'return {"quests": quests, "recipes": recipes, "skills": skills}',
+    'skill_fields = tuple(sorted(NUMERIC_SKILL_FIELDS - {"generator_level"}))',
+    'for field in skill_fields',
+    'def authored_reward_differences(ns: dict, before: dict) -> list[str]:',
+    'Generator Core changed pre-existing authored quest/recipe/skill numeric values',
+):
+    if _needle not in _generator_source_v11330:
+        _semantic_errors.append(
+            "Generator ownership regression: missing " + _needle
+        )
+
+_economy_source_v11330 = (_root / "systems/economy_income_balance.py").read_text(
+    encoding="utf-8"
+)
+_courier_source_v11330 = (_root / "player/session_mixins/courier_delivery.py").read_text(
+    encoding="utf-8"
+)
+_ocean_source_v11330 = (_root / "player/session_mixins/ocean.py").read_text(
+    encoding="utf-8"
+)
+_generation_source_v11330 = (_root / "world/generation_systems.py").read_text(
+    encoding="utf-8"
+)
+_world_state_source_rewards_v11330 = (_root / "world/world_state.py").read_text(
+    encoding="utf-8"
+)
+for _needle in (
+    "def reward_consistency_audit_v11330():",
+    "REWARD_CONSISTENCY_AUDIT_V11330",
+    '"courier": 0.30',
+    '"dynamic_world": 0.85',
+    '"ocean_trade": 0.55',
+    '"ocean_treasure": 2.50',
+):
+    if _needle not in _economy_source_v11330:
+        _semantic_errors.append("reward consistency regression: missing " + _needle)
+if "v1138_activity_income(stage, \"courier\"" not in _courier_source_v11330:
+    _semantic_errors.append("reward consistency regression: Courier lost current income floor")
+if 'v1138_activity_income(stage, "ocean_trade"' not in _ocean_source_v11330:
+    _semantic_errors.append("reward consistency regression: Ocean trade lost income floor")
+if (
+    "def ocean_treasure_v1000(" not in _ocean_source_v11330
+    or '"ocean_treasure"' not in _ocean_source_v11330
+    or "v1138_activity_income(" not in _ocean_source_v11330
+):
+    _semantic_errors.append("reward consistency regression: Ocean treasure lost income floor")
+if 'v1138_activity_income(stage, "dynamic_world"' not in _generation_source_v11330:
+    _semantic_errors.append("reward consistency regression: dynamic world lost income floor")
+if "economy_stage_anchor_v11314(stage)" not in _world_state_source_rewards_v11330:
+    _semantic_errors.append("reward consistency regression: treasure chest lost stage economy floor")
+
+_protocol_source_rewards_v11330 = (_root / "network/protocol_gameplay_utils.py").read_text(
+    encoding="utf-8"
+)
+for _needle in (
+    "def v1138_boss_chest_gold_anchor(",
+    "(600, 700_000)",
+    "def boss_chest_reward_roll(",
+    '"mythic_crypt": 1.60',
+    '"mythic_astral": 1.75',
+):
+    if _needle not in _protocol_source_rewards_v11330:
+        _semantic_errors.append("boss chest reward regression: missing " + _needle)
+
+_economy_quests_source_v11330 = (_root / "world/economy_quests.py").read_text(
+    encoding="utf-8"
+)
+for _needle in (
+    "def v11161_endgame_mob_coin_floor(",
+    "if hp >= 3_000_000:",
+    "return 25_000_000",
+    "V11161_PROFESSION_REWARD_FLOORS = {",
+    "600:125_000_000",
+):
+    if _needle not in _economy_quests_source_v11330:
+        _semantic_errors.append("endgame reward floor regression: missing " + _needle)
+
+_uoss_runtime_source_v11330 = (_root / "world/uoss_superboss_runtime.py").read_text(
+    encoding="utf-8"
+)
+_combat_realtime_source_v11330 = (_root / "player/session_mixins/combat_realtime.py").read_text(
+    encoding="utf-8"
+)
+for _needle in (
+    "SUPERBOSS_HELPER_ROLES_V11330 = {",
+    '"Popoi": {',
+    '"Primm": {',
+    '"Byblos": {',
+    '"Montblanc": {',
+    '"Seifer": {',
+    "def superboss_helper_balance_audit_v11330():",
+    "SUPERBOSS_HELPER_BALANCE_AUDIT_V11330",
+):
+    if _needle not in _uoss_runtime_source_v11330:
+        _semantic_errors.append("UOSS helper balance regression: missing " + _needle)
+for _needle in (
+    '_helper_role_mult = max(',
+    '* _helper_role_mult',
+    "Rola: {_uoss_helper.get('role', 'support')}",
+):
+    if _needle not in _combat_realtime_source_v11330:
+        _semantic_errors.append("UOSS helper runtime regression: missing " + _needle)
+
 if _semantic_errors:
-    print("Soulbound v1.13.29 FAST PREDEPLOY FAILED: semantic contracts")
+    print("Soulbound v1.13.30 FAST PREDEPLOY FAILED: semantic contracts")
     for _error in _semantic_errors:
         print(f"ERROR: {_error}")
     raise SystemExit(1)
 
 if audit["error_count"]:
-    print("Soulbound v1.13.29 FAST PREDEPLOY FAILED")
+    print("Soulbound v1.13.30 FAST PREDEPLOY FAILED")
     for error in audit["errors"]:
         print(f"ERROR: {error}")
     raise SystemExit(1)
 
-print("Soulbound v1.13.29 FAST PREDEPLOY PASS")
+print("Soulbound v1.13.30 FAST PREDEPLOY PASS")
 print(
     "Semantic contracts: "
     f"{len(_semantic_audits)} audits PASS; AP runtime guards PASS"

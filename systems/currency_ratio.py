@@ -29,9 +29,7 @@ def currency_ratio_audit_v0385():
     return {"version":V0385_CURRENCY_VERSION,"error_count":len(errors),"errors":errors}
 
 CURRENCY_RATIO_AUDIT_V0385 = currency_ratio_audit_v0385()
-if CURRENCY_RATIO_AUDIT_V0385["error_count"]:
-    raise RuntimeError("Currency Ratio Audit v0.38.5 failed: " + "; ".join(CURRENCY_RATIO_AUDIT_V0385["errors"]))
-
+# v1.13.30: audit failure is enforced by predeploy_full.py, not production startup.
 HELP_TOPICS["waluta"] = [
     "Soulbound używa jednego wspólnego salda przechowywanego wewnętrznie w srebrze.",
     "100 srebra = 1 złoto.",

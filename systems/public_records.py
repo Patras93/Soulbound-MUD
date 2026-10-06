@@ -379,9 +379,7 @@ def public_records_audit_v0370():
     return {"version":V0370_VERSION,"boss_keys":len(keys),"error_count":len(errors),"errors":errors}
 
 PUBLIC_RECORDS_AUDIT_V0370=public_records_audit_v0370()
-if PUBLIC_RECORDS_AUDIT_V0370["error_count"]:
-    raise RuntimeError("Public Records Audit v0.37.0 failed: "+"; ".join(PUBLIC_RECORDS_AUDIT_V0370["errors"]))
-
+# v1.13.30: audit failure is enforced by predeploy_full.py, not production startup.
 LATEST_CHANGES_TITLE = "Soulbound v0.37.0 - Public Records + Hall of Fame"
 LATEST_CHANGES = [
     "Dodano publiczne rekordy serwera: Level, Krypta, bossowie, największa ryba, crafty i największy przetop.",

@@ -102,8 +102,3 @@ def finalize_crypt_soul_shards_v0711():
 
 # Final boot-time pass after every earlier generator/rebalance layer.
 SOUL_SHARD_CRYPT_FINAL_AUDIT_V0711 = finalize_crypt_soul_shards_v0711()
-if SOUL_SHARD_CRYPT_FINAL_AUDIT_V0711["error_count"]:
-    raise RuntimeError(
-        "Soul Shard Crypt Finalizer v0.71.1 failed: "
-        + "; ".join(SOUL_SHARD_CRYPT_FINAL_AUDIT_V0711["errors"][:100])
-    )

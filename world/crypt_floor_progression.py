@@ -261,11 +261,6 @@ def crypt_every_floor_progression_audit_v03610():
 
 
 CRYPT_EVERY_FLOOR_PROGRESSION_AUDIT_V03610 = crypt_every_floor_progression_audit_v03610()
-if CRYPT_EVERY_FLOOR_PROGRESSION_AUDIT_V03610["error_count"]:
-    raise RuntimeError(
-        "Crypt Every-Floor Progression Audit v0.36.10 failed: "
-        + "; ".join(CRYPT_EVERY_FLOOR_PROGRESSION_AUDIT_V03610["errors"][:100])
-    )
 
 HELP_TOPICS.setdefault("wersja", []).append(
     "v0.36.10: Krypty rosną w trudności i EXP na każdym piętrze od 1; bossowie co 10 pozostają dodatkowymi skokami."

@@ -369,7 +369,7 @@ class SessionCombatSkillsMixin:
         self._recap52_dealt = int(getattr(self, "_recap52_dealt", 0) or 0) + damage
         await self.send(
             f"{name} dołącza do umiejętności: {damage} obrażeń. "
-            f"Przeciwnik: {max(0, target.hp)} z {template['max_hp']} HP." + note
+            f"Przeciwnik: {max(0, target.hp)} z {self.mob_effective_max_hp_v11330(target, template)} HP." + note
         )
         return damage
 
@@ -717,6 +717,15 @@ class SessionCombatSkillsMixin:
                     if not _uoss_ok:
                         await self.send(_uoss_reason)
                         return
+
+                # Every offensive/debuff path enters the same encounter-local
+                # scaler before it can deal its first point of damage. This also
+                # covers manual skill openers and room-wide AoE.
+                for _adaptive_target_v11330 in list(aoe_mobs or ()):
+                    if _adaptive_target_v11330 and _adaptive_target_v11330.alive:
+                        self.apply_adaptive_mob_scale_v11330(_adaptive_target_v11330)
+                if mob is not None and mob.alive:
+                    self.apply_adaptive_mob_scale_v11330(mob)
 
                 if bool(skill.get("soulbound_harmful_debuff")) and mob is None:
                     await self.send(
@@ -1067,7 +1076,7 @@ class SessionCombatSkillsMixin:
                         weaknesses=template.get("weaknesses") or template.get("machine_weaknesses") or ("brak jawnych",)
                         resistances=template.get("resistances") or template.get("machine_resistances") or ("brak jawnych",)
                         await self.send(
-                            f"Scanner: {template.get('name',mob.template_id)}. HP {max(0,mob.hp)} z {template.get('max_hp',0)}. "
+                            f"Scanner: {template.get('name',mob.template_id)}. HP {max(0,mob.hp)} z {self.mob_effective_max_hp_v11330(mob, template)}. "
                             f"Typ: {'Machine' if template.get('machine') else template.get('type','organic')}. "
                             f"Ranga: {template.get('rank','normal')}. Słabości: {', '.join(map(str,weaknesses))}. "
                             f"Odporności: {', '.join(map(str,resistances))}."
@@ -2211,7 +2220,7 @@ class SessionCombatSkillsMixin:
                         target.hp -= damage
                         total_damage += damage
                         marker = " Krytyk." if critical else ""
-                        await self.send(f"{template['name']}: {damage} obrażeń.{marker} HP {max(0, target.hp)} z {template['max_hp']}.")
+                        await self.send(f"{template['name']}: {damage} obrażeń.{marker} HP {max(0, target.hp)} z {self.mob_effective_max_hp_v11330(target, template)}.")
                         (defeated if target.hp <= 0 else survivors).append(target)
                     helper_target, _helper_damage = await self.apply_superboss_helper_after_skill_v11192(survivors)
                     if helper_target is not None and helper_target.hp <= 0:
@@ -2504,7 +2513,7 @@ class SessionCombatSkillsMixin:
                             await self.send("Kamikaze Crush: V-MAX zwiększa moc ataku i obrażenia Feedback.")
 
                 if kind == "execute":
-                    hp_ratio = mob.hp / max(1, template["max_hp"])
+                    hp_ratio = mob.hp / max(1, self.mob_effective_max_hp_v11330(mob, template))
                     execute_threshold = v0863_execute_threshold(template)
                     if hp_ratio <= execute_threshold:
                         multiplier *= min(2.0, float(skill.get("execute_mult", 1.5)))
@@ -2603,7 +2612,7 @@ class SessionCombatSkillsMixin:
                 self._recap52_dealt=int(getattr(self,"_recap52_dealt",0))+max(0,int(damage))
                 await self.send(
                     f"Używasz {skill['name']} na {template['name']}. "
-                    f"Zadajesz {damage} obrażeń. Przeciwnik: {max(0, mob.hp)} z {template['max_hp']} HP."
+                    f"Zadajesz {damage} obrażeń. Przeciwnik: {max(0, mob.hp)} z {self.mob_effective_max_hp_v11330(mob, template)} HP."
                     + machine_note
                 )
                 _party_skill = (

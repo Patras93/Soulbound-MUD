@@ -489,13 +489,7 @@ def loot_source_progression_audit_v11327():
 
 
 LOOT_SOURCE_PROGRESSION_AUDIT_V11327 = loot_source_progression_audit_v11327()
-if LOOT_SOURCE_PROGRESSION_AUDIT_V11327["error_count"]:
-    raise RuntimeError(
-        "Loot Source Progression Audit v1.13.27 failed: "
-        + "; ".join(LOOT_SOURCE_PROGRESSION_AUDIT_V11327["errors"][:50])
-    )
-
-
+# v1.13.30: audit failure is enforced by predeploy_full.py, not production startup.
 for _world_boss_unique_id in WORLD_BOSS_UNIQUES:
     _world_boss_unique_item = ITEMS[_world_boss_unique_id]
     _world_boss_unique_item.setdefault(
@@ -779,14 +773,10 @@ def crypt_rarity_progression_audit_v11329():
 
 
 CRYPT_RARITY_PROGRESSION_AUDIT_V11329 = crypt_rarity_progression_audit_v11329()
-if CRYPT_RARITY_PROGRESSION_AUDIT_V11329["error_count"]:
-    raise RuntimeError(
-        "Crypt Rarity Progression Audit v1.13.29 failed: "
-        + "; ".join(CRYPT_RARITY_PROGRESSION_AUDIT_V11329["errors"][:50])
-    )
-
-
-ASTRAL_MIN_SOUL_LEVEL = 100
+# v1.13.30: audit failure is enforced by predeploy_full.py, not production startup.
+# v1.13.30: Wieże nie mają już sztucznego Soul Level gate. Trudność, bossy
+# i checkpointy są właściwą barierą progresji. Stała 1 pozostaje dla zgodności.
+ASTRAL_MIN_SOUL_LEVEL = 1
 ASTRAL_MIN_FLOOR = 100
 ASTRAL_MAX_FLOOR = 200
 ASTRAL_BOSS_FLOORS = tuple(range(100, ASTRAL_MAX_FLOOR + 1, 10))
@@ -907,7 +897,7 @@ for _floor, (_item_id, _name, _defense, _affix, _amount) in ASTRAL_BOSS_RELICS.i
 MYTHIC_MIN_FLOOR = 1
 MYTHIC_MAX_FLOOR = 200
 MYTHIC_CRYPT_MIN_SOUL_LEVEL = 1
-MYTHIC_ASTRAL_MIN_SOUL_LEVEL = 100
+MYTHIC_ASTRAL_MIN_SOUL_LEVEL = 1
 MYTHIC_BOSS_FLOORS = set(range(10, MYTHIC_MAX_FLOOR + 1, 10))
 PROF_DUNGEON_MAX_FLOOR = 20
 
@@ -1044,7 +1034,7 @@ def build_astral_tower():
         "name": "Astralna Brama",
         "desc": (
             "Nad urwiskiem unosi się błękitno-fioletowa brama z gwiezdnego szkła. "
-            "Za nią zaczyna się Wieża Astralna przeznaczona dla bohaterów od Soul Level 100."
+            "Za nią zaczyna się Wieża Astralna bez minimalnego Soul Level; barierą jest wyłącznie realna trudność starcia."
         ),
         "exits": {
             "west": "shrine",
@@ -1312,7 +1302,7 @@ def build_mythic_endgame():
         "name": "Brama Mitycznej Wieży Astralnej",
         "desc": (
             "Pęknięcie gwiezdnej przestrzeni prowadzi do trudniejszej "
-            "wersji Wieży. Wejście wymaga Soul Level 100."
+            "wersji Wieży. Wejście nie ma minimalnego Soul Level; barierą jest realna trudność starcia."
         ),
         "exits": {
             "west": "astral_gate",

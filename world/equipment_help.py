@@ -614,29 +614,35 @@ def densify_static_dungeon_spawns():
                 variant["drops"] = dict(base["drops"])
             if isinstance(base.get("corpse_equipment_pool"), list):
                 variant["corpse_equipment_pool"] = list(base["corpse_equipment_pool"])
+            floor_match = re.search(r"(\d+)$", room_id)
+            floor_text = floor_match.group(1) if floor_match else None
+            suffix = f", poziom {floor_text}" if floor_text else ""
+            if "Krypta" in zone:
+                suffix = f", piętro {floor_text}" if floor_text else ""
+            base_name = re.sub(
+                r",\s*(?:poziom|piętro)\s+\d+.*$",
+                "",
+                str(base.get("name", "Przeciwnik")),
+                flags=re.I,
+            ).strip()
             if available_pool:
-                # Dobieramy nazwę nieobecną jeszcze w tym pokoju.
+                # v1.13.30: wariant ma jeden czytelny archetyp. Nie łączymy
+                # dwóch konkurencyjnych nazw separatorem „—”; NVDA i combat
+                # feed mają czytać jeden gatunek, zgodnie z kontraktem v1.11.29.
                 chosen = available_pool[n % len(available_pool)]
-                floor_match = re.search(r"(\d+)$", room_id)
-                floor_text = floor_match.group(1) if floor_match else None
-                suffix = f", poziom {floor_text}" if floor_text else ""
-                if "Krypta" in zone:
-                    suffix = f", piętro {floor_text}" if floor_text else ""
-                base_name = re.sub(r",\s*(?:poziom|piętro)\s+\d+.*$", "", str(base.get("name", "Przeciwnik")), flags=re.I).strip()
-                if base_name.casefold().strip() == str(chosen).casefold().strip():
-                    variant["name"] = f"{chosen} — patrolowy łowca{suffix}"
-                else:
-                    variant["name"] = f"{chosen} — {base_name}{suffix}"
+                variant["name"] = f"{chosen}{suffix}"
                 distinct_archetypes.add(str(chosen).casefold().strip())
             else:
-                variant["name"] = f"{base.get('name', 'Przeciwnik')} — patrolowy łowca"
+                # Awaryjny wariant zachowuje bazowy gatunek, ale dostaje
+                # pojedynczą nazwę roli zamiast starego formatu „A — B”.
+                variant["name"] = f"Patrolowy {base_name} {n + 2}{suffix}".strip()
             # Lekko różny profil walki, bez zwiększania ekonomii za pojedyncze zabicie.
             if n % 2 == 0:
                 variant["damage_type"] = "magic" if base.get("damage_type") == "physical" else "physical"
             variant["dense_dungeon_variant"] = True
-            # v0.38.7: techniczny wariant zagęszczający ma zawsze wskazywać
-            # jeden kanoniczny gatunek. Dzięki temu Bestiariusz, kontrakty i
-            # statystyki nie traktują nazwy typu „A — B” jako osobnego moba.
+            # Techniczny wariant zagęszczający zawsze wskazuje jeden
+            # kanoniczny gatunek. Bestiariusz/kontrakty używają base template,
+            # a nazwa ekranowa pozostaje pojedyncza (bez „A — B”).
             variant["dense_dungeon_base_template"] = base_id
             variant["template_id"] = variant_id
             _catalog_mut.catalog_assign(variant, 'MOB_TEMPLATES', MOB_TEMPLATES, (variant_id,))

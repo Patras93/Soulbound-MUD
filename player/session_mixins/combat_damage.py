@@ -12,11 +12,148 @@ from core.player_math import (
     character_offensive_build_multiplier,
 )
 from systems.equipment_crafting import class_equipment_base_stat_pair
+from systems.adaptive_combat import (
+    adaptive_combat_rank_v11330,
+    adaptive_reward_multiplier_v11330,
+    adaptive_target_incoming_fraction_v11330,
+    adaptive_target_max_hp_v11330,
+)
 from data.mobs import MOB_TEMPLATES
 
 MEC_COMBAT_MASTERY_DAMAGE_MULTIPLIER_V1124 = 1.20
 
 class SessionCombatDamageMixin:
+    def adaptive_party_members_v11330(self, mob=None):
+                room_id = (
+                    getattr(mob, "room_id", None)
+                    or (self.character.room_id if self.character else None)
+                )
+                members = self.server.party_sessions(
+                    self.account_id, same_room=room_id
+                )
+                members = [
+                    member for member in members
+                    if member and not member.closed and member.character
+                    and member.current_hp > 0
+                ]
+                return members or [self]
+
+    def adaptive_member_dps_v11330(self, member):
+                try:
+                    per_action = max(1.0, float(member.consider_player_expected_hit()))
+                    hits = max(1, int(member.basic_attack_hit_count_v11196()))
+                    interval = max(0.35, float(member.player_action_interval_v11154()))
+                    # consider() intentionally omits some late Soul Weapon/skill layers.
+                    # A modest factor keeps the scaler ahead of auto-queue burst without
+                    # turning normal mobs into pure HP walls.
+                    return max(1.0, per_action * hits * 1.30 / interval)
+                except Exception:
+                    return 1.0
+
+    def mob_effective_max_hp_v11330(self, mob, template=None):
+                if mob is None:
+                    return 1
+                template = template or MOB_TEMPLATES.get(mob.template_id, {})
+                return max(
+                    1,
+                    int(
+                        getattr(mob, "adaptive_max_hp_v11330", 0)
+                        or template.get("max_hp", 1)
+                        or 1
+                    ),
+                )
+
+    def apply_adaptive_mob_scale_v11330(self, mob):
+                if not mob or not mob.alive or not self.character:
+                    return None
+                template = MOB_TEMPLATES.get(mob.template_id, {})
+                if not isinstance(template, dict) or template.get("training_dummy"):
+                    return None
+
+                members = self.adaptive_party_members_v11330(mob)
+                party_dps = sum(
+                    self.adaptive_member_dps_v11330(member)
+                    for member in members
+                )
+                base_max = max(1, int(template.get("max_hp", 1) or 1))
+                target_max = adaptive_target_max_hp_v11330(
+                    base_max, party_dps, template
+                )
+                old_max = max(
+                    base_max,
+                    int(getattr(mob, "adaptive_max_hp_v11330", 0) or base_max),
+                )
+
+                # Never shrink an active fight when a member leaves or loses buffs.
+                if target_max > old_max:
+                    damage_already_done = max(0, old_max - max(0, int(mob.hp)))
+                    mob.hp = max(1, target_max - damage_already_done)
+                    old_max = target_max
+
+                mob.adaptive_max_hp_v11330 = old_max
+                mob.adaptive_hp_multiplier_v11330 = round(
+                    old_max / float(base_max), 6
+                )
+                mob.adaptive_party_size_v11330 = len(members)
+                mob.adaptive_party_dps_v11330 = round(float(party_dps), 3)
+                mob.adaptive_rank_v11330 = adaptive_combat_rank_v11330(template)
+                mob.adaptive_reward_multiplier_v11330 = (
+                    adaptive_reward_multiplier_v11330(base_max, old_max)
+                )
+                return {
+                    "max_hp": old_max,
+                    "base_max_hp": base_max,
+                    "party_size": len(members),
+                    "party_dps": party_dps,
+                    "hp_multiplier": mob.adaptive_hp_multiplier_v11330,
+                    "reward_multiplier": mob.adaptive_reward_multiplier_v11330,
+                    "rank": mob.adaptive_rank_v11330,
+                }
+
+    def adaptive_enemy_damage_multiplier_v11330(self, mob, template=None):
+                if not mob or not self.character:
+                    return 1.0
+                template = template or MOB_TEMPLATES.get(mob.template_id, {})
+                if not isinstance(template, dict) or template.get("training_dummy"):
+                    return 1.0
+
+                party_size = max(
+                    1, int(getattr(mob, "adaptive_party_size_v11330", 1) or 1)
+                )
+                desired = max(
+                    1.0,
+                    float(self.max_hp())
+                    * adaptive_target_incoming_fraction_v11330(
+                        template, party_size
+                    ),
+                )
+                base_raw = max(1, int(template.get("damage", 1) or 1))
+                base_expected = max(
+                    1.0, float(self.consider_enemy_expected_hit(template))
+                )
+                if base_expected >= desired:
+                    return 1.0
+
+                # Defense is nonlinear because flat mitigation is capped relative
+                # to raw damage. Search the raw hit that produces the intended
+                # post-defense pressure for THIS target instead of guessing.
+                low = float(base_raw)
+                high = max(low * 2.0, 2.0)
+                probe = dict(template)
+                for _ in range(24):
+                    probe["damage"] = max(1, int(round(high)))
+                    if self.consider_enemy_expected_hit(probe) >= desired:
+                        break
+                    high *= 2.0
+                for _ in range(18):
+                    mid = (low + high) / 2.0
+                    probe["damage"] = max(1, int(round(mid)))
+                    if self.consider_enemy_expected_hit(probe) < desired:
+                        low = mid
+                    else:
+                        high = mid
+                return max(1.0, min(1_000_000_000.0, high / float(base_raw)))
+
     def mec_combat_mastery_active_v1124(self):
                 """Selected Mec inherent adapted to Soulbound's one-Soul-Weapon model."""
                 c = self.character

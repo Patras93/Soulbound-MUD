@@ -315,11 +315,6 @@ def crypt_party_rebalance_audit_v0368():
 
 
 CRYPT_PARTY_REBALANCE_AUDIT_V0368 = crypt_party_rebalance_audit_v0368()
-if CRYPT_PARTY_REBALANCE_AUDIT_V0368["error_count"]:
-    raise RuntimeError(
-        "Crypt/Party Rebalance Audit v0.36.8 failed: "
-        + "; ".join(CRYPT_PARTY_REBALANCE_AUDIT_V0368["errors"][:50])
-    )
 
 HELP_TOPICS.setdefault("wersja", []).append(
     "v0.36.8: wzmocniono zwykłą i Mityczną Kryptę, zwiększono EXP lochowy oraz dodano drużynowe wycofanie z lochu przez lidera."

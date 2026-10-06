@@ -109,9 +109,7 @@ def full_systems_audit_v03062():
             'metrics':{'rooms':len(ROOMS),'items':len(ITEMS),'mobs':len(MOB_TEMPLATES),'quests':len(QUESTS),'classes':len(CLASSES),'skills':sum(len(v) for v in CLASS_SKILLS.values()),'professions':len(PROFESSION_RANK_NAMES),'recipes':recipe_count,'help_topics':len(HELP_TOPICS),'help_aliases':len(HELP_TOPIC_ALIASES),'command_aliases':len(COMMAND_ALIASES)}}
 
 FULL_SYSTEMS_AUDIT_V03062=full_systems_audit_v03062()
-if FULL_SYSTEMS_AUDIT_V03062['error_count']:
-    raise RuntimeError('Full Systems Audit v0.30.62 failed: '+'; '.join(FULL_SYSTEMS_AUDIT_V03062['errors'][:100]))
-
+# v1.13.30: audit failure is enforced by predeploy_full.py, not production startup.
 HELP_TOPICS['audyt_v03062']=[
     'v0.30.62 wykonuje przekrojowy audyt wszystkich głównych systemów: świat, Generator Core, wszystkie osie EXP, ekonomię, klasy/skille, itemy, moby, questy, crafting, profesje/narzędzia, HELP, PL/EN, social, mentor, gildie, housing, transport, recapy i dostępność.',
     'Od v0.50.2 efektywne tempo bazowych statystyk to około 120 równorzędnych akcji na punkt; wszystkie sześć statystyk nadal otrzymuje osobny EXP i nie ma twardego limitu.',

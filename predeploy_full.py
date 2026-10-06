@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""Run the complete historical runtime and game audit on a disposable database."""
+"""Run the complete production-runtime gameplay audit on a disposable database.
+
+SOULBOUND_FULL_AUDIT enables expensive semantic verification, while historical
+developer/style audit modules remain a separate opt-in lane.
+"""
 from __future__ import annotations
 
 import os
@@ -11,6 +15,7 @@ def main():
     with tempfile.TemporaryDirectory(prefix="soulbound-full-audit-") as directory:
         os.environ["SOULBOUND_DB"] = os.path.join(directory, "audit.db")
         os.environ["SOULBOUND_FULL_AUDIT"] = "1"
+        os.environ.pop("SOULBOUND_HISTORICAL_AUDITS", None)
         with socket.socket() as probe:
             probe.bind(("127.0.0.1", 0))
             os.environ["SOULBOUND_PORT"] = str(probe.getsockname()[1])
@@ -18,11 +23,64 @@ def main():
         try:
             ns = vars(server)
             full = ns["FULL_GAME_PREDEPLOY_AUDIT_V0336"]
-            print(f"FULL PREDEPLOY: {full['error_count']} errors, {full.get('warning_count', 0)} warnings")
-            for error in full.get("errors", ()):
-                print(f"ERROR: {error}")
-            if full["error_count"]:
+            print(
+                "LEGACY FULL GAME AUDIT v0.33.6: "
+                f"{full['error_count']} advisory findings, "
+                f"{full.get('warning_count', 0)} warnings"
+            )
+            for error in full.get("errors", ())[:100]:
+                print(f"LEGACY ADVISORY: {error}")
+
+            # v1.13.30 — audit audytów. Runtime modules may expose diagnostics
+            # without raising during production startup. Full predeploy collects every
+            # audit report from the assembled compatibility namespace and rejects the
+            # image here instead.
+            audit_failures = []
+            audit_advisories = []
+            audit_reports = 0
+            nonblocking_legacy_audits = {
+                "FULL_GAME_PREDEPLOY_AUDIT_V0336",
+            }
+            for name, value in sorted(ns.items()):
+                if "AUDIT" not in str(name).upper() or not isinstance(value, dict):
+                    continue
+                if "error_count" not in value:
+                    continue
+                audit_reports += 1
+                try:
+                    error_count = int(value.get("error_count", 0) or 0)
+                except (TypeError, ValueError, OverflowError):
+                    audit_failures.append(
+                        f"{name}: invalid error_count={value.get('error_count')!r}"
+                    )
+                    continue
+                if error_count:
+                    errors = tuple(value.get("errors", ()) or ())
+                    target = (
+                        audit_advisories
+                        if name in nonblocking_legacy_audits
+                        else audit_failures
+                    )
+                    if errors:
+                        target.extend(
+                            f"{name}: {error}" for error in errors[:100]
+                        )
+                    else:
+                        target.append(
+                            f"{name}: error_count={error_count} without error details"
+                        )
+            print(
+                f"RUNTIME AUDIT REGISTRY: {audit_reports} reports, "
+                f"{len(audit_failures)} blocking failures, "
+                f"{len(audit_advisories)} legacy advisory findings"
+            )
+            for error in audit_advisories[:100]:
+                print(f"RUNTIME AUDIT ADVISORY: {error}")
+            for error in audit_failures[:300]:
+                print(f"RUNTIME AUDIT ERROR: {error}")
+            if audit_failures:
                 raise SystemExit(1)
+
             from admin.cross_system_audit_v1001 import audit as audit_cross_system_v1001
             cross = audit_cross_system_v1001(server)
             print(

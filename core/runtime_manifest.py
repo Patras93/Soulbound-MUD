@@ -14,6 +14,7 @@ _RUNTIME_MODULES_ALL = ['core/bootstrap_economy_professions.py',
  'core/command_catalog.py',
  'core/mines_threat.py',
  'systems/items_resources.py',
+ 'systems/infinite_equipment.py',
  'systems/equipment_crafting.py',
  'systems/content_registry.py',
  'systems/dungeons_regions.py',
@@ -203,7 +204,19 @@ _RUNTIME_MODULES_ALL = ['core/bootstrap_economy_professions.py',
 
 # v0.80.1 Clean Railway Package: these static developer audits are absent from
 # the production runtime/package. FULL PREDEPLOY keeps the historical list.
-FULL_AUDIT_ONLY_MODULES = frozenset(('admin/maintenance_audit_v0400.py', 'admin/explicit_dependencies_audit_v0430.py', 'admin/explicit_gameplay_dependencies_audit_v0440.py', 'admin/explicit_stable_dependencies_audit_v0450.py', 'admin/explicit_persistence_audit_v0460.py', 'admin/combat_architecture_audit_v0470.py', 'admin/catalog_ownership_audit_v0480.py', 'admin/release_integrity_v0369.py', 'admin/world_expansion_v_audit_v0900.py'))
+# v1.13.30: developer/source audits belong to predeploy/full audit, never to
+# the production startup path. A static/literal audit may reject a deployment,
+# but it must not put a healthy Railway service into a restart loop.
+FULL_AUDIT_ONLY_MODULES = frozenset(
+    m for m in _RUNTIME_MODULES_ALL
+    if (
+        (
+            (m.startswith("admin/") and "audit" in m.rsplit("/", 1)[-1].lower())
+            or m.startswith("admin/release_integrity_")
+        )
+        and m != "admin/audits.py"
+    )
+)
 FULL_RUNTIME_MODULES = tuple(_RUNTIME_MODULES_ALL)
 RUNTIME_MODULES = tuple(m for m in FULL_RUNTIME_MODULES if m not in FULL_AUDIT_ONLY_MODULES)
 
@@ -943,6 +956,12 @@ LEGACY_COMPATIBILITY_ALLOWLIST = (
     'admin/architecture_audit_v0390.py',
     'admin/native_modules_audit_v0410.py',
 )
+# v1.13.30: keep the reviewed legacy order, but do not retain developer-audit
+# paths after those modules were removed from production RUNTIME_MODULES.
+LEGACY_COMPATIBILITY_ALLOWLIST = tuple(
+    path for path in LEGACY_COMPATIBILITY_ALLOWLIST
+    if path in RUNTIME_MODULES
+)
 
 EXPECTED_OVERRIDE_ORDER = {'_boss_floor_chest_spec': ['network/protocol_gameplay_utils.py', 'world/magitek_infinite.py'],
  'boss_floor_identity': ['world/economy_quests.py', 'world/magitek_infinite.py'],
@@ -1040,6 +1059,22 @@ EXPLICIT_RUNTIME_EXPORTS["systems/runtime_memory.py"] = (
     "compact_runtime_memory_v0616",
     "memory_efficiency_ii_audit_v0616",
     "V0616_MEMORY_EFFICIENCY_AUDIT",
+)
+
+EXPLICIT_RUNTIME_EXPORTS["systems/infinite_equipment.py"] = (
+    "INFINITE_EQUIPMENT_VERSION",
+    "INFINITE_EQUIPMENT_BASE_STAGE",
+    "INFINITE_EQUIPMENT_STAGE_STEP",
+    "infinite_source_profile",
+    "infinite_equipment_power_multiplier",
+    "infinite_coin_multiplier",
+    "infinite_equipment_variant_id",
+    "parse_infinite_equipment_variant",
+    "register_infinite_equipment_variant",
+    "ensure_infinite_equipment_variant",
+    "infinite_equipment_variant_for_drop",
+    "infinite_equipment_audit_v11330",
+    "INFINITE_EQUIPMENT_AUDIT_V11330",
 )
 
 EXPLICIT_RUNTIME_EXPORTS["admin/help_truth_current.py"] = (

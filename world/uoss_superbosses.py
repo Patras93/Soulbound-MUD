@@ -135,7 +135,7 @@ UOSS_SUPERBOSS_ENCOUNTERS_V11134 = {
     "dad": {"name":"Dad","mode":"solo","unlock_level":80},
     "diabolos": {"name":"Diabolos","mode":"solo","unlock_level":80},
     "harle": {"name":"Harle","mode":"solo_or_party","unlock_level":85},
-    "culex": {"name":"Culex","mode":"party","unlock_level":100},
+    "culex": {"name":"Culex","mode":"party","unlock_level":100,"personal_token":"Quartz Chunk"},
     "ruby_weapon": {
         "name":"Ruby WEAPON","mode":"party","area":"Corel Prison","unlock_level":100,"recommended_level":100,
         "personal_token":"Desert Rose","weapon_pair":"emerald_weapon",
@@ -214,11 +214,6 @@ def uoss_superboss_audit_v11134():
 
 UOSS_SUPERBOSS_AUDIT_V11134 = uoss_superboss_audit_v11134()
 UOSS_SUPERBOSS_AUDIT_V0366 = UOSS_SUPERBOSS_AUDIT_V11134
-if UOSS_SUPERBOSS_AUDIT_V11134["error_count"]:
-    raise RuntimeError(
-        "UOSSMUD Superboss Audit v1.11.34 failed: "
-        + "; ".join(UOSS_SUPERBOSS_AUDIT_V11134["errors"][:50])
-    )
 
 LATEST_CHANGES_TITLE = "Soulbound v0.36.6 - Correct UOSSMUD Named Superbosses"
 LATEST_CHANGES = [

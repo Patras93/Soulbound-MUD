@@ -2,6 +2,7 @@
 from core.runtime_diagnostics import build_runtime_error_report, log_runtime_error
 from events.bootstrap import build_default_event_bus
 import time
+from systems.infinite_equipment import ensure_infinite_equipment_variant
 
 class MudServer:
     def __init__(self):
@@ -13,6 +14,10 @@ class MudServer:
         for _item_id in self.db.persisted_crafting_quality_item_ids_v0332():
             if ensure_crafting_quality_variant_v0332(_item_id):
                 self.crafting_quality_restored_v0332 += 1
+        self.infinite_equipment_restored_v11330 = 0
+        for _item_id in self.db.persisted_infinite_equipment_item_ids_v11330():
+            if ensure_infinite_equipment_variant(_item_id):
+                self.infinite_equipment_restored_v11330 += 1
         self.mine_startup_reset = self.db.reset_mine_for_server_start()
         self.world = World()
         self.sessions = set()
@@ -344,6 +349,20 @@ class MudServer:
             await session.ensure_realtime_combat()
         return joined
 
+    def reset_adaptive_mob_encounter_v11330(self, mob):
+        """Restore template-local stats when an encounter fully ends without a kill."""
+        if not mob:
+            return
+        template = MOB_TEMPLATES.get(mob.template_id, {})
+        if mob.alive and isinstance(template, dict):
+            mob.hp = max(1, int(template.get("max_hp", 1) or 1))
+        mob.adaptive_max_hp_v11330 = 0
+        mob.adaptive_hp_multiplier_v11330 = 1.0
+        mob.adaptive_reward_multiplier_v11330 = 1.0
+        mob.adaptive_party_size_v11330 = 1
+        mob.adaptive_party_dps_v11330 = 0.0
+        mob.adaptive_rank_v11330 = ""
+
     def sanitize_mob_engagement(self, mob):
         """Usuń zombie-aggro, jeśli deklarowany właściciel już realnie nie walczy."""
         if not mob or not mob.alive or not mob.engaged_by:
@@ -389,6 +408,7 @@ class MudServer:
         mob.engaged_at = 0.0
         mob.combat_turn = 0
         mob.player_hits = 0
+        self.reset_adaptive_mob_encounter_v11330(mob)
         return None
 
     def release_all_engagements_for_session(self, leaving_session):
@@ -407,6 +427,7 @@ class MudServer:
                 mob.engaged_at = 0.0
                 mob.combat_turn = 0
                 mob.player_hits = 0
+                self.reset_adaptive_mob_encounter_v11330(mob)
             released += 1
         return released
 

@@ -1205,22 +1205,21 @@ def _generate_quests(ns: dict, mob_levels: dict[str, int], item_levels: dict[str
         if "reward_tool_xp" in q or q.get("reward_tool_type") or q.get("specialist_tool_type"):
             _write_record_numeric_fallback("QUESTS", q, "reward_tool_xp", axis_gain("tool", lvl, max(1.0, workload * .70) * repeat_mult))
 
-        # v1.13.15: authored quest rewards win. Manual currency markers still
-        # force an exact protected amount; otherwise Generator fills currency
-        # only when the quest has no authored denomination at all.
+        # v1.13.30: current authored quest currency always wins. Historical
+        # manual_currency_reward_coins from v0.30.24 is now a fallback for rows
+        # that do not already author any denomination; it must never resurrect
+        # an old amount over newer handcrafted economy/balance work.
         manual_coins = q.get("manual_currency_reward_coins")
         has_authored_currency = any(
             key in q for key in ("reward_silver", "reward_gold", "reward_mithril")
         )
-        if manual_coins is not None:
-            coins = clamp(int(manual_coins), 0, SAFE_INT)
-            _write_record_numeric("QUESTS", q, "reward_silver", min(SAFE_INT, coins))
-            _write_record_numeric("QUESTS", q, "reward_gold", 0)
-            _write_record_numeric("QUESTS", q, "reward_mithril", 0)
-        elif not has_authored_currency:
-            coins = quest_currency_for_stage(
-                lvl, workload, bool(q.get("repeatable")), str(qid)
-            )
+        if not has_authored_currency:
+            if manual_coins is not None:
+                coins = clamp(int(manual_coins), 0, SAFE_INT)
+            else:
+                coins = quest_currency_for_stage(
+                    lvl, workload, bool(q.get("repeatable")), str(qid)
+                )
             _write_record_numeric("QUESTS", q, "reward_silver", min(SAFE_INT, coins))
             _write_record_numeric("QUESTS", q, "reward_gold", 0)
             _write_record_numeric("QUESTS", q, "reward_mithril", 0)
@@ -1763,11 +1762,80 @@ def authored_reward_snapshot(ns: dict) -> dict:
                 for field in recipe_fields
                 if field in recipe
             }
-    return {"quests": quests, "recipes": recipes}
+    # generator_level is Generator-owned telemetry, not authored skill balance.
+    # Protect every actual combat number that existed before Generator runs.
+    skill_fields = tuple(sorted(NUMERIC_SKILL_FIELDS - {"generator_level"}))
+    skills = {}
+    for class_name, rows in (ns.get("CLASS_SKILLS", {}) or {}).items():
+        skills[str(class_name)] = {}
+        for index, skill in enumerate(rows):
+            sid = str(skill.get("id") or f"index:{index}")
+            skills[str(class_name)][sid] = {
+                field: _freeze_semantic(skill[field])
+                for field in skill_fields
+                if field in skill
+            }
+    return {"quests": quests, "recipes": recipes, "skills": skills}
+
+
+def authored_reward_differences(ns: dict, before: dict) -> list[str]:
+    """Explain any authored numeric mutation with an exact domain/id/field diff."""
+    differences = []
+    if not isinstance(before, dict):
+        return ["snapshot: invalid before-state"]
+
+    quests_now = ns.get("QUESTS", {}) or {}
+    for qid, fields in (before.get("quests") or {}).items():
+        current = quests_now.get(qid)
+        if not isinstance(current, dict):
+            differences.append(f"quest/{qid}: row missing")
+            continue
+        for field, expected in fields.items():
+            actual = _freeze_semantic(current.get(field)) if field in current else "<missing>"
+            if actual != expected:
+                differences.append(f"quest/{qid}/{field}: {expected!r} -> {actual!r}")
+
+    for table_name, rows in (before.get("recipes") or {}).items():
+        table_now = ns.get(table_name, {}) or {}
+        for rid, fields in rows.items():
+            current = table_now.get(rid)
+            if not isinstance(current, dict):
+                differences.append(f"{table_name}/{rid}: row missing")
+                continue
+            for field, expected in fields.items():
+                actual = _freeze_semantic(current.get(field)) if field in current else "<missing>"
+                if actual != expected:
+                    differences.append(
+                        f"{table_name}/{rid}/{field}: {expected!r} -> {actual!r}"
+                    )
+
+    skills_now = ns.get("CLASS_SKILLS", {}) or {}
+    for class_name, rows in (before.get("skills") or {}).items():
+        current_rows = {
+            str(skill.get("id") or f"index:{index}"): skill
+            for index, skill in enumerate(skills_now.get(class_name, ()) or ())
+        }
+        for sid, fields in rows.items():
+            current = current_rows.get(sid)
+            if not isinstance(current, dict):
+                differences.append(f"skill/{class_name}/{sid}: row missing")
+                continue
+            for field, expected in fields.items():
+                actual = _freeze_semantic(current.get(field)) if field in current else "<missing>"
+                if actual != expected:
+                    differences.append(
+                        f"skill/{class_name}/{sid}/{field}: {expected!r} -> {actual!r}"
+                    )
+    return differences
 
 
 def authored_rewards_preserved(ns: dict, before: dict) -> bool:
-    """New fallback fields may appear, but every pre-existing authored value is immutable."""
+    """Every pre-existing authored quest/recipe/skill numeric value is immutable."""
+    return not authored_reward_differences(ns, before)
+
+
+def _authored_rewards_preserved_legacy_removed(ns: dict, before: dict) -> bool:
+    """Legacy implementation retained only as source history; never called."""
     if not isinstance(before, dict):
         return False
     quests_now = ns.get("QUESTS", {}) or {}
@@ -1787,9 +1855,23 @@ def authored_rewards_preserved(ns: dict, before: dict) -> bool:
             for field, expected in fields.items():
                 if field not in current or _freeze_semantic(current[field]) != expected:
                     return False
+
+    skills_now = ns.get("CLASS_SKILLS", {}) or {}
+    for class_name, rows in (before.get("skills") or {}).items():
+        current_rows = {
+            str(skill.get("id") or f"index:{index}"): skill
+            for index, skill in enumerate(skills_now.get(class_name, ()) or ())
+        }
+        for sid, fields in rows.items():
+            current = current_rows.get(sid)
+            if not isinstance(current, dict):
+                return False
+            for field, expected in fields.items():
+                if field not in current or _freeze_semantic(current[field]) != expected:
+                    return False
     return True
 
-def validate(ns: dict) -> dict:
+def validate(ns: dict, authored_rewards_before: dict | None = None) -> dict:
     errors = []
     mobs = ns.get("MOB_TEMPLATES", {})
     items = ns.get("ITEMS", {})
@@ -1831,11 +1913,21 @@ def validate(ns: dict) -> dict:
         if min(silver, gold, mithril) < 0:
             errors.append(f"quest negative currency {qid}")
         manual = q.get("manual_currency_reward_coins")
-        if manual is not None:
+        before_quest = (
+            ((authored_rewards_before or {}).get("quests") or {}).get(str(qid), {})
+        )
+        had_authored_currency = any(
+            key in before_quest
+            for key in ("reward_silver", "reward_gold", "reward_mithril")
+        )
+        # Legacy V03024 manual values are fallback-only in v1.13.30.
+        # Exact equality is required only when Generator had to create currency
+        # because the quest did not already contain a newer authored reward.
+        if manual is not None and not had_authored_currency:
             expected = clamp(int(manual), 0, SAFE_INT)
             if silver != expected or gold != 0 or mithril != 0:
                 errors.append(
-                    f"quest manual currency changed {qid}: "
+                    f"quest manual fallback not applied {qid}: "
                     f"{silver}/{gold}/{mithril}!={expected}/0/0"
                 )
     skill_count = 0
@@ -1855,8 +1947,27 @@ def validate(ns: dict) -> dict:
         if unlocks and (min(unlocks) != 1 or max(unlocks) != MAX_LEVEL): errors.append(f"skill span {cname}")
         if cname not in ("Inżynier","Mec"):
             for level in skill_grid:
-                if per_unlock.get(level, 0) != 3:
-                    errors.append(f"skill grid {cname}:{level}={per_unlock.get(level,0)} expected=3")
+                rows_at_level = [
+                    skill for skill in rows
+                    if int(skill.get("unlock", 0) or 0) == int(level)
+                ]
+                actual = len(rows_at_level)
+                if actual < 3:
+                    errors.append(
+                        f"skill grid {cname}:{level}={actual} expected minimum 3"
+                    )
+                    continue
+                if actual > 3:
+                    source_authored = sum(
+                        1 for skill in rows_at_level
+                        if any(str(key).startswith("source_") for key in skill)
+                    )
+                    extras = actual - 3
+                    if source_authored < extras:
+                        errors.append(
+                            f"skill grid {cname}:{level}={actual}; "
+                            f"{extras} extra but only {source_authored} source-authored"
+                        )
     for table_name in ("CRAFT_RECIPES","COOK_RECIPES","ALCHEMY_RECIPES","JEWELCRAFT_RECIPES"):
         for rid, recipe in (ns.get(table_name, {}) or {}).items():
             lvl = int(recipe.get("generator_level", 0) or 0)
@@ -1909,15 +2020,19 @@ def apply_generator_core(ns: dict) -> dict:
     if full_audit:
         semantic_after = semantic_fingerprint(ns)
         whitelist_audit = generator_whitelist_validate(ns, whitelist_before)
-        audit = validate(ns)
+        audit = validate(ns, authored_rewards_before)
         semantic_ok = semantic_before == semantic_after
-        authored_rewards_ok = authored_rewards_preserved(
+        authored_reward_differences_v11330 = authored_reward_differences(
             ns, authored_rewards_before
         )
+        authored_rewards_ok = not authored_reward_differences_v11330
         audit["semantic_fingerprint_before"] = semantic_before
         audit["semantic_fingerprint_after"] = semantic_after
         audit["semantic_preserved"] = semantic_ok
         audit["authored_rewards_preserved"] = authored_rewards_ok
+        audit["authored_reward_differences"] = tuple(
+            authored_reward_differences_v11330[:100]
+        )
         audit["whitelist_enforced"] = True
         audit["whitelist_passed"] = bool(whitelist_audit.get("passed"))
         audit["whitelist_audit"] = whitelist_audit
@@ -1925,7 +2040,8 @@ def apply_generator_core(ns: dict) -> dict:
             audit["errors"].append("Generator Core changed protected authored semantics")
         if not authored_rewards_ok:
             audit["errors"].append(
-                "Generator Core changed pre-existing authored quest/recipe rewards"
+                "Generator Core changed pre-existing authored quest/recipe/skill numeric values: "
+                + "; ".join(authored_reward_differences_v11330[:20])
             )
         if not whitelist_audit.get("passed"):
             audit["errors"].extend(whitelist_audit.get("errors", []))

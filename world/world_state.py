@@ -2,6 +2,7 @@ from data import catalog_mutations as _catalog_mut
 from core.bootstrap_economy_professions import SILVER_PER_GOLD
 from core.mines_threat import v0866_room_threat_profile
 from systems.items_resources import economy_stage_anchor_v11314
+from systems.infinite_equipment import infinite_equipment_variant_for_drop
 
 @dataclass
 class CorpseState:
@@ -31,6 +32,13 @@ class MobState:
     next_wander_at: float = 0.0
     # AoE: mob trafiony obszarówką zachowuje aggro nawet gdy nie jest głównym combat_mob_key.
     aoe_engaged_by: Optional[str] = None
+    # v1.13.30: encounter-local adaptive scaling. Template identity stays intact.
+    adaptive_max_hp_v11330: int = 0
+    adaptive_hp_multiplier_v11330: float = 1.0
+    adaptive_reward_multiplier_v11330: float = 1.0
+    adaptive_party_size_v11330: int = 1
+    adaptive_party_dps_v11330: float = 0.0
+    adaptive_rank_v11330: str = ""
 
 
 # ============================================================
@@ -577,6 +585,12 @@ class World:
                     mob.player_hits = 0
                     mob.phase_stage = 0
                     mob.engaged_at = 0.0
+                    mob.adaptive_max_hp_v11330 = 0
+                    mob.adaptive_hp_multiplier_v11330 = 1.0
+                    mob.adaptive_reward_multiplier_v11330 = 1.0
+                    mob.adaptive_party_size_v11330 = 1
+                    mob.adaptive_party_dps_v11330 = 0.0
+                    mob.adaptive_rank_v11330 = ""
                     if mob.home_room_id:
                         mob.room_id = mob.home_room_id
                     mob.next_wander_at = now + random.uniform(
@@ -758,8 +772,11 @@ class World:
                 or template.get("mythic_crypt_boss")
             )
             items = [
-                roll_crypt_loot_item(
-                    item_id, is_boss=is_crypt_boss
+                infinite_equipment_variant_for_drop(
+                    roll_crypt_loot_item(
+                        item_id, is_boss=is_crypt_boss
+                    ),
+                    template,
                 )
                 for item_id in items
             ]
@@ -799,7 +816,9 @@ class World:
         # Zwykły mob nie gwarantuje klasowego przedmiotu, więc nie zalewamy ekonomii.
         class_pool = class_equipment_drop_pool(template)
         if class_pool and random.random() < class_equipment_drop_chance(template):
-            class_item = random.choice(class_pool)
+            class_item = infinite_equipment_variant_for_drop(
+                random.choice(class_pool), template
+            )
             if class_item not in items:
                 items.append(class_item)
         self.corpse_counter += 1; now=time.time()

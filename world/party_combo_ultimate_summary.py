@@ -620,5 +620,4 @@ def party_systems_audit_v0380():
     }
 
 PARTY_SYSTEMS_AUDIT_V0380 = party_systems_audit_v0380()
-if PARTY_SYSTEMS_AUDIT_V0380["error_count"]:
-    raise RuntimeError("Party Systems Audit v0.38.0 failed: " + "; ".join(PARTY_SYSTEMS_AUDIT_V0380["errors"]))
+# v1.13.30: audit failure is enforced by predeploy_full.py, not production startup.

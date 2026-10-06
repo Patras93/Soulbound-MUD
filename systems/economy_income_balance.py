@@ -283,11 +283,54 @@ def economy_income_audit_v1124():
 
 
 ECONOMY_INCOME_AUDIT_V1124 = economy_income_audit_v1124()
-if ECONOMY_INCOME_AUDIT_V1124["error_count"]:
-    raise RuntimeError(
-        "Economy Income Audit v1.13.14 failed: "
-        + "; ".join(ECONOMY_INCOME_AUDIT_V1124["errors"])
-    )
+
+
+def reward_consistency_audit_v11330():
+    """Final economy report across static quests and shared runtime floors."""
+    errors = list(ECONOMY_INCOME_AUDIT_V1124.get("errors", ()))
+    activities = ("courier", "ocean_trade", "dynamic_world", "ocean_treasure")
+    stages = (1, 50, 100, 200, 300, 400, 500, 600)
+    curves = {}
+    for kind in activities:
+        values = tuple(v1138_activity_income(stage, kind) for stage in stages)
+        curves[kind] = values
+        if any(b <= a for a, b in zip(values, values[1:])):
+            errors.append(f"{kind}: runtime income floor is not strictly increasing")
+
+    for stage in stages:
+        courier = v1138_activity_income(stage, "courier")
+        ocean = v1138_activity_income(stage, "ocean_trade")
+        dynamic = v1138_activity_income(stage, "dynamic_world")
+        treasure = v1138_activity_income(stage, "ocean_treasure")
+        if not (courier < ocean < dynamic < treasure):
+            errors.append(
+                f"stage {stage}: activity value order must be "
+                "courier < ocean_trade < dynamic_world < ocean_treasure"
+            )
+
+    profession_quests = 0
+    for quest_id, quest in QUESTS.items():
+        if "reward_profession_xp" in quest:
+            profession_quests += 1
+            if int(quest.get("reward_profession_xp", 0) or 0) <= 0:
+                errors.append(f"{quest_id}: non-positive profession XP")
+        if "reward_tool_xp" in quest and int(quest.get("reward_tool_xp", 0) or 0) <= 0:
+            errors.append(f"{quest_id}: non-positive tool XP")
+
+    return {
+        "version": "1.13.30",
+        "static_positive_quests": int(
+            ECONOMY_INCOME_BALANCE_V1124.get("positive_quests", 0) or 0
+        ),
+        "profession_quests": profession_quests,
+        "activity_curves": curves,
+        "error_count": len(errors),
+        "errors": errors,
+    }
+
+
+REWARD_CONSISTENCY_AUDIT_V11330 = reward_consistency_audit_v11330()
+# Deploy-time audit, runtime diagnostic only. Do not restart-loop production.
 
 
 HELP_TOPICS["ekonomia"] = [

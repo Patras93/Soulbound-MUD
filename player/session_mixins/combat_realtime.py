@@ -82,6 +82,9 @@ class SessionCombatRealtimeMixin:
     async def realtime_player_action(self, mob):
                 if not mob or not mob.alive:
                     return
+                # Re-evaluate only upward so late party joins / stronger current
+                # builds cannot leave an already engaged mob as a one-hit sponge.
+                self.apply_adaptive_mob_scale_v11330(mob)
                 # Timed V-MAX must expire during ordinary realtime combat too,
                 # not only when the player manually invokes another skill.
                 await self.mec_refresh_vmax_v0319()
@@ -129,7 +132,10 @@ class SessionCombatRealtimeMixin:
                 # Broni Duszy. Nie modyfikują skilli ani spelli.
                 trait_totals = soul_weapon_trait_totals_v11193(self.character.soul_tier, self.character.class_name)
                 damage = max(0, int(round(damage * (1.0 + trait_totals["damage_percent"] / 100.0))))
-                if mob.hp <= max(1, int(round(template["max_hp"] * 0.35))):
+                if mob.hp <= max(
+                    1,
+                    int(round(self.mob_effective_max_hp_v11330(mob, template) * 0.35)),
+                ):
                     damage = max(0, int(round(damage * (1.0 + trait_totals["execute_damage_percent"] / 100.0))))
                 _is_boss_target = any(template.get(flag) for flag in (
                     "world_boss", "mini_boss", "crypt_boss", "astral_boss",
@@ -174,9 +180,18 @@ class SessionCombatRealtimeMixin:
                     _helper_mult = self.equipment_damage_multiplier(_helper_kind)
                     _helper_mult *= self.total_set_damage_multiplier()
                     _helper_mult *= character_offensive_build_multiplier(_helper_raw_stat)
+                    _helper_role_mult = max(
+                        0.90,
+                        min(1.20, float(_uoss_helper.get("damage_multiplier", 1.0) or 1.0)),
+                    )
                     _uoss_helper_damage = max(
                         1,
-                        int(round((self.character.soul_power() + _helper_stat) * 0.65 * _helper_mult)),
+                        int(round(
+                            (self.character.soul_power() + _helper_stat)
+                            * 0.65
+                            * _helper_role_mult
+                            * _helper_mult
+                        )),
                     )
                 damage = await self.apply_boss_defense(mob, damage)
                 if _zantetsuken_no_melee:
@@ -212,7 +227,7 @@ class SessionCombatRealtimeMixin:
                     if _uoss_helper_damage:
                         await self.send_combat(
                             f"{_helper_name} pomaga: {_uoss_helper_damage} obrażeń. "
-                            f"Przeciwnik: {max(0, mob.hp)} z {template['max_hp']} HP.",
+                            f"Przeciwnik: {max(0, mob.hp)} z {self.mob_effective_max_hp_v11330(mob, template)} HP.",
                             "normal",
                         )
                 self._recap52_dealt=int(getattr(self,"_recap52_dealt",0))+max(0,int(damage))+max(0,int(_uoss_helper_damage))
@@ -246,7 +261,7 @@ class SessionCombatRealtimeMixin:
                         if _actual_hits > 1 else
                         f"Zadajesz {damage} obrażeń. "
                     )
-                    + f"Przeciwnik: {max(0, mob.hp)} z {template['max_hp']} życia."
+                    + f"Przeciwnik: {max(0, mob.hp)} z {self.mob_effective_max_hp_v11330(mob, template)} życia."
                     + (f" Właściwość Broni Duszy leczy {soul_heal}." if soul_heal > 0 else "")
                     + (f" Odzyskujesz {_mana_restore} Many." if _mana_restore > 0 else "")
                     + (f" Echo Broni Duszy zadaje dodatkowo {echo_damage} obrażeń." if echo_damage > 0 else "")
@@ -683,7 +698,16 @@ class SessionCombatRealtimeMixin:
                                         float(_mob_flavor_v11324.get("damage_multiplier", 1.0))
                                         if _mob_flavor_v11324 else 1.0
                                     )
-                                    _enemy_action_mult_v11324 = _uoss_mult * _flavor_mult_v11324
+                                    _adaptive_enemy_mult_v11330 = (
+                                        target_session.adaptive_enemy_damage_multiplier_v11330(
+                                            enemy_mob, _enemy_template
+                                        )
+                                    )
+                                    _enemy_action_mult_v11324 = (
+                                        _uoss_mult
+                                        * _flavor_mult_v11324
+                                        * _adaptive_enemy_mult_v11330
+                                    )
                                     if _enemy_action_mult_v11324 != 1.0:
                                         _old_damage = _enemy_template.get("damage", 1)
                                         _enemy_template["damage"] = max(
@@ -842,6 +866,7 @@ class SessionCombatRealtimeMixin:
                     await self.send(_uoss_reason)
                     return
 
+                _adaptive_profile_v11330 = self.apply_adaptive_mob_scale_v11330(mob)
                 new_fight = self.combat_mob_key != mob.key
                 was_unengaged = not mob.engaged_by
                 protector = await self.server.apply_party_protection(self, mob)
@@ -866,10 +891,22 @@ class SessionCombatRealtimeMixin:
                         "Walka w czasie rzeczywistym rozpoczęta. "
                         "Auto kolejka i zwykłe ataki działają automatycznie; użyj flee, aby się wycofać."
                     )
+                    if _adaptive_profile_v11330:
+                        await self.send_combat(
+                            "Skala starcia: "
+                            f"{_adaptive_profile_v11330['party_size']} graczy, "
+                            f"ranga {_adaptive_profile_v11330['rank']}, "
+                            f"HP x{_adaptive_profile_v11330['hp_multiplier']:.2f}, "
+                            f"nagroda x{_adaptive_profile_v11330['reward_multiplier']:.2f}.",
+                            "full",
+                        )
                     _uoss_helper = superboss_helper_profile_v11137(self, MOB_TEMPLATES[mob.template_id])
                     if _uoss_helper:
                         await self.server.party_combat_broadcast(
-                            self, f"{_uoss_helper['name']} dołącza jako pomocnik do tej walki.", detail="essential"
+                            self,
+                            f"{_uoss_helper['name']} dołącza jako pomocnik do tej walki. "
+                            f"Rola: {_uoss_helper.get('role', 'support')}.",
+                            detail="essential"
                         )
                 else:
                     await self.send(
