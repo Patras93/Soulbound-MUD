@@ -304,13 +304,7 @@ def dungeon_named_entry_audit_v03812():
 
 
 DUNGEON_NAMED_ENTRY_AUDIT_V03812 = dungeon_named_entry_audit_v03812()
-if DUNGEON_NAMED_ENTRY_AUDIT_V03812["error_count"]:
-    raise RuntimeError(
-        "Dungeon Named Entry Audit v0.38.12 failed: "
-        + "; ".join(DUNGEON_NAMED_ENTRY_AUDIT_V03812["errors"][:100])
-    )
-
-
+# v1.13.30: audit failure is enforced by predeploy_full.py, not production startup.
 LATEST_CHANGES_TITLE = "Soulbound v0.38.12 - Named Dungeon Entry & Return"
 LATEST_CHANGES = [
     "Przy progu Krypty, Wieży lub lochu wpisujesz nazwę miejsca zamiast kierunku granicznego.",
