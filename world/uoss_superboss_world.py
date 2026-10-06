@@ -229,6 +229,25 @@ for _iid in _BLACK_RABITE_SHOP_ITEMS_V11190:
     if _iid not in SHOPS["market"]:
         SHOPS["market"].append(_iid)
 
+# v1.13.26: UOSS gear is its own build source. It is intentionally
+# identified by authored wards/status proofs/special effects rather than by
+# copying shop/crafted/crypt profiles.
+for _identity_item_id, _identity_item in ITEMS.items():
+    if not (
+        str(_identity_item_id).startswith("uoss_")
+        or str(_identity_item_id).startswith("culex_")
+    ):
+        continue
+    if _identity_item.get("type") not in {"armor", "soul_weapon_relic"}:
+        continue
+    _identity_item.setdefault("equipment_identity_source", "uoss_unique")
+    _identity_item.setdefault("equipment_identity_role", "special_effects")
+    _identity_item.setdefault(
+        "equipment_identity_label",
+        "UOSS Superboss — specjalne efekty, wardy, odporności lub relikt",
+    )
+
+
 _UNIVERSAL_UOSS_ACCESSORIES_V11195 = (
     "uoss_black_rabite_unique_5",
     "uoss_odin_unique_4",
