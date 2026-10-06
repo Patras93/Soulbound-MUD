@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Fast Railway predeploy gate for Soulbound v1.13.17.
+"""Fast Railway predeploy gate for Soulbound v1.13.18.
 
 This is the normal deploy check.  It intentionally avoids assembling the full
 world/runtime.  Use predeploy_full.py when an exhaustive historical audit is
@@ -16,7 +16,7 @@ import traceback
 try:
     from storage.database import Database as _DatabaseImportSmoke
 except Exception as exc:
-    print(f"Soulbound v1.13.17 FAST PREDEPLOY FAILED: database import: {type(exc).__name__}: {exc}")
+    print(f"Soulbound v1.13.18 FAST PREDEPLOY FAILED: database import: {type(exc).__name__}: {exc}")
     traceback.print_exc()
     raise SystemExit(1)
 
@@ -37,7 +37,7 @@ try:
     )
 except Exception as exc:
     print(
-        "Soulbound v1.13.17 FAST PREDEPLOY FAILED: "
+        "Soulbound v1.13.18 FAST PREDEPLOY FAILED: "
         f"skill semantic import: {type(exc).__name__}: {exc}"
     )
     traceback.print_exc()
@@ -700,6 +700,7 @@ if 'GENERATOR_VERSION = "0.64.0"' not in _generator_source:
 # no progression_600 monkey patches.
 _combat_realtime_source_v11317 = (_root / "player/session_mixins/combat_realtime.py").read_text(encoding="utf-8")
 _admin_audits_source_v11317 = (_root / "admin/audits.py").read_text(encoding="utf-8")
+_help_refresh_source_v11318 = (_root / "admin/help_refresh.py").read_text(encoding="utf-8")
 for _needle in (
     "from core.economy_curve import (",
     'economy_lane_amount(level, "mob_currency"',
@@ -734,6 +735,18 @@ if _admin_audits_source_v11317.count(
 ) != 3:
     _semantic_errors.append(
         "Generator full-audit gates are not bound to live Generator version"
+    )
+
+if 'GENERATOR_CORE_VERSION != "0.61.0"' in _help_refresh_source_v11318:
+    _semantic_errors.append(
+        "help_refresh Combat/Stat audit still hardcodes Generator 0.61.0"
+    )
+if (
+    "GENERATOR_CORE_VERSION != generator_core_v027.GENERATOR_VERSION"
+    not in _help_refresh_source_v11318
+):
+    _semantic_errors.append(
+        "help_refresh Combat/Stat audit is not bound to live Generator version"
     )
 
 for _needle in (
@@ -1067,18 +1080,18 @@ except Exception as exc:
     )
 
 if _semantic_errors:
-    print("Soulbound v1.13.17 FAST PREDEPLOY FAILED: semantic contracts")
+    print("Soulbound v1.13.18 FAST PREDEPLOY FAILED: semantic contracts")
     for _error in _semantic_errors:
         print(f"ERROR: {_error}")
     raise SystemExit(1)
 
 if audit["error_count"]:
-    print("Soulbound v1.13.17 FAST PREDEPLOY FAILED")
+    print("Soulbound v1.13.18 FAST PREDEPLOY FAILED")
     for error in audit["errors"]:
         print(f"ERROR: {error}")
     raise SystemExit(1)
 
-print("Soulbound v1.13.17 FAST PREDEPLOY PASS")
+print("Soulbound v1.13.18 FAST PREDEPLOY PASS")
 print(
     "Semantic contracts: "
     f"{len(_semantic_audits)} audits PASS; AP runtime guards PASS"

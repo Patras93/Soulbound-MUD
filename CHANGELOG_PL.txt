@@ -1,5 +1,5 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.13.17
+Aktualna paczka: v1.13.18
 
 
 
@@ -7,6 +7,18 @@ Aktualna paczka: v1.13.17
 
 
 
+
+
+==============================================================================
+Soulbound v1.13.18 — awaryjny hotfix Combat/Stat Audit
+==============================================================================
+
+- Naprawiono crash-loop po v1.13.17 w admin/help_refresh.py.
+- Historyczny Combat/Stat Audit v0.30.16 nie oczekuje już na sztywno
+  Generator Core 0.61.0; porównuje runtime z bieżącym
+  generator_core_v027.GENERATOR_VERSION.
+- Fast predeploy blokuje powrót tego hardcoded warunku.
+- Brak zmian balansu, ekonomii, walki, save'ów i zawartości.
 
 ==============================================================================
 Soulbound v1.13.17 — ostatnie odchudzenie Generator Core
