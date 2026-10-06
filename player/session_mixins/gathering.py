@@ -51,6 +51,7 @@ from core.progression_resources import (
     mine_floor_number,
     mining_ore_weights,
 )
+from core.profession_timing import profession_action_seconds as authored_profession_action_seconds
 from network.protocol_gameplay_utils import find_by_name, normalize_lookup_text
 from systems.dungeons_regions import profession_dungeon_floor
 from systems.equipment_crafting import roll_mined_gem_quality
@@ -684,15 +685,15 @@ class SessionGatheringMixin:
             return max(1, min(profession_max_level(profession), int(row["level"])))
 
     def profession_action_seconds(self, tool_type, profession_level):
-            return generator_core_v027.profession_action_seconds(tool_type, profession_level)
+            return authored_profession_action_seconds(tool_type, profession_level)
 
     def tool_action_seconds(self, tool_type, profession_level):
             """Alias zgodności: od v0.8.66 argument oznacza poziom PROFESJI, nie narzędzia."""
             return self.profession_action_seconds(tool_type, profession_level)
 
     def recipe_action_seconds(self, tool_type, profession_level, recipe):
-            """Generator Core owns both profession tempo and recipe-stage complexity."""
-            base = generator_core_v027.profession_action_seconds(tool_type, profession_level)
+            """Authored profession tempo plus recipe-stage complexity."""
+            base = authored_profession_action_seconds(tool_type, profession_level)
             required = max(1, min(PROFESSION_MAX_LEVEL, int(recipe.get("generator_level", 1) or 1)))
             progress_gap = max(0, required - int(profession_level))
             generated_penalty = int(round(3.0 * progress_gap / float(PROFESSION_MAX_LEVEL)))

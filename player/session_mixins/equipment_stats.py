@@ -3,7 +3,18 @@
 
 # v0.44.0: explicit dependencies; no compatibility-global injection.
 import random
-from core.bootstrap_economy_professions import generator_core_v027
+from core.character_resources import (
+    character_hp_base,
+    character_mana_base,
+)
+from core.player_math import (
+    character_attribute_power,
+    critical_chance_from_dexterity,
+    critical_multiplier as player_critical_multiplier,
+    magic_defense_base,
+    physical_defense_base,
+    speed_from_dexterity,
+)
 from core.mines_threat import ITEMS
 from core.progression_600 import CHARACTER_MAX_LEVEL, CLASS_MASTERY_MAX_LEVEL
 from core.progression_resources import class_type_for_name
@@ -704,10 +715,10 @@ class SessionEquipmentStatsMixin:
             )
 
     def critical_chance(self):
-            return generator_core_v027.critical_chance_from_dexterity(self.effective_dexterity())
+            return critical_chance_from_dexterity(self.effective_dexterity())
 
     def critical_multiplier(self):
-            return generator_core_v027.critical_multiplier(self.character.character_level)
+            return player_critical_multiplier(self.character.character_level)
 
     def roll_critical_hit(self, damage):
             damage = max(0, int(damage))
@@ -745,7 +756,7 @@ class SessionEquipmentStatsMixin:
 
     def max_hp(self):
             bonuses = self.equipment_bonus_totals()
-            base = generator_core_v027.character_hp_base(
+            base = character_hp_base(
                 self.character.character_level, self.effective_constitution()
             )
             value = int(round(
@@ -758,7 +769,7 @@ class SessionEquipmentStatsMixin:
 
     def max_mana(self):
             bonuses = self.equipment_bonus_totals()
-            base = generator_core_v027.character_mana_base(
+            base = character_mana_base(
                 self.character.character_level, self.effective_intelligence(), self.effective_willpower()
             )
             value = int(round(
@@ -772,7 +783,7 @@ class SessionEquipmentStatsMixin:
     def physical_power(self):
             flat = self.equipment_flat_power_totals_v11187()
             return (
-                generator_core_v027.character_attribute_power(
+                character_attribute_power(
                     self.character.character_level, self.effective_strength()
                 )
                 + int(flat["attack"])
@@ -780,7 +791,7 @@ class SessionEquipmentStatsMixin:
             )
 
     def speed(self):
-            return generator_core_v027.speed_from_dexterity(self.effective_dexterity())
+            return speed_from_dexterity(self.effective_dexterity())
 
     def dodge_chance(self):
             base = v0865_dodge_chance_from_dexterity(
@@ -802,10 +813,10 @@ class SessionEquipmentStatsMixin:
             zwiększa leczenia.
             """
             level = int(self.character.character_level)
-            int_power = generator_core_v027.character_attribute_power(
+            int_power = character_attribute_power(
                 level, self.effective_intelligence()
             )
-            will_power = generator_core_v027.character_attribute_power(
+            will_power = character_attribute_power(
                 level, self.effective_willpower()
             )
             return max(
@@ -819,14 +830,14 @@ class SessionEquipmentStatsMixin:
     def spell_power(self):
             flat = self.equipment_flat_power_totals_v11187()
             return (
-                generator_core_v027.character_attribute_power(
+                character_attribute_power(
                     self.character.character_level, self.effective_intelligence()
                 )
                 + int(flat["magic_attack"])
             )
 
     def magic_defense(self):
-            base = generator_core_v027.magic_defense_base(
+            base = magic_defense_base(
                 self.character.character_level, self.effective_willpower()
             )
             base += int(self.equipment_flat_power_totals_v11187()["magic_defense"])
@@ -845,7 +856,7 @@ class SessionEquipmentStatsMixin:
             # v1.13.8: armor and Constitution both matter. New EQ therefore
             # improves survivability twice in a readable way: its explicit
             # Defense and its CON bonus both reduce incoming physical damage.
-            total = generator_core_v027.physical_defense_base(
+            total = physical_defense_base(
                 self.character.character_level,
                 self.effective_constitution(),
             )
