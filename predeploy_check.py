@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Fast Railway predeploy gate for Soulbound v1.13.26.
+"""Fast Railway predeploy gate for Soulbound v1.13.27.
 
 This is the normal deploy check.  It intentionally avoids assembling the full
 world/runtime.  Use predeploy_full.py when an exhaustive historical audit is
@@ -16,7 +16,7 @@ import traceback
 try:
     from storage.database import Database as _DatabaseImportSmoke
 except Exception as exc:
-    print(f"Soulbound v1.13.26 FAST PREDEPLOY FAILED: database import: {type(exc).__name__}: {exc}")
+    print(f"Soulbound v1.13.27 FAST PREDEPLOY FAILED: database import: {type(exc).__name__}: {exc}")
     traceback.print_exc()
     raise SystemExit(1)
 
@@ -37,7 +37,7 @@ try:
     )
 except Exception as exc:
     print(
-        "Soulbound v1.13.26 FAST PREDEPLOY FAILED: "
+        "Soulbound v1.13.27 FAST PREDEPLOY FAILED: "
         f"skill semantic import: {type(exc).__name__}: {exc}"
     )
     traceback.print_exc()
@@ -293,6 +293,46 @@ for _needle in (
         _semantic_errors.append(
             "terrain recommended mastery floor regression: missing " + _needle
         )
+
+# v1.13.27: loot source progression must remain monotonic and source-aware.
+_equipment_source_progression_v11327 = (_root / "systems/equipment_crafting.py").read_text(encoding="utf-8")
+_items_source_progression_v11327 = (_root / "systems/items_resources.py").read_text(encoding="utf-8")
+_dungeons_source_progression_v11327 = (_root / "systems/dungeons_regions.py").read_text(encoding="utf-8")
+_shop_source_progression_ui_v11327 = (_root / "player/session_mixins/shops_teachers.py").read_text(encoding="utf-8")
+_compare_source_progression_ui_v11327 = (_root / "player/session_mixins/equipment_compare.py").read_text(encoding="utf-8")
+
+for _needle in (
+    '"source_progression_stage": required_mastery',
+    '"source_progression_stage": mastery',
+    "boss set source regression",
+):
+    if _needle not in _equipment_source_progression_v11327:
+        _semantic_errors.append("loot source class/boss progression regression: missing " + _needle)
+
+for _needle in (
+    '"source_progression_stage": level',
+    '"equipment_identity_source": "corpse_drop"',
+    "LOOT_SOURCE_EQUIPMENT_AUDIT_V11327",
+):
+    if _needle not in _items_source_progression_v11327:
+        _semantic_errors.append("loot source craft/corpse progression regression: missing " + _needle)
+
+for _needle in (
+    "LEGACY_NAMED_UNIQUE_SOURCES_V11327",
+    "def _upgrade_named_unique_from_source_v11327",
+    "source_progression_floor_v11327",
+    "LOOT_SOURCE_PROGRESSION_AUDIT_V11327",
+    '"source_progression_stage": mastery',
+):
+    if _needle not in _dungeons_source_progression_v11327:
+        _semantic_errors.append("loot source dungeon/boss progression regression: missing " + _needle)
+
+for _source, _label in (
+    (_shop_source_progression_ui_v11327, "shop info"),
+    (_compare_source_progression_ui_v11327, "equipment compare"),
+):
+    if '"Etap źródła EQ: "' not in _source:
+        _semantic_errors.append(f"loot source progression UI regression: {_label}")
 
 # v1.13.26: Equipment Identity 2.0 keeps acquisition sources materially distinct.
 _equipment_identity_source_v11326 = (_root / "systems/equipment_crafting.py").read_text(encoding="utf-8")
@@ -1292,18 +1332,18 @@ except Exception as exc:
     )
 
 if _semantic_errors:
-    print("Soulbound v1.13.26 FAST PREDEPLOY FAILED: semantic contracts")
+    print("Soulbound v1.13.27 FAST PREDEPLOY FAILED: semantic contracts")
     for _error in _semantic_errors:
         print(f"ERROR: {_error}")
     raise SystemExit(1)
 
 if audit["error_count"]:
-    print("Soulbound v1.13.26 FAST PREDEPLOY FAILED")
+    print("Soulbound v1.13.27 FAST PREDEPLOY FAILED")
     for error in audit["errors"]:
         print(f"ERROR: {error}")
     raise SystemExit(1)
 
-print("Soulbound v1.13.26 FAST PREDEPLOY PASS")
+print("Soulbound v1.13.27 FAST PREDEPLOY PASS")
 print(
     "Semantic contracts: "
     f"{len(_semantic_audits)} audits PASS; AP runtime guards PASS"
