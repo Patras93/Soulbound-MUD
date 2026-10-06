@@ -1102,7 +1102,11 @@ def build_astral_tower():
             exits["up"] = astral_floor_id(floor + 1)
 
         if floor in ASTRAL_BOSS_FLOORS:
-            note = " Strażnik tego poziomu blokuje drogę w górę; Wieża ciągnie się dalej po jego pokonaniu."
+            note = (
+                " Strażnik tego poziomu blokuje drogę w górę; Wieża ciągnie się "
+                "dalej po jego pokonaniu. Po zaliczeniu checkpointu Astralny Portal "
+                "na tym poziomie pozwala wrócić do Astralnej Bramy."
+            )
         else:
             note = ""
 
@@ -1224,7 +1228,11 @@ def build_crypt_200_floors():
         exits["up"]="crypt_hall" if floor==1 else crypt_floor_id(floor-1)
         exits["down"]=crypt_floor_id(floor+1)
         if is_crypt_boss_floor(floor):
-            note=" Przy pierwszym przejściu boss tego progu blokuje zejście do chwili pokonania."
+            note=(
+                " Przy pierwszym przejściu boss tego progu blokuje zejście do chwili "
+                "pokonania. Po zaliczeniu checkpointu Portal Krypty na tym piętrze "
+                "pozwala wrócić do Sali Krypty."
+            )
         else:
             note=""
         _catalog_mut.catalog_assign({
