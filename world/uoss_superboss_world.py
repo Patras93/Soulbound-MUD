@@ -25,6 +25,8 @@ _prev=HUB
 
 # Exact Scanner Data supplied from UOSSMUD. Unknown source fields are omitted
 # rather than inferred. XP is authored source XP and must not be regenerated.
+UOSS_FULL_PROGRESSION_SOURCE_XP_V11331 = 18_900_000
+
 SOURCE_SCANNER_V11156 = {
     "black_rabite": {"level":300,"max_hp":3300000,"max_mp":800000,"xp":18900000,"immune":("Status_all",),"location":"Rabite Field"},
     "culex": {"level":130,"max_hp":400000,"max_mp":200000,"xp":1000000,"resist":("Weapon","Magic"),"immune":("Status_all",),"drop":"Quartz Chunk","drop_item_id":"quartz_chunk","location":"Star Field"},
@@ -53,6 +55,9 @@ for idx,key in enumerate(_ORDER,1):
     MOB_TEMPLATES.setdefault(mid,{
         "name":spec["name"],"max_hp":int(scanner.get("max_hp") or max(5000, level*250)),
         "max_mp":scanner.get("max_mp"),"source_xp":scanner.get("xp"),"source_xp_exact":bool(scanner.get("xp") is not None),
+        "uoss_full_progression_source_xp_exact":bool(
+            int(scanner.get("xp") or 0) == UOSS_FULL_PROGRESSION_SOURCE_XP_V11331
+        ),
         "damage":max(75, level*3),"damage_type":"magic" if key in {"diabolos","ozma","hades","elementals"} else "physical",
         "silver":0,"gold":0,"mithril":0,"stat_reward":0,"soul_reward":0,"drops":{},"quest_target":None,
         "combat_types":scanner.get("types",()),"weak":scanner.get("weak",()),"resist":scanner.get("resist",()),
@@ -336,6 +341,41 @@ def install_uoss_superboss_spawns_v11136(mob_spawns):
             if pair not in mob_spawns:
                 mob_spawns.append(pair)
     return 27
+
+def uoss_full_progression_xp_audit_v11331():
+    expected = {
+        key
+        for key, row in SOURCE_SCANNER_V11156.items()
+        if int(row.get("xp") or 0) == UOSS_FULL_PROGRESSION_SOURCE_XP_V11331
+    }
+    actual = {
+        key
+        for key in expected
+        if bool(
+            MOB_TEMPLATES.get(
+                f"uoss_superboss_{key}_v11136", {}
+            ).get("uoss_full_progression_source_xp_exact")
+        )
+    }
+    errors = []
+    if actual != expected:
+        errors.append(
+            "18.9m full-progression UOSS marker mismatch: "
+            + repr({"expected": sorted(expected), "actual": sorted(actual)})
+        )
+    return {
+        "version": "1.13.31",
+        "source_xp": UOSS_FULL_PROGRESSION_SOURCE_XP_V11331,
+        "bosses": tuple(sorted(expected)),
+        "error_count": len(errors),
+        "errors": errors,
+    }
+
+
+UOSS_FULL_PROGRESSION_XP_AUDIT_V11331 = (
+    uoss_full_progression_xp_audit_v11331()
+)
+
 
 UOSS_SUPERBOSS_WORLD_STATE_V11136={
  "version":"1.11.36","hub":HUB,"arenas":21,"bosses":21,"helpers":tuple(_HELPERS),
