@@ -15,6 +15,7 @@ from core.player_math import (
     character_offensive_build_multiplier,
 )
 from data.mobs import MOB_TEMPLATES
+from systems.game_feel_rewards import mob_attack_flavor_v11324
 from world.machine_expansion import v0314_adjust_damage_vs_template
 from world.uoss_superboss_runtime import (
     superboss_attack_gate_v11137, superboss_helper_profile_v11137,
@@ -512,6 +513,10 @@ class SessionCombatRealtimeMixin:
                                     )
                                     if _sonata_rounds>0 else 1.0
                                 )
+                                _action_template = MOB_TEMPLATES[enemy_mob.template_id]
+                                _mob_flavor_v11324 = mob_attack_flavor_v11324(
+                                    _action_template, random.random()
+                                )
                                 _party_targets = self.server.party_combat_targets(self, enemy_mob)
                                 # One mob action attacks the whole living local party.
                                 # The existing realtime loop owner remains the sole
@@ -636,10 +641,15 @@ class SessionCombatRealtimeMixin:
                                             detail="normal",
                                         )
                                         continue
+                                    _flavor_note_v11324 = (
+                                        str(_mob_flavor_v11324.get("text") or "")
+                                        if _mob_flavor_v11324 else ""
+                                    )
                                     await self.server.party_combat_broadcast(
                                         target_session,
                                         f"{_enemy_template['name']} atakuje {target_session.character.name}."
-                                        + (f" {_uoss_note}" if _uoss_note and _uoss_mult != 1.0 else ""),
+                                        + (f" {_uoss_note}" if _uoss_note and _uoss_mult != 1.0 else "")
+                                        + (f" {_flavor_note_v11324}" if _flavor_note_v11324 else ""),
                                         detail="normal",
                                     )
                                     if _source_effect_replaces_attack:
@@ -669,9 +679,20 @@ class SessionCombatRealtimeMixin:
                                             detail="normal",
                                         )
                                         continue
-                                    if _uoss_mult != 1.0:
+                                    _flavor_mult_v11324 = (
+                                        float(_mob_flavor_v11324.get("damage_multiplier", 1.0))
+                                        if _mob_flavor_v11324 else 1.0
+                                    )
+                                    _enemy_action_mult_v11324 = _uoss_mult * _flavor_mult_v11324
+                                    if _enemy_action_mult_v11324 != 1.0:
                                         _old_damage = _enemy_template.get("damage", 1)
-                                        _enemy_template["damage"] = max(1, int(round(float(_old_damage) * _uoss_mult)))
+                                        _enemy_template["damage"] = max(
+                                            1,
+                                            int(round(
+                                                float(_old_damage)
+                                                * _enemy_action_mult_v11324
+                                            )),
+                                        )
                                         try:
                                             await target_session.enemy_counterattack(enemy_mob)
                                         finally:
