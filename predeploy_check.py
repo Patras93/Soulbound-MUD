@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Fast Railway predeploy gate for Soulbound v1.13.34.
+"""Fast Railway predeploy gate for Soulbound v1.13.35.
 
 This is the normal deploy check.  It intentionally avoids assembling the full
 world/runtime.  Use predeploy_full.py when an exhaustive historical audit is
@@ -17,7 +17,7 @@ import traceback
 try:
     from storage.database import Database as _DatabaseImportSmoke
 except Exception as exc:
-    print(f"Soulbound v1.13.34 FAST PREDEPLOY FAILED: database import: {type(exc).__name__}: {exc}")
+    print(f"Soulbound v1.13.35 FAST PREDEPLOY FAILED: database import: {type(exc).__name__}: {exc}")
     traceback.print_exc()
     raise SystemExit(1)
 
@@ -42,7 +42,7 @@ try:
     )
 except Exception as exc:
     print(
-        "Soulbound v1.13.34 FAST PREDEPLOY FAILED: "
+        "Soulbound v1.13.35 FAST PREDEPLOY FAILED: "
         f"skill semantic import: {type(exc).__name__}: {exc}"
     )
     traceback.print_exc()
@@ -148,6 +148,114 @@ if (
 ):
     _semantic_errors.append(
         "release version sync regression: " + repr(_release_versions_v11331)
+    )
+
+# v1.13.35: dungeon display identities must remain varied and NVDA-distinct.
+_dungeon_names_source_v11335 = (
+    _root / "systems/dungeons_regions.py"
+).read_text(encoding="utf-8")
+_infinite_dungeon_names_source_v11335 = (
+    _root / "world/economy_quests.py"
+).read_text(encoding="utf-8")
+_magitek_names_source_v11335 = (
+    _root / "world/magitek_infinite.py"
+).read_text(encoding="utf-8")
+_deep_dungeon_names_source_v11335 = (
+    _root / "world/uoss_superboss_world.py"
+).read_text(encoding="utf-8")
+
+for _needle in (
+    "DUNGEON_MOB_NAME_THEMES_V11335",
+    "def dungeon_mob_display_name_v11335(",
+    '"crypt": (',
+    '"mythic_crypt": (',
+    '"astral": (',
+    '"mythic_astral": (',
+    '"giant": (',
+    '"sunken_grotto": (',
+    '"ancient_forest": (',
+    '"alchemy_garden": (',
+):
+    if _needle not in _dungeon_names_source_v11335:
+        _semantic_errors.append(
+            "dungeon mob identity regression: missing " + _needle
+        )
+
+try:
+    _tree_v11335 = ast.parse(_dungeon_names_source_v11335)
+    _themes_v11335 = None
+    for _node in _tree_v11335.body:
+        if isinstance(_node, ast.Assign):
+            for _target in _node.targets:
+                if (
+                    isinstance(_target, ast.Name)
+                    and _target.id == "DUNGEON_MOB_NAME_THEMES_V11335"
+                ):
+                    _themes_v11335 = ast.literal_eval(_node.value)
+                    break
+        if _themes_v11335 is not None:
+            break
+    _required_theme_kinds_v11335 = {
+        "crypt", "mythic_crypt", "astral", "mythic_astral",
+        "giant", "sunken_grotto", "ancient_forest", "alchemy_garden",
+    }
+    if not isinstance(_themes_v11335, dict):
+        _semantic_errors.append(
+            "dungeon mob identity regression: theme table is not literal dict"
+        )
+    else:
+        for _kind in sorted(_required_theme_kinds_v11335):
+            _rows = tuple(_themes_v11335.get(_kind, ()))
+            if len(_rows) < 10:
+                _semantic_errors.append(
+                    f"dungeon mob identity regression: {_kind} has only "
+                    f"{len(_rows)} floor themes, expected at least 10"
+                )
+            if len(set(_rows)) != len(_rows):
+                _semantic_errors.append(
+                    f"dungeon mob identity regression: {_kind} has duplicate "
+                    "theme labels"
+                )
+except Exception as _exc:
+    _semantic_errors.append(
+        "dungeon mob identity theme audit failed: "
+        + f"{type(_exc).__name__}: {_exc}"
+    )
+
+for _needle in (
+    "dungeon_mob_display_name_v11335(",
+    '"Szkielet Strażnik Kościanej Warty"',
+    '"Szkielet Strażnik Grobowej Warty"',
+    "_skeleton_guard_names[skeleton_no - 1]",
+    'name_kind = "mythic_crypt"',
+    'name_kind = "mythic_astral"',
+    'name_kind = "giant"',
+):
+    if _needle not in _infinite_dungeon_names_source_v11335:
+        _semantic_errors.append(
+            "infinite dungeon mob identity regression: missing " + _needle
+        )
+if 'skeleton["name"] = f"Szkielet Strażnik Krypty, piętro {floor}"' in _infinite_dungeon_names_source_v11335:
+    _semantic_errors.append(
+        "infinite dungeon mob identity regression: duplicate Crypt skeleton "
+        "display name restored"
+    )
+
+for _needle in (
+    'f"{name} — {theme_name}, piętro {floor}"',
+    'f"Przetaktowany Elitarny Prototyp — {theme_name}, piętro {floor}"',
+    'f"{boss_name} — {theme_name}, cykl {cycle}, piętro {floor}"',
+):
+    if _needle not in _magitek_names_source_v11335:
+        _semantic_errors.append(
+            "Magitek mob identity regression: missing " + _needle
+        )
+
+# User explicitly kept UOSS Deep Dungeon on its separate naming/mechanics path.
+if "dungeon_mob_display_name_v11335" in _deep_dungeon_names_source_v11335:
+    _semantic_errors.append(
+        "Deep Dungeon naming regression: generic dungeon naming pass leaked "
+        "into UOSS Deep Dungeon"
     )
 
 _boss_chest_protocol_source_v11332 = (
@@ -2308,18 +2416,18 @@ for _needle in (
         _semantic_errors.append("UOSS helper runtime regression: missing " + _needle)
 
 if _semantic_errors:
-    print("Soulbound v1.13.34 FAST PREDEPLOY FAILED: semantic contracts")
+    print("Soulbound v1.13.35 FAST PREDEPLOY FAILED: semantic contracts")
     for _error in _semantic_errors:
         print(f"ERROR: {_error}")
     raise SystemExit(1)
 
 if audit["error_count"]:
-    print("Soulbound v1.13.34 FAST PREDEPLOY FAILED")
+    print("Soulbound v1.13.35 FAST PREDEPLOY FAILED")
     for error in audit["errors"]:
         print(f"ERROR: {error}")
     raise SystemExit(1)
 
-print("Soulbound v1.13.34 FAST PREDEPLOY PASS")
+print("Soulbound v1.13.35 FAST PREDEPLOY PASS")
 print(
     "Semantic contracts: "
     f"{len(_semantic_audits)} audits PASS; AP runtime guards PASS"
