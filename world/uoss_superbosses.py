@@ -165,6 +165,7 @@ UOSS_SUPERBOSS_ENCOUNTERS_V11134 = {
         "name":"Serpentarius","mode":"party","area":"Deep Dungeon","unlock":"explore_deep_dungeon","round_limit":100,"no_exit_after_start":True,"helper_cost_mithril":1,"helper_join_phrase":"Join me, Byblos",
         "arena":"Deep Dungeon — piętro 0","recommended_level":125,"helper":"Byblos","helper_max_players":3,
         "personal_token":"Serpentarius Emblem","party_members_must_unlock":True,
+        "deep_dungeon_unlock_floor":100,"lockout_hours":24,
     },
     "odin": {
         "name":"Odin","mode":"party","area":"A Clearing in a Misty Forest","unlock_level":100,"recommended_level":125,
