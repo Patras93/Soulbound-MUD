@@ -725,6 +725,18 @@ class SessionDungeonProgressionMixin:
             )
 
     async def use_astral_portal(self, raw):
+            party_key = self.party_key()
+            if party_key is not None and party_key != self.account_id:
+                leader = self.server.session_by_account(party_key)
+                leader_name = (
+                    leader.character.name
+                    if leader and getattr(leader, "character", None)
+                    else "lider drużyny"
+                )
+                await self.send(
+                    f"W drużynie Astralny Portal uruchamia lider: {leader_name}."
+                )
+                return
             if self.combat_mob_key:
                 await self.send(
                     "Nie możesz użyć Astralnego Portalu podczas walki."
@@ -863,6 +875,18 @@ class SessionDungeonProgressionMixin:
             )
 
     async def use_crypt_portal(self, raw):
+            party_key = self.party_key()
+            if party_key is not None and party_key != self.account_id:
+                leader = self.server.session_by_account(party_key)
+                leader_name = (
+                    leader.character.name
+                    if leader and getattr(leader, "character", None)
+                    else "lider drużyny"
+                )
+                await self.send(
+                    f"W drużynie Portal Krypty uruchamia lider: {leader_name}."
+                )
+                return
             if self.combat_mob_key:
                 await self.send(
                     "Nie możesz użyć Portalu Krypty podczas walki."
