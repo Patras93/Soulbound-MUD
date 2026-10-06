@@ -373,8 +373,10 @@ SYSTEM_DESCRIPTIONS = {
 }
 
 
-LATEST_CHANGES_TITLE = "Soulbound v1.13.31 - Version Sync & Adaptive Consider"
+LATEST_CHANGES_TITLE = "Soulbound v1.13.32 - Boss Chest Room State"
 LATEST_CHANGES = [
+    "v1.13.32: Skrzynia Bossa istnieje tylko w dokładnym pokoju bossa checkpointu, nie przy zejściu ani w innych pokojach tego samego piętra.",
+    "v1.13.32: po wspólnym otwarciu skrzynia znika trwale dla nagrodzonej postaci/drużyny i wraca dopiero po kolejnym prawidłowym zabiciu tego bossa; restart/deploy jej nie przywraca.",
     "v1.13.31: portale checkpointów co 10 pięter/poziomów działają dwukierunkowo w zwykłej i Mitycznej Krypcie oraz zwykłej i Mitycznej Wieży Astralnej; Deep Dungeon pozostaje bez zmian na własnym systemie.",
     "v1.13.31: UOSS Deep Dungeon jest nieskończony i generowany na żądanie; Apanda blokuje zejście co 25 pięter, piętro 100 odblokowuje Serpentariusa/Floor 0, a po zabiciu Serpentariusa Floor 0 ma 24 h lockout.",
     "v1.13.31: Portal Krypty i Astralny Portal są party-aware: lider przenosi stojących obok członków tylko wtedy, gdy każdy ma wskazany checkpoint odblokowany; niekwalifikowani zostają na miejscu.",
