@@ -16,7 +16,7 @@ import traceback
 try:
     from storage.database import Database as _DatabaseImportSmoke
 except Exception as exc:
-    print(f"Soulbound v1.13.29 FAST PREDEPLOY FAILED: database import: {type(exc).__name__}: {exc}")
+    print(f"Soulbound v1.13.30 FAST PREDEPLOY FAILED: database import: {type(exc).__name__}: {exc}")
     traceback.print_exc()
     raise SystemExit(1)
 
@@ -1483,8 +1483,53 @@ except Exception as exc:
         f"stat XP pace audit failed: {type(exc).__name__}: {exc}"
     )
 
+# v1.13.30: post-600 infinite rewards must be stable, persistent and explicit.
+_infinite_eq_source_v11330 = (_root / "systems/infinite_equipment.py").read_text(encoding="utf-8")
+_world_state_source_v11330 = (_root / "world/world_state.py").read_text(encoding="utf-8")
+_db_inventory_source_v11330 = (_root / "storage/db_inventory.py").read_text(encoding="utf-8")
+_server_source_v11330 = (_root / "server/mud_server.py").read_text(encoding="utf-8")
+_global_difficulty_source_v11330 = (_root / "world/global_difficulty_overdrive.py").read_text(encoding="utf-8")
+_runtime_manifest_source_v11330 = (_root / "core/runtime_manifest.py").read_text(encoding="utf-8")
+
+for _needle in (
+    "def infinite_source_profile(",
+    "def register_infinite_equipment_variant(",
+    "def ensure_infinite_equipment_variant(",
+    "def infinite_equipment_variant_for_drop(",
+    "def infinite_coin_multiplier(",
+    "Rezonans Głębi",
+    'data["source_progression_stage"] = effective_stage',
+):
+    if _needle not in _infinite_eq_source_v11330:
+        _semantic_errors.append("post-600 infinite EQ regression: missing " + _needle)
+
+if "'systems/infinite_equipment.py'" not in _runtime_manifest_source_v11330:
+    _semantic_errors.append("post-600 infinite EQ missing from runtime manifest")
+if 'EXPLICIT_RUNTIME_EXPORTS["systems/infinite_equipment.py"]' not in _runtime_manifest_source_v11330:
+    _semantic_errors.append("post-600 infinite EQ must stay on explicit runtime lane")
+if "infinite_equipment_variant_for_drop(" not in _world_state_source_v11330:
+    _semantic_errors.append("post-600 corpse EQ hook missing")
+if "persisted_infinite_equipment_item_ids_v11330" not in _db_inventory_source_v11330:
+    _semantic_errors.append("post-600 EQ persistence scanner missing")
+if "ensure_infinite_equipment_variant(_item_id)" not in _server_source_v11330:
+    _semantic_errors.append("post-600 EQ startup restore missing")
+if "factor *= infinite_coin_multiplier(template)" not in _global_difficulty_source_v11330:
+    _semantic_errors.append("post-600 infinite coin continuation missing")
+
+try:
+    from systems.infinite_equipment import INFINITE_EQUIPMENT_AUDIT_V11330 as _infinite_eq_audit_v11330
+    if _infinite_eq_audit_v11330.get("error_count"):
+        _semantic_errors.extend(
+            "post-600 infinite EQ audit: " + str(error)
+            for error in _infinite_eq_audit_v11330.get("errors", ())
+        )
+except Exception as exc:
+    _semantic_errors.append(
+        f"post-600 infinite EQ audit import failed: {type(exc).__name__}: {exc}"
+    )
+
 if _semantic_errors:
-    print("Soulbound v1.13.29 FAST PREDEPLOY FAILED: semantic contracts")
+    print("Soulbound v1.13.30 FAST PREDEPLOY FAILED: semantic contracts")
     for _error in _semantic_errors:
         print(f"ERROR: {_error}")
     raise SystemExit(1)
@@ -1495,7 +1540,7 @@ if audit["error_count"]:
         print(f"ERROR: {error}")
     raise SystemExit(1)
 
-print("Soulbound v1.13.29 FAST PREDEPLOY PASS")
+print("Soulbound v1.13.30 FAST PREDEPLOY PASS")
 print(
     "Semantic contracts: "
     f"{len(_semantic_audits)} audits PASS; AP runtime guards PASS"
