@@ -1040,7 +1040,10 @@ def finalize_class_equipment_v03015():
             secondary_stat, secondary_amount,
             tertiary_stat, tertiary_amount,
         ) = class_equipment_split_stat_budget(
-            class_name, generated_budget, item.get("slot")
+            class_name,
+            generated_budget,
+            item.get("slot"),
+            int(item.get("class_equipment_style", 1) or 1),
         )
         item["affix"] = primary_stat
         item["affix_amount"] = primary_amount
@@ -1068,6 +1071,9 @@ def finalize_class_equipment_v03015():
             f"{labels[tertiary_stat]} +{tertiary_amount}"
         )
         profile_text = str(item.get("class_equipment_profile") or class_equipment_profile(class_name).get("identity") or "")
+        style_role = str(item.get("class_style_role") or "")
+        if style_role:
+            profile_text = f"{profile_text}; wariant {style_role}" if profile_text else f"wariant {style_role}"
         defense = int(item.get("defense", 0) or 0)
         set_name = item.get("class_set_name") or "Klasowy"
         if item.get("legendary_class_relic"):
@@ -1147,6 +1153,35 @@ def class_equipment_identity_audit_v03016():
             ))
         if len(split_signatures) < 2:
             errors.append(f"brak różnic slotów EQ dla {class_name}")
+
+    # v1.13.8: trzy linie sklepu tego samego Tieru muszą być realnie różne.
+    # Sprawdzamy ten sam slot (hands), aby nazwa/styl nie mogły maskować kopii.
+    for class_name in CLASS_EQUIPMENT_SETS:
+        ids = CLASS_EQUIPMENT_ITEMS_BY_CLASS_TIER.get(class_name, {}).get(100, ())
+        style_signatures = {}
+        for item_id in ids:
+            item = ITEMS.get(item_id, {})
+            if item.get("slot") != "hands":
+                continue
+            style = int(item.get("class_equipment_style", 1) or 1)
+            style_signatures[style] = (
+                int(item.get("defense", 0) or 0),
+                int(item.get("attack", 0) or 0),
+                int(item.get("magic_attack", 0) or 0),
+                int(item.get("affix_amount", 0) or 0),
+                tuple(sorted(
+                    (stat, int(value or 0))
+                    for stat, value in (item.get("stats") or {}).items()
+                )),
+            )
+        if len(style_signatures) != 3 or len(set(style_signatures.values())) != 3:
+            errors.append(f"linie stylu nadal identyczne dla {class_name}")
+        if class_name == "Mec":
+            for style, signature in style_signatures.items():
+                if signature[1] <= 0 or signature[2] <= 0:
+                    errors.append(
+                        f"Mec styl {style} nie ma obu kanałów Attack/Magic Attack"
+                    )
 
     return {
         "version": "0.30.16",
