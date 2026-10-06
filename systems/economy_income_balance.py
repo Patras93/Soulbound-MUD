@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 """Soulbound v1.12.4 - final income balance for the 1-600 economy.
 
-This pass runs after authored world/quest expansions.  It does not create money
-for item-only quests and does not change combat drops, Ocean contracts or item
-sell values.  It only keeps positive quest currency inside a progression band
-that remains competitive with those systems without making 5,000,000 Gold
-late-game equipment trivial.
+This pass runs after authored world/quest expansions. It keeps positive quest
+currency inside a progression band and also exposes shared payout floors for
+runtime systems that bypass the static quest finalizer (Courier, exploration
+milestones, dynamic world tasks and Ocean 2.0). Item-only quests still remain
+item-only. The goal is a coherent loop: play -> earn/sell -> afford meaningful
+equipment, without making 5,000,000 Gold late-game equipment trivial.
 """
 from __future__ import annotations
 
@@ -268,10 +269,12 @@ if ECONOMY_INCOME_AUDIT_V1124["error_count"]:
 
 
 HELP_TOPICS["ekonomia"] = [
-    "Ekonomia 1-600 ma kilka równoległych dróg zarobku: walka, bossowie, questy, profesje, sprzedaż zasobów i handel morski.",
-    "Zwykła walka daje stały dochód, bossowie większe jednorazowe wypłaty, a powtarzalne zadania rosną wraz z poziomem celu zamiast zatrzymywać się na starej niskiej skali.",
-    "Docelowa baza zadania wynosi około: poziom 50 — 150 Gold, 100 — 1 000 Gold, 150 — 3 500 Gold, 200 — 12 500 Gold, 300 — 75 000 Gold, 400 — 300 000 Gold, 500 — 600 000 Gold, 600 — 1 000 000 Gold; rodzaj i trudność zadania modyfikują tę wartość.",
-    "Handel morski pozostaje mocną aktywnością zarobkową, ale nie jest już jedyną sensowną drogą do wielomilionowych zakupów.",
+    "Ekonomia 1-600 ma kilka równoległych dróg zarobku: walka, bossowie, questy, profesje, sprzedaż zasobów, Kurierzy, eksploracja i handel morski.",
+    "Główna pętla gry to: grasz i zdobywasz rzeczy -> sprzedajesz lub kończysz aktywności -> odkładasz realną sumę -> kupujesz, craftujesz albo farmisz wyraźnie lepsze EQ.",
+    "Zwykła aktywność daje sensowny dochód, ale rzadkie sukcesy są jackpotami: rzadki połów, legendarna żyła, wyjątkowy drop, skarb, boss albo 100 procent strefy mają być wyraźnie odczuwalne.",
+    "Docelowa baza pełnego zadania wynosi około: poziom 50 — 150 Gold, 100 — 1 000 Gold, 150 — 3 500 Gold, 200 — 12 500 Gold, 300 — 75 000 Gold, 400 — 300 000 Gold, 500 — 600 000 Gold, 600 — 1 000 000 Gold; rodzaj i trudność zadania modyfikują tę wartość.",
+    "Powtarzalne aktywności, np. Kurierzy i handel morski, płacą mniej niż duży jednorazowy milestone, ale mają realnie finansować kolejne zakupy zamiast dawać symboliczne grosze.",
+    "100 procent strefy oraz mapy skarbów są milestone/jackpot payouts; ich nagroda skaluje się z etapem zawartości, nie z przypadkowo wysokim levelem po powrocie do starej strefy.",
     "Questy celowo bez waluty, dające przedmioty lub nagrody progresji, pozostają bez wypłaty pieniężnej.",
     "Ceny źródłowego wyposażenia UOSSMUD, np. 5 000 000 Gold u Wattsa, nie są automatycznie obniżane przez ten balans.",
 ]
