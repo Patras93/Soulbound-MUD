@@ -1965,7 +1965,9 @@ def equipment_completeness_audit_v03037():
         errors.append("duplicate armor names: " + repr(duplicate_armor_names[:10]))
 
     # Reprezentatywny klasowy Tier: każdy slot musi mieć odmienny pełny profil
-    # (obrona + staty + właściwości), więc nowe sloty nie są mechanicznymi kopiami.
+    # (obrona + Attack/Magic Attack + staty + właściwości), więc nowe sloty nie
+    # są mechanicznymi kopiami. Od v1.13.8 płaska moc jest częścią realnej
+    # tożsamości slotu i musi być uwzględniana przez ten audit.
     class_profiles_checked = 0
     for class_name, tiers in CLASS_EQUIPMENT_ITEMS_BY_CLASS_TIER.items():
         ids = list(tiers.get(class_equipment_unlocked_tier(200), ()))
@@ -1983,6 +1985,8 @@ def equipment_completeness_audit_v03037():
             item = first_style[slot]
             signatures.append((
                 int(item.get("defense", 0) or 0),
+                int(item.get("attack", 0) or 0),
+                int(item.get("magic_attack", 0) or 0),
                 item.get("affix"), int(item.get("affix_amount", 0) or 0),
                 tuple(sorted((item.get("stats") or {}).items())),
                 tuple(sorted((item.get("properties") or {}).items())),

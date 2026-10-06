@@ -1,6 +1,24 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.13.11
+Aktualna paczka: v1.13.12
 
+
+
+==============================================================================
+Soulbound v1.13.12 — hotfix pełnego profilu klasowego EQ w audicie
+==============================================================================
+
+- Naprawiono kolejny restart-loop Railway na Equipment Completeness Audit v0.30.37.
+- Samo klasowe EQ było poprawne: od v1.13.8 sloty różnią się nie tylko Defense,
+  statami i properties, ale także płaskim Attack lub Magic Attack.
+- Stary audit porównywał wyłącznie Defense + staty + properties, więc przy
+  wysokim primary_ratio niektórych klas i zaokrągleniach uznawał realnie różne
+  sloty za kopie, m.in. hands/bracers, charm/ring i feet/bracelet.
+- Audit nadal pozostaje rygorystyczny i nadal wymaga unikalnego mechanicznego
+  profilu każdego reprezentatywnego slotu, ale sygnatura obejmuje teraz także
+  Attack i Magic Attack.
+- Nie zmieniono żadnych wartości balansu EQ, cen, Defense, statów ani properties.
+- Fast predeploy chroni teraz pełną sygnaturę Equipment Completeness przed
+  ponownym cofnięciem do starego niepełnego porównania.
 
 ==============================================================================
 Soulbound v1.13.11 — hotfix ochrony ręcznych nagród questów
