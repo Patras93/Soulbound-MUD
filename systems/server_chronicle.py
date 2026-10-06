@@ -446,12 +446,7 @@ def server_chronicle_audit_v03811():
 
 
 SERVER_CHRONICLE_AUDIT_V03811 = server_chronicle_audit_v03811()
-if SERVER_CHRONICLE_AUDIT_V03811["error_count"]:
-    raise RuntimeError(
-        "Server Chronicle Audit v0.38.11 failed: "
-        + "; ".join(SERVER_CHRONICLE_AUDIT_V03811["errors"][:100])
-    )
-
+# v1.13.30: audit failure is enforced by predeploy_full.py, not production startup.
 LATEST_CHANGES_TITLE = "Soulbound v0.38.11 - Procedural Legends & Server Chronicle"
 LATEST_CHANGES = [
     "Dodano trwałą Kronikę Serwera dostępną komendą kronika / chronicle.",
