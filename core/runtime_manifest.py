@@ -198,7 +198,7 @@ _RUNTIME_MODULES_ALL = ['core/bootstrap_economy_professions.py',
  'systems/economy_income_balance.py',
  'systems/runtime_memory.py',
  'admin/release_integrity_v0369.py',
- 'admin/help_truth_current_v11328.py']
+ 'admin/help_truth_current.py']
 
 
 # v0.80.1 Clean Railway Package: these static developer audits are absent from
@@ -1042,7 +1042,7 @@ EXPLICIT_RUNTIME_EXPORTS["systems/runtime_memory.py"] = (
     "V0616_MEMORY_EFFICIENCY_AUDIT",
 )
 
-EXPLICIT_RUNTIME_EXPORTS["admin/help_truth_current_v11328.py"] = (
+EXPLICIT_RUNTIME_EXPORTS["admin/help_truth_current.py"] = (
     "HELP_TRUTH_CURRENT_VERSION_V11328",
     "HELP_TRUTH_REFRESH_V11328",
     "HELP_FRESHNESS_AUDIT_V11328",
