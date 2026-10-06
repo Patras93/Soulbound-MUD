@@ -804,7 +804,9 @@ for _needle in (
     "def authored_reward_snapshot(ns: dict) -> dict:",
     'audit["authored_rewards_preserved"] = authored_rewards_ok',
     "def authored_rewards_preserved(ns: dict, before: dict) -> bool:",
-    "authored_rewards_ok = authored_rewards_preserved(",
+    "def authored_reward_differences(ns: dict, before: dict) -> list[str]:",
+    'skill_fields = tuple(sorted(NUMERIC_SKILL_FIELDS - {"generator_level"}))',
+    "authored_rewards_ok = not authored_reward_differences_v11330",
     "Generator Core cannot mutate authored CLASS_SET_BONUSES",
     "Generator Core cannot mutate authored CLASSES Soul Weapon bases",
     'if field in q and int(q.get(field, 0) or 0) < 0:',
@@ -1671,7 +1673,9 @@ for _needle in (
     'Generator Core cannot mutate authored CLASS_SET_BONUSES',
     'Generator Core cannot mutate authored CLASSES Soul Weapon bases',
     'return {"quests": quests, "recipes": recipes, "skills": skills}',
-    'for field in NUMERIC_SKILL_FIELDS',
+    'skill_fields = tuple(sorted(NUMERIC_SKILL_FIELDS - {"generator_level"}))',
+    'for field in skill_fields',
+    'def authored_reward_differences(ns: dict, before: dict) -> list[str]:',
     'Generator Core changed pre-existing authored quest/recipe/skill numeric values',
 ):
     if _needle not in _generator_source_v11330:
