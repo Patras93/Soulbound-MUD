@@ -539,22 +539,76 @@ class SessionDungeonProgressionMixin:
             target = astral_floor_id(floor)
             self.server.world.ensure_infinite_dungeon_floor(target)
             old = self.character.room_id
+
+            party_key = self.party_key()
+            if party_key is not None and party_key == self.account_id:
+                candidates = list(
+                    self.server.party_sessions(
+                        self.account_id, same_room=old
+                    )
+                )
+            else:
+                candidates = [self]
+
+            moved = []
+            skipped = []
+            for member in candidates:
+                if not member or not getattr(member, "character", None):
+                    continue
+                if member.combat_mob_key:
+                    skipped.append(
+                        f"{member.character.name}: trwa walka"
+                    )
+                    continue
+                member_highest = int(member.astral_portal() or 0)
+                if floor > member_highest:
+                    skipped.append(
+                        f"{member.character.name}: najwyższy checkpoint "
+                        f"{member_highest if member_highest else 'brak'}"
+                    )
+                    continue
+
+                member.character.room_id = target
+                member.server.db.save_character(member.character)
+                moved.append(member)
+
             await self.server.broadcast_room(
                 old,
-                f"{self.character.name} wchodzi w Astralny Portal.",
-                exclude=self,
+                f"{self.character.name} uruchamia Astralny Portal.",
+                exclude=None,
             )
-            self.character.room_id = target
-            self.server.db.save_character(self.character)
+            if len(moved) > 1:
+                names = ", ".join(
+                    member.character.name for member in moved
+                )
+                for member in moved:
+                    await member.send(
+                        f"Lider {self.character.name} przenosi drużynę "
+                        f"Astralnym Portalem na poziom {floor}."
+                    )
+                await self.send(
+                    f"Astralny Portal przenosi razem {len(moved)} graczy: "
+                    f"{names}."
+                )
+            elif moved:
+                await moved[0].send(
+                    f"Astralny Portal przenosi cię na poziom {floor}."
+                )
+
+            if skipped:
+                await self.send(
+                    "Nie przeniesiono: " + "; ".join(skipped) + "."
+                )
+
             await self.server.broadcast_room(
                 target,
-                f"{self.character.name} wychodzi z Astralnego Portalu.",
-                exclude=self,
+                f"{self.character.name} i drużyna wychodzą z Astralnego Portalu."
+                if len(moved) > 1
+                else f"{self.character.name} wychodzi z Astralnego Portalu.",
+                exclude=None,
             )
-            await self.send(
-                f"Astralny Portal przenosi cię na poziom {floor}."
-            )
-            await self.look()
+            for member in moved:
+                await member.look()
 
     async def show_portal_status(self):
             highest = self.crypt_portal()
@@ -636,19 +690,83 @@ class SessionDungeonProgressionMixin:
             self.server.world.ensure_infinite_dungeon_floor(target)
             old = self.character.room_id
 
+            party_key = self.party_key()
+            if party_key is not None and party_key == self.account_id:
+                candidates = list(
+                    self.server.party_sessions(
+                        self.account_id, same_room=old
+                    )
+                )
+            else:
+                candidates = [self]
+
+            moved = []
+            skipped = []
+            for member in candidates:
+                if not member or not getattr(member, "character", None):
+                    continue
+                if member.combat_mob_key:
+                    skipped.append(
+                        f"{member.character.name}: trwa walka"
+                    )
+                    continue
+                member_highest = int(member.crypt_portal() or 0)
+                if floor > member_highest:
+                    skipped.append(
+                        f"{member.character.name}: najwyższy portal "
+                        f"{member_highest if member_highest else 'brak'}"
+                    )
+                    continue
+
+                if member.resting or member.rest_task:
+                    await member.stop_rest(announce=False)
+                if member.auto_fishing or member.auto_fishing_task:
+                    await member.stop_auto_fishing(announce=False)
+                if member.auto_mining or member.auto_mining_task:
+                    await member.stop_auto_mining(announce=False)
+                if member.auto_woodcutting or member.auto_woodcutting_task:
+                    await member.stop_auto_woodcutting(announce=False)
+                if member.auto_herbalism or member.auto_herbalism_task:
+                    await member.stop_auto_herbalism(announce=False)
+
+                member.character.room_id = target
+                member.server.db.save_character(member.character)
+                moved.append(member)
+
             await self.server.broadcast_room(
                 old,
-                f"{self.character.name} wchodzi w Portal Krypty.",
-                exclude=self,
+                f"{self.character.name} uruchamia Portal Krypty.",
+                exclude=None,
             )
-            self.character.room_id = target
-            self.server.db.save_character(self.character)
+            if len(moved) > 1:
+                names = ", ".join(
+                    member.character.name for member in moved
+                )
+                for member in moved:
+                    await member.send(
+                        f"Lider {self.character.name} przenosi drużynę "
+                        f"Portalem Krypty na piętro {floor}."
+                    )
+                await self.send(
+                    f"Portal Krypty przenosi razem {len(moved)} graczy: "
+                    f"{names}."
+                )
+            elif moved:
+                await moved[0].send(
+                    f"Portal Krypty przenosi cię na piętro {floor}."
+                )
+
+            if skipped:
+                await self.send(
+                    "Nie przeniesiono: " + "; ".join(skipped) + "."
+                )
+
             await self.server.broadcast_room(
                 target,
-                f"{self.character.name} wychodzi z Portalu Krypty.",
-                exclude=self,
+                f"{self.character.name} i drużyna wychodzą z Portalu Krypty."
+                if len(moved) > 1
+                else f"{self.character.name} wychodzi z Portalu Krypty.",
+                exclude=None,
             )
-            await self.send(
-                f"Portal Krypty przenosi cię na piętro {floor}."
-            )
-            await self.look()
+            for member in moved:
+                await member.look()
