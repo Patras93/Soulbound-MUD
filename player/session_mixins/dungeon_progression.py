@@ -21,7 +21,11 @@ from systems.dungeons_regions import (
     giant_fortress_floor_number,
     is_astral_boss_floor,
     is_crypt_boss_floor,
+    is_mythic_astral_boss_floor,
+    is_mythic_crypt_boss_floor,
+    mythic_astral_floor_id,
     mythic_astral_floor_number,
+    mythic_crypt_floor_id,
     mythic_crypt_floor_number,
     profession_dungeon_floor,
     profession_dungeon_required_tool_level,
@@ -701,6 +705,46 @@ class SessionDungeonProgressionMixin:
 
             return self.character.soul_level > old_level
 
+    def checkpoint_portal_floors_v11331(self, kind):
+            floors = self.server.db.instance_checkpoint_floors(
+                self.account_id, kind
+            )
+            if kind == "astral":
+                floors = {f for f in floors if f >= ASTRAL_MIN_FLOOR}
+            else:
+                floors = {f for f in floors if f >= 10}
+            return sorted(
+                int(f) for f in floors
+                if int(f) % 10 == 0
+            )
+
+    def checkpoint_portal_unlocked_v11331(self, kind, floor):
+            return int(floor) in set(
+                self.checkpoint_portal_floors_v11331(kind)
+            )
+
+    async def show_checkpoint_portal_status_v11331(
+            self, *, kind, label, start_floor
+    ):
+            floors = self.checkpoint_portal_floors_v11331(kind)
+            if not floors:
+                await self.send(
+                    f"{label}: brak odblokowanych checkpointów. "
+                    f"Pierwszy portal jest na piętrze/poziomie {start_floor}."
+                )
+                return
+            await self.send(
+                f"{label}: najwyższy checkpoint {max(floors)}."
+            )
+            await self.send(
+                "Odblokowane checkpointy: "
+                + ", ".join(str(floor) for floor in floors)
+                + "."
+            )
+            await self.send(
+                "Checkpointy są co 10 pięter/poziomów i działają w obie strony."
+            )
+
     async def party_checkpoint_portal_exit_v11331(
             self, *, kind, floor, target_room, label
     ):
@@ -740,11 +784,9 @@ class SessionDungeonProgressionMixin:
                     skipped.append(f"{member.character.name}: trwa walka")
                     continue
 
-                if kind == "crypt":
-                    highest = int(member.crypt_portal() or 0)
-                else:
-                    highest = int(member.astral_portal() or 0)
-                if highest < int(floor):
+                if not member.checkpoint_portal_unlocked_v11331(
+                    kind, floor
+                ):
                     skipped.append(
                         f"{member.character.name}: checkpoint {floor} "
                         "nie jest odblokowany"
@@ -772,28 +814,28 @@ class SessionDungeonProgressionMixin:
                 )
             return True
 
-    async def show_astral_portal_status(self):
-            highest = self.astral_portal()
-            unlocked = self.astral_portal_floors()
-            if not highest:
+    async def show_astral_portal_status(self, kind="astral"):
+            if kind == "mythic_astral":
+                await self.show_checkpoint_portal_status_v11331(
+                    kind="mythic_astral",
+                    label="Mityczny Astralny Portal",
+                    start_floor=10,
+                )
                 await self.send(
-                    "Astralny Portal nie ma jeszcze odblokowanych checkpointów. "
-                    "Pokonaj Strażnika Gwiezdnej Bramy na poziomie 100."
+                    "Przy Mitycznej Astralnej Bramie: astralportal <10/20/30/...>. "
+                    "Na checkpointcie: astralportal albo astralportal wyjdz."
                 )
                 return
 
-            await self.send(
-                f"Najwyższy checkpoint Wieży Astralnej: poziom {highest}."
+            await self.show_checkpoint_portal_status_v11331(
+                kind="astral",
+                label="Astralny Portal",
+                start_floor=ASTRAL_MIN_FLOOR,
             )
             await self.send(
-                "Odblokowane Astralne Portale: "
-                + ", ".join(str(floor) for floor in unlocked)
-                + "."
-            )
-            await self.send(
-                "Użycie przy Bramie: astralportal <100/110/120/... bez górnego limitu>. "
-                "Na odblokowanym checkpointcie 100/110/120/... wpisz astralportal "
-                "albo astralportal wyjdz, aby wrócić do Astralnej Bramy."
+                f"Przy Astralnej Bramie: astralportal "
+                f"<{ASTRAL_MIN_FLOOR}/{ASTRAL_MIN_FLOOR + 10}/...>. "
+                "Na checkpointcie: astralportal albo astralportal wyjdz."
             )
 
     async def use_astral_portal(self, raw):
@@ -815,70 +857,101 @@ class SessionDungeonProgressionMixin:
                 )
                 return
 
+            room_id = str(self.character.room_id)
+            normal_floor = astral_floor_number(room_id)
+            mythic_floor = mythic_astral_floor_number(room_id)
+            mythic_context = (
+                room_id == "mythic_astral_gate"
+                or mythic_floor is not None
+            )
+            kind = "mythic_astral" if mythic_context else "astral"
+            current_floor = mythic_floor if mythic_context else normal_floor
+            gate = "mythic_astral_gate" if mythic_context else "astral_gate"
+            floor_id = (
+                mythic_astral_floor_id
+                if mythic_context else astral_floor_id
+            )
+            is_checkpoint = (
+                is_mythic_astral_boss_floor
+                if mythic_context else is_astral_boss_floor
+            )
+            label = (
+                "Mityczny Astralny Portal"
+                if mythic_context else "Astralny Portal"
+            )
+            start_floor = 10 if mythic_context else ASTRAL_MIN_FLOOR
+
             value = self.normalize_room_query(raw)
-            current_floor = astral_floor_number(self.character.room_id)
             if (
                 current_floor is not None
-                and is_astral_boss_floor(current_floor)
-                and current_floor <= int(self.astral_portal() or 0)
+                and is_checkpoint(current_floor)
+                and self.checkpoint_portal_unlocked_v11331(
+                    kind, current_floor
+                )
                 and (
                     not value
-                    or value in ("wyjdz", "wyjdź", "exit", "out", "wyjscie", "wyjście")
+                    or value in (
+                        "wyjdz", "wyjdź", "exit", "out",
+                        "wyjscie", "wyjście",
+                    )
                 )
             ):
                 await self.party_checkpoint_portal_exit_v11331(
-                    kind="astral",
+                    kind=kind,
                     floor=current_floor,
-                    target_room="astral_gate",
-                    label="Astralny Portal",
+                    target_room=gate,
+                    label=label,
                 )
                 return
+
             if not value or value in ("status", "lista", "list"):
-                await self.show_astral_portal_status()
+                await self.show_astral_portal_status(kind=kind)
                 return
 
             match = re.search(r"(\d+)", value)
             if not match:
                 await self.send(
-                    "Użycie: astralportal 100, 110, 120, ... bez górnego limitu."
+                    f"Użycie: astralportal {start_floor}, "
+                    f"astralportal {start_floor + 10}, ... bez górnego limitu."
                 )
                 return
 
             floor = int(match.group(1))
-            if not is_astral_boss_floor(floor):
+            if not is_checkpoint(floor):
                 await self.send(
-                    f"Checkpointy Wieży są co 10 poziomów od {ASTRAL_MIN_FLOOR} bez górnego limitu."
+                    f"Checkpointy tej Wieży są co 10 poziomów od "
+                    f"{start_floor} bez górnego limitu."
                 )
                 return
-
-            highest = self.astral_portal()
-            if floor > highest:
+            if not self.checkpoint_portal_unlocked_v11331(kind, floor):
+                floors = self.checkpoint_portal_floors_v11331(kind)
                 await self.send(
                     f"Checkpoint poziomu {floor} jest zablokowany. "
-                    f"Najwyższy odblokowany: {highest if highest else 'brak'}."
+                    f"Najwyższy odblokowany: "
+                    f"{max(floors) if floors else 'brak'}."
                 )
                 return
-
-            if self.character.room_id != "astral_gate":
+            if room_id != gate:
                 await self.send(
-                    "Astralny Portal działa tylko przy Astralnej Bramie. "
-                    "Wpisz prowadz wieza astralna."
+                    f"{label} do wybranego checkpointu działa przy bramie tej Wieży. "
+                    "Na checkpointcie użyj astralportal wyjdz."
                 )
                 return
 
-            target = astral_floor_id(floor)
+            target = floor_id(floor)
             self.server.world.ensure_infinite_dungeon_floor(target)
-            old = self.character.room_id
-
-            party_key = self.party_key()
-            if party_key is not None and party_key == self.account_id:
-                candidates = list(
+            old = room_id
+            candidates = (
+                list(
                     self.server.party_sessions(
                         self.account_id, same_room=old
                     )
                 )
-            else:
-                candidates = [self]
+                if party_key == self.account_id
+                else [self]
+            )
+            if self not in candidates:
+                candidates.append(self)
 
             moved = []
             skipped = []
@@ -886,82 +959,57 @@ class SessionDungeonProgressionMixin:
                 if not member or not getattr(member, "character", None):
                     continue
                 if member.combat_mob_key:
+                    skipped.append(f"{member.character.name}: trwa walka")
+                    continue
+                if not member.checkpoint_portal_unlocked_v11331(
+                    kind, floor
+                ):
                     skipped.append(
-                        f"{member.character.name}: trwa walka"
+                        f"{member.character.name}: checkpoint {floor} "
+                        "nie jest odblokowany"
                     )
                     continue
-                member_highest = int(member.astral_portal() or 0)
-                if floor > member_highest:
-                    skipped.append(
-                        f"{member.character.name}: najwyższy checkpoint "
-                        f"{member_highest if member_highest else 'brak'}"
-                    )
-                    continue
-
                 member.character.room_id = target
                 member.server.db.save_character(member.character)
                 moved.append(member)
 
-            await self.server.broadcast_room(
-                old,
-                f"{self.character.name} uruchamia Astralny Portal.",
-                exclude=None,
-            )
-            if len(moved) > 1:
-                names = ", ".join(
-                    member.character.name for member in moved
-                )
+            if moved:
                 for member in moved:
                     await member.send(
-                        f"Lider {self.character.name} przenosi drużynę "
-                        f"Astralnym Portalem na poziom {floor}."
+                        f"Lider {self.character.name} uruchamia {label}. "
+                        f"Cel: checkpoint {floor}."
                     )
-                await self.send(
-                    f"Astralny Portal przenosi razem {len(moved)} graczy: "
-                    f"{names}."
-                )
-            elif moved:
-                await moved[0].send(
-                    f"Astralny Portal przenosi cię na poziom {floor}."
-                )
-
+                    await member.look()
+                if len(moved) > 1:
+                    await self.send(
+                        f"{label} przenosi razem {len(moved)} graczy."
+                    )
             if skipped:
                 await self.send(
                     "Nie przeniesiono: " + "; ".join(skipped) + "."
                 )
 
-            await self.server.broadcast_room(
-                target,
-                f"{self.character.name} i drużyna wychodzą z Astralnego Portalu."
-                if len(moved) > 1
-                else f"{self.character.name} wychodzi z Astralnego Portalu.",
-                exclude=None,
-            )
-            for member in moved:
-                await member.look()
-
-    async def show_portal_status(self):
-            highest = self.crypt_portal()
-            unlocked = self.crypt_portal_floors()
-            if not unlocked:
+    async def show_portal_status(self, kind="crypt"):
+            if kind == "mythic_crypt":
+                await self.show_checkpoint_portal_status_v11331(
+                    kind="mythic_crypt",
+                    label="Mityczny Portal Krypty",
+                    start_floor=10,
+                )
                 await self.send(
-                    "Portale Krypty: brak. "
-                    "Pokonaj bossa piętra 10, aby odblokować pierwszy portal."
+                    "Przy Bramie Mitycznej Krypty: portal <10/20/30/...>. "
+                    "Na checkpointcie: portal albo portal wyjdz."
                 )
                 return
 
-            await self.send(
-                f"Najwyższy odblokowany Portal Krypty: piętro {highest}."
+            await self.show_checkpoint_portal_status_v11331(
+                kind="crypt",
+                label="Portal Krypty",
+                start_floor=10,
             )
             await self.send(
-                "Odblokowane Portale Krypty: "
-                + ", ".join(str(floor) for floor in unlocked)
-                + "."
-            )
-            await self.send(
-                "Użycie przy wejściu: portal <10/20/30/...>. "
-                "Na odblokowanym checkpointcie 10/20/30/... wpisz portal "
-                "albo portal wyjdz, aby wrócić do Sali Krypty."
+                "Przy wejściu Krypty: portal <10/20/30/...>. "
+                "Na checkpointcie: portal albo portal wyjdz."
             )
 
     async def use_crypt_portal(self, raw):
@@ -983,55 +1031,88 @@ class SessionDungeonProgressionMixin:
                 )
                 return
 
+            room_id = str(self.character.room_id)
+            normal_floor = crypt_floor_number(room_id)
+            mythic_floor = mythic_crypt_floor_number(room_id)
+            mythic_context = (
+                room_id == "mythic_crypt_gate"
+                or mythic_floor is not None
+            )
+            kind = "mythic_crypt" if mythic_context else "crypt"
+            current_floor = mythic_floor if mythic_context else normal_floor
+            gate = "mythic_crypt_gate" if mythic_context else "crypt_hall"
+            floor_id = (
+                mythic_crypt_floor_id
+                if mythic_context else crypt_floor_id
+            )
+            is_checkpoint = (
+                is_mythic_crypt_boss_floor
+                if mythic_context else is_crypt_boss_floor
+            )
+            label = (
+                "Mityczny Portal Krypty"
+                if mythic_context else "Portal Krypty"
+            )
+
             value = self.normalize_room_query(raw)
-            current_floor = crypt_floor_number(self.character.room_id)
             if (
                 current_floor is not None
-                and is_crypt_boss_floor(current_floor)
-                and current_floor <= int(self.crypt_portal() or 0)
+                and is_checkpoint(current_floor)
+                and self.checkpoint_portal_unlocked_v11331(
+                    kind, current_floor
+                )
                 and (
                     not value
-                    or value in ("wyjdz", "wyjdź", "exit", "out", "wyjscie", "wyjście")
+                    or value in (
+                        "wyjdz", "wyjdź", "exit", "out",
+                        "wyjscie", "wyjście",
+                    )
                 )
             ):
                 await self.party_checkpoint_portal_exit_v11331(
-                    kind="crypt",
+                    kind=kind,
                     floor=current_floor,
-                    target_room="crypt_hall",
-                    label="Portal Krypty",
+                    target_room=gate,
+                    label=label,
                 )
                 return
+
             if not value or value in ("status", "lista", "list"):
-                await self.show_portal_status()
+                await self.show_portal_status(kind=kind)
                 return
 
             match = re.search(r"(\d+)", value)
             if not match:
                 await self.send(
-                    "Użycie: portal 10, portal 20, portal 30, ... bez górnego limitu."
+                    "Użycie: portal 10, portal 20, portal 30, ... "
+                    "bez górnego limitu."
                 )
                 return
-
             floor = int(match.group(1))
-            if not is_crypt_boss_floor(floor):
+            if not is_checkpoint(floor):
                 await self.send(
-                    "Portale są co 10 pięter: 10, 20, 30, ... bez górnego limitu."
+                    "Portale są co 10 pięter: 10, 20, 30, ... "
+                    "bez górnego limitu."
+                )
+                return
+            if not self.checkpoint_portal_unlocked_v11331(kind, floor):
+                floors = self.checkpoint_portal_floors_v11331(kind)
+                await self.send(
+                    f"Portal piętra {floor} jest zablokowany. "
+                    f"Najwyższy odblokowany: "
+                    f"{max(floors) if floors else 'brak'}."
                 )
                 return
 
-            highest = self.crypt_portal()
-            if floor > highest:
+            allowed_gates = (
+                ("mythic_crypt_gate",)
+                if mythic_context
+                else ("crypt_hall", "crypt_entrance")
+            )
+            if room_id not in allowed_gates:
                 await self.send(
-                    f"Portal piętra {floor} jest jeszcze zablokowany. "
-                    f"Najwyższy odblokowany portal: "
-                    f"{highest if highest else 'brak'}."
-                )
-                return
-
-            if self.character.room_id not in ("crypt_hall", "crypt_entrance"):
-                await self.send(
-                    "Portal Krypty można uruchomić tylko w Sali Krypty "
-                    "albo w Przedsionku Krypty. Użyj prowadz Sala Krypty."
+                    f"{label} do wybranego checkpointu działa przy wejściu tej Krypty. "
+                    "Na checkpointcie użyj portal wyjdz."
                 )
                 return
 
@@ -1046,19 +1127,20 @@ class SessionDungeonProgressionMixin:
             if self.auto_herbalism or self.auto_herbalism_task:
                 await self.stop_auto_herbalism(announce=False)
 
-            target = crypt_floor_id(floor)
+            target = floor_id(floor)
             self.server.world.ensure_infinite_dungeon_floor(target)
-            old = self.character.room_id
-
-            party_key = self.party_key()
-            if party_key is not None and party_key == self.account_id:
-                candidates = list(
+            old = room_id
+            candidates = (
+                list(
                     self.server.party_sessions(
                         self.account_id, same_room=old
                     )
                 )
-            else:
-                candidates = [self]
+                if party_key == self.account_id
+                else [self]
+            )
+            if self not in candidates:
+                candidates.append(self)
 
             moved = []
             skipped = []
@@ -1066,18 +1148,16 @@ class SessionDungeonProgressionMixin:
                 if not member or not getattr(member, "character", None):
                     continue
                 if member.combat_mob_key:
+                    skipped.append(f"{member.character.name}: trwa walka")
+                    continue
+                if not member.checkpoint_portal_unlocked_v11331(
+                    kind, floor
+                ):
                     skipped.append(
-                        f"{member.character.name}: trwa walka"
+                        f"{member.character.name}: checkpoint {floor} "
+                        "nie jest odblokowany"
                     )
                     continue
-                member_highest = int(member.crypt_portal() or 0)
-                if floor > member_highest:
-                    skipped.append(
-                        f"{member.character.name}: najwyższy portal "
-                        f"{member_highest if member_highest else 'brak'}"
-                    )
-                    continue
-
                 if member.resting or member.rest_task:
                     await member.stop_rest(announce=False)
                 if member.auto_fishing or member.auto_fishing_task:
@@ -1093,40 +1173,19 @@ class SessionDungeonProgressionMixin:
                 member.server.db.save_character(member.character)
                 moved.append(member)
 
-            await self.server.broadcast_room(
-                old,
-                f"{self.character.name} uruchamia Portal Krypty.",
-                exclude=None,
-            )
-            if len(moved) > 1:
-                names = ", ".join(
-                    member.character.name for member in moved
-                )
+            if moved:
                 for member in moved:
                     await member.send(
-                        f"Lider {self.character.name} przenosi drużynę "
-                        f"Portalem Krypty na piętro {floor}."
+                        f"Lider {self.character.name} uruchamia {label}. "
+                        f"Cel: checkpoint {floor}."
                     )
-                await self.send(
-                    f"Portal Krypty przenosi razem {len(moved)} graczy: "
-                    f"{names}."
-                )
-            elif moved:
-                await moved[0].send(
-                    f"Portal Krypty przenosi cię na piętro {floor}."
-                )
-
+                    await member.look()
+                if len(moved) > 1:
+                    await self.send(
+                        f"{label} przenosi razem {len(moved)} graczy."
+                    )
             if skipped:
                 await self.send(
                     "Nie przeniesiono: " + "; ".join(skipped) + "."
                 )
 
-            await self.server.broadcast_room(
-                target,
-                f"{self.character.name} i drużyna wychodzą z Portalu Krypty."
-                if len(moved) > 1
-                else f"{self.character.name} wychodzi z Portalu Krypty.",
-                exclude=None,
-            )
-            for member in moved:
-                await member.look()
