@@ -174,9 +174,18 @@ class SessionCombatRealtimeMixin:
                     _helper_mult = self.equipment_damage_multiplier(_helper_kind)
                     _helper_mult *= self.total_set_damage_multiplier()
                     _helper_mult *= character_offensive_build_multiplier(_helper_raw_stat)
+                    _helper_role_mult = max(
+                        0.90,
+                        min(1.20, float(_uoss_helper.get("damage_multiplier", 1.0) or 1.0)),
+                    )
                     _uoss_helper_damage = max(
                         1,
-                        int(round((self.character.soul_power() + _helper_stat) * 0.65 * _helper_mult)),
+                        int(round(
+                            (self.character.soul_power() + _helper_stat)
+                            * 0.65
+                            * _helper_role_mult
+                            * _helper_mult
+                        )),
                     )
                 damage = await self.apply_boss_defense(mob, damage)
                 if _zantetsuken_no_melee:
@@ -869,7 +878,10 @@ class SessionCombatRealtimeMixin:
                     _uoss_helper = superboss_helper_profile_v11137(self, MOB_TEMPLATES[mob.template_id])
                     if _uoss_helper:
                         await self.server.party_combat_broadcast(
-                            self, f"{_uoss_helper['name']} dołącza jako pomocnik do tej walki.", detail="essential"
+                            self,
+                            f"{_uoss_helper['name']} dołącza jako pomocnik do tej walki. "
+                            f"Rola: {_uoss_helper.get('role', 'support')}.",
+                            detail="essential"
                         )
                 else:
                     await self.send(
