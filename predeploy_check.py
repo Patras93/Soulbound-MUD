@@ -153,6 +153,58 @@ if (
 _consider_source_v11331 = (
     _root / "player/session_mixins/combat_damage.py"
 ).read_text(encoding="utf-8")
+_uoss_world_reward_source_v11331 = (
+    _root / "world/uoss_superboss_world.py"
+).read_text(encoding="utf-8")
+_uoss_combat_reward_source_v11331 = (
+    _root / "player/session_mixins/combat_rewards.py"
+).read_text(encoding="utf-8")
+for _needle in (
+    "UOSS_FULL_PROGRESSION_SOURCE_XP_V11331 = 18_900_000",
+    '"uoss_full_progression_source_xp_exact"',
+    "UOSS_FULL_PROGRESSION_XP_AUDIT_V11331",
+):
+    if _needle not in _uoss_world_reward_source_v11331:
+        _semantic_errors.append(
+            "18.9m UOSS progression reward regression: missing world marker "
+            + _needle
+        )
+for _needle in (
+    "uoss_full_progression_source_xp_exact = bool(",
+    "source_xp if uoss_full_progression_source_xp_exact",
+    "bazowy EXP każdego statu",
+):
+    if _needle not in _uoss_combat_reward_source_v11331:
+        _semantic_errors.append(
+            "18.9m UOSS progression reward regression: missing runtime rule "
+            + _needle
+        )
+try:
+    from world.uoss_superboss_world import (
+        UOSS_FULL_PROGRESSION_XP_AUDIT_V11331
+        as _uoss_full_progression_xp_audit_v11331,
+    )
+    _expected_uoss_18m_v11331 = {
+        "black_rabite", "serpentarius", "odin", "yiazmat"
+    }
+    _actual_uoss_18m_v11331 = set(
+        _uoss_full_progression_xp_audit_v11331.get("bosses", ())
+    )
+    if _actual_uoss_18m_v11331 != _expected_uoss_18m_v11331:
+        _semantic_errors.append(
+            "18.9m UOSS progression boss set mismatch: "
+            + repr(sorted(_actual_uoss_18m_v11331))
+        )
+    for _error in _uoss_full_progression_xp_audit_v11331.get("errors", ()):
+        _semantic_errors.append(
+            "18.9m UOSS progression audit: " + str(_error)
+        )
+except Exception as exc:
+    _semantic_errors.append(
+        "18.9m UOSS progression audit import failed: "
+        + f"{type(exc).__name__}: {exc}"
+    )
+
 _superboss_entry_source_v11331 = (
     _root / "player/session_mixins/world_events_endgame.py"
 ).read_text(encoding="utf-8")
