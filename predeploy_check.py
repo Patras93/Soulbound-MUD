@@ -242,9 +242,9 @@ if 'skeleton["name"] = f"Szkielet Strażnik Krypty, piętro {floor}"' in _infini
     )
 
 for _needle in (
-    'f"{name} — {theme_name}, piętro {floor}"',
-    'f"Przetaktowany Elitarny Prototyp — {theme_name}, piętro {floor}"',
-    'f"{boss_name} — {theme_name}, cykl {cycle}, piętro {floor}"',
+    'f"{name}, {theme_name}, piętro {floor}"',
+    'f"Przetaktowany Elitarny Prototyp, {theme_name}, piętro {floor}"',
+    'f"{boss_name}, {theme_name}, cykl {cycle}, piętro {floor}"',
 ):
     if _needle not in _magitek_names_source_v11335:
         _semantic_errors.append(
