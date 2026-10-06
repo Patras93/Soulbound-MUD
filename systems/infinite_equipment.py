@@ -305,17 +305,11 @@ def register_infinite_equipment_variant(
     data["infinite_depth_power_multiplier"] = round(multiplier, 6)
     data["source_progression_stage"] = effective_stage
 
-    # Never invent mastery 601+, but a genuinely post-600 item is endgame gear.
-    # Keep all other authored requirements and raise only an existing mastery
-    # requirement to the canonical cap so trading cannot bypass the deep source.
-    if "required_mastery" in data:
-        data["required_mastery"] = min(
-            INFINITE_EQUIPMENT_BASE_STAGE,
-            max(
-                int(data.get("required_mastery", 0) or 0),
-                INFINITE_EQUIPMENT_BASE_STAGE,
-            ),
-        )
+    # Never invent mastery 601+, but every genuinely post-600 item is endgame
+    # gear. This also prevents trading a floor-900 reward down to a low-mastery
+    # character merely because its historical base item had a low requirement.
+    data["required_mastery"] = INFINITE_EQUIPMENT_BASE_STAGE
+    data.setdefault("mastery_requirement_scope", "active_class")
     data["price"] = base.get("price")
     _catalog_mut.catalog_assign(data, "ITEMS", ITEMS, (vid,))
     return vid
