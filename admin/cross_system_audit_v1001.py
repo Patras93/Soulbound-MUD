@@ -164,6 +164,19 @@ def audit(runtime):
     for name, row in by_stage.items():
         summary[name] = {key: (round(sum(value) / len(value), 1) if value else 0) if isinstance(value, list) else value for key, value in row.items()}
     ocean_fish = {key: item for key, item in items.items() if item.get("deep_ocean")}
+    # v1.13.30: ocean offers depend on player progression since v1.13.8.
+    # Audit them through a real mixin instance with a deterministic endgame
+    # profile instead of calling an instance method with self=None.
+    ocean_probe = runtime.SessionOceanV1000Mixin()
+    ocean_probe.character = type(
+        "_OceanAuditCharacter",
+        (),
+        {"character_level": 600, "soul_level": 600},
+    )()
+    ocean_probe.highest_active_class_mastery = lambda: 600
+    ocean_contract_rewards = [
+        offer[4] for offer in ocean_probe.ocean_trade_offers_v1000()
+    ]
     generator = runtime.generator_core_v027
     progression = {}
     for stage in (1, 50, 100, 200, 300, 400, 500, 600):
@@ -187,7 +200,7 @@ def audit(runtime):
         "ocean_economy": {
             "ship_purchase_silver": 25_000,
             "one_module_levels_2_to_5_silver": sum(12_500 * level * level for level in range(2, 6)),
-            "contract_rewards_silver": [offer[4] for offer in runtime.SessionOceanV1000Mixin.ocean_trade_offers_v1000(None)],
+            "contract_rewards_silver": ocean_contract_rewards,
             "deep_fish_sell_silver": {key: item.get("sell_silver") for key, item in ocean_fish.items()},
         },
         "errors": errors, "warnings": warnings,
