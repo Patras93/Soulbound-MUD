@@ -815,10 +815,7 @@ def _generate_zone_semantic_v03013(rooms, zone, ids):
 world_topology_generator_v0281._generate_zone = _generate_zone_semantic_v03013
 
 WORLD_TOPOLOGY_AUDIT = world_topology_generator_v0281.apply_world_topology(ROOMS)
-if WORLD_TOPOLOGY_AUDIT.get("error_count"):
-    raise RuntimeError("World Topology validation failed: " + "; ".join(WORLD_TOPOLOGY_AUDIT.get("errors", [])[:20]))
-
-
+# v1.13.30: audit failure is enforced by predeploy_full.py, not production startup.
 # ============================================================
 # v0.30.24 - HYBRID QUEST CURRENCY REWARDS
 # ============================================================
@@ -984,10 +981,7 @@ def _apply_v03015_offensive_stat_scaling():
     return restored
 
 V03015_SKILL_SCALES_NORMALIZED = _apply_v03015_offensive_stat_scaling()
-if GENERATOR_CORE_AUDIT.get("error_count"):
-    raise RuntimeError("Generator Core validation failed: " + "; ".join(GENERATOR_CORE_AUDIT.get("errors", [])[:20]))
-
-
+# v1.13.30: audit failure is enforced by predeploy_full.py, not production startup.
 # ============================================================
 # v0.30.16 - CLASS EQ POST-GENERATOR CONSISTENCY FIX
 # Generator Core owns generated numeric power, but class mastery gates are
@@ -1108,10 +1102,7 @@ def finalize_class_equipment_v03015():
     }
 
 CLASS_EQ_AUDIT_V03015 = finalize_class_equipment_v03015()
-if CLASS_EQ_AUDIT_V03015["error_count"]:
-    raise RuntimeError("Class EQ v0.30.16 audit failed: " + "; ".join(CLASS_EQ_AUDIT_V03015["errors"][:20]))
-
-
+# v1.13.30: audit failure is enforced by predeploy_full.py, not production startup.
 def class_equipment_identity_audit_v03016():
     errors = []
     signatures = {}
@@ -1189,12 +1180,7 @@ def class_equipment_identity_audit_v03016():
     }
 
 CLASS_EQ_IDENTITY_AUDIT_V03016 = class_equipment_identity_audit_v03016()
-if CLASS_EQ_IDENTITY_AUDIT_V03016["error_count"]:
-    raise RuntimeError(
-        "Class EQ Identity Audit v0.30.16 failed: " +
-        "; ".join(CLASS_EQ_IDENTITY_AUDIT_V03016["errors"][:20])
-    )
-
+# v1.13.30: audit failure is enforced by predeploy_full.py, not production startup.
 # ============================================================
 # v0.30.0 - SEMANTIC WORLD LOGIC VALIDATOR
 # Proceduralna topologia musi pozostać geograficznie logiczna i w pełni
@@ -1202,10 +1188,7 @@ if CLASS_EQ_IDENTITY_AUDIT_V03016["error_count"]:
 # używać przypadkowych pionowych ulic.
 # ============================================================
 WORLD_LOGIC_AUDIT = world_logic_validator_v030.validate_world_logic(ROOMS)
-if WORLD_LOGIC_AUDIT.get("error_count"):
-    raise RuntimeError("World Logic validation failed: " + "; ".join(WORLD_LOGIC_AUDIT.get("errors", [])[:20]))
-
-
+# v1.13.30: audit failure is enforced by predeploy_full.py, not production startup.
 def audit_entire_world_topology_v03013(rooms):
     """Deep static topology audit including authored semantics, not just reachability."""
     from collections import defaultdict, deque
@@ -1383,17 +1366,9 @@ def audit_underground_route_isolation_v03813():
     }
 
 UNDERGROUND_ROUTE_ISOLATION_AUDIT_V03813 = audit_underground_route_isolation_v03813()
-if UNDERGROUND_ROUTE_ISOLATION_AUDIT_V03813["error_count"]:
-    raise RuntimeError(
-        "Underground Route Isolation Audit v0.38.13 failed: "
-        + "; ".join(UNDERGROUND_ROUTE_ISOLATION_AUDIT_V03813["errors"][:50])
-    )
-
+# v1.13.30: audit failure is enforced by predeploy_full.py, not production startup.
 FULL_WORLD_TOPOLOGY_AUDIT_V03013 = audit_entire_world_topology_v03013(ROOMS)
-if FULL_WORLD_TOPOLOGY_AUDIT_V03013.get("error_count"):
-    raise RuntimeError("Full World Topology Audit v0.30.13 failed: " + "; ".join(FULL_WORLD_TOPOLOGY_AUDIT_V03013.get("errors", [])[:20]))
-
-
+# v1.13.30: audit failure is enforced by predeploy_full.py, not production startup.
 # HELP i atlasy nie przechowują osobnego balansu: czytają wartości wygenerowane.
 HELP_TOPICS["generator"] = [
     "Generator Core pozostaje jedynym źródłem aktywnego balansu Soulbound; v0.30.0 dodaje semantyczny generator geografii i World Logic Validator.",
