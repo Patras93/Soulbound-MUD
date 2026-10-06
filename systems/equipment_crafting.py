@@ -381,7 +381,7 @@ def _register_class_equipment_shops():
                         secondary_stat, secondary_amount,
                         tertiary_stat, tertiary_amount,
                     ) = class_equipment_split_stat_budget(
-                        class_name, legacy_affix_amount, slot
+                        class_name, legacy_affix_amount, slot, style_index
                     )
                     expected_stats = (
                         {"intelligence", "willpower", "constitution"}
@@ -394,9 +394,21 @@ def _register_class_equipment_shops():
                             f"Class EQ stat triplet mismatch: {class_name} {slot}: "
                             f"{sorted(actual_stats)} != {sorted(expected_stats)}"
                         )
+                    style_profile = class_equipment_style_profile(style_index)
+                    raw_defense = (
+                        int(definition["base_defense"])
+                        + int(defense_delta)
+                        + defense_step
+                    )
                     defense = max(
                         1,
-                        int(definition["base_defense"]) + int(defense_delta) + defense_step,
+                        int(round(
+                            raw_defense
+                            * float(style_profile["defense_multiplier"])
+                        )),
+                    )
+                    flat_power = class_equipment_flat_power_channels(
+                        class_name, required_mastery, slot, style_index
                     )
                     # Alternatywne linie nie są droższe ani tańsze od bazowej.
                     price = max(1, int(base_price) * int(price_multiplier))
@@ -411,6 +423,8 @@ def _register_class_equipment_shops():
                         "type": "armor",
                         "slot": slot,
                         "defense": defense,
+                        "attack": int(flat_power["attack"]),
+                        "magic_attack": int(flat_power["magic_attack"]),
                         "price": price,
                         "currency": "silver",
                         "rarity": "crafted",
@@ -432,6 +446,7 @@ def _register_class_equipment_shops():
                         "class_set_piece": slot,
                         "class_equipment_tier": tier_index + 1,
                         "class_equipment_style": style_index,
+                        "class_style_role": style_profile["role"],
                         # v0.61.2: opis zwykłego klasowego EQ jest składany na żądanie
                         # z istniejących pól. Nie przechowujemy 38k długich kopii tekstu w RAM.
                     }, 'ITEMS', ITEMS, (item_id,))
