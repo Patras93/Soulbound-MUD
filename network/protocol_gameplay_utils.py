@@ -402,14 +402,29 @@ def boss_floor_chest_state_id(kind, floor):
 
 
 def boss_floor_chest_room_id(kind, floor):
+    """Return the exact final room that physically contains the checkpoint boss."""
     floor = int(floor)
-    return {
-        "giant": f"giant_fortress_{floor}",
-        "crypt": f"crypt_floor_{floor}",
-        "astral": f"astral_floor_{floor}",
-        "mythic_crypt": f"mythic_crypt_floor_{floor}",
-        "mythic_astral": f"mythic_astral_floor_{floor}",
-    }.get(str(kind), "")
+    resolvers = {
+        "giant": globals().get("giant_fortress_floor_id"),
+        "crypt": globals().get("crypt_floor_id"),
+        "astral": globals().get("astral_floor_id"),
+        "mythic_crypt": globals().get("mythic_crypt_floor_id"),
+        "mythic_astral": globals().get("mythic_astral_floor_id"),
+        "magitek": globals().get("magitek_floor_id"),
+    }
+    resolver = resolvers.get(str(kind))
+    canonical = resolver(floor) if callable(resolver) else ""
+    if not canonical:
+        return ""
+
+    spec_fn = globals().get("v0100_instance_spec")
+    subroom_fn = globals().get("v0100_subroom_id")
+    if callable(spec_fn) and callable(subroom_fn):
+        spec = spec_fn(canonical)
+        if spec and spec.get("boss_flag"):
+            total_rooms = max(3, int(spec.get("rooms", 3) or 3))
+            return subroom_fn(canonical, total_rooms - 1)
+    return canonical
 
 
 def _boss_floor_chest_spec(room_id):
