@@ -167,6 +167,41 @@ for _label, _source, _needles in (
                 f"adaptive combat wiring regression ({_label}): missing {_needle}"
             )
 
+# v1.13.30: Astral towers have no artificial Level/Soul Level entry gate.
+_tower_regions_source_v11330 = (
+    _root / "systems/dungeons_regions.py"
+).read_text(encoding="utf-8")
+_tower_progress_source_v11330 = (
+    _root / "player/session_mixins/dungeon_progression.py"
+).read_text(encoding="utf-8")
+_tower_movement_source_v11330 = (
+    _root / "player/session_mixins/movement.py"
+).read_text(encoding="utf-8")
+for _needle in (
+    "ASTRAL_MIN_SOUL_LEVEL = 1",
+    "MYTHIC_ASTRAL_MIN_SOUL_LEVEL = 1",
+):
+    if _needle not in _tower_regions_source_v11330:
+        _semantic_errors.append(
+            "tower level-gate regression: missing " + _needle
+        )
+if "def astral_entry_blocked(self, target_room):\n            # v1.13.30: brak minimalnego Soul Level dla Wieży Astralnej.\n            return False" not in _tower_progress_source_v11330:
+    _semantic_errors.append(
+        "tower level-gate regression: astral_entry_blocked is not unconditional False"
+    )
+if "def mythic_entry_error(self, target_room):\n            # v1.13.30: Mityczna Krypta i Mityczna Wieża nie mają level-gate." not in _tower_progress_source_v11330:
+    _semantic_errors.append(
+        "tower level-gate regression: mythic tower entry gate returned"
+    )
+for _stale in (
+    "Wieża Astralna wymaga Soul Level",
+    "Mityczna Wieża Astralna jest zablokowana",
+):
+    if _stale in _tower_movement_source_v11330 or _stale in _tower_progress_source_v11330:
+        _semantic_errors.append(
+            "tower level-gate regression: stale blocking message " + _stale
+        )
+
 # v1.13.10 hotfix: Generator Core now preserves authored item prices, so all
 # one-time starter profession tools must carry the same canonical authored
 # price instead of relying on a later generator rewrite.
