@@ -10,11 +10,11 @@ from __future__ import annotations
 
 import re
 
+from core.bootstrap_economy_professions import TOOL_PROFESSION_MAP
 from core.classes_skills import CLASSES, RACES
 from core.command_catalog import COMMAND_CATALOG
 from core.profession_timing import TOOL_ACTION_BASE_SECONDS, TOOL_ACTION_MIN_SECONDS
 from systems.items_resources import CLASS_EQUIPMENT_SLOT_DEFS
-from systems.professions import PROFESSION_TOOL_CONFIG
 from world.equipment_help import HELP_TOPICS, HELP_TOPIC_ALIASES
 
 HELP_TRUTH_CURRENT_VERSION_V11328 = "1.13.28"
@@ -93,7 +93,7 @@ def _normalize_help_line_v11328(line, slot_count):
 def refresh_help_truth_current_v11328():
     class_count = len(CLASSES)
     race_count = len(RACES)
-    profession_count = len(PROFESSION_TOOL_CONFIG)
+    profession_count = len(set(TOOL_PROFESSION_MAP.values()))
     slot_count = len(CLASS_EQUIPMENT_SLOT_DEFS)
 
     # First clean every existing public topic, including niche historical modules.
