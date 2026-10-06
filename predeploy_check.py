@@ -1489,6 +1489,7 @@ _world_state_source_v11330 = (_root / "world/world_state.py").read_text(encoding
 _db_inventory_source_v11330 = (_root / "storage/db_inventory.py").read_text(encoding="utf-8")
 _server_source_v11330 = (_root / "server/mud_server.py").read_text(encoding="utf-8")
 _global_difficulty_source_v11330 = (_root / "world/global_difficulty_overdrive.py").read_text(encoding="utf-8")
+_sales_source_v11330 = (_root / "player/session_mixins/sales.py").read_text(encoding="utf-8")
 _runtime_manifest_source_v11330 = (_root / "core/runtime_manifest.py").read_text(encoding="utf-8")
 
 for _needle in (
@@ -1517,6 +1518,17 @@ if "ensure_infinite_equipment_variant(_item_id)" not in _server_source_v11330:
     _semantic_errors.append("post-600 EQ startup restore missing")
 if "factor *= infinite_coin_multiplier(template)" not in _global_difficulty_source_v11330:
     _semantic_errors.append("post-600 infinite coin continuation missing")
+
+for _needle in (
+    'if item.get("infinite_depth_variant"):',
+    'depth_rank = max(',
+    'economy_stage_anchor_v11314(600)',
+    'depth_factor = 1.0 + 0.030 * (depth_rank ** 0.82)',
+):
+    if _needle not in _sales_source_v11330:
+        _semantic_errors.append(
+            "post-600 deep EQ sale progression regression: missing " + _needle
+        )
 
 try:
     from systems.infinite_equipment import INFINITE_EQUIPMENT_AUDIT_V11330 as _infinite_eq_audit_v11330
