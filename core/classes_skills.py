@@ -4799,14 +4799,9 @@ def all_class_gamefeel_audit_v11330():
                 except (TypeError, ValueError, OverflowError):
                     execute = 1.0
                 impact = mult * max(1.0, execute)
-                if impact >= 2.20 or (
-                    class_name in technology_classes
-                    and (
-                        float(skill.get("base_power", 0.0) or 0.0) > 0.0
-                        or skill.get("mec_special")
-                        or skill.get("engineer_special")
-                        or skill.get("source_ability")
-                    )
+                if (
+                    (class_name in technology_classes and unlock >= 180)
+                    or impact >= 2.20
                 ):
                     signatures.append(sid)
 
