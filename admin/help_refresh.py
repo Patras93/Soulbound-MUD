@@ -103,6 +103,22 @@ def refresh_generator_help_v0271():
         "Zmiana balansu liczbowego generatora nie zmienia wymagań ani kolejności odblokowania zasobów.",
         "Użyj atlas ryby, atlas rudy, atlas drewno albo atlas ziola; szczegóły zasobu pokazują jego aktualny wygenerowany próg.",
     ]
+    archaeology = HELP_TOPICS.get("archeologia", [])
+    if isinstance(archaeology, str):
+        archaeology = [archaeology]
+    archaeology.append(
+        "v1.13.8: znaleziska mają etapową wartość sprzedaży; nowy wpis kolekcji daje x2 Profession XP i zwiększony Tool XP."
+    )
+    HELP_TOPICS["archeologia"] = archaeology
+
+    cartography = HELP_TOPICS.get("kartografia", [])
+    if isinstance(cartography, str):
+        cartography = [cartography]
+    cartography.append(
+        "v1.13.8: pierwszy pomiar nowej lokacji daje jednorazową premię odkrywcy zależną od etapu terenu; ponowne pomiary rozwijają profesję bez ponownego bonusu."
+    )
+    HELP_TOPICS["kartografia"] = cartography
+
     HELP_TOPICS["generator"] = [
         f"Generator Core {GENERATOR_CORE_VERSION} działa w trybie NUMERIC-ONLY: zarządza tylko liczbami balansu.",
         f"Po starcie waliduje {GENERATOR_CORE_AUDIT['mobs']} mobów, {GENERATOR_CORE_AUDIT['items']} przedmiotów, {GENERATOR_CORE_AUDIT['quests']} questów, {GENERATOR_CORE_AUDIT['skills']} skilli/spelli, {GENERATOR_CORE_AUDIT['recipes']} receptur i {GENERATOR_CORE_AUDIT['rooms']} lokacji.",
@@ -1364,6 +1380,10 @@ def refresh_help_truth_v11197():
         "Każda profesja ma własny poziom 1-600; jej narzędzie rozwija się osobno 1-600. Wszystkie 14 narzędzi kupuje się tylko raz na postać.",
         "zamowienia / zamówienia obsługuje zamówienia wszystkich 14 profesji; zlecenia odnawiają się niezależnie zgodnie z ich godzinnym cooldownem.",
         "Archeologia: wykop. Kartografia: mapuj. Szczegóły: help archeologia i help kartografia.",
+        "v1.13.8: zwykłe zbieractwo daje sensowny zarobek względem etapu, a rzadkie warianty są jackpotami: rośnie wartość sprzedaży oraz Profession/Tool XP.",
+        "Wędkarstwo dodatkowo wycenia trofealność gatunku. Rekiny, legendarne ryby i lewiatany są warte wyraźnie więcej nawet bez rzadkiego wariantu; Albinos/Złoty/Olbrzymi/Pradawny mnożą wartość dalej.",
+        "Górnictwo nagradza bogate, kryształowe i legendarne żyły większą ilością oraz XP; Geody mają realne złoto i szansę na Doskonałe/Perfekcyjne klejnoty.",
+        "Pierwsze odkrycia Archeologii mają premię XP i wysoką wartość kolekcjonerską; pierwszy pomiar lokacji w Kartografii daje dodatkową premię odkrywcy.",
     ]
 
     HELP_TOPICS["tempo_profesji"] = [
@@ -1378,6 +1398,8 @@ def refresh_help_truth_v11197():
     HELP_TOPICS["wiecej_ryb"] = [
         "Wędkarstwo i Wędka mają progresję 1-600. Kolejne gatunki odblokowują się wraz z narzędziem i właściwym łowiskiem.",
         "atlas ryby oraz woda / łowisko pokazują bieżące źródła i wymagania.",
+        "Gatunki trofealne mają własną premię wartości: im rzadszy gatunek, tym większa cena; rekiny i lewiatany dostają dodatkową premię.",
+        "Rzadkie warianty są jackpotami: Albinos x3, Olbrzymi x5, Złoty x8, Pradawny x15 wartości bazowej. Jackpot zwiększa też Wędkarstwo/Tool XP, ale łagodniej niż cenę.",
     ]
 
     HELP_TOPICS["generator"] = [
