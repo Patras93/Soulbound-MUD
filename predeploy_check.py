@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Fast Railway predeploy gate for Soulbound v1.13.13.
+"""Fast Railway predeploy gate for Soulbound v1.13.14.
 
 This is the normal deploy check.  It intentionally avoids assembling the full
 world/runtime.  Use predeploy_full.py when an exhaustive historical audit is
@@ -16,7 +16,7 @@ import traceback
 try:
     from storage.database import Database as _DatabaseImportSmoke
 except Exception as exc:
-    print(f"Soulbound v1.13.13 FAST PREDEPLOY FAILED: database import: {type(exc).__name__}: {exc}")
+    print(f"Soulbound v1.13.14 FAST PREDEPLOY FAILED: database import: {type(exc).__name__}: {exc}")
     traceback.print_exc()
     raise SystemExit(1)
 
@@ -37,7 +37,7 @@ try:
     )
 except Exception as exc:
     print(
-        "Soulbound v1.13.13 FAST PREDEPLOY FAILED: "
+        "Soulbound v1.13.14 FAST PREDEPLOY FAILED: "
         f"skill semantic import: {type(exc).__name__}: {exc}"
     )
     traceback.print_exc()
@@ -232,8 +232,8 @@ if "return equipment_progression_budget_v1138(mastery)" not in _equipment_source
         "class EQ progression regression: shop no longer uses shared progression budget"
     )
 for _needle in ("(50, 15_000)", "(100, 100_000)", "(200, 1_250_000)", "(600, 100_000_000)"):
-    if _needle not in _economy_source:
-        _semantic_errors.append("quest income progression regression: missing " + _needle)
+    if _needle not in _items_resource_source:
+        _semantic_errors.append("quest income progression regression: missing shared anchor " + _needle)
 
 # v1.13.11: the late 1-600 income finalizer must never rewrite quests marked
 # by Hybrid Quest Rewards as manually balanced.
@@ -282,6 +282,49 @@ for _label, _source in (
             _semantic_errors.append(
                 f"crypt Generator baseline regression ({_label}): missing {_needle}"
             )
+# v1.13.14: one shared 1-600 economy reference keeps earnings, prices,
+# resale and renewable chest rewards in the same scale.
+_crafting_quality_source_v11314 = (_root / "systems/crafting_quality.py").read_text(encoding="utf-8")
+_sales_source_v11314 = (_root / "player/session_mixins/sales.py").read_text(encoding="utf-8")
+_world_state_source_v11314 = (_root / "world/world_state.py").read_text(encoding="utf-8")
+for _needle in (
+    "V11314_ECONOMY_STAGE_ANCHORS = (",
+    "def economy_stage_anchor_v11314(level):",
+    "def class_equipment_shop_price_v11314(level, slot_base_price):",
+):
+    if _needle not in _items_resource_source:
+        _semantic_errors.append("shared o-kurde economy regression: missing " + _needle)
+if "class_equipment_shop_price_v11314(" not in _equipment_source:
+    _semantic_errors.append("class EQ price progression regression")
+for _needle in (
+    "V1124_QUEST_INCOME_ANCHORS = V11314_ECONOMY_STAGE_ANCHORS",
+    "return economy_stage_anchor_v11314(stage)",
+):
+    if _needle not in _economy_source:
+        _semantic_errors.append("shared quest economy regression: missing " + _needle)
+if '"attack","magic_attack","power"' not in _crafting_quality_source_v11314:
+    _semantic_errors.append("craft quality regression: Magic Attack is not scaled")
+for _needle in (
+    "V11314_ARMOR_RESALE_QUEST_FRACTION = {",
+    "flat_power = attack + magic_attack",
+    "economy_stage_anchor_v11314(stage)",
+    "silver = min(silver, smith_cap)",
+):
+    if _needle not in _sales_source_v11314:
+        _semantic_errors.append("valuable EQ resale regression: missing " + _needle)
+for _needle in (
+    "from core.bootstrap_economy_professions import SILVER_PER_GOLD",
+    "from core.mines_threat import v0866_room_threat_profile",
+    "from systems.items_resources import economy_stage_anchor_v11314",
+    "V11314_TREASURE_CHEST_PAYOUT_MULTIPLIERS = {",
+    "def treasure_chest_economy_stage_v11314(room_id):",
+    "v0866_room_threat_profile(room_id, fallback=fallback)",
+    "economy_stage_anchor_v11314(stage)",
+    "V11314_TREASURE_CHEST_LEGACY_COINS",
+):
+    if _needle not in _world_state_source_v11314:
+        _semantic_errors.append("treasure chest economy regression: missing " + _needle)
+
 for _needle in ('baseline_key = f"_v1138_authored_{key}"', "procedural_no_limit", '"world_boss": 3.00'):
     if _needle not in _runtime_progression_source:
         _semantic_errors.append("runtime progression feel regression: missing " + _needle)
@@ -754,18 +797,18 @@ except Exception as exc:
     )
 
 if _semantic_errors:
-    print("Soulbound v1.13.13 FAST PREDEPLOY FAILED: semantic contracts")
+    print("Soulbound v1.13.14 FAST PREDEPLOY FAILED: semantic contracts")
     for _error in _semantic_errors:
         print(f"ERROR: {_error}")
     raise SystemExit(1)
 
 if audit["error_count"]:
-    print("Soulbound v1.13.13 FAST PREDEPLOY FAILED")
+    print("Soulbound v1.13.14 FAST PREDEPLOY FAILED")
     for error in audit["errors"]:
         print(f"ERROR: {error}")
     raise SystemExit(1)
 
-print("Soulbound v1.13.13 FAST PREDEPLOY PASS")
+print("Soulbound v1.13.14 FAST PREDEPLOY PASS")
 print(
     "Semantic contracts: "
     f"{len(_semantic_audits)} audits PASS; AP runtime guards PASS"

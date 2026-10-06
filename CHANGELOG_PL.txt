@@ -1,8 +1,37 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.13.13
+Aktualna paczka: v1.13.14
 
 
 
+
+
+==============================================================================
+Soulbound v1.13.14 — pełny audit pętli „o kurde”
+==============================================================================
+
+- Zsynchronizowano zarobki i wydatki przez jedną wspólną krzywą ekonomii
+  1-600. Questy zachowują dotychczasowe wypłaty v1.13.8, ale ceny i nagrody
+  poboczne nie mogą już żyć w starych, wielokrotnie mniejszych skalach.
+- Klasowe EQ w sklepach przestało być praktycznie darmowe po wzroście dochodów.
+  Przeciętna część kosztuje około połowy bazowej wypłaty pełnego zadania na
+  swoim etapie, z korektą zależną od slotu. Cały komplet znów jest celem
+  ekonomicznym, ale pozostaje osiągalny normalną grą.
+- Odsprzedaż znalezionego EQ uwzględnia teraz Attack i Magic Attack oraz ma
+  minimalną wartość zależną od etapu i rzadkości. Dobry drop zachowuje wartość
+  także wtedy, gdy gracz go nie zakłada.
+- Zachowano anty-arbitraż Kowalstwa: istniejący cap wartości materiałów nadal
+  ogranicza sprzedaż craftowanego EQ i ma ostatnie słowo.
+- Jakość craftu skaluje teraz również Magic Attack; wcześniej kolejne jakości
+  wzmacniały Attack fizycznego sprzętu, ale nie kanał magiczny.
+- Odnawialne skrzynie skarbów przestały płacić stare 80-700 srebra / kilka Gold.
+  Wypłata skaluje się z realną trudnością lokacji oraz rzadkością skrzyni,
+  a stara wypłata pozostaje dolną granicą.
+- Średnia walutowa wartość odnawialnej skrzyni pozostaje dużo niższa od pełnego
+  questa tego samego etapu, więc skrzynie nie są drukarką pieniędzy.
+- Boss Chesty, główne questy i zarobki profesji zostały przejrzane i celowo nie
+  dostały kolejnego globalnego buffa: ich krzywe po v1.13.8 są już znaczące.
+- Fast predeploy chroni wspólną krzywą ekonomii, ceny klasowego EQ, Magic Attack
+  craftu, wartość odsprzedaży oraz skalowanie odnawialnych skrzyń.
 
 ==============================================================================
 Soulbound v1.13.13 — przywrócona kanoniczna trudność Krypty
