@@ -701,6 +701,77 @@ class SessionDungeonProgressionMixin:
 
             return self.character.soul_level > old_level
 
+    async def party_checkpoint_portal_exit_v11331(
+            self, *, kind, floor, target_room, label
+    ):
+            """Exit a cleared 10-floor checkpoint with eligible local party."""
+            party_key = self.party_key()
+            if party_key is not None and party_key != self.account_id:
+                leader = self.server.session_by_account(party_key)
+                leader_name = (
+                    leader.character.name
+                    if leader and getattr(leader, "character", None)
+                    else "lider drużyny"
+                )
+                await self.send(
+                    f"W drużynie portal checkpointu uruchamia lider: {leader_name}."
+                )
+                return True
+
+            old = self.character.room_id
+            candidates = (
+                list(
+                    self.server.party_sessions(
+                        self.account_id, same_room=old
+                    )
+                )
+                if party_key == self.account_id
+                else [self]
+            )
+            if self not in candidates:
+                candidates.append(self)
+
+            moved = []
+            skipped = []
+            for member in candidates:
+                if not member or not getattr(member, "character", None):
+                    continue
+                if member.combat_mob_key:
+                    skipped.append(f"{member.character.name}: trwa walka")
+                    continue
+
+                if kind == "crypt":
+                    highest = int(member.crypt_portal() or 0)
+                else:
+                    highest = int(member.astral_portal() or 0)
+                if highest < int(floor):
+                    skipped.append(
+                        f"{member.character.name}: checkpoint {floor} "
+                        "nie jest odblokowany"
+                    )
+                    continue
+
+                member.previous_room_id = member.character.room_id
+                member.character.room_id = target_room
+                member.server.db.save_character(member.character)
+                moved.append(member)
+
+            if moved:
+                for member in moved:
+                    await member.send(
+                        f"{label} checkpointu {floor} przenosi cię do wyjścia lochu."
+                    )
+                    await member.look()
+                if len(moved) > 1:
+                    await self.send(
+                        f"Portal checkpointu przenosi razem {len(moved)} graczy."
+                    )
+            if skipped:
+                await self.send(
+                    "Nie przeniesiono: " + "; ".join(skipped) + "."
+                )
+            return True
+
     async def show_astral_portal_status(self):
             highest = self.astral_portal()
             unlocked = self.astral_portal_floors()
@@ -720,8 +791,9 @@ class SessionDungeonProgressionMixin:
                 + "."
             )
             await self.send(
-                "Użycie: astralportal <100/110/120/... bez górnego limitu>. "
-                "Portal uruchamia się przy Astralnej Bramie."
+                "Użycie przy Bramie: astralportal <100/110/120/... bez górnego limitu>. "
+                "Na odblokowanym checkpointcie 100/110/120/... wpisz astralportal "
+                "albo astralportal wyjdz, aby wrócić do Astralnej Bramy."
             )
 
     async def use_astral_portal(self, raw):
@@ -744,6 +816,23 @@ class SessionDungeonProgressionMixin:
                 return
 
             value = self.normalize_room_query(raw)
+            current_floor = astral_floor_number(self.character.room_id)
+            if (
+                current_floor is not None
+                and is_astral_boss_floor(current_floor)
+                and current_floor <= int(self.astral_portal() or 0)
+                and (
+                    not value
+                    or value in ("wyjdz", "wyjdź", "exit", "out", "wyjscie", "wyjście")
+                )
+            ):
+                await self.party_checkpoint_portal_exit_v11331(
+                    kind="astral",
+                    floor=current_floor,
+                    target_room="astral_gate",
+                    label="Astralny Portal",
+                )
+                return
             if not value or value in ("status", "lista", "list"):
                 await self.show_astral_portal_status()
                 return
@@ -870,8 +959,9 @@ class SessionDungeonProgressionMixin:
                 + "."
             )
             await self.send(
-                "Użycie: portal <10/20/30/...>. "
-                "Portal można uruchomić w Sali Krypty albo w Przedsionku Krypty."
+                "Użycie przy wejściu: portal <10/20/30/...>. "
+                "Na odblokowanym checkpointcie 10/20/30/... wpisz portal "
+                "albo portal wyjdz, aby wrócić do Sali Krypty."
             )
 
     async def use_crypt_portal(self, raw):
@@ -894,6 +984,23 @@ class SessionDungeonProgressionMixin:
                 return
 
             value = self.normalize_room_query(raw)
+            current_floor = crypt_floor_number(self.character.room_id)
+            if (
+                current_floor is not None
+                and is_crypt_boss_floor(current_floor)
+                and current_floor <= int(self.crypt_portal() or 0)
+                and (
+                    not value
+                    or value in ("wyjdz", "wyjdź", "exit", "out", "wyjscie", "wyjście")
+                )
+            ):
+                await self.party_checkpoint_portal_exit_v11331(
+                    kind="crypt",
+                    floor=current_floor,
+                    target_room="crypt_hall",
+                    label="Portal Krypty",
+                )
+                return
             if not value or value in ("status", "lista", "list"):
                 await self.show_portal_status()
                 return
