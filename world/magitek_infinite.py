@@ -171,7 +171,7 @@ def create_infinite_magitek_floor_definition(floor):
         name = _MAGITEK_REGULAR_NAMES[(floor * 2 + variant - 2) % len(_MAGITEK_REGULAR_NAMES)]
         variant_mult = 1.0 + variant * 0.12
         template = _machine_template(
-            f"{name}, piętro {floor}",
+            f"{name} — {theme_name}, piętro {floor}",
             max(1, int(round(base_hp * variant_mult))),
             max(1, int(round(base_dmg * (1.0 + variant * 0.08)))),
             stage,
@@ -204,7 +204,7 @@ def create_infinite_magitek_floor_definition(floor):
     if floor % 5 == 0 and not is_magitek_boss_floor(floor):
         elite_id = f"magitek_floor_elite_{floor}"
         elite = _machine_template(
-            f"Przetaktowany Elitarny Prototyp, piętro {floor}",
+            f"Przetaktowany Elitarny Prototyp — {theme_name}, piętro {floor}",
             int(round(base_hp * 4.2)),
             int(round(base_dmg * 1.55)),
             stage,
@@ -237,7 +237,9 @@ def create_infinite_magitek_floor_definition(floor):
         boss_name = _MAGITEK_BOSS_NAMES[cycle_index]
         mech_id, mech_text = _MAGITEK_BOSS_MECHANICS[cycle_index % len(_MAGITEK_BOSS_MECHANICS)]
         cycle = max(1, (floor - 1) // (len(_MAGITEK_BOSS_NAMES) * 10) + 1)
-        display = boss_name
+        display = (
+            f"{boss_name} — {theme_name}, cykl {cycle}, piętro {floor}"
+        )
         boss = _machine_template(
             display,
             int(round(base_hp * (18.0 + min(10.0, floor / 80.0)))),
