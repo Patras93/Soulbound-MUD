@@ -229,6 +229,7 @@ class SessionMovementMixin:
                     self.character,
                     commit=not bool(getattr(self, "_party_follow_batch_save_v11123", False)),
                 )
+                await self.register_uoss_deep_dungeon_visit_v11331(target)
                 if hasattr(self, "ocean_contract_step_v1001"):
                     contract_event = self.ocean_contract_step_v1001(old, target)
                     if contract_event == "started":
@@ -283,6 +284,26 @@ class SessionMovementMixin:
                 await self.send("Nie możesz iść w tym kierunku.")
                 return
             self.server.world.ensure_runtime_room(target)
+
+            if self.uoss_deep_dungeon_descent_blocked_v11331(
+                self.character.room_id, direction
+            ):
+                floor = uoss_deep_dungeon_floor_number_v11331(
+                    self.character.room_id
+                )
+                await self.send(
+                    f"Nie możesz zejść niżej z piętra {floor}. "
+                    "Apanda tego progu nie została jeszcze zaliczona przez ciebie."
+                )
+                return
+
+            serpentarius_error = (
+                self.uoss_serpentarius_room_entry_error_v11331(target)
+            )
+            if serpentarius_error:
+                await self.send(serpentarius_error)
+                return
+
             target_room = ROOMS.get(target, {})
             if target_room.get("requires_ship"):
                 party_ship = getattr(self, "_party_ship_passage_v10014", None) or {}
