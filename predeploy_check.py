@@ -331,7 +331,7 @@ for _source, _label in (
     (_shop_source_progression_ui_v11327, "shop info"),
     (_compare_source_progression_ui_v11327, "equipment compare"),
 ):
-    if '"Etap źródła EQ: "' not in _source:
+    if "Etap źródła EQ:" not in _source or "source_progression_stage" not in _source:
         _semantic_errors.append(f"loot source progression UI regression: {_label}")
 
 # v1.13.26: Equipment Identity 2.0 keeps acquisition sources materially distinct.
