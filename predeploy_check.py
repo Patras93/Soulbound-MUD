@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Fast Railway predeploy gate for Soulbound v1.13.24.
+"""Fast Railway predeploy gate for Soulbound v1.13.25.
 
 This is the normal deploy check.  It intentionally avoids assembling the full
 world/runtime.  Use predeploy_full.py when an exhaustive historical audit is
@@ -16,7 +16,7 @@ import traceback
 try:
     from storage.database import Database as _DatabaseImportSmoke
 except Exception as exc:
-    print(f"Soulbound v1.13.24 FAST PREDEPLOY FAILED: database import: {type(exc).__name__}: {exc}")
+    print(f"Soulbound v1.13.25 FAST PREDEPLOY FAILED: database import: {type(exc).__name__}: {exc}")
     traceback.print_exc()
     raise SystemExit(1)
 
@@ -37,7 +37,7 @@ try:
     )
 except Exception as exc:
     print(
-        "Soulbound v1.13.24 FAST PREDEPLOY FAILED: "
+        "Soulbound v1.13.25 FAST PREDEPLOY FAILED: "
         f"skill semantic import: {type(exc).__name__}: {exc}"
     )
     traceback.print_exc()
@@ -293,6 +293,49 @@ for _needle in (
         _semantic_errors.append(
             "terrain recommended mastery floor regression: missing " + _needle
         )
+
+# v1.13.25: old authored values may not bypass current loot/EQ value floors.
+_legacy_value_source_v11325 = (_root / "systems/legacy_value_sweep.py").read_text(encoding="utf-8")
+_sales_source_v11325 = (_root / "player/session_mixins/sales.py").read_text(encoding="utf-8")
+_combat_rewards_source_v11325 = (_root / "player/session_mixins/combat_rewards.py").read_text(encoding="utf-8")
+_items_source_v11325 = (_root / "data/items.py").read_text(encoding="utf-8")
+
+for _needle in (
+    "def legacy_explicit_sale_floor_v11325",
+    "def legacy_explicit_sale_value_v11325",
+    "def legacy_identity_drop_spec_v11325",
+    "manual_sale_value_exact",
+    'sale_value_mode") == "manual"',
+    "LEGACY_VALUE_SWEEP_AUDIT_V11325",
+):
+    if _needle not in _legacy_value_source_v11325:
+        _semantic_errors.append("legacy value sweep helper regression: missing " + _needle)
+
+for _needle in (
+    "legacy_explicit_sale_value_v11325(item_id, item)",
+    'if item.get("type") == "armor":',
+    "old explicit sell_* values",
+    "legacy shop armor",
+):
+    if _needle not in _sales_source_v11325:
+        _semantic_errors.append("legacy sale floor regression: missing " + _needle)
+
+for _needle in (
+    "def _v11325_legacy_identity_drop_spec",
+    "legacy_identity_drop_spec_v11325",
+    "Łup charakterystyczny:",
+):
+    if _needle not in _combat_rewards_source_v11325:
+        _semantic_errors.append("legacy mob identity drop regression: missing " + _needle)
+
+for _item_id in (
+    "legacy_rat_tail",
+    "legacy_goblin_salvage",
+    "legacy_bandit_purse",
+    "legacy_ancient_fragment",
+):
+    if f'"{_item_id}"' not in _items_source_v11325:
+        _semantic_errors.append("legacy mob material regression: missing " + _item_id)
 
 # v1.13.24: Global "O Kurde" Game Feel must remain activity-specific and
 # preserve exact authored/manual rewards.
@@ -1169,18 +1212,18 @@ except Exception as exc:
     )
 
 if _semantic_errors:
-    print("Soulbound v1.13.24 FAST PREDEPLOY FAILED: semantic contracts")
+    print("Soulbound v1.13.25 FAST PREDEPLOY FAILED: semantic contracts")
     for _error in _semantic_errors:
         print(f"ERROR: {_error}")
     raise SystemExit(1)
 
 if audit["error_count"]:
-    print("Soulbound v1.13.24 FAST PREDEPLOY FAILED")
+    print("Soulbound v1.13.25 FAST PREDEPLOY FAILED")
     for error in audit["errors"]:
         print(f"ERROR: {error}")
     raise SystemExit(1)
 
-print("Soulbound v1.13.24 FAST PREDEPLOY PASS")
+print("Soulbound v1.13.25 FAST PREDEPLOY PASS")
 print(
     "Semantic contracts: "
     f"{len(_semantic_audits)} audits PASS; AP runtime guards PASS"
