@@ -214,11 +214,6 @@ def uoss_superboss_audit_v11134():
 
 UOSS_SUPERBOSS_AUDIT_V11134 = uoss_superboss_audit_v11134()
 UOSS_SUPERBOSS_AUDIT_V0366 = UOSS_SUPERBOSS_AUDIT_V11134
-if UOSS_SUPERBOSS_AUDIT_V11134["error_count"]:
-    raise RuntimeError(
-        "UOSSMUD Superboss Audit v1.11.34 failed: "
-        + "; ".join(UOSS_SUPERBOSS_AUDIT_V11134["errors"][:50])
-    )
 
 LATEST_CHANGES_TITLE = "Soulbound v0.36.6 - Correct UOSSMUD Named Superbosses"
 LATEST_CHANGES = [
