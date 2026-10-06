@@ -21,11 +21,27 @@ from network.protocol_gameplay_utils import find_by_name, normalize_lookup_text
 class SessionBankingCharismaMixin:
 
     def shop_item_base_value_silver(self, item):
+            """Canonical money part of a shop offer, in internal silver.
+
+            v1.13.25: missing price is never silently equivalent to "free".
+            The only zero-money offers are explicit token-only contracts.
+            """
+            item = item or {}
             price = int(item.get("price") or 0)
             currency = item.get("currency", "silver")
-            if price <= 0 and item.get("universal_endgame_shop"):
-                stage = max(1, int(item.get("required_level", 1) or 1))
-                return min(V019_SAFE_INT, max(1, int(v0190_economy_sink(stage, "equipment"))))
+
+            token_id = item.get("fur_shop_token")
+            token_cost = max(0, int(item.get("fur_shop_token_cost", 0) or 0))
+            source_gold = item.get("fur_shop_gold_cost")
+            explicit_token_only = (
+                token_id
+                and token_cost > 0
+                and source_gold is not None
+                and int(source_gold or 0) == 0
+            )
+            if explicit_token_only:
+                return 0
+
             if currency == "silver":
                 base = price
             elif currency == "gold":
@@ -34,10 +50,43 @@ class SessionBankingCharismaMixin:
                 base = price * GOLD_PER_MITHRIL * SILVER_PER_GOLD
             else:
                 base = 0
-            required=max(1,int(item.get("required_mastery",1) or 1))
+
+            stage_candidates = []
+            for key in (
+                "generator_level",
+                "required_mastery",
+                "required_level",
+                "jewelcraft_level",
+                "blacksmith_tier",
+            ):
+                try:
+                    value = int(item.get(key, 0) or 0)
+                except (TypeError, ValueError, OverflowError):
+                    value = 0
+                if key == "blacksmith_tier" and value > 0:
+                    value *= 10
+                if value > 0:
+                    stage_candidates.append(value)
+            stage = max(stage_candidates) if stage_candidates else 1
+            stage = max(1, min(600, stage))
+
+            # Every real shop offer with no authored money price gets a safe
+            # progression price instead of becoming accidentally free.
+            if base <= 0:
+                category = (
+                    "equipment"
+                    if item.get("type") in {"armor", "soul_weapon_relic"}
+                    or item.get("class_shop_item")
+                    or item.get("universal_endgame_shop")
+                    else "generic"
+                )
+                base = v0190_economy_sink(stage, category)
+
+            required = max(1, int(item.get("required_mastery", 1) or 1))
             if required >= 10 and base > 0:
-                base=max(base,v0190_economy_sink(required,"equipment"))
-            return min(V019_SAFE_INT,max(0,int(base)))
+                base = max(base, v0190_economy_sink(required, "equipment"))
+
+            return min(V019_SAFE_INT, max(1, int(base)))
 
     def shop_cashback_silver(self, item):
             base = self.shop_item_base_value_silver(item)
