@@ -1,5 +1,5 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.13.23
+Aktualna paczka: v1.13.24
 
 
 
@@ -13,6 +13,40 @@ Aktualna paczka: v1.13.23
 
 
 
+
+
+==============================================================================
+Soulbound v1.13.24 — GLOBALNY „O KURDE” GAME FEEL PASS
+==============================================================================
+
+- Rozszerzono zasadę „gra ma być o kurde” poza samą walkę. Rzadkie momenty
+  nagrody są osobne dla aktywności i nie zastępują authored progresji.
+- WALKA: zwykłe/Elite/Rare moby dostały okazjonalne ataki tożsamościowe.
+  Magicy mogą odpalić Magiczny Zryw, szybcy przeciwnicy Szybki Atak,
+  ciężcy przeciwnicy Ciężkie Uderzenie, pozostali Mocny Cios.
+  Bossowie/minibossowie z własnymi mechanikami są wyłączeni z tej warstwy.
+- GATHERING: Wędkarstwo, Górnictwo, Drwalstwo i Zielarstwo mają 4-8% szansy
+  (rosnącej z profesją/narzędziem) na wyjątkowo obfity zbiór:
+  dodatkowy pełny urobek + x1.75 XP profesji i narzędzia.
+- CRAFTING: wszystkie rodziny receptur korzystające z perform_recipe
+  (m.in. smithing/cooking/alchemy/jewelcrafting i rozszerzenia) mają
+  Mistrzowską Inspirację: ok. 3-6% szansy na x2 Profession/Tool XP.
+  Nie powstaje darmowy duplikat EQ i nie zużywa dodatkowych składników.
+- QUESTY: automatyczne questy z dodatnią walutą mają rzadką premię wykonania.
+  Zwykłe jednorazowe: 6% na +50% waluty; większe legendary/world-boss/
+  mini-dungeon: 8% na +75%; repeatable: 2% na +25%.
+  Questy z manual_currency_reward_coins / currency_reward_mode=manual są
+  wyłączone — ich ręcznie chroniona wypłata pozostaje dokładna.
+- EKSPLORACJA: nowo odkryta lokacja ma 2.5% szansy na ukryte znalezisko
+  warte 1.5% ekonomicznego anchoru etapu; sekretne/ukryte miejsca mają
+  8% szansy i podwójną wartość.
+- Archeologia/Kartografia zachowują własne istniejące „o kurde” mechaniki:
+  nowe znaleziska, premie odkrycia, wartości kolekcjonerskie i fragmenty map.
+- Istniejące jackpoty (legendarny połów, żyły/geody/mithril, jakość i critical
+  craft, treasure maps, exploration 100%, boss loot) pozostają bez kasowania.
+- Dodano deterministyczny Global O Kurde Game Feel Audit i fast-predeploy
+  guards pilnujące wszystkich granic nagród oraz ochrony manualnych questów.
+- Brak wipe, migracji bazy i nowych sztucznych blokad poziomowych.
 
 ==============================================================================
 Soulbound v1.13.23 — Global Mob Feel: trudność + łup „o kurde”
