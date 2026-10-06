@@ -248,7 +248,7 @@ HELP_TOPICS.setdefault("krypta", []).append(
     "v0.38.12: po `prowadz krypta` w Przedsionku wpisz `krypty` albo `krypta`, aby wejść bez podawania kierunku. `wyjście` wraca do Przedsionka."
 )
 HELP_TOPICS.setdefault("wieza", []).append(
-    "v0.38.12: przy Astralnej Bramie wpisz `wieza` lub `wieza astralna`, aby wejść bez podawania kierunku. `wyjście` wraca do bramy."
+    "v1.13.30: Wieża Astralna i Mityczna Wieża nie mają minimalnego Levelu/Soul Levelu wejścia. Przy Astralnej Bramie wpisz `wieza` lub `wieza astralna`; `wyjście` wraca do bramy."
 )
 HELP_TOPICS.setdefault("wersja", []).append(
     "v0.38.12: nazwane wejścia do Krypt, Wież i lochów zastępują ręczny kierunek na granicy; `wyjście` wraca do progu wejściowego."
