@@ -375,6 +375,7 @@ SYSTEM_DESCRIPTIONS = {
 
 LATEST_CHANGES_TITLE = "Soulbound v1.13.31 - Version Sync & Adaptive Consider"
 LATEST_CHANGES = [
+    "v1.13.31: Jammer nie może już nałożyć Stop na UOSS Super Bossa; także Support Effect/AoE respektuje tę odporność.",
     "v1.13.31: hp i score pokazują wspólną linię Aktywne efekty dla każdej klasy; buffs/effects/efekty daje szybki NVDA-friendly podgląd czasu buffów oraz Guard/Evade/Overheat.",
     "v1.13.31: zsynchronizowano numer gry, CHANGELOG i fallback changes; predeploy pilnuje, aby te trzy źródła wersji nie rozjechały się ponownie.",
     "v1.13.31: consider/con/ocen prognozuje encounter-local Adaptive Combat przed atakiem: skalowane HP, obrażenia odpowiedzi, wielkość lokalnej drużyny i rekompensatę EXP/waluty.",
