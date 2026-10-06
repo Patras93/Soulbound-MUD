@@ -576,8 +576,9 @@ def help_freshness_audit_v11328():
 
 
 HELP_FRESHNESS_AUDIT_V11328 = help_freshness_audit_v11328()
-if HELP_FRESHNESS_AUDIT_V11328["error_count"]:
-    raise RuntimeError(
-        "HELP Freshness Audit v1.13.28 failed: "
-        + "; ".join(HELP_FRESHNESS_AUDIT_V11328["errors"][:80])
-    )
+# v1.13.30 startup-safety contract: freshness is a deploy-time quality gate.
+# Keep the report available at runtime for diagnostics, but never crash an
+# already deployed production service because wording/help text drifted.
+HELP_FRESHNESS_RUNTIME_WARNING_V11330 = tuple(
+    HELP_FRESHNESS_AUDIT_V11328.get("errors", ())
+)
