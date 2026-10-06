@@ -456,6 +456,7 @@ def _register_blacksmith_items():
                 "sockets": int(masterwork["sockets"]),
                 "crafted_masterwork": True,
                 "equipment_identity_source": "blacksmith",
+                "source_progression_stage": level,
                 "equipment_identity_role": "masterwork_customization",
                 "equipment_identity_label": (
                     "Kowalstwo — masterwork, właściwość materiałowa i sockety"
@@ -996,6 +997,13 @@ def _register_corpse_material_items():
                     "corpse_material_tier": tier_index,
                     "corpse_random_variant": variant_index,
                     "required_mastery": required_mastery,
+                    "source_progression_stage": required_mastery,
+                    "equipment_identity_source": "corpse_drop",
+                    "equipment_identity_role": "random_material_variant",
+                    "equipment_identity_label": (
+                        "Drop z moba — losowy materiał, wariant i profil "
+                        + str(tier["identity"])
+                    ),
                     "mastery_requirement_scope": "active_class",
                     # v0.61.2: opis materiałowego EQ jest składany na żądanie.
                 }, 'ITEMS', ITEMS, (item_id,))
