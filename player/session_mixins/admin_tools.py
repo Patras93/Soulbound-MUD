@@ -145,7 +145,35 @@ class SessionAdminToolsMixin:
                 await self.enter_world()
 
     def boss_floor_chest_here(self):
-            return _boss_floor_chest_spec(self.character.room_id) if self.character else None
+            if not self.character:
+                return None
+            spec = _boss_floor_chest_spec(self.character.room_id)
+            if not spec:
+                return None
+            kind, floor, _power = spec
+            state_id = boss_floor_chest_state_id(kind, floor)
+            opened = state_id in self.server.db.collection_entry_ids(
+                self.account_id, BOSS_CHEST_OPENED_CATEGORY_V11332
+            )
+            if opened:
+                return None
+
+            key_id = boss_floor_key_id(kind, floor)
+            if self.server.db.item_qty(self.account_id, key_id) > 0:
+                return spec
+
+            # Skrzynia istnieje przy bossie również przed jego zabiciem oraz
+            # dopóki jego ciało leży w tym dokładnym pokoju. Po otwarciu trwały
+            # marker powyżej ukrywa ją aż do kolejnego prawidłowego killa.
+            for mob in self.server.world.room_mobs(self.character.room_id):
+                template = MOB_TEMPLATES.get(mob.template_id, {})
+                if boss_key_for_template(template) == key_id:
+                    return spec
+            for corpse in self.server.world.room_corpses(self.character.room_id):
+                template = MOB_TEMPLATES.get(corpse.mob_template_id, {})
+                if boss_key_for_template(template) == key_id:
+                    return spec
+            return None
 
     async def unlock_boss_floor_chest(self):
             spec = self.boss_floor_chest_here()
@@ -221,12 +249,18 @@ class SessionAdminToolsMixin:
                         item_id, source=chest_name, announce=True
                     )
                 self.server.db.save_character(member.character)
+                self.server.db.add_collection_entry(
+                    member.account_id,
+                    BOSS_CHEST_OPENED_CATEGORY_V11332,
+                    boss_floor_chest_state_id(kind, floor),
+                )
                 rewarded.append(member.character.name)
 
                 if member is self:
                     await member.send(
                         f"Odkluczasz i otwierasz: {chest_name}. "
-                        f"Klucz zostaje zużyty. Złoto: +{reward['gold']}."
+                        f"Klucz zostaje zużyty. Złoto: +{reward['gold']}. "
+                        "Po otwarciu skrzynia znika."
                     )
                 else:
                     key_text = (
@@ -236,7 +270,8 @@ class SessionAdminToolsMixin:
                     )
                     await member.send(
                         f"{leader_name} odklucza i otwiera: {chest_name}. "
-                        f"Otrzymujesz Złoto: +{reward['gold']}.{key_text}"
+                        f"Otrzymujesz Złoto: +{reward['gold']}.{key_text} "
+                        "Po wspólnym otwarciu skrzynia znika."
                     )
                 if reward["items"]:
                     await member.send(
