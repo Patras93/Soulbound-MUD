@@ -38,9 +38,18 @@ V11329_LEGACY_NAMED_BOSS_UNIQUES = frozenset({
 
 def combat_rank_v11329(template):
     template = template or {}
-    if template.get("world_boss"):
+    raw = str(template.get("rank") or "").strip().lower()
+    if (
+        template.get("world_boss")
+        or template.get("v016_world_boss")
+        or template.get("v020_mythic_world_boss")
+        or raw == "world_boss"
+    ):
         return "world_boss"
-    if template.get("mini_boss"):
+    if (
+        template.get("mini_boss")
+        or raw in {"mini", "miniboss", "mini_boss"}
+    ):
         return "mini_boss"
     if any(template.get(flag) for flag in (
         "crypt_boss",
@@ -50,16 +59,27 @@ def combat_rank_v11329(template):
         "giant_fortress_boss",
         "dungeon_boss",
         "instance_boss",
+        "magitek_boss",
+        "machine_boss",
+        "boss",
         "boss_mechanic",
-    )):
+    )) or raw == "boss":
         return "boss"
-    if any(template.get(flag) for flag in (
-        "rare_mob",
-        "rare_variant",
-        "rare_troll",
-    )):
+    if (
+        any(template.get(flag) for flag in (
+            "rare_mob",
+            "rare_variant",
+            "rare_troll",
+            "v016_legendary_rare",
+        ))
+        or raw == "rare"
+    ):
         return "rare"
-    if template.get("elite_affix"):
+    if (
+        template.get("elite_affix")
+        or template.get("elite")
+        or raw == "elite"
+    ):
         return "elite"
     return "normal"
 
@@ -110,6 +130,10 @@ def drop_excitement_audit_v11329():
 
     if combat_rank_v11329({"rare_mob": True}) != "rare":
         errors.append("rare_mob flag is not recognized as Rare")
+    if combat_rank_v11329({"v016_legendary_rare": True}) != "rare":
+        errors.append("v016 legendary Rare flag is not recognized")
+    if combat_rank_v11329({"v016_world_boss": True}) != "world_boss":
+        errors.append("v016 World Boss flag is not recognized")
     if class_equipment_drop_chance_v11329({"rare_mob": True}) != 0.28:
         errors.append("Rare class-EQ chance mismatch")
     if class_equipment_drop_chance_v11329({"world_boss": True}) != 0.70:
