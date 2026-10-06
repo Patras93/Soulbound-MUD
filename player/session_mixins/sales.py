@@ -29,10 +29,18 @@ from systems.items_resources import (
     FISH_STORAGE_IDS,
     HERB_STORAGE_IDS,
     WOOD_STORAGE_IDS,
+    economy_stage_anchor_v11314,
     fish_trophy_value_multiplier_v1138,
     v096_fish_price_scale,
 )
 from world.economy_quests import V0863_MATERIAL_SALE_BASE_SILVER
+
+
+V11314_ARMOR_RESALE_QUEST_FRACTION = {
+    "common": 0.025, "crafted": 0.035, "uncommon": 0.035,
+    "rare": 0.050, "epic": 0.070, "legendary": 0.100,
+    "mythic": 0.140, "unique": 0.160, "eternal": 0.180,
+}
 
 
 class SessionSalesMixin:
@@ -201,10 +209,12 @@ class SessionSalesMixin:
                     "mithril": 0,
                 }
 
-            # v0.8.61: zdobyty/craftowany ekwipunek bez ceny sklepowej ma
-            # wartość zgodną z materiałem, statystykami i właściwościami.
+            # v1.13.14: dobry drop zachowuje wartość także przy sprzedaży.
             if item.get("type") == "armor":
                 defense = max(0, int(item.get("defense", 0) or 0))
+                attack = max(0, int(item.get("attack", 0) or 0))
+                magic_attack = max(0, int(item.get("magic_attack", 0) or 0))
+                flat_power = attack + magic_attack
                 affix = max(0, abs(int(item.get("affix_amount", 0) or 0)))
                 sockets = max(0, int(item.get("sockets", 0) or 0))
                 mastery = max(0, int(item.get("required_mastery", 0) or 0))
@@ -213,22 +223,23 @@ class SessionSalesMixin:
                     int(item.get("blacksmith_tier", 0) or 0) * 10,
                 )
                 material_key = str(item.get("corpse_material") or item.get("blacksmith_material") or "")
-                material_base = V0863_MATERIAL_SALE_BASE_SILVER.get(
-                    material_key, 0
-                )
+                material_base = V0863_MATERIAL_SALE_BASE_SILVER.get(material_key, 0)
                 stat_power = sum(max(0, int(v or 0)) for v in (item.get("stats") or {}).values())
                 property_power = sum(max(0.0, float(v or 0)) for v in (item.get("properties") or {}).values())
-                silver = max(
+                mechanical_silver = max(
                     25,
-                    material_base
-                    + defense * 40
-                    + affix * 30
-                    + sockets * 150
-                    + mastery * 20
-                    + craft_level * 25
-                    + stat_power * 120
+                    material_base + defense * 40 + flat_power * 140
+                    + affix * 30 + sockets * 150 + mastery * 20
+                    + craft_level * 25 + stat_power * 120
                     + int(property_power * 250),
                 )
+                stage = v0190_resource_stage(item_id, item)
+                rarity = str(item.get("rarity") or "common").strip().lower()
+                resale_fraction = V11314_ARMOR_RESALE_QUEST_FRACTION.get(rarity, 0.035)
+                progression_floor = max(
+                    1, int(round(economy_stage_anchor_v11314(stage) * resale_fraction))
+                )
+                silver = max(mechanical_silver, progression_floor)
                 if smith_cap is not None:
                     silver = min(silver, smith_cap)
                 return {"silver": silver, "gold": 0, "mithril": 0}

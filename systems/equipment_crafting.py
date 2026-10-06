@@ -25,6 +25,7 @@ from systems.items_resources import (
     _BLACKSMITH_400_LABELS,
     _PROGRESSION_400_NAMES,
     base_fish_species_id,
+    class_equipment_shop_price_v11314,
     equipment_defense_step_v1138,
     equipment_progression_budget_v1138,
 )
@@ -394,8 +395,17 @@ def _register_class_equipment_shops():
                     flat_power = class_equipment_flat_power_channels(
                         class_name, required_mastery, slot, style_index
                     )
-                    # Alternatywne linie nie są droższe ani tańsze od bazowej.
-                    price = max(1, int(base_price) * int(price_multiplier))
+                    # v1.13.14: historyczna cena jest minimum, ale realny
+                    # koszt śledzi wspólną krzywą zarobków 1-600.
+                    legacy_price = max(
+                        1, int(base_price) * int(price_multiplier)
+                    )
+                    price = max(
+                        legacy_price,
+                        class_equipment_shop_price_v11314(
+                            required_mastery, base_price
+                        ),
+                    )
                     tier_label = _class_equipment_tier_label(required_mastery)
 
                     _catalog_mut.catalog_assign({

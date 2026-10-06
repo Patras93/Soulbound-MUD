@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Soulbound v1.13.11 - final income balance for the 1-600 economy.
+"""Soulbound v1.13.14 - final income balance for the 1-600 economy.
 
 This pass runs after authored world/quest expansions. It keeps positive quest
 currency inside a progression band and also exposes shared payout floors for
@@ -18,30 +18,21 @@ from core.bootstrap_economy_professions import (
 from data.items import ITEMS
 from data.mobs import MOB_TEMPLATES
 from data.quests import QUESTS
+from systems.items_resources import (
+    V11314_ECONOMY_STAGE_ANCHORS,
+    economy_stage_anchor_v11314,
+)
 from world.equipment_help import HELP_TOPICS, HELP_TOPIC_ALIASES
 
 
-V1124_ECONOMY_INCOME_VERSION = "1.13.11"
+V1124_ECONOMY_INCOME_VERSION = "1.13.14"
 V1124_ECONOMY_MAX_STAGE = 600
 
 # Values are internal silver. 100 silver = 1 Gold.
 # v1.13.8: midgame starts paying meaningfully and late game keeps scaling.
 # stage 100 ~= 1k Gold, 300 ~= 75k, 400 ~= 300k, 600 ~= 1M before quest modifiers.
-V1124_QUEST_INCOME_ANCHORS = (
-    # Internal silver. The midgame is deliberately rewarding: a player should
-    # feel a payout at 50-100 instead of waiting for endgame economy to start.
-    (1, 1_200),
-    (50, 15_000),
-    (100, 100_000),
-    (150, 350_000),
-    (200, 1_250_000),
-    (250, 3_500_000),
-    (300, 7_500_000),
-    (350, 15_000_000),
-    (400, 30_000_000),
-    (500, 60_000_000),
-    (600, 100_000_000),
-)
+# Public legacy name retained for callers/audits.
+V1124_QUEST_INCOME_ANCHORS = V11314_ECONOMY_STAGE_ANCHORS
 
 V1138_ACTIVITY_INCOME_MULTIPLIER = {
     # Repeatable/small activities stay below a full quest payout.
@@ -84,22 +75,8 @@ V1124_QUEST_KIND_MULTIPLIER = {
 
 
 def v1124_income_anchor(stage: int) -> int:
-    """Smooth log interpolation between authored 1-600 income anchors."""
-    stage = max(1, min(V1124_ECONOMY_MAX_STAGE, int(stage or 1)))
-    anchors = V1124_QUEST_INCOME_ANCHORS
-    if stage <= anchors[0][0]:
-        return int(anchors[0][1])
-    if stage >= anchors[-1][0]:
-        return int(anchors[-1][1])
-    for (l0, v0), (l1, v1) in zip(anchors, anchors[1:]):
-        if l0 <= stage <= l1:
-            t = (stage - l0) / float(l1 - l0)
-            value = math.exp(
-                math.log(float(v0))
-                + (math.log(float(v1)) - math.log(float(v0))) * t
-            )
-            return max(1, int(round(value)))
-    return int(anchors[-1][1])
+    """Compatibility API routed to the shared v1.13.14 economy curve."""
+    return economy_stage_anchor_v11314(stage)
 
 
 def _v1124_numeric_stage(record) -> int:
@@ -308,7 +285,7 @@ def economy_income_audit_v1124():
 ECONOMY_INCOME_AUDIT_V1124 = economy_income_audit_v1124()
 if ECONOMY_INCOME_AUDIT_V1124["error_count"]:
     raise RuntimeError(
-        "Economy Income Audit v1.13.8 failed: "
+        "Economy Income Audit v1.13.14 failed: "
         + "; ".join(ECONOMY_INCOME_AUDIT_V1124["errors"])
     )
 
@@ -322,6 +299,8 @@ HELP_TOPICS["ekonomia"] = [
     "100 procent strefy oraz mapy skarbów są milestone/jackpot payouts; ich nagroda skaluje się z etapem zawartości, nie z przypadkowo wysokim levelem po powrocie do starej strefy.",
     "Questy celowo bez waluty, dające przedmioty lub nagrody progresji, pozostają bez wypłaty pieniężnej.",
     "Ceny źródłowego wyposażenia UOSSMUD, np. 5 000 000 Gold u Wattsa, nie są automatycznie obniżane przez ten balans.",
+    "v1.13.14: klasowe EQ skaluje cenę z tą samą krzywą co zarobki, więc zakup jest realnym celem.",
+    "v1.13.14: znalezione EQ i odnawialne skrzynie mają wartość zależną od etapu zamiast starych symbolicznych kwot.",
 ]
 HELP_TOPIC_ALIASES.update({
     "zarobki": "ekonomia",

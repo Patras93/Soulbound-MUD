@@ -77,7 +77,8 @@ def register_crafting_quality_variant_v03054(base_id, quality_key, crit_affix=No
     data["craft_critical_v03054"]=bool(crit_affix)
     data["rarity"]=q["rarity"]
     data["rarity_name"]=q["name"]
-    for key in ("defense","damage","min_damage","max_damage","attack","power"):
+    # v1.13.14: fizyczny Attack i Magic Attack podlegają tej samej jakości.
+    for key in ("defense","damage","min_damage","max_damage","attack","magic_attack","power"):
         if key in data: data[key]=_scale_int_v03054(data.get(key),mult)
     if "affix_amount" in data:
         data["affix_amount"]=_scale_int_v03054(data.get("affix_amount"),mult)

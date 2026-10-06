@@ -164,6 +164,46 @@ _catalog_mut.catalog_update_path('ITEMS', ITEMS, (), {
     },
 })
 
+# v1.13.14: jeden punkt odniesienia ekonomii 1-600 dla zarobków i wydatków.
+# Wartości są w wewnętrznym srebrze; 100 srebra = 1 Gold.
+V11314_ECONOMY_STAGE_ANCHORS = (
+    (1, 1_200), (50, 15_000), (100, 100_000), (150, 350_000),
+    (200, 1_250_000), (250, 3_500_000), (300, 7_500_000),
+    (350, 15_000_000), (400, 30_000_000), (500, 60_000_000),
+    (600, 100_000_000),
+)
+
+
+def economy_stage_anchor_v11314(level):
+    """Bazowa wartość pełnej aktywności ekonomicznej dla etapu 1-600."""
+    level = max(1, min(600, int(level or 1)))
+    anchors = V11314_ECONOMY_STAGE_ANCHORS
+    if level <= anchors[0][0]:
+        return int(anchors[0][1])
+    if level >= anchors[-1][0]:
+        return int(anchors[-1][1])
+    for (l0, v0), (l1, v1) in zip(anchors, anchors[1:]):
+        if l0 <= level <= l1:
+            ratio = (level - l0) / float(l1 - l0)
+            value = math.exp(
+                math.log(float(v0))
+                + (math.log(float(v1)) - math.log(float(v0))) * ratio
+            )
+            return max(1, int(round(value)))
+    return int(anchors[-1][1])
+
+
+def class_equipment_shop_price_v11314(level, slot_base_price):
+    """Cena klasowego EQ jako znaczący, ale osiągalny wydatek."""
+    level = max(1, min(600, int(level or 1)))
+    base_price = max(1, int(slot_base_price or 1))
+    slot_factor = max(0.55, min(1.65, base_price / 130.0))
+    target = int(round(
+        economy_stage_anchor_v11314(level) * 0.50 * slot_factor
+    ))
+    return max(base_price, target)
+
+
 # v1.13.8: wspólna skala jakości EQ dla sklepu, craftingu i dropów.
 # Źródła mają różne profile, ale sprzęt z tego samego etapu nie może dzielić
 # przepaść typu "sklep 30 statów, drop 3 staty".

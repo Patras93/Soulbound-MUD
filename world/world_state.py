@@ -1,4 +1,7 @@
 from data import catalog_mutations as _catalog_mut
+from core.bootstrap_economy_professions import SILVER_PER_GOLD
+from core.mines_threat import v0866_room_threat_profile
+from systems.items_resources import economy_stage_anchor_v11314
 
 @dataclass
 class CorpseState:
@@ -51,6 +54,46 @@ HELP_TOPIC_ALIASES.update({
     "dynamiczne eventy":"dynamic_world_v029", "dynamiceventy":"dynamic_world_v029",
     "nemesis":"dynamic_world_v029", "nemezis":"dynamic_world_v029",
 })
+
+
+# Weighted mean payout is ~9.6% of a full same-stage economy activity.
+V11314_TREASURE_CHEST_PAYOUT_MULTIPLIERS = {
+    "common": 0.045,
+    "rare": 0.100,
+    "epic": 0.250,
+    "legendary": 0.600,
+}
+V11314_TREASURE_CHEST_LEGACY_COINS = {
+    "common": 80,
+    "rare": 280,
+    "epic": 650,
+    "legendary": 1_400,
+}
+
+
+def treasure_chest_economy_stage_v11314(room_id):
+    """Etap skrzyni wynika z lokacji i jej realnych spawnów, nie z gracza."""
+    room = ROOMS.get(str(room_id or ""), {}) or {}
+    candidates = []
+    for key in ("generator_level", "recommended_mastery"):
+        try:
+            value = int(room.get(key, 0) or 0)
+        except (TypeError, ValueError, OverflowError):
+            value = 0
+        if value > 0:
+            candidates.append(value)
+    fallback = max(candidates) if candidates else 1
+    try:
+        profile = v0866_room_threat_profile(room_id, fallback=fallback)
+        target = int((profile or {}).get("target", fallback) or fallback)
+    except Exception as exc:
+        print(
+            f"TREASURE_CHEST_STAGE_FALLBACK_ERROR: {type(exc).__name__}: {exc}",
+            flush=True,
+        )
+        target = fallback
+    return max(1, min(600, max(fallback, target)))
+
 
 class World:
     def __init__(self):
@@ -794,9 +837,25 @@ class World:
         if pool:
             for _ in range(item_count):
                 items.append(random.choice(pool))
-        silver={"common":80,"rare":180,"epic":350,"legendary":700}[rarity]
-        gold={"common":0,"rare":1,"epic":3,"legendary":7}[rarity]
-        return {"rarity":rarity,"items":items,"silver":silver,"gold":gold,"name":cfg["name"]}
+
+        stage = treasure_chest_economy_stage_v11314(room_id)
+        payout_coins = max(
+            int(V11314_TREASURE_CHEST_LEGACY_COINS[rarity]),
+            int(round(
+                economy_stage_anchor_v11314(stage)
+                * V11314_TREASURE_CHEST_PAYOUT_MULTIPLIERS[rarity]
+            )),
+        )
+        gold, silver = divmod(payout_coins, SILVER_PER_GOLD)
+        return {
+            "rarity":rarity,
+            "items":items,
+            "silver":silver,
+            "gold":gold,
+            "name":cfg["name"],
+            "economy_stage":stage,
+            "payout_coins":payout_coins,
+        }
 
     def room_corpses(self, room_id):
         self.refresh()
