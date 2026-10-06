@@ -24,6 +24,7 @@ from systems.items_resources import (
     FISH_STORAGE_IDS,
     HERB_STORAGE_IDS,
     WOOD_STORAGE_IDS,
+    fish_trophy_value_multiplier_v1138,
     v096_fish_price_scale,
 )
 from world.economy_quests import V0863_MATERIAL_SALE_BASE_SILVER
@@ -114,13 +115,47 @@ class SessionSalesMixin:
                     if smith_cap is not None:
                         total = min(total, smith_cap)
                     return {"silver": total, "gold": 0, "mithril": 0}
-                if item_id in FISH_STORAGE_IDS:
+
+                profession_storage_ids = (
+                    FISH_STORAGE_IDS
+                    | MINING_STORAGE_IDS
+                    | WOOD_STORAGE_IDS
+                    | HERB_STORAGE_IDS
+                )
+                if item_id in profession_storage_ids:
                     total = legacy_currency_to_coins(
                         explicit["silver"], explicit["gold"], explicit["mithril"]
                     )
-                    total = max(1, int(round(total * v096_fish_price_scale(item_id))))
+                    # v1.13.8: stare ręczne ceny nie mogą zepchnąć profesji do
+                    # symbolicznego zarobku względem aktualnej ekonomii.
+                    total = max(
+                        total,
+                        int(v0190_resource_sale_coins(item_id, item)),
+                    )
+                    if item_id in FISH_STORAGE_IDS:
+                        total = max(
+                            1,
+                            int(round(
+                                total
+                                * v096_fish_price_scale(item_id)
+                                * fish_trophy_value_multiplier_v1138(item_id)
+                            )),
+                        )
                     return {"silver": total, "gold": 0, "mithril": 0}
                 return explicit
+
+            if item.get("type") in {"resource", "craft_material"}:
+                total = int(v0190_resource_sale_coins(item_id, item))
+                if item_id in FISH_STORAGE_IDS:
+                    total = max(
+                        1,
+                        int(round(
+                            total
+                            * v096_fish_price_scale(item_id)
+                            * fish_trophy_value_multiplier_v1138(item_id)
+                        )),
+                    )
+                return {"silver": total, "gold": 0, "mithril": 0}
 
             # Przedmiot kupny: sklep odkupuje za 50% ceny bazowej.
             price = item.get("price")
