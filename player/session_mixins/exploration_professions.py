@@ -5,6 +5,7 @@ import asyncio
 import random
 
 from core.bootstrap_economy_professions import (
+    currency_reading_text,
     profession_for_tool_type,
     profession_max_level,
     tool_tier,
@@ -239,7 +240,7 @@ class SessionExplorationProfessionsV1100Mixin:
         if is_new:
             await self.send(
                 f"NOWY POMIAR: {name}. Lokacja została wpisana do Atlasu Kartografa. "
-                f"Premia odkrywcy: {discovery_reward_silver} srebra."
+                f"Premia odkrywcy: {currency_reading_text(discovery_reward_silver, 0, 0)}."
             )
         else:
             await self.send(f"Ponawiasz pomiar lokacji: {name}.")
