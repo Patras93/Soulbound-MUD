@@ -1,5 +1,5 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.13.25
+Aktualna paczka: v1.13.26
 
 
 
@@ -15,6 +15,39 @@ Aktualna paczka: v1.13.25
 
 
 
+
+
+==============================================================================
+Soulbound v1.13.26 — EQUIPMENT IDENTITY PASS 2.0
+==============================================================================
+
+- EQ nie ma już być tylko drabiną „większa liczba = automatycznie lepsze”.
+  Źródło przedmiotu ma określać jego realny charakter i powód zdobywania.
+- SKLEP KLASOWY: trzy istniejące style dostały realne właściwości:
+  ofensywny wzmacnia odpowiedni typ obrażeń, pancerny wzmacnia ochronę
+  fizyczną/magiczną, zbalansowany daje stabilność zasobu HP albo Many.
+  Nadal można mieszać style bez utraty progów klasowego setu.
+- Profil klasy nadal dokłada własne właściwości, więc np. dwie różne klasy
+  nie dostają identycznego EQ tylko dlatego, że wybrały ten sam styl.
+- BOSSOWE SETY KLASOWE: części z bossów kamieni milowych dostają mocniejszą
+  warstwę właściwości niż odpowiednik sklepowy. To realny upgrade źródła,
+  nie tylko inna nazwa/rarity.
+- BOSSOWE RELIKTY: jawnie oznaczone jako unikalna alternatywa buildowa,
+  z istniejącymi mocnymi properties.
+- KOWALSTWO: masterwork pozostaje źródłem customizacji — właściwość materiału
+  + rosnące sockety. Nie kopiuje profilu sklepu ani Krypty.
+- JUBILERSTWO: jawna tożsamość „sockety + precyzyjny affix”.
+- KRYPTA: pozostaje źródłem polowania na rarity i losowy affix; warianty
+  zachowują rosnące power/properties/sockety zależne od rarity.
+- BOSS KRYPTY: relikty mają osobną tożsamość unikalnego bossowego dropu.
+- WORLD BOSS: nazwane unikaty są oznaczone jako odrębne od sklepowego EQ.
+- UOSS SUPERBOSS: gear zachowuje własną linię opartą o specjalne efekty,
+  wardy, status-proofy i relikty, zamiast kopiowania zwykłych setów.
+- shop info i porownaj czytają przez NVDA linię „Tożsamość EQ”, żeby od razu
+  było wiadomo, po co istnieje dany przedmiot i z jakiego źródła pochodzi.
+- Dodano Equipment Identity Audit v1.13.26 oraz fast-predeploy guards dla
+  sklepów, boss setów, craftu, Krypty, UOSS i warstwy dostępności.
+- Brak wipe, migracji bazy i nowych blokad poziomowych.
 
 ==============================================================================
 Soulbound v1.13.25 — GLOBAL LEGACY VALUE SWEEP
