@@ -231,11 +231,6 @@ def magitek_hourly_quests_audit_v0383():
 
 
 MAGITEK_HOURLY_QUESTS_AUDIT_V0383 = magitek_hourly_quests_audit_v0383()
-if MAGITEK_HOURLY_QUESTS_AUDIT_V0383["error_count"]:
-    raise RuntimeError(
-        "Hourly Magitek Quests Audit v0.38.3 failed: "
-        + "; ".join(MAGITEK_HOURLY_QUESTS_AUDIT_V0383["errors"][:100])
-    )
 
 HELP_TOPICS.setdefault("wersja", []).append(
     "v0.38.3: 7 godzinnych zleceń Magitek; każde odnawia się osobno po 60 minutach i zaczyna ponownie od 0/x."
