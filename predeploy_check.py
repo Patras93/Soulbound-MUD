@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Fast Railway predeploy gate for Soulbound v1.13.14.
+"""Fast Railway predeploy gate for Soulbound v1.13.15.
 
 This is the normal deploy check.  It intentionally avoids assembling the full
 world/runtime.  Use predeploy_full.py when an exhaustive historical audit is
@@ -16,7 +16,7 @@ import traceback
 try:
     from storage.database import Database as _DatabaseImportSmoke
 except Exception as exc:
-    print(f"Soulbound v1.13.14 FAST PREDEPLOY FAILED: database import: {type(exc).__name__}: {exc}")
+    print(f"Soulbound v1.13.15 FAST PREDEPLOY FAILED: database import: {type(exc).__name__}: {exc}")
     traceback.print_exc()
     raise SystemExit(1)
 
@@ -37,7 +37,7 @@ try:
     )
 except Exception as exc:
     print(
-        "Soulbound v1.13.14 FAST PREDEPLOY FAILED: "
+        "Soulbound v1.13.15 FAST PREDEPLOY FAILED: "
         f"skill semantic import: {type(exc).__name__}: {exc}"
     )
     traceback.print_exc()
@@ -324,6 +324,105 @@ for _needle in (
 ):
     if _needle not in _world_state_source_v11314:
         _semantic_errors.append("treasure chest economy regression: missing " + _needle)
+
+# v1.13.15: authored character/progression content must never be rebalanced
+# by Generator Core. Generator owns stage math, procedural content and missing-value
+# fallbacks only.
+_character_resources_source_v11315 = (_root / "core/character_resources.py").read_text(encoding="utf-8")
+_character_source_v11315 = (_root / "player/character.py").read_text(encoding="utf-8")
+_classes_source_v11315 = (_root / "core/classes_skills.py").read_text(encoding="utf-8")
+_progression600_source_v11315 = (_root / "core/progression_600.py").read_text(encoding="utf-8")
+
+for _needle in (
+    'GENERATOR_VERSION = "0.62.0"',
+    'return authored_character_hp_base(character_level, constitution)',
+    'return authored_character_mana_base(character_level, intelligence, willpower)',
+    'return authored_class_passive_profile(class_name)',
+    'return authored_race_passive_profile(race_name)',
+    'GENERATOR_TOP_LEVEL_VALUE_WHITELIST = frozenset({\n    "EXP_AREA_TARGET_POWER",\n})',
+    '_write_record_numeric_fallback("QUESTS", q, "character_xp_reward"',
+    '_write_record_numeric_fallback("QUESTS", q, "reward_soul_xp"',
+    '_write_record_numeric_fallback("QUESTS", q, "reward_stat_progress"',
+    '_write_record_numeric_fallback(table_name, recipe, "profession_xp", xp)',
+    'has_authored_currency = any(',
+    'protected.append(("CLASSES", _freeze_semantic(ns.get("CLASSES", ()))))',
+    '"SOUL_TIER_POWER_BONUSES", "SOUL_TIER_CLASS_BONUS_PERCENT"',
+    '"CLASS_SET_BONUSES",',
+    "def authored_reward_snapshot(ns: dict) -> dict:",
+    'audit["authored_rewards_preserved"] = authored_rewards_ok',
+    "def authored_rewards_preserved(ns: dict, before: dict) -> bool:",
+    "authored_rewards_ok = authored_rewards_preserved(",
+    "Generator Core v0.62 cannot mutate authored CLASS_SET_BONUSES",
+    "Generator Core v0.62 cannot mutate authored CLASSES Soul Weapon bases",
+    'if field in q and int(q.get(field, 0) or 0) < 0:',
+):
+    if _needle not in _generator_source:
+        _semantic_errors.append(
+            "Generator authored-authority regression: missing " + _needle
+        )
+
+for _forbidden in (
+    "    _generate_soul(ns)\n",
+    "    _generate_class_race_numeric(ns)\n",
+    "    _generate_class_set_bonuses(ns)\n",
+):
+    if _forbidden in _generator_source:
+        _semantic_errors.append(
+            "Generator still mutates authored progression: " + _forbidden.strip()
+        )
+
+for _needle in (
+    'AUTHORED_CLASS_PASSIVE_PROFILES = {',
+    '"Wojownik": {"kind": "physical_damage", "value": 0.10}',
+    '"Strażnik": {"kind": "damage_reduction", "value": 0.10}',
+    '"Mag": {"kind": "magic_damage", "value": 0.10}',
+    '"Ork": {"kind": "max_hp", "value": 0.10}',
+    '"Gnom": {"kind": "max_mana", "value": 0.15}',
+    "def character_hp_base(character_level: int, constitution: int) -> int:",
+    "def character_mana_base(",
+):
+    if _needle not in _character_resources_source_v11315:
+        _semantic_errors.append(
+            "authored character resource regression: missing " + _needle
+        )
+
+for _needle in (
+    "authored_character_hp_base(self.character_level, self.constitution)",
+    "authored_character_mana_base(",
+    "return authored_class_passive_profile(class_name)",
+    "return authored_race_passive_profile(self.race)",
+):
+    if _needle not in _character_source_v11315:
+        _semantic_errors.append(
+            "Character still depends on Generator identity math: missing " + _needle
+        )
+
+for _forbidden in (
+    "generator_core_v027.character_hp_base(",
+    "generator_core_v027.character_mana_base(",
+    "generator_core_v027.class_passive_profile(",
+    "generator_core_v027.race_passive_profile(",
+):
+    if _forbidden in _character_source_v11315:
+        _semantic_errors.append(
+            "Character Generator dependency regression: " + _forbidden
+        )
+
+for _needle in (
+    "authored_character_hp_base(1, stats[\"constitution\"])",
+    "authored_character_mana_base(",
+    "authored_race_passive_profile(race[0])",
+):
+    if _needle not in _classes_source_v11315:
+        _semantic_errors.append(
+            "character creation resource parity regression: missing " + _needle
+        )
+
+if 'generator_core_v027.GENERATOR_VERSION = "0.62.0"' not in _progression600_source_v11315:
+    _semantic_errors.append("Generator v0.62.0 progression bridge regression")
+
+if 'generator_core_v027.GENERATOR_VERSION = "0.61.0"' in _progression600_source_v11315:
+    _semantic_errors.append("stale Generator v0.61.0 override remains in progression_600")
 
 for _needle in ('baseline_key = f"_v1138_authored_{key}"', "procedural_no_limit", '"world_boss": 3.00'):
     if _needle not in _runtime_progression_source:
@@ -797,18 +896,18 @@ except Exception as exc:
     )
 
 if _semantic_errors:
-    print("Soulbound v1.13.14 FAST PREDEPLOY FAILED: semantic contracts")
+    print("Soulbound v1.13.15 FAST PREDEPLOY FAILED: semantic contracts")
     for _error in _semantic_errors:
         print(f"ERROR: {_error}")
     raise SystemExit(1)
 
 if audit["error_count"]:
-    print("Soulbound v1.13.14 FAST PREDEPLOY FAILED")
+    print("Soulbound v1.13.15 FAST PREDEPLOY FAILED")
     for error in audit["errors"]:
         print(f"ERROR: {error}")
     raise SystemExit(1)
 
-print("Soulbound v1.13.14 FAST PREDEPLOY PASS")
+print("Soulbound v1.13.15 FAST PREDEPLOY PASS")
 print(
     "Semantic contracts: "
     f"{len(_semantic_audits)} audits PASS; AP runtime guards PASS"

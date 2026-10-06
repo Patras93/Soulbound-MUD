@@ -1,11 +1,9 @@
-"""Soulbound v0.30.24 Generator Core — Numeric Whitelist + Hybrid Quest Rewards.
+"""Soulbound Generator Core v0.62.0 — stage math + procedural/fallback balance.
 
-Numeric-only balance layer. Authored identity, names, IDs, unlock thresholds, requirements,
-quest/recipe structure, class equipment identity and world semantics are immutable here.
-Generator Core may only derive numeric balance values such as HP, damage, XP, prices,
-automatic reward amounts, cooldowns, mana costs and numeric effect strength. Quests explicitly
-marked with manual_currency_reward_coins keep that authored currency reward unchanged. Base player attributes
-from race/class profiles are intentionally NOT generated.
+Authored content is authoritative. Generator Core derives shared stage mathematics and may
+fill missing numeric fields, but it must not rebalance authored character resources/passives,
+Soul bonuses, class set bonuses, Soul Weapon bases, quest rewards or recipe XP.
+Fully procedural/runtime-created content may still opt into generator-owned numeric balance.
 """
 from __future__ import annotations
 
@@ -15,7 +13,17 @@ import math
 import re
 import os
 
-GENERATOR_VERSION = "0.61.0"
+from core.character_resources import (
+    character_hp_base as authored_character_hp_base,
+    character_mana_base as authored_character_mana_base,
+    class_passive_profile as authored_class_passive_profile,
+    race_passive_profile as authored_race_passive_profile,
+    passive_text_pl as authored_passive_text_pl,
+    class_passive_text_pl as authored_class_passive_text_pl,
+    race_passive_text_pl as authored_race_passive_text_pl,
+)
+
+GENERATOR_VERSION = "0.62.0"
 MAX_LEVEL = 400
 SAFE_INT = 9_000_000_000_000_000_000
 
@@ -113,59 +121,18 @@ def axis_gain(axis: str, level: int, intensity: float = 1.0) -> int:
     return min(SAFE_INT, max(1, int(round(value))))
 
 
-def _character_resource_level_scale(character_level: int, reference_scale: float, post_reference_growth: float) -> float:
-    """Smooth high-level resource curve shared by every class.
-
-    Level 1 keeps the original early-game scale. Around Level 175 the curve is
-    deliberately large enough for superboss-era combat, then continues more
-    slowly toward the Generator Core cap instead of exploding exponentially.
-    """
-    level = clamp(int(character_level), 1, MAX_LEVEL)
-    reference_level = min(MAX_LEVEL, 175)
-    if reference_level <= 1:
-        return max(1.0, float(reference_scale))
-    if level <= reference_level:
-        progress = (level - 1) / float(reference_level - 1)
-        return 1.0 + (max(1.0, float(reference_scale)) - 1.0) * (progress ** 1.05)
-    post = (level - reference_level) / float(max(1, MAX_LEVEL - reference_level))
-    return max(1.0, float(reference_scale)) * (
-        1.0 + max(0.0, float(post_reference_growth)) * (post ** 0.90)
-    )
-
-
 def character_hp_base(character_level: int, constitution: int) -> int:
-    character_level = clamp(int(character_level), 1, MAX_LEVEL)
-    constitution = max(1, int(constitution))
-    legacy_base = 48 + constitution * 5.2 + character_level * 3.1
-    # Character Level and Condition are independent progression axes.
-    # Level controls the baseline resource curve; Condition is measured against
-    # a fixed balance anchor, never against the current Character Level.
-    # This preserves the Level-175 UOSS benchmark while allowing CON to lag,
-    # match or greatly exceed Character Level without artificial penalties.
-    level_scale = _character_resource_level_scale(character_level, 9.0, 0.50)
-    condition_ratio = max(0.01, constitution / 175.0)
-    # No upper cap: stats in Soulbound are unlimited. The exponent below 1.0
-    # gives soft diminishing returns to the multiplier while every extra point
-    # of Condition continues to increase maximum HP forever.
-    condition_scale = max(0.45, condition_ratio ** 0.75)
-    return max(1, int(round(legacy_base * level_scale * condition_scale)))
+    """Compatibility wrapper; authored character resources live outside Generator Core."""
+    return authored_character_hp_base(character_level, constitution)
 
 
-def character_mana_base(character_level: int, intelligence: int, willpower: int | None = None) -> int:
-    character_level = clamp(int(character_level), 1, MAX_LEVEL)
-    intelligence = max(1, int(intelligence))
-    willpower = intelligence if willpower is None else max(1, int(willpower))
-    legacy_base = 22 + intelligence * 2.4 + willpower * 2.4 + character_level * 2.0
-    # Intelligence and Willpower level independently from Character Level.
-    # Use a fixed balance anchor rather than dividing by Character Level, so a
-    # stat never becomes weaker merely because the character gained a level.
-    level_scale = _character_resource_level_scale(character_level, 3.8, 0.45)
-    average_magic_stat = (intelligence + willpower) / 2.0
-    stat_ratio = max(0.01, average_magic_stat / 175.0)
-    # No upper cap: INT/WILL can grow without limit. Diminishing returns come
-    # from the sub-linear exponent, not from a hidden ceiling.
-    stat_scale = max(0.50, stat_ratio ** 0.75)
-    return max(0, int(round(legacy_base * level_scale * stat_scale)))
+def character_mana_base(
+    character_level: int,
+    intelligence: int,
+    willpower: int | None = None,
+) -> int:
+    """Compatibility wrapper; authored character resources live outside Generator Core."""
+    return authored_character_mana_base(character_level, intelligence, willpower)
 
 
 def character_attribute_power(character_level: int, stat_value: int) -> int:
@@ -1046,9 +1013,11 @@ def _generate_recipes(ns: dict, item_levels: dict[str, int]) -> int:
             lvl = clamp(int(lvl), 1, MAX_LEVEL)
             xp = axis_gain("profession", lvl, 1.35)
             _write_record_numeric(table_name, recipe, "generator_level", lvl)
-            _write_record_numeric(table_name, recipe, "xp", xp)
-            _write_record_numeric(table_name, recipe, "profession_xp", xp)
-            _write_record_numeric(table_name, recipe, "tool_xp", axis_gain("tool", lvl, 1.20))
+            _write_record_numeric_fallback(table_name, recipe, "xp", xp)
+            _write_record_numeric_fallback(table_name, recipe, "profession_xp", xp)
+            _write_record_numeric_fallback(
+                table_name, recipe, "tool_xp", axis_gain("tool", lvl, 1.20)
+            )
     return total
 
 
@@ -1251,25 +1220,33 @@ def _generate_quests(ns: dict, mob_levels: dict[str, int], item_levels: dict[str
         workload = clamp(math.sqrt(needed), 1.0, 8.0)
         repeat_mult = .72 if q.get("repeatable") else 1.0
         _write_record_numeric("QUESTS", q, "generator_level", lvl)
-        _write_record_numeric("QUESTS", q, "character_xp_reward", axis_gain("character", lvl, workload * repeat_mult))
-        _write_record_numeric("QUESTS", q, "reward_soul_xp", axis_gain("soul", lvl, workload * repeat_mult))
-        _write_record_numeric("QUESTS", q, "reward_stat_progress", axis_gain("stat", lvl, workload * repeat_mult))
+        _write_record_numeric_fallback("QUESTS", q, "character_xp_reward", axis_gain("character", lvl, workload * repeat_mult))
+        _write_record_numeric_fallback("QUESTS", q, "reward_soul_xp", axis_gain("soul", lvl, workload * repeat_mult))
+        _write_record_numeric_fallback("QUESTS", q, "reward_stat_progress", axis_gain("stat", lvl, workload * repeat_mult))
         if "reward_profession_xp" in q or q.get("reward_profession") or q.get("specialist_tool_type"):
-            _write_record_numeric("QUESTS", q, "reward_profession_xp", axis_gain("profession", lvl, max(1.0, workload * .75) * repeat_mult))
+            _write_record_numeric_fallback("QUESTS", q, "reward_profession_xp", axis_gain("profession", lvl, max(1.0, workload * .75) * repeat_mult))
         if "reward_tool_xp" in q or q.get("reward_tool_type") or q.get("specialist_tool_type"):
-            _write_record_numeric("QUESTS", q, "reward_tool_xp", axis_gain("tool", lvl, max(1.0, workload * .70) * repeat_mult))
+            _write_record_numeric_fallback("QUESTS", q, "reward_tool_xp", axis_gain("tool", lvl, max(1.0, workload * .70) * repeat_mult))
 
-        # v0.30.24: hybrydowy system waluty questów.
-        # Ważne, ręcznie zaprojektowane questy mogą mieć chronioną kwotę.
-        # Wszystkie pozostałe dalej używają automatycznego Generator Core.
+        # v1.13.15: authored quest rewards win. Manual currency markers still
+        # force an exact protected amount; otherwise Generator fills currency
+        # only when the quest has no authored denomination at all.
         manual_coins = q.get("manual_currency_reward_coins")
+        has_authored_currency = any(
+            key in q for key in ("reward_silver", "reward_gold", "reward_mithril")
+        )
         if manual_coins is not None:
             coins = clamp(int(manual_coins), 0, SAFE_INT)
-        else:
-            coins = quest_currency_for_stage(lvl, workload, bool(q.get("repeatable")), str(qid))
-        _write_record_numeric("QUESTS", q, "reward_silver", min(SAFE_INT, coins))
-        _write_record_numeric("QUESTS", q, "reward_gold", 0)
-        _write_record_numeric("QUESTS", q, "reward_mithril", 0)
+            _write_record_numeric("QUESTS", q, "reward_silver", min(SAFE_INT, coins))
+            _write_record_numeric("QUESTS", q, "reward_gold", 0)
+            _write_record_numeric("QUESTS", q, "reward_mithril", 0)
+        elif not has_authored_currency:
+            coins = quest_currency_for_stage(
+                lvl, workload, bool(q.get("repeatable")), str(qid)
+            )
+            _write_record_numeric("QUESTS", q, "reward_silver", min(SAFE_INT, coins))
+            _write_record_numeric("QUESTS", q, "reward_gold", 0)
+            _write_record_numeric("QUESTS", q, "reward_mithril", 0)
 
 
 def _skill_kind_fields(skill: dict, unlock: int, sid: str) -> None:
@@ -1329,147 +1306,41 @@ def _generate_skills(ns: dict) -> int:
 
 
 
-CLASS_PASSIVE_KIND = {
-    "Wojownik": "physical_damage", "Berserker": "physical_damage", "Łotrzyk": "dodge",
-    "Łowca": "physical_damage", "Mnich": "healing", "Strażnik": "damage_reduction",
-    "Mag": "magic_damage", "Nekromanta": "drain_healing", "Kapłan": "healing",
-    "Czarownik": "magic_damage", "Druid": "healing", "Psionik": "magic_defense",
-    "Mec": "damage_reduction", "Inżynier": "physical_damage",
-}
-RACE_PASSIVE_KIND = {
-    "Człowiek": "stat_xp", "Ogr": "physical_damage", "Elf": "dodge",
-    "Krasnolud": "damage_reduction", "Ork": "max_hp", "Niziołek": "profession_bonus",
-    "Mroczny Elf": "magic_damage", "Gnom": "max_mana", "Smok": "all_damage", "Smoczy": "all_damage",
-    "Troll": "physical_reduction", "Diablę": "soul_xp", "Aasimar": "magic_defense",
-    "Driada": "healing", "Cyborg": "damage_reduction",
-}
-
-def _percent_for_identity(identity: str, kind: str, low: float, high: float) -> float:
-    return low + (high-low) * stable_unit(f"{identity}:{kind}:passive")
-
 def class_passive_profile(class_name: str) -> dict:
-    kind=CLASS_PASSIVE_KIND.get(class_name, "none")
-    if kind == "dodge":
-        value=round(_percent_for_identity(class_name,kind,.035,.055),4)
-    elif kind == "damage_reduction":
-        value=round(_percent_for_identity(class_name,kind,.08,.12),4)
-    elif kind in ("physical_damage","magic_damage","healing","magic_defense"):
-        value=round(_percent_for_identity(class_name,kind,.08,.13),4)
-    elif kind == "drain_healing":
-        value=round(_percent_for_identity(class_name,kind,.11,.17),4)
-    else:
-        value=0.0
-    return {"kind":kind,"value":value}
+    """Compatibility wrapper to the authored class profile."""
+    return authored_class_passive_profile(class_name)
+
 
 def race_passive_profile(race_name: str) -> dict:
-    kind=RACE_PASSIVE_KIND.get(race_name,"none")
-    ranges={
-        "stat_xp":(.08,.12),"physical_damage":(.09,.13),"dodge":(.035,.055),
-        "damage_reduction":(.08,.12),"max_hp":(.08,.13),"profession_bonus":(.02,.04),
-        "magic_damage":(.08,.13),"max_mana":(.10,.16),"all_damage":(.06,.10),
-        "physical_reduction":(.09,.14),"soul_xp":(.08,.13),"magic_defense":(.09,.14),
-        "healing":(.11,.17),
-    }
-    low,high=ranges.get(kind,(0.0,0.0))
-    return {"kind":kind,"value":round(_percent_for_identity(race_name,kind,low,high),4) if high else 0.0}
+    """Compatibility wrapper to the authored race profile."""
+    return authored_race_passive_profile(race_name)
 
 
 def passive_text_pl(kind: str, value: float) -> str:
-    pct=int(round(value*100))
-    return {
-        "physical_damage": f"+{pct} procent obrażeń fizycznych",
-        "magic_damage": f"+{pct} procent obrażeń magicznych",
-        "all_damage": f"+{pct} procent wszystkich obrażeń",
-        "healing": f"+{pct} procent mocy leczenia",
-        "drain_healing": f"+{pct} procent leczenia z wysysania życia",
-        "magic_defense": f"+{pct} procent obrony magicznej",
-        "damage_reduction": f"{pct} procent redukcji wszystkich obrażeń",
-        "physical_reduction": f"{pct} procent redukcji obrażeń fizycznych",
-        "dodge": f"+{pct} punktów procentowych uniku",
-        "stat_xp": f"+{pct} procent EXP statystyk",
-        "max_hp": f"+{pct} procent maksymalnego HP",
-        "profession_bonus": f"+{pct} punktów procentowych szansy na bonus profesji",
-        "max_mana": f"+{pct} procent maksymalnej Many",
-        "soul_xp": f"+{pct} procent Soul XP",
-    }.get(kind,"brak")
+    return authored_passive_text_pl(kind, value)
+
 
 def class_passive_text_pl(class_name: str) -> str:
-    p=class_passive_profile(class_name); return passive_text_pl(p["kind"],p["value"])
+    return authored_class_passive_text_pl(class_name)
+
 
 def race_passive_text_pl(race_name: str) -> str:
-    p=race_passive_profile(race_name); return passive_text_pl(p["kind"],p["value"])
+    return authored_race_passive_text_pl(race_name)
+
 
 def _generate_soul(ns: dict) -> None:
-    """Balance existing Soul bonus values only; never rewrite tiers, thresholds, names or trial gates."""
-    try:
-        max_tier = max(1, int(ns.get("SOUL_MAX_TIER", 40) or 40))
-    except Exception:
-        max_tier = 40
-    if "SOUL_TIER_POWER_BONUSES" in ns:
-        _write_top_sequence(ns, "SOUL_TIER_POWER_BONUSES", (int(round((tier - 1) * 2.2)) for tier in range(1, max_tier + 1)))
-    if "SOUL_TIER_CLASS_BONUS_PERCENT" in ns:
-        _write_top_sequence(ns, "SOUL_TIER_CLASS_BONUS_PERCENT", (int(round(4 + (tier - 1) * .65)) for tier in range(1, max_tier + 1)))
-    if "SOUL_TIER_DODGE_BONUS" in ns:
-        _write_top_sequence(ns, "SOUL_TIER_DODGE_BONUS", (round(min(.05, .005 + (tier - 1) * .0012), 4) for tier in range(1, max_tier + 1)))
-    if "SOUL_TIER_GUARDIAN_REDUCTION" in ns:
-        _write_top_sequence(ns, "SOUL_TIER_GUARDIAN_REDUCTION", (int(round(2 + (tier - 1) * .45)) for tier in range(1, max_tier + 1)))
-    milestones = tuple(ns.get("SOUL_MILESTONE_TIERS", ()) or ())
-    spec = ns.get("SOUL_MILESTONE_SPECIALIZATION_BONUS")
-    if isinstance(spec, dict):
-        for tier in list(spec):
-            if tier in milestones:
-                _write_top_map_numeric(ns, "SOUL_MILESTONE_SPECIALIZATION_BONUS", tier, int(round(int(tier) * .45)))
-    dodge = ns.get("SOUL_MILESTONE_DODGE_BONUS")
-    if isinstance(dodge, dict):
-        for tier in list(dodge):
-            if tier in milestones:
-                _write_top_map_numeric(ns, "SOUL_MILESTONE_DODGE_BONUS", tier, round(min(.05, int(tier) * .0012), 4))
-    guard = ns.get("SOUL_MILESTONE_GUARDIAN_REDUCTION")
-    if isinstance(guard, dict):
-        for tier in list(guard):
-            if tier in milestones:
-                _write_top_map_numeric(ns, "SOUL_MILESTONE_GUARDIAN_REDUCTION", tier, int(round(int(tier) * .30)))
-
-
+    """Deprecated no-op: Soul bonus numbers are authored content."""
+    return None
 
 
 def _generate_class_set_bonuses(ns: dict) -> None:
-    """Rebalance values inside the authored set-bonus structure; never change owned stats/effects."""
-    table = ns.get("CLASS_SET_BONUSES")
-    if not isinstance(table, dict):
-        return
-    for cname, entry in table.items():
-        if not isinstance(entry, dict):
-            continue
-        stats = entry.get("stats")
-        if isinstance(stats, dict):
-            for stat in list(stats):
-                _write_class_set_numeric(entry, "stats", 3 + int(stable_unit(f"{cname}:set:stat:{stat}") * 4), leaf=stat)
-        if "damage" in entry:
-            _write_class_set_numeric(entry, "damage", round(1.06 + .10 * stable_unit(f"{cname}:set:damage"), 4))
-        if "defense" in entry:
-            _write_class_set_numeric(entry, "defense", round(1.08 + .18 * stable_unit(f"{cname}:set:defense"), 4))
-        if "vitality" in entry:
-            _write_class_set_numeric(entry, "vitality", round(1.10 + .22 * stable_unit(f"{cname}:set:vitality"), 4))
-
-
+    """Deprecated no-op: CLASS_SET_BONUSES are authored per class."""
+    return None
 
 
 def _generate_class_race_numeric(ns: dict) -> None:
-    """Only the numeric Soul-weapon base may be balanced; class/race identity stays authored."""
-    classes = list(ns.get("CLASSES", []))
-    new_classes = []
-    for row in classes:
-        if len(row) >= 4:
-            name, ctype, weapon, _old_base, *rest = row
-            base = 7 + (1 if stable_unit(str(name) + ':weapon') > .72 else 0)
-            new_classes.append((name, ctype, weapon, base, *rest))
-        else:
-            new_classes.append(row)
-    _write_classes_weapon_bases(ns, new_classes)
-
-    # RACES, CLASS_STARTING_STAT_BONUSES and all description text are authored and untouched.
-
+    """Deprecated no-op: class Soul Weapon bases are authored in CLASSES."""
+    return None
 
 
 def _rewrite_atlases(ns: dict, item_levels: dict[str, int]) -> None:
@@ -1584,15 +1455,6 @@ GENERATOR_NESTED_VALUE_WHITELIST = {
     "ITEMS": frozenset({"stats", "properties", "rune_stats", "rune_properties"}),
 }
 GENERATOR_TOP_LEVEL_VALUE_WHITELIST = frozenset({
-    "SOUL_TIER_POWER_BONUSES",
-    "SOUL_TIER_CLASS_BONUS_PERCENT",
-    "SOUL_TIER_DODGE_BONUS",
-    "SOUL_TIER_GUARDIAN_REDUCTION",
-    "SOUL_MILESTONE_SPECIALIZATION_BONUS",
-    "SOUL_MILESTONE_DODGE_BONUS",
-    "SOUL_MILESTONE_GUARDIAN_REDUCTION",
-    "CLASS_SET_BONUSES",
-    "CLASSES",
     "EXP_AREA_TARGET_POWER",
 })
 
@@ -1688,41 +1550,14 @@ def _write_top_map_numeric(ns: dict, key: str, leaf, value) -> None:
 
 
 def _write_class_set_numeric(entry: dict, field: str, value, leaf=None) -> None:
-    global _GENERATOR_WHITELIST_WRITE_COUNT
-    if field == "stats":
-        stats = entry.get("stats")
-        if not isinstance(stats, dict) or leaf not in stats:
-            raise RuntimeError(f"Generator whitelist denied class-set stat key: {leaf}")
-        if not isinstance(value, (int, float)) or isinstance(value, bool):
-            raise RuntimeError(f"Generator whitelist denied class-set stat value: {leaf}")
-        stats[leaf] = value
-    elif field in ("damage", "defense", "vitality") and field in entry:
-        if not isinstance(value, (int, float)) or isinstance(value, bool):
-            raise RuntimeError(f"Generator whitelist denied class-set value: {field}")
-        entry[field] = value
-    else:
-        raise RuntimeError(f"Generator whitelist denied class-set write: {field}")
-    _GENERATOR_WHITELIST_WRITE_COUNT += 1
-
+    raise RuntimeError(
+        "Generator Core v0.62 cannot mutate authored CLASS_SET_BONUSES"
+    )
 
 def _write_classes_weapon_bases(ns: dict, new_rows) -> None:
-    global _GENERATOR_WHITELIST_WRITE_COUNT
-    old_rows = list(ns.get("CLASSES", ()) or ())
-    new_rows = list(new_rows)
-    if len(old_rows) != len(new_rows):
-        raise RuntimeError("Generator whitelist denied CLASSES shape change")
-    for old, new in zip(old_rows, new_rows):
-        if len(old) != len(new):
-            raise RuntimeError("Generator whitelist denied CLASSES row shape change")
-        for idx, (a, b) in enumerate(zip(old, new)):
-            if idx == 3:
-                if not isinstance(b, (int, float)) or isinstance(b, bool):
-                    raise RuntimeError("Generator whitelist denied non-numeric Soul weapon base")
-            elif a != b:
-                raise RuntimeError(f"Generator whitelist denied CLASSES semantic write at index {idx}")
-    ns["CLASSES"] = new_rows
-    _GENERATOR_WHITELIST_WRITE_COUNT += len(new_rows)
-
+    raise RuntimeError(
+        "Generator Core v0.62 cannot mutate authored CLASSES Soul Weapon bases"
+    )
 
 def _freeze_semantic(value):
     if isinstance(value, dict):
@@ -1871,13 +1706,17 @@ def generator_whitelist_validate(ns: dict, before_fingerprint: str) -> dict:
 def semantic_fingerprint(ns: dict) -> str:
     """Hash all authored semantics that Generator Core is forbidden to change."""
     protected = []
-    protected.append(("CLASSES", tuple(tuple(row[:3]) for row in ns.get("CLASSES", ()))))
+    protected.append(("CLASSES", _freeze_semantic(ns.get("CLASSES", ()))))
     protected.append(("RACES", _freeze_semantic(ns.get("RACES", ()))))
     protected.append(("CLASS_DESCRIPTIONS", _freeze_semantic(ns.get("CLASS_DESCRIPTIONS", {}))))
     protected.append(("CLASS_STARTING_STAT_BONUSES", _freeze_semantic(ns.get("CLASS_STARTING_STAT_BONUSES", {}))))
     constants = (
         "SOUL_MAX_LEVEL", "SOUL_MAX_TIER", "SOUL_TIER_THRESHOLDS", "TIER2_LEVEL", "TIER3_LEVEL", "TIER4_LEVEL", "TIER5_LEVEL",
         "SOUL_SKILL_UNLOCK_LEVELS", "SOUL_MILESTONE_TIERS", "SOUL_MILESTONE_NAMES",
+        "SOUL_TIER_POWER_BONUSES", "SOUL_TIER_CLASS_BONUS_PERCENT",
+        "SOUL_TIER_DODGE_BONUS", "SOUL_TIER_GUARDIAN_REDUCTION",
+        "SOUL_MILESTONE_SPECIALIZATION_BONUS", "SOUL_MILESTONE_DODGE_BONUS",
+        "SOUL_MILESTONE_GUARDIAN_REDUCTION",
         "PROFESSION_RANK_THRESHOLDS", "PROFESSION_MAX_RANK", "BLACKSMITHING_RANK_THRESHOLDS", "BLACKSMITHING_MAX_RANK",
         "TOOL_TIER_THRESHOLDS", "TOOL_MAX_TIER", "ASTRAL_MIN_SOUL_LEVEL", "MYTHIC_CRYPT_MIN_SOUL_LEVEL", "MYTHIC_ASTRAL_MIN_SOUL_LEVEL",
     )
@@ -1918,15 +1757,59 @@ def semantic_fingerprint(ns: dict) -> str:
         "HERB_ATLAS_ROOM_MIN_LEVELS": ns.get("HERB_ATLAS_ROOM_MIN_LEVELS", {}),
     })))
     protected.append(("EXP_AREAS", _freeze_semantic(ns.get("EXP_AREAS", ()))))
-    set_structure = {}
-    for cname, entry in (ns.get("CLASS_SET_BONUSES", {}) or {}).items():
-        if isinstance(entry, dict):
-            set_structure[str(cname)] = {
-                "keys": tuple(sorted(map(str, entry.keys()))),
-                "stat_keys": tuple(sorted(map(str, (entry.get("stats") or {}).keys()))) if isinstance(entry.get("stats"), dict) else (),
-            }
-    protected.append(("CLASS_SET_STRUCTURE", _freeze_semantic(set_structure)))
+    protected.append((
+        "CLASS_SET_BONUSES",
+        _freeze_semantic(ns.get("CLASS_SET_BONUSES", {})),
+    ))
     return hashlib.sha256(repr(tuple(protected)).encode("utf-8")).hexdigest()
+
+def authored_reward_snapshot(ns: dict) -> dict:
+    """Capture only quest/recipe numeric values authored before Generator runs."""
+    quest_fields = tuple(sorted(NUMERIC_QUEST_FIELDS - {"generator_level"}))
+    recipe_fields = tuple(sorted(NUMERIC_RECIPE_FIELDS - {"generator_level"}))
+    quests = {}
+    for qid, quest in (ns.get("QUESTS", {}) or {}).items():
+        quests[str(qid)] = {
+            field: _freeze_semantic(quest[field])
+            for field in quest_fields
+            if field in quest
+        }
+    recipes = {}
+    for table_name in (
+        "CRAFT_RECIPES", "COOK_RECIPES", "ALCHEMY_RECIPES", "JEWELCRAFT_RECIPES"
+    ):
+        recipes[table_name] = {}
+        for rid, recipe in (ns.get(table_name, {}) or {}).items():
+            recipes[table_name][str(rid)] = {
+                field: _freeze_semantic(recipe[field])
+                for field in recipe_fields
+                if field in recipe
+            }
+    return {"quests": quests, "recipes": recipes}
+
+
+def authored_rewards_preserved(ns: dict, before: dict) -> bool:
+    """New fallback fields may appear, but every pre-existing authored value is immutable."""
+    if not isinstance(before, dict):
+        return False
+    quests_now = ns.get("QUESTS", {}) or {}
+    for qid, fields in (before.get("quests") or {}).items():
+        current = quests_now.get(qid)
+        if not isinstance(current, dict):
+            return False
+        for field, expected in fields.items():
+            if field not in current or _freeze_semantic(current[field]) != expected:
+                return False
+    for table_name, rows in (before.get("recipes") or {}).items():
+        table_now = ns.get(table_name, {}) or {}
+        for rid, fields in rows.items():
+            current = table_now.get(rid)
+            if not isinstance(current, dict):
+                return False
+            for field, expected in fields.items():
+                if field not in current or _freeze_semantic(current[field]) != expected:
+                    return False
+    return True
 
 def validate(ns: dict) -> dict:
     errors = []
@@ -1956,17 +1839,27 @@ def validate(ns: dict) -> dict:
             errors.append(f"item price {iid}")
     for qid, q in quests.items():
         lvl = int(q.get("generator_level",0) or 0)
-        if not 1 <= lvl <= MAX_LEVEL: errors.append(f"quest level {qid}")
-        if int(q.get("character_xp_reward",0) or 0) <= 0: errors.append(f"quest charxp {qid}")
-        reward = int(q.get("reward_silver",0) or 0)
+        if not 1 <= lvl <= MAX_LEVEL:
+            errors.append(f"quest level {qid}")
+        for field in (
+            "character_xp_reward", "reward_soul_xp", "reward_stat_progress",
+            "reward_profession_xp", "reward_tool_xp",
+        ):
+            if field in q and int(q.get(field, 0) or 0) < 0:
+                errors.append(f"quest negative {field} {qid}")
+        silver = int(q.get("reward_silver",0) or 0)
+        gold = int(q.get("reward_gold",0) or 0)
+        mithril = int(q.get("reward_mithril",0) or 0)
+        if min(silver, gold, mithril) < 0:
+            errors.append(f"quest negative currency {qid}")
         manual = q.get("manual_currency_reward_coins")
         if manual is not None:
-            if reward != clamp(int(manual), 0, SAFE_INT):
-                errors.append(f"quest manual currency changed {qid}: {reward}!={manual}")
-        elif reward < 1001:
-            errors.append(f"quest currency {qid}")
-        if int(q.get("reward_gold",0) or 0) != 0 or int(q.get("reward_mithril",0) or 0) != 0:
-            errors.append(f"quest split currency {qid}")
+            expected = clamp(int(manual), 0, SAFE_INT)
+            if silver != expected or gold != 0 or mithril != 0:
+                errors.append(
+                    f"quest manual currency changed {qid}: "
+                    f"{silver}/{gold}/{mithril}!={expected}/0/0"
+                )
     skill_count = 0
     skill_grid = (1, *range(10, MAX_LEVEL + 1, 10))
     skill_grid_set = set(skill_grid)
@@ -1990,8 +1883,10 @@ def validate(ns: dict) -> dict:
         for rid, recipe in (ns.get(table_name, {}) or {}).items():
             lvl = int(recipe.get("generator_level", 0) or 0)
             if not 1 <= lvl <= MAX_LEVEL: errors.append(f"recipe level {rid}")
-            if int(recipe.get("profession_xp",0) or 0) <= 0: errors.append(f"recipe profession xp {rid}")
-            if int(recipe.get("tool_xp",0) or 0) <= 0: errors.append(f"recipe tool xp {rid}")
+            if int(recipe.get("profession_xp",0) or 0) < 0:
+                errors.append(f"recipe negative profession xp {rid}")
+            if int(recipe.get("tool_xp",0) or 0) < 0:
+                errors.append(f"recipe negative tool xp {rid}")
     for fn_name, fn in (("mob_hp", mob_hp),("mob_damage",mob_damage)):
         vals = [fn(l) for l in range(1, MAX_LEVEL+1)]
         if any(b < a for a,b in zip(vals, vals[1:])): errors.append(f"nonmonotonic {fn_name}")
@@ -2014,13 +1909,14 @@ def apply_generator_core(ns: dict) -> dict:
     if full_audit:
         semantic_before = semantic_fingerprint(ns)
         whitelist_before = generator_whitelist_fingerprint(ns)
+        authored_rewards_before = authored_reward_snapshot(ns)
     else:
         semantic_before = None
         whitelist_before = None
+        authored_rewards_before = None
 
-    _generate_soul(ns)
-    _generate_class_race_numeric(ns)
-    _generate_class_set_bonuses(ns)
+    # Soul, class/race identity and class set bonuses are authored and never
+    # mutated here. Generator starts at shared stage derivation.
     room_levels = _graph_room_levels(ns.get("ROOMS", {}) or {})
     mob_levels = _mob_levels(ns, room_levels)
     _generate_mobs(ns, mob_levels)
@@ -2037,21 +1933,30 @@ def apply_generator_core(ns: dict) -> dict:
         whitelist_audit = generator_whitelist_validate(ns, whitelist_before)
         audit = validate(ns)
         semantic_ok = semantic_before == semantic_after
+        authored_rewards_ok = authored_rewards_preserved(
+            ns, authored_rewards_before
+        )
         audit["semantic_fingerprint_before"] = semantic_before
         audit["semantic_fingerprint_after"] = semantic_after
         audit["semantic_preserved"] = semantic_ok
+        audit["authored_rewards_preserved"] = authored_rewards_ok
         audit["whitelist_enforced"] = True
         audit["whitelist_passed"] = bool(whitelist_audit.get("passed"))
         audit["whitelist_audit"] = whitelist_audit
         if not semantic_ok:
             audit["errors"].append("Generator Core changed protected authored semantics")
+        if not authored_rewards_ok:
+            audit["errors"].append(
+                "Generator Core changed pre-existing authored quest/recipe rewards"
+            )
         if not whitelist_audit.get("passed"):
             audit["errors"].extend(whitelist_audit.get("errors", []))
         audit["error_count"] = len(audit["errors"])
     else:
         audit = {
             "errors": [], "error_count": 0, "runtime_fast_path": True,
-            "semantic_preserved": None, "whitelist_enforced": False,
+            "semantic_preserved": None, "authored_rewards_preserved": None,
+            "whitelist_enforced": False,
             "whitelist_passed": None, "whitelist_audit": None,
             "mobs": len(ns.get("MOB_TEMPLATES", {}) or {}),
             "items": len(ns.get("ITEMS", {}) or {}),
