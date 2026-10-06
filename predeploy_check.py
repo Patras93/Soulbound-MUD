@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Fast Railway predeploy gate for Soulbound v1.13.15.
+"""Fast Railway predeploy gate for Soulbound v1.13.16.
 
 This is the normal deploy check.  It intentionally avoids assembling the full
 world/runtime.  Use predeploy_full.py when an exhaustive historical audit is
@@ -16,7 +16,7 @@ import traceback
 try:
     from storage.database import Database as _DatabaseImportSmoke
 except Exception as exc:
-    print(f"Soulbound v1.13.15 FAST PREDEPLOY FAILED: database import: {type(exc).__name__}: {exc}")
+    print(f"Soulbound v1.13.16 FAST PREDEPLOY FAILED: database import: {type(exc).__name__}: {exc}")
     traceback.print_exc()
     raise SystemExit(1)
 
@@ -37,7 +37,7 @@ try:
     )
 except Exception as exc:
     print(
-        "Soulbound v1.13.15 FAST PREDEPLOY FAILED: "
+        "Soulbound v1.13.16 FAST PREDEPLOY FAILED: "
         f"skill semantic import: {type(exc).__name__}: {exc}"
     )
     traceback.print_exc()
@@ -334,7 +334,7 @@ _classes_source_v11315 = (_root / "core/classes_skills.py").read_text(encoding="
 _progression600_source_v11315 = (_root / "core/progression_600.py").read_text(encoding="utf-8")
 
 for _needle in (
-    'GENERATOR_VERSION = "0.62.0"',
+    'GENERATOR_VERSION = "0.63.0"',
     'return authored_character_hp_base(character_level, constitution)',
     'return authored_character_mana_base(character_level, intelligence, willpower)',
     'return authored_class_passive_profile(class_name)',
@@ -352,8 +352,8 @@ for _needle in (
     'audit["authored_rewards_preserved"] = authored_rewards_ok',
     "def authored_rewards_preserved(ns: dict, before: dict) -> bool:",
     "authored_rewards_ok = authored_rewards_preserved(",
-    "Generator Core v0.62 cannot mutate authored CLASS_SET_BONUSES",
-    "Generator Core v0.62 cannot mutate authored CLASSES Soul Weapon bases",
+    "Generator Core v0.63 cannot mutate authored CLASS_SET_BONUSES",
+    "Generator Core v0.63 cannot mutate authored CLASSES Soul Weapon bases",
     'if field in q and int(q.get(field, 0) or 0) < 0:',
 ):
     if _needle not in _generator_source:
@@ -418,11 +418,17 @@ for _needle in (
             "character creation resource parity regression: missing " + _needle
         )
 
-if 'generator_core_v027.GENERATOR_VERSION = "0.62.0"' not in _progression600_source_v11315:
-    _semantic_errors.append("Generator v0.62.0 progression bridge regression")
+if 'generator_core_v027.GENERATOR_VERSION = "0.63.0"' not in _progression600_source_v11315:
+    _semantic_errors.append("Generator v0.63.0 progression bridge regression")
 
-if 'generator_core_v027.GENERATOR_VERSION = "0.61.0"' in _progression600_source_v11315:
-    _semantic_errors.append("stale Generator v0.61.0 override remains in progression_600")
+for _stale_generator_version in ("0.61.0", "0.62.0"):
+    if (
+        f'generator_core_v027.GENERATOR_VERSION = "{_stale_generator_version}"'
+        in _progression600_source_v11315
+    ):
+        _semantic_errors.append(
+            f"stale Generator v{_stale_generator_version} override remains in progression_600"
+        )
 
 for _needle in ('baseline_key = f"_v1138_authored_{key}"', "procedural_no_limit", '"world_boss": 3.00'):
     if _needle not in _runtime_progression_source:
@@ -557,14 +563,103 @@ for _needle in (
 
 _equipment_stats_source = (_root / "player/session_mixins/equipment_stats.py").read_text(encoding="utf-8")
 _combat_feedback_source = (_root / "player/session_mixins/skill_learning.py").read_text(encoding="utf-8")
+_player_math_source_v11316 = (_root / "core/player_math.py").read_text(encoding="utf-8")
+_profession_timing_source_v11316 = (_root / "core/profession_timing.py").read_text(encoding="utf-8")
+_combat_damage_source_v11316 = (_root / "player/session_mixins/combat_damage.py").read_text(encoding="utf-8")
+_combat_realtime_source_v11316 = (_root / "player/session_mixins/combat_realtime.py").read_text(encoding="utf-8")
+_combat_skills_source_v11316 = (_root / "player/session_mixins/combat_skills.py").read_text(encoding="utf-8")
+_gathering_source_v11316 = (_root / "player/session_mixins/gathering.py").read_text(encoding="utf-8")
+_progression_resources_source_v11316 = (_root / "core/progression_resources.py").read_text(encoding="utf-8")
+
 for _needle in (
+    "def character_attribute_power(",
+    "def character_offensive_build_multiplier(",
+    "def speed_from_dexterity(",
+    "def basic_attack_hits_from_speed(",
+    "def critical_chance_from_dexterity(",
+    "0.035 + 0.365 * (",
+    "_clamp(value, 0.035, 0.40)",
+    "def critical_multiplier(",
     "def physical_defense_base(",
     "constitution * 0.42",
+    "def magic_defense_base(",
+    "def skill_level_power(",
+    "def skill_cooldown_factor(",
+    "def uncapped_stat_xp_gain(",
+    "def mec_vmax_duration_seconds(",
 ):
-    if _needle not in _generator_source:
-        _semantic_errors.append("physical defense progression regression: missing " + _needle)
-if "generator_core_v027.physical_defense_base(" not in _equipment_stats_source:
-    _semantic_errors.append("equipment CON defense regression: physical_defense_base not used")
+    if _needle not in _player_math_source_v11316:
+        _semantic_errors.append("player math ownership regression: missing " + _needle)
+
+for _needle in (
+    "character_hp_base(",
+    "character_mana_base(",
+    "physical_defense_base(",
+    "magic_defense_base(",
+    "character_attribute_power(",
+    "speed_from_dexterity(",
+):
+    if _needle not in _equipment_stats_source:
+        _semantic_errors.append("equipment/player math wiring regression: missing " + _needle)
+
+for _forbidden in (
+    "generator_core_v027.character_hp_base(",
+    "generator_core_v027.character_mana_base(",
+    "generator_core_v027.character_attribute_power(",
+    "generator_core_v027.speed_from_dexterity(",
+    "generator_core_v027.critical_chance_from_dexterity(",
+    "generator_core_v027.critical_multiplier(",
+    "generator_core_v027.physical_defense_base(",
+    "generator_core_v027.magic_defense_base(",
+):
+    if _forbidden in _equipment_stats_source:
+        _semantic_errors.append("equipment still depends on Generator player math: " + _forbidden)
+
+for _source_name, _source in (
+    ("combat_damage", _combat_damage_source_v11316),
+    ("combat_realtime", _combat_realtime_source_v11316),
+    ("combat_skills", _combat_skills_source_v11316),
+    ("character", _character_source_v11315),
+):
+    for _forbidden in (
+        "generator_core_v027.character_attribute_power(",
+        "generator_core_v027.character_offensive_build_multiplier(",
+        "generator_core_v027.speed_from_dexterity(",
+        "generator_core_v027.basic_attack_hits_from_speed(",
+        "generator_core_v027.uncapped_stat_xp_gain(",
+        "generator_core_v027.mec_vmax_duration_seconds(",
+    ):
+        if _forbidden in _source:
+            _semantic_errors.append(
+                f"{_source_name} still depends on Generator player math: {_forbidden}"
+            )
+
+for _needle in (
+    '"fishing": 16',
+    '"fishing": 3',
+    '"mining": 40',
+    '"mining": 10',
+    "def profession_action_seconds(",
+    "profession_action_seconds(\"fishing\", 1) != 16",
+):
+    if _needle not in _profession_timing_source_v11316:
+        _semantic_errors.append("authored profession timing regression: missing " + _needle)
+
+if "authored_profession_action_seconds" not in _gathering_source_v11316:
+    _semantic_errors.append("gathering does not use authored profession timing")
+if "generator_core_v027.profession_action_seconds(" in _gathering_source_v11316:
+    _semantic_errors.append("gathering still uses Generator profession timing")
+
+for _needle in (
+    "return skill_level_power(level)",
+    "return skill_cooldown_factor(level)",
+):
+    if _needle not in _progression_resources_source_v11316:
+        _semantic_errors.append("Skill Level player-math regression: missing " + _needle)
+
+if 'GENERATOR_VERSION = "0.63.0"' not in _generator_source:
+    _semantic_errors.append("Generator v0.63.0 ownership regression")
+
 for _needle in (
     "defense_cap_ratio = 0.60 if v0863_is_boss_template(template) else 0.75",
     'f"{defense_name.capitalize()} zatrzymuje {reduction} obrażeń. "',
@@ -896,18 +991,18 @@ except Exception as exc:
     )
 
 if _semantic_errors:
-    print("Soulbound v1.13.15 FAST PREDEPLOY FAILED: semantic contracts")
+    print("Soulbound v1.13.16 FAST PREDEPLOY FAILED: semantic contracts")
     for _error in _semantic_errors:
         print(f"ERROR: {_error}")
     raise SystemExit(1)
 
 if audit["error_count"]:
-    print("Soulbound v1.13.15 FAST PREDEPLOY FAILED")
+    print("Soulbound v1.13.16 FAST PREDEPLOY FAILED")
     for error in audit["errors"]:
         print(f"ERROR: {error}")
     raise SystemExit(1)
 
-print("Soulbound v1.13.15 FAST PREDEPLOY PASS")
+print("Soulbound v1.13.16 FAST PREDEPLOY PASS")
 print(
     "Semantic contracts: "
     f"{len(_semantic_audits)} audits PASS; AP runtime guards PASS"

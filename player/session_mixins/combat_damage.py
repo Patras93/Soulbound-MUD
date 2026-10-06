@@ -7,7 +7,10 @@ import math
 import random
 
 from core.progression_600 import CHARACTER_MAX_LEVEL
-from core.bootstrap_economy_professions import generator_core_v027
+from core.player_math import (
+    character_attribute_power,
+    character_offensive_build_multiplier,
+)
 from systems.equipment_crafting import class_equipment_base_stat_pair
 from data.mobs import MOB_TEMPLATES
 
@@ -48,7 +51,7 @@ class SessionCombatDamageMixin:
                         if primary == "dexterity":
                             raw_stat = max(1, int(self.effective_dexterity()))
                             power = (
-                                generator_core_v027.character_attribute_power(
+                                character_attribute_power(
                                     c.character_level, raw_stat
                                 )
                                 + int(flat["attack"])
@@ -68,7 +71,7 @@ class SessionCombatDamageMixin:
                 if c.class_type == "physical":
                     build_power, build_stat, _channel = self.basic_attack_build_v11196()
                     base_damage = c.soul_power() + build_power + random.randint(-3, 4)
-                    build_multiplier = generator_core_v027.character_offensive_build_multiplier(build_stat)
+                    build_multiplier = character_offensive_build_multiplier(build_stat)
                     return max(
                         1,
                         int(
@@ -95,7 +98,7 @@ class SessionCombatDamageMixin:
                         + build_power
                         + random.randint(-3, 4)
                     )
-                    build_multiplier = generator_core_v027.character_offensive_build_multiplier(build_stat)
+                    build_multiplier = character_offensive_build_multiplier(build_stat)
                     return max(
                         1,
                         int(
@@ -122,7 +125,7 @@ class SessionCombatDamageMixin:
                     + build_power // 2
                     + random.randint(-2, 2)
                 )
-                build_multiplier = generator_core_v027.character_offensive_build_multiplier(build_stat)
+                build_multiplier = character_offensive_build_multiplier(build_stat)
                 max_mana = self.max_mana()
                 mana_focus = min(40, max(4, int(round(max_mana * 0.05))))
                 self.current_mana = min(max_mana, self.current_mana + mana_focus)
@@ -144,7 +147,7 @@ class SessionCombatDamageMixin:
     def consider_player_expected_hit(self):
                 c = self.character
                 build_power, build_stat, _channel = self.basic_attack_build_v11196()
-                build_multiplier = generator_core_v027.character_offensive_build_multiplier(build_stat)
+                build_multiplier = character_offensive_build_multiplier(build_stat)
 
                 if c.class_type == "physical":
                     base_damage = (

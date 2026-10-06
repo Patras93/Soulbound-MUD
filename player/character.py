@@ -11,6 +11,11 @@ from core.character_resources import (
     class_passive_text_pl as authored_class_passive_text_pl,
     race_passive_text_pl as authored_race_passive_text_pl,
 )
+from core.player_math import (
+    character_attribute_power,
+    speed_from_dexterity,
+    uncapped_stat_xp_gain,
+)
 from core.bootstrap_economy_professions import (
     CHARISMA_DISCOUNT_STEP,
     CHARISMA_MAX_DISCOUNT,
@@ -21,7 +26,6 @@ from core.bootstrap_economy_professions import (
     SOUL_MILESTONE_SPECIALIZATION_BONUS,
     SOUL_MILESTONE_TIERS,
     SOUL_TRIAL_QUEST_IDS,
-    generator_core_v027,
     stat_quality_label,
 )
 from core.progression_600 import (
@@ -208,10 +212,10 @@ class Character:
         return max(1, int(round(base * self.racial_max_hp_multiplier())))
 
     def physical_power(self):
-        return generator_core_v027.character_attribute_power(self.character_level, self.strength)
+        return character_attribute_power(self.character_level, self.strength)
 
     def speed(self):
-        return generator_core_v027.speed_from_dexterity(self.dexterity)
+        return speed_from_dexterity(self.dexterity)
 
     def dodge_chance(self):
         # v0.8.65: Zręczność daje malejący pasywny dodge zamiast liniowej
@@ -242,7 +246,7 @@ class Character:
         return max(0, int(round(base * self.racial_max_mana_multiplier())))
 
     def spell_power(self):
-        return generator_core_v027.character_attribute_power(self.character_level, self.intelligence)
+        return character_attribute_power(self.character_level, self.intelligence)
 
     def _generated_class_passive(self, class_name):
         return authored_class_passive_profile(class_name)
@@ -613,7 +617,7 @@ class Character:
             # ekstrapoluje zarówno wymagany EXP, jak i wartość nagrody ze
             # źródła. Dzięki temu endgame nie zatrzymuje progresji, ale niskie
             # levele mobów nadal pozostają słabym źródłem EXP dla wysokich statów.
-            stat_amount = generator_core_v027.uncapped_stat_xp_gain(amount, current_value)
+            stat_amount = uncapped_stat_xp_gain(amount, current_value)
             progress = max(0, int(getattr(self, progress_field))) + stat_amount
             leveled = 0
             while True:

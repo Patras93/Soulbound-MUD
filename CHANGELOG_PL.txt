@@ -1,10 +1,41 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.13.15
+Aktualna paczka: v1.13.16
 
 
 
 
 
+
+
+==============================================================================
+Soulbound v1.13.16 — Player Math poza Generator Core
+==============================================================================
+
+- Generator Core v0.63.0 przestał być właścicielem matematyki normalnej postaci.
+  Player combat/progression math został przeniesiony do core/player_math.py.
+- Character, EquipmentStats, podstawowy atak i skille korzystają bezpośrednio
+  z authored player math zamiast generator_core_v027.
+- Realne staty nadal sterują Power, Speed, critical multiplier,
+  natural Defense/Magic Defense, late-game build multiplier, multi-hit,
+  V-MAX oraz uncapped Stat XP.
+- Szansa krytyka z DEX ma teraz czytelny authored sufit 40% zamiast starego
+  asymptotycznego ~32% / technicznego clampu 35%. DEX nadal rośnie bez limitu.
+- Skill Level 1-600 ma własną authored krzywą poza Generatorem:
+  1 = 1.00x, 600 = 4.00x; cooldown factor także nie należy już do Generatora.
+- Generator zachowuje tylko compatibility wrappers dla starych narzędzi i
+  callerów. Normalny gameplay nie przechodzi przez te wrappery.
+- Timing profesji został przeniesiony do core/profession_timing.py.
+  Oryginalne profesje odzyskały ręcznie projektowane czasy zamiast hasha nazwy:
+  Wędkarstwo 16 -> 3 s, Górnictwo 40 -> 10 s, Drwalstwo 24 -> 8 s,
+  Kowalstwo/Rzemiosło 20 -> 7 s, Gotowanie 12 -> 4 s,
+  Zielarstwo 10 -> 3 s, Alchemia 18 -> 6 s, Jubilerstwo 20 -> 7 s.
+- Nowsze profesje dostały jawne, stałe timery zamiast stable_unit(name):
+  Krawiectwo 20 -> 4 s, Garbarstwo 22 -> 3 s, Stolarstwo 25 -> 6 s,
+  Zaklinanie 21 -> 7 s, Archeologia 20 -> 5 s, Kartografia 14 -> 3 s.
+- Resource pool, ecology weights, procedural mob/stage math i inne faktycznie
+  proceduralne mechaniki nadal pozostają w Generator Core.
+- Fast predeploy blokuje ponowne podpięcie player math lub timerów profesji
+  do Generator Core i pilnuje authored endpointów Wędkarstwa/Górnictwa.
 
 ==============================================================================
 Soulbound v1.13.15 — Generator Core nie projektuje już postaci

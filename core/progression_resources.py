@@ -2,6 +2,16 @@ import math
 import random
 import re
 from core import generator_core as generator_core_v027
+from core.player_math import (
+    skill_level_power,
+    skill_cooldown_factor,
+)
+from core.profession_timing import (
+    TOOL_ACTION_BASE_SECONDS,
+    TOOL_ACTION_MIN_SECONDS,
+    profession_action_seconds,
+    profession_speed_progress,
+)
 from data import catalog_mutations as _catalog_mut
 from config.balance import (
     CHARACTER_MAX_LEVEL,
@@ -500,10 +510,10 @@ def skill_xp_to_next(level):
     return v0190_requirement("skill", level)
 
 def skill_power_multiplier(level):
-    return generator_core_v027.skill_level_power(level)
+    return skill_level_power(level)
 
 def skill_cooldown_multiplier(level):
-    return generator_core_v027.skill_cooldown_factor(level)
+    return skill_cooldown_factor(level)
 
 # v0.35.1: osobna biegłość zwykłego ataku Broni Duszy.
 # Nie rozwija skilli/spelli i nie jest Soul Levelem ani Biegłością klasy.
@@ -533,29 +543,8 @@ BANK_ROOM = "market"
 
 # v0.8.66 - realny czas czynności wynika z poziomu UMIEJĘTNOŚCI/PROFESJI.
 # Narzędzie nie skraca czasu; jego level odblokowuje lepszy surowiec/jakość/bonus.
-TOOL_ACTION_BASE_SECONDS = {
-    # v0.9.6: Wędkarstwo zaczyna od 16 s i schodzi płynnie do 3 s przy 200.
-    "fishing": 16,
-    "mining": 30,
-    "woodcutting": 24,
-    "crafting": 20,
-    "cooking": 12,
-    "herbalism": 10,
-    "alchemy": 18,
-    "jewelcrafting": 20,
-}
-
-TOOL_ACTION_MIN_SECONDS = {
-    "fishing": 3,
-    "mining": 10,
-    "woodcutting": 8,
-    "crafting": 7,
-    "cooking": 4,
-    "herbalism": 3,
-    "alchemy": 6,
-    "jewelcrafting": 7,
-}
-
+# v1.13.16: canonical action timers live in core.profession_timing.
+# Names remain imported here for compatibility with older progression callers.
 
 # v0.9.6: wartości referencyjne z v0.9.5 służą tylko do rebalansu
 # XP/cen/zleceń po zmianie czasu 15->5 na 16->3.
@@ -577,23 +566,20 @@ def balanced_gather_tool_xp(tool_type, raw_xp):
     return max(1, int(round(max(1, int(raw_xp)) * multiplier)))
 
 def _profession_speed_progress(level):
-    # Stary balans timerów 1-200 pozostaje 1:1. Po 200 profesja rozwija się
-    # dalej, ale nie skraca akcji poniżej ustalonego minimum.
-    effective = max(1, min(PROFESSION_SPEED_CAP_LEVEL, int(level)))
-    return (effective - 1) / max(1, PROFESSION_SPEED_CAP_LEVEL - 1)
+    return profession_speed_progress(level)
 
 def _linear_profession_seconds(level, base_seconds, minimum_seconds):
-    progress = _profession_speed_progress(level)
+    progress = profession_speed_progress(level)
     seconds = round(base_seconds - (base_seconds - minimum_seconds) * progress)
     return max(int(minimum_seconds), int(seconds))
 
 def v095_fishing_action_seconds(level):
-    return _linear_profession_seconds(level, V095_FISHING_BASE_SECONDS, V095_FISHING_MIN_SECONDS)
+    return _linear_profession_seconds(
+        level, V095_FISHING_BASE_SECONDS, V095_FISHING_MIN_SECONDS
+    )
 
 def v096_fishing_action_seconds(level):
-    return _linear_profession_seconds(
-        level, TOOL_ACTION_BASE_SECONDS["fishing"], TOOL_ACTION_MIN_SECONDS["fishing"]
-    )
+    return profession_action_seconds("fishing", level)
 
 def v096_fishing_reward_scale(level):
     """Skaluje nagrody per połów, aby XP/h nie eksplodował przy 3 s endgame.

@@ -9,6 +9,7 @@ celowo dla kompatybilności z istniejącymi modułami i ID przedmiotów.
 # Ten moduł musi działać także przy bezpośrednim imporcie (np. narzędzia
 # administracyjne przez Railway SSH), a nie tylko w historycznym bootstrapie.
 from core import generator_core as generator_core_v027
+from core.player_math import skill_level_power
 from core.bootstrap_economy_professions import (
     SOUL_TIER_THRESHOLDS,
     SOUL_TIER_POWER_BONUSES,
@@ -38,7 +39,7 @@ PROGRESSION_MAX_LEVEL = 600
 # odczytują MAX_LEVEL dynamicznie, więc przełączenie tutaj rozszerza wszystkie
 # krzywe bez kopiowania generatora.
 generator_core_v027.MAX_LEVEL = PROGRESSION_MAX_LEVEL
-generator_core_v027.GENERATOR_VERSION = "0.62.0"
+generator_core_v027.GENERATOR_VERSION = "0.63.0"
 
 # Główne osie postaci.
 CHARACTER_MAX_LEVEL = PROGRESSION_MAX_LEVEL
@@ -49,7 +50,7 @@ SOUL_WEAPON_MASTERY_MAX_LEVEL = PROGRESSION_MAX_LEVEL
 # v1.11.96: Skill Level is currently a real 1-600 axis. The combat multiplier
 # must continue increasing through 600 and reach its authored endpoint there.
 _SKILL_POWER_600_POINTS_V11196 = {
-    level: generator_core_v027.skill_level_power(level)
+    level: skill_level_power(level)
     for level in (1, 100, 200, 300, 400, 500, 600)
 }
 if SKILL_MAX_LEVEL != 600:
@@ -250,4 +251,4 @@ def _v0362_runtime_room_level(room_id, room, rooms=None):
 
 generator_core_v027._graph_room_levels = _v0362_graph_room_levels
 generator_core_v027.runtime_room_level = _v0362_runtime_room_level
-generator_core_v027.GENERATOR_VERSION = "0.62.0"
+generator_core_v027.GENERATOR_VERSION = "0.63.0"

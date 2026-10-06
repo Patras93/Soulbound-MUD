@@ -10,7 +10,12 @@ from world.uoss_superboss_runtime import superboss_healing_blocked_v11179
 from core.classes_skills import CLASS_SKILLS, effective_skill_mana_cost
 from core.progression_600 import SKILL_MAX_LEVEL
 from core.progression_resources import class_type_for_name, skill_power_multiplier
-from core.bootstrap_economy_professions import GLOBAL_SKILL_BUFF_DURATION_SECONDS, generator_core_v027
+from core.bootstrap_economy_professions import GLOBAL_SKILL_BUFF_DURATION_SECONDS
+from core.player_math import (
+    character_attribute_power,
+    character_offensive_build_multiplier,
+    mec_vmax_duration_seconds,
+)
 from data.mobs import MOB_TEMPLATES
 from data.rooms import ROOMS
 from network.protocol_gameplay_utils import normalize_lookup_text
@@ -81,7 +86,7 @@ class SessionCombatSkillsMixin:
             # physical_power() already contains trained STR + flat Attack +
             # Weapon Power, so never add those flat values a second time.
             return max(1, int(raw_stat))
-        stat_power = generator_core_v027.character_attribute_power(level, raw_stat)
+        stat_power = character_attribute_power(level, raw_stat)
         if scale_name in ("intelligence", "wisdom", "magic", "will", "willpower"):
             stat_power += int(flat["magic_attack"])
         else:
@@ -108,7 +113,7 @@ class SessionCombatSkillsMixin:
         secondary_power = 0
         if secondary_name:
             secondary_value = self.offensive_skill_effective_stat_value_v11196(secondary_name)
-            secondary_power = generator_core_v027.character_attribute_power(
+            secondary_power = character_attribute_power(
                 int(self.character.character_level), secondary_value
             )
 
@@ -117,7 +122,7 @@ class SessionCombatSkillsMixin:
         # from the actual build and equipment contributes to a lesser degree.
         secondary_weight = 0.35 if secondary_name else 0.0
         weighted_stat = primary_value + secondary_value * secondary_weight
-        build_multiplier = generator_core_v027.character_offensive_build_multiplier(weighted_stat)
+        build_multiplier = character_offensive_build_multiplier(weighted_stat)
 
         soul_power = max(0, int(self.character.soul_power()))
         core = (
@@ -139,7 +144,7 @@ class SessionCombatSkillsMixin:
         level = int(self.character.character_level)
         anchor_power = max(
             1,
-            int(generator_core_v027.character_attribute_power(level, 175)),
+            int(character_attribute_power(level, 175)),
         )
         canonical_power = max(1, int(self.healing_power_v1125()))
         return max(
@@ -352,7 +357,7 @@ class SessionCombatSkillsMixin:
             max(self.effective_strength(), self.effective_dexterity())
         )
         mult = self.equipment_damage_multiplier(kind) * self.total_set_damage_multiplier()
-        mult *= generator_core_v027.character_offensive_build_multiplier(raw_stat)
+        mult *= character_offensive_build_multiplier(raw_stat)
         damage = max(1, int(round((self.character.soul_power() + stat) * 0.65 * mult)))
         damage = await self.apply_boss_defense(target, damage)
         damage = self.v0210_adjust_player_damage(damage)
@@ -1212,7 +1217,7 @@ class SessionCombatSkillsMixin:
                         # Soulbound therefore uses its documented multi-minute curve:
                         # Skill Level 1->600 gives a 200->600 second base at WILL 175,
                         # while uncapped WILL applies an additional soft multiplier.
-                        duration=generator_core_v027.mec_vmax_duration_seconds(
+                        duration=mec_vmax_duration_seconds(
                             skill_level, self.effective_willpower()
                         )
                         self.v0319_vmax_until=time.time()+duration

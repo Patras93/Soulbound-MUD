@@ -1,4 +1,4 @@
-"""Soulbound Generator Core v0.62.0 — stage math + procedural/fallback balance.
+"""Soulbound Generator Core v0.63.0 — stage math + procedural/fallback balance.
 
 Authored content is authoritative. Generator Core derives shared stage mathematics and may
 fill missing numeric fields, but it must not rebalance authored character resources/passives,
@@ -13,6 +13,26 @@ import math
 import re
 import os
 
+from core.player_math import (
+    uncapped_stat_xp_scale as authored_uncapped_stat_xp_scale,
+    uncapped_stat_xp_gain as authored_uncapped_stat_xp_gain,
+    character_attribute_power as authored_character_attribute_power,
+    character_offensive_build_multiplier as authored_character_offensive_build_multiplier,
+    speed_from_dexterity as authored_speed_from_dexterity,
+    basic_attack_hits_from_speed as authored_basic_attack_hits_from_speed,
+    basic_attack_hits_from_dexterity as authored_basic_attack_hits_from_dexterity,
+    mec_vmax_duration_seconds as authored_mec_vmax_duration_seconds,
+    dodge_from_dexterity as authored_dodge_from_dexterity,
+    critical_chance_from_dexterity as authored_critical_chance_from_dexterity,
+    critical_multiplier as authored_critical_multiplier,
+    physical_defense_base as authored_physical_defense_base,
+    magic_defense_base as authored_magic_defense_base,
+    skill_level_power as authored_skill_level_power,
+    skill_cooldown_factor as authored_skill_cooldown_factor,
+)
+from core.profession_timing import (
+    profession_action_seconds as authored_profession_action_seconds,
+)
 from core.character_resources import (
     character_hp_base as authored_character_hp_base,
     character_mana_base as authored_character_mana_base,
@@ -23,7 +43,7 @@ from core.character_resources import (
     race_passive_text_pl as authored_race_passive_text_pl,
 )
 
-GENERATOR_VERSION = "0.62.0"
+GENERATOR_VERSION = "0.63.0"
 MAX_LEVEL = 400
 SAFE_INT = 9_000_000_000_000_000_000
 
@@ -93,26 +113,13 @@ def axis_requirement(axis: str, level: int) -> int:
 
 
 def uncapped_stat_xp_scale(stat_level: int) -> float:
-    """Scale a stage-balanced stat XP reward to an uncapped stat level.
-
-    Level 1-400 keeps the original reward exactly. Above 400, the reward
-    grows in the same proportion as the generated requirement. This keeps
-    a stage-400 source at roughly the same actions-per-stat-point while
-    low-stage sources remain proportionally inefficient forever.
-    """
-    level = max(1, int(stat_level))
-    if level <= MAX_LEVEL:
-        return 1.0
-    anchor = float(axis_requirement("stat", MAX_LEVEL))
-    current = float(axis_requirement("stat", level))
-    return max(1.0, current / max(1.0, anchor))
+    """Compatibility wrapper; player stat progression lives outside Generator Core."""
+    return authored_uncapped_stat_xp_scale(stat_level)
 
 
 def uncapped_stat_xp_gain(base_amount: int, stat_level: int) -> int:
-    base_amount = max(0, int(base_amount))
-    if base_amount <= 0:
-        return 0
-    return min(SAFE_INT, max(1, int(round(base_amount * uncapped_stat_xp_scale(stat_level)))))
+    """Compatibility wrapper; player stat progression lives outside Generator Core."""
+    return authored_uncapped_stat_xp_gain(base_amount, stat_level)
 
 
 def axis_gain(axis: str, level: int, intensity: float = 1.0) -> int:
@@ -136,180 +143,66 @@ def character_mana_base(
 
 
 def character_attribute_power(character_level: int, stat_value: int) -> int:
-    # Kept as a two-argument API for existing callers, but Character Level must
-    # not add free STR/DEX/INT/WILL power: stats are their own progression axes.
-    _ = clamp(int(character_level), 1, MAX_LEVEL)
-    stat_value = max(1, int(stat_value))
-    return stat_value
+    """Compatibility wrapper; player combat math lives outside Generator Core."""
+    return authored_character_attribute_power(character_level, stat_value)
 
 
 def character_offensive_build_multiplier(stat_value: int | float) -> float:
-    """Late-game offense driven by the actual effective combat stat.
-
-    This multiplier deliberately does not use Character Level. Level unlocks
-    progression, while the offensive gain comes from the character's real
-    STR/DEX/INT/WILL after equipment and other stat bonuses.
-    Up to 100 the multiplier is neutral, so early game stays intact. There
-    is deliberately no upper cap because Soulbound stats themselves are unlimited.
-    """
-    stat_value = max(1.0, float(stat_value or 1.0))
-    if stat_value <= 100.0:
-        return 1.0
-    growth = 1.0 + 0.45 * (((stat_value - 100.0) / 100.0) ** 0.72)
-    # Stats are unlimited: never flatten late-game offense at an arbitrary x5.
-    # The 0.72 exponent supplies soft diminishing returns while preserving
-    # meaningful growth at 1,000, 5,000 and beyond.
-    return round(max(1.0, growth), 6)
+    return authored_character_offensive_build_multiplier(stat_value)
 
 
 def speed_from_dexterity(dexterity: int) -> int:
-    dexterity = max(1, int(dexterity))
-    return max(1, int(round(8 + dexterity * 1.65)))
+    return authored_speed_from_dexterity(dexterity)
 
 
 def basic_attack_hits_from_speed(speed: int, haste: bool = False) -> int:
-    """Uncapped Speed-driven multi-hit curve for ordinary Soul Weapon attacks.
-
-    The hit count reads the final combat Speed stat rather than raw DEX/AGI.
-    DEX/AGI still matters because it builds Speed, while future equipment,
-    buffs or effects that modify Speed can naturally affect the attack string.
-    Haste is a separate state and doubles the available hit string.
-
-    Calibrated to the user-supplied UOSS Mec benchmarks after converting their
-    AGI to Soulbound Speed:
-    AGI 547 -> Speed 911 -> 5 hits, Haste -> 10 hits;
-    AGI 429 -> Speed 716, Haste -> 9 hits.
-    """
-    speed = max(1, int(speed))
-    raw_hits = math.sqrt(float(speed)) / 5.8
-    if haste:
-        raw_hits *= 2.0
-    return max(1, int(raw_hits))
+    return authored_basic_attack_hits_from_speed(speed, haste)
 
 
 def basic_attack_hits_from_dexterity(dexterity: int, haste: bool = False) -> int:
-    """Compatibility wrapper for older callers; final scaling is Speed-based."""
-    return basic_attack_hits_from_speed(
-        speed_from_dexterity(dexterity),
-        haste=haste,
-    )
+    return authored_basic_attack_hits_from_dexterity(dexterity, haste)
 
 
 def mec_vmax_duration_seconds(skill_level: int, willpower: int) -> int:
-    """Soulbound V-MAX duration adaptation from source-confirmed influences.
-
-    Source confirms both:
-    - Skill Level increases duration;
-    - WILL influences V-MAX.
-
-    A user-supplied UOSS benchmark places V-MAX Skill Level ~8 with WILL ~344
-    at about five minutes. Soulbound therefore uses a multi-minute base:
-    200s -> 600s from Skill Level 1 -> 600 at WILL 175, multiplied by an
-    uncapped square-root WILL curve. This keeps low-level V-MAX boss-usable
-    while preserving meaningful long-term WILL and Skill Level growth.
-    """
-    level = clamp(int(skill_level), 1, MAX_LEVEL)
-    willpower = max(1, int(willpower))
-    progress = (level - 1) / float(max(1, MAX_LEVEL - 1))
-    skill_seconds = 200.0 + 400.0 * (progress ** 0.82)
-    will_multiplier = max(0.35, (willpower / 175.0) ** 0.50)
-    return max(1, int(round(skill_seconds * will_multiplier)))
+    return authored_mec_vmax_duration_seconds(skill_level, willpower)
 
 
-
-_BASIC_ATTACK_HIT_AUDIT_V11196 = {
-    "speed_911": basic_attack_hits_from_speed(911, False),
-    "speed_911_haste": basic_attack_hits_from_speed(911, True),
-    "speed_716_haste": basic_attack_hits_from_speed(716, True),
-}
-if _BASIC_ATTACK_HIT_AUDIT_V11196 != {
-    "speed_911": 5,
-    "speed_911_haste": 10,
-    "speed_716_haste": 9,
-}:
-    raise RuntimeError(
-        "Basic attack multi-hit audit failed: "
-        + repr(_BASIC_ATTACK_HIT_AUDIT_V11196)
-    )
-
-
-_VMAX_DURATION_AUDIT_V11196 = {
-    "level1_will175": mec_vmax_duration_seconds(1, 175),
-    "level600_will175": mec_vmax_duration_seconds(MAX_LEVEL, 175),
-    "level8_will344": mec_vmax_duration_seconds(8, 344),
-    "level1_will350": mec_vmax_duration_seconds(1, 350),
-}
-if not (
-    _VMAX_DURATION_AUDIT_V11196["level1_will175"] == 200
-    and _VMAX_DURATION_AUDIT_V11196["level600_will175"] == 600
-    and 285 <= _VMAX_DURATION_AUDIT_V11196["level8_will344"] <= 310
-    and _VMAX_DURATION_AUDIT_V11196["level1_will350"]
-        > _VMAX_DURATION_AUDIT_V11196["level1_will175"]
-):
-    raise RuntimeError(
-        "V-MAX duration audit failed: "
-        + repr(_VMAX_DURATION_AUDIT_V11196)
-    )
+# v1.13.16: player-math invariants are audited in core/player_math.py.
+# Generator Core keeps compatibility wrappers only; duplicate audits here would
+# incorrectly depend on Generator MAX_LEVEL before progression_600 patches it.
 
 
 def dodge_from_dexterity(dexterity: int) -> float:
-    dexterity = max(1, int(dexterity))
-    value = 0.25 * (1.0 - math.exp(-max(0.0, dexterity - 10.0) / 78.0))
-    return round(clamp(value, 0.0, 0.25), 6)
+    return authored_dodge_from_dexterity(dexterity)
 
 
 def critical_chance_from_dexterity(dexterity: int) -> float:
-    dexterity = max(1, int(dexterity))
-    value = 0.035 + 0.285 * (1.0 - math.exp(-max(0.0, dexterity - 8.0) / 105.0))
-    return round(clamp(value, 0.035, 0.35), 6)
+    return authored_critical_chance_from_dexterity(dexterity)
 
 
 def critical_multiplier(character_level: int) -> float:
-    level = clamp(int(character_level), 1, MAX_LEVEL)
-    return round(1.45 + 0.20 * ((level - 1) / (MAX_LEVEL - 1)) ** 0.75, 6)
+    return authored_critical_multiplier(character_level)
 
 
 def physical_defense_base(character_level: int, constitution: int) -> int:
-    """Natural physical mitigation from CON, separate from equipped armor.
-
-    Equipment remains the main visible source of Defense, but investing in CON
-    must also make incoming physical hits feel smaller. The coefficient is kept
-    below magic WILL scaling because armor contributes an additional large pool.
-    """
-    character_level = clamp(int(character_level), 1, MAX_LEVEL)
-    constitution = max(1, int(constitution))
-    return max(0, int(round(constitution * 0.42 + character_level * 0.08)))
+    return authored_physical_defense_base(character_level, constitution)
 
 
 def magic_defense_base(character_level: int, willpower: int) -> int:
-    character_level = clamp(int(character_level), 1, MAX_LEVEL)
-    willpower = max(1, int(willpower))
-    return max(0, int(round(willpower * 0.55 + character_level * 0.10)))
+    return authored_magic_defense_base(character_level, willpower)
 
 
 def skill_level_power(level: int) -> float:
-    level = clamp(int(level), 1, MAX_LEVEL)
-    # v1.11.96: every Skill Level must be felt through the current 1-600 axis.
-    # With MAX_LEVEL=600: 1=1.00x, 100~=1.69x, 200~=2.22x, 300~=2.70x,
-    # 400~=3.15x, 500~=3.58x, 600=4.00x.
-    return round(1.0 + 3.0 * ((level - 1) / (MAX_LEVEL - 1)) ** 0.82, 6)
+    return authored_skill_level_power(level)
 
 
 def skill_cooldown_factor(level: int) -> float:
-    level = clamp(int(level), 1, MAX_LEVEL)
-    # Utility, evade and control skills improve through shorter cooldowns as well.
-    reduction = 0.50 * ((level - 1) / (MAX_LEVEL - 1)) ** 0.90
-    return round(1.0 - reduction, 6)
+    return authored_skill_cooldown_factor(level)
 
 
 def profession_action_seconds(tool_type: str, level: int) -> int:
-    level = clamp(int(level), 1, MAX_LEVEL)
-    # Tool identity changes feel deterministically, not through hand-authored per-tool timers.
-    u = stable_unit(f"{tool_type}:action-time")
-    base = 14.0 + 14.0 * u
-    minimum = 3.0 + 5.0 * stable_unit(f"{tool_type}:minimum-time")
-    progress = ((level - 1) / (MAX_LEVEL - 1)) ** 0.78
-    return max(1, int(round(base - (base - minimum) * progress)))
+    """Compatibility wrapper; profession tempo is authored outside Generator Core."""
+    return authored_profession_action_seconds(tool_type, level)
 
 
 def gather_quantity(tool_type: str, tool_level: int, profession_level: int, roll: float) -> int:
