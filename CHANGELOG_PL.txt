@@ -54,6 +54,29 @@ Soulbound v1.13.8 — odczuwalna progresja + Generator Core jako fallback
   z piętra 200 nie przegrywał automatycznie ze zwykłym sklepem tego samego etapu.
 - Wspólna krzywa mocy EQ jest teraz jednym kontraktem dla sklepu, craftingu i dropu,
   co utrudnia ponowne rozjechanie tych źródeł w przyszłych wersjach.
+- Ekonomia zwykłych zasobów została podniesiona do sensownej wartości dla etapu:
+  pojedynczy zwykły zasób nadal jest grindem, ale nie jest już ekonomicznie zerowy.
+- Rzadkie warianty profesji są prawdziwymi jackpotami. Ryby: Albinos x3,
+  Olbrzymi x5, Złoty x8, Pradawny x15 wartości; rzadkie drewno i zioła dochodzą
+  do x20. Jackpot zwiększa też Profession/Tool XP łagodniejszym mnożnikiem.
+- Wędkarstwo ma osobną wartość trofealną gatunku: rzadkość podnosi cenę, a rekiny
+  i lewiatany dostają dodatkową premię. Dzięki temu złowienie rekina/legendarnej
+  ryby jest nagrodą samo w sobie, nawet bez rzadkiego wariantu.
+- Górnictwo: bogate/kryształowe/legendarne żyły dają większy bonus XP,
+  a Geody mają realne wypłaty złota; Doskonały i Perfekcyjny klejnot dostają
+  wyraźny komunikat jackpotu pod NVDA.
+- Archeologia: znaleziska mają etapową wartość kolekcjonerską, a pierwszy wpis
+  kolekcji daje x2 Profession XP i zwiększony Tool XP.
+- Kartografia: pierwszy pomiar nowej lokacji daje jednorazową premię odkrywcy
+  zależną od etapu terenu; ponowne pomiary nie duplikują tej premii.
+- Skrzynie bossów korzystają z etapowej krzywej złota zamiast starych wypłat
+  rzędu kilku Gold. Trudniejsze rodzaje instancji mają wyższy mnożnik.
+- Zwykłe trofea z mobów również skalują wartość z etapem i rzadkością:
+  Common pozostaje zwykłym lootem, Rare/Epic/Legendary/Mythic/Unique są coraz
+  wyraźniej warte sprzedaży.
+- Pojedyncza i hurtowa sprzedaż zasobów korzystają z tej samej wyceny, więc
+  premia rekina lub rzadkiego wariantu działa tak samo dla sprzedaj <ryba>
+  oraz sprzedaj wszystko siatka.
 - Ceny klasowego EQ zostały powiązane z realnym zarobkiem na tym samym etapie;
   pełny set pozostaje celem grindowym, ale nie wymaga tysięcy zwykłych zadań.
 - Bazowe zarobki questów rosną mocniej już od midgame: około 150 Gold na 50,
