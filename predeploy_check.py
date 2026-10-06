@@ -103,7 +103,7 @@ for _tool_id in (
     "herbalist_sickle", "alchemy_mortar", "jeweler_pliers",
 ):
     _match = re.search(
-        rf'"{re.escape(_tool_id)}"\\s*:\\s*(\\d+)',
+        rf'"{re.escape(_tool_id)}"\s*:\s*(\d+)',
         _equipment_help_source_v11310,
     )
     if not _match or int(_match.group(1)) != 1200:
