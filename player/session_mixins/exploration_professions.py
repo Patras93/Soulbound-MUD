@@ -224,7 +224,7 @@ class SessionExplorationProfessionsV1100Mixin:
                 100,
                 int(round(v1138_resource_sale_base_coins(effective) * 10.0)),
             )
-            self.character.add_silver_value(discovery_reward_silver)
+            self.character.silver += discovery_reward_silver
             self.server.db.save_character(self.character)
 
         fragment = random.random() < tool_tier_bonus_chance(tool_level)
