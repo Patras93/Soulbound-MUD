@@ -13,8 +13,6 @@ from core.progression_resources import MINE_MIN_FLOOR, ORE_ATLAS_ALL, mine_floor
 from systems.crafting_quality import player_item_display_name_v0335
 from systems.dungeons_regions import (
     ASTRAL_MIN_FLOOR,
-    ASTRAL_MIN_SOUL_LEVEL,
-    MYTHIC_ASTRAL_MIN_SOUL_LEVEL,
     PROF_DUNGEON_TOOL,
     astral_floor_id,
     astral_floor_number,
@@ -341,16 +339,8 @@ class SessionDungeonProgressionMixin:
                 await self.send("Włącz auto-kopanie komendą: kop on.")
 
     def mythic_entry_error(self, target_room):
-            # v0.9.12: Mityczna Krypta jest zawsze dostępna; trudność, nie level,
-            # jest barierą wejścia. Mityczna Wieża Astralna zachowuje własną zasadę.
-            if target_room == "mythic_astral_gate":
-                if self.character.soul_level < MYTHIC_ASTRAL_MIN_SOUL_LEVEL:
-                    return (
-                        "Mityczna Wieża Astralna jest zablokowana. "
-                        f"Wymaga Soul Poziom {MYTHIC_ASTRAL_MIN_SOUL_LEVEL}. "
-                        f"Masz Soul Poziom {self.character.soul_level}."
-                    )
-
+            # v1.13.30: Mityczna Krypta i Mityczna Wieża nie mają level-gate.
+            # Realna trudność, bossy pięter i checkpointy pozostają barierą.
             return None
 
     def profession_dungeon_access_error(self, target_room):
@@ -432,10 +422,8 @@ class SessionDungeonProgressionMixin:
             return self.server.world.astral_ascent_blocked(room_id, direction)
 
     def astral_entry_blocked(self, target_room):
-            return (
-                target_room == astral_floor_id(ASTRAL_MIN_FLOOR)
-                and self.character.soul_level < ASTRAL_MIN_SOUL_LEVEL
-            )
+            # v1.13.30: brak minimalnego Soul Level dla Wieży Astralnej.
+            return False
 
     async def grant_combat_quest_stat_xp(self, raw_reward, repeatable=False, source_label="Quest walki"):
             """Przyznaje EXP do każdej z sześciu statystyk z systemu questowego."""
@@ -485,13 +473,6 @@ class SessionDungeonProgressionMixin:
             return self.character.soul_level > old_level
 
     async def show_astral_portal_status(self):
-            if self.character.soul_level < ASTRAL_MIN_SOUL_LEVEL:
-                await self.send(
-                    f"Wieża Astralna wymaga Soul Poziom {ASTRAL_MIN_SOUL_LEVEL}. "
-                    f"Masz Soul Poziom {self.character.soul_level}."
-                )
-                return
-
             highest = self.astral_portal()
             unlocked = self.astral_portal_floors()
             if not highest:
@@ -518,13 +499,6 @@ class SessionDungeonProgressionMixin:
             if self.combat_mob_key:
                 await self.send(
                     "Nie możesz użyć Astralnego Portalu podczas walki."
-                )
-                return
-
-            if self.character.soul_level < ASTRAL_MIN_SOUL_LEVEL:
-                await self.send(
-                    f"Wieża Astralna wymaga Soul Poziom {ASTRAL_MIN_SOUL_LEVEL}. "
-                    f"Masz {self.character.soul_level}."
                 )
                 return
 
