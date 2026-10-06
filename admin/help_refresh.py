@@ -1766,6 +1766,12 @@ def refresh_public_help_surface_v11197():
     equipment.append(
         "v1.13.6: każdy element klasowego EQ klas fizycznych daje Siłę + Zręczność + Kondycję, a każdy element klasowego EQ klas magicznych daje Inteligencję + Siłę Woli + Kondycję. Dotyczy także legendarnych setów i reliktów klasowych."
     )
+    equipment.append(
+        "v1.13.8: trzy linie klasowego EQ na tym samym progu są realnymi wariantami pojedynczych części: zbalansowanym, ofensywnym i pancernym. Możesz dowolnie mieszać style w różnych slotach."
+    )
+    equipment.append(
+        "Mieszane style tej samej aktywnej klasy nadal liczą się wspólnie do progów setu 2/4/6/8. Klasowe EQ daje też płaski Attack albo Magic Attack na slotach ofensywnych; Mec jako hybryda dostaje oba kanały."
+    )
     HELP_TOPICS["ekwipunek"] = equipment
     HELP_TOPICS["eq"] = list(equipment)
 
