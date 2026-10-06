@@ -162,6 +162,47 @@ _catalog_mut.catalog_update_path('ITEMS', ITEMS, (), {
     },
 })
 
+# v1.13.8: wspólna skala jakości EQ dla sklepu, craftingu i dropów.
+# Źródła mają różne profile, ale sprzęt z tego samego etapu nie może dzielić
+# przepaść typu "sklep 30 statów, drop 3 staty".
+def equipment_progression_budget_v1138(level):
+    level = max(1, min(600, int(level or 1)))
+    anchors = (
+        (1, 9), (10, 14), (20, 19), (30, 25), (40, 31),
+        (50, 38), (60, 48), (70, 58), (80, 70), (90, 82),
+        (100, 100), (150, 160), (200, 240), (300, 420),
+        (400, 650), (500, 900), (600, 1200),
+    )
+    if level <= anchors[0][0]:
+        return anchors[0][1]
+    if level >= anchors[-1][0]:
+        return anchors[-1][1]
+    for (l0, b0), (l1, b1) in zip(anchors, anchors[1:]):
+        if l0 <= level <= l1:
+            ratio = (level - l0) / float(l1 - l0)
+            return max(3, int(round(b0 + (b1 - b0) * ratio)))
+    return anchors[-1][1]
+
+
+def equipment_defense_step_v1138(level):
+    level = max(1, min(600, int(level or 1)))
+    anchors = (
+        (1, 0), (10, 1), (20, 2), (30, 3), (40, 4),
+        (50, 5), (60, 6), (70, 7), (80, 8), (90, 9),
+        (100, 10), (150, 14), (200, 18), (300, 26),
+        (400, 34), (500, 42), (600, 50),
+    )
+    if level <= anchors[0][0]:
+        return anchors[0][1]
+    if level >= anchors[-1][0]:
+        return anchors[-1][1]
+    for (l0, d0), (l1, d1) in zip(anchors, anchors[1:]):
+        if l0 <= level <= l1:
+            ratio = (level - l0) / float(l1 - l0)
+            return max(0, int(round(d0 + (d1 - d0) * ratio)))
+    return anchors[-1][1]
+
+
 BLACKSMITH_TIERS = (
     {
         "key": "iron",
