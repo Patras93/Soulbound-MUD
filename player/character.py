@@ -3,6 +3,14 @@
 from dataclasses import dataclass
 import json
 from config.balance import STAT_XP_REQUIREMENT_MULTIPLIER, STAT_XP_REWARD_MULTIPLIER
+from core.character_resources import (
+    character_hp_base as authored_character_hp_base,
+    character_mana_base as authored_character_mana_base,
+    class_passive_profile as authored_class_passive_profile,
+    race_passive_profile as authored_race_passive_profile,
+    class_passive_text_pl as authored_class_passive_text_pl,
+    race_passive_text_pl as authored_race_passive_text_pl,
+)
 from core.bootstrap_economy_professions import (
     CHARISMA_DISCOUNT_STEP,
     CHARISMA_MAX_DISCOUNT,
@@ -196,7 +204,7 @@ class Character:
         return mapping.get(str(case).strip().lower(), self.name_nom or self.name)
 
     def max_hp(self):
-        base = generator_core_v027.character_hp_base(self.character_level, self.constitution)
+        base = authored_character_hp_base(self.character_level, self.constitution)
         return max(1, int(round(base * self.racial_max_hp_multiplier())))
 
     def physical_power(self):
@@ -228,20 +236,22 @@ class Character:
         return class_name in self.active_class_names()
 
     def max_mana(self):
-        base = generator_core_v027.character_mana_base(self.character_level, self.intelligence, self.willpower)
+        base = authored_character_mana_base(
+            self.character_level, self.intelligence, self.willpower
+        )
         return max(0, int(round(base * self.racial_max_mana_multiplier())))
 
     def spell_power(self):
         return generator_core_v027.character_attribute_power(self.character_level, self.intelligence)
 
     def _generated_class_passive(self, class_name):
-        return generator_core_v027.class_passive_profile(class_name)
+        return authored_class_passive_profile(class_name)
 
     def _generated_race_passive(self):
-        return generator_core_v027.race_passive_profile(self.race)
+        return authored_race_passive_profile(self.race)
 
     def class_passive_text_for(self, class_name):
-        return generator_core_v027.class_passive_text_pl(class_name)
+        return authored_class_passive_text_pl(class_name)
 
     def class_passive_text(self):
         return self.class_passive_text_for(self.class_name)
@@ -311,7 +321,7 @@ class Character:
         return reduced, max(0, damage - reduced)
 
     def racial_passive_text(self):
-        return generator_core_v027.race_passive_text_pl(self.race)
+        return authored_race_passive_text_pl(self.race)
 
     def _race_bonus(self, kind):
         p=self._generated_race_passive()

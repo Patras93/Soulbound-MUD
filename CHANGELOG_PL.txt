@@ -1,9 +1,42 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.13.14
+Aktualna paczka: v1.13.15
 
 
 
 
+
+
+==============================================================================
+Soulbound v1.13.15 — Generator Core nie projektuje już postaci
+==============================================================================
+
+- Generator Core v0.62.0 został ograniczony do stage math, proceduralnego
+  contentu oraz uzupełniania brakujących liczb.
+- Generator nie przelicza już authored Soul Tier bonuses, milestone bonuses,
+  CLASS_SET_BONUSES ani bazowej mocy Broni Duszy w CLASSES.
+- Maksymalne HP i Mana zostały przeniesione do osobnego authored modelu
+  core/character_resources.py. Zachowano dotychczasową krzywą liczbową, więc
+  refaktor nie robi globalnego buffa/nerfa przeżywalności.
+- HP wynika z Character Level + realnej Kondycji, a Mana z Character Level +
+  realnej Inteligencji i Siły Woli. Wybór rasy/klasy wpływa przez authored
+  staty startowe, późniejszy rozwój statów i EQ; Ork zachowuje +10% HP, a
+  Gnom +15% Many.
+- Pasywy klas i ras są teraz stałymi authored profilami zgodnymi z opisami,
+  np. Wojownik +10% obrażeń fizycznych, Berserker +12%, Strażnik 10% redukcji,
+  Ork +10% HP i Gnom +15% Many. Generator nie losuje ich z hasha nazwy.
+- Character nie woła już Generatora po HP, Manę ani pasywy. Stare funkcje w
+  Generator Core są tylko compatibility wrapperami do authored modelu.
+- Nagrody questów inne niż generator_level są teraz fill-missing-only:
+  istniejący Character XP, Soul XP, stat progress, profession/tool XP i
+  authored currency nie są przepisywane przez Generator. Chroniona ręczna
+  waluta nadal ma pierwszeństwo.
+- Recipe XP/profession XP/tool XP również stały się fill-missing-only.
+  Składniki, outputy i wymagania pozostają authored jak wcześniej.
+- Przedmioty i skille zachowują wcześniejszy model authored-wins, moby nadal
+  używają Generatora jako fallbacku, a runtime_mob_balance pozostaje pełnym
+  narzędziem dla faktycznie proceduralnych mobów.
+- Fast predeploy blokuje ponowne podpięcie Character HP/Many/pasywów do
+  Generatora oraz ponowne uruchomienie mutatorów Soul/setów/CLASSES.
 
 ==============================================================================
 Soulbound v1.13.14 — pełny audit pętli „o kurde”

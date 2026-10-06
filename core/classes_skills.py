@@ -1,6 +1,11 @@
 # v0.45.0: explicit imports; no compatibility-runtime injection.
 import re
 import unicodedata
+from core.character_resources import (
+    character_hp_base as authored_character_hp_base,
+    character_mana_base as authored_character_mana_base,
+    race_passive_profile as authored_race_passive_profile,
+)
 from core.progression_600 import CLASS_MASTERY_MAX_LEVEL, ENDGAME_ORE_UNLOCKS, SOUL_MAX_LEVEL
 from core.progression_resources import (
     FISH_ATLAS_ALL,
@@ -763,14 +768,17 @@ def class_starting_stats_for(race, cls):
     }
 
 def starting_hp_mana_for(race, cls):
+    """Character-creation preview uses the same authored runtime resource model."""
     stats = class_starting_stats_for(race, cls)
-    hp = 40 + stats["constitution"] * 5
-    mana = int(round(20 + stats["intelligence"] * 2.5 + stats["willpower"] * 2.5))
-    race_name = race[0]
-    if race_name == "Ork":
-        hp = int(round(hp * 1.10))
-    if race_name == "Gnom":
-        mana = int(round(mana * 1.15))
+    hp = authored_character_hp_base(1, stats["constitution"])
+    mana = authored_character_mana_base(
+        1, stats["intelligence"], stats["willpower"]
+    )
+    race_profile = authored_race_passive_profile(race[0])
+    if race_profile["kind"] == "max_hp":
+        hp = int(round(hp * (1.0 + race_profile["value"])))
+    if race_profile["kind"] == "max_mana":
+        mana = int(round(mana * (1.0 + race_profile["value"])))
     return max(1, hp), max(0, mana)
 
 
