@@ -225,7 +225,11 @@ class SessionShopsTeachersMixin:
                     price_text = currency_reading_text(effective, 0, 0)
                 lock_text = self.shop_offer_lock_text(item_id, item)
                 state = f" — {lock_text}" if lock_text else ""
-                await self.send(f"{number}. {item['name']} — cena {price_text}{state}.")
+                style_role = str(item.get("class_style_role") or "").strip()
+                style_text = f" — profil {style_role}" if style_role else ""
+                await self.send(
+                    f"{number}. {item['name']}{style_text} — cena {price_text}{state}."
+                )
             await self.send(
                 "Podgląd przed zakupem: shop info <numer>, np. shop info 1. "
                 "Kupno: kup <numer> lub kup <numer> <ilość>. "
