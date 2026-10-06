@@ -183,15 +183,25 @@ class SessionSalesMixin:
                 return {"silver": total, "gold": 0, "mithril": 0}
 
             # Przedmiot kupny: sklep odkupuje za 50% ceny bazowej.
+            # v1.13.25: legacy armor cannot get stuck at half of an ancient,
+            # pre-rebalance shop price; current progression floor still applies.
             price = item.get("price")
             currency = item.get("currency", "silver")
             if isinstance(price, (int, float)) and price > 0 and currency in explicit:
                 value = max(1, int(price) // 2)
                 result = {"silver": 0, "gold": 0, "mithril": 0}
                 result[currency] = value
+                total = legacy_currency_to_coins(
+                    result["silver"], result["gold"], result["mithril"]
+                )
+                if item.get("type") == "armor":
+                    total = max(
+                        total,
+                        legacy_explicit_sale_value_v11325(item_id, item),
+                    )
                 if smith_cap is not None:
-                    total = legacy_currency_to_coins(result["silver"], result["gold"], result["mithril"])
                     total = min(total, smith_cap)
+                if item.get("type") == "armor" or smith_cap is not None:
                     return {"silver": total, "gold": 0, "mithril": 0}
                 return result
 
