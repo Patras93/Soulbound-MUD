@@ -14,6 +14,7 @@ _RUNTIME_MODULES_ALL = ['core/bootstrap_economy_professions.py',
  'core/command_catalog.py',
  'core/mines_threat.py',
  'systems/items_resources.py',
+ 'systems/infinite_equipment.py',
  'systems/equipment_crafting.py',
  'systems/content_registry.py',
  'systems/dungeons_regions.py',
@@ -1040,6 +1041,22 @@ EXPLICIT_RUNTIME_EXPORTS["systems/runtime_memory.py"] = (
     "compact_runtime_memory_v0616",
     "memory_efficiency_ii_audit_v0616",
     "V0616_MEMORY_EFFICIENCY_AUDIT",
+)
+
+EXPLICIT_RUNTIME_EXPORTS["systems/infinite_equipment.py"] = (
+    "INFINITE_EQUIPMENT_VERSION",
+    "INFINITE_EQUIPMENT_BASE_STAGE",
+    "INFINITE_EQUIPMENT_STAGE_STEP",
+    "infinite_source_profile",
+    "infinite_equipment_power_multiplier",
+    "infinite_coin_multiplier",
+    "infinite_equipment_variant_id",
+    "parse_infinite_equipment_variant",
+    "register_infinite_equipment_variant",
+    "ensure_infinite_equipment_variant",
+    "infinite_equipment_variant_for_drop",
+    "infinite_equipment_audit_v11330",
+    "INFINITE_EQUIPMENT_AUDIT_V11330",
 )
 
 EXPLICIT_RUNTIME_EXPORTS["admin/help_truth_current.py"] = (
