@@ -35,6 +35,9 @@ try:
         UOSS_STATUS_SOURCE_CONTRACT_AUDIT_V11196,
         ALL_CLASS_ENDGAME_DAMAGE_AUDIT_V11196,
         ALL_CLASS_GAMEFEEL_AUDIT_V11330,
+        V03014_SKILL_NAME_AUDIT_PREGEN,
+        PHYSICAL_SKILL_MANA_AUDIT,
+        SKILL_COOLDOWN_AUDIT_V11140,
     )
 except Exception as exc:
     print(
@@ -54,6 +57,9 @@ _semantic_audits = {
     "uoss_status_contracts": UOSS_STATUS_SOURCE_CONTRACT_AUDIT_V11196,
     "endgame_damage": ALL_CLASS_ENDGAME_DAMAGE_AUDIT_V11196,
     "all_14_class_gamefeel": ALL_CLASS_GAMEFEEL_AUDIT_V11330,
+    "skill_names": V03014_SKILL_NAME_AUDIT_PREGEN,
+    "physical_skill_mana": PHYSICAL_SKILL_MANA_AUDIT,
+    "skill_cooldowns": SKILL_COOLDOWN_AUDIT_V11140,
 }
 _semantic_errors = []
 for _name, _result in _semantic_audits.items():
