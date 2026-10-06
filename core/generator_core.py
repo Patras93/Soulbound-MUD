@@ -1529,12 +1529,12 @@ def _write_top_map_numeric(ns: dict, key: str, leaf, value) -> None:
 
 def _write_class_set_numeric(entry: dict, field: str, value, leaf=None) -> None:
     raise RuntimeError(
-        "Generator Core v0.64 cannot mutate authored CLASS_SET_BONUSES"
+        "Generator Core cannot mutate authored CLASS_SET_BONUSES"
     )
 
 def _write_classes_weapon_bases(ns: dict, new_rows) -> None:
     raise RuntimeError(
-        "Generator Core v0.64 cannot mutate authored CLASSES Soul Weapon bases"
+        "Generator Core cannot mutate authored CLASSES Soul Weapon bases"
     )
 
 def _freeze_semantic(value):

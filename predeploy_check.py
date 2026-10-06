@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Fast Railway predeploy gate for Soulbound v1.13.18.
+"""Fast Railway predeploy gate for Soulbound v1.13.19.
 
 This is the normal deploy check.  It intentionally avoids assembling the full
 world/runtime.  Use predeploy_full.py when an exhaustive historical audit is
@@ -16,7 +16,7 @@ import traceback
 try:
     from storage.database import Database as _DatabaseImportSmoke
 except Exception as exc:
-    print(f"Soulbound v1.13.18 FAST PREDEPLOY FAILED: database import: {type(exc).__name__}: {exc}")
+    print(f"Soulbound v1.13.19 FAST PREDEPLOY FAILED: database import: {type(exc).__name__}: {exc}")
     traceback.print_exc()
     raise SystemExit(1)
 
@@ -37,7 +37,7 @@ try:
     )
 except Exception as exc:
     print(
-        "Soulbound v1.13.18 FAST PREDEPLOY FAILED: "
+        "Soulbound v1.13.19 FAST PREDEPLOY FAILED: "
         f"skill semantic import: {type(exc).__name__}: {exc}"
     )
     traceback.print_exc()
@@ -361,7 +361,6 @@ _classes_source_v11315 = (_root / "core/classes_skills.py").read_text(encoding="
 _progression600_source_v11315 = (_root / "core/progression_600.py").read_text(encoding="utf-8")
 
 for _needle in (
-    'GENERATOR_VERSION = "0.64.0"',
     'return authored_character_hp_base(character_level, constitution)',
     'return authored_character_mana_base(character_level, intelligence, willpower)',
     'return authored_class_passive_profile(class_name)',
@@ -379,8 +378,8 @@ for _needle in (
     'audit["authored_rewards_preserved"] = authored_rewards_ok',
     "def authored_rewards_preserved(ns: dict, before: dict) -> bool:",
     "authored_rewards_ok = authored_rewards_preserved(",
-    "Generator Core v0.64 cannot mutate authored CLASS_SET_BONUSES",
-    "Generator Core v0.64 cannot mutate authored CLASSES Soul Weapon bases",
+    "Generator Core cannot mutate authored CLASS_SET_BONUSES",
+    "Generator Core cannot mutate authored CLASSES Soul Weapon bases",
     'if field in q and int(q.get(field, 0) or 0) < 0:',
 ):
     if _needle not in _generator_source:
@@ -457,7 +456,6 @@ for _forbidden in (
         )
 for _needle in (
     "MAX_LEVEL = 600",
-    'GENERATOR_VERSION = "0.64.0"',
     'recommended = int(room.get("recommended_mastery", 0) or 0)',
     "lvl = max(lvl, recommended)",
 ):
@@ -693,9 +691,6 @@ for _needle in (
     if _needle not in _progression_resources_source_v11316:
         _semantic_errors.append("Skill Level player-math regression: missing " + _needle)
 
-if 'GENERATOR_VERSION = "0.64.0"' not in _generator_source:
-    _semantic_errors.append("Generator v0.64.0 ownership regression")
-
 # v1.13.17: Generator cleanup — one economy, true fill-missing-only and
 # no progression_600 monkey patches.
 _combat_realtime_source_v11317 = (_root / "player/session_mixins/combat_realtime.py").read_text(encoding="utf-8")
@@ -725,29 +720,35 @@ for _needle in (
     if _needle not in _combat_realtime_source_v11317:
         _semantic_errors.append("UOSS-style multi-hit feedback regression: missing " + _needle)
 
-for _stale_version in ("0.61.0", "0.62.0", "0.63.0", "0.64.0"):
-    if f'GENERATOR_CORE_VERSION != "{_stale_version}"' in _admin_audits_source_v11317:
-        _semantic_errors.append(
-            f"hardcoded Generator full-audit version remains: {_stale_version}"
-        )
-if _admin_audits_source_v11317.count(
-    "GENERATOR_CORE_VERSION != generator_core_v027.GENERATOR_VERSION"
-) != 3:
-    _semantic_errors.append(
-        "Generator full-audit gates are not bound to live Generator version"
-    )
-
-if 'GENERATOR_CORE_VERSION != "0.61.0"' in _help_refresh_source_v11318:
-    _semantic_errors.append(
-        "help_refresh Combat/Stat audit still hardcodes Generator 0.61.0"
-    )
-if (
-    "GENERATOR_CORE_VERSION != generator_core_v027.GENERATOR_VERSION"
-    not in _help_refresh_source_v11318
+# v1.13.19: audit behavior, never Generator version identity.
+for _source_name, _source in (
+    ("admin/audits.py", _admin_audits_source_v11317),
+    ("admin/help_refresh.py", _help_refresh_source_v11318),
 ):
-    _semantic_errors.append(
-        "help_refresh Combat/Stat audit is not bound to live Generator version"
-    )
+    if "GENERATOR_CORE_VERSION !=" in _source:
+        _semantic_errors.append(
+            f"{_source_name}: Generator version must not be a release gate"
+        )
+    if "GENERATOR_CORE_VERSION ==" in _source:
+        _semantic_errors.append(
+            f"{_source_name}: Generator version must not be a release gate"
+        )
+for _needle in (
+    '"generator_version": str(GENERATOR_CORE_VERSION)',
+):
+    if _needle not in _admin_audits_source_v11317:
+        _semantic_errors.append(
+            "admin audits lost diagnostic Generator version reporting"
+        )
+    if _needle not in _help_refresh_source_v11318:
+        _semantic_errors.append(
+            "help_refresh audit lost diagnostic Generator version reporting"
+        )
+
+
+if re.search(r'GENERATOR_VERSION\s*=\s*["\']0\.\d+\.\d+["\']', _generator_source) is None:
+    _semantic_errors.append("Generator version declaration missing")
+# The declaration above is informational. No audit is allowed to depend on its value.
 
 for _needle in (
     "defense_cap_ratio = 0.60 if v0863_is_boss_template(template) else 0.75",
@@ -1080,18 +1081,18 @@ except Exception as exc:
     )
 
 if _semantic_errors:
-    print("Soulbound v1.13.18 FAST PREDEPLOY FAILED: semantic contracts")
+    print("Soulbound v1.13.19 FAST PREDEPLOY FAILED: semantic contracts")
     for _error in _semantic_errors:
         print(f"ERROR: {_error}")
     raise SystemExit(1)
 
 if audit["error_count"]:
-    print("Soulbound v1.13.18 FAST PREDEPLOY FAILED")
+    print("Soulbound v1.13.19 FAST PREDEPLOY FAILED")
     for error in audit["errors"]:
         print(f"ERROR: {error}")
     raise SystemExit(1)
 
-print("Soulbound v1.13.18 FAST PREDEPLOY PASS")
+print("Soulbound v1.13.19 FAST PREDEPLOY PASS")
 print(
     "Semantic contracts: "
     f"{len(_semantic_audits)} audits PASS; AP runtime guards PASS"

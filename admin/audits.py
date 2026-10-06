@@ -72,8 +72,6 @@ def generator_whitelist_audit_v03019():
     audit = GENERATOR_CORE_AUDIT or {}
     whitelist = audit.get("whitelist_audit") or {}
     errors = []
-    if GENERATOR_CORE_VERSION != generator_core_v027.GENERATOR_VERSION:
-        errors.append(f"Generator Core version={GENERATOR_CORE_VERSION}, expected {generator_core_v027.GENERATOR_VERSION}")
     if not audit.get("numeric_only"):
         errors.append("numeric_only flag missing")
     runtime_fast = bool(audit.get("runtime_fast_path"))
@@ -95,6 +93,7 @@ def generator_whitelist_audit_v03019():
             errors.append("whitelist missing tables: " + ", ".join(missing))
     return {
         "version": "0.30.19",
+        "generator_version": str(GENERATOR_CORE_VERSION),
         "whitelist_enforced": bool(audit.get("whitelist_enforced")),
         "whitelist_passed": bool(audit.get("whitelist_passed")),
         "semantic_preserved": bool(audit.get("semantic_preserved")),
@@ -764,10 +763,9 @@ def full_release_integrity_audit_v03025():
         errors.append("world logic audit failed")
     if int(WORLD_LOGIC_AUDIT.get("warning_count", 0) or 0):
         errors.append("world logic warnings present")
-    if GENERATOR_CORE_VERSION != generator_core_v027.GENERATOR_VERSION:
-        errors.append(f"GENERATOR_CORE_VERSION={GENERATOR_CORE_VERSION}")
     return {
         "version": "0.30.25",
+        "generator_version": str(GENERATOR_CORE_VERSION),
         "base_release_gate": previous.get("version", "v0.30.22"),
         "profession_tool_xp": PROFESSION_TOOL_XP_AUDIT_V03025.get("error_count") == 0,
         "world_logic": WORLD_LOGIC_AUDIT.get("error_count") == 0,
@@ -981,11 +979,10 @@ def gameplay_flow_audit_v03026():
         if missing:
             errors.append(f"station {_station}: brak w {missing[:5]}")
 
-    if GENERATOR_CORE_VERSION != generator_core_v027.GENERATOR_VERSION:
-        errors.append(f"GENERATOR_CORE_VERSION={GENERATOR_CORE_VERSION}")
 
     return {
         "version": "0.30.26",
+        "generator_version": str(GENERATOR_CORE_VERSION),
         "recipes_checked": recipe_count,
         "wood_recipes_fixed": len(V03026_WOOD_RECIPES),
         "tool_tiers": TOOL_MAX_TIER,

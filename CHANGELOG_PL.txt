@@ -1,5 +1,5 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.13.18
+Aktualna paczka: v1.13.19
 
 
 
@@ -8,6 +8,23 @@ Aktualna paczka: v1.13.18
 
 
 
+
+
+==============================================================================
+Soulbound v1.13.19 — audity zachowania, nie numeru Generatora
+==============================================================================
+
+- Usunięto wszystkie runtime release-gates Generatora z admin/audits.py oraz
+  Combat/Stat Audit w admin/help_refresh.py.
+- Zmiana GENERATOR_VERSION nie może już sama w sobie zatrzymać startu serwera.
+- Numer Generatora pozostaje raportowany diagnostycznie jako generator_version,
+  ale nie jest kryterium PASS/FAIL.
+- Fast predeploy nie oczekuje już konkretnego GENERATOR_VERSION. Pilnuje
+  zachowania: authored-wins, fill-missing-only, MAX_LEVEL 600, wspólnej
+  ekonomii, braku monkey-patchy i ochrony authored contentu.
+- Komunikaty hard-disable CLASS_SET_BONUSES/CLASSES są version-agnostic, więc
+  przyszłe 0.65/0.66 nie wymagają przepisywania auditów.
+- Brak zmian balansu, ekonomii, dropów, statystyk, save'ów i zawartości.
 
 ==============================================================================
 Soulbound v1.13.18 — awaryjny hotfix Combat/Stat Audit
