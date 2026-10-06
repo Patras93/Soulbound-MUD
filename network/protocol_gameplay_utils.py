@@ -402,18 +402,47 @@ def boss_floor_chest_state_id(kind, floor):
 
 
 def boss_floor_chest_room_id(kind, floor):
+    """Return the REAL room where the checkpoint boss is spawned.
+
+    v0.10 expands dungeon floors into many _rXX rooms and moves the boss from
+    the canonical landing room into the final guard room. Resolve from
+    MOB_SPAWNS first so boss chests follow the boss instead of the old landing.
+    """
+    kind = str(kind or "")
     floor = int(floor)
-    return {
+    fallback = {
         "giant": f"giant_fortress_{floor}",
         "crypt": f"crypt_floor_{floor}",
         "astral": f"astral_floor_{floor}",
         "mythic_crypt": f"mythic_crypt_floor_{floor}",
         "mythic_astral": f"mythic_astral_floor_{floor}",
-    }.get(str(kind), "")
+    }.get(kind, "")
+    boss_meta = {
+        "giant": ("giant_fortress_boss", "giant_fortress_floor"),
+        "crypt": ("crypt_boss", "crypt_floor"),
+        "astral": ("astral_boss", "astral_floor"),
+        "mythic_crypt": ("mythic_crypt_boss", "mythic_crypt_floor"),
+        "mythic_astral": ("mythic_astral_boss", "mythic_astral_floor"),
+    }.get(kind)
+    if not boss_meta:
+        return fallback
+
+    boss_flag, floor_key = boss_meta
+    for spawn_room, template_id in reversed(MOB_SPAWNS):
+        template = MOB_TEMPLATES.get(template_id, {})
+        if not template.get(boss_flag):
+            continue
+        try:
+            template_floor = int(template.get(floor_key, 0) or 0)
+        except (TypeError, ValueError, OverflowError):
+            continue
+        if template_floor == floor:
+            return str(spawn_room)
+    return fallback
 
 
 def _boss_floor_chest_spec(room_id):
-    """Boss chest exists only in the exact canonical room containing the boss."""
+    """Boss chest exists only in the exact room that actually contains the boss."""
     room_id = str(room_id or "")
 
     floor = giant_fortress_floor_number(room_id)
