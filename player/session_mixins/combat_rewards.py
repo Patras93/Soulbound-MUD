@@ -29,6 +29,7 @@ from world.dynamic_content import (
 from world.economy_quests import legendary_loot_mastery_for_floor, milestone_boss_tier
 from world.generation_systems import V020_GAUNTLETS, V020_MYTHIC_WORLD_BOSS_SECONDS
 from world.runtime_progression import v0210_endless_gauntlet_identity
+from world.uoss_superboss_world import UOSS_DEEP_DUNGEON_APANDA_CLEARS_V11331
 from world.uoss_superboss_runtime import (
     mark_superboss_clear_v11135,
     superboss_key_from_template_v11135,
@@ -198,6 +199,22 @@ class SessionCombatRewardsMixin:
                     recipients, key=lambda s: s.character.name.lower()
                 )
                 count = len(recipients)
+
+                _deep_apanda_floor = int(
+                    template.get("uoss_deep_dungeon_apanda_floor", 0) or 0
+                )
+                if _deep_apanda_floor > 0:
+                    for session in recipients:
+                        if session.server.db.add_collection_entry(
+                            session.account_id,
+                            UOSS_DEEP_DUNGEON_APANDA_CLEARS_V11331,
+                            str(_deep_apanda_floor),
+                        ):
+                            await session.send(
+                                f"Deep Dungeon: pokonujesz Apandę progu "
+                                f"{_deep_apanda_floor}. Zejście niżej jest "
+                                "odblokowane dla tej postaci."
+                            )
 
                 # v1.11.35: unique UOSS Super Boss completion/reward runtime.
                 # Party recipients are already filtered to the same room by the canonical
