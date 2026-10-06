@@ -175,7 +175,7 @@ for _needle in (
 for _needle in (
     "BOSS_CHEST_OPENED_CATEGORY_V11332",
     "boss_floor_chest_state_id(kind, floor)",
-    "self.server.world.room_mobs(",
+    "self.server.db.item_qty(self.account_id, key_id) > 0",
     "self.server.world.room_corpses(",
     "Po otwarciu skrzynia znika.",
 ):
