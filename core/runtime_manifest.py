@@ -204,7 +204,16 @@ _RUNTIME_MODULES_ALL = ['core/bootstrap_economy_professions.py',
 
 # v0.80.1 Clean Railway Package: these static developer audits are absent from
 # the production runtime/package. FULL PREDEPLOY keeps the historical list.
-FULL_AUDIT_ONLY_MODULES = frozenset(('admin/maintenance_audit_v0400.py', 'admin/explicit_dependencies_audit_v0430.py', 'admin/explicit_gameplay_dependencies_audit_v0440.py', 'admin/explicit_stable_dependencies_audit_v0450.py', 'admin/explicit_persistence_audit_v0460.py', 'admin/combat_architecture_audit_v0470.py', 'admin/catalog_ownership_audit_v0480.py', 'admin/release_integrity_v0369.py', 'admin/world_expansion_v_audit_v0900.py'))
+# v1.13.30: developer/source audits belong to predeploy/full audit, never to
+# the production startup path. A static/literal audit may reject a deployment,
+# but it must not put a healthy Railway service into a restart loop.
+FULL_AUDIT_ONLY_MODULES = frozenset(
+    m for m in _RUNTIME_MODULES_ALL
+    if (
+        (m.startswith("admin/") and "audit" in m.rsplit("/", 1)[-1].lower())
+        or m.startswith("admin/release_integrity_")
+    )
+)
 FULL_RUNTIME_MODULES = tuple(_RUNTIME_MODULES_ALL)
 RUNTIME_MODULES = tuple(m for m in FULL_RUNTIME_MODULES if m not in FULL_AUDIT_ONLY_MODULES)
 
