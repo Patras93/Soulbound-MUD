@@ -382,7 +382,7 @@ def infinite_equipment_audit_v11330():
 
     coin_factors = [
         infinite_coin_multiplier({"crypt_floor": floor})
-        for floor in (601, 610, 650, 700, 850, 1200)
+        for floor in (601, 611, 651, 701, 851, 1201)
     ]
     if any(b <= a for a, b in zip(coin_factors, coin_factors[1:])):
         errors.append("infinite coin multiplier is not strictly increasing")
