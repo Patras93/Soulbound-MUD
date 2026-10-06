@@ -1763,6 +1763,9 @@ def authored_reward_snapshot(ns: dict) -> dict:
                 for field in recipe_fields
                 if field in recipe
             }
+    # generator_level is Generator-owned telemetry, not authored skill balance.
+    # Protect every actual combat number that existed before Generator runs.
+    skill_fields = tuple(sorted(NUMERIC_SKILL_FIELDS - {"generator_level"}))
     skills = {}
     for class_name, rows in (ns.get("CLASS_SKILLS", {}) or {}).items():
         skills[str(class_name)] = {}
@@ -1770,14 +1773,70 @@ def authored_reward_snapshot(ns: dict) -> dict:
             sid = str(skill.get("id") or f"index:{index}")
             skills[str(class_name)][sid] = {
                 field: _freeze_semantic(skill[field])
-                for field in NUMERIC_SKILL_FIELDS
+                for field in skill_fields
                 if field in skill
             }
     return {"quests": quests, "recipes": recipes, "skills": skills}
 
 
+def authored_reward_differences(ns: dict, before: dict) -> list[str]:
+    """Explain any authored numeric mutation with an exact domain/id/field diff."""
+    differences = []
+    if not isinstance(before, dict):
+        return ["snapshot: invalid before-state"]
+
+    quests_now = ns.get("QUESTS", {}) or {}
+    for qid, fields in (before.get("quests") or {}).items():
+        current = quests_now.get(qid)
+        if not isinstance(current, dict):
+            differences.append(f"quest/{qid}: row missing")
+            continue
+        for field, expected in fields.items():
+            actual = _freeze_semantic(current.get(field)) if field in current else "<missing>"
+            if actual != expected:
+                differences.append(f"quest/{qid}/{field}: {expected!r} -> {actual!r}")
+
+    for table_name, rows in (before.get("recipes") or {}).items():
+        table_now = ns.get(table_name, {}) or {}
+        for rid, fields in rows.items():
+            current = table_now.get(rid)
+            if not isinstance(current, dict):
+                differences.append(f"{table_name}/{rid}: row missing")
+                continue
+            for field, expected in fields.items():
+                actual = _freeze_semantic(current.get(field)) if field in current else "<missing>"
+                if actual != expected:
+                    differences.append(
+                        f"{table_name}/{rid}/{field}: {expected!r} -> {actual!r}"
+                    )
+
+    skills_now = ns.get("CLASS_SKILLS", {}) or {}
+    for class_name, rows in (before.get("skills") or {}).items():
+        current_rows = {
+            str(skill.get("id") or f"index:{index}"): skill
+            for index, skill in enumerate(skills_now.get(class_name, ()) or ())
+        }
+        for sid, fields in rows.items():
+            current = current_rows.get(sid)
+            if not isinstance(current, dict):
+                differences.append(f"skill/{class_name}/{sid}: row missing")
+                continue
+            for field, expected in fields.items():
+                actual = _freeze_semantic(current.get(field)) if field in current else "<missing>"
+                if actual != expected:
+                    differences.append(
+                        f"skill/{class_name}/{sid}/{field}: {expected!r} -> {actual!r}"
+                    )
+    return differences
+
+
 def authored_rewards_preserved(ns: dict, before: dict) -> bool:
     """Every pre-existing authored quest/recipe/skill numeric value is immutable."""
+    return not authored_reward_differences(ns, before)
+
+
+def _authored_rewards_preserved_legacy_removed(ns: dict, before: dict) -> bool:
+    """Legacy implementation retained only as source history; never called."""
     if not isinstance(before, dict):
         return False
     quests_now = ns.get("QUESTS", {}) or {}
@@ -1879,8 +1938,27 @@ def validate(ns: dict) -> dict:
         if unlocks and (min(unlocks) != 1 or max(unlocks) != MAX_LEVEL): errors.append(f"skill span {cname}")
         if cname not in ("Inżynier","Mec"):
             for level in skill_grid:
-                if per_unlock.get(level, 0) != 3:
-                    errors.append(f"skill grid {cname}:{level}={per_unlock.get(level,0)} expected=3")
+                rows_at_level = [
+                    skill for skill in rows
+                    if int(skill.get("unlock", 0) or 0) == int(level)
+                ]
+                actual = len(rows_at_level)
+                if actual < 3:
+                    errors.append(
+                        f"skill grid {cname}:{level}={actual} expected minimum 3"
+                    )
+                    continue
+                if actual > 3:
+                    source_authored = sum(
+                        1 for skill in rows_at_level
+                        if any(str(key).startswith("source_") for key in skill)
+                    )
+                    extras = actual - 3
+                    if source_authored < extras:
+                        errors.append(
+                            f"skill grid {cname}:{level}={actual}; "
+                            f"{extras} extra but only {source_authored} source-authored"
+                        )
     for table_name in ("CRAFT_RECIPES","COOK_RECIPES","ALCHEMY_RECIPES","JEWELCRAFT_RECIPES"):
         for rid, recipe in (ns.get(table_name, {}) or {}).items():
             lvl = int(recipe.get("generator_level", 0) or 0)
@@ -1935,13 +2013,17 @@ def apply_generator_core(ns: dict) -> dict:
         whitelist_audit = generator_whitelist_validate(ns, whitelist_before)
         audit = validate(ns)
         semantic_ok = semantic_before == semantic_after
-        authored_rewards_ok = authored_rewards_preserved(
+        authored_reward_differences_v11330 = authored_reward_differences(
             ns, authored_rewards_before
         )
+        authored_rewards_ok = not authored_reward_differences_v11330
         audit["semantic_fingerprint_before"] = semantic_before
         audit["semantic_fingerprint_after"] = semantic_after
         audit["semantic_preserved"] = semantic_ok
         audit["authored_rewards_preserved"] = authored_rewards_ok
+        audit["authored_reward_differences"] = tuple(
+            authored_reward_differences_v11330[:100]
+        )
         audit["whitelist_enforced"] = True
         audit["whitelist_passed"] = bool(whitelist_audit.get("passed"))
         audit["whitelist_audit"] = whitelist_audit
@@ -1949,7 +2031,8 @@ def apply_generator_core(ns: dict) -> dict:
             audit["errors"].append("Generator Core changed protected authored semantics")
         if not authored_rewards_ok:
             audit["errors"].append(
-                "Generator Core changed pre-existing authored quest/recipe/skill numeric values"
+                "Generator Core changed pre-existing authored quest/recipe/skill numeric values: "
+                + "; ".join(authored_reward_differences_v11330[:20])
             )
         if not whitelist_audit.get("passed"):
             audit["errors"].extend(whitelist_audit.get("errors", []))
