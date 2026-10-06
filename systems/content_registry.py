@@ -373,8 +373,11 @@ SYSTEM_DESCRIPTIONS = {
 }
 
 
-LATEST_CHANGES_TITLE = "Soulbound v1.13.34 - Boss Chest Real Room Fix"
+LATEST_CHANGES_TITLE = "Soulbound v1.13.35 - Dungeon Mob Identity Pass"
 LATEST_CHANGES = [
+    "v1.13.35: Krypta, Mityczna Krypta, Wieża Astralna, Mityczna Wieża, Twierdza Gigantów i bojowe lochy profesyjne dostały deterministyczne motywy nazw zależne od piętra, więc te same archetypy nie brzmią identycznie przez setki poziomów.",
+    "v1.13.35: dwa dodatkowe Szkielety Strażnicy na tym samym piętrze Krypty mają teraz różne nazwy; NVDA nie czyta już dwóch identycznych celów.",
+    "v1.13.35: Magitek dopisuje motyw sektora do zwykłych/elitarnych jednostek, a boss ma także numer cyklu i piętra. Deep Dungeon pozostaje bez zmian.",
     "v1.13.34: skrzynia bossowa jest przypisywana do rzeczywistego pokoju spawnu bossa po rozbudowie piętra v0.10, więc w Krypcie stoi razem z bossem w końcowej komnacie _rXX zamiast na starym lądowaniu crypt_floor_N.",
     "v1.13.34: ta sama poprawka obejmuje zwykłą i Mityczną Kryptę, zwykłą i Mityczną Wieżę Astralną oraz Twierdzę Gigantów; exact-room nadal obowiązuje.",
     "v1.13.33: dodano zdejmij wszystko / zdejmij all — zdejmuje całe zwykłe EQ naraz, zwraca osadzone klejnoty i nie rusza Broni Duszy.",
