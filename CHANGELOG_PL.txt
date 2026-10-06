@@ -78,6 +78,20 @@ Soulbound v1.13.30 — POST-600 INFINITE REWARD & EQUIPMENT PROGRESSION
   reporty i blokuje obraz przy dowolnym error_count > 0.
 - Docker/Railway uruchamia teraz najpierw fast predeploy, potem full predeploy.
   Ten sam zestaw jest zapisany jako GitHub Actions workflow dla PR-ów/main.
+- GENERATOR QUEST OWNERSHIP: historyczny marker manual_currency_reward_coins z
+  v0.30.24 jest od teraz wyłącznie fallbackiem. Nie może nadpisywać nowszej
+  ręcznej reward_silver/gold/mithril ani obniżać późnych nagród Soul Trial.
+  Full audit pokazuje dokładny diff domain/id/field przy każdej przyszłej próbie
+  nadpisania authored quest/recipe/skill numeric values.
+- MOB DISPLAY NAMES: późne warianty zagęszczające _v915_* nie składają już
+  dwóch nazw typu „A — B”. Zachowują różnorodność archetypów i profil walki,
+  ale look/NVDA/combat feed dostają jedną nazwę zgodną z kontraktem v1.11.29.
+- CROSS SYSTEM OCEAN AUDIT: oferty handlu morskiego są mierzone na
+  deterministycznym profilu etapu 600 zamiast błędnego wywołania metody
+  instancji z self=None.
+- Walidacja końcowa PR: FAST PREDEPLOY PASS; 83 runtime audit reports i
+  0 blocking failures; CROSS SYSTEM 0/0; 14 694 nazw mobów 0 błędów;
+  OCEAN CONTRACT 0 błędów / 6 tras; 0 duplicate dict keys i 0 TODO/FIXME.
 - HELP opisuje post-600 Rezonans Głębi i zachowanie capu 600.
 - Brak wipe, migracji bazy i nowych blokad poziomowych.
 
