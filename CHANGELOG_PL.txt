@@ -1,5 +1,5 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.13.21
+Aktualna paczka: v1.13.22
 
 
 
@@ -11,6 +11,24 @@ Aktualna paczka: v1.13.21
 
 
 
+
+
+==============================================================================
+Soulbound v1.13.22 — hotfix Terrain Threat Rebalance Audit
+==============================================================================
+
+- Naprawiono kolejny restart-loop Railway ujawniony po przejściu wcześniejszych
+  release-gate'ów: Terrain Threat Rebalance Audit v0.36.2 zgłaszał
+  runtime_room_recommended_floor: FAIL.
+- Sam balans terenu był poprawny: runtime_room_level() już natywnie używa
+  recommended_mastery jako dolnej granicy generator_level.
+- Stary audit sprawdzał jednak historyczną nazwę wrappera
+  _v0362_recommended_room_floor oraz sufiks nazwy funkcji zamiast zachowania.
+- Audit testuje teraz realny wynik na izolowanym pokoju: recommended_mastery=137
+  musi dać etap oraz zapisany generator_level co najmniej 137.
+- Fast predeploy blokuje powrót starego name-based release gate i pilnuje,
+  że Generator Core nadal zawiera właściwy recommended_mastery floor.
+- Brak zmian balansu mobów, świata, save'ów i progresu; brak wipe.
 
 ==============================================================================
 Soulbound v1.13.21 — hotfix Hybrid Quest Reward Audit
