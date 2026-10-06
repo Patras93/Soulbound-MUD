@@ -1499,6 +1499,8 @@ for _needle in (
     "def infinite_coin_multiplier(",
     "Rezonans Głębi",
     'data["source_progression_stage"] = effective_stage',
+    'data["required_mastery"] = INFINITE_EQUIPMENT_BASE_STAGE',
+    'template.get("uoss_superboss")',
 ):
     if _needle not in _infinite_eq_source_v11330:
         _semantic_errors.append("post-600 infinite EQ regression: missing " + _needle)
