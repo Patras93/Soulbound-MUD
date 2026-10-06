@@ -62,6 +62,11 @@ def _v11323_mob_trophy_spec(template):
     return mob_trophy_spec_v11323(template)
 
 
+def _v11325_legacy_identity_drop_spec(template):
+    from systems.legacy_value_sweep import legacy_identity_drop_spec_v11325
+    return legacy_identity_drop_spec_v11325(template, random.random())
+
+
 def _v0711_crypt_soul_shard_guaranteed(template_id, template):
     """Return True for Crypt/Mythic Crypt combat templates, including variants."""
     if not isinstance(template, dict):
@@ -621,6 +626,28 @@ class SessionCombatRewardsMixin:
                                 f"{ITEMS[_trophy_item_id]['name']}. "
                                 "To trofeum ma wysoką wartość sprzedaży."
                             )
+
+                # v1.13.25: weak legacy families get a characteristic material,
+                # but this is deliberately NOT another global trophy system.
+                _legacy_drop_v11325 = _v11325_legacy_identity_drop_spec(template)
+                if _legacy_drop_v11325:
+                    _legacy_item_id_v11325, _legacy_chance_v11325 = _legacy_drop_v11325
+                    _legacy_recipients_v11325 = party_drop_recipients_v0359(
+                        _legacy_item_id_v11325, recipients
+                    )
+                    for _winner in _legacy_recipients_v11325:
+                        self.server.db.add_item(
+                            _winner.account_id, _legacy_item_id_v11325, 1
+                        )
+                        await _winner.record_item_collection(
+                            _legacy_item_id_v11325,
+                            source=template.get("name", "Walka"),
+                            announce=True,
+                        )
+                        await _winner.send(
+                            f"Łup charakterystyczny: "
+                            f"{ITEMS[_legacy_item_id_v11325]['name']}."
+                        )
 
                 await self.server.broadcast_room(
                     self.character.room_id,
