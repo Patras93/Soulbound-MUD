@@ -408,7 +408,7 @@ class SessionGatheringActionsMixin:
                     _o_kurde_gather_v11324["xp_multiplier"]
                 )
                 await self.send(
-                    "O KURDE — WYJĄTKOWO OBFITY UROBek: "
+                    "O KURDE — WYJĄTKOWO OBFITY UROBEK: "
                     f"dodatkowo {ITEMS[item_id]['name']} x{_o_kurde_extra_v11324}; "
                     f"XP profesji i narzędzia x{_o_kurde_gather_xp_v11324:.2f}."
                 )
@@ -500,6 +500,7 @@ class SessionGatheringActionsMixin:
                             (8 + random.randint(0, 4))
                             * floor_xp_mult
                             * vein_xp_mult
+                            * _o_kurde_gather_xp_v11324
                         )),
                     ),
                 ),
@@ -661,6 +662,7 @@ class SessionGatheringActionsMixin:
                             (8 + random.randint(0, 4))
                             * floor_xp_mult
                             * rare_xp_mult
+                            * _o_kurde_gather_xp_v11324
                         )),
                     ),
                 ),
@@ -791,6 +793,7 @@ class SessionGatheringActionsMixin:
                             (8 + random.randint(0, 4))
                             * floor_xp_mult
                             * rare_xp_mult
+                            * _o_kurde_gather_xp_v11324
                         )),
                     ),
                 ),
