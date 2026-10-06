@@ -34,6 +34,7 @@ try:
         PRIEST_HEALING_CONTRACT_AUDIT_V11196,
         UOSS_STATUS_SOURCE_CONTRACT_AUDIT_V11196,
         ALL_CLASS_ENDGAME_DAMAGE_AUDIT_V11196,
+        ALL_CLASS_GAMEFEEL_AUDIT_V11330,
     )
 except Exception as exc:
     print(
@@ -52,6 +53,7 @@ _semantic_audits = {
     "priest_healing": PRIEST_HEALING_CONTRACT_AUDIT_V11196,
     "uoss_status_contracts": UOSS_STATUS_SOURCE_CONTRACT_AUDIT_V11196,
     "endgame_damage": ALL_CLASS_ENDGAME_DAMAGE_AUDIT_V11196,
+    "all_14_class_gamefeel": ALL_CLASS_GAMEFEEL_AUDIT_V11330,
 }
 _semantic_errors = []
 for _name, _result in _semantic_audits.items():
@@ -1541,6 +1543,136 @@ except Exception as exc:
     _semantic_errors.append(
         f"post-600 infinite EQ audit import failed: {type(exc).__name__}: {exc}"
     )
+
+# v1.13.30 O-KURDE completion: source/static contracts live here, not in
+# production startup. These checks may reject a deployment but must never
+# create a Railway restart loop after the service starts.
+from core.runtime_manifest import (
+    RUNTIME_MODULES as _runtime_modules_v11330,
+    EXPLICIT_RUNTIME_EXPORTS as _explicit_exports_v11330,
+    LEGACY_COMPATIBILITY_ALLOWLIST as _legacy_allowlist_v11330,
+    LEGACY_IMPLICIT_DEPENDENCY_BUDGET as _legacy_budget_v11330,
+)
+from validation.maintainable_core import validate_maintainable_core as _validate_maintainable_core_v11330
+
+_maintainable_v11330 = _validate_maintainable_core_v11330(
+    _root,
+    _runtime_modules_v11330,
+    _explicit_exports_v11330,
+    _legacy_allowlist_v11330,
+    _legacy_budget_v11330,
+)
+for _error in _maintainable_v11330.get("errors", ()):
+    _semantic_errors.append("maintainable-core: " + str(_error))
+
+for _path in _runtime_modules_v11330:
+    _name = _Path(_path).name.casefold()
+    if _path.startswith("admin/") and (
+        "audit" in _name or _name.startswith("release_integrity_")
+    ):
+        _semantic_errors.append(
+            "startup safety regression: developer audit in production runtime: "
+            + _path
+        )
+
+_help_truth_source_v11330 = (_root / "admin/help_truth_current.py").read_text(
+    encoding="utf-8"
+)
+if 'HELP_FRESHNESS_RUNTIME_WARNING_V11330' not in _help_truth_source_v11330:
+    _semantic_errors.append(
+        "startup safety regression: HELP freshness is not runtime-diagnostic"
+    )
+if (
+    'HELP_FRESHNESS_AUDIT_V11328["error_count"]' in _help_truth_source_v11330
+    and "raise RuntimeError" in _help_truth_source_v11330[
+        _help_truth_source_v11330.find('HELP_FRESHNESS_AUDIT_V11328 ='):
+    ]
+):
+    _semantic_errors.append(
+        "startup safety regression: HELP freshness can still raise at runtime"
+    )
+
+_generator_source_v11330 = (_root / "core/generator_core.py").read_text(
+    encoding="utf-8"
+)
+for _needle in (
+    'def _generate_soul(ns: dict) -> None:',
+    'def _generate_class_set_bonuses(ns: dict) -> None:',
+    'def _generate_class_race_numeric(ns: dict) -> None:',
+    'Generator Core cannot mutate authored CLASS_SET_BONUSES',
+    'Generator Core cannot mutate authored CLASSES Soul Weapon bases',
+    'return {"quests": quests, "recipes": recipes, "skills": skills}',
+    'for field in NUMERIC_SKILL_FIELDS',
+    'Generator Core changed pre-existing authored quest/recipe/skill numeric values',
+):
+    if _needle not in _generator_source_v11330:
+        _semantic_errors.append(
+            "Generator ownership regression: missing " + _needle
+        )
+
+_economy_source_v11330 = (_root / "systems/economy_income_balance.py").read_text(
+    encoding="utf-8"
+)
+_courier_source_v11330 = (_root / "player/session_mixins/courier_delivery.py").read_text(
+    encoding="utf-8"
+)
+_ocean_source_v11330 = (_root / "player/session_mixins/ocean.py").read_text(
+    encoding="utf-8"
+)
+_generation_source_v11330 = (_root / "world/generation_systems.py").read_text(
+    encoding="utf-8"
+)
+_world_state_source_rewards_v11330 = (_root / "world/world_state.py").read_text(
+    encoding="utf-8"
+)
+for _needle in (
+    "def reward_consistency_audit_v11330():",
+    "REWARD_CONSISTENCY_AUDIT_V11330",
+    '"courier": 0.30',
+    '"dynamic_world": 0.85',
+    '"ocean_trade": 0.55',
+    '"ocean_treasure": 2.50',
+):
+    if _needle not in _economy_source_v11330:
+        _semantic_errors.append("reward consistency regression: missing " + _needle)
+if "v1138_activity_income(stage, \"courier\"" not in _courier_source_v11330:
+    _semantic_errors.append("reward consistency regression: Courier lost current income floor")
+for _needle in (
+    'v1138_activity_income(stage, "ocean_trade"',
+    'v1138_activity_income(stage, "ocean_treasure"',
+):
+    if _needle not in _ocean_source_v11330:
+        _semantic_errors.append("reward consistency regression: Ocean missing " + _needle)
+if 'v1138_activity_income(stage, "dynamic_world"' not in _generation_source_v11330:
+    _semantic_errors.append("reward consistency regression: dynamic world lost income floor")
+if "economy_stage_anchor_v11314(stage)" not in _world_state_source_rewards_v11330:
+    _semantic_errors.append("reward consistency regression: treasure chest lost stage economy floor")
+
+_uoss_runtime_source_v11330 = (_root / "world/uoss_superboss_runtime.py").read_text(
+    encoding="utf-8"
+)
+_combat_realtime_source_v11330 = (_root / "player/session_mixins/combat_realtime.py").read_text(
+    encoding="utf-8"
+)
+for _needle in (
+    "SUPERBOSS_HELPER_ROLES_V11330 = {",
+    '"Popoi": {',
+    '"Primm": {',
+    '"Byblos": {',
+    '"Montblanc": {',
+    '"Seifer": {',
+    "def superboss_helper_balance_audit_v11330():",
+    "SUPERBOSS_HELPER_BALANCE_AUDIT_V11330",
+):
+    if _needle not in _uoss_runtime_source_v11330:
+        _semantic_errors.append("UOSS helper balance regression: missing " + _needle)
+for _needle in (
+    '_helper_role_mult = max(',
+    '* _helper_role_mult',
+    "Rola: {_uoss_helper.get('role', 'support')}",
+):
+    if _needle not in _combat_realtime_source_v11330:
+        _semantic_errors.append("UOSS helper runtime regression: missing " + _needle)
 
 if _semantic_errors:
     print("Soulbound v1.13.30 FAST PREDEPLOY FAILED: semantic contracts")
