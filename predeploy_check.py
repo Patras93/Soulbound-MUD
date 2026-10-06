@@ -8,6 +8,7 @@ wanted before a major release.
 """
 from __future__ import annotations
 
+import ast
 import re
 import traceback
 
@@ -1625,6 +1626,41 @@ for _path in _runtime_modules_v11330:
             "startup safety regression: developer audit in production runtime: "
             + _path
         )
+
+    # Named audit reports are deploy-time gates. They may remain available as
+    # runtime diagnostics, but a normal production module may not turn one into
+    # a boot-time RuntimeError. Full predeploy evaluates the reports instead.
+    _source = (_root / _path).read_text(encoding="utf-8")
+    try:
+        _tree = ast.parse(_source, filename=_path)
+    except SyntaxError as exc:
+        _semantic_errors.append(
+            f"startup safety regression: cannot parse {_path}: {exc}"
+        )
+        continue
+    for _node in ast.walk(_tree):
+        if not isinstance(_node, ast.If):
+            continue
+        try:
+            _test_text = ast.unparse(_node.test).upper()
+        except Exception:
+            _test_text = ""
+        if "AUDIT" not in _test_text:
+            continue
+        for _child in ast.walk(_node):
+            if not isinstance(_child, ast.Raise) or _child.exc is None:
+                continue
+            _exc = _child.exc
+            _is_runtime_error = (
+                isinstance(_exc, ast.Call)
+                and isinstance(_exc.func, ast.Name)
+                and _exc.func.id == "RuntimeError"
+            )
+            if _is_runtime_error:
+                _semantic_errors.append(
+                    "startup safety regression: runtime audit raises RuntimeError: "
+                    f"{_path}:{getattr(_child, 'lineno', '?')}"
+                )
 
 _help_truth_source_v11330 = (_root / "admin/help_truth_current.py").read_text(
     encoding="utf-8"
