@@ -278,7 +278,7 @@ if 'if reward < SILVER_PER_GOLD:' not in _audits_source_v11312:
         "hybrid quest audit regression: missing shared 1 Gold economy floor"
     )
 
-# v1.13.23: Terrain Threat Audit must verify the actual runtime-room floor,
+# v1.13.22: Terrain Threat Audit must verify the actual runtime-room floor,
 # not the historical v0.36.2 wrapper/function identity that was later folded
 # into Generator Core.
 if '"_v0362_recommended_room_floor" in gsrc' in _audits_source_v11312:
