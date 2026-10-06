@@ -1205,22 +1205,21 @@ def _generate_quests(ns: dict, mob_levels: dict[str, int], item_levels: dict[str
         if "reward_tool_xp" in q or q.get("reward_tool_type") or q.get("specialist_tool_type"):
             _write_record_numeric_fallback("QUESTS", q, "reward_tool_xp", axis_gain("tool", lvl, max(1.0, workload * .70) * repeat_mult))
 
-        # v1.13.15: authored quest rewards win. Manual currency markers still
-        # force an exact protected amount; otherwise Generator fills currency
-        # only when the quest has no authored denomination at all.
+        # v1.13.30: current authored quest currency always wins. Historical
+        # manual_currency_reward_coins from v0.30.24 is now a fallback for rows
+        # that do not already author any denomination; it must never resurrect
+        # an old amount over newer handcrafted economy/balance work.
         manual_coins = q.get("manual_currency_reward_coins")
         has_authored_currency = any(
             key in q for key in ("reward_silver", "reward_gold", "reward_mithril")
         )
-        if manual_coins is not None:
-            coins = clamp(int(manual_coins), 0, SAFE_INT)
-            _write_record_numeric("QUESTS", q, "reward_silver", min(SAFE_INT, coins))
-            _write_record_numeric("QUESTS", q, "reward_gold", 0)
-            _write_record_numeric("QUESTS", q, "reward_mithril", 0)
-        elif not has_authored_currency:
-            coins = quest_currency_for_stage(
-                lvl, workload, bool(q.get("repeatable")), str(qid)
-            )
+        if not has_authored_currency:
+            if manual_coins is not None:
+                coins = clamp(int(manual_coins), 0, SAFE_INT)
+            else:
+                coins = quest_currency_for_stage(
+                    lvl, workload, bool(q.get("repeatable")), str(qid)
+                )
             _write_record_numeric("QUESTS", q, "reward_silver", min(SAFE_INT, coins))
             _write_record_numeric("QUESTS", q, "reward_gold", 0)
             _write_record_numeric("QUESTS", q, "reward_mithril", 0)
