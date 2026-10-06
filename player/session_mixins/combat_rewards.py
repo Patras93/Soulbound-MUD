@@ -301,6 +301,16 @@ class SessionCombatRewardsMixin:
                 boss_kind, cleared_floor = _final_boss_floor_identity(template)
                 if boss_kind and cleared_floor:
                     for session in recipients:
+                        # Każdy nowy prawidłowy kill tworzy świeżą skrzynię
+                        # dla nagrodzonej postaci/drużyny. Dzięki temu skrzynia
+                        # po otwarciu może trwale zniknąć aż do następnego killa.
+                        self.server.db.remove_collection_entry(
+                            session.account_id,
+                            BOSS_CHEST_OPENED_CATEGORY_V11332,
+                            boss_floor_chest_state_id(
+                                boss_kind, cleared_floor
+                            ),
+                        )
                         first_clear = self.server.db.mark_boss_floor_cleared(
                             session.account_id, boss_kind, cleared_floor
                         )
