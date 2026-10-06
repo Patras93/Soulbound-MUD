@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #!/usr/bin/env python3
-"""Soulbound v1.13.16 — progression feel + restrained Generator Core."""
+"""Soulbound v1.13.17 — progression feel + restrained Generator Core."""
 from pathlib import Path
 import os
 import socket
@@ -46,7 +46,7 @@ if os.environ.get("SOULBOUND_FULL_AUDIT", "").strip().lower() in ("1", "true", "
     FULL_GAME_PREDEPLOY_AUDIT_V0336 = full_game_predeploy_audit_v0336()
     if FULL_GAME_PREDEPLOY_AUDIT_V0336["error_count"]:
         raise RuntimeError(
-            "Full Game Pre-Deploy Audit v1.13.16 failed: "
+            "Full Game Pre-Deploy Audit v1.13.17 failed: "
             + "; ".join(map(str, FULL_GAME_PREDEPLOY_AUDIT_V0336["errors"][:100]))
         )
 else:

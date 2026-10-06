@@ -1,4 +1,4 @@
-"""Soulbound Generator Core v0.63.0 — stage math + procedural/fallback balance.
+"""Soulbound Generator Core v0.64.0 — stage math + procedural/fallback balance.
 
 Authored content is authoritative. Generator Core derives shared stage mathematics and may
 fill missing numeric fields, but it must not rebalance authored character resources/passives,
@@ -33,6 +33,10 @@ from core.player_math import (
 from core.profession_timing import (
     profession_action_seconds as authored_profession_action_seconds,
 )
+from core.economy_curve import (
+    economy_stage_anchor,
+    economy_lane_amount,
+)
 from core.character_resources import (
     character_hp_base as authored_character_hp_base,
     character_mana_base as authored_character_mana_base,
@@ -43,8 +47,8 @@ from core.character_resources import (
     race_passive_text_pl as authored_race_passive_text_pl,
 )
 
-GENERATOR_VERSION = "0.63.0"
-MAX_LEVEL = 400
+GENERATOR_VERSION = "0.64.0"
+MAX_LEVEL = 600
 SAFE_INT = 9_000_000_000_000_000_000
 
 AXIS_TARGET_ACTIONS = {
@@ -92,7 +96,7 @@ def stable_jitter(text: str, span: float = 0.08) -> float:
 
 
 def stage_from_index(index: int, maximum: int) -> int:
-    """Map an ordinal system level to the shared 1-400 Generator Core stage."""
+    """Map an ordinal system level to the shared 1-600 Generator Core stage."""
     index = max(1, int(index))
     maximum = max(1, int(maximum))
     if maximum <= 1:
@@ -285,63 +289,59 @@ def mob_damage(level: int, rank: str = "normal") -> int:
 
 def currency_for_stage(level: int, rank: str = "normal") -> int:
     level = clamp(int(level), 1, MAX_LEVEL)
-    base = 7.0 * ((1.0 + level / 9.0) ** 2.18)
-    return min(SAFE_INT, max(1, int(round(base * RANK_REWARD.get(rank, 1.0)))))
+    return min(
+        SAFE_INT,
+        economy_lane_amount(level, "mob_currency", RANK_REWARD.get(rank, 1.0)),
+    )
 
 
 def item_price_for_stage(level: int, rarity_mult: float = 1.0) -> int:
     level = clamp(int(level), 1, MAX_LEVEL)
-    base = 18.0 * ((1.0 + level / 8.0) ** 2.05)
-    return min(SAFE_INT, max(1, int(round(base * max(0.25, rarity_mult)))))
+    return min(
+        SAFE_INT,
+        economy_lane_amount(level, "item_price", max(0.25, rarity_mult)),
+    )
 
 
-QUEST_CURRENCY_ANCHORS = (
-    (1, 1_200), (10, 1_500), (25, 2_500), (50, 5_000),
-    (100, 10_000), (150, 20_000), (200, 40_000), (250, 100_000),
-    (300, 1_000_000), (350, 50_000_000), (400, 1_000_000_000),
-)
-
-def _economy_anchor_value(level: int, anchors=QUEST_CURRENCY_ANCHORS) -> int:
+def quest_currency_for_stage(
+    level: int,
+    workload: float = 1.0,
+    repeatable: bool = False,
+    identity: str = "quest",
+) -> int:
     level = clamp(int(level), 1, MAX_LEVEL)
-    if level <= anchors[0][0]: return int(anchors[0][1])
-    if level >= anchors[-1][0]: return int(anchors[-1][1])
-    for (l0,v0),(l1,v1) in zip(anchors, anchors[1:]):
-        if l0 <= level <= l1:
-            t=(level-l0)/float(l1-l0)
-            # Log interpolation keeps the late-game mithril transition smooth.
-            value=math.exp(math.log(max(1.0,float(v0))) + (math.log(max(1.0,float(v1)))-math.log(max(1.0,float(v0))))*t)
-            return min(SAFE_INT,max(1,int(round(value))))
-    return int(anchors[-1][1])
-
-def quest_currency_for_stage(level: int, workload: float = 1.0, repeatable: bool = False, identity: str = "quest") -> int:
-    level=clamp(int(level),1,MAX_LEVEL)
-    workload=clamp(float(workload),1.0,8.0)
-    # Workload matters, but cannot multiply rewards eight-fold.
-    work_mult=1.0 + 0.22*(workload-1.0)
-    repeat_mult=0.72 if repeatable else 1.0
-    identity_mult=stable_jitter(f"quest-currency:{identity}",0.045)
-    coins=int(round(_economy_anchor_value(level)*work_mult*repeat_mult*identity_mult))
-    # Every ordinary quest pays at least one gold plus a silver remainder.
-    coins=max(1_001, coins)
+    workload = clamp(float(workload), 1.0, 8.0)
+    work_mult = 1.0 + 0.22 * (workload - 1.0)
+    repeat_mult = 0.72 if repeatable else 1.0
+    identity_mult = stable_jitter(f"quest-currency:{identity}", 0.045)
+    coins = int(round(
+        economy_stage_anchor(level) * work_mult * repeat_mult * identity_mult
+    ))
+    coins = max(1_001, coins)
     if coins < 1_000_000_000 and coins % 1000 == 0:
         coins += 137
     return min(SAFE_INT, coins)
 
+
 def tool_price_for_item(item: dict, identity: str = "tool") -> int:
-    # Basic profession tools are starter equipment. Their price must not depend on
-    # arbitrary item ordering / generator_level. Future gated tools may opt into
-    # authored numeric gates; Generator reads those gates but never creates them.
-    gates=[]
-    for key in ("required_tool_level","min_tool_level","min_profession_level","required_profession_level","required_mastery"):
+    gates = []
+    for key in (
+        "required_tool_level", "min_tool_level", "min_profession_level",
+        "required_profession_level", "required_mastery",
+    ):
         try:
-            value=int(item.get(key,0) or 0)
+            value = int(item.get(key, 0) or 0)
         except Exception:
-            value=0
-        if value>0: gates.append(value)
-    stage=clamp(max(gates) if gates else 1,1,MAX_LEVEL)
-    base=_economy_anchor_value(stage)
-    identity_mult=0.92 + 0.16*stable_unit(f"tool-price:{identity}")
-    return min(SAFE_INT,max(1_001,int(round(base*1.20*identity_mult))))
+            value = 0
+        if value > 0:
+            gates.append(value)
+    stage = clamp(max(gates) if gates else 1, 1, MAX_LEVEL)
+    base = economy_stage_anchor(stage)
+    identity_mult = 0.92 + 0.16 * stable_unit(f"tool-price:{identity}")
+    return min(
+        SAFE_INT,
+        max(1_001, int(round(base * 1.20 * identity_mult))),
+    )
 
 
 def system_cost(stage: int, identity: str = "system", intensity: float = 1.0) -> int:
@@ -391,8 +391,10 @@ def guild_bonus_percent(level: int, max_level: int = 100) -> int:
 
 def resource_sale_for_stage(level: int, rarity_mult: float = 1.0) -> int:
     level = clamp(int(level), 1, MAX_LEVEL)
-    base = 3.0 * ((1.0 + level / 10.0) ** 1.95)
-    return min(SAFE_INT, max(1, int(round(base * max(0.5, rarity_mult)))))
+    return min(
+        SAFE_INT,
+        economy_lane_amount(level, "resource_sale", max(0.5, rarity_mult)),
+    )
 
 
 def mob_rank(template: dict) -> str:
@@ -459,6 +461,12 @@ def _graph_room_levels(rooms: dict) -> dict[str, int]:
                     lvl = 1 + int(round(1.9 * d + 0.10 * d * d))
                 if room.get("v020_mega_gate") or room.get("v020_gauntlet"):
                     lvl = max(lvl, 220)
+        try:
+            recommended = int(room.get("recommended_mastery", 0) or 0)
+        except (TypeError, ValueError, OverflowError):
+            recommended = 0
+        if recommended > 0:
+            lvl = max(lvl, recommended)
         room_levels[rid] = clamp(int(lvl), 1, MAX_LEVEL)
         # generator_level is balance metadata only. Never overwrite recommended_mastery,
         # exits, names, zones or any authored access/recommendation field.
@@ -750,85 +758,161 @@ def _rarity_multiplier(item: dict) -> float:
 
 
 def _generate_items(ns: dict, levels: dict[str, int]) -> None:
-    """Generate only whitelisted numeric item balance; authored gates/types/stat identity stay intact."""
+    """Attach stage and fill only genuinely missing item numeric fields."""
     items = ns.get("ITEMS", {})
     resource_ids = set()
-    for key in ("FISH_RESOURCE_IDS", "ORE_RESOURCE_IDS", "WOOD_RESOURCE_IDS", "HERB_RESOURCE_IDS"):
+    for key in (
+        "FISH_RESOURCE_IDS", "ORE_RESOURCE_IDS",
+        "WOOD_RESOURCE_IDS", "HERB_RESOURCE_IDS",
+    ):
         resource_ids.update(ns.get(key, set()) or set())
+
     for iid, item in items.items():
-        # Generator may fill incomplete items, but authored numbers remain the
-        # source of truth. Keep an exact snapshot (including price=None, which
-        # intentionally means "not sold").
-        authored_numeric = {
-            key: item[key] for key in NUMERIC_ITEM_FIELDS
-            if key != "generator_level" and key in item
-        }
-        authored_nested = {
-            field: dict(item.get(field) or {})
-            for field in ("stats", "properties", "rune_stats", "rune_properties")
-            if isinstance(item.get(field), dict)
-        }
         lvl = levels[iid]
         _write_record_numeric("ITEMS", item, "generator_level", lvl)
         rarity_mult = _rarity_multiplier(item)
         typ = str(item.get("type", "")).lower()
-        if iid in resource_ids or item.get("resource_category") or item.get("base_resource_id"):
+        is_resource = bool(
+            iid in resource_ids
+            or item.get("resource_category")
+            or item.get("base_resource_id")
+        )
+
+        if is_resource:
+            # Currency denominations are one authored group. If any denomination
+            # exists, Generator must not add a second parallel sale currency.
+            has_authored_sale = any(
+                key in item
+                for key in ("sell_silver", "sell_gold", "sell_mithril")
+            )
             sale = resource_sale_for_stage(lvl, rarity_mult)
-            _write_record_numeric("ITEMS", item, "sell_silver", sale)
-            _write_record_numeric("ITEMS", item, "sell_gold", 0)
-            _write_record_numeric("ITEMS", item, "sell_mithril", 0)
-            _write_record_numeric("ITEMS", item, "price", max(sale * 3, 1))
+            if not has_authored_sale:
+                _write_record_numeric("ITEMS", item, "sell_silver", sale)
+                _write_record_numeric("ITEMS", item, "sell_gold", 0)
+                _write_record_numeric("ITEMS", item, "sell_mithril", 0)
+            _write_record_numeric_fallback(
+                "ITEMS", item, "price", max(sale * 3, 1), preserve_none=True
+            )
         elif typ == "tool" or item.get("tool_type"):
-            _write_record_numeric("ITEMS", item, "price", tool_price_for_item(item, str(item.get("tool_type") or iid)))
+            _write_record_numeric_fallback(
+                "ITEMS",
+                item,
+                "price",
+                tool_price_for_item(item, str(item.get("tool_type") or iid)),
+                preserve_none=True,
+            )
         else:
-            _write_record_numeric("ITEMS", item, "price", item_price_for_stage(lvl, rarity_mult))
-        _plain_class_shop = bool(
+            _write_record_numeric_fallback(
+                "ITEMS",
+                item,
+                "price",
+                item_price_for_stage(lvl, rarity_mult),
+                preserve_none=True,
+            )
+
+        plain_class_shop = bool(
             item.get("class_shop_item")
             and not item.get("legendary_set_loot")
             and not item.get("legendary_class_relic")
         )
         if typ == "armor" or item.get("slot"):
             slot = str(item.get("slot", "body"))
-            weight = SLOT_DEFENSE_WEIGHT.get(slot, .75)
-            _write_record_numeric("ITEMS", item, "defense", max(1, int(round((1.0 + 0.050 * lvl + 0.00045 * (lvl ** 2)) * weight * rarity_mult))))
-            # v0.71.6: ordinary class-shop affixes/stats/properties are rebuilt
-            # deterministically by finalize_class_equipment_v03015 immediately
-            # after Generator Core. Avoid thousands of SHA jitter calculations
-            # whose values would be overwritten before gameplay can observe them.
-            if item.get("affix") and not _plain_class_shop:
-                _write_record_numeric("ITEMS", item, "affix_amount", max(1, int(round((1.0 + 0.035 * lvl + 0.00022 * (lvl ** 2)) * math.sqrt(rarity_mult)))))
-        if isinstance(item.get("stats"), dict) and not _plain_class_shop:
+            weight = SLOT_DEFENSE_WEIGHT.get(slot, 0.75)
+            _write_record_numeric_fallback(
+                "ITEMS",
+                item,
+                "defense",
+                max(
+                    1,
+                    int(round(
+                        (1.0 + 0.050 * lvl + 0.00045 * (lvl ** 2))
+                        * weight
+                        * rarity_mult
+                    )),
+                ),
+            )
+            if item.get("affix") and not plain_class_shop:
+                _write_record_numeric_fallback(
+                    "ITEMS",
+                    item,
+                    "affix_amount",
+                    max(
+                        1,
+                        int(round(
+                            (1.0 + 0.035 * lvl + 0.00022 * (lvl ** 2))
+                            * math.sqrt(rarity_mult)
+                        )),
+                    ),
+                )
+
+        if isinstance(item.get("stats"), dict) and not plain_class_shop:
             for stat in list(item["stats"]):
-                value = max(1, int(round((1.0 + 0.032 * lvl + 0.00020 * (lvl ** 2)) * math.sqrt(rarity_mult) * stable_jitter(f"{iid}:stat:{stat}", .12))))
-                _write_nested_numeric("ITEMS", item, "stats", stat, value)
-        if isinstance(item.get("properties"), dict) and not _plain_class_shop:
+                value = max(
+                    1,
+                    int(round(
+                        (1.0 + 0.032 * lvl + 0.00020 * (lvl ** 2))
+                        * math.sqrt(rarity_mult)
+                        * stable_jitter(f"{iid}:stat:{stat}", 0.12)
+                    )),
+                )
+                _write_nested_numeric_fallback(
+                    "ITEMS", item, "stats", stat, value
+                )
+
+        if isinstance(item.get("properties"), dict) and not plain_class_shop:
             for prop in list(item["properties"]):
-                value = round(clamp((1.0 + 0.025 * lvl + 0.00012 * (lvl ** 2)) * math.sqrt(rarity_mult) * stable_jitter(f"{iid}:prop:{prop}", .10), .5, 36.0), 3)
-                _write_nested_numeric("ITEMS", item, "properties", prop, value)
+                value = round(
+                    clamp(
+                        (1.0 + 0.025 * lvl + 0.00012 * (lvl ** 2))
+                        * math.sqrt(rarity_mult)
+                        * stable_jitter(f"{iid}:prop:{prop}", 0.10),
+                        0.5,
+                        36.0,
+                    ),
+                    3,
+                )
+                _write_nested_numeric_fallback(
+                    "ITEMS", item, "properties", prop, value
+                )
+
         if isinstance(item.get("rune_stats"), dict):
             for stat in list(item["rune_stats"]):
-                _write_nested_numeric("ITEMS", item, "rune_stats", stat, max(1, int(round(1.0 + 0.025 * lvl + 0.00016 * (lvl ** 2)))))
+                _write_nested_numeric_fallback(
+                    "ITEMS",
+                    item,
+                    "rune_stats",
+                    stat,
+                    max(1, int(round(
+                        1.0 + 0.025 * lvl + 0.00016 * (lvl ** 2)
+                    ))),
+                )
+
         if isinstance(item.get("rune_properties"), dict):
             for prop in list(item["rune_properties"]):
-                _write_nested_numeric("ITEMS", item, "rune_properties", prop, round(clamp(.8 + 0.018 * lvl + 0.00009 * (lvl ** 2), .8, 18.0), 3))
+                _write_nested_numeric_fallback(
+                    "ITEMS",
+                    item,
+                    "rune_properties",
+                    prop,
+                    round(clamp(
+                        0.8 + 0.018 * lvl + 0.00009 * (lvl ** 2),
+                        0.8,
+                        18.0,
+                    ), 3),
+                )
+
         if "heal" in item:
-            _write_record_numeric("ITEMS", item, "heal", max(5, int(round(18 + lvl * 2.2))))
+            _write_record_numeric_fallback(
+                "ITEMS", item, "heal", max(5, int(round(18 + lvl * 2.2)))
+            )
         if "mana" in item:
-            _write_record_numeric("ITEMS", item, "mana", max(5, int(round(15 + lvl * 2.0))))
+            _write_record_numeric_fallback(
+                "ITEMS", item, "mana", max(5, int(round(15 + lvl * 2.0)))
+            )
         if "soul_xp" in item:
-            _write_record_numeric("ITEMS", item, "soul_xp", axis_gain("soul", lvl, 2.0))
-
-
-
-        # Restore authored item balance after generated fallbacks. This also
-        # protects UOSSMUD imports, hand-tuned equipment, shop prices and
-        # intentionally unsold crafted/loot-only items.
-        for key, value in authored_numeric.items():
-            item[key] = value
-        for field, values in authored_nested.items():
-            current = item.get(field)
-            if isinstance(current, dict):
-                current.update(values)
+            _write_record_numeric_fallback(
+                "ITEMS", item, "soul_xp", axis_gain("soul", lvl, 2.0)
+            )
 
 
 def _recipe_stage(recipe: dict, item_levels: dict[str, int]) -> int:
@@ -1145,34 +1229,34 @@ def _generate_quests(ns: dict, mob_levels: dict[str, int], item_levels: dict[str
 def _skill_kind_fields(skill: dict, unlock: int, sid: str) -> None:
     kind = str(skill.get("kind") or "damage")
     scale = 1.0 + unlock / 400.0
-    _write_record_numeric("CLASS_SKILLS", skill, "cooldown", clamp(int(round((3.0 + 5.0 * stable_unit(sid + ':cd')) * (1.0 + unlock / 900.0))), 2, 12))
+    _write_record_numeric_fallback("CLASS_SKILLS", skill, "cooldown", clamp(int(round((3.0 + 5.0 * stable_unit(sid + ':cd')) * (1.0 + unlock / 900.0))), 2, 12))
     magical = str(skill.get("scale", "")).lower() in ("intelligence", "willpower", "magic") or kind in ("heal", "group_heal", "drain")
-    _write_record_numeric("CLASS_SKILLS", skill, "mana", 0 if not magical else max(1, int(round(4 + unlock * .055 + 8 * stable_unit(sid + ':mana')))))
+    _write_record_numeric_fallback("CLASS_SKILLS", skill, "mana", 0 if not magical else max(1, int(round(4 + unlock * .055 + 8 * stable_unit(sid + ':mana')))))
     if kind in ("damage", "aoe", "aoe_damage", "drain", "execute"):
-        _write_record_numeric("CLASS_SKILLS", skill, "mult", round((1.05 + .55 * scale) * stable_jitter(sid + ':mult', .09), 4))
+        _write_record_numeric_fallback("CLASS_SKILLS", skill, "mult", round((1.05 + .55 * scale) * stable_jitter(sid + ':mult', .09), 4))
     if kind == "boost":
-        _write_record_numeric("CLASS_SKILLS", skill, "boost", round(clamp(1.12 + unlock / 1300.0 + stable_unit(sid) * .10, 1.12, 1.55), 4))
-        _write_record_numeric("CLASS_SKILLS", skill, "duration", clamp(int(round(6 + unlock / 45.0)), 6, 16))
+        _write_record_numeric_fallback("CLASS_SKILLS", skill, "boost", round(clamp(1.12 + unlock / 1300.0 + stable_unit(sid) * .10, 1.12, 1.55), 4))
+        _write_record_numeric_fallback("CLASS_SKILLS", skill, "duration", clamp(int(round(6 + unlock / 45.0)), 6, 16))
     if kind == "guard":
-        _write_record_numeric("CLASS_SKILLS", skill, "guard", max(2, int(round(3 + unlock / 16.0))))
+        _write_record_numeric_fallback("CLASS_SKILLS", skill, "guard", max(2, int(round(3 + unlock / 16.0))))
     if kind in ("heal", "group_heal"):
         base = .16 + unlock / 1800.0
         if kind == "group_heal":
             base *= .78
-        _write_record_numeric("CLASS_SKILLS", skill, "heal_pct", round(clamp(base, .12, .42), 4))
+        _write_record_numeric_fallback("CLASS_SKILLS", skill, "heal_pct", round(clamp(base, .12, .42), 4))
     if kind == "drain":
-        _write_record_numeric("CLASS_SKILLS", skill, "drain_pct", round(clamp(.18 + unlock / 2400.0, .18, .36), 4))
+        _write_record_numeric_fallback("CLASS_SKILLS", skill, "drain_pct", round(clamp(.18 + unlock / 2400.0, .18, .36), 4))
     if kind == "execute":
-        _write_record_numeric("CLASS_SKILLS", skill, "execute_mult", round(1.35 + 0.45 * (unlock / MAX_LEVEL) * stable_jitter(sid + ':execute', .08), 4))
+        _write_record_numeric_fallback("CLASS_SKILLS", skill, "execute_mult", round(1.35 + 0.45 * (unlock / MAX_LEVEL) * stable_jitter(sid + ':execute', .08), 4))
     if "self_damage" in skill:
-        _write_record_numeric("CLASS_SKILLS", skill, "self_damage", max(1, int(round(2 + unlock / 80.0))))
+        _write_record_numeric_fallback("CLASS_SKILLS", skill, "self_damage", max(1, int(round(2 + unlock / 80.0))))
     if "self_damage_pct" in skill:
-        _write_record_numeric("CLASS_SKILLS", skill, "self_damage_pct", round(clamp(.025 + unlock / 8000.0, .025, .075), 4))
+        _write_record_numeric_fallback("CLASS_SKILLS", skill, "self_damage_pct", round(clamp(.025 + unlock / 8000.0, .025, .075), 4))
 
 
 
 def _generate_skills(ns: dict) -> int:
-    """Balance skill numbers while preserving authored ID/name/unlock/kind/scale exactly."""
+    """Attach stage and fill only skill numbers that authored content omitted."""
     class_skills = ns.get("CLASS_SKILLS", {}) or {}
     count = 0
     for class_name, skills in class_skills.items():
@@ -1183,20 +1267,15 @@ def _generate_skills(ns: dict) -> int:
             except Exception:
                 unlock = 1
             balance_level = clamp(unlock, 1, MAX_LEVEL)
-            authored_numeric = {
-                key: skill[key] for key in NUMERIC_SKILL_FIELDS
-                if key != "generator_level" and key in skill
-            }
-            _write_record_numeric("CLASS_SKILLS", skill, "generator_level", balance_level)
-            _skill_kind_fields(skill, balance_level, str(skill.get("id") or f"{class_name}:{idx}"))
-            # Hand-authored cooldown=0, mana, damage/heal multipliers etc. win.
-            # Generator values remain useful only for fields the skill omitted.
-            for key, value in authored_numeric.items():
-                skill[key] = value
+            _write_record_numeric(
+                "CLASS_SKILLS", skill, "generator_level", balance_level
+            )
+            _skill_kind_fields(
+                skill,
+                balance_level,
+                str(skill.get("id") or f"{class_name}:{idx}"),
+            )
     return count
-
-
-
 
 
 def class_passive_profile(class_name: str) -> dict:
@@ -1303,6 +1382,12 @@ def runtime_room_level(room_id: str, room: dict, rooms: dict | None = None) -> i
             lvl = max(1, min(linked))
     if lvl is None:
         lvl = 1 + int(stable_unit(f"runtime-room:{room_id}") * (MAX_LEVEL - 1))
+    try:
+        recommended = int(room.get("recommended_mastery", 0) or 0)
+    except (TypeError, ValueError, OverflowError):
+        recommended = 0
+    if recommended > 0:
+        lvl = max(lvl, recommended)
     lvl = clamp(int(lvl), 1, MAX_LEVEL)
     _write_record_numeric("ROOMS", room, "generator_level", lvl)
     return lvl
@@ -1444,12 +1529,12 @@ def _write_top_map_numeric(ns: dict, key: str, leaf, value) -> None:
 
 def _write_class_set_numeric(entry: dict, field: str, value, leaf=None) -> None:
     raise RuntimeError(
-        "Generator Core v0.62 cannot mutate authored CLASS_SET_BONUSES"
+        "Generator Core v0.64 cannot mutate authored CLASS_SET_BONUSES"
     )
 
 def _write_classes_weapon_bases(ns: dict, new_rows) -> None:
     raise RuntimeError(
-        "Generator Core v0.62 cannot mutate authored CLASSES Soul Weapon bases"
+        "Generator Core v0.64 cannot mutate authored CLASSES Soul Weapon bases"
     )
 
 def _freeze_semantic(value):

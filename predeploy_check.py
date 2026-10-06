@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Fast Railway predeploy gate for Soulbound v1.13.16.
+"""Fast Railway predeploy gate for Soulbound v1.13.17.
 
 This is the normal deploy check.  It intentionally avoids assembling the full
 world/runtime.  Use predeploy_full.py when an exhaustive historical audit is
@@ -16,7 +16,7 @@ import traceback
 try:
     from storage.database import Database as _DatabaseImportSmoke
 except Exception as exc:
-    print(f"Soulbound v1.13.16 FAST PREDEPLOY FAILED: database import: {type(exc).__name__}: {exc}")
+    print(f"Soulbound v1.13.17 FAST PREDEPLOY FAILED: database import: {type(exc).__name__}: {exc}")
     traceback.print_exc()
     raise SystemExit(1)
 
@@ -37,7 +37,7 @@ try:
     )
 except Exception as exc:
     print(
-        "Soulbound v1.13.16 FAST PREDEPLOY FAILED: "
+        "Soulbound v1.13.17 FAST PREDEPLOY FAILED: "
         f"skill semantic import: {type(exc).__name__}: {exc}"
     )
     traceback.print_exc()
@@ -215,11 +215,25 @@ _ocean_session_source = (_root / "player/session_mixins/ocean.py").read_text(enc
 _generation_systems_source = (_root / "world/generation_systems.py").read_text(encoding="utf-8")
 for _needle in (
     "def _write_record_numeric_fallback(",
+    "def _write_nested_numeric_fallback(",
     "Authored combat/reward/economy values are design decisions.",
-    "authored_numeric = {",
+    "has_authored_sale = any(",
+    "preserve_none=True",
+    '"""Attach stage and fill only genuinely missing item numeric fields."""',
+    '"""Attach stage and fill only skill numbers that authored content omitted."""',
 ):
     if _needle not in _generator_source:
         _semantic_errors.append("generator restraint regression: missing " + _needle)
+for _forbidden in (
+    "authored_numeric = {",
+    "authored_nested = {",
+    "QUEST_CURRENCY_ANCHORS = (",
+    "def _economy_anchor_value(",
+):
+    if _forbidden in _generator_source:
+        _semantic_errors.append(
+            "Generator cleanup regression: stale pattern remains " + _forbidden
+        )
 for _needle in (
     "def equipment_progression_budget_v1138(level):",
     "(50, 38)", "(100, 100)", "(200, 240)", "(600, 1200)",
@@ -231,8 +245,9 @@ if "return equipment_progression_budget_v1138(mastery)" not in _equipment_source
     _semantic_errors.append(
         "class EQ progression regression: shop no longer uses shared progression budget"
     )
+_economy_curve_source_v11317 = (_root / "core/economy_curve.py").read_text(encoding="utf-8")
 for _needle in ("(50, 15_000)", "(100, 100_000)", "(200, 1_250_000)", "(600, 100_000_000)"):
-    if _needle not in _items_resource_source:
+    if _needle not in _economy_curve_source_v11317:
         _semantic_errors.append("quest income progression regression: missing shared anchor " + _needle)
 
 # v1.13.11: the late 1-600 income finalizer must never rewrite quests marked
@@ -288,12 +303,24 @@ _crafting_quality_source_v11314 = (_root / "systems/crafting_quality.py").read_t
 _sales_source_v11314 = (_root / "player/session_mixins/sales.py").read_text(encoding="utf-8")
 _world_state_source_v11314 = (_root / "world/world_state.py").read_text(encoding="utf-8")
 for _needle in (
-    "V11314_ECONOMY_STAGE_ANCHORS = (",
-    "def economy_stage_anchor_v11314(level):",
+    "ECONOMY_STAGE_ANCHORS = (",
+    "def economy_stage_anchor(stage: int) -> int:",
+    "ECONOMY_LANE_SHARE_ANCHORS = {",
+    '"mob_currency": (',
+    '"item_price": (',
+    '"resource_sale": (',
+    "def economy_lane_amount(stage: int, lane: str, multiplier: float = 1.0) -> int:",
+):
+    if _needle not in _economy_curve_source_v11317:
+        _semantic_errors.append("shared o-kurde economy regression: missing " + _needle)
+for _needle in (
+    "from core.economy_curve import (",
+    "V11314_ECONOMY_STAGE_ANCHORS,",
+    "economy_stage_anchor_v11314,",
     "def class_equipment_shop_price_v11314(level, slot_base_price):",
 ):
     if _needle not in _items_resource_source:
-        _semantic_errors.append("shared o-kurde economy regression: missing " + _needle)
+        _semantic_errors.append("shared economy compatibility regression: missing " + _needle)
 if "class_equipment_shop_price_v11314(" not in _equipment_source:
     _semantic_errors.append("class EQ price progression regression")
 for _needle in (
@@ -334,7 +361,7 @@ _classes_source_v11315 = (_root / "core/classes_skills.py").read_text(encoding="
 _progression600_source_v11315 = (_root / "core/progression_600.py").read_text(encoding="utf-8")
 
 for _needle in (
-    'GENERATOR_VERSION = "0.63.0"',
+    'GENERATOR_VERSION = "0.64.0"',
     'return authored_character_hp_base(character_level, constitution)',
     'return authored_character_mana_base(character_level, intelligence, willpower)',
     'return authored_class_passive_profile(class_name)',
@@ -352,8 +379,8 @@ for _needle in (
     'audit["authored_rewards_preserved"] = authored_rewards_ok',
     "def authored_rewards_preserved(ns: dict, before: dict) -> bool:",
     "authored_rewards_ok = authored_rewards_preserved(",
-    "Generator Core v0.63 cannot mutate authored CLASS_SET_BONUSES",
-    "Generator Core v0.63 cannot mutate authored CLASSES Soul Weapon bases",
+    "Generator Core v0.64 cannot mutate authored CLASS_SET_BONUSES",
+    "Generator Core v0.64 cannot mutate authored CLASSES Soul Weapon bases",
     'if field in q and int(q.get(field, 0) or 0) < 0:',
 ):
     if _needle not in _generator_source:
@@ -418,16 +445,25 @@ for _needle in (
             "character creation resource parity regression: missing " + _needle
         )
 
-if 'generator_core_v027.GENERATOR_VERSION = "0.63.0"' not in _progression600_source_v11315:
-    _semantic_errors.append("Generator v0.63.0 progression bridge regression")
-
-for _stale_generator_version in ("0.61.0", "0.62.0"):
-    if (
-        f'generator_core_v027.GENERATOR_VERSION = "{_stale_generator_version}"'
-        in _progression600_source_v11315
-    ):
+for _forbidden in (
+    "generator_core_v027.MAX_LEVEL",
+    "generator_core_v027.GENERATOR_VERSION",
+    "_v0362_original_graph_room_levels",
+    "_v0362_original_runtime_room_level",
+):
+    if _forbidden in _progression600_source_v11315:
         _semantic_errors.append(
-            f"stale Generator v{_stale_generator_version} override remains in progression_600"
+            "progression_600 monkey-patch regression: " + _forbidden
+        )
+for _needle in (
+    "MAX_LEVEL = 600",
+    'GENERATOR_VERSION = "0.64.0"',
+    'recommended = int(room.get("recommended_mastery", 0) or 0)',
+    "lvl = max(lvl, recommended)",
+):
+    if _needle not in _generator_source:
+        _semantic_errors.append(
+            "Generator canonical 1-600/recommended-floor regression: missing " + _needle
         )
 
 for _needle in ('baseline_key = f"_v1138_authored_{key}"', "procedural_no_limit", '"world_boss": 3.00'):
@@ -657,8 +693,48 @@ for _needle in (
     if _needle not in _progression_resources_source_v11316:
         _semantic_errors.append("Skill Level player-math regression: missing " + _needle)
 
-if 'GENERATOR_VERSION = "0.63.0"' not in _generator_source:
-    _semantic_errors.append("Generator v0.63.0 ownership regression")
+if 'GENERATOR_VERSION = "0.64.0"' not in _generator_source:
+    _semantic_errors.append("Generator v0.64.0 ownership regression")
+
+# v1.13.17: Generator cleanup — one economy, true fill-missing-only and
+# no progression_600 monkey patches.
+_combat_realtime_source_v11317 = (_root / "player/session_mixins/combat_realtime.py").read_text(encoding="utf-8")
+_admin_audits_source_v11317 = (_root / "admin/audits.py").read_text(encoding="utf-8")
+for _needle in (
+    "from core.economy_curve import (",
+    'economy_lane_amount(level, "mob_currency"',
+    'economy_lane_amount(level, "item_price"',
+    'economy_lane_amount(level, "resource_sale"',
+    "economy_stage_anchor(level) * work_mult * repeat_mult * identity_mult",
+    "has_authored_sale = any(",
+    "_write_nested_numeric_fallback(",
+):
+    if _needle not in _generator_source:
+        _semantic_errors.append("Generator v1.13.17 cleanup regression: missing " + _needle)
+
+if '_write_record_numeric("CLASS_SKILLS", skill, "cooldown"' in _generator_source:
+    _semantic_errors.append("skill fallback regression: cooldown is still directly overwritten")
+if "authored_numeric = {" in _generator_source:
+    _semantic_errors.append("item/skill snapshot-restore regression returned")
+
+for _needle in (
+    'f"Trafiasz {_actual_hits} razy po {_per_hit_damage} obrażeń. Łącznie {damage}. "',
+    "_per_hit_damage = max(0, int(damage))",
+):
+    if _needle not in _combat_realtime_source_v11317:
+        _semantic_errors.append("UOSS-style multi-hit feedback regression: missing " + _needle)
+
+for _stale_version in ("0.61.0", "0.62.0", "0.63.0", "0.64.0"):
+    if f'GENERATOR_CORE_VERSION != "{_stale_version}"' in _admin_audits_source_v11317:
+        _semantic_errors.append(
+            f"hardcoded Generator full-audit version remains: {_stale_version}"
+        )
+if _admin_audits_source_v11317.count(
+    "GENERATOR_CORE_VERSION != generator_core_v027.GENERATOR_VERSION"
+) != 3:
+    _semantic_errors.append(
+        "Generator full-audit gates are not bound to live Generator version"
+    )
 
 for _needle in (
     "defense_cap_ratio = 0.60 if v0863_is_boss_template(template) else 0.75",
@@ -991,18 +1067,18 @@ except Exception as exc:
     )
 
 if _semantic_errors:
-    print("Soulbound v1.13.16 FAST PREDEPLOY FAILED: semantic contracts")
+    print("Soulbound v1.13.17 FAST PREDEPLOY FAILED: semantic contracts")
     for _error in _semantic_errors:
         print(f"ERROR: {_error}")
     raise SystemExit(1)
 
 if audit["error_count"]:
-    print("Soulbound v1.13.16 FAST PREDEPLOY FAILED")
+    print("Soulbound v1.13.17 FAST PREDEPLOY FAILED")
     for error in audit["errors"]:
         print(f"ERROR: {error}")
     raise SystemExit(1)
 
-print("Soulbound v1.13.16 FAST PREDEPLOY PASS")
+print("Soulbound v1.13.17 FAST PREDEPLOY PASS")
 print(
     "Semantic contracts: "
     f"{len(_semantic_audits)} audits PASS; AP runtime guards PASS"

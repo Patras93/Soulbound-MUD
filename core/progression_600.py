@@ -8,7 +8,6 @@ celowo dla kompatybilności z istniejącymi modułami i ID przedmiotów.
 
 # Ten moduł musi działać także przy bezpośrednim imporcie (np. narzędzia
 # administracyjne przez Railway SSH), a nie tylko w historycznym bootstrapie.
-from core import generator_core as generator_core_v027
 from core.player_math import skill_level_power
 from core.bootstrap_economy_professions import (
     SOUL_TIER_THRESHOLDS,
@@ -35,11 +34,8 @@ from core.progression_resources import (
 
 PROGRESSION_MAX_LEVEL = 600
 
-# Generator Core jest modułem ładowanym z osadzonego źródła. Jego funkcje
-# odczytują MAX_LEVEL dynamicznie, więc przełączenie tutaj rozszerza wszystkie
-# krzywe bez kopiowania generatora.
-generator_core_v027.MAX_LEVEL = PROGRESSION_MAX_LEVEL
-generator_core_v027.GENERATOR_VERSION = "0.63.0"
+# Generator Core od v0.64.0 ma własny kanoniczny zakres 1-600.
+# progression_600 nie monkey-patchuje już jego globali.
 
 # Główne osie postaci.
 CHARACTER_MAX_LEVEL = PROGRESSION_MAX_LEVEL
@@ -212,43 +208,3 @@ PROGRESSION_600_AUDIT = {
     "soul_tiers": SOUL_MAX_TIER,
     "tool_tiers": TOOL_MAX_TIER,
 }
-
-
-# ============================================================
-# v0.36.2 - OPEN-WORLD TERRAIN THREAT REBALANCE
-# ============================================================
-# Generator Core historycznie wyliczał część stref wyłącznie z odległości
-# topologicznej. To zaniżało etap obszarów mających jawne recommended_mastery
-# (np. endgame 300-390) oraz pokojów tworzonych dopiero przy wejściu.
-# Rekomendowany poziom jest od teraz twardą dolną granicą NUMERYCZNEGO balansu
-# pokoju, ale nadal nie staje się blokadą wejścia.
-_v0362_original_graph_room_levels = generator_core_v027._graph_room_levels
-_v0362_original_runtime_room_level = generator_core_v027.runtime_room_level
-
-def _v0362_recommended_room_floor(room):
-    try:
-        value = int((room or {}).get("recommended_mastery", 0) or 0)
-    except Exception:
-        value = 0
-    return max(0, min(PROGRESSION_MAX_LEVEL, value))
-
-def _v0362_graph_room_levels(rooms):
-    levels = _v0362_original_graph_room_levels(rooms)
-    for room_id, room in (rooms or {}).items():
-        recommended = _v0362_recommended_room_floor(room)
-        if recommended > int(levels.get(room_id, 1) or 1):
-            levels[room_id] = recommended
-            generator_core_v027._write_record_numeric("ROOMS", room, "generator_level", recommended)
-    return levels
-
-def _v0362_runtime_room_level(room_id, room, rooms=None):
-    level = int(_v0362_original_runtime_room_level(room_id, room, rooms) or 1)
-    recommended = _v0362_recommended_room_floor(room)
-    if recommended > level:
-        level = recommended
-        generator_core_v027._write_record_numeric("ROOMS", room, "generator_level", level)
-    return level
-
-generator_core_v027._graph_room_levels = _v0362_graph_room_levels
-generator_core_v027.runtime_room_level = _v0362_runtime_room_level
-generator_core_v027.GENERATOR_VERSION = "0.63.0"

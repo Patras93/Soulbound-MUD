@@ -1,11 +1,42 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.13.16
+Aktualna paczka: v1.13.17
 
 
 
 
 
 
+
+
+==============================================================================
+Soulbound v1.13.17 — ostatnie odchudzenie Generator Core
+==============================================================================
+
+- Generator Core v0.64.0 ma własny kanoniczny zakres 1-600. progression_600.py
+  nie przepisuje już MAX_LEVEL ani GENERATOR_VERSION po imporcie.
+- Historyczny patch v0.36.2 recommended_mastery został wbudowany bezpośrednio
+  w Generator Core dla grafu świata i pokojów tworzonych runtime. Znika
+  monkey-patch _graph_room_levels/runtime_room_level.
+- Jedna wspólna krzywa ekonomii 1-600 mieszka teraz w core/economy_curve.py.
+  Generator, sklepy klasowe, quest income, resale i renewable chests korzystają
+  z tego samego punktu odniesienia.
+- Proceduralne lane'y mob_currency/item_price/resource_sale są zapisane jako
+  jawne udziały wspólnego anchoru i skalibrowane do wcześniejszych Generator
+  values na progach kontrolnych. Cleanup nie robi ukrytej inflacji ani nerfa.
+- _generate_items() jest teraz prawdziwym fill-missing-only. Authored price,
+  defense, heal/mana, affixy, staty, properties i runy nie są najpierw
+  nadpisywane, a potem odtwarzane.
+- Denominacje sprzedaży itemu są traktowane jako jedna authored grupa. Jeżeli
+  resource ma np. sell_gold, Generator nie dopisze mu dodatkowego sell_silver.
+  price=None nadal oznacza świadomie niesprzedawany/niekupowalny item.
+- _generate_skills() i _skill_kind_fields() są fill-missing-only. Authored
+  cooldown=0, mana, mult, heal/drain/execute i inne liczby nie są chwilowo
+  przepisywane.
+- Autoatak multi-hit ma czytelniejszy komunikat NVDA/UOSS:
+  "Trafiasz X razy po Y obrażeń. Łącznie Z." Mechanika pozostaje bez hard capu
+  liczby hitów i każdy hit zachowuje pełne per-hit damage.
+- Fast predeploy blokuje powrót starej równoległej ekonomii, snapshot/restore,
+  monkey-patchy progression_600 oraz bezpośredniego overwrite skilli/itemów.
 
 ==============================================================================
 Soulbound v1.13.16 — Player Math poza Generator Core
