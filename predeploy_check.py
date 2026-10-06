@@ -153,6 +153,25 @@ if (
 _consider_source_v11331 = (
     _root / "player/session_mixins/combat_damage.py"
 ).read_text(encoding="utf-8")
+_checkpoint_portal_source_v11331 = (
+    _root / "player/session_mixins/dungeon_progression.py"
+).read_text(encoding="utf-8")
+for _needle in (
+    "def checkpoint_portal_floors_v11331",
+    '"mythic_crypt"',
+    '"mythic_astral"',
+    "mythic_crypt_floor_id",
+    "mythic_astral_floor_id",
+    "Mityczny Portal Krypty",
+    "Mityczny Astralny Portal",
+    "checkpoint_portal_unlocked_v11331",
+    "party_checkpoint_portal_exit_v11331",
+):
+    if _needle not in _checkpoint_portal_source_v11331:
+        _semantic_errors.append(
+            "all-dungeon checkpoint portal regression: missing " + _needle
+        )
+
 _deep_dungeon_world_source_v11331 = (
     _root / "world/uoss_superboss_world.py"
 ).read_text(encoding="utf-8")
