@@ -142,20 +142,9 @@ def troll_quest_stat_rewards_audit_v1128():
 
 
 TROLL_QUEST_STAT_REWARDS_AUDIT_V1128 = troll_quest_stat_rewards_audit_v1128()
-if TROLL_QUEST_STAT_REWARDS_AUDIT_V1128["error_count"]:
-    raise RuntimeError(
-        "Troll Quest Stat Rewards Audit v1.12.8 failed: "
-        + "; ".join(TROLL_QUEST_STAT_REWARDS_AUDIT_V1128["errors"][:100])
-    )
-
-
+# v1.13.30: audit failure is enforced by predeploy_full.py, not production startup.
 TROLL_SHAMAN_DENSITY_AUDIT_V03611 = troll_shaman_density_audit_v03611()
-if TROLL_SHAMAN_DENSITY_AUDIT_V03611["error_count"]:
-    raise RuntimeError(
-        "Troll Shaman Density Audit v0.36.11 failed: "
-        + "; ".join(TROLL_SHAMAN_DENSITY_AUDIT_V03611["errors"][:100])
-    )
-
+# v1.13.30: audit failure is enforced by predeploy_full.py, not production startup.
 LATEST_CHANGES_TITLE = "Soulbound v0.36.11 - More Troll Shamans"
 LATEST_CHANGES = [
     "Polowanie na Trolli Szamanów nadal wymaga 5 zabójstw.",
