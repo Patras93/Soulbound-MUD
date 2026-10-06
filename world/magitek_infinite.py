@@ -431,8 +431,12 @@ def boss_key_for_template(template):
 _boss_floor_chest_spec_before_v0382 = _boss_floor_chest_spec
 
 def _boss_floor_chest_spec(room_id):
+    room_id = str(room_id or "")
     floor = magitek_floor_number(room_id)
-    if is_magitek_boss_floor(floor):
+    if (
+        is_magitek_boss_floor(floor)
+        and room_id == boss_floor_chest_room_id("magitek", floor)
+    ):
         return ("magitek", floor, magitek_floor_stage(floor))
     return _boss_floor_chest_spec_before_v0382(room_id)
 
