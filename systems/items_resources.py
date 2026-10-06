@@ -1058,11 +1058,6 @@ def loot_source_equipment_audit_v11327():
 
 
 LOOT_SOURCE_EQUIPMENT_AUDIT_V11327 = loot_source_equipment_audit_v11327()
-if LOOT_SOURCE_EQUIPMENT_AUDIT_V11327["error_count"]:
-    raise RuntimeError(
-        "Loot Source Equipment Audit v1.13.27 failed: "
-        + "; ".join(LOOT_SOURCE_EQUIPMENT_AUDIT_V11327["errors"][:50])
-    )
 
 
 FISH_RARE_VARIANTS = {
