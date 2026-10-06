@@ -40,25 +40,53 @@ def _historical_help_line_v11328(line):
     )
 
 
-def _normalize_help_line_v11328(line, slot_count):
+def _normalize_help_line_v11328(line, slot_count, topic=""):
     text = str(line)
     if _historical_help_line_v11328(text):
         return text
 
-    # Safe current-progression replacements for old milestone prose.
-    replacements = (
-        # Specific capacity phrases must run before the generic Level 400 swap.
+    # Safe current-progression replacements for known 1-600 axes only.
+    # Do not blindly rewrite every number 400: a local subsystem may have its
+    # own legitimate cap unrelated to Character/Class/Soul/profession growth.
+    always_replacements = (
         ("maksymalnie 50 na Levelu 400", "maksymalnie 80 na Levelu 600"),
         ("50 na Levelu 400", "80 na Levelu 600"),
         ("10 na Levelu 1", "20 na Levelu 1"),
-        ("1-400", "1-600"),
-        ("1–400", "1–600"),
-        ("do levelu 400", "do levelu 600"),
-        ("do Levelu 400", "do Levelu 600"),
-        ("na Levelu 400", "na Levelu 600"),
     )
-    for old, new in replacements:
+    for old, new in always_replacements:
         text = text.replace(old, new)
+
+    topic_key = str(topic or "").casefold()
+    progression_topics = {
+        "podstawy", "score", "level", "xp", "statystyki", "dusza",
+        "soul", "aoe", "umiejetnosci", "skille", "kolejka",
+        "profesje", "tempo_profesji", "narzedzia", "narzedzia200",
+        "wiecej_ryb", "generator", "progresja600", "hp_mobow",
+        "soul_xp_bloki", "hp_bossow_lochow", "expowiska",
+        "krawiectwo", "garbarstwo", "stolarstwo", "zaklinanie",
+        "jubilerstwo2", "archeologia", "kartografia", "inzynier",
+        "klasy", "rasy", "materialy_eq", "sety_klasowe",
+        "gildia kurierow", "kurierzy",
+    }
+    axis_markers = (
+        "level postaci", "character level", "biegłość", "soul level",
+        "soul weapon mastery", "skill level", "profesj", "narzędzi",
+        "wędkarstwo", "górnictwo", "drwalstwo", "zielarstwo",
+        "gotowanie", "alchemia", "kowalstwo", "jubilerstwo",
+        "krawiectwo", "garbarstwo", "stolarstwo", "zaklinanie",
+        "archeologia", "kartografia", "reputacja kurier",
+    )
+    if topic_key in progression_topics or any(
+        marker in text.casefold() for marker in axis_markers
+    ):
+        for old, new in (
+            ("1-400", "1-600"),
+            ("1–400", "1–600"),
+            ("do levelu 400", "do levelu 600"),
+            ("do Levelu 400", "do Levelu 600"),
+            ("na Levelu 400", "na Levelu 600"),
+        ):
+            text = text.replace(old, new)
 
     for old_slots in (13, 14, 15, 16):
         text = re.sub(
@@ -101,7 +129,9 @@ def refresh_help_truth_current_v11328():
     for topic, value in list(HELP_TOPICS.items()):
         cleaned = []
         for line in _help_lines_v11328(value):
-            normalized = _normalize_help_line_v11328(line, slot_count)
+            normalized = _normalize_help_line_v11328(
+                line, slot_count, topic=topic
+            )
             if normalized and normalized not in cleaned:
                 cleaned.append(normalized)
         HELP_TOPICS[topic] = cleaned
@@ -466,8 +496,20 @@ def help_freshness_audit_v11328():
             if (
                 ("1-400" in line or "1–400" in line)
                 and "progresja400" not in str(topic).casefold()
+                and any(
+                    marker in folded
+                    for marker in (
+                        "level postaci", "character level", "biegłość",
+                        "soul level", "soul weapon mastery", "skill level",
+                        "profesj", "narzędzi", "wędkarstwo", "górnictwo",
+                        "drwalstwo", "zielarstwo", "gotowanie", "alchemia",
+                        "kowalstwo", "jubilerstwo", "krawiectwo",
+                        "garbarstwo", "stolarstwo", "zaklinanie",
+                        "archeologia", "kartografia", "reputacja kurier",
+                    )
+                )
             ):
-                stale_rows.append(f"{topic}:stale 1-400")
+                stale_rows.append(f"{topic}:stale main-axis 1-400")
             for old_slots in (13, 14, 15, 16):
                 if re.search(rf"\b{old_slots}\s+logicznych", line, re.IGNORECASE):
                     stale_rows.append(f"{topic}:stale {old_slots} slot grid")
