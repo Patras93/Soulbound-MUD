@@ -8,6 +8,7 @@ harder than ordinary open-world combat.
 """
 
 from config.balance import V0503_DIFFICULTY_PRESSURE
+from systems.infinite_equipment import infinite_coin_multiplier
 
 V0386_GLOBAL_DIFFICULTY_VERSION = "0.38.6"
 
@@ -344,6 +345,12 @@ def v0190_combat_reward(template, kind):
 
     mult = global_difficulty_multipliers_v0386(template)
     factor = mult["coin"] if str(kind) == "coins" else mult["reward"]
+    if str(kind) == "coins":
+        # v1.13.30: Crypt/Tower currency must not freeze at the global stage-600
+        # generator cap while their infinite difficulty and XP keep growing.
+        # Magitek is excluded by the helper because its authored silver already
+        # scales directly with uncapped floor/depth.
+        factor *= infinite_coin_multiplier(template)
     return min(V019_SAFE_INT, max(0, int(round(base * factor))))
 
 
