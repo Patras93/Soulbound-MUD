@@ -25,6 +25,8 @@ from systems.items_resources import (
     _BLACKSMITH_400_LABELS,
     _PROGRESSION_400_NAMES,
     base_fish_species_id,
+    equipment_defense_step_v1138,
+    equipment_progression_budget_v1138,
 )
 
 
@@ -298,41 +300,9 @@ def _class_equipment_rarity_name(required_mastery):
 
 
 def class_equipment_stat_budget(required_mastery, slot=None):
-    """Łączny budżet trzech bazowych statów klasowego EQ.
-
-    v1.13.8: progression is intentionally felt, not cosmetic. Early tiers grow
-    calmly, then the curve accelerates from mastery 30-50 onward so every new
-    set is a meaningful upgrade instead of +1 total point per tier.
-    """
+    """Łączny budżet trzech bazowych statów klasowego EQ."""
     mastery = class_equipment_unlocked_tier(required_mastery)
-    anchors = (
-        (1, 9),
-        (10, 14),
-        (20, 19),
-        (30, 25),
-        (40, 31),
-        (50, 38),
-        (60, 48),
-        (70, 58),
-        (80, 70),
-        (90, 82),
-        (100, 100),
-        (150, 160),
-        (200, 240),
-        (300, 420),
-        (400, 650),
-        (500, 900),
-        (600, 1200),
-    )
-    if mastery <= anchors[0][0]:
-        return anchors[0][1]
-    if mastery >= anchors[-1][0]:
-        return anchors[-1][1]
-    for (m0, b0), (m1, b1) in zip(anchors, anchors[1:]):
-        if m0 <= mastery <= m1:
-            ratio = (mastery - m0) / float(m1 - m0)
-            return max(3, int(round(b0 + (b1 - b0) * ratio)))
-    return anchors[-1][1]
+    return equipment_progression_budget_v1138(mastery)
 
 
 def class_equipment_unlocked_tier(mastery_level):
@@ -358,20 +328,7 @@ def _register_class_equipment_shops():
             # Early game rośnie spokojnie, od 50+ kolejne progi dają już
             # wyraźniejszą ochronę. Dzięki capowi redukcji zwykłe moby nie
             # stają się całkowicie bezbronne, a bossowie pozostają groźni.
-            defense_anchors = (
-                (1, 0), (10, 1), (20, 2), (30, 3), (40, 4),
-                (50, 5), (60, 6), (70, 7), (80, 8), (90, 9),
-                (100, 10), (150, 14), (200, 18), (300, 26),
-                (400, 34), (500, 42), (600, 50),
-            )
-            defense_step = 0
-            for (_m0, _d0), (_m1, _d1) in zip(defense_anchors, defense_anchors[1:]):
-                if _m0 <= required_mastery <= _m1:
-                    _ratio = (required_mastery - _m0) / float(_m1 - _m0)
-                    defense_step = int(round(_d0 + (_d1 - _d0) * _ratio))
-                    break
-            else:
-                defense_step = defense_anchors[-1][1] if required_mastery >= 600 else 0
+            defense_step = equipment_defense_step_v1138(required_mastery)
             # v0.36.0: każdy próg 1/10/20/30/.../600 ma inny realny
             # budżet podstawowych statów. Wcześniej affix rósł co drugi próg,
             # więc np. część niskiego EQ 1/10/20 mogła mieć identyczne
