@@ -162,13 +162,10 @@ class SessionAdminToolsMixin:
             if self.server.db.item_qty(self.account_id, key_id) > 0:
                 return spec
 
-            # Skrzynia istnieje przy bossie również przed jego zabiciem oraz
-            # dopóki jego ciało leży w tym dokładnym pokoju. Po otwarciu trwały
-            # marker powyżej ukrywa ją aż do kolejnego prawidłowego killa.
-            for mob in self.server.world.room_mobs(self.character.room_id):
-                template = MOB_TEMPLATES.get(mob.template_id, {})
-                if boss_key_for_template(template) == key_id:
-                    return spec
+            # Skrzynia pojawia się dopiero po pokonaniu bossa: albo jego
+            # ciało nadal leży w dokładnym pokoju bossa, albo gracz ma już
+            # właściwy klucz zabrany z tego ciała. Żywy boss sam nie tworzy
+            # widocznej skrzyni.
             for corpse in self.server.world.room_corpses(self.character.room_id):
                 template = MOB_TEMPLATES.get(corpse.mob_template_id, {})
                 if boss_key_for_template(template) == key_id:
