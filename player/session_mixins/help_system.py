@@ -112,6 +112,8 @@ class SessionHelpSystemMixin:
                 "prowadz <cel> / walk <cel> - automatycznie prowadzi dokładnie do rozpoznanej lokalizacji lub NPC; działa też walk to <cel>",
                 "walk krypta dół - będąc na piętrze zwykłej Krypty prowadzi przed zejście na następne piętro; samo zejście wykonujesz ręcznie",
                 "/ - sam znak ukośnika i Enter natychmiast teleportuje do Świątyni Odrodzenia; w drużynie obejmuje tylko osoby stojące razem w tej samej lokacji",
+                "hp - HP, Mana i aktywne czasowe efekty; score pokazuje tę samą linię efektów w pełnym profilu",
+                "buffs / effects / efekty - szybka lista aktywnych buffów i stanów bojowych z pozostałym czasem; obejmuje wszystkie klasy, V-MAX, Guard, Evade i Overheat",
                 "wimpy set <1-99> - automatyczna ucieczka przy wskazanym procencie HP; wimpy off wyłącza; wimpy pokazuje status",
                 "eventxp / xpevent - status godzinnego eventu x2 EXP; aktywne okno trwa pierwsze 15 minut każdej godziny",
                 "prowadz status - bieżący cel, pozostała droga i następny krok; prowadz stop - natychmiast przerwij prowadzenie",
