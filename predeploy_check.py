@@ -1649,6 +1649,18 @@ if (
         "startup safety regression: HELP freshness can still raise at runtime"
     )
 
+_native_runtime_source_v11330 = (_root / "core/native_runtime.py").read_text(
+    encoding="utf-8"
+)
+for _needle in (
+    '"SOULBOUND_HISTORICAL_AUDITS"',
+    "active_modules = FULL_RUNTIME_MODULES if historical_audits_enabled else RUNTIME_MODULES",
+):
+    if _needle not in _native_runtime_source_v11330:
+        _semantic_errors.append(
+            "startup safety regression: full semantic audit is coupled to historical runtime modules"
+        )
+
 _generator_source_v11330 = (_root / "core/generator_core.py").read_text(
     encoding="utf-8"
 )
