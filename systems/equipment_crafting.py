@@ -825,7 +825,7 @@ _catalog_mut.catalog_assign({
     "name": "Szczypce Jubilerskie",
     "type": "tool",
     "tool_type": "jewelcrafting",
-    "price": 10,
+    "price": 1200,
     "currency": "silver",
     "desc": (
         "Podstawowe narzędzie Jubilerstwa. "

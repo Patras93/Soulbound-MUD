@@ -1,5 +1,21 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.13.8
+Aktualna paczka: v1.13.9
+
+==============================================================================
+Soulbound v1.13.9 — hotfix cen narzędzi startowych po Generator Core fallback
+==============================================================================
+
+- Naprawiono crash startowy Railway po v1.13.8: Currency Economy Audit v0.30.21
+  zgłaszał starter tool price ...=500 i zatrzymywał ładowanie runtime.
+- Przyczyną była nowa zasada v1.13.8, według której Generator Core zachowuje
+  ręcznie wpisane ceny. Siedem starszych narzędzi bazowych i Szczypce Jubilerskie
+  nadal miały historyczne price=10, podczas gdy sześć nowszych narzędzi miało
+  już kanoniczne price=1200.
+- Wszystkie 14 narzędzi profesji ma teraz jednolitą cenę startową 1200 srebra
+  (12 Gold) i nadal każde kupuje się tylko raz na postać.
+- Audit ekonomii pozostaje rygorystyczny; nie został poluzowany ani wyłączony.
+- Fast predeploy ma nowy guard źródłowy, który wymaga price=1200 dla wszystkich
+  14 narzędzi i blokuje ponowne rozjechanie katalogów.
 
 ==============================================================================
 Soulbound v1.13.8 — odczuwalna progresja + Generator Core jako fallback
