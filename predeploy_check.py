@@ -1637,16 +1637,44 @@ for _needle in (
         _semantic_errors.append("reward consistency regression: missing " + _needle)
 if "v1138_activity_income(stage, \"courier\"" not in _courier_source_v11330:
     _semantic_errors.append("reward consistency regression: Courier lost current income floor")
-for _needle in (
-    'v1138_activity_income(stage, "ocean_trade"',
-    'v1138_activity_income(stage, "ocean_treasure"',
+if 'v1138_activity_income(stage, "ocean_trade"' not in _ocean_source_v11330:
+    _semantic_errors.append("reward consistency regression: Ocean trade lost income floor")
+if (
+    "def ocean_treasure_v1000(" not in _ocean_source_v11330
+    or '"ocean_treasure"' not in _ocean_source_v11330
+    or "v1138_activity_income(" not in _ocean_source_v11330
 ):
-    if _needle not in _ocean_source_v11330:
-        _semantic_errors.append("reward consistency regression: Ocean missing " + _needle)
+    _semantic_errors.append("reward consistency regression: Ocean treasure lost income floor")
 if 'v1138_activity_income(stage, "dynamic_world"' not in _generation_source_v11330:
     _semantic_errors.append("reward consistency regression: dynamic world lost income floor")
 if "economy_stage_anchor_v11314(stage)" not in _world_state_source_rewards_v11330:
     _semantic_errors.append("reward consistency regression: treasure chest lost stage economy floor")
+
+_protocol_source_rewards_v11330 = (_root / "network/protocol_gameplay_utils.py").read_text(
+    encoding="utf-8"
+)
+for _needle in (
+    "def v1138_boss_chest_gold_anchor(",
+    "(600, 700_000)",
+    "def boss_chest_reward_roll(",
+    '"mythic_crypt": 1.60',
+    '"mythic_astral": 1.75',
+):
+    if _needle not in _protocol_source_rewards_v11330:
+        _semantic_errors.append("boss chest reward regression: missing " + _needle)
+
+_economy_quests_source_v11330 = (_root / "world/economy_quests.py").read_text(
+    encoding="utf-8"
+)
+for _needle in (
+    "def v11161_endgame_mob_coin_floor(",
+    "if hp >= 3_000_000:",
+    "return 25_000_000",
+    "V11161_PROFESSION_REWARD_FLOORS = {",
+    "600:125_000_000",
+):
+    if _needle not in _economy_quests_source_v11330:
+        _semantic_errors.append("endgame reward floor regression: missing " + _needle)
 
 _uoss_runtime_source_v11330 = (_root / "world/uoss_superboss_runtime.py").read_text(
     encoding="utf-8"
