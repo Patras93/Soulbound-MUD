@@ -1032,7 +1032,8 @@ def loot_source_equipment_audit_v11327():
                 break
 
     corpse = [
-        item for item in ITEMS.values() if item.get("corpse_material")
+        item for item in ITEMS.values()
+        if item.get("corpse_material") and not item.get("infinite_depth_variant")
     ]
     if not corpse:
         errors.append("missing corpse material equipment")
