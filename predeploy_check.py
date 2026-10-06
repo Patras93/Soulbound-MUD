@@ -171,7 +171,7 @@ for _needle in (
         )
 for _needle in (
     "uoss_full_progression_source_xp_exact = bool(",
-    "source_xp if uoss_full_progression_source_xp_exact",
+    "if uoss_full_progression_source_xp_exact",
     "bazowy EXP każdego statu",
 ):
     if _needle not in _uoss_combat_reward_source_v11331:
