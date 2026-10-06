@@ -314,8 +314,8 @@ for _needle in (
 for _needle in (
     "legacy_explicit_sale_value_v11325(item_id, item)",
     'if item.get("type") == "armor":',
-    "old explicit sell_* values",
-    "legacy shop armor",
+    'total = max(',
+    'result["silver"], result["gold"], result["mithril"]',
 ):
     if _needle not in _sales_source_v11325:
         _semantic_errors.append("legacy sale floor regression: missing " + _needle)
