@@ -23,6 +23,7 @@ from core.progression_resources import (
 from network.protocol_gameplay_utils import roll_profession_gather_quantity
 from systems.dungeons_regions import profession_dungeon_floor
 from systems.equipment_crafting import GEM_QUALITY_INFO, roll_mining_geode
+from systems.game_feel_rewards import gather_jackpot_v11324
 from systems.items_resources import (
     RARE_FISH_VARIANT_IDS,
     base_fish_species_id,
@@ -173,6 +174,24 @@ class SessionGatheringActionsMixin:
                     f"Bonus Tieru {current_tier} Wędki: wyciągasz dodatkowo {item['name']} x1."
                 )
 
+
+            _o_kurde_gather_v11324 = gather_jackpot_v11324(
+                tool_level, profession_level, random.random()
+            )
+            _o_kurde_gather_xp_v11324 = 1.0
+            if _o_kurde_gather_v11324:
+                _o_kurde_extra_v11324 = max(1, int(resource_quest_quantity))
+                self.store_profession_resource(item_id, _o_kurde_extra_v11324)
+                resource_quest_quantity += _o_kurde_extra_v11324
+                _o_kurde_gather_xp_v11324 = float(
+                    _o_kurde_gather_v11324["xp_multiplier"]
+                )
+                await self.send(
+                    "O KURDE — WYJĄTKOWO OBFITY POŁÓW: "
+                    f"dodatkowo {ITEMS[item_id]['name']} x{_o_kurde_extra_v11324}; "
+                    f"XP profesji i narzędzia x{_o_kurde_gather_xp_v11324:.2f}."
+                )
+
             species_id = base_fish_species_id(item_id)
             trophy_value_mult = fish_trophy_value_multiplier_v1138(item_id)
             if trophy_value_mult >= 1.50:
@@ -266,6 +285,7 @@ class SessionGatheringActionsMixin:
                     * fish_xp_scale
                     * floor_xp_mult
                     * jackpot_xp_mult
+                    * _o_kurde_gather_xp_v11324
                 )),
             )
             tool_xp = balanced_gather_tool_xp(
@@ -277,6 +297,7 @@ class SessionGatheringActionsMixin:
                         * fish_xp_scale
                         * floor_xp_mult
                         * min(2.75, jackpot_xp_mult)
+                        * _o_kurde_gather_xp_v11324
                     )),
                 ),
             )
@@ -374,6 +395,24 @@ class SessionGatheringActionsMixin:
                     f"Bonus Tieru {current_tier} Kilofa: wydobywasz dodatkowo {item['name']} x1."
                 )
 
+
+            _o_kurde_gather_v11324 = gather_jackpot_v11324(
+                tool_level, profession_level, random.random()
+            )
+            _o_kurde_gather_xp_v11324 = 1.0
+            if _o_kurde_gather_v11324:
+                _o_kurde_extra_v11324 = max(1, int(mined_resource_quantity))
+                self.store_profession_resource(item_id, _o_kurde_extra_v11324)
+                mined_resource_quantity += _o_kurde_extra_v11324
+                _o_kurde_gather_xp_v11324 = float(
+                    _o_kurde_gather_v11324["xp_multiplier"]
+                )
+                await self.send(
+                    "O KURDE — WYJĄTKOWO OBFITY UROBek: "
+                    f"dodatkowo {ITEMS[item_id]['name']} x{_o_kurde_extra_v11324}; "
+                    f"XP profesji i narzędzia x{_o_kurde_gather_xp_v11324:.2f}."
+                )
+
             # v0.34.4: Mithril jest walutą, nie rudą. Jest niezależnym bonusem
             # i nigdy nie zastępuje normalnego urobku.
             floor_for_currency = mine_floor_number(self.character.room_id)
@@ -449,6 +488,7 @@ class SessionGatheringActionsMixin:
                         (10 + random.randint(0, 5))
                         * floor_xp_mult
                         * vein_xp_mult
+                        * _o_kurde_gather_xp_v11324
                     )),
                 ),
                 "mining",
@@ -567,6 +607,24 @@ class SessionGatheringActionsMixin:
                     f"Bonus Tieru {current_tier} Piły: pozyskujesz dodatkowo {item['name']} x1."
                 )
 
+
+            _o_kurde_gather_v11324 = gather_jackpot_v11324(
+                tool_level, profession_level, random.random()
+            )
+            _o_kurde_gather_xp_v11324 = 1.0
+            if _o_kurde_gather_v11324:
+                _o_kurde_extra_v11324 = max(1, int(resource_quest_quantity))
+                self.store_profession_resource(item_id, _o_kurde_extra_v11324)
+                resource_quest_quantity += _o_kurde_extra_v11324
+                _o_kurde_gather_xp_v11324 = float(
+                    _o_kurde_gather_v11324["xp_multiplier"]
+                )
+                await self.send(
+                    "O KURDE — WYJĄTKOWO OBFITY ZBIÓR DREWNA: "
+                    f"dodatkowo {ITEMS[item_id]['name']} x{_o_kurde_extra_v11324}; "
+                    f"XP profesji i narzędzia x{_o_kurde_gather_xp_v11324:.2f}."
+                )
+
             await self.record_item_collection(
                 item_id, source="Drwalstwo", announce=True, record_history=False, amount=resource_quest_quantity
             )
@@ -591,6 +649,7 @@ class SessionGatheringActionsMixin:
                         (10 + random.randint(0, 5))
                         * floor_xp_mult
                         * rare_xp_mult
+                        * _o_kurde_gather_xp_v11324
                     )),
                 ),
                 "woodcutting",
@@ -678,6 +737,24 @@ class SessionGatheringActionsMixin:
                     f"zbierasz dodatkowo {ITEMS[item_id]['name']} x1."
                 )
 
+
+            _o_kurde_gather_v11324 = gather_jackpot_v11324(
+                old_level, profession_level, random.random()
+            )
+            _o_kurde_gather_xp_v11324 = 1.0
+            if _o_kurde_gather_v11324:
+                _o_kurde_extra_v11324 = max(1, int(resource_quest_quantity))
+                self.store_profession_resource(item_id, _o_kurde_extra_v11324)
+                resource_quest_quantity += _o_kurde_extra_v11324
+                _o_kurde_gather_xp_v11324 = float(
+                    _o_kurde_gather_v11324["xp_multiplier"]
+                )
+                await self.send(
+                    "O KURDE — WYJĄTKOWO OBFITY ZBIÓR ZIÓŁ: "
+                    f"dodatkowo {ITEMS[item_id]['name']} x{_o_kurde_extra_v11324}; "
+                    f"XP profesji i narzędzia x{_o_kurde_gather_xp_v11324:.2f}."
+                )
+
             await self.record_item_collection(
                 item_id, source="Zielarstwo", announce=True, record_history=False, amount=resource_quest_quantity
             )
@@ -702,6 +779,7 @@ class SessionGatheringActionsMixin:
                         (10 + random.randint(0, 5))
                         * floor_xp_mult
                         * rare_xp_mult
+                        * _o_kurde_gather_xp_v11324
                     )),
                 ),
                 "herbalism",
