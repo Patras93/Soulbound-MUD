@@ -292,6 +292,7 @@ def refresh_help_truth_current_v11328():
         "Questy: rzadkie premie do automatycznych niemanualnych wypłat; manualne kontrakty zachowują dokładną kwotę.",
         "Eksploracja: nowe miejsce ma 2.5% szansy na ukryte znalezisko; sekretne/ukryte miejsce 8% i wyższą wartość.",
         "Walka: zwykłe moby mają realną presję oraz okazjonalne ataki charakterystyczne; loot ma osobny rank/stage trophy roll.",
+        "Nieskończone instancje po etapie 600 mogą dropić trwałe warianty Rezonans Głębi: głębsze źródło dalej zwiększa moc i wartość konkretnego egzemplarza.",
     ]
 
     HELP_TOPICS["ekwipunek"] = [
@@ -302,6 +303,7 @@ def refresh_help_truth_current_v11328():
         "Źródła EQ mają osobną tożsamość: sklep = przewidywalny set, Kowalstwo = masterwork/customizacja, Krypta = rarity+losowy affix, boss = mocniejszy/unikalny drop, UOSS = specjalne efekty/wardy/status-proof.",
         "shop info i porownaj czytają linię Tożsamość EQ. Gdy przedmiot ma określony etap źródła, czytają też Etap źródła EQ.",
         "Bossowy set klasowy przy tym samym mastery ma mocniejszy pakiet properties niż sklepowy odpowiednik; named boss uniques mają floor mocy zależny od źródła.",
+        "Rezonans Głębi działa ponad etapem źródła 600 w nieskończonych instancjach. Nie tworzy wymagania Biegłości 601+: wymaganie założenia pozostaje w normalnej progresji 1-600, a rośnie moc konkretnego dropu.",
         "EQ nie jest automatycznie bindowane tylko dlatego, że zostało zdobyte; konkretne wyjątki UOSS mogą mieć własne zasady pickup/bind.",
     ]
     HELP_TOPICS["eq"] = list(HELP_TOPICS["ekwipunek"])
@@ -313,6 +315,7 @@ def refresh_help_truth_current_v11328():
         "Corpse drop: losowy materiał, wariant i profil; dobry roll może być atrakcyjny dla konkretnego buildu.",
         "Krypta: rarity + losowy affix + rosnące properties/sockety; boss Krypty daje unikalny relikt.",
         "Boss/world boss: named unique lub boss-set skalowany do źródła; trudniejsze źródło nie powinno przegrywać z wcześniejszą drabiną tylko przez historyczne wartości.",
+        "Post-600: Krypta, Wieża i Magitek mogą nadać EQ Rezonans Głębi. Etap źródła może wtedy rosnąć ponad 600, ale required_mastery/poziom gracza nie rośnie ponad istniejący cap.",
         "UOSS Superboss: specjalne efekty, wardy, odporności/status-proof i relikty. shop info / eq info / porownaj pokazują realne dane.",
     ]
 
@@ -353,11 +356,13 @@ def refresh_help_truth_current_v11328():
         "Od v1.13.29 rarity chance rośnie z etapem źródła. Przy etapie 600 zwykły drop używa wag 30/30/20/13/7 dla Common/Rare/Epic/Legendary/Mythic, a boss 3/17/30/28/22.",
         "Bossowie Krypty mają unikalne relikty skalowane z piętrem. Po runie może pojawić się Dungeon Summary.",
         "Nieskończona część może skalować zagrożenie dalej niż główna progresja 600.",
+        "Po etapie źródła 600 corpse-EQ Krypty dostaje Rezonans Głębi: kolejne głębokości dalej podnoszą staty/properties/sockety i wartość sprzedaży bez wymagania Biegłości ponad 600.",
     ]
 
     HELP_TOPICS["wieza"] = [
         "Wieża Astralna i Mityczna Wieża rosną poziom po poziomie; boss co 10 poziomów jest dodatkowym skokiem.",
         "Tower Overdrive i Global Difficulty działają razem; zagrożenie może rosnąć dalej niż główna progresja 600.",
+        "Po etapie źródła 600 EQ z Wieży dostaje Rezonans Głębi, a waluta z nieskończonych poziomów dalej rośnie zamiast zatrzymywać się na ekonomii stage 600.",
         "UOSS Superbossowie są osobnymi encounterami świata, nie rotacją bossów Wieży.",
         "astralportal i mapa instancji pokazują bieżące checkpointy/progres.",
     ]
