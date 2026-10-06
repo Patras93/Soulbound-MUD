@@ -253,6 +253,11 @@ for _floor, (_item_id, _name, _defense, _affix, _amount) in BOSS_RELICS.items():
         "affix": _affix,
         "affix_amount": _scaled_amount,
         "boss_relic_floor": _floor,
+        "equipment_identity_source": "crypt_boss",
+        "equipment_identity_role": "unique_relic",
+        "equipment_identity_label": (
+            "Boss Krypty — unikalny relikt z mocnym affixem i socketami"
+        ),
     }, 'ITEMS', ITEMS, (_item_id,))
 
 _catalog_mut.catalog_assign({
@@ -323,6 +328,19 @@ WORLD_BOSS_UNIQUES = {
 }
 _catalog_mut.catalog_update_path('ITEMS', ITEMS, (), WORLD_BOSS_UNIQUES)
 
+for _world_boss_unique_id in WORLD_BOSS_UNIQUES:
+    _world_boss_unique_item = ITEMS[_world_boss_unique_id]
+    _world_boss_unique_item.setdefault(
+        "equipment_identity_source", "world_boss"
+    )
+    _world_boss_unique_item.setdefault(
+        "equipment_identity_role", "named_unique"
+    )
+    _world_boss_unique_item.setdefault(
+        "equipment_identity_label",
+        "World Boss — nazwany unikat, nie kopia sklepowego EQ",
+    )
+
 def crypt_variant_id(base_item_id, rarity_key, affix_key):
     return f"{base_item_id}__{rarity_key}__{affix_key}"
 
@@ -371,6 +389,11 @@ def build_crypt_loot_variants():
         base_item["crypt_base_item"] = base_item_id
         base_item["affix"] = None
         base_item["affix_amount"] = 0
+        base_item["equipment_identity_source"] = "crypt"
+        base_item["equipment_identity_role"] = "random_affix"
+        base_item["equipment_identity_label"] = (
+            "Krypta — polowanie na rarity i losowy affix"
+        )
 
         for rarity_key, rarity in CRYPT_RARITIES.items():
             for affix_key, affix_name in CRYPT_AFFIXES.items():
@@ -464,6 +487,11 @@ def build_crypt_loot_variants():
                     "crypt_base_item": base_item_id,
                     "affix": affix_key,
                     "affix_amount": amount,
+                    "equipment_identity_source": "crypt",
+                    "equipment_identity_role": "random_affix",
+                    "equipment_identity_label": (
+                        "Krypta — rarity, losowy affix i rosnące sockety"
+                    ),
                 }, 'ITEMS', ITEMS, (variant_id,))
 
 def roll_crypt_rarity(is_boss=False):

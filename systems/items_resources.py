@@ -455,6 +455,11 @@ def _register_blacksmith_items():
                 "properties": dict(masterwork["properties"]),
                 "sockets": int(masterwork["sockets"]),
                 "crafted_masterwork": True,
+                "equipment_identity_source": "blacksmith",
+                "equipment_identity_role": "masterwork_customization",
+                "equipment_identity_label": (
+                    "Kowalstwo — masterwork, właściwość materiałowa i sockety"
+                ),
                 "price": None,
                 "desc": (
                     f"Wyposażenie wykute przez Kowala. "

@@ -139,6 +139,75 @@ def class_equipment_style_profile(class_name, style_index):
     return CLASS_EQUIPMENT_STYLE_PROFILES[role]
 
 
+def _merge_equipment_properties_v11326(*property_sets):
+    merged = {}
+    for property_set in property_sets:
+        for key, value in (property_set or {}).items():
+            merged[key] = round(
+                float(merged.get(key, 0.0)) + float(value or 0.0), 2
+            )
+    return {key: value for key, value in merged.items() if abs(value) > 1e-9}
+
+
+def class_equipment_style_properties_v11326(
+    class_name, mastery, slot=None, style_index=1
+):
+    """A real combat identity for the three shop styles.
+
+    The budget is deliberately smaller than class profile properties: style is
+    a choice, not a second full item budget.
+    """
+    mastery = max(1, min(CLASS_MASTERY_MAX_LEVEL, int(mastery or 1)))
+    progress = (mastery - 1) / float(max(1, CLASS_MASTERY_MAX_LEVEL - 1))
+    amount = 0.15 + 0.85 * (progress ** 0.85)
+    amount *= float(CLASS_EQUIPMENT_SLOT_PROPERTY_SCALE.get(str(slot or ""), 1.0))
+    role = class_equipment_style_role(class_name, style_index)
+
+    if role == "ofensywny":
+        key = (
+            "magic_damage_pct"
+            if class_type_for_name(class_name) == "magic"
+            else "physical_damage_pct"
+        )
+        return {key: round(amount, 2)}
+    if role == "pancerny":
+        return {
+            "physical_defense_pct": round(amount * 0.55, 2),
+            "magic_defense_pct": round(amount * 0.45, 2),
+        }
+
+    # Balanced trades peak damage/mitigation for resource stability.
+    key = (
+        "max_mana_pct"
+        if class_type_for_name(class_name) == "magic"
+        else "max_hp_pct"
+    )
+    return {key: round(amount, 2)}
+
+
+def legendary_class_set_properties_v11326(class_name, mastery, slot=None):
+    """Boss-set pieces are a meaningful upgrade, not recolored shop gear."""
+    mastery = max(1, min(CLASS_MASTERY_MAX_LEVEL, int(mastery or 1)))
+    progress = mastery / float(max(1, CLASS_MASTERY_MAX_LEVEL))
+    source_bonus = (0.20 + 0.55 * (progress ** 0.80))
+    source_bonus *= float(
+        CLASS_EQUIPMENT_SLOT_PROPERTY_SCALE.get(str(slot or ""), 1.0)
+    )
+    typed_damage = (
+        "magic_damage_pct"
+        if class_type_for_name(class_name) == "magic"
+        else "physical_damage_pct"
+    )
+    return _merge_equipment_properties_v11326(
+        class_equipment_profile_properties(class_name, mastery, slot),
+        {
+            typed_damage: round(source_bonus, 2),
+            "physical_defense_pct": round(source_bonus * 0.35, 2),
+            "magic_defense_pct": round(source_bonus * 0.35, 2),
+        },
+    )
+
+
 def class_equipment_split_stat_budget(class_name, legacy_amount, slot=None, style_index=1):
     # v1.13.6: każdy klasowy element ma trzy realne statystyki bazowe.
     # Łączny budżet pozostaje kontrolowany; minimalnie 3, aby żadna oś nie
@@ -395,6 +464,14 @@ def _register_class_equipment_shops():
                     flat_power = class_equipment_flat_power_channels(
                         class_name, required_mastery, slot, style_index
                     )
+                    item_properties = _merge_equipment_properties_v11326(
+                        class_equipment_profile_properties(
+                            class_name, required_mastery, slot
+                        ),
+                        class_equipment_style_properties_v11326(
+                            class_name, required_mastery, slot, style_index
+                        ),
+                    )
                     # v1.13.14: historyczna cena jest minimum, ale realny
                     # koszt śledzi wspólną krzywą zarobków 1-600.
                     legacy_price = max(
@@ -419,6 +496,15 @@ def _register_class_equipment_shops():
                         "defense": defense,
                         "attack": int(flat_power["attack"]),
                         "magic_attack": int(flat_power["magic_attack"]),
+                        "properties": dict(item_properties),
+                        "equipment_identity_source": "class_shop",
+                        "equipment_identity_role": class_equipment_style_role(
+                            class_name, style_index
+                        ),
+                        "equipment_identity_label": (
+                            "Sklep klasowy — przewidywalny set i profil "
+                            + class_equipment_style_role(class_name, style_index)
+                        ),
                         "price": price,
                         "currency": "silver",
                         "rarity": "crafted",
@@ -726,6 +812,11 @@ def _register_legendary_class_loot():
                     raise RuntimeError(
                         f"Legendary class EQ stat triplet mismatch: {class_name} {slot}"
                     )
+                legendary_properties_v11326 = (
+                    legendary_class_set_properties_v11326(
+                        class_name, mastery, slot
+                    )
+                )
                 _catalog_mut.catalog_assign({
                     "name": f"{slot_name} {set_name} +{mastery}",
                     "type": "armor",
@@ -740,6 +831,13 @@ def _register_legendary_class_loot():
                         secondary_stat: secondary_amount,
                         tertiary_stat: tertiary_amount,
                     },
+                    "properties": dict(legendary_properties_v11326),
+                    "equipment_identity_source": "boss_set",
+                    "equipment_identity_role": "boss_upgrade",
+                    "equipment_identity_label": (
+                        "Bossowy set klasowy — mocniejsze właściwości "
+                        "niż sklepowy odpowiednik"
+                    ),
                     "class_base_stat_pair": (primary_stat, secondary_stat),
                     "class_base_stat_triplet": (
                         primary_stat, secondary_stat, tertiary_stat,
@@ -816,6 +914,11 @@ def _register_legendary_class_loot():
                 "required_class": class_name,
                 "required_mastery": mastery,
                 "properties": properties,
+                "equipment_identity_source": "boss_relic",
+                "equipment_identity_role": "unique_power",
+                "equipment_identity_label": (
+                    "Relikt bossa — unikalna alternatywa dla części setowej"
+                ),
                 "legendary_class_relic": True,
                 "legendary_loot_tier": mastery,
                 "desc": (
@@ -830,6 +933,82 @@ def _register_legendary_class_loot():
 
 
 _register_legendary_class_loot()
+
+
+def equipment_identity_audit_v11326():
+    errors = []
+
+    class_shop_items = [
+        item
+        for item in ITEMS.values()
+        if item.get("class_shop_item") and not item.get("legendary_set_loot")
+    ]
+    if not class_shop_items:
+        errors.append("missing class shop items")
+    else:
+        for item in class_shop_items[:200]:
+            if item.get("equipment_identity_source") != "class_shop":
+                errors.append("class shop identity source missing")
+                break
+            if not item.get("properties"):
+                errors.append("class shop item has no identity properties")
+                break
+
+    roles = {}
+    for item in class_shop_items:
+        key = (
+            item.get("required_class"),
+            item.get("required_mastery"),
+            item.get("slot"),
+        )
+        role = item.get("equipment_identity_role")
+        if role:
+            roles.setdefault(key, {})[role] = dict(item.get("properties") or {})
+    if not any(
+        len(group) >= 3 and len({tuple(sorted(v.items())) for v in group.values()}) >= 3
+        for group in roles.values()
+    ):
+        errors.append("shop styles are not materially distinct")
+
+    legendary_sets = [
+        item for item in ITEMS.values() if item.get("legendary_set_loot")
+    ]
+    if not legendary_sets:
+        errors.append("missing legendary boss sets")
+    else:
+        if not all(item.get("equipment_identity_source") == "boss_set" for item in legendary_sets[:100]):
+            errors.append("boss set identity source missing")
+        if not all(item.get("properties") for item in legendary_sets[:100]):
+            errors.append("boss set identity properties missing")
+
+    blacksmith = [
+        item for item in ITEMS.values() if item.get("crafted_masterwork")
+    ]
+    if blacksmith and not all(
+        item.get("equipment_identity_source") == "blacksmith"
+        and int(item.get("sockets", 0) or 0) >= 1
+        and bool(item.get("properties"))
+        for item in blacksmith[:100]
+    ):
+        errors.append("blacksmith masterwork identity incomplete")
+
+    return {
+        "version": "1.13.26",
+        "class_shop_count": len(class_shop_items),
+        "legendary_set_count": len(legendary_sets),
+        "blacksmith_count": len(blacksmith),
+        "error_count": len(errors),
+        "errors": errors,
+    }
+
+
+EQUIPMENT_IDENTITY_AUDIT_V11326 = equipment_identity_audit_v11326()
+if EQUIPMENT_IDENTITY_AUDIT_V11326["error_count"]:
+    raise RuntimeError(
+        "Equipment Identity Audit v1.13.26 failed: "
+        + "; ".join(EQUIPMENT_IDENTITY_AUDIT_V11326["errors"][:50])
+    )
+
 
 _catalog_mut.catalog_assign({
     "name": "Szczypce Jubilerskie",
@@ -1049,6 +1228,9 @@ def _register_jewelcrafting_recipes():
         _catalog_mut.catalog_assign({
             "name": f"{tier['label']} Pierścień Jubilerski", "type": "armor", "slot": "ring",
             "defense": tier["defense"], "price": None, "rarity": "crafted", "rarity_name": "Jubilerski",
+            "equipment_identity_source": "jewelcraft",
+            "equipment_identity_role": "sockets_and_affix",
+            "equipment_identity_label": "Jubilerstwo — gniazda i precyzyjny affix",
             "affix": tier["affix"], "affix_amount": tier["affix_amount"], "jewelcraft_level": tier["level"],
             "sockets": socket_count,
             "desc": f"Pierścień wykonany przez Jubilerstwo. Wymaga Jubilerstwa level {tier['level']}. Obrona +{tier['defense']}.",
@@ -1056,6 +1238,9 @@ def _register_jewelcrafting_recipes():
         _catalog_mut.catalog_assign({
             "name": f"{tier['label']} Naszyjnik Jubilerski", "type": "armor", "slot": "necklace",
             "defense": tier["defense"] + 1, "price": None, "rarity": "crafted", "rarity_name": "Jubilerski",
+            "equipment_identity_source": "jewelcraft",
+            "equipment_identity_role": "sockets_and_affix",
+            "equipment_identity_label": "Jubilerstwo — gniazda i precyzyjny affix",
             "affix": tier["affix"], "affix_amount": tier["affix_amount"] + 1, "jewelcraft_level": tier["level"],
             "sockets": socket_count,
             "desc": f"Naszyjnik wykonany przez Jubilerstwo. Wymaga Jubilerstwa level {tier['level']}. Obrona +{tier['defense'] + 1}.",
@@ -1064,6 +1249,9 @@ def _register_jewelcrafting_recipes():
         _catalog_mut.catalog_assign({
             "name": f"{tier['label']} Kolczyk Jubilerski", "type": "armor", "slot": "earring",
             "defense": max(0, tier["defense"] - 1), "price": None, "rarity": "crafted", "rarity_name": "Jubilerski",
+            "equipment_identity_source": "jewelcraft",
+            "equipment_identity_role": "sockets_and_affix",
+            "equipment_identity_label": "Jubilerstwo — gniazda i precyzyjny affix",
             "affix": tier["affix"], "affix_amount": tier["affix_amount"] + 1, "jewelcraft_level": tier["level"],
             "sockets": earring_sockets,
             "desc": f"Kolczyk wykonany przez Jubilerstwo. Można nosić dwie sztuki. Wymaga Jubilerstwa level {tier['level']}.",
