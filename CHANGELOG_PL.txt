@@ -63,6 +63,11 @@ Soulbound v1.13.29 — DROP CHANCE & REWARD EXCITEMENT PASS
   Mechanika party dropu pozostaje bez zmian: jeden roll na drop, potem kopia
   wyniku dla każdego uprawnionego członka lokalnej drużyny.
 
+- HOTFIX Railway: aktywna finalna warstwa HELP została przeniesiona z
+  admin/help_truth_current_v11328.py do stabilnej nazwy admin/help_truth_current.py.
+  Runtime manifest, explicit exports i predeploy czytają teraz tę samą bezwersyjną
+  ścieżkę, zgodną z Maintainable Core Audit v0.50.0. Bez zmian gameplayu/save'ów.
+
 - Brak wipe, migracji bazy i nowych gate'ów.
 
 ==============================================================================

@@ -318,7 +318,7 @@ _equipment_help_source_v11329 = (_root / "world/equipment_help.py").read_text(en
 _combat_rewards_source_v11329 = (_root / "player/session_mixins/combat_rewards.py").read_text(encoding="utf-8")
 _dungeons_source_v11329 = (_root / "systems/dungeons_regions.py").read_text(encoding="utf-8")
 _uoss_runtime_source_v11329 = (_root / "world/uoss_superboss_runtime.py").read_text(encoding="utf-8")
-_help_truth_source_v11329 = (_root / "admin/help_truth_current_v11328.py").read_text(encoding="utf-8")
+_help_truth_source_v11329 = (_root / "admin/help_truth_current.py").read_text(encoding="utf-8")
 
 for _needle in (
     '"normal": 0.07',
@@ -387,7 +387,7 @@ for _needle in (
         _semantic_errors.append("HELP drop excitement v1.13.29 regression: missing " + _needle)
 
 # v1.13.28: HELP must describe the final runtime, not historical milestone prose.
-_help_truth_source_v11328 = (_root / "admin/help_truth_current_v11328.py").read_text(encoding="utf-8")
+_help_truth_source_v11328 = (_root / "admin/help_truth_current.py").read_text(encoding="utf-8")
 _help_system_source_v11328 = (_root / "player/session_mixins/help_system.py").read_text(encoding="utf-8")
 _runtime_manifest_source_v11328 = (_root / "core/runtime_manifest.py").read_text(encoding="utf-8")
 
@@ -419,7 +419,7 @@ for _needle in (
     if _needle not in _help_system_source_v11328:
         _semantic_errors.append("HELP command index v1.13.28 regression: missing " + _needle)
 
-_manifest_help = "'admin/help_truth_current_v11328.py'"
+_manifest_help = "'admin/help_truth_current.py'"
 _manifest_late_layers = (
     "'world/uoss_superboss_world.py'",
     "'world/global_difficulty_overdrive.py'",
@@ -429,7 +429,7 @@ _manifest_late_layers = (
 )
 if _manifest_help not in _runtime_manifest_source_v11328:
     _semantic_errors.append("HELP truth v1.13.28 missing from runtime manifest")
-elif 'EXPLICIT_RUNTIME_EXPORTS["admin/help_truth_current_v11328.py"]' not in _runtime_manifest_source_v11328:
+elif 'EXPLICIT_RUNTIME_EXPORTS["admin/help_truth_current.py"]' not in _runtime_manifest_source_v11328:
     _semantic_errors.append(
         "HELP truth v1.13.28 must stay on explicit runtime lane"
     )
