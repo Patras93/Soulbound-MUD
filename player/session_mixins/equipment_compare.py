@@ -155,6 +155,11 @@ class SessionEquipmentCompareV0600Mixin:
             await self.send(
                 "Tożsamość EQ: " + str(_identity_label_v11326) + "."
             )
+        _source_stage_v11327 = int(item.get("source_progression_stage", 0) or 0)
+        if _source_stage_v11327 > 0:
+            await self.send(
+                f"Etap źródła EQ: {_source_stage_v11327}."
+            )
         await self.send(self.format_item_description(item_id, item))
         if not equipped_rows:
             new = self._comparison_snapshot_v0600(item_id, item, None)
