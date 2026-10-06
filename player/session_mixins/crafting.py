@@ -18,6 +18,7 @@ from core.classes_skills import ROOMS
 from core.mines_threat import ITEMS, TOOL_SHOP_ROOMS
 from network.protocol_gameplay_utils import find_by_name, normalize_lookup_text, roll_crafting_xp
 from systems.content_registry import NPCS
+from systems.game_feel_rewards import craft_inspiration_v11324
 from systems.crafting_expansion import CRAFT_MATERIAL_STORAGE_IDS
 from systems.crafting_quality import (
     CRAFT_CRIT_AFFIX_NAMES_V03054,
@@ -416,6 +417,13 @@ class SessionCraftingMixin:
                 self.account_id, profession, mastery_category
             )
             mastery_before = crafting_mastery_level_v03054(mastery_row["actions"])
+            _o_kurde_craft_v11324 = craft_inspiration_v11324(
+                profession_level, old_tool_level, mastery_before, random.random()
+            )
+            _o_kurde_craft_xp_v11324 = (
+                float(_o_kurde_craft_v11324["xp_multiplier"])
+                if _o_kurde_craft_v11324 else 1.0
+            )
             quality_key = crafting_quality_roll_v03054(
                 profession_level, old_tool_level, mastery_before
             )
@@ -553,6 +561,16 @@ class SessionCraftingMixin:
                 if "profession_xp" in recipe
                 else 10 + random.randint(0, 5)
             )
+            tool_xp = max(1, int(round(tool_xp * _o_kurde_craft_xp_v11324)))
+            profession_xp = max(
+                1, int(round(profession_xp * _o_kurde_craft_xp_v11324))
+            )
+            if _o_kurde_craft_v11324:
+                await self.send(
+                    "O KURDE — MISTRZOWSKA INSPIRACJA: "
+                    f"XP {profession} i {tool_name} x{_o_kurde_craft_xp_v11324:.2f}. "
+                    "Nie zużywasz dodatkowych składników i nie powstaje darmowy duplikat EQ."
+                )
             messages, _profession_level_after, new_tool_level = self.grant_profession_progress(
                 profession, profession_xp, tool_type, tool_xp
             )
