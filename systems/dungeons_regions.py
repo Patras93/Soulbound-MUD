@@ -664,26 +664,126 @@ def build_crypt_loot_variants():
                     ),
                 }, 'ITEMS', ITEMS, (variant_id,))
 
-def roll_crypt_rarity(is_boss=False):
-    keys = list(CRYPT_RARITIES)
+V11329_CRYPT_END_WEIGHTS = {
+    "regular": {
+        "common": 30.0,
+        "rare": 30.0,
+        "epic": 20.0,
+        "legendary": 13.0,
+        "mythic": 7.0,
+    },
+    "boss": {
+        "common": 3.0,
+        "rare": 17.0,
+        "epic": 30.0,
+        "legendary": 28.0,
+        "mythic": 22.0,
+    },
+}
+
+
+def crypt_rarity_weights_v11329(is_boss=False, mastery=1):
+    mastery = max(1, min(600, int(mastery or 1)))
+    progress = ((mastery - 1) / 599.0) ** 0.80
     weight_key = "boss_weight" if is_boss else "regular_weight"
-    weights = [
-        CRYPT_RARITIES[key][weight_key]
-        for key in keys
-    ]
+    end_key = "boss" if is_boss else "regular"
+    weights = {}
+    for rarity_key, rarity in CRYPT_RARITIES.items():
+        start_weight = float(rarity[weight_key])
+        end_weight = float(V11329_CRYPT_END_WEIGHTS[end_key][rarity_key])
+        weights[rarity_key] = (
+            start_weight + (end_weight - start_weight) * progress
+        )
+    return weights
+
+
+def roll_crypt_rarity(is_boss=False, mastery=1):
+    weights_by_key = crypt_rarity_weights_v11329(
+        is_boss=is_boss, mastery=mastery
+    )
+    keys = list(CRYPT_RARITIES)
+    weights = [weights_by_key[key] for key in keys]
     return random.choices(keys, weights=weights, k=1)[0]
+
 
 def roll_crypt_loot_item(base_item_id, is_boss=False):
     item = ITEMS.get(base_item_id)
     if not item or not item.get("crypt_set_tier"):
         return base_item_id
 
-    rarity_key = roll_crypt_rarity(is_boss=is_boss)
+    mastery = max(
+        1,
+        min(
+            600,
+            int(
+                item.get("source_progression_stage")
+                or int(item.get("crypt_set_tier", 1) or 1) * 10
+            ),
+        ),
+    )
+    rarity_key = roll_crypt_rarity(
+        is_boss=is_boss, mastery=mastery
+    )
     affix_key = random.choice(tuple(CRYPT_AFFIXES))
     variant_id = crypt_variant_id(
         base_item_id, rarity_key, affix_key
     )
     return variant_id if variant_id in ITEMS else base_item_id
+
+
+def crypt_rarity_progression_audit_v11329():
+    errors = []
+    scores = {
+        "common": 0.0,
+        "rare": 1.0,
+        "epic": 2.0,
+        "legendary": 3.0,
+        "mythic": 4.0,
+    }
+
+    def expected_score(is_boss, mastery):
+        weights = crypt_rarity_weights_v11329(is_boss, mastery)
+        total = sum(weights.values())
+        return sum(
+            scores[key] * weight for key, weight in weights.items()
+        ) / max(1e-9, total)
+
+    stages = (1, 100, 200, 300, 400, 500, 600)
+    for is_boss in (False, True):
+        values = [expected_score(is_boss, stage) for stage in stages]
+        if any(values[i] >= values[i + 1] for i in range(len(values) - 1)):
+            errors.append(
+                ("boss" if is_boss else "regular")
+                + " Crypt rarity does not improve with depth"
+            )
+
+    for stage in stages:
+        if expected_score(True, stage) <= expected_score(False, stage):
+            errors.append(
+                f"Crypt boss rarity is not stronger at stage {stage}"
+            )
+            break
+
+    deep_regular = crypt_rarity_weights_v11329(False, 600)
+    deep_boss = crypt_rarity_weights_v11329(True, 600)
+    if deep_regular["mythic"] < 7.0:
+        errors.append("deep regular Crypt mythic weight below 7")
+    if deep_boss["mythic"] < 22.0:
+        errors.append("deep boss Crypt mythic weight below 22")
+
+    return {
+        "version": "1.13.29",
+        "error_count": len(errors),
+        "errors": errors,
+    }
+
+
+CRYPT_RARITY_PROGRESSION_AUDIT_V11329 = crypt_rarity_progression_audit_v11329()
+if CRYPT_RARITY_PROGRESSION_AUDIT_V11329["error_count"]:
+    raise RuntimeError(
+        "Crypt Rarity Progression Audit v1.13.29 failed: "
+        + "; ".join(CRYPT_RARITY_PROGRESSION_AUDIT_V11329["errors"][:50])
+    )
 
 
 ASTRAL_MIN_SOUL_LEVEL = 100
