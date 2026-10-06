@@ -953,6 +953,12 @@ LEGACY_COMPATIBILITY_ALLOWLIST = (
     'admin/architecture_audit_v0390.py',
     'admin/native_modules_audit_v0410.py',
 )
+# v1.13.30: keep the reviewed legacy order, but do not retain developer-audit
+# paths after those modules were removed from production RUNTIME_MODULES.
+LEGACY_COMPATIBILITY_ALLOWLIST = tuple(
+    path for path in LEGACY_COMPATIBILITY_ALLOWLIST
+    if path in RUNTIME_MODULES
+)
 
 EXPECTED_OVERRIDE_ORDER = {'_boss_floor_chest_spec': ['network/protocol_gameplay_utils.py', 'world/magitek_infinite.py'],
  'boss_floor_identity': ['world/economy_quests.py', 'world/magitek_infinite.py'],
