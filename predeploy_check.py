@@ -153,6 +153,34 @@ if (
 _consider_source_v11331 = (
     _root / "player/session_mixins/combat_damage.py"
 ).read_text(encoding="utf-8")
+_active_effects_source_v11331 = (
+    _root / "player/session_mixins/character_profile.py"
+).read_text(encoding="utf-8")
+_active_effects_registry_v11331 = (
+    _root / "player/session_mixins/command_registry.py"
+).read_text(encoding="utf-8")
+for _needle in (
+    "def active_effects_status_text_v11331",
+    "Aktywne efekty:",
+    "await self.active_effects_status_text_v11331()",
+    "skill_guard",
+    "skill_evade",
+    "mec_overheat_active_v0319",
+):
+    if _needle not in _active_effects_source_v11331:
+        _semantic_errors.append(
+            "active effects status regression: missing " + _needle
+        )
+for _needle in (
+    "'buffs': ('show_active_effects_v11331'",
+    "'effects': ('show_active_effects_v11331'",
+    "'efekty': ('show_active_effects_v11331'",
+):
+    if _needle not in _active_effects_registry_v11331:
+        _semantic_errors.append(
+            "active effects command regression: missing " + _needle
+        )
+
 for _needle in (
     "def consider_adaptive_preview_v11331",
     "adaptive_target_max_hp_v11330(",
