@@ -804,12 +804,7 @@ def dragon_world_audit_v1130():
     }
 
 DRAGON_WORLD_AUDIT_V1130 = dragon_world_audit_v1130()
-if DRAGON_WORLD_AUDIT_V1130["error_count"]:
-    raise RuntimeError(
-        "Dragon World Audit v1.13.0 failed: "
-        + "; ".join(DRAGON_WORLD_AUDIT_V1130["errors"][:100])
-    )
-
+# v1.13.30: audit failure is enforced by predeploy_full.py, not production startup.
 DRAGON_WORLD_STATE = {
     "version": DRAGON_WORLD_VERSION,
     "rooms": tuple(DRAGON_WORLD_ROOMS),
