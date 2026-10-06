@@ -1386,15 +1386,15 @@ _register_gem_quality_variants()
 GEODE_DEFINITIONS = {
     "stone_geode": {
         "name": "Geoda Kamienna", "min_tool": 20, "min_floor": 10, "max_gem_level": 60,
-        "sell_gold": 3, "quality_weights": (85, 15, 0, 0), "gold": (0, 1), "gem_qty": (1, 1),
+        "sell_gold": 20, "quality_weights": (85, 15, 0, 0), "gold": (10, 30), "gem_qty": (1, 1),
     },
     "crystal_geode": {
         "name": "Geoda Kryształowa", "min_tool": 80, "min_floor": 60, "max_gem_level": 140,
-        "sell_gold": 15, "quality_weights": (65, 28, 7, 0), "gold": (1, 3), "gem_qty": (1, 2),
+        "sell_gold": 180, "quality_weights": (65, 28, 7, 0), "gold": (80, 250), "gem_qty": (1, 2),
     },
     "astral_geode": {
         "name": "Geoda Astralna", "min_tool": 160, "min_floor": 150, "max_gem_level": 200,
-        "sell_gold": 60, "quality_weights": (45, 35, 17, 3), "gold": (3, 10), "gem_qty": (1, 3),
+        "sell_gold": 900, "quality_weights": (45, 35, 17, 3), "gold": (400, 1_500), "gem_qty": (1, 3),
     },
 }
 GEODE_IDS = set(GEODE_DEFINITIONS)
@@ -1402,6 +1402,7 @@ for _geode_id, _geode in GEODE_DEFINITIONS.items():
     _catalog_mut.catalog_assign({
         "name": _geode["name"], "type": "geode", "price": None,
         "sell_gold": _geode["sell_gold"], "mining_bag_resource": True,
+        "min_tool_level": _geode["min_tool"],
         "desc": (
             f"Rzadkie znalezisko Górnictwa. Kilof {_geode['min_tool']}+, "
             f"głębokość {_geode['min_floor']}+. Możesz sprzedać Dagnie albo otworzyć: "
