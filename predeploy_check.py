@@ -542,7 +542,7 @@ for _needle in (
     "Mec jako hybryda dostaje oba kanały",
     "zwykłe zbieractwo daje sensowny zarobek",
     "Rekiny, legendarne ryby i lewiatany",
-    "JACKPOT",
+    "Jackpot",
 ):
     if _needle not in _final_help_source:
         _semantic_errors.append(
