@@ -3238,6 +3238,14 @@ _direct_xp_gateway_allow_v11342 = {
         "player/session_mixins/class_progression.py",
         "storage/db_progression.py",
     },
+    "add_soul_weapon_mastery_xp": {
+        "player/session_mixins/combat_realtime.py",
+        "player/character.py",
+    },
+    "add_skill_xp": {
+        "player/session_mixins/skill_learning.py",
+        "storage/db_progression.py",
+    },
 }
 _direct_xp_bypasses_v11342 = []
 for _source_path_v11342 in _root.rglob("*.py"):
