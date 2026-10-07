@@ -505,7 +505,10 @@ class SessionCombatRewardsMixin:
                         ),
                     )
                     await session.grant_soul_xp(
-                        soul_xp_reward, single_level_cap=True
+                        soul_xp_reward,
+                        single_level_cap=True,
+                        content_level=v0190_mob_stage(template),
+                        content_scaled=True,
                     )
 
                     class_xp_reward = min(
@@ -548,10 +551,16 @@ class SessionCombatRewardsMixin:
                         detail="full",
                     )
                     await session.grant_class_xp(
-                        class_xp_reward, single_level_cap=True
+                        class_xp_reward,
+                        single_level_cap=True,
+                        content_level=v0190_mob_stage(template),
+                        content_scaled=True,
                     )
                     for _msg in session.add_character_xp_with_event(
-                        character_xp_reward, single_level_cap=True
+                        character_xp_reward,
+                        single_level_cap=True,
+                        content_level=v0190_mob_stage(template),
+                        content_scaled=True,
                     ):
                         await session.send(_msg)
                     await self.server.events.publish(
