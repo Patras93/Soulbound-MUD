@@ -522,12 +522,15 @@ class SessionCraftingExpansionV03114Mixin:
             return False
 
         norm=normalize_lookup_text(raw)
+        key_alias=norm in ("klucze","keys","klucze bossow","klucze bossów","boss keys")
         owned=self.owned_boss_keys_v11341()
         if not owned:
-            await self.send("Nie masz nadmiarowych kluczy bossowych do przetopienia.")
-            return False
+            if key_alias:
+                await self.send("Nie masz nadmiarowych kluczy bossowych do przetopienia.")
+                return False
+            return None
 
-        if norm in ("klucze","keys","klucze bossow","klucze bossów","boss keys"):
+        if key_alias:
             chosen=owned
         else:
             pool={iid:item for iid,item,_qty in owned}
@@ -538,6 +541,17 @@ class SessionCraftingExpansionV03114Mixin:
             qty=next(qty for _iid,_item,qty in owned if _iid==iid)
             chosen=[(iid,item,1 if qty>0 else 0)]
 
+        planned_keys=sum(max(0,int(qty or 0)) for _iid,_item,qty in chosen)
+        if planned_keys<=0:
+            await self.send("Nie masz kluczy do przetopienia.")
+            return False
+
+        await self.send(
+            f"PRZETOP KLUCZE: przygotowujesz {planned_keys} kluczy bossowych. "
+            "Czas: 3 sekundy."
+        )
+        await self.smelt_wait_v1124(3.0)
+
         total_keys=0
         total_dust=0
         total_essence=0
@@ -545,7 +559,10 @@ class SessionCraftingExpansionV03114Mixin:
             qty=max(0,int(qty or 0))
             if qty<=0:
                 continue
-            if not self.server.db.remove_item(self.account_id,iid,qty):
+            # Stan jest sprawdzany ponownie po czasie oczekiwania.
+            have=self.server.db.item_qty(self.account_id,iid)
+            qty=min(qty,max(0,int(have or 0)))
+            if qty<=0 or not self.server.db.remove_item(self.account_id,iid,qty):
                 continue
             dust,essence=self.boss_key_smelt_outputs_v11341(item)
             total_keys += qty
@@ -556,7 +573,6 @@ class SessionCraftingExpansionV03114Mixin:
             await self.send("Nie udało się pobrać kluczy do przetopienia.")
             return False
 
-        await self.smelt_wait_v1124(3.0)
         self.server.db.add_storage_item(
             self.account_id,"craftbox","rune_dust",total_dust
         )
