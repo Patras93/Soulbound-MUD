@@ -244,11 +244,15 @@ def v0190_apply_combat_template(template):
         "mythic_astral_floor", "giant_fortress_floor",
         "profession_dungeon_floor",
     ):
+        raw_floor = template.get(floor_key)
+        if raw_floor is None:
+            continue
         try:
-            if template.get(floor_key) is not None:
-                depth_hints.append(int(template.get(floor_key) or 0))
+            parsed_floor = int(raw_floor or 0)
         except (TypeError, ValueError, OverflowError):
-            pass
+            parsed_floor = 0
+        if parsed_floor > 0:
+            depth_hints.append(parsed_floor)
     procedural_no_limit = bool(depth_hints and max(depth_hints) > 200)
 
     for key, fallback in generated.items():
