@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Fast Railway predeploy gate for Soulbound v1.13.45.
+"""Fast Railway predeploy gate for Soulbound v1.13.46.
 
 This is the normal deploy check.  It intentionally avoids assembling the full
 world/runtime.  Use predeploy_full.py when an exhaustive historical audit is
@@ -17,7 +17,7 @@ import traceback
 try:
     from storage.database import Database as _DatabaseImportSmoke
 except Exception as exc:
-    print(f"Soulbound v1.13.45 FAST PREDEPLOY FAILED: database import: {type(exc).__name__}: {exc}")
+    print(f"Soulbound v1.13.46 FAST PREDEPLOY FAILED: database import: {type(exc).__name__}: {exc}")
     traceback.print_exc()
     raise SystemExit(1)
 
@@ -42,7 +42,7 @@ try:
     )
 except Exception as exc:
     print(
-        "Soulbound v1.13.45 FAST PREDEPLOY FAILED: "
+        "Soulbound v1.13.46 FAST PREDEPLOY FAILED: "
         f"skill semantic import: {type(exc).__name__}: {exc}"
     )
     traceback.print_exc()
@@ -3503,19 +3503,47 @@ for _needle in (
         )
 
 
+# v1.13.46 combat XP repair must be present and wired into runtime.
+_combat_xp_repair_source_v11346 = (_root / "systems/combat_xp_repair_v11346.py").read_text(encoding="utf-8")
+_server_source_v11346 = (_root / "server.py").read_text(encoding="utf-8")
+for _needle_v11346 in ("source_xp_exact", "source_xp<=0", "v0190_combat_reward", "max(3,value)"):
+    if _needle_v11346 not in _combat_xp_repair_source_v11346.replace(" ", ""):
+        _semantic_errors.append("v1.13.46 combat XP repair regression: missing " + _needle_v11346)
+if "COMBAT_XP_ZERO_AUDIT_V11346" not in _server_source_v11346:
+    _semantic_errors.append("v1.13.46 combat XP repair is not wired into server runtime")
+
+# v1.13.46: Selene must keep the Zaklinanie tool after class-shop rebuild.
+_equipment_source_v11346 = (_root / "systems/equipment_crafting.py").read_text(encoding="utf-8")
+for _needle_v11346_selene in ("guild_arcane_chamber", "runic_focus"):
+    if _needle_v11346_selene not in _equipment_source_v11346:
+        _semantic_errors.append("v1.13.46 Selene shop regression: missing " + _needle_v11346_selene)
+
+# v1.13.46: quest reward audit guards.
+_quest_commands_source_v11346 = (_root / "player/session_mixins/quest_commands.py").read_text(encoding="utf-8")
+_progression_source_v11346 = (_root / "core/progression_resources.py").read_text(encoding="utf-8")
+for _needle_v11346_quest in (
+    "reward_prof_xp <= 0",
+    "reward_tool_xp > 0",
+    "reward_prof_xp = reward_tool_xp",
+):
+    if _needle_v11346_quest not in _quest_commands_source_v11346:
+        _semantic_errors.append("v1.13.46 legacy profession quest XP fallback regression: missing " + _needle_v11346_quest)
+if '"party_contract"' not in _progression_source_v11346 or "V0522_COMBAT_QUEST_KINDS" not in _progression_source_v11346:
+    _semantic_errors.append("v1.13.46 party contract Class XP regression")
+
 if _semantic_errors:
-    print("Soulbound v1.13.45 FAST PREDEPLOY FAILED: semantic contracts")
+    print("Soulbound v1.13.46 FAST PREDEPLOY FAILED: semantic contracts")
     for _error in _semantic_errors:
         print(f"ERROR: {_error}")
     raise SystemExit(1)
 
 if audit["error_count"]:
-    print("Soulbound v1.13.45 FAST PREDEPLOY FAILED")
+    print("Soulbound v1.13.46 FAST PREDEPLOY FAILED")
     for error in audit["errors"]:
         print(f"ERROR: {error}")
     raise SystemExit(1)
 
-print("Soulbound v1.13.45 FAST PREDEPLOY PASS")
+print("Soulbound v1.13.46 FAST PREDEPLOY PASS")
 print(
     "Semantic contracts: "
     f"{len(_semantic_audits)} audits PASS; AP runtime guards PASS"

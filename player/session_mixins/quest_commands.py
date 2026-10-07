@@ -107,6 +107,20 @@ class SessionQuestCommandsMixin:
                 or profession_for_tool_type(reward_tool_type)
             )
 
+            # v1.13.46: legacy profession quests must never advance only the
+            # tool while leaving the profession itself at zero. Older series
+            # (notably some Cooking orders) predate reward_profession_xp but
+            # already have a valid reward_tool_type/reward_tool_xp. Use that
+            # authored tool XP as the profession-XP base, then let the normal
+            # content-aware profession reward pipeline scale it.
+            if (
+                reward_prof_xp <= 0
+                and reward_tool_xp > 0
+                and reward_profession
+                and reward_tool_type
+            ):
+                reward_prof_xp = reward_tool_xp
+
             if reward_prof_xp:
                 await self.grant_profession_reward_xp(
                     reward_profession,

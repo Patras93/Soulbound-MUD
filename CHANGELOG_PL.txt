@@ -1,5 +1,5 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.13.45
+Aktualna paczka: v1.13.46
 
 
 
@@ -19,6 +19,18 @@ Aktualna paczka: v1.13.45
 
 
 
+
+==============================================================================
+Soulbound v1.13.46 — COMBAT XP REPAIR
+==============================================================================
+
+- WALKA: naprawiono przypadki, w których zabicie przeciwnika mogło dać 0 EXP mimo poprawnej nagrody Generatora.
+- EXACT SOURCE XP: source_xp_exact=True przy source_xp<=0 nie zeruje już nagrody; taki mob wraca do Generatora.
+- NISKI EXP / FARMA: Character/Class/Soul/Stat mają minimalną dodatnią bazę przed dynamicznym mnożnikiem, więc zaokrąglenie przy niskiej nagrodzie nie sprowadza EXP do zera.
+- Runtime audytuje po złożeniu świata, że nie pozostał aktywny exact-source rekord z niedodatnim XP.
+- QUESTY PROFESYJNE: stare questy profesyjne z samym Tool XP dostają także Profession XP na tej samej bazie i dalej korzystają z content-aware scalingu.
+- PARTY CONTRACT: kontrakty drużynowe są pełnoprawnymi questami walki i przyznają także Class XP.
+- Brak wipe i brak migracji bazy.
 
 ==============================================================================
 Soulbound v1.13.45 — TOOL TIER 60 BUILD HOTFIX
