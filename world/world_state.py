@@ -375,27 +375,53 @@ class World:
         return created
 
     def _ensure_v0140_event_spawn(self, room_id, now=None):
-        event = v0140_event_for_room(room_id, "rare_hunt", now=now)
-        if not event:
-            return None
-        event_key = "v0140event:" + event["token"]
-        for mob in self.mobs.values():
-            if getattr(mob, "v0140_event_key", "") == event_key:
-                return mob
-        template_id = v0140_rare_template_for_kind(event["kind"], salt=event["token"])
-        if not template_id:
-            return None
-        key = f"{event_key}:{template_id}"
-        mob = MobState(
-            key=key, room_id=room_id, template_id=template_id,
-            hp=MOB_TEMPLATES[template_id]["max_hp"], home_room_id=room_id,
-            next_wander_at=time.time() + random.uniform(MOB_WANDER_MIN_SECONDS, MOB_WANDER_MAX_SECONDS),
+        created = []
+        events = (
+            v11339_combat_events_for_room(room_id, now=now)
+            if "v11339_combat_events_for_room" in globals()
+            else tuple(
+                event for event in (
+                    v0140_event_for_room(room_id, "rare_hunt", now=now),
+                )
+                if event
+            )
         )
-        mob.v0140_event_key = event_key
-        mob.v0140_event_expires_at = float(event["expires_at"])
-        self.mobs[key] = mob
-        self._last_refresh_at = 0.0
-        return mob
+        for event in events:
+            event_key = "v0140event:" + event["token"]
+            existing = next(
+                (
+                    mob for mob in self.mobs.values()
+                    if getattr(mob, "v0140_event_key", "") == event_key
+                ),
+                None,
+            )
+            if existing:
+                created.append(existing)
+                continue
+            if "v11339_named_rare_template_for_kind" in globals():
+                template_id = v11339_named_rare_template_for_kind(
+                    event["kind"], event.get("type", "rare_hunt")
+                )
+            else:
+                template_id = v0140_rare_template_for_kind(
+                    event["kind"], salt=event["token"]
+                )
+            if not template_id:
+                continue
+            key = f"{event_key}:{template_id}"
+            mob = MobState(
+                key=key, room_id=room_id, template_id=template_id,
+                hp=MOB_TEMPLATES[template_id]["max_hp"], home_room_id=room_id,
+                next_wander_at=time.time() + random.uniform(
+                    MOB_WANDER_MIN_SECONDS, MOB_WANDER_MAX_SECONDS
+                ),
+            )
+            mob.v0140_event_key = event_key
+            mob.v0140_event_expires_at = float(event["expires_at"])
+            self.mobs[key] = mob
+            self._last_refresh_at = 0.0
+            created.append(mob)
+        return created[0] if created else None
 
     def _ensure_v0180_legendary_event_spawn(self, room_id, now=None):
         event = v0180_legendary_event_for_room(room_id, now=now)
