@@ -192,18 +192,62 @@ class SessionOceanV1000Mixin:
         # but the payout floor follows current progression so Ocean 2.0
         # does not become obsolete economically.
         stage = self.ocean_economy_stage_v1138()
+        # v1.13.42: cztery kontrakty w każdym z siedmiu portów.
+        # Są tu kursy lokalne, średnie i dalekomorskie, w obie strony.
         rows = (
+            # Port Dusz.
             ("dusze", "harbor", "ocean_platform", "Zapasy dla oceanicznych załóg", 500_000, 1),
+            ("dusze_mgla", "harbor", "fog_square", "Beczki świątynnego oleju", 1_600_000, 2),
+            ("dusze_gwiazda", "harbor", "star_port_market", "Relikwiarze nawigatorów", 3_500_000, 3),
+            ("dusze_korona", "harbor", "silver_crown_harbor", "Dyplomatyczne skrzynie Portu Dusz", 7_500_000, 4),
+
+            # Platforma Oceaniczna.
             ("rafy", "ocean_platform", "fog_square", "Skrzynie soli i lin", 1_000_000, 1),
-            ("mgla", "fog_square", "star_port_market", "Mglisty bursztyn", 2_500_000, 2),
-            ("gwiazda", "star_port_market", "v0800_harbor", "Astralne przyrządy", 5_000_000, 3),
+            ("platforma_gwiazda", "ocean_platform", "star_port_market", "Części astrolabiów", 2_800_000, 2),
             ("korona", "ocean_platform", "silver_crown_harbor", "Towary królewskiej kompanii", 10_000_000, 4),
+            ("platforma_cicha", "ocean_platform", "quiet_haven_dock", "Moduły głębinowych pomp", 18_000_000, 5),
+
+            # Port Mglistych Wysp.
+            ("mgla", "fog_square", "star_port_market", "Mglisty bursztyn", 2_500_000, 2),
+            ("mgla_platforma", "fog_square", "ocean_platform", "Zwoje map prądów", 1_200_000, 1),
+            ("mgla_dusze", "fog_square", "harbor", "Skrzynie ziół z wysp", 2_200_000, 2),
+            ("mgla_korona", "fog_square", "silver_crown_harbor", "Bursztynowe insygnia kupieckie", 9_000_000, 4),
+
+            # Gwiezdny Port.
+            ("gwiazda", "star_port_market", "v0800_harbor", "Astralne przyrządy", 5_000_000, 3),
+            ("gwiazda_mgla", "star_port_market", "fog_square", "Gwiezdne szkło", 2_600_000, 2),
+            ("gwiazda_dusze", "star_port_market", "harbor", "Kryształy obserwacyjne", 8_000_000, 4),
+            ("gwiazda_korona", "star_port_market", "silver_crown_harbor", "Astralne zegary dworskie", 14_000_000, 5),
+
+            # Przystań Siedmiu Latarni.
+            ("latarnie_gwiazda", "v0800_harbor", "star_port_market", "Soczewki latarniane", 4_500_000, 2),
+            ("latarnie_mgla", "v0800_harbor", "fog_square", "Olej siedmiu latarni", 6_500_000, 3),
+            ("latarnie_platforma", "v0800_harbor", "ocean_platform", "Mechanizmy sygnałowe", 10_000_000, 4),
+            ("latarnie_korona", "v0800_harbor", "silver_crown_harbor", "Latarniane rdzenie ceremonialne", 17_000_000, 5),
+
+            # Wielki Port Srebrnej Korony.
+            ("korona_platforma", "silver_crown_harbor", "ocean_platform", "Królewskie części okrętowe", 8_000_000, 3),
             ("powrot", "silver_crown_harbor", "star_port_market", "Srebrne mechanizmy portowe", 15_000_000, 5),
+            ("korona_cicha", "silver_crown_harbor", "quiet_haven_dock", "Srebrne narzędzia stoczniowe", 6_000_000, 3),
+            ("korona_dusze", "silver_crown_harbor", "harbor", "Skarbiec poselstwa Korony", 20_000_000, 5),
+
+            # Mały Port Wschodni w Cichej Przystani.
             ("cicha", "quiet_haven_dock", "silver_crown_harbor", "Towary z Cichej Przystani", 6_000_000, 3),
+            ("cicha_platforma", "quiet_haven_dock", "ocean_platform", "Suszone zapasy dalekomorskie", 12_000_000, 4),
+            ("cicha_mgla", "quiet_haven_dock", "fog_square", "Wschodnie tkaniny żaglowe", 14_000_000, 4),
+            ("cicha_gwiazda", "quiet_haven_dock", "star_port_market", "Ciche instrumenty nawigacyjne", 22_000_000, 5),
         )
         offers = []
         for key, origin, dest, label, authored, required in rows:
-            difficulty = 0.85 + required * 0.18
+            path = self.ocean_contract_path_v1001(origin, dest)
+            distance_steps = max(1, len(path) - 1) if path else 1
+            # Ładownia opisuje trudność ładunku, a dystans nagradza faktycznie
+            # dłuższe rejsy. Authored reward pozostaje bezpieczną dolną granicą.
+            difficulty = (
+                0.75
+                + required * 0.18
+                + min(1.75, distance_steps * 0.025)
+            )
             reward = max(
                 int(authored),
                 v1138_activity_income(stage, "ocean_trade", difficulty),
@@ -462,8 +506,13 @@ class SessionOceanV1000Mixin:
         if not offers:
             await self.send("W tym miejscu nie ma nowych ładunków. Kontrakty zaczynają się w głównych portach.")
             return
-        for i, (_key, _origin, dest, cargo_label, reward, required) in enumerate(offers, 1):
-            await self.send(f"{i}. {cargo_label} -> {ROOMS[dest]['name']}. Ładownia {required}+. Nagroda {currency_reading_text(reward)}.")
+        for i, (_key, origin, dest, cargo_label, reward, required) in enumerate(offers, 1):
+            distance = max(1, len(self.ocean_contract_path_v1001(origin, dest)) - 1)
+            await self.send(
+                f"{i}. {cargo_label} -> {ROOMS[dest]['name']}. "
+                f"Rejs {distance} odcinków. Ładownia {required}+. "
+                f"Nagroda {currency_reading_text(reward)}."
+            )
         await self.send("Przyjęcie: handel morski wez <nr>. Oddanie: handel morski oddaj. Porzucenie: handel morski porzuc.")
 
     def maybe_grant_ocean_treasure_map_v1000(self):
