@@ -229,7 +229,7 @@ class SessionPartyMixin:
                 return
             await self.respawn_from_downed_v0371(auto=True)
 
-    async def begin_downed_v0371(self, killer, seconds=60):
+    async def begin_downed_v0371(self, killer, seconds=180):
             if not self.character:
                 return False
             self.clear_downed_v0371(cancel_task=True)
@@ -239,17 +239,20 @@ class SessionPartyMixin:
             self.skill_guard = 0
             self.skill_evade = False
             self.skill_evade_lockout_until = 0.0
-            deadline = time.time() + max(1, int(seconds or 60))
+            deadline = time.time() + max(1, int(seconds or 180))
             self.party_downed_until_v0371 = deadline
             self.party_downed_killer_v0371 = str(killer or "")
             self.party_downed_room_v0371 = self.character.room_id
             self.party_downed_task_v0371 = asyncio.create_task(
                 self._party_downed_timeout_v0371(deadline, self.character.room_id)
             )
+            seconds_left=max(1,int(deadline-time.time()))
             await self.send(
-                "Jesteś POWALONY. Członek twojej drużyny stojący w tej samej lokacji "
-                "może użyć: wskrzes <twoja nazwa>. Masz 60 sekund. "
-                "Możesz też wpisać odrodz, aby natychmiast wrócić do Świątyni Odrodzenia."
+                "Jesteś POWALONY. Każdy żywy gracz, który dotrze do tej samej "
+                "lokacji, może użyć: wskrzes <twoja nazwa>. "
+                f"Czas na ratunek: około {seconds_left} sekund. "
+                "Możesz też wpisać odrodz, aby natychmiast wrócić do "
+                "Świątyni Odrodzenia."
             )
             return True
 
@@ -283,11 +286,11 @@ class SessionPartyMixin:
             return True
 
     async def revive_party_member_v0371(self, name):
+            # v1.13.43: ratunek jest światowy, nie tylko party. Każdy żywy
+            # gracz może wskrzesić powalonego, ale musi fizycznie dotrzeć do
+            # tej samej lokacji.
             if not self.character or self.current_hp <= 0:
                 await self.send("Powalona postać nie może wskrzeszać innych.")
-                return False
-            if self.party_key() is None:
-                await self.send("Wskrzeszanie działa tylko między członkami tej samej drużyny.")
                 return False
             target_name = self.clean_party_player_argument(name)
             if not target_name:
@@ -299,9 +302,6 @@ class SessionPartyMixin:
                 return False
             if target is self:
                 await self.send("Nie możesz wskrzesić własnej postaci.")
-                return False
-            if not self.server.same_party(self.account_id, target.account_id):
-                await self.send("Ta postać nie należy do twojej drużyny.")
                 return False
             if target.character.room_id != self.character.room_id:
                 await self.send("Wskrzeszana postać musi leżeć w tej samej lokacji.")
@@ -337,6 +337,79 @@ class SessionPartyMixin:
                         f"{self.character.name} wskrzesza {target.character.name}.",
                         history_category="combat",
                     )
+            _revive_room_name=str(
+                ROOMS.get(self.character.room_id,{}).get("name")
+                or self.character.room_id
+            )
+            await self.server.broadcast_all(
+                f"ŚWIAT: {self.character.name} wskrzesił {target.character.name} "
+                f"w lokacji {_revive_room_name}.",
+                history_category="system",
+            )
+            return True
+
+    async def respawn_downed_player_v11343(self, name):
+            """Odeślij powalonego gracza do Świątyni, stojąc przy jego ciele."""
+            if not self.character or self.current_hp <= 0:
+                await self.send("Powalona postać nie może odradzać innych.")
+                return False
+            target_name=self.clean_party_player_argument(name)
+            if not target_name:
+                await self.send("Użycie: resp <gracz>.")
+                return False
+            target=self.server.find_character_session(target_name)
+            if not target or not target.character or target.closed:
+                await self.send("Nie ma teraz takiego gracza online.")
+                return False
+            if target is self:
+                await self.send("Aby odrodzić własną postać, użyj: odrodz.")
+                return False
+            if target.character.room_id != self.character.room_id:
+                await self.send(
+                    "Powalona postać musi leżeć w tej samej lokacji."
+                )
+                return False
+            if not target.is_downed_v0371():
+                await self.send(
+                    f"{target.character.name} nie jest teraz powalony albo "
+                    "czas na ratunek minął."
+                )
+                return False
+
+            target_name_display=target.character.name
+            old_room=target.character.room_id
+            target.clear_downed_v0371(cancel_task=True)
+            target.server.release_all_engagements_for_session(target)
+            target.combat_mob_key=None
+            await target.stop_realtime_combat()
+            target.character.room_id="temple"
+            target.current_hp=target.max_hp()
+            target.current_mana=target.max_mana()
+            target.server.db.save_character(target.character)
+
+            await target.send(
+                f"{self.character.name} odsyła twoją duszę do Świątyni "
+                "Odrodzenia. Odradzasz się z pełnym HP i maną."
+            )
+            await self.send(
+                f"Odsyłasz duszę {target_name_display} do Świątyni Odrodzenia."
+            )
+            await self.server.broadcast_room(
+                old_room,
+                f"Dusza {target_name_display} opuszcza pole walki.",
+                exclude=target,
+            )
+            await self.server.broadcast_room(
+                "temple",
+                f"{target_name_display} odradza się w Świątyni Odrodzenia.",
+                exclude=target,
+            )
+            await self.server.broadcast_all(
+                f"ŚWIAT: {self.character.name} odesłał duszę "
+                f"{target_name_display} do Świątyni Odrodzenia.",
+                history_category="system",
+            )
+            await target.look()
             return True
 
     async def create_party(self):
