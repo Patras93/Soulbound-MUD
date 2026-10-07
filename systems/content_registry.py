@@ -379,6 +379,7 @@ LATEST_CHANGES = [
     "v1.13.37: full predeploy sprawdza lazy-generation Deep Dungeon na piętrach 1/25/100, Apandę, próg Serpentariusa oraz faktyczne pokoje wszystkich skrzyń bossów po ekspansji pięter.",
     "v1.13.37: Adaptive Combat ma produkcyjną macierz solo/party 2-4 graczy i guardy przeciw zarówno one-shotom, jak i przesadnym gąbkom.",
     "v1.13.37: zamknięto cztery pętle kupno-sprzedaż UOSS EQ bez źródłowej ceny sklepowej; pełny historyczny audit ma teraz wymóg 0 advisory i blokuje regresje.",
+    "v1.13.37: wyczyszczono wszystkie nieoznaczone ciche wyjątki; oczekiwane anulowania są jawne, błędy cleanupu są raportowane, a fast predeploy wymaga teraz 0 swallowed exceptions.",
     "v1.13.36: proceduralne moby lochowe nie pokazują już numeru piętra/poziomu/cyklu w nazwie; każdy dostaje unikalny słowny kryptonim bez cyfr.",
     "v1.13.36: poprawka obejmuje Kryptę, Mityczną Kryptę, obie Wieże Astralne, Twierdzę Gigantów, lochy profesyjne, Deep Dungeon oraz nieskończony Magitek; mechanika i balans pozostają bez zmian.",
     "v1.13.35: Krypta, Mityczna Krypta, Wieża Astralna, Mityczna Wieża, Twierdza Gigantów i bojowe lochy profesyjne dostały deterministyczne motywy nazw zależne od piętra, więc te same archetypy nie brzmią identycznie przez setki poziomów.",
