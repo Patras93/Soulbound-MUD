@@ -281,13 +281,21 @@ class SessionClassProgressionMixin:
                 "multiclass remove <klasa>."
             )
 
-    async def grant_class_xp(self, total_xp, single_level_cap=False):
+    async def grant_class_xp(
+        self, total_xp, single_level_cap=False, *,
+        content_level=None, content_scaled=False
+    ):
             active = self.active_class_names()
             if not active:
                 return
             original_total_xp = max(0, int(total_xp))
             if original_total_xp <= 0:
                 return
+            original_total_xp=self.scale_progression_xp_v11342(
+                original_total_xp,
+                content_level,
+                content_scaled=content_scaled,
+            )
             base_total_xp = self.apply_double_xp(original_total_xp)
             _guild_pct=self.guild_bonus_percent_v0926()
             total_xp=max(0,int(round(base_total_xp*(1.0+_guild_pct/100.0))))
