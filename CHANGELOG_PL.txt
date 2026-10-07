@@ -21,11 +21,14 @@ Aktualna paczka: v1.13.51
 
 
 ==============================================================================
-Soulbound v1.13.51 — COMBAT SOUL XP AUDIT HOTFIX
+Soulbound v1.13.51 — XP RUNTIME COMPATIBILITY + AUDIT HOTFIX
 ==============================================================================
 
 - Fast predeploy klasyfikuje grant_combat_soul_xp_v11350 jako oficjalny content-aware XP gateway.
 - Nowy gateway nadal musi przekazywać content_level, więc audit zachowuje ochronę przed płaskim XP.
+- Naprawiono legacy wrappery v0.38.0 od Dungeon Summary: Class XP, Soul XP i Character XP przyjmują teraz *args/**kwargs i przekazują je dalej do kanonicznych gatewayów.
+- Naprawia to m.in. błąd oddawania zlecenia Haldora po stat EXP oraz wcześniejszy crash walki na single_level_cap.
+- Guard predeploy pilnuje zgodności sygnatur wrapperów v0380 z nowoczesnym content-aware XP API.
 - Nie osłabiono blokady bezpośrednich Character/Class/Soul/stat XP mutacji.
 - Brak zmian danych gracza, brak wipe i brak migracji bazy.
 
