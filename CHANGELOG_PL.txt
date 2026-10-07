@@ -21,7 +21,7 @@ Aktualna paczka: v1.13.42
 
 
 ==============================================================================
-Soulbound v1.13.42 — OCEAN TRADE & LONG-TERM PROGRESSION
+Soulbound v1.13.42 — OCEAN TRADE, PROGRESSION, CLASS QUESTS & HARDENING
 ==============================================================================
 
 - HANDEL MORSKI: liczba stałych kontraktów wzrosła z 7 do 28.
@@ -46,7 +46,15 @@ Soulbound v1.13.42 — OCEAN TRADE & LONG-TERM PROGRESSION
 - AUDYT PROGRESJI: CI pilnuje docelowego tempa 72/48/75/54/60 oraz semantyki limitu jednego awansu z killa.
 - SZYBSZE PROFESJE: globalny mnożnik Profession XP rośnie z x2 do x4. Zwykłe akcje, craft, questy specjalistów i zamówienia dają około 2 razy więcej Profession XP niż wcześniej.
 - NARZĘDZIA BEZ ZMIANY: Tool XP ma osobną progresję i nie dostaje tego dodatkowego x2, więc profesja dogania szybciej bez automatycznego wystrzelenia poziomu narzędzia.
-- Brak wipe i brak migracji bazy.
+- QUESTY KLASOWE 2.0: pięć godzinnych ofert każdej z 14 klas skaluje wymagania, nazwy i nagrody z Biegłością klasy przez etapy Początek, Adept, Mistrz, Legenda, Transcendencja, Apogeum i Absolut.
+- TOŻSAMOŚĆ KLAS: każda klasa ma dwa priorytetowe typy aktywności; np. Wojownik/Berserker walka+boss, Druid teren+zasoby, Mec boss+craft, Inżynier craft+zasoby.
+- STABILNY CYKL: etap Biegłości jest zapisywany na początek godziny. Awans klasy podczas aktywnego questa nie zmienia celu w połowie zadania; wyższy etap wchodzi dopiero przy kolejnym odnowieniu.
+- HARTOWANIE EQ: nowa komenda hartuj <żywioł> <nazwa EQ> oraz hartuj status <nazwa EQ>. System działa osobno od questów klasowych.
+- ODPORNOŚCI: Fire, Ice, Electric, Dark, Poison, Holy, Water i Arcane mają po 5 rang na każdym EQ; każda ranga daje +2%, maksymalnie 10% na przedmiot dla danego żywiołu.
+- CAP HARTOWANIA: odporność z hartowania założonego EQ sumuje się do 40%; authored/boss Wardy pozostają dodatkową warstwą, a finalny Ward ma limit 80%.
+- KOSZT HARTOWANIA: Esencja Runiczna + stop zależny od poziomu EQ; koszt rośnie z rangą. Hartowanie daje Profession XP Kowalstwa, ale nie Tool XP.
+- TRWAŁOŚĆ: hartowanie zapisuje się w SQLite, przenosi razem z EQ przy przekazaniu i jest czyszczone razem z pozostałymi modyfikacjami craftingu przy utracie przedmiotu.
+- Brak wipe. Nowa tabela hartowania jest tworzona automatycznie bez resetu istniejących danych.
 
 ==============================================================================
 Soulbound v1.13.41 — DEATH RECAPS, COMBAT RECORDS & KEY SMELTING
