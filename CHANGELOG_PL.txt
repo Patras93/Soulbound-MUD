@@ -24,8 +24,8 @@ Aktualna paczka: v1.13.43
 Soulbound v1.13.43 — PROFESSION & COMMAND RUNTIME REPAIR
 ==============================================================================
 
-- NAPRAWA SB-C1BC3361 / PROFESJE: przywrócono metodę show_single_tool, którą nadal wywoływały Kowalstwo, Gotowanie oraz komendy toolinfo_*. Brak metody mógł kończyć komendę runtime błędem SB-*.
-- PROFESJE: przywrócono wspólne komendy professions i tools z pełnym stanem wszystkich 14 profesji i 14 narzędzi.
+- AUDYT BŁĘDU SB-C1BC3361: identyfikator runtime nie zawiera stosu błędu w repo, więc nie przypisujemy mu sztucznie jednej przyczyny. Naprawiono natomiast konkretne regresje znalezione w tych samych ścieżkach profesji/XP i dodano guardy wykrywające je przed deployem.
+- STATUSY PROFESJI: zachowano istniejące kanoniczne show_single_tool, professions i tools z gathering.py; usunięto przypadkowe duplikaty wykryte przez pełny audit kolizji metod. Rozszerzone ekrany profesji korzystają z jednego źródła prawdy dla stanu narzędzia.
 - PEŁNE XP: statusy profesji pokazują teraz poziom, Rangę, bieżące XP z wymaganego progu i liczbę akcji. Status narzędzia pokazuje poziom, Tier, bieżące XP z wymaganego progu i użycia.
 - KOWALSTWO: kowalstwo pokazuje poprawnie XP Kowalstwa oraz pełny stan Młota Rzemieślniczego.
 - GOTOWANIE: gotowanie pokazuje również XP samej profesji, nie tylko opis i Nóż.
@@ -37,7 +37,7 @@ Soulbound v1.13.43 — PROFESSION & COMMAND RUNTIME REPAIR
 - PEŁNY RAPORT PO AKCJI: zwykłe akcje i nagrody pokazują teraz nie tylko +X XP, ale również bieżący poziom i postęp XP z progu do następnego poziomu profesji/narzędzia.
 - SALVAGE WSZYSTKO: raportuje faktycznie przyznany łączny XP Kowalstwa i Młota po wszystkich mnożnikach, a nie sumę starych bazowych wartości.
 - ZAMÓWIENIA PROFESJI: końcowy raport pokazuje faktycznie przyznany skalowany Profession XP i Tool XP.
-- COMMAND REGISTRY AUDIT: fast predeploy statycznie porównuje wszystkie handlery COMMAND_REGISTRY z metodami Session/mixinów oraz kontrolowanymi dynamicznymi przypięciami Session.metoda i blokuje prawdziwe braki przed wdrożeniem.
+- COMMAND REGISTRY AUDIT: fast predeploy statycznie porównuje wszystkie handlery COMMAND_REGISTRY z metodami Session/mixinów oraz kontrolowanymi dynamicznymi przypięciami Session.metoda i blokuje prawdziwe braki przed wdrożeniem. Router rozwiązuje handler wewnątrz chronionego bloku, więc brak metody jest raportowany jako kontrolowany błąd komendy.
 - Brak wipe i brak migracji bazy.
 
 ==============================================================================
