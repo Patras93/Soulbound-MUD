@@ -1,4 +1,11 @@
 # -*- coding: utf-8 -*-
+import time
+
+from systems.elemental_combat import (
+    player_element_bonus_multiplier_v11339,
+    skill_element_v11339,
+)
+
 """Local party class synergies for Soulbound v1.13.38.
 
 Synergies reward complementary class compositions without making any class or
@@ -203,3 +210,241 @@ def party_synergy_audit_v11338():
 
 
 PARTY_SYNERGY_AUDIT_V11338 = party_synergy_audit_v11338()
+
+
+# ============================================================
+# v1.13.39 — SYNERGY 2.0: skill primers + party reactions.
+# These are optional combo interactions. Solo damage remains unchanged.
+# ============================================================
+V11339_SYNERGY2_MARK_SECONDS = 12.0
+V11339_SYNERGY2_MAX_REACTION_MULTIPLIER = 1.35
+
+V11339_SYNERGY2_REACTIONS = (
+    {
+        "id": "frostbreak",
+        "name": "Frostbreak",
+        "classes": frozenset(("Mag", "Wojownik")),
+        "primer_class": "Mag",
+        "trigger_class": "Wojownik",
+        "mark": "arcane_frost",
+        "primer_element": "ice",
+        "multiplier": 1.25,
+        "prime_text": "ARCANE FROST: cel zostaje zamrożony energią Maga.",
+        "trigger_text": "SHATTER: Wojownik rozbija Arcane Frost.",
+    },
+    {
+        "id": "venom_harvest",
+        "name": "Venom Harvest",
+        "classes": frozenset(("Druid", "Nekromanta")),
+        "primer_class": "Druid",
+        "trigger_class": "Nekromanta",
+        "mark": "venom_bloom",
+        "primer_element": "poison",
+        "multiplier": 1.25,
+        "prime_text": "VENOM BLOOM: Druid zatruwa i przygotowuje cel.",
+        "trigger_text": "BLIGHTBURST: Nekromanta detonuje Venom Bloom.",
+    },
+    {
+        "id": "hellstorm_overload",
+        "name": "Hellstorm Overload",
+        "classes": frozenset(("Czarownik", "Inżynier")),
+        "primer_class": "Czarownik",
+        "trigger_class": "Inżynier",
+        "mark": "hellfire_charge",
+        "primer_element": "fire",
+        "trigger_element": "lightning",
+        "multiplier": 1.22,
+        "prime_text": "HELLFIRE CHARGE: ogień Czarownika przegrzewa cel.",
+        "trigger_text": "OVERLOAD: Electric Inżyniera detonuje Hellfire.",
+    },
+    {
+        "id": "marked_ambush",
+        "name": "Marked Ambush",
+        "classes": frozenset(("Łowca", "Łotrzyk")),
+        "primer_class": "Łowca",
+        "trigger_class": "Łotrzyk",
+        "mark": "hunted_opening",
+        "multiplier": 1.20,
+        "prime_text": "HUNTED: Łowca otwiera słaby punkt celu.",
+        "trigger_text": "AMBUSH: Łotrzyk wykorzystuje oznaczony słaby punkt.",
+    },
+    {
+        "id": "holy_circuit_burst",
+        "name": "Holy Circuit Burst",
+        "classes": frozenset(("Kapłan", "Mec")),
+        "primer_class": "Kapłan",
+        "trigger_class": "Mec",
+        "mark": "holy_charge",
+        "primer_element": "holy",
+        "multiplier": 1.20,
+        "prime_text": "HOLY CHARGE: Kapłan nasyca cel świetlistą energią.",
+        "trigger_text": "HOLY CIRCUIT: Mec wyzwala zgromadzoną energię światła.",
+    },
+    {
+        "id": "runic_fracture",
+        "name": "Runic Fracture",
+        "classes": frozenset(("Strażnik", "Mag")),
+        "primer_class": "Strażnik",
+        "trigger_class": "Mag",
+        "mark": "runic_crack",
+        "multiplier": 1.20,
+        "prime_text": "RUNIC CRACK: Strażnik narusza strukturę obrony celu.",
+        "trigger_text": "RUNIC FRACTURE: Mag rozrywa naruszoną obronę.",
+    },
+    {
+        "id": "mind_resonance",
+        "name": "Mind Resonance",
+        "classes": frozenset(("Mnich", "Psionik")),
+        "primer_class": "Mnich",
+        "trigger_class": "Psionik",
+        "mark": "resonance",
+        "multiplier": 1.20,
+        "prime_text": "RESONANCE: Mnich wprowadza cel w podatny rytm.",
+        "trigger_text": "MIND BREAK: Psionik rozrywa rezonans celu.",
+    },
+    {
+        "id": "bloodrend",
+        "name": "Bloodrend",
+        "classes": frozenset(("Berserker", "Wojownik")),
+        "primer_class": "Berserker",
+        "trigger_class": "Wojownik",
+        "mark": "blood_opening",
+        "multiplier": 1.20,
+        "prime_text": "BLOOD OPENING: Berserker rozrywa gardę celu.",
+        "trigger_text": "BLOODREND: Wojownik wykorzystuje otwartą gardę.",
+    },
+)
+
+
+def party_synergy2_local_classes_v11339(session):
+    return set(party_synergy_profile_for_session_v11338(session)["classes"])
+
+
+def _synergy2_mark_attr_v11339(mark):
+    return "v11339_synergy2_" + str(mark) + "_until"
+
+
+def party_synergy2_apply_hit_v11339(
+    session,
+    target,
+    class_name,
+    skill_name,
+    damage,
+    explicit_element="",
+):
+    """Apply elemental chase-gear bonus and at most one party reaction."""
+    damage = max(0, int(damage or 0))
+    if damage <= 0 or not session or not target:
+        return damage, "", ""
+
+    classes = party_synergy2_local_classes_v11339(session)
+    element = skill_element_v11339(
+        class_name, skill_name, explicit_element
+    )
+    if element:
+        damage = max(
+            1,
+            int(round(
+                damage
+                * player_element_bonus_multiplier_v11339(session, element)
+            )),
+        )
+
+    now = time.monotonic()
+
+    # Trigger before primer so a hit cannot create and consume its own mark.
+    for reaction in V11339_SYNERGY2_REACTIONS:
+        if not reaction["classes"].issubset(classes):
+            continue
+        if str(class_name or "") != reaction["trigger_class"]:
+            continue
+        required_element = str(reaction.get("trigger_element") or "")
+        if required_element and element != required_element:
+            continue
+        attr = _synergy2_mark_attr_v11339(reaction["mark"])
+        until = float(getattr(target, attr, 0.0) or 0.0)
+        if until <= now:
+            continue
+        setattr(target, attr, 0.0)
+        multiplier = min(
+            V11339_SYNERGY2_MAX_REACTION_MULTIPLIER,
+            max(1.0, float(reaction["multiplier"])),
+        )
+        damage = max(1, int(round(damage * multiplier)))
+        return (
+            damage,
+            " " + str(reaction["trigger_text"]),
+            element,
+        )
+
+    for reaction in V11339_SYNERGY2_REACTIONS:
+        if not reaction["classes"].issubset(classes):
+            continue
+        if str(class_name or "") != reaction["primer_class"]:
+            continue
+        required_element = str(reaction.get("primer_element") or "")
+        if required_element and element != required_element:
+            continue
+        attr = _synergy2_mark_attr_v11339(reaction["mark"])
+        setattr(target, attr, now + V11339_SYNERGY2_MARK_SECONDS)
+        return (
+            damage,
+            " " + str(reaction["prime_text"]),
+            element,
+        )
+
+    return damage, "", element
+
+
+def party_synergy2_summary_v11339(session):
+    classes = party_synergy2_local_classes_v11339(session)
+    names = [
+        row["name"]
+        for row in V11339_SYNERGY2_REACTIONS
+        if row["classes"].issubset(classes)
+    ]
+    return ", ".join(names) if names else "brak"
+
+
+def party_synergy2_audit_v11339():
+    errors = []
+    ids = [row["id"] for row in V11339_SYNERGY2_REACTIONS]
+    if len(ids) != 8 or len(set(ids)) != 8:
+        errors.append("expected eight unique Synergy 2.0 reactions")
+    if any(
+        float(row.get("multiplier", 1.0))
+        > V11339_SYNERGY2_MAX_REACTION_MULTIPLIER
+        for row in V11339_SYNERGY2_REACTIONS
+    ):
+        errors.append("Synergy 2.0 reaction exceeds reviewed multiplier cap")
+    frost = next(
+        (row for row in V11339_SYNERGY2_REACTIONS if row["id"] == "frostbreak"),
+        None,
+    )
+    if not frost or frost["primer_class"] != "Mag" or frost["trigger_class"] != "Wojownik":
+        errors.append("Mag -> Wojownik Frostbreak contract missing")
+    venom = next(
+        (row for row in V11339_SYNERGY2_REACTIONS if row["id"] == "venom_harvest"),
+        None,
+    )
+    if not venom or venom["primer_class"] != "Druid" or venom["trigger_class"] != "Nekromanta":
+        errors.append("Druid -> Nekromanta Venom Harvest contract missing")
+    overload = next(
+        (row for row in V11339_SYNERGY2_REACTIONS if row["id"] == "hellstorm_overload"),
+        None,
+    )
+    if (
+        not overload
+        or overload.get("primer_element") != "fire"
+        or overload.get("trigger_element") != "lightning"
+    ):
+        errors.append("Fire -> Electric Hellstorm Overload contract missing")
+    return {
+        "version": "1.13.39",
+        "reaction_count": len(V11339_SYNERGY2_REACTIONS),
+        "errors": errors,
+        "error_count": len(errors),
+    }
+
+
+PARTY_SYNERGY2_AUDIT_V11339 = party_synergy2_audit_v11339()
