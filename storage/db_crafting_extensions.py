@@ -13,6 +13,12 @@ class DatabaseCraftingExtensionsMixin:
           PRIMARY KEY(account_id,item_id));
         CREATE TABLE IF NOT EXISTS vmax_upgrades_v03114(
           account_id INTEGER PRIMARY KEY, duration_level INTEGER NOT NULL DEFAULT 0, cooling_level INTEGER NOT NULL DEFAULT 0);
+        CREATE TABLE IF NOT EXISTS equipment_hardening_v11342(
+          account_id INTEGER NOT NULL,
+          item_id TEXT NOT NULL,
+          element TEXT NOT NULL,
+          rank INTEGER NOT NULL DEFAULT 0,
+          PRIMARY KEY(account_id,item_id,element));
         """)
         self.install_v0320_schema()
         self.conn.commit()
@@ -28,6 +34,35 @@ class DatabaseCraftingExtensionsMixin:
         self.conn.execute("INSERT INTO equipment_socket_bonus_v03114(account_id,item_id,bonus_sockets) VALUES(?,?,?) ON CONFLICT(account_id,item_id) DO UPDATE SET bonus_sockets=excluded.bonus_sockets",(account_id,item_id,cur))
         self.conn.commit()
         return cur
+
+    def equipment_hardening_v11342(self, account_id, item_id):
+        rows=self.conn.execute(
+            "SELECT element,rank FROM equipment_hardening_v11342 "
+            "WHERE account_id=? AND item_id=? ORDER BY element",
+            (account_id,item_id),
+        ).fetchall()
+        return {
+            str(row["element"]): max(0,int(row["rank"] or 0))
+            for row in rows
+            if int(row["rank"] or 0)>0
+        }
+
+    def add_equipment_hardening_v11342(
+        self, account_id, item_id, element, max_rank=5
+    ):
+        element=str(element or "").strip().lower()
+        if not element:
+            return 0
+        current=self.equipment_hardening_v11342(account_id,item_id).get(element,0)
+        new_rank=min(max(1,int(max_rank)),current+1)
+        self.conn.execute(
+            "INSERT INTO equipment_hardening_v11342(account_id,item_id,element,rank) "
+            "VALUES(?,?,?,?) ON CONFLICT(account_id,item_id,element) "
+            "DO UPDATE SET rank=excluded.rank",
+            (account_id,item_id,element,new_rank),
+        )
+        self.conn.commit()
+        return new_rank
 
     def vmax_upgrades_v03114(self, account_id):
         row=self.conn.execute("SELECT duration_level,cooling_level FROM vmax_upgrades_v03114 WHERE account_id=?",(account_id,)).fetchone()
@@ -95,11 +130,13 @@ class DatabaseCraftingExtensionsMixin:
         super().clear_equipment_crafting_v0925(account_id,item_id)
         self.conn.execute("DELETE FROM equipment_socket_bonus_v03114 WHERE account_id=? AND item_id=?",(account_id,item_id))
         self.conn.execute("DELETE FROM tech_set_upgrades_v0320 WHERE account_id=? AND item_id=?",(account_id,item_id))
+        self.conn.execute("DELETE FROM equipment_hardening_v11342 WHERE account_id=? AND item_id=?",(account_id,item_id))
         self.conn.commit()
 
     def transfer_equipment_crafting_v0925(self, from_account_id, to_account_id, item_id):
         bonus=self.equipment_socket_bonus_v03114(from_account_id,item_id)
         mark=self.tech_set_mark_v0320(from_account_id,item_id)
+        hardening=self.equipment_hardening_v11342(from_account_id,item_id)
         super().transfer_equipment_crafting_v0925(from_account_id,to_account_id,item_id)
         if bonus>0:
             self.conn.execute("INSERT OR REPLACE INTO equipment_socket_bonus_v03114(account_id,item_id,bonus_sockets) VALUES(?,?,?)",(to_account_id,item_id,bonus))
@@ -107,4 +144,16 @@ class DatabaseCraftingExtensionsMixin:
         if mark>1:
             self.conn.execute("INSERT OR REPLACE INTO tech_set_upgrades_v0320(account_id,item_id,mark) VALUES(?,?,?)",(to_account_id,item_id,mark))
             self.conn.execute("DELETE FROM tech_set_upgrades_v0320 WHERE account_id=? AND item_id=?",(from_account_id,item_id))
+        for element,rank in hardening.items():
+            self.conn.execute(
+                "INSERT OR REPLACE INTO equipment_hardening_v11342"
+                "(account_id,item_id,element,rank) VALUES(?,?,?,?)",
+                (to_account_id,item_id,element,rank),
+            )
+        if hardening:
+            self.conn.execute(
+                "DELETE FROM equipment_hardening_v11342 "
+                "WHERE account_id=? AND item_id=?",
+                (from_account_id,item_id),
+            )
         self.conn.commit()
