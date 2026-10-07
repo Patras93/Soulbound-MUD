@@ -57,6 +57,29 @@ class SessionSkillQueueBuffsMixin:
                     self.skill_queue_cursors[queue_type] = 0
             return removed
 
+
+    def cleanup_unlearned_skill_queue_v11356(self):
+            """Remove stale queue rows for skills the account has never learned.
+
+            Old saves can contain queue rows that outlived a learned-skill state.
+            Such rows must never become active merely because Class Mastery later
+            reaches the skill unlock threshold. Learning remains explicit at the
+            class teacher.
+            """
+            removed = 0
+            known = set(self.server.db.learned_skill_ids(self.account_id))
+            for row in list(self.server.db.skill_queue_rows(self.account_id)):
+                skill_id = str(row["skill_id"])
+                if skill_id in known:
+                    continue
+                if self.server.db.remove_skill_queue_skill(self.account_id, skill_id):
+                    removed += 1
+            if removed:
+                self.skill_queue_cursors = {"physical": 0, "magic": 0, "feedback": 0}
+                if self.skill_queue_next_type not in self.skill_queue_cursors:
+                    self.skill_queue_next_type = "physical"
+            return removed
+
     def skill_queue_type(self, skill):
             """Queue by the concrete skill role, not only by the owning class."""
             if skill and skill.get("mec_authored"):
@@ -191,8 +214,14 @@ class SessionSkillQueueBuffsMixin:
             return None, None, None
 
     async def show_skill_queue(self, queue_type=None):
+            removed_unlearned = self.cleanup_unlearned_skill_queue_v11356()
             removed_protocols = self.cleanup_mec_protocols_from_queue_v10013()
             moved = self.normalize_skill_queue_types_v1125()
+            if removed_unlearned:
+                await self.send(
+                    f"Usunięto z kolejki {removed_unlearned} nienauczonych umiejętności. "
+                    "Sama Biegłość tylko odblokowuje możliwość nauki u nauczyciela."
+                )
             if removed_protocols:
                 await self.send(
                     f"Usunięto z kolejki {removed_protocols} pasywne umiejętności. "
@@ -252,6 +281,7 @@ class SessionSkillQueueBuffsMixin:
             )
 
     async def handle_skill_queue(self, raw):
+            self.cleanup_unlearned_skill_queue_v11356()
             self.normalize_skill_queue_types_v1125()
             text = str(raw or "").strip()
             if not text:
@@ -827,6 +857,10 @@ class SessionSkillQueueBuffsMixin:
             if not self.server.db.skill_queue_enabled(self.account_id):
                 return False
 
+            # v1.13.56: stale rows for skills never learned are purged before
+            # mastery gates are considered, so gaining Biegłość can never activate
+            # an unlearned skill left in an old queue.
+            self.cleanup_unlearned_skill_queue_v11356()
             # Existing pre-v1.12.5 Mec entries are corrected lazily before use.
             self.normalize_skill_queue_types_v1125()
             queue_types = ("physical", "magic", "feedback")

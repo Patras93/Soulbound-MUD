@@ -378,7 +378,7 @@ def refresh_help_truth_current_v11328():
 
     HELP_TOPICS["superbossy"] = [
         "superbosses pokazuje unikalne wyzwania UOSS, wymagania i zaliczenia; superboss <nazwa> obsługuje wejście.",
-        "Superbossowie mają własne mechaniki, lockouty, tokeny, named uniques i sklepy; nie są zwykłą rotacją bossów Krypty/Wieży. Bossowie drużynowi mogą być także podejmowani solo; wymagania liczebności dotyczą faktycznego wejścia drużynowego.",
+        "Każdy unikalny Superboss ma 24-godzinny lockout liczony od jego pokonania, własne mechaniki i nagrody; nie jest zwykłą rotacją bossów Krypty/Wieży. Bossowie drużynowi mogą być także podejmowani solo; wymagania liczebności dotyczą faktycznego wejścia drużynowego.",
         "Black Rabite: osobisty Moogle Steel, pula unikalnych dropów i warunkowy Moogle Board dla Cyborga. Moogle Board nie jest startowym itemem.",
         "Każdy legalny clear UOSS zachowuje osobistą nagrodę tokenową; Black Rabite, Yiazmat i Odin zachowują też osobisty unique roll dla uprawnionych uczestników zgodnie z lockoutem.",
         "Odin/Yiazmat/Culex i inne UOSS źródła zachowują specjalne tokeny oraz własne efekty EQ. shop info / eq info pokazują realny koszt i właściwości.",

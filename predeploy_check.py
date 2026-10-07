@@ -17,7 +17,7 @@ import traceback
 try:
     from storage.database import Database as _DatabaseImportSmoke
 except Exception as exc:
-    print(f"Soulbound v1.13.54 FAST PREDEPLOY FAILED: database import: {type(exc).__name__}: {exc}")
+    print(f"Soulbound v1.13.56 FAST PREDEPLOY FAILED: database import: {type(exc).__name__}: {exc}")
     traceback.print_exc()
     raise SystemExit(1)
 
@@ -42,7 +42,7 @@ try:
     )
 except Exception as exc:
     print(
-        "Soulbound v1.13.54 FAST PREDEPLOY FAILED: "
+        "Soulbound v1.13.56 FAST PREDEPLOY FAILED: "
         f"skill semantic import: {type(exc).__name__}: {exc}"
     )
     traceback.print_exc()
@@ -746,14 +746,14 @@ for _needle in (
             "superboss personal eligibility regression: missing " + _needle
         )
 
-# v1.13.54: UOSS party-oriented Super Bosses must remain enterable solo.
+# v1.13.55: UOSS party-oriented Super Bosses must remain enterable solo.
 for _needle_v11354 in (
     "if min_players and len(entrants)>1 and len(entrants)<min_players:",
     "wejście solo jest dozwolone",
 ):
     if _needle_v11354 not in _superboss_entry_source_v11331:
         _semantic_errors.append(
-            "v1.13.54 superboss solo-entry regression: missing " + _needle_v11354
+            "v1.13.55 superboss solo-entry regression: missing " + _needle_v11354
         )
 for _needle_v11354 in (
     "if min_players and len(party) > 1 and len(party)<min_players:",
@@ -761,7 +761,7 @@ for _needle_v11354 in (
 ):
     if _needle_v11354 not in _superboss_runtime_source_v11331:
         _semantic_errors.append(
-            "v1.13.54 superboss attack-gate solo regression: missing " + _needle_v11354
+            "v1.13.55 superboss attack-gate solo regression: missing " + _needle_v11354
         )
 
 for _needle in (
@@ -3618,19 +3618,35 @@ for _needle_v11351_wrapper in (
             + _needle_v11351_wrapper
         )
 
+
+# v1.13.56: Class Mastery unlocks access to training; it must never make a
+# stale, unlearned queue entry usable.
+_skill_queue_source_v11356 = (_root / "player/session_mixins/skill_queue_buffs.py").read_text(encoding="utf-8")
+for _needle_v11356 in (
+    "def cleanup_unlearned_skill_queue_v11356(self):",
+    "known = set(self.server.db.learned_skill_ids(self.account_id))",
+    "self.server.db.remove_skill_queue_skill(self.account_id, skill_id)",
+    "self.cleanup_unlearned_skill_queue_v11356()",
+    'if not self.server.db.knows_skill(self.account_id, skill["id"]):',
+):
+    if _needle_v11356 not in _skill_queue_source_v11356:
+        _semantic_errors.append(
+            "v1.13.56 unlearned queue guard regression: missing " + _needle_v11356
+        )
+
 if _semantic_errors:
-    print("Soulbound v1.13.54 FAST PREDEPLOY FAILED: semantic contracts")
+    print("Soulbound v1.13.56 FAST PREDEPLOY FAILED: semantic contracts")
     for _error in _semantic_errors:
         print(f"ERROR: {_error}")
     raise SystemExit(1)
 
 if audit["error_count"]:
-    print("Soulbound v1.13.54 FAST PREDEPLOY FAILED")
+    print("Soulbound v1.13.56 FAST PREDEPLOY FAILED")
     for error in audit["errors"]:
         print(f"ERROR: {error}")
     raise SystemExit(1)
 
-print("Soulbound v1.13.54 FAST PREDEPLOY PASS")
+print("Soulbound v1.13.56 FAST PREDEPLOY PASS")
 print(
     "Semantic contracts: "
     f"{len(_semantic_audits)} audits PASS; AP runtime guards PASS"

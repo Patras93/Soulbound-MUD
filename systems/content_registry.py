@@ -373,7 +373,7 @@ SYSTEM_DESCRIPTIONS = {
 }
 
 
-LATEST_CHANGES_TITLE = "Soulbound v1.13.54 - UOSS Super Boss Solo Entry"
+LATEST_CHANGES_TITLE = "Soulbound v1.13.56 - Skill Learning / Queue Guard"
 LATEST_CHANGES = [
     "v1.13.53: stary hook v0.37.0 Hall of Fame dla Class/Character XP przepuszcza *args/**kwargs; usuwa crash walki na single_level_cap/content_level/content_scaled.",
     "v1.13.51: legacy wrappery v0.38.0 dla Class/Soul/Character XP przepuszczają nowoczesne kwargs; naprawia to m.in. oddawanie Haldora i wcześniejszy crash single_level_cap.",

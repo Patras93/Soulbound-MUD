@@ -773,7 +773,7 @@ class SessionWorldEventsEndgameMixin:
                     )
                     unlocked = "floor_100" in unlock_entries
                 mode = str(data.get("mode", "solo"))
-                state = "zaliczony" if cleared else ("odblokowany" if unlocked else "zablokowany")
+                state = "blokada po pokonaniu" if cleared else ("odblokowany" if unlocked else "zablokowany")
                 rows.append((name, mode, state, data))
             if not rows:
                 await self.send("Nie znajduję takiego Super Bossa.")
@@ -795,7 +795,7 @@ class SessionWorldEventsEndgameMixin:
                 _series=superboss_series_progress_v11138(self.server.db,self.account_id,next((k for k,v in UOSS_SUPERBOSS_ENCOUNTERS_V11134.items() if v is data),""))
                 if _series: extra.append(f"seria {_series[0]}/{_series[1]}")
                 await self.send(f"{name}: {mode}, {state}" + (". " + "; ".join(extra) if extra else "") + ".")
-            await self.send("Zaliczenia i osobiste nagrody są trwałe; restart/deploy ich nie resetuje.")
+            await self.send("Po pokonaniu konkretnego Super Bossa obowiązuje 24-godzinna blokada ponownego wejścia; restart/deploy jej nie resetuje.")
             await self.send(
                 "Super Bossowie oznaczeni jako drużynowi dopuszczają także wejście solo. "
                 "W party lider używa superboss <nazwa>, a kwalifikujący się członkowie "

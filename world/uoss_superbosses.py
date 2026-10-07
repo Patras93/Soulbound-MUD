@@ -130,30 +130,30 @@ def _apply_uoss_superboss_v0366(template, kind, floor, scale_stats=True):
 # helper and per-cycle reward rules. Mythic dungeons keep their native scalable
 # bosses instead of borrowing UOSS identities every ten floors.
 UOSS_SUPERBOSS_ENCOUNTERS_V11134 = {
-    "spekkio": {"name":"Spekkio","mode":"solo","scales_to_player":True,"unlock_level":1},
-    "asterisks": {"name":"Asterisks","mode":"solo","unlock_level":80,"series":True},
-    "dad": {"name":"Dad","mode":"solo","unlock_level":80},
-    "diabolos": {"name":"Diabolos","mode":"solo","unlock_level":80},
-    "harle": {"name":"Harle","mode":"solo_or_party","unlock_level":85},
-    "culex": {"name":"Culex","mode":"party","unlock_level":100,"personal_token":"Quartz Chunk"},
+    "spekkio": {"name":"Spekkio","mode":"solo","scales_to_player":True,"unlock_level":1,"lockout_hours":24},
+    "asterisks": {"name":"Asterisks","mode":"solo","unlock_level":80,"series":True,"lockout_hours":24},
+    "dad": {"name":"Dad","mode":"solo","unlock_level":80,"lockout_hours":24},
+    "diabolos": {"name":"Diabolos","mode":"solo","unlock_level":80,"lockout_hours":24},
+    "harle": {"name":"Harle","mode":"solo_or_party","unlock_level":85,"lockout_hours":24},
+    "culex": {"name":"Culex","mode":"party","unlock_level":100,"personal_token":"Quartz Chunk","lockout_hours":24},
     "ruby_weapon": {
         "name":"Ruby WEAPON","mode":"party","area":"Corel Prison","unlock_level":100,"recommended_level":100,
         "personal_token":"Desert Rose","weapon_pair":"emerald_weapon",
-        "pair_shop":"Traveler w Kalm",
+        "pair_shop":"Traveler w Kalm","lockout_hours":24,
     },
     "emerald_weapon": {
         "name":"Emerald WEAPON","mode":"party","area":"On the Sea Floor","access_via":"Submarine on Junon Overland outside Lower Junon","unlock_level":100,"recommended_level":100,
         "personal_token":"Earth Harp","weapon_pair":"ruby_weapon",
-        "pair_shop":"Traveler w Kalm",
+        "pair_shop":"Traveler w Kalm","lockout_hours":24,
     },
-    "ozma": {"name":"Ozma","mode":"solo","unlock_level":110},
-    "four_fiends": {"name":"Four Fiends","mode":"solo","unlock_level":110,"series":True},
-    "grahf": {"name":"Grahf","mode":"solo","unlock_level":110},
-    "hades": {"name":"Hades","mode":"solo","unlock_level":110,"crafting_master":True},
-    "lunar_trial": {"name":"Lunar Trial","mode":"solo","unlock_level":115,"series":True},
-    "elementals": {"name":"Elementals","mode":"solo","unlock_level":120,"series":True,"required_wins":8,"unlocks_final_foe":True},
-    "gilgamesh": {"name":"Gilgamesh","mode":"solo","unlock_level":120},
-    "war_machines": {"name":"War Machines","mode":"solo_or_party","unlock_level":125},
+    "ozma": {"name":"Ozma","mode":"solo","unlock_level":110,"lockout_hours":24},
+    "four_fiends": {"name":"Four Fiends","mode":"solo","unlock_level":110,"series":True,"lockout_hours":24},
+    "grahf": {"name":"Grahf","mode":"solo","unlock_level":110,"lockout_hours":24},
+    "hades": {"name":"Hades","mode":"solo","unlock_level":110,"crafting_master":True,"lockout_hours":24},
+    "lunar_trial": {"name":"Lunar Trial","mode":"solo","unlock_level":115,"series":True,"lockout_hours":24},
+    "elementals": {"name":"Elementals","mode":"solo","unlock_level":120,"series":True,"required_wins":8,"unlocks_final_foe":True,"lockout_hours":24},
+    "gilgamesh": {"name":"Gilgamesh","mode":"solo","unlock_level":120,"lockout_hours":24},
+    "war_machines": {"name":"War Machines","mode":"solo_or_party","unlock_level":125,"lockout_hours":24},
     "black_rabite": {
         "name":"Black Rabite","mode":"party","area":"Rabite Field","unlock_level":100,
         "recommended_level":125,"helpers":("Primm","Popoi"),"helper_choice_limit":1,"helper_max_players":3,"helper_cost_mithril":1,
@@ -180,7 +180,7 @@ UOSS_SUPERBOSS_ENCOUNTERS_V11134 = {
         "personal_token":"Godslayer's Badge","shared_unique_drop":True,"unique_drop_count":7,
         "pickup_binds":True,"shop":"Fur shop w Elsendor — Yiazmat tier","lockout_hours":24,
     },
-    "sephiroth": {"name":"Sephiroth","mode":"solo","unlock_level":130},
+    "sephiroth": {"name":"Sephiroth","mode":"solo","unlock_level":130,"lockout_hours":24},
 }
 # Compatibility alias for code introduced in v1.11.33.
 UOSS_SUPERBOSS_ENCOUNTERS_V11133 = UOSS_SUPERBOSS_ENCOUNTERS_V11134
@@ -197,15 +197,13 @@ def uoss_superboss_audit_v11134():
     missing = sorted(required - set(encounters))
     if missing:
         errors.append("missing unique encounters: " + ", ".join(missing))
+    for key, row in encounters.items():
+        if int(row.get("lockout_hours", 0) or 0) != 24:
+            errors.append(f"{key}: expected 24-hour Soulbound lockout after defeat")
     for key in ("black_rabite","serpentarius","odin","yiazmat"):
         row = encounters.get(key, {})
-        if int(row.get("lockout_hours", 0) or 0) != 24:
-            errors.append(f"{key}: expected 24-hour Soulbound lockout")
         if not row.get("personal_token"):
             errors.append(f"{key}: missing personal participation reward")
-    for key in ("ruby_weapon","emerald_weapon"):
-        if encounters.get(key, {}).get("lockout_hours"):
-            errors.append(f"{key}: source does not define a repeat lockout")
     serpentarius = encounters.get("serpentarius", {})
     if int(serpentarius.get("deep_dungeon_unlock_floor", 0) or 0) != 100:
         errors.append("serpentarius: expected Deep Dungeon floor 100 unlock")
@@ -213,7 +211,7 @@ def uoss_superboss_audit_v11134():
         errors.append("black_rabite: expected 10 unique drops")
     if encounters.get("yiazmat", {}).get("unique_drop_count") != 7:
         errors.append("yiazmat: expected 7 unique drops")
-    return {"version":"1.13.31","encounter_count":len(encounters),"error_count":len(errors),"errors":errors}
+    return {"version":"1.13.56","encounter_count":len(encounters),"error_count":len(errors),"errors":errors}
 
 
 UOSS_SUPERBOSS_AUDIT_V11134 = uoss_superboss_audit_v11134()

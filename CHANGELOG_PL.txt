@@ -1,4 +1,19 @@
-Aktualna paczka: v1.13.54
+Aktualna paczka: v1.13.56
+
+
+
+Soulbound v1.13.56 — SKILL LEARNING / QUEUE GUARD
+- Sama Biegłość klasy nadal wyłącznie odblokowuje możliwość nauki skilla u właściwego nauczyciela; nie uczy skilli automatycznie.
+- Auto-kolejka usuwa teraz stare lub uszkodzone wpisy skilli, których konto faktycznie nie ma w `learned_skills`.
+- Nienauczony skill nie może stać się aktywny tylko dlatego, że postać osiągnęła jego próg Biegłości (np. Biegłość 10).
+- Guard działa przy wyświetlaniu kolejki, zarządzaniu kolejką i bezpośrednio przed użyciem auto-kolejki w walce.
+
+Soulbound v1.13.55 — SUPER BOSS 24H LOCKOUT
+- Każdy unikalny Super Boss otrzymuje 24-godzinną blokadę ponownego wejścia po jego pokonaniu.
+- Blokada jest osobna dla każdego bossa: zabicie jednego nie blokuje pozostałych.
+- Lockout rozpoczyna się dopiero po zaliczeniu zabicia, więc samo wejście lub przegrana nie uruchamia 24 godzin.
+- Reguła działa zarówno przy wejściu solo, jak i drużynowym.
+- Lista `superbosses` pokazuje aktywną blokadę po pokonaniu.
 
 
 Soulbound v1.13.54 — UOSS SUPER BOSS SOLO ENTRY
