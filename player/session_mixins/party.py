@@ -7,6 +7,10 @@ from core.progression_resources import skill_power_multiplier
 from player.character import PARTY_BASE_CAPACITY
 from player.session_mixins.io_auth_character import CLASS_SKILLS
 from player.session_mixins.movement import MOB_TEMPLATES, ROOMS
+from systems.party_synergies import (
+    party_synergy_healing_multiplier_v11338,
+    party_synergy_summary_v11338,
+)
 
 
 class SessionPartyMixin:
@@ -70,7 +74,8 @@ class SessionPartyMixin:
                         0.45,
                         float(skill.get("heal_pct", 0.20)) * skill_power
                         * self.character.racial_healing_multiplier()
-                        * self.character.class_healing_multiplier(),
+                        * self.character.class_healing_multiplier()
+                        * party_synergy_healing_multiplier_v11338(self),
                     )
                     heal_pct = min(0.60, heal_pct * self.skill_buff_multiplier())
                     expected = 0
@@ -84,7 +89,8 @@ class SessionPartyMixin:
                         0.65,
                         float(skill.get("heal_pct", 0.25)) * skill_power
                         * self.character.racial_healing_multiplier()
-                        * self.character.class_healing_multiplier(),
+                        * self.character.class_healing_multiplier()
+                        * party_synergy_healing_multiplier_v11338(self),
                     )
                     heal_pct = min(0.80, heal_pct * self.skill_buff_multiplier())
                     amount = max(1, int(target.max_hp() * heal_pct))
@@ -530,6 +536,11 @@ class SessionPartyMixin:
                     f"Gotowość: {len(ready)} z {len(members)}. "
                     "Użyj: druzyna gotowi albo druzyna niegotowy."
                 )
+            await self.send(
+                "Synergie klas w tej lokacji: "
+                + party_synergy_summary_v11338(self)
+                + "."
+            )
             for number, session in enumerate(members, 1):
                 marker = " Lider." if session.account_id == key else ""
                 downed = " Powalony — można wskrzesić." if session.is_downed_v0371() else ""
