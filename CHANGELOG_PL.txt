@@ -1,5 +1,5 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.13.42
+Aktualna paczka: v1.13.43
 
 
 
@@ -19,6 +19,22 @@ Aktualna paczka: v1.13.42
 
 
 
+
+==============================================================================
+Soulbound v1.13.43 — PROFESSION & COMMAND RUNTIME REPAIR
+==============================================================================
+
+- NAPRAWA SB-C1BC3361 / PROFESJE: przywrócono metodę show_single_tool, którą nadal wywoływały Kowalstwo, Gotowanie oraz komendy toolinfo_*. Brak metody mógł kończyć komendę runtime błędem SB-*.
+- PROFESJE: przywrócono wspólne komendy professions i tools z pełnym stanem wszystkich 14 profesji i 14 narzędzi.
+- PEŁNE XP: statusy profesji pokazują teraz poziom, Rangę, bieżące XP z wymaganego progu i liczbę akcji. Status narzędzia pokazuje poziom, Tier, bieżące XP z wymaganego progu i użycia.
+- KOWALSTWO: kowalstwo pokazuje poprawnie XP Kowalstwa oraz pełny stan Młota Rzemieślniczego.
+- GOTOWANIE: gotowanie pokazuje również XP samej profesji, nie tylko opis i Nóż.
+- JUBILERSTWO: status pokazuje pełne XP Szczypiec Jubilerskich.
+- KRAWIECTWO / GARBARSTWO / STOLARSTWO / ZAKLINANIE: statusy pokazują pełny próg XP profesji i odpowiedniego narzędzia.
+- ARCHEOLOGIA / KARTOGRAFIA: statusy pokazują pełne XP profesji i narzędzia.
+- TOOL REWARD XP: naprawiono błąd, w którym grant_tool_reward_xp przyjmował content_level, ale nie stosował mnożnika trudności treści.
+- COMMAND REGISTRY AUDIT: fast predeploy statycznie porównuje wszystkie handlery COMMAND_REGISTRY z metodami Session/mixinów i blokuje brakujące handlery przed wdrożeniem.
+- Brak wipe i brak migracji bazy.
 
 ==============================================================================
 Soulbound v1.13.42 — OCEAN TRADE, PROGRESSION, CLASS QUESTS & HARDENING
