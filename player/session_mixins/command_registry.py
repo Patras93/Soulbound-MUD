@@ -162,6 +162,7 @@ COMMAND_REGISTRY = {
     'partychat': ('party_chat', (COMMAND_TEXT,), {}),
     'assist': ('assist_party_member', (COMMAND_TEXT,), {}),
     'partyrevive': ('revive_party_member_v0371', (COMMAND_TEXT,), {}),
+    'playerresp': ('respawn_downed_player_v11343', (COMMAND_TEXT,), {}),
     'selfrespawn': ('respawn_from_downed_v0371', (), {'auto': False}),
     'charisma': ('show_charisma', (), {}),
     'multiclass': ('handle_multiclass', (COMMAND_TEXT,), {}),
@@ -394,6 +395,12 @@ for _alias in ("harden", "hardening", "hartowanie"):
     COMMAND_CATALOG.add_alias(
         _alias,
         "hartuj",
+        source="player/session_mixins/command_registry.py",
+    )
+for _alias in ("resp", "respi", "respawn"):
+    COMMAND_CATALOG.add_alias(
+        _alias,
+        "playerresp",
         source="player/session_mixins/command_registry.py",
     )
 for _canonical in DOWNED_SAFE_COMMANDS | REST_SAFE_COMMANDS | GUIDE_SAFE_COMMANDS:
