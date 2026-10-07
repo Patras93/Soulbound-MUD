@@ -112,14 +112,10 @@ class DatabaseProgressionMixin:
         level = int(row["level"])
         xp = int(row["xp"])
         requested_gain = max(0, int(amount))
+        # v1.13.60: Class XP nie jest już obcinany do jednego awansu na źródło.
+        # Parametr single_level_cap pozostaje tylko dla kompatybilności API.
         gain = requested_gain
-        if single_level_cap and level < CLASS_MASTERY_MAX_LEVEL:
-            gain = cap_single_level_xp_gain_v11342(
-                xp,
-                class_mastery_xp_to_next(level),
-                gain,
-            )
-        limited = gain < requested_gain
+        limited = False
         xp += gain
         level_ups = 0
 

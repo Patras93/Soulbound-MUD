@@ -489,7 +489,7 @@ class SessionCombatRewardsMixin:
                         for msg in session.character.add_stat_progress(
                             raw_stat_reward,
                             targets=(stat_name,),
-                            single_level_cap=True,
+                            single_level_cap=False,
                         ):
                             await session.send(msg)
                     stat_reward_text=str(raw_stat_reward)
@@ -547,18 +547,18 @@ class SessionCombatRewardsMixin:
                         f"elite reward x{_elite_reward_mult_v11338:.2f}; "
                         f"bazowy EXP każdego statu {stat_reward_text}; Soul XP {soul_xp_reward}; "
                         f"Class XP {class_xp_reward}; EXP postaci {character_xp_reward}; "
-                        "limit zabicia: maksymalnie 1 awans każdej stałej osi.",
+                        "pełny EXP z zabicia jest rozliczany bez limitu jednego awansu.",
                         detail="full",
                     )
                     await session.grant_class_xp(
                         class_xp_reward,
-                        single_level_cap=True,
+                        single_level_cap=False,
                         content_level=v0190_mob_stage(template),
                         content_scaled=True,
                     )
                     for _msg in session.add_character_xp_with_event(
                         character_xp_reward,
-                        single_level_cap=True,
+                        single_level_cap=False,
                         content_level=v0190_mob_stage(template),
                         content_scaled=True,
                     ):

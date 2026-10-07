@@ -17,7 +17,7 @@ import traceback
 try:
     from storage.database import Database as _DatabaseImportSmoke
 except Exception as exc:
-    print(f"Soulbound v1.13.58 FAST PREDEPLOY FAILED: database import: {type(exc).__name__}: {exc}")
+    print(f"Soulbound v1.13.60 FAST PREDEPLOY FAILED: database import: {type(exc).__name__}: {exc}")
     traceback.print_exc()
     raise SystemExit(1)
 
@@ -42,7 +42,7 @@ try:
     )
 except Exception as exc:
     print(
-        "Soulbound v1.13.58 FAST PREDEPLOY FAILED: "
+        "Soulbound v1.13.60 FAST PREDEPLOY FAILED: "
         f"skill semantic import: {type(exc).__name__}: {exc}"
     )
     traceback.print_exc()
@@ -3124,7 +3124,7 @@ for _source, _label, _needles in (
             "def add_character_xp(self, amount, single_level_cap=False):",
             "def add_stat_progress(self, amount, targets=None, single_level_cap=False):",
             "def add_soul_xp(self, amount, single_level_cap=False):",
-            "cap_single_level_xp_gain_v11342(",
+            "v1.13.60: zdobyty EXP nigdy nie jest obcinany do jednego awansu",
         ),
     ),
     (
@@ -3159,15 +3159,15 @@ for _source, _label, _needles in (
         "class_db",
         (
             "single_level_cap=False",
-            "cap_single_level_xp_gain_v11342(",
+            "Class XP nie jest już obcinany do jednego awansu na źródło",
         ),
     ),
     (
         _elite_rewards_source_v11338,
         "combat_rewards",
         (
-            "single_level_cap=True",
-            "limit zabicia: maksymalnie 1 awans każdej stałej osi.",
+            "single_level_cap=False",
+            "pełny EXP z zabicia jest rozliczany bez limitu jednego awansu.",
         ),
     ),
 ):
@@ -3634,8 +3634,8 @@ for _needle_v11356 in (
             "v1.13.56 unlearned queue guard regression: missing " + _needle_v11356
         )
 
-# v1.13.57: late-game permanent progression must stay unchanged through 100,
-# then rise strongly without scaling rewards. Level 599 targets ~1 trillion XP.
+# v1.13.60: late-game permanent progression stays unchanged through 100,
+# then rises much harder without scaling rewards. Level 599 targets ~10 trillion XP.
 try:
     from core.progression_resources import (
         character_xp_to_next as _char_req_v11357,
@@ -3651,9 +3651,9 @@ try:
         _class_req_v11357(599),
         _soul_req_v11357(599),
     )
-    if any(abs(_v - 1_000_000_000_000) > 5_000_000 for _v in _reqs_599_v11357):
+    if any(abs(_v - 10_000_000_000_000) > 50_000_000 for _v in _reqs_599_v11357):
         _semantic_errors.append(
-            f"v1.13.57 late-game XP target regression: {_reqs_599_v11357}"
+            f"v1.13.60 late-game XP target regression: {_reqs_599_v11357}"
         )
     if not (_char_req_v11357(101) > _char_req_v11357(100)):
         _semantic_errors.append("v1.13.57 character XP does not rise after 100")
@@ -3673,9 +3673,9 @@ try:
     _stat_650_v11357 = _late_req_v11357(
         650, _stat_650_base_v11357, _stat_terminal_base_v11357
     )
-    if abs(_stat_599_v11357 - 1_000_000_000_000) > 5_000_000:
+    if abs(_stat_599_v11357 - 10_000_000_000_000) > 50_000_000:
         _semantic_errors.append(
-            f"v1.13.57 stat XP target regression: {_stat_599_v11357}"
+            f"v1.13.60 stat XP target regression: {_stat_599_v11357}"
         )
     if _stat_650_v11357 <= _stat_599_v11357:
         _semantic_errors.append("v1.13.57 uncapped stat XP stops growing after 599")
@@ -3700,18 +3700,18 @@ except Exception as _exc_v11358:
     )
 
 if _semantic_errors:
-    print("Soulbound v1.13.58 FAST PREDEPLOY FAILED: semantic contracts")
+    print("Soulbound v1.13.60 FAST PREDEPLOY FAILED: semantic contracts")
     for _error in _semantic_errors:
         print(f"ERROR: {_error}")
     raise SystemExit(1)
 
 if audit["error_count"]:
-    print("Soulbound v1.13.58 FAST PREDEPLOY FAILED")
+    print("Soulbound v1.13.60 FAST PREDEPLOY FAILED")
     for error in audit["errors"]:
         print(f"ERROR: {error}")
     raise SystemExit(1)
 
-print("Soulbound v1.13.58 FAST PREDEPLOY PASS")
+print("Soulbound v1.13.60 FAST PREDEPLOY PASS")
 print(
     "Semantic contracts: "
     f"{len(_semantic_audits)} audits PASS; AP runtime guards PASS"

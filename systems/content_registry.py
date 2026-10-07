@@ -373,8 +373,10 @@ SYSTEM_DESCRIPTIONS = {
 }
 
 
-LATEST_CHANGES_TITLE = "Soulbound v1.13.58 - Dynamic XP Audit"
+LATEST_CHANGES_TITLE = "Soulbound v1.13.60 - Full Kill XP + Heavier 101+ Progression"
 LATEST_CHANGES = [
+    "v1.13.60: usunięto globalny limit jednego awansu z pojedynczego źródła EXP; pełna nadwyżka Class/Character/Soul/stat XP jest rozliczana przez kolejne awanse. Krzywa 101+ została ponownie wzmocniona: końcówka 599 celuje w około 10 bilionów EXP.",
+    "v1.13.59: Mecowe EQ daje STR/DEX/CON/INT/WILL na każdej części; krzywa wymaganego EXP od 101+ została wyraźnie wzmocniona dla Levelu postaci, Biegłości, Soul i statystyk, zachowując około 1 biliona przy 599.",
     "v1.13.58: pełny audit płaskiego EXP — Generator zachowuje różnice authored XP, trudniejsze materiały/receptury/akcje dają wyraźnie więcej EXP, fallback craftingu skaluje się z poziomem contentu.",
     "v1.13.57: po Levelu/Biegłości/Soul/stat 100 wymagania EXP rosną znacznie mocniej; okolice 599 wymagają około 1 biliona EXP, statystyki kontynuują wzrost bez capu.",
     "v1.13.53: stary hook v0.37.0 Hall of Fame dla Class/Character XP przepuszcza *args/**kwargs; usuwa crash walki na single_level_cap/content_level/content_scaled.",

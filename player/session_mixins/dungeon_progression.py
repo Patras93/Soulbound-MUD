@@ -749,7 +749,7 @@ class SessionDungeonProgressionMixin:
             return await SessionDungeonProgressionMixin.grant_soul_xp(
                 self,
                 amount,
-                single_level_cap=True,
+                single_level_cap=False,
                 content_level=content_level,
                 content_scaled=content_scaled,
             )

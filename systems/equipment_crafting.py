@@ -355,6 +355,15 @@ def class_equipment_profile_properties(class_name, mastery, slot=None):
         if float(weight) > 0
     }
 
+def mec_hybrid_extra_stats(legacy_amount):
+    """Mec is a true five-stat hybrid: STR/DEX/CON plus INT/WILL on every class EQ piece."""
+    budget = max(3, int(legacy_amount or 0))
+    # Extra hybrid channels are meaningful from tier 1 and grow with the same
+    # authored item budget without stealing points from physical identity.
+    extra = max(1, int(round(budget * 0.30)))
+    return {"intelligence": extra, "willpower": extra}
+
+
 def class_equipment_base_stats_text(class_name, legacy_amount, slot=None, style_index=1):
     pstat, pamount, sstat, samount, tstat, tamount = class_equipment_split_stat_budget(
         class_name, legacy_amount, slot, style_index
@@ -366,11 +375,18 @@ def class_equipment_base_stats_text(class_name, legacy_amount, slot=None, style_
         "intelligence": "Inteligencja",
         "willpower": "Siła Woli",
     }
-    return (
-        f"{labels.get(pstat, pstat)} +{pamount}, "
-        f"{labels.get(sstat, sstat)} +{samount}, "
-        f"{labels.get(tstat, tstat)} +{tamount}"
-    )
+    parts = [
+        f"{labels.get(pstat, pstat)} +{pamount}",
+        f"{labels.get(sstat, sstat)} +{samount}",
+        f"{labels.get(tstat, tstat)} +{tamount}",
+    ]
+    if class_name == "Mec":
+        extras = mec_hybrid_extra_stats(legacy_amount)
+        parts.extend([
+            f"Inteligencja +{extras['intelligence']}",
+            f"Siła Woli +{extras['willpower']}",
+        ])
+    return ", ".join(parts)
 
 
 def _class_equipment_tier_label(required_mastery):
@@ -549,6 +565,7 @@ def _register_class_equipment_shops():
                         "stats": {
                             secondary_stat: secondary_amount,
                             tertiary_stat: tertiary_amount,
+                            **(mec_hybrid_extra_stats(legacy_affix_amount) if class_name == "Mec" else {}),
                         },
                         "class_base_stat_pair": (primary_stat, secondary_stat),
                         "class_base_stat_triplet": (
@@ -1002,6 +1019,7 @@ def _register_legendary_class_loot():
                     "stats": {
                         secondary_stat: secondary_amount,
                         tertiary_stat: tertiary_amount,
+                        **(mec_hybrid_extra_stats(legacy_affix_amount) if class_name == "Mec" else {}),
                     },
                     "properties": dict(legendary_properties_v11326),
                     "equipment_identity_source": "boss_set",
@@ -1086,6 +1104,7 @@ def _register_legendary_class_loot():
                 "stats": {
                     relic_secondary_stat: relic_secondary_amount,
                     relic_tertiary_stat: relic_tertiary_amount,
+                    **(mec_hybrid_extra_stats(legacy_relic_affix) if class_name == "Mec" else {}),
                 },
                 "class_base_stat_pair": (relic_primary_stat, relic_secondary_stat),
                 "class_base_stat_triplet": (

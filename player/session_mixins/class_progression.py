@@ -325,11 +325,6 @@ class SessionClassProgressionMixin:
                     await self.send(
                         f"{class_name}: Biegłość rośnie do {result['level']}."
                     )
-                if result.get("limited"):
-                    await self.send(
-                        f"{class_name}: limit jednego awansu za zabicie — "
-                        "nadwyżka Class XP nie jest bankowana."
-                    )
                 ascension=None
                 overflow=max(0,int(result.get("overflow_xp",0) or 0))
                 if overflow>0 and result["level"]>=CLASS_MASTERY_MAX_LEVEL:

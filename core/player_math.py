@@ -15,8 +15,8 @@ STAT_XP_CURVE = (100.0, 29.0, 1.70)
 
 LATE_GAME_XP_START_LEVEL = 100
 LATE_GAME_XP_TARGET_LEVEL = 599
-LATE_GAME_XP_TARGET_REQUIREMENT = 1_000_000_000_000
-LATE_GAME_XP_CURVE_POWER = 1.50
+LATE_GAME_XP_TARGET_REQUIREMENT = 10_000_000_000_000
+LATE_GAME_XP_CURVE_POWER = 0.55
 
 def late_game_xp_requirement(
     level: int,
@@ -26,8 +26,8 @@ def late_game_xp_requirement(
     """Scale a permanent progression axis strongly after level 100.
 
     The authored requirement is unchanged through level 100. From 101 onward
-    it receives a smooth exponential multiplier, chosen so the requirement at
-    level 599 reaches roughly one trillion XP. Rewards are not scaled here.
+    it receives a strong exponential multiplier that is already clearly felt at
+    level 101, chosen so the requirement at level 599 reaches roughly ten trillion XP. Rewards are not scaled here.
     For uncapped stats the same curve continues beyond 599 until SAFE_INT.
     """
     level = max(1, int(level or 1))

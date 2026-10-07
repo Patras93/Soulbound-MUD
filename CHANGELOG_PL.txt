@@ -1,4 +1,19 @@
-Aktualna paczka: v1.13.58
+v1.13.60 — Full Kill XP + Heavier 101+ Progression
+- Usunięto zasadę „jeden kill = maksymalnie jeden awans” dla EXP postaci, Biegłości klas, Soul XP i statystyk.
+- Zdobyty EXP nie jest już obcinany ani tracony: jeżeli jedna nagroda wystarcza na kilka awansów, wszystkie są rozliczane normalnie.
+- Parametr single_level_cap pozostaje wyłącznie dla zgodności starych wrapperów, ale nie kasuje już nadwyżki EXP.
+- Soul Tier nadal zachowuje osobną blokadę Próby/Unlock — to mechanika odblokowania Tieru, a nie limit jednego zabicia.
+- Wzmocniono krzywą wymaganego EXP od 101+: szybszy wzrost w mid/endgame i około 10 bilionów EXP na kolejny poziom przy 599.
+- Zaktualizowano komunikat walki: pełny EXP z zabicia jest rozliczany bez limitu jednego awansu.
+
+Soulbound v1.13.59 - Mec Hybrid EQ + Stronger 101+ Progression
+- Mec: klasowe EQ wspiera teraz pełny hybrydowy profil STR + DEX/AGI + CON + INT + WILL na każdej części.
+- Tech Set Meca: każda część daje teraz Siłę, Zręczność, Kondycję, Inteligencję i Siłę Woli.
+- Progresja 101+: mocniejsza krzywa wymaganego EXP dla Levelu postaci, Biegłości klasy, Soul Levelu i statystyk.
+- Wzrost jest wyraźnie odczuwalny już od 101, a okolice 599 nadal celują w około 1 bilion EXP na kolejny awans.
+- Statystyki pozostają bez limitu i ich koszt rośnie dalej ponad 600.
+
+Aktualna paczka: v1.13.60
 
 Soulbound v1.13.58 — DYNAMIC XP AUDIT
 - Usunięto główną przyczynę płaskiego EXP: Generator Core nie ignoruje już authored/raw XP.

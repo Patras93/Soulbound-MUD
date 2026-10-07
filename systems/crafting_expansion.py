@@ -170,7 +170,7 @@ for set_id,(set_name,req_class,req_race,bonus) in TECH_SET_SPECS_V03114.items():
         if req_class:
             item["required_class"]=req_class
             item["class_set_name"]=set_name
-            item["stats"]={"strength":6,"constitution":6,"willpower":4} if req_class=="Mec" else {"strength":5,"constitution":5,"dexterity":6}
+            item["stats"]={"strength":6,"dexterity":6,"constitution":6,"intelligence":4,"willpower":4} if req_class=="Mec" else {"strength":5,"constitution":5,"dexterity":6}
         if req_race: item["required_race"]=req_race
         _catalog_mut.catalog_assign(item, 'ITEMS', ITEMS, (iid,)); rows.append(iid)
         ingredients={"magitek_alloy":2,"machine_plating":2,"machine_circuit":1}
