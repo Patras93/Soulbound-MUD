@@ -3130,6 +3130,36 @@ for _needle in (
             "v1.13.42 hardening routing regression: missing " + _needle
         )
 
+# v1.13.42 — class-room shops must retain non-class utility offers.
+# Without this, guild_arcane_chamber dynamically showed Mag/Psionik EQ but hid
+# runic_focus, making Zaklinanie impossible despite the tool existing in SHOPS.
+_shop_runtime_source_v11342 = (
+    _root / "player/session_mixins/shops_teachers.py"
+).read_text(encoding="utf-8")
+_professions_runtime_source_v11342 = (
+    _root / "systems/professions.py"
+).read_text(encoding="utf-8")
+for _needle in (
+    "CLASS_EQUIPMENT_ITEM_IDS",
+    "for item_id in SHOPS.get(room_id, ()):",
+    "if item_id in CLASS_EQUIPMENT_ITEM_IDS:",
+    "offers.append(item_id)",
+):
+    if _needle not in _shop_runtime_source_v11342:
+        _semantic_errors.append(
+            "v1.13.42 class-room utility shop regression: missing " + _needle
+        )
+for _needle in (
+    '"Zaklinanie": {"tool_type":"enchanting","tool_item_id":"runic_focus"',
+    "'guild_arcane_chamber','runic_focus','guild_quartermaster_arcane'",
+    "'runic_focus':'guild_arcane_chamber'",
+    "'fokus runiczny':'runic_focus'",
+):
+    if _needle not in _professions_runtime_source_v11342:
+        _semantic_errors.append(
+            "v1.13.42 enchanting tool availability regression: missing " + _needle
+        )
+
 if _semantic_errors:
     print("Soulbound v1.13.42 FAST PREDEPLOY FAILED: semantic contracts")
     for _error in _semantic_errors:
