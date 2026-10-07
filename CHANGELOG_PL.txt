@@ -1,5 +1,5 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.13.47
+Aktualna paczka: v1.13.49
 
 
 
@@ -19,6 +19,24 @@ Aktualna paczka: v1.13.47
 
 
 
+
+==============================================================================
+Soulbound v1.13.49 — COMBAT SOUL XP RUNTIME REPAIR
+==============================================================================
+
+- Naprawiono runtime crash po zabiciu moba: stary override grant_soul_xp_v0380 nie przyjmował argumentu single_level_cap.
+- Walka używa osobnej kanonicznej ścieżki Soul XP z content scalingiem, x2 EXP, Mentorem, osiągnięciami, pełnym HP przy awansie i limitem jednego Soul Levelu z pojedynczego zabicia.
+- Dzięki temu po stat EXP walka przechodzi dalej do Soul/Class/Character XP, quest credit i dalszych nagród.
+- Brak wipe i brak migracji bazy.
+
+==============================================================================
+Soulbound v1.13.48 — AUTO GATHER COOLDOWN REPAIR
+==============================================================================
+
+- Naprawiono wspólną regresję auto-zbierania: auto-Zielarstwo, auto-kopanie, auto-Drwalstwo i auto-łowienie nie mielą pętli bez await podczas aktywnego cooldownu profesji.
+- Tryb auto czeka na pozostały cooldown i dopiero potem rozpoczyna kolejną akcję.
+- Ręczne zbieranie zachowuje dotychczasowy komunikat o konieczności odczekania.
+- Brak wipe i brak migracji bazy.
 
 ==============================================================================
 Soulbound v1.13.47 — SMELT ORE ROUTING HOTFIX

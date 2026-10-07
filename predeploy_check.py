@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Fast Railway predeploy gate for Soulbound v1.13.47.
+"""Fast Railway predeploy gate for Soulbound v1.13.49.
 
 This is the normal deploy check.  It intentionally avoids assembling the full
 world/runtime.  Use predeploy_full.py when an exhaustive historical audit is
@@ -17,7 +17,7 @@ import traceback
 try:
     from storage.database import Database as _DatabaseImportSmoke
 except Exception as exc:
-    print(f"Soulbound v1.13.47 FAST PREDEPLOY FAILED: database import: {type(exc).__name__}: {exc}")
+    print(f"Soulbound v1.13.49 FAST PREDEPLOY FAILED: database import: {type(exc).__name__}: {exc}")
     traceback.print_exc()
     raise SystemExit(1)
 
@@ -42,7 +42,7 @@ try:
     )
 except Exception as exc:
     print(
-        "Soulbound v1.13.47 FAST PREDEPLOY FAILED: "
+        "Soulbound v1.13.49 FAST PREDEPLOY FAILED: "
         f"skill semantic import: {type(exc).__name__}: {exc}"
     )
     traceback.print_exc()
@@ -3537,19 +3537,34 @@ for _needle_v11347 in ("if not key_alias and not explicit_key:", "return None", 
     if _needle_v11347 not in _smelt_source_v11347:
         _semantic_errors.append("v1.13.47 smelt ore routing regression: missing " + _needle_v11347)
 
+# v1.13.48: all four auto gathering actions must await a shared profession cooldown.
+_gather_actions_source_v11348 = (_root / "player/session_mixins/gathering_actions.py").read_text(encoding="utf-8")
+if _gather_actions_source_v11348.count("await asyncio.sleep(max(0.05, float(remaining)))") < 4:
+    _semantic_errors.append("v1.13.48 auto gather cooldown regression: fewer than four guarded auto waits")
+
+# v1.13.49: combat Soul XP must bypass legacy grant_soul_xp_v0380 signature.
+_combat_rewards_source_v11349 = (_root / "player/session_mixins/combat_rewards.py").read_text(encoding="utf-8")
+for _needle_v11349 in (
+    "_grant_combat_soul_xp_v11349",
+    "amount, single_level_cap=True",
+    'session_summary_add("soul_xp"',
+):
+    if _needle_v11349 not in _combat_rewards_source_v11349:
+        _semantic_errors.append("v1.13.49 combat Soul XP runtime regression: missing " + _needle_v11349)
+
 if _semantic_errors:
-    print("Soulbound v1.13.47 FAST PREDEPLOY FAILED: semantic contracts")
+    print("Soulbound v1.13.49 FAST PREDEPLOY FAILED: semantic contracts")
     for _error in _semantic_errors:
         print(f"ERROR: {_error}")
     raise SystemExit(1)
 
 if audit["error_count"]:
-    print("Soulbound v1.13.47 FAST PREDEPLOY FAILED")
+    print("Soulbound v1.13.49 FAST PREDEPLOY FAILED")
     for error in audit["errors"]:
         print(f"ERROR: {error}")
     raise SystemExit(1)
 
-print("Soulbound v1.13.47 FAST PREDEPLOY PASS")
+print("Soulbound v1.13.49 FAST PREDEPLOY PASS")
 print(
     "Semantic contracts: "
     f"{len(_semantic_audits)} audits PASS; AP runtime guards PASS"
