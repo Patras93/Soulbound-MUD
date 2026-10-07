@@ -373,11 +373,13 @@ SYSTEM_DESCRIPTIONS = {
 }
 
 
-LATEST_CHANGES_TITLE = "Soulbound v1.13.42 - Ocean Trade & Long-Term Progression"
+LATEST_CHANGES_TITLE = "Soulbound v1.13.42 - Ocean Trade, Progression, Class Quests & Hardening"
 LATEST_CHANGES = [
     "v1.13.42: handel morski ma 28 kontraktów — po 4 w każdym z 7 głównych portów; krótkie, średnie i dalekomorskie kursy działają w obie strony, lista pokazuje długość rejsu, wymagany poziom Ładowni i nagrodę, a dynamiczna wypłata uwzględnia także dystans.",
     "v1.13.42: długoterminowa progresja jest wolniejsza: około 72 kille/Level postaci, 48/Biegłość klasy, 75/Soul, 54 trafienia/Soul Weapon Mastery i 60 killi/+1 stat; pojedynczy kill nie może dać więcej niż jednego awansu danej stałej osi ani zbankować wielopoziomowego overflow.",
     "v1.13.42: profesje awansują szybciej — globalny Profession XP wzrasta z x2 do x4 dla realnych akcji, craftu, questów specjalistów i zamówień; Tool XP pozostaje bez zmian.",
+    "v1.13.42: godzinne questy klasowe rosną razem z Biegłością przez 7 etapów i mają klasowe priorytety; etap jest zamrażany na daną godzinę, więc awans w trakcie zadania nie zmienia jego celu.",
+    "v1.13.42: hartuj <żywioł> <EQ> dodaje trwałe odporności Fire/Ice/Electric/Dark/Poison/Holy/Water/Arcane; 5 rang po 2%, 40% cap warstwy hartowania i 80% końcowego Wardu z istniejącym EQ.",
     "v1.13.41: śmierć pokazuje przyczynę zgonu z zabójcą, zdolnością/żywiołem, typem obrażeń, końcowym trafieniem i miejscem; profil <gracz> pokazuje Best Kill i Worst Defeat z XP; klucze bossowe można przetapiać w Kuźni przez przetop klucze lub przetop <nazwa klucza>.",
     "v1.13.40: skróty walk do kolejnego przejścia są spójne w nieskończonych lochach: Krypta/Mityczna Krypta dół, Wieża/Mityczna Wieża góra, Twierdza Gigantów góra i UOSS Deep Dungeon dół; zawsze zatrzymują się przed ostatnim up/down.",
     "v1.13.39: moby mogą używać czytelnych ataków Fire, Ice, Electric, Dark, Poison, Holy, Water i Arcane; ataki używają Magic Defense oraz istniejących element_wards z EQ.",
