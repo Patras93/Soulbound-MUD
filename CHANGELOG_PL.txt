@@ -1,5 +1,5 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.13.38
+Aktualna paczka: v1.13.39
 
 
 
@@ -19,6 +19,23 @@ Aktualna paczka: v1.13.38
 
 
 
+
+==============================================================================
+Soulbound v1.13.39 — ELEMENTAL COMBAT, PARTY CONTRACTS & SYNERGY 2.0
+==============================================================================
+
+- ATAKI ŻYWIOŁOWE MOBÓW: przeciwnicy z odpowiednią affinity mogą losowo używać Fire, Ice, Electric/Lightning, Dark, Poison, Holy, Water albo Arcane. Każdy atak ma jawny komunikat tekstowy dla NVDA.
+- OBRONA PRZED ŻYWIOŁEM: specjalny atak przechodzi przez istniejący Magic Defense i istniejący system element_wards. Ward konkretnego elementu realnie redukuje obrażenia i jest pokazany w komunikacie walki.
+- BEZ LOSOWYCH ONE-SHOTÓW: elemental special zastępuje dawny losowy flavor burst w tej samej akcji zamiast się z nim mnożyć. Adaptive Consider uwzględnia średnią presję żywiołową.
+- SYNERGY 2.0: skill może przygotować znacznik na przeciwniku, który druga klasa w lokalnej drużynie detonuje. Znaczniki wygasają po 12 sekundach, reakcja ma twardy cap x1.35 i nie zmienia obrażeń solo.
+- FROSTBREAK: Mag nakłada Arcane Frost, Wojownik zużywa znacznik przez SHATTER. VENOM HARVEST: Druid nakłada Venom Bloom, Nekromanta detonuje BLIGHTBURST.
+- HELLSTORM OVERLOAD: Fire Czarownika przygotowuje Hellfire, a Electric Inżyniera wywołuje OVERLOAD. Są też reakcje Łowca->Łotrzyk, Kapłan->Mec, Strażnik->Mag, Mnich->Psionik i Berserker->Wojownik.
+- ELITARNE KONTRAKTY PARTY: Koordynatorka Kontraktów Lyra stoi na rynku. Ma cztery godzinne kontrakty: elity, bossowie, przeciwnicy żywiołowi i named rare. Postęp dostają tylko żywi członkowie tej samej drużyny w tej samej lokacji, minimum 2 osoby.
+- SOLO POZOSTAJE PEŁNE: żaden kontrakt party nie odblokowuje lokacji, klasy, lochu ani wymaganej progresji. To wyłącznie dodatkowa trudniejsza ścieżka nagród.
+- WORLD EVENTY: do istniejącej rotacji dochodzą Szczelina Żywiołów i Najazd Cienia. Combat eventy mogą wystawić nazwany rare zamiast generycznego Wędrującego Rzadkiego.
+- NAMED RARE: każdy z 15 proceduralnych biomów ma własną unikalną nazwę rare, bez cyfr i technicznych ID. Named rare pozostaje pasywny do ataku i podlega Adaptive Combat.
+- CHASE LOOT: osiem żywiołowych przedmiotów chase. Każdy daje 20% Ward konkretnego elementu, +12% obrażeń tego elementu oraz Attack/Magic Attack. Drop jest opcjonalny i nie jest wymagany do progresji.
+- Brak wipe i brak obowiązkowej migracji danych postaci. Nowe kontrakty korzystają z istniejącej tabeli quests.
 
 ==============================================================================
 Soulbound v1.13.38 — ELITE MOBS, CLASS GEAR POWER & PARTY SYNERGIES
