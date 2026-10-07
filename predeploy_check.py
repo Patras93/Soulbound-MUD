@@ -2930,6 +2930,105 @@ for _needle in (
     if _needle not in _elite_rewards_source_v11338:
         _semantic_errors.append("v1.13.38 elite rewards regression: missing " + _needle)
 
+# v1.13.42 — long-term progression must stay slow and a single mob kill
+# may finish at most one permanent level on each combat progression axis.
+_balance_source_v11342 = (_root / "config/balance.py").read_text(encoding="utf-8")
+_progression_source_v11342 = (
+    _root / "core/progression_resources.py"
+).read_text(encoding="utf-8")
+_character_source_v11342 = (_root / "player/character.py").read_text(encoding="utf-8")
+_class_progression_source_v11342 = (
+    _root / "player/session_mixins/class_progression.py"
+).read_text(encoding="utf-8")
+_dungeon_progression_source_v11342 = (
+    _root / "player/session_mixins/dungeon_progression.py"
+).read_text(encoding="utf-8")
+_session_runtime_source_v11342 = (
+    _root / "player/session_mixins/session_runtime_state.py"
+).read_text(encoding="utf-8")
+_db_progression_source_v11342 = (
+    _root / "storage/db_progression.py"
+).read_text(encoding="utf-8")
+for _needle in (
+    "CHARACTER_XP_REQUIREMENT_MULTIPLIER = 4.0",
+    "CLASS_MASTERY_XP_REQUIREMENT_MULTIPLIER = 3.0",
+    "SOUL_XP_REQUIREMENT_MULTIPLIER = 3.0",
+    "SOUL_WEAPON_MASTERY_XP_REQUIREMENT_MULTIPLIER = 3.0",
+    "STAT_XP_REQUIREMENT_MULTIPLIER = 4.0",
+    "STAT_XP_REWARD_MULTIPLIER = 4.0",
+):
+    if _needle not in _balance_source_v11342:
+        _semantic_errors.append(
+            "v1.13.42 progression pace regression: missing " + _needle
+        )
+for _needle in (
+    "def cap_single_level_xp_gain_v11342(",
+    "CLASS_MASTERY_XP_REQUIREMENT_MULTIPLIER",
+    "SOUL_XP_REQUIREMENT_MULTIPLIER",
+    "SOUL_WEAPON_MASTERY_XP_REQUIREMENT_MULTIPLIER",
+):
+    if _needle not in _progression_source_v11342:
+        _semantic_errors.append(
+            "v1.13.42 progression requirement regression: missing " + _needle
+        )
+for _source, _label, _needles in (
+    (
+        _character_source_v11342,
+        "character",
+        (
+            "def add_character_xp(self, amount, single_level_cap=False):",
+            "def add_stat_progress(self, amount, targets=None, single_level_cap=False):",
+            "def add_soul_xp(self, amount, single_level_cap=False):",
+            "cap_single_level_xp_gain_v11342(",
+        ),
+    ),
+    (
+        _class_progression_source_v11342,
+        "class",
+        (
+            "async def grant_class_xp(self, total_xp, single_level_cap=False):",
+            "single_level_cap=single_level_cap",
+        ),
+    ),
+    (
+        _dungeon_progression_source_v11342,
+        "soul",
+        (
+            "async def grant_soul_xp(self, amount, single_level_cap=False):",
+            "single_level_cap=single_level_cap",
+        ),
+    ),
+    (
+        _session_runtime_source_v11342,
+        "character_event",
+        (
+            "def add_character_xp_with_event(self, amount, single_level_cap=False):",
+            "single_level_cap=single_level_cap",
+        ),
+    ),
+    (
+        _db_progression_source_v11342,
+        "class_db",
+        (
+            "single_level_cap=False",
+            "cap_single_level_xp_gain_v11342(",
+        ),
+    ),
+    (
+        _elite_rewards_source_v11338,
+        "combat_rewards",
+        (
+            "single_level_cap=True",
+            "limit zabicia: maksymalnie 1 awans każdej stałej osi.",
+        ),
+    ),
+):
+    for _needle in _needles:
+        if _needle not in _source:
+            _semantic_errors.append(
+                f"v1.13.42 {_label} kill-cap regression: missing {_needle}"
+            )
+
 if _semantic_errors:
     print("Soulbound v1.13.42 FAST PREDEPLOY FAILED: semantic contracts")
     for _error in _semantic_errors:
