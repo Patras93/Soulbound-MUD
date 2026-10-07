@@ -373,8 +373,9 @@ SYSTEM_DESCRIPTIONS = {
 }
 
 
-LATEST_CHANGES_TITLE = "Soulbound v1.13.43 - Profession & Command Runtime Repair"
+LATEST_CHANGES_TITLE = "Soulbound v1.13.44 - World Death Rescue"
 LATEST_CHANGES = [
+    "v1.13.44: po śmierci bez Phoenix Egg cały świat dostaje nazwę gracza, lokację, zabójcę/przyczynę i dokładny recap; ciało pozostaje POWALONE 180 sekund, każdy żywy gracz w tej samej lokacji może użyć wskrzes <gracz>, a resp/respi/respawn <gracz> odsyła duszę do Świątyni.",
     "v1.13.43: pełny audit profesji usunął niespójności statusów bez duplikowania istniejących handlerów z gathering.py; Kowalstwo/Gotowanie/Jubilerstwo oraz rozszerzone profesje pokazują dokładne bieżące XP i próg do następnego poziomu profesji/narzędzia.",
     "v1.13.43: grant_tool_reward_xp ponownie respektuje content_level, więc nagrody Tool XP z questów/zamówień skalują się z trudnością treści zamiast zachowywać się płasko.",
     "v1.13.43: predeploy audytuje cały COMMAND_REGISTRY i blokuje wydanie, jeśli jakakolwiek komenda wskazuje na nieistniejący handler sesji.",
