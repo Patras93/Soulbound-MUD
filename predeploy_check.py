@@ -3512,6 +3512,12 @@ for _needle_v11346 in ("source_xp_exact", "source_xp<=0", "v0190_combat_reward",
 if "COMBAT_XP_ZERO_AUDIT_V11346" not in _server_source_v11346:
     _semantic_errors.append("v1.13.46 combat XP repair is not wired into server runtime")
 
+# v1.13.46: Selene must keep the Zaklinanie tool after class-shop rebuild.
+_equipment_source_v11346 = (_root / "systems/equipment_crafting.py").read_text(encoding="utf-8")
+for _needle_v11346_selene in ("guild_arcane_chamber", "runic_focus"):
+    if _needle_v11346_selene not in _equipment_source_v11346:
+        _semantic_errors.append("v1.13.46 Selene shop regression: missing " + _needle_v11346_selene)
+
 if _semantic_errors:
     print("Soulbound v1.13.46 FAST PREDEPLOY FAILED: semantic contracts")
     for _error in _semantic_errors:
