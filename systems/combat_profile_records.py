@@ -90,14 +90,11 @@ def backfill_combat_profile_records_v11341(db, account_id, mob_templates):
 
     worst = combat_profile_row_v11341(db, account_id, "worst_defeat")
     if worst is None:
-        try:
-            rows = db.conn.execute(
-                "SELECT killer FROM death_recaps_v03052 "
-                "WHERE account_id=? ORDER BY id DESC LIMIT 500",
-                (account_id,),
-            ).fetchall()
-        except Exception:
-            rows = ()
+        rows = db.conn.execute(
+            "SELECT killer FROM death_recaps_v03052 "
+            "WHERE account_id=? ORDER BY id DESC LIMIT 500",
+            (account_id,),
+        ).fetchall()
         by_name = {}
         for template in mob_templates.values():
             name = str(
