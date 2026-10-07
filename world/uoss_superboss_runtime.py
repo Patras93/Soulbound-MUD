@@ -421,11 +421,19 @@ def superboss_source_round_event_v11160(session, template, mob):
         mob.uoss_round_marker_v11176=current
     turn=current
     if key=="serpentarius" and turn>100:
-        return {"instant_death":True,"text":"Serpentarius: minęło 100 rund. Próba kończy się śmiercią."}
+        return {
+            "instant_death":True,
+            "name":"Limit 100 rund",
+            "text":"Serpentarius: minęło 100 rund. Próba kończy się śmiercią.",
+        }
     if key=="odin":
         started=int(getattr(mob,"uoss_shin_zantetsuken_started_v11160",0) or 0)
         if started and turn-started>=10:
-            return {"instant_death":True,"text":"Odin: Shin-Zantetsuken — upłynęło 10 rund."}
+            return {
+                "instant_death":True,
+                "name":"Shin-Zantetsuken",
+                "text":"Odin: Shin-Zantetsuken — upłynęło 10 rund.",
+            }
     return None
 
 
