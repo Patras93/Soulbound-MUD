@@ -545,12 +545,28 @@ class SessionProfessionStorageMixin:
             row = self.server.db.tool(self.account_id, tool_type)
             level = int(row["level"])
             old_tier = tool_tier(level)
-            tool_xp = v0190_scaled_gain(tool_xp, level, "tool", 12)
+            raw_tool_xp=max(0,int(tool_xp or 0))
+            stage=max(
+                1,
+                min(PROFESSION_MAX_LEVEL,int(content_level or level or 1)),
+            )
+            _base_prof,_base_tool=self.profession_content_xp_floor_v11342(
+                0,0,stage,tool_type
+            )
+            authored_tool_mult=self.profession_authored_xp_multiplier_v11343(
+                max(raw_tool_xp,_base_tool),_base_tool
+            )
+            tool_xp = v0190_scaled_gain(raw_tool_xp, level, "tool", 12)
             if content_level is not None:
                 _prof_mult,_tool_mult=self.profession_content_xp_multiplier_v11342(
-                    content_level,tool_type
+                    stage,tool_type
                 )
-                tool_xp=max(0,int(round(tool_xp*_tool_mult)))
+                tool_xp=max(
+                    0,
+                    int(round(tool_xp*_tool_mult*authored_tool_mult)),
+                )
+            else:
+                tool_xp=max(0,int(round(tool_xp*authored_tool_mult)))
             tool_xp = self.apply_double_xp(tool_xp)
             self.session_summary_add("tool_xp", tool_xp, tool_type)
             xp = int(row["xp"]) + max(0, int(tool_xp))
@@ -591,6 +607,13 @@ class SessionProfessionStorageMixin:
             self.server.db.save_tool(
                 self.account_id, tool_type, level, xp, uses
             )
+            if level>=tool_level_cap:
+                messages.append(f"{tool_name}: poziom {level}, XP maksimum.")
+            else:
+                messages.append(
+                    f"{tool_name}: poziom {level}, XP {xp} z "
+                    f"{self.tool_xp_to_next(level,tool_type)}."
+                )
 
             new_tier = tool_tier(level)
             if new_tier > old_tier:
@@ -1044,12 +1067,28 @@ class SessionProfessionStorageMixin:
                 self.account_id, tool_type
             )
             level = int(row["level"])
-            tool_xp = v0190_scaled_gain(tool_xp, level, "tool", 12)
+            raw_tool_xp=max(0,int(tool_xp or 0))
+            stage=max(
+                1,
+                min(PROFESSION_MAX_LEVEL,int(content_level or level or 1)),
+            )
+            _base_prof,_base_tool=self.profession_content_xp_floor_v11342(
+                0,0,stage,tool_type
+            )
+            authored_tool_mult=self.profession_authored_xp_multiplier_v11343(
+                max(raw_tool_xp,_base_tool),_base_tool
+            )
+            tool_xp = v0190_scaled_gain(raw_tool_xp, level, "tool", 12)
             if content_level is not None:
                 _prof_mult,_tool_mult=self.profession_content_xp_multiplier_v11342(
-                    content_level,tool_type
+                    stage,tool_type
                 )
-                tool_xp=max(0,int(round(tool_xp*_tool_mult)))
+                tool_xp=max(
+                    0,
+                    int(round(tool_xp*_tool_mult*authored_tool_mult)),
+                )
+            else:
+                tool_xp=max(0,int(round(tool_xp*authored_tool_mult)))
             tool_xp = self.apply_double_xp(tool_xp)
             self.session_summary_add("tool_xp", tool_xp, tool_type)
             xp = int(row["xp"]) + tool_xp
@@ -1100,6 +1139,13 @@ class SessionProfessionStorageMixin:
                 xp,
                 uses,
             )
+            if level>=cap:
+                await self.send(f"{tool_name}: poziom {level}, XP maksimum.")
+            else:
+                await self.send(
+                    f"{tool_name}: poziom {level}, XP {xp} z "
+                    f"{self.tool_xp_to_next(level,tool_type)}."
+                )
 
     async def grant_profession_reward_xp(
         self, profession, profession_xp, tool_type, tool_xp, *,
@@ -1116,12 +1162,30 @@ class SessionProfessionStorageMixin:
             plevel = int(prow["level"])
             trow_preview = self.server.db.tool(self.account_id, tool_type)
             tlevel_preview = int(trow_preview["level"])
-            legacy_profession_xp = max(0, int(profession_xp)) * PROFESSION_XP_GAIN_MULTIPLIER
+            raw_profession_xp=max(0,int(profession_xp or 0))
+            raw_tool_xp=max(0,int(tool_xp or 0))
+            stage=max(
+                1,
+                min(
+                    PROFESSION_MAX_LEVEL,
+                    int(content_level or max(plevel,tlevel_preview,1)),
+                ),
+            )
+            base_prof_floor,base_tool_floor=self.profession_content_xp_floor_v11342(
+                0,0,stage,tool_type
+            )
+            authored_prof_mult=self.profession_authored_xp_multiplier_v11343(
+                max(raw_profession_xp,base_prof_floor),base_prof_floor
+            )
+            authored_tool_mult=self.profession_authored_xp_multiplier_v11343(
+                max(raw_tool_xp,base_tool_floor),base_tool_floor
+            )
+            legacy_profession_xp = raw_profession_xp * PROFESSION_XP_GAIN_MULTIPLIER
             actual_profession_xp = v0190_scaled_gain(
                 legacy_profession_xp, plevel, "profession", 40
             )
             tool_xp = v0190_scaled_gain(
-                tool_xp, tlevel_preview, "tool", 12
+                raw_tool_xp, tlevel_preview, "tool", 12
             )
             # Quest/order rewards do not point at one material, but the global
             # v1.13.42 profession-speed boost must still be real.
@@ -1134,12 +1198,25 @@ class SessionProfessionStorageMixin:
             )
             if content_level is not None:
                 _prof_mult,_tool_mult=self.profession_content_xp_multiplier_v11342(
-                    content_level,tool_type
+                    stage,tool_type
                 )
                 actual_profession_xp=max(
-                    0,int(round(actual_profession_xp*_prof_mult))
+                    0,
+                    int(round(
+                        actual_profession_xp
+                        * _prof_mult
+                        * authored_prof_mult
+                    )),
                 )
-                tool_xp=max(0,int(round(tool_xp*_tool_mult)))
+                tool_xp=max(
+                    0,
+                    int(round(tool_xp*_tool_mult*authored_tool_mult)),
+                )
+            else:
+                actual_profession_xp=max(
+                    0,int(round(actual_profession_xp*authored_prof_mult))
+                )
+                tool_xp=max(0,int(round(tool_xp*authored_tool_mult)))
             actual_profession_xp=max(0,int(round(actual_profession_xp*(1.0+_guild_pct/100.0))))
             tool_xp=max(0,int(round(tool_xp*(1.0+_guild_pct/100.0))))
             _title_pct = self.v0260_profession_xp_bonus_percent(profession, tool_type)
@@ -1174,6 +1251,15 @@ class SessionProfessionStorageMixin:
             self.server.db.save_profession(
                 self.account_id, profession, plevel, pxp, actions
             )
+            if plevel>=profession_cap:
+                await self.send(
+                    f"{profession}: poziom {plevel}, XP maksimum."
+                )
+            else:
+                await self.send(
+                    f"{profession}: poziom {plevel}, XP {pxp} z "
+                    f"{self.profession_xp_to_next(plevel,profession)}."
+                )
 
             trow = self.server.db.tool(self.account_id, tool_type)
             tlevel = int(trow["level"])
@@ -1214,3 +1300,12 @@ class SessionProfessionStorageMixin:
             self.server.db.save_tool(
                 self.account_id, tool_type, tlevel, txp, uses
             )
+            if tlevel>=tool_level_cap:
+                await self.send(
+                    f"{tool_name}: poziom {tlevel}, XP maksimum."
+                )
+            else:
+                await self.send(
+                    f"{tool_name}: poziom {tlevel}, XP {txp} z "
+                    f"{self.tool_xp_to_next(tlevel,tool_type)}."
+                )
