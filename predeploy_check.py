@@ -63,6 +63,47 @@ _semantic_audits = {
     "skill_cooldowns": SKILL_COOLDOWN_AUDIT_V11140,
 }
 _semantic_errors = []
+
+# v1.13.43: profesje i narzędzia są kanonicznie 1-600. Historyczny bootstrap
+# nadal jest importowany przez dużą część runtime, więc jego helpery muszą być
+# zgodne z progression_600, a nie zatrzymywać realnego progresu na 400.
+try:
+    from core.bootstrap_economy_professions import (
+        profession_max_level as _bootstrap_prof_max_v11343,
+        profession_max_rank as _bootstrap_prof_rank_max_v11343,
+        tool_max_level as _bootstrap_tool_max_v11343,
+        tool_tier as _bootstrap_tool_tier_v11343,
+        tool_tier_name as _bootstrap_tool_tier_name_v11343,
+    )
+    from core.progression_600 import (
+        PROFESSION_MAX_LEVEL as _profession_max_600_v11343,
+        PROFESSION_MAX_RANK as _profession_rank_max_600_v11343,
+        TOOL_MAX_LEVEL as _tool_max_600_v11343,
+        TOOL_MAX_TIER as _tool_tier_max_600_v11343,
+    )
+    if int(_bootstrap_prof_max_v11343("Kowalstwo")) != 600:
+        _semantic_errors.append("profession progression regression: bootstrap cap is not 600")
+    if int(_bootstrap_tool_max_v11343("crafting")) != 600:
+        _semantic_errors.append("tool progression regression: bootstrap cap is not 600")
+    if int(_bootstrap_prof_rank_max_v11343("Kowalstwo")) != int(_profession_rank_max_600_v11343):
+        _semantic_errors.append("profession rank regression: bootstrap and progression_600 disagree")
+    if int(_bootstrap_tool_tier_v11343(600)) != int(_tool_tier_max_600_v11343):
+        _semantic_errors.append("tool tier regression: level 600 does not reach the final tier")
+    if int(_profession_max_600_v11343) != 600 or int(_tool_max_600_v11343) != 600:
+        _semantic_errors.append("progression_600 profession/tool caps changed unexpectedly")
+    for _tool_type_v11343 in (
+        "tailoring", "leatherworking", "carpentry", "enchanting",
+        "archaeology", "cartography_profession",
+    ):
+        _label_v11343 = _bootstrap_tool_tier_name_v11343(_tool_type_v11343, 1)
+        if "Kilof" in str(_label_v11343):
+            _semantic_errors.append(
+                f"tool naming regression: {_tool_type_v11343} is mislabeled as mining"
+            )
+except Exception as exc:
+    _semantic_errors.append(
+        f"profession/tool 600 audit import failed: {type(exc).__name__}: {exc}"
+    )
 if int(audit.get("swallowed_exception_count", 0) or 0):
     _semantic_errors.append(
         "unclassified swallowed exceptions remain: "
