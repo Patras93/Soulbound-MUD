@@ -373,6 +373,20 @@ NPCS = {
         "teacher_class": "Inżynier",
         "quest": "hourly_class_inzynier",
     },
+    "party_contract_coordinator_v11339": {
+        "name": "Koordynatorka Kontraktów Lyra", "room": "market",
+        "dialogue": (
+            "Prowadzę dobrowolne elitarne kontrakty drużynowe. Nie są wymagane do "
+            "progresji solo. Zbierz co najmniej dwuosobową drużynę i wybierz zlecenie."
+        ),
+        "quest": "party_contract_elites_v11339",
+        "quest_chain": (
+            "party_contract_elites_v11339",
+            "party_contract_bosses_v11339",
+            "party_contract_elements_v11339",
+            "party_contract_named_rare_v11339",
+        ),
+    },
 }
 
 __all__ = ['NPCS']
