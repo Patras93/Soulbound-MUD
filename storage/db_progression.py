@@ -2,7 +2,11 @@
 """Class, skill queue and skill progression persistence."""
 
 from config.balance import CLASS_MASTERY_MAX_LEVEL, MULTICLASS_MAX_ACTIVE, SKILL_MAX_LEVEL
-from core.progression_resources import class_mastery_xp_to_next, skill_xp_to_next
+from core.progression_resources import (
+    cap_single_level_xp_gain_v11342,
+    class_mastery_xp_to_next,
+    skill_xp_to_next,
+)
 
 class DatabaseProgressionMixin:
     def ensure_class_progress(self, account_id, class_name):
@@ -100,12 +104,22 @@ class DatabaseProgressionMixin:
         self.conn.commit()
         return True, None
 
-    def add_class_mastery_xp(self, account_id, class_name, amount):
+    def add_class_mastery_xp(
+        self, account_id, class_name, amount, single_level_cap=False
+    ):
         self.ensure_class_progress(account_id, class_name)
         row = self.class_progress_row(account_id, class_name)
         level = int(row["level"])
         xp = int(row["xp"])
-        gain = max(0, int(amount))
+        requested_gain = max(0, int(amount))
+        gain = requested_gain
+        if single_level_cap and level < CLASS_MASTERY_MAX_LEVEL:
+            gain = cap_single_level_xp_gain_v11342(
+                xp,
+                class_mastery_xp_to_next(level),
+                gain,
+            )
+        limited = gain < requested_gain
         xp += gain
         level_ups = 0
 
@@ -136,6 +150,8 @@ class DatabaseProgressionMixin:
             "level_ups": level_ups,
             "next_xp": class_mastery_xp_to_next(level),
             "gain": gain,
+            "requested_gain": requested_gain,
+            "limited": limited,
             "overflow_xp": overflow_xp,
         }
 
