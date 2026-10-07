@@ -1606,7 +1606,7 @@ def refresh_public_help_surface_v11197():
         "Dostępne żywioły: Fire, Ice, Electric, Dark, Poison, Holy, Water i Arcane.",
         "Każdy żywioł na jednym EQ ma 5 rang; każda ranga daje +2 procent odporności, maksymalnie 10 procent z danego przedmiotu.",
         "Hartowanie wielu założonych przedmiotów sumuje się do 40 procent. Istniejące specjalne Wardy z authored/boss EQ są dodawane ponad to, a końcowa ochrona ma limit 80 procent.",
-        "Koszt rośnie z rangą i poziomem EQ: Esencja Runiczna oraz odpowiedni stop. Hartowanie daje Profession XP Kowalstwa, ale nie Tool XP.",
+        "Koszt rośnie z rangą i poziomem EQ: Esencja Runiczna oraz odpowiedni stop. Hartowanie daje XP Kowalstwa i Młota; im wyższe EQ i ranga, tym większy realny XP.",
         "Hartowanie jest trwałe i przenosi się razem z EQ przy przekazaniu przedmiotu.",
     ]
     HELP_TOPICS["hartuj"] = list(HELP_TOPICS["hartowanie"])
