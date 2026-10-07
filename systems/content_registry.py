@@ -373,8 +373,9 @@ SYSTEM_DESCRIPTIONS = {
 }
 
 
-LATEST_CHANGES_TITLE = "Soulbound v1.13.41 - Death Recaps, Combat Records & Key Smelting"
+LATEST_CHANGES_TITLE = "Soulbound v1.13.42 - Ocean Trade Expansion"
 LATEST_CHANGES = [
+    "v1.13.42: handel morski ma 28 kontraktów — po 4 w każdym z 7 głównych portów; krótkie, średnie i dalekomorskie kursy działają w obie strony, lista pokazuje długość rejsu, wymagany poziom Ładowni i nagrodę, a dynamiczna wypłata uwzględnia także dystans.",
     "v1.13.41: śmierć pokazuje przyczynę zgonu z zabójcą, zdolnością/żywiołem, typem obrażeń, końcowym trafieniem i miejscem; profil <gracz> pokazuje Best Kill i Worst Defeat z XP; klucze bossowe można przetapiać w Kuźni przez przetop klucze lub przetop <nazwa klucza>.",
     "v1.13.40: skróty walk do kolejnego przejścia są spójne w nieskończonych lochach: Krypta/Mityczna Krypta dół, Wieża/Mityczna Wieża góra, Twierdza Gigantów góra i UOSS Deep Dungeon dół; zawsze zatrzymują się przed ostatnim up/down.",
     "v1.13.39: moby mogą używać czytelnych ataków Fire, Ice, Electric, Dark, Poison, Holy, Water i Arcane; ataki używają Magic Defense oraz istniejących element_wards z EQ.",
