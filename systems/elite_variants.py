@@ -146,7 +146,17 @@ def build_elite_variant_template_v11338(base_template_id, template, affix):
     clone["rank"] = "elite"
     clone["elite"] = True
     clone["elite_affix"] = affix
-    clone["elite_base_template"] = str(base_template_id)
+    # Bestiary/kill identity should collapse to the authored species even when
+    # this spawn came from a terrain/depth runtime clone. Respawn needs the
+    # exact source clone separately so its stage/difficulty is preserved.
+    canonical_base = str(
+        template.get("elite_base_template")
+        or template.get("rare_base_template")
+        or template.get("dense_dungeon_base_template")
+        or template.get("base_template")
+        or base_template_id
+    )
+    clone["elite_base_template"] = canonical_base
     clone["elite_source_template_v11338"] = str(base_template_id)
     clone["elite_reward_multiplier_v11338"] = float(spec["reward_multiplier"])
     clone["elite_drop_multiplier_v11338"] = float(spec["drop_multiplier"])
@@ -252,6 +262,16 @@ def elite_variants_audit_v11338():
     ):
         if elite_eligible_template_v11338(blocked):
             errors.append("protected authored boss/rare/special template became elite-eligible")
+
+    terrain_source = dict(ordinary)
+    terrain_source["base_template"] = "goblin_authored"
+    terrain_variant = build_elite_variant_template_v11338(
+        "goblin__terrain_v0362_100", terrain_source, "armored"
+    )
+    if terrain_variant.get("elite_base_template") != "goblin_authored":
+        errors.append("terrain elite does not collapse Bestiary identity to authored species")
+    if terrain_variant.get("elite_source_template_v11338") != "goblin__terrain_v0362_100":
+        errors.append("terrain elite lost exact respawn source template")
 
     sample_vamp = build_elite_variant_template_v11338(
         "vamp_test", ordinary, "vampiric"
