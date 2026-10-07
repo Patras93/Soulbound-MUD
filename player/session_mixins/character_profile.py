@@ -26,7 +26,7 @@ from core.progression_600 import (
     soul_weapon_trait_for_tier_v11193,
     soul_weapon_trait_totals_v11193,
 )
-from core.progression_resources import character_xp_to_next
+from core.progression_resources import character_xp_to_next, class_mastery_xp_to_next
 from systems.content_registry import QUESTS
 
 

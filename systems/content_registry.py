@@ -373,8 +373,9 @@ SYSTEM_DESCRIPTIONS = {
 }
 
 
-LATEST_CHANGES_TITLE = "Soulbound v1.13.61 - Score Mastery XP + Jammer One-Shot Stop"
+LATEST_CHANGES_TITLE = "Soulbound v1.13.62 - Score Mastery XP Hotfix"
 LATEST_CHANGES = [
+    "v1.13.62: hotfix komendy score — dodano brakujący import class_mastery_xp_to_next, dzięki czemu postęp Biegłości (aktualny EXP, wymagany EXP i brakujący EXP) wyświetla się bez błędu komendy.",
     "v1.13.61: score pokazuje teraz dla każdej aktywnej klasy poziom Biegłości, aktualny EXP, wymagany EXP i brakującą ilość; Jammer nie stackuje ani nie odświeża własnego Stopu — może działać na cel z innymi statusami, ale ten sam Jammer wyłącza go tylko raz do końca bieżącego Stopu.",
     "v1.13.60: usunięto globalny limit jednego awansu z pojedynczego źródła EXP; pełna nadwyżka Class/Character/Soul/stat XP jest rozliczana przez kolejne awanse. Krzywa 101+ została ponownie wzmocniona: końcówka 599 celuje w około 10 bilionów EXP.",
     "v1.13.59: Mecowe EQ daje STR/DEX/CON/INT/WILL na każdej części; krzywa wymaganego EXP od 101+ została wyraźnie wzmocniona dla Levelu postaci, Biegłości, Soul i statystyk, zachowując około 1 biliona przy 599.",

@@ -1,3 +1,10 @@
+Soulbound v1.13.62 — Score Biegłość XP Hotfix
+
+- Naprawiono błąd komendy score po dodaniu szczegółów EXP Biegłości.
+- character_profile.py importuje teraz class_mastery_xp_to_next z właściwego modułu progresji.
+- score pokazuje dla aktywnych klas: Biegłość, aktualny EXP, wymagany EXP oraz brakujący EXP.
+- Zmiana nie modyfikuje zapisów postaci ani progresji; jest to wyłącznie hotfix wyświetlania.
+
 Soulbound v1.13.61 — Score Biegłość XP + Jammer One-Shot Stop
 
 - SCORE: przy każdej aktywnej klasie pokazuje teraz Biegłość, aktualny Class XP, próg do następnej Biegłości i dokładną liczbę brakującego EXP.
@@ -19,7 +26,7 @@ Soulbound v1.13.59 - Mec Hybrid EQ + Stronger 101+ Progression
 - Wzrost jest wyraźnie odczuwalny już od 101, a okolice 599 nadal celują w około 1 bilion EXP na kolejny awans.
 - Statystyki pozostają bez limitu i ich koszt rośnie dalej ponad 600.
 
-Aktualna paczka: v1.13.61
+Aktualna paczka: v1.13.62
 
 Soulbound v1.13.58 — DYNAMIC XP AUDIT
 - Usunięto główną przyczynę płaskiego EXP: Generator Core nie ignoruje już authored/raw XP.
