@@ -375,6 +375,7 @@ SYSTEM_DESCRIPTIONS = {
 
 LATEST_CHANGES_TITLE = "Soulbound v1.13.38 - Elite Mob Affixes"
 LATEST_CHANGES = [
+    "v1.13.38: nasze klasowe EQ ma płaski kanał ofensywny na każdej części: fizyczne klasy dostają Attack, magiczne Magic Attack, a Mec oba; bossowe sety i relikty przewyższają sklepowy odpowiednik na tym samym progu.",
     "v1.13.38: zwykłe moby mają 8% szansy przy spawnie i każdym respawnie na jeden z pięciu elitarnych affixów: Wściekły, Opancerzony, Wampiryczny, Burzowy albo Przeklęty.",
     "v1.13.38: elity nadal podlegają Adaptive Combat i nigdy nie nadpisują bossów, superbossów, authored rare ani przeciwników z exact source XP.",
     "v1.13.38: affixy realnie zmieniają walkę — Wściekły mocniej atakuje, Opancerzony wydłuża starcie, Wampiryczny regeneruje HP, Burzowy ma impuls co trzeci atak, a Przeklęty zwiększa presję obrażeń.",
