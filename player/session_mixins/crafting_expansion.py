@@ -63,7 +63,11 @@ class SessionCraftingExpansionV03114Mixin:
         salvage_level=max(1,min(CHARACTER_MAX_LEVEL,int(item.get("required_character_level",item.get("required_mastery",item.get("min_profession_level",1))) or 1)))
         salvage_prof_xp=max(10,10+salvage_level//12+sum(int(q) for q in outputs.values())*2)
         messages,_prof_after,_tool_after=self.grant_profession_progress(
-            "Kowalstwo",salvage_prof_xp,"crafting",0,tool_progress=False
+            "Kowalstwo",
+            salvage_prof_xp,
+            "crafting",
+            0,
+            content_level=salvage_level,
         )
         for message in messages: await self.send(message)
 
@@ -237,7 +241,11 @@ class SessionCraftingExpansionV03114Mixin:
                 salvage_prof_xp = max(8, 8 + level // 10 + rarity_bonus * 6)
                 salvage_xp_total += salvage_prof_xp
                 messages, _prof_after, _tool_after = self.grant_profession_progress(
-                    "Kowalstwo", salvage_prof_xp, "crafting", 0, tool_progress=False
+                    "Kowalstwo",
+                    salvage_prof_xp,
+                    "crafting",
+                    0,
+                    content_level=level,
                 )
                 # Przy hurtowej operacji zachowaj komunikaty o awansach, ale nie spam XP za każdą sztukę.
                 for message in messages:
@@ -267,7 +275,11 @@ class SessionCraftingExpansionV03114Mixin:
                 salvage_prof_xp = max(10, 10 + salvage_level // 12 + sum(int(q) for q in recipe_outputs.values()) * 2)
                 salvage_xp_total += salvage_prof_xp
                 messages, _prof_after, _tool_after = self.grant_profession_progress(
-                    "Kowalstwo", salvage_prof_xp, "crafting", 0, tool_progress=False
+                    "Kowalstwo",
+                    salvage_prof_xp,
+                    "crafting",
+                    0,
+                    content_level=salvage_level,
                 )
                 for message in messages:
                     low_message = normalize_lookup_text(message)
@@ -572,6 +584,7 @@ class SessionCraftingExpansionV03114Mixin:
         total_keys=0
         total_dust=0
         total_essence=0
+        key_content_level=1
         for iid,item,qty,preserve_one in chosen:
             qty=max(0,int(qty or 0))
             if qty<=0:
@@ -585,6 +598,10 @@ class SessionCraftingExpansionV03114Mixin:
             if qty<=0 or not self.server.db.remove_item(self.account_id,iid,qty):
                 continue
             dust,essence=self.boss_key_smelt_outputs_v11341(item)
+            key_content_level=max(
+                key_content_level,
+                self.profession_content_level_v11342(item_id=iid,item=item),
+            )
             total_keys += qty
             total_dust += dust*qty
             total_essence += essence*qty
@@ -607,7 +624,11 @@ class SessionCraftingExpansionV03114Mixin:
         prof_xp=max(10,total_keys*8+total_dust*2+total_essence*12)
         tool_xp=max(4,total_keys*3)
         messages,_prof_after,_tool_after=self.grant_profession_progress(
-            "Kowalstwo",prof_xp,"crafting",tool_xp
+            "Kowalstwo",
+            prof_xp,
+            "crafting",
+            tool_xp,
+            content_level=key_content_level,
         )
         await self.send(
             f"PRZETOP KLUCZE: przetopiono {total_keys} kluczy bossowych. "
@@ -792,6 +813,13 @@ class SessionCraftingExpansionV03114Mixin:
 
                 prof_base = int(recipe.get("profession_xp", 10) or 10) * count
                 tool_base = int(recipe.get("tool_xp", 8) or 8) * count
+                recipe_stage = self.profession_content_level_v11342(
+                    item_id=output_id,
+                    recipe=recipe,
+                )
+                prof_base,tool_base=self.profession_content_xp_floor_v11342(
+                    prof_base,tool_base,recipe_stage,tool_type
+                )
                 total_profession_xp_base += prof_base
                 total_tool_xp_base += tool_base
 
@@ -1059,11 +1087,15 @@ class SessionCraftingExpansionV03114Mixin:
             f"{ITEMS[refined]['name']} x{metal_qty}."
         )
 
-        # Hartowanie jest realną pracą kowalską i wspiera wolniejszą dotąd
-        # profesję, ale celowo nie daje Tool XP.
+        # Hartowanie jest realną pracą Kowalstwa i Młota. Wyższe EQ oraz
+        # kolejna ranga odporności dają większy XP zamiast płaskiej nagrody.
         profession_xp=max(40,40+level//4+new_rank*30)
         messages,_prof_after,_tool_after=self.grant_profession_progress(
-            "Kowalstwo",profession_xp,"crafting",0,tool_progress=False
+            "Kowalstwo",
+            profession_xp,
+            "crafting",
+            0,
+            content_level=max(level,new_rank*100),
         )
         for message in messages:
             await self.send(message)
