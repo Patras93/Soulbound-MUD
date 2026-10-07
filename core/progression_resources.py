@@ -377,7 +377,7 @@ def v0190_quest_soul_reward(quest):
         return max(generated, max(0, int(quest.get("reward_soul_xp", 0) or 0)))
     return generated
 
-V0522_COMBAT_QUEST_KINDS = {"kill", "legendary_rare", "world_boss"}
+V0522_COMBAT_QUEST_KINDS = {"kill", "legendary_rare", "world_boss", "party_contract"}
 
 def v0522_combat_quest_class_reward(quest):
     """Class Mastery XP for quests whose objective is defeating enemies."""
