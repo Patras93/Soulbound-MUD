@@ -72,7 +72,7 @@ class SessionRestManaMixin:
                     await asyncio.sleep(STANDING_REGEN_TICK_SECONDS_V1124)
                     if self.standing_regen_allowed_v1124():
                         await self.standing_regen_tick_v1124()
-            except asyncio.CancelledError:
+            except asyncio.CancelledError:  # AUDIT_INTENTIONAL_PASS: normal standing-regen task cancellation
                 pass
             finally:
                 if self.standing_regen_task_v1124 is asyncio.current_task():
