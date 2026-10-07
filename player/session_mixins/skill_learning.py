@@ -1475,6 +1475,10 @@ class SessionSkillLearningMixin:
                 return
             template = MOB_TEMPLATES[mob.template_id]
             profile = await self.boss_attack_profile(mob, template)
+            _incoming_context_v11341 = dict(
+                getattr(self, "_incoming_attack_context_v11341", {}) or {}
+            )
+            self._incoming_attack_context_v11341 = {}
             now=time.time()
             # Legacy seconds-based Feedback repair removed. Self-Repair recovery is
             # handled only by the exact source rule: full Feedback damage after 3 owner rounds.
@@ -1606,6 +1610,13 @@ class SessionSkillLearningMixin:
 
             # V-MAX package effects are source-backed statuses. Do not apply
             # invented Protect/Shell percentages or Regen amounts here.
+            self._last_death_cause_v11341 = {
+                "killer": str(template.get("name") or mob.template_id),
+                "ability": str(_incoming_context_v11341.get("ability") or ""),
+                "element": str(_incoming_context_v11341.get("element") or ""),
+                "damage_type": str(damage_type or ""),
+                "damage": int(incoming),
+            }
             self.current_hp -= incoming
             self._recap52_taken=int(getattr(self,"_recap52_taken",0))+max(0,int(incoming))
             if time.time() < float(getattr(mob,"v0319_air_anchor_until",0.0) or 0.0) and mob.alive:
