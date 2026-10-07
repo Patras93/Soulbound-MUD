@@ -1,5 +1,5 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.13.41
+Aktualna paczka: v1.13.42
 
 
 
@@ -19,6 +19,22 @@ Aktualna paczka: v1.13.41
 
 
 
+
+==============================================================================
+Soulbound v1.13.42 — OCEAN TRADE EXPANSION
+==============================================================================
+
+- HANDEL MORSKI: liczba stałych kontraktów wzrosła z 7 do 28.
+- KAŻDY PORT: wszystkie 7 głównych portów Ocean 2.0 ma po 4 własne oferty startowe.
+- RÓŻNE DYSTANSE: dodano krótkie kursy lokalne, średnie przewozy i dalekomorskie kontrakty prowadzące przez kilka szlaków.
+- REJSY W OBIE STRONY: handel nie jest już jednostronnym łańcuchem; towary można wozić między portami w obu kierunkach.
+- ŁADOWNIA 1-5: kontrakty są rozłożone od prostych przewozów dla małego statku po najcenniejsze kursy wymagające Ładowni 5.
+- NAGRODA ZA DYSTANS: dynamiczna dolna granica wypłaty uwzględnia teraz również długość rzeczywistej trasy morskiej, więc długi rejs nie jest wyceniany jak krótki.
+- CZYTELNE OFERTY: lista podaje cel, liczbę odcinków rejsu, wymagany poziom Ładowni i nagrodę.
+- KOMPATYBILNOŚĆ: nie zmieniono tabeli kontraktów ani sposobu zapisu aktywnego handlu; stare aktywne kontrakty pozostają poprawne.
+- PARTY: dotychczasowe dzielenie kontraktu przez lidera drużyny pozostaje bez zmian.
+- AUDYT: Ocean Contract sprawdza 28 unikalnych ofert, dokładnie 4 oferty na każdy port, prawidłową Ładownię 1-5 i istnienie prawdziwej trasy dla każdego kontraktu.
+- Brak wipe i brak migracji bazy.
 
 ==============================================================================
 Soulbound v1.13.41 — DEATH RECAPS, COMBAT RECORDS & KEY SMELTING
