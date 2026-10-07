@@ -82,6 +82,12 @@ _V11338_BOSS_FLAGS = (
     "giant_fortress_boss",
     "magitek_boss",
     "machine_boss",
+    "guild_boss",
+    "milestone_boss",
+    "profession_dungeon_boss",
+    "v018_legendary_event_boss",
+    "v018_great_ruin_guardian",
+    "v020_megadungeon_boss",
 )
 
 
@@ -101,6 +107,7 @@ def elite_eligible_template_v11338(template):
         or template.get("elite_affix")
         or template.get("rare_mob")
         or template.get("rare_variant")
+        or template.get("rare_troll")
         or template.get("v016_legendary_rare")
     ):
         return False
@@ -256,6 +263,9 @@ def elite_variants_audit_v11338():
         {"name": "Boss", "boss": True},
         {"name": "World Boss", "world_boss": True},
         {"name": "Rare", "rank": "rare"},
+        {"name": "Legacy Rare Troll", "rare_troll": True},
+        {"name": "Guild Boss", "guild_boss": True},
+        {"name": "Legendary Event Boss", "v018_legendary_event_boss": True},
         {"name": "Old Elite", "elite": True},
         {"name": "Dummy", "training_dummy": True},
         {"name": "Source XP", "source_xp_exact": True},
