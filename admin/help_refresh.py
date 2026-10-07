@@ -1575,6 +1575,9 @@ def refresh_public_help_surface_v11197():
 
     HELP_TOPICS["zadania klasowe"] = [
         "Każda z 14 klas ma 5 różnych zadań klasowych w każdym cyklu godzinnym: walka, bossowie, eksploracja, zbieractwo i crafting.",
+        "v1.13.42: wymagania, nazwy i nagrody rosną wraz z Biegłością klasy przez etapy Początek, Adept, Mistrz, Legenda, Transcendencja, Apogeum i Absolut.",
+        "Każda klasa ma własne priorytety dwóch aktywności, więc Wojownik/Berserker mocniej idą w walkę i bossów, Druid/Łowca w teren i zasoby, a Mec/Inżynier w bossy/crafting.",
+        "Etap Biegłości jest zamrażany na całą bieżącą godzinę. Awans klasy w połowie zadania nie podnosi nagle wymagania; nowy etap wchodzi dopiero przy następnym odnowieniu.",
         "Wpisz zadanieklasowe, aby zobaczyć pięć ofert aktywnej klasy. Przyjmij przez zadanieklasowe <numer>; jednocześnie aktywne jest jedno zadanie.",
         "Po wykonaniu celu wpisz zadanieklasowe, aby odebrać nagrodę. Potem możesz wybrać kolejne zadanie z tej samej piątki.",
         "zadanieklasowe porzuc wstrzymuje aktywne zadanie bez kasowania jego postępu do końca bieżącej godziny.",
@@ -1590,6 +1593,24 @@ def refresh_public_help_surface_v11197():
         "class quest": "zadania klasowe",
         "class quests": "zadania klasowe",
     })
+    HELP_TOPICS["hartowanie"] = [
+        "Hartowanie EQ jest osobnym systemem ulepszania odporności żywiołowych u Haldora w Kuźni.",
+        "Komenda: hartuj <żywioł> <pełna nazwa EQ>. Przykład: hartuj fire Venetian Shield.",
+        "Stan konkretnego przedmiotu: hartuj status <pełna nazwa EQ>.",
+        "Dostępne żywioły: Fire, Ice, Electric, Dark, Poison, Holy, Water i Arcane.",
+        "Każdy żywioł na jednym EQ ma 5 rang; każda ranga daje +2 procent odporności, maksymalnie 10 procent z danego przedmiotu.",
+        "Hartowanie wielu założonych przedmiotów sumuje się do 40 procent. Istniejące specjalne Wardy z authored/boss EQ są dodawane ponad to, a końcowa ochrona ma limit 80 procent.",
+        "Koszt rośnie z rangą i poziomem EQ: Esencja Runiczna oraz odpowiedni stop. Hartowanie daje Profession XP Kowalstwa, ale nie Tool XP.",
+        "Hartowanie jest trwałe i przenosi się razem z EQ przy przekazaniu przedmiotu.",
+    ]
+    HELP_TOPICS["hartuj"] = list(HELP_TOPICS["hartowanie"])
+    HELP_TOPIC_ALIASES.update({
+        "hartuj": "hartowanie",
+        "harden": "hartowanie",
+        "hardening": "hartowanie",
+        "hartowanie eq": "hartowanie",
+    })
+
 
     HELP_TOPICS["rasy"] = [
         "Soulbound ma 14 grywalnych ras. Każda może wybrać każdą z 14 klas; rekomendacje rasowo-klasowe są wskazówką, nie blokadą.",
