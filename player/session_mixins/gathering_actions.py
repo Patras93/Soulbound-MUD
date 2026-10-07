@@ -121,9 +121,14 @@ class SessionGatheringActionsMixin:
                 return
             ready, remaining = self.profession_ready()
             if not ready:
-                if not from_auto:
+                if from_auto:
+                    await asyncio.sleep(max(0.05, float(remaining)))
+                    ready, remaining = self.profession_ready()
+                    if not ready:
+                        return
+                else:
                     await self.send("Musisz chwilę odczekać przed kolejnym zarzuceniem wędki.")
-                return
+                    return
 
             tool = self.server.db.tool(self.account_id, "fishing")
             tool_level = int(tool["level"])
@@ -346,9 +351,14 @@ class SessionGatheringActionsMixin:
                 return
             ready, remaining = self.profession_ready()
             if not ready:
-                if not from_auto:
+                if from_auto:
+                    await asyncio.sleep(max(0.05, float(remaining)))
+                    ready, remaining = self.profession_ready()
+                    if not ready:
+                        return
+                else:
                     await self.send("Musisz chwilę odczekać przed kolejnym uderzeniem kilofa.")
-                return
+                    return
 
             tool = self.server.db.tool(self.account_id, "mining")
             tool_level = int(tool["level"])
@@ -571,9 +581,14 @@ class SessionGatheringActionsMixin:
                 return
             ready, remaining = self.profession_ready()
             if not ready:
-                if not from_auto:
+                if from_auto:
+                    await asyncio.sleep(max(0.05, float(remaining)))
+                    ready, remaining = self.profession_ready()
+                    if not ready:
+                        return
+                else:
                     await self.send("Musisz chwilę odczekać przed kolejnym cięciem.")
-                return
+                    return
 
             tool = self.server.db.tool(self.account_id, "woodcutting")
             tool_level = int(tool["level"])
@@ -708,9 +723,14 @@ class SessionGatheringActionsMixin:
                 return
             ready, remaining = self.profession_ready()
             if not ready:
-                if not from_auto:
+                if from_auto:
+                    await asyncio.sleep(max(0.05, float(remaining)))
+                    ready, remaining = self.profession_ready()
+                    if not ready:
+                        return
+                else:
                     await self.send("Musisz chwilę odczekać przed kolejnym zbiorem.")
-                return
+                    return
 
             tool = self.server.db.tool(self.account_id, "herbalism")
             old_level = int(tool["level"])
