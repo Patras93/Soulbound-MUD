@@ -63,6 +63,11 @@ _semantic_audits = {
     "skill_cooldowns": SKILL_COOLDOWN_AUDIT_V11140,
 }
 _semantic_errors = []
+if int(audit.get("swallowed_exception_count", 0) or 0):
+    _semantic_errors.append(
+        "unclassified swallowed exceptions remain: "
+        + str(int(audit.get("swallowed_exception_count", 0) or 0))
+    )
 for _name, _result in _semantic_audits.items():
     if int(_result.get("error_count", 0) or 0):
         for _error in _result.get("errors", ()):
