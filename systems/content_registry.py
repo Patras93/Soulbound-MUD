@@ -373,8 +373,9 @@ SYSTEM_DESCRIPTIONS = {
 }
 
 
-LATEST_CHANGES_TITLE = "Soulbound v1.13.51 - Combat Soul XP Audit Hotfix"
+LATEST_CHANGES_TITLE = "Soulbound v1.13.51 - XP Runtime Compatibility + Audit Hotfix"
 LATEST_CHANGES = [
+    "v1.13.51: legacy wrappery v0.38.0 dla Class/Soul/Character XP przepuszczają nowoczesne kwargs; naprawia to m.in. oddawanie Haldora i wcześniejszy crash single_level_cap.",
     "v1.13.51: predeploy rozpoznaje combat Soul XP jako oficjalny content-aware gateway i nadal wymaga content_level.",
     "v1.13.50: combat Soul XP wraca przez kanoniczny gateway; usunięto bezpośredni add_soul_xp blokowany przez predeploy i zachowano single-level cap.",
     "v1.13.49: naprawiono crash Soul XP po zabiciu moba; combat omija stary override grant_soul_xp_v0380 i zachowuje limit jednego awansu Soul na kill.",
