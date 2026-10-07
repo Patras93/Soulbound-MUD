@@ -3168,6 +3168,7 @@ for _needle in (
 _content_aware_xp_calls_v11342 = {
     "grant_profession_progress",
     "grant_profession_reward_xp",
+    "grant_profession_sale_xp",
     "grant_tool_reward_xp",
     "grant_tool_progress",
     "grant_class_xp",
