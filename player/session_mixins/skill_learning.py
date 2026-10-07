@@ -15,8 +15,8 @@ from core.progression_600 import (
     soul_tier_title_for_class, soul_weapon_trait_for_tier_v11193,
 )
 from core.progression_resources import (
-    skill_cooldown_multiplier, skill_xp_to_next, v0190_scaled_gain,
-    skill_power_multiplier,
+    skill_cooldown_multiplier, skill_xp_to_next, v0190_mob_stage,
+    v0190_scaled_gain, skill_power_multiplier,
 )
 from network.protocol_gameplay_utils import find_by_name, normalize_lookup_text
 from systems.content_registry import MOB_TEMPLATES, NPCS, QUESTS
@@ -678,11 +678,49 @@ class SessionSkillLearningMixin:
                 int(round(int(skill.get("cooldown", 0) or 0) * skill_cooldown_multiplier(skill_level)))
             )
 
+    def skill_content_stage_v11342(self, skill):
+            stages=[]
+            for key in (
+                "generator_level","required_mastery","required_level",
+                "min_level","level","req_level",
+            ):
+                try:
+                    value=int(skill.get(key,0) or 0)
+                except (TypeError,ValueError):
+                    value=0
+                if value>0:
+                    stages.append(value)
+            if self.combat_mob_key:
+                mob=self.server.world.mobs.get(self.combat_mob_key)
+                if mob and mob.alive and mob.room_id==self.character.room_id:
+                    template=MOB_TEMPLATES.get(mob.template_id,{})
+                    if template:
+                        stages.append(v0190_mob_stage(template))
+            if not stages:
+                try:
+                    stages.append(int(self.highest_active_class_mastery()))
+                except (TypeError,ValueError):
+                    stages.append(1)
+            return max(1,min(600,max(stages)))
+
     async def grant_skill_use_xp(self, skill):
-            current = self.skill_progress_data(skill)
-            raw_gain = 25 + random.randint(0, 10)
-            gain = v0190_scaled_gain(raw_gain, max(1, current.get("level", 1)), "skill", 30)
-            gain = self.apply_double_xp(gain)
+            current=self.skill_progress_data(skill)
+            raw_gain=25+random.randint(0,10)
+            skill_level=max(1,current.get("level",1))
+            content_stage=self.skill_content_stage_v11342(skill)
+            gain=v0190_scaled_gain(
+                raw_gain,skill_level,"skill",30
+            )
+            gain=max(
+                1,
+                int(round(
+                    gain
+                    * self.progression_content_multiplier_v11342(
+                        content_stage
+                    )
+                )),
+            )
+            gain=self.apply_double_xp(gain)
             result = self.server.db.add_skill_xp(
                 self.account_id, skill["id"], gain
             )
