@@ -373,8 +373,9 @@ SYSTEM_DESCRIPTIONS = {
 }
 
 
-LATEST_CHANGES_TITLE = "Soulbound v1.13.42 - Ocean Trade, Progression, Class Quests & Hardening"
+LATEST_CHANGES_TITLE = "Soulbound v1.13.43 - World Death Rescue"
 LATEST_CHANGES = [
+    "v1.13.43: po śmierci bez Phoenix Egg cały świat dostaje nazwę gracza, lokację, zabójcę/przyczynę i dokładny recap; ciało pozostaje POWALONE 180 sekund, każdy żywy gracz w tej samej lokacji może użyć wskrzes <gracz>, a resp/respi/respawn <gracz> odsyła duszę do Świątyni.",
     "v1.13.42: handel morski ma 28 kontraktów — po 4 w każdym z 7 głównych portów; krótkie, średnie i dalekomorskie kursy działają w obie strony, lista pokazuje długość rejsu, wymagany poziom Ładowni i nagrodę, a dynamiczna wypłata uwzględnia także dystans.",
     "v1.13.42: długoterminowa progresja jest wolniejsza: około 72 kille/Level postaci, 48/Biegłość klasy, 75/Soul, 54 trafienia/Soul Weapon Mastery i 60 killi/+1 stat; pojedynczy kill nie może dać więcej niż jednego awansu danej stałej osi ani zbankować wielopoziomowego overflow.",
     "v1.13.42: profesje awansują szybciej — globalny Profession XP wzrasta z x2 do x4, a realne XP profesji i narzędzi przestaje być płaskie: rośnie z poziomem materiału/receptury/EQ; Młot Rzemieślniczy ma dodatkowe x1.35 i rozwija się także przy salvage.",
