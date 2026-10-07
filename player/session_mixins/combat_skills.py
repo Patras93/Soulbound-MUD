@@ -1657,6 +1657,11 @@ class SessionCombatSkillsMixin:
                                 f"Masz {max(0,self.current_hp)} z {self.max_hp()} HP."
                             )
                             if self.current_hp<=0:
+                                self._last_death_cause_v11341 = {
+                                    "killer": "Feedback Dispose",
+                                    "ability": "Dispose Feedback",
+                                    "damage": int(_dispose_feedback_self_damage),
+                                }
                                 await self.die("Feedback Dispose")
                                 return
                         if special=="uzi_punch" and _uzi_feedback_self_damage:
@@ -1667,6 +1672,11 @@ class SessionCombatSkillsMixin:
                                 f"Masz {max(0,self.current_hp)} z {self.max_hp()} HP."
                             )
                             if self.current_hp<=0:
+                                self._last_death_cause_v11341 = {
+                                    "killer": "Feedback Uzi Punch",
+                                    "ability": "Uzi Punch Feedback",
+                                    "damage": int(_uzi_feedback_self_damage),
+                                }
                                 await self.die("Feedback Uzi Punch")
                                 return
                         if any(x.alive for x in alive): await self.ensure_realtime_combat()
@@ -2755,6 +2765,11 @@ class SessionCombatSkillsMixin:
                         f"Masz {max(0, self.current_hp)} z {self.max_hp()} HP."
                     )
                     if self.current_hp <= 0:
+                        self._last_death_cause_v11341 = {
+                            "killer": "własna umiejętność",
+                            "ability": str(skill.get("name") or "umiejętność"),
+                            "damage": int(self_damage),
+                        }
                         await self.die("własna umiejętność")
                         return
 
