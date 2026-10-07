@@ -3030,6 +3030,26 @@ for _source, _label, _needles in (
                 f"v1.13.42 {_label} kill-cap regression: missing {_needle}"
             )
 
+# v1.13.42 — profession levels should move faster without changing tool XP.
+_profession_bootstrap_source_v11342 = (
+    _root / "core/bootstrap_economy_professions.py"
+).read_text(encoding="utf-8")
+_profession_storage_source_v11342 = (
+    _root / "player/session_mixins/profession_storage.py"
+).read_text(encoding="utf-8")
+if "PROFESSION_XP_GAIN_MULTIPLIER = 4" not in _profession_bootstrap_source_v11342:
+    _semantic_errors.append(
+        "v1.13.42 profession XP regression: global gain multiplier is not x4"
+    )
+for _needle in (
+    "legacy_prof_xp = max(0, int(prof_xp)) * PROFESSION_XP_GAIN_MULTIPLIER",
+    "legacy_profession_xp = max(0, int(profession_xp)) * PROFESSION_XP_GAIN_MULTIPLIER",
+):
+    if _needle not in _profession_storage_source_v11342:
+        _semantic_errors.append(
+            "v1.13.42 profession XP regression: missing " + _needle
+        )
+
 if _semantic_errors:
     print("Soulbound v1.13.42 FAST PREDEPLOY FAILED: semantic contracts")
     for _error in _semantic_errors:
