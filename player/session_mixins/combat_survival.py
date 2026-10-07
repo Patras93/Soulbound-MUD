@@ -51,12 +51,17 @@ class SessionCombatSurvivalMixin:
                     await self.stop_rest(announce=False)
                 _killer_mob = self.server.world.mobs.get(self.combat_mob_key) if self.combat_mob_key else None
                 if _killer_mob and _killer_mob.template_id in MOB_TEMPLATES:
-                    record_combat_profile_v11341(
-                        self.server.db,
-                        self.account_id,
-                        "worst_defeat",
-                        MOB_TEMPLATES[_killer_mob.template_id],
+                    _killer_template_v11341 = MOB_TEMPLATES[_killer_mob.template_id]
+                    _killer_name_v11341 = str(
+                        _killer_template_v11341.get("name") or _killer_mob.template_id
                     )
+                    if _killer_name_v11341.casefold() == str(killer or "").strip().casefold():
+                        record_combat_profile_v11341(
+                            self.server.db,
+                            self.account_id,
+                            "worst_defeat",
+                            _killer_template_v11341,
+                        )
                 self.server.release_all_engagements_for_session(self)
                 if _killer_mob and _killer_mob.template_id in MOB_TEMPLATES:
                     _kt = MOB_TEMPLATES[_killer_mob.template_id]
@@ -81,6 +86,12 @@ class SessionCombatSurvivalMixin:
                 _death_cause_v11341 = dict(
                     getattr(self, "_last_death_cause_v11341", {}) or {}
                 )
+                if (
+                    _death_cause_v11341.get("killer")
+                    and str(_death_cause_v11341.get("killer")).strip().casefold()
+                    != str(killer or "").strip().casefold()
+                ):
+                    _death_cause_v11341 = {}
                 _death_room_name_v11341 = str(
                     ROOMS.get(old_room, {}).get("name") or old_room
                 )
