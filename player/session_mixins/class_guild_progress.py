@@ -228,7 +228,11 @@ class SessionClassGuildProgressMixin:
             await self.send("Ta klasa nie ma jeszcze zadań gildyjnych.")
             return
 
-        ordered = self.class_guild_quest_order_v1120(cls, state["slot"])
+        base_order = self.class_guild_quest_order_v1120(cls, state["slot"])
+        ordered = tuple(
+            (quest_index, pool[quest_index])
+            for quest_index, _base_data in base_order
+        )
         raw = (args or "").strip()
         norm = raw.casefold()
         quests = state.setdefault("quests", {})
