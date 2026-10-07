@@ -1,3 +1,18 @@
+Aktualna paczka: v1.13.53
+
+Soulbound v1.13.53 — COMBAT CLASS XP LEGACY HOOK HOTFIX
+
+- Naprawiono crash pętli walki: `v0370 class xp() got an unexpected keyword argument 'single_level_cap'`.
+- Stary hook Hall of Fame v0.37.0 dla `grant_class_xp` przyjmuje teraz `*args/**kwargs` i przekazuje `single_level_cap`, `content_level` oraz `content_scaled` do kanonicznego systemu Class XP.
+- Analogicznie poprawiono hook Character XP, aby kolejny etap nagród po zabiciu moba nie wywalił się na tych samych nowoczesnych parametrach.
+- Brak wipe i brak migracji bazy.
+
+Soulbound v1.13.52 — SMELT MAX CONTINUATION HOTFIX
+
+- Naprawiono `przetop max <metal>`: komenda nie kończy się już po wyczerpaniu pierwszego źródła materiału.
+- `przetop max żelazo` / `przetop max iron` najpierw zużywa zwykłą Rudę żelaza, a następnie automatycznie przechodzi na Odłamki Żelaza z Salvage, jeśli są dostępne.
+- Przed każdym kolejnym przetopem dostępność materiału jest sprawdzana na żywo; `przetop stop` nadal bezpiecznie zatrzymuje serię.
+
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
 Aktualna paczka: v1.13.51
 

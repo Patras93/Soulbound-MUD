@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Fast Railway predeploy gate for Soulbound v1.13.51.
+"""Fast Railway predeploy gate for Soulbound v1.13.52.
 
 This is the normal deploy check.  It intentionally avoids assembling the full
 world/runtime.  Use predeploy_full.py when an exhaustive historical audit is
@@ -17,7 +17,7 @@ import traceback
 try:
     from storage.database import Database as _DatabaseImportSmoke
 except Exception as exc:
-    print(f"Soulbound v1.13.51 FAST PREDEPLOY FAILED: database import: {type(exc).__name__}: {exc}")
+    print(f"Soulbound v1.13.53 FAST PREDEPLOY FAILED: database import: {type(exc).__name__}: {exc}")
     traceback.print_exc()
     raise SystemExit(1)
 
@@ -42,7 +42,7 @@ try:
     )
 except Exception as exc:
     print(
-        "Soulbound v1.13.51 FAST PREDEPLOY FAILED: "
+        "Soulbound v1.13.53 FAST PREDEPLOY FAILED: "
         f"skill semantic import: {type(exc).__name__}: {exc}"
     )
     traceback.print_exc()
@@ -3556,6 +3556,31 @@ if "session.character.add_soul_xp(" in _combat_rewards_source_v11350:
     _semantic_errors.append("v1.13.50 combat Soul XP gateway regression: direct Character.add_soul_xp bypass returned")
 
 
+# v1.13.52: PRZETOP MAX must continue from primary ore/material into Salvage.
+_smelt_source_v11352 = (_root / "player/session_mixins/crafting_expansion.py").read_text(encoding="utf-8")
+for _needle_v11352 in (
+    'fallback_rid = SALVAGE_SMELT_FALLBACK_V03113.get(primary_rec.get("output"))',
+    'queue.append((fallback_rid, fallback_rec, fallback_n, "Salvage"))',
+    'while local_done < target:',
+    'if self.max_recipe_crafts_v03114(recipe) <= 0:',
+):
+    if _needle_v11352 not in _smelt_source_v11352:
+        _semantic_errors.append("v1.13.52 smelt max continuation regression: missing " + _needle_v11352)
+
+
+# v1.13.53: Hall-of-Fame v0.37.0 XP hooks must transparently forward modern kwargs.
+_public_records_source_v11353 = (_root / "systems/public_records.py").read_text(encoding="utf-8")
+for _needle_v11353 in (
+    "def _v0370_char_xp(self,amount,*args,**kwargs):",
+    "_V0370_CHAR_XP_BEFORE(self,amount,*args,**kwargs)",
+    "async def _v0370_class_xp(self,total_xp,*args,**kwargs):",
+    "_V0370_CLASS_XP_BEFORE(self,total_xp,*args,**kwargs)",
+):
+    if _needle_v11353 not in _public_records_source_v11353:
+        _semantic_errors.append(
+            "v1.13.53 public-records XP wrapper regression: missing " + _needle_v11353
+        )
+
 # v1.13.51: legacy v0.38.0 dungeon-summary XP wrappers must remain
 # transparent to the modern content-aware gateway signatures.
 _party_summary_source_v11351 = (
@@ -3575,18 +3600,18 @@ for _needle_v11351_wrapper in (
         )
 
 if _semantic_errors:
-    print("Soulbound v1.13.51 FAST PREDEPLOY FAILED: semantic contracts")
+    print("Soulbound v1.13.53 FAST PREDEPLOY FAILED: semantic contracts")
     for _error in _semantic_errors:
         print(f"ERROR: {_error}")
     raise SystemExit(1)
 
 if audit["error_count"]:
-    print("Soulbound v1.13.51 FAST PREDEPLOY FAILED")
+    print("Soulbound v1.13.53 FAST PREDEPLOY FAILED")
     for error in audit["errors"]:
         print(f"ERROR: {error}")
     raise SystemExit(1)
 
-print("Soulbound v1.13.51 FAST PREDEPLOY PASS")
+print("Soulbound v1.13.53 FAST PREDEPLOY PASS")
 print(
     "Semantic contracts: "
     f"{len(_semantic_audits)} audits PASS; AP runtime guards PASS"

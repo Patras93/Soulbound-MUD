@@ -201,16 +201,16 @@ SessionSocialExpansionMixin.records_v03051 = _v0370_records
 
 # --------------------------- Hall hooks ----------------------------------
 _V0370_CHAR_XP_BEFORE = SessionCoreProgressionMixin.add_character_xp_with_event
-def _v0370_char_xp(self,amount):
-    result=_V0370_CHAR_XP_BEFORE(self,amount)
+def _v0370_char_xp(self,amount,*args,**kwargs):
+    result=_V0370_CHAR_XP_BEFORE(self,amount,*args,**kwargs)
     if self.character and int(self.character.character_level)>=600:
         self.server.db.v0370_hof_first("first_level_600","Level",self.account_id,self.character.name,"Pierwszy gracz z Levelem 600")
     return result
 SessionCoreProgressionMixin.add_character_xp_with_event = _v0370_char_xp
 
 _V0370_CLASS_XP_BEFORE = SessionCoreProgressionMixin.grant_class_xp
-async def _v0370_class_xp(self,total_xp):
-    result=await _V0370_CLASS_XP_BEFORE(self,total_xp)
+async def _v0370_class_xp(self,total_xp,*args,**kwargs):
+    result=await _V0370_CLASS_XP_BEFORE(self,total_xp,*args,**kwargs)
     if self.character:
         rows=self.server.db.conn.execute("SELECT class_name,level FROM class_progress WHERE account_id=? AND level>=600",(self.account_id,)).fetchall()
         for row in rows:

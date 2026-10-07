@@ -910,32 +910,64 @@ class SessionCraftingExpansionV03114Mixin:
         if norm.startswith("max "):
             wanted=raw.split(maxsplit=1)[1]
             found=self.resolve_smelt_recipe(wanted)
-            if not found: await self.send("Nie rozpoznaję metalu dla przetop max."); return False
-            rid,rec=found
-            # same primary -> salvage fallback preference as normal smelt
-            if self.max_recipe_crafts_v03114(rec)<=0:
-                fb=SALVAGE_SMELT_FALLBACK_V03113.get(rec.get('output'))
-                if fb and CRAFT_RECIPES.get(fb): rid,rec=fb,CRAFT_RECIPES[fb]
-            n=self.max_recipe_crafts_v03114(rec)
-            if n<=0: await self.send("Brak materiału do przetopienia."); return False
-            input_text = " + ".join(
-                f"{ITEMS.get(item_id, {}).get('name', item_id)} x{int(amount) * n}"
-                for item_id, amount in rec.get("ingredients", {}).items()
+            if not found:
+                await self.send("Nie rozpoznaję metalu dla przetop max.")
+                return False
+
+            primary_rid, primary_rec = found
+            queue = []
+
+            # v1.13.52: PRZETOP MAX ma wyczerpać cały dostępny materiał,
+            # a nie tylko źródło wybrane przy starcie komendy. Najpierw
+            # przetapiamy świeżą rudę/materiał, a po jej wyczerpaniu automatycznie
+            # przechodzimy na odpowiadający materiał Salvage. To naprawia przypadek
+            # „przetop max żelazo/iron”: jedna świeża Ruda żelaza była przetapiana,
+            # po czym zadanie kończyło się mimo dostępnych Odłamków Żelaza.
+            primary_n = self.max_recipe_crafts_v03114(primary_rec)
+            if primary_n > 0:
+                queue.append((primary_rid, primary_rec, primary_n, "ruda/material"))
+
+            fallback_rid = SALVAGE_SMELT_FALLBACK_V03113.get(primary_rec.get("output"))
+            fallback_rec = CRAFT_RECIPES.get(fallback_rid) if fallback_rid else None
+            if fallback_rec and fallback_rid != primary_rid:
+                fallback_n = self.max_recipe_crafts_v03114(fallback_rec)
+                if fallback_n > 0:
+                    queue.append((fallback_rid, fallback_rec, fallback_n, "Salvage"))
+
+            if not queue:
+                await self.send("Brak materiału do przetopienia.")
+                return False
+
+            planned = sum(count for _rid, _rec, count, _source in queue)
+            output_id = primary_rec.get("output")
+            output_name = ITEMS.get(output_id, {}).get("name", primary_rec.get("name", output_id))
+            source_text = ", ".join(
+                f"{source}: {count}" for _rid, _rec, count, source in queue
             )
-            output_id = rec.get("output")
-            output_name = ITEMS.get(output_id, {}).get("name", rec.get("name", output_id))
-            output_count = max(1, int(rec.get("quantity", 1) or 1)) * n
-            await self.send(f"PRZETOP MAX: {input_text} -> {output_name} x{output_count}.")
-            done=0
-            for _ in range(n):
+            await self.send(
+                f"PRZETOP MAX: plan {planned} przetopów -> {output_name}. "
+                f"Źródła: {source_text}."
+            )
+
+            done = 0
+            for recipe_id, recipe, target, _source in queue:
+                local_done = 0
+                while local_done < target:
+                    if bool(getattr(self, "smelt_cancel_requested_v1124", False)):
+                        break
+                    # Sprawdzenie na żywo chroni pętlę przed zmianą stanu materiałów
+                    # podczas długiego auto-przetapiania.
+                    if self.max_recipe_crafts_v03114(recipe) <= 0:
+                        break
+                    if not await self.perform_recipe(recipe_id, CRAFT_RECIPES, "przetapianie"):
+                        break
+                    local_done += 1
+                    done += 1
                 if bool(getattr(self, "smelt_cancel_requested_v1124", False)):
                     break
-                if not await self.perform_recipe(rid,CRAFT_RECIPES,"przetapianie"):
-                    break
-                done+=1
-                if bool(getattr(self, "smelt_cancel_requested_v1124", False)):
-                    break
-            await self.send(f"PRZETOP MAX zakończony: {done}/{n}."); return done>0
+
+            await self.send(f"PRZETOP MAX zakończony: {done}/{planned}.")
+            return done > 0
         found=self.resolve_smelt_recipe(raw)
         if not found:
             await self.send("Nie rozpoznaję metalu do przetopienia."); return False
