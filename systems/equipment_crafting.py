@@ -294,15 +294,44 @@ def class_equipment_flat_power_channels(class_name, mastery, slot=None, style_in
     slot_scale = float(CLASS_EQUIPMENT_SLOT_POWER_SCALE.get(str(slot or ""), 0.50))
     style = class_equipment_style_profile(class_name, style_index)
     style_mult = float(style.get("power_multiplier", 1.0) or 1.0)
-    power = max(0, int(round(budget * 0.18 * slot_scale * style_mult)))
-    if power <= 0:
-        return {"attack": 0, "magic_attack": 0}
+    # v1.13.38: każdy klasowy element ma realny kanał ofensywny także na
+    # najniższym Tierze. Nie ma już części z poprawnymi statami, ale 0 Attack/
+    # Magic Attack wyłącznie przez zaokrąglenie małego budżetu.
+    power = max(1, int(round(budget * 0.18 * slot_scale * style_mult)))
     if class_name == "Mec":
         hybrid = max(1, int(round(power * 0.60)))
         return {"attack": hybrid, "magic_attack": hybrid}
     if class_type_for_name(class_name) == "magic":
         return {"attack": 0, "magic_attack": power}
     return {"attack": power, "magic_attack": 0}
+
+
+def legendary_class_equipment_flat_power_channels_v11338(
+    class_name, mastery, slot=None, *, relic=False
+):
+    """Bossowe klasowe EQ zawsze przewyższa sklepowy kanał płaskiej mocy.
+
+    Set bierze najlepszy Attack/Magic Attack spośród trzech sklepowych stylów
+    tego samego progu i slotu, a następnie dostaje +20%. Relikt używa własnej
+    ofensywnej skali slotu relic i +35%, bo nie daje części do progu setowego.
+    """
+    source_slot = "relic" if relic else slot
+    candidates = [
+        class_equipment_flat_power_channels(
+            class_name, mastery, source_slot, style_index
+        )
+        for style_index in (1, 2, 3)
+    ]
+    attack = max(int(row.get("attack", 0) or 0) for row in candidates)
+    magic_attack = max(
+        int(row.get("magic_attack", 0) or 0) for row in candidates
+    )
+    multiplier = 1.35 if relic else 1.20
+    if attack > 0:
+        attack = max(1, int(round(attack * multiplier)))
+    if magic_attack > 0:
+        magic_attack = max(1, int(round(magic_attack * multiplier)))
+    return {"attack": attack, "magic_attack": magic_attack}
 
 
 def class_equipment_profile_properties(class_name, mastery, slot=None):
@@ -819,11 +848,18 @@ def _register_legendary_class_loot():
                         class_name, mastery, slot
                     )
                 )
+                legendary_flat_power_v11338 = (
+                    legendary_class_equipment_flat_power_channels_v11338(
+                        class_name, mastery, slot
+                    )
+                )
                 _catalog_mut.catalog_assign({
                     "name": f"{slot_name} {set_name} +{mastery}",
                     "type": "armor",
                     "slot": slot,
                     "defense": defense,
+                    "attack": int(legendary_flat_power_v11338["attack"]),
+                    "magic_attack": int(legendary_flat_power_v11338["magic_attack"]),
                     "price": None,
                     "rarity": "legendary",
                     "rarity_name": "Legendarny Setowy",
@@ -886,6 +922,11 @@ def _register_legendary_class_loot():
                 raise RuntimeError(
                     f"Legendary class relic stat triplet mismatch: {class_name}"
                 )
+            relic_flat_power_v11338 = (
+                legendary_class_equipment_flat_power_channels_v11338(
+                    class_name, mastery, "relic", relic=True
+                )
+            )
             prop_value = max(1, min(5, mastery // 100 + 1))
             properties = {
                 "all_damage_pct": prop_value,
@@ -901,6 +942,8 @@ def _register_legendary_class_loot():
                 "type": "armor",
                 "slot": "necklace",
                 "defense": relic_defense,
+                "attack": int(relic_flat_power_v11338["attack"]),
+                "magic_attack": int(relic_flat_power_v11338["magic_attack"]),
                 "price": None,
                 "rarity": "legendary",
                 "rarity_name": "Legendarny Klasowy",
