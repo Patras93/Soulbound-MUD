@@ -373,8 +373,9 @@ SYSTEM_DESCRIPTIONS = {
 }
 
 
-LATEST_CHANGES_TITLE = "Soulbound v1.13.46 - Combat XP Repair"
+LATEST_CHANGES_TITLE = "Soulbound v1.13.47 - Smelt Ore Routing Hotfix"
 LATEST_CHANGES = [
+    "v1.13.47: naprawiono routing przetapiania po dodaniu kluczy bossowych; iron i inne rudy nie są już przechwytywane przez parser kluczy.",
     "v1.13.46: walka znowu gwarantuje dodatni EXP z prawidłowych kill rewardów; zerowe source_xp_exact wraca do Generatora, a niska nagroda nie znika przez zaokrąglenie dynamicznego mnożnika.",
     "v1.13.45: naprawiono błąd predeploy narzędzi 1-600; bootstrap ma teraz pełne 60 progów Tierów do poziomu 600 i twardy audit zgodności TOOL_MAX_TIER/TOOL_MAX_LEVEL.",
     "v1.13.44: po śmierci bez Phoenix Egg cały świat dostaje nazwę gracza, lokację, zabójcę/przyczynę i dokładny recap; ciało pozostaje POWALONE 180 sekund, każdy żywy gracz w tej samej lokacji może użyć wskrzes <gracz>, a resp/respi/respawn <gracz> odsyła duszę do Świątyni.",
