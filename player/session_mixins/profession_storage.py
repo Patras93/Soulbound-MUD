@@ -111,9 +111,69 @@ class SessionProfessionStorageMixin:
                 )
             return result
 
-    def grant_profession_progress(self, profession, prof_xp, tool_type, tool_xp, tool_progress=True):
+    def profession_content_level_v11342(
+        self, item_id=None, item=None, recipe=None, explicit_level=None
+    ):
+            """Kanoniczny poziom trudności materiału/przedmiotu/receptury.
+
+            Nie skaluje po levelu gracza. XP ma rosnąć dlatego, że praca jest
+            trudniejsza: lepsza ruda, ryba, zioło, receptura, EQ do salvage itd.
+            """
+            levels = []
+            if explicit_level is not None:
+                try:
+                    levels.append(int(explicit_level))
+                except (TypeError, ValueError):
+                    pass
+            if item is None and item_id:
+                item = ITEMS.get(str(item_id), {})
+            for source in (item or {}, recipe or {}):
+                for key in (
+                    "generator_level",
+                    "min_tool_level",
+                    "min_profession_level",
+                    "required_character_level",
+                    "required_mastery",
+                    "source_progression_stage",
+                ):
+                    try:
+                        value = int(source.get(key, 0) or 0)
+                    except (TypeError, ValueError):
+                        value = 0
+                    if value > 0:
+                        levels.append(value)
+            return max(1, min(PROFESSION_MAX_LEVEL, max(levels or [1])))
+
+    def profession_content_xp_floor_v11342(
+        self, profession_xp, tool_xp, content_level, tool_type
+    ):
+            """Usuń płaskie XP bez podwójnego pompowania dobrych receptur.
+
+            Stare niskie/stałe nagrody są podciągane do rosnącego minimum.
+            Receptury, które już mają większe authored XP, zachowują je.
+            Młot Rzemieślniczy ma wyższe minimum, bo wcześniej odstawał.
+            """
+            stage = max(1, min(PROFESSION_MAX_LEVEL, int(content_level or 1)))
+            profession_floor = 12 + stage // 4
+            tool_floor = 10 + stage // 5
+            if str(tool_type) == "crafting":
+                tool_floor = max(tool_floor, 15 + stage // 3)
+            return (
+                max(max(0, int(profession_xp or 0)), profession_floor),
+                max(max(0, int(tool_xp or 0)), tool_floor),
+            )
+
+    def grant_profession_progress(
+        self, profession, prof_xp, tool_type, tool_xp,
+        tool_progress=True, content_level=None
+    ):
             if not self.valid_tool_type(tool_type):
                 raise ValueError(f"Nieznany typ narzędzia: {tool_type}")
+
+            if content_level is not None:
+                prof_xp, tool_xp = self.profession_content_xp_floor_v11342(
+                    prof_xp, tool_xp, content_level, tool_type
+                )
 
             _guild_pct=self.guild_bonus_percent_v0926()
             prow = self.server.db.profession(
