@@ -3518,6 +3518,19 @@ for _needle_v11346_selene in ("guild_arcane_chamber", "runic_focus"):
     if _needle_v11346_selene not in _equipment_source_v11346:
         _semantic_errors.append("v1.13.46 Selene shop regression: missing " + _needle_v11346_selene)
 
+# v1.13.46: quest reward audit guards.
+_quest_commands_source_v11346 = (_root / "player/session_mixins/quest_commands.py").read_text(encoding="utf-8")
+_progression_source_v11346 = (_root / "core/progression_resources.py").read_text(encoding="utf-8")
+for _needle_v11346_quest in (
+    "reward_prof_xp <= 0",
+    "reward_tool_xp > 0",
+    "reward_prof_xp = reward_tool_xp",
+):
+    if _needle_v11346_quest not in _quest_commands_source_v11346:
+        _semantic_errors.append("v1.13.46 legacy profession quest XP fallback regression: missing " + _needle_v11346_quest)
+if '"party_contract"' not in _progression_source_v11346 or "V0522_COMBAT_QUEST_KINDS" not in _progression_source_v11346:
+    _semantic_errors.append("v1.13.46 party contract Class XP regression")
+
 if _semantic_errors:
     print("Soulbound v1.13.46 FAST PREDEPLOY FAILED: semantic contracts")
     for _error in _semantic_errors:
