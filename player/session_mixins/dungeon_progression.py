@@ -681,7 +681,7 @@ class SessionDungeonProgressionMixin:
             )
             return applied
 
-    async def grant_soul_xp(self, amount):
+    async def grant_soul_xp(self, amount, single_level_cap=False):
             old_level = self.character.soul_level
             amount = self.apply_double_xp(amount)
             _mentor_pct = self.mentor_bonus_percent_v03050()
@@ -690,7 +690,9 @@ class SessionDungeonProgressionMixin:
                 self.mentor_record_activity_v03051()
 
             self.session_summary_add("soul_xp", amount)
-            messages = self.character.add_soul_xp(amount)
+            messages = self.character.add_soul_xp(
+                amount, single_level_cap=single_level_cap
+            )
             for message in messages:
                 await self.send(message)
 
