@@ -535,6 +535,23 @@ class SessionCraftingExpansionV03114Mixin:
         return rows
 
     async def smelt_boss_keys_v11341(self, raw):
+        norm=normalize_lookup_text(raw)
+        key_alias=norm in ("klucze","keys","klucze bossow","klucze bossów","boss keys")
+        owned=self.owned_boss_keys_v11341()
+
+        # v1.13.47: najpierw ustal, czy użytkownik naprawdę podał klucz.
+        # Zwykłe materiały (iron, srebro, złoto itd.) muszą natychmiast
+        # wrócić do normalnego parsera przetapiania rud zamiast dostać
+        # komunikat "Klucze bossowe przetopisz w Kuźni".
+        explicit_key = False
+        found_key = None
+        if not key_alias and owned:
+            pool={iid:item for iid,item,_qty in owned}
+            found_key=find_by_name(pool,raw)
+            explicit_key = bool(found_key)
+        if not key_alias and not explicit_key:
+            return None
+
         if self.combat_mob_key:
             await self.send("Nie możesz przetapiać kluczy podczas walki.")
             return False
@@ -546,14 +563,9 @@ class SessionCraftingExpansionV03114Mixin:
             await self.send(f"Do przetapiania kluczy potrzebujesz: {tool_name}.")
             return False
 
-        norm=normalize_lookup_text(raw)
-        key_alias=norm in ("klucze","keys","klucze bossow","klucze bossów","boss keys")
-        owned=self.owned_boss_keys_v11341()
         if not owned:
-            if key_alias:
-                await self.send("Nie masz nadmiarowych kluczy bossowych do przetopienia.")
-                return False
-            return None
+            await self.send("Nie masz nadmiarowych kluczy bossowych do przetopienia.")
+            return False
 
         if key_alias:
             # Zbiorcza komenda przetapia wyłącznie nadmiar: po jednej sztuce
@@ -564,11 +576,7 @@ class SessionCraftingExpansionV03114Mixin:
                 if qty>1
             ]
         else:
-            pool={iid:item for iid,item,_qty in owned}
-            found=find_by_name(pool,raw)
-            if not found:
-                return None
-            iid,item=found
+            iid,item=found_key
             qty=next(qty for _iid,_item,qty in owned if _iid==iid)
             # Jawna nazwa klucza jest świadomym wyborem gracza i może zużyć
             # także jedyną posiadaną sztukę.
