@@ -18,6 +18,7 @@ from core.bootstrap_economy_professions import (
 from data.items import ITEMS
 from data.mobs import MOB_TEMPLATES
 from data.quests import QUESTS
+from systems.dungeon_names import dungeon_depth_word_v11336
 from systems.items_resources import (
     V11314_ECONOMY_STAGE_ANCHORS,
     economy_stage_anchor_v11314,
@@ -212,6 +213,129 @@ def v1124_rebalance_positive_quest_currency():
 
 
 ECONOMY_INCOME_BALANCE_V1124 = v1124_rebalance_positive_quest_currency()
+
+
+# v1.13.37 — final production cleanup after every authored world layer exists.
+# Currency keeps one canonical silver wallet while display formatting still uses
+# silver/gold/mithril denominations. Display-name cleanup changes labels only;
+# template IDs, drops, quest targets and progression references stay untouched.
+def v11337_normalize_mob_currency():
+    changed = 0
+    total_before = 0
+    total_after = 0
+    for mob in MOB_TEMPLATES.values():
+        before = legacy_currency_to_coins(
+            mob.get("silver", 0), mob.get("gold", 0), mob.get("mithril", 0)
+        )
+        total_before += int(before)
+        if int(mob.get("gold", 0) or 0) or int(mob.get("mithril", 0) or 0):
+            mob["silver"] = int(before)
+            mob["gold"] = 0
+            mob["mithril"] = 0
+            changed += 1
+        after = legacy_currency_to_coins(
+            mob.get("silver", 0), mob.get("gold", 0), mob.get("mithril", 0)
+        )
+        total_after += int(after)
+    return {
+        "version": "1.13.37",
+        "changed_mobs": changed,
+        "total_before_silver": total_before,
+        "total_after_silver": total_after,
+    }
+
+
+def _v11337_mob_name_priority(mob_id):
+    text = str(mob_id)
+    # Keep the oldest/authored identity unqualified when a generated clone shares
+    # its display name; generated compatibility variants receive the suffix first.
+    return (
+        1 if "_v915_" in text else 0,
+        1 if "_v" in text else 0,
+        len(text),
+        text,
+    )
+
+
+def v11337_unique_mob_display_names():
+    groups = {}
+    for mob_id, mob in MOB_TEMPLATES.items():
+        name = str(mob.get("name") or "").strip()
+        if name:
+            groups.setdefault(name.casefold(), []).append(str(mob_id))
+
+    used = {
+        str(mob.get("name") or "").strip().casefold()
+        for mob in MOB_TEMPLATES.values()
+        if str(mob.get("name") or "").strip()
+    }
+    duplicate_groups = 0
+    renamed = []
+    for _key, mob_ids in sorted(groups.items()):
+        if len(mob_ids) < 2:
+            continue
+        duplicate_groups += 1
+        ordered = sorted(mob_ids, key=_v11337_mob_name_priority)
+        base_name = str(MOB_TEMPLATES[ordered[0]].get("name") or "").strip()
+        for ordinal, mob_id in enumerate(ordered[1:], 1):
+            attempt = ordinal
+            while True:
+                suffix = dungeon_depth_word_v11336(attempt)
+                candidate = f"{base_name} {suffix}".strip()
+                normalized = candidate.casefold()
+                if normalized not in used:
+                    break
+                attempt += max(2, len(ordered))
+            MOB_TEMPLATES[mob_id]["name"] = candidate
+            used.add(normalized)
+            renamed.append((mob_id, candidate))
+    return {
+        "version": "1.13.37",
+        "duplicate_groups": duplicate_groups,
+        "renamed_mobs": len(renamed),
+        "renamed": tuple(renamed),
+    }
+
+
+MOB_CURRENCY_NORMALIZATION_V11337 = v11337_normalize_mob_currency()
+MOB_DISPLAY_NAME_CLEANUP_V11337 = v11337_unique_mob_display_names()
+
+
+def production_cleanup_audit_v11337():
+    errors = []
+    duplicate_names = {}
+    for mob_id, mob in MOB_TEMPLATES.items():
+        if int(mob.get("gold", 0) or 0) or int(mob.get("mithril", 0) or 0):
+            errors.append(f"{mob_id}: split mob currency remains")
+        name = str(mob.get("name") or "").strip()
+        if name:
+            duplicate_names.setdefault(name.casefold(), []).append(str(mob_id))
+    for name, mob_ids in duplicate_names.items():
+        if len(mob_ids) > 1:
+            errors.append(f"duplicate mob display name {name}: {tuple(mob_ids)}")
+    if (
+        MOB_CURRENCY_NORMALIZATION_V11337["total_before_silver"]
+        != MOB_CURRENCY_NORMALIZATION_V11337["total_after_silver"]
+    ):
+        errors.append("mob currency normalization changed total authored value")
+    return {
+        "version": "1.13.37",
+        "normalized_mob_currency": int(
+            MOB_CURRENCY_NORMALIZATION_V11337["changed_mobs"]
+        ),
+        "renamed_duplicate_mobs": int(
+            MOB_DISPLAY_NAME_CLEANUP_V11337["renamed_mobs"]
+        ),
+        "duplicate_groups_cleaned": int(
+            MOB_DISPLAY_NAME_CLEANUP_V11337["duplicate_groups"]
+        ),
+        "error_count": len(errors),
+        "errors": errors,
+    }
+
+
+PRODUCTION_CLEANUP_AUDIT_V11337 = production_cleanup_audit_v11337()
+# Deploy-time gate via predeploy_full; runtime stays diagnostic.
 
 
 def economy_income_audit_v1124():
