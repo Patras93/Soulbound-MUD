@@ -121,8 +121,8 @@ def mob_element_affinities_v11339(template):
         ("fire", ("ogień", "ogien", "płom", "plom", "inferno", "vulcan", "wulkan", "smok", "dragon", "ash")),
         ("ice", ("lód", "lod", "mróz", "mroz", "szron", "frost", "ice", "frozen")),
         ("dark", ("mrok", "cień", "cien", "shadow", "void", "pustk", "wraith", "nekro", "undead")),
-        ("poison", ("truc", "poison", "venom", "bio", "bagno", "swamp", "zaraz")),
-        ("holy", ("świat", "swiat", "holy", "angel", "seraph", "sacred")),
+        ("poison", ("truc", "jad", "poison", "venom", "bio", "bagno", "swamp", "zaraz")),
+        ("holy", ("świat", "swiat", "świet", "swiet", "holy", "angel", "seraph", "sacred")),
         ("water", ("wod", "ocean", "tide", "fala", "morsk", "aqua")),
     )
     found = []
