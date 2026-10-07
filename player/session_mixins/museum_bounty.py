@@ -460,14 +460,11 @@ class SessionMuseumBountyMixin:
                     "wood":"woodcutting","herb":"herbalism",
                 }[kind]
                 return max(1,min(600,self.profession_level_for_tool(tool_type)))
-            return max(
-                1,
-                min(
-                    600,
-                    int(getattr(self.character,"soul_level",1) or 1),
-                    int(self.highest_active_class_mastery() or 1),
-                ),
+            fallback=max(
+                int(getattr(self.character,"soul_level",1) or 1),
+                int(self.highest_active_class_mastery() or 1),
             )
+            return max(1,min(600,fallback))
 
     def normalize_bounty_kill_entry_v0387(self, entry):
             """Return one clean, canonical bounty entry without technical mob names."""
