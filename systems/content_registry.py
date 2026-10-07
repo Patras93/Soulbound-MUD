@@ -373,8 +373,9 @@ SYSTEM_DESCRIPTIONS = {
 }
 
 
-LATEST_CHANGES_TITLE = "Soulbound v1.13.38 - Elite Mob Affixes"
+LATEST_CHANGES_TITLE = "Soulbound v1.13.38 - Elite Mobs, Class Gear Power & Party Synergies"
 LATEST_CHANGES = [
+    "v1.13.38: lokalne party ma 7 nazwanych synergii klasowych obejmujących wszystkie 14 klas; działają tylko dla żywych członków tej samej drużyny w tej samej lokacji, wzmacniają obrażenia i/lub leczenie, są widoczne w komendzie druzyna i mają cap 20% damage / 25% healing.",
     "v1.13.38: klasowy flat power jest skalibrowany do Quartz Charmu: ofensywny accessory przy Biegłości 110 osiąga co najmniej +60 właściwego kanału, a późniejsze Tiery rosną wyżej; Mec nie ma już kary 0.60 za hybrydę i dostaje pełne oba kanały.",
     "v1.13.38: nasze klasowe EQ ma płaski kanał ofensywny na każdej części: fizyczne klasy dostają Attack, magiczne Magic Attack, a Mec oba; bossowe sety i relikty przewyższają sklepowy odpowiednik na tym samym progu.",
     "v1.13.38: zwykłe moby mają 8% szansy przy spawnie i każdym respawnie na jeden z pięciu elitarnych affixów: Wściekły, Opancerzony, Wampiryczny, Burzowy albo Przeklęty.",
