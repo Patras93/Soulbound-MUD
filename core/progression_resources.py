@@ -17,6 +17,7 @@ from config.balance import (
     CHARACTER_MAX_LEVEL,
     CHARACTER_XP_REQUIREMENT_MULTIPLIER,
     CLASS_MASTERY_MAX_LEVEL,
+    CLASS_MASTERY_XP_REQUIREMENT_MULTIPLIER,
     CLASS_MASTERY_XP_BASE,
     CLASS_MASTERY_XP_STEP,
     MINE_MIN_FLOOR,
@@ -31,6 +32,8 @@ from config.balance import (
     SKILL_XP_BASE,
     SKILL_XP_STEP,
     SOUL_WEAPON_MASTERY_MAX_LEVEL,
+    SOUL_WEAPON_MASTERY_XP_REQUIREMENT_MULTIPLIER,
+    SOUL_XP_REQUIREMENT_MULTIPLIER,
     V019_CLASS_KILL_BOSS,
     V019_CLASS_KILL_NORMAL,
     V019_CLASS_REQ,
@@ -483,6 +486,23 @@ def v0190_resource_sale_coins(item_id, item=None):
     return max(1, generated, progression)
 
 STAT_MAX_LEVEL = None  # v0.27.1: statystyki są bez twardego limitu
+
+def cap_single_level_xp_gain_v11342(current_xp, needed_xp, amount):
+    """Cap one discrete XP award to the remainder of the current level.
+
+    Combat uses this after every event/race/guild/mentor multiplier, so one mob
+    can finish at most one permanent level and cannot bank overflow for several
+    later levels. Non-combat rewards do not use this cap.
+    """
+    amount = max(0, int(amount or 0))
+    needed_xp = max(0, int(needed_xp or 0))
+    current_xp = max(0, int(current_xp or 0))
+    if amount <= 0 or needed_xp <= 0:
+        return 0
+    remaining = max(0, needed_xp - current_xp)
+    return min(amount, remaining)
+
+
 def character_xp_to_next(level):
     level=max(1,min(CHARACTER_MAX_LEVEL,int(level)))
     if level >= CHARACTER_MAX_LEVEL:
@@ -495,7 +515,16 @@ def class_mastery_xp_to_next(level):
     level = max(1, min(CLASS_MASTERY_MAX_LEVEL, int(level)))
     if level >= CLASS_MASTERY_MAX_LEVEL:
         return 0
-    return v0190_requirement("class", level)
+    base = v0190_requirement("class", level)
+    return max(1, int(round(base * CLASS_MASTERY_XP_REQUIREMENT_MULTIPLIER)))
+
+
+def soul_xp_to_next(level):
+    level = max(1, min(CHARACTER_MAX_LEVEL, int(level)))
+    if level >= CHARACTER_MAX_LEVEL:
+        return 0
+    base = v0190_requirement("soul", level)
+    return max(1, int(round(base * SOUL_XP_REQUIREMENT_MULTIPLIER)))
 
 def class_type_for_name(class_name):
     for cname, ctype, weapon, base in CLASSES:
@@ -526,8 +555,11 @@ def soul_weapon_mastery_xp_to_next(level):
     level = max(1, min(SOUL_WEAPON_MASTERY_MAX_LEVEL, int(level)))
     if level >= SOUL_WEAPON_MASTERY_MAX_LEVEL:
         return 0
-    # Ta sama długość pojedynczego poziomu co Skill Level: około 18 realnych trafień.
-    return v0190_requirement("skill", level)
+    base = v0190_requirement("skill", level)
+    return max(
+        1,
+        int(round(base * SOUL_WEAPON_MASTERY_XP_REQUIREMENT_MULTIPLIER)),
+    )
 
 def soul_weapon_mastery_bonuses(level):
     level = max(1, min(SOUL_WEAPON_MASTERY_MAX_LEVEL, int(level)))
