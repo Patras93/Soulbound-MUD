@@ -658,11 +658,19 @@ class SessionDungeonProgressionMixin:
             # v1.13.30: brak minimalnego Soul Level dla Wieży Astralnej.
             return False
 
-    async def grant_combat_quest_stat_xp(self, raw_reward, repeatable=False, source_label="Quest walki"):
+    async def grant_combat_quest_stat_xp(
+        self, raw_reward, repeatable=False, source_label="Quest walki", *,
+        content_level=None, content_scaled=False
+    ):
             """Przyznaje EXP do każdej z sześciu statystyk z systemu questowego."""
             raw_reward = max(0, int(raw_reward or 0))
             if raw_reward <= 0:
                 return []
+            raw_reward=self.scale_progression_xp_v11342(
+                raw_reward,
+                content_level,
+                content_scaled=content_scaled,
+            )
             applied = []
             for stat_name in self.character.STAT_PROGRESS_FIELDS:
                 granted = v0874_quest_stat_progress_base_grant(
@@ -681,8 +689,16 @@ class SessionDungeonProgressionMixin:
             )
             return applied
 
-    async def grant_soul_xp(self, amount, single_level_cap=False):
+    async def grant_soul_xp(
+        self, amount, single_level_cap=False, *,
+        content_level=None, content_scaled=False
+    ):
             old_level = self.character.soul_level
+            amount=self.scale_progression_xp_v11342(
+                amount,
+                content_level,
+                content_scaled=content_scaled,
+            )
             amount = self.apply_double_xp(amount)
             _mentor_pct = self.mentor_bonus_percent_v03050()
             if _mentor_pct:
