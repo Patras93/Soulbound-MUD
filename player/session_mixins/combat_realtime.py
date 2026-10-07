@@ -622,6 +622,8 @@ class SessionCombatRealtimeMixin:
                                     if _source_round and _source_round.get("instant_death"):
                                         target_session._last_death_cause_v11341 = {
                                             "killer": str(_enemy_template.get("name") or enemy_mob.template_id),
+                                            "template_id": str(enemy_mob.template_id),
+                                            "mob_key": str(getattr(enemy_mob, "key", "") or ""),
                                             "ability": str(_source_round.get("name") or _source_round.get("text") or "atak natychmiastowej śmierci"),
                                             "damage_type": str(_enemy_template.get("damage_type") or ""),
                                             "damage": max(0, int(target_session.current_hp or 0)),
@@ -676,6 +678,8 @@ class SessionCombatRealtimeMixin:
                                         if _source_effect_replaces_attack:
                                             target_session._last_death_cause_v11341 = {
                                                 "killer": str(_enemy_template.get("name") or enemy_mob.template_id),
+                                                "template_id": str(enemy_mob.template_id),
+                                                "mob_key": str(getattr(enemy_mob, "key", "") or ""),
                                                 "ability": str(_source_ability or "specjalna zdolność"),
                                                 "damage_type": str(_enemy_template.get("damage_type") or ""),
                                                 "damage": _source_damage_v11341,
@@ -683,7 +687,12 @@ class SessionCombatRealtimeMixin:
                                         if target_session.current_hp <= 0:
                                             await target_session.die(_enemy_template['name'])
                                             continue
-                                    for _summon_tid in superboss_source_summons_v11162(target_session,_enemy_template,enemy_mob,_source_ability):
+                                    _source_summons=tuple(
+                                        superboss_source_summons_v11162(
+                                            target_session,_enemy_template,enemy_mob,_source_ability
+                                        )
+                                    )
+                                    for _summon_tid in _source_summons:
                                         _summoned=self.server.world._register_runtime_spawn(target_session.character.room_id,_summon_tid)
                                         if _summoned:
                                             if _summoned.engaged_at <= 0: _summoned.engaged_at=time.monotonic()
@@ -815,8 +824,16 @@ class SessionCombatRealtimeMixin:
                                                 _elemental_attack_v11339.get("element"),
                                             )
                                         )
+                                    _basic_attack_ability_v11341 = (
+                                        str(_source_ability or "")
+                                        if _source_ability
+                                        and not _source_status_result
+                                        and not _timed_effect
+                                        and not _source_summons
+                                        else ""
+                                    )
                                     target_session._incoming_attack_context_v11341 = {
-                                        "ability": str(_source_ability or ""),
+                                        "ability": _basic_attack_ability_v11341,
                                         "element": str(
                                             (_elemental_attack_v11339 or {}).get("label") or ""
                                         ),
