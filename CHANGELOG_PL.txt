@@ -1,5 +1,5 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.13.39
+Aktualna paczka: v1.13.40
 
 
 
@@ -19,6 +19,17 @@ Aktualna paczka: v1.13.39
 
 
 
+
+==============================================================================
+Soulbound v1.13.40 — INFINITE DUNGEON WALK SHORTCUTS
+==============================================================================
+
+- WALK KRYPTA DÓŁ: działa w zwykłej Krypcie i Mitycznej Krypcie. Obsługuje też dol/dool/crypt down oraz jawne mityczna krypta dol / mythic crypt down.
+- WALK WIEŻA GÓRA: działa w zwykłej i Mitycznej Wieży Astralnej. Samo walk wieża góra rozpoznaje, w której Wieży jesteś; działają też mityczna wieża góra / mythic astral up.
+- WALK TWIERDZA GÓRA: działa w nieskończonej Twierdzy Gigantów; warianty twierdza gigantów góra / giant fortress up są równoważne.
+- WALK DEEP DÓŁ: działa w UOSS Deep Dungeon bez limitu; obsługuje deep dol/dool/down i deep dungeon down.
+- BEZ OMIJANIA PROGRESJI: wszystkie skróty prowadzą tylko po bieżącym piętrze i zatrzymują się przed końcowym up/down. Boss Krypty, boss Wieży, boss Twierdzy i Apanda w Deep Dungeon nadal blokują właściwy ręczny krok.
+- NAWIGACJA WEWNĄTRZ PIĘTRA: routing dla tych skrótów ma osobny same-floor BFS, więc nie może przypadkiem skrócić drogi przez sąsiednie piętro.
 
 ==============================================================================
 Soulbound v1.13.39 — ELEMENTAL COMBAT, PARTY CONTRACTS & SYNERGY 2.0
