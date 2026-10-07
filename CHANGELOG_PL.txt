@@ -1,5 +1,5 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.13.37
+Aktualna paczka: v1.13.38
 
 
 
@@ -19,6 +19,20 @@ Aktualna paczka: v1.13.37
 
 
 
+
+==============================================================================
+Soulbound v1.13.38 — ELITE MOB AFFIXES
+==============================================================================
+
+- LOSOWE ELITY: zwykły mob ma 8 procent szansy przy pierwszym spawnie i przy każdym respawnie na wariant elitarny. Dostępne affixy: Wściekły, Opancerzony, Wampiryczny, Burzowy i Przeklęty.
+- BEZ NADPISYWANIA BOSSÓW: losowa elita nie dotyka bossów, minibossów, world bossów, UOSS Super Bossów, authored rare/elite, manekinów ani przeciwników z exact source XP.
+- ADAPTIVE COMBAT ZOSTAJE ŹRÓDŁEM BALANSU: elity mają rangę elite, więc nadal skalują się do realnej siły solo/lokalnego party. Affix nie tworzy osobnego świata dla słabych i mocnych graczy.
+- WŚCIEKŁY: zadaje wyraźnie większą presję obrażeń. OPANCERZONY: wydłuża walkę dodatkowym mnożnikiem HP. WAMPIRYCZNY: podczas własnych akcji odzyskuje część maksymalnego HP. BURZOWY: co trzeci atak dostaje silniejszy impuls. PRZEKLĘTY: ma stale podniesioną presję obrażeń.
+- LEPSZE NAGRODY: każdy affix ma mnożnik EXP/waluty powyżej zwykłego moba oraz zwiększa szansę authored dropów. Najtrudniejsze affixy mają najwyższą premię.
+- QUESTY I BESTIARIUSZ: runtime clone zachowuje elite_base_template, quest_target, quest_targets i authored drops, więc zabicie elity nadal zalicza bazowy gatunek i stare questy.
+- RESPAWN REROLL: elitarny status nie przykleja się do punktu spawnu na zawsze. Po śmierci kolejny respawn ponownie losuje zwykły/elita oraz affix.
+- NVDA: affix jest częścią nazwy moba, np. "Wampiryczny Goblin", a specjalne leczenie i burzowy impuls są komunikowane tekstowo w walce.
+- Brak migracji SQLite, brak wipe i brak zmian ID authored contentu.
 
 ==============================================================================
 Soulbound v1.13.37 — FULL PRODUCTION CLEANUP
