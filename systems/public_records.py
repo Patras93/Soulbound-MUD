@@ -289,7 +289,13 @@ SessionCraftingInventoryEquipmentMixin.perform_recipe = _v0370_perform_recipe
 _V0370_SMELT_BEFORE = SessionCraftingExpansionV03114Mixin.smelt_item_v03114
 async def _v0370_smelt(self,query):
     raw=str(query or '').strip(); norm=normalize_lookup_text(raw); count=0
-    if norm in ("wszystko","all"):
+    if norm in ("klucze","keys","klucze bossow","klucze bossów","boss keys"):
+        count=sum(
+            max(0,int(row["quantity"] or 0))
+            for row in self.server.db.inventory(self.account_id)
+            if ITEMS.get(str(row["item_id"]),{}).get("boss_chest_key")
+        )
+    elif norm in ("wszystko","all"):
         profession_level=int(self.server.db.profession(self.account_id,"Kowalstwo")["level"])
         old_tool_level=int(self.server.db.tool(self.account_id,"crafting")["level"])
         current_tool_tier=tool_tier(old_tool_level)
@@ -355,7 +361,7 @@ SessionCraftingExpansionV03114Mixin.salvage_equipment_v0925 = _v0370_salvage
 
 for _iid,_item in ITEMS.items():
     if _item.get("boss_chest_key"):
-        _item["desc"] = str(_item.get("desc","")).rstrip() + " Po otwarciu skrzyni klucz jest zużywany; nadmiarowy klucz można rozłożyć komendą rozłóż <nazwa klucza> albo rozłóż klucze."
+        _item["desc"] = str(_item.get("desc","")).rstrip() + " Po otwarciu skrzyni klucz jest zużywany; nadmiarowy klucz można rozłożyć albo przetopić w Kuźni. Komendy: rozłóż klucze lub przetop klucze."
         _item["salvageable_key_v0370"] = True
 
 HELP_TOPICS["rekordy_serwera"] = [
@@ -366,6 +372,7 @@ HELP_TOPICS["rekordy_serwera"] = [
 ]
 HELP_TOPIC_ALIASES.update({"rekordy":"rekordy_serwera","records":"rekordy_serwera","halloffame":"rekordy_serwera","hall of fame":"rekordy_serwera"})
 HELP_TOPICS.setdefault("salvage",[]).append("Klucze bossowe są zużywane przy otwarciu skrzyni. Nadmiarowe klucze można rozłożyć pojedynczo lub przez `rozłóż klucze`; `salvage wszystko` nadal ich automatycznie nie niszczy.")
+HELP_TOPICS.setdefault("przetapianie",[]).append("Klucze bossowe: w Kuźni użyj `przetop klucze` dla wszystkich nadmiarowych albo `przetop <nazwa klucza>` dla jednego. Wynik trafia do craftboxu jako Pył Runiczny i, dla wysokich progów, Esencja Przekucia. `przetop wszystko` celowo nie zużywa kluczy.")
 
 # ----------------------------- Audit ------------------------------------
 def public_records_audit_v0370():
