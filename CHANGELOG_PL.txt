@@ -45,7 +45,14 @@ Soulbound v1.13.42 — OCEAN TRADE, PROGRESSION, CLASS QUESTS & HARDENING
 - SAVE BEZ RESETU: istniejące levele, Soul, Biegłości i staty nie są cofane. Zmienia się tylko koszt przyszłych awansów.
 - AUDYT PROGRESJI: CI pilnuje docelowego tempa 72/48/75/54/60 oraz semantyki limitu jednego awansu z killa.
 - SZYBSZE PROFESJE: globalny mnożnik Profession XP rośnie z x2 do x4. Zwykłe akcje, craft, questy specjalistów i zamówienia dają około 2 razy więcej Profession XP niż wcześniej.
-- KONIEC PŁASKIEGO XP: każda realna akcja wywołująca rozwój profesji musi podać content_level; CI blokuje każdą nową ścieżkę bez poziomu treści. Lepsza ruda, ryba, drewno, zioło, receptura, zaklęcie, Tech Upgrade, hartowanie i salvage dają więcej realnego Profession XP i Tool XP.
+- KONIEC PŁASKIEGO XP PROFESJI: każda realna akcja wywołująca rozwój profesji musi podać content_level; CI blokuje każdą nową ścieżkę bez poziomu treści. Lepsza ruda, ryba, drewno, zioło, receptura, zaklęcie, Tech Upgrade, hartowanie i salvage dają więcej realnego Profession XP i Tool XP.
+- KONIEC PŁASKIEGO XP W CAŁEJ GRZE: Character XP, Class XP, Soul XP, stat XP, Skill XP, Soul Weapon Mastery XP, Profession XP i Tool XP są związane z trudnością/poziomem faktycznej treści albo z realną wartością wykonywanej akcji.
+- WALKA: kill rewardy pozostają liczone przez Generator Core z poziomu/rangi konkretnego moba; nowe content-aware bramy oznaczają je jako już przeskalowane, więc nie ma podwójnego boostu.
+- QUESTY I KONTRAKTY: stare ręczne nagrody nie mogą już zaniżyć wysokotierowego questa poniżej dynamicznej nagrody Generator Core. Zadania klasowe, bounty, dynamiczne questy świata, projekty świata i legendarne kontrakty przekazują własny Tier treści.
+- EKSPLORACJA: EXP za odkrycie lokacji zależy od rekomendowanej trudności lokacji zamiast od levelu gracza; nagroda Soul XP za 100% regionu zależy również od poziomu najtrudniejszej treści regionu.
+- SKILLE I BROŃ DUSZY: Skill XP uwzględnia poziom skilla i trudność aktualnego przeciwnika; Soul Weapon Mastery XP rośnie wraz z poziomem trafianego moba.
+- SPRZEDAŻ: Charyzma nadal skaluje EXP z wartością transakcji; sprzedaż surowców profesji liczy ważony poziom rzeczywiście sprzedanych materiałów, więc jedna wysoka ruda nie podbija całego stosu tanich surowców.
+- PEŁNY AUDYT XP: fast predeploy klasyfikuje każdą funkcję add_*xp / grant_*xp, wymaga content_level na głównych bramach i blokuje bezpośrednie obejścia Character/Class/Soul/stat/Skill/Soul Weapon/Ascension XP.
 - MŁOT RZEMIEŚLNICZY: Młot ma dodatkowe x1.35 do mnożnika jakości treści, ponieważ wcześniej rozwijał się wyraźnie za wolno. Salvage także rozwija teraz Młot; lepsze rozkładane EQ daje więcej XP.
 - TOOL XP PO JAKOŚCI: narzędzia nie dostają globalnego x2 z Profession XP, ale ich realny XP rośnie z poziomem materiału, receptury, EQ do salvage lub innej wykonywanej pracy. Poziom 1 ma bazowe x1, a treść poziomu 600 około x2.
 - QUESTY KLASOWE 2.0: pięć godzinnych ofert każdej z 14 klas skaluje wymagania, nazwy i nagrody z Biegłością klasy przez etapy Początek, Adept, Mistrz, Legenda, Transcendencja, Apogeum i Absolut.
