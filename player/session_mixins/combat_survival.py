@@ -190,28 +190,19 @@ class SessionCombatSurvivalMixin:
                     "Aktywne buffy zachowują pozostały czas działania."
                 )
 
-                # v0.37.1: jeśli w tym samym pokoju stoi żywy członek drużyny,
-                # nie teleportuj natychmiast. Daj 60 sekund na lokalne wskrzeszenie.
-                revivers = self.party_revive_candidates_v0371()
-                if revivers:
-                    await self.begin_downed_v0371(killer, seconds=60)
-                    await self.server.party_nearby_broadcast(
-                        self,
-                        f"{self.character.name} jest powalony. Użyj: wskrzes {self.character.name}. Czas: 60 sekund.",
-                        exclude=[self],
-                        detail="essential",
-                        history_category="combat",
-                    )
-                    return
-
-                # Bez żywego członka drużyny obok zachowujemy dawny natychmiastowy respawn.
-                self.character.room_id = "temple"
-                self.current_hp = self.max_hp()
-                self.current_mana = self.max_mana()
-                self.server.db.save_character(self.character)
-                await self.server.broadcast_room(
-                    "temple", f"{self.character.name} odradza się w Świątyni Odrodzenia.", exclude=self
+                # v1.13.43: każdy realny zgon bez Re-raise zostawia ciało
+                # na 180 sekund. Globalny alarm podaje miejsce i dokładną
+                # przyczynę, aby dowolny żywy gracz mógł dotrzeć i użyć
+                # wskrzes <gracz> albo resp <gracz>.
+                await self.begin_downed_v0371(killer, seconds=180)
+                await self.server.broadcast_all(
+                    f"ŚWIAT: {self.character.name} zginął. "
+                    f"Miejsce: {_death_room_name_v11341}. "
+                    f"Zabił lub przyczyna: {killer}. "
+                    f"Szczegóły: {_death_cause_text_v11341}. "
+                    f"Ratunek przez 180 sekund: wskrzes {self.character.name} "
+                    f"albo resp {self.character.name}.",
+                    history_category="system",
                 )
-                await self.send("Twoja dusza odradza się w Świątyni Odrodzenia.")
-                await self.look()
+                return
 
