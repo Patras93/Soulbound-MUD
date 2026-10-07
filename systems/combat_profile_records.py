@@ -61,6 +61,72 @@ def record_combat_profile_v11341(db, account_id, record_key, template):
     return {"name": name, "xp": xp}
 
 
+def backfill_combat_profile_records_v11341(db, account_id, mob_templates):
+    """Best-effort migration from already stored Bestiary/death recap history."""
+    account_id = int(account_id)
+    mob_templates = mob_templates or {}
+
+    best = combat_profile_row_v11341(db, account_id, "best_kill")
+    if best is None:
+        rows = db.conn.execute(
+            "SELECT mob_template_id,kills FROM bestiary_stats "
+            "WHERE account_id=? AND kills>0",
+            (account_id,),
+        ).fetchall()
+        best_template = None
+        best_xp = -1
+        for row in rows:
+            template = mob_templates.get(str(row["mob_template_id"]))
+            if not template:
+                continue
+            xp = mob_profile_xp_v11341(template)
+            if xp > best_xp:
+                best_xp = xp
+                best_template = template
+        if best_template is not None:
+            record_combat_profile_v11341(
+                db, account_id, "best_kill", best_template
+            )
+
+    worst = combat_profile_row_v11341(db, account_id, "worst_defeat")
+    if worst is None:
+        try:
+            rows = db.conn.execute(
+                "SELECT killer FROM death_recaps_v03052 "
+                "WHERE account_id=? ORDER BY id DESC LIMIT 500",
+                (account_id,),
+            ).fetchall()
+        except Exception:
+            rows = ()
+        by_name = {}
+        for template in mob_templates.values():
+            name = str(
+                template.get("uoss_superboss_name")
+                or template.get("name")
+                or ""
+            ).strip()
+            if not name:
+                continue
+            current = by_name.get(name.casefold())
+            if current is None or mob_profile_xp_v11341(template) > mob_profile_xp_v11341(current):
+                by_name[name.casefold()] = template
+        worst_template = None
+        worst_xp = -1
+        for row in rows:
+            killer = str(row["killer"] or "").strip().casefold()
+            template = by_name.get(killer)
+            if not template:
+                continue
+            xp = mob_profile_xp_v11341(template)
+            if xp > worst_xp:
+                worst_xp = xp
+                worst_template = template
+        if worst_template is not None:
+            record_combat_profile_v11341(
+                db, account_id, "worst_defeat", worst_template
+            )
+
+
 def combat_profile_row_v11341(db, account_id, record_key):
     return db.conn.execute(
         """
