@@ -22,8 +22,8 @@ def refresh_generator_help_v0271():
     HELP_TOPICS["statystyki"] = [
         "Sześć automatycznych statystyk to Siła, Zręczność, Kondycja, Inteligencja, Siła Woli i Charyzma.",
         "Statystyki nie mają twardego limitu. Każda ma własny EXP i wygenerowany próg rosnący także powyżej 400; nie rozdzielasz punktów ręcznie.",
-        "v1.13.1: każde źródło stat EXP dostaje globalnie x4 przed bonusem rasy i Gildii, a dawny sztuczny mnożnik x2 wymagań statów został usunięty.",
-        "Dla równorzędnego zwykłego źródła generator celuje teraz efektywnie w około 15 akcji na kolejny punkt każdej statystyki zamiast około 120; rare, minibossy, bossy, questy i x2 EXP przyspieszają to dalej.",
+        "v1.13.42: każde źródło stat EXP nadal dostaje globalnie x4 przed bonusem rasy i Gildii, ale wymagany EXP do kolejnego punktu ma teraz mnożnik x4 dla długoterminowej progresji.",
+        "Dla równorzędnego zwykłego źródła generator celuje teraz efektywnie w około 60 akcji na kolejny punkt każdej statystyki; rare, minibossy, bossy, questy i x2 EXP nadal przyspieszają postęp.",
         "Powyżej 400 Generator Core skaluje wymagany EXP i nagrodę statystyczną z zachowaniem jakości źródła: endgame pozostaje opłacalny, a słabe moby nie stają się dobrym farmem.",
         "Level postaci, wyposażenie, rasa, klasa i statystyki wspólnie wpływają na parametry bojowe.",
         "staty info pokazuje bazę, wartość efektywną, bieżący EXP do następnego punktu i bonusy wyposażenia.",
@@ -1281,8 +1281,8 @@ def refresh_help_truth_v11197():
     HELP_TOPICS["statystyki"] = [
         "Sześć automatycznych statystyk to Siła, Zręczność, Kondycja, Inteligencja, Siła Woli i Charyzma.",
         "Bazowe statystyki są bez twardego limitu. EQ, runy, sety i relikty zwiększają wartości efektywne używane przez walkę.",
-        "v1.13.1+: każde źródło stat EXP dostaje globalnie x4 przed bonusem rasy i Gildii, a dawny sztuczny mnożnik x2 wymagań statów został usunięty.",
-        "Dla równorzędnego zwykłego źródła generator celuje efektywnie w około 15 akcji na kolejny punkt każdej statystyki zamiast około 120; rare, minibossy, bossy, questy i x2 EXP przyspieszają to dalej.",
+        "v1.13.42: każde źródło stat EXP nadal dostaje globalnie x4 przed bonusem rasy i Gildii, ale wymagany EXP do kolejnego punktu ma teraz mnożnik x4 dla długoterminowej progresji.",
+        "Dla równorzędnego zwykłego źródła generator celuje efektywnie w około 60 akcji na kolejny punkt każdej statystyki; rare, minibossy, bossy, questy i x2 EXP nadal przyspieszają postęp.",
         "Ofensywne skille używają właściwych statystyk klasy. Każde leczenie w Soulbound skaluje się z Inteligencją i Siłą Woli; Magic Attack zwiększa obrażenia magiczne, ale nie leczenie.",
         "Zręczność buduje końcową Szybkość. Liczba trafień zwykłego autoataku Broni Duszy wynika z końcowej Szybkości, a aktywny Haste osobno zwiększa długość serii trafień.",
         "staty info pokazuje bazę, wartości efektywne, postęp oraz bonusy wyposażenia.",
@@ -1821,7 +1821,7 @@ def help_surface_audit_v11197():
         "walka": ("help skill", "V-MAX"),
         "odpoczynek": ("2 procent", "10 procent", "5 sekund"),
         "leczenie": ("Inteligencja", "Siła Woli", "Magic Attack"),
-        "statystyki": ("bez twardego limitu", "x4", "15 akcji"),
+        "statystyki": ("bez twardego limitu", "x4", "60 akcji"),
     }
     for topic, needles in expected.items():
         text = text_of(topic)
