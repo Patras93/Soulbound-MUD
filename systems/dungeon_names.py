@@ -120,7 +120,7 @@ def dungeon_mob_display_name_v11336(kind, base_name, floor, variant=0):
     if not themes:
         return f"{str(base_name).strip()} {codename}".strip()
     theme = themes[(floor - 1 + variant) % len(themes)]
-    return f"{str(base_name).strip()} — {theme} {codename}".strip()
+    return f"{str(base_name).strip()} {codename}".strip()
 
 
 def dungeon_mob_name_audit_v11336():
