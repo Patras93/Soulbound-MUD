@@ -2017,7 +2017,7 @@ for _needle in (
     '"role": "pancerny"',
     "def class_equipment_flat_power_channels(",
     'if class_name == "Mec":',
-    'return {"attack": hybrid, "magic_attack": hybrid}',
+    'return {"attack": power, "magic_attack": power}',
     "class_name, legacy_affix_amount, slot, style_index",
 ):
     if _needle not in _class_eq_source:
