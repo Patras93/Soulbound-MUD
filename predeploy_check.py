@@ -2987,7 +2987,8 @@ for _source, _label, _needles in (
         _class_progression_source_v11342,
         "class",
         (
-            "async def grant_class_xp(self, total_xp, single_level_cap=False):",
+            "async def grant_class_xp(",
+            "content_level=None, content_scaled=False",
             "single_level_cap=single_level_cap",
         ),
     ),
@@ -2995,7 +2996,8 @@ for _source, _label, _needles in (
         _dungeon_progression_source_v11342,
         "soul",
         (
-            "async def grant_soul_xp(self, amount, single_level_cap=False):",
+            "async def grant_soul_xp(",
+            "content_level=None, content_scaled=False",
             "single_level_cap=single_level_cap",
         ),
     ),
@@ -3003,7 +3005,8 @@ for _source, _label, _needles in (
         _session_runtime_source_v11342,
         "character_event",
         (
-            "def add_character_xp_with_event(self, amount, single_level_cap=False):",
+            "def add_character_xp_with_event(",
+            "content_level=None, content_scaled=False",
             "single_level_cap=single_level_cap",
         ),
     ),
@@ -3166,6 +3169,7 @@ _content_aware_xp_calls_v11342 = {
     "grant_profession_progress",
     "grant_profession_reward_xp",
     "grant_tool_reward_xp",
+    "grant_tool_progress",
     "grant_class_xp",
     "grant_soul_xp",
     "add_character_xp_with_event",
