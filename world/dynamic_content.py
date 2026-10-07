@@ -1,4 +1,5 @@
 from data import catalog_mutations as _catalog_mut
+from systems.dungeons_regions import crypt_subroom_display_name
 COLLECTION_CATEGORY_ALIASES = {
     "fish": "fish", "ryby": "fish", "ryba": "fish",
     "minerals": "minerals", "mineral": "minerals", "mineraly": "minerals", "minerały": "minerals", "rudy": "minerals",

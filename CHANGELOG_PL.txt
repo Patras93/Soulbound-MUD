@@ -1,4 +1,12 @@
-Soulbound v1.14.2 — Czyszczenie nazw mobów
+Soulbound v1.14.3 — Runtime Audit & Unique Mob Names Hotfix
+
+- Naprawiono Railway build po v1.14.2: pełny audit nie myli już celowej zmienności mutatorów Wieży z regresją skalowania.
+- Bazowa krzywa Tower Overdrive nadal rośnie bez końca; audit sprawdza bazową krzywą oraz poprawność końcowych wartości zamiast wymagać ścisłego wzrostu każdego parametru między sąsiednimi zmutowanymi piętrami.
+- Cleaner nazw mobów po skróceniu wykonuje drugi etap unikalizacji. Elity zachowują krótkie wyróżniki typu Ognisty/Lodowy/Wampiryczny/Opancerzony; kolizje dostają krótki bezcyfrowy przydomek.
+- Nazwy nadal nie zawierają numerów pięter, nie mają powtórzonych słów i zwykle mieszczą się w maksymalnie 3 członach.
+- Pełny audit ponownie może działać jako blokada deployu, zamiast być wyciszany.
+
+Soulbound v1.14.3 — Czyszczenie nazw mobów
 
 - Globalna normalizacja nazw mobów po zbudowaniu całego runtime.
 - Usunięto cyfry oraz dopiski typu „poziom X”, „piętro X” i „floor X” z nazw przeciwników.
@@ -61,7 +69,7 @@ Soulbound v1.13.59 - Mec Hybrid EQ + Stronger 101+ Progression
 - Wzrost jest wyraźnie odczuwalny już od 101, a okolice 599 nadal celują w około 1 bilion EXP na kolejny awans.
 - Statystyki pozostają bez limitu i ich koszt rośnie dalej ponad 600.
 
-Aktualna paczka: v1.14.2
+Aktualna paczka: v1.14.3
 
 Soulbound v1.13.58 — DYNAMIC XP AUDIT
 - Usunięto główną przyczynę płaskiego EXP: Generator Core nie ignoruje już authored/raw XP.

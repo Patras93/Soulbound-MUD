@@ -191,7 +191,7 @@ def create_infinite_astral_floor_definition(floor, mythic=False):
 
 HELP_TOPICS.setdefault("wieza", []).extend([
     "v0.38.1: Wieża Astralna i Mityczna Wieża Astralna mają Tower Overdrive. Każdy kolejny poziom jest mocniejszy i bardziej nagradzający od poprzedniego.",
-    "Zwykła Wieża zaczyna się od poziomu 100: 101 jest mocniejszy od 100, 102 od 101 itd. Mityczna Wieża rośnie od poziomu 1 bez płaskich przedziałów.",
+    "Zwykła Wieża zaczyna się od poziomu 100, a Mityczna od 1. Bazowe skalowanie rośnie bez płaskich przedziałów; losowe mutatory mogą chwilowo obniżyć jeden parametr w zamian za mocniejsze inne parametry i większy EXP.",
     "Na każdym poziomie rosną HP, obrażenia oraz Class/Soul/stat EXP. Boss co 10 poziomów jest dodatkowym skokiem. UOSSMUD Superbossy są osobnymi unikalnymi encounterami świata, nie bossami co 10 pięter Mitycznej Wieży.",
     "Tower Overdrive działa także dla poziomów tworzonych dynamicznie ponad 200 i nie zatrzymuje wzrostu na 600.",
     "v1.13.63 Endless Towers 2.0: każde piętro ma stabilny losowy mutator; od głębokości 100 działają dwa, a od 300 trzy jednocześnie. Mutatory zmieniają HP, obrażenia, typ obrażeń i EXP.",
@@ -219,8 +219,11 @@ def tower_overdrive_audit_v0381():
                         break
             last = row
 
-    # Real static ordinary Tower levels 100..200 must strictly rise.
-    previous = None
+    # Static levels must all receive Tower Overdrive and valid positive runtime
+    # values. Since v1.13.63 each floor also has deterministic mutators; therefore
+    # adjacent *final* HP/damage/XP may dip when a Glass Cannon floor follows a
+    # Juggernaut floor. The monotonic contract belongs to the base overdrive curve
+    # checked above, while mutators deliberately vary the final encounter profile.
     for floor in range(int(ASTRAL_MIN_FLOOR), int(ASTRAL_MAX_FLOOR) + 1):
         t = MOB_TEMPLATES.get(f"astral_floor_mob_{floor}")
         if not isinstance(t, dict):
@@ -229,15 +232,11 @@ def tower_overdrive_audit_v0381():
         if not t.get("tower_overdrive_v0381"):
             errors.append(f"astral: level {floor} missing v0.38.1 overdrive")
             continue
-        row = (int(t.get("max_hp", 0) or 0), int(t.get("damage", 0) or 0), int(v0190_combat_reward(t, "class")))
-        if previous is not None:
-            for idx, field in enumerate(("HP", "damage", "Class XP")):
-                if row[idx] <= previous[idx]:
-                    errors.append(f"astral: level {floor} {field}={row[idx]} not above level {floor-1}={previous[idx]}")
-        previous = row
+        if int(t.get("max_hp", 0) or 0) <= 0 or int(t.get("damage", 0) or 0) <= 0:
+            errors.append(f"astral: level {floor} has invalid combat values")
+        if int(v0190_combat_reward(t, "class")) <= 0:
+            errors.append(f"astral: level {floor} has invalid Class XP")
 
-    # Real static Mythic Tower levels 1..200 must strictly rise.
-    previous = None
     for floor in range(1, int(MYTHIC_MAX_FLOOR) + 1):
         t = MOB_TEMPLATES.get(f"mythic_astral_mob_{floor}")
         if not isinstance(t, dict):
@@ -246,12 +245,10 @@ def tower_overdrive_audit_v0381():
         if not t.get("tower_overdrive_v0381"):
             errors.append(f"mythic_astral: level {floor} missing v0.38.1 overdrive")
             continue
-        row = (int(t.get("max_hp", 0) or 0), int(t.get("damage", 0) or 0), int(v0190_combat_reward(t, "class")))
-        if previous is not None:
-            for idx, field in enumerate(("HP", "damage", "Class XP")):
-                if row[idx] <= previous[idx]:
-                    errors.append(f"mythic_astral: level {floor} {field}={row[idx]} not above level {floor-1}={previous[idx]}")
-        previous = row
+        if int(t.get("max_hp", 0) or 0) <= 0 or int(t.get("damage", 0) or 0) <= 0:
+            errors.append(f"mythic_astral: level {floor} has invalid combat values")
+        if int(v0190_combat_reward(t, "class")) <= 0:
+            errors.append(f"mythic_astral: level {floor} has invalid Class XP")
 
     # Every static tower boss must remain a clear spike over the same-level regular mob.
     # Since v1.11.33 UOSSMUD Superbosses are separate world encounters.

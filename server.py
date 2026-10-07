@@ -40,7 +40,7 @@ print(f"Soulbound bootstrap port open: {_BOOT_SOCKET.getsockname()}", flush=True
 # project source text into its own globals.
 RUNTIME_ARCHITECTURE_STATE = load_native_runtime(_ROOT, globals())
 
-# v1.14.2: final runtime mob names are normalized only after every world
+# v1.14.3: final runtime mob names are normalized only after every world
 # module/generator has registered its templates. This keeps NVDA output short
 # and prevents procedural floor numbers / stacked rarity prefixes leaking into
 # combat messages.

@@ -2804,7 +2804,8 @@ def full_game_predeploy_audit_v0336():
     dynamic_prefixes=(
         'prof_','mine_floor_','crypt_floor_','astral_floor_','mythic_crypt_floor_',
         'mythic_astral_floor_','giant_fortress_','v0130_frontier_','v018_endless_',
-        'v020_mega_','magitek_floor_','uoss_deep_dungeon_floor_'
+        'v020_mega_','magitek_floor_','uoss_deep_dungeon_floor_',
+        'eth_void_floor_','eth_holy_floor_','eth_shadow_floor_'
     )
     for rid,room in ROOMS.items():
         if not str(room.get('name') or '').strip(): err('room_missing_name',rid)

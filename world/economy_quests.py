@@ -1,5 +1,6 @@
 from data import catalog_mutations as _catalog_mut
 from systems.dungeon_names import dungeon_mob_display_name_v11336
+from systems.dungeons_regions import crypt_floor_display_name
 
 def rebalance_economy_v0861():
     """Ujednolica wszystkie cenniki pod wspólne saldo i nowe nominały."""
