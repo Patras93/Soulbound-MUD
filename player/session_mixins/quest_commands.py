@@ -4,6 +4,7 @@ import random
 # v0.45.0: explicit imports; no compatibility-runtime injection.
 from core.progression_resources import (
     v0190_quest_currency_reward,
+    v0190_quest_stage,
     v0270_quest_character_reward,
     v0522_combat_quest_class_reward,
     v0522_is_profession_quest,
@@ -93,6 +94,7 @@ class SessionQuestCommandsMixin:
             turnin_reaction = self.quest_turnin_reaction_v098(q, turnin_npc)
             await self.send(f"{turnin_npc}: {turnin_reaction}")
 
+            quest_content_level=v0190_quest_stage(q)
             reward_prof_xp = int(
                 q.get("reward_profession_xp", 0)
             )
@@ -111,11 +113,13 @@ class SessionQuestCommandsMixin:
                     reward_prof_xp,
                     reward_tool_type,
                     reward_tool_xp,
+                    content_level=quest_content_level,
                 )
             elif reward_tool_xp and reward_tool_type:
                 await self.grant_tool_reward_xp(
                     reward_tool_type,
                     reward_tool_xp,
+                    content_level=quest_content_level,
                 )
 
             # EXP rozwoju statystyk nie tworzy levelu postaci.
@@ -129,16 +133,13 @@ class SessionQuestCommandsMixin:
 
             quest_stat_applied = []
             if reward_exp:
-                for stat_name in self.character.STAT_PROGRESS_FIELDS:
-                    granted = v0874_quest_stat_progress_base_grant(
-                        self.character, stat_name, reward_exp, q.get("repeatable", False)
-                    )
-                    granted = self.apply_double_xp(granted)
-                    quest_stat_applied.append(granted)
-                    for msg in self.character.add_stat_progress(
-                        granted, targets=(stat_name,)
-                    ):
-                        await self.send(msg)
+                quest_stat_applied = await self.grant_combat_quest_stat_xp(
+                    reward_exp,
+                    q.get("repeatable", False),
+                    source_label=f"Quest: {q['name']}",
+                    content_level=quest_content_level,
+                    content_scaled=True,
+                )
 
             # v0.52.2: questy typu kill rozwijają także Biegłość aktywnych klas.
             # grant_class_xp zachowuje istniejące x2 EXP, bonus Gildii, Mentora
@@ -146,7 +147,11 @@ class SessionQuestCommandsMixin:
             reward_class_xp = v0522_combat_quest_class_reward(q) if is_combat_quest else 0
             if reward_class_xp:
                 await self.send(f"Nagroda questa walki: {reward_class_xp} EXP Biegłości.")
-                await self.grant_class_xp(reward_class_xp)
+                await self.grant_class_xp(
+                    reward_class_xp,
+                    content_level=quest_content_level,
+                    content_scaled=True,
+                )
 
             # v0.52.2: progresja profesji/rzemiosł nie zasila już Broni Duszy.
             # Zwykłe questy nieprofesyjne zachowują dotychczasowy Soul XP.
@@ -154,7 +159,11 @@ class SessionQuestCommandsMixin:
             reward_soul_xp = 0 if is_profession_quest else v0914_combat_quest_soul_reward(q, self.character)
             if reward_soul_xp:
                 await self.send(f"Nagroda questa: {reward_soul_xp} Soul XP.")
-                await self.grant_soul_xp(reward_soul_xp)
+                await self.grant_soul_xp(
+                    reward_soul_xp,
+                    content_level=quest_content_level,
+                    content_scaled=True,
+                )
 
             quest_coins=v0190_quest_currency_reward(q)
             quest_bonus_coins_v11324 = quest_completion_bonus_v11324(
@@ -162,7 +171,11 @@ class SessionQuestCommandsMixin:
             )
             self.character.silver += quest_coins + quest_bonus_coins_v11324
             quest_character_xp=v0270_quest_character_reward(q)
-            for _msg in self.add_character_xp_with_event(quest_character_xp):
+            for _msg in self.add_character_xp_with_event(
+                quest_character_xp,
+                content_level=quest_content_level,
+                content_scaled=True,
+            ):
                 await self.send(_msg)
             for item_id, qty in (q.get("reward_items") or {}).items():
                 self.server.db.add_item(self.account_id, item_id, qty)
