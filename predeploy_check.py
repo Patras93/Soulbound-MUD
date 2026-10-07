@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Fast Railway predeploy gate for Soulbound v1.13.39.
+"""Fast Railway predeploy gate for Soulbound v1.13.40.
 
 This is the normal deploy check.  It intentionally avoids assembling the full
 world/runtime.  Use predeploy_full.py when an exhaustive historical audit is
@@ -17,7 +17,7 @@ import traceback
 try:
     from storage.database import Database as _DatabaseImportSmoke
 except Exception as exc:
-    print(f"Soulbound v1.13.39 FAST PREDEPLOY FAILED: database import: {type(exc).__name__}: {exc}")
+    print(f"Soulbound v1.13.40 FAST PREDEPLOY FAILED: database import: {type(exc).__name__}: {exc}")
     traceback.print_exc()
     raise SystemExit(1)
 
@@ -42,7 +42,7 @@ try:
     )
 except Exception as exc:
     print(
-        "Soulbound v1.13.39 FAST PREDEPLOY FAILED: "
+        "Soulbound v1.13.40 FAST PREDEPLOY FAILED: "
         f"skill semantic import: {type(exc).__name__}: {exc}"
     )
     traceback.print_exc()
@@ -2709,6 +2709,30 @@ for _needle in (
     if _needle not in _world_state_source_v11339:
         _semantic_errors.append("v1.13.39 named rare spawn regression: missing " + _needle)
 
+# v1.13.40 — walk krypta dół must recognize both regular and Mythic Crypt
+# families without auto-crossing the final down edge.
+_guide_navigation_source_v11340 = (
+    _root / "player/session_mixins/guide_navigation.py"
+).read_text(encoding="utf-8")
+for _needle in (
+    "mythic_crypt_floor_id,",
+    "current_crypt_floor = mythic_crypt_floor_number(",
+    "crypt_floor_parser = mythic_crypt_floor_number",
+    "crypt_floor_builder = mythic_crypt_floor_id",
+    '"mityczna krypta dol"',
+    '"mythic crypt down"',
+    'crypt_down_label = "Mitycznej Krypty"',
+    "Ostatnie zejście wykonujesz ręcznie.",
+):
+    if _needle not in _guide_navigation_source_v11340:
+        _semantic_errors.append(
+            "v1.13.40 Mythic Crypt walk-down regression: missing " + _needle
+        )
+if "await self.move(\"down\")" in _guide_navigation_source_v11340:
+    _semantic_errors.append(
+        "v1.13.40 Mythic Crypt walk-down must not auto-cross final down edge"
+    )
+
 # v1.13.38 — random elite affixes must stay wired through spawn, combat,
 # rewards and the canonical Adaptive Combat layer.
 _elite_system_source_v11338 = (_root / "systems/elite_variants.py").read_text(encoding="utf-8")
@@ -2746,18 +2770,18 @@ for _needle in (
         _semantic_errors.append("v1.13.38 elite rewards regression: missing " + _needle)
 
 if _semantic_errors:
-    print("Soulbound v1.13.39 FAST PREDEPLOY FAILED: semantic contracts")
+    print("Soulbound v1.13.40 FAST PREDEPLOY FAILED: semantic contracts")
     for _error in _semantic_errors:
         print(f"ERROR: {_error}")
     raise SystemExit(1)
 
 if audit["error_count"]:
-    print("Soulbound v1.13.39 FAST PREDEPLOY FAILED")
+    print("Soulbound v1.13.40 FAST PREDEPLOY FAILED")
     for error in audit["errors"]:
         print(f"ERROR: {error}")
     raise SystemExit(1)
 
-print("Soulbound v1.13.39 FAST PREDEPLOY PASS")
+print("Soulbound v1.13.40 FAST PREDEPLOY PASS")
 print(
     "Semantic contracts: "
     f"{len(_semantic_audits)} audits PASS; AP runtime guards PASS"
