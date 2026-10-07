@@ -422,10 +422,25 @@ class SessionCraftingOrdersV0600Mixin:
                     )
 
             coins = int(active["reward_coins"])
-            self.character.silver = min(CURRENCY_SQLITE_SAFE_TOTAL, int(self.character.silver) + coins)
+            self.character.silver = min(
+                CURRENCY_SQLITE_SAFE_TOTAL,
+                int(self.character.silver) + coins,
+            )
+            order_profession=str(active["profession"])
+            order_profession_row=self.server.db.profession(
+                self.account_id,order_profession
+            )
+            order_content_level=max(
+                1,
+                int(active["required_level"] or 1),
+                int(order_profession_row["level"] if order_profession_row else 1),
+            )
             await self.grant_profession_reward_xp(
-                str(active["profession"]), int(active["reward_profession_xp"]),
-                tool_type, int(active["reward_tool_xp"]),
+                order_profession,
+                int(active["reward_profession_xp"]),
+                tool_type,
+                int(active["reward_tool_xp"]),
+                content_level=order_content_level,
             )
             completed_ok = self.server.db.finish_crafting_order_v0700(
                 self.account_id, int(active["cycle_slot"]), str(active["npc_id"]),
