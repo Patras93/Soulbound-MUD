@@ -1,5 +1,5 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.13.43
+Aktualna paczka: v1.13.44
 
 
 
@@ -19,6 +19,19 @@ Aktualna paczka: v1.13.43
 
 
 
+
+==============================================================================
+Soulbound v1.13.44 — WORLD DEATH RESCUE
+==============================================================================
+
+- GLOBALNY ZGON: po realnej śmierci bez Phoenix Egg cały świat dostaje czytelny komunikat z nazwą gracza, nazwą lokacji, zabójcą/przyczyną i dokładnym death recapem.
+- 180 SEKUND NA RATUNEK: każdy zgon zostawia stan POWALONY na 180 sekund; powalony może użyć odrodz, a po czasie działa automatyczny resp do Świątyni.
+- WSKRZES DLA KAŻDEGO: dowolny żywy gracz w tej samej lokacji może użyć wskrzes <gracz> / revive <gracz>; party nie jest wymagane.
+- WSKRZESZENIE: przywraca 35% maksymalnego HP i 35% maksymalnej many w miejscu śmierci.
+- RESP PRZEZ RATOWNIKA: resp <gracz> / respi <gracz> / respawn <gracz> odsyła powalonego do Świątyni Odrodzenia z pełnym HP i maną.
+- PHOENIX EGG: natychmiastowy Re-raise pozostaje wyjątkiem i nie wysyła fałszywego globalnego alarmu.
+- ŚWIAT dostaje też informację, kto wskrzesił gracza albo odesłał jego duszę.
+- Brak wipe i brak migracji bazy.
 
 ==============================================================================
 Soulbound v1.13.43 — PROFESSION & COMMAND RUNTIME REPAIR
