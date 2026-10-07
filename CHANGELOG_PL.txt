@@ -32,6 +32,7 @@ Soulbound v1.13.37 — FULL PRODUCTION CLEANUP
 - GUARDY PREDEPLOY: fast predeploy pilnuje obecności finalizera, eksportu jego auditu, lazy-exitu Deep Dungeon, macierzy Adaptive Combat oraz runtime smoke testów. Wszystkie te audyty są deploy-time/diagnostic i nie mogą tworzyć restart-loopa produkcji.
 - UOSS SHOP ARBITRAGE: Behemoth Suit, Venetian Shield, Ziedrich i Thief Hat nie miały źródłowej ceny Fur Shop, ale były dostępne w uniwersalnym sklepie. Dostały jawny Soulbound resale-safe money price, który zachowuje dotychczasową wartość odsprzedaży i zamyka kupno->sprzedaż nawet przy maksymalnym 25% rabacie Charyzmy. Źródłowe ceny/tokeny innych nagród UOSS pozostają nietknięte.
 - ZERO LEGACY ADVISORY BASELINE: pełny historyczny audit po tym cleanupie ma być czysty. Każde nowe znalezisko FULL_GAME_PREDEPLOY_AUDIT_V0336 jest znowu błędem deployu, a nie ignorowanym advisory.
+- ZERO SILENT EXCEPTIONS: wyczyszczono wszystkie nieoznaczone swallowed exceptions. Normalne anulowanie tasków jest jawnie oznaczone jako intentional, błędy cleanupu walki są raportowane, a awaria weryfikacji UOSS status-proof działa fail-safe i nie nakłada szkodliwego statusu. Fast predeploy blokuje powrót nieoznaczonych cichych wyjątków.
 - Brak wipe, brak migracji SQLite, brak zmiany ID zawartości i brak celowego nerfu nagród — normalizacja waluty zachowuje łączną wartość 1:1.
 
 ==============================================================================
