@@ -200,13 +200,21 @@ for _method_path_v11343 in sorted(_root.rglob("*.py")):
             f"{type(_method_exc_v11343).__name__}: {_method_exc_v11343}"
         )
         continue
+    for _class_node_v11343 in (
+        node for node in ast.walk(_method_tree_v11343)
+        if isinstance(node, ast.ClassDef)
+        and (
+            node.name == "Session"
+            or node.name.startswith("Session")
+            or node.name.endswith("Mixin")
+        )
+    ):
+        for _member_v11343 in _class_node_v11343.body:
+            if isinstance(_member_v11343, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                _session_method_names_v11343.add(_member_v11343.name)
+
     for _method_node_v11343 in ast.walk(_method_tree_v11343):
-        if isinstance(_method_node_v11343, (ast.FunctionDef, ast.AsyncFunctionDef)):
-            # Direct Session/mixin methods are collected by name. False
-            # positives are harmless because the registry requires only the
-            # presence of a callable with this name somewhere on Session.
-            _session_method_names_v11343.add(_method_node_v11343.name)
-        elif isinstance(_method_node_v11343, ast.Assign):
+        if isinstance(_method_node_v11343, ast.Assign):
             # Legacy audited systems may intentionally attach handlers with
             # Session.some_handler = function, e.g. Server Chronicle.
             for _target_v11343 in _method_node_v11343.targets:
@@ -215,6 +223,7 @@ for _method_path_v11343 in sorted(_root.rglob("*.py")):
                     and isinstance(_target_v11343.value, ast.Name)
                     and (
                         _target_v11343.value.id == "Session"
+                        or _target_v11343.value.id.startswith("Session")
                         or _target_v11343.value.id.endswith("Mixin")
                     )
                 ):
@@ -228,6 +237,7 @@ for _method_path_v11343 in sorted(_root.rglob("*.py")):
                 and isinstance(_method_node_v11343.args[0], ast.Name)
                 and (
                     _method_node_v11343.args[0].id == "Session"
+                    or _method_node_v11343.args[0].id.startswith("Session")
                     or _method_node_v11343.args[0].id.endswith("Mixin")
                 )
                 and isinstance(_method_node_v11343.args[1], ast.Constant)
