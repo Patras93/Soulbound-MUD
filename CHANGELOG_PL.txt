@@ -1,5 +1,5 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.13.44
+Aktualna paczka: v1.13.45
 
 
 
@@ -19,6 +19,15 @@ Aktualna paczka: v1.13.44
 
 
 
+
+==============================================================================
+Soulbound v1.13.45 — TOOL TIER 60 BUILD HOTFIX
+==============================================================================
+
+- Naprawiono błąd predeploy po v1.13.44: TOOL_MAX_TIER wynosił 60, ale bootstrapowe progi narzędzi kończyły się na poziomie 400, więc tool_tier(600) zwracał Tier 40.
+- TOOL_TIER_THRESHOLDS obejmuje teraz pełne poziomy 1-600 i kończy się dokładnie na 600.
+- Dodano twardy audit: liczba progów musi być równa TOOL_MAX_TIER, a ostatni próg musi być równy TOOL_MAX_LEVEL.
+- Brak wipe i brak migracji bazy.
 
 ==============================================================================
 Soulbound v1.13.44 — WORLD DEATH RESCUE
