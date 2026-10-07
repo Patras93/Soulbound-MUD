@@ -816,6 +816,16 @@ V014_EVENT_DEFS = {
         "desc": "Stare drzewa dają więcej drewna: +2 do bazowego pozyskania i +25% XP Drwalstwa/Piły.",
         "quantity_bonus": 2, "xp_mult": 1.25,
     },
+    "elemental_rift": {
+        "title": "Szczelina Żywiołów",
+        "kinds": tuple(V013_FRONTIER_SPECS),
+        "desc": "W sektorze pękła osłona żywiołów. Pojawił się nazwany rare z silną affinity elementu.",
+    },
+    "shadow_invasion": {
+        "title": "Najazd Cienia",
+        "kinds": tuple(V013_FRONTIER_SPECS),
+        "desc": "Mrok zagęścił się w sektorze. Nazwany rare otrzymuje Dark affinity i chase loot.",
+    },
 }
 
 
@@ -1024,6 +1034,10 @@ for _mob_id, _data in MOB_TEMPLATES.items():
 
 
 def v0140_rare_template_for_kind(kind, salt="event"):
+    if "v11339_named_rare_template_for_kind" in globals():
+        named = v11339_named_rare_template_for_kind(kind, "rare_hunt")
+        if named:
+            return named
     pool = [base for base in V013_FRONTIER_SPECS[kind].get("mobs", ()) if base in MOB_TEMPLATES]
     if not pool:
         return None
@@ -2694,3 +2708,197 @@ HELP_TOPIC_ALIASES.update({"megalochy":"megalochy_v020","megadungeons":"megaloch
 # artifact Tier 6-10, five 8-piece mythic sets and an endless boss gauntlet.
 # PASSIVE WORLD stays global. No traps, entry damage or auto damage.
 # ============================================================
+
+
+# ============================================================
+# v1.13.39 — named world-event rares + elemental chase loot
+# ============================================================
+V11339_BIOME_NAMED_RARES = {
+    "meadow": "Lunara, Strażniczka Kwietnej Ciszy",
+    "forest": "Morran, Kieł Starego Boru",
+    "wild": "Rhaz, Pan Ciernistych Tropów",
+    "mountain": "Skadiar, Serce Lodowej Grani",
+    "swamp": "Velissa, Królowa Czarnego Rozlewiska",
+    "desert": "Azhar, Widmo Szklanej Wydmy",
+    "coast": "Nerissa, Ostrze Przypływu",
+    "ocean": "Thalor, Głos Głębokiego Szelfu",
+    "river": "Eldrin, Strażnik Srebrnego Nurtu",
+    "lake": "Mireya, Pani Cichej Toni",
+    "frozen": "Cryon, Władca Niebieskiego Lodu",
+    "ash": "Cinderax, Serce Martwego Paleniska",
+    "sky": "Voltara, Córka Nawałnicy",
+    "void": "Nocthar, Żeglarz Bezgwiezdnej Zatoki",
+    "crown": "Aureon, Strażnik Ponadczasowej Grani",
+}
+
+V11339_BIOME_ELEMENTS = {
+    "meadow": "holy", "forest": "poison", "wild": "dark",
+    "mountain": "ice", "swamp": "poison", "desert": "fire",
+    "coast": "water", "ocean": "water", "river": "water",
+    "lake": "ice", "frozen": "ice", "ash": "fire",
+    "sky": "lightning", "void": "dark", "crown": "arcane",
+}
+
+V11339_ELEMENT_CHASE_ITEMS = {
+    "fire": "v11339_emberheart_charm",
+    "ice": "v11339_frostglass_ring",
+    "lightning": "v11339_stormcoil_bracers",
+    "dark": "v11339_voidseal_necklace",
+    "poison": "v11339_venomroot_accessory",
+    "holy": "v11339_dawn_prism_earring",
+    "water": "v11339_tideheart_bracelet",
+    "arcane": "v11339_arcane_lens_charm",
+}
+
+_V11339_CHASE_DEFS = {
+    "fire": ("Serce Żaru", "charm"),
+    "ice": ("Pierścień Mroźnego Szkła", "ring"),
+    "lightning": ("Karwasze Burzowej Cewki", "bracers"),
+    "dark": ("Naszyjnik Pieczęci Pustki", "necklace"),
+    "poison": ("Talizman Jadowitego Korzenia", "accessory"),
+    "holy": ("Kolczyk Pryzmatu Świtu", "earring"),
+    "water": ("Bransoleta Serca Przypływu", "bracelet"),
+    "arcane": ("Talizman Soczewki Arkanów", "charm"),
+}
+
+for _element_v11339, _item_id_v11339 in V11339_ELEMENT_CHASE_ITEMS.items():
+    _name_v11339, _slot_v11339 = _V11339_CHASE_DEFS[_element_v11339]
+    _catalog_mut.catalog_assign({
+        "name": _name_v11339,
+        "type": "armor",
+        "slot": _slot_v11339,
+        "defense": 18,
+        "attack": 70,
+        "magic_attack": 70,
+        "required_mastery": 100,
+        "rarity": "legendary",
+        "rarity_name": "Chase — Żywiołowy",
+        "price": None,
+        "stats": {"constitution": 20},
+        "properties": {"all_damage_pct": 3.0},
+        "element_wards": {_element_v11339: 0.20},
+        "element_damage_bonus_pct": {_element_v11339: 12.0},
+        "equipment_identity_source": "v11339_named_rare",
+        "equipment_identity_role": "elemental_chase",
+        "desc": (
+            f"Rzadki chase loot z nazwanego rare. Ward {_element_v11339}: 20%. "
+            f"Obrażenia {_element_v11339}: +12%. Attack +70, Magic Attack +70. "
+            "Przedmiot nie jest wymagany do żadnej progresji."
+        ),
+    }, 'ITEMS', ITEMS, (_item_id_v11339,))
+
+
+def v11339_named_rare_template_for_kind(kind, event_type="rare_hunt"):
+    kind = str(kind or "")
+    event_type = str(event_type or "rare_hunt")
+    if kind not in V013_FRONTIER_SPECS:
+        return None
+    pool = [
+        base for base in V013_FRONTIER_SPECS[kind].get("mobs", ())
+        if base in MOB_TEMPLATES
+    ]
+    if not pool:
+        return None
+    base_id = pool[_v0140_hash_int("v11339-named-base", kind) % len(pool)]
+    suffix = {
+        "rare_hunt": "hunt",
+        "elemental_rift": "rift",
+        "shadow_invasion": "shadow",
+    }.get(event_type, "hunt")
+    template_id = f"v11339_named_{suffix}_{kind}"
+    if template_id in MOB_TEMPLATES:
+        return template_id
+
+    base = MOB_TEMPLATES[base_id]
+    data = dict(base)
+    data["drops"] = dict(base.get("drops", {}))
+    base_name = V11339_BIOME_NAMED_RARES[kind]
+    if event_type == "elemental_rift":
+        data["name"] = "Rozszczepiony " + base_name
+    elif event_type == "shadow_invasion":
+        data["name"] = "Cienisty " + base_name
+    else:
+        data["name"] = base_name
+
+    element = (
+        "dark"
+        if event_type == "shadow_invasion"
+        else V11339_BIOME_ELEMENTS[kind]
+    )
+    data["rare_mob"] = True
+    data["rank"] = "rare"
+    data["v11339_named_rare"] = True
+    data["v11339_world_event_type"] = event_type
+    data["rare_base_template"] = base_id
+    data["attack_elements_v11339"] = (element,)
+    data["auto_aggro"] = False
+    data["max_hp"] = max(1, int(round(int(base.get("max_hp", 1)) * 2.20)))
+    data["damage"] = max(1, int(round(int(base.get("damage", 1)) * 1.35)))
+    data["stat_reward"] = max(1, int(round(int(base.get("stat_reward", 1)) * 2.00)))
+    data["soul_reward"] = max(1, int(round(int(base.get("soul_reward", 1)) * 2.50)))
+    data["class_xp_reward"] = max(
+        50,
+        int(round(
+            int(base.get("class_xp_reward", max(50, int(base.get("stat_reward", 1)) * 10)))
+            * 2.50
+        )),
+    )
+    data["silver"] = max(1, int(round(int(base.get("silver", 1)) * 2.50)))
+    data["gold"] = 0
+    data["mithril"] = 0
+    chase = V11339_ELEMENT_CHASE_ITEMS[element]
+    data["drops"][chase] = max(float(data["drops"].get(chase, 0.0) or 0.0), 0.12)
+    data["drops"].setdefault("soul_shard", 0.70)
+    _catalog_mut.catalog_assign(data, 'MOB_TEMPLATES', MOB_TEMPLATES, (template_id,))
+    return template_id
+
+
+def v11339_combat_events_for_room(room_id, now=None):
+    result = []
+    for event_type in ("rare_hunt", "elemental_rift", "shadow_invasion"):
+        event = v0140_event_for_room(room_id, event_type, now=now)
+        if event:
+            result.append(event)
+    return tuple(result)
+
+
+def v11339_world_content_audit():
+    errors = []
+    if set(V11339_BIOME_NAMED_RARES) != set(V013_FRONTIER_SPECS):
+        errors.append("named rare catalog does not cover every frontier biome")
+    if set(V11339_ELEMENT_CHASE_ITEMS) != {
+        "fire", "ice", "lightning", "dark", "poison", "holy", "water", "arcane"
+    }:
+        errors.append("chase item catalog does not cover all eight elements")
+    names = []
+    for kind in V013_FRONTIER_SPECS:
+        tid = v11339_named_rare_template_for_kind(kind, "rare_hunt")
+        template = MOB_TEMPLATES.get(tid, {})
+        names.append(str(template.get("name") or ""))
+        if not template.get("v11339_named_rare"):
+            errors.append(f"{kind}: named rare marker missing")
+        if not template.get("attack_elements_v11339"):
+            errors.append(f"{kind}: named rare elemental affinity missing")
+        if not any(
+            item_id in (template.get("drops") or {})
+            for item_id in V11339_ELEMENT_CHASE_ITEMS.values()
+        ):
+            errors.append(f"{kind}: named rare chase drop missing")
+    if len(names) != len(set(names)):
+        errors.append("named rare display names are not unique")
+    for element, item_id in V11339_ELEMENT_CHASE_ITEMS.items():
+        item = ITEMS.get(item_id, {})
+        if float((item.get("element_wards") or {}).get(element, 0.0) or 0.0) < 0.20:
+            errors.append(f"{element}: chase item ward missing")
+        if float((item.get("element_damage_bonus_pct") or {}).get(element, 0.0) or 0.0) < 12.0:
+            errors.append(f"{element}: chase item elemental damage bonus missing")
+    return {
+        "version": "1.13.39",
+        "named_rare_count": len(V11339_BIOME_NAMED_RARES),
+        "chase_item_count": len(V11339_ELEMENT_CHASE_ITEMS),
+        "errors": errors,
+        "error_count": len(errors),
+    }
+
+
+V11339_WORLD_CONTENT_AUDIT = v11339_world_content_audit()
