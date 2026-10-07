@@ -387,27 +387,33 @@ async def _v0380_finish_run(session, reason="wyjście"):
 
 # XP wrappers count all XP granted while a crypt run is active.
 _grant_class_xp_before_v0380 = Session.grant_class_xp
-async def _grant_class_xp_v0380(self, total_xp):
+async def _grant_class_xp_v0380(self, total_xp, *args, **kwargs):
     run = _v0380_run(self, create=False)
     if run is not None:
         run["class_xp"] += max(0, int(total_xp or 0))
-    return await _grant_class_xp_before_v0380(self, total_xp)
+    return await _grant_class_xp_before_v0380(
+        self, total_xp, *args, **kwargs
+    )
 Session.grant_class_xp = _grant_class_xp_v0380
 
 _grant_soul_xp_before_v0380 = Session.grant_soul_xp
-async def _grant_soul_xp_v0380(self, amount):
+async def _grant_soul_xp_v0380(self, amount, *args, **kwargs):
     run = _v0380_run(self, create=False)
     if run is not None:
         run["soul_xp"] += max(0, int(amount or 0))
-    return await _grant_soul_xp_before_v0380(self, amount)
+    return await _grant_soul_xp_before_v0380(
+        self, amount, *args, **kwargs
+    )
 Session.grant_soul_xp = _grant_soul_xp_v0380
 
 _add_character_xp_before_v0380 = Session.add_character_xp_with_event
-def _add_character_xp_v0380(self, amount):
+def _add_character_xp_v0380(self, amount, *args, **kwargs):
     run = _v0380_run(self, create=False)
     if run is not None:
         run["character_xp"] += max(0, int(amount or 0))
-    return _add_character_xp_before_v0380(self, amount)
+    return _add_character_xp_before_v0380(
+        self, amount, *args, **kwargs
+    )
 Session.add_character_xp_with_event = _add_character_xp_v0380
 
 _record_item_collection_before_v0380 = Session.record_item_collection
