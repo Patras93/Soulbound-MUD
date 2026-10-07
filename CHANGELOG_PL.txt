@@ -21,7 +21,7 @@ Aktualna paczka: v1.13.42
 
 
 ==============================================================================
-Soulbound v1.13.42 — OCEAN TRADE EXPANSION
+Soulbound v1.13.42 — OCEAN TRADE & LONG-TERM PROGRESSION
 ==============================================================================
 
 - HANDEL MORSKI: liczba stałych kontraktów wzrosła z 7 do 28.
@@ -34,6 +34,16 @@ Soulbound v1.13.42 — OCEAN TRADE EXPANSION
 - KOMPATYBILNOŚĆ: nie zmieniono tabeli kontraktów ani sposobu zapisu aktywnego handlu; stare aktywne kontrakty pozostają poprawne.
 - PARTY: dotychczasowe dzielenie kontraktu przez lidera drużyny pozostaje bez zmian.
 - AUDYT: Ocean Contract sprawdza 28 unikalnych ofert, dokładnie 4 oferty na każdy port, prawidłową Ładownię 1-5 i istnienie prawdziwej trasy dla każdego kontraktu.
+- WOLNIEJSZY LEVEL POSTACI: wymagany EXP wzrasta z x2 do x4 względem bazowej krzywej Generator Core, czyli około 72 równorzędnych killi na poziom bez bonusów.
+- WOLNIEJSZA BIEGŁOŚĆ KLASY: wymagany Class XP ma mnożnik x3, czyli około 48 równorzędnych killi na poziom jednej aktywnej klasy przed podziałem multiclass.
+- WOLNIEJSZY SOUL: wymagany Soul XP ma mnożnik x3, czyli około 75 równorzędnych killi na Soul Level bez bonusów. Komenda dusza pokazuje teraz rzeczywisty aktywny mnożnik x3.
+- WOLNIEJSZA BIEGŁOŚĆ BRONI DUSZY: wymagany Soul Weapon Mastery XP ma mnożnik x3, czyli około 54 zwykłych trafień na poziom bez eventu x2.
+- WOLNIEJSZE STATY: próg statystyk rośnie z x1 do x4, przy zachowaniu istniejącego x4 reward boostu. Efektywnie to około 60 równorzędnych killi na +1 do każdej rozwijanej statystyki zamiast około 15.
+- JEDEN KILL, JEDEN AWANS: pojedyncze zabicie może podnieść Level postaci, Soul, Biegłość każdej klasy oraz każdą statystykę najwyżej o 1. Nadwyżka ponad ten jeden awans z tego killa nie jest bankowana na kolejne levele.
+- BONUSY ZOSTAJĄ: Double XP, rasa, gildia, mentor i wysokie nagrody bossów nadal działają; limit jest nakładany dopiero po tych bonusach dla nagrody za zabicie.
+- INNE ŹRÓDŁA: questy, eksploracja, przedmioty i inne niebojowe nagrody zachowują normalny overflow; limit jednego awansu dotyczy kill rewardu.
+- SAVE BEZ RESETU: istniejące levele, Soul, Biegłości i staty nie są cofane. Zmienia się tylko koszt przyszłych awansów.
+- AUDYT PROGRESJI: CI pilnuje docelowego tempa 72/48/75/54/60 oraz semantyki limitu jednego awansu z killa.
 - Brak wipe i brak migracji bazy.
 
 ==============================================================================
