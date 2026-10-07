@@ -3174,6 +3174,7 @@ _content_aware_xp_calls_v11342 = {
     "grant_soul_xp",
     "add_character_xp_with_event",
     "grant_combat_quest_stat_xp",
+    "grant_stat_xp_v11342",
 }
 _missing_content_by_call_v11342 = {
     name: [] for name in _content_aware_xp_calls_v11342
