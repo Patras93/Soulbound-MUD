@@ -805,11 +805,22 @@ TOOL_MAX_TIER = 60
 TOOL_TIER_THRESHOLDS = (
     1, 10, 20, 30, 40, 50, 60, 70, 80, 90,
     100, 110, 120, 130, 140, 150, 160, 170, 180, 200,
-) + tuple(range(210, 401, 10))
+) + tuple(range(210, 601, 10))
 TOOL_TIER_BONUS_CHANCES = (
     0.00, 0.02, 0.04, 0.06, 0.08, 0.10, 0.12, 0.14, 0.16, 0.18,
     0.20, 0.22, 0.24, 0.26, 0.28, 0.30, 0.32, 0.34, 0.37, 0.40,
 ) + tuple(round(min(0.80, 0.40 + step * 0.01), 2) for step in range(1, 41))
+
+if len(TOOL_TIER_THRESHOLDS) != TOOL_MAX_TIER:
+    raise RuntimeError(
+        f"Tool tier threshold audit failed: {len(TOOL_TIER_THRESHOLDS)} thresholds "
+        f"for TOOL_MAX_TIER={TOOL_MAX_TIER}"
+    )
+if TOOL_TIER_THRESHOLDS[-1] != TOOL_MAX_LEVEL:
+    raise RuntimeError(
+        f"Tool tier threshold audit failed: final threshold "
+        f"{TOOL_TIER_THRESHOLDS[-1]} != max level {TOOL_MAX_LEVEL}"
+    )
 
 def tool_max_level(tool_type):
     return TOOL_MAX_LEVEL
