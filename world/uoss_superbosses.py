@@ -211,7 +211,7 @@ def uoss_superboss_audit_v11134():
         errors.append("black_rabite: expected 10 unique drops")
     if encounters.get("yiazmat", {}).get("unique_drop_count") != 7:
         errors.append("yiazmat: expected 7 unique drops")
-    return {"version":"1.13.56","encounter_count":len(encounters),"error_count":len(errors),"errors":errors}
+    return {"version":"1.13.58","encounter_count":len(encounters),"error_count":len(errors),"errors":errors}
 
 
 UOSS_SUPERBOSS_AUDIT_V11134 = uoss_superboss_audit_v11134()

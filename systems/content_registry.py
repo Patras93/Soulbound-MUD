@@ -373,8 +373,10 @@ SYSTEM_DESCRIPTIONS = {
 }
 
 
-LATEST_CHANGES_TITLE = "Soulbound v1.13.56 - Skill Learning / Queue Guard"
+LATEST_CHANGES_TITLE = "Soulbound v1.13.58 - Dynamic XP Audit"
 LATEST_CHANGES = [
+    "v1.13.58: pełny audit płaskiego EXP — Generator zachowuje różnice authored XP, trudniejsze materiały/receptury/akcje dają wyraźnie więcej EXP, fallback craftingu skaluje się z poziomem contentu.",
+    "v1.13.57: po Levelu/Biegłości/Soul/stat 100 wymagania EXP rosną znacznie mocniej; okolice 599 wymagają około 1 biliona EXP, statystyki kontynuują wzrost bez capu.",
     "v1.13.53: stary hook v0.37.0 Hall of Fame dla Class/Character XP przepuszcza *args/**kwargs; usuwa crash walki na single_level_cap/content_level/content_scaled.",
     "v1.13.51: legacy wrappery v0.38.0 dla Class/Soul/Character XP przepuszczają nowoczesne kwargs; naprawia to m.in. oddawanie Haldora i wcześniejszy crash single_level_cap.",
     "v1.13.51: predeploy rozpoznaje combat Soul XP jako oficjalny content-aware gateway i nadal wymaga content_level.",

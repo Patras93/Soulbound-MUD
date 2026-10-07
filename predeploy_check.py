@@ -17,7 +17,7 @@ import traceback
 try:
     from storage.database import Database as _DatabaseImportSmoke
 except Exception as exc:
-    print(f"Soulbound v1.13.56 FAST PREDEPLOY FAILED: database import: {type(exc).__name__}: {exc}")
+    print(f"Soulbound v1.13.58 FAST PREDEPLOY FAILED: database import: {type(exc).__name__}: {exc}")
     traceback.print_exc()
     raise SystemExit(1)
 
@@ -42,7 +42,7 @@ try:
     )
 except Exception as exc:
     print(
-        "Soulbound v1.13.56 FAST PREDEPLOY FAILED: "
+        "Soulbound v1.13.58 FAST PREDEPLOY FAILED: "
         f"skill semantic import: {type(exc).__name__}: {exc}"
     )
     traceback.print_exc()
@@ -3634,19 +3634,84 @@ for _needle_v11356 in (
             "v1.13.56 unlearned queue guard regression: missing " + _needle_v11356
         )
 
+# v1.13.57: late-game permanent progression must stay unchanged through 100,
+# then rise strongly without scaling rewards. Level 599 targets ~1 trillion XP.
+try:
+    from core.progression_resources import (
+        character_xp_to_next as _char_req_v11357,
+        class_mastery_xp_to_next as _class_req_v11357,
+        soul_xp_to_next as _soul_req_v11357,
+        v0190_requirement as _v019_req_v11357,
+    )
+    from core.player_math import late_game_xp_requirement as _late_req_v11357
+    from config.balance import STAT_XP_REQUIREMENT_MULTIPLIER as _stat_mult_v11357
+
+    _reqs_599_v11357 = (
+        _char_req_v11357(599),
+        _class_req_v11357(599),
+        _soul_req_v11357(599),
+    )
+    if any(abs(_v - 1_000_000_000_000) > 5_000_000 for _v in _reqs_599_v11357):
+        _semantic_errors.append(
+            f"v1.13.57 late-game XP target regression: {_reqs_599_v11357}"
+        )
+    if not (_char_req_v11357(101) > _char_req_v11357(100)):
+        _semantic_errors.append("v1.13.57 character XP does not rise after 100")
+    if not (_class_req_v11357(101) > _class_req_v11357(100)):
+        _semantic_errors.append("v1.13.57 class XP does not rise after 100")
+    if not (_soul_req_v11357(101) > _soul_req_v11357(100)):
+        _semantic_errors.append("v1.13.57 soul XP does not rise after 100")
+    _stat_terminal_base_v11357 = max(1, int(round(
+        _v019_req_v11357("stat", 599) * _stat_mult_v11357
+    )))
+    _stat_599_v11357 = _late_req_v11357(
+        599, _stat_terminal_base_v11357, _stat_terminal_base_v11357
+    )
+    _stat_650_base_v11357 = max(1, int(round(
+        _v019_req_v11357("stat", 650) * _stat_mult_v11357
+    )))
+    _stat_650_v11357 = _late_req_v11357(
+        650, _stat_650_base_v11357, _stat_terminal_base_v11357
+    )
+    if abs(_stat_599_v11357 - 1_000_000_000_000) > 5_000_000:
+        _semantic_errors.append(
+            f"v1.13.57 stat XP target regression: {_stat_599_v11357}"
+        )
+    if _stat_650_v11357 <= _stat_599_v11357:
+        _semantic_errors.append("v1.13.57 uncapped stat XP stops growing after 599")
+except Exception as _exc_v11357:
+    _semantic_errors.append(
+        f"v1.13.57 late-game XP audit crashed: {type(_exc_v11357).__name__}: {_exc_v11357}"
+    )
+
+# v1.13.58: authored/content XP must no longer collapse to a flat gain.
+try:
+    from core.progression_resources import v0190_scaled_gain
+    _xp_low_v11358 = v0190_scaled_gain(10, 100, "profession", 40)
+    _xp_mid_v11358 = v0190_scaled_gain(40, 100, "profession", 40)
+    _xp_high_v11358 = v0190_scaled_gain(160, 100, "profession", 40)
+    if not (_xp_low_v11358 < _xp_mid_v11358 < _xp_high_v11358):
+        _semantic_errors.append(
+            f"v1.13.58 authored XP scaling regression: {_xp_low_v11358}, {_xp_mid_v11358}, {_xp_high_v11358}"
+        )
+except Exception as _exc_v11358:
+    _semantic_errors.append(
+        f"v1.13.58 dynamic XP audit crashed: {type(_exc_v11358).__name__}: {_exc_v11358}"
+    )
+
 if _semantic_errors:
-    print("Soulbound v1.13.56 FAST PREDEPLOY FAILED: semantic contracts")
+    print("Soulbound v1.13.58 FAST PREDEPLOY FAILED: semantic contracts")
     for _error in _semantic_errors:
         print(f"ERROR: {_error}")
     raise SystemExit(1)
 
 if audit["error_count"]:
-    print("Soulbound v1.13.56 FAST PREDEPLOY FAILED")
+    print("Soulbound v1.13.58 FAST PREDEPLOY FAILED")
     for error in audit["errors"]:
         print(f"ERROR: {error}")
     raise SystemExit(1)
 
-print("Soulbound v1.13.56 FAST PREDEPLOY PASS")
+print("Soulbound v1.13.58 FAST PREDEPLOY PASS")
 print(
     "Semantic contracts: "
     f"{len(_semantic_audits)} audits PASS; AP runtime guards PASS"

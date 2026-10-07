@@ -5,6 +5,7 @@ from core import generator_core as generator_core_v027
 from core.player_math import (
     skill_level_power,
     skill_cooldown_factor,
+    late_game_xp_requirement,
 )
 from core.profession_timing import (
     TOOL_ACTION_BASE_SECONDS,
@@ -129,11 +130,24 @@ def v0190_requirement(kind, level):
     return generator_core_v027.axis_requirement(kind, int(level))
 
 def v0190_scaled_gain(raw, level, kind, typical_raw):
-    # Stare wartości raw/typical_raw nie sterują już balansem. Sam fakt akcji
-    # uruchamia wygenerowaną nagrodę właściwej osi progresji.
-    if int(raw or 0) <= 0:
+    """Generated axis gain that still respects authored/content difficulty.
+
+    v1.13.58: Generator Core remains the base progression source, but raw XP is
+    no longer reduced to a boolean "this action happened" flag.  That old
+    behaviour made cheap and difficult actions converge to the same real XP.
+    The authored/raw value now contributes through a damped square-root
+    multiplier, so better ore/recipes/actions give visibly better XP without
+    letting legacy outliers explode progression.
+    """
+    raw = max(0, int(raw or 0))
+    if raw <= 0:
         return 0
-    return generator_core_v027.axis_gain(kind, int(level), 1.0)
+    typical = max(1.0, float(typical_raw or 1))
+    authored_ratio = raw / typical
+    authored_mult = math.sqrt(max(0.01, authored_ratio))
+    authored_mult = max(0.60, min(4.00, authored_mult))
+    generated = generator_core_v027.axis_gain(kind, int(level), 1.0)
+    return max(1, int(round(generated * authored_mult)))
 
 # Centralny generator walki i ekonomii v0.19.0.
 # Nagrody nigdy nie są celowo obniżane poniżej starszych wartości.
@@ -517,28 +531,39 @@ def cap_single_level_xp_gain_v11342(current_xp, needed_xp, amount):
     return min(amount, remaining)
 
 
+def _late_game_axis_requirement(kind, level, requirement_multiplier):
+    base = v0190_requirement(kind, level)
+    requirement = max(1, int(round(base * requirement_multiplier)))
+    terminal_base = v0190_requirement(kind, 599)
+    terminal_requirement = max(1, int(round(terminal_base * requirement_multiplier)))
+    return late_game_xp_requirement(level, requirement, terminal_requirement)
+
+
 def character_xp_to_next(level):
     level=max(1,min(CHARACTER_MAX_LEVEL,int(level)))
     if level >= CHARACTER_MAX_LEVEL:
         return 0
-    base = generator_core_v027.axis_requirement("character", level)
-    return max(1, int(round(base * CHARACTER_XP_REQUIREMENT_MULTIPLIER)))
+    return _late_game_axis_requirement(
+        "character", level, CHARACTER_XP_REQUIREMENT_MULTIPLIER
+    )
 
 
 def class_mastery_xp_to_next(level):
     level = max(1, min(CLASS_MASTERY_MAX_LEVEL, int(level)))
     if level >= CLASS_MASTERY_MAX_LEVEL:
         return 0
-    base = v0190_requirement("class", level)
-    return max(1, int(round(base * CLASS_MASTERY_XP_REQUIREMENT_MULTIPLIER)))
+    return _late_game_axis_requirement(
+        "class", level, CLASS_MASTERY_XP_REQUIREMENT_MULTIPLIER
+    )
 
 
 def soul_xp_to_next(level):
     level = max(1, min(CHARACTER_MAX_LEVEL, int(level)))
     if level >= CHARACTER_MAX_LEVEL:
         return 0
-    base = v0190_requirement("soul", level)
-    return max(1, int(round(base * SOUL_XP_REQUIREMENT_MULTIPLIER)))
+    return _late_game_axis_requirement(
+        "soul", level, SOUL_XP_REQUIREMENT_MULTIPLIER
+    )
 
 def class_type_for_name(class_name):
     for cname, ctype, weapon, base in CLASSES:

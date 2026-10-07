@@ -1,5 +1,21 @@
-Aktualna paczka: v1.13.56
+Aktualna paczka: v1.13.58
 
+Soulbound v1.13.58 — DYNAMIC XP AUDIT
+- Usunięto główną przyczynę płaskiego EXP: Generator Core nie ignoruje już authored/raw XP.
+- Trudniejsze materiały, receptury i akcje profesji dają realnie większy EXP niż proste odpowiedniki.
+- Różnica jakości contentu profesji została wzmocniona z prawie płaskiego zakresu około x1-x2 do płynnej skali około x1-x6 między poziomem contentu 1 i 600.
+- Stare receptury bez własnych wartości XP nie używają już płaskiego fallbacku 8-15 XP; fallback rośnie z poziomem receptury/materiału.
+- Zachowano dynamiczne nagrody walki, questów, lochów i superbossów; ręcznie projektowane nagrody unikalnych superbossów pozostają celowym wyjątkiem.
+- Dodano test regresyjny predeploy potwierdzający, że małe, średnie i duże authored XP nie zlewają się do tej samej wypłaty.
+
+Soulbound v1.13.57 — LATE GAME XP CURVE 101+
+- Bez Banku EXP: zamiast dodawać nowy magazyn EXP, wydłużono naturalną progresję przez znacznie większe wymagania po poziomie 100.
+- Level postaci, Biegłość aktywnej klasy, Soul Level oraz każda z sześciu statystyk zachowują dotychczasowe wymagania do 100 włącznie.
+- Od 101 wymagania rosną płynnie i coraz mocniej: późna gra przechodzi z milionów w setki milionów, miliardy i dziesiątki miliardów EXP.
+- Przy poziomie/wartości 599 każda z tych osi celuje w około 1 000 000 000 000 EXP na następny awans.
+- Statystyki pozostają bez twardego limitu; po 600 ich koszt dalej rośnie ponad poziom biliona aż do bezpiecznego limitu liczbowego silnika.
+- Nagrody EXP nie zostały sztucznie podbite razem z wymaganiami, więc nowa krzywa realnie spowalnia późną progresję.
+- Brak wipe i brak migracji bazy.
 
 
 Soulbound v1.13.56 — SKILL LEARNING / QUEUE GUARD

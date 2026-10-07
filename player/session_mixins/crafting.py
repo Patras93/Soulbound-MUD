@@ -551,15 +551,22 @@ class SessionCraftingMixin:
             # nie daje dodatkowych punktów, żeby Tier narzędzia nie skracał celu.
             await self.advance_class_guild_quest_v11132("craft", 1)
 
+            # v1.13.58: legacy recipes without authored XP no longer fall
+            # back to the same ~8-15 XP regardless of difficulty.  Use the
+            # canonical recipe/content level so harder materials and recipes
+            # always start from a larger raw award.
+            _xp_content_level = self.profession_content_level_v11342(
+                item_id=output_id, recipe=recipe,
+            )
             tool_xp = (
                 roll_crafting_xp(recipe["tool_xp"])
                 if "tool_xp" in recipe
-                else 8 + random.randint(0, 4)
+                else max(8, 8 + _xp_content_level // 6) + random.randint(0, max(2, _xp_content_level // 40))
             )
             profession_xp = (
                 roll_crafting_xp(recipe["profession_xp"])
                 if "profession_xp" in recipe
-                else 10 + random.randint(0, 5)
+                else max(10, 10 + _xp_content_level // 4) + random.randint(0, max(3, _xp_content_level // 30))
             )
             tool_xp = max(1, int(round(tool_xp * _o_kurde_craft_xp_v11324)))
             profession_xp = max(

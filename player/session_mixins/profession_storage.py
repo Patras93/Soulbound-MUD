@@ -209,7 +209,12 @@ class SessionProfessionStorageMixin:
             Poziom 1 daje ~x1, a poziom 600 ~x2. Młot ma dodatkowo x1.35.
             """
             stage=max(1,min(PROFESSION_MAX_LEVEL,int(content_level or 1)))
-            material_mult=1.0 + (stage-1)/float(max(1,PROFESSION_MAX_LEVEL-1))
+            # v1.13.58: a 1->2x spread across 600 levels was technically
+            # dynamic but felt almost flat.  Difficulty/material quality now
+            # matters strongly while remaining smooth: ~x1 at level 1, ~x2
+            # near 100, ~x3.5 near 300 and ~x6 near 600.
+            progress=(stage-1)/float(max(1,PROFESSION_MAX_LEVEL-1))
+            material_mult=1.0 + 5.0*(progress ** 0.78)
             tool_mult=material_mult
             if str(tool_type)=="crafting":
                 tool_mult*=1.35

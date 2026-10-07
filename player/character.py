@@ -19,6 +19,7 @@ from core.player_math import (
     character_attribute_power,
     speed_from_dexterity,
     uncapped_stat_xp_gain,
+    late_game_xp_requirement,
 )
 from core.bootstrap_economy_professions import (
     CHARISMA_DISCOUNT_STEP,
@@ -568,7 +569,10 @@ class Character:
         _label, value_field, _progress_field = self.STAT_PROGRESS_FIELDS[stat_name]
         value = max(1, int(getattr(self, value_field)))
         base = v0190_requirement("stat", value)
-        return max(1, int(round(base * STAT_XP_REQUIREMENT_MULTIPLIER)))
+        requirement = max(1, int(round(base * STAT_XP_REQUIREMENT_MULTIPLIER)))
+        terminal_base = v0190_requirement("stat", 599)
+        terminal_requirement = max(1, int(round(terminal_base * STAT_XP_REQUIREMENT_MULTIPLIER)))
+        return late_game_xp_requirement(value, requirement, terminal_requirement)
 
     def stat_growth_threshold(self):
         """Legacy: zwraca średni próg sześciu statystyk dla zgodności."""

@@ -13,6 +13,38 @@ SAFE_INT = 9_000_000_000_000_000_000
 STAT_XP_CURVE = (100.0, 29.0, 1.70)
 
 
+LATE_GAME_XP_START_LEVEL = 100
+LATE_GAME_XP_TARGET_LEVEL = 599
+LATE_GAME_XP_TARGET_REQUIREMENT = 1_000_000_000_000
+LATE_GAME_XP_CURVE_POWER = 1.50
+
+def late_game_xp_requirement(
+    level: int,
+    base_requirement: int,
+    terminal_base_requirement: int,
+) -> int:
+    """Scale a permanent progression axis strongly after level 100.
+
+    The authored requirement is unchanged through level 100. From 101 onward
+    it receives a smooth exponential multiplier, chosen so the requirement at
+    level 599 reaches roughly one trillion XP. Rewards are not scaled here.
+    For uncapped stats the same curve continues beyond 599 until SAFE_INT.
+    """
+    level = max(1, int(level or 1))
+    base_requirement = max(1, int(base_requirement or 1))
+    terminal_base = max(1, int(terminal_base_requirement or 1))
+    if level <= LATE_GAME_XP_START_LEVEL:
+        return base_requirement
+
+    span = float(max(1, LATE_GAME_XP_TARGET_LEVEL - LATE_GAME_XP_START_LEVEL))
+    progress = max(0.0, (level - LATE_GAME_XP_START_LEVEL) / span)
+    exponent = progress ** LATE_GAME_XP_CURVE_POWER
+    terminal_multiplier = max(1.0, LATE_GAME_XP_TARGET_REQUIREMENT / float(terminal_base))
+    multiplier = math.exp(math.log(terminal_multiplier) * exponent)
+    value = base_requirement * multiplier
+    return min(SAFE_INT, max(base_requirement, int(round(value))))
+
+
 def _clamp(value, low, high):
     return max(low, min(high, value))
 
