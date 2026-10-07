@@ -1,5 +1,5 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.13.46
+Aktualna paczka: v1.13.47
 
 
 
@@ -19,6 +19,15 @@ Aktualna paczka: v1.13.46
 
 
 
+
+==============================================================================
+Soulbound v1.13.47 — SMELT ORE ROUTING HOTFIX
+==============================================================================
+
+- Naprawiono regresję komendy przetop po dodaniu przetapiania kluczy bossowych.
+- Parser kluczy najpierw rozpoznaje, czy argument jest faktycznie kluczem. Zwykłe materiały jak iron, srebro, złoto, kobalt itd. wracają do normalnego parsera rud.
+- Komunikat „Klucze bossowe przetopisz w Kuźni” pojawia się wyłącznie przy próbie przetopienia klucza poza Kuźnią.
+- Brak wipe i brak migracji bazy.
 
 ==============================================================================
 Soulbound v1.13.46 — COMBAT XP REPAIR
