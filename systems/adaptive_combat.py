@@ -73,6 +73,12 @@ def adaptive_target_max_hp_v11330(base_max_hp, party_dps, template):
     rank = adaptive_combat_rank_v11330(template)
     seconds = float(V11330_TARGET_FIGHT_SECONDS[rank])
     target = max(base, int(math.ceil(dps * seconds)))
+    # v1.13.38: an Armored/Vampiric/etc. elite may deliberately extend the
+    # reviewed elite fight target without bypassing Adaptive Combat.
+    elite_hp_multiplier = max(
+        1.0, float((template or {}).get("elite_hp_multiplier_v11338", 1.0) or 1.0)
+    )
+    target = max(base, int(math.ceil(target * elite_hp_multiplier)))
     # Python can handle larger ints, but keeping a very high sanity ceiling avoids
     # accidental runaway values while remaining effectively uncapped for gameplay.
     return min(target, 9_000_000_000_000_000)
@@ -167,6 +173,14 @@ def adaptive_combat_audit_v11330():
 
     if adaptive_combat_rank_v11330({"uoss_superboss": True}) != "world_boss":
         errors.append("UOSS Super Boss is not classified as world_boss")
+    elite_base = adaptive_target_max_hp_v11330(
+        1000, 1200, {"rank": "elite"}
+    )
+    armored_elite = adaptive_target_max_hp_v11330(
+        1000, 1200, {"rank": "elite", "elite_hp_multiplier_v11338": 1.20}
+    )
+    if armored_elite <= elite_base:
+        errors.append("v1.13.38 armored elite HP multiplier is not respected")
     if not 7.0 <= V11330_TARGET_FIGHT_SECONDS["normal"] <= 10.0:
         errors.append("ordinary mob fight target left reviewed 7-10 second band")
     if not 24.0 <= V11330_TARGET_FIGHT_SECONDS["boss"] <= 32.0:
@@ -176,7 +190,7 @@ def adaptive_combat_audit_v11330():
 
     return {
         "version": V11330_ADAPTIVE_COMBAT_VERSION,
-        "production_matrix_version": "1.13.37",
+        "production_matrix_version": "1.13.38",
         "party_profiles": party_profiles,
         "errors": errors,
         "error_count": len(errors),
