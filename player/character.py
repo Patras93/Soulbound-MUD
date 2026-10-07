@@ -2,7 +2,11 @@
 # v0.44.0: explicit dependencies; no compatibility-global injection.
 from dataclasses import dataclass
 import json
-from config.balance import STAT_XP_REQUIREMENT_MULTIPLIER, STAT_XP_REWARD_MULTIPLIER
+from config.balance import (
+    SOUL_XP_REQUIREMENT_MULTIPLIER,
+    STAT_XP_REQUIREMENT_MULTIPLIER,
+    STAT_XP_REWARD_MULTIPLIER,
+)
 from core.character_resources import (
     character_hp_base as authored_character_hp_base,
     character_mana_base as authored_character_mana_base,
@@ -41,7 +45,9 @@ from core.progression_600 import (
 )
 from core.progression_resources import (
     MULTICLASS_MAX_ACTIVE,
+    cap_single_level_xp_gain_v11342,
     character_xp_to_next,
+    soul_xp_to_next as progression_soul_xp_to_next,
     soul_weapon_mastery_bonuses,
     soul_weapon_mastery_xp_to_next,
     v0190_requirement,
@@ -420,26 +426,14 @@ class Character:
         return max(0, next_value - self.charisma)
 
     def soul_xp_multiplier(self):
-        if self.soul_level >= SOUL_MAX_LEVEL:
-            return 0.0
-        level = max(1, int(self.soul_level))
-        if level <= 200:
-            # Dokładnie stara krzywa 1-200.
-            completed_ten_level_blocks = max(0, (level - 1) // 10)
-            return 1.25 ** completed_ten_level_blocks
-        # 201-600: nie kontynuujemy wykładniczego 1.25^blok, bo koszt
-        # eksplodowałby do setek milionów na level. Kotwiczymy na koszcie
-        # levelu 200 i zwiększamy go liniowo do około x3 na 599->600.
-        anchor_base = 180 + (200 - 1) * 60
-        anchor_cost = anchor_base * (1.25 ** 19)
-        target_cost = anchor_cost * (1.0 + (level - 200) * 0.01)
-        current_base = 180 + (level - 1) * 60
-        return max(1.0, target_cost / current_base)
+        # v1.13.42: player-facing multiplier exactly matches the active
+        # requirement curve instead of showing the retired pre-Generator curve.
+        return float(SOUL_XP_REQUIREMENT_MULTIPLIER)
 
     def soul_xp_to_next(self):
         if self.soul_level >= SOUL_MAX_LEVEL:
             return 0
-        return v0190_requirement("soul", self.soul_level)
+        return progression_soul_xp_to_next(self.soul_level)
 
     def soul_milestone_specialization_bonus(self):
         tier = max(1, min(SOUL_MAX_TIER, int(self.soul_tier)))
