@@ -377,7 +377,7 @@ LATEST_CHANGES_TITLE = "Soulbound v1.13.42 - Ocean Trade, Progression, Class Que
 LATEST_CHANGES = [
     "v1.13.42: handel morski ma 28 kontraktów — po 4 w każdym z 7 głównych portów; krótkie, średnie i dalekomorskie kursy działają w obie strony, lista pokazuje długość rejsu, wymagany poziom Ładowni i nagrodę, a dynamiczna wypłata uwzględnia także dystans.",
     "v1.13.42: długoterminowa progresja jest wolniejsza: około 72 kille/Level postaci, 48/Biegłość klasy, 75/Soul, 54 trafienia/Soul Weapon Mastery i 60 killi/+1 stat; pojedynczy kill nie może dać więcej niż jednego awansu danej stałej osi ani zbankować wielopoziomowego overflow.",
-    "v1.13.42: profesje awansują szybciej — globalny Profession XP wzrasta z x2 do x4 dla realnych akcji, craftu, questów specjalistów i zamówień; Tool XP pozostaje bez zmian.",
+    "v1.13.42: profesje awansują szybciej — globalny Profession XP wzrasta z x2 do x4, a realne XP profesji i narzędzi przestaje być płaskie: rośnie z poziomem materiału/receptury/EQ; Młot Rzemieślniczy ma dodatkowe x1.35 i rozwija się także przy salvage.",
     "v1.13.42: godzinne questy klasowe rosną razem z Biegłością przez 7 etapów i mają klasowe priorytety; etap jest zamrażany na daną godzinę, więc awans w trakcie zadania nie zmienia jego celu.",
     "v1.13.42: hartuj <żywioł> <EQ> dodaje trwałe odporności Fire/Ice/Electric/Dark/Poison/Holy/Water/Arcane; 5 rang po 2%, 40% cap warstwy hartowania i 80% końcowego Wardu z istniejącym EQ.",
     "v1.13.42: naprawiono Zaklinanie — Fokus Runiczny jest ponownie widoczny i kupowalny u Kwatermistrzyni Selene w Komnacie Arkanów; dynamiczne sklepy klasowe nie ukrywają już zwykłych narzędzi przypisanych do tej samej sali.",
@@ -1799,6 +1799,8 @@ HELP_TOPICS = {
     ],
     "xp_narzedzi": [
         "XP dostaje wyłącznie narzędzie faktycznie użyte w danej akcji.",
+        "v1.13.42: Tool XP nie jest już płaski. Im wyższy poziom materiału, receptury, EQ do salvage albo innej pracy, tym większy realny XP narzędzia.",
+        "Młot Rzemieślniczy ma dodatkowy mnożnik jakości x1.35; salvage, hartowanie, ulepszanie i kucie rozwijają Młot zależnie od poziomu wykonywanej pracy.",
         "Łowienie rozwija Wędkarstwo oraz Wędkę.",
         "Kopanie rozwija Górnictwo oraz Kilof.",
         "Drwalstwo i obróbka desek rozwijają Drwalstwo oraz Piłę.",
