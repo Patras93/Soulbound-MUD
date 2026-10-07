@@ -138,7 +138,31 @@ class SessionRuntimeStateMixin:
             state = self.double_xp_state(now)
             return min(V019_SAFE_INT, amount * int(state["multiplier"]))
 
-    def add_character_xp_with_event(self, amount, single_level_cap=False):
+    def progression_content_multiplier_v11342(self, content_level):
+            stage=max(1,min(600,int(content_level or 1)))
+            return 1.0 + (stage-1)/599.0
+
+    def scale_progression_xp_v11342(
+        self, amount, content_level, *, content_scaled=False
+    ):
+            amount=max(0,int(amount or 0))
+            if amount<=0 or content_scaled:
+                return amount
+            return max(
+                1,
+                int(round(
+                    amount
+                    * self.progression_content_multiplier_v11342(content_level)
+                )),
+            )
+
+    def add_character_xp_with_event(
+        self, amount, single_level_cap=False, *,
+        content_level=None, content_scaled=False
+    ):
+            amount=self.scale_progression_xp_v11342(
+                amount,content_level,content_scaled=content_scaled
+            )
             actual = self.apply_double_xp(amount)
             self.session_summary_add("character_xp", actual)
             return self.character.add_character_xp(
