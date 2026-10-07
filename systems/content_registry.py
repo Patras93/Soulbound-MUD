@@ -373,8 +373,12 @@ SYSTEM_DESCRIPTIONS = {
 }
 
 
-LATEST_CHANGES_TITLE = "Soulbound v1.13.37 - Full Production Cleanup"
+LATEST_CHANGES_TITLE = "Soulbound v1.13.38 - Elite Mob Affixes"
 LATEST_CHANGES = [
+    "v1.13.38: zwykłe moby mają 8% szansy przy spawnie i każdym respawnie na jeden z pięciu elitarnych affixów: Wściekły, Opancerzony, Wampiryczny, Burzowy albo Przeklęty.",
+    "v1.13.38: elity nadal podlegają Adaptive Combat i nigdy nie nadpisują bossów, superbossów, authored rare ani przeciwników z exact source XP.",
+    "v1.13.38: affixy realnie zmieniają walkę — Wściekły mocniej atakuje, Opancerzony wydłuża starcie, Wampiryczny regeneruje HP, Burzowy ma impuls co trzeci atak, a Przeklęty zwiększa presję obrażeń.",
+    "v1.13.38: każdy elitarny wariant ma wyższe EXP/walutę oraz podbitą szansę authored dropów; questy i Bestiariusz nadal liczą bazowy gatunek.",
     "v1.13.37: końcowy production finalizer normalizuje stare split-currency mobów do jednego salda silver bez zmiany łącznej wartości i usuwa powtarzające się nazwy mobów przez stabilne słowne kryptonimy.",
     "v1.13.37: full predeploy sprawdza lazy-generation Deep Dungeon na piętrach 1/25/100, Apandę, próg Serpentariusa oraz faktyczne pokoje wszystkich skrzyń bossów po ekspansji pięter.",
     "v1.13.37: Adaptive Combat ma produkcyjną macierz solo/party 2-4 graczy i guardy przeciw zarówno one-shotom, jak i przesadnym gąbkom.",
