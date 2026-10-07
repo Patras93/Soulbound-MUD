@@ -3286,6 +3286,55 @@ if _direct_xp_bypasses_v11342:
         + ", ".join(_direct_xp_bypasses_v11342[:100])
     )
 
+# Every mutating add/grant *XP* call must be classified here. This is a
+# future-proof net for new progression axes: CI should fail until a new XP
+# source is explicitly made content-aware or documented as deriving from one.
+_known_xp_mutators_v11342 = set(_content_aware_xp_calls_v11342) | set(
+    _direct_xp_gateway_allow_v11342
+) | {
+    "grant_skill_use_xp",
+    "grant_soul_weapon_mastery_hit_xp",
+}
+_unclassified_xp_mutators_v11342=[]
+for _source_path_v11342 in _root.rglob("*.py"):
+    if any(part in {".git", "__pycache__"} for part in _source_path_v11342.parts):
+        continue
+    try:
+        _tree_v11342=ast.parse(
+            _source_path_v11342.read_text(encoding="utf-8"),
+            filename=str(_source_path_v11342),
+        )
+    except Exception:
+        continue
+    for _node_v11342 in ast.walk(_tree_v11342):
+        if not isinstance(_node_v11342,ast.Call):
+            continue
+        _func_v11342=_node_v11342.func
+        _name_v11342=(
+            _func_v11342.attr
+            if isinstance(_func_v11342,ast.Attribute)
+            else _func_v11342.id
+            if isinstance(_func_v11342,ast.Name)
+            else ""
+        )
+        _lower_v11342=_name_v11342.lower()
+        if not (
+            _lower_v11342.startswith(("add_","grant_"))
+            and "xp" in _lower_v11342
+        ):
+            continue
+        if _name_v11342 in _known_xp_mutators_v11342:
+            continue
+        _unclassified_xp_mutators_v11342.append(
+            f"{_name_v11342}@{_source_path_v11342.relative_to(_root)}:"
+            f"{getattr(_node_v11342,'lineno','?')}"
+        )
+if _unclassified_xp_mutators_v11342:
+    _semantic_errors.append(
+        "v1.13.42 unclassified XP mutators: "
+        + ", ".join(_unclassified_xp_mutators_v11342[:100])
+    )
+
 if _semantic_errors:
     print("Soulbound v1.13.42 FAST PREDEPLOY FAILED: semantic contracts")
     for _error in _semantic_errors:
