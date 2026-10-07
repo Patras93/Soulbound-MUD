@@ -538,11 +538,11 @@ PROFESSION_MAX_LEVEL = 400
 BLACKSMITHING_MAX_LEVEL = 400
 JEWELCRAFTING_MAX_LEVEL = 400
 
-# v0.8.66: wszystkie umiejętności profesyjne rozwijają się 1-200.
-# Poziom PROFESJI odpowiada za tempo pracy i wymagania receptur/zleceń.
-# Poziom NARZĘDZIA nie skraca czasu: odblokowuje lepsze surowce oraz
-# zwiększa jakość/rare roll i szansę dodatkowego urobku/produktu.
-PROFESSION_XP_GAIN_MULTIPLIER = 2
+# v1.13.42: profesje awansowały zbyt wolno względem reszty gry.
+# Wszystkie realne źródła Profession XP przechodzą przez ten mnożnik:
+# zbieranie, craft, questy specjalistów i zamówienia. Narzędzia mają własny
+# tor XP i celowo nie dostają tego przyspieszenia.
+PROFESSION_XP_GAIN_MULTIPLIER = 4
 PROFESSION_XP_REQUIREMENT_MULTIPLIER = 1
 
 CHARISMA_DISCOUNT_STEP = 4
