@@ -535,6 +535,17 @@ class SessionProfessionStorageMixin:
                 )
             )
             self.server.db.save_character(self.character)
+            self._last_profession_progress_gain_v11343 = {
+                "profession": str(profession),
+                "profession_xp": int(actual_prof_xp),
+                "profession_level": int(plevel),
+                "profession_progress": int(pxp),
+                "tool_type": str(tool_type),
+                "tool_xp": int(tool_xp if tool_progress else 0),
+                "tool_level": int(tlevel),
+                "tool_progress": int(txp) if tool_progress else int(trow["xp"]),
+                "content_level": int(content_stage),
+            }
             return messages, plevel, tlevel
 
     def grant_tool_progress(
@@ -1300,6 +1311,17 @@ class SessionProfessionStorageMixin:
             self.server.db.save_tool(
                 self.account_id, tool_type, tlevel, txp, uses
             )
+            self._last_profession_reward_gain_v11343 = {
+                "profession": str(profession),
+                "profession_xp": int(actual_profession_xp),
+                "profession_level": int(plevel),
+                "profession_progress": int(pxp),
+                "tool_type": str(tool_type),
+                "tool_xp": int(tool_xp),
+                "tool_level": int(tlevel),
+                "tool_progress": int(txp),
+                "content_level": int(stage),
+            }
             if tlevel>=tool_level_cap:
                 await self.send(
                     f"{tool_name}: poziom {tlevel}, XP maksimum."
