@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Fast Railway predeploy gate for Soulbound v1.13.42.
+"""Fast Railway predeploy gate for Soulbound v1.13.43.
 
 This is the normal deploy check.  It intentionally avoids assembling the full
 world/runtime.  Use predeploy_full.py when an exhaustive historical audit is
@@ -17,7 +17,7 @@ import traceback
 try:
     from storage.database import Database as _DatabaseImportSmoke
 except Exception as exc:
-    print(f"Soulbound v1.13.42 FAST PREDEPLOY FAILED: database import: {type(exc).__name__}: {exc}")
+    print(f"Soulbound v1.13.43 FAST PREDEPLOY FAILED: database import: {type(exc).__name__}: {exc}")
     traceback.print_exc()
     raise SystemExit(1)
 
@@ -42,7 +42,7 @@ try:
     )
 except Exception as exc:
     print(
-        "Soulbound v1.13.42 FAST PREDEPLOY FAILED: "
+        "Soulbound v1.13.43 FAST PREDEPLOY FAILED: "
         f"skill semantic import: {type(exc).__name__}: {exc}"
     )
     traceback.print_exc()
@@ -63,6 +63,47 @@ _semantic_audits = {
     "skill_cooldowns": SKILL_COOLDOWN_AUDIT_V11140,
 }
 _semantic_errors = []
+
+# v1.13.43: profesje i narzędzia są kanonicznie 1-600. Historyczny bootstrap
+# nadal jest importowany przez dużą część runtime, więc jego helpery muszą być
+# zgodne z progression_600, a nie zatrzymywać realnego progresu na 400.
+try:
+    from core.bootstrap_economy_professions import (
+        profession_max_level as _bootstrap_prof_max_v11343,
+        profession_max_rank as _bootstrap_prof_rank_max_v11343,
+        tool_max_level as _bootstrap_tool_max_v11343,
+        tool_tier as _bootstrap_tool_tier_v11343,
+        tool_tier_name as _bootstrap_tool_tier_name_v11343,
+    )
+    from core.progression_600 import (
+        PROFESSION_MAX_LEVEL as _profession_max_600_v11343,
+        PROFESSION_MAX_RANK as _profession_rank_max_600_v11343,
+        TOOL_MAX_LEVEL as _tool_max_600_v11343,
+        TOOL_MAX_TIER as _tool_tier_max_600_v11343,
+    )
+    if int(_bootstrap_prof_max_v11343("Kowalstwo")) != 600:
+        _semantic_errors.append("profession progression regression: bootstrap cap is not 600")
+    if int(_bootstrap_tool_max_v11343("crafting")) != 600:
+        _semantic_errors.append("tool progression regression: bootstrap cap is not 600")
+    if int(_bootstrap_prof_rank_max_v11343("Kowalstwo")) != int(_profession_rank_max_600_v11343):
+        _semantic_errors.append("profession rank regression: bootstrap and progression_600 disagree")
+    if int(_bootstrap_tool_tier_v11343(600)) != int(_tool_tier_max_600_v11343):
+        _semantic_errors.append("tool tier regression: level 600 does not reach the final tier")
+    if int(_profession_max_600_v11343) != 600 or int(_tool_max_600_v11343) != 600:
+        _semantic_errors.append("progression_600 profession/tool caps changed unexpectedly")
+    for _tool_type_v11343 in (
+        "tailoring", "leatherworking", "carpentry", "enchanting",
+        "archaeology", "cartography_profession",
+    ):
+        _label_v11343 = _bootstrap_tool_tier_name_v11343(_tool_type_v11343, 1)
+        if "Kilof" in str(_label_v11343):
+            _semantic_errors.append(
+                f"tool naming regression: {_tool_type_v11343} is mislabeled as mining"
+            )
+except Exception as exc:
+    _semantic_errors.append(
+        f"profession/tool 600 audit import failed: {type(exc).__name__}: {exc}"
+    )
 if int(audit.get("swallowed_exception_count", 0) or 0):
     _semantic_errors.append(
         "unclassified swallowed exceptions remain: "
@@ -171,6 +212,90 @@ except Exception as exc:
 # leaked UOSS Base AP into Mec/Engineer damage.
 from pathlib import Path as _Path
 _root = _Path(__file__).resolve().parent
+
+# v1.13.43: every declarative command handler must exist on the assembled
+# Session mixin surface. This catches missing methods such as show_single_tool
+# before a player receives an SB-* runtime command error.
+_command_registry_source_v11343 = (
+    _root / "player/session_mixins/command_registry.py"
+).read_text(encoding="utf-8")
+_command_handler_names_v11343 = set(
+    re.findall(
+        r"""['"][^'"]+['"]\s*:\s*\(\s*['"]([A-Za-z_][A-Za-z0-9_]*)['"]""",
+        _command_registry_source_v11343,
+    )
+)
+_session_method_names_v11343 = set()
+for _method_path_v11343 in sorted(_root.rglob("*.py")):
+    if any(part in {".git", "__pycache__"} for part in _method_path_v11343.parts):
+        continue
+    try:
+        _method_tree_v11343 = ast.parse(
+            _method_path_v11343.read_text(encoding="utf-8"),
+            filename=str(_method_path_v11343),
+        )
+    except Exception as _method_exc_v11343:
+        _semantic_errors.append(
+            "v1.13.43 command handler audit parse failed: "
+            f"{_method_path_v11343.relative_to(_root)}: "
+            f"{type(_method_exc_v11343).__name__}: {_method_exc_v11343}"
+        )
+        continue
+    for _class_node_v11343 in (
+        node for node in ast.walk(_method_tree_v11343)
+        if isinstance(node, ast.ClassDef)
+        and (
+            node.name == "Session"
+            or node.name.startswith("Session")
+            or node.name.endswith("Mixin")
+        )
+    ):
+        for _member_v11343 in _class_node_v11343.body:
+            if isinstance(_member_v11343, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                _session_method_names_v11343.add(_member_v11343.name)
+
+    for _method_node_v11343 in ast.walk(_method_tree_v11343):
+        if isinstance(_method_node_v11343, ast.Assign):
+            # Legacy audited systems may intentionally attach handlers with
+            # Session.some_handler = function, e.g. Server Chronicle.
+            for _target_v11343 in _method_node_v11343.targets:
+                if (
+                    isinstance(_target_v11343, ast.Attribute)
+                    and isinstance(_target_v11343.value, ast.Name)
+                    and (
+                        _target_v11343.value.id == "Session"
+                        or _target_v11343.value.id.startswith("Session")
+                        or _target_v11343.value.id.endswith("Mixin")
+                    )
+                ):
+                    _session_method_names_v11343.add(_target_v11343.attr)
+        elif isinstance(_method_node_v11343, ast.Call):
+            # Also recognize setattr(Session, "handler", fn).
+            if (
+                isinstance(_method_node_v11343.func, ast.Name)
+                and _method_node_v11343.func.id == "setattr"
+                and len(_method_node_v11343.args) >= 2
+                and isinstance(_method_node_v11343.args[0], ast.Name)
+                and (
+                    _method_node_v11343.args[0].id == "Session"
+                    or _method_node_v11343.args[0].id.startswith("Session")
+                    or _method_node_v11343.args[0].id.endswith("Mixin")
+                )
+                and isinstance(_method_node_v11343.args[1], ast.Constant)
+                and isinstance(_method_node_v11343.args[1].value, str)
+            ):
+                _session_method_names_v11343.add(
+                    _method_node_v11343.args[1].value
+                )
+
+_missing_command_handlers_v11343 = sorted(
+    _command_handler_names_v11343 - _session_method_names_v11343
+)
+if _missing_command_handlers_v11343:
+    _semantic_errors.append(
+        "v1.13.43 COMMAND_REGISTRY references missing Session handlers: "
+        + ", ".join(_missing_command_handlers_v11343[:100])
+    )
 
 # v1.13.31: release identity must have one truth across runtime and player-facing
 # changelog surfaces. This is generic: future releases only need to update the
@@ -3046,7 +3171,7 @@ if "PROFESSION_XP_GAIN_MULTIPLIER = 4" not in _profession_bootstrap_source_v1134
     )
 for _needle in (
     "legacy_prof_xp = max(0, int(prof_xp)) * PROFESSION_XP_GAIN_MULTIPLIER",
-    "legacy_profession_xp = max(0, int(profession_xp)) * PROFESSION_XP_GAIN_MULTIPLIER",
+    "legacy_profession_xp = raw_profession_xp * PROFESSION_XP_GAIN_MULTIPLIER",
 ):
     if _needle not in _profession_storage_source_v11342:
         _semantic_errors.append(
@@ -3337,18 +3462,18 @@ if _unclassified_xp_mutators_v11342:
     )
 
 if _semantic_errors:
-    print("Soulbound v1.13.42 FAST PREDEPLOY FAILED: semantic contracts")
+    print("Soulbound v1.13.43 FAST PREDEPLOY FAILED: semantic contracts")
     for _error in _semantic_errors:
         print(f"ERROR: {_error}")
     raise SystemExit(1)
 
 if audit["error_count"]:
-    print("Soulbound v1.13.42 FAST PREDEPLOY FAILED")
+    print("Soulbound v1.13.43 FAST PREDEPLOY FAILED")
     for error in audit["errors"]:
         print(f"ERROR: {error}")
     raise SystemExit(1)
 
-print("Soulbound v1.13.42 FAST PREDEPLOY PASS")
+print("Soulbound v1.13.43 FAST PREDEPLOY PASS")
 print(
     "Semantic contracts: "
     f"{len(_semantic_audits)} audits PASS; AP runtime guards PASS"

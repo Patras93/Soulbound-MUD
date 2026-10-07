@@ -270,10 +270,10 @@ class SessionExplorationProfessionsV1100Mixin:
             return
         await self.send(
             f"ARCHEOLOGIA: poziom {profession['level']}/{profession_max_level('Archeologia')}. "
-            f"Pędzel Archeologa {tool_tier_name('archaeology', int(tool['level']))}, "
-            f"poziom {tool['level']}/{TOOL_MAX_LEVEL}, Tier {tool_tier(int(tool['level']))}/{TOOL_MAX_TIER}. "
+            f"XP: {self.profession_xp_status_text_v11343('Archeologia')}. "
             f"Znaleziska {len(found)}/{len(V1100_ARCHAEOLOGY_FINDS)}."
         )
+        await self.show_single_tool("archaeology")
         await self.send("Komendy: wykop; archeologia kolekcja. Narzędzie kupujesz tylko raz na postać.")
 
     async def show_cartography_profession_v1100(self, args=""):
@@ -289,10 +289,10 @@ class SessionExplorationProfessionsV1100Mixin:
         status = "zmapowana" if current in surveyed else "niezmapowana"
         await self.send(
             f"KARTOGRAFIA: poziom {profession['level']}/{profession_max_level('Kartografia')}. "
-            f"Kompas Mierniczy {tool_tier_name('cartography_profession', int(tool['level']))}, "
-            f"poziom {tool['level']}/{TOOL_MAX_LEVEL}, Tier {tool_tier(int(tool['level']))}/{TOOL_MAX_TIER}. "
+            f"XP: {self.profession_xp_status_text_v11343('Kartografia')}. "
             f"Unikalne zmapowane lokacje: {len(surveyed)} z obecnych {total}."
         )
+        await self.show_single_tool("cartography_profession")
         await self.send(
             f"Aktualna lokacja jest {status}. Komenda: mapuj. "
             "Kartografia świat pokazuje starszy system map świata. Narzędzie kupujesz tylko raz na postać."

@@ -637,9 +637,10 @@ class SessionCraftingMixin:
                 f"{profession_rank_name('Jubilerstwo', level)}. "
                 f"XP: {xp_text}. Akcje: {row['actions']}."
             )
+            await self.show_single_tool("jewelcrafting")
             await self.send(
-                "Narzędzie: Szczypce Jubilerskie, poziom 1-600 i 60 Tierów. "
-                "Kupisz je wyłącznie u Jubilerki Mirelli w Pracowni Jubilerskiej."
+                "Szczypce Jubilerskie kupisz wyłącznie u Jubilerki Mirelli "
+                "w Pracowni Jubilerskiej."
             )
             await self.send(
                 "Receptury: wpisz receptury jubilerstwo. "
@@ -703,6 +704,17 @@ class SessionCraftingMixin:
 
     async def show_cooking_info(self):
             await self.send("GOTOWANIE")
+            row=self.server.db.profession(self.account_id,"Gotowanie")
+            level=int(row["level"])
+            maximum=profession_max_level("Gotowanie")
+            await self.send(
+                f"Gotowanie: poziom {level} z {maximum}. "
+                f"Ranga {profession_rank(level,'Gotowanie')} z "
+                f"{profession_max_rank('Gotowanie')}: "
+                f"{profession_rank_name('Gotowanie',level)}. "
+                f"XP: {self.profession_xp_status_text_v11343('Gotowanie')}. "
+                f"Akcje: {int(row['actions'])}."
+            )
             await self.show_single_tool("cooking")
             await self.send(
                 "Gotowanie jest osobną profesją poziom 1-600. Jej poziom skraca czas przygotowania potraw i blokuje receptury; poziom Noża nie skraca czasu."

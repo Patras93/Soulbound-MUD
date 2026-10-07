@@ -90,7 +90,8 @@ class SessionCraftingExpansionV03114Mixin:
         protected_skipped = 0
         equipped_skipped = 0
         progress_messages = []
-        salvage_xp_total = 0
+        salvage_profession_xp_actual = 0
+        salvage_tool_xp_actual = 0
 
         def add_total(mapping, item_id, qty):
             qty = max(0, int(qty or 0))
@@ -239,7 +240,6 @@ class SessionCraftingExpansionV03114Mixin:
                     self.server.db.clear_equipment_crafting_v0925(self.account_id, item_id)
 
                 salvage_prof_xp = max(8, 8 + level // 10 + rarity_bonus * 6)
-                salvage_xp_total += salvage_prof_xp
                 messages, _prof_after, _tool_after = self.grant_profession_progress(
                     "Kowalstwo",
                     salvage_prof_xp,
@@ -247,6 +247,9 @@ class SessionCraftingExpansionV03114Mixin:
                     0,
                     content_level=level,
                 )
+                _gain=getattr(self,"_last_profession_progress_gain_v11343",{}) or {}
+                salvage_profession_xp_actual += int(_gain.get("profession_xp",0) or 0)
+                salvage_tool_xp_actual += int(_gain.get("tool_xp",0) or 0)
                 # Przy hurtowej operacji zachowaj komunikaty o awansach, ale nie spam XP za każdą sztukę.
                 for message in messages:
                     low_message = normalize_lookup_text(message)
@@ -273,7 +276,6 @@ class SessionCraftingExpansionV03114Mixin:
                     item.get("required_character_level", item.get("required_mastery", item.get("min_profession_level", 1))) or 1
                 )))
                 salvage_prof_xp = max(10, 10 + salvage_level // 12 + sum(int(q) for q in recipe_outputs.values()) * 2)
-                salvage_xp_total += salvage_prof_xp
                 messages, _prof_after, _tool_after = self.grant_profession_progress(
                     "Kowalstwo",
                     salvage_prof_xp,
@@ -281,6 +283,9 @@ class SessionCraftingExpansionV03114Mixin:
                     0,
                     content_level=salvage_level,
                 )
+                _gain=getattr(self,"_last_profession_progress_gain_v11343",{}) or {}
+                salvage_profession_xp_actual += int(_gain.get("profession_xp",0) or 0)
+                salvage_tool_xp_actual += int(_gain.get("tool_xp",0) or 0)
                 for message in messages:
                     low_message = normalize_lookup_text(message)
                     if "osiaga poziom" in low_message or "awansuje" in low_message or "awansujesz" in low_message:
@@ -335,7 +340,14 @@ class SessionCraftingExpansionV03114Mixin:
                     chunk = []
             if chunk:
                 await self.send("Odzysk: " + ", ".join(chunk) + ".")
-        await self.send(f"Kowalstwo: +{salvage_xp_total} XP za Salvage.")
+        await self.send(
+            f"Kowalstwo: +{salvage_profession_xp_actual} XP za Salvage Wszystko. "
+            f"Stan: {self.profession_xp_status_text_v11343('Kowalstwo')}."
+        )
+        await self.send(
+            f"Młot Rzemieślniczy: +{salvage_tool_xp_actual} XP narzędzia. "
+            f"Stan: {self.tool_xp_status_text_v11343('crafting')}."
+        )
         for message in dict.fromkeys(progress_messages):
             await self.send(message)
         return True

@@ -38,7 +38,7 @@ from world import topology_generator as world_topology_generator_v0281
 from world import dynamic_world_generator as dynamic_world_v029
 from world import logic_validator as world_logic_validator_v030
 
-VERSION = "1.13.42"
+VERSION = "1.13.43"
 GLOBAL_SKILL_BUFF_DURATION_SECONDS = 30
 HISTORY_BUFFER_LIMIT = 100
 HISTORY_BUFFER_DEFAULT_SHOW = 20
@@ -298,7 +298,7 @@ SOUL_MAX_LEVEL = 400
 SOUL_TIER_THRESHOLDS = (
     1, 10, 20, 25, 35, 45, 60, 70, 80, 90,
     100, 110, 120, 130, 140, 150, 160, 170, 180, 200,
-) + tuple(range(210, 401, 10))
+) + tuple(range(210, 601, 10))
 SOUL_MAX_TIER = 40
 
 # Pierwsze pięć progów zachowane jako aliasy kompatybilności.
@@ -534,9 +534,9 @@ def currency_reading_text(silver=0, gold=0, mithril=0, *, full_names=False, incl
     return ", ".join(parts)
 
 
-PROFESSION_MAX_LEVEL = 400
-BLACKSMITHING_MAX_LEVEL = 400
-JEWELCRAFTING_MAX_LEVEL = 400
+PROFESSION_MAX_LEVEL = 600
+BLACKSMITHING_MAX_LEVEL = 600
+JEWELCRAFTING_MAX_LEVEL = 600
 
 # v1.13.42: profesje awansowały zbyt wolno względem reszty gry.
 # Wszystkie realne źródła Profession XP przechodzą przez ten mnożnik:
@@ -554,7 +554,7 @@ PARTY_AUTO_HEAL_THRESHOLD = 0.85
 PROFESSION_RANK_THRESHOLDS = (
     1, 15, 30, 45, 60, 75, 90,
     100, 120, 140, 160, 180, 200,
-) + tuple(range(220, 401, 20))
+) + tuple(range(220, 601, 20))
 PROFESSION_MAX_RANK = len(PROFESSION_RANK_THRESHOLDS)
 BLACKSMITHING_MAX_RANK = PROFESSION_MAX_RANK
 BLACKSMITHING_RANK_THRESHOLDS = PROFESSION_RANK_THRESHOLDS
@@ -626,9 +626,16 @@ _PROFESSION_400_RANK_SUFFIXES = (
     "Mistrz Pierwotnej Sztuki", "Mistrz Nieskończoności",
     "Mistrz Korony Świata", "Mistrz Ponadczasowy", "Arcylegenda",
 )
+_PROFESSION_600_RANK_SUFFIXES = (
+    "Mistrz Przekroczenia", "Mistrz Gwiezdnego Tronu", "Mistrz Wiecznego Echa",
+    "Mistrz Otchłannego Serca", "Mistrz Korony Gwiazd",
+    "Mistrz Horyzontu Absolutu", "Mistrz Kosmicznego Szlaku",
+    "Mistrz Wieczności", "Mistrz Apogeum", "Arcymistrz Absolutu",
+)
 for _profession_name, _names in list(PROFESSION_RANK_NAMES.items()):
     PROFESSION_RANK_NAMES[_profession_name] = tuple(_names) + tuple(
-        f"{suffix} {_profession_name}" for suffix in _PROFESSION_400_RANK_SUFFIXES
+        f"{suffix} {_profession_name}"
+        for suffix in (_PROFESSION_400_RANK_SUFFIXES + _PROFESSION_600_RANK_SUFFIXES)
     )
 
 TOOL_PROFESSION_MAP = {
@@ -791,8 +798,8 @@ PROFESSION_NPC_RANK_REACTION_ALIASES = {
     "specialist_herbalism": "herbalist_liora",
 }
 
-TOOL_MAX_LEVEL = 400
-TOOL_MAX_TIER = 40
+TOOL_MAX_LEVEL = 600
+TOOL_MAX_TIER = 60
 # Progi 1-200 pozostają dokładnie takie jak wcześniej. 201-400 dopisuje
 # kolejne Tiery co 10 leveli bez przesuwania starych odblokowań.
 TOOL_TIER_THRESHOLDS = (
@@ -802,7 +809,7 @@ TOOL_TIER_THRESHOLDS = (
 TOOL_TIER_BONUS_CHANCES = (
     0.00, 0.02, 0.04, 0.06, 0.08, 0.10, 0.12, 0.14, 0.16, 0.18,
     0.20, 0.22, 0.24, 0.26, 0.28, 0.30, 0.32, 0.34, 0.37, 0.40,
-) + tuple(round(0.40 + step * 0.01, 2) for step in range(1, 21))
+) + tuple(round(min(0.80, 0.40 + step * 0.01), 2) for step in range(1, 41))
 
 def tool_max_level(tool_type):
     return TOOL_MAX_LEVEL
@@ -1170,6 +1177,31 @@ for _tool_type, _names in list(TOOL_TIER_NAMES.items()):
     _base_names = tuple(_names)
     TOOL_TIER_NAMES[_tool_type] = _base_names + V03033_TOOL_TIER_NAMES_21_40[_tool_type]
 
+# v1.13.43: kanoniczne Tiery 41-60 są dostępne również przez stary bootstrap.
+# progression_600 rozszerza te same dane dla modułów importujących jego stałe,
+# ale runtime wciąż szeroko używa helperów z tego pliku.
+_V11343_TOOL_TIER_SUFFIXES_41_60 = (
+    "Przekroczenia", "Gwiezdnego Tronu", "Wiecznego Echa", "Serca Otchłani",
+    "Korony Gwiazd", "Sądu Horyzontu", "Nieskończonego Pulsu", "Kosmicznej Pieczęci",
+    "Pradawnego Rezonansu", "Świtu Absolutu", "Przeznaczenia", "Oka Wszechświata",
+    "Wiecznej Iskry", "Transcendentnego Znaku", "Głosu Nieskończoności",
+    "Ostatecznego Horyzontu", "Duszy Kosmosu", "Korony Wieczności", "Apogeum", "Absolutu",
+)
+_V11343_TOOL_STEMS = {
+    "fishing": "Wędka",
+    "mining": "Kilof",
+    "woodcutting": "Piła",
+    "crafting": "Młot",
+    "cooking": "Nóż",
+    "herbalism": "Sierp",
+    "alchemy": "Moździerz",
+    "jewelcrafting": "Szczypce",
+}
+for _tool_type, _stem in _V11343_TOOL_STEMS.items():
+    TOOL_TIER_NAMES[_tool_type] = tuple(TOOL_TIER_NAMES[_tool_type][:40]) + tuple(
+        f"{_stem} {suffix}" for suffix in _V11343_TOOL_TIER_SUFFIXES_41_60
+    )
+
 def tool_tier(level):
     level = max(1, min(TOOL_MAX_LEVEL, int(level)))
     tier = 1
@@ -1195,8 +1227,22 @@ def required_tool_tier_for_level(required_level):
 
 def tool_tier_name(tool_type, level):
     tier = tool_tier(level)
-    names = TOOL_TIER_NAMES.get(tool_type, TOOL_TIER_NAMES["mining"])
-    return names[tier - 1]
+    names = TOOL_TIER_NAMES.get(tool_type)
+    if names and tier <= len(names):
+        return names[tier - 1]
+
+    # Nowsze profesje mają własne narzędzia, ale historyczna tabela nazw
+    # obejmowała tylko osiem bazowych typów. Nie wolno przedstawiać Zestawu
+    # Krawieckiego czy Fokusu Runicznego jako "Kilof".
+    display = {
+        "tailoring": "Zestaw Krawiecki",
+        "leatherworking": "Nóż Garbarski",
+        "carpentry": "Narzędzia Ciesielskie",
+        "enchanting": "Fokus Runiczny",
+        "archaeology": "Pędzel Archeologa",
+        "cartography_profession": "Kompas Mierniczy",
+    }.get(str(tool_type), str(tool_type))
+    return f"{display} Tier {tier}"
 
 def tool_tier_bonus_chance(level):
     return TOOL_TIER_BONUS_CHANCES[tool_tier(level) - 1]
