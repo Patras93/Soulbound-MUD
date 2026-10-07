@@ -475,7 +475,7 @@ class SessionCraftingExpansionV03114Mixin:
             task.cancel()
             try:
                 await task
-            except asyncio.CancelledError:
+            except asyncio.CancelledError:  # AUDIT_INTENTIONAL_PASS: requested smelt task cancellation
                 pass
             if announce:
                 await self.send(f"Przetapianie zatrzymane: {label}.")
