@@ -1612,6 +1612,8 @@ class SessionSkillLearningMixin:
             # invented Protect/Shell percentages or Regen amounts here.
             self._last_death_cause_v11341 = {
                 "killer": str(template.get("name") or mob.template_id),
+                "template_id": str(mob.template_id),
+                "mob_key": str(getattr(mob, "key", "") or ""),
                 "ability": str(_incoming_context_v11341.get("ability") or ""),
                 "element": str(_incoming_context_v11341.get("element") or ""),
                 "damage_type": str(damage_type or ""),
