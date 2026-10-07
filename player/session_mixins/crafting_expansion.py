@@ -493,6 +493,138 @@ class SessionCraftingExpansionV03114Mixin:
                 await self.send("Przetapianie zatrzymane.")
         return True
 
+    def boss_key_smelt_outputs_v11341(self, item):
+        floor=max(1,int((item or {}).get("boss_chest_floor",1) or 1))
+        dust=max(1,min(8,1+floor//100))
+        essence=1 if floor>=200 else 0
+        return dust,essence
+
+    def owned_boss_keys_v11341(self):
+        rows=[]
+        for row in self.server.db.inventory(self.account_id):
+            iid=str(row["item_id"])
+            item=ITEMS.get(iid,{})
+            qty=max(0,int(row["quantity"] or 0))
+            if item.get("boss_chest_key") and qty>0:
+                rows.append((iid,item,qty))
+        return rows
+
+    async def smelt_boss_keys_v11341(self, raw):
+        if self.combat_mob_key:
+            await self.send("Nie możesz przetapiać kluczy podczas walki.")
+            return False
+        if self.character.room_id != "forge":
+            await self.send("Klucze bossowe przetopisz w Kuźni.")
+            return False
+        tool_type, tool_item_id, tool_name = self.recipe_tool_info(CRAFT_RECIPES, None)
+        if self.server.db.item_qty(self.account_id, tool_item_id) <= 0:
+            await self.send(f"Do przetapiania kluczy potrzebujesz: {tool_name}.")
+            return False
+
+        norm=normalize_lookup_text(raw)
+        key_alias=norm in ("klucze","keys","klucze bossow","klucze bossów","boss keys")
+        owned=self.owned_boss_keys_v11341()
+        if not owned:
+            if key_alias:
+                await self.send("Nie masz nadmiarowych kluczy bossowych do przetopienia.")
+                return False
+            return None
+
+        if key_alias:
+            # Zbiorcza komenda przetapia wyłącznie nadmiar: po jednej sztuce
+            # każdego rodzaju zostaje na najbliższą nieotwartą skrzynię.
+            chosen=[
+                (iid,item,max(0,qty-1),True)
+                for iid,item,qty in owned
+                if qty>1
+            ]
+        else:
+            pool={iid:item for iid,item,_qty in owned}
+            found=find_by_name(pool,raw)
+            if not found:
+                return None
+            iid,item=found
+            qty=next(qty for _iid,_item,qty in owned if _iid==iid)
+            # Jawna nazwa klucza jest świadomym wyborem gracza i może zużyć
+            # także jedyną posiadaną sztukę.
+            chosen=[(iid,item,1 if qty>0 else 0,False)]
+
+        planned_keys=sum(
+            max(0,int(qty or 0)) for _iid,_item,qty,_preserve_one in chosen
+        )
+        if planned_keys<=0:
+            if key_alias:
+                await self.send(
+                    "Nie masz nadmiarowych kluczy bossowych do przetopienia. "
+                    "Komenda zbiorcza zostawia po jednej sztuce każdego rodzaju."
+                )
+            else:
+                await self.send("Nie masz klucza do przetopienia.")
+            return False
+
+        await self.send(
+            f"PRZETOP KLUCZE: przygotowujesz {planned_keys} kluczy bossowych. "
+            "Czas: 3 sekundy."
+        )
+        await self.smelt_wait_v1124(3.0)
+
+        total_keys=0
+        total_dust=0
+        total_essence=0
+        for iid,item,qty,preserve_one in chosen:
+            qty=max(0,int(qty or 0))
+            if qty<=0:
+                continue
+            # Stan jest sprawdzany ponownie po czasie oczekiwania. Zbiorczy
+            # przetop również tutaj zachowuje jedną sztukę, więc równoległa
+            # zmiana ekwipunku nie może skasować ostatniego klucza.
+            have=max(0,int(self.server.db.item_qty(self.account_id,iid) or 0))
+            available=max(0,have-1) if preserve_one else have
+            qty=min(qty,available)
+            if qty<=0 or not self.server.db.remove_item(self.account_id,iid,qty):
+                continue
+            dust,essence=self.boss_key_smelt_outputs_v11341(item)
+            total_keys += qty
+            total_dust += dust*qty
+            total_essence += essence*qty
+
+        if total_keys<=0:
+            await self.send("Nie udało się pobrać kluczy do przetopienia.")
+            return False
+
+        self.server.db.add_storage_item(
+            self.account_id,"craftbox","rune_dust",total_dust
+        )
+        if total_essence:
+            self.server.db.add_storage_item(
+                self.account_id,"craftbox","reforge_essence",total_essence
+            )
+        self.server.db.add_lifetime_stat(self.account_id,"craft_actions",1)
+        self.server.db.add_lifetime_stat(
+            self.account_id,"profession_actions",1
+        )
+        prof_xp=max(10,total_keys*8+total_dust*2+total_essence*12)
+        tool_xp=max(4,total_keys*3)
+        messages,_prof_after,_tool_after=self.grant_profession_progress(
+            "Kowalstwo",prof_xp,"crafting",tool_xp
+        )
+        await self.send(
+            f"PRZETOP KLUCZE: przetopiono {total_keys} kluczy bossowych. "
+            f"Pył Runiczny x{total_dust}"
+            + (f", Esencja Przekucia x{total_essence}." if total_essence else ".")
+        )
+        for message in messages:
+            await self.send(message)
+        if self.character:
+            self.server.db.v0370_record_max(
+                "largest_smelt",
+                total_keys,
+                self.account_id,
+                self.character.name,
+                "jedna akcja przetapiania",
+            )
+        return True
+
     async def smelt_item_v03114(self, query):
         raw = str(query or "").strip()
         norm = normalize_lookup_text(raw)
@@ -538,10 +670,15 @@ class SessionCraftingExpansionV03114Mixin:
                 "Użycie: przetop <metal albo ruda>. "
                 "Dostępne: żelazo, odłamki żelaza, srebro, złoto, stal, stalowe płyty, "
                 "kobalt, runa, smocza stal, astral, pustka, Eternium. "
-                "Dodatkowo: przetop max <metal>, przetop wszystko, "
-                "przetop status oraz przetop stop."
+                "Dodatkowo: przetop max <metal>, przetop wszystko, przetop klucze, "
+                "przetop <nazwa klucza>, przetop status oraz przetop stop. "
+                "Przetop wszystko celowo nie niszczy kluczy bossowych."
             )
             return False
+        _key_smelt_v11341=await self.smelt_boss_keys_v11341(raw)
+        if _key_smelt_v11341 is not None:
+            return _key_smelt_v11341
+
         if norm in ("wszystko","all"):
             # v0.35.7: prawdziwy przetop hurtowy. Wszystkie dostępne rudy,
             # Stalowe Płyty i materiały Salvage są przetwarzane jako JEDNA

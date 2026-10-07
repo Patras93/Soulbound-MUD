@@ -27,6 +27,7 @@ from systems.equipment_crafting import (
 from systems.drop_excitement import authored_drop_chance_v11329
 from systems.elemental_combat import mob_element_affinities_v11339
 from systems.milestone import dungeon_party_bonus_v0320
+from systems.combat_profile_records import record_combat_profile_v11341
 from world.dynamic_content import (
     BESTIARY_CATALOG, BOSS_COLLECTION_CATALOG, canonical_bestiary_template_id,
     quest_kill_targets_v0389,
@@ -382,6 +383,17 @@ class SessionCombatRewardsMixin:
                                 "Checkpoint Wieży zapisany. Ten boss został zaliczony; po respawnie jest opcjonalny "
                                 "i nie blokuje już drogi w górę dla tej postaci."
                             )
+
+                # v1.13.41: public profile record — strongest opponent ever killed.
+                # Uses the opponent's authored XP value, never temporary Double XP/
+                # party multipliers, so profile comparisons stay stable.
+                for session in recipients:
+                    record_combat_profile_v11341(
+                        session.server.db,
+                        session.account_id,
+                        "best_kill",
+                        template,
+                    )
 
                 for session in recipients:
                     if count > 1:

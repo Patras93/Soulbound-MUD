@@ -1,5 +1,5 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.13.40
+Aktualna paczka: v1.13.41
 
 
 
@@ -19,6 +19,22 @@ Aktualna paczka: v1.13.40
 
 
 
+
+==============================================================================
+Soulbound v1.13.41 — DEATH RECAPS, COMBAT RECORDS & KEY SMELTING
+==============================================================================
+
+- PRZYCZYNA ŚMIERCI: po zgonie gracz dostaje osobną, czytelną dla NVDA linię z faktycznym zabójcą, zdolnością jeśli była znana, żywiołem lub pewnym typem obrażeń, wartością końcowego trafienia i nazwą lokacji. W walkach z wieloma mobami zapis używa konkretnego moba, który zadał lethal hit.
+- RECAP: ta sama przyczyna jest zapisywana do podsumowania walki i końcowego eventu combat recap.
+- WORST DEFEAT: śmierć od prawdziwego moba zapisuje na profilu najsilniejszego przeciwnika, który pokonał gracza. Samobójcze obrażenia skilli nie przypisują porażki stojącemu obok mobowi, a Feedback/self-damage zapisują własną dokładną przyczynę z nazwą skilla.
+- BEST KILL: każdy obecny członek drużyny, który dostaje credit za kill, zapisuje na profilu najmocniejszego pokonanego przeciwnika.
+- XP REKORDU: dla source-authored UOSS używany jest exact source XP; dla pozostałych mobów ich authored Class XP. Double XP, party bonusy i chwilowe mnożniki nie fałszują profilu.
+- PROFIL <GRACZ>: dodano linie Best Kill: <mob>, XP: <wartość> oraz Worst Defeat: <mob>, XP: <wartość>.
+- BACKFILL: przy pierwszym odczycie profilu Best Kill jest odtwarzany z Bestiariusza, a Worst Defeat z istniejących death recapów tylko przy jednoznacznym dopasowaniu nazwy moba. Backfill wykonuje się raz i nie zgaduje najmocniejszego wariantu przy powtarzających się nazwach.
+- PRZETAP KLUCZE: w Kuźni komenda przetop klucze przetapia wszystkie nadmiarowe klucze bossowe; przetop <nazwa klucza> przetapia jeden konkretny klucz.
+- BEZPIECZEŃSTWO KLUCZY: przetop wszystko celowo nie niszczy kluczy. Zbiorcze przetop klucze zostawia po jednej sztuce każdego rodzaju; jawne przetop <nazwa klucza> może zużyć wskazaną sztukę. Klucze są pobierane dopiero po 3-sekundowym czasie akcji, więc przetop stop nie może ich skasować bez nagrody.
+- WYNIK PRZETOPU: Pył Runiczny oraz, dla kluczy z wysokich progów, Esencja Przekucia trafiają do craftboxu. Akcja daje XP Kowalstwa i Młota. Rekord największego przetopu jest zapisywany dopiero po udanym zakończeniu akcji, nie przy starcie ani po przetop stop.
+- Brak wipe i brak nowej tabeli SQLite; rekordy korzystają z istniejącej player_records_v03051.
 
 ==============================================================================
 Soulbound v1.13.40 — INFINITE DUNGEON WALK SHORTCUTS

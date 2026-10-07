@@ -287,9 +287,39 @@ async def _v0370_perform_recipe(self,query,recipes,action_name):
 SessionCraftingInventoryEquipmentMixin.perform_recipe = _v0370_perform_recipe
 
 _V0370_SMELT_BEFORE = SessionCraftingExpansionV03114Mixin.smelt_item_v03114
+
+def _v0370_finish_smelt_record(task, session, count):
+    if task.cancelled():
+        return
+    if task.exception() is not None:
+        return
+    if bool(task.result()) and count>0 and session.character:
+        session.server.db.v0370_record_max(
+            "largest_smelt",
+            count,
+            session.account_id,
+            session.character.name,
+            "jedna akcja przetapiania",
+        )
+
 async def _v0370_smelt(self,query):
     raw=str(query or '').strip(); norm=normalize_lookup_text(raw); count=0
-    if norm in ("wszystko","all"):
+    _control_request=norm in ("stop","off","przerwij","koniec","status","stan")
+    _owned_key_pool={
+        str(row["item_id"]):ITEMS.get(str(row["item_id"]),{})
+        for row in self.server.db.inventory(self.account_id)
+        if int(row["quantity"] or 0)>0
+        and ITEMS.get(str(row["item_id"]),{}).get("boss_chest_key")
+    }
+    _key_request=(
+        norm in ("klucze","keys","klucze bossow","klucze bossów","boss keys")
+        or bool(raw and find_by_name(_owned_key_pool,raw))
+    )
+    if _control_request or _key_request:
+        # Kontrola zadania i klucze nie zapisują rekordu przy samym starcie.
+        # Klucze zapisują rzeczywistą liczbę dopiero w smelt_boss_keys_v11341.
+        count=0
+    elif norm in ("wszystko","all"):
         profession_level=int(self.server.db.profession(self.account_id,"Kowalstwo")["level"])
         old_tool_level=int(self.server.db.tool(self.account_id,"crafting")["level"])
         current_tool_tier=tool_tier(old_tool_level)
@@ -305,8 +335,18 @@ async def _v0370_smelt(self,query):
     else:
         count=1
     result=await _V0370_SMELT_BEFORE(self,query)
-    if result and count>0 and self.character:
-        self.server.db.v0370_record_max("largest_smelt",count,self.account_id,self.character.name,"jedna akcja przetapiania")
+    task=getattr(self,"smelt_task_v1124",None)
+    if result and count>0 and task is not None and not task.done():
+        task.add_done_callback(
+            lambda done, session=self, planned=count:
+                _v0370_finish_smelt_record(done,session,planned)
+        )
+    elif result and count>0 and self.character and (task is None or task.done()):
+        # Zachowaj kompatybilność dla ewentualnych synchronicznych ścieżek.
+        self.server.db.v0370_record_max(
+            "largest_smelt",count,self.account_id,self.character.name,
+            "jedna akcja przetapiania"
+        )
     return result
 SessionCraftingExpansionV03114Mixin.smelt_item_v03114 = _v0370_smelt
 
@@ -355,7 +395,7 @@ SessionCraftingExpansionV03114Mixin.salvage_equipment_v0925 = _v0370_salvage
 
 for _iid,_item in ITEMS.items():
     if _item.get("boss_chest_key"):
-        _item["desc"] = str(_item.get("desc","")).rstrip() + " Po otwarciu skrzyni klucz jest zużywany; nadmiarowy klucz można rozłożyć komendą rozłóż <nazwa klucza> albo rozłóż klucze."
+        _item["desc"] = str(_item.get("desc","")).rstrip() + " Po otwarciu skrzyni klucz jest zużywany; nadmiarowy klucz można rozłożyć albo przetopić w Kuźni. Komendy: rozłóż klucze lub przetop klucze."
         _item["salvageable_key_v0370"] = True
 
 HELP_TOPICS["rekordy_serwera"] = [
@@ -366,6 +406,7 @@ HELP_TOPICS["rekordy_serwera"] = [
 ]
 HELP_TOPIC_ALIASES.update({"rekordy":"rekordy_serwera","records":"rekordy_serwera","halloffame":"rekordy_serwera","hall of fame":"rekordy_serwera"})
 HELP_TOPICS.setdefault("salvage",[]).append("Klucze bossowe są zużywane przy otwarciu skrzyni. Nadmiarowe klucze można rozłożyć pojedynczo lub przez `rozłóż klucze`; `salvage wszystko` nadal ich automatycznie nie niszczy.")
+HELP_TOPICS.setdefault("przetapianie",[]).append("Klucze bossowe: w Kuźni użyj `przetop klucze` dla wszystkich nadmiarowych albo `przetop <nazwa klucza>` dla jednego. Wynik trafia do craftboxu jako Pył Runiczny i, dla wysokich progów, Esencja Przekucia. `przetop wszystko` celowo nie zużywa kluczy.")
 
 # ----------------------------- Audit ------------------------------------
 def public_records_audit_v0370():
