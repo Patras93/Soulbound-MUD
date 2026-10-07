@@ -767,8 +767,13 @@ class SessionCombatRealtimeMixin:
                 finally:
                     try:
                         superboss_clear_source_statuses_v11176(self)
-                    except Exception:
-                        pass
+                    except Exception as exc:
+                        reporter = getattr(self.server, "report_runtime_error", None)
+                        if callable(reporter):
+                            reporter(
+                                exc,
+                                handler="superboss_clear_source_statuses_v11176",
+                            )
                     if self.combat_task is this_task:
                         self.combat_task = None
 
