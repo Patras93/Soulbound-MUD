@@ -742,6 +742,19 @@ class SessionDungeonProgressionMixin:
 
             return self.character.soul_level > old_level
 
+    async def grant_combat_soul_xp_v11350(
+        self, amount, *, content_level=None, content_scaled=True
+    ):
+            """Stable combat Soul XP gateway immune to late legacy overrides."""
+            return await SessionDungeonProgressionMixin.grant_soul_xp(
+                self,
+                amount,
+                single_level_cap=True,
+                content_level=content_level,
+                content_scaled=content_scaled,
+            )
+
+
     def checkpoint_portal_floors_v11331(self, kind):
             floors = self.server.db.instance_checkpoint_floors(
                 self.account_id, kind
