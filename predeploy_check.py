@@ -2534,6 +2534,26 @@ for _item_id in (
             "v1.13.37 UOSS resale-safe shop policy missing for " + _item_id
         )
 
+# v1.13.38 — class equipment flat Attack/Magic Attack must remain present on
+# shop gear and the stronger legendary boss-set/relic progression.
+_equipment_crafting_source_v11338 = (
+    _root / "systems/equipment_crafting.py"
+).read_text(encoding="utf-8")
+for _needle in (
+    "def class_equipment_flat_power_channels(",
+    "power = max(1, int(round(budget * 0.18 * slot_scale * style_mult)))",
+    "def legendary_class_equipment_flat_power_channels_v11338(",
+    '"attack": int(legendary_flat_power_v11338["attack"])',
+    '"magic_attack": int(legendary_flat_power_v11338["magic_attack"])',
+    '"attack": int(relic_flat_power_v11338["attack"])',
+    '"magic_attack": int(relic_flat_power_v11338["magic_attack"])',
+    "v1.13.38 boss set flat power regression",
+):
+    if _needle not in _equipment_crafting_source_v11338:
+        _semantic_errors.append(
+            "v1.13.38 class equipment flat power regression: missing " + _needle
+        )
+
 # v1.13.38 — random elite affixes must stay wired through spawn, combat,
 # rewards and the canonical Adaptive Combat layer.
 _elite_system_source_v11338 = (_root / "systems/elite_variants.py").read_text(encoding="utf-8")
