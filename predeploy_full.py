@@ -38,9 +38,10 @@ def main():
             audit_failures = []
             audit_advisories = []
             audit_reports = 0
-            nonblocking_legacy_audits = {
-                "FULL_GAME_PREDEPLOY_AUDIT_V0336",
-            }
+            # v1.13.37 cleanup baseline: the historical full-game audit is
+            # clean again, so new findings are deploy blockers rather than a
+            # permanently ignored advisory backlog.
+            nonblocking_legacy_audits = set()
             for name, value in sorted(ns.items()):
                 if "AUDIT" not in str(name).upper() or not isinstance(value, dict):
                     continue
