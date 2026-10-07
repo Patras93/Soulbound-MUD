@@ -2928,7 +2928,7 @@ def full_game_predeploy_audit_v0336():
         'collect','collect_category','collect_distinct_category','collect_resource',
         'collect_resource_set','kill','deliver_npc','talk_npc','talk_class_teacher','craft_set','profession_action',
         'explore_frontier','discover_secret','mini_dungeon','world_event',
-        'legendary_rare','world_boss'
+        'legendary_rare','world_boss','party_contract'
     }
     quest_kinds=set()
     for qid,q in QUESTS.items():
@@ -2956,6 +2956,16 @@ def full_game_predeploy_audit_v0336():
                 try:
                     if int(qty)<=0: err('craft_set_bad_qty',qid,iid,qty)
                 except Exception: err('craft_set_bad_qty',qid,iid,qty)
+        if kind=='party_contract':
+            try:
+                if int(q.get('minimum_party_size',0) or 0) < 2:
+                    err('party_contract_bad_minimum_party_size',qid,q.get('minimum_party_size'))
+            except Exception:
+                err('party_contract_bad_minimum_party_size',qid,q.get('minimum_party_size'))
+            if not q.get('repeatable'):
+                err('party_contract_not_repeatable',qid)
+            if str(q.get('target') or '') not in {'elite','boss','elemental','named_rare'}:
+                err('party_contract_bad_target',qid,q.get('target'))
     metrics['quest_kinds']=tuple(sorted(str(x) for x in quest_kinds))
 
     # 9b) Collections, museum, sets, boss codex and achievements.
