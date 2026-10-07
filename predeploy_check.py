@@ -3115,7 +3115,7 @@ for _needle in (
     "async def harden_equipment_v11342",
     "Fire, Ice, Electric, Dark, Poison, Holy, Water, Arcane",
     "add_equipment_hardening_v11342",
-    '"Kowalstwo",profession_xp,"crafting",0,tool_progress=False',
+    "content_level=max(level,new_rank*100)",
 ):
     if _needle not in _crafting_expansion_source_v11342:
         _semantic_errors.append(
