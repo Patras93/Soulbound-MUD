@@ -172,6 +172,48 @@ except Exception as exc:
 from pathlib import Path as _Path
 _root = _Path(__file__).resolve().parent
 
+# v1.13.43: every declarative command handler must exist on the assembled
+# Session mixin surface. This catches missing methods such as show_single_tool
+# before a player receives an SB-* runtime command error.
+_command_registry_source_v11343 = (
+    _root / "player/session_mixins/command_registry.py"
+).read_text(encoding="utf-8")
+_command_handler_names_v11343 = set(
+    re.findall(
+        r"""['"][^'"]+['"]\s*:\s*\(\s*['"]([A-Za-z_][A-Za-z0-9_]*)['"]""",
+        _command_registry_source_v11343,
+    )
+)
+_session_method_names_v11343 = set()
+for _method_path_v11343 in (
+    [_root / "player/session.py"]
+    + sorted((_root / "player/session_mixins").glob("*.py"))
+):
+    try:
+        _method_tree_v11343 = ast.parse(
+            _method_path_v11343.read_text(encoding="utf-8"),
+            filename=str(_method_path_v11343),
+        )
+    except Exception as _method_exc_v11343:
+        _semantic_errors.append(
+            "v1.13.43 command handler audit parse failed: "
+            f"{_method_path_v11343.relative_to(_root)}: "
+            f"{type(_method_exc_v11343).__name__}: {_method_exc_v11343}"
+        )
+        continue
+    for _method_node_v11343 in ast.walk(_method_tree_v11343):
+        if isinstance(_method_node_v11343, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            _session_method_names_v11343.add(_method_node_v11343.name)
+
+_missing_command_handlers_v11343 = sorted(
+    _command_handler_names_v11343 - _session_method_names_v11343
+)
+if _missing_command_handlers_v11343:
+    _semantic_errors.append(
+        "v1.13.43 COMMAND_REGISTRY references missing Session handlers: "
+        + ", ".join(_missing_command_handlers_v11343[:100])
+    )
+
 # v1.13.31: release identity must have one truth across runtime and player-facing
 # changelog surfaces. This is generic: future releases only need to update the
 # three source values consistently.
