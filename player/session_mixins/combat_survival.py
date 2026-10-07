@@ -6,6 +6,10 @@ v0.47.0: explicit combat architecture; no compatibility-global injection.
 from data.mobs import MOB_TEMPLATES
 from data.rooms import ROOMS
 from events.contracts import PlayerDiedEvent
+from systems.combat_profile_records import (
+    death_cause_text_v11341,
+    record_combat_profile_v11341,
+)
 
 class SessionCombatSurvivalMixin:
     async def flee(self):
@@ -46,6 +50,13 @@ class SessionCombatSurvivalMixin:
                 if self.resting or self.rest_task:
                     await self.stop_rest(announce=False)
                 _killer_mob = self.server.world.mobs.get(self.combat_mob_key) if self.combat_mob_key else None
+                if _killer_mob and _killer_mob.template_id in MOB_TEMPLATES:
+                    record_combat_profile_v11341(
+                        self.server.db,
+                        self.account_id,
+                        "worst_defeat",
+                        MOB_TEMPLATES[_killer_mob.template_id],
+                    )
                 self.server.release_all_engagements_for_session(self)
                 if _killer_mob and _killer_mob.template_id in MOB_TEMPLATES:
                     _kt = MOB_TEMPLATES[_killer_mob.template_id]
@@ -67,6 +78,19 @@ class SessionCombatSurvivalMixin:
                 self.character.deaths += 1
                 self.server.db.add_lifetime_stat(self.account_id, "deaths", 1)
                 old_room = self.character.room_id
+                _death_cause_v11341 = dict(
+                    getattr(self, "_last_death_cause_v11341", {}) or {}
+                )
+                _death_room_name_v11341 = str(
+                    ROOMS.get(old_room, {}).get("name") or old_room
+                )
+                _death_cause_text_v11341 = death_cause_text_v11341(
+                    killer,
+                    _death_cause_v11341,
+                    _death_room_name_v11341,
+                )
+                self._last_death_cause_v11341 = {}
+                self._incoming_attack_context_v11341 = {}
                 self.current_hp = 0
                 self.current_mana = 0
                 self.server.db.save_character(self.character)
@@ -80,12 +104,25 @@ class SessionCombatSurvivalMixin:
                     _dur=int(max(0.0,__import__("time").time()-float(getattr(self,"_recap52_start",__import__("time").time())))*1000)
                     self.server.db.conn.execute("INSERT INTO death_recaps_v03052(account_id,killer,room_id,damage_taken,duration_ms) VALUES(?,?,?,?,?)",(self.account_id,str(killer),str(old_room),int(getattr(self,"_recap52_taken",0)),_dur))
                     self.server.db.conn.execute("INSERT INTO combat_recaps_v03052(account_id,opponent,duration_ms,damage_dealt,damage_taken,healing,crits,skills_used,result) VALUES(?,?,?,?,?,?,?,?,?)",(self.account_id,str(killer),_dur,int(getattr(self,"_recap52_dealt",0)),int(getattr(self,"_recap52_taken",0)),int(getattr(self,"_recap52_heal",0)),int(getattr(self,"_recap52_crits",0)),int(getattr(self,"_recap52_skills",0)),"death"))
-                    self.server.db.set_recap_summary_v0320(self.account_id,str(killer),f"Śmierć od: {killer}",int(getattr(self,"_recap32_guard_saved",0)),int(getattr(self,"_recap52_heal",0)),"death")
-                    self.server.db.add_combat_event_v0320(self.account_id,f"{killer} zadaje finalny cios. {self.character.name} ginie.","final")
+                    self.server.db.set_recap_summary_v0320(
+                        self.account_id,
+                        str(killer),
+                        "Śmierć: " + _death_cause_text_v11341,
+                        int(getattr(self,"_recap32_guard_saved",0)),
+                        int(getattr(self,"_recap52_heal",0)),
+                        "death",
+                    )
+                    self.server.db.add_combat_event_v0320(
+                        self.account_id,
+                        f"{killer} zadaje finalny cios. {_death_cause_text_v11341}. "
+                        f"{self.character.name} ginie.",
+                        "final",
+                    )
                     self.server.db.conn.commit(); self._recap52_start=0
                 except Exception as exc:
                     print(f"DEATH_RECAP_SAVE_ERROR: {type(exc).__name__}: {exc}", flush=True)
                 await self.send(f"Pokonuje cię {killer}.")
+                await self.send("Przyczyna śmierci: " + _death_cause_text_v11341 + ".")
                 # Phoenix Egg: source grants Re-raise once and then disappears.
                 # Soulbound reuses its existing full local revival state instead of
                 # inventing a separate HP percentage.
