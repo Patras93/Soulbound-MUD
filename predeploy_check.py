@@ -3084,6 +3084,7 @@ for _needle in (
 for _needle in (
     '"mastery_level": self.class_guild_mastery_level_v11342(class_name)',
     "class_guild_quest_pool_v11342(cls, state)",
+    "for quest_index, _base_data in base_order",
     "Etap i wymagania są stałe do odnowienia",
 ):
     if _needle not in _class_guild_source_v11342:
