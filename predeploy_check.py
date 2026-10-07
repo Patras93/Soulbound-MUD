@@ -185,10 +185,9 @@ _command_handler_names_v11343 = set(
     )
 )
 _session_method_names_v11343 = set()
-for _method_path_v11343 in (
-    [_root / "player/session.py"]
-    + sorted((_root / "player/session_mixins").glob("*.py"))
-):
+for _method_path_v11343 in sorted(_root.rglob("*.py")):
+    if any(part in {".git", "__pycache__"} for part in _method_path_v11343.parts):
+        continue
     try:
         _method_tree_v11343 = ast.parse(
             _method_path_v11343.read_text(encoding="utf-8"),
@@ -203,7 +202,40 @@ for _method_path_v11343 in (
         continue
     for _method_node_v11343 in ast.walk(_method_tree_v11343):
         if isinstance(_method_node_v11343, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            # Direct Session/mixin methods are collected by name. False
+            # positives are harmless because the registry requires only the
+            # presence of a callable with this name somewhere on Session.
             _session_method_names_v11343.add(_method_node_v11343.name)
+        elif isinstance(_method_node_v11343, ast.Assign):
+            # Legacy audited systems may intentionally attach handlers with
+            # Session.some_handler = function, e.g. Server Chronicle.
+            for _target_v11343 in _method_node_v11343.targets:
+                if (
+                    isinstance(_target_v11343, ast.Attribute)
+                    and isinstance(_target_v11343.value, ast.Name)
+                    and (
+                        _target_v11343.value.id == "Session"
+                        or _target_v11343.value.id.endswith("Mixin")
+                    )
+                ):
+                    _session_method_names_v11343.add(_target_v11343.attr)
+        elif isinstance(_method_node_v11343, ast.Call):
+            # Also recognize setattr(Session, "handler", fn).
+            if (
+                isinstance(_method_node_v11343.func, ast.Name)
+                and _method_node_v11343.func.id == "setattr"
+                and len(_method_node_v11343.args) >= 2
+                and isinstance(_method_node_v11343.args[0], ast.Name)
+                and (
+                    _method_node_v11343.args[0].id == "Session"
+                    or _method_node_v11343.args[0].id.endswith("Mixin")
+                )
+                and isinstance(_method_node_v11343.args[1], ast.Constant)
+                and isinstance(_method_node_v11343.args[1].value, str)
+            ):
+                _session_method_names_v11343.add(
+                    _method_node_v11343.args[1].value
+                )
 
 _missing_command_handlers_v11343 = sorted(
     _command_handler_names_v11343 - _session_method_names_v11343
