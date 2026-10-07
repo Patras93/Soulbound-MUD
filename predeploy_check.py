@@ -3160,6 +3160,47 @@ for _needle in (
             "v1.13.42 enchanting tool availability regression: missing " + _needle
         )
 
+# v1.13.42 — real profession actions must declare their content tier.
+# This prevents a future recipe/gather/salvage path from silently returning to
+# flat XP that ignores the material or task difficulty.
+_profession_progress_missing_content_v11342 = []
+for _source_path_v11342 in _root.rglob("*.py"):
+    if any(part in {".git", "__pycache__"} for part in _source_path_v11342.parts):
+        continue
+    try:
+        _tree_v11342 = ast.parse(
+            _source_path_v11342.read_text(encoding="utf-8"),
+            filename=str(_source_path_v11342),
+        )
+    except Exception:
+        continue
+    for _node_v11342 in ast.walk(_tree_v11342):
+        if not isinstance(_node_v11342, ast.Call):
+            continue
+        _func_v11342 = _node_v11342.func
+        _name_v11342 = (
+            _func_v11342.attr
+            if isinstance(_func_v11342, ast.Attribute)
+            else _func_v11342.id
+            if isinstance(_func_v11342, ast.Name)
+            else ""
+        )
+        if _name_v11342 != "grant_profession_progress":
+            continue
+        if not any(
+            _kw_v11342.arg == "content_level"
+            for _kw_v11342 in _node_v11342.keywords
+        ):
+            _profession_progress_missing_content_v11342.append(
+                f"{_source_path_v11342.relative_to(_root)}:"
+                f"{getattr(_node_v11342, 'lineno', '?')}"
+            )
+if _profession_progress_missing_content_v11342:
+    _semantic_errors.append(
+        "v1.13.42 flat profession XP calls without content_level: "
+        + ", ".join(_profession_progress_missing_content_v11342[:100])
+    )
+
 if _semantic_errors:
     print("Soulbound v1.13.42 FAST PREDEPLOY FAILED: semantic contracts")
     for _error in _semantic_errors:
