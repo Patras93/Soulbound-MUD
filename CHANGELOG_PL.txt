@@ -33,7 +33,11 @@ Soulbound v1.13.43 — PROFESSION & COMMAND RUNTIME REPAIR
 - KRAWIECTWO / GARBARSTWO / STOLARSTWO / ZAKLINANIE: statusy pokazują pełny próg XP profesji i odpowiedniego narzędzia.
 - ARCHEOLOGIA / KARTOGRAFIA: statusy pokazują pełne XP profesji i narzędzia.
 - TOOL REWARD XP: naprawiono błąd, w którym grant_tool_reward_xp przyjmował content_level, ale nie stosował mnożnika trudności treści.
-- COMMAND REGISTRY AUDIT: fast predeploy statycznie porównuje wszystkie handlery COMMAND_REGISTRY z metodami Session/mixinów i blokuje brakujące handlery przed wdrożeniem.
+- RARE / JACKPOT / AUTHORED XP: Generator Core nadal wyznacza bezpieczną bazę, ale warstwa profesji zachowuje teraz realny mnożnik siły akcji od x1 do x2.5. Większy authored XP, jackpot, wyjątkowy materiał lub specjalna nagroda nie znika po v0190_scaled_gain.
+- PEŁNY RAPORT PO AKCJI: zwykłe akcje i nagrody pokazują teraz nie tylko +X XP, ale również bieżący poziom i postęp XP z progu do następnego poziomu profesji/narzędzia.
+- SALVAGE WSZYSTKO: raportuje faktycznie przyznany łączny XP Kowalstwa i Młota po wszystkich mnożnikach, a nie sumę starych bazowych wartości.
+- ZAMÓWIENIA PROFESJI: końcowy raport pokazuje faktycznie przyznany skalowany Profession XP i Tool XP.
+- COMMAND REGISTRY AUDIT: fast predeploy statycznie porównuje wszystkie handlery COMMAND_REGISTRY z metodami Session/mixinów oraz kontrolowanymi dynamicznymi przypięciami Session.metoda i blokuje prawdziwe braki przed wdrożeniem.
 - Brak wipe i brak migracji bazy.
 
 ==============================================================================
