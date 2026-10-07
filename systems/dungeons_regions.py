@@ -358,14 +358,13 @@ def _boss_source_stage_v11327(template):
         return max(1, min(600, max(explicit)))
 
     proxies = [1]
-    try:
-        proxies.append(int(template.get("stat_reward", 0) or 0) // 4)
-    except (TypeError, ValueError, OverflowError):
-        pass
-    try:
-        proxies.append(int(template.get("class_xp_reward", 0) or 0) // 50)
-    except (TypeError, ValueError, OverflowError):
-        pass
+    for key, divisor in (("stat_reward", 4), ("class_xp_reward", 50)):
+        try:
+            proxy = int(template.get(key, 0) or 0) // divisor
+        except (TypeError, ValueError, OverflowError):
+            proxy = 0
+        if proxy > 0:
+            proxies.append(proxy)
     return max(1, min(600, max(proxies)))
 
 
