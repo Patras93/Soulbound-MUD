@@ -373,9 +373,9 @@ SYSTEM_DESCRIPTIONS = {
 }
 
 
-LATEST_CHANGES_TITLE = "Soulbound v1.13.40 - Mythic Crypt Walk Down Hotfix"
+LATEST_CHANGES_TITLE = "Soulbound v1.13.40 - Infinite Dungeon Walk Shortcuts"
 LATEST_CHANGES = [
-    "v1.13.40: walk krypta dół/dol/dool działa teraz także wewnątrz Mitycznej Krypty; prowadzi do komnaty z zejściem, ale nie omija ostatniego kroku ani blokady mitycznego bossa.",
+    "v1.13.40: skróty walk do kolejnego przejścia są spójne w nieskończonych lochach: Krypta/Mityczna Krypta dół, Wieża/Mityczna Wieża góra, Twierdza Gigantów góra i UOSS Deep Dungeon dół; zawsze zatrzymują się przed ostatnim up/down.",
     "v1.13.39: moby mogą używać czytelnych ataków Fire, Ice, Electric, Dark, Poison, Holy, Water i Arcane; ataki używają Magic Defense oraz istniejących element_wards z EQ.",
     "v1.13.39: Synergy 2.0 dodaje znaczniki i detonacje między skillami klas, m.in. Mag -> Arcane Frost -> Wojownik Shatter oraz Druid -> Venom Bloom -> Nekromanta Blightburst.",
     "v1.13.39: Koordynatorka Kontraktów Lyra na rynku oferuje cztery dobrowolne elitarne kontrakty party; liczy się tylko lokalna drużyna 2+ i nic nie blokuje progresji solo.",
