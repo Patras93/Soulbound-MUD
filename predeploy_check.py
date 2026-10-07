@@ -2484,7 +2484,8 @@ for _needle in (
     "BOSS CHEST RUNTIME:",
     "floors 1/25/100 checked",
     "boss checkpoints checked",
-    "audit would be vacuous",
+    "World.ensure_runtime_room failed",
+    "did not materialize all five dungeon families",
 ):
     if _needle not in _full_predeploy_source_v11337:
         _semantic_errors.append(
