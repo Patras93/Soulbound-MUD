@@ -1,5 +1,5 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.13.35
+Aktualna paczka: v1.13.36
 
 
 
@@ -19,6 +19,22 @@ Aktualna paczka: v1.13.35
 
 
 
+
+==============================================================================
+Soulbound v1.13.36 — UNIQUE DUNGEON MOB NAMES, NO FLOOR NUMBERS
+==============================================================================
+
+- NAZWY MOBÓW BEZ NUMERÓW PIĘTER: proceduralni przeciwnicy w lochach nie dostają już dopisków typu "piętro 217", "poziom 150", "cykl 3" ani "wariant 2". Numer piętra pozostaje w nazwie pokoju i komendach progresu, ale nie w nazwie przeciwnika.
+- UNIKALNOŚĆ BEZ LIMITU: zamiast numeru generator nadaje każdemu proceduralnemu mobowi deterministyczny słowny kryptonim z bijekcyjnego kodu sylab. Dzięki temu nawet bardzo głębokie, nieskończone piętra nie wracają do tej samej nazwy.
+- KRYPTA I MITYCZNA KRYPTA: regularne moby, dodatkowi Szkieleci Strażnicy, lazy-generated moby 201+ oraz nieskończeni bossowie progowi korzystają z nowych nazw bez cyfr.
+- WIEŻA ASTRALNA I MITYCZNA WIEŻA: regularne moby oraz lazy-generated bossowie mają unikalne nazwy słowne bez numeru poziomu.
+- TWIERDZA GIGANTÓW: regularne moby i nieskończeni bossowie nie używają numerów poziomu w nazwie.
+- LOCHY PROFESYJNE: Zatopiona Grota, Pradawny Las i Ogród Alchemika korzystają z tego samego systemu unikalnych nazw bez cyfr. Kryształowe Groty nadal pozostają bez mobów.
+- MAGITEK: regularne jednostki, elity i bossowie Nieskończonego Kompleksu Magitek zachowują motyw sektora, ale numer piętra i numer cyklu zostały usunięte z nazwy przeciwnika.
+- DEEP DUNGEON: mechanika, winda i progres pozostają bez zmian. Zmienione jest wyłącznie nazewnictwo mobów: regularni przeciwnicy i Apanda dostają unikalny słowny przydomek bez numeru piętra.
+- BOSSY RĘCZNIE NAZWANE: istniejące ręcznie projektowane unikalne nazwy bossów pozostają bez zmian; nowy generator dotyczy proceduralnych/rotujących nazw.
+- PREDEPLOY: audit sprawdza 2000 przykładowych głębokości każdego typu oraz wiele mobów na tym samym piętrze. Cyfra albo powtórzona proceduralna nazwa jest błędem CI.
+- Brak zmian HP, damage, Adaptive Combat, dropów, EXP, ekonomii i mechaniki lochów. Brak migracji SQLite i brak wipe.
 
 ==============================================================================
 Soulbound v1.13.35 — DUNGEON MOB IDENTITY PASS
