@@ -289,12 +289,20 @@ SessionCraftingInventoryEquipmentMixin.perform_recipe = _v0370_perform_recipe
 _V0370_SMELT_BEFORE = SessionCraftingExpansionV03114Mixin.smelt_item_v03114
 async def _v0370_smelt(self,query):
     raw=str(query or '').strip(); norm=normalize_lookup_text(raw); count=0
-    if norm in ("klucze","keys","klucze bossow","klucze bossów","boss keys"):
-        count=sum(
-            max(0,int(row["quantity"] or 0))
-            for row in self.server.db.inventory(self.account_id)
-            if ITEMS.get(str(row["item_id"]),{}).get("boss_chest_key")
-        )
+    _owned_key_pool={
+        str(row["item_id"]):ITEMS.get(str(row["item_id"]),{})
+        for row in self.server.db.inventory(self.account_id)
+        if int(row["quantity"] or 0)>0
+        and ITEMS.get(str(row["item_id"]),{}).get("boss_chest_key")
+    }
+    _key_request=(
+        norm in ("klucze","keys","klucze bossow","klucze bossów","boss keys")
+        or bool(raw and find_by_name(_owned_key_pool,raw))
+    )
+    if _key_request:
+        # Klucze zapisują largest_smelt dopiero po rzeczywistym zakończeniu
+        # 3-sekundowej akcji. Start lub przetop stop nie może ustanowić rekordu.
+        count=0
     elif norm in ("wszystko","all"):
         profession_level=int(self.server.db.profession(self.account_id,"Kowalstwo")["level"])
         old_tool_level=int(self.server.db.tool(self.account_id,"crafting")["level"])
