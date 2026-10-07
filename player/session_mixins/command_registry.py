@@ -446,7 +446,6 @@ class SessionCommandRegistryMixin:
         if spec is None:
             return False
         method_name, positional, keywords = spec
-        method = getattr(self, method_name)
 
         def _resolve(value):
             if value is COMMAND_TEXT:
@@ -458,6 +457,12 @@ class SessionCommandRegistryMixin:
         resolved_positional = tuple(_resolve(value) for value in positional)
         resolved_keywords = {key: _resolve(value) for key, value in keywords.items()}
         try:
+            method = getattr(self, method_name, None)
+            if not callable(method):
+                raise RuntimeError(
+                    f"COMMAND_REGISTRY missing callable handler: "
+                    f"{method_name} for command {command}"
+                )
             result = await method(*resolved_positional, **resolved_keywords)
             if result is COMMAND_LOOP_BREAK:
                 return COMMAND_LOOP_BREAK
