@@ -25,7 +25,11 @@ class SessionTechCraftingV03111Mixin:
         salvage_level=max(1,min(CHARACTER_MAX_LEVEL,int(item.get("required_character_level",item.get("required_mastery",150)) or 150)))
         salvage_prof_xp=max(14,14+salvage_level//14+sum(int(v) for v in outputs.values())*2)
         messages,_prof_after,_tool_after=self.grant_profession_progress(
-            "Kowalstwo",salvage_prof_xp,"crafting",0,tool_progress=False
+            "Kowalstwo",
+            salvage_prof_xp,
+            "crafting",
+            0,
+            content_level=salvage_level,
         )
         for message in messages: await self.send(message)
 
