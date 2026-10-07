@@ -134,8 +134,17 @@ def main():
                     if not floor25_spawns:
                         floor25_spawns = list(_floor25_created_spawns)
                     if not any(
-                        ns["MOB_TEMPLATES"].get(template_id, {}).get(
-                            "uoss_deep_dungeon_apanda"
+                        (
+                            int(
+                                ns["MOB_TEMPLATES"].get(template_id, {}).get(
+                                    "uoss_deep_dungeon_apanda_floor", 0
+                                ) or 0
+                            ) == 25
+                            and str(
+                                ns["MOB_TEMPLATES"].get(template_id, {}).get(
+                                    "boss_mechanic", ""
+                                )
+                            ) == "uoss_deep_dungeon_apanda"
                         )
                         for _room_id, template_id in floor25_spawns
                     ):
