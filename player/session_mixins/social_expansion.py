@@ -188,7 +188,7 @@ class SessionSocialExpansionMixin:
         fish=conn.execute("SELECT COALESCE(MAX(best_weight_g),0) v FROM fish_journal WHERE account_id=?",(aid,)).fetchone()
         biggest_crit=int(crit['value']) if crit else 0
         biggest_fish=int(fish['v'] or 0)
-        backfill_combat_profile_records_v11341(conn if False else self.server.db, aid, MOB_TEMPLATES)
+        backfill_combat_profile_records_v11341(self.server.db, aid, MOB_TEMPLATES)
         best_kill_row=combat_profile_row_v11341(self.server.db,aid,"best_kill")
         worst_defeat_row=combat_profile_row_v11341(self.server.db,aid,"worst_defeat")
 
