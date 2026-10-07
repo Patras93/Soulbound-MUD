@@ -62,20 +62,6 @@ _semantic_audits = {
     "physical_skill_mana": PHYSICAL_SKILL_MANA_AUDIT,
     "skill_cooldowns": SKILL_COOLDOWN_AUDIT_V11140,
 }
-try:
-    from systems.equipment_crafting import GUILD_CLASS_QUEST_PROGRESS_AUDIT_V11342
-except Exception as exc:
-    print(
-        "Soulbound v1.13.42 FAST PREDEPLOY FAILED: "
-        f"class quest progression import: {type(exc).__name__}: {exc}"
-    )
-    traceback.print_exc()
-    raise SystemExit(1)
-
-_semantic_audits["class_quest_progress_v11342"] = (
-    GUILD_CLASS_QUEST_PROGRESS_AUDIT_V11342
-)
-
 _semantic_errors = []
 if int(audit.get("swallowed_exception_count", 0) or 0):
     _semantic_errors.append(
