@@ -96,6 +96,108 @@ def main():
             if cross["errors"]:
                 raise SystemExit(1)
 
+            # v1.13.37 — Deep Dungeon lazy-generation smoke. The entry may point
+            # at a room that does not exist until first use, but the creator must
+            # materialize that exact destination with a reciprocal return path.
+            deep_errors = []
+            deep_entry_id = ns.get(
+                "UOSS_DEEP_DUNGEON_ENTRY_V11331",
+                "uoss_deep_dungeon_entry_v11331",
+            )
+            deep_entry = ns.get("ROOMS", {}).get(deep_entry_id, {})
+            deep_target = (deep_entry.get("exits") or {}).get("down")
+            deep_creator = ns.get(
+                "create_infinite_uoss_deep_dungeon_floor_definition_v11331"
+            )
+            if not callable(deep_creator):
+                deep_errors.append("Deep Dungeon floor creator missing")
+            else:
+                try:
+                    floor1_id, _ = deep_creator(1)
+                    if deep_target != floor1_id:
+                        deep_errors.append(
+                            f"entry down={deep_target!r}, creator floor1={floor1_id!r}"
+                        )
+                    floor1 = ns["ROOMS"].get(floor1_id, {})
+                    if (floor1.get("exits") or {}).get("up") != deep_entry_id:
+                        deep_errors.append("Deep Dungeon floor 1 does not return to entry")
+                    floor25_id, floor25_spawns = deep_creator(25)
+                    if not any(
+                        ns["MOB_TEMPLATES"].get(template_id, {}).get(
+                            "uoss_deep_dungeon_apanda"
+                        )
+                        for _room_id, template_id in floor25_spawns
+                    ):
+                        deep_errors.append("Deep Dungeon floor 25 has no Apanda gate")
+                    floor100_id, _ = deep_creator(100)
+                    floor100 = ns["ROOMS"].get(floor100_id, {})
+                    if int(floor100.get("uoss_deep_dungeon_floor", 0) or 0) != 100:
+                        deep_errors.append("Deep Dungeon floor 100 metadata missing")
+                    if int(ns.get(
+                        "UOSS_DEEP_DUNGEON_SERPENTARIUS_UNLOCK_FLOOR_V11331", 0
+                    ) or 0) != 100:
+                        deep_errors.append("Serpentarius unlock floor is not 100")
+                except Exception as exc:
+                    deep_errors.append(
+                        f"Deep Dungeon lazy smoke exception: {type(exc).__name__}: {exc}"
+                    )
+            print(
+                f"DEEP DUNGEON LAZY SMOKE: {len(deep_errors)} errors; "
+                "floors 1/25/100 checked"
+            )
+            for error in deep_errors:
+                print(f"DEEP DUNGEON ERROR: {error}")
+            if deep_errors:
+                raise SystemExit(1)
+
+            # v1.13.37 — verify boss chests resolve to the latest real boss spawn
+            # after floor expansion, never to the old landing room.
+            chest_errors = []
+            chest_meta = {
+                "giant": ("giant_fortress_boss", "giant_fortress_floor", "giant_fortress_"),
+                "crypt": ("crypt_boss", "crypt_floor", "crypt_floor_"),
+                "astral": ("astral_boss", "astral_floor", "astral_floor_"),
+                "mythic_crypt": ("mythic_crypt_boss", "mythic_crypt_floor", "mythic_crypt_floor_"),
+                "mythic_astral": ("mythic_astral_boss", "mythic_astral_floor", "mythic_astral_floor_"),
+            }
+            expected_rooms = {}
+            for spawn_room, template_id in reversed(ns.get("MOB_SPAWNS", ())):
+                template = ns.get("MOB_TEMPLATES", {}).get(template_id, {})
+                for kind, (flag, floor_key, _prefix) in chest_meta.items():
+                    if not template.get(flag):
+                        continue
+                    try:
+                        floor = int(template.get(floor_key, 0) or 0)
+                    except (TypeError, ValueError, OverflowError):
+                        floor = 0
+                    if floor > 0:
+                        expected_rooms.setdefault((kind, floor), str(spawn_room))
+            for (kind, floor), expected_room in sorted(expected_rooms.items()):
+                actual_room = ns["boss_floor_chest_room_id"](kind, floor)
+                if actual_room != expected_room:
+                    chest_errors.append(
+                        f"{kind} {floor}: chest room {actual_room!r} != boss room {expected_room!r}"
+                    )
+                    continue
+                spec = ns["_boss_floor_chest_spec"](actual_room)
+                if not spec or tuple(spec[:2]) != (kind, floor):
+                    chest_errors.append(
+                        f"{kind} {floor}: no chest spec in actual boss room {actual_room!r}"
+                    )
+                canonical = f"{chest_meta[kind][2]}{floor}"
+                if canonical != actual_room and ns["_boss_floor_chest_spec"](canonical) is not None:
+                    chest_errors.append(
+                        f"{kind} {floor}: chest leaked back to landing room {canonical!r}"
+                    )
+            print(
+                f"BOSS CHEST RUNTIME: {len(chest_errors)} errors; "
+                f"{len(expected_rooms)} boss checkpoints checked"
+            )
+            for error in chest_errors[:100]:
+                print(f"BOSS CHEST ERROR: {error}")
+            if chest_errors:
+                raise SystemExit(1)
+
             from admin.mob_display_name_audit_v11129 import audit_mob_display_names_v11129
             mob_names = audit_mob_display_names_v11129(server)
             print(
