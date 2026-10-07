@@ -844,8 +844,16 @@ class SessionCraftingExpansionV03114Mixin:
 
             pooled_profession_xp = roll_crafting_xp(max(1, total_profession_xp_base))
             pooled_tool_xp = roll_crafting_xp(max(1, total_tool_xp_base))
+            batch_content_level=self.profession_content_level_v11342(
+                item_id=first_recipe.get("output"),
+                recipe=first_recipe,
+            )
             messages, _profession_level_after, new_tool_level = self.grant_profession_progress(
-                profession, pooled_profession_xp, tool_type, pooled_tool_xp
+                profession,
+                pooled_profession_xp,
+                tool_type,
+                pooled_tool_xp,
+                content_level=batch_content_level,
             )
 
             result_parts = [f"{ITEMS[item_id]['name']} x{qty}" for item_id, qty in outputs.items()]
