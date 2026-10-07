@@ -620,6 +620,12 @@ class SessionCombatRealtimeMixin:
                                             continue
                                     _source_round = superboss_source_round_event_v11160(target_session, _enemy_template, enemy_mob)
                                     if _source_round and _source_round.get("instant_death"):
+                                        target_session._last_death_cause_v11341 = {
+                                            "killer": str(_enemy_template.get("name") or enemy_mob.template_id),
+                                            "ability": str(_source_round.get("name") or _source_round.get("text") or "atak natychmiastowej śmierci"),
+                                            "damage_type": str(_enemy_template.get("damage_type") or ""),
+                                            "damage": max(0, int(target_session.current_hp or 0)),
+                                        }
                                         target_session.current_hp = 0
                                         await self.server.party_combat_broadcast(target_session, _source_round["text"], detail="essential")
                                         await target_session.die(_enemy_template['name'])
@@ -657,12 +663,23 @@ class SessionCombatRealtimeMixin:
                                         await self.server.party_combat_broadcast(target_session, f"{_enemy_template['name']} używa: {_source_ability}.", detail="essential")
                                     _source_effect_replaces_attack = False
                                     if _source_effect:
+                                        _hp_before_v11341 = int(target_session.current_hp or 0)
                                         if "damage" in _source_effect:
                                             target_session.current_hp=max(0,target_session.current_hp-int(_source_effect["damage"]))
                                             _source_effect_replaces_attack = True
                                         elif "current_hp_fraction" in _source_effect:
                                             target_session.current_hp=max(0,target_session.current_hp-int(round(target_session.current_hp*float(_source_effect["current_hp_fraction"]))))
                                             _source_effect_replaces_attack = True
+                                        _source_damage_v11341 = max(
+                                            0, _hp_before_v11341 - int(target_session.current_hp or 0)
+                                        )
+                                        if _source_effect_replaces_attack:
+                                            target_session._last_death_cause_v11341 = {
+                                                "killer": str(_enemy_template.get("name") or enemy_mob.template_id),
+                                                "ability": str(_source_ability or "specjalna zdolność"),
+                                                "damage_type": str(_enemy_template.get("damage_type") or ""),
+                                                "damage": _source_damage_v11341,
+                                            }
                                         if target_session.current_hp <= 0:
                                             await target_session.die(_enemy_template['name'])
                                             continue
@@ -798,6 +815,12 @@ class SessionCombatRealtimeMixin:
                                                 _elemental_attack_v11339.get("element"),
                                             )
                                         )
+                                    target_session._incoming_attack_context_v11341 = {
+                                        "ability": str(_source_ability or ""),
+                                        "element": str(
+                                            (_elemental_attack_v11339 or {}).get("label") or ""
+                                        ),
+                                    }
                                     _enemy_action_mult_v11324 = (
                                         _uoss_mult
                                         * _flavor_mult_v11324
