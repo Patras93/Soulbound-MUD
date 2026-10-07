@@ -181,28 +181,80 @@ def main():
                 "mythic_astral": ("mythic_astral_boss", "mythic_astral_floor", "mythic_astral_floor_"),
             }
             expected_rooms = {}
-            # These helpers live in network.protocol_gameplay_utils and resolve
-            # against that module's own imported runtime catalogs. The assembled
-            # predeploy namespace does not necessarily re-export MOB_SPAWNS, so
-            # inspect the exact globals used by the production helper itself.
-            chest_runtime_globals = ns["boss_floor_chest_room_id"].__globals__
-            chest_runtime_spawns = chest_runtime_globals.get("MOB_SPAWNS", ())
-            chest_runtime_templates = chest_runtime_globals.get("MOB_TEMPLATES", {})
-            for spawn_room, template_id in reversed(chest_runtime_spawns):
-                template = chest_runtime_templates.get(template_id, {})
-                for kind, (flag, floor_key, _prefix) in chest_meta.items():
-                    if not template.get(flag):
+            representative_specs = {
+                "crypt": (
+                    "CRYPT_BOSS_FLOORS", "is_crypt_boss_floor", "crypt_floor_id",
+                    "crypt_boss", "crypt_floor",
+                ),
+                "astral": (
+                    "ASTRAL_BOSS_FLOORS", "is_astral_boss_floor", "astral_floor_id",
+                    "astral_boss", "astral_floor",
+                ),
+                "mythic_crypt": (
+                    "MYTHIC_BOSS_FLOORS", "is_mythic_crypt_boss_floor",
+                    "mythic_crypt_floor_id", "mythic_crypt_boss", "mythic_crypt_floor",
+                ),
+                "mythic_astral": (
+                    "MYTHIC_BOSS_FLOORS", "is_mythic_astral_boss_floor",
+                    "mythic_astral_floor_id", "mythic_astral_boss", "mythic_astral_floor",
+                ),
+                "giant": (
+                    "GIANT_FORTRESS_BOSS_FLOORS", "is_giant_fortress_boss_floor",
+                    "giant_fortress_floor_id", "giant_fortress_boss", "giant_fortress_floor",
+                ),
+            }
+
+            # v0.11 removes pregenerated instance rooms/spawns on startup.
+            # Materialize one fresh boss checkpoint per dungeon through the real
+            # World.ensure_runtime_room() path, exactly as production movement does.
+            for kind, (
+                floors_name, predicate_name, room_id_name, boss_flag, floor_key,
+            ) in representative_specs.items():
+                authored_floors = tuple(ns.get(floors_name, ()) or ())
+                floor = (max(map(int, authored_floors)) + 10) if authored_floors else 10
+                predicate = ns[predicate_name]
+                room_id_fn = ns[room_id_name]
+                chosen_room = None
+                for _attempt in range(200):
+                    candidate_room = room_id_fn(floor)
+                    if predicate(floor) and candidate_room not in ns.get("ROOMS", {}):
+                        chosen_room = candidate_room
+                        break
+                    floor += 10
+                if not chosen_room:
+                    chest_errors.append(
+                        f"{kind}: could not find a fresh lazy boss checkpoint"
+                    )
+                    continue
+                if not server.world.ensure_runtime_room(chosen_room):
+                    chest_errors.append(
+                        f"{kind} {floor}: World.ensure_runtime_room failed"
+                    )
+                    continue
+
+                boss_rooms = []
+                for mob in server.world.mobs.values():
+                    template = ns.get("MOB_TEMPLATES", {}).get(mob.template_id, {})
+                    if not template.get(boss_flag):
                         continue
                     try:
-                        floor = int(template.get(floor_key, 0) or 0)
+                        mob_floor = int(template.get(floor_key, 0) or 0)
                     except (TypeError, ValueError, OverflowError):
-                        floor = 0
-                    if floor > 0:
-                        expected_rooms.setdefault((kind, floor), str(spawn_room))
-            if len(expected_rooms) < 5:
+                        mob_floor = 0
+                    if mob_floor == floor:
+                        boss_rooms.append(str(mob.room_id))
+                boss_rooms = sorted(set(boss_rooms))
+                if len(boss_rooms) != 1:
+                    chest_errors.append(
+                        f"{kind} {floor}: expected one real boss room, got {boss_rooms!r}"
+                    )
+                    continue
+                expected_rooms[(kind, floor)] = boss_rooms[0]
+
+            if len(expected_rooms) != len(representative_specs):
                 chest_errors.append(
-                    "boss chest smoke discovered fewer than 5 real boss checkpoints "
-                    f"({len(expected_rooms)}); audit would be vacuous"
+                    "boss chest smoke did not materialize all five dungeon families; "
+                    f"checked={len(expected_rooms)} expected={len(representative_specs)}"
                 )
             for (kind, floor), expected_room in sorted(expected_rooms.items()):
                 actual_room = ns["boss_floor_chest_room_id"](kind, floor)
