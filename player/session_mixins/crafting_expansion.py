@@ -24,6 +24,7 @@ from systems.crafting_quality import (
     crafting_mastery_level_v03054,
     player_item_display_name_v0335,
 )
+from systems.elemental_combat import V11339_ELEMENT_LABELS, canonical_element_v11339
 from systems.equipment_crafting import CRAFT_RECIPES, jewelry_socket_capacity
 from systems.items_resources import BLACKSMITH_TIERS
 from systems.tech_crafting import equipment_gem_socket_capacity_v03111
@@ -920,6 +921,153 @@ class SessionCraftingExpansionV03114Mixin:
         self.consume_recipe_item('socket_core_v03114',cost); self.consume_recipe_item(refined,1)
         new=self.server.db.add_equipment_socket_v03114(self.account_id,iid,2)
         await self.send(f"Socket Crafting: {item['name']} otrzymuje trwałe dodatkowe gniazdo. Bonus gniazd +{new}/2.")
+
+    async def harden_equipment_v11342(self, query=""):
+        if not self.at_haldor_forge_v0925():
+            await self.send(
+                "Hartowanie EQ wykonuje Haldor w Kuźni/Warsztacie Rzemieślniczym."
+            )
+            return
+        if self.combat_mob_key:
+            await self.send("Nie możesz hartować EQ podczas aktywnej walki.")
+            return
+
+        raw=str(query or "").strip()
+        if not raw:
+            await self.send(
+                "HARTOWANIE EQ. Użycie: hartuj <żywioł> <pełna nazwa EQ>. "
+                "Status: hartuj status <pełna nazwa EQ>. Żywioły: "
+                "Fire, Ice, Electric, Dark, Poison, Holy, Water, Arcane."
+            )
+            return
+
+        norm=normalize_lookup_text(raw)
+        if norm.startswith("status ") or norm.startswith("stan "):
+            item_query=raw.split(maxsplit=1)[1] if " " in raw else ""
+            found=self.resolve_owned_equipment_v0925(item_query,False)
+            if not found:
+                await self.send("Nie rozpoznaję posiadanego EQ do sprawdzenia hartowania.")
+                return
+            item_id,item=found
+            hardening=self.server.db.equipment_hardening_v11342(
+                self.account_id,item_id
+            )
+            if not hardening:
+                await self.send(f"{item['name']}: brak hartowania żywiołowego.")
+                return
+            parts=[]
+            for element,rank in sorted(hardening.items()):
+                label=V11339_ELEMENT_LABELS.get(element,element)
+                parts.append(f"{label} {rank}/5, {rank*2}%")
+            await self.send(f"{item['name']}: hartowanie " + "; ".join(parts) + ".")
+            return
+
+        aliases={
+            "ogien":"fire","fire":"fire",
+            "lod":"ice","ice":"ice","frost":"ice",
+            "electric":"lightning","elektryczny":"lightning",
+            "piorun":"lightning","lightning":"lightning",
+            "mrok":"dark","dark":"dark","cien":"dark",
+            "trucizna":"poison","poison":"poison",
+            "swiete":"holy","holy":"holy","swiatlo":"holy",
+            "woda":"water","water":"water",
+            "arkana":"arcane","arcane":"arcane","magia":"arcane",
+        }
+        tokens=raw.split()
+        if len(tokens)<2:
+            await self.send(
+                "Użycie: hartuj <żywioł> <pełna nazwa EQ>, np. "
+                "hartuj fire Venetian Shield."
+            )
+            return
+
+        first_norm=normalize_lookup_text(tokens[0])
+        last_norm=normalize_lookup_text(tokens[-1])
+        element=aliases.get(first_norm)
+        if element:
+            item_query=" ".join(tokens[1:])
+        else:
+            element=aliases.get(last_norm)
+            item_query=" ".join(tokens[:-1]) if element else ""
+        element=canonical_element_v11339(element)
+        if not element or not item_query:
+            await self.send(
+                "Nieznany żywioł. Dostępne: Fire, Ice, Electric, Dark, "
+                "Poison, Holy, Water, Arcane."
+            )
+            return
+
+        found=self.resolve_owned_equipment_v0925(item_query,False)
+        if not found:
+            await self.send("Nie rozpoznaję posiadanego EQ do hartowania.")
+            return
+        item_id,item=found
+        hardening=self.server.db.equipment_hardening_v11342(
+            self.account_id,item_id
+        )
+        current=max(0,int(hardening.get(element,0) or 0))
+        if current>=5:
+            await self.send(
+                f"{item['name']}: {V11339_ELEMENT_LABELS[element]} ma już "
+                "maksymalne hartowanie 5/5, czyli 10%."
+            )
+            return
+
+        level=max(1,int(v03042_equipment_level(item) or 1))
+        refined=(
+            "hardened_steel_ingot"
+            if level<200
+            else ("astral_alloy" if level<320 else "eternium_alloy")
+        )
+        essence_qty=2+current*2
+        metal_qty=1+(current//2)
+        missing=[]
+        if self.available_recipe_item("runic_essence")<essence_qty:
+            missing.append(
+                f"{ITEMS['runic_essence']['name']} "
+                f"{self.available_recipe_item('runic_essence')}/{essence_qty}"
+            )
+        if self.available_recipe_item(refined)<metal_qty:
+            missing.append(
+                f"{ITEMS[refined]['name']} "
+                f"{self.available_recipe_item(refined)}/{metal_qty}"
+            )
+        if missing:
+            await self.send("Hartowanie: brakuje " + ", ".join(missing) + ".")
+            return
+
+        if not self.consume_recipe_item("runic_essence",essence_qty):
+            await self.send("Nie udało się pobrać Esencji Runicznej.")
+            return
+        if not self.consume_recipe_item(refined,metal_qty):
+            # Nie powinno się zdarzyć po kontroli zapasu; zwróć esencję, aby
+            # operacja była atomowa dla gracza.
+            self.server.db.add_storage_item(
+                self.account_id,"craftbox","runic_essence",essence_qty
+            )
+            await self.send("Nie udało się pobrać stopu do hartowania.")
+            return
+
+        new_rank=self.server.db.add_equipment_hardening_v11342(
+            self.account_id,item_id,element,5
+        )
+        label=V11339_ELEMENT_LABELS[element]
+        await self.send(
+            f"Hartowanie: {item['name']}. {label} {new_rank}/5. "
+            f"Odporność tego EQ: {new_rank*2}%. Koszt: "
+            f"{ITEMS['runic_essence']['name']} x{essence_qty}, "
+            f"{ITEMS[refined]['name']} x{metal_qty}."
+        )
+
+        # Hartowanie jest realną pracą kowalską i wspiera wolniejszą dotąd
+        # profesję, ale celowo nie daje Tool XP.
+        profession_xp=max(40,40+level//4+new_rank*30)
+        messages,_prof_after,_tool_after=self.grant_profession_progress(
+            "Kowalstwo",profession_xp,"crafting",0,tool_progress=False
+        )
+        for message in messages:
+            await self.send(message)
+        await self.advance_class_guild_quest_v11132("craft",1)
 
     async def handle_runes_v03114(self,args=""):
         raw=str(args or '').strip(); parts=raw.split(maxsplit=2); action=normalize_lookup_text(parts[0]) if parts else ''
