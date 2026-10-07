@@ -112,6 +112,21 @@ except Exception as exc:
         f"elite variants audit import failed: {type(exc).__name__}: {exc}"
     )
 
+try:
+    from systems.party_synergies import (
+        PARTY_SYNERGY_AUDIT_V11338 as _party_synergy_audit_v11338,
+    )
+    for _error in _party_synergy_audit_v11338.get("errors", ()):
+        _semantic_errors.append("party_synergies: " + str(_error))
+    if int(_party_synergy_audit_v11338.get("synergy_count", 0) or 0) != 7:
+        _semantic_errors.append("party_synergies: expected seven reviewed class pairs")
+    if int(_party_synergy_audit_v11338.get("covered_classes", 0) or 0) != 14:
+        _semantic_errors.append("party_synergies: expected coverage of all 14 classes")
+except Exception as exc:
+    _semantic_errors.append(
+        f"party synergy audit import failed: {type(exc).__name__}: {exc}"
+    )
+
 # AP is a learning-point cost, never authored combat power. Keep a small
 # source-level regression guard around the two runtime files that previously
 # leaked UOSS Base AP into Mec/Engineer damage.
@@ -2554,6 +2569,39 @@ for _needle in (
         _semantic_errors.append(
             "v1.13.38 class equipment flat power regression: missing " + _needle
         )
+
+# v1.13.38 — local party class synergies must affect the same combat/healing
+# paths that Adaptive Combat previews, and must stay visible in party status.
+_party_synergy_source_v11338 = (_root / "systems/party_synergies.py").read_text(encoding="utf-8")
+_party_damage_source_v11338 = (_root / "player/session_mixins/combat_damage.py").read_text(encoding="utf-8")
+_party_skills_source_v11338 = (_root / "player/session_mixins/combat_skills.py").read_text(encoding="utf-8")
+_party_ui_source_v11338 = (_root / "player/session_mixins/party.py").read_text(encoding="utf-8")
+for _needle in (
+    '"holy_circuit"', '"runic_bastion"', '"blood_front"', '"shadow_hunt"',
+    '"mind_body"', '"life_death_cycle"', '"aether_overclock"',
+    "V11338_PARTY_SYNERGY_DAMAGE_CAP_PCT = 20.0",
+    "V11338_PARTY_SYNERGY_HEALING_CAP_PCT = 25.0",
+):
+    if _needle not in _party_synergy_source_v11338:
+        _semantic_errors.append("v1.13.38 party synergy system regression: missing " + _needle)
+for _needle in (
+    'party_synergy_damage_multiplier_v11338(self, "physical")',
+    'party_synergy_damage_multiplier_v11338(self, "magic")',
+):
+    if _needle not in _party_damage_source_v11338:
+        _semantic_errors.append("v1.13.38 party synergy Adaptive/basic damage regression: missing " + _needle)
+for _needle in (
+    "party_synergy_damage_multiplier_v11338(self, resolved_type)",
+    "party_synergy_healing_multiplier_v11338(self)",
+):
+    if _needle not in _party_skills_source_v11338:
+        _semantic_errors.append("v1.13.38 party synergy skill/heal regression: missing " + _needle)
+for _needle in (
+    "party_synergy_summary_v11338(self)",
+    "party_synergy_healing_multiplier_v11338(self)",
+):
+    if _needle not in _party_ui_source_v11338:
+        _semantic_errors.append("v1.13.38 party synergy UI/auto-heal regression: missing " + _needle)
 
 # v1.13.38 — random elite affixes must stay wired through spawn, combat,
 # rewards and the canonical Adaptive Combat layer.
