@@ -442,6 +442,13 @@ class SessionCraftingOrdersV0600Mixin:
                 int(active["reward_tool_xp"]),
                 content_level=order_content_level,
             )
+            _xp_gain=getattr(
+                self,"_last_profession_reward_gain_v11343",{}
+            ) or {}
+            actual_profession_xp=int(
+                _xp_gain.get("profession_xp",0) or 0
+            )
+            actual_tool_xp=int(_xp_gain.get("tool_xp",0) or 0)
             completed_ok = self.server.db.finish_crafting_order_v0700(
                 self.account_id, int(active["cycle_slot"]), str(active["npc_id"]),
                 item_id, needed, str(active["profession"]), coins,
@@ -464,8 +471,10 @@ class SessionCraftingOrdersV0600Mixin:
                 print(f"CRAFTING_ORDER_ACTIVITY_LOG_ERROR: {type(exc).__name__}: {exc}", flush=True)
             await self.send(
                 f"ZAMÓWIENIE WYKONANE: {active['item_name']} x{needed}. "
-                f"Nagroda {currency_reading_text(coins,0,0)}, {int(active['reward_profession_xp'])} XP profesji "
-                f"i {int(active['reward_tool_xp'])} XP narzędzia. Zamówienia nie dają Soul XP."
+                f"Nagroda {currency_reading_text(coins,0,0)}. "
+                f"Faktycznie przyznano {actual_profession_xp} XP {order_profession} "
+                f"i {actual_tool_xp} XP {self.tool_display_name_v11343(tool_type)}. "
+                "Zamówienia nie dają Soul XP."
             )
             return
 
