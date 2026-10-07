@@ -1353,7 +1353,8 @@ def v0150_dynamic_world_offer(account_id, now=None):
     reward_gold=max(1,reward_coins//SILVER_PER_GOLD)
     return {
         "quest_key":f"v015:{slot}:{qtype}:{kind}", "quest_type":qtype, "target":target,
-        "label":labels[qtype], "needed":needed, "progress":0, "reward_soul_xp":reward_soul,
+        "label":labels[qtype], "needed":needed, "progress":0,
+        "stage":stage, "reward_soul_xp":reward_soul,
         "reward_gold":reward_gold, "accepted_slot":slot, "completed":False,
     }
 
