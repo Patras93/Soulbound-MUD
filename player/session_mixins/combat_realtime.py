@@ -558,6 +558,27 @@ class SessionCombatRealtimeMixin:
                                 _mob_flavor_v11324 = mob_attack_flavor_v11324(
                                     _action_template, random.random()
                                 )
+                                _storm_every_v11338 = max(
+                                    0,
+                                    int(_action_template.get("elite_storm_every_v11338", 0) or 0),
+                                )
+                                if (
+                                    _action_template.get("elite_affix") == "storm"
+                                    and _storm_every_v11338 > 0
+                                    and int(getattr(enemy_mob, "combat_turn", 0) or 0)
+                                    % _storm_every_v11338 == 0
+                                ):
+                                    _storm_text_v11338 = (
+                                        f"{_action_template['name']}: burzowe wyładowanie wzmacnia ten atak."
+                                    )
+                                    await self.send_combat(
+                                        _storm_text_v11338, "essential"
+                                    )
+                                    await self.server.party_combat_broadcast(
+                                        self,
+                                        _storm_text_v11338,
+                                        detail="essential",
+                                    )
                                 _party_targets = self.server.party_combat_targets(self, enemy_mob)
                                 # One mob action attacks the whole living local party.
                                 # The existing realtime loop owner remains the sole
@@ -741,17 +762,6 @@ class SessionCombatRealtimeMixin:
                                         * _adaptive_enemy_mult_v11330
                                         * _elite_enemy_mult_v11338
                                     )
-                                    if (
-                                        _enemy_template.get("elite_affix") == "storm"
-                                        and int(_enemy_template.get("elite_storm_every_v11338", 0) or 0) > 0
-                                        and int(getattr(enemy_mob, "combat_turn", 0) or 0)
-                                        % int(_enemy_template.get("elite_storm_every_v11338", 1) or 1) == 0
-                                    ):
-                                        await self.server.party_combat_broadcast(
-                                            target_session,
-                                            f"{_enemy_template['name']}: burzowe wyładowanie wzmacnia ten atak.",
-                                            detail="essential",
-                                        )
                                     if _enemy_action_mult_v11324 != 1.0:
                                         _old_damage = _enemy_template.get("damage", 1)
                                         _enemy_template["damage"] = max(
