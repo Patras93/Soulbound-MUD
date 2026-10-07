@@ -44,6 +44,8 @@ Soulbound v1.13.42 — OCEAN TRADE & LONG-TERM PROGRESSION
 - INNE ŹRÓDŁA: questy, eksploracja, przedmioty i inne niebojowe nagrody zachowują normalny overflow; limit jednego awansu dotyczy kill rewardu.
 - SAVE BEZ RESETU: istniejące levele, Soul, Biegłości i staty nie są cofane. Zmienia się tylko koszt przyszłych awansów.
 - AUDYT PROGRESJI: CI pilnuje docelowego tempa 72/48/75/54/60 oraz semantyki limitu jednego awansu z killa.
+- SZYBSZE PROFESJE: globalny mnożnik Profession XP rośnie z x2 do x4. Zwykłe akcje, craft, questy specjalistów i zamówienia dają około 2 razy więcej Profession XP niż wcześniej.
+- NARZĘDZIA BEZ ZMIANY: Tool XP ma osobną progresję i nie dostaje tego dodatkowego x2, więc profesja dogania szybciej bez automatycznego wystrzelenia poziomu narzędzia.
 - Brak wipe i brak migracji bazy.
 
 ==============================================================================
