@@ -658,6 +658,25 @@ class SessionDungeonProgressionMixin:
             # v1.13.30: brak minimalnego Soul Level dla Wieży Astralnej.
             return False
 
+    async def grant_stat_xp_v11342(
+        self, amount, targets=None, *, content_level,
+        content_scaled=False
+    ):
+            amount=max(0,int(amount or 0))
+            if amount<=0:
+                return 0
+            amount=self.scale_progression_xp_v11342(
+                amount,
+                content_level,
+                content_scaled=content_scaled,
+            )
+            amount=self.apply_double_xp(amount)
+            for message in self.character.add_stat_progress(
+                amount,targets=targets
+            ):
+                await self.send(message)
+            return amount
+
     async def grant_combat_quest_stat_xp(
         self, raw_reward, repeatable=False, source_label="Quest walki", *,
         content_level=None, content_scaled=False
