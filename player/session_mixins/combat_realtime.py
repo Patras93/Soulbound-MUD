@@ -20,6 +20,11 @@ from systems.elite_variants import (
     elite_enemy_action_multiplier_v11338,
     elite_regen_amount_v11338,
 )
+from systems.elemental_combat import (
+    elemental_mob_attack_profile_v11339,
+    elemental_target_ward_multiplier_v11339,
+    elemental_target_ward_text_v11339,
+)
 from world.machine_expansion import v0314_adjust_damage_vs_template
 from world.uoss_superboss_runtime import (
     superboss_attack_gate_v11137, superboss_helper_profile_v11137,
@@ -555,8 +560,20 @@ class SessionCombatRealtimeMixin:
                                     if _sonata_rounds>0 else 1.0
                                 )
                                 _action_template = MOB_TEMPLATES[enemy_mob.template_id]
-                                _mob_flavor_v11324 = mob_attack_flavor_v11324(
-                                    _action_template, random.random()
+                                _elemental_attack_v11339 = elemental_mob_attack_profile_v11339(
+                                    _action_template,
+                                    random.random(),
+                                    getattr(enemy_mob, "combat_turn", 0),
+                                )
+                                # Elemental special replaces the old flavor spike for
+                                # this action so two independent burst multipliers do
+                                # not stack into an accidental one-shot.
+                                _mob_flavor_v11324 = (
+                                    None
+                                    if _elemental_attack_v11339
+                                    else mob_attack_flavor_v11324(
+                                        _action_template, random.random()
+                                    )
                                 )
                                 _storm_every_v11338 = max(
                                     0,
@@ -707,11 +724,22 @@ class SessionCombatRealtimeMixin:
                                         str(_mob_flavor_v11324.get("text") or "")
                                         if _mob_flavor_v11324 else ""
                                     )
+                                    _elemental_note_v11339 = ""
+                                    if _elemental_attack_v11339:
+                                        _elemental_note_v11339 = (
+                                            " "
+                                            + str(_elemental_attack_v11339.get("text") or "")
+                                            + elemental_target_ward_text_v11339(
+                                                target_session,
+                                                _elemental_attack_v11339.get("element"),
+                                            )
+                                        )
                                     await self.server.party_combat_broadcast(
                                         target_session,
                                         f"{_enemy_template['name']} atakuje {target_session.character.name}."
                                         + (f" {_uoss_note}" if _uoss_note and _uoss_mult != 1.0 else "")
-                                        + (f" {_flavor_note_v11324}" if _flavor_note_v11324 else ""),
+                                        + (f" {_flavor_note_v11324}" if _flavor_note_v11324 else "")
+                                        + _elemental_note_v11339,
                                         detail="normal",
                                     )
                                     if _source_effect_replaces_attack:
@@ -756,14 +784,35 @@ class SessionCombatRealtimeMixin:
                                             getattr(enemy_mob, "combat_turn", 0),
                                         )
                                     )
+                                    _elemental_enemy_mult_v11339 = 1.0
+                                    if _elemental_attack_v11339:
+                                        _elemental_enemy_mult_v11339 = (
+                                            float(
+                                                _elemental_attack_v11339.get(
+                                                    "damage_multiplier", 1.0
+                                                )
+                                                or 1.0
+                                            )
+                                            * elemental_target_ward_multiplier_v11339(
+                                                target_session,
+                                                _elemental_attack_v11339.get("element"),
+                                            )
+                                        )
                                     _enemy_action_mult_v11324 = (
                                         _uoss_mult
                                         * _flavor_mult_v11324
                                         * _adaptive_enemy_mult_v11330
                                         * _elite_enemy_mult_v11338
+                                        * _elemental_enemy_mult_v11339
                                     )
-                                    if _enemy_action_mult_v11324 != 1.0:
+                                    if (
+                                        _enemy_action_mult_v11324 != 1.0
+                                        or _elemental_attack_v11339
+                                    ):
                                         _old_damage = _enemy_template.get("damage", 1)
+                                        _old_damage_type = _enemy_template.get(
+                                            "damage_type", "physical"
+                                        )
                                         _enemy_template["damage"] = max(
                                             1,
                                             int(round(
@@ -771,10 +820,18 @@ class SessionCombatRealtimeMixin:
                                                 * _enemy_action_mult_v11324
                                             )),
                                         )
+                                        if _elemental_attack_v11339:
+                                            _enemy_template["damage_type"] = str(
+                                                _elemental_attack_v11339.get(
+                                                    "defense_channel", "magic"
+                                                )
+                                                or "magic"
+                                            )
                                         try:
                                             await target_session.enemy_counterattack(enemy_mob)
                                         finally:
                                             _enemy_template["damage"] = _old_damage
+                                            _enemy_template["damage_type"] = _old_damage_type
                                     else:
                                         await target_session.enemy_counterattack(enemy_mob)
 
