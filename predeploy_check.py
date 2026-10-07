@@ -3120,7 +3120,7 @@ if "PROFESSION_XP_GAIN_MULTIPLIER = 4" not in _profession_bootstrap_source_v1134
     )
 for _needle in (
     "legacy_prof_xp = max(0, int(prof_xp)) * PROFESSION_XP_GAIN_MULTIPLIER",
-    "legacy_profession_xp = max(0, int(profession_xp)) * PROFESSION_XP_GAIN_MULTIPLIER",
+    "legacy_profession_xp = raw_profession_xp * PROFESSION_XP_GAIN_MULTIPLIER",
 ):
     if _needle not in _profession_storage_source_v11342:
         _semantic_errors.append(
