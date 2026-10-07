@@ -121,7 +121,17 @@ def main():
                     floor1 = ns["ROOMS"].get(floor1_id, {})
                     if (floor1.get("exits") or {}).get("up") != deep_entry_id:
                         deep_errors.append("Deep Dungeon floor 1 does not return to entry")
-                    floor25_id, floor25_spawns = deep_creator(25)
+                    floor25_id, _floor25_created_spawns = deep_creator(25)
+                    floor25_spawns = [
+                        (room_id, template_id)
+                        for room_id, template_id in ns.get("MOB_SPAWNS", ())
+                        if str(room_id) == str(floor25_id)
+                    ]
+                    # A lazy floor can already exist by the time this smoke runs,
+                    # so its creator may correctly return no *new* spawns. Audit
+                    # the assembled runtime spawn table rather than only the delta.
+                    if not floor25_spawns:
+                        floor25_spawns = list(_floor25_created_spawns)
                     if not any(
                         ns["MOB_TEMPLATES"].get(template_id, {}).get(
                             "uoss_deep_dungeon_apanda"
