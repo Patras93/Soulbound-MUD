@@ -136,9 +136,20 @@ class SessionCharacterProfileMixin:
             await self.send(f"Klasa główna: {c.class_name}.")
             await self.send(f"Poziom postaci: {c.character_level}/{CHARACTER_MAX_LEVEL}. EXP: {c.character_xp} z {character_xp_to_next(c.character_level) if c.character_level < CHARACTER_MAX_LEVEL else 0}.")
             for class_name in active_classes:
-                await self.send(
-                    f"Biegłość {class_name}: {self.class_mastery_level(class_name)}/{CLASS_MASTERY_MAX_LEVEL}."
-                )
+                row = self.server.db.class_progress_row(self.account_id, class_name)
+                level = int(row["level"] or 1)
+                xp = int(row["xp"] or 0)
+                if level >= CLASS_MASTERY_MAX_LEVEL:
+                    await self.send(
+                        f"Biegłość {class_name}: {CLASS_MASTERY_MAX_LEVEL}/{CLASS_MASTERY_MAX_LEVEL}. Maksimum."
+                    )
+                else:
+                    needed = class_mastery_xp_to_next(level)
+                    missing = max(0, int(needed) - xp)
+                    await self.send(
+                        f"Biegłość {class_name}: {level}/{CLASS_MASTERY_MAX_LEVEL}. "
+                        f"EXP: {xp} z {needed}. Brakuje {missing} EXP do Biegłości {level + 1}."
+                    )
             await self.send(f"Broń Duszy: {c.soul_weapon}.")
             await self.send(f"Soul Level: {c.soul_level}/{SOUL_MAX_LEVEL}.")
             await self.send(f"Soul Tier: {c.soul_tier}/{SOUL_MAX_TIER} — {soul_tier_title_for_class(c.soul_tier, c.class_name)}.")

@@ -1864,24 +1864,31 @@ class SessionCombatSkillsMixin:
                                         _jam_accuracy,
                                     )
                                 )
-                                if random.random() < _jam_accuracy:
-                                    _existing=max(
-                                        0,int(
-                                            getattr(
-                                                _jam_target,
-                                                "v11196_jammer_stop_rounds",
-                                                0,
-                                            ) or 0
-                                        )
+                                _existing=max(
+                                    0,int(
+                                        getattr(
+                                            _jam_target,
+                                            "v11196_jammer_stop_rounds",
+                                            0,
+                                        ) or 0
                                     )
-                                    _jam_target.v11196_jammer_stop_rounds=(
-                                        _existing+_jammer_rounds
+                                )
+                                if _existing > 0:
+                                    # Jammer is a one-shot disable, not a duration stacker.
+                                    # A target may still be affected by other control states
+                                    # (for example Logic Bomb Paralyze), but an active Jammer
+                                    # Stop is never refreshed or extended by repeated casts.
+                                    await self.send(
+                                        f"Jammer: {_jam_template['name']} jest już wyłączony przez Stop. "
+                                        "Ponowne użycie nie przedłuża działania."
                                     )
+                                elif random.random() < _jam_accuracy:
+                                    _jam_target.v11196_jammer_stop_rounds=_jammer_rounds
                                     _jam_target.v11196_jammer_stop_cleanseable=True
                                     _jammer_hits+=1
                                     await self.send(
-                                        f"Jammer: {_jam_template['name']} otrzymuje Stop na "
-                                        f"{_jam_target.v11196_jammer_stop_rounds} akcji. "
+                                        f"Jammer: {_jam_template['name']} zostaje jednorazowo wyłączony "
+                                        f"na {_jammer_rounds} akcji. "
                                         f"Celność {int(round(_jam_accuracy*100))} procent."
                                         + (" Bonus Machine." if _jam_machine else "")
                                     )
