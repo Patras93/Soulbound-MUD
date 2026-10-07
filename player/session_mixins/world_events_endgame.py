@@ -218,7 +218,24 @@ class SessionWorldEventsEndgameMixin:
                 if not active or not active['completed']:
                     await self.send("Dynamiczne zadanie świata nie jest jeszcze ukończone.")
                     return
-                await self.grant_soul_xp(int(active['reward_soul_xp']))
+                dynamic_stage=max(0,int(active.get("stage",0) or 0))
+                if dynamic_stage<=0:
+                    key_parts=str(active.get("quest_key") or "").split(":")
+                    biome_key=key_parts[3] if len(key_parts)>3 else ""
+                    dynamic_stage=max(
+                        1,
+                        int(
+                            V013_FRONTIER_SPECS.get(biome_key,{}).get(
+                                "base_mastery",1
+                            )
+                            or 1
+                        ),
+                    )
+                await self.grant_soul_xp(
+                    int(active["reward_soul_xp"]),
+                    content_level=dynamic_stage,
+                    content_scaled=True,
+                )
                 self.character.gold += int(active['reward_gold'])
                 self.server.db.save_character(self.character)
                 self.server.db.add_lifetime_stat(self.account_id, "dynamic_world_quests_completed", 1)
@@ -526,7 +543,31 @@ class SessionWorldEventsEndgameMixin:
                 if c["reward_claimed"]: await self.send("Nagroda za ten projekt została już odebrana."); return
                 if c["points"]<int(spec["min_points"]): await self.send(f"Do nagrody potrzeba osobistego wkładu {spec['min_points']} pkt. Masz {c['points']}."); return
                 if not self.server.db.mark_world_project_reward_claimed_v022(key,self.account_id): await self.send("Nagroda jest już odebrana."); return
-                reward=v022_project_reward(key); [await self.send(_m) for _m in self.add_character_xp_with_event(reward["character_xp"])]; await self.grant_class_xp(reward["class_xp"]); await self.grant_soul_xp(reward["soul_xp"]); self.character.silver=min(CURRENCY_SQLITE_SAFE_TOTAL,self.character.silver+reward["coins"]); self.server.db.save_character(self.character)
+                reward=v022_project_reward(key)
+                project_stage=max(1,min(600,int(spec.get("stage",1) or 1)))
+                [
+                    await self.send(_m)
+                    for _m in self.add_character_xp_with_event(
+                        reward["character_xp"],
+                        content_level=project_stage,
+                        content_scaled=True,
+                    )
+                ]
+                await self.grant_class_xp(
+                    reward["class_xp"],
+                    content_level=project_stage,
+                    content_scaled=True,
+                )
+                await self.grant_soul_xp(
+                    reward["soul_xp"],
+                    content_level=project_stage,
+                    content_scaled=True,
+                )
+                self.character.silver=min(
+                    CURRENCY_SQLITE_SAFE_TOTAL,
+                    self.character.silver+reward["coins"],
+                )
+                self.server.db.save_character(self.character)
                 self.server.db.unlock_title(self.account_id,f"v022_project_{key}",spec["title"]); self.server.db.add_lifetime_stat(self.account_id,"world_projects_claimed",1)
                 await self.send(f"Odbierasz nagrodę projektu {spec['name']}: {reward['class_xp']} Class XP, {reward['soul_xp']} Soul XP, {currency_reading_text(reward['coins'],0,0)} i tytuł {spec['title']}."); return
             if state["completed"]: await self.send("Projekt jest już ukończony."); return
@@ -587,7 +628,32 @@ class SessionWorldEventsEndgameMixin:
                 await self.send(f"{active['label']}: {int(active.get('progress',0))} z {active['needed']}."); return
             if raw in ("odbierz","claim"):
                 if not active or int(active.get('progress',0))<int(active.get('needed',1)): await self.send("Legendarny kontrakt nie jest gotowy do odebrania."); return
-                [await self.send(_m) for _m in self.add_character_xp_with_event(int(active.get('reward_character_xp',0)))]; await self.grant_class_xp(int(active['reward_class_xp'])); await self.grant_soul_xp(int(active['reward_soul_xp'])); self.character.silver=min(CURRENCY_SQLITE_SAFE_TOTAL,self.character.silver+int(active['reward_coins'])); self.server.db.save_character(self.character)
+                legendary_stage=max(
+                    1,min(600,int(active.get("stage",1) or 1))
+                )
+                [
+                    await self.send(_m)
+                    for _m in self.add_character_xp_with_event(
+                        int(active.get("reward_character_xp",0)),
+                        content_level=legendary_stage,
+                        content_scaled=True,
+                    )
+                ]
+                await self.grant_class_xp(
+                    int(active["reward_class_xp"]),
+                    content_level=legendary_stage,
+                    content_scaled=True,
+                )
+                await self.grant_soul_xp(
+                    int(active["reward_soul_xp"]),
+                    content_level=legendary_stage,
+                    content_scaled=True,
+                )
+                self.character.silver=min(
+                    CURRENCY_SQLITE_SAFE_TOTAL,
+                    self.character.silver+int(active["reward_coins"]),
+                )
+                self.server.db.save_character(self.character)
                 completed=state["completed_count"]+1; self.server.db.add_lifetime_stat(self.account_id,"legendary_contracts_completed",1); offers=self.generate_legendary_contracts_v022(); self.server.db.save_legendary_contract_state_v022(self.account_id,offers=offers,active={},completed_count=completed)
                 await self.send(f"LEGENDARNY KONTRAKT UKOŃCZONY. Nagroda: {active['reward_class_xp']} Class XP, {active['reward_soul_xp']} Soul XP i {currency_reading_text(active['reward_coins'],0,0)}."); return
             if raw in ("odswiez","odśwież","refresh"):
