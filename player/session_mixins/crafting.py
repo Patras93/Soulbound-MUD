@@ -571,8 +571,16 @@ class SessionCraftingMixin:
                     f"XP {profession} i {tool_name} x{_o_kurde_craft_xp_v11324:.2f}. "
                     "Nie zużywasz dodatkowych składników i nie powstaje darmowy duplikat EQ."
                 )
+            content_level = self.profession_content_level_v11342(
+                item_id=output_id,
+                recipe=recipe,
+            )
             messages, _profession_level_after, new_tool_level = self.grant_profession_progress(
-                profession, profession_xp, tool_type, tool_xp
+                profession,
+                profession_xp,
+                tool_type,
+                tool_xp,
+                content_level=content_level,
             )
             for message in messages:
                 await self.send(message)

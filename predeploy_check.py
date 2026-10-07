@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Fast Railway predeploy gate for Soulbound v1.13.41.
+"""Fast Railway predeploy gate for Soulbound v1.13.42.
 
 This is the normal deploy check.  It intentionally avoids assembling the full
 world/runtime.  Use predeploy_full.py when an exhaustive historical audit is
@@ -17,7 +17,7 @@ import traceback
 try:
     from storage.database import Database as _DatabaseImportSmoke
 except Exception as exc:
-    print(f"Soulbound v1.13.41 FAST PREDEPLOY FAILED: database import: {type(exc).__name__}: {exc}")
+    print(f"Soulbound v1.13.42 FAST PREDEPLOY FAILED: database import: {type(exc).__name__}: {exc}")
     traceback.print_exc()
     raise SystemExit(1)
 
@@ -42,7 +42,7 @@ try:
     )
 except Exception as exc:
     print(
-        "Soulbound v1.13.41 FAST PREDEPLOY FAILED: "
+        "Soulbound v1.13.42 FAST PREDEPLOY FAILED: "
         f"skill semantic import: {type(exc).__name__}: {exc}"
     )
     traceback.print_exc()
@@ -1979,13 +1979,13 @@ for _needle in _dragon_required_namespaced_helpers:
             "dragon runtime helper namespace regression: missing " + _needle
         )
 
-# v1.13.1: uncapped stats must stay generous globally. The natural stat
-# requirement curve is used without the old x2 tax and every source is
-# accelerated x4 before race/guild bonuses and uncapped post-400 scaling.
+# v1.13.42: uncapped stats keep the global x4 reward accelerator, but the
+# requirement is also x4 so matching-stage progression targets ~60 actions
+# per permanent point instead of the old ~15.
 _balance_source = (_root / "config/balance.py").read_text(encoding="utf-8")
 _character_source = (_root / "player/character.py").read_text(encoding="utf-8")
 _stat_pace_needles = (
-    "STAT_XP_REQUIREMENT_MULTIPLIER = 1.0",
+    "STAT_XP_REQUIREMENT_MULTIPLIER = 4.0",
     "STAT_XP_REWARD_MULTIPLIER = 4.0",
 )
 for _needle in _stat_pace_needles:
@@ -2018,7 +2018,7 @@ else:
         'HELP_TOPICS["statystyki"]',
         "bez twardego limitu",
         "x4",
-        "15 akcji",
+        "60 akcji",
     )
     for _needle in _final_stat_help_needles:
         if _needle not in _final_help_block:
@@ -2177,24 +2177,24 @@ for _needle in (
 
 _long_term_balance_source = (_root / "admin/long_term_balance_audit_v0502.py").read_text(encoding="utf-8")
 _long_term_stat_needles = (
-    "STAT_XP_REWARD_MULTIPLIER",
-    'errors.append("stat requirement multiplier must be 1.0")',
-    'errors.append("stat reward multiplier must be 4.0")',
-    '"profession": 50, "tool": 65, "stat": 15,',
-    "14.0 <= actions <= 16.0",
+    '"stat_requirement": 4.0',
+    '"stat_reward": 4.0',
+    '"stat": 60,',
+    "58.0 <= actions <= 62.0",
+    "single_level_cap_samples",
 )
 for _needle in _long_term_stat_needles:
     if _needle not in _long_term_balance_source:
         _semantic_errors.append(
             "long-term stat audit regression: missing " + _needle
         )
-if 'stat requirement multiplier must be 2.0' in _long_term_balance_source:
+if 'STAT_XP_REQUIREMENT_MULTIPLIER) != 1.0' in _long_term_balance_source:
     _semantic_errors.append(
-        "long-term stat audit regression: stale x2 stat requirement contract"
+        "long-term stat audit regression: stale x1 stat requirement contract"
     )
-if '"stat": 120' in _long_term_balance_source:
+if '"stat": 15' in _long_term_balance_source:
     _semantic_errors.append(
-        "long-term stat audit regression: stale 120-action stat target"
+        "long-term stat audit regression: stale 15-action stat target"
     )
 
 try:
@@ -2208,9 +2208,10 @@ try:
         * float(_stat_req_mult)
         / max(0.000001, float(_stat_reward_mult))
     )
-    if _effective_stat_actions > 15.01:
+    if not (59.99 <= _effective_stat_actions <= 60.01):
         _semantic_errors.append(
-            f"stat XP pace regression: effective actions per point {_effective_stat_actions:.2f} > 15"
+            f"stat XP pace regression: expected 60 effective actions per point, "
+            f"got {_effective_stat_actions:.2f}"
         )
 except Exception as exc:
     _semantic_errors.append(
@@ -2930,19 +2931,424 @@ for _needle in (
     if _needle not in _elite_rewards_source_v11338:
         _semantic_errors.append("v1.13.38 elite rewards regression: missing " + _needle)
 
+# v1.13.42 — long-term progression must stay slow and a single mob kill
+# may finish at most one permanent level on each combat progression axis.
+_balance_source_v11342 = (_root / "config/balance.py").read_text(encoding="utf-8")
+_progression_source_v11342 = (
+    _root / "core/progression_resources.py"
+).read_text(encoding="utf-8")
+_character_source_v11342 = (_root / "player/character.py").read_text(encoding="utf-8")
+_class_progression_source_v11342 = (
+    _root / "player/session_mixins/class_progression.py"
+).read_text(encoding="utf-8")
+_dungeon_progression_source_v11342 = (
+    _root / "player/session_mixins/dungeon_progression.py"
+).read_text(encoding="utf-8")
+_session_runtime_source_v11342 = (
+    _root / "player/session_mixins/session_runtime_state.py"
+).read_text(encoding="utf-8")
+_db_progression_source_v11342 = (
+    _root / "storage/db_progression.py"
+).read_text(encoding="utf-8")
+for _needle in (
+    "CHARACTER_XP_REQUIREMENT_MULTIPLIER = 4.0",
+    "CLASS_MASTERY_XP_REQUIREMENT_MULTIPLIER = 3.0",
+    "SOUL_XP_REQUIREMENT_MULTIPLIER = 3.0",
+    "SOUL_WEAPON_MASTERY_XP_REQUIREMENT_MULTIPLIER = 3.0",
+    "STAT_XP_REQUIREMENT_MULTIPLIER = 4.0",
+    "STAT_XP_REWARD_MULTIPLIER = 4.0",
+):
+    if _needle not in _balance_source_v11342:
+        _semantic_errors.append(
+            "v1.13.42 progression pace regression: missing " + _needle
+        )
+for _needle in (
+    "def cap_single_level_xp_gain_v11342(",
+    "CLASS_MASTERY_XP_REQUIREMENT_MULTIPLIER",
+    "SOUL_XP_REQUIREMENT_MULTIPLIER",
+    "SOUL_WEAPON_MASTERY_XP_REQUIREMENT_MULTIPLIER",
+):
+    if _needle not in _progression_source_v11342:
+        _semantic_errors.append(
+            "v1.13.42 progression requirement regression: missing " + _needle
+        )
+for _source, _label, _needles in (
+    (
+        _character_source_v11342,
+        "character",
+        (
+            "def add_character_xp(self, amount, single_level_cap=False):",
+            "def add_stat_progress(self, amount, targets=None, single_level_cap=False):",
+            "def add_soul_xp(self, amount, single_level_cap=False):",
+            "cap_single_level_xp_gain_v11342(",
+        ),
+    ),
+    (
+        _class_progression_source_v11342,
+        "class",
+        (
+            "async def grant_class_xp(",
+            "content_level=None, content_scaled=False",
+            "single_level_cap=single_level_cap",
+        ),
+    ),
+    (
+        _dungeon_progression_source_v11342,
+        "soul",
+        (
+            "async def grant_soul_xp(",
+            "content_level=None, content_scaled=False",
+            "single_level_cap=single_level_cap",
+        ),
+    ),
+    (
+        _session_runtime_source_v11342,
+        "character_event",
+        (
+            "def add_character_xp_with_event(",
+            "content_level=None, content_scaled=False",
+            "single_level_cap=single_level_cap",
+        ),
+    ),
+    (
+        _db_progression_source_v11342,
+        "class_db",
+        (
+            "single_level_cap=False",
+            "cap_single_level_xp_gain_v11342(",
+        ),
+    ),
+    (
+        _elite_rewards_source_v11338,
+        "combat_rewards",
+        (
+            "single_level_cap=True",
+            "limit zabicia: maksymalnie 1 awans każdej stałej osi.",
+        ),
+    ),
+):
+    for _needle in _needles:
+        if _needle not in _source:
+            _semantic_errors.append(
+                f"v1.13.42 {_label} kill-cap regression: missing {_needle}"
+            )
+
+# v1.13.42 — profession levels should move faster without changing tool XP.
+_profession_bootstrap_source_v11342 = (
+    _root / "core/bootstrap_economy_professions.py"
+).read_text(encoding="utf-8")
+_profession_storage_source_v11342 = (
+    _root / "player/session_mixins/profession_storage.py"
+).read_text(encoding="utf-8")
+if "PROFESSION_XP_GAIN_MULTIPLIER = 4" not in _profession_bootstrap_source_v11342:
+    _semantic_errors.append(
+        "v1.13.42 profession XP regression: global gain multiplier is not x4"
+    )
+for _needle in (
+    "legacy_prof_xp = max(0, int(prof_xp)) * PROFESSION_XP_GAIN_MULTIPLIER",
+    "legacy_profession_xp = max(0, int(profession_xp)) * PROFESSION_XP_GAIN_MULTIPLIER",
+):
+    if _needle not in _profession_storage_source_v11342:
+        _semantic_errors.append(
+            "v1.13.42 profession XP regression: missing " + _needle
+        )
+
+# v1.13.42 — progressive class quests and elemental hardening.
+_class_guild_source_v11342 = (
+    _root / "player/session_mixins/class_guild_progress.py"
+).read_text(encoding="utf-8")
+_equipment_crafting_source_v11342 = (
+    _root / "systems/equipment_crafting.py"
+).read_text(encoding="utf-8")
+_db_crafting_source_v11342 = (
+    _root / "storage/db_crafting_extensions.py"
+).read_text(encoding="utf-8")
+_equipment_stats_source_v11342 = (
+    _root / "player/session_mixins/equipment_stats.py"
+).read_text(encoding="utf-8")
+_crafting_expansion_source_v11342 = (
+    _root / "player/session_mixins/crafting_expansion.py"
+).read_text(encoding="utf-8")
+_command_registry_source_v11342 = (
+    _root / "player/session_mixins/command_registry.py"
+).read_text(encoding="utf-8")
+
+for _needle in (
+    "GUILD_CLASS_QUEST_STAGES_V11342",
+    "guild_class_quest_pool_for_mastery_v11342",
+    "GUILD_CLASS_QUEST_PROGRESS_AUDIT_V11342",
+    '"Wojownik": {"kill", "boss"}',
+    '"Inżynier": {"craft", "gather"}',
+):
+    if _needle not in _equipment_crafting_source_v11342:
+        _semantic_errors.append(
+            "v1.13.42 class quest progression regression: missing " + _needle
+        )
+for _needle in (
+    '"mastery_level": self.class_guild_mastery_level_v11342(class_name)',
+    "class_guild_quest_pool_v11342(cls, state)",
+    "for quest_index, _base_data in base_order",
+    "Etap i wymagania są stałe do odnowienia",
+):
+    if _needle not in _class_guild_source_v11342:
+        _semantic_errors.append(
+            "v1.13.42 hourly class quest freeze regression: missing " + _needle
+        )
+
+for _needle in (
+    "CREATE TABLE IF NOT EXISTS equipment_hardening_v11342",
+    "def equipment_hardening_v11342(",
+    "def add_equipment_hardening_v11342(",
+    "DELETE FROM equipment_hardening_v11342",
+):
+    if _needle not in _db_crafting_source_v11342:
+        _semantic_errors.append(
+            "v1.13.42 hardening persistence regression: missing " + _needle
+        )
+for _needle in (
+    "hardening_ward += min(0.10, rank * 0.02)",
+    "hardening_ward=min(0.40,hardening_ward)",
+    "min(0.80,static_ward+hardening_ward)",
+):
+    if _needle not in _equipment_stats_source_v11342:
+        _semantic_errors.append(
+            "v1.13.42 hardening combat regression: missing " + _needle
+        )
+for _needle in (
+    "async def harden_equipment_v11342",
+    "Fire, Ice, Electric, Dark, Poison, Holy, Water, Arcane",
+    "add_equipment_hardening_v11342",
+    "content_level=max(level,new_rank*100)",
+):
+    if _needle not in _crafting_expansion_source_v11342:
+        _semantic_errors.append(
+            "v1.13.42 hardening command regression: missing " + _needle
+        )
+for _needle in (
+    "'hartuj': ('harden_equipment_v11342', (COMMAND_TEXT,), {})",
+    '("harden", "hardening", "hartowanie")',
+):
+    if _needle not in _command_registry_source_v11342:
+        _semantic_errors.append(
+            "v1.13.42 hardening routing regression: missing " + _needle
+        )
+
+# v1.13.42 — class-room shops must retain non-class utility offers.
+# Without this, guild_arcane_chamber dynamically showed Mag/Psionik EQ but hid
+# runic_focus, making Zaklinanie impossible despite the tool existing in SHOPS.
+_shop_runtime_source_v11342 = (
+    _root / "player/session_mixins/shops_teachers.py"
+).read_text(encoding="utf-8")
+_professions_runtime_source_v11342 = (
+    _root / "systems/professions.py"
+).read_text(encoding="utf-8")
+for _needle in (
+    "CLASS_EQUIPMENT_ITEM_IDS",
+    "for item_id in SHOPS.get(room_id, ()):",
+    "if item_id in CLASS_EQUIPMENT_ITEM_IDS:",
+    "offers.append(item_id)",
+):
+    if _needle not in _shop_runtime_source_v11342:
+        _semantic_errors.append(
+            "v1.13.42 class-room utility shop regression: missing " + _needle
+        )
+for _needle in (
+    '"Zaklinanie": {"tool_type":"enchanting","tool_item_id":"runic_focus"',
+    "'guild_arcane_chamber','runic_focus','guild_quartermaster_arcane'",
+    "'runic_focus':'guild_arcane_chamber'",
+    "'fokus runiczny':'runic_focus'",
+):
+    if _needle not in _professions_runtime_source_v11342:
+        _semantic_errors.append(
+            "v1.13.42 enchanting tool availability regression: missing " + _needle
+        )
+
+# v1.13.42 — every real XP gateway must declare the content tier.
+# This prevents old/new systems from silently returning to flat XP.
+_content_aware_xp_calls_v11342 = {
+    "grant_profession_progress",
+    "grant_profession_reward_xp",
+    "grant_profession_sale_xp",
+    "grant_tool_reward_xp",
+    "grant_tool_progress",
+    "grant_class_xp",
+    "grant_soul_xp",
+    "add_character_xp_with_event",
+    "grant_combat_quest_stat_xp",
+    "grant_stat_xp_v11342",
+}
+_missing_content_by_call_v11342 = {
+    name: [] for name in _content_aware_xp_calls_v11342
+}
+for _source_path_v11342 in _root.rglob("*.py"):
+    if any(part in {".git", "__pycache__"} for part in _source_path_v11342.parts):
+        continue
+    try:
+        _tree_v11342 = ast.parse(
+            _source_path_v11342.read_text(encoding="utf-8"),
+            filename=str(_source_path_v11342),
+        )
+    except Exception:
+        continue
+    for _node_v11342 in ast.walk(_tree_v11342):
+        if not isinstance(_node_v11342, ast.Call):
+            continue
+        _func_v11342 = _node_v11342.func
+        _name_v11342 = (
+            _func_v11342.attr
+            if isinstance(_func_v11342, ast.Attribute)
+            else _func_v11342.id
+            if isinstance(_func_v11342, ast.Name)
+            else ""
+        )
+        if _name_v11342 not in _content_aware_xp_calls_v11342:
+            continue
+        if not any(
+            _kw_v11342.arg == "content_level"
+            for _kw_v11342 in _node_v11342.keywords
+        ):
+            _missing_content_by_call_v11342[_name_v11342].append(
+                f"{_source_path_v11342.relative_to(_root)}:"
+                f"{getattr(_node_v11342, 'lineno', '?')}"
+            )
+for _call_name_v11342,_missing_v11342 in _missing_content_by_call_v11342.items():
+    if _missing_v11342:
+        _semantic_errors.append(
+            f"v1.13.42 flat XP call {_call_name_v11342} without content_level: "
+            + ", ".join(_missing_v11342[:100])
+        )
+
+# v1.13.42 — forbid legacy bypasses around the content-aware gateways.
+# Direct model/DB XP mutations are allowed only inside their canonical gateway
+# (plus combat stat rewards, which already derive XP from the killed mob stage).
+_direct_xp_gateway_allow_v11342 = {
+    "add_character_xp": {
+        "player/session_mixins/session_runtime_state.py",
+        "player/character.py",
+    },
+    "add_soul_xp": {
+        "player/session_mixins/dungeon_progression.py",
+        "player/character.py",
+    },
+    "add_stat_progress": {
+        "player/session_mixins/dungeon_progression.py",
+        "player/session_mixins/combat_rewards.py",
+        "player/character.py",
+    },
+    "add_class_mastery_xp": {
+        "player/session_mixins/class_progression.py",
+        "storage/db_progression.py",
+    },
+    "add_soul_weapon_mastery_xp": {
+        "player/session_mixins/combat_realtime.py",
+        "player/character.py",
+    },
+    "add_skill_xp": {
+        "player/session_mixins/skill_learning.py",
+        "storage/db_progression.py",
+    },
+    "add_ascension_xp_v021": {
+        "player/session_mixins/class_progression.py",
+    },
+}
+_direct_xp_bypasses_v11342 = []
+for _source_path_v11342 in _root.rglob("*.py"):
+    if any(part in {".git", "__pycache__"} for part in _source_path_v11342.parts):
+        continue
+    _relative_v11342=str(_source_path_v11342.relative_to(_root))
+    try:
+        _tree_v11342=ast.parse(
+            _source_path_v11342.read_text(encoding="utf-8"),
+            filename=str(_source_path_v11342),
+        )
+    except Exception:
+        continue
+    for _node_v11342 in ast.walk(_tree_v11342):
+        if not isinstance(_node_v11342, ast.Call):
+            continue
+        _func_v11342=_node_v11342.func
+        _name_v11342=(
+            _func_v11342.attr
+            if isinstance(_func_v11342, ast.Attribute)
+            else _func_v11342.id
+            if isinstance(_func_v11342, ast.Name)
+            else ""
+        )
+        if _name_v11342 not in _direct_xp_gateway_allow_v11342:
+            continue
+        if _relative_v11342 not in _direct_xp_gateway_allow_v11342[_name_v11342]:
+            _direct_xp_bypasses_v11342.append(
+                f"{_name_v11342}@{_relative_v11342}:"
+                f"{getattr(_node_v11342,'lineno','?')}"
+            )
+if _direct_xp_bypasses_v11342:
+    _semantic_errors.append(
+        "v1.13.42 direct XP gateway bypasses: "
+        + ", ".join(_direct_xp_bypasses_v11342[:100])
+    )
+
+# Every mutating add/grant *XP* call must be classified here. This is a
+# future-proof net for new progression axes: CI should fail until a new XP
+# source is explicitly made content-aware or documented as deriving from one.
+_known_xp_mutators_v11342 = set(_content_aware_xp_calls_v11342) | set(
+    _direct_xp_gateway_allow_v11342
+) | {
+    "grant_skill_use_xp",
+    "grant_soul_weapon_mastery_hit_xp",
+}
+_unclassified_xp_mutators_v11342=[]
+for _source_path_v11342 in _root.rglob("*.py"):
+    if any(part in {".git", "__pycache__"} for part in _source_path_v11342.parts):
+        continue
+    try:
+        _tree_v11342=ast.parse(
+            _source_path_v11342.read_text(encoding="utf-8"),
+            filename=str(_source_path_v11342),
+        )
+    except Exception:
+        continue
+    for _node_v11342 in ast.walk(_tree_v11342):
+        if not isinstance(_node_v11342,ast.Call):
+            continue
+        _func_v11342=_node_v11342.func
+        _name_v11342=(
+            _func_v11342.attr
+            if isinstance(_func_v11342,ast.Attribute)
+            else _func_v11342.id
+            if isinstance(_func_v11342,ast.Name)
+            else ""
+        )
+        _lower_v11342=_name_v11342.lower()
+        if not (
+            _lower_v11342.startswith(("add_","grant_"))
+            and "xp" in _lower_v11342
+        ):
+            continue
+        if _name_v11342 in _known_xp_mutators_v11342:
+            continue
+        _unclassified_xp_mutators_v11342.append(
+            f"{_name_v11342}@{_source_path_v11342.relative_to(_root)}:"
+            f"{getattr(_node_v11342,'lineno','?')}"
+        )
+if _unclassified_xp_mutators_v11342:
+    _semantic_errors.append(
+        "v1.13.42 unclassified XP mutators: "
+        + ", ".join(_unclassified_xp_mutators_v11342[:100])
+    )
+
 if _semantic_errors:
-    print("Soulbound v1.13.41 FAST PREDEPLOY FAILED: semantic contracts")
+    print("Soulbound v1.13.42 FAST PREDEPLOY FAILED: semantic contracts")
     for _error in _semantic_errors:
         print(f"ERROR: {_error}")
     raise SystemExit(1)
 
 if audit["error_count"]:
-    print("Soulbound v1.13.41 FAST PREDEPLOY FAILED")
+    print("Soulbound v1.13.42 FAST PREDEPLOY FAILED")
     for error in audit["errors"]:
         print(f"ERROR: {error}")
     raise SystemExit(1)
 
-print("Soulbound v1.13.41 FAST PREDEPLOY PASS")
+print("Soulbound v1.13.42 FAST PREDEPLOY PASS")
 print(
     "Semantic contracts: "
     f"{len(_semantic_audits)} audits PASS; AP runtime guards PASS"

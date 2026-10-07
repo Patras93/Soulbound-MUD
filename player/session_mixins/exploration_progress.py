@@ -597,8 +597,25 @@ class SessionExplorationProgressMixin:
             # v1.11.32: Explorer Points jak w klasycznych MUD-ach.
             # Każda nowa lokacja w terenie daje 1 EP dokładnie raz oraz Character EXP.
             zone_for_ep = str(room_meta.get("zone") or "Nieznany teren")
-            ep_xp = max(50, min(5000, 50 + int(self.character.character_level) * 10))
-            for message in self.add_character_xp_with_event(ep_xp):
+            room_stage=max(
+                1,
+                min(
+                    600,
+                    int(
+                        room_meta.get("recommended_mastery")
+                        or room_meta.get("recommended_level")
+                        or room_meta.get("generator_level")
+                        or room_meta.get("level")
+                        or 1
+                    ),
+                ),
+            )
+            ep_xp = max(50, min(5000, 50 + room_stage * 10))
+            for message in self.add_character_xp_with_event(
+                ep_xp,
+                content_level=room_stage,
+                content_scaled=True,
+            ):
                 if announce:
                     await self.send(message)
             self.server.db.add_lifetime_stat(self.account_id, "explorer_points", 1)
@@ -701,7 +718,7 @@ class SessionExplorationProgressMixin:
     async def complete_zone_exploration(self, zone, room_count):
             title_name = _zone_title(zone)
             reward_item = EXPLORATION_REWARD_ITEMS[zone]
-            soul_xp = max(250, min(5000, room_count * 50))
+            base_soul_xp = max(250, min(5000, room_count * 50))
             zone_rooms = EXPLORATION_ZONE_ROOMS.get(zone, ())
             stages = []
             for room_id in zone_rooms:
@@ -728,8 +745,19 @@ class SessionExplorationProgressMixin:
             )
             gold = 0
 
+            soul_xp=max(
+                1,
+                int(round(
+                    base_soul_xp
+                    * self.progression_content_multiplier_v11342(stage)
+                )),
+            )
             await self.send(f"Eksploracja ukończona: {zone}, 100 procent.")
-            await self.grant_soul_xp(soul_xp)
+            await self.grant_soul_xp(
+                soul_xp,
+                content_level=stage,
+                content_scaled=True,
+            )
             self.character.silver += silver
             self.server.db.add_item(self.account_id, reward_item, 1)
             self.server.db.save_character(self.character)

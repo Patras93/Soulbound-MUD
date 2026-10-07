@@ -281,13 +281,21 @@ class SessionClassProgressionMixin:
                 "multiclass remove <klasa>."
             )
 
-    async def grant_class_xp(self, total_xp):
+    async def grant_class_xp(
+        self, total_xp, single_level_cap=False, *,
+        content_level=None, content_scaled=False
+    ):
             active = self.active_class_names()
             if not active:
                 return
             original_total_xp = max(0, int(total_xp))
             if original_total_xp <= 0:
                 return
+            original_total_xp=self.scale_progression_xp_v11342(
+                original_total_xp,
+                content_level,
+                content_scaled=content_scaled,
+            )
             base_total_xp = self.apply_double_xp(original_total_xp)
             _guild_pct=self.guild_bonus_percent_v0926()
             total_xp=max(0,int(round(base_total_xp*(1.0+_guild_pct/100.0))))
@@ -308,11 +316,19 @@ class SessionClassProgressionMixin:
             for index, class_name in enumerate(active):
                 share = base_share + (1 if index < remainder else 0)
                 result = self.server.db.add_class_mastery_xp(
-                    self.account_id, class_name, share
+                    self.account_id,
+                    class_name,
+                    share,
+                    single_level_cap=single_level_cap,
                 )
                 if result["level_ups"]:
                     await self.send(
                         f"{class_name}: Biegłość rośnie do {result['level']}."
+                    )
+                if result.get("limited"):
+                    await self.send(
+                        f"{class_name}: limit jednego awansu za zabicie — "
+                        "nadwyżka Class XP nie jest bankowana."
                     )
                 ascension=None
                 overflow=max(0,int(result.get("overflow_xp",0) or 0))
@@ -326,12 +342,12 @@ class SessionClassProgressionMixin:
                 if result["level"] >= CLASS_MASTERY_MAX_LEVEL:
                     if ascension:
                         nxt=(f" z {ascension['next_xp']}" if ascension['next_xp'] else " — maksimum")
-                        await self.send(f"{class_name}: +{share} EXP klasy. Biegłość 600; Wzniesienie {ascension['rank']}, XP {ascension['xp']}{nxt}.")
+                        await self.send(f"{class_name}: +{result['gain']} EXP klasy. Biegłość 600; Wzniesienie {ascension['rank']}, XP {ascension['xp']}{nxt}.")
                     else:
-                        await self.send(f"{class_name}: +{share} EXP klasy. Biegłość {CLASS_MASTERY_MAX_LEVEL}, maksimum.")
+                        await self.send(f"{class_name}: +{result['gain']} EXP klasy. Biegłość {CLASS_MASTERY_MAX_LEVEL}, maksimum.")
                 else:
                     await self.send(
-                        f"{class_name}: +{share} EXP klasy. "
+                        f"{class_name}: +{result['gain']} EXP klasy. "
                         f"Biegłość {result['level']}, XP {result['xp']} z "
                         f"{result['next_xp']}."
                     )

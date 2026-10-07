@@ -17,6 +17,7 @@ from config.balance import (
     CHARACTER_MAX_LEVEL,
     CHARACTER_XP_REQUIREMENT_MULTIPLIER,
     CLASS_MASTERY_MAX_LEVEL,
+    CLASS_MASTERY_XP_REQUIREMENT_MULTIPLIER,
     CLASS_MASTERY_XP_BASE,
     CLASS_MASTERY_XP_STEP,
     MINE_MIN_FLOOR,
@@ -31,6 +32,8 @@ from config.balance import (
     SKILL_XP_BASE,
     SKILL_XP_STEP,
     SOUL_WEAPON_MASTERY_MAX_LEVEL,
+    SOUL_WEAPON_MASTERY_XP_REQUIREMENT_MULTIPLIER,
+    SOUL_XP_REQUIREMENT_MULTIPLIER,
     V019_CLASS_KILL_BOSS,
     V019_CLASS_KILL_NORMAL,
     V019_CLASS_REQ,
@@ -297,7 +300,11 @@ def v0190_apply_combat_template(template):
 def v0190_quest_stage(quest):
     quest=quest or {}
     values=[1]
-    for key in ("required_soul_level","min_tool_level","min_profession_level","required_mastery","level"):
+    for key in (
+        "generator_level","recommended_level","recommended_mastery",
+        "required_soul_level","min_tool_level","min_profession_level",
+        "required_mastery","level"
+    ):
         try:
             val=int(quest.get(key,0) or 0)
             if val>0: values.append(val)
@@ -321,15 +328,21 @@ def v0190_quest_currency_reward(quest):
 
 def v0190_quest_stat_reward(quest):
     quest = quest or {}
-    # Authored/manual stat rewards remain exact overrides.
+    stage = v0190_quest_stage(quest)
+    generated_base = generator_core_v027.axis_gain("stat", stage, 2.0)
+
+    # v1.13.42: ręczna/stara nagroda może być większa, ale nie może już
+    # obniżyć questa wysokiego Tieru do płaskiej wartości z dawnych danych.
     manual_reward = quest.get("manual_stat_progress")
     if manual_reward is not None:
-        return max(0, int(manual_reward or 0))
-
-    if quest.get("generator_level") is not None:
-        base = max(0, int(quest.get("reward_stat_progress", 0) or 0))
+        base = max(generated_base, max(0, int(manual_reward or 0)))
+    elif quest.get("generator_level") is not None:
+        base = max(
+            generated_base,
+            max(0, int(quest.get("reward_stat_progress", 0) or 0)),
+        )
     else:
-        base = generator_core_v027.axis_gain("stat", v0190_quest_stage(quest), 2.0)
+        base = generated_base
 
     # v1.13.8: ordinary quests move stats a little faster, while memorable
     # objectives pay a clearly stronger stat-progress burst.
@@ -358,9 +371,11 @@ def v0190_quest_stat_reward(quest):
 
 def v0190_quest_soul_reward(quest):
     quest = quest or {}
+    stage = v0190_quest_stage(quest)
+    generated = generator_core_v027.axis_gain("soul", stage, 2.0)
     if quest.get("generator_level") is not None:
-        return max(0, int(quest.get("reward_soul_xp", 0) or 0))
-    return generator_core_v027.axis_gain("soul", v0190_quest_stage(quest), 2.0)
+        return max(generated, max(0, int(quest.get("reward_soul_xp", 0) or 0)))
+    return generated
 
 V0522_COMBAT_QUEST_KINDS = {"kill", "legendary_rare", "world_boss"}
 
@@ -393,9 +408,11 @@ def v0522_is_profession_quest(quest):
 
 def v0270_quest_character_reward(quest):
     quest = quest or {}
+    stage = v0190_quest_stage(quest)
+    generated = generator_core_v027.axis_gain("character", stage, 2.0)
     if quest.get("generator_level") is not None:
-        return max(1, int(quest.get("character_xp_reward", 1) or 1))
-    return generator_core_v027.axis_gain("character", v0190_quest_stage(quest), 2.0)
+        return max(generated, max(1, int(quest.get("character_xp_reward", 1) or 1)))
+    return generated
 
 def v0190_economy_sink(stage, category="generic"):
     stage=max(1,min(CHARACTER_MAX_LEVEL,int(stage)))
@@ -483,6 +500,23 @@ def v0190_resource_sale_coins(item_id, item=None):
     return max(1, generated, progression)
 
 STAT_MAX_LEVEL = None  # v0.27.1: statystyki są bez twardego limitu
+
+def cap_single_level_xp_gain_v11342(current_xp, needed_xp, amount):
+    """Cap one discrete XP award to the remainder of the current level.
+
+    Combat uses this after every event/race/guild/mentor multiplier, so one mob
+    can finish at most one permanent level and cannot bank overflow for several
+    later levels. Non-combat rewards do not use this cap.
+    """
+    amount = max(0, int(amount or 0))
+    needed_xp = max(0, int(needed_xp or 0))
+    current_xp = max(0, int(current_xp or 0))
+    if amount <= 0 or needed_xp <= 0:
+        return 0
+    remaining = max(0, needed_xp - current_xp)
+    return min(amount, remaining)
+
+
 def character_xp_to_next(level):
     level=max(1,min(CHARACTER_MAX_LEVEL,int(level)))
     if level >= CHARACTER_MAX_LEVEL:
@@ -495,7 +529,16 @@ def class_mastery_xp_to_next(level):
     level = max(1, min(CLASS_MASTERY_MAX_LEVEL, int(level)))
     if level >= CLASS_MASTERY_MAX_LEVEL:
         return 0
-    return v0190_requirement("class", level)
+    base = v0190_requirement("class", level)
+    return max(1, int(round(base * CLASS_MASTERY_XP_REQUIREMENT_MULTIPLIER)))
+
+
+def soul_xp_to_next(level):
+    level = max(1, min(CHARACTER_MAX_LEVEL, int(level)))
+    if level >= CHARACTER_MAX_LEVEL:
+        return 0
+    base = v0190_requirement("soul", level)
+    return max(1, int(round(base * SOUL_XP_REQUIREMENT_MULTIPLIER)))
 
 def class_type_for_name(class_name):
     for cname, ctype, weapon, base in CLASSES:
@@ -526,8 +569,11 @@ def soul_weapon_mastery_xp_to_next(level):
     level = max(1, min(SOUL_WEAPON_MASTERY_MAX_LEVEL, int(level)))
     if level >= SOUL_WEAPON_MASTERY_MAX_LEVEL:
         return 0
-    # Ta sama długość pojedynczego poziomu co Skill Level: około 18 realnych trafień.
-    return v0190_requirement("skill", level)
+    base = v0190_requirement("skill", level)
+    return max(
+        1,
+        int(round(base * SOUL_WEAPON_MASTERY_XP_REQUIREMENT_MULTIPLIER)),
+    )
 
 def soul_weapon_mastery_bonuses(level):
     level = max(1, min(SOUL_WEAPON_MASTERY_MAX_LEVEL, int(level)))

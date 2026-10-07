@@ -231,6 +231,7 @@ COMMAND_REGISTRY = {
     'materialconversion': ('material_conversion_v03114', (), {}),
     'refine': ('refine_v03114', (COMMAND_TEXT,), {}),
     'socketcraft': ('socket_craft_v03114', (COMMAND_TEXT,), {}),
+    'hartuj': ('harden_equipment_v11342', (COMMAND_TEXT,), {}),
     'vmaxupgrade': ('vmax_upgrade_v03114', (COMMAND_TEXT,), {}),
     'techsets': ('show_tech_sets_v03114', (), {}),
     'techupgrade': ('tech_set_upgrade_v0320', (COMMAND_TEXT,), {}),
@@ -385,6 +386,15 @@ for _canonical, (_handler, _positional, _keywords) in COMMAND_REGISTRY.items():
     COMMAND_CATALOG.register_handler(
         _canonical, _handler, source="player/session_mixins/command_registry.py",
         help_topic=_canonical, kind="session",
+    )
+
+# v1.13.42: czytelne polskie polecenie jest kanoniczne, ale zachowujemy
+# angielskie odpowiedniki dla graczy używających starych skrótów.
+for _alias in ("harden", "hardening", "hartowanie"):
+    COMMAND_CATALOG.add_alias(
+        _alias,
+        "hartuj",
+        source="player/session_mixins/command_registry.py",
     )
 for _canonical in DOWNED_SAFE_COMMANDS | REST_SAFE_COMMANDS | GUIDE_SAFE_COMMANDS:
     COMMAND_CATALOG.set_policy(

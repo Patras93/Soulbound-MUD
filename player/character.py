@@ -2,7 +2,11 @@
 # v0.44.0: explicit dependencies; no compatibility-global injection.
 from dataclasses import dataclass
 import json
-from config.balance import STAT_XP_REQUIREMENT_MULTIPLIER, STAT_XP_REWARD_MULTIPLIER
+from config.balance import (
+    SOUL_XP_REQUIREMENT_MULTIPLIER,
+    STAT_XP_REQUIREMENT_MULTIPLIER,
+    STAT_XP_REWARD_MULTIPLIER,
+)
 from core.character_resources import (
     character_hp_base as authored_character_hp_base,
     character_mana_base as authored_character_mana_base,
@@ -41,7 +45,9 @@ from core.progression_600 import (
 )
 from core.progression_resources import (
     MULTICLASS_MAX_ACTIVE,
+    cap_single_level_xp_gain_v11342,
     character_xp_to_next,
+    soul_xp_to_next as progression_soul_xp_to_next,
     soul_weapon_mastery_bonuses,
     soul_weapon_mastery_xp_to_next,
     v0190_requirement,
@@ -172,12 +178,20 @@ class Character:
     def character_xp_to_next(self):
         return character_xp_to_next(self.character_level)
 
-    def add_character_xp(self, amount):
-        amount=max(0,int(amount or 0))
+    def add_character_xp(self, amount, single_level_cap=False):
+        requested_amount=max(0,int(amount or 0))
         if self.character_level >= CHARACTER_MAX_LEVEL:
             self.character_level=CHARACTER_MAX_LEVEL
             self.character_xp=0
             return []
+        amount=requested_amount
+        if single_level_cap:
+            amount=cap_single_level_xp_gain_v11342(
+                self.character_xp,
+                character_xp_to_next(self.character_level),
+                amount,
+            )
+        limited=amount < requested_amount
         self.character_xp += amount
         messages=[]
         while self.character_level < CHARACTER_MAX_LEVEL:
@@ -193,6 +207,11 @@ class Character:
         if amount:
             next_needed=character_xp_to_next(self.character_level) if self.character_level < CHARACTER_MAX_LEVEL else 0
             messages.insert(0, f"EXP postaci +{amount}. Postęp {self.character_xp} z {next_needed}." if next_needed else f"EXP postaci +{amount}. Osiągnięto maksymalny Level {CHARACTER_MAX_LEVEL}.")
+        if limited:
+            messages.append(
+                "Limit progresji z jednego zabicia: nadwyżka EXP postaci ponad "
+                "jeden awans nie jest bankowana."
+            )
         return messages
 
     def name_case(self, case):
@@ -420,26 +439,14 @@ class Character:
         return max(0, next_value - self.charisma)
 
     def soul_xp_multiplier(self):
-        if self.soul_level >= SOUL_MAX_LEVEL:
-            return 0.0
-        level = max(1, int(self.soul_level))
-        if level <= 200:
-            # Dokładnie stara krzywa 1-200.
-            completed_ten_level_blocks = max(0, (level - 1) // 10)
-            return 1.25 ** completed_ten_level_blocks
-        # 201-600: nie kontynuujemy wykładniczego 1.25^blok, bo koszt
-        # eksplodowałby do setek milionów na level. Kotwiczymy na koszcie
-        # levelu 200 i zwiększamy go liniowo do około x3 na 599->600.
-        anchor_base = 180 + (200 - 1) * 60
-        anchor_cost = anchor_base * (1.25 ** 19)
-        target_cost = anchor_cost * (1.0 + (level - 200) * 0.01)
-        current_base = 180 + (level - 1) * 60
-        return max(1.0, target_cost / current_base)
+        # v1.13.42: player-facing multiplier exactly matches the active
+        # requirement curve instead of showing the retired pre-Generator curve.
+        return float(SOUL_XP_REQUIREMENT_MULTIPLIER)
 
     def soul_xp_to_next(self):
         if self.soul_level >= SOUL_MAX_LEVEL:
             return 0
-        return v0190_requirement("soul", self.soul_level)
+        return progression_soul_xp_to_next(self.soul_level)
 
     def soul_milestone_specialization_bonus(self):
         tier = max(1, min(SOUL_MAX_TIER, int(self.soul_tier)))
@@ -583,7 +590,7 @@ class Character:
             }
         return result
 
-    def add_stat_progress(self, amount, targets=None):
+    def add_stat_progress(self, amount, targets=None, single_level_cap=False):
         """Dodaje EXP osobno do wskazanych statystyk.
 
         Domyślnie źródła ogólnego rozwoju (moby/questy) przyznają tę samą
@@ -618,7 +625,14 @@ class Character:
             # źródła. Dzięki temu endgame nie zatrzymuje progresji, ale niskie
             # levele mobów nadal pozostają słabym źródłem EXP dla wysokich statów.
             stat_amount = uncapped_stat_xp_gain(amount, current_value)
-            progress = max(0, int(getattr(self, progress_field))) + stat_amount
+            current_progress = max(0, int(getattr(self, progress_field)))
+            if single_level_cap:
+                stat_amount = cap_single_level_xp_gain_v11342(
+                    current_progress,
+                    self.stat_growth_threshold_for(stat_name),
+                    stat_amount,
+                )
+            progress = current_progress + stat_amount
             leveled = 0
             while True:
                 threshold = self.stat_growth_threshold_for(stat_name)
@@ -675,7 +689,7 @@ class Character:
             and int(self.soul_level) >= self.soul_level_cap_for_current_tier()
         )
 
-    def add_soul_xp(self, amount):
+    def add_soul_xp(self, amount, single_level_cap=False):
         if self.soul_level >= SOUL_MAX_LEVEL:
             return [f"Broń Duszy ma już Soul Level {SOUL_MAX_LEVEL}."]
 
@@ -700,15 +714,29 @@ class Character:
         )
         _guild_pct=max(0,int(getattr(self,"_guild_bonus_percent",0) or 0))
         amount=max(0,int(round(racial_amount*(1.0+_guild_pct/100.0))))
+        requested_amount=amount
+        if single_level_cap:
+            amount=cap_single_level_xp_gain_v11342(
+                self.soul_xp,
+                self.soul_xp_to_next(),
+                amount,
+            )
+        limited=amount < requested_amount
         messages = [f"Broń Duszy otrzymuje {amount} Soul XP."]
-        if racial_amount > base_amount:
+        if limited:
             messages.append(
-                f"Bonus rasy {self.race}: +{racial_amount - base_amount} Soul XP."
+                "Limit progresji z jednego zabicia: nadwyżka Soul XP ponad "
+                "jeden awans nie jest bankowana."
             )
-        if amount > racial_amount:
-            messages.append(
-                f"Bonus Gildii +{_guild_pct}%: +{amount-racial_amount} Soul XP."
-            )
+        else:
+            if racial_amount > base_amount:
+                messages.append(
+                    f"Bonus rasy {self.race}: +{racial_amount - base_amount} Soul XP."
+                )
+            if amount > racial_amount:
+                messages.append(
+                    f"Bonus Gildii +{_guild_pct}%: +{amount-racial_amount} Soul XP."
+                )
         self.soul_xp += amount
         while self.soul_level < SOUL_MAX_LEVEL:
             cap_level = self.soul_level_cap_for_current_tier()

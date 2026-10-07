@@ -69,7 +69,15 @@ def audit_ocean_contract_v1001():
         assert any("Otrzymujesz 350 złota" in message for message in second.messages)
         assert conn.execute("SELECT COUNT(*) FROM ocean_trade_contract_v1000").fetchone()[0] == 0
 
-        for offer in first.ocean_trade_offers_v1000():
+        offers = first.ocean_trade_offers_v1000()
+        assert len(offers) == 28
+        assert len({offer[0] for offer in offers}) == 28
+        port_rooms = {room_id for room_id, _label in PORTS.values()}
+        assert {offer[1] for offer in offers} == port_rooms
+        for origin in port_rooms:
+            assert sum(1 for offer in offers if offer[1] == origin) == 4
+        for offer in offers:
+            assert 1 <= int(offer[5]) <= 5
             assert len(first.ocean_contract_path_v1001(offer[1], offer[2])) > 2
         # The older authored voyage via Fog Dock and Ardelia is also a real sea route.
         conn.execute(
@@ -114,6 +122,12 @@ def audit_ocean_contract_v1001():
         endpoints = {route[side] for route in ROUTES.values() for side in ("origin", "destination")}
         assert endpoints == {room_id for room_id, _label in PORTS.values()}
         assert len(ROUTES) == 6
-        return {"error_count": 0, "routes": len(ROUTES), "legacy_schema_migrated": True}
+        return {
+            "error_count": 0,
+            "routes": len(ROUTES),
+            "trade_offers": len(offers),
+            "offers_per_port": 4,
+            "legacy_schema_migrated": True,
+        }
     finally:
         conn.close()

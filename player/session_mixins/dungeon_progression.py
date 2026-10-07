@@ -658,11 +658,38 @@ class SessionDungeonProgressionMixin:
             # v1.13.30: brak minimalnego Soul Level dla Wieży Astralnej.
             return False
 
-    async def grant_combat_quest_stat_xp(self, raw_reward, repeatable=False, source_label="Quest walki"):
+    async def grant_stat_xp_v11342(
+        self, amount, targets=None, *, content_level,
+        content_scaled=False
+    ):
+            amount=max(0,int(amount or 0))
+            if amount<=0:
+                return 0
+            amount=self.scale_progression_xp_v11342(
+                amount,
+                content_level,
+                content_scaled=content_scaled,
+            )
+            amount=self.apply_double_xp(amount)
+            for message in self.character.add_stat_progress(
+                amount,targets=targets
+            ):
+                await self.send(message)
+            return amount
+
+    async def grant_combat_quest_stat_xp(
+        self, raw_reward, repeatable=False, source_label="Quest walki", *,
+        content_level=None, content_scaled=False
+    ):
             """Przyznaje EXP do każdej z sześciu statystyk z systemu questowego."""
             raw_reward = max(0, int(raw_reward or 0))
             if raw_reward <= 0:
                 return []
+            raw_reward=self.scale_progression_xp_v11342(
+                raw_reward,
+                content_level,
+                content_scaled=content_scaled,
+            )
             applied = []
             for stat_name in self.character.STAT_PROGRESS_FIELDS:
                 granted = v0874_quest_stat_progress_base_grant(
@@ -681,8 +708,16 @@ class SessionDungeonProgressionMixin:
             )
             return applied
 
-    async def grant_soul_xp(self, amount):
+    async def grant_soul_xp(
+        self, amount, single_level_cap=False, *,
+        content_level=None, content_scaled=False
+    ):
             old_level = self.character.soul_level
+            amount=self.scale_progression_xp_v11342(
+                amount,
+                content_level,
+                content_scaled=content_scaled,
+            )
             amount = self.apply_double_xp(amount)
             _mentor_pct = self.mentor_bonus_percent_v03050()
             if _mentor_pct:
@@ -690,7 +725,9 @@ class SessionDungeonProgressionMixin:
                 self.mentor_record_activity_v03051()
 
             self.session_summary_add("soul_xp", amount)
-            messages = self.character.add_soul_xp(amount)
+            messages = self.character.add_soul_xp(
+                amount, single_level_cap=single_level_cap
+            )
             for message in messages:
                 await self.send(message)
 

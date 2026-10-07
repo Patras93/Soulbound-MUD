@@ -6,7 +6,7 @@ import asyncio
 import random
 import time
 from core.bootstrap_economy_professions import tool_tier, tool_tier_bonus_chance, tool_tier_name, v0250_gather_hotspot
-from core.classes_skills import ROOMS
+from core.classes_skills import ORE_ATLAS_LEVELS, ROOMS
 from core.mines_threat import ITEMS
 from core.progression_600 import PROFESSION_MAX_LEVEL
 from core.progression_resources import (
@@ -305,8 +305,12 @@ class SessionGatheringActionsMixin:
                 await self.send(
                     f"BONUS ZA WYJĄTKOWY POŁÓW: Wędkarstwo i Wędka x{jackpot_xp_mult:.2f} XP."
                 )
+            fish_content_level = self.profession_content_level_v11342(
+                item_id=base_item_id
+            )
             messages, profession_level, new_tool_level = self.grant_profession_progress(
                 "Wędkarstwo", profession_xp, "fishing", tool_xp,
+                content_level=fish_content_level,
             )
             for msg in messages:
                 await self.send(msg)
@@ -480,6 +484,16 @@ class SessionGatheringActionsMixin:
                 await self.send(
                     f"JACKPOT GÓRNICZY: {vein['name']}. Profession/Tool XP x{vein_xp_mult:.2f}."
                 )
+            mining_content_level = max(
+                1,
+                int(
+                    ORE_ATLAS_LEVELS.get(
+                        item_id,
+                        self.profession_content_level_v11342(item_id=item_id),
+                    )
+                    or 1
+                ),
+            )
             messages, profession_level, new_tool_level = self.grant_profession_progress(
                 "Górnictwo",
                 max(
@@ -504,6 +518,7 @@ class SessionGatheringActionsMixin:
                         )),
                     ),
                 ),
+                content_level=mining_content_level,
             )
             for msg in messages:
                 await self.send(msg)
@@ -642,6 +657,9 @@ class SessionGatheringActionsMixin:
                 await self.send(
                     f"BONUS ZA WYJĄTKOWE DREWNO: Drwalstwo i Piła x{rare_xp_mult:.2f} XP."
                 )
+            wood_content_level = self.profession_content_level_v11342(
+                item_id=item_id
+            )
             messages, profession_level, new_tool_level = self.grant_profession_progress(
                 "Drwalstwo",
                 max(
@@ -666,6 +684,7 @@ class SessionGatheringActionsMixin:
                         )),
                     ),
                 ),
+                content_level=wood_content_level,
             )
             for msg in messages:
                 await self.send(msg)
@@ -773,6 +792,9 @@ class SessionGatheringActionsMixin:
                 await self.send(
                     f"BONUS ZA WYJĄTKOWĄ ROŚLINĘ: Zielarstwo i Sierp x{rare_xp_mult:.2f} XP."
                 )
+            herb_content_level = self.profession_content_level_v11342(
+                item_id=item_id
+            )
             messages, profession_level, new_tool_level = self.grant_profession_progress(
                 "Zielarstwo",
                 max(
@@ -797,6 +819,7 @@ class SessionGatheringActionsMixin:
                         )),
                     ),
                 ),
+                content_level=herb_content_level,
             )
             for msg in messages:
                 await self.send(msg)

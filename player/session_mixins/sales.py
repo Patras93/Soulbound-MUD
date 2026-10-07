@@ -374,7 +374,9 @@ class SessionSalesMixin:
                 "herbbag": ("Zielarstwo", "herbalism"),
             }.get(container)
 
-    def grant_profession_sale_xp(self, container, units):
+    def grant_profession_sale_xp(
+        self, container, units, *, content_level
+    ):
             definition = self.profession_sale_definition(container)
             units = max(0, int(units or 0))
             if not definition or units <= 0:
@@ -383,9 +385,26 @@ class SessionSalesMixin:
             profession, _tool_type = definition
             prow = self.server.db.profession(self.account_id, profession)
             level = int(prow["level"])
-            # 1 bazowy XP za sztukę; Wędkarstwo v0.9.6 kompensuje szybszy endgame.
-            xp_scale = v096_fishing_reward_scale(level) if container == "net" else 1.0
-            actual_xp = max(1, int(round(units * PROFESSION_XP_GAIN_MULTIPLIER * xp_scale)))
+            # Bazowa nagroda nadal zależy od liczby sprzedanych sztuk,
+            # ale v1.13.42 różnicuje ją również jakością realnego materiału.
+            xp_scale = (
+                v096_fishing_reward_scale(level)
+                if container == "net" else 1.0
+            )
+            content_mult,_tool_mult=(
+                self.profession_content_xp_multiplier_v11342(
+                    content_level,_tool_type
+                )
+            )
+            actual_xp=max(
+                1,
+                int(round(
+                    units
+                    * PROFESSION_XP_GAIN_MULTIPLIER
+                    * xp_scale
+                    * content_mult
+                )),
+            )
             actual_xp = self.apply_double_xp(actual_xp)
             xp = int(prow["xp"]) + actual_xp
             actions = int(prow["actions"])
@@ -421,6 +440,27 @@ class SessionSalesMixin:
                 )
             return messages
 
+    def profession_sale_content_level_v11342(self, rows, container=None):
+            weighted=0
+            total=0
+            for item_id,quantity in rows:
+                quantity=max(0,int(quantity or 0))
+                if quantity<=0:
+                    continue
+                item_container=self.recipe_container_for_item(item_id)
+                if container is not None and item_container!=container:
+                    continue
+                if item_container not in ("net","bag","woodpile","herbbag"):
+                    continue
+                stage=self.profession_content_level_v11342(
+                    item_id=item_id,item=ITEMS.get(item_id,{})
+                )
+                weighted += int(stage) * quantity
+                total += quantity
+            if total<=0:
+                return 1
+            return max(1,min(600,int(round(weighted/float(total)))))
+
     def profession_sale_units_for_rows(self, rows):
             totals = {"net": 0, "bag": 0, "woodpile": 0, "herbbag": 0}
             for item_id, quantity in rows:
@@ -437,14 +477,23 @@ class SessionSalesMixin:
                     totals["herbbag"] += quantity
             return totals
 
-    async def announce_profession_sale_xp(self, container, units):
-            for message in self.grant_profession_sale_xp(container, units):
+    async def announce_profession_sale_xp(
+        self, container, units, *, content_level
+    ):
+            for message in self.grant_profession_sale_xp(
+                container,units,content_level=content_level
+            ):
                 await self.send(message)
 
     async def announce_profession_sale_xp_for_rows(self, rows):
-            for container, units in self.profession_sale_units_for_rows(rows).items():
-                if units > 0:
-                    await self.announce_profession_sale_xp(container, units)
+            for container,units in self.profession_sale_units_for_rows(rows).items():
+                if units>0:
+                    content_level=self.profession_sale_content_level_v11342(
+                        rows,container
+                    )
+                    await self.announce_profession_sale_xp(
+                        container,units,content_level=content_level
+                    )
 
     def bulk_sell_rewards_for_rows(self, rows):
             total_silver = 0
@@ -617,7 +666,14 @@ class SessionSalesMixin:
             self.character.mithril += rewards["mithril"]
 
             await self.gain_charisma_from_bulk_sale(rewards)
-            await self.announce_profession_sale_xp(container, rewards["units"])
+            sale_content_level=self.profession_sale_content_level_v11342(
+                sell_rows,container
+            )
+            await self.announce_profession_sale_xp(
+                container,
+                rewards["units"],
+                content_level=sale_content_level,
+            )
             self.server.db.save_character(self.character)
 
             await self.send(
@@ -974,7 +1030,12 @@ class SessionSalesMixin:
             )
             self.character.silver += reward_coins
             await self.gain_charisma_from_sale(reward_coins)
-            await self.announce_profession_sale_xp(source_container, 1)
+            sale_content_level=self.profession_content_level_v11342(
+                item_id=item_id,item=item
+            )
+            await self.announce_profession_sale_xp(
+                source_container,1,content_level=sale_content_level
+            )
             self.server.db.save_character(self.character)
 
             buyer = self.resource_sale_buyer_text(source_container)

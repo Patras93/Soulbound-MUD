@@ -3,10 +3,19 @@
 # v0.45.0: explicit imports; no compatibility-runtime injection.
 import time
 
+from core.progression_resources import v0190_quest_stage
 from player.character import GUILD_REPUTATION_MAX, GUILD_REPUTATION_RANKS
 from player.session_mixins.character_profile import currency_reading_text
 from player.session_mixins.museum_bounty import v0914_combat_quest_stat_reward
-from systems.equipment_crafting import GUILD_BOUNTY_TARGETS, GUILD_CLASS_QUEST_POOLS, GUILD_CLASS_QUESTS, GUILD_EXAM_REPUTATION, GUILD_EXAM_THRESHOLDS
+from systems.equipment_crafting import (
+    GUILD_BOUNTY_TARGETS,
+    GUILD_CLASS_QUEST_POOLS,
+    GUILD_CLASS_QUESTS,
+    GUILD_EXAM_REPUTATION,
+    GUILD_EXAM_THRESHOLDS,
+    guild_class_quest_pool_for_mastery_v11342,
+    guild_class_quest_stage_v11342,
+)
 from world.economy_quests import v0914_combat_quest_soul_reward
 
 
@@ -20,6 +29,16 @@ class SessionClassGuildProgressMixin:
         now = time.time() if now is None else float(now)
         remaining = 3600 - (int(now) % 3600)
         return max(1, remaining)
+
+    def class_guild_mastery_level_v11342(self, class_name):
+        row = self.server.db.class_progress_row(self.account_id, class_name)
+        return max(1, int(row["level"])) if row else 1
+
+    def class_guild_quest_pool_v11342(self, class_name, state=None):
+        if state is None:
+            _states, state = self.class_guild_quest_state_v1120(class_name)
+        mastery = max(1, int((state or {}).get("mastery_level", 1) or 1))
+        return tuple(guild_class_quest_pool_for_mastery_v11342(class_name, mastery))
 
     def class_guild_quest_order_v1120(self, class_name, slot=None):
         pool = tuple(GUILD_CLASS_QUEST_POOLS.get(class_name, ()))
@@ -68,6 +87,9 @@ class SessionClassGuildProgressMixin:
                 "active": 0 if raw.get("accepted") and not old_completed else None,
                 "quests": quest_rows,
                 "ever_completed": ever_completed,
+                # Existing in-progress legacy task keeps base difficulty until
+                # the next hourly refresh instead of changing under the player.
+                "mastery_level": 1,
             }
             changed = True
         elif int(raw.get("slot", -1)) != slot:
@@ -76,12 +98,19 @@ class SessionClassGuildProgressMixin:
                 "active": None,
                 "quests": {},
                 "ever_completed": ever_completed,
+                "mastery_level": self.class_guild_mastery_level_v11342(class_name),
             }
             changed = True
         else:
             state = dict(raw)
             state["slot"] = slot
             state["ever_completed"] = ever_completed
+            if "mastery_level" not in state:
+                # First hour after upgrade: preserve current task numbers.
+                state["mastery_level"] = 1 if (
+                    state.get("active") is not None or state.get("quests")
+                ) else self.class_guild_mastery_level_v11342(class_name)
+                changed = True
             if not isinstance(state.get("quests"), dict):
                 state["quests"] = {}
                 changed = True
@@ -108,11 +137,11 @@ class SessionClassGuildProgressMixin:
         if not active:
             return False
         cls = active[0]
-        pool = tuple(GUILD_CLASS_QUEST_POOLS.get(cls, ()))
+        states, state = self.class_guild_quest_state_v1120(cls)
+        pool = self.class_guild_quest_pool_v11342(cls, state)
         if not pool:
             return False
 
-        states, state = self.class_guild_quest_state_v1120(cls)
         active_index = state.get("active")
         if active_index is None:
             return False
@@ -182,7 +211,8 @@ class SessionClassGuildProgressMixin:
                     f"{cls}. Reputacja {rep}/{GUILD_REPUTATION_MAX}. Ranga: {rank[1]}. "
                     f"Zniżka na naukę: {int(rank[2]*100)}%. "
                     f"Zadania klasowe: {len(GUILD_CLASS_QUEST_POOLS[cls])} różnych ofert, "
-                    "odnawianych co godzinę. Dla aktywnej klasy użyj zadanieklasowe."
+                    "odnawianych co godzinę i skalowanych z Biegłością klasy. "
+                    "Dla aktywnej klasy użyj zadanieklasowe."
                 )
                 return
         await self.send("Nie znam takiej klasy. Użyj: gildia info.")
@@ -193,13 +223,17 @@ class SessionClassGuildProgressMixin:
             await self.send("Nie masz aktywnej klasy.")
             return
         cls = active[0]
-        pool = tuple(GUILD_CLASS_QUEST_POOLS.get(cls, ()))
+        states, state = self.class_guild_quest_state_v1120(cls)
+        pool = self.class_guild_quest_pool_v11342(cls, state)
         if not pool:
             await self.send("Ta klasa nie ma jeszcze zadań gildyjnych.")
             return
 
-        states, state = self.class_guild_quest_state_v1120(cls)
-        ordered = self.class_guild_quest_order_v1120(cls, state["slot"])
+        base_order = self.class_guild_quest_order_v1120(cls, state["slot"])
+        ordered = tuple(
+            (quest_index, pool[quest_index])
+            for quest_index, _base_data in base_order
+        )
         raw = (args or "").strip()
         norm = raw.casefold()
         quests = state.setdefault("quests", {})
@@ -207,9 +241,15 @@ class SessionClassGuildProgressMixin:
         async def send_list():
             refresh_seconds = self.class_guild_quest_refresh_seconds_v1120()
             refresh_minutes = max(1, (refresh_seconds + 59) // 60)
+            mastery = max(1, int(state.get("mastery_level", 1) or 1))
+            _threshold, stage_label, _effort, _reward = guild_class_quest_stage_v11342(
+                mastery
+            )
             await self.send(
-                f"ZADANIA KLASOWE — {cls}. Pięć różnych ofert w tym cyklu. "
-                f"Odnowienie za około {refresh_minutes} min."
+                f"ZADANIA KLASOWE — {cls}. Etap: {stage_label}, "
+                f"Biegłość {mastery}. Pięć różnych ofert w tym cyklu. "
+                f"Etap i wymagania są stałe do odnowienia za około "
+                f"{refresh_minutes} min."
             )
             active_index = state.get("active")
             for number, (quest_index, data) in enumerate(ordered, 1):
@@ -330,19 +370,35 @@ class SessionClassGuildProgressMixin:
         new_rep = self.character.add_guild_reputation(cls, data[2])
         self.character.silver += data[3]
         objective_kind = str(data[5])
+        guild_content_level=max(
+            1,int(state.get("mastery_level",1) or 1)
+        )
         combat_quest = {
             "kind": "kill" if objective_kind in ("kill", "boss") else objective_kind,
             "needed": needed,
             "required_soul_level": 25,
+            "required_mastery": guild_content_level,
             "repeatable": True,
         }
         guild_stat_xp = v0914_combat_quest_stat_reward(combat_quest)
         await self.grant_combat_quest_stat_xp(
-            guild_stat_xp, repeatable=True, source_label="Godzinne zadanie klasowe Gildii"
+            guild_stat_xp,
+            repeatable=True,
+            source_label="Godzinne zadanie klasowe Gildii",
+            content_level=guild_content_level,
+            content_scaled=True,
         )
-        guild_soul_xp = v0914_combat_quest_soul_reward(combat_quest, self.character)
-        await self.send(f"Zadanie klasowe Gildii: +{guild_soul_xp} Soul XP.")
-        await self.grant_soul_xp(guild_soul_xp)
+        guild_soul_xp = v0914_combat_quest_soul_reward(
+            combat_quest,self.character
+        )
+        await self.send(
+            f"Zadanie klasowe Gildii: +{guild_soul_xp} Soul XP."
+        )
+        await self.grant_soul_xp(
+            guild_soul_xp,
+            content_level=guild_content_level,
+            content_scaled=True,
+        )
         self.server.db.save_character(self.character)
 
         completed_count = sum(
@@ -481,13 +537,26 @@ class SessionClassGuildProgressMixin:
                     "kind": "kill", "target": target[0], "needed": 1,
                     "repeatable": True,
                 }
+                guild_content_level=v0190_quest_stage(combat_quest)
                 guild_stat_xp = v0914_combat_quest_stat_reward(combat_quest)
                 await self.grant_combat_quest_stat_xp(
-                    guild_stat_xp, repeatable=True, source_label="Zlecenie bojowe Gildii"
+                    guild_stat_xp,
+                    repeatable=True,
+                    source_label="Zlecenie bojowe Gildii",
+                    content_level=guild_content_level,
+                    content_scaled=True,
                 )
-                guild_soul_xp = v0914_combat_quest_soul_reward(combat_quest, self.character)
-                await self.send(f"Zlecenie bojowe Gildii: +{guild_soul_xp} Soul XP.")
-                await self.grant_soul_xp(guild_soul_xp)
+                guild_soul_xp = v0914_combat_quest_soul_reward(
+                    combat_quest,self.character
+                )
+                await self.send(
+                    f"Zlecenie bojowe Gildii: +{guild_soul_xp} Soul XP."
+                )
+                await self.grant_soul_xp(
+                    guild_soul_xp,
+                    content_level=guild_content_level,
+                    content_scaled=True,
+                )
                 self.character.set_guild_bounty_state({})
                 self.server.db.save_character(self.character)
                 await self.send(

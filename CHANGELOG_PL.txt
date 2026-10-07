@@ -1,5 +1,5 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.13.41
+Aktualna paczka: v1.13.42
 
 
 
@@ -19,6 +19,53 @@ Aktualna paczka: v1.13.41
 
 
 
+
+==============================================================================
+Soulbound v1.13.42 — OCEAN TRADE, PROGRESSION, CLASS QUESTS & HARDENING
+==============================================================================
+
+- HANDEL MORSKI: liczba stałych kontraktów wzrosła z 7 do 28.
+- KAŻDY PORT: wszystkie 7 głównych portów Ocean 2.0 ma po 4 własne oferty startowe.
+- RÓŻNE DYSTANSE: dodano krótkie kursy lokalne, średnie przewozy i dalekomorskie kontrakty prowadzące przez kilka szlaków.
+- REJSY W OBIE STRONY: handel nie jest już jednostronnym łańcuchem; towary można wozić między portami w obu kierunkach.
+- ŁADOWNIA 1-5: kontrakty są rozłożone od prostych przewozów dla małego statku po najcenniejsze kursy wymagające Ładowni 5.
+- NAGRODA ZA DYSTANS: dynamiczna dolna granica wypłaty uwzględnia teraz również długość rzeczywistej trasy morskiej, więc długi rejs nie jest wyceniany jak krótki.
+- CZYTELNE OFERTY: lista podaje cel, liczbę odcinków rejsu, wymagany poziom Ładowni i nagrodę.
+- KOMPATYBILNOŚĆ: nie zmieniono tabeli kontraktów ani sposobu zapisu aktywnego handlu; stare aktywne kontrakty pozostają poprawne.
+- PARTY: dotychczasowe dzielenie kontraktu przez lidera drużyny pozostaje bez zmian.
+- AUDYT: Ocean Contract sprawdza 28 unikalnych ofert, dokładnie 4 oferty na każdy port, prawidłową Ładownię 1-5 i istnienie prawdziwej trasy dla każdego kontraktu.
+- WOLNIEJSZY LEVEL POSTACI: wymagany EXP wzrasta z x2 do x4 względem bazowej krzywej Generator Core, czyli około 72 równorzędnych killi na poziom bez bonusów.
+- WOLNIEJSZA BIEGŁOŚĆ KLASY: wymagany Class XP ma mnożnik x3, czyli około 48 równorzędnych killi na poziom jednej aktywnej klasy przed podziałem multiclass.
+- WOLNIEJSZY SOUL: wymagany Soul XP ma mnożnik x3, czyli około 75 równorzędnych killi na Soul Level bez bonusów. Komenda dusza pokazuje teraz rzeczywisty aktywny mnożnik x3.
+- WOLNIEJSZA BIEGŁOŚĆ BRONI DUSZY: wymagany Soul Weapon Mastery XP ma mnożnik x3, czyli około 54 zwykłych trafień na poziom bez eventu x2.
+- WOLNIEJSZE STATY: próg statystyk rośnie z x1 do x4, przy zachowaniu istniejącego x4 reward boostu. Efektywnie to około 60 równorzędnych killi na +1 do każdej rozwijanej statystyki zamiast około 15.
+- JEDEN KILL, JEDEN AWANS: pojedyncze zabicie może podnieść Level postaci, Soul, Biegłość każdej klasy oraz każdą statystykę najwyżej o 1. Nadwyżka ponad ten jeden awans z tego killa nie jest bankowana na kolejne levele.
+- BONUSY ZOSTAJĄ: Double XP, rasa, gildia, mentor i wysokie nagrody bossów nadal działają; limit jest nakładany dopiero po tych bonusach dla nagrody za zabicie.
+- INNE ŹRÓDŁA: questy, eksploracja, przedmioty i inne niebojowe nagrody zachowują normalny overflow; limit jednego awansu dotyczy kill rewardu.
+- SAVE BEZ RESETU: istniejące levele, Soul, Biegłości i staty nie są cofane. Zmienia się tylko koszt przyszłych awansów.
+- AUDYT PROGRESJI: CI pilnuje docelowego tempa 72/48/75/54/60 oraz semantyki limitu jednego awansu z killa.
+- SZYBSZE PROFESJE: globalny mnożnik Profession XP rośnie z x2 do x4. Zwykłe akcje, craft, questy specjalistów i zamówienia dają około 2 razy więcej Profession XP niż wcześniej.
+- KONIEC PŁASKIEGO XP PROFESJI: każda realna akcja wywołująca rozwój profesji musi podać content_level; CI blokuje każdą nową ścieżkę bez poziomu treści. Lepsza ruda, ryba, drewno, zioło, receptura, zaklęcie, Tech Upgrade, hartowanie i salvage dają więcej realnego Profession XP i Tool XP.
+- KONIEC PŁASKIEGO XP W CAŁEJ GRZE: Character XP, Class XP, Soul XP, stat XP, Skill XP, Soul Weapon Mastery XP, Profession XP i Tool XP są związane z trudnością/poziomem faktycznej treści albo z realną wartością wykonywanej akcji.
+- WALKA: kill rewardy pozostają liczone przez Generator Core z poziomu/rangi konkretnego moba; nowe content-aware bramy oznaczają je jako już przeskalowane, więc nie ma podwójnego boostu.
+- QUESTY I KONTRAKTY: stare ręczne nagrody nie mogą już zaniżyć wysokotierowego questa poniżej dynamicznej nagrody Generator Core. Zadania klasowe, bounty, dynamiczne questy świata, projekty świata i legendarne kontrakty przekazują własny Tier treści.
+- EKSPLORACJA: EXP za odkrycie lokacji zależy od rekomendowanej trudności lokacji zamiast od levelu gracza; nagroda Soul XP za 100% regionu zależy również od poziomu najtrudniejszej treści regionu.
+- SKILLE I BROŃ DUSZY: Skill XP uwzględnia poziom skilla i trudność aktualnego przeciwnika; Soul Weapon Mastery XP rośnie wraz z poziomem trafianego moba.
+- SPRZEDAŻ: Charyzma nadal skaluje EXP z wartością transakcji; sprzedaż surowców profesji liczy ważony poziom rzeczywiście sprzedanych materiałów, więc jedna wysoka ruda nie podbija całego stosu tanich surowców.
+- PEŁNY AUDYT XP: fast predeploy klasyfikuje każdą funkcję add_*xp / grant_*xp, wymaga content_level na głównych bramach i blokuje bezpośrednie obejścia Character/Class/Soul/stat/Skill/Soul Weapon/Ascension XP.
+- MŁOT RZEMIEŚLNICZY: Młot ma dodatkowe x1.35 do mnożnika jakości treści, ponieważ wcześniej rozwijał się wyraźnie za wolno. Salvage także rozwija teraz Młot; lepsze rozkładane EQ daje więcej XP.
+- TOOL XP PO JAKOŚCI: narzędzia nie dostają globalnego x2 z Profession XP, ale ich realny XP rośnie z poziomem materiału, receptury, EQ do salvage lub innej wykonywanej pracy. Poziom 1 ma bazowe x1, a treść poziomu 600 około x2.
+- QUESTY KLASOWE 2.0: pięć godzinnych ofert każdej z 14 klas skaluje wymagania, nazwy i nagrody z Biegłością klasy przez etapy Początek, Adept, Mistrz, Legenda, Transcendencja, Apogeum i Absolut.
+- TOŻSAMOŚĆ KLAS: każda klasa ma dwa priorytetowe typy aktywności; np. Wojownik/Berserker walka+boss, Druid teren+zasoby, Mec boss+craft, Inżynier craft+zasoby.
+- STABILNY CYKL: etap Biegłości jest zapisywany na początek godziny. Awans klasy podczas aktywnego questa nie zmienia celu w połowie zadania; wyższy etap wchodzi dopiero przy kolejnym odnowieniu.
+- HARTOWANIE EQ: nowa komenda hartuj <żywioł> <nazwa EQ> oraz hartuj status <nazwa EQ>. System działa osobno od questów klasowych.
+- ODPORNOŚCI: Fire, Ice, Electric, Dark, Poison, Holy, Water i Arcane mają po 5 rang na każdym EQ; każda ranga daje +2%, maksymalnie 10% na przedmiot dla danego żywiołu.
+- CAP HARTOWANIA: odporność z hartowania założonego EQ sumuje się do 40%; authored/boss Wardy pozostają dodatkową warstwą, a finalny Ward ma limit 80%.
+- KOSZT HARTOWANIA: Esencja Runiczna + stop zależny od poziomu EQ; koszt rośnie z rangą. Hartowanie daje XP Kowalstwa i Młota zależny od poziomu EQ/rangi.
+- TRWAŁOŚĆ: hartowanie zapisuje się w SQLite, przenosi razem z EQ przy przekazaniu i jest czyszczone razem z pozostałymi modyfikacjami craftingu przy utracie przedmiotu.
+- ZAKLINANIE: naprawiono brak dostępnego narzędzia. Fokus Runiczny nadal istnieje jako Character-Bound tool, ale dynamiczny sklep klasowy Komnaty Arkanów wcześniej ukrywał zwykłe pozycje SHOPS. Teraz Kwatermistrzyni Selene pokazuje i sprzedaje Fokus Runiczny obok EQ Maga/Psionika.
+- SKLEPY KLASOWE: dynamiczne podmienianie Tieru klasowego EQ nie usuwa już nieklasowych narzędzi ani innych pozycji użytkowych przypisanych do tej samej lokacji.
+- Brak wipe. Nowa tabela hartowania jest tworzona automatycznie bez resetu istniejących danych.
 
 ==============================================================================
 Soulbound v1.13.41 — DEATH RECAPS, COMBAT RECORDS & KEY SMELTING

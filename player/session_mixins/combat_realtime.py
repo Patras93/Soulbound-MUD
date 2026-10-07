@@ -9,7 +9,11 @@ import time
 
 from core.classes_skills import SOUL_WEAPON_ATTACK_TECHNIQUES
 from core.progression_600 import SOUL_WEAPON_MASTERY_MAX_LEVEL, soul_weapon_trait_totals_v11193
-from core.progression_resources import soul_weapon_mastery_bonuses, v0190_scaled_gain
+from core.progression_resources import (
+    soul_weapon_mastery_bonuses,
+    v0190_mob_stage,
+    v0190_scaled_gain,
+)
 from core.player_math import (
     basic_attack_hits_from_speed,
     character_offensive_build_multiplier,
@@ -67,13 +71,35 @@ class SessionCombatRealtimeMixin:
                     return
                 self.combat_task = asyncio.create_task(self.realtime_combat_loop())
 
-    async def grant_soul_weapon_mastery_hit_xp(self):
-                if not self.character or self.character.soul_weapon_mastery_level >= SOUL_WEAPON_MASTERY_MAX_LEVEL:
+    async def grant_soul_weapon_mastery_hit_xp(self, mob=None):
+                if (
+                    not self.character
+                    or self.character.soul_weapon_mastery_level
+                    >= SOUL_WEAPON_MASTERY_MAX_LEVEL
+                ):
                     return
-                level = max(1, int(self.character.soul_weapon_mastery_level))
-                gain = v0190_scaled_gain(30, level, "skill", 30)
-                gain = self.apply_double_xp(gain)
-                result = self.character.add_soul_weapon_mastery_xp(gain)
+                level=max(1,int(self.character.soul_weapon_mastery_level))
+                content_stage=level
+                if mob is not None:
+                    template=MOB_TEMPLATES.get(
+                        str(getattr(mob,"template_id","")),{}
+                    )
+                    if template:
+                        content_stage=max(
+                            content_stage,v0190_mob_stage(template)
+                        )
+                gain=v0190_scaled_gain(30,level,"skill",30)
+                gain=max(
+                    1,
+                    int(round(
+                        gain
+                        * self.progression_content_multiplier_v11342(
+                            content_stage
+                        )
+                    )),
+                )
+                gain=self.apply_double_xp(gain)
+                result=self.character.add_soul_weapon_mastery_xp(gain)
                 self.session_summary_add("soul_weapon_mastery_xp", gain)
                 if result["level_ups"]:
                     await self.send(
@@ -240,7 +266,7 @@ class SessionCombatRealtimeMixin:
                             "normal",
                         )
                 self._recap52_dealt=int(getattr(self,"_recap52_dealt",0))+max(0,int(damage))+max(0,int(_uoss_helper_damage))
-                await self.grant_soul_weapon_mastery_hit_xp()
+                await self.grant_soul_weapon_mastery_hit_xp(mob)
                 echo_damage = 0
                 if not _zantetsuken_no_melee and mob.hp > 0 and mastery["echo_chance"] > 0 and random.random() < mastery["echo_chance"]:
                     echo_damage = max(1, int(round(damage * mastery["echo_damage_percent"] / 100.0)))

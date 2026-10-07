@@ -49,15 +49,20 @@ MINE_MIN_FLOOR = 1
 MINE_PREGENERATED_MAX_FLOOR = 200
 MINE_WALL_SCALING_START_FLOOR = 10
 
-# v0.50.1: progression pace rebalance for capped Character Level.
-CHARACTER_XP_REQUIREMENT_MULTIPLIER = 2.0
+# v1.13.42: long-term progression pace. Rewards stay exciting, but the
+# amount required for the next permanent level is deliberately much larger.
+# Equal-stage, unbonused target pace:
+# Character ~72 kills, Class Mastery ~48, Soul ~75,
+# Soul Weapon Mastery ~54 basic hits, Stat ~60 kills per +1.
+CHARACTER_XP_REQUIREMENT_MULTIPLIER = 4.0
+CLASS_MASTERY_XP_REQUIREMENT_MULTIPLIER = 3.0
+SOUL_XP_REQUIREMENT_MULTIPLIER = 3.0
+SOUL_WEAPON_MASTERY_XP_REQUIREMENT_MULTIPLIER = 3.0
 
-# v1.13.1: base stats are intentionally uncapped. Their curve itself already
-# grows forever, so an extra x2 requirement tax only made the axis lag behind
-# the rest of the character. Keep the natural generated requirement and make
-# every stat-XP source generous. This multiplier applies before race/guild
-# bonuses and before the post-400 uncapped source scaling.
-STAT_XP_REQUIREMENT_MULTIPLIER = 1.0
+# Stats remain uncapped and keep the generous x4 source reward. The x4
+# requirement restores a long-term ~60 equal-stage kills per permanent point
+# instead of the previous ~15, without making loot/reward text feel smaller.
+STAT_XP_REQUIREMENT_MULTIPLIER = 4.0
 STAT_XP_REWARD_MULTIPLIER = 4.0
 PROFESSION_XP_REQUIREMENT_MULTIPLIERS = {
     "Górnictwo": 2.0,
@@ -124,6 +129,9 @@ __all__ = [
     'V095_FISHING_BASE_SECONDS',
     'V095_FISHING_MIN_SECONDS',
     'CHARACTER_XP_REQUIREMENT_MULTIPLIER',
+    'CLASS_MASTERY_XP_REQUIREMENT_MULTIPLIER',
+    'SOUL_XP_REQUIREMENT_MULTIPLIER',
+    'SOUL_WEAPON_MASTERY_XP_REQUIREMENT_MULTIPLIER',
     'STAT_XP_REQUIREMENT_MULTIPLIER',
     'STAT_XP_REWARD_MULTIPLIER',
     'PROFESSION_XP_REQUIREMENT_MULTIPLIERS',

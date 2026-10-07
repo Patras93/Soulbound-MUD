@@ -18,6 +18,7 @@ from systems.equipment_crafting import (
     class_equipment_unlocked_tier,
 )
 from systems.items_resources import (
+    CLASS_EQUIPMENT_ITEM_IDS,
     CLASS_EQUIPMENT_ITEMS_BY_CLASS_TIER,
     CLASS_SHOP_CLASSES_BY_ROOM,
     FISH_STORAGE_IDS,
@@ -49,13 +50,30 @@ class SessionShopsTeachersMixin:
             offers = []
             for class_name in selected:
                 # v0.30.35: klasowe EQ odblokowuje Poziom postaci, nie Biegłość klasy.
-                character_level = max(1, min(CHARACTER_MAX_LEVEL, int(self.character.character_level)))
+                character_level = max(
+                    1,
+                    min(
+                        CHARACTER_MAX_LEVEL,
+                        int(self.character.character_level),
+                    ),
+                )
                 unlocked_tier = class_equipment_unlocked_tier(character_level)
                 offers.extend(
                     CLASS_EQUIPMENT_ITEMS_BY_CLASS_TIER
                     .get(class_name, {})
                     .get(unlocked_tier, ())
                 )
+
+            # v1.13.42: sale klasowe mogą być jednocześnie normalnym sklepem
+            # użytkowym. Nie wolno gubić pozycji z SHOPS tylko dlatego, że
+            # dynamicznie podmieniamy klasowe EQ na najwyższy odblokowany Tier.
+            # Przykład: Fokus Runiczny Zaklinania jest sprzedawany w
+            # guild_arcane_chamber obok EQ Maga/Psionika.
+            for item_id in SHOPS.get(room_id, ()):
+                if item_id in CLASS_EQUIPMENT_ITEM_IDS:
+                    continue
+                if item_id not in offers:
+                    offers.append(item_id)
             return offers
 
     def shop_offer_lock_text(self, item_id, item):

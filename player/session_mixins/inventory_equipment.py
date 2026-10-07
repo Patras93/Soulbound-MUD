@@ -2012,8 +2012,24 @@ class SessionInventoryEquipmentMixin:
                 await self.send(
                     f"Używasz {item['name']}."
                 )
+                soul_item_stage=max(
+                    1,
+                    min(
+                        600,
+                        int(
+                            item.get("generator_level")
+                            or item.get("required_character_level")
+                            or item.get("required_mastery")
+                            or item.get("min_profession_level")
+                            or item.get("level")
+                            or 1
+                        ),
+                    ),
+                )
                 await self.grant_soul_xp(
-                    item["soul_xp"]
+                    item["soul_xp"],
+                    content_level=soul_item_stage,
+                    content_scaled=False,
                 )
                 self.server.db.save_character(self.character)
 

@@ -22,8 +22,8 @@ def refresh_generator_help_v0271():
     HELP_TOPICS["statystyki"] = [
         "Sześć automatycznych statystyk to Siła, Zręczność, Kondycja, Inteligencja, Siła Woli i Charyzma.",
         "Statystyki nie mają twardego limitu. Każda ma własny EXP i wygenerowany próg rosnący także powyżej 400; nie rozdzielasz punktów ręcznie.",
-        "v1.13.1: każde źródło stat EXP dostaje globalnie x4 przed bonusem rasy i Gildii, a dawny sztuczny mnożnik x2 wymagań statów został usunięty.",
-        "Dla równorzędnego zwykłego źródła generator celuje teraz efektywnie w około 15 akcji na kolejny punkt każdej statystyki zamiast około 120; rare, minibossy, bossy, questy i x2 EXP przyspieszają to dalej.",
+        "v1.13.42: każde źródło stat EXP nadal dostaje globalnie x4 przed bonusem rasy i Gildii, ale wymagany EXP do kolejnego punktu ma teraz mnożnik x4 dla długoterminowej progresji.",
+        "Dla równorzędnego zwykłego źródła generator celuje teraz efektywnie w około 60 akcji na kolejny punkt każdej statystyki; rare, minibossy, bossy, questy i x2 EXP nadal przyspieszają postęp.",
         "Powyżej 400 Generator Core skaluje wymagany EXP i nagrodę statystyczną z zachowaniem jakości źródła: endgame pozostaje opłacalny, a słabe moby nie stają się dobrym farmem.",
         "Level postaci, wyposażenie, rasa, klasa i statystyki wspólnie wpływają na parametry bojowe.",
         "staty info pokazuje bazę, wartość efektywną, bieżący EXP do następnego punktu i bonusy wyposażenia.",
@@ -1147,7 +1147,7 @@ try:
       "krawiectwo":"Krawiectwo 1-400. Krawcowa Lysa, Pracownia Krawiecka. Komendy: krawiectwo, szyj <receptura>, szyj lista. Tworzy tkaniny, szaty i płaszcze.",
       "garbarstwo":"Garbarstwo 1-400. Kaletnik Soren. Komendy: garbarstwo, garbuj <receptura>, garbuj lista. Skóry bestii -> garbowana skóra -> pasy, karwasze i naramienniki.",
       "stolarstwo":"Stolarstwo 1-400. Cieśla Edric. Komendy: stolarstwo, stolarka <receptura>, stolarka lista. Obrabia drewno i tworzy totemy oraz komponenty housingu.",
-      "zaklinanie":"Zaklinanie 1-400. Komnata Arkanów. Komendy: zaklinanie, zaklinaj <slot> <typ>, enchants. Jedno trwałe zaklęcie na slot; nowe zastępuje stare.",
+      "zaklinanie":"Zaklinanie 1-400. Komnata Arkanów. Fokus Runiczny kupisz u Kwatermistrzyni Selene przez shop / kup Fokus Runiczny; narzędzie kupuje się tylko raz na postać. Komendy: zaklinanie, zaklinaj <slot> <typ>, enchants. Jedno trwałe zaklęcie na slot; nowe zastępuje stare.",
       "jubilerstwo2":"Jubilerstwo 2.0 dodaje nowe kolczyki, pierścienie i naszyjniki w progresji do levelu 400. Użyj receptury jubilerstwo i jub <nazwa>.",
     })
 except Exception as exc:
@@ -1281,8 +1281,8 @@ def refresh_help_truth_v11197():
     HELP_TOPICS["statystyki"] = [
         "Sześć automatycznych statystyk to Siła, Zręczność, Kondycja, Inteligencja, Siła Woli i Charyzma.",
         "Bazowe statystyki są bez twardego limitu. EQ, runy, sety i relikty zwiększają wartości efektywne używane przez walkę.",
-        "v1.13.1+: każde źródło stat EXP dostaje globalnie x4 przed bonusem rasy i Gildii, a dawny sztuczny mnożnik x2 wymagań statów został usunięty.",
-        "Dla równorzędnego zwykłego źródła generator celuje efektywnie w około 15 akcji na kolejny punkt każdej statystyki zamiast około 120; rare, minibossy, bossy, questy i x2 EXP przyspieszają to dalej.",
+        "v1.13.42: każde źródło stat EXP nadal dostaje globalnie x4 przed bonusem rasy i Gildii, ale wymagany EXP do kolejnego punktu ma teraz mnożnik x4 dla długoterminowej progresji.",
+        "Dla równorzędnego zwykłego źródła generator celuje efektywnie w około 60 akcji na kolejny punkt każdej statystyki; rare, minibossy, bossy, questy i x2 EXP nadal przyspieszają postęp.",
         "Ofensywne skille używają właściwych statystyk klasy. Każde leczenie w Soulbound skaluje się z Inteligencją i Siłą Woli; Magic Attack zwiększa obrażenia magiczne, ale nie leczenie.",
         "Zręczność buduje końcową Szybkość. Liczba trafień zwykłego autoataku Broni Duszy wynika z końcowej Szybkości, a aktywny Haste osobno zwiększa długość serii trafień.",
         "staty info pokazuje bazę, wartości efektywne, postęp oraz bonusy wyposażenia.",
@@ -1404,6 +1404,12 @@ def refresh_help_truth_v11197():
         ]
         if not cleaned:
             cleaned = [f"{profession} ma progresję 1-600."]
+        if profession == "Zaklinanie":
+            cleaned.append(
+                "Fokus Runiczny kupisz w Komnacie Arkanów u Kwatermistrzyni "
+                "Selene. Wpisz shop albo kup Fokus Runiczny. Narzędzie jest "
+                "przypisane do postaci i kupuje się je tylko raz."
+            )
         HELP_TOPICS[topic] = cleaned
 
     old_jewel = HELP_TOPICS.get("jubilerstwo2", [])
@@ -1575,6 +1581,9 @@ def refresh_public_help_surface_v11197():
 
     HELP_TOPICS["zadania klasowe"] = [
         "Każda z 14 klas ma 5 różnych zadań klasowych w każdym cyklu godzinnym: walka, bossowie, eksploracja, zbieractwo i crafting.",
+        "v1.13.42: wymagania, nazwy i nagrody rosną wraz z Biegłością klasy przez etapy Początek, Adept, Mistrz, Legenda, Transcendencja, Apogeum i Absolut.",
+        "Każda klasa ma własne priorytety dwóch aktywności, więc Wojownik/Berserker mocniej idą w walkę i bossów, Druid/Łowca w teren i zasoby, a Mec/Inżynier w bossy/crafting.",
+        "Etap Biegłości jest zamrażany na całą bieżącą godzinę. Awans klasy w połowie zadania nie podnosi nagle wymagania; nowy etap wchodzi dopiero przy następnym odnowieniu.",
         "Wpisz zadanieklasowe, aby zobaczyć pięć ofert aktywnej klasy. Przyjmij przez zadanieklasowe <numer>; jednocześnie aktywne jest jedno zadanie.",
         "Po wykonaniu celu wpisz zadanieklasowe, aby odebrać nagrodę. Potem możesz wybrać kolejne zadanie z tej samej piątki.",
         "zadanieklasowe porzuc wstrzymuje aktywne zadanie bez kasowania jego postępu do końca bieżącej godziny.",
@@ -1590,6 +1599,24 @@ def refresh_public_help_surface_v11197():
         "class quest": "zadania klasowe",
         "class quests": "zadania klasowe",
     })
+    HELP_TOPICS["hartowanie"] = [
+        "Hartowanie EQ jest osobnym systemem ulepszania odporności żywiołowych u Haldora w Kuźni.",
+        "Komenda: hartuj <żywioł> <pełna nazwa EQ>. Przykład: hartuj fire Venetian Shield.",
+        "Stan konkretnego przedmiotu: hartuj status <pełna nazwa EQ>.",
+        "Dostępne żywioły: Fire, Ice, Electric, Dark, Poison, Holy, Water i Arcane.",
+        "Każdy żywioł na jednym EQ ma 5 rang; każda ranga daje +2 procent odporności, maksymalnie 10 procent z danego przedmiotu.",
+        "Hartowanie wielu założonych przedmiotów sumuje się do 40 procent. Istniejące specjalne Wardy z authored/boss EQ są dodawane ponad to, a końcowa ochrona ma limit 80 procent.",
+        "Koszt rośnie z rangą i poziomem EQ: Esencja Runiczna oraz odpowiedni stop. Hartowanie daje XP Kowalstwa i Młota; im wyższe EQ i ranga, tym większy realny XP.",
+        "Hartowanie jest trwałe i przenosi się razem z EQ przy przekazaniu przedmiotu.",
+    ]
+    HELP_TOPICS["hartuj"] = list(HELP_TOPICS["hartowanie"])
+    HELP_TOPIC_ALIASES.update({
+        "hartuj": "hartowanie",
+        "harden": "hartowanie",
+        "hardening": "hartowanie",
+        "hartowanie eq": "hartowanie",
+    })
+
 
     HELP_TOPICS["rasy"] = [
         "Soulbound ma 14 grywalnych ras. Każda może wybrać każdą z 14 klas; rekomendacje rasowo-klasowe są wskazówką, nie blokadą.",
@@ -1821,7 +1848,7 @@ def help_surface_audit_v11197():
         "walka": ("help skill", "V-MAX"),
         "odpoczynek": ("2 procent", "10 procent", "5 sekund"),
         "leczenie": ("Inteligencja", "Siła Woli", "Magic Attack"),
-        "statystyki": ("bez twardego limitu", "x4", "15 akcji"),
+        "statystyki": ("bez twardego limitu", "x4", "60 akcji"),
     }
     for topic, needles in expected.items():
         text = text_of(topic)

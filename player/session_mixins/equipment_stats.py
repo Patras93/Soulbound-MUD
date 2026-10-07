@@ -277,13 +277,29 @@ class SessionEquipmentStatsMixin:
 
     def equipment_element_ward_v11176(self, element):
             elem=str(element or "").strip().lower()
-            ward=0.0
+            static_ward=0.0
+            hardening_ward=0.0
+            seen_items=set()
             for row in self.equipped_item_rows():
-                item=ITEMS.get(row["item_id"],{})
+                item_id=str(row["item_id"])
+                item=ITEMS.get(item_id,{})
                 for name,value in (item.get("element_wards") or {}).items():
                     if str(name).strip().lower()==elem:
-                        ward=max(ward,float(value or 0.0))
-            return max(0.0,min(1.0,ward))
+                        static_ward=max(static_ward,float(value or 0.0))
+                # v1.13.42: trwałe hartowanie EQ jest dodatkiem do istniejącego
+                # authored/chase Wardu. Ten sam item_id liczy się raz nawet przy
+                # dwóch identycznych kopiach w slotach, bo obecny crafting
+                # persistence jest account+item_id.
+                if item_id in seen_items:
+                    continue
+                seen_items.add(item_id)
+                hardening=self.server.db.equipment_hardening_v11342(
+                    self.account_id,item_id
+                )
+                rank=max(0,int(hardening.get(elem,0) or 0))
+                hardening_ward += min(0.10, rank * 0.02)
+            hardening_ward=min(0.40,hardening_ward)
+            return max(0.0,min(0.80,static_ward+hardening_ward))
 
     def apply_equipment_element_ward_v11181(self, damage, element):
             ward=self.equipment_element_ward_v11176(element)

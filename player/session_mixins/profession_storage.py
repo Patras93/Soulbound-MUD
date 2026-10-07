@@ -111,9 +111,85 @@ class SessionProfessionStorageMixin:
                 )
             return result
 
-    def grant_profession_progress(self, profession, prof_xp, tool_type, tool_xp, tool_progress=True):
+    def profession_content_level_v11342(
+        self, item_id=None, item=None, recipe=None, explicit_level=None
+    ):
+            """Kanoniczny poziom trudności materiału/przedmiotu/receptury.
+
+            Nie skaluje po levelu gracza. XP ma rosnąć dlatego, że praca jest
+            trudniejsza: lepsza ruda, ryba, zioło, receptura, EQ do salvage itd.
+            """
+            levels = []
+            if explicit_level is not None:
+                try:
+                    explicit_value=int(explicit_level)
+                except (TypeError, ValueError):
+                    explicit_value=0
+                if explicit_value>0:
+                    levels.append(explicit_value)
+            if item is None and item_id:
+                item = ITEMS.get(str(item_id), {})
+            for source in (item or {}, recipe or {}):
+                for key in (
+                    "generator_level",
+                    "min_tool_level",
+                    "min_profession_level",
+                    "required_character_level",
+                    "required_mastery",
+                    "source_progression_stage",
+                ):
+                    try:
+                        value = int(source.get(key, 0) or 0)
+                    except (TypeError, ValueError):
+                        value = 0
+                    if value > 0:
+                        levels.append(value)
+            return max(1, min(PROFESSION_MAX_LEVEL, max(levels or [1])))
+
+    def profession_content_xp_floor_v11342(
+        self, profession_xp, tool_xp, content_level, tool_type
+    ):
+            """Usuń płaskie XP bez podwójnego pompowania dobrych receptur.
+
+            Stare niskie/stałe nagrody są podciągane do rosnącego minimum.
+            Receptury, które już mają większe authored XP, zachowują je.
+            Młot Rzemieślniczy ma wyższe minimum, bo wcześniej odstawał.
+            """
+            stage = max(1, min(PROFESSION_MAX_LEVEL, int(content_level or 1)))
+            profession_floor = 12 + stage // 4
+            tool_floor = 10 + stage // 5
+            if str(tool_type) == "crafting":
+                tool_floor = max(tool_floor, 15 + stage // 3)
+            return (
+                max(max(0, int(profession_xp or 0)), profession_floor),
+                max(max(0, int(tool_xp or 0)), tool_floor),
+            )
+
+    def profession_content_xp_multiplier_v11342(self, content_level, tool_type=""):
+            """Realny mnożnik jakości treści nakładany PO Generator Core.
+
+            v0190_scaled_gain celowo ignoruje wielkość starego raw XP, więc
+            sam authored tool_xp/profession_xp nie różnicował materiałów.
+            Poziom 1 daje ~x1, a poziom 600 ~x2. Młot ma dodatkowo x1.35.
+            """
+            stage=max(1,min(PROFESSION_MAX_LEVEL,int(content_level or 1)))
+            material_mult=1.0 + (stage-1)/float(max(1,PROFESSION_MAX_LEVEL-1))
+            tool_mult=material_mult
+            if str(tool_type)=="crafting":
+                tool_mult*=1.35
+            return material_mult,tool_mult
+
+    def grant_profession_progress(
+        self, profession, prof_xp, tool_type, tool_xp,
+        tool_progress=True, content_level=None
+    ):
             if not self.valid_tool_type(tool_type):
                 raise ValueError(f"Nieznany typ narzędzia: {tool_type}")
+
+            if content_level is not None:
+                prof_xp, tool_xp = self.profession_content_xp_floor_v11342(
+                    prof_xp, tool_xp, content_level, tool_type
+                )
 
             _guild_pct=self.guild_bonus_percent_v0926()
             prow = self.server.db.profession(
@@ -124,8 +200,47 @@ class SessionProfessionStorageMixin:
             trow_preview = self.server.db.tool(self.account_id, tool_type)
             tlevel_preview = int(trow_preview["level"])
             legacy_prof_xp = max(0, int(prof_xp)) * PROFESSION_XP_GAIN_MULTIPLIER
-            actual_prof_xp = v0190_scaled_gain(legacy_prof_xp, plevel, "profession", 40)
-            tool_xp = v0190_scaled_gain(tool_xp, tlevel_preview, "tool", 12)
+            actual_prof_xp = v0190_scaled_gain(
+                legacy_prof_xp, plevel, "profession", 40
+            )
+            tool_xp = v0190_scaled_gain(
+                tool_xp, tlevel_preview, "tool", 12
+            )
+
+            # v1.13.42: Generator Core daje bazę zależną od bieżącego levelu,
+            # a jakość wykonywanej pracy różnicuje realny przyrost. Wcześniej
+            # raw XP był ignorowany przez v0190_scaled_gain, więc miedź i
+            # Eternium mogły dawać ten sam realny postęp.
+            content_stage=max(
+                1,
+                min(
+                    PROFESSION_MAX_LEVEL,
+                    int(content_level or max(plevel,tlevel_preview,1)),
+                ),
+            )
+            content_prof_mult,content_tool_mult=(
+                self.profession_content_xp_multiplier_v11342(
+                    content_stage,tool_type
+                )
+            )
+            # Historyczne x2 było punktem odniesienia. v1.13.42 ustawia x4,
+            # czyli realnie około 2x szybsze profession leveling niż wcześniej.
+            profession_speed_mult=max(
+                0.25,float(PROFESSION_XP_GAIN_MULTIPLIER)/2.0
+            )
+            actual_prof_xp=max(
+                0,
+                int(round(
+                    actual_prof_xp
+                    * profession_speed_mult
+                    * content_prof_mult
+                )),
+            )
+            tool_xp=max(
+                0,
+                int(round(tool_xp*content_tool_mult)),
+            )
+
             actual_prof_xp=max(0,int(round(actual_prof_xp*(1.0+_guild_pct/100.0))))
             tool_xp=max(0,int(round(tool_xp*(1.0+_guild_pct/100.0))))
             _title_pct = self.v0260_profession_xp_bonus_percent(profession, tool_type)
@@ -242,17 +357,30 @@ class SessionProfessionStorageMixin:
 
             _char_stage=max(1,min(CHARACTER_MAX_LEVEL,max(plevel,tlevel)))
             _char_gain=generator_core_v027.axis_gain("character",_char_stage,0.35)
-            messages.extend(self.add_character_xp_with_event(_char_gain))
+            messages.extend(
+                self.add_character_xp_with_event(
+                    _char_gain,
+                    content_level=_char_stage,
+                    content_scaled=True,
+                )
+            )
             self.server.db.save_character(self.character)
             return messages, plevel, tlevel
 
-    def grant_tool_progress(self, tool_type, tool_xp):
+    def grant_tool_progress(
+        self, tool_type, tool_xp, *, content_level=None
+    ):
             if not self.valid_tool_type(tool_type):
                 raise ValueError(f"Nieznany typ narzędzia: {tool_type}")
             row = self.server.db.tool(self.account_id, tool_type)
             level = int(row["level"])
             old_tier = tool_tier(level)
             tool_xp = v0190_scaled_gain(tool_xp, level, "tool", 12)
+            if content_level is not None:
+                _prof_mult,_tool_mult=self.profession_content_xp_multiplier_v11342(
+                    content_level,tool_type
+                )
+                tool_xp=max(0,int(round(tool_xp*_tool_mult)))
             tool_xp = self.apply_double_xp(tool_xp)
             self.session_summary_add("tool_xp", tool_xp, tool_type)
             xp = int(row["xp"]) + max(0, int(tool_xp))
@@ -309,8 +437,15 @@ class SessionProfessionStorageMixin:
                     f"{int(tool_tier_bonus_chance(level) * 100)} procent."
                 )
 
-            _char_gain=generator_core_v027.axis_gain("character",max(1,min(CHARACTER_MAX_LEVEL,level)),0.25)
-            messages.extend(self.add_character_xp_with_event(_char_gain))
+            _char_stage=max(1,min(CHARACTER_MAX_LEVEL,level))
+            _char_gain=generator_core_v027.axis_gain("character",_char_stage,0.25)
+            messages.extend(
+                self.add_character_xp_with_event(
+                    _char_gain,
+                    content_level=_char_stage,
+                    content_scaled=True,
+                )
+            )
             self.server.db.save_character(self.character)
             return messages, level
 
@@ -727,7 +862,9 @@ class SessionProfessionStorageMixin:
                     f"{self.container_label(container)}."
                 )
 
-    async def grant_tool_reward_xp(self, tool_type, tool_xp):
+    async def grant_tool_reward_xp(
+        self, tool_type, tool_xp, *, content_level=None
+    ):
             if not self.valid_tool_type(tool_type):
                 raise ValueError(
                     f"Nieznany typ narzędzia: {tool_type}"
@@ -789,7 +926,10 @@ class SessionProfessionStorageMixin:
                 uses,
             )
 
-    async def grant_profession_reward_xp(self, profession, profession_xp, tool_type, tool_xp):
+    async def grant_profession_reward_xp(
+        self, profession, profession_xp, tool_type, tool_xp, *,
+        content_level=None
+    ):
             if not self.valid_tool_type(tool_type):
                 raise ValueError(f"Nieznany typ narzędzia: {tool_type}")
 
@@ -802,8 +942,29 @@ class SessionProfessionStorageMixin:
             trow_preview = self.server.db.tool(self.account_id, tool_type)
             tlevel_preview = int(trow_preview["level"])
             legacy_profession_xp = max(0, int(profession_xp)) * PROFESSION_XP_GAIN_MULTIPLIER
-            actual_profession_xp = v0190_scaled_gain(legacy_profession_xp, plevel, "profession", 40)
-            tool_xp = v0190_scaled_gain(tool_xp, tlevel_preview, "tool", 12)
+            actual_profession_xp = v0190_scaled_gain(
+                legacy_profession_xp, plevel, "profession", 40
+            )
+            tool_xp = v0190_scaled_gain(
+                tool_xp, tlevel_preview, "tool", 12
+            )
+            # Quest/order rewards do not point at one material, but the global
+            # v1.13.42 profession-speed boost must still be real.
+            actual_profession_xp=max(
+                0,
+                int(round(
+                    actual_profession_xp
+                    * max(0.25,float(PROFESSION_XP_GAIN_MULTIPLIER)/2.0)
+                )),
+            )
+            if content_level is not None:
+                _prof_mult,_tool_mult=self.profession_content_xp_multiplier_v11342(
+                    content_level,tool_type
+                )
+                actual_profession_xp=max(
+                    0,int(round(actual_profession_xp*_prof_mult))
+                )
+                tool_xp=max(0,int(round(tool_xp*_tool_mult)))
             actual_profession_xp=max(0,int(round(actual_profession_xp*(1.0+_guild_pct/100.0))))
             tool_xp=max(0,int(round(tool_xp*(1.0+_guild_pct/100.0))))
             _title_pct = self.v0260_profession_xp_bonus_percent(profession, tool_type)

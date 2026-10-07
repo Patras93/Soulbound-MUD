@@ -12,6 +12,7 @@ from core.progression_resources import (
     V019_SOUL_KILL_NORMAL,
     v0190_log_curve,
     v0190_mob_stage,
+    v0190_quest_stage,
     v096_fishing_workload_scale,
 )
 from network.protocol_gameplay_utils import canonical_profession_resource_id, normalize_lookup_text, v0929_kill_drop_item
@@ -414,6 +415,7 @@ class SessionMuseumBountyMixin:
                     "target": target,
                     "label": label,
                     "needed": int(needed),
+                    "stage": int(reward_stage),
                     "reward_soul_xp": int(soul_xp),
                     "reward_gold": int(gold),
                 })
@@ -437,10 +439,32 @@ class SessionMuseumBountyMixin:
                     "target": target,
                     "label": f"{BOUNTY_RESOURCE_LABELS[kind]}: {needed} sztuk",
                     "needed": int(needed),
+                    "stage": int(reward_stage),
                     "reward_soul_xp": int(soul_xp),
                     "reward_gold": int(gold),
                 })
             return offers[:BOUNTY_OFFER_COUNT]
+
+    def bounty_content_stage_v11342(self, entry):
+            row=dict(entry or {})
+            stored=max(0,int(row.get("stage",0) or 0))
+            if stored>0:
+                return max(1,min(600,stored))
+            kind=str(row.get("kind") or "")
+            target=str(row.get("target") or "")
+            if kind=="kill" and target in MOB_TEMPLATES:
+                return max(1,min(600,v0190_mob_stage(MOB_TEMPLATES[target])))
+            if kind in ("mine","fish","wood","herb"):
+                tool_type={
+                    "mine":"mining","fish":"fishing",
+                    "wood":"woodcutting","herb":"herbalism",
+                }[kind]
+                return max(1,min(600,self.profession_level_for_tool(tool_type)))
+            fallback=max(
+                int(getattr(self.character,"soul_level",1) or 1),
+                int(self.highest_active_class_mastery() or 1),
+            )
+            return max(1,min(600,fallback))
 
     def normalize_bounty_kill_entry_v0387(self, entry):
             """Return one clean, canonical bounty entry without technical mob names."""
@@ -574,17 +598,33 @@ class SessionMuseumBountyMixin:
                 soul_xp = max(0, int(active.get("reward_soul_xp", 0)))
                 gold = max(0, int(active.get("reward_gold", 0)))
                 label = str(active.get("label", "Kontrakt"))
+                contract_stage=self.bounty_content_stage_v11342(active)
                 if str(active.get("kind")) == "kill":
                     combat_quest = {
-                        "kind": "kill", "target": active.get("target"),
-                        "needed": needed, "repeatable": True,
+                        "kind": "kill",
+                        "target": active.get("target"),
+                        "needed": needed,
+                        "repeatable": True,
                     }
-                    contract_stat_xp = v0914_combat_quest_stat_reward(combat_quest)
+                    contract_stage=max(
+                        contract_stage,v0190_quest_stage(combat_quest)
+                    )
+                    contract_stat_xp = v0914_combat_quest_stat_reward(
+                        combat_quest
+                    )
                     await self.grant_combat_quest_stat_xp(
-                        contract_stat_xp, repeatable=True, source_label="Kontrakt bojowy"
+                        contract_stat_xp,
+                        repeatable=True,
+                        source_label="Kontrakt bojowy",
+                        content_level=contract_stage,
+                        content_scaled=True,
                     )
                 if soul_xp:
-                    await self.grant_soul_xp(soul_xp)
+                    await self.grant_soul_xp(
+                        soul_xp,
+                        content_level=contract_stage,
+                        content_scaled=True,
+                    )
                 self.character.gold += gold
                 self.server.db.save_character(self.character)
                 completed = int(state.get("completed_count", 0)) + 1

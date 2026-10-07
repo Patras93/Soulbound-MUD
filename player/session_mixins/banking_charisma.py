@@ -68,9 +68,18 @@ class SessionBankingCharismaMixin:
     async def gain_charisma_from_sale(self, sale_value_silver, units=1):
             old_discount = self.character.shop_discount_percent()
             old_capacity = self.character.party_capacity()
-            xp = self.apply_double_xp(self.charisma_sale_xp(sale_value_silver, units=units))
-            for message in self.character.add_stat_progress(xp, targets=("charisma",)):
-                await self.send(message)
+            raw_xp=self.charisma_sale_xp(
+                sale_value_silver,units=units
+            )
+            # charisma_sale_xp already scales with transaction value and stack
+            # size, so mark it as content-scaled and route it through the same
+            # canonical stat gateway as the rest of progression.
+            await self.grant_stat_xp_v11342(
+                raw_xp,
+                targets=("charisma",),
+                content_level=max(1,min(600,int(self.character.charisma))),
+                content_scaled=True,
+            )
             new_discount = self.character.shop_discount_percent()
             new_capacity = self.character.party_capacity()
             if new_discount > old_discount:

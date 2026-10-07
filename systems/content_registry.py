@@ -96,8 +96,8 @@ _catalog_mut.catalog_update_path('NPCS', NPCS, (), {
         "name": "Kwatermistrzyni Selene",
         "room": "guild_arcane_chamber",
         "dialogue": (
-            "Prowadzę skład wyposażenia Magów i Psioników. "
-            "Wpisz list albo shop, aby przejrzeć klasowy ekwipunek."
+            "Prowadzę skład wyposażenia Magów i Psioników oraz sprzedaję "
+            "Fokus Runiczny potrzebny do Zaklinania. Wpisz list albo shop."
         ),
         "shopkeeper": True,
     },
@@ -373,8 +373,15 @@ SYSTEM_DESCRIPTIONS = {
 }
 
 
-LATEST_CHANGES_TITLE = "Soulbound v1.13.41 - Death Recaps, Combat Records & Key Smelting"
+LATEST_CHANGES_TITLE = "Soulbound v1.13.42 - Ocean Trade, Progression, Class Quests & Hardening"
 LATEST_CHANGES = [
+    "v1.13.42: handel morski ma 28 kontraktów — po 4 w każdym z 7 głównych portów; krótkie, średnie i dalekomorskie kursy działają w obie strony, lista pokazuje długość rejsu, wymagany poziom Ładowni i nagrodę, a dynamiczna wypłata uwzględnia także dystans.",
+    "v1.13.42: długoterminowa progresja jest wolniejsza: około 72 kille/Level postaci, 48/Biegłość klasy, 75/Soul, 54 trafienia/Soul Weapon Mastery i 60 killi/+1 stat; pojedynczy kill nie może dać więcej niż jednego awansu danej stałej osi ani zbankować wielopoziomowego overflow.",
+    "v1.13.42: profesje awansują szybciej — globalny Profession XP wzrasta z x2 do x4, a realne XP profesji i narzędzi przestaje być płaskie: rośnie z poziomem materiału/receptury/EQ; Młot Rzemieślniczy ma dodatkowe x1.35 i rozwija się także przy salvage.",
+    "v1.13.42: zasada bez płaskiego EXP obejmuje całą grę — Character/Class/Soul/stat/Skill/Soul Weapon Mastery/Profession/Tool XP dostają kontekst trudności treści; questy, kontrakty, eksploracja, sprzedaż i world content przekazują własny stage, a CI klasyfikuje wszystkie add/grant XP i blokuje obejścia.",
+    "v1.13.42: godzinne questy klasowe rosną razem z Biegłością przez 7 etapów i mają klasowe priorytety; etap jest zamrażany na daną godzinę, więc awans w trakcie zadania nie zmienia jego celu.",
+    "v1.13.42: hartuj <żywioł> <EQ> dodaje trwałe odporności Fire/Ice/Electric/Dark/Poison/Holy/Water/Arcane; 5 rang po 2%, 40% cap warstwy hartowania i 80% końcowego Wardu z istniejącym EQ.",
+    "v1.13.42: naprawiono Zaklinanie — Fokus Runiczny jest ponownie widoczny i kupowalny u Kwatermistrzyni Selene w Komnacie Arkanów; dynamiczne sklepy klasowe nie ukrywają już zwykłych narzędzi przypisanych do tej samej sali.",
     "v1.13.41: śmierć pokazuje przyczynę zgonu z zabójcą, zdolnością/żywiołem, typem obrażeń, końcowym trafieniem i miejscem; profil <gracz> pokazuje Best Kill i Worst Defeat z XP; klucze bossowe można przetapiać w Kuźni przez przetop klucze lub przetop <nazwa klucza>.",
     "v1.13.40: skróty walk do kolejnego przejścia są spójne w nieskończonych lochach: Krypta/Mityczna Krypta dół, Wieża/Mityczna Wieża góra, Twierdza Gigantów góra i UOSS Deep Dungeon dół; zawsze zatrzymują się przed ostatnim up/down.",
     "v1.13.39: moby mogą używać czytelnych ataków Fire, Ice, Electric, Dark, Poison, Holy, Water i Arcane; ataki używają Magic Defense oraz istniejących element_wards z EQ.",
@@ -1793,6 +1800,8 @@ HELP_TOPICS = {
     ],
     "xp_narzedzi": [
         "XP dostaje wyłącznie narzędzie faktycznie użyte w danej akcji.",
+        "v1.13.42: Tool XP nie jest już płaski. Im wyższy poziom materiału, receptury, EQ do salvage albo innej pracy, tym większy realny XP narzędzia.",
+        "Młot Rzemieślniczy ma dodatkowy mnożnik jakości x1.35; salvage, hartowanie, ulepszanie i kucie rozwijają Młot zależnie od poziomu wykonywanej pracy.",
         "Łowienie rozwija Wędkarstwo oraz Wędkę.",
         "Kopanie rozwija Górnictwo oraz Kilof.",
         "Drwalstwo i obróbka desek rozwijają Drwalstwo oraz Piłę.",

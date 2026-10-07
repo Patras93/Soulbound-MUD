@@ -39,7 +39,17 @@ class SessionMilestoneV0320Mixin:
         for iid,qty in costs.items(): self.consume_recipe_item(iid,qty)
         self.server.db.set_tech_set_mark_v0320(self.account_id,item_id,target)
         await self.send(f"Tech Set Upgrade zakończony: {item['name']} -> Mk-{'II' if target==2 else 'III'}. Obrona tej części rośnie o {5 if target==2 else 10}; Mk-III daje też mocniejszy bonus całego Tech Setu.")
-        msgs,_,_=self.grant_profession_progress('Kowalstwo',160 if target==2 else 260,'crafting',90 if target==2 else 140)
+        content_level=max(
+            req,
+            self.profession_content_level_v11342(item_id=item_id,item=item),
+        )
+        msgs,_,_=self.grant_profession_progress(
+            'Kowalstwo',
+            160 if target==2 else 260,
+            'crafting',
+            90 if target==2 else 140,
+            content_level=content_level,
+        )
         for msg in msgs: await self.send(msg)
 
     def tech_set_equipped_mark_multiplier_v0320(self):
