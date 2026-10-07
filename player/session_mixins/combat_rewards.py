@@ -182,6 +182,10 @@ class SessionCombatRewardsMixin:
                 fight_duration_ms = None
                 if mob.engaged_at > 0:
                     fight_duration_ms = max(1, int(round((time.monotonic() - mob.engaged_at) * 1000)))
+                # Dismiss UOSS encounter summons when the parent boss falls.
+                # This keeps the arena safe after the boss's 24h lockout begins.
+                if template.get("uoss_unique_superboss_key"):
+                    self.server.world.clear_superboss_companions_v1144(mob)
                 mob.alive = False
                 respawn_seconds = mob_respawn_seconds(template)
                 mob.respawn_at = time.time() + respawn_seconds

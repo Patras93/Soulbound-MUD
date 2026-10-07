@@ -17,11 +17,48 @@ import traceback
 try:
     from storage.database import Database as _DatabaseImportSmoke
 except Exception as exc:
-    print(f"Soulbound v1.14.3 FAST PREDEPLOY FAILED: database import: {type(exc).__name__}: {exc}")
+    print(f"Soulbound v1.14.5 FAST PREDEPLOY FAILED: database import: {type(exc).__name__}: {exc}")
     traceback.print_exc()
     raise SystemExit(1)
 
 from admin.fast_predeploy_audit_v0571 import FAST_PREDEPLOY_AUDIT_V0571 as audit
+
+# v1.14.4: the source catalog may list adds without ever selecting an ability.
+# Keep a fast functional gate so Black Rabite cannot silently lose its summon
+# when a later combat refactor changes ability selection.
+from types import SimpleNamespace as _UossMobSmokeV1144
+from world.uoss_superboss_runtime import (
+    superboss_source_ability_v11162 as _uoss_ability_v1144,
+    superboss_source_summons_v11162 as _uoss_summons_v1144,
+)
+for _boss_key, _turn, _expected in (
+    ("black_rabite", 2, 1),
+    ("odin", 4, 3),
+    ("emerald_weapon", 3, 1),
+):
+    _template = {"uoss_unique_superboss_key": _boss_key}
+    _mob = _UossMobSmokeV1144(combat_turn=_turn, template_id=f"uoss_superboss_{_boss_key}_v11136")
+    _ability = _uoss_ability_v1144(_template, _mob)
+    _adds = _uoss_summons_v1144(None, _template, _mob, _ability)
+    if len(_adds) != _expected or _uoss_summons_v1144(None, _template, _mob, _ability):
+        raise RuntimeError(f"UOSS summon regression: {_boss_key}")
+
+# v1.14.5: summons must coexist with actual non-summon boss abilities.
+# Verify selections used by the full combat loop, not merely documented lists.
+for _boss_key, _turn, _expected_ability in (
+    ("odin", 6, "Zantetsuken"),
+    ("ruby_weapon", 9, "Imp"),
+    ("serpentarius", 12, "Gravija"),
+    ("yiazmat", 15, "Stone Breath"),
+):
+    _boss_template = {"uoss_unique_superboss_key": _boss_key}
+    _boss_mob = _UossMobSmokeV1144(
+        combat_turn=_turn,
+        template_id=f"uoss_superboss_{_boss_key}_v11136",
+        uoss_summon_used_v1144=True,
+    )
+    if _uoss_ability_v1144(_boss_template, _boss_mob) != _expected_ability:
+        raise RuntimeError(f"UOSS source ability rotation regression: {_boss_key}")
 
 # v1.11.96 semantic gameplay gates. These import only the static class/skill
 # catalog and are intentionally kept out of the full world/runtime loader.
@@ -42,7 +79,7 @@ try:
     )
 except Exception as exc:
     print(
-        "Soulbound v1.14.3 FAST PREDEPLOY FAILED: "
+        "Soulbound v1.14.5 FAST PREDEPLOY FAILED: "
         f"skill semantic import: {type(exc).__name__}: {exc}"
     )
     traceback.print_exc()
@@ -3700,18 +3737,18 @@ except Exception as _exc_v11358:
     )
 
 if _semantic_errors:
-    print("Soulbound v1.14.3 FAST PREDEPLOY FAILED: semantic contracts")
+    print("Soulbound v1.14.5 FAST PREDEPLOY FAILED: semantic contracts")
     for _error in _semantic_errors:
         print(f"ERROR: {_error}")
     raise SystemExit(1)
 
 if audit["error_count"]:
-    print("Soulbound v1.14.3 FAST PREDEPLOY FAILED")
+    print("Soulbound v1.14.5 FAST PREDEPLOY FAILED")
     for error in audit["errors"]:
         print(f"ERROR: {error}")
     raise SystemExit(1)
 
-print("Soulbound v1.14.3 FAST PREDEPLOY PASS")
+print("Soulbound v1.14.5 FAST PREDEPLOY PASS")
 print(
     "Semantic contracts: "
     f"{len(_semantic_audits)} audits PASS; AP runtime guards PASS"

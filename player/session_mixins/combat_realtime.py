@@ -622,6 +622,14 @@ class SessionCombatRealtimeMixin:
                                         _storm_text_v11338,
                                         detail="essential",
                                     )
+                                # Existing arena companions must fight alongside the
+                                # boss; static world spawns are otherwise passive.
+                                for _companion in self.server.world.engage_superboss_companions_v1144(enemy_mob):
+                                    await self.server.party_combat_broadcast(
+                                        self,
+                                        f"{MOB_TEMPLATES[_companion.template_id]['name']} dołącza do walki u boku {MOB_TEMPLATES[enemy_mob.template_id]['name']}.",
+                                        detail="essential",
+                                    )
                                 _party_targets = self.server.party_combat_targets(self, enemy_mob)
                                 # One mob action attacks the whole living local party.
                                 # The existing realtime loop owner remains the sole
@@ -687,7 +695,8 @@ class SessionCombatRealtimeMixin:
                                     _timed_effect=superboss_source_timed_effect_v11179(target_session,_enemy_template,_source_ability)
                                     if _timed_effect:
                                         await self.server.party_combat_broadcast(target_session,f"{target_session.character.name}: {_source_ability} — {_timed_effect['rounds']} rund.",detail="essential")
-                                    if _source_ability:
+                                    if _source_ability and getattr(enemy_mob, "uoss_ability_announced_turn_v1145", -1) != enemy_mob.combat_turn:
+                                        enemy_mob.uoss_ability_announced_turn_v1145 = enemy_mob.combat_turn
                                         await self.server.party_combat_broadcast(target_session, f"{_enemy_template['name']} używa: {_source_ability}.", detail="essential")
                                     _source_effect_replaces_attack = False
                                     if _source_effect:
@@ -719,7 +728,7 @@ class SessionCombatRealtimeMixin:
                                         )
                                     )
                                     for _summon_tid in _source_summons:
-                                        _summoned=self.server.world._register_runtime_spawn(target_session.character.room_id,_summon_tid)
+                                        _summoned=self.server.world.spawn_superboss_summon_v1144(enemy_mob,_summon_tid)
                                         if _summoned:
                                             if _summoned.engaged_at <= 0: _summoned.engaged_at=time.monotonic()
                                             if not _summoned.engaged_by: _summoned.engaged_by=target_session.character.name
@@ -1058,6 +1067,8 @@ class SessionCombatRealtimeMixin:
                     if not mob.engaged_by:
                         mob.engaged_by = self.character.name
                     mob.combat_turn = 0
+                    mob.phase_stage = 0
+                    mob.uoss_ability_announced_turn_v1145 = -1
                     mob.player_hits = 0
                 self.combat_mob_key = mob.key
 

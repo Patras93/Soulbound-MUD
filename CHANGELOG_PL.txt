@@ -1,3 +1,22 @@
+Soulbound v1.14.5 — Superboss AI / Ataki Specjalne Hotfix
+
+- Naprawiono wykonywanie specjalnych ataków sześciu unikalnych superbossów: Culex, Emerald Weapon, Ruby Weapon, Serpentarius, Odin i Yiazmat. Wcześniej funkcja wybierała tylko przywołania.
+- Rotacja 3-turówek to balans Soulbound (nie deklaracja źródłowego rozkładu rund UOSS); nazwy pochodzą z już zapisanych kontraktów ataków.
+- Włączono trzy fazy presji na poziomach 75%, 40%, 15% HP, z jednorazowym komunikatem i ostrożnym wzmocnieniem obrażeń.
+- Odin uruchamia znane ataki Zantetsuken/Einherjar/Shin-Zantetsuken; Serpentarius używa Gravija, Banish Ray i innych zapisanych ataków; statusy Yiazmata i Ruby mogą teraz wystąpić.
+- Przywołania v1.14.4 pozostają aktywne; akcje specjalne są wybierane raz na turę bossa, a komunikat użycia nie jest multiplikowany przez liczbę członków party.
+- Po respawnie czyszczony jest licznik odliczania Odina oraz stan faz. Bez zmian baz danych, dropów, lockoutów ani bramek solo/party.
+
+Soulbound v1.14.4 — Naprawa przywołań UOSS Super Bossów
+
+- Black Rabite faktycznie przywołuje Greater Demona podczas drugiej akcji bossa, zamiast mieć tylko opis w kontrakcie.
+- Emerald Weapon uruchamia Open Eye (losowe oko); Red Eye potrafi przywołać Emerald Torpedo, a Odin wystawia trzy niezależne Gungniry.
+- Culex (kryształy) i Ruby Weapon (macki) dołączają do walki z bossem z istniejących, statycznych spawnów, bez duplikowania ich.
+- Przywoływanie rozlicza się raz na akcję przeciwnika, także w drużynie; wszystkie pomocniki walczą i mogą być celem AoE.
+- Przywołane jednostki nie są dodawane do stałych spawnów świata, nie respawnują bez końca i znikają po pokonaniu rodzica.
+- Respawn bossa resetuje stan przywołań, dzięki czemu kolejne legalne podejście działa poprawnie.
+- Test regresji summonów i pakiet runtime bez .git/.github/cache; bez zmian w SQLite.
+
 Soulbound v1.14.3 — Runtime Audit & Unique Mob Names Hotfix
 
 - Naprawiono Railway build po v1.14.2: pełny audit nie myli już celowej zmienności mutatorów Wieży z regresją skalowania.
@@ -69,7 +88,7 @@ Soulbound v1.13.59 - Mec Hybrid EQ + Stronger 101+ Progression
 - Wzrost jest wyraźnie odczuwalny już od 101, a okolice 599 nadal celują w około 1 bilion EXP na kolejny awans.
 - Statystyki pozostają bez limitu i ich koszt rośnie dalej ponad 600.
 
-Aktualna paczka: v1.14.3
+Aktualna paczka: v1.14.5
 
 Soulbound v1.13.58 — DYNAMIC XP AUDIT
 - Usunięto główną przyczynę płaskiego EXP: Generator Core nie ignoruje już authored/raw XP.

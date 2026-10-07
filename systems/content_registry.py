@@ -373,7 +373,7 @@ SYSTEM_DESCRIPTIONS = {
 }
 
 
-LATEST_CHANGES_TITLE = "Soulbound v1.14.3 - Runtime Audit & Unique Mob Names Hotfix"
+LATEST_CHANGES_TITLE = "Soulbound v1.14.5 - Superboss Fazy i Ataki Specjalne"
 LATEST_CHANGES = [
     "v1.14.1: Zwykła i Mityczna Krypta mają unikalne nazwy głębokości i komnat bez numerów pięter w nazwach; numery pozostają tylko technicznie dla progresu, portali i komend.",
     "v1.14.0: Pustkowia Eteru — 76 nowych lokacji, trzy nieskończone dungeony, 8 nowych superbossów z 24h lockoutem oraz osobne żywioły Void/Holy/Shadow; Void i Shadow nie są już aliasem Dark.",

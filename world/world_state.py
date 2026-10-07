@@ -275,6 +275,84 @@ class World:
         self._last_refresh_at = 0.0
         return mob
 
+    def spawn_superboss_summon_v1144(self, boss_mob, template_id):
+        """Spawn an encounter-only add; never register it in persistent MOB_SPAWNS.
+
+        Distinct summons (notably Odin's three Gungnirs) must have distinct
+        MobState keys. A summoned add shares the owner's engagement and cannot
+        respawn as a permanent world mob after the fight.
+        """
+        template=MOB_TEMPLATES.get(str(template_id))
+        if not boss_mob or not boss_mob.alive or not template:
+            return None
+        owner=str(getattr(boss_mob,"engaged_by","") or "")
+        if not owner:
+            return None
+        number=int(getattr(boss_mob,"uoss_add_sequence_v1144",0) or 0)+1
+        boss_mob.uoss_add_sequence_v1144=number
+        key=f"{boss_mob.key}:uoss_add:{number}"
+        add=MobState(
+            key=key, room_id=boss_mob.room_id, template_id=str(template_id),
+            hp=int(template.get("max_hp",1)), engaged_by=owner,
+            engaged_at=time.monotonic(), home_room_id=boss_mob.room_id,
+        )
+        add.v016_ephemeral=True
+        add.v016_expires_at=time.time()+1800
+        add.uoss_summon_parent_v1144=boss_mob.key
+        self.mobs[key]=add
+        self._last_refresh_at=0.0
+        return add
+
+    def engage_superboss_companions_v1144(self, boss_mob):
+        """Culex crystals and Ruby tentacles already spawn in their arena.
+
+        Join them to the existing battle exactly once, without cloning adds.
+        """
+        if not boss_mob or not boss_mob.alive or not boss_mob.engaged_by:
+            return ()
+        boss_template=MOB_TEMPLATES.get(boss_mob.template_id,{})
+        boss_key=str(boss_template.get("uoss_unique_superboss_key") or "")
+        if boss_key not in ("culex","ruby_weapon"):
+            return ()
+        newly=[]
+        for add in self.mobs.values():
+            if add.room_id != boss_mob.room_id or not add.alive or add.key==boss_mob.key:
+                continue
+            add_template=MOB_TEMPLATES.get(add.template_id,{})
+            if not add_template.get("uoss_superboss_add") or add_template.get("parent") != boss_key:
+                continue
+            if add.engaged_by:
+                continue
+            add.engaged_by=boss_mob.engaged_by
+            add.engaged_at=time.monotonic()
+            newly.append(add)
+        return tuple(newly)
+
+    def clear_superboss_companions_v1144(self, boss_mob):
+        """A defeated boss cannot leave active minions attacking its party."""
+        if not boss_mob:
+            return 0
+        owner=str(getattr(boss_mob,"engaged_by","") or "")
+        boss_key=str(MOB_TEMPLATES.get(boss_mob.template_id,{}).get("uoss_unique_superboss_key") or "")
+        cleared=0
+        for add in self.mobs.values():
+            if add.room_id!=boss_mob.room_id or add.key==boss_mob.key:
+                continue
+            child=str(getattr(add,"uoss_summon_parent_v1144","") or "")
+            static=bool(boss_key and MOB_TEMPLATES.get(add.template_id,{}).get("parent")==boss_key
+                        and MOB_TEMPLATES.get(add.template_id,{}).get("uoss_superboss_add"))
+            if child==boss_mob.key:
+                add.alive=False
+                add.engaged_by=None
+                add.respawn_at=float("inf")
+                add.v016_expires_at=time.time()-1
+                cleared+=1
+            elif static and (not owner or add.engaged_by==owner):
+                add.engaged_by=None
+                cleared+=1
+        self._last_refresh_at=0.0
+        return cleared
+
     def _ensure_v0290_event_spawns(self, room_id, now=None):
         created = []
         for event in v0290_event_for_room(room_id, now=now):
@@ -677,6 +755,13 @@ class World:
                     mob.adaptive_party_size_v11330 = 1
                     mob.adaptive_party_dps_v11330 = 0.0
                     mob.adaptive_rank_v11330 = ""
+                    # Respawn begins a fresh UOSS fight, not the prior summon phase.
+                    mob.uoss_start_effects_done_v11176 = False
+                    mob.uoss_last_summon_turn_v1144 = -1
+                    mob.uoss_add_sequence_v1144 = 0
+                    mob.uoss_summon_used_v1144 = False
+                    mob.uoss_ability_announced_turn_v1145 = -1
+                    mob.uoss_shin_zantetsuken_started_v11160 = 0
                     if mob.home_room_id:
                         mob.room_id = mob.home_room_id
                     mob.next_wander_at = now + random.uniform(

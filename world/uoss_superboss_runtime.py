@@ -340,16 +340,46 @@ def superboss_helper_profile_v11137(session, template):
     }
 
 
+# Soulbound encounter phases (not claimed as source-exact UOSS turn tables).
+# Only named UOSS encounters are affected; HP is measured against the current
+# adaptive total rather than the unscaled template so party/solo work alike.
+SUPERBOSS_PHASE_TEXT_V11138 = {
+    1: "przeciwnik wzmacnia natarcie",
+    2: "przeciwnik przechodzi do desperackiej ofensywy",
+    3: "przeciwnik uwalnia ostatnią rezerwę sił",
+}
+
+
 def superboss_phase_v11137(template, mob):
-    return None
+    if not superboss_key_from_template_v11135(template) or not mob or not mob.alive:
+        return None
+    maximum = max(1, int(getattr(mob, "adaptive_max_hp_v11330", 0) or template.get("max_hp", 1) or 1))
+    fraction = max(0.0, float(mob.hp) / maximum)
+    if fraction <= 0.15:
+        return 3
+    if fraction <= 0.40:
+        return 2
+    if fraction <= 0.75:
+        return 1
+    return 0
+
 
 def superboss_counterattack_multiplier_v11137(template, mob):
-    return 1.0, ""
+    stage = superboss_phase_v11137(template, mob)
+    if not stage:
+        return 1.0, ""
+    return 1.0 + stage * 0.07, f"Faza {stage}: wzmożony napór."
 
-SUPERBOSS_PHASE_TEXT_V11138 = {}
 
 def superboss_phase_event_v11138(session, template, mob):
-    return None
+    stage = superboss_phase_v11137(template, mob)
+    if stage is None:
+        return None
+    previous = int(getattr(mob, "phase_stage", 0) or 0)
+    if stage <= previous:
+        return None
+    mob.phase_stage = stage
+    return stage, SUPERBOSS_PHASE_TEXT_V11138[stage]
 
 def superboss_incoming_multiplier_v11138(session, template, mob):
     mult,note=superboss_counterattack_multiplier_v11137(template,mob)
@@ -460,27 +490,71 @@ def superboss_exact_ability_effect_v11160(session, template, mob, ability_name):
     return None
 
 
-def superboss_source_ability_v11162(template, mob):
-    """No fabricated ability cadence.
+# Curated from source-authored ability lists. The source does not specify a
+# turn-by-turn rotation, so Soulbound uses a stable, non-random 3-turn cadence.
+# Fixed-HP strikes/statuses only fire through their existing vetted handlers.
+SUPERBOSS_ROTATIONS_V1145 = {
+    "culex": ("Crash Strike", "Dark Star", "Meteor Blast", "Flame Stone", "Dispel"),
+    "emerald_weapon": ("Stamp", "Emerald Beam", "Aqua Beam", "Revenge Stamp", "Dissolving Ray"),
+    "ruby_weapon": ("Big Swing", "Imp", "Mini", "Ruby Flame", "Shadow Flare", "Ultima"),
+    "serpentarius": ("Resisted Gravija", "Necrotic Energy", "Gravija", "Nullify Healing", "Banish Ray", "Light Pillar", "Zodiac"),
+    "odin": ("Zantetsuken", "Hall of Stone", "Hall of Lead", "Disease", "Einherjar", "Valknut", "Shin-Zantetsuken"),
+    "yiazmat": ("Rake", "Ice Breath", "Death Strike", "Stone Breath", "Gust Front", "Cyclone"),
+}
 
-    Source pages list available abilities but do not define a turn order or
-    probability. Runtime must not invent a deterministic rotation.
+
+def superboss_source_ability_v11162(template, mob):
+    """Choose at most one UOSS skill for each mob action, shared by party targets.
+
+    A blocked summon is retried until successfully fired; other source-authored
+    abilities do not displace it. Source lists stay authoritative for skill names.
     """
-    return None
+    turn=max(0,int(getattr(mob,"combat_turn",0) or 0))
+    key=superboss_key_from_template_v11135(template)
+    if turn<=0:
+        return None
+    if not getattr(mob,"uoss_summon_used_v1144",False):
+        if key=="black_rabite" and turn>=2:
+            return "Summon Greater Demon"
+        if key=="emerald_weapon" and turn>=3:
+            return "Open Eye"
+        if key=="odin" and turn>=4:
+            return "Gungnir"
+    if str(getattr(mob,"template_id",""))=="uoss_add_emerald_red_eye_v11156":
+        if not getattr(mob,"uoss_summon_used_v1144",False) and turn>=2:
+            return "Emerald Torpedo"
+        return None
+    skills=SUPERBOSS_ROTATIONS_V1145.get(key,())
+    if not skills or turn<6 or turn%3:
+        return None
+    index=(turn//3-2)%len(skills)
+    chosen=skills[index]
+    # Shin-Zantetsuken starts one countdown; do not keep rearming it.
+    if chosen=="Shin-Zantetsuken" and getattr(mob,"uoss_shin_zantetsuken_started_v11160",0):
+        return "Valknut"
+    return chosen
+
 
 def superboss_source_summons_v11162(session, template, mob, ability_name):
-    """Summons only when a source-backed ability trigger is explicitly supplied."""
+    """Return one action's summoned mobs only once, even against a full party."""
     key=superboss_key_from_template_v11135(template)
     name=str(ability_name or "")
-    if key=="emerald_weapon" and name=="Open Eye":
-        # Source says random Eye; selection is intentionally random rather than
-        # a fabricated fixed cycle.
-        return (f"uoss_add_{random.choice(('emerald_white_eye','emerald_blue_eye','emerald_red_eye'))}_v11156",)
-    if str(getattr(mob,"template_id",""))=="uoss_add_emerald_red_eye_v11156" and name=="Emerald Torpedo":
-        return ("uoss_add_emerald_torpedo_v11156",)
-    if key=="odin" and name=="Gungnir":
-        return ("uoss_add_odin_gungnir_v11156",)*3
-    return ()
+    turn=int(getattr(mob,"combat_turn",0) or 0)
+    if turn<=0 or int(getattr(mob,"uoss_last_summon_turn_v1144",-1) or -1)==turn:
+        return ()
+    summons=()
+    if key=="black_rabite" and name=="Summon Greater Demon":
+        summons=("uoss_add_greater_demon_v11156",)
+    elif key=="emerald_weapon" and name=="Open Eye":
+        summons=(f"uoss_add_{random.choice(('emerald_white_eye','emerald_blue_eye','emerald_red_eye'))}_v11156",)
+    elif str(getattr(mob,"template_id",""))=="uoss_add_emerald_red_eye_v11156" and name=="Emerald Torpedo":
+        summons=("uoss_add_emerald_torpedo_v11156",)
+    elif key=="odin" and name=="Gungnir":
+        summons=("uoss_add_odin_gungnir_v11156",)*3
+    if summons:
+        mob.uoss_last_summon_turn_v1144=turn
+        mob.uoss_summon_used_v1144=True
+    return summons
 
 def superboss_source_attack_multiplier_v11162(template, ability_name):
     key=superboss_key_from_template_v11135(template)
@@ -635,6 +709,11 @@ def superboss_add_round_event_v11176(template, mob):
         turn=int(getattr(mob,"combat_turn",0) or 0)
         if turn>=3:
             mob.hp=0
+            mob.alive=False
+            mob.engaged_by=None
+            # This is a transient add: do not leave a zero-HP active attacker.
+            import time as _time
+            mob.v016_expires_at=_time.time()-1
             return {"despawn":True,"text":"Emerald Torpedo eksploduje w trzeciej rundzie."}
     return None
 
