@@ -181,8 +181,15 @@ def main():
                 "mythic_astral": ("mythic_astral_boss", "mythic_astral_floor", "mythic_astral_floor_"),
             }
             expected_rooms = {}
-            for spawn_room, template_id in reversed(ns.get("MOB_SPAWNS", ())):
-                template = ns.get("MOB_TEMPLATES", {}).get(template_id, {})
+            # These helpers live in network.protocol_gameplay_utils and resolve
+            # against that module's own imported runtime catalogs. The assembled
+            # predeploy namespace does not necessarily re-export MOB_SPAWNS, so
+            # inspect the exact globals used by the production helper itself.
+            chest_runtime_globals = ns["boss_floor_chest_room_id"].__globals__
+            chest_runtime_spawns = chest_runtime_globals.get("MOB_SPAWNS", ())
+            chest_runtime_templates = chest_runtime_globals.get("MOB_TEMPLATES", {})
+            for spawn_room, template_id in reversed(chest_runtime_spawns):
+                template = chest_runtime_templates.get(template_id, {})
                 for kind, (flag, floor_key, _prefix) in chest_meta.items():
                     if not template.get(flag):
                         continue
@@ -192,6 +199,11 @@ def main():
                         floor = 0
                     if floor > 0:
                         expected_rooms.setdefault((kind, floor), str(spawn_room))
+            if len(expected_rooms) < 5:
+                chest_errors.append(
+                    "boss chest smoke discovered fewer than 5 real boss checkpoints "
+                    f"({len(expected_rooms)}); audit would be vacuous"
+                )
             for (kind, floor), expected_room in sorted(expected_rooms.items()):
                 actual_room = ns["boss_floor_chest_room_id"](kind, floor)
                 if actual_room != expected_room:
