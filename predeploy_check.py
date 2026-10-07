@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Fast Railway predeploy gate for Soulbound v1.13.43.
+"""Fast Railway predeploy gate for Soulbound v1.13.44.
 
 This is the normal deploy check.  It intentionally avoids assembling the full
 world/runtime.  Use predeploy_full.py when an exhaustive historical audit is
@@ -17,7 +17,7 @@ import traceback
 try:
     from storage.database import Database as _DatabaseImportSmoke
 except Exception as exc:
-    print(f"Soulbound v1.13.43 FAST PREDEPLOY FAILED: database import: {type(exc).__name__}: {exc}")
+    print(f"Soulbound v1.13.44 FAST PREDEPLOY FAILED: database import: {type(exc).__name__}: {exc}")
     traceback.print_exc()
     raise SystemExit(1)
 
@@ -42,7 +42,7 @@ try:
     )
 except Exception as exc:
     print(
-        "Soulbound v1.13.43 FAST PREDEPLOY FAILED: "
+        "Soulbound v1.13.44 FAST PREDEPLOY FAILED: "
         f"skill semantic import: {type(exc).__name__}: {exc}"
     )
     traceback.print_exc()
@@ -3336,7 +3336,7 @@ if _unclassified_xp_mutators_v11342:
         + ", ".join(_unclassified_xp_mutators_v11342[:100])
     )
 
-# v1.13.43 — world death rescue must remain global and actionable.
+# v1.13.44 — world death rescue must remain global and actionable.
 _death_survival_source_v11343 = (
     _root / "player/session_mixins/combat_survival.py"
 ).read_text(encoding="utf-8")
@@ -3356,7 +3356,7 @@ for _needle in (
 ):
     if _needle not in _death_survival_source_v11343:
         _semantic_errors.append(
-            "v1.13.43 world death broadcast regression: missing " + _needle
+            "v1.13.44 world death broadcast regression: missing " + _needle
         )
 for _needle in (
     "async def respawn_downed_player_v11343",
@@ -3366,7 +3366,7 @@ for _needle in (
 ):
     if _needle not in _party_source_v11343:
         _semantic_errors.append(
-            "v1.13.43 world rescue regression: missing " + _needle
+            "v1.13.44 world rescue regression: missing " + _needle
         )
 for _needle in (
     "'playerresp': ('respawn_downed_player_v11343', (COMMAND_TEXT,), {})",
@@ -3374,22 +3374,22 @@ for _needle in (
 ):
     if _needle not in _command_source_v11343:
         _semantic_errors.append(
-            "v1.13.43 helper resp command regression: missing " + _needle
+            "v1.13.44 helper resp command regression: missing " + _needle
         )
 
 if _semantic_errors:
-    print("Soulbound v1.13.43 FAST PREDEPLOY FAILED: semantic contracts")
+    print("Soulbound v1.13.44 FAST PREDEPLOY FAILED: semantic contracts")
     for _error in _semantic_errors:
         print(f"ERROR: {_error}")
     raise SystemExit(1)
 
 if audit["error_count"]:
-    print("Soulbound v1.13.43 FAST PREDEPLOY FAILED")
+    print("Soulbound v1.13.44 FAST PREDEPLOY FAILED")
     for error in audit["errors"]:
         print(f"ERROR: {error}")
     raise SystemExit(1)
 
-print("Soulbound v1.13.43 FAST PREDEPLOY PASS")
+print("Soulbound v1.13.44 FAST PREDEPLOY PASS")
 print(
     "Semantic contracts: "
     f"{len(_semantic_audits)} audits PASS; AP runtime guards PASS"
