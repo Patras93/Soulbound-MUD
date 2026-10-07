@@ -49,19 +49,66 @@ class SessionCombatSurvivalMixin:
                     )
                 if self.resting or self.rest_task:
                     await self.stop_rest(announce=False)
-                _killer_mob = self.server.world.mobs.get(self.combat_mob_key) if self.combat_mob_key else None
-                if _killer_mob and _killer_mob.template_id in MOB_TEMPLATES:
-                    _killer_template_v11341 = MOB_TEMPLATES[_killer_mob.template_id]
-                    _killer_name_v11341 = str(
-                        _killer_template_v11341.get("name") or _killer_mob.template_id
+                _death_cause_v11341 = dict(
+                    getattr(self, "_last_death_cause_v11341", {}) or {}
+                )
+                if (
+                    _death_cause_v11341.get("killer")
+                    and str(_death_cause_v11341.get("killer")).strip().casefold()
+                    != str(killer or "").strip().casefold()
+                ):
+                    _death_cause_v11341 = {}
+
+                # Prefer the exact mob that delivered the lethal action. In AoE/
+                # multi-mob fights combat_mob_key can point at a different target.
+                _cause_mob_key_v11341 = str(
+                    _death_cause_v11341.get("mob_key") or ""
+                ).strip()
+                _killer_mob = (
+                    self.server.world.mobs.get(_cause_mob_key_v11341)
+                    if _cause_mob_key_v11341
+                    else None
+                )
+                if _killer_mob is None and self.combat_mob_key:
+                    _killer_mob = self.server.world.mobs.get(self.combat_mob_key)
+
+                _killer_template_v11341 = None
+                _cause_template_id_v11341 = str(
+                    _death_cause_v11341.get("template_id") or ""
+                ).strip()
+                if _cause_template_id_v11341 in MOB_TEMPLATES:
+                    _candidate_v11341 = MOB_TEMPLATES[_cause_template_id_v11341]
+                    _candidate_name_v11341 = str(
+                        _candidate_v11341.get("name") or _cause_template_id_v11341
                     )
-                    if _killer_name_v11341.casefold() == str(killer or "").strip().casefold():
-                        record_combat_profile_v11341(
-                            self.server.db,
-                            self.account_id,
-                            "worst_defeat",
-                            _killer_template_v11341,
-                        )
+                    if (
+                        _candidate_name_v11341.casefold()
+                        == str(killer or "").strip().casefold()
+                    ):
+                        _killer_template_v11341 = _candidate_v11341
+
+                if (
+                    _killer_template_v11341 is None
+                    and _killer_mob
+                    and _killer_mob.template_id in MOB_TEMPLATES
+                ):
+                    _candidate_v11341 = MOB_TEMPLATES[_killer_mob.template_id]
+                    _candidate_name_v11341 = str(
+                        _candidate_v11341.get("name") or _killer_mob.template_id
+                    )
+                    if (
+                        _candidate_name_v11341.casefold()
+                        == str(killer or "").strip().casefold()
+                    ):
+                        _killer_template_v11341 = _candidate_v11341
+
+                if _killer_template_v11341 is not None:
+                    record_combat_profile_v11341(
+                        self.server.db,
+                        self.account_id,
+                        "worst_defeat",
+                        _killer_template_v11341,
+                    )
                 self.server.release_all_engagements_for_session(self)
                 if _killer_mob and _killer_mob.template_id in MOB_TEMPLATES:
                     _kt = MOB_TEMPLATES[_killer_mob.template_id]
@@ -83,15 +130,6 @@ class SessionCombatSurvivalMixin:
                 self.character.deaths += 1
                 self.server.db.add_lifetime_stat(self.account_id, "deaths", 1)
                 old_room = self.character.room_id
-                _death_cause_v11341 = dict(
-                    getattr(self, "_last_death_cause_v11341", {}) or {}
-                )
-                if (
-                    _death_cause_v11341.get("killer")
-                    and str(_death_cause_v11341.get("killer")).strip().casefold()
-                    != str(killer or "").strip().casefold()
-                ):
-                    _death_cause_v11341 = {}
                 _death_room_name_v11341 = str(
                     ROOMS.get(old_room, {}).get("name") or old_room
                 )
