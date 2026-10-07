@@ -2541,13 +2541,14 @@ _equipment_crafting_source_v11338 = (
 ).read_text(encoding="utf-8")
 for _needle in (
     "def class_equipment_flat_power_channels(",
-    "power = max(1, int(round(budget * 0.18 * slot_scale * style_mult)))",
+    "power = max(1, int(round(budget * 0.45 * slot_scale * style_mult)))",
     "def legendary_class_equipment_flat_power_channels_v11338(",
     '"attack": int(legendary_flat_power_v11338["attack"])',
     '"magic_attack": int(legendary_flat_power_v11338["magic_attack"])',
     '"attack": int(relic_flat_power_v11338["attack"])',
     '"magic_attack": int(relic_flat_power_v11338["magic_attack"])',
     "v1.13.38 boss set flat power regression",
+    "Quartz Charm flat power",
 ):
     if _needle not in _equipment_crafting_source_v11338:
         _semantic_errors.append(
