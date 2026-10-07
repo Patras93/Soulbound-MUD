@@ -6,7 +6,11 @@ from core.progression_600 import soul_tier_title_for_class
 from player.session_mixins.inventory_equipment import CURRENCY_SQLITE_SAFE_TOTAL
 from player.session_mixins.quest_npc import player_item_display_name_v0335
 from player.session_mixins.shops_teachers import currency_reading_text
-from player.session_mixins.skill_learning import ROOMS, normalize_lookup_text
+from player.session_mixins.skill_learning import MOB_TEMPLATES, ROOMS, normalize_lookup_text
+from systems.combat_profile_records import (
+    backfill_combat_profile_records_v11341,
+    combat_profile_row_v11341,
+)
 
 
 class SessionSocialExpansionMixin:
@@ -184,6 +188,9 @@ class SessionSocialExpansionMixin:
         fish=conn.execute("SELECT COALESCE(MAX(best_weight_g),0) v FROM fish_journal WHERE account_id=?",(aid,)).fetchone()
         biggest_crit=int(crit['value']) if crit else 0
         biggest_fish=int(fish['v'] or 0)
+        backfill_combat_profile_records_v11341(conn if False else self.server.db, aid, MOB_TEMPLATES)
+        best_kill_row=combat_profile_row_v11341(self.server.db,aid,"best_kill")
+        worst_defeat_row=combat_profile_row_v11341(self.server.db,aid,"worst_defeat")
 
         room_id=str(row['room_id'] or '')
         room_name=str((ROOMS.get(room_id) or {}).get('name') or room_id or 'brak')
@@ -207,6 +214,18 @@ class SessionSocialExpansionMixin:
         await self.send(f"Endgame: World Tier {world_tier}; Wzniesienie: {asc_text}; najgłębszy boss/loch {deepest}; Kopalnia piętro {mine_floor}; Endless Gauntlet rekord {gaunt_round}.")
         await self.send(f"Postęp: osiągnięcia {ach}; odblokowane tytuły {unlocked_titles}; questy ukończone {q_done}, zapisanych questów {q_total}; Bestiariusz: {species} wpisów i {kills} zabójstw; zgony {int(row['deaths'])}.")
         await self.send(f"Rekordy: największy krytyk {biggest_crit}; najcięższa ryba {biggest_fish} g. Ostatnia/zapisana lokacja: {room_name}.")
+        if best_kill_row:
+            await self.send(
+                f"Best Kill: {best_kill_row['text_value']}, XP: {int(best_kill_row['value'])}."
+            )
+        else:
+            await self.send("Best Kill: brak.")
+        if worst_defeat_row:
+            await self.send(
+                f"Worst Defeat: {worst_defeat_row['text_value']}, XP: {int(worst_defeat_row['value'])}."
+            )
+        else:
+            await self.send("Worst Defeat: brak.")
 
         if presence:
             await self.send(
