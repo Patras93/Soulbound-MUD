@@ -96,8 +96,8 @@ _catalog_mut.catalog_update_path('NPCS', NPCS, (), {
         "name": "Kwatermistrzyni Selene",
         "room": "guild_arcane_chamber",
         "dialogue": (
-            "Prowadzę skład wyposażenia Magów i Psioników. "
-            "Wpisz list albo shop, aby przejrzeć klasowy ekwipunek."
+            "Prowadzę skład wyposażenia Magów i Psioników oraz sprzedaję "
+            "Fokus Runiczny potrzebny do Zaklinania. Wpisz list albo shop."
         ),
         "shopkeeper": True,
     },
