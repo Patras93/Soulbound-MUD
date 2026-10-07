@@ -54,6 +54,8 @@ Soulbound v1.13.42 — OCEAN TRADE, PROGRESSION, CLASS QUESTS & HARDENING
 - CAP HARTOWANIA: odporność z hartowania założonego EQ sumuje się do 40%; authored/boss Wardy pozostają dodatkową warstwą, a finalny Ward ma limit 80%.
 - KOSZT HARTOWANIA: Esencja Runiczna + stop zależny od poziomu EQ; koszt rośnie z rangą. Hartowanie daje Profession XP Kowalstwa, ale nie Tool XP.
 - TRWAŁOŚĆ: hartowanie zapisuje się w SQLite, przenosi razem z EQ przy przekazaniu i jest czyszczone razem z pozostałymi modyfikacjami craftingu przy utracie przedmiotu.
+- ZAKLINANIE: naprawiono brak dostępnego narzędzia. Fokus Runiczny nadal istnieje jako Character-Bound tool, ale dynamiczny sklep klasowy Komnaty Arkanów wcześniej ukrywał zwykłe pozycje SHOPS. Teraz Kwatermistrzyni Selene pokazuje i sprzedaje Fokus Runiczny obok EQ Maga/Psionika.
+- SKLEPY KLASOWE: dynamiczne podmienianie Tieru klasowego EQ nie usuwa już nieklasowych narzędzi ani innych pozycji użytkowych przypisanych do tej samej lokacji.
 - Brak wipe. Nowa tabela hartowania jest tworzona automatycznie bez resetu istniejących danych.
 
 ==============================================================================
