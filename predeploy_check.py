@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Fast Railway predeploy gate for Soulbound v1.13.46.
+"""Fast Railway predeploy gate for Soulbound v1.13.47.
 
 This is the normal deploy check.  It intentionally avoids assembling the full
 world/runtime.  Use predeploy_full.py when an exhaustive historical audit is
@@ -17,7 +17,7 @@ import traceback
 try:
     from storage.database import Database as _DatabaseImportSmoke
 except Exception as exc:
-    print(f"Soulbound v1.13.46 FAST PREDEPLOY FAILED: database import: {type(exc).__name__}: {exc}")
+    print(f"Soulbound v1.13.47 FAST PREDEPLOY FAILED: database import: {type(exc).__name__}: {exc}")
     traceback.print_exc()
     raise SystemExit(1)
 
@@ -42,7 +42,7 @@ try:
     )
 except Exception as exc:
     print(
-        "Soulbound v1.13.46 FAST PREDEPLOY FAILED: "
+        "Soulbound v1.13.47 FAST PREDEPLOY FAILED: "
         f"skill semantic import: {type(exc).__name__}: {exc}"
     )
     traceback.print_exc()
@@ -3531,19 +3531,25 @@ for _needle_v11346_quest in (
 if '"party_contract"' not in _progression_source_v11346 or "V0522_COMBAT_QUEST_KINDS" not in _progression_source_v11346:
     _semantic_errors.append("v1.13.46 party contract Class XP regression")
 
+# v1.13.47: ordinary ore names must bypass boss-key smelting before forge checks.
+_smelt_source_v11347 = (_root / "player/session_mixins/crafting_expansion.py").read_text(encoding="utf-8")
+for _needle_v11347 in ("if not key_alias and not explicit_key:", "return None", "found_key=find_by_name(pool,raw)"):
+    if _needle_v11347 not in _smelt_source_v11347:
+        _semantic_errors.append("v1.13.47 smelt ore routing regression: missing " + _needle_v11347)
+
 if _semantic_errors:
-    print("Soulbound v1.13.46 FAST PREDEPLOY FAILED: semantic contracts")
+    print("Soulbound v1.13.47 FAST PREDEPLOY FAILED: semantic contracts")
     for _error in _semantic_errors:
         print(f"ERROR: {_error}")
     raise SystemExit(1)
 
 if audit["error_count"]:
-    print("Soulbound v1.13.46 FAST PREDEPLOY FAILED")
+    print("Soulbound v1.13.47 FAST PREDEPLOY FAILED")
     for error in audit["errors"]:
         print(f"ERROR: {error}")
     raise SystemExit(1)
 
-print("Soulbound v1.13.46 FAST PREDEPLOY PASS")
+print("Soulbound v1.13.47 FAST PREDEPLOY PASS")
 print(
     "Semantic contracts: "
     f"{len(_semantic_audits)} audits PASS; AP runtime guards PASS"
