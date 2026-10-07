@@ -130,6 +130,46 @@ def crypt_floor_number(room_id):
     return floor if floor >= 1 else None
 
 
+_CRYPT_NAME_SYLLABLES = (
+    "ar", "bel", "cor", "dra", "eth", "fal", "gor", "hal",
+    "ith", "jor", "kael", "lor", "mor", "nar", "or", "prae",
+    "qir", "rha", "syl", "tor", "ur", "vael", "wyr", "xan",
+    "yor", "zae",
+)
+
+def _crypt_unique_word(value):
+    """Bijekcyjny kod sylabowy: unikalny dla każdego dodatniego numeru, bez cyfr."""
+    n = max(1, int(value))
+    base = len(_CRYPT_NAME_SYLLABLES)
+    parts = []
+    while n > 0:
+        n, rem = divmod(n - 1, base)
+        parts.append(_CRYPT_NAME_SYLLABLES[rem])
+    return "".join(reversed(parts)).capitalize()
+
+def crypt_floor_display_name(floor, mythic=False):
+    token = _crypt_unique_word(floor)
+    if mythic:
+        titles = (
+            "Otchłań", "Grobowiec", "Nekropolia", "Komnata Zatracenia",
+            "Sanktuarium Cienia", "Katakumba Pustki", "Krypta Echa",
+        )
+    else:
+        titles = (
+            "Katakumba", "Grobowiec", "Galeria Umarłych", "Komnata Pieczęci",
+            "Krypta Bezimiennych", "Sala Sarkofagów", "Korytarz Kości",
+        )
+    title = titles[(max(1, int(floor)) - 1) % len(titles)]
+    return f"{title} {token}"
+
+def crypt_subroom_display_name(label, floor, room_index, mythic=False):
+    # 64 miejsc na piętro daje osobny, niepowtarzalny kod dla każdego pokoju.
+    key = (max(1, int(floor)) - 1) * 64 + max(1, int(room_index))
+    token = _crypt_unique_word(key)
+    prefix = "Mityczna " if mythic and not str(label).startswith("Mityczna") else ""
+    return f"{prefix}{label} {token}"
+
+
 CRYPT_RARITIES = {
     "common": {
         "name": "Zwykły",
@@ -1240,9 +1280,9 @@ def build_crypt_200_floors():
         else:
             note=""
         _catalog_mut.catalog_assign({
-            "zone":"Krypta Nieskończona","name":f"Krypta, piętro {floor}",
+            "zone":"Krypta Nieskończona","name":crypt_floor_display_name(floor),
             "desc":(
-                f"Piętro {floor}. Próg trudności {crypt_depth_step(floor)}. "
+                f"Ta głębokość ma próg trudności {crypt_depth_step(floor)}. "
                 f"Kamienne korytarze stają się coraz bardziej niebezpieczne.{note}"
             ),
             "exits":exits,
@@ -1357,9 +1397,9 @@ def build_mythic_endgame():
         )
         _catalog_mut.catalog_assign({
             "zone": "Mityczna Krypta",
-            "name": f"Mityczna Krypta, piętro {floor}",
+            "name": crypt_floor_display_name(floor, mythic=True),
             "desc": (
-                f"Mityczne piętro {floor}. Próg trudności {crypt_depth_step(floor)}. "
+                f"Ta mityczna głębokość ma próg trudności {crypt_depth_step(floor)}. "
                 f"Ściany są przesycone ciemną energią.{c_note}"
             ),
             "exits": c_exits,

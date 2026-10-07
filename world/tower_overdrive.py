@@ -8,6 +8,36 @@ and more rewarding than the previous one; boss levels remain extra spikes.
 
 V0381_TOWER_OVERDRIVE_VERSION = "0.38.1"
 
+# v1.13.63 — Endless Towers 2.0.  Wieże pozostają bez końca.
+# Mutatory są deterministycznie losowane z numeru piętra, dzięki czemu dane
+# piętro zachowuje ten sam charakter po restarcie, ale kolejne piętra różnią się.
+V11363_TOWER_MUTATORS = (
+    {"id":"juggernaut", "name":"Juggernaut", "hp":1.35, "damage":1.00, "xp":1.18, "text":"+35% HP, +18% EXP"},
+    {"id":"berserk", "name":"Berserk", "hp":1.05, "damage":1.28, "xp":1.20, "text":"+28% obrażeń, +20% EXP"},
+    {"id":"astral_storm", "name":"Astral Storm", "hp":1.12, "damage":1.18, "xp":1.22, "damage_type":"magic", "text":"magiczne obrażenia, +12% HP, +18% obrażeń, +22% EXP"},
+    {"id":"iron_guard", "name":"Iron Guard", "hp":1.24, "damage":1.10, "xp":1.16, "text":"+24% HP, +10% obrażeń, +16% EXP"},
+    {"id":"void_pressure", "name":"Void Pressure", "hp":1.18, "damage":1.22, "xp":1.25, "text":"+18% HP, +22% obrażeń, +25% EXP"},
+    {"id":"glass_cannon", "name":"Glass Cannon", "hp":0.88, "damage":1.42, "xp":1.28, "text":"-12% HP, +42% obrażeń, +28% EXP"},
+)
+
+def tower_mutators_v11363(kind, floor):
+    """Return 1..3 stable mutators. Deeper endless floors can stack more."""
+    floor=max(1,int(floor or 1))
+    depth=_v0381_tower_depth(kind,floor)
+    count=1 + (1 if depth >= 100 else 0) + (1 if depth >= 300 else 0)
+    count=min(3,count)
+    start=(floor*1103515245 + (97 if str(kind).startswith("mythic_") else 31)) % len(V11363_TOWER_MUTATORS)
+    step=5  # coprime with six entries: no duplicate within a 3-mutator floor
+    return tuple(V11363_TOWER_MUTATORS[(start+i*step)%len(V11363_TOWER_MUTATORS)] for i in range(count))
+
+def tower_mutator_multipliers_v11363(kind, floor):
+    hp=dmg=xp=1.0
+    damage_type=None
+    for row in tower_mutators_v11363(kind,floor):
+        hp*=float(row.get("hp",1.0)); dmg*=float(row.get("damage",1.0)); xp*=float(row.get("xp",1.0))
+        if row.get("damage_type"): damage_type=row["damage_type"]
+    return hp,dmg,xp,damage_type
+
 
 def _v0381_tower_floor(template):
     if not isinstance(template, dict):
@@ -100,9 +130,19 @@ def v0190_apply_combat_template(template):
         hp += depth * (90 if kind == "tower_regular" else 420)
         dmg += depth * (2 if kind == "tower_regular" else 5)
 
+    # v1.13.63: Endless Towers 2.0 mutators stack with depth scaling.
+    mut_hp, mut_dmg, _mut_xp, mut_damage_type = tower_mutator_multipliers_v11363(kind, floor)
+    hp=max(1,int(round(hp*mut_hp)))
+    dmg=max(1,int(round(dmg*mut_dmg)))
     result["max_hp"] = hp
     result["base_max_hp"] = hp
     result["damage"] = dmg
+    if mut_damage_type:
+        result["damage_type"] = mut_damage_type
+    _mutators=tower_mutators_v11363(kind,floor)
+    result["tower_mutators_v11363"]=[row["id"] for row in _mutators]
+    result["tower_mutator_names_v11363"]=[row["name"] for row in _mutators]
+    result["tower_mutator_text_v11363"]="; ".join(row["name"]+": "+row["text"] for row in _mutators)
     result["tower_overdrive_v0381"] = True
     result["tower_overdrive_hp_mult_v0381"] = round(hp_boost, 6)
     result["tower_overdrive_damage_mult_v0381"] = round(dmg_boost, 6)
@@ -122,6 +162,8 @@ def v0190_combat_reward(template, kind):
     floor = _v0381_tower_floor(template)
     depth = _v0381_tower_depth(tower_kind, floor)
     _hp, _dmg, xp_boost = _v0381_tower_boosts(tower_kind, floor)
+    _mhp, _mdmg, mut_xp, _mdtype = tower_mutator_multipliers_v11363(tower_kind, floor)
+    xp_boost *= mut_xp
     extra = depth * (600 if tower_kind.startswith("mythic_") else 220)
     if tower_kind.endswith("boss"):
         extra *= 5
@@ -152,6 +194,8 @@ HELP_TOPICS.setdefault("wieza", []).extend([
     "Zwykła Wieża zaczyna się od poziomu 100: 101 jest mocniejszy od 100, 102 od 101 itd. Mityczna Wieża rośnie od poziomu 1 bez płaskich przedziałów.",
     "Na każdym poziomie rosną HP, obrażenia oraz Class/Soul/stat EXP. Boss co 10 poziomów jest dodatkowym skokiem. UOSSMUD Superbossy są osobnymi unikalnymi encounterami świata, nie bossami co 10 pięter Mitycznej Wieży.",
     "Tower Overdrive działa także dla poziomów tworzonych dynamicznie ponad 200 i nie zatrzymuje wzrostu na 600.",
+    "v1.13.63 Endless Towers 2.0: każde piętro ma stabilny losowy mutator; od głębokości 100 działają dwa, a od 300 trzy jednocześnie. Mutatory zmieniają HP, obrażenia, typ obrażeń i EXP.",
+    "Skrzynie bossów co 10 pięter skalują nagrody dalej ponad progresję 600; Wieża nadal nie ma końcowego piętra.",
 ])
 HELP_TOPIC_ALIASES.update({
     "wieża": "wieza", "tower": "wieza", "wiezaastralna": "wieza", "astraltower": "wieza",
@@ -232,6 +276,18 @@ def tower_overdrive_audit_v0381():
             errors.append(f"mythic_astral: boss {floor} HP not above regular")
         if int(v0190_combat_reward(boss, "class")) <= int(v0190_combat_reward(reg, "class")):
             errors.append(f"mythic_astral: boss {floor} XP not above regular")
+
+    # v1.13.63 contracts: mutator count grows with endless depth and no duplicates.
+    for kind,start in (("tower_regular",int(ASTRAL_MIN_FLOOR)),("mythic_tower_regular",1)):
+        probes=(start,start+99,start+299,start+999)
+        last_count=0
+        for floor in probes:
+            rows=tower_mutators_v11363(kind,floor)
+            if len(rows)<last_count or len(rows)>3:
+                errors.append(f"{kind}: invalid mutator growth at {floor}")
+            if len({r['id'] for r in rows}) != len(rows):
+                errors.append(f"{kind}: duplicate mutator at {floor}")
+            last_count=len(rows)
 
     return {
         "version": V0381_TOWER_OVERDRIVE_VERSION,

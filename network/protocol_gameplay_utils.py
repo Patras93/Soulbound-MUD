@@ -464,7 +464,7 @@ def _boss_floor_chest_spec(room_id):
         is_astral_boss_floor(floor)
         and room_id == boss_floor_chest_room_id("astral", floor)
     ):
-        return ("astral", floor, min(CHARACTER_MAX_LEVEL, floor))
+        return ("astral", floor, max(1, int(floor)))
 
     floor = mythic_crypt_floor_number(room_id)
     if (
@@ -485,7 +485,7 @@ def _boss_floor_chest_spec(room_id):
         return (
             "mythic_astral",
             floor,
-            min(CHARACTER_MAX_LEVEL, 110 + floor // 2),
+            110 + floor // 2,
         )
     return None
 
@@ -555,7 +555,8 @@ def roll_crafting_xp(base_value, variance=0.15):
     return generator_core_v027.crafting_xp_roll(base_value, random.random())
 
 def v1138_boss_chest_gold_anchor(power):
-    power = max(1, min(CHARACTER_MAX_LEVEL, int(power or 1)))
+    # v1.13.63: tower chests continue scaling beyond progression 600.
+    power = max(1, int(power or 1))
     anchors = (
         (1, 1),
         (20, 10),
@@ -571,7 +572,9 @@ def v1138_boss_chest_gold_anchor(power):
     if power <= anchors[0][0]:
         return anchors[0][1]
     if power >= anchors[-1][0]:
-        return anchors[-1][1]
+        # Smooth super-linear continuation: no reward freeze in endless towers.
+        ratio=float(power)/float(anchors[-1][0])
+        return max(anchors[-1][1],int(round(anchors[-1][1]*(ratio**1.55))))
     for (p0, g0), (p1, g1) in zip(anchors, anchors[1:]):
         if p0 <= power <= p1:
             ratio = (power - p0) / float(p1 - p0)
@@ -580,8 +583,9 @@ def v1138_boss_chest_gold_anchor(power):
 
 
 def boss_chest_reward_roll(kind, floor, power):
-    power = max(1, min(CHARACTER_MAX_LEVEL, int(power)))
     floor = int(floor)
+    raw_power=max(1,int(power))
+    power = raw_power if str(kind) in {"astral","mythic_astral"} else min(CHARACTER_MAX_LEVEL,raw_power)
     # v1.13.8: skrzynia bossa ma być nagrodą, nie kilkoma symbolicznymi Gold.
     kind_mult = {
         "giant": 0.90,
@@ -600,9 +604,11 @@ def boss_chest_reward_roll(kind, floor, power):
     )
 
     items = []
-    # Fragmenty Duszy są użyteczne na każdym etapie.
+    # Fragmenty Duszy są użyteczne na każdym etapie. Endless Tower depth
+    # increases quantity instead of freezing chest quality at progression 600.
     if "soul_shard" in ITEMS:
-        items.extend(["soul_shard"] * random.randint(1, 3))
+        depth_bonus=(max(0,power-600)//200) if str(kind) in {"astral","mythic_astral"} else 0
+        items.extend(["soul_shard"] * random.randint(1+depth_bonus,3+depth_bonus))
 
     consumables = ["healing_potion", "mana_potion", "soul_elixir"]
     if power >= 60:
@@ -628,6 +634,12 @@ def boss_chest_reward_roll(kind, floor, power):
     # Endgame ma małą szansę na drugi przydatny consumable.
     if power >= 100 and consumables and random.random() < 0.30:
         items.append(random.choice(consumables))
+
+    # v1.13.63: every additional 200 effective Tower power above 600 grants
+    # another useful loot roll, so boss chests keep improving without an end floor.
+    if str(kind) in {"astral","mythic_astral"} and power>600 and consumables:
+        for _ in range(min(8,max(0,(power-600)//200))):
+            items.append(random.choice(consumables))
 
     return {"gold": gold, "items": items}
 

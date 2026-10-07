@@ -1025,7 +1025,7 @@ class SessionCraftingExpansionV03114Mixin:
             await self.send(
                 "HARTOWANIE EQ. Użycie: hartuj <żywioł> <pełna nazwa EQ>. "
                 "Status: hartuj status <pełna nazwa EQ>. Żywioły: "
-                "Fire, Ice, Electric, Dark, Poison, Holy, Water, Arcane."
+                "Fire, Ice, Electric, Dark, Shadow, Void, Poison, Holy, Water, Arcane."
             )
             return
 
@@ -1055,7 +1055,9 @@ class SessionCraftingExpansionV03114Mixin:
             "lod":"ice","ice":"ice","frost":"ice",
             "electric":"lightning","elektryczny":"lightning",
             "piorun":"lightning","lightning":"lightning",
-            "mrok":"dark","dark":"dark","cien":"dark",
+            "mrok":"dark","dark":"dark",
+            "cien":"shadow","cień":"shadow","shadow":"shadow","umbra":"shadow",
+            "void":"void","pustka":"void","otchlan":"void","otchłań":"void",
             "trucizna":"poison","poison":"poison",
             "swiete":"holy","holy":"holy","swiatlo":"holy",
             "woda":"water","water":"water",
@@ -1081,7 +1083,7 @@ class SessionCraftingExpansionV03114Mixin:
         if not element or not item_query:
             await self.send(
                 "Nieznany żywioł. Dostępne: Fire, Ice, Electric, Dark, "
-                "Poison, Holy, Water, Arcane."
+                "Shadow, Void, Poison, Holy, Water, Arcane."
             )
             return
 

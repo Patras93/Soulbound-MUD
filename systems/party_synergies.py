@@ -316,6 +316,39 @@ V11339_SYNERGY2_REACTIONS = (
 )
 
 
+# v1.13.63 — Party Combos 2.1: status/element reactions shared by party members.
+# They require a real party presence (at least two living classes in the room) and
+# consume the prepared status, so the same setup cannot be detonated forever.
+V11363_PARTY_STATUS_REACTIONS = (
+    {
+        "id":"oil_explosion", "name":"Oil Explosion", "status":"oil",
+        "trigger_element":"fire", "multiplier":1.35,
+        "trigger_text":"EXPLOSION: ogień detonuje łatwopalny olej i zużywa Oil.",
+    },
+    {
+        "id":"arc_surge", "name":"Arc Surge", "status":"paralyze",
+        "trigger_element":"lightning", "multiplier":1.28,
+        "trigger_text":"ARC SURGE: Lightning przepala paraliż i wyzwala dodatkowe uderzenie.",
+    },
+)
+
+def _party_status_active_v11363(target,status,now):
+    if status=="oil":
+        return float(getattr(target,"v0317_oiled_until",0.0) or 0.0) > now
+    if status=="paralyze":
+        rounds=max(0,int(getattr(target,"v11196_logic_bomb_rounds",0) or 0))
+        effects=set(getattr(target,"v11196_logic_bomb_effects",set()) or set())
+        return rounds>0 and "paralyze" in effects
+    return False
+
+def _party_status_consume_v11363(target,status):
+    if status=="oil":
+        target.v0317_oiled_until=0.0
+    elif status=="paralyze":
+        effects=set(getattr(target,"v11196_logic_bomb_effects",set()) or set())
+        effects.discard("paralyze")
+        target.v11196_logic_bomb_effects=effects
+
 def party_synergy2_local_classes_v11339(session):
     return set(party_synergy_profile_for_session_v11338(session)["classes"])
 
@@ -377,6 +410,23 @@ def party_synergy2_apply_hit_v11339(
             element,
         )
 
+    # v1.13.63: generic party status reactions. A prepared status is consumed
+    # once; this makes the combo sequencing meaningful rather than a permanent buff.
+    if len(classes) >= 2:
+        for reaction in V11363_PARTY_STATUS_REACTIONS:
+            if element != str(reaction.get("trigger_element") or ""):
+                continue
+            status=str(reaction.get("status") or "")
+            if not _party_status_active_v11363(target,status,now):
+                continue
+            _party_status_consume_v11363(target,status)
+            multiplier=min(
+                V11339_SYNERGY2_MAX_REACTION_MULTIPLIER,
+                max(1.0,float(reaction.get("multiplier",1.0))),
+            )
+            damage=max(1,int(round(damage*multiplier)))
+            return damage," "+str(reaction["trigger_text"]),element
+
     for reaction in V11339_SYNERGY2_REACTIONS:
         if not reaction["classes"].issubset(classes):
             continue
@@ -403,6 +453,8 @@ def party_synergy2_summary_v11339(session):
         for row in V11339_SYNERGY2_REACTIONS
         if row["classes"].issubset(classes)
     ]
+    if len(classes)>=2:
+        names.extend(row["name"] for row in V11363_PARTY_STATUS_REACTIONS)
     return ", ".join(names) if names else "brak"
 
 
@@ -439,9 +491,14 @@ def party_synergy2_audit_v11339():
         or overload.get("trigger_element") != "lightning"
     ):
         errors.append("Fire -> Electric Hellstorm Overload contract missing")
+    status_ids=[row["id"] for row in V11363_PARTY_STATUS_REACTIONS]
+    if status_ids != ["oil_explosion","arc_surge"]:
+        errors.append("v1.13.63 party status reactions missing")
+    if any(float(row.get("multiplier",1.0))>V11339_SYNERGY2_MAX_REACTION_MULTIPLIER for row in V11363_PARTY_STATUS_REACTIONS):
+        errors.append("v1.13.63 status reaction exceeds multiplier cap")
     return {
-        "version": "1.13.39",
-        "reaction_count": len(V11339_SYNERGY2_REACTIONS),
+        "version": "1.13.63",
+        "reaction_count": len(V11339_SYNERGY2_REACTIONS)+len(V11363_PARTY_STATUS_REACTIONS),
         "errors": errors,
         "error_count": len(errors),
     }

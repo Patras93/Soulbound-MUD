@@ -897,16 +897,30 @@ def v0100_expand_instance_floor(canonical_room, spawn_pairs=None, runtime=False)
                 label = "Komnata Strażnika Kręgu"
             elif spec.get("boss_flag") and spec["kind"] == "giant" and floor % 10 == 0:
                 label = "Sala Strażnika Bastionu"
-        _catalog_mut.catalog_assign({
-            "zone": zone,
-            "name": f"{label} — {floor}",
-            "desc": (
+        if spec["kind"] in {"crypt", "mythic_crypt"}:
+            room_name = crypt_subroom_display_name(
+                label, floor, index + 1, mythic=(spec["kind"] == "mythic_crypt")
+            )
+            room_desc = (
+                "Rozległa część Krypty. Korytarze rozchodzą się w kilka stron, "
+                "łączą w pętle i prowadzą przez boczne komnaty. To pełna sekcja lochu, "
+                "a nie pojedynczy liniowy pokój. "
+                f"Generator: {generated_profile_v025['layout']}; "
+                f"motyw: {generated_profile_v025['motif']}."
+            )
+        else:
+            room_name = f"{label} — {floor}"
+            room_desc = (
                 f"Rozległa część poziomu {floor}. Korytarze rozchodzą się w kilka stron, "
                 "łączą w pętle i prowadzą przez boczne komnaty. To pełne piętro lochu, "
                 "a nie pojedynczy liniowy pokój. "
                 f"Generator piętra: {generated_profile_v025['layout']}; "
                 f"motyw: {generated_profile_v025['motif']}."
-            ),
+            )
+        _catalog_mut.catalog_assign({
+            "zone": zone,
+            "name": room_name,
+            "desc": room_desc,
             "exits": {},
             "v0100_instance_kind": spec["kind"],
             "v0250_generator_profile": generated_profile_v025,

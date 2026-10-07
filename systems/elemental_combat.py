@@ -14,6 +14,8 @@ V11339_ELEMENT_LABELS = {
     "ice": "Ice",
     "lightning": "Electric",
     "dark": "Dark",
+    "shadow": "Shadow",
+    "void": "Void",
     "poison": "Poison",
     "holy": "Holy",
     "water": "Water",
@@ -40,6 +42,16 @@ V11339_ELEMENT_ATTACKS = {
         "chance": 0.24,
         "damage_multiplier": 1.14,
         "text": "DARK — fala mroku uderza w duszę celu.",
+    },
+    "shadow": {
+        "chance": 0.24,
+        "damage_multiplier": 1.16,
+        "text": "SHADOW — żywy cień rozrywa ochronę magiczną celu.",
+    },
+    "void": {
+        "chance": 0.22,
+        "damage_multiplier": 1.20,
+        "text": "VOID — energia Pustki uderza poza zwykłym porządkiem żywiołów.",
     },
     "poison": {
         "chance": 0.22,
@@ -85,8 +97,10 @@ def canonical_element_v11339(value):
         "ice": "ice",
         "frost": "ice",
         "dark": "dark",
-        "shadow": "dark",
-        "void": "dark",
+        "shadow": "shadow",
+        "shade": "shadow",
+        "void": "void",
+        "pustka": "void",
         "poison": "poison",
         "bio": "poison",
         "biological": "poison",
@@ -120,7 +134,9 @@ def mob_element_affinities_v11339(template):
         ("lightning", ("piorun", "burz", "grom", "shock", "arc cannon", "electric", "tesla")),
         ("fire", ("ogień", "ogien", "płom", "plom", "inferno", "vulcan", "wulkan", "smok", "dragon", "ash")),
         ("ice", ("lód", "lod", "mróz", "mroz", "szron", "frost", "ice", "frozen")),
-        ("dark", ("mrok", "cień", "cien", "shadow", "void", "pustk", "wraith", "nekro", "undead")),
+        ("void", ("void", "pustk", "nihil", "otchlan", "otchłań")),
+        ("shadow", ("cień", "cien", "shadow", "umbra", "wraith")),
+        ("dark", ("mrok", "nekro", "undead")),
         ("poison", ("truc", "jad", "poison", "venom", "bio", "bagno", "swamp", "zaraz")),
         ("holy", ("świat", "swiat", "świet", "swiet", "holy", "angel", "seraph", "sacred")),
         ("water", ("wod", "ocean", "tide", "fala", "morsk", "aqua")),
@@ -144,7 +160,7 @@ def elemental_attack_eligible_v11339(template):
         return False
     if template.get("training_dummy"):
         return False
-    if any(template.get(flag) for flag in V11339_PROTECTED_ELEMENTAL_BOSS_FLAGS):
+    if any(template.get(flag) for flag in V11339_PROTECTED_ELEMENTAL_BOSS_FLAGS) and not template.get("ethereal_superboss_v1140"):
         return False
     return bool(mob_element_affinities_v11339(template))
 
@@ -262,16 +278,18 @@ def player_element_bonus_multiplier_v11339(session, element):
 
 def elemental_combat_audit_v11339():
     errors = []
-    required = {"fire", "ice", "lightning", "dark", "poison", "holy", "water", "arcane"}
+    required = {"fire", "ice", "lightning", "dark", "shadow", "void", "poison", "holy", "water", "arcane"}
     if set(V11339_ELEMENT_ATTACKS) != required:
-        errors.append("element set differs from reviewed eight-element contract")
+        errors.append("element set differs from reviewed ten-element contract")
     if canonical_element_v11339("electric") != "lightning":
         errors.append("electric alias does not canonicalize to lightning")
     samples = {
         "fire": {"name": "Płomienny Smok"},
         "ice": {"name": "Strażnik Szronu"},
         "lightning": {"name": "Dron Shock", "machine": True},
-        "dark": {"name": "Cień Pustki"},
+        "dark": {"name": "Mroczny Nekromanta"},
+        "shadow": {"name": "Łowca Cienia"},
+        "void": {"name": "Pożeracz Pustki"},
         "poison": {"name": "Jadowity Wąż"},
         "holy": {"name": "Świetlisty Serafin"},
         "water": {"name": "Wodny Strażnik"},

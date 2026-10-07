@@ -17,7 +17,7 @@ import traceback
 try:
     from storage.database import Database as _DatabaseImportSmoke
 except Exception as exc:
-    print(f"Soulbound v1.13.62 FAST PREDEPLOY FAILED: database import: {type(exc).__name__}: {exc}")
+    print(f"Soulbound v1.14.2 FAST PREDEPLOY FAILED: database import: {type(exc).__name__}: {exc}")
     traceback.print_exc()
     raise SystemExit(1)
 
@@ -42,7 +42,7 @@ try:
     )
 except Exception as exc:
     print(
-        "Soulbound v1.13.62 FAST PREDEPLOY FAILED: "
+        "Soulbound v1.14.2 FAST PREDEPLOY FAILED: "
         f"skill semantic import: {type(exc).__name__}: {exc}"
     )
     traceback.print_exc()
@@ -174,8 +174,8 @@ try:
     )
     for _error in _elemental_combat_audit_v11339.get("errors", ()):
         _semantic_errors.append("elemental_combat: " + str(_error))
-    if int(_elemental_combat_audit_v11339.get("elements", 0) or 0) != 8:
-        _semantic_errors.append("elemental_combat: expected eight reviewed elements")
+    if int(_elemental_combat_audit_v11339.get("elements", 0) or 0) != 10:
+        _semantic_errors.append("elemental_combat: expected ten reviewed elements")
 except Exception as exc:
     _semantic_errors.append(
         f"elemental combat audit import failed: {type(exc).__name__}: {exc}"
@@ -200,8 +200,8 @@ try:
     )
     for _error in _party_synergy2_audit_v11339.get("errors", ()):
         _semantic_errors.append("party_synergy2: " + str(_error))
-    if int(_party_synergy2_audit_v11339.get("reaction_count", 0) or 0) != 8:
-        _semantic_errors.append("party_synergy2: expected eight reviewed reactions")
+    if int(_party_synergy2_audit_v11339.get("reaction_count", 0) or 0) != 10:
+        _semantic_errors.append("party_synergy2: expected ten reviewed reactions (8 class + 2 status)")
 except Exception as exc:
     _semantic_errors.append(
         f"party Synergy 2.0 audit import failed: {type(exc).__name__}: {exc}"
@@ -3260,7 +3260,7 @@ for _needle in (
         )
 for _needle in (
     "async def harden_equipment_v11342",
-    "Fire, Ice, Electric, Dark, Poison, Holy, Water, Arcane",
+    "Fire, Ice, Electric, Dark, Shadow, Void, Poison, Holy, Water, Arcane",
     "add_equipment_hardening_v11342",
     "content_level=max(level,new_rank*100)",
 ):
@@ -3700,18 +3700,18 @@ except Exception as _exc_v11358:
     )
 
 if _semantic_errors:
-    print("Soulbound v1.13.62 FAST PREDEPLOY FAILED: semantic contracts")
+    print("Soulbound v1.14.2 FAST PREDEPLOY FAILED: semantic contracts")
     for _error in _semantic_errors:
         print(f"ERROR: {_error}")
     raise SystemExit(1)
 
 if audit["error_count"]:
-    print("Soulbound v1.13.62 FAST PREDEPLOY FAILED")
+    print("Soulbound v1.14.2 FAST PREDEPLOY FAILED")
     for error in audit["errors"]:
         print(f"ERROR: {error}")
     raise SystemExit(1)
 
-print("Soulbound v1.13.62 FAST PREDEPLOY PASS")
+print("Soulbound v1.14.2 FAST PREDEPLOY PASS")
 print(
     "Semantic contracts: "
     f"{len(_semantic_audits)} audits PASS; AP runtime guards PASS"

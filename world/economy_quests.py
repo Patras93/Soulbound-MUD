@@ -802,8 +802,8 @@ def create_infinite_crypt_floor_definition(floor, mythic=False):
         note = " Przy pierwszym przejściu mityczny boss blokuje zejście do chwili pokonania." if is_mythic_crypt_boss_floor(floor) else ""
         _catalog_mut.catalog_assign({
             "zone": "Mityczna Krypta",
-            "name": f"Mityczna Krypta, piętro {floor}",
-            "desc": f"Mityczne piętro {floor}. Próg trudności {crypt_depth_step(floor)}.{note}",
+            "name": crypt_floor_display_name(floor, mythic=True),
+            "desc": f"Ta mityczna głębokość ma próg trudności {crypt_depth_step(floor)}.{note}",
             "exits": exits,
             "procedural_infinite": True,
         }, 'ROOMS', ROOMS, (room_id,))
@@ -876,8 +876,8 @@ def create_infinite_crypt_floor_definition(floor, mythic=False):
     note = " Przy pierwszym przejściu boss tego progu blokuje zejście do chwili pokonania." if is_crypt_boss_floor(floor) else ""
     _catalog_mut.catalog_assign({
         "zone": "Krypta Nieskończona",
-        "name": f"Krypta, piętro {floor}",
-        "desc": f"Piętro {floor}. Próg trudności {crypt_depth_step(floor)}.{note}",
+        "name": crypt_floor_display_name(floor),
+        "desc": f"Ta głębokość ma próg trudności {crypt_depth_step(floor)}.{note}",
         "exits": exits,
         "procedural_infinite": True,
     }, 'ROOMS', ROOMS, (room_id,))

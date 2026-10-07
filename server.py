@@ -40,6 +40,16 @@ print(f"Soulbound bootstrap port open: {_BOOT_SOCKET.getsockname()}", flush=True
 # project source text into its own globals.
 RUNTIME_ARCHITECTURE_STATE = load_native_runtime(_ROOT, globals())
 
+# v1.14.2: final runtime mob names are normalized only after every world
+# module/generator has registered its templates. This keeps NVDA output short
+# and prevents procedural floor numbers / stacked rarity prefixes leaking into
+# combat messages.
+from systems.mob_name_cleanup import normalize_runtime_mob_names_v1142, audit_runtime_mob_names_v1142
+MOB_NAME_CLEANUP_V1142 = normalize_runtime_mob_names_v1142(MOB_TEMPLATES)
+MOB_NAME_AUDIT_V1142 = audit_runtime_mob_names_v1142(MOB_TEMPLATES)
+if MOB_NAME_AUDIT_V1142["error_count"]:
+    raise RuntimeError("Mob name cleanup audit failed: " + "; ".join(MOB_NAME_AUDIT_V1142["errors"][:100]))
+
 from systems.combat_xp_repair_v11346 import COMBAT_XP_ZERO_AUDIT_V11346
 if COMBAT_XP_ZERO_AUDIT_V11346["error_count"]:
     raise RuntimeError("Combat XP zero audit failed: " + "; ".join(COMBAT_XP_ZERO_AUDIT_V11346["errors"]))

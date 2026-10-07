@@ -1,3 +1,38 @@
+Soulbound v1.14.2 — Czyszczenie nazw mobów
+
+- Globalna normalizacja nazw mobów po zbudowaniu całego runtime.
+- Usunięto cyfry oraz dopiski typu „poziom X”, „piętro X” i „floor X” z nazw przeciwników.
+- Usunięto powtórzone człony typu „Astralny Astralny”.
+- Proceduralne stosy prefixów rare/elite są kompresowane do czytelnych nazw.
+- Zwykłe nazwy mobów mają maksymalnie 3 człony; celowy marker NEMESIS pozostaje wyjątkiem.
+- Dodano runtime audit blokujący puste, numerowane, powtórzone i nadmiernie długie nazwy mobów.
+- Paczka runtime nie wymaga zmian bazy danych.
+
+Soulbound v1.14.1 — Unikalne nazwy Krypt
+
+- Usunięto numery pięter z nazw lokacji zwykłej Krypty i Mitycznej Krypty.
+- Każda głębokość dostaje deterministyczną, unikalną nazwę fantasy bez cyfr.
+- Wszystkie boczne komnaty na 30-pokojowych piętrach Krypt także dostają unikalne nazwy bez numerów.
+- Nazwy działają również na proceduralnych, nieskończonych głębokościach ponad 200.
+- Numery pięter pozostają wyłącznie jako dane techniczne progresu, portali, rekordów i komend nawigacyjnych.
+
+Soulbound v1.14.0 — Pustkowia Eteru
+==============================================================================
+- Dodano nowy wymiar Pustkowia Eteru: 76 nowych lokacji statycznych połączonych z Placem Dusz.
+- Dodano trzy nieskończone lochy: Otchłań Pustki, Nieskończone Sanktuarium i Labirynt Cienia; każdy skaluje HP, obrażenia i EXP bez końcowego piętra, z bossem co 10 pięter.
+- Dodano 8 nowych superbossów wymiaru; wejście działa solo lub w party, a po zabiciu konkretnego bossa obowiązuje 24-godzinny lockout.
+- Void i Shadow są osobnymi żywiołami zamiast aliasów Dark; Holy pozostaje pełnym kanałem żywiołowym. Hartowanie EQ obsługuje teraz także Shadow i Void.
+
+Soulbound v1.13.63 — Endless Towers 2.0 + Party Combos 2.1
+
+- Wieża Astralna i Mityczna Wieża Astralna pozostają nieskończone; nie dodano końcowego piętra ani limitu głębokości.
+- Endless Towers 2.0: każde piętro otrzymuje stabilny losowy mutator wpływający na HP, obrażenia, typ obrażeń i EXP. Od głębokości 100 działają dwa mutatory, a od 300 trzy jednocześnie.
+- Skrzynie bossów Wieży co 10 pięter nie zatrzymują już jakości nagród na progresji 600. Złoto, Fragmenty Duszy i dodatkowe użyteczne rolki rosną dalej wraz z głębokością.
+- Party Combos 2.1: Oil + Fire = Explosion. Reakcja zużywa Oil, więc nie można detonować tego samego przygotowania bez końca.
+- Party Combos 2.1: Paralyze + Lightning = Arc Surge. Reakcja zużywa Paralyze i wzmacnia trafienie Lightning.
+- Dotychczasowe Synergy 2.0 pozostają: m.in. Ice -> Shatter, Druid Poison -> Necromancer detonation i Fire -> Lightning Overload.
+- Fast predeploy zaktualizowany do 10 reakcji Synergy 2.x i przechodzi bez błędów.
+
 Soulbound v1.13.62 — Score Biegłość XP Hotfix
 
 - Naprawiono błąd komendy score po dodaniu szczegółów EXP Biegłości.
@@ -26,7 +61,7 @@ Soulbound v1.13.59 - Mec Hybrid EQ + Stronger 101+ Progression
 - Wzrost jest wyraźnie odczuwalny już od 101, a okolice 599 nadal celują w około 1 bilion EXP na kolejny awans.
 - Statystyki pozostają bez limitu i ich koszt rośnie dalej ponad 600.
 
-Aktualna paczka: v1.13.62
+Aktualna paczka: v1.14.2
 
 Soulbound v1.13.58 — DYNAMIC XP AUDIT
 - Usunięto główną przyczynę płaskiego EXP: Generator Core nie ignoruje już authored/raw XP.

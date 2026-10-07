@@ -373,8 +373,10 @@ SYSTEM_DESCRIPTIONS = {
 }
 
 
-LATEST_CHANGES_TITLE = "Soulbound v1.13.62 - Score Mastery XP Hotfix"
+LATEST_CHANGES_TITLE = "Soulbound v1.14.2 - Czyszczenie nazw mobów"
 LATEST_CHANGES = [
+    "v1.14.1: Zwykła i Mityczna Krypta mają unikalne nazwy głębokości i komnat bez numerów pięter w nazwach; numery pozostają tylko technicznie dla progresu, portali i komend.",
+    "v1.14.0: Pustkowia Eteru — 76 nowych lokacji, trzy nieskończone dungeony, 8 nowych superbossów z 24h lockoutem oraz osobne żywioły Void/Holy/Shadow; Void i Shadow nie są już aliasem Dark.",
     "v1.13.62: hotfix komendy score — dodano brakujący import class_mastery_xp_to_next, dzięki czemu postęp Biegłości (aktualny EXP, wymagany EXP i brakujący EXP) wyświetla się bez błędu komendy.",
     "v1.13.61: score pokazuje teraz dla każdej aktywnej klasy poziom Biegłości, aktualny EXP, wymagany EXP i brakującą ilość; Jammer nie stackuje ani nie odświeża własnego Stopu — może działać na cel z innymi statusami, ale ten sam Jammer wyłącza go tylko raz do końca bieżącego Stopu.",
     "v1.13.60: usunięto globalny limit jednego awansu z pojedynczego źródła EXP; pełna nadwyżka Class/Character/Soul/stat XP jest rozliczana przez kolejne awanse. Krzywa 101+ została ponownie wzmocniona: końcówka 599 celuje w około 10 bilionów EXP.",
@@ -399,7 +401,7 @@ LATEST_CHANGES = [
     "v1.13.42: profesje awansują szybciej — globalny Profession XP wzrasta z x2 do x4, a realne XP profesji i narzędzi przestaje być płaskie: rośnie z poziomem materiału/receptury/EQ; Młot Rzemieślniczy ma dodatkowe x1.35 i rozwija się także przy salvage.",
     "v1.13.42: zasada bez płaskiego EXP obejmuje całą grę — Character/Class/Soul/stat/Skill/Soul Weapon Mastery/Profession/Tool XP dostają kontekst trudności treści; questy, kontrakty, eksploracja, sprzedaż i world content przekazują własny stage, a CI klasyfikuje wszystkie add/grant XP i blokuje obejścia.",
     "v1.13.42: godzinne questy klasowe rosną razem z Biegłością przez 7 etapów i mają klasowe priorytety; etap jest zamrażany na daną godzinę, więc awans w trakcie zadania nie zmienia jego celu.",
-    "v1.13.42: hartuj <żywioł> <EQ> dodaje trwałe odporności Fire/Ice/Electric/Dark/Poison/Holy/Water/Arcane; 5 rang po 2%, 40% cap warstwy hartowania i 80% końcowego Wardu z istniejącym EQ.",
+    "v1.13.42: hartuj <żywioł> <EQ> dodaje trwałe odporności Fire/Ice/Electric/Dark/Shadow/Void/Poison/Holy/Water/Arcane; 5 rang po 2%, 40% cap warstwy hartowania i 80% końcowego Wardu z istniejącym EQ.",
     "v1.13.42: naprawiono Zaklinanie — Fokus Runiczny jest ponownie widoczny i kupowalny u Kwatermistrzyni Selene w Komnacie Arkanów; dynamiczne sklepy klasowe nie ukrywają już zwykłych narzędzi przypisanych do tej samej sali.",
     "v1.13.41: śmierć pokazuje przyczynę zgonu z zabójcą, zdolnością/żywiołem, typem obrażeń, końcowym trafieniem i miejscem; profil <gracz> pokazuje Best Kill i Worst Defeat z XP; klucze bossowe można przetapiać w Kuźni przez przetop klucze lub przetop <nazwa klucza>.",
     "v1.13.40: skróty walk do kolejnego przejścia są spójne w nieskończonych lochach: Krypta/Mityczna Krypta dół, Wieża/Mityczna Wieża góra, Twierdza Gigantów góra i UOSS Deep Dungeon dół; zawsze zatrzymują się przed ostatnim up/down.",
