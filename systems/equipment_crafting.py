@@ -1313,6 +1313,13 @@ from data.shops import SHOPS
 for _room_id, _items in CLASS_SHOP_ITEMS_BY_ROOM.items():
     _catalog_mut.catalog_assign(list(_items), 'SHOPS', SHOPS, (_room_id,))
 
+# v1.13.46: guild_arcane_chamber is both a class-equipment shop and the
+# Zaklinanie tool vendor. The class-shop rebuild above must not remove the
+# Runic Focus added by systems.professions.
+_catalog_mut.catalog_setdefault_path('SHOPS', SHOPS, (), 'guild_arcane_chamber', [])
+if 'runic_focus' not in SHOPS['guild_arcane_chamber']:
+    SHOPS['guild_arcane_chamber'].append('runic_focus')
+
 
 
 SHOP_SELLERS = {
