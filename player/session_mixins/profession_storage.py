@@ -138,6 +138,74 @@ class SessionProfessionStorageMixin:
                 f"XP: {xp_text}. Użycia: {int(row['uses'])}."
             )
 
+    def profession_tool_pairs_v11343(self):
+            return (
+                ("Wędkarstwo","fishing"),
+                ("Górnictwo","mining"),
+                ("Drwalstwo","woodcutting"),
+                ("Kowalstwo","crafting"),
+                ("Gotowanie","cooking"),
+                ("Zielarstwo","herbalism"),
+                ("Alchemia","alchemy"),
+                ("Jubilerstwo","jewelcrafting"),
+                ("Krawiectwo","tailoring"),
+                ("Garbarstwo","leatherworking"),
+                ("Stolarstwo","carpentry"),
+                ("Zaklinanie","enchanting"),
+                ("Archeologia","archaeology"),
+                ("Kartografia","cartography_profession"),
+            )
+
+    async def show_professions(self, query=""):
+            wanted=normalize_lookup_text(query or "")
+            rows=[]
+            for profession,tool_type in self.profession_tool_pairs_v11343():
+                if wanted and wanted not in normalize_lookup_text(profession):
+                    continue
+                row=self.server.db.profession(self.account_id,profession)
+                level=int(row["level"])
+                rows.append(
+                    f"{profession}: poziom {level}/{profession_max_level(profession)}, "
+                    f"Ranga {profession_rank(level,profession)}/"
+                    f"{profession_max_rank(profession)} "
+                    f"{profession_rank_name(profession,level)}, "
+                    f"XP {self.profession_xp_status_text_v11343(profession)}, "
+                    f"akcje {int(row['actions'])}."
+                )
+            if not rows:
+                await self.send("Nie rozpoznaję profesji.")
+                return
+            await self.send("PROFESJE")
+            for line in rows:
+                await self.send(line)
+
+    async def show_tools(self, query=""):
+            wanted=normalize_lookup_text(query or "")
+            rows=[]
+            for profession,tool_type in self.profession_tool_pairs_v11343():
+                tool_name=self.tool_display_name_v11343(tool_type)
+                if wanted and (
+                    wanted not in normalize_lookup_text(tool_name)
+                    and wanted not in normalize_lookup_text(profession)
+                    and wanted not in normalize_lookup_text(tool_type)
+                ):
+                    continue
+                row=self.server.db.tool(self.account_id,tool_type)
+                level=int(row["level"])
+                rows.append(
+                    f"{tool_name}: poziom {level}/{tool_max_level(tool_type)}, "
+                    f"Tier {tool_tier(level)}/{TOOL_MAX_TIER} "
+                    f"{tool_tier_name(tool_type,level)}, "
+                    f"XP {self.tool_xp_status_text_v11343(tool_type)}, "
+                    f"użycia {int(row['uses'])}."
+                )
+            if not rows:
+                await self.send("Nie rozpoznaję narzędzia ani profesji.")
+                return
+            await self.send("NARZĘDZIA PROFESJI")
+            for line in rows:
+                await self.send(line)
+
     def tool_progress_state(self):
             result = {}
             for tool_type in (
